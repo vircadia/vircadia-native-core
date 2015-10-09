@@ -79,7 +79,7 @@ public:
 
     typedef enum {OUTSIDE, INTERSECT, INSIDE} location;
 
-    ViewFrustum::location pointInFrustum(const glm::vec3& point) const;
+    ViewFrustum::location pointInFrustum(const glm::vec3& point, bool ignoreKeyhole = false) const;
     ViewFrustum::location sphereInFrustum(const glm::vec3& center, float radius) const;
     ViewFrustum::location cubeInFrustum(const AACube& cube) const;
     ViewFrustum::location boxInFrustum(const AABox& box) const;

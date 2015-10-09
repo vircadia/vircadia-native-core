@@ -16,6 +16,7 @@
 #include <GLMHelpers.h>
 #include <NumericalConstants.h>
 #include <PerfStat.h>
+#include <SettingHandle.h>
 #include <plugins/PluginContainer.h>
 
 #include "NumericalConstants.h"
@@ -38,7 +39,7 @@ const unsigned int RIGHT_MASK = 1U << 1;
 #ifdef HAVE_SIXENSE
 
 const int CALIBRATION_STATE_IDLE = 0;
-const int CALIBRATION_STATE_X = 1;
+const int CALIBRATION_STATE_IN_PROGRESS = 1;
 const int CALIBRATION_STATE_COMPLETE = 2;
 
 const glm::vec3 DEFAULT_AVATAR_POSITION(-0.25f, -0.35f, -0.3f); // in hydra frame
@@ -56,25 +57,23 @@ typedef int (*SixenseTakeIntAndSixenseControllerData)(int, sixenseControllerData
 #endif
 
 const QString SixenseManager::NAME = "Sixense";
+const QString SixenseManager::HYDRA_ID_STRING = "Razer Hydra";
 
 const QString MENU_PARENT = "Avatar";
 const QString MENU_NAME = "Sixense";
 const QString MENU_PATH = MENU_PARENT + ">" + MENU_NAME;
 const QString TOGGLE_SMOOTH = "Smooth Sixense Movement";
+const float DEFAULT_REACH_LENGTH = 1.5f;
 
-SixenseManager& SixenseManager::getInstance() {
-    static SixenseManager sharedInstance;
-    return sharedInstance;
-}
 
 SixenseManager::SixenseManager() :
     InputDevice("Hydra"),
 #ifdef __APPLE__
     _sixenseLibrary(NULL),
 #endif
+    _reachLength(DEFAULT_REACH_LENGTH),
     _hydrasConnected(false)
 {
-
 }
 
 bool SixenseManager::isSupported() const {
@@ -92,7 +91,7 @@ void SixenseManager::activate() {
 
     CONTAINER->addMenu(MENU_PATH);
     CONTAINER->addMenuItem(MENU_PATH, TOGGLE_SMOOTH,
-                           [this] (bool clicked) { this->setFilter(clicked); },
+                           [this] (bool clicked) { this->setSixenseFilter(clicked); },
                            true, true);
 
 #ifdef __APPLE__
@@ -120,6 +119,7 @@ void SixenseManager::activate() {
 
     SixenseBaseFunction sixenseInit = (SixenseBaseFunction) _sixenseLibrary->resolve("sixenseInit");
 #endif
+    loadSettings();
     sixenseInit();
 #endif
 }
@@ -144,7 +144,7 @@ void SixenseManager::deactivate() {
 #endif
 }
 
-void SixenseManager::setFilter(bool filter) {
+void SixenseManager::setSixenseFilter(bool filter) {
 #ifdef HAVE_SIXENSE
 #ifdef __APPLE__
     SixenseTakeIntFunction sixenseSetFilterEnabled = (SixenseTakeIntFunction) _sixenseLibrary->resolve("sixenseSetFilterEnabled");
@@ -282,6 +282,7 @@ void SixenseManager::updateCalibration(void* controllersX) {
                 glm::vec3 xAxis = glm::normalize(_reachRight - _reachLeft);
                 glm::vec3 zAxis = glm::normalize(glm::cross(xAxis, Vectors::UNIT_Y));
                 xAxis = glm::normalize(glm::cross(Vectors::UNIT_Y, zAxis));
+                _reachLength = glm::dot(xAxis, _reachRight - _reachLeft);
                 _avatarRotation = glm::inverse(glm::quat_cast(glm::mat3(xAxis, Vectors::UNIT_Y, zAxis)));
                 const float Y_OFFSET_CALIBRATED_HANDS_TO_AVATAR = -0.3f;
                 _avatarPosition.y += Y_OFFSET_CALIBRATED_HANDS_TO_AVATAR;
@@ -317,7 +318,7 @@ void SixenseManager::updateCalibration(void* controllersX) {
             _lastDistance = reach;
             _lockExpiry = usecTimestampNow() + LOCK_DURATION;
             // move to next state
-            _calibrationState = CALIBRATION_STATE_X;
+            _calibrationState = CALIBRATION_STATE_IN_PROGRESS;
         }
         return;
     }
@@ -327,7 +328,7 @@ void SixenseManager::updateCalibration(void* controllersX) {
     _averageLeft = 0.9f * _averageLeft + 0.1f * positionLeft;
     _averageRight = 0.9f * _averageRight + 0.1f * positionRight;
 
-    if (_calibrationState == CALIBRATION_STATE_X) {
+    if (_calibrationState == CALIBRATION_STATE_IN_PROGRESS) {
         // compute new sliding average
         float distance = glm::distance(_averageLeft, _averageRight);
         if (fabsf(distance - _lastDistance) > MAXIMUM_NOISE_LEVEL) {
@@ -340,7 +341,6 @@ void SixenseManager::updateCalibration(void* controllersX) {
             // lock has expired so clamp the data and move on
             _lockExpiry = now + LOCK_DURATION;
             _lastDistance = 0.0f;
-            _reachUp = 0.5f * (_reachLeft + _reachRight);
             _calibrationState = CALIBRATION_STATE_COMPLETE;
             qCDebug(inputplugins, "success: sixense calibration: left");
         }
@@ -541,6 +541,31 @@ void SixenseManager::assignDefaultInputMapping(UserInputMapper& mapper) {
     mapper.addInputChannel(UserInputMapper::CONTEXT_MENU, makeInput(BUTTON_0, 0));
     mapper.addInputChannel(UserInputMapper::TOGGLE_MUTE, makeInput(BUTTON_0, 1));
 
+}
+
+// virtual
+void SixenseManager::saveSettings() const {
+    Settings settings;
+    QString idString = getID();
+    settings.beginGroup(idString);
+    {
+        settings.setVec3Value(QString("avatarPosition"), _avatarPosition);
+        settings.setQuatValue(QString("avatarRotation"), _avatarRotation);
+        settings.setValue(QString("reachLength"), QVariant(_reachLength));
+    }
+    settings.endGroup();
+}
+
+void SixenseManager::loadSettings() {
+    Settings settings;
+    QString idString = getID();
+    settings.beginGroup(idString);
+    {
+        settings.getVec3ValueIfValid(QString("avatarPosition"), _avatarPosition);
+        settings.getQuatValueIfValid(QString("avatarRotation"), _avatarRotation);
+        settings.getFloatValueIfValid(QString("reachLength"), _reachLength);
+    }
+    settings.endGroup();
 }
 
 UserInputMapper::Input SixenseManager::makeInput(unsigned int button, int index) {

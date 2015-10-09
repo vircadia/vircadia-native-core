@@ -19,7 +19,6 @@ void OculusBaseDisplayPlugin::preRender() {
 #if (OVR_MAJOR_VERSION >= 6)
     ovrFrameTiming ftiming = ovr_GetFrameTiming(_hmd, _frameIndex);
     _trackingState = ovr_GetTrackingState(_hmd, ftiming.DisplayMidpointSeconds);
-    ovr_CalcEyePoses(_trackingState.HeadPose.ThePose, _eyeOffsets, _eyePoses);
 #endif
 }
 
@@ -33,13 +32,18 @@ void OculusBaseDisplayPlugin::resetSensors() {
 #endif
 }
 
-glm::mat4 OculusBaseDisplayPlugin::getEyePose(Eye eye) const {
-    return toGlm(_eyePoses[eye]);
+glm::mat4 OculusBaseDisplayPlugin::getEyeToHeadTransform(Eye eye) const {
+    return glm::translate(mat4(), toGlm(_eyeOffsets[eye]));
 }
 
 glm::mat4 OculusBaseDisplayPlugin::getHeadPose() const {
     return toGlm(_trackingState.HeadPose.ThePose);
 }
+
+void OculusBaseDisplayPlugin::setEyeRenderPose(Eye eye, const glm::mat4& pose) {
+    _eyePoses[eye] = ovrPoseFromGlm(pose);
+}
+
 
 bool OculusBaseDisplayPlugin::isSupported() const {
 #if (OVR_MAJOR_VERSION >= 6)
@@ -151,9 +155,9 @@ void OculusBaseDisplayPlugin::display(GLuint finalTexture, const glm::uvec2& sce
 }
 
 float OculusBaseDisplayPlugin::getIPD() const {
-    float result = 0.0f;
+    float result = OVR_DEFAULT_IPD;
 #if (OVR_MAJOR_VERSION >= 6)
-    result = ovr_GetFloat(_hmd, OVR_KEY_IPD, OVR_DEFAULT_IPD);
+    result = ovr_GetFloat(_hmd, OVR_KEY_IPD, result);
 #endif
     return result;
 }

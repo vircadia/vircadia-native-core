@@ -13,8 +13,8 @@ Script.include("../../utilities.js");
 
 var scriptURL = Script.resolvePath('pingPongGun.js');
 
-var MODEL_URL = 'http://hifi-public.s3.amazonaws.com/models/ping_pong_gun/ping_pong_gun.fbx?123'
-var COLLISION_HULL_URL = 'http://hifi-public.s3.amazonaws.com/models/ping_pong_gun/ping_pong_gun_collision_hull.obj?123';
+var MODEL_URL = 'http://hifi-public.s3.amazonaws.com/models/ping_pong_gun/ping_pong_gun.fbx'
+var COLLISION_HULL_URL = 'http://hifi-public.s3.amazonaws.com/models/ping_pong_gun/ping_pong_gun_collision_hull.obj';
 
 var center = Vec3.sum(Vec3.sum(MyAvatar.position, {
     x: 0,

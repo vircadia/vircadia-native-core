@@ -306,6 +306,7 @@ bool setupEssentials(int& argc, char** argv) {
     DependencyManager::set<DesktopScriptingInterface>();
     DependencyManager::set<EntityScriptingInterface>();
     DependencyManager::set<WindowScriptingInterface>();
+    DependencyManager::set<HMDScriptingInterface>();
 #if defined(Q_OS_MAC) || defined(Q_OS_WIN)
     DependencyManager::set<SpeechRecognizer>();
 #endif
@@ -1166,9 +1167,11 @@ void Application::paintGL() {
             // right eye.  There are FIXMEs in the relevant plugins
             _myCamera.setProjection(displayPlugin->getProjection(Mono, _myCamera.getProjection()));
             renderArgs._context->enableStereo(true);
-            mat4 eyeViews[2];
+            mat4 eyeOffsets[2];
             mat4 eyeProjections[2];
             auto baseProjection = renderArgs._viewFrustum->getProjection();
+            auto hmdInterface = DependencyManager::get<HMDScriptingInterface>();
+            float IPDScale = hmdInterface->getIPDScale();
             // FIXME we probably don't need to set the projection matrix every frame,
             // only when the display plugin changes (or in non-HMD modes when the user 
             // changes the FOV manually, which right now I don't think they can.
@@ -1177,14 +1180,24 @@ void Application::paintGL() {
                 // applied to the avatar, so we need to get the difference between the head 
                 // pose applied to the avatar and the per eye pose, and use THAT as
                 // the per-eye stereo matrix adjustment.
-                mat4 eyePose = displayPlugin->getEyePose(eye);
+                mat4 eyeToHead = displayPlugin->getEyeToHeadTransform(eye);
+                // Grab the translation
+                vec3 eyeOffset = glm::vec3(eyeToHead[3]);
+                // Apply IPD scaling
+                mat4 eyeOffsetTransform = glm::translate(mat4(), eyeOffset * -1.0f * IPDScale);
+                eyeOffsets[eye] = eyeOffsetTransform;
+
+                // Tell the plugin what pose we're using to render.  In this case we're just using the 
+                // unmodified head pose because the only plugin that cares (the Oculus plugin) uses it 
+                // for rotational timewarp.  If we move to support positonal timewarp, we need to 
+                // ensure this contains the full pose composed with the eye offsets.  
                 mat4 headPose = displayPlugin->getHeadPose();
-                mat4 eyeView = glm::inverse(eyePose) * headPose;
-                eyeViews[eye] = eyeView;
+                displayPlugin->setEyeRenderPose(eye, headPose);
+
                 eyeProjections[eye] = displayPlugin->getProjection(eye, baseProjection);
             });
             renderArgs._context->setStereoProjections(eyeProjections);
-            renderArgs._context->setStereoViews(eyeViews);
+            renderArgs._context->setStereoViews(eyeOffsets);
         }
         displaySide(&renderArgs, _myCamera);
         renderArgs._context->enableStereo(false);
@@ -1812,17 +1825,16 @@ void Application::mouseMoveEvent(QMouseEvent* event, unsigned int deviceID) {
     }
 #endif
 
+    auto offscreenUi = DependencyManager::get<OffscreenUi>();
+    QPointF transformedPos = offscreenUi->mapToVirtualScreen(event->localPos(), _glWidget);
+    QMouseEvent mappedEvent(event->type(),
+        transformedPos,
+        event->screenPos(), event->button(),
+        event->buttons(), event->modifiers());
 
-    _entities.mouseMoveEvent(event, deviceID);
-    {
-        auto offscreenUi = DependencyManager::get<OffscreenUi>();
-        QPointF transformedPos = offscreenUi->mapToVirtualScreen(event->localPos(), _glWidget);
-        QMouseEvent mappedEvent(event->type(),
-            transformedPos,
-            event->screenPos(), event->button(),
-            event->buttons(), event->modifiers());
-        _controllerScriptingInterface.emitMouseMoveEvent(&mappedEvent, deviceID); // send events to any registered scripts
-    }
+
+    _entities.mouseMoveEvent(&mappedEvent, deviceID);
+    _controllerScriptingInterface.emitMouseMoveEvent(&mappedEvent, deviceID); // send events to any registered scripts
 
     // if one of our scripts have asked to capture this event, then stop processing it
     if (_controllerScriptingInterface.isMouseCaptured()) {
@@ -1838,19 +1850,19 @@ void Application::mouseMoveEvent(QMouseEvent* event, unsigned int deviceID) {
 void Application::mousePressEvent(QMouseEvent* event, unsigned int deviceID) {
     // Inhibit the menu if the user is using alt-mouse dragging
     _altPressed = false;
+
+    auto offscreenUi = DependencyManager::get<OffscreenUi>();
+    QPointF transformedPos = offscreenUi->mapToVirtualScreen(event->localPos(), _glWidget);
+    QMouseEvent mappedEvent(event->type(),
+        transformedPos,
+        event->screenPos(), event->button(),
+        event->buttons(), event->modifiers());
+
     if (!_aboutToQuit) {
-        _entities.mousePressEvent(event, deviceID);
+        _entities.mousePressEvent(&mappedEvent, deviceID);
     }
 
-    {
-        auto offscreenUi = DependencyManager::get<OffscreenUi>();
-        QPointF transformedPos = offscreenUi->mapToVirtualScreen(event->localPos(), _glWidget);
-        QMouseEvent mappedEvent(event->type(),
-            transformedPos,
-            event->screenPos(), event->button(),
-            event->buttons(), event->modifiers());
-        _controllerScriptingInterface.emitMousePressEvent(&mappedEvent); // send events to any registered scripts
-    }
+    _controllerScriptingInterface.emitMousePressEvent(&mappedEvent); // send events to any registered scripts
 
     // if one of our scripts have asked to capture this event, then stop processing it
     if (_controllerScriptingInterface.isMouseCaptured()) {
@@ -1866,7 +1878,7 @@ void Application::mousePressEvent(QMouseEvent* event, unsigned int deviceID) {
         if (event->button() == Qt::LeftButton) {
             // nobody handled this - make it an action event on the _window object
             HFActionEvent actionEvent(HFActionEvent::startType(),
-                                      computePickRay(event->x(), event->y()));
+                computePickRay(mappedEvent.x(), mappedEvent.y()));
             sendEvent(this, &actionEvent);
 
         } else if (event->button() == Qt::RightButton) {
@@ -1894,19 +1906,18 @@ void Application::mouseDoublePressEvent(QMouseEvent* event, unsigned int deviceI
 
 void Application::mouseReleaseEvent(QMouseEvent* event, unsigned int deviceID) {
 
+    auto offscreenUi = DependencyManager::get<OffscreenUi>();
+    QPointF transformedPos = offscreenUi->mapToVirtualScreen(event->localPos(), _glWidget);
+    QMouseEvent mappedEvent(event->type(),
+        transformedPos,
+        event->screenPos(), event->button(),
+        event->buttons(), event->modifiers());
+
     if (!_aboutToQuit) {
-        _entities.mouseReleaseEvent(event, deviceID);
+        _entities.mouseReleaseEvent(&mappedEvent, deviceID);
     }
 
-    {
-        auto offscreenUi = DependencyManager::get<OffscreenUi>();
-        QPointF transformedPos = offscreenUi->mapToVirtualScreen(event->localPos(), _glWidget);
-        QMouseEvent mappedEvent(event->type(),
-            transformedPos,
-            event->screenPos(), event->button(),
-            event->buttons(), event->modifiers());
-        _controllerScriptingInterface.emitMouseReleaseEvent(&mappedEvent); // send events to any registered scripts
-    }
+    _controllerScriptingInterface.emitMouseReleaseEvent(&mappedEvent); // send events to any registered scripts
 
     // if one of our scripts have asked to capture this event, then stop processing it
     if (_controllerScriptingInterface.isMouseCaptured()) {
@@ -1921,7 +1932,7 @@ void Application::mouseReleaseEvent(QMouseEvent* event, unsigned int deviceID) {
         if (event->button() == Qt::LeftButton) {
             // fire an action end event
             HFActionEvent actionEvent(HFActionEvent::endType(),
-                                      computePickRay(event->x(), event->y()));
+                computePickRay(mappedEvent.x(), mappedEvent.y()));
             sendEvent(this, &actionEvent);
         }
     }
@@ -2338,6 +2349,7 @@ void Application::saveSettings() {
 
     Menu::getInstance()->saveSettings();
     getMyAvatar()->saveData();
+    PluginManager::getInstance()->saveSettings();
 }
 
 bool Application::importEntities(const QString& urlOrFilename) {
@@ -2745,7 +2757,7 @@ void Application::update(float deltaTime) {
     Hand* hand = DependencyManager::get<AvatarManager>()->getMyAvatar()->getHand();
     setPalmData(hand, leftHand, deltaTime, LEFT_HAND_INDEX, userInputMapper->getActionState(UserInputMapper::LEFT_HAND_CLICK));
     setPalmData(hand, rightHand, deltaTime, RIGHT_HAND_INDEX, userInputMapper->getActionState(UserInputMapper::RIGHT_HAND_CLICK));
-    if (Menu::getInstance()->isOptionChecked(MenuOption::HandMouseInput)) {
+    if (Menu::getInstance()->isOptionChecked(MenuOption::EnableHandMouseInput)) {
         emulateMouse(hand, userInputMapper->getActionState(UserInputMapper::LEFT_HAND_CLICK),
             userInputMapper->getActionState(UserInputMapper::SHIFT), LEFT_HAND_INDEX);
         emulateMouse(hand, userInputMapper->getActionState(UserInputMapper::RIGHT_HAND_CLICK),
@@ -3175,14 +3187,13 @@ int Application::getBoundaryLevelAdjust() const {
 }
 
 PickRay Application::computePickRay(float x, float y) const {
-    glm::vec2 size = getCanvasSize();
-    x /= size.x;
-    y /= size.y;
+    vec2 pickPoint{ x, y };
     PickRay result;
     if (isHMDMode()) {
-        getApplicationCompositor().computeHmdPickRay(glm::vec2(x, y), result.origin, result.direction);
+        getApplicationCompositor().computeHmdPickRay(pickPoint, result.origin, result.direction);
     } else {
-        getViewFrustum()->computePickRay(x, y, result.origin, result.direction);
+        pickPoint /= getCanvasSize();
+        getViewFrustum()->computePickRay(pickPoint.x, pickPoint.y, result.origin, result.direction);
     }
     return result;
 }
@@ -3930,7 +3941,7 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEngine* scri
 
     scriptEngine->registerGlobalObject("Paths", DependencyManager::get<PathUtils>().data());
 
-    scriptEngine->registerGlobalObject("HMD", &HMDScriptingInterface::getInstance());
+    scriptEngine->registerGlobalObject("HMD", DependencyManager::get<HMDScriptingInterface>().data());
     scriptEngine->registerFunction("HMD", "getHUDLookAtPosition2D", HMDScriptingInterface::getHUDLookAtPosition2D, 0);
     scriptEngine->registerFunction("HMD", "getHUDLookAtPosition3D", HMDScriptingInterface::getHUDLookAtPosition3D, 0);
 
@@ -4738,21 +4749,9 @@ mat4 Application::getEyeProjection(int eye) const {
     return _viewFrustum.getProjection();
 }
 
-mat4 Application::getEyePose(int eye) const {
-    if (isHMDMode()) {
-        return getActiveDisplayPlugin()->getEyePose((Eye)eye);
-    }
-
-    return mat4();
-}
-
 mat4 Application::getEyeOffset(int eye) const {
-    if (isHMDMode()) {
-        mat4 identity;
-        return getActiveDisplayPlugin()->getView((Eye)eye, identity);
-    }
-
-    return mat4();
+    // FIXME invert?
+    return getActiveDisplayPlugin()->getEyeToHeadTransform((Eye)eye);
 }
 
 mat4 Application::getHMDSensorPose() const {

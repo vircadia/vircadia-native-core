@@ -28,27 +28,28 @@ class Packet;
 class PacketList : public QIODevice {
     Q_OBJECT
 public:
+    using MessageNumber = uint32_t;
+    using PacketPointer = std::unique_ptr<Packet>;
+    
     static std::unique_ptr<PacketList> create(PacketType packetType, QByteArray extendedHeader = QByteArray(),
                                               bool isReliable = false, bool isOrdered = false);
     static std::unique_ptr<PacketList> fromReceivedPackets(std::list<std::unique_ptr<Packet>>&& packets);
     
+    PacketType getType() const { return _packetType; }
     bool isReliable() const { return _isReliable; }
     bool isOrdered() const { return _isOrdered; }
+    
+    int getNumPackets() const { return _packets.size() + (_currentPacket ? 1 : 0); }
+    size_t getDataSize() const;
+    size_t getMessageSize() const;
+    QByteArray getMessage();
+    
+    QByteArray getExtendedHeader() const { return _extendedHeader; }
     
     void startSegment();
     void endSegment();
     
-    PacketType getType() const { return _packetType; }
-    int getNumPackets() const { return _packets.size() + (_currentPacket ? 1 : 0); }
-
-    QByteArray getExtendedHeader() const { return _extendedHeader; }
-
-    size_t getDataSize() const;
-    size_t getMessageSize() const;
-    
     void closeCurrentPacket(bool shouldSendEmpty = false);
-
-    QByteArray getMessage();
 
     // QIODevice virtual functions
     virtual bool isSequential() const  { return false; }
@@ -60,6 +61,8 @@ public:
 protected:
     PacketList(PacketType packetType, QByteArray extendedHeader = QByteArray(), bool isReliable = false, bool isOrdered = false);
     PacketList(PacketList&& other);
+    
+    void preparePackets(MessageNumber messageNumber);
 
     virtual qint64 writeData(const char* data, qint64 maxSize);
     // Not implemented, added an assert so that it doesn't get used by accident
@@ -70,6 +73,7 @@ protected:
     
 private:
     friend class ::LimitedNodeList;
+    friend class PacketQueue;
     friend class SendQueue;
     friend class Socket;
     

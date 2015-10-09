@@ -80,12 +80,10 @@ const float MyAvatar::ZOOM_DEFAULT = 1.5f;
 
 MyAvatar::MyAvatar(RigPointer rig) :
     Avatar(rig),
-    _gravity(0.0f, 0.0f, 0.0f),
     _wasPushing(false),
     _isPushing(false),
     _isBraking(false),
     _boomLength(ZOOM_DEFAULT),
-    _trapDuration(0.0f),
     _thrust(0.0f),
     _keyboardMotorVelocity(0.0f),
     _keyboardMotorTimescale(DEFAULT_KEYBOARD_MOTOR_TIMESCALE),
@@ -143,24 +141,46 @@ QByteArray MyAvatar::toByteArray(bool cullSmallChanges, bool sendAll) {
 }
 
 void MyAvatar::reset() {
-    _skeletonModel.reset();
-    getHead()->reset();
-
-    _targetVelocity = glm::vec3(0.0f);
-    setThrust(glm::vec3(0.0f));
-    //  Reset the pitch and roll components of the avatar's orientation, preserve yaw direction
-    glm::vec3 eulers = safeEulerAngles(getOrientation());
-    eulers.x = 0.0f;
-    eulers.z = 0.0f;
-    setOrientation(glm::quat(eulers));
-
+    // Gather animation mode...
     // This should be simpler when we have only graph animations always on.
     bool isRig = _rig->getEnableRig();
     // seting rig animation to true, below, will clear the graph animation menu item, so grab it now.
     bool isGraph = _rig->getEnableAnimGraph() || Menu::getInstance()->isOptionChecked(MenuOption::EnableAnimGraph);
+    // ... and get to sane configuration where other activity won't bother us.
     qApp->setRawAvatarUpdateThreading(false);
     _rig->disableHands = true;
     setEnableRigAnimations(true);
+
+    // Reset dynamic state.
+    _wasPushing = _isPushing = _isBraking = _billboardValid = _goToPending = _straightingLean = false;
+    _skeletonModel.reset();
+    getHead()->reset();
+    _targetVelocity = glm::vec3(0.0f);
+    setThrust(glm::vec3(0.0f));
+
+    // Get fresh data, in case we're really slow and out of wack.
+    _hmdSensorMatrix = qApp->getHMDSensorPose();
+    _hmdSensorPosition = extractTranslation(_hmdSensorMatrix);
+    _hmdSensorOrientation = glm::quat_cast(_hmdSensorMatrix);
+
+    // Reset body position/orientation under the head.
+    auto newBodySensorMatrix = deriveBodyFromHMDSensor(); // Based on current cached HMD position/rotation..
+    auto worldBodyMatrix = _sensorToWorldMatrix * newBodySensorMatrix;
+    glm::vec3 worldBodyPos = extractTranslation(worldBodyMatrix);
+    glm::quat worldBodyRot = glm::normalize(glm::quat_cast(worldBodyMatrix));
+
+    // FIXME: Hack to retain the previous behavior wrt height.
+    // I'd like to make the body match head height, but that will have to wait for separate PR.
+    worldBodyPos.y = getPosition().y;
+
+    setPosition(worldBodyPos);
+    setOrientation(worldBodyRot);
+    // If there is any discrepency between positioning and the head (as there is in initial deriveBodyFromHMDSensor),
+    // we can make that right by setting _bodySensorMatrix = newBodySensorMatrix.
+    // However, doing so will make the head want to point to the previous body orientation, as cached above.
+    //_bodySensorMatrix = newBodySensorMatrix;
+    //updateSensorToWorldMatrix(); // Uses updated position/orientation and _bodySensorMatrix changes
+
     _skeletonModel.simulate(0.1f);  // non-zero
     setEnableRigAnimations(false);
     _skeletonModel.simulate(0.1f);
@@ -1345,12 +1365,14 @@ void MyAvatar::renderBody(RenderArgs* renderArgs, ViewFrustum* renderFrustum, fl
     if (qApp->isHMDMode()) {
         glm::vec3 cameraPosition = qApp->getCamera()->getPosition();
 
-        glm::mat4 leftEyePose = qApp->getActiveDisplayPlugin()->getEyePose(Eye::Left);
-        glm::vec3 leftEyePosition = glm::vec3(leftEyePose[3]);
-        glm::mat4 rightEyePose = qApp->getActiveDisplayPlugin()->getEyePose(Eye::Right);
-        glm::vec3 rightEyePosition = glm::vec3(rightEyePose[3]);
         glm::mat4 headPose = qApp->getActiveDisplayPlugin()->getHeadPose();
-        glm::vec3 headPosition = glm::vec3(headPose[3]);
+        glm::mat4 leftEyePose = qApp->getActiveDisplayPlugin()->getEyeToHeadTransform(Eye::Left);
+        leftEyePose = leftEyePose * headPose;
+        glm::vec3 leftEyePosition = extractTranslation(leftEyePose);
+        glm::mat4 rightEyePose = qApp->getActiveDisplayPlugin()->getEyeToHeadTransform(Eye::Right);
+        rightEyePose = rightEyePose * headPose;
+        glm::vec3 rightEyePosition = extractTranslation(rightEyePose);
+        glm::vec3 headPosition = extractTranslation(headPose);
 
         getHead()->renderLookAts(renderArgs,
             cameraPosition + getOrientation() * (leftEyePosition - headPosition),

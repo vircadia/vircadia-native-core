@@ -282,7 +282,7 @@ void UDTTest::sendPacket() {
                 packetList->write(randomPaddedData);
             }
             
-            packetList->closeCurrentPacket(false);
+            packetList->closeCurrentPacket();
             
             _totalQueuedBytes += packetList->getDataSize();
             _totalQueuedPackets += packetList->getNumPackets();

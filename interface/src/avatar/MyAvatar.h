@@ -283,8 +283,6 @@ private:
     // results are in sensor space
     glm::mat4 deriveBodyFromHMDSensor() const;
 
-    glm::vec3 _gravity;
-
     float _driveKeys[MAX_DRIVE_KEYS];
     bool _wasPushing;
     bool _isPushing;
@@ -292,7 +290,6 @@ private:
 
     float _boomLength;
 
-    float _trapDuration; // seconds that avatar has been trapped by collisions
     glm::vec3 _thrust;  // impulse accumulator for outside sources
 
     glm::vec3 _keyboardMotorVelocity; // target local-frame velocity of avatar (keyboard)

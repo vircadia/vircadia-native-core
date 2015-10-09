@@ -205,6 +205,13 @@ void Batch::setViewportTransform(const Vec4i& viewport) {
     _params.push_back(cacheData(sizeof(Vec4i), &viewport));
 }
 
+void Batch::setDepthRangeTransform(float nearDepth, float farDepth) {
+    ADD_COMMAND(setDepthRangeTransform);
+
+    _params.push_back(farDepth);
+    _params.push_back(nearDepth);
+}
+
 void Batch::setPipeline(const PipelinePointer& pipeline) {
     ADD_COMMAND(setPipeline);
 
