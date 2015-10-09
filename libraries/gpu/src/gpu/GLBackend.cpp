@@ -35,6 +35,7 @@ GLBackend::CommandCall GLBackend::_commandCalls[Batch::NUM_COMMANDS] =
     (&::gpu::GLBackend::do_setViewTransform),
     (&::gpu::GLBackend::do_setProjectionTransform),
     (&::gpu::GLBackend::do_setViewportTransform),
+    (&::gpu::GLBackend::do_setDepthRangeTransform),
 
     (&::gpu::GLBackend::do_setPipeline),
     (&::gpu::GLBackend::do_setStateBlendFactor),

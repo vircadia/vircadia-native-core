@@ -501,7 +501,7 @@ SharedNodePointer LimitedNodeList::addOrUpdateNode(const QUuid& uuid, NodeType_t
             LimitedNodeList::flagTimeForConnectionStep(LimitedNodeList::AddedAudioMixer);
         }
 
-        SharedNodePointer newNodePointer(newNode);
+        SharedNodePointer newNodePointer(newNode, &QObject::deleteLater);
 
         _nodeHash.insert(UUIDNodePair(newNode->getUUID(), newNodePointer));
 

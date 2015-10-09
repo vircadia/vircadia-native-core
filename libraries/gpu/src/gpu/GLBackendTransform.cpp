@@ -45,8 +45,19 @@ void GLBackend::do_setViewportTransform(Batch& batch, uint32 paramOffset) {
 
     glViewport(vp.x, vp.y, vp.z, vp.w);
 
-    // The Viewport is tagged invalid because the CameraTransformUBO is not up to date and willl need update on next drawcall
+    // The Viewport is tagged invalid because the CameraTransformUBO is not up to date and will need update on next drawcall
     _transform._invalidViewport = true;
+}
+
+void GLBackend::do_setDepthRangeTransform(Batch& batch, uint32 paramOffset) {
+
+    Vec2 depthRange(batch._params[paramOffset + 0]._float, batch._params[paramOffset + 1]._float);
+
+    if ((depthRange.x != _transform._depthRange.x) || (depthRange.y != _transform._depthRange.y)) {
+        _transform._depthRange = depthRange;
+        
+        glDepthRangef(depthRange.x, depthRange.y);
+    }
 }
 
 void GLBackend::initTransform() {
@@ -74,6 +85,8 @@ void GLBackend::syncTransformStateCache() {
     _transform._invalidModel = true;
 
     glGetIntegerv(GL_VIEWPORT, (GLint*) &_transform._viewport);
+
+    glGetFloatv(GL_DEPTH_RANGE, (GLfloat*)&_transform._depthRange);
 
     Mat4 modelView;
     auto modelViewInv = glm::inverse(modelView);

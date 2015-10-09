@@ -532,6 +532,8 @@ FBXGeometry* OBJReader::readOBJ(QByteArray& model, const QVariantHash& mapping, 
             mesh.meshExtents.addPoint(vertex);
             geometry.meshExtents.addPoint(vertex);
         }
+
+        FBXReader::buildModelMesh(mesh, url.toString());
         // fbxDebugDump(geometry);
     } catch(const std::exception& e) {
         qCDebug(modelformat) << "OBJ reader fail: " << e.what();

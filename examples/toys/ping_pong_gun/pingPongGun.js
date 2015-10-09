@@ -14,6 +14,7 @@
     Script.include("../../libraries/utils.js");
 
     var SHOOTING_SOUND_URL = 'http://hifi-public.s3.amazonaws.com/sounds/ping_pong_gun/pong_sound.wav';
+    var PING_PONG_BALL_URL = 'http://hifi-public.s3.amazonaws.com/models/ping_pong_gun/ping_pong_ball.fbx';
 
     function PingPongGun() {
         return;
@@ -23,7 +24,7 @@
     var RELOAD_THRESHOLD = 0.95;
     var GUN_TIP_FWD_OFFSET =-0.35;
     var GUN_TIP_UP_OFFSET = 0.040;
-    var GUN_FORCE = 9;
+    var GUN_FORCE = 5;
     var BALL_RESTITUTION = 0.6;
     var BALL_LINEAR_DAMPING = 0.4;
     var BALL_GRAVITY = {
@@ -115,7 +116,10 @@
             forwardVec = Vec3.multiply(forwardVec, GUN_FORCE);
 
             var properties = {
-                type: 'Sphere',
+                // type: 'Model',
+                // modelURL:PING_PONG_BALL_URL,
+                shapeType:'sphere',
+                type:'Sphere',
                 color: BALL_COLOR,
                 dimensions: BALL_DIMENSIONS,
                 linearDamping: BALL_LINEAR_DAMPING,

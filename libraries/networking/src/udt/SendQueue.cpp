@@ -355,11 +355,12 @@ bool SendQueue::maybeResendPacket() {
                 // we found the packet - grab it
                 auto& resendPacket = *(it->second);
                 
+                // send it off
+                sendPacket(resendPacket);
+                
                 // unlock the sent packets
                 sentLocker.unlock();
                 
-                // send it off
-                sendPacket(resendPacket);
                 emit packetRetransmitted();
                 
                 // Signal that we did resend a packet
