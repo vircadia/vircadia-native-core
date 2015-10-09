@@ -12,13 +12,5 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-in vec2 varTexCoord0;
-
-uniform sampler2D depthTexture;
-
 void main(void) {
-    float depth = texture(depthTexture, varTexCoord0.xy).r;
-    if (depth >= 1.0) {
-        discard;
-    }
 }
