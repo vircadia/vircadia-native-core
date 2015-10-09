@@ -379,11 +379,6 @@ MasterReset = function() {
       type: 'Box',
       position: startPosition,
       dimensions: TARGET_DIMENSIONS,
-      color: {
-        red: 0,
-        green: 255,
-        blue: 0
-      },
       rotation: rotation,
       visible: false,
       collisionsWillMove: false,
@@ -875,7 +870,7 @@ MasterReset = function() {
           resetMe: true,
         },
         grabbableKey: {
-          grabbable: true
+          grabbable: false
         }
       })
     });
