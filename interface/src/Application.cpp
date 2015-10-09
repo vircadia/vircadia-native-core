@@ -4068,6 +4068,12 @@ bool Application::askToLoadScript(const QString& scriptFilenameOrURL) {
 }
 
 bool Application::askToUploadAsset(const QString& filename) {
+    if (DependencyManager::get<NodeList>()->getThisNodeCanRez()) {
+        QMessageBox::warning(_window, "Failed Upload",
+                             QString("You don't have upload rights on that domain.\n\n"));
+        return false;
+    }
+    
     QUrl url { filename };
     if (auto upload = DependencyManager::get<AssetClient>()->createUpload(url.toLocalFile())) {
         // connect to the finished signal so we know when the AssetUpload is done
@@ -4075,14 +4081,11 @@ bool Application::askToUploadAsset(const QString& filename) {
         
         // start the upload now
         upload->start();
-        
         return true;
     }
     
     // display a message box with the error
-    auto errorMessage = QString("Failed to upload %1.\n\n").arg(filename);
-    QMessageBox::warning(_window, "Failed Upload", errorMessage);
-    
+    QMessageBox::warning(_window, "Failed Upload", QString("Failed to upload %1.\n\n").arg(filename));
     return false;
 }
 
