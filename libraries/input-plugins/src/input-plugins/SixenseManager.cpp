@@ -166,6 +166,9 @@ void SixenseManager::update(float deltaTime, bool jointsCaptured) {
     auto userInputMapper = DependencyManager::get<UserInputMapper>();
 
     if (sixenseGetNumActiveControllers() == 0) {
+        if (_hydrasConnected) {
+            qCDebug(inputplugins, "hydra disconnected");
+        }
         _hydrasConnected = false;
         if (_deviceID != 0) {
             userInputMapper->removeDevice(_deviceID);
