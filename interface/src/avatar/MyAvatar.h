@@ -17,6 +17,7 @@
 #include <Rig.h>
 
 #include "Avatar.h"
+#include "AtRestDetector.h"
 
 class ModelItemID;
 
@@ -360,10 +361,11 @@ private:
     glm::vec3 _customListenPosition;
     glm::quat _customListenOrientation;
 
-    bool _straightingLean = false;
-    float _straightingLeanAlpha = 0.0f;
+    bool _straighteningLean = false;
+    float _straighteningLeanAlpha = 0.0f;
 
     quint64 _lastUpdateFromHMDTime = usecTimestampNow();
+    AtRestDetector _hmdAtRestDetector;
 };
 
 QScriptValue audioListenModeToScriptValue(QScriptEngine* engine, const AudioListenerMode& audioListenerMode);
