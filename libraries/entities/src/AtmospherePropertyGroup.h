@@ -49,9 +49,6 @@ class ReadBitstreamToTreeParams;
 
 class AtmospherePropertyGroup : public PropertyGroup {
 public:
-    AtmospherePropertyGroup() = default;
-    virtual ~AtmospherePropertyGroup() = default;
-
     // EntityItemProperty related helpers
     virtual void copyToScriptValue(const EntityPropertyFlags& desiredProperties, QScriptValue& properties, QScriptEngine* engine, bool skipDefaults, EntityItemProperties& defaultEntityProperties) const;
     virtual void copyFromScriptValue(const QScriptValue& object, bool& _defaultSettings);

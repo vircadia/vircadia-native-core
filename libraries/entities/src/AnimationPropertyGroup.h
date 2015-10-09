@@ -31,8 +31,6 @@ class ReadBitstreamToTreeParams;
 
 class AnimationPropertyGroup : public PropertyGroup {
 public:
-    AnimationPropertyGroup() = default;
-    virtual ~AnimationPropertyGroup() = default;
     void associateWithAnimationLoop(AnimationLoop* animationLoop) { _animationLoop = animationLoop; }
 
     // EntityItemProperty related helpers

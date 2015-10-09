@@ -29,9 +29,6 @@ class ReadBitstreamToTreeParams;
 
 class StagePropertyGroup : public PropertyGroup {
 public:
-    StagePropertyGroup() = default;
-    virtual ~StagePropertyGroup() = default;
-
     // EntityItemProperty related helpers
     virtual void copyToScriptValue(const EntityPropertyFlags& desiredProperties, QScriptValue& properties, QScriptEngine* engine, bool skipDefaults, EntityItemProperties& defaultEntityProperties) const;
     virtual void copyFromScriptValue(const QScriptValue& object, bool& _defaultSettings);
