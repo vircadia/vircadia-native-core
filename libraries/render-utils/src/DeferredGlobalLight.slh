@@ -41,7 +41,7 @@ struct SphericalHarmonics {
 
 vec4 evalSphericalLight(SphericalHarmonics sh, vec3 direction ) {
 
-    vec3 dir = direction.xzy; // we don;t understand why yet but we need to use z as vertical axis?
+    vec3 dir = direction.xyz; // we don;t understand why yet but we need to use z as vertical axis?
 
     const float C1 = 0.429043;
     const float C2 = 0.511664;
