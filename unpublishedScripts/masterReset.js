@@ -946,7 +946,7 @@ MasterReset = function() {
         resetMe: {
           resetMe: true,
         },
-        grabbaleKey: {
+        grabbableKey: {
           grabbable: false
         }
       })
@@ -1132,7 +1132,7 @@ MasterReset = function() {
           resetMe: true,
         },
         grabbableKey: {
-          grabbale: false
+          grabbable: false
         }
       })
     });
@@ -1174,7 +1174,7 @@ MasterReset = function() {
         resetMe: {
           resetMe: true,
         },
-        grabbaleKey: {
+        grabbableKey: {
           grabbable: false
         }
       })
