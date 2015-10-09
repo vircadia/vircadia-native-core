@@ -57,8 +57,9 @@ public:
                         void** intersectedObject, bool precisionPicking) const;
 
     Model* getModel(EntityTreeRenderer* renderer);
-
-    bool needsToCallUpdate() const;
+    
+    virtual bool needsToCallUpdate() const;
+    virtual void update(const quint64& now);
 
     virtual void setCompoundShapeURL(const QString& url);
 

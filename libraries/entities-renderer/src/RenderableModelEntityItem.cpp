@@ -298,16 +298,7 @@ void RenderableModelEntityItem::render(RenderArgs* args) {
                 }
 
                 bool movingOrAnimating = isMoving() || isAnimatingSomething();
-                if ((movingOrAnimating || _needsInitialSimulation) && _model->isActive()) {
-                    if (!_dimensionsInitialized) {
-                        EntityItemProperties properties;
-                        auto extents = _model->getMeshExtents();
-                        properties.setDimensions(extents.maximum - extents.minimum);
-                        
-                        qCDebug(entitiesrenderer) << "Autoresizing:" << (!getName().isEmpty() ? getName() : getModelURL());
-                        DependencyManager::get<EntityScriptingInterface>()->editEntity(getEntityItemID(), properties);
-                    }
-                    
+                if ((movingOrAnimating || _needsInitialSimulation) && _model->isActive() && _dimensionsInitialized) {
                     _model->setScaleToFit(true, getDimensions());
                     _model->setSnapModelToRegistrationPoint(true, getRegistrationPoint());
                     _model->setRotation(getRotation());
@@ -376,7 +367,23 @@ Model* RenderableModelEntityItem::getModel(EntityTreeRenderer* renderer) {
 }
 
 bool RenderableModelEntityItem::needsToCallUpdate() const {
-    return _needsInitialSimulation || ModelEntityItem::needsToCallUpdate();
+    return !_dimensionsInitialized || _needsInitialSimulation || ModelEntityItem::needsToCallUpdate();
+}
+
+void RenderableModelEntityItem::update(const quint64& now) {
+    if (!_dimensionsInitialized && _model && _model->isActive()) {
+        EntityItemProperties properties;
+        auto extents = _model->getMeshExtents();
+        properties.setDimensions(extents.maximum - extents.minimum);
+        
+        qCDebug(entitiesrenderer) << "Autoresizing:" << (!getName().isEmpty() ? getName() : getModelURL());
+        QMetaObject::invokeMethod(DependencyManager::get<EntityScriptingInterface>().data(), "editEntity",
+                                  Qt::QueuedConnection,
+                                  Q_ARG(QUuid, getEntityItemID()),
+                                  Q_ARG(EntityItemProperties, properties));
+    }
+    
+    ModelEntityItem::update(now);
 }
 
 EntityItemProperties RenderableModelEntityItem::getProperties(EntityPropertyFlags desiredProperties) const {

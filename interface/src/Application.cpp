@@ -4068,7 +4068,7 @@ bool Application::askToLoadScript(const QString& scriptFilenameOrURL) {
 }
 
 bool Application::askToUploadAsset(const QString& filename) {
-    if (DependencyManager::get<NodeList>()->getThisNodeCanRez()) {
+    if (!DependencyManager::get<NodeList>()->getThisNodeCanRez()) {
         QMessageBox::warning(_window, "Failed Upload",
                              QString("You don't have upload rights on that domain.\n\n"));
         return false;
