@@ -125,7 +125,10 @@ vec3 evalSkyboxGlobalColor(mat4 invViewMat, float shadowAttenuation, vec3 positi
     vec4 fragEyeVector = invViewMat * vec4(-position, 0.0);
     vec3 fragEyeDir = normalize(fragEyeVector.xyz);
     
-    vec3 color = diffuse.rgb * evalSphericalLight(ambientSphere, fragNormal).xyz * getLightAmbientIntensity(light);
+    vec3 mapVal = evalSkyboxLight(fragNormal, 0).xyz;
+    vec3 shVal = evalSphericalLight(ambientSphere, fragNormal).xyz;
+    vec3 ambientLight = (normal.x > 0 ? mapVal : shVal) * getLightAmbientIntensity(light);
+    vec3 color = diffuse.rgb * ambientLight;
 
     vec4 shading = evalFragShading(fragNormal, -getLightDirection(light), fragEyeDir, specular, gloss);
 
