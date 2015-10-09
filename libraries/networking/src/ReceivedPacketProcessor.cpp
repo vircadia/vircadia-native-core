@@ -88,6 +88,7 @@ bool ReceivedPacketProcessor::process() {
 
 void ReceivedPacketProcessor::nodeKilled(SharedNodePointer node) {
     lock();
+    _packets.remove_if([&](const NodeSharedPacketPair& pair) { return pair.first == node; });
     _nodePacketCounts.remove(node->getUUID());
     unlock();
 }
