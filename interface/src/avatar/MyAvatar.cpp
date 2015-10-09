@@ -140,35 +140,45 @@ QByteArray MyAvatar::toByteArray(bool cullSmallChanges, bool sendAll) {
 }
 
 void MyAvatar::reset() {
-    _skeletonModel.reset();
-    float headYaw = getHead()->getBaseYaw(); // degrees
-    //  Reset the pitch and roll components of the avatar's orientation, preserve yaw direction
-    glm::vec3 eulers = safeEulerAngles(getOrientation());
-    eulers.x = 0.0f;
-    eulers.y += glm::radians(headYaw); // align body with head
-    eulers.z = 0.0f;
-
+    // Gather animation mode...
     // This should be simpler when we have only graph animations always on.
     bool isRig = _rig->getEnableRig();
     // seting rig animation to true, below, will clear the graph animation menu item, so grab it now.
     bool isGraph = _rig->getEnableAnimGraph() || Menu::getInstance()->isOptionChecked(MenuOption::EnableAnimGraph);
+    // ... and get to sane configuration where other activity won't bother us.
     qApp->setRawAvatarUpdateThreading(false);
     _rig->disableHands = true;
     setEnableRigAnimations(true);
 
+    // Reset dynamic state.
     _wasPushing = _isPushing = _isBraking = _billboardValid = _goToPending = _straightingLean = false;
+    _skeletonModel.reset();
     getHead()->reset();
     _targetVelocity = glm::vec3(0.0f);
     setThrust(glm::vec3(0.0f));
-    auto worldBodyMatrix = _sensorToWorldMatrix * _bodySensorMatrix; // Assuming these are in sync and current...
-    setPosition(extractTranslation(worldBodyMatrix)); // ...positions body under head.
-    setOrientation(glm::quat(eulers)); // Not from worldBodyMatrix, in case it is NOT in sync and current.
-    // Make sure we have current sensor data.
+
+    // Get fresh data, in case we're really slow and out of wack.
     _hmdSensorMatrix = qApp->getHMDSensorPose();
     _hmdSensorPosition = extractTranslation(_hmdSensorMatrix);
-    _hmdSensorOrientation = extractRotation(_hmdSensorMatrix);
-    _bodySensorMatrix = deriveBodyFromHMDSensor(); // Based on new HMD position and yaw (no x/z rotation), in sensor space.
-    updateSensorToWorldMatrix(); // Uses updated position/orientation and _bodySensorMatrix changes
+    _hmdSensorOrientation = glm::quat_cast(_hmdSensorMatrix);
+
+    // Reset body position/orientation under the head.
+    auto newBodySensorMatrix = deriveBodyFromHMDSensor(); // Based on current cached HMD position/rotation..
+    auto worldBodyMatrix = _sensorToWorldMatrix * newBodySensorMatrix;
+    glm::vec3 worldBodyPos = extractTranslation(worldBodyMatrix);
+    glm::quat worldBodyRot = glm::normalize(glm::quat_cast(worldBodyMatrix));
+
+    // FIXME: Hack to retain the previous behavior wrt height.
+    // I'd like to make the body match head height, but that will have to wait for separate PR.
+    worldBodyPos.y = getPosition().y;
+
+    setPosition(worldBodyPos);
+    setOrientation(worldBodyRot);
+    // If there is any discrepency between positioning and the head (as there is in initial deriveBodyFromHMDSensor),
+    // we can make that right by setting _bodySensorMatrix = newBodySensorMatrix.
+    // However, doing so will make the head want to point to the previous body orientation, as cached above.
+    //_bodySensorMatrix = newBodySensorMatrix;
+    //updateSensorToWorldMatrix(); // Uses updated position/orientation and _bodySensorMatrix changes
 
     _skeletonModel.simulate(0.1f);  // non-zero
     setEnableRigAnimations(false);
