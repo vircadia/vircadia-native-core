@@ -45,6 +45,7 @@ class EntityScriptDetails {
 public:
     QString scriptText;
     QScriptValue scriptObject;
+    int64_t lastModified;
 };
 
 class ScriptEngine : public QScriptEngine, public ScriptUser, public EntitiesScriptEngineProvider {
@@ -171,6 +172,7 @@ private:
     bool evaluatePending() const { return _evaluatesPending > 0; }
     void timerFired();
     void stopAllTimers();
+    void refreshFileScript(const EntityItemID& entityID);
 
     void setParentURL(const QString& parentURL) { _parentURL = parentURL; }
 

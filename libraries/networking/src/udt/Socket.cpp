@@ -31,8 +31,8 @@ Socket::Socket(QObject* parent) :
     QObject(parent),
     _synTimer(new QTimer(this))
 {
-    qRegisterMetaType<Packet*>();
-    qRegisterMetaType<PacketList*>();
+    qRegisterMetaType<Packet*>("Packet*");
+    qRegisterMetaType<PacketList*>("PacketList*");
     
     connect(&_udpSocket, &QUdpSocket::readyRead, this, &Socket::readPendingDatagrams);
     

@@ -313,6 +313,7 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
     CHECK_PROPERTY_CHANGE(PROP_TEXT_COLOR, textColor);
     CHECK_PROPERTY_CHANGE(PROP_BACKGROUND_COLOR, backgroundColor);
     CHECK_PROPERTY_CHANGE(PROP_SHAPE_TYPE, shapeType);
+    CHECK_PROPERTY_CHANGE(PROP_EMITTING_PARTICLES, isEmitting);
     CHECK_PROPERTY_CHANGE(PROP_MAX_PARTICLES, maxParticles);
     CHECK_PROPERTY_CHANGE(PROP_LIFESPAN, lifespan);
     CHECK_PROPERTY_CHANGE(PROP_EMIT_RATE, emitRate);
@@ -424,6 +425,7 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine, bool
 
     // Particles only
     if (_type == EntityTypes::ParticleEffect) {
+        COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_EMITTING_PARTICLES, isEmitting);
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_MAX_PARTICLES, maxParticles);
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_LIFESPAN, lifespan);
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_EMIT_RATE, emitRate);
@@ -1118,6 +1120,7 @@ bool EntityItemProperties::encodeEntityEditPacket(PacketType command, EntityItem
             APPEND_ENTITY_PROPERTY(PROP_ACTION_DATA, properties.getActionData());
             APPEND_ENTITY_PROPERTY(PROP_ALPHA, properties.getAlpha());
         }
+
         if (propertyCount > 0) {
             int endOfEntityItemData = packetData->getUncompressedByteOffset();
 
@@ -1472,6 +1475,7 @@ void EntityItemProperties::markAllChanged() {
     _backgroundColorChanged = true;
     _shapeTypeChanged = true;
 
+    _isEmittingChanged = true;
     _maxParticlesChanged = true;
     _lifespanChanged = true;
     _emitRateChanged = true;

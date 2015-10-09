@@ -60,8 +60,6 @@ const QHostAddress DEFAULT_ASSIGNMENT_CLIENT_MONITOR_HOSTNAME = QHostAddress::Lo
 
 const QString USERNAME_UUID_REPLACEMENT_STATS_KEY = "$username";
 
-class HifiSockAddr;
-
 using namespace tbb;
 typedef std::pair<QUuid, SharedNodePointer> UUIDNodePair;
 typedef concurrent_unordered_map<QUuid, SharedNodePointer, UUIDHasher> NodeHash;

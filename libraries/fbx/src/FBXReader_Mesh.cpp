@@ -386,11 +386,11 @@ ExtractedMesh FBXReader::extractMesh(const FBXNode& object, unsigned int& meshIn
     return data.extracted;
 }
 
-void FBXReader::buildModelMesh(ExtractedMesh& extracted, const QString& url) {
+void FBXReader::buildModelMesh(FBXMesh& extractedMesh, const QString& url) {
     static QString repeatedMessage = LogHandler::getInstance().addRepeatedMessageRegex("buildModelMesh failed -- .*");
 
     unsigned int totalSourceIndices = 0;
-    foreach(const FBXMeshPart& part, extracted.mesh.parts) {
+    foreach(const FBXMeshPart& part, extractedMesh.parts) {
         totalSourceIndices += (part.quadTrianglesIndices.size() + part.triangleIndices.size());
     }
 
@@ -399,18 +399,18 @@ void FBXReader::buildModelMesh(ExtractedMesh& extracted, const QString& url) {
         return;
     }
 
-    if (extracted.mesh.vertices.size() == 0) {
+    if (extractedMesh.vertices.size() == 0) {
         qCDebug(modelformat) << "buildModelMesh failed -- no vertices, url = " << url;
         return;
     }
 
-    FBXMesh& fbxMesh = extracted.mesh;
+    FBXMesh& fbxMesh = extractedMesh;
     model::MeshPointer mesh(new model::Mesh());
 
     // Grab the vertices in a buffer
     auto vb = std::make_shared<gpu::Buffer>();
-    vb->setData(extracted.mesh.vertices.size() * sizeof(glm::vec3),
-                (const gpu::Byte*) extracted.mesh.vertices.data());
+    vb->setData(extractedMesh.vertices.size() * sizeof(glm::vec3),
+                (const gpu::Byte*) extractedMesh.vertices.data());
     gpu::BufferView vbv(vb, gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::XYZ));
     mesh->setVertexBuffer(vbv);
 
@@ -486,7 +486,7 @@ void FBXReader::buildModelMesh(ExtractedMesh& extracted, const QString& url) {
 
 
     unsigned int totalIndices = 0;
-    foreach(const FBXMeshPart& part, extracted.mesh.parts) {
+    foreach(const FBXMeshPart& part, extractedMesh.parts) {
         totalIndices += (part.quadTrianglesIndices.size() + part.triangleIndices.size());
     }
 
@@ -502,10 +502,10 @@ void FBXReader::buildModelMesh(ExtractedMesh& extracted, const QString& url) {
     int offset = 0;
 
     std::vector< model::Mesh::Part > parts;
-    if (extracted.mesh.parts.size() > 1) {
+    if (extractedMesh.parts.size() > 1) {
         indexNum = 0;
     }
-    foreach(const FBXMeshPart& part, extracted.mesh.parts) {
+    foreach(const FBXMeshPart& part, extractedMesh.parts) {
         model::Mesh::Part modelPart(indexNum, 0, 0, model::Mesh::TRIANGLES);
         
         if (part.quadTrianglesIndices.size()) {
@@ -545,5 +545,5 @@ void FBXReader::buildModelMesh(ExtractedMesh& extracted, const QString& url) {
     // model::Box box =
     mesh->evalPartBound(0);
 
-    extracted.mesh._mesh = mesh;
+    extractedMesh._mesh = mesh;
 }
