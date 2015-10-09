@@ -388,6 +388,11 @@ MasterReset = function() {
             ignoreForCollisions: true,
         });
 
+
+        setEntityCustomData(resetKey, targetIntervalClearer, {
+            resetMe: true
+        });
+
         var targets = [];
 
         var originalPositions = [];
@@ -421,8 +426,11 @@ MasterReset = function() {
                     rotation: rotation,
                     script: targetsScriptURL
                 };
-
-                targets.push(Entities.addEntity(targetProperties));
+                var target = Entities.addEntity(targetProperties);
+                targets.push(target);
+                setEntityCustomData(resetKey, target, {
+                    resetMe: true
+                });
             }
         }
 
@@ -450,8 +458,12 @@ MasterReset = function() {
                         rotation: rotation,
                         script: targetsScriptURL
                     };
+                    var target = Entities.addEntity(targetProperties);
+                    targets[index] = target;
+                    setEntityCustomData(resetKey, target, {
+                        resetMe: true
+                    });
 
-                    targets[index] = Entities.addEntity(targetProperties);
                 }
             });
         }
