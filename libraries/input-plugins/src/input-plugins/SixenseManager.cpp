@@ -68,10 +68,10 @@ const float DEFAULT_REACH_LENGTH = 1.5f;
 
 SixenseManager::SixenseManager() :
     InputDevice("Hydra"),
-#ifdef __APPLE__
-    _sixenseLibrary(NULL),
-#endif
     _reachLength(DEFAULT_REACH_LENGTH),
+#ifdef __APPLE__
+    _sixenseLibrary(nullptr),
+#endif
     _hydrasConnected(false)
 {
 }

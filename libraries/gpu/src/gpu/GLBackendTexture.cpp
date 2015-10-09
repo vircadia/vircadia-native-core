@@ -339,8 +339,6 @@ GLBackend::GLTexture* GLBackend::syncGPUObject(const Texture& texture) {
 
                 GLTexelFormat texelFormat = GLTexelFormat::evalGLTexelFormat(texture.getTexelFormat(), srcFormat);
 
-                auto semantic = texture.getTexelFormat().getSemantic();
-
                 glTexImage2D(GL_TEXTURE_2D, 0,
                     texelFormat.internalFormat, texture.getWidth(), texture.getHeight(), 0,
                     texelFormat.format, texelFormat.type, bytes);
