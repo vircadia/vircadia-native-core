@@ -111,7 +111,7 @@ void inputPairFromScriptValue(const QScriptValue& object, UserInputMapper::Input
     inputPair.second = QString(object.property("inputName").toVariant().toString());
 }
 
-void ControllerScriptingInterface::registerControllerTypes(QScriptEngine* engine) {
+void ControllerScriptingInterface::registerControllerTypes(ScriptEngine* engine) {
     qScriptRegisterSequenceMetaType<QVector<UserInputMapper::Action> >(engine);
     qScriptRegisterSequenceMetaType<QVector<UserInputMapper::InputChannel> >(engine);
     qScriptRegisterSequenceMetaType<QVector<UserInputMapper::InputPair> >(engine);
@@ -119,6 +119,8 @@ void ControllerScriptingInterface::registerControllerTypes(QScriptEngine* engine
     qScriptRegisterMetaType(engine, inputChannelToScriptValue, inputChannelFromScriptValue);
     qScriptRegisterMetaType(engine, inputToScriptValue, inputFromScriptValue);
     qScriptRegisterMetaType(engine, inputPairToScriptValue, inputPairFromScriptValue);
+
+    wireUpControllers(engine);
 }
 
 void ControllerScriptingInterface::handleMetaEvent(HFMetaEvent* event) {
@@ -379,6 +381,26 @@ void ControllerScriptingInterface::releaseJoystick(int joystickIndex) {
 
 glm::vec2 ControllerScriptingInterface::getViewportDimensions() const {
     return qApp->getUiSize();
+}
+
+void ControllerScriptingInterface::wireUpControllers(ScriptEngine* engine) {
+
+    qDebug() << "------------------- wire up controllers --------------------------";
+    ///_registeredDevices
+
+    auto devices = DependencyManager::get<UserInputMapper>()->getDevices();
+
+    for(const auto& deviceMapping : devices) {
+        auto device = deviceMapping.second.get();
+        qDebug() << device->getName();
+        auto deviceInputs = device->getAvailabeInputs();
+        for (const auto& inputMapping : deviceInputs) {
+            auto input = inputMapping.first;
+            auto inputName = inputMapping.second;
+            qDebug() << device->getName() << "." << inputName << "["<< input.getID() <<"]";
+        }
+    }
+    qDebug() << "------------------- DONE wire up controllers --------------------------";
 }
 
 AbstractInputController* ControllerScriptingInterface::createInputController(const QString& deviceName, const QString& tracker) {
