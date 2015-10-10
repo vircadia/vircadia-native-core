@@ -67,6 +67,8 @@ var MSEC_PER_SEC = 1000.0;
 var startTime = Date.now();
 var LIFETIME = 10;
 var ACTION_LIFETIME = 10; // seconds
+var PICKS_PER_SECOND_PER_HAND = 5;
+var MSECS_PER_SEC = 1000.0;
 
 // states for the state machine
 var STATE_OFF = 0;
@@ -234,6 +236,7 @@ function MyController(hand, triggerAction) {
 
     this.off = function() {
         if (this.triggerSmoothedSqueezed()) {
+            this.lastPickTime = 0;
             this.setState(STATE_SEARCHING);
             return;
         }
@@ -257,6 +260,13 @@ function MyController(hand, triggerAction) {
         var defaultGrabbableData = {
             grabbable: true
         };
+
+        // don't pick 60x per second.  do this check after updating the line so it's not jumpy.
+        var now = Date.now();
+        if (now - this.lastPickTime < MSECS_PER_SEC / PICKS_PER_SECOND_PER_HAND) {
+            return;
+        }
+        this.lastPickTime = now;
 
         var intersection = Entities.findRayIntersection(pickRay, true);
         if (intersection.intersects && intersection.properties.locked === 0) {
