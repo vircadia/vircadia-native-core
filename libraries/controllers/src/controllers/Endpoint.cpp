@@ -13,19 +13,6 @@
 
 namespace Controllers {
 
-    // FIXME how do we handle dynamic changes in connected hardware?
-    const Endpoint::List& Endpoint::getHardwareEndpoints() {
-        static Endpoint::List ACTIVE_HARDWARE;
-        static std::once_flag once;
-        std::call_once(once, [&] {
-            auto userInputMapper = DependencyManager::get<UserInputMapper>();
-            // TODO populate ACTIVE_HARDWARE with all the connected devices
-            // For each connected device
-                // for each input channel
-                    // build a HardwareEndpoint instance around the input channel and add it to the list
-        });
-    }
-
     // Ex: xbox.RY, xbox.A ....
     class HardwareEndpoint : public Endpoint {
     public:
@@ -55,4 +42,50 @@ namespace Controllers {
         float _lastValue;
     };
 
+    float currentTime() {
+        return 0;
+    }
+    /*
+    * A function which provides input
+    */
+    class FunctionEndpoint : public Endpoint {
+    public:
+
+        virtual float value() override {
+            float now = currentTime();
+            float delta = now - _lastCalled;
+            float result = _inputFunction.call(_object, QScriptValue(delta)).toNumber();
+            _lastCalled = now;
+            return result;
+        }
+
+        virtual void apply(float newValue, float oldValue, const Endpoint& source) override {
+            if (newValue != oldValue) {
+                //_outputFunction.call(newValue, oldValue, source);
+            }
+        }
+
+        float _lastValue{ NAN };
+        float _lastCalled{ 0 };
+        QScriptValue _outputFunction;
+        QScriptValue _inputFunction;
+        QScriptValue _object;
+    };
+
+
+
+    // FIXME how do we handle dynamic changes in connected hardware?
+    const Endpoint::List& Endpoint::getHardwareEndpoints() {
+        static Endpoint::List ACTIVE_HARDWARE_ENDPOINTS;
+        static std::once_flag once;
+        std::call_once(once, [&] {
+            auto userInputMapper = DependencyManager::get<UserInputMapper>();
+            // TODO populate ACTIVE_HARDWARE with all the connected devices
+            // For each connected device
+            // for each input channel
+            // build a HardwareEndpoint instance around the input channel and add it to the list
+        });
+
+        return ACTIVE_HARDWARE_ENDPOINTS;
+    }
 }
