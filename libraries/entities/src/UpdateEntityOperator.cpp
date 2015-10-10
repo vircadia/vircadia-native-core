@@ -9,11 +9,6 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include "EntityItem.h"
-#include "EntityTree.h"
-#include "EntityTreeElement.h"
-#include "EntitiesLogging.h"
-
 #include "UpdateEntityOperator.h"
 
 UpdateEntityOperator::UpdateEntityOperator(EntityTreePointer tree,

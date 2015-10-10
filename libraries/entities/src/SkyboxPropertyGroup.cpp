@@ -15,10 +15,7 @@
 #include "EntityItemProperties.h"
 #include "EntityItemPropertiesMacros.h"
 
-SkyboxPropertyGroup::SkyboxPropertyGroup() {
-    _color.red = _color.green = _color.blue = 0;
-    _url = QString();
-}
+const xColor SkyboxPropertyGroup::DEFAULT_COLOR = { 0, 0, 0 };
 
 void SkyboxPropertyGroup::copyToScriptValue(const EntityPropertyFlags& desiredProperties, QScriptValue& properties, QScriptEngine* engine, bool skipDefaults, EntityItemProperties& defaultEntityProperties) const {
     COPY_GROUP_PROPERTY_TO_QSCRIPTVALUE(PROP_SKYBOX_COLOR, Skybox, skybox, Color, color);

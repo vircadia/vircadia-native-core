@@ -67,6 +67,8 @@ var MSEC_PER_SEC = 1000.0;
 var startTime = Date.now();
 var LIFETIME = 10;
 var ACTION_LIFETIME = 10; // seconds
+var PICKS_PER_SECOND_PER_HAND = 5;
+var MSECS_PER_SEC = 1000.0;
 
 // states for the state machine
 var STATE_OFF = 0;
@@ -83,6 +85,11 @@ var STATE_RELEASE = 10;
 
 var GRABBABLE_DATA_KEY = "grabbableKey"; // shared with grab.js
 var GRAB_USER_DATA_KEY = "grabKey"; // shared with grab.js
+
+var DEFAULT_GRABBABLE_DATA = {
+    grabbable: true,
+    invertSolidWhileHeld: false
+};
 
 function getTag() {
     return "grab-" + MyAvatar.sessionUUID;
@@ -234,6 +241,7 @@ function MyController(hand, triggerAction) {
 
     this.off = function() {
         if (this.triggerSmoothedSqueezed()) {
+            this.lastPickTime = 0;
             this.setState(STATE_SEARCHING);
             return;
         }
@@ -254,9 +262,12 @@ function MyController(hand, triggerAction) {
 
         this.lineOn(pickRay.origin, Vec3.multiply(pickRay.direction, LINE_LENGTH), NO_INTERSECT_COLOR);
 
-        var defaultGrabbableData = {
-            grabbable: true
-        };
+        // don't pick 60x per second.  do this check after updating the line so it's not jumpy.
+        var now = Date.now();
+        if (now - this.lastPickTime < MSECS_PER_SEC / PICKS_PER_SECOND_PER_HAND) {
+            return;
+        }
+        this.lastPickTime = now;
 
         var intersection = Entities.findRayIntersection(pickRay, true);
         if (intersection.intersects && intersection.properties.locked === 0) {
@@ -265,7 +276,7 @@ function MyController(hand, triggerAction) {
             var intersectionDistance = Vec3.distance(handControllerPosition, intersection.intersection);
             this.grabbedEntity = intersection.entityID;
 
-            var grabbableData = getEntityCustomData(GRABBABLE_DATA_KEY, intersection.entityID, defaultGrabbableData);
+            var grabbableData = getEntityCustomData(GRABBABLE_DATA_KEY, intersection.entityID, DEFAULT_GRABBABLE_DATA);
             if (grabbableData.grabbable === false) {
                 this.grabbedEntity = null;
                 return;
@@ -298,7 +309,7 @@ function MyController(hand, triggerAction) {
 
             for (i = 0; i < nearbyEntities.length; i++) {
 
-                var grabbableData = getEntityCustomData(GRABBABLE_DATA_KEY, nearbyEntities[i], defaultGrabbableData);
+                var grabbableData = getEntityCustomData(GRABBABLE_DATA_KEY, nearbyEntities[i], DEFAULT_GRABBABLE_DATA);
                 if (grabbableData.grabbable === false) {
                     return;
                 }
@@ -690,24 +701,24 @@ function MyController(hand, triggerAction) {
     };
 
     this.activateEntity = function(entityID, grabbedProperties) {
+        var grabbableData = getEntityCustomData(GRABBABLE_DATA_KEY, entityID, DEFAULT_GRABBABLE_DATA);
+        var invertSolidWhileHeld = grabbableData["invertSolidWhileHeld"];
         var data = getEntityCustomData(GRAB_USER_DATA_KEY, entityID, {});
         data["activated"] = true;
         data["avatarId"] = MyAvatar.sessionUUID;
         data["refCount"] = data["refCount"] ? data["refCount"] + 1 : 1;
-        // zero gravity and set ignoreForCollisions to true, but in a way that lets us put them back, after all grabs are done
+        // zero gravity and set ignoreForCollisions in a way that lets us put them back, after all grabs are done
         if (data["refCount"] == 1) {
             data["gravity"] = grabbedProperties.gravity;
             data["ignoreForCollisions"] = grabbedProperties.ignoreForCollisions;
-            Entities.editEntity(entityID, {
-                gravity: {
-                    x: 0,
-                    y: 0,
-                    z: 0
-                },
-                ignoreForCollisions: true
-            });
+            var whileHeldProperties = {gravity: {x:0, y:0, z:0}};
+            if (invertSolidWhileHeld) {
+                whileHeldProperties["ignoreForCollisions"] = ! grabbedProperties.ignoreForCollisions;
+            }
+            Entities.editEntity(entityID, whileHeldProperties);
         }
         setEntityCustomData(GRAB_USER_DATA_KEY, entityID, data);
+        return data;
     };
 
     this.deactivateEntity = function(entityID) {

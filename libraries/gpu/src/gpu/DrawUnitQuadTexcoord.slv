@@ -14,11 +14,12 @@
 out vec2 varTexCoord0;
 
 void main(void) {
+    const float depth = 1.0;
     const vec4 UNIT_QUAD[4] = vec4[4](
-        vec4(-1.0, -1.0, 0.0, 1.0),
-        vec4(1.0, -1.0, 0.0, 1.0),
-        vec4(-1.0, 1.0, 0.0, 1.0),
-        vec4(1.0, 1.0, 0.0, 1.0)
+        vec4(-1.0, -1.0, depth, 1.0),
+        vec4(1.0, -1.0, depth, 1.0),
+        vec4(-1.0, 1.0, depth, 1.0),
+        vec4(1.0, 1.0, depth, 1.0)
     );
     vec4 pos = UNIT_QUAD[gl_VertexID];
 

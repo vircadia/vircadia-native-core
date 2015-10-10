@@ -319,4 +319,6 @@ void UserInputMapper::createActionNames() {
     _actionNames[SHIFT] = "SHIFT";
     _actionNames[ACTION1] = "ACTION1";
     _actionNames[ACTION2] = "ACTION2";
+    _actionNames[CONTEXT_MENU] = "CONTEXT_MENU";
+    _actionNames[TOGGLE_MUTE] = "TOGGLE_MUTE";
 }

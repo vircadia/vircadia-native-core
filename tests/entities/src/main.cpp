@@ -16,9 +16,10 @@
 #include <QDir>
 #include <ByteCountCoding.h>
 
-#include <PathUtils.h>
 #include <BoxEntityItem.h>
+#include <EntityItemProperties.h>
 #include <Octree.h>
+#include <PathUtils.h>
 
 const QString& getTestResourceDir() {
     static QString dir;

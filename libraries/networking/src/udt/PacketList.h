@@ -118,4 +118,6 @@ template<typename T> std::unique_ptr<T> PacketList::takeFront() {
     
 }
 
+Q_DECLARE_METATYPE(udt::PacketList*);
+
 #endif // hifi_PacketList_h

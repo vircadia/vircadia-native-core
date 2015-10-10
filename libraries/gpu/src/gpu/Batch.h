@@ -187,6 +187,7 @@ public:
     void setProjectionTransform(const Mat4& proj);
     // Viewport is xy = low left corner in framebuffer, zw = width height of the viewport, expressed in pixels
     void setViewportTransform(const Vec4i& viewport);
+    void setDepthRangeTransform(float nearDepth, float farDepth);
 
     // Pipeline Stage
     void setPipeline(const PipelinePointer& pipeline);
@@ -285,6 +286,7 @@ public:
         COMMAND_setViewTransform,
         COMMAND_setProjectionTransform,
         COMMAND_setViewportTransform,
+        COMMAND_setDepthRangeTransform,
 
         COMMAND_setPipeline,
         COMMAND_setStateBlendFactor,

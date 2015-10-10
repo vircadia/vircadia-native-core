@@ -25,8 +25,8 @@
 #include <Transform.h>
 
 #include "EntityItemID.h"
-#include "EntityItemProperties.h"
 #include "EntityItemPropertiesDefaults.h"
+#include "EntityPropertyFlags.h"
 #include "EntityTypes.h"
 #include "SimulationOwner.h"
 
@@ -34,6 +34,7 @@ class EntitySimulation;
 class EntityTreeElement;
 class EntityTreeElementExtraEncodeData;
 class EntityActionInterface;
+class EntityItemProperties;
 class EntityTree;
 typedef std::shared_ptr<EntityTree> EntityTreePointer;
 typedef std::shared_ptr<EntityActionInterface> EntityActionPointer;

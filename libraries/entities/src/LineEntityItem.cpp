@@ -9,18 +9,17 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "LineEntityItem.h"
 
 #include <QDebug>
 
 #include <ByteCountCoding.h>
 
-#include "LineEntityItem.h"
-#include "EntityTree.h"
 #include "EntitiesLogging.h"
+#include "EntityItemProperties.h"
+#include "EntityTree.h"
 #include "EntityTreeElement.h"
 #include "OctreeConstants.h"
-
-
 
 const float LineEntityItem::DEFAULT_LINE_WIDTH = 2.0f;
 const int LineEntityItem::MAX_POINTS_PER_LINE = 70;

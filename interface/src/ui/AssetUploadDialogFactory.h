@@ -27,12 +27,14 @@ public:
     static AssetUploadDialogFactory& getInstance();
     
     void setDialogParent(QWidget* dialogParent) { _dialogParent = dialogParent; }
+    
 public slots:
     void showDialog();
 private slots:
     void handleUploadFinished(AssetUpload* upload, const QString& hash);
+    
 private:
-    AssetUploadDialogFactory();
+    AssetUploadDialogFactory() = default;
     
     void showErrorDialog(const QString& filename, const QString& additionalError);
     

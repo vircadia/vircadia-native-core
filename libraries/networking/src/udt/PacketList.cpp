@@ -15,6 +15,8 @@
 
 using namespace udt;
 
+static int packetListMetaTypeId = qRegisterMetaType<PacketList*>("PacketList*");
+
 std::unique_ptr<PacketList> PacketList::create(PacketType packetType, QByteArray extendedHeader,
                                                bool isReliable, bool isOrdered) {
     auto packetList = std::unique_ptr<PacketList>(new PacketList(packetType, extendedHeader,
@@ -150,6 +152,8 @@ void PacketList::preparePackets(MessageNumber messageNumber) {
     }
 }
 
+const qint64 PACKET_LIST_WRITE_ERROR = -1;
+
 qint64 PacketList::writeData(const char* data, qint64 maxSize) {
     auto sizeRemaining = maxSize;
 
@@ -176,26 +180,41 @@ qint64 PacketList::writeData(const char* data, qint64 maxSize) {
                     // We need to try and pull the first part of the segment out to our new packet
 
                     // check now to see if this is an unsupported write
-                    int numBytesToEnd = _currentPacket->bytesAvailableForWrite();
-
-                    if ((newPacket->size() - numBytesToEnd) < sizeRemaining) {
+                    int segmentSize = _currentPacket->pos() - _segmentStartIndex;
+                    
+                    if (segmentSize + sizeRemaining > newPacket->getPayloadCapacity()) {
                         // this is an unsupported case - the segment is bigger than the size of an individual packet
                         // but the PacketList is not going to be sent ordered
                         qDebug() << "Error in PacketList::writeData - attempted to write a segment to an unordered packet that is"
                             << "larger than the payload size.";
                         Q_ASSERT(false);
+                        
+                        // we won't be writing this new data to the packet
+                        // go back before the current segment and return -1 to indicate error
+                        _currentPacket->seek(_segmentStartIndex);
+                        _currentPacket->setPayloadSize(_segmentStartIndex);
+                        
+                        return PACKET_LIST_WRITE_ERROR;
+                    } else {
+                        // copy from currentPacket where the segment started to the beginning of the newPacket
+                        newPacket->write(_currentPacket->getPayload() + _segmentStartIndex, segmentSize);
+                        
+                        // shrink the current payload to the actual size of the packet
+                        _currentPacket->setPayloadSize(_segmentStartIndex);
+                        
+                        // the current segment now starts at the beginning of the new packet
+                        _segmentStartIndex = _extendedHeader.size();
                     }
-
-                    int segmentSize = _currentPacket->pos() - _segmentStartIndex;
-
-                    // copy from currentPacket where the segment started to the beginning of the newPacket
-                    newPacket->write(_currentPacket->getPayload() + _segmentStartIndex, segmentSize);
-
-                    // the current segment now starts at the beginning of the new packet
-                    _segmentStartIndex = _extendedHeader.size();
-
-                    // shrink the current payload to the actual size of the packet
-                    _currentPacket->setPayloadSize(_segmentStartIndex);
+                }
+                
+                if (sizeRemaining > newPacket->getPayloadCapacity()) {
+                    // this is an unsupported case - attempting to write a block of data larger
+                    // than the capacity of a new packet in an unordered PacketList
+                    qDebug() << "Error in PacketList::writeData - attempted to write data to an unordered packet that is"
+                        << "larger than the payload size.";
+                    Q_ASSERT(false);
+                    
+                    return PACKET_LIST_WRITE_ERROR;
                 }
 
                 // move the current packet to our list of packets

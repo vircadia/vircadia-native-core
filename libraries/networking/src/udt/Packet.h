@@ -88,7 +88,9 @@ private:
     mutable PacketPosition _packetPosition { PacketPosition::ONLY };
     mutable MessagePartNumber _messagePartNumber { 0 };
 };
-    
+
 } // namespace udt
+
+Q_DECLARE_METATYPE(udt::Packet*);
 
 #endif // hifi_Packet_h

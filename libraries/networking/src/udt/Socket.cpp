@@ -24,16 +24,10 @@
 
 using namespace udt;
 
-Q_DECLARE_METATYPE(Packet*);
-Q_DECLARE_METATYPE(PacketList*);
-
 Socket::Socket(QObject* parent) :
     QObject(parent),
     _synTimer(new QTimer(this))
 {
-    qRegisterMetaType<Packet*>();
-    qRegisterMetaType<PacketList*>();
-    
     connect(&_udpSocket, &QUdpSocket::readyRead, this, &Socket::readPendingDatagrams);
     
     // make sure our synchronization method is called every SYN interval

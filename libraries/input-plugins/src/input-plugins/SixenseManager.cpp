@@ -68,10 +68,10 @@ const float DEFAULT_REACH_LENGTH = 1.5f;
 
 SixenseManager::SixenseManager() :
     InputDevice("Hydra"),
-#ifdef __APPLE__
-    _sixenseLibrary(NULL),
-#endif
     _reachLength(DEFAULT_REACH_LENGTH),
+#ifdef __APPLE__
+    _sixenseLibrary(nullptr),
+#endif
     _hydrasConnected(false)
 {
 }
@@ -166,6 +166,9 @@ void SixenseManager::update(float deltaTime, bool jointsCaptured) {
     auto userInputMapper = DependencyManager::get<UserInputMapper>();
 
     if (sixenseGetNumActiveControllers() == 0) {
+        if (_hydrasConnected) {
+            qCDebug(inputplugins, "hydra disconnected");
+        }
         _hydrasConnected = false;
         if (_deviceID != 0) {
             userInputMapper->removeDevice(_deviceID);

@@ -13,6 +13,8 @@
 
 using namespace udt;
 
+static int packetMetaTypeId = qRegisterMetaType<Packet*>("Packet*");
+
 int Packet::localHeaderSize(bool isPartOfMessage) {
     return sizeof(Packet::SequenceNumberAndBitField) +
             (isPartOfMessage ? sizeof(Packet::MessageNumberAndBitField) + sizeof(MessagePartNumber) : 0);

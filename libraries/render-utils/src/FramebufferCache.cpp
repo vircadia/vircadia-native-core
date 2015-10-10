@@ -35,9 +35,7 @@ void FramebufferCache::setFrameBufferSize(QSize frameBufferSize) {
         _frameBufferSize = frameBufferSize;
         _primaryFramebufferFull.reset();
         _primaryFramebufferDepthColor.reset();
-        _primaryFramebufferStencilColor.reset();
         _primaryDepthTexture.reset();
-        _primaryStencilTexture.reset();
         _primaryColorTexture.reset();
         _primaryNormalTexture.reset();
         _primarySpecularTexture.reset();
@@ -49,7 +47,6 @@ void FramebufferCache::setFrameBufferSize(QSize frameBufferSize) {
 void FramebufferCache::createPrimaryFramebuffer() {
     _primaryFramebufferFull = gpu::FramebufferPointer(gpu::Framebuffer::create());
     _primaryFramebufferDepthColor = gpu::FramebufferPointer(gpu::Framebuffer::create());
-    _primaryFramebufferStencilColor = gpu::FramebufferPointer(gpu::Framebuffer::create());
 
     auto colorFormat = gpu::Element(gpu::VEC4, gpu::NUINT8, gpu::RGBA);
     auto width = _frameBufferSize.width();
@@ -66,20 +63,14 @@ void FramebufferCache::createPrimaryFramebuffer() {
 
     _primaryFramebufferDepthColor->setRenderBuffer(0, _primaryColorTexture);
 
-    _primaryFramebufferStencilColor->setRenderBuffer(0, _primaryColorTexture);
-
-    auto depthFormat = gpu::Element(gpu::SCALAR, gpu::FLOAT, gpu::DEPTH);
+  //  auto depthFormat = gpu::Element(gpu::SCALAR, gpu::FLOAT, gpu::DEPTH);
+    auto depthFormat = gpu::Element(gpu::SCALAR, gpu::UINT32, gpu::DEPTH_STENCIL); // Depth24_Stencil8 texel format
     _primaryDepthTexture = gpu::TexturePointer(gpu::Texture::create2D(depthFormat, width, height, defaultSampler));
-
-    auto stencilFormat = gpu::Element(gpu::SCALAR, gpu::UINT32, gpu::DEPTH_STENCIL); // Depth24_Stencil8 texel format
-    _primaryStencilTexture = gpu::TexturePointer(gpu::Texture::create2D(stencilFormat, width, height, defaultSampler));
-
+ 
     _primaryFramebufferFull->setDepthStencilBuffer(_primaryDepthTexture, depthFormat);
 
     _primaryFramebufferDepthColor->setDepthStencilBuffer(_primaryDepthTexture, depthFormat);
-
-    _primaryFramebufferStencilColor->setDepthStencilBuffer(_primaryStencilTexture, stencilFormat);
-    
+ 
     _selfieFramebuffer = gpu::FramebufferPointer(gpu::Framebuffer::create());
     auto tex = gpu::TexturePointer(gpu::Texture::create2D(colorFormat, width * 0.5, height * 0.5, defaultSampler));
     _selfieFramebuffer->setRenderBuffer(0, tex);
@@ -99,25 +90,11 @@ gpu::FramebufferPointer FramebufferCache::getPrimaryFramebufferDepthColor() {
     return _primaryFramebufferDepthColor;
 }
 
-gpu::FramebufferPointer FramebufferCache::getPrimaryFramebufferStencilColor() {
-    if (!_primaryFramebufferStencilColor) {
-        createPrimaryFramebuffer();
-    }
-    return _primaryFramebufferStencilColor;
-}
-
 gpu::TexturePointer FramebufferCache::getPrimaryDepthTexture() {
     if (!_primaryDepthTexture) {
         createPrimaryFramebuffer();
     }
     return _primaryDepthTexture;
-}
-
-gpu::TexturePointer FramebufferCache::getPrimaryStencilTexture() {
-    if (!_primaryStencilTexture) {
-        createPrimaryFramebuffer();
-    }
-    return _primaryStencilTexture;
 }
 
 gpu::TexturePointer FramebufferCache::getPrimaryColorTexture() {

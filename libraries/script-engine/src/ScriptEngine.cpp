@@ -277,10 +277,6 @@ void ScriptEngine::init() {
     registerAvatarTypes(this);
     registerAudioMetaTypes(this);
 
-    if (_controllerScriptingInterface) {
-        _controllerScriptingInterface->registerControllerTypes(this);
-    }
-
     qScriptRegisterMetaType(this, EntityPropertyFlagsToScriptValue, EntityPropertyFlagsFromScriptValue);
     qScriptRegisterMetaType(this, EntityItemPropertiesToScriptValue, EntityItemPropertiesFromScriptValueHonorReadOnly);
     qScriptRegisterMetaType(this, EntityItemIDtoScriptValue, EntityItemIDfromScriptValue);
@@ -323,6 +319,43 @@ void ScriptEngine::init() {
 
     // constants
     globalObject().setProperty("TREE_SCALE", newVariant(QVariant(TREE_SCALE)));
+
+    if (_controllerScriptingInterface) {
+        _controllerScriptingInterface->registerControllerTypes(this);
+    }
+
+
+}
+
+void ScriptEngine::registerValue(const QString& valueName, QScriptValue value) {
+    if (QThread::currentThread() != thread()) {
+#ifdef THREAD_DEBUGGING
+        qDebug() << "*** WARNING *** ScriptEngine::registerValue() called on wrong thread [" << QThread::currentThread() << "], invoking on correct thread [" << thread() << "]  name:" << name;
+#endif
+        QMetaObject::invokeMethod(this, "registerValue",
+            Q_ARG(const QString&, valueName),
+            Q_ARG(QScriptValue, value));
+        return;
+    }
+
+    QStringList pathToValue = valueName.split(".");
+    int partsToGo = pathToValue.length();
+    QScriptValue partObject = globalObject();
+
+    for (const auto& pathPart : pathToValue) {
+        partsToGo--;
+        if (!partObject.property(pathPart).isValid()) {
+            if (partsToGo > 0) {
+                //QObject *object = new QObject;
+                QScriptValue partValue = newArray(); //newQObject(object, QScriptEngine::ScriptOwnership);
+                qDebug() << "partValue[" << pathPart<<"].isArray() :" << partValue.isArray();
+                partObject.setProperty(pathPart, partValue);
+            } else {
+                partObject.setProperty(pathPart, value);
+            }
+        }
+        partObject = partObject.property(pathPart);
+    }
 }
 
 void ScriptEngine::registerGlobalObject(const QString& name, QObject* object) {
@@ -339,9 +372,13 @@ void ScriptEngine::registerGlobalObject(const QString& name, QObject* object) {
     qDebug() << "ScriptEngine::registerGlobalObject() called on thread [" << QThread::currentThread() << "] name:" << name;
     #endif
 
-    if (object) {
-        QScriptValue value = newQObject(object);
-        globalObject().setProperty(name, value);
+    if (!globalObject().property(name).isValid()) {
+        if (object) {
+            QScriptValue value = newQObject(object);
+            globalObject().setProperty(name, value);
+        } else {
+            globalObject().setProperty(name, QScriptValue());
+        }
     }
 }
 
