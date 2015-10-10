@@ -17,6 +17,10 @@ Object.keys(Controller.Hardware).forEach(function (deviceName) {
     });
 });
 
+Object.keys(Controller.Actions).forEach(function (actionName) {
+    print(actionName + ":" + Controller.Actions[actionName]);
+});
+
 // Resets every device to its default key bindings:
 Controller.resetAllDeviceBindings();
 
