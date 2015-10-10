@@ -390,9 +390,6 @@ QString ControllerScriptingInterface::sanatizeName(const QString& name) {
 }
 
 void ControllerScriptingInterface::wireUpControllers(ScriptEngine* engine) {
-
-    qDebug() << "------------------- wire up controllers --------------------------";
-
     auto devices = DependencyManager::get<UserInputMapper>()->getDevices();
 
     for(const auto& deviceMapping : devices) {
@@ -402,13 +399,10 @@ void ControllerScriptingInterface::wireUpControllers(ScriptEngine* engine) {
         for (const auto& inputMapping : deviceInputs) {
             auto input = inputMapping.first;
             auto inputName = sanatizeName(inputMapping.second);
-            inputName.replace(QString(" "), QString(""));
             QString deviceInputName { "Controller.Hardware." + deviceName + "." + inputName };
             engine->registerValue(deviceInputName, input.getID());
-            qDebug() << deviceInputName << "[" << input.getID() << "]";
         }
     }
-    qDebug() << "------------------- DONE wire up controllers --------------------------";
 }
 
 AbstractInputController* ControllerScriptingInterface::createInputController(const QString& deviceName, const QString& tracker) {
