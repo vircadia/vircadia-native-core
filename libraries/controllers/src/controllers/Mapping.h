@@ -1,14 +1,10 @@
 #include <map>
-#include <list>
-
-#include <QtCore/QObject>
-#include <QtScript/QScriptValue>
-
-extern float currentTime();
 
 #include "Endpoint.h"
 #include "Filter.h"
 #include "Route.h"
+
+class QString;
 
 namespace Controllers {
 

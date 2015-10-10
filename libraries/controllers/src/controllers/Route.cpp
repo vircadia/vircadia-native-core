@@ -29,7 +29,7 @@ namespace Controllers {
         using Pointer = std::shared_ptr<Route>;
         using List = std::list<Pointer>;
 
-        void parse(const QJsonObject);
+        void parse(const QJsonObject& json);
     };
 }
 

@@ -37,5 +37,9 @@ namespace Controllers {
     };
 
 
+    Filter::Pointer Filter::parse(const QJsonObject& json) {
+        // FIXME parse the json object and determine the instance type to create
+        return Filter::Pointer();
+    }
 }
 

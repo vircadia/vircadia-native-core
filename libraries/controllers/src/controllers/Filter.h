@@ -13,6 +13,8 @@
 #include <list>
 #include <memory>
 
+class QJsonObject;
+
 namespace Controllers {
 
     // Encapsulates part of a filter chain
@@ -22,6 +24,8 @@ namespace Controllers {
 
         using Pointer = std::shared_ptr<Filter>;
         using List = std::list<Pointer>;
+
+        static Filter::Pointer parse(const QJsonObject& json);
     };
 
 }
