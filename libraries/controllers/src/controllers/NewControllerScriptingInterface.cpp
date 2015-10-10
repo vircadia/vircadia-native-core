@@ -1,23 +1,36 @@
 ﻿#include "NewControllerScriptingInterface.h"
 
 #include <mutex>
+#include <set>
 
-#include <QtScript/QScriptValue>
-
-#include "GLMHelpers.h"
+#include <GLMHelpers.h>
+#include <DependencyManager.h>
+#include <input-plugins/UserInputMapper.h>
 
 #include "impl/MappingBuilderProxy.h"
 
 namespace Controllers {
+    void NewControllerScriptingInterface::update() {
+        auto userInputMapper = DependencyManager::get<UserInputMapper>();
+        static float last = secTimestampNow();
+        float now = secTimestampNow();
+        userInputMapper->update(now - last);
+        last = now;
+    }
 
-QObject* NewControllerScriptingInterface::newMapping() {
-    qDebug() << "Creating new Mapping proxy";
-    return new MappingBuilderProxy(std::make_shared<Mapping>());
-}
+    QObject* NewControllerScriptingInterface::newMapping() {
+        qDebug() << "Creating new Mapping proxy";
+        return new MappingBuilderProxy(std::make_shared<Mapping>());
+    }
 
-float NewControllerScriptingInterface::getValue(const QScriptValue& source) {
-    return 0;
-}
+    float NewControllerScriptingInterface::getValue(const int& source) {
+        //UserInputMapper::Input input; input._id = source;
+        //auto userInputMapper = DependencyManager::get<UserInputMapper>();
+        //auto deviceProxy = userInputMapper->getDeviceProxy(input);
+        //return deviceProxy->getButton(input, 0) ? 1.0 : 0.0;
+
+        return (sin(secTimestampNow()) + 1.0f) / 2.0f;
+    }
 
 } // namespace controllers
 

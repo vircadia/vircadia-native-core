@@ -22,8 +22,9 @@ namespace Controllers {
         Q_OBJECT
     
     public:
+        Q_INVOKABLE void update();
         Q_INVOKABLE QObject* newMapping();
-        Q_INVOKABLE float getValue(const QScriptValue& source);
+        Q_INVOKABLE float getValue(const int& source);
     };
 }
 
