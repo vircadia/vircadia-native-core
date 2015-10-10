@@ -11,6 +11,12 @@
 
 // Assumes you only have the default keyboard connected
 
+Object.keys(Controller.Hardware).forEach(function (deviceName) {
+    Object.keys(Controller.Hardware[deviceName]).forEach(function (input) {
+        print(deviceName + "." + input + ":" + Controller.Hardware[deviceName][input]);
+    });
+});
+
 // Resets every device to its default key bindings:
 Controller.resetAllDeviceBindings();
 

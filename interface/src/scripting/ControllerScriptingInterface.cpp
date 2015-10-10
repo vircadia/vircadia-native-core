@@ -383,21 +383,29 @@ glm::vec2 ControllerScriptingInterface::getViewportDimensions() const {
     return qApp->getUiSize();
 }
 
+QString ControllerScriptingInterface::sanatizeName(const QString& name) {
+    QString cleanName { name };
+    cleanName.replace(QString(" "), QString("")).replace(QString("."), QString("")).replace(QString("("), QString("")).replace(QString(")"), QString(""));
+    return cleanName;
+}
+
 void ControllerScriptingInterface::wireUpControllers(ScriptEngine* engine) {
 
     qDebug() << "------------------- wire up controllers --------------------------";
-    ///_registeredDevices
 
     auto devices = DependencyManager::get<UserInputMapper>()->getDevices();
 
     for(const auto& deviceMapping : devices) {
         auto device = deviceMapping.second.get();
-        qDebug() << device->getName();
+        auto deviceName = sanatizeName(device->getName());
         auto deviceInputs = device->getAvailabeInputs();
         for (const auto& inputMapping : deviceInputs) {
             auto input = inputMapping.first;
-            auto inputName = inputMapping.second;
-            qDebug() << device->getName() << "." << inputName << "["<< input.getID() <<"]";
+            auto inputName = sanatizeName(inputMapping.second);
+            inputName.replace(QString(" "), QString(""));
+            QString deviceInputName { "Controller.Hardware." + deviceName + "." + inputName };
+            engine->registerValue(deviceInputName, input.getID());
+            qDebug() << deviceInputName << "[" << input.getID() << "]";
         }
     }
     qDebug() << "------------------- DONE wire up controllers --------------------------";
