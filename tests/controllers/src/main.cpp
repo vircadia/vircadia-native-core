@@ -27,12 +27,73 @@
 #include <QtGui/QGuiApplication>
 #include <QtGui/QImage>
 
+#include <QtQuick/QQuickItem>
+#include <QtQml/QQmlApplicationEngine>
+#include <QtQml/QQmlContext>
+
+#include <controllers/NewControllerScriptingInterface.h>
+
+const QString& getQmlDir() {
+    static QString dir;
+    if (dir.isEmpty()) {
+        QDir path(__FILE__);
+        path.cdUp();
+        dir = path.cleanPath(path.absoluteFilePath("../qml/")) + "/";
+        qDebug() << "Qml Path: " << dir;
+    }
+    return dir;
+}
+
+class AppHook : public QQuickItem {
+    Q_OBJECT
+
+public:
+    AppHook() {
+        qDebug() << "Hook Created";
+    }
+};
+
+using namespace Controllers;
+
 int main(int argc, char** argv) {    
+    // Register our component type with QML.
+    qmlRegisterType<AppHook>("com.highfidelity.test", 1, 0, "AppHook");
+    //qmlRegisterType<NewControllerScriptingInterface>("com.highfidelity.test", 1, 0, "NewControllers");
     QGuiApplication app(argc, argv);
-    QWindow window;
+    QQmlApplicationEngine engine(getQmlDir() + "main.qml");
+    engine.rootContext()->setContextProperty("NewControllers", new NewControllerScriptingInterface());
     app.exec();
     return 0;
 }
+
+
+
+//QQmlEngine engine;
+//QQmlComponent *component = new QQmlComponent(&engine);
+//
+//QObject::connect(&engine, SIGNAL(quit()), QCoreApplication::instance(), SLOT(quit()));
+//
+//component->loadUrl(QUrl("main.qml"));
+//
+//if (!component->isReady()) {
+//    qWarning("%s", qPrintable(component->errorString()));
+//    return -1;
+//}
+//
+//QObject *topLevel = component->create();
+//QQuickWindow *window = qobject_cast<QQuickWindow *>(topLevel);
+//
+//QSurfaceFormat surfaceFormat = window->requestedFormat();
+//window->setFormat(surfaceFormat);
+//window->show();
+//
+//rc = app.exec();
+//
+//delete component;
+//return rc;
+//}
+
+
 
 #include "main.moc"
 

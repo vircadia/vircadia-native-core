@@ -1,7 +1,28 @@
-#include "Mapping.h"
+﻿#include "NewControllerScriptingInterface.h"
+
+#include <mutex>
+
+#include <QtScript/QScriptValue>
+
+#include "GLMHelpers.h"
+
+#include "impl/MappingBuilderProxy.h"
 
 namespace Controllers {
+
+QObject* NewControllerScriptingInterface::newMapping() {
+    qDebug() << "Creating new Mapping proxy";
+    return new MappingBuilderProxy(std::make_shared<Mapping>());
 }
+
+float NewControllerScriptingInterface::getValue(const QScriptValue& source) {
+    return 0;
+}
+
+} // namespace controllers
+
+
+
 
 //    class MappingsStack {
 //        std::list<Mapping> _stack;
@@ -61,3 +82,44 @@ namespace Controllers {
 //            }
 //        }
 //    };
+//var mapping = Controller.newMapping();
+//mapping.map(hydra.LeftButton0, actions.ContextMenu);
+//mapping.map(hydra.LeftButton0).to(xbox.RT);
+//mapping.from(xbox.RT).constrainToBoolean().invert().to(actions.Foo)
+//    mapping.from(xbox.RY).invert().deadZone(0.2).to(actions.Pitch)
+//    mapping.from(xbox.RY).filter(function(newValue, oldValue) {
+//    return newValue * 2.0
+//}).to(actions.Pitch)
+
+//mapping.from(function(time) {
+//        return Math.cos(time);
+//    }).to(actions.Pitch);
+
+//    mapping.mapFromFunction(function() {
+//        return x;
+//    }, actions.ContextMenu);
+
+//    mapping.from(xbox.LY).clamp(0, 1).to(actions.Forward);
+//    mapping.from(xbox.LY).clamp(-1, 0).to(actions.Backward);
+//    mapping.from(xbox.RY).clamp(0, 1).to(actions.Forward);
+//    mapping.from(xbox.RS).to();
+//    mapping.from(xbox.ALL).to();
+
+//    mapping.from(xbox.RY).to(function(...) { ... });
+//    mapping.from(xbox.RY).pass();
+
+//    mapping.suppress() ≅ mapping.to(null)
+//        mapping.pass() ≅ mapping.to(fromControl)
+
+//        mapping.from(keyboard.RightParen).invert().to(actions.Yaw)
+//        mapping.from(keyboard.LeftParen).to(actions.Yaw)
+
+//        mapping.from(hydra.LX).pulse(MIN_SNAP_TIME, 3.0).to(Actions.Yaw)
+
+//        mapping.from(keyboard.LeftParen).pulse(MIN_SNAP_TIME).to(Actions.Yaw)
+//        // Enable and disable as above
+
+//        mappingSnap.from(hydra.LX).to(function(newValue, oldValue) {
+//        timeSinceLastYaw += deltaTime
+
+#include "NewControllerScriptingInterface.moc"

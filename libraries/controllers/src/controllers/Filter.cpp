@@ -13,30 +13,6 @@
 
 namespace Controllers {
 
-    class ScaleFilter : public Filter {
-    public:
-        virtual float apply(float newValue, float oldValue) {
-            return newValue * _scale;
-        }
-
-    private:
-        float _scale{ 1.0 };
-    };
-
-    class PulseFilter : public Filter {
-    public:
-        virtual float apply(float newValue, float oldValue) {
-            // ???
-        }
-
-    private:
-
-        float _lastEmitValue{ 0 };
-        float _lastEmitTime{ 0 };
-        float _interval{ -1.0f };
-    };
-
-
     Filter::Pointer Filter::parse(const QJsonObject& json) {
         // FIXME parse the json object and determine the instance type to create
         return Filter::Pointer();

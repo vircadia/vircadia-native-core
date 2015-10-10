@@ -13,6 +13,8 @@
 #include <list>
 #include <memory>
 
+class QScriptValue;
+
 namespace Controllers {
     /*
     * Encapsulates a particular input / output,
@@ -20,13 +22,14 @@ namespace Controllers {
     */
     class Endpoint {
     public:
-        virtual float value() = 0;
-        virtual void apply(float newValue, float oldValue, const Endpoint& source) = 0;
+        virtual float value() { return 0;  } // = 0;
+        virtual void apply(float newValue, float oldValue, const Endpoint& source) {} // = 0;
 
         using Pointer = std::shared_ptr<Endpoint>;
         using List = std::list<Pointer>;
 
         static const List& getHardwareEndpoints();
+        static Pointer getEndpoint(const QScriptValue& value);
     };
 
 }
