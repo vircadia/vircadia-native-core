@@ -1,0 +1,24 @@
+{
+    "name": "Full Mapping config including the standard hydra and gamepad and one more thing",
+    "mappings": [
+        { "src": "./mapping-hydra.json" },
+        { "src": "./mapping-xbox.json" },
+        {
+            "name": "example mapping for standard to js function",
+            "channels": [ {
+                    "from": "Standard.B",
+                    "to": {
+                        "type":"js",
+                        "function": "function(value){  print(\"Standard.B = \" + value );}"
+                    }
+                }, {
+                    "from": "Standard.B",
+                    "to": {
+                        "type":"js",
+                        "src": "http://www.theNextBigThing.com/hifiInputSignalHandler.js"
+                    }
+                }
+            ]
+        }
+    ]
+}
