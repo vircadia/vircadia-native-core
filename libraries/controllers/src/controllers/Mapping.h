@@ -1,10 +1,10 @@
 #include <map>
 
+#include <QtCore/QString>
+
 #include "Endpoint.h"
 #include "Filter.h"
 #include "Route.h"
-
-class QString;
 
 namespace Controllers {
 
