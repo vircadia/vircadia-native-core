@@ -162,7 +162,7 @@ void AnimInverseKinematics::solveWithCyclicCoordinateDescent(const std::vector<I
             }
 
             glm::vec3 tipPosition = absolutePoses[tipIndex].trans;
-            //glm::quat tipRotation = absolutePoses[tipIndex].rot;
+            glm::quat tipRotation = absolutePoses[tipIndex].rot;
 
             // cache tip's parent's absolute rotation so we can recompute the tip's parent-relative 
             // as we proceed walking down the joint chain
@@ -220,11 +220,11 @@ void AnimInverseKinematics::solveWithCyclicCoordinateDescent(const std::vector<I
                         }
                     }
                 } else if (targetType == IKTarget::Type::HmdHead) {
-                    /* TODO: implement this
                     // An HmdHead target slaves the orientation of the end-effector by distributing rotation 
                     // deltas up the hierarchy.  Its target position is enforced later by shifting the hips.
                     deltaRotation = target.getRotation() * glm::inverse(tipRotation);
-                    */
+                    float dotSign = copysignf(1.0f, deltaRotation.w);
+                    deltaRotation = glm::normalize(glm::lerp(glm::quat(), dotSign * deltaRotation, 0.15f));
                 }
 
                 // compute joint's new parent-relative rotation after swing
@@ -258,6 +258,7 @@ void AnimInverseKinematics::solveWithCyclicCoordinateDescent(const std::vector<I
 
                 // keep track of tip's new transform as we descend towards root
                 tipPosition = jointPosition + deltaRotation * leverArm;
+                tipRotation = glm::normalize(deltaRotation * tipRotation);
                 tipParentRotation = glm::normalize(deltaRotation * tipParentRotation);
 
                 pivotIndex = pivotsParentIndex;
