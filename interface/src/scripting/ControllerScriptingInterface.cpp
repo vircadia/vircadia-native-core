@@ -385,7 +385,7 @@ glm::vec2 ControllerScriptingInterface::getViewportDimensions() const {
 
 QString ControllerScriptingInterface::sanatizeName(const QString& name) {
     QString cleanName { name };
-    cleanName.replace(QString(" "), QString("")).replace(QString("."), QString("")).replace(QString("("), QString("")).replace(QString(")"), QString(""));
+    cleanName.remove(QRegularExpression{"[\\(\\)\\.\\s]"});
     return cleanName;
 }
 
