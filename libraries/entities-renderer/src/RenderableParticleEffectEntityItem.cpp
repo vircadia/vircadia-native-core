@@ -263,8 +263,8 @@ void RenderableParticleEffectEntityItem::updateRenderItem() {
         }
 
         // update transform
-        glm::quat rot = _transform.getRotation();
-        glm::vec3 pos = _transform.getTranslation();
+        glm::quat rot = getRotation();
+        glm::vec3 pos = getPosition();
         Transform t;
         t.setRotation(rot);
         payload.setModelTransform(t);

@@ -14,9 +14,10 @@
 #include <ByteCountCoding.h>
 #include <GLMHelpers.h>
 
+#include "EntitiesLogging.h"
+#include "EntityItemProperties.h"
 #include "EntityTree.h"
 #include "EntityTreeElement.h"
-#include "EntitiesLogging.h"
 #include "ResourceCache.h"
 #include "ModelEntityItem.h"
 
@@ -264,7 +265,7 @@ bool ModelEntityItem::isAnimatingSomething() const {
 }
 
 bool ModelEntityItem::needsToCallUpdate() const {
-    return isAnimatingSomething() ?  true : EntityItem::needsToCallUpdate();
+    return isAnimatingSomething() || EntityItem::needsToCallUpdate();
 }
 
 void ModelEntityItem::update(const quint64& now) {

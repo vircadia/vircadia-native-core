@@ -261,6 +261,12 @@ int OctreeInboundPacketProcessor::sendNackPackets() {
         }
 
         const SharedNodePointer& destinationNode = DependencyManager::get<NodeList>()->nodeWithUUID(nodeUUID);
+        // If the node no longer exists, wait until the ReceivedPacketProcessor has cleaned up the node
+        // to remove it from our stats list.
+        // FIXME Is it safe to clean it up here before ReceivedPacketProcess has?
+        if (!destinationNode) {
+            continue;
+        }
 
         // retrieve sequence number stats of node, prune its missing set
         SequenceNumberStats& sequenceNumberStats = nodeStats.getIncomingEditSequenceNumberStats();

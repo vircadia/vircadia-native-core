@@ -16,6 +16,8 @@
 
 #include <glm/glm.hpp>
 
+#include <NumericalConstants.h>
+
 // There is a minor performance gain when comparing/copying an existing glm::vec3 rather than 
 // creating a new one on the stack so we declare the ZERO_VEC3 constant as an optimization.
 const glm::vec3 ENTITY_ITEM_ZERO_VEC3 = glm::vec3(0.0f);

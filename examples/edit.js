@@ -296,37 +296,12 @@ var toolBar = (function () {
     function addModel(url) {
         var entityID = createNewEntity({
             type: "Model",
-            dimensions: DEFAULT_DIMENSIONS,
             modelURL: url
         }, false);
 
         if (entityID) {
             print("Model added: " + url);
-
-            var checkCount = 0;
-            function resize() {
-                var entityProperties = Entities.getEntityProperties(entityID);
-                var naturalDimensions = entityProperties.naturalDimensions;
-
-                checkCount++;
-
-                if (naturalDimensions.x == 0 && naturalDimensions.y == 0 && naturalDimensions.z == 0) {
-                    if (checkCount < RESIZE_MAX_CHECKS) {
-                        Script.setTimeout(resize, RESIZE_INTERVAL);
-                    } else {
-                        print("Resize failed: timed out waiting for model (" + url + ") to load");
-                    }
-                } else {
-                    Entities.editEntity(entityID, { dimensions: naturalDimensions });
-
-                    // Reset selection so that the selection overlays will be updated
-                    selectionManager.setSelections([entityID]);
-                }
-            }
-
             selectionManager.setSelections([entityID]);
-
-            Script.setTimeout(resize, RESIZE_INTERVAL);
         }
     }
 

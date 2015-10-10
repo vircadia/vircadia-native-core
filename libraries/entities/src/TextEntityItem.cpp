@@ -17,11 +17,11 @@
 #include <ByteCountCoding.h>
 #include <GeometryUtil.h>
 
+#include "EntityItemProperties.h"
+#include "EntitiesLogging.h"
 #include "EntityTree.h"
 #include "EntityTreeElement.h"
-#include "EntitiesLogging.h"
 #include "TextEntityItem.h"
-
 
 const QString TextEntityItem::DEFAULT_TEXT("");
 const float TextEntityItem::DEFAULT_LINE_HEIGHT = 0.1f;

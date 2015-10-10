@@ -14,10 +14,11 @@
 
 #include <ByteCountCoding.h>
 
+#include "EntitiesLogging.h"
 #include "EntityItemID.h"
+#include "EntityItemProperties.h"
 #include "EntityTree.h"
 #include "EntityTreeElement.h"
-#include "EntitiesLogging.h"
 #include "LightEntityItem.h"
 
 bool LightEntityItem::_lightsArePickable = false;

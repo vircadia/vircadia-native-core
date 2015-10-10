@@ -13,26 +13,24 @@
 #ifndef hifi_AnimationPropertyGroup_h
 #define hifi_AnimationPropertyGroup_h
 
+#include <stdint.h>
+
+#include <glm/glm.hpp>
+
 #include <QtScript/QScriptEngine>
 
-#include "PropertyGroup.h"
+#include "AnimationLoop.h"
 #include "EntityItemPropertiesMacros.h"
+#include "PropertyGroup.h"
 
 class EntityItemProperties;
 class EncodeBitstreamParams;
 class OctreePacketData;
 class EntityTreeElementExtraEncodeData;
 class ReadBitstreamToTreeParams;
-class AnimationLoop;
-
-#include <stdint.h>
-#include <glm/glm.hpp>
-
 
 class AnimationPropertyGroup : public PropertyGroup {
 public:
-    AnimationPropertyGroup();
-    virtual ~AnimationPropertyGroup() {}
     void associateWithAnimationLoop(AnimationLoop* animationLoop) { _animationLoop = animationLoop; }
 
     // EntityItemProperty related helpers
@@ -72,16 +70,16 @@ public:
                                                 ReadBitstreamToTreeParams& args,
                                                 EntityPropertyFlags& propertyFlags, bool overwriteLocalData,
                                                 bool& somethingChanged);
-                                                
-    DEFINE_PROPERTY_REF(PROP_ANIMATION_URL, URL, url, QString);
-    DEFINE_PROPERTY(PROP_ANIMATION_FPS, FPS, fps, float);
-    DEFINE_PROPERTY(PROP_ANIMATION_FRAME_INDEX, CurrentFrame, currentFrame, float);
-    DEFINE_PROPERTY(PROP_ANIMATION_PLAYING, Running, running, bool); // was animationIsPlaying
-    DEFINE_PROPERTY(PROP_ANIMATION_LOOP, Loop, loop, bool); // was animationSettings.loop
-    DEFINE_PROPERTY(PROP_ANIMATION_FIRST_FRAME, FirstFrame, firstFrame, float); // was animationSettings.firstFrame
-    DEFINE_PROPERTY(PROP_ANIMATION_LAST_FRAME, LastFrame, lastFrame, float); // was animationSettings.lastFrame
-    DEFINE_PROPERTY(PROP_ANIMATION_HOLD, Hold, hold, bool); // was animationSettings.hold
-    DEFINE_PROPERTY(PROP_ANIMATION_START_AUTOMATICALLY, StartAutomatically, startAutomatically, bool); // was animationSettings.startAutomatically
+    
+    DEFINE_PROPERTY_REF(PROP_ANIMATION_URL, URL, url, QString, "");
+    DEFINE_PROPERTY(PROP_ANIMATION_FPS, FPS, fps, float, 30.0f);
+    DEFINE_PROPERTY(PROP_ANIMATION_FRAME_INDEX, CurrentFrame, currentFrame, float, 0.0f);
+    DEFINE_PROPERTY(PROP_ANIMATION_PLAYING, Running, running, bool, false); // was animationIsPlaying
+    DEFINE_PROPERTY(PROP_ANIMATION_LOOP, Loop, loop, bool, true); // was animationSettings.loop
+    DEFINE_PROPERTY(PROP_ANIMATION_FIRST_FRAME, FirstFrame, firstFrame, float, 0.0f); // was animationSettings.firstFrame
+    DEFINE_PROPERTY(PROP_ANIMATION_LAST_FRAME, LastFrame, lastFrame, float, AnimationLoop::MAXIMUM_POSSIBLE_FRAME); // was animationSettings.lastFrame
+    DEFINE_PROPERTY(PROP_ANIMATION_HOLD, Hold, hold, bool, false); // was animationSettings.hold
+    DEFINE_PROPERTY(PROP_ANIMATION_START_AUTOMATICALLY, StartAutomatically, startAutomatically, bool, false); // was animationSettings.startAutomatically
 
 protected:
     void setFromOldAnimationSettings(const QString& value);

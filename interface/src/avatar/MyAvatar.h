@@ -17,6 +17,7 @@
 #include <Rig.h>
 
 #include "Avatar.h"
+#include "AtRestDetector.h"
 
 class ModelItemID;
 
@@ -282,8 +283,6 @@ private:
     // results are in sensor space
     glm::mat4 deriveBodyFromHMDSensor() const;
 
-    glm::vec3 _gravity;
-
     float _driveKeys[MAX_DRIVE_KEYS];
     bool _wasPushing;
     bool _isPushing;
@@ -291,7 +290,6 @@ private:
 
     float _boomLength;
 
-    float _trapDuration; // seconds that avatar has been trapped by collisions
     glm::vec3 _thrust;  // impulse accumulator for outside sources
 
     glm::vec3 _keyboardMotorVelocity; // target local-frame velocity of avatar (keyboard)
@@ -363,10 +361,11 @@ private:
     glm::vec3 _customListenPosition;
     glm::quat _customListenOrientation;
 
-    bool _straightingLean = false;
-    float _straightingLeanAlpha = 0.0f;
+    bool _straighteningLean = false;
+    float _straighteningLeanAlpha = 0.0f;
 
     quint64 _lastUpdateFromHMDTime = usecTimestampNow();
+    AtRestDetector _hmdAtRestDetector;
 };
 
 QScriptValue audioListenModeToScriptValue(QScriptEngine* engine, const AudioListenerMode& audioListenerMode);

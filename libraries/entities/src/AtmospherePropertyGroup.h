@@ -49,9 +49,6 @@ class ReadBitstreamToTreeParams;
 
 class AtmospherePropertyGroup : public PropertyGroup {
 public:
-    AtmospherePropertyGroup();
-    virtual ~AtmospherePropertyGroup() {}
-
     // EntityItemProperty related helpers
     virtual void copyToScriptValue(const EntityPropertyFlags& desiredProperties, QScriptValue& properties, QScriptEngine* engine, bool skipDefaults, EntityItemProperties& defaultEntityProperties) const;
     virtual void copyFromScriptValue(const QScriptValue& object, bool& _defaultSettings);
@@ -90,14 +87,22 @@ public:
                                                 EntityPropertyFlags& propertyFlags, bool overwriteLocalData, 
                                                 bool& somethingChanged);
 
-
-    DEFINE_PROPERTY_REF(PROP_ATMOSPHERE_CENTER, Center, center, glm::vec3);
-    DEFINE_PROPERTY(PROP_ATMOSPHERE_INNER_RADIUS, InnerRadius, innerRadius, float);
-    DEFINE_PROPERTY(PROP_ATMOSPHERE_OUTER_RADIUS, OuterRadius, outerRadius, float);
-    DEFINE_PROPERTY(PROP_ATMOSPHERE_MIE_SCATTERING, MieScattering, mieScattering, float);
-    DEFINE_PROPERTY(PROP_ATMOSPHERE_RAYLEIGH_SCATTERING, RayleighScattering, rayleighScattering, float);
-    DEFINE_PROPERTY_REF(PROP_ATMOSPHERE_SCATTERING_WAVELENGTHS, ScatteringWavelengths, scatteringWavelengths, glm::vec3);
-    DEFINE_PROPERTY(PROP_ATMOSPHERE_HAS_STARS, HasStars, hasStars, bool);
+    
+    static const glm::vec3 DEFAULT_CENTER;
+    static const float DEFAULT_INNER_RADIUS;
+    static const float DEFAULT_OUTER_RADIUS;
+    static const float DEFAULT_RAYLEIGH_SCATTERING;
+    static const float DEFAULT_MIE_SCATTERING;
+    static const glm::vec3 DEFAULT_SCATTERING_WAVELENGTHS;
+    static const bool DEFAULT_HAS_STARS;
+    
+    DEFINE_PROPERTY_REF(PROP_ATMOSPHERE_CENTER, Center, center, glm::vec3, DEFAULT_CENTER);
+    DEFINE_PROPERTY(PROP_ATMOSPHERE_INNER_RADIUS, InnerRadius, innerRadius, float, DEFAULT_INNER_RADIUS);
+    DEFINE_PROPERTY(PROP_ATMOSPHERE_OUTER_RADIUS, OuterRadius, outerRadius, float, DEFAULT_OUTER_RADIUS);
+    DEFINE_PROPERTY(PROP_ATMOSPHERE_MIE_SCATTERING, MieScattering, mieScattering, float, DEFAULT_MIE_SCATTERING);
+    DEFINE_PROPERTY(PROP_ATMOSPHERE_RAYLEIGH_SCATTERING, RayleighScattering, rayleighScattering, float, DEFAULT_RAYLEIGH_SCATTERING);
+    DEFINE_PROPERTY_REF(PROP_ATMOSPHERE_SCATTERING_WAVELENGTHS, ScatteringWavelengths, scatteringWavelengths, glm::vec3, DEFAULT_SCATTERING_WAVELENGTHS);
+    DEFINE_PROPERTY(PROP_ATMOSPHERE_HAS_STARS, HasStars, hasStars, bool, DEFAULT_HAS_STARS);
 };
 
 #endif // hifi_AtmospherePropertyGroup_h

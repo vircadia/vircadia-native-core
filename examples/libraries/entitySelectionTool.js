@@ -2325,9 +2325,14 @@ SelectionDisplay = (function () {
     });
 
     that.checkMove = function() {
-        if (SelectionManager.hasSelection() &&
-            (!Vec3.equal(Camera.getPosition(), lastCameraPosition) || !Quat.equal(Camera.getOrientation(), lastCameraOrientation))){
-            that.updateRotationHandles();
+        if (SelectionManager.hasSelection()) {
+            SelectionManager._update();
+            
+            if (!Vec3.equal(Camera.getPosition(), lastCameraPosition) ||
+                !Quat.equal(Camera.getOrientation(), lastCameraOrientation)) {
+                    
+                that.updateRotationHandles();
+            }
         }
     };
 
