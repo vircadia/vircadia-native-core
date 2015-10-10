@@ -67,6 +67,7 @@ class OffscreenGlCanvas;
 class GLCanvas;
 class FaceTracker;
 class MainWindow;
+class AssetUpload;
 
 #ifdef Q_OS_WIN
 static const UINT UWM_IDENTIFY_INSTANCES =
@@ -327,6 +328,8 @@ private slots:
     bool acceptSnapshot(const QString& urlString);
     bool askToSetAvatarUrl(const QString& url);
     bool askToLoadScript(const QString& scriptFilenameOrURL);
+    bool askToUploadAsset(const QString& asset);
+    void assetUploadFinished(AssetUpload* upload, const QString& hash);
     
     void setSessionUUID(const QUuid& sessionUUID);
     void domainChanged(const QString& domainHostname);
@@ -500,7 +503,7 @@ private:
     GLCanvas* _glWidget{ nullptr };
     
     typedef bool (Application::* AcceptURLMethod)(const QString &);
-    QHash<QString, AcceptURLMethod> _acceptedExtensions;
+    static const QHash<QString, AcceptURLMethod> _acceptedExtensions;
 
     QList<QString> _domainConnectionRefusals;
     glm::uvec2 _renderResolution;

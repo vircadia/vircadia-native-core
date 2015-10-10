@@ -14,13 +14,12 @@
 
 #include <ByteCountCoding.h>
 
-#include "PolyLineEntityItem.h"
-#include "EntityTree.h"
 #include "EntitiesLogging.h"
+#include "EntityItemProperties.h"
+#include "EntityTree.h"
 #include "EntityTreeElement.h"
 #include "OctreeConstants.h"
-
-
+#include "PolyLineEntityItem.h"
 
 const float PolyLineEntityItem::DEFAULT_LINE_WIDTH = 0.1f;
 const int PolyLineEntityItem::MAX_POINTS_PER_LINE = 70;

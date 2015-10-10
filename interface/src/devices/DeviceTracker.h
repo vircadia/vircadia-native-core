@@ -91,6 +91,9 @@ public:
     /// Get the name assigned to the Device when registered after creation, or "Unknown" if it hasn't been registered which should not happen.
     const Name& getName() const { return _name; }
 
+    typedef std::map< Name, ID > Map;
+    static const Map& getDevices() { return Singleton::get()->_devicesMap; }
+
 protected:
     DeviceTracker();
     virtual ~DeviceTracker();
@@ -103,7 +106,6 @@ private:
     void assignIDAndName( const ID id, const Name& name ) { _ID = id; _name = name; }
 
     typedef std::vector< DeviceTracker* > Vector;
-    typedef std::map< Name, ID > Map;
     struct SingletonData {
         Map     _devicesMap;
         Vector  _devicesVector;

@@ -14,8 +14,9 @@
 #include <FBXReader.h>
 #include <GeometryUtil.h>
 
-#include "EntityTree.h"
 #include "EntitiesLogging.h"
+#include "EntityItemProperties.h"
+#include "EntityTree.h"
 #include "EntityTreeElement.h"
 
 EntityTreeElement::EntityTreeElement(unsigned char* octalCode) : OctreeElement() {

@@ -14,7 +14,8 @@
 
 #include <AnimationLoop.h>
 
-#include "EntityItem.h" 
+#include "EntityItem.h"
+#include "AnimationPropertyGroup.h"
 
 class ModelEntityItem : public EntityItem {
 public:

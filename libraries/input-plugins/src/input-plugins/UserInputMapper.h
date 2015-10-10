@@ -109,7 +109,8 @@ public:
    class DeviceProxy {
     public:
        DeviceProxy(QString name) { _name = name; }
-       
+       const QString& getName() const { return _name; }
+
        QString _name;
        ButtonGetter getButton = [] (const Input& input, int timestamp) -> bool { return false; };
        AxisGetter getAxis = [] (const Input& input, int timestamp) -> float { return 0.0f; };
@@ -234,12 +235,14 @@ public:
     
     UserInputMapper();
 
+    typedef std::map<int, DeviceProxy::Pointer> DevicesMap;
+    DevicesMap getDevices() { return _registeredDevices; }
+
 signals:
     void actionEvent(int action, float state);
 
 
 protected:
-    typedef std::map<int, DeviceProxy::Pointer> DevicesMap;
     DevicesMap _registeredDevices;
     uint16 _nextFreeDeviceID = 1;
 

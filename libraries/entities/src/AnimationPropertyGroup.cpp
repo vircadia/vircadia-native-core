@@ -18,18 +18,6 @@
 #include "EntityItemProperties.h"
 #include "EntityItemPropertiesMacros.h"
 
-AnimationPropertyGroup::AnimationPropertyGroup() :
-CONSTRUCT_PROPERTY(url, QString{}),
-CONSTRUCT_PROPERTY(fps, 30.0f),
-CONSTRUCT_PROPERTY(running, false),
-CONSTRUCT_PROPERTY(loop, true),
-CONSTRUCT_PROPERTY(firstFrame, 0.0f),
-CONSTRUCT_PROPERTY(lastFrame, AnimationLoop::MAXIMUM_POSSIBLE_FRAME),
-CONSTRUCT_PROPERTY(hold, false),
-CONSTRUCT_PROPERTY(startAutomatically, false)
-{
-}
-
 void AnimationPropertyGroup::copyToScriptValue(const EntityPropertyFlags& desiredProperties, QScriptValue& properties, QScriptEngine* engine, bool skipDefaults, EntityItemProperties& defaultEntityProperties) const {
     COPY_GROUP_PROPERTY_TO_QSCRIPTVALUE(PROP_ANIMATION_URL, Animation, animation, URL, url);
 

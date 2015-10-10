@@ -84,6 +84,9 @@ public:
     Q_INVOKABLE void registerFunction(const QString& parent, const QString& name, QScriptEngine::FunctionSignature fun,
                           int numArguments = -1);
 
+    /// registers a global object by name
+    Q_INVOKABLE void registerValue(const QString& valueName, QScriptValue value);
+
     /// evaluate some code in the context of the ScriptEngine and return the result
     Q_INVOKABLE QScriptValue evaluate(const QString& program, const QString& fileName = QString(), int lineNumber = 1); // this is also used by the script tool widget
 
