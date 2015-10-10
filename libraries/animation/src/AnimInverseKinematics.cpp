@@ -96,13 +96,13 @@ void AnimInverseKinematics::computeTargets(const AnimVariantMap& animVars, std::
         } else {
             IKTarget target;
             AnimPose defaultPose = _skeleton->getAbsolutePose(targetVar.jointIndex, underPoses);
-            target.pose.trans = animVars.lookup(targetVar.positionVar, defaultPose.trans);
-            target.pose.rot = animVars.lookup(targetVar.rotationVar, defaultPose.rot);
-            target.setType(animVars.lookup(targetVar.typeVar, QString("")));
-            target.index = targetVar.jointIndex;
+            target.setPose(animVars.lookup(targetVar.rotationVar, defaultPose.rot), 
+                        animVars.lookup(targetVar.positionVar, defaultPose.trans));
+            target.setType(animVars.lookup(targetVar.typeVar, (int)IKTarget::Type::Unknown));
+            target.setIndex(targetVar.jointIndex);
             targets.push_back(target);
-            if (target.index > _maxTargetIndex) {
-                _maxTargetIndex = target.index;
+            if (targetVar.jointIndex > _maxTargetIndex) {
+                _maxTargetIndex = targetVar.jointIndex;
             }
         }
     }
@@ -141,14 +141,13 @@ void AnimInverseKinematics::solveWithCyclicCoordinateDescent(const std::vector<I
     do {
         int lowestMovedIndex = _relativePoses.size();
         for (auto& target: targets) {
-            if (target.type == IKTarget::Type::RotationOnly) {
+            if (target.getType() == IKTarget::Type::RotationOnly) {
                 // the final rotation will be enforced after the iterations
                 continue;
             }
-            AnimPose targetPose = target.pose;
 
             // cache tip absolute transform
-            int tipIndex = target.index;
+            int tipIndex = target.getIndex();
             glm::vec3 tipPosition = absolutePoses[tipIndex].trans;
             glm::quat tipRotation = absolutePoses[tipIndex].rot;
 
@@ -166,7 +165,7 @@ void AnimInverseKinematics::solveWithCyclicCoordinateDescent(const std::vector<I
                 // compute the two lines that should be aligned
                 glm::vec3 jointPosition = absolutePoses[pivotIndex].trans;
                 glm::vec3 leverArm = tipPosition - jointPosition;
-                glm::vec3 targetLine = targetPose.trans - jointPosition;
+                glm::vec3 targetLine = target.getTranslation() - jointPosition;
 
                 // compute the swing that would get get tip closer
                 glm::vec3 axis = glm::cross(leverArm, targetLine);
@@ -189,7 +188,7 @@ void AnimInverseKinematics::solveWithCyclicCoordinateDescent(const std::vector<I
 
                     // The swing will re-orient the tip but there will tend to be be a non-zero delta between the tip's 
                     // new rotation and its target.  We compute that delta here and rotate the tipJoint accordingly.
-                    glm::quat tipRelativeRotation = glm::inverse(deltaRotation * tipParentRotation) * targetPose.rot;
+                    glm::quat tipRelativeRotation = glm::inverse(deltaRotation * tipParentRotation) * target.getRotation();
 
                     // enforce tip's constraint
                     RotationConstraint* constraint = getConstraint(tipIndex);
@@ -199,7 +198,7 @@ void AnimInverseKinematics::solveWithCyclicCoordinateDescent(const std::vector<I
                             // The tip's final parent-relative rotation violates its constraint 
                             // so we try to twist this pivot to compensate.
                             glm::quat constrainedTipRotation = deltaRotation * tipParentRotation * tipRelativeRotation;
-                            glm::quat missingRotation = targetPose.rot * glm::inverse(constrainedTipRotation);
+                            glm::quat missingRotation = target.getRotation() * glm::inverse(constrainedTipRotation);
                             glm::quat swingPart;
                             glm::quat twistPart;
                             glm::vec3 axis = glm::normalize(deltaRotation * leverArm);
@@ -278,23 +277,23 @@ void AnimInverseKinematics::solveWithCyclicCoordinateDescent(const std::vector<I
     /* KEEP: example code for measuring endeffector error of IK solution
     for (uint32_t i = 0; i < targets.size(); ++i) {
         auto& target = targets[i];
-        if (target.type == IKTarget::Type::RotationOnly) {
+        if (target.getType() == IKTarget::Type::RotationOnly) {
             continue;
         }
         glm::vec3 tipPosition = absolutePoses[target.index].trans;
-        std::cout << i << " IK error = " << glm::distance(tipPosition, target.pose.trans) << std::endl;
+        std::cout << i << " IK error = " << glm::distance(tipPosition, target.getTranslation()) << std::endl;
     }
     */
 
     // finally set the relative rotation of each tip to agree with absolute target rotation
     for (auto& target: targets) {
-        int tipIndex = target.index;
+        int tipIndex = target.getIndex();
         int parentIndex = _skeleton->getParentIndex(tipIndex);
         if (parentIndex != -1) {
-            AnimPose targetPose = target.pose;
+            const glm::quat& targetRotation = target.getRotation();
             // compute tip's new parent-relative rotation
             // Q = Qp * q   -->   q' = Qp^ * Q
-            glm::quat newRelativeRotation = glm::inverse(absolutePoses[parentIndex].rot) * targetPose.rot;
+            glm::quat newRelativeRotation = glm::inverse(absolutePoses[parentIndex].rot) * targetRotation;
             RotationConstraint* constraint = getConstraint(tipIndex);
             if (constraint) {
                 constraint->apply(newRelativeRotation);
@@ -303,7 +302,7 @@ void AnimInverseKinematics::solveWithCyclicCoordinateDescent(const std::vector<I
                 // to help this rotation target get met.
             }
             _relativePoses[tipIndex].rot = newRelativeRotation;
-            absolutePoses[tipIndex].rot = targetPose.rot;
+            absolutePoses[tipIndex].rot = targetRotation;
         }
     }
 }
@@ -369,31 +368,30 @@ const AnimPoseVec& AnimInverseKinematics::overlay(const AnimVariantMap& animVars
             // compute the new target hips offset (for next frame)
             // by looking for discrepancies between where a targeted endEffector is
             // and where it wants to be (after IK solutions are done)
-            glm::vec3 newOffset = Vectors::ZERO;
+            glm::vec3 newHipsOffset = Vectors::ZERO;
             for (auto& target: targets) {
-                if (target.index == _headIndex && _headIndex != -1) {
+                int targetIndex = target.getIndex();
+                if (targetIndex == _headIndex && _headIndex != -1) {
                     // special handling for headTarget
-                    AnimPose headUnderPose = _skeleton->getAbsolutePose(_headIndex, underPoses);
-                    AnimPose headOverPose = headUnderPose;
-                    if (target.type == IKTarget::Type::RotationOnly) {
-                        headOverPose = _skeleton->getAbsolutePose(_headIndex, _relativePoses);
-                    } else if (target.type == IKTarget::Type::RotationAndPosition) {
-                        headOverPose = target.pose;
+                    glm::vec3 under = _skeleton->getAbsolutePose(_headIndex, underPoses).trans;
+                    glm::vec3 over = under;
+                    if (target.getType() == IKTarget::Type::RotationOnly) {
+                        over = _skeleton->getAbsolutePose(_headIndex, _relativePoses).trans;
+                    } else if (target.getType() == IKTarget::Type::RotationAndPosition) {
+                        over = target.getTranslation();
                     }
-                    glm::vec3 headOffset = headOverPose.trans - headUnderPose.trans;
                     const float HEAD_OFFSET_SLAVE_FACTOR = 0.65f;
-                    newOffset += HEAD_OFFSET_SLAVE_FACTOR * headOffset;
-                } else if (target.type == IKTarget::Type::RotationAndPosition) {
-                    glm::vec3 actualPosition = _skeleton->getAbsolutePose(target.index, _relativePoses).trans;
-                    glm::vec3 targetPosition = target.pose.trans;
-                    newOffset += targetPosition - actualPosition;
+                    newHipsOffset += HEAD_OFFSET_SLAVE_FACTOR * (over - under);
+                } else if (target.getType() == IKTarget::Type::RotationAndPosition) {
+                    glm::vec3 actualPosition = _skeleton->getAbsolutePose(targetIndex, _relativePoses).trans;
+                    glm::vec3 targetPosition = target.getTranslation();
+                    newHipsOffset += targetPosition - actualPosition;
                 }
             }
 
             // smooth transitions by relaxing _hipsOffset toward the new value
             const float HIPS_OFFSET_SLAVE_TIMESCALE = 0.15f;
-            glm::vec3 deltaOffset = (newOffset - _hipsOffset) * (dt / HIPS_OFFSET_SLAVE_TIMESCALE);
-            _hipsOffset += deltaOffset;
+            _hipsOffset += (newHipsOffset - _hipsOffset) * (dt / HIPS_OFFSET_SLAVE_TIMESCALE);
         }
     }
     return _relativePoses;

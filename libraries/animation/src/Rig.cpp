@@ -14,13 +14,14 @@
 #include <glm/gtx/vector_angle.hpp>
 #include <queue>
 
-#include "NumericalConstants.h"
+#include <NumericalConstants.h>
+#include <DebugDraw.h>
+
 #include "AnimationHandle.h"
 #include "AnimationLogging.h"
 #include "AnimSkeleton.h"
-#include "DebugDraw.h"
+#include "IKTarget.h"
 
-#include "Rig.h"
 
 void Rig::HeadParameters::dump() const {
     qCDebug(animation, "HeadParameters =");
@@ -1057,7 +1058,7 @@ void Rig::updateNeckJoint(int index, const HeadParameters& params) {
 
                 _animVars.set("headPosition", headPos);
                 _animVars.set("headRotation", headRot);
-                _animVars.set("headAndNeckType", QString("RotationAndPosition"));
+                _animVars.set("headAndNeckType", (int)IKTarget::Type::RotationAndPosition);
                 _animVars.set("neckPosition", neckPos);
                 _animVars.set("neckRotation", neckRot);
 
@@ -1070,7 +1071,7 @@ void Rig::updateNeckJoint(int index, const HeadParameters& params) {
 
                 _animVars.unset("headPosition");
                 _animVars.set("headRotation", realLocalHeadOrientation);
-                _animVars.set("headAndNeckType", QString("RotationOnly"));
+                _animVars.set("headAndNeckType", (int)IKTarget::Type::RotationOnly);
                 _animVars.unset("neckPosition");
                 _animVars.unset("neckRotation");
             }

@@ -16,6 +16,7 @@
 #include <vector>
 
 #include "AnimNode.h"
+#include "IKTarget.h"
 
 #include "RotationAccumulator.h"
 
@@ -37,18 +38,6 @@ public:
     virtual const AnimPoseVec& overlay(const AnimVariantMap& animVars, float dt, Triggers& triggersOut, const AnimPoseVec& underPoses) override;
 
 protected:
-    struct IKTarget {
-        enum class Type {
-            RotationAndPosition,
-            RotationOnly 
-        };
-        AnimPose pose;
-        int index;
-        Type type = Type::RotationAndPosition;
-
-        void setType(const QString& typeVar) { type = ((typeVar == "RotationOnly") ?  Type::RotationOnly : Type::RotationAndPosition); }
-    };
-
     void computeTargets(const AnimVariantMap& animVars, std::vector<IKTarget>& targets, const AnimPoseVec& underPoses);
     void solveWithCyclicCoordinateDescent(const std::vector<IKTarget>& targets);
     virtual void setSkeletonInternal(AnimSkeleton::ConstPointer skeleton) override;
