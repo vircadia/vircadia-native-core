@@ -26,6 +26,12 @@
 EntityItemPointer RenderableModelEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
     return std::make_shared<RenderableModelEntityItem>(entityID, properties);
 }
+RenderableModelEntityItem::RenderableModelEntityItem(const EntityItemID& entityItemID,
+                                                     const EntityItemProperties& properties) :
+    ModelEntityItem(entityItemID, properties),
+    _dimensionsInitialized { properties.dimensionsChanged() }
+{
+}
 
 RenderableModelEntityItem::~RenderableModelEntityItem() {
     assert(_myRenderer || !_model); // if we have a model, we need to know our renderer
@@ -33,6 +39,11 @@ RenderableModelEntityItem::~RenderableModelEntityItem() {
         _myRenderer->releaseModel(_model);
         _model = NULL;
     }
+}
+
+void RenderableModelEntityItem::setDimensions(const glm::vec3& value) {
+    _dimensionsInitialized = true;
+    ModelEntityItem::setDimensions(value);
 }
 
 bool RenderableModelEntityItem::setProperties(const EntityItemProperties& properties) {
@@ -189,7 +200,6 @@ void makeEntityItemStatusGetters(RenderableModelEntityItem* entity, render::Item
 
 bool RenderableModelEntityItem::addToScene(EntityItemPointer self, std::shared_ptr<render::Scene> scene, 
                                             render::PendingChanges& pendingChanges) {
-
     _myMetaItem = scene->allocateID();
     
     auto renderData = std::make_shared<RenderableModelEntityItemMeta>(self);
@@ -223,9 +233,6 @@ void RenderableModelEntityItem::removeFromScene(EntityItemPointer self, std::sha
 void RenderableModelEntityItem::render(RenderArgs* args) {
     PerformanceTimer perfTimer("RMEIrender");
     assert(getType() == EntityTypes::Model);
-    
-    glm::vec3 position = getPosition();
-    glm::vec3 dimensions = getDimensions();
 
     if (hasModel()) {
         if (_model) {
@@ -290,19 +297,19 @@ void RenderableModelEntityItem::render(RenderArgs* args) {
                     }
                 }
 
-                glm::quat rotation = getRotation();
                 bool movingOrAnimating = isMoving() || isAnimatingSomething();
-                if ((movingOrAnimating || _needsInitialSimulation) && _model->isActive()) {
-                    _model->setScaleToFit(true, dimensions);
+                if ((movingOrAnimating || _needsInitialSimulation) && _model->isActive() && _dimensionsInitialized) {
+                    _model->setScaleToFit(true, getDimensions());
                     _model->setSnapModelToRegistrationPoint(true, getRegistrationPoint());
-                    _model->setRotation(rotation);
-                    _model->setTranslation(position);
+                    _model->setRotation(getRotation());
+                    _model->setTranslation(getPosition());
                     
                     // make sure to simulate so everything gets set up correctly for rendering
                     {
                         PerformanceTimer perfTimer("_model->simulate");
                         _model->simulate(0.0f);
                     }
+                    
                     _needsInitialSimulation = false;
                 }
             }
@@ -360,7 +367,23 @@ Model* RenderableModelEntityItem::getModel(EntityTreeRenderer* renderer) {
 }
 
 bool RenderableModelEntityItem::needsToCallUpdate() const {
-    return _needsInitialSimulation || ModelEntityItem::needsToCallUpdate();
+    return !_dimensionsInitialized || _needsInitialSimulation || ModelEntityItem::needsToCallUpdate();
+}
+
+void RenderableModelEntityItem::update(const quint64& now) {
+    if (!_dimensionsInitialized && _model && _model->isActive()) {
+        EntityItemProperties properties;
+        auto extents = _model->getMeshExtents();
+        properties.setDimensions(extents.maximum - extents.minimum);
+        
+        qCDebug(entitiesrenderer) << "Autoresizing:" << (!getName().isEmpty() ? getName() : getModelURL());
+        QMetaObject::invokeMethod(DependencyManager::get<EntityScriptingInterface>().data(), "editEntity",
+                                  Qt::QueuedConnection,
+                                  Q_ARG(QUuid, getEntityItemID()),
+                                  Q_ARG(EntityItemProperties, properties));
+    }
+    
+    ModelEntityItem::update(now);
 }
 
 EntityItemProperties RenderableModelEntityItem::getProperties(EntityPropertyFlags desiredProperties) const {

@@ -17,11 +17,11 @@
 #include <ByteCountCoding.h>
 #include <GeometryUtil.h>
 
+#include "EntitiesLogging.h"
+#include "EntityItemProperties.h"
 #include "EntityTree.h"
 #include "EntityTreeElement.h"
-#include "EntitiesLogging.h"
 #include "SphereEntityItem.h"
-
 
 EntityItemPointer SphereEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
     EntityItemPointer result { new SphereEntityItem(entityID, properties) };

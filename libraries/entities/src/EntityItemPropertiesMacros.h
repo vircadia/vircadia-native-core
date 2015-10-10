@@ -9,12 +9,14 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include <QDateTime>
 
 #ifndef hifi_EntityItemPropertiesMacros_h
 #define hifi_EntityItemPropertiesMacros_h
 
+#include <QDateTime>
+
 #include "EntityItemID.h"
+#include <RegisteredMetaTypes.h>
 
 #define APPEND_ENTITY_PROPERTY(P,V) \
         if (requestedProperties.getHasProperty(P)) {                \
@@ -329,10 +331,6 @@ inline xColor xColor_convertFromScriptValue(const QScriptValue& v, bool& isValid
             set##S##FromString(newValue);                         \
         }                                                         \
     }
-    
-#define CONSTRUCT_PROPERTY(n, V)        \
-    _##n(V),                            \
-    _##n##Changed(false)
 
 #define DEFINE_PROPERTY_GROUP(N, n, T)           \
     public:                                      \
@@ -348,57 +346,45 @@ inline xColor xColor_convertFromScriptValue(const QScriptValue& v, bool& isValid
 #define ADD_GROUP_PROPERTY_TO_MAP(P, G, g, N, n) \
         _propertyStringsToEnums[#g "." #n] = P;
 
-#define DEFINE_PROPERTY(P, N, n, T)        \
+#define DEFINE_CORE(N, n, T, V) \
+    public: \
+        bool n##Changed() const { return _##n##Changed; } \
+        void set##N##Changed(bool value) { _##n##Changed = value; } \
+    private: \
+        T _##n = V; \
+        bool _##n##Changed { false };
+
+#define DEFINE_PROPERTY(P, N, n, T, V)        \
     public: \
         T get##N() const { return _##n; } \
         void set##N(T value) { _##n = value; _##n##Changed = true; } \
-        bool n##Changed() const { return _##n##Changed; } \
-        void set##N##Changed(bool value) { _##n##Changed = value; } \
-    private: \
-        T _##n; \
-        bool _##n##Changed = false;
+    DEFINE_CORE(N, n, T, V)
 
-#define DEFINE_PROPERTY_REF(P, N, n, T)        \
+#define DEFINE_PROPERTY_REF(P, N, n, T, V)        \
     public: \
         const T& get##N() const { return _##n; } \
         void set##N(const T& value) { _##n = value; _##n##Changed = true; } \
-        bool n##Changed() const { return _##n##Changed; } \
-        void set##N##Changed(bool value) { _##n##Changed = value; } \
-    private: \
-        T _##n; \
-        bool _##n##Changed = false;
+    DEFINE_CORE(N, n, T, V)
 
-#define DEFINE_PROPERTY_REF_WITH_SETTER(P, N, n, T)        \
+#define DEFINE_PROPERTY_REF_WITH_SETTER(P, N, n, T, V)        \
     public: \
         const T& get##N() const { return _##n; } \
         void set##N(const T& value); \
-        bool n##Changed() const; \
-        void set##N##Changed(bool value) { _##n##Changed = value; } \
-    private: \
-        T _##n; \
-        bool _##n##Changed;
+    DEFINE_CORE(N, n, T, V)
 
-#define DEFINE_PROPERTY_REF_WITH_SETTER_AND_GETTER(P, N, n, T)        \
+#define DEFINE_PROPERTY_REF_WITH_SETTER_AND_GETTER(P, N, n, T, V)        \
     public: \
         T get##N() const; \
         void set##N(const T& value); \
-        bool n##Changed() const; \
-        void set##N##Changed(bool value) { _##n##Changed = value; } \
-    private: \
-        T _##n; \
-        bool _##n##Changed;
+    DEFINE_CORE(N, n, T, V)
 
-#define DEFINE_PROPERTY_REF_ENUM(P, N, n, T) \
+#define DEFINE_PROPERTY_REF_ENUM(P, N, n, T, V) \
     public: \
         const T& get##N() const { return _##n; } \
         void set##N(const T& value) { _##n = value; _##n##Changed = true; } \
-        bool n##Changed() const { return _##n##Changed; } \
         QString get##N##AsString() const; \
         void set##N##FromString(const QString& name); \
-        void set##N##Changed(bool value) { _##n##Changed = value; } \
-    private: \
-        T _##n; \
-        bool _##n##Changed;
+    DEFINE_CORE(N, n, T, V)
 
 #define DEBUG_PROPERTY(D, P, N, n, x)                \
     D << "  " << #n << ":" << P.get##N() << x << "[changed:" << P.n##Changed() << "]\n";

@@ -28,7 +28,7 @@
 
 #include "EntityEditPacketSender.h"
 #include "EntitiesScriptEngineProvider.h"
-
+#include "EntityItemProperties.h"
 
 class EntityTree;
 class MouseEvent;

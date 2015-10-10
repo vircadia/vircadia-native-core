@@ -250,7 +250,7 @@ protected:
 
 
     quint64 _lastSimulated;
-    bool _isEmitting;
+    bool _isEmitting = true;
 
     QString _textures = DEFAULT_TEXTURES;
     bool _texturesChangedFlag = false;

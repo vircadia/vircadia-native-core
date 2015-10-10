@@ -10,6 +10,7 @@
 //
 
 #include <EntityItem.h>
+#include <EntityItemProperties.h>
 #include <EntityEditPacketSender.h>
 #include <PhysicsCollisionGroups.h>
 

@@ -43,6 +43,7 @@
 #include <AddressManager.h>
 #include <ApplicationVersion.h>
 #include <AssetClient.h>
+#include <AssetUpload.h>
 #include <AutoUpdater.h>
 #include <CursorManager.h>
 #include <DeferredLightingEffect.h>
@@ -157,6 +158,7 @@ static const QString SVO_EXTENSION  = ".svo";
 static const QString SVO_JSON_EXTENSION  = ".svo.json";
 static const QString JS_EXTENSION  = ".js";
 static const QString FST_EXTENSION  = ".fst";
+static const QString FBX_EXTENSION  = ".fbx";
 
 static const int MIRROR_VIEW_TOP_PADDING = 5;
 static const int MIRROR_VIEW_LEFT_PADDING = 10;
@@ -189,6 +191,15 @@ static const QString DESKTOP_LOCATION = QStandardPaths::writableLocation(QStanda
 
 const QString DEFAULT_SCRIPTS_JS_URL = "http://s3.amazonaws.com/hifi-public/scripts/defaultScripts.js";
 Setting::Handle<int> maxOctreePacketsPerSecond("maxOctreePPS", DEFAULT_MAX_OCTREE_PPS);
+
+const QHash<QString, Application::AcceptURLMethod> Application::_acceptedExtensions {
+    { SNAPSHOT_EXTENSION, &Application::acceptSnapshot },
+    { SVO_EXTENSION, &Application::importSVOFromURL },
+    { SVO_JSON_EXTENSION, &Application::importSVOFromURL },
+    { JS_EXTENSION, &Application::askToLoadScript },
+    { FST_EXTENSION, &Application::askToSetAvatarUrl },
+    { FBX_EXTENSION, &Application::askToUploadAsset }
+};
 
 #ifdef Q_OS_WIN
 class MyNativeEventFilter : public QAbstractNativeEventFilter {
@@ -2009,26 +2020,18 @@ void Application::wheelEvent(QWheelEvent* event) {
 }
 
 void Application::dropEvent(QDropEvent *event) {
-    const QMimeData *mimeData = event->mimeData();
-    bool atLeastOneFileAccepted = false;
-    foreach (QUrl url, mimeData->urls()) {
+    const QMimeData* mimeData = event->mimeData();
+    for (auto& url : mimeData->urls()) {
         QString urlString = url.toString();
-        if (canAcceptURL(urlString)) {
-            if (acceptURL(urlString)) {
-                atLeastOneFileAccepted = true;
-                break;
-            }
+        if (canAcceptURL(urlString) && acceptURL(urlString)) {
+            event->acceptProposedAction();
         }
-    }
-
-    if (atLeastOneFileAccepted) {
-        event->acceptProposedAction();
     }
 }
 
 void Application::dragEnterEvent(QDragEnterEvent* event) {
     const QMimeData* mimeData = event->mimeData();
-    foreach(QUrl url, mimeData->urls()) {
+    for (auto& url : mimeData->urls()) {
         auto urlString = url.toString();
         if (canAcceptURL(urlString)) {
             event->acceptProposedAction();
@@ -3954,19 +3957,7 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEngine* scri
 #endif
 }
 
-void Application::initializeAcceptedFiles() {
-    if (_acceptedExtensions.size() == 0) {
-        _acceptedExtensions[SNAPSHOT_EXTENSION] = &Application::acceptSnapshot;
-        _acceptedExtensions[SVO_EXTENSION] = &Application::importSVOFromURL;
-        _acceptedExtensions[SVO_JSON_EXTENSION] = &Application::importSVOFromURL;
-        _acceptedExtensions[JS_EXTENSION] = &Application::askToLoadScript;
-        _acceptedExtensions[FST_EXTENSION] = &Application::askToSetAvatarUrl;
-    }
-}
-
 bool Application::canAcceptURL(const QString& urlString) {
-    initializeAcceptedFiles();
-
     QUrl url(urlString);
     if (urlString.startsWith(HIFI_URL_SCHEME)) {
         return true;
@@ -3983,8 +3974,6 @@ bool Application::canAcceptURL(const QString& urlString) {
 }
 
 bool Application::acceptURL(const QString& urlString) {
-    initializeAcceptedFiles();
-
     if (urlString.startsWith(HIFI_URL_SCHEME)) {
         // this is a hifi URL - have the AddressManager handle it
         QMetaObject::invokeMethod(DependencyManager::get<AddressManager>().data(), "handleLookupString",
@@ -4078,8 +4067,73 @@ bool Application::askToLoadScript(const QString& scriptFilenameOrURL) {
     return true;
 }
 
+bool Application::askToUploadAsset(const QString& filename) {
+    if (!DependencyManager::get<NodeList>()->getThisNodeCanRez()) {
+        QMessageBox::warning(_window, "Failed Upload",
+                             QString("You don't have upload rights on that domain.\n\n"));
+        return false;
+    }
+    
+    QUrl url { filename };
+    if (auto upload = DependencyManager::get<AssetClient>()->createUpload(url.toLocalFile())) {
+        // connect to the finished signal so we know when the AssetUpload is done
+        QObject::connect(upload, &AssetUpload::finished, this, &Application::assetUploadFinished);
+        
+        // start the upload now
+        upload->start();
+        return true;
+    }
+    
+    // display a message box with the error
+    QMessageBox::warning(_window, "Failed Upload", QString("Failed to upload %1.\n\n").arg(filename));
+    return false;
+}
+
+void Application::assetUploadFinished(AssetUpload* upload, const QString& hash) {
+    if (upload->getError() != AssetUpload::NoError) {
+        // figure out the right error message for the message box
+        QString additionalError;
+        
+        switch (upload->getError()) {
+            case AssetUpload::PermissionDenied:
+                additionalError = "You do not have permission to upload content to this asset-server.";
+                break;
+            case AssetUpload::TooLarge:
+                additionalError = "The uploaded content was too large and could not be stored in the asset-server.";
+                break;
+            case AssetUpload::FileOpenError:
+                additionalError = "The file could not be opened. Please check your permissions and try again.";
+                break;
+            case AssetUpload::NetworkError:
+                additionalError = "The file could not be opened. Please check your network connectivity.";
+                break;
+            default:
+                // not handled, do not show a message box
+                return;
+        }
+        
+        // display a message box with the error
+        auto filename = QFileInfo(upload->getFilename()).fileName();
+        QString errorMessage = QString("Failed to upload %1.\n\n%2").arg(filename, additionalError);
+        QMessageBox::warning(_window, "Failed Upload", errorMessage);
+    }
+    
+    auto entities = DependencyManager::get<EntityScriptingInterface>();
+    auto myAvatar = getMyAvatar();
+    
+    EntityItemProperties properties;
+    properties.setType(EntityTypes::Model);
+    properties.setModelURL(QString("%1:%2.%3").arg(ATP_SCHEME).arg(hash).arg(upload->getExtension()));
+    properties.setPosition(myAvatar->getPosition() + myAvatar->getOrientation() * Vectors::FRONT * 2.0f);
+    properties.setName(QUrl(upload->getFilename()).fileName());
+    
+    entities->addEntity(properties);
+    
+    upload->deleteLater();
+}
+
 ScriptEngine* Application::loadScript(const QString& scriptFilename, bool isUserLoaded,
-                                        bool loadScriptFromEditor, bool activateMainWindow, bool reload) {
+                                      bool loadScriptFromEditor, bool activateMainWindow, bool reload) {
 
     if (isAboutToQuit()) {
         return NULL;

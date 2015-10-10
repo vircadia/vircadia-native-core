@@ -26,16 +26,6 @@ const float StagePropertyGroup::DEFAULT_STAGE_ALTITUDE = 0.03f;
 const quint16 StagePropertyGroup::DEFAULT_STAGE_DAY = 60;
 const float StagePropertyGroup::DEFAULT_STAGE_HOUR = 12.0f;
 
-StagePropertyGroup::StagePropertyGroup() {
-    _sunModelEnabled = DEFAULT_STAGE_SUN_MODEL_ENABLED;
-    _latitude = DEFAULT_STAGE_LATITUDE;
-    _longitude = DEFAULT_STAGE_LONGITUDE;
-    _altitude = DEFAULT_STAGE_ALTITUDE;
-    _day = DEFAULT_STAGE_DAY;
-    _hour = DEFAULT_STAGE_HOUR;
-    _automaticHourDay = false;
-}
-
 void StagePropertyGroup::copyToScriptValue(const EntityPropertyFlags& desiredProperties, QScriptValue& properties, QScriptEngine* engine, bool skipDefaults, EntityItemProperties& defaultEntityProperties) const {
     COPY_GROUP_PROPERTY_TO_QSCRIPTVALUE(PROP_STAGE_SUN_MODEL_ENABLED, Stage, stage, SunModelEnabled, sunModelEnabled);
     COPY_GROUP_PROPERTY_TO_QSCRIPTVALUE(PROP_STAGE_LATITUDE, Stage, stage, Latitude, latitude);

@@ -17,6 +17,8 @@
 #include "AtmospherePropertyGroup.h"
 #include "EntityItem.h"
 #include "EntityTree.h"
+#include "SkyboxPropertyGroup.h"
+#include "StagePropertyGroup.h"
 
 class ZoneEntityItem : public EntityItem {
 public:
