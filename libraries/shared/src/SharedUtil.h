@@ -71,7 +71,7 @@ void usecTimestampNowForceClockSkew(int clockSkew);
 
 // Number of seconds expressed since the first call to this function, expressed as a float
 // Maximum accuracy in msecs
-float ssecTimestampNow();
+float secTimestampNow();
 
 float randFloat();
 int randIntInRange (int min, int max);

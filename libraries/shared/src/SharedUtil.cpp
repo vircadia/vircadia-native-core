@@ -120,7 +120,7 @@ quint64 usecTimestampNow(bool wantDebug) {
 
 float secTimestampNow() {
     static const auto START_TIME = usecTimestampNow();
-    const auto nowUsecs = usecTimestampNow();
+    const auto nowUsecs = usecTimestampNow() - START_TIME;
     const auto nowMsecs = nowUsecs / USECS_PER_MSEC;
     return (float)nowMsecs / MSECS_PER_SECOND;
 }
