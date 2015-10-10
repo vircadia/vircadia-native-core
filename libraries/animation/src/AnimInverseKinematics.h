@@ -91,8 +91,7 @@ protected:
 
     // experimental data for moving hips during IK
     int _headIndex = -1;
-    glm::vec3 _targetHipsOffset = Vectors::ZERO; // offset we want
-    glm::vec3 _actualHipsOffset = Vectors::ZERO; // offset we have
+    glm::vec3 _hipsOffset = Vectors::ZERO;
 
     // _maxTargetIndex is tracked to help optimize the recalculation of absolute poses
     // during the the cyclic coordinate descent algorithm
