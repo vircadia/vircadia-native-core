@@ -15,6 +15,8 @@
 
 using namespace udt;
 
+static int packetListMetaTypeId = qRegisterMetaType<PacketList*>("PacketList*");
+
 std::unique_ptr<PacketList> PacketList::create(PacketType packetType, QByteArray extendedHeader,
                                                bool isReliable, bool isOrdered) {
     auto packetList = std::unique_ptr<PacketList>(new PacketList(packetType, extendedHeader,
