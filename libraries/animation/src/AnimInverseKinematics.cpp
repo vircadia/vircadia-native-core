@@ -95,14 +95,16 @@ void AnimInverseKinematics::computeTargets(const AnimVariantMap& animVars, std::
             }
         } else {
             IKTarget target;
-            AnimPose defaultPose = _skeleton->getAbsolutePose(targetVar.jointIndex, underPoses);
-            target.setPose(animVars.lookup(targetVar.rotationVar, defaultPose.rot), 
-                        animVars.lookup(targetVar.positionVar, defaultPose.trans));
-            target.setType(animVars.lookup(targetVar.typeVar, (int)IKTarget::Type::Unknown));
-            target.setIndex(targetVar.jointIndex);
-            targets.push_back(target);
-            if (targetVar.jointIndex > _maxTargetIndex) {
-                _maxTargetIndex = targetVar.jointIndex;
+            target.setType(animVars.lookup(targetVar.typeVar, (int)IKTarget::Type::RotationAndPosition));
+            if (target.getType() != IKTarget::Type::Unknown) {
+                AnimPose defaultPose = _skeleton->getAbsolutePose(targetVar.jointIndex, underPoses);
+                target.setPose(animVars.lookup(targetVar.rotationVar, defaultPose.rot), 
+                            animVars.lookup(targetVar.positionVar, defaultPose.trans));
+                target.setIndex(targetVar.jointIndex);
+                targets.push_back(target);
+                if (targetVar.jointIndex > _maxTargetIndex) {
+                    _maxTargetIndex = targetVar.jointIndex;
+                }
             }
         }
     }
