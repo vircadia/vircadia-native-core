@@ -14,6 +14,8 @@
 
 #include <functional>
 
+#include <QtCore/QMutex>
+
 #include "ResourceRequest.h"
 
 const QString URL_SCHEME_FILE = "file";
@@ -28,6 +30,11 @@ public:
     static QString normalizeURL(const QString& urlString);
     static QUrl normalizeURL(const QUrl& url);
     static ResourceRequest* createResourceRequest(QObject* parent, const QUrl& url);
+private:
+    using PrefixMap = std::map<QString, QString>;
+
+    static PrefixMap _prefixMap;
+    static QMutex _prefixMapLock;
 };
 
 #endif
