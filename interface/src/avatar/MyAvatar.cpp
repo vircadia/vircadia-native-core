@@ -337,16 +337,18 @@ void MyAvatar::updateFromHMDSensorMatrix(const glm::mat4& hmdSensorMatrix) {
     const float STRAIGHTENING_LEAN_DURATION = 0.5f;  // seconds
 
     // define a vertical capsule
+    static float adebug = 1.0f; // adebug
     const float STRAIGHTENING_LEAN_CAPSULE_RADIUS = 0.2f;  // meters
     const float STRAIGHTENING_LEAN_CAPSULE_LENGTH = 0.05f;  // length of the cylinder part of the capsule in meters.
 
     auto newBodySensorMatrix = deriveBodyFromHMDSensor();
     glm::vec3 diff = extractTranslation(newBodySensorMatrix) - extractTranslation(_bodySensorMatrix);
-    if (!_straighteningLean && (capsuleCheck(diff, STRAIGHTENING_LEAN_CAPSULE_LENGTH, STRAIGHTENING_LEAN_CAPSULE_RADIUS) || hmdIsAtRest)) {
+    if (!_straighteningLean && (capsuleCheck(diff, adebug * STRAIGHTENING_LEAN_CAPSULE_LENGTH, adebug * STRAIGHTENING_LEAN_CAPSULE_RADIUS) || hmdIsAtRest)) {
 
         // begin homing toward derived body position.
         _straighteningLean = true;
         _straighteningLeanAlpha = 0.0f;
+        adebug = 1000.0f; // adebug
 
     } else if (_straighteningLean) {
 

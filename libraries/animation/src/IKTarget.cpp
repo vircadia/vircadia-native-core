@@ -25,6 +25,9 @@ void IKTarget::setType(int type) {
         case (int)Type::HmdHead:
             _type = Type::HmdHead;
             break;
+        case (int)Type::HipsRelativeRotationAndPosition:
+            _type = Type::HipsRelativeRotationAndPosition;
+            break;
         default:
             _type = Type::Unknown;
     }

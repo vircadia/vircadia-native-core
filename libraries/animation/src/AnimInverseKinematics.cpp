@@ -98,8 +98,14 @@ void AnimInverseKinematics::computeTargets(const AnimVariantMap& animVars, std::
             target.setType(animVars.lookup(targetVar.typeVar, (int)IKTarget::Type::RotationAndPosition));
             if (target.getType() != IKTarget::Type::Unknown) {
                 AnimPose defaultPose = _skeleton->getAbsolutePose(targetVar.jointIndex, underPoses);
-                target.setPose(animVars.lookup(targetVar.rotationVar, defaultPose.rot), 
-                            animVars.lookup(targetVar.positionVar, defaultPose.trans));
+                glm::quat rotation = animVars.lookup(targetVar.rotationVar, defaultPose.rot); 
+                glm::vec3 translation = animVars.lookup(targetVar.positionVar, defaultPose.trans);
+                if (target.getType() == IKTarget::Type::HipsRelativeRotationAndPosition) {
+                    translation += _hipsOffset;
+                    // HACK to test whether lifting idle hands will release the shoulders
+                    translation.y += 0.10f;
+                }
+                target.setPose(rotation, translation);
                 target.setIndex(targetVar.jointIndex);
                 targets.push_back(target);
                 if (targetVar.jointIndex > _maxTargetIndex) {
@@ -124,6 +130,10 @@ void AnimInverseKinematics::computeTargets(const AnimVariantMap& animVars, std::
                 ++i;
             }
         }
+    }
+    static int adebug = 0; ++adebug; bool verbose = (0 == (adebug % 100));
+    if (verbose) {
+        std::cout << "adebug num targets = " << targets.size() << std::endl;  // adebug
     }
 }
 
@@ -175,7 +185,8 @@ void AnimInverseKinematics::solveWithCyclicCoordinateDescent(const std::vector<I
                 glm::vec3 leverArm = tipPosition - jointPosition;
 
                 glm::quat deltaRotation;
-                if (targetType == IKTarget::Type::RotationAndPosition) {
+                if (targetType == IKTarget::Type::RotationAndPosition || 
+                        targetType == IKTarget::Type::HipsRelativeRotationAndPosition) {
                     // compute the swing that would get get tip closer
                     glm::vec3 targetLine = target.getTranslation() - jointPosition;
                     glm::vec3 axis = glm::cross(leverArm, targetLine);
@@ -365,23 +376,28 @@ const AnimPoseVec& AnimInverseKinematics::overlay(const AnimVariantMap& animVars
 
             solveWithCyclicCoordinateDescent(targets);
 
+
             // compute the new target hips offset (for next frame)
             // by looking for discrepancies between where a targeted endEffector is
             // and where it wants to be (after IK solutions are done)
+            glm::vec3 hmdHipsOffset(100.0f);
             glm::vec3 newHipsOffset = Vectors::ZERO;
             for (auto& target: targets) {
                 int targetIndex = target.getIndex();
                 if (targetIndex == _headIndex && _headIndex != -1) {
                     // special handling for headTarget
-                    glm::vec3 under = _skeleton->getAbsolutePose(_headIndex, underPoses).trans;
-                    glm::vec3 over = under;
                     if (target.getType() == IKTarget::Type::RotationOnly) {
-                        over = _skeleton->getAbsolutePose(_headIndex, _relativePoses).trans;
-                    } else if (target.getType() == IKTarget::Type::RotationAndPosition) {
-                        over = target.getTranslation();
+                        // we want to shift the hips to bring the underpose closer 
+                        // to where the head happens to be (overpose)
+                        glm::vec3 under = _skeleton->getAbsolutePose(_headIndex, underPoses).trans;
+                        glm::vec3 actual = _skeleton->getAbsolutePose(_headIndex, _relativePoses).trans;
+                        const float HEAD_OFFSET_SLAVE_FACTOR = 0.65f;
+                        newHipsOffset += HEAD_OFFSET_SLAVE_FACTOR * (actual - under);
+                    } else if (target.getType() == IKTarget::Type::HmdHead) {
+                        // we want to shift the hips to bring the head to its designated position
+                        glm::vec3 actual = _skeleton->getAbsolutePose(_headIndex, _relativePoses).trans;
+                        hmdHipsOffset = _hipsOffset + target.getTranslation() - actual;
                     }
-                    const float HEAD_OFFSET_SLAVE_FACTOR = 0.65f;
-                    newHipsOffset += HEAD_OFFSET_SLAVE_FACTOR * (over - under);
                 } else if (target.getType() == IKTarget::Type::RotationAndPosition) {
                     glm::vec3 actualPosition = _skeleton->getAbsolutePose(targetIndex, _relativePoses).trans;
                     glm::vec3 targetPosition = target.getTranslation();
@@ -392,6 +408,10 @@ const AnimPoseVec& AnimInverseKinematics::overlay(const AnimVariantMap& animVars
             // smooth transitions by relaxing _hipsOffset toward the new value
             const float HIPS_OFFSET_SLAVE_TIMESCALE = 0.15f;
             _hipsOffset += (newHipsOffset - _hipsOffset) * (dt / HIPS_OFFSET_SLAVE_TIMESCALE);
+            //_hipsOffset *= 0.0f; // adebug
+            if (glm::length2(hmdHipsOffset) < 100.0f) {
+                _hipsOffset = hmdHipsOffset;
+            }
         }
     }
     return _relativePoses;

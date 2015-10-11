@@ -1058,9 +1058,11 @@ void Rig::updateNeckJoint(int index, const HeadParameters& params) {
 
                 _animVars.set("headPosition", headPos);
                 _animVars.set("headRotation", headRot);
-                _animVars.set("headAndNeckType", (int)IKTarget::Type::RotationAndPosition);
+                _animVars.set("headType", (int)IKTarget::Type::HmdHead);
                 _animVars.set("neckPosition", neckPos);
                 _animVars.set("neckRotation", neckRot);
+                //_animVars.set("neckType", (int)IKTarget::Type::RotationOnly);
+                _animVars.set("neckType", (int)IKTarget::Type::Unknown); // 'Unknown' disables the target
 
             } else {
 
@@ -1072,8 +1074,10 @@ void Rig::updateNeckJoint(int index, const HeadParameters& params) {
                 _animVars.unset("headPosition");
                 _animVars.set("headRotation", realLocalHeadOrientation);
                 _animVars.set("headAndNeckType", (int)IKTarget::Type::RotationOnly);
+                _animVars.set("headType", (int)IKTarget::Type::RotationOnly);
                 _animVars.unset("neckPosition");
                 _animVars.unset("neckRotation");
+                _animVars.set("neckType", (int)IKTarget::Type::RotationOnly);
             }
         } else if (!_enableAnimGraph) {
 
@@ -1131,16 +1135,20 @@ void Rig::updateFromHandParameters(const HandParameters& params, float dt) {
         if (params.isLeftEnabled) {
             _animVars.set("leftHandPosition", rootBindPose.trans + rootBindPose.rot * yFlipHACK * params.leftPosition);
             _animVars.set("leftHandRotation", rootBindPose.rot * yFlipHACK * params.leftOrientation);
+            _animVars.set("leftHandType", (int)IKTarget::Type::RotationAndPosition);
         } else {
             _animVars.unset("leftHandPosition");
             _animVars.unset("leftHandRotation");
+            _animVars.set("leftHandType", (int)IKTarget::Type::HipsRelativeRotationAndPosition);
         }
         if (params.isRightEnabled) {
             _animVars.set("rightHandPosition", rootBindPose.trans + rootBindPose.rot * yFlipHACK * params.rightPosition);
             _animVars.set("rightHandRotation", rootBindPose.rot * yFlipHACK * params.rightOrientation);
+            _animVars.set("rightHandType", (int)IKTarget::Type::RotationAndPosition);
         } else {
             _animVars.unset("rightHandPosition");
             _animVars.unset("rightHandRotation");
+            _animVars.set("rightHandType", (int)IKTarget::Type::HipsRelativeRotationAndPosition);
         }
 
         // set leftHand grab vars

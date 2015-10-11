@@ -18,6 +18,7 @@ public:
         RotationAndPosition,
         RotationOnly,
         HmdHead,
+        HipsRelativeRotationAndPosition,
         Unknown,
     };
 
