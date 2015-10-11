@@ -20,7 +20,6 @@ UserInputMapper::UserInputMapper() {
 }
 
 UserInputMapper::~UserInputMapper() {
-    delete _standardController;
 }
 
 
@@ -331,9 +330,6 @@ void UserInputMapper::createActionNames() {
 }
 
 void UserInputMapper::registerStandardDevice() {
-    _standardController = new StandardController;
+    _standardController = std::make_shared<StandardController>();
     _standardController->registerToUserInputMapper(*this);
-
-    //mapper.registerDevice(_deviceID, proxy);
-    //_standardDevice = proxy;
 }

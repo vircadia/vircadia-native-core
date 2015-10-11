@@ -21,6 +21,7 @@
 #include <RegisteredMetaTypes.h>
 
 class StandardController;    
+typedef std::shared_ptr<StandardController> StandardControllerPointer;
 
 class UserInputMapper : public QObject, public Dependency {
     Q_OBJECT
@@ -253,7 +254,7 @@ protected:
     void registerStandardDevice();
     uint16 _standardDeviceID = 0;
     DeviceProxy::Pointer _standardDevice;
-    StandardController* _standardController = nullptr;
+    StandardControllerPointer _standardController;
         
     DevicesMap _registeredDevices;
     uint16 _nextFreeDeviceID = 1;
