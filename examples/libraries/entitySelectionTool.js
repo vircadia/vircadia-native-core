@@ -2324,7 +2324,7 @@ SelectionDisplay = (function () {
         }
     });
 
-    that.checkMove = function () {
+    that.checkMove = function() {
         if (SelectionManager.hasSelection()) {
 
             // FIXME - this cause problems with editing in the entity properties window
