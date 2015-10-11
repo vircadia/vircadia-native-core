@@ -19,13 +19,16 @@
 #include <memory>
 #include <DependencyManager.h>
 #include <RegisteredMetaTypes.h>
-    
+
+class StandardController;    
 
 class UserInputMapper : public QObject, public Dependency {
     Q_OBJECT
     SINGLETON_DEPENDENCY
     Q_ENUMS(Action)
 public:
+    ~UserInputMapper();
+
     typedef unsigned short uint16;
     typedef unsigned int uint32;
 
@@ -123,6 +126,7 @@ public:
     // GetFreeDeviceID should be called before registering a device to use an ID not used by a different device.
     uint16 getFreeDeviceID() { return _nextFreeDeviceID++; }
     bool registerDevice(uint16 deviceID, const DeviceProxy::Pointer& device);
+    bool registerStandardDevice(const DeviceProxy::Pointer& device) { _standardDevice = device; return true; }
     DeviceProxy::Pointer getDeviceProxy(const Input& input);
     QString getDeviceName(uint16 deviceID);
     QVector<InputPair> getAvailableInputs(uint16 deviceID) { return _registeredDevices[deviceID]->getAvailabeInputs(); }
@@ -238,11 +242,19 @@ public:
     typedef std::map<int, DeviceProxy::Pointer> DevicesMap;
     DevicesMap getDevices() { return _registeredDevices; }
 
+    uint16 getStandardDeviceID() const { return _standardDeviceID; }
+    DeviceProxy::Pointer getStandardDevice() { return _standardDevice; }
+
 signals:
     void actionEvent(int action, float state);
 
 
 protected:
+    void registerStandardDevice();
+    uint16 _standardDeviceID = 0;
+    DeviceProxy::Pointer _standardDevice;
+    StandardController* _standardController = nullptr;
+        
     DevicesMap _registeredDevices;
     uint16 _nextFreeDeviceID = 1;
 

@@ -391,6 +391,19 @@ QString ControllerScriptingInterface::sanatizeName(const QString& name) {
 
 void ControllerScriptingInterface::wireUpControllers(ScriptEngine* engine) {
 
+    // Controller.Standard.*
+    auto standardDevice = DependencyManager::get<UserInputMapper>()->getStandardDevice();
+    if (standardDevice) {
+        auto deviceName = sanatizeName(standardDevice->getName());
+        auto deviceInputs = standardDevice->getAvailabeInputs();
+        for (const auto& inputMapping : deviceInputs) {
+            auto input = inputMapping.first;
+            auto inputName = sanatizeName(inputMapping.second);
+            QString deviceInputName{ "Controller." + deviceName + "." + inputName };
+            engine->registerValue(deviceInputName, input.getID());
+        }
+    }
+
     // Controller.Hardware.*
     auto devices = DependencyManager::get<UserInputMapper>()->getDevices();
     for(const auto& deviceMapping : devices) {

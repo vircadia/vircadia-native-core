@@ -10,12 +10,19 @@
 //
 
 #include "UserInputMapper.h"
+#include "StandardController.h"
 
 // Default contruct allocate the poutput size with the current hardcoded action channels
 UserInputMapper::UserInputMapper() {
+    registerStandardDevice();
     assignDefaulActionScales();
     createActionNames();
 }
+
+UserInputMapper::~UserInputMapper() {
+    delete _standardController;
+}
+
 
 bool UserInputMapper::registerDevice(uint16 deviceID, const DeviceProxy::Pointer& proxy){
     proxy->_name += " (" + QString::number(deviceID) + ")";
@@ -321,4 +328,12 @@ void UserInputMapper::createActionNames() {
     _actionNames[ACTION2] = "ACTION2";
     _actionNames[CONTEXT_MENU] = "CONTEXT_MENU";
     _actionNames[TOGGLE_MUTE] = "TOGGLE_MUTE";
+}
+
+void UserInputMapper::registerStandardDevice() {
+    _standardController = new StandardController;
+    _standardController->registerToUserInputMapper(*this);
+
+    //mapper.registerDevice(_deviceID, proxy);
+    //_standardDevice = proxy;
 }
