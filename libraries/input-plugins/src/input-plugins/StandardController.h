@@ -2,8 +2,8 @@
 //  StandardController.h
 //  input-plugins/src/input-plugins
 //
-//  Created by Stephen Birarda on 2014-09-23.
-//  Copyright 2014 High Fidelity, Inc.
+//  Created by Brad Hefta-Gaub on 2015-10-11.
+//  Copyright 2015 High Fidelity, Inc.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
@@ -49,6 +49,11 @@ public:
         STANDARD_CONTROLLER_BUTTON_RIGHTSHOULDER,
     };
 
+    enum StandardControllerPoseChannel {
+        LEFT_HAND = 0,
+        RIGHT_HAND,
+    };
+
     const QString& getName() const { return _name; }
 
     // Device functions
@@ -62,6 +67,7 @@ public:
     
     UserInputMapper::Input makeInput(StandardController::StandardControllerButtonChannel button);
     UserInputMapper::Input makeInput(StandardController::StandardControllerAxisChannel axis);
+    UserInputMapper::Input makeInput(StandardController::StandardControllerPoseChannel pose);
 
 private:
 };

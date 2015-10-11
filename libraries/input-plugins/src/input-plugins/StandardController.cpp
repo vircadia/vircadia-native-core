@@ -2,8 +2,8 @@
 //  StandardController.cpp
 //  input-plugins/src/input-plugins
 //
-//  Created by Stephen Birarda on 2014-09-23.
-//  Copyright 2014 High Fidelity, Inc.
+//  Created by Brad Hefta-Gaub on 2015-10-11.
+//  Copyright 2015 High Fidelity, Inc.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
@@ -67,6 +67,9 @@ void StandardController::registerToUserInputMapper(UserInputMapper& mapper) {
         availableInputs.append(UserInputMapper::InputPair(makeInput(RIGHT_AXIS_Y_POS), "Right Stick Down"));
         availableInputs.append(UserInputMapper::InputPair(makeInput(RIGHT_AXIS_X_POS), "Right Stick Right"));
         availableInputs.append(UserInputMapper::InputPair(makeInput(RIGHT_AXIS_X_NEG), "Right Stick Left"));
+
+        availableInputs.append(UserInputMapper::InputPair(makeInput(LEFT_HAND), "Left Hand"));
+        availableInputs.append(UserInputMapper::InputPair(makeInput(RIGHT_HAND), "Right Hand"));
 
         return availableInputs;
     };
@@ -154,3 +157,6 @@ UserInputMapper::Input StandardController::makeInput(StandardController::Standar
     return UserInputMapper::Input(_deviceID, axis, UserInputMapper::ChannelType::AXIS);
 }
 
+UserInputMapper::Input StandardController::makeInput(StandardController::StandardControllerPoseChannel pose) {
+    return UserInputMapper::Input(_deviceID, pose, UserInputMapper::ChannelType::POSE);
+}
