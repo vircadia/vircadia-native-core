@@ -16,7 +16,6 @@ macro(LINK_HIFI_LIBRARIES)
   foreach(HIFI_LIBRARY ${LIBRARIES_TO_LINK})    
     if (NOT TARGET ${HIFI_LIBRARY})
       add_subdirectory("${RELATIVE_LIBRARY_DIR_PATH}/${HIFI_LIBRARY}" "${RELATIVE_LIBRARY_DIR_PATH}/${HIFI_LIBRARY}")
-      set_target_properties(${HIFI_LIBRARY} PROPERTIES FOLDER "Libraries")
     endif ()
   
     include_directories("${HIFI_LIBRARY_DIR}/${HIFI_LIBRARY}/src")
