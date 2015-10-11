@@ -88,6 +88,7 @@ void Procedural::parse(const QJsonObject& proceduralData) {
     // Get the path to the shader
     {
         QString shaderUrl = proceduralData[URL_KEY].toString();
+        shaderUrl = ResourceManager::normalizeURL(shaderUrl);
         _shaderUrl = QUrl(shaderUrl);
         if (!_shaderUrl.isValid()) {
             qWarning() << "Invalid shader URL: " << shaderUrl;
