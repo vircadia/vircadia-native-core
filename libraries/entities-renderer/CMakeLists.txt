@@ -1,29 +1,12 @@
 set(TARGET_NAME entities-renderer)
-
 AUTOSCRIBE_SHADER_LIB(gpu model render render-utils)
-
-# use setup_hifi_library macro to setup our project and link appropriate Qt modules
 setup_hifi_library(Widgets Network Script)
+link_hifi_libraries(shared gpu procedural model model-networking script-engine render render-utils)
 
-add_dependency_external_projects(glm)
-find_package(GLM REQUIRED)
-target_include_directories(${TARGET_NAME} PUBLIC ${GLM_INCLUDE_DIRS})
-
-add_dependency_external_projects(bullet)
-find_package(Bullet REQUIRED)
-
-# perform the system include hack for OS X to ignore warnings
-if (APPLE)
-  SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -isystem ${BULLET_INCLUDE_DIRS}")
-else()
-  target_include_directories(${TARGET_NAME} SYSTEM PRIVATE ${BULLET_INCLUDE_DIRS})
-endif()
-
-target_link_libraries(${TARGET_NAME} ${BULLET_LIBRARIES})
+target_bullet()
 
 add_dependency_external_projects(polyvox)
 find_package(PolyVox REQUIRED)
 target_include_directories(${TARGET_NAME} SYSTEM PUBLIC ${POLYVOX_INCLUDE_DIRS})
 target_link_libraries(${TARGET_NAME} ${POLYVOX_LIBRARIES})
 
-link_hifi_libraries(shared gpu procedural model model-networking script-engine render render-utils)
