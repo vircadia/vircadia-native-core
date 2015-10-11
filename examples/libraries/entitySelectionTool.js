@@ -2324,9 +2324,11 @@ SelectionDisplay = (function () {
         }
     });
 
-    that.checkMove = function() {
+    that.checkMove = function () {
         if (SelectionManager.hasSelection()) {
-            SelectionManager._update();
+
+            // FIXME - this cause problems with editing in the entity properties window
+            //SelectionManager._update();
             
             if (!Vec3.equal(Camera.getPosition(), lastCameraPosition) ||
                 !Quat.equal(Camera.getOrientation(), lastCameraOrientation)) {
