@@ -13,20 +13,30 @@
 #include <QtCore/QString>
 
 #include "../Mapping.h"
+#include "../Endpoint.h"
 
-namespace Controllers {
+class QJSValue;
+class QScriptValue;
+
+namespace controller {
+
+class NewControllerScriptingInterface;
 
 class MappingBuilderProxy : public QObject {
     Q_OBJECT
 public:
-    MappingBuilderProxy(Mapping::Pointer mapping)
-        : _mapping(mapping) { }
+    MappingBuilderProxy(NewControllerScriptingInterface& parent, Mapping::Pointer mapping)
+        : _parent(parent), _mapping(mapping) { }
 
-    Q_INVOKABLE QObject* from(const QString& fromEndpoint);
+    Q_INVOKABLE QObject* from(const QJSValue& source);
+    Q_INVOKABLE QObject* from(const QScriptValue& source);
 
+    Q_INVOKABLE QObject* join(const QJSValue& source1, const QJSValue& source2);
 protected:
+    QObject* from(const Endpoint::Pointer& source);
+
     friend class RouteBuilderProxy;
-    Endpoint::Pointer endpointFor(const QString& endpoint);
+    NewControllerScriptingInterface& _parent;
     Mapping::Pointer _mapping;
 };
 

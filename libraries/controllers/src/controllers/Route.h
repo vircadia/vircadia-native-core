@@ -15,7 +15,7 @@
 
 class QJsonObject;
 
-namespace Controllers {
+namespace controller {
 
     /*
     * encapsulates a source, destination and filters to apply

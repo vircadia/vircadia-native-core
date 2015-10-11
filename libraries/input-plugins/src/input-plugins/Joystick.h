@@ -21,6 +21,7 @@
 #endif
 
 #include "InputDevice.h"
+#include "StandardControls.h"
 
 class Joystick : public QObject, public InputDevice {
     Q_OBJECT
@@ -31,18 +32,6 @@ class Joystick : public QObject, public InputDevice {
 #endif
     
 public:
-    enum JoystickAxisChannel {
-        LEFT_AXIS_X_POS = 0,
-        LEFT_AXIS_X_NEG,
-        LEFT_AXIS_Y_POS,
-        LEFT_AXIS_Y_NEG,
-        RIGHT_AXIS_X_POS,
-        RIGHT_AXIS_X_NEG,
-        RIGHT_AXIS_Y_POS,
-        RIGHT_AXIS_Y_NEG,
-        RIGHT_SHOULDER,
-        LEFT_SHOULDER,
-    };
 
     const QString& getName() const { return _name; }
 
@@ -55,10 +44,8 @@ public:
     Joystick() : InputDevice("Joystick") {}
     ~Joystick();
     
-#ifdef HAVE_SDL2
-    UserInputMapper::Input makeInput(SDL_GameControllerButton button);
-#endif
-    UserInputMapper::Input makeInput(Joystick::JoystickAxisChannel axis);
+    UserInputMapper::Input makeInput(Controllers::StandardButtonChannel button);
+    UserInputMapper::Input makeInput(Controllers::StandardAxisChannel axis);
     
 #ifdef HAVE_SDL2
     Joystick(SDL_JoystickID instanceId, const QString& name, SDL_GameController* sdlGameController);

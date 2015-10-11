@@ -12,10 +12,14 @@
 #ifndef hifi_KeyboardMouseDevice_h
 #define hifi_KeyboardMouseDevice_h
 
-#include <QTouchEvent>
 #include <chrono>
 #include "InputDevice.h"
 #include "InputPlugin.h"
+
+class QTouchEvent;
+class QKeyEvent;
+class QMouseEvent;
+class QWheelEvent;
 
 class KeyboardMouseDevice : public InputPlugin, public InputDevice {
     Q_OBJECT
@@ -100,7 +104,6 @@ protected:
     glm::vec2 _lastTouch;
     bool _isTouching = false;
     
-    glm::vec2 evalAverageTouchPoints(const QList<QTouchEvent::TouchPoint>& points) const;
     std::chrono::high_resolution_clock _clock;
     std::chrono::high_resolution_clock::time_point _lastTouchTime;
 };

@@ -48,8 +48,9 @@ public:
         union {
             struct {
                 uint16 _device; // Up to 64K possible devices
-                uint16 _channel : 14; // 2^14 possible channel per Device
+                uint16 _channel : 13; // 2^13 possible channel per Device
                 uint16 _type : 2; // 2 bits to store the Type directly in the ID
+                uint16 _padding : 1; // 2 bits to store the Type directly in the ID
             };
             uint32 _id = 0; // by default Input is 0 meaning invalid
         };
@@ -74,12 +75,18 @@ public:
         // where the default initializer (a C++-11ism) for the union data above is not applied.
         explicit Input() : _id(0) {}
         explicit Input(uint32 id) : _id(id) {}
-        explicit Input(uint16 device, uint16 channel, ChannelType type) : _device(device), _channel(channel), _type(uint16(type)) {}
+        explicit Input(uint16 device, uint16 channel, ChannelType type) : _device(device), _channel(channel), _type(uint16(type)), _padding(0) {}
         Input(const Input& src) : _id(src._id) {}
         Input& operator = (const Input& src) { _id = src._id; return (*this); }
         bool operator ==(const Input& right) const { return _id == right._id; }
         bool operator < (const Input& src) const { return _id < src._id; }
+
+        static const Input INVALID_INPUT;
+        static const uint16 INVALID_DEVICE;
+        static const uint16 INVALID_CHANNEL;
+        static const uint16 INVALID_TYPE;
     };
+
 
     // Modifiers are just button inputID
     typedef std::vector< Input > Modifiers;
@@ -121,7 +128,7 @@ public:
        PoseGetter getPose = [] (const Input& input, int timestamp) -> PoseValue { return PoseValue(); };
        AvailableInputGetter getAvailabeInputs = [] () -> AvailableInput { return QVector<InputPair>(); };
        ResetBindings resetDeviceBindings = [] () -> bool { return true; };
-       
+       float getValue(const Input& input, int timestamp = 0) const;
        typedef std::shared_ptr<DeviceProxy> Pointer;
     };
     // GetFreeDeviceID should be called before registering a device to use an ID not used by a different device.
@@ -170,6 +177,13 @@ public:
 
         CONTEXT_MENU,
         TOGGLE_MUTE,
+
+        TranslateX,
+        TranslateY,
+        TranslateZ,
+        Roll,
+        Pitch,
+        Yaw,
 
         NUM_ACTIONS,
     };

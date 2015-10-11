@@ -3,135 +3,95 @@ import QtQuick.Controls 1.0
 import QtQuick.Layouts 1.0
 import QtQuick.Dialogs 1.0
 
-Rectangle {
+import "./xbox"
+import "./controls"
+
+Column {
     id: root
-    implicitHeight: column1.height + 24
-    implicitWidth: column1.width + 24
-    color: "lightgray"
+    property var xbox: NewControllers.Hardware.X360Controller1
+    property var actions: NewControllers.Actions
+    property var standard: NewControllers.Standard
+    property string mappingName: "TestMapping"
 
-    property real itemSize: 128
+    spacing: 12
 
-    Component {
-        id: graphTemplate
-        Item {
-            implicitHeight: canvas.height + 2 + text.height
-            implicitWidth: canvas.width
-            property string text: loadText
-
-            Canvas {
-               id: canvas
-               width: root.itemSize; height: root.itemSize;
-               antialiasing: false
-               property int controlId: control
-               property real value: 0.0
-               property int drawWidth: 1
-
-               Timer {
-                   interval: 50; running: true; repeat: true
-                   onTriggered: {
-                       parent.value = NewControllers.getValue(canvas.controlId)
-                       parent.requestPaint();
-                   }
-               }
-
-               onPaint: {
-                   var ctx = canvas.getContext('2d');
-                   ctx.save();
-
-                   var image = ctx.getImageData(0, 0, canvas.width, canvas.height);
-                   ctx.clearRect(0, 0, canvas.width, canvas.height);
-                   ctx.drawImage(image, -drawWidth, 0, canvas.width, canvas.height)
-                   ctx.fillStyle = 'green'
-                   // draw a filles rectangle
-                   var height = canvas.height * canvas.value
-                   ctx.fillRect(canvas.width - drawWidth, canvas.height - height,
-                                drawWidth, height)
-                   ctx.restore()
-               }
-            }
-
-            Text {
-                id: text
-                text: parent.text
-                anchors.topMargin: 2
-                anchors.horizontalCenter: canvas.horizontalCenter
-                anchors.top: canvas.bottom
-                font.pointSize: 12;
-            }
-
+    Timer {
+        interval: 50; running: true; repeat: true
+        onTriggered: {
+            NewControllers.update();
         }
     }
 
-    Column {
-        id: column1
-        x: 12; y: 12
-        spacing: 24
-        Row {
-            spacing: 16
-            Loader {
-                sourceComponent: graphTemplate;
-                property string loadText: "Key Left"
-                property int control: ControllerIds.Hardware.Keyboard2.Left
+    Row {
+        spacing: 8
+        Button {
+            text: "Default Mapping"
+            onClicked: {
+                var mapping = NewControllers.newMapping("Default");
+                mapping.from(xbox.A).to(standard.A);
+                mapping.from(xbox.B).to(standard.B);
+                mapping.from(xbox.X).to(standard.X);
+                mapping.from(xbox.Y).to(standard.Y);
+                mapping.from(xbox.Up).to(standard.DU);
+                mapping.from(xbox.Down).to(standard.DD);
+                mapping.from(xbox.Left).to(standard.DL);
+                mapping.from(xbox.Right).to(standard.Right);
+                mapping.from(xbox.LB).to(standard.LB);
+                mapping.from(xbox.RB).to(standard.RB);
+                mapping.from(xbox.LS).to(standard.LS);
+                mapping.from(xbox.RS).to(standard.RS);
+                mapping.from(xbox.Start).to(standard.Start);
+                mapping.from(xbox.Back).to(standard.Back);
+                mapping.from(xbox.LY).to(standard.LY);
+                mapping.from(xbox.LX).to(standard.LX);
+                mapping.from(xbox.RY).to(standard.RY);
+                mapping.from(xbox.RX).to(standard.RX);
+                mapping.from(xbox.LT).to(standard.LT);
+                mapping.from(xbox.RT).to(standard.RT);
+                NewControllers.enableMapping("Default");
             }
-            Loader {
-                sourceComponent: graphTemplate;
-                property string loadText: "DPad Up"
-                property int control: ControllerIds.Hardware.X360Controller1.DPadUp
-            }
-            /*
-            Loader {
-                sourceComponent: graphTemplate;
-                property string loadText: "Yaw Left"
-                property int control: ControllerIds.Actions.YAW_LEFT
-            }
-            Loader {
-                sourceComponent: graphTemplate;
-                property string loadText: "Yaw Left"
-                property int control: ControllerIds.Actions.YAW_LEFT
-            }
-*/
-
-//            Loader { sourceComponent: graphTemplate; }
-//            Loader { sourceComponent: graphTemplate; }
-//            Loader { sourceComponent: graphTemplate; }
         }
-        /*
-        Row {
-            spacing: 16
-            Loader { sourceComponent: graphTemplate; }
-            Loader { sourceComponent: graphTemplate; }
-            Loader { sourceComponent: graphTemplate; }
-            Loader { sourceComponent: graphTemplate; }
-        }
-        Row {
-            spacing: 16
-            Loader { sourceComponent: graphTemplate; }
-            Loader { sourceComponent: graphTemplate; }
-            Loader { sourceComponent: graphTemplate; }
-            Loader { sourceComponent: graphTemplate; }
-        }
-        */
-
 
         Button {
-            text: "Go!"
+            text: "Build Mapping"
             onClicked: {
-                //
-
-//                var newMapping = NewControllers.newMapping();
-//                console.log("Mapping Object " + newMapping);
-//                var routeBuilder = newMapping.from("Hello");
-//                console.log("Route Builder " + routeBuilder);
-//                routeBuilder.clamp(0, 1).clamp(0, 1).to("Goodbye");
+                var mapping = NewControllers.newMapping(root.mappingName);
+                // Inverting a value
+                mapping.from(xbox.RY).invert().to(standard.RY);
+                // Assigning a value from a function
+                mapping.from(function() { return Math.sin(Date.now() / 250); }).to(standard.RX);
+                // Constrainting a value to -1, 0, or 1, with a deadzone
+                mapping.from(xbox.LY).deadZone(0.5).constrainToInteger().to(standard.LY);
+                mapping.join(standard.LB, standard.RB).pulse(0.5).to(actions.Yaw);
             }
         }
 
-        Timer {
-            interval: 50; running: true; repeat: true
-            onTriggered: {
-                NewControllers.update();
-            }
+        Button {
+            text: "Enable Mapping"
+            onClicked: NewControllers.enableMapping(root.mappingName)
         }
 
+        Button {
+            text: "Disable Mapping"
+            onClicked: NewControllers.disableMapping(root.mappingName)
+        }
+    }
+
+    Row {
+        spacing: 8
+        Xbox { device: root.xbox }
+        Xbox { device: root.standard }
+    }
+
+
+    Row {
+        ScrollingGraph {
+            controlId: NewControllers.Actions.Yaw
+            label: "Yaw"
+            min: -3.0
+            max: 3.0
+            size: 128
+        }
     }
 }
+
