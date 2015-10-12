@@ -4079,7 +4079,7 @@ bool Application::askToUploadAsset(const QString& filename) {
         // Option to drop model in world for models
         if (filename.endsWith(FBX_EXTENSION) || filename.endsWith(OBJ_EXTENSION)) {
             auto checkBox = new QCheckBox(&messageBox);
-            checkBox->setText("Drop model in world.");
+            checkBox->setText("Add to scene");
             messageBox.setCheckBox(checkBox);
         }
         
@@ -4118,7 +4118,7 @@ void Application::modelUploadFinished(AssetUpload* upload, const QString& hash) 
         
         EntityItemProperties properties;
         properties.setType(EntityTypes::Model);
-        properties.setModelURL(QString("%1:%2.%3").arg(ATP_SCHEME).arg(hash).arg(upload->getExtension()));
+        properties.setModelURL(QString("%1:%2.%3").arg(URL_SCHEME_ATP).arg(hash).arg(upload->getExtension()));
         properties.setPosition(_myCamera.getPosition() + _myCamera.getOrientation() * Vectors::FRONT * 2.0f);
         properties.setName(QUrl(upload->getFilename()).fileName());
         

@@ -25,7 +25,7 @@ AssetUpload::AssetUpload(QObject* object, const QString& filename) :
 
 void AssetUpload::start() {
     if (QThread::currentThread() != thread()) {
-        QMetaObject::invokeMethod(this, "start", Qt::AutoConnection);
+        QMetaObject::invokeMethod(this, "start");
         return;
     }
     
@@ -37,14 +37,15 @@ void AssetUpload::start() {
         // file opened, read the data and grab the extension
         _extension = QFileInfo(_filename).suffix();
         
-        auto data = file.readAll();
+        _data = file.readAll();
         
         // ask the AssetClient to upload the asset and emit the proper signals from the passed callback
         auto assetClient = DependencyManager::get<AssetClient>();
         
         qCDebug(asset_client) << "Attempting to upload" << _filename << "to asset-server.";
         
-        assetClient->uploadAsset(data, _extension, [this](bool responseReceived, AssetServerError error, const QString& hash){
+        assetClient->uploadAsset(_data, _extension, [this](bool responseReceived, AssetServerError error,
+                                                           const QString& hash){
             if (!responseReceived) {
                 _error = NetworkError;
             } else {
@@ -63,6 +64,11 @@ void AssetUpload::start() {
                         break;
                 }
             }
+            
+            if (_error == NoError && hash == hashData(_data).toHex()) {
+                saveToCache(getUrl(hash, _extension), _data);
+            }
+            
             emit finished(this, hash);
         });
     } else {
