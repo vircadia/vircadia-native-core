@@ -52,7 +52,6 @@
   };
 
 
-
   MasterReset = function() {
     var resetKey = "resetMe";
     var GRABBABLE_DATA_KEY = "grabbableKey";
@@ -653,6 +652,7 @@
           green: 146,
           blue: 24
         },
+        isSpotlight: false,
         userData: JSON.stringify({
           resetMe: {
             resetMe: true,
@@ -680,6 +680,7 @@
           green: 146,
           blue: 24
         },
+        isSpotlight: false,
         userData: JSON.stringify({
           resetMe: {
             resetMe: true,
@@ -749,6 +750,7 @@
           green: 146,
           blue: 24
         },
+        isSpotlight: false,
         userData: JSON.stringify({
           resetMe: {
             resetMe: true,
@@ -777,6 +779,7 @@
           green: 146,
           blue: 24
         },
+        isSpotlight: false,
         userData: JSON.stringify({
           resetMe: {
             resetMe: true,
@@ -804,6 +807,7 @@
           green: 146,
           blue: 24
         },
+        isSpotlight: false,
         userData: JSON.stringify({
           resetMe: {
             resetMe: true,
