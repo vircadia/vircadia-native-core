@@ -12,26 +12,45 @@
 
 #include <list>
 #include <memory>
+#include <functional>
+
+#include <input-plugins/UserInputMapper.h>
 
 class QScriptValue;
 
-namespace Controllers {
+namespace controller {
     /*
     * Encapsulates a particular input / output,
     * i.e. Hydra.Button0, Standard.X, Action.Yaw
     */
     class Endpoint {
     public:
-        virtual float value() { return 0;  } // = 0;
-        virtual void apply(float newValue, float oldValue, const Endpoint& source) {} // = 0;
-
         using Pointer = std::shared_ptr<Endpoint>;
         using List = std::list<Pointer>;
+        using Pair = std::pair<Pointer, Pointer>;
+        using ReadLambda = std::function<float()>;
+        using WriteLambda = std::function<void(float)>;
 
-        static const List& getHardwareEndpoints();
-        static Pointer getEndpoint(const QScriptValue& value);
+        Endpoint(const UserInputMapper::Input& id) : _id(id) {}
+        virtual float value() = 0;
+        virtual void apply(float newValue, float oldValue, const Pointer& source) = 0;
+        const UserInputMapper::Input& getId() { return _id;  }
+    protected:
+        UserInputMapper::Input _id;
     };
 
+    class LambdaEndpoint : public Endpoint {
+    public:
+        LambdaEndpoint(ReadLambda readLambda, WriteLambda writeLambda = [](float) {})
+            : Endpoint(UserInputMapper::Input::INVALID_INPUT), _readLambda(readLambda), _writeLambda(writeLambda) { }
+
+        virtual float value() override { return _readLambda(); }
+        virtual void apply(float newValue, float oldValue, const Pointer& source) override { _writeLambda(newValue); }
+
+    private:
+        ReadLambda _readLambda;
+        WriteLambda _writeLambda;
+    };
 }
 
 #endif

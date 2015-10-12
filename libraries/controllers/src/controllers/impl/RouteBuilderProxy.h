@@ -12,19 +12,28 @@
 #include <QtCore/QObject>
 #include "../Filter.h"
 #include "../Route.h"
+#include "../Mapping.h"
 
-namespace Controllers {
+class QJSValue;
+class QScriptValue;
 
-class MappingBuilderProxy;
+namespace controller {
+
+class NewControllerScriptingInterface;
 
 class RouteBuilderProxy : public QObject {
         Q_OBJECT
     public:
-        RouteBuilderProxy(MappingBuilderProxy* parent, Route::Pointer route)
-            : _parent(parent), _route(route) { }
+        RouteBuilderProxy(NewControllerScriptingInterface& parent, Mapping::Pointer mapping, Route::Pointer route)
+            : _parent(parent), _mapping(mapping), _route(route) { }
 
-        Q_INVOKABLE void to(const QString& destination);
+        Q_INVOKABLE void to(const QJSValue& destination);
+        Q_INVOKABLE void to(const QScriptValue& destination);
+
+        Q_INVOKABLE QObject* filter(const QJSValue& expression);
+        Q_INVOKABLE QObject* filter(const QScriptValue& expression);
         Q_INVOKABLE QObject* clamp(float min, float max);
+        Q_INVOKABLE QObject* pulse(float interval);
         Q_INVOKABLE QObject* scale(float multiplier);
         Q_INVOKABLE QObject* invert();
         Q_INVOKABLE QObject* deadZone(float min);
@@ -32,10 +41,13 @@ class RouteBuilderProxy : public QObject {
         Q_INVOKABLE QObject* constrainToPositiveInteger();
 
     private:
+        void to(const Endpoint::Pointer& destination);
         void addFilter(Filter::Lambda lambda);
         void addFilter(Filter::Pointer filter);
+        Mapping::Pointer _mapping;
         Route::Pointer _route;
-        MappingBuilderProxy* _parent;
+
+        NewControllerScriptingInterface& _parent;
     };
 
 }

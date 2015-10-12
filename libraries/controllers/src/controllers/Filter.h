@@ -19,7 +19,7 @@
 
 class QJsonObject;
 
-namespace Controllers {
+namespace controller {
 
     // Encapsulates part of a filter chain
     class Filter {

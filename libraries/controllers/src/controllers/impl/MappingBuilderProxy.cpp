@@ -12,22 +12,33 @@
 #include <QtCore/QDebug>
 
 #include "RouteBuilderProxy.h"
+#include "../NewControllerScriptingInterface.h"
+#include "../Logging.h"
 
-namespace Controllers {
+namespace controller {
 
-QObject* MappingBuilderProxy::from(const QString& source) {
-    qDebug() << "Creating new Route builder proxy from " << source;
-    auto route = Route::Pointer(new Route());
-    route->_source = endpointFor(source);
-    return new RouteBuilderProxy(this, route);
+QObject* MappingBuilderProxy::from(const QJSValue& source) {
+    qCDebug(controllers) << "Creating new Route builder proxy from " << source.toString();
+    auto sourceEndpoint = _parent.endpointFor(source);
+    return from(sourceEndpoint);
 }
 
-Endpoint::Pointer MappingBuilderProxy::endpointFor(const QString& endpoint) {
-    static QHash<QString, Endpoint::Pointer> ENDPOINTS;
-    if (!ENDPOINTS.contains(endpoint)) {
-        ENDPOINTS[endpoint] = std::make_shared<Endpoint>();
-    }
-    return ENDPOINTS[endpoint];
+QObject* MappingBuilderProxy::from(const QScriptValue& source) {
+    qCDebug(controllers) << "Creating new Route builder proxy from " << source.toString();
+    auto sourceEndpoint = _parent.endpointFor(source);
+    return from(sourceEndpoint);
+}
+
+QObject* MappingBuilderProxy::from(const Endpoint::Pointer& source) {
+    auto route = Route::Pointer(new Route());
+    route->_source = source;
+    return new RouteBuilderProxy(_parent, _mapping, route);
+}
+
+QObject* MappingBuilderProxy::join(const QJSValue& source1, const QJSValue& source2) {
+    auto source1Endpoint = _parent.endpointFor(source1);
+    auto source2Endpoint = _parent.endpointFor(source2);
+    return from(_parent.compositeEndpointFor(source1Endpoint, source2Endpoint));
 }
 
 }

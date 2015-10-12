@@ -11,6 +11,7 @@
 #define hifi_Controllers_Mapping_h
 
 #include <map>
+#include <unordered_map>
 
 #include <QtCore/QString>
 
@@ -18,19 +19,15 @@
 #include "Filter.h"
 #include "Route.h"
 
-namespace Controllers {
-
-    using ValueMap = std::map<Endpoint::Pointer, float>;
+namespace controller {
 
     class Mapping {
     public:
         // Map of source channels to route lists
         using Map = std::map<Endpoint::Pointer, Route::List>;
         using Pointer = std::shared_ptr<Mapping>;
-        using List = std::list<Pointer>;
 
         Map _channelMappings;
-        ValueMap _lastValues;
 
         void parse(const QString& json);
         QString serialize();

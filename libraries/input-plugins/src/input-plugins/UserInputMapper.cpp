@@ -12,6 +12,11 @@
 #include "UserInputMapper.h"
 #include "StandardController.h"
 
+const UserInputMapper::Input UserInputMapper::Input::INVALID_INPUT = UserInputMapper::Input(UINT16_MAX);
+const uint16_t UserInputMapper::Input::INVALID_DEVICE = INVALID_INPUT.getDevice();
+const uint16_t UserInputMapper::Input::INVALID_CHANNEL = INVALID_INPUT.getChannel();
+const uint16_t UserInputMapper::Input::INVALID_TYPE = (uint16_t)INVALID_INPUT.getType();
+
 // Default contruct allocate the poutput size with the current hardcoded action channels
 UserInputMapper::UserInputMapper() {
     registerStandardDevice();
@@ -301,6 +306,12 @@ void UserInputMapper::assignDefaulActionScales() {
     _actionStates[SHIFT] = 1.0f; // on
     _actionStates[ACTION1] = 1.0f; // default
     _actionStates[ACTION2] = 1.0f; // default
+    _actionStates[TranslateX] = 1.0f; // default
+    _actionStates[TranslateY] = 1.0f; // default
+    _actionStates[TranslateZ] = 1.0f; // default
+    _actionStates[Roll] = 1.0f; // default
+    _actionStates[Pitch] = 1.0f; // default
+    _actionStates[Yaw] = 1.0f; // default
 }
 
 // This is only necessary as long as the actions are hardcoded
@@ -327,9 +338,31 @@ void UserInputMapper::createActionNames() {
     _actionNames[ACTION2] = "ACTION2";
     _actionNames[CONTEXT_MENU] = "CONTEXT_MENU";
     _actionNames[TOGGLE_MUTE] = "TOGGLE_MUTE";
+    _actionNames[TranslateX] = "TranslateX";
+    _actionNames[TranslateY] = "TranslateY";
+    _actionNames[TranslateZ] = "TranslateZ";
+    _actionNames[Roll] = "Roll";
+    _actionNames[Pitch] = "Pitch";
+    _actionNames[Yaw] = "Yaw";
 }
 
 void UserInputMapper::registerStandardDevice() {
     _standardController = std::make_shared<StandardController>();
     _standardController->registerToUserInputMapper(*this);
+}
+
+float UserInputMapper::DeviceProxy::getValue(const Input& input, int timestamp) const {
+    switch (input.getType()) {
+        case UserInputMapper::ChannelType::BUTTON:
+            return getButton(input, timestamp) ? 1.0f : 0.0f;
+
+        case UserInputMapper::ChannelType::AXIS:
+            return getAxis(input, timestamp);
+
+        case UserInputMapper::ChannelType::POSE:
+            return getPose(input, timestamp)._valid ? 1.0f : 0.0f;
+
+        default:
+            return 0.0f;
+    }
 }

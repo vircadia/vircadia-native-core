@@ -10,6 +10,11 @@
 //
 #include "KeyboardMouseDevice.h"
 
+#include <QtGUI/QKeyEvent>
+#include <QtGUI/QMouseEvent>
+#include <QtGUI/QTouchEvent>
+
+
 const QString KeyboardMouseDevice::NAME = "Keyboard/Mouse";
 
 void KeyboardMouseDevice::update(float deltaTime, bool jointsCaptured) {
@@ -81,7 +86,7 @@ void KeyboardMouseDevice::wheelEvent(QWheelEvent* event) {
     _axisStateMap[makeInput(MOUSE_AXIS_WHEEL_Y_NEG).getChannel()] = (currentMove.y() < 0 ? -currentMove.y() : 0.0f);
 }
 
-glm::vec2 KeyboardMouseDevice::evalAverageTouchPoints(const QList<QTouchEvent::TouchPoint>& points) const {
+glm::vec2 evalAverageTouchPoints(const QList<QTouchEvent::TouchPoint>& points) {
     glm::vec2 averagePoint(0.0f);
     if (points.count() > 0) {
         for (auto& point : points) {
