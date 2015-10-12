@@ -1,8 +1,6 @@
 set(TARGET_NAME interface)
 project(${TARGET_NAME})
 
-add_definitions(-DGLEW_STATIC)
-
 # set a default root dir for each of our optional externals if it was not passed
 set(OPTIONAL_EXTERNALS "Faceshift" "LeapMotion" "RtMidi" "RSSDK" "3DConnexionClient" "iViewHMD")
 foreach(EXTERNAL ${OPTIONAL_EXTERNALS})
@@ -97,28 +95,16 @@ else()
   add_executable(${TARGET_NAME} ${INTERFACE_SRCS} ${QM})
 endif()
 
-add_dependency_external_projects(glm bullet)
-
-# set up the external glm library
-find_package(GLM REQUIRED)
-target_include_directories(${TARGET_NAME} PRIVATE ${GLM_INCLUDE_DIRS})
-
-find_package(Bullet REQUIRED)
-
-# perform the system include hack for OS X to ignore warnings
-if (APPLE)
-  SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -isystem ${BULLET_INCLUDE_DIRS}")
-else()
-  target_include_directories(${TARGET_NAME} SYSTEM PRIVATE ${BULLET_INCLUDE_DIRS})
-endif()
-
-target_link_libraries(${TARGET_NAME} ${BULLET_LIBRARIES})
-
 # link required hifi libraries
 link_hifi_libraries(shared octree environment gpu procedural  model render fbx networking model-networking entities avatars 
                     audio audio-client animation script-engine physics 
                     render-utils entities-renderer ui auto-updater 
                     plugins display-plugins input-plugins)
+
+target_bullet()
+target_glew()
+target_opengl()
+
 
 add_dependency_external_projects(sdl2)
 

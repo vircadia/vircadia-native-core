@@ -17,7 +17,30 @@
 
 #include <SharedUtil.h>
 
-QUrl ResourceManager::normalizeURL(const QUrl& url) {
+ResourceManager::PrefixMap ResourceManager::_prefixMap;
+QMutex ResourceManager::_prefixMapLock;
+
+
+void ResourceManager::setUrlPrefixOverride(const QString& prefix, const QString& replacement) {
+    QMutexLocker locker(&_prefixMapLock);
+    _prefixMap[prefix] = replacement;
+}
+
+QString ResourceManager::normalizeURL(const QString& urlString) {
+    QString result = urlString;
+    QMutexLocker locker(&_prefixMapLock);
+    foreach(const auto& entry, _prefixMap) {
+        const auto& prefix = entry.first;
+        const auto& replacement = entry.second;
+        if (result.startsWith(prefix)) {
+            result.replace(0, prefix.size(), replacement);
+        }
+    }
+    return result;
+}
+
+QUrl ResourceManager::normalizeURL(const QUrl& originalUrl) {
+    QUrl url = QUrl(normalizeURL(originalUrl.toString()));
     auto scheme = url.scheme();
     if (!(scheme == URL_SCHEME_FILE ||
           scheme == URL_SCHEME_HTTP || scheme == URL_SCHEME_HTTPS || scheme == URL_SCHEME_FTP ||
@@ -37,11 +60,11 @@ ResourceRequest* ResourceManager::createResourceRequest(QObject* parent, const Q
     auto normalizedURL = normalizeURL(url);
     auto scheme = normalizedURL.scheme();
     if (scheme == URL_SCHEME_FILE) {
-        return new FileResourceRequest(parent, url);
+        return new FileResourceRequest(parent, normalizedURL);
     } else if (scheme == URL_SCHEME_HTTP || scheme == URL_SCHEME_HTTPS || scheme == URL_SCHEME_FTP) {
-        return new HTTPResourceRequest(parent, url);
+        return new HTTPResourceRequest(parent, normalizedURL);
     } else if (scheme == URL_SCHEME_ATP) {
-        return new AssetResourceRequest(parent, url);
+        return new AssetResourceRequest(parent, normalizedURL);
     }
 
     qDebug() << "Unknown scheme (" << scheme << ") for URL: " << url.url();
