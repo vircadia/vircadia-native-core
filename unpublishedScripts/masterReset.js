@@ -411,7 +411,8 @@ MasterReset = function() {
         position.y = startPosition.y - (row * VERTICAL_SPACING);
 
         originalPositions.push(position);
-
+        lastPositions.push(position);
+        
         var targetProperties = {
           name: 'Target',
           type: 'Model',
@@ -429,8 +430,10 @@ MasterReset = function() {
             }
           })
         };
+
         var target = Entities.addEntity(targetProperties);
         targets.push(target);
+
       }
     }
 

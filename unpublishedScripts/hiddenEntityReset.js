@@ -438,8 +438,9 @@
           var position = Vec3.sum(startPosition, multiplier);
           position.y = startPosition.y - (row * VERTICAL_SPACING);
 
-          originalPositions.push(position);
-
+        originalPositions.push(position);
+        lastPositions.push(position);
+        
           var targetProperties = {
             name: 'Target',
             type: 'Model',
