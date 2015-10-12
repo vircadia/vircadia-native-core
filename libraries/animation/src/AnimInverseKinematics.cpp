@@ -56,9 +56,9 @@ void AnimInverseKinematics::computeAbsolutePoses(AnimPoseVec& absolutePoses) con
 }
 
 void AnimInverseKinematics::setTargetVars(
-        const QString& jointName, 
-        const QString& positionVar, 
-        const QString& rotationVar, 
+        const QString& jointName,
+        const QString& positionVar,
+        const QString& rotationVar,
         const QString& typeVar) {
     // if there are dups, last one wins.
     bool found = false;
@@ -98,7 +98,7 @@ void AnimInverseKinematics::computeTargets(const AnimVariantMap& animVars, std::
             target.setType(animVars.lookup(targetVar.typeVar, (int)IKTarget::Type::RotationAndPosition));
             if (target.getType() != IKTarget::Type::Unknown) {
                 AnimPose defaultPose = _skeleton->getAbsolutePose(targetVar.jointIndex, underPoses);
-                glm::quat rotation = animVars.lookup(targetVar.rotationVar, defaultPose.rot); 
+                glm::quat rotation = animVars.lookup(targetVar.rotationVar, defaultPose.rot);
                 glm::vec3 translation = animVars.lookup(targetVar.positionVar, defaultPose.trans);
                 if (target.getType() == IKTarget::Type::HipsRelativeRotationAndPosition) {
                     translation += _hipsOffset;
@@ -168,7 +168,7 @@ void AnimInverseKinematics::solveWithCyclicCoordinateDescent(const std::vector<I
             glm::vec3 tipPosition = absolutePoses[tipIndex].trans;
             glm::quat tipRotation = absolutePoses[tipIndex].rot;
 
-            // cache tip's parent's absolute rotation so we can recompute the tip's parent-relative 
+            // cache tip's parent's absolute rotation so we can recompute the tip's parent-relative
             // as we proceed walking down the joint chain
             glm::quat tipParentRotation = absolutePoses[pivotIndex].rot;
 
@@ -179,7 +179,7 @@ void AnimInverseKinematics::solveWithCyclicCoordinateDescent(const std::vector<I
                 glm::vec3 leverArm = tipPosition - jointPosition;
 
                 glm::quat deltaRotation;
-                if (targetType == IKTarget::Type::RotationAndPosition || 
+                if (targetType == IKTarget::Type::RotationAndPosition ||
                         targetType == IKTarget::Type::HipsRelativeRotationAndPosition) {
                     // compute the swing that would get get tip closer
                     glm::vec3 targetLine = target.getTranslation() - jointPosition;
@@ -190,7 +190,7 @@ void AnimInverseKinematics::solveWithCyclicCoordinateDescent(const std::vector<I
                         // compute deltaRotation for alignment (swings tip closer to target)
                         axis /= axisLength;
                         float angle = acosf(glm::dot(leverArm, targetLine) / (glm::length(leverArm) * glm::length(targetLine)));
-    
+
                         // NOTE: even when axisLength is not zero (e.g. lever-arm and pivot-arm are not quite aligned) it is
                         // still possible for the angle to be zero so we also check that to avoid unnecessary calculations.
                         const float MIN_ADJUSTMENT_ANGLE = 1.0e-4f;
@@ -199,18 +199,18 @@ void AnimInverseKinematics::solveWithCyclicCoordinateDescent(const std::vector<I
                             const float fraction = 0.5f;
                             angle *= fraction;
                             deltaRotation = glm::angleAxis(angle, axis);
-    
-                            // The swing will re-orient the tip but there will tend to be be a non-zero delta between the tip's 
+
+                            // The swing will re-orient the tip but there will tend to be be a non-zero delta between the tip's
                             // new rotation and its target.  This is the final parent-relative rotation that the tip joint have
                             // make to achieve its target rotation.
                             glm::quat tipRelativeRotation = glm::inverse(deltaRotation * tipParentRotation) * target.getRotation();
-        
+
                             // enforce tip's constraint
                             RotationConstraint* constraint = getConstraint(tipIndex);
                             if (constraint) {
                                 bool constrained = constraint->apply(tipRelativeRotation);
                                 if (constrained) {
-                                    // The tip's final parent-relative rotation would violate its constraint 
+                                    // The tip's final parent-relative rotation would violate its constraint
                                     // so we try to pre-twist this pivot to compensate.
                                     glm::quat constrainedTipRotation = deltaRotation * tipParentRotation * tipRelativeRotation;
                                     glm::quat missingRotation = target.getRotation() * glm::inverse(constrainedTipRotation);
@@ -225,11 +225,12 @@ void AnimInverseKinematics::solveWithCyclicCoordinateDescent(const std::vector<I
                         }
                     }
                 } else if (targetType == IKTarget::Type::HmdHead) {
-                    // An HmdHead target slaves the orientation of the end-effector by distributing rotation 
+                    // An HmdHead target slaves the orientation of the end-effector by distributing rotation
                     // deltas up the hierarchy.  Its target position is enforced later by shifting the hips.
                     deltaRotation = target.getRotation() * glm::inverse(tipRotation);
                     float dotSign = copysignf(1.0f, deltaRotation.w);
-                    deltaRotation = glm::normalize(glm::lerp(glm::quat(), dotSign * deltaRotation, 0.15f));
+                    const float ANGLE_DISTRIBUTION_FACTOR = 0.15f;
+                    deltaRotation = glm::normalize(glm::lerp(glm::quat(), dotSign * deltaRotation, ANGLE_DISTRIBUTION_FACTOR));
                 }
 
                 // compute joint's new parent-relative rotation after swing
@@ -327,7 +328,7 @@ const AnimPoseVec& AnimInverseKinematics::overlay(const AnimVariantMap& animVars
         // relax toward underpose
         // HACK: this relaxation needs to be constant per-frame rather than per-realtime
         // in order to prevent IK "flutter" for bad FPS.  The bad news is that the good parts
-        // of this relaxation will be FPS dependent (low FPS will make the limbs align slower 
+        // of this relaxation will be FPS dependent (low FPS will make the limbs align slower
         // in real-time), however most people will not notice this and this problem is less
         // annoying than the flutter.
         const float blend = (1.0f / 60.0f) / (0.25f); // effectively: dt / RELAXATION_TIMESCALE
@@ -379,7 +380,7 @@ const AnimPoseVec& AnimInverseKinematics::overlay(const AnimVariantMap& animVars
                 if (targetIndex == _headIndex && _headIndex != -1) {
                     // special handling for headTarget
                     if (target.getType() == IKTarget::Type::RotationOnly) {
-                        // we want to shift the hips to bring the underpose closer 
+                        // we want to shift the hips to bring the underpose closer
                         // to where the head happens to be (overpose)
                         glm::vec3 under = _skeleton->getAbsolutePose(_headIndex, underPoses).trans;
                         glm::vec3 actual = _skeleton->getAbsolutePose(_headIndex, _relativePoses).trans;
