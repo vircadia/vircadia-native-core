@@ -23,9 +23,9 @@ AssetUpload::AssetUpload(QObject* object, const QString& filename) :
     
 }
 
-void AssetUpload::start(bool cacheOnSuccess) {
+void AssetUpload::start() {
     if (QThread::currentThread() != thread()) {
-        QMetaObject::invokeMethod(this, "start", Q_ARG(bool, cacheOnSuccess));
+        QMetaObject::invokeMethod(this, "start");
         return;
     }
     
@@ -44,9 +44,8 @@ void AssetUpload::start(bool cacheOnSuccess) {
         
         qCDebug(asset_client) << "Attempting to upload" << _filename << "to asset-server.";
         
-        assetClient->uploadAsset(_data, _extension,
-                                 [this, cacheOnSuccess](bool responseReceived, AssetServerError error,
-                                                        const QString& hash){
+        assetClient->uploadAsset(_data, _extension, [this](bool responseReceived, AssetServerError error,
+                                                           const QString& hash){
             if (!responseReceived) {
                 _error = NetworkError;
             } else {
@@ -66,7 +65,7 @@ void AssetUpload::start(bool cacheOnSuccess) {
                 }
             }
             
-            if (cacheOnSuccess && _error == NoError && hash == hashData(_data).toHex()) {
+            if (_error == NoError && hash == hashData(_data).toHex()) {
                 saveToCache(getUrl(hash, _extension), _data);
             }
             

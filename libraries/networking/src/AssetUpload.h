@@ -37,7 +37,7 @@ public:
     
     AssetUpload(QObject* parent, const QString& filename);
     
-    Q_INVOKABLE void start(bool cacheOnSuccess = true);
+    Q_INVOKABLE void start();
     
     const QString& getFilename() const { return _filename; }
     const QString& getExtension() const  { return _extension; }
