@@ -16,6 +16,8 @@
 (function() {
 
     var _this;
+    var RIGHT_HAND = 1;
+    var LEFT_HAND = 0;
     Whiteboard = function() {
         _this = this;
     };
@@ -23,18 +25,20 @@
     Whiteboard.prototype = {
 
         setRightHand: function() {
-            this.hand = 'RIGHT';
+            this.hand = RIGHT_HAND;
         },
 
         setLeftHand: function() {
-            this.hand = 'LEFT';
+            this.hand = LEFT_HAND;
         },
 
         startFarGrabNonColliding: function() {
-            this.whichHand = this.hand;
+            this.activeHand = this.hand;
         },
 
-        continueFarGrabbingNonColliding: function() {},
+        continueFarGrabbingNonColliding: function() {
+            var handClick = Controller.findAction(handClickString);
+        },
 
         preload: function(entityID) {
             this.entityID = entityID;
