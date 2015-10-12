@@ -37,7 +37,7 @@ public:
     
     AssetUpload(QObject* parent, const QString& filename);
     
-    Q_INVOKABLE void start();
+    Q_INVOKABLE void start(bool cacheOnSuccess = true);
     
     const QString& getFilename() const { return _filename; }
     const QString& getExtension() const  { return _extension; }
@@ -50,6 +50,7 @@ signals:
 private:
     QString _filename;
     QString _extension;
+    QByteArray _data;
     Error _error;
 };
 
