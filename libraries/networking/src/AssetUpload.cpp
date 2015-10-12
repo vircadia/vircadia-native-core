@@ -66,8 +66,7 @@ void AssetUpload::start(bool cacheOnSuccess) {
                 }
             }
             
-            if (cacheOnSuccess && _error == NoError &&
-                hash == hashData(_data).toHex()) {
+            if (cacheOnSuccess && _error == NoError && hash == hashData(_data).toHex()) {
                 saveToCache(getUrl(hash, _extension), _data);
             }
             
