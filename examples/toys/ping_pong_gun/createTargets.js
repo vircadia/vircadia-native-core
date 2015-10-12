@@ -111,7 +111,7 @@ function testTargetDistanceFromStart() {
 
         lastPositions[index] = currentPosition;
 
-        if (length > RESET_DISTANCE && moving<MINIMUM_MOVE_LENGTH) {
+        if (length > RESET_DISTANCE && moving < MINIMUM_MOVE_LENGTH) {
 
             Entities.deleteEntity(target);
 
@@ -125,7 +125,12 @@ function testTargetDistanceFromStart() {
                 compoundShapeURL: COLLISION_HULL_URL,
                 position: originalPositions[index],
                 rotation: rotation,
-                script: scriptURL
+                script: scriptURL,
+                userData: JSON.stringify({
+                    grabbableKey: {
+                        grabbable: false
+                    }
+                })
             };
 
             targets[index] = Entities.addEntity(targetProperties);

@@ -413,6 +413,9 @@
         userData: JSON.stringify({
           resetMe: {
             resetMe: true
+          },
+          grabbableKey: {
+            grabbable: false
           }
         })
       });
@@ -438,9 +441,9 @@
           var position = Vec3.sum(startPosition, multiplier);
           position.y = startPosition.y - (row * VERTICAL_SPACING);
 
-        originalPositions.push(position);
-        lastPositions.push(position);
-        
+          originalPositions.push(position);
+          lastPositions.push(position);
+
           var targetProperties = {
             name: 'Target',
             type: 'Model',
@@ -455,7 +458,7 @@
             userData: JSON.stringify({
               resetMe: {
                 resetMe: true
-              }
+              },
             })
           };
           var target = Entities.addEntity(targetProperties);
