@@ -131,10 +131,6 @@ void AnimInverseKinematics::computeTargets(const AnimVariantMap& animVars, std::
             }
         }
     }
-    static int adebug = 0; ++adebug; bool verbose = (0 == (adebug % 100));
-    if (verbose) {
-        std::cout << "adebug num targets = " << targets.size() << std::endl;  // adebug
-    }
 }
 
 void AnimInverseKinematics::solveWithCyclicCoordinateDescent(const std::vector<IKTarget>& targets) {
@@ -408,7 +404,6 @@ const AnimPoseVec& AnimInverseKinematics::overlay(const AnimVariantMap& animVars
             // smooth transitions by relaxing _hipsOffset toward the new value
             const float HIPS_OFFSET_SLAVE_TIMESCALE = 0.15f;
             _hipsOffset += (newHipsOffset - _hipsOffset) * (dt / HIPS_OFFSET_SLAVE_TIMESCALE);
-            //_hipsOffset *= 0.0f; // adebug
             if (glm::length2(hmdHipsOffset) < 100.0f) {
                 _hipsOffset = hmdHipsOffset;
             }
