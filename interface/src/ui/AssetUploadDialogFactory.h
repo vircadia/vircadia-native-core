@@ -30,7 +30,6 @@ public:
     
 public slots:
     void showDialog();
-private slots:
     void handleUploadFinished(AssetUpload* upload, const QString& hash);
     
 private:

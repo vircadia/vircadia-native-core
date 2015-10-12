@@ -211,7 +211,7 @@ public:
     void setScriptsLocation(const QString& scriptsLocation);
 
     bool canAcceptURL(const QString& url);
-    bool acceptURL(const QString& url);
+    bool acceptURL(const QString& url, bool defaultUpload = false);
 
     void setMaxOctreePacketsPerSecond(int maxOctreePPS);
     int getMaxOctreePacketsPerSecond();
