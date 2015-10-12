@@ -94,6 +94,7 @@ macro(SETUP_HIFI_TESTCASE)
           EXCLUDE_FROM_DEFAULT_BUILD TRUE
           EXCLUDE_FROM_ALL TRUE)
 
+
         list (APPEND ${TEST_PROJ_NAME}_TARGETS ${TARGET_NAME})
         #list (APPEND ALL_TEST_TARGETS ${TARGET_NAME})
 
@@ -111,8 +112,9 @@ macro(SETUP_HIFI_TESTCASE)
         set_target_properties(${TARGET_NAME} PROPERTIES FOLDER "hidden/test-executables")
         
         # handle testcase-specific dependencies (this a macro that should be defined in the cmakelists.txt file   in each tests subdir)
-
-        SETUP_TESTCASE_DEPENDENCIES ()
+        SETUP_TESTCASE_DEPENDENCIES()
+        target_glm()
+        
       endforeach ()
       
       set(TEST_TARGET ${TEST_PROJ_NAME}-tests)
