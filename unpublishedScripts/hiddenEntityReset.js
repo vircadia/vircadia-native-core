@@ -52,7 +52,6 @@
   };
 
 
-
   MasterReset = function() {
     var resetKey = "resetMe";
     var GRABBABLE_DATA_KEY = "grabbableKey";
@@ -407,11 +406,6 @@
         type: 'Box',
         position: startPosition,
         dimensions: TARGET_DIMENSIONS,
-        color: {
-          red: 0,
-          green: 255,
-          blue: 0
-        },
         rotation: rotation,
         visible: false,
         collisionsWillMove: false,
@@ -658,6 +652,7 @@
           green: 146,
           blue: 24
         },
+        isSpotlight: false,
         userData: JSON.stringify({
           resetMe: {
             resetMe: true,
@@ -685,6 +680,7 @@
           green: 146,
           blue: 24
         },
+        isSpotlight: false,
         userData: JSON.stringify({
           resetMe: {
             resetMe: true,
@@ -734,7 +730,6 @@
 
 
 
-
       var sconceLight3 = Entities.addEntity({
         type: "Light",
         position: {
@@ -755,6 +750,7 @@
           green: 146,
           blue: 24
         },
+        isSpotlight: false,
         userData: JSON.stringify({
           resetMe: {
             resetMe: true,
@@ -783,6 +779,7 @@
           green: 146,
           blue: 24
         },
+        isSpotlight: false,
         userData: JSON.stringify({
           resetMe: {
             resetMe: true,
@@ -810,6 +807,7 @@
           green: 146,
           blue: 24
         },
+        isSpotlight: false,
         userData: JSON.stringify({
           resetMe: {
             resetMe: true,
@@ -888,7 +886,7 @@
           y: 1.13,
           z: 0.2
         },
-        rotation: rotation2,
+        rotation: rotation,
         collisionsWillMove: true,
         gravity: {
           x: 0,
@@ -1256,7 +1254,7 @@
           y: 0.05,
           z: 0.25
         }
-      },];
+      }, ];
 
       var modelURL, entity;
       for (i = 0; i < blockTypes.length; i++) {
@@ -1305,7 +1303,6 @@
       Script.scriptEnding.connect(cleanup);
     }
   };
-
   // entity scripts always need to return a newly constructed object of our type
   return new ResetSwitch();
 });
