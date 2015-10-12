@@ -21,6 +21,7 @@
 
 typedef std::shared_ptr<StandardController> StandardControllerPointer;
 
+// small change
 class StandardController : public QObject, public InputDevice {
     Q_OBJECT
     Q_PROPERTY(QString name READ getName)
