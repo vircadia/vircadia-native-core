@@ -421,6 +421,8 @@
 
       var originalPositions = [];
 
+      var lastPositions = [];
+
       function addTargets() {
         var i;
         var row = -1;
@@ -468,7 +470,11 @@
           var distance = Vec3.subtract(originalPosition, currentPosition);
           var length = Vec3.length(distance);
 
-          if (length > RESET_DISTANCE) {
+          var moving = Vec3.length(Vec3.subtract(currentPosition, lastPositions[index]));
+
+          lastPositions[index] = currentPosition;
+
+          if (length > RESET_DISTANCE && moving < MINIMUM_MOVE_LENGTH) {
 
             Entities.deleteEntity(target);
 
@@ -482,15 +488,10 @@
               compoundShapeURL: COLLISION_HULL_URL,
               position: originalPositions[index],
               rotation: rotation,
-              script: targetsScriptURL,
-              userData: JSON.stringify({
-                resetMe: {
-                  resetMe: true
-                }
-              })
+              script: scriptURL
             };
-            var target = Entities.addEntity(targetProperties);
-            targets[index] = target;
+
+            targets[index] = Entities.addEntity(targetProperties);
 
           }
         });
