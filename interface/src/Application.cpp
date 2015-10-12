@@ -2761,6 +2761,8 @@ void Application::update(float deltaTime) {
     updateThreads(deltaTime); // If running non-threaded, then give the threads some time to process...
     updateDialogs(deltaTime); // update various stats dialogs if present
 
+    _avatarUpdate->synchronousProcess();
+
     {
         PerformanceTimer perfTimer("physics");
         myAvatar->relayDriveKeysToCharacterController();
@@ -2821,8 +2823,6 @@ void Application::update(float deltaTime) {
         PerformanceTimer perfTimer("overlays");
         _overlays.update(deltaTime);
     }
-
-    _avatarUpdate->synchronousProcess();
 
     // Update _viewFrustum with latest camera and view frustum data...
     // NOTE: we get this from the view frustum, to make it simpler, since the
