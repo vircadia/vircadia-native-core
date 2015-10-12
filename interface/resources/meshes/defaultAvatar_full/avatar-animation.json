@@ -27,15 +27,15 @@
                         },
                         {
                             "jointName": "RightFoot",
-                            "positionVar": "rightToePosition",
-                            "rotationVar": "rightToeRotation",
-                            "typeVar": "rightToeType"
+                            "positionVar": "rightFootPosition",
+                            "rotationVar": "rightFootRotation",
+                            "typeVar": "rightFootType"
                         },
                         {
                             "jointName": "LeftFoot",
-                            "positionVar": "leftToePosition",
-                            "rotationVar": "leftToeRotation",
-                            "typeVar": "leftToeType"
+                            "positionVar": "leftFootPosition",
+                            "rotationVar": "leftFootRotation",
+                            "typeVar": "leftFootType"
                         },
                         {
                             "jointName": "Neck",
