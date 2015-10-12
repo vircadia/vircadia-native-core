@@ -4091,7 +4091,7 @@ bool Application::askToUploadAsset(const QString& filename) {
         // connect to the finished signal so we know when the AssetUpload is done
         if (messageBox.checkBox() && (messageBox.checkBox()->checkState() == Qt::Checked)) {
             // Custom behavior for models
-            QObject::connect(upload, &AssetUpload::finished, this, &Application::assetUploadFinished);
+            QObject::connect(upload, &AssetUpload::finished, this, &Application::modelUploadFinished);
         } else {
             QObject::connect(upload, &AssetUpload::finished,
                              &AssetUploadDialogFactory::getInstance(),
@@ -4108,7 +4108,7 @@ bool Application::askToUploadAsset(const QString& filename) {
     return false;
 }
 
-void Application::assetUploadFinished(AssetUpload* upload, const QString& hash) {
+void Application::modelUploadFinished(AssetUpload* upload, const QString& hash) {
     auto filename = QFileInfo(upload->getFilename()).fileName();
     
     if ((upload->getError() == AssetUpload::NoError) &&
