@@ -18,6 +18,8 @@
     var _this;
     var RIGHT_HAND = 1;
     var LEFT_HAND = 0;
+    var SPATIAL_CONTROLLERS_PER_PALM = 2;
+    var TIP_CONTROLLER_OFFSET = 1;
     Whiteboard = function() {
         _this = this;
     };
@@ -33,11 +35,33 @@
         },
 
         startFarGrabNonColliding: function() {
-            this.activeHand = this.hand;
+            if (this.hand === RIGHT_HAND) {
+                this.getHandPosition = MyAvatar.getRightPalmPosition;
+                this.getHandRotation = MyAvatar.getRightPalmRotation;
+                this.triggerAction = Controller.findAction("RIGHT_HAND_CLICK");
+            } else if (this.hand === LEFT_HAND) {
+                this.getHandPosition = MyAvatar.getLeftPalmPosition;
+                this.getHandRotation = MyAvatar.getLeftPalmRotation;
+                this.triggerAction = Controller.findAction("LEFT_HAND_CLICK");
+            }
         },
 
         continueFarGrabbingNonColliding: function() {
-            var handClick = Controller.findAction(handClickString);
+            var handPosition = this.getHandPosition();
+            var pickRay = {
+                origin: handPosition,
+                direction: Quat.getUp(this.getHandRotation())
+            };
+            this.intersection = Entities.findRayIntersection(pickRay, true);
+            if (this.intersection.intersects) {
+                if(JSON.stringify(this.intersection.entityID) === JSON.stringify(this.entityID)) {
+                    print('YAAAAA')
+                }
+            }
+        },
+
+        releaseGrab: function() {
+
         },
 
         preload: function(entityID) {
