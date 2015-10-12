@@ -47,7 +47,6 @@ void AssetRequest::start() {
         
         _state = Finished;
         emit finished(this);
-        qCDebug(asset_client) << getUrl().toDisplayString() << "loaded from disk cache.";
         return;
     }
     
@@ -111,9 +110,7 @@ void AssetRequest::start() {
                     _totalReceived += data.size();
                     emit progress(_totalReceived, _info.size);
                     
-                    if (saveToCache(getUrl(), data)) {
-                        qCDebug(asset_client) << getUrl().toDisplayString() << "saved to disk cache";
-                    }
+                    saveToCache(getUrl(), data);
                 } else {
                     // hash doesn't match - we have an error
                     _error = HashVerificationFailed;
