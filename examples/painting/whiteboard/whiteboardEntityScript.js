@@ -52,7 +52,7 @@
                 origin: handPosition,
                 direction: Quat.getUp(this.getHandRotation())
             };
-            this.intersection = Entities.findRayIntersection(pickRay, true);
+            this.intersection = Entities.findRayIntersection(pickRay, true, [this.entityID]);
             if (this.intersection.intersects) {
                 if(JSON.stringify(this.intersection.entityID) === JSON.stringify(this.entityID)) {
                     print('YAAAAA')

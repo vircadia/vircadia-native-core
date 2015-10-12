@@ -279,17 +279,17 @@ QVector<QUuid> EntityScriptingInterface::findEntitiesInBox(const glm::vec3& corn
     return result;
 }
 
-RayToEntityIntersectionResult EntityScriptingInterface::findRayIntersection(const PickRay& ray, const QVector<QUuid>& entityIdsToIgnore, bool precisionPicking) {
-    return findRayIntersectionWorker(ray, Octree::TryLock, entityIdsToIgnore, precisionPicking);
+RayToEntityIntersectionResult EntityScriptingInterface::findRayIntersection(const PickRay& ray, bool precisionPicking, const QVector<QUuid>& entityIdsToInclude) {
+    return findRayIntersectionWorker(ray, Octree::TryLock, precisionPicking, entityIdsToInclude);
 }
 
-RayToEntityIntersectionResult EntityScriptingInterface::findRayIntersectionBlocking(const PickRay& ray, const QVector<QUuid>& entityIdsToIgnore, bool precisionPicking) {
-    return findRayIntersectionWorker(ray, Octree::Lock, entityIdsToIgnore, precisionPicking);
+RayToEntityIntersectionResult EntityScriptingInterface::findRayIntersectionBlocking(const PickRay& ray, bool precisionPicking, const QVector<QUuid>& entityIdsToInclude) {
+    return findRayIntersectionWorker(ray, Octree::Lock, precisionPicking, entityIdsToInclude);
 }
 
 RayToEntityIntersectionResult EntityScriptingInterface::findRayIntersectionWorker(const PickRay& ray,
-                                                                                    Octree::lockType lockType, const QVector<QUuid>& entityIdsToIgnore,
-                                                                                    bool precisionPicking) {
+                                                                                    Octree::lockType lockType,
+                                                                                    bool precisionPicking, const QVector<QUuid>& entityIdsToInclude) {
 
 
     RayToEntityIntersectionResult result;
@@ -297,7 +297,7 @@ RayToEntityIntersectionResult EntityScriptingInterface::findRayIntersectionWorke
         OctreeElementPointer element;
         EntityItemPointer intersectedEntity = NULL;
         result.intersects = _entityTree->findRayIntersection(ray.origin, ray.direction, element, result.distance, result.face,
-                                                                result.surfaceNormal, (void**)&intersectedEntity, lockType, &result.accurate,
+                                                                result.surfaceNormal, entityIdsToInclude, (void**)&intersectedEntity, lockType, &result.accurate,
                                                                 precisionPicking);
         if (result.intersects && intersectedEntity) {
             result.entityID = intersectedEntity->getEntityItemID();
