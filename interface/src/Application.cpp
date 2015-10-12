@@ -4079,7 +4079,7 @@ bool Application::askToUploadAsset(const QString& filename) {
         // Option to drop model in world for models
         if (filename.endsWith(FBX_EXTENSION) || filename.endsWith(OBJ_EXTENSION)) {
             auto checkBox = new QCheckBox(&messageBox);
-            checkBox->setText("Drop model in world.");
+            checkBox->setText("Add to scene");
             messageBox.setCheckBox(checkBox);
         }
         
