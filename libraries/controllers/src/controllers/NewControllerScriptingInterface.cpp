@@ -59,6 +59,25 @@ namespace controller {
         QJSValue _callable;
     };
 
+    class ScriptEndpoint : public Endpoint {
+    public:
+        ScriptEndpoint(const QScriptValue& callable)
+            : Endpoint(UserInputMapper::Input(-1)), _callable(callable) {
+        }
+
+        virtual float value() {
+            float result = (float)_callable.call().toNumber();
+            return result;
+        }
+
+        virtual void apply(float newValue, float oldValue, const Pointer& source) {
+            _callable.call(QScriptValue(), QScriptValueList({ QScriptValue(newValue) }));
+        }
+
+    private:
+        QScriptValue _callable;
+    };
+
     class CompositeEndpoint : public Endpoint, Endpoint::Pair {
     public:
         CompositeEndpoint(Endpoint::Pointer first, Endpoint::Pointer second)
@@ -158,7 +177,7 @@ namespace controller {
             qCWarning(controllers) << "Refusing to recreate mapping named " << mappingName;
         }
         qDebug() << "Creating new Mapping " << mappingName;
-        Mapping::Pointer mapping = std::make_shared<Mapping>();
+        auto mapping = std::make_shared<Mapping>(mappingName); 
         _mappingsByName[mappingName] = mapping;
         return new MappingBuilderProxy(*this, mapping);
     }
@@ -295,6 +314,11 @@ namespace controller {
     Endpoint::Pointer NewControllerScriptingInterface::endpointFor(const QScriptValue& endpoint) {
         if (endpoint.isNumber()) {
             return endpointFor(UserInputMapper::Input(endpoint.toInt32()));
+        }
+
+        if (endpoint.isFunction()) {
+            auto result = std::make_shared<ScriptEndpoint>(endpoint);
+            return result;
         }
 
         qWarning() << "Unsupported input type " << endpoint.toString();

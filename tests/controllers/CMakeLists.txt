@@ -2,7 +2,7 @@
 set(TARGET_NAME controllers-test)
  
 # This is not a testcase -- just set it up as a regular hifi project
-setup_hifi_project(Script)
+setup_hifi_project(Script Qml)
 set_target_properties(${TARGET_NAME} PROPERTIES FOLDER "Tests/manual-tests/")
 
 # link in the shared libraries

@@ -27,7 +27,10 @@ namespace controller {
         using Map = std::map<Endpoint::Pointer, Route::List>;
         using Pointer = std::shared_ptr<Mapping>;
 
+        Mapping(const QString& name);
+
         Map _channelMappings;
+        const QString _name;
 
         void parse(const QString& json);
         QString serialize();

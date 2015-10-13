@@ -41,4 +41,9 @@ QObject* MappingBuilderProxy::join(const QJSValue& source1, const QJSValue& sour
     return from(_parent.compositeEndpointFor(source1Endpoint, source2Endpoint));
 }
 
+QObject* MappingBuilderProxy::enable(bool enable) {
+    _parent.enableMapping(_mapping->_name, enable);
+    return this;
+}
+
 }
