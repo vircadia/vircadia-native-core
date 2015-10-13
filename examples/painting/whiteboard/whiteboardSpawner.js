@@ -60,11 +60,11 @@ var colorBoxPosition = Vec3.subtract(center, Vec3.multiply(direction, whiteboard
 var colorBoxes = [];
 
 var colorSquareDimensions = {
-    x: (whiteboardDimensions.x / 2) / (colors.length     - 1),
+    x: (whiteboardDimensions.x / 2) / (colors.length - 1),
     y: .1,
     z: 0.05
 };
-colorBoxPosition.y += whiteboardDimensions.y / 2 + colorSquareDimensions.y/2 - 0.01;
+colorBoxPosition.y += whiteboardDimensions.y / 2 + colorSquareDimensions.y / 2 - 0.01;
 var spaceBetweenColorBoxes = Vec3.multiply(direction, colorSquareDimensions.x * 2);
 var scriptURL = Script.resolvePath("colorSelectorEntityScript.js");
 for (var i = 0; i < colors.length; i++) {
@@ -81,19 +81,49 @@ for (var i = 0; i < colors.length; i++) {
         })
     });
     colorBoxes.push(colorBox);
-
     colorBoxPosition = Vec3.sum(colorBoxPosition, spaceBetweenColorBoxes);
-
 }
+
+
+var eraseBoxDimensions = {
+    x: 0.5,
+    y: 0.1,
+    z: 0.01
+};
+
+
+var eraseBoxPosition = Vec3.sum(center, Vec3.multiply(direction, whiteboardDimensions.x / 2 + eraseBoxDimensions.x/2));
+eraseBoxPosition.y += 0.3;
+
+var eraseAllText = Entities.addEntity({
+    type: "Text",
+    position: eraseBoxPosition,
+    rotation: rotation,
+    dimensions: eraseBoxDimensions,
+    backgroundColor: {
+        red: 0,
+        green: 60,
+        blue: 0
+    },
+    textColor: {
+        red: 255,
+        green: 10,
+        blue: 10
+    },
+    text: "ERASE BOARD",
+    lineHeight: 0.07
+});
+print(JSON.stringify(Entities.getEntityProperties(eraseAllText)))
 
 
 
 function cleanup() {
     Entities.deleteEntity(whiteboard);
+    Entities.deleteEntity(eraseAllText);
     colorBoxes.forEach(function(colorBox) {
-            Entities.deleteEntity(colorBox);
-        });
-    }
+        Entities.deleteEntity(colorBox);
+    });
+}
 
 
-    Script.scriptEnding.connect(cleanup);
+Script.scriptEnding.connect(cleanup);
