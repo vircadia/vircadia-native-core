@@ -15,7 +15,7 @@
 
 
 Script.include("../../libraries/utils.js");
-var scriptURL = Script.resolvePath("whiteBoardEntityScript.js?v1" +Math.random());
+var scriptURL = Script.resolvePath("whiteBoardEntityScript.js?v2");
 
 var rotation = Quat.safeEulerAngles(Camera.getOrientation());
 rotation = Quat.fromPitchYawRollDegrees(0, rotation.y, 0);

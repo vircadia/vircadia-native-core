@@ -55,6 +55,7 @@
             };
 
             this.intersection = Entities.findRayIntersection(pickRay, true, [this.entityID]);
+            // this.intersection = Entities.findRayIntersection(pickRay, true);
         },
 
         releaseGrab: function() {
