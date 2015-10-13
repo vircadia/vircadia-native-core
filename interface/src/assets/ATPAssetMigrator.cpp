@@ -162,7 +162,7 @@ void ATPAssetMigrator::assetUploadFinished(AssetUpload *upload, const QString& h
         // successfully uploaded asset - make any required replacements found in the pending replacements
         auto values = _pendingReplacements.values(modelURL);
         
-        QString atpURL = QString("%1:%2.%3").arg(ATP_SCHEME).arg(hash).arg(upload->getExtension());
+        QString atpURL = QString("%1:%2.%3").arg(URL_SCHEME_ATP).arg(hash).arg(upload->getExtension());
         
         for (auto value : values) {
             // replace the modelURL in this QJsonValueRef with the hash
