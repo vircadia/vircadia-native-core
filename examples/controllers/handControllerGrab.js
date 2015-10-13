@@ -67,7 +67,7 @@ var MSEC_PER_SEC = 1000.0;
 var startTime = Date.now();
 var LIFETIME = 10;
 var ACTION_LIFETIME = 10; // seconds
-var PICKS_PER_SECOND_PER_HAND = 60;
+var PICKS_PER_SECOND_PER_HAND = 5;
 var MSECS_PER_SEC = 1000.0;
 
 // states for the state machine
