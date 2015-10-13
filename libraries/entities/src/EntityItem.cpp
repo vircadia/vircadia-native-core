@@ -1797,6 +1797,7 @@ bool EntityItem::shouldSuppressEdits() const {
         if (i.value()->shouldSuppressEdits()) {
             return true;
         }
+        i++;
     }
 
     return false;
