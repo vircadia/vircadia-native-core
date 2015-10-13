@@ -100,6 +100,11 @@ void AssetUpload::start() {
                     break;
             }
         }
+        
+        if (_error == NoError && hash == hashData(_data).toHex()) {
+            saveToCache(getUrl(hash, _extension), _data);
+        }
+        
         emit finished(this, hash);
     });
 }
