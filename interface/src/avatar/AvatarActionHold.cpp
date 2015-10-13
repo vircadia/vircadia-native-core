@@ -110,11 +110,6 @@ bool AvatarActionHold::updateArguments(QVariantMap arguments) {
     ok = true;
     auto myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
     auto holderID = myAvatar->getSessionUUID();
-    // QString holderIDString =
-    //     EntityActionInterface::extractStringArgument("hold", arguments, "hand", ok, false);
-    // if (ok) {
-    //     holderID = QUuid(holderIDString);
-    // }
 
     if (relativePosition != _relativePosition
             || relativeRotation != _relativeRotation

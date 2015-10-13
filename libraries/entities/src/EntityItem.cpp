@@ -1720,9 +1720,11 @@ void EntityItem::setActionData(QByteArray actionData) {
 
 void EntityItem::setActionDataInternal(QByteArray actionData) {
     assertWriteLocked();
+    if (_allActionsDataCache != actionData) {
+        _allActionsDataCache = actionData;
+        deserializeActionsInternal();
+    }
     checkWaitingToRemove();
-    _allActionsDataCache = actionData;
-    deserializeActionsInternal();
 }
 
 void EntityItem::serializeActions(bool& success, QByteArray& result) const {
