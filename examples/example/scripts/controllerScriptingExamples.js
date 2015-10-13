@@ -12,6 +12,20 @@
 // Assumes you only have the default keyboard connected
 
 
+
+var hydra = Controller.Hardware.Hydra2;
+if (hydra !== undefined) {
+    print("-----------------------------------");
+    var mapping = NewControllers.newMapping("Default");
+    var standard = Controller.Standard;
+    print("standard:" + standard);
+    mapping.from(hydra.LeftButton1).to(standard.A);
+    mapping.from(hydra.LeftButton2).to(standard.B);
+    mapping.from(hydra.LeftButton3).to(standard.X);
+    NewControllers.enableMapping("Default");
+    print("-----------------------------------");
+}
+
 Object.keys(Controller.Standard).forEach(function (input) {
     print("Controller.Standard." + input + ":" + Controller.Standard[input]);
 });
