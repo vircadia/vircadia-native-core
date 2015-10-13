@@ -1,6 +1,6 @@
 //
 //  whiteBoardSpawner.js
-//  examples/painting
+//  examples/painting/whiteboard
 //
 //  Created by Eric Levina on 10/12/15.
 //  Copyright 2015 High Fidelity, Inc.
@@ -92,12 +92,13 @@ var eraseBoxDimensions = {
 };
 
 
-var eraseBoxPosition = Vec3.sum(center, Vec3.multiply(direction, whiteboardDimensions.x / 2 + eraseBoxDimensions.x/2));
+var eraseBoxPosition = Vec3.sum(center, Vec3.multiply(direction, whiteboardDimensions.x / 2 + eraseBoxDimensions.x / 2));
 eraseBoxPosition.y += 0.3;
-
+scriptURL = Script.resolvePath("eraseBoardEntityScript.js");
 var eraseAllText = Entities.addEntity({
     type: "Text",
     position: eraseBoxPosition,
+    script: scriptURL,
     rotation: rotation,
     dimensions: eraseBoxDimensions,
     backgroundColor: {
@@ -111,7 +112,10 @@ var eraseAllText = Entities.addEntity({
         blue: 10
     },
     text: "ERASE BOARD",
-    lineHeight: 0.07
+    lineHeight: 0.07,
+    userData: JSON.stringify({
+        whiteboard: whiteboard
+    })
 });
 print(JSON.stringify(Entities.getEntityProperties(eraseAllText)))
 

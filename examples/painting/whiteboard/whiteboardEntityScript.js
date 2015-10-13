@@ -82,7 +82,6 @@
                             y: this.currentStrokeWidth
                         }
                     });
-                    print("TRIGGER VALUE " + this.triggerValue);
                     if (this.triggerValue > PAINT_TRIGGER_THRESHOLD) {
                         this.paint(this.intersection.intersection, this.intersection.surfaceNormal);
                     } else {
@@ -149,6 +148,7 @@
             this.currentStroke = Entities.addEntity({
                 position: position,
                 type: "PolyLine",
+                name: "paintStroke",
                 color: this.strokeColor,
                 dimensions: {
                     x: 50,
@@ -171,10 +171,19 @@
         },
 
         changeColor: function() {
-            print("CHANGE COLOR");
             this.strokeColor = JSON.parse(Entities.getEntityProperties(this.entityID, ["userData"]).userData).currentColor;
             Overlays.editOverlay(this.laserPointer, {
                 color: this.strokeColor
+            });
+        },
+
+        eraseBoard: function() {
+            var entities = Entities.findEntities(this.position, 5);
+            entities.forEach(function(entity) {
+                var name = Entities.getEntityProperties(entity, "name").name;
+                if(name === "paintStroke") {
+                    Entities.deleteEntity(entity);
+                }
             });
         },
 
