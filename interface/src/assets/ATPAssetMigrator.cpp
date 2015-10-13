@@ -96,24 +96,29 @@ void ATPAssetMigrator::loadEntityServerFile() {
                         } else if (wantsToMigrateResource(modelURL)) {
                             auto request = ResourceManager::createResourceRequest(this, modelURL);
                             
-                            qCDebug(asset_migrator) << "Requesting" << modelURL << "for ATP asset migration";
+                            if (request) {
+                                qCDebug(asset_migrator) << "Requesting" << modelURL << "for ATP asset migration";
+                                
+                                // add this combination of QUrl and QJsonValueRef to our multi hash so we can change the URL
+                                // to an ATP one once ready
+                                _pendingReplacements.insert(modelURL, jsonValue);
+                                
+                                connect(request, &ResourceRequest::finished, this, [=]() {
+                                    if (request->getResult() == ResourceRequest::Success) {
+                                        migrateResource(request);
+                                    } else {
+                                        QMessageBox::warning(_dialogParent, "Error",
+                                                             QString("Could not retrieve asset at %1").arg(modelURL.toString()));
+                                    }
+                                    request->deleteLater();
+                                });
+                                
+                                request->send();
+                            } else {
+                                QMessageBox::warning(_dialogParent, "Error",
+                                                     QString("Could not create request for asset at %1").arg(modelURL.toString()));
+                            }
                             
-                            // add this combination of QUrl and QJsonValueRef to our multi hash so we can change the URL
-                            // to an ATP one once ready
-                            _pendingReplacements.insert(modelURL, jsonValue);
-                            
-                            connect(request, &ResourceRequest::finished, this, [=]() {
-                                if (request->getResult() == ResourceRequest::Success) {
-                                    migrateResource(request);
-                                } else {
-                                    QMessageBox::warning(_dialogParent, "Error",
-                                                         QString("Could not retreive asset at %1").arg(modelURL.toString()));
-                                }
-                                request->deleteLater();
-                            });
-                            
-                            
-                            request->send();
                         } else {
                             _ignoredUrls.insert(modelURL);
                         }
