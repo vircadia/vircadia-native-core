@@ -1795,4 +1795,6 @@ bool EntityItem::shouldSuppressEdits() const {
         // XXX
         return true;
     }
+
+    return false;
 }

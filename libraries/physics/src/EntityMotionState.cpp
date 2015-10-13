@@ -280,6 +280,11 @@ bool EntityMotionState::remoteSimulationOutOfSync(uint32_t simulationStep) {
     }
 
     _lastStep = simulationStep;
+
+    if (_entity->shouldSuppressEdits()) {
+        return false;
+    }
+
     if (glm::length2(_serverVelocity) > 0.0f) {
         _serverVelocity += _serverAcceleration * dt;
         _serverVelocity *= powf(1.0f - _body->getLinearDamping(), dt);
@@ -289,10 +294,6 @@ bool EntityMotionState::remoteSimulationOutOfSync(uint32_t simulationStep) {
     if (_serverActionData != _entity->getActionData()) {
         setOutgoingPriority(SCRIPT_EDIT_SIMULATION_PRIORITY);
         return true;
-    }
-
-    if (_entity->shouldSuppressEdits()) {
-        return false;
     }
 
     // Else we measure the error between current and extrapolated transform (according to expected behavior
