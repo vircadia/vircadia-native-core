@@ -16,6 +16,7 @@
 #include <vector>
 
 #include "AnimNode.h"
+#include "IKTarget.h"
 
 #include "RotationAccumulator.h"
 
@@ -37,18 +38,6 @@ public:
     virtual const AnimPoseVec& overlay(const AnimVariantMap& animVars, float dt, Triggers& triggersOut, const AnimPoseVec& underPoses) override;
 
 protected:
-    struct IKTarget {
-        enum class Type {
-            RotationAndPosition,
-            RotationOnly 
-        };
-        AnimPose pose;
-        int index;
-        Type type = Type::RotationAndPosition;
-
-        void setType(const QString& typeVar) { type = ((typeVar == "RotationOnly") ?  Type::RotationOnly : Type::RotationAndPosition); }
-    };
-
     void computeTargets(const AnimVariantMap& animVars, std::vector<IKTarget>& targets, const AnimPoseVec& underPoses);
     void solveWithCyclicCoordinateDescent(const std::vector<IKTarget>& targets);
     virtual void setSkeletonInternal(AnimSkeleton::ConstPointer skeleton) override;
@@ -59,6 +48,10 @@ protected:
     RotationConstraint* getConstraint(int index);
     void clearConstraints();
     void initConstraints();
+
+    // no copies
+    AnimInverseKinematics(const AnimInverseKinematics&) = delete;
+    AnimInverseKinematics& operator=(const AnimInverseKinematics&) = delete;
 
     struct IKTargetVar {
         IKTargetVar(const QString& jointNameIn, 
@@ -85,9 +78,9 @@ protected:
     AnimPoseVec _defaultRelativePoses; // poses of the relaxed state
     AnimPoseVec _relativePoses; // current relative poses
 
-    // no copies
-    AnimInverseKinematics(const AnimInverseKinematics&) = delete;
-    AnimInverseKinematics& operator=(const AnimInverseKinematics&) = delete;
+    // experimental data for moving hips during IK
+    int _headIndex = -1;
+    glm::vec3 _hipsOffset = Vectors::ZERO;
 
     // _maxTargetIndex is tracked to help optimize the recalculation of absolute poses
     // during the the cyclic coordinate descent algorithm

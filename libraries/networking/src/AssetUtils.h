@@ -12,9 +12,10 @@
 #ifndef hifi_AssetUtils_h
 #define hifi_AssetUtils_h
 
-#include <QtCore/QCryptographicHash>
-
 #include <cstdint>
+
+#include <QtCore/QByteArray>
+#include <QtCore/QUrl>
 
 using MessageID = uint32_t;
 using DataOffset = int64_t;
@@ -31,8 +32,11 @@ enum AssetServerError : uint8_t {
     PermissionDenied
 };
 
-const QString ATP_SCHEME = "atp";
+QUrl getUrl(const QString& hash, const QString& extension = QString());
 
-inline QByteArray hashData(const QByteArray& data) { return QCryptographicHash::hash(data, QCryptographicHash::Sha256); }
+QByteArray hashData(const QByteArray& data);
+
+QByteArray loadFromCache(const QUrl& url);
+bool saveToCache(const QUrl& url, const QByteArray& file);
 
 #endif

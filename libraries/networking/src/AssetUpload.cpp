@@ -51,13 +51,11 @@ QString AssetUpload::getErrorString() const {
 
 void AssetUpload::start() {
     if (QThread::currentThread() != thread()) {
-        QMetaObject::invokeMethod(this, "start", Qt::AutoConnection);
+        QMetaObject::invokeMethod(this, "start");
         return;
     }
     
-    auto data = _data;
-    
-    if (data.isEmpty() && !_filename.isEmpty()) {
+    if (_data.isEmpty() && !_filename.isEmpty()) {
         // try to open the file at the given filename
         QFile file { _filename };
         
@@ -66,7 +64,7 @@ void AssetUpload::start() {
             // file opened, read the data and grab the extension
             _extension = QFileInfo(_filename).suffix();
             
-            data = file.readAll();
+            _data = file.readAll();
         } else {
             // we couldn't open the file - set the error result
             _error = FileOpenError;
@@ -81,12 +79,9 @@ void AssetUpload::start() {
    
     if (!_filename.isEmpty()) {
         qCDebug(asset_client) << "Attempting to upload" << _filename << "to asset-server.";
-    } else {
-        qCDebug(asset_client) << "Attempting to upload file of" << _data.size() << "bytes to asset-server.";
     }
     
-    
-    assetClient->uploadAsset(data, _extension, [this](bool responseReceived, AssetServerError error, const QString& hash){
+    assetClient->uploadAsset(_data, _extension, [this](bool responseReceived, AssetServerError error, const QString& hash){
         if (!responseReceived) {
             _error = NetworkError;
         } else {
