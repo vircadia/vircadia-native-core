@@ -30,6 +30,8 @@ public:
     QByteArray serialize() const;
     virtual void deserialize(QByteArray serializedArguments);
 
+    virtual bool shouldSuppressEdits() { return true; }
+
 private:
     static const uint16_t holdVersion;
 

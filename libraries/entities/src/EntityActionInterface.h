@@ -51,6 +51,8 @@ public:
 
     bool locallyAddedButNotYetReceived = false;
 
+    virtual bool shouldSuppressEdits() { return false; }
+
 protected:
     virtual glm::vec3 getPosition() = 0;
     virtual void setPosition(glm::vec3 position) = 0;

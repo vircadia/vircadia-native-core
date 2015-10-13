@@ -1794,8 +1794,9 @@ QVariantMap EntityItem::getActionArguments(const QUuid& actionID) const {
 bool EntityItem::shouldSuppressEdits() const {
     QHash<QUuid, EntityActionPointer>::const_iterator i = _objectActions.begin();
     while (i != _objectActions.end()) {
-        // XXX
-        return true;
+        if (i.value()->shouldSuppressEdits()) {
+            return true;
+        }
     }
 
     return false;
