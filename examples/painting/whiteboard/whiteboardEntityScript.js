@@ -25,6 +25,11 @@
     var MIN_POINT_DISTANCE = 0.02;
     var MAX_POINT_DISTANCE = 0.5;
     var MAX_POINTS_PER_LINE = 40;
+    var MAX_DISTANCE = 5;
+
+    var TRIGGER_ON_VALUE = 0.3;
+    var MIN_STROKE_WIDTH = 0.001;
+    var MAX_STROKE_WIDTH = 0.02;
 
     Whiteboard = function() {
         _this = this;
@@ -41,6 +46,9 @@
         },
 
         startFarGrabNonColliding: function() {
+            if (this.painting) {
+                return;
+            }
             if (this.hand === RIGHT_HAND) {
                 this.getHandPosition = MyAvatar.getRightPalmPosition;
                 this.getHandRotation = MyAvatar.getRightPalmRotation;
@@ -61,7 +69,12 @@
 
             this.intersection = Entities.findRayIntersection(pickRay, true, [this.entityID]);
             if (this.intersection.intersects) {
-                this.paint(this.intersection.intersection, this.intersection.surfaceNormal);
+                var distance = Vec3.distance(handPosition, this.intersection.intersection);
+                if (distance < MAX_DISTANCE) {
+                    this.triggerValue = Controller.getActionValue(this.triggerAction);
+                    this.currentStrokeWidth = map(this.triggerValue, TRIGGER_ON_VALUE, 1, MIN_STROKE_WIDTH, MAX_STROKE_WIDTH);
+                    this.paint(this.intersection.intersection, this.intersection.surfaceNormal);
+                }
             } else {
                 this.painting = false;
             }
@@ -157,11 +170,10 @@
                 blue: 190
             };
             this.strokes = [];
-            this.currentStrokeWidth = 0.02;
         },
 
         unload: function() {
-            this.strokes.forEach(function(stroke){
+            this.strokes.forEach(function(stroke) {
                 Entities.deleteEntity(stroke);
             });
         }

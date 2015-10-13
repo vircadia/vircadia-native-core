@@ -30,6 +30,7 @@ var whiteboard = Entities.addEntity({
     color: {red: 255, green: 255, blue: 255}
 });
 
+
 function cleanup() {
     Entities.deleteEntity(whiteboard);
 }
