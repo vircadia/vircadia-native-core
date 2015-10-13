@@ -1890,16 +1890,6 @@ void Application::mousePressEvent(QMouseEvent* event, unsigned int deviceID) {
                 computePickRay(mappedEvent.x(), mappedEvent.y()));
             sendEvent(this, &actionEvent);
 
-        } else if (event->button() == Qt::RightButton) {
-            // "right click" on controllers to toggle the overlay
-            if (deviceID > 0) {
-                _overlayConductor.setEnabled(!_overlayConductor.getEnabled());
-            }
-        } else if (event->button() == Qt::MiddleButton) {
-            // mouse middle click to toggle the overlay
-            if (deviceID == 0) {
-                _overlayConductor.setEnabled(!_overlayConductor.getEnabled());
-            }
         }
     }
 }
