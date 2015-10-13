@@ -127,8 +127,3 @@ void AssetRequest::start() {
         });
     });
 }
-
-QUrl AssetRequest::getUrl() const {
-    return ::getUrl(_hash, _extension);
-}
-

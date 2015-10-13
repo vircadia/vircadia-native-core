@@ -46,7 +46,7 @@ public:
     const QByteArray& getData() const { return _data; }
     const State& getState() const { return _state; }
     const Error& getError() const { return _error; }
-    QUrl getUrl() const;
+    QUrl getUrl() const { return ::getATPUrl(_hash, _extension); }
 
 signals:
     void finished(AssetRequest* thisRequest);

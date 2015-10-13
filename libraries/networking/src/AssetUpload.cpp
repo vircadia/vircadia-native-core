@@ -102,7 +102,7 @@ void AssetUpload::start() {
         }
         
         if (_error == NoError && hash == hashData(_data).toHex()) {
-            saveToCache(getUrl(hash, _extension), _data);
+            saveToCache(getATPUrl(hash, _extension), _data);
         }
         
         emit finished(this, hash);
