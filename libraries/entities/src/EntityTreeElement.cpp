@@ -503,14 +503,13 @@ bool EntityTreeElement::findDetailedRayIntersection(const glm::vec3& origin, con
     forEachEntity([&](EntityItemPointer entity) {
         if (entityIdsToInclude.size() > 0) {
             bool entityInWhiteList = false;
-            //We only want to search whitelist if there is one, otherwise everything except blacklisted items are valid
+            // We only want to search whitelist if there is one, otherwise everything except blacklisted items are valid
             for (int i = 0; i < entityIdsToInclude.size(); i++) {
                 if (entityIdsToInclude.at(i) == entity->getID()) {
                     entityInWhiteList = true;
                 }
             }
             if (!entityInWhiteList) {
-                // qDebug() << "entity not found in whitelist!";
                 return;
             }
         }
