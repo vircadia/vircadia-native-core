@@ -83,7 +83,9 @@ int main(int argc, char** argv) {
     QGuiApplication app(argc, argv);
     QQmlApplicationEngine engine;
 
-
+    for (auto path : qApp->libraryPaths()) {
+        qDebug() << path;
+    }
     {
         DependencyManager::set<UserInputMapper>();
         foreach(auto inputPlugin, PluginManager::getInstance()->getInputPlugins()) {

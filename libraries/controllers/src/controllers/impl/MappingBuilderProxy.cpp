@@ -11,11 +11,14 @@
 #include <QtCore/QHash>
 #include <QtCore/QDebug>
 
+#include <QJSONObject>
+#include <qjsonarray.h>
+
 #include "RouteBuilderProxy.h"
 #include "../NewControllerScriptingInterface.h"
 #include "../Logging.h"
 
-namespace controller {
+using namespace controller;
 
 QObject* MappingBuilderProxy::from(const QJSValue& source) {
     qCDebug(controllers) << "Creating new Route builder proxy from " << source.toString();
@@ -41,4 +44,49 @@ QObject* MappingBuilderProxy::join(const QJSValue& source1, const QJSValue& sour
     return from(_parent.compositeEndpointFor(source1Endpoint, source2Endpoint));
 }
 
+
+const QString JSON_NAME = QStringLiteral("name");
+const QString JSON_CHANNELS = QStringLiteral("channels");
+const QString JSON_CHANNEL_FROM = QStringLiteral("from");
+const QString JSON_CHANNEL_TO = QStringLiteral("to");
+const QString JSON_CHANNEL_FILTERS = QStringLiteral("filters");
+
+
+void MappingBuilderProxy::parse(const QJsonObject& json) {
+    _mapping->_name = json[JSON_NAME].toString();
+
+    _mapping->_channelMappings.clear();
+    const auto& jsonChannels = json[JSON_CHANNELS].toArray();
+    for (const auto& channelIt : jsonChannels) {
+        parseRoute(channelIt);
+    }
+}
+
+void MappingBuilderProxy::parseRoute(const QJsonValue& json) {
+    if (json.isObject()) {
+        const auto& jsonChannel = json.toObject();
+
+        auto newRoute = from(jsonChannel[JSON_CHANNEL_FROM]);
+        if (newRoute) {
+            auto route = dynamic_cast<RouteBuilderProxy*>(newRoute);
+            route->filters(jsonChannel[JSON_CHANNEL_FILTERS]);
+            route->to(jsonChannel[JSON_CHANNEL_TO]);
+
+            return 
+        }
+    }
+}
+
+QObject* MappingBuilderProxy::from(const QJsonValue& json) {
+    if (json.isString()) {
+        return from(_parent.endpointFor(_parent.inputFor(json.toString())));
+    } else if (json.isObject()) {
+        // Endpoint is defined as an object, we expect a js function then
+        return nullptr;
+    }
+}
+
+
+Filter::List MappingBuilderProxy::parseFilters(const QJsonValue& json) const {
+    return Filter::List();
 }

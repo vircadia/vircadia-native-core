@@ -28,9 +28,9 @@ namespace controller {
         using Pointer = std::shared_ptr<Mapping>;
 
         Map _channelMappings;
+        QString _name;
 
-        void parse(const QString& json);
-        QString serialize();
+    protected:
     };
 
 }

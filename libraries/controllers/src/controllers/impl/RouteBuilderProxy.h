@@ -40,6 +40,10 @@ class RouteBuilderProxy : public QObject {
         Q_INVOKABLE QObject* constrainToInteger();
         Q_INVOKABLE QObject* constrainToPositiveInteger();
 
+        // JSON route creation point
+        Q_INVOKABLE QObject* filters(const QJsonValue& json);
+        Q_INVOKABLE void to(const QJsonValue& json);
+
     private:
         void to(const Endpoint::Pointer& destination);
         void addFilter(Filter::Lambda lambda);

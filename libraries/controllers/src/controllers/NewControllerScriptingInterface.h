@@ -68,6 +68,8 @@ namespace controller {
         Endpoint::Pointer endpointFor(const UserInputMapper::Input& endpoint);
         Endpoint::Pointer compositeEndpointFor(Endpoint::Pointer first, Endpoint::Pointer second);
 
+        UserInputMapper::Input inputFor(const QString& inputName);
+
         friend class MappingBuilderProxy;
         friend class RouteBuilderProxy;
     private:

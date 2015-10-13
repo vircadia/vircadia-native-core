@@ -64,7 +64,7 @@ void UserInputMapper::resetDevice(uint16 deviceID) {
     }
 }
 
-int UserInputMapper::findDevice(QString name) {
+int UserInputMapper::findDevice(QString name) const {
     for (auto device : _registeredDevices) {
         if (device.second->_name.split(" (")[0] == name) {
             return device.first;
@@ -81,6 +81,28 @@ QVector<QString> UserInputMapper::getDeviceNames() {
     }
     return result;
 }
+
+UserInputMapper::Input UserInputMapper::findDeviceInput(const QString& inputName) const {
+    
+    // Split the full input name as such: deviceName.inputName
+    auto names = inputName.split('.');
+
+    if (names.size() >= 2) {
+        // Get the device name:
+        auto deviceName = names[0];
+        auto inputName = names[1];
+
+        int deviceID = findDevice(deviceName);
+        if (deviceID != Input::INVALID_DEVICE) {
+         //   getAllInputsForDevice(deviceID);
+        }
+
+
+    }
+
+    return Input();
+}
+
 
 
 bool UserInputMapper::addInputChannel(Action action, const Input& input, float scale) {

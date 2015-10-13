@@ -301,6 +301,10 @@ namespace controller {
         return Endpoint::Pointer();
     }
 
+    UserInputMapper::Input NewControllerScriptingInterface::inputFor(const QString& inputName) {
+        return DependencyManager::get<UserInputMapper>()->findDeviceInput(inputName);
+    }
+
     Endpoint::Pointer NewControllerScriptingInterface::endpointFor(const UserInputMapper::Input& inputId) {
         auto iterator = _endpoints.find(inputId);
         if (_endpoints.end() == iterator) {

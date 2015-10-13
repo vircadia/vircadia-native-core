@@ -32,12 +32,24 @@ public:
     Q_INVOKABLE QObject* from(const QScriptValue& source);
 
     Q_INVOKABLE QObject* join(const QJSValue& source1, const QJSValue& source2);
+
+    // JSON route creation point
+    Q_INVOKABLE QObject* from(const QJsonValue& json);
+
+
+    void parse(const QJsonObject& json);
+  //  void serialize(QJsonObject& json);
+
 protected:
     QObject* from(const Endpoint::Pointer& source);
 
     friend class RouteBuilderProxy;
     NewControllerScriptingInterface& _parent;
     Mapping::Pointer _mapping;
+
+
+    void parseRoute(const QJsonValue& json);
+
 };
 
 }
