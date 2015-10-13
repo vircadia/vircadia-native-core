@@ -39,7 +39,7 @@ namespace controller {
         Q_INVOKABLE float getValue(const int& source);
 
         Q_INVOKABLE void update();
-        Q_INVOKABLE QObject* newMapping(const QString& mappingName);
+        Q_INVOKABLE QObject* newMapping(const QString& mappingName = QUuid::createUuid().toString());
         Q_INVOKABLE void enableMapping(const QString& mappingName, bool enable = true);
         Q_INVOKABLE void disableMapping(const QString& mappingName) {
             enableMapping(mappingName, false);

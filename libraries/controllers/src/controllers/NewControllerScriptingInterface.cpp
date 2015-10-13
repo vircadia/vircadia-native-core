@@ -158,7 +158,7 @@ namespace controller {
             qCWarning(controllers) << "Refusing to recreate mapping named " << mappingName;
         }
         qDebug() << "Creating new Mapping " << mappingName;
-        Mapping::Pointer mapping = std::make_shared<Mapping>();
+        auto mapping = std::make_shared<Mapping>(mappingName); 
         _mappingsByName[mappingName] = mapping;
         return new MappingBuilderProxy(*this, mapping);
     }
