@@ -1530,8 +1530,7 @@ void MyAvatar::updateOrientation(float deltaTime) {
                 blend = 1.0f;
             }
             _bodyYawDelta = (1.0f - blend) * _bodyYawDelta + blend * targetSpeed;
-        }
-        else if (_bodyYawDelta != 0.0f) {
+        } else if (_bodyYawDelta != 0.0f) {
             // attenuate body rotation speed
             const float ROTATION_DECAY_TIMESCALE = 0.05f;
             float attenuation = 1.0f - deltaTime / ROTATION_DECAY_TIMESCALE;
@@ -1551,12 +1550,14 @@ void MyAvatar::updateOrientation(float deltaTime) {
             glm::quat(glm::radians(glm::vec3(0.0f, _bodyYawDelta * deltaTime, 0.0f))));
 
     } else {
-        // comfort mode....
+        // Comfort Mode: If you press any of the left/right rotation drive keys or input, you'll
+        // get an instantaneous 15 degree turn. If you keep holding the key down you'll get another
+        // snap turn every half second.
         _bodyYawDelta = 0.0f;
 
         static quint64 lastPulse = 0;
         quint64 now = usecTimestampNow();
-        quint64 COMFORT_MODE_PULSE_TIMING = USECS_PER_SECOND / 2; // turn once per second
+        quint64 COMFORT_MODE_PULSE_TIMING = USECS_PER_SECOND / 2; // turn once per half second
 
         float driveLeft = _driveKeys[ROT_LEFT];
         float driveRight= _driveKeys[ROT_RIGHT];
