@@ -339,11 +339,12 @@ function MyController(hand, triggerAction) {
         var handRotation = Quat.multiply(MyAvatar.orientation, Controller.getSpatialControlRawRotation(this.palm));
         var grabbedProperties = Entities.getEntityProperties(this.grabbedEntity, ["position", "rotation",
                                                                                   "gravity", "ignoreForCollisions"]);
+        var now = Date.now();
 
         // add the action and initialize some variables
         this.currentObjectPosition = grabbedProperties.position;
         this.currentObjectRotation = grabbedProperties.rotation;
-        this.currentObjectTime = Date.now();
+        this.currentObjectTime = now;
         this.handPreviousPosition = handControllerPosition;
         this.handPreviousRotation = handRotation;
 
@@ -359,6 +360,7 @@ function MyController(hand, triggerAction) {
         if (this.actionID === NULL_ACTION_ID) {
             this.actionID = null;
         }
+        this.actionTimeout = now + (ACTION_LIFETIME * MSEC_PER_SEC);
 
         if (this.actionID !== null) {
             this.setState(STATE_CONTINUE_DISTANCE_HOLDING);
@@ -454,9 +456,11 @@ function MyController(hand, triggerAction) {
             angularTimeScale: DISTANCE_HOLDING_ACTION_TIMEFRAME,
             lifetime: ACTION_LIFETIME
         });
+        this.actionTimeout = now + (ACTION_LIFETIME * MSEC_PER_SEC);
     };
 
     this.nearGrabbing = function() {
+        var now = Date.now();
 
         if (this.triggerSmoothedReleased()) {
             this.setState(STATE_RELEASE);
@@ -490,6 +494,7 @@ function MyController(hand, triggerAction) {
         if (this.actionID === NULL_ACTION_ID) {
             this.actionID = null;
         } else {
+            this.actionTimeout = now + (ACTION_LIFETIME * MSEC_PER_SEC);
             this.setState(STATE_CONTINUE_NEAR_GRABBING);
             if (this.hand === RIGHT_HAND) {
                 Entities.callEntityMethod(this.grabbedEntity, "setRightHand");
@@ -529,9 +534,13 @@ function MyController(hand, triggerAction) {
         this.currentObjectTime = now;
         Entities.callEntityMethod(this.grabbedEntity, "continueNearGrab");
 
-        Entities.updateAction(this.grabbedEntity, this.actionID, {
-            lifetime: ACTION_LIFETIME
-        });
+        if (this.actionTimeout - now < MSEC_PER_SEC) {
+            // if less than a second left, refresh the actions lifetime
+            Entities.updateAction(this.grabbedEntity, this.actionID, {
+                lifetime: ACTION_LIFETIME
+            });
+            this.actionTimeout = now + (ACTION_LIFETIME * MSEC_PER_SEC);
+        }
     };
 
     this.nearGrabbingNonColliding = function() {
