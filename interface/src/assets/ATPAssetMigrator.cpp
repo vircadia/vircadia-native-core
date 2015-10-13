@@ -14,6 +14,7 @@
 #include <QtCore/QDebug>
 #include <QtCore/QJsonDocument>
 #include <QtCore/QJsonObject>
+#include <QtCore/QLoggingCategory>
 #include <QtCore/QTemporaryFile>
 #include <QtWidgets/QFileDialog>
 #include <QtWidgets/QMessageBox>
@@ -25,6 +26,9 @@
 #include <ResourceManager.h>
 
 #include "../ui/AssetUploadDialogFactory.h"
+
+Q_DECLARE_LOGGING_CATEGORY(asset_migrator);
+Q_LOGGING_CATEGORY(asset_migrator, "hf.asset_migrator");
 
 ATPAssetMigrator& ATPAssetMigrator::getInstance() {
     static ATPAssetMigrator instance;
@@ -40,7 +44,7 @@ void ATPAssetMigrator::loadEntityServerFile() {
                                                  QString(), QString("Entity-Server Content (*.gz)"));
     
     if (!filename.isEmpty()) {
-        qDebug() << "Selected filename for ATP asset migration: " << filename;
+        qCDebug(asset_migrator) << "Selected filename for ATP asset migration: " << filename;
         
         static const QString MIGRATION_CONFIRMATION_TEXT {
             "The ATP Asset Migration process will scan the selected entity-server file, upload discovered resources to the"\
@@ -92,7 +96,7 @@ void ATPAssetMigrator::loadEntityServerFile() {
                         } else if (wantsToMigrateResource(modelURL)) {
                             auto request = ResourceManager::createResourceRequest(this, modelURL);
                             
-                            qDebug() << "Requesting" << modelURL << "for ATP asset migration";
+                            qCDebug(asset_migrator) << "Requesting" << modelURL << "for ATP asset migration";
                             
                             // add this combination of QUrl and QJsonValueRef to our multi hash so we can change the URL
                             // to an ATP one once ready
@@ -138,7 +142,7 @@ void ATPAssetMigrator::migrateResource(ResourceRequest* request) {
         // add this URL to our hash of AssetUpload to original URL
         _originalURLs.insert(upload, request->getUrl());
         
-        qDebug() << "Starting upload of asset from" << request->getUrl();
+        qCDebug(asset_migrator) << "Starting upload of asset from" << request->getUrl();
         
         // connect to the finished signal so we know when the AssetUpload is done
         QObject::connect(upload, &AssetUpload::finished, this, &ATPAssetMigrator::assetUploadFinished);
