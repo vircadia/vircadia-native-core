@@ -26,20 +26,6 @@ var whiteboardDimensions = {
     y: 1.5,
     z: 0.01
 };
-var whiteboard = Entities.addEntity({
-    type: "Box",
-    position: center,
-    rotation: rotation,
-    script: scriptURL,
-    dimensions: whiteboardDimensions,
-    color: {
-        red: 255,
-        green: 255,
-        blue: 255
-    }
-});
-
-//COLORS
 
 var colors = [
     hexToRgb("#2F8E84"),
@@ -50,6 +36,23 @@ var colors = [
     hexToRgb("#993369"),
     hexToRgb("#9B47C2")
 ];
+var whiteboard = Entities.addEntity({
+    type: "Box",
+    position: center,
+    rotation: rotation,
+    script: scriptURL,
+    dimensions: whiteboardDimensions,
+    color: {
+        red: 255,
+        green: 255,
+        blue: 255
+    },
+    userData: JSON.stringify({
+        currentColor: colors[0]
+    })
+});
+
+//COLORS
 
 var direction = Quat.getRight(rotation);
 var colorBoxPosition = Vec3.subtract(center, Vec3.multiply(direction, whiteboardDimensions.x / 2));

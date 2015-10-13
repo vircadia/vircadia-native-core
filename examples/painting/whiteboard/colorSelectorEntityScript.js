@@ -30,6 +30,10 @@
 
         selectColor: function() {
             print("COLOR SELECTED");
+            Entities.editEntity(this.whiteboard, {
+                userData: JSON.stringify({currentColor: this.color})
+            });
+            Entities.callEntityMethod(this.whiteboard, "changeColor");
         },
 
         preload: function(entityID) {
