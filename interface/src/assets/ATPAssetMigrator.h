@@ -17,6 +17,7 @@
 #include <QtCore/QJsonArray>
 #include <QtCore/QObject>
 #include <QtCore/QMultiHash>
+#include <QtCore/QSet>
 
 class AssetUpload;
 class ResourceRequest;
@@ -35,6 +36,10 @@ private:
     void migrateResource(ResourceRequest* request);
     void saveEntityServerFile();
     
+    void reset();
+    
+    bool wantsToMigrateResource(const QUrl& url);
+    
     QWidget* _dialogParent = nullptr;
     QJsonArray _entitiesArray;
     
@@ -43,6 +48,7 @@ private:
     QMultiHash<QUrl, QJsonValueRef> _pendingReplacements;
     QHash<QUrl, QUrl> _uploadedAssets;
     QHash<AssetUpload*, QUrl> _originalURLs;
+    QSet<QUrl> _ignoredUrls;
 };
 
 

@@ -33,6 +33,7 @@ ATPAssetMigrator& ATPAssetMigrator::getInstance() {
 
 static const QString ENTITIES_OBJECT_KEY = "Entities";
 static const QString MODEL_URL_KEY = "modelURL";
+static const QString MESSAGE_BOX_TITLE = "ATP Asset Migration";
 
 void ATPAssetMigrator::loadEntityServerFile() {
     auto filename = QFileDialog::getOpenFileName(_dialogParent, "Select an entity-server content file to migrate",
@@ -40,6 +41,19 @@ void ATPAssetMigrator::loadEntityServerFile() {
     
     if (!filename.isEmpty()) {
         qDebug() << "Selected filename for ATP asset migration: " << filename;
+        
+        static const QString MIGRATION_CONFIRMATION_TEXT {
+            "The ATP Asset Migration process will scan the selected entity-server file, upload discovered resources to the"\
+            " current asset-server and then save a new entity-server file with the ATP URLs.\n\nAre you ready to"\
+            " continue?\n\nMake sure you are connected to the right domain."
+        };
+        
+        auto button = QMessageBox::question(_dialogParent, MESSAGE_BOX_TITLE, MIGRATION_CONFIRMATION_TEXT,
+                                            QMessageBox::Yes | QMessageBox::No, QMessageBox::Yes);
+        
+        if (button == QMessageBox::No) {
+            return;
+        }
         
         // try to open the file at the given filename
         QFile modelsFile { filename };
@@ -62,50 +76,42 @@ void ATPAssetMigrator::loadEntityServerFile() {
                 if (!modelURLString.isEmpty()) {
                     QUrl modelURL = QUrl(modelURLString);
                     
-                    if (modelURL.scheme() == URL_SCHEME_HTTP || modelURL.scheme() == URL_SCHEME_HTTPS
-                        || modelURL.scheme() == URL_SCHEME_FILE || modelURL.scheme() == URL_SCHEME_FTP) {
+                    if (!_ignoredUrls.contains(modelURL)
+                        && (modelURL.scheme() == URL_SCHEME_HTTP || modelURL.scheme() == URL_SCHEME_HTTPS
+                            || modelURL.scheme() == URL_SCHEME_FILE || modelURL.scheme() == URL_SCHEME_FTP)) {
                         
-                        QMessageBox messageBox;
-                        messageBox.setWindowTitle("Asset Migration");
-                        messageBox.setText("Would you like to migrate the following file to the asset server?");
-                        messageBox.setInformativeText(modelURL.toDisplayString());
-                        messageBox.setStandardButtons(QMessageBox::Ok | QMessageBox::Cancel);
-                        messageBox.setDefaultButton(QMessageBox::Ok);
-                        
-                        if (messageBox.exec() == QMessageBox::Ok) {
-                            // user wants to migrate this asset
+                        if (_pendingReplacements.contains(modelURL)) {
+                            // we already have a request out for this asset, just store the QJsonValueRef
+                            // so we can do the hash replacement when the request comes back
+                            _pendingReplacements.insert(modelURL, jsonValue);
+                        } else if (_uploadedAssets.contains(modelURL)) {
+                            // we already have a hash for this asset
+                            // so just do the replacement immediately
+                            entityObject[MODEL_URL_KEY] = _uploadedAssets.value(modelURL).toString();
+                            jsonValue = entityObject;
+                        } else if (wantsToMigrateResource(modelURL)) {
+                            auto request = ResourceManager::createResourceRequest(this, modelURL);
                             
-                            if (_pendingReplacements.contains(modelURL)) {
-                                // we already have a request out for this asset, just store the QJsonValueRef
-                                // so we can do the hash replacement when the request comes back
-                                _pendingReplacements.insert(modelURL, jsonValue);
-                            } else if (_uploadedAssets.contains(modelURL)) {
-                                // we already have a hash for this asset
-                                // so just do the replacement immediately
-                                entityObject[MODEL_URL_KEY] = _uploadedAssets.value(modelURL).toString();
-                                jsonValue = entityObject;
-                            } else {
-                                auto request = ResourceManager::createResourceRequest(this, modelURL);
-                                
-                                qDebug() << "Requesting" << modelURL << "for ATP asset migration";
-                                
-                                connect(request, &ResourceRequest::finished, this, [=]() {
-                                    if (request->getResult() == ResourceRequest::Success) {
-                                        migrateResource(request);
-                                    } else {
-                                        QMessageBox::warning(_dialogParent, "Error",
-                                                             QString("Could not retreive asset at %1").arg(modelURL.toString()));
-                                    }
-                                    request->deleteLater();
-                                });
-                                
-                                // add this combination of QUrl and QJsonValueRef to our multi hash so we can change the URL
-                                // to an ATP one once ready
-                                _pendingReplacements.insert(modelURL, jsonValue);
-                                
-                                request->send();
-                            }
-
+                            qDebug() << "Requesting" << modelURL << "for ATP asset migration";
+                            
+                            // add this combination of QUrl and QJsonValueRef to our multi hash so we can change the URL
+                            // to an ATP one once ready
+                            _pendingReplacements.insert(modelURL, jsonValue);
+                            
+                            connect(request, &ResourceRequest::finished, this, [=]() {
+                                if (request->getResult() == ResourceRequest::Success) {
+                                    migrateResource(request);
+                                } else {
+                                    QMessageBox::warning(_dialogParent, "Error",
+                                                         QString("Could not retreive asset at %1").arg(modelURL.toString()));
+                                }
+                                request->deleteLater();
+                            });
+                            
+                            
+                            request->send();
+                        } else {
+                            _ignoredUrls.insert(modelURL);
                         }
                     }
                 }
@@ -165,15 +171,57 @@ void ATPAssetMigrator::assetUploadFinished(AssetUpload *upload, const QString& h
             value = valueObject;
         }
         
+        // add this URL to our list of uploaded assets
+        _uploadedAssets.insert(modelURL, atpURL);
+        
         // pull the replaced models from _pendingReplacements
         _pendingReplacements.remove(modelURL);
         
         // are we out of pending replacements? if so it is time to save the entity-server file
         if (_doneReading && _pendingReplacements.empty()) {
             saveEntityServerFile();
+            
+            // reset after the attempted save, success or fail
+            reset();
         }
     } else {
         AssetUploadDialogFactory::showErrorDialog(upload, _dialogParent);
+    }
+    
+    upload->deleteLater();
+}
+
+bool ATPAssetMigrator::wantsToMigrateResource(const QUrl& url) {
+    static bool hasAskedForCompleteMigration { false };
+    static bool wantsCompleteMigration { false };
+    
+
+    
+    if (!hasAskedForCompleteMigration) {
+        // this is the first resource migration - ask the user if they just want to migrate everything
+        static const QString COMPLETE_MIGRATION_TEXT { "Do you want to migrate all assets found in this entity-server file?\n\n"\
+            "Select \"Yes\" to upload all discovered assets to the current asset-server immediately.\n\n"\
+            "Select \"No\" to be prompted for each discovered asset."
+        };
+        
+        auto button = QMessageBox::question(_dialogParent, MESSAGE_BOX_TITLE, COMPLETE_MIGRATION_TEXT,
+                                            QMessageBox::Yes | QMessageBox::No, QMessageBox::Yes);
+                              
+        if (button == QMessageBox::Yes) {
+            wantsCompleteMigration = true;
+        }
+        
+        hasAskedForCompleteMigration = true;
+    }
+    
+    if (wantsCompleteMigration) {
+        return true;
+    } else {
+        // present a dialog asking the user if they want to migrate this specific resource
+        auto button = QMessageBox::question(_dialogParent, MESSAGE_BOX_TITLE,
+                                            "Would you like to migrate the following resource?\n" + url.toString(),
+                                            QMessageBox::Yes | QMessageBox::No, QMessageBox::Yes);
+        return button == QMessageBox::Yes;
     }
 }
 
@@ -205,4 +253,13 @@ void ATPAssetMigrator::saveEntityServerFile() {
         QMessageBox::warning(_dialogParent, "Error",
                              QString("Could not open file at %1 to write new entities file to.").arg(saveName));
     }
+}
+
+void ATPAssetMigrator::reset() {
+    _entitiesArray = QJsonArray();
+    _doneReading = false;
+    _pendingReplacements.clear();
+    _uploadedAssets.clear();
+    _originalURLs.clear();
+    _ignoredUrls.clear();
 }
