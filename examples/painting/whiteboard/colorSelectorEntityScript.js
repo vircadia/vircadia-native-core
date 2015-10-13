@@ -29,7 +29,6 @@
         },
 
         selectColor: function() {
-            print("COLOR SELECTED");
             Entities.editEntity(this.whiteboard, {
                 userData: JSON.stringify({currentColor: this.color})
             });
@@ -41,7 +40,7 @@
             var props = Entities.getEntityProperties(this.entityID, ["position, color, userData"]);
             this.position = props.position;
             this.color = props.color;
-            this.whiteboard = JSON.parse(this.userData).whiteboard;
+            this.whiteboard = JSON.parse(props.userData).whiteboard;
         },
 
     };

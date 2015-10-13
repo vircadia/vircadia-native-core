@@ -157,6 +157,11 @@
 
         },
 
+        changeColor: function(){
+            print("CHANGE COLOR");
+            this.strokeColor = JSON.parse(Entities.getEntityProperties(this.entityID, ["userData"]).userData).currentColor;
+        },
+
         preload: function(entityID) {
             this.entityID = entityID;
             var props = Entities.getEntityProperties(this.entityID, ["position", "rotation"]);

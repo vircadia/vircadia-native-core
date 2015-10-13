@@ -56,7 +56,6 @@ var whiteboard = Entities.addEntity({
 
 var direction = Quat.getRight(rotation);
 var colorBoxPosition = Vec3.subtract(center, Vec3.multiply(direction, whiteboardDimensions.x / 2));
-colorBoxPosition.y += whiteboardDimensions.y / 2;
 
 var colorBoxes = [];
 
@@ -65,6 +64,7 @@ var colorSquareDimensions = {
     y: .1,
     z: 0.05
 };
+colorBoxPosition.y += whiteboardDimensions.y / 2 + colorSquareDimensions.y/2 - 0.01;
 var spaceBetweenColorBoxes = Vec3.multiply(direction, colorSquareDimensions.x * 2);
 var scriptURL = Script.resolvePath("colorSelectorEntityScript.js");
 for (var i = 0; i < colors.length; i++) {
