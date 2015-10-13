@@ -350,7 +350,8 @@ MasterReset = function() {
         var MODEL_URL = 'http://hifi-public.s3.amazonaws.com/models/ping_pong_gun/target.fbx';
         var COLLISION_HULL_URL = 'http://hifi-public.s3.amazonaws.com/models/ping_pong_gun/target_collision_hull.obj';
 
-        var RESET_DISTANCE = 1;
+        var MINIMUM_MOVE_LENGTH = 0.05;
+        var RESET_DISTANCE = 0.5;
         var TARGET_USER_DATA_KEY = 'hifi-ping_pong_target';
         var NUMBER_OF_TARGETS = 6;
         var TARGETS_PER_ROW = 3;
