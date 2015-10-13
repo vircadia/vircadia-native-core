@@ -22,7 +22,7 @@ AvatarActionHold::AvatarActionHold(const QUuid& id, EntityItemPointer ownerEntit
     _relativePosition(glm::vec3(0.0f)),
     _relativeRotation(glm::quat()),
     _hand("right"),
-    _mine(false)
+    _holderID(QUuid())
 {
     _type = ACTION_TYPE_HOLD;
     #if WANT_DEBUG
@@ -37,48 +37,46 @@ AvatarActionHold::~AvatarActionHold() {
 }
 
 void AvatarActionHold::updateActionWorker(float deltaTimeStep) {
-    if (!_mine) {
-        // if a local script isn't updating this, then we are just getting spring-action data over the wire.
-        // let the super-class handle it.
-        ObjectActionSpring::updateActionWorker(deltaTimeStep);
-        return;
-    }
+    QSharedPointer<AvatarManager> avatarManager = DependencyManager::get<AvatarManager>();
+    AvatarSharedPointer holdingAvatarData = avatarManager->getAvatarBySessionID(_holderID);
+    std::shared_ptr<Avatar> holdingAvatar = std::static_pointer_cast<Avatar>(holdingAvatarData);
 
-    glm::quat rotation;
-    glm::vec3 position;
-    glm::vec3 offset;
-    bool gotLock = withTryReadLock([&]{
-        auto myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
-        glm::vec3 palmPosition;
-        glm::quat palmRotation;
-        if (_hand == "right") {
-            palmPosition = myAvatar->getRightPalmPosition();
-            palmRotation = myAvatar->getRightPalmRotation();
-        } else {
-            palmPosition = myAvatar->getLeftPalmPosition();
-            palmRotation = myAvatar->getLeftPalmRotation();
+    if (holdingAvatar) {
+        glm::quat rotation;
+        glm::vec3 position;
+        glm::vec3 offset;
+        bool gotLock = withTryReadLock([&]{
+                glm::vec3 palmPosition;
+                glm::quat palmRotation;
+                if (_hand == "right") {
+                    palmPosition = holdingAvatar->getRightPalmPosition();
+                    palmRotation = holdingAvatar->getRightPalmRotation();
+                } else {
+                    palmPosition = holdingAvatar->getLeftPalmPosition();
+                    palmRotation = holdingAvatar->getLeftPalmRotation();
+                }
+
+                rotation = palmRotation * _relativeRotation;
+                offset = rotation * _relativePosition;
+                position = palmPosition + offset;
+            });
+
+        if (gotLock) {
+            gotLock = withTryWriteLock([&]{
+                    if (_positionalTarget != position || _rotationalTarget != rotation) {
+                        auto ownerEntity = _ownerEntity.lock();
+                        if (ownerEntity) {
+                            ownerEntity->setActionDataDirty(true);
+                        }
+                        _positionalTarget = position;
+                        _rotationalTarget = rotation;
+                    }
+                });
         }
 
-        rotation = palmRotation * _relativeRotation;
-        offset = rotation * _relativePosition;
-        position = palmPosition + offset;
-    });
-
-    if (gotLock) {
-        gotLock = withTryWriteLock([&]{
-            if (_positionalTarget != position || _rotationalTarget != rotation) {
-                auto ownerEntity = _ownerEntity.lock();
-                if (ownerEntity) {
-                    ownerEntity->setActionDataDirty(true);
-                }
-                _positionalTarget = position;
-                _rotationalTarget = rotation;
-            }
-        });
-    }
-
-    if (gotLock) {
-        ObjectActionSpring::updateActionWorker(deltaTimeStep);
+        if (gotLock) {
+            ObjectActionSpring::updateActionWorker(deltaTimeStep);
+        }
     }
 }
 
@@ -100,7 +98,7 @@ bool AvatarActionHold::updateArguments(QVariantMap arguments) {
     if (!ok) {
         relativeRotation = _relativeRotation;
     }
-    
+
     ok = true;
     float timeScale =
         EntityActionInterface::extractFloatArgument("hold", arguments, "timeScale", ok, false);
@@ -115,35 +113,46 @@ bool AvatarActionHold::updateArguments(QVariantMap arguments) {
         hand = _hand;
     }
 
+    ok = true;
+    auto myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
+    auto holderID = myAvatar->getSessionUUID();
+    QString holderIDString =
+        EntityActionInterface::extractStringArgument("hold", arguments, "hand", ok, false);
+    if (ok) {
+        holderID = QUuid(holderIDString);
+    }
+
     if (relativePosition != _relativePosition
             || relativeRotation != _relativeRotation
             || timeScale != _linearTimeScale
-            || hand != _hand) {
+            || hand != _hand
+            || holderID != _holderID) {
         withWriteLock([&] {
             _relativePosition = relativePosition;
             _relativeRotation = relativeRotation;
             const float MIN_TIMESCALE = 0.1f;
-            _linearTimeScale = glm::min(MIN_TIMESCALE, timeScale);
+            _linearTimeScale = glm::max(MIN_TIMESCALE, timeScale);
             _angularTimeScale = _linearTimeScale;
             _hand = hand;
+            _holderID = holderID;
 
-            _mine = true;
             _active = true;
             activateBody();
+
+            auto ownerEntity = _ownerEntity.lock();
+            if (ownerEntity) {
+                ownerEntity->setActionDataDirty(true);
+            }
         });
     }
+
     return true;
 }
-
 
 QVariantMap AvatarActionHold::getArguments() {
     QVariantMap arguments = ObjectAction::getArguments();
     withReadLock([&]{
-        if (!_mine) {
-            arguments = ObjectActionSpring::getArguments();
-            return;
-        }
-
+        arguments["holderID"] = _holderID;
         arguments["relativePosition"] = glmToQMap(_relativePosition);
         arguments["relativeRotation"] = glmToQMap(_relativeRotation);
         arguments["timeScale"] = _linearTimeScale;
@@ -152,9 +161,52 @@ QVariantMap AvatarActionHold::getArguments() {
     return arguments;
 }
 
+QByteArray AvatarActionHold::serialize() const {
+    QByteArray serializedActionArguments;
+    QDataStream dataStream(&serializedActionArguments, QIODevice::WriteOnly);
+
+    dataStream << ACTION_TYPE_SPRING;
+    dataStream << getID();
+    dataStream << AvatarActionHold::holdVersion;
+
+    dataStream << _holderID;
+    dataStream << _relativePosition;
+    dataStream << _relativeRotation;
+    dataStream << _linearTimeScale;
+    dataStream << _hand;
+
+    dataStream << _expires;
+    dataStream << _tag;
+
+    return serializedActionArguments;
+}
 
 void AvatarActionHold::deserialize(QByteArray serializedArguments) {
-    if (!_mine) {
-        ObjectActionSpring::deserialize(serializedArguments);
+    QDataStream dataStream(serializedArguments);
+
+    EntityActionType type;
+    dataStream >> type;
+    assert(type == getType());
+
+    QUuid id;
+    dataStream >> id;
+    assert(id == getID());
+
+    uint16_t serializationVersion;
+    dataStream >> serializationVersion;
+    if (serializationVersion != AvatarActionHold::holdVersion) {
+        return;
     }
+
+    dataStream >> _holderID;
+    dataStream >> _relativePosition;
+    dataStream >> _relativeRotation;
+    dataStream >> _linearTimeScale;
+    _angularTimeScale = _linearTimeScale;
+    dataStream >> _hand;
+
+    dataStream >> _expires;
+    dataStream >> _tag;
+
+    _active = true;
 }

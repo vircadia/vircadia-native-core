@@ -27,6 +27,7 @@ public:
 
     virtual void updateActionWorker(float deltaTimeStep);
 
+    QByteArray serialize() const;
     virtual void deserialize(QByteArray serializedArguments);
 
 private:
@@ -35,7 +36,7 @@ private:
     glm::vec3 _relativePosition;
     glm::quat _relativeRotation;
     QString _hand;
-    bool _mine = false;
+    QUuid _holderID;
 };
 
 #endif // hifi_AvatarActionHold_h
