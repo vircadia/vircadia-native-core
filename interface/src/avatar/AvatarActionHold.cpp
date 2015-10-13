@@ -159,7 +159,7 @@ QByteArray AvatarActionHold::serialize() const {
     QByteArray serializedActionArguments;
     QDataStream dataStream(&serializedActionArguments, QIODevice::WriteOnly);
 
-    dataStream << ACTION_TYPE_SPRING;
+    dataStream << ACTION_TYPE_HOLD;
     dataStream << getID();
     dataStream << AvatarActionHold::holdVersion;
 
