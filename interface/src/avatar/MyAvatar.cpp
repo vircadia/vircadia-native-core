@@ -1514,33 +1514,69 @@ bool MyAvatar::shouldRenderHead(const RenderArgs* renderArgs) const {
 
 void MyAvatar::updateOrientation(float deltaTime) {
     //  Smoothly rotate body with arrow keys
-    float targetSpeed = (_driveKeys[ROT_LEFT] - _driveKeys[ROT_RIGHT]) * YAW_SPEED;
-    if (targetSpeed != 0.0f) {
-        const float ROTATION_RAMP_TIMESCALE = 0.1f;
-        float blend = deltaTime / ROTATION_RAMP_TIMESCALE;
-        if (blend > 1.0f) {
-            blend = 1.0f;
-        }
-        _bodyYawDelta = (1.0f - blend) * _bodyYawDelta + blend * targetSpeed;
-    } else if (_bodyYawDelta != 0.0f) {
-        // attenuate body rotation speed
-        const float ROTATION_DECAY_TIMESCALE = 0.05f;
-        float attenuation = 1.0f - deltaTime / ROTATION_DECAY_TIMESCALE;
-        if (attenuation < 0.0f) {
-            attenuation = 0.0f;
-        }
-        _bodyYawDelta *= attenuation;
+    float targetSpeed = 0.0f;
 
-        float MINIMUM_ROTATION_RATE = 2.0f;
-        if (fabsf(_bodyYawDelta) < MINIMUM_ROTATION_RATE) {
-            _bodyYawDelta = 0.0f;
+    // FIXME - this comfort mode code is a total hack, remove it when we have new input mapping
+    bool isComfortMode = Menu::getInstance()->isOptionChecked(MenuOption::ComfortMode);
+    bool isHMDMode = qApp->getAvatarUpdater()->isHMDMode();
+
+    if (!isHMDMode || !isComfortMode) {
+        targetSpeed = (_driveKeys[ROT_LEFT] - _driveKeys[ROT_RIGHT]) * YAW_SPEED;
+
+        if (targetSpeed != 0.0f) {
+            const float ROTATION_RAMP_TIMESCALE = 0.1f;
+            float blend = deltaTime / ROTATION_RAMP_TIMESCALE;
+            if (blend > 1.0f) {
+                blend = 1.0f;
+            }
+            _bodyYawDelta = (1.0f - blend) * _bodyYawDelta + blend * targetSpeed;
+        } else if (_bodyYawDelta != 0.0f) {
+            // attenuate body rotation speed
+            const float ROTATION_DECAY_TIMESCALE = 0.05f;
+            float attenuation = 1.0f - deltaTime / ROTATION_DECAY_TIMESCALE;
+            if (attenuation < 0.0f) {
+                attenuation = 0.0f;
+            }
+            _bodyYawDelta *= attenuation;
+
+            float MINIMUM_ROTATION_RATE = 2.0f;
+            if (fabsf(_bodyYawDelta) < MINIMUM_ROTATION_RATE) {
+                _bodyYawDelta = 0.0f;
+            }
+        }
+
+        // update body orientation by movement inputs
+        setOrientation(getOrientation() *
+            glm::quat(glm::radians(glm::vec3(0.0f, _bodyYawDelta * deltaTime, 0.0f))));
+
+    } else {
+        // Comfort Mode: If you press any of the left/right rotation drive keys or input, you'll
+        // get an instantaneous 15 degree turn. If you keep holding the key down you'll get another
+        // snap turn every half second.
+        _bodyYawDelta = 0.0f;
+
+        static quint64 lastPulse = 0;
+        quint64 now = usecTimestampNow();
+        quint64 COMFORT_MODE_PULSE_TIMING = USECS_PER_SECOND / 2; // turn once per half second
+
+        float driveLeft = _driveKeys[ROT_LEFT];
+        float driveRight= _driveKeys[ROT_RIGHT];
+
+        if ((driveLeft != 0.0f || driveRight != 0.0f) && (now - lastPulse > COMFORT_MODE_PULSE_TIMING)) {
+            lastPulse = now;
+
+            const float SNAP_TURN_DELTA = 15.0f; // degrees
+            float direction = (driveLeft - driveRight) < 0.0f ? -1.0f : 1.0f;
+            float turnAmount = direction * SNAP_TURN_DELTA;
+
+            // update body orientation by movement inputs
+            setOrientation(getOrientation() *
+                glm::quat(glm::radians(glm::vec3(0.0f, turnAmount, 0.0f))));
+
         }
     }
 
     getHead()->setBasePitch(getHead()->getBasePitch() + (_driveKeys[ROT_UP] - _driveKeys[ROT_DOWN]) * PITCH_SPEED * deltaTime);
-    // update body orientation by movement inputs
-    setOrientation(getOrientation() *
-                   glm::quat(glm::radians(glm::vec3(0.0f, _bodyYawDelta * deltaTime, 0.0f))));
 
     if (qApp->getAvatarUpdater()->isHMDMode()) {
         glm::quat orientation = glm::quat_cast(getSensorToWorldMatrix()) * getHMDSensorOrientation();
