@@ -57,12 +57,12 @@ void OpenGLDisplayPlugin::customizeContext() {
 }
 
 void OpenGLDisplayPlugin::activate() {
-    _active = true;
+    DisplayPlugin::activate();
     _timer.start(1);
 }
 
 void OpenGLDisplayPlugin::stop() {
-    _active = false;
+    DisplayPlugin::activate();
     _timer.stop();
 }
 

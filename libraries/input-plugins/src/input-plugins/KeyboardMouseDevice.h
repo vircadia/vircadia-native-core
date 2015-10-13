@@ -13,6 +13,9 @@
 #define hifi_KeyboardMouseDevice_h
 
 #include <chrono>
+
+#include <QtCore/QPoint>
+
 #include "InputDevice.h"
 #include "InputPlugin.h"
 
@@ -64,9 +67,6 @@ public:
     virtual bool isSupported() const override { return true; }
     virtual bool isJointController() const override { return false; }
     const QString& getName() const override { return NAME; }
-
-    virtual void activate() override {};
-    virtual void deactivate() override {};
 
     virtual void pluginFocusOutEvent() override { focusOutEvent(); }
     virtual void pluginUpdate(float deltaTime, bool jointsCaptured) override { update(deltaTime, jointsCaptured); }

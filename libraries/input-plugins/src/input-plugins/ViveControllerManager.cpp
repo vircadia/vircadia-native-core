@@ -79,6 +79,7 @@ bool ViveControllerManager::isSupported() const {
 }
 
 void ViveControllerManager::activate() {
+    InputPlugin::activate();
 #ifdef Q_OS_WIN
     CONTAINER->addMenu(MENU_PATH);
     CONTAINER->addMenuItem(MENU_PATH, RENDER_CONTROLLERS,
@@ -143,6 +144,8 @@ void ViveControllerManager::activate() {
 }
 
 void ViveControllerManager::deactivate() {
+    InputPlugin::deactivate();
+
 #ifdef Q_OS_WIN
     CONTAINER->removeMenuItem(MENU_NAME, RENDER_CONTROLLERS);
     CONTAINER->removeMenu(MENU_PATH);

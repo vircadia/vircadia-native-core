@@ -44,7 +44,6 @@ protected:
     mutable QTimer _timer;
     ProgramPtr _program;
     ShapeWrapperPtr _plane;
-    bool _active{ false };
     bool _vsyncSupported{ false };
 };
 
