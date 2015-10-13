@@ -370,7 +370,12 @@ inline QDebug operator<<(QDebug debug, const EntityItemProperties& properties) {
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, VoxelSurfaceStyle, voxelSurfaceStyle, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, Href, href, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, Description, description, "");
-    DEBUG_PROPERTY_IF_CHANGED(debug, properties, ActionData, actionData, "");
+
+    // DEBUG_PROPERTY_IF_CHANGED(debug, properties, ActionData, actionData, "");
+    if (properties.actionDataChanged()) {
+        debug << " " << "actionData" << ":" << properties.getActionData().toHex() << "" << "\n";
+    }
+
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, XTextureURL, xTextureURL, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, YTextureURL, yTextureURL, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, ZTextureURL, zTextureURL, "");

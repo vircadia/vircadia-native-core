@@ -38,6 +38,7 @@ ObjectActionSpring::~ObjectActionSpring() {
 }
 
 void ObjectActionSpring::updateActionWorker(btScalar deltaTimeStep) {
+    // don't risk hanging the thread running the physics simulation
     auto lockResult = withTryReadLock([&]{
         auto ownerEntity = _ownerEntity.lock();
         if (!ownerEntity) {
@@ -100,9 +101,7 @@ void ObjectActionSpring::updateActionWorker(btScalar deltaTimeStep) {
         }
     });
     if (!lockResult) {
-        // don't risk hanging the thread running the physics simulation
         qDebug() << "ObjectActionSpring::updateActionWorker lock failed";
-        return;
     }
 }
 

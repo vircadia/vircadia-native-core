@@ -63,11 +63,8 @@ void AvatarActionHold::updateActionWorker(float deltaTimeStep) {
 
         if (gotLock) {
             gotLock = withTryWriteLock([&]{
-                    if (_positionalTarget != position || _rotationalTarget != rotation) {
-                        auto ownerEntity = _ownerEntity.lock();
-                        _positionalTarget = position;
-                        _rotationalTarget = rotation;
-                    }
+                    _positionalTarget = position;
+                    _rotationalTarget = rotation;
                 });
         }
 
