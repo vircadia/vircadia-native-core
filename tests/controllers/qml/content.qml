@@ -8,10 +8,21 @@ import "./controls"
 
 Column {
     id: root
-    property var xbox: NewControllers.Hardware.X360Controller1
     property var actions: NewControllers.Actions
     property var standard: NewControllers.Standard
     property var testMapping: null
+    property var xbox: null
+
+
+    Component.onCompleted: {
+        var patt = /^X360Controller/;
+        for (var prop in NewControllers.Hardware) {
+            if(patt.test(prop)) {
+                root.xbox = NewControllers.Hardware[prop]
+                break
+            }
+        }
+    }
 
     spacing: 12
 
@@ -49,6 +60,8 @@ Column {
                 mapping.from(xbox.LT).to(standard.LT);
                 mapping.from(xbox.RT).to(standard.RT);
                 NewControllers.enableMapping("Default");
+                enabled = false;
+                text = "Built"
             }
         }
 
