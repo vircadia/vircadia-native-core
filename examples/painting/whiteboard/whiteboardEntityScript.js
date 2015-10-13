@@ -67,7 +67,7 @@
                 direction: Quat.getUp(this.getHandRotation())
             };
 
-            this.intersection = Entities.findRayIntersection(pickRay, true, [this.entityID]);
+            this.intersection = Entities.findRayIntersection(pickRay, true, this.whitelist);
             if (this.intersection.intersects) {
                 var distance = Vec3.distance(handPosition, this.intersection.intersection);
                 if (distance < MAX_DISTANCE) {
@@ -170,6 +170,7 @@
                 blue: 190
             };
             this.strokes = [];
+            this.whitelist = [this.entityID];
         },
 
         unload: function() {
@@ -179,6 +180,7 @@
         }
 
     };
+
 
     // entity scripts always need to return a newly constructed object of our type
     return new Whiteboard();

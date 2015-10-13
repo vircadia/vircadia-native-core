@@ -58,19 +58,24 @@ colorBoxPosition.y += whiteboardDimensions.y / 2;
 var colorBoxes = [];
 
 var colorSquareDimensions = {
-    x: (whiteboardDimensions.x / 2) / (colors.length - 1),
+    x: (whiteboardDimensions.x / 2) / (colors.length     - 1),
     y: .1,
     z: 0.05
 };
 var spaceBetweenColorBoxes = Vec3.multiply(direction, colorSquareDimensions.x * 2);
-
+var scriptURL = Script.resolvePath("colorSelectorEntityScript.js");
 for (var i = 0; i < colors.length; i++) {
     var colorBox = Entities.addEntity({
         type: "Box",
         position: colorBoxPosition,
         dimensions: colorSquareDimensions,
         rotation: rotation,
-        color: colors[i]
+        color: colors[i],
+        script: scriptURL,
+        userData: JSON.stringify({
+            colorPalette: true,
+            whiteboard: whiteboard
+        })
     });
     colorBoxes.push(colorBox);
 
