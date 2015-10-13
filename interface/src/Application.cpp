@@ -1559,7 +1559,7 @@ void Application::keyPressEvent(QKeyEvent* event) {
                         cursor->setIcon(Cursor::Icon::DEFAULT);
                     }
                 } else {
-                    resetSensors();
+                    resetSensors(true);
                 }
                 break;
             }
@@ -3591,7 +3591,7 @@ void Application::renderRearViewMirror(RenderArgs* renderArgs, const QRect& regi
     renderArgs->_viewport =  originalViewport;
 }
 
-void Application::resetSensors() {
+void Application::resetSensors(bool andReload) {
     DependencyManager::get<Faceshift>()->reset();
     DependencyManager::get<DdeFaceTracker>()->reset();
     DependencyManager::get<EyeTracker>()->reset();
@@ -3603,7 +3603,7 @@ void Application::resetSensors() {
     QPoint windowCenter = mainWindow->geometry().center();
     _glWidget->cursor().setPos(currentScreen, windowCenter);
 
-    getMyAvatar()->reset();
+    getMyAvatar()->reset(andReload);
 
     QMetaObject::invokeMethod(DependencyManager::get<AudioClient>().data(), "reset", Qt::QueuedConnection);
 }

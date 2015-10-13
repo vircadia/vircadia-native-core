@@ -274,7 +274,7 @@ public slots:
     void setRawAvatarUpdateThreading();
     void setRawAvatarUpdateThreading(bool isThreaded);
 
-    void resetSensors();
+    void resetSensors(bool andReload = false);
     void setActiveFaceTracker();
     
 #ifdef HAVE_IVIEWHMD
