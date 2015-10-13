@@ -116,10 +116,8 @@ QVector<QUuid> qVectorQUuidFromScriptValue(const QScriptValue& array) {
         QUuid fromString(uuidAsString);
         newVector << fromString;
     }
-
     return newVector;
 }
-
 
 QScriptValue qVectorFloatToScriptValue(QScriptEngine* engine, const QVector<float>& vector) {
     QScriptValue array = engine->newArray();
