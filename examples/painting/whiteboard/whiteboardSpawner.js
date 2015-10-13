@@ -26,7 +26,7 @@ var whiteboard = Entities.addEntity({
     position: center,
     rotation: rotation,
     script: scriptURL,
-    dimensions: {x: 2, y: 1.5, z: 0.1},
+    dimensions: {x: 2, y: 1.5, z: 0.01},
     color: {red: 255, green: 255, blue: 255}
 });
 

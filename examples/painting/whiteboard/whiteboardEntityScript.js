@@ -13,16 +13,21 @@
 
 /*global Whiteboard */
 
-(function() {
 
+
+(function() {
+    Script.include("../../libraries/utils.js");
     var _this;
     var RIGHT_HAND = 1;
     var LEFT_HAND = 0;
     var SPATIAL_CONTROLLERS_PER_PALM = 2;
     var TIP_CONTROLLER_OFFSET = 1;
+    var MIN_POINT_DISTANCE = 0.02;
+    var MAX_POINT_DISTANCE = 0.5;
+    var MAX_POINTS_PER_LINE = 40;
+
     Whiteboard = function() {
         _this = this;
-        print("WAAAAAH");
     };
 
     Whiteboard.prototype = {
@@ -55,18 +60,111 @@
             };
 
             this.intersection = Entities.findRayIntersection(pickRay, true, [this.entityID]);
-            // Comment above line and uncomment below line to test difference in judder when whitelist is and is not provided
-            // this.intersection = Entities.findRayIntersection(pickRay, true);
+            if (this.intersection.intersects) {
+                this.paint(this.intersection.intersection, this.intersection.surfaceNormal);
+            } else {
+                this.painting = false;
+            }
+        },
+
+        paint: function(position, normal) {
+            if (this.painting === false) {
+                if (this.oldPosition) {
+                    this.newStroke(this.oldPosition);
+                } else {
+                    this.newStroke(position);
+                }
+                this.painting = true;
+            }
+
+
+            var localPoint = Vec3.subtract(position, this.strokeBasePosition);
+            //Move stroke a bit forward along normal so it doesnt zfight with mesh its drawing on 
+            localPoint = Vec3.sum(localPoint, Vec3.multiply(this.normal, 0.001 + Math.random() * .001)); //rand avoid z fighting
+
+            var distance = Vec3.distance(localPoint, this.strokePoints[this.strokePoints.length - 1]);
+            if (this.strokePoints.length > 0 && distance < MIN_POINT_DISTANCE) {
+                //need a minimum distance to avoid binormal NANs
+                return;
+            }
+            if (this.strokePoints.length > 0 && distance > MAX_POINT_DISTANCE) {
+                //Prevents drawing lines accross models
+                this.painting = false;
+                return;
+            }
+            if (this.strokePoints.length === 0) {
+                localPoint = {
+                    x: 0,
+                    y: 0,
+                    z: 0
+                };
+            }
+
+            this.strokePoints.push(localPoint);
+            this.strokeNormals.push(this.normal);
+            this.strokeWidths.push(this.currentStrokeWidth);
+            Entities.editEntity(this.currentStroke, {
+                linePoints: this.strokePoints,
+                normals: this.strokeNormals,
+                strokeWidths: this.strokeWidths
+            });
+            if (this.strokePoints.length === MAX_POINTS_PER_LINE) {
+                this.painting = false;
+                return;
+            }
+            this.oldPosition = position;
+        },
+
+
+        newStroke: function(position) {
+
+            this.strokeBasePosition = position;
+            this.currentStroke = Entities.addEntity({
+                position: position,
+                type: "PolyLine",
+                color: this.strokeColor,
+                dimensions: {
+                    x: 50,
+                    y: 50,
+                    z: 50
+                },
+                lifetime: 200
+            });
+            this.strokePoints = [];
+            this.strokeNormals = [];
+            this.strokeWidths = [];
+
+            this.strokes.push(this.currentStroke);
+
         },
 
         releaseGrab: function() {
+            this.painting = false;
+            this.oldPosition = null;
 
         },
 
         preload: function(entityID) {
             this.entityID = entityID;
-            this.position = Entities.getEntityProperties(this.entityID, "position").position;
+            var props = Entities.getEntityProperties(this.entityID, ["position", "rotation"]);
+            this.position = props.position;
+            this.rotation = props.rotation;
+            this.normal = Vec3.multiply(Quat.getFront(this.rotation), -1);
+            this.painting = false;
+            this.strokeColor = {
+                red: 170,
+                green: 50,
+                blue: 190
+            };
+            this.strokes = [];
+            this.currentStrokeWidth = 0.02;
         },
+
+        unload: function() {
+            this.strokes.forEach(function(stroke){
+                Entities.deleteEntity(stroke);
+            });
+        }
 
     };
 
