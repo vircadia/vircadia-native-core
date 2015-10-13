@@ -55,6 +55,7 @@
             };
 
             this.intersection = Entities.findRayIntersection(pickRay, true, [this.entityID]);
+            // Comment above line and uncomment below line to test difference in judder when whitelist is and is not provided
             // this.intersection = Entities.findRayIntersection(pickRay, true);
         },
 
