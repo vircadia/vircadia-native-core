@@ -498,7 +498,7 @@
               compoundShapeURL: COLLISION_HULL_URL,
               position: originalPositions[index],
               rotation: rotation,
-              script: scriptURL,
+              script: targetsScriptURL,
               userData: JSON.stringify({
                 resetMe: {
                   resetMe: true
