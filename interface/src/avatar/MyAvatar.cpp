@@ -152,7 +152,7 @@ void MyAvatar::reset() {
     setEnableRigAnimations(true);
 
     // Reset dynamic state.
-    _wasPushing = _isPushing = _isBraking = _billboardValid = _goToPending = _straighteningLean = false;
+    _wasPushing = _isPushing = _isBraking = _billboardValid = _straighteningLean = false;
     _skeletonModel.reset();
     getHead()->reset();
     _targetVelocity = glm::vec3(0.0f);
