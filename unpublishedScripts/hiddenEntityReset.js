@@ -319,6 +319,9 @@
             userData: JSON.stringify({
               resetMe: {
                 resetMe: true
+              },
+              grabbableKey: {
+                invertSolidWhileHeld: true
               }
             })
           });
@@ -459,6 +462,9 @@
               resetMe: {
                 resetMe: true
               },
+              grabbableKey: {
+                grabbable: false
+              }
             })
           };
           var target = Entities.addEntity(targetProperties);
@@ -492,7 +498,15 @@
               compoundShapeURL: COLLISION_HULL_URL,
               position: originalPositions[index],
               rotation: rotation,
-              script: scriptURL
+              script: scriptURL,
+              userData: JSON.stringify({
+                resetMe: {
+                  resetMe: true
+                },
+                grabbableKey: {
+                  grabbable: false
+                }
+              })
             };
 
             targets[index] = Entities.addEntity(targetProperties);
@@ -553,6 +567,9 @@
         userData: JSON.stringify({
           resetMe: {
             resetMe: true
+          },
+          grabbableKey: {
+            grabbable: false
           }
         })
       });
@@ -588,7 +605,11 @@
         userData: JSON.stringify({
           resetMe: {
             resetMe: true
+          },
+          grabbableKey: {
+            invertSolidWhileHeld: true
           }
+
         })
       });
 
@@ -856,6 +877,9 @@
         userData: JSON.stringify({
           resetMe: {
             resetMe: true,
+          },
+          grabbableKey: {
+            invertSolidWhileHeld: true
           }
         })
       };
@@ -945,6 +969,9 @@
         userData: JSON.stringify({
           resetMe: {
             resetMe: true,
+          },
+          grabbableKey: {
+            invertSolidWhileHeld: true
           }
         })
       });
@@ -1019,6 +1046,9 @@
         userData: JSON.stringify({
           resetMe: {
             resetMe: true,
+          },
+          grabbableKey: {
+            invertSolidWhileHeld: true
           }
         })
       });
@@ -1058,6 +1088,9 @@
         userData: JSON.stringify({
           resetMe: {
             resetMe: true,
+          },
+          grabbableKey: {
+            invertSolidWhileHeld: true
           }
         })
       });
@@ -1095,6 +1128,9 @@
         userData: JSON.stringify({
           resetMe: {
             resetMe: true,
+          },
+          grabbableKey: {
+            invertSolidWhileHeld: true
           }
         })
       });
@@ -1131,6 +1167,9 @@
         userData: JSON.stringify({
           resetMe: {
             resetMe: true,
+          },
+          grabbableKey: {
+            invertSolidWhileHeld: true
           }
         })
       });

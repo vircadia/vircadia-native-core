@@ -291,6 +291,9 @@ MasterReset = function() {
                     userData: JSON.stringify({
                         resetMe: {
                             resetMe: true
+                        },
+                        grabbable: {
+                            invertSolidWhileHeld: true
                         }
                     })
                 });
@@ -443,69 +446,78 @@ MasterReset = function() {
         function testTargetDistanceFromStart() {
             targets.forEach(function(target, index) {
 
-                var currentPosition = Entities.getEntityProperties(target, "position").position;
-                var originalPosition = originalPositions[index];
-                var distance = Vec3.subtract(originalPosition, currentPosition);
-                var length = Vec3.length(distance);
+                    var currentPosition = Entities.getEntityProperties(target, "position").position;
+                    var originalPosition = originalPositions[index];
+                    var distance = Vec3.subtract(originalPosition, currentPosition);
+                    var length = Vec3.length(distance);
 
-                var moving = Vec3.length(Vec3.subtract(currentPosition, lastPositions[index]));
+                    var moving = Vec3.length(Vec3.subtract(currentPosition, lastPositions[index]));
 
-                lastPositions[index] = currentPosition;
+                    lastPositions[index] = currentPosition;
 
-                if (length > RESET_DISTANCE && moving < MINIMUM_MOVE_LENGTH) {
+                    if (length > RESET_DISTANCE && moving < MINIMUM_MOVE_LENGTH) {
 
-                    Entities.deleteEntity(target);
+                        Entities.deleteEntity(target);
 
-                    var targetProperties = {
-                        name: 'Target',
-                        type: 'Model',
-                        modelURL: MODEL_URL,
-                        shapeType: 'compound',
-                        collisionsWillMove: true,
-                        dimensions: TARGET_DIMENSIONS,
-                        compoundShapeURL: COLLISION_HULL_URL,
-                        position: originalPositions[index],
-                        rotation: rotation,
-                        script: scriptURL
+                        var targetProperties = {
+                            name: 'Target',
+                            type: 'Model',
+                            modelURL: MODEL_URL,
+                            shapeType: 'compound',
+                            collisionsWillMove: true,
+                            dimensions: TARGET_DIMENSIONS,
+                            compoundShapeURL: COLLISION_HULL_URL,
+                            position: originalPositions[index],
+                            rotation: rotation,
+                            script: scriptURL,
+                            userData: JSON.stringify({
+                                    resetMe: {
+                                        resetMe: true
+                                    },
+                                    grabbableKey: {
+                                        grabbable: false
+                                    }
+                                }
+                            })
                     };
 
                     targets[index] = Entities.addEntity(targetProperties);
 
                 }
             });
-        }
-
-
-        function deleteEntity(entityID) {
-            if (entityID === targetIntervalClearer) {
-                deleteTargets();
-                Script.clearInterval(distanceCheckInterval);
-                Entities.deletingEntity.disconnect(deleteEntity);
-            }
-        }
-
-        function deleteTargets() {
-            while (targets.length > 0) {
-                Entities.deleteEntity(targets.pop());
-            }
-            Entities.deleteEntity(targetIntervalClearer);
-        }
-
-        Entities.deletingEntity.connect(deleteEntity);
-        var distanceCheckInterval = Script.setInterval(testTargetDistanceFromStart, 1000);
-
-        addTargets();
-
     }
 
-    function createCat(position) {
 
-        var modelURL = "http://hifi-public.s3.amazonaws.com/ryan/Dark_Cat.fbx";
-        var animationURL = "http://hifi-public.s3.amazonaws.com/ryan/sleeping.fbx";
-        var animationSettings = JSON.stringify({
-            running: true,
-        });
-        var cat = Entities.addEntity({
+    function deleteEntity(entityID) {
+        if (entityID === targetIntervalClearer) {
+            deleteTargets();
+            Script.clearInterval(distanceCheckInterval);
+            Entities.deletingEntity.disconnect(deleteEntity);
+        }
+    }
+
+    function deleteTargets() {
+        while (targets.length > 0) {
+            Entities.deleteEntity(targets.pop());
+        }
+        Entities.deleteEntity(targetIntervalClearer);
+    }
+
+    Entities.deletingEntity.connect(deleteEntity);
+    var distanceCheckInterval = Script.setInterval(testTargetDistanceFromStart, 1000);
+
+    addTargets();
+
+}
+
+function createCat(position) {
+
+    var modelURL = "http://hifi-public.s3.amazonaws.com/ryan/Dark_Cat.fbx";
+    var animationURL = "http://hifi-public.s3.amazonaws.com/ryan/sleeping.fbx";
+    var animationSettings = JSON.stringify({
+        running: true,
+    });
+    var cat = Entities.addEntity({
             type: "Model",
             modelURL: modelURL,
             name: "cat",
@@ -525,18 +537,22 @@ MasterReset = function() {
                 z: 0.90716040134429932
             },
             userData: JSON.stringify({
-                resetMe: {
-                    resetMe: true
+                    resetMe: {
+                        resetMe: true
+                    },
+                    grabbableKey: {
+                        grabbable: false
+                    }
                 }
             })
-        });
+    });
 
-    }
+}
 
-    function createFlashlight(position) {
-        var modelURL = "https://hifi-public.s3.amazonaws.com/models/props/flashlight.fbx";
+function createFlashlight(position) {
+    var modelURL = "https://hifi-public.s3.amazonaws.com/models/props/flashlight.fbx";
 
-        var flashlight = Entities.addEntity({
+    var flashlight = Entities.addEntity({
             type: "Model",
             modelURL: modelURL,
             name: "flashlight",
@@ -560,345 +576,353 @@ MasterReset = function() {
             },
             shapeType: 'box',
             userData: JSON.stringify({
-                resetMe: {
-                    resetMe: true
+                    resetMe: {
+                        resetMe: true
+                    },
+                    grabbableKey: {
+                        invertSolidWhileHeld: true
+                    }
                 }
             })
-        });
+    });
 
 
-    }
+}
 
-    function createLights() {
-        var modelURL = "http://hifi-public.s3.amazonaws.com/ryan/lightswitch.fbx";
-
-
-        var rotation = {
-            w: 0.63280689716339111,
-            x: 0.63280689716339111,
-            y: -0.31551080942153931,
-            z: 0.31548023223876953
-        };
-        var axis = {
-            x: 0,
-            y: 1,
-            z: 0
-        };
-        var dQ = Quat.angleAxis(180, axis);
-        rotation = Quat.multiply(rotation, dQ);
-
-        var lightSwitchHall = Entities.addEntity({
-            type: "Model",
-            modelURL: modelURL,
-            name: "Light Switch Hall",
-            script: lightsScriptURL,
-            position: {
-                x: 543.27764892578125,
-                y: 495.67999267578125,
-                z: 511.00564575195312
-            },
-            rotation: rotation,
-            dimensions: {
-                x: 0.10546875,
-                y: 0.032372996211051941,
-                z: 0.16242524981498718
-            },
-            userData: JSON.stringify({
-                resetMe: {
-                    resetMe: true,
-                    on: true,
-                    type: "Hall Light"
-                }
-            })
-        });
-
-        var sconceLight1 = Entities.addEntity({
-            type: "Light",
-            position: {
-                x: 543.75,
-                y: 496.24,
-                z: 511.13
-            },
-            name: "Sconce 1 Light",
-            dimensions: {
-                x: 2.545,
-                y: 2.545,
-                z: 2.545
-            },
-            cutoff: 90,
-            color: {
-                red: 217,
-                green: 146,
-                blue: 24
-            },
-            isSpotlight: false,
-            userData: JSON.stringify({
-                resetMe: {
-                    resetMe: true,
-                    type: "Hall Light"
-                }
-            })
-        });
-
-        var sconceLight2 = Entities.addEntity({
-            type: "Light",
-            position: {
-                x: 540.1,
-                y: 496.24,
-                z: 505.57
-            },
-            name: "Sconce 2 Light",
-            dimensions: {
-                x: 2.545,
-                y: 2.545,
-                z: 2.545
-            },
-            cutoff: 90,
-            color: {
-                red: 217,
-                green: 146,
-                blue: 24
-            },
-            isSpotlight: false,
-            userData: JSON.stringify({
-                resetMe: {
-                    resetMe: true,
-                    type: "Hall Light"
-                }
-            })
-        });
-
-        rotation = {
-            w: 0.20082402229309082,
-            x: 0.20082402229309082,
-            y: -0.67800414562225342,
-            z: 0.67797362804412842
-        };
-        axis = {
-            x: 0,
-            y: 1,
-            z: 0
-        };
-        dQ = Quat.angleAxis(180, axis);
-        rotation = Quat.multiply(rotation, dQ);
-
-        var lightSwitchGarage = Entities.addEntity({
-            type: "Model",
-            modelURL: modelURL,
-            name: "Light Switch Garage",
-            script: lightsScriptURL,
-            position: {
-                x: 545.62,
-                y: 495.68,
-                z: 500.21
-            },
-            rotation: rotation,
-            dimensions: {
-                x: 0.10546875,
-                y: 0.032372996211051941,
-                z: 0.16242524981498718
-            },
-            userData: JSON.stringify({
-                resetMe: {
-                    resetMe: true,
-                    on: true,
-                    type: "Garage Light"
-                }
-            })
-        });
+function createLights() {
+    var modelURL = "http://hifi-public.s3.amazonaws.com/ryan/lightswitch.fbx";
 
 
+    var rotation = {
+        w: 0.63280689716339111,
+        x: 0.63280689716339111,
+        y: -0.31551080942153931,
+        z: 0.31548023223876953
+    };
+    var axis = {
+        x: 0,
+        y: 1,
+        z: 0
+    };
+    var dQ = Quat.angleAxis(180, axis);
+    rotation = Quat.multiply(rotation, dQ);
 
-        var sconceLight3 = Entities.addEntity({
-            type: "Light",
-            position: {
-                x: 545.49468994140625,
-                y: 496.24026489257812,
-                z: 500.63516235351562
-            },
+    var lightSwitchHall = Entities.addEntity({
+        type: "Model",
+        modelURL: modelURL,
+        name: "Light Switch Hall",
+        script: lightsScriptURL,
+        position: {
+            x: 543.27764892578125,
+            y: 495.67999267578125,
+            z: 511.00564575195312
+        },
+        rotation: rotation,
+        dimensions: {
+            x: 0.10546875,
+            y: 0.032372996211051941,
+            z: 0.16242524981498718
+        },
+        userData: JSON.stringify({
+            resetMe: {
+                resetMe: true,
+                on: true,
+                type: "Hall Light"
+            }
+        })
+    });
 
-            name: "Sconce 3 Light",
-            dimensions: {
-                x: 2.545,
-                y: 2.545,
-                z: 2.545
-            },
-            cutoff: 90,
-            color: {
-                red: 217,
-                green: 146,
-                blue: 24
-            },
-            isSpotlight: false,
-            userData: JSON.stringify({
-                resetMe: {
-                    resetMe: true,
-                    type: "Garage Light"
-                }
-            })
-        });
+    var sconceLight1 = Entities.addEntity({
+        type: "Light",
+        position: {
+            x: 543.75,
+            y: 496.24,
+            z: 511.13
+        },
+        name: "Sconce 1 Light",
+        dimensions: {
+            x: 2.545,
+            y: 2.545,
+            z: 2.545
+        },
+        cutoff: 90,
+        color: {
+            red: 217,
+            green: 146,
+            blue: 24
+        },
+        isSpotlight: false,
+        userData: JSON.stringify({
+            resetMe: {
+                resetMe: true,
+                type: "Hall Light"
+            }
+        })
+    });
 
+    var sconceLight2 = Entities.addEntity({
+        type: "Light",
+        position: {
+            x: 540.1,
+            y: 496.24,
+            z: 505.57
+        },
+        name: "Sconce 2 Light",
+        dimensions: {
+            x: 2.545,
+            y: 2.545,
+            z: 2.545
+        },
+        cutoff: 90,
+        color: {
+            red: 217,
+            green: 146,
+            blue: 24
+        },
+        isSpotlight: false,
+        userData: JSON.stringify({
+            resetMe: {
+                resetMe: true,
+                type: "Hall Light"
+            }
+        })
+    });
 
-        var sconceLight4 = Entities.addEntity({
-            type: "Light",
-            position: {
-                x: 550.90399169921875,
-                y: 496.24026489257812,
-                z: 507.90237426757812
-            },
-            name: "Sconce 4 Light",
-            dimensions: {
-                x: 2.545,
-                y: 2.545,
-                z: 2.545
-            },
-            cutoff: 90,
-            color: {
-                red: 217,
-                green: 146,
-                blue: 24
-            },
-            isSpotlight: false,
-            userData: JSON.stringify({
-                resetMe: {
-                    resetMe: true,
-                    type: "Garage Light"
-                }
-            })
-        });
+    rotation = {
+        w: 0.20082402229309082,
+        x: 0.20082402229309082,
+        y: -0.67800414562225342,
+        z: 0.67797362804412842
+    };
+    axis = {
+        x: 0,
+        y: 1,
+        z: 0
+    };
+    dQ = Quat.angleAxis(180, axis);
+    rotation = Quat.multiply(rotation, dQ);
 
-        var sconceLight5 = Entities.addEntity({
-            type: "Light",
-            position: {
-                x: 548.407958984375,
-                y: 496.24026489257812,
-                z: 509.5504150390625
-            },
-            name: "Sconce 5 Light",
-            dimensions: {
-                x: 2.545,
-                y: 2.545,
-                z: 2.545
-            },
-            cutoff: 90,
-            color: {
-                red: 217,
-                green: 146,
-                blue: 24
-            },
-            isSpotlight: false,
-            userData: JSON.stringify({
-                resetMe: {
-                    resetMe: true,
-                    type: "Garage Light"
-                }
-            })
-        });
-
-    }
+    var lightSwitchGarage = Entities.addEntity({
+        type: "Model",
+        modelURL: modelURL,
+        name: "Light Switch Garage",
+        script: lightsScriptURL,
+        position: {
+            x: 545.62,
+            y: 495.68,
+            z: 500.21
+        },
+        rotation: rotation,
+        dimensions: {
+            x: 0.10546875,
+            y: 0.032372996211051941,
+            z: 0.16242524981498718
+        },
+        userData: JSON.stringify({
+            resetMe: {
+                resetMe: true,
+                on: true,
+                type: "Garage Light"
+            }
+        })
+    });
 
 
 
-    function createDice() {
-        var diceProps = {
-            type: "Model",
-            modelURL: "http://s3.amazonaws.com/hifi-public/models/props/Dice/goldDie.fbx",
-            collisionSoundURL: "http://s3.amazonaws.com/hifi-public/sounds/dice/diceCollide.wav",
-            name: "dice",
-            position: {
-                x: 541,
-                y: 494.96,
-                z: 509.1
-            },
-            dimensions: {
-                x: 0.09,
-                y: 0.09,
-                z: 0.09
-            },
-            gravity: {
-                x: 0,
-                y: -3.5,
-                z: 0
-            },
-            velocity: {
-                x: 0,
-                y: -0.01,
-                z: 0
-            },
-            shapeType: "box",
-            collisionsWillMove: true,
-            userData: JSON.stringify({
-                resetMe: {
-                    resetMe: true,
-                }
-            })
-        };
-        var dice1 = Entities.addEntity(diceProps);
+    var sconceLight3 = Entities.addEntity({
+        type: "Light",
+        position: {
+            x: 545.49468994140625,
+            y: 496.24026489257812,
+            z: 500.63516235351562
+        },
 
-        diceProps.position = {
-            x: 541.05,
+        name: "Sconce 3 Light",
+        dimensions: {
+            x: 2.545,
+            y: 2.545,
+            z: 2.545
+        },
+        cutoff: 90,
+        color: {
+            red: 217,
+            green: 146,
+            blue: 24
+        },
+        isSpotlight: false,
+        userData: JSON.stringify({
+            resetMe: {
+                resetMe: true,
+                type: "Garage Light"
+            }
+        })
+    });
+
+
+    var sconceLight4 = Entities.addEntity({
+        type: "Light",
+        position: {
+            x: 550.90399169921875,
+            y: 496.24026489257812,
+            z: 507.90237426757812
+        },
+        name: "Sconce 4 Light",
+        dimensions: {
+            x: 2.545,
+            y: 2.545,
+            z: 2.545
+        },
+        cutoff: 90,
+        color: {
+            red: 217,
+            green: 146,
+            blue: 24
+        },
+        isSpotlight: false,
+        userData: JSON.stringify({
+            resetMe: {
+                resetMe: true,
+                type: "Garage Light"
+            }
+        })
+    });
+
+    var sconceLight5 = Entities.addEntity({
+        type: "Light",
+        position: {
+            x: 548.407958984375,
+            y: 496.24026489257812,
+            z: 509.5504150390625
+        },
+        name: "Sconce 5 Light",
+        dimensions: {
+            x: 2.545,
+            y: 2.545,
+            z: 2.545
+        },
+        cutoff: 90,
+        color: {
+            red: 217,
+            green: 146,
+            blue: 24
+        },
+        isSpotlight: false,
+        userData: JSON.stringify({
+            resetMe: {
+                resetMe: true,
+                type: "Garage Light"
+            }
+        })
+    });
+
+}
+
+
+
+function createDice() {
+    var diceProps = {
+        type: "Model",
+        modelURL: "http://s3.amazonaws.com/hifi-public/models/props/Dice/goldDie.fbx",
+        collisionSoundURL: "http://s3.amazonaws.com/hifi-public/sounds/dice/diceCollide.wav",
+        name: "dice",
+        position: {
+            x: 541,
             y: 494.96,
-            z: 509.0
-        };
-
-        var dice2 = Entities.addEntity(diceProps);
-
-    }
-
-
-    function createGates() {
-        var MODEL_URL = 'http://hifi-public.s3.amazonaws.com/ryan/fence.fbx';
-
-        var rotation = Quat.fromPitchYawRollDegrees(0, -16, 0);
-        var gate = Entities.addEntity({
-            name: 'Front Door Fence',
-            type: 'Model',
-            modelURL: MODEL_URL,
-            shapeType: 'box',
-            position: {
-                x: 531.15,
-                y: 495.11,
-                z: 520.20
-            },
-            dimensions: {
-                x: 1.42,
-                y: 1.13,
-                z: 0.2
-            },
-            rotation: rotation,
-            collisionsWillMove: true,
-            gravity: {
-                x: 0,
-                y: -100,
-                z: 0
-            },
-            linearDamping: 1,
-            angularDamping: 10,
-            mass: 10,
-            userData: JSON.stringify({
+            z: 509.1
+        },
+        dimensions: {
+            x: 0.09,
+            y: 0.09,
+            z: 0.09
+        },
+        gravity: {
+            x: 0,
+            y: -3.5,
+            z: 0
+        },
+        velocity: {
+            x: 0,
+            y: -0.01,
+            z: 0
+        },
+        shapeType: "box",
+        collisionsWillMove: true,
+        userData: JSON.stringify({
                 resetMe: {
                     resetMe: true,
                 },
                 grabbableKey: {
-                    grabbable: false
+                    invertSolidWhileHeld: true
                 }
-            })
-        });
-    }
+            }
+        })
+};
+var dice1 = Entities.addEntity(diceProps);
 
-    function createPingPongBallGun() {
-        var MODEL_URL = 'http://hifi-public.s3.amazonaws.com/models/ping_pong_gun/ping_pong_gun.fbx';
-        var COLLISION_HULL_URL = 'http://hifi-public.s3.amazonaws.com/models/ping_pong_gun/ping_pong_gun_collision_hull.obj';
+diceProps.position = {
+    x: 541.05,
+    y: 494.96,
+    z: 509.0
+};
 
-        var position = {
-            x: 548.6,
-            y: 495.4,
-            z: 503.39
-        };
+var dice2 = Entities.addEntity(diceProps);
 
-        var rotation = Quat.fromPitchYawRollDegrees(0, 36, 0);
+}
 
-        var pingPongGun = Entities.addEntity({
+
+function createGates() {
+    var MODEL_URL = 'http://hifi-public.s3.amazonaws.com/ryan/fence.fbx';
+
+    var rotation = Quat.fromPitchYawRollDegrees(0, -16, 0);
+    var gate = Entities.addEntity({
+        name: 'Front Door Fence',
+        type: 'Model',
+        modelURL: MODEL_URL,
+        shapeType: 'box',
+        position: {
+            x: 531.15,
+            y: 495.11,
+            z: 520.20
+        },
+        dimensions: {
+            x: 1.42,
+            y: 1.13,
+            z: 0.2
+        },
+        rotation: rotation,
+        collisionsWillMove: true,
+        gravity: {
+            x: 0,
+            y: -100,
+            z: 0
+        },
+        linearDamping: 1,
+        angularDamping: 10,
+        mass: 10,
+        userData: JSON.stringify({
+            resetMe: {
+                resetMe: true,
+            },
+            grabbableKey: {
+                grabbable: false
+            }
+        })
+    });
+}
+
+function createPingPongBallGun() {
+    var MODEL_URL = 'http://hifi-public.s3.amazonaws.com/models/ping_pong_gun/ping_pong_gun.fbx';
+    var COLLISION_HULL_URL = 'http://hifi-public.s3.amazonaws.com/models/ping_pong_gun/ping_pong_gun_collision_hull.obj';
+
+    var position = {
+        x: 548.6,
+        y: 495.4,
+        z: 503.39
+    };
+
+    var rotation = Quat.fromPitchYawRollDegrees(0, 36, 0);
+
+    var pingPongGun = Entities.addEntity({
             type: "Model",
             modelURL: MODEL_URL,
             shapeType: 'box',
@@ -917,57 +941,61 @@ MasterReset = function() {
             },
             collisionsWillMove: true,
             userData: JSON.stringify({
-                resetMe: {
-                    resetMe: true,
+                    resetMe: {
+                        resetMe: true,
+                    },
+                    grabbableKey: {
+                        invertSolidWhileHeld: true
+                    }
                 }
             })
-        });
-    }
+    });
+}
 
-    function createBasketballHoop() {
-        var position = {
-            x: 539.23,
-            y: 496.13,
-            z: 475.89
-        };
-        var rotation = Quat.fromPitchYawRollDegrees(0, 58.49, 0);
+function createBasketballHoop() {
+    var position = {
+        x: 539.23,
+        y: 496.13,
+        z: 475.89
+    };
+    var rotation = Quat.fromPitchYawRollDegrees(0, 58.49, 0);
 
-        var hoopURL = "http://hifi-public.s3.amazonaws.com/models/basketball_hoop/basketball_hoop.fbx";
-        var hoopCollisionHullURL = "http://hifi-public.s3.amazonaws.com/models/basketball_hoop/basketball_hoop_collision_hull.obj";
+    var hoopURL = "http://hifi-public.s3.amazonaws.com/models/basketball_hoop/basketball_hoop.fbx";
+    var hoopCollisionHullURL = "http://hifi-public.s3.amazonaws.com/models/basketball_hoop/basketball_hoop_collision_hull.obj";
 
-        var hoop = Entities.addEntity({
-            type: "Model",
-            modelURL: hoopURL,
-            position: position,
-            rotation: rotation,
-            shapeType: 'compound',
-            gravity: {
-                x: 0,
-                y: -9.8,
-                z: 0
+    var hoop = Entities.addEntity({
+        type: "Model",
+        modelURL: hoopURL,
+        position: position,
+        rotation: rotation,
+        shapeType: 'compound',
+        gravity: {
+            x: 0,
+            y: -9.8,
+            z: 0
+        },
+        dimensions: {
+            x: 1.89,
+            y: 3.99,
+            z: 3.79
+        },
+        compoundShapeURL: hoopCollisionHullURL,
+        userData: JSON.stringify({
+            resetMe: {
+                resetMe: true,
             },
-            dimensions: {
-                x: 1.89,
-                y: 3.99,
-                z: 3.79
-            },
-            compoundShapeURL: hoopCollisionHullURL,
-            userData: JSON.stringify({
-                resetMe: {
-                    resetMe: true,
-                },
-                grabbableKey: {
-                    grabbable: false
-                }
-            })
-        });
-    }
+            grabbableKey: {
+                grabbable: false
+            }
+        })
+    });
+}
 
-    function createWand(position) {
-        var WAND_MODEL = 'http://hifi-public.s3.amazonaws.com/james/bubblewand/models/wand/wand.fbx';
-        var WAND_COLLISION_SHAPE = 'http://hifi-public.s3.amazonaws.com/james/bubblewand/models/wand/actual_no_top_collision_hull.obj';
+function createWand(position) {
+    var WAND_MODEL = 'http://hifi-public.s3.amazonaws.com/james/bubblewand/models/wand/wand.fbx';
+    var WAND_COLLISION_SHAPE = 'http://hifi-public.s3.amazonaws.com/james/bubblewand/models/wand/actual_no_top_collision_hull.obj';
 
-        var entity = Entities.addEntity({
+    var entity = Entities.addEntity({
             name: 'Bubble Wand',
             type: "Model",
             modelURL: WAND_MODEL,
@@ -991,20 +1019,24 @@ MasterReset = function() {
             // velocity: {x: 0, y: -0.01, z:0},
             script: wandScriptURL,
             userData: JSON.stringify({
-                resetMe: {
-                    resetMe: true,
+                    resetMe: {
+                        resetMe: true,
+                    },
+                    grabbableKey: {
+                        invertSolidWhileHeld: true
+                    }
                 }
             })
-        });
+    });
 
 
-    }
+}
 
-    function createBasketBall(position) {
+function createBasketBall(position) {
 
-        var modelURL = "http://s3.amazonaws.com/hifi-public/models/content/basketball2.fbx";
+    var modelURL = "http://s3.amazonaws.com/hifi-public/models/content/basketball2.fbx";
 
-        var entity = Entities.addEntity({
+    var entity = Entities.addEntity({
             type: "Model",
             modelURL: modelURL,
             position: position,
@@ -1030,24 +1062,28 @@ MasterReset = function() {
             },
             collisionSoundURL: "http://s3.amazonaws.com/hifi-public/sounds/basketball/basketball.wav",
             userData: JSON.stringify({
-                resetMe: {
-                    resetMe: true,
+                    resetMe: {
+                        resetMe: true,
+                    },
+                    grabbableKey: {
+                        invertSolidWhileHeld: true
+                    }
                 }
             })
-        });
+    });
 
-    }
+}
 
-    function createDoll(position) {
-        var modelURL = "http://hifi-public.s3.amazonaws.com/models/Bboys/bboy2/bboy2.fbx";
+function createDoll(position) {
+    var modelURL = "http://hifi-public.s3.amazonaws.com/models/Bboys/bboy2/bboy2.fbx";
 
-        var naturalDimensions = {
-            x: 1.63,
-            y: 1.67,
-            z: 0.26
-        };
-        var desiredDimensions = Vec3.multiply(naturalDimensions, 0.15);
-        var entity = Entities.addEntity({
+    var naturalDimensions = {
+        x: 1.63,
+        y: 1.67,
+        z: 0.26
+    };
+    var desiredDimensions = Vec3.multiply(naturalDimensions, 0.15);
+    var entity = Entities.addEntity({
             type: "Model",
             name: "doll",
             modelURL: modelURL,
@@ -1067,19 +1103,23 @@ MasterReset = function() {
             },
             collisionsWillMove: true,
             userData: JSON.stringify({
-                resetMe: {
-                    resetMe: true,
+                    resetMe: {
+                        resetMe: true,
+                    },
+                    grabbableKey: {
+                        invertSolidWhileHeld: true
+                    }
                 }
             })
-        });
+    });
 
-    }
+}
 
-    function createSprayCan(position) {
+function createSprayCan(position) {
 
-        var modelURL = "https://hifi-public.s3.amazonaws.com/eric/models/paintcan.fbx";
+    var modelURL = "https://hifi-public.s3.amazonaws.com/eric/models/paintcan.fbx";
 
-        var entity = Entities.addEntity({
+    var entity = Entities.addEntity({
             type: "Model",
             name: "spraycan",
             script: sprayPaintScriptURL,
@@ -1103,182 +1143,186 @@ MasterReset = function() {
                 z: 0
             },
             userData: JSON.stringify({
-                resetMe: {
-                    resetMe: true,
-                }
-            })
-        });
-
-    }
-
-    function createPottedPlant(position) {
-        var modelURL = "http://hifi-public.s3.amazonaws.com/models/potted_plant/potted_plant.fbx";
-
-        var entity = Entities.addEntity({
-            type: "Model",
-            name: "Potted Plant",
-            modelURL: modelURL,
-            position: position,
-            dimensions: {
-                x: 1.10,
-                y: 2.18,
-                z: 1.07
-            },
-            collisionsWillMove: true,
-            shapeType: 'box',
-            gravity: {
-                x: 0,
-                y: -9.8,
-                z: 0
-            },
-            velocity: {
-                x: 0,
-                y: 0,
-                z: 0
-            },
-            linearDamping: 0.4,
-            userData: JSON.stringify({
-                resetMe: {
-                    resetMe: true,
-                },
-                grabbableKey: {
-                    grabbable: false
-                }
-            })
-        });
-    }
-
-
-    function createCombinedArmChair(position) {
-        var modelURL = "http://hifi-public.s3.amazonaws.com/models/red_arm_chair/combined_chair.fbx";
-        var RED_ARM_CHAIR_COLLISION_HULL = "http://hifi-public.s3.amazonaws.com/models/red_arm_chair/red_arm_chair_collision_hull.obj";
-
-        var rotation = Quat.fromPitchYawRollDegrees(0, -143, 0);
-
-        var entity = Entities.addEntity({
-            type: "Model",
-            name: "Red Arm Chair",
-            modelURL: modelURL,
-            shapeType: 'compound',
-            compoundShapeURL: RED_ARM_CHAIR_COLLISION_HULL,
-            position: position,
-            rotation: rotation,
-            dimensions: {
-                x: 1.26,
-                y: 1.56,
-                z: 1.35
-            },
-            collisionsWillMove: true,
-            gravity: {
-                x: 0,
-                y: -0.8,
-                z: 0
-            },
-            velocity: {
-                x: 0,
-                y: 0,
-                z: 0
-            },
-            linearDamping: 0.2,
-            userData: JSON.stringify({
-                resetMe: {
-                    resetMe: true,
-                },
-                grabbableKey: {
-                    grabbable: false
-                }
-            })
-        });
-
-    }
-
-    function createBlocks(position) {
-        var baseURL = HIFI_PUBLIC_BUCKET + "models/content/planky/";
-        var collisionSoundURL = "https://hifi-public.s3.amazonaws.com/sounds/Collisions-otherorganic/ToyWoodBlock.L.wav";
-        var NUM_BLOCKS_PER_COLOR = 4;
-        var i, j;
-
-        var blockTypes = [{
-            url: "planky_blue.fbx",
-            dimensions: {
-                x: 0.05,
-                y: 0.05,
-                z: 0.25
-            }
-        }, {
-            url: "planky_green.fbx",
-            dimensions: {
-                x: 0.1,
-                y: 0.1,
-                z: 0.25
-            }
-        }, {
-            url: "planky_natural.fbx",
-            dimensions: {
-                x: 0.05,
-                y: 0.05,
-                z: 0.05
-            }
-        }, {
-            url: "planky_yellow.fbx",
-            dimensions: {
-                x: 0.03,
-                y: 0.05,
-                z: 0.25
-            }
-        }, {
-            url: "planky_red.fbx",
-            dimensions: {
-                x: 0.1,
-                y: 0.05,
-                z: 0.25
-            }
-        }, ];
-
-        var modelURL, entity;
-        for (i = 0; i < blockTypes.length; i++) {
-            for (j = 0; j < NUM_BLOCKS_PER_COLOR; j++) {
-                modelURL = baseURL + blockTypes[i].url;
-                entity = Entities.addEntity({
-                    type: "Model",
-                    modelURL: modelURL,
-                    position: Vec3.sum(position, {
-                        x: j / 10,
-                        y: i / 10,
-                        z: 0
-                    }),
-                    shapeType: 'box',
-                    name: "block",
-                    dimensions: blockTypes[i].dimensions,
-                    collisionsWillMove: true,
-                    collisionSoundURL: collisionSoundURL,
-                    gravity: {
-                        x: 0,
-                        y: -2.5,
-                        z: 0
+                    resetMe: {
+                        resetMe: true,
                     },
-                    velocity: {
-                        x: 0,
-                        y: -0.01,
-                        z: 0
-                    },
-                    userData: JSON.stringify({
-                        resetMe: {
-                            resetMe: true,
-                        }
-                    })
-                });
+                    grabbableKey: {
+                        invertSolidWhileHeld: true
+                    }
+                }
+            })
+    });
 
+}
+
+function createPottedPlant(position) {
+    var modelURL = "http://hifi-public.s3.amazonaws.com/models/potted_plant/potted_plant.fbx";
+
+    var entity = Entities.addEntity({
+        type: "Model",
+        name: "Potted Plant",
+        modelURL: modelURL,
+        position: position,
+        dimensions: {
+            x: 1.10,
+            y: 2.18,
+            z: 1.07
+        },
+        collisionsWillMove: true,
+        shapeType: 'box',
+        gravity: {
+            x: 0,
+            y: -9.8,
+            z: 0
+        },
+        velocity: {
+            x: 0,
+            y: 0,
+            z: 0
+        },
+        linearDamping: 0.4,
+        userData: JSON.stringify({
+            resetMe: {
+                resetMe: true,
+            },
+            grabbableKey: {
+                grabbable: false
             }
+        })
+    });
+}
+
+
+function createCombinedArmChair(position) {
+    var modelURL = "http://hifi-public.s3.amazonaws.com/models/red_arm_chair/combined_chair.fbx";
+    var RED_ARM_CHAIR_COLLISION_HULL = "http://hifi-public.s3.amazonaws.com/models/red_arm_chair/red_arm_chair_collision_hull.obj";
+
+    var rotation = Quat.fromPitchYawRollDegrees(0, -143, 0);
+
+    var entity = Entities.addEntity({
+        type: "Model",
+        name: "Red Arm Chair",
+        modelURL: modelURL,
+        shapeType: 'compound',
+        compoundShapeURL: RED_ARM_CHAIR_COLLISION_HULL,
+        position: position,
+        rotation: rotation,
+        dimensions: {
+            x: 1.26,
+            y: 1.56,
+            z: 1.35
+        },
+        collisionsWillMove: true,
+        gravity: {
+            x: 0,
+            y: -0.8,
+            z: 0
+        },
+        velocity: {
+            x: 0,
+            y: 0,
+            z: 0
+        },
+        linearDamping: 0.2,
+        userData: JSON.stringify({
+            resetMe: {
+                resetMe: true,
+            },
+            grabbableKey: {
+                grabbable: false
+            }
+        })
+    });
+
+}
+
+function createBlocks(position) {
+    var baseURL = HIFI_PUBLIC_BUCKET + "models/content/planky/";
+    var collisionSoundURL = "https://hifi-public.s3.amazonaws.com/sounds/Collisions-otherorganic/ToyWoodBlock.L.wav";
+    var NUM_BLOCKS_PER_COLOR = 4;
+    var i, j;
+
+    var blockTypes = [{
+        url: "planky_blue.fbx",
+        dimensions: {
+            x: 0.05,
+            y: 0.05,
+            z: 0.25
+        }
+    }, {
+        url: "planky_green.fbx",
+        dimensions: {
+            x: 0.1,
+            y: 0.1,
+            z: 0.25
+        }
+    }, {
+        url: "planky_natural.fbx",
+        dimensions: {
+            x: 0.05,
+            y: 0.05,
+            z: 0.05
+        }
+    }, {
+        url: "planky_yellow.fbx",
+        dimensions: {
+            x: 0.03,
+            y: 0.05,
+            z: 0.25
+        }
+    }, {
+        url: "planky_red.fbx",
+        dimensions: {
+            x: 0.1,
+            y: 0.05,
+            z: 0.25
+        }
+    }, ];
+
+    var modelURL, entity;
+    for (i = 0; i < blockTypes.length; i++) {
+        for (j = 0; j < NUM_BLOCKS_PER_COLOR; j++) {
+            modelURL = baseURL + blockTypes[i].url;
+            entity = Entities.addEntity({
+                type: "Model",
+                modelURL: modelURL,
+                position: Vec3.sum(position, {
+                    x: j / 10,
+                    y: i / 10,
+                    z: 0
+                }),
+                shapeType: 'box',
+                name: "block",
+                dimensions: blockTypes[i].dimensions,
+                collisionsWillMove: true,
+                collisionSoundURL: collisionSoundURL,
+                gravity: {
+                    x: 0,
+                    y: -2.5,
+                    z: 0
+                },
+                velocity: {
+                    x: 0,
+                    y: -0.01,
+                    z: 0
+                },
+                userData: JSON.stringify({
+                    resetMe: {
+                        resetMe: true,
+                    }
+                })
+            });
+
         }
     }
+}
 
-    function cleanup() {
-        deleteAllToys();
-    }
+function cleanup() {
+    deleteAllToys();
+}
 
-    if (shouldDeleteOnEndScript) {
+if (shouldDeleteOnEndScript) {
 
-        Script.scriptEnding.connect(cleanup);
-    }
+    Script.scriptEnding.connect(cleanup);
+}
 };
