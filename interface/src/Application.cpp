@@ -126,6 +126,7 @@
 #include "Stars.h"
 #include "ui/AddressBarDialog.h"
 #include "ui/AvatarInputs.h"
+#include "ui/AssetUploadDialogFactory.h"
 #include "ui/DataWebDialog.h"
 #include "ui/DialogsManager.h"
 #include "ui/LoginDialog.h"
@@ -159,6 +160,7 @@ static const QString SVO_JSON_EXTENSION  = ".svo.json";
 static const QString JS_EXTENSION  = ".js";
 static const QString FST_EXTENSION  = ".fst";
 static const QString FBX_EXTENSION  = ".fbx";
+static const QString OBJ_EXTENSION  = ".obj";
 
 static const int MIRROR_VIEW_TOP_PADDING = 5;
 static const int MIRROR_VIEW_LEFT_PADDING = 10;
@@ -179,9 +181,6 @@ static const unsigned int THROTTLED_SIM_FRAMERATE = 15;
 static const int TARGET_SIM_FRAME_PERIOD_MS = MSECS_PER_SECOND / TARGET_SIM_FRAMERATE;
 static const int THROTTLED_SIM_FRAME_PERIOD_MS = MSECS_PER_SECOND / THROTTLED_SIM_FRAMERATE;
 
-const QString CHECK_VERSION_URL = "https://highfidelity.com/latestVersion.xml";
-const QString SKIP_FILENAME = QStandardPaths::writableLocation(QStandardPaths::DataLocation) + "/hifi.skipversion";
-
 #ifndef __APPLE__
 static const QString DESKTOP_LOCATION = QStandardPaths::writableLocation(QStandardPaths::DesktopLocation);
 #else
@@ -197,8 +196,7 @@ const QHash<QString, Application::AcceptURLMethod> Application::_acceptedExtensi
     { SVO_EXTENSION, &Application::importSVOFromURL },
     { SVO_JSON_EXTENSION, &Application::importSVOFromURL },
     { JS_EXTENSION, &Application::askToLoadScript },
-    { FST_EXTENSION, &Application::askToSetAvatarUrl },
-    { FBX_EXTENSION, &Application::askToUploadAsset }
+    { FST_EXTENSION, &Application::askToSetAvatarUrl }
 };
 
 #ifdef Q_OS_WIN
@@ -1892,16 +1890,6 @@ void Application::mousePressEvent(QMouseEvent* event, unsigned int deviceID) {
                 computePickRay(mappedEvent.x(), mappedEvent.y()));
             sendEvent(this, &actionEvent);
 
-        } else if (event->button() == Qt::RightButton) {
-            // "right click" on controllers to toggle the overlay
-            if (deviceID > 0) {
-                _overlayConductor.setEnabled(!_overlayConductor.getEnabled());
-            }
-        } else if (event->button() == Qt::MiddleButton) {
-            // mouse middle click to toggle the overlay
-            if (deviceID == 0) {
-                _overlayConductor.setEnabled(!_overlayConductor.getEnabled());
-            }
         }
     }
 }
@@ -2023,21 +2011,14 @@ void Application::dropEvent(QDropEvent *event) {
     const QMimeData* mimeData = event->mimeData();
     for (auto& url : mimeData->urls()) {
         QString urlString = url.toString();
-        if (canAcceptURL(urlString) && acceptURL(urlString)) {
+        if (acceptURL(urlString, true)) {
             event->acceptProposedAction();
         }
     }
 }
 
 void Application::dragEnterEvent(QDragEnterEvent* event) {
-    const QMimeData* mimeData = event->mimeData();
-    for (auto& url : mimeData->urls()) {
-        auto urlString = url.toString();
-        if (canAcceptURL(urlString)) {
-            event->acceptProposedAction();
-            break;
-        }
-    }
+    event->acceptProposedAction();
 }
 
 bool Application::acceptSnapshot(const QString& urlString) {
@@ -2770,6 +2751,8 @@ void Application::update(float deltaTime) {
     updateThreads(deltaTime); // If running non-threaded, then give the threads some time to process...
     updateDialogs(deltaTime); // update various stats dialogs if present
 
+    _avatarUpdate->synchronousProcess();
+
     {
         PerformanceTimer perfTimer("physics");
         myAvatar->relayDriveKeysToCharacterController();
@@ -2830,8 +2813,6 @@ void Application::update(float deltaTime) {
         PerformanceTimer perfTimer("overlays");
         _overlays.update(deltaTime);
     }
-
-    _avatarUpdate->synchronousProcess();
 
     // Update _viewFrustum with latest camera and view frustum data...
     // NOTE: we get this from the view frustum, to make it simpler, since the
@@ -3973,26 +3954,26 @@ bool Application::canAcceptURL(const QString& urlString) {
     return false;
 }
 
-bool Application::acceptURL(const QString& urlString) {
+bool Application::acceptURL(const QString& urlString, bool defaultUpload) {
     if (urlString.startsWith(HIFI_URL_SCHEME)) {
         // this is a hifi URL - have the AddressManager handle it
         QMetaObject::invokeMethod(DependencyManager::get<AddressManager>().data(), "handleLookupString",
                                   Qt::AutoConnection, Q_ARG(const QString&, urlString));
         return true;
-    } else {
-        QUrl url(urlString);
-        QHashIterator<QString, AcceptURLMethod> i(_acceptedExtensions);
-        QString lowerPath = url.path().toLower();
-        while (i.hasNext()) {
-            i.next();
-            if (lowerPath.endsWith(i.key())) {
-                AcceptURLMethod method = i.value();
-                (this->*method)(urlString);
-                return true;
-            }
+    }
+    
+    QUrl url(urlString);
+    QHashIterator<QString, AcceptURLMethod> i(_acceptedExtensions);
+    QString lowerPath = url.path().toLower();
+    while (i.hasNext()) {
+        i.next();
+        if (lowerPath.endsWith(i.key())) {
+            AcceptURLMethod method = i.value();
+            return (this->*method)(urlString);
         }
     }
-    return false;
+    
+    return defaultUpload && askToUploadAsset(urlString);
 }
 
 void Application::setSessionUUID(const QUuid& sessionUUID) {
@@ -4076,8 +4057,36 @@ bool Application::askToUploadAsset(const QString& filename) {
     
     QUrl url { filename };
     if (auto upload = DependencyManager::get<AssetClient>()->createUpload(url.toLocalFile())) {
+        
+        QMessageBox messageBox;
+        messageBox.setWindowTitle("Asset upload");
+        messageBox.setText("You are about to upload the following file to the asset server:\n" +
+                           url.toDisplayString());
+        messageBox.setInformativeText("Do you want to continue?");
+        messageBox.setStandardButtons(QMessageBox::Ok | QMessageBox::Cancel);
+        messageBox.setDefaultButton(QMessageBox::Ok);
+        
+        // Option to drop model in world for models
+        if (filename.endsWith(FBX_EXTENSION) || filename.endsWith(OBJ_EXTENSION)) {
+            auto checkBox = new QCheckBox(&messageBox);
+            checkBox->setText("Add to scene");
+            messageBox.setCheckBox(checkBox);
+        }
+        
+        if (messageBox.exec() != QMessageBox::Ok) {
+            upload->deleteLater();
+            return false;
+        }
+        
         // connect to the finished signal so we know when the AssetUpload is done
-        QObject::connect(upload, &AssetUpload::finished, this, &Application::assetUploadFinished);
+        if (messageBox.checkBox() && (messageBox.checkBox()->checkState() == Qt::Checked)) {
+            // Custom behavior for models
+            QObject::connect(upload, &AssetUpload::finished, this, &Application::modelUploadFinished);
+        } else {
+            QObject::connect(upload, &AssetUpload::finished,
+                             &AssetUploadDialogFactory::getInstance(),
+                             &AssetUploadDialogFactory::handleUploadFinished);
+        }
         
         // start the upload now
         upload->start();
@@ -4089,47 +4098,26 @@ bool Application::askToUploadAsset(const QString& filename) {
     return false;
 }
 
-void Application::assetUploadFinished(AssetUpload* upload, const QString& hash) {
-    if (upload->getError() != AssetUpload::NoError) {
-        // figure out the right error message for the message box
-        QString additionalError;
+void Application::modelUploadFinished(AssetUpload* upload, const QString& hash) {
+    auto filename = QFileInfo(upload->getFilename()).fileName();
+    
+    if ((upload->getError() == AssetUpload::NoError) &&
+        (filename.endsWith(FBX_EXTENSION) || filename.endsWith(OBJ_EXTENSION))) {
         
-        switch (upload->getError()) {
-            case AssetUpload::PermissionDenied:
-                additionalError = "You do not have permission to upload content to this asset-server.";
-                break;
-            case AssetUpload::TooLarge:
-                additionalError = "The uploaded content was too large and could not be stored in the asset-server.";
-                break;
-            case AssetUpload::FileOpenError:
-                additionalError = "The file could not be opened. Please check your permissions and try again.";
-                break;
-            case AssetUpload::NetworkError:
-                additionalError = "The file could not be opened. Please check your network connectivity.";
-                break;
-            default:
-                // not handled, do not show a message box
-                return;
-        }
+        auto entities = DependencyManager::get<EntityScriptingInterface>();
         
-        // display a message box with the error
-        auto filename = QFileInfo(upload->getFilename()).fileName();
-        QString errorMessage = QString("Failed to upload %1.\n\n%2").arg(filename, additionalError);
-        QMessageBox::warning(_window, "Failed Upload", errorMessage);
+        EntityItemProperties properties;
+        properties.setType(EntityTypes::Model);
+        properties.setModelURL(QString("%1:%2.%3").arg(URL_SCHEME_ATP).arg(hash).arg(upload->getExtension()));
+        properties.setPosition(_myCamera.getPosition() + _myCamera.getOrientation() * Vectors::FRONT * 2.0f);
+        properties.setName(QUrl(upload->getFilename()).fileName());
+        
+        entities->addEntity(properties);
+        
+        upload->deleteLater();
+    } else {
+        AssetUploadDialogFactory::getInstance().handleUploadFinished(upload, hash);
     }
-    
-    auto entities = DependencyManager::get<EntityScriptingInterface>();
-    auto myAvatar = getMyAvatar();
-    
-    EntityItemProperties properties;
-    properties.setType(EntityTypes::Model);
-    properties.setModelURL(QString("%1:%2.%3").arg(ATP_SCHEME).arg(hash).arg(upload->getExtension()));
-    properties.setPosition(myAvatar->getPosition() + myAvatar->getOrientation() * Vectors::FRONT * 2.0f);
-    properties.setName(QUrl(upload->getFilename()).fileName());
-    
-    entities->addEntity(properties);
-    
-    upload->deleteLater();
 }
 
 ScriptEngine* Application::loadScript(const QString& scriptFilename, bool isUserLoaded,

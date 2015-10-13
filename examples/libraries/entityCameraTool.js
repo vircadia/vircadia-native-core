@@ -118,8 +118,16 @@ CameraManager = function() {
     that.targetYaw = 0;
     that.targetPitch = 0;
 
-    that.focalPoint = { x: 0, y: 0, z: 0 };
-    that.targetFocalPoint = { x: 0, y: 0, z: 0 };
+    that.focalPoint = {
+        x: 0,
+        y: 0,
+        z: 0
+    };
+    that.targetFocalPoint = {
+        x: 0,
+        y: 0,
+        z: 0
+    };
 
     easing = false;
     easingTime = 0;
@@ -127,13 +135,18 @@ CameraManager = function() {
 
     that.previousCameraMode = null;
 
-    that.lastMousePosition = { x: 0, y: 0 };
+    that.lastMousePosition = {
+        x: 0,
+        y: 0
+    };
 
     that.enable = function() {
         if (Camera.mode == "independent" || that.enabled) return;
 
         for (var i = 0; i < CAPTURED_KEYS.length; i++) {
-            Controller.captureKeyEvents({ text: CAPTURED_KEYS[i] });
+            Controller.captureKeyEvents({
+                text: CAPTURED_KEYS[i]
+            });
         }
 
         that.enabled = true;
@@ -143,7 +156,7 @@ CameraManager = function() {
         that.zoomDistance = INITIAL_ZOOM_DISTANCE;
         that.targetZoomDistance = that.zoomDistance + 3.0;
         var focalPoint = Vec3.sum(Camera.getPosition(),
-                        Vec3.multiply(that.zoomDistance, Quat.getFront(Camera.getOrientation())));
+            Vec3.multiply(that.zoomDistance, Quat.getFront(Camera.getOrientation())));
 
         // Determine the correct yaw and pitch to keep the camera in the same location
         var dPos = Vec3.subtract(focalPoint, Camera.getPosition());
@@ -169,7 +182,9 @@ CameraManager = function() {
         if (!that.enabled) return;
 
         for (var i = 0; i < CAPTURED_KEYS.length; i++) {
-            Controller.releaseKeyEvents({ text: CAPTURED_KEYS[i] });
+            Controller.releaseKeyEvents({
+                text: CAPTURED_KEYS[i]
+            });
         }
 
         that.enabled = false;
@@ -335,19 +350,27 @@ CameraManager = function() {
 
     var hasDragged = false;
     that.mousePressEvent = function(event) {
+
         if (cameraTool.mousePressEvent(event)) {
+
             return true;
         }
+
 
         if (!that.enabled) return;
 
         if (event.isRightButton || (event.isLeftButton && event.isControl && !event.isShifted)) {
+
             that.mode = MODE_ORBIT;
         } else if (event.isMiddleButton || (event.isLeftButton && event.isControl && event.isShifted)) {
+
+
             that.mode = MODE_PAN;
         }
 
-        if (that.mode != MODE_INACTIVE) {
+        if (that.mode !== MODE_INACTIVE) {
+
+
             hasDragged = false;
 
             return true;
@@ -357,10 +380,12 @@ CameraManager = function() {
     }
 
     that.mouseReleaseEvent = function(event) {
+
         if (!that.enabled) return;
 
-        Window.setCursorVisible(true);
         that.mode = MODE_INACTIVE;
+        Window.setCursorVisible(true);
+
     }
 
     that.keyPressEvent = function(event) {
@@ -396,15 +421,31 @@ CameraManager = function() {
             return;
         }
 
-        var yRot = Quat.angleAxis(that.yaw, { x: 0, y: 1, z: 0 });
-        var xRot = Quat.angleAxis(that.pitch, { x: 1, y: 0, z: 0 });
+        var yRot = Quat.angleAxis(that.yaw, {
+            x: 0,
+            y: 1,
+            z: 0
+        });
+        var xRot = Quat.angleAxis(that.pitch, {
+            x: 1,
+            y: 0,
+            z: 0
+        });
         var q = Quat.multiply(yRot, xRot);
 
         var pos = Vec3.multiply(Quat.getFront(q), that.zoomDistance);
         Camera.setPosition(Vec3.sum(that.focalPoint, pos));
 
-        yRot = Quat.angleAxis(that.yaw - 180, { x: 0, y: 1, z: 0 });
-        xRot = Quat.angleAxis(-that.pitch, { x: 1, y: 0, z: 0 });
+        yRot = Quat.angleAxis(that.yaw - 180, {
+            x: 0,
+            y: 1,
+            z: 0
+        });
+        xRot = Quat.angleAxis(-that.pitch, {
+            x: 1,
+            y: 0,
+            z: 0
+        });
         q = Quat.multiply(yRot, xRot);
 
         if (easing) {
@@ -483,7 +524,7 @@ CameraManager = function() {
         }
     });
 
-    Controller.keyReleaseEvent.connect(function (event) {
+    Controller.keyReleaseEvent.connect(function(event) {
         if (event.text == "ESC" && that.enabled) {
             Camera.mode = lastAvatarCameraMode;
             cameraManager.disable(true);
@@ -503,9 +544,21 @@ CameraManager = function() {
 CameraTool = function(cameraManager) {
     var that = {};
 
-    var RED = { red: 191, green: 78, blue: 38 };
-    var GREEN = { red: 26, green: 193, blue: 105 };
-    var BLUE = { red: 0, green: 131, blue: 204 };
+    var RED = {
+        red: 191,
+        green: 78,
+        blue: 38
+    };
+    var GREEN = {
+        red: 26,
+        green: 193,
+        blue: 105
+    };
+    var BLUE = {
+        red: 0,
+        green: 131,
+        blue: 204
+    };
 
     var BORDER_WIDTH = 1;
 
@@ -513,10 +566,10 @@ CameraTool = function(cameraManager) {
     var ORIENTATION_OVERLAY_HALF_SIZE = ORIENTATION_OVERLAY_SIZE / 2;
     var ORIENTATION_OVERLAY_CUBE_SIZE = 10.5,
 
-    var ORIENTATION_OVERLAY_OFFSET = {
-        x: 30,
-        y: 30,
-    }
+        var ORIENTATION_OVERLAY_OFFSET = {
+            x: 30,
+            y: 30,
+        }
 
     var UI_WIDTH = 70;
     var UI_HEIGHT = 70;
@@ -536,7 +589,11 @@ CameraTool = function(cameraManager) {
         height: UI_HEIGHT + BORDER_WIDTH * 2,
         alpha: 0,
         text: "",
-        backgroundColor: { red: 101, green: 101, blue: 101 },
+        backgroundColor: {
+            red: 101,
+            green: 101,
+            blue: 101
+        },
         backgroundAlpha: 1.0,
         visible: false,
     });
@@ -548,7 +605,11 @@ CameraTool = function(cameraManager) {
         height: UI_HEIGHT,
         alpha: 0,
         text: "",
-        backgroundColor: { red: 51, green: 51, blue: 51 },
+        backgroundColor: {
+            red: 51,
+            green: 51,
+            blue: 51
+        },
         backgroundAlpha: 1.0,
         visible: false,
     });
@@ -556,7 +617,11 @@ CameraTool = function(cameraManager) {
     var defaultCubeProps = {
         size: ORIENTATION_OVERLAY_CUBE_SIZE,
         alpha: 1,
-        color: { red: 255, green: 0, blue: 0 },
+        color: {
+            red: 255,
+            green: 0,
+            blue: 0
+        },
         solid: true,
         visible: true,
         drawOnHUD: true,
@@ -564,10 +629,26 @@ CameraTool = function(cameraManager) {
     var defaultLineProps = {
         lineWidth: 1.5,
         alpha: 1,
-        position: { x: 0, y: 0, z: 0 },
-        start: { x: 0, y: 0, z: 0 },
-        end: { x: 0, y: 0, z: 0 },
-        color: { red: 255, green: 0, blue: 0 },
+        position: {
+            x: 0,
+            y: 0,
+            z: 0
+        },
+        start: {
+            x: 0,
+            y: 0,
+            z: 0
+        },
+        end: {
+            x: 0,
+            y: 0,
+            z: 0
+        },
+        color: {
+            red: 255,
+            green: 0,
+            blue: 0
+        },
         visible: false,
         drawOnHUD: true,
     };
@@ -582,30 +663,66 @@ CameraTool = function(cameraManager) {
 
     var OOHS = ORIENTATION_OVERLAY_HALF_SIZE;
     var cubeX = orientationOverlay.createOverlay("cube", mergeObjects(defaultCubeProps, {
-        position: { x: -OOHS, y: OOHS, z: OOHS },
+        position: {
+            x: -OOHS,
+            y: OOHS,
+            z: OOHS
+        },
         color: RED,
     }));
     var cubeY = orientationOverlay.createOverlay("cube", mergeObjects(defaultCubeProps, {
-        position: { x: OOHS, y: -OOHS, z: OOHS },
+        position: {
+            x: OOHS,
+            y: -OOHS,
+            z: OOHS
+        },
         color: GREEN,
     }));
     var cubeZ = orientationOverlay.createOverlay("cube", mergeObjects(defaultCubeProps, {
-        position: { x: OOHS, y: OOHS, z: -OOHS },
+        position: {
+            x: OOHS,
+            y: OOHS,
+            z: -OOHS
+        },
         color: BLUE,
     }));
     orientationOverlay.createOverlay("line3d", mergeObjects(defaultLineProps, {
-        start: { x: -OOHS, y: OOHS, z: OOHS },
-        end: { x: OOHS, y: OOHS, z: OOHS },
+        start: {
+            x: -OOHS,
+            y: OOHS,
+            z: OOHS
+        },
+        end: {
+            x: OOHS,
+            y: OOHS,
+            z: OOHS
+        },
         color: RED,
     }));
     orientationOverlay.createOverlay("line3d", mergeObjects(defaultLineProps, {
-        start: { x: OOHS, y: -OOHS, z: OOHS },
-        end: { x: OOHS, y: OOHS, z: OOHS },
+        start: {
+            x: OOHS,
+            y: -OOHS,
+            z: OOHS
+        },
+        end: {
+            x: OOHS,
+            y: OOHS,
+            z: OOHS
+        },
         color: GREEN,
     }));
     orientationOverlay.createOverlay("line3d", mergeObjects(defaultLineProps, {
-        start: { x: OOHS, y: OOHS, z: -OOHS },
-        end: { x: OOHS, y: OOHS, z: OOHS },
+        start: {
+            x: OOHS,
+            y: OOHS,
+            z: -OOHS
+        },
+        end: {
+            x: OOHS,
+            y: OOHS,
+            z: OOHS
+        },
         color: BLUE,
     }));
 
@@ -645,7 +762,10 @@ CameraTool = function(cameraManager) {
     }
 
     that.mousePressEvent = function(event) {
-        var clickedOverlay = Overlays.getOverlayAtPoint({x: event.x, y: event.y});
+        var clickedOverlay = Overlays.getOverlayAtPoint({
+            x: event.x,
+            y: event.y
+        });
 
         if (clickedOverlay == cubeX) {
             targetPitch = 0;
@@ -666,9 +786,15 @@ CameraTool = function(cameraManager) {
     };
 
     that.setVisible = function(visible) {
-        orientationOverlay.setProperties({ visible: visible });
-        Overlays.editOverlay(background, { visible: visible });
-        Overlays.editOverlay(backgroundBorder, { visible: visible });
+        orientationOverlay.setProperties({
+            visible: visible
+        });
+        Overlays.editOverlay(background, {
+            visible: visible
+        });
+        Overlays.editOverlay(backgroundBorder, {
+            visible: visible
+        });
     };
 
     that.setVisible(false);
