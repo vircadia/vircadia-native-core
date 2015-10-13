@@ -33,6 +33,7 @@ private slots:
     void assetUploadFinished(AssetUpload* upload, const QString& hash);
 private:
     void migrateResource(ResourceRequest* request);
+    void saveEntityServerFile();
     
     QWidget* _dialogParent = nullptr;
     QJsonArray _entitiesArray;

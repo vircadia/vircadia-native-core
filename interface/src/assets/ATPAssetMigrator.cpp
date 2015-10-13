@@ -31,6 +31,7 @@ ATPAssetMigrator& ATPAssetMigrator::getInstance() {
     return instance;
 }
 
+static const QString ENTITIES_OBJECT_KEY = "Entities";
 static const QString MODEL_URL_KEY = "modelURL";
 
 void ATPAssetMigrator::loadEntityServerFile() {
@@ -169,9 +170,39 @@ void ATPAssetMigrator::assetUploadFinished(AssetUpload *upload, const QString& h
         
         // are we out of pending replacements? if so it is time to save the entity-server file
         if (_doneReading && _pendingReplacements.empty()) {
-            // show a dialog to ask the user where they want to save the file
+            saveEntityServerFile();
         }
     } else {
         AssetUploadDialogFactory::showErrorDialog(upload, _dialogParent);
+    }
+}
+
+void ATPAssetMigrator::saveEntityServerFile() {
+    // show a dialog to ask the user where they want to save the file
+    QString saveName = QFileDialog::getSaveFileName(_dialogParent, "Save Migrated Entities File");
+    
+    QFile saveFile { saveName };
+    
+    if (saveFile.open(QIODevice::WriteOnly)) {
+        QJsonObject rootObject;
+        rootObject[ENTITIES_OBJECT_KEY] = _entitiesArray;
+        
+        QJsonDocument newDocument { rootObject };
+        QByteArray jsonDataForFile;
+        
+        if (gzip(newDocument.toJson(), jsonDataForFile, -1)) {
+            
+            saveFile.write(jsonDataForFile);
+            saveFile.close();
+            
+            QMessageBox::information(_dialogParent, "Success",
+                                     QString("Your new entities file has been saved at %1").arg(saveName));
+        } else {
+            QMessageBox::warning(_dialogParent, "Error", "Could not gzip JSON data for new entities file.");
+        }
+    
+    } else {
+        QMessageBox::warning(_dialogParent, "Error",
+                             QString("Could not open file at %1 to write new entities file to.").arg(saveName));
     }
 }
