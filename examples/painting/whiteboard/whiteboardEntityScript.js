@@ -27,9 +27,9 @@
     var MAX_POINTS_PER_LINE = 40;
     var MAX_DISTANCE = 5;
 
-    var TRIGGER_ON_VALUE = 0.3;
-    var MIN_STROKE_WIDTH = 0.001;
-    var MAX_STROKE_WIDTH = 0.02;
+    var PAINT_TRIGGER_THRESHOLD = 0.6;
+    var MIN_STROKE_WIDTH = 0.0005;
+    var MAX_STROKE_WIDTH = 0.03;
 
     Whiteboard = function() {
         _this = this;
@@ -72,11 +72,25 @@
                 var distance = Vec3.distance(handPosition, this.intersection.intersection);
                 if (distance < MAX_DISTANCE) {
                     this.triggerValue = Controller.getActionValue(this.triggerAction);
-                    this.currentStrokeWidth = map(this.triggerValue, TRIGGER_ON_VALUE, 1, MIN_STROKE_WIDTH, MAX_STROKE_WIDTH);
-                    this.paint(this.intersection.intersection, this.intersection.surfaceNormal);
+                    this.currentStrokeWidth = map(this.triggerValue, 0, 1, MIN_STROKE_WIDTH, MAX_STROKE_WIDTH);
+                    var displayPoint = this.intersection.intersection;
+                    displayPoint = Vec3.sum(displayPoint, Vec3.multiply(this.intersection.surfaceNormal, -.01));
+                    Overlays.editOverlay(this.laserPointer, {
+                        position: displayPoint,
+                        size: {
+                            x: this.currentStrokeWidth,
+                            y: this.currentStrokeWidth
+                        }
+                    });
+                    print("TRIGGER VALUE " + this.triggerValue);
+                    if (this.triggerValue > PAINT_TRIGGER_THRESHOLD) {
+                        this.paint(this.intersection.intersection, this.intersection.surfaceNormal);
+                    } else {
+                        this.releaseGrab();
+                    }
                 }
             } else {
-                this.painting = false;
+                this.releaseGrab();
             }
         },
 
@@ -154,34 +168,38 @@
         releaseGrab: function() {
             this.painting = false;
             this.oldPosition = null;
-
         },
 
-        changeColor: function(){
+        changeColor: function() {
             print("CHANGE COLOR");
             this.strokeColor = JSON.parse(Entities.getEntityProperties(this.entityID, ["userData"]).userData).currentColor;
+            Overlays.editOverlay(this.laserPointer, {
+                color: this.strokeColor
+            });
         },
 
         preload: function(entityID) {
             this.entityID = entityID;
-            var props = Entities.getEntityProperties(this.entityID, ["position", "rotation"]);
+            var props = Entities.getEntityProperties(this.entityID, ["position", "rotation", "userData"]);
             this.position = props.position;
             this.rotation = props.rotation;
             this.normal = Vec3.multiply(Quat.getFront(this.rotation), -1);
             this.painting = false;
-            this.strokeColor = {
-                red: 170,
-                green: 50,
-                blue: 190
-            };
             this.strokes = [];
             this.whitelist = [this.entityID];
+            this.strokeColor = JSON.parse(props.userData).currentColor;
+            this.laserPointer = Overlays.addOverlay("circle3d", {
+                color: this.strokeColor,
+                solid: true,
+                rotation: this.rotation
+            });
         },
 
         unload: function() {
             this.strokes.forEach(function(stroke) {
                 Entities.deleteEntity(stroke);
             });
+            Overlays.deleteOverlay(this.laserPointer);
         }
 
     };
