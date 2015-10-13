@@ -22,6 +22,7 @@
     var TIP_CONTROLLER_OFFSET = 1;
     Whiteboard = function() {
         _this = this;
+        print("WAAAAAH");
     };
 
     Whiteboard.prototype = {
@@ -52,12 +53,8 @@
                 origin: handPosition,
                 direction: Quat.getUp(this.getHandRotation())
             };
+
             this.intersection = Entities.findRayIntersection(pickRay, true, [this.entityID]);
-            if (this.intersection.intersects) {
-                if(JSON.stringify(this.intersection.entityID) === JSON.stringify(this.entityID)) {
-                    print('YAAAAA')
-                }
-            }
         },
 
         releaseGrab: function() {

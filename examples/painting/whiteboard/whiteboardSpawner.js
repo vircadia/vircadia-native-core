@@ -15,7 +15,7 @@
 
 
 Script.include("../../libraries/utils.js");
-var scriptURL = Script.resolvePath("whiteBoardEntityScript.js");
+var scriptURL = Script.resolvePath("whiteBoardEntityScript.js?v1" +Math.random());
 
 var rotation = Quat.safeEulerAngles(Camera.getOrientation());
 rotation = Quat.fromPitchYawRollDegrees(0, rotation.y, 0);
@@ -26,7 +26,7 @@ var whiteboard = Entities.addEntity({
     position: center,
     rotation: rotation,
     script: scriptURL,
-    dimensions: {x: 2, y: 1.5, z: 0.01},
+    dimensions: {x: 2, y: 1.5, z: 0.1},
     color: {red: 255, green: 255, blue: 255}
 });
 

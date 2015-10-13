@@ -65,6 +65,8 @@ QScriptValue qVectorFloatToScriptValue(QScriptEngine* engine, const QVector<floa
 void qVectorFloatFromScriptValue(const QScriptValue& array, QVector<float>& vector);
 QVector<float> qVectorFloatFromScriptValue(const QScriptValue& array);
 
+QVector<QUuid> qVectorQUuidFromScriptValue(const QScriptValue& array);
+
 class PickRay {
 public:
     PickRay() : origin(0.0f), direction(0.0f)  { }

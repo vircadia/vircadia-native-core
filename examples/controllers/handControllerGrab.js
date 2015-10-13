@@ -253,6 +253,7 @@ function MyController(hand, triggerAction) {
             return;
         }
 
+
         // the trigger is being pressed, do a ray test
         var handPosition = this.getHandPosition();
         var pickRay = {
@@ -568,7 +569,7 @@ function MyController(hand, triggerAction) {
             this.setState(STATE_RELEASE);
             return;
         }
-
+            print("AHHHHHH")
         Entities.callEntityMethod(this.grabbedEntity, "continueNearGrabbingNonColliding");
     };
 
