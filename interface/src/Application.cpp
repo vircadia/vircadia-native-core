@@ -1109,13 +1109,10 @@ void Application::paintGL() {
             }
         } else if (_myCamera.getMode() == CAMERA_MODE_THIRD_PERSON) {
             if (isHMDMode()) {
-                glm::quat hmdRotation = extractRotation(myAvatar->getHMDSensorMatrix());
-                _myCamera.setRotation(myAvatar->getWorldAlignedOrientation() * hmdRotation);
-                // Ignore MenuOption::CenterPlayerInView in HMD view
-                glm::vec3 hmdOffset = extractTranslation(myAvatar->getHMDSensorMatrix());
-                _myCamera.setPosition(myAvatar->getDefaultEyePosition()
-                    + myAvatar->getOrientation() 
-                    * (myAvatar->getScale() * myAvatar->getBoomLength() * glm::vec3(0.0f, 0.0f, 1.0f) + hmdOffset));
+                auto hmdWorldMat = myAvatar->getSensorToWorldMatrix() * myAvatar->getHMDSensorMatrix();
+                _myCamera.setRotation(glm::normalize(glm::quat_cast(hmdWorldMat)));
+                auto worldBoomOffset = myAvatar->getOrientation() * (myAvatar->getScale() * myAvatar->getBoomLength() * glm::vec3(0.0f, 0.0f, 1.0f));
+                _myCamera.setPosition(extractTranslation(hmdWorldMat) + worldBoomOffset);
             } else {
                 _myCamera.setRotation(myAvatar->getHead()->getOrientation());
                 if (Menu::getInstance()->isOptionChecked(MenuOption::CenterPlayerInView)) {
