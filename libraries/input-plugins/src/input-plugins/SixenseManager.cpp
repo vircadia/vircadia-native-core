@@ -122,6 +122,7 @@ void SixenseManager::activate() {
 #endif
     loadSettings();
     sixenseInit();
+    _activated = true;
 #endif
 }
 
@@ -138,6 +139,7 @@ void SixenseManager::deactivate() {
 #endif
 
     sixenseExit();
+    _activated = false;
 
 #ifdef __APPLE__
     delete _sixenseLibrary;
@@ -157,6 +159,9 @@ void SixenseManager::setSixenseFilter(bool filter) {
 }
 
 void SixenseManager::update(float deltaTime, bool jointsCaptured) {
+    if (!_activated) {
+        return;
+    }
 #ifdef HAVE_SIXENSE
     _buttonPressedMap.clear();
 
