@@ -1630,8 +1630,6 @@ void EntityItem::deserializeActionsInternal() {
         return;
     }
 
-    // Keep track of which actions got added or updated by the new actionData
-
     EntityTreePointer entityTree = _element ? _element->getTree() : nullptr;
     assert(entityTree);
     EntitySimulation* simulation = entityTree ? entityTree->getSimulation() : nullptr;
@@ -1643,6 +1641,7 @@ void EntityItem::deserializeActionsInternal() {
         serializedActionsStream >> serializedActions;
     }
 
+    // Keep track of which actions got added or updated by the new actionData
     QSet<QUuid> updated;
 
     foreach(QByteArray serializedAction, serializedActions) {
@@ -1658,12 +1657,14 @@ void EntityItem::deserializeActionsInternal() {
         updated << actionID;
 
         if (_objectActions.contains(actionID)) {
+            qDebug() << "EntityItem::deserializeActionsInternal is UPDATING" << actionID;
             EntityActionPointer action = _objectActions[actionID];
             // TODO: make sure types match?  there isn't currently a way to
             // change the type of an existing action.
             action->deserialize(serializedAction);
             action->locallyAddedButNotYetReceived = false;
         } else {
+            qDebug() << "EntityItem::deserializeActionsInternal is ADDING" << actionID;
             auto actionFactory = DependencyManager::get<EntityActionFactoryInterface>();
             EntityItemPointer entity = shared_from_this();
             EntityActionPointer action = actionFactory->factoryBA(entity, serializedAction);

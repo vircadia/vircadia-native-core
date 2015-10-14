@@ -24,20 +24,33 @@ ObjectAction::~ObjectAction() {
 }
 
 void ObjectAction::updateAction(btCollisionWorld* collisionWorld, btScalar deltaTimeStep) {
-    if (_ownerEntity.expired()) {
+    bool ownerEntityExpired = false;
+    quint64 expiresWhen = 0;
+
+    withReadLock([&]{
+        ownerEntityExpired = _ownerEntity.expired();
+        expiresWhen = _expires;
+    });
+
+    if (ownerEntityExpired) {
         qDebug() << "warning -- action with no entity removing self from btCollisionWorld.";
         btDynamicsWorld* dynamicsWorld = static_cast<btDynamicsWorld*>(collisionWorld);
         dynamicsWorld->removeAction(this);
         return;
     }
 
-    if (_expires > 0) {
+    if (expiresWhen > 0) {
         quint64 now = usecTimestampNow();
-        if (now > _expires) {
-            EntityItemPointer ownerEntity = _ownerEntity.lock();
-            _active = false;
+        if (now > expiresWhen) {
+            EntityItemPointer ownerEntity = nullptr;
+            QUuid myID;
+            withWriteLock([&]{
+                ownerEntity = _ownerEntity.lock();
+                _active = false;
+                myID = getID();
+            });
             if (ownerEntity) {
-                ownerEntity->removeAction(nullptr, getID());
+                ownerEntity->removeAction(nullptr, myID);
             }
         }
     }
