@@ -67,7 +67,7 @@ var MSEC_PER_SEC = 1000.0;
 var startTime = Date.now();
 var LIFETIME = 10;
 var ACTION_LIFETIME = 10; // seconds
-var PICKS_PER_SECOND_PER_HAND = 5;
+var PICKS_PER_SECOND_PER_HAND = 60;
 var MSECS_PER_SEC = 1000.0;
 
 // states for the state machine
@@ -177,6 +177,7 @@ function MyController(hand, triggerAction) {
                 this.continueFarGrabbingNonColliding();
                 break;
             case STATE_RELEASE:
+            print("TRIGGER VALUE " + this.triggerValue);
                 this.release();
                 break;
         }

@@ -11,8 +11,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 
 /*global print, MyAvatar, Entities, AnimationCache, SoundCache, Scene, Camera, Overlays, Audio, HMD, AvatarList, AvatarManager, Controller, UndoStack, Window, Account, GlobalServices, Script, ScriptDiscoveryService, LODManager, Menu, Vec3, Quat, AudioDevice, Paths, Clipboard, Settings, XMLHttpRequest, pointInExtents, vec3equal, setEntityCustomData, getEntityCustomData */
-
-
+// Script specific
+/*global hexToRgb */
 
 Script.include("../../libraries/utils.js");
 var scriptURL = Script.resolvePath("whiteBoardEntityScript.js?v2");
@@ -38,6 +38,7 @@ var colors = [
 ];
 var whiteboard = Entities.addEntity({
     type: "Box",
+    name: "whiteboard",
     position: center,
     rotation: rotation,
     script: scriptURL,
@@ -61,7 +62,7 @@ var colorBoxes = [];
 
 var colorSquareDimensions = {
     x: (whiteboardDimensions.x / 2) / (colors.length - 1),
-    y: .1,
+    y: 0.1,
     z: 0.05
 };
 colorBoxPosition.y += whiteboardDimensions.y / 2 + colorSquareDimensions.y / 2 - 0.01;
@@ -76,13 +77,27 @@ for (var i = 0; i < colors.length; i++) {
         color: colors[i],
         script: scriptURL,
         userData: JSON.stringify({
-            colorPalette: true,
             whiteboard: whiteboard
         })
     });
     colorBoxes.push(colorBox);
     colorBoxPosition = Vec3.sum(colorBoxPosition, spaceBetweenColorBoxes);
 }
+
+var blackBoxDimensions = {x: .2, y: .2, z: 0.05};
+colorBoxPosition = Vec3.subtract(center, Vec3.multiply(direction, whiteboardDimensions.x / 2 + blackBoxDimensions.x/2 - 0.01));
+colorBoxPosition.y += 0.3;
+var blackBox = Entities.addEntity({
+    type: 'Box',
+    position: colorBoxPosition,
+    dimensions: blackBoxDimensions,
+    rotation: rotation,
+    color: {red: 0, green: 0, blue: 0},
+    script: scriptURL,
+    userData: JSON.stringify({
+        whiteboard: whiteboard        
+    })
+})
 
 
 var eraseBoxDimensions = {
@@ -124,6 +139,7 @@ print(JSON.stringify(Entities.getEntityProperties(eraseAllText)))
 function cleanup() {
     Entities.deleteEntity(whiteboard);
     Entities.deleteEntity(eraseAllText);
+    Entities.deleteEntity(blackBox);
     colorBoxes.forEach(function(colorBox) {
         Entities.deleteEntity(colorBox);
     });

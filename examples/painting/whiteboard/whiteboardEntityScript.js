@@ -20,8 +20,6 @@
     var _this;
     var RIGHT_HAND = 1;
     var LEFT_HAND = 0;
-    var SPATIAL_CONTROLLERS_PER_PALM = 2;
-    var TIP_CONTROLLER_OFFSET = 1;
     var MIN_POINT_DISTANCE = 0.02;
     var MAX_POINT_DISTANCE = 0.5;
     var MAX_POINTS_PER_LINE = 40;
@@ -58,7 +56,9 @@
                 this.getHandRotation = MyAvatar.getLeftPalmRotation;
                 this.triggerAction = Controller.findAction("LEFT_HAND_CLICK");
             }
-            Overlays.editOverlay(this.laserPointer, {visible: true});
+            Overlays.editOverlay(this.laserPointer, {
+                visible: true
+            });
         },
 
         continueFarGrabbingNonColliding: function() {
@@ -69,13 +69,14 @@
             };
 
             this.intersection = Entities.findRayIntersection(pickRay, true, this.whitelist);
+
             if (this.intersection.intersects) {
                 var distance = Vec3.distance(handPosition, this.intersection.intersection);
                 if (distance < MAX_DISTANCE) {
                     this.triggerValue = Controller.getActionValue(this.triggerAction);
                     this.currentStrokeWidth = map(this.triggerValue, 0, 1, MIN_STROKE_WIDTH, MAX_STROKE_WIDTH);
                     var displayPoint = this.intersection.intersection;
-                    displayPoint = Vec3.sum(displayPoint, Vec3.multiply(this.intersection.surfaceNormal, -.01));
+                    displayPoint = Vec3.sum(displayPoint, Vec3.multiply(this.intersection.surfaceNormal, -0.01));
                     Overlays.editOverlay(this.laserPointer, {
                         position: displayPoint,
                         size: {
@@ -90,9 +91,20 @@
                         this.oldPosition = null;
                     }
                 }
-            } else {
-                this.releaseGrab();
+            } else if(this.intersection.properties.type !== "Unknown") {
+                //If type is unknown, ignore
+                print("entity name " + this.intersection.properties.type);
+                this.stopPainting();
             }
+        },
+
+        stopPainting: function() {
+            this.painting = false;
+            Overlays.editOverlay(this.laserPointer, {
+                visible: false
+            });
+            this.oldPosition = null;
+            print("STOP PAINTING");
         },
 
         paint: function(position, normal) {
@@ -108,11 +120,12 @@
 
             var localPoint = Vec3.subtract(position, this.strokeBasePosition);
             //Move stroke a bit forward along normal so it doesnt zfight with mesh its drawing on 
-            localPoint = Vec3.sum(localPoint, Vec3.multiply(this.normal, 0.001 + Math.random() * .001)); //rand avoid z fighting
-
+            localPoint = Vec3.sum(localPoint, Vec3.multiply(this.normal, 0.001 + Math.random() * 0.001)); //rand avoid z fighting
+            this.oldPosition = position;
             var distance = Vec3.distance(localPoint, this.strokePoints[this.strokePoints.length - 1]);
             if (this.strokePoints.length > 0 && distance < MIN_POINT_DISTANCE) {
                 //need a minimum distance to avoid binormal NANs
+
                 return;
             }
             if (this.strokePoints.length > 0 && distance > MAX_POINT_DISTANCE) {
@@ -140,7 +153,6 @@
                 this.painting = false;
                 return;
             }
-            this.oldPosition = position;
         },
 
 
@@ -168,9 +180,9 @@
         },
 
         releaseGrab: function() {
-            this.painting = false;
-            Overlays.editOverlay(this.laserPointer, {visible: false});
-            this.oldPosition = null;
+            print("RELEASE");   
+            this.stopPainting();
+
         },
 
         changeColor: function() {
@@ -184,7 +196,7 @@
             var entities = Entities.findEntities(this.position, 5);
             entities.forEach(function(entity) {
                 var name = Entities.getEntityProperties(entity, "name").name;
-                if(name === "paintStroke") {
+                if (name === "paintStroke") {
                     Entities.deleteEntity(entity);
                 }
             });
