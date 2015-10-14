@@ -140,16 +140,18 @@ QByteArray MyAvatar::toByteArray(bool cullSmallChanges, bool sendAll) {
     return AvatarData::toByteArray(cullSmallChanges, sendAll);
 }
 
-void MyAvatar::reset() {
+void MyAvatar::reset(bool andReload) {
     // Gather animation mode...
     // This should be simpler when we have only graph animations always on.
     bool isRig = _rig->getEnableRig();
     // seting rig animation to true, below, will clear the graph animation menu item, so grab it now.
     bool isGraph = _rig->getEnableAnimGraph() || Menu::getInstance()->isOptionChecked(MenuOption::EnableAnimGraph);
     // ... and get to sane configuration where other activity won't bother us.
-    qApp->setRawAvatarUpdateThreading(false);
-    _rig->disableHands = true;
-    setEnableRigAnimations(true);
+    if (andReload) {
+        qApp->setRawAvatarUpdateThreading(false);
+        _rig->disableHands = true;
+        setEnableRigAnimations(true);
+    }
 
     // Reset dynamic state.
     _wasPushing = _isPushing = _isBraking = _billboardValid = _straighteningLean = false;
@@ -158,32 +160,34 @@ void MyAvatar::reset() {
     _targetVelocity = glm::vec3(0.0f);
     setThrust(glm::vec3(0.0f));
 
-    // Get fresh data, in case we're really slow and out of wack.
-    _hmdSensorMatrix = qApp->getHMDSensorPose();
-    _hmdSensorPosition = extractTranslation(_hmdSensorMatrix);
-    _hmdSensorOrientation = glm::quat_cast(_hmdSensorMatrix);
+    if (andReload) {
+        // Get fresh data, in case we're really slow and out of wack.
+        _hmdSensorMatrix = qApp->getHMDSensorPose();
+        _hmdSensorPosition = extractTranslation(_hmdSensorMatrix);
+        _hmdSensorOrientation = glm::quat_cast(_hmdSensorMatrix);
 
-    // Reset body position/orientation under the head.
-    auto newBodySensorMatrix = deriveBodyFromHMDSensor(); // Based on current cached HMD position/rotation..
-    auto worldBodyMatrix = _sensorToWorldMatrix * newBodySensorMatrix;
-    glm::vec3 worldBodyPos = extractTranslation(worldBodyMatrix);
-    glm::quat worldBodyRot = glm::normalize(glm::quat_cast(worldBodyMatrix));
+        // Reset body position/orientation under the head.
+        auto newBodySensorMatrix = deriveBodyFromHMDSensor(); // Based on current cached HMD position/rotation..
+        auto worldBodyMatrix = _sensorToWorldMatrix * newBodySensorMatrix;
+        glm::vec3 worldBodyPos = extractTranslation(worldBodyMatrix);
+        glm::quat worldBodyRot = glm::normalize(glm::quat_cast(worldBodyMatrix));
 
-    // FIXME: Hack to retain the previous behavior wrt height.
-    // I'd like to make the body match head height, but that will have to wait for separate PR.
-    worldBodyPos.y = getPosition().y;
+        // FIXME: Hack to retain the previous behavior wrt height.
+        // I'd like to make the body match head height, but that will have to wait for separate PR.
+        worldBodyPos.y = getPosition().y;
 
-    setPosition(worldBodyPos);
-    setOrientation(worldBodyRot);
-    // If there is any discrepency between positioning and the head (as there is in initial deriveBodyFromHMDSensor),
-    // we can make that right by setting _bodySensorMatrix = newBodySensorMatrix.
-    // However, doing so will make the head want to point to the previous body orientation, as cached above.
-    //_bodySensorMatrix = newBodySensorMatrix;
-    //updateSensorToWorldMatrix(); // Uses updated position/orientation and _bodySensorMatrix changes
+        setPosition(worldBodyPos);
+        setOrientation(worldBodyRot);
+        // If there is any discrepency between positioning and the head (as there is in initial deriveBodyFromHMDSensor),
+        // we can make that right by setting _bodySensorMatrix = newBodySensorMatrix.
+        // However, doing so will make the head want to point to the previous body orientation, as cached above.
+        //_bodySensorMatrix = newBodySensorMatrix;
+        //updateSensorToWorldMatrix(); // Uses updated position/orientation and _bodySensorMatrix changes
 
-    _skeletonModel.simulate(0.1f);  // non-zero
-    setEnableRigAnimations(false);
-    _skeletonModel.simulate(0.1f);
+        _skeletonModel.simulate(0.1f);  // non-zero
+        setEnableRigAnimations(false);
+        _skeletonModel.simulate(0.1f);
+    }
     if (isRig) {
         setEnableRigAnimations(true);
         Menu::getInstance()->setIsOptionChecked(MenuOption::EnableRigAnimations, true);
@@ -191,8 +195,10 @@ void MyAvatar::reset() {
         setEnableAnimGraph(true);
         Menu::getInstance()->setIsOptionChecked(MenuOption::EnableAnimGraph, true);
     }
-    _rig->disableHands = false;
-    qApp->setRawAvatarUpdateThreading();
+    if (andReload) {
+        _rig->disableHands = false;
+        qApp->setRawAvatarUpdateThreading();
+    }
 }
 
 void MyAvatar::update(float deltaTime) {
