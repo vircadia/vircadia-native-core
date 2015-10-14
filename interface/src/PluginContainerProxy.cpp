@@ -144,7 +144,7 @@ void PluginContainerProxy::unsetFullscreen(const QScreen* avoid) {
 
 void PluginContainerProxy::requestReset() {
     // We could signal qApp to sequence this, but it turns out that requestReset is only used from within the main thread anyway.
-    qApp->resetSensors();
+    qApp->resetSensors(true);
 }
 
 void PluginContainerProxy::showDisplayPluginsTools() {
