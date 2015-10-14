@@ -14,13 +14,49 @@
 #include <memory>
 #include <numeric>
 #include <functional>
+#include <map>
 
 #include <QtCore/QEasingCurve>
 
 class QJsonObject;
+class QJsonArray;
+
 
 namespace controller {
+    /*
+    template <class T> class Factory {
+    public:
 
+    template <class T> class Entry {
+    public:
+    virtual T* create() = 0;
+    };
+
+    template <class T, class S> class DefaultEntry{
+    public:
+    T* create() { return new S(); }
+    };
+
+    using EntryMap = std::map<std::string, std::unique_ptr<Entry<T>>>;
+
+    void registerEntry(const std::string& name, std::unique_ptr<Entry<T>>& entry) {
+    if (entry) {
+    _entries[name] = entry;
+    }
+    }
+
+    T* create(const std::string& name) const {
+    auto& entryIt = _entries.find(name);
+    if (entryIt != _entries.end()) {
+    return (*entryIt).second->create();
+    }
+    return nullptr;
+    }
+
+    protected:
+    EntryMap _entries;
+    };
+    */
     // Encapsulates part of a filter chain
     class Filter {
     public:
@@ -30,18 +66,71 @@ namespace controller {
         using List = std::list<Pointer>;
         using Lambda = std::function<float(float)>;
 
-        static Filter::Pointer parse(const QJsonObject& json);
-    };
+        // Factory features
+        virtual bool parseParameters(const QJsonArray& parameters) = 0;
 
+        class Factory {
+        public:
+
+            class Entry {
+            public:
+                virtual Filter* create() = 0;
+                
+                Entry() = default;
+                virtual ~Entry() = default;
+            };
+
+            template <class T> class ClassEntry {
+            public:
+                virtual Filter* create() { return (Filter*) new T(); }
+
+                ClassEntry() = default;
+                virtual ~ClassEntry() = default;
+            };
+
+            using EntryMap = std::map<std::string, std::shared_ptr<Entry>>;
+
+            void registerEntry(const std::string& name, const std::shared_ptr<Entry>& entry) {
+                if (entry) {
+                    _entries.insert(EntryMap::value_type(name, entry));
+                }
+            }
+
+            Filter* create(const std::string& name) const {
+                auto& entryIt = _entries.find(name);
+                if (entryIt != _entries.end()) {
+                    return (*entryIt).second->create();
+                }
+                return nullptr;
+            }
+
+        protected:
+            EntryMap _entries;
+        };
+
+        static Filter::Pointer parse(const QJsonObject& json);
+        static Factory& getFactory() { return _factory; }
+    protected:
+        static Factory _factory;
+    };
+}
+
+#define REGISTER_FILTER_CLASS(classEntry) static Filter::Factory::ClassEntry<classEntry> _factoryEntry;
+
+namespace controller {
 
     class LambdaFilter : public Filter {
     public:
+    //    LambdaFilter() {}
         LambdaFilter(Lambda f) : _function(f) {};
 
         virtual float apply(float value) const {
             return _function(value);
         }
 
+        virtual bool parseParameters(const QJsonArray& parameters) { return true; }
+
+//        REGISTER_FILTER_CLASS(LambdaFilter);
     private:
         Lambda _function;
     };
@@ -50,17 +139,21 @@ namespace controller {
     public:
 
     };
+   
+    class ScaleFilter : public Filter {
+    public:
+        ScaleFilter() {}
+        ScaleFilter(float scale): _scale(scale) {}
 
-    //class ScaleFilter : public Filter {
-    //public:
-    //    ScaleFilter(float scale);
-    //    virtual float apply(float scale) const override {
-    //        return value * _scale;
-    //    }
+        virtual float apply(float value) const override {
+            return value * _scale;
+        }
+        virtual bool parseParameters(const QJsonArray& parameters);
 
-    //private:
-    //    const float _scale;
-    //};
+        REGISTER_FILTER_CLASS(ScaleFilter);
+    private:
+        float _scale = 1.0f;
+    };
 
     //class AbstractRangeFilter : public Filter {
     //public:
@@ -83,6 +176,23 @@ namespace controller {
     //    float _lastEmitTime{ -std::numeric_limits<float>::max() };
     //    const float _interval;
     //};
+
+
+    class PulseFilter : public Filter {
+    public:
+        REGISTER_FILTER_CLASS(PulseFilter);
+        PulseFilter() {}
+        PulseFilter(float interval) : _interval(interval) {}
+
+
+        virtual float apply(float value) const override;
+
+        virtual bool parseParameters(const QJsonArray& parameters);
+
+    private:
+        mutable float _lastEmitTime{ -std::numeric_limits<float>::max() };
+        float _interval = 1.0f;
+    };
 
     ////class DeadzoneFilter : public AbstractRangeFilter {
     ////public:

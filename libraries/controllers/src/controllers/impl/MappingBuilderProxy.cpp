@@ -11,8 +11,8 @@
 #include <QtCore/QHash>
 #include <QtCore/QDebug>
 
-#include <QJSONObject>
-#include <qjsonarray.h>
+#include <QJSonObject>
+#include <QJSonArray>
 
 #include "RouteBuilderProxy.h"
 #include "../NewControllerScriptingInterface.h"
@@ -71,8 +71,6 @@ void MappingBuilderProxy::parseRoute(const QJsonValue& json) {
             auto route = dynamic_cast<RouteBuilderProxy*>(newRoute);
             route->filters(jsonChannel[JSON_CHANNEL_FILTERS]);
             route->to(jsonChannel[JSON_CHANNEL_TO]);
-
-            return 
         }
     }
 }
@@ -87,6 +85,3 @@ QObject* MappingBuilderProxy::from(const QJsonValue& json) {
 }
 
 
-Filter::List MappingBuilderProxy::parseFilters(const QJsonValue& json) const {
-    return Filter::List();
-}

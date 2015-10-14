@@ -16,6 +16,7 @@
 
 class QJSValue;
 class QScriptValue;
+class QJsonValue;
 
 namespace controller {
 

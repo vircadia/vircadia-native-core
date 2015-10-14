@@ -11,11 +11,66 @@
 #include <QtCore/QObject>
 #include <QtScript/QScriptValue>
 
-namespace controller {
+#include <QJSonObject>
+#include <QJSonArray>
 
-    Filter::Pointer Filter::parse(const QJsonObject& json) {
-        // FIXME parse the json object and determine the instance type to create
-        return Filter::Pointer();
+#include "SharedUtil.h"
+
+using namespace controller;
+
+
+const QString JSON_FILTER_TYPE = QStringLiteral("type");
+const QString JSON_FILTER_PARAMS = QStringLiteral("params");
+
+Filter::Factory Filter::_factory;
+
+Filter::Pointer Filter::parse(const QJsonObject& json) {
+    // The filter is an object, now let s check for type and potential arguments
+    Filter::Pointer filter;
+    auto filterType = json[JSON_FILTER_TYPE];
+    if (filterType.isString()) {
+        filter.reset(Filter::getFactory().create(filterType.toString().toStdString()));
+        if (filter) {
+            // Filter is defined, need to read the parameters and validate
+            auto parameters = json[JSON_FILTER_PARAMS];
+            if (parameters.isArray()) {
+                if (filter->parseParameters(parameters.toArray())) {
+                }
+            }
+
+            return filter;
+        }
     }
+    return Filter::Pointer();
 }
 
+Filter::Factory::ClassEntry<ScaleFilter> ScaleFilter::_factoryEntry;
+
+bool ScaleFilter::parseParameters(const QJsonArray& parameters) {
+    if (parameters.size() > 1) {
+        _scale = parameters[0].toDouble();
+    }
+    return true;
+}
+
+Filter::Factory::ClassEntry<PulseFilter> PulseFilter::_factoryEntry;
+
+
+float PulseFilter::apply(float value) const {
+    float result = 0.0;
+
+    if (0.0 != value) {
+        float now = secTimestampNow();
+        float delta = now - _lastEmitTime;
+        if (delta >= _interval) {
+            _lastEmitTime = now;
+            result = value;
+        }
+    }
+
+    return result;
+}
+
+bool PulseFilter::parseParameters(const QJsonArray& parameters) {
+    return false;
+}
