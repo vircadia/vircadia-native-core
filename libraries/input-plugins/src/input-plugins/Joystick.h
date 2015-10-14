@@ -20,8 +20,8 @@
 #undef main
 #endif
 
-#include "InputDevice.h"
-#include "StandardControls.h"
+#include <controllers/InputDevice.h>
+#include <controllers/StandardControls.h>
 
 class Joystick : public QObject, public InputDevice {
     Q_OBJECT

@@ -9,13 +9,10 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include <limits>
-
-#include <glm/glm.hpp>
-
 #include "Joystick.h"
 
-#include "StandardControls.h"
+#include <limits>
+#include <glm/glm.hpp>
 
 const float CONTROLLER_THRESHOLD = 0.3f;
 

@@ -16,9 +16,9 @@
 #include <SDL.h>
 #endif
 
-#include "InputPlugin.h"
-#include "UserInputMapper.h"
+#include <controllers/UserInputMapper.h>
 
+#include "InputPlugin.h"
 #include "Joystick.h"
 
 class SDL2Manager : public InputPlugin {

@@ -38,10 +38,10 @@
 #include <plugins/PluginManager.h>
 #include <input-plugins/InputPlugin.h>
 #include <input-plugins/KeyboardMouseDevice.h>
-#include <controllers/NewControllerScriptingInterface.h>
+#include <controllers/ScriptingInterface.h>
 
 #include <DependencyManager.h>
-#include <input-plugins/UserInputMapper.h>
+#include <controllers/UserInputMapper.h>
 
 const QString& getQmlDir() {
     static QString dir;
@@ -87,6 +87,22 @@ int main(int argc, char** argv) {
     }
 
 
+    QTimer timer;
+    QObject::connect(&timer, &QTimer::timeout, [] {
+        static float last = secTimestampNow();
+        float now = secTimestampNow();
+        float delta = now - last;
+        last = now;
+
+        foreach(auto inputPlugin, PluginManager::getInstance()->getInputPlugins()) {
+            inputPlugin->pluginUpdate(delta, false);
+        }
+
+        auto userInputMapper = DependencyManager::get<UserInputMapper>();
+        userInputMapper->update(delta);
+    });
+    timer.start(50);
+
     {
         DependencyManager::set<UserInputMapper>();
         foreach(auto inputPlugin, PluginManager::getInstance()->getInputPlugins()) {
@@ -98,17 +114,9 @@ int main(int argc, char** argv) {
                 keyboardMouseDevice->registerToUserInputMapper(*userInputMapper);
             }
         }
-
-
         //new PluginContainerProxy();
         auto rootContext = engine.rootContext();
-
-        auto controllers = new NewControllerScriptingInterface();
-        rootContext->setContextProperty("NewControllers", controllers);
-        QVariantMap map;
-        map.insert("Hardware", controllers->property("Hardware"));
-        map.insert("Actions", controllers->property("Actions"));
-        rootContext->setContextProperty("ControllerIds", map);
+        rootContext->setContextProperty("Controllers", new ScriptingInterface());
     }
     engine.load(getQmlDir() + "main.qml");
     app.exec();

@@ -22,7 +22,7 @@ Item {
     property string label: ""
 
     function update() {
-        value = NewControllers.getValue(controlId);
+        value = Controllers.getValue(controlId);
         canvas.requestPaint();
     }
 

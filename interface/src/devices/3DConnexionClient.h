@@ -13,7 +13,7 @@
 
 #include <QObject>
 #include <QLibrary>
-#include <input-plugins/UserInputMapper.h>
+#include <controllers/UserInputMapper.h>
 
 #include "InterfaceLogging.h"
 

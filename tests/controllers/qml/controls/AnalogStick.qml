@@ -15,8 +15,8 @@ Item {
 
     function update() {
         value = Qt.vector2d(
-            NewControllers.getValue(controlIds[0]),
-            NewControllers.getValue(controlIds[1])
+            Controllers.getValue(controlIds[0]),
+            Controllers.getValue(controlIds[1])
         );
         canvas.requestPaint();
     }

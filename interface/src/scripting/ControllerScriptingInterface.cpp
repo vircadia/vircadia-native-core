@@ -9,20 +9,18 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "ControllerScriptingInterface.h"
+
 #include <avatar/AvatarManager.h>
 #include <avatar/MyAvatar.h>
 #include <HandData.h>
 #include <HFBackEvent.h>
 
-#include <controllers/NewControllerScriptingInterface.h>
-
 #include "Application.h"
 #include "devices/MotionTracker.h"
-#include "ControllerScriptingInterface.h"
 
 // TODO: this needs to be removed, as well as any related controller-specific information
 #include <input-plugins/SixenseManager.h>
-
 
 ControllerScriptingInterface::ControllerScriptingInterface() :
     _mouseCaptured(false),
@@ -34,7 +32,6 @@ ControllerScriptingInterface::ControllerScriptingInterface() :
 }
 
 ControllerScriptingInterface::~ControllerScriptingInterface() {
-    delete _newControllerScriptingInterface;
 }
 
 
@@ -126,13 +123,6 @@ void ControllerScriptingInterface::registerControllerTypes(ScriptEngine* engine)
     qScriptRegisterMetaType(engine, inputChannelToScriptValue, inputChannelFromScriptValue);
     qScriptRegisterMetaType(engine, inputToScriptValue, inputFromScriptValue);
     qScriptRegisterMetaType(engine, inputPairToScriptValue, inputPairFromScriptValue);
-
-    wireUpControllers(engine);
-
-    // hack in the new controller scripting interface...
-    _newControllerScriptingInterface = new controller::NewControllerScriptingInterface();
-    engine->registerGlobalObject("NewControllers", _newControllerScriptingInterface);
-
 }
 
 void ControllerScriptingInterface::handleMetaEvent(HFMetaEvent* event) {
@@ -192,6 +182,7 @@ const PalmData* ControllerScriptingInterface::getActivePalm(int palmIndex) const
     return NULL;
 }
 
+/*
 bool ControllerScriptingInterface::isPrimaryButtonPressed() const {
     const PalmData* primaryPalm = getPrimaryPalm();
     if (primaryPalm) {
@@ -345,6 +336,7 @@ glm::vec3 ControllerScriptingInterface::getSpatialControlNormal(int controlIndex
     }
     return glm::vec3(0); // bad index
 }
+*/
 
 bool ControllerScriptingInterface::isKeyCaptured(QKeyEvent* event) const {
     return isKeyCaptured(KeyEvent(*event));
@@ -395,96 +387,49 @@ glm::vec2 ControllerScriptingInterface::getViewportDimensions() const {
     return qApp->getUiSize();
 }
 
-QString ControllerScriptingInterface::sanatizeName(const QString& name) {
-    QString cleanName { name };
-    cleanName.remove(QRegularExpression{"[\\(\\)\\.\\s]"});
-    return cleanName;
-}
-
-void ControllerScriptingInterface::wireUpControllers(ScriptEngine* engine) {
-
-    // Controller.Standard.*
-    auto standardDevice = DependencyManager::get<UserInputMapper>()->getStandardDevice();
-    if (standardDevice) {
-        auto deviceName = sanatizeName(standardDevice->getName());
-        auto deviceInputs = standardDevice->getAvailabeInputs();
-        for (const auto& inputMapping : deviceInputs) {
-            auto input = inputMapping.first;
-            auto inputName = sanatizeName(inputMapping.second);
-            QString deviceInputName{ "Controller." + deviceName + "." + inputName };
-            engine->registerValue(deviceInputName, input.getID());
-        }
-    }
-
-    // Controller.Hardware.*
-    auto devices = DependencyManager::get<UserInputMapper>()->getDevices();
-    for(const auto& deviceMapping : devices) {
-        auto device = deviceMapping.second.get();
-        auto deviceName = sanatizeName(device->getName());
-        auto deviceInputs = device->getAvailabeInputs();
-        for (const auto& inputMapping : deviceInputs) {
-            auto input = inputMapping.first;
-            auto inputName = sanatizeName(inputMapping.second);
-            QString deviceInputName { "Controller.Hardware." + deviceName + "." + inputName };
-            engine->registerValue(deviceInputName, input.getID());
-        }
-    }
-
-    // Controller.Actions.*
-    auto actionNames = DependencyManager::get<UserInputMapper>()->getActionNames();
-    int actionNumber = 0;
-    for (const auto& actionName : actionNames) {
-        QString safeActionName { "Controller.Actions." + sanatizeName(actionName) };
-        engine->registerValue(safeActionName, actionNumber);
-        actionNumber++;
-    }
-}
-
-AbstractInputController* ControllerScriptingInterface::createInputController(const QString& deviceName, const QString& tracker) {
+controller::InputController::Pointer ControllerScriptingInterface::createInputController(const QString& deviceName, const QString& tracker) {
     // This is where we retreive the Device Tracker category and then the sub tracker within it
-    //TODO C++11 auto icIt = _inputControllers.find(0);
-    InputControllerMap::iterator icIt = _inputControllers.find(0);
-
+    auto icIt = _inputControllers.find(0);
     if (icIt != _inputControllers.end()) {
         return (*icIt).second;
-    } else {
+    } 
 
-        // Look for device
-        DeviceTracker::ID deviceID = DeviceTracker::getDeviceID(deviceName.toStdString());
-        if (deviceID < 0) {
-            deviceID = 0;
-        }
-        // TODO in this current implementation, we just pick the device assuming there is one (normally the Leapmotion)
-        // in the near future we need to change that to a real mapping between the devices and the deviceName
-        // ALso we need to expand the spec so we can fall back on  the "default" controller per categories
 
-        if (deviceID >= 0) {
-            // TODO here again the assumption it's the LeapMotion and so it's a MOtionTracker, this would need to be changed to support different types of devices
-            MotionTracker* motionTracker = dynamic_cast< MotionTracker* > (DeviceTracker::getDevice(deviceID));
-            if (motionTracker) {
-                MotionTracker::Index trackerID = motionTracker->findJointIndex(tracker.toStdString());
-                if (trackerID >= 0) {
-                    AbstractInputController* inputController = new InputController(deviceID, trackerID, this);
+    // Look for device
+    DeviceTracker::ID deviceID = DeviceTracker::getDeviceID(deviceName.toStdString());
+    if (deviceID < 0) {
+        deviceID = 0;
+    }
+    // TODO in this current implementation, we just pick the device assuming there is one (normally the Leapmotion)
+    // in the near future we need to change that to a real mapping between the devices and the deviceName
+    // ALso we need to expand the spec so we can fall back on  the "default" controller per categories
 
-                    _inputControllers.insert(InputControllerMap::value_type(inputController->getKey(), inputController));
-
-                    return inputController;
-                }
+    if (deviceID >= 0) {
+        // TODO here again the assumption it's the LeapMotion and so it's a MOtionTracker, this would need to be changed to support different types of devices
+        MotionTracker* motionTracker = dynamic_cast< MotionTracker* > (DeviceTracker::getDevice(deviceID));
+        if (motionTracker) {
+            MotionTracker::Index trackerID = motionTracker->findJointIndex(tracker.toStdString());
+            if (trackerID >= 0) {
+                controller::InputController::Pointer inputController = std::make_shared<InputController>(deviceID, trackerID, this);
+                controller::InputController::Key key = inputController->getKey();
+                _inputControllers.insert(InputControllerMap::value_type(inputController->getKey(), inputController));
+                return inputController;
             }
         }
-
-        return 0;
     }
+
+    return controller::InputController::Pointer();
 }
 
-void ControllerScriptingInterface::releaseInputController(AbstractInputController* input) {
+void ControllerScriptingInterface::releaseInputController(controller::InputController::Pointer input) {
     _inputControllers.erase(input->getKey());
 }
 
-void ControllerScriptingInterface::updateInputControllers() {
-    //TODO C++11 for (auto it = _inputControllers.begin(); it != _inputControllers.end(); it++) {
-    for (InputControllerMap::iterator it = _inputControllers.begin(); it != _inputControllers.end(); it++) {
-        (*it).second->update();
+void ControllerScriptingInterface::update() {
+    controller::ScriptingInterface::update();
+
+    for (auto entry : _inputControllers) {
+        entry.second->update();
     }
 }
 
@@ -545,7 +490,6 @@ QVector<QString> ControllerScriptingInterface::getActionNames() const {
 }
 
 InputController::InputController(int deviceTrackerId, int subTrackerId, QObject* parent) :
-    AbstractInputController(),
     _deviceTrackerId(deviceTrackerId),
     _subTrackerId(subTrackerId),
     _isActive(false)
@@ -568,7 +512,7 @@ void InputController::update() {
                 joint->getLocFrame().getRotation(_eventCache.locRotation);
 
                 _isActive = true;
-                emit spatialEvent(_eventCache);
+                //emit spatialEvent(_eventCache);
             }
         }
     }
@@ -580,3 +524,19 @@ const unsigned int INPUTCONTROLLER_KEY_DEVICE_MASK = 16;
 InputController::Key InputController::getKey() const {
     return (((_deviceTrackerId & INPUTCONTROLLER_KEY_DEVICE_MASK) << INPUTCONTROLLER_KEY_DEVICE_OFFSET) | _subTrackerId);
 }
+
+
+void ControllerScriptingInterface::emitKeyPressEvent(QKeyEvent* event) { emit keyPressEvent(KeyEvent(*event)); }
+void ControllerScriptingInterface::emitKeyReleaseEvent(QKeyEvent* event) { emit keyReleaseEvent(KeyEvent(*event)); }
+
+void ControllerScriptingInterface::emitMouseMoveEvent(QMouseEvent* event, unsigned int deviceID) { emit mouseMoveEvent(MouseEvent(*event, deviceID)); }
+void ControllerScriptingInterface::emitMousePressEvent(QMouseEvent* event, unsigned int deviceID) { emit mousePressEvent(MouseEvent(*event, deviceID)); }
+void ControllerScriptingInterface::emitMouseDoublePressEvent(QMouseEvent* event, unsigned int deviceID) { emit mouseDoublePressEvent(MouseEvent(*event, deviceID)); }
+void ControllerScriptingInterface::emitMouseReleaseEvent(QMouseEvent* event, unsigned int deviceID) { emit mouseReleaseEvent(MouseEvent(*event, deviceID)); }
+
+void ControllerScriptingInterface::emitTouchBeginEvent(const TouchEvent& event) { emit touchBeginEvent(event); }
+void ControllerScriptingInterface::emitTouchEndEvent(const TouchEvent& event) { emit touchEndEvent(event); }
+void ControllerScriptingInterface::emitTouchUpdateEvent(const TouchEvent& event) { emit touchUpdateEvent(event); }
+
+void ControllerScriptingInterface::emitWheelEvent(QWheelEvent* event) { emit wheelEvent(*event); }
+
