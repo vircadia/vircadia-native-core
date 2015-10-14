@@ -35,7 +35,8 @@ JSConsole::JSConsole(QWidget* parent, ScriptEngine* scriptEngine) :
     _ui(new Ui::Console),
     _currentCommandInHistory(NO_CURRENT_HISTORY_COMMAND),
     _commandHistory(),
-    _scriptEngine(scriptEngine) {
+    _ownScriptEngine(scriptEngine == NULL),
+    _scriptEngine(NULL) {
 
     _ui->setupUi(this);
     _ui->promptTextEdit->setLineWrapMode(QTextEdit::NoWrap);
@@ -51,21 +52,38 @@ JSConsole::JSConsole(QWidget* parent, ScriptEngine* scriptEngine) :
     connect(_ui->scrollArea->verticalScrollBar(), SIGNAL(rangeChanged(int, int)), this, SLOT(scrollToBottom()));
     connect(_ui->promptTextEdit, SIGNAL(textChanged()), this, SLOT(resizeTextInput()));
 
-
-    if (_scriptEngine == NULL) {
-        _scriptEngine = qApp->loadScript(QString(), false);
-    }
-
-    connect(_scriptEngine, SIGNAL(evaluationFinished(QScriptValue, bool)),
-            this, SLOT(handleEvalutationFinished(QScriptValue, bool)));
-    connect(_scriptEngine, SIGNAL(printedMessage(const QString&)), this, SLOT(handlePrint(const QString&)));
-    connect(_scriptEngine, SIGNAL(errorMessage(const QString&)), this, SLOT(handleError(const QString&)));
+    setScriptEngine(scriptEngine);
 
     resizeTextInput();
 }
 
 JSConsole::~JSConsole() {
+    disconnect(_scriptEngine, SIGNAL(printedMessage(const QString&)), this, SLOT(handlePrint(const QString&)));
+    disconnect(_scriptEngine, SIGNAL(errorMessage(const QString&)), this, SLOT(handleError(const QString&)));
+    if (_ownScriptEngine) {
+        _scriptEngine->deleteLater();
+    }
     delete _ui;
+}
+
+void JSConsole::setScriptEngine(ScriptEngine* scriptEngine) {
+    if (_scriptEngine == scriptEngine && scriptEngine != NULL) {
+        return;
+    }
+    if (_scriptEngine != NULL) {
+        disconnect(_scriptEngine, SIGNAL(printedMessage(const QString&)), this, SLOT(handlePrint(const QString&)));
+        disconnect(_scriptEngine, SIGNAL(errorMessage(const QString&)), this, SLOT(handleError(const QString&)));
+        if (_ownScriptEngine) {
+            _scriptEngine->deleteLater();
+        }
+    }
+
+    // if scriptEngine is NULL then create one and keep track of it using _ownScriptEngine
+    _ownScriptEngine = scriptEngine == NULL;
+    _scriptEngine = _ownScriptEngine ? qApp->loadScript(QString(), false) : scriptEngine;
+
+    connect(_scriptEngine, SIGNAL(printedMessage(const QString&)), this, SLOT(handlePrint(const QString&)));
+    connect(_scriptEngine, SIGNAL(errorMessage(const QString&)), this, SLOT(handleError(const QString&)));
 }
 
 void JSConsole::executeCommand(const QString& command) {
@@ -78,12 +96,10 @@ void JSConsole::executeCommand(const QString& command) {
 
     appendMessage(">", "<span style='" + COMMAND_STYLE + "'>" + command.toHtmlEscaped() + "</span>");
 
-    QMetaObject::invokeMethod(_scriptEngine, "evaluate", Q_ARG(const QString&, command));
+    QScriptValue result;
+    QMetaObject::invokeMethod(_scriptEngine, "evaluate", Qt::ConnectionType::BlockingQueuedConnection,
+        Q_RETURN_ARG(QScriptValue, result), Q_ARG(const QString&, command));
 
-    resetCurrentCommandHistory();
-}
-
-void JSConsole::handleEvalutationFinished(QScriptValue result, bool isException) {
     _ui->promptTextEdit->setDisabled(false);
 
     // Make sure focus is still on this window - some commands are blocking and can take awhile to execute.
@@ -91,10 +107,13 @@ void JSConsole::handleEvalutationFinished(QScriptValue result, bool isException)
         _ui->promptTextEdit->setFocus();
     }
     
-    QString gutter = (isException || result.isError()) ? GUTTER_ERROR : GUTTER_PREVIOUS_COMMAND;
-    QString resultColor = (isException || result.isError()) ? RESULT_ERROR_STYLE : RESULT_SUCCESS_STYLE;
+    bool error = (_scriptEngine->hasUncaughtException() || result.isError());
+    QString gutter = error ? GUTTER_ERROR : GUTTER_PREVIOUS_COMMAND;
+    QString resultColor = error ? RESULT_ERROR_STYLE : RESULT_SUCCESS_STYLE;
     QString resultStr = "<span style='" + resultColor + "'>" + result.toString().toHtmlEscaped()  + "</span>";
     appendMessage(gutter, resultStr);
+
+    resetCurrentCommandHistory();
 }
 
 void JSConsole::handleError(const QString& message) {
@@ -230,6 +249,16 @@ void JSConsole::appendMessage(const QString& gutter, const QString& message) {
 
     _ui->logArea->layout()->addWidget(logLine);
 
+    _ui->logArea->updateGeometry();
+    scrollToBottom();
+}
+
+void JSConsole::clear() {
+    QLayoutItem* item;
+    while ((item = _ui->logArea->layout()->takeAt(0)) != NULL) {
+        delete item->widget();
+        delete item;
+    }
     _ui->logArea->updateGeometry();
     scrollToBottom();
 }

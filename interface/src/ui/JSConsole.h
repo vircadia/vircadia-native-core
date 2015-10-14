@@ -31,6 +31,9 @@ public:
     JSConsole(QWidget* parent, ScriptEngine* scriptEngine = NULL);
     ~JSConsole();
 
+    void setScriptEngine(ScriptEngine* scriptEngine = NULL);
+    void clear();
+
 public slots:
     void executeCommand(const QString& command);
 
@@ -47,7 +50,6 @@ protected:
 protected slots:
     void scrollToBottom();
     void resizeTextInput();
-    void handleEvalutationFinished(QScriptValue result, bool isException);
     void handlePrint(const QString& message);
     void handleError(const QString& message);
 
@@ -60,6 +62,8 @@ private:
     Ui::Console* _ui;
     int _currentCommandInHistory;
     QList<QString> _commandHistory;
+    // Keeps track if the script engine is created inside the JSConsole
+    bool _ownScriptEngine;
     QString _rootCommand;
     ScriptEngine* _scriptEngine;
 };
