@@ -416,20 +416,15 @@ void RayToEntityIntersectionResultFromScriptValue(const QScriptValue& object, Ra
     QString faceName = object.property("face").toVariant().toString();
     if (faceName == "MIN_X_FACE") {
         value.face = MIN_X_FACE;
-    }
-    else if (faceName == "MAX_X_FACE") {
+    } else if (faceName == "MAX_X_FACE") {
         value.face = MAX_X_FACE;
-    }
-    else if (faceName == "MIN_Y_FACE") {
+    } else if (faceName == "MIN_Y_FACE") {
         value.face = MIN_Y_FACE;
-    }
-    else if (faceName == "MAX_Y_FACE") {
+    } else if (faceName == "MAX_Y_FACE") {
         value.face = MAX_Y_FACE;
-    }
-    else if (faceName == "MIN_Z_FACE") {
+    } else if (faceName == "MIN_Z_FACE") {
         value.face = MIN_Z_FACE;
-    }
-    else {
+    } else {
         value.face = MAX_Z_FACE;
     };
     QScriptValue intersection = object.property("intersection");

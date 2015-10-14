@@ -16,16 +16,10 @@
 
 Script.include("../../libraries/utils.js");
 var scriptURL = Script.resolvePath("whiteboardEntityScript.js");
-
 var rotation = Quat.safeEulerAngles(Camera.getOrientation());
 rotation = Quat.fromPitchYawRollDegrees(0, rotation.y, 0);
 var center = Vec3.sum(MyAvatar.position, Vec3.multiply(3, Quat.getFront(rotation)));
 center.y += 0.4;
-var whiteboardDimensions = {
-    x: 2,
-    y: 1.5,
-    z: 0.01
-};
 
 var colors = [
     hexToRgb("#2F8E84"),
@@ -36,8 +30,16 @@ var colors = [
     hexToRgb("#993369"),
     hexToRgb("#9B47C2")
 ];
+
+//WHITEBOARD
+var whiteboardDimensions = {
+    x: 2,
+    y: 1.5,
+    z: 0.02
+};
 var whiteboard = Entities.addEntity({
-    type: "Box",
+    type: "Model",
+    modelURL: "https://hifi-public.s3.amazonaws.com/ozan/support/for_eric/whiteboard/whiteboard.fbx",
     name: "whiteboard",
     position: center,
     rotation: rotation,
@@ -53,19 +55,34 @@ var whiteboard = Entities.addEntity({
     })
 });
 
-//COLORS
 
+// COLOR INDICATOR BOX
+var colorIndicatorDimensions = {
+    x: whiteboardDimensions.x,
+    y: 0.2,
+    z: 0.02
+};
+scriptURL = Script.resolvePath("colorIndicatorEntityScript.js");
+var colorIndicatorPosition = Vec3.sum(center, {x: 0, y: whiteboardDimensions.y/2, z: 0});
+var colorIndicatorBox = Entities.addEntity({
+    type: "Box",
+    color: colors[0],
+    rotation: rotation,
+    position: colorIndicatorPosition,
+    dimensions: colorIndicatorDimensions,
+    script: scriptURL
+});
+
+//COLOR BOXES
 var direction = Quat.getRight(rotation);
 var colorBoxPosition = Vec3.subtract(center, Vec3.multiply(direction, whiteboardDimensions.x / 2));
-
 var colorBoxes = [];
-
 var colorSquareDimensions = {
     x: (whiteboardDimensions.x / 2) / (colors.length - 1),
     y: 0.1,
     z: 0.05
 };
-colorBoxPosition.y += whiteboardDimensions.y / 2 + colorSquareDimensions.y / 2 - 0.01;
+colorBoxPosition.y += whiteboardDimensions.y / 2 + colorIndicatorDimensions.y/2 +  colorSquareDimensions.y / 2 - 0.01;
 var spaceBetweenColorBoxes = Vec3.multiply(direction, colorSquareDimensions.x * 2);
 var scriptURL = Script.resolvePath("colorSelectorEntityScript.js");
 for (var i = 0; i < colors.length; i++) {
@@ -77,13 +94,16 @@ for (var i = 0; i < colors.length; i++) {
         color: colors[i],
         script: scriptURL,
         userData: JSON.stringify({
-            whiteboard: whiteboard
+            whiteboard: whiteboard,
+            colorIndicator: colorIndicatorBox
         })
     });
     colorBoxes.push(colorBox);
     colorBoxPosition = Vec3.sum(colorBoxPosition, spaceBetweenColorBoxes);
 }
 
+
+// BLACK BOX
 var blackBoxDimensions = {x: .2, y: .2, z: 0.05};
 colorBoxPosition = Vec3.subtract(center, Vec3.multiply(direction, whiteboardDimensions.x / 2 + blackBoxDimensions.x/2 - 0.01));
 colorBoxPosition.y += 0.3;
@@ -146,4 +166,4 @@ function cleanup() {
 
 
 // Uncomment this line to delete whiteboard and all associated entity on script close
-// Script.scriptEnding.connect(cleanup);
+Script.scriptEnding.connect(cleanup);
