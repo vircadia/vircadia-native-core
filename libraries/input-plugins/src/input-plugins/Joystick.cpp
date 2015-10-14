@@ -60,11 +60,11 @@ void Joystick::focusOutEvent() {
 
 void Joystick::handleAxisEvent(const SDL_ControllerAxisEvent& event) {
     SDL_GameControllerAxis axis = (SDL_GameControllerAxis) event.axis;
-    _axisStateMap[makeInput((Controllers::StandardAxisChannel)axis).getChannel()] = (float)event.value / MAX_AXIS;
+    _axisStateMap[makeInput((controller::StandardAxisChannel)axis).getChannel()] = (float)event.value / MAX_AXIS;
 }
 
 void Joystick::handleButtonEvent(const SDL_ControllerButtonEvent& event) {
-    auto input = makeInput((Controllers::StandardButtonChannel)event.button);
+    auto input = makeInput((controller::StandardButtonChannel)event.button);
     bool newValue = event.state == SDL_PRESSED;
     if (newValue) {
         _buttonPressedMap.insert(input.getChannel());
@@ -86,55 +86,55 @@ void Joystick::registerToUserInputMapper(UserInputMapper& mapper) {
     proxy->getAvailabeInputs = [this] () -> QVector<UserInputMapper::InputPair> {
         QVector<UserInputMapper::InputPair> availableInputs;
         // Buttons
-        availableInputs.append(UserInputMapper::InputPair(makeInput(Controllers::A), "A"));
-        availableInputs.append(UserInputMapper::InputPair(makeInput(Controllers::B), "B"));
-        availableInputs.append(UserInputMapper::InputPair(makeInput(Controllers::X), "X"));
-        availableInputs.append(UserInputMapper::InputPair(makeInput(Controllers::Y), "Y"));
+        availableInputs.append(UserInputMapper::InputPair(makeInput(controller::A), "A"));
+        availableInputs.append(UserInputMapper::InputPair(makeInput(controller::B), "B"));
+        availableInputs.append(UserInputMapper::InputPair(makeInput(controller::X), "X"));
+        availableInputs.append(UserInputMapper::InputPair(makeInput(controller::Y), "Y"));
 
         // DPad
-        availableInputs.append(UserInputMapper::InputPair(makeInput(Controllers::DU), "DU"));
-        availableInputs.append(UserInputMapper::InputPair(makeInput(Controllers::DD), "DD"));
-        availableInputs.append(UserInputMapper::InputPair(makeInput(Controllers::DL), "DL"));
-        availableInputs.append(UserInputMapper::InputPair(makeInput(Controllers::DR), "DR"));
+        availableInputs.append(UserInputMapper::InputPair(makeInput(controller::DU), "DU"));
+        availableInputs.append(UserInputMapper::InputPair(makeInput(controller::DD), "DD"));
+        availableInputs.append(UserInputMapper::InputPair(makeInput(controller::DL), "DL"));
+        availableInputs.append(UserInputMapper::InputPair(makeInput(controller::DR), "DR"));
 
         // Bumpers
-        availableInputs.append(UserInputMapper::InputPair(makeInput(Controllers::LB), "LB"));
-        availableInputs.append(UserInputMapper::InputPair(makeInput(Controllers::RB), "RB"));
+        availableInputs.append(UserInputMapper::InputPair(makeInput(controller::LB), "LB"));
+        availableInputs.append(UserInputMapper::InputPair(makeInput(controller::RB), "RB"));
 
         // Stick press
-        availableInputs.append(UserInputMapper::InputPair(makeInput(Controllers::LS), "LS"));
-        availableInputs.append(UserInputMapper::InputPair(makeInput(Controllers::RS), "RS"));
+        availableInputs.append(UserInputMapper::InputPair(makeInput(controller::LS), "LS"));
+        availableInputs.append(UserInputMapper::InputPair(makeInput(controller::RS), "RS"));
 
         // Center buttons
-        availableInputs.append(UserInputMapper::InputPair(makeInput(Controllers::START), "Start"));
-        availableInputs.append(UserInputMapper::InputPair(makeInput(Controllers::BACK), "Back"));
+        availableInputs.append(UserInputMapper::InputPair(makeInput(controller::START), "Start"));
+        availableInputs.append(UserInputMapper::InputPair(makeInput(controller::BACK), "Back"));
 
         // Analog sticks
-        availableInputs.append(UserInputMapper::InputPair(makeInput(Controllers::LY), "LY"));
-        availableInputs.append(UserInputMapper::InputPair(makeInput(Controllers::LX), "LX"));
-        availableInputs.append(UserInputMapper::InputPair(makeInput(Controllers::RY), "RY"));
-        availableInputs.append(UserInputMapper::InputPair(makeInput(Controllers::RX), "RX"));
+        availableInputs.append(UserInputMapper::InputPair(makeInput(controller::LY), "LY"));
+        availableInputs.append(UserInputMapper::InputPair(makeInput(controller::LX), "LX"));
+        availableInputs.append(UserInputMapper::InputPair(makeInput(controller::RY), "RY"));
+        availableInputs.append(UserInputMapper::InputPair(makeInput(controller::RX), "RX"));
 
         // Triggers
-        availableInputs.append(UserInputMapper::InputPair(makeInput(Controllers::LT), "LT"));
-        availableInputs.append(UserInputMapper::InputPair(makeInput(Controllers::RT), "RT"));
+        availableInputs.append(UserInputMapper::InputPair(makeInput(controller::LT), "LT"));
+        availableInputs.append(UserInputMapper::InputPair(makeInput(controller::RT), "RT"));
 
         // Aliases, PlayStation style names
-        availableInputs.append(UserInputMapper::InputPair(makeInput(Controllers::LB), "L1"));
-        availableInputs.append(UserInputMapper::InputPair(makeInput(Controllers::RB), "R1"));
-        availableInputs.append(UserInputMapper::InputPair(makeInput(Controllers::LT), "L2"));
-        availableInputs.append(UserInputMapper::InputPair(makeInput(Controllers::RT), "R2"));
-        availableInputs.append(UserInputMapper::InputPair(makeInput(Controllers::LS), "L3"));
-        availableInputs.append(UserInputMapper::InputPair(makeInput(Controllers::RS), "R3"));
-        availableInputs.append(UserInputMapper::InputPair(makeInput(Controllers::BACK), "Select"));
-        availableInputs.append(UserInputMapper::InputPair(makeInput(Controllers::A), "Cross"));
-        availableInputs.append(UserInputMapper::InputPair(makeInput(Controllers::B), "Circle"));
-        availableInputs.append(UserInputMapper::InputPair(makeInput(Controllers::X), "Square"));
-        availableInputs.append(UserInputMapper::InputPair(makeInput(Controllers::Y), "Triangle"));
-        availableInputs.append(UserInputMapper::InputPair(makeInput(Controllers::DU), "Up"));
-        availableInputs.append(UserInputMapper::InputPair(makeInput(Controllers::DD), "Down"));
-        availableInputs.append(UserInputMapper::InputPair(makeInput(Controllers::DL), "Left"));
-        availableInputs.append(UserInputMapper::InputPair(makeInput(Controllers::DR), "Right"));
+        availableInputs.append(UserInputMapper::InputPair(makeInput(controller::LB), "L1"));
+        availableInputs.append(UserInputMapper::InputPair(makeInput(controller::RB), "R1"));
+        availableInputs.append(UserInputMapper::InputPair(makeInput(controller::LT), "L2"));
+        availableInputs.append(UserInputMapper::InputPair(makeInput(controller::RT), "R2"));
+        availableInputs.append(UserInputMapper::InputPair(makeInput(controller::LS), "L3"));
+        availableInputs.append(UserInputMapper::InputPair(makeInput(controller::RS), "R3"));
+        availableInputs.append(UserInputMapper::InputPair(makeInput(controller::BACK), "Select"));
+        availableInputs.append(UserInputMapper::InputPair(makeInput(controller::A), "Cross"));
+        availableInputs.append(UserInputMapper::InputPair(makeInput(controller::B), "Circle"));
+        availableInputs.append(UserInputMapper::InputPair(makeInput(controller::X), "Square"));
+        availableInputs.append(UserInputMapper::InputPair(makeInput(controller::Y), "Triangle"));
+        availableInputs.append(UserInputMapper::InputPair(makeInput(controller::DU), "Up"));
+        availableInputs.append(UserInputMapper::InputPair(makeInput(controller::DD), "Down"));
+        availableInputs.append(UserInputMapper::InputPair(makeInput(controller::DL), "Left"));
+        availableInputs.append(UserInputMapper::InputPair(makeInput(controller::DR), "Right"));
 
         return availableInputs;
     };
@@ -157,11 +157,11 @@ void Joystick::assignDefaultInputMapping(UserInputMapper& mapper) {
 #endif
 }
 
-UserInputMapper::Input Joystick::makeInput(Controllers::StandardButtonChannel button) {
+UserInputMapper::Input Joystick::makeInput(controller::StandardButtonChannel button) {
     return UserInputMapper::Input(_deviceID, button, UserInputMapper::ChannelType::BUTTON);
 }
 
-UserInputMapper::Input Joystick::makeInput(Controllers::StandardAxisChannel axis) {
+UserInputMapper::Input Joystick::makeInput(controller::StandardAxisChannel axis) {
     return UserInputMapper::Input(_deviceID, axis, UserInputMapper::ChannelType::AXIS);
 }
 

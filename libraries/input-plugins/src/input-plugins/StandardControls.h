@@ -7,7 +7,7 @@
 //
 #pragma once
 
-namespace Controllers {
+namespace controller {
 
     // Needs to match order and values of SDL_GameControllerButton
     enum StandardButtonChannel {
@@ -30,7 +30,8 @@ namespace Controllers {
         DU,
         DD,
         DL,
-        DR
+        DR,
+        NUM_STANDARD_BUTTONS
     };
 
     // Needs to match order and values of SDL_GameControllerAxis
@@ -43,13 +44,16 @@ namespace Controllers {
         RY,
         // Triggers
         LT,
-        RT
+        RT,
+        NUM_STANDARD_AXES
     };
 
     // No correlation to SDL
     enum StandardPoseChannel {
-        LeftPose = 0,
-        RightPose
+        LEFT = 0,
+        RIGHT,
+        HEAD,
+        NUM_STANDARD_POSES
     };
 
 }
