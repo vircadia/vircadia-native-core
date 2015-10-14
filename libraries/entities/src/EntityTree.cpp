@@ -610,10 +610,10 @@ int EntityTree::processEditPacketData(NLPacket& packet, const unsigned char* edi
                     // if the EntityItem exists, then update it
                     startLogging = usecTimestampNow();
                     if (wantEditLogging()) {
-
-                        // qCDebug(entities) << "User [" << senderNode->getUUID() << "] editing entity. ID:" << entityItemID;
-                        // qCDebug(entities) << "   properties:" << properties;
-
+                        qCDebug(entities) << "User [" << senderNode->getUUID() << "] editing entity. ID:" << entityItemID;
+                        qCDebug(entities) << "   properties:" << properties;
+                    }
+                    if (wantTerseEditLogging()) {
                         qCDebug(entities) << "edit" << entityItemID.toString() << properties.listChangedProperties();
                     }
                     endLogging = usecTimestampNow();
@@ -640,6 +640,9 @@ int EntityTree::processEditPacketData(NLPacket& packet, const unsigned char* edi
                                 qCDebug(entities) << "User [" << senderNode->getUUID() << "] added entity. ID:"
                                                 << newEntity->getEntityItemID();
                                 qCDebug(entities) << "   properties:" << properties;
+                            }
+                            if (wantTerseEditLogging()) {
+                                qCDebug(entities) << "add" << entityItemID.toString() << properties.listChangedProperties();
                             }
                             endLogging = usecTimestampNow();
 
@@ -872,7 +875,7 @@ int EntityTree::processEraseMessage(NLPacket& packet, const SharedNodePointer& s
                 EntityItemID entityItemID(entityID);
                 entityItemIDsToDelete << entityItemID;
 
-                if (wantEditLogging()) {
+                if (wantEditLogging() || wantTerseEditLogging()) {
                     qCDebug(entities) << "User [" << sourceNode->getUUID() << "] deleting entity. ID:" << entityItemID;
                 }
 
@@ -916,7 +919,7 @@ int EntityTree::processEraseMessageDetails(const QByteArray& dataByteArray, cons
             EntityItemID entityItemID(entityID);
             entityItemIDsToDelete << entityItemID;
 
-            if (wantEditLogging()) {
+            if (wantEditLogging() || wantTerseEditLogging()) {
                 qCDebug(entities) << "User [" << sourceNode->getUUID() << "] deleting entity. ID:" << entityItemID;
             }
 

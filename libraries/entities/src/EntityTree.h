@@ -175,6 +175,9 @@ public:
     bool wantEditLogging() const { return _wantEditLogging; }
     void setWantEditLogging(bool value) { _wantEditLogging = value; }
 
+    bool wantTerseEditLogging() const { return _wantTerseEditLogging; }
+    void setWantTerseEditLogging(bool value) { _wantTerseEditLogging = value; }
+
     bool writeToMap(QVariantMap& entityDescription, OctreeElementPointer element, bool skipDefaultValues);
     bool readFromMap(QVariantMap& entityDescription);
 
@@ -240,6 +243,7 @@ private:
     EntitySimulation* _simulation;
 
     bool _wantEditLogging = false;
+    bool _wantTerseEditLogging = false;
     void maybeNotifyNewCollisionSoundURL(const QString& oldCollisionSoundURL, const QString& newCollisionSoundURL);
 
 
