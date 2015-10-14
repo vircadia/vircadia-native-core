@@ -568,7 +568,7 @@ function MyController(hand, triggerAction) {
             this.setState(STATE_RELEASE);
             return;
         }
-    
+        
         Entities.callEntityMethod(this.grabbedEntity, "continueNearGrabbingNonColliding");
     };
 
