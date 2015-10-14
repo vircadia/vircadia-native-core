@@ -132,7 +132,6 @@ var eraseAllText = Entities.addEntity({
         whiteboard: whiteboard
     })
 });
-print(JSON.stringify(Entities.getEntityProperties(eraseAllText)))
 
 
 
