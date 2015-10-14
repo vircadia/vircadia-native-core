@@ -437,16 +437,6 @@ void Rig::computeMotionAnimationState(float deltaTime, const glm::vec3& worldPos
         static float t = 0.0f;
         _animVars.set("sine", static_cast<float>(0.5 * sin(t) + 0.5));
 
-        // default anim vars to notMoving and notTurning
-        _animVars.set("isMovingForward", false);
-        _animVars.set("isMovingBackward", false);
-        _animVars.set("isMovingLeft", false);
-        _animVars.set("isMovingRight", false);
-        _animVars.set("isNotMoving", true);
-        _animVars.set("isTurningLeft", false);
-        _animVars.set("isTurningRight", false);
-        _animVars.set("isNotTurning", true);
-
         const float ANIM_WALK_SPEED = 1.4f; // m/s
         _animVars.set("walkTimeScale", glm::clamp(0.5f, 2.0f, glm::length(localVel) / ANIM_WALK_SPEED));
 
@@ -470,45 +460,100 @@ void Rig::computeMotionAnimationState(float deltaTime, const glm::vec3& worldPos
         }
 
         if (glm::length(localVel) > moveThresh) {
-            if (fabsf(forwardSpeed) > 0.5f * fabsf(lateralSpeed)) {
-                if (forwardSpeed > 0.0f) {
-                    // forward
-                    _animVars.set("isMovingForward", true);
-                    _animVars.set("isNotMoving", false);
-
-                } else {
-                    // backward
-                    _animVars.set("isMovingBackward", true);
-                    _animVars.set("isNotMoving", false);
-                }
-            } else {
-                if (lateralSpeed > 0.0f) {
-                    // right
-                    _animVars.set("isMovingRight", true);
-                    _animVars.set("isNotMoving", false);
-                } else {
-                    // left
-                    _animVars.set("isMovingLeft", true);
-                    _animVars.set("isNotMoving", false);
-                }
+            if (_desiredState != RigRole::Move) {
+                _desiredStateAge = 0.0f;
             }
-            _state = RigRole::Move;
+            _desiredState = RigRole::Move;
         } else {
             if (fabsf(turningSpeed) > turnThresh) {
-                if (turningSpeed > 0.0f) {
-                    // turning right
-                    _animVars.set("isTurningRight", true);
-                    _animVars.set("isNotTurning", false);
-                } else {
-                    // turning left
-                    _animVars.set("isTurningLeft", true);
-                    _animVars.set("isNotTurning", false);
+                if (_desiredState != RigRole::Turn) {
+                    _desiredStateAge = 0.0f;
                 }
-                _state = RigRole::Turn;
-            } else {
-                // idle
-                _state = RigRole::Idle;
+                _desiredState = RigRole::Turn;
+            } else { // idle
+                if (_desiredState != RigRole::Idle) {
+                    _desiredStateAge = 0.0f;
+                }
+                _desiredState = RigRole::Idle;
             }
+        }
+
+        const float STATE_CHANGE_HYSTERESIS_TIMER = 0.1f;
+
+        if ((_desiredStateAge >= STATE_CHANGE_HYSTERESIS_TIMER) && _desiredState != _state) {
+            _state = _desiredState;
+            _desiredStateAge = 0.0f;
+        }
+
+        _desiredStateAge += deltaTime;
+
+        if (_state == RigRole::Move) {
+            if (glm::length(localVel) > MOVE_ENTER_SPEED_THRESHOLD) {
+                if (fabsf(forwardSpeed) > 0.5f * fabsf(lateralSpeed)) {
+                    if (forwardSpeed > 0.0f) {
+                        // forward
+                        _animVars.set("isMovingForward", true);
+                        _animVars.set("isMovingBackward", false);
+                        _animVars.set("isMovingRight", false);
+                        _animVars.set("isMovingLeft", false);
+                        _animVars.set("isNotMoving", false);
+
+                    } else {
+                        // backward
+                        _animVars.set("isMovingBackward", true);
+                        _animVars.set("isMovingForward", false);
+                        _animVars.set("isMovingRight", false);
+                        _animVars.set("isMovingLeft", false);
+                        _animVars.set("isNotMoving", false);
+                    }
+                } else {
+                    if (lateralSpeed > 0.0f) {
+                        // right
+                        _animVars.set("isMovingRight", true);
+                        _animVars.set("isMovingLeft", false);
+                        _animVars.set("isMovingForward", false);
+                        _animVars.set("isMovingBackward", false);
+                        _animVars.set("isNotMoving", false);
+                    } else {
+                        // left
+                        _animVars.set("isMovingLeft", true);
+                        _animVars.set("isMovingRight", false);
+                        _animVars.set("isMovingForward", false);
+                        _animVars.set("isMovingBackward", false);
+                        _animVars.set("isNotMoving", false);
+                    }
+                }
+                _animVars.set("isTurningLeft", false);
+                _animVars.set("isTurningRight", false);
+                _animVars.set("isNotTurning", true);
+            }
+        } else if (_state == RigRole::Turn) {
+            if (turningSpeed > 0.0f) {
+                // turning right
+                _animVars.set("isTurningRight", true);
+                _animVars.set("isTurningLeft", false);
+                _animVars.set("isNotTurning", false);
+            } else {
+                // turning left
+                _animVars.set("isTurningLeft", true);
+                _animVars.set("isTurningRight", false);
+                _animVars.set("isNotTurning", false);
+            }
+            _animVars.set("isMovingForward", false);
+            _animVars.set("isMovingBackward", false);
+            _animVars.set("isMovingRight", false);
+            _animVars.set("isMovingLeft", false);
+            _animVars.set("isNotMoving", true);
+        } else {
+            // default anim vars to notMoving and notTurning
+            _animVars.set("isMovingForward", false);
+            _animVars.set("isMovingBackward", false);
+            _animVars.set("isMovingLeft", false);
+            _animVars.set("isMovingRight", false);
+            _animVars.set("isNotMoving", true);
+            _animVars.set("isTurningLeft", false);
+            _animVars.set("isTurningRight", false);
+            _animVars.set("isNotTurning", true);
         }
 
         t += deltaTime;
