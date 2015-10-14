@@ -16,24 +16,38 @@
                         {
                             "jointName": "RightHand",
                             "positionVar": "rightHandPosition",
-                            "rotationVar": "rightHandRotation"
+                            "rotationVar": "rightHandRotation",
+                            "typeVar": "rightHandType"
                         },
                         {
                             "jointName": "LeftHand",
                             "positionVar": "leftHandPosition",
-                            "rotationVar": "leftHandRotation"
+                            "rotationVar": "leftHandRotation",
+                            "typeVar": "leftHandType"
+                        },
+                        {
+                            "jointName": "RightFoot",
+                            "positionVar": "rightFootPosition",
+                            "rotationVar": "rightFootRotation",
+                            "typeVar": "rightFootType"
+                        },
+                        {
+                            "jointName": "LeftFoot",
+                            "positionVar": "leftFootPosition",
+                            "rotationVar": "leftFootRotation",
+                            "typeVar": "leftFootType"
                         },
                         {
                             "jointName": "Neck",
                             "positionVar": "neckPosition",
                             "rotationVar": "neckRotation",
-                            "typeVar": "headAndNeckType"
+                            "typeVar": "neckType"
                         },
                         {
                             "jointName": "Head",
                             "positionVar": "headPosition",
                             "rotationVar": "headRotation",
-                            "typeVar": "headAndNeckType"
+                            "typeVar": "headType"
                         }
                     ]
                 },
@@ -51,7 +65,7 @@
                         "id": "spineLean",
                         "type": "manipulator",
                         "data": {
-                            "alpha": 1.0,
+                            "alpha": 0.0,
                             "joints": [
                                 { "var": "lean", "jointName": "Spine" }
                             ]

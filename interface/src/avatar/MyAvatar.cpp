@@ -140,50 +140,54 @@ QByteArray MyAvatar::toByteArray(bool cullSmallChanges, bool sendAll) {
     return AvatarData::toByteArray(cullSmallChanges, sendAll);
 }
 
-void MyAvatar::reset() {
+void MyAvatar::reset(bool andReload) {
     // Gather animation mode...
     // This should be simpler when we have only graph animations always on.
     bool isRig = _rig->getEnableRig();
     // seting rig animation to true, below, will clear the graph animation menu item, so grab it now.
     bool isGraph = _rig->getEnableAnimGraph() || Menu::getInstance()->isOptionChecked(MenuOption::EnableAnimGraph);
     // ... and get to sane configuration where other activity won't bother us.
-    qApp->setRawAvatarUpdateThreading(false);
-    _rig->disableHands = true;
-    setEnableRigAnimations(true);
+    if (andReload) {
+        qApp->setRawAvatarUpdateThreading(false);
+        _rig->disableHands = true;
+        setEnableRigAnimations(true);
+    }
 
     // Reset dynamic state.
-    _wasPushing = _isPushing = _isBraking = _billboardValid = _goToPending = _straighteningLean = false;
+    _wasPushing = _isPushing = _isBraking = _billboardValid = _straighteningLean = false;
     _skeletonModel.reset();
     getHead()->reset();
     _targetVelocity = glm::vec3(0.0f);
     setThrust(glm::vec3(0.0f));
 
-    // Get fresh data, in case we're really slow and out of wack.
-    _hmdSensorMatrix = qApp->getHMDSensorPose();
-    _hmdSensorPosition = extractTranslation(_hmdSensorMatrix);
-    _hmdSensorOrientation = glm::quat_cast(_hmdSensorMatrix);
+    if (andReload) {
+        // Get fresh data, in case we're really slow and out of wack.
+        _hmdSensorMatrix = qApp->getHMDSensorPose();
+        _hmdSensorPosition = extractTranslation(_hmdSensorMatrix);
+        _hmdSensorOrientation = glm::quat_cast(_hmdSensorMatrix);
 
-    // Reset body position/orientation under the head.
-    auto newBodySensorMatrix = deriveBodyFromHMDSensor(); // Based on current cached HMD position/rotation..
-    auto worldBodyMatrix = _sensorToWorldMatrix * newBodySensorMatrix;
-    glm::vec3 worldBodyPos = extractTranslation(worldBodyMatrix);
-    glm::quat worldBodyRot = glm::normalize(glm::quat_cast(worldBodyMatrix));
+        // Reset body position/orientation under the head.
+        auto newBodySensorMatrix = deriveBodyFromHMDSensor(); // Based on current cached HMD position/rotation..
+        auto worldBodyMatrix = _sensorToWorldMatrix * newBodySensorMatrix;
+        glm::vec3 worldBodyPos = extractTranslation(worldBodyMatrix);
+        glm::quat worldBodyRot = glm::normalize(glm::quat_cast(worldBodyMatrix));
 
-    // FIXME: Hack to retain the previous behavior wrt height.
-    // I'd like to make the body match head height, but that will have to wait for separate PR.
-    worldBodyPos.y = getPosition().y;
+        // FIXME: Hack to retain the previous behavior wrt height.
+        // I'd like to make the body match head height, but that will have to wait for separate PR.
+        worldBodyPos.y = getPosition().y;
 
-    setPosition(worldBodyPos);
-    setOrientation(worldBodyRot);
-    // If there is any discrepency between positioning and the head (as there is in initial deriveBodyFromHMDSensor),
-    // we can make that right by setting _bodySensorMatrix = newBodySensorMatrix.
-    // However, doing so will make the head want to point to the previous body orientation, as cached above.
-    //_bodySensorMatrix = newBodySensorMatrix;
-    //updateSensorToWorldMatrix(); // Uses updated position/orientation and _bodySensorMatrix changes
+        setPosition(worldBodyPos);
+        setOrientation(worldBodyRot);
+        // If there is any discrepency between positioning and the head (as there is in initial deriveBodyFromHMDSensor),
+        // we can make that right by setting _bodySensorMatrix = newBodySensorMatrix.
+        // However, doing so will make the head want to point to the previous body orientation, as cached above.
+        //_bodySensorMatrix = newBodySensorMatrix;
+        //updateSensorToWorldMatrix(); // Uses updated position/orientation and _bodySensorMatrix changes
 
-    _skeletonModel.simulate(0.1f);  // non-zero
-    setEnableRigAnimations(false);
-    _skeletonModel.simulate(0.1f);
+        _skeletonModel.simulate(0.1f);  // non-zero
+        setEnableRigAnimations(false);
+        _skeletonModel.simulate(0.1f);
+    }
     if (isRig) {
         setEnableRigAnimations(true);
         Menu::getInstance()->setIsOptionChecked(MenuOption::EnableRigAnimations, true);
@@ -191,8 +195,10 @@ void MyAvatar::reset() {
         setEnableAnimGraph(true);
         Menu::getInstance()->setIsOptionChecked(MenuOption::EnableAnimGraph, true);
     }
-    _rig->disableHands = false;
-    qApp->setRawAvatarUpdateThreading();
+    if (andReload) {
+        _rig->disableHands = false;
+        qApp->setRawAvatarUpdateThreading();
+    }
 }
 
 void MyAvatar::update(float deltaTime) {
@@ -1514,33 +1520,69 @@ bool MyAvatar::shouldRenderHead(const RenderArgs* renderArgs) const {
 
 void MyAvatar::updateOrientation(float deltaTime) {
     //  Smoothly rotate body with arrow keys
-    float targetSpeed = (_driveKeys[ROT_LEFT] - _driveKeys[ROT_RIGHT]) * YAW_SPEED;
-    if (targetSpeed != 0.0f) {
-        const float ROTATION_RAMP_TIMESCALE = 0.1f;
-        float blend = deltaTime / ROTATION_RAMP_TIMESCALE;
-        if (blend > 1.0f) {
-            blend = 1.0f;
-        }
-        _bodyYawDelta = (1.0f - blend) * _bodyYawDelta + blend * targetSpeed;
-    } else if (_bodyYawDelta != 0.0f) {
-        // attenuate body rotation speed
-        const float ROTATION_DECAY_TIMESCALE = 0.05f;
-        float attenuation = 1.0f - deltaTime / ROTATION_DECAY_TIMESCALE;
-        if (attenuation < 0.0f) {
-            attenuation = 0.0f;
-        }
-        _bodyYawDelta *= attenuation;
+    float targetSpeed = 0.0f;
 
-        float MINIMUM_ROTATION_RATE = 2.0f;
-        if (fabsf(_bodyYawDelta) < MINIMUM_ROTATION_RATE) {
-            _bodyYawDelta = 0.0f;
+    // FIXME - this comfort mode code is a total hack, remove it when we have new input mapping
+    bool isComfortMode = Menu::getInstance()->isOptionChecked(MenuOption::ComfortMode);
+    bool isHMDMode = qApp->getAvatarUpdater()->isHMDMode();
+
+    if (!isHMDMode || !isComfortMode) {
+        targetSpeed = (_driveKeys[ROT_LEFT] - _driveKeys[ROT_RIGHT]) * YAW_SPEED;
+
+        if (targetSpeed != 0.0f) {
+            const float ROTATION_RAMP_TIMESCALE = 0.1f;
+            float blend = deltaTime / ROTATION_RAMP_TIMESCALE;
+            if (blend > 1.0f) {
+                blend = 1.0f;
+            }
+            _bodyYawDelta = (1.0f - blend) * _bodyYawDelta + blend * targetSpeed;
+        } else if (_bodyYawDelta != 0.0f) {
+            // attenuate body rotation speed
+            const float ROTATION_DECAY_TIMESCALE = 0.05f;
+            float attenuation = 1.0f - deltaTime / ROTATION_DECAY_TIMESCALE;
+            if (attenuation < 0.0f) {
+                attenuation = 0.0f;
+            }
+            _bodyYawDelta *= attenuation;
+
+            float MINIMUM_ROTATION_RATE = 2.0f;
+            if (fabsf(_bodyYawDelta) < MINIMUM_ROTATION_RATE) {
+                _bodyYawDelta = 0.0f;
+            }
+        }
+
+        // update body orientation by movement inputs
+        setOrientation(getOrientation() *
+            glm::quat(glm::radians(glm::vec3(0.0f, _bodyYawDelta * deltaTime, 0.0f))));
+
+    } else {
+        // Comfort Mode: If you press any of the left/right rotation drive keys or input, you'll
+        // get an instantaneous 15 degree turn. If you keep holding the key down you'll get another
+        // snap turn every half second.
+        _bodyYawDelta = 0.0f;
+
+        static quint64 lastPulse = 0;
+        quint64 now = usecTimestampNow();
+        quint64 COMFORT_MODE_PULSE_TIMING = USECS_PER_SECOND / 2; // turn once per half second
+
+        float driveLeft = _driveKeys[ROT_LEFT];
+        float driveRight= _driveKeys[ROT_RIGHT];
+
+        if ((driveLeft != 0.0f || driveRight != 0.0f) && (now - lastPulse > COMFORT_MODE_PULSE_TIMING)) {
+            lastPulse = now;
+
+            const float SNAP_TURN_DELTA = 15.0f; // degrees
+            float direction = (driveLeft - driveRight) < 0.0f ? -1.0f : 1.0f;
+            float turnAmount = direction * SNAP_TURN_DELTA;
+
+            // update body orientation by movement inputs
+            setOrientation(getOrientation() *
+                glm::quat(glm::radians(glm::vec3(0.0f, turnAmount, 0.0f))));
+
         }
     }
 
     getHead()->setBasePitch(getHead()->getBasePitch() + (_driveKeys[ROT_UP] - _driveKeys[ROT_DOWN]) * PITCH_SPEED * deltaTime);
-    // update body orientation by movement inputs
-    setOrientation(getOrientation() *
-                   glm::quat(glm::radians(glm::vec3(0.0f, _bodyYawDelta * deltaTime, 0.0f))));
 
     if (qApp->getAvatarUpdater()->isHMDMode()) {
         glm::quat orientation = glm::quat_cast(getSensorToWorldMatrix()) * getHMDSensorOrientation();

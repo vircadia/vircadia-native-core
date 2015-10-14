@@ -461,6 +461,7 @@ Menu::Menu() {
                                            0, false,
                                            &ConnexionClient::getInstance(),
                                            SLOT(toggleConnexion(bool)));
+    addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::ComfortMode, 0, true);
 
     MenuWrapper* handOptionsMenu = developerMenu->addMenu("Hands");
     addCheckableActionToQMenuAndActionHash(handOptionsMenu, MenuOption::DisplayHandTargets, 0, false);

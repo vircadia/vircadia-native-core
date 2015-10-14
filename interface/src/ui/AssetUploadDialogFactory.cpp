@@ -11,11 +11,6 @@
 
 #include "AssetUploadDialogFactory.h"
 
-#include <AssetClient.h>
-#include <AssetUpload.h>
-#include <AssetUtils.h>
-#include <NodeList.h>
-
 #include <QtCore/QDebug>
 #include <QtWidgets/QDialogButtonBox>
 #include <QtWidgets/QFileDialog>
@@ -23,6 +18,12 @@
 #include <QtWidgets/QMessageBox>
 #include <QtWidgets/QLineEdit>
 #include <QtWidgets/QVBoxLayout>
+
+#include <AssetClient.h>
+#include <AssetUpload.h>
+#include <AssetUtils.h>
+#include <NodeList.h>
+#include <ResourceManager.h>
 
 AssetUploadDialogFactory& AssetUploadDialogFactory::getInstance() {
     static AssetUploadDialogFactory staticInstance;
@@ -85,7 +86,7 @@ void AssetUploadDialogFactory::handleUploadFinished(AssetUpload* upload, const Q
         // setup the line edit to hold the copiable text
         QLineEdit* lineEdit = new QLineEdit;
        
-        QString atpURL = QString("%1:%2.%3").arg(ATP_SCHEME).arg(hash).arg(upload->getExtension());
+        QString atpURL = QString("%1:%2.%3").arg(URL_SCHEME_ATP).arg(hash).arg(upload->getExtension());
         
         // set the ATP URL as the text value so it's copiable
         lineEdit->insert(atpURL);

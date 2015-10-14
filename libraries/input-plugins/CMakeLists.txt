@@ -1,25 +1,8 @@
 set(TARGET_NAME input-plugins)
-
-# set a default root dir for each of our optional externals if it was not passed
-set(OPTIONAL_EXTERNALS "SDL2" "Sixense")
-foreach(EXTERNAL ${OPTIONAL_EXTERNALS})
-  string(TOUPPER ${EXTERNAL} ${EXTERNAL}_UPPERCASE)
-  if (NOT ${${EXTERNAL}_UPPERCASE}_ROOT_DIR)
-    string(TOLOWER ${EXTERNAL} ${EXTERNAL}_LOWERCASE)
-    set(${${EXTERNAL}_UPPERCASE}_ROOT_DIR "${CMAKE_SOURCE_DIR}/interface/external/${${EXTERNAL}_LOWERCASE}")
-  endif ()
-endforeach()
-
 setup_hifi_library()
-
-# use setup_hifi_library macro to setup our project and link appropriate Qt modules
 link_hifi_libraries(shared plugins gpu render-utils)
 
 GroupSources("src/input-plugins")
-
-add_dependency_external_projects(glm)
-find_package(GLM REQUIRED)
-target_include_directories(${TARGET_NAME} PUBLIC ${GLM_INCLUDE_DIRS})
 
 if (WIN32)
     add_dependency_external_projects(OpenVR)
@@ -32,6 +15,16 @@ endif()
 #find_package(Sixense REQUIRED)
 #target_include_directories(${TARGET_NAME} PRIVATE ${SIXENSE_INCLUDE_DIRS})
 #target_link_libraries(${TARGET_NAME} ${SIXENSE_LIBRARIES})
+
+# set a default root dir for each of our optional externals if it was not passed
+set(OPTIONAL_EXTERNALS "SDL2" "Sixense")
+foreach(EXTERNAL ${OPTIONAL_EXTERNALS})
+  string(TOUPPER ${EXTERNAL} ${EXTERNAL}_UPPERCASE)
+  if (NOT ${${EXTERNAL}_UPPERCASE}_ROOT_DIR)
+    string(TOLOWER ${EXTERNAL} ${EXTERNAL}_LOWERCASE)
+    set(${${EXTERNAL}_UPPERCASE}_ROOT_DIR "${CMAKE_SOURCE_DIR}/interface/external/${${EXTERNAL}_LOWERCASE}")
+  endif ()
+endforeach()
 
 # perform standard include and linking for found externals
 foreach(EXTERNAL ${OPTIONAL_EXTERNALS})

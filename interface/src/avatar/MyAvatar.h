@@ -58,7 +58,7 @@ public:
     AudioListenerMode getAudioListenerModeCamera() const { return FROM_CAMERA; }
     AudioListenerMode getAudioListenerModeCustom() const { return CUSTOM; }
 
-    void reset();
+    void reset(bool andReload = false);
     void update(float deltaTime);
     void preRender(RenderArgs* renderArgs);
 

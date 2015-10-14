@@ -704,7 +704,9 @@ void EntityTreeRenderer::checkAndCallPreload(const EntityItemID& entityID, const
     if (_tree && !_shuttingDown) {
         EntityItemPointer entity = getTree()->findEntityByEntityItemID(entityID);
         if (entity && !entity->getScript().isEmpty()) {
-            _entitiesScriptEngine->loadEntityScript(entityID, entity->getScript(), reload);
+            QString scriptUrl = entity->getScript();
+            scriptUrl = ResourceManager::normalizeURL(scriptUrl);
+            _entitiesScriptEngine->loadEntityScript(entityID, scriptUrl, reload);
         }
     }
 }
