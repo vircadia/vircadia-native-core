@@ -14,6 +14,8 @@
 #include <HandData.h>
 #include <HFBackEvent.h>
 
+#include <controllers/NewControllerScriptingInterface.h>
+
 #include "Application.h"
 #include "devices/MotionTracker.h"
 #include "ControllerScriptingInterface.h"
@@ -30,6 +32,11 @@ ControllerScriptingInterface::ControllerScriptingInterface() :
 {
 
 }
+
+ControllerScriptingInterface::~ControllerScriptingInterface() {
+    delete _newControllerScriptingInterface;
+}
+
 
 static int actionMetaTypeId = qRegisterMetaType<UserInputMapper::Action>();
 static int inputChannelMetaTypeId = qRegisterMetaType<UserInputMapper::InputChannel>();
@@ -121,6 +128,11 @@ void ControllerScriptingInterface::registerControllerTypes(ScriptEngine* engine)
     qScriptRegisterMetaType(engine, inputPairToScriptValue, inputPairFromScriptValue);
 
     wireUpControllers(engine);
+
+    // hack in the new controller scripting interface...
+    _newControllerScriptingInterface = new controller::NewControllerScriptingInterface();
+    engine->registerGlobalObject("NewControllers", _newControllerScriptingInterface);
+
 }
 
 void ControllerScriptingInterface::handleMetaEvent(HFMetaEvent* event) {

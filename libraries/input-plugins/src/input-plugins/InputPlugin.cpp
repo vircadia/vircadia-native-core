@@ -22,7 +22,7 @@ InputPluginList getInputPlugins() {
     InputPlugin* PLUGIN_POOL[] = {
         new KeyboardMouseDevice(),
         new SDL2Manager(),
-        //new SixenseManager(),
+        new SixenseManager(),
         //new ViveControllerManager(),
         nullptr
     };
