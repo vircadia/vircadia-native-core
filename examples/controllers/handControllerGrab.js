@@ -443,7 +443,9 @@ function MyController(hand, triggerAction) {
         this.currentObjectTime = now;
 
         // this doubles hand rotation
-        var handChange = Quat.multiply(Quat.slerp(this.handPreviousRotation, handRotation, DISTANCE_HOLDING_ROTATION_EXAGGERATION_FACTOR), Quat.inverse(this.handPreviousRotation));
+        var handChange = Quat.multiply(Quat.slerp(this.handPreviousRotation, handRotation,
+                                                  DISTANCE_HOLDING_ROTATION_EXAGGERATION_FACTOR),
+                                       Quat.inverse(this.handPreviousRotation));
         this.handPreviousRotation = handRotation;
         this.currentObjectRotation = Quat.multiply(handChange, this.currentObjectRotation);
 
@@ -469,7 +471,7 @@ function MyController(hand, triggerAction) {
 
         this.lineOff();
 
-        var grabbedProperties = Entities.getEntityProperties(this.grabbedEntity, 
+        var grabbedProperties = Entities.getEntityProperties(this.grabbedEntity,
                                                              ["position", "rotation", "gravity", "ignoreForCollisions"]);
         this.activateEntity(this.grabbedEntity, grabbedProperties);
 
@@ -477,18 +479,18 @@ function MyController(hand, triggerAction) {
         var handPosition = this.getHandPosition();
 
         var objectRotation = grabbedProperties.rotation;
-        var offsetRotation = Quat.multiply(Quat.inverse(handRotation), objectRotation);
+        this.offsetRotation = Quat.multiply(Quat.inverse(handRotation), objectRotation);
 
         var currentObjectPosition = grabbedProperties.position;
         var offset = Vec3.subtract(currentObjectPosition, handPosition);
-        var offsetPosition = Vec3.multiplyQbyV(Quat.inverse(Quat.multiply(handRotation, offsetRotation)), offset);
+        this.offsetPosition = Vec3.multiplyQbyV(Quat.inverse(Quat.multiply(handRotation, this.offsetRotation)), offset);
 
         this.actionID = NULL_ACTION_ID;
         this.actionID = Entities.addAction("hold", this.grabbedEntity, {
             hand: this.hand === RIGHT_HAND ? "right" : "left",
             timeScale: NEAR_GRABBING_ACTION_TIMEFRAME,
-            relativePosition: offsetPosition,
-            relativeRotation: offsetRotation,
+            relativePosition: this.offsetPosition,
+            relativeRotation: this.offsetRotation,
             lifetime: ACTION_LIFETIME
         });
         if (this.actionID === NULL_ACTION_ID) {
@@ -516,10 +518,10 @@ function MyController(hand, triggerAction) {
             return;
         }
 
-        // Keep track of the fingertip velocity to impart when we release the object
-        // Note that the idea of using a constant 'tip' velocity regardless of the 
+        // Keep track of the fingertip velocity to impart when we release the object.
+        // Note that the idea of using a constant 'tip' velocity regardless of the
         // object's actual held offset is an idea intended to make it easier to throw things:
-        // Because we might catch something or transfer it between hands without a good idea 
+        // Because we might catch something or transfer it between hands without a good idea
         // of it's actual offset, let's try imparting a velocity which is at a fixed radius
         // from the palm.
 
@@ -537,6 +539,10 @@ function MyController(hand, triggerAction) {
         if (this.actionTimeout - now < MSEC_PER_SEC) {
             // if less than a second left, refresh the actions lifetime
             Entities.updateAction(this.grabbedEntity, this.actionID, {
+                hand: this.hand === RIGHT_HAND ? "right" : "left",
+                timeScale: NEAR_GRABBING_ACTION_TIMEFRAME,
+                relativePosition: this.offsetPosition,
+                relativeRotation: this.offsetRotation,
                 lifetime: ACTION_LIFETIME
             });
             this.actionTimeout = now + (ACTION_LIFETIME * MSEC_PER_SEC);
