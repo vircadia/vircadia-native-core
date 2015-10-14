@@ -1791,10 +1791,10 @@ QVariantMap EntityItem::getActionArguments(const QUuid& actionID) const {
     return result;
 }
 
-bool EntityItem::shouldSuppressEdits() const {
+bool EntityItem::shouldSuppressLocationEdits() const {
     QHash<QUuid, EntityActionPointer>::const_iterator i = _objectActions.begin();
     while (i != _objectActions.end()) {
-        if (i.value()->shouldSuppressEdits()) {
+        if (i.value()->shouldSuppressLocationEdits()) {
             return true;
         }
         i++;

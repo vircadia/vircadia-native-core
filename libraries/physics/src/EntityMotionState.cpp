@@ -291,7 +291,7 @@ bool EntityMotionState::remoteSimulationOutOfSync(uint32_t simulationStep) {
         return true;
     }
 
-    if (_entity->shouldSuppressEdits()) {
+    if (_entity->shouldSuppressLocationEdits()) {
         return false;
     }
 

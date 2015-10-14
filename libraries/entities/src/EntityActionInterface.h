@@ -51,7 +51,7 @@ public:
 
     bool locallyAddedButNotYetReceived = false;
 
-    virtual bool shouldSuppressEdits() { return false; }
+    virtual bool shouldSuppressLocationEdits() { return false; }
 
 protected:
     virtual glm::vec3 getPosition() = 0;
