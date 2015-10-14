@@ -14,6 +14,7 @@ using SwapFboPtr = QSharedPointer<SwapFramebufferWrapper>;
 
 class OculusDisplayPlugin : public OculusBaseDisplayPlugin {
 public:
+    virtual void activate() override;
     virtual void deactivate() override;
     virtual const QString & getName() const override;
 
@@ -25,7 +26,8 @@ protected:
 
 private:
     static const QString NAME;
-    bool _enableMirror{ false };
+    bool _enablePreview { false };
+    bool _monoPreview { true };
 
 #if (OVR_MAJOR_VERSION >= 6)
     SwapFboPtr       _sceneFbo;

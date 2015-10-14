@@ -11,6 +11,8 @@
 
 #include "OculusHelpers.h"
 
+#include <plugins/PluginContainer.h>
+
 #if (OVR_MAJOR_VERSION >= 6)
 
 // A base class for FBO wrappers that need to use the Oculus C
@@ -135,6 +137,19 @@ const QString & OculusDisplayPlugin::getName() const {
     return NAME;
 }
 
+static const QString MONO_PREVIEW = "Mono Preview";
+static const QString FRAMERATE = DisplayPlugin::MENU_PATH() + ">Framerate";
+
+void OculusDisplayPlugin::activate() {
+
+    CONTAINER->addMenuItem(MENU_PATH(), MONO_PREVIEW,
+        [this](bool clicked) {
+            _monoPreview = clicked;
+        }, true, true);
+    CONTAINER->removeMenu(FRAMERATE);
+    OculusBaseDisplayPlugin::activate();
+}
+
 void OculusDisplayPlugin::customizeContext() {
     WindowOpenGLDisplayPlugin::customizeContext();
 #if (OVR_MAJOR_VERSION >= 6)
@@ -149,7 +164,7 @@ void OculusDisplayPlugin::customizeContext() {
 #endif
     enableVsync(false);
     // Only enable mirroring if we know vsync is disabled
-    _enableMirror = !isVsyncEnabled();
+    _enablePreview = !isVsyncEnabled();
 }
 
 void OculusDisplayPlugin::deactivate() {
@@ -169,10 +184,15 @@ void OculusDisplayPlugin::display(GLuint finalTexture, const glm::uvec2& sceneSi
     // controlling vsync
     wglSwapIntervalEXT(0);
 
-    // screen mirroring
-    if (_enableMirror) {
+    // screen preview mirroring
+    if (_enablePreview) {
         auto windowSize = toGlm(_window->size());
-        Context::Viewport(windowSize.x, windowSize.y);
+        if (_monoPreview) {
+            Context::Viewport(windowSize.x * 2, windowSize.y);
+            Context::Scissor(0, windowSize.y, windowSize.x, windowSize.y);
+        } else {
+            Context::Viewport(windowSize.x, windowSize.y);
+        }
         glBindTexture(GL_TEXTURE_2D, finalTexture);
         GLenum err = glGetError();
         Q_ASSERT(0 == err);
@@ -216,7 +236,7 @@ void OculusDisplayPlugin::display(GLuint finalTexture, const glm::uvec2& sceneSi
     otherwise the swapbuffer delay will interefere with the framerate of the headset
 */
 void OculusDisplayPlugin::finishFrame() {
-    if (_enableMirror) {
+    if (_enablePreview) {
         swapBuffers();
     }
     doneCurrent();
