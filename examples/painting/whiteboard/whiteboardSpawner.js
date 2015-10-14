@@ -63,7 +63,7 @@ var colorIndicatorDimensions = {
     z: 0.02
 };
 scriptURL = Script.resolvePath("colorIndicatorEntityScript.js");
-var colorIndicatorPosition = Vec3.sum(center, {x: 0, y: whiteboardDimensions.y/2, z: 0});
+var colorIndicatorPosition = Vec3.sum(center, {x: 0, y: whiteboardDimensions.y/2 + colorIndicatorDimensions.y/2, z: 0});
 var colorIndicatorBox = Entities.addEntity({
     type: "Box",
     color: colors[0],
@@ -72,6 +72,8 @@ var colorIndicatorBox = Entities.addEntity({
     dimensions: colorIndicatorDimensions,
     script: scriptURL
 });
+
+Entities.editEntity(whiteboard, {userData: JSON.stringify({currentColor: colors[i], colorIndicator: colorIndicatorBox})} );
 
 //COLOR BOXES
 var direction = Quat.getRight(rotation);
@@ -82,7 +84,7 @@ var colorSquareDimensions = {
     y: 0.1,
     z: 0.05
 };
-colorBoxPosition.y += whiteboardDimensions.y / 2 + colorIndicatorDimensions.y/2 +  colorSquareDimensions.y / 2 - 0.01;
+colorBoxPosition.y += whiteboardDimensions.y / 2 + colorIndicatorDimensions.y +  colorSquareDimensions.y / 2;
 var spaceBetweenColorBoxes = Vec3.multiply(direction, colorSquareDimensions.x * 2);
 var scriptURL = Script.resolvePath("colorSelectorEntityScript.js");
 for (var i = 0; i < colors.length; i++) {
@@ -117,7 +119,7 @@ var blackBox = Entities.addEntity({
     userData: JSON.stringify({
         whiteboard: whiteboard        
     })
-})
+});
 
 
 var eraseBoxDimensions = {
@@ -159,6 +161,7 @@ function cleanup() {
     Entities.deleteEntity(whiteboard);
     Entities.deleteEntity(eraseAllText);
     Entities.deleteEntity(blackBox);
+    Entities.deleteEntity(colorIndicatorBox);
     colorBoxes.forEach(function(colorBox) {
         Entities.deleteEntity(colorBox);
     });

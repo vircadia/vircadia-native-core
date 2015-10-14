@@ -210,7 +210,9 @@
             this.painting = false;
             this.strokes = [];
             this.whitelist = [this.entityID];
-            this.strokeColor = JSON.parse(props.userData).currentColor;
+            var userData = JSON.parse(props.userData);
+            this.strokeColor = userData.currentColor;
+            this.colorIndicator = userData.colorIndicator;
             this.laserPointer = Overlays.addOverlay("circle3d", {
                 color: this.strokeColor,
                 solid: true,
