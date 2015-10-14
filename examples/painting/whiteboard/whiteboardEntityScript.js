@@ -70,6 +70,7 @@
 
             this.intersection = Entities.findRayIntersection(pickRay, true, this.whitelist);
             //Comment out above line and uncomment below line to see difference in performance between using a whitelist, and not using one
+            // this.intersection = Entities.findRayIntersection(pickRay, true);
 
             if (this.intersection.intersects) {
                 var distance = Vec3.distance(handPosition, this.intersection.intersection);
