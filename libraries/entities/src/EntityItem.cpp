@@ -1579,6 +1579,9 @@ bool EntityItem::removeActionInternal(const QUuid& actionID, EntitySimulation* s
         }
 
         EntityActionPointer action = _objectActions[actionID];
+
+        qDebug() << "EntityItem::removeActionInternal clearing _ownerEntity";
+
         action->setOwnerEntity(nullptr);
         _objectActions.remove(actionID);
 
@@ -1601,6 +1604,7 @@ bool EntityItem::clearActions(EntitySimulation* simulation) {
             const QUuid id = i.key();
             EntityActionPointer action = _objectActions[id];
             i = _objectActions.erase(i);
+            qDebug() << "EntityItem::clearActions clearing _ownerEntity";
             action->setOwnerEntity(nullptr);
             action->removeFromSimulation(simulation);
         }
@@ -1643,6 +1647,8 @@ void EntityItem::deserializeActionsInternal() {
 
     // Keep track of which actions got added or updated by the new actionData
     QSet<QUuid> updated;
+
+    qDebug() << "EntityItem::deserializeActionsInternal" << serializedActions.size();
 
     foreach(QByteArray serializedAction, serializedActions) {
         QDataStream serializedActionStream(serializedAction);
@@ -1722,8 +1728,11 @@ void EntityItem::setActionData(QByteArray actionData) {
 void EntityItem::setActionDataInternal(QByteArray actionData) {
     assertWriteLocked();
     if (_allActionsDataCache != actionData) {
+        qDebug() << "EntityItem::setActionDataInternal yes";
         _allActionsDataCache = actionData;
         deserializeActionsInternal();
+    } else {
+        qDebug() << "EntityItem::setActionDataInternal no";
     }
     checkWaitingToRemove();
 }

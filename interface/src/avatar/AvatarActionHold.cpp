@@ -86,13 +86,9 @@ bool AvatarActionHold::updateArguments(QVariantMap arguments) {
     QString hand;
     QUuid holderID;
     bool needUpdate = false;
-    bool updateArgumentsSuceeded = true;
 
+    bool somethingChanged = ObjectAction::updateArguments(arguments);
     withReadLock([&]{
-        if (!ObjectAction::updateArguments(arguments)) {
-            updateArgumentsSuceeded = false;
-            return;
-        }
         bool ok = true;
         relativePosition = EntityActionInterface::extractVec3Argument("hold", arguments, "relativePosition", ok, false);
         if (!ok) {
@@ -121,7 +117,8 @@ bool AvatarActionHold::updateArguments(QVariantMap arguments) {
         auto myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
         holderID = myAvatar->getSessionUUID();
 
-        if (relativePosition != _relativePosition
+        if (somethingChanged ||
+            relativePosition != _relativePosition
             || relativeRotation != _relativeRotation
             || timeScale != _linearTimeScale
             || hand != _hand
@@ -129,10 +126,6 @@ bool AvatarActionHold::updateArguments(QVariantMap arguments) {
             needUpdate = true;
         }
     });
-
-    if (!updateArgumentsSuceeded) {
-        return false;
-    }
 
     if (needUpdate) {
         withWriteLock([&] {
@@ -221,7 +214,7 @@ void AvatarActionHold::deserialize(QByteArray serializedArguments) {
 
         qDebug() << "deserialize hold: " << _holderID
                  << _relativePosition.x << _relativePosition.y << _relativePosition.z
-                 << _hand;
+                 << _hand << _expires;
 
         _active = true;
     });

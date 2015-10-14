@@ -63,35 +63,48 @@ void ObjectAction::updateAction(btCollisionWorld* collisionWorld, btScalar delta
 }
 
 bool ObjectAction::updateArguments(QVariantMap arguments) {
-    bool lifetimeSet = true;
-    float lifetime = EntityActionInterface::extractFloatArgument("action", arguments, "lifetime", lifetimeSet, false);
-    if (lifetimeSet) {
-        quint64 now = usecTimestampNow();
-        _expires = now + (quint64)(lifetime * USECS_PER_SECOND);
-    } else {
-        _expires = 0;
-    }
+    bool somethingChanged = false;
 
-    bool tagSet = true;
-    QString tag = EntityActionInterface::extractStringArgument("action", arguments, "tag", tagSet, false);
-    if (tagSet) {
-        _tag = tag;
-    } else {
-        tag = "";
-    }
+    withWriteLock([&]{
+        quint64 previousExpires = _expires;
+        QString previousTag = _tag;
 
-    return true;
+        bool lifetimeSet = true;
+        float lifetime = EntityActionInterface::extractFloatArgument("action", arguments, "lifetime", lifetimeSet, false);
+        if (lifetimeSet) {
+            quint64 now = usecTimestampNow();
+            _expires = now + (quint64)(lifetime * USECS_PER_SECOND);
+        } else {
+            _expires = 0;
+        }
+
+        bool tagSet = true;
+        QString tag = EntityActionInterface::extractStringArgument("action", arguments, "tag", tagSet, false);
+        if (tagSet) {
+            _tag = tag;
+        } else {
+            tag = "";
+        }
+
+        if (previousExpires != _expires || previousTag != _tag) {
+            somethingChanged = true;
+        }
+    });
+
+    return somethingChanged;
 }
 
 QVariantMap ObjectAction::getArguments() {
     QVariantMap arguments;
-    if (_expires == 0) {
-        arguments["lifetime"] = 0.0f;
-    } else {
-        quint64 now = usecTimestampNow();
-        arguments["lifetime"] = (float)(_expires - now) / (float)USECS_PER_SECOND;
-    }
-    arguments["tag"] = _tag;
+    withReadLock([&]{
+        if (_expires == 0) {
+            arguments["lifetime"] = 0.0f;
+        } else {
+            quint64 now = usecTimestampNow();
+            arguments["lifetime"] = (float)(_expires - now) / (float)USECS_PER_SECOND;
+        }
+        arguments["tag"] = _tag;
+    });
     return arguments;
 }
 
@@ -100,20 +113,30 @@ void ObjectAction::debugDraw(btIDebugDraw* debugDrawer) {
 }
 
 void ObjectAction::removeFromSimulation(EntitySimulation* simulation) const {
-    simulation->removeAction(_id);
+    QUuid myID;
+    withReadLock([&]{
+        myID = _id;
+    });
+    simulation->removeAction(myID);
 }
 
 btRigidBody* ObjectAction::getRigidBody() {
-    auto ownerEntity = _ownerEntity.lock();
-    if (!ownerEntity) {
-        return nullptr;
+    ObjectMotionState* motionState = nullptr;
+    withReadLock([&]{
+        auto ownerEntity = _ownerEntity.lock();
+        if (!ownerEntity) {
+            return;
+        }
+        void* physicsInfo = ownerEntity->getPhysicsInfo();
+        if (!physicsInfo) {
+            return;
+        }
+        motionState = static_cast<ObjectMotionState*>(physicsInfo);
+    });
+    if (motionState) {
+        return motionState->getRigidBody();
     }
-    void* physicsInfo = ownerEntity->getPhysicsInfo();
-    if (!physicsInfo) {
-        return nullptr;
-    }
-    ObjectMotionState* motionState = static_cast<ObjectMotionState*>(physicsInfo);
-    return motionState->getRigidBody();
+    return nullptr;
 }
 
 glm::vec3 ObjectAction::getPosition() {

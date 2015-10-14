@@ -107,43 +107,52 @@ void ObjectActionSpring::updateActionWorker(btScalar deltaTimeStep) {
 
 const float MIN_TIMESCALE = 0.1f;
 
+
 bool ObjectActionSpring::updateArguments(QVariantMap arguments) {
-    if (!ObjectAction::updateArguments(arguments)) {
-        return false;
-    }
-    // targets are required, spring-constants are optional
-    bool ok = true;
-    glm::vec3 positionalTarget =
-        EntityActionInterface::extractVec3Argument("spring action", arguments, "targetPosition", ok, false);
-    if (!ok) {
-        positionalTarget = _positionalTarget;
-    }
-    ok = true;
-    float linearTimeScale =
-        EntityActionInterface::extractFloatArgument("spring action", arguments, "linearTimeScale", ok, false);
-    if (!ok || linearTimeScale <= 0.0f) {
-        linearTimeScale = _linearTimeScale;
-    }
+    glm::vec3 positionalTarget;
+    float linearTimeScale;
+    glm::quat rotationalTarget;
+    float angularTimeScale;
 
-    ok = true;
-    glm::quat rotationalTarget =
-        EntityActionInterface::extractQuatArgument("spring action", arguments, "targetRotation", ok, false);
-    if (!ok) {
-        rotationalTarget = _rotationalTarget;
-    }
+    bool needUpdate = false;
+    bool somethingChanged = ObjectAction::updateArguments(arguments);
+    withReadLock([&]{
+        // targets are required, spring-constants are optional
+        bool ok = true;
+        positionalTarget = EntityActionInterface::extractVec3Argument("spring action", arguments, "targetPosition", ok, false);
+        if (!ok) {
+            positionalTarget = _positionalTarget;
+        }
+        ok = true;
+        linearTimeScale = EntityActionInterface::extractFloatArgument("spring action", arguments, "linearTimeScale", ok, false);
+        if (!ok || linearTimeScale <= 0.0f) {
+            linearTimeScale = _linearTimeScale;
+        }
 
-    ok = true;
-    float angularTimeScale =
-        EntityActionInterface::extractFloatArgument("spring action", arguments, "angularTimeScale", ok, false);
-    if (!ok) {
-        angularTimeScale = _angularTimeScale;
-    }
+        ok = true;
+        rotationalTarget = EntityActionInterface::extractQuatArgument("spring action", arguments, "targetRotation", ok, false);
+        if (!ok) {
+            rotationalTarget = _rotationalTarget;
+        }
 
-    if (positionalTarget != _positionalTarget
-            || linearTimeScale != _linearTimeScale
-            || rotationalTarget != _rotationalTarget
-            || angularTimeScale != _angularTimeScale) {
-        // something changed
+        ok = true;
+        angularTimeScale =
+            EntityActionInterface::extractFloatArgument("spring action", arguments, "angularTimeScale", ok, false);
+        if (!ok) {
+            angularTimeScale = _angularTimeScale;
+        }
+
+        if (somethingChanged ||
+            positionalTarget != _positionalTarget ||
+            linearTimeScale != _linearTimeScale ||
+            rotationalTarget != _rotationalTarget ||
+            angularTimeScale != _angularTimeScale) {
+            // something changed
+            needUpdate = true;
+        }
+    });
+
+    if (needUpdate) {
         withWriteLock([&] {
             _positionalTarget = positionalTarget;
             _linearTimeScale = glm::max(MIN_TIMESCALE, glm::abs(linearTimeScale));
@@ -151,8 +160,15 @@ bool ObjectActionSpring::updateArguments(QVariantMap arguments) {
             _angularTimeScale = glm::max(MIN_TIMESCALE, glm::abs(angularTimeScale));
             _active = true;
             activateBody();
+
+            auto ownerEntity = _ownerEntity.lock();
+            if (ownerEntity) {
+                ownerEntity->setActionDataDirty(true);
+            }
+
         });
     }
+
     return true;
 }
 
