@@ -540,14 +540,6 @@
        id="run-arrow"
        transform="translate(-46.607143,-3.5714285)"
        inkscape:label="#run-arrow">
-      <use
-         x="0"
-         y="0"
-         width="744.09448"
-         height="1052.3622"
-         transform="translate(0.5864354,0.4607839)"
-         xlink:href="#rect899"
-         id="use1503" />
       <path
          d="m 75.506508,1023.3478 1.372845,5.4631 -14.094975,-1.152 2.35e-4,7.2772 14.094975,-1.152 -1.372845,5.1249 13.761293,-7.6113 -13.761293,-7.9499 z"
          id="arrow-rect"
