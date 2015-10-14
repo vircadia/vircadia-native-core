@@ -123,7 +123,7 @@ void ToolWindow::addDockWidget(Qt::DockWidgetArea area, QDockWidget* dockWidget,
     
     setTabPosition(Qt::TopDockWidgetArea, QTabWidget::TabPosition::North);
 
-    addDockWidget(area, dockWidget, orientation);
+    QMainWindow::addDockWidget(area, dockWidget, orientation);
 
     // We want to force tabbing, so retabify all of our widgets.
     QDockWidget* lastDockWidget = dockWidget;
