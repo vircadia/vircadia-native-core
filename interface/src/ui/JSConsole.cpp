@@ -9,9 +9,11 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include <QFuture>
 #include <QKeyEvent>
 #include <QLabel>
 #include <QScrollBar>
+#include <QtConcurrent/QtConcurrentRun>
 
 #include <PathUtils.h>
 
@@ -55,6 +57,8 @@ JSConsole::JSConsole(QWidget* parent, ScriptEngine* scriptEngine) :
     setScriptEngine(scriptEngine);
 
     resizeTextInput();
+
+    connect(&_executeWatcher, SIGNAL(finished()), this, SLOT(commandFinished()));
 }
 
 JSConsole::~JSConsole() {
@@ -96,9 +100,19 @@ void JSConsole::executeCommand(const QString& command) {
 
     appendMessage(">", "<span style='" + COMMAND_STYLE + "'>" + command.toHtmlEscaped() + "</span>");
 
+    QFuture<QScriptValue> future = QtConcurrent::run(this, &JSConsole::executeCommandInWatcher, command);
+    _executeWatcher.setFuture(future);
+}
+
+QScriptValue JSConsole::executeCommandInWatcher(const QString& command) {
     QScriptValue result;
     QMetaObject::invokeMethod(_scriptEngine, "evaluate", Qt::ConnectionType::BlockingQueuedConnection,
         Q_RETURN_ARG(QScriptValue, result), Q_ARG(const QString&, command));
+    return result;
+}
+
+void JSConsole::commandFinished() {
+    QScriptValue result = _executeWatcher.result();
 
     _ui->promptTextEdit->setDisabled(false);
 
@@ -106,11 +120,11 @@ void JSConsole::executeCommand(const QString& command) {
     if (window()->isActiveWindow()) {
         _ui->promptTextEdit->setFocus();
     }
-    
+
     bool error = (_scriptEngine->hasUncaughtException() || result.isError());
     QString gutter = error ? GUTTER_ERROR : GUTTER_PREVIOUS_COMMAND;
     QString resultColor = error ? RESULT_ERROR_STYLE : RESULT_SUCCESS_STYLE;
-    QString resultStr = "<span style='" + resultColor + "'>" + result.toString().toHtmlEscaped()  + "</span>";
+    QString resultStr = "<span style='" + resultColor + "'>" + result.toString().toHtmlEscaped() + "</span>";
     appendMessage(gutter, resultStr);
 
     resetCurrentCommandHistory();

@@ -14,6 +14,7 @@
 
 #include <QDialog>
 #include <QEvent>
+#include <QFutureWatcher>
 #include <QObject>
 #include <QWidget>
 
@@ -37,10 +38,6 @@ public:
 public slots:
     void executeCommand(const QString& command);
 
-signals:
-    void commandExecuting(const QString& command);
-    void commandFinished(const QString& result);
-
 protected:
     void setAndSelectCommand(const QString& command);
     virtual bool eventFilter(QObject* sender, QEvent* event);
@@ -52,13 +49,16 @@ protected slots:
     void resizeTextInput();
     void handlePrint(const QString& message);
     void handleError(const QString& message);
+    void commandFinished();
 
 private:
     void appendMessage(const QString& gutter, const QString& message);
     void setToNextCommandInHistory();
     void setToPreviousCommandInHistory();
     void resetCurrentCommandHistory();
+    QScriptValue executeCommandInWatcher(const QString& command);
 
+    QFutureWatcher<QScriptValue> _executeWatcher;
     Ui::Console* _ui;
     int _currentCommandInHistory;
     QList<QString> _commandHistory;
