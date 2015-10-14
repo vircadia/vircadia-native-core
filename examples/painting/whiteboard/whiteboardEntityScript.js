@@ -69,6 +69,7 @@
             };
 
             this.intersection = Entities.findRayIntersection(pickRay, true, this.whitelist);
+            //Comment out above line and uncomment below line to see difference in performance between using a whitelist, and not using one
 
             if (this.intersection.intersects) {
                 var distance = Vec3.distance(handPosition, this.intersection.intersection);
@@ -76,7 +77,7 @@
                     this.triggerValue = Controller.getActionValue(this.triggerAction);
                     this.currentStrokeWidth = map(this.triggerValue, 0, 1, MIN_STROKE_WIDTH, MAX_STROKE_WIDTH);
                     var displayPoint = this.intersection.intersection;
-                    displayPoint = Vec3.sum(displayPoint, Vec3.multiply(this.intersection.surfaceNormal, -0.01));
+                    displayPoint = Vec3.sum(displayPoint, Vec3.multiply(this.normal, 0.01));
                     Overlays.editOverlay(this.laserPointer, {
                         position: displayPoint,
                         size: {
@@ -92,8 +93,7 @@
                     }
                 }
             } else if(this.intersection.properties.type !== "Unknown") {
-                //If type is unknown, ignore
-                print("entity name " + this.intersection.properties.type);
+                //Sometimes ray will pick against an invisible object with type unkown... so if type is unknown, ignore
                 this.stopPainting();
             }
         },
@@ -104,7 +104,6 @@
                 visible: false
             });
             this.oldPosition = null;
-            print("STOP PAINTING");
         },
 
         paint: function(position, normal) {
@@ -180,7 +179,6 @@
         },
 
         releaseGrab: function() {
-            print("RELEASE");   
             this.stopPainting();
 
         },
