@@ -92,7 +92,7 @@ var eraseBoxDimensions = {
 };
 
 
-var eraseBoxPosition = Vec3.sum(center, Vec3.multiply(direction, whiteboardDimensions.x / 2 + eraseBoxDimensions.x / 2));
+var eraseBoxPosition = Vec3.sum(center, Vec3.multiply(direction, whiteboardDimensions.x / 2 + eraseBoxDimensions.x / 2 + 0.01));
 eraseBoxPosition.y += 0.3;
 scriptURL = Script.resolvePath("eraseBoardEntityScript.js");
 var eraseAllText = Entities.addEntity({

@@ -58,6 +58,7 @@
                 this.getHandRotation = MyAvatar.getLeftPalmRotation;
                 this.triggerAction = Controller.findAction("LEFT_HAND_CLICK");
             }
+            Overlays.editOverlay(this.laserPointer, {visible: true});
         },
 
         continueFarGrabbingNonColliding: function() {
@@ -85,7 +86,8 @@
                     if (this.triggerValue > PAINT_TRIGGER_THRESHOLD) {
                         this.paint(this.intersection.intersection, this.intersection.surfaceNormal);
                     } else {
-                        this.releaseGrab();
+                        this.painting = false;
+                        this.oldPosition = null;
                     }
                 }
             } else {
@@ -167,6 +169,7 @@
 
         releaseGrab: function() {
             this.painting = false;
+            Overlays.editOverlay(this.laserPointer, {visible: false});
             this.oldPosition = null;
         },
 
