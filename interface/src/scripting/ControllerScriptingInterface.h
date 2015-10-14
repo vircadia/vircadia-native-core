@@ -88,7 +88,7 @@ public:
     Q_INVOKABLE QVector<QString> getActionNames() const;
 
 
-    virtual void registerControllerTypes(ScriptEngine* engine);
+    virtual void registerControllerTypes(QScriptEngine* engine);
     
     void emitKeyPressEvent(QKeyEvent* event);
     void emitKeyReleaseEvent(QKeyEvent* event);

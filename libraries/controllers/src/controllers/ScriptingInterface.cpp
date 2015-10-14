@@ -357,7 +357,7 @@ namespace controller {
     }
 
     int ScriptingInterface::getNumberOfTriggers() const {
-        return 2;
+        return StandardCounts::TRIGGERS;
     }
 
     float ScriptingInterface::getTriggerValue(int triggerIndex) const {
@@ -365,7 +365,7 @@ namespace controller {
     }
 
     int ScriptingInterface::getNumberOfJoysticks() const {
-        return 2;
+        return StandardCounts::ANALOG_STICKS;
     }
 
     glm::vec2 ScriptingInterface::getJoystickPosition(int joystickIndex) const {
@@ -382,22 +382,26 @@ namespace controller {
     }
 
     int ScriptingInterface::getNumberOfSpatialControls() const {
-        return 2;
+        return StandardCounts::POSES;
     }
 
     glm::vec3 ScriptingInterface::getSpatialControlPosition(int controlIndex) const {
+        // FIXME extract the position from the standard pose
         return vec3();
     }
 
     glm::vec3 ScriptingInterface::getSpatialControlVelocity(int controlIndex) const {
+        // FIXME extract the velocity from the standard pose
         return vec3();
     }
 
     glm::vec3 ScriptingInterface::getSpatialControlNormal(int controlIndex) const {
+        // FIXME extract the normal from the standard pose
         return vec3();
     }
     
     glm::quat ScriptingInterface::getSpatialControlRawRotation(int controlIndex) const {
+        // FIXME extract the rotation from the standard pose
         return quat();
     }
 } // namespace controllers

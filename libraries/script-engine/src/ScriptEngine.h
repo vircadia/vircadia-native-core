@@ -184,6 +184,7 @@ private:
     QObject* setupTimerWithInterval(const QScriptValue& function, int intervalMS, bool isSingleShot);
     void stopTimer(QTimer* timer);
 
+    controller::ScriptingInterface* _controllerScriptingInterface;
     QString _fileNameString;
     Quat _quatLibrary;
     Vec3 _vec3Library;

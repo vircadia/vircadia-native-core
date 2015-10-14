@@ -99,7 +99,7 @@ namespace controller {
 
     public slots:
         virtual void update();
-        //virtual void registerControllerTypes(ScriptEngine* engine) = 0;
+        virtual void registerControllerTypes(QScriptEngine* engine) = 0;
 
     private:
         friend class MappingBuilderProxy;

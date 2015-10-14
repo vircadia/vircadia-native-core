@@ -15,6 +15,7 @@
 #include <avatar/MyAvatar.h>
 #include <HandData.h>
 #include <HFBackEvent.h>
+#include <plugins/PluginManager.h>
 
 #include "Application.h"
 #include "devices/MotionTracker.h"
@@ -115,7 +116,7 @@ void inputPairFromScriptValue(const QScriptValue& object, UserInputMapper::Input
     inputPair.second = QString(object.property("inputName").toVariant().toString());
 }
 
-void ControllerScriptingInterface::registerControllerTypes(ScriptEngine* engine) {
+void ControllerScriptingInterface::registerControllerTypes(QScriptEngine* engine) {
     qScriptRegisterSequenceMetaType<QVector<UserInputMapper::Action> >(engine);
     qScriptRegisterSequenceMetaType<QVector<UserInputMapper::InputChannel> >(engine);
     qScriptRegisterSequenceMetaType<QVector<UserInputMapper::InputPair> >(engine);
@@ -426,11 +427,25 @@ void ControllerScriptingInterface::releaseInputController(controller::InputContr
 }
 
 void ControllerScriptingInterface::update() {
-    controller::ScriptingInterface::update();
+    static float last = secTimestampNow();
+    float now = secTimestampNow();
+    float delta = now - last;
+    last = now;
+
+    for(auto inputPlugin : PluginManager::getInstance()->getInputPlugins()) {
+        if (inputPlugin->isActive()) {
+            inputPlugin->pluginUpdate(delta, false);
+        }
+    }
+
+    auto userInputMapper = DependencyManager::get<UserInputMapper>();
+    userInputMapper->update(delta);
 
     for (auto entry : _inputControllers) {
         entry.second->update();
     }
+
+    controller::ScriptingInterface::update();
 }
 
 QVector<UserInputMapper::Action> ControllerScriptingInterface::getAllActions() {

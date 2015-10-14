@@ -56,4 +56,9 @@ namespace controller {
         NUM_STANDARD_POSES
     };
 
+    enum StandardCounts {
+        TRIGGERS = 2,
+        ANALOG_STICKS = 2,
+        POSES = 2, // FIXME 3?  if we want to expose the head?
+    };
 }
