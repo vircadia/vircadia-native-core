@@ -21,20 +21,21 @@
     ColorIndicator.prototype = {
 
         changeColor: function() {
-            var newColor = Entities.getEntityProperties(this.whiteboard, "userData").currentColor;
-            Entities.editEntity(this.EntityID, {
+            var userData = JSON.parse(Entities.getEntityProperties(this.whiteboard, "userData").userData);
+            var newColor = userData.currentColor;
+            Entities.editEntity(this.entityID, {
                 color: newColor
             });
         },
 
         preload: function(entityID) {
             this.entityID = entityID;
-            var props = Entities.getEntityProperties(this.entityID, "userData");
+            var props = Entities.getEntityProperties(this.entityID, ["position", "userData"]);
             this.position = props.position;
             this.whiteboard = JSON.parse(props.userData).whiteboard;
         },
 
-    };
+    };    
 
     // entity scripts always need to return a newly constructed object of our type
     return new ColorIndicator();

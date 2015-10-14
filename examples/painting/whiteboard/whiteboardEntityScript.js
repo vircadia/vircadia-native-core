@@ -189,6 +189,8 @@
             Overlays.editOverlay(this.laserPointer, {
                 color: this.strokeColor
             });
+
+            Entities.callEntityMethod(this.colorIndicator, "changeColor");
         },
 
         eraseBoard: function() {

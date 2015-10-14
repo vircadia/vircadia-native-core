@@ -63,17 +63,29 @@ var colorIndicatorDimensions = {
     z: 0.02
 };
 scriptURL = Script.resolvePath("colorIndicatorEntityScript.js");
-var colorIndicatorPosition = Vec3.sum(center, {x: 0, y: whiteboardDimensions.y/2 + colorIndicatorDimensions.y/2, z: 0});
+var colorIndicatorPosition = Vec3.sum(center, {
+    x: 0,
+    y: whiteboardDimensions.y / 2 + colorIndicatorDimensions.y / 2,
+    z: 0
+});
 var colorIndicatorBox = Entities.addEntity({
     type: "Box",
     color: colors[0],
     rotation: rotation,
     position: colorIndicatorPosition,
     dimensions: colorIndicatorDimensions,
-    script: scriptURL
+    script: scriptURL,
+    userData: JSON.stringify({
+        whiteboard: whiteboard
+    })
 });
 
-Entities.editEntity(whiteboard, {userData: JSON.stringify({currentColor: colors[i], colorIndicator: colorIndicatorBox})} );
+Entities.editEntity(whiteboard, {
+    userData: JSON.stringify({
+        currentColor: colors[0],
+        colorIndicator: colorIndicatorBox
+    })
+});
 
 //COLOR BOXES
 var direction = Quat.getRight(rotation);
@@ -84,7 +96,7 @@ var colorSquareDimensions = {
     y: 0.1,
     z: 0.05
 };
-colorBoxPosition.y += whiteboardDimensions.y / 2 + colorIndicatorDimensions.y +  colorSquareDimensions.y / 2;
+colorBoxPosition.y += whiteboardDimensions.y / 2 + colorIndicatorDimensions.y + colorSquareDimensions.y / 2;
 var spaceBetweenColorBoxes = Vec3.multiply(direction, colorSquareDimensions.x * 2);
 var scriptURL = Script.resolvePath("colorSelectorEntityScript.js");
 for (var i = 0; i < colors.length; i++) {
@@ -106,18 +118,26 @@ for (var i = 0; i < colors.length; i++) {
 
 
 // BLACK BOX
-var blackBoxDimensions = {x: .2, y: .2, z: 0.05};
-colorBoxPosition = Vec3.subtract(center, Vec3.multiply(direction, whiteboardDimensions.x / 2 + blackBoxDimensions.x/2 - 0.01));
+var blackBoxDimensions = {
+    x: .2,
+    y: .2,
+    z: 0.05
+};
+colorBoxPosition = Vec3.subtract(center, Vec3.multiply(direction, whiteboardDimensions.x / 2 + blackBoxDimensions.x / 2 - 0.01));
 colorBoxPosition.y += 0.3;
 var blackBox = Entities.addEntity({
     type: 'Box',
     position: colorBoxPosition,
     dimensions: blackBoxDimensions,
     rotation: rotation,
-    color: {red: 0, green: 0, blue: 0},
+    color: {
+        red: 0,
+        green: 0,
+        blue: 0
+    },
     script: scriptURL,
     userData: JSON.stringify({
-        whiteboard: whiteboard        
+        whiteboard: whiteboard
     })
 });
 
