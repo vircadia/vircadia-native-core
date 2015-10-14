@@ -253,6 +253,8 @@ public:
 
     void setActionDataDirty() { _actionDataChanged = true; }
 
+    QList<QString> listChangedProperties();
+
 private:
     QUuid _id;
     bool _idSet;

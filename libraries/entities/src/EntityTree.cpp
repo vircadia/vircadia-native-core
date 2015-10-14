@@ -610,8 +610,11 @@ int EntityTree::processEditPacketData(NLPacket& packet, const unsigned char* edi
                     // if the EntityItem exists, then update it
                     startLogging = usecTimestampNow();
                     if (wantEditLogging()) {
-                        qCDebug(entities) << "User [" << senderNode->getUUID() << "] editing entity. ID:" << entityItemID;
-                        qCDebug(entities) << "   properties:" << properties;
+
+                        // qCDebug(entities) << "User [" << senderNode->getUUID() << "] editing entity. ID:" << entityItemID;
+                        // qCDebug(entities) << "   properties:" << properties;
+
+                        qCDebug(entities) << "edit" << entityItemID.toString() << properties.listChangedProperties();
                     }
                     endLogging = usecTimestampNow();
 
