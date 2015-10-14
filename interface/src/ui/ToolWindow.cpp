@@ -22,6 +22,8 @@ ToolWindow::ToolWindow(QWidget* parent) :
     _hasShown(false),
     _lastGeometry() {
 
+    setTabPosition(Qt::TopDockWidgetArea, QTabWidget::TabPosition::North);
+
 #   ifndef Q_OS_LINUX
     setDockOptions(QMainWindow::ForceTabbedDocks);
 #   endif
@@ -120,12 +122,9 @@ void ToolWindow::addDockWidget(Qt::DockWidgetArea area, QDockWidget* dockWidget)
 
 void ToolWindow::addDockWidget(Qt::DockWidgetArea area, QDockWidget* dockWidget, Qt::Orientation orientation) {
     QList<QDockWidget*> dockWidgets = findChildren<QDockWidget*>();
-    
-    setTabPosition(Qt::TopDockWidgetArea, QTabWidget::TabPosition::North);
 
     QMainWindow::addDockWidget(area, dockWidget, orientation);
 
-    // We want to force tabbing, so retabify all of our widgets.
     QDockWidget* lastDockWidget = dockWidget;
 
     foreach(QDockWidget* nextDockWidget, dockWidgets) {
