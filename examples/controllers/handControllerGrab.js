@@ -177,7 +177,6 @@ function MyController(hand, triggerAction) {
                 this.continueFarGrabbingNonColliding();
                 break;
             case STATE_RELEASE:
-            print("TRIGGER VALUE " + this.triggerValue);
                 this.release();
                 break;
         }
@@ -253,7 +252,6 @@ function MyController(hand, triggerAction) {
             this.setState(STATE_RELEASE);
             return;
         }
-
 
         // the trigger is being pressed, do a ray test
         var handPosition = this.getHandPosition();
@@ -570,6 +568,7 @@ function MyController(hand, triggerAction) {
             this.setState(STATE_RELEASE);
             return;
         }
+        
         Entities.callEntityMethod(this.grabbedEntity, "continueNearGrabbingNonColliding");
     };
 
