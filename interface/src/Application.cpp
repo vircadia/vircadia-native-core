@@ -1559,7 +1559,7 @@ void Application::keyPressEvent(QKeyEvent* event) {
                         cursor->setIcon(Cursor::Icon::DEFAULT);
                     }
                 } else {
-                    resetSensors();
+                    resetSensors(true);
                 }
                 break;
             }
@@ -1890,16 +1890,6 @@ void Application::mousePressEvent(QMouseEvent* event, unsigned int deviceID) {
                 computePickRay(mappedEvent.x(), mappedEvent.y()));
             sendEvent(this, &actionEvent);
 
-        } else if (event->button() == Qt::RightButton) {
-            // "right click" on controllers to toggle the overlay
-            if (deviceID > 0) {
-                _overlayConductor.setEnabled(!_overlayConductor.getEnabled());
-            }
-        } else if (event->button() == Qt::MiddleButton) {
-            // mouse middle click to toggle the overlay
-            if (deviceID == 0) {
-                _overlayConductor.setEnabled(!_overlayConductor.getEnabled());
-            }
         }
     }
 }
@@ -3591,7 +3581,7 @@ void Application::renderRearViewMirror(RenderArgs* renderArgs, const QRect& regi
     renderArgs->_viewport =  originalViewport;
 }
 
-void Application::resetSensors() {
+void Application::resetSensors(bool andReload) {
     DependencyManager::get<Faceshift>()->reset();
     DependencyManager::get<DdeFaceTracker>()->reset();
     DependencyManager::get<EyeTracker>()->reset();
@@ -3603,7 +3593,7 @@ void Application::resetSensors() {
     QPoint windowCenter = mainWindow->geometry().center();
     _glWidget->cursor().setPos(currentScreen, windowCenter);
 
-    getMyAvatar()->reset();
+    getMyAvatar()->reset(andReload);
 
     QMetaObject::invokeMethod(DependencyManager::get<AudioClient>().data(), "reset", Qt::QueuedConnection);
 }
