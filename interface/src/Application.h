@@ -211,7 +211,7 @@ public:
     void setScriptsLocation(const QString& scriptsLocation);
 
     bool canAcceptURL(const QString& url);
-    bool acceptURL(const QString& url);
+    bool acceptURL(const QString& url, bool defaultUpload = false);
 
     void setMaxOctreePacketsPerSecond(int maxOctreePPS);
     int getMaxOctreePacketsPerSecond();
@@ -329,7 +329,7 @@ private slots:
     bool askToSetAvatarUrl(const QString& url);
     bool askToLoadScript(const QString& scriptFilenameOrURL);
     bool askToUploadAsset(const QString& asset);
-    void assetUploadFinished(AssetUpload* upload, const QString& hash);
+    void modelUploadFinished(AssetUpload* upload, const QString& hash);
     
     void setSessionUUID(const QUuid& sessionUUID);
     void domainChanged(const QString& domainHostname);

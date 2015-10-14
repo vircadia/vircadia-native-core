@@ -18,6 +18,9 @@
 
 #include <AbstractControllerScriptingInterface.h>
 class PalmData;
+namespace controller {
+    class NewControllerScriptingInterface;
+}
 
 class InputController : public  AbstractInputController {
     Q_OBJECT
@@ -55,7 +58,8 @@ class ControllerScriptingInterface : public AbstractControllerScriptingInterface
 
 public:    
     ControllerScriptingInterface();
-    
+    ~ControllerScriptingInterface();
+
     virtual void registerControllerTypes(ScriptEngine* engine);
     
     void emitKeyPressEvent(QKeyEvent* event) { emit keyPressEvent(KeyEvent(*event)); }
@@ -169,6 +173,7 @@ private:
 
     void wireUpControllers(ScriptEngine* engine);
 
+    controller::NewControllerScriptingInterface* _newControllerScriptingInterface = nullptr;
 };
 
 const int NUMBER_OF_SPATIALCONTROLS_PER_PALM = 2; // the hand and the tip

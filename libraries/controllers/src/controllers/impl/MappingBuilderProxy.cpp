@@ -44,7 +44,6 @@ QObject* MappingBuilderProxy::join(const QJSValue& source1, const QJSValue& sour
     return from(_parent.compositeEndpointFor(source1Endpoint, source2Endpoint));
 }
 
-
 const QString JSON_NAME = QStringLiteral("name");
 const QString JSON_CHANNELS = QStringLiteral("channels");
 const QString JSON_CHANNEL_FROM = QStringLiteral("from");
@@ -82,6 +81,11 @@ QObject* MappingBuilderProxy::from(const QJsonValue& json) {
         // Endpoint is defined as an object, we expect a js function then
         return nullptr;
     }
+}
+
+QObject* MappingBuilderProxy::enable(bool enable) {
+    _parent.enableMapping(_mapping->_name, enable);
+    return this;
 }
 
 

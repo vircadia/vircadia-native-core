@@ -625,6 +625,7 @@ MasterReset = function() {
         green: 146,
         blue: 24
       },
+      isSpotlight: false,
       userData: JSON.stringify({
         resetMe: {
           resetMe: true,
@@ -652,6 +653,7 @@ MasterReset = function() {
         green: 146,
         blue: 24
       },
+      isSpotlight: false,
       userData: JSON.stringify({
         resetMe: {
           resetMe: true,
@@ -701,7 +703,6 @@ MasterReset = function() {
 
 
 
-
     var sconceLight3 = Entities.addEntity({
       type: "Light",
       position: {
@@ -722,6 +723,7 @@ MasterReset = function() {
         green: 146,
         blue: 24
       },
+      isSpotlight: false,
       userData: JSON.stringify({
         resetMe: {
           resetMe: true,
@@ -750,6 +752,7 @@ MasterReset = function() {
         green: 146,
         blue: 24
       },
+      isSpotlight: false,
       userData: JSON.stringify({
         resetMe: {
           resetMe: true,
@@ -777,6 +780,7 @@ MasterReset = function() {
         green: 146,
         blue: 24
       },
+      isSpotlight: false,
       userData: JSON.stringify({
         resetMe: {
           resetMe: true,
@@ -1223,7 +1227,7 @@ MasterReset = function() {
         y: 0.05,
         z: 0.25
       }
-    },];
+    }, ];
 
     var modelURL, entity;
     for (i = 0; i < blockTypes.length; i++) {

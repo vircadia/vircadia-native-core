@@ -50,6 +50,7 @@ signals:
 private:
     QString _filename;
     QString _extension;
+    QByteArray _data;
     Error _error;
 };
 

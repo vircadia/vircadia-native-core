@@ -8,10 +8,21 @@ import "./controls"
 
 Column {
     id: root
-    property var xbox: NewControllers.Hardware.X360Controller1
     property var actions: NewControllers.Actions
     property var standard: NewControllers.Standard
-    property string mappingName: "TestMapping"
+    property var testMapping: null
+    property var xbox: null
+
+
+    Component.onCompleted: {
+        var patt = /^X360Controller/;
+        for (var prop in NewControllers.Hardware) {
+            if(patt.test(prop)) {
+                root.xbox = NewControllers.Hardware[prop]
+                break
+            }
+        }
+    }
 
     spacing: 12
 
@@ -49,13 +60,15 @@ Column {
                 mapping.from(xbox.LT).to(standard.LT);
                 mapping.from(xbox.RT).to(standard.RT);
                 NewControllers.enableMapping("Default");
+                enabled = false;
+                text = "Built"
             }
         }
 
         Button {
             text: "Build Mapping"
             onClicked: {
-                var mapping = NewControllers.newMapping(root.mappingName);
+                var mapping = NewControllers.newMapping();
                 // Inverting a value
                 mapping.from(xbox.RY).invert().to(standard.RY);
                 // Assigning a value from a function
@@ -63,17 +76,22 @@ Column {
                 // Constrainting a value to -1, 0, or 1, with a deadzone
                 mapping.from(xbox.LY).deadZone(0.5).constrainToInteger().to(standard.LY);
                 mapping.join(standard.LB, standard.RB).pulse(0.5).to(actions.Yaw);
+                mapping.from(actions.Yaw).clamp(0, 1).invert().to(actions.YAW_RIGHT);
+                mapping.from(actions.Yaw).clamp(-1, 0).to(actions.YAW_LEFT);
+                testMapping = mapping;
+                enabled = false
+                text = "Built"
             }
         }
 
         Button {
             text: "Enable Mapping"
-            onClicked: NewControllers.enableMapping(root.mappingName)
+            onClicked: root.testMapping.enable()
         }
 
         Button {
             text: "Disable Mapping"
-            onClicked: NewControllers.disableMapping(root.mappingName)
+            onClicked: root.testMapping.disable()
         }
     }
 
@@ -85,9 +103,26 @@ Column {
 
 
     Row {
+        spacing: 8
         ScrollingGraph {
             controlId: NewControllers.Actions.Yaw
             label: "Yaw"
+            min: -3.0
+            max: 3.0
+            size: 128
+        }
+
+        ScrollingGraph {
+            controlId: NewControllers.Actions.YAW_LEFT
+            label: "Yaw Left"
+            min: -3.0
+            max: 3.0
+            size: 128
+        }
+
+        ScrollingGraph {
+            controlId: NewControllers.Actions.YAW_RIGHT
+            label: "Yaw Right"
             min: -3.0
             max: 3.0
             size: 128

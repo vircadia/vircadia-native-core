@@ -82,6 +82,9 @@ public:
 int main(int argc, char** argv) {
     QGuiApplication app(argc, argv);
     QQmlApplicationEngine engine;
+    for (auto path : qApp->libraryPaths()) {
+        qDebug() << path;
+    }
 
     for (auto path : qApp->libraryPaths()) {
         qDebug() << path;

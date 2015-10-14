@@ -10,9 +10,9 @@
 //
 #include "KeyboardMouseDevice.h"
 
-#include <QtGUI/QKeyEvent>
-#include <QtGUI/QMouseEvent>
-#include <QtGUI/QTouchEvent>
+#include <QtGui/QKeyEvent>
+#include <QtGui/QMouseEvent>
+#include <QtGui/QTouchEvent>
 
 
 const QString KeyboardMouseDevice::NAME = "Keyboard/Mouse";

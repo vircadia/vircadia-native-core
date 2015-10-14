@@ -53,9 +53,6 @@ signals:
     void progress(qint64 totalReceived, qint64 total);
 
 private:
-    bool loadFromCache();
-    bool saveToCache(const QByteArray& file) const;
-    
     State _state = NotStarted;
     Error _error = NoError;
     AssetInfo _info;

@@ -85,6 +85,7 @@ bool SixenseManager::isSupported() const {
 }
 
 void SixenseManager::activate() {
+    InputPlugin::activate();
 #ifdef HAVE_SIXENSE
     _calibrationState = CALIBRATION_STATE_IDLE;
     _avatarPosition = DEFAULT_AVATAR_POSITION;
@@ -125,6 +126,7 @@ void SixenseManager::activate() {
 }
 
 void SixenseManager::deactivate() {
+    InputPlugin::deactivate();
 #ifdef HAVE_SIXENSE
     CONTAINER->removeMenuItem(MENU_NAME, TOGGLE_SMOOTH);
     CONTAINER->removeMenu(MENU_PATH);
