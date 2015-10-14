@@ -126,8 +126,13 @@ bool ObjectActionOffset::updateArguments(QVariantMap arguments) {
             _linearDistance = linearDistance;
             _positionalTargetSet = true;
             _active = true;
-            activateBody();
+
+            auto ownerEntity = _ownerEntity.lock();
+            if (ownerEntity) {
+                ownerEntity->setActionDataDirty(true);
+            }
         });
+        activateBody();
     }
 
     return true;

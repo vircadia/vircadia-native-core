@@ -159,14 +159,13 @@ bool ObjectActionSpring::updateArguments(QVariantMap arguments) {
             _rotationalTarget = rotationalTarget;
             _angularTimeScale = glm::max(MIN_TIMESCALE, glm::abs(angularTimeScale));
             _active = true;
-            activateBody();
 
             auto ownerEntity = _ownerEntity.lock();
             if (ownerEntity) {
                 ownerEntity->setActionDataDirty(true);
             }
-
         });
+        activateBody();
     }
 
     return true;

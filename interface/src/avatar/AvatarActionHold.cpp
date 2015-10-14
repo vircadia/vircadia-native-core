@@ -136,15 +136,14 @@ bool AvatarActionHold::updateArguments(QVariantMap arguments) {
             _angularTimeScale = _linearTimeScale;
             _hand = hand;
             _holderID = holderID;
-
             _active = true;
-            activateBody();
 
             auto ownerEntity = _ownerEntity.lock();
             if (ownerEntity) {
                 ownerEntity->setActionDataDirty(true);
             }
         });
+        activateBody();
     }
 
     return true;
