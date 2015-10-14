@@ -19,7 +19,7 @@
 #include <QtWidgets/QFileDialog>
 #include <QtWidgets/QMessageBox>
 
-#include <GZip.h>
+#include <Gzip.h>
 
 #include <AssetClient.h>
 #include <AssetUpload.h>
