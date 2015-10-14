@@ -75,24 +75,30 @@ namespace controller {
             class Entry {
             public:
                 virtual Filter* create() = 0;
-                
+                virtual const std::string& getName() const = 0;
+
                 Entry() = default;
                 virtual ~Entry() = default;
             };
 
-            template <class T> class ClassEntry {
+            template <class T, std::string name> class ClassEntry {
             public:
-                virtual Filter* create() { return (Filter*) new T(); }
+                Filter* create() override { return (Filter*) new T(); }
+                const std::string& getName() const override {
+                    return _name
+                };
 
-                ClassEntry() = default;
+                ClassEntry() : _name(name) {};
                 virtual ~ClassEntry() = default;
+
+                const std::string _name;
             };
 
             using EntryMap = std::map<std::string, std::shared_ptr<Entry>>;
 
-            void registerEntry(const std::string& name, const std::shared_ptr<Entry>& entry) {
+            void registerEntry(const std::shared_ptr<Entry>& entry) {
                 if (entry) {
-                    _entries.insert(EntryMap::value_type(name, entry));
+                    _entries.insert(EntryMap::value_type(entry->getName(), entry));
                 }
             }
 
@@ -115,7 +121,9 @@ namespace controller {
     };
 }
 
-#define REGISTER_FILTER_CLASS(classEntry) static Filter::Factory::ClassEntry<classEntry> _factoryEntry;
+#define REGISTER_FILTER_CLASS(classEntry, className) \
+    using FactoryEntry = Filter::Factory::ClassEntry<classEntry, className>;\
+    static FactoryEntry _factoryEntry;
 
 namespace controller {
 
@@ -150,7 +158,8 @@ namespace controller {
         }
         virtual bool parseParameters(const QJsonArray& parameters);
 
-        REGISTER_FILTER_CLASS(ScaleFilter);
+     //   static Filter::Factory::ClassEntry<ScaleFilter, "scale"> _factoryEntry;
+        REGISTER_FILTER_CLASS(ScaleFilter, "scale");
     private:
         float _scale = 1.0f;
     };
