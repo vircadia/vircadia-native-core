@@ -211,9 +211,11 @@ void AvatarActionHold::deserialize(QByteArray serializedArguments) {
         dataStream >> _expires;
         dataStream >> _tag;
 
-        qDebug() << "deserialize hold: " << _holderID
+        #if WANT_DEBUG
+        qDebug() << "deserialize AvatarActionHold: " << _holderID
                  << _relativePosition.x << _relativePosition.y << _relativePosition.z
                  << _hand << _expires;
+        #endif
 
         _active = true;
     });
