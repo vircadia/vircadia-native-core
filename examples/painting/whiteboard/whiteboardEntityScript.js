@@ -121,7 +121,6 @@
             var localPoint = Vec3.subtract(position, this.strokeBasePosition);
             //Move stroke a bit forward along normal so it doesnt zfight with mesh its drawing on 
             localPoint = Vec3.sum(localPoint, Vec3.multiply(this.normal, 0.001 + Math.random() * 0.001)); //rand avoid z fighting
-            this.oldPosition = position;
             var distance = Vec3.distance(localPoint, this.strokePoints[this.strokePoints.length - 1]);
             if (this.strokePoints.length > 0 && distance < MIN_POINT_DISTANCE) {
                 //need a minimum distance to avoid binormal NANs
@@ -153,6 +152,7 @@
                 this.painting = false;
                 return;
             }
+            this.oldPosition = position;
         },
 
 
