@@ -2054,41 +2054,10 @@ void Application::checkFPS() {
     _timerStart.start();
 }
 
-uint64_t lastReport = usecTimestampNow(); // XXX
-
-
 void Application::idle() {
     if (_aboutToQuit) {
         return; // bail early, nothing to do here.
     }
-
-
-    // XXX
-    { // XXX
-        uint64_t now = usecTimestampNow();
-        if (now - lastReport > 6 * USECS_PER_SECOND) {
-            QSharedPointer<AvatarManager> avatarManager = DependencyManager::get<AvatarManager>();
-            const AvatarHash& avatarHash = avatarManager->getAvatarHash();
-
-            qDebug() << "-----------------------";
-
-            qDebug() << "my left palm:" << getMyAvatar()->getLeftPalmPosition()
-                     << " my chest:" << getMyAvatar()->getChestPosition();
-
-            QHash<QUuid, AvatarSharedPointer>::const_iterator i;
-            for (i = avatarHash.begin(); i != avatarHash.end(); ++i) {
-                std::shared_ptr<Avatar> otherAvatar = std::static_pointer_cast<Avatar>(i.value());
-                if (otherAvatar->getSessionUUID() == getMyAvatar()->getSessionUUID()) {
-                    continue;
-                }
-                qDebug() << "their left palm:" << otherAvatar->getLeftPalmPosition()
-                         << " their chest:" << otherAvatar->getChestPosition();
-            };
-
-            lastReport = now;
-        }
-    } // XXX
-    // XXX
 
     // depending on whether we're throttling or not.
     // Once rendering is off on another thread we should be able to have Application::idle run at start(0) in
