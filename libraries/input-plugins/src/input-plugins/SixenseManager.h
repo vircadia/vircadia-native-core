@@ -118,6 +118,9 @@ private:
 
     static const QString NAME;
     static const QString HYDRA_ID_STRING;
+
+    bool _activated = false;
+
 };
 
 #endif // hifi_SixenseManager_h

@@ -136,6 +136,7 @@ public:
     };
     // GetFreeDeviceID should be called before registering a device to use an ID not used by a different device.
     uint16 getFreeDeviceID() { return _nextFreeDeviceID++; }
+
     bool registerDevice(uint16 deviceID, const DeviceProxy::Pointer& device);
     bool registerStandardDevice(const DeviceProxy::Pointer& device) { _standardDevice = device; return true; }
     DeviceProxy::Pointer getDeviceProxy(const Input& input);
@@ -299,6 +300,9 @@ protected:
     std::vector<PoseValue> _poseStates = std::vector<PoseValue>(NUM_ACTIONS);
 
     glm::mat4 _sensorToWorldMat;
+
+    int recordDeviceOfType(const QString& deviceName);
+    QHash<const QString&, int> _deviceCounts;
 };
 
 Q_DECLARE_METATYPE(UserInputMapper::InputPair)

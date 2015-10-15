@@ -122,6 +122,7 @@ void SixenseManager::activate() {
 #endif
     loadSettings();
     sixenseInit();
+    _activated = true;
 #endif
 }
 
@@ -138,6 +139,7 @@ void SixenseManager::deactivate() {
 #endif
 
     sixenseExit();
+    _activated = false;
 
 #ifdef __APPLE__
     delete _sixenseLibrary;
@@ -157,6 +159,12 @@ void SixenseManager::setSixenseFilter(bool filter) {
 }
 
 void SixenseManager::update(float deltaTime, bool jointsCaptured) {
+    // FIXME - Some of the code in update() will crash if you haven't actually activated the
+    // plugin. But we want register with the UserInputMapper if we don't call this.
+    // We need to clean this up.
+    //if (!_activated) {
+    //    return;
+    //}
 #ifdef HAVE_SIXENSE
     _buttonPressedMap.clear();
 
