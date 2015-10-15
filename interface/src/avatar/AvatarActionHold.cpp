@@ -21,7 +21,8 @@ AvatarActionHold::AvatarActionHold(const QUuid& id, EntityItemPointer ownerEntit
     ObjectActionSpring(id, ownerEntity),
     _relativePosition(glm::vec3(0.0f)),
     _relativeRotation(glm::quat()),
-    _hand("right")
+    _hand("right"),
+    _holderID(QUuid())
 {
     _type = ACTION_TYPE_HOLD;
     #if WANT_DEBUG
@@ -39,39 +40,41 @@ void AvatarActionHold::updateActionWorker(float deltaTimeStep) {
     bool gotLock = false;
     glm::quat rotation;
     glm::vec3 position;
-    glm::vec3 offset;
+    std::shared_ptr<Avatar> holdingAvatar = nullptr;
 
     gotLock = withTryReadLock([&]{
-        auto myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
-        glm::vec3 palmPosition;
-        glm::quat palmRotation;
-        if (_hand == "right") {
-            palmPosition = myAvatar->getRightPalmPosition();
-            palmRotation = myAvatar->getRightPalmRotation();
-        } else {
-            palmPosition = myAvatar->getLeftPalmPosition();
-            palmRotation = myAvatar->getLeftPalmRotation();
-        }
+        QSharedPointer<AvatarManager> avatarManager = DependencyManager::get<AvatarManager>();
+        AvatarSharedPointer holdingAvatarData = avatarManager->getAvatarBySessionID(_holderID);
+        holdingAvatar = std::static_pointer_cast<Avatar>(holdingAvatarData);
 
-        rotation = palmRotation * _relativeRotation;
-        offset = rotation * _relativePosition;
-        position = palmPosition + offset;
+        if (holdingAvatar) {
+            glm::vec3 offset;
+            glm::vec3 palmPosition;
+            glm::quat palmRotation;
+            if (_hand == "right") {
+                palmPosition = holdingAvatar->getRightPalmPosition();
+                palmRotation = holdingAvatar->getRightPalmRotation();
+            } else {
+                palmPosition = holdingAvatar->getLeftPalmPosition();
+                palmRotation = holdingAvatar->getLeftPalmRotation();
+            }
+
+            rotation = palmRotation * _relativeRotation;
+            offset = rotation * _relativePosition;
+            position = palmPosition + offset;
+        }
     });
 
-    if (gotLock) {
-        gotLock = withTryWriteLock([&]{
-            _positionalTarget = position;
-            _rotationalTarget = rotation;
-            _positionalTargetSet = true;
-            _rotationalTargetSet = true;
-            auto ownerEntity = _ownerEntity.lock();
-            if (ownerEntity) {
-                ownerEntity->setActionDataDirty(true);
-            }
-        });
-    }
-    if (gotLock) {
-        ObjectActionSpring::updateActionWorker(deltaTimeStep);
+    if (holdingAvatar) {
+        if (gotLock) {
+            gotLock = withTryWriteLock([&]{
+                _positionalTarget = position;
+                _rotationalTarget = rotation;
+            });
+        }
+        if (gotLock) {
+            ObjectActionSpring::updateActionWorker(deltaTimeStep);
+        }
     }
 }
 
@@ -115,10 +118,11 @@ bool AvatarActionHold::updateArguments(QVariantMap arguments) {
         holderID = myAvatar->getSessionUUID();
 
         if (somethingChanged ||
-            relativePosition != _relativePosition ||
-            relativeRotation != _relativeRotation ||
-            timeScale != _linearTimeScale ||
-            hand != _hand) {
+            relativePosition != _relativePosition
+            || relativeRotation != _relativeRotation
+            || timeScale != _linearTimeScale
+            || hand != _hand
+            || holderID != _holderID) {
             needUpdate = true;
         }
     });
@@ -131,6 +135,7 @@ bool AvatarActionHold::updateArguments(QVariantMap arguments) {
             _linearTimeScale = glm::max(MIN_TIMESCALE, timeScale);
             _angularTimeScale = _linearTimeScale;
             _hand = hand;
+            _holderID = holderID;
             _active = true;
 
             auto ownerEntity = _ownerEntity.lock();
@@ -147,6 +152,7 @@ bool AvatarActionHold::updateArguments(QVariantMap arguments) {
 QVariantMap AvatarActionHold::getArguments() {
     QVariantMap arguments = ObjectAction::getArguments();
     withReadLock([&]{
+        arguments["holderID"] = _holderID;
         arguments["relativePosition"] = glmToQMap(_relativePosition);
         arguments["relativeRotation"] = glmToQMap(_relativeRotation);
         arguments["timeScale"] = _linearTimeScale;
@@ -156,9 +162,61 @@ QVariantMap AvatarActionHold::getArguments() {
 }
 
 QByteArray AvatarActionHold::serialize() const {
-    return ObjectActionSpring::serialize();
+    QByteArray serializedActionArguments;
+    QDataStream dataStream(&serializedActionArguments, QIODevice::WriteOnly);
+
+    withReadLock([&]{
+        dataStream << ACTION_TYPE_HOLD;
+        dataStream << getID();
+        dataStream << AvatarActionHold::holdVersion;
+
+        dataStream << _holderID;
+        dataStream << _relativePosition;
+        dataStream << _relativeRotation;
+        dataStream << _linearTimeScale;
+        dataStream << _hand;
+
+        dataStream << _expires;
+        dataStream << _tag;
+    });
+
+    return serializedActionArguments;
 }
 
 void AvatarActionHold::deserialize(QByteArray serializedArguments) {
-    assert(false);
+    QDataStream dataStream(serializedArguments);
+
+    EntityActionType type;
+    dataStream >> type;
+    assert(type == getType());
+
+    QUuid id;
+    dataStream >> id;
+    assert(id == getID());
+
+    uint16_t serializationVersion;
+    dataStream >> serializationVersion;
+    if (serializationVersion != AvatarActionHold::holdVersion) {
+        return;
+    }
+
+    withWriteLock([&]{
+        dataStream >> _holderID;
+        dataStream >> _relativePosition;
+        dataStream >> _relativeRotation;
+        dataStream >> _linearTimeScale;
+        _angularTimeScale = _linearTimeScale;
+        dataStream >> _hand;
+
+        dataStream >> _expires;
+        dataStream >> _tag;
+
+        #if WANT_DEBUG
+        qDebug() << "deserialize AvatarActionHold: " << _holderID
+                 << _relativePosition.x << _relativePosition.y << _relativePosition.z
+                 << _hand << _expires;
+        #endif
+
+        _active = true;
+    });
 }
