@@ -17,8 +17,6 @@
 
 const float CONTROLLER_THRESHOLD = 0.3f;
 
-const float MAX_AXIS = 32768.0f;
-
 StandardController::~StandardController() {
 }
 

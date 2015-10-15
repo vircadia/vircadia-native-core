@@ -52,7 +52,6 @@
   };
 
 
-
   MasterReset = function() {
     var resetKey = "resetMe";
     var GRABBABLE_DATA_KEY = "grabbableKey";
@@ -320,6 +319,9 @@
             userData: JSON.stringify({
               resetMe: {
                 resetMe: true
+              },
+              grabbableKey: {
+                invertSolidWhileHeld: true
               }
             })
           });
@@ -379,7 +381,8 @@
       var MODEL_URL = 'http://hifi-public.s3.amazonaws.com/models/ping_pong_gun/target.fbx';
       var COLLISION_HULL_URL = 'http://hifi-public.s3.amazonaws.com/models/ping_pong_gun/target_collision_hull.obj';
 
-      var RESET_DISTANCE = 1;
+      var MINIMUM_MOVE_LENGTH = 0.05;
+      var RESET_DISTANCE = 0.5;
       var TARGET_USER_DATA_KEY = 'hifi-ping_pong_target';
       var NUMBER_OF_TARGETS = 6;
       var TARGETS_PER_ROW = 3;
@@ -392,7 +395,6 @@
 
       var VERTICAL_SPACING = TARGET_DIMENSIONS.y + 0.5;
       var HORIZONTAL_SPACING = TARGET_DIMENSIONS.z + 0.5;
-
 
       var startPosition = {
         x: 548.68,
@@ -407,11 +409,6 @@
         type: 'Box',
         position: startPosition,
         dimensions: TARGET_DIMENSIONS,
-        color: {
-          red: 0,
-          green: 255,
-          blue: 0
-        },
         rotation: rotation,
         visible: false,
         collisionsWillMove: false,
@@ -419,6 +416,9 @@
         userData: JSON.stringify({
           resetMe: {
             resetMe: true
+          },
+          grabbableKey: {
+            grabbable: false
           }
         })
       });
@@ -426,6 +426,8 @@
       var targets = [];
 
       var originalPositions = [];
+
+      var lastPositions = [];
 
       function addTargets() {
         var i;
@@ -443,6 +445,7 @@
           position.y = startPosition.y - (row * VERTICAL_SPACING);
 
           originalPositions.push(position);
+          lastPositions.push(position);
 
           var targetProperties = {
             name: 'Target',
@@ -458,6 +461,9 @@
             userData: JSON.stringify({
               resetMe: {
                 resetMe: true
+              },
+              grabbableKey: {
+                grabbable: false
               }
             })
           };
@@ -474,7 +480,11 @@
           var distance = Vec3.subtract(originalPosition, currentPosition);
           var length = Vec3.length(distance);
 
-          if (length > RESET_DISTANCE) {
+          var moving = Vec3.length(Vec3.subtract(currentPosition, lastPositions[index]));
+
+          lastPositions[index] = currentPosition;
+
+          if (length > RESET_DISTANCE && moving < MINIMUM_MOVE_LENGTH) {
 
             Entities.deleteEntity(target);
 
@@ -492,11 +502,14 @@
               userData: JSON.stringify({
                 resetMe: {
                   resetMe: true
+                },
+                grabbableKey: {
+                  grabbable: false
                 }
               })
             };
-            var target = Entities.addEntity(targetProperties);
-            targets[index] = target;
+
+            targets[index] = Entities.addEntity(targetProperties);
 
           }
         });
@@ -554,6 +567,9 @@
         userData: JSON.stringify({
           resetMe: {
             resetMe: true
+          },
+          grabbableKey: {
+            grabbable: false
           }
         })
       });
@@ -589,7 +605,11 @@
         userData: JSON.stringify({
           resetMe: {
             resetMe: true
+          },
+          grabbableKey: {
+            invertSolidWhileHeld: true
           }
+
         })
       });
 
@@ -658,6 +678,7 @@
           green: 146,
           blue: 24
         },
+        isSpotlight: false,
         userData: JSON.stringify({
           resetMe: {
             resetMe: true,
@@ -685,6 +706,7 @@
           green: 146,
           blue: 24
         },
+        isSpotlight: false,
         userData: JSON.stringify({
           resetMe: {
             resetMe: true,
@@ -734,7 +756,6 @@
 
 
 
-
       var sconceLight3 = Entities.addEntity({
         type: "Light",
         position: {
@@ -755,6 +776,7 @@
           green: 146,
           blue: 24
         },
+        isSpotlight: false,
         userData: JSON.stringify({
           resetMe: {
             resetMe: true,
@@ -783,6 +805,7 @@
           green: 146,
           blue: 24
         },
+        isSpotlight: false,
         userData: JSON.stringify({
           resetMe: {
             resetMe: true,
@@ -810,6 +833,7 @@
           green: 146,
           blue: 24
         },
+        isSpotlight: false,
         userData: JSON.stringify({
           resetMe: {
             resetMe: true,
@@ -853,6 +877,9 @@
         userData: JSON.stringify({
           resetMe: {
             resetMe: true,
+          },
+          grabbableKey: {
+            invertSolidWhileHeld: true
           }
         })
       };
@@ -888,7 +915,7 @@
           y: 1.13,
           z: 0.2
         },
-        rotation: rotation2,
+        rotation: rotation,
         collisionsWillMove: true,
         gravity: {
           x: 0,
@@ -942,6 +969,9 @@
         userData: JSON.stringify({
           resetMe: {
             resetMe: true,
+          },
+          grabbableKey: {
+            invertSolidWhileHeld: true
           }
         })
       });
@@ -1016,6 +1046,9 @@
         userData: JSON.stringify({
           resetMe: {
             resetMe: true,
+          },
+          grabbableKey: {
+            invertSolidWhileHeld: true
           }
         })
       });
@@ -1055,6 +1088,9 @@
         userData: JSON.stringify({
           resetMe: {
             resetMe: true,
+          },
+          grabbableKey: {
+            invertSolidWhileHeld: true
           }
         })
       });
@@ -1092,6 +1128,9 @@
         userData: JSON.stringify({
           resetMe: {
             resetMe: true,
+          },
+          grabbableKey: {
+            invertSolidWhileHeld: true
           }
         })
       });
@@ -1128,6 +1167,9 @@
         userData: JSON.stringify({
           resetMe: {
             resetMe: true,
+          },
+          grabbableKey: {
+            invertSolidWhileHeld: true
           }
         })
       });
@@ -1256,7 +1298,7 @@
           y: 0.05,
           z: 0.25
         }
-      },];
+      }, ];
 
       var modelURL, entity;
       for (i = 0; i < blockTypes.length; i++) {
@@ -1305,7 +1347,6 @@
       Script.scriptEnding.connect(cleanup);
     }
   };
-
   // entity scripts always need to return a newly constructed object of our type
   return new ResetSwitch();
 });

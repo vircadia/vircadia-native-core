@@ -24,6 +24,7 @@
 
 #include "Application.h"
 #include "AccountManager.h"
+#include "assets/ATPAssetMigrator.h"
 #include "audio/AudioScope.h"
 #include "avatar/AvatarManager.h"
 #include "devices/DdeFaceTracker.h"
@@ -354,7 +355,7 @@ Menu::Menu() {
     MenuWrapper* assetDeveloperMenu = developerMenu->addMenu("Assets");
     
     auto& assetDialogFactory = AssetUploadDialogFactory::getInstance();
-    assetDialogFactory.setParent(this);
+    assetDialogFactory.setDialogParent(this);
     
     QAction* assetUpload = addActionToQMenuAndActionHash(assetDeveloperMenu,
                                                          MenuOption::UploadAsset,
@@ -364,6 +365,13 @@ Menu::Menu() {
     
     // disable the asset upload action by default - it gets enabled only if asset server becomes present
     assetUpload->setEnabled(false);
+    
+    auto& atpMigrator = ATPAssetMigrator::getInstance();
+    atpMigrator.setDialogParent(this);
+    
+    QAction* assetMigration = addActionToQMenuAndActionHash(assetDeveloperMenu, MenuOption::AssetMigration,
+                                                            0, &atpMigrator,
+                                                            SLOT(loadEntityServerFile()));
     
     MenuWrapper* avatarDebugMenu = developerMenu->addMenu("Avatar");
 
@@ -461,6 +469,7 @@ Menu::Menu() {
                                            0, false,
                                            &ConnexionClient::getInstance(),
                                            SLOT(toggleConnexion(bool)));
+    addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::ComfortMode, 0, true);
 
     MenuWrapper* handOptionsMenu = developerMenu->addMenu("Hands");
     addCheckableActionToQMenuAndActionHash(handOptionsMenu, MenuOption::DisplayHandTargets, 0, false);

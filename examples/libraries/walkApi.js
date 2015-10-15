@@ -82,7 +82,7 @@ Avatar = function() {
 
                 // only need to zero right leg IK chain and hips
                 if (IKChain === "RightLeg" || joint === "Hips" ) {
-                    MyAvatar.setJointData(joint, Quat.fromPitchYawRollDegrees(0, 0, 0));
+                    MyAvatar.setJointRotation(joint, Quat.fromPitchYawRollDegrees(0, 0, 0));
                 }
             }
             this.calibration.hipsToFeet = MyAvatar.getJointPosition("Hips").y - MyAvatar.getJointPosition("RightToeBase").y;
@@ -112,16 +112,16 @@ Avatar = function() {
     this.poseFingers = function() {
         for (knuckle in walkAssets.animationReference.leftHand) {
             if (walkAssets.animationReference.leftHand[knuckle].IKChain === "LeftHandThumb") {
-                MyAvatar.setJointData(knuckle, Quat.fromPitchYawRollDegrees(0, 0, -4));
+                MyAvatar.setJointRotation(knuckle, Quat.fromPitchYawRollDegrees(0, 0, -4));
             } else {
-                MyAvatar.setJointData(knuckle, Quat.fromPitchYawRollDegrees(16, 0, 5));
+                MyAvatar.setJointRotation(knuckle, Quat.fromPitchYawRollDegrees(16, 0, 5));
             }
         }
         for (knuckle in walkAssets.animationReference.rightHand) {
             if (walkAssets.animationReference.rightHand[knuckle].IKChain === "RightHandThumb") {
-                MyAvatar.setJointData(knuckle, Quat.fromPitchYawRollDegrees(0, 0, 4));
+                MyAvatar.setJointRotation(knuckle, Quat.fromPitchYawRollDegrees(0, 0, 4));
             } else {
-                MyAvatar.setJointData(knuckle, Quat.fromPitchYawRollDegrees(16, 0, -5));
+                MyAvatar.setJointRotation(knuckle, Quat.fromPitchYawRollDegrees(16, 0, -5));
             }
         }
     };

@@ -27,6 +27,10 @@
 AssignmentClientApp::AssignmentClientApp(int argc, char* argv[]) :
     QCoreApplication(argc, argv)
 {
+    // to work around the Qt constant wireless scanning, set the env for polling interval very high
+    const QByteArray EXTREME_BEARER_POLL_TIMEOUT = QString::number(INT_MAX).toLocal8Bit();
+    qputenv("QT_BEARER_POLL_TIMEOUT", EXTREME_BEARER_POLL_TIMEOUT);
+    
 #   ifndef WIN32
     setvbuf(stdout, NULL, _IOLBF, 0);
 #   endif
