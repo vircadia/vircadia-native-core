@@ -93,7 +93,7 @@
                         this.oldPosition = null;
                     }
                 }
-            } else if(this.intersection.properties.type !== "Unknown") {
+            } else if (this.intersection.properties.type !== "Unknown") {
                 //Sometimes ray will pick against an invisible object with type unkown... so if type is unknown, ignore
                 this.stopPainting();
             }
@@ -169,7 +169,10 @@
                     y: 50,
                     z: 50
                 },
-                lifetime: 200
+                lifetime: 200,
+                userData: JSON.stringify({
+                    whiteboard: this.entityID
+                })
             });
             this.strokePoints = [];
             this.strokeNormals = [];
@@ -194,10 +197,17 @@
         },
 
         eraseBoard: function() {
-            var entities = Entities.findEntities(this.position, 5);
+            var distance = Math.max(this.dimensions.x, this.dimensions.y);
+            var entities = Entities.findEntities(this.position, distance);
             entities.forEach(function(entity) {
-                var name = Entities.getEntityProperties(entity, "name").name;
-                if (name === "paintStroke") {
+                var props = Entities.getEntityProperties(entity, ["name, userData"]);
+                var name = props.name;
+                if(!props.userData) {
+                    return;
+                }
+                var whiteboardID = JSON.parse(props.userData).whiteboard;
+                if (name === "paintStroke" && JSON.stringify(whiteboardID) === JSON.stringify(_this.entityID)) {
+                    // This entity is a paintstroke and part of this whiteboard so delete it
                     Entities.deleteEntity(entity);
                 }
             });
@@ -205,9 +215,10 @@
 
         preload: function(entityID) {
             this.entityID = entityID;
-            var props = Entities.getEntityProperties(this.entityID, ["position", "rotation", "userData"]);
+            var props = Entities.getEntityProperties(this.entityID, ["position", "rotation", "userData", "dimensions"]);
             this.position = props.position;
             this.rotation = props.rotation;
+            this.dimensions = props.dimensions;
             this.normal = Vec3.multiply(Quat.getFront(this.rotation), -1);
             this.painting = false;
             this.strokes = [];

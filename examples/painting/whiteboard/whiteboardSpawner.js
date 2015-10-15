@@ -189,4 +189,4 @@ function cleanup() {
 
 
 // Uncomment this line to delete whiteboard and all associated entity on script close
-Script.scriptEnding.connect(cleanup);
+// Script.scriptEnding.connect(cleanup);
