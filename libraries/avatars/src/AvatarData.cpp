@@ -1032,11 +1032,28 @@ glm::vec3 AvatarData::getJointTranslation(const QString& name) const {
 
 void AvatarData::setJointData(const QString& name, const glm::quat& rotation, const glm::vec3& translation) {
     if (QThread::currentThread() != thread()) {
-        QMetaObject::invokeMethod(this, "setJointData", Q_ARG(const QString&, name),
-            Q_ARG(const glm::quat&, rotation));
+        QMetaObject::invokeMethod(this, "setJointData", Q_ARG(const QString&, name), Q_ARG(const glm::quat&, rotation),
+            Q_ARG(const glm::vec3&, translation));
         return;
     }
     setJointData(getJointIndex(name), rotation, translation);
+}
+
+void AvatarData::setJointRotation(const QString& name, const glm::quat& rotation) {
+    if (QThread::currentThread() != thread()) {
+        QMetaObject::invokeMethod(this, "setJointRotation", Q_ARG(const QString&, name), Q_ARG(const glm::quat&, rotation));
+        return;
+    }
+    setJointRotation(getJointIndex(name), rotation);
+}
+
+void AvatarData::setJointTranslation(const QString& name, const glm::vec3& translation) {
+    if (QThread::currentThread() != thread()) {
+        QMetaObject::invokeMethod(this, "setJointTranslation", Q_ARG(const QString&, name),
+            Q_ARG(const glm::vec3&, translation));
+        return;
+    }
+    setJointTranslation(getJointIndex(name), translation);
 }
 
 void AvatarData::setJointRotation(int index, const glm::quat& rotation) {

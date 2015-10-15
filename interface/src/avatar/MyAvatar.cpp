@@ -326,6 +326,7 @@ static bool capsuleCheck(const glm::vec3& pos, float capsuleLen, float capsuleRa
 // as it moves through the world.
 void MyAvatar::updateFromHMDSensorMatrix(const glm::mat4& hmdSensorMatrix) {
 
+    // calc deltaTime
     auto now = usecTimestampNow();
     auto deltaUsecs = now - _lastUpdateFromHMDTime;
     _lastUpdateFromHMDTime = now;
@@ -340,21 +341,61 @@ void MyAvatar::updateFromHMDSensorMatrix(const glm::mat4& hmdSensorMatrix) {
 
     bool hmdIsAtRest = _hmdAtRestDetector.update(deltaTime, _hmdSensorPosition, _hmdSensorOrientation);
 
-    const float STRAIGHTENING_LEAN_DURATION = 0.5f;  // seconds
+    // It can be more accurate/smooth to use velocity rather than position,
+    // but some modes (e.g., hmd standing) update position without updating velocity.
+    // So, let's create our own workingVelocity from the worldPosition...
+    glm::vec3 positionDelta = getPosition() - _lastPosition;
+    glm::vec3 workingVelocity = positionDelta / deltaTime;
+    _lastPosition = getPosition();
 
+    const float MOVE_ENTER_SPEED_THRESHOLD = 0.2f; // m/sec
+    const float MOVE_EXIT_SPEED_THRESHOLD = 0.07f;  // m/sec
+    bool isMoving;
+    if (_lastIsMoving) {
+        isMoving = glm::length(workingVelocity) >= MOVE_EXIT_SPEED_THRESHOLD;
+    } else {
+        isMoving = glm::length(workingVelocity) > MOVE_ENTER_SPEED_THRESHOLD;
+    }
+
+    bool justStartedMoving = (_lastIsMoving != isMoving) && isMoving;
+    _lastIsMoving = isMoving;
+
+    if (shouldBeginStraighteningLean() || hmdIsAtRest || justStartedMoving) {
+        beginStraighteningLean();
+    }
+
+    processStraighteningLean(deltaTime);
+}
+
+void MyAvatar::beginStraighteningLean() {
+    // begin homing toward derived body position.
+    if (!_straighteningLean) {
+        _straighteningLean = true;
+        _straighteningLeanAlpha = 0.0f;
+    }
+}
+
+bool MyAvatar::shouldBeginStraighteningLean() const {
     // define a vertical capsule
     const float STRAIGHTENING_LEAN_CAPSULE_RADIUS = 0.2f;  // meters
     const float STRAIGHTENING_LEAN_CAPSULE_LENGTH = 0.05f;  // length of the cylinder part of the capsule in meters.
 
+    // detect if the derived body position is outside of a capsule around the _bodySensorMatrix
     auto newBodySensorMatrix = deriveBodyFromHMDSensor();
     glm::vec3 diff = extractTranslation(newBodySensorMatrix) - extractTranslation(_bodySensorMatrix);
-    if (!_straighteningLean && (capsuleCheck(diff, STRAIGHTENING_LEAN_CAPSULE_LENGTH, STRAIGHTENING_LEAN_CAPSULE_RADIUS) || hmdIsAtRest)) {
+    bool isBodyPosOutsideCapsule = capsuleCheck(diff, STRAIGHTENING_LEAN_CAPSULE_LENGTH, STRAIGHTENING_LEAN_CAPSULE_RADIUS);
 
-        // begin homing toward derived body position.
-        _straighteningLean = true;
-        _straighteningLeanAlpha = 0.0f;
+    if (isBodyPosOutsideCapsule) {
+        return true;
+    } else {
+        return false;
+    }
+}
 
-    } else if (_straighteningLean) {
+void MyAvatar::processStraighteningLean(float deltaTime) {
+    if (_straighteningLean) {
+
+        const float STRAIGHTENING_LEAN_DURATION = 0.5f;  // seconds
 
         auto newBodySensorMatrix = deriveBodyFromHMDSensor();
         auto worldBodyMatrix = _sensorToWorldMatrix * newBodySensorMatrix;
@@ -1096,32 +1137,41 @@ void MyAvatar::setJointTranslations(QVector<glm::vec3> jointTranslations) {
 }
 
 void MyAvatar::setJointData(int index, const glm::quat& rotation, const glm::vec3& translation) {
-    if (QThread::currentThread() == thread()) {
-        // HACK: ATM only JS scripts call setJointData() on MyAvatar so we hardcode the priority
-        _rig->setJointState(index, true, rotation, translation, SCRIPT_PRIORITY);
+    if (QThread::currentThread() != thread()) {
+        QMetaObject::invokeMethod(this, "setJointData", Q_ARG(int, index), Q_ARG(const glm::quat&, rotation),
+            Q_ARG(const glm::vec3&, translation));
+        return;
     }
+    // HACK: ATM only JS scripts call setJointData() on MyAvatar so we hardcode the priority
+    _rig->setJointState(index, true, rotation, translation, SCRIPT_PRIORITY);
 }
 
 void MyAvatar::setJointRotation(int index, const glm::quat& rotation) {
-    if (QThread::currentThread() == thread()) {
-        // HACK: ATM only JS scripts call setJointData() on MyAvatar so we hardcode the priority
-        _rig->setJointRotation(index, true, rotation, SCRIPT_PRIORITY);
+    if (QThread::currentThread() != thread()) {
+        QMetaObject::invokeMethod(this, "setJointRotation", Q_ARG(int, index), Q_ARG(const glm::quat&, rotation));
+        return;
     }
+    // HACK: ATM only JS scripts call setJointData() on MyAvatar so we hardcode the priority
+    _rig->setJointRotation(index, true, rotation, SCRIPT_PRIORITY);
 }
 
 void MyAvatar::setJointTranslation(int index, const glm::vec3& translation) {
-    if (QThread::currentThread() == thread()) {
-        // HACK: ATM only JS scripts call setJointData() on MyAvatar so we hardcode the priority
-        _rig->setJointTranslation(index, true, translation, SCRIPT_PRIORITY);
+    if (QThread::currentThread() != thread()) {
+        QMetaObject::invokeMethod(this, "setJointTranslation", Q_ARG(int, index), Q_ARG(const glm::vec3&, translation));
+        return;
     }
+    // HACK: ATM only JS scripts call setJointData() on MyAvatar so we hardcode the priority
+    _rig->setJointTranslation(index, true, translation, SCRIPT_PRIORITY);
 }
 
 void MyAvatar::clearJointData(int index) {
-    if (QThread::currentThread() == thread()) {
-        // HACK: ATM only JS scripts call clearJointData() on MyAvatar so we hardcode the priority
-        _rig->setJointState(index, false, glm::quat(), glm::vec3(), 0.0f);
-        _rig->clearJointAnimationPriority(index);
+    if (QThread::currentThread() != thread()) {
+        QMetaObject::invokeMethod(this, "clearJointData", Q_ARG(int, index));
+        return;
     }
+    // HACK: ATM only JS scripts call clearJointData() on MyAvatar so we hardcode the priority
+    _rig->setJointState(index, false, glm::quat(), glm::vec3(), 0.0f);
+    _rig->clearJointAnimationPriority(index);
 }
 
 void MyAvatar::clearJointsData() {

@@ -262,6 +262,10 @@ private:
     const RecorderPointer getRecorder() const { return _recorder; }
     const PlayerPointer getPlayer() const { return _player; }
 
+    void beginStraighteningLean();
+    bool shouldBeginStraighteningLean() const;
+    void processStraighteningLean(float deltaTime);
+
     bool cameraInsideHead() const;
 
     // These are made private for MyAvatar so that you will use the "use" methods instead
@@ -357,6 +361,8 @@ private:
 
     quint64 _lastUpdateFromHMDTime = usecTimestampNow();
     AtRestDetector _hmdAtRestDetector;
+    glm::vec3 _lastPosition;
+    bool _lastIsMoving = false;
 };
 
 QScriptValue audioListenModeToScriptValue(QScriptEngine* engine, const AudioListenerMode& audioListenerMode);
