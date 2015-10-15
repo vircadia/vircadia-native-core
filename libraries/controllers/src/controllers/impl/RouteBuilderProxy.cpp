@@ -9,6 +9,9 @@
 
 #include <QtCore/QDebug>
 
+#include <QtCore/QJsonObject>
+#include <QtCore/QJsonArray>
+
 #include <GLMHelpers.h>
 
 #include "MappingBuilderProxy.h"
@@ -54,83 +57,40 @@ QObject* RouteBuilderProxy::filter(const QScriptValue& expression) {
 
 
 QObject* RouteBuilderProxy::clamp(float min, float max) {
-    addFilter([=](float value) {
-        return glm::clamp(value, min, max);
-    });
+    addFilter(Filter::Pointer(new ClampFilter(min, max)));
     return this;
 }
 
 QObject* RouteBuilderProxy::scale(float multiplier) {
-    addFilter([=](float value) {
-        return value * multiplier;
-    });
+    addFilter(Filter::Pointer(new ScaleFilter(multiplier)));
     return this;
 }
 
 QObject* RouteBuilderProxy::invert() {
-    return scale(-1.0f);
+    addFilter(Filter::Pointer(new InvertFilter()));
+    return this;
 }
 
 QObject* RouteBuilderProxy::deadZone(float min) {
-    assert(min < 1.0f);
-    float scale = 1.0f / (1.0f - min);
-    addFilter([=](float value) {
-        if (abs(value) < min) {
-            return 0.0f;
-        }
-        return (value - min) * scale;
-    });
-
+    addFilter(Filter::Pointer(new DeadZoneFilter(min)));
     return this;
 }
 
 QObject* RouteBuilderProxy::constrainToInteger() {
-    addFilter([=](float value) {
-        return glm::sign(value);
-    });
+    addFilter(Filter::Pointer(new ConstrainToIntegerFilter()));
     return this;
 }
 
 QObject* RouteBuilderProxy::constrainToPositiveInteger() {
-    addFilter([=](float value) {
-        return (value <= 0.0f) ? 0.0f : 1.0f;
-    });
+    addFilter(Filter::Pointer(new ConstrainToPositiveIntegerFilter()));
     return this;
 }
-
-
-class PulseFilter : public Filter {
-public:
-    PulseFilter(float interval) : _interval(interval) {}
-    
-    virtual float apply(float value) const override {
-        float result = 0.0;
-
-        if (0.0 != value) {
-            float now = secTimestampNow();
-            float delta = now - _lastEmitTime;
-            if (delta >= _interval) {
-                _lastEmitTime = now;
-                result = value;
-            }
-        }
-
-        return result;
-    }
-
-private:
-    mutable float _lastEmitTime{ -std::numeric_limits<float>::max() };
-    const float _interval;
-};
 
 
 QObject* RouteBuilderProxy::pulse(float interval) {
-    Filter::Pointer filter = std::make_shared<PulseFilter>(interval);
-    addFilter(filter);
+    addFilter(Filter::Pointer(new PulseFilter(interval)));
     return this;
 }
-
-
 
 void RouteBuilderProxy::addFilter(Filter::Lambda lambda) {
     Filter::Pointer filterPointer = std::make_shared < LambdaFilter > (lambda);
@@ -139,6 +99,36 @@ void RouteBuilderProxy::addFilter(Filter::Lambda lambda) {
 
 void RouteBuilderProxy::addFilter(Filter::Pointer filter) {
     _route->_filters.push_back(filter);
+}
+
+
+QObject* RouteBuilderProxy::filters(const QJsonValue& json) {
+    // We expect an array of objects to define the filters
+    if (json.isArray()) {
+        const auto& jsonFilters = json.toArray();
+        for (auto jsonFilter : jsonFilters) {
+            if (jsonFilter.isObject()) {
+                // The filter is an object, now let s check for type and potential arguments
+                Filter::Pointer filter = Filter::parse(jsonFilter.toObject());
+                if (filter) {
+                    addFilter(filter);
+                }
+            }
+        }
+    }
+
+    return this;
+}
+
+void RouteBuilderProxy::to(const QJsonValue& json) {
+    if (json.isString()) {
+
+        return to(_parent.endpointFor(_parent.inputFor(json.toString())));
+    } else if (json.isObject()) {
+        // Endpoint is defined as an object, we expect a js function then
+        //return to((Endpoint*) nullptr);
+    }
+
 }
 
 }

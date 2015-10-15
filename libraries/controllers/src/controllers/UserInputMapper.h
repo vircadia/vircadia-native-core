@@ -85,6 +85,7 @@ public:
         static const uint16 INVALID_DEVICE;
         static const uint16 INVALID_CHANNEL;
         static const uint16 INVALID_TYPE;
+        static const uint16 ACTIONS_DEVICE;
     };
 
 
@@ -119,9 +120,11 @@ public:
 
    class DeviceProxy {
     public:
-       DeviceProxy(QString name) { _name = name; }
+       DeviceProxy(QString name) : _baseName(name), _name(name) {}
+       const QString& getBaseName() const { return _baseName; }
        const QString& getName() const { return _name; }
 
+       QString _baseName;
        QString _name;
        ButtonGetter getButton = [] (const Input& input, int timestamp) -> bool { return false; };
        AxisGetter getAxis = [] (const Input& input, int timestamp) -> float { return 0.0f; };
@@ -141,8 +144,11 @@ public:
     QVector<InputPair> getAvailableInputs(uint16 deviceID) { return _registeredDevices[deviceID]->getAvailabeInputs(); }
     void resetAllDeviceBindings();
     void resetDevice(uint16 deviceID);
-    int findDevice(QString name);
+    int findDevice(QString name) const;
     QVector<QString> getDeviceNames();
+
+    Input findDeviceInput(const QString& inputName) const;
+
 
     // Actions are the output channels of the Mapper, that's what the InputChannel map to
     // For now the Actions are hardcoded, this is bad, but we will fix that in the near future

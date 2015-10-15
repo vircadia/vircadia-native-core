@@ -92,6 +92,9 @@ int main(int argc, char** argv) {
         qDebug() << path;
     }
 
+    for (auto path : qApp->libraryPaths()) {
+        qDebug() << path;
+    }
 
     QTimer timer;
     QObject::connect(&timer, &QTimer::timeout, [] {

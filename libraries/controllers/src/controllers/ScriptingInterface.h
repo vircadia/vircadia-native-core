@@ -72,6 +72,7 @@ namespace controller {
         Q_INVOKABLE void disableMapping(const QString& mappingName) {
             enableMapping(mappingName, false);
         }
+        Q_INVOKABLE QObject* parseMapping(const QString& json);
 
         Q_INVOKABLE bool isPrimaryButtonPressed() const;
         Q_INVOKABLE glm::vec2 getPrimaryJoystickPosition() const;
@@ -120,6 +121,8 @@ namespace controller {
         Endpoint::Pointer endpointFor(const QScriptValue& endpoint);
         Endpoint::Pointer endpointFor(const UserInputMapper::Input& endpoint);
         Endpoint::Pointer compositeEndpointFor(Endpoint::Pointer first, Endpoint::Pointer second);
+ 
+        UserInputMapper::Input inputFor(const QString& inputName);
 
         QVariantMap _hardware;
         QVariantMap _actions;

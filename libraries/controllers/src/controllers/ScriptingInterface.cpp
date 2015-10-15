@@ -12,14 +12,15 @@
 
 #include <QtCore/QRegularExpression>
 
+#include <QJsonDocument>
+#include <QJsonObject>
+
 #include <GLMHelpers.h>
 #include <DependencyManager.h>
 
 #include "impl/MappingBuilderProxy.h"
 #include "Logging.h"
 #include "InputDevice.h"
-
-static const uint16_t ACTIONS_DEVICE = UserInputMapper::Input::INVALID_DEVICE - (uint16_t)1;
 
 namespace controller {
 
@@ -154,7 +155,7 @@ namespace controller {
         int actionNumber = 0;
         qCDebug(controllers) << "Setting up standard actions";
         for (const auto& actionName : actionNames) {
-            UserInputMapper::Input actionInput(ACTIONS_DEVICE, actionNumber++, UserInputMapper::ChannelType::AXIS);
+            UserInputMapper::Input actionInput(UserInputMapper::Input::ACTIONS_DEVICE, actionNumber++, UserInputMapper::ChannelType::AXIS);
             qCDebug(controllers) << "\tAction: " << actionName << " " << QString::number(actionInput.getID(), 16);
             // Expose the IDs to JS
             QString cleanActionName = QString(actionName).remove(ScriptingInterface::SANITIZE_NAME_EXPRESSION);
@@ -175,6 +176,34 @@ namespace controller {
         _mappingsByName[mappingName] = mapping;
         return new MappingBuilderProxy(*this, mapping);
     }
+
+    QObject* ScriptingInterface::parseMapping(const QString& json) {
+
+        QJsonObject obj;
+        QJsonDocument doc = QJsonDocument::fromJson(json.toUtf8());
+        // check validity of the document
+        if (!doc.isNull()) {
+            if (doc.isObject()) {
+                obj = doc.object();
+
+                auto mapping = std::make_shared<Mapping>("default");
+                auto mappingBuilder = new MappingBuilderProxy(*this, mapping);
+
+                mappingBuilder->parse(obj);
+
+                _mappingsByName[mapping->_name] = mapping;
+
+            } else {
+                qDebug() << "Mapping json Document is not an object" << endl;
+            }
+        } else {
+            qDebug() << "Invalid JSON...\n" << json << endl;
+        }
+
+        return nullptr;
+    }
+    
+    Q_INVOKABLE QObject* newMapping(const QJsonObject& json);
 
     void ScriptingInterface::enableMapping(const QString& mappingName, bool enable) {
         auto iterator = _mappingsByName.find(mappingName);
@@ -316,6 +345,10 @@ namespace controller {
 
         qWarning() << "Unsupported input type " << endpoint.toString();
         return Endpoint::Pointer();
+    }
+
+    UserInputMapper::Input ScriptingInterface::inputFor(const QString& inputName) {
+        return DependencyManager::get<UserInputMapper>()->findDeviceInput(inputName);
     }
 
     Endpoint::Pointer ScriptingInterface::endpointFor(const UserInputMapper::Input& inputId) {

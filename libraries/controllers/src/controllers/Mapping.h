@@ -30,10 +30,10 @@ namespace controller {
         Mapping(const QString& name);
 
         Map _channelMappings;
-        const QString _name;
 
-        void parse(const QString& json);
-        QString serialize();
+        QString _name;
+
+    protected:
     };
 
 }

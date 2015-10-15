@@ -12,10 +12,13 @@
 #include "UserInputMapper.h"
 #include "StandardController.h"
 
+#include "Logging.h"
+
 const UserInputMapper::Input UserInputMapper::Input::INVALID_INPUT = UserInputMapper::Input(UINT16_MAX);
 const uint16_t UserInputMapper::Input::INVALID_DEVICE = INVALID_INPUT.getDevice();
 const uint16_t UserInputMapper::Input::INVALID_CHANNEL = INVALID_INPUT.getChannel();
 const uint16_t UserInputMapper::Input::INVALID_TYPE = (uint16_t)INVALID_INPUT.getType();
+const uint16_t UserInputMapper::Input::ACTIONS_DEVICE = INVALID_DEVICE - (uint16)1;
 
 // Default contruct allocate the poutput size with the current hardcoded action channels
 UserInputMapper::UserInputMapper() {
@@ -28,23 +31,10 @@ UserInputMapper::~UserInputMapper() {
 }
 
 
-int UserInputMapper::recordDeviceOfType(const QString& deviceName) {
-    if (!_deviceCounts.contains(deviceName)) {
-        _deviceCounts[deviceName] = 0;
-    }
-    _deviceCounts[deviceName] += 1;
-
-    return _deviceCounts[deviceName];
-}
-
-bool UserInputMapper::registerDevice(uint16 deviceID, const DeviceProxy::Pointer& proxy) {
-    int numberOfType = recordDeviceOfType(proxy->_name);
-
-    if (numberOfType > 1) {
-        proxy->_name += QString::number(numberOfType);
-    }
-
+bool UserInputMapper::registerDevice(uint16 deviceID, const DeviceProxy::Pointer& proxy){
+    proxy->_name += " (" + QString::number(deviceID) + ")";
     _registeredDevices[deviceID] = proxy;
+    qCDebug(controllers) << "Registered input device <" << proxy->_name << "> deviceID = " << deviceID;
     return true;
 }
 
@@ -78,13 +68,19 @@ void UserInputMapper::resetDevice(uint16 deviceID) {
     }
 }
 
-int UserInputMapper::findDevice(QString name) {
+int UserInputMapper::findDevice(QString name) const {
+    if (_standardDevice && (_standardDevice->getName() == name)) {
+        return getStandardDeviceID();
+    }
+
     for (auto device : _registeredDevices) {
         if (device.second->_name.split(" (")[0] == name) {
             return device.first;
+        } else if (device.second->_baseName == name) {
+            return device.first;
         }
     }
-    return 0;
+    return Input::INVALID_DEVICE;
 }
 
 QVector<QString> UserInputMapper::getDeviceNames() {
@@ -95,6 +91,52 @@ QVector<QString> UserInputMapper::getDeviceNames() {
     }
     return result;
 }
+
+UserInputMapper::Input UserInputMapper::findDeviceInput(const QString& inputName) const {
+    
+    // Split the full input name as such: deviceName.inputName
+    auto names = inputName.split('.');
+
+    if (names.size() >= 2) {
+        // Get the device name:
+        auto deviceName = names[0];
+        auto inputName = names[1];
+
+        int deviceID = findDevice(deviceName);
+        if (deviceID != Input::INVALID_DEVICE) {
+            const auto& deviceProxy = _registeredDevices.at(deviceID);
+            auto deviceInputs = deviceProxy->getAvailabeInputs();
+
+            for (auto input : deviceInputs) {
+                if (input.second == inputName) {
+                    return input.first;
+                }
+            }
+
+            qCDebug(controllers) << "Couldn\'t find InputChannel named <" << inputName << "> for device <" << deviceName << ">";
+
+        } else if (deviceName == "Actions") {
+            deviceID = Input::ACTIONS_DEVICE;
+            int actionNum = 0;
+            for (auto action : _actionNames) {
+                if (action == inputName) {
+                    return Input(Input::ACTIONS_DEVICE, actionNum, ChannelType::AXIS);
+                }
+                actionNum++;
+            }
+
+            qCDebug(controllers) << "Couldn\'t find ActionChannel named <" << inputName << "> among actions";
+
+        } else {
+            qCDebug(controllers) << "Couldn\'t find InputDevice named <" << deviceName << ">";
+        }
+    } else {
+        qCDebug(controllers) << "Couldn\'t understand <" << inputName << "> as a valid inputDevice.inputName";
+    }
+
+    return Input();
+}
+
 
 
 bool UserInputMapper::addInputChannel(Action action, const Input& input, float scale) {

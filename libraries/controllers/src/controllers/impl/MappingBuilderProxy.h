@@ -17,6 +17,7 @@
 
 class QJSValue;
 class QScriptValue;
+class QJsonValue;
 
 namespace controller {
 
@@ -33,8 +34,17 @@ public:
     Q_INVOKABLE QObject* from(const QJSValue& source);
     Q_INVOKABLE QObject* from(const QScriptValue& source);
     Q_INVOKABLE QObject* join(const QJSValue& source1, const QJSValue& source2);
+
     Q_INVOKABLE QObject* enable(bool enable = true);
     Q_INVOKABLE QObject* disable() { return enable(false); }
+
+
+    // JSON route creation point
+    Q_INVOKABLE QObject* from(const QJsonValue& json);
+
+
+    void parse(const QJsonObject& json);
+//  void serialize(QJsonObject& json);
 
 protected:
     QObject* from(const Endpoint::Pointer& source);
@@ -42,6 +52,10 @@ protected:
     friend class RouteBuilderProxy;
     ScriptingInterface& _parent;
     Mapping::Pointer _mapping;
+
+
+    void parseRoute(const QJsonValue& json);
+
 };
 
 }
