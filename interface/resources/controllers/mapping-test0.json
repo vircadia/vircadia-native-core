@@ -5,29 +5,29 @@
             "filters": [ {
                     "type": "clamp",
                     "min": 0,
-                    "max": 1,
+                    "max": 1
                 }
             ],
-            "to": "Actions.Forward",
+            "to": "Actions.Forward"
         }, {
             "from": "Standard.LY",
             "filters": [ {
                     "type": "clamp",
                     "min": -1,
-                    "max": 0,
+                    "max": 0
                 }, {
                     "type": "invert"
                 }
             ],
-            "to": "Actions.Backward",
+            "to": "Actions.Backward"
         }, {
             "from": "Standard.LX",
             "filters": [ {
                     "type": "scale",
-                    "scale": 2.0,
+                    "scale": 2.0
                 }
             ],
-            "to": "Actions.Yaw",
+            "to": "Actions.Yaw"
         }, {
             "from": "Standard.A",
             "to": "Actions.Action0"
