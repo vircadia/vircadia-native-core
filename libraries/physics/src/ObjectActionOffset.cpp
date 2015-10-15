@@ -151,17 +151,18 @@ QVariantMap ObjectActionOffset::getArguments() {
 QByteArray ObjectActionOffset::serialize() const {
     QByteArray ba;
     QDataStream dataStream(&ba, QIODevice::WriteOnly);
-    dataStream << getType();
+    dataStream << ACTION_TYPE_OFFSET;
     dataStream << getID();
     dataStream << ObjectActionOffset::offsetVersion;
 
-    dataStream << _pointToOffsetFrom;
-    dataStream << _linearDistance;
-    dataStream << _linearTimeScale;
-    dataStream << _positionalTargetSet;
-
-    dataStream << _expires;
-    dataStream << _tag;
+    withReadLock([&] {
+        dataStream << _pointToOffsetFrom;
+        dataStream << _linearDistance;
+        dataStream << _linearTimeScale;
+        dataStream << _positionalTargetSet;
+        dataStream << _expires;
+        dataStream << _tag;
+    });
 
     return ba;
 }
@@ -183,13 +184,13 @@ void ObjectActionOffset::deserialize(QByteArray serializedArguments) {
         return;
     }
 
-    dataStream >> _pointToOffsetFrom;
-    dataStream >> _linearDistance;
-    dataStream >> _linearTimeScale;
-    dataStream >> _positionalTargetSet;
-
-    dataStream >> _expires;
-    dataStream >> _tag;
-
-    _active = true;
+    withWriteLock([&] {
+        dataStream >> _pointToOffsetFrom;
+        dataStream >> _linearDistance;
+        dataStream >> _linearTimeScale;
+        dataStream >> _positionalTargetSet;
+        dataStream >> _expires;
+        dataStream >> _tag;
+        _active = true;
+    });
 }

@@ -191,16 +191,16 @@ QByteArray ObjectActionSpring::serialize() const {
     dataStream << getID();
     dataStream << ObjectActionSpring::springVersion;
 
-    dataStream << _positionalTarget;
-    dataStream << _linearTimeScale;
-    dataStream << _positionalTargetSet;
-
-    dataStream << _rotationalTarget;
-    dataStream << _angularTimeScale;
-    dataStream << _rotationalTargetSet;
-
-    dataStream << _expires;
-    dataStream << _tag;
+    withReadLock([&] {
+        dataStream << _positionalTarget;
+        dataStream << _linearTimeScale;
+        dataStream << _positionalTargetSet;
+        dataStream << _rotationalTarget;
+        dataStream << _angularTimeScale;
+        dataStream << _rotationalTargetSet;
+        dataStream << _expires;
+        dataStream << _tag;
+    });
 
     return serializedActionArguments;
 }
@@ -222,16 +222,18 @@ void ObjectActionSpring::deserialize(QByteArray serializedArguments) {
         return;
     }
 
-    dataStream >> _positionalTarget;
-    dataStream >> _linearTimeScale;
-    dataStream >> _positionalTargetSet;
+    withWriteLock([&] {
+        dataStream >> _positionalTarget;
+        dataStream >> _linearTimeScale;
+        dataStream >> _positionalTargetSet;
 
-    dataStream >> _rotationalTarget;
-    dataStream >> _angularTimeScale;
-    dataStream >> _rotationalTargetSet;
+        dataStream >> _rotationalTarget;
+        dataStream >> _angularTimeScale;
+        dataStream >> _rotationalTargetSet;
 
-    dataStream >> _expires;
-    dataStream >> _tag;
+        dataStream >> _expires;
+        dataStream >> _tag;
 
-    _active = true;
+        _active = true;
+    });
 }
