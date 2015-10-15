@@ -22,7 +22,7 @@
 
         changeColor: function() {
             var userData = JSON.parse(Entities.getEntityProperties(this.whiteboard, "userData").userData);
-            var newColor = userData.currentColor;
+            var newColor = userData.color.currentColor;
             Entities.editEntity(this.entityID, {
                 color: newColor
             });

@@ -12,7 +12,7 @@
 /*global ColorSelector */
 
 (function() {
-
+    Script.include("../../libraries/utils.js");
     var _this;
     ColorSelector = function() {
         _this = this;
@@ -29,9 +29,7 @@
         },
 
         selectColor: function() {
-            Entities.editEntity(this.whiteboard, {
-                userData: JSON.stringify({currentColor: this.color})
-            });
+            setEntityCustomData(this.colorKey, this.whiteboard, {currentColor: this.color});
             Entities.callEntityMethod(this.whiteboard, "changeColor");
         },
 
@@ -40,6 +38,7 @@
             var props = Entities.getEntityProperties(this.entityID, ["position, color, userData"]);
             this.position = props.position;
             this.color = props.color;
+            this.colorKey = "color";
             this.whiteboard = JSON.parse(props.userData).whiteboard;
         },
 

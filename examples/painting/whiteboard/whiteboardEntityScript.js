@@ -188,10 +188,13 @@
         },
 
         changeColor: function() {
-            this.strokeColor = JSON.parse(Entities.getEntityProperties(this.entityID, ["userData"]).userData).currentColor;
+            var userData = JSON.parse(Entities.getEntityProperties(this.entityID, ["userData"]).userData);
+            this.strokeColor = userData.color.currentColor;
+            this.colorIndicator = userData.colorIndicator;
             Overlays.editOverlay(this.laserPointer, {
                 color: this.strokeColor
             });
+
 
             Entities.callEntityMethod(this.colorIndicator, "changeColor");
         },
@@ -223,20 +226,20 @@
             this.painting = false;
             this.strokes = [];
             this.whitelist = [this.entityID];
-            var userData = JSON.parse(props.userData);
-            this.strokeColor = userData.currentColor;
-            this.colorIndicator = userData.colorIndicator;
             this.laserPointer = Overlays.addOverlay("circle3d", {
                 color: this.strokeColor,
                 solid: true,
                 rotation: this.rotation
             });
             this.forwardOffset = 0.0005;
+
+            this.changeColor();
         },
 
         unload: function() {
 
             Overlays.deleteOverlay(this.laserPointer);
+            // this.eraseBoard();
         }
 
     };
