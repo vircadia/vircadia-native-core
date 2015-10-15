@@ -1579,6 +1579,7 @@ bool EntityItem::removeActionInternal(const QUuid& actionID, EntitySimulation* s
         }
 
         EntityActionPointer action = _objectActions[actionID];
+
         action->setOwnerEntity(nullptr);
         _objectActions.remove(actionID);
 
@@ -1630,8 +1631,6 @@ void EntityItem::deserializeActionsInternal() {
         return;
     }
 
-    // Keep track of which actions got added or updated by the new actionData
-
     EntityTreePointer entityTree = _element ? _element->getTree() : nullptr;
     assert(entityTree);
     EntitySimulation* simulation = entityTree ? entityTree->getSimulation() : nullptr;
@@ -1643,6 +1642,7 @@ void EntityItem::deserializeActionsInternal() {
         serializedActionsStream >> serializedActions;
     }
 
+    // Keep track of which actions got added or updated by the new actionData
     QSet<QUuid> updated;
 
     foreach(QByteArray serializedAction, serializedActions) {
@@ -1720,9 +1720,11 @@ void EntityItem::setActionData(QByteArray actionData) {
 
 void EntityItem::setActionDataInternal(QByteArray actionData) {
     assertWriteLocked();
+    if (_allActionsDataCache != actionData) {
+        _allActionsDataCache = actionData;
+        deserializeActionsInternal();
+    }
     checkWaitingToRemove();
-    _allActionsDataCache = actionData;
-    deserializeActionsInternal();
 }
 
 void EntityItem::serializeActions(bool& success, QByteArray& result) const {
@@ -1787,4 +1789,16 @@ QVariantMap EntityItem::getActionArguments(const QUuid& actionID) const {
     });
 
     return result;
+}
+
+bool EntityItem::shouldSuppressLocationEdits() const {
+    QHash<QUuid, EntityActionPointer>::const_iterator i = _objectActions.begin();
+    while (i != _objectActions.end()) {
+        if (i.value()->shouldSuppressLocationEdits()) {
+            return true;
+        }
+        i++;
+    }
+
+    return false;
 }

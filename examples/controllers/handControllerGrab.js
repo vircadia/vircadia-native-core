@@ -66,7 +66,8 @@ var MSEC_PER_SEC = 1000.0;
 // these control how long an abandoned pointer line will hang around
 var startTime = Date.now();
 var LIFETIME = 10;
-var ACTION_LIFETIME = 10; // seconds
+var ACTION_LIFETIME = 15; // seconds
+var ACTION_LIFETIME_REFRESH = 5;
 var PICKS_PER_SECOND_PER_HAND = 5;
 var MSECS_PER_SEC = 1000.0;
 
@@ -339,11 +340,12 @@ function MyController(hand, triggerAction) {
         var handRotation = Quat.multiply(MyAvatar.orientation, Controller.getSpatialControlRawRotation(this.palm));
         var grabbedProperties = Entities.getEntityProperties(this.grabbedEntity, ["position", "rotation",
                                                                                   "gravity", "ignoreForCollisions"]);
+        var now = Date.now();
 
         // add the action and initialize some variables
         this.currentObjectPosition = grabbedProperties.position;
         this.currentObjectRotation = grabbedProperties.rotation;
-        this.currentObjectTime = Date.now();
+        this.currentObjectTime = now;
         this.handPreviousPosition = handControllerPosition;
         this.handPreviousRotation = handRotation;
 
@@ -359,6 +361,7 @@ function MyController(hand, triggerAction) {
         if (this.actionID === NULL_ACTION_ID) {
             this.actionID = null;
         }
+        this.actionTimeout = now + (ACTION_LIFETIME * MSEC_PER_SEC);
 
         if (this.actionID !== null) {
             this.setState(STATE_CONTINUE_DISTANCE_HOLDING);
@@ -441,7 +444,9 @@ function MyController(hand, triggerAction) {
         this.currentObjectTime = now;
 
         // this doubles hand rotation
-        var handChange = Quat.multiply(Quat.slerp(this.handPreviousRotation, handRotation, DISTANCE_HOLDING_ROTATION_EXAGGERATION_FACTOR), Quat.inverse(this.handPreviousRotation));
+        var handChange = Quat.multiply(Quat.slerp(this.handPreviousRotation, handRotation,
+                                                  DISTANCE_HOLDING_ROTATION_EXAGGERATION_FACTOR),
+                                       Quat.inverse(this.handPreviousRotation));
         this.handPreviousRotation = handRotation;
         this.currentObjectRotation = Quat.multiply(handChange, this.currentObjectRotation);
 
@@ -454,9 +459,11 @@ function MyController(hand, triggerAction) {
             angularTimeScale: DISTANCE_HOLDING_ACTION_TIMEFRAME,
             lifetime: ACTION_LIFETIME
         });
+        this.actionTimeout = now + (ACTION_LIFETIME * MSEC_PER_SEC);
     };
 
     this.nearGrabbing = function() {
+        var now = Date.now();
 
         if (this.triggerSmoothedReleased()) {
             this.setState(STATE_RELEASE);
@@ -465,7 +472,7 @@ function MyController(hand, triggerAction) {
 
         this.lineOff();
 
-        var grabbedProperties = Entities.getEntityProperties(this.grabbedEntity, 
+        var grabbedProperties = Entities.getEntityProperties(this.grabbedEntity,
                                                              ["position", "rotation", "gravity", "ignoreForCollisions"]);
         this.activateEntity(this.grabbedEntity, grabbedProperties);
 
@@ -473,23 +480,24 @@ function MyController(hand, triggerAction) {
         var handPosition = this.getHandPosition();
 
         var objectRotation = grabbedProperties.rotation;
-        var offsetRotation = Quat.multiply(Quat.inverse(handRotation), objectRotation);
+        this.offsetRotation = Quat.multiply(Quat.inverse(handRotation), objectRotation);
 
         var currentObjectPosition = grabbedProperties.position;
         var offset = Vec3.subtract(currentObjectPosition, handPosition);
-        var offsetPosition = Vec3.multiplyQbyV(Quat.inverse(Quat.multiply(handRotation, offsetRotation)), offset);
+        this.offsetPosition = Vec3.multiplyQbyV(Quat.inverse(Quat.multiply(handRotation, this.offsetRotation)), offset);
 
         this.actionID = NULL_ACTION_ID;
         this.actionID = Entities.addAction("hold", this.grabbedEntity, {
             hand: this.hand === RIGHT_HAND ? "right" : "left",
             timeScale: NEAR_GRABBING_ACTION_TIMEFRAME,
-            relativePosition: offsetPosition,
-            relativeRotation: offsetRotation,
+            relativePosition: this.offsetPosition,
+            relativeRotation: this.offsetRotation,
             lifetime: ACTION_LIFETIME
         });
         if (this.actionID === NULL_ACTION_ID) {
             this.actionID = null;
         } else {
+            this.actionTimeout = now + (ACTION_LIFETIME * MSEC_PER_SEC);
             this.setState(STATE_CONTINUE_NEAR_GRABBING);
             if (this.hand === RIGHT_HAND) {
                 Entities.callEntityMethod(this.grabbedEntity, "setRightHand");
@@ -511,10 +519,10 @@ function MyController(hand, triggerAction) {
             return;
         }
 
-        // Keep track of the fingertip velocity to impart when we release the object
-        // Note that the idea of using a constant 'tip' velocity regardless of the 
+        // Keep track of the fingertip velocity to impart when we release the object.
+        // Note that the idea of using a constant 'tip' velocity regardless of the
         // object's actual held offset is an idea intended to make it easier to throw things:
-        // Because we might catch something or transfer it between hands without a good idea 
+        // Because we might catch something or transfer it between hands without a good idea
         // of it's actual offset, let's try imparting a velocity which is at a fixed radius
         // from the palm.
 
@@ -529,9 +537,17 @@ function MyController(hand, triggerAction) {
         this.currentObjectTime = now;
         Entities.callEntityMethod(this.grabbedEntity, "continueNearGrab");
 
-        Entities.updateAction(this.grabbedEntity, this.actionID, {
-            lifetime: ACTION_LIFETIME
-        });
+        if (this.actionTimeout - now < ACTION_LIFETIME_REFRESH * MSEC_PER_SEC) {
+            // if less than a 5 seconds left, refresh the actions lifetime
+            Entities.updateAction(this.grabbedEntity, this.actionID, {
+                hand: this.hand === RIGHT_HAND ? "right" : "left",
+                timeScale: NEAR_GRABBING_ACTION_TIMEFRAME,
+                relativePosition: this.offsetPosition,
+                relativeRotation: this.offsetRotation,
+                lifetime: ACTION_LIFETIME
+            });
+            this.actionTimeout = now + (ACTION_LIFETIME * MSEC_PER_SEC);
+        }
     };
 
     this.nearGrabbingNonColliding = function() {

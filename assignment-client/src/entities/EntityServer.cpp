@@ -147,9 +147,13 @@ bool EntityServer::readAdditionalConfiguration(const QJsonObject& settingsSectio
     readOptionBool(QString("wantEditLogging"), settingsSectionObject, wantEditLogging);
     qDebug("wantEditLogging=%s", debug::valueOf(wantEditLogging));
 
+    bool wantTerseEditLogging = false;
+    readOptionBool(QString("wantTerseEditLogging"), settingsSectionObject, wantTerseEditLogging);
+    qDebug("wantTerseEditLogging=%s", debug::valueOf(wantTerseEditLogging));
 
     EntityTreePointer tree = std::static_pointer_cast<EntityTree>(_tree);
     tree->setWantEditLogging(wantEditLogging);
+    tree->setWantTerseEditLogging(wantTerseEditLogging);
 
     return true;
 }

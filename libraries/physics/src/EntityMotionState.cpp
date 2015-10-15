@@ -291,6 +291,10 @@ bool EntityMotionState::remoteSimulationOutOfSync(uint32_t simulationStep) {
         return true;
     }
 
+    if (_entity->shouldSuppressLocationEdits()) {
+        return false;
+    }
+
     // Else we measure the error between current and extrapolated transform (according to expected behavior
     // of remote EntitySimulation) and return true if the error is significant.
 

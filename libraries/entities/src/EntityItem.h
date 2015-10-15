@@ -424,6 +424,7 @@ public:
     QVariantMap getActionArguments(const QUuid& actionID) const;
     void deserializeActions();
     void setActionDataDirty(bool value) const { _actionDataDirty = value; }
+    bool shouldSuppressLocationEdits() const;
 
 protected:
 

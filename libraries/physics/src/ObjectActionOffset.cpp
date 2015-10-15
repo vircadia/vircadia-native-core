@@ -80,44 +80,61 @@ void ObjectActionOffset::updateActionWorker(btScalar deltaTimeStep) {
 
 
 bool ObjectActionOffset::updateArguments(QVariantMap arguments) {
-    if (!ObjectAction::updateArguments(arguments)) {
-        return false;
-    }
-    bool ok = true;
-    glm::vec3 pointToOffsetFrom =
-        EntityActionInterface::extractVec3Argument("offset action", arguments, "pointToOffsetFrom", ok, true);
-    if (!ok) {
-        pointToOffsetFrom = _pointToOffsetFrom;
-    }
+    glm::vec3 pointToOffsetFrom;
+    float linearTimeScale;
+    float linearDistance;
 
-    ok = true;
-    float linearTimeScale =
-        EntityActionInterface::extractFloatArgument("offset action", arguments, "linearTimeScale", ok, false);
-    if (!ok) {
-        linearTimeScale = _linearTimeScale;
-    }
+    bool needUpdate = false;
+    bool somethingChanged = ObjectAction::updateArguments(arguments);
 
-    ok = true;
-    float linearDistance =
-        EntityActionInterface::extractFloatArgument("offset action", arguments, "linearDistance", ok, false);
-    if (!ok) {
-        linearDistance = _linearDistance;
-    }
+    withReadLock([&]{
+        bool ok = true;
+        pointToOffsetFrom =
+            EntityActionInterface::extractVec3Argument("offset action", arguments, "pointToOffsetFrom", ok, true);
+        if (!ok) {
+            pointToOffsetFrom = _pointToOffsetFrom;
+        }
 
-    // only change stuff if something actually changed
-    if (_pointToOffsetFrom != pointToOffsetFrom
-            || _linearTimeScale != linearTimeScale
-            || _linearDistance != linearDistance) {
+        ok = true;
+        linearTimeScale =
+            EntityActionInterface::extractFloatArgument("offset action", arguments, "linearTimeScale", ok, false);
+        if (!ok) {
+            linearTimeScale = _linearTimeScale;
+        }
 
+        ok = true;
+        linearDistance =
+            EntityActionInterface::extractFloatArgument("offset action", arguments, "linearDistance", ok, false);
+        if (!ok) {
+            linearDistance = _linearDistance;
+        }
+
+        // only change stuff if something actually changed
+        if (somethingChanged ||
+            _pointToOffsetFrom != pointToOffsetFrom ||
+            _linearTimeScale != linearTimeScale ||
+            _linearDistance != linearDistance) {
+            needUpdate = true;
+        }
+    });
+
+
+    if (needUpdate) {
         withWriteLock([&] {
             _pointToOffsetFrom = pointToOffsetFrom;
             _linearTimeScale = linearTimeScale;
             _linearDistance = linearDistance;
             _positionalTargetSet = true;
             _active = true;
-            activateBody();
+
+            auto ownerEntity = _ownerEntity.lock();
+            if (ownerEntity) {
+                ownerEntity->setActionDataDirty(true);
+            }
         });
+        activateBody();
     }
+
     return true;
 }
 
@@ -134,17 +151,18 @@ QVariantMap ObjectActionOffset::getArguments() {
 QByteArray ObjectActionOffset::serialize() const {
     QByteArray ba;
     QDataStream dataStream(&ba, QIODevice::WriteOnly);
-    dataStream << getType();
+    dataStream << ACTION_TYPE_OFFSET;
     dataStream << getID();
     dataStream << ObjectActionOffset::offsetVersion;
 
-    dataStream << _pointToOffsetFrom;
-    dataStream << _linearDistance;
-    dataStream << _linearTimeScale;
-    dataStream << _positionalTargetSet;
-
-    dataStream << _expires;
-    dataStream << _tag;
+    withReadLock([&] {
+        dataStream << _pointToOffsetFrom;
+        dataStream << _linearDistance;
+        dataStream << _linearTimeScale;
+        dataStream << _positionalTargetSet;
+        dataStream << _expires;
+        dataStream << _tag;
+    });
 
     return ba;
 }
@@ -166,13 +184,13 @@ void ObjectActionOffset::deserialize(QByteArray serializedArguments) {
         return;
     }
 
-    dataStream >> _pointToOffsetFrom;
-    dataStream >> _linearDistance;
-    dataStream >> _linearTimeScale;
-    dataStream >> _positionalTargetSet;
-
-    dataStream >> _expires;
-    dataStream >> _tag;
-
-    _active = true;
+    withWriteLock([&] {
+        dataStream >> _pointToOffsetFrom;
+        dataStream >> _linearDistance;
+        dataStream >> _linearTimeScale;
+        dataStream >> _positionalTargetSet;
+        dataStream >> _expires;
+        dataStream >> _tag;
+        _active = true;
+    });
 }
