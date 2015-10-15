@@ -27,7 +27,7 @@
 
 #include "Application.h"
 #include <input-plugins/SixenseManager.h> // TODO: any references to sixense should be removed here
-#include <input-plugins/InputDevice.h>
+#include <controllers/InputDevice.h>
 
 
 // Used to animate the magnification windows

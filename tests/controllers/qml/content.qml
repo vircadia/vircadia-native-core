@@ -8,17 +8,17 @@ import "./controls"
 
 Column {
     id: root
-    property var actions: NewControllers.Actions
-    property var standard: NewControllers.Standard
+    property var actions: Controllers.Actions
+    property var standard: Controllers.Standard
     property var testMapping: null
     property var xbox: null
 
 
     Component.onCompleted: {
         var patt = /^X360Controller/;
-        for (var prop in NewControllers.Hardware) {
+        for (var prop in Controllers.Hardware) {
             if(patt.test(prop)) {
-                root.xbox = NewControllers.Hardware[prop]
+                root.xbox = Controllers.Hardware[prop]
                 break
             }
         }
@@ -29,7 +29,7 @@ Column {
     Timer {
         interval: 50; running: true; repeat: true
         onTriggered: {
-            NewControllers.update();
+            Controllers.update();
         }
     }
 
@@ -38,7 +38,7 @@ Column {
         Button {
             text: "Default Mapping"
             onClicked: {
-                var mapping = NewControllers.newMapping("Default");
+                var mapping = Controllers.newMapping("Default");
                 mapping.from(xbox.A).to(standard.A);
                 mapping.from(xbox.B).to(standard.B);
                 mapping.from(xbox.X).to(standard.X);
@@ -59,7 +59,7 @@ Column {
                 mapping.from(xbox.RX).to(standard.RX);
                 mapping.from(xbox.LT).to(standard.LT);
                 mapping.from(xbox.RT).to(standard.RT);
-                NewControllers.enableMapping("Default");
+                Controllers.enableMapping("Default");
                 enabled = false;
                 text = "Built"
             }
@@ -68,16 +68,35 @@ Column {
         Button {
             text: "Build Mapping"
             onClicked: {
-                var mapping = NewControllers.newMapping();
+                var mapping = Controllers.newMapping();
                 // Inverting a value
                 mapping.from(xbox.RY).invert().to(standard.RY);
                 // Assigning a value from a function
                 mapping.from(function() { return Math.sin(Date.now() / 250); }).to(standard.RX);
                 // Constrainting a value to -1, 0, or 1, with a deadzone
                 mapping.from(xbox.LY).deadZone(0.5).constrainToInteger().to(standard.LY);
-                mapping.join(standard.LB, standard.RB).pulse(0.5).to(actions.Yaw);
+                // change join to makeAxis
+                mapping.join(standard.LB, standard.RB).to(actions.Yaw);
                 mapping.from(actions.Yaw).clamp(0, 1).invert().to(actions.YAW_RIGHT);
                 mapping.from(actions.Yaw).clamp(-1, 0).to(actions.YAW_LEFT);
+
+                // mapping.modifier(keyboard.Ctrl).scale(2.0)
+
+//                mapping.from(keyboard.A).to(actions.TranslateLeft)
+//                mapping.from(keyboard.A, keyboard.Shift).to(actions.TurnLeft)
+//                mapping.from(keyboard.A, keyboard.Shift, keyboard.Ctrl).scale(2.0).to(actions.TurnLeft)
+
+//                // First loopbacks
+//                // Then non-loopbacks by constraint level (number of inputs)
+//                mapping.from(xbox.RX).deadZone(0.2).to(xbox.RX)
+
+//                mapping.from(standard.RB, standard.LB, keyboard.Shift).to(actions.TurnLeft)
+
+
+//                mapping.from(keyboard.A, keyboard.Shift).to(actions.TurnLeft)
+
+
+//                mapping.from(keyboard.W).when(keyboard.Shift).to(actions.Forward)
                 testMapping = mapping;
                 enabled = false
                 text = "Built"
@@ -105,7 +124,7 @@ Column {
     Row {
         spacing: 8
         ScrollingGraph {
-            controlId: NewControllers.Actions.Yaw
+            controlId: Controllers.Actions.Yaw
             label: "Yaw"
             min: -3.0
             max: 3.0
@@ -113,7 +132,7 @@ Column {
         }
 
         ScrollingGraph {
-            controlId: NewControllers.Actions.YAW_LEFT
+            controlId: Controllers.Actions.YAW_LEFT
             label: "Yaw Left"
             min: -3.0
             max: 3.0
@@ -121,7 +140,7 @@ Column {
         }
 
         ScrollingGraph {
-            controlId: NewControllers.Actions.YAW_RIGHT
+            controlId: Controllers.Actions.YAW_RIGHT
             label: "Yaw Right"
             min: -3.0
             max: 3.0

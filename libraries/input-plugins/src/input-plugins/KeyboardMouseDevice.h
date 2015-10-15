@@ -16,7 +16,7 @@
 
 #include <QtCore/QPoint>
 
-#include "InputDevice.h"
+#include <controllers/InputDevice.h>
 #include "InputPlugin.h"
 
 class QTouchEvent;

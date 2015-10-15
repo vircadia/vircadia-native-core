@@ -15,7 +15,7 @@ Item {
     Timer {
         interval: 50; running: true; repeat: true
         onTriggered: {
-            root.value = NewControllers.getValue(root.controlId);
+            root.value = Controllers.getValue(root.controlId);
             canvas.requestPaint();
         }
     }

@@ -12,7 +12,7 @@
 #include <QtCore/QDebug>
 
 #include "RouteBuilderProxy.h"
-#include "../NewControllerScriptingInterface.h"
+#include "../ScriptingInterface.h"
 #include "../Logging.h"
 
 namespace controller {

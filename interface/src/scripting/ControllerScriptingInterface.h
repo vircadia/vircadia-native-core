@@ -14,15 +14,20 @@
 
 #include <QtCore/QObject>
 
-#include <input-plugins/UserInputMapper.h>
+#include <controllers/UserInputMapper.h>
+#include <controllers/ScriptingInterface.h>
 
-#include <AbstractControllerScriptingInterface.h>
+#include <HFActionEvent.h>
+#include <KeyEvent.h>
+#include <MouseEvent.h>
+#include <SpatialEvent.h>
+#include <TouchEvent.h>
+#include <WheelEvent.h>
+class ScriptEngine;
+
 class PalmData;
-namespace controller {
-    class NewControllerScriptingInterface;
-}
 
-class InputController : public  AbstractInputController {
+class InputController : public  controller::InputController {
     Q_OBJECT
 
 public:
@@ -53,30 +58,53 @@ signals:
  
 
 /// handles scripting of input controller commands from JS
-class ControllerScriptingInterface : public AbstractControllerScriptingInterface {
+class ControllerScriptingInterface : public controller::ScriptingInterface {
     Q_OBJECT
+
 
 public:    
     ControllerScriptingInterface();
     ~ControllerScriptingInterface();
 
-    virtual void registerControllerTypes(ScriptEngine* engine);
+    Q_INVOKABLE QVector<UserInputMapper::Action> getAllActions();
+
+    Q_INVOKABLE bool addInputChannel(UserInputMapper::InputChannel inputChannel);
+    Q_INVOKABLE bool removeInputChannel(UserInputMapper::InputChannel inputChannel);
+    Q_INVOKABLE QVector<UserInputMapper::InputChannel> getInputChannelsForAction(UserInputMapper::Action action);
+
+    Q_INVOKABLE QVector<UserInputMapper::InputPair> getAvailableInputs(unsigned int device);
+    Q_INVOKABLE QVector<UserInputMapper::InputChannel> getAllInputsForDevice(unsigned int device);
+
+    Q_INVOKABLE QString getDeviceName(unsigned int device);
+
+    Q_INVOKABLE float getActionValue(int action);
+
+    Q_INVOKABLE void resetDevice(unsigned int device);
+    Q_INVOKABLE void resetAllDeviceBindings();
+    Q_INVOKABLE int findDevice(QString name);
+    Q_INVOKABLE QVector<QString> getDeviceNames();
+
+    Q_INVOKABLE int findAction(QString actionName);
+    Q_INVOKABLE QVector<QString> getActionNames() const;
+
+
+    virtual void registerControllerTypes(QScriptEngine* engine);
     
-    void emitKeyPressEvent(QKeyEvent* event) { emit keyPressEvent(KeyEvent(*event)); }
-    void emitKeyReleaseEvent(QKeyEvent* event) { emit keyReleaseEvent(KeyEvent(*event)); }
+    void emitKeyPressEvent(QKeyEvent* event);
+    void emitKeyReleaseEvent(QKeyEvent* event);
     
     void handleMetaEvent(HFMetaEvent* event);
 
-    void emitMouseMoveEvent(QMouseEvent* event, unsigned int deviceID = 0) { emit mouseMoveEvent(MouseEvent(*event, deviceID)); }
-    void emitMousePressEvent(QMouseEvent* event, unsigned int deviceID = 0) { emit mousePressEvent(MouseEvent(*event, deviceID)); }
-    void emitMouseDoublePressEvent(QMouseEvent* event, unsigned int deviceID = 0) { emit mouseDoublePressEvent(MouseEvent(*event, deviceID)); }
-    void emitMouseReleaseEvent(QMouseEvent* event, unsigned int deviceID = 0) { emit mouseReleaseEvent(MouseEvent(*event, deviceID)); }
+    void emitMouseMoveEvent(QMouseEvent* event, unsigned int deviceID = 0);
+    void emitMousePressEvent(QMouseEvent* event, unsigned int deviceID = 0); 
+    void emitMouseDoublePressEvent(QMouseEvent* event, unsigned int deviceID = 0);
+    void emitMouseReleaseEvent(QMouseEvent* event, unsigned int deviceID = 0);
 
-    void emitTouchBeginEvent(const TouchEvent& event) { emit touchBeginEvent(event); }
-    void emitTouchEndEvent(const TouchEvent& event) { emit touchEndEvent(event); }
-    void emitTouchUpdateEvent(const TouchEvent& event) { emit touchUpdateEvent(event); }
+    void emitTouchBeginEvent(const TouchEvent& event);
+    void emitTouchEndEvent(const TouchEvent& event); 
+    void emitTouchUpdateEvent(const TouchEvent& event);
     
-    void emitWheelEvent(QWheelEvent* event) { emit wheelEvent(*event); }
+    void emitWheelEvent(QWheelEvent* event);
 
     bool isKeyCaptured(QKeyEvent* event) const;
     bool isKeyCaptured(const KeyEvent& event) const;
@@ -86,48 +114,10 @@ public:
     bool areActionsCaptured() const { return _actionsCaptured; }
     bool isJoystickCaptured(int joystickIndex) const;
 
-    void updateInputControllers();
+    virtual void update() override;
 
 public slots:
-    Q_INVOKABLE virtual QVector<UserInputMapper::Action> getAllActions();
-    
-    Q_INVOKABLE virtual bool addInputChannel(UserInputMapper::InputChannel inputChannel);
-    Q_INVOKABLE virtual bool removeInputChannel(UserInputMapper::InputChannel inputChannel);
-    Q_INVOKABLE virtual QVector<UserInputMapper::InputChannel> getInputChannelsForAction(UserInputMapper::Action action);
-    
-    Q_INVOKABLE virtual QVector<UserInputMapper::InputPair> getAvailableInputs(unsigned int device);
-    Q_INVOKABLE virtual QVector<UserInputMapper::InputChannel> getAllInputsForDevice(unsigned int device);
-    
-    Q_INVOKABLE virtual QString getDeviceName(unsigned int device);
-    
-    Q_INVOKABLE virtual float getActionValue(int action);
 
-    Q_INVOKABLE virtual void resetDevice(unsigned int device);
-    Q_INVOKABLE virtual void resetAllDeviceBindings();
-    Q_INVOKABLE virtual int findDevice(QString name);
-    Q_INVOKABLE virtual QVector<QString> getDeviceNames();
-    
-    Q_INVOKABLE virtual int findAction(QString actionName);
-    Q_INVOKABLE virtual QVector<QString> getActionNames() const;
-
-    virtual bool isPrimaryButtonPressed() const;
-    virtual glm::vec2 getPrimaryJoystickPosition() const;
-
-    virtual int getNumberOfButtons() const;
-    virtual bool isButtonPressed(int buttonIndex) const;
-
-    virtual int getNumberOfTriggers() const;
-    virtual float getTriggerValue(int triggerIndex) const;
-
-    virtual int getNumberOfJoysticks() const;
-    virtual glm::vec2 getJoystickPosition(int joystickIndex) const;
-
-    virtual int getNumberOfSpatialControls() const;
-    virtual glm::vec3 getSpatialControlPosition(int controlIndex) const;
-    virtual glm::vec3 getSpatialControlVelocity(int controlIndex) const;
-    virtual glm::vec3 getSpatialControlNormal(int controlIndex) const;
-    virtual glm::quat getSpatialControlRawRotation(int controlIndex) const;
-    virtual glm::vec3 getSpatialControlRawAngularVelocity(int controlIndex) const;
     virtual void captureKeyEvents(const KeyEvent& event);
     virtual void releaseKeyEvents(const KeyEvent& event);
 
@@ -149,9 +139,31 @@ public slots:
     virtual glm::vec2 getViewportDimensions() const;
 
     /// Factory to create an InputController
-    virtual AbstractInputController* createInputController(const QString& deviceName, const QString& tracker);
+    virtual controller::InputController::Pointer createInputController(const QString& deviceName, const QString& tracker);
+    virtual void releaseInputController(controller::InputController::Pointer input);
 
-    virtual void releaseInputController(AbstractInputController* input);
+signals:
+    void keyPressEvent(const KeyEvent& event);
+    void keyReleaseEvent(const KeyEvent& event);
+
+    void actionStartEvent(const HFActionEvent& event);
+    void actionEndEvent(const HFActionEvent& event);
+
+    void backStartEvent();
+    void backEndEvent();
+
+    void mouseMoveEvent(const MouseEvent& event, unsigned int deviceID = 0);
+    void mousePressEvent(const MouseEvent& event, unsigned int deviceID = 0);
+    void mouseDoublePressEvent(const MouseEvent& event, unsigned int deviceID = 0);
+    void mouseReleaseEvent(const MouseEvent& event, unsigned int deviceID = 0);
+
+    void touchBeginEvent(const TouchEvent& event);
+    void touchEndEvent(const TouchEvent& event);
+    void touchUpdateEvent(const TouchEvent& event);
+
+    void wheelEvent(const WheelEvent& event);
+
+    void actionEvent(int action, float state);
 
 private:
     QString sanatizeName(const QString& name); /// makes a name clean for inclusing in JavaScript
@@ -168,12 +180,9 @@ private:
     QMultiMap<int,KeyEvent> _capturedKeys;
     QSet<int> _capturedJoysticks;
 
-    typedef std::map< AbstractInputController::Key, AbstractInputController* > InputControllerMap;
+    using InputKey = controller::InputController::Key;
+    using InputControllerMap = std::map<InputKey, controller::InputController::Pointer>;
     InputControllerMap _inputControllers;
-
-    void wireUpControllers(ScriptEngine* engine);
-
-    controller::NewControllerScriptingInterface* _newControllerScriptingInterface = nullptr;
 };
 
 const int NUMBER_OF_SPATIALCONTROLS_PER_PALM = 2; // the hand and the tip
