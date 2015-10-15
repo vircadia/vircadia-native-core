@@ -122,7 +122,6 @@ void ToolWindow::addDockWidget(Qt::DockWidgetArea area, QDockWidget* dockWidget,
 
     QMainWindow::addDockWidget(area, dockWidget, orientation);
     
-   
     QDockWidget* lastDockWidget = dockWidget;
 
     lastDockWidget->setTitleBarWidget(new QWidget());
