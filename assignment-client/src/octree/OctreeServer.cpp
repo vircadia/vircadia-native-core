@@ -650,7 +650,7 @@ bool OctreeServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
         statsString += QString("        Packets Queue Network IN: %1 PPS \r\n")
             .arg(locale.toString(incomingPPS, 'f', FLOAT_PRECISION).rightJustified(COLUMN_WIDTH, ' '));
         statsString += QString("    Packets Queue Processing OUT: %1 PPS \r\n")
-            .arg(locale.toString(incomingPPS, 'f', FLOAT_PRECISION).rightJustified(COLUMN_WIDTH, ' '));
+            .arg(locale.toString(processedPPS, 'f', FLOAT_PRECISION).rightJustified(COLUMN_WIDTH, ' '));
 
         statsString += QString("           Total Inbound Packets: %1 packets\r\n")
             .arg(locale.toString((uint)totalPacketsProcessed).rightJustified(COLUMN_WIDTH, ' '));
