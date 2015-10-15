@@ -66,7 +66,8 @@ var MSEC_PER_SEC = 1000.0;
 // these control how long an abandoned pointer line will hang around
 var startTime = Date.now();
 var LIFETIME = 10;
-var ACTION_LIFETIME = 10; // seconds
+var ACTION_LIFETIME = 15; // seconds
+var ACTION_LIFETIME_REFRESH = 5;
 var PICKS_PER_SECOND_PER_HAND = 5;
 var MSECS_PER_SEC = 1000.0;
 
@@ -536,8 +537,8 @@ function MyController(hand, triggerAction) {
         this.currentObjectTime = now;
         Entities.callEntityMethod(this.grabbedEntity, "continueNearGrab");
 
-        if (this.actionTimeout - now < MSEC_PER_SEC) {
-            // if less than a second left, refresh the actions lifetime
+        if (this.actionTimeout - now < ACTION_LIFETIME_REFRESH * MSEC_PER_SEC) {
+            // if less than a 5 seconds left, refresh the actions lifetime
             Entities.updateAction(this.grabbedEntity, this.actionID, {
                 hand: this.hand === RIGHT_HAND ? "right" : "left",
                 timeScale: NEAR_GRABBING_ACTION_TIMEFRAME,
