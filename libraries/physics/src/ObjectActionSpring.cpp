@@ -219,6 +219,7 @@ void ObjectActionSpring::deserialize(QByteArray serializedArguments) {
     uint16_t serializationVersion;
     dataStream >> serializationVersion;
     if (serializationVersion != ObjectActionSpring::springVersion) {
+        assert(false);
         return;
     }
 

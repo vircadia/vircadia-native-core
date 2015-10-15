@@ -64,6 +64,10 @@ void AvatarActionHold::updateActionWorker(float deltaTimeStep) {
             _rotationalTarget = rotation;
             _positionalTargetSet = true;
             _rotationalTargetSet = true;
+            auto ownerEntity = _ownerEntity.lock();
+            if (ownerEntity) {
+                ownerEntity->setActionDataDirty(true);
+            }
         });
     }
     if (gotLock) {
