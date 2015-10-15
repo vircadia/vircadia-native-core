@@ -26,8 +26,10 @@
 #include <LimitedNodeList.h>
 #include <EntityItemID.h>
 #include <EntitiesScriptEngineProvider.h>
+#include <controllers/ScriptingInterface.h>
 
-#include "AbstractControllerScriptingInterface.h"
+
+#include "MouseEvent.h"
 #include "ArrayBufferClass.h"
 #include "AudioScriptingInterface.h"
 #include "Quat.h"
@@ -53,7 +55,7 @@ class ScriptEngine : public QScriptEngine, public ScriptUser, public EntitiesScr
 public:
     ScriptEngine(const QString& scriptContents = NO_SCRIPT,
                  const QString& fileNameString = QString(""),
-                 AbstractControllerScriptingInterface* controllerScriptingInterface = NULL,
+                 controller::ScriptingInterface* controllerScriptingInterface = nullptr,
                  bool wantSignals = true);
 
     ~ScriptEngine();
@@ -182,7 +184,7 @@ private:
     QObject* setupTimerWithInterval(const QScriptValue& function, int intervalMS, bool isSingleShot);
     void stopTimer(QTimer* timer);
 
-    AbstractControllerScriptingInterface* _controllerScriptingInterface;
+    controller::ScriptingInterface* _controllerScriptingInterface;
     QString _fileNameString;
     Quat _quatLibrary;
     Vec3 _vec3Library;

@@ -20,12 +20,14 @@ class QScriptValue;
 
 namespace controller {
 
-class NewControllerScriptingInterface;
+class ScriptingInterface;
 
+// TODO migrate functionality to a MappingBuilder class and make the proxy defer to that 
+// (for easier use in both C++ and JS)
 class MappingBuilderProxy : public QObject {
     Q_OBJECT
 public:
-    MappingBuilderProxy(NewControllerScriptingInterface& parent, Mapping::Pointer mapping)
+    MappingBuilderProxy(ScriptingInterface& parent, Mapping::Pointer mapping)
         : _parent(parent), _mapping(mapping) { }
 
     Q_INVOKABLE QObject* from(const QJSValue& source);
@@ -38,7 +40,7 @@ protected:
     QObject* from(const Endpoint::Pointer& source);
 
     friend class RouteBuilderProxy;
-    NewControllerScriptingInterface& _parent;
+    ScriptingInterface& _parent;
     Mapping::Pointer _mapping;
 };
 

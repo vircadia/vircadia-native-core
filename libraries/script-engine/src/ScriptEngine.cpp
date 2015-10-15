@@ -76,16 +76,16 @@ void avatarDataFromScriptValue(const QScriptValue &object, AvatarData* &out) {
     out = qobject_cast<AvatarData*>(object.toQObject());
 }
 
-QScriptValue inputControllerToScriptValue(QScriptEngine *engine, AbstractInputController* const &in) {
+QScriptValue inputControllerToScriptValue(QScriptEngine *engine, controller::InputController* const &in) {
     return engine->newQObject(in);
 }
 
-void inputControllerFromScriptValue(const QScriptValue &object, AbstractInputController* &out) {
-    out = qobject_cast<AbstractInputController*>(object.toQObject());
+void inputControllerFromScriptValue(const QScriptValue &object, controller::InputController* &out) {
+    out = qobject_cast<controller::InputController*>(object.toQObject());
 }
 
 ScriptEngine::ScriptEngine(const QString& scriptContents, const QString& fileNameString,
-            AbstractControllerScriptingInterface* controllerScriptingInterface, bool wantSignals) :
+    controller::ScriptingInterface* controllerScriptingInterface, bool wantSignals) :
 
     _scriptContents(scriptContents),
     _isFinished(false),
@@ -93,7 +93,7 @@ ScriptEngine::ScriptEngine(const QString& scriptContents, const QString& fileNam
     _isInitialized(false),
     _timerFunctionMap(),
     _wantSignals(wantSignals),
-    _controllerScriptingInterface(controllerScriptingInterface),
+    _controllerScriptingInterface(controllerScriptingInterface), 
     _fileNameString(fileNameString),
     _quatLibrary(),
     _vec3Library(),

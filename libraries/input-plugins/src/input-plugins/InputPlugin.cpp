@@ -23,7 +23,7 @@ InputPluginList getInputPlugins() {
         new KeyboardMouseDevice(),
         new SDL2Manager(),
         new SixenseManager(),
-        //new ViveControllerManager(),
+        new ViveControllerManager(),
         nullptr
     };
 

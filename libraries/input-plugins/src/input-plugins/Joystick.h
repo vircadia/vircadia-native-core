@@ -20,8 +20,8 @@
 #undef main
 #endif
 
-#include "InputDevice.h"
-#include "StandardControls.h"
+#include <controllers/InputDevice.h>
+#include <controllers/StandardControls.h>
 
 class Joystick : public QObject, public InputDevice {
     Q_OBJECT
@@ -44,8 +44,8 @@ public:
     Joystick() : InputDevice("Joystick") {}
     ~Joystick();
     
-    UserInputMapper::Input makeInput(Controllers::StandardButtonChannel button);
-    UserInputMapper::Input makeInput(Controllers::StandardAxisChannel axis);
+    UserInputMapper::Input makeInput(controller::StandardButtonChannel button);
+    UserInputMapper::Input makeInput(controller::StandardAxisChannel axis);
     
 #ifdef HAVE_SDL2
     Joystick(SDL_JoystickID instanceId, const QString& name, SDL_GameController* sdlGameController);

@@ -24,8 +24,9 @@
 
 #endif
 
+#include <controllers/InputDevice.h>
+
 #include "InputPlugin.h"
-#include "InputDevice.h"
 
 class QLibrary;
 
