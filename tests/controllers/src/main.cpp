@@ -79,6 +79,12 @@ public:
     virtual const DisplayPlugin* getActiveDisplayPlugin() const override { return nullptr;  }
 };
 
+class MyControllerScriptingInterface : public controller::ScriptingInterface {
+public:
+    virtual void registerControllerTypes(QScriptEngine* engine) {};
+};
+
+
 int main(int argc, char** argv) {
     QGuiApplication app(argc, argv);
     QQmlApplicationEngine engine;
@@ -116,7 +122,7 @@ int main(int argc, char** argv) {
         }
         //new PluginContainerProxy();
         auto rootContext = engine.rootContext();
-        rootContext->setContextProperty("Controllers", new ScriptingInterface());
+        rootContext->setContextProperty("Controllers", new MyControllerScriptingInterface());
     }
     engine.load(getQmlDir() + "main.qml");
     app.exec();
