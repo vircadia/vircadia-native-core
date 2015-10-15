@@ -20,7 +20,7 @@
     var _this;
     var RIGHT_HAND = 1;
     var LEFT_HAND = 0;
-    var MIN_POINT_DISTANCE = 0.02;
+    var MIN_POINT_DISTANCE = 0.01  ;
     var MAX_POINT_DISTANCE = 0.5;
     var MAX_POINTS_PER_LINE = 40;
     var MAX_DISTANCE = 5;
@@ -119,8 +119,9 @@
 
 
             var localPoint = Vec3.subtract(position, this.strokeBasePosition);
-            //Move stroke a bit forward along normal so it doesnt zfight with mesh its drawing on 
-            localPoint = Vec3.sum(localPoint, Vec3.multiply(this.normal, 0.001 + Math.random() * 0.001)); //rand avoid z fighting
+            //Move stroke a bit forward along normal each point so it doesnt zfight with mesh its drawing on, or previous part of stroke(s)
+            localPoint = Vec3.sum(localPoint, Vec3.multiply(this.normal, this.forwardOffset));
+            this.forwardOffset += 0.00001;
             var distance = Vec3.distance(localPoint, this.strokePoints[this.strokePoints.length - 1]);
             if (this.strokePoints.length > 0 && distance < MIN_POINT_DISTANCE) {
                 //need a minimum distance to avoid binormal NANs
@@ -157,7 +158,6 @@
 
 
         newStroke: function(position) {
-
             this.strokeBasePosition = position;
             this.currentStroke = Entities.addEntity({
                 position: position,
@@ -231,12 +231,11 @@
                 solid: true,
                 rotation: this.rotation
             });
+            this.forwardOffset = 0.0005;
         },
 
         unload: function() {
-            this.strokes.forEach(function(stroke) {
-                Entities.deleteEntity(stroke);
-            });
+
             Overlays.deleteOverlay(this.laserPointer);
         }
 
