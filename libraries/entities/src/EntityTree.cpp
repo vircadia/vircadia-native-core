@@ -647,8 +647,10 @@ int EntityTree::processEditPacketData(NLPacket& packet, const unsigned char* edi
                     }
                 } else {
                     static QString repeatedMessage =
-                        LogHandler::getInstance().addRepeatedMessageRegex("^Add or Edit failed.*");
-                    qCDebug(entities) << "Add or Edit failed." << packet.getType() << existingEntity.get();
+                        LogHandler::getInstance().addRepeatedMessageRegex("^Edit failed.*");
+                    qCDebug(entities) << "Edit failed. [" << packet.getType() <<"] " <<
+                            "entity id:" << entityItemID << 
+                            "existingEntity pointer:" << existingEntity.get();
                 }
             }
 
