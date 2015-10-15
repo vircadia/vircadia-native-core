@@ -625,6 +625,8 @@ bool OctreeServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
         statsString += QString().sprintf("<b>%s Edit Statistics... <a href='/resetStats'>[RESET]</a></b>\r\n",
                                          getMyServerName());
         quint64 currentPacketsInQueue = _octreeInboundPacketProcessor->packetsToProcessCount();
+        float incomingPPS = _octreeInboundPacketProcessor->getIncomingPPS();
+        float processedPPS = _octreeInboundPacketProcessor->getProcessedPPS();
         quint64 averageTransitTimePerPacket = _octreeInboundPacketProcessor->getAverageTransitTimePerPacket();
         quint64 averageProcessTimePerPacket = _octreeInboundPacketProcessor->getAverageProcessTimePerPacket();
         quint64 averageLockWaitTimePerPacket = _octreeInboundPacketProcessor->getAverageLockWaitTimePerPacket();
@@ -639,11 +641,16 @@ bool OctreeServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
         quint64 averageCreateTime = _tree->getAverageCreateTime();
         quint64 averageLoggingTime = _tree->getAverageLoggingTime();
 
+        int FLOAT_PRECISION = 3;
 
         float averageElementsPerPacket = totalPacketsProcessed == 0 ? 0 : (float)totalElementsProcessed / totalPacketsProcessed;
 
-        statsString += QString("   Current Inbound Packets Queue: %1 packets\r\n")
+        statsString += QString("   Current Inbound Packets Queue: %1 packets \r\n")
             .arg(locale.toString((uint)currentPacketsInQueue).rightJustified(COLUMN_WIDTH, ' '));
+        statsString += QString("        Packets Queue Network IN: %1 PPS \r\n")
+            .arg(locale.toString(incomingPPS, 'f', FLOAT_PRECISION).rightJustified(COLUMN_WIDTH, ' '));
+        statsString += QString("    Packets Queue Processing OUT: %1 PPS \r\n")
+            .arg(locale.toString(incomingPPS, 'f', FLOAT_PRECISION).rightJustified(COLUMN_WIDTH, ' '));
 
         statsString += QString("           Total Inbound Packets: %1 packets\r\n")
             .arg(locale.toString((uint)totalPacketsProcessed).rightJustified(COLUMN_WIDTH, ' '));
