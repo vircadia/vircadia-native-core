@@ -39,11 +39,8 @@ bool ToolWindow::event(QEvent* event) {
             QMainWindow* mainWindow = qApp->getWindow();
             QRect mainGeometry = mainWindow->geometry();
 
-            int titleBarHeight = UIUtil::getWindowTitleBarHeight(this);
-            int topMargin = titleBarHeight;
-
-            _lastGeometry = QRect(mainGeometry.topLeft().x(),  mainGeometry.topLeft().y() + topMargin,
-                                  DEFAULT_WIDTH, mainGeometry.height() - topMargin);
+            _lastGeometry = QRect(mainGeometry.topLeft().x(),  mainGeometry.topLeft().y(),
+                                  DEFAULT_WIDTH, mainGeometry.height());
         }
         setGeometry(_lastGeometry);
         return true;
@@ -124,8 +121,11 @@ void ToolWindow::addDockWidget(Qt::DockWidgetArea area, QDockWidget* dockWidget,
     QList<QDockWidget*> dockWidgets = findChildren<QDockWidget*>();
 
     QMainWindow::addDockWidget(area, dockWidget, orientation);
-
+    
+   
     QDockWidget* lastDockWidget = dockWidget;
+
+    lastDockWidget->setTitleBarWidget(new QWidget());
 
     foreach(QDockWidget* nextDockWidget, dockWidgets) {
         tabifyDockWidget(lastDockWidget, nextDockWidget);
