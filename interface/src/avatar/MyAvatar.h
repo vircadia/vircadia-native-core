@@ -183,6 +183,8 @@ public:
     glm::quat getCustomListenOrientation() { return _customListenOrientation; }
     void setCustomListenOrientation(glm::quat customListenOrientation) { _customListenOrientation = customListenOrientation; }
 
+    virtual RigPointer getRig() const { return _rig; }
+
 public slots:
     void increaseSize();
     void decreaseSize();

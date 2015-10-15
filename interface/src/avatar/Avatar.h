@@ -174,6 +174,8 @@ public:
     void setMotionState(AvatarMotionState* motionState) { _motionState = motionState; }
     AvatarMotionState* getMotionState() { return _motionState; }
 
+    virtual RigPointer getRig() const { return _skeletonModel.getRig(); }
+
 public slots:
     glm::vec3 getLeftPalmPosition();
     glm::vec3 getLeftPalmVelocity();
