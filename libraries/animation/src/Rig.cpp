@@ -50,13 +50,6 @@ void Rig::HeadParameters::dump() const {
     qCDebug(animation, "    isTalking = %s", isTalking ? "true" : "false");
 }
 
-// QString Rig::HeadParameters::dumpJoint(int jointIndex) const {
-//     QString out = "";
-//     out += ...;
-//     JointState& state = _jointStates[i];
-//     int parentIndex = state.getParentIndex();
-// }
-
 void insertSorted(QList<AnimationHandlePointer>& handles, const AnimationHandlePointer& handle) {
     for (QList<AnimationHandlePointer>::iterator it = handles.begin(); it != handles.end(); it++) {
         if (handle->getPriority() > (*it)->getPriority()) {
