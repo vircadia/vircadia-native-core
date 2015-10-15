@@ -127,10 +127,8 @@ void ToolWindow::addDockWidget(Qt::DockWidgetArea area, QDockWidget* dockWidget,
     QList<QDockWidget*> dockWidgets = findChildren<QDockWidget*>();
 
     QMainWindow::addDockWidget(area, dockWidget, orientation);
-    
    
     QDockWidget* lastDockWidget = dockWidget;
-
 
     foreach(QDockWidget* nextDockWidget, dockWidgets) {
         tabifyDockWidget(lastDockWidget, nextDockWidget);
