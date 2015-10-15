@@ -251,6 +251,8 @@ public:
     Q_INVOKABLE virtual glm::vec3 getJointTranslation(int index) const;
 
     Q_INVOKABLE void setJointData(const QString& name, const glm::quat& rotation, const glm::vec3& translation);
+    Q_INVOKABLE void setJointRotation(const QString& name, const glm::quat& rotation);
+    Q_INVOKABLE void setJointTranslation(const QString& name, const glm::vec3& translation);
     Q_INVOKABLE void clearJointData(const QString& name);
     Q_INVOKABLE bool isJointDataValid(const QString& name) const;
     Q_INVOKABLE glm::quat getJointRotation(const QString& name) const;

@@ -45,7 +45,7 @@ bool ReceivedPacketProcessor::process() {
         float incomingPacketsPerSecondInWindow = (float)_lastWindowIncomingPackets / secondsSinceLastWindow;
         _incomingPPS.updateAverage(incomingPacketsPerSecondInWindow);
 
-        float processedPacketsPerSecondInWindow = (float)_lastWindowIncomingPackets / secondsSinceLastWindow;
+        float processedPacketsPerSecondInWindow = (float)_lastWindowProcessedPackets / secondsSinceLastWindow;
         _processedPPS.updateAverage(processedPacketsPerSecondInWindow);
 
         _lastWindowAt = now;
