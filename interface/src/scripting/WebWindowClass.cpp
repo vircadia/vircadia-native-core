@@ -45,7 +45,6 @@ WebWindowClass::WebWindowClass(const QString& title, const QString& url, int wid
 
         auto dockWidget = new QDockWidget(title, toolWindow);
         dockWidget->setFeatures(QDockWidget::DockWidgetMovable);
-        dockWidget->setTitleBarWidget(0);
         connect(dockWidget, &QDockWidget::visibilityChanged, this, &WebWindowClass::visibilityChanged);
 
         _webView = new QWebView(dockWidget);
