@@ -121,11 +121,11 @@ bool AvatarActionHold::updateArguments(QVariantMap arguments) {
         holderID = myAvatar->getSessionUUID();
 
         if (somethingChanged ||
-            relativePosition != _relativePosition
-            || relativeRotation != _relativeRotation
-            || timeScale != _linearTimeScale
-            || hand != _hand
-            || holderID != _holderID) {
+            relativePosition != _relativePosition ||
+            relativeRotation != _relativeRotation ||
+            timeScale != _linearTimeScale ||
+            hand != _hand ||
+            holderID != _holderID) {
             needUpdate = true;
         }
     });
