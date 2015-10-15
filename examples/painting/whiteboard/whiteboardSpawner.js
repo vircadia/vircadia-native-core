@@ -35,7 +35,7 @@ var colors = [
 var whiteboardDimensions = {
     x: 2,
     y: 1.5,
-    z: 0.02
+    z: 0.08
 };
 var whiteboard = Entities.addEntity({
     type: "Model",
@@ -59,7 +59,7 @@ var whiteboard = Entities.addEntity({
 // COLOR INDICATOR BOX
 var colorIndicatorDimensions = {
     x: whiteboardDimensions.x,
-    y: 0.2,
+    y: 0.05,
     z: 0.02
 };
 scriptURL = Script.resolvePath("colorIndicatorEntityScript.js");
