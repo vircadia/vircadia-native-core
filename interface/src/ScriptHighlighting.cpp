@@ -16,7 +16,7 @@ ScriptHighlighting::ScriptHighlighting(QTextDocument* parent) :
     QSyntaxHighlighter(parent)
 {
     _keywordRegex = QRegExp("\\b(break|case|catch|continue|debugger|default|delete|do|else|finally|for|function|if|in|instanceof|new|return|switch|this|throw|try|typeof|var|void|while|with)\\b");
-    _qoutedTextRegex = QRegExp("\"[^\"]*(\"){0,1}");
+    _quotedTextRegex = QRegExp("(\"[^\"]*(\"){0,1}|\'[^\']*(\'){0,1})");
     _multiLineCommentBegin = QRegExp("/\\*");
     _multiLineCommentEnd = QRegExp("\\*/");
     _numberRegex = QRegExp("[0-9]+(\\.[0-9]+){0,1}");
@@ -29,7 +29,7 @@ void ScriptHighlighting::highlightBlock(const QString& text) {
     this->highlightKeywords(text);
     this->formatNumbers(text);
     this->formatTrueFalse(text);
-    this->formatQoutedText(text);
+    this->formatQuotedText(text);
     this->formatComments(text);
 }
 
@@ -61,14 +61,14 @@ void ScriptHighlighting::formatComments(const QString& text) {
     int index = _singleLineComment.indexIn(text);
     while (index >= 0) {
         int length = _singleLineComment.matchedLength();
-        int quoted_index = _qoutedTextRegex.indexIn(text);
+        int quoted_index = _quotedTextRegex.indexIn(text);
         bool valid = true;
         while (quoted_index >= 0 && valid) {
-            int quoted_length = _qoutedTextRegex.matchedLength();
+            int quoted_length = _quotedTextRegex.matchedLength();
             if (quoted_index <= index && index <= (quoted_index + quoted_length)) {
                 valid = false;
             }
-            quoted_index = _qoutedTextRegex.indexIn(text, quoted_index + quoted_length);
+            quoted_index = _quotedTextRegex.indexIn(text, quoted_index + quoted_length);
         }
 
         if (valid) {
@@ -78,12 +78,12 @@ void ScriptHighlighting::formatComments(const QString& text) {
     }
 }
 
-void ScriptHighlighting::formatQoutedText(const QString& text){
-    int index = _qoutedTextRegex.indexIn(text);
+void ScriptHighlighting::formatQuotedText(const QString& text){
+    int index = _quotedTextRegex.indexIn(text);
     while (index >= 0) {
-        int length = _qoutedTextRegex.matchedLength();
+        int length = _quotedTextRegex.matchedLength();
         setFormat(index, length, Qt::red);
-        index = _qoutedTextRegex.indexIn(text, index + length);
+        index = _quotedTextRegex.indexIn(text, index + length);
     }
 }
 
