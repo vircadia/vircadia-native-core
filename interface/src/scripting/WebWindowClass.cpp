@@ -52,6 +52,9 @@ WebWindowClass::WebWindowClass(const QString& title, const QString& url, int wid
 
         dockWidget->setWidget(_webView);
 
+        auto titleWidget = new QWidget();
+        dockWidget->setTitleBarWidget(titleWidget);
+
         toolWindow->addDockWidget(Qt::TopDockWidgetArea, dockWidget, Qt::Horizontal);
 
         _windowWidget = dockWidget;

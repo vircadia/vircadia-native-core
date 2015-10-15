@@ -33,16 +33,22 @@ ToolWindow::ToolWindow(QWidget* parent) :
 bool ToolWindow::event(QEvent* event) {
     QEvent::Type type = event->type();
     if (type == QEvent::Show) {
+
         if (!_hasShown) {
             _hasShown = true;
 
             QMainWindow* mainWindow = qApp->getWindow();
             QRect mainGeometry = mainWindow->geometry();
 
-            _lastGeometry = QRect(mainGeometry.topLeft().x(),  mainGeometry.topLeft().y(),
-                                  DEFAULT_WIDTH, mainGeometry.height());
+            int titleBarHeight = UIUtil::getWindowTitleBarHeight(this);
+            int topMargin = titleBarHeight;
+
+            _lastGeometry = QRect(mainGeometry.topLeft().x(), mainGeometry.topLeft().y() + topMargin,
+                DEFAULT_WIDTH, mainGeometry.height() - topMargin);
         }
+
         setGeometry(_lastGeometry);
+
         return true;
     } else if (type == QEvent::Hide) {
         _lastGeometry = geometry();
@@ -125,7 +131,6 @@ void ToolWindow::addDockWidget(Qt::DockWidgetArea area, QDockWidget* dockWidget,
    
     QDockWidget* lastDockWidget = dockWidget;
 
-    lastDockWidget->setTitleBarWidget(new QWidget());
 
     foreach(QDockWidget* nextDockWidget, dockWidgets) {
         tabifyDockWidget(lastDockWidget, nextDockWidget);
