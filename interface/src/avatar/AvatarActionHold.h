@@ -30,7 +30,7 @@ public:
     QByteArray serialize() const;
     virtual void deserialize(QByteArray serializedArguments);
 
-    virtual bool shouldSuppressLocationEdits() { return true; }
+    virtual bool shouldSuppressLocationEdits() { return false; }
 
 private:
     static const uint16_t holdVersion;
