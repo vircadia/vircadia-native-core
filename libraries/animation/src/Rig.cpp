@@ -1245,12 +1245,18 @@ void Rig::updateFromHandParameters(const HandParameters& params, float dt) {
     }
 }
 
+void Rig::makeAnimSkeleton(const FBXGeometry& fbxGeometry) {
+    if (!_animSkeleton) {
+        _animSkeleton = std::make_shared<AnimSkeleton>(fbxGeometry);
+    }
+}
+
 void Rig::initAnimGraph(const QUrl& url, const FBXGeometry& fbxGeometry) {
     if (!_enableAnimGraph) {
         return;
     }
 
-    _animSkeleton = std::make_shared<AnimSkeleton>(fbxGeometry);
+    makeAnimSkeleton(fbxGeometry);
 
     // load the anim graph
     _animLoader.reset(new AnimNodeLoader(url));
