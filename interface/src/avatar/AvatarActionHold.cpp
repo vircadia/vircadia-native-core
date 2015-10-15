@@ -60,9 +60,11 @@ void AvatarActionHold::updateActionWorker(float deltaTimeStep) {
 
     if (gotLock) {
         gotLock = withTryWriteLock([&]{
-                _positionalTarget = position;
-                _rotationalTarget = rotation;
-            });
+            _positionalTarget = position;
+            _rotationalTarget = rotation;
+            _positionalTargetSet = true;
+            _rotationalTargetSet = true;
+        });
     }
     if (gotLock) {
         ObjectActionSpring::updateActionWorker(deltaTimeStep);
