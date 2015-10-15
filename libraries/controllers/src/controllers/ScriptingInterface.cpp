@@ -111,31 +111,6 @@ namespace controller {
 
     ScriptingInterface::ScriptingInterface() {
         auto userInputMapper = DependencyManager::get<UserInputMapper>();
-        auto devices = userInputMapper->getDevices();
-        for (const auto& deviceMapping : devices) {
-            auto device = deviceMapping.second.get();
-            auto deviceName = QString(device->getName()).remove(ScriptingInterface::SANITIZE_NAME_EXPRESSION);
-            qCDebug(controllers) << "Device" << deviceMapping.first << ":" << deviceName;
-            // Expose the IDs to JS
-            _hardware.insert(deviceName, createDeviceMap(device));
-
-            // Create the endpoints
-            for (const auto& inputMapping : device->getAvailabeInputs()) {
-                const auto& input = inputMapping.first;
-                // Ignore aliases
-                if (_endpoints.count(input)) {
-                    continue;
-                }
-                _endpoints[input] = std::make_shared<LambdaEndpoint>([=] {
-                    auto deviceProxy = userInputMapper->getDeviceProxy(input);
-                    if (!deviceProxy) {
-                        return 0.0f;
-                    }
-                    return deviceProxy->getValue(input, 0);
-                });
-            }
-        }
-
         qCDebug(controllers) << "Setting up standard controller abstraction";
         auto standardDevice = userInputMapper->getStandardDevice();
         // Expose the IDs to JS
@@ -150,6 +125,7 @@ namespace controller {
             _endpoints[standardInput] = std::make_shared<VirtualEndpoint>(standardInput);
         }
 
+        // FIXME allow custom user actions?
         auto actionNames = userInputMapper->getActionNames();
         int actionNumber = 0;
         qCDebug(controllers) << "Setting up standard actions";
@@ -164,6 +140,8 @@ namespace controller {
             // FIXME action endpoints need to accumulate values, and have them cleared at each frame
             _endpoints[actionInput] = std::make_shared<VirtualEndpoint>();
         }
+
+        updateMaps();
     }
 
     QObject* ScriptingInterface::newMapping(const QString& mappingName) {
@@ -231,6 +209,12 @@ namespace controller {
 
     void ScriptingInterface::update() {
         auto userInputMapper = DependencyManager::get<UserInputMapper>();
+        static auto deviceNames = userInputMapper->getDeviceNames();
+
+        if (deviceNames != userInputMapper->getDeviceNames()) {
+            updateMaps();
+            deviceNames = userInputMapper->getDeviceNames();
+        }
 
         _overrideValues.clear();
         EndpointSet readEndpoints;
@@ -404,6 +388,41 @@ namespace controller {
         // FIXME extract the rotation from the standard pose
         return quat();
     }
+
+    void ScriptingInterface::updateMaps() {
+        auto userInputMapper = DependencyManager::get<UserInputMapper>();
+        auto devices = userInputMapper->getDevices();
+        QSet<QString> foundDevices;
+        for (const auto& deviceMapping : devices) {
+            auto device = deviceMapping.second.get();
+            auto deviceName = QString(device->getName()).remove(ScriptingInterface::SANITIZE_NAME_EXPRESSION);
+            qCDebug(controllers) << "Device" << deviceMapping.first << ":" << deviceName;
+            foundDevices.insert(device->getName());
+            if (_hardware.contains(deviceName)) {
+                continue;
+            }
+
+            // Expose the IDs to JS
+            _hardware.insert(deviceName, createDeviceMap(device));
+
+            // Create the endpoints
+            for (const auto& inputMapping : device->getAvailabeInputs()) {
+                const auto& input = inputMapping.first;
+                // Ignore aliases
+                if (_endpoints.count(input)) {
+                    continue;
+                }
+                _endpoints[input] = std::make_shared<LambdaEndpoint>([=] {
+                    auto deviceProxy = userInputMapper->getDeviceProxy(input);
+                    if (!deviceProxy) {
+                        return 0.0f;
+                    }
+                    return deviceProxy->getValue(input, 0);
+                });
+            }
+        }
+    }
+
 } // namespace controllers
 
 //var mapping = Controller.newMapping();
