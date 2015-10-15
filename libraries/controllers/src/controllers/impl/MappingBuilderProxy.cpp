@@ -11,8 +11,9 @@
 #include <QtCore/QHash>
 #include <QtCore/QDebug>
 
-#include <QJSonObject>
-#include <QJSonArray>
+#include <QtCore/QJsonObject>
+#include <QtCore/QJsonArray>
+
 
 #include "RouteBuilderProxy.h"
 #include "../ScriptingInterface.h"

@@ -11,8 +11,8 @@
 #include <QtCore/QObject>
 #include <QtScript/QScriptValue>
 
-#include <QJSonObject>
-#include <QJSonArray>
+#include <QtCore/QJsonObject>
+#include <QtCore/QJsonArray>
 
 #include "SharedUtil.h"
 
