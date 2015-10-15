@@ -152,44 +152,52 @@ public:
     // Actions are the output channels of the Mapper, that's what the InputChannel map to
     // For now the Actions are hardcoded, this is bad, but we will fix that in the near future
     enum Action {
-        LONGITUDINAL_BACKWARD = 0,
-        LONGITUDINAL_FORWARD,
+        TRANSLATE_X = 0,
+        TRANSLATE_Y,
+        TRANSLATE_Z,
+        ROTATE_X, PITCH = ROTATE_X,
+        ROTATE_Y, YAW = ROTATE_Y,
+        ROTATE_Z, ROLL = ROTATE_Z,
 
-        LATERAL_LEFT,
-        LATERAL_RIGHT,
+        TRANSLATE_CAMERA_Z,
 
-        VERTICAL_DOWN,
-        VERTICAL_UP,
-
-        YAW_LEFT,
-        YAW_RIGHT,
- 
-        PITCH_DOWN,
-        PITCH_UP,
- 
-        BOOM_IN,
-        BOOM_OUT,
-        
         LEFT_HAND,
         RIGHT_HAND,
 
         LEFT_HAND_CLICK,
         RIGHT_HAND_CLICK,
 
-        SHIFT,
-        
         ACTION1,
         ACTION2,
 
         CONTEXT_MENU,
         TOGGLE_MUTE,
 
-        TranslateX,
-        TranslateY,
-        TranslateZ,
-        Roll,
-        Pitch,
-        Yaw,
+        SHIFT,
+
+        // Biseced aliases for TRANSLATE_Z
+        LONGITUDINAL_BACKWARD,
+        LONGITUDINAL_FORWARD,
+
+        // Biseced aliases for TRANSLATE_X
+        LATERAL_LEFT,
+        LATERAL_RIGHT,
+
+        // Biseced aliases for TRANSLATE_Y
+        VERTICAL_DOWN,
+        VERTICAL_UP,
+
+        // Biseced aliases for ROTATE_Y
+        YAW_LEFT,
+        YAW_RIGHT,
+ 
+        // Biseced aliases for ROTATE_X
+        PITCH_DOWN,
+        PITCH_UP,
+
+        // Biseced aliases for TRANSLATE_CAMERA_Z
+        BOOM_IN,
+        BOOM_OUT,
 
         NUM_ACTIONS,
     };

@@ -54,7 +54,7 @@ return {
 var myFirstMappingJSON = myFirstMapping();
 print('myFirstMappingJSON' + JSON.stringify(myFirstMappingJSON));
 
-var mapping = NewControllers.parseMapping(JSON.stringify(myFirstMappingJSON));
+var mapping = Controller.parseMapping(JSON.stringify(myFirstMappingJSON));
 
 Object.keys(Controller.Standard).forEach(function (input) {
     print("Controller.Standard." + input + ":" + Controller.Standard[input]);

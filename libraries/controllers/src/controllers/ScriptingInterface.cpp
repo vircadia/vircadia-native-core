@@ -5,7 +5,7 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
-#include "NewControllerScriptingInterface.h"
+#include "ScriptingInterface.h"
 
 #include <mutex>
 #include <set>
@@ -17,16 +17,12 @@
 
 #include <GLMHelpers.h>
 #include <DependencyManager.h>
-#include <input-plugins/UserInputMapper.h>
-#include <input-plugins/InputPlugin.h>
-#include <input-plugins/KeyboardMouseDevice.h>
-#include <plugins/PluginManager.h>
 
 #include "impl/MappingBuilderProxy.h"
 #include "Logging.h"
+#include "InputDevice.h"
 
 namespace controller {
-
 
     class VirtualEndpoint : public Endpoint {
     public:
@@ -98,18 +94,15 @@ namespace controller {
         Endpoint::Pointer _second;
     };
 
-    QString sanatizeName(const QString& name) {
-        QString cleanName{ name };
-        cleanName.remove(QRegularExpression{ "[\\(\\)\\.\\s]" });
-        return cleanName;
-    }
+
+    QRegularExpression ScriptingInterface::SANITIZE_NAME_EXPRESSION{ "[\\(\\)\\.\\s]" };
 
     QVariantMap createDeviceMap(const UserInputMapper::DeviceProxy* device) {
         auto userInputMapper = DependencyManager::get<UserInputMapper>();
         QVariantMap deviceMap;
         for (const auto& inputMapping : device->getAvailabeInputs()) {
             const auto& input = inputMapping.first;
-            const auto inputName = sanatizeName(inputMapping.second);
+            const auto inputName = QString(inputMapping.second).remove(ScriptingInterface::SANITIZE_NAME_EXPRESSION);
             qCDebug(controllers) << "\tInput " << input.getChannel() << (int)input.getType()
                 << QString::number(input.getID(), 16) << ": " << inputName;
             deviceMap.insert(inputName, input.getID());
@@ -117,12 +110,12 @@ namespace controller {
         return deviceMap;
     }
 
-    NewControllerScriptingInterface::NewControllerScriptingInterface() {
+    ScriptingInterface::ScriptingInterface() {
         auto userInputMapper = DependencyManager::get<UserInputMapper>();
         auto devices = userInputMapper->getDevices();
         for (const auto& deviceMapping : devices) {
             auto device = deviceMapping.second.get();
-            auto deviceName = sanatizeName(device->getName());
+            auto deviceName = QString(device->getName()).remove(ScriptingInterface::SANITIZE_NAME_EXPRESSION);
             qCDebug(controllers) << "Device" << deviceMapping.first << ":" << deviceName;
             // Expose the IDs to JS
             _hardware.insert(deviceName, createDeviceMap(device));
@@ -165,7 +158,8 @@ namespace controller {
             UserInputMapper::Input actionInput(UserInputMapper::Input::ACTIONS_DEVICE, actionNumber++, UserInputMapper::ChannelType::AXIS);
             qCDebug(controllers) << "\tAction: " << actionName << " " << QString::number(actionInput.getID(), 16);
             // Expose the IDs to JS
-            _actions.insert(sanatizeName(actionName), actionInput.getID());
+            QString cleanActionName = QString(actionName).remove(ScriptingInterface::SANITIZE_NAME_EXPRESSION);
+            _actions.insert(cleanActionName, actionInput.getID());
 
             // Create the endpoints
             // FIXME action endpoints need to accumulate values, and have them cleared at each frame
@@ -173,7 +167,7 @@ namespace controller {
         }
     }
 
-    QObject* NewControllerScriptingInterface::newMapping(const QString& mappingName) {
+    QObject* ScriptingInterface::newMapping(const QString& mappingName) {
         if (_mappingsByName.count(mappingName)) {
             qCWarning(controllers) << "Refusing to recreate mapping named " << mappingName;
         }
@@ -183,7 +177,7 @@ namespace controller {
         return new MappingBuilderProxy(*this, mapping);
     }
 
-    QObject* NewControllerScriptingInterface::parseMapping(const QString& json) {
+    QObject* ScriptingInterface::parseMapping(const QString& json) {
 
         QJsonObject obj;
         QJsonDocument doc = QJsonDocument::fromJson(json.toUtf8());
@@ -211,7 +205,7 @@ namespace controller {
     
     Q_INVOKABLE QObject* newMapping(const QJsonObject& json);
 
-    void NewControllerScriptingInterface::enableMapping(const QString& mappingName, bool enable) {
+    void ScriptingInterface::enableMapping(const QString& mappingName, bool enable) {
         auto iterator = _mappingsByName.find(mappingName);
         if (_mappingsByName.end() == iterator) {
             qCWarning(controllers) << "Request to enable / disable unknown mapping " << mappingName;
@@ -231,7 +225,7 @@ namespace controller {
         }
     }
 
-    float NewControllerScriptingInterface::getValue(const int& source) {
+    float ScriptingInterface::getValue(const int& source) const {
         // return (sin(secTimestampNow()) + 1.0f) / 2.0f;
         UserInputMapper::Input input(source);
         auto iterator = _endpoints.find(input);
@@ -243,7 +237,7 @@ namespace controller {
         return getValue(endpoint);
     }
 
-    float NewControllerScriptingInterface::getValue(const Endpoint::Pointer& endpoint) {
+    float ScriptingInterface::getValue(const Endpoint::Pointer& endpoint) const {
         auto valuesIterator = _overrideValues.find(endpoint);
         if (_overrideValues.end() != valuesIterator) {
             return valuesIterator->second;
@@ -252,19 +246,20 @@ namespace controller {
         return endpoint->value();
     }
 
-        
-    void NewControllerScriptingInterface::update() {
-        static float last = secTimestampNow();
-        float now = secTimestampNow();
-        float delta = now - last;
-        last = now;
+    float ScriptingInterface::getButtonValue(StandardButtonChannel source, uint16_t device) const {
+        return getValue(UserInputMapper::Input(device, source, UserInputMapper::ChannelType::BUTTON).getID());
+    }
 
-        foreach(auto inputPlugin, PluginManager::getInstance()->getInputPlugins()) {
-            inputPlugin->pluginUpdate(delta, false);
-        }
+    float ScriptingInterface::getAxisValue(StandardAxisChannel source, uint16_t device) const {
+        return getValue(UserInputMapper::Input(device, source, UserInputMapper::ChannelType::AXIS).getID());
+    }
 
+    glm::mat4 ScriptingInterface::getPoseValue(StandardPoseChannel source, uint16_t device) const {
+        return glm::mat4();
+    }
+
+    void ScriptingInterface::update() {
         auto userInputMapper = DependencyManager::get<UserInputMapper>();
-        userInputMapper->update(delta);
 
         _overrideValues.clear();
         EndpointSet readEndpoints;
@@ -324,9 +319,7 @@ namespace controller {
         }
     }
 
-
-
-    Endpoint::Pointer NewControllerScriptingInterface::endpointFor(const QJSValue& endpoint) {
+    Endpoint::Pointer ScriptingInterface::endpointFor(const QJSValue& endpoint) {
         if (endpoint.isNumber()) {
             return endpointFor(UserInputMapper::Input(endpoint.toInt()));
         }
@@ -340,7 +333,7 @@ namespace controller {
         return Endpoint::Pointer();
     }
 
-    Endpoint::Pointer NewControllerScriptingInterface::endpointFor(const QScriptValue& endpoint) {
+    Endpoint::Pointer ScriptingInterface::endpointFor(const QScriptValue& endpoint) {
         if (endpoint.isNumber()) {
             return endpointFor(UserInputMapper::Input(endpoint.toInt32()));
         }
@@ -354,11 +347,11 @@ namespace controller {
         return Endpoint::Pointer();
     }
 
-    UserInputMapper::Input NewControllerScriptingInterface::inputFor(const QString& inputName) {
+    UserInputMapper::Input ScriptingInterface::inputFor(const QString& inputName) {
         return DependencyManager::get<UserInputMapper>()->findDeviceInput(inputName);
     }
 
-    Endpoint::Pointer NewControllerScriptingInterface::endpointFor(const UserInputMapper::Input& inputId) {
+    Endpoint::Pointer ScriptingInterface::endpointFor(const UserInputMapper::Input& inputId) {
         auto iterator = _endpoints.find(inputId);
         if (_endpoints.end() == iterator) {
             qWarning() << "Unknown input: " << QString::number(inputId.getID(), 16);
@@ -367,7 +360,7 @@ namespace controller {
         return iterator->second;
     }
 
-    Endpoint::Pointer NewControllerScriptingInterface::compositeEndpointFor(Endpoint::Pointer first, Endpoint::Pointer second) {
+    Endpoint::Pointer ScriptingInterface::compositeEndpointFor(Endpoint::Pointer first, Endpoint::Pointer second) {
         EndpointPair pair(first, second);
         Endpoint::Pointer result;
         auto iterator = _compositeEndpoints.find(pair);
@@ -380,6 +373,70 @@ namespace controller {
         return result;
     }
 
+    bool ScriptingInterface::isPrimaryButtonPressed() const {
+        return isButtonPressed(StandardButtonChannel::A);
+    }
+        
+    glm::vec2 ScriptingInterface::getPrimaryJoystickPosition() const {
+        return getJoystickPosition(0);
+    }
+
+    int ScriptingInterface::getNumberOfButtons() const {
+        return StandardButtonChannel::NUM_STANDARD_BUTTONS;
+    }
+
+    bool ScriptingInterface::isButtonPressed(int buttonIndex) const {
+        return getButtonValue((StandardButtonChannel)buttonIndex) == 0.0 ? false : true;
+    }
+
+    int ScriptingInterface::getNumberOfTriggers() const {
+        return StandardCounts::TRIGGERS;
+    }
+
+    float ScriptingInterface::getTriggerValue(int triggerIndex) const {
+        return getAxisValue(triggerIndex == 0 ? StandardAxisChannel::LT : StandardAxisChannel::RT);
+    }
+
+    int ScriptingInterface::getNumberOfJoysticks() const {
+        return StandardCounts::ANALOG_STICKS;
+    }
+
+    glm::vec2 ScriptingInterface::getJoystickPosition(int joystickIndex) const {
+        StandardAxisChannel xid = StandardAxisChannel::LX; 
+        StandardAxisChannel yid = StandardAxisChannel::LY;
+        if (joystickIndex != 0) {
+            xid = StandardAxisChannel::RX;
+            yid = StandardAxisChannel::RY;
+        }
+        vec2 result;
+        result.x = getAxisValue(xid);
+        result.y = getAxisValue(yid);
+        return result;
+    }
+
+    int ScriptingInterface::getNumberOfSpatialControls() const {
+        return StandardCounts::POSES;
+    }
+
+    glm::vec3 ScriptingInterface::getSpatialControlPosition(int controlIndex) const {
+        // FIXME extract the position from the standard pose
+        return vec3();
+    }
+
+    glm::vec3 ScriptingInterface::getSpatialControlVelocity(int controlIndex) const {
+        // FIXME extract the velocity from the standard pose
+        return vec3();
+    }
+
+    glm::vec3 ScriptingInterface::getSpatialControlNormal(int controlIndex) const {
+        // FIXME extract the normal from the standard pose
+        return vec3();
+    }
+    
+    glm::quat ScriptingInterface::getSpatialControlRawRotation(int controlIndex) const {
+        // FIXME extract the rotation from the standard pose
+        return quat();
+    }
 } // namespace controllers
 
 //var mapping = Controller.newMapping();

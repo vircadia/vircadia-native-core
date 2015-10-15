@@ -15,7 +15,7 @@
 #include <QJSonArray>
 
 #include "RouteBuilderProxy.h"
-#include "../NewControllerScriptingInterface.h"
+#include "../ScriptingInterface.h"
 #include "../Logging.h"
 
 using namespace controller;

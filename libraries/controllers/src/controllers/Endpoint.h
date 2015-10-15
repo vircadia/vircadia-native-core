@@ -14,7 +14,7 @@
 #include <memory>
 #include <functional>
 
-#include <input-plugins/UserInputMapper.h>
+#include "UserInputMapper.h"
 
 class QScriptValue;
 

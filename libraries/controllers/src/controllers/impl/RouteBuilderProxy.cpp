@@ -15,7 +15,7 @@
 #include <GLMHelpers.h>
 
 #include "MappingBuilderProxy.h"
-#include "../NewControllerScriptingInterface.h"
+#include "../ScriptingInterface.h"
 #include "../Logging.h"
 
 namespace controller {

@@ -12,9 +12,7 @@
 #include "UserInputMapper.h"
 #include "StandardController.h"
 
-#include <QLoggingCategory>
-Q_DECLARE_LOGGING_CATEGORY(userInputMapper)
-Q_LOGGING_CATEGORY(userInputMapper, "hifi.userInputMapper")
+#include "Logging.h"
 
 const UserInputMapper::Input UserInputMapper::Input::INVALID_INPUT = UserInputMapper::Input(UINT16_MAX);
 const uint16_t UserInputMapper::Input::INVALID_DEVICE = INVALID_INPUT.getDevice();
@@ -36,7 +34,7 @@ UserInputMapper::~UserInputMapper() {
 bool UserInputMapper::registerDevice(uint16 deviceID, const DeviceProxy::Pointer& proxy){
     proxy->_name += " (" + QString::number(deviceID) + ")";
     _registeredDevices[deviceID] = proxy;
-    qCDebug(userInputMapper) << "Registered input device <" << proxy->_name << "> deviceID = " << deviceID;
+    qCDebug(controllers) << "Registered input device <" << proxy->_name << "> deviceID = " << deviceID;
     return true;
 }
 
@@ -115,7 +113,7 @@ UserInputMapper::Input UserInputMapper::findDeviceInput(const QString& inputName
                 }
             }
 
-            qCDebug(userInputMapper) << "Couldn\'t find InputChannel named <" << inputName << "> for device <" << deviceName << ">";
+            qCDebug(controllers) << "Couldn\'t find InputChannel named <" << inputName << "> for device <" << deviceName << ">";
 
         } else if (deviceName == "Actions") {
             deviceID = Input::ACTIONS_DEVICE;
@@ -127,13 +125,13 @@ UserInputMapper::Input UserInputMapper::findDeviceInput(const QString& inputName
                 actionNum++;
             }
 
-            qCDebug(userInputMapper) << "Couldn\'t find ActionChannel named <" << inputName << "> among actions";
+            qCDebug(controllers) << "Couldn\'t find ActionChannel named <" << inputName << "> among actions";
 
         } else {
-            qCDebug(userInputMapper) << "Couldn\'t find InputDevice named <" << deviceName << ">";
+            qCDebug(controllers) << "Couldn\'t find InputDevice named <" << deviceName << ">";
         }
     } else {
-        qCDebug(userInputMapper) << "Couldn\'t understand <" << inputName << "> as a valid inputDevice.inputName";
+        qCDebug(controllers) << "Couldn\'t understand <" << inputName << "> as a valid inputDevice.inputName";
     }
 
     return Input();
@@ -364,12 +362,12 @@ void UserInputMapper::assignDefaulActionScales() {
     _actionStates[SHIFT] = 1.0f; // on
     _actionStates[ACTION1] = 1.0f; // default
     _actionStates[ACTION2] = 1.0f; // default
-    _actionStates[TranslateX] = 1.0f; // default
-    _actionStates[TranslateY] = 1.0f; // default
-    _actionStates[TranslateZ] = 1.0f; // default
-    _actionStates[Roll] = 1.0f; // default
-    _actionStates[Pitch] = 1.0f; // default
-    _actionStates[Yaw] = 1.0f; // default
+    _actionStates[TRANSLATE_X] = 1.0f; // default
+    _actionStates[TRANSLATE_Y] = 1.0f; // default
+    _actionStates[TRANSLATE_Z] = 1.0f; // default
+    _actionStates[ROLL] = 1.0f; // default
+    _actionStates[PITCH] = 1.0f; // default
+    _actionStates[YAW] = 1.0f; // default
 }
 
 // This is only necessary as long as the actions are hardcoded
@@ -396,12 +394,12 @@ void UserInputMapper::createActionNames() {
     _actionNames[ACTION2] = "ACTION2";
     _actionNames[CONTEXT_MENU] = "CONTEXT_MENU";
     _actionNames[TOGGLE_MUTE] = "TOGGLE_MUTE";
-    _actionNames[TranslateX] = "TranslateX";
-    _actionNames[TranslateY] = "TranslateY";
-    _actionNames[TranslateZ] = "TranslateZ";
-    _actionNames[Roll] = "Roll";
-    _actionNames[Pitch] = "Pitch";
-    _actionNames[Yaw] = "Yaw";
+    _actionNames[TRANSLATE_X] = "TranslateX";
+    _actionNames[TRANSLATE_Y] = "TranslateY";
+    _actionNames[TRANSLATE_Z] = "TranslateZ";
+    _actionNames[ROLL] = "Roll";
+    _actionNames[PITCH] = "Pitch";
+    _actionNames[YAW] = "Yaw";
 }
 
 void UserInputMapper::registerStandardDevice() {

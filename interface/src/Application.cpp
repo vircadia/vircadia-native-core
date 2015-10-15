@@ -60,7 +60,7 @@
 #include <InfoView.h>
 #include <input-plugins/InputPlugin.h>
 #include <input-plugins/Joystick.h> // this should probably be removed
-#include <input-plugins/UserInputMapper.h>
+#include <controllers/UserInputMapper.h>
 #include <LogHandler.h>
 #include <MainWindow.h>
 #include <MessageDialog.h>
@@ -614,7 +614,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
 
     // Setup the userInputMapper with the actions
     auto userInputMapper = DependencyManager::get<UserInputMapper>();
-    connect(userInputMapper.data(), &UserInputMapper::actionEvent, &_controllerScriptingInterface, &AbstractControllerScriptingInterface::actionEvent);
+    connect(userInputMapper.data(), &UserInputMapper::actionEvent, &_controllerScriptingInterface, &ControllerScriptingInterface::actionEvent);
     connect(userInputMapper.data(), &UserInputMapper::actionEvent, [this](int action, float state) {
         if (state) {
             switch (action) {
@@ -1559,7 +1559,7 @@ void Application::keyPressEvent(QKeyEvent* event) {
                         cursor->setIcon(Cursor::Icon::DEFAULT);
                     }
                 } else {
-                    resetSensors();
+                    resetSensors(true);
                 }
                 break;
             }
@@ -2708,7 +2708,7 @@ void Application::update(float deltaTime) {
     }
 
     // Dispatch input events
-    _controllerScriptingInterface.updateInputControllers();
+    _controllerScriptingInterface.update();
 
     // Transfer the user inputs to the driveKeys
     myAvatar->clearDriveKeys();
@@ -3581,7 +3581,7 @@ void Application::renderRearViewMirror(RenderArgs* renderArgs, const QRect& regi
     renderArgs->_viewport =  originalViewport;
 }
 
-void Application::resetSensors() {
+void Application::resetSensors(bool andReload) {
     DependencyManager::get<Faceshift>()->reset();
     DependencyManager::get<DdeFaceTracker>()->reset();
     DependencyManager::get<EyeTracker>()->reset();
@@ -3593,7 +3593,7 @@ void Application::resetSensors() {
     QPoint windowCenter = mainWindow->geometry().center();
     _glWidget->cursor().setPos(currentScreen, windowCenter);
 
-    getMyAvatar()->reset();
+    getMyAvatar()->reset(andReload);
 
     QMetaObject::invokeMethod(DependencyManager::get<AudioClient>().data(), "reset", Qt::QueuedConnection);
 }

@@ -20,12 +20,14 @@ class QJsonValue;
 
 namespace controller {
 
-class NewControllerScriptingInterface;
+class ScriptingInterface;
 
+// TODO migrate functionality to a RouteBuilder class and make the proxy defer to that 
+// (for easier use in both C++ and JS)
 class RouteBuilderProxy : public QObject {
         Q_OBJECT
     public:
-        RouteBuilderProxy(NewControllerScriptingInterface& parent, Mapping::Pointer mapping, Route::Pointer route)
+        RouteBuilderProxy(ScriptingInterface& parent, Mapping::Pointer mapping, Route::Pointer route)
             : _parent(parent), _mapping(mapping), _route(route) { }
 
         Q_INVOKABLE void to(const QJSValue& destination);
@@ -52,7 +54,7 @@ class RouteBuilderProxy : public QObject {
         Mapping::Pointer _mapping;
         Route::Pointer _route;
 
-        NewControllerScriptingInterface& _parent;
+        ScriptingInterface& _parent;
     };
 
 }

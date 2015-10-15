@@ -161,7 +161,7 @@ public:
 
     ToolWindow* getToolWindow() { return _toolWindow ; }
 
-    virtual AbstractControllerScriptingInterface* getControllerScriptingInterface() { return &_controllerScriptingInterface; }
+    virtual controller::ScriptingInterface* getControllerScriptingInterface() { return &_controllerScriptingInterface; }
     virtual void registerScriptEngineWithApplicationServices(ScriptEngine* scriptEngine);
 
     QImage renderAvatarBillboard(RenderArgs* renderArgs);
@@ -274,7 +274,7 @@ public slots:
     void setRawAvatarUpdateThreading();
     void setRawAvatarUpdateThreading(bool isThreaded);
 
-    void resetSensors();
+    void resetSensors(bool andReload = false);
     void setActiveFaceTracker();
     
 #ifdef HAVE_IVIEWHMD

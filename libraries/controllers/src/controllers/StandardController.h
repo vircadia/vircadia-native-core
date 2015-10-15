@@ -38,9 +38,9 @@ public:
     StandardController() : InputDevice("Standard") {}
     ~StandardController();
     
-    UserInputMapper::Input makeInput(Controllers::StandardButtonChannel button);
-    UserInputMapper::Input makeInput(Controllers::StandardAxisChannel axis);
-    UserInputMapper::Input makeInput(Controllers::StandardPoseChannel pose);
+    UserInputMapper::Input makeInput(controller::StandardButtonChannel button);
+    UserInputMapper::Input makeInput(controller::StandardAxisChannel axis);
+    UserInputMapper::Input makeInput(controller::StandardPoseChannel pose);
 
 private:
 };
