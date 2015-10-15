@@ -28,8 +28,22 @@ UserInputMapper::~UserInputMapper() {
 }
 
 
-bool UserInputMapper::registerDevice(uint16 deviceID, const DeviceProxy::Pointer& proxy){
-    proxy->_name += " (" + QString::number(deviceID) + ")";
+int UserInputMapper::recordDeviceOfType(const QString& deviceName) {
+    if (!_deviceCounts.contains(deviceName)) {
+        _deviceCounts[deviceName] = 0;
+    }
+    _deviceCounts[deviceName] += 1;
+
+    return _deviceCounts[deviceName];
+}
+
+bool UserInputMapper::registerDevice(uint16 deviceID, const DeviceProxy::Pointer& proxy) {
+    int numberOfType = recordDeviceOfType(proxy->_name);
+
+    if (numberOfType > 1) {
+        proxy->_name += QString::number(numberOfType);
+    }
+
     _registeredDevices[deviceID] = proxy;
     return true;
 }
