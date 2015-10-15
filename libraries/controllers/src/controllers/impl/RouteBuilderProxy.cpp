@@ -126,7 +126,7 @@ void RouteBuilderProxy::to(const QJsonValue& json) {
         return to(_parent.endpointFor(_parent.inputFor(json.toString())));
     } else if (json.isObject()) {
         // Endpoint is defined as an object, we expect a js function then
-        return to(nullptr);
+        //return to((Endpoint*) nullptr);
     }
 
 }

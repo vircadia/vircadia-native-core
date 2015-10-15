@@ -76,7 +76,7 @@ namespace controller {
             }
 
             Filter* create(const std::string& name) const {
-                auto& entryIt = _entries.find(name);
+                const auto& entryIt = _entries.find(name);
                 if (entryIt != _entries.end()) {
                     return (*entryIt).second->create();
                 }
