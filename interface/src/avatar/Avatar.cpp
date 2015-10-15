@@ -1034,7 +1034,7 @@ int Avatar::parseDataFromBuffer(const QByteArray& buffer) {
     const float MOVE_DISTANCE_THRESHOLD = 0.001f;
     _moving = glm::distance(oldPosition, _position) > MOVE_DISTANCE_THRESHOLD;
     if (_moving && _motionState) {
-        _motionState->addDirtyFlags(EntityItem::DIRTY_POSITION);
+        _motionState->addDirtyFlags(Simulation::DIRTY_POSITION);
     }
     endUpdate();
 
