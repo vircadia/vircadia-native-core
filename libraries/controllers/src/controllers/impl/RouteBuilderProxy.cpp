@@ -57,9 +57,7 @@ QObject* RouteBuilderProxy::filter(const QScriptValue& expression) {
 
 
 QObject* RouteBuilderProxy::clamp(float min, float max) {
-    addFilter([=](float value) {
-        return glm::clamp(value, min, max);
-    });
+    addFilter(Filter::Pointer(new ClampFilter(min, max)));
     return this;
 }
 
@@ -69,40 +67,28 @@ QObject* RouteBuilderProxy::scale(float multiplier) {
 }
 
 QObject* RouteBuilderProxy::invert() {
-    return scale(-1.0f);
+    addFilter(Filter::Pointer(new InvertFilter()));
+    return this;
 }
 
 QObject* RouteBuilderProxy::deadZone(float min) {
-    assert(min < 1.0f);
-    float scale = 1.0f / (1.0f - min);
-    addFilter([=](float value) {
-        if (abs(value) < min) {
-            return 0.0f;
-        }
-        return (value - min) * scale;
-    });
-
+    addFilter(Filter::Pointer(new DeadZoneFilter(min)));
     return this;
 }
 
 QObject* RouteBuilderProxy::constrainToInteger() {
-    addFilter([=](float value) {
-        return glm::sign(value);
-    });
+    addFilter(Filter::Pointer(new ConstrainToIntegerFilter()));
     return this;
 }
 
 QObject* RouteBuilderProxy::constrainToPositiveInteger() {
-    addFilter([=](float value) {
-        return (value <= 0.0f) ? 0.0f : 1.0f;
-    });
+    addFilter(Filter::Pointer(new ConstrainToPositiveIntegerFilter()));
     return this;
 }
 
 
 QObject* RouteBuilderProxy::pulse(float interval) {
-    Filter::Pointer filter = std::make_shared<PulseFilter>(interval);
-    addFilter(filter);
+    addFilter(Filter::Pointer(new PulseFilter(interval)));
     return this;
 }
 

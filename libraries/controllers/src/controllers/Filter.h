@@ -16,6 +16,8 @@
 #include <functional>
 #include <map>
 
+#include <GLMHelpers.h>
+
 #include <QtCore/QEasingCurve>
 
 class QJsonObject;
@@ -23,40 +25,7 @@ class QJsonArray;
 
 
 namespace controller {
-    /*
-    template <class T> class Factory {
-    public:
 
-    template <class T> class Entry {
-    public:
-    virtual T* create() = 0;
-    };
-
-    template <class T, class S> class DefaultEntry{
-    public:
-    T* create() { return new S(); }
-    };
-
-    using EntryMap = std::map<std::string, std::unique_ptr<Entry<T>>>;
-
-    void registerEntry(const std::string& name, std::unique_ptr<Entry<T>>& entry) {
-    if (entry) {
-    _entries[name] = entry;
-    }
-    }
-
-    T* create(const std::string& name) const {
-    auto& entryIt = _entries.find(name);
-    if (entryIt != _entries.end()) {
-    return (*entryIt).second->create();
-    }
-    return nullptr;
-    }
-
-    protected:
-    EntryMap _entries;
-    };
-    */
     // Encapsulates part of a filter chain
     class Filter {
     public:
@@ -67,36 +36,40 @@ namespace controller {
         using Lambda = std::function<float(float)>;
 
         // Factory features
-        virtual bool parseParameters(const QJsonArray& parameters) = 0;
+        virtual bool parseParameters(const QJsonArray& parameters) { return true; }
 
         class Factory {
         public:
 
             class Entry {
             public:
-                virtual Filter* create() = 0;
-                virtual const std::string& getName() const = 0;
+                virtual Filter* create() const = 0;
+                virtual const char* getName() const = 0;
 
-                Entry() = default;
-                virtual ~Entry() = default;
+                Entry() {};
+                virtual ~Entry() {};
             };
 
-            template <class T, std::string name> class ClassEntry {
+            template <class T> class ClassEntry : public Entry {
             public:
-                Filter* create() override { return (Filter*) new T(); }
-                const std::string& getName() const override {
-                    return _name
-                };
+                virtual Filter* create() const { return (Filter*) new T(); }
+                virtual const char* getName() const {  return T::getName(); };
 
-                ClassEntry() : _name(name) {};
+                ClassEntry() {};
                 virtual ~ClassEntry() = default;
 
-                const std::string _name;
+                class Builder {
+                public:
+                    Builder() {
+                        std::shared_ptr<Entry> classEntry(new ClassEntry<T>());
+                        Filter::getFactory().registerEntry(classEntry);
+                    }
+                };
             };
 
             using EntryMap = std::map<std::string, std::shared_ptr<Entry>>;
 
-            void registerEntry(const std::shared_ptr<Entry>& entry) {
+            void registerEntry(std::shared_ptr<Entry>& entry) {
                 if (entry) {
                     _entries.insert(EntryMap::value_type(entry->getName(), entry));
                 }
@@ -122,8 +95,9 @@ namespace controller {
 }
 
 #define REGISTER_FILTER_CLASS(classEntry, className) \
-    using FactoryEntry = Filter::Factory::ClassEntry<classEntry, className>;\
-    static FactoryEntry _factoryEntry;
+    static const char* getName() { return className; } \
+    using FactoryEntryBuilder = Filter::Factory::ClassEntry<classEntry>::Builder;\
+    static FactoryEntryBuilder _factoryEntryBuilder;
 
 namespace controller {
 
@@ -150,6 +124,7 @@ namespace controller {
    
     class ScaleFilter : public Filter {
     public:
+        REGISTER_FILTER_CLASS(ScaleFilter, "scale");
         ScaleFilter() {}
         ScaleFilter(float scale): _scale(scale) {}
 
@@ -158,38 +133,48 @@ namespace controller {
         }
         virtual bool parseParameters(const QJsonArray& parameters);
 
-     //   static Filter::Factory::ClassEntry<ScaleFilter, "scale"> _factoryEntry;
-        REGISTER_FILTER_CLASS(ScaleFilter, "scale");
     private:
         float _scale = 1.0f;
     };
 
-    //class AbstractRangeFilter : public Filter {
-    //public:
-    //    RangeFilter(float min, float max) : _min(min), _max(max) {}
+    class InvertFilter : public ScaleFilter {
+    public:
+        REGISTER_FILTER_CLASS(InvertFilter, "invert");
+        InvertFilter() : ScaleFilter(-1.0f) {}
+        
+        virtual bool parseParameters(const QJsonArray& parameters) { return true; }
 
-    //protected:
-    //    const float _min;
-    //    const float _max;
-    //};
+    private:
+    };
 
-    ///*
-    //* Constrains will emit the input value on the first call, and every *interval* seconds, otherwise returns 0
-    //*/
-    //class PulseFilter : public Filter {
-    //public:
-    //    PulseFilter(float interval);
-    //    virtual float apply(float value) const override;
+    class ClampFilter : public Filter {
+    public:
+        REGISTER_FILTER_CLASS(ClampFilter, "clamp");
+        ClampFilter(float min = 0.0, float max = 1.0) : _min(min), _max(max) {};
 
-    //private:
-    //    float _lastEmitTime{ -std::numeric_limits<float>::max() };
-    //    const float _interval;
-    //};
+        virtual float apply(float value) const override {
+            return glm::clamp(value, _min, _max);
+        }
+        virtual bool parseParameters(const QJsonArray& parameters) override;
+    protected:
+        float _min = 0.0f;
+        float _max = 1.0f;
+    };
 
+    class DeadZoneFilter : public Filter {
+    public:
+        REGISTER_FILTER_CLASS(DeadZoneFilter, "deadZone");
+        DeadZoneFilter(float min = 0.0) : _min(min) {};
+
+        virtual float apply(float value) const override;
+        virtual bool parseParameters(const QJsonArray& parameters) override;
+    protected:
+        float _min = 0.0f;
+    };
 
     class PulseFilter : public Filter {
     public:
-        REGISTER_FILTER_CLASS(PulseFilter);
+        REGISTER_FILTER_CLASS(PulseFilter, "pulse");
         PulseFilter() {}
         PulseFilter(float interval) : _interval(interval) {}
 
@@ -199,15 +184,31 @@ namespace controller {
         virtual bool parseParameters(const QJsonArray& parameters);
 
     private:
-        mutable float _lastEmitTime{ -std::numeric_limits<float>::max() };
+        mutable float _lastEmitTime{ -::std::numeric_limits<float>::max() };
         float _interval = 1.0f;
     };
 
-    ////class DeadzoneFilter : public AbstractRangeFilter {
-    ////public:
-    ////    DeadzoneFilter(float min, float max = 1.0f);
-    ////    virtual float apply(float newValue, float oldValue) override;
-    ////};
+    class ConstrainToIntegerFilter : public Filter {
+    public:
+        REGISTER_FILTER_CLASS(ConstrainToIntegerFilter, "constrainToInteger");
+        ConstrainToIntegerFilter() {};
+
+        virtual float apply(float value) const override {
+            return glm::sign(value);
+        }
+    protected:
+    };
+
+    class ConstrainToPositiveIntegerFilter : public Filter {
+    public:
+        REGISTER_FILTER_CLASS(ConstrainToPositiveIntegerFilter, "constrainToPositiveInteger");
+        ConstrainToPositiveIntegerFilter() {};
+
+        virtual float apply(float value) const override {
+            return (value <= 0.0f) ? 0.0f : 1.0f;
+        }
+    protected:
+    };
 
     //class EasingFilter : public Filter {
     //public:
@@ -234,12 +235,6 @@ namespace controller {
 
     //private:
     //    const float _exponent;
-    //};
-
-    //class ClampFilter : public RangeFilter {
-    //public:
-    //    ClampFilter(float min = 0.0, float max = 1.0) : RangeFilter(min, max) {};
-    //    virtual float apply(float value) const override;
     //};
 
     //class AbsFilter : public Filter {
