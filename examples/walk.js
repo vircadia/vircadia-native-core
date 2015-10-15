@@ -449,6 +449,6 @@ function renderMotion() {
         }
 
         // apply rotations
-        MyAvatar.setJointRotation(MyAvatar.jointNames.indexOf(jointName), Quat.fromVec3Degrees(jointRotations));
+        MyAvatar.setJointRotation(jointName, Quat.fromVec3Degrees(jointRotations));
     }
 }
