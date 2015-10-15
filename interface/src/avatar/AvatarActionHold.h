@@ -38,7 +38,6 @@ private:
     glm::vec3 _relativePosition;
     glm::quat _relativeRotation;
     QString _hand;
-    QUuid _holderID;
 };
 
 #endif // hifi_AvatarActionHold_h
