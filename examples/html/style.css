@@ -344,18 +344,16 @@ input#property-name {
 	border: 1px solid white;
 }
 
-.prop-x{
-  color:red !important;
-  background: rgba(255, 0, 0, .9);
-  height:2px !important;
-
+.prop-x {
+    color:red !important;
+    background: rgba(255, 0, 0, .9);
+    height:2px !important;
 }
 
-.prop-y{
+.prop-y {
     color:green !important;
     background: rgba(0, 255, 0, .9);
     height:2px !important;
-
 }
 
 .prop-z{
