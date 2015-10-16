@@ -74,9 +74,9 @@ void AvatarActionHold::updateActionWorker(float deltaTimeStep) {
                 _rotationalTargetSet = true;
                 _active = true;
             });
-        }
-        if (gotLock) {
-            ObjectActionSpring::updateActionWorker(deltaTimeStep);
+            if (gotLock) {
+                ObjectActionSpring::updateActionWorker(deltaTimeStep);
+            }
         }
     }
 }
