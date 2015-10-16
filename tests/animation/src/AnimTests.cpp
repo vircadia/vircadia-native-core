@@ -30,8 +30,8 @@ void AnimTests::cleanupTestCase() {
 }
 
 void AnimTests::testClipInternalState() {
-    std::string id = "my anim clip";
-    std::string url = "https://hifi-public.s3.amazonaws.com/ozan/support/FightClubBotTest1/Animations/standard_idle.fbx";
+    QString id = "my anim clip";
+    QString url = "https://hifi-public.s3.amazonaws.com/ozan/support/FightClubBotTest1/Animations/standard_idle.fbx";
     float startFrame = 2.0f;
     float endFrame = 20.0f;
     float timeScale = 1.1f;
@@ -55,8 +55,8 @@ static float framesToSec(float secs) {
 }
 
 void AnimTests::testClipEvaulate() {
-    std::string id = "myClipNode";
-    std::string url = "https://hifi-public.s3.amazonaws.com/ozan/support/FightClubBotTest1/Animations/standard_idle.fbx";
+    QString id = "myClipNode";
+    QString url = "https://hifi-public.s3.amazonaws.com/ozan/support/FightClubBotTest1/Animations/standard_idle.fbx";
     float startFrame = 2.0f;
     float endFrame = 22.0f;
     float timeScale = 1.0f;
@@ -90,8 +90,8 @@ void AnimTests::testClipEvaulate() {
 }
 
 void AnimTests::testClipEvaulateWithVars() {
-    std::string id = "myClipNode";
-    std::string url = "https://hifi-public.s3.amazonaws.com/ozan/support/FightClubBotTest1/Animations/standard_idle.fbx";
+    QString id = "myClipNode";
+    QString url = "https://hifi-public.s3.amazonaws.com/ozan/support/FightClubBotTest1/Animations/standard_idle.fbx";
     float startFrame = 2.0f;
     float endFrame = 22.0f;
     float timeScale = 1.0f;
@@ -126,9 +126,9 @@ void AnimTests::testClipEvaulateWithVars() {
 }
 
 void AnimTests::testLoader() {
-    auto url = QUrl("https://gist.githubusercontent.com/hyperlogic/857129fe04567cbe670f/raw/8ba57a8f0a76f88b39a11f77f8d9df04af9cec95/test.json");
+    auto url = QUrl("https://gist.githubusercontent.com/hyperlogic/857129fe04567cbe670f/raw/0c54500f480fd7314a5aeb147c45a8a707edcc2e/test.json");
     // NOTE: This will warn about missing "test01.fbx", "test02.fbx", etc. if the resource loading code doesn't handle relative pathnames!
-    // However, the test will proceed.
+    // However, the test will proceed.
     AnimNodeLoader loader(url);
 
     const int timeout = 1000;
