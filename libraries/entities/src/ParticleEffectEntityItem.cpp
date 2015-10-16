@@ -597,7 +597,7 @@ void ParticleEffectEntityItem::debugDump() const {
 void ParticleEffectEntityItem::updateShapeType(ShapeType type) {
     if (type != _shapeType) {
         _shapeType = type;
-        _dirtyFlags |= EntityItem::DIRTY_SHAPE | EntityItem::DIRTY_MASS;
+        _dirtyFlags |= Simulation::DIRTY_SHAPE | Simulation::DIRTY_MASS;
     }
 }
 
