@@ -63,12 +63,12 @@ void Agent::handleOctreePacket(QSharedPointer<ReceivedMessage> message, SharedNo
     if (packetType == PacketType::OctreeStats) {
 
         int statsMessageLength = OctreeHeadlessViewer::parseOctreeStats(message, senderNode);
-        if (message->getPayloadSize() > statsMessageLength) {
+        if (message->getSize() > statsMessageLength) {
             // pull out the piggybacked packet and create a new QSharedPointer<NLPacket> for it
-            int piggyBackedSizeWithHeader = message->getPayloadSize() - statsMessageLength;
+            int piggyBackedSizeWithHeader = message->getSize() - statsMessageLength;
             
             auto buffer = std::unique_ptr<char[]>(new char[piggyBackedSizeWithHeader]);
-            memcpy(buffer.get(), message->getPayload() + statsMessageLength, piggyBackedSizeWithHeader);
+            memcpy(buffer.get(), message->getRawMessage() + statsMessageLength, piggyBackedSizeWithHeader);
 
             auto newPacket = NLPacket::fromReceivedPacket(std::move(buffer), piggyBackedSizeWithHeader, message->getSenderSockAddr());
             message = QSharedPointer<ReceivedMessage>(new ReceivedMessage(*newPacket));

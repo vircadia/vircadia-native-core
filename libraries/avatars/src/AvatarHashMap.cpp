@@ -55,7 +55,7 @@ void AvatarHashMap::processAvatarDataPacket(QSharedPointer<ReceivedMessage> mess
     while (message->getBytesLeftToRead()) {
         QUuid sessionUUID = QUuid::fromRfc4122(message->readWithoutCopy(NUM_BYTES_RFC4122_UUID));
         
-        int positionBeforeRead = message->pos();
+        int positionBeforeRead = message->getPosition();
 
         QByteArray byteArray = message->readWithoutCopy(message->getBytesLeftToRead());
         

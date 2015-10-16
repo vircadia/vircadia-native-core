@@ -57,15 +57,14 @@ public:
     
     void resetCounters() { _inPacketCount = 0; _inByteCount = 0; }
 
+    // If deliverPending is false, ReceivedMessage will only be delivered once all packets for the message have
+    // been received. If deliverPending is true, ReceivedMessage will be delivered as soon as the first packet
+    // for the message is received.
+    bool registerListener(PacketType type, QObject* listener, const char* slot, bool deliverPending = false);
     bool registerListenerForTypes(PacketTypeList types, QObject* listener, const char* slot);
-    bool registerMessageListener(PacketType type, QObject* listener, const char* slot, bool deliverPending = false);
-    bool registerListener(PacketType type, QObject* listener, const char* slot);
     void unregisterListener(QObject* listener);
     
     void handleVerifiedPacket(std::unique_ptr<udt::Packet> packet);
-    void handleVerifiedPacketList(std::unique_ptr<udt::PacketList> packetList);
-    void handleVerifiedMessage(QSharedPointer<ReceivedMessage> message, bool justReceived);
-
     void handleVerifiedMessagePacket(std::unique_ptr<udt::Packet> message);
 
 signals:
@@ -77,6 +76,8 @@ private:
         QMetaMethod method;
         bool deliverPending;
     };
+
+    void handleVerifiedMessage(QSharedPointer<ReceivedMessage> message, bool justReceived);
 
     // these are brutal hacks for now - ideally GenericThread / ReceivedPacketProcessor
     // should be changed to have a true event loop and be able to handle our QMetaMethod::invoke

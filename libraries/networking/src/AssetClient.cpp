@@ -38,9 +38,9 @@ AssetClient::AssetClient() {
     
     auto nodeList = DependencyManager::get<NodeList>();
     auto& packetReceiver = nodeList->getPacketReceiver();
-    packetReceiver.registerMessageListener(PacketType::AssetGetInfoReply, this, "handleAssetGetInfoReply");
-    packetReceiver.registerMessageListener(PacketType::AssetGetReply, this, "handleAssetGetReply", true);
-    packetReceiver.registerMessageListener(PacketType::AssetUploadReply, this, "handleAssetUploadReply");
+    packetReceiver.registerListener(PacketType::AssetGetInfoReply, this, "handleAssetGetInfoReply");
+    packetReceiver.registerListener(PacketType::AssetGetReply, this, "handleAssetGetReply", true);
+    packetReceiver.registerListener(PacketType::AssetUploadReply, this, "handleAssetUploadReply");
 
     connect(nodeList.data(), &LimitedNodeList::nodeKilled, this, &AssetClient::handleNodeKilled);
 }
@@ -242,7 +242,7 @@ void AssetClient::handleAssetGetReply(QSharedPointer<ReceivedMessage> message, S
             } else {
                 connect(message.data(), &ReceivedMessage::progress, this, [this, length, message, callbacks](ReceivedMessage* msg) {
                     //qDebug() << "Progress: " << msg->getDataSize();
-                    callbacks.progressCallback(msg->getDataSize(), length);
+                    callbacks.progressCallback(msg->getSize(), length);
                 });
                 connect(message.data(), &ReceivedMessage::completed, this, [this, message, error, callbacks](ReceivedMessage* msg) {
                     callbacks.completeCallback(true, error, message->readAll());

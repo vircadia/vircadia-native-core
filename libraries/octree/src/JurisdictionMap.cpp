@@ -329,5 +329,5 @@ int JurisdictionMap::unpackFromPacket(ReceivedMessage& message) {
         }
     }
 
-    return message.pos(); // excludes header
+    return message.getPosition(); // excludes header
 }

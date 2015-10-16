@@ -111,7 +111,7 @@ int InboundAudioStream::parseData(ReceivedMessage& message) {
     int networkSamples;
     
     // parse the info after the seq number and before the audio data (the stream properties)
-    int prePropertyPosition = message.pos();
+    int prePropertyPosition = message.getPosition();
     int propertyBytes = parseStreamProperties(message.getType(), message.readWithoutCopy(message.getBytesLeftToRead()), networkSamples);
     message.seek(prePropertyPosition + propertyBytes);
     
@@ -161,7 +161,7 @@ int InboundAudioStream::parseData(ReceivedMessage& message) {
 
     framesAvailableChanged();
 
-    return message.pos();
+    return message.getPosition();
 }
 
 int InboundAudioStream::parseStreamProperties(PacketType type, const QByteArray& packetAfterSeqNum, int& numAudioSamples) {

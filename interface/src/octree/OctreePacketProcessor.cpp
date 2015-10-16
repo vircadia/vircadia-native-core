@@ -48,12 +48,12 @@ void OctreePacketProcessor::processPacket(QSharedPointer<ReceivedMessage> messag
         int statsMessageLength = qApp->processOctreeStats(*message, sendingNode);
 
         wasStatsPacket = true;
-        int piggybackBytes = message->getPayloadSize() - statsMessageLength;
+        int piggybackBytes = message->getSize() - statsMessageLength;
         
         if (piggybackBytes) {
             // construct a new packet from the piggybacked one
             auto buffer = std::unique_ptr<char[]>(new char[piggybackBytes]);
-            memcpy(buffer.get(), message->getPayload() + statsMessageLength, piggybackBytes);
+            memcpy(buffer.get(), message->getRawMessage() + statsMessageLength, piggybackBytes);
             qDebug() << "Got piggyback, read " << piggybackBytes << " bytes";
             
             auto newPacket = NLPacket::fromReceivedPacket(std::move(buffer), piggybackBytes, message->getSenderSockAddr());

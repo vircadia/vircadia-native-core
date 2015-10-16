@@ -94,7 +94,7 @@ void PacketReceiver::registerDirectListenerForTypes(PacketTypeList types,
     }
 }
 
-bool PacketReceiver::registerMessageListener(PacketType type, QObject* listener, const char* slot,
+bool PacketReceiver::registerListener(PacketType type, QObject* listener, const char* slot,
                                              bool deliverPending) {
     Q_ASSERT_X(listener, "PacketReceiver::registerMessageListener", "No object to register");
     Q_ASSERT_X(slot, "PacketReceiver::registerMessageListener", "No slot to register");
@@ -102,22 +102,15 @@ bool PacketReceiver::registerMessageListener(PacketType type, QObject* listener,
     QMetaMethod matchingMethod = matchingMethodForListener(type, listener, slot);
 
     if (matchingMethod.isValid()) {
-        QMutexLocker locker(&_packetListenerLock);
-
-        if (_messageListenerMap.contains(type)) {
-            qCWarning(networking) << "Registering a packet listener for packet type" << type
-                << "that will remove a previously registered listener";
-        }
-
-        // add the mapping
-        _messageListenerMap[type] = { QPointer<QObject>(listener), matchingMethod, deliverPending };
-
+        qDebug() << "Found: " << matchingMethod.methodSignature();
+        registerVerifiedListener(type, listener, matchingMethod);
         return true;
     } else {
         return false;
     }
 }
 
+/*
 bool PacketReceiver::registerListener(PacketType type, QObject* listener, const char* slot) {
     Q_ASSERT_X(listener, "PacketReceiver::registerListener", "No object to register");
     Q_ASSERT_X(slot, "PacketReceiver::registerListener", "No slot to register");
@@ -132,6 +125,7 @@ bool PacketReceiver::registerListener(PacketType type, QObject* listener, const 
         return false;
     }
 }
+*/
 
 QMetaMethod PacketReceiver::matchingMethodForListener(PacketType type, QObject* object, const char* slot) const {
     Q_ASSERT_X(object, "PacketReceiver::matchingMethodForListener", "No object to call");
@@ -140,27 +134,20 @@ QMetaMethod PacketReceiver::matchingMethodForListener(PacketType type, QObject* 
     // normalize the slot with the expected parameters
     
     static const QString SIGNATURE_TEMPLATE("%1(%2)");
-    // static const QString NON_SOURCED_PACKET_LISTENER_PARAMETERS = "QSharedPointer<NLPacket>";
-    static const QString NON_SOURCED_PACKETLIST_LISTENER_PARAMETERS = "QSharedPointer<ReceivedMessage>";
+    static const QString NON_SOURCED_MESSAGE_LISTENER_PARAMETERS = "QSharedPointer<ReceivedMessage>";
 
     QSet<QString> possibleSignatures {
-        // SIGNATURE_TEMPLATE.arg(slot, NON_SOURCED_PACKET_LISTENER_PARAMETERS),
-        SIGNATURE_TEMPLATE.arg(slot, NON_SOURCED_PACKETLIST_LISTENER_PARAMETERS)
+        SIGNATURE_TEMPLATE.arg(slot, NON_SOURCED_MESSAGE_LISTENER_PARAMETERS)
     };
 
     if (!NON_SOURCED_PACKETS.contains(type)) {
-        // static const QString SOURCED_PACKET_LISTENER_PARAMETERS = "QSharedPointer<NLPacket>,QSharedPointer<Node>";
-        // static const QString TYPEDEF_SOURCED_PACKET_LISTENER_PARAMETERS = "QSharedPointer<NLPacket>,SharedNodePointer";
-        static const QString SOURCED_PACKETLIST_LISTENER_PARAMETERS = "QSharedPointer<ReceivedMessage>,QSharedPointer<Node>";
-        static const QString TYPEDEF_SOURCED_PACKETLIST_LISTENER_PARAMETERS = "QSharedPointer<ReceivedMessage>,SharedNodePointer";
+        static const QString SOURCED_MESSAGE_LISTENER_PARAMETERS = "QSharedPointer<ReceivedMessage>,QSharedPointer<Node>";
+        static const QString TYPEDEF_SOURCED_MESSAGE_LISTENER_PARAMETERS = "QSharedPointer<ReceivedMessage>,SharedNodePointer";
 
-        // a sourced packet must take the shared pointer to the packet but optionally could include
+        // a sourced packet must take the shared pointer to the ReceivedMessage but optionally could include
         // a shared pointer to the node
-
-        // possibleSignatures << SIGNATURE_TEMPLATE.arg(slot, TYPEDEF_SOURCED_PACKET_LISTENER_PARAMETERS);
-        // possibleSignatures << SIGNATURE_TEMPLATE.arg(slot, SOURCED_PACKET_LISTENER_PARAMETERS);
-        possibleSignatures << SIGNATURE_TEMPLATE.arg(slot, TYPEDEF_SOURCED_PACKETLIST_LISTENER_PARAMETERS);
-        possibleSignatures << SIGNATURE_TEMPLATE.arg(slot, SOURCED_PACKETLIST_LISTENER_PARAMETERS);
+        possibleSignatures << SIGNATURE_TEMPLATE.arg(slot, TYPEDEF_SOURCED_MESSAGE_LISTENER_PARAMETERS);
+        possibleSignatures << SIGNATURE_TEMPLATE.arg(slot, SOURCED_MESSAGE_LISTENER_PARAMETERS);
     }
 
     int methodIndex = -1;
@@ -244,17 +231,22 @@ void PacketReceiver::handleVerifiedPacket(std::unique_ptr<udt::Packet> packet) {
     auto nlPacket = NLPacket::fromBase(std::move(packet));
     auto receivedMessage = QSharedPointer<ReceivedMessage>(new ReceivedMessage(*nlPacket.get()));
 
+    _inPacketCount += 1;
+    _inByteCount += nlPacket->size();
+
     handleVerifiedMessage(receivedMessage, true);
 }
 
 void PacketReceiver::handleVerifiedMessagePacket(std::unique_ptr<udt::Packet> packet) {
-    qDebug() << "Got message packet";
     auto nlPacket = NLPacket::fromBase(std::move(packet));
+
     _inPacketCount += 1;
     _inByteCount += nlPacket->size();
+
     auto key = std::pair<HifiSockAddr, udt::Packet::MessageNumber>(nlPacket->getSenderSockAddr(), nlPacket->getMessageNumber());
     auto it = _pendingMessages.find(key);
     QSharedPointer<ReceivedMessage> message;
+
     if (it == _pendingMessages.end()) {
         // Create message
         message = QSharedPointer<ReceivedMessage>(new ReceivedMessage(*nlPacket.release()));
@@ -273,25 +265,8 @@ void PacketReceiver::handleVerifiedMessagePacket(std::unique_ptr<udt::Packet> pa
     }
 }
 
-void PacketReceiver::handleVerifiedPacketList(std::unique_ptr<udt::PacketList> packetList) {
-    // if we're supposed to drop this packet then break out here
-    if (_shouldDropPackets) {
-        return;
-    }
-
-    // setup an NLPacketList from the PacketList we were passed
-    auto nlPacketList = NLPacketList::fromPacketList(std::move(packetList));
-    auto receivedMessage = QSharedPointer<ReceivedMessage>(new ReceivedMessage(*nlPacketList.release()));
-
-    handleVerifiedMessage(receivedMessage, true);
-}
-
 void PacketReceiver::handleVerifiedMessage(QSharedPointer<ReceivedMessage> receivedMessage, bool justReceived) {
-
     auto nodeList = DependencyManager::get<LimitedNodeList>();
-    
-    _inPacketCount += receivedMessage->getNumPackets();
-    _inByteCount += receivedMessage->size();
     
     SharedNodePointer matchingNode;
     
@@ -328,14 +303,12 @@ void PacketReceiver::handleVerifiedMessage(QSharedPointer<ReceivedMessage> recei
             PacketType packetType = receivedMessage->getType();
             
             if (matchingNode) {
-                emit dataReceived(matchingNode->getType(), receivedMessage->size());
-                matchingNode->recordBytesReceived(receivedMessage->size());
+                emit dataReceived(matchingNode->getType(), receivedMessage->getSize());
+                matchingNode->recordBytesReceived(receivedMessage->getSize());
                 Node* n = matchingNode.data();
                 auto addr = n->getActiveSocket();
 
                 QMetaMethod metaMethod = listener.method;
-
-                // qDebug() << "Got verified packet list: " << QString(receivedMessage->getMessage());
                 
                 static const QByteArray QSHAREDPOINTER_NODE_NORMALIZED = QMetaObject::normalizedType("QSharedPointer<Node>");
                 static const QByteArray SHARED_NODE_NORMALIZED = QMetaObject::normalizedType("SharedNodePointer");
@@ -364,7 +337,7 @@ void PacketReceiver::handleVerifiedMessage(QSharedPointer<ReceivedMessage> recei
                 }
             } else {
                 // qDebug() << "Got verified unsourced packet list: " << QString(nlPacketList->getMessage());
-                emit dataReceived(NodeType::Unassigned, receivedMessage->size());
+                emit dataReceived(NodeType::Unassigned, receivedMessage->getSize());
                 
                 // one final check on the QPointer before we invoke
                 if (listener.object) {

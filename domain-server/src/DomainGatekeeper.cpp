@@ -51,7 +51,7 @@ const NodeSet STATICALLY_ASSIGNED_NODES = NodeSet() << NodeType::AudioMixer
     << NodeType::AssetServer;
 
 void DomainGatekeeper::processConnectRequestPacket(QSharedPointer<ReceivedMessage> message) {
-    if (message->getPayloadSize() == 0) {
+    if (message->getSize() == 0) {
         return;
     }
     

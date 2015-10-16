@@ -550,7 +550,7 @@ int OctreeSceneStats::unpackFromPacket(ReceivedMessage& packet) {
     float calculatedBPV = total == 0 ? 0 : (_bytes * 8) / total;
     _bitsPerOctreeAverage.updateAverage(calculatedBPV);
 
-    return packet.pos(); // excludes header!
+    return packet.getPosition(); // excludes header!
 }
 
 
@@ -790,8 +790,8 @@ void OctreeSceneStats::trackIncomingOctreePacket(ReceivedMessage& message, bool 
 
     // track packets here...
     _incomingPacket++;
-    _incomingBytes += message.getDataSize();
+    _incomingBytes += message.getSize();
     if (!wasStatsPacket) {
-        _incomingWastedBytes += (udt::MAX_PACKET_SIZE - message.getDataSize());
+        _incomingWastedBytes += (udt::MAX_PACKET_SIZE - message.getSize());
     }
 }

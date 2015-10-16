@@ -60,7 +60,7 @@ int AudioMixerClientData::parseData(ReceivedMessage& message) {
         // read the downstream audio stream stats
         message.readPrimitive(&_downstreamAudioStreamStats);
 
-        return message.pos();
+        return message.getPosition();
 
     } else {
         PositionalAudioStream* matchingStream = NULL;

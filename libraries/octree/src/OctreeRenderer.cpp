@@ -83,7 +83,7 @@ void OctreeRenderer::processDatagram(ReceivedMessage& message, SharedNodePointer
             qCDebug(octree, "OctreeRenderer::processDatagram() ... Got Packet Section"
                    " color:%s compressed:%s sequence: %u flight:%d usec size:%lld data:%lld",
                    debug::valueOf(packetIsColored), debug::valueOf(packetIsCompressed),
-                   sequence, flightTime, message.getDataSize(), message.getBytesLeftToRead());
+                   sequence, flightTime, message.getSize(), message.getBytesLeftToRead());
         }
         
         _packetsInLastWindow++;
@@ -125,14 +125,14 @@ void OctreeRenderer::processDatagram(ReceivedMessage& message, SharedNodePointer
                     startUncompress = usecTimestampNow();
 
                     OctreePacketData packetData(packetIsCompressed);
-                    packetData.loadFinalizedContent(reinterpret_cast<const unsigned char*>(message.getPayload() + message.pos()),
+                    packetData.loadFinalizedContent(reinterpret_cast<const unsigned char*>(message.getRawMessage() + message.getPosition()),
                         sectionLength);
                     if (extraDebugging) {
                         qCDebug(octree, "OctreeRenderer::processDatagram() ... Got Packet Section"
                             " color:%s compressed:%s sequence: %u flight:%d usec size:%lld data:%lld"
                             " subsection:%d sectionLength:%d uncompressed:%d",
                             debug::valueOf(packetIsColored), debug::valueOf(packetIsCompressed),
-                            sequence, flightTime, message.getDataSize(), message.getBytesLeftToRead(), subsection, sectionLength,
+                            sequence, flightTime, message.getSize(), message.getBytesLeftToRead(), subsection, sectionLength,
                             packetData.getUncompressedSize());
                     }
 
@@ -148,7 +148,7 @@ void OctreeRenderer::processDatagram(ReceivedMessage& message, SharedNodePointer
                 });
                 
                 // seek forwards in packet
-                message.seek(message.pos() + sectionLength);
+                message.seek(message.getPosition() + sectionLength);
 
                 elementsPerPacket += args.elementsPerPacket;
                 entitiesPerPacket += args.entitiesPerPacket;

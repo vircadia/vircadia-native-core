@@ -40,7 +40,7 @@ AssetServer::AssetServer(ReceivedMessage& message) :
     auto& packetReceiver = DependencyManager::get<NodeList>()->getPacketReceiver();
     packetReceiver.registerListener(PacketType::AssetGet, this, "handleAssetGet");
     packetReceiver.registerListener(PacketType::AssetGetInfo, this, "handleAssetGetInfo");
-    packetReceiver.registerMessageListener(PacketType::AssetUpload, this, "handleAssetUpload");
+    packetReceiver.registerListener(PacketType::AssetUpload, this, "handleAssetUpload");
 }
 
 void AssetServer::run() {
@@ -89,7 +89,7 @@ void AssetServer::handleAssetGetInfo(QSharedPointer<ReceivedMessage> message, Sh
     MessageID messageID;
     uint8_t extensionLength;
 
-    if (message->getPayloadSize() < qint64(SHA256_HASH_LENGTH + sizeof(messageID) + sizeof(extensionLength))) {
+    if (message->getSize() < qint64(SHA256_HASH_LENGTH + sizeof(messageID) + sizeof(extensionLength))) {
         qDebug() << "ERROR bad file request";
         return;
     }
@@ -126,7 +126,7 @@ void AssetServer::handleAssetGet(QSharedPointer<ReceivedMessage> message, Shared
 
     auto minSize = qint64(sizeof(MessageID) + SHA256_HASH_LENGTH + sizeof(uint8_t) + sizeof(DataOffset) + sizeof(DataOffset));
     
-    if (message->getPayloadSize() < minSize) {
+    if (message->getSize() < minSize) {
         qDebug() << "ERROR bad file request";
         return;
     }

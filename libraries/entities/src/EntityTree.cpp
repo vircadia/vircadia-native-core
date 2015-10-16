@@ -877,7 +877,7 @@ int EntityTree::processEraseMessage(ReceivedMessage& message, const SharedNodePo
             deleteEntities(entityItemIDsToDelete, true, true);
         }
     });
-    return message.pos();
+    return message.getPosition();
 }
 
 // This version skips over the header

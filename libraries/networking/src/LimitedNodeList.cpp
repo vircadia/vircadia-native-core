@@ -100,11 +100,6 @@ LimitedNodeList::LimitedNodeList(unsigned short socketListenPort, unsigned short
             _packetReceiver->handleVerifiedMessagePacket(std::move(packet));
         }
     );
-    _nodeSocket.setPacketListHandler(
-        [this](std::unique_ptr<udt::PacketList> packetList) {
-            _packetReceiver->handleVerifiedPacketList(std::move(packetList));
-        }
-    );
 
     // set our isPacketVerified method as the verify operator for the udt::Socket
     using std::placeholders::_1;
@@ -554,7 +549,7 @@ std::unique_ptr<NLPacket> LimitedNodeList::constructICEPingReplyPacket(ReceivedM
     // pull out the ping type so we can reply back with that
     PingType_t pingType;
 
-    memcpy(&pingType, message.getPayload() + NUM_BYTES_RFC4122_UUID, sizeof(PingType_t));
+    memcpy(&pingType, message.getRawMessage() + NUM_BYTES_RFC4122_UUID, sizeof(PingType_t));
 
     int packetSize = NUM_BYTES_RFC4122_UUID + sizeof(PingType_t);
     auto icePingReplyPacket = NLPacket::create(PacketType::ICEPingReply, packetSize);

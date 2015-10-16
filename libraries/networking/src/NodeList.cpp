@@ -98,7 +98,7 @@ NodeList::NodeList(char newOwnerType, unsigned short socketListenPort, unsigned 
     packetReceiver.registerListener(PacketType::ICEPing, this, "processICEPingPacket");
     packetReceiver.registerListener(PacketType::DomainServerAddedNode, this, "processDomainServerAddedNode");
     packetReceiver.registerListener(PacketType::DomainServerConnectionToken, this, "processDomainServerConnectionTokenPacket");
-    packetReceiver.registerMessageListener(PacketType::DomainSettings, &_domainHandler, "processSettingsPacketList");
+    packetReceiver.registerListener(PacketType::DomainSettings, &_domainHandler, "processSettingsPacketList");
     packetReceiver.registerListener(PacketType::ICEServerPeerInformation, &_domainHandler, "processICEResponsePacket");
     packetReceiver.registerListener(PacketType::DomainServerRequireDTLS, &_domainHandler, "processDTLSRequirementPacket");
     packetReceiver.registerListener(PacketType::ICEPingReply, &_domainHandler, "processICEPingReplyPacket");
@@ -378,8 +378,8 @@ void NodeList::processDomainServerPathResponse(QSharedPointer<ReceivedMessage> m
         return;
     }
     
-    QString pathQuery = QString::fromUtf8(message->getPayload() + message->pos(), numPathBytes);
-    message->seek(message->pos() + numPathBytes);
+    QString pathQuery = QString::fromUtf8(message->getRawMessage() + message->getPosition(), numPathBytes);
+    message->seek(message->getPosition() + numPathBytes);
 
     // figure out how many bytes the viewpoint is
     quint16 numViewpointBytes;
@@ -391,7 +391,7 @@ void NodeList::processDomainServerPathResponse(QSharedPointer<ReceivedMessage> m
     }
     
     // pull the viewpoint from the packet
-    QString viewpoint = QString::fromUtf8(message->getPayload() + message->pos(), numViewpointBytes);
+    QString viewpoint = QString::fromUtf8(message->getRawMessage() + message->getPosition(), numViewpointBytes);
     
     // Hand it off to the AddressManager so it can handle it as a relative viewpoint
     if (DependencyManager::get<AddressManager>()->goToViewpointForPath(viewpoint, pathQuery)) {
@@ -500,7 +500,7 @@ void NodeList::processDomainServerList(QSharedPointer<ReceivedMessage> message) 
     setThisNodeCanRez((bool) thisNodeCanRez);
     
     // pull each node in the packet
-    while (packetStream.device()->pos() < message->getPayloadSize()) {
+    while (packetStream.device()->pos() < message->getSize()) {
         parseNodeFromPacketStream(packetStream);
     }
 }

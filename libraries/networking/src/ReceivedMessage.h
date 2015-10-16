@@ -27,8 +27,9 @@ public:
     ReceivedMessage(const NLPacketList& packetList);
     ReceivedMessage(NLPacket& packet);
 
-    const char* getPayload() const { return _data.constData(); }
     QByteArray getMessage() const { return _data; }
+    const char* getRawMessage() const { return _data.constData(); }
+
     PacketType getType() const { return _packetType; }
     PacketVersion getVersion() const { return _packetVersion; }
 
@@ -39,17 +40,17 @@ public:
     const QUuid& getSourceID() const { return _sourceID; }
     const HifiSockAddr& getSenderSockAddr() { return _senderSockAddr; }
 
-    void seek(qint64 position) { _position = position; }
-    qint64 pos() const { return _position; }
-    qint64 size() const { return _data.size(); }
+    qint64 getPosition() const { return _position; }
+    //qint64 size() const { return _data.size(); }
 
     // Get the number of packets that were used to send this message
     qint64 getNumPackets() const { return _numPackets; }
 
-    qint64 getDataSize() const { return _data.size(); }
-    qint64 getPayloadSize() const { return _data.size(); }
+    qint64 getSize() const { return _data.size(); }
 
     qint64 getBytesLeftToRead() const { return _data.size() -  _position; }
+
+    void seek(qint64 position) { _position = position; }
 
     qint64 peek(char* data, qint64 size);
     qint64 read(char* data, qint64 size);
