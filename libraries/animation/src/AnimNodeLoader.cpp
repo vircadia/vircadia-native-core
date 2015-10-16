@@ -160,6 +160,9 @@ static AnimNode::Pointer loadNode(const QJsonObject& jsonObj, const QUrl& jsonUr
 
     assert((int)type >= 0 && type < AnimNode::Type::NumTypes);
     auto node = (animNodeTypeToLoaderFunc(type))(dataObj, id, jsonUrl);
+    if (!node) {
+        return nullptr;
+    }
 
     auto childrenValue = jsonObj.value("children");
     if (!childrenValue.isArray()) {
