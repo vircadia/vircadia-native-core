@@ -78,6 +78,7 @@ void AvatarActionHold::updateActionWorker(float deltaTimeStep) {
                 if (_kinematic) {
                     doKinematicUpdate(deltaTimeStep);
                 } else {
+                    activateBody();
                     ObjectActionSpring::updateActionWorker(deltaTimeStep);
                 }
             }
