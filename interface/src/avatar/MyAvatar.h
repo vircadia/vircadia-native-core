@@ -106,6 +106,18 @@ public:
     Q_INVOKABLE AnimationDetails getAnimationDetailsByRole(const QString& role);
     Q_INVOKABLE AnimationDetails getAnimationDetails(const QString& url);
     void clearJointAnimationPriorities();
+    // Adds handler(animStateDictionaryIn) => animStateDictionaryOut, which will be invoked just before each animGraph state update.
+    // The handler will be called with an animStateDictionaryIn that has all those properties specified by the (possibly empty)
+    // propertiesList argument. However for debugging, if the properties argument is null, all internal animGraph state is provided.
+    // The animStateDictionaryOut can be a different object than animStateDictionaryIn. Any properties set in animStateDictionaryOut
+    // will override those of the internal animation machinery.
+    // The animStateDictionaryIn may be shared among multiple handlers, and thus may contain additional properties specified when
+    // adding one of the other handlers. While any handler may change a value in animStateDictionaryIn (or supply different values in animStateDictionaryOut)
+    // a handler must not remove properties from animStateDictionaryIn, nor change property values that it does not intend to change.
+    // It is not specified in what order multiple handlers are called.
+    Q_INVOKABLE void addAnimationStateHandler(QScriptValue handler, QScriptValue propertiesList) { _rig->addAnimationStateHandler(handler, propertiesList); }
+    // Removes a handler previously added by addAnimationStateHandler.
+    Q_INVOKABLE void removeAnimationStateHandler(QScriptValue handler) { _rig->removeAnimationStateHandler(handler); }
 
     // get/set avatar data
     void saveData();

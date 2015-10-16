@@ -566,6 +566,20 @@ void Rig::updateAnimations(float deltaTime, glm::mat4 rootTransform) {
             return;
         }
 
+        if (_stateHandlers.isValid()) {
+            // TODO: iterate multiple handlers, but with one shared arg.
+            // TODO: fill the properties based on the union of requested properties. (Keep all properties objs and compute new union when add/remove handler.)
+            // TODO: check QScriptEngine::hasUncaughtException()
+            // TODO: call asynchronously (through a signal on script), so that each script is single threaded, and so we never block here.
+            //       This will require inboundMaps to be kept in the list of per-handler data.
+            QScriptEngine* engine = _stateHandlers.engine();
+            QScriptValue outboundMap = _animVars.animVariantMapToScriptValue(engine);
+            QScriptValueList args;
+            args << outboundMap;
+            QScriptValue inboundMap = _stateHandlers.call(QScriptValue(), args);
+            _animVars.animVariantMapFromScriptValue(inboundMap);
+            //qCDebug(animation) << _animVars.lookup("foo", QString("not set"));
+        }
         // evaluate the animation
         AnimNode::Triggers triggersOut;
         AnimPoseVec poses = _animNode->evaluate(_animVars, deltaTime, triggersOut);

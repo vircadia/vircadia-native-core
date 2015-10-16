@@ -16,6 +16,7 @@
 #include <glm/gtx/quaternion.hpp>
 #include <map>
 #include <set>
+#include <QScriptValue>
 #include "AnimationLogging.h"
 
 class AnimVariant {
@@ -157,6 +158,11 @@ public:
     void clearTriggers() { _triggers.clear(); }
 
     bool hasKey(const QString& key) const { return _map.find(key) != _map.end(); }
+
+    // Answer a Plain Old Javascript Object (for the given engine) all of our values set as properties.
+    QScriptValue animVariantMapToScriptValue(QScriptEngine* engine);
+    // Side-effect us with the value of object's own properties. (No inherited properties.)
+    void animVariantMapFromScriptValue(const QScriptValue& object);
 
 #ifdef NDEBUG
     void dump() const {
