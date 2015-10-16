@@ -575,7 +575,7 @@ void OctreeElement::notifyUpdateHooks() {
 
 bool OctreeElement::findRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
                          bool& keepSearching, OctreeElementPointer& element, float& distance, 
-                         BoxFace& face, glm::vec3& surfaceNormal,
+                         BoxFace& face, glm::vec3& surfaceNormal, const QVector<QUuid>& entityIdsToInclude,
                          void** intersectedObject, bool precisionPicking) {
 
     keepSearching = true; // assume that we will continue searching after this.
@@ -601,7 +601,7 @@ bool OctreeElement::findRayIntersection(const glm::vec3& origin, const glm::vec3
     if (_cube.contains(origin) || distanceToElementCube < distance) {
 
         if (findDetailedRayIntersection(origin, direction, keepSearching, element, distanceToElementDetails,
-                                    face, localSurfaceNormal, intersectedObject, precisionPicking, distanceToElementCube)) {
+                                    face, localSurfaceNormal, entityIdsToInclude, intersectedObject, precisionPicking, distanceToElementCube)) {
 
             if (distanceToElementDetails < distance) {
                 distance = distanceToElementDetails;
@@ -616,7 +616,7 @@ bool OctreeElement::findRayIntersection(const glm::vec3& origin, const glm::vec3
 
 bool OctreeElement::findDetailedRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
                          bool& keepSearching, OctreeElementPointer& element, float& distance, 
-                         BoxFace& face, glm::vec3& surfaceNormal,
+                         BoxFace& face, glm::vec3& surfaceNormal, const QVector<QUuid>& entityIdsToInclude,
                          void** intersectedObject, bool precisionPicking, float distanceToElementCube) {
 
     // we did hit this element, so calculate appropriate distances
