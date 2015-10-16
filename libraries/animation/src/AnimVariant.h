@@ -18,6 +18,7 @@
 #include <set>
 #include <QScriptValue>
 #include "AnimationLogging.h"
+#include "StreamUtils.h"
 
 class AnimVariant {
 public:
