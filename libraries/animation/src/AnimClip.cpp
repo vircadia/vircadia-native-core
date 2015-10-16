@@ -35,7 +35,9 @@ const AnimPoseVec& AnimClip::evaluate(const AnimVariantMap& animVars, float dt, 
     _endFrame = animVars.lookup(_endFrameVar, _endFrame);
     _timeScale = animVars.lookup(_timeScaleVar, _timeScale);
     _loopFlag = animVars.lookup(_loopFlagVar, _loopFlag);
-    _frame = accumulateTime(animVars.lookup(_frameVar, _frame), dt, triggersOut);
+    float frame = animVars.lookup(_frameVar, _frame);
+
+    _frame = ::accumulateTime(_startFrame, _endFrame, _timeScale, frame, dt, _loopFlag, _id, triggersOut);
 
     // poll network anim to see if it's finished loading yet.
     if (_networkAnim && _networkAnim->isLoaded() && _skeleton) {
@@ -78,39 +80,7 @@ void AnimClip::setCurrentFrameInternal(float frame) {
     // because dt is 0, we should not encounter any triggers
     const float dt = 0.0f;
     Triggers triggers;
-    _frame = accumulateTime(frame * _timeScale, dt, triggers);
-}
-
-float AnimClip::accumulateTime(float frame, float dt, Triggers& triggersOut) const {
-    const float startFrame = std::min(_startFrame, _endFrame);
-    if (startFrame == _endFrame) {
-        // when startFrame >= endFrame
-        frame = _endFrame;
-    } else if (_timeScale > 0.0f) {
-        // accumulate time, keeping track of loops and end of animation events.
-        const float FRAMES_PER_SECOND = 30.0f;
-        float framesRemaining = (dt * _timeScale) * FRAMES_PER_SECOND;
-        while (framesRemaining > 0.0f) {
-            float framesTillEnd = _endFrame - _frame;
-            if (framesRemaining >= framesTillEnd) {
-                if (_loopFlag) {
-                    // anim loop
-                    triggersOut.push_back(_id + "OnLoop");
-                    framesRemaining -= framesTillEnd;
-                    frame = startFrame;
-                } else {
-                    // anim end
-                    triggersOut.push_back(_id + "OnDone");
-                    frame = _endFrame;
-                    framesRemaining = 0.0f;
-                }
-            } else {
-                frame += framesRemaining;
-                framesRemaining = 0.0f;
-            }
-        }
-    }
-    return frame;
+    _frame = ::accumulateTime(_startFrame, _endFrame, _timeScale, frame * _timeScale, dt, _loopFlag, _id, triggers);
 }
 
 void AnimClip::copyFromNetworkAnim() {

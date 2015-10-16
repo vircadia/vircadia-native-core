@@ -190,6 +190,7 @@
                                         "type": "blendLinear",
                                         "data": {
                                             "alpha": 0.0,
+                                            "sync": false,
                                             "alphaVar": "rightHandGrabBlend"
                                         },
                                         "children": [
@@ -339,6 +340,7 @@
                                                 "type": "blendLinear",
                                                 "data": {
                                                     "alpha": 0.0,
+                                                    "sync": false,
                                                     "alphaVar": "leftHandGrabBlend"
                                                 },
                                                 "children": [

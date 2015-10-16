@@ -11,6 +11,9 @@
 #include "AnimUtil.h"
 #include "GLMHelpers.h"
 
+// TODO: use restrict keyword
+// TODO: excellent candidate for simd vectorization.
+
 void blend(size_t numPoses, const AnimPose* a, const AnimPose* b, float alpha, AnimPose* result) {
     for (size_t i = 0; i < numPoses; i++) {
         const AnimPose& aPose = a[i];
@@ -20,3 +23,39 @@ void blend(size_t numPoses, const AnimPose* a, const AnimPose* b, float alpha, A
         result[i].trans = lerp(aPose.trans, bPose.trans, alpha);
     }
 }
+
+float accumulateTime(float startFrame, float endFrame, float timeScale, float currentFrame, float dt, bool loopFlag,
+                     const QString& id, AnimNode::Triggers& triggersOut) {
+
+    float frame = currentFrame;
+    const float clampedStartFrame = std::min(startFrame, endFrame);
+    if (clampedStartFrame == endFrame) {
+        // when clampedStartFrame >= endFrame
+        frame = endFrame;
+    } else if (timeScale > 0.0f) {
+        // accumulate time, keeping track of loops and end of animation events.
+        const float FRAMES_PER_SECOND = 30.0f;
+        float framesRemaining = (dt * timeScale) * FRAMES_PER_SECOND;
+        while (framesRemaining > 0.0f) {
+            float framesTillEnd = endFrame - frame;
+            if (framesRemaining >= framesTillEnd) {
+                if (loopFlag) {
+                    // anim loop
+                    triggersOut.push_back(id + "OnLoop");
+                    framesRemaining -= framesTillEnd;
+                    frame = clampedStartFrame;
+                } else {
+                    // anim end
+                    triggersOut.push_back(id + "OnDone");
+                    frame = endFrame;
+                    framesRemaining = 0.0f;
+                }
+            } else {
+                frame += framesRemaining;
+                framesRemaining = 0.0f;
+            }
+        }
+    }
+    return frame;
+}
+
