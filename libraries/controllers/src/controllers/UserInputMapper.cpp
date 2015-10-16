@@ -295,7 +295,12 @@ void UserInputMapper::update(float deltaTime) {
     // Scale all the channel step with the scale
     static const float EPSILON =  0.01f;
     for (auto i = 0; i < NUM_ACTIONS; i++) {
+        if (_externalActionStates[i] != 0) {
+            _actionStates[i] += _externalActionStates[i];
+            _externalActionStates[i] = 0.0f;
+        }
         _actionStates[i] *= _actionScales[i];
+
         // Emit only on change, and emit when moving back to 0
         if (fabsf(_actionStates[i] - _lastActionStates[i]) > EPSILON) {
             _lastActionStates[i] = _actionStates[i];
@@ -359,15 +364,15 @@ void UserInputMapper::assignDefaulActionScales() {
     _actionScales[RIGHT_HAND] = 1.0f; // default
     _actionScales[LEFT_HAND_CLICK] = 1.0f; // on
     _actionScales[RIGHT_HAND_CLICK] = 1.0f; // on
-    _actionStates[SHIFT] = 1.0f; // on
-    _actionStates[ACTION1] = 1.0f; // default
-    _actionStates[ACTION2] = 1.0f; // default
-    _actionStates[TRANSLATE_X] = 1.0f; // default
-    _actionStates[TRANSLATE_Y] = 1.0f; // default
-    _actionStates[TRANSLATE_Z] = 1.0f; // default
-    _actionStates[ROLL] = 1.0f; // default
-    _actionStates[PITCH] = 1.0f; // default
-    _actionStates[YAW] = 1.0f; // default
+    _actionScales[SHIFT] = 1.0f; // on
+    _actionScales[ACTION1] = 1.0f; // default
+    _actionScales[ACTION2] = 1.0f; // default
+    _actionScales[TRANSLATE_X] = 1.0f; // default
+    _actionScales[TRANSLATE_Y] = 1.0f; // default
+    _actionScales[TRANSLATE_Z] = 1.0f; // default
+    _actionScales[ROLL] = 1.0f; // default
+    _actionScales[PITCH] = 1.0f; // default
+    _actionScales[YAW] = 1.0f; // default
 }
 
 // This is only necessary as long as the actions are hardcoded
