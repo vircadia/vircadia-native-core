@@ -275,10 +275,7 @@ QString EntityActionInterface::extractStringArgument(QString objectName, QVarian
         ok = false;
         return "";
     }
-
-    QVariant vV = arguments[argumentName];
-    QString v = vV.toString();
-    return v;
+    return arguments[argumentName].toString();
 }
 
 bool EntityActionInterface::extractBooleanArgument(QString objectName, QVariantMap arguments,
@@ -290,10 +287,7 @@ bool EntityActionInterface::extractBooleanArgument(QString objectName, QVariantM
         ok = false;
         return false;
     }
-
-    QVariant vV = arguments[argumentName];
-    bool v = vV.toBool();
-    return v;
+    return arguments[argumentName].toBool();
 }
 
 
