@@ -123,6 +123,8 @@ void AvatarActionHold::doKinematicUpdate(float deltaTimeStep) {
         _previousRotationalTarget = _rotationalTarget;
         _previousSet = true;
     });
+
+    activateBody();
 }
 
 bool AvatarActionHold::updateArguments(QVariantMap arguments) {
