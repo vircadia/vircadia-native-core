@@ -47,16 +47,17 @@ const AnimPoseVec& AnimClip::evaluate(const AnimVariantMap& animVars, float dt, 
     }
 
     if (_anim.size()) {
-        int frameCount = _anim.size();
-
         int prevIndex = (int)glm::floor(_frame);
-        int nextIndex = (int)glm::ceil(_frame);
-        if (_loopFlag && nextIndex >= frameCount) {
-            nextIndex = 0;
+        int nextIndex;
+        if (_loopFlag && _frame >= _endFrame) {
+            nextIndex = (int)glm::ceil(_startFrame);
+        } else {
+            nextIndex = (int)glm::ceil(_frame);
         }
 
         // It can be quite possible for the user to set _startFrame and _endFrame to
         // values before or past valid ranges.  We clamp the frames here.
+        int frameCount = _anim.size();
         prevIndex = std::min(std::max(0, prevIndex), frameCount - 1);
         nextIndex = std::min(std::max(0, nextIndex), frameCount - 1);
 

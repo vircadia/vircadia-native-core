@@ -29,8 +29,7 @@ float accumulateTime(float startFrame, float endFrame, float timeScale, float cu
 
     float frame = currentFrame;
     const float clampedStartFrame = std::min(startFrame, endFrame);
-    if (clampedStartFrame == endFrame) {
-        // when clampedStartFrame >= endFrame
+    if (fabsf(clampedStartFrame - endFrame) < 1.0f) {
         frame = endFrame;
     } else if (timeScale > 0.0f) {
         // accumulate time, keeping track of loops and end of animation events.
@@ -38,6 +37,10 @@ float accumulateTime(float startFrame, float endFrame, float timeScale, float cu
         float framesRemaining = (dt * timeScale) * FRAMES_PER_SECOND;
         while (framesRemaining > 0.0f) {
             float framesTillEnd = endFrame - frame;
+            // when looping, add one frame between start and end.
+            if (loopFlag) {
+                framesTillEnd += 1.0f;
+            }
             if (framesRemaining >= framesTillEnd) {
                 if (loopFlag) {
                     // anim loop
