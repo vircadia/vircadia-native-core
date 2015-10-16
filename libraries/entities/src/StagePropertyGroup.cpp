@@ -66,6 +66,27 @@ void StagePropertyGroup::debugDump() const {
     qDebug() << "    _automaticHourDay:" << _automaticHourDay;
 }
 
+void StagePropertyGroup::listChangedProperties(QList<QString>& out) {
+    if (sunModelEnabledChanged()) {
+        out << "stage-sunModelEnabled";
+    }
+    if (latitudeChanged()) {
+        out << "stage-latitude";
+    }
+    if (altitudeChanged()) {
+        out << "stage-altitude";
+    }
+    if (dayChanged()) {
+        out << "stage-day";
+    }
+    if (hourChanged()) {
+        out << "stage-hour";
+    }
+    if (automaticHourDayChanged()) {
+        out << "stage-automaticHourDay";
+    }
+}
+
 bool StagePropertyGroup::appendToEditPacket(OctreePacketData* packetData,
                                     EntityPropertyFlags& requestedProperties,
                                     EntityPropertyFlags& propertyFlags,

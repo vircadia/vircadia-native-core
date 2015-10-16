@@ -309,7 +309,7 @@ void AvatarManager::updateAvatarPhysicsShape(const QUuid& id) {
         auto avatar = std::static_pointer_cast<Avatar>(avatarItr.value());
         AvatarMotionState* motionState = avatar->getMotionState();
         if (motionState) {
-            motionState->addDirtyFlags(EntityItem::DIRTY_SHAPE);
+            motionState->addDirtyFlags(Simulation::DIRTY_SHAPE);
         } else {
             ShapeInfo shapeInfo;
             avatar->computeShapeInfo(shapeInfo);
@@ -342,4 +342,12 @@ void AvatarManager::updateAvatarRenderStatus(bool shouldRenderAvatars) {
             scene->enqueuePendingChanges(pendingChanges);
         }
     }
+}
+
+
+AvatarSharedPointer AvatarManager::getAvatarBySessionID(const QUuid& sessionID) {
+    if (sessionID == _myAvatar->getSessionUUID()) {
+        return std::static_pointer_cast<Avatar>(_myAvatar);
+    }
+    return getAvatarHash()[sessionID];
 }

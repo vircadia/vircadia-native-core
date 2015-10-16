@@ -253,6 +253,11 @@ public:
 
     void setActionDataDirty() { _actionDataChanged = true; }
 
+    QList<QString> listChangedProperties();
+    
+    bool getDimensionsInitialized() const { return _dimensionsInitialized; }
+    void setDimensionsInitialized(bool dimensionsInitialized) { _dimensionsInitialized = dimensionsInitialized; }
+    
 private:
     QUuid _id;
     bool _idSet;
@@ -265,6 +270,7 @@ private:
     bool _glowLevelChanged;
     bool _localRenderAlphaChanged;
     bool _defaultSettings;
+    bool _dimensionsInitialized = false; // Only true if creating an entity localy with no dimensions properties
 
     // NOTE: The following are pseudo client only properties. They are only used in clients which can access
     // properties of model geometry. But these properties are not serialized like other properties.
@@ -370,7 +376,9 @@ inline QDebug operator<<(QDebug debug, const EntityItemProperties& properties) {
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, VoxelSurfaceStyle, voxelSurfaceStyle, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, Href, href, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, Description, description, "");
-    DEBUG_PROPERTY_IF_CHANGED(debug, properties, ActionData, actionData, "");
+    if (properties.actionDataChanged()) {
+        debug << " " << "actionData" << ":" << properties.getActionData().toHex() << "" << "\n";
+    }
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, XTextureURL, xTextureURL, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, YTextureURL, yTextureURL, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, ZTextureURL, zTextureURL, "");

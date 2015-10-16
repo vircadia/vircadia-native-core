@@ -211,15 +211,6 @@ public slots:
 
     Q_INVOKABLE void updateMotionBehaviorFromMenu();
 
-    glm::vec3 getLeftPalmPosition();
-    glm::vec3 getLeftPalmVelocity();
-    glm::vec3 getLeftPalmAngularVelocity();
-    glm::quat getLeftPalmRotation();
-    glm::vec3 getRightPalmPosition();
-    glm::vec3 getRightPalmVelocity();
-    glm::vec3 getRightPalmAngularVelocity();
-    glm::quat getRightPalmRotation();
-
     void clearReferential();
     bool setModelReferential(const QUuid& id);
     bool setJointReferential(const QUuid& id, int jointIndex);
@@ -282,6 +273,10 @@ private:
     void renderLaserPointers(gpu::Batch& batch);
     const RecorderPointer getRecorder() const { return _recorder; }
     const PlayerPointer getPlayer() const { return _player; }
+
+    void beginStraighteningLean();
+    bool shouldBeginStraighteningLean() const;
+    void processStraighteningLean(float deltaTime);
 
     bool cameraInsideHead() const;
 
@@ -378,6 +373,8 @@ private:
 
     quint64 _lastUpdateFromHMDTime = usecTimestampNow();
     AtRestDetector _hmdAtRestDetector;
+    glm::vec3 _lastPosition;
+    bool _lastIsMoving = false;
 };
 
 QScriptValue audioListenModeToScriptValue(QScriptEngine* engine, const AudioListenerMode& audioListenerMode);

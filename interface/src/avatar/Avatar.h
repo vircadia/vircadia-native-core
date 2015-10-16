@@ -174,6 +174,16 @@ public:
     void setMotionState(AvatarMotionState* motionState) { _motionState = motionState; }
     AvatarMotionState* getMotionState() { return _motionState; }
 
+public slots:
+    glm::vec3 getLeftPalmPosition();
+    glm::vec3 getLeftPalmVelocity();
+    glm::vec3 getLeftPalmAngularVelocity();
+    glm::quat getLeftPalmRotation();
+    glm::vec3 getRightPalmPosition();
+    glm::vec3 getRightPalmVelocity();
+    glm::vec3 getRightPalmAngularVelocity();
+    glm::quat getRightPalmRotation();
+
 protected:
     SkeletonModel _skeletonModel;
     glm::vec3 _skeletonOffset;

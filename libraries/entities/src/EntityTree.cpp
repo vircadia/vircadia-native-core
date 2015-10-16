@@ -613,6 +613,9 @@ int EntityTree::processEditPacketData(NLPacket& packet, const unsigned char* edi
                         qCDebug(entities) << "User [" << senderNode->getUUID() << "] editing entity. ID:" << entityItemID;
                         qCDebug(entities) << "   properties:" << properties;
                     }
+                    if (wantTerseEditLogging()) {
+                        qCDebug(entities) << "edit" << entityItemID.toString() << properties.listChangedProperties();
+                    }
                     endLogging = usecTimestampNow();
 
                     startUpdate = usecTimestampNow();
@@ -638,6 +641,9 @@ int EntityTree::processEditPacketData(NLPacket& packet, const unsigned char* edi
                                                 << newEntity->getEntityItemID();
                                 qCDebug(entities) << "   properties:" << properties;
                             }
+                            if (wantTerseEditLogging()) {
+                                qCDebug(entities) << "add" << entityItemID.toString() << properties.listChangedProperties();
+                            }
                             endLogging = usecTimestampNow();
 
                         }
@@ -647,8 +653,10 @@ int EntityTree::processEditPacketData(NLPacket& packet, const unsigned char* edi
                     }
                 } else {
                     static QString repeatedMessage =
-                        LogHandler::getInstance().addRepeatedMessageRegex("^Add or Edit failed.*");
-                    qCDebug(entities) << "Add or Edit failed." << packet.getType() << existingEntity.get();
+                        LogHandler::getInstance().addRepeatedMessageRegex("^Edit failed.*");
+                    qCDebug(entities) << "Edit failed. [" << packet.getType() <<"] " <<
+                            "entity id:" << entityItemID << 
+                            "existingEntity pointer:" << existingEntity.get();
                 }
             }
 
@@ -869,7 +877,7 @@ int EntityTree::processEraseMessage(NLPacket& packet, const SharedNodePointer& s
                 EntityItemID entityItemID(entityID);
                 entityItemIDsToDelete << entityItemID;
 
-                if (wantEditLogging()) {
+                if (wantEditLogging() || wantTerseEditLogging()) {
                     qCDebug(entities) << "User [" << sourceNode->getUUID() << "] deleting entity. ID:" << entityItemID;
                 }
 
@@ -913,7 +921,7 @@ int EntityTree::processEraseMessageDetails(const QByteArray& dataByteArray, cons
             EntityItemID entityItemID(entityID);
             entityItemIDsToDelete << entityItemID;
 
-            if (wantEditLogging()) {
+            if (wantEditLogging() || wantTerseEditLogging()) {
                 qCDebug(entities) << "User [" << sourceNode->getUUID() << "] deleting entity. ID:" << entityItemID;
             }
 

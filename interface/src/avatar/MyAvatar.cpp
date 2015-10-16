@@ -326,6 +326,7 @@ static bool capsuleCheck(const glm::vec3& pos, float capsuleLen, float capsuleRa
 // as it moves through the world.
 void MyAvatar::updateFromHMDSensorMatrix(const glm::mat4& hmdSensorMatrix) {
 
+    // calc deltaTime
     auto now = usecTimestampNow();
     auto deltaUsecs = now - _lastUpdateFromHMDTime;
     _lastUpdateFromHMDTime = now;
@@ -340,21 +341,61 @@ void MyAvatar::updateFromHMDSensorMatrix(const glm::mat4& hmdSensorMatrix) {
 
     bool hmdIsAtRest = _hmdAtRestDetector.update(deltaTime, _hmdSensorPosition, _hmdSensorOrientation);
 
-    const float STRAIGHTENING_LEAN_DURATION = 0.5f;  // seconds
+    // It can be more accurate/smooth to use velocity rather than position,
+    // but some modes (e.g., hmd standing) update position without updating velocity.
+    // So, let's create our own workingVelocity from the worldPosition...
+    glm::vec3 positionDelta = getPosition() - _lastPosition;
+    glm::vec3 workingVelocity = positionDelta / deltaTime;
+    _lastPosition = getPosition();
 
+    const float MOVE_ENTER_SPEED_THRESHOLD = 0.2f; // m/sec
+    const float MOVE_EXIT_SPEED_THRESHOLD = 0.07f;  // m/sec
+    bool isMoving;
+    if (_lastIsMoving) {
+        isMoving = glm::length(workingVelocity) >= MOVE_EXIT_SPEED_THRESHOLD;
+    } else {
+        isMoving = glm::length(workingVelocity) > MOVE_ENTER_SPEED_THRESHOLD;
+    }
+
+    bool justStartedMoving = (_lastIsMoving != isMoving) && isMoving;
+    _lastIsMoving = isMoving;
+
+    if (shouldBeginStraighteningLean() || hmdIsAtRest || justStartedMoving) {
+        beginStraighteningLean();
+    }
+
+    processStraighteningLean(deltaTime);
+}
+
+void MyAvatar::beginStraighteningLean() {
+    // begin homing toward derived body position.
+    if (!_straighteningLean) {
+        _straighteningLean = true;
+        _straighteningLeanAlpha = 0.0f;
+    }
+}
+
+bool MyAvatar::shouldBeginStraighteningLean() const {
     // define a vertical capsule
     const float STRAIGHTENING_LEAN_CAPSULE_RADIUS = 0.2f;  // meters
     const float STRAIGHTENING_LEAN_CAPSULE_LENGTH = 0.05f;  // length of the cylinder part of the capsule in meters.
 
+    // detect if the derived body position is outside of a capsule around the _bodySensorMatrix
     auto newBodySensorMatrix = deriveBodyFromHMDSensor();
     glm::vec3 diff = extractTranslation(newBodySensorMatrix) - extractTranslation(_bodySensorMatrix);
-    if (!_straighteningLean && (capsuleCheck(diff, STRAIGHTENING_LEAN_CAPSULE_LENGTH, STRAIGHTENING_LEAN_CAPSULE_RADIUS) || hmdIsAtRest)) {
+    bool isBodyPosOutsideCapsule = capsuleCheck(diff, STRAIGHTENING_LEAN_CAPSULE_LENGTH, STRAIGHTENING_LEAN_CAPSULE_RADIUS);
 
-        // begin homing toward derived body position.
-        _straighteningLean = true;
-        _straighteningLeanAlpha = 0.0f;
+    if (isBodyPosOutsideCapsule) {
+        return true;
+    } else {
+        return false;
+    }
+}
 
-    } else if (_straighteningLean) {
+void MyAvatar::processStraighteningLean(float deltaTime) {
+    if (_straighteningLean) {
+
+        const float STRAIGHTENING_LEAN_DURATION = 0.5f;  // seconds
 
         auto newBodySensorMatrix = deriveBodyFromHMDSensor();
         auto worldBodyMatrix = _sensorToWorldMatrix * newBodySensorMatrix;
@@ -497,70 +538,6 @@ void MyAvatar::render(RenderArgs* renderArgs, const glm::vec3& cameraPosition) {
         renderArgs && renderArgs->_batch) {
         _skeletonModel.renderIKConstraints(*renderArgs->_batch);
     }
-}
-
-const glm::vec3 HAND_TO_PALM_OFFSET(0.0f, 0.12f, 0.08f);
-
-glm::vec3 MyAvatar::getLeftPalmPosition() {
-    glm::vec3 leftHandPosition;
-    getSkeletonModel().getLeftHandPosition(leftHandPosition);
-    glm::quat leftRotation;
-    getSkeletonModel().getJointRotationInWorldFrame(getSkeletonModel().getLeftHandJointIndex(), leftRotation);
-    leftHandPosition += HAND_TO_PALM_OFFSET * glm::inverse(leftRotation);
-    return leftHandPosition;
-}
-
-glm::vec3 MyAvatar::getLeftPalmVelocity() {
-    const PalmData* palm = getHand()->getPalm(LEFT_HAND_INDEX);
-    if (palm != NULL) {
-        return palm->getVelocity();
-    }
-    return glm::vec3(0.0f);
-}
-
-glm::vec3 MyAvatar::getLeftPalmAngularVelocity() {
-    const PalmData* palm = getHand()->getPalm(LEFT_HAND_INDEX);
-    if (palm != NULL) {
-        return palm->getRawAngularVelocity();
-    }
-    return glm::vec3(0.0f);
-}
-
-glm::quat MyAvatar::getLeftPalmRotation() {
-    glm::quat leftRotation;
-    getSkeletonModel().getJointRotationInWorldFrame(getSkeletonModel().getLeftHandJointIndex(), leftRotation);
-    return leftRotation;
-}
-
-glm::vec3 MyAvatar::getRightPalmPosition() {
-    glm::vec3 rightHandPosition;
-    getSkeletonModel().getRightHandPosition(rightHandPosition);
-    glm::quat rightRotation;
-    getSkeletonModel().getJointRotationInWorldFrame(getSkeletonModel().getRightHandJointIndex(), rightRotation);
-    rightHandPosition += HAND_TO_PALM_OFFSET * glm::inverse(rightRotation);
-    return rightHandPosition;
-}
-
-glm::vec3 MyAvatar::getRightPalmVelocity() {
-    const PalmData* palm = getHand()->getPalm(RIGHT_HAND_INDEX);
-    if (palm != NULL) {
-        return palm->getVelocity();
-    }
-    return glm::vec3(0.0f);
-}
-
-glm::vec3 MyAvatar::getRightPalmAngularVelocity() {
-    const PalmData* palm = getHand()->getPalm(RIGHT_HAND_INDEX);
-    if (palm != NULL) {
-        return palm->getRawAngularVelocity();
-    }
-    return glm::vec3(0.0f);
-}
-
-glm::quat MyAvatar::getRightPalmRotation() {
-    glm::quat rightRotation;
-    getSkeletonModel().getJointRotationInWorldFrame(getSkeletonModel().getRightHandJointIndex(), rightRotation);
-    return rightRotation;
 }
 
 void MyAvatar::clearReferential() {
@@ -1160,32 +1137,41 @@ void MyAvatar::setJointTranslations(QVector<glm::vec3> jointTranslations) {
 }
 
 void MyAvatar::setJointData(int index, const glm::quat& rotation, const glm::vec3& translation) {
-    if (QThread::currentThread() == thread()) {
-        // HACK: ATM only JS scripts call setJointData() on MyAvatar so we hardcode the priority
-        _rig->setJointState(index, true, rotation, translation, SCRIPT_PRIORITY);
+    if (QThread::currentThread() != thread()) {
+        QMetaObject::invokeMethod(this, "setJointData", Q_ARG(int, index), Q_ARG(const glm::quat&, rotation),
+            Q_ARG(const glm::vec3&, translation));
+        return;
     }
+    // HACK: ATM only JS scripts call setJointData() on MyAvatar so we hardcode the priority
+    _rig->setJointState(index, true, rotation, translation, SCRIPT_PRIORITY);
 }
 
 void MyAvatar::setJointRotation(int index, const glm::quat& rotation) {
-    if (QThread::currentThread() == thread()) {
-        // HACK: ATM only JS scripts call setJointData() on MyAvatar so we hardcode the priority
-        _rig->setJointRotation(index, true, rotation, SCRIPT_PRIORITY);
+    if (QThread::currentThread() != thread()) {
+        QMetaObject::invokeMethod(this, "setJointRotation", Q_ARG(int, index), Q_ARG(const glm::quat&, rotation));
+        return;
     }
+    // HACK: ATM only JS scripts call setJointData() on MyAvatar so we hardcode the priority
+    _rig->setJointRotation(index, true, rotation, SCRIPT_PRIORITY);
 }
 
 void MyAvatar::setJointTranslation(int index, const glm::vec3& translation) {
-    if (QThread::currentThread() == thread()) {
-        // HACK: ATM only JS scripts call setJointData() on MyAvatar so we hardcode the priority
-        _rig->setJointTranslation(index, true, translation, SCRIPT_PRIORITY);
+    if (QThread::currentThread() != thread()) {
+        QMetaObject::invokeMethod(this, "setJointTranslation", Q_ARG(int, index), Q_ARG(const glm::vec3&, translation));
+        return;
     }
+    // HACK: ATM only JS scripts call setJointData() on MyAvatar so we hardcode the priority
+    _rig->setJointTranslation(index, true, translation, SCRIPT_PRIORITY);
 }
 
 void MyAvatar::clearJointData(int index) {
-    if (QThread::currentThread() == thread()) {
-        // HACK: ATM only JS scripts call clearJointData() on MyAvatar so we hardcode the priority
-        _rig->setJointState(index, false, glm::quat(), glm::vec3(), 0.0f);
-        _rig->clearJointAnimationPriority(index);
+    if (QThread::currentThread() != thread()) {
+        QMetaObject::invokeMethod(this, "clearJointData", Q_ARG(int, index));
+        return;
     }
+    // HACK: ATM only JS scripts call clearJointData() on MyAvatar so we hardcode the priority
+    _rig->setJointState(index, false, glm::quat(), glm::vec3(), 0.0f);
+    _rig->clearJointAnimationPriority(index);
 }
 
 void MyAvatar::clearJointsData() {
