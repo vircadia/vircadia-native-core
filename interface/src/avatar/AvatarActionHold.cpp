@@ -75,12 +75,54 @@ void AvatarActionHold::updateActionWorker(float deltaTimeStep) {
                 _active = true;
             });
             if (gotLock) {
-                ObjectActionSpring::updateActionWorker(deltaTimeStep);
+                if (_kinematic) {
+                    doKinematicUpdate(deltaTimeStep);
+                } else {
+                    ObjectActionSpring::updateActionWorker(deltaTimeStep);
+                }
             }
         }
     }
 }
 
+void AvatarActionHold::doKinematicUpdate(float deltaTimeStep) {
+    auto ownerEntity = _ownerEntity.lock();
+    if (!ownerEntity) {
+        qDebug() << "AvatarActionHold::doKinematicUpdate -- no owning entity";
+        return;
+    }
+    void* physicsInfo = ownerEntity->getPhysicsInfo();
+    if (!physicsInfo) {
+        qDebug() << "AvatarActionHold::doKinematicUpdate -- no owning physics info";
+        return;
+    }
+    ObjectMotionState* motionState = static_cast<ObjectMotionState*>(physicsInfo);
+    btRigidBody* rigidBody = motionState ? motionState->getRigidBody() : nullptr;
+    if (!rigidBody) {
+        qDebug() << "AvatarActionHold::doKinematicUpdate -- no rigidBody";
+        return;
+    }
+
+    withWriteLock([&]{
+        if (_kinematicSetVelocity) {
+            if (_previousSet) {
+                glm::vec3 positionalVelocity = (_positionalTarget - _previousPositionalTarget) / deltaTimeStep;
+                rigidBody->setLinearVelocity(glmToBullet(positionalVelocity));
+                // back up along velocity a bit in order to smooth out a "vibrating" appearance
+                _positionalTarget -= positionalVelocity * deltaTimeStep / 2.0f;
+            }
+        }
+
+        btTransform worldTrans = rigidBody->getWorldTransform();
+        worldTrans.setOrigin(glmToBullet(_positionalTarget));
+        worldTrans.setRotation(glmToBullet(_rotationalTarget));
+        rigidBody->setWorldTransform(worldTrans);
+
+        _previousPositionalTarget = _positionalTarget;
+        _previousRotationalTarget = _rotationalTarget;
+        _previousSet = true;
+    });
+}
 
 bool AvatarActionHold::updateArguments(QVariantMap arguments) {
     glm::vec3 relativePosition;
@@ -88,6 +130,8 @@ bool AvatarActionHold::updateArguments(QVariantMap arguments) {
     float timeScale;
     QString hand;
     QUuid holderID;
+    bool kinematic;
+    bool kinematicSetVelocity;
     bool needUpdate = false;
 
     bool somethingChanged = ObjectAction::updateArguments(arguments);
@@ -120,12 +164,27 @@ bool AvatarActionHold::updateArguments(QVariantMap arguments) {
         auto myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
         holderID = myAvatar->getSessionUUID();
 
+        ok = true;
+        kinematic = EntityActionInterface::extractBooleanArgument("hold", arguments, "kinematic", ok, false);
+        if (!ok) {
+            _kinematic = false;
+        }
+
+        ok = true;
+        kinematicSetVelocity = EntityActionInterface::extractBooleanArgument("hold", arguments,
+                                                                             "kinematic-set-velocity", ok, false);
+        if (!ok) {
+            _kinematicSetVelocity = false;
+        }
+
         if (somethingChanged ||
             relativePosition != _relativePosition ||
             relativeRotation != _relativeRotation ||
             timeScale != _linearTimeScale ||
             hand != _hand ||
-            holderID != _holderID) {
+            holderID != _holderID ||
+            kinematic != _kinematic ||
+            kinematicSetVelocity != _kinematicSetVelocity) {
             needUpdate = true;
         }
     });
@@ -139,6 +198,8 @@ bool AvatarActionHold::updateArguments(QVariantMap arguments) {
             _angularTimeScale = _linearTimeScale;
             _hand = hand;
             _holderID = holderID;
+            _kinematic = kinematic;
+            _kinematicSetVelocity = kinematicSetVelocity;
             _active = true;
 
             auto ownerEntity = _ownerEntity.lock();

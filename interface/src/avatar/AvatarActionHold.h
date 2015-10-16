@@ -39,6 +39,13 @@ private:
     glm::quat _relativeRotation;
     QString _hand;
     QUuid _holderID;
+
+    void doKinematicUpdate(float deltaTimeStep);
+    bool _kinematic = false;
+    bool _kinematicSetVelocity = false;
+    bool _previousSet = false;
+    glm::vec3 _previousPositionalTarget;
+    glm::quat _previousRotationalTarget;
 };
 
 #endif // hifi_AvatarActionHold_h
