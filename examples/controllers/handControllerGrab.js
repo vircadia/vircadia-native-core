@@ -579,9 +579,7 @@ function MyController(hand, triggerAction) {
             Entities.callEntityMethod(this.grabbedEntity, "setLeftHand");
         }
         Entities.callEntityMethod(this.grabbedEntity, "startFarGrabNonColliding");
-        // TODO -- figure out how to make this work.
-        // this.setState(STATE_CONTINUE_FAR_GRABBING_NON_COLLIDING);
-        this.setState(STATE_RELEASE);
+        this.setState(STATE_CONTINUE_FAR_GRABBING_NON_COLLIDING);
     };
 
     this.continueNearGrabbingNonColliding = function() {
@@ -589,7 +587,7 @@ function MyController(hand, triggerAction) {
             this.setState(STATE_RELEASE);
             return;
         }
-        
+
         Entities.callEntityMethod(this.grabbedEntity, "continueNearGrabbingNonColliding");
     };
 
@@ -604,6 +602,16 @@ function MyController(hand, triggerAction) {
             origin: handPosition,
             direction: Quat.getUp(this.getHandRotation())
         };
+
+        var now = Date.now();
+        if (now - this.lastPickTime > MSECS_PER_SEC / PICKS_PER_SECOND_PER_HAND) {
+            var intersection = Entities.findRayIntersection(pickRay, true);
+            this.lastPickTime = now;
+            if (intersection.entityID != this.grabbedEntity) {
+                this.setState(STATE_RELEASE);
+                return;
+            }
+        }
 
         this.lineOn(pickRay.origin, Vec3.multiply(pickRay.direction, LINE_LENGTH), NO_INTERSECT_COLOR);
         Entities.callEntityMethod(this.grabbedEntity, "continueFarGrabbingNonColliding");
