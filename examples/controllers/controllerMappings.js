@@ -14,7 +14,7 @@
 
 myFirstMapping = function() {
 return {
-    "name": "example mapping from Standard to actions",
+    "name": "example",
     "channels": [ {
             "from": "Keyboard.A",
             "filters": [ {
@@ -55,6 +55,8 @@ var myFirstMappingJSON = myFirstMapping();
 print('myFirstMappingJSON' + JSON.stringify(myFirstMappingJSON));
 
 var mapping = Controller.parseMapping(JSON.stringify(myFirstMappingJSON));
+
+Controller.enableMapping("example");
 
 Object.keys(Controller.Standard).forEach(function (input) {
     print("Controller.Standard." + input + ":" + Controller.Standard[input]);

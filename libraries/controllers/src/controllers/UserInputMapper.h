@@ -214,6 +214,8 @@ public:
     QVector<QString> getActionNames() const;
     void assignDefaulActionScales();
 
+    void setActionState(Action action, float value) { _actionStates[action] = value; }
+
     // Add input channel to the mapper and check that all the used channels are registered.
     // Return true if theinput channel is created correctly, false either
     bool addInputChannel(Action action, const Input& input, float scale = 1.0f);

@@ -94,6 +94,25 @@ namespace controller {
         Endpoint::Pointer _second;
     };
 
+    class ActionEndpoint : public Endpoint {
+    public:
+        ActionEndpoint(const UserInputMapper::Input& id = UserInputMapper::Input(-1))
+            : Endpoint(id) {
+        }
+
+        virtual float value() override { return _currentValue; }
+        virtual void apply(float newValue, float oldValue, const Pointer& source) override { 
+            
+            _currentValue = newValue;
+            if (!(_id == UserInputMapper::Input::INVALID_INPUT)) {
+                auto userInputMapper = DependencyManager::get<UserInputMapper>();
+                userInputMapper->setActionState(UserInputMapper::Action(_id.getChannel()), newValue);
+            }
+        }
+
+    private:
+        float _currentValue{ 0.0f };
+    };
 
     QRegularExpression ScriptingInterface::SANITIZE_NAME_EXPRESSION{ "[\\(\\)\\.\\s]" };
 
@@ -139,7 +158,8 @@ namespace controller {
 
             // Create the endpoints
             // FIXME action endpoints need to accumulate values, and have them cleared at each frame
-            _endpoints[actionInput] = std::make_shared<VirtualEndpoint>();
+           // _endpoints[actionInput] = std::make_shared<VirtualEndpoint>();
+            _endpoints[actionInput] = std::make_shared<ActionEndpoint>();
         }
 
         updateMaps();
@@ -171,6 +191,7 @@ namespace controller {
 
                 _mappingsByName[mapping->_name] = mapping;
 
+                return mappingBuilder;
             } else {
                 qDebug() << "Mapping json Document is not an object" << endl;
             }
