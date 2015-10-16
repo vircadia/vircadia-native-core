@@ -19,6 +19,7 @@ const uint16_t UserInputMapper::Input::INVALID_DEVICE = INVALID_INPUT.getDevice(
 const uint16_t UserInputMapper::Input::INVALID_CHANNEL = INVALID_INPUT.getChannel();
 const uint16_t UserInputMapper::Input::INVALID_TYPE = (uint16_t)INVALID_INPUT.getType();
 const uint16_t UserInputMapper::Input::ACTIONS_DEVICE = INVALID_DEVICE - (uint16)1;
+const uint16_t UserInputMapper::Input::STANDARD_DEVICE = 0;
 
 // Default contruct allocate the poutput size with the current hardcoded action channels
 UserInputMapper::UserInputMapper() {
@@ -37,6 +38,13 @@ bool UserInputMapper::registerDevice(uint16 deviceID, const DeviceProxy::Pointer
     qCDebug(controllers) << "Registered input device <" << proxy->_name << "> deviceID = " << deviceID;
     return true;
 }
+
+bool UserInputMapper::registerStandardDevice(const DeviceProxy::Pointer& device) {
+    device->_name = "Standard"; // Just to make sure
+    _registeredDevices[getStandardDeviceID()] = device;
+    return true;
+}
+
 
 UserInputMapper::DeviceProxy::Pointer UserInputMapper::getDeviceProxy(const Input& input) {
     auto device = _registeredDevices.find(input.getDevice());
@@ -69,10 +77,6 @@ void UserInputMapper::resetDevice(uint16 deviceID) {
 }
 
 int UserInputMapper::findDevice(QString name) const {
-    if (_standardDevice && (_standardDevice->getName() == name)) {
-        return getStandardDeviceID();
-    }
-
     for (auto device : _registeredDevices) {
         if (device.second->_name.split(" (")[0] == name) {
             return device.first;
@@ -295,7 +299,12 @@ void UserInputMapper::update(float deltaTime) {
     // Scale all the channel step with the scale
     static const float EPSILON =  0.01f;
     for (auto i = 0; i < NUM_ACTIONS; i++) {
+        if (_externalActionStates[i] != 0) {
+            _actionStates[i] += _externalActionStates[i];
+            _externalActionStates[i] = 0.0f;
+        }
         _actionStates[i] *= _actionScales[i];
+
         // Emit only on change, and emit when moving back to 0
         if (fabsf(_actionStates[i] - _lastActionStates[i]) > EPSILON) {
             _lastActionStates[i] = _actionStates[i];
@@ -359,15 +368,15 @@ void UserInputMapper::assignDefaulActionScales() {
     _actionScales[RIGHT_HAND] = 1.0f; // default
     _actionScales[LEFT_HAND_CLICK] = 1.0f; // on
     _actionScales[RIGHT_HAND_CLICK] = 1.0f; // on
-    _actionStates[SHIFT] = 1.0f; // on
-    _actionStates[ACTION1] = 1.0f; // default
-    _actionStates[ACTION2] = 1.0f; // default
-    _actionStates[TRANSLATE_X] = 1.0f; // default
-    _actionStates[TRANSLATE_Y] = 1.0f; // default
-    _actionStates[TRANSLATE_Z] = 1.0f; // default
-    _actionStates[ROLL] = 1.0f; // default
-    _actionStates[PITCH] = 1.0f; // default
-    _actionStates[YAW] = 1.0f; // default
+    _actionScales[SHIFT] = 1.0f; // on
+    _actionScales[ACTION1] = 1.0f; // default
+    _actionScales[ACTION2] = 1.0f; // default
+    _actionScales[TRANSLATE_X] = 1.0f; // default
+    _actionScales[TRANSLATE_Y] = 1.0f; // default
+    _actionScales[TRANSLATE_Z] = 1.0f; // default
+    _actionScales[ROLL] = 1.0f; // default
+    _actionScales[PITCH] = 1.0f; // default
+    _actionScales[YAW] = 1.0f; // default
 }
 
 // This is only necessary as long as the actions are hardcoded

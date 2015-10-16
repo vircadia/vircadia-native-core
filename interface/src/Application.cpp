@@ -2692,7 +2692,7 @@ void Application::update(float deltaTime) {
     auto myAvatar = getMyAvatar();
     auto userInputMapper = DependencyManager::get<UserInputMapper>();
     userInputMapper->setSensorToWorldMat(myAvatar->getSensorToWorldMatrix());
-    userInputMapper->update(deltaTime);
+  //  userInputMapper->update(deltaTime);
 
     // This needs to go after userInputMapper->update() because of the keyboard
     bool jointsCaptured = false;

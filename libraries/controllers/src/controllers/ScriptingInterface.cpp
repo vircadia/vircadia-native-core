@@ -26,7 +26,7 @@ namespace controller {
 
     class VirtualEndpoint : public Endpoint {
     public:
-        VirtualEndpoint(const UserInputMapper::Input& id = UserInputMapper::Input(-1))
+        VirtualEndpoint(const UserInputMapper::Input& id = UserInputMapper::Input::INVALID_INPUT)
             : Endpoint(id) {
         }
 
@@ -41,7 +41,7 @@ namespace controller {
     class JSEndpoint : public Endpoint {
     public:
         JSEndpoint(const QJSValue& callable) 
-            : Endpoint(UserInputMapper::Input(-1)), _callable(callable) {}
+            : Endpoint(UserInputMapper::Input::INVALID_INPUT), _callable(callable) {}
 
         virtual float value() {
             float result = (float)_callable.call().toNumber();;
@@ -59,7 +59,7 @@ namespace controller {
     class ScriptEndpoint : public Endpoint {
     public:
         ScriptEndpoint(const QScriptValue& callable)
-            : Endpoint(UserInputMapper::Input(-1)), _callable(callable) {
+            : Endpoint(UserInputMapper::Input::INVALID_INPUT), _callable(callable) {
         }
 
         virtual float value() {
@@ -78,7 +78,7 @@ namespace controller {
     class CompositeEndpoint : public Endpoint, Endpoint::Pair {
     public:
         CompositeEndpoint(Endpoint::Pointer first, Endpoint::Pointer second)
-            : Endpoint(UserInputMapper::Input(-1)), Pair(first, second) { }
+            : Endpoint(UserInputMapper::Input(UserInputMapper::Input::INVALID_INPUT)), Pair(first, second) { }
 
         virtual float value() {
             float result = first->value() * -1.0 + second->value();
@@ -94,6 +94,25 @@ namespace controller {
         Endpoint::Pointer _second;
     };
 
+    class ActionEndpoint : public Endpoint {
+    public:
+        ActionEndpoint(const UserInputMapper::Input& id = UserInputMapper::Input::INVALID_INPUT)
+            : Endpoint(id) {
+        }
+
+        virtual float value() override { return _currentValue; }
+        virtual void apply(float newValue, float oldValue, const Pointer& source) override { 
+            
+            _currentValue += newValue;
+            if (!(_id == UserInputMapper::Input::INVALID_INPUT)) {
+                auto userInputMapper = DependencyManager::get<UserInputMapper>();
+                userInputMapper->deltaActionState(UserInputMapper::Action(_id.getChannel()), newValue);
+            }
+        }
+
+    private:
+        float _currentValue{ 0.0f };
+    };
 
     QRegularExpression ScriptingInterface::SANITIZE_NAME_EXPRESSION{ "[\\(\\)\\.\\s]" };
 
@@ -137,9 +156,8 @@ namespace controller {
             QString cleanActionName = QString(actionName).remove(ScriptingInterface::SANITIZE_NAME_EXPRESSION);
             _actions.insert(cleanActionName, actionInput.getID());
 
-            // Create the endpoints
-            // FIXME action endpoints need to accumulate values, and have them cleared at each frame
-            _endpoints[actionInput] = std::make_shared<VirtualEndpoint>();
+            // Create the action endpoints
+            _endpoints[actionInput] = std::make_shared<ActionEndpoint>(actionInput);
         }
 
         updateMaps();
@@ -171,6 +189,7 @@ namespace controller {
 
                 _mappingsByName[mapping->_name] = mapping;
 
+                return mappingBuilder;
             } else {
                 qDebug() << "Mapping json Document is not an object" << endl;
             }

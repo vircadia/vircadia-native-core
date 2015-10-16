@@ -14,33 +14,27 @@
 
 myFirstMapping = function() {
 return {
-    "name": "example mapping from Standard to actions",
-    "channels": [ {
-            "from": "Keyboard.A",
-            "filters": [ {
-                    "type": "clamp",
-                    "params": [0, 1],
-                }
-            ],
-            "to": "Actions.LONGITUDINAL_FORWARD",
-        }, {
-            "from": "Keyboard.Left",
-            "filters": [ {
-                    "type": "clamp",
-                    "params": [0, 1],
-                }, {
-                    "type": "invert"
-                }
-            ],
-            "to": "Actions.LONGITUDINAL_BACKWARD",
-        }, {
-            "from": "Keyboard.C",
+    "name": "example",
+    "channels": [
+        { "from": "Keyboard.W", "to": "Actions.LONGITUDINAL_FORWARD" },
+        { "from": "Keyboard.S", "to": "Actions.LONGITUDINAL_BACKWARD" },
+
+        { "from": "Keyboard.Left", "to": "Actions.LATERAL_LEFT" },
+        { "from": "Keyboard.Right", "to": "Actions.LATERAL_RIGHT" },
+
+        { "from": "Keyboard.A", "to": "Actions.YAW_LEFT" },
+        { "from": "Keyboard.D", "to": "Actions.YAW_RIGHT" },
+
+        { "from": "Keyboard.C", "to": "Actions.VERTICAL_DOWN" }, 
+        { "from": "Keyboard.E", "to": "Actions.VERTICAL_UP" },
+        {
+            "from": "Standard.LX",
             "filters": [ {
                     "type": "scale",
                     "params": [2.0],
                 }
             ],
-            "to": "Actions.Yaw",
+            "to": "Actions.LATERAL_LEFT",
         }, {
             "from": "Keyboard.B",
             "to": "Actions.Yaw"
@@ -56,6 +50,8 @@ print('myFirstMappingJSON' + JSON.stringify(myFirstMappingJSON));
 
 var mapping = Controller.parseMapping(JSON.stringify(myFirstMappingJSON));
 
+Controller.enableMapping("example");
+/*
 Object.keys(Controller.Standard).forEach(function (input) {
     print("Controller.Standard." + input + ":" + Controller.Standard[input]);
 });
@@ -69,3 +65,4 @@ Object.keys(Controller.Hardware).forEach(function (deviceName) {
 Object.keys(Controller.Actions).forEach(function (actionName) {
     print("Controller.Actions." + actionName + ":" + Controller.Actions[actionName]);
 });
+*/
