@@ -65,8 +65,8 @@ void EntityScriptingInterface::setEntityTree(EntityTreePointer elementTree) {
 }
 
 QUuid EntityScriptingInterface::addEntity(const EntityItemProperties& properties) {
-
     EntityItemProperties propertiesWithSimID = properties;
+    propertiesWithSimID.setDimensionsInitialized(properties.dimensionsChanged());
 
     EntityItemID id = EntityItemID(QUuid::createUuid());
 

@@ -254,7 +254,10 @@ public:
     void setActionDataDirty() { _actionDataChanged = true; }
 
     QList<QString> listChangedProperties();
-
+    
+    bool getDimensionsInitialized() const { return _dimensionsInitialized; }
+    void setDimensionsInitialized(bool dimensionsInitialized) { _dimensionsInitialized = dimensionsInitialized; }
+    
 private:
     QUuid _id;
     bool _idSet;
@@ -267,6 +270,7 @@ private:
     bool _glowLevelChanged;
     bool _localRenderAlphaChanged;
     bool _defaultSettings;
+    bool _dimensionsInitialized = false; // Only true if creating an entity localy with no dimensions properties
 
     // NOTE: The following are pseudo client only properties. They are only used in clients which can access
     // properties of model geometry. But these properties are not serialized like other properties.
