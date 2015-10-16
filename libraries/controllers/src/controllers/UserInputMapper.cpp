@@ -19,6 +19,7 @@ const uint16_t UserInputMapper::Input::INVALID_DEVICE = INVALID_INPUT.getDevice(
 const uint16_t UserInputMapper::Input::INVALID_CHANNEL = INVALID_INPUT.getChannel();
 const uint16_t UserInputMapper::Input::INVALID_TYPE = (uint16_t)INVALID_INPUT.getType();
 const uint16_t UserInputMapper::Input::ACTIONS_DEVICE = INVALID_DEVICE - (uint16)1;
+const uint16_t UserInputMapper::Input::STANDARD_DEVICE = 0;
 
 // Default contruct allocate the poutput size with the current hardcoded action channels
 UserInputMapper::UserInputMapper() {
@@ -37,6 +38,13 @@ bool UserInputMapper::registerDevice(uint16 deviceID, const DeviceProxy::Pointer
     qCDebug(controllers) << "Registered input device <" << proxy->_name << "> deviceID = " << deviceID;
     return true;
 }
+
+bool UserInputMapper::registerStandardDevice(const DeviceProxy::Pointer& device) {
+    device->_name = "Standard"; // Just to make sure
+    _registeredDevices[getStandardDeviceID()] = device;
+    return true;
+}
+
 
 UserInputMapper::DeviceProxy::Pointer UserInputMapper::getDeviceProxy(const Input& input) {
     auto device = _registeredDevices.find(input.getDevice());
@@ -69,10 +77,6 @@ void UserInputMapper::resetDevice(uint16 deviceID) {
 }
 
 int UserInputMapper::findDevice(QString name) const {
-    if (_standardDevice && (_standardDevice->getName() == name)) {
-        return getStandardDeviceID();
-    }
-
     for (auto device : _registeredDevices) {
         if (device.second->_name.split(" (")[0] == name) {
             return device.first;

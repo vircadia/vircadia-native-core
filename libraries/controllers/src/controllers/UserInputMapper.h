@@ -86,6 +86,7 @@ public:
         static const uint16 INVALID_CHANNEL;
         static const uint16 INVALID_TYPE;
         static const uint16 ACTIONS_DEVICE;
+        static const uint16 STANDARD_DEVICE;
     };
 
 
@@ -138,7 +139,7 @@ public:
     uint16 getFreeDeviceID() { return _nextFreeDeviceID++; }
 
     bool registerDevice(uint16 deviceID, const DeviceProxy::Pointer& device);
-    bool registerStandardDevice(const DeviceProxy::Pointer& device) { _standardDevice = device; _registeredDevices[getStandardDeviceID()] = device; return true; }
+    bool registerStandardDevice(const DeviceProxy::Pointer& device);
     DeviceProxy::Pointer getDeviceProxy(const Input& input);
     QString getDeviceName(uint16 deviceID);
     QVector<InputPair> getAvailableInputs(uint16 deviceID) { return _registeredDevices[deviceID]->getAvailabeInputs(); }
@@ -275,8 +276,8 @@ public:
     typedef std::map<int, DeviceProxy::Pointer> DevicesMap;
     DevicesMap getDevices() { return _registeredDevices; }
 
-    uint16 getStandardDeviceID() const { return _standardDeviceID; }
-    DeviceProxy::Pointer getStandardDevice() { return _standardDevice; }
+    uint16 getStandardDeviceID() const { return Input::STANDARD_DEVICE; }
+    DeviceProxy::Pointer getStandardDevice() { return _registeredDevices[getStandardDeviceID()]; }
 
 signals:
     void actionEvent(int action, float state);
@@ -284,12 +285,10 @@ signals:
 
 protected:
     void registerStandardDevice();
-    uint16 _standardDeviceID = 0;
-    DeviceProxy::Pointer _standardDevice;
     StandardControllerPointer _standardController;
         
     DevicesMap _registeredDevices;
-    uint16 _nextFreeDeviceID = 1;
+    uint16 _nextFreeDeviceID = Input::STANDARD_DEVICE + 1;
 
     typedef std::map<int, Modifiers> InputToMoModifiersMap;
     InputToMoModifiersMap _inputToModifiersMap;
