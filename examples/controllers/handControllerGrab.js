@@ -393,7 +393,8 @@ function MyController(hand, triggerAction) {
         this.lineOn(handPosition, Vec3.subtract(grabbedProperties.position, handPosition), INTERSECT_COLOR);
 
         // the action was set up on a previous call.  update the targets.
-        var radius = Math.max(Vec3.distance(this.currentObjectPosition, handControllerPosition) * DISTANCE_HOLDING_RADIUS_FACTOR, DISTANCE_HOLDING_RADIUS_FACTOR);
+        var radius = Math.max(Vec3.distance(this.currentObjectPosition, handControllerPosition) *
+                              DISTANCE_HOLDING_RADIUS_FACTOR, DISTANCE_HOLDING_RADIUS_FACTOR);
 
         // how far did avatar move this timestep?
         var currentPosition = MyAvatar.position;
@@ -492,7 +493,8 @@ function MyController(hand, triggerAction) {
             timeScale: NEAR_GRABBING_ACTION_TIMEFRAME,
             relativePosition: this.offsetPosition,
             relativeRotation: this.offsetRotation,
-            lifetime: ACTION_LIFETIME
+            lifetime: ACTION_LIFETIME,
+            // kinematic: true,
         });
         if (this.actionID === NULL_ACTION_ID) {
             this.actionID = null;
@@ -544,7 +546,8 @@ function MyController(hand, triggerAction) {
                 timeScale: NEAR_GRABBING_ACTION_TIMEFRAME,
                 relativePosition: this.offsetPosition,
                 relativeRotation: this.offsetRotation,
-                lifetime: ACTION_LIFETIME
+                lifetime: ACTION_LIFETIME,
+                // kinematic: true
             });
             this.actionTimeout = now + (ACTION_LIFETIME * MSEC_PER_SEC);
         }
@@ -576,7 +579,9 @@ function MyController(hand, triggerAction) {
             Entities.callEntityMethod(this.grabbedEntity, "setLeftHand");
         }
         Entities.callEntityMethod(this.grabbedEntity, "startFarGrabNonColliding");
-        this.setState(STATE_CONTINUE_FAR_GRABBING_NON_COLLIDING);
+        // TODO -- figure out how to make this work.
+        // this.setState(STATE_CONTINUE_FAR_GRABBING_NON_COLLIDING);
+        this.setState(STATE_RELEASE);
     };
 
     this.continueNearGrabbingNonColliding = function() {
