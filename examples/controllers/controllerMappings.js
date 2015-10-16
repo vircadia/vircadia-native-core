@@ -43,6 +43,15 @@ return {
 }
 }
 
+mySecondMapping = function() {
+return {
+    "name": "example2",
+    "channels": [
+        { "from": "Standard.LY", "to": "Actions.TRANSLATE_Z" },
+        { "from": "Standard.LX", "to": "Actions.YAW" },
+    ]
+}
+}
 
 //Script.include('mapping-test0.json');
 var myFirstMappingJSON = myFirstMapping();
@@ -51,6 +60,14 @@ print('myFirstMappingJSON' + JSON.stringify(myFirstMappingJSON));
 var mapping = Controller.parseMapping(JSON.stringify(myFirstMappingJSON));
 
 Controller.enableMapping("example");
+
+var myFirstMappingJSON = myFirstMapping();
+print('myFirstMappingJSON' + JSON.stringify(myFirstMappingJSON));
+
+var mapping = Controller.parseMapping(JSON.stringify(myFirstMappingJSON));
+
+Controller.enableMapping("example");
+
 /*
 Object.keys(Controller.Standard).forEach(function (input) {
     print("Controller.Standard." + input + ":" + Controller.Standard[input]);
