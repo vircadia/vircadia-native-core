@@ -81,7 +81,7 @@ var colorIndicatorBox = Entities.addEntity({
 Entities.editEntity(whiteboard, {
     userData: JSON.stringify({
         color: {
-            currentColor: colors[0],
+            currentColor: colors[0]
         },
         colorIndicator: colorIndicatorBox
     })
@@ -120,12 +120,14 @@ for (var i = 0; i < colors.length; i++) {
 
 // BLACK BOX
 var blackBoxDimensions = {
-    x: .2,
-    y: .2,
-    z: 0.05
+    x: 0.3,
+    y: 0.3,
+    z: 0.01
 };
+
 colorBoxPosition = Vec3.subtract(center, Vec3.multiply(direction, whiteboardDimensions.x / 2 + blackBoxDimensions.x / 2 - 0.01));
 colorBoxPosition.y += 0.3;
+var fragShaderURL = Script.resolvePath('blackInk.fs?v1' + Math.random());
 var blackBox = Entities.addEntity({
     type: 'Box',
     name: "Black Color",
@@ -139,7 +141,11 @@ var blackBox = Entities.addEntity({
     },
     script: scriptURL,
     userData: JSON.stringify({
-        whiteboard: whiteboard
+        whiteboard: whiteboard,
+        version: 2,
+        ProceduralEntity: {
+            shaderUrl: fragShaderURL
+        }
     })
 });
 
@@ -192,4 +198,4 @@ function cleanup() {
 
 
 // Uncomment this line to delete whiteboard and all associated entity on script close
-// Script.scriptEnding.connect(cleanup);
+Script.scriptEnding.connect(cleanup);
