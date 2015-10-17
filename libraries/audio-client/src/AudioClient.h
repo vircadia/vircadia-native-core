@@ -45,6 +45,7 @@
 
 #include "AudioIOStats.h"
 #include "AudioNoiseGate.h"
+#include "AudioSRC.h"
 
 #ifdef _WIN32
 #pragma warning( push )
@@ -72,11 +73,9 @@ static const quint64 DEFAULT_AUDIO_OUTPUT_STARVE_DETECTION_PERIOD = 10 * 1000; /
 class QAudioInput;
 class QAudioOutput;
 class QIODevice;
-struct soxr;
+
 typedef struct ty_gverb ty_gverb;
 
-typedef glm::vec3 (*AudioPositionGetter)();
-typedef glm::quat (*AudioOrientationGetter)();
 
 class NLPacket;
 
@@ -84,6 +83,8 @@ class AudioClient : public AbstractAudioInterface, public Dependency {
     Q_OBJECT
     SINGLETON_DEPENDENCY
 public:
+    using AudioPositionGetter = std::function<glm::vec3()>;
+    using AudioOrientationGetter = std::function<glm::quat()>;
 
     class AudioOutputIODevice : public QIODevice {
     public:
@@ -262,10 +263,10 @@ private:
     AudioEffectOptions* _reverbOptions;
     ty_gverb* _gverb;
 
-    // possible soxr streams needed for resample
-    soxr* _inputToNetworkResampler;
-    soxr* _networkToOutputResampler;
-    soxr* _loopbackResampler;
+    // possible streams needed for resample
+    AudioSRC* _inputToNetworkResampler;
+    AudioSRC* _networkToOutputResampler;
+    AudioSRC* _loopbackResampler;
 
     // Adds Reverb
     ty_gverb* createGverbFilter();

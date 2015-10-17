@@ -12,11 +12,8 @@
 #ifndef hifi_SettingsScriptingInterface_h
 #define hifi_SettingsScriptingInterface_h
 
-#include <QDebug>
 #include <QObject>
 #include <QString>
-
-#include "Application.h"
 
 class SettingsScriptingInterface : public QObject {
     Q_OBJECT

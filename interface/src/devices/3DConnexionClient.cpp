@@ -10,6 +10,7 @@
 //
 
 #include "3DConnexionClient.h"
+#include "Menu.h"
 #include "UserActivityLogger.h"
 
 const float MAX_AXIS = 75.0f;  // max forward = 2x speed
@@ -159,6 +160,8 @@ ConnexionClient& ConnexionClient::getInstance() {
 #ifdef HAVE_3DCONNEXIONCLIENT
 
 #ifdef Q_OS_WIN
+
+#include <VersionHelpers.h>
 
 void ConnexionClient::toggleConnexion(bool shouldEnable) {
     ConnexionData& connexiondata = ConnexionData::getInstance();
@@ -425,17 +428,13 @@ bool ConnexionClient::InitializeRawInput(HWND hwndTarget) {
         return false;
     }
 
-    // Get OS version.
-    OSVERSIONINFO osvi = { sizeof(OSVERSIONINFO), 0 };
-    ::GetVersionEx(&osvi);
-
     unsigned int cbSize = sizeof(devicesToRegister[0]);
     for (size_t i = 0; i < numDevices; i++) {
         // Set the target window to use
         //devicesToRegister[i].hwndTarget = hwndTarget;
 
         // If Vista or newer, enable receiving the WM_INPUT_DEVICE_CHANGE message.
-        if (osvi.dwMajorVersion >= 6) {
+        if (IsWindowsVistaOrGreater()) {
             devicesToRegister[i].dwFlags |= RIDEV_DEVNOTIFY;
         }
     }

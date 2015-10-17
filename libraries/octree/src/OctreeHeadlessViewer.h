@@ -29,10 +29,10 @@ class OctreeHeadlessViewer : public OctreeRenderer {
     Q_OBJECT
 public:
     OctreeHeadlessViewer();
-    virtual ~OctreeHeadlessViewer();
-    virtual void renderElement(OctreeElement* element, RenderArgs* args) { /* swallow these */ }
+    virtual ~OctreeHeadlessViewer() {};
+    virtual void renderElement(OctreeElementPointer element, RenderArgs* args) override { /* swallow these */ }
 
-    virtual void init();
+    virtual void init() override ;
     virtual void render(RenderArgs* renderArgs) override { /* swallow these */ }
 
     void setJurisdictionListener(JurisdictionListener* jurisdictionListener) { _jurisdictionListener = jurisdictionListener; }
@@ -58,14 +58,14 @@ public slots:
 
     // getters for LOD and PPS
     float getVoxelSizeScale() const { return _voxelSizeScale; }
-    int getBoundaryLevelAdjust() const { return _boundaryLevelAdjust; }
+    int getBoundaryLevelAdjust() const override { return _boundaryLevelAdjust; }
     int getMaxPacketsPerSecond() const { return _maxPacketsPerSecond; }
 
     unsigned getOctreeElementsCount() const { return _tree->getOctreeElementsCount(); }
 
 private:
     ViewFrustum _viewFrustum;
-    JurisdictionListener* _jurisdictionListener;
+    JurisdictionListener* _jurisdictionListener = nullptr;
     OctreeQuery _octreeQuery;
     float _voxelSizeScale;
     int _boundaryLevelAdjust;

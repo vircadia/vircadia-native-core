@@ -23,7 +23,7 @@ public:
     ALLOW_INSTANTIATION // This class can be instantiated
     
     // methods for getting/setting all properties of an entity
-    virtual EntityItemProperties getProperties() const;
+    virtual EntityItemProperties getProperties(EntityPropertyFlags desiredProperties = EntityPropertyFlags()) const;
     virtual bool setProperties(const EntityItemProperties& properties);
 
     // TODO: eventually only include properties changed since the params.lastViewFrustumSent time
@@ -39,7 +39,8 @@ public:
 
     virtual int readEntitySubclassDataFromBuffer(const unsigned char* data, int bytesLeftToRead, 
                                                 ReadBitstreamToTreeParams& args,
-                                                EntityPropertyFlags& propertyFlags, bool overwriteLocalData);
+                                                EntityPropertyFlags& propertyFlags, bool overwriteLocalData, 
+                                                bool& somethingChanged);
 
     const rgbColor& getColor() const { return _color; }
     xColor getXColor() const { xColor color = { _color[RED_INDEX], _color[GREEN_INDEX], _color[BLUE_INDEX] }; return color; }
@@ -52,6 +53,7 @@ public:
     }
     
     virtual ShapeType getShapeType() const { return SHAPE_TYPE_BOX; }
+    virtual bool shouldBePhysical() const { return true; }
 
     virtual void debugDump() const;
 

@@ -14,10 +14,11 @@
 
 #include <ByteCountCoding.h>
 
+#include "EntitiesLogging.h"
 #include "EntityItemID.h"
+#include "EntityItemProperties.h"
 #include "EntityTree.h"
 #include "EntityTreeElement.h"
-#include "EntitiesLogging.h"
 #include "LightEntityItem.h"
 
 bool LightEntityItem::_lightsArePickable = false;
@@ -56,8 +57,8 @@ void LightEntityItem::setDimensions(const glm::vec3& value) {
 }
 
 
-EntityItemProperties LightEntityItem::getProperties() const {
-    EntityItemProperties properties = EntityItem::getProperties(); // get the properties from our base class
+EntityItemProperties LightEntityItem::getProperties(EntityPropertyFlags desiredProperties) const {
+    EntityItemProperties properties = EntityItem::getProperties(desiredProperties); // get the properties from our base class
 
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(isSpotlight, getIsSpotlight);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(color, getXColor);
@@ -119,7 +120,8 @@ bool LightEntityItem::setProperties(const EntityItemProperties& properties) {
 
 int LightEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data, int bytesLeftToRead, 
                                                 ReadBitstreamToTreeParams& args,
-                                                EntityPropertyFlags& propertyFlags, bool overwriteLocalData) {
+                                                EntityPropertyFlags& propertyFlags, bool overwriteLocalData,
+                                                bool& somethingChanged) {
 
     int bytesRead = 0;
     const unsigned char* dataAt = data;

@@ -57,11 +57,7 @@ void GLBackend::do_setInputBuffer(Batch& batch, uint32 paramOffset) {
     }
 }
 
-#if (GPU_INPUT_PROFILE == GPU_CORE_41)
-#define NO_SUPPORT_VERTEX_ATTRIB_FORMAT
-#else
-#define SUPPORT_VERTEX_ATTRIB_FORMAT
-#endif
+
 
 
 void GLBackend::initInput() {
@@ -90,6 +86,15 @@ void GLBackend::syncInputStateCache() {
     glBindVertexArray(_input._defaultVAO);
 }
 
+// Core 41 doesn't expose the features to really separate the vertex format from the vertex buffers binding
+// Core 43 does :)
+// FIXME crashing problem with glVertexBindingDivisor / glVertexAttribFormat
+#if 1 || (GPU_INPUT_PROFILE == GPU_CORE_41)
+#define NO_SUPPORT_VERTEX_ATTRIB_FORMAT
+#else
+#define SUPPORT_VERTEX_ATTRIB_FORMAT
+#endif
+
 void GLBackend::updateInput() {
 #if defined(SUPPORT_VERTEX_ATTRIB_FORMAT)
     if (_input._invalidFormat) {
@@ -100,19 +105,28 @@ void GLBackend::updateInput() {
         if (_input._format) {
             for (auto& it : _input._format->getAttributes()) {
                 const Stream::Attribute& attrib = (it).second;
-                newActivation.set(attrib._slot);
-                glVertexAttribFormat(
-                    attrib._slot,
-                    attrib._element.getDimensionCount(),
-                    _elementTypeToGLType[attrib._element.getType()],
-                    attrib._element.isNormalized(),
-                    attrib._offset);
+
+                GLuint slot = attrib._slot;
+                GLuint count = attrib._element.getLocationScalarCount();
+                uint8_t locationCount = attrib._element.getLocationCount();
+                GLenum type = _elementTypeToGLType[attrib._element.getType()];
+                GLuint offset = attrib._offset;;
+                GLboolean isNormalized = attrib._element.isNormalized();
+
+                GLenum perLocationSize = attrib._element.getLocationSize();
+
+                for (size_t locNum = 0; locNum < locationCount; ++locNum) {
+                    newActivation.set(slot + locNum);
+                    glVertexAttribFormat(slot + locNum, count, type, isNormalized, offset + locNum * perLocationSize);
+                    glVertexAttribBinding(slot + locNum, attrib._channel);
+                }
+                glVertexBindingDivisor(attrib._channel, attrib._frequency);
             }
             (void) CHECK_GL_ERROR();
         }
 
         // Manage Activation what was and what is expected now
-        for (int i = 0; i < newActivation.size(); i++) {
+        for (size_t i = 0; i < newActivation.size(); i++) {
             bool newState = newActivation[i];
             if (newState != _input._attributeActivation[i]) {
                 if (newState) {
@@ -160,7 +174,10 @@ void GLBackend::updateInput() {
             if (_input._format) {
                 for (auto& it : _input._format->getAttributes()) {
                     const Stream::Attribute& attrib = (it).second;
-                    newActivation.set(attrib._slot);
+                    uint8_t locationCount = attrib._element.getLocationCount();
+                    for (int i = 0; i < locationCount; ++i) {
+                        newActivation.set(attrib._slot + i);
+                    }
                 }
             }
             
@@ -210,15 +227,21 @@ void GLBackend::updateInput() {
                         for (unsigned int i = 0; i < channel._slots.size(); i++) {
                             const Stream::Attribute& attrib = attributes.at(channel._slots[i]);
                             GLuint slot = attrib._slot;
-                            GLuint count = attrib._element.getDimensionCount();
+                            GLuint count = attrib._element.getLocationScalarCount();
+                            uint8_t locationCount = attrib._element.getLocationCount();
                             GLenum type = _elementTypeToGLType[attrib._element.getType()];
+                            // GLenum perLocationStride = strides[bufferNum];
+                            GLenum perLocationStride = attrib._element.getLocationSize();
                             GLuint stride = strides[bufferNum];
                             GLuint pointer = attrib._offset + offsets[bufferNum];
                             GLboolean isNormalized = attrib._element.isNormalized();
 
-                            glVertexAttribPointer(slot, count, type, isNormalized, stride,
-                                                      reinterpret_cast<GLvoid*>(pointer));
-
+                            for (size_t locNum = 0; locNum < locationCount; ++locNum) {
+                                glVertexAttribPointer(slot + locNum, count, type, isNormalized, stride,
+                                    reinterpret_cast<GLvoid*>(pointer + perLocationStride * locNum));
+                                glVertexAttribDivisor(slot + locNum, attrib._frequency);
+                            }
+                            
                             // TODO: Support properly the IAttrib version
 
                             (void) CHECK_GL_ERROR();
@@ -265,21 +288,36 @@ void GLBackend::resetInputStage() {
 }
 
 void GLBackend::do_setIndexBuffer(Batch& batch, uint32 paramOffset) {
-    _input._indexBufferType = (Type) batch._params[paramOffset + 2]._uint;
-    BufferPointer indexBuffer = batch._buffers.get(batch._params[paramOffset + 1]._uint);
+    _input._indexBufferType = (Type)batch._params[paramOffset + 2]._uint;
     _input._indexBufferOffset = batch._params[paramOffset + 0]._uint;
-    _input._indexBuffer = indexBuffer;
-    if (indexBuffer) {
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, getBufferID(*indexBuffer));
-    } else {
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+
+    BufferPointer indexBuffer = batch._buffers.get(batch._params[paramOffset + 1]._uint);
+    if (indexBuffer != _input._indexBuffer) {
+        _input._indexBuffer = indexBuffer;
+        if (indexBuffer) {
+            glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, getBufferID(*indexBuffer));
+        } else {
+            // FIXME do we really need this?  Is there ever a draw call where we care that the element buffer is null?
+            glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+        }
     }
     (void) CHECK_GL_ERROR();
 }
 
-template <typename V>
-void popParam(Batch::Params& params, uint32& paramOffset, V& v) {
-    for (size_t i = 0; i < v.length(); ++i) {
-        v[i] = params[paramOffset++]._float;
+void GLBackend::do_setIndirectBuffer(Batch& batch, uint32 paramOffset) {
+    _input._indirectBufferOffset = batch._params[paramOffset + 1]._uint;
+    _input._indirectBufferStride = batch._params[paramOffset + 2]._uint;
+
+    BufferPointer buffer = batch._buffers.get(batch._params[paramOffset]._uint);
+    if (buffer != _input._indirectBuffer) {
+        _input._indirectBuffer = buffer;
+        if (buffer) {
+            glBindBuffer(GL_DRAW_INDIRECT_BUFFER, getBufferID(*buffer));
+        } else {
+            // FIXME do we really need this?  Is there ever a draw call where we care that the element buffer is null?
+            glBindBuffer(GL_DRAW_INDIRECT_BUFFER, 0);
+        }
     }
+
+    (void)CHECK_GL_ERROR();
 }

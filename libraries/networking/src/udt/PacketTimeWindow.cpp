@@ -93,15 +93,16 @@ int32_t PacketTimeWindow::getEstimatedBandwidth() const {
 }
 
 void PacketTimeWindow::onPacketArrival() {
+    
     // take the current time
-    auto now = high_resolution_clock::now();
+    auto now = p_high_resolution_clock::now();
     
-    // record the interval between this packet and the last one
-    _packetIntervals[_currentPacketInterval++] = duration_cast<microseconds>(now - _lastPacketTime).count();
-    
-    // reset the currentPacketInterval index when it wraps
-    if (_currentPacketInterval == _numPacketIntervals) {
-        _currentPacketInterval = 0;
+    if (_packetIntervals.size() > 0) {
+        // record the interval between this packet and the last one
+        _packetIntervals[_currentPacketInterval++] = duration_cast<microseconds>(now - _lastPacketTime).count();
+        
+        // reset the currentPacketInterval index when it wraps
+        _currentPacketInterval %= _numPacketIntervals;
     }
     
     // remember this as the last packet arrival time
@@ -110,17 +111,15 @@ void PacketTimeWindow::onPacketArrival() {
 
 void PacketTimeWindow::onProbePair1Arrival() {
     // take the current time as the first probe time
-    _firstProbeTime = high_resolution_clock::now();
+    _firstProbeTime = p_high_resolution_clock::now();
 }
 
 void PacketTimeWindow::onProbePair2Arrival() {
     // store the interval between the two probes
-    auto now = high_resolution_clock::now();
+    auto now = p_high_resolution_clock::now();
     
     _probeIntervals[_currentProbeInterval++] = duration_cast<microseconds>(now - _firstProbeTime).count();
     
     // reset the currentProbeInterval index when it wraps
-    if (_currentProbeInterval == _numProbeIntervals) {
-        _currentProbeInterval = 0;
-    }
+    _currentProbeInterval %= _numProbeIntervals;
 }

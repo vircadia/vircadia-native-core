@@ -22,8 +22,8 @@ class LineEntityItem : public EntityItem {
     
     ALLOW_INSTANTIATION // This class can be instantiated
     
-        // methods for getting/setting all properties of an entity
-        virtual EntityItemProperties getProperties() const;
+    // methods for getting/setting all properties of an entity
+    virtual EntityItemProperties getProperties(EntityPropertyFlags desiredProperties = EntityPropertyFlags()) const;
     virtual bool setProperties(const EntityItemProperties& properties);
 
     // TODO: eventually only include properties changed since the params.lastViewFrustumSent time
@@ -39,7 +39,8 @@ class LineEntityItem : public EntityItem {
 
     virtual int readEntitySubclassDataFromBuffer(const unsigned char* data, int bytesLeftToRead, 
                                                  ReadBitstreamToTreeParams& args,
-                                                 EntityPropertyFlags& propertyFlags, bool overwriteLocalData);
+                                                 EntityPropertyFlags& propertyFlags, bool overwriteLocalData,
+                                                 bool& somethingChanged);
 
     const rgbColor& getColor() const { return _color; }
     xColor getXColor() const { xColor color = { _color[RED_INDEX], _color[GREEN_INDEX], _color[BLUE_INDEX] }; return color; }
@@ -64,8 +65,9 @@ class LineEntityItem : public EntityItem {
     // never have a ray intersection pick a LineEntityItem.
     virtual bool supportsDetailedRayIntersection() const { return true; }
     virtual bool findDetailedRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
-                         bool& keepSearching, OctreeElement*& element, float& distance, BoxFace& face, 
-                         void** intersectedObject, bool precisionPicking) const { return false; }
+                                                bool& keepSearching, OctreeElementPointer& element, float& distance,
+                                                BoxFace& face, glm::vec3& surfaceNormal,
+                                                void** intersectedObject, bool precisionPicking) const { return false; }
 
     virtual void debugDump() const;
     static const float DEFAULT_LINE_WIDTH;

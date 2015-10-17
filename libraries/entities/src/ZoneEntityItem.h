@@ -15,7 +15,10 @@
 #include <EnvironmentData.h>
 
 #include "AtmospherePropertyGroup.h"
-#include "EntityItem.h" 
+#include "EntityItem.h"
+#include "EntityTree.h"
+#include "SkyboxPropertyGroup.h"
+#include "StagePropertyGroup.h"
 
 class ZoneEntityItem : public EntityItem {
 public:
@@ -26,7 +29,7 @@ public:
     ALLOW_INSTANTIATION // This class can be instantiated
     
     // methods for getting/setting all properties of an entity
-    virtual EntityItemProperties getProperties() const;
+    virtual EntityItemProperties getProperties(EntityPropertyFlags desiredProperties = EntityPropertyFlags()) const;
     virtual bool setProperties(const EntityItemProperties& properties);
 
     // TODO: eventually only include properties changed since the params.lastViewFrustumSent time
@@ -42,7 +45,8 @@ public:
 
     virtual int readEntitySubclassDataFromBuffer(const unsigned char* data, int bytesLeftToRead, 
                                                 ReadBitstreamToTreeParams& args,
-                                                EntityPropertyFlags& propertyFlags, bool overwriteLocalData);
+                                                EntityPropertyFlags& propertyFlags, bool overwriteLocalData,
+                                                bool& somethingChanged);
 
     xColor getKeyLightColor() const { xColor color = { _keyLightColor[RED_INDEX], _keyLightColor[GREEN_INDEX], _keyLightColor[BLUE_INDEX] }; return color; }
     void setKeyLightColor(const xColor& value) {
@@ -99,7 +103,8 @@ public:
 
     virtual bool supportsDetailedRayIntersection() const { return true; }
     virtual bool findDetailedRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
-                         bool& keepSearching, OctreeElement*& element, float& distance, BoxFace& face,
+                         bool& keepSearching, OctreeElementPointer& element, float& distance,
+                         BoxFace& face, glm::vec3& surfaceNormal,
                          void** intersectedObject, bool precisionPicking) const;
 
     virtual void debugDump() const;

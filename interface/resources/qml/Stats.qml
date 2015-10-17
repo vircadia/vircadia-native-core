@@ -142,8 +142,15 @@ Item {
                         color: root.fontColor;
                         font.pixelSize: root.fontSize
                         visible: root.expanded;
-                        text: "Avatar Mixer: " + root.avatarMixerKbps + " kbps, " +
-                            root.avatarMixerPps + "pps";
+                        text: "Avatar Mixer In: " + root.avatarMixerInKbps + " kbps, " +
+                            root.avatarMixerInPps + "pps";
+                    }
+                    Text {
+                        color: root.fontColor;
+                        font.pixelSize: root.fontSize
+                        visible: root.expanded;
+                        text: "Avatar Mixer Out: " + root.avatarMixerOutKbps + " kbps, " +
+                            root.avatarMixerOutPps + "pps";
                     }
                     Text {
                         color: root.fontColor;
@@ -168,7 +175,7 @@ Item {
                         color: root.fontColor;
                         font.pixelSize: root.fontSize
                         text: "Triangles: " + root.triangles +
-                            " / Quads: " + root.quads + " / Material Switches: " + root.materialSwitches
+                            " / Material Switches: " + root.materialSwitches
                     }
                     Text {
                         color: root.fontColor;

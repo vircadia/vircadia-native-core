@@ -56,7 +56,7 @@ class ControllerScriptingInterface : public AbstractControllerScriptingInterface
 public:    
     ControllerScriptingInterface();
     
-    virtual void registerControllerTypes(QScriptEngine* engine);
+    virtual void registerControllerTypes(ScriptEngine* engine);
     
     void emitKeyPressEvent(QKeyEvent* event) { emit keyPressEvent(KeyEvent(*event)); }
     void emitKeyReleaseEvent(QKeyEvent* event) { emit keyReleaseEvent(KeyEvent(*event)); }
@@ -150,6 +150,8 @@ public slots:
     virtual void releaseInputController(AbstractInputController* input);
 
 private:
+    QString sanatizeName(const QString& name); /// makes a name clean for inclusing in JavaScript
+
     const PalmData* getPrimaryPalm() const;
     const PalmData* getPalm(int palmIndex) const;
     int getNumberOfActivePalms() const;
@@ -164,6 +166,9 @@ private:
 
     typedef std::map< AbstractInputController::Key, AbstractInputController* > InputControllerMap;
     InputControllerMap _inputControllers;
+
+    void wireUpControllers(ScriptEngine* engine);
+
 };
 
 const int NUMBER_OF_SPATIALCONTROLS_PER_PALM = 2; // the hand and the tip

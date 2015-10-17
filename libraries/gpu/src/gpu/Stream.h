@@ -11,12 +11,14 @@
 #ifndef hifi_gpu_Stream_h
 #define hifi_gpu_Stream_h
 
+#include <vector>
+#include <map>
+#include <array>
+
 #include <assert.h>
 
 #include "Resource.h"
 #include "Format.h"
-#include <vector>
-#include <map>
 
 namespace gpu {
 
@@ -35,11 +37,12 @@ public:
         SKIN_CLUSTER_INDEX = 5,
         SKIN_CLUSTER_WEIGHT = 6,
         TEXCOORD1 = 7,
-        INSTANCE_XFM = 8,
-        INSTANCE_SCALE = 9,
-        INSTANCE_TRANSLATE = 10,
+        INSTANCE_SCALE = 8,
+        INSTANCE_TRANSLATE = 9,
+        INSTANCE_XFM = 10,
 
-        NUM_INPUT_SLOTS,
+        // Instance XFM is a mat4, and as such takes up 4 slots
+        NUM_INPUT_SLOTS = INSTANCE_XFM + 4,
     };
 
     typedef uint8 Slot;
@@ -54,6 +57,8 @@ public:
     // Every thing that is needed to detail a stream attribute and how to interpret it
     class Attribute {
     public:
+        Attribute() {}
+
         Attribute(Slot slot, Slot channel, Element element, Offset offset = 0, Frequency frequency = PER_VERTEX) :
             _slot(slot),
             _channel(channel),
@@ -61,21 +66,12 @@ public:
             _offset(offset),
             _frequency(frequency)
         {}
-        Attribute() :
-            _slot(POSITION),
-            _channel(0),
-            _element(),
-            _offset(0),
-            _frequency(PER_VERTEX)
-        {}
 
-
-        Slot _slot; // Logical slot assigned to the attribute
-        Slot _channel; // index of the channel where to get the data from
-        Element _element;
-
-        Offset _offset;
-        uint32 _frequency;
+        Slot _slot{ POSITION }; // Logical slot assigned to the attribute
+        Slot _channel{ POSITION }; // index of the channel where to get the data from
+        Element _element{ Element::VEC3F_XYZ };
+        Offset _offset{ 0 };
+        uint32 _frequency{ PER_VERTEX };
 
         // Size of the 
         uint32 getSize() const { return _element.getSize(); }
@@ -112,6 +108,9 @@ public:
         uint32 getElementTotalSize() const { return _elementTotalSize; }
 
         bool setAttribute(Slot slot, Slot channel, Element element, Offset offset = 0, Frequency frequency = PER_VERTEX);
+        bool setAttribute(Slot slot, Frequency frequency = PER_VERTEX);
+        bool setAttribute(Slot slot, Slot channel, Frequency frequency = PER_VERTEX);
+
 
     protected:
         AttributeMap _attributes;
@@ -135,12 +134,15 @@ public:
     BufferStream();
     ~BufferStream();
 
+    void clear() { _buffers.clear(); _offsets.clear(); _strides.clear(); }
     void addBuffer(const BufferPointer& buffer, Offset offset, Offset stride);
 
     const Buffers& getBuffers() const { return _buffers; }
     const Offsets& getOffsets() const { return _offsets; }
     const Strides& getStrides() const { return _strides; }
-    uint8 getNumBuffers() const { return _buffers.size(); }
+    uint32 getNumBuffers() const { return _buffers.size(); }
+
+    BufferStream makeRangedStream(uint32 offset, uint32 count = -1) const;
 
 protected:
     Buffers _buffers;

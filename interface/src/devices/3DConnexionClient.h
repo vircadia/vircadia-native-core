@@ -16,8 +16,6 @@
 #include <input-plugins/UserInputMapper.h>
 
 #include "InterfaceLogging.h"
-#include "Application.h"
-
 
 #ifndef HAVE_3DCONNEXIONCLIENT
 class ConnexionClient : public QObject {
@@ -158,7 +156,7 @@ private:
 #else
 
 #include <glm/glm.hpp>
-#include "3DconnexionClient/ConnexionClientAPI.h"
+#include "ConnexionClientAPI.h"
 
 class ConnexionClient : public QObject {
     Q_OBJECT

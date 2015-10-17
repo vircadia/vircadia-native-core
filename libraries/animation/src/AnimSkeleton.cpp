@@ -22,7 +22,7 @@ const AnimPose AnimPose::identity = AnimPose(glm::vec3(1.0f),
 
 AnimPose::AnimPose(const glm::mat4& mat) {
     scale = extractScale(mat);
-    rot = extractRotation(mat);
+    rot = glm::normalize(glm::quat_cast(mat));
     trans = extractTranslation(mat);
 }
 
@@ -91,6 +91,23 @@ int AnimSkeleton::getNumJoints() const {
 
 const AnimPose& AnimSkeleton::getAbsoluteBindPose(int jointIndex) const {
     return _absoluteBindPoses[jointIndex];
+}
+
+AnimPose AnimSkeleton::getRootAbsoluteBindPoseByChildName(const QString& childName) const {
+    AnimPose pose = AnimPose::identity;
+    int jointIndex = nameToJointIndex(childName);
+    if (jointIndex >= 0) {
+        int numJoints = (int)(_absoluteBindPoses.size());
+        if (jointIndex < numJoints) {
+            int parentIndex = getParentIndex(jointIndex);
+            while (parentIndex != -1 && parentIndex < numJoints) {
+                jointIndex = parentIndex;
+                parentIndex = getParentIndex(jointIndex);
+            }
+            pose = _absoluteBindPoses[jointIndex];
+        }
+    }
+    return pose;
 }
 
 const AnimPose& AnimSkeleton::getRelativeBindPose(int jointIndex) const {
@@ -173,6 +190,7 @@ void AnimSkeleton::dump() const {
     qCDebug(animation) << "[";
     for (int i = 0; i < getNumJoints(); i++) {
         qCDebug(animation) << "    {";
+        qCDebug(animation) << "        index =" << i;
         qCDebug(animation) << "        name =" << getJointName(i);
         qCDebug(animation) << "        absBindPose =" << getAbsoluteBindPose(i);
         qCDebug(animation) << "        relBindPose =" << getRelativeBindPose(i);
@@ -188,6 +206,7 @@ void AnimSkeleton::dump(const AnimPoseVec& poses) const {
     qCDebug(animation) << "[";
     for (int i = 0; i < getNumJoints(); i++) {
         qCDebug(animation) << "    {";
+        qCDebug(animation) << "        index =" << i;
         qCDebug(animation) << "        name =" << getJointName(i);
         qCDebug(animation) << "        absBindPose =" << getAbsoluteBindPose(i);
         qCDebug(animation) << "        relBindPose =" << getRelativeBindPose(i);

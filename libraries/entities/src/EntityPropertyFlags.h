@@ -12,32 +12,7 @@
 #ifndef hifi_EntityPropertyFlags_h
 #define hifi_EntityPropertyFlags_h
 
-/*
-#include <stdint.h>
-
-#include <glm/glm.hpp>
-#include <glm/gtx/extented_min_max.hpp>
-
-#include <QtScript/QScriptEngine>
-#include <QtCore/QObject>
-#include <QVector>
-#include <QString>
-
-#include <AACube.h>
-#include <FBXReader.h> // for SittingPoint
-*/
-
 #include <PropertyFlags.h>
-
-/*
-#include <OctreeConstants.h>
-#include <ShapeInfo.h>
-
-#include "AtmospherePropertyGroup.h"
-#include "EntityItemID.h"
-#include "EntityItemPropertiesMacros.h"
-#include "EntityTypes.h"
-*/
 
 enum EntityPropertyList {
     PROP_PAGED_PROPERTY,
@@ -96,7 +71,7 @@ enum EntityPropertyList {
     PROP_MAX_PARTICLES,
     PROP_LIFESPAN,
     PROP_EMIT_RATE,
-    PROP_EMIT_VELOCITY,
+    PROP_EMIT_SPEED,
     PROP_EMIT_STRENGTH,
     PROP_EMIT_ACCELERATION,
     PROP_PARTICLE_RADIUS,
@@ -136,7 +111,7 @@ enum EntityPropertyList {
     PROP_STROKE_WIDTHS,
 
     // used by particles
-    PROP_VELOCITY_SPREAD,
+    PROP_SPEED_SPREAD,
     PROP_ACCELERATION_SPREAD,
 
     PROP_X_N_NEIGHBOR_ID, // used by PolyVox
@@ -160,6 +135,19 @@ enum EntityPropertyList {
     PROP_ALPHA_SPREAD,
     PROP_ALPHA_START,
     PROP_ALPHA_FINISH,
+    PROP_EMIT_ORIENTATION,
+    PROP_EMIT_DIMENSIONS,
+    PROP_EMIT_RADIUS_START,
+    PROP_POLAR_START,
+    PROP_POLAR_FINISH,
+    PROP_AZIMUTH_START,
+    PROP_AZIMUTH_FINISH,
+
+    PROP_ANIMATION_LOOP,
+    PROP_ANIMATION_FIRST_FRAME,
+    PROP_ANIMATION_LAST_FRAME,
+    PROP_ANIMATION_HOLD,
+    PROP_ANIMATION_START_AUTOMATICALLY,
 
     ////////////////////////////////////////////////////////////////////////////////////////////////////
     // ATTENTION: add new properties to end of list just ABOVE this line
@@ -190,21 +178,25 @@ enum EntityPropertyList {
     PROP_STAGE_ALTITUDE = PROP_SPECULAR_COLOR_UNUSED,
     PROP_STAGE_DAY = PROP_LINEAR_ATTENUATION_UNUSED,
     PROP_STAGE_HOUR = PROP_QUADRATIC_ATTENUATION_UNUSED,
+    PROP_STAGE_AUTOMATIC_HOURDAY = PROP_ANIMATION_FRAME_INDEX,
     PROP_ATMOSPHERE_CENTER = PROP_MAX_PARTICLES,
     PROP_ATMOSPHERE_INNER_RADIUS = PROP_LIFESPAN,
     PROP_ATMOSPHERE_OUTER_RADIUS = PROP_EMIT_RATE,
-    PROP_ATMOSPHERE_MIE_SCATTERING = PROP_EMIT_VELOCITY,
+    PROP_ATMOSPHERE_MIE_SCATTERING = PROP_EMIT_SPEED,
     PROP_ATMOSPHERE_RAYLEIGH_SCATTERING = PROP_EMIT_STRENGTH,
     PROP_ATMOSPHERE_SCATTERING_WAVELENGTHS = PROP_EMIT_ACCELERATION,
     PROP_ATMOSPHERE_HAS_STARS = PROP_PARTICLE_RADIUS,
     PROP_BACKGROUND_MODE = PROP_MODEL_URL,
     PROP_SKYBOX_COLOR = PROP_ANIMATION_URL,
     PROP_SKYBOX_URL = PROP_ANIMATION_FPS,
-    PROP_STAGE_AUTOMATIC_HOURDAY = PROP_ANIMATION_FRAME_INDEX,
 
     // Aliases/Piggyback properties for Web. These properties intentionally reuse the enum values for
     // other properties which will never overlap with each other. 
     PROP_SOURCE_URL = PROP_MODEL_URL,
+
+    // Aliases/Piggyback properties for Particle Emmitter. These properties intentionally reuse the enum values for
+    // other properties which will never overlap with each other. 
+    PROP_EMITTING_PARTICLES = PROP_ANIMATION_PLAYING,
 
     // WARNING!!! DO NOT ADD PROPS_xxx here unless you really really meant to.... Add them UP above
 };

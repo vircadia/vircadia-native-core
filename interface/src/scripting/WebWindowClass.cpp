@@ -41,7 +41,7 @@ WebWindowClass::WebWindowClass(const QString& title, const QString& url, int wid
       _isToolWindow(isToolWindow) {
 
     if (_isToolWindow) {
-        ToolWindow* toolWindow = Application::getInstance()->getToolWindow();
+        ToolWindow* toolWindow = qApp->getToolWindow();
 
         auto dockWidget = new QDockWidget(title, toolWindow);
         dockWidget->setFeatures(QDockWidget::DockWidgetMovable);
@@ -52,11 +52,14 @@ WebWindowClass::WebWindowClass(const QString& title, const QString& url, int wid
 
         dockWidget->setWidget(_webView);
 
-        toolWindow->addDockWidget(Qt::RightDockWidgetArea, dockWidget);
+        auto titleWidget = new QWidget(dockWidget);
+        dockWidget->setTitleBarWidget(titleWidget);
+
+        toolWindow->addDockWidget(Qt::TopDockWidgetArea, dockWidget, Qt::Horizontal);
 
         _windowWidget = dockWidget;
     } else {
-        auto dialogWidget = new QDialog(Application::getInstance()->getWindow(), Qt::Window);
+        auto dialogWidget = new QDialog(qApp->getWindow(), Qt::Window);
         dialogWidget->setWindowTitle(title);
         dialogWidget->resize(width, height);
         dialogWidget->installEventFilter(this);
@@ -120,7 +123,7 @@ void WebWindowClass::setVisible(bool visible) {
     if (visible) {
         if (_isToolWindow) {
             QMetaObject::invokeMethod(
-                Application::getInstance()->getToolWindow(), "setVisible", Qt::AutoConnection, Q_ARG(bool, visible));
+                qApp->getToolWindow(), "setVisible", Qt::AutoConnection, Q_ARG(bool, visible));
         } else {
             QMetaObject::invokeMethod(_windowWidget, "showNormal", Qt::AutoConnection);
             QMetaObject::invokeMethod(_windowWidget, "raise", Qt::AutoConnection);

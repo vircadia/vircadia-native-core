@@ -24,31 +24,42 @@
 class AbstractViewStateInterface;
 class RenderArgs;
 class SimpleProgramKey;
-
+struct LightLocations;
+using LightLocationsPtr = std::shared_ptr<LightLocations>;
 /// Handles deferred lighting for the bits that require it (voxels...)
 class DeferredLightingEffect : public Dependency {
     SINGLETON_DEPENDENCY
     
 public:
     static const int NORMAL_FITTING_MAP_SLOT = 10;
+    static const int DEFERRED_TRANSFORM_BUFFER_SLOT = 2;
 
     void init(AbstractViewStateInterface* viewState);
 
     /// Sets up the state necessary to render static untextured geometry with the simple program.
-    void bindSimpleProgram(gpu::Batch& batch, bool textured = false, bool culled = true,
+    gpu::PipelinePointer bindSimpleProgram(gpu::Batch& batch, bool textured = false, bool culled = true,
                            bool emmisive = false, bool depthBias = false);
 
-    //// Renders a solid sphere with the simple program.
-    void renderSolidSphere(gpu::Batch& batch, float radius, int slices, int stacks, const glm::vec4& color);
+    void renderSolidSphereInstance(gpu::Batch& batch, const Transform& xfm, const glm::vec4& color);
+    void renderSolidSphereInstance(gpu::Batch& batch, const Transform& xfm, const glm::vec3& color) { 
+        renderSolidSphereInstance(batch, xfm, glm::vec4(color, 1.0));
+    }
 
-    //// Renders a wireframe sphere with the simple program.
-    void renderWireSphere(gpu::Batch& batch, float radius, int slices, int stacks, const glm::vec4& color);
-    
-    //// Renders a solid cube with the simple program.
-    void renderSolidCube(gpu::Batch& batch, float size, const glm::vec4& color);
+    void renderWireSphereInstance(gpu::Batch& batch, const Transform& xfm, const glm::vec4& color);
+    void renderWireSphereInstance(gpu::Batch& batch, const Transform& xfm, const glm::vec3& color) {
+        renderWireSphereInstance(batch, xfm, glm::vec4(color, 1.0));
+    }
 
-    //// Renders a wireframe cube with the simple program.
-    void renderWireCube(gpu::Batch& batch, float size, const glm::vec4& color);
+    void renderSolidCubeInstance(gpu::Batch& batch, const Transform& xfm, const glm::vec4& color);
+    void renderSolidCubeInstance(gpu::Batch& batch, const Transform& xfm, const glm::vec3& color) {
+        renderSolidCubeInstance(batch, xfm, glm::vec4(color, 1.0));
+    }
+
+    void renderWireCubeInstance(gpu::Batch& batch, const Transform& xfm, const glm::vec4& color);
+    void renderWireCubeInstance(gpu::Batch& batch, const Transform& xfm, const glm::vec3& color) {
+        renderWireCubeInstance(batch, xfm, glm::vec4(color, 1.0));
+    }
+
     
     //// Renders a quad with the simple program.
     void renderQuad(gpu::Batch& batch, const glm::vec3& minCorner, const glm::vec3& maxCorner, const glm::vec4& color);
@@ -77,33 +88,14 @@ public:
     void setGlobalAtmosphere(const model::AtmospherePointer& atmosphere) { _atmosphere = atmosphere; }
 
     void setGlobalSkybox(const model::SkyboxPointer& skybox);
-    
+
 private:
     DeferredLightingEffect() {}
     virtual ~DeferredLightingEffect() { }
 
-    class LightLocations {
-    public:
-        int shadowDistances;
-        int shadowScale;
-        int nearLocation;
-        int depthScale;
-        int depthTexCoordOffset;
-        int depthTexCoordScale;
-        int radius;
-        int ambientSphere;
-        int lightBufferUnit;
-        int atmosphereBufferUnit;
-        int invViewMat;
-        int texcoordMat;
-        int coneParam;
-    };
-
     model::MeshPointer _spotLightMesh;
     model::MeshPointer getSpotLightMesh();
 
-    static void loadLightProgram(const char* vertSource, const char* fragSource, bool lightVolume, gpu::PipelinePointer& program, LightLocations& locations);
-  
     gpu::PipelinePointer getPipeline(SimpleProgramKey config);
     
     gpu::ShaderPointer _simpleShader;
@@ -113,30 +105,30 @@ private:
     gpu::PipelinePointer _blitLightBuffer;
 
     gpu::PipelinePointer _directionalSkyboxLight;
-    LightLocations _directionalSkyboxLightLocations;
+    LightLocationsPtr _directionalSkyboxLightLocations;
     gpu::PipelinePointer _directionalSkyboxLightShadowMap;
-    LightLocations _directionalSkyboxLightShadowMapLocations;
+    LightLocationsPtr _directionalSkyboxLightShadowMapLocations;
     gpu::PipelinePointer _directionalSkyboxLightCascadedShadowMap;
-    LightLocations _directionalSkyboxLightCascadedShadowMapLocations;
+    LightLocationsPtr _directionalSkyboxLightCascadedShadowMapLocations;
 
     gpu::PipelinePointer _directionalAmbientSphereLight;
-    LightLocations _directionalAmbientSphereLightLocations;
+    LightLocationsPtr _directionalAmbientSphereLightLocations;
     gpu::PipelinePointer _directionalAmbientSphereLightShadowMap;
-    LightLocations _directionalAmbientSphereLightShadowMapLocations;
+    LightLocationsPtr _directionalAmbientSphereLightShadowMapLocations;
     gpu::PipelinePointer _directionalAmbientSphereLightCascadedShadowMap;
-    LightLocations _directionalAmbientSphereLightCascadedShadowMapLocations;
+    LightLocationsPtr _directionalAmbientSphereLightCascadedShadowMapLocations;
 
     gpu::PipelinePointer _directionalLight;
-    LightLocations _directionalLightLocations;
+    LightLocationsPtr _directionalLightLocations;
     gpu::PipelinePointer _directionalLightShadowMap;
-    LightLocations _directionalLightShadowMapLocations;
+    LightLocationsPtr _directionalLightShadowMapLocations;
     gpu::PipelinePointer _directionalLightCascadedShadowMap;
-    LightLocations _directionalLightCascadedShadowMapLocations;
+    LightLocationsPtr _directionalLightCascadedShadowMapLocations;
 
     gpu::PipelinePointer _pointLight;
-    LightLocations _pointLightLocations;
+    LightLocationsPtr _pointLightLocations;
     gpu::PipelinePointer _spotLight;
-    LightLocations _spotLightLocations;
+    LightLocationsPtr _spotLightLocations;
 
     class PointLight {
     public:
@@ -169,6 +161,19 @@ private:
     int _ambientLightMode = 0;
     model::AtmospherePointer _atmosphere;
     model::SkyboxPointer _skybox;
+
+    // Class describing the uniform buffer with all the parameters common to the deferred shaders
+    class DeferredTransform {
+    public:
+        glm::mat4 projection;
+        glm::mat4 viewInverse;
+        float stereoSide{ 0.f };
+        float spareA, spareB, spareC;
+
+        DeferredTransform() {}
+    };
+    typedef gpu::BufferView UniformBufferView;
+    UniformBufferView _deferredTransformBuffer[2];
 };
 
 class SimpleProgramKey {

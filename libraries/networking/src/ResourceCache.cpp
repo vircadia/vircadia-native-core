@@ -12,8 +12,6 @@
 #include <cfloat>
 #include <cmath>
 
-#include <QDebug>
-#include <QNetworkDiskCache>
 #include <QThread>
 #include <QTimer>
 
@@ -321,10 +319,10 @@ void Resource::attemptRequest() {
 
 void Resource::finishedLoading(bool success) {
     if (success) {
-        qDebug() << "Finished loading:" << _url;
+        qDebug().noquote() << "Finished loading:" << _url.toDisplayString();
         _loaded = true;
     } else {
-        qDebug() << "Failed to load:" << _url;
+        qDebug().noquote() << "Failed to load:" << _url.toDisplayString();
         _failedToLoad = true;
     }
     _loadPriorities.clear();
@@ -341,13 +339,13 @@ void Resource::makeRequest() {
     _request = ResourceManager::createResourceRequest(this, _activeUrl);
 
     if (!_request) {
-        qDebug() << "Failed to get request for " << _url;
+        qDebug().noquote() << "Failed to get request for" << _url.toDisplayString();
         ResourceCache::requestCompleted(this);
         finishedLoading(false);
         return;
     }
     
-    qDebug() << "Starting request for: " << _url;
+    qDebug().noquote() << "Starting request for:" << _url.toDisplayString();
 
     connect(_request, &ResourceRequest::progress, this, &Resource::handleDownloadProgress);
     connect(_request, &ResourceRequest::finished, this, &Resource::handleReplyFinished);
@@ -370,7 +368,8 @@ void Resource::handleReplyFinished() {
     auto result = _request->getResult();
     if (result == ResourceRequest::Success) {
         _data = _request->getData();
-        qDebug() << "Request finished for " << _url << ", " << _activeUrl;
+        auto extraInfo = _url == _activeUrl ? "" : QString(", %1").arg(_activeUrl.toDisplayString());
+        qDebug().noquote() << QString("Request finished for %1%2").arg(_url.toDisplayString(), extraInfo);
         
         finishedLoading(true);
         emit loaded(_data);
@@ -409,6 +408,7 @@ void Resource::handleReplyFinished() {
     _request->deleteLater();
     _request = nullptr;
 }
+
 
 void Resource::downloadFinished(const QByteArray& data) {
 }

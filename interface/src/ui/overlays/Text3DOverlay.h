@@ -54,7 +54,8 @@ public:
 
     QSizeF textSize(const QString& test) const;  // Meters
 
-    virtual bool findRayIntersection(const glm::vec3& origin, const glm::vec3& direction, float& distance, BoxFace& face);
+    virtual bool findRayIntersection(const glm::vec3& origin, const glm::vec3& direction, float& distance, 
+                                        BoxFace& face, glm::vec3& surfaceNormal);
 
     virtual Text3DOverlay* createClone() const;
 

@@ -11,7 +11,7 @@
 
 #include "ScriptLineNumberArea.h"
 
-#include "Application.h"
+#include "ScriptEditBox.h"
 
 ScriptLineNumberArea::ScriptLineNumberArea(ScriptEditBox* scriptEditBox) :
     QWidget(scriptEditBox)

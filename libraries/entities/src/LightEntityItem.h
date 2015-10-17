@@ -26,7 +26,7 @@ public:
     virtual void setDimensions(const glm::vec3& value);
     
     // methods for getting/setting all properties of an entity
-    virtual EntityItemProperties getProperties() const;
+    virtual EntityItemProperties getProperties(EntityPropertyFlags desiredProperties = EntityPropertyFlags()) const;
     virtual bool setProperties(const EntityItemProperties& properties);
 
     virtual EntityPropertyFlags getEntityProperties(EncodeBitstreamParams& params) const;
@@ -41,7 +41,8 @@ public:
 
     virtual int readEntitySubclassDataFromBuffer(const unsigned char* data, int bytesLeftToRead, 
                                                 ReadBitstreamToTreeParams& args,
-                                                EntityPropertyFlags& propertyFlags, bool overwriteLocalData);
+                                                EntityPropertyFlags& propertyFlags, bool overwriteLocalData,
+                                                bool& somethingChanged);
 
     const rgbColor& getColor() const { return _color; }
     xColor getXColor() const {

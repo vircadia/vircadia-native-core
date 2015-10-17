@@ -9,6 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "Util.h"
+
 #include <iostream>
 #include <cstring>
 #include <time.h>
@@ -19,16 +21,17 @@
 #include <glm/gtx/quaternion.hpp>
 #include <glm/detail/func_common.hpp>
 
+#include <QElapsedTimer>
 #include <QThread>
 
 #include <ByteCountCoding.h>
+#include <DeferredLightingEffect.h>
+#include <GeometryCache.h>
+#include <OctreeConstants.h>
 #include <SharedUtil.h>
 
-#include "world.h"
-#include "Application.h"
 #include "InterfaceLogging.h"
-
-#include "Util.h"
+#include "world.h"
 
 using namespace std;
 
@@ -93,29 +96,28 @@ void renderWorldBox(gpu::Batch& batch) {
     geometryCache->renderLine(batch, glm::vec3(-HALF_TREE_SCALE, 0.0f, HALF_TREE_SCALE),
                               glm::vec3(HALF_TREE_SCALE, 0.0f, HALF_TREE_SCALE), GREY);
 
-    geometryCache->renderWireCube(batch, TREE_SCALE, GREY4);
+    auto deferredLighting = DependencyManager::get<DeferredLightingEffect>();
+
+    deferredLighting->renderWireCubeInstance(batch, Transform(), GREY4);
 
     //  Draw meter markers along the 3 axis to help with measuring things
     const float MARKER_DISTANCE = 1.0f;
     const float MARKER_RADIUS = 0.05f;
 
-    geometryCache->renderSphere(batch, MARKER_RADIUS, 10, 10, RED);
+    transform = Transform().setScale(MARKER_RADIUS);
+    deferredLighting->renderSolidSphereInstance(batch, transform, RED);
 
-    transform.setTranslation(glm::vec3(MARKER_DISTANCE, 0.0f, 0.0f));
-    batch.setModelTransform(transform);
-    geometryCache->renderSphere(batch, MARKER_RADIUS, 10, 10, RED);
+    transform = Transform().setTranslation(glm::vec3(MARKER_DISTANCE, 0.0f, 0.0f)).setScale(MARKER_RADIUS);
+    deferredLighting->renderSolidSphereInstance(batch, transform, RED);
 
-    transform.setTranslation(glm::vec3(0.0f, MARKER_DISTANCE, 0.0f));
-    batch.setModelTransform(transform);
-    geometryCache->renderSphere(batch, MARKER_RADIUS, 10, 10, GREEN);
+    transform = Transform().setTranslation(glm::vec3(0.0f, MARKER_DISTANCE, 0.0f)).setScale(MARKER_RADIUS);
+    deferredLighting->renderSolidSphereInstance(batch, transform, GREEN);
 
-    transform.setTranslation(glm::vec3(0.0f, 0.0f, MARKER_DISTANCE));
-    batch.setModelTransform(transform);
-    geometryCache->renderSphere(batch, MARKER_RADIUS, 10, 10, BLUE);
+    transform = Transform().setTranslation(glm::vec3(0.0f, 0.0f, MARKER_DISTANCE)).setScale(MARKER_RADIUS);
+    deferredLighting->renderSolidSphereInstance(batch, transform, BLUE);
 
-    transform.setTranslation(glm::vec3(MARKER_DISTANCE, 0.0f, MARKER_DISTANCE));
-    batch.setModelTransform(transform);
-    geometryCache->renderSphere(batch, MARKER_RADIUS, 10, 10, GREY);
+    transform = Transform().setTranslation(glm::vec3(MARKER_DISTANCE, 0.0f, MARKER_DISTANCE)).setScale(MARKER_RADIUS);
+    deferredLighting->renderSolidSphereInstance(batch, transform, GREY);
 }
 
 //  Return a random vector of average length 1

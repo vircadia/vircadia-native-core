@@ -9,21 +9,16 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include "EntityItem.h"
-#include "EntityTree.h"
-#include "EntityTreeElement.h"
-#include "EntitiesLogging.h"
-
 #include "UpdateEntityOperator.h"
 
-UpdateEntityOperator::UpdateEntityOperator(EntityTree* tree, 
-                        EntityTreeElement* containingElement, 
-                        EntityItemPointer existingEntity, 
+UpdateEntityOperator::UpdateEntityOperator(EntityTreePointer tree,
+                        EntityTreeElementPointer containingElement,
+                        EntityItemPointer existingEntity,
                         const EntityItemProperties& properties) :
     _tree(tree),
     _existingEntity(existingEntity),
     _containingElement(containingElement),
-    _containingElementCube(containingElement->getAACube()), 
+    _containingElementCube(containingElement->getAACube()),
     _properties(properties),
     _entityItemID(existingEntity->getEntityItemID()),
     _foundOld(false),
@@ -37,10 +32,10 @@ UpdateEntityOperator::UpdateEntityOperator(EntityTree* tree,
 {
     // caller must have verified existence of containingElement and oldEntity
     assert(_containingElement && _existingEntity);
-    
+
     if (_wantDebug) {
         qCDebug(entities) << "UpdateEntityOperator::UpdateEntityOperator() -----------------------------";
-    }    
+    }
 
     // Here we have a choice to make, do we want to "tight fit" the actual minimum for the
     // entity into the the element, or do we want to use the entities "relaxed" bounds
@@ -144,7 +139,7 @@ UpdateEntityOperator::~UpdateEntityOperator() {
 
 
 // does this entity tree element contain the old entity
-bool UpdateEntityOperator::subTreeContainsOldEntity(OctreeElement* element) {
+bool UpdateEntityOperator::subTreeContainsOldEntity(OctreeElementPointer element) {
 
     // We've found cases where the old entity might be placed in an element that is not actually the best fit
     // so when we're searching the tree for the old element, we use the known cube for the known containing element
@@ -162,7 +157,7 @@ bool UpdateEntityOperator::subTreeContainsOldEntity(OctreeElement* element) {
     return elementContainsOldBox;
 }
 
-bool UpdateEntityOperator::subTreeContainsNewEntity(OctreeElement* element) {
+bool UpdateEntityOperator::subTreeContainsNewEntity(OctreeElementPointer element) {
     bool elementContainsNewBox = element->getAACube().contains(_newEntityBox);
 
     if (_wantDebug) {
@@ -179,8 +174,8 @@ bool UpdateEntityOperator::subTreeContainsNewEntity(OctreeElement* element) {
 }
 
 
-bool UpdateEntityOperator::preRecursion(OctreeElement* element) {
-    EntityTreeElement* entityTreeElement = static_cast<EntityTreeElement*>(element);
+bool UpdateEntityOperator::preRecursion(OctreeElementPointer element) {
+    EntityTreeElementPointer entityTreeElement = std::static_pointer_cast<EntityTreeElement>(element);
     
     // In Pre-recursion, we're generally deciding whether or not we want to recurse this
     // path of the tree. For this operation, we want to recurse the branch of the tree if
@@ -211,8 +206,8 @@ bool UpdateEntityOperator::preRecursion(OctreeElement* element) {
 
         if (_wantDebug) {
             qCDebug(entities) << "    OLD TREE CASE....";
-            qCDebug(entities) << "    entityTreeElement=" << entityTreeElement;
-            qCDebug(entities) << "    _containingElement=" << _containingElement;
+            qCDebug(entities) << "    entityTreeElement=" << entityTreeElement.get();
+            qCDebug(entities) << "    _containingElement=" << _containingElement.get();
         }
 
         // If this is the element we're looking for, then ask it to remove the old entity
@@ -234,7 +229,7 @@ bool UpdateEntityOperator::preRecursion(OctreeElement* element) {
 
                 // the entity knows what element it's in, so we remove it from that one
                 // NOTE: we know we haven't yet added it to its new element because _removeOld is true
-                EntityTreeElement* oldElement = _existingEntity->getElement();
+                EntityTreeElementPointer oldElement = _existingEntity->getElement();
                 oldElement->removeEntityItem(_existingEntity);
                 _tree->setContainingElement(_entityItemID, NULL);
 
@@ -260,8 +255,8 @@ bool UpdateEntityOperator::preRecursion(OctreeElement* element) {
 
         if (_wantDebug) {
             qCDebug(entities) << "    NEW TREE CASE....";
-            qCDebug(entities) << "    entityTreeElement=" << entityTreeElement;
-            qCDebug(entities) << "    _containingElement=" << _containingElement;
+            qCDebug(entities) << "    entityTreeElement=" << entityTreeElement.get();
+            qCDebug(entities) << "    _containingElement=" << _containingElement.get();
             qCDebug(entities) << "    entityTreeElement->bestFitBounds(_newEntityBox)=" << entityTreeElement->bestFitBounds(_newEntityBox);
         }
 
@@ -272,7 +267,7 @@ bool UpdateEntityOperator::preRecursion(OctreeElement* element) {
                 qCDebug(entities) << "    *** THIS ELEMENT IS BEST FIT ***";
             }
 
-            EntityTreeElement* oldElement = _existingEntity->getElement();
+            EntityTreeElementPointer oldElement = _existingEntity->getElement();
             // if we are the existing containing element, then we can just do the update of the entity properties
             if (entityTreeElement == oldElement) {
 
@@ -317,7 +312,7 @@ bool UpdateEntityOperator::preRecursion(OctreeElement* element) {
     return keepSearching; // if we haven't yet found it, keep looking
 }
 
-bool UpdateEntityOperator::postRecursion(OctreeElement* element) {
+bool UpdateEntityOperator::postRecursion(OctreeElementPointer element) {
     // Post-recursion is the unwinding process. For this operation, while we
     // unwind we want to mark the path as being dirty if we changed it below.
     // We might have two paths, one for the old entity and one for the new entity.
@@ -342,14 +337,14 @@ bool UpdateEntityOperator::postRecursion(OctreeElement* element) {
     // 2) we are removing the old, but this subtree doesn't contain the old
     // 3) we are removing the old, this subtree contains the old, but this element isn't a direct parent of _containingElement
     if (!_removeOld || !subtreeContainsOld || !element->isParentOf(_containingElement)) {
-        EntityTreeElement* entityTreeElement = static_cast<EntityTreeElement*>(element);
+        EntityTreeElementPointer entityTreeElement = std::static_pointer_cast<EntityTreeElement>(element);
         entityTreeElement->pruneChildren(); // take this opportunity to prune any empty leaves
     }
     
     return keepSearching; // if we haven't yet found it, keep looking
 }
 
-OctreeElement* UpdateEntityOperator::possiblyCreateChildAt(OctreeElement* element, int childIndex) { 
+OctreeElementPointer UpdateEntityOperator::possiblyCreateChildAt(OctreeElementPointer element, int childIndex) { 
     // If we're getting called, it's because there was no child element at this index while recursing.
     // We only care if this happens while still searching for the new entity location.
     // Check to see if 

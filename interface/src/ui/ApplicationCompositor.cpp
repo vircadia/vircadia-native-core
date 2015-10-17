@@ -17,6 +17,7 @@
 
 #include <glm/gtc/type_ptr.hpp>
 
+#include <display-plugins/DisplayPlugin.h>
 #include <avatar/AvatarManager.h>
 #include <gpu/GLBackend.h>
 #include <NumericalConstants.h>
@@ -207,36 +208,36 @@ void ApplicationCompositor::displayOverlayTexture(RenderArgs* renderArgs) {
     updateTooltips();
 
     //Handle fading and deactivation/activation of UI
-    gpu::Batch batch;
+    gpu::doInBatch(renderArgs->_context, [=](gpu::Batch& batch) {
 
-    auto geometryCache = DependencyManager::get<GeometryCache>();
+        auto geometryCache = DependencyManager::get<GeometryCache>();
 
-    geometryCache->useSimpleDrawPipeline(batch);
-    batch.setViewportTransform(renderArgs->_viewport);
-    batch.setModelTransform(Transform());
-    batch.setViewTransform(Transform());
-    batch.setProjectionTransform(mat4());
-    batch.setResourceTexture(0, overlayFramebuffer->getRenderBuffer(0));
-    geometryCache->renderUnitQuad(batch, vec4(vec3(1), _alpha));
+        geometryCache->useSimpleDrawPipeline(batch);
+        batch.setViewportTransform(renderArgs->_viewport);
+        batch.setModelTransform(Transform());
+        batch.setViewTransform(Transform());
+        batch.setProjectionTransform(mat4());
+        batch.setResourceTexture(0, overlayFramebuffer->getRenderBuffer(0));
+        geometryCache->renderUnitQuad(batch, vec4(vec3(1), _alpha));
 
-    // Doesn't actually render
-    renderPointers(batch);
+        // Doesn't actually render
+        renderPointers(batch);
 
-    //draw the mouse pointer
-    // Get the mouse coordinates and convert to NDC [-1, 1]
-    vec2 canvasSize = qApp->getCanvasSize();
-    vec2 mousePosition = toNormalizedDeviceScale(vec2(qApp->getMouse()), canvasSize);
-    // Invert the Y axis
-    mousePosition.y *= -1.0f;
+        //draw the mouse pointer
+        // Get the mouse coordinates and convert to NDC [-1, 1]
+        vec2 canvasSize = qApp->getCanvasSize();
+        vec2 mousePosition = toNormalizedDeviceScale(vec2(qApp->getMouse()), canvasSize);
+        // Invert the Y axis
+        mousePosition.y *= -1.0f;
 
-    Transform model;
-    model.setTranslation(vec3(mousePosition, 0));
-    vec2 mouseSize = CURSOR_PIXEL_SIZE / canvasSize;
-    model.setScale(vec3(mouseSize, 1.0f));
-    batch.setModelTransform(model);
-    bindCursorTexture(batch);
-    geometryCache->renderUnitQuad(batch, vec4(1));
-    renderArgs->_context->render(batch);
+        Transform model;
+        model.setTranslation(vec3(mousePosition, 0));
+        vec2 mouseSize = CURSOR_PIXEL_SIZE / canvasSize;
+        model.setScale(vec3(mouseSize, 1.0f));
+        batch.setModelTransform(model);
+        bindCursorTexture(batch);
+        geometryCache->renderUnitQuad(batch, vec4(1));
+    });
 }
 
 
@@ -278,104 +279,99 @@ void ApplicationCompositor::displayOverlayTextureHmd(RenderArgs* renderArgs, int
 
     auto geometryCache = DependencyManager::get<GeometryCache>();
 
-    gpu::Batch batch;
-    geometryCache->useSimpleDrawPipeline(batch);
-    //batch._glDisable(GL_DEPTH_TEST);
-    //batch._glDisable(GL_CULL_FACE);
-    //batch._glBindTexture(GL_TEXTURE_2D, texture);
-    //batch._glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    //batch._glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    gpu::doInBatch(renderArgs->_context, [=](gpu::Batch& batch) {
+        geometryCache->useSimpleDrawPipeline(batch);
 
-    batch.setResourceTexture(0, overlayFramebuffer->getRenderBuffer(0));
+        batch.setResourceTexture(0, overlayFramebuffer->getRenderBuffer(0));
 
-    mat4 camMat;
-    _cameraBaseTransform.getMatrix(camMat);
-    camMat = camMat * qApp->getEyePose(eye);
-    batch.setViewportTransform(renderArgs->_viewport);
-    batch.setViewTransform(camMat);
+        mat4 camMat;
+        _cameraBaseTransform.getMatrix(camMat);
+        auto displayPlugin = qApp->getActiveDisplayPlugin();
+        auto headPose = displayPlugin->getHeadPose();
+        auto eyeToHead = displayPlugin->getEyeToHeadTransform((Eye)eye);
+        camMat = (headPose * eyeToHead) * camMat;
+        batch.setViewportTransform(renderArgs->_viewport);
+        batch.setViewTransform(camMat);
 
-    batch.setProjectionTransform(qApp->getEyeProjection(eye));
+        batch.setProjectionTransform(qApp->getEyeProjection(eye));
 
-#ifdef DEBUG_OVERLAY
-    {
-        batch.setModelTransform(glm::translate(mat4(), vec3(0, 0, -2)));
-        geometryCache->renderUnitQuad(batch, glm::vec4(1));
-    }
-#else
-    {
-        //batch.setModelTransform(overlayXfm);
+    #ifdef DEBUG_OVERLAY
+        {
+            batch.setModelTransform(glm::translate(mat4(), vec3(0, 0, -2)));
+            geometryCache->renderUnitQuad(batch, glm::vec4(1));
+        }
+    #else
+        {
+            batch.setModelTransform(_modelTransform);
+            drawSphereSection(batch);
+        }
+    #endif
 
-        batch.setModelTransform(_modelTransform);
-        drawSphereSection(batch);
-    }
-#endif
+        // Doesn't actually render
+        renderPointers(batch);
+        vec3 reticleScale = vec3(Cursor::Manager::instance().getScale() * reticleSize);
 
-    // Doesn't actually render
-    renderPointers(batch);
-    vec3 reticleScale = vec3(Cursor::Manager::instance().getScale() * reticleSize);
+        bindCursorTexture(batch);
 
-    bindCursorTexture(batch);
+        //Controller Pointers
+        glm::mat4 overlayXfm;
+        _modelTransform.getMatrix(overlayXfm);
 
-    //Controller Pointers
-    glm::mat4 overlayXfm;
-    _modelTransform.getMatrix(overlayXfm);
+        // Only render the hand pointers if the EnableHandMouseInput is enabled
+        if (Menu::getInstance()->isOptionChecked(MenuOption::EnableHandMouseInput)) {
+            MyAvatar* myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
+            for (int i = 0; i < (int)myAvatar->getHand()->getNumPalms(); i++) {
+                PalmData& palm = myAvatar->getHand()->getPalms()[i];
+                if (palm.isActive()) {
+                    glm::vec2 polar = getPolarCoordinates(palm);
+                    // Convert to quaternion
+                    mat4 pointerXfm = glm::mat4_cast(quat(vec3(polar.y, -polar.x, 0.0f))) * glm::translate(mat4(), vec3(0, 0, -1));
+                    mat4 reticleXfm = overlayXfm * pointerXfm;
+                    reticleXfm = glm::scale(reticleXfm, reticleScale);
+                    batch.setModelTransform(reticleXfm);
+                    // Render reticle at location
+                    geometryCache->renderUnitQuad(batch, glm::vec4(1), _reticleQuad);
+                }
+            }
+        }
 
-    MyAvatar* myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
-    for (int i = 0; i < (int)myAvatar->getHand()->getNumPalms(); i++) {
-        PalmData& palm = myAvatar->getHand()->getPalms()[i];
-        if (palm.isActive()) {
-            glm::vec2 polar = getPolarCoordinates(palm);
-            // Convert to quaternion
-            mat4 pointerXfm = glm::mat4_cast(quat(vec3(polar.y, -polar.x, 0.0f))) * glm::translate(mat4(), vec3(0, 0, -1));
+        //Mouse Pointer
+        if (_reticleActive[MOUSE]) {
+            glm::vec2 projection = screenToSpherical(glm::vec2(_reticlePosition[MOUSE].x(),
+                _reticlePosition[MOUSE].y()));
+            mat4 pointerXfm = glm::mat4_cast(quat(vec3(-projection.y, projection.x, 0.0f))) * glm::translate(mat4(), vec3(0, 0, -1));
             mat4 reticleXfm = overlayXfm * pointerXfm;
             reticleXfm = glm::scale(reticleXfm, reticleScale);
             batch.setModelTransform(reticleXfm);
-            // Render reticle at location
             geometryCache->renderUnitQuad(batch, glm::vec4(1), _reticleQuad);
         }
-    }
-
-    //Mouse Pointer
-    if (_reticleActive[MOUSE]) {
-        glm::vec2 projection = screenToSpherical(glm::vec2(_reticlePosition[MOUSE].x(),
-            _reticlePosition[MOUSE].y()));
-        mat4 pointerXfm = glm::mat4_cast(quat(vec3(-projection.y, projection.x, 0.0f))) * glm::translate(mat4(), vec3(0, 0, -1));
-        mat4 reticleXfm = overlayXfm * pointerXfm;
-        reticleXfm = glm::scale(reticleXfm, reticleScale);
-        batch.setModelTransform(reticleXfm);
-        geometryCache->renderUnitQuad(batch, glm::vec4(1), _reticleQuad);
-    }
-
-    renderArgs->_context->render(batch);
+    });
 }
 
 
 void ApplicationCompositor::computeHmdPickRay(glm::vec2 cursorPos, glm::vec3& origin, glm::vec3& direction) const {
-    cursorPos *= qApp->getCanvasSize();
-    const glm::vec2 projection = screenToSpherical(cursorPos);
+    const glm::vec2 projection = overlayToSpherical(cursorPos);
     // The overlay space orientation of the mouse coordinates
-    const glm::quat orientation(glm::vec3(-projection.y, projection.x, 0.0f));
-    // FIXME We now have the direction of the ray FROM THE DEFAULT HEAD POSE.
-    // Now we need to account for the actual camera position relative to the overlay
-    glm::vec3 overlaySpaceDirection = glm::normalize(orientation * IDENTITY_FRONT);
+    const glm::quat cursorOrientation(glm::vec3(-projection.y, projection.x, 0.0f));
 
+    // The orientation and position of the HEAD, not the overlay
+    glm::vec3 worldSpaceHeadPosition = qApp->getCamera()->getPosition();
+    glm::quat worldSpaceOrientation = qApp->getCamera()->getOrientation();
 
-    // We need the RAW camera orientation and position, because this is what the overlay is
-    // rendered relative to
-    glm::vec3 overlayPosition = qApp->getCamera()->getPosition();
-    glm::quat overlayOrientation = qApp->getCamera()->getRotation();
+    auto headPose = qApp->getHMDSensorPose();
+    auto headOrientation = glm::quat_cast(headPose);
+    auto headTranslation = extractTranslation(headPose);
 
+    auto overlayOrientation = worldSpaceOrientation * glm::inverse(headOrientation);
+    auto overlayPosition = worldSpaceHeadPosition - (overlayOrientation * headTranslation);
     if (Menu::getInstance()->isOptionChecked(MenuOption::StandingHMDSensorMode)) {
         overlayPosition = _modelTransform.getTranslation();
         overlayOrientation = _modelTransform.getRotation();
     }
 
-    // Intersection UI overlay space
-    glm::vec3 worldSpaceDirection = overlayOrientation * overlaySpaceDirection;
-    glm::vec3 worldSpaceIntersection = (glm::normalize(worldSpaceDirection) * _oculusUIRadius) + overlayPosition;
-    glm::vec3 worldSpaceHeadPosition = (overlayOrientation * extractTranslation(qApp->getHMDSensorPose())) + overlayPosition;
-
     // Intersection in world space
+    glm::vec3 worldSpaceIntersection = ((overlayOrientation * (cursorOrientation * Vectors::FRONT)) * _oculusUIRadius) + overlayPosition;
+
     origin = worldSpaceHeadPosition;
     direction = glm::normalize(worldSpaceIntersection - worldSpaceHeadPosition);
 }
@@ -430,17 +426,18 @@ bool ApplicationCompositor::calculateRayUICollisionPoint(const glm::vec3& positi
 
 //Renders optional pointers
 void ApplicationCompositor::renderPointers(gpu::Batch& batch) {
-    if (qApp->isHMDMode() && !qApp->getLastMouseMoveWasSimulated() && !qApp->isMouseHidden()) {
+    if (qApp->isHMDMode() && !qApp->getLastMouseMoveWasSimulated()) {
         //If we are in oculus, render reticle later
         auto trueMouse = qApp->getTrueMouse();
         trueMouse /= qApp->getCanvasSize();
-        QPoint position = QPoint(qApp->getTrueMouseX(), qApp->getTrueMouseY());
+        QPoint position = QPoint(qApp->getTrueMouse().x, qApp->getTrueMouse().y);
         _reticlePosition[MOUSE] = position;
         _reticleActive[MOUSE] = true;
         _magActive[MOUSE] = _magnifier;
         _reticleActive[LEFT_CONTROLLER] = false;
         _reticleActive[RIGHT_CONTROLLER] = false;
-    } else if (qApp->getLastMouseMoveWasSimulated() && Menu::getInstance()->isOptionChecked(MenuOption::HandMouseInput)) {
+    } else if (qApp->getLastMouseMoveWasSimulated() 
+                && Menu::getInstance()->isOptionChecked(MenuOption::EnableHandMouseInput)) {
         //only render controller pointer if we aren't already rendering a mouse pointer
         _reticleActive[MOUSE] = false;
         _magActive[MOUSE] = false;
@@ -687,7 +684,6 @@ glm::vec2 ApplicationCompositor::screenToSpherical(const glm::vec2& screenPos) {
     result.y = (screenPos.y / screenSize.y - 0.5f);
     result.x *= MOUSE_YAW_RANGE;
     result.y *= MOUSE_PITCH_RANGE;
-
     return result;
 }
 
@@ -706,13 +702,13 @@ glm::vec2 ApplicationCompositor::sphericalToOverlay(const glm::vec2&  sphericalP
     result /= _textureFov;
     result.x /= _textureAspectRatio;
     result += 0.5f;
-    result *= qApp->getCanvasSize();
+    result *= qApp->getUiSize();
     return result;
 }
 
 glm::vec2 ApplicationCompositor::overlayToSpherical(const glm::vec2&  overlayPos) const {
     glm::vec2 result = overlayPos;
-    result /= qApp->getCanvasSize();
+    result /= qApp->getUiSize();
     result -= 0.5f;
     result *= _textureFov;
     result.x *= _textureAspectRatio;

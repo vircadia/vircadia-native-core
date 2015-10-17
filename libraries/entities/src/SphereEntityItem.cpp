@@ -17,11 +17,11 @@
 #include <ByteCountCoding.h>
 #include <GeometryUtil.h>
 
+#include "EntitiesLogging.h"
+#include "EntityItemProperties.h"
 #include "EntityTree.h"
 #include "EntityTreeElement.h"
-#include "EntitiesLogging.h"
 #include "SphereEntityItem.h"
-
 
 EntityItemPointer SphereEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
     EntityItemPointer result { new SphereEntityItem(entityID, properties) };
@@ -37,8 +37,8 @@ SphereEntityItem::SphereEntityItem(const EntityItemID& entityItemID, const Entit
     _volumeMultiplier *= PI / 6.0f;
 }
 
-EntityItemProperties SphereEntityItem::getProperties() const {
-    EntityItemProperties properties = EntityItem::getProperties(); // get the properties from our base class
+EntityItemProperties SphereEntityItem::getProperties(EntityPropertyFlags desiredProperties) const {
+    EntityItemProperties properties = EntityItem::getProperties(desiredProperties); // get the properties from our base class
     properties.setColor(getXColor());
     return properties;
 }
@@ -63,7 +63,8 @@ bool SphereEntityItem::setProperties(const EntityItemProperties& properties) {
 
 int SphereEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data, int bytesLeftToRead, 
                                                 ReadBitstreamToTreeParams& args,
-                                                EntityPropertyFlags& propertyFlags, bool overwriteLocalData) {
+                                                EntityPropertyFlags& propertyFlags, bool overwriteLocalData,
+                                                bool& somethingChanged) {
 
     int bytesRead = 0;
     const unsigned char* dataAt = data;
@@ -94,8 +95,9 @@ void SphereEntityItem::appendSubclassData(OctreePacketData* packetData, EncodeBi
 }
 
 bool SphereEntityItem::findDetailedRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
-                     bool& keepSearching, OctreeElement*& element, float& distance, BoxFace& face, 
-                     void** intersectedObject, bool precisionPicking) const {
+                                                   bool& keepSearching, OctreeElementPointer& element,
+                                                   float& distance, BoxFace& face, glm::vec3& surfaceNormal,
+                                                   void** intersectedObject, bool precisionPicking) const {
     // determine the ray in the frame of the entity transformed from a unit sphere
     glm::mat4 entityToWorldMatrix = getEntityToWorldMatrix();
     glm::mat4 worldToEntityMatrix = glm::inverse(entityToWorldMatrix);
@@ -110,6 +112,7 @@ bool SphereEntityItem::findDetailedRayIntersection(const glm::vec3& origin, cons
         // then translate back to work coordinates
         glm::vec3 hitAt = glm::vec3(entityToWorldMatrix * glm::vec4(entityFrameHitAt, 1.0f));
         distance = glm::distance(origin, hitAt);
+        surfaceNormal = glm::normalize(hitAt - getCenterPosition());
         return true;
     }
     return false;

@@ -16,6 +16,7 @@
 #include "EntityEditPacketSender.h"
 #include "EntitiesLogging.h"
 #include "EntityItem.h"
+#include "EntityItemProperties.h"
 
 EntityEditPacketSender::EntityEditPacketSender() {
     auto& packetReceiver = DependencyManager::get<NodeList>()->getPacketReceiver();

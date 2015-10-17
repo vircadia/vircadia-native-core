@@ -14,14 +14,10 @@
 
 #include <QPointer>
 
-#include <Application.h>
 #include <DependencyManager.h>
 
 #include "HMDToolsDialog.h"
 
-class QAction;
-
-class AddressBarDialog;
 class AnimationsDialog;
 class AttachmentsDialog;
 class AudioStatsDialog;
@@ -29,13 +25,11 @@ class BandwidthDialog;
 class CachesSizeDialog;
 class DiskCacheEditor;
 class LodToolsDialog;
-class LoginDialog;
 class OctreeStatsDialog;
 class PreferencesDialog;
 class ScriptEditorWindow;
 class QMessageBox;
 class DomainConnectionDialog;
-class UpdateDialog;
 
 class DialogsManager : public QObject, public Dependency {
     Q_OBJECT
@@ -81,20 +75,8 @@ private:
     DialogsManager() {}
 
     template<typename T>
-    void maybeCreateDialog(QPointer<T>& member) {
-        if (!member) {
-            MainWindow* parent = qApp->getWindow();
-            Q_CHECK_PTR(parent);
-            member = new T(parent);
-            Q_CHECK_PTR(member);
+    void maybeCreateDialog(QPointer<T>& member);
 
-            if (_hmdToolsDialog && member->windowHandle()) {
-                _hmdToolsDialog->watchWindow(member->windowHandle());
-            }
-        }
-    }
-
-    QPointer<AddressBarDialog> _addressBarDialog;
     QPointer<AnimationsDialog> _animationsDialog;
     QPointer<AttachmentsDialog> _attachmentsDialog;
     QPointer<AudioStatsDialog> _audioStatsDialog;
@@ -104,12 +86,10 @@ private:
     QPointer<QMessageBox> _ircInfoBox;
     QPointer<HMDToolsDialog> _hmdToolsDialog;
     QPointer<LodToolsDialog> _lodToolsDialog;
-    QPointer<LoginDialog> _loginDialog;
     QPointer<OctreeStatsDialog> _octreeStatsDialog;
     QPointer<PreferencesDialog> _preferencesDialog;
     QPointer<ScriptEditorWindow> _scriptEditor;
     QPointer<DomainConnectionDialog> _domainConnectionDialog;
-    QPointer<UpdateDialog> _updateDialog;
 };
 
 #endif // hifi_DialogsManager_h

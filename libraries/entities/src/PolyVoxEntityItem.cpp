@@ -16,11 +16,11 @@
 
 #include <ByteCountCoding.h>
 
-#include "PolyVoxEntityItem.h"
-#include "EntityTree.h"
 #include "EntitiesLogging.h"
+#include "EntityItemProperties.h"
+#include "EntityTree.h"
 #include "EntityTreeElement.h"
-
+#include "PolyVoxEntityItem.h"
 
 const glm::vec3 PolyVoxEntityItem::DEFAULT_VOXEL_VOLUME_SIZE = glm::vec3(32, 32, 32);
 const float PolyVoxEntityItem::MAX_VOXEL_DIMENSION = 128.0f;
@@ -104,8 +104,8 @@ const glm::vec3& PolyVoxEntityItem::getVoxelVolumeSize() const {
 }
 
 
-EntityItemProperties PolyVoxEntityItem::getProperties() const {
-    EntityItemProperties properties = EntityItem::getProperties(); // get the properties from our base class
+EntityItemProperties PolyVoxEntityItem::getProperties(EntityPropertyFlags desiredProperties) const {
+    EntityItemProperties properties = EntityItem::getProperties(desiredProperties); // get the properties from our base class
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(voxelVolumeSize, getVoxelVolumeSize);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(voxelData, getVoxelData);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(voxelSurfaceStyle, getVoxelSurfaceStyle);
@@ -152,7 +152,8 @@ bool PolyVoxEntityItem::setProperties(const EntityItemProperties& properties) {
 
 int PolyVoxEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data, int bytesLeftToRead, 
                                                         ReadBitstreamToTreeParams& args,
-                                                        EntityPropertyFlags& propertyFlags, bool overwriteLocalData) {
+                                                        EntityPropertyFlags& propertyFlags, bool overwriteLocalData,
+                                                        bool& somethingChanged) {
 
     int bytesRead = 0;
     const unsigned char* dataAt = data;

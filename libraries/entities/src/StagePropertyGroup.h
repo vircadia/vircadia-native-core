@@ -29,15 +29,13 @@ class ReadBitstreamToTreeParams;
 
 class StagePropertyGroup : public PropertyGroup {
 public:
-    StagePropertyGroup();
-    virtual ~StagePropertyGroup() {}
-
     // EntityItemProperty related helpers
-    virtual void copyToScriptValue(QScriptValue& properties, QScriptEngine* engine, bool skipDefaults, EntityItemProperties& defaultEntityProperties) const;
+    virtual void copyToScriptValue(const EntityPropertyFlags& desiredProperties, QScriptValue& properties, QScriptEngine* engine, bool skipDefaults, EntityItemProperties& defaultEntityProperties) const;
     virtual void copyFromScriptValue(const QScriptValue& object, bool& _defaultSettings);
     virtual void debugDump() const;
+    virtual void listChangedProperties(QList<QString>& out);
 
-    virtual bool appentToEditPacket(OctreePacketData* packetData,                                     
+    virtual bool appendToEditPacket(OctreePacketData* packetData,
                                     EntityPropertyFlags& requestedProperties,
                                     EntityPropertyFlags& propertyFlags,
                                     EntityPropertyFlags& propertiesDidntFit,
@@ -67,7 +65,8 @@ public:
 
     virtual int readEntitySubclassDataFromBuffer(const unsigned char* data, int bytesLeftToRead, 
                                                 ReadBitstreamToTreeParams& args,
-                                                EntityPropertyFlags& propertyFlags, bool overwriteLocalData);
+                                                EntityPropertyFlags& propertyFlags, bool overwriteLocalData,
+                                                bool& somethingChanged);
                                                 
     static const bool DEFAULT_STAGE_SUN_MODEL_ENABLED;
     static const float DEFAULT_STAGE_LATITUDE;
@@ -78,14 +77,14 @@ public:
     
     float calculateHour() const;
     uint16_t calculateDay() const;
-
-    DEFINE_PROPERTY(PROP_STAGE_SUN_MODEL_ENABLED, SunModelEnabled, sunModelEnabled, bool);
-    DEFINE_PROPERTY(PROP_STAGE_LATITUDE, Latitude, latitude, float);
-    DEFINE_PROPERTY(PROP_STAGE_LONGITUDE, Longitude, longitude, float);
-    DEFINE_PROPERTY(PROP_STAGE_ALTITUDE, Altitude, altitude, float);
-    DEFINE_PROPERTY(PROP_STAGE_DAY, Day, day, uint16_t);
-    DEFINE_PROPERTY(PROP_STAGE_HOUR, Hour, hour, float);
-    DEFINE_PROPERTY(PROP_STAGE_AUTOMATIC_HOURDAY, AutomaticHourDay, automaticHourDay, bool);
+    
+    DEFINE_PROPERTY(PROP_STAGE_SUN_MODEL_ENABLED, SunModelEnabled, sunModelEnabled, bool, DEFAULT_STAGE_SUN_MODEL_ENABLED);
+    DEFINE_PROPERTY(PROP_STAGE_LATITUDE, Latitude, latitude, float, DEFAULT_STAGE_LATITUDE);
+    DEFINE_PROPERTY(PROP_STAGE_LONGITUDE, Longitude, longitude, float, DEFAULT_STAGE_LONGITUDE);
+    DEFINE_PROPERTY(PROP_STAGE_ALTITUDE, Altitude, altitude, float, DEFAULT_STAGE_ALTITUDE);
+    DEFINE_PROPERTY(PROP_STAGE_DAY, Day, day, uint16_t, DEFAULT_STAGE_DAY);
+    DEFINE_PROPERTY(PROP_STAGE_HOUR, Hour, hour, float, DEFAULT_STAGE_HOUR);
+    DEFINE_PROPERTY(PROP_STAGE_AUTOMATIC_HOURDAY, AutomaticHourDay, automaticHourDay, bool, false);
 };
 
 #endif // hifi_StagePropertyGroup_h

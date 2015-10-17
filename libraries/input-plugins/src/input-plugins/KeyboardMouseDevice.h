@@ -59,7 +59,7 @@ public:
     // Plugin functions
     virtual bool isSupported() const override { return true; }
     virtual bool isJointController() const override { return false; }
-    const QString& getName() const { return NAME; }
+    const QString& getName() const override { return NAME; }
 
     virtual void activate() override {};
     virtual void deactivate() override {};

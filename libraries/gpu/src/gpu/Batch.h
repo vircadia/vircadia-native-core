@@ -12,6 +12,8 @@
 #define hifi_gpu_Batch_h
 
 #include <vector>
+#include <mutex>
+#include <functional>
 
 #include "Framebuffer.h"
 #include "Pipeline.h"
@@ -19,6 +21,7 @@
 #include "Stream.h"
 #include "Texture.h"
 #include "Transform.h"
+
 
 #if defined(NSIGHT_FOUND)
     class ProfileRange {
@@ -31,6 +34,8 @@
 #define PROFILE_RANGE(name)
 #endif
 
+class QDebug;
+
 namespace gpu {
 
 enum ReservedSlot {
@@ -38,16 +43,74 @@ enum ReservedSlot {
     TRANSFORM_CAMERA_SLOT = 7,
 };
 
+// The named batch data provides a mechanism for accumulating data into buffers over the course 
+// of many independent calls.  For instance, two objects in the scene might both want to render 
+// a simple box, but are otherwise unaware of each other.  The common code that they call to render
+// the box can create buffers to store the rendering parameters for each box and register a function 
+// that will be called with the accumulated buffer data when the batch commands are finally 
+// executed against the backend
+
+
 class Batch {
 public:
     typedef Stream::Slot Slot;
 
+    struct NamedBatchData {
+        using BufferPointers = std::vector<BufferPointer>;
+        using Function = std::function<void(gpu::Batch&, NamedBatchData&)>;
+
+        std::once_flag _once;
+        BufferPointers _buffers;
+        size_t _count{ 0 };
+        Function _function;
+
+        void process(Batch& batch) {
+            if (_function) {
+                _function(batch, *this);
+            }
+        }
+    };
+
+    using NamedBatchDataMap = std::map<std::string, NamedBatchData>;
+
+    class CacheState {
+    public:
+        size_t commandsSize;
+        size_t offsetsSize;
+        size_t paramsSize;
+        size_t dataSize;
+
+        size_t buffersSize;
+        size_t texturesSize;
+        size_t streamFormatsSize;
+        size_t transformsSize;
+        size_t pipelinesSize;
+        size_t framebuffersSize;
+        size_t queriesSize;
+
+        CacheState() : commandsSize(0), offsetsSize(0), paramsSize(0), dataSize(0), buffersSize(0), texturesSize(0), 
+            streamFormatsSize(0), transformsSize(0), pipelinesSize(0), framebuffersSize(0), queriesSize(0) { }
+
+        CacheState(size_t commandsSize, size_t offsetsSize, size_t paramsSize, size_t dataSize, size_t buffersSize,
+            size_t texturesSize, size_t streamFormatsSize, size_t transformsSize, size_t pipelinesSize, 
+            size_t framebuffersSize, size_t queriesSize) : 
+            commandsSize(commandsSize), offsetsSize(offsetsSize), paramsSize(paramsSize), dataSize(dataSize), 
+            buffersSize(buffersSize), texturesSize(texturesSize), streamFormatsSize(streamFormatsSize), 
+            transformsSize(transformsSize), pipelinesSize(pipelinesSize), framebuffersSize(framebuffersSize), queriesSize(queriesSize) { }
+    };
+
     Batch();
+    Batch(const CacheState& cacheState);
     explicit Batch(const Batch& batch);
     ~Batch();
 
     void clear();
     
+    void preExecute();
+
+    CacheState getCacheState();
+
+
     // Batches may need to override the context level stereo settings
     // if they're performing framebuffer copy operations, like the 
     // deferred lighting resolution mechanism
@@ -63,9 +126,19 @@ public:
 
     // Drawcalls
     void draw(Primitive primitiveType, uint32 numVertices, uint32 startVertex = 0);
-    void drawIndexed(Primitive primitiveType, uint32 nbIndices, uint32 startIndex = 0);
-    void drawInstanced(uint32 nbInstances, Primitive primitiveType, uint32 nbVertices, uint32 startVertex = 0, uint32 startInstance = 0);
-    void drawIndexedInstanced(uint32 nbInstances, Primitive primitiveType, uint32 nbIndices, uint32 startIndex = 0, uint32 startInstance = 0);
+    void drawIndexed(Primitive primitiveType, uint32 numIndices, uint32 startIndex = 0);
+    void drawInstanced(uint32 numInstances, Primitive primitiveType, uint32 numVertices, uint32 startVertex = 0, uint32 startInstance = 0);
+    void drawIndexedInstanced(uint32 numInstances, Primitive primitiveType, uint32 numIndices, uint32 startIndex = 0, uint32 startInstance = 0);
+    void multiDrawIndirect(uint32 numCommands, Primitive primitiveType);
+    void multiDrawIndexedIndirect(uint32 numCommands, Primitive primitiveType);
+
+
+    void setupNamedCalls(const std::string& instanceName, size_t count, NamedBatchData::Function function);
+    void setupNamedCalls(const std::string& instanceName, NamedBatchData::Function function);
+    BufferPointer getNamedBuffer(const std::string& instanceName, uint8_t index = 0);
+    void setNamedBuffer(const std::string& instanceName, BufferPointer& buffer, uint8_t index = 0);
+
+    
 
     // Input Stage
     // InputFormat
@@ -80,6 +153,29 @@ public:
     void setIndexBuffer(Type type, const BufferPointer& buffer, Offset offset);
     void setIndexBuffer(const BufferView& buffer); // not a command, just a shortcut from a BufferView
 
+    // Indirect buffer is used by the multiDrawXXXIndirect calls
+    // The indirect buffer contains the command descriptions to execute multiple drawcalls in a single call
+    void setIndirectBuffer(const BufferPointer& buffer, Offset offset = 0, Offset stride = 0);
+    
+    // multi command desctription for multiDrawIndexedIndirect
+    class DrawIndirectCommand {
+    public:
+        uint  _count{ 0 };
+        uint  _instanceCount{ 0 };
+        uint  _firstIndex{ 0 };
+        uint  _baseInstance{ 0 };
+    };
+
+    // multi command desctription for multiDrawIndexedIndirect
+    class DrawIndexedIndirectCommand {
+    public:
+        uint  _count{ 0 };
+        uint  _instanceCount{ 0 };
+        uint  _firstIndex{ 0 };
+        uint  _baseVertex{ 0 };
+        uint  _baseInstance{ 0 };
+    };
+
     // Transform Stage
     // Vertex position is transformed by ModelTransform from object space to world space
     // Then by the inverse of the ViewTransform from world space to eye space
@@ -91,6 +187,7 @@ public:
     void setProjectionTransform(const Mat4& proj);
     // Viewport is xy = low left corner in framebuffer, zw = width height of the viewport, expressed in pixels
     void setViewportTransform(const Vec4i& viewport);
+    void setDepthRangeTransform(float nearDepth, float farDepth);
 
     // Pipeline Stage
     void setPipeline(const PipelinePointer& pipeline);
@@ -150,6 +247,26 @@ public:
     void _glUniform4iv(int location, int count, const int* value);
     void _glUniformMatrix4fv(int location, int count, unsigned char transpose, const float* value);
 
+    void _glUniform(int location, int v0) {
+        _glUniform1i(location, v0);
+    }
+
+    void _glUniform(int location, float v0) {
+        _glUniform1f(location, v0);
+    }
+
+    void _glUniform(int location, const glm::vec2& v) {
+        _glUniform2f(location, v.x, v.y);
+    }
+
+    void _glUniform(int location, const glm::vec3& v) {
+        _glUniform3f(location, v.x, v.y, v.z);
+    }
+
+    void _glUniform(int location, const glm::vec4& v) {
+        _glUniform4f(location, v.x, v.y, v.z, v.w);
+    }
+
     void _glColor4f(float red, float green, float blue, float alpha);
 
     enum Command {
@@ -157,15 +274,19 @@ public:
         COMMAND_drawIndexed,
         COMMAND_drawInstanced,
         COMMAND_drawIndexedInstanced,
+        COMMAND_multiDrawIndirect,
+        COMMAND_multiDrawIndexedIndirect,
 
         COMMAND_setInputFormat,
         COMMAND_setInputBuffer,
         COMMAND_setIndexBuffer,
+        COMMAND_setIndirectBuffer,
 
         COMMAND_setModelTransform,
         COMMAND_setViewTransform,
         COMMAND_setProjectionTransform,
         COMMAND_setViewportTransform,
+        COMMAND_setDepthRangeTransform,
 
         COMMAND_setPipeline,
         COMMAND_setStateBlendFactor,
@@ -183,6 +304,8 @@ public:
         COMMAND_getQuery,
 
         COMMAND_resetStages,
+
+        COMMAND_runLambda,
 
         // TODO: As long as we have gl calls explicitely issued from interface
         // code, we need to be able to record and batch these calls. THe long 
@@ -239,6 +362,7 @@ public:
         public:
             std::vector< Cache<T> > _items;
 
+            size_t size() const { return _items.size(); }
             uint32 cache(const Data& data) {
                 uint32 offset = _items.size();
                 _items.push_back(Cache<T>(data));
@@ -265,6 +389,7 @@ public:
     typedef Cache<PipelinePointer>::Vector PipelineCaches;
     typedef Cache<FramebufferPointer>::Vector FramebufferCaches;
     typedef Cache<QueryPointer>::Vector QueryCaches;
+    typedef Cache<std::function<void()>>::Vector LambdaCache;
 
     // Cache Data in a byte array if too big to fit in Param
     // FOr example Mat4s are going there
@@ -290,13 +415,20 @@ public:
     PipelineCaches _pipelines;
     FramebufferCaches _framebuffers;
     QueryCaches _queries;
+    LambdaCache _lambdas;
+
+    NamedBatchDataMap _namedData;
 
     bool _enableStereo{ true };
     bool _enableSkybox{ false };
 
 protected:
+    // Maybe useful but shoudln't be public. Please convince me otherwise
+    void runLambda(std::function<void()> f);
 };
 
-};
+}
+
+QDebug& operator<<(QDebug& debug, const gpu::Batch::CacheState& cacheState);
 
 #endif

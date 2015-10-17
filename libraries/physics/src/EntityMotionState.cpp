@@ -10,6 +10,7 @@
 //
 
 #include <EntityItem.h>
+#include <EntityItemProperties.h>
 #include <EntityEditPacketSender.h>
 #include <PhysicsCollisionGroups.h>
 
@@ -31,24 +32,12 @@ const quint64 USECS_BETWEEN_OWNERSHIP_BIDS = USECS_PER_SECOND / 5;
 
 #ifdef WANT_DEBUG_ENTITY_TREE_LOCKS
 bool EntityMotionState::entityTreeIsLocked() const {
-    EntityTreeElement* element = _entity ? _entity->getElement() : nullptr;
-    EntityTree* tree = element ? element->getTree() : nullptr;
-    if (tree) {
-        bool readSuccess = tree->tryLockForRead();
-        if (readSuccess) {
-            tree->unlock();
-        }
-        bool writeSuccess = tree->tryLockForWrite();
-        if (writeSuccess) {
-            tree->unlock();
-        }
-        if (readSuccess && writeSuccess) {
-            return false;  // if we can take either kind of lock, there was no tree lock.
-        }
-        return true; // either read or write failed, so there is some lock in place.
-    } else {
+    EntityTreeElementPointer element = _entity ? _entity->getElement() : nullptr;
+    EntityTreePointer tree = element ? element->getTree() : nullptr;
+    if (!tree) {
         return true;
     }
+    return true;
 }
 #else
 bool entityTreeIsLocked() {
@@ -104,13 +93,13 @@ bool EntityMotionState::handleEasyChanges(uint32_t flags, PhysicsEngine* engine)
     updateServerPhysicsVariables();
     ObjectMotionState::handleEasyChanges(flags, engine);
 
-    if (flags & EntityItem::DIRTY_SIMULATOR_ID) {
+    if (flags & Simulation::DIRTY_SIMULATOR_ID) {
         _loopsWithoutOwner = 0;
         if (_entity->getSimulatorID().isNull()) {
             // simulation ownership is being removed
             // remove the ACTIVATION flag because this object is coming to rest
             // according to a remote simulation and we don't want to wake it up again
-            flags &= ~EntityItem::DIRTY_PHYSICS_ACTIVATION;
+            flags &= ~Simulation::DIRTY_PHYSICS_ACTIVATION;
             // hint to Bullet that the object is deactivating
             _body->setActivationState(WANTS_DEACTIVATION);
             _outgoingPriority = NO_PRORITY;
@@ -122,13 +111,13 @@ bool EntityMotionState::handleEasyChanges(uint32_t flags, PhysicsEngine* engine)
             }
         }
     }
-    if (flags & EntityItem::DIRTY_SIMULATOR_OWNERSHIP) {
+    if (flags & Simulation::DIRTY_SIMULATOR_OWNERSHIP) {
         // (DIRTY_SIMULATOR_OWNERSHIP really means "we should bid for ownership with SCRIPT priority")
         // we're manipulating this object directly via script, so we artificially 
         // manipulate the logic to trigger an immediate bid for ownership
         setOutgoingPriority(SCRIPT_EDIT_SIMULATION_PRIORITY);
     }
-    if ((flags & EntityItem::DIRTY_PHYSICS_ACTIVATION) && !_body->isActive()) {
+    if ((flags & Simulation::DIRTY_PHYSICS_ACTIVATION) && !_body->isActive()) {
         _body->activate();
     }
 
@@ -300,6 +289,10 @@ bool EntityMotionState::remoteSimulationOutOfSync(uint32_t simulationStep) {
     if (_serverActionData != _entity->getActionData()) {
         setOutgoingPriority(SCRIPT_EDIT_SIMULATION_PRIORITY);
         return true;
+    }
+
+    if (_entity->shouldSuppressLocationEdits()) {
+        return false;
     }
 
     // Else we measure the error between current and extrapolated transform (according to expected behavior
@@ -514,7 +507,7 @@ uint32_t EntityMotionState::getIncomingDirtyFlags() {
         bool isMoving = _entity->isMoving();
         if (((bodyFlags & btCollisionObject::CF_STATIC_OBJECT) && isMoving) ||
                 (bodyFlags & btCollisionObject::CF_KINEMATIC_OBJECT && !isMoving)) {
-            dirtyFlags |= EntityItem::DIRTY_MOTION_TYPE;
+            dirtyFlags |= Simulation::DIRTY_MOTION_TYPE;
         }
     }
     return dirtyFlags;
@@ -608,6 +601,12 @@ QString EntityMotionState::getName() {
 
 // virtual
 int16_t EntityMotionState::computeCollisionGroup() {
+    if (!_entity) {
+        return COLLISION_GROUP_STATIC;
+    }
+    if (_entity->getIgnoreForCollisions()) {
+        return COLLISION_GROUP_COLLISIONLESS;
+    }
     switch (computeObjectMotionType()){
         case MOTION_TYPE_STATIC:
             return COLLISION_GROUP_STATIC;

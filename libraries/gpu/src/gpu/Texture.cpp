@@ -343,9 +343,22 @@ bool Texture::assignStoredMipFace(uint16 level, const Element& format, Size size
 }
 
 uint16 Texture::autoGenerateMips(uint16 maxMip) {
-    _autoGenerateMips = true;
-    _maxMip = std::min((uint16) (evalNumMips() - 1), maxMip);
-    _stamp++;
+    bool changed = false;
+    if (!_autoGenerateMips) {
+        changed = true;
+        _autoGenerateMips = true;
+    }
+
+    auto newMaxMip = std::min((uint16)(evalNumMips() - 1), maxMip);
+    if (newMaxMip != _maxMip) {
+        changed = true;
+        _maxMip = newMaxMip;;
+    }
+
+    if (changed) {
+        _stamp++;
+    }
+
     return _maxMip;
 }
 
@@ -629,7 +642,7 @@ bool sphericalHarmonicsFromTexture(const gpu::Texture& cubeTexture, std::vector<
     // for each face of cube texture
     for(int face=0; face < gpu::Texture::NUM_CUBE_FACES; face++) {
 
-        auto numComponents = cubeTexture.accessStoredMipFace(0,face)->_format.getDimensionCount();
+        auto numComponents = cubeTexture.accessStoredMipFace(0,face)->_format.getScalarCount();
         auto data = cubeTexture.accessStoredMipFace(0,face)->_sysmem.readData();
         if (data == nullptr) {
             continue;
@@ -768,3 +781,28 @@ void SphericalHarmonics::evalFromTexture(const Texture& texture) {
         L22 = coefs[8];
     }
 }
+
+
+// TextureSource
+TextureSource::TextureSource() {
+}
+
+TextureSource::~TextureSource() {
+}
+
+void TextureSource::reset(const QUrl& url) {
+    _imageUrl = url;
+}
+
+void TextureSource::resetTexture(gpu::Texture* texture) {
+    _gpuTexture.reset(texture);
+}
+
+bool TextureSource::isDefined() const {
+    if (_gpuTexture) {
+        return _gpuTexture->isDefined();
+    } else {
+        return false;
+    }
+}
+

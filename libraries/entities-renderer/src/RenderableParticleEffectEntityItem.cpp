@@ -211,9 +211,12 @@ void RenderableParticleEffectEntityItem::updateRenderItem() {
     _vertices.clear();
 
     // build vertices from particle positions and radiuses
-    const glm::vec3 up = frustum->getUp();
-    const glm::vec3 right = frustum->getRight();
+    glm::vec3 frustumPosition = frustum->getPosition();
     for (auto&& particle : particleDetails) {
+        glm::vec3 particleDirection = particle.position - frustumPosition;
+        glm::vec3 right = glm::normalize(glm::cross(glm::vec3(0.0f, 1.0f, 0.0f), particleDirection));
+        glm::vec3 up = glm::normalize(glm::cross(right, particleDirection));
+
         glm::vec3 upOffset = up * particle.radius;
         glm::vec3 rightOffset = right * particle.radius;
         // generate corners of quad aligned to face the camera.
@@ -260,8 +263,8 @@ void RenderableParticleEffectEntityItem::updateRenderItem() {
         }
 
         // update transform
-        glm::quat rot = _transform.getRotation();
-        glm::vec3 pos = _transform.getTranslation();
+        glm::quat rot = getRotation();
+        glm::vec3 pos = getPosition();
         Transform t;
         t.setRotation(rot);
         payload.setModelTransform(t);

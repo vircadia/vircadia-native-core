@@ -45,14 +45,14 @@ PreferencesDialog::PreferencesDialog(QWidget* parent) :
 
     connect(ui.buttonBrowseLocation, &QPushButton::clicked, this, &PreferencesDialog::openSnapshotLocationBrowser);
     connect(ui.buttonBrowseScriptsLocation, &QPushButton::clicked, this, &PreferencesDialog::openScriptsLocationBrowser);
-    connect(ui.buttonReloadDefaultScripts, &QPushButton::clicked, Application::getInstance(), &Application::loadDefaultScripts);
+    connect(ui.buttonReloadDefaultScripts, &QPushButton::clicked, qApp, &Application::loadDefaultScripts);
 
     connect(ui.buttonChangeAppearance, &QPushButton::clicked, this, &PreferencesDialog::openFullAvatarModelBrowser);
     connect(ui.appearanceDescription, &QLineEdit::textChanged, this, [this](const QString& url) {
         DependencyManager::get<AvatarManager>()->getMyAvatar()->useFullAvatarURL(url, "");
         this->fullAvatarURLChanged(url, "");
     });
-    connect(Application::getInstance(), &Application::fullAvatarURLChanged, this, &PreferencesDialog::fullAvatarURLChanged);
+    connect(qApp, &Application::fullAvatarURLChanged, this, &PreferencesDialog::fullAvatarURLChanged);
 
     // move dialog to left side
     move(parentWidget()->geometry().topLeft());
@@ -183,13 +183,14 @@ void PreferencesDialog::loadPreferences() {
     ui.outputStarveDetectionThresholdSpinner->setValue(audio->getOutputStarveDetectionThreshold());
     ui.outputStarveDetectionPeriodSpinner->setValue(audio->getOutputStarveDetectionPeriod());
 
-    ui.realWorldFieldOfViewSpin->setValue(DependencyManager::get<AvatarManager>()->getMyAvatar()->getRealWorldFieldOfView());
+    ui.realWorldFieldOfViewSpin->setValue(myAvatar->getRealWorldFieldOfView());
 
     ui.fieldOfViewSpin->setValue(qApp->getFieldOfView());
     
     ui.leanScaleSpin->setValue(myAvatar->getLeanScale());
     
     ui.avatarScaleSpin->setValue(myAvatar->getScale());
+    ui.avatarAnimationEdit->setText(myAvatar->getAnimGraphUrl());
     
     ui.maxOctreePPSSpin->setValue(qApp->getMaxOctreePacketsPerSecond());
 
@@ -198,9 +199,6 @@ void PreferencesDialog::loadPreferences() {
 #endif
 
     ui.sixenseReticleMoveSpeedSpin->setValue(InputDevice::getReticleMoveSpeed());
-
-    SixenseManager& sixense = SixenseManager::getInstance();
-    ui.invertSixenseButtonsCheckBox->setChecked(sixense.getInvertButtons());
 
     // LOD items
     auto lodManager = DependencyManager::get<LODManager>();
@@ -248,8 +246,16 @@ void PreferencesDialog::savePreferences() {
     myAvatar->getHead()->setPupilDilation(ui.pupilDilationSlider->value() / (float)ui.pupilDilationSlider->maximum());
     myAvatar->setLeanScale(ui.leanScaleSpin->value());
     myAvatar->setClampedTargetScale(ui.avatarScaleSpin->value());
-    
-    DependencyManager::get<AvatarManager>()->getMyAvatar()->setRealWorldFieldOfView(ui.realWorldFieldOfViewSpin->value());
+    if (myAvatar->getAnimGraphUrl() != ui.avatarAnimationEdit->text()) { // If changed, destroy the old and start with the new
+        bool isEnabled = myAvatar->getEnableAnimGraph();
+        myAvatar->setEnableAnimGraph(false);
+        myAvatar->setAnimGraphUrl(ui.avatarAnimationEdit->text());
+        if (isEnabled) {
+            myAvatar->setEnableAnimGraph(true);
+        }
+    }
+
+    myAvatar->setRealWorldFieldOfView(ui.realWorldFieldOfViewSpin->value());
     
     qApp->setFieldOfView(ui.fieldOfViewSpin->value());
     
@@ -267,9 +273,7 @@ void PreferencesDialog::savePreferences() {
 
     qApp->getApplicationCompositor().setHmdUIAngularSize(ui.oculusUIAngularSizeSpin->value());
     
-    SixenseManager& sixense = SixenseManager::getInstance();
     InputDevice::setReticleMoveSpeed(ui.sixenseReticleMoveSpeedSpin->value());
-    sixense.setInvertButtons(ui.invertSixenseButtonsCheckBox->isChecked());
 
     auto audio = DependencyManager::get<AudioClient>();
     MixedProcessedAudioStream& stream = audio->getReceivedAudioStream();
@@ -289,7 +293,7 @@ void PreferencesDialog::savePreferences() {
     audio->setOutputStarveDetectionThreshold(ui.outputStarveDetectionThresholdSpinner->value());
     audio->setOutputStarveDetectionPeriod(ui.outputStarveDetectionPeriodSpinner->value());
 
-    Application::getInstance()->resizeGL();
+    qApp->resizeGL();
 
     // LOD items
     auto lodManager = DependencyManager::get<LODManager>();

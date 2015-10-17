@@ -19,6 +19,10 @@
 #include <GeometryCache.h>
 #include <PerfStat.h>
 
+// Sphere entities should fit inside a cube entity of the same size, so a sphere that has dimensions 1x1x1
+// is a half unit sphere.  However, the geometry cache renders a UNIT sphere, so we need to scale down.
+static const float SPHERE_ENTITY_SCALE = 0.5f;
+
 EntityItemPointer RenderableZoneEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
     return std::make_shared<RenderableZoneEntityItem>(entityID, properties);
 }
@@ -57,11 +61,13 @@ bool RenderableZoneEntityItem::setProperties(const EntityItemProperties& propert
 
 int RenderableZoneEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data, int bytesLeftToRead,
                                                                 ReadBitstreamToTreeParams& args,
-                                                                EntityPropertyFlags& propertyFlags, bool overwriteLocalData) {
+                                                                EntityPropertyFlags& propertyFlags, bool overwriteLocalData,
+                                                                bool& somethingChanged) {
     int bytesRead = 0;
     changeProperties([&]() {
         bytesRead = ZoneEntityItem::readEntitySubclassDataFromBuffer(data, bytesLeftToRead,
-                                                                     args, propertyFlags, overwriteLocalData);
+                                                                     args, propertyFlags, 
+                                                                     overwriteLocalData, somethingChanged);
     });
     return bytesRead;
 }
@@ -121,15 +127,15 @@ void RenderableZoneEntityItem::render(RenderArgs* args) {
                 
                 Q_ASSERT(args->_batch);
                 gpu::Batch& batch = *args->_batch;
-                batch.setModelTransform(getTransformToCenter());
-                
+                batch.setModelTransform(Transform());
+
+                auto shapeTransform = getTransformToCenter();
                 auto deferredLightingEffect = DependencyManager::get<DeferredLightingEffect>();
-                
                 if (getShapeType() == SHAPE_TYPE_SPHERE) {
-                    const int SLICES = 15, STACKS = 15;
-                    deferredLightingEffect->renderWireSphere(batch, 0.5f, SLICES, STACKS, DEFAULT_COLOR);
+                    shapeTransform.postScale(SPHERE_ENTITY_SCALE);
+                    deferredLightingEffect->renderWireSphereInstance(batch, shapeTransform, DEFAULT_COLOR);
                 } else {
-                    deferredLightingEffect->renderWireCube(batch, 1.0f, DEFAULT_COLOR);
+                    deferredLightingEffect->renderWireCubeInstance(batch, shapeTransform, DEFAULT_COLOR);
                 }
                 break;
             }

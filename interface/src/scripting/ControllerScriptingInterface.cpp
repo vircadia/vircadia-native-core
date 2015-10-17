@@ -111,7 +111,7 @@ void inputPairFromScriptValue(const QScriptValue& object, UserInputMapper::Input
     inputPair.second = QString(object.property("inputName").toVariant().toString());
 }
 
-void ControllerScriptingInterface::registerControllerTypes(QScriptEngine* engine) {
+void ControllerScriptingInterface::registerControllerTypes(ScriptEngine* engine) {
     qScriptRegisterSequenceMetaType<QVector<UserInputMapper::Action> >(engine);
     qScriptRegisterSequenceMetaType<QVector<UserInputMapper::InputChannel> >(engine);
     qScriptRegisterSequenceMetaType<QVector<UserInputMapper::InputPair> >(engine);
@@ -119,6 +119,8 @@ void ControllerScriptingInterface::registerControllerTypes(QScriptEngine* engine
     qScriptRegisterMetaType(engine, inputChannelToScriptValue, inputChannelFromScriptValue);
     qScriptRegisterMetaType(engine, inputToScriptValue, inputFromScriptValue);
     qScriptRegisterMetaType(engine, inputPairToScriptValue, inputPairFromScriptValue);
+
+    wireUpControllers(engine);
 }
 
 void ControllerScriptingInterface::handleMetaEvent(HFMetaEvent* event) {
@@ -378,7 +380,52 @@ void ControllerScriptingInterface::releaseJoystick(int joystickIndex) {
 }
 
 glm::vec2 ControllerScriptingInterface::getViewportDimensions() const {
-    return Application::getInstance()->getUiSize();
+    return qApp->getUiSize();
+}
+
+QString ControllerScriptingInterface::sanatizeName(const QString& name) {
+    QString cleanName { name };
+    cleanName.remove(QRegularExpression{"[\\(\\)\\.\\s]"});
+    return cleanName;
+}
+
+void ControllerScriptingInterface::wireUpControllers(ScriptEngine* engine) {
+
+    // Controller.Standard.*
+    auto standardDevice = DependencyManager::get<UserInputMapper>()->getStandardDevice();
+    if (standardDevice) {
+        auto deviceName = sanatizeName(standardDevice->getName());
+        auto deviceInputs = standardDevice->getAvailabeInputs();
+        for (const auto& inputMapping : deviceInputs) {
+            auto input = inputMapping.first;
+            auto inputName = sanatizeName(inputMapping.second);
+            QString deviceInputName{ "Controller." + deviceName + "." + inputName };
+            engine->registerValue(deviceInputName, input.getID());
+        }
+    }
+
+    // Controller.Hardware.*
+    auto devices = DependencyManager::get<UserInputMapper>()->getDevices();
+    for(const auto& deviceMapping : devices) {
+        auto device = deviceMapping.second.get();
+        auto deviceName = sanatizeName(device->getName());
+        auto deviceInputs = device->getAvailabeInputs();
+        for (const auto& inputMapping : deviceInputs) {
+            auto input = inputMapping.first;
+            auto inputName = sanatizeName(inputMapping.second);
+            QString deviceInputName { "Controller.Hardware." + deviceName + "." + inputName };
+            engine->registerValue(deviceInputName, input.getID());
+        }
+    }
+
+    // Controller.Actions.*
+    auto actionNames = DependencyManager::get<UserInputMapper>()->getActionNames();
+    int actionNumber = 0;
+    for (const auto& actionName : actionNames) {
+        QString safeActionName { "Controller.Actions." + sanatizeName(actionName) };
+        engine->registerValue(safeActionName, actionNumber);
+        actionNumber++;
+    }
 }
 
 AbstractInputController* ControllerScriptingInterface::createInputController(const QString& deviceName, const QString& tracker) {

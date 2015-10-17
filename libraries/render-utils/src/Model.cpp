@@ -20,33 +20,11 @@
 #include <PathUtils.h>
 #include <PerfStat.h>
 #include <ViewFrustum.h>
-#include <render/Scene.h>
-#include <gpu/Batch.h>
 
 #include "AbstractViewStateInterface.h"
 #include "AnimationHandle.h"
-#include "DeferredLightingEffect.h"
 #include "Model.h"
-
-#include "model_vert.h"
-#include "model_shadow_vert.h"
-#include "model_normal_map_vert.h"
-#include "model_lightmap_vert.h"
-#include "model_lightmap_normal_map_vert.h"
-#include "skin_model_vert.h"
-#include "skin_model_shadow_vert.h"
-#include "skin_model_normal_map_vert.h"
-
-#include "model_frag.h"
-#include "model_shadow_frag.h"
-#include "model_normal_map_frag.h"
-#include "model_normal_specular_map_frag.h"
-#include "model_specular_map_frag.h"
-#include "model_lightmap_frag.h"
-#include "model_lightmap_normal_map_frag.h"
-#include "model_lightmap_normal_specular_map_frag.h"
-#include "model_lightmap_specular_map_frag.h"
-#include "model_translucent_frag.h"
+#include "MeshPartPayload.h"
 
 #include "RenderUtilsLogging.h"
 
@@ -68,14 +46,12 @@ Model::Model(RigPointer rig, QObject* parent) :
     _scaledToFit(false),
     _snapModelToRegistrationPoint(false),
     _snappedToRegistrationPoint(false),
-    _showTrueJointTransforms(true),
     _cauterizeBones(false),
     _pupilDilation(0.0f),
     _url(HTTP_INVALID_COM),
     _isVisible(true),
     _blendNumber(0),
     _appliedBlendNumber(0),
-    _calculatedMeshPartOffsetValid(false),
     _calculatedMeshPartBoxesValid(false),
     _calculatedMeshBoxesValid(false),
     _calculatedMeshTrianglesValid(false),
@@ -93,106 +69,6 @@ Model::Model(RigPointer rig, QObject* parent) :
 
 Model::~Model() {
     deleteGeometry();
-}
-
-Model::RenderPipelineLib Model::_renderPipelineLib;
-const int MATERIAL_GPU_SLOT = 3;
-
-void Model::RenderPipelineLib::addRenderPipeline(Model::RenderKey key,
-                                                 gpu::ShaderPointer& vertexShader,
-                                                 gpu::ShaderPointer& pixelShader ) {
-
-    gpu::Shader::BindingSet slotBindings;
-    slotBindings.insert(gpu::Shader::Binding(std::string("materialBuffer"), MATERIAL_GPU_SLOT));
-    slotBindings.insert(gpu::Shader::Binding(std::string("diffuseMap"), 0));
-    slotBindings.insert(gpu::Shader::Binding(std::string("normalMap"), 1));
-    slotBindings.insert(gpu::Shader::Binding(std::string("specularMap"), 2));
-    slotBindings.insert(gpu::Shader::Binding(std::string("emissiveMap"), 3));
-    slotBindings.insert(gpu::Shader::Binding(std::string("lightBuffer"), 4));
-    slotBindings.insert(gpu::Shader::Binding(std::string("normalFittingMap"), DeferredLightingEffect::NORMAL_FITTING_MAP_SLOT));
-
-
-    gpu::ShaderPointer program = gpu::ShaderPointer(gpu::Shader::createProgram(vertexShader, pixelShader));
-    gpu::Shader::makeProgram(*program, slotBindings);
-
-
-    auto locations = std::make_shared<Locations>();
-    initLocations(program, *locations);
-
-
-    auto state = std::make_shared<gpu::State>();
-
-    // Backface on shadow
-    if (key.isShadow()) {
-        state->setCullMode(gpu::State::CULL_FRONT);
-        state->setDepthBias(1.0f);
-        state->setDepthBiasSlopeScale(4.0f);
-    } else {
-        state->setCullMode(gpu::State::CULL_BACK);
-    }
-
-    // Z test depends if transparent or not
-    state->setDepthTest(true, !key.isTranslucent(), gpu::LESS_EQUAL);
-
-    // Blend on transparent
-    state->setBlendFunction(key.isTranslucent(),
-        gpu::State::ONE, gpu::State::BLEND_OP_ADD, gpu::State::INV_SRC_ALPHA, // For transparent only, this keep the highlight intensity
-        gpu::State::FACTOR_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::ONE);
-
-    // Good to go add the brand new pipeline
-    auto pipeline = gpu::PipelinePointer(gpu::Pipeline::create(program, state));
-    insert(value_type(key.getRaw(), RenderPipeline(pipeline, locations)));
-
-
-    if (!key.isWireFrame()) {
-
-        RenderKey wireframeKey(key.getRaw() | RenderKey::IS_WIREFRAME);
-        auto wireframeState = std::make_shared<gpu::State>(state->getValues());
-
-        wireframeState->setFillMode(gpu::State::FILL_LINE);
-
-        // create a new RenderPipeline with the same shader side and the mirrorState
-        auto wireframePipeline = gpu::PipelinePointer(gpu::Pipeline::create(program, wireframeState));
-        insert(value_type(wireframeKey.getRaw(), RenderPipeline(wireframePipeline, locations)));
-    }
-
-    // If not a shadow pass, create the mirror version from the same state, just change the FrontFace
-    if (!key.isShadow()) {
-
-        RenderKey mirrorKey(key.getRaw() | RenderKey::IS_MIRROR);
-        auto mirrorState = std::make_shared<gpu::State>(state->getValues());
-
-        // create a new RenderPipeline with the same shader side and the mirrorState
-        auto mirrorPipeline = gpu::PipelinePointer(gpu::Pipeline::create(program, mirrorState));
-        insert(value_type(mirrorKey.getRaw(), RenderPipeline(mirrorPipeline, locations)));
-
-        if (!key.isWireFrame()) {
-            RenderKey wireframeKey(key.getRaw() | RenderKey::IS_MIRROR | RenderKey::IS_WIREFRAME);
-            auto wireframeState = std::make_shared<gpu::State>(state->getValues());
-
-            wireframeState->setFillMode(gpu::State::FILL_LINE);
-
-            // create a new RenderPipeline with the same shader side and the mirrorState
-            auto wireframePipeline = gpu::PipelinePointer(gpu::Pipeline::create(program, wireframeState));
-            insert(value_type(wireframeKey.getRaw(), RenderPipeline(wireframePipeline, locations)));
-        }
-    }
-}
-
-
-void Model::RenderPipelineLib::initLocations(gpu::ShaderPointer& program, Model::Locations& locations) {
-    locations.alphaThreshold = program->getUniforms().findLocation("alphaThreshold");
-    locations.texcoordMatrices = program->getUniforms().findLocation("texcoordMatrices");
-    locations.emissiveParams = program->getUniforms().findLocation("emissiveParams");
-    locations.glowIntensity = program->getUniforms().findLocation("glowIntensity");
-    locations.normalFittingMapUnit = program->getTextures().findLocation("normalFittingMap");
-    locations.specularTextureUnit = program->getTextures().findLocation("specularMap");
-    locations.emissiveTextureUnit = program->getTextures().findLocation("emissiveMap");
-    locations.materialBufferUnit = program->getBuffers().findLocation("materialBuffer");
-    locations.lightBufferUnit = program->getBuffers().findLocation("lightBuffer");
-    locations.clusterMatrices = program->getUniforms().findLocation("clusterMatrices");
-    locations.clusterIndices = program->getInputs().findLocation("inSkinClusterIndex");
-    locations.clusterWeights = program->getInputs().findLocation("inSkinClusterWeight");
 }
 
 AbstractViewStateInterface* Model::_viewState = NULL;
@@ -252,128 +128,6 @@ void Model::initJointTransforms() {
 }
 
 void Model::init() {
-    if (_renderPipelineLib.empty()) {
-        // Vertex shaders
-        auto modelVertex = gpu::ShaderPointer(gpu::Shader::createVertex(std::string(model_vert)));
-        auto modelNormalMapVertex = gpu::ShaderPointer(gpu::Shader::createVertex(std::string(model_normal_map_vert)));
-        auto modelLightmapVertex = gpu::ShaderPointer(gpu::Shader::createVertex(std::string(model_lightmap_vert)));
-        auto modelLightmapNormalMapVertex = gpu::ShaderPointer(gpu::Shader::createVertex(std::string(model_lightmap_normal_map_vert)));
-        auto modelShadowVertex = gpu::ShaderPointer(gpu::Shader::createVertex(std::string(model_shadow_vert)));
-        auto skinModelVertex = gpu::ShaderPointer(gpu::Shader::createVertex(std::string(skin_model_vert)));
-        auto skinModelNormalMapVertex = gpu::ShaderPointer(gpu::Shader::createVertex(std::string(skin_model_normal_map_vert)));
-        auto skinModelShadowVertex = gpu::ShaderPointer(gpu::Shader::createVertex(std::string(skin_model_shadow_vert)));
-
-        // Pixel shaders
-        auto modelPixel = gpu::ShaderPointer(gpu::Shader::createPixel(std::string(model_frag)));
-        auto modelNormalMapPixel = gpu::ShaderPointer(gpu::Shader::createPixel(std::string(model_normal_map_frag)));
-        auto modelSpecularMapPixel = gpu::ShaderPointer(gpu::Shader::createPixel(std::string(model_specular_map_frag)));
-        auto modelNormalSpecularMapPixel = gpu::ShaderPointer(gpu::Shader::createPixel(std::string(model_normal_specular_map_frag)));
-        auto modelTranslucentPixel = gpu::ShaderPointer(gpu::Shader::createPixel(std::string(model_translucent_frag)));
-        auto modelShadowPixel = gpu::ShaderPointer(gpu::Shader::createPixel(std::string(model_shadow_frag)));
-        auto modelLightmapPixel = gpu::ShaderPointer(gpu::Shader::createPixel(std::string(model_lightmap_frag)));
-        auto modelLightmapNormalMapPixel = gpu::ShaderPointer(gpu::Shader::createPixel(std::string(model_lightmap_normal_map_frag)));
-        auto modelLightmapSpecularMapPixel = gpu::ShaderPointer(gpu::Shader::createPixel(std::string(model_lightmap_specular_map_frag)));
-        auto modelLightmapNormalSpecularMapPixel = gpu::ShaderPointer(gpu::Shader::createPixel(std::string(model_lightmap_normal_specular_map_frag)));
-
-        // Fill the renderPipelineLib
-
-        _renderPipelineLib.addRenderPipeline(
-            RenderKey(0),
-            modelVertex, modelPixel);
-
-        _renderPipelineLib.addRenderPipeline(
-            RenderKey(RenderKey::HAS_TANGENTS),
-            modelNormalMapVertex, modelNormalMapPixel);
-
-        _renderPipelineLib.addRenderPipeline(
-            RenderKey(RenderKey::HAS_SPECULAR),
-            modelVertex, modelSpecularMapPixel);
-
-        _renderPipelineLib.addRenderPipeline(
-            RenderKey(RenderKey::HAS_TANGENTS | RenderKey::HAS_SPECULAR),
-            modelNormalMapVertex, modelNormalSpecularMapPixel);
-
-
-        _renderPipelineLib.addRenderPipeline(
-             RenderKey(RenderKey::IS_TRANSLUCENT),
-             modelVertex, modelTranslucentPixel);
-        // FIXME Ignore lightmap for translucents meshpart
-        _renderPipelineLib.addRenderPipeline(
-             RenderKey(RenderKey::IS_TRANSLUCENT | RenderKey::HAS_LIGHTMAP),
-             modelVertex, modelTranslucentPixel);
-
-        _renderPipelineLib.addRenderPipeline(
-            RenderKey(RenderKey::HAS_TANGENTS | RenderKey::IS_TRANSLUCENT),
-            modelNormalMapVertex, modelTranslucentPixel);
-
-        _renderPipelineLib.addRenderPipeline(
-            RenderKey(RenderKey::HAS_SPECULAR | RenderKey::IS_TRANSLUCENT),
-            modelVertex, modelTranslucentPixel);
-
-        _renderPipelineLib.addRenderPipeline(
-            RenderKey(RenderKey::HAS_TANGENTS | RenderKey::HAS_SPECULAR | RenderKey::IS_TRANSLUCENT),
-            modelNormalMapVertex, modelTranslucentPixel);
-
-
-        _renderPipelineLib.addRenderPipeline(
-            RenderKey(RenderKey::HAS_LIGHTMAP),
-            modelLightmapVertex, modelLightmapPixel);
-        _renderPipelineLib.addRenderPipeline(
-            RenderKey(RenderKey::HAS_LIGHTMAP | RenderKey::HAS_TANGENTS),
-            modelLightmapNormalMapVertex, modelLightmapNormalMapPixel);
-
-        _renderPipelineLib.addRenderPipeline(
-            RenderKey(RenderKey::HAS_LIGHTMAP | RenderKey::HAS_SPECULAR),
-            modelLightmapVertex, modelLightmapSpecularMapPixel);
-
-        _renderPipelineLib.addRenderPipeline(
-            RenderKey(RenderKey::HAS_LIGHTMAP | RenderKey::HAS_TANGENTS | RenderKey::HAS_SPECULAR),
-            modelLightmapNormalMapVertex, modelLightmapNormalSpecularMapPixel);
-
-
-        _renderPipelineLib.addRenderPipeline(
-            RenderKey(RenderKey::IS_SKINNED),
-            skinModelVertex, modelPixel);
-
-        _renderPipelineLib.addRenderPipeline(
-            RenderKey(RenderKey::IS_SKINNED | RenderKey::HAS_TANGENTS),
-            skinModelNormalMapVertex, modelNormalMapPixel);
-
-        _renderPipelineLib.addRenderPipeline(
-            RenderKey(RenderKey::IS_SKINNED | RenderKey::HAS_SPECULAR),
-            skinModelVertex, modelSpecularMapPixel);
-
-        _renderPipelineLib.addRenderPipeline(
-            RenderKey(RenderKey::IS_SKINNED | RenderKey::HAS_TANGENTS | RenderKey::HAS_SPECULAR),
-            skinModelNormalMapVertex, modelNormalSpecularMapPixel);
-
-
-        _renderPipelineLib.addRenderPipeline(
-            RenderKey(RenderKey::IS_SKINNED | RenderKey::IS_TRANSLUCENT),
-            skinModelVertex, modelTranslucentPixel);
-
-        _renderPipelineLib.addRenderPipeline(
-            RenderKey(RenderKey::IS_SKINNED | RenderKey::HAS_TANGENTS | RenderKey::IS_TRANSLUCENT),
-            skinModelNormalMapVertex, modelTranslucentPixel);
-
-        _renderPipelineLib.addRenderPipeline(
-            RenderKey(RenderKey::IS_SKINNED | RenderKey::HAS_SPECULAR | RenderKey::IS_TRANSLUCENT),
-            skinModelVertex, modelTranslucentPixel);
-
-        _renderPipelineLib.addRenderPipeline(
-            RenderKey(RenderKey::IS_SKINNED | RenderKey::HAS_TANGENTS | RenderKey::HAS_SPECULAR | RenderKey::IS_TRANSLUCENT),
-            skinModelNormalMapVertex, modelTranslucentPixel);
-
-
-        _renderPipelineLib.addRenderPipeline(
-            RenderKey(RenderKey::IS_DEPTH_ONLY | RenderKey::IS_SHADOW),
-            modelShadowVertex, modelShadowPixel);
-
-
-        _renderPipelineLib.addRenderPipeline(
-            RenderKey(RenderKey::IS_SKINNED | RenderKey::IS_DEPTH_ONLY | RenderKey::IS_SHADOW),
-            skinModelShadowVertex, modelShadowPixel);
-    }
 }
 
 void Model::reset() {
@@ -413,6 +167,7 @@ bool Model::updateGeometry() {
             MeshState state;
             state.clusterMatrices.resize(mesh.clusters.size());
             state.cauterizedClusterMatrices.resize(mesh.clusters.size());
+
             _meshStates.append(state);
 
             auto buffer = std::make_shared<gpu::Buffer>();
@@ -453,7 +208,8 @@ void Model::initJointStates(QVector<JointState> states) {
 }
 
 bool Model::findRayIntersectionAgainstSubMeshes(const glm::vec3& origin, const glm::vec3& direction, float& distance,
-                                                    BoxFace& face, QString& extraInfo, bool pickAgainstTriangles) {
+                                                    BoxFace& face, glm::vec3& surfaceNormal,
+                                                    QString& extraInfo, bool pickAgainstTriangles) {
 
     bool intersectedSomething = false;
 
@@ -480,11 +236,12 @@ bool Model::findRayIntersectionAgainstSubMeshes(const glm::vec3& origin, const g
 
     // we can use the AABox's ray intersection by mapping our origin and direction into the model frame
     // and testing intersection there.
-    if (modelFrameBox.findRayIntersection(modelFrameOrigin, modelFrameDirection, distance, face)) {
+    if (modelFrameBox.findRayIntersection(modelFrameOrigin, modelFrameDirection, distance, face, surfaceNormal)) {
         float bestDistance = std::numeric_limits<float>::max();
 
         float distanceToSubMesh;
         BoxFace subMeshFace;
+        glm::vec3 subMeshSurfaceNormal;
         int subMeshIndex = 0;
 
         const FBXGeometry& geometry = _geometry->getFBXGeometry();
@@ -496,9 +253,9 @@ bool Model::findRayIntersectionAgainstSubMeshes(const glm::vec3& origin, const g
             recalculateMeshBoxes(pickAgainstTriangles);
         }
 
-        foreach(const AABox& subMeshBox, _calculatedMeshBoxes) {
+        foreach (const AABox& subMeshBox, _calculatedMeshBoxes) {
 
-            if (subMeshBox.findRayIntersection(origin, direction, distanceToSubMesh, subMeshFace)) {
+            if (subMeshBox.findRayIntersection(origin, direction, distanceToSubMesh, subMeshFace, subMeshSurfaceNormal)) {
                 if (distanceToSubMesh < bestDistance) {
                     if (pickAgainstTriangles) {
                         if (!_calculatedMeshTrianglesValid) {
@@ -516,6 +273,7 @@ bool Model::findRayIntersectionAgainstSubMeshes(const glm::vec3& origin, const g
                                     bestDistance = thisTriangleDistance;
                                     intersectedSomething = true;
                                     face = subMeshFace;
+                                    surfaceNormal = triangle.getNormal();
                                     extraInfo = geometry.getModelNameOfMesh(subMeshIndex);
                                 }
                             }
@@ -525,6 +283,7 @@ bool Model::findRayIntersectionAgainstSubMeshes(const glm::vec3& origin, const g
                         bestDistance = distanceToSubMesh;
                         intersectedSomething = true;
                         face = subMeshFace;
+                        surfaceNormal = subMeshSurfaceNormal;
                         extraInfo = geometry.getModelNameOfMesh(subMeshIndex);
                     }
                 }
@@ -601,25 +360,6 @@ bool Model::convexHullContains(glm::vec3 point) {
     return false;
 }
 
-void Model::recalculateMeshPartOffsets() {
-    if (!_calculatedMeshPartOffsetValid) {
-        const FBXGeometry& geometry = _geometry->getFBXGeometry();
-        int numberOfMeshes = geometry.meshes.size();
-        _calculatedMeshPartOffset.clear();
-        for (int i = 0; i < numberOfMeshes; i++) {
-            const FBXMesh& mesh = geometry.meshes.at(i);
-            qint64 partOffset = 0;
-            for (int j = 0; j < mesh.parts.size(); j++) {
-                const FBXMeshPart& part = mesh.parts.at(j);
-                _calculatedMeshPartOffset[QPair<int,int>(i, j)] = partOffset;
-                partOffset += part.quadIndices.size() * sizeof(int);
-                partOffset += part.triangleIndices.size() * sizeof(int);
-
-            }
-        }
-        _calculatedMeshPartOffsetValid = true;
-    }
-}
 // TODO: we seem to call this too often when things haven't actually changed... look into optimizing this
 // Any script might trigger findRayIntersectionAgainstSubMeshes (and maybe convexHullContains), so these
 // can occur multiple times. In addition, rendering does it's own ray picking in order to decide which
@@ -636,8 +376,6 @@ void Model::recalculateMeshBoxes(bool pickAgainstTriangles) {
         _calculatedMeshTriangles.clear();
         _calculatedMeshTriangles.resize(numberOfMeshes);
         _calculatedMeshPartBoxes.clear();
-        _calculatedMeshPartOffset.clear();
-        _calculatedMeshPartOffsetValid = false;
         for (int i = 0; i < numberOfMeshes; i++) {
             const FBXMesh& mesh = geometry.meshes.at(i);
             Extents scaledMeshExtents = calculateScaledOffsetExtents(mesh.meshExtents);
@@ -646,7 +384,6 @@ void Model::recalculateMeshBoxes(bool pickAgainstTriangles) {
 
             if (pickAgainstTriangles) {
                 QVector<Triangle> thisMeshTriangles;
-                qint64 partOffset = 0;
                 for (int j = 0; j < mesh.parts.size(); j++) {
                     const FBXMeshPart& part = mesh.parts.at(j);
 
@@ -732,15 +469,9 @@ void Model::recalculateMeshBoxes(bool pickAgainstTriangles) {
                         }
                     }
                     _calculatedMeshPartBoxes[QPair<int,int>(i, j)] = thisPartBounds;
-                    _calculatedMeshPartOffset[QPair<int,int>(i, j)] = partOffset;
-
-                    partOffset += part.quadIndices.size() * sizeof(int);
-                    partOffset += part.triangleIndices.size() * sizeof(int);
-
                 }
                 _calculatedMeshTriangles[i] = thisMeshTriangles;
                 _calculatedMeshPartBoxesValid = true;
-                _calculatedMeshPartOffsetValid = true;
             }
         }
         _calculatedMeshBoxesValid = true;
@@ -764,46 +495,6 @@ void Model::renderSetup(RenderArgs* args) {
     }
 }
 
-
-class MeshPartPayload {
-public:
-    MeshPartPayload(bool transparent, Model* model, int meshIndex, int partIndex) :
-        transparent(transparent), model(model), url(model->getURL()), meshIndex(meshIndex), partIndex(partIndex) { }
-    typedef render::Payload<MeshPartPayload> Payload;
-    typedef Payload::DataPointer Pointer;
-
-    bool transparent;
-    Model* model;
-    QUrl url;
-    int meshIndex;
-    int partIndex;
-};
-
-namespace render {
-    template <> const ItemKey payloadGetKey(const MeshPartPayload::Pointer& payload) {
-        if (!payload->model->isVisible()) {
-            return ItemKey::Builder().withInvisible().build();
-        }
-        return payload->transparent ? ItemKey::Builder::transparentShape() : ItemKey::Builder::opaqueShape();
-    }
-
-    template <> const Item::Bound payloadGetBound(const MeshPartPayload::Pointer& payload) {
-        if (payload) {
-            return payload->model->getPartBounds(payload->meshIndex, payload->partIndex);
-        }
-        return render::Item::Bound();
-    }
-    template <> void payloadRender(const MeshPartPayload::Pointer& payload, RenderArgs* args) {
-        if (args) {
-            return payload->model->renderPart(args, payload->meshIndex, payload->partIndex, payload->transparent);
-        }
-    }
-
-   /* template <> const model::MaterialKey& shapeGetMaterialKey(const MeshPartPayload::Pointer& payload) {
-        return payload->model->getPartMaterial(payload->meshIndex, payload->partIndex);
-    }*/
-}
-
 void Model::setVisibleInScene(bool newValue, std::shared_ptr<render::Scene> scene) {
     if (_isVisible != newValue) {
         _isVisible = newValue;
@@ -824,20 +515,14 @@ bool Model::addToScene(std::shared_ptr<render::Scene> scene, render::PendingChan
 
     bool somethingAdded = false;
 
-    foreach (auto renderItem, _transparentRenderItems) {
+    foreach (auto renderItem, _renderItemsSet) {
         auto item = scene->allocateID();
         auto renderData = MeshPartPayload::Pointer(renderItem);
         auto renderPayload = std::make_shared<MeshPartPayload::Payload>(renderData);
         pendingChanges.resetItem(item, renderPayload);
-        _renderItems.insert(item, renderPayload);
-        somethingAdded = true;
-    }
-
-    foreach (auto renderItem, _opaqueRenderItems) {
-        auto item = scene->allocateID();
-        auto renderData = MeshPartPayload::Pointer(renderItem);
-        auto renderPayload = std::make_shared<MeshPartPayload::Payload>(renderData);
-        pendingChanges.resetItem(item, renderPayload);
+        pendingChanges.updateItem<MeshPartPayload>(item, [&](MeshPartPayload& data) {
+            data.model->_needsUpdateClusterMatrices = true;
+        });
         _renderItems.insert(item, renderPayload);
         somethingAdded = true;
     }
@@ -854,22 +539,15 @@ bool Model::addToScene(std::shared_ptr<render::Scene> scene, render::PendingChan
 
     bool somethingAdded = false;
 
-    foreach (auto renderItem, _transparentRenderItems) {
+    foreach (auto renderItem, _renderItemsSet) {
         auto item = scene->allocateID();
         auto renderData = MeshPartPayload::Pointer(renderItem);
         auto renderPayload = std::make_shared<MeshPartPayload::Payload>(renderData);
         renderPayload->addStatusGetters(statusGetters);
         pendingChanges.resetItem(item, renderPayload);
-        _renderItems.insert(item, renderPayload);
-        somethingAdded = true;
-    }
-
-    foreach (auto renderItem, _opaqueRenderItems) {
-        auto item = scene->allocateID();
-        auto renderData = MeshPartPayload::Pointer(renderItem);
-        auto renderPayload = std::make_shared<MeshPartPayload::Payload>(renderData);
-        renderPayload->addStatusGetters(statusGetters);
-        pendingChanges.resetItem(item, renderPayload);
+        pendingChanges.updateItem<MeshPartPayload>(item, [&](MeshPartPayload& data) {
+            data.model->_needsUpdateClusterMatrices = true;
+        });
         _renderItems.insert(item, renderPayload);
         somethingAdded = true;
     }
@@ -1015,16 +693,20 @@ bool Model::getJointState(int index, glm::quat& rotation) const {
     return _rig->getJointStateRotation(index, rotation);
 }
 
-bool Model::getVisibleJointState(int index, glm::quat& rotation) const {
-    return _rig->getVisibleJointState(index, rotation);
-}
-
 void Model::clearJointState(int index) {
     _rig->clearJointState(index);
 }
 
-void Model::setJointState(int index, bool valid, const glm::quat& rotation, float priority) {
-    _rig->setJointState(index, valid, rotation, priority);
+void Model::setJointState(int index, bool valid, const glm::quat& rotation, const glm::vec3& translation, float priority) {
+    _rig->setJointState(index, valid, rotation, translation, priority);
+}
+
+void Model::setJointRotation(int index, bool valid, const glm::quat& rotation, float priority) {
+    _rig->setJointRotation(index, valid, rotation, priority);
+}
+
+void Model::setJointTranslation(int index, bool valid, const glm::vec3& translation, float priority) {
+    _rig->setJointTranslation(index, valid, translation, priority);
 }
 
 int Model::getParentJointIndex(int jointIndex) const {
@@ -1096,16 +778,12 @@ bool Model::getJointRotation(int jointIndex, glm::quat& rotation) const {
     return _rig->getJointRotation(jointIndex, rotation);
 }
 
+bool Model::getJointTranslation(int jointIndex, glm::vec3& translation) const {
+    return _rig->getJointTranslation(jointIndex, translation);
+}
+
 bool Model::getJointCombinedRotation(int jointIndex, glm::quat& rotation) const {
     return _rig->getJointCombinedRotation(jointIndex, rotation, _rotation);
-}
-
-bool Model::getVisibleJointPositionInWorldFrame(int jointIndex, glm::vec3& position) const {
-    return _rig->getVisibleJointPositionInWorldFrame(jointIndex, position, _translation, _rotation);
-}
-
-bool Model::getVisibleJointRotationInWorldFrame(int jointIndex, glm::quat& rotation) const {
-    return _rig->getVisibleJointRotationInWorldFrame(jointIndex, rotation, _rotation);
 }
 
 QStringList Model::getJointNames() const {
@@ -1283,6 +961,7 @@ void Model::simulate(float deltaTime, bool fullUpdate) {
 
 //virtual
 void Model::updateRig(float deltaTime, glm::mat4 parentTransform) {
+    _needsUpdateClusterMatrices = true;
      _rig->updateAnimations(deltaTime, parentTransform);
 }
 void Model::simulateInternal(float deltaTime) {
@@ -1293,43 +972,51 @@ void Model::simulateInternal(float deltaTime) {
     updateRig(deltaTime, parentTransform);
 }
 void Model::updateClusterMatrices() {
+    PerformanceTimer perfTimer("Model::updateClusterMatrices");
+
+    if (!_needsUpdateClusterMatrices) {
+        return;
+    }
+    _needsUpdateClusterMatrices = false;
     const FBXGeometry& geometry = _geometry->getFBXGeometry();
     glm::mat4 zeroScale(glm::vec4(0.0f, 0.0f, 0.0f, 0.0f),
-                        glm::vec4(0.0f, 0.0f, 0.0f, 0.0f),
-                        glm::vec4(0.0f, 0.0f, 0.0f, 0.0f),
-                        glm::vec4(0.0f, 0.0f, 0.0f, 1.0f));
+        glm::vec4(0.0f, 0.0f, 0.0f, 0.0f),
+        glm::vec4(0.0f, 0.0f, 0.0f, 0.0f),
+        glm::vec4(0.0f, 0.0f, 0.0f, 1.0f));
     auto cauterizeMatrix = _rig->getJointTransform(geometry.neckJointIndex) * zeroScale;
 
     glm::mat4 modelToWorld = glm::mat4_cast(_rotation);
     for (int i = 0; i < _meshStates.size(); i++) {
         MeshState& state = _meshStates[i];
         const FBXMesh& mesh = geometry.meshes.at(i);
-        if (_showTrueJointTransforms) {
-            for (int j = 0; j < mesh.clusters.size(); j++) {
-                const FBXCluster& cluster = mesh.clusters.at(j);
-                auto jointMatrix = _rig->getJointTransform(cluster.jointIndex);
-                state.clusterMatrices[j] = modelToWorld * jointMatrix * cluster.inverseBindMatrix;
 
-                // as an optimization, don't build cautrizedClusterMatrices if the boneSet is empty.
-                if (!_cauterizeBoneSet.empty()) {
-                    if (_cauterizeBoneSet.find(cluster.jointIndex) != _cauterizeBoneSet.end()) {
-                        jointMatrix = cauterizeMatrix;
-                    }
-                    state.cauterizedClusterMatrices[j] = modelToWorld * jointMatrix * cluster.inverseBindMatrix;
+        for (int j = 0; j < mesh.clusters.size(); j++) {
+            const FBXCluster& cluster = mesh.clusters.at(j);
+            auto jointMatrix = _rig->getJointTransform(cluster.jointIndex);
+            state.clusterMatrices[j] = modelToWorld * jointMatrix * cluster.inverseBindMatrix;
+
+            // as an optimization, don't build cautrizedClusterMatrices if the boneSet is empty.
+            if (!_cauterizeBoneSet.empty()) {
+                if (_cauterizeBoneSet.find(cluster.jointIndex) != _cauterizeBoneSet.end()) {
+                    jointMatrix = cauterizeMatrix;
                 }
+                state.cauterizedClusterMatrices[j] = modelToWorld * jointMatrix * cluster.inverseBindMatrix;
             }
-        } else {
-            for (int j = 0; j < mesh.clusters.size(); j++) {
-                const FBXCluster& cluster = mesh.clusters.at(j);
-                auto jointMatrix = _rig->getJointVisibleTransform(cluster.jointIndex); // differs from above only in using get...VisibleTransform
-                state.clusterMatrices[j] = modelToWorld * jointMatrix * cluster.inverseBindMatrix;
+        }
 
-                // as an optimization, don't build cautrizedClusterMatrices if the boneSet is empty.
-                if (!_cauterizeBoneSet.empty()) {
-                    if (_cauterizeBoneSet.find(cluster.jointIndex) != _cauterizeBoneSet.end()) {
-                        jointMatrix = cauterizeMatrix;
-                    }
-                    state.cauterizedClusterMatrices[j] = modelToWorld * jointMatrix * cluster.inverseBindMatrix;
+        // Once computed the cluster matrices, update the buffer(s)
+        if (mesh.clusters.size() > 1) {
+            if (!state.clusterBuffer) {
+                state.clusterBuffer = std::make_shared<gpu::Buffer>(state.clusterMatrices.size() * sizeof(glm::mat4), (const gpu::Byte*) state.clusterMatrices.constData());
+            } else {
+                state.clusterBuffer->setSubData(0, state.clusterMatrices.size() * sizeof(glm::mat4), (const gpu::Byte*) state.clusterMatrices.constData());
+            }
+
+            if (!_cauterizeBoneSet.empty() && (state.cauterizedClusterMatrices.size() > 1)) {
+                if (!state.cauterizedClusterBuffer) {
+                    state.cauterizedClusterBuffer = std::make_shared<gpu::Buffer>(state.cauterizedClusterMatrices.size() * sizeof(glm::mat4), (const gpu::Byte*) state.cauterizedClusterMatrices.constData());
+                } else {
+                    state.cauterizedClusterBuffer->setSubData(0, state.cauterizedClusterMatrices.size() * sizeof(glm::mat4), (const gpu::Byte*) state.cauterizedClusterMatrices.constData());
                 }
             }
         }
@@ -1456,265 +1143,6 @@ AABox Model::getPartBounds(int meshIndex, int partIndex) {
     return AABox();
 }
 
-void Model::renderPart(RenderArgs* args, int meshIndex, int partIndex, bool translucent) {
-//   PROFILE_RANGE(__FUNCTION__);
-    PerformanceTimer perfTimer("Model::renderPart");
-    if (!_readyWhenAdded) {
-        return; // bail asap
-    }
-
-    // We need to make sure we have valid offsets calculated before we can render
-    if (!_calculatedMeshPartOffsetValid) {
-        _mutex.lock();
-        recalculateMeshPartOffsets();
-        _mutex.unlock();
-    }
-    auto textureCache = DependencyManager::get<TextureCache>();
-
-    gpu::Batch& batch = *(args->_batch);
-    auto mode = args->_renderMode;
-
-
-    // Capture the view matrix once for the rendering of this model
-    if (_transforms.empty()) {
-        _transforms.push_back(Transform());
-    }
-
-    auto alphaThreshold = args->_alphaThreshold; //translucent ? TRANSPARENT_ALPHA_THRESHOLD : OPAQUE_ALPHA_THRESHOLD; // FIX ME
-
-    const FBXGeometry& geometry = _geometry->getFBXGeometry();
-    const std::vector<std::unique_ptr<NetworkMesh>>& networkMeshes = _geometry->getMeshes();
-
-    // guard against partially loaded meshes
-    if (meshIndex >= (int)networkMeshes.size() || meshIndex >= (int)geometry.meshes.size() || meshIndex >= (int)_meshStates.size() ) {
-        return;
-    }
-
-    updateClusterMatrices();
-
-    const NetworkMesh& networkMesh = *(networkMeshes.at(meshIndex).get());
-    const FBXMesh& mesh = geometry.meshes.at(meshIndex);
-    const MeshState& state = _meshStates.at(meshIndex);
-
-    bool translucentMesh = translucent; // networkMesh.getTranslucentPartCount(mesh) == networkMesh.parts.size();
-    bool hasTangents = !mesh.tangents.isEmpty();
-    bool hasSpecular = mesh.hasSpecularTexture();
-    bool hasLightmap = mesh.hasEmissiveTexture();
-    bool isSkinned = state.clusterMatrices.size() > 1;
-    bool wireframe = isWireframe();
-
-    // render the part bounding box
-    #ifdef DEBUG_BOUNDING_PARTS
-    {
-        AABox partBounds = getPartBounds(meshIndex, partIndex);
-        bool inView = args->_viewFrustum->boxInFrustum(partBounds) != ViewFrustum::OUTSIDE;
-
-        glm::vec4 cubeColor;
-        if (isSkinned) {
-            cubeColor = glm::vec4(0.0f, 1.0f, 1.0f, 1.0f);
-        } else if (inView) {
-            cubeColor = glm::vec4(1.0f, 0.0f, 1.0f, 1.0f);
-        } else {
-            cubeColor = glm::vec4(1.0f, 1.0f, 0.0f, 1.0f);
-        }
-
-        Transform transform;
-        transform.setTranslation(partBounds.calcCenter());
-        transform.setScale(partBounds.getDimensions());
-        batch.setModelTransform(transform);
-        DependencyManager::get<DeferredLightingEffect>()->renderWireCube(batch, 1.0f, cubeColor);
-    }
-    #endif //def DEBUG_BOUNDING_PARTS
-
-    if (wireframe) {
-        translucentMesh = hasTangents = hasSpecular = hasLightmap = isSkinned = false;
-    }
-
-    Locations* locations = nullptr;
-    pickPrograms(batch, mode, translucentMesh, alphaThreshold, hasLightmap, hasTangents, hasSpecular, isSkinned, wireframe,
-                 args, locations);
-
-    {
-        if (!_showTrueJointTransforms) {
-            _rig->updateVisibleJointStates();
-        } // else no need to update visible transforms
-    }
-
-    // if our index is ever out of range for either meshes or networkMeshes, then skip it, and set our _meshGroupsKnown
-    // to false to rebuild out mesh groups.
-    if (meshIndex < 0 || meshIndex >= (int)networkMeshes.size() || meshIndex > geometry.meshes.size()) {
-        _meshGroupsKnown = false; // regenerate these lists next time around.
-        _readyWhenAdded = false; // in case any of our users are using scenes
-        invalidCalculatedMeshBoxes(); // if we have to reload, we need to assume our mesh boxes are all invalid
-        return; // FIXME!
-    }
-
-    batch.setIndexBuffer(gpu::UINT32, (networkMesh._indexBuffer), 0);
-    int vertexCount = mesh.vertices.size();
-    if (vertexCount == 0) {
-        // sanity check
-        return; // FIXME!
-    }
-
-    // Transform stage
-    if (_transforms.empty()) {
-        _transforms.push_back(Transform());
-    }
-
-    if (isSkinned) {
-        const float* bones;
-        if (_cauterizeBones) {
-            bones = (const float*)state.cauterizedClusterMatrices.constData();
-        } else {
-            bones = (const float*)state.clusterMatrices.constData();
-        }
-        batch._glUniformMatrix4fv(locations->clusterMatrices, state.clusterMatrices.size(), false, bones);
-       _transforms[0] = Transform();
-       _transforms[0].preTranslate(_translation);
-    } else {
-        if (_cauterizeBones) {
-            _transforms[0] = Transform(state.cauterizedClusterMatrices[0]);
-        } else {
-            _transforms[0] = Transform(state.clusterMatrices[0]);
-        }
-       _transforms[0].preTranslate(_translation);
-    }
-    batch.setModelTransform(_transforms[0]);
-
-    if (mesh.blendshapes.isEmpty()) {
-        batch.setInputFormat(networkMesh._vertexFormat);
-        batch.setInputStream(0, *networkMesh._vertexStream);
-    } else {
-        batch.setInputFormat(networkMesh._vertexFormat);
-        batch.setInputBuffer(0, _blendedVertexBuffers[meshIndex], 0, sizeof(glm::vec3));
-        batch.setInputBuffer(1, _blendedVertexBuffers[meshIndex], vertexCount * sizeof(glm::vec3), sizeof(glm::vec3));
-        batch.setInputStream(2, *networkMesh._vertexStream);
-    }
-
-    if (mesh.colors.isEmpty()) {
-        batch._glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
-    }
-
-    // guard against partially loaded meshes
-    if (partIndex >= (int)networkMesh._parts.size() || partIndex >= mesh.parts.size()) {
-        return;
-    }
-
-    const NetworkMeshPart& networkPart = *(networkMesh._parts.at(partIndex).get());
-    const FBXMeshPart& part = mesh.parts.at(partIndex);
-    model::MaterialPointer material = part._material;
-
-    #ifdef WANT_DEBUG
-    if (material == nullptr) {
-        qCDebug(renderutils) << "WARNING: material == nullptr!!!";
-    }
-    #endif
-
-    if (material != nullptr) {
-
-        // apply material properties
-        if (mode != RenderArgs::SHADOW_RENDER_MODE) {
-            #ifdef WANT_DEBUG
-            qCDebug(renderutils) << "Material Changed ---------------------------------------------";
-            qCDebug(renderutils) << "part INDEX:" << partIndex;
-            qCDebug(renderutils) << "NEW part.materialID:" << part.materialID;
-            #endif //def WANT_DEBUG
-
-            if (locations->materialBufferUnit >= 0) {
-                batch.setUniformBuffer(locations->materialBufferUnit, material->getSchemaBuffer());
-            }
-
-            Texture* diffuseMap = networkPart.diffuseTexture.data();
-            if (mesh.isEye && diffuseMap) {
-                // FIXME - guard against out of bounds here
-                if (meshIndex < _dilatedTextures.size()) {
-                    if (partIndex < _dilatedTextures[meshIndex].size()) {
-                        diffuseMap = (_dilatedTextures[meshIndex][partIndex] =
-                            static_cast<DilatableNetworkTexture*>(diffuseMap)->getDilatedTexture(_pupilDilation)).data();
-                    }
-                }
-            }
-            if (diffuseMap && static_cast<NetworkTexture*>(diffuseMap)->isLoaded()) {
-                batch.setResourceTexture(0, diffuseMap->getGPUTexture());
-            } else {
-                batch.setResourceTexture(0, textureCache->getGrayTexture());
-            }
-
-            if (locations->texcoordMatrices >= 0) {
-                glm::mat4 texcoordTransform[2];
-                if (!part.diffuseTexture.transform.isIdentity()) {
-                    part.diffuseTexture.transform.getMatrix(texcoordTransform[0]);
-                }
-                if (!part.emissiveTexture.transform.isIdentity()) {
-                    part.emissiveTexture.transform.getMatrix(texcoordTransform[1]);
-                }
-                batch._glUniformMatrix4fv(locations->texcoordMatrices, 2, false, (const float*) &texcoordTransform);
-            }
-
-            if (!mesh.tangents.isEmpty()) {
-                NetworkTexture* normalMap = networkPart.normalTexture.data();
-                batch.setResourceTexture(1, (!normalMap || !normalMap->isLoaded()) ?
-                                        textureCache->getBlueTexture() : normalMap->getGPUTexture());
-            }
-
-            if (locations->specularTextureUnit >= 0) {
-                NetworkTexture* specularMap = networkPart.specularTexture.data();
-                batch.setResourceTexture(locations->specularTextureUnit, (!specularMap || !specularMap->isLoaded()) ?
-                                        textureCache->getBlackTexture() : specularMap->getGPUTexture());
-            }
-
-            if (args) {
-                args->_details._materialSwitches++;
-            }
-
-            // HACK: For unknown reason (yet!) this code that should be assigned only if the material changes need to be called for every
-            // drawcall with an emissive, so let's do it for now.
-            if (locations->emissiveTextureUnit >= 0) {
-                //  assert(locations->emissiveParams >= 0); // we should have the emissiveParams defined in the shader
-                float emissiveOffset = part.emissiveParams.x;
-                float emissiveScale = part.emissiveParams.y;
-                batch._glUniform2f(locations->emissiveParams, emissiveOffset, emissiveScale);
-
-                NetworkTexture* emissiveMap = networkPart.emissiveTexture.data();
-                batch.setResourceTexture(locations->emissiveTextureUnit, (!emissiveMap || !emissiveMap->isLoaded()) ?
-                                        textureCache->getGrayTexture() : emissiveMap->getGPUTexture());
-            }
-
-            if (translucent && locations->lightBufferUnit >= 0) {
-                DependencyManager::get<DeferredLightingEffect>()->setupTransparent(args, locations->lightBufferUnit);
-            }
-        }
-    }
-
-    qint64 offset;
-    {
-        // FIXME_STUTTER: We should n't have any lock here
-        _mutex.lock();
-        offset = _calculatedMeshPartOffset[QPair<int,int>(meshIndex, partIndex)];
-        _mutex.unlock();
-    }
-
-    if (part.quadIndices.size() > 0) {
-        batch.setIndexBuffer(gpu::UINT32, part.getTrianglesForQuads(), 0);
-        batch.drawIndexed(gpu::TRIANGLES, part.trianglesForQuadsIndicesCount, 0);
-
-        offset += part.quadIndices.size() * sizeof(int);
-        batch.setIndexBuffer(gpu::UINT32, (networkMesh._indexBuffer), 0); // restore this in case there are triangles too
-    }
-
-    if (part.triangleIndices.size() > 0) {
-        batch.drawIndexed(gpu::TRIANGLES, part.triangleIndices.size(), offset);
-        offset += part.triangleIndices.size() * sizeof(int);
-    }
-
-    if (args) {
-        const int INDICES_PER_TRIANGLE = 3;
-        const int INDICES_PER_QUAD = 4;
-        args->_details._trianglesRendered += part.triangleIndices.size() / INDICES_PER_TRIANGLE;
-        args->_details._quadsRendered += part.quadIndices.size() / INDICES_PER_QUAD;
-    }
-}
-
 void Model::segregateMeshGroups() {
     const FBXGeometry& geometry = _geometry->getFBXGeometry();
     const std::vector<std::unique_ptr<NetworkMesh>>& networkMeshes = _geometry->getMeshes();
@@ -1726,74 +1154,21 @@ void Model::segregateMeshGroups() {
         return;
     }
 
-    _transparentRenderItems.clear();
-    _opaqueRenderItems.clear();
+    _renderItemsSet.clear();
 
     // Run through all of the meshes, and place them into their segregated, but unsorted buckets
+    int shapeID = 0;
     for (int i = 0; i < (int)networkMeshes.size(); i++) {
-        const NetworkMesh& networkMesh = *(networkMeshes.at(i).get());
         const FBXMesh& mesh = geometry.meshes.at(i);
-        const MeshState& state = _meshStates.at(i);
-
-        bool translucentMesh = networkMesh.getTranslucentPartCount(mesh) == (int)networkMesh._parts.size();
-        bool hasTangents = !mesh.tangents.isEmpty();
-        bool hasSpecular = mesh.hasSpecularTexture();
-        bool hasLightmap = mesh.hasEmissiveTexture();
-        bool isSkinned = state.clusterMatrices.size() > 1;
-        bool wireframe = isWireframe();
-
-        if (wireframe) {
-            translucentMesh = hasTangents = hasSpecular = hasLightmap = isSkinned = false;
-        }
 
         // Create the render payloads
         int totalParts = mesh.parts.size();
         for (int partIndex = 0; partIndex < totalParts; partIndex++) {
-            if (networkMesh.isPartTranslucent(mesh, partIndex)) {
-                _transparentRenderItems << std::make_shared<MeshPartPayload>(true, this, i, partIndex);
-            } else {
-                _opaqueRenderItems << std::make_shared<MeshPartPayload>(false, this, i, partIndex);
-            }
+            _renderItemsSet << std::make_shared<MeshPartPayload>(this, i, partIndex, shapeID);
+            shapeID++;
         }
     }
     _meshGroupsKnown = true;
-}
-
-void Model::pickPrograms(gpu::Batch& batch, RenderMode mode, bool translucent, float alphaThreshold,
-                            bool hasLightmap, bool hasTangents, bool hasSpecular, bool isSkinned, bool isWireframe, RenderArgs* args,
-                            Locations*& locations) {
-
-    RenderKey key(mode, translucent, alphaThreshold, hasLightmap, hasTangents, hasSpecular, isSkinned, isWireframe);
-    if (mode == RenderArgs::MIRROR_RENDER_MODE) {
-        key = RenderKey(key.getRaw() | RenderKey::IS_MIRROR);
-    }
-    auto pipeline = _renderPipelineLib.find(key.getRaw());
-    if (pipeline == _renderPipelineLib.end()) {
-        qDebug() << "No good, couldn't find a pipeline from the key ?" << key.getRaw();
-        locations = 0;
-        return;
-    }
-
-    gpu::ShaderPointer program = (*pipeline).second._pipeline->getProgram();
-    locations = (*pipeline).second._locations.get();
-
-
-    // Setup the One pipeline
-    batch.setPipeline((*pipeline).second._pipeline);
-
-    if ((locations->alphaThreshold > -1) && (mode != RenderArgs::SHADOW_RENDER_MODE)) {
-        batch._glUniform1f(locations->alphaThreshold, alphaThreshold);
-    }
-
-    if ((locations->glowIntensity > -1) && (mode != RenderArgs::SHADOW_RENDER_MODE)) {
-        const float DEFAULT_GLOW_INTENSITY = 1.0f; // FIXME - glow is removed
-        batch._glUniform1f(locations->glowIntensity, DEFAULT_GLOW_INTENSITY);
-    }
-
-    if ((locations->normalFittingMapUnit > -1)) {
-       batch.setResourceTexture(locations->normalFittingMapUnit,
-                    DependencyManager::get<TextureCache>()->getNormalFittingTexture());
-    }
 }
 
 bool Model::initWhenReady(render::ScenePointer scene) {
@@ -1802,20 +1177,15 @@ bool Model::initWhenReady(render::ScenePointer scene) {
 
         render::PendingChanges pendingChanges;
 
-        foreach (auto renderItem, _transparentRenderItems) {
+        foreach (auto renderItem, _renderItemsSet) {
             auto item = scene->allocateID();
             auto renderData = MeshPartPayload::Pointer(renderItem);
             auto renderPayload = std::make_shared<MeshPartPayload::Payload>(renderData);
             _renderItems.insert(item, renderPayload);
             pendingChanges.resetItem(item, renderPayload);
-        }
-
-        foreach (auto renderItem, _opaqueRenderItems) {
-            auto item = scene->allocateID();
-            auto renderData = MeshPartPayload::Pointer(renderItem);
-            auto renderPayload = std::make_shared<MeshPartPayload::Payload>(renderData);
-            _renderItems.insert(item, renderPayload);
-            pendingChanges.resetItem(item, renderPayload);
+            pendingChanges.updateItem<MeshPartPayload>(item, [&](MeshPartPayload& data) {
+                data.model->_needsUpdateClusterMatrices = true;
+            });
         }
         scene->enqueuePendingChanges(pendingChanges);
 

@@ -12,6 +12,8 @@
 #ifndef hifi_Application_h
 #define hifi_Application_h
 
+#include <functional>
+
 #include <QApplication>
 #include <QHash>
 #include <QImage>
@@ -19,103 +21,53 @@
 #include <QSet>
 #include <QStringList>
 #include <QUndoStack>
-#include <functional>
 
 #include <AbstractScriptingServicesInterface.h>
 #include <AbstractViewStateInterface.h>
 #include <EntityEditPacketSender.h>
 #include <EntityTreeRenderer.h>
-#include <GeometryCache.h>
 #include <input-plugins/KeyboardMouseDevice.h>
-#include <NodeList.h>
 #include <OctreeQuery.h>
-#include <OffscreenUi.h>
 #include <PhysicalEntitySimulation.h>
 #include <PhysicsEngine.h>
 #include <plugins/Forward.h>
 #include <ScriptEngine.h>
 #include <ShapeManager.h>
-#include <StDev.h>
-#include <udt/PacketHeaders.h>
-#include <ViewFrustum.h>
 #include <SimpleMovingAverage.h>
+#include <StDev.h>
+#include <ViewFrustum.h>
 
-#include "AudioClient.h"
+#include "avatar/AvatarUpdate.h"
+#include "avatar/MyAvatar.h"
 #include "Bookmarks.h"
 #include "Camera.h"
 #include "Environment.h"
 #include "FileLogger.h"
+#include "gpu/Context.h"
 #include "Menu.h"
-#include "Physics.h"
-#include "Stars.h"
-#include "avatar/AvatarUpdate.h"
-#include "avatar/Avatar.h"
-#include "avatar/MyAvatar.h"
+#include "octree/OctreePacketProcessor.h"
+#include "render/Engine.h"
 #include "scripting/ControllerScriptingInterface.h"
 #include "scripting/DialogsManagerScriptingInterface.h"
-#include "scripting/WebWindowClass.h"
+#include "ui/ApplicationCompositor.h"
+#include "ui/ApplicationOverlay.h"
 #include "ui/AudioStatsDialog.h"
 #include "ui/BandwidthDialog.h"
-#include "ui/ModelsBrowser.h"
-#include "ui/OctreeStatsDialog.h"
-#include "ui/SnapshotShareDialog.h"
 #include "ui/LodToolsDialog.h"
 #include "ui/LogDialog.h"
-#include "ui/overlays/Overlays.h"
-#include "ui/ApplicationOverlay.h"
-#include "ui/ApplicationCompositor.h"
+#include "ui/OctreeStatsDialog.h"
 #include "ui/OverlayConductor.h"
+#include "ui/overlays/Overlays.h"
 #include "ui/RunningScriptsWidget.h"
+#include "ui/SnapshotShareDialog.h"
 #include "ui/ToolWindow.h"
-#include "octree/OctreePacketProcessor.h"
 #include "UndoStackScriptingInterface.h"
 
-#include "gpu/Context.h"
-
-#include "render/Engine.h"
-
-class QGLWidget;
-class QKeyEvent;
-class QMouseEvent;
-class QSystemTrayIcon;
-class QTouchEvent;
-class QWheelEvent;
 class OffscreenGlCanvas;
-
 class GLCanvas;
 class FaceTracker;
 class MainWindow;
-class Node;
-class ScriptEngine;
-
-namespace gpu {
-    class Context;
-    typedef std::shared_ptr<Context> ContextPointer;
-}
-
-
-static const QString SNAPSHOT_EXTENSION  = ".jpg";
-static const QString SVO_EXTENSION  = ".svo";
-static const QString SVO_JSON_EXTENSION  = ".svo.json";
-static const QString JS_EXTENSION  = ".js";
-static const QString FST_EXTENSION  = ".fst";
-
-static const float BILLBOARD_FIELD_OF_VIEW = 30.0f; // degrees
-static const float BILLBOARD_DISTANCE = 5.56f;       // meters
-
-static const int MIRROR_VIEW_TOP_PADDING = 5;
-static const int MIRROR_VIEW_LEFT_PADDING = 10;
-static const int MIRROR_VIEW_WIDTH = 265;
-static const int MIRROR_VIEW_HEIGHT = 215;
-static const float MIRROR_FULLSCREEN_DISTANCE = 0.389f;
-static const float MIRROR_REARVIEW_DISTANCE = 0.722f;
-static const float MIRROR_REARVIEW_BODY_DISTANCE = 2.56f;
-static const float MIRROR_FIELD_OF_VIEW = 30.0f;
-
-static const quint64 TOO_LONG_SINCE_LAST_SEND_DOWNSTREAM_AUDIO_STATS = 1 * USECS_PER_SECOND;
-
-static const QString INFO_HELP_PATH = "html/interface-welcome.html";
-static const QString INFO_EDIT_ENTITIES_PATH = "html/edit-commands.html";
+class AssetUpload;
 
 #ifdef Q_OS_WIN
 static const UINT UWM_IDENTIFY_INSTANCES =
@@ -130,24 +82,19 @@ class Application;
 #endif
 #define qApp (static_cast<Application*>(QCoreApplication::instance()))
 
-typedef bool (Application::* AcceptURLMethod)(const QString &);
-
 class Application : public QApplication, public AbstractViewStateInterface, public AbstractScriptingServicesInterface {
     Q_OBJECT
-
+    
+    // TODO? Get rid of those
     friend class OctreePacketProcessor;
-    friend class DatagramProcessor;
+    friend class PluginContainerProxy;
 
 public:
-    static Application* getInstance() { return qApp; } // TODO: replace fully by qApp
-    static const glm::vec3& getPositionForPath() { return getInstance()->_myAvatar->getPosition(); }
-    static glm::quat getOrientationForPath() { return getInstance()->_myAvatar->getOrientation(); }
-    static glm::vec3 getPositionForAudio() { return getInstance()->_myAvatar->getHead()->getPosition(); }
-    static glm::quat getOrientationForAudio() { return getInstance()->_myAvatar->getHead()->getFinalOrientationInWorldFrame(); }
+    // FIXME? Empty methods, do we still need them?
     static void initPlugins();
     static void shutdownPlugins();
 
-    Application(int& argc, char** argv, QElapsedTimer &startup_time);
+    Application(int& argc, char** argv, QElapsedTimer& startup_time);
     ~Application();
 
     void postLambdaEvent(std::function<void()> f);
@@ -161,27 +108,6 @@ public:
     void paintGL();
     void resizeGL();
 
-    void resizeEvent(QResizeEvent * size);
-
-    void keyPressEvent(QKeyEvent* event);
-    void keyReleaseEvent(QKeyEvent* event);
-
-    void focusOutEvent(QFocusEvent* event);
-    void focusInEvent(QFocusEvent* event);
-
-    void mouseMoveEvent(QMouseEvent* event, unsigned int deviceID = 0);
-    void mousePressEvent(QMouseEvent* event, unsigned int deviceID = 0);
-    void mouseDoublePressEvent(QMouseEvent* event, unsigned int deviceID = 0);
-    void mouseReleaseEvent(QMouseEvent* event, unsigned int deviceID = 0);
-
-    void touchBeginEvent(QTouchEvent* event);
-    void touchEndEvent(QTouchEvent* event);
-    void touchUpdateEvent(QTouchEvent* event);
-
-    void wheelEvent(QWheelEvent* event);
-    void dropEvent(QDropEvent* event);
-    void dragEnterEvent(QDragEnterEvent* event);
-
     bool event(QEvent* event);
     bool eventFilter(QObject* object, QEvent* event);
 
@@ -190,7 +116,6 @@ public:
     QSize getDeviceSize() const;
     bool hasFocus() const;
     PickRay computePickRay() const;
-    PickRay computeViewPickRay(float xRatio, float yRatio) const;
 
     bool isThrottleRendering() const;
 
@@ -208,74 +133,45 @@ public:
     EntityTreeRenderer* getEntities() { return &_entities; }
     QUndoStack* getUndoStack() { return &_undoStack; }
     MainWindow* getWindow() { return _window; }
-    OctreeQuery& getOctreeQuery() { return _octreeQuery; }
-    EntityTree* getEntityClipboard() { return &_entityClipboard; }
+    EntityTreePointer getEntityClipboard() { return _entityClipboard; }
     EntityTreeRenderer* getEntityClipboardRenderer() { return &_entityClipboardRenderer; }
     EntityEditPacketSender* getEntityEditPacketSender() { return &_entityEditSender; }
 
-    bool isMousePressed() const { return _mousePressed; }
-    bool isMouseHidden() const { return !_cursorVisible; }
-    const glm::vec3& getMouseRayOrigin() const { return _mouseRayOrigin; }
-    const glm::vec3& getMouseRayDirection() const { return _mouseRayDirection; }
-    bool mouseOnScreen() const;
-
     ivec2 getMouse() const;
     ivec2 getTrueMouse() const;
-    ivec2 getMouseDragStarted() const;
-    ivec2 getTrueMouseDragStarted() const;
-
-    // TODO get rid of these and use glm types directly
-    int getMouseX() const { return getMouse().x; }
-    int getMouseY() const { return getMouse().y; }
-    int getTrueMouseX() const { return getTrueMouse().x; }
-    int getTrueMouseY() const { return getTrueMouse().y; }
-    int getMouseDragStartedX() const { return getMouseDragStarted().x; }
-    int getMouseDragStartedY() const { return getMouseDragStarted().y; }
-    int getTrueMouseDragStartedX() const { return getTrueMouseDragStarted().x; }
-    int getTrueMouseDragStartedY() const { return getTrueMouseDragStarted().y; }
     bool getLastMouseMoveWasSimulated() const { return _lastMouseMoveWasSimulated; }
 
     FaceTracker* getActiveFaceTracker();
     FaceTracker* getSelectedFaceTracker();
 
-    QSystemTrayIcon* getTrayIcon() { return _trayIcon; }
     ApplicationOverlay& getApplicationOverlay() { return _applicationOverlay; }
     const ApplicationOverlay& getApplicationOverlay() const { return _applicationOverlay; }
     ApplicationCompositor& getApplicationCompositor() { return _compositor; }
     const ApplicationCompositor& getApplicationCompositor() const { return _compositor; }
     Overlays& getOverlays() { return _overlays; }
 
+    bool isForeground() const { return _isForeground; }
+    
     float getFps() const { return _fps; }
 
     float getFieldOfView() { return _fieldOfView.get(); }
-    void setFieldOfView(float fov) { _fieldOfView.set(fov); }
-
-    bool importSVOFromURL(const QString& urlString);
+    void setFieldOfView(float fov);
 
     NodeToOctreeSceneStats* getOcteeSceneStats() { return &_octreeServerSceneStats; }
-    void lockOctreeSceneStats() { _octreeSceneStatsLock.lockForRead(); }
-    void unlockOctreeSceneStats() { _octreeSceneStatsLock.unlock(); }
 
     ToolWindow* getToolWindow() { return _toolWindow ; }
 
     virtual AbstractControllerScriptingInterface* getControllerScriptingInterface() { return &_controllerScriptingInterface; }
     virtual void registerScriptEngineWithApplicationServices(ScriptEngine* scriptEngine);
 
-    void resetProfile(const QString& username);
-
-    virtual bool shouldRenderMesh(float largestDimension, float distanceToCamera);
-
     QImage renderAvatarBillboard(RenderArgs* renderArgs);
 
-    void displaySide(RenderArgs* renderArgs, Camera& whichCamera, bool selfAvatarOnly = false, bool billboard = false);
-
-    virtual const glm::vec3& getShadowDistances() const { return _shadowDistances; }
     virtual ViewFrustum* getCurrentViewFrustum() { return getDisplayViewFrustum(); }
     virtual QThread* getMainThread() { return thread(); }
     virtual float getSizeScale() const;
     virtual int getBoundaryLevelAdjust() const;
     virtual PickRay computePickRay(float x, float y) const;
-    virtual const glm::vec3& getAvatarPosition() const { return _myAvatar->getPosition(); }
+    virtual const glm::vec3& getAvatarPosition() const;
     virtual void overrideEnvironmentData(const EnvironmentData& newData) { _environment.override(newData); }
     virtual void endOverrideEnvironmentData() { _environment.endOverride(); }
     virtual qreal getDevicePixelRatio();
@@ -285,8 +181,6 @@ public:
     DisplayPlugin* getActiveDisplayPlugin();
     const DisplayPlugin* getActiveDisplayPlugin() const;
 
-public:
-
     FileLogger* getLogger() { return _logger; }
 
     glm::vec2 getViewportDimensions() const;
@@ -294,12 +188,9 @@ public:
     NodeToJurisdictionMap& getEntityServerJurisdictions() { return _entityServerJurisdictions; }
 
     QStringList getRunningScripts() { return _scriptEnginesHash.keys(); }
-    ScriptEngine* getScriptEngine(QString scriptHash) { return _scriptEnginesHash.contains(scriptHash) ? _scriptEnginesHash[scriptHash] : NULL; }
-    
-    bool isLookingAtMyAvatar(AvatarSharedPointer avatar);
+    ScriptEngine* getScriptEngine(const QString& scriptHash) { return _scriptEnginesHash.value(scriptHash, NULL); }
 
     float getRenderResolutionScale() const;
-    int getRenderAmbientLight() const;
 
     bool isAboutToQuit() const { return _aboutToQuit; }
 
@@ -308,7 +199,6 @@ public:
     // TODO: carry that information on the Camera as a setting
     bool isHMDMode() const;
     glm::mat4 getHMDSensorPose() const;
-    glm::mat4 getEyePose(int eye) const;
     glm::mat4 getEyeOffset(int eye) const;
     glm::mat4 getEyeProjection(int eye) const;
 
@@ -320,41 +210,27 @@ public:
     QString getScriptsLocation();
     void setScriptsLocation(const QString& scriptsLocation);
 
-    void initializeAcceptedFiles();
     bool canAcceptURL(const QString& url);
-    bool acceptURL(const QString& url);
+    bool acceptURL(const QString& url, bool defaultUpload = false);
 
     void setMaxOctreePacketsPerSecond(int maxOctreePPS);
     int getMaxOctreePacketsPerSecond();
 
     render::ScenePointer getMain3DScene() { return _main3DScene; }
-    render::EnginePointer getRenderEngine() { return _renderEngine; }
-
     render::ScenePointer getMain3DScene() const { return _main3DScene; }
-
+    render::EnginePointer getRenderEngine() { return _renderEngine; }
     gpu::ContextPointer getGPUContext() const { return _gpuContext; }
 
     const QRect& getMirrorViewRect() const { return _mirrorViewRect; }
 
     void updateMyAvatarLookAtPosition();
     AvatarUpdate* getAvatarUpdater() { return _avatarUpdate; }
-    MyAvatar* getMyAvatar() { return _myAvatar; }
     float getAvatarSimrate();
     void setAvatarSimrateSample(float sample);
 
     float getAverageSimsPerSecond();
 
 signals:
-
-    /// Fired when we're simulating; allows external parties to hook in.
-    void simulating(float deltaTime);
-
-    /// Fired when we're rendering in-world interface elements; allows external parties to hook in.
-    void renderingInWorldInterface();
-
-    /// Fired when the import window is closed
-    void importDone();
-
     void scriptLocationChanged(const QString& newPath);
 
     void svoImportRequested(const QString& url);
@@ -362,23 +238,12 @@ signals:
     void checkBackgroundDownloads();
     void domainConnectionRefused(const QString& reason);
 
-    void headURLChanged(const QString& newValue, const QString& modelName);
-    void bodyURLChanged(const QString& newValue, const QString& modelName);
     void fullAvatarURLChanged(const QString& newValue, const QString& modelName);
 
     void beforeAboutToQuit();
     void activeDisplayPluginChanged();
 
 public slots:
-    void setSessionUUID(const QUuid& sessionUUID);
-    void domainChanged(const QString& domainHostname);
-    void updateWindowTitle();
-    void nodeAdded(SharedNodePointer node);
-    void nodeKilled(SharedNodePointer node);
-    void packetSent(quint64 length);
-    void updateDisplayMode();
-    void updateInputModes();
-
     QVector<EntityItemID> pasteEntities(float x, float y, float z);
     bool exportEntities(const QString& filename, const QVector<EntityItemID>& entityIDs);
     bool exportEntities(const QString& filename, float x, float y, float z, float scale);
@@ -388,61 +253,50 @@ public slots:
     void loadDialog();
     void loadScriptURLDialog();
     void toggleLogDialog();
-    bool acceptSnapshot(const QString& urlString);
-    bool askToSetAvatarUrl(const QString& url);
-    bool askToLoadScript(const QString& scriptFilenameOrURL);
 
     ScriptEngine* loadScript(const QString& scriptFilename = QString(), bool isUserLoaded = true,
         bool loadScriptFromEditor = false, bool activateMainWindow = false, bool reload = false);
-    void reloadScript(const QString& scriptName, bool isUserLoaded = true);
-    void scriptFinished(const QString& scriptName);
     void stopAllScripts(bool restart = false);
-    void stopScript(const QString& scriptName, bool restart = false);
+    bool stopScript(const QString& scriptHash, bool restart = false);
     void reloadAllScripts();
     void reloadOneScript(const QString& scriptName);
     void loadDefaultScripts();
     void toggleRunningScriptsWidget();
-    void saveScripts();
 
     void showFriendsWindow();
-    void friendsWindowClosed();
 
     void packageModel();
 
     void openUrl(const QUrl& url);
 
-    void updateMyAvatarTransform();
+    void setAvatarUpdateThreading();
     void setAvatarUpdateThreading(bool isThreaded);
+    void setRawAvatarUpdateThreading();
+    void setRawAvatarUpdateThreading(bool isThreaded);
 
-    void domainSettingsReceived(const QJsonObject& domainSettingsObject);
-
-    void setThrottleFPSEnabled();
-    bool isThrottleFPSEnabled() { return _isThrottleFPSEnabled; }
-
-    void resetSensors();
+    void resetSensors(bool andReload = false);
     void setActiveFaceTracker();
-
+    
+#ifdef HAVE_IVIEWHMD
     void setActiveEyeTracker();
     void calibrateEyeTracker1Point();
     void calibrateEyeTracker3Points();
     void calibrateEyeTracker5Points();
+#endif
 
     void aboutApp();
     void showEditEntitiesHelp();
-
-    void loadSettings();
-    void saveSettings();
-
-    void notifyPacketVersionMismatch();
-
-    void handleDomainConnectionDeniedPacket(QSharedPointer<NLPacket> packet);
 
     void cameraMenuChanged();
     
     void reloadResourceCaches();
 
     void crashApplication();
-
+    
+    void rotationModeChanged();
+    
+    void runTests();
+    
 private slots:
     void clearDomainOctreeDetails();
     void checkFPS();
@@ -454,27 +308,39 @@ private slots:
 
     void connectedToDomain(const QString& hostname);
 
-    void rotationModeChanged();
-
-    void closeMirrorView();
-    void restoreMirrorView();
-    void shrinkMirrorView();
-
-    void manageRunningScriptsWidgetVisibility(bool shown);
-
-    void runTests();
-
     void audioMuteToggled();
     void faceTrackerMuteToggled();
 
-    void setCursorVisible(bool visible);
     void activeChanged(Qt::ApplicationState state);
-
+    
+    void domainSettingsReceived(const QJsonObject& domainSettingsObject);
+    void handleDomainConnectionDeniedPacket(QSharedPointer<NLPacket> packet);
+    
+    void notifyPacketVersionMismatch();
+    
+    void loadSettings();
+    void saveSettings();
+    
+    void scriptFinished(const QString& scriptName);
+    void saveScripts();
+    void reloadScript(const QString& scriptName, bool isUserLoaded = true);
+    
+    bool acceptSnapshot(const QString& urlString);
+    bool askToSetAvatarUrl(const QString& url);
+    bool askToLoadScript(const QString& scriptFilenameOrURL);
+    bool askToUploadAsset(const QString& asset);
+    void modelUploadFinished(AssetUpload* upload, const QString& hash);
+    
+    void setSessionUUID(const QUuid& sessionUUID);
+    void domainChanged(const QString& domainHostname);
+    void updateWindowTitle();
+    void nodeAdded(SharedNodePointer node);
+    void nodeKilled(SharedNodePointer node);
+    void packetSent(quint64 length);
+    void updateDisplayMode();
+    void updateInputModes();
+    
 private:
-    void resetCameras(Camera& camera, const glm::uvec2& size);
-
-    void sendPingPackets();
-
     void initDisplay();
     void init();
 
@@ -484,20 +350,13 @@ private:
 
     void update(float deltaTime);
 
-    void setPalmData(Hand* hand, UserInputMapper::PoseValue pose, float deltaTime, int index);
+    void setPalmData(Hand* hand, UserInputMapper::PoseValue pose, float deltaTime, int index, float triggerValue);
     void emulateMouse(Hand* hand, float click, float shift, int index);
 
     // Various helper functions called during update()
     void updateLOD();
-    void updateMouseRay();
     void updateThreads(float deltaTime);
-    void updateCamera(float deltaTime);
     void updateDialogs(float deltaTime);
-    void updateCursor(float deltaTime);
-
-    Avatar* findLookatTargetAvatar(glm::vec3& eyePosition, QUuid &nodeUUID);
-
-    void renderLookatIndicator(glm::vec3 pointOfInterest);
 
     void queryOctree(NodeType_t serverType, PacketType packetType, NodeToJurisdictionMap& jurisdictions);
     void loadViewFrustum(Camera& camera, ViewFrustum& viewFrustum);
@@ -506,12 +365,45 @@ private:
 
     void renderRearViewMirror(RenderArgs* renderArgs, const QRect& region, bool billboard = false);
 
-    void setMenuShortcutsEnabled(bool enabled);
-
-    static void attachNewHeadToNode(Node *newNode);
-    static void* networkReceive(void* args); // network receive thread
-
     int sendNackPackets();
+    
+    void takeSnapshot();
+    
+    MyAvatar* getMyAvatar() const;
+    
+    void checkSkeleton();
+    
+    void initializeAcceptedFiles();
+    int getRenderAmbientLight() const;
+    
+    void displaySide(RenderArgs* renderArgs, Camera& whichCamera, bool selfAvatarOnly = false, bool billboard = false);
+    
+    bool importSVOFromURL(const QString& urlString);
+    
+    int processOctreeStats(NLPacket& packet, SharedNodePointer sendingNode);
+    void trackIncomingOctreePacket(NLPacket& packet, SharedNodePointer sendingNode, bool wasStatsPacket);
+    
+    void resizeEvent(QResizeEvent* size);
+    
+    void keyPressEvent(QKeyEvent* event);
+    void keyReleaseEvent(QKeyEvent* event);
+    
+    void focusOutEvent(QFocusEvent* event);
+    void focusInEvent(QFocusEvent* event);
+    
+    void mouseMoveEvent(QMouseEvent* event, unsigned int deviceID = 0);
+    void mousePressEvent(QMouseEvent* event, unsigned int deviceID = 0);
+    void mouseDoublePressEvent(QMouseEvent* event, unsigned int deviceID = 0);
+    void mouseReleaseEvent(QMouseEvent* event, unsigned int deviceID = 0);
+    
+    void touchBeginEvent(QTouchEvent* event);
+    void touchEndEvent(QTouchEvent* event);
+    void touchUpdateEvent(QTouchEvent* event);
+    
+    void wheelEvent(QWheelEvent* event);
+    void dropEvent(QDropEvent* event);
+    void dragEnterEvent(QDragEnterEvent* event);
+    
 
     bool _dependencyManagerIsSetup;
 
@@ -522,29 +414,23 @@ private:
     MainWindow* _window;
 
     ToolWindow* _toolWindow;
-    WebWindowClass* _friendsWindow;
 
     QUndoStack _undoStack;
     UndoStackScriptingInterface _undoStackScriptingInterface;
 
-    glm::vec3 _gravity;
-
     // Frame Rate Measurement
-
     int _frameCount;
     float _fps;
-    QElapsedTimer _applicationStartupTime;
     QElapsedTimer _timerStart;
     QElapsedTimer _lastTimeUpdated;
-    bool _justStarted;
 
     ShapeManager _shapeManager;
     PhysicalEntitySimulation _entitySimulation;
-    PhysicsEngine _physicsEngine;
+    PhysicsEnginePointer _physicsEngine;
 
     EntityTreeRenderer _entities;
     EntityTreeRenderer _entityClipboardRenderer;
-    EntityTree _entityClipboard;
+    EntityTreePointer _entityClipboard;
 
     ViewFrustum _viewFrustum; // current state of view frustum, perspective, orientation, etc.
     ViewFrustum _lastQueriedViewFrustum; /// last view frustum used to query octree servers (voxels)
@@ -552,12 +438,9 @@ private:
     ViewFrustum _shadowViewFrustum;
     quint64 _lastQueriedTime;
 
-    float _trailingAudioLoudness;
-
     OctreeQuery _octreeQuery; // NodeData derived class for querying octee cells from octree servers
 
     KeyboardMouseDevice* _keyboardMouseDevice{ nullptr };   // Default input device, the good old keyboard mouse and maybe touchpad
-    MyAvatar* _myAvatar;                         // TODO: move this and relevant code to AvatarManager (or MyAvatar as the case may be)
     AvatarUpdate* _avatarUpdate {nullptr};
     SimpleMovingAverage _avatarSimsPerSecond {10};
     int _avatarSimsPerSecondReport {0};
@@ -566,36 +449,18 @@ private:
     Camera _mirrorCamera;                        // Cammera for mirror view
     QRect _mirrorViewRect;
 
-    Setting::Handle<bool>       _firstRun;
-    Setting::Handle<QString>    _previousScriptLocation;
-    Setting::Handle<QString>    _scriptsLocationHandle;
-    Setting::Handle<float>      _fieldOfView;
+    Setting::Handle<bool> _firstRun;
+    Setting::Handle<QString> _previousScriptLocation;
+    Setting::Handle<QString> _scriptsLocationHandle;
+    Setting::Handle<float> _fieldOfView;
 
     float _scaleMirror;
     float _rotateMirror;
     float _raiseMirror;
 
-    static const int CASCADED_SHADOW_MATRIX_COUNT = 4;
-    glm::mat4 _shadowMatrices[CASCADED_SHADOW_MATRIX_COUNT];
-    glm::vec3 _shadowDistances;
-
     Environment _environment;
 
-    bool _cursorVisible;
-    ivec2 _mouseDragStarted;
-
-    quint64 _lastMouseMove;
     bool _lastMouseMoveWasSimulated;
-
-    glm::vec3 _mouseRayOrigin;
-    glm::vec3 _mouseRayDirection;
-
-    vec2 _touchAvg;
-    vec2 _touchDragStartedAvg;
-
-    bool _isTouchPressed; //  true if multitouch has been pressed (clear when finished)
-
-    bool _mousePressed; //  true if mouse has been pressed (clear when finished)
 
     QSet<int> _keysPressed;
 
@@ -607,20 +472,14 @@ private:
     StDev _idleLoopStdev;
     float _idleLoopMeasuredJitter;
 
-    int processOctreeStats(NLPacket& packet, SharedNodePointer sendingNode);
-    void trackIncomingOctreePacket(NLPacket& packet, SharedNodePointer sendingNode, bool wasStatsPacket);
-
     NodeToJurisdictionMap _entityServerJurisdictions;
     NodeToOctreeSceneStats _octreeServerSceneStats;
-    QReadWriteLock _octreeSceneStatsLock;
 
     ControllerScriptingInterface _controllerScriptingInterface;
     QPointer<LogDialog> _logDialog;
     QPointer<SnapshotShareDialog> _snapshotShareDialog;
 
     FileLogger* _logger;
-
-    void takeSnapshot();
 
     TouchEvent _lastTouchEvent;
 
@@ -629,12 +488,8 @@ private:
     bool _runningScriptsWidgetWasVisible;
     QString _scriptsLocation;
 
-    QSystemTrayIcon* _trayIcon;
-
     quint64 _lastNackTime;
     quint64 _lastSendDownstreamAudioStats;
-
-    bool _isThrottleFPSEnabled;
     
     bool _aboutToQuit;
 
@@ -646,10 +501,9 @@ private:
     QTimer _settingsTimer;
     
     GLCanvas* _glWidget{ nullptr };
-
-    void checkSkeleton();
-
-    QHash<QString, AcceptURLMethod> _acceptedExtensions;
+    
+    typedef bool (Application::* AcceptURLMethod)(const QString &);
+    static const QHash<QString, AcceptURLMethod> _acceptedExtensions;
 
     QList<QString> _domainConnectionRefusals;
     glm::uvec2 _renderResolution;
@@ -671,10 +525,7 @@ private:
     int _oldHandMouseY[2];
     bool _oldHandLeftClick[2];
     bool _oldHandRightClick[2];
-    int _numFramesSinceLastResize = 0;
 
-    bool _overlayEnabled = true;
-    QRect _savedGeometry;
     DialogsManagerScriptingInterface* _dialogsManagerScriptingInterface = new DialogsManagerScriptingInterface();
 
     EntityItemID _keyboardFocusedItem;
@@ -685,8 +536,6 @@ private:
     quint64 _lastSimsPerSecondUpdate = 0;
     bool _isForeground = true; // starts out assumed to be in foreground
     bool _inPaint = false;
-
-    friend class PluginContainerProxy;
 };
 
 #endif // hifi_Application_h

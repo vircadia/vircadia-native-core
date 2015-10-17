@@ -50,6 +50,11 @@ public:
                 case gpu::DEPTH:
                     texel.internalFormat = GL_DEPTH_COMPONENT;
                     break;
+                case gpu::DEPTH_STENCIL:
+                    texel.type = GL_UNSIGNED_INT_24_8;
+                    texel.format = GL_DEPTH_STENCIL;
+                    texel.internalFormat = GL_DEPTH24_STENCIL8;
+                    break;
                 default:
                     qCDebug(gpulogging) << "Unknown combination of texel format";
                 }
@@ -64,9 +69,6 @@ public:
                 case gpu::RGB:
                 case gpu::RGBA:
                     texel.internalFormat = GL_RG;
-                    break;
-                case gpu::DEPTH_STENCIL:
-                    texel.internalFormat = GL_DEPTH_STENCIL;
                     break;
                 default:
                     qCDebug(gpulogging) << "Unknown combination of texel format";
@@ -156,17 +158,15 @@ public:
                         texel.internalFormat = GL_DEPTH_COMPONENT32;
                         break;
                         }
-                    case gpu::NFLOAT:
                     case gpu::FLOAT: {
                         texel.internalFormat = GL_DEPTH_COMPONENT32F;
-                        break;
-                        }
+                       break;
+                    }
                     case gpu::UINT16:
                     case gpu::INT16:
                     case gpu::NUINT16:
                     case gpu::NINT16:
-                    case gpu::HALF:
-                    case gpu::NHALF: {
+                    case gpu::HALF: {
                         texel.internalFormat = GL_DEPTH_COMPONENT16;
                         break;
                         }
@@ -181,6 +181,11 @@ public:
                         Q_UNREACHABLE();
                     }
                     }
+                    break;
+                case gpu::DEPTH_STENCIL:
+                    texel.type = GL_UNSIGNED_INT_24_8;
+                    texel.format = GL_DEPTH_STENCIL;
+                    texel.internalFormat = GL_DEPTH24_STENCIL8;
                     break;
                 default:
                     qCDebug(gpulogging) << "Unknown combination of texel format";
@@ -197,9 +202,6 @@ public:
                 case gpu::RGB:
                 case gpu::RGBA:
                     texel.internalFormat = GL_RG;
-                    break;
-                case gpu::DEPTH_STENCIL:
-                    texel.internalFormat = GL_DEPTH_STENCIL;
                     break;
                 default:
                     qCDebug(gpulogging) << "Unknown combination of texel format";
@@ -336,7 +338,7 @@ GLBackend::GLTexture* GLBackend::syncGPUObject(const Texture& texture) {
                 }
 
                 GLTexelFormat texelFormat = GLTexelFormat::evalGLTexelFormat(texture.getTexelFormat(), srcFormat);
-            
+
                 glTexImage2D(GL_TEXTURE_2D, 0,
                     texelFormat.internalFormat, texture.getWidth(), texture.getHeight(), 0,
                     texelFormat.format, texelFormat.type, bytes);
@@ -344,15 +346,12 @@ GLBackend::GLTexture* GLBackend::syncGPUObject(const Texture& texture) {
                 if (bytes && texture.isAutogenerateMips()) {
                     glGenerateMipmap(GL_TEXTURE_2D);
                     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-                }/* else {
-                    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-                    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-                }*/
-                
+                }
+
                 object->_target = GL_TEXTURE_2D;
 
                 syncSampler(texture.getSampler(), texture.getType(), object);
-
+                
                 // At this point the mip pixels have been loaded, we can notify
                 texture.notifyMipFaceGPULoaded(0, 0);
 

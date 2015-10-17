@@ -15,6 +15,23 @@
 
 using namespace udt;
 
+static int packetListMetaTypeId = qRegisterMetaType<PacketList*>("PacketList*");
+
+std::unique_ptr<PacketList> PacketList::create(PacketType packetType, QByteArray extendedHeader,
+                                               bool isReliable, bool isOrdered) {
+    auto packetList = std::unique_ptr<PacketList>(new PacketList(packetType, extendedHeader,
+                                                                 isReliable, isOrdered));
+    packetList->open(WriteOnly);
+    return packetList;
+}
+
+std::unique_ptr<PacketList> PacketList::fromReceivedPackets(std::list<std::unique_ptr<Packet>>&& packets) {
+    auto packetList = std::unique_ptr<PacketList>(new PacketList(PacketType::Unknown, QByteArray(), true, true));
+    packetList->_packets = std::move(packets);
+    packetList->open(ReadOnly);
+    return packetList;
+}
+
 PacketList::PacketList(PacketType packetType, QByteArray extendedHeader, bool isReliable, bool isOrdered) :
     _packetType(packetType),
     _isReliable(isReliable),
@@ -22,14 +39,15 @@ PacketList::PacketList(PacketType packetType, QByteArray extendedHeader, bool is
     _extendedHeader(extendedHeader)
 {
     Q_ASSERT_X(!(!_isReliable && _isOrdered), "PacketList", "Unreliable ordered PacketLists are not currently supported");
-    QIODevice::open(WriteOnly);
 }
 
 PacketList::PacketList(PacketList&& other) :
+    _packetType(other._packetType),
     _packets(std::move(other._packets)),
-    _packetType(other._packetType)
+    _isReliable(other._isReliable),
+    _isOrdered(other._isOrdered),
+    _extendedHeader(std::move(other._extendedHeader))
 {
-    
 }
 
 void PacketList::startSegment() {
@@ -66,12 +84,6 @@ size_t PacketList::getMessageSize() const {
     return totalBytes;
 }
 
-std::unique_ptr<PacketList> PacketList::fromReceivedPackets(std::list<std::unique_ptr<Packet>>&& packets) {
-    auto packetList = std::unique_ptr<PacketList>(new PacketList(PacketType::Unknown, QByteArray(), true, true));
-    packetList->_packets = std::move(packets);
-    return packetList;
-}
-
 std::unique_ptr<Packet> PacketList::createPacket() {
     // use the static create method to create a new packet
     // If this packet list is supposed to be ordered then we consider this to be part of a message
@@ -94,6 +106,17 @@ std::unique_ptr<Packet> PacketList::createPacketWithExtendedHeader() {
     return packet;
 }
 
+void PacketList::closeCurrentPacket(bool shouldSendEmpty) {
+    if (shouldSendEmpty && !_currentPacket && _packets.empty()) {
+        _currentPacket = createPacketWithExtendedHeader();
+    }
+    
+    if (_currentPacket) {
+        // move the current packet to our list of packets
+        _packets.push_back(std::move(_currentPacket));
+    }
+}
+
 QByteArray PacketList::getMessage() {
     size_t sizeBytes = 0;
 
@@ -110,6 +133,26 @@ QByteArray PacketList::getMessage() {
 
     return data;
 }
+
+void PacketList::preparePackets(MessageNumber messageNumber) {
+    Q_ASSERT(_packets.size() > 0);
+    
+    if (_packets.size() == 1) {
+        _packets.front()->writeMessageNumber(messageNumber, Packet::PacketPosition::ONLY, 0);
+    } else {
+        const auto second = ++_packets.begin();
+        const auto last = --_packets.end();
+        Packet::MessagePartNumber messagePartNumber = 0;
+        std::for_each(second, last, [&](const PacketPointer& packet) {
+            packet->writeMessageNumber(messageNumber, Packet::PacketPosition::MIDDLE, ++messagePartNumber);
+        });
+        
+        _packets.front()->writeMessageNumber(messageNumber, Packet::PacketPosition::FIRST, 0);
+        _packets.back()->writeMessageNumber(messageNumber, Packet::PacketPosition::LAST, ++messagePartNumber);
+    }
+}
+
+const qint64 PACKET_LIST_WRITE_ERROR = -1;
 
 qint64 PacketList::writeData(const char* data, qint64 maxSize) {
     auto sizeRemaining = maxSize;
@@ -137,26 +180,41 @@ qint64 PacketList::writeData(const char* data, qint64 maxSize) {
                     // We need to try and pull the first part of the segment out to our new packet
 
                     // check now to see if this is an unsupported write
-                    int numBytesToEnd = _currentPacket->bytesAvailableForWrite();
-
-                    if ((newPacket->size() - numBytesToEnd) < sizeRemaining) {
+                    int segmentSize = _currentPacket->pos() - _segmentStartIndex;
+                    
+                    if (segmentSize + sizeRemaining > newPacket->getPayloadCapacity()) {
                         // this is an unsupported case - the segment is bigger than the size of an individual packet
                         // but the PacketList is not going to be sent ordered
                         qDebug() << "Error in PacketList::writeData - attempted to write a segment to an unordered packet that is"
                             << "larger than the payload size.";
                         Q_ASSERT(false);
+                        
+                        // we won't be writing this new data to the packet
+                        // go back before the current segment and return -1 to indicate error
+                        _currentPacket->seek(_segmentStartIndex);
+                        _currentPacket->setPayloadSize(_segmentStartIndex);
+                        
+                        return PACKET_LIST_WRITE_ERROR;
+                    } else {
+                        // copy from currentPacket where the segment started to the beginning of the newPacket
+                        newPacket->write(_currentPacket->getPayload() + _segmentStartIndex, segmentSize);
+                        
+                        // shrink the current payload to the actual size of the packet
+                        _currentPacket->setPayloadSize(_segmentStartIndex);
+                        
+                        // the current segment now starts at the beginning of the new packet
+                        _segmentStartIndex = _extendedHeader.size();
                     }
-
-                    int segmentSize = _currentPacket->pos() - _segmentStartIndex;
-
-                    // copy from currentPacket where the segment started to the beginning of the newPacket
-                    newPacket->write(_currentPacket->getPayload() + _segmentStartIndex, segmentSize);
-
-                    // the current segment now starts at the beginning of the new packet
-                    _segmentStartIndex = _extendedHeader.size();
-
-                    // shrink the current payload to the actual size of the packet
-                    _currentPacket->setPayloadSize(_segmentStartIndex);
+                }
+                
+                if (sizeRemaining > newPacket->getPayloadCapacity()) {
+                    // this is an unsupported case - attempting to write a block of data larger
+                    // than the capacity of a new packet in an unordered PacketList
+                    qDebug() << "Error in PacketList::writeData - attempted to write data to an unordered packet that is"
+                        << "larger than the payload size.";
+                    Q_ASSERT(false);
+                    
+                    return PACKET_LIST_WRITE_ERROR;
                 }
 
                 // move the current packet to our list of packets
@@ -190,15 +248,4 @@ qint64 PacketList::writeData(const char* data, qint64 maxSize) {
     }
 
     return maxSize;
-}
-
-void PacketList::closeCurrentPacket(bool shouldSendEmpty) {
-    if (shouldSendEmpty && !_currentPacket) {
-        _currentPacket = createPacketWithExtendedHeader();
-    }
-
-    if (_currentPacket) {
-        // move the current packet to our list of packets
-        _packets.push_back(std::move(_currentPacket));
-    }
 }

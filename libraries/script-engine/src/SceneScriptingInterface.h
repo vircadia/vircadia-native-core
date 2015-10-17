@@ -117,7 +117,7 @@ signals:
     void shouldRenderAvatarsChanged(bool shouldRenderAvatars);
     void shouldRenderEntitiesChanged(bool shouldRenderEntities);
 protected:
-    SceneScriptingInterface() {};
+    SceneScriptingInterface();
     ~SceneScriptingInterface() {};
 
     model::SunSkyStagePointer _skyStage = std::make_shared<model::SunSkyStage>();

@@ -8,10 +8,11 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include "Application.h"
-#include "InterfaceLogging.h"
-#include "avatar/AvatarManager.h"
+#include <OffscreenUi.h>
 
+#include "Application.h"
+#include "avatar/AvatarManager.h"
+#include "InterfaceLogging.h"
 #include "OverlayConductor.h"
 
 OverlayConductor::OverlayConductor() {
@@ -68,12 +69,7 @@ void OverlayConductor::updateMode() {
 
     Mode newMode;
     if (qApp->isHMDMode()) {
-        MyAvatar* myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
-        if (myAvatar->getStandingHMDSensorMode()) {
-            newMode = STANDING;
-        } else {
-            newMode = SITTING;
-        }
+        newMode = SITTING;
     } else {
         newMode = FLAT;
     }

@@ -12,14 +12,12 @@
 
 #include "AssetServer.h"
 
-#include <QBuffer>
+#include <QCoreApplication>
 #include <QCryptographicHash>
+#include <QDateTime>
 #include <QDir>
 #include <QFile>
 #include <QFileInfo>
-#include <QCoreApplication>
-#include <QEventLoop>
-#include <QRunnable>
 #include <QString>
 
 #include "NetworkLogging.h"
@@ -165,3 +163,71 @@ void AssetServer::handleAssetUpload(QSharedPointer<NLPacketList> packetList, Sha
     }
 }
 
+void AssetServer::sendStatsPacket() {
+    QJsonObject serverStats;
+    
+    auto stats = DependencyManager::get<NodeList>()->sampleStatsForAllConnections();
+    
+    for (const auto& stat : stats) {
+        QJsonObject nodeStats;
+        auto endTimeMs = std::chrono::duration_cast<std::chrono::milliseconds>(stat.second.endTime);
+        QDateTime date = QDateTime::fromMSecsSinceEpoch(endTimeMs.count());
+        
+        static const float USEC_PER_SEC = 1000000.0f;
+        static const float MEGABITS_PER_BYTE = 8.0f / 1000000.0f; // Bytes => Mbits
+        float elapsed = (float)(stat.second.endTime - stat.second.startTime).count() / USEC_PER_SEC; // sec
+        float megabitsPerSecPerByte = MEGABITS_PER_BYTE / elapsed; // Bytes => Mb/s
+        
+        QJsonObject connectionStats;
+        connectionStats["1. Last Heard"] = date.toString();
+        connectionStats["2. Est. Max (P/s)"] = stat.second.estimatedBandwith;
+        connectionStats["3. RTT (ms)"] = stat.second.rtt;
+        connectionStats["4. CW (P)"] = stat.second.congestionWindowSize;
+        connectionStats["5. Period (us)"] = stat.second.packetSendPeriod;
+        connectionStats["6. Up (Mb/s)"] = stat.second.sentBytes * megabitsPerSecPerByte;
+        connectionStats["7. Down (Mb/s)"] = stat.second.receivedBytes * megabitsPerSecPerByte;
+        nodeStats["Connection Stats"] = connectionStats;
+        
+        using Events = udt::ConnectionStats::Stats::Event;
+        const auto& events = stat.second.events;
+        
+        QJsonObject upstreamStats;
+        upstreamStats["1. Sent (P/s)"] = stat.second.sendRate;
+        upstreamStats["2. Sent Packets"] = stat.second.sentPackets;
+        upstreamStats["3. Recvd ACK"] = events[Events::ReceivedACK];
+        upstreamStats["4. Procd ACK"] = events[Events::ProcessedACK];
+        upstreamStats["5. Recvd LACK"] = events[Events::ReceivedLightACK];
+        upstreamStats["6. Recvd NAK"] = events[Events::ReceivedNAK];
+        upstreamStats["7. Recvd TNAK"] = events[Events::ReceivedTimeoutNAK];
+        upstreamStats["8. Sent ACK2"] = events[Events::SentACK2];
+        upstreamStats["9. Retransmitted"] = events[Events::Retransmission];
+        nodeStats["Upstream Stats"] = upstreamStats;
+        
+        QJsonObject downstreamStats;
+        downstreamStats["1. Recvd (P/s)"] = stat.second.receiveRate;
+        downstreamStats["2. Recvd Packets"] = stat.second.receivedPackets;
+        downstreamStats["3. Sent ACK"] = events[Events::SentACK];
+        downstreamStats["4. Sent LACK"] = events[Events::SentLightACK];
+        downstreamStats["5. Sent NAK"] = events[Events::SentNAK];
+        downstreamStats["6. Sent TNAK"] = events[Events::SentTimeoutNAK];
+        downstreamStats["7. Recvd ACK2"] = events[Events::ReceivedACK2];
+        downstreamStats["8. Duplicates"] = events[Events::Duplicate];
+        nodeStats["Downstream Stats"] = downstreamStats;
+        
+        QString uuid;
+        auto nodelist = DependencyManager::get<NodeList>();
+        if (stat.first == nodelist->getDomainHandler().getSockAddr()) {
+            uuid = uuidStringWithoutCurlyBraces(nodelist->getDomainHandler().getUUID());
+            nodeStats[USERNAME_UUID_REPLACEMENT_STATS_KEY] = "DomainServer";
+        } else {
+            auto node = nodelist->findNodeWithAddr(stat.first);
+            uuid = uuidStringWithoutCurlyBraces(node ? node->getUUID() : QUuid());
+            nodeStats[USERNAME_UUID_REPLACEMENT_STATS_KEY] = uuid;
+        }
+        
+        serverStats[uuid] = nodeStats;
+    }
+    
+    // send off the stats packets
+    ThreadedAssignment::addPacketStatsAndSendStatsPacket(serverStats);
+}

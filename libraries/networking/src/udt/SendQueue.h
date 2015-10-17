@@ -13,7 +13,6 @@
 #define hifi_SendQueue_h
 
 #include <atomic>
-#include <chrono>
 #include <condition_variable>
 #include <cstdint>
 #include <list>
@@ -24,9 +23,12 @@
 #include <QtCore/QObject>
 #include <QtCore/QReadWriteLock>
 
+#include <PortableHighResolutionClock.h>
+
 #include "../HifiSockAddr.h"
 
 #include "Constants.h"
+#include "PacketQueue.h"
 #include "SequenceNumber.h"
 #include "LossList.h"
 
@@ -37,15 +39,16 @@ class ControlPacket;
 class Packet;
 class PacketList;
 class Socket;
-
-using MessageNumber = uint32_t;
     
 class SendQueue : public QObject {
     Q_OBJECT
     
 public:
-    using high_resolution_clock = std::chrono::high_resolution_clock;
-    using time_point = high_resolution_clock::time_point;
+    enum class State {
+        NotStarted,
+        Running,
+        Stopped
+    };
     
     static std::unique_ptr<SendQueue> create(Socket* socket, HifiSockAddr destination);
     
@@ -60,6 +63,7 @@ public:
     void setPacketSendPeriod(int newPeriod) { _packetSendPeriod = newPeriod; }
     
     void setEstimatedTimeout(int estimatedTimeout) { _estimatedTimeout = estimatedTimeout; }
+    void setSyncInterval(int syncInterval) { _syncInterval = syncInterval; }
     
 public slots:
     void stop();
@@ -83,34 +87,35 @@ private:
     SendQueue(SendQueue& other) = delete;
     SendQueue(SendQueue&& other) = delete;
     
+    void sendHandshake();
+    
     void sendPacket(const Packet& packet);
     void sendNewPacketAndAddToSentList(std::unique_ptr<Packet> newPacket, SequenceNumber sequenceNumber);
     
     bool maybeSendNewPacket(); // Figures out what packet to send next
     bool maybeResendPacket(); // Determines whether to resend a packet and which one
     
+    bool isInactive(bool sentAPacket);
     void deactivate(); // makes the queue inactive and cleans it up
     
     // Increments current sequence number and return it
     SequenceNumber getNextSequenceNumber();
-    MessageNumber getNextMessageNumber();
     
-    mutable std::mutex _packetsLock; // Protects the packets to be sent list.
-    std::list<std::unique_ptr<Packet>> _packets; // List of packets to be sent
+    PacketQueue _packets;
     
     Socket* _socket { nullptr }; // Socket to send packet on
     HifiSockAddr _destination; // Destination addr
     
     std::atomic<uint32_t> _lastACKSequenceNumber { 0 }; // Last ACKed sequence number
     
-    MessageNumber _currentMessageNumber { 0 };
     SequenceNumber _currentSequenceNumber; // Last sequence number sent out
-    std::atomic<uint32_t> _atomicCurrentSequenceNumber { 0 };// Atomic for last sequence number sent out
+    std::atomic<uint32_t> _atomicCurrentSequenceNumber { 0 }; // Atomic for last sequence number sent out
     
     std::atomic<int> _packetSendPeriod { 0 }; // Interval between two packet send event in microseconds, set from CC
-    std::atomic<bool> _isRunning { false };
+    std::atomic<State> _state { State::NotStarted };
     
     std::atomic<int> _estimatedTimeout { 0 }; // Estimated timeout, set from CC
+    std::atomic<int> _syncInterval { udt::DEFAULT_SYN_INTERVAL_USECS }; // Sync interval, set from CC
     std::atomic<int> _timeoutExpiryCount { 0 }; // The number of times the timeout has expired without response from client
     std::atomic<uint64_t> _lastReceiverResponse { 0 }; // Timestamp for the last time we got new data from the receiver (ACK/NAK)
     

@@ -46,6 +46,9 @@ if (WIN32)
   # Caveats: http://stackoverflow.com/questions/2288728/drawbacks-of-using-largeaddressaware-for-32-bit-windows-executables
   # TODO: Remove when building 64-bit.
   set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} /LARGEADDRESSAWARE")
+  # always produce symbols as PDB files
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /Zi")
+  set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} /DEBUG /OPT:REF /OPT:ICF")
 else ()
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -fno-strict-aliasing -Wno-unused-parameter")
   if (CMAKE_COMPILER_IS_GNUCC OR CMAKE_COMPILER_IS_GNUCXX)
@@ -111,26 +114,34 @@ get_filename_component(QT_DIR "${QT_CMAKE_PREFIX_PATH}/../../" ABSOLUTE)
 set(CMAKE_PREFIX_PATH ${CMAKE_PREFIX_PATH} ${QT_CMAKE_PREFIX_PATH})
 
 if (APPLE)
+  
+  exec_program(sw_vers ARGS -productVersion  OUTPUT_VARIABLE OSX_VERSION)
+  string(REGEX MATCH "^[0-9]+\\.[0-9]+" OSX_VERSION ${OSX_VERSION})
+  message(STATUS "Detected OS X version = ${OSX_VERSION}")
+  
+  set(OSX_SDK "${OSX_VERSION}" CACHE String "OS X SDK version to look for inside Xcode bundle or at OSX_SDK_PATH")
+  
   # set our OS X deployment target
   set(CMAKE_OSX_DEPLOYMENT_TARGET 10.8)
   
-  # find the 10.9 SDK path
+  # find the SDK path for the desired SDK
   find_path(
     _OSX_DESIRED_SDK_PATH 
-    NAME MacOSX10.9.sdk 
+    NAME MacOSX${OSX_SDK}.sdk 
     HINTS ${OSX_SDK_PATH}
     PATHS /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/
           /Applications/Xcode-beta.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/
   )
   
   if (NOT _OSX_DESIRED_SDK_PATH)
-    message(FATAL_ERROR "Could not find OS X 10.9 SDK. Please pass OSX_SDK_PATH to CMake to point us to your SDKs directory.")
+    message(STATUS "Could not find OS X ${OSX_SDK} SDK. Will fall back to default. If you want a specific SDK, please pass OSX_SDK and optionally OSX_SDK_PATH to CMake.")
   else ()
-    message(STATUS "Found OS X 10.9 SDK at ${_OSX_DESIRED_SDK_PATH}/MacOSX10.9.sdk")
+    message(STATUS "Found OS X ${OSX_SDK} SDK at ${_OSX_DESIRED_SDK_PATH}/MacOSX${OSX_SDK}.sdk")
+    
+    # set that as the SDK to use
+    set(CMAKE_OSX_SYSROOT ${_OSX_DESIRED_SDK_PATH}/MacOSX${OSX_SDK}.sdk)
   endif ()
   
-  # set that as the SDK to use
-  set(CMAKE_OSX_SYSROOT ${_OSX_DESIRED_SDK_PATH}/MacOSX10.9.sdk)
 endif ()
 
 # Hide automoc folders (for IDEs)
@@ -178,7 +189,6 @@ setup_externals_binary_dir()
 option(GET_BULLET "Get Bullet library automatically as external project" 1)
 option(GET_GLM "Get GLM library automatically as external project" 1)
 option(GET_GVERB "Get Gverb library automatically as external project" 1)
-option(GET_SOXR "Get Soxr library automatically as external project" 1)
 option(GET_TBB "Get Threading Building Blocks library automatically as external project" 1)
 option(GET_LIBOVR "Get LibOVR library automatically as external project" 1)
 option(GET_VHACD "Get V-HACD library automatically as external project" 1)

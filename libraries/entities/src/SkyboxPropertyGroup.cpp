@@ -15,14 +15,11 @@
 #include "EntityItemProperties.h"
 #include "EntityItemPropertiesMacros.h"
 
-SkyboxPropertyGroup::SkyboxPropertyGroup() {
-    _color.red = _color.green = _color.blue = 0;
-    _url = QString();
-}
+const xColor SkyboxPropertyGroup::DEFAULT_COLOR = { 0, 0, 0 };
 
-void SkyboxPropertyGroup::copyToScriptValue(QScriptValue& properties, QScriptEngine* engine, bool skipDefaults, EntityItemProperties& defaultEntityProperties) const {
-    COPY_GROUP_PROPERTY_TO_QSCRIPTVALUE(Skybox, skybox, Color, color);
-    COPY_GROUP_PROPERTY_TO_QSCRIPTVALUE(Skybox, skybox, URL, url);
+void SkyboxPropertyGroup::copyToScriptValue(const EntityPropertyFlags& desiredProperties, QScriptValue& properties, QScriptEngine* engine, bool skipDefaults, EntityItemProperties& defaultEntityProperties) const {
+    COPY_GROUP_PROPERTY_TO_QSCRIPTVALUE(PROP_SKYBOX_COLOR, Skybox, skybox, Color, color);
+    COPY_GROUP_PROPERTY_TO_QSCRIPTVALUE(PROP_SKYBOX_URL, Skybox, skybox, URL, url);
 }
 
 void SkyboxPropertyGroup::copyFromScriptValue(const QScriptValue& object, bool& _defaultSettings) {
@@ -36,7 +33,16 @@ void SkyboxPropertyGroup::debugDump() const {
     qDebug() << "       URL:" << getURL() << " has changed:" << urlChanged();
 }
 
-bool SkyboxPropertyGroup::appentToEditPacket(OctreePacketData* packetData,                                     
+void SkyboxPropertyGroup::listChangedProperties(QList<QString>& out) {
+    if (colorChanged()) {
+        out << "skybox-color";
+    }
+    if (urlChanged()) {
+        out << "skybox-url";
+    }
+}
+
+bool SkyboxPropertyGroup::appendToEditPacket(OctreePacketData* packetData,
                                     EntityPropertyFlags& requestedProperties,
                                     EntityPropertyFlags& propertyFlags,
                                     EntityPropertyFlags& propertiesDidntFit,
@@ -56,6 +62,7 @@ bool SkyboxPropertyGroup::decodeFromEditPacket(EntityPropertyFlags& propertyFlag
 
     int bytesRead = 0;
     bool overwriteLocalData = true;
+    bool somethingChanged = false;
 
     READ_ENTITY_PROPERTY(PROP_SKYBOX_COLOR, xColor, setColor);
     READ_ENTITY_PROPERTY(PROP_SKYBOX_URL, QString, setURL);
@@ -64,6 +71,8 @@ bool SkyboxPropertyGroup::decodeFromEditPacket(EntityPropertyFlags& propertyFlag
     DECODE_GROUP_PROPERTY_HAS_CHANGED(PROP_SKYBOX_URL, URL);
 
     processedBytes += bytesRead;
+
+    Q_UNUSED(somethingChanged);
 
     return true;
 }
@@ -121,7 +130,8 @@ void SkyboxPropertyGroup::appendSubclassData(OctreePacketData* packetData, Encod
 
 int SkyboxPropertyGroup::readEntitySubclassDataFromBuffer(const unsigned char* data, int bytesLeftToRead, 
                                             ReadBitstreamToTreeParams& args,
-                                            EntityPropertyFlags& propertyFlags, bool overwriteLocalData) {
+                                            EntityPropertyFlags& propertyFlags, bool overwriteLocalData,
+                                            bool& somethingChanged) {
 
     int bytesRead = 0;
     const unsigned char* dataAt = data;

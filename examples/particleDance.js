@@ -6,6 +6,9 @@
     var AUDIO_RANGE = 0.5 * RANGE;
     var DIST_BETWEEN_BURSTS = 1.0;
 
+    var PI = 3.141593;
+    var DEG_TO_RAD = PI / 180.0;
+
     var LOUDNESS_RADIUS_RATIO = 10;
 
     var TEXTURE_PATH = 'https://raw.githubusercontent.com/ericrius1/SantasLair/santa/assets/smokeparticle.png';
@@ -48,15 +51,6 @@
         this.emitRate = randInt(80, 120);
         this.emitStrength = randInt(4.0, 6.0);
 
-        this.animationSettings = JSON.stringify({
-          fps: 10,
-          frameIndex: 0,
-          running: true,
-          firstFrame: 0,
-          lastFrame: 50,
-          loop: true
-        });
-
         this.direction = {
           x: randFloat(-0.3, 0.3),
           y: 1.0,
@@ -82,16 +76,11 @@
           var color = colorPalette[colorIndex];
           this.emitters.push(Entities.addEntity({
             type: "ParticleEffect",
-            animationSettings: this.animationSettings,
+            isEmitting: true,
             position: this.point,
             textures: TEXTURE_PATH,
             emitRate: this.emitRate,
-            emitStrength: this.emitStrength,
-            emitDirection: {
-              x: Math.pow(-1, i) * randFloat(0.0, 0.4),
-              y: 1.0,
-              z: 0.0
-            },
+            polarFinish: 25 * DEG_TO_RAD,
             color: color,
             lifespan: 1.0,
             visible: true,

@@ -274,10 +274,14 @@ void LimitedNodeList::fillPacketHeader(const NLPacket& packet, const QUuid& conn
 
 qint64 LimitedNodeList::sendUnreliablePacket(const NLPacket& packet, const Node& destinationNode) {
     Q_ASSERT(!packet.isPartOfMessage());
+    
     if (!destinationNode.getActiveSocket()) {
         return 0;
     }
+    
     emit dataSent(destinationNode.getType(), packet.getDataSize());
+    destinationNode.recordBytesSent(packet.getDataSize());
+    
     return sendUnreliablePacket(packet, *destinationNode.getActiveSocket(), destinationNode.getConnectionSecret());
 }
 
@@ -298,7 +302,10 @@ qint64 LimitedNodeList::sendPacket(std::unique_ptr<NLPacket> packet, const Node&
     if (!destinationNode.getActiveSocket()) {
         return 0;
     }
+    
     emit dataSent(destinationNode.getType(), packet->getDataSize());
+    destinationNode.recordBytesSent(packet->getDataSize());
+    
     return sendPacket(std::move(packet), *destinationNode.getActiveSocket(), destinationNode.getConnectionSecret());
 }
 
@@ -355,6 +362,12 @@ qint64 LimitedNodeList::sendPacketList(std::unique_ptr<NLPacketList> packetList,
     // close the last packet in the list
     packetList->closeCurrentPacket();
     
+    for (std::unique_ptr<udt::Packet>& packet : packetList->_packets) {
+        NLPacket* nlPacket = static_cast<NLPacket*>(packet.get());
+        collectPacketStats(*nlPacket);
+        fillPacketHeader(*nlPacket);
+    }
+
     return _nodeSocket.writePacketList(std::move(packetList), sockAddr);
 }
 
@@ -410,11 +423,12 @@ void LimitedNodeList::eraseAllNodes() {
         killedNodes.insert(node);
     });
 
-    // iterate the current nodes, emit that they are dying and remove them from the hash
-    _nodeMutex.lockForWrite();
-    _nodeHash.clear();
-    _nodeMutex.unlock();
-
+    {
+        // iterate the current nodes, emit that they are dying and remove them from the hash
+        QWriteLocker writeLocker(&_nodeMutex);
+        _nodeHash.clear();
+    }
+    
     foreach(const SharedNodePointer& killedNode, killedNodes) {
         handleNodeKill(killedNode);
     }
@@ -428,21 +442,20 @@ void LimitedNodeList::reset() {
 }
 
 void LimitedNodeList::killNodeWithUUID(const QUuid& nodeUUID) {
-    _nodeMutex.lockForRead();
+    QReadLocker readLocker(&_nodeMutex);
 
     NodeHash::iterator it = _nodeHash.find(nodeUUID);
     if (it != _nodeHash.end()) {
         SharedNodePointer matchingNode = it->second;
 
-        _nodeMutex.unlock();
-
-        _nodeMutex.lockForWrite();
-        _nodeHash.unsafe_erase(it);
-        _nodeMutex.unlock();
-
+        readLocker.unlock();
+        
+        {
+            QWriteLocker writeLocker(&_nodeMutex);
+            _nodeHash.unsafe_erase(it);
+        }
+        
         handleNodeKill(matchingNode);
-    } else {
-        _nodeMutex.unlock();
     }
 }
 
@@ -488,7 +501,7 @@ SharedNodePointer LimitedNodeList::addOrUpdateNode(const QUuid& uuid, NodeType_t
             LimitedNodeList::flagTimeForConnectionStep(LimitedNodeList::AddedAudioMixer);
         }
 
-        SharedNodePointer newNodePointer(newNode);
+        SharedNodePointer newNodePointer(newNode, &QObject::deleteLater);
 
         _nodeHash.insert(UUIDNodePair(newNode->getUUID(), newNodePointer));
 
@@ -508,7 +521,7 @@ std::unique_ptr<NLPacket> LimitedNodeList::constructPingPacket(PingType_t pingTy
     pingPacket->writePrimitive(pingType);
     pingPacket->writePrimitive(usecTimestampNow());
 
-    return std::move(pingPacket);
+    return pingPacket;
 }
 
 std::unique_ptr<NLPacket> LimitedNodeList::constructPingReplyPacket(NLPacket& pingPacket) {
@@ -523,7 +536,7 @@ std::unique_ptr<NLPacket> LimitedNodeList::constructPingReplyPacket(NLPacket& pi
     replyPacket->writePrimitive(timeFromOriginalPing);
     replyPacket->writePrimitive(usecTimestampNow());
 
-    return std::move(replyPacket);
+    return replyPacket;
 }
 
 std::unique_ptr<NLPacket> LimitedNodeList::constructICEPingPacket(PingType_t pingType, const QUuid& iceID) {
@@ -533,7 +546,7 @@ std::unique_ptr<NLPacket> LimitedNodeList::constructICEPingPacket(PingType_t pin
     icePingPacket->write(iceID.toRfc4122());
     icePingPacket->writePrimitive(pingType);
 
-    return std::move(icePingPacket);
+    return icePingPacket;
 }
 
 std::unique_ptr<NLPacket> LimitedNodeList::constructICEPingReplyPacket(NLPacket& pingPacket, const QUuid& iceID) {
@@ -653,6 +666,22 @@ void LimitedNodeList::sendSTUNRequest() {
     flagTimeForConnectionStep(ConnectionStep::SendSTUNRequest);
 
     _nodeSocket.writeDatagram(stunRequestPacket, sizeof(stunRequestPacket), _stunSockAddr);
+}
+
+void LimitedNodeList::sendPingPackets() {
+    eachMatchingNode([](const SharedNodePointer& node)->bool {
+        switch (node->getType()) {
+            case NodeType::AvatarMixer:
+            case NodeType::AudioMixer:
+            case NodeType::EntityServer:
+            case NodeType::AssetServer:
+                return true;
+            default:
+                return false;
+        }
+    }, [&](const SharedNodePointer& node) {
+        sendPacket(constructPingPacket(), *node);
+    });
 }
 
 void LimitedNodeList::processSTUNResponse(std::unique_ptr<udt::BasePacket> packet) {
@@ -837,6 +866,14 @@ void LimitedNodeList::sendHeartbeatToIceServer(const HifiSockAddr& iceServerSock
 void LimitedNodeList::sendPeerQueryToIceServer(const HifiSockAddr& iceServerSockAddr, const QUuid& clientID,
                                                const QUuid& peerID) {
     sendPacketToIceServer(PacketType::ICEServerQuery, iceServerSockAddr, clientID, peerID);
+}
+
+SharedNodePointer LimitedNodeList::findNodeWithAddr(const HifiSockAddr& addr) {
+    QReadLocker locker(&_nodeMutex);
+    auto it = std::find_if(std::begin(_nodeHash), std::end(_nodeHash), [&](const UUIDNodePair& pair) {
+        return pair.second->getActiveSocket() ? (*pair.second->getActiveSocket() == addr) : false;
+    });
+    return (it != std::end(_nodeHash)) ? it->second : SharedNodePointer();
 }
 
 void LimitedNodeList::sendPacketToIceServer(PacketType packetType, const HifiSockAddr& iceServerSockAddr,

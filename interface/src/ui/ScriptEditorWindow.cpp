@@ -28,7 +28,6 @@
 #include <QWidget>
 
 #include "Application.h"
-#include "JSConsole.h"
 #include "PathUtils.h"
 
 ScriptEditorWindow::ScriptEditorWindow(QWidget* parent) :
@@ -59,10 +58,6 @@ ScriptEditorWindow::ScriptEditorWindow(QWidget* parent) :
     _ScriptEditorWindowUI->newButton->setIcon(QIcon(QPixmap(PathUtils::resourcesPath() + "icons/new-script.svg")));
     _ScriptEditorWindowUI->saveButton->setIcon(QIcon(QPixmap(PathUtils::resourcesPath() + "icons/save-script.svg")));
     _ScriptEditorWindowUI->toggleRunButton->setIcon(QIcon(QPixmap(PathUtils::resourcesPath() + "icons/start-script.svg")));
-
-    QWidget* console = new JSConsole(this);
-    console->setFixedHeight(CONSOLE_HEIGHT);
-    this->layout()->addWidget(console);
 }
 
 ScriptEditorWindow::~ScriptEditorWindow() {
@@ -77,10 +72,11 @@ void ScriptEditorWindow::setRunningState(bool run) {
 }
 
 void ScriptEditorWindow::updateButtons() {
+    bool isRunning = _ScriptEditorWindowUI->tabWidget->currentIndex() != -1 &&
+        static_cast<ScriptEditorWidget*>(_ScriptEditorWindowUI->tabWidget->currentWidget())->isRunning();
     _ScriptEditorWindowUI->toggleRunButton->setEnabled(_ScriptEditorWindowUI->tabWidget->currentIndex() != -1);
-    _ScriptEditorWindowUI->toggleRunButton->setIcon(_ScriptEditorWindowUI->tabWidget->currentIndex() != -1 &&
-        static_cast<ScriptEditorWidget*>(_ScriptEditorWindowUI->tabWidget->currentWidget())->isRunning() ?
-        QIcon("../resources/icons/stop-script.svg") : QIcon("../resources/icons/start-script.svg"));
+    _ScriptEditorWindowUI->toggleRunButton->setIcon(QIcon(QPixmap(PathUtils::resourcesPath() + ((isRunning ?
+        "icons/stop-script.svg" : "icons/start-script.svg")))));
 }
 
 void ScriptEditorWindow::loadScriptMenu(const QString& scriptName) {
@@ -90,10 +86,10 @@ void ScriptEditorWindow::loadScriptMenu(const QString& scriptName) {
 
 void ScriptEditorWindow::loadScriptClicked() {
     QString scriptName = QFileDialog::getOpenFileName(this, tr("Interface"),
-                                                      Application::getInstance()->getPreviousScriptLocation(),
+                                                      qApp->getPreviousScriptLocation(),
                                                       tr("JavaScript Files (*.js)"));
     if (!scriptName.isEmpty()) {
-        Application::getInstance()->setPreviousScriptLocation(scriptName);
+        qApp->setPreviousScriptLocation(scriptName);
         addScriptEditorWidget("loading...")->loadFile(scriptName);
         updateButtons();
     }
@@ -101,7 +97,7 @@ void ScriptEditorWindow::loadScriptClicked() {
 
 void ScriptEditorWindow::loadMenuAboutToShow() {
     _loadMenu->clear();
-    QStringList runningScripts = Application::getInstance()->getRunningScripts();
+    QStringList runningScripts = qApp->getRunningScripts();
     if (runningScripts.count() > 0) {
         QSignalMapper* signalMapper = new QSignalMapper(this);
         foreach (const QString& runningScript, runningScripts) {

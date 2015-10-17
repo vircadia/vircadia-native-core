@@ -26,7 +26,7 @@ static const QString FILENAME_FORMAT = "hifi-log_%1_%2.txt";
 static const QString DATETIME_FORMAT = "yyyy-MM-dd_hh.mm.ss";
 static const QString LOGS_DIRECTORY = "Logs";
 // Max log size is 1 MB
-static const uint64_t MAX_LOG_SIZE = 1024 * 1024;
+static const qint64 MAX_LOG_SIZE = 1024 * 1024;
 // Max log age is 1 hour
 static const uint64_t MAX_LOG_AGE_USECS = USECS_PER_SECOND * 3600;
 
@@ -59,7 +59,7 @@ protected:
                 _lastRollTime = now;
                 file.open(QIODevice::WriteOnly | QIODevice::Truncate);
                 file.close();
-                qDebug() << "Rolled log file: " << newFileName;
+                qDebug() << "Rolled log file:" << newFileName;
             }
         }
     }

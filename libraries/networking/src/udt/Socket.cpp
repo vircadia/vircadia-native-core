@@ -24,16 +24,10 @@
 
 using namespace udt;
 
-Q_DECLARE_METATYPE(Packet*);
-Q_DECLARE_METATYPE(PacketList*);
-
 Socket::Socket(QObject* parent) :
     QObject(parent),
     _synTimer(new QTimer(this))
 {
-    qRegisterMetaType<Packet*>();
-    qRegisterMetaType<PacketList*>();
-    
     connect(&_udpSocket, &QUdpSocket::readyRead, this, &Socket::readPendingDatagrams);
     
     // make sure our synchronization method is called every SYN interval
@@ -183,12 +177,11 @@ Connection& Socket::findOrCreateConnection(const HifiSockAddr& sockAddr) {
         auto connection = std::unique_ptr<Connection>(new Connection(this, sockAddr, _ccFactory->create()));
         
         // we queue the connection to cleanup connection in case it asks for it during its own rate control sync
-        QObject::connect(connection.get(), &Connection::connectionInactive, this, &Socket::cleanupConnection,
-                         Qt::QueuedConnection);
+        QObject::connect(connection.get(), &Connection::connectionInactive, this, &Socket::cleanupConnection);
         
-        #ifdef UDT_CONNECTION_DEBUG
+#ifdef UDT_CONNECTION_DEBUG
         qCDebug(networking) << "Creating new connection to" << sockAddr;
-        #endif
+#endif
         
         it = _connectionsHash.insert(it, std::make_pair(sockAddr, std::move(connection)));
     }
@@ -208,11 +201,13 @@ void Socket::clearConnections() {
 }
 
 void Socket::cleanupConnection(HifiSockAddr sockAddr) {
-    #ifdef UDT_CONNECTION_DEBUG
-    qCDebug(networking) << "Socket::cleanupConnection called for UDT connection to" << sockAddr;
-    #endif
+    auto numErased = _connectionsHash.erase(sockAddr);
     
-    _connectionsHash.erase(sockAddr);
+    if (numErased > 0) {
+#ifdef UDT_CONNECTION_DEBUG
+        qCDebug(networking) << "Socket::cleanupConnection called for UDT connection to" << sockAddr;
+#endif
+    }
 }
 
 void Socket::messageReceived(std::unique_ptr<PacketList> packetList) {
@@ -297,8 +292,31 @@ void Socket::connectToSendSignal(const HifiSockAddr& destinationAddr, QObject* r
 void Socket::rateControlSync() {
     
     // enumerate our list of connections and ask each of them to send off periodic ACK packet for rate control
+    
+    // the way we do this is a little funny looking - we need to avoid the case where we call sync and
+    // (because of our Qt direct connection to the Connection's signal that it has been deactivated)
+    // an iterator on _connectionsHash would be invalidated by our own call to cleanupConnection
+    
+    // collect the sockets for all connections in a vector
+    
+    std::vector<HifiSockAddr> sockAddrVector;
+    sockAddrVector.reserve(_connectionsHash.size());
+    
     for (auto& connection : _connectionsHash) {
-        connection.second->sync();
+        sockAddrVector.emplace_back(connection.first);
+    }
+    
+    // enumerate that vector of HifiSockAddr objects
+    for (auto& sockAddr : sockAddrVector) {
+        // pull out the respective connection via a quick find on the unordered_map
+        auto it = _connectionsHash.find(sockAddr);
+        
+        if (it != _connectionsHash.end()) {
+            // if the connection is erased while calling sync since we are re-using the iterator that was invalidated
+            // we're good to go
+            auto& connection = _connectionsHash[sockAddr];
+            connection->sync();
+        }
     }
     
     if (_synTimer->interval() != _synInterval) {
@@ -324,6 +342,16 @@ ConnectionStats::Stats Socket::sampleStatsForConnection(const HifiSockAddr& dest
         return ConnectionStats::Stats();
     }
 }
+
+Socket::StatsVector Socket::sampleStatsForAllConnections() {
+    StatsVector result;
+    result.reserve(_connectionsHash.size());
+    for (const auto& connectionPair : _connectionsHash) {
+        result.emplace_back(connectionPair.first, connectionPair.second->sampleStats());
+    }
+    return result;
+}
+
 
 std::vector<HifiSockAddr> Socket::getConnectionSockAddrs() {    
     std::vector<HifiSockAddr> addr;

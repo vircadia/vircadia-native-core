@@ -29,11 +29,7 @@
 
 #include <OffscreenQmlSurface.h>
 
-// #include "Application.h"
-// #include "GeometryUtil.h"
-
 static const float DPI = 30.47f;
-static const float METERS_TO_INCHES = 39.3701f;
 static const float INCHES_TO_METERS = 1.0f / 39.3701f;
 
 QString const Web3DOverlay::TYPE = "web3d";
@@ -155,8 +151,10 @@ void Web3DOverlay::setURL(const QString& url) {
 
 }
 
-bool Web3DOverlay::findRayIntersection(const glm::vec3& origin, const glm::vec3& direction, float& distance, BoxFace& face) {
-    //// Make sure position and rotation is updated.
+bool Web3DOverlay::findRayIntersection(const glm::vec3& origin, const glm::vec3& direction, float& distance, BoxFace& face, glm::vec3& surfaceNormal) {
+    // FIXME - face and surfaceNormal not being returned
+
+    // Make sure position and rotation is updated.
     applyTransformTo(_transform, true);
     vec2 size = _resolution / _dpi * INCHES_TO_METERS * vec2(getDimensions());
     // Produce the dimensions of the overlay based on the image's aspect ratio and the overlay's scale.

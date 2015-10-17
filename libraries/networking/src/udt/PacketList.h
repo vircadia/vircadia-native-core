@@ -28,45 +28,54 @@ class Packet;
 class PacketList : public QIODevice {
     Q_OBJECT
 public:
-    PacketList(PacketType packetType, QByteArray extendedHeader = QByteArray(), bool isReliable = false, bool isOrdered = false);
-    PacketList(PacketList&& other);
-
+    using MessageNumber = uint32_t;
+    using PacketPointer = std::unique_ptr<Packet>;
+    
+    static std::unique_ptr<PacketList> create(PacketType packetType, QByteArray extendedHeader = QByteArray(),
+                                              bool isReliable = false, bool isOrdered = false);
     static std::unique_ptr<PacketList> fromReceivedPackets(std::list<std::unique_ptr<Packet>>&& packets);
     
-    virtual bool isSequential() const { return true; }
-
+    PacketType getType() const { return _packetType; }
     bool isReliable() const { return _isReliable; }
     bool isOrdered() const { return _isOrdered; }
+    
+    int getNumPackets() const { return _packets.size() + (_currentPacket ? 1 : 0); }
+    size_t getDataSize() const;
+    size_t getMessageSize() const;
+    QByteArray getMessage();
+    
+    QByteArray getExtendedHeader() const { return _extendedHeader; }
     
     void startSegment();
     void endSegment();
     
-    PacketType getType() const { return _packetType; }
-    int getNumPackets() const { return _packets.size() + (_currentPacket ? 1 : 0); }
-
-    QByteArray getExtendedHeader() const { return _extendedHeader; }
-
-    size_t getDataSize() const;
-    size_t getMessageSize() const;
-    
     void closeCurrentPacket(bool shouldSendEmpty = false);
 
-    QByteArray getMessage();
-
+    // QIODevice virtual functions
+    virtual bool isSequential() const  { return false; }
+    virtual qint64 size() const { return getDataSize(); }
+    
     template<typename T> qint64 readPrimitive(T* data);
     template<typename T> qint64 writePrimitive(const T& data);
-    std::list<std::unique_ptr<Packet>> _packets;
+    
 protected:
-    virtual qint64 writeData(const char* data, qint64 maxSize);
-    virtual qint64 readData(char* data, qint64 maxSize) { return 0; }
-    PacketType _packetType;
+    PacketList(PacketType packetType, QByteArray extendedHeader = QByteArray(), bool isReliable = false, bool isOrdered = false);
+    PacketList(PacketList&& other);
+    
+    void preparePackets(MessageNumber messageNumber);
 
+    virtual qint64 writeData(const char* data, qint64 maxSize);
+    // Not implemented, added an assert so that it doesn't get used by accident
+    virtual qint64 readData(char* data, qint64 maxSize) { Q_ASSERT(false); return 0; }
+    
+    PacketType _packetType;
+    std::list<std::unique_ptr<Packet>> _packets;
     
 private:
     friend class ::LimitedNodeList;
-    friend class Socket;
+    friend class PacketQueue;
     friend class SendQueue;
-    friend class NLPacketList;
+    friend class Socket;
     
     PacketList(const PacketList& other) = delete;
     PacketList& operator=(const PacketList& other) = delete;
@@ -91,12 +100,12 @@ private:
 
 template <typename T> qint64 PacketList::readPrimitive(T* data) {
     static_assert(!std::is_pointer<T>::value, "T must not be a pointer");
-    return QIODevice::read(reinterpret_cast<char*>(data), sizeof(T));
+    return read(reinterpret_cast<char*>(data), sizeof(T));
 }
 
 template <typename T> qint64 PacketList::writePrimitive(const T& data) {
     static_assert(!std::is_pointer<T>::value, "T must not be a pointer");
-    return QIODevice::write(reinterpret_cast<const char*>(&data), sizeof(T));
+    return write(reinterpret_cast<const char*>(&data), sizeof(T));
 }
 
 template<typename T> std::unique_ptr<T> PacketList::takeFront() {
@@ -108,5 +117,7 @@ template<typename T> std::unique_ptr<T> PacketList::takeFront() {
 }
     
 }
+
+Q_DECLARE_METATYPE(udt::PacketList*);
 
 #endif // hifi_PacketList_h

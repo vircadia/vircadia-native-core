@@ -38,16 +38,23 @@
 #pragma GCC diagnostic ignored "-Wdouble-promotion"
 #endif
 
+#ifdef WIN32
+#pragma warning (push)
+#pragma warning (disable: 4273 4305)
+#endif
+
 extern "C" {
     #include <gverb/gverb.h>
     #include <gverb/gverbdsp.h>
 }
 
+#ifdef WIN32
+#pragma warning (pop)
+#endif
+
 #if defined(__GNUC__) && !defined(__clang__)
 #pragma GCC diagnostic pop
 #endif
-
-#include <soxr.h>
 
 #include <NodeList.h>
 #include <udt/PacketHeaders.h>
@@ -187,18 +194,6 @@ QAudioDeviceInfo getNamedAudioDeviceForMode(QAudio::Mode mode, const QString& de
     }
 
     return result;
-}
-
-soxr_datatype_t soxrDataTypeFromQAudioFormat(const QAudioFormat& audioFormat) {
-    if (audioFormat.sampleType() == QAudioFormat::Float) {
-        return SOXR_FLOAT32_I;
-    } else {
-        if (audioFormat.sampleSize() == 16) {
-            return SOXR_INT16_I;
-        } else {
-            return SOXR_INT32_I;
-        }
-    }
 }
 
 int numDestinationSamplesRequired(const QAudioFormat& sourceFormat, const QAudioFormat& destinationFormat,
@@ -350,7 +345,7 @@ bool adjustedFormatForAudioDevice(const QAudioDeviceInfo& audioDevice,
             // use 22050, resample but closer to 24
             adjustedAudioFormat.setSampleRate(HALF_FORTY_FOUR);
         } else if (audioDevice.supportedSampleRates().contains(FORTY_FOUR)) {
-            // use 48000, libsoxr will resample
+            // use 48000, resample
             adjustedAudioFormat.setSampleRate(FORTY_FOUR);
         }
 #endif
@@ -391,10 +386,10 @@ bool sampleChannelConversion(const int16_t* sourceSamples, int16_t* destinationS
     return false;
 }
 
-soxr_error_t possibleResampling(soxr_t resampler,
-                                const int16_t* sourceSamples, int16_t* destinationSamples,
-                                unsigned int numSourceSamples, unsigned int numDestinationSamples,
-                                const QAudioFormat& sourceAudioFormat, const QAudioFormat& destinationAudioFormat) {
+void possibleResampling(AudioSRC* resampler,
+                        const int16_t* sourceSamples, int16_t* destinationSamples,
+                        unsigned int numSourceSamples, unsigned int numDestinationSamples,
+                        const QAudioFormat& sourceAudioFormat, const QAudioFormat& destinationAudioFormat) {
 
     if (numSourceSamples > 0) {
         if (!resampler) {
@@ -403,24 +398,19 @@ soxr_error_t possibleResampling(soxr_t resampler,
                 // no conversion, we can copy the samples directly across
                 memcpy(destinationSamples, sourceSamples, numSourceSamples * sizeof(int16_t));
             }
-
-            return 0;
         } else {
-            soxr_error_t resampleError = 0;
 
             if (sourceAudioFormat.channelCount() != destinationAudioFormat.channelCount()) {
-                float channelCountRatio = (float) destinationAudioFormat.channelCount() / sourceAudioFormat.channelCount();
+                float channelCountRatio = (float)destinationAudioFormat.channelCount() / sourceAudioFormat.channelCount();
 
-                int numChannelCoversionSamples = (int) (numSourceSamples * channelCountRatio);
+                int numChannelCoversionSamples = (int)(numSourceSamples * channelCountRatio);
                 int16_t* channelConversionSamples = new int16_t[numChannelCoversionSamples];
 
                 sampleChannelConversion(sourceSamples, channelConversionSamples,
                                         numSourceSamples,
                                         sourceAudioFormat, destinationAudioFormat);
 
-                resampleError = soxr_process(resampler,
-                                             channelConversionSamples, numChannelCoversionSamples, NULL,
-                                             destinationSamples, numDestinationSamples, NULL);
+                resampler->render(channelConversionSamples, destinationSamples, numChannelCoversionSamples);
 
                 delete[] channelConversionSamples;
             } else {
@@ -433,46 +423,10 @@ soxr_error_t possibleResampling(soxr_t resampler,
                     numAdjustedDestinationSamples /= 2;
                 }
 
-                resampleError = soxr_process(resampler,
-                                             sourceSamples, numAdjustedSourceSamples, NULL,
-                                             destinationSamples, numAdjustedDestinationSamples, NULL);
+                resampler->render(sourceSamples, destinationSamples, numAdjustedSourceSamples);
             }
-
-            return resampleError;
         }
-    } else {
-        return 0;
     }
-}
-
-soxr_t soxrResamplerFromInputFormatToOutputFormat(const QAudioFormat& sourceAudioFormat,
-                                                  const QAudioFormat& destinationAudioFormat) {
-    soxr_error_t soxrError;
-
-    // setup soxr_io_spec_t for input and output
-    soxr_io_spec_t inputToNetworkSpec = soxr_io_spec(soxrDataTypeFromQAudioFormat(sourceAudioFormat),
-                                                     soxrDataTypeFromQAudioFormat(destinationAudioFormat));
-
-    // setup soxr_quality_spec_t for quality options
-    soxr_quality_spec_t qualitySpec = soxr_quality_spec(SOXR_MQ, 0);
-
-    int channelCount = (sourceAudioFormat.channelCount() == 2 && destinationAudioFormat.channelCount() == 2)
-        ? 2 : 1;
-
-    soxr_t newResampler = soxr_create(sourceAudioFormat.sampleRate(),
-                                      destinationAudioFormat.sampleRate(),
-                                      channelCount,
-                                      &soxrError, &inputToNetworkSpec, &qualitySpec, 0);
-
-    if (soxrError) {
-        qCDebug(audioclient) << "There was an error setting up the soxr resampler -" << "soxr error code was " << soxrError;
-
-        soxr_delete(newResampler);
-
-        return NULL;
-    }
-
-    return newResampler;
 }
 
 void AudioClient::start() {
@@ -530,7 +484,7 @@ void AudioClient::stop() {
     switchOutputToAudioDevice(QAudioDeviceInfo());
 
     if (_loopbackResampler) {
-        soxr_delete(_loopbackResampler);
+        delete _loopbackResampler;
         _loopbackResampler = NULL;
     }
 }
@@ -751,11 +705,12 @@ void AudioClient::handleLocalEchoAndReverb(QByteArray& inputByteArray) {
     // do we need to setup a resampler?
     if (_inputFormat.sampleRate() != _outputFormat.sampleRate() && !_loopbackResampler) {
         qCDebug(audioclient) << "Attemping to create a resampler for input format to output format for audio loopback.";
-        _loopbackResampler = soxrResamplerFromInputFormatToOutputFormat(_inputFormat, _outputFormat);
 
-        if (!_loopbackResampler) {
-            return;
-        }
+        assert(_inputFormat.sampleSize() == 16);
+        assert(_outputFormat.sampleSize() == 16);
+        int channelCount = (_inputFormat.channelCount() == 2 && _outputFormat.channelCount() == 2) ? 2 : 1;
+
+        _loopbackResampler = new AudioSRC(_inputFormat.sampleRate(), _outputFormat.sampleRate(), channelCount);
     }
 
     static QByteArray reverbAlone;  // Intermediary for local reverb with no echo
@@ -1083,7 +1038,7 @@ bool AudioClient::switchInputToAudioDevice(const QAudioDeviceInfo& inputDeviceIn
 
     if (_inputToNetworkResampler) {
         // if we were using an input to network resampler, delete it here
-        soxr_delete(_inputToNetworkResampler);
+        delete _inputToNetworkResampler;
         _inputToNetworkResampler = NULL;
     }
 
@@ -1095,15 +1050,17 @@ bool AudioClient::switchInputToAudioDevice(const QAudioDeviceInfo& inputDeviceIn
             qCDebug(audioclient) << "The format to be used for audio input is" << _inputFormat;
 
             // we've got the best we can get for input
-            // if required, setup a soxr resampler for this input to our desired network format
+            // if required, setup a resampler for this input to our desired network format
             if (_inputFormat != _desiredInputFormat
                 && _inputFormat.sampleRate() != _desiredInputFormat.sampleRate()) {
-                qCDebug(audioclient) << "Attemping to create a soxr resampler for input format to network format.";
-                _inputToNetworkResampler = soxrResamplerFromInputFormatToOutputFormat(_inputFormat, _desiredInputFormat);
+                qCDebug(audioclient) << "Attemping to create a resampler for input format to network format.";
 
-                if (!_inputToNetworkResampler) {
-                    return false;
-                }
+                assert(_inputFormat.sampleSize() == 16);
+                assert(_desiredInputFormat.sampleSize() == 16);
+                int channelCount = (_inputFormat.channelCount() == 2 && _desiredInputFormat.channelCount() == 2) ? 2 : 1;
+
+                _inputToNetworkResampler = new AudioSRC(_inputFormat.sampleRate(), _desiredInputFormat.sampleRate(), channelCount);
+
             } else {
                 qCDebug(audioclient) << "No resampling required for audio input to match desired network format.";
             }
@@ -1178,13 +1135,13 @@ bool AudioClient::switchOutputToAudioDevice(const QAudioDeviceInfo& outputDevice
 
     if (_networkToOutputResampler) {
         // if we were using an input to network resampler, delete it here
-        soxr_delete(_networkToOutputResampler);
+        delete _networkToOutputResampler;
         _networkToOutputResampler = NULL;
     }
 
     if (_loopbackResampler) {
         // if we were using an input to output resample, delete it here
-        soxr_delete(_loopbackResampler);
+        delete _loopbackResampler;
         _loopbackResampler = NULL;
     }
 
@@ -1196,15 +1153,17 @@ bool AudioClient::switchOutputToAudioDevice(const QAudioDeviceInfo& outputDevice
             qCDebug(audioclient) << "The format to be used for audio output is" << _outputFormat;
 
             // we've got the best we can get for input
-            // if required, setup a soxr resampler for this input to our desired network format
+            // if required, setup a resampler for this input to our desired network format
             if (_desiredOutputFormat != _outputFormat
                 && _desiredOutputFormat.sampleRate() != _outputFormat.sampleRate()) {
                 qCDebug(audioclient) << "Attemping to create a resampler for network format to output format.";
-                _networkToOutputResampler = soxrResamplerFromInputFormatToOutputFormat(_desiredOutputFormat, _outputFormat);
 
-                if (!_networkToOutputResampler) {
-                    return false;
-                }
+                assert(_desiredOutputFormat.sampleSize() == 16);
+                assert(_outputFormat.sampleSize() == 16);
+                int channelCount = (_desiredOutputFormat.channelCount() == 2 && _outputFormat.channelCount() == 2) ? 2 : 1;
+
+                _networkToOutputResampler = new AudioSRC(_desiredOutputFormat.sampleRate(), _outputFormat.sampleRate(), channelCount);
+
             } else {
                 qCDebug(audioclient) << "No resampling required for network output to match actual output format.";
             }

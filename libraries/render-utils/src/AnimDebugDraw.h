@@ -27,12 +27,17 @@ public:
     AnimDebugDraw();
     ~AnimDebugDraw();
 
+    void shutdown();
+
+    // draw a skeleton bind pose
     void addSkeleton(const std::string& key, AnimSkeleton::ConstPointer skeleton, const AnimPose& rootPose, const glm::vec4& color);
     void removeSkeleton(const std::string& key);
 
+    // draw the interal poses for a specific animNode
     void addAnimNode(const std::string& key, AnimNode::ConstPointer animNode, const AnimPose& rootPose, const glm::vec4& color);
     void removeAnimNode(const std::string& key);
 
+    // draw a set of poses with a skeleton
     void addPoses(const std::string& key, AnimSkeleton::ConstPointer skeleton, const AnimPoseVec& poses, const AnimPose& rootPose, const glm::vec4& color);
     void removePoses(const std::string& key);
 

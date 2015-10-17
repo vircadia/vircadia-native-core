@@ -8,9 +8,10 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
-#include <string.h>
-
 #include "Batch.h"
+
+#include <QDebug>
+#include <string.h>
 
 #if defined(NSIGHT_FOUND)
 #include "nvToolsExt.h"
@@ -41,7 +42,21 @@ Batch::Batch() :
 {
 }
 
+Batch::Batch(const CacheState& cacheState) : Batch() {
+    _commands.reserve(cacheState.commandsSize);
+    _commandOffsets.reserve(cacheState.offsetsSize);
+    _params.reserve(cacheState.paramsSize);
+    _data.reserve(cacheState.dataSize);
+}
+
+Batch::CacheState Batch::getCacheState() {
+    return CacheState(_commands.size(), _commandOffsets.size(), _params.size(), _data.size(),
+                _buffers.size(), _textures.size(), _streamFormats.size(), _transforms.size(), _pipelines.size(), 
+                _framebuffers.size(), _queries.size());
+}
+
 Batch::~Batch() {
+    //qDebug() << "Batch::~Batch()... " << getCacheState();
 }
 
 void Batch::clear() {
@@ -59,47 +74,60 @@ void Batch::clear() {
 
 uint32 Batch::cacheData(uint32 size, const void* data) {
     uint32 offset = _data.size();
-    uint32 nbBytes = size;
-    _data.resize(offset + nbBytes);
+    uint32 numBytes = size;
+    _data.resize(offset + numBytes);
     memcpy(_data.data() + offset, data, size);
 
     return offset;
 }
 
-void Batch::draw(Primitive primitiveType, uint32 nbVertices, uint32 startVertex) {
+void Batch::draw(Primitive primitiveType, uint32 numVertices, uint32 startVertex) {
     ADD_COMMAND(draw);
 
     _params.push_back(startVertex);
-    _params.push_back(nbVertices);
+    _params.push_back(numVertices);
     _params.push_back(primitiveType);
 }
 
-void Batch::drawIndexed(Primitive primitiveType, uint32 nbIndices, uint32 startIndex) {
+void Batch::drawIndexed(Primitive primitiveType, uint32 numIndices, uint32 startIndex) {
     ADD_COMMAND(drawIndexed);
 
     _params.push_back(startIndex);
-    _params.push_back(nbIndices);
+    _params.push_back(numIndices);
     _params.push_back(primitiveType);
 }
 
-void Batch::drawInstanced(uint32 nbInstances, Primitive primitiveType, uint32 nbVertices, uint32 startVertex, uint32 startInstance) {
+void Batch::drawInstanced(uint32 numInstances, Primitive primitiveType, uint32 numVertices, uint32 startVertex, uint32 startInstance) {
     ADD_COMMAND(drawInstanced);
 
     _params.push_back(startInstance);
     _params.push_back(startVertex);
-    _params.push_back(nbVertices);
+    _params.push_back(numVertices);
     _params.push_back(primitiveType);
-    _params.push_back(nbInstances);
+    _params.push_back(numInstances);
 }
 
-void Batch::drawIndexedInstanced(uint32 nbInstances, Primitive primitiveType, uint32 nbIndices, uint32 startIndex, uint32 startInstance) {
+void Batch::drawIndexedInstanced(uint32 numInstances, Primitive primitiveType, uint32 numIndices, uint32 startIndex, uint32 startInstance) {
     ADD_COMMAND(drawIndexedInstanced);
 
     _params.push_back(startInstance);
     _params.push_back(startIndex);
-    _params.push_back(nbIndices);
+    _params.push_back(numIndices);
     _params.push_back(primitiveType);
-    _params.push_back(nbInstances);
+    _params.push_back(numInstances);
+}
+
+
+void Batch::multiDrawIndirect(uint32 numCommands, Primitive primitiveType) {
+    ADD_COMMAND(multiDrawIndirect);
+    _params.push_back(numCommands);
+    _params.push_back(primitiveType);
+}
+
+void Batch::multiDrawIndexedIndirect(uint32 nbCommands, Primitive primitiveType) {
+    ADD_COMMAND(multiDrawIndexedIndirect);
+    _params.push_back(nbCommands);
+    _params.push_back(primitiveType);
 }
 
 void Batch::setInputFormat(const Stream::FormatPointer& format) {
@@ -144,6 +172,15 @@ void Batch::setIndexBuffer(const BufferView& buffer) {
     setIndexBuffer(buffer._element.getType(), buffer._buffer, buffer._offset);
 }
 
+void Batch::setIndirectBuffer(const BufferPointer& buffer, Offset offset, Offset stride) {
+    ADD_COMMAND(setIndirectBuffer);
+
+    _params.push_back(_buffers.cache(buffer));
+    _params.push_back(offset);
+    _params.push_back(stride);
+}
+
+
 void Batch::setModelTransform(const Transform& model) {
     ADD_COMMAND(setModelTransform);
 
@@ -166,6 +203,13 @@ void Batch::setViewportTransform(const Vec4i& viewport) {
     ADD_COMMAND(setViewportTransform);
 
     _params.push_back(cacheData(sizeof(Vec4i), &viewport));
+}
+
+void Batch::setDepthRangeTransform(float nearDepth, float farDepth) {
+    ADD_COMMAND(setDepthRangeTransform);
+
+    _params.push_back(farDepth);
+    _params.push_back(nearDepth);
 }
 
 void Batch::setPipeline(const PipelinePointer& pipeline) {
@@ -288,6 +332,11 @@ void Batch::resetStages() {
     ADD_COMMAND(resetStages);
 }
 
+void Batch::runLambda(std::function<void()> f) {
+    ADD_COMMAND(runLambda);
+    _params.push_back(_lambdas.cache(f));
+}
+
 void Batch::enableStereo(bool enable) {
     _enableStereo = enable;
 }
@@ -302,4 +351,43 @@ void Batch::enableSkybox(bool enable) {
 
 bool Batch::isSkyboxEnabled() const {
     return _enableSkybox;
+}
+
+void Batch::setupNamedCalls(const std::string& instanceName, size_t count, NamedBatchData::Function function) {
+    NamedBatchData& instance = _namedData[instanceName];
+    instance._count += count;
+    instance._function = function;
+}
+
+void Batch::setupNamedCalls(const std::string& instanceName, NamedBatchData::Function function) {
+    setupNamedCalls(instanceName, 1, function);
+}
+
+BufferPointer Batch::getNamedBuffer(const std::string& instanceName, uint8_t index) {
+    NamedBatchData& instance = _namedData[instanceName];
+    if (instance._buffers.size() <= index) {
+        instance._buffers.resize(index + 1);
+    }
+    if (!instance._buffers[index]) {
+        instance._buffers[index].reset(new Buffer());
+    }
+    return instance._buffers[index];
+}
+
+void Batch::preExecute() {
+    for (auto& mapItem : _namedData) {
+        mapItem.second.process(*this);
+    }
+    _namedData.clear();
+}
+
+QDebug& operator<<(QDebug& debug, const Batch::CacheState& cacheState) {
+    debug << "Batch::CacheState[ "
+        << "commandsSize:" << cacheState.commandsSize
+        << "offsetsSize:" << cacheState.offsetsSize
+        << "paramsSize:" << cacheState.paramsSize
+        << "dataSize:" << cacheState.dataSize
+        << "]";
+
+    return debug;
 }

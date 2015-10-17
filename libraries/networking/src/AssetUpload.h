@@ -26,21 +26,26 @@ class AssetUpload : public QObject {
     Q_OBJECT
 public:
     
-    enum Result {
-        Success = 0,
+    enum Error {
+        NoError = 0,
+        NetworkError,
         Timeout,
         TooLarge,
         PermissionDenied,
-        ErrorLoadingFile
+        FileOpenError
     };
     
-    AssetUpload(QObject* parent, const QString& filename);
+    static const QString PERMISSION_DENIED_ERROR;
+    
+    AssetUpload(const QString& filename);
+    AssetUpload(const QByteArray& data, const QString& extension);
     
     Q_INVOKABLE void start();
     
     const QString& getFilename() const { return _filename; }
     const QString& getExtension() const  { return _extension; }
-    const Result& getResult() const { return _result; }
+    const Error& getError() const { return _error; }
+    QString getErrorString() const;
     
 signals:
     void finished(AssetUpload* upload, const QString& hash);
@@ -48,8 +53,9 @@ signals:
     
 private:
     QString _filename;
+    QByteArray _data;
     QString _extension;
-    Result _result;
+    Error _error;
 };
 
 #endif // hifi_AssetUpload_h

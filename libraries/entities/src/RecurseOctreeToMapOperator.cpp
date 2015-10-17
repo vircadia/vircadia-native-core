@@ -11,10 +11,11 @@
 
 #include "RecurseOctreeToMapOperator.h"
 
+#include "EntityItemProperties.h"
 
 RecurseOctreeToMapOperator::RecurseOctreeToMapOperator(QVariantMap& map,
-                                                       OctreeElement *top,
-                                                       QScriptEngine *engine,
+                                                       OctreeElementPointer top,
+                                                       QScriptEngine* engine,
                                                        bool skipDefaultValues) :
         RecurseOctreeOperator(),
         _map(map),
@@ -22,7 +23,7 @@ RecurseOctreeToMapOperator::RecurseOctreeToMapOperator(QVariantMap& map,
         _engine(engine),
         _skipDefaultValues(skipDefaultValues)
 {
-    // if some element "top" was given, only save information for that element and it's children.
+    // if some element "top" was given, only save information for that element and its children.
     if (_top) {
         _withinTop = false;
     } else {
@@ -31,23 +32,21 @@ RecurseOctreeToMapOperator::RecurseOctreeToMapOperator(QVariantMap& map,
     }
 };
 
-bool RecurseOctreeToMapOperator::preRecursion(OctreeElement* element) {
+bool RecurseOctreeToMapOperator::preRecursion(OctreeElementPointer element) {
     if (element == _top) {
         _withinTop = true;
     }
     return true;
 }
 
-bool RecurseOctreeToMapOperator::postRecursion(OctreeElement* element) {
+bool RecurseOctreeToMapOperator::postRecursion(OctreeElementPointer element) {
 
     EntityItemProperties defaultProperties;
 
-    EntityTreeElement* entityTreeElement = static_cast<EntityTreeElement*>(element);
-    const EntityItems& entities = entityTreeElement->getEntities();
-
+    EntityTreeElementPointer entityTreeElement = std::static_pointer_cast<EntityTreeElement>(element);
     QVariantList entitiesQList = qvariant_cast<QVariantList>(_map["Entities"]);
 
-    foreach (EntityItemPointer entityItem, entities) {
+    entityTreeElement->forEachEntity([&](EntityItemPointer entityItem) {
         EntityItemProperties properties = entityItem->getProperties();
         QScriptValue qScriptValues;
         if (_skipDefaultValues) {
@@ -56,7 +55,8 @@ bool RecurseOctreeToMapOperator::postRecursion(OctreeElement* element) {
             qScriptValues = EntityItemPropertiesToScriptValue(_engine, properties);
         }
         entitiesQList << qScriptValues.toVariant();
-    }
+    });
+
     _map["Entities"] = entitiesQList;
     if (element == _top) {
         _withinTop = false;

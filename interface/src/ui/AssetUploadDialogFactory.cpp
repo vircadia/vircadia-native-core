@@ -11,11 +11,6 @@
 
 #include "AssetUploadDialogFactory.h"
 
-#include <AssetClient.h>
-#include <AssetUpload.h>
-#include <AssetUtils.h>
-#include <NodeList.h>
-
 #include <QtCore/QDebug>
 #include <QtWidgets/QDialogButtonBox>
 #include <QtWidgets/QFileDialog>
@@ -24,28 +19,30 @@
 #include <QtWidgets/QLineEdit>
 #include <QtWidgets/QVBoxLayout>
 
+#include <AssetClient.h>
+#include <AssetUpload.h>
+#include <AssetUtils.h>
+#include <NodeList.h>
+#include <ResourceManager.h>
+
 AssetUploadDialogFactory& AssetUploadDialogFactory::getInstance() {
     static AssetUploadDialogFactory staticInstance;
     return staticInstance;
 }
 
-AssetUploadDialogFactory::AssetUploadDialogFactory() {
-    
-}
 
-static const QString PERMISSION_DENIED_ERROR = "You do not have permission to upload content to this asset-server.";
 
 void AssetUploadDialogFactory::showDialog() {
     auto nodeList = DependencyManager::get<NodeList>();
     
     if (nodeList->getThisNodeCanRez()) {
-        auto filename = QFileDialog::getOpenFileUrl(_dialogParent, "Select a file to upload");
+        auto filename = QFileDialog::getOpenFileName(_dialogParent, "Select a file to upload");
         
         if (!filename.isEmpty()) {
             qDebug() << "Selected filename for upload to asset-server: " << filename;
             
             auto assetClient = DependencyManager::get<AssetClient>();
-            auto upload = assetClient->createUpload(filename.path());
+            auto upload = assetClient->createUpload(filename);
             
             if (upload) {
                 // connect to the finished signal so we know when the AssetUpload is done
@@ -56,20 +53,20 @@ void AssetUploadDialogFactory::showDialog() {
             } else {
                 // show a QMessageBox to say that there is no local asset server
                 QString messageBoxText = QString("Could not upload \n\n%1\n\nbecause you are currently not connected" \
-                                                 " to a local asset-server.").arg(QFileInfo(filename.toString()).fileName());
+                                                 " to a local asset-server.").arg(QFileInfo(filename).fileName());
                 
                 QMessageBox::information(_dialogParent, "Failed to Upload", messageBoxText);
             }
         }
     } else {
         // we don't have permission to upload to asset server in this domain - show the permission denied error
-        showErrorDialog(QString(), PERMISSION_DENIED_ERROR);
+        showErrorDialog(nullptr, _dialogParent, AssetUpload::PERMISSION_DENIED_ERROR);
     }
     
 }
 
 void AssetUploadDialogFactory::handleUploadFinished(AssetUpload* upload, const QString& hash) {
-    if (upload->getResult() == AssetUpload::Success) {
+    if (upload->getError() == AssetUpload::NoError) {
         // show message box for successful upload, with copiable text for ATP hash
         QDialog* hashCopyDialog = new QDialog(_dialogParent);
         
@@ -89,7 +86,7 @@ void AssetUploadDialogFactory::handleUploadFinished(AssetUpload* upload, const Q
         // setup the line edit to hold the copiable text
         QLineEdit* lineEdit = new QLineEdit;
        
-        QString atpURL = QString("%1:%2.%3").arg(ATP_SCHEME).arg(hash).arg(upload->getExtension());
+        QString atpURL = QString("%1:%2.%3").arg(URL_SCHEME_ATP).arg(hash).arg(upload->getExtension());
         
         // set the ATP URL as the text value so it's copiable
         lineEdit->insert(atpURL);
@@ -121,39 +118,33 @@ void AssetUploadDialogFactory::handleUploadFinished(AssetUpload* upload, const Q
         // show the new dialog
         hashCopyDialog->show();
     } else {
-        // figure out the right error message for the message box
-        QString additionalError;
-        
-        switch (upload->getResult()) {
-            case AssetUpload::PermissionDenied:
-                additionalError = PERMISSION_DENIED_ERROR;
-                break;
-            case AssetUpload::TooLarge:
-                additionalError = "The uploaded content was too large and could not be stored in the asset-server.";
-                break;
-            case AssetUpload::ErrorLoadingFile:
-                additionalError = "The file could not be opened. Please check your permissions and try again.";
-                break;
-            default:
-                // not handled, do not show a message box
-                return;
-        }
-        
         // display a message box with the error
-        showErrorDialog(QFileInfo(upload->getFilename()).fileName(), additionalError);
+        showErrorDialog(upload, _dialogParent);
     }
     
     upload->deleteLater();
 }
 
-void AssetUploadDialogFactory::showErrorDialog(const QString& filename, const QString& additionalError) {
-    QString errorMessage;
+void AssetUploadDialogFactory::showErrorDialog(AssetUpload* upload, QWidget* dialogParent, const QString& overrideMessage) {
+    QString filename;
     
-    if (!filename.isEmpty()) {
-        errorMessage += QString("Failed to upload %1.\n\n").arg(filename);
+    if (upload) {
+        filename = QFileInfo { upload->getFilename() }.fileName();
     }
     
-    errorMessage += additionalError;
+    QString errorMessage = overrideMessage;
     
-    QMessageBox::warning(_dialogParent, "Failed Upload", errorMessage);
+    if (errorMessage.isEmpty() && upload) {
+        errorMessage = upload->getErrorString();
+    }
+    
+    QString dialogMessage;
+    
+    if (upload) {
+        dialogMessage += QString("Failed to upload %1.\n\n").arg(filename);
+    }
+    
+    dialogMessage += errorMessage;
+    
+    QMessageBox::warning(dialogParent, "Failed Upload", dialogMessage);
 }

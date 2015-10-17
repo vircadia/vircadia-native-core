@@ -39,9 +39,6 @@ void RenderableBoxEntityItem::render(RenderArgs* args) {
     PerformanceTimer perfTimer("RenderableBoxEntityItem::render");
     Q_ASSERT(getType() == EntityTypes::Box);
     Q_ASSERT(args->_batch);
-    gpu::Batch& batch = *args->_batch;
-    batch.setModelTransform(getTransformToCenter()); // we want to include the scale as well
-    glm::vec4 cubeColor(toGlm(getXColor()), getLocalRenderAlpha());
 
     if (!_procedural) {
         _procedural.reset(new Procedural(this->getUserData()));
@@ -54,11 +51,17 @@ void RenderableBoxEntityItem::render(RenderArgs* args) {
             gpu::State::FACTOR_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::ONE);
     }
 
+    gpu::Batch& batch = *args->_batch;
+    glm::vec4 cubeColor(toGlm(getXColor()), getLocalRenderAlpha());
+
     if (_procedural->ready()) {
-        _procedural->prepare(batch, this->getDimensions());
-        DependencyManager::get<GeometryCache>()->renderSolidCube(batch, 1.0f, _procedural->getColor(cubeColor));
+        batch.setModelTransform(getTransformToCenter()); // we want to include the scale as well
+        _procedural->prepare(batch, getPosition(), getDimensions());
+        auto color = _procedural->getColor(cubeColor);
+        batch._glColor4f(color.r, color.g, color.b, color.a);
+        DependencyManager::get<GeometryCache>()->renderCube(batch);
     } else {
-        DependencyManager::get<DeferredLightingEffect>()->renderSolidCube(batch, 1.0f, cubeColor);
+        DependencyManager::get<DeferredLightingEffect>()->renderSolidCubeInstance(batch, getTransformToCenter(), cubeColor);
     }
 
     RenderableDebugableEntityItem::render(this, args);

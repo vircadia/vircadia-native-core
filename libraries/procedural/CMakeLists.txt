@@ -1,10 +1,5 @@
 set(TARGET_NAME procedural)
-
-# use setup_hifi_library macro to setup our project and link appropriate Qt modules
+AUTOSCRIBE_SHADER_LIB(gpu model)
 setup_hifi_library()
+link_hifi_libraries(shared gpu model model-networking)
 
-add_dependency_external_projects(glm)
-find_package(GLM REQUIRED)
-target_include_directories(${TARGET_NAME} PUBLIC ${GLM_INCLUDE_DIRS})
-
-link_hifi_libraries(shared gpu networking gpu-networking)

@@ -247,7 +247,13 @@ bool Framebuffer::setDepthStencilBuffer(const TexturePointer& texture, const For
 
     _bufferMask = ( _bufferMask & ~BUFFER_DEPTHSTENCIL);
     if (texture) {
-        _bufferMask |= BUFFER_DEPTHSTENCIL;
+        if (format.getSemantic() == gpu::DEPTH) {
+            _bufferMask |= BUFFER_DEPTH;
+        } else if (format.getSemantic() == gpu::STENCIL) {
+            _bufferMask |= BUFFER_STENCIL;
+        } else if (format.getSemantic() == gpu::DEPTH_STENCIL) {
+            _bufferMask |= BUFFER_DEPTHSTENCIL;
+        }
     }
 
     return true;

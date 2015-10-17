@@ -36,5 +36,9 @@ macro(SETUP_HIFI_LIBRARY)
 
   # Don't make scribed shaders cumulative
   set(AUTOSCRIBE_SHADER_LIB_SRC "")
+
+  target_glm()
+    
+  set_target_properties(${TARGET_NAME} PROPERTIES FOLDER "Libraries")
   
 endmacro(SETUP_HIFI_LIBRARY)

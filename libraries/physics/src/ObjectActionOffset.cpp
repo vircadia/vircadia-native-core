@@ -33,118 +33,136 @@ ObjectActionOffset::~ObjectActionOffset() {
 }
 
 void ObjectActionOffset::updateActionWorker(btScalar deltaTimeStep) {
-    if (!tryLockForRead()) {
-        // don't risk hanging the thread running the physics simulation
-        return;
-    }
-
-    auto ownerEntity = _ownerEntity.lock();
-    if (!ownerEntity) {
-        return;
-    }
-
-    void* physicsInfo = ownerEntity->getPhysicsInfo();
-    if (!physicsInfo) {
-        unlock();
-        return;
-    }
-
-    ObjectMotionState* motionState = static_cast<ObjectMotionState*>(physicsInfo);
-    btRigidBody* rigidBody = motionState->getRigidBody();
-    if (!rigidBody) {
-        unlock();
-        qDebug() << "ObjectActionOffset::updateActionWorker no rigidBody";
-        return;
-    }
-
-    const float MAX_LINEAR_TIMESCALE = 600.0f;  // 10 minutes is a long time
-    if (_positionalTargetSet && _linearTimeScale < MAX_LINEAR_TIMESCALE) {
-        glm::vec3 objectPosition = bulletToGLM(rigidBody->getCenterOfMassPosition());
-        glm::vec3 springAxis = objectPosition - _pointToOffsetFrom; // from anchor to object
-        float distance = glm::length(springAxis);
-        if (distance > FLT_EPSILON) {
-            springAxis /= distance;  // normalize springAxis
-
-            // compute (critically damped) target velocity of spring relaxation
-            glm::vec3 offset = (distance - _linearDistance) * springAxis;
-            glm::vec3 targetVelocity = (-1.0f / _linearTimeScale) * offset;
-
-            // compute current velocity and its parallel component
-            glm::vec3 currentVelocity = bulletToGLM(rigidBody->getLinearVelocity());
-            glm::vec3 parallelVelocity = glm::dot(currentVelocity, springAxis) * springAxis;
-
-            // we blend the parallel component with the spring's target velocity to get the new velocity
-            float blend = deltaTimeStep / _linearTimeScale;
-            if (blend > 1.0f) {
-                blend = 1.0f;
-            }
-            rigidBody->setLinearVelocity(glmToBullet(currentVelocity + blend * (targetVelocity - parallelVelocity)));
+    withTryReadLock([&]{
+        auto ownerEntity = _ownerEntity.lock();
+        if (!ownerEntity) {
+            return;
         }
-    }
 
-    unlock();
+        void* physicsInfo = ownerEntity->getPhysicsInfo();
+        if (!physicsInfo) {
+            return;
+        }
+
+        ObjectMotionState* motionState = static_cast<ObjectMotionState*>(physicsInfo);
+        btRigidBody* rigidBody = motionState->getRigidBody();
+        if (!rigidBody) {
+            qDebug() << "ObjectActionOffset::updateActionWorker no rigidBody";
+            return;
+        }
+
+        const float MAX_LINEAR_TIMESCALE = 600.0f;  // 10 minutes is a long time
+        if (_positionalTargetSet && _linearTimeScale < MAX_LINEAR_TIMESCALE) {
+            glm::vec3 objectPosition = bulletToGLM(rigidBody->getCenterOfMassPosition());
+            glm::vec3 springAxis = objectPosition - _pointToOffsetFrom; // from anchor to object
+            float distance = glm::length(springAxis);
+            if (distance > FLT_EPSILON) {
+                springAxis /= distance;  // normalize springAxis
+
+                // compute (critically damped) target velocity of spring relaxation
+                glm::vec3 offset = (distance - _linearDistance) * springAxis;
+                glm::vec3 targetVelocity = (-1.0f / _linearTimeScale) * offset;
+
+                // compute current velocity and its parallel component
+                glm::vec3 currentVelocity = bulletToGLM(rigidBody->getLinearVelocity());
+                glm::vec3 parallelVelocity = glm::dot(currentVelocity, springAxis) * springAxis;
+
+                // we blend the parallel component with the spring's target velocity to get the new velocity
+                float blend = deltaTimeStep / _linearTimeScale;
+                if (blend > 1.0f) {
+                    blend = 1.0f;
+                }
+                rigidBody->setLinearVelocity(glmToBullet(currentVelocity + blend * (targetVelocity - parallelVelocity)));
+            }
+        }
+    });
 }
 
 
 bool ObjectActionOffset::updateArguments(QVariantMap arguments) {
-    bool ok = true;
-    glm::vec3 pointToOffsetFrom =
-        EntityActionInterface::extractVec3Argument("offset action", arguments, "pointToOffsetFrom", ok, true);
-    if (!ok) {
-        pointToOffsetFrom = _pointToOffsetFrom;
-    }
+    glm::vec3 pointToOffsetFrom;
+    float linearTimeScale;
+    float linearDistance;
 
-    ok = true;
-    float linearTimeScale =
-        EntityActionInterface::extractFloatArgument("offset action", arguments, "linearTimeScale", ok, false);
-    if (!ok) { 
-        linearTimeScale = _linearTimeScale;
-    }
+    bool needUpdate = false;
+    bool somethingChanged = ObjectAction::updateArguments(arguments);
 
-    ok = true;
-    float linearDistance =
-        EntityActionInterface::extractFloatArgument("offset action", arguments, "linearDistance", ok, false);
-    if (!ok) {
-        linearDistance = _linearDistance;
-    }
+    withReadLock([&]{
+        bool ok = true;
+        pointToOffsetFrom =
+            EntityActionInterface::extractVec3Argument("offset action", arguments, "pointToOffsetFrom", ok, true);
+        if (!ok) {
+            pointToOffsetFrom = _pointToOffsetFrom;
+        }
 
-    // only change stuff if something actually changed
-    if (_pointToOffsetFrom != pointToOffsetFrom
-            || _linearTimeScale != linearTimeScale
-            || _linearDistance != linearDistance) {
-        lockForWrite();
-        _pointToOffsetFrom = pointToOffsetFrom;
-        _linearTimeScale = linearTimeScale;
-        _linearDistance = linearDistance;
-        _positionalTargetSet = true;
-        _active = true;
+        ok = true;
+        linearTimeScale =
+            EntityActionInterface::extractFloatArgument("offset action", arguments, "linearTimeScale", ok, false);
+        if (!ok) {
+            linearTimeScale = _linearTimeScale;
+        }
+
+        ok = true;
+        linearDistance =
+            EntityActionInterface::extractFloatArgument("offset action", arguments, "linearDistance", ok, false);
+        if (!ok) {
+            linearDistance = _linearDistance;
+        }
+
+        // only change stuff if something actually changed
+        if (somethingChanged ||
+            _pointToOffsetFrom != pointToOffsetFrom ||
+            _linearTimeScale != linearTimeScale ||
+            _linearDistance != linearDistance) {
+            needUpdate = true;
+        }
+    });
+
+
+    if (needUpdate) {
+        withWriteLock([&] {
+            _pointToOffsetFrom = pointToOffsetFrom;
+            _linearTimeScale = linearTimeScale;
+            _linearDistance = linearDistance;
+            _positionalTargetSet = true;
+            _active = true;
+
+            auto ownerEntity = _ownerEntity.lock();
+            if (ownerEntity) {
+                ownerEntity->setActionDataDirty(true);
+            }
+        });
         activateBody();
-        unlock();
     }
+
     return true;
 }
 
 QVariantMap ObjectActionOffset::getArguments() {
-    QVariantMap arguments;
-    lockForRead();
-    arguments["pointToOffsetFrom"] = glmToQMap(_pointToOffsetFrom);
-    arguments["linearTimeScale"] = _linearTimeScale;
-    arguments["linearDistance"] = _linearDistance;
-    unlock();
+    QVariantMap arguments = ObjectAction::getArguments();
+    withReadLock([&] {
+        arguments["pointToOffsetFrom"] = glmToQMap(_pointToOffsetFrom);
+        arguments["linearTimeScale"] = _linearTimeScale;
+        arguments["linearDistance"] = _linearDistance;
+    });
     return arguments;
 }
 
 QByteArray ObjectActionOffset::serialize() const {
     QByteArray ba;
     QDataStream dataStream(&ba, QIODevice::WriteOnly);
-    dataStream << getType();
+    dataStream << ACTION_TYPE_OFFSET;
     dataStream << getID();
     dataStream << ObjectActionOffset::offsetVersion;
 
-    dataStream << _pointToOffsetFrom;
-    dataStream << _linearDistance;
-    dataStream << _linearTimeScale;
-    dataStream << _positionalTargetSet;
+    withReadLock([&] {
+        dataStream << _pointToOffsetFrom;
+        dataStream << _linearDistance;
+        dataStream << _linearTimeScale;
+        dataStream << _positionalTargetSet;
+        dataStream << _expires;
+        dataStream << _tag;
+    });
 
     return ba;
 }
@@ -166,10 +184,13 @@ void ObjectActionOffset::deserialize(QByteArray serializedArguments) {
         return;
     }
 
-    dataStream >> _pointToOffsetFrom;
-    dataStream >> _linearDistance;
-    dataStream >> _linearTimeScale;
-    dataStream >> _positionalTargetSet;
-
-    _active = true;
+    withWriteLock([&] {
+        dataStream >> _pointToOffsetFrom;
+        dataStream >> _linearDistance;
+        dataStream >> _linearTimeScale;
+        dataStream >> _positionalTargetSet;
+        dataStream >> _expires;
+        dataStream >> _tag;
+        _active = true;
+    });
 }

@@ -12,19 +12,25 @@
 #ifndef hifi_UpdateEntityOperator_h
 #define hifi_UpdateEntityOperator_h
 
+#include "EntitiesLogging.h"
+#include "EntityItem.h"
+#include "EntityItemProperties.h"
+#include "EntityTree.h"
+#include "EntityTreeElement.h"
+
 class UpdateEntityOperator : public RecurseOctreeOperator {
 public:
-    UpdateEntityOperator(EntityTree* tree, EntityTreeElement* containingElement, 
-                            EntityItemPointer existingEntity, const EntityItemProperties& properties);
+    UpdateEntityOperator(EntityTreePointer tree, EntityTreeElementPointer containingElement,
+                         EntityItemPointer existingEntity, const EntityItemProperties& properties);
     ~UpdateEntityOperator();
-                            
-    virtual bool preRecursion(OctreeElement* element);
-    virtual bool postRecursion(OctreeElement* element);
-    virtual OctreeElement* possiblyCreateChildAt(OctreeElement* element, int childIndex);
+
+    virtual bool preRecursion(OctreeElementPointer element);
+    virtual bool postRecursion(OctreeElementPointer element);
+    virtual OctreeElementPointer possiblyCreateChildAt(OctreeElementPointer element, int childIndex);
 private:
-    EntityTree* _tree;
+    EntityTreePointer _tree;
     EntityItemPointer _existingEntity;
-    EntityTreeElement* _containingElement;
+    EntityTreeElementPointer _containingElement;
     AACube _containingElementCube; // we temporarily store our cube here in case we need to delete the containing element
     EntityItemProperties _properties;
     EntityItemID _entityItemID;
@@ -40,8 +46,8 @@ private:
     AABox _oldEntityBox; // clamped to domain
     AABox _newEntityBox; // clamped to domain
 
-    bool subTreeContainsOldEntity(OctreeElement* element);
-    bool subTreeContainsNewEntity(OctreeElement* element);
+    bool subTreeContainsOldEntity(OctreeElementPointer element);
+    bool subTreeContainsNewEntity(OctreeElementPointer element);
 
     bool _wantDebug;
 };

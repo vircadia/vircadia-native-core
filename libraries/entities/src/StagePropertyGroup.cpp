@@ -26,24 +26,14 @@ const float StagePropertyGroup::DEFAULT_STAGE_ALTITUDE = 0.03f;
 const quint16 StagePropertyGroup::DEFAULT_STAGE_DAY = 60;
 const float StagePropertyGroup::DEFAULT_STAGE_HOUR = 12.0f;
 
-StagePropertyGroup::StagePropertyGroup() {
-    _sunModelEnabled = DEFAULT_STAGE_SUN_MODEL_ENABLED;
-    _latitude = DEFAULT_STAGE_LATITUDE;
-    _longitude = DEFAULT_STAGE_LONGITUDE;
-    _altitude = DEFAULT_STAGE_ALTITUDE;
-    _day = DEFAULT_STAGE_DAY;
-    _hour = DEFAULT_STAGE_HOUR;
-    _automaticHourDay = false;
-}
-
-void StagePropertyGroup::copyToScriptValue(QScriptValue& properties, QScriptEngine* engine, bool skipDefaults, EntityItemProperties& defaultEntityProperties) const {
-    COPY_GROUP_PROPERTY_TO_QSCRIPTVALUE(Stage, stage, SunModelEnabled, sunModelEnabled);
-    COPY_GROUP_PROPERTY_TO_QSCRIPTVALUE(Stage, stage, Latitude, latitude);
-    COPY_GROUP_PROPERTY_TO_QSCRIPTVALUE(Stage, stage, Longitude, longitude);
-    COPY_GROUP_PROPERTY_TO_QSCRIPTVALUE(Stage, stage, Altitude, altitude);
-    COPY_GROUP_PROPERTY_TO_QSCRIPTVALUE(Stage, stage, Day, day);
-    COPY_GROUP_PROPERTY_TO_QSCRIPTVALUE(Stage, stage, Hour, hour);
-    COPY_GROUP_PROPERTY_TO_QSCRIPTVALUE(Stage, stage, AutomaticHourDay, automaticHourDay);
+void StagePropertyGroup::copyToScriptValue(const EntityPropertyFlags& desiredProperties, QScriptValue& properties, QScriptEngine* engine, bool skipDefaults, EntityItemProperties& defaultEntityProperties) const {
+    COPY_GROUP_PROPERTY_TO_QSCRIPTVALUE(PROP_STAGE_SUN_MODEL_ENABLED, Stage, stage, SunModelEnabled, sunModelEnabled);
+    COPY_GROUP_PROPERTY_TO_QSCRIPTVALUE(PROP_STAGE_LATITUDE, Stage, stage, Latitude, latitude);
+    COPY_GROUP_PROPERTY_TO_QSCRIPTVALUE(PROP_STAGE_LONGITUDE, Stage, stage, Longitude, longitude);
+    COPY_GROUP_PROPERTY_TO_QSCRIPTVALUE(PROP_STAGE_ALTITUDE, Stage, stage, Altitude, altitude);
+    COPY_GROUP_PROPERTY_TO_QSCRIPTVALUE(PROP_STAGE_DAY, Stage, stage, Day, day);
+    COPY_GROUP_PROPERTY_TO_QSCRIPTVALUE(PROP_STAGE_HOUR, Stage, stage, Hour, hour);
+    COPY_GROUP_PROPERTY_TO_QSCRIPTVALUE(PROP_STAGE_AUTOMATIC_HOURDAY, Stage, stage, AutomaticHourDay, automaticHourDay);
 }
 
 void StagePropertyGroup::copyFromScriptValue(const QScriptValue& object, bool& _defaultSettings) {
@@ -76,7 +66,28 @@ void StagePropertyGroup::debugDump() const {
     qDebug() << "    _automaticHourDay:" << _automaticHourDay;
 }
 
-bool StagePropertyGroup::appentToEditPacket(OctreePacketData* packetData,                                     
+void StagePropertyGroup::listChangedProperties(QList<QString>& out) {
+    if (sunModelEnabledChanged()) {
+        out << "stage-sunModelEnabled";
+    }
+    if (latitudeChanged()) {
+        out << "stage-latitude";
+    }
+    if (altitudeChanged()) {
+        out << "stage-altitude";
+    }
+    if (dayChanged()) {
+        out << "stage-day";
+    }
+    if (hourChanged()) {
+        out << "stage-hour";
+    }
+    if (automaticHourDayChanged()) {
+        out << "stage-automaticHourDay";
+    }
+}
+
+bool StagePropertyGroup::appendToEditPacket(OctreePacketData* packetData,
                                     EntityPropertyFlags& requestedProperties,
                                     EntityPropertyFlags& propertyFlags,
                                     EntityPropertyFlags& propertiesDidntFit,
@@ -101,6 +112,7 @@ bool StagePropertyGroup::decodeFromEditPacket(EntityPropertyFlags& propertyFlags
 
     int bytesRead = 0;
     bool overwriteLocalData = true;
+    bool somethingChanged = false;
 
     READ_ENTITY_PROPERTY(PROP_STAGE_SUN_MODEL_ENABLED, bool, setSunModelEnabled);
     READ_ENTITY_PROPERTY(PROP_STAGE_LATITUDE, float, setLatitude);
@@ -119,6 +131,8 @@ bool StagePropertyGroup::decodeFromEditPacket(EntityPropertyFlags& propertyFlags
     DECODE_GROUP_PROPERTY_HAS_CHANGED(PROP_STAGE_AUTOMATIC_HOURDAY, AutomaticHourDay);
 
     processedBytes += bytesRead;
+
+    Q_UNUSED(somethingChanged);
 
     return true;
 }
@@ -206,7 +220,8 @@ void StagePropertyGroup::appendSubclassData(OctreePacketData* packetData, Encode
 
 int StagePropertyGroup::readEntitySubclassDataFromBuffer(const unsigned char* data, int bytesLeftToRead, 
                                             ReadBitstreamToTreeParams& args,
-                                            EntityPropertyFlags& propertyFlags, bool overwriteLocalData) {
+                                            EntityPropertyFlags& propertyFlags, bool overwriteLocalData,
+                                            bool& somethingChanged) {
 
     int bytesRead = 0;
     const unsigned char* dataAt = data;

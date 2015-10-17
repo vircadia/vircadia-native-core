@@ -24,27 +24,37 @@ class AssetRequest : public QObject {
    Q_OBJECT
 public:
     enum State {
-        NOT_STARTED = 0,
-        WAITING_FOR_INFO,
-        WAITING_FOR_DATA,
-        FINISHED
+        NotStarted = 0,
+        WaitingForInfo,
+        WaitingForData,
+        Finished
+    };
+    
+    enum Error {
+        NoError,
+        NotFound,
+        InvalidByteRange,
+        HashVerificationFailed,
+        NetworkError,
+        UnknownError
     };
 
-    AssetRequest(QObject* parent, const QString& hash, const QString& extension);
+    AssetRequest(const QString& hash, const QString& extension);
 
     Q_INVOKABLE void start();
 
     const QByteArray& getData() const { return _data; }
-    State getState() const { return _state; }
-    AssetServerError getError() const { return _error; }
+    const State& getState() const { return _state; }
+    const Error& getError() const { return _error; }
+    QUrl getUrl() const { return ::getATPUrl(_hash, _extension); }
 
 signals:
     void finished(AssetRequest* thisRequest);
     void progress(qint64 totalReceived, qint64 total);
 
 private:
-    State _state = NOT_STARTED;
-    AssetServerError _error;
+    State _state = NotStarted;
+    Error _error = NoError;
     AssetInfo _info;
     uint64_t _totalReceived { 0 };
     QString _hash;

@@ -9,18 +9,17 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "LineEntityItem.h"
 
 #include <QDebug>
 
 #include <ByteCountCoding.h>
 
-#include "LineEntityItem.h"
-#include "EntityTree.h"
 #include "EntitiesLogging.h"
+#include "EntityItemProperties.h"
+#include "EntityTree.h"
 #include "EntityTreeElement.h"
 #include "OctreeConstants.h"
-
-
 
 const float LineEntityItem::DEFAULT_LINE_WIDTH = 2.0f;
 const int LineEntityItem::MAX_POINTS_PER_LINE = 70;
@@ -43,9 +42,9 @@ LineEntityItem::LineEntityItem(const EntityItemID& entityItemID, const EntityIte
     
 }
 
-EntityItemProperties LineEntityItem::getProperties() const {
+EntityItemProperties LineEntityItem::getProperties(EntityPropertyFlags desiredProperties) const {
     
-    EntityItemProperties properties = EntityItem::getProperties(); // get the properties from our base class
+    EntityItemProperties properties = EntityItem::getProperties(desiredProperties); // get the properties from our base class
 
     
     properties._color = getXColor();
@@ -121,7 +120,8 @@ bool LineEntityItem::setLinePoints(const QVector<glm::vec3>& points) {
 
 int LineEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data, int bytesLeftToRead,
                                                      ReadBitstreamToTreeParams& args,
-                                                     EntityPropertyFlags& propertyFlags, bool overwriteLocalData) {
+                                                     EntityPropertyFlags& propertyFlags, bool overwriteLocalData,
+                                                     bool& somethingChanged) {
 
     int bytesRead = 0;
     const unsigned char* dataAt = data;
@@ -129,7 +129,6 @@ int LineEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data, 
     READ_ENTITY_PROPERTY(PROP_COLOR, rgbColor, setColor);
     READ_ENTITY_PROPERTY(PROP_LINE_WIDTH, float, setLineWidth);
     READ_ENTITY_PROPERTY(PROP_LINE_POINTS, QVector<glm::vec3>, setLinePoints);
-    
 
     return bytesRead;
 }

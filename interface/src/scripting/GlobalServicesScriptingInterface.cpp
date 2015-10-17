@@ -22,8 +22,10 @@ GlobalServicesScriptingInterface::GlobalServicesScriptingInterface() {
     connect(&accountManager, &AccountManager::logoutComplete, this, &GlobalServicesScriptingInterface::loggedOut);
 
     _downloading = false;
-    connect(Application::getInstance(), &Application::renderingInWorldInterface, 
-            this, &GlobalServicesScriptingInterface::checkDownloadInfo);
+    QTimer* checkDownloadTimer = new QTimer(this);
+    connect(checkDownloadTimer, &QTimer::timeout, this, &GlobalServicesScriptingInterface::checkDownloadInfo);
+    const int CHECK_DOWNLOAD_INTERVAL = MSECS_PER_SECOND / 2;
+    checkDownloadTimer->start(CHECK_DOWNLOAD_INTERVAL);
 
     auto discoverabilityManager = DependencyManager::get<DiscoverabilityManager>();
     connect(discoverabilityManager.data(), &DiscoverabilityManager::discoverabilityModeChanged,
@@ -141,5 +143,5 @@ void GlobalServicesScriptingInterface::updateDownloadInfo() {
 }
 
 void GlobalServicesScriptingInterface::editFriends() {
-    QMetaObject::invokeMethod(Application::getInstance(), "showFriendsWindow");
+    QMetaObject::invokeMethod(qApp, "showFriendsWindow");
 }

@@ -37,6 +37,7 @@ public:
     void remove(SequenceNumber start, SequenceNumber end);
     
     int getLength() const { return _length; }
+    bool isEmpty() const { return _length == 0; }
     SequenceNumber getFirstSequenceNumber() const;
     SequenceNumber popFirstSequenceNumber();
     

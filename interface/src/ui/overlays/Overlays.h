@@ -46,6 +46,7 @@ public:
     int overlayID;
     float distance;
     BoxFace face;
+    glm::vec3 surfaceNormal;
     glm::vec3 intersection;
     QString extraInfo;
 };
@@ -111,6 +112,10 @@ public slots:
     /// returns the size of the given text in the specified overlay if it is a text overlay: in pixels if it is a 2D text
     /// overlay; in meters if it is a 3D text overlay
     QSizeF textSize(unsigned int id, const QString& text) const;
+
+    // Return the size of the virtual screen
+    float width() const;
+    float height() const;
 
 
     /// adds a panel that has already been created

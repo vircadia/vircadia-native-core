@@ -15,7 +15,7 @@ using namespace udt;
 using namespace std::chrono;
 
 ConnectionStats::ConnectionStats() {
-    auto now = duration_cast<microseconds>(high_resolution_clock::now().time_since_epoch());
+    auto now = duration_cast<microseconds>(system_clock::now().time_since_epoch());
     _currentSample.startTime = now;
     _total.startTime = now;
 }
@@ -24,7 +24,7 @@ ConnectionStats::Stats ConnectionStats::sample() {
     Stats sample = _currentSample;
     _currentSample = Stats();
     
-    auto now = duration_cast<microseconds>(high_resolution_clock::now().time_since_epoch());
+    auto now = duration_cast<microseconds>(system_clock::now().time_since_epoch());
     sample.endTime = now;
     _currentSample.startTime = now;
     
@@ -85,30 +85,30 @@ static const double EWMA_PREVIOUS_SAMPLES_WEIGHT = 1.0 - EWMA_CURRENT_SAMPLE_WEI
 
 void ConnectionStats::recordSendRate(int sample) {
     _currentSample.sendRate = sample;
-    _total.sendRate = (_total.sendRate * EWMA_PREVIOUS_SAMPLES_WEIGHT) + (sample * EWMA_CURRENT_SAMPLE_WEIGHT);
+    _total.sendRate = (int)((_total.sendRate * EWMA_PREVIOUS_SAMPLES_WEIGHT) + (sample * EWMA_CURRENT_SAMPLE_WEIGHT));
 }
 
 void ConnectionStats::recordReceiveRate(int sample) {
     _currentSample.receiveRate = sample;
-    _total.receiveRate = (_total.receiveRate * EWMA_PREVIOUS_SAMPLES_WEIGHT) + (sample * EWMA_CURRENT_SAMPLE_WEIGHT);
+    _total.receiveRate = (int)((_total.receiveRate * EWMA_PREVIOUS_SAMPLES_WEIGHT) + (sample * EWMA_CURRENT_SAMPLE_WEIGHT));
 }
 
 void ConnectionStats::recordEstimatedBandwidth(int sample) {
     _currentSample.estimatedBandwith = sample;
-    _total.estimatedBandwith = (_total.estimatedBandwith * EWMA_PREVIOUS_SAMPLES_WEIGHT) + (sample * EWMA_CURRENT_SAMPLE_WEIGHT);
+    _total.estimatedBandwith = (int)((_total.estimatedBandwith * EWMA_PREVIOUS_SAMPLES_WEIGHT) + (sample * EWMA_CURRENT_SAMPLE_WEIGHT));
 }
 
 void ConnectionStats::recordRTT(int sample) {
     _currentSample.rtt = sample;
-    _total.rtt = (_total.rtt * EWMA_PREVIOUS_SAMPLES_WEIGHT) + (sample * EWMA_CURRENT_SAMPLE_WEIGHT);
+    _total.rtt = (int)((_total.rtt * EWMA_PREVIOUS_SAMPLES_WEIGHT) + (sample * EWMA_CURRENT_SAMPLE_WEIGHT));
 }
 
 void ConnectionStats::recordCongestionWindowSize(int sample) {
     _currentSample.congestionWindowSize = sample;
-    _total.congestionWindowSize = (_total.congestionWindowSize * EWMA_PREVIOUS_SAMPLES_WEIGHT) + (sample * EWMA_CURRENT_SAMPLE_WEIGHT);
+    _total.congestionWindowSize = (int)((_total.congestionWindowSize * EWMA_PREVIOUS_SAMPLES_WEIGHT) + (sample * EWMA_CURRENT_SAMPLE_WEIGHT));
 }
 
 void ConnectionStats::recordPacketSendPeriod(int sample) {
     _currentSample.packetSendPeriod = sample;
-    _total.packetSendPeriod = (_total.packetSendPeriod * EWMA_PREVIOUS_SAMPLES_WEIGHT) + (sample * EWMA_CURRENT_SAMPLE_WEIGHT);
+    _total.packetSendPeriod = (int)((_total.packetSendPeriod * EWMA_PREVIOUS_SAMPLES_WEIGHT) + (sample * EWMA_CURRENT_SAMPLE_WEIGHT));
 }

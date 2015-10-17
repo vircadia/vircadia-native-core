@@ -38,12 +38,12 @@ public:
     virtual char getMyNodeType() const = 0;
     virtual PacketType getMyQueryMessageType() const = 0;
     virtual PacketType getExpectedPacketType() const = 0;
-    virtual void renderElement(OctreeElement* element, RenderArgs* args) = 0;
+    virtual void renderElement(OctreeElementPointer element, RenderArgs* args) { }
     virtual float getSizeScale() const { return DEFAULT_OCTREE_SIZE_SCALE; }
     virtual int getBoundaryLevelAdjust() const { return 0; }
 
-    virtual void setTree(Octree* newTree);
-    
+    virtual void setTree(OctreePointer newTree);
+
     /// process incoming data
     virtual void processDatagram(NLPacket& packet, SharedNodePointer sourceNode);
 
@@ -56,7 +56,7 @@ public:
     ViewFrustum* getViewFrustum() const { return _viewFrustum; }
     void setViewFrustum(ViewFrustum* viewFrustum) { _viewFrustum = viewFrustum; }
 
-    static bool renderOperation(OctreeElement* element, void* extraData);
+    static bool renderOperation(OctreeElementPointer element, void* extraData);
 
     /// clears the tree
     virtual void clear();
@@ -71,11 +71,11 @@ public:
     float getAverageWaitLockPerPacket() const { return _waitLockPerPacket.getAverage(); }
     float getAverageUncompressPerPacket() const { return _uncompressPerPacket.getAverage(); }
     float getAverageReadBitstreamPerPacket() const { return _readBitstreamPerPacket.getAverage(); }
-    
-protected:
-    virtual Octree* createTree() = 0;
 
-    Octree* _tree;
+protected:
+    virtual OctreePointer createTree() = 0;
+
+    OctreePointer _tree;
     bool _managedTree;
     ViewFrustum* _viewFrustum;
 

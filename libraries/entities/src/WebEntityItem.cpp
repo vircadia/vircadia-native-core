@@ -15,10 +15,10 @@
 #include <ByteCountCoding.h>
 #include <GeometryUtil.h>
 
+#include "EntitiesLogging.h"
+#include "EntityItemProperties.h"
 #include "EntityTree.h"
 #include "EntityTreeElement.h"
-#include "EntitiesLogging.h"
-
 
 const QString WebEntityItem::DEFAULT_SOURCE_URL("http://www.google.com");
 
@@ -40,8 +40,8 @@ void WebEntityItem::setDimensions(const glm::vec3& value) {
     EntityItem::setDimensions(glm::vec3(value.x, value.y, WEB_ENTITY_ITEM_FIXED_DEPTH));
 }
 
-EntityItemProperties WebEntityItem::getProperties() const {
-    EntityItemProperties properties = EntityItem::getProperties(); // get the properties from our base class
+EntityItemProperties WebEntityItem::getProperties(EntityPropertyFlags desiredProperties) const {
+    EntityItemProperties properties = EntityItem::getProperties(desiredProperties); // get the properties from our base class
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(sourceUrl, getSourceUrl);
     return properties;
 }
@@ -68,7 +68,8 @@ bool WebEntityItem::setProperties(const EntityItemProperties& properties) {
 
 int WebEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data, int bytesLeftToRead,
                                                 ReadBitstreamToTreeParams& args,
-                                                EntityPropertyFlags& propertyFlags, bool overwriteLocalData) {
+                                                EntityPropertyFlags& propertyFlags, bool overwriteLocalData,
+                                                bool& somethingChanged) {
 
     int bytesRead = 0;
     const unsigned char* dataAt = data;
@@ -99,13 +100,15 @@ void WebEntityItem::appendSubclassData(OctreePacketData* packetData, EncodeBitst
 }
 
 bool WebEntityItem::findDetailedRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
-                     bool& keepSearching, OctreeElement*& element, float& distance, BoxFace& face, 
+                     bool& keepSearching, OctreeElementPointer& element, float& distance, 
+                     BoxFace& face, glm::vec3& surfaceNormal,
                      void** intersectedObject, bool precisionPicking) const {
     glm::vec3 dimensions = getDimensions();
     glm::vec2 xyDimensions(dimensions.x, dimensions.y);
     glm::quat rotation = getRotation();
     glm::vec3 position = getPosition() + rotation * 
             (dimensions * (getRegistrationPoint() - ENTITY_ITEM_DEFAULT_REGISTRATION_POINT));
+    // FIXME - should set face and surfaceNormal
     return findRayRectangleIntersection(origin, direction, rotation, position, xyDimensions, distance);
 }
                      

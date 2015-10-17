@@ -6,11 +6,14 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-vec3toStr = function (v, digits) {
+vec3toStr = function(v, digits) {
     if (!digits) { digits = 3; }
     return "{ " + v.x.toFixed(digits) + ", " + v.y.toFixed(digits) + ", " + v.z.toFixed(digits)+ " }";
 }
 
+vec3equal = function(v0, v1) {
+    return (v0.x == v1.x) && (v0.y == v1.y) && (v0.z == v1.z);
+}
 
 colorMix = function(colorA, colorB, mix) {
     var result = {};
@@ -60,7 +63,7 @@ setEntityUserData = function(id, data) {
 // FIXME do non-destructive modification of the existing user data
 getEntityUserData = function(id) {
     var results = null;
-    var properties = Entities.getEntityProperties(id);
+    var properties = Entities.getEntityProperties(id, "userData");
     if (properties.userData) {
         try {
             results = JSON.parse(properties.userData);    
@@ -76,13 +79,21 @@ getEntityUserData = function(id) {
 // Non-destructively modify the user data of an entity.
 setEntityCustomData = function(customKey, id, data) {
     var userData = getEntityUserData(id);
-    userData[customKey] = data;
+    if (data == null) {
+        delete userData[customKey];
+    } else {
+        userData[customKey] = data;
+    }
     setEntityUserData(id, userData);
 }
 
 getEntityCustomData = function(customKey, id, defaultValue) {
     var userData = getEntityUserData(id);
-    return userData[customKey] ? userData[customKey] : defaultValue;
+    if (undefined != userData[customKey]) {
+        return userData[customKey];
+    } else {
+        return defaultValue;
+    }
 }
 
 mergeObjects = function(proto, custom) {
@@ -176,3 +187,87 @@ pointInExtents = function(point, minPoint, maxPoint) {
            (point.y >= minPoint.y && point.y <= maxPoint.y) &&
            (point.z >= minPoint.z && point.z <= maxPoint.z);
 }
+
+/**
+ * Converts an HSL color value to RGB. Conversion formula
+ * adapted from http://en.wikipedia.org/wiki/HSL_color_space.
+ * Assumes h, s, and l are contained in the set [0, 1] and
+ * returns r, g, and b in the set [0, 255].
+ *
+ * @param   Number  h       The hue
+ * @param   Number  s       The saturation
+ * @param   Number  l       The lightness
+ * @return  Array           The RGB representation
+ */
+hslToRgb = function(hsl, hueOffset) {
+    var r, g, b;
+    if (hsl.s == 0) {
+        r = g = b = hsl.l; // achromatic
+    } else {
+        var hue2rgb = function hue2rgb(p, q, t) {
+            if (t < 0) t += 1;
+            if (t > 1) t -= 1;
+            if (t < 1 / 6) return p + (q - p) * 6 * t;
+            if (t < 1 / 2) return q;
+            if (t < 2 / 3) return p + (q - p) * (2 / 3 - t) * 6;
+            return p;
+        }
+
+        var q = hsl.l < 0.5 ? hsl.l * (1 + hsl.s) : hsl.l + hsl.s - hsl.l * hsl.s;
+        var p = 2 * hsl.l - q;
+        r = hue2rgb(p, q, hsl.h + 1 / 3);
+        g = hue2rgb(p, q, hsl.h);
+        b = hue2rgb(p, q, hsl.h - 1 / 3);
+    }
+
+    return {
+        red: Math.round(r * 255),
+        green: Math.round(g * 255),
+        blue: Math.round(b * 255)
+    };
+}
+
+map = function(value, min1, max1, min2, max2) {
+    return min2 + (max2 - min2) * ((value - min1) / (max1 - min1));
+}
+
+orientationOf = function(vector) {
+    var Y_AXIS = {
+        x: 0,
+        y: 1,
+        z: 0
+    };
+    var X_AXIS = {
+        x: 1,
+        y: 0,
+        z: 0
+    };
+
+    var theta = 0.0;
+
+    var RAD_TO_DEG = 180.0 / Math.PI;
+    var direction, yaw, pitch;
+    direction = Vec3.normalize(vector);
+    yaw = Quat.angleAxis(Math.atan2(direction.x, direction.z) * RAD_TO_DEG, Y_AXIS);
+    pitch = Quat.angleAxis(Math.asin(-direction.y) * RAD_TO_DEG, X_AXIS);
+    return Quat.multiply(yaw, pitch);
+}
+
+randFloat = function(low, high) {
+    return low + Math.random() * (high - low);
+}
+
+
+randInt = function(low, high) {
+    return Math.floor(randFloat(low, high));
+}
+
+hexToRgb = function(hex) {
+    var result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+    return result ? {
+        red: parseInt(result[1], 16),
+        green: parseInt(result[2], 16),
+        blue: parseInt(result[3], 16)
+    } : null;
+}
+

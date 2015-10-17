@@ -12,7 +12,6 @@
 #include <signal.h>
 
 #include <AddressManager.h>
-#include <JSONBreakableMarshal.h>
 #include <LogHandler.h>
 #include <udt/PacketHeaders.h>
 
@@ -95,8 +94,10 @@ void AssignmentClientMonitor::stopChildProcesses() {
 
     // ask child processes to terminate
     foreach(QProcess* childProcess, _childProcesses) {
-        qDebug() << "Attempting to terminate child process" << childProcess->processId();
-        childProcess->terminate();
+        if (childProcess->processId() > 0) {
+            qDebug() << "Attempting to terminate child process" << childProcess->processId();
+            childProcess->terminate();
+        }
     }
 
     simultaneousWaitOnChildren(WAIT_FOR_CHILD_MSECS);
@@ -104,8 +105,10 @@ void AssignmentClientMonitor::stopChildProcesses() {
     if (_childProcesses.size() > 0) {
         // ask even more firmly
         foreach(QProcess* childProcess, _childProcesses) {
-            qDebug() << "Attempting to kill child process" << childProcess->processId();
-            childProcess->kill();
+            if (childProcess->processId() > 0) {
+                qDebug() << "Attempting to kill child process" << childProcess->processId();
+                childProcess->kill();
+            }
         }
 
         simultaneousWaitOnChildren(WAIT_FOR_CHILD_MSECS);
@@ -155,12 +158,14 @@ void AssignmentClientMonitor::spawnChildClient() {
     assignmentClient->setProcessChannelMode(QProcess::ForwardedChannels);
 
     assignmentClient->start(QCoreApplication::applicationFilePath(), _childArguments);
-
-    // make sure we hear that this process has finished when it does
-    connect(assignmentClient, SIGNAL(finished(int, QProcess::ExitStatus)), this, SLOT(childProcessFinished()));
-
-    qDebug() << "Spawned a child client with PID" << assignmentClient->pid();
-    _childProcesses.insert(assignmentClient->processId(), assignmentClient);
+    
+    if (assignmentClient->processId() > 0) {
+        // make sure we hear that this process has finished when it does
+        connect(assignmentClient, SIGNAL(finished(int, QProcess::ExitStatus)), this, SLOT(childProcessFinished()));
+        
+        qDebug() << "Spawned a child client with PID" << assignmentClient->processId();
+        _childProcesses.insert(assignmentClient->processId(), assignmentClient);
+    }    
 }
 
 void AssignmentClientMonitor::checkSpares() {

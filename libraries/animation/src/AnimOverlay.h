@@ -28,23 +28,25 @@ public:
         FullBodyBoneSet = 0,
         UpperBodyBoneSet,
         LowerBodyBoneSet,
-        RightArmBoneSet,
         LeftArmBoneSet,
+        RightArmBoneSet,
         AboveTheHeadBoneSet,
         BelowTheHeadBoneSet,
         HeadOnlyBoneSet,
         SpineOnlyBoneSet,
         EmptyBoneSet,
-        NumBoneSets,
+        LeftHandBoneSet,
+        RightHandBoneSet,
+        NumBoneSets
     };
 
-    AnimOverlay(const std::string& id, BoneSet boneSet, float alpha);
+    AnimOverlay(const QString& id, BoneSet boneSet, float alpha);
     virtual ~AnimOverlay() override;
 
     virtual const AnimPoseVec& evaluate(const AnimVariantMap& animVars, float dt, Triggers& triggersOut) override;
 
-    void setBoneSetVar(const std::string& boneSetVar) { _boneSetVar = boneSetVar; }
-    void setAlphaVar(const std::string& alphaVar) { _alphaVar = alphaVar; }
+    void setBoneSetVar(const QString& boneSetVar) { _boneSetVar = boneSetVar; }
+    void setAlphaVar(const QString& alphaVar) { _alphaVar = alphaVar; }
 
  protected:
     void buildBoneSet(BoneSet boneSet);
@@ -58,19 +60,21 @@ public:
     float _alpha;
     std::vector<float> _boneSetVec;
 
-    std::string _boneSetVar;
-    std::string _alphaVar;
+    QString _boneSetVar;
+    QString _alphaVar;
 
     void buildFullBodyBoneSet();
     void buildUpperBodyBoneSet();
     void buildLowerBodyBoneSet();
-    void buildRightArmBoneSet();
     void buildLeftArmBoneSet();
+    void buildRightArmBoneSet();
     void buildAboveTheHeadBoneSet();
     void buildBelowTheHeadBoneSet();
     void buildHeadOnlyBoneSet();
     void buildSpineOnlyBoneSet();
     void buildEmptyBoneSet();
+    void buildLeftHandBoneSet();
+    void buildRightHandBoneSet();
 
     // no copies
     AnimOverlay(const AnimOverlay&) = delete;

@@ -12,30 +12,38 @@
 #ifndef hifi_HMDScriptingInterface_h
 #define hifi_HMDScriptingInterface_h
 
+#include <QtScript/QScriptValue>
+class QScriptContext;
+class QScriptEngine;
+
 #include <GLMHelpers.h>
+#include <DependencyManager.h>
+#include <display-plugins/AbstractHMDScriptingInterface.h>
 
-#include "Application.h"
 
-class HMDScriptingInterface : public QObject {
+class HMDScriptingInterface : public AbstractHMDScriptingInterface, public Dependency {
     Q_OBJECT
     Q_PROPERTY(bool magnifier READ getMagnifier)
-    Q_PROPERTY(bool active READ isHMDMode)
+    Q_PROPERTY(glm::vec3 position READ getPosition)
+    Q_PROPERTY(glm::quat orientation READ getOrientation)
 public:
-    static HMDScriptingInterface& getInstance();
-
+    HMDScriptingInterface();
     static QScriptValue getHUDLookAtPosition2D(QScriptContext* context, QScriptEngine* engine);
     static QScriptValue getHUDLookAtPosition3D(QScriptContext* context, QScriptEngine* engine);
 
 public slots:
-    void toggleMagnifier() { Application::getInstance()->getApplicationCompositor().toggleMagnifier(); };
+    void toggleMagnifier();
 
 private:
-    HMDScriptingInterface() {};
-    bool getMagnifier() const { return Application::getInstance()->getApplicationCompositor().hasMagnifier(); };
-    bool isHMDMode() const { return Application::getInstance()->isHMDMode(); }
+    bool getMagnifier() const; 
+    // Get the position of the HMD
+    glm::vec3 getPosition() const;
+    
+    // Get the orientation of the HMD
+    glm::quat getOrientation() const;
 
     bool getHUDLookAtPosition3D(glm::vec3& result) const;
-
+    glm::mat4 getWorldHMDMatrix() const;
 };
 
 #endif // hifi_HMDScriptingInterface_h

@@ -27,20 +27,17 @@ class WindowScriptingInterface : public QObject, public Dependency {
     Q_PROPERTY(int innerHeight READ getInnerHeight)
     Q_PROPERTY(int x READ getX)
     Q_PROPERTY(int y READ getY)
-    Q_PROPERTY(bool cursorVisible READ isCursorVisible WRITE setCursorVisible)
 public:
     WindowScriptingInterface();
     int getInnerWidth();
     int getInnerHeight();
     int getX();
     int getY();
-    bool isCursorVisible() const;
 
 public slots:
     QScriptValue getCursorPositionX();
     QScriptValue getCursorPositionY();
     void setCursorPosition(int x, int y);
-    void setCursorVisible(bool visible);
     QScriptValue hasFocus();
     void setFocus();
     void raiseMainWindow();

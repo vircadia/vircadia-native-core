@@ -15,10 +15,10 @@
 #include <ByteCountCoding.h>
 
 #include "BoxEntityItem.h"
-#include "EntityTree.h"
 #include "EntitiesLogging.h"
+#include "EntityItemProperties.h"
+#include "EntityTree.h"
 #include "EntityTreeElement.h"
-
 
 EntityItemPointer BoxEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
     EntityItemPointer result { new BoxEntityItem(entityID, properties) };
@@ -32,8 +32,8 @@ BoxEntityItem::BoxEntityItem(const EntityItemID& entityItemID, const EntityItemP
     setProperties(properties);
 }
 
-EntityItemProperties BoxEntityItem::getProperties() const {
-    EntityItemProperties properties = EntityItem::getProperties(); // get the properties from our base class
+EntityItemProperties BoxEntityItem::getProperties(EntityPropertyFlags desiredProperties) const {
+    EntityItemProperties properties = EntityItem::getProperties(desiredProperties); // get the properties from our base class
 
     properties._color = getXColor();
     properties._colorChanged = false;
@@ -65,7 +65,8 @@ bool BoxEntityItem::setProperties(const EntityItemProperties& properties) {
 
 int BoxEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data, int bytesLeftToRead, 
                                                 ReadBitstreamToTreeParams& args,
-                                                EntityPropertyFlags& propertyFlags, bool overwriteLocalData) {
+                                                EntityPropertyFlags& propertyFlags, bool overwriteLocalData,
+                                                bool& somethingChanged) {
 
     int bytesRead = 0;
     const unsigned char* dataAt = data;

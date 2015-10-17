@@ -12,6 +12,10 @@
 #ifndef hifi_SkyboxPropertyGroup_h
 #define hifi_SkyboxPropertyGroup_h
 
+#include <stdint.h>
+
+#include <glm/glm.hpp>
+
 #include <QtScript/QScriptEngine>
 
 #include "PropertyGroup.h"
@@ -23,21 +27,15 @@ class OctreePacketData;
 class EntityTreeElementExtraEncodeData;
 class ReadBitstreamToTreeParams;
 
-#include <stdint.h>
-#include <glm/glm.hpp>
-
-
 class SkyboxPropertyGroup : public PropertyGroup {
 public:
-    SkyboxPropertyGroup();
-    virtual ~SkyboxPropertyGroup() {}
-
     // EntityItemProperty related helpers
-    virtual void copyToScriptValue(QScriptValue& properties, QScriptEngine* engine, bool skipDefaults, EntityItemProperties& defaultEntityProperties) const;
+    virtual void copyToScriptValue(const EntityPropertyFlags& desiredProperties, QScriptValue& properties, QScriptEngine* engine, bool skipDefaults, EntityItemProperties& defaultEntityProperties) const;
     virtual void copyFromScriptValue(const QScriptValue& object, bool& _defaultSettings);
     virtual void debugDump() const;
+    virtual void listChangedProperties(QList<QString>& out);
 
-    virtual bool appentToEditPacket(OctreePacketData* packetData,                                     
+    virtual bool appendToEditPacket(OctreePacketData* packetData,
                                     EntityPropertyFlags& requestedProperties,
                                     EntityPropertyFlags& propertyFlags,
                                     EntityPropertyFlags& propertiesDidntFit,
@@ -67,7 +65,8 @@ public:
 
     virtual int readEntitySubclassDataFromBuffer(const unsigned char* data, int bytesLeftToRead, 
                                                 ReadBitstreamToTreeParams& args,
-                                                EntityPropertyFlags& propertyFlags, bool overwriteLocalData);
+                                                EntityPropertyFlags& propertyFlags, bool overwriteLocalData,
+                                                bool& somethingChanged);
                                                 
     glm::vec3 getColorVec3() const {
         const quint8 MAX_COLOR = 255;
@@ -77,9 +76,9 @@ public:
         return color;
     }
 
-
-    DEFINE_PROPERTY_REF(PROP_SKYBOX_COLOR, Color, color, xColor);
-    DEFINE_PROPERTY_REF(PROP_SKYBOX_URL, URL, url, QString);
+    static const xColor DEFAULT_COLOR;
+    DEFINE_PROPERTY_REF(PROP_SKYBOX_COLOR, Color, color, xColor, DEFAULT_COLOR);
+    DEFINE_PROPERTY_REF(PROP_SKYBOX_URL, URL, url, QString, "");
 };
 
 #endif // hifi_SkyboxPropertyGroup_h

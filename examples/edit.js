@@ -39,7 +39,9 @@ var lightOverlayManager = new LightOverlayManager();
 var cameraManager = new CameraManager();
 
 var grid = Grid();
-gridTool = GridTool({ horizontalGrid: grid });
+gridTool = GridTool({
+    horizontalGrid: grid
+});
 gridTool.setVisible(false);
 
 var entityListTool = EntityListTool();
@@ -92,8 +94,8 @@ var INSUFFICIENT_PERMISSIONS_ERROR_MSG = "You do not have the necessary permissi
 var INSUFFICIENT_PERMISSIONS_IMPORT_ERROR_MSG = "You do not have the necessary permissions to place items on this domain."
 
 var modelURLs = [
-       "Insert the URL to your FBX"
-    ];
+    "Insert the URL to your FBX"
+];
 
 var mode = 0;
 var isActive = false;
@@ -109,20 +111,30 @@ var importingSVOImageOverlay = Overlays.addOverlay("image", {
     width: 20,
     height: 20,
     alpha: 1.0,
-    color: { red: 255, green: 255, blue: 255 },
+    color: {
+        red: 255,
+        green: 255,
+        blue: 255
+    },
     x: Window.innerWidth - IMPORTING_SVO_OVERLAY_WIDTH,
     y: Window.innerHeight - IMPORTING_SVO_OVERLAY_HEIGHT,
     visible: false,
 });
 var importingSVOTextOverlay = Overlays.addOverlay("text", {
-    font: { size: 14 },
+    font: {
+        size: 14
+    },
     text: "Importing SVO...",
     leftMargin: IMPORTING_SVO_OVERLAY_LEFT_MARGIN,
     x: Window.innerWidth - IMPORTING_SVO_OVERLAY_WIDTH - IMPORTING_SVO_OVERLAY_MARGIN,
     y: Window.innerHeight - IMPORTING_SVO_OVERLAY_HEIGHT - IMPORTING_SVO_OVERLAY_MARGIN,
     width: IMPORTING_SVO_OVERLAY_WIDTH,
     height: IMPORTING_SVO_OVERLAY_HEIGHT,
-    backgroundColor: { red: 80, green: 80, blue: 80 },
+    backgroundColor: {
+        red: 80,
+        green: 80,
+        blue: 80
+    },
     backgroundAlpha: 0.7,
     visible: false,
 });
@@ -131,7 +143,7 @@ var MARKETPLACE_URL = "https://metaverse.highfidelity.com/marketplace";
 var marketplaceWindow = new WebWindow('Marketplace', MARKETPLACE_URL, 900, 700, false);
 marketplaceWindow.setVisible(false);
 
-var toolBar = (function () {
+var toolBar = (function() {
     var that = {},
         toolBar,
         activeButton,
@@ -146,7 +158,7 @@ var toolBar = (function () {
         browseMarketplaceButton;
 
     function initialize() {
-        toolBar = new ToolBar(0, 0, ToolBar.VERTICAL, "highfidelity.edit.toolbar", function (windowDimensions, toolbar) {
+        toolBar = new ToolBar(0, 0, ToolBar.VERTICAL, "highfidelity.edit.toolbar", function(windowDimensions, toolbar) {
             return {
                 x: windowDimensions.x - 8 - toolbar.width,
                 y: (windowDimensions.y - toolbar.height) / 2
@@ -163,7 +175,12 @@ var toolBar = (function () {
 
         activeButton = toolBar.addTool({
             imageURL: toolIconUrl + "edit-status.svg",
-            subImage: { x: 0, y: Tool.IMAGE_WIDTH, width: Tool.IMAGE_WIDTH, height: Tool.IMAGE_HEIGHT },
+            subImage: {
+                x: 0,
+                y: Tool.IMAGE_WIDTH,
+                width: Tool.IMAGE_WIDTH,
+                height: Tool.IMAGE_HEIGHT
+            },
             width: toolWidth,
             height: toolHeight,
             alpha: 0.9,
@@ -172,7 +189,12 @@ var toolBar = (function () {
 
         newModelButton = toolBar.addTool({
             imageURL: toolIconUrl + "upload.svg",
-            subImage: { x: 0, y: Tool.IMAGE_WIDTH, width: Tool.IMAGE_WIDTH, height: Tool.IMAGE_HEIGHT },
+            subImage: {
+                x: 0,
+                y: Tool.IMAGE_WIDTH,
+                width: Tool.IMAGE_WIDTH,
+                height: Tool.IMAGE_HEIGHT
+            },
             width: toolWidth,
             height: toolHeight,
             alpha: 0.9,
@@ -181,7 +203,12 @@ var toolBar = (function () {
 
         newCubeButton = toolBar.addTool({
             imageURL: toolIconUrl + "add-cube.svg",
-            subImage: { x: 0, y: Tool.IMAGE_WIDTH, width: Tool.IMAGE_WIDTH, height: Tool.IMAGE_HEIGHT },
+            subImage: {
+                x: 0,
+                y: Tool.IMAGE_WIDTH,
+                width: Tool.IMAGE_WIDTH,
+                height: Tool.IMAGE_HEIGHT
+            },
             width: toolWidth,
             height: toolHeight,
             alpha: 0.9,
@@ -190,7 +217,12 @@ var toolBar = (function () {
 
         newSphereButton = toolBar.addTool({
             imageURL: toolIconUrl + "add-sphere.svg",
-            subImage: { x: 0, y: Tool.IMAGE_WIDTH, width: Tool.IMAGE_WIDTH, height: Tool.IMAGE_HEIGHT },
+            subImage: {
+                x: 0,
+                y: Tool.IMAGE_WIDTH,
+                width: Tool.IMAGE_WIDTH,
+                height: Tool.IMAGE_HEIGHT
+            },
             width: toolWidth,
             height: toolHeight,
             alpha: 0.9,
@@ -199,7 +231,12 @@ var toolBar = (function () {
 
         newLightButton = toolBar.addTool({
             imageURL: toolIconUrl + "light.svg",
-            subImage: { x: 0, y: Tool.IMAGE_WIDTH, width: Tool.IMAGE_WIDTH, height: Tool.IMAGE_HEIGHT },
+            subImage: {
+                x: 0,
+                y: Tool.IMAGE_WIDTH,
+                width: Tool.IMAGE_WIDTH,
+                height: Tool.IMAGE_HEIGHT
+            },
             width: toolWidth,
             height: toolHeight,
             alpha: 0.9,
@@ -208,7 +245,12 @@ var toolBar = (function () {
 
         newTextButton = toolBar.addTool({
             imageURL: toolIconUrl + "add-text.svg",
-            subImage: { x: 0, y: Tool.IMAGE_WIDTH, width: Tool.IMAGE_WIDTH, height: Tool.IMAGE_HEIGHT },
+            subImage: {
+                x: 0,
+                y: Tool.IMAGE_WIDTH,
+                width: Tool.IMAGE_WIDTH,
+                height: Tool.IMAGE_HEIGHT
+            },
             width: toolWidth,
             height: toolHeight,
             alpha: 0.9,
@@ -217,7 +259,12 @@ var toolBar = (function () {
 
         newWebButton = toolBar.addTool({
             imageURL: "https://hifi-public.s3.amazonaws.com/images/www.svg",
-            subImage: { x: 0, y: 0, width: 128, height: 128 },
+            subImage: {
+                x: 0,
+                y: 0,
+                width: 128,
+                height: 128
+            },
             width: toolWidth,
             height: toolHeight,
             alpha: 0.9,
@@ -226,7 +273,12 @@ var toolBar = (function () {
 
         newZoneButton = toolBar.addTool({
             imageURL: toolIconUrl + "zonecube_text.svg",
-            subImage: { x: 0, y: 128, width: 128, height: 128 },
+            subImage: {
+                x: 0,
+                y: 128,
+                width: 128,
+                height: 128
+            },
             width: toolWidth,
             height: toolHeight,
             alpha: 0.9,
@@ -235,7 +287,12 @@ var toolBar = (function () {
 
         newPolyVoxButton = toolBar.addTool({
             imageURL: toolIconUrl + "polyvox.svg",
-            subImage: { x: 0, y: 0, width: 256, height: 256 },
+            subImage: {
+                x: 0,
+                y: 0,
+                width: 256,
+                height: 256
+            },
             width: toolWidth,
             height: toolHeight,
             alpha: 0.9,
@@ -244,6 +301,10 @@ var toolBar = (function () {
 
         that.setActive(false);
     }
+
+    that.clearEntityList = function() {
+        entityListTool.clearEntityList();
+    };
 
     that.setActive = function(active) {
         if (active != isActive) {
@@ -289,40 +350,16 @@ var toolBar = (function () {
     var RESIZE_INTERVAL = 50;
     var RESIZE_TIMEOUT = 120000; // 2 minutes
     var RESIZE_MAX_CHECKS = RESIZE_TIMEOUT / RESIZE_INTERVAL;
+
     function addModel(url) {
         var entityID = createNewEntity({
             type: "Model",
-            dimensions: DEFAULT_DIMENSIONS,
             modelURL: url
         }, false);
 
         if (entityID) {
             print("Model added: " + url);
-
-            var checkCount = 0;
-            function resize() {
-                var entityProperties = Entities.getEntityProperties(entityID);
-                var naturalDimensions = entityProperties.naturalDimensions;
-
-                checkCount++;
-
-                if (naturalDimensions.x == 0 && naturalDimensions.y == 0 && naturalDimensions.z == 0) {
-                    if (checkCount < RESIZE_MAX_CHECKS) {
-                        Script.setTimeout(resize, RESIZE_INTERVAL);
-                    } else {
-                        print("Resize failed: timed out waiting for model (" + url + ") to load");
-                    }
-                } else {
-                    Entities.editEntity(entityID, { dimensions: naturalDimensions });
-
-                    // Reset selection so that the selection overlays will be updated
-                    selectionManager.setSelections([entityID]);
-                }
-            }
-
             selectionManager.setSelections([entityID]);
-
-            Script.setTimeout(resize, RESIZE_INTERVAL);
         }
     }
 
@@ -335,7 +372,7 @@ var toolBar = (function () {
         var entityID = null;
         if (position != null) {
             position = grid.snapToSurface(grid.snapToGrid(position, false, dimensions), dimensions),
-            properties.position = position;
+                properties.position = position;
 
             entityID = Entities.addEntity(properties);
             if (dragOnCreate) {
@@ -350,12 +387,15 @@ var toolBar = (function () {
 
     var newModelButtonDown = false;
     var browseMarketplaceButtonDown = false;
-    that.mousePressEvent = function (event) {
+    that.mousePressEvent = function(event) {
         var clickedOverlay,
             url,
             file;
 
-        clickedOverlay = Overlays.getOverlayAtPoint({ x: event.x, y: event.y });
+        clickedOverlay = Overlays.getOverlayAtPoint({
+            x: event.x,
+            y: event.y
+        });
 
         if (activeButton === toolBar.clicked(clickedOverlay)) {
             that.setActive(!isActive);
@@ -381,7 +421,11 @@ var toolBar = (function () {
             createNewEntity({
                 type: "Box",
                 dimensions: DEFAULT_DIMENSIONS,
-                color: { red: 255, green: 0, blue: 0 }
+                color: {
+                    red: 255,
+                    green: 0,
+                    blue: 0
+                }
             });
 
             return true;
@@ -391,7 +435,11 @@ var toolBar = (function () {
             createNewEntity({
                 type: "Sphere",
                 dimensions: DEFAULT_DIMENSIONS,
-                color: { red: 255, green: 0, blue: 0 }
+                color: {
+                    red: 255,
+                    green: 0,
+                    blue: 0
+                }
             });
 
             return true;
@@ -402,7 +450,11 @@ var toolBar = (function () {
                 type: "Light",
                 dimensions: DEFAULT_LIGHT_DIMENSIONS,
                 isSpotlight: false,
-                color: { red: 150, green: 150, blue: 150 },
+                color: {
+                    red: 150,
+                    green: 150,
+                    blue: 150
+                },
 
                 constantAttenuation: 1,
                 linearAttenuation: 0,
@@ -417,9 +469,21 @@ var toolBar = (function () {
         if (newTextButton === toolBar.clicked(clickedOverlay)) {
             createNewEntity({
                 type: "Text",
-                dimensions: { x: 0.65, y: 0.3, z: 0.01 },
-                backgroundColor: { red: 64, green: 64, blue: 64 },
-                textColor: { red: 255, green: 255, blue: 255 },
+                dimensions: {
+                    x: 0.65,
+                    y: 0.3,
+                    z: 0.01
+                },
+                backgroundColor: {
+                    red: 64,
+                    green: 64,
+                    blue: 64
+                },
+                textColor: {
+                    red: 255,
+                    green: 255,
+                    blue: 255
+                },
                 text: "some text",
                 lineHeight: 0.06
             });
@@ -430,7 +494,11 @@ var toolBar = (function () {
         if (newWebButton === toolBar.clicked(clickedOverlay)) {
             createNewEntity({
                 type: "Web",
-                dimensions: { x: 1.6, y: 0.9, z: 0.01 },
+                dimensions: {
+                    x: 1.6,
+                    y: 0.9,
+                    z: 0.01
+                },
                 sourceUrl: "https://highfidelity.com/",
             });
 
@@ -440,7 +508,11 @@ var toolBar = (function () {
         if (newZoneButton === toolBar.clicked(clickedOverlay)) {
             createNewEntity({
                 type: "Zone",
-                dimensions: { x: 10, y: 10, z: 10 },
+                dimensions: {
+                    x: 10,
+                    y: 10,
+                    z: 10
+                },
             });
 
             return true;
@@ -449,27 +521,83 @@ var toolBar = (function () {
         if (newPolyVoxButton === toolBar.clicked(clickedOverlay)) {
             var polyVoxId = createNewEntity({
                 type: "PolyVox",
-                dimensions: { x: 10, y: 10, z: 10 },
-                voxelVolumeSize: {x:16, y:16, z:16},
+                dimensions: {
+                    x: 10,
+                    y: 10,
+                    z: 10
+                },
+                voxelVolumeSize: {
+                    x: 16,
+                    y: 16,
+                    z: 16
+                },
                 voxelSurfaceStyle: 2
             });
             for (var x = 1; x <= 14; x++) {
-                Entities.setVoxel(polyVoxId, {x: x, y: 1, z: 1}, 255);
-                Entities.setVoxel(polyVoxId, {x: x, y: 14, z: 1}, 255);
-                Entities.setVoxel(polyVoxId, {x: x, y: 1, z: 14}, 255);
-                Entities.setVoxel(polyVoxId, {x: x, y: 14, z: 14}, 255);
+                Entities.setVoxel(polyVoxId, {
+                    x: x,
+                    y: 1,
+                    z: 1
+                }, 255);
+                Entities.setVoxel(polyVoxId, {
+                    x: x,
+                    y: 14,
+                    z: 1
+                }, 255);
+                Entities.setVoxel(polyVoxId, {
+                    x: x,
+                    y: 1,
+                    z: 14
+                }, 255);
+                Entities.setVoxel(polyVoxId, {
+                    x: x,
+                    y: 14,
+                    z: 14
+                }, 255);
             }
             for (var y = 2; y <= 13; y++) {
-                Entities.setVoxel(polyVoxId, {x: 1, y: y, z: 1}, 255);
-                Entities.setVoxel(polyVoxId, {x: 14, y: y, z: 1}, 255);
-                Entities.setVoxel(polyVoxId, {x: 1, y: y, z: 14}, 255);
-                Entities.setVoxel(polyVoxId, {x: 14, y: y, z: 14}, 255);
+                Entities.setVoxel(polyVoxId, {
+                    x: 1,
+                    y: y,
+                    z: 1
+                }, 255);
+                Entities.setVoxel(polyVoxId, {
+                    x: 14,
+                    y: y,
+                    z: 1
+                }, 255);
+                Entities.setVoxel(polyVoxId, {
+                    x: 1,
+                    y: y,
+                    z: 14
+                }, 255);
+                Entities.setVoxel(polyVoxId, {
+                    x: 14,
+                    y: y,
+                    z: 14
+                }, 255);
             }
             for (var z = 2; z <= 13; z++) {
-                Entities.setVoxel(polyVoxId, {x: 1, y: 1, z: z}, 255);
-                Entities.setVoxel(polyVoxId, {x: 14, y: 1, z: z}, 255);
-                Entities.setVoxel(polyVoxId, {x: 1, y: 14, z: z}, 255);
-                Entities.setVoxel(polyVoxId, {x: 14, y: 14, z: z}, 255);
+                Entities.setVoxel(polyVoxId, {
+                    x: 1,
+                    y: 1,
+                    z: z
+                }, 255);
+                Entities.setVoxel(polyVoxId, {
+                    x: 14,
+                    y: 1,
+                    z: z
+                }, 255);
+                Entities.setVoxel(polyVoxId, {
+                    x: 1,
+                    y: 14,
+                    z: z
+                }, 255);
+                Entities.setVoxel(polyVoxId, {
+                    x: 14,
+                    y: 14,
+                    z: z
+                }, 255);
             }
 
 
@@ -482,7 +610,10 @@ var toolBar = (function () {
     that.mouseReleaseEvent = function(event) {
         var handled = false;
         if (newModelButtonDown) {
-            var clickedOverlay = Overlays.getOverlayAtPoint({ x: event.x, y: event.y });
+            var clickedOverlay = Overlays.getOverlayAtPoint({
+                x: event.x,
+                y: event.y
+            });
             if (newModelButton === toolBar.clicked(clickedOverlay)) {
                 url = Window.prompt("Model URL", modelURLs[Math.floor(Math.random() * modelURLs.length)]);
                 if (url !== null && url !== "") {
@@ -491,7 +622,10 @@ var toolBar = (function () {
                 handled = true;
             }
         } else if (browseMarketplaceButtonDown) {
-            var clickedOverlay = Overlays.getOverlayAtPoint({ x: event.x, y: event.y });
+            var clickedOverlay = Overlays.getOverlayAtPoint({
+                x: event.x,
+                y: event.y
+            });
             if (browseMarketplaceButton === toolBar.clicked(clickedOverlay)) {
                 url = Window.s3Browse(".*(fbx|FBX|obj|OBJ)");
                 if (url !== null && url !== "") {
@@ -509,6 +643,7 @@ var toolBar = (function () {
 
     Window.domainChanged.connect(function() {
         that.setActive(false);
+        that.clearEntityList();
     });
 
     Entities.canAdjustLocksChanged.connect(function(canAdjustLocks) {
@@ -517,7 +652,7 @@ var toolBar = (function () {
         }
     });
 
-    that.cleanup = function () {
+    that.cleanup = function() {
         toolBar.cleanup();
     };
 
@@ -588,17 +723,26 @@ function findClickedEntity(event) {
     }
 
     var foundEntity = result.entityID;
-    return { pickRay: pickRay, entityID: foundEntity };
+    return {
+        pickRay: pickRay,
+        entityID: foundEntity
+    };
 }
 
 var mouseHasMovedSincePress = false;
 var mousePressStartTime = 0;
-var mousePressStartPosition = { x: 0, y: 0 };
+var mousePressStartPosition = {
+    x: 0,
+    y: 0
+};
 var mouseDown = false;
 
 function mousePressEvent(event) {
     mouseDown = true;
-    mousePressStartPosition = { x: event.x, y: event.y };
+    mousePressStartPosition = {
+        x: event.x,
+        y: event.y
+    };
     mousePressStartTime = Date.now();
     mouseHasMovedSincePress = false;
     mouseCapturedByTool = false;
@@ -625,9 +769,11 @@ var IDLE_MOUSE_TIMEOUT = 200;
 var DEFAULT_ENTITY_DRAG_DROP_DISTANCE = 2.0;
 
 var lastMouseMoveEvent = null;
+
 function mouseMoveEventBuffered(event) {
     lastMouseMoveEvent = event;
 }
+
 function mouseMove(event) {
     if (mouseDown && !mouseHasMovedSincePress) {
         var timeSincePressMicro = Date.now() - mousePressStartTime;
@@ -667,7 +813,10 @@ function mouseMove(event) {
         return;
     }
 
-    lastMousePosition = { x: event.x, y: event.y };
+    lastMousePosition = {
+        x: event.x,
+        y: event.y
+    };
 
     idleMouseTimerId = Script.setTimeout(handleIdleMouse, IDLE_MOUSE_TIMEOUT);
 }
@@ -680,22 +829,25 @@ function highlightEntityUnderCursor(position, accurateRay) {
     var pickRay = Camera.computePickRay(position.x, position.y);
     var entityIntersection = Entities.findRayIntersection(pickRay, accurateRay);
     if (entityIntersection.accurate) {
-        if(highlightedEntityID && highlightedEntityID != entityIntersection.entityID) {
+        if (highlightedEntityID && highlightedEntityID != entityIntersection.entityID) {
             selectionDisplay.unhighlightSelectable(highlightedEntityID);
-            highlightedEntityID = { id: -1 };
+            highlightedEntityID = {
+                id: -1
+            };
         }
 
         var halfDiagonal = Vec3.length(entityIntersection.properties.dimensions) / 2.0;
 
         var angularSize = 2 * Math.atan(halfDiagonal / Vec3.distance(Camera.getPosition(),
-                                        entityIntersection.properties.position)) * 180 / 3.14;
+            entityIntersection.properties.position)) * 180 / 3.14;
 
-        var sizeOK = (allowLargeModels || angularSize < MAX_ANGULAR_SIZE)
-                        && (allowSmallModels || angularSize > MIN_ANGULAR_SIZE);
+        var sizeOK = (allowLargeModels || angularSize < MAX_ANGULAR_SIZE) && (allowSmallModels || angularSize > MIN_ANGULAR_SIZE);
 
         if (entityIntersection.entityID && sizeOK) {
             if (wantEntityGlow) {
-                Entities.editEntity(entityIntersection.entityID, { glowLevel: 0.25 });
+                Entities.editEntity(entityIntersection.entityID, {
+                    glowLevel: 0.25
+                });
             }
             highlightedEntityID = entityIntersection.entityID;
             selectionDisplay.highlightSelectable(entityIntersection.entityID);
@@ -713,18 +865,23 @@ function mouseReleaseEvent(event) {
         lastMouseMoveEvent = null;
     }
     if (propertyMenu.mouseReleaseEvent(event) || toolBar.mouseReleaseEvent(event)) {
+
         return true;
     }
     if (placingEntityID) {
+
         if (isActive) {
+
             selectionManager.setSelections([placingEntityID]);
         }
         placingEntityID = null;
     }
     if (isActive && selectionManager.hasSelection()) {
+
         tooltip.show(false);
     }
     if (mouseCapturedByTool) {
+
         return;
     }
 
@@ -777,8 +934,7 @@ function mouseClickEvent(event) {
 
             var angularSize = 2 * Math.atan(halfDiagonal / Vec3.distance(Camera.getPosition(), properties.position)) * 180 / 3.14;
 
-            var sizeOK = (allowLargeModels || angularSize < MAX_ANGULAR_SIZE)
-                            && (allowSmallModels || angularSize > MIN_ANGULAR_SIZE);
+            var sizeOK = (allowLargeModels || angularSize < MAX_ANGULAR_SIZE) && (allowSmallModels || angularSize > MIN_ANGULAR_SIZE);
 
             if (0 < x && sizeOK) {
                 entitySelected = true;
@@ -799,8 +955,8 @@ function mouseClickEvent(event) {
                 if (Menu.isOptionChecked(MENU_AUTO_FOCUS_ON_SELECT)) {
                     cameraManager.enable();
                     cameraManager.focus(selectionManager.worldPosition,
-                                        selectionManager.worldDimensions,
-                                        Menu.isOptionChecked(MENU_EASE_ON_FOCUS));
+                        selectionManager.worldDimensions,
+                        Menu.isOptionChecked(MENU_EASE_ON_FOCUS));
                 }
             }
         }
@@ -833,44 +989,125 @@ Controller.mouseReleaseEvent.connect(mouseReleaseEvent);
 // added it.
 var modelMenuAddedDelete = false;
 var originalLightsArePickable = Entities.getLightsArePickable();
+
 function setupModelMenus() {
     print("setupModelMenus()");
     // adj our menuitems
-    Menu.addMenuItem({ menuName: "Edit", menuItemName: "Models", isSeparator: true, beforeItem: "Physics" });
+    Menu.addMenuItem({
+        menuName: "Edit",
+        menuItemName: "Models",
+        isSeparator: true,
+        beforeItem: "Physics"
+    });
     if (!Menu.menuItemExists("Edit", "Delete")) {
         print("no delete... adding ours");
-        Menu.addMenuItem({ menuName: "Edit", menuItemName: "Delete",
-            shortcutKeyEvent: { text: "backspace" }, afterItem: "Models" });
+        Menu.addMenuItem({
+            menuName: "Edit",
+            menuItemName: "Delete",
+            shortcutKeyEvent: {
+                text: "backspace"
+            },
+            afterItem: "Models"
+        });
         modelMenuAddedDelete = true;
     } else {
         print("delete exists... don't add ours");
     }
 
-    Menu.addMenuItem({ menuName: "Edit", menuItemName: "Entity List...", shortcutKey: "CTRL+META+L", afterItem: "Models" });
-    Menu.addMenuItem({ menuName: "Edit", menuItemName: "Allow Selecting of Large Models", shortcutKey: "CTRL+META+L",
-                        afterItem: "Entity List...", isCheckable: true, isChecked: true });
-    Menu.addMenuItem({ menuName: "Edit", menuItemName: "Allow Selecting of Small Models", shortcutKey: "CTRL+META+S",
-                        afterItem: "Allow Selecting of Large Models", isCheckable: true, isChecked: true });
-    Menu.addMenuItem({ menuName: "Edit", menuItemName: "Allow Selecting of Lights", shortcutKey: "CTRL+SHIFT+META+L",
-                        afterItem: "Allow Selecting of Small Models", isCheckable: true });
-    Menu.addMenuItem({ menuName: "Edit", menuItemName: "Select All Entities In Box", shortcutKey: "CTRL+SHIFT+META+A",
-                        afterItem: "Allow Selecting of Lights" });
-    Menu.addMenuItem({ menuName: "Edit", menuItemName: "Select All Entities Touching Box", shortcutKey: "CTRL+SHIFT+META+T",
-                        afterItem: "Select All Entities In Box" });
+    Menu.addMenuItem({
+        menuName: "Edit",
+        menuItemName: "Entity List...",
+        shortcutKey: "CTRL+META+L",
+        afterItem: "Models"
+    });
+    Menu.addMenuItem({
+        menuName: "Edit",
+        menuItemName: "Allow Selecting of Large Models",
+        shortcutKey: "CTRL+META+L",
+        afterItem: "Entity List...",
+        isCheckable: true,
+        isChecked: true
+    });
+    Menu.addMenuItem({
+        menuName: "Edit",
+        menuItemName: "Allow Selecting of Small Models",
+        shortcutKey: "CTRL+META+S",
+        afterItem: "Allow Selecting of Large Models",
+        isCheckable: true,
+        isChecked: true
+    });
+    Menu.addMenuItem({
+        menuName: "Edit",
+        menuItemName: "Allow Selecting of Lights",
+        shortcutKey: "CTRL+SHIFT+META+L",
+        afterItem: "Allow Selecting of Small Models",
+        isCheckable: true
+    });
+    Menu.addMenuItem({
+        menuName: "Edit",
+        menuItemName: "Select All Entities In Box",
+        shortcutKey: "CTRL+SHIFT+META+A",
+        afterItem: "Allow Selecting of Lights"
+    });
+    Menu.addMenuItem({
+        menuName: "Edit",
+        menuItemName: "Select All Entities Touching Box",
+        shortcutKey: "CTRL+SHIFT+META+T",
+        afterItem: "Select All Entities In Box"
+    });
 
-    Menu.addMenuItem({ menuName: "File", menuItemName: "Models", isSeparator: true, beforeItem: "Settings" });
-    Menu.addMenuItem({ menuName: "File", menuItemName: "Export Entities", shortcutKey: "CTRL+META+E", afterItem: "Models" });
-    Menu.addMenuItem({ menuName: "File", menuItemName: "Import Entities", shortcutKey: "CTRL+META+I", afterItem: "Export Entities" });
-    Menu.addMenuItem({ menuName: "File", menuItemName: "Import Entities from URL", shortcutKey: "CTRL+META+U", afterItem: "Import Entities" });
+    Menu.addMenuItem({
+        menuName: "File",
+        menuItemName: "Models",
+        isSeparator: true,
+        beforeItem: "Settings"
+    });
+    Menu.addMenuItem({
+        menuName: "File",
+        menuItemName: "Export Entities",
+        shortcutKey: "CTRL+META+E",
+        afterItem: "Models"
+    });
+    Menu.addMenuItem({
+        menuName: "File",
+        menuItemName: "Import Entities",
+        shortcutKey: "CTRL+META+I",
+        afterItem: "Export Entities"
+    });
+    Menu.addMenuItem({
+        menuName: "File",
+        menuItemName: "Import Entities from URL",
+        shortcutKey: "CTRL+META+U",
+        afterItem: "Import Entities"
+    });
 
-    Menu.addMenuItem({ menuName: "View", menuItemName: MENU_AUTO_FOCUS_ON_SELECT,
-                       isCheckable: true, isChecked: Settings.getValue(SETTING_AUTO_FOCUS_ON_SELECT) == "true" });
-    Menu.addMenuItem({ menuName: "View", menuItemName: MENU_EASE_ON_FOCUS, afterItem: MENU_AUTO_FOCUS_ON_SELECT,
-                       isCheckable: true, isChecked: Settings.getValue(SETTING_EASE_ON_FOCUS) == "true" });
-    Menu.addMenuItem({ menuName: "View", menuItemName: MENU_SHOW_LIGHTS_IN_EDIT_MODE, afterItem: MENU_EASE_ON_FOCUS,
-                       isCheckable: true, isChecked: Settings.getValue(SETTING_SHOW_LIGHTS_IN_EDIT_MODE) == "true" });
-    Menu.addMenuItem({ menuName: "View", menuItemName: MENU_SHOW_ZONES_IN_EDIT_MODE, afterItem: MENU_SHOW_LIGHTS_IN_EDIT_MODE,
-                       isCheckable: true, isChecked: Settings.getValue(SETTING_SHOW_ZONES_IN_EDIT_MODE) == "true" });
+    Menu.addMenuItem({
+        menuName: "View",
+        menuItemName: MENU_AUTO_FOCUS_ON_SELECT,
+        isCheckable: true,
+        isChecked: Settings.getValue(SETTING_AUTO_FOCUS_ON_SELECT) == "true"
+    });
+    Menu.addMenuItem({
+        menuName: "View",
+        menuItemName: MENU_EASE_ON_FOCUS,
+        afterItem: MENU_AUTO_FOCUS_ON_SELECT,
+        isCheckable: true,
+        isChecked: Settings.getValue(SETTING_EASE_ON_FOCUS) == "true"
+    });
+    Menu.addMenuItem({
+        menuName: "View",
+        menuItemName: MENU_SHOW_LIGHTS_IN_EDIT_MODE,
+        afterItem: MENU_EASE_ON_FOCUS,
+        isCheckable: true,
+        isChecked: Settings.getValue(SETTING_SHOW_LIGHTS_IN_EDIT_MODE) == "true"
+    });
+    Menu.addMenuItem({
+        menuName: "View",
+        menuItemName: MENU_SHOW_ZONES_IN_EDIT_MODE,
+        afterItem: MENU_SHOW_LIGHTS_IN_EDIT_MODE,
+        isCheckable: true,
+        isChecked: Settings.getValue(SETTING_SHOW_ZONES_IN_EDIT_MODE) == "true"
+    });
 
     Entities.setLightsArePickable(false);
 }
@@ -923,7 +1160,7 @@ var lastOrientation = null;
 var lastPosition = null;
 
 // Do some stuff regularly, like check for placement of various overlays
-Script.update.connect(function (deltaTime) {
+Script.update.connect(function(deltaTime) {
     progressDialog.move();
     selectionDisplay.checkMove();
     var dOrientation = Math.abs(Quat.dot(Camera.orientation, lastOrientation) - 1);
@@ -940,16 +1177,14 @@ Script.update.connect(function (deltaTime) {
 });
 
 function insideBox(center, dimensions, point) {
-    return (Math.abs(point.x - center.x) <= (dimensions.x / 2.0))
-        && (Math.abs(point.y - center.y) <= (dimensions.y / 2.0))
-        && (Math.abs(point.z - center.z) <= (dimensions.z / 2.0));
+    return (Math.abs(point.x - center.x) <= (dimensions.x / 2.0)) && (Math.abs(point.y - center.y) <= (dimensions.y / 2.0)) && (Math.abs(point.z - center.z) <= (dimensions.z / 2.0));
 }
 
 function selectAllEtitiesInCurrentSelectionBox(keepIfTouching) {
     if (selectionManager.hasSelection()) {
         // Get all entities touching the bounding box of the current selection
         var boundingBoxCorner = Vec3.subtract(selectionManager.worldPosition,
-                                              Vec3.multiply(selectionManager.worldDimensions, 0.5));
+            Vec3.multiply(selectionManager.worldDimensions, 0.5));
         var entities = Entities.findEntitiesInBox(boundingBoxCorner, selectionManager.worldDimensions);
 
         if (!keepIfTouching) {
@@ -961,9 +1196,13 @@ function selectAllEtitiesInCurrentSelectionBox(keepIfTouching) {
             } else {
                 isValid = function(position) {
                     var localPosition = Vec3.multiplyQbyV(Quat.inverse(selectionManager.localRotation),
-                                                          Vec3.subtract(position,
-                                                                        selectionManager.localPosition));
-                    return insideBox({ x: 0, y: 0, z: 0 }, selectionManager.localDimensions, localPosition);
+                        Vec3.subtract(position,
+                            selectionManager.localPosition));
+                    return insideBox({
+                        x: 0,
+                        y: 0,
+                        z: 0
+                    }, selectionManager.localDimensions, localPosition);
                 }
             }
             for (var i = 0; i < entities.length; ++i) {
@@ -1026,7 +1265,7 @@ function handeMenuEvent(menuItem) {
 
         var importURL;
         if (menuItem == "Import Entities") {
-            importURL = Window.browse("Select models to import", "", "*.json");
+            importURL = "file:///" + Window.browse("Select models to import", "", "*.json");
         } else {
             importURL = Window.prompt("URL of SVO to import", "");
         }
@@ -1058,15 +1297,11 @@ function getPositionToCreateEntity() {
     var placementPosition = Vec3.sum(Camera.position, offset);
 
     var cameraPosition = Camera.position;
-    
+
     var HALF_TREE_SCALE = 16384;
 
-    var cameraOutOfBounds = Math.abs(cameraPosition.x) > HALF_TREE_SCALE
-                            || Math.abs(cameraPosition.y) > HALF_TREE_SCALE
-                            || Math.abs(cameraPosition.z) > HALF_TREE_SCALE;
-    var placementOutOfBounds = Math.abs(placementPosition.x) > HALF_TREE_SCALE
-                               || Math.abs(placementPosition.y) > HALF_TREE_SCALE
-                               || Math.abs(placementPosition.z) > HALF_TREE_SCALE;
+    var cameraOutOfBounds = Math.abs(cameraPosition.x) > HALF_TREE_SCALE || Math.abs(cameraPosition.y) > HALF_TREE_SCALE || Math.abs(cameraPosition.z) > HALF_TREE_SCALE;
+    var placementOutOfBounds = Math.abs(placementPosition.x) > HALF_TREE_SCALE || Math.abs(placementPosition.y) > HALF_TREE_SCALE || Math.abs(placementPosition.z) > HALF_TREE_SCALE;
 
     if (cameraOutOfBounds && placementOutOfBounds) {
         return null;
@@ -1085,14 +1320,22 @@ function importSVO(importURL) {
         return;
     }
 
-    Overlays.editOverlay(importingSVOTextOverlay, { visible: true });
-    Overlays.editOverlay(importingSVOImageOverlay, { visible: true });
+    Overlays.editOverlay(importingSVOTextOverlay, {
+        visible: true
+    });
+    Overlays.editOverlay(importingSVOImageOverlay, {
+        visible: true
+    });
 
     var success = Clipboard.importEntities(importURL);
 
     if (success) {
         var VERY_LARGE = 10000;
-        var position = { x: 0, y: 0, z: 0 };
+        var position = {
+            x: 0,
+            y: 0,
+            z: 0
+        };
         if (Clipboard.getClipboardContentsLargestDimension() < VERY_LARGE) {
             position = getPositionToCreateEntity();
         }
@@ -1111,8 +1354,12 @@ function importSVO(importURL) {
         Window.alert("There was an error importing the entity file.");
     }
 
-    Overlays.editOverlay(importingSVOTextOverlay, { visible: false });
-    Overlays.editOverlay(importingSVOImageOverlay, { visible: false });
+    Overlays.editOverlay(importingSVOTextOverlay, {
+        visible: false
+    });
+    Overlays.editOverlay(importingSVOImageOverlay, {
+        visible: false
+    });
 }
 Window.svoImportRequested.connect(importSVO);
 
@@ -1124,7 +1371,7 @@ Controller.keyPressEvent.connect(function(event) {
     }
 });
 
-Controller.keyReleaseEvent.connect(function (event) {
+Controller.keyReleaseEvent.connect(function(event) {
     if (isActive) {
         cameraManager.keyReleaseEvent(event);
     }
@@ -1140,8 +1387,8 @@ Controller.keyReleaseEvent.connect(function (event) {
             if (selectionManager.hasSelection()) {
                 cameraManager.enable();
                 cameraManager.focus(selectionManager.worldPosition,
-                                    selectionManager.worldDimensions,
-                                    Menu.isOptionChecked(MENU_EASE_ON_FOCUS));
+                    selectionManager.worldDimensions,
+                    Menu.isOptionChecked(MENU_EASE_ON_FOCUS));
             }
         }
     } else if (event.text == '[') {
@@ -1151,7 +1398,11 @@ Controller.keyReleaseEvent.connect(function (event) {
     } else if (event.text == 'g') {
         if (isActive && selectionManager.hasSelection()) {
             var newPosition = selectionManager.worldPosition;
-            newPosition = Vec3.subtract(newPosition, { x: 0, y: selectionManager.worldDimensions.y * 0.5, z: 0 });
+            newPosition = Vec3.subtract(newPosition, {
+                x: 0,
+                y: selectionManager.worldDimensions.y * 0.5,
+                z: 0
+            });
             grid.setPosition(newPosition);
         }
     }
@@ -1160,8 +1411,7 @@ Controller.keyReleaseEvent.connect(function (event) {
 // When an entity has been deleted we need a way to "undo" this deletion.  Because it's not currently
 // possible to create an entity with a specific id, earlier undo commands to the deleted entity
 // will fail if there isn't a way to find the new entity id.
-DELETED_ENTITY_MAP = {
-}
+DELETED_ENTITY_MAP = {}
 
 function applyEntityProperties(data) {
     var properties = data.setProperties;
@@ -1312,8 +1562,12 @@ PropertiesTool = function(opts) {
             if (data.action == "moveSelectionToGrid") {
                 if (selectionManager.hasSelection()) {
                     selectionManager.saveProperties();
-                    var dY = grid.getOrigin().y - (selectionManager.worldPosition.y - selectionManager.worldDimensions.y / 2),
-                    var diff = { x: 0, y: dY, z: 0 };
+                    var dY = grid.getOrigin().y - (selectionManager.worldPosition.y - selectionManager.worldDimensions.y / 2);
+                    var diff = {
+                        x: 0,
+                        y: dY,
+                        z: 0
+                    };
                     for (var i = 0; i < selectionManager.selections.length; i++) {
                         var properties = selectionManager.savedProperties[selectionManager.selections[i]];
                         var newPosition = Vec3.sum(properties.position, diff);
@@ -1331,7 +1585,11 @@ PropertiesTool = function(opts) {
                         var properties = selectionManager.savedProperties[selectionManager.selections[i]];
                         var bottomY = properties.boundingBox.center.y - properties.boundingBox.dimensions.y / 2;
                         var dY = grid.getOrigin().y - bottomY;
-                        var diff = { x: 0, y: dY, z: 0 };
+                        var diff = {
+                            x: 0,
+                            y: dY,
+                            z: 0
+                        };
                         var newPosition = Vec3.sum(properties.position, diff);
                         Entities.editEntity(selectionManager.selections[i], {
                             position: newPosition,
@@ -1348,10 +1606,8 @@ PropertiesTool = function(opts) {
                         var naturalDimensions = properties.naturalDimensions;
 
                         // If any of the natural dimensions are not 0, resize
-                        if (properties.type == "Model" && naturalDimensions.x == 0
-                                && naturalDimensions.y == 0 && naturalDimensions.z == 0) {
-                            Window.alert("Cannot reset entity to its natural dimensions: Model URL"
-                                         + " is invalid or the model has not yet been loaded.");
+                        if (properties.type == "Model" && naturalDimensions.x == 0 && naturalDimensions.y == 0 && naturalDimensions.z == 0) {
+                            Window.alert("Cannot reset entity to its natural dimensions: Model URL" + " is invalid or the model has not yet been loaded.");
                         } else {
                             Entities.editEntity(selectionManager.selections[i], {
                                 dimensions: properties.naturalDimensions,
@@ -1390,12 +1646,16 @@ PropertiesTool = function(opts) {
                         var properties = selectionManager.savedProperties[selectionManager.selections[i]];
                         if (properties.type == "Zone") {
                             var centerOfZone = properties.boundingBox.center;
-                            var atmosphereCenter = { x: centerOfZone.x,
-                                                     y: centerOfZone.y - properties.atmosphere.innerRadius,
-                                                     z: centerOfZone.z };
+                            var atmosphereCenter = {
+                                x: centerOfZone.x,
+                                y: centerOfZone.y - properties.atmosphere.innerRadius,
+                                z: centerOfZone.z
+                            };
 
                             Entities.editEntity(selectionManager.selections[i], {
-                                atmosphere: { center: atmosphereCenter },
+                                atmosphere: {
+                                    center: atmosphereCenter
+                                },
                             });
                         }
                     }
@@ -1419,11 +1679,23 @@ PopupMenu = function() {
     var overlays = [];
     var overlayInfo = {};
 
-    var upColor = { red: 0, green: 0, blue: 0 };
-    var downColor = { red: 192, green: 192, blue: 192 };
-    var overColor = { red: 128, green: 128, blue: 128 };
+    var upColor = {
+        red: 0,
+        green: 0,
+        blue: 0
+    };
+    var downColor = {
+        red: 192,
+        green: 192,
+        blue: 192
+    };
+    var overColor = {
+        red: 128,
+        green: 128,
+        blue: 128
+    };
 
-    self.onSelectMenuItem = function() { };
+    self.onSelectMenuItem = function() {};
 
     self.addMenuItem = function(name) {
         var id = Overlays.addOverlay("text", {
@@ -1434,16 +1706,22 @@ PopupMenu = function() {
             leftMargin: TEXT_MARGIN,
             width: 210,
             height: MENU_ITEM_HEIGHT,
-            font: { size: 12 },
+            font: {
+                size: 12
+            },
             visible: false,
         });
         overlays.push(id);
-        overlayInfo[id] = { name: name };
+        overlayInfo[id] = {
+            name: name
+        };
         return id;
     };
 
     self.updateMenuItemText = function(id, newText) {
-        Overlays.editOverlay(id, { text: newText });
+        Overlays.editOverlay(id, {
+            text: newText
+        });
     };
 
     self.setPosition = function(x, y) {
@@ -1456,17 +1734,22 @@ PopupMenu = function() {
         }
     };
 
-    self.onSelected = function() { };
+    self.onSelected = function() {};
 
     var pressingOverlay = null;
     var hoveringOverlay = null;
 
     self.mousePressEvent = function(event) {
         if (event.isLeftButton) {
-            var overlay = Overlays.getOverlayAtPoint({ x: event.x, y: event.y });
+            var overlay = Overlays.getOverlayAtPoint({
+                x: event.x,
+                y: event.y
+            });
             if (overlay in overlayInfo) {
                 pressingOverlay = overlay;
-                Overlays.editOverlay(pressingOverlay, { backgroundColor: downColor });
+                Overlays.editOverlay(pressingOverlay, {
+                    backgroundColor: downColor
+                });
             } else {
                 self.hide();
             }
@@ -1475,14 +1758,21 @@ PopupMenu = function() {
     };
     self.mouseMoveEvent = function(event) {
         if (visible) {
-            var overlay = Overlays.getOverlayAtPoint({ x: event.x, y: event.y });
+            var overlay = Overlays.getOverlayAtPoint({
+                x: event.x,
+                y: event.y
+            });
             if (!pressingOverlay) {
                 if (hoveringOverlay != null && overlay != hoveringOverlay) {
-                    Overlays.editOverlay(hoveringOverlay, { backgroundColor: upColor});
+                    Overlays.editOverlay(hoveringOverlay, {
+                        backgroundColor: upColor
+                    });
                     hoveringOverlay = null;
                 }
                 if (overlay != hoveringOverlay && overlay in overlayInfo) {
-                    Overlays.editOverlay(overlay, { backgroundColor: overColor });
+                    Overlays.editOverlay(overlay, {
+                        backgroundColor: overColor
+                    });
                     hoveringOverlay = overlay;
                 }
             }
@@ -1490,12 +1780,17 @@ PopupMenu = function() {
         return false;
     };
     self.mouseReleaseEvent = function(event) {
-        var overlay = Overlays.getOverlayAtPoint({ x: event.x, y: event.y });
+        var overlay = Overlays.getOverlayAtPoint({
+            x: event.x,
+            y: event.y
+        });
         if (pressingOverlay != null) {
             if (overlay == pressingOverlay) {
                 self.onSelectMenuItem(overlayInfo[overlay].name);
             }
-            Overlays.editOverlay(pressingOverlay, { backgroundColor: upColor });
+            Overlays.editOverlay(pressingOverlay, {
+                backgroundColor: upColor
+            });
             pressingOverlay = null;
             self.hide();
         }
@@ -1507,7 +1802,9 @@ PopupMenu = function() {
         if (newVisible != visible) {
             visible = newVisible;
             for (var key in overlayInfo) {
-                Overlays.editOverlay(key, { visible: newVisible });
+                Overlays.editOverlay(key, {
+                    visible: newVisible
+                });
             }
         }
     }

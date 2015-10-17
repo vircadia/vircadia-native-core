@@ -15,4 +15,5 @@ public:
 
   const DisplayPluginList& getDisplayPlugins();
   const InputPluginList& getInputPlugins();
+  void saveSettings();
 };

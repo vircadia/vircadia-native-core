@@ -61,8 +61,7 @@ void Cube3DOverlay::render(RenderArgs* args) {
             // }
 
             transform.setScale(dimensions);
-            batch->setModelTransform(transform);
-            DependencyManager::get<GeometryCache>()->renderSolidCube(*batch, 1.0f, cubeColor);
+            DependencyManager::get<DeferredLightingEffect>()->renderSolidCubeInstance(*batch, transform, cubeColor);
         } else {
 
             if (getIsDashedLine()) {
@@ -98,9 +97,9 @@ void Cube3DOverlay::render(RenderArgs* args) {
                 geometryCache->renderDashedLine(*batch, bottomRightFar, topRightFar, cubeColor);
 
             } else {
+                batch->setModelTransform(Transform());
                 transform.setScale(dimensions);
-                batch->setModelTransform(transform);
-                DependencyManager::get<DeferredLightingEffect>()->renderWireCube(*batch, 1.0f, cubeColor);
+                DependencyManager::get<DeferredLightingEffect>()->renderWireCubeInstance(*batch, transform, cubeColor);
             }
         }
     }

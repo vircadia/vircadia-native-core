@@ -33,18 +33,11 @@ var originalPosition = null;
 var isGrenade = false; 
 var isBurning = false; 
 
-var animationSettings = JSON.stringify({
-    running: true,
-    loop: true
-  });
-var explodeAnimationSettings = JSON.stringify({
-    running: true,
-    loop: false
-  });
-
 var GRAVITY = -9.8;
 var TIME_TO_EXPLODE = 2500; 
 var DISTANCE_IN_FRONT_OF_ME = 1.0;
+var PI = 3.141593;
+var DEG_TO_RAD = PI / 180.0;
 
 function makeGrenade() { 
     var position = Vec3.sum(MyAvatar.position,
@@ -83,12 +76,11 @@ function update() {
                 //  Create fuse particles 
                 particles = Entities.addEntity({
                             type: "ParticleEffect",
-                            animationSettings: animationSettings,
+                            isEmitting: true,
                             position: newProperties.position,
                             textures: 'https://raw.githubusercontent.com/ericrius1/SantasLair/santa/assets/smokeparticle.png',
                             emitRate: 100,
-                            emitStrength: 2.0,
-                            emitDirection: { x: 0.0, y: 1.0, z: 0.0 },
+                            polarFinish: 25 * DEG_TO_RAD,
                             color: { red: 200, green: 0, blue: 0 },
                             lifespan: 10.0,
                             visible: true,
@@ -141,12 +133,11 @@ function boom() {
     Audio.playSound(boomSound, audioOptions);
     Entities.addEntity({
                         type: "ParticleEffect",
-                        animationSettings: explodeAnimationSettings,
+                        isEmitting: true,
                         position: properties.position,
                         textures: 'https://raw.githubusercontent.com/ericrius1/SantasLair/santa/assets/smokeparticle.png',
                         emitRate: 200,
-                        emitStrength: 3.0,
-                        emitDirection: { x: 0.0, y: 1.0, z: 0.0 },
+                        polarFinish: 25 * DEG_TO_RAD,
                         color: { red: 255, green: 255, blue: 0 },
                         lifespan: 2.0,
                         visible: true,

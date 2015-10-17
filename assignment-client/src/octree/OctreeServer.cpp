@@ -9,11 +9,10 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include <QJsonArray>
-#include <QJsonDocument>
+#include "OctreeServer.h"
+
 #include <QJsonObject>
 #include <QTimer>
-#include <QUuid>
 
 #include <time.h>
 
@@ -26,7 +25,6 @@
 
 #include "../AssignmentClient.h"
 
-#include "OctreeServer.h"
 #include "OctreeServerConsts.h"
 
 OctreeServer* OctreeServer::_instance = NULL;
@@ -280,8 +278,7 @@ OctreeServer::~OctreeServer() {
 
     // cleanup our tree here...
     qDebug() << qPrintable(_safeServerName) << "server START cleaning up octree... [" << this << "]";
-    delete _tree;
-    _tree = NULL;
+    _tree.reset();
     qDebug() << qPrintable(_safeServerName) << "server DONE cleaning up octree... [" << this << "]";
 
     if (_instance == this) {
@@ -628,6 +625,8 @@ bool OctreeServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
         statsString += QString().sprintf("<b>%s Edit Statistics... <a href='/resetStats'>[RESET]</a></b>\r\n",
                                          getMyServerName());
         quint64 currentPacketsInQueue = _octreeInboundPacketProcessor->packetsToProcessCount();
+        float incomingPPS = _octreeInboundPacketProcessor->getIncomingPPS();
+        float processedPPS = _octreeInboundPacketProcessor->getProcessedPPS();
         quint64 averageTransitTimePerPacket = _octreeInboundPacketProcessor->getAverageTransitTimePerPacket();
         quint64 averageProcessTimePerPacket = _octreeInboundPacketProcessor->getAverageProcessTimePerPacket();
         quint64 averageLockWaitTimePerPacket = _octreeInboundPacketProcessor->getAverageLockWaitTimePerPacket();
@@ -642,11 +641,16 @@ bool OctreeServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
         quint64 averageCreateTime = _tree->getAverageCreateTime();
         quint64 averageLoggingTime = _tree->getAverageLoggingTime();
 
+        int FLOAT_PRECISION = 3;
 
         float averageElementsPerPacket = totalPacketsProcessed == 0 ? 0 : (float)totalElementsProcessed / totalPacketsProcessed;
 
-        statsString += QString("   Current Inbound Packets Queue: %1 packets\r\n")
+        statsString += QString("   Current Inbound Packets Queue: %1 packets \r\n")
             .arg(locale.toString((uint)currentPacketsInQueue).rightJustified(COLUMN_WIDTH, ' '));
+        statsString += QString("        Packets Queue Network IN: %1 PPS \r\n")
+            .arg(locale.toString(incomingPPS, 'f', FLOAT_PRECISION).rightJustified(COLUMN_WIDTH, ' '));
+        statsString += QString("    Packets Queue Processing OUT: %1 PPS \r\n")
+            .arg(locale.toString(processedPPS, 'f', FLOAT_PRECISION).rightJustified(COLUMN_WIDTH, ' '));
 
         statsString += QString("           Total Inbound Packets: %1 packets\r\n")
             .arg(locale.toString((uint)totalPacketsProcessed).rightJustified(COLUMN_WIDTH, ' '));
@@ -695,6 +699,16 @@ bool OctreeServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
             totalElementsProcessed = senderStats.getTotalElementsProcessed();
             totalPacketsProcessed = senderStats.getTotalPacketsProcessed();
 
+
+            auto received = senderStats._incomingEditSequenceNumberStats.getReceived();
+            auto expected = senderStats._incomingEditSequenceNumberStats.getExpectedReceived();
+            auto unreasonable = senderStats._incomingEditSequenceNumberStats.getUnreasonable();
+            auto outOfOrder = senderStats._incomingEditSequenceNumberStats.getOutOfOrder();
+            auto early = senderStats._incomingEditSequenceNumberStats.getEarly();
+            auto late = senderStats._incomingEditSequenceNumberStats.getLate();
+            auto lost = senderStats._incomingEditSequenceNumberStats.getLost();
+            auto recovered = senderStats._incomingEditSequenceNumberStats.getRecovered();
+
             averageElementsPerPacket = totalPacketsProcessed == 0 ? 0 : (float)totalElementsProcessed / totalPacketsProcessed;
 
             statsString += QString("               Total Inbound Packets: %1 packets\r\n")
@@ -705,7 +719,7 @@ bool OctreeServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
                                              (double)averageElementsPerPacket);
             statsString += QString("         Average Transit Time/Packet: %1 usecs\r\n")
                 .arg(locale.toString((uint)averageTransitTimePerPacket).rightJustified(COLUMN_WIDTH, ' '));
-            statsString += QString("        Average Process Time/Packet: %1 usecs\r\n")
+            statsString += QString("         Average Process Time/Packet: %1 usecs\r\n")
                 .arg(locale.toString((uint)averageProcessTimePerPacket).rightJustified(COLUMN_WIDTH, ' '));
             statsString += QString("       Average Wait Lock Time/Packet: %1 usecs\r\n")
                 .arg(locale.toString((uint)averageLockWaitTimePerPacket).rightJustified(COLUMN_WIDTH, ' '));
@@ -713,6 +727,24 @@ bool OctreeServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
                 .arg(locale.toString((uint)averageProcessTimePerElement).rightJustified(COLUMN_WIDTH, ' '));
             statsString += QString("      Average Wait Lock Time/Element: %1 usecs\r\n")
                 .arg(locale.toString((uint)averageLockWaitTimePerElement).rightJustified(COLUMN_WIDTH, ' '));
+
+            statsString += QString("\r\n       Inbound Edit Packets --------------------------------\r\n");
+            statsString += QString("                            Received: %1\r\n")
+                .arg(locale.toString(received).rightJustified(COLUMN_WIDTH, ' '));
+            statsString += QString("                            Expected: %1\r\n")
+                .arg(locale.toString(expected).rightJustified(COLUMN_WIDTH, ' '));
+            statsString += QString("                        Unreasonable: %1\r\n")
+                .arg(locale.toString(unreasonable).rightJustified(COLUMN_WIDTH, ' '));
+            statsString += QString("                        Out of Order: %1\r\n")
+                .arg(locale.toString(outOfOrder).rightJustified(COLUMN_WIDTH, ' '));
+            statsString += QString("                               Early: %1\r\n")
+                .arg(locale.toString(early).rightJustified(COLUMN_WIDTH, ' '));
+            statsString += QString("                                Late: %1\r\n")
+                .arg(locale.toString(late).rightJustified(COLUMN_WIDTH, ' '));
+            statsString += QString("                                Lost: %1\r\n")
+                .arg(locale.toString(lost).rightJustified(COLUMN_WIDTH, ' '));
+            statsString += QString("                           Recovered: %1\r\n")
+                .arg(locale.toString(recovered).rightJustified(COLUMN_WIDTH, ' '));
 
         }
 
@@ -890,7 +922,7 @@ bool OctreeServer::readOptionString(const QString& optionName, const QJsonObject
     return optionAvailable;
 }
 
-void OctreeServer::readConfiguration() {
+bool OctreeServer::readConfiguration() {
     // if the assignment had a payload, read and parse that
     if (getPayload().size() > 0) {
         parsePayload();
@@ -910,8 +942,11 @@ void OctreeServer::readConfiguration() {
     loop.exec();
 
     if (domainHandler.getSettingsObject().isEmpty()) {
-        qDebug() << "No settings object from domain-server.";
+        qDebug() << "Failed to retreive settings object from domain-server. Bailing on assignment.";
+        setFinished(true);
+        return false;
     }
+
     const QJsonObject& settingsObject = domainHandler.getSettingsObject();
     QString settingsKey = getMyDomainSettingsKey();
     QJsonObject settingsSectionObject = settingsObject[settingsKey].toObject();
@@ -1020,7 +1055,7 @@ void OctreeServer::readConfiguration() {
                     packetsPerSecondTotalMax, _packetsTotalPerInterval);
 
 
-    readAdditionalConfiguration(settingsSectionObject);
+    return readAdditionalConfiguration(settingsSectionObject);
 }
 
 void OctreeServer::run() {
@@ -1046,7 +1081,9 @@ void OctreeServer::run() {
     commonInit(getMyLoggingServerTargetName(), getMyNodeType());
 
     // read the configuration from either the payload or the domain server configuration
-    readConfiguration();
+    if (!readConfiguration()) {
+        return; // bailing on run, because readConfiguration failed
+    }
 
     beforeRun(); // after payload has been processed
 
@@ -1293,81 +1330,80 @@ QString OctreeServer::getStatusLink() {
 }
 
 void OctreeServer::sendStatsPacket() {
-    // TODO: we have too many stats to fit in a single MTU... so for now, we break it into multiple JSON objects and
-    // send them separately. What we really should do is change the NodeList::sendStatsToDomainServer() to handle the
-    // the following features:
-    //    1) remember last state sent
-    //    2) only send new data
-    //    3) automatically break up into multiple packets
-    static QJsonObject statsObject1;
-
-    QString baseName = getMyServerName() + QString("Server");
-
-    statsObject1[baseName + QString(".0.1.configuration")] = getConfiguration();
-
-    statsObject1[baseName + QString(".0.2.detailed_stats_url")] = getStatusLink();
-
-    statsObject1[baseName + QString(".0.3.uptime")] = getUptime();
-    statsObject1[baseName + QString(".0.4.persistFileLoadTime")] = getFileLoadTime();
-    statsObject1[baseName + QString(".0.5.clients")] = getCurrentClientCount();
-
+    // Stats Array 1
+    QJsonObject threadsStats;
     quint64 oneSecondAgo = usecTimestampNow() - USECS_PER_SECOND;
+    threadsStats["1. processing"] = (double)howManyThreadsDidProcess(oneSecondAgo);
+    threadsStats["2. packetDistributor"] = (double)howManyThreadsDidPacketDistributor(oneSecondAgo);
+    threadsStats["3. handlePacektSend"] = (double)howManyThreadsDidHandlePacketSend(oneSecondAgo);
+    threadsStats["4. writeDatagram"] = (double)howManyThreadsDidCallWriteDatagram(oneSecondAgo);
+    
+    QJsonObject statsArray1;
+    statsArray1["1. configuration"] = getConfiguration();
+    statsArray1["2. detailed_stats_url"] = getStatusLink();
+    statsArray1["3. uptime"] = getUptime();
+    statsArray1["4. persistFileLoadTime"] = getFileLoadTime();
+    statsArray1["5. clients"] = getCurrentClientCount();
+    statsArray1["6. threads"] = threadsStats;
+    
+    // Octree Stats
+    QJsonObject octreeStats;
+    octreeStats["1. elementCount"] = (double)OctreeElement::getNodeCount();
+    octreeStats["2. internalElementCount"] = (double)OctreeElement::getInternalNodeCount();
+    octreeStats["3. leafElementCount"] = (double)OctreeElement::getLeafNodeCount();
+    
+    // Stats Object 2
+    QJsonObject dataObject1;
+    dataObject1["1. totalPackets"] = (double)OctreeSendThread::_totalPackets;
+    dataObject1["2. totalBytes"] = (double)OctreeSendThread::_totalBytes;
+    dataObject1["3. totalBytesWasted"] = (double)OctreeSendThread::_totalWastedBytes;
+    dataObject1["4. totalBytesOctalCodes"] = (double)OctreePacketData::getTotalBytesOfOctalCodes();
+    dataObject1["5. totalBytesBitMasks"] = (double)OctreePacketData::getTotalBytesOfBitMasks();
+    dataObject1["6. totalBytesBitMasks"] = (double)OctreePacketData::getTotalBytesOfColor();
 
-    statsObject1[baseName + QString(".0.6.threads.1.processing")] = (double)howManyThreadsDidProcess(oneSecondAgo);
-    statsObject1[baseName + QString(".0.6.threads.2.packetDistributor")] =
-        (double)howManyThreadsDidPacketDistributor(oneSecondAgo);
-    statsObject1[baseName + QString(".0.6.threads.3.handlePacektSend")] =
-        (double)howManyThreadsDidHandlePacketSend(oneSecondAgo);
-    statsObject1[baseName + QString(".0.6.threads.4.writeDatagram")] =
-        (double)howManyThreadsDidCallWriteDatagram(oneSecondAgo);
+    QJsonObject timingArray1;
+    timingArray1["1. avgLoopTime"] = getAverageLoopTime();
+    timingArray1["2. avgInsideTime"] = getAverageInsideTime();
+    timingArray1["3. avgTreeLockTime"] = getAverageTreeWaitTime();
+    timingArray1["4. avgEncodeTime"] = getAverageEncodeTime();
+    timingArray1["5. avgCompressAndWriteTime"] = getAverageCompressAndWriteTime();
+    timingArray1["6. avgSendTime"] = getAveragePacketSendingTime();
+    timingArray1["7. nodeWaitTime"] = getAverageNodeWaitTime();
+    
+    QJsonObject statsObject2;
+    statsObject2["data"] = dataObject1;
+    statsObject2["timing"] = timingArray1;
 
-    statsObject1[baseName + QString(".1.1.octree.elementCount")] = (double)OctreeElement::getNodeCount();
-    statsObject1[baseName + QString(".1.2.octree.internalElementCount")] = (double)OctreeElement::getInternalNodeCount();
-    statsObject1[baseName + QString(".1.3.octree.leafElementCount")] = (double)OctreeElement::getLeafNodeCount();
+    QJsonObject dataArray2;
+    QJsonObject timingArray2;
 
-    ThreadedAssignment::addPacketStatsAndSendStatsPacket(statsObject1);
+    // Stats Object 3
+    if (_octreeInboundPacketProcessor) {
+        dataArray2["1. packetQueue"] = (double)_octreeInboundPacketProcessor->packetsToProcessCount();
+        dataArray2["2. totalPackets"] = (double)_octreeInboundPacketProcessor->getTotalPacketsProcessed();
+        dataArray2["3. totalElements"] = (double)_octreeInboundPacketProcessor->getTotalElementsProcessed();
 
-    static QJsonObject statsObject2;
-
-    statsObject2[baseName + QString(".2.outbound.data.totalPackets")] = (double)OctreeSendThread::_totalPackets;
-    statsObject2[baseName + QString(".2.outbound.data.totalBytes")] = (double)OctreeSendThread::_totalBytes;
-    statsObject2[baseName + QString(".2.outbound.data.totalBytesWasted")] = (double)OctreeSendThread::_totalWastedBytes;
-    statsObject2[baseName + QString(".2.outbound.data.totalBytesOctalCodes")] =
-        (double)OctreePacketData::getTotalBytesOfOctalCodes();
-    statsObject2[baseName + QString(".2.outbound.data.totalBytesBitMasks")] =
-        (double)OctreePacketData::getTotalBytesOfBitMasks();
-    statsObject2[baseName + QString(".2.outbound.data.totalBytesBitMasks")] = (double)OctreePacketData::getTotalBytesOfColor();
-
-    statsObject2[baseName + QString(".2.outbound.timing.1.avgLoopTime")] = getAverageLoopTime();
-    statsObject2[baseName + QString(".2.outbound.timing.2.avgInsideTime")] = getAverageInsideTime();
-    statsObject2[baseName + QString(".2.outbound.timing.3.avgTreeLockTime")] = getAverageTreeWaitTime();
-    statsObject2[baseName + QString(".2.outbound.timing.4.avgEncodeTime")] = getAverageEncodeTime();
-    statsObject2[baseName + QString(".2.outbound.timing.5.avgCompressAndWriteTime")] = getAverageCompressAndWriteTime();
-    statsObject2[baseName + QString(".2.outbound.timing.5.avgSendTime")] = getAveragePacketSendingTime();
-    statsObject2[baseName + QString(".2.outbound.timing.5.nodeWaitTime")] = getAverageNodeWaitTime();
-
-    DependencyManager::get<NodeList>()->sendStatsToDomainServer(statsObject2);
-
-    static QJsonObject statsObject3;
-
-    statsObject3[baseName + QString(".3.inbound.data.1.packetQueue")] =
-        (double)_octreeInboundPacketProcessor->packetsToProcessCount();
-    statsObject3[baseName + QString(".3.inbound.data.1.totalPackets")] =
-        (double)_octreeInboundPacketProcessor->getTotalPacketsProcessed();
-    statsObject3[baseName + QString(".3.inbound.data.2.totalElements")] =
-        (double)_octreeInboundPacketProcessor->getTotalElementsProcessed();
-    statsObject3[baseName + QString(".3.inbound.timing.1.avgTransitTimePerPacket")] =
-        (double)_octreeInboundPacketProcessor->getAverageTransitTimePerPacket();
-    statsObject3[baseName + QString(".3.inbound.timing.2.avgProcessTimePerPacket")] =
-        (double)_octreeInboundPacketProcessor->getAverageProcessTimePerPacket();
-    statsObject3[baseName + QString(".3.inbound.timing.3.avgLockWaitTimePerPacket")] =
-        (double)_octreeInboundPacketProcessor->getAverageLockWaitTimePerPacket();
-    statsObject3[baseName + QString(".3.inbound.timing.4.avgProcessTimePerElement")] =
-        (double)_octreeInboundPacketProcessor->getAverageProcessTimePerElement();
-    statsObject3[baseName + QString(".3.inbound.timing.5.avgLockWaitTimePerElement")] =
-        (double)_octreeInboundPacketProcessor->getAverageLockWaitTimePerElement();
-
-    DependencyManager::get<NodeList>()->sendStatsToDomainServer(statsObject3);
+        timingArray2["1. avgTransitTimePerPacket"] = (double)_octreeInboundPacketProcessor->getAverageTransitTimePerPacket();
+        timingArray2["2. avgProcessTimePerPacket"] = (double)_octreeInboundPacketProcessor->getAverageProcessTimePerPacket();
+        timingArray2["3. avgLockWaitTimePerPacket"] = (double)_octreeInboundPacketProcessor->getAverageLockWaitTimePerPacket();
+        timingArray2["4. avgProcessTimePerElement"] = (double)_octreeInboundPacketProcessor->getAverageProcessTimePerElement();
+        timingArray2["5. avgLockWaitTimePerElement"] = (double)_octreeInboundPacketProcessor->getAverageLockWaitTimePerElement();
+    }
+    
+    QJsonObject statsObject3;
+    statsObject3["data"] = dataArray2;
+    statsObject3["timing"] = timingArray2;
+    
+    // Merge everything
+    QJsonObject jsonArray;
+    jsonArray["1. misc"] = statsArray1;
+    jsonArray["2. octree"] = octreeStats;
+    jsonArray["3. outbound"] = statsObject2;
+    jsonArray["4. inbound"] = statsObject3;
+    
+    QJsonObject statsObject;
+    statsObject[QString(getMyServerName()) + "Server"] = jsonArray;
+    addPacketStatsAndSendStatsPacket(statsObject);
 }
 
 QMap<OctreeSendThread*, quint64> OctreeServer::_threadsDidProcess;

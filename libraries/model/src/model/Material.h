@@ -13,15 +13,15 @@
 
 #include <bitset>
 #include <map>
-#include <qurl.h>
 
 #include <glm/glm.hpp>
 
-#include "gpu/Resource.h"
-#include "gpu/Texture.h"
-
+#include <gpu/Resource.h>
 
 namespace model {
+
+class TextureMap;
+typedef std::shared_ptr< TextureMap > TextureMapPointer;
 
 // Material Key is a coarse trait description of a material used to classify the materials
 class MaterialKey {
@@ -39,6 +39,7 @@ public:
         GLOSS_MAP_BIT,
         TRANSPARENT_MAP_BIT,
         NORMAL_MAP_BIT,
+        LIGHTMAP_MAP_BIT,
 
         NUM_FLAGS,
     };
@@ -51,6 +52,7 @@ public:
         GLOSS_MAP,
         TRANSPARENT_MAP,
         NORMAL_MAP,
+        LIGHTMAP_MAP,
 
         NUM_MAP_CHANNELS,
     };
@@ -81,6 +83,7 @@ public:
         Builder& withTransparentMap() { _flags.set(TRANSPARENT_MAP_BIT); return (*this); }
 
         Builder& withNormalMap() { _flags.set(NORMAL_MAP_BIT); return (*this); }
+        Builder& withLightmapMap() { _flags.set(LIGHTMAP_MAP_BIT); return (*this); }
 
         // Convenient standard keys that we will keep on using all over the place
         static MaterialKey opaqueDiffuse() { return Builder().withDiffuse().build(); }
@@ -119,6 +122,9 @@ public:
 
     void setNormalMap(bool value) { _flags.set(NORMAL_MAP_BIT, value); }
     bool isNormalMap() const { return _flags[NORMAL_MAP_BIT]; }
+
+    void setLightmapMap(bool value) { _flags.set(LIGHTMAP_MAP_BIT, value); }
+    bool isLightmapMap() const { return _flags[LIGHTMAP_MAP_BIT]; }
 
     void setMapChannel(MapChannel channel, bool value) { _flags.set(EMISSIVE_MAP_BIT + channel, value); }
     bool isMapChannel(MapChannel channel) const { return _flags[EMISSIVE_MAP_BIT + channel]; }
@@ -175,6 +181,9 @@ public:
         Builder& withoutNormalMap()       { _value.reset(MaterialKey::NORMAL_MAP_BIT); _mask.set(MaterialKey::NORMAL_MAP_BIT); return (*this); }
         Builder& withNormalMap()        { _value.set(MaterialKey::NORMAL_MAP_BIT);  _mask.set(MaterialKey::NORMAL_MAP_BIT); return (*this); }
 
+        Builder& withoutLightmapMap()       { _value.reset(MaterialKey::LIGHTMAP_MAP_BIT); _mask.set(MaterialKey::LIGHTMAP_MAP_BIT); return (*this); }
+        Builder& withLightmapMap()        { _value.set(MaterialKey::LIGHTMAP_MAP_BIT);  _mask.set(MaterialKey::LIGHTMAP_MAP_BIT); return (*this); }
+
         // Convenient standard keys that we will keep on using all over the place
         static MaterialFilter opaqueDiffuse() { return Builder().withDiffuse().withoutTransparent().build(); }
     };
@@ -197,12 +206,11 @@ public:
 class Material {
 public:
     typedef gpu::BufferView UniformBufferView;
-    typedef gpu::TextureView TextureView;
 
     typedef glm::vec3 Color;
 
     typedef MaterialKey::MapChannel MapChannel;
-    typedef std::map<MapChannel, TextureView> TextureMap;
+    typedef std::map<MapChannel, TextureMapPointer> TextureMaps;
     typedef std::bitset<MaterialKey::NUM_MAP_CHANNELS> MapFlags;
 
     Material();
@@ -241,14 +249,15 @@ public:
 
     const UniformBufferView& getSchemaBuffer() const { return _schemaBuffer; }
 
-    void setTextureView(MapChannel channel, const TextureView& texture);
-    const TextureMap& getTextureMap() const { return _textureMap; }
+    // The texture map to channel association
+    void setTextureMap(MapChannel channel, const TextureMapPointer& textureMap);
+    const TextureMaps& getTextureMaps() const { return _textureMaps; }
 
 protected:
 
     MaterialKey _key;
     UniformBufferView _schemaBuffer;
-    TextureMap _textureMap;
+    TextureMaps _textureMaps;
 
 };
 typedef std::shared_ptr< Material > MaterialPointer;

@@ -25,7 +25,6 @@
 #include "OBJReader.h"
 #include "ModelFormatLogging.h"
 
-
 QHash<QString, float> COMMENT_SCALE_HINTS = {{"This file uses centimeters as units", 1.0f / 100.0f},
                                              {"This file uses millimeters as units", 1.0f / 1000.0f}};
 
@@ -121,21 +120,7 @@ glm::vec2 OBJTokenizer::getVec2() {
 
 
 void setMeshPartDefaults(FBXMeshPart& meshPart, QString materialID) {
-    meshPart.diffuseColor = glm::vec3(1, 1, 1);
-    meshPart.specularColor = glm::vec3(1, 1, 1);
-    meshPart.emissiveColor = glm::vec3(0, 0, 0);
-    meshPart.emissiveParams = glm::vec2(0, 1);
-    meshPart.shininess = 40;
-    meshPart.opacity = 1;
- 
     meshPart.materialID = materialID;
-    meshPart.opacity = 1.0;
-    meshPart._material = std::make_shared<model::Material>();
-    meshPart._material->setDiffuse(glm::vec3(1.0, 1.0, 1.0));
-    meshPart._material->setOpacity(1.0);
-    meshPart._material->setMetallic(0.0);
-    meshPart._material->setGloss(96.0);
-    meshPart._material->setEmissive(glm::vec3(0.0, 0.0, 0.0));
 }
 
 // OBJFace
@@ -416,10 +401,10 @@ done:
 
 
 FBXGeometry* OBJReader::readOBJ(QByteArray& model, const QVariantHash& mapping, const QUrl& url) {
-    
+
     QBuffer buffer { &model };
     buffer.open(QIODevice::ReadOnly);
-    
+
     FBXGeometry* geometryPtr = new FBXGeometry();
     FBXGeometry& geometry = *geometryPtr;
     OBJTokenizer tokenizer { &buffer };
@@ -501,16 +486,7 @@ FBXGeometry* OBJReader::readOBJ(QByteArray& model, const QVariantHash& mapping, 
                 groupMaterialName = SMART_DEFAULT_MATERIAL_NAME;
             }
             if  (!groupMaterialName.isEmpty()) {
-                OBJMaterial* material = &materials[groupMaterialName];
-                // The code behind this is in transition. Some things are set directly in the FXBMeshPart...
                 meshPart.materialID = groupMaterialName;
-                meshPart.diffuseTexture.filename = material->diffuseTextureFilename;
-                meshPart.specularTexture.filename = material->specularTextureFilename;
-                // ... and some things are set in the underlying material.
-                meshPart._material->setDiffuse(material->diffuseColor);
-                meshPart._material->setMetallic(glm::length(material->specularColor));
-                meshPart._material->setGloss(material->shininess);
-                meshPart._material->setOpacity(material->opacity);
             }
             foreach(OBJFace face, faceGroup) {
                 glm::vec3 v0 = vertices[face.vertexIndices[0]];
@@ -522,7 +498,7 @@ FBXGeometry* OBJReader::readOBJ(QByteArray& model, const QVariantHash& mapping, 
                 mesh.vertices << v1;
                 meshPart.triangleIndices.append(mesh.vertices.count());
                 mesh.vertices << v2;
-                
+
                 glm::vec3 n0, n1, n2;
                 if (face.normalIndices.count()) {
                     n0 = normals[face.normalIndices[0]];
@@ -550,15 +526,48 @@ FBXGeometry* OBJReader::readOBJ(QByteArray& model, const QVariantHash& mapping, 
                 mesh.vertices[i] *= scaleGuess;
             }
         }
-            
+
         mesh.meshExtents.reset();
         foreach (const glm::vec3& vertex, mesh.vertices) {
             mesh.meshExtents.addPoint(vertex);
             geometry.meshExtents.addPoint(vertex);
         }
+
+        FBXReader::buildModelMesh(mesh, url.toString());
         // fbxDebugDump(geometry);
     } catch(const std::exception& e) {
         qCDebug(modelformat) << "OBJ reader fail: " << e.what();
+    }
+
+    foreach (QString materialID, materials.keys()) {
+        OBJMaterial& objMaterial = materials[materialID];
+        geometry.materials[materialID] = FBXMaterial(objMaterial.diffuseColor,
+                                                     objMaterial.specularColor,
+                                                     glm::vec3(0.0f),
+                                                     glm::vec2(0.0f, 1.0f),
+                                                     objMaterial.shininess,
+                                                     objMaterial.opacity);
+        FBXMaterial& fbxMaterial = geometry.materials[materialID];
+        fbxMaterial.materialID = materialID;
+        fbxMaterial._material = std::make_shared<model::Material>();
+        model::MaterialPointer modelMaterial = fbxMaterial._material;
+
+        if (!objMaterial.diffuseTextureFilename.isEmpty()) {
+            FBXTexture texture;
+            QUrl url = _url.resolved(QUrl(objMaterial.diffuseTextureFilename));
+            // TODO -- something to get textures working again
+        }
+
+        modelMaterial->setEmissive(fbxMaterial.emissiveColor);
+        modelMaterial->setDiffuse(fbxMaterial.diffuseColor);
+        modelMaterial->setMetallic(glm::length(fbxMaterial.specularColor));
+        modelMaterial->setGloss(fbxMaterial.shininess);
+
+        if (fbxMaterial.opacity <= 0.0f) {
+            modelMaterial->setOpacity(1.0f);
+        } else {
+            modelMaterial->setOpacity(fbxMaterial.opacity);
+        }
     }
 
     return geometryPtr;
@@ -591,15 +600,18 @@ void fbxDebugDump(const FBXGeometry& fbxgeo) {
         foreach (FBXMeshPart meshPart, mesh.parts) {
             qCDebug(modelformat) << "        quadIndices.count() =" << meshPart.quadIndices.count();
             qCDebug(modelformat) << "        triangleIndices.count() =" << meshPart.triangleIndices.count();
+   /*
             qCDebug(modelformat) << "        diffuseColor =" << meshPart.diffuseColor << "mat =" << meshPart._material->getDiffuse();
             qCDebug(modelformat) << "        specularColor =" << meshPart.specularColor << "mat =" << meshPart._material->getMetallic();
             qCDebug(modelformat) << "        emissiveColor =" << meshPart.emissiveColor << "mat =" << meshPart._material->getEmissive();
             qCDebug(modelformat) << "        emissiveParams =" << meshPart.emissiveParams;
             qCDebug(modelformat) << "        gloss =" << meshPart.shininess << "mat =" << meshPart._material->getGloss();
             qCDebug(modelformat) << "        opacity =" << meshPart.opacity << "mat =" << meshPart._material->getOpacity();
+            */
             qCDebug(modelformat) << "        materialID =" << meshPart.materialID;
-            qCDebug(modelformat) << "        diffuse texture =" << meshPart.diffuseTexture.filename;
+      /*      qCDebug(modelformat) << "        diffuse texture =" << meshPart.diffuseTexture.filename;
             qCDebug(modelformat) << "        specular texture =" << meshPart.specularTexture.filename;
+            */
         }
         qCDebug(modelformat) << "    clusters.count() =" << mesh.clusters.count();
         foreach (FBXCluster cluster, mesh.clusters) {

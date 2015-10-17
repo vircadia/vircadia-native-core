@@ -102,6 +102,8 @@ public:
 
     void relaxLean(float deltaTime);
     void addLeanDeltas(float sideways, float forward);
+
+    float getTimeWithoutTalking() const { return _timeWithoutTalking; }
     
 private:
     glm::vec3 calculateAverageEyePosition() const { return _leftEyePosition + (_rightEyePosition - _leftEyePosition ) * 0.5f; }

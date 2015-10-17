@@ -33,8 +33,8 @@ public:
 
     static const int DEFAULT_PERSIST_INTERVAL;
 
-    OctreePersistThread(Octree* tree, const QString& filename, int persistInterval = DEFAULT_PERSIST_INTERVAL, 
-                        bool wantBackup = false, const QJsonObject& settings = QJsonObject(), 
+    OctreePersistThread(OctreePointer tree, const QString& filename, int persistInterval = DEFAULT_PERSIST_INTERVAL,
+                        bool wantBackup = false, const QJsonObject& settings = QJsonObject(),
                         bool debugTimestampNow = false, QString persistAsFileType="svo");
 
     bool isInitialLoadComplete() const { return _initialLoadComplete; }
@@ -48,7 +48,7 @@ signals:
 protected:
     /// Implements generic processing behavior for this thread.
     virtual bool process();
-    
+
     void persist();
     void backup();
     void rollOldBackupVersions(const BackupRule& rule);
@@ -56,9 +56,9 @@ protected:
     bool getMostRecentBackup(const QString& format, QString& mostRecentBackupFileName, QDateTime& mostRecentBackupTime);
     quint64 getMostRecentBackupTimeInUsecs(const QString& format);
     void parseSettings(const QJsonObject& settings);
-    
+
 private:
-    Octree* _tree;
+    OctreePointer _tree;
     QString _filename;
     int _persistInterval;
     bool _initialLoadComplete;
@@ -69,7 +69,7 @@ private:
     quint64 _lastCheck;
     bool _wantBackup;
     QVector<BackupRule> _backupRules;
-    
+
     bool _debugTimestampNow;
     quint64 _lastTimeDebug;
 

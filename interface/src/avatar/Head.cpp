@@ -94,7 +94,7 @@ void Head::simulate(float deltaTime, bool isMine, bool billboard) {
         
         // Only use face trackers when not playing back a recording.
         if (!myAvatar->isPlaying()) {
-            FaceTracker* faceTracker = Application::getInstance()->getActiveFaceTracker();
+            FaceTracker* faceTracker = qApp->getActiveFaceTracker();
             _isFaceTrackerConnected = faceTracker != NULL && !faceTracker->isMuted();
             if (_isFaceTrackerConnected) {
                 _blendshapeCoefficients = faceTracker->getBlendshapeCoefficients();
@@ -124,14 +124,12 @@ void Head::simulate(float deltaTime, bool isMine, bool billboard) {
             _isEyeTrackerConnected = eyeTracker->isTracking();
         }
 
-        if (!myAvatar->getStandingHMDSensorMode()) {
-            //  Twist the upper body to follow the rotation of the head, but only do this with my avatar,
-            //  since everyone else will see the full joint rotations for other people.  
-            const float BODY_FOLLOW_HEAD_YAW_RATE = 0.1f;
-            const float BODY_FOLLOW_HEAD_FACTOR = 0.66f;
-            float currentTwist = getTorsoTwist();
-            setTorsoTwist(currentTwist + (getFinalYaw() * BODY_FOLLOW_HEAD_FACTOR - currentTwist) * BODY_FOLLOW_HEAD_YAW_RATE);
-        }
+        //  Twist the upper body to follow the rotation of the head, but only do this with my avatar,
+        //  since everyone else will see the full joint rotations for other people.  
+        const float BODY_FOLLOW_HEAD_YAW_RATE = 0.1f;
+        const float BODY_FOLLOW_HEAD_FACTOR = 0.66f;
+        float currentTwist = getTorsoTwist();
+        setTorsoTwist(currentTwist + (getFinalYaw() * BODY_FOLLOW_HEAD_FACTOR - currentTwist) * BODY_FOLLOW_HEAD_YAW_RATE);
     }
    
     if (!(_isFaceTrackerConnected || billboard)) {
@@ -158,10 +156,11 @@ void Head::simulate(float deltaTime, bool isMine, bool billboard) {
         bool forceBlink = false;
         const float TALKING_LOUDNESS = 100.0f;
         const float BLINK_AFTER_TALKING = 0.25f;
+        _timeWithoutTalking += deltaTime;
         if ((_averageLoudness - _longTermAverageLoudness) > TALKING_LOUDNESS) {
             _timeWithoutTalking = 0.0f;
         
-        } else if (_timeWithoutTalking < BLINK_AFTER_TALKING && (_timeWithoutTalking += deltaTime) >= BLINK_AFTER_TALKING) {
+        } else if (_timeWithoutTalking < BLINK_AFTER_TALKING && _timeWithoutTalking >= BLINK_AFTER_TALKING) {
             forceBlink = true;
         }
                                  
@@ -391,7 +390,7 @@ glm::quat Head::getCameraOrientation() const {
     // always the same.
     if (qApp->getAvatarUpdater()->isHMDMode()) {
         MyAvatar* myAvatar = dynamic_cast<MyAvatar*>(_owningAvatar);
-        if (myAvatar && myAvatar->getStandingHMDSensorMode()) {
+        if (myAvatar) {
             return glm::quat_cast(myAvatar->getSensorToWorldMatrix()) * myAvatar->getHMDSensorOrientation();
         } else {
             return getOrientation();
@@ -461,13 +460,10 @@ void Head::renderLookatTarget(RenderArgs* renderArgs, glm::vec3 lookatPosition) 
     auto& batch = *renderArgs->_batch;
     auto transform = Transform{};
     transform.setTranslation(lookatPosition);
-    batch.setModelTransform(transform);
 
     auto deferredLighting = DependencyManager::get<DeferredLightingEffect>();
-    deferredLighting->bindSimpleProgram(batch);
-
-    auto geometryCache = DependencyManager::get<GeometryCache>();
     const float LOOK_AT_TARGET_RADIUS = 0.075f;
+    transform.postScale(LOOK_AT_TARGET_RADIUS);
     const glm::vec4 LOOK_AT_TARGET_COLOR = { 0.8f, 0.0f, 0.0f, 0.75f };
-    geometryCache->renderSphere(batch, LOOK_AT_TARGET_RADIUS, 15, 15, LOOK_AT_TARGET_COLOR, true);
+    deferredLighting->renderSolidSphereInstance(batch, transform, LOOK_AT_TARGET_COLOR);
 }

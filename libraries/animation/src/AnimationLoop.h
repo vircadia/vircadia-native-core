@@ -21,7 +21,7 @@ public:
     AnimationLoop();
     AnimationLoop(const AnimationDetails& animationDetails);
     AnimationLoop(float fps, bool loop, bool hold, bool startAutomatically, float firstFrame, 
-                    float lastFrame, bool running, float frameIndex);
+                  float lastFrame, bool running, float currentFrame);
 
     void setFPS(float fps) { _fps = fps; }
     float getFPS() const { return _fps; }
@@ -41,19 +41,25 @@ public:
     void setLastFrame(float lastFrame) { _lastFrame = glm::clamp(lastFrame, 0.0f, MAXIMUM_POSSIBLE_FRAME); }
     float getLastFrame() const { return _lastFrame; }
     
+    /// by default the AnimationLoop will always reset to the first frame on any call to setRunning
+    /// this is not desirable in the case of entities with animations, if you don't want the reset
+    /// to happen then call this method with false;
+    void setResetOnRunning(bool resetOnRunning) { _resetOnRunning = resetOnRunning; }
     void setRunning(bool running);
-    bool isRunning() const { return _running; }
+    bool getRunning() const { return _running; }
 
-    void setFrameIndex(float frameIndex) { _frameIndex = glm::clamp(frameIndex, _firstFrame, _lastFrame); }
-    float getFrameIndex() const { return _frameIndex; }
+    void setCurrentFrame(float currentFrame) { _currentFrame = glm::clamp(currentFrame, _firstFrame, _lastFrame); }
+    float getCurrentFrame() const { return _currentFrame; }
 
     void setMaxFrameIndexHint(float value) { _maxFrameIndexHint = glm::clamp(value, 0.0f, MAXIMUM_POSSIBLE_FRAME); }
     float getMaxFrameIndexHint() const { return _maxFrameIndexHint; }
     
     void start() { setRunning(true); }
     void stop() { setRunning(false); }
-    void simulate(float deltaTime);
-    
+    void simulate(float deltaTime); /// call this with deltaTime if you as the caller are managing the delta time between calls
+
+    void simulateAtTime(quint64 now); /// call this with "now" if you want the animationLoop to handle delta times
+
 private:
     float _fps;
     bool _loop;
@@ -62,8 +68,10 @@ private:
     float _firstFrame;
     float _lastFrame;
     bool _running;
-    float _frameIndex;
+    float _currentFrame;
     float _maxFrameIndexHint;
+    bool _resetOnRunning;
+    quint64 _lastSimulated;
 };
 
 #endif // hifi_AnimationLoop_h

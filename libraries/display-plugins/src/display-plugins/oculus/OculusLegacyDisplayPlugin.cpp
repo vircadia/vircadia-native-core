@@ -59,11 +59,11 @@ void OculusLegacyDisplayPlugin::resetSensors() {
 #endif
 }
 
-glm::mat4 OculusLegacyDisplayPlugin::getEyePose(Eye eye) const {
+glm::mat4 OculusLegacyDisplayPlugin::getEyeToHeadTransform(Eye eye) const {
 #if (OVR_MAJOR_VERSION == 5)
     return toGlm(_eyePoses[eye]);
 #else
-    return WindowOpenGLDisplayPlugin::getEyePose(eye);
+    return WindowOpenGLDisplayPlugin::getEyeToHeadTransform(eye);
 #endif
 }
 
@@ -184,7 +184,10 @@ void OculusLegacyDisplayPlugin::activate() {
         }
     });
 
-    ovrBool result = ovrHmd_ConfigureRendering(_hmd, &config.Config, distortionCaps, _eyeFovs, _eyeRenderDescs);
+    #ifndef QT_NO_DEBUG
+    ovrBool result =
+    #endif
+        ovrHmd_ConfigureRendering(_hmd, &config.Config, distortionCaps, _eyeFovs, _eyeRenderDescs);
     Q_ASSERT(result);
 #endif
 }

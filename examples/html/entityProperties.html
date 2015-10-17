@@ -1,5 +1,6 @@
 <html>
 <head>
+    <title>Properties</title>
     <link rel="stylesheet" type="text/css" href="style.css">
     <link rel="stylesheet" type="text/css" href="css/colpick.css">
     <script src="jquery-2.1.4.min.js"></script>
@@ -9,6 +10,15 @@
         var DEGREES_TO_RADIANS = PI / 180.0;
         var RADIANS_TO_DEGREES = 180.0 / PI;
 
+        debugPrint = function(message) {
+            EventBridge.emitWebEvent(
+                JSON.stringify({
+                    type:"print", 
+                    message: message
+                })
+            );
+        };
+        
         function enableChildren(el, selector) {
             els = el.querySelectorAll(selector);
             for (var i = 0; i < els.length; i++) {
@@ -36,7 +46,7 @@
             };
         }
         function createEmitGroupCheckedPropertyUpdateFunction(group, propertyName) {
-            return function() {
+            return function () {
                 var properties = {};
                 properties[group] = {};
                 properties[group][propertyName] = this.checked;
@@ -281,7 +291,11 @@
             var elModelAnimationPlaying = document.getElementById("property-model-animation-playing");
             var elModelAnimationFPS = document.getElementById("property-model-animation-fps");
             var elModelAnimationFrame = document.getElementById("property-model-animation-frame");
-            var elModelAnimationSettings = document.getElementById("property-model-animation-settings");
+            var elModelAnimationFirstFrame = document.getElementById("property-model-animation-first-frame");
+            var elModelAnimationLastFrame = document.getElementById("property-model-animation-last-frame");
+            var elModelAnimationLoop = document.getElementById("property-model-animation-loop");
+            var elModelAnimationHold = document.getElementById("property-model-animation-hold");
+            var elModelAnimationStartAutomatically = document.getElementById("property-model-animation-start-automatically");
             var elModelTextures = document.getElementById("property-model-textures");
             var elModelOriginalTextures = document.getElementById("property-model-original-textures");
 
@@ -291,15 +305,12 @@
 
             var elParticleSections = document.querySelectorAll(".particle-section");
             allSections.push(elParticleSections);
+            var elParticleIsEmitting = document.getElementById("property-particle-is-emitting");
             var elParticleMaxParticles = document.getElementById("property-particle-maxparticles");
             var elParticleLifeSpan = document.getElementById("property-particle-lifespan");
             var elParticleEmitRate = document.getElementById("property-particle-emit-rate");
-            var elParticleEmitDirectionX = document.getElementById("property-particle-emit-direction-x");
-            var elParticleEmitDirectionY = document.getElementById("property-particle-emit-direction-y");
-            var elParticleEmitDirectionZ = document.getElementById("property-particle-emit-direction-z");
-            var elParticleEmitStrength = document.getElementById("property-particle-emit-strength");
-            var elParticleLocalGravity = document.getElementById("property-particle-localgravity");
             var elParticleRadius = document.getElementById("property-particle-radius");
+            var elParticleTextures = document.getElementById("property-particle-textures");
 
             var elTextSections = document.querySelectorAll(".text-section");
             allSections.push(elTextSections);
@@ -497,7 +508,7 @@
                                 elColorSection.style.display = 'none';
                             }
 
-                            if (properties.type == "Model" || properties.type == "ParticleEffect") {
+                            if (properties.type == "Model") {
                                 for (var i = 0; i < elModelSections.length; i++) {
                                     elModelSections[i].style.display = 'block';
                                 }
@@ -505,13 +516,17 @@
                                 elModelURL.value = properties.modelURL;
                                 elShapeType.value = properties.shapeType;
                                 elCompoundShapeURL.value = properties.compoundShapeURL;
-                                elModelAnimationURL.value = properties.animationURL;
-                                elModelAnimationPlaying.checked = properties.animationIsPlaying;
-                                elModelAnimationFPS.value = properties.animationFPS;
-                                elModelAnimationFrame.value = properties.animationFrameIndex;
-                                elModelAnimationSettings.value = properties.animationSettings;
+                                elModelAnimationURL.value = properties.animation.url;
+                                elModelAnimationPlaying.checked = properties.animation.running;
+                                elModelAnimationFPS.value = properties.animation.fps;
+                                elModelAnimationFrame.value = properties.animation.currentFrame;
+                                elModelAnimationFirstFrame.value = properties.animation.firstFrame;
+                                elModelAnimationLastFrame.value = properties.animation.lastFrame;
+                                elModelAnimationLoop.checked = properties.animation.loop;
+                                elModelAnimationHold.checked = properties.animation.hold;
+                                elModelAnimationStartAutomatically.checked = properties.animation.startAutomatically;
                                 elModelTextures.value = properties.textures;
-                                elModelOriginalTextures.value = properties.originalTextures;  
+                                elModelOriginalTextures.value = properties.originalTextures;
                             } else if (properties.type == "Web") {
                                 for (var i = 0; i < elWebSections.length; i++) {
                                     elWebSections[i].style.display = 'block';
@@ -599,15 +614,13 @@
                                     elParticleSections[i].style.display = 'block';
                                 }
 
+                                elParticleIsEmitting.checked = properties.isEmitting;
                                 elParticleMaxParticles.value = properties.maxParticles;
                                 elParticleLifeSpan.value = properties.lifespan.toFixed(2);
                                 elParticleEmitRate.value = properties.emitRate.toFixed(1);
-                                elParticleEmitDirectionX.value = properties.emitDirection.x.toFixed(2);
-                                elParticleEmitDirectionY.value = properties.emitDirection.y.toFixed(2);
-                                elParticleEmitDirectionZ.value = properties.emitDirection.z.toFixed(2);
-                                elParticleEmitStrength.value = properties.emitStrength.toFixed(2);
-                                elParticleLocalGravity.value = properties.localGravity.toFixed(2);
                                 elParticleRadius.value = properties.particleRadius.toFixed(3);
+                                elParticleTextures.value = properties.textures;
+
                             } else if (properties.type == "PolyVox") {
                                 for (var i = 0; i < elPolyVoxSections.length; i++) {
                                     elPolyVoxSections[i].style.display = 'block';
@@ -740,26 +753,27 @@
 
             elWebSourceURL.addEventListener('change', createEmitTextPropertyUpdateFunction('sourceUrl'));
 
+            elParticleIsEmitting.addEventListener('change', createEmitCheckedPropertyUpdateFunction('isEmitting'));
             elParticleMaxParticles.addEventListener('change', createEmitNumberPropertyUpdateFunction('maxParticles'));
             elParticleLifeSpan.addEventListener('change', createEmitNumberPropertyUpdateFunction('lifespan'));
             elParticleEmitRate.addEventListener('change', createEmitNumberPropertyUpdateFunction('emitRate'));
-            var particleEmitDirectionChangeFunction = createEmitVec3PropertyUpdateFunctionWithMultiplier(
-                'emitDirection', elParticleEmitDirectionX, elParticleEmitDirectionY, elParticleEmitDirectionZ, DEGREES_TO_RADIANS);
-            elParticleEmitDirectionX.addEventListener('change', particleEmitDirectionChangeFunction);
-            elParticleEmitDirectionY.addEventListener('change', particleEmitDirectionChangeFunction);
-            elParticleEmitDirectionZ.addEventListener('change', particleEmitDirectionChangeFunction);
-            elParticleEmitStrength.addEventListener('change', createEmitNumberPropertyUpdateFunction('emitStrength'));
-            elParticleLocalGravity.addEventListener('change', createEmitNumberPropertyUpdateFunction('localGravity'));
             elParticleRadius.addEventListener('change', createEmitNumberPropertyUpdateFunction('particleRadius'));
+            elParticleTextures.addEventListener('change', createEmitTextPropertyUpdateFunction('textures'));
 
             elModelURL.addEventListener('change', createEmitTextPropertyUpdateFunction('modelURL'));
             elShapeType.addEventListener('change', createEmitTextPropertyUpdateFunction('shapeType'));
             elCompoundShapeURL.addEventListener('change', createEmitTextPropertyUpdateFunction('compoundShapeURL'));
-            elModelAnimationURL.addEventListener('change', createEmitTextPropertyUpdateFunction('animationURL'));
-            elModelAnimationPlaying.addEventListener('change', createEmitCheckedPropertyUpdateFunction('animationIsPlaying'));
-            elModelAnimationFPS.addEventListener('change', createEmitNumberPropertyUpdateFunction('animationFPS'));
-            elModelAnimationFrame.addEventListener('change', createEmitNumberPropertyUpdateFunction('animationFrameIndex'));
-            elModelAnimationSettings.addEventListener('change', createEmitTextPropertyUpdateFunction('animationSettings'));
+
+            elModelAnimationURL.addEventListener('change', createEmitGroupTextPropertyUpdateFunction('animation', 'url'));
+            elModelAnimationPlaying.addEventListener('change', createEmitGroupCheckedPropertyUpdateFunction('animation','running'));
+            elModelAnimationFPS.addEventListener('change', createEmitGroupNumberPropertyUpdateFunction('animation','fps'));
+            elModelAnimationFrame.addEventListener('change', createEmitGroupNumberPropertyUpdateFunction('animation', 'currentFrame'));
+            elModelAnimationFirstFrame.addEventListener('change', createEmitGroupNumberPropertyUpdateFunction('animation', 'firstFrame'));
+            elModelAnimationLastFrame.addEventListener('change', createEmitGroupNumberPropertyUpdateFunction('animation', 'lastFrame'));
+            elModelAnimationLoop.addEventListener('change', createEmitGroupCheckedPropertyUpdateFunction('animation', 'loop'));
+            elModelAnimationHold.addEventListener('change', createEmitGroupCheckedPropertyUpdateFunction('animation', 'hold'));
+            elModelAnimationStartAutomatically.addEventListener('change', createEmitGroupCheckedPropertyUpdateFunction('animation', 'startAutomatically'));
+
             elModelTextures.addEventListener('change', createEmitTextPropertyUpdateFunction('textures'));
 
             elTextText.addEventListener('change', createEmitTextPropertyUpdateFunction('text'));
@@ -961,7 +975,7 @@
         </div>
         <div id="id" class="property">
             <span class="label" style="float: left; margin-right: 6px">
-                <label>ID: <label>
+                <label>ID: </label>
             </span>
             <div class="value">
                 <span id="property-id" class="selectable"></span>
@@ -970,7 +984,7 @@
         <div class="property">
             <span class="label" style="float: left; margin-right: 6px">Name</span>
             <div class="value" style="overflow: hidden;">
-                <input type="text" id="property-name"></input>
+                <input type="text" id="property-name">
             </div>
         </div>
 
@@ -1003,13 +1017,13 @@
         <div class="property">
             <div class="label">Href</div>
             <div class="value">
-                <input id="property-hyperlink-href" class="url"></input>
+                <input id="property-hyperlink-href" class="url">
             </div>
         </div>
         <div class="property">
             <div class="label">Description</div>
             <div class="value">
-                <input id="property-hyperlink-description" class="url"></input>
+                <input id="property-hyperlink-description" class="url">
             </div>
         </div>
 
@@ -1021,9 +1035,9 @@
         <div class="property">
             <div class="label">Position</div>
             <div class="value">
-                <div class="input-area">X <br><input class="coord" type='number' id="property-pos-x"></input></div>
-                <div class="input-area">Y <br><input class="coord" type='number' id="property-pos-y"></input></div>
-                <div class="input-area">Z <br><input class="coord" type='number' id="property-pos-z"></input></div>
+                <div class="input-area ">X<input class="coord" type='number' id="property-pos-x"><div class="prop-x"></div></div>
+                <div class="input-area ">Y<input class="coord" type='number' id="property-pos-y"><div class="prop-y"></div></div>
+                <div class="input-area ">Z<input class="coord" type='number' id="property-pos-z"><div class="prop-z"></div></div>
                 <div>
                     <input type="button" id="move-selection-to-grid" value="Selection to Grid">
                     <input type="button" id="move-all-to-grid" value="All to Grid">
@@ -1034,26 +1048,26 @@
         <div class="property">
             <div class="label">Registration</div>
             <div class="value">
-                <div class="input-area">X <input class="coord" type='number' id="property-reg-x"></input></div>
-                <div class="input-area">Y <input class="coord" type='number' id="property-reg-y"></input></div>
-                <div class="input-area">Z <input class="coord" type='number' id="property-reg-z"></input></div>
+                <div class="input-area">X <input class="coord" type='number' id="property-reg-x"><div class="prop-x"></div></div>
+                <div class="input-area">Y <input class="coord" type='number' id="property-reg-y"><div class="prop-y"></div></div>
+                <div class="input-area">Z <input class="coord" type='number' id="property-reg-z"><div class="prop-z"></div></div>
             </div>
         </div>
 
         <div class="property">
             <div class="label">Dimensions</div>
             <div class="value">
-                <div class="input-area">X <input class="coord" type='number' id="property-dim-x"></input></div>
-                <div class="input-area">Y <input class="coord" type='number' id="property-dim-y"></input></div>
-                <div class="input-area">Z <input class="coord" type='number' id="property-dim-z"></input></div>
+                <div class="input-area">X <input class="coord" type='number' id="property-dim-x"><div class="prop-x"></div></div>
+                <div class="input-area">Y <input class="coord" type='number' id="property-dim-y"><div class="prop-y"></div></div>
+                <div class="input-area">Z <input class="coord" type='number' id="property-dim-z"><div class="prop-z"></div></div>
                 <div>
                     <input type="button" id="reset-to-natural-dimensions" value="Reset to Natural Dimensions">
                 </div>
                 <div class="input-area">
-                    <input class="" type='number' id="dimension-rescale-pct" value=100></input>%
+                    <input class="" type='number' id="dimension-rescale-pct" value=100>%
                 </div>
                 <span>
-                    <input type="button" id="dimension-rescale-button" value="Rescale"></input>
+                    <input type="button" id="dimension-rescale-button" value="Rescale">
                 </span>
             </div>
         </div>
@@ -1061,9 +1075,9 @@
         <div class="poly-vox-section property">
             <div class="label">Voxel Volume Size</div>
             <div class="value">
-              <div class="input-area">X <br> <input class="coord" type='number' id="property-voxel-volume-size-x"></input></div>
-              <div class="input-area">Y <br><input class="coord" type='number' id="property-voxel-volume-size-y"></input></div>
-              <div class="input-area">Z <br><input class="coord" type='number' id="property-voxel-volume-size-z"></input></div>
+              <div class="input-area">X <br> <input class="coord" type='number' id="property-voxel-volume-size-x"></div>
+              <div class="input-area">Y <br><input class="coord" type='number' id="property-voxel-volume-size-y"></div>
+              <div class="input-area">Z <br><input class="coord" type='number' id="property-voxel-volume-size-z"></div>
             </div>
 
             <div class="label">Surface Extractor</div>
@@ -1078,26 +1092,26 @@
 
             <div class="label">X-axis Texture URL</div>
             <div class="value">
-              <input type="text" id="property-x-texture-url" class="url"></input>
+              <input type="text" id="property-x-texture-url" class="url">
             </div>
 
             <div class="label">Y-axis Texture URL</div>
             <div class="value">
-              <input type="text" id="property-y-texture-url" class="url"></input>
+              <input type="text" id="property-y-texture-url" class="url">
             </div>
 
             <div class="label">Z-axis Texture URL</div>
             <div class="value">
-              <input type="text" id="property-z-texture-url" class="url"></input>
+              <input type="text" id="property-z-texture-url" class="url">
             </div>
         </div>
 
         <div class="property">
             <div class="label">Rotation</div>
             <div class="value">
-                <div class="input-area">Pitch <input class="coord" type='number' id="property-rot-x"></input></div>
-                <div class="input-area">Yaw <input class="coord" type='number' id="property-rot-y"></input></div>
-                <div class="input-area">Roll <input class="coord" type='number' id="property-rot-z"></input></div>
+                <div class="input-area">Pitch <input class="coord" type='number' id="property-rot-x"></div>
+                <div class="input-area">Yaw <input class="coord" type='number' id="property-rot-y"></div>
+                <div class="input-area">Roll <input class="coord" type='number' id="property-rot-z"></div>
             </div>
         </div>
 
@@ -1109,66 +1123,66 @@
         <div class="property">
             <div class="label">Linear Velocity</div>
             <div class="value">
-                <div class="input-area">X <input class="coord" type='number' id="property-lvel-x"></input></div>
-                <div class="input-area">Y <input class="coord" type='number' id="property-lvel-y"></input></div>
-                <div class="input-area">Z <input class="coord" type='number' id="property-lvel-z"></input></div>
+                <div class="input-area">X <input class="coord" type='number' id="property-lvel-x"><div class="prop-x"></div></div>
+                <div class="input-area">Y <input class="coord" type='number' id="property-lvel-y"><div class="prop-y"></div></div>
+                <div class="input-area">Z <input class="coord" type='number' id="property-lvel-z"><div class="prop-z"></div></div>
             </div>
         </div>
         <div class="property">
             <div class="label">Linear Damping</div>
             <div class="value">
-                <input class="coord" type='number' id="property-ldamping"></input>
+                <input class="coord" type='number' id="property-ldamping">
             </div>
         </div>
         <div class="property">
             <div class="label">Angular Velocity</div>
             <div class="value">
-                <div class="input-area">Pitch <input class="coord" type='number' id="property-avel-x"></input></div>
-                <div class="input-area">Yaw <input class="coord" type='number' id="property-avel-y"></input></div>
-                <div class="input-area">Roll <input class="coord" type='number' id="property-avel-z"></input></div>
+                <div class="input-area">Pitch <input class="coord" type='number' id="property-avel-x"></div>
+                <div class="input-area">Yaw <input class="coord" type='number' id="property-avel-y"></div>
+                <div class="input-area">Roll <input class="coord" type='number' id="property-avel-z"></div>
             </div>
         </div>
         <div class="property">
             <div class="label">Angular Damping</div>
             <div class="value">
-                <input class="coord" type='number' id="property-adamping"></input>
+                <input class="coord" type='number' id="property-adamping">
             </div>
         </div>
         <div class="property">
             <div class="label">Restitution</div>
             <div class="value">
-                <input class="coord" type='number' id="property-restitution"></input>
+                <input class="coord" type='number' id="property-restitution">
             </div>
         </div>
         <div class="property">
             <div class="label">Friction</div>
             <div class="value">
-                <input class="coord" type='number' id="property-friction"></input>
+                <input class="coord" type='number' id="property-friction">
             </div>
         </div>
 
         <div class="property">
             <div class="label">Gravity</div>
             <div class="value">
-                <div class="input-area">X <input class="coord" type='number' id="property-grav-x"></input></div>
-                <div class="input-area">Y <input class="coord" type='number' id="property-grav-y"></input></div>
-                <div class="input-area">Z <input class="coord" type='number' id="property-grav-z"></input></div>
+                <div class="input-area">X <input class="coord" type='number' id="property-grav-x"><div class="prop-x"></div></div>
+                <div class="input-area">Y <input class="coord" type='number' id="property-grav-y"><div class="prop-y"></div></div>
+                <div class="input-area">Z <input class="coord" type='number' id="property-grav-z"><div class="prop-z"></div></div>
             </div>
         </div>
 
         <div class="property">
             <div class="label">Acceleration</div>
             <div class="value">
-                <div class="input-area">X <input class="coord" type='number' id="property-lacc-x"></input></div>
-                <div class="input-area">Y <input class="coord" type='number' id="property-lacc-y"></input></div>
-                <div class="input-area">Z <input class="coord" type='number' id="property-lacc-z"></input></div>
+                <div class="input-area">X <input class="coord" type='number' id="property-lacc-x"><div class="prop-x"></div></div>
+                <div class="input-area">Y <input class="coord" type='number' id="property-lacc-y"><div class="prop-y"></div></div>
+                <div class="input-area">Z <input class="coord" type='number' id="property-lacc-z"><div class="prop-z"></div></div>
             </div>
         </div>
 
         <div class="property">
             <div class="label">Density</div>
             <div>
-                <input type='number' id="property-density"></input>
+                <input type='number' id="property-density">
             </div>
         </div>
 
@@ -1176,9 +1190,9 @@
             <div class="label">Color</div>
             <div class="value">
                 <div id="property-color" class='color-picker'></div>
-                <div class="input-area">R <input class="coord" type='number' id="property-color-red"></input></div>
-                <div class="input-area">G <input class="coord" type='number' id="property-color-green"></input></div>
-                <div class="input-area">B <input class="coord" type='number' id="property-color-blue"></input></div>
+                <div class="input-area">R <input class="coord" type='number' id="property-color-red"></div>
+                <div class="input-area">G <input class="coord" type='number' id="property-color-green"></div>
+                <div class="input-area">B <input class="coord" type='number' id="property-color-blue"></div>
             </div>
         </div>
 
@@ -1190,38 +1204,38 @@
         <div class="property">
             <span class="label">Ignore For Collisions</span>
             <span class="value">
-                <input type='checkbox' id="property-ignore-for-collisions"></input>
+                <input type='checkbox' id="property-ignore-for-collisions">
             </span>
         </div>
 
         <div class="property">
             <span class="label">Collisions Will Move</span>
             <span class="value">
-                <input type='checkbox' id="property-collisions-will-move"></input>
+                <input type='checkbox' id="property-collisions-will-move">
             </span>
         </div>
 
         <div class="property">
             <div class="label">Collision Sound URL</div>
             <div class="value">
-                <input id="property-collision-sound-url" class="url"></input>
+                <input id="property-collision-sound-url" class="url">
             </div>
         </div>
 
         <div class="property">
             <div class="label">Lifetime</div>
             <div class="value">
-                <input type='number' id="property-lifetime"></input>
+                <input type='number' id="property-lifetime">
             </div>
         </div>
 
         <div class="property">
             <div class="label">Script URL
-                <input type="hidden" id="property-script-timestamp" class="value"></input>
-                <input type="button" id="reload-script-button" value="Reload"></input>
+                <input type="hidden" id="property-script-timestamp" class="value">
+                <input type="button" id="reload-script-button" value="Reload">
             </div>
             <div class="value">
-                <input id="property-script-url" class="url"></input>
+                <input id="property-script-url" class="url">
             </div>
         </div>
 
@@ -1233,14 +1247,14 @@
         <div class="model-section property">
             <div class="label">Model URL</div>
             <div class="value">
-                <input type="text" id="property-model-url" class="url"></input>
+                <input type="text" id="property-model-url" class="url">
             </div>
         </div>
 
         <div class="model-section zone-section property">
             <div class="label">Shape Type</div>
             <div class="value">
-                <select name="SelectShapeType" id="property-shape-type" name="SelectShapeType">
+                <select name="SelectShapeType" id="property-shape-type">
                     <option value='none'>none</option>
                     <option value='box'>box</option>
                     <option value='sphere'>sphere</option>
@@ -1251,13 +1265,13 @@
         <div class="model-section zone-section property">
             <div class="label">Compound Shape URL</div>
             <div class="value">
-                <input type="text" id="property-compound-shape-url" class="url"></input>
+                <input type="text" id="property-compound-shape-url" class="url">
             </div>
         </div>
         <div class="model-section property">
             <div class="label">Animation URL</div>
             <div class="value">
-                <input type="text" id="property-model-animation-url" class="url"></input>
+                <input type="text" id="property-model-animation-url" class="url">
             </div>
         </div>
         <div class="model-section property">
@@ -1269,31 +1283,55 @@
         <div class="model-section property">
             <div class="label">Animation FPS</div>
             <div class="value">
-                <input class="coord" type='number' id="property-model-animation-fps"></input>
+                <input class="coord" type='number' id="property-model-animation-fps">
             </div>
         </div>
         <div class="model-section property">
             <div class="label">Animation Frame</div>
             <div class="value">
-                <input class="coord" type='number' id="property-model-animation-frame"></input>
+                <input class="coord" type='number' id="property-model-animation-frame">
             </div>
         </div>
         <div class="model-section property">
-            <div class="label">Animation Settings</div>
+            <div class="label">Animation First Frame</div>
             <div class="value">
-                <textarea id="property-model-animation-settings"></textarea>
+                <input class="coord" type='number' id="property-model-animation-first-frame">
             </div>
+        </div>
+        <div class="model-section property">
+            <div class="label">Animation Last Frame</div>
+            <div class="value">
+                <input class="coord" type='number' id="property-model-animation-last-frame">
+            </div>
+        </div>
+        <div class="model-section property">
+            <span class="label">Animation Loop</span>
+            <span class="value">
+                <input type='checkbox' id="property-model-animation-loop">
+            </span>
+        </div>
+        <div class="model-section property">
+            <span class="label">Animation Hold</span>
+            <span class="value">
+                <input type='checkbox' id="property-model-animation-hold">
+            </span>
+        </div>
+        <div class="model-section property">
+            <span class="label">Animation Start Automatically</span>
+            <span class="value">
+                <input type='checkbox' id="property-model-animation-start-automatically">
+            </span>
         </div>
         <div class="model-section property">
             <div class="label">Textures</div>
             <div class="value">
-                <textarea id="property-model-textures" value='asdfasdf'></textarea>
+                <textarea id="property-model-textures" value=''></textarea>
             </div>
         </div>
         <div class="model-section property">
             <div class="label">Original Textures</div>
             <div class="value">
-                <textarea id="property-model-original-textures" readonly value='asdfasdf'></textarea>
+                <textarea id="property-model-original-textures" readonly value=''></textarea>
             </div>
         </div>
 
@@ -1305,7 +1343,7 @@
         <div class="web-section property">
             <div class="label">Source URL</div>
             <div class="value">
-                <input type="text" id="property-web-source-url" class="url"></input>
+                <input type="text" id="property-web-source-url" class="url">
             </div>
         </div>
 
@@ -1315,47 +1353,39 @@
         </div>
 
         <div class="particle-section property">
+            <span class="label">Is Emitting</span>
+            <span class="value">
+                <input type='checkbox' id="property-particle-is-emitting">
+            </span>
+        </div>
+        <div class="particle-section property">
             <div class="label">Max Particles</div>
             <div class="value">
-                <input type='number' id="property-particle-maxparticles" min="0" max="2048" step="1"></input>
+                <input type='number' id="property-particle-maxparticles" min="0" max="2048" step="1">
             </div>
         </div>
         <div class="particle-section property">
             <div class="label">Particle Life Span</div>
             <div class="value">
-                <input type='number' id="property-particle-lifespan" min="0" step="0.1"></input>
+                <input type='number' id="property-particle-lifespan" min="0" step="0.1">
             </div>
         </div>
         <div class="particle-section property">
             <div class="label">Particle Emission Rate</div>
             <div class="value">
-                <input type='number' id="property-particle-emit-rate" min="0" step="0.5"></input>
-            </div>
-        </div>
-        <div class="particle-section property">
-            <div class="label">Particle Emission Direction</div>
-            <div class="value">
-                <div class="input-area">X <input class="coord" type='number' id="property-particle-emit-direction-x"></input></div>
-                <div class="input-area">Y <input class="coord" type='number' id="property-particle-emit-direction-y"></input></div>
-                <div class="input-area">Z <input class="coord" type='number' id="property-particle-emit-direction-z"></input></div>
-            </div>
-        </div>
-        <div class="particle-section property">
-            <div class="label">Particle Emission Strength</div>
-            <div class="value">
-                <input type='number' id="property-particle-emit-strength" min="0" step="0.1"></input>
-            </div>
-        </div>
-        <div class="particle-section property">
-            <div class="label">Particle Local Gravity</div>
-            <div class="value">
-                <input class="coord" type='number' id="property-particle-localgravity" step="0.05"></input>
+                <input type='number' id="property-particle-emit-rate" min="0" step="0.5">
             </div>
         </div>
         <div class="particle-section property">
             <div class="label">Particle Radius</div>
             <div class="value">
-                <input  class="coord" type='number' id="property-particle-radius" min="0" step="0.005"></input>
+                <input class="coord" type='number' id="property-particle-radius" min="0" step="0.005">
+            </div>
+        </div>
+        <div class="particle-section property">
+            <div class="label">Textures</div>
+            <div class="value">
+                <textarea id="property-particle-textures" value=''></textarea>
             </div>
         </div>
 
@@ -1367,31 +1397,31 @@
         <div class="text-section property">
             <div class="label">Text Content</div>
             <div class="value">
-                <input type="text" id="property-text-text"></input>
+                <input type="text" id="property-text-text">
             </div>
         </div>
         <div class="text-section property">
             <div class="label">Line Height</div>
             <div class="value">
-                <input class="coord" type='number' id="property-text-line-height" min="0" step="0.005"></input>
+                <input class="coord" type='number' id="property-text-line-height" min="0" step="0.005">
             </div>
         </div>
         <div class="text-section property">
             <div class="label">Text Color</div>
             <div class="value">
                 <div class='color-picker' id="property-text-text-color"></div>
-                <div class="input-area">R <input class="coord" type='number' id="property-text-text-color-red"></input></div>
-                <div class="input-area">G <input class="coord" type='number' id="property-text-text-color-green"></input></div>
-                <div class="input-area">B <input class="coord" type='number' id="property-text-text-color-blue"></input></div>
+                <div class="input-area">R <input class="coord" type='number' id="property-text-text-color-red"></div>
+                <div class="input-area">G <input class="coord" type='number' id="property-text-text-color-green"></div>
+                <div class="input-area">B <input class="coord" type='number' id="property-text-text-color-blue"></div>
             </div>
         </div>
         <div class="text-section property">
             <div class="label">Background Color</div>
             <div class="value">
                 <div class='color-picker' id="property-text-background-color"></div>
-                <div class="input-area">R <input class="coord" type='number' id="property-text-background-color-red"></input></div>
-                <div class="input-area">G <input class="coord" type='number' id="property-text-background-color-green"></input></div>
-                <div class="input-area">B <input class="coord" type='number' id="property-text-background-color-blue"></input></div>
+                <div class="input-area">R <input class="coord" type='number' id="property-text-background-color-red"></div>
+                <div class="input-area">G <input class="coord" type='number' id="property-text-background-color-green"></div>
+                <div class="input-area">B <input class="coord" type='number' id="property-text-background-color-blue"></div>
             </div>
         </div>
 
@@ -1410,27 +1440,27 @@
             <div class="label">Color</div>
             <div class="value">
                 <div class='color-picker' id="property-light-color"></div>
-                <div class="input-area">R <input class="coord" type='number' id="property-light-color-red"></input></div>
-                <div class="input-area">G <input class="coord" type='number' id="property-light-color-green"></input></div>
-                <div class="input-area">B <input class="coord" type='number' id="property-light-color-blue"></input></div>
+                <div class="input-area">R <input class="coord" type='number' id="property-light-color-red"></div>
+                <div class="input-area">G <input class="coord" type='number' id="property-light-color-green"></div>
+                <div class="input-area">B <input class="coord" type='number' id="property-light-color-blue"></div>
             </div>
         </div>
         <div class="light-section property">
             <div class="label">Intensity</div>
             <div class="value">
-                <input class="coord" type='number' id="property-light-intensity"></input>
+                <input class="coord" type='number' id="property-light-intensity">
             </div>
         </div>
         <div class="light-section property">
             <div class="label">Spot Light Exponent</div>
             <div class="value">
-                <input class="coord" type='number' id="property-light-exponent"></input>
+                <input class="coord" type='number' id="property-light-exponent">
             </div>
         </div>
         <div class="light-section property">
             <div class="label">Spot Light Cutoff (degrees)</div>
             <div class="value">
-                <input class="coord" type='number' id="property-light-cutoff"></input>
+                <input class="coord" type='number' id="property-light-cutoff">
             </div>
         </div>
 
@@ -1450,48 +1480,48 @@
             <div class="label">Key Light Color</div>
             <div class="value">
                 <div class='color-picker' id="property-zone-key-light-color"></div>
-                <div class="input-area">R <input class="coord" type='number' id="property-zone-key-light-color-red" min="0" max="255" step="1"></input></div>
-                <div class="input-area">G <input class="coord" type='number' id="property-zone-key-light-color-green" min="0" max="255" step="1"></input></div>
-                <div class="input-area">B <input class="coord" type='number' id="property-zone-key-light-color-blue" min="0" max="255" step="1"></input></div>
+                <div class="input-area">R <input class="coord" type='number' id="property-zone-key-light-color-red" min="0" max="255" step="1"></div>
+                <div class="input-area">G <input class="coord" type='number' id="property-zone-key-light-color-green" min="0" max="255" step="1"></div>
+                <div class="input-area">B <input class="coord" type='number' id="property-zone-key-light-color-blue" min="0" max="255" step="1"></div>
             </div>
         </div>
         <div class="zone-section property">
             <div class="label">Key Light Intensity</div>
             <div class="value">
-                <input class="coord" type='number' id="property-zone-key-intensity" min="0" max="10" step="0.1"></input>
+                <input class="coord" type='number' id="property-zone-key-intensity" min="0" max="10" step="0.1">
             </div>
         </div>
         <div class="zone-section property">
             <div class="label">Key Light Ambient Intensity</div>
             <div class="value">
-                <input class="coord" type='number' id="property-zone-key-ambient-intensity" min="0" max="10" step="0.1"></input>
+                <input class="coord" type='number' id="property-zone-key-ambient-intensity" min="0" max="10" step="0.1">
             </div>
         </div>
         <div class="zone-section property">
             <div class="label">Key Light Direction</div>
             <div class="value">
-                <div class="input-area">Pitch <input class="coord" type='number' id="property-zone-key-light-direction-x"></input></div>
-                <div class="input-area">Yaw <input class="coord" type='number' id="property-zone-key-light-direction-y"></input></div>
-                <div class="input-area">Roll <input class="coord" type='number' id="property-zone-key-light-direction-z"></input></div>
+                <div class="input-area">Pitch <input class="coord" type='number' id="property-zone-key-light-direction-x"></div>
+                <div class="input-area">Yaw <input class="coord" type='number' id="property-zone-key-light-direction-y"></div>
+                <div class="input-area">Roll <input class="coord" type='number' id="property-zone-key-light-direction-z"></div>
             </div>
         </div>
 
         <div class="zone-section property">
             <div class="label">Stage Latitude</div>
             <div class="value">
-                <input class="coord" type='number' id="property-zone-stage-latitude" min="-90" max="90" step="1"></input>
+                <input class="coord" type='number' id="property-zone-stage-latitude" min="-90" max="90" step="1">
             </div>
         </div>
         <div class="zone-section property">
             <div class="label">Stage Longitude</div>
             <div class="value">
-                <input class="coord" type='number' id="property-zone-stage-longitude" min="-180" max="180" step="1"></input>
+                <input class="coord" type='number' id="property-zone-stage-longitude" min="-180" max="180" step="1">
             </div>
         </div>
         <div class="zone-section property">
             <div class="label">Stage Altitude</div>
             <div class="value">
-                <input class="coord" type='number' id="property-zone-stage-altitude" step="1"></input>
+                <input class="coord" type='number' id="property-zone-stage-altitude" step="1">
             </div>
         </div>
 
@@ -1505,20 +1535,20 @@
         <div class="zone-section property">
             <div class="label">Stage Day</div>
             <div class="value">
-                <input class="coord" type='number' id="property-zone-stage-day" min="0" max="365" step="1"></input>
+                <input class="coord" type='number' id="property-zone-stage-day" min="0" max="365" step="1">
             </div>
         </div>
         <div class="zone-section property">
             <div class="label">Stage Hour</div>
             <div class="value">
-                <input class="coord" type='number' id="property-zone-stage-hour" min="0" max="24" step="0.5"></input>
+                <input class="coord" type='number' id="property-zone-stage-hour" min="0" max="24" step="0.5">
             </div>
         </div>
 
         <div class="zone-section property">
             <div class="label">Background Mode</div>
             <div class="value">
-                <select name="SelectBackgroundMode" id="property-zone-background-mode" name="SelectBackgroundMode">
+                <select name="SelectBackgroundMode" id="property-zone-background-mode">
                     <option value='inherit'>Nothing</option>
                     <option value='skybox'>Skybox</option>
                     <option value='atmosphere'>Atmosphere</option>
@@ -1535,15 +1565,15 @@
             <div class="label">Skybox Color</div>
             <div class="value">
                 <div class='color-picker' id="property-zone-skybox-color"></div>
-                <div class="input-area">R <input class="coord" type='number' id="property-zone-skybox-color-red"></input></div>
-                <div class="input-area">G <input class="coord" type='number' id="property-zone-skybox-color-green"></input></div>
-                <div class="input-area">B <input class="coord" type='number' id="property-zone-skybox-color-blue"></input></div>
+                <div class="input-area">R <input class="coord" type='number' id="property-zone-skybox-color-red"></div>
+                <div class="input-area">G <input class="coord" type='number' id="property-zone-skybox-color-green"></div>
+                <div class="input-area">B <input class="coord" type='number' id="property-zone-skybox-color-blue"></div>
             </div>
         </div>
         <div class="zone-section skybox-section property">
             <div class="label">Skybox URL</div>
             <div class="value">
-                <input type="text" id="property-zone-skybox-url" class="url"></input>
+                <input type="text" id="property-zone-skybox-url" class="url">
             </div>
         </div>
 
@@ -1555,9 +1585,9 @@
         <div class="zone-section atmosphere-section property">
             <div class="label">Atmosphere Center</div>
             <div class="value">
-                <div class="input-area">X <br><input class="coord" type='number' id="property-zone-atmosphere-center-x"></input></div>
-                <div class="input-area">Y <br><input class="coord" type='number' id="property-zone-atmosphere-center-y"></input></div>
-                <div class="input-area">Z <br><input class="coord" type='number' id="property-zone-atmosphere-center-z"></input></div>
+                <div class="input-area">X <br><input class="coord" type='number' id="property-zone-atmosphere-center-x"></div>
+                <div class="input-area">Y <br><input class="coord" type='number' id="property-zone-atmosphere-center-y"></div>
+                <div class="input-area">Z <br><input class="coord" type='number' id="property-zone-atmosphere-center-z"></div>
                 <div>
                     <input type="button" id="center-atmosphere-in-zone" value="Center to Zone">
                 </div>
@@ -1566,33 +1596,33 @@
         <div class="zone-section atmosphere-section property">
             <div class="label">Atmosphere Inner Radius</div>
             <div class="value">
-                <input class="coord" type='number' id="property-zone-atmosphere-inner-radius" step="1"></input>
+                <input class="coord" type='number' id="property-zone-atmosphere-inner-radius" step="1">
             </div>
         </div>
         <div class="zone-section atmosphere-section property">
             <div class="label">Atmosphere Outer Radius</div>
             <div class="value">
-                <input class="coord" type='number' id="property-zone-atmosphere-outer-radius" step="1"></input>
+                <input class="coord" type='number' id="property-zone-atmosphere-outer-radius" step="1">
             </div>
         </div>
         <div class="zone-section atmosphere-section property">
             <div class="label">Atmosphere Mie Scattering</div>
             <div class="value">
-                <input class="coord no-spin" type='number' id="property-zone-atmosphere-mie-scattering" min="0" max="0.5" step="any"></input>
+                <input class="coord no-spin" type='number' id="property-zone-atmosphere-mie-scattering" min="0" max="0.5" step="any">
             </div>
         </div>
         <div class="zone-section atmosphere-section property">
             <div class="label">Atmosphere Rayleigh Scattering</div>
             <div class="value">
-                <input class="coord no-spin" type='number' id="property-zone-atmosphere-rayleigh-scattering" min="0" max="0.5" step="any"></input>
+                <input class="coord no-spin" type='number' id="property-zone-atmosphere-rayleigh-scattering" min="0" max="0.5" step="any">
             </div>
         </div>
         <div class="zone-section atmosphere-section property">
             <div class="label">Atmosphere Scattering Wavelenghts</div>
             <div class="value">
-                <div class="input-area">X <br><input class="coord no-spin" type='number' id="property-zone-atmosphere-scattering-wavelengths-x" min="0" max="1" step="any"></input></div>
-                <div class="input-area">Y <br><input class="coord no-spin" type='number' id="property-zone-atmosphere-scattering-wavelengths-y" min="0" max="1" step="any"></input></div>
-                <div class="input-area">Z <br><input class="coord no-spin" type='number' id="property-zone-atmosphere-scattering-wavelengths-z" min="0" max="1" step="any"></input></div>
+                <div class="input-area">X <br><input class="coord no-spin" type='number' id="property-zone-atmosphere-scattering-wavelengths-x" min="0" max="1" step="any"></div>
+                <div class="input-area">Y <br><input class="coord no-spin" type='number' id="property-zone-atmosphere-scattering-wavelengths-y" min="0" max="1" step="any"></div>
+                <div class="input-area">Z <br><input class="coord no-spin" type='number' id="property-zone-atmosphere-scattering-wavelengths-z" min="0" max="1" step="any"></div>
             </div>
         </div>
         <div class="zone-section atmosphere-section property" style="display:none">

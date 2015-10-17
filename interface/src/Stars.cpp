@@ -141,6 +141,7 @@ void Stars::render(RenderArgs* renderArgs, float alpha) {
             auto state = gpu::StatePointer(new gpu::State());
             // enable decal blend
             state->setDepthTest(gpu::State::DepthTest(false));
+            state->setStencilTest(true, 0xFF, gpu::State::StencilTest(0, 0xFF, gpu::EQUAL, gpu::State::STENCIL_OP_KEEP, gpu::State::STENCIL_OP_KEEP, gpu::State::STENCIL_OP_KEEP));
             state->setBlendFunction(true, gpu::State::SRC_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::INV_SRC_ALPHA);
             _gridPipeline.reset(gpu::Pipeline::create(program, state));
         }
@@ -152,6 +153,7 @@ void Stars::render(RenderArgs* renderArgs, float alpha) {
             auto state = gpu::StatePointer(new gpu::State());
             // enable decal blend
             state->setDepthTest(gpu::State::DepthTest(false));
+            state->setStencilTest(true, 0xFF, gpu::State::StencilTest(0, 0xFF, gpu::EQUAL, gpu::State::STENCIL_OP_KEEP, gpu::State::STENCIL_OP_KEEP, gpu::State::STENCIL_OP_KEEP));
             state->setAntialiasedLineEnable(true); // line smoothing also smooth points
             state->setBlendFunction(true, gpu::State::SRC_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::INV_SRC_ALPHA);
             _starsPipeline.reset(gpu::Pipeline::create(program, state));
@@ -188,8 +190,10 @@ void Stars::render(RenderArgs* renderArgs, float alpha) {
         colorElement = streamFormat->getAttributes().at(gpu::Stream::COLOR)._element;
     });
 
-    auto geometryCache = DependencyManager::get<GeometryCache>();
+    auto modelCache = DependencyManager::get<ModelCache>();
     auto textureCache = DependencyManager::get<TextureCache>();
+    auto geometryCache = DependencyManager::get<GeometryCache>();
+
 
     gpu::Batch& batch = *renderArgs->_batch;
     batch.setViewTransform(Transform());
@@ -204,7 +208,7 @@ void Stars::render(RenderArgs* renderArgs, float alpha) {
     float msecs = (float)(usecTimestampNow() - start) / (float)USECS_PER_MSEC;
     float secs = msecs / (float)MSECS_PER_SECOND;
     batch._glUniform1f(_timeSlot, secs);
-    geometryCache->renderUnitCube(batch);
+    geometryCache->renderCube(batch);
 
     static const size_t VERTEX_STRIDE = sizeof(StarVertex);
     size_t offset = offsetof(StarVertex, position);

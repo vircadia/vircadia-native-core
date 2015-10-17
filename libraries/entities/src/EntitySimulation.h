@@ -28,18 +28,18 @@ typedef QVector<EntityItemPointer> VectorOfEntities;
 // the EntitySimulation needs to know when these things change on an entity,
 // so it can sort EntityItem or relay its state to the PhysicsEngine.
 const int DIRTY_SIMULATION_FLAGS =
-        EntityItem::DIRTY_POSITION |
-        EntityItem::DIRTY_ROTATION |
-        EntityItem::DIRTY_LINEAR_VELOCITY |
-        EntityItem::DIRTY_ANGULAR_VELOCITY |
-        EntityItem::DIRTY_MASS |
-        EntityItem::DIRTY_COLLISION_GROUP |
-        EntityItem::DIRTY_MOTION_TYPE |
-        EntityItem::DIRTY_SHAPE |
-        EntityItem::DIRTY_LIFETIME |
-        EntityItem::DIRTY_UPDATEABLE |
-        EntityItem::DIRTY_MATERIAL |
-        EntityItem::DIRTY_SIMULATOR_ID;
+        Simulation::DIRTY_POSITION |
+        Simulation::DIRTY_ROTATION |
+        Simulation::DIRTY_LINEAR_VELOCITY |
+        Simulation::DIRTY_ANGULAR_VELOCITY |
+        Simulation::DIRTY_MASS |
+        Simulation::DIRTY_COLLISION_GROUP |
+        Simulation::DIRTY_MOTION_TYPE |
+        Simulation::DIRTY_SHAPE |
+        Simulation::DIRTY_LIFETIME |
+        Simulation::DIRTY_UPDATEABLE |
+        Simulation::DIRTY_MATERIAL |
+        Simulation::DIRTY_SIMULATOR_ID;
 
 class EntitySimulation : public QObject {
 Q_OBJECT
@@ -47,22 +47,18 @@ public:
     EntitySimulation() : _mutex(QMutex::Recursive), _entityTree(NULL), _nextExpiry(quint64(-1)) { }
     virtual ~EntitySimulation() { setEntityTree(NULL); }
 
-    void lock() { _mutex.lock(); }
-    void unlock() { _mutex.unlock(); }
-
     /// \param tree pointer to EntityTree which is stored internally
-    void setEntityTree(EntityTree* tree);
+    void setEntityTree(EntityTreePointer tree);
 
     void updateEntities();
 
-    friend class EntityTree;
+//    friend class EntityTree;
 
     virtual void addAction(EntityActionPointer action);
     virtual void removeAction(const QUuid actionID);
     virtual void removeActions(QList<QUuid> actionIDsToRemove);
     virtual void applyActionChanges();
 
-protected: // these only called by the EntityTree?
     /// \param entity pointer to EntityItem to be added
     /// \sideeffect sets relevant backpointers in entity, but maybe later when appropriate data structures are locked
     void addEntity(EntityItemPointer entity);
@@ -79,10 +75,11 @@ protected: // these only called by the EntityTree?
     void clearEntities();
 
     void moveSimpleKinematics(const quint64& now);
+protected: // these only called by the EntityTree?
 
 public:
 
-    EntityTree* getEntityTree() { return _entityTree; }
+    EntityTreePointer getEntityTree() { return _entityTree; }
 
     void getEntitiesToDelete(VectorOfEntities& entitiesToDelete);
 
@@ -90,7 +87,6 @@ signals:
     void entityCollisionWithEntity(const EntityItemID& idA, const EntityItemID& idB, const Collision& collision);
 
 protected:
-
     // These pure virtual methods are protected because they are not to be called will-nilly. The base class
     // calls them in the right places.
     virtual void updateEntitiesInternal(const quint64& now) = 0;
@@ -103,27 +99,29 @@ protected:
     void callUpdateOnEntitiesThatNeedIt(const quint64& now);
     void sortEntitiesThatMoved();
 
-    QMutex _mutex;
+    QMutex _mutex{ QMutex::Recursive };
+
+    SetOfEntities _entitiesToSort; // entities moved by simulation (and might need resort in EntityTree)
+    SetOfEntities _simpleKinematicEntities; // entities undergoing non-colliding kinematic motion
+    QList<EntityActionPointer> _actionsToAdd;
+    QSet<QUuid> _actionsToRemove;
+
+private:
+    void moveSimpleKinematics();
 
     // back pointer to EntityTree structure
-    EntityTree* _entityTree;
+    EntityTreePointer _entityTree;
 
     // We maintain multiple lists, each for its distinct purpose.
     // An entity may be in more than one list.
     SetOfEntities _allEntities; // tracks all entities added the simulation
     SetOfEntities _mortalEntities; // entities that have an expiry
     quint64 _nextExpiry;
+
+
     SetOfEntities _entitiesToUpdate; // entities that need to call EntityItem::update()
-    SetOfEntities _entitiesToSort; // entities moved by simulation (and might need resort in EntityTree)
     SetOfEntities _entitiesToDelete; // entities simulation decided needed to be deleted (EntityTree will actually delete)
-    SetOfEntities _simpleKinematicEntities; // entities undergoing non-colliding kinematic motion
 
- private:
-    void moveSimpleKinematics();
-
- protected:
-    QList<EntityActionPointer> _actionsToAdd;
-    QList<QUuid> _actionsToRemove;
 };
 
 #endif // hifi_EntitySimulation_h

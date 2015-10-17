@@ -45,6 +45,10 @@ public:
         _stereo._enable = enable;
     }
 
+    virtual bool isStereo() {
+        return _stereo._enable;
+    }
+
     void setStereoProjections(const mat4 eyeProjections[2]) {
         for (int i = 0; i < 2; ++i) {
             _stereo._eyeProjections[i] = eyeProjections[i];
@@ -54,6 +58,18 @@ public:
     void setStereoViews(const mat4 views[2]) {
         for (int i = 0; i < 2; ++i) {
             _stereo._eyeViews[i] = views[i];
+        }
+    }
+
+    void getStereoProjections(mat4* eyeProjections) const {
+        for (int i = 0; i < 2; ++i) {
+            eyeProjections[i] = _stereo._eyeProjections[i];
+        }
+    }
+
+    void getStereoViews(mat4* eyeViews) const {
+        for (int i = 0; i < 2; ++i) {
+            eyeViews[i] = _stereo._eyeViews[i];
         }
     }
 
@@ -169,8 +185,11 @@ public:
 
     void render(Batch& batch);
     void enableStereo(bool enable = true);
+    bool isStereo();
     void setStereoProjections(const mat4 eyeProjections[2]);
     void setStereoViews(const mat4 eyeViews[2]);
+    void getStereoProjections(mat4* eyeProjections) const;
+    void getStereoViews(mat4* eyeViews) const;
     void syncCache();
 
     // Downloading the Framebuffer is a synchronous action that is not efficient.
@@ -196,6 +215,16 @@ protected:
 };
 typedef std::shared_ptr<Context> ContextPointer;
 
+template<typename F>
+void doInBatch(std::shared_ptr<gpu::Context> context, F f) {
+    static gpu::Batch::CacheState cacheState;
+    gpu::Batch batch(cacheState);
+    f(batch);
+    context->render(batch);
+    cacheState = batch.getCacheState();
+}
+
 };
+
 
 #endif

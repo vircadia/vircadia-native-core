@@ -20,22 +20,33 @@ public:
     virtual void errorInLoadingScript(const QUrl& url) = 0;
 };
 
+using contentAvailableCallback = std::function<void(const QString& scriptOrURL, const QString& contents, bool isURL, bool contentAvailable)>;
+
 /// Interface for loading scripts
 class ScriptCache : public QObject, public Dependency {
     Q_OBJECT
     SINGLETON_DEPENDENCY
 
 public:
-    QString getScript(const QUrl& url, ScriptUser* scriptUser, bool& isPending, bool redownload = false);
-    void deleteScript(const QUrl& url);
+    void clearCache();
+    void getScriptContents(const QString& scriptOrURL, contentAvailableCallback contentAvailable, bool forceDownload = false);
+
+
+    QString getScript(const QUrl& unnormalizedURL, ScriptUser* scriptUser, bool& isPending, bool redownload = false);
+    void deleteScript(const QUrl& unnormalizedURL);
+
+    // FIXME - how do we remove a script from the bad script list in the case of a redownload?
     void addScriptToBadScriptList(const QUrl& url) { _badScripts.insert(url); }
     bool isInBadScriptList(const QUrl& url) { return _badScripts.contains(url); }
     
 private slots:
-    void scriptDownloaded();
-    
+    void scriptDownloaded(); // old version
+    void scriptContentAvailable(); // new version
+
 private:
     ScriptCache(QObject* parent = NULL);
+    
+    QMultiMap<QUrl, contentAvailableCallback> _contentCallbacks;
     
     QHash<QUrl, QString> _scriptCache;
     QMultiMap<QUrl, ScriptUser*> _scriptUsers;

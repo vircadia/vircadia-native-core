@@ -11,16 +11,21 @@
 
 #include "AssetClient.h"
 
-#include <QBuffer>
-#include <QThread>
-
 #include <cstdint>
+
+#include <QtCore/QBuffer>
+#include <QtCore/QStandardPaths>
+#include <QtCore/QThread>
+#include <QtNetwork/QNetworkDiskCache>
 
 #include "AssetRequest.h"
 #include "AssetUpload.h"
+#include "AssetUtils.h"
+#include "NetworkAccessManager.h"
+#include "NetworkLogging.h"
 #include "NodeList.h"
 #include "PacketReceiver.h"
-#include "AssetUtils.h"
+#include "ResourceCache.h"
 
 MessageID AssetClient::_currentID = 0;
 
@@ -31,65 +36,100 @@ AssetClient::AssetClient() {
         static_cast<AssetClient*>(dependency)->deleteLater();
     });
     
-    auto& packetReceiver = DependencyManager::get<NodeList>()->getPacketReceiver();
+    auto nodeList = DependencyManager::get<NodeList>();
+    auto& packetReceiver = nodeList->getPacketReceiver();
     packetReceiver.registerListener(PacketType::AssetGetInfoReply, this, "handleAssetGetInfoReply");
     packetReceiver.registerMessageListener(PacketType::AssetGetReply, this, "handleAssetGetReply");
     packetReceiver.registerListener(PacketType::AssetUploadReply, this, "handleAssetUploadReply");
+
+    connect(nodeList.data(), &LimitedNodeList::nodeKilled, this, &AssetClient::handleNodeKilled);
+}
+
+void AssetClient::init() {
+    if (QThread::currentThread() != thread()) {
+        QMetaObject::invokeMethod(this, "init", Qt::BlockingQueuedConnection);
+    }
+    
+    // Setup disk cache if not already
+    QNetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
+    if (!networkAccessManager.cache()) {
+        QString cachePath = QStandardPaths::writableLocation(QStandardPaths::DataLocation);
+        cachePath = !cachePath.isEmpty() ? cachePath : "interfaceCache";
+        
+        QNetworkDiskCache* cache = new QNetworkDiskCache();
+        cache->setMaximumCacheSize(MAXIMUM_CACHE_SIZE);
+        cache->setCacheDirectory(cachePath);
+        networkAccessManager.setCache(cache);
+        qCDebug(asset_client) << "AssetClient disk cache setup at" << cachePath
+                                << "(size:" << MAXIMUM_CACHE_SIZE / BYTES_PER_GIGABYTES << "GB)";
+    }
+}
+
+bool haveAssetServer() {
+    auto nodeList = DependencyManager::get<NodeList>();
+    SharedNodePointer assetServer = nodeList->soloNodeOfType(NodeType::AssetServer);
+    
+    if (!assetServer) {
+        qCWarning(asset_client) << "Could not complete AssetClient operation "
+            << "since you are not currently connected to an asset-server.";
+        return false;
+    }
+    
+    return true;
 }
 
 AssetRequest* AssetClient::createRequest(const QString& hash, const QString& extension) {
-    if (QThread::currentThread() != thread()) {
-        AssetRequest* req;
-        QMetaObject::invokeMethod(this, "createRequest",
-            Qt::BlockingQueuedConnection, 
-            Q_RETURN_ARG(AssetRequest*, req),
-            Q_ARG(QString, hash),
-            Q_ARG(QString, extension));
-        return req;
-    }
-
     if (hash.length() != SHA256_HASH_HEX_LENGTH) {
-        qDebug() << "Invalid hash size";
+        qCWarning(asset_client) << "Invalid hash size";
         return nullptr;
     }
 
-    auto nodeList = DependencyManager::get<NodeList>();
-    SharedNodePointer assetServer = nodeList->soloNodeOfType(NodeType::AssetServer);
-
-    if (!assetServer) {
-        qDebug().nospace() << "Could not request " << hash << "." << extension
-            << " since you are not currently connected to an asset-server.";
+    if (haveAssetServer()) {
+        auto request = new AssetRequest(hash, extension);
+        
+        // Move to the AssetClient thread in case we are not currently on that thread (which will usually be the case)
+        request->moveToThread(thread());
+        request->setParent(this);
+        
+        return request;
+    } else {
         return nullptr;
     }
-
-    return new AssetRequest(this, hash, extension);
 }
 
+
+
 AssetUpload* AssetClient::createUpload(const QString& filename) {
-    if (QThread::currentThread() != thread()) {
-        AssetUpload* upload;
-        QMetaObject::invokeMethod(this, "createUpload",
-                                  Qt::BlockingQueuedConnection,
-                                  Q_RETURN_ARG(AssetUpload*, upload),
-                                  Q_ARG(QString, filename));
+    
+    if (haveAssetServer()) {
+        auto upload = new AssetUpload(filename);
+        
+        upload->moveToThread(thread());
+        upload->setParent(this);
+        
         return upload;
-    }
-    
-    auto nodeList = DependencyManager::get<NodeList>();
-    SharedNodePointer assetServer = nodeList->soloNodeOfType(NodeType::AssetServer);
-    
-    if (!assetServer) {
-        qDebug() << "Could not upload" << filename << "since you are not currently connected to an asset-server.";
+    } else {
         return nullptr;
     }
-    
-    return new AssetUpload(this, filename);
+}
+
+AssetUpload* AssetClient::createUpload(const QByteArray& data, const QString& extension) {
+    if (haveAssetServer()) {
+        auto upload = new AssetUpload(data, extension);
+        
+        upload->moveToThread(thread());
+        upload->setParent(this);
+        
+        return upload;
+    } else {
+        return nullptr;
+    }
 }
 
 bool AssetClient::getAsset(const QString& hash, const QString& extension, DataOffset start, DataOffset end,
                            ReceivedAssetCallback callback) {
     if (hash.length() != SHA256_HASH_HEX_LENGTH) {
-        qDebug() << "Invalid hash size";
+        qCWarning(asset_client) << "Invalid hash size";
         return false;
     }
 
@@ -104,7 +144,7 @@ bool AssetClient::getAsset(const QString& hash, const QString& extension, DataOf
             + sizeof(start) + sizeof(end);
         auto packet = NLPacket::create(PacketType::AssetGet, payloadSize, true);
         
-        qDebug() << "Requesting data from" << start << "to" << end << "of" << hash << "from asset-server.";
+        qCDebug(asset_client) << "Requesting data from" << start << "to" << end << "of" << hash << "from asset-server.";
         
         packet->writePrimitive(messageID);
 
@@ -118,7 +158,7 @@ bool AssetClient::getAsset(const QString& hash, const QString& extension, DataOf
 
         nodeList->sendPacket(std::move(packet), *assetServer);
 
-        _pendingRequests[messageID] = callback;
+        _pendingRequests[assetServer][messageID] = callback;
 
         return true;
     }
@@ -143,7 +183,7 @@ bool AssetClient::getAssetInfo(const QString& hash, const QString& extension, Ge
 
         nodeList->sendPacket(std::move(packet), *assetServer);
 
-        _pendingInfoRequests[messageID] = callback;
+        _pendingInfoRequests[assetServer][messageID] = callback;
 
         return true;
     }
@@ -165,9 +205,23 @@ void AssetClient::handleAssetGetInfoReply(QSharedPointer<NLPacket> packet, Share
         packet->readPrimitive(&info.size);
     }
 
-    if (_pendingInfoRequests.contains(messageID)) {
-        auto callback = _pendingInfoRequests.take(messageID);
-        callback(error, info);
+    // Check if we have any pending requests for this node
+    auto messageMapIt = _pendingInfoRequests.find(senderNode);
+    if (messageMapIt != _pendingInfoRequests.end()) {
+
+        // Found the node, get the MessageID -> Callback map
+        auto& messageCallbackMap = messageMapIt->second;
+
+        // Check if we have this pending request
+        auto requestIt = messageCallbackMap.find(messageID);
+        if (requestIt != messageCallbackMap.end()) {
+            auto callback = requestIt->second;
+            callback(true, error, info);
+            messageCallbackMap.erase(requestIt);
+        }
+
+        // Although the messageCallbackMap may now be empty, we won't delete the node until we have disconnected from
+        // it to avoid constantly creating/deleting the map on subsequent requests.
     }
 }
 
@@ -177,7 +231,7 @@ void AssetClient::handleAssetGetReply(QSharedPointer<NLPacketList> packetList, S
     packet.open(QIODevice::ReadOnly);
 
     auto assetHash = packet.read(SHA256_HASH_LENGTH);
-    qDebug() << "Got reply for asset: " << assetHash.toHex();
+    qCDebug(asset_client) << "Got reply for asset: " << assetHash.toHex();
 
     MessageID messageID;
     packet.read(reinterpret_cast<char*>(&messageID), sizeof(messageID));
@@ -191,12 +245,26 @@ void AssetClient::handleAssetGetReply(QSharedPointer<NLPacketList> packetList, S
         packet.read(reinterpret_cast<char*>(&length), sizeof(DataOffset));
         data = packet.read(length);
     } else {
-        qDebug() << "Failure getting asset: " << error;
+        qCWarning(asset_client) << "Failure getting asset: " << error;
     }
 
-    if (_pendingRequests.contains(messageID)) {
-        auto callback = _pendingRequests.take(messageID);
-        callback(error, data);
+    // Check if we have any pending requests for this node
+    auto messageMapIt = _pendingRequests.find(senderNode);
+    if (messageMapIt != _pendingRequests.end()) {
+
+        // Found the node, get the MessageID -> Callback map
+        auto& messageCallbackMap = messageMapIt->second;
+
+        // Check if we have this pending request
+        auto requestIt = messageCallbackMap.find(messageID);
+        if (requestIt != messageCallbackMap.end()) {
+            auto callback = requestIt->second;
+            callback(true, error, data);
+            messageCallbackMap.erase(requestIt);
+        }
+
+        // Although the messageCallbackMap may now be empty, we won't delete the node until we have disconnected from
+        // it to avoid constantly creating/deleting the map on subsequent requests.
     }
 }
 
@@ -205,7 +273,7 @@ bool AssetClient::uploadAsset(const QByteArray& data, const QString& extension, 
     SharedNodePointer assetServer = nodeList->soloNodeOfType(NodeType::AssetServer);
     
     if (assetServer) {
-        auto packetList = std::unique_ptr<NLPacketList>(new NLPacketList(PacketType::AssetUpload, QByteArray(), true, true));
+        auto packetList = NLPacketList::create(PacketType::AssetUpload, QByteArray(), true, true);
 
         auto messageID = ++_currentID;
         packetList->writePrimitive(messageID);
@@ -219,7 +287,7 @@ bool AssetClient::uploadAsset(const QByteArray& data, const QString& extension, 
 
         nodeList->sendPacketList(std::move(packetList), *assetServer);
 
-        _pendingUploads[messageID] = callback;
+        _pendingUploads[assetServer][messageID] = callback;
 
         return true;
     }
@@ -233,19 +301,70 @@ void AssetClient::handleAssetUploadReply(QSharedPointer<NLPacket> packet, Shared
     AssetServerError error;
     packet->readPrimitive(&error);
 
-    QString hashString { "" };
+    QString hashString;
 
     if (error) {
-        qDebug() << "Error uploading file to asset server";
+        qCWarning(asset_client) << "Error uploading file to asset server";
     } else {
         auto hash = packet->read(SHA256_HASH_LENGTH);
         hashString = hash.toHex();
         
-        qDebug() << "Successfully uploaded asset to asset-server - SHA256 hash is " << hashString;
+        qCDebug(asset_client) << "Successfully uploaded asset to asset-server - SHA256 hash is " << hashString;
     }
 
-    if (_pendingUploads.contains(messageID)) {
-        auto callback = _pendingUploads.take(messageID);
-        callback(error, hashString);
+    // Check if we have any pending requests for this node
+    auto messageMapIt = _pendingUploads.find(senderNode);
+    if (messageMapIt != _pendingUploads.end()) {
+
+        // Found the node, get the MessageID -> Callback map
+        auto& messageCallbackMap = messageMapIt->second;
+
+        // Check if we have this pending request
+        auto requestIt = messageCallbackMap.find(messageID);
+        if (requestIt != messageCallbackMap.end()) {
+            auto callback = requestIt->second;
+            callback(true, error, hashString);
+            messageCallbackMap.erase(requestIt);
+        }
+
+        // Although the messageCallbackMap may now be empty, we won't delete the node until we have disconnected from
+        // it to avoid constantly creating/deleting the map on subsequent requests.
+    }
+}
+
+void AssetClient::handleNodeKilled(SharedNodePointer node) {
+    if (node->getType() != NodeType::AssetServer) {
+        return;
+    }
+
+    {
+        auto messageMapIt = _pendingRequests.find(node);
+        if (messageMapIt != _pendingRequests.end()) {
+            for (const auto& value : messageMapIt->second) {
+                value.second(false, AssetServerError::NoError, QByteArray());
+            }
+            messageMapIt->second.clear();
+        }
+    }
+
+    {
+        auto messageMapIt = _pendingInfoRequests.find(node);
+        if (messageMapIt != _pendingInfoRequests.end()) {
+            AssetInfo info { "", 0 };
+            for (const auto& value : messageMapIt->second) {
+                value.second(false, AssetServerError::NoError, info);
+            }
+            messageMapIt->second.clear();
+        }
+    }
+
+    {
+        auto messageMapIt = _pendingUploads.find(node);
+        if (messageMapIt != _pendingUploads.end()) {
+            for (const auto& value : messageMapIt->second) {
+                value.second(false, AssetServerError::NoError, "");
+            }
+            messageMapIt->second.clear();
+        }
     }
 }

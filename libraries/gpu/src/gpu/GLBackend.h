@@ -252,11 +252,14 @@ protected:
     void do_drawIndexed(Batch& batch, uint32 paramOffset);
     void do_drawInstanced(Batch& batch, uint32 paramOffset);
     void do_drawIndexedInstanced(Batch& batch, uint32 paramOffset);
-
+    void do_multiDrawIndirect(Batch& batch, uint32 paramOffset);
+    void do_multiDrawIndexedIndirect(Batch& batch, uint32 paramOffset);
+    
     // Input Stage
     void do_setInputFormat(Batch& batch, uint32 paramOffset);
     void do_setInputBuffer(Batch& batch, uint32 paramOffset);
     void do_setIndexBuffer(Batch& batch, uint32 paramOffset);
+    void do_setIndirectBuffer(Batch& batch, uint32 paramOffset);
 
     void initInput();
     void killInput();
@@ -278,9 +281,15 @@ protected:
         Offsets _bufferStrides;
         std::vector<GLuint> _bufferVBOs;
 
+        glm::vec4 _colorAttribute{ 0.0f };
+
         BufferPointer _indexBuffer;
         Offset _indexBufferOffset;
         Type _indexBufferType;
+        
+        BufferPointer _indirectBuffer;
+        Offset _indirectBufferOffset{ 0 };
+        Offset _indirectBufferStride{ 0 };
 
         GLuint _defaultVAO;
 
@@ -305,6 +314,7 @@ protected:
     void do_setViewTransform(Batch& batch, uint32 paramOffset);
     void do_setProjectionTransform(Batch& batch, uint32 paramOffset);
     void do_setViewportTransform(Batch& batch, uint32 paramOffset);
+    void do_setDepthRangeTransform(Batch& batch, uint32 paramOffset);
 
     void initTransform();
     void killTransform();
@@ -330,6 +340,7 @@ protected:
         Transform _view;
         Mat4 _projection;
         Vec4i _viewport{ 0, 0, 1, 1 };
+        Vec2 _depthRange{ 0.0f, 1.0f };
         bool _invalidModel{true};
         bool _invalidView{false};
         bool _invalidProj{false};
@@ -446,6 +457,9 @@ protected:
 
     // Reset stages
     void do_resetStages(Batch& batch, uint32 paramOffset);
+
+    void do_runLambda(Batch& batch, uint32 paramOffset);
+
     void resetStages();
 
     // TODO: As long as we have gl calls explicitely issued from interface
@@ -468,7 +482,6 @@ protected:
     typedef void (GLBackend::*CommandCall)(Batch&, uint32);
     static CommandCall _commandCalls[Batch::NUM_COMMANDS];
 };
-
 
 };
 

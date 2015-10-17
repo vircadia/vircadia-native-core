@@ -23,15 +23,19 @@ GLBackend::CommandCall GLBackend::_commandCalls[Batch::NUM_COMMANDS] =
     (&::gpu::GLBackend::do_drawIndexed),
     (&::gpu::GLBackend::do_drawInstanced),
     (&::gpu::GLBackend::do_drawIndexedInstanced),
-    
+    (&::gpu::GLBackend::do_multiDrawIndirect),
+    (&::gpu::GLBackend::do_multiDrawIndexedIndirect),
+
     (&::gpu::GLBackend::do_setInputFormat),
     (&::gpu::GLBackend::do_setInputBuffer),
     (&::gpu::GLBackend::do_setIndexBuffer),
+    (&::gpu::GLBackend::do_setIndirectBuffer),
 
     (&::gpu::GLBackend::do_setModelTransform),
     (&::gpu::GLBackend::do_setViewTransform),
     (&::gpu::GLBackend::do_setProjectionTransform),
     (&::gpu::GLBackend::do_setViewportTransform),
+    (&::gpu::GLBackend::do_setDepthRangeTransform),
 
     (&::gpu::GLBackend::do_setPipeline),
     (&::gpu::GLBackend::do_setStateBlendFactor),
@@ -49,6 +53,8 @@ GLBackend::CommandCall GLBackend::_commandCalls[Batch::NUM_COMMANDS] =
     (&::gpu::GLBackend::do_getQuery),
 
     (&::gpu::GLBackend::do_resetStages),
+
+    (&::gpu::GLBackend::do_runLambda),
 
     (&::gpu::GLBackend::do_glActiveBindTexture),
 
@@ -128,14 +134,25 @@ void GLBackend::renderPassTransfer(Batch& batch) {
     const Batch::Commands::value_type* command = batch.getCommands().data();
     const Batch::CommandOffsets::value_type* offset = batch.getCommandOffsets().data();
 
-    // Reset the transform buffers
-    _transform._cameras.resize(0);
-    _transform._cameraOffsets.clear();
-    _transform._objects.resize(0);
-    _transform._objectOffsets.clear();
+    { // Sync all the buffers
+        PROFILE_RANGE("syncGPUBuffer");
 
-    for (_commandIndex = 0; _commandIndex < numCommands; ++_commandIndex) {
-        switch (*command) {
+        for (auto& cached : batch._buffers._items) {
+            if (cached._data) {
+                syncGPUObject(*cached._data);
+            }
+        }
+    }
+
+    { // Sync all the buffers
+        PROFILE_RANGE("syncCPUTransform");
+        _transform._cameras.resize(0);
+        _transform._cameraOffsets.clear();
+        _transform._objects.resize(0);
+        _transform._objectOffsets.clear();
+
+        for (_commandIndex = 0; _commandIndex < numCommands; ++_commandIndex) {
+            switch (*command) {
             case Batch::COMMAND_draw:
             case Batch::COMMAND_drawIndexed:
             case Batch::COMMAND_drawInstanced:
@@ -154,11 +171,16 @@ void GLBackend::renderPassTransfer(Batch& batch) {
 
             default:
                 break;
+            }
+            command++;
+            offset++;
         }
-        command++;
-        offset++;
     }
-    _transform.transfer();
+
+    { // Sync the transform buffers
+        PROFILE_RANGE("syncGPUTransform");
+        _transform.transfer();
+    }
 }
 
 void GLBackend::renderPassDraw(Batch& batch) {
@@ -191,6 +213,9 @@ void GLBackend::renderPassDraw(Batch& batch) {
 }
 
 void GLBackend::render(Batch& batch) {
+    // Finalize the batch by moving all the instanced rendering into the command buffer
+    batch.preExecute();
+
     _stereo._skybox = batch.isSkyboxEnabled();
     // Allow the batch to override the rendering stereo settings
     // for things like full framebuffer copy operations (deferred lighting passes)
@@ -295,8 +320,11 @@ void GLBackend::do_drawIndexed(Batch& batch, uint32 paramOffset) {
     uint32 startIndex = batch._params[paramOffset + 0]._uint;
 
     GLenum glType = _elementTypeToGLType[_input._indexBufferType];
+    
+    auto typeByteSize = TYPE_SIZE[_input._indexBufferType];
+    GLvoid* indexBufferByteOffset = reinterpret_cast<GLvoid*>(startIndex * typeByteSize + _input._indexBufferOffset);
 
-    glDrawElements(mode, numIndices, glType, reinterpret_cast<GLvoid*>(startIndex + _input._indexBufferOffset));
+    glDrawElements(mode, numIndices, glType, indexBufferByteOffset);
     (void) CHECK_GL_ERROR();
 }
 
@@ -316,11 +344,74 @@ void GLBackend::do_drawInstanced(Batch& batch, uint32 paramOffset) {
 }
 
 void GLBackend::do_drawIndexedInstanced(Batch& batch, uint32 paramOffset) {
-    (void) CHECK_GL_ERROR();
+    updateInput();
+    updateTransform();
+    updatePipeline();
+
+    GLint numInstances = batch._params[paramOffset + 4]._uint;
+    GLenum mode = _primitiveToGLmode[(Primitive)batch._params[paramOffset + 3]._uint];
+    uint32 numIndices = batch._params[paramOffset + 2]._uint;
+    uint32 startIndex = batch._params[paramOffset + 1]._uint;
+    // FIXME glDrawElementsInstancedBaseVertexBaseInstance is only available in GL 4.3 
+    // and higher, so currently we ignore this field
+    uint32 startInstance = batch._params[paramOffset + 0]._uint;
+    GLenum glType = _elementTypeToGLType[_input._indexBufferType];
+
+    auto typeByteSize = TYPE_SIZE[_input._indexBufferType];
+    GLvoid* indexBufferByteOffset = reinterpret_cast<GLvoid*>(startIndex * typeByteSize + _input._indexBufferOffset);
+    
+#if (GPU_INPUT_PROFILE == GPU_CORE_43)
+    glDrawElementsInstancedBaseVertexBaseInstance(mode, numIndices, glType, indexBufferByteOffset, numInstances, 0, startInstance);
+#else
+    glDrawElementsInstanced(mode, numIndices, glType, indexBufferByteOffset, numInstances);
+    Q_UNUSED(startInstance); 
+#endif
+    (void)CHECK_GL_ERROR();
 }
+
+
+void GLBackend::do_multiDrawIndirect(Batch& batch, uint32 paramOffset) {
+#if (GPU_INPUT_PROFILE == GPU_CORE_43)
+    updateInput();
+    updateTransform();
+    updatePipeline();
+
+    uint commandCount = batch._params[paramOffset + 0]._uint;
+    GLenum mode = _primitiveToGLmode[(Primitive)batch._params[paramOffset + 1]._uint];
+
+    glMultiDrawArraysIndirect(mode, reinterpret_cast<GLvoid*>(_input._indirectBufferOffset), commandCount, _input._indirectBufferStride);
+#else
+    // FIXME implement the slow path
+#endif
+    (void)CHECK_GL_ERROR();
+
+}
+
+void GLBackend::do_multiDrawIndexedIndirect(Batch& batch, uint32 paramOffset) {
+#if (GPU_INPUT_PROFILE == GPU_CORE_43)
+    updateInput();
+    updateTransform();
+    updatePipeline();
+
+    uint commandCount = batch._params[paramOffset + 0]._uint;
+    GLenum mode = _primitiveToGLmode[(Primitive)batch._params[paramOffset + 1]._uint];
+    GLenum indexType = _elementTypeToGLType[_input._indexBufferType];
+  
+    glMultiDrawElementsIndirect(mode, indexType, reinterpret_cast<GLvoid*>(_input._indirectBufferOffset), commandCount, _input._indirectBufferStride);
+#else
+    // FIXME implement the slow path
+#endif
+    (void)CHECK_GL_ERROR();
+}
+
 
 void GLBackend::do_resetStages(Batch& batch, uint32 paramOffset) {
     resetStages();
+}
+
+void GLBackend::do_runLambda(Batch& batch, uint32 paramOffset) {
+    std::function<void()> f = batch._lambdas.get(batch._params[paramOffset]._uint);
+    f();
 }
 
 void GLBackend::resetStages() {
@@ -345,8 +436,10 @@ void GLBackend::resetStages() {
 #define DO_IT_NOW(call, offset) 
 
 void Batch::_glActiveBindTexture(GLenum unit, GLenum target, GLuint texture) {
-    ADD_COMMAND_GL(glActiveBindTexture);
+    // clean the cache on the texture unit we are going to use so the next call to setResourceTexture() at the same slot works fine
+    setResourceTexture(unit - GL_TEXTURE0, nullptr);
 
+    ADD_COMMAND_GL(glActiveBindTexture);
     _params.push_back(texture);
     _params.push_back(target);
     _params.push_back(unit);
@@ -359,6 +452,7 @@ void GLBackend::do_glActiveBindTexture(Batch& batch, uint32 paramOffset) {
     glBindTexture(
         batch._params[paramOffset + 1]._uint,
         batch._params[paramOffset + 0]._uint);
+
     (void) CHECK_GL_ERROR();
 }
 
@@ -603,11 +697,16 @@ void Batch::_glColor4f(GLfloat red, GLfloat green, GLfloat blue, GLfloat alpha) 
     DO_IT_NOW(_glColor4f, 4);
 }
 void GLBackend::do_glColor4f(Batch& batch, uint32 paramOffset) {
-    // TODO Replace this with a proper sticky Input attribute buffer with frequency 0
-   glVertexAttrib4f( gpu::Stream::COLOR,
+
+    glm::vec4 newColor(
         batch._params[paramOffset + 3]._float,
         batch._params[paramOffset + 2]._float,
         batch._params[paramOffset + 1]._float,
-        batch._params[paramOffset + 0]._float);
+        batch._params[paramOffset + 0]._float); 
+
+    if (_input._colorAttribute != newColor) {
+        _input._colorAttribute = newColor;
+        glVertexAttrib4fv(gpu::Stream::COLOR, &_input._colorAttribute.r);
+    }
     (void) CHECK_GL_ERROR();
 }

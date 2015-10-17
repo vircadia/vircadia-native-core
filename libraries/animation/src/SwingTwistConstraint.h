@@ -73,10 +73,17 @@ public:
     /// \return reference to SwingLimitFunction instance for unit-testing
     const SwingLimitFunction& getSwingLimitFunction() const { return _swingLimitFunction; }
 
+    /// \brief exposed for unit testing
+    void clearHistory();
+
 protected:
     SwingLimitFunction _swingLimitFunction;
     float _minTwist;
     float _maxTwist;
+
+    // We want to remember the LAST clamped boundary, so we an use it even when the far boundary is closer.
+    // This reduces "pops" when the input twist angle goes far beyond and wraps around toward the far boundary.
+    mutable int _lastTwistBoundary;
 };
 
 #endif // hifi_SwingTwistConstraint_h

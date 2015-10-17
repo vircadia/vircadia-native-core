@@ -12,6 +12,7 @@
 #ifndef hifi_Agent_h
 #define hifi_Agent_h
 
+#include <memory>
 #include <vector>
 
 #include <QtScript/QScriptEngine>
@@ -37,37 +38,53 @@ class Agent : public ThreadedAssignment {
 public:
     Agent(NLPacket& packet);
     
-    void setIsAvatar(bool isAvatar) { QMetaObject::invokeMethod(&_scriptEngine, "setIsAvatar", Q_ARG(bool, isAvatar)); }
-    bool isAvatar() const { return _scriptEngine.isAvatar(); }
-    
-    bool isPlayingAvatarSound() const  { return _scriptEngine.isPlayingAvatarSound(); }
-    
-    bool isListeningToAudioStream() const { return _scriptEngine.isListeningToAudioStream(); }
-    void setIsListeningToAudioStream(bool isListeningToAudioStream)
-        { _scriptEngine.setIsListeningToAudioStream(isListeningToAudioStream); }
-    
+    void setIsAvatar(bool isAvatar);
+    bool isAvatar() const { return _isAvatar; }
+
+    bool isPlayingAvatarSound() const { return _avatarSound != NULL; }
+
+    bool isListeningToAudioStream() const { return _isListeningToAudioStream; }
+    void setIsListeningToAudioStream(bool isListeningToAudioStream) { _isListeningToAudioStream = isListeningToAudioStream; }
+
     float getLastReceivedAudioLoudness() const { return _lastReceivedAudioLoudness; }
 
     virtual void aboutToFinish();
     
 public slots:
     void run();
-    void playAvatarSound(Sound* avatarSound) { _scriptEngine.setAvatarSound(avatarSound); }
+    void playAvatarSound(Sound* avatarSound) { setAvatarSound(avatarSound); }
 
 private slots:
     void handleAudioPacket(QSharedPointer<NLPacket> packet);
     void handleOctreePacket(QSharedPointer<NLPacket> packet, SharedNodePointer senderNode);
     void handleJurisdictionPacket(QSharedPointer<NLPacket> packet, SharedNodePointer senderNode);
     void sendPingRequests();
+    void processAgentAvatarAndAudio(float deltaTime);
 
 private:
-    ScriptEngine _scriptEngine;
+    std::unique_ptr<ScriptEngine> _scriptEngine;
     EntityEditPacketSender _entityEditSender;
     EntityTreeHeadlessViewer _entityViewer;
     QTimer* _pingTimer;
     
     MixedAudioStream _receivedAudioStream;
     float _lastReceivedAudioLoudness;
+
+    void setAvatarData(AvatarData* avatarData, const QString& objectName);
+    void setAvatarSound(Sound* avatarSound) { _avatarSound = avatarSound; }
+
+    void sendAvatarIdentityPacket();
+    void sendAvatarBillboardPacket();
+
+    AvatarData* _avatarData = nullptr;
+    bool _isListeningToAudioStream = false;
+    Sound* _avatarSound = nullptr;
+    int _numAvatarSoundSentBytes = 0;
+    bool _isAvatar = false;
+    QTimer* _avatarIdentityTimer = nullptr;
+    QTimer* _avatarBillboardTimer = nullptr;
+    QHash<QUuid, quint16> _outgoingScriptAudioSequenceNumbers;
+
 };
 
 #endif // hifi_Agent_h

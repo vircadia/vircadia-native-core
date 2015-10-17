@@ -34,7 +34,6 @@ void CongestionControl::setPacketSendPeriod(double newSendPeriod) {
 }
 
 DefaultCC::DefaultCC() :
-    _lastRCTime(high_resolution_clock::now()),
     _slowStartLastAck(_sendCurrSeqNum),
     _lastDecreaseMaxSeq(SequenceNumber {SequenceNumber::MAX })
 {
@@ -54,7 +53,7 @@ void DefaultCC::onACK(SequenceNumber ackNum) {
     const double minimumIncrease = 0.01;
     
     // we will only adjust once per sync interval so check that it has been at least that long now
-    auto now = high_resolution_clock::now();
+    auto now = p_high_resolution_clock::now();
     if (duration_cast<microseconds>(now - _lastRCTime).count() < synInterval()) {
         return;
     }
@@ -162,13 +161,16 @@ void DefaultCC::onLoss(SequenceNumber rangeStart, SequenceNumber rangeEnd) {
         
         _lastDecreaseMaxSeq = _sendCurrSeqNum;
         
-        // avoid synchronous rate decrease across connections using randomization
-        std::random_device rd;
-        std::mt19937 generator(rd());
-        std::uniform_int_distribution<> distribution(1, _avgNAKNum);
-        
-        _randomDecreaseThreshold = distribution(generator);
-        
+        if (_avgNAKNum < 1) {
+            _randomDecreaseThreshold = 1;
+        } else {
+            // avoid synchronous rate decrease across connections using randomization
+            std::random_device rd;
+            std::mt19937 generator(rd());
+            std::uniform_int_distribution<> distribution(1, std::max(1, _avgNAKNum));
+
+            _randomDecreaseThreshold = distribution(generator);
+        }
     } else if ((_decreaseCount++ < MAX_DECREASES_PER_CONGESTION_EPOCH) && ((++_nakCount % _randomDecreaseThreshold) == 0)) {
         // there have been fewer than MAX_DECREASES_PER_CONGESTION_EPOCH AND this NAK matches the random count at which we
         // decided we would decrease the packet send period

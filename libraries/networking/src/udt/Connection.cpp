@@ -28,12 +28,11 @@ using namespace udt;
 using namespace std::chrono;
 
 Connection::Connection(Socket* parentSocket, HifiSockAddr destination, std::unique_ptr<CongestionControl> congestionControl) :
-    _connectionStart(high_resolution_clock::now()),
     _parentSocket(parentSocket),
     _destination(destination),
     _congestionControl(move(congestionControl))
 {
-    Q_ASSERT_X(socket, "Connection::Connection", "Must be called with a valid Socket*");
+    Q_ASSERT_X(parentSocket, "Connection::Connection", "Must be called with a valid Socket*");
     
     Q_ASSERT_X(_congestionControl, "Connection::Connection", "Must be called with a valid CongestionControl object");
     _congestionControl->init();
@@ -53,17 +52,17 @@ Connection::~Connection() {
 }
 
 void Connection::stopSendQueue() {
-    if (_sendQueue) {
+    if (auto sendQueue = _sendQueue.release()) {
         // grab the send queue thread so we can wait on it
-        QThread* sendQueueThread = _sendQueue->thread();
+        QThread* sendQueueThread = sendQueue->thread();
+        
+        // tell the send queue to stop and be deleted
+        
+        sendQueue->stop();
+        sendQueue->deleteLater();
         
         // since we're stopping the send queue we should consider our handshake ACK not receieved
         _hasReceivedHandshakeACK = false;
-        
-        // tell the send queue to stop and be deleted
-        _sendQueue->stop();
-        _sendQueue->deleteLater();
-        _sendQueue.release();
         
         // wait on the send queue thread so we know the send queue is gone
         sendQueueThread->quit();
@@ -81,9 +80,9 @@ SendQueue& Connection::getSendQueue() {
         // Lasily create send queue
         _sendQueue = SendQueue::create(_parentSocket, _destination);
 
-        #ifdef UDT_CONNECTION_DEBUG
+#ifdef UDT_CONNECTION_DEBUG
         qCDebug(networking) << "Created SendQueue for connection to" << _destination;
-        #endif
+#endif
         
         QObject::connect(_sendQueue.get(), &SendQueue::packetSent, this, &Connection::packetSent);
         QObject::connect(_sendQueue.get(), &SendQueue::packetSent, this, &Connection::recordSentPackets);
@@ -92,6 +91,7 @@ SendQueue& Connection::getSendQueue() {
         
         // set defaults on the send queue from our congestion control object and estimatedTimeout()
         _sendQueue->setPacketSendPeriod(_congestionControl->_packetSendPeriod);
+        _sendQueue->setSyncInterval(_synInterval);
         _sendQueue->setEstimatedTimeout(estimatedTimeout());
         _sendQueue->setFlowWindowSize(std::min(_flowWindowSize, (int) _congestionControl->_congestionWindowSize));
     }
@@ -103,16 +103,16 @@ void Connection::queueInactive() {
     // tell our current send queue to go down and reset our ptr to it to null
     stopSendQueue();
     
-    #ifdef UDT_CONNECTION_DEBUG
+#ifdef UDT_CONNECTION_DEBUG
     qCDebug(networking) << "Connection to" << _destination << "has stopped its SendQueue.";
-    #endif
+#endif
     
     if (!_hasReceivedHandshake || !_isReceivingData) {
-        #ifdef UDT_CONNECTION_DEBUG
+#ifdef UDT_CONNECTION_DEBUG
         qCDebug(networking) << "Connection SendQueue to" << _destination << "stopped and no data is being received - stopping connection.";
-        #endif
+#endif
         
-        emit connectionInactive(_destination);
+        deactivate();
     }
 }
 
@@ -154,7 +154,7 @@ void Connection::sync() {
         static const int NUM_TIMEOUTS_BEFORE_EXPIRY = 16;
         static const int MIN_SECONDS_BEFORE_EXPIRY = 5;
         
-        auto now = high_resolution_clock::now();
+        auto now = p_high_resolution_clock::now();
         
         auto sincePacketReceive = now - _lastReceiveTime;
         
@@ -167,11 +167,13 @@ void Connection::sync() {
             // otherwise we'll wait for it to also timeout before cleaning up
             if (!_sendQueue) {
 
-                #ifdef UDT_CONNECTION_DEBUG
+#ifdef UDT_CONNECTION_DEBUG
                 qCDebug(networking) << "Connection to" << _destination << "no longer receiving any data and there is currently no send queue - stopping connection.";
-                #endif
+#endif
                 
-                emit connectionInactive(_destination);
+                deactivate();
+                
+                return;
             }
         }
         
@@ -185,7 +187,7 @@ void Connection::sync() {
         if (_lossList.getLength() > 0) {
             // check if we need to re-transmit a loss list
             // we do this if it has been longer than the current nakInterval since we last sent
-            auto now = high_resolution_clock::now();
+            auto now = p_high_resolution_clock::now();
             
             if (duration_cast<microseconds>(now - _lastNAKTime).count() >= _nakInterval) {
                 // Send a timeout NAK packet
@@ -197,18 +199,20 @@ void Connection::sync() {
         // this most likely means we were started erroneously
         // check the start time for this connection and auto expire it after 5 seconds of not receiving or sending any data
         static const int CONNECTION_NOT_USED_EXPIRY_SECONDS = 5;
-        auto secondsSinceStart = duration_cast<seconds>(high_resolution_clock::now() - _connectionStart).count();
+        auto secondsSinceStart = duration_cast<seconds>(p_high_resolution_clock::now() - _connectionStart).count();
         
         if (secondsSinceStart >= CONNECTION_NOT_USED_EXPIRY_SECONDS) {
             // it's been CONNECTION_NOT_USED_EXPIRY_SECONDS and nothing has actually happened with this connection
             // consider it inactive and emit our inactivity signal
             
-            #ifdef UDT_CONNECTION_DEBUG
+#ifdef UDT_CONNECTION_DEBUG
             qCDebug(networking) << "Connection to" << _destination << "did not receive or send any data in last"
                 << CONNECTION_NOT_USED_EXPIRY_SECONDS << "seconds - stopping connection.";
-            #endif
+#endif
             
-            emit connectionInactive(_destination);
+            deactivate();
+            
+            return;
         }
     }
 }
@@ -222,8 +226,8 @@ void Connection::recordRetransmission() {
 }
 
 void Connection::sendACK(bool wasCausedBySyncTimeout) {
-    static high_resolution_clock::time_point lastACKSendTime;
-    auto currentTime = high_resolution_clock::now();
+    static p_high_resolution_clock::time_point lastACKSendTime;
+    auto currentTime = p_high_resolution_clock::now();
     
     SequenceNumber nextACKNumber = nextACK();
     Q_ASSERT_X(nextACKNumber >= _lastSentACK, "Connection::sendACK", "Sending lower ACK, something is wrong");
@@ -278,10 +282,10 @@ void Connection::sendACK(bool wasCausedBySyncTimeout) {
         // pack in the receive speed and estimatedBandwidth
         ackPacket->writePrimitive(packetReceiveSpeed);
         ackPacket->writePrimitive(estimatedBandwidth);
-        
-        // record this as the last ACK send time
-        lastACKSendTime = high_resolution_clock::now();
     }
+    
+    // record this as the last ACK send time
+    lastACKSendTime = p_high_resolution_clock::now();
     
     // have the socket send off our packet
     _parentSocket->writeBasePacket(*ackPacket, _destination);
@@ -290,7 +294,7 @@ void Connection::sendACK(bool wasCausedBySyncTimeout) {
                "Connection::sendACK", "Adding an invalid ACK to _sentACKs");
     
     // write this ACK to the map of sent ACKs
-    _sentACKs.push_back({ _currentACKSubSequenceNumber, { nextACKNumber, high_resolution_clock::now() }});
+    _sentACKs.push_back({ _currentACKSubSequenceNumber, { nextACKNumber, p_high_resolution_clock::now() }});
     
     // reset the number of data packets received since last ACK
     _packetsSinceACK = 0;
@@ -358,7 +362,7 @@ void Connection::sendNAK(SequenceNumber sequenceNumberRecieved) {
     _parentSocket->writeBasePacket(*lossReport, _destination);
     
     // record our last NAK time
-    _lastNAKTime = high_resolution_clock::now();
+    _lastNAKTime = p_high_resolution_clock::now();
     
     _stats.record(ConnectionStats::Stats::SentNAK);
 }
@@ -379,7 +383,7 @@ void Connection::sendTimeoutNAK() {
         _parentSocket->writeBasePacket(*lossListPacket, _destination);
         
         // record this as the last NAK time
-        _lastNAKTime = high_resolution_clock::now();
+        _lastNAKTime = p_high_resolution_clock::now();
         
         _stats.record(ConnectionStats::Stats::SentTimeoutNAK);
     }
@@ -403,7 +407,7 @@ bool Connection::processReceivedSequenceNumber(SequenceNumber sequenceNumber, in
     _isReceivingData = true;
     
     // mark our last receive time as now (to push the potential expiry farther)
-    _lastReceiveTime = high_resolution_clock::now();
+    _lastReceiveTime = p_high_resolution_clock::now();
     
     // check if this is a packet pair we should estimate bandwidth from, or just a regular packet
     if (((uint32_t) sequenceNumber & 0xF) == 0) {
@@ -533,8 +537,9 @@ void Connection::processACK(std::unique_ptr<ControlPacket> controlPacket) {
     // Check if we need send an ACK2 for this ACK
     // This will be the case if it has been longer than the sync interval OR
     // it looks like they haven't received our ACK2 for this ACK
-    auto currentTime = high_resolution_clock::now();
-    static high_resolution_clock::time_point lastACK2SendTime;
+    auto currentTime = p_high_resolution_clock::now();
+    static p_high_resolution_clock::time_point lastACK2SendTime =
+        p_high_resolution_clock::now() - std::chrono::microseconds(_synInterval);
     
     microseconds sinceLastACK2 = duration_cast<microseconds>(currentTime - lastACK2SendTime);
     
@@ -542,7 +547,7 @@ void Connection::processACK(std::unique_ptr<ControlPacket> controlPacket) {
         // Send ACK2 packet
         sendACK2(currentACKSubSequenceNumber);
         
-        lastACK2SendTime = high_resolution_clock::now();
+        lastACK2SendTime = p_high_resolution_clock::now();
     }
     
     // read the ACKed sequence number
@@ -664,7 +669,7 @@ void Connection::processACK2(std::unique_ptr<ControlPacket> controlPacket) {
             // update the RTT using the ACK window
             
             // calculate the RTT (time now - time ACK sent)
-            auto now = high_resolution_clock::now();
+            auto now = p_high_resolution_clock::now();
             int rtt = duration_cast<microseconds>(now - it->second.second).count();
             
             updateRTT(rtt);
@@ -728,11 +733,14 @@ void Connection::processHandshake(std::unique_ptr<ControlPacket> controlPacket) 
 }
 
 void Connection::processHandshakeACK(std::unique_ptr<ControlPacket> controlPacket) {
-    // hand off this handshake ACK to the send queue so it knows it can start sending
-    getSendQueue().handshakeACK();
-    
-    // indicate that handshake ACK was received
-    _hasReceivedHandshakeACK = true;
+    // if we've decided to clean up the send queue then this handshake ACK should be ignored, it's useless
+    if (_sendQueue) {
+        // hand off this handshake ACK to the send queue so it knows it can start sending
+        getSendQueue().handshakeACK();
+        
+        // indicate that handshake ACK was received
+        _hasReceivedHandshakeACK = true;
+    }
 }
 
 void Connection::processTimeoutNAK(std::unique_ptr<ControlPacket> controlPacket) {
@@ -779,13 +787,13 @@ void Connection::resetReceiveState() {
     
     // clear the loss list and _lastNAKTime
     _lossList.clear();
-    _lastNAKTime = high_resolution_clock::time_point();
+    _lastNAKTime = p_high_resolution_clock::now();
     
     // the _nakInterval need not be reset, that will happen on loss
     
     // clear sync variables
     _isReceivingData = false;
-    _connectionStart = high_resolution_clock::now();
+    _connectionStart = p_high_resolution_clock::now();
     
     _acksDuringSYN = 1;
     _lightACKsDuringSYN = 1;
@@ -850,37 +858,22 @@ void PendingReceivedMessage::enqueuePacket(std::unique_ptr<Packet> packet) {
                "PendingReceivedMessage::enqueuePacket",
                "called with a packet that is not part of a message");
     
-    if (_isComplete) {
-        qCDebug(networking) << "UNEXPECTED: Received packet for a message that is already complete";
-        return;
-    }
-
-    auto sequenceNumber = packet->getSequenceNumber();
-
-    if (packet->getPacketPosition() == Packet::PacketPosition::FIRST) {
-        _hasFirstSequenceNumber = true;
-        _firstSequenceNumber = sequenceNumber;
-    } else if (packet->getPacketPosition() == Packet::PacketPosition::LAST) {
-        _hasLastSequenceNumber = true;
-        _lastSequenceNumber = sequenceNumber;
-    } else if (packet->getPacketPosition() == Packet::PacketPosition::ONLY) {
-        _hasFirstSequenceNumber = true;
-        _hasLastSequenceNumber = true;
-        _firstSequenceNumber = sequenceNumber;
-        _lastSequenceNumber = sequenceNumber;
+    if (packet->getPacketPosition() == Packet::PacketPosition::LAST ||
+        packet->getPacketPosition() == Packet::PacketPosition::ONLY) {
+        _hasLastPacket = true;
+        _numPackets = packet->getMessagePartNumber() + 1;
     }
 
     // Insert into the packets list in sorted order. Because we generally expect to receive packets in order, begin
     // searching from the end of the list.
-    auto it = find_if(_packets.rbegin(), _packets.rend(),
-        [&](const std::unique_ptr<Packet>& packet) { return sequenceNumber > packet->getSequenceNumber(); });
+    auto messagePartNumber = packet->getMessagePartNumber();
+    auto it = std::find_if(_packets.rbegin(), _packets.rend(),
+        [&](const std::unique_ptr<Packet>& value) { return messagePartNumber >= value->getMessagePartNumber(); });
 
-    _packets.insert(it.base(), std::move(packet));
-
-    if (_hasFirstSequenceNumber && _hasLastSequenceNumber) {
-        auto numPackets = udt::seqlen(_firstSequenceNumber, _lastSequenceNumber);
-        if (uint64_t(numPackets) == _packets.size()) {
-            _isComplete = true;
-        }
+    if (it != _packets.rend() && ((*it)->getMessagePartNumber() == messagePartNumber)) {
+        qCDebug(networking) << "PendingReceivedMessage::enqueuePacket: This is a duplicate packet";
+        return;
     }
+    
+    _packets.insert(it.base(), std::move(packet));
 }

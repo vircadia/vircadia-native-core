@@ -257,6 +257,7 @@ class DrawBackground {
 public:
     void run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext);
 
+
     typedef Job::Model<DrawBackground> JobModel;
 };
 

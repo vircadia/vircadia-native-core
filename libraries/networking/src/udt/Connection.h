@@ -12,11 +12,12 @@
 #ifndef hifi_Connection_h
 #define hifi_Connection_h
 
-#include <chrono>
 #include <list>
 #include <memory>
 
 #include <QtCore/QObject>
+
+#include <PortableHighResolutionClock.h>
 
 #include "ConnectionStats.h"
 #include "Constants.h"
@@ -36,22 +37,19 @@ class Socket;
 class PendingReceivedMessage {
 public:
     void enqueuePacket(std::unique_ptr<Packet> packet);
-    bool isComplete() const { return _isComplete; }
+    bool isComplete() const { return _hasLastPacket && _numPackets == _packets.size(); }
     
     std::list<std::unique_ptr<Packet>> _packets;
 
 private:
-    bool _isComplete { false };
-    bool _hasFirstSequenceNumber { false };
-    bool _hasLastSequenceNumber { false };
-    SequenceNumber _firstSequenceNumber;
-    SequenceNumber _lastSequenceNumber;
+    bool _hasLastPacket { false };
+    unsigned int _numPackets { 0 };
 };
 
 class Connection : public QObject {
     Q_OBJECT
 public:
-    using SequenceNumberTimePair = std::pair<SequenceNumber, std::chrono::high_resolution_clock::time_point>;
+    using SequenceNumberTimePair = std::pair<SequenceNumber, p_high_resolution_clock::time_point>;
     using ACKListPair = std::pair<SequenceNumber, SequenceNumberTimePair>;
     using SentACKList = std::list<ACKListPair>;
     
@@ -70,6 +68,8 @@ public:
     void queueReceivedMessagePacket(std::unique_ptr<Packet> packet);
     
     ConnectionStats::Stats sampleStats() { return _stats.sample(); }
+    
+    bool isActive() const { return _isActive; }
 
 signals:
     void packetSent();
@@ -99,6 +99,8 @@ private:
     void resetReceiveState();
     void resetRTT();
     
+    void deactivate() { _isActive = false; emit connectionInactive(_destination); }
+    
     SendQueue& getSendQueue();
     SequenceNumber nextACK() const;
     void updateRTT(int rtt);
@@ -113,14 +115,16 @@ private:
     
     int _nakInterval { -1 }; // NAK timeout interval, in microseconds, set on loss
     int _minNAKInterval { 100000 }; // NAK timeout interval lower bound, default of 100ms
-    std::chrono::high_resolution_clock::time_point _lastNAKTime;
+    p_high_resolution_clock::time_point _lastNAKTime = p_high_resolution_clock::now();
     
     bool _hasReceivedHandshake { false }; // flag for receipt of handshake from server
     bool _hasReceivedHandshakeACK { false }; // flag for receipt of handshake ACK from client
    
-    std::chrono::high_resolution_clock::time_point _connectionStart; // holds the time_point for creation of this connection
-    std::chrono::high_resolution_clock::time_point _lastReceiveTime; // holds the last time we received anything from sender
+    p_high_resolution_clock::time_point _connectionStart = p_high_resolution_clock::now(); // holds the time_point for creation of this connection
+    p_high_resolution_clock::time_point _lastReceiveTime; // holds the last time we received anything from sender
+    
     bool _isReceivingData { false }; // flag used for expiry of receipt portion of connection
+    bool _isActive { true }; // flag used for inactivity of connection
     
     LossList _lossList; // List of all missing packets
     SequenceNumber _lastReceivedSequenceNumber; // The largest sequence number received from the peer

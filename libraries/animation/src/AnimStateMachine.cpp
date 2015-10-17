@@ -12,7 +12,7 @@
 #include "AnimUtil.h"
 #include "AnimationLogging.h"
 
-AnimStateMachine::AnimStateMachine(const std::string& id) :
+AnimStateMachine::AnimStateMachine(const QString& id) :
     AnimNode(AnimNode::Type::StateMachine, id) {
 
 }
@@ -23,7 +23,7 @@ AnimStateMachine::~AnimStateMachine() {
 
 const AnimPoseVec& AnimStateMachine::evaluate(const AnimVariantMap& animVars, float dt, Triggers& triggersOut) {
 
-    std::string desiredStateID = animVars.lookup(_currentStateVar, _currentState->getID());
+    QString desiredStateID = animVars.lookup(_currentStateVar, _currentState->getID());
     if (_currentState->getID() != desiredStateID) {
         // switch states
         bool foundState = false;
@@ -35,7 +35,7 @@ const AnimPoseVec& AnimStateMachine::evaluate(const AnimVariantMap& animVars, fl
             }
         }
         if (!foundState) {
-            qCCritical(animation) << "AnimStateMachine could not find state =" << desiredStateID.c_str() << ", referenced by _currentStateVar =" << _currentStateVar.c_str();
+            qCCritical(animation) << "AnimStateMachine could not find state =" << desiredStateID << ", referenced by _currentStateVar =" << _currentStateVar;
         }
     }
 
@@ -52,7 +52,7 @@ const AnimPoseVec& AnimStateMachine::evaluate(const AnimVariantMap& animVars, fl
     if (_duringInterp) {
         _alpha += _alphaVel * dt;
         if (_alpha < 1.0f) {
-            if (_poses.size() > 0) {
+            if (_poses.size() > 0 && _nextPoses.size() > 0 && _prevPoses.size() > 0) {
                 ::blend(_poses.size(), &_prevPoses[0], &_nextPoses[0], _alpha, &_poses[0]);
             }
         } else {
@@ -77,8 +77,6 @@ void AnimStateMachine::addState(State::Pointer state) {
 
 void AnimStateMachine::switchState(const AnimVariantMap& animVars, State::Pointer desiredState) {
 
-    qCDebug(animation) << "AnimStateMachine::switchState:" << _currentState->getID().c_str() << "->" << desiredState->getID().c_str();
-
     const float FRAMES_PER_SECOND = 30.0f;
 
     auto prevStateNode = _currentState->getNode();
@@ -95,7 +93,9 @@ void AnimStateMachine::switchState(const AnimVariantMap& animVars, State::Pointe
     const float dt = 0.0f;
     Triggers triggers;
     _nextPoses = nextStateNode->evaluate(animVars, dt, triggers);
-
+#if WANT_DEBUG
+    qCDebug(animation) << "AnimStateMachine::switchState:" << _currentState->getID() << "->" << desiredState->getID() << "duration =" << duration << "targetFrame =" << desiredState->_interpTarget;
+#endif
     _currentState = desiredState;
 }
 

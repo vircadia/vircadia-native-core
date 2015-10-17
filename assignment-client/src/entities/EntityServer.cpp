@@ -36,7 +36,7 @@ EntityServer::~EntityServer() {
         _pruneDeletedEntitiesTimer->deleteLater();
     }
 
-    EntityTree* tree = (EntityTree*)_tree;
+    EntityTreePointer tree = std::static_pointer_cast<EntityTree>(_tree);
     tree->removeNewlyCreatedHook(this);
 }
 
@@ -50,8 +50,9 @@ OctreeQueryNode* EntityServer::createOctreeQueryNode() {
     return new EntityNodeData();
 }
 
-Octree* EntityServer::createTree() {
-    EntityTree* tree = new EntityTree(true);
+OctreePointer EntityServer::createTree() {
+    EntityTreePointer tree = EntityTreePointer(new EntityTree(true));
+    tree->createRootElement();
     tree->addNewlyCreatedHook(this);
     if (!_entitySimulation) {
         SimpleEntitySimulation* simpleSimulation = new SimpleEntitySimulation();
@@ -82,7 +83,7 @@ bool EntityServer::hasSpecialPacketsToSend(const SharedNodePointer& node) {
     if (nodeData) {
         quint64 deletedEntitiesSentAt = nodeData->getLastDeletedEntitiesSentAt();
 
-        EntityTree* tree = static_cast<EntityTree*>(_tree);
+        EntityTreePointer tree = std::static_pointer_cast<EntityTree>(_tree);
         shouldSendDeletedEntities = tree->hasEntitiesDeletedSince(deletedEntitiesSentAt);
     }
 
@@ -97,7 +98,7 @@ int EntityServer::sendSpecialPackets(const SharedNodePointer& node, OctreeQueryN
         quint64 deletedEntitiesSentAt = nodeData->getLastDeletedEntitiesSentAt();
         quint64 deletePacketSentAt = usecTimestampNow();
 
-        EntityTree* tree = static_cast<EntityTree*>(_tree);
+        EntityTreePointer tree = std::static_pointer_cast<EntityTree>(_tree);
         bool hasMoreToSend = true;
 
         packetsSent = 0;
@@ -122,7 +123,7 @@ int EntityServer::sendSpecialPackets(const SharedNodePointer& node, OctreeQueryN
 }
 
 void EntityServer::pruneDeletedEntities() {
-    EntityTree* tree = static_cast<EntityTree*>(_tree);
+    EntityTreePointer tree = std::static_pointer_cast<EntityTree>(_tree);
     if (tree->hasAnyDeletedEntities()) {
 
         quint64 earliestLastDeletedEntitiesSent = usecTimestampNow() + 1; // in the future
@@ -141,14 +142,18 @@ void EntityServer::pruneDeletedEntities() {
     }
 }
 
-void EntityServer::readAdditionalConfiguration(const QJsonObject& settingsSectionObject) {
+bool EntityServer::readAdditionalConfiguration(const QJsonObject& settingsSectionObject) {
     bool wantEditLogging = false;
     readOptionBool(QString("wantEditLogging"), settingsSectionObject, wantEditLogging);
     qDebug("wantEditLogging=%s", debug::valueOf(wantEditLogging));
 
+    bool wantTerseEditLogging = false;
+    readOptionBool(QString("wantTerseEditLogging"), settingsSectionObject, wantTerseEditLogging);
+    qDebug("wantTerseEditLogging=%s", debug::valueOf(wantTerseEditLogging));
 
-    EntityTree* tree = static_cast<EntityTree*>(_tree);
+    EntityTreePointer tree = std::static_pointer_cast<EntityTree>(_tree);
     tree->setWantEditLogging(wantEditLogging);
+    tree->setWantTerseEditLogging(wantTerseEditLogging);
+
+    return true;
 }
-
-

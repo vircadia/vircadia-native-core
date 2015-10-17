@@ -29,14 +29,21 @@
 #include <OctreeConstants.h>
 #include <ShapeInfo.h>
 
+#include "AnimationPropertyGroup.h"
 #include "AtmospherePropertyGroup.h"
 #include "EntityItemID.h"
+#include "EntityItemPropertiesDefaults.h"
 #include "EntityItemPropertiesMacros.h"
 #include "EntityTypes.h"
 #include "EntityPropertyFlags.h"
+#include "LineEntityItem.h"
+#include "ParticleEffectEntityItem.h"
+#include "PolyVoxEntityItem.h"
 #include "SimulationOwner.h"
 #include "SkyboxPropertyGroup.h"
 #include "StagePropertyGroup.h"
+#include "TextEntityItem.h"
+#include "ZoneEntityItem.h"
 
 const quint64 UNKNOWN_CREATED_TIME = 0;
 
@@ -58,14 +65,17 @@ class EntityItemProperties {
     friend class PolyVoxEntityItem; // TODO: consider removing this friend relationship and use public methods
     friend class PolyLineEntityItem; // TODO: consider removing this friend relationship and use public methods
 public:
-    EntityItemProperties();
-    virtual ~EntityItemProperties();
+    EntityItemProperties(EntityPropertyFlags desiredProperties = EntityPropertyFlags());
+    virtual ~EntityItemProperties() = default;
 
     EntityTypes::EntityType getType() const { return _type; }
     void setType(EntityTypes::EntityType type) { _type = type; }
 
     virtual QScriptValue copyToScriptValue(QScriptEngine* engine, bool skipDefaults) const;
     virtual void copyFromScriptValue(const QScriptValue& object, bool honorReadOnly);
+
+    static QScriptValue entityPropertyFlagsToScriptValue(QScriptEngine* engine, const EntityPropertyFlags& flags);
+    static void entityPropertyFlagsFromScriptValue(const QScriptValue& object, EntityPropertyFlags& flags);
 
     // editing related features supported by all entities
     quint64 getLastEdited() const { return _lastEdited; }
@@ -79,104 +89,108 @@ public:
     void debugDump() const;
     void setLastEdited(quint64 usecTime);
 
-    // Note:  DEFINE_PROPERTY(PROP_FOO, Foo, foo, type) creates the following methods and variables:
+    // Note:  DEFINE_PROPERTY(PROP_FOO, Foo, foo, type, value) creates the following methods and variables:
     // type getFoo() const;
     // void setFoo(type);
     // bool fooChanged() const;
-    // type _foo;
-    // bool _fooChanged;
+    // type _foo { value };
+    // bool _fooChanged { false };
 
-    DEFINE_PROPERTY(PROP_VISIBLE, Visible, visible, bool);
-    DEFINE_PROPERTY_REF_WITH_SETTER(PROP_POSITION, Position, position, glm::vec3);
-    DEFINE_PROPERTY_REF(PROP_DIMENSIONS, Dimensions, dimensions, glm::vec3);
-    DEFINE_PROPERTY_REF(PROP_ROTATION, Rotation, rotation, glm::quat);
-    DEFINE_PROPERTY(PROP_DENSITY, Density, density, float);
-    DEFINE_PROPERTY_REF(PROP_VELOCITY, Velocity, velocity, glm::vec3);
-    DEFINE_PROPERTY_REF(PROP_GRAVITY, Gravity, gravity, glm::vec3);
-    DEFINE_PROPERTY_REF(PROP_ACCELERATION, Acceleration, acceleration, glm::vec3);
-    DEFINE_PROPERTY(PROP_DAMPING, Damping, damping, float);
-    DEFINE_PROPERTY(PROP_RESTITUTION, Restitution, restitution, float);
-    DEFINE_PROPERTY(PROP_FRICTION, Friction, friction, float);
-    DEFINE_PROPERTY(PROP_LIFETIME, Lifetime, lifetime, float);
-    DEFINE_PROPERTY(PROP_CREATED, Created, created, quint64);
-    DEFINE_PROPERTY_REF(PROP_SCRIPT, Script, script, QString);
-    DEFINE_PROPERTY(PROP_SCRIPT_TIMESTAMP, ScriptTimestamp, scriptTimestamp, quint64);
-    DEFINE_PROPERTY_REF(PROP_COLLISION_SOUND_URL, CollisionSoundURL, collisionSoundURL, QString);
-    DEFINE_PROPERTY_REF(PROP_COLOR, Color, color, xColor);
-    DEFINE_PROPERTY_REF(PROP_COLOR_SPREAD, ColorSpread, colorSpread, xColor);
-    DEFINE_PROPERTY_REF(PROP_COLOR_START, ColorStart, colorStart, xColor);
-    DEFINE_PROPERTY_REF(PROP_COLOR_FINISH, ColorFinish, colorFinish, xColor);
-    DEFINE_PROPERTY(PROP_ALPHA, Alpha, alpha, float);
-    DEFINE_PROPERTY(PROP_ALPHA_SPREAD, AlphaSpread, alphaSpread, float);
-    DEFINE_PROPERTY(PROP_ALPHA_START, AlphaStart, alphaStart, float);
-    DEFINE_PROPERTY(PROP_ALPHA_FINISH, AlphaFinish, alphaFinish, float);
-    DEFINE_PROPERTY_REF(PROP_MODEL_URL, ModelURL, modelURL, QString);
-    DEFINE_PROPERTY_REF(PROP_COMPOUND_SHAPE_URL, CompoundShapeURL, compoundShapeURL, QString);
-    DEFINE_PROPERTY_REF(PROP_ANIMATION_URL, AnimationURL, animationURL, QString);
-    DEFINE_PROPERTY(PROP_ANIMATION_FPS, AnimationFPS, animationFPS, float);
-    DEFINE_PROPERTY(PROP_ANIMATION_FRAME_INDEX, AnimationFrameIndex, animationFrameIndex, float);
-    DEFINE_PROPERTY(PROP_ANIMATION_PLAYING, AnimationIsPlaying, animationIsPlaying, bool);
-    DEFINE_PROPERTY_REF(PROP_REGISTRATION_POINT, RegistrationPoint, registrationPoint, glm::vec3);
-    DEFINE_PROPERTY_REF(PROP_ANGULAR_VELOCITY, AngularVelocity, angularVelocity, glm::vec3);
-    DEFINE_PROPERTY(PROP_ANGULAR_DAMPING, AngularDamping, angularDamping, float);
-    DEFINE_PROPERTY(PROP_IGNORE_FOR_COLLISIONS, IgnoreForCollisions, ignoreForCollisions, bool);
-    DEFINE_PROPERTY(PROP_COLLISIONS_WILL_MOVE, CollisionsWillMove, collisionsWillMove, bool);
-    DEFINE_PROPERTY(PROP_IS_SPOTLIGHT, IsSpotlight, isSpotlight, bool);
-    DEFINE_PROPERTY(PROP_INTENSITY, Intensity, intensity, float);
-    DEFINE_PROPERTY(PROP_EXPONENT, Exponent, exponent, float);
-    DEFINE_PROPERTY(PROP_CUTOFF, Cutoff, cutoff, float);
-    DEFINE_PROPERTY(PROP_LOCKED, Locked, locked, bool);
-    DEFINE_PROPERTY_REF(PROP_TEXTURES, Textures, textures, QString);
-    DEFINE_PROPERTY_REF_WITH_SETTER_AND_GETTER(PROP_ANIMATION_SETTINGS, AnimationSettings, animationSettings, QString);
-    DEFINE_PROPERTY_REF(PROP_USER_DATA, UserData, userData, QString);
-    DEFINE_PROPERTY_REF(PROP_SIMULATION_OWNER, SimulationOwner, simulationOwner, SimulationOwner);
-    DEFINE_PROPERTY_REF(PROP_TEXT, Text, text, QString);
-    DEFINE_PROPERTY(PROP_LINE_HEIGHT, LineHeight, lineHeight, float);
-    DEFINE_PROPERTY_REF(PROP_TEXT_COLOR, TextColor, textColor, xColor);
-    DEFINE_PROPERTY_REF(PROP_BACKGROUND_COLOR, BackgroundColor, backgroundColor, xColor);
-    DEFINE_PROPERTY_REF_ENUM(PROP_SHAPE_TYPE, ShapeType, shapeType, ShapeType);
-    DEFINE_PROPERTY(PROP_MAX_PARTICLES, MaxParticles, maxParticles, quint32);
-    DEFINE_PROPERTY(PROP_LIFESPAN, Lifespan, lifespan, float);
-    DEFINE_PROPERTY(PROP_EMIT_RATE, EmitRate, emitRate, float);
-    DEFINE_PROPERTY_REF(PROP_EMIT_VELOCITY, EmitVelocity, emitVelocity, glm::vec3);
-    DEFINE_PROPERTY_REF(PROP_VELOCITY_SPREAD, VelocitySpread, velocitySpread, glm::vec3);
-    DEFINE_PROPERTY(PROP_EMIT_ACCELERATION, EmitAcceleration, emitAcceleration, glm::vec3);
-    DEFINE_PROPERTY(PROP_ACCELERATION_SPREAD, AccelerationSpread, accelerationSpread, glm::vec3);
-    DEFINE_PROPERTY(PROP_PARTICLE_RADIUS, ParticleRadius, particleRadius, float);
-    DEFINE_PROPERTY(PROP_RADIUS_SPREAD, RadiusSpread, radiusSpread, float);
-    DEFINE_PROPERTY(PROP_RADIUS_START, RadiusStart, radiusStart, float);
-    DEFINE_PROPERTY(PROP_RADIUS_FINISH, RadiusFinish, radiusFinish, float);
-    DEFINE_PROPERTY_REF(PROP_MARKETPLACE_ID, MarketplaceID, marketplaceID, QString);
-    DEFINE_PROPERTY_REF(PROP_KEYLIGHT_COLOR, KeyLightColor, keyLightColor, xColor);
-    DEFINE_PROPERTY(PROP_KEYLIGHT_INTENSITY, KeyLightIntensity, keyLightIntensity, float);
-    DEFINE_PROPERTY(PROP_KEYLIGHT_AMBIENT_INTENSITY, KeyLightAmbientIntensity, keyLightAmbientIntensity, float);
-    DEFINE_PROPERTY_REF(PROP_KEYLIGHT_DIRECTION, KeyLightDirection, keyLightDirection, glm::vec3);
-    DEFINE_PROPERTY_REF(PROP_VOXEL_VOLUME_SIZE, VoxelVolumeSize, voxelVolumeSize, glm::vec3);
-    DEFINE_PROPERTY_REF(PROP_VOXEL_DATA, VoxelData, voxelData, QByteArray);
-    DEFINE_PROPERTY_REF(PROP_VOXEL_SURFACE_STYLE, VoxelSurfaceStyle, voxelSurfaceStyle, uint16_t);
-    DEFINE_PROPERTY_REF(PROP_NAME, Name, name, QString);
-    DEFINE_PROPERTY_REF_ENUM(PROP_BACKGROUND_MODE, BackgroundMode, backgroundMode, BackgroundMode);
+    DEFINE_PROPERTY(PROP_VISIBLE, Visible, visible, bool, ENTITY_ITEM_DEFAULT_VISIBLE);
+    DEFINE_PROPERTY_REF_WITH_SETTER(PROP_POSITION, Position, position, glm::vec3, ENTITY_ITEM_ZERO_VEC3);
+    DEFINE_PROPERTY_REF(PROP_DIMENSIONS, Dimensions, dimensions, glm::vec3, ENTITY_ITEM_DEFAULT_DIMENSIONS);
+    DEFINE_PROPERTY_REF(PROP_ROTATION, Rotation, rotation, glm::quat, ENTITY_ITEM_DEFAULT_ROTATION);
+    DEFINE_PROPERTY(PROP_DENSITY, Density, density, float, ENTITY_ITEM_DEFAULT_DENSITY);
+    DEFINE_PROPERTY_REF(PROP_VELOCITY, Velocity, velocity, glm::vec3, ENTITY_ITEM_DEFAULT_VELOCITY);
+    DEFINE_PROPERTY_REF(PROP_GRAVITY, Gravity, gravity, glm::vec3, ENTITY_ITEM_DEFAULT_GRAVITY);
+    DEFINE_PROPERTY_REF(PROP_ACCELERATION, Acceleration, acceleration, glm::vec3, ENTITY_ITEM_DEFAULT_ACCELERATION);
+    DEFINE_PROPERTY(PROP_DAMPING, Damping, damping, float, ENTITY_ITEM_DEFAULT_DAMPING);
+    DEFINE_PROPERTY(PROP_RESTITUTION, Restitution, restitution, float, ENTITY_ITEM_DEFAULT_RESTITUTION);
+    DEFINE_PROPERTY(PROP_FRICTION, Friction, friction, float, ENTITY_ITEM_DEFAULT_FRICTION);
+    DEFINE_PROPERTY(PROP_LIFETIME, Lifetime, lifetime, float, ENTITY_ITEM_DEFAULT_LIFETIME);
+    DEFINE_PROPERTY(PROP_CREATED, Created, created, quint64, UNKNOWN_CREATED_TIME);
+    DEFINE_PROPERTY_REF(PROP_SCRIPT, Script, script, QString, ENTITY_ITEM_DEFAULT_SCRIPT);
+    DEFINE_PROPERTY(PROP_SCRIPT_TIMESTAMP, ScriptTimestamp, scriptTimestamp, quint64, ENTITY_ITEM_DEFAULT_SCRIPT_TIMESTAMP);
+    DEFINE_PROPERTY_REF(PROP_COLLISION_SOUND_URL, CollisionSoundURL, collisionSoundURL, QString, ENTITY_ITEM_DEFAULT_COLLISION_SOUND_URL);
+    DEFINE_PROPERTY_REF(PROP_COLOR, Color, color, xColor, ParticleEffectEntityItem::DEFAULT_COLOR);
+    DEFINE_PROPERTY_REF(PROP_COLOR_SPREAD, ColorSpread, colorSpread, xColor, ParticleEffectEntityItem::DEFAULT_COLOR_SPREAD);
+    DEFINE_PROPERTY_REF(PROP_COLOR_START, ColorStart, colorStart, xColor, ParticleEffectEntityItem::DEFAULT_COLOR);
+    DEFINE_PROPERTY_REF(PROP_COLOR_FINISH, ColorFinish, colorFinish, xColor, ParticleEffectEntityItem::DEFAULT_COLOR);
+    DEFINE_PROPERTY(PROP_ALPHA, Alpha, alpha, float, ParticleEffectEntityItem::DEFAULT_ALPHA);
+    DEFINE_PROPERTY(PROP_ALPHA_SPREAD, AlphaSpread, alphaSpread, float, ParticleEffectEntityItem::DEFAULT_ALPHA_SPREAD);
+    DEFINE_PROPERTY(PROP_ALPHA_START, AlphaStart, alphaStart, float, ParticleEffectEntityItem::DEFAULT_ALPHA);
+    DEFINE_PROPERTY(PROP_ALPHA_FINISH, AlphaFinish, alphaFinish, float, ParticleEffectEntityItem::DEFAULT_ALPHA);
+    DEFINE_PROPERTY_REF(PROP_MODEL_URL, ModelURL, modelURL, QString, "");
+    DEFINE_PROPERTY_REF(PROP_COMPOUND_SHAPE_URL, CompoundShapeURL, compoundShapeURL, QString, "");
+    DEFINE_PROPERTY_REF(PROP_REGISTRATION_POINT, RegistrationPoint, registrationPoint, glm::vec3, ENTITY_ITEM_DEFAULT_REGISTRATION_POINT);
+    DEFINE_PROPERTY_REF(PROP_ANGULAR_VELOCITY, AngularVelocity, angularVelocity, glm::vec3, ENTITY_ITEM_DEFAULT_ANGULAR_VELOCITY);
+    DEFINE_PROPERTY(PROP_ANGULAR_DAMPING, AngularDamping, angularDamping, float, ENTITY_ITEM_DEFAULT_ANGULAR_DAMPING);
+    DEFINE_PROPERTY(PROP_IGNORE_FOR_COLLISIONS, IgnoreForCollisions, ignoreForCollisions, bool, ENTITY_ITEM_DEFAULT_IGNORE_FOR_COLLISIONS);
+    DEFINE_PROPERTY(PROP_COLLISIONS_WILL_MOVE, CollisionsWillMove, collisionsWillMove, bool, ENTITY_ITEM_DEFAULT_COLLISIONS_WILL_MOVE);
+    DEFINE_PROPERTY(PROP_IS_SPOTLIGHT, IsSpotlight, isSpotlight, bool, false);
+    DEFINE_PROPERTY(PROP_INTENSITY, Intensity, intensity, float, 1.0f);
+    DEFINE_PROPERTY(PROP_EXPONENT, Exponent, exponent, float, 0.0f);
+    DEFINE_PROPERTY(PROP_CUTOFF, Cutoff, cutoff, float, ENTITY_ITEM_DEFAULT_CUTOFF);
+    DEFINE_PROPERTY(PROP_LOCKED, Locked, locked, bool, ENTITY_ITEM_DEFAULT_LOCKED);
+    DEFINE_PROPERTY_REF(PROP_TEXTURES, Textures, textures, QString, "");
+    DEFINE_PROPERTY_REF(PROP_USER_DATA, UserData, userData, QString, ENTITY_ITEM_DEFAULT_USER_DATA);
+    DEFINE_PROPERTY_REF(PROP_SIMULATION_OWNER, SimulationOwner, simulationOwner, SimulationOwner, SimulationOwner());
+    DEFINE_PROPERTY_REF(PROP_TEXT, Text, text, QString, TextEntityItem::DEFAULT_TEXT);
+    DEFINE_PROPERTY(PROP_LINE_HEIGHT, LineHeight, lineHeight, float, TextEntityItem::DEFAULT_LINE_HEIGHT);
+    DEFINE_PROPERTY_REF(PROP_TEXT_COLOR, TextColor, textColor, xColor, TextEntityItem::DEFAULT_TEXT_COLOR);
+    DEFINE_PROPERTY_REF(PROP_BACKGROUND_COLOR, BackgroundColor, backgroundColor, xColor, TextEntityItem::DEFAULT_BACKGROUND_COLOR);
+    DEFINE_PROPERTY_REF_ENUM(PROP_SHAPE_TYPE, ShapeType, shapeType, ShapeType, SHAPE_TYPE_NONE);
+    DEFINE_PROPERTY(PROP_MAX_PARTICLES, MaxParticles, maxParticles, quint32, ParticleEffectEntityItem::DEFAULT_MAX_PARTICLES);
+    DEFINE_PROPERTY(PROP_LIFESPAN, Lifespan, lifespan, float, ParticleEffectEntityItem::DEFAULT_LIFESPAN);
+    DEFINE_PROPERTY(PROP_EMITTING_PARTICLES, IsEmitting, isEmitting, bool, true);
+    DEFINE_PROPERTY(PROP_EMIT_RATE, EmitRate, emitRate, float, ParticleEffectEntityItem::DEFAULT_EMIT_RATE);
+    DEFINE_PROPERTY(PROP_EMIT_SPEED, EmitSpeed, emitSpeed, float, ParticleEffectEntityItem::DEFAULT_EMIT_SPEED);
+    DEFINE_PROPERTY(PROP_SPEED_SPREAD, SpeedSpread, speedSpread, float, ParticleEffectEntityItem::DEFAULT_SPEED_SPREAD);
+    DEFINE_PROPERTY_REF(PROP_EMIT_ORIENTATION, EmitOrientation, emitOrientation, glm::quat, ParticleEffectEntityItem::DEFAULT_EMIT_ORIENTATION);
+    DEFINE_PROPERTY_REF(PROP_EMIT_DIMENSIONS, EmitDimensions, emitDimensions, glm::vec3, ParticleEffectEntityItem::DEFAULT_EMIT_DIMENSIONS);
+    DEFINE_PROPERTY(PROP_EMIT_RADIUS_START, EmitRadiusStart, emitRadiusStart, float, ParticleEffectEntityItem::DEFAULT_EMIT_RADIUS_START);
+    DEFINE_PROPERTY(PROP_POLAR_START, PolarStart, polarStart, float, ParticleEffectEntityItem::DEFAULT_POLAR_START);
+    DEFINE_PROPERTY(PROP_POLAR_FINISH, PolarFinish, polarFinish, float, ParticleEffectEntityItem::DEFAULT_POLAR_FINISH);
+    DEFINE_PROPERTY(PROP_AZIMUTH_START, AzimuthStart, azimuthStart, float, ParticleEffectEntityItem::DEFAULT_AZIMUTH_START);
+    DEFINE_PROPERTY(PROP_AZIMUTH_FINISH, AzimuthFinish, azimuthFinish, float, ParticleEffectEntityItem::DEFAULT_AZIMUTH_FINISH);
+    DEFINE_PROPERTY_REF(PROP_EMIT_ACCELERATION, EmitAcceleration, emitAcceleration, glm::vec3, ParticleEffectEntityItem::DEFAULT_EMIT_ACCELERATION);
+    DEFINE_PROPERTY_REF(PROP_ACCELERATION_SPREAD, AccelerationSpread, accelerationSpread, glm::vec3, ParticleEffectEntityItem::DEFAULT_ACCELERATION_SPREAD);
+    DEFINE_PROPERTY(PROP_PARTICLE_RADIUS, ParticleRadius, particleRadius, float, ParticleEffectEntityItem::DEFAULT_PARTICLE_RADIUS);
+    DEFINE_PROPERTY(PROP_RADIUS_SPREAD, RadiusSpread, radiusSpread, float, ParticleEffectEntityItem::DEFAULT_RADIUS_SPREAD);
+    DEFINE_PROPERTY(PROP_RADIUS_START, RadiusStart, radiusStart, float, ParticleEffectEntityItem::DEFAULT_RADIUS_START);
+    DEFINE_PROPERTY(PROP_RADIUS_FINISH, RadiusFinish, radiusFinish, float, ParticleEffectEntityItem::DEFAULT_RADIUS_FINISH);
+    DEFINE_PROPERTY_REF(PROP_MARKETPLACE_ID, MarketplaceID, marketplaceID, QString, ENTITY_ITEM_DEFAULT_MARKETPLACE_ID);
+    DEFINE_PROPERTY_REF(PROP_KEYLIGHT_COLOR, KeyLightColor, keyLightColor, xColor, ZoneEntityItem::DEFAULT_KEYLIGHT_COLOR);
+    DEFINE_PROPERTY(PROP_KEYLIGHT_INTENSITY, KeyLightIntensity, keyLightIntensity, float, ZoneEntityItem::DEFAULT_KEYLIGHT_INTENSITY);
+    DEFINE_PROPERTY(PROP_KEYLIGHT_AMBIENT_INTENSITY, KeyLightAmbientIntensity, keyLightAmbientIntensity, float, ZoneEntityItem::DEFAULT_KEYLIGHT_AMBIENT_INTENSITY);
+    DEFINE_PROPERTY_REF(PROP_KEYLIGHT_DIRECTION, KeyLightDirection, keyLightDirection, glm::vec3, ZoneEntityItem::DEFAULT_KEYLIGHT_DIRECTION);
+    DEFINE_PROPERTY_REF(PROP_VOXEL_VOLUME_SIZE, VoxelVolumeSize, voxelVolumeSize, glm::vec3, PolyVoxEntityItem::DEFAULT_VOXEL_VOLUME_SIZE);
+    DEFINE_PROPERTY_REF(PROP_VOXEL_DATA, VoxelData, voxelData, QByteArray, PolyVoxEntityItem::DEFAULT_VOXEL_DATA);
+    DEFINE_PROPERTY_REF(PROP_VOXEL_SURFACE_STYLE, VoxelSurfaceStyle, voxelSurfaceStyle, uint16_t, PolyVoxEntityItem::DEFAULT_VOXEL_SURFACE_STYLE);
+    DEFINE_PROPERTY_REF(PROP_NAME, Name, name, QString, ENTITY_ITEM_DEFAULT_NAME);
+    DEFINE_PROPERTY_REF_ENUM(PROP_BACKGROUND_MODE, BackgroundMode, backgroundMode, BackgroundMode, BACKGROUND_MODE_INHERIT);
     DEFINE_PROPERTY_GROUP(Stage, stage, StagePropertyGroup);
     DEFINE_PROPERTY_GROUP(Atmosphere, atmosphere, AtmospherePropertyGroup);
     DEFINE_PROPERTY_GROUP(Skybox, skybox, SkyboxPropertyGroup);
-    DEFINE_PROPERTY_REF(PROP_SOURCE_URL, SourceUrl, sourceUrl, QString);
-    DEFINE_PROPERTY(PROP_LINE_WIDTH, LineWidth, lineWidth, float);
-    DEFINE_PROPERTY_REF(LINE_POINTS, LinePoints, linePoints, QVector<glm::vec3>);
-    DEFINE_PROPERTY_REF(PROP_HREF, Href, href, QString);
-    DEFINE_PROPERTY_REF(PROP_DESCRIPTION, Description, description, QString);
-    DEFINE_PROPERTY(PROP_FACE_CAMERA, FaceCamera, faceCamera, bool);
-    DEFINE_PROPERTY_REF(PROP_ACTION_DATA, ActionData, actionData, QByteArray);
-    DEFINE_PROPERTY(PROP_NORMALS, Normals, normals, QVector<glm::vec3>);
-    DEFINE_PROPERTY(PROP_STROKE_WIDTHS, StrokeWidths, strokeWidths, QVector<float>);
-    DEFINE_PROPERTY_REF(PROP_X_TEXTURE_URL, XTextureURL, xTextureURL, QString);
-    DEFINE_PROPERTY_REF(PROP_Y_TEXTURE_URL, YTextureURL, yTextureURL, QString);
-    DEFINE_PROPERTY_REF(PROP_Z_TEXTURE_URL, ZTextureURL, zTextureURL, QString);
-    DEFINE_PROPERTY_REF(PROP_X_N_NEIGHBOR_ID, XNNeighborID, xNNeighborID, EntityItemID);
-    DEFINE_PROPERTY_REF(PROP_Y_N_NEIGHBOR_ID, YNNeighborID, yNNeighborID, EntityItemID);
-    DEFINE_PROPERTY_REF(PROP_Z_N_NEIGHBOR_ID, ZNNeighborID, zNNeighborID, EntityItemID);
-    DEFINE_PROPERTY_REF(PROP_X_P_NEIGHBOR_ID, XPNeighborID, xPNeighborID, EntityItemID);
-    DEFINE_PROPERTY_REF(PROP_Y_P_NEIGHBOR_ID, YPNeighborID, yPNeighborID, EntityItemID);
-    DEFINE_PROPERTY_REF(PROP_Z_P_NEIGHBOR_ID, ZPNeighborID, zPNeighborID, EntityItemID);
+    DEFINE_PROPERTY_GROUP(Animation, animation, AnimationPropertyGroup);
+    DEFINE_PROPERTY_REF(PROP_SOURCE_URL, SourceUrl, sourceUrl, QString, "");
+    DEFINE_PROPERTY(PROP_LINE_WIDTH, LineWidth, lineWidth, float, LineEntityItem::DEFAULT_LINE_WIDTH);
+    DEFINE_PROPERTY_REF(LINE_POINTS, LinePoints, linePoints, QVector<glm::vec3>, QVector<glm::vec3>());
+    DEFINE_PROPERTY_REF(PROP_HREF, Href, href, QString, "");
+    DEFINE_PROPERTY_REF(PROP_DESCRIPTION, Description, description, QString, "");
+    DEFINE_PROPERTY(PROP_FACE_CAMERA, FaceCamera, faceCamera, bool, TextEntityItem::DEFAULT_FACE_CAMERA);
+    DEFINE_PROPERTY_REF(PROP_ACTION_DATA, ActionData, actionData, QByteArray, QByteArray());
+    DEFINE_PROPERTY(PROP_NORMALS, Normals, normals, QVector<glm::vec3>, QVector<glm::vec3>());
+    DEFINE_PROPERTY(PROP_STROKE_WIDTHS, StrokeWidths, strokeWidths, QVector<float>, QVector<float>());
+    DEFINE_PROPERTY_REF(PROP_X_TEXTURE_URL, XTextureURL, xTextureURL, QString, "");
+    DEFINE_PROPERTY_REF(PROP_Y_TEXTURE_URL, YTextureURL, yTextureURL, QString, "");
+    DEFINE_PROPERTY_REF(PROP_Z_TEXTURE_URL, ZTextureURL, zTextureURL, QString, "");
+    DEFINE_PROPERTY_REF(PROP_X_N_NEIGHBOR_ID, XNNeighborID, xNNeighborID, EntityItemID, UNKNOWN_ENTITY_ID);
+    DEFINE_PROPERTY_REF(PROP_Y_N_NEIGHBOR_ID, YNNeighborID, yNNeighborID, EntityItemID, UNKNOWN_ENTITY_ID);
+    DEFINE_PROPERTY_REF(PROP_Z_N_NEIGHBOR_ID, ZNNeighborID, zNNeighborID, EntityItemID, UNKNOWN_ENTITY_ID);
+    DEFINE_PROPERTY_REF(PROP_X_P_NEIGHBOR_ID, XPNeighborID, xPNeighborID, EntityItemID, UNKNOWN_ENTITY_ID);
+    DEFINE_PROPERTY_REF(PROP_Y_P_NEIGHBOR_ID, YPNeighborID, yPNeighborID, EntityItemID, UNKNOWN_ENTITY_ID);
+    DEFINE_PROPERTY_REF(PROP_Z_P_NEIGHBOR_ID, ZPNeighborID, zPNeighborID, EntityItemID, UNKNOWN_ENTITY_ID);
 
     static QString getBackgroundModeString(BackgroundMode mode);
 
@@ -190,7 +204,6 @@ public:
     bool containsBoundsProperties() const { return (_positionChanged || _dimensionsChanged); }
     bool containsPositionChange() const { return _positionChanged; }
     bool containsDimensionsChange() const { return _dimensionsChanged; }
-    bool containsAnimationSettingsChange() const { return _animationSettingsChanged; }
 
     float getGlowLevel() const { return _glowLevel; }
     float getLocalRenderAlpha() const { return _localRenderAlpha; }
@@ -240,6 +253,11 @@ public:
 
     void setActionDataDirty() { _actionDataChanged = true; }
 
+    QList<QString> listChangedProperties();
+    
+    bool getDimensionsInitialized() const { return _dimensionsInitialized; }
+    void setDimensionsInitialized(bool dimensionsInitialized) { _dimensionsInitialized = dimensionsInitialized; }
+    
 private:
     QUuid _id;
     bool _idSet;
@@ -252,6 +270,7 @@ private:
     bool _glowLevelChanged;
     bool _localRenderAlphaChanged;
     bool _defaultSettings;
+    bool _dimensionsInitialized = false; // Only true if creating an entity localy with no dimensions properties
 
     // NOTE: The following are pseudo client only properties. They are only used in clients which can access
     // properties of model geometry. But these properties are not serialized like other properties.
@@ -259,13 +278,19 @@ private:
     QStringList _textureNames;
     glm::vec3 _naturalDimensions;
     glm::vec3 _naturalPosition;
+
+    EntityPropertyFlags _desiredProperties; // if set will narrow scopes of copy/to/from to just these properties
 };
 
 Q_DECLARE_METATYPE(EntityItemProperties);
 QScriptValue EntityItemPropertiesToScriptValue(QScriptEngine* engine, const EntityItemProperties& properties);
 QScriptValue EntityItemNonDefaultPropertiesToScriptValue(QScriptEngine* engine, const EntityItemProperties& properties);
-void EntityItemPropertiesFromScriptValueIgnoreReadOnly(const QScriptValue &object, EntityItemProperties& properties);
-void EntityItemPropertiesFromScriptValueHonorReadOnly(const QScriptValue &object, EntityItemProperties& properties);
+void EntityItemPropertiesFromScriptValueIgnoreReadOnly(const QScriptValue& object, EntityItemProperties& properties);
+void EntityItemPropertiesFromScriptValueHonorReadOnly(const QScriptValue& object, EntityItemProperties& properties);
+
+Q_DECLARE_METATYPE(EntityPropertyFlags);
+QScriptValue EntityPropertyFlagsToScriptValue(QScriptEngine* engine, const EntityPropertyFlags& flags);
+void EntityPropertyFlagsFromScriptValue(const QScriptValue& object, EntityPropertyFlags& flags);
 
 
 // define these inline here so the macros work
@@ -280,9 +305,6 @@ inline QDebug operator<<(QDebug debug, const EntityItemProperties& properties) {
     // TODO: figure out why position and animationSettings don't seem to like the macro approach
     if (properties.containsPositionChange()) {
         debug << "  position:" << properties.getPosition() << "in meters" << "\n";
-    }
-    if (properties.containsAnimationSettingsChange()) {
-        debug << "  animationSettings:" << properties.getAnimationSettings() << "\n";
     }
 
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, Dimensions, dimensions, "in meters");
@@ -310,10 +332,6 @@ inline QDebug operator<<(QDebug debug, const EntityItemProperties& properties) {
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, AlphaFinish, alphaFinish, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, ModelURL, modelURL, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, CompoundShapeURL, compoundShapeURL, "");
-    DEBUG_PROPERTY_IF_CHANGED(debug, properties, AnimationURL, animationURL, "");
-    DEBUG_PROPERTY_IF_CHANGED(debug, properties, AnimationFPS, animationFPS, "");
-    DEBUG_PROPERTY_IF_CHANGED(debug, properties, AnimationFrameIndex, animationFrameIndex, "");
-    DEBUG_PROPERTY_IF_CHANGED(debug, properties, AnimationIsPlaying, animationIsPlaying, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, RegistrationPoint, registrationPoint, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, AngularVelocity, angularVelocity, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, AngularDamping, angularDamping, "");
@@ -334,8 +352,17 @@ inline QDebug operator<<(QDebug debug, const EntityItemProperties& properties) {
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, ShapeType, shapeType, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, MaxParticles, maxParticles, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, Lifespan, lifespan, "");
+    DEBUG_PROPERTY_IF_CHANGED(debug, properties, IsEmitting, isEmitting, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, EmitRate, emitRate, "");
-    DEBUG_PROPERTY_IF_CHANGED(debug, properties, EmitVelocity, emitVelocity, "");
+    DEBUG_PROPERTY_IF_CHANGED(debug, properties, EmitSpeed, emitSpeed, "");
+    DEBUG_PROPERTY_IF_CHANGED(debug, properties, SpeedSpread, speedSpread, "");
+    DEBUG_PROPERTY_IF_CHANGED(debug, properties, EmitOrientation, emitOrientation, "");
+    DEBUG_PROPERTY_IF_CHANGED(debug, properties, EmitDimensions, emitDimensions, "");
+    DEBUG_PROPERTY_IF_CHANGED(debug, properties, EmitRadiusStart, emitRadiusStart, "");
+    DEBUG_PROPERTY_IF_CHANGED(debug, properties, PolarStart, polarStart, "");
+    DEBUG_PROPERTY_IF_CHANGED(debug, properties, PolarFinish, polarFinish, "");
+    DEBUG_PROPERTY_IF_CHANGED(debug, properties, AzimuthStart, azimuthStart, "");
+    DEBUG_PROPERTY_IF_CHANGED(debug, properties, AzimuthFinish, azimuthFinish, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, EmitAcceleration, emitAcceleration, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, AccelerationSpread, accelerationSpread, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, ParticleRadius, particleRadius, "");
@@ -349,7 +376,9 @@ inline QDebug operator<<(QDebug debug, const EntityItemProperties& properties) {
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, VoxelSurfaceStyle, voxelSurfaceStyle, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, Href, href, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, Description, description, "");
-    DEBUG_PROPERTY_IF_CHANGED(debug, properties, ActionData, actionData, "");
+    if (properties.actionDataChanged()) {
+        debug << " " << "actionData" << ":" << properties.getActionData().toHex() << "" << "\n";
+    }
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, XTextureURL, xTextureURL, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, YTextureURL, yTextureURL, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, ZTextureURL, zTextureURL, "");
@@ -360,9 +389,10 @@ inline QDebug operator<<(QDebug debug, const EntityItemProperties& properties) {
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, YPNeighborID, yPNeighborID, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, ZPNeighborID, zPNeighborID, "");
 
-    properties.getStage().debugDump();
+    properties.getAnimation().debugDump();
     properties.getAtmosphere().debugDump();
     properties.getSkybox().debugDump();
+    properties.getStage().debugDump();
 
     debug << "  last edited:" << properties.getLastEdited() << "\n";
     debug << "  edited ago:" << properties.getEditedAgo() << "\n";

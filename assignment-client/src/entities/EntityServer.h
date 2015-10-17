@@ -26,28 +26,28 @@ public:
     ~EntityServer();
 
     // Subclasses must implement these methods
-    virtual OctreeQueryNode* createOctreeQueryNode();
-    virtual char getMyNodeType() const { return NodeType::EntityServer; }
-    virtual PacketType getMyQueryMessageType() const { return PacketType::EntityQuery; }
-    virtual const char* getMyServerName() const { return MODEL_SERVER_NAME; }
-    virtual const char* getMyLoggingServerTargetName() const { return MODEL_SERVER_LOGGING_TARGET_NAME; }
-    virtual const char* getMyDefaultPersistFilename() const { return LOCAL_MODELS_PERSIST_FILE; }
-    virtual PacketType getMyEditNackType() const { return PacketType::EntityEditNack; }
-    virtual QString getMyDomainSettingsKey() const { return QString("entity_server_settings"); }
+    virtual OctreeQueryNode* createOctreeQueryNode() override ;
+    virtual char getMyNodeType() const override { return NodeType::EntityServer; }
+    virtual PacketType getMyQueryMessageType() const override { return PacketType::EntityQuery; }
+    virtual const char* getMyServerName() const override { return MODEL_SERVER_NAME; }
+    virtual const char* getMyLoggingServerTargetName() const override { return MODEL_SERVER_LOGGING_TARGET_NAME; }
+    virtual const char* getMyDefaultPersistFilename() const override { return LOCAL_MODELS_PERSIST_FILE; }
+    virtual PacketType getMyEditNackType() const override { return PacketType::EntityEditNack; }
+    virtual QString getMyDomainSettingsKey() const override { return QString("entity_server_settings"); }
 
     // subclass may implement these method
-    virtual void beforeRun();
-    virtual bool hasSpecialPacketsToSend(const SharedNodePointer& node);
-    virtual int sendSpecialPackets(const SharedNodePointer& node, OctreeQueryNode* queryNode, int& packetsSent);
+    virtual void beforeRun() override;
+    virtual bool hasSpecialPacketsToSend(const SharedNodePointer& node) override;
+    virtual int sendSpecialPackets(const SharedNodePointer& node, OctreeQueryNode* queryNode, int& packetsSent) override;
 
-    virtual void entityCreated(const EntityItem& newEntity, const SharedNodePointer& senderNode);
-    virtual void readAdditionalConfiguration(const QJsonObject& settingsSectionObject);
+    virtual void entityCreated(const EntityItem& newEntity, const SharedNodePointer& senderNode) override;
+    virtual bool readAdditionalConfiguration(const QJsonObject& settingsSectionObject) override;
 
 public slots:
     void pruneDeletedEntities();
 
 protected:
-    virtual Octree* createTree();
+    virtual OctreePointer createTree() override;
 
 private slots:
     void handleEntityPacket(QSharedPointer<NLPacket> packet, SharedNodePointer senderNode);

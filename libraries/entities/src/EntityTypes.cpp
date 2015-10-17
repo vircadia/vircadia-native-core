@@ -88,7 +88,7 @@ EntityItemPointer EntityTypes::constructEntityItem(EntityType entityType, const 
         factory = _factories[entityType];
     }
     if (factory) {
-        EntityItemProperties mutableProperties = properties;
+        auto mutableProperties = properties;
         mutableProperties.markAllChanged();
         newEntityItem = factory(entityID, mutableProperties);
     }
