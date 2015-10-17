@@ -39,7 +39,7 @@ QObject* MappingBuilderProxy::from(const Endpoint::Pointer& source) {
     return new RouteBuilderProxy(_parent, _mapping, route);
 }
 
-QObject* MappingBuilderProxy::join(const QJSValue& source1, const QJSValue& source2) {
+QObject* MappingBuilderProxy::makeAxis(const QJSValue& source1, const QJSValue& source2) {
     auto source1Endpoint = _parent.endpointFor(source1);
     auto source2Endpoint = _parent.endpointFor(source2);
     return from(_parent.compositeEndpointFor(source1Endpoint, source2Endpoint));
@@ -82,6 +82,7 @@ QObject* MappingBuilderProxy::from(const QJsonValue& json) {
         // Endpoint is defined as an object, we expect a js function then
         return nullptr;
     }
+    return nullptr;
 }
 
 QObject* MappingBuilderProxy::enable(bool enable) {
