@@ -12,7 +12,7 @@
 
 // Assumes you only have the default keyboard connected
 
-myFirstMapping = function() {
+/*myFirstMapping = function() {
 return {
     "name": "example",
     "channels": [
@@ -42,15 +42,37 @@ return {
     ]
 }
 }
-
+*/
+mySecondMapping = function() {
+return {
+    "name": "example2",
+    "channels": [
+        { "from": "Standard.LY", "to": "Actions.TranslateZ" },
+        { "from": "Standard.LX", "to": "Actions.Yaw" },
+    ]
+}
+}
 
 //Script.include('mapping-test0.json');
-var myFirstMappingJSON = myFirstMapping();
+/*var myFirstMappingJSON = myFirstMapping();
 print('myFirstMappingJSON' + JSON.stringify(myFirstMappingJSON));
 
 var mapping = Controller.parseMapping(JSON.stringify(myFirstMappingJSON));
 
-Controller.enableMapping("example");
+
+Controller.enableMapping("example3");
+
+var mySecondMappingJSON = mySecondMapping();
+print('mySecondMappingJSON' + JSON.stringify(mySecondMappingJSON));
+
+var mapping2 = Controller.parseMapping(JSON.stringify(mySecondMappingJSON));
+mapping2.enable();
+
+Controller.enableMapping("example2");
+*/
+var mapping3 = Controller.loadMapping("E:/Github/hifi/examples/controllers/example3.json");
+Controller.enableMapping("example3");
+
 /*
 Object.keys(Controller.Standard).forEach(function (input) {
     print("Controller.Standard." + input + ":" + Controller.Standard[input]);
