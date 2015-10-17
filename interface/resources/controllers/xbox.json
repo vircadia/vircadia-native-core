@@ -1,0 +1,29 @@
+{
+    "name": "XBox to Standard",
+    "channels": [
+        { "from": "XBox.LY", "to": "Standard.LY" }, 
+        { "from": "XBox.LX", "to": "Standard.LX" },
+        { "from": "XBox.LT", "to": "Standard.LT" }, 
+        { "from": "XBox.LB", "to": "Standard.LB" }, 
+        { "from": "XBox.LS", "to": "Standard.LS" },
+
+        { "from": "XBox.RY", "to": "Standard.RY" }, 
+        { "from": "XBox.RX", "to": "Standard.RX" },
+        { "from": "XBox.RT", "to": "Standard.RT" }, 
+        { "from": "XBox.RB", "to": "Standard.RB" }, 
+        { "from": "XBox.RS", "to": "Standard.RS" },
+
+        { "from": "XBox.Back", "to": "Standard.Back" }, 
+        { "from": "XBox.Start", "to": "Standard.Start" }, 
+        
+        { "from": "XBox.DU", "to": "Standard.DU" },
+        { "from": "XBox.DD", "to": "Standard.DD" }, 
+        { "from": "XBox.DL", "to": "Standard.DL" },
+        { "from": "XBox.DR", "to": "Standard.DR" }, 
+
+        { "from": "XBox.A", "to": "Standard.A" }, 
+        { "from": "XBox.B", "to": "Standard.B" }, 
+        { "from": "XBox.X", "to": "Standard.X" },
+        { "from": "XBox.Y", "to": "Standard.Y" }
+    ]
+}

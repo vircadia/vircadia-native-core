@@ -88,14 +88,9 @@ public:
 int main(int argc, char** argv) {
     QGuiApplication app(argc, argv);
     QQmlApplicationEngine engine;
-    for (auto path : qApp->libraryPaths()) {
-        qDebug() << path;
-    }
+    new PluginContainerProxy();
 
-    for (auto path : qApp->libraryPaths()) {
-        qDebug() << path;
-    }
-
+    // Simulate our application idle loop
     QTimer timer;
     QObject::connect(&timer, &QTimer::timeout, [] {
         static float last = secTimestampNow();
@@ -122,11 +117,12 @@ int main(int argc, char** argv) {
                 auto keyboardMouseDevice = static_cast<KeyboardMouseDevice*>(inputPlugin.data()); // TODO: this seems super hacky
                 keyboardMouseDevice->registerToUserInputMapper(*userInputMapper);
             }
+            inputPlugin->pluginUpdate(0, false);
         }
-        //new PluginContainerProxy();
         auto rootContext = engine.rootContext();
         rootContext->setContextProperty("Controllers", new MyControllerScriptingInterface());
     }
+    
     engine.load(getQmlDir() + "main.qml");
     app.exec();
     return 0;

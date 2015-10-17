@@ -8,14 +8,20 @@ import "./controls"
 
 Item {
     id: root
-
+    property real aspect: 300.0 / 215.0
+    width: 300
+    height: width / aspect
     property var device
-
-    property real scale: 1.0
-    width: 300 * scale
-    height: 215 * scale
+    property string label: ""
+    property real scale: width / 300.0 
     
     Image {
+        Text {
+            anchors.left: parent.left
+            anchors.top: parent.top
+            text: root.label
+            visible: root.label != ""
+        }
         anchors.fill: parent
         source: "xbox/xbox360-controller-md.png"
 
