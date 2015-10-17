@@ -14,13 +14,17 @@
 
 #include <QJsonDocument>
 #include <QJsonObject>
+#include <QEventLoop>
 
 #include <GLMHelpers.h>
 #include <DependencyManager.h>
 
+#include <ResourceManager.h>
+
 #include "impl/MappingBuilderProxy.h"
 #include "Logging.h"
 #include "InputDevice.h"
+
 
 namespace controller {
 
@@ -176,7 +180,8 @@ namespace controller {
     QObject* ScriptingInterface::parseMapping(const QString& json) {
 
         QJsonObject obj;
-        QJsonDocument doc = QJsonDocument::fromJson(json.toUtf8());
+        QJsonParseError error;
+        QJsonDocument doc = QJsonDocument::fromJson(json.toUtf8(), &error);
         // check validity of the document
         if (!doc.isNull()) {
             if (doc.isObject()) {
@@ -194,12 +199,35 @@ namespace controller {
                 qDebug() << "Mapping json Document is not an object" << endl;
             }
         } else {
-            qDebug() << "Invalid JSON...\n" << json << endl;
+            qDebug() << "Invalid JSON...\n";
+            qDebug() << error.errorString();
+            qDebug() << "JSON was:\n" << json << endl;
+
         }
 
         return nullptr;
     }
-    
+
+    QObject* ScriptingInterface::loadMapping(const QString& jsonUrl) {
+        auto request = ResourceManager::createResourceRequest(nullptr, QUrl(jsonUrl));
+        if (request) {
+            QEventLoop eventLoop;
+            request->setCacheEnabled(false);
+            connect(request, &ResourceRequest::finished, &eventLoop, &QEventLoop::quit);
+            request->send();
+            if (request->getState() != ResourceRequest::Finished) {
+                eventLoop.exec();
+            }
+
+            if (request->getResult() == ResourceRequest::Success) {
+                return parseMapping(QString(request->getData()));
+            } else {
+                qDebug() << "Failed to load mapping url <" << jsonUrl << ">" << endl;
+                return nullptr;
+            }
+        }
+    }
+
     Q_INVOKABLE QObject* newMapping(const QJsonObject& json);
 
     void ScriptingInterface::enableMapping(const QString& mappingName, bool enable) {
@@ -286,6 +314,11 @@ namespace controller {
 
                 for (const auto& route : routes) {
                     const auto& destination = route->_destination;
+                    // THis could happen if the route destination failed to create
+                    // FIXME: Maybe do not create the route if the destination failed and avoid this case ?
+                    if (!destination) {
+                        continue;
+                    }
 
                     if (writtenEndpoints.count(destination)) {
                         continue;
