@@ -23,17 +23,21 @@ function findAction(name) {
 }
 
 
-var hydra = Controller.Hardware.Hydra2;
+var hydra = Controller.Hardware.Hydra;
 if (hydra !== undefined) {
     print("-----------------------------------");
-    var mapping = NewControllers.newMapping("Default");
+    var mapping = Controller.newMapping("Test");
     var standard = Controller.Standard;
     print("standard:" + standard);
-    mapping.from(hydra.LeftButton1).to(standard.A);
-    mapping.from(hydra.LeftButton2).to(standard.B);
-    mapping.from(hydra.LeftButton3).to(standard.X);
-    NewControllers.enableMapping("Default");
+    mapping.from(hydra.L1).to(standard.A);
+    mapping.from(hydra.L2).to(standard.B);
+    mapping.from(hydra.L3).to(function (newValue, oldValue, source) {
+        print("hydra.L3 newValue:" + newValue + ", oldValue:" + oldValue + ", source:" + source);
+    });
+    Controller.enableMapping("Test");
     print("-----------------------------------");
+} else {
+    print("couldn't find hydra");
 }
 
 Object.keys(Controller.Standard).forEach(function (input) {

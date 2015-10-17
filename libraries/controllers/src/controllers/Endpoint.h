@@ -23,7 +23,8 @@ namespace controller {
     * Encapsulates a particular input / output,
     * i.e. Hydra.Button0, Standard.X, Action.Yaw
     */
-    class Endpoint {
+    class Endpoint : public QObject {
+    Q_OBJECT;
     public:
         using Pointer = std::shared_ptr<Endpoint>;
         using List = std::list<Pointer>;
@@ -31,12 +32,12 @@ namespace controller {
         using ReadLambda = std::function<float()>;
         using WriteLambda = std::function<void(float)>;
 
-        Endpoint(const UserInputMapper::Input& id) : _id(id) {}
+        Endpoint(const UserInputMapper::Input& input) : _input(input) {}
         virtual float value() = 0;
         virtual void apply(float newValue, float oldValue, const Pointer& source) = 0;
-        const UserInputMapper::Input& getId() { return _id;  }
+        const UserInputMapper::Input& getInput() { return _input;  }
     protected:
-        UserInputMapper::Input _id;
+        UserInputMapper::Input _input;
     };
 
     class LambdaEndpoint : public Endpoint {
@@ -52,5 +53,9 @@ namespace controller {
         WriteLambda _writeLambda;
     };
 }
+
+// FIXME - do we want to include the source Endpoint::Pointer in our calls to JS? If
+// so we need to marshall this across the invokeMethod() properly
+//Q_DECLARE_METATYPE(controller::Endpoint::Pointer);
 
 #endif

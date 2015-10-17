@@ -11,3 +11,8 @@
 namespace controller {
 
 }
+
+// FIXME - do we want to include the source Endpoint::Pointer in our calls to JS? If
+// so we need to marshall this across the invokeMethod() properly
+//static int EndpointPointerMetaTypeId = qRegisterMetaType<controller::Endpoint::Pointer>("controller::Endpoint::Pointer");
+

@@ -15,6 +15,7 @@
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QEventLoop>
+#include <QThread>
 
 #include <GLMHelpers.h>
 #include <DependencyManager.h>
@@ -60,24 +61,37 @@ namespace controller {
         QJSValue _callable;
     };
 
-    class ScriptEndpoint : public Endpoint {
-    public:
-        ScriptEndpoint(const QScriptValue& callable)
-            : Endpoint(UserInputMapper::Input::INVALID_INPUT), _callable(callable) {
+    float ScriptEndpoint::value() {
+        if (QThread::currentThread() == thread()) {
+            updateValue();
+        }
+        return _lastValue;
+    }
+
+    void ScriptEndpoint::updateValue() {
+        if (QThread::currentThread() != thread()) {
+            QMetaObject::invokeMethod(this, "updateValue", Qt::QueuedConnection);
+            return;
         }
 
-        virtual float value() {
-            float result = (float)_callable.call().toNumber();
-            return result;
-        }
+        _lastValue = (float)_callable.call().toNumber();
+    }
 
-        virtual void apply(float newValue, float oldValue, const Pointer& source) {
-            _callable.call(QScriptValue(), QScriptValueList({ QScriptValue(newValue) }));
-        }
+    void ScriptEndpoint::apply(float newValue, float oldValue, const Pointer& source) {
+        internalApply(newValue, oldValue, source->getInput().getID());
+    }
 
-    private:
-        QScriptValue _callable;
-    };
+    void ScriptEndpoint::internalApply(float newValue, float oldValue, int sourceID) {
+        if (QThread::currentThread() != thread()) {
+            QMetaObject::invokeMethod(this, "internalApply", Qt::QueuedConnection,
+                Q_ARG(float, newValue),
+                Q_ARG(float, oldValue),
+                Q_ARG(int, sourceID));
+            return;
+        }
+        _callable.call(QScriptValue(), 
+                       QScriptValueList({ QScriptValue(newValue), QScriptValue(oldValue),  QScriptValue(sourceID) }));
+    }
 
     class CompositeEndpoint : public Endpoint, Endpoint::Pair {
     public:
@@ -108,9 +122,9 @@ namespace controller {
         virtual void apply(float newValue, float oldValue, const Pointer& source) override { 
             
             _currentValue += newValue;
-            if (!(_id == UserInputMapper::Input::INVALID_INPUT)) {
+            if (!(_input == UserInputMapper::Input::INVALID_INPUT)) {
                 auto userInputMapper = DependencyManager::get<UserInputMapper>();
-                userInputMapper->deltaActionState(UserInputMapper::Action(_id.getChannel()), newValue);
+                userInputMapper->deltaActionState(UserInputMapper::Action(_input.getChannel()), newValue);
             }
         }
 
@@ -327,7 +341,7 @@ namespace controller {
                     }
 
                     // Standard controller destinations can only be can only be used once.
-                    if (userInputMapper->getStandardDeviceID() == destination->getId().getDevice()) {
+                    if (userInputMapper->getStandardDeviceID() == destination->getInput().getDevice()) {
                         writtenEndpoints.insert(destination);
                     }
 
