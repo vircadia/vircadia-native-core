@@ -185,4 +185,26 @@ Hifi.VrMenu {
             }
         }
     }
+
+    function addMenu(menu, newMenu) {
+        return menu.addMenu(newMenu);
+    }
+
+    function addItem(menu, newMenuItem) {
+        return menu.addItem(newMenuItem);
+    }
+
+    function insertItem(menu, beforeItem, newMenuItem) {
+        for (var i = 0; i < menu.items.length; ++i) {
+            console.log(menu.items[i]);
+            if (menu.items[i] === beforeItem) {
+                return menu.insertItem(i, newMenuItem);
+            }
+        }
+        return addItem(menu, newMenuItem);
+    }
+
+    function removeItem(menu, menuItem) {
+        menu.removeItem(menuItem);
+    }
 }

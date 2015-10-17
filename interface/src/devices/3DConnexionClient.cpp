@@ -185,7 +185,8 @@ void ConnexionClient::destroy() {
     ConnexionData& connexiondata = ConnexionData::getInstance();
     int deviceid = connexiondata.getDeviceID();
     connexiondata.setDeviceID(0);
-    Application::getUserInputMapper()->removeDevice(deviceid);
+    auto userInputMapper = DependencyManager::get<UserInputMapper>();
+    userInputMapper->removeDevice(deviceid);
 }
 
 #define LOGITECH_VENDOR_ID 0x46d
@@ -289,14 +290,15 @@ unsigned short HidToVirtualKey(unsigned long pid, unsigned short hidKeyCode) {
 
 bool ConnexionClient::RawInputEventFilter(void* msg, long* result) {
     ConnexionData& connexiondata = ConnexionData::getInstance();
+    auto userInputMapper = DependencyManager::get<UserInputMapper>();
     if (Is3dmouseAttached() && connexiondata.getDeviceID() == 0) {
-        connexiondata.registerToUserInputMapper(*Application::getUserInputMapper());
-        connexiondata.assignDefaultInputMapping(*Application::getUserInputMapper());
+        connexiondata.registerToUserInputMapper(*userInputMapper);
+        connexiondata.assignDefaultInputMapping(*userInputMapper);
         UserActivityLogger::getInstance().connectedDevice("controller", "3Dconnexion");
     } else if (!Is3dmouseAttached() && connexiondata.getDeviceID() != 0) {
         int deviceid = connexiondata.getDeviceID();
         connexiondata.setDeviceID(0);
-        Application::getUserInputMapper()->removeDevice(deviceid);
+        userInputMapper->removeDevice(deviceid);
     }
 
     if (!Is3dmouseAttached()) {

@@ -48,6 +48,8 @@
 #include "model_lightmap_specular_map_frag.h"
 #include "model_translucent_frag.h"
 
+#include "RenderUtilsLogging.h"
+
 using namespace std;
 
 static int modelPointerTypeId = qRegisterMetaType<QPointer<Model> >();
@@ -58,6 +60,8 @@ float Model::FAKE_DIMENSION_PLACEHOLDER = -1.0f;
 
 Model::Model(RigPointer rig, QObject* parent) :
     QObject(parent),
+    _translation(0.0f),
+    _rotation(),
     _scale(1.0f, 1.0f, 1.0f),
     _scaleToFit(false),
     _scaleToFitDimensions(0.0f),
@@ -66,10 +70,8 @@ Model::Model(RigPointer rig, QObject* parent) :
     _snappedToRegistrationPoint(false),
     _showTrueJointTransforms(true),
     _cauterizeBones(false),
-    _lodDistance(0.0f),
     _pupilDilation(0.0f),
     _url(HTTP_INVALID_COM),
-    _urlAsString(HTTP_INVALID_COM),
     _isVisible(true),
     _blendNumber(0),
     _appliedBlendNumber(0),
@@ -195,6 +197,13 @@ void Model::RenderPipelineLib::initLocations(gpu::ShaderPointer& program, Model:
 
 AbstractViewStateInterface* Model::_viewState = NULL;
 
+void Model::setTranslation(const glm::vec3& translation) {
+    _translation = translation;
+}
+    
+void Model::setRotation(const glm::quat& rotation) {
+    _rotation = rotation;
+}   
 
 void Model::setScale(const glm::vec3& scale) {
     setScaleInternal(scale);
@@ -234,7 +243,7 @@ QVector<JointState> Model::createJointStates(const FBXGeometry& geometry) {
 };
 
 void Model::initJointTransforms() {
-    if (!_geometry) {
+    if (!_geometry || !_geometry->isLoaded()) {
         return;
     }
     const FBXGeometry& geometry = _geometry->getFBXGeometry();
@@ -368,8 +377,10 @@ void Model::init() {
 }
 
 void Model::reset() {
-    const FBXGeometry& geometry = _geometry->getFBXGeometry();
-    _rig->reset(geometry.joints);
+    if (_geometry && _geometry->isLoaded()) {
+        const FBXGeometry& geometry = _geometry->getFBXGeometry();
+        _rig->reset(geometry.joints);
+    }
     _meshGroupsKnown = false;
     _readyWhenAdded = false; // in case any of our users are using scenes
     invalidCalculatedMeshBoxes(); // if we have to reload, we need to assume our mesh boxes are all invalid
@@ -378,68 +389,23 @@ void Model::reset() {
 bool Model::updateGeometry() {
     PROFILE_RANGE(__FUNCTION__);
     bool needFullUpdate = false;
-
     bool needToRebuild = false;
-    if (_nextGeometry) {
-        _nextGeometry = _nextGeometry->getLODOrFallback(_lodDistance, _nextLODHysteresis);
-        _nextGeometry->setLoadPriority(this, -_lodDistance);
-        _nextGeometry->ensureLoading();
-        if (_nextGeometry->isLoaded()) {
-            applyNextGeometry();
-            needToRebuild = true;
-        }
-    }
-    if (!_geometry) {
+
+    if (!_geometry || !_geometry->isLoaded()) {
         // geometry is not ready
         return false;
     }
 
-    QSharedPointer<NetworkGeometry> geometry = _geometry->getLODOrFallback(_lodDistance, _lodHysteresis);
-    if (_geometry != geometry) {
+    _needsReload = false;
 
-        // NOTE: it is theoretically impossible to reach here after passing through the applyNextGeometry() call above.
-        // Which means we don't need to worry about calling deleteGeometry() below immediately after creating new geometry.
-
-        const FBXGeometry& newGeometry = geometry->getFBXGeometry();
-        QVector<JointState> newJointStates = createJointStates(newGeometry);
-
-        if (! _rig->jointStatesEmpty()) {
-            // copy the existing joint states
-            const FBXGeometry& oldGeometry = _geometry->getFBXGeometry();
-            for (QHash<QString, int>::const_iterator it = oldGeometry.jointIndices.constBegin();
-                 it != oldGeometry.jointIndices.constEnd(); it++) {
-                int oldIndex = it.value() - 1;
-                int newIndex = newGeometry.getJointIndex(it.key());
-                if (newIndex != -1) {
-                    newJointStates[newIndex].copyState(_rig->getJointState(oldIndex));
-                }
-            }
-        }
-
-        deleteGeometry();
-        _dilatedTextures.clear();
-        if (!geometry) {
-            std::cout << "WARNING: no geometry in Model::updateGeometry\n";
-        }
-        setGeometry(geometry);
-
-        _meshGroupsKnown = false;
-        _readyWhenAdded = false; // in case any of our users are using scenes
-        invalidCalculatedMeshBoxes(); // if we have to reload, we need to assume our mesh boxes are all invalid
-        initJointStates(newJointStates);
-        needToRebuild = true;
-    } else if (_rig->jointStatesEmpty()) {
+    QSharedPointer<NetworkGeometry> geometry = _geometry;
+    if (_rig->jointStatesEmpty()) {
         const FBXGeometry& fbxGeometry = geometry->getFBXGeometry();
         if (fbxGeometry.joints.size() > 0) {
             initJointStates(createJointStates(fbxGeometry));
             needToRebuild = true;
         }
-    } else if (!geometry->isLoaded()) {
-        deleteGeometry();
-        _dilatedTextures.clear();
     }
-    _geometry->setLoadPriority(this, -_lodDistance);
-    _geometry->ensureLoading();
 
     if (needToRebuild) {
         const FBXGeometry& fbxGeometry = geometry->getFBXGeometry();
@@ -454,7 +420,7 @@ bool Model::updateGeometry() {
                 buffer->resize((mesh.vertices.size() + mesh.normals.size()) * sizeof(glm::vec3));
                 buffer->setSubData(0, mesh.vertices.size() * sizeof(glm::vec3), (gpu::Byte*) mesh.vertices.constData());
                 buffer->setSubData(mesh.vertices.size() * sizeof(glm::vec3),
-                    mesh.normals.size() * sizeof(glm::vec3), (gpu::Byte*) mesh.normals.constData());
+                                   mesh.normals.size() * sizeof(glm::vec3), (gpu::Byte*) mesh.normals.constData());
             }
             _blendedVertexBuffers.push_back(buffer);
         }
@@ -476,14 +442,14 @@ void Model::initJointStates(QVector<JointState> states) {
     int rightElbowJointIndex = rightHandJointIndex >= 0 ? geometry.joints.at(rightHandJointIndex).parentIndex : -1;
     int rightShoulderJointIndex = rightElbowJointIndex >= 0 ? geometry.joints.at(rightElbowJointIndex).parentIndex : -1;
 
-    _boundingRadius = _rig->initJointStates(states, parentTransform,
-                                            rootJointIndex,
-                                            leftHandJointIndex,
-                                            leftElbowJointIndex,
-                                            leftShoulderJointIndex,
-                                            rightHandJointIndex,
-                                            rightElbowJointIndex,
-                                            rightShoulderJointIndex);
+    _rig->initJointStates(states, parentTransform,
+                          rootJointIndex,
+                          leftHandJointIndex,
+                          leftElbowJointIndex,
+                          leftShoulderJointIndex,
+                          rightHandJointIndex,
+                          rightElbowJointIndex,
+                          rightShoulderJointIndex);
 }
 
 bool Model::findRayIntersectionAgainstSubMeshes(const glm::vec3& origin, const glm::vec3& direction, float& distance,
@@ -1069,53 +1035,34 @@ int Model::getLastFreeJointIndex(int jointIndex) const {
     return (isActive() && jointIndex != -1) ? _geometry->getFBXGeometry().joints.at(jointIndex).freeLineage.last() : -1;
 }
 
-void Model::setURL(const QUrl& url, const QUrl& fallback, bool retainCurrent, bool delayLoad) {
+void Model::setURL(const QUrl& url) {
     // don't recreate the geometry if it's the same URL
     if (_url == url && _geometry && _geometry->getURL() == url) {
         return;
     }
 
-    _readyWhenAdded = false; // reset out render items.
-    _needsReload = true;
-    invalidCalculatedMeshBoxes();
-
     _url = url;
-    _urlAsString = _url.toString();
 
+    {
+        render::PendingChanges pendingChanges;
+        render::ScenePointer scene = AbstractViewStateInterface::instance()->getMain3DScene();
+        removeFromScene(scene, pendingChanges);
+        scene->enqueuePendingChanges(pendingChanges);
+    }
+
+    _needsReload = true;
+    _meshGroupsKnown = false;
+    invalidCalculatedMeshBoxes();
+    deleteGeometry();
+
+    _geometry.reset(new NetworkGeometry(url, false, QVariantHash()));
     onInvalidate();
-
-    // if so instructed, keep the current geometry until the new one is loaded
-    _nextGeometry = DependencyManager::get<GeometryCache>()->getGeometry(url, fallback, delayLoad);
-    _nextLODHysteresis = NetworkGeometry::NO_HYSTERESIS;
-    if (!retainCurrent || !isActive() || (_nextGeometry && _nextGeometry->isLoaded())) {
-        applyNextGeometry();
-    }
 }
-
-void Model::geometryRefreshed() {
-    QObject* sender = QObject::sender();
-
-    if (sender == _geometry) {
-        _readyWhenAdded = false; // reset out render items.
-        _needsReload = true;
-        invalidCalculatedMeshBoxes();
-
-        onInvalidate();
-
-        // if so instructed, keep the current geometry until the new one is loaded
-        _nextGeometry = DependencyManager::get<GeometryCache>()->getGeometry(_url);
-        _nextLODHysteresis = NetworkGeometry::NO_HYSTERESIS;
-        applyNextGeometry();
-    } else {
-        sender->disconnect(this, SLOT(geometryRefreshed()));
-    }
-}
-
 
 const QSharedPointer<NetworkGeometry> Model::getCollisionGeometry(bool delayLoad)
 {
     if (_collisionGeometry.isNull() && !_collisionUrl.isEmpty()) {
-        _collisionGeometry = DependencyManager::get<GeometryCache>()->getGeometry(_collisionUrl, QUrl(), delayLoad);
+        _collisionGeometry.reset(new NetworkGeometry(_collisionUrl, delayLoad, QVariantHash()));
     }
 
     if (_collisionGeometry && _collisionGeometry->isLoaded()) {
@@ -1130,7 +1077,7 @@ void Model::setCollisionModelURL(const QUrl& url) {
         return;
     }
     _collisionUrl = url;
-    _collisionGeometry = DependencyManager::get<GeometryCache>()->getGeometry(url, QUrl(), true);
+    _collisionGeometry.reset(new NetworkGeometry(url, false, QVariantHash()));
 }
 
 bool Model::getJointPositionInWorldFrame(int jointIndex, glm::vec3& position) const {
@@ -1344,7 +1291,9 @@ void Model::simulateInternal(float deltaTime) {
     const FBXGeometry& geometry = _geometry->getFBXGeometry();
     glm::mat4 parentTransform = glm::scale(_scale) * glm::translate(_offset) * geometry.offset;
     updateRig(deltaTime, parentTransform);
-
+}
+void Model::updateClusterMatrices() {
+    const FBXGeometry& geometry = _geometry->getFBXGeometry();
     glm::mat4 zeroScale(glm::vec4(0.0f, 0.0f, 0.0f, 0.0f),
                         glm::vec4(0.0f, 0.0f, 0.0f, 0.0f),
                         glm::vec4(0.0f, 0.0f, 0.0f, 0.0f),
@@ -1358,7 +1307,7 @@ void Model::simulateInternal(float deltaTime) {
         if (_showTrueJointTransforms) {
             for (int j = 0; j < mesh.clusters.size(); j++) {
                 const FBXCluster& cluster = mesh.clusters.at(j);
-                auto jointMatrix =_rig->getJointTransform(cluster.jointIndex);
+                auto jointMatrix = _rig->getJointTransform(cluster.jointIndex);
                 state.clusterMatrices[j] = modelToWorld * jointMatrix * cluster.inverseBindMatrix;
 
                 // as an optimization, don't build cautrizedClusterMatrices if the boneSet is empty.
@@ -1372,7 +1321,7 @@ void Model::simulateInternal(float deltaTime) {
         } else {
             for (int j = 0; j < mesh.clusters.size(); j++) {
                 const FBXCluster& cluster = mesh.clusters.at(j);
-                auto jointMatrix = _rig->getJointVisibleTransform(cluster.jointIndex);
+                auto jointMatrix = _rig->getJointVisibleTransform(cluster.jointIndex); // differs from above only in using get...VisibleTransform
                 state.clusterMatrices[j] = modelToWorld * jointMatrix * cluster.inverseBindMatrix;
 
                 // as an optimization, don't build cautrizedClusterMatrices if the boneSet is empty.
@@ -1461,45 +1410,23 @@ void Model::setGeometry(const QSharedPointer<NetworkGeometry>& newGeometry) {
     if (_geometry == newGeometry) {
         return;
     }
-
-    if (_geometry) {
-        _geometry->disconnect(_geometry.data(), &Resource::onRefresh, this, &Model::geometryRefreshed);
-    }
     _geometry = newGeometry;
-    QObject::connect(_geometry.data(), &Resource::onRefresh, this, &Model::geometryRefreshed);
-}
-
-void Model::applyNextGeometry() {
-    // delete our local geometry and custom textures
-    deleteGeometry();
-    _dilatedTextures.clear();
-    _lodHysteresis = _nextLODHysteresis;
-
-    // we retain a reference to the base geometry so that its reference count doesn't fall to zero
-    setGeometry(_nextGeometry);
-
-    _meshGroupsKnown = false;
-    _readyWhenAdded = false; // in case any of our users are using scenes
-    _needsReload = false; // we are loaded now!
-    invalidCalculatedMeshBoxes();
-    _nextGeometry.reset();
 }
 
 void Model::deleteGeometry() {
     _blendedVertexBuffers.clear();
     _rig->clearJointStates();
     _meshStates.clear();
-
     _rig->deleteAnimations();
-
-    if (_geometry) {
-        _geometry->clearLoadPriority(this);
-    }
-
+    _rig->destroyAnimGraph();
     _blendedBlendshapeCoefficients.clear();
 }
 
 AABox Model::getPartBounds(int meshIndex, int partIndex) {
+
+    if (!_geometry || !_geometry->isLoaded()) {
+        return AABox();
+    }
 
     if (meshIndex < _meshStates.size()) {
         const MeshState& state = _meshStates.at(meshIndex);
@@ -1509,7 +1436,6 @@ AABox Model::getPartBounds(int meshIndex, int partIndex) {
             return calculateScaledOffsetAABox(_geometry->getFBXGeometry().meshExtents);
         }
     }
-
     if (_geometry->getFBXGeometry().meshes.size() > meshIndex) {
 
         // FIX ME! - This is currently a hack because for some mesh parts our efforts to calculate the bounding
@@ -1531,7 +1457,7 @@ AABox Model::getPartBounds(int meshIndex, int partIndex) {
 }
 
 void Model::renderPart(RenderArgs* args, int meshIndex, int partIndex, bool translucent) {
- //   PROFILE_RANGE(__FUNCTION__);
+//   PROFILE_RANGE(__FUNCTION__);
     PerformanceTimer perfTimer("Model::renderPart");
     if (!_readyWhenAdded) {
         return; // bail asap
@@ -1557,14 +1483,16 @@ void Model::renderPart(RenderArgs* args, int meshIndex, int partIndex, bool tran
     auto alphaThreshold = args->_alphaThreshold; //translucent ? TRANSPARENT_ALPHA_THRESHOLD : OPAQUE_ALPHA_THRESHOLD; // FIX ME
 
     const FBXGeometry& geometry = _geometry->getFBXGeometry();
-    const QVector<NetworkMesh>& networkMeshes = _geometry->getMeshes();
+    const std::vector<std::unique_ptr<NetworkMesh>>& networkMeshes = _geometry->getMeshes();
 
     // guard against partially loaded meshes
-    if (meshIndex >= networkMeshes.size() || meshIndex >= geometry.meshes.size() || meshIndex >= _meshStates.size() ) {
+    if (meshIndex >= (int)networkMeshes.size() || meshIndex >= (int)geometry.meshes.size() || meshIndex >= (int)_meshStates.size() ) {
         return;
     }
 
-    const NetworkMesh& networkMesh = networkMeshes.at(meshIndex);
+    updateClusterMatrices();
+
+    const NetworkMesh& networkMesh = *(networkMeshes.at(meshIndex).get());
     const FBXMesh& mesh = geometry.meshes.at(meshIndex);
     const MeshState& state = _meshStates.at(meshIndex);
 
@@ -1614,8 +1542,7 @@ void Model::renderPart(RenderArgs* args, int meshIndex, int partIndex, bool tran
 
     // if our index is ever out of range for either meshes or networkMeshes, then skip it, and set our _meshGroupsKnown
     // to false to rebuild out mesh groups.
-
-    if (meshIndex < 0 || meshIndex >= networkMeshes.size() || meshIndex > geometry.meshes.size()) {
+    if (meshIndex < 0 || meshIndex >= (int)networkMeshes.size() || meshIndex > geometry.meshes.size()) {
         _meshGroupsKnown = false; // regenerate these lists next time around.
         _readyWhenAdded = false; // in case any of our users are using scenes
         invalidCalculatedMeshBoxes(); // if we have to reload, we need to assume our mesh boxes are all invalid
@@ -1669,11 +1596,11 @@ void Model::renderPart(RenderArgs* args, int meshIndex, int partIndex, bool tran
     }
 
     // guard against partially loaded meshes
-    if (partIndex >= networkMesh.parts.size() || partIndex >= mesh.parts.size()) {
+    if (partIndex >= (int)networkMesh._parts.size() || partIndex >= mesh.parts.size()) {
         return;
     }
 
-    const NetworkMeshPart& networkPart = networkMesh.parts.at(partIndex);
+    const NetworkMeshPart& networkPart = *(networkMesh._parts.at(partIndex).get());
     const FBXMeshPart& part = mesh.parts.at(partIndex);
     model::MaterialPointer material = part._material;
 
@@ -1790,10 +1717,10 @@ void Model::renderPart(RenderArgs* args, int meshIndex, int partIndex, bool tran
 
 void Model::segregateMeshGroups() {
     const FBXGeometry& geometry = _geometry->getFBXGeometry();
-    const QVector<NetworkMesh>& networkMeshes = _geometry->getMeshes();
+    const std::vector<std::unique_ptr<NetworkMesh>>& networkMeshes = _geometry->getMeshes();
 
     // all of our mesh vectors must match in size
-    if (networkMeshes.size() != geometry.meshes.size() ||
+    if ((int)networkMeshes.size() != geometry.meshes.size() ||
         geometry.meshes.size() != _meshStates.size()) {
         qDebug() << "WARNING!!!! Mesh Sizes don't match! We will not segregate mesh groups yet.";
         return;
@@ -1803,12 +1730,12 @@ void Model::segregateMeshGroups() {
     _opaqueRenderItems.clear();
 
     // Run through all of the meshes, and place them into their segregated, but unsorted buckets
-    for (int i = 0; i < networkMeshes.size(); i++) {
-        const NetworkMesh& networkMesh = networkMeshes.at(i);
+    for (int i = 0; i < (int)networkMeshes.size(); i++) {
+        const NetworkMesh& networkMesh = *(networkMeshes.at(i).get());
         const FBXMesh& mesh = geometry.meshes.at(i);
         const MeshState& state = _meshStates.at(i);
 
-        bool translucentMesh = networkMesh.getTranslucentPartCount(mesh) == networkMesh.parts.size();
+        bool translucentMesh = networkMesh.getTranslucentPartCount(mesh) == (int)networkMesh._parts.size();
         bool hasTangents = !mesh.tangents.isEmpty();
         bool hasSpecular = mesh.hasSpecularTexture();
         bool hasLightmap = mesh.hasEmissiveTexture();

@@ -198,6 +198,9 @@ void GLBackend::do_setFramebuffer(Batch& batch, uint32 paramOffset) {
 }
 
 void GLBackend::do_clearFramebuffer(Batch& batch, uint32 paramOffset) {
+    if (_stereo._enable && !_pipeline._stateCache.scissorEnable) {
+        qWarning("Clear without scissor in stereo mode");
+    }
 
     uint32 masks = batch._params[paramOffset + 7]._uint;
     Vec4 color;
@@ -231,14 +234,21 @@ void GLBackend::do_clearFramebuffer(Batch& batch, uint32 paramOffset) {
 
     std::vector<GLenum> drawBuffers;
     if (masks & Framebuffer::BUFFER_COLORS) {
-        for (unsigned int i = 0; i < Framebuffer::MAX_NUM_RENDER_BUFFERS; i++) {
-            if (masks & (1 << i)) {
-                drawBuffers.push_back(GL_COLOR_ATTACHMENT0 + i);
+        if (_output._framebuffer) {
+            for (unsigned int i = 0; i < Framebuffer::MAX_NUM_RENDER_BUFFERS; i++) {
+                if (masks & (1 << i)) {
+                    drawBuffers.push_back(GL_COLOR_ATTACHMENT0 + i);
+                }
             }
-        }
 
-        if (!drawBuffers.empty()) {
-            glDrawBuffers(drawBuffers.size(), drawBuffers.data());
+            if (!drawBuffers.empty()) {
+                glDrawBuffers(drawBuffers.size(), drawBuffers.data());
+                glClearColor(color.x, color.y, color.z, color.w);
+                glmask |= GL_COLOR_BUFFER_BIT;
+            
+                (void) CHECK_GL_ERROR();
+            }
+        } else {
             glClearColor(color.x, color.y, color.z, color.w);
             glmask |= GL_COLOR_BUFFER_BIT;
         }

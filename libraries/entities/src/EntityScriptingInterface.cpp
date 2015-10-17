@@ -32,7 +32,7 @@ EntityScriptingInterface::EntityScriptingInterface() :
     connect(nodeList.data(), &NodeList::canRezChanged, this, &EntityScriptingInterface::canRezChanged);
 }
 
-void EntityScriptingInterface::queueEntityMessage(PacketType::Value packetType,
+void EntityScriptingInterface::queueEntityMessage(PacketType packetType,
                                                   EntityItemID entityID, const EntityItemProperties& properties) {
     getEntityPacketSender()->queueEditEntityMessage(packetType, entityID, properties);
 }
@@ -431,23 +431,10 @@ bool EntityScriptingInterface::setVoxels(QUuid entityID,
         return false;
     }
 
-    auto now = usecTimestampNow();
-
     auto polyVoxEntity = std::dynamic_pointer_cast<PolyVoxEntityItem>(entity);
     _entityTree->lockForWrite();
     bool result = actor(*polyVoxEntity);
-    entity->setLastEdited(now);
-    entity->setLastBroadcast(now);
     _entityTree->unlock();
-
-    _entityTree->lockForRead();
-    EntityItemProperties properties = entity->getProperties();
-    _entityTree->unlock();
-
-    properties.setVoxelDataDirty();
-    properties.setLastEdited(now);
-
-    queueEntityMessage(PacketType::EntityEdit, entityID, properties);
     return result;
 }
 
@@ -503,6 +490,13 @@ bool EntityScriptingInterface::setVoxel(QUuid entityID, const glm::vec3& positio
 bool EntityScriptingInterface::setAllVoxels(QUuid entityID, int value) {
     return setVoxels(entityID, [value](PolyVoxEntityItem& polyVoxEntity) {
             return polyVoxEntity.setAll(value);
+        });
+}
+
+bool EntityScriptingInterface::setVoxelsInCuboid(QUuid entityID, const glm::vec3& lowPosition,
+                                                 const glm::vec3& cuboidSize, int value) {
+    return setVoxels(entityID, [lowPosition, cuboidSize, value](PolyVoxEntityItem& polyVoxEntity) {
+            return polyVoxEntity.setCuboid(lowPosition, cuboidSize, value);
         });
 }
 

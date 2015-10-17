@@ -50,10 +50,10 @@ class PolyVoxEntityItem : public EntityItem {
     virtual void debugDump() const;
 
     virtual void setVoxelVolumeSize(glm::vec3 voxelVolumeSize);
-    virtual const glm::vec3& getVoxelVolumeSize() const { return _voxelVolumeSize; }
+    virtual const glm::vec3& getVoxelVolumeSize() const;
 
-    virtual void setVoxelData(QByteArray voxelData) { _voxelData = voxelData; }
-    virtual const QByteArray& getVoxelData() const { return _voxelData; }
+    virtual void setVoxelData(QByteArray voxelData);
+    virtual const QByteArray getVoxelData() const;
 
     enum PolyVoxSurfaceStyle {
         SURFACE_MARCHING_CUBES,
@@ -62,7 +62,7 @@ class PolyVoxEntityItem : public EntityItem {
         SURFACE_EDGED_MARCHING_CUBES
     };
 
-    void setVoxelSurfaceStyle(PolyVoxSurfaceStyle voxelSurfaceStyle);
+    virtual void setVoxelSurfaceStyle(PolyVoxSurfaceStyle voxelSurfaceStyle) { _voxelSurfaceStyle = voxelSurfaceStyle; }
     // this other version of setVoxelSurfaceStyle is needed for SET_ENTITY_PROPERTY_FROM_PROPERTIES
     void setVoxelSurfaceStyle(uint16_t voxelSurfaceStyle) { setVoxelSurfaceStyle((PolyVoxSurfaceStyle) voxelSurfaceStyle); }
     virtual PolyVoxSurfaceStyle getVoxelSurfaceStyle() const { return _voxelSurfaceStyle; }
@@ -85,6 +85,7 @@ class PolyVoxEntityItem : public EntityItem {
     // coords are in world-space
     virtual bool setSphere(glm::vec3 center, float radius, uint8_t toValue) { return false; }
     virtual bool setAll(uint8_t toValue) { return false; }
+    virtual bool setCuboid(const glm::vec3& lowPosition, const glm::vec3& cuboidSize, int value) { return false; }
 
     virtual uint8_t getVoxel(int x, int y, int z) { return 0; }
     virtual bool setVoxel(int x, int y, int z, uint8_t toValue) { return false; }
@@ -103,19 +104,49 @@ class PolyVoxEntityItem : public EntityItem {
     virtual void setZTextureURL(QString zTextureURL) { _zTextureURL = zTextureURL; }
     virtual const QString& getZTextureURL() const { return _zTextureURL; }
 
- protected:
-    virtual void updateVoxelSurfaceStyle(PolyVoxSurfaceStyle voxelSurfaceStyle) {
-        _voxelSurfaceStyle = voxelSurfaceStyle;
-    }
+    virtual void setXNNeighborID(const EntityItemID& xNNeighborID) { _xNNeighborID = xNNeighborID; }
+    void setXNNeighborID(const QString& xNNeighborID) { setXNNeighborID(QUuid(xNNeighborID)); }
+    virtual const EntityItemID& getXNNeighborID() const { return _xNNeighborID; }
+    virtual void setYNNeighborID(const EntityItemID& yNNeighborID) { _yNNeighborID = yNNeighborID; }
+    void setYNNeighborID(const QString& yNNeighborID) { setYNNeighborID(QUuid(yNNeighborID)); }
+    virtual const EntityItemID& getYNNeighborID() const { return _yNNeighborID; }
+    virtual void setZNNeighborID(const EntityItemID& zNNeighborID) { _zNNeighborID = zNNeighborID; }
+    void setZNNeighborID(const QString& zNNeighborID) { setZNNeighborID(QUuid(zNNeighborID)); }
+    virtual const EntityItemID& getZNNeighborID() const { return _zNNeighborID; }
 
+    virtual void setXPNeighborID(const EntityItemID& xPNeighborID) { _xPNeighborID = xPNeighborID; }
+    void setXPNeighborID(const QString& xPNeighborID) { setXPNeighborID(QUuid(xPNeighborID)); }
+    virtual const EntityItemID& getXPNeighborID() const { return _xPNeighborID; }
+    virtual void setYPNeighborID(const EntityItemID& yPNeighborID) { _yPNeighborID = yPNeighborID; }
+    void setYPNeighborID(const QString& yPNeighborID) { setYPNeighborID(QUuid(yPNeighborID)); }
+    virtual const EntityItemID& getYPNeighborID() const { return _yPNeighborID; }
+    virtual void setZPNeighborID(const EntityItemID& zPNeighborID) { _zPNeighborID = zPNeighborID; }
+    void setZPNeighborID(const QString& zPNeighborID) { setZPNeighborID(QUuid(zPNeighborID)); }
+    virtual const EntityItemID& getZPNeighborID() const { return _zPNeighborID; }
+
+    virtual void rebakeMesh() {};
+
+ protected:
     glm::vec3 _voxelVolumeSize; // this is always 3 bytes
+
+    mutable QReadWriteLock _voxelDataLock;
     QByteArray _voxelData;
+    bool _voxelDataDirty;
+
     PolyVoxSurfaceStyle _voxelSurfaceStyle;
 
     QString _xTextureURL;
     QString _yTextureURL;
     QString _zTextureURL;
 
+    // for non-edged surface styles, these are used to compute the high-axis edges
+    EntityItemID _xNNeighborID{UNKNOWN_ENTITY_ID};
+    EntityItemID _yNNeighborID{UNKNOWN_ENTITY_ID};
+    EntityItemID _zNNeighborID{UNKNOWN_ENTITY_ID};
+
+    EntityItemID _xPNeighborID{UNKNOWN_ENTITY_ID};
+    EntityItemID _yPNeighborID{UNKNOWN_ENTITY_ID};
+    EntityItemID _zPNeighborID{UNKNOWN_ENTITY_ID};
 };
 
 #endif // hifi_PolyVoxEntityItem_h

@@ -123,11 +123,12 @@ public:
     uint16 getFreeDeviceID() { return _nextFreeDeviceID++; }
     bool registerDevice(uint16 deviceID, const DeviceProxy::Pointer& device);
     DeviceProxy::Pointer getDeviceProxy(const Input& input);
-    QString getDeviceName(uint16 deviceID) { return _registeredDevices[deviceID]->_name; }
+    QString getDeviceName(uint16 deviceID);
     QVector<InputPair> getAvailableInputs(uint16 deviceID) { return _registeredDevices[deviceID]->getAvailabeInputs(); }
     void resetAllDeviceBindings();
     void resetDevice(uint16 deviceID);
     int findDevice(QString name);
+    QVector<QString> getDeviceNames();
 
     // Actions are the output channels of the Mapper, that's what the InputChannel map to
     // For now the Actions are hardcoded, this is bad, but we will fix that in the near future
@@ -161,16 +162,21 @@ public:
         ACTION1,
         ACTION2,
 
+        CONTEXT_MENU,
+        TOGGLE_MUTE,
+
         NUM_ACTIONS,
     };
     
     std::vector<QString> _actionNames = std::vector<QString>(NUM_ACTIONS);
     void createActionNames();
 
-    QVector<Action> getAllActions();
-    QString getActionName(Action action) { return UserInputMapper::_actionNames[(int) action]; }
+    QVector<Action> getAllActions() const;
+    QString getActionName(Action action) const { return UserInputMapper::_actionNames[(int) action]; }
     float getActionState(Action action) const { return _actionStates[action]; }
     PoseValue getPoseState(Action action) const { return _poseStates[action]; }
+    int findAction(const QString& actionName) const;
+    QVector<QString> getActionNames() const;
     void assignDefaulActionScales();
 
     // Add input channel to the mapper and check that all the used channels are registered.
@@ -245,6 +251,7 @@ protected:
  
     std::vector<float> _actionStates = std::vector<float>(NUM_ACTIONS, 0.0f);
     std::vector<float> _actionScales = std::vector<float>(NUM_ACTIONS, 1.0f);
+    std::vector<float> _lastActionStates = std::vector<float>(NUM_ACTIONS, 0.0f);
     std::vector<PoseValue> _poseStates = std::vector<PoseValue>(NUM_ACTIONS);
 
     glm::mat4 _sensorToWorldMat;

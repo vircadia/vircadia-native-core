@@ -15,8 +15,13 @@
 #include "Basic2DWindowOpenGLDisplayPlugin.h"
 
 #include "openvr/OpenVrDisplayPlugin.h"
-#include "oculus/Oculus_0_5_DisplayPlugin.h"
-#include "oculus/Oculus_0_6_DisplayPlugin.h"
+#include "oculus/OculusDisplayPlugin.h"
+#include "oculus/OculusLegacyDisplayPlugin.h"
+
+const QString& DisplayPlugin::MENU_PATH() {
+    static const QString value = "Display";
+    return value;
+}
 
 // TODO migrate to a DLL model where plugins are discovered and loaded at runtime by the PluginManager class
 DisplayPluginList getDisplayPlugins() {
@@ -27,14 +32,20 @@ DisplayPluginList getDisplayPlugins() {
 #endif
 
         // Stereo modes
-        // FIXME fix stereo display plugins
-        //new SideBySideStereoDisplayPlugin(),
-        //new InterleavedStereoDisplayPlugin(),
+
+        // SBS left/right
+        new SideBySideStereoDisplayPlugin(),
+        // Interleaved left/right
+        new InterleavedStereoDisplayPlugin(),
 
         // HMDs
-        new Oculus_0_5_DisplayPlugin(),
-        new Oculus_0_6_DisplayPlugin(),
+
+        // Windows Oculus SDK
+        new OculusDisplayPlugin(),
+        // Mac/Linux Oculus SDK (0.5)
+        new OculusLegacyDisplayPlugin(),
 #ifdef Q_OS_WIN
+        // SteamVR SDK
         new OpenVrDisplayPlugin(),
 #endif
         nullptr

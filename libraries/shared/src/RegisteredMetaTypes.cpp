@@ -26,8 +26,7 @@ static int quatMetaTypeId = qRegisterMetaType<glm::quat>();
 static int xColorMetaTypeId = qRegisterMetaType<xColor>();
 static int pickRayMetaTypeId = qRegisterMetaType<PickRay>();
 static int collisionMetaTypeId = qRegisterMetaType<Collision>();
-
-
+static int qMapURLStringMetaTypeId = qRegisterMetaType<QMap<QUrl,QString>>();
 
 void registerMetaTypes(QScriptEngine* engine) {
     qScriptRegisterMetaType(engine, vec4toScriptValue, vec4FromScriptValue);
@@ -197,9 +196,23 @@ QScriptValue xColorToScriptValue(QScriptEngine *engine, const xColor& color) {
 }
 
 void xColorFromScriptValue(const QScriptValue &object, xColor& color) {
-    color.red = object.property("red").toVariant().toInt();
-    color.green = object.property("green").toVariant().toInt();
-    color.blue = object.property("blue").toVariant().toInt();
+    if (!object.isValid()) {
+        return;
+    }
+    if (object.isNumber()) {
+        color.red = color.green = color.blue = (uint8_t)object.toUInt32();
+    } else if (object.isString()) {
+        QColor qcolor(object.toString());
+        if (qcolor.isValid()) {
+            color.red = (uint8_t)qcolor.red();
+            color.blue = (uint8_t)qcolor.blue();
+            color.green = (uint8_t)qcolor.green();
+        }
+    } else {
+        color.red = object.property("red").toVariant().toInt();
+        color.green = object.property("green").toVariant().toInt();
+        color.blue = object.property("blue").toVariant().toInt();
+    }
 }
 
 QScriptValue qColorToScriptValue(QScriptEngine* engine, const QColor& color) {

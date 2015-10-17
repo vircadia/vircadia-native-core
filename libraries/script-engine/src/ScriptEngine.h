@@ -16,6 +16,7 @@
 
 #include <QtCore/QObject>
 #include <QtCore/QUrl>
+#include <QtCore/QSet>
 #include <QtCore/QWaitCondition>
 #include <QtScript/QScriptEngine>
 
@@ -152,6 +153,7 @@ protected:
     Sound* _avatarSound;
     int _numAvatarSoundSentBytes;
     bool _isAgent = false;
+    QSet<QUrl> _includedURLs;
     
 private:
     void stopAllTimers();

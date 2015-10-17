@@ -26,18 +26,18 @@
 #include <EntityEditPacketSender.h>
 #include <EntityTreeRenderer.h>
 #include <GeometryCache.h>
+#include <input-plugins/KeyboardMouseDevice.h>
 #include <NodeList.h>
 #include <OctreeQuery.h>
 #include <OffscreenUi.h>
 #include <PhysicalEntitySimulation.h>
 #include <PhysicsEngine.h>
+#include <plugins/Forward.h>
 #include <ScriptEngine.h>
 #include <ShapeManager.h>
 #include <StDev.h>
 #include <udt/PacketHeaders.h>
 #include <ViewFrustum.h>
-#include <plugins/PluginContainer.h>
-#include <plugins/PluginManager.h>
 #include <SimpleMovingAverage.h>
 
 #include "AudioClient.h"
@@ -48,9 +48,9 @@
 #include "Menu.h"
 #include "Physics.h"
 #include "Stars.h"
+#include "avatar/AvatarUpdate.h"
 #include "avatar/Avatar.h"
 #include "avatar/MyAvatar.h"
-#include <input-plugins/KeyboardMouseDevice.h>
 #include "scripting/ControllerScriptingInterface.h"
 #include "scripting/DialogsManagerScriptingInterface.h"
 #include "scripting/WebWindowClass.h"
@@ -132,7 +132,7 @@ class Application;
 
 typedef bool (Application::* AcceptURLMethod)(const QString &);
 
-class Application : public QApplication, public AbstractViewStateInterface, public AbstractScriptingServicesInterface, PluginContainer {
+class Application : public QApplication, public AbstractViewStateInterface, public AbstractScriptingServicesInterface {
     Q_OBJECT
 
     friend class OctreePacketProcessor;
@@ -280,23 +280,10 @@ public:
     virtual void endOverrideEnvironmentData() { _environment.endOverride(); }
     virtual qreal getDevicePixelRatio();
 
-    // Plugin container support
-    virtual void addMenu(const QString& menuName);
-    virtual void removeMenu(const QString& menuName);
-    virtual void addMenuItem(const QString& path, const QString& name, std::function<void(bool)> onClicked, bool checkable, bool checked, const QString& groupName);
-    virtual void removeMenuItem(const QString& menuName, const QString& menuItem);
-    virtual bool isOptionChecked(const QString& name);
-    virtual void setIsOptionChecked(const QString& path, bool checked);
-    virtual void setFullscreen(const QScreen* target) override;
-    virtual void unsetFullscreen(const QScreen* avoid) override;
-    virtual void showDisplayPluginsTools() override;
-    virtual QGLWidget* getPrimarySurface() override;
-    virtual bool isForeground() override;
-
     void setActiveDisplayPlugin(const QString& pluginName);
 
-    DisplayPlugin * getActiveDisplayPlugin();
-    const DisplayPlugin * getActiveDisplayPlugin() const;
+    DisplayPlugin* getActiveDisplayPlugin();
+    const DisplayPlugin* getActiveDisplayPlugin() const;
 
 public:
 
@@ -314,9 +301,6 @@ public:
     float getRenderResolutionScale() const;
     int getRenderAmbientLight() const;
 
-    unsigned int getRenderTargetFramerate() const;
-    bool isVSyncOn() const;
-    bool isVSyncEditable() const;
     bool isAboutToQuit() const { return _aboutToQuit; }
 
     // the isHMDmode is true whenever we use the interface from an HMD and not a standard flat display
@@ -351,6 +335,12 @@ public:
     gpu::ContextPointer getGPUContext() const { return _gpuContext; }
 
     const QRect& getMirrorViewRect() const { return _mirrorViewRect; }
+
+    void updateMyAvatarLookAtPosition();
+    AvatarUpdate* getAvatarUpdater() { return _avatarUpdate; }
+    MyAvatar* getMyAvatar() { return _myAvatar; }
+    float getAvatarSimrate();
+    void setAvatarSimrateSample(float sample);
 
     float getAverageSimsPerSecond();
 
@@ -422,11 +412,10 @@ public slots:
     void openUrl(const QUrl& url);
 
     void updateMyAvatarTransform();
+    void setAvatarUpdateThreading(bool isThreaded);
 
     void domainSettingsReceived(const QJsonObject& domainSettingsObject);
 
-    void setVSyncEnabled();
-    
     void setThrottleFPSEnabled();
     bool isThrottleFPSEnabled() { return _isThrottleFPSEnabled; }
 
@@ -451,6 +440,8 @@ public slots:
     void cameraMenuChanged();
     
     void reloadResourceCaches();
+
+    void crashApplication();
 
 private slots:
     void clearDomainOctreeDetails();
@@ -499,7 +490,6 @@ private:
     // Various helper functions called during update()
     void updateLOD();
     void updateMouseRay();
-    void updateMyAvatarLookAtPosition();
     void updateThreads(float deltaTime);
     void updateCamera(float deltaTime);
     void updateDialogs(float deltaTime);
@@ -509,7 +499,7 @@ private:
 
     void renderLookatIndicator(glm::vec3 pointOfInterest);
 
-    void queryOctree(NodeType_t serverType, PacketType::Value packetType, NodeToJurisdictionMap& jurisdictions);
+    void queryOctree(NodeType_t serverType, PacketType packetType, NodeToJurisdictionMap& jurisdictions);
     void loadViewFrustum(Camera& camera, ViewFrustum& viewFrustum);
 
     glm::vec3 getSunDirection();
@@ -568,6 +558,10 @@ private:
 
     KeyboardMouseDevice* _keyboardMouseDevice{ nullptr };   // Default input device, the good old keyboard mouse and maybe touchpad
     MyAvatar* _myAvatar;                         // TODO: move this and relevant code to AvatarManager (or MyAvatar as the case may be)
+    AvatarUpdate* _avatarUpdate {nullptr};
+    SimpleMovingAverage _avatarSimsPerSecond {10};
+    int _avatarSimsPerSecondReport {0};
+    quint64 _lastAvatarSimsPerSecondUpdate {0};
     Camera _myCamera;                            // My view onto the world
     Camera _mirrorCamera;                        // Cammera for mirror view
     QRect _mirrorViewRect;
@@ -640,7 +634,6 @@ private:
     quint64 _lastNackTime;
     quint64 _lastSendDownstreamAudioStats;
 
-    bool _isVSyncOn;
     bool _isThrottleFPSEnabled;
     
     bool _aboutToQuit;
@@ -691,6 +684,9 @@ private:
     int _simsPerSecondReport = 0;
     quint64 _lastSimsPerSecondUpdate = 0;
     bool _isForeground = true; // starts out assumed to be in foreground
+    bool _inPaint = false;
+
+    friend class PluginContainerProxy;
 };
 
 #endif // hifi_Application_h

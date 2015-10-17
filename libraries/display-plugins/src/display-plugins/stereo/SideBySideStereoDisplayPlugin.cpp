@@ -10,14 +10,16 @@
 
 #include <QApplication>
 #include <QDesktopWidget>
+#include <QScreen>
 
 #include <GlWindow.h>
 #include <ViewFrustum.h>
 #include <MatrixStack.h>
 
 #include <gpu/GLBackend.h>
+#include <plugins/PluginContainer.h>
 
-const QString SideBySideStereoDisplayPlugin::NAME("SBS Stereo Display");
+const QString SideBySideStereoDisplayPlugin::NAME("3D TV - Side by Side Stereo");
 
 const QString & SideBySideStereoDisplayPlugin::getName() const {
     return NAME;
@@ -25,4 +27,11 @@ const QString & SideBySideStereoDisplayPlugin::getName() const {
 
 SideBySideStereoDisplayPlugin::SideBySideStereoDisplayPlugin() {
 }
+
+glm::uvec2 SideBySideStereoDisplayPlugin::getRecommendedRenderSize() const {
+    uvec2 result = WindowOpenGLDisplayPlugin::getRecommendedRenderSize();
+    result.x *= 2;
+    return result;
+}
+
 

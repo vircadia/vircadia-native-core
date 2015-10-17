@@ -12,19 +12,21 @@
 #ifndef hifi_ResourceCache_h
 #define hifi_ResourceCache_h
 
-#include <QHash>
-#include <QList>
-#include <QNetworkReply>
-#include <QNetworkRequest>
-#include <QObject>
-#include <QPointer>
-#include <QSharedPointer>
-#include <QUrl>
-#include <QWeakPointer>
-#include <QReadWriteLock>
-#include <QQueue>
+#include <QtCore/QHash>
+#include <QtCore/QList>
+#include <QtCore/QObject>
+#include <QtCore/QPointer>
+#include <QtCore/QSharedPointer>
+#include <QtCore/QUrl>
+#include <QtCore/QWeakPointer>
+#include <QtCore/QReadWriteLock>
+#include <QtCore/QQueue>
+#include <QtNetwork/QNetworkReply>
+#include <QtNetwork/QNetworkRequest>
 
 #include <DependencyManager.h>
+
+#include "ResourceManager.h"
 
 class QNetworkReply;
 class QTimer;
@@ -102,7 +104,7 @@ protected:
     void reserveUnusedResource(qint64 resourceSize);
     void clearUnusedResource();
     
-    static void attemptRequest(Resource* resource);
+    Q_INVOKABLE static void attemptRequest(Resource* resource);
     static void requestCompleted(Resource* resource);
 
 private:
@@ -150,7 +152,7 @@ public:
     float getLoadPriority();
 
     /// Checks whether the resource has loaded.
-    bool isLoaded() const { return _loaded; }
+    virtual bool isLoaded() const { return _loaded; }
 
     /// For loading resources, returns the number of bytes received.
     qint64 getBytesReceived() const { return _bytesReceived; }
@@ -171,24 +173,26 @@ public:
     Q_INVOKABLE void allReferencesCleared();
     
     const QUrl& getURL() const { return _url; }
+    const QByteArray& getData() const { return _data; }
 
 signals:
     /// Fired when the resource has been loaded.
-    void loaded();
+    void loaded(const QByteArray& request);
+
+    /// Fired when resource failed to load.
+    void failed(QNetworkReply::NetworkError error);
+
+    /// Fired when resource is refreshed.
     void onRefresh();
 
 protected slots:
     void attemptRequest();
-    
-    /// Refreshes the resource if the last modified date on the network
-    /// is greater than the last modified date in the cache.
-    void maybeRefresh();
 
 protected:
     virtual void init();
 
-    /// Called when the download has finished.  The recipient should delete the reply when done with it.
-    virtual void downloadFinished(QNetworkReply* reply) = 0;
+    /// Called when the download has finished
+    virtual void downloadFinished(const QByteArray& data);
 
     /// Should be called by subclasses when all the loading that will be done has been done.
     Q_INVOKABLE void finishedLoading(bool success);
@@ -197,31 +201,29 @@ protected:
     virtual void reinsert();
 
     QUrl _url;
-    QNetworkRequest _request;
+    QUrl _activeUrl;
     bool _startedLoading = false;
     bool _failedToLoad = false;
     bool _loaded = false;
     QHash<QPointer<QObject>, float> _loadPriorities;
     QWeakPointer<Resource> _self;
     QPointer<ResourceCache> _cache;
+    QByteArray _data;
     
 private slots:
-    void handleDownloadProgress(qint64 bytesReceived, qint64 bytesTotal);
-    void handleReplyError();
+    void handleDownloadProgress(uint64_t bytesReceived, uint64_t bytesTotal);
     void handleReplyFinished();
-    void handleReplyTimeout();
 
 private:
     void setLRUKey(int lruKey) { _lruKey = lruKey; }
     
     void makeRequest();
-    
-    void handleReplyError(QNetworkReply::NetworkError error, QDebug debug);
+    void retry();
     
     friend class ResourceCache;
     
+    ResourceRequest* _request = nullptr;
     int _lruKey = 0;
-    QNetworkReply* _reply = nullptr;
     QTimer* _replyTimer = nullptr;
     qint64 _bytesReceived = 0;
     qint64 _bytesTotal = 0;

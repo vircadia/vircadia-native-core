@@ -260,7 +260,6 @@ var toolBar = (function () {
                     cameraManager.disable();
                 } else {
                     hasShownPropertiesTool = false;
-                    cameraManager.enable();
                     entityListTool.setVisible(true);
                     gridTool.setVisible(true);
                     grid.setEnabled(true);
@@ -448,12 +447,31 @@ var toolBar = (function () {
         }
 
         if (newPolyVoxButton === toolBar.clicked(clickedOverlay)) {
-            createNewEntity({
+            var polyVoxId = createNewEntity({
                 type: "PolyVox",
                 dimensions: { x: 10, y: 10, z: 10 },
                 voxelVolumeSize: {x:16, y:16, z:16},
-                voxelSurfaceStyle: 1
+                voxelSurfaceStyle: 2
             });
+            for (var x = 1; x <= 14; x++) {
+                Entities.setVoxel(polyVoxId, {x: x, y: 1, z: 1}, 255);
+                Entities.setVoxel(polyVoxId, {x: x, y: 14, z: 1}, 255);
+                Entities.setVoxel(polyVoxId, {x: x, y: 1, z: 14}, 255);
+                Entities.setVoxel(polyVoxId, {x: x, y: 14, z: 14}, 255);
+            }
+            for (var y = 2; y <= 13; y++) {
+                Entities.setVoxel(polyVoxId, {x: 1, y: y, z: 1}, 255);
+                Entities.setVoxel(polyVoxId, {x: 14, y: y, z: 1}, 255);
+                Entities.setVoxel(polyVoxId, {x: 1, y: y, z: 14}, 255);
+                Entities.setVoxel(polyVoxId, {x: 14, y: y, z: 14}, 255);
+            }
+            for (var z = 2; z <= 13; z++) {
+                Entities.setVoxel(polyVoxId, {x: 1, y: 1, z: z}, 255);
+                Entities.setVoxel(polyVoxId, {x: 14, y: 1, z: z}, 255);
+                Entities.setVoxel(polyVoxId, {x: 1, y: 14, z: z}, 255);
+                Entities.setVoxel(polyVoxId, {x: 14, y: 14, z: z}, 255);
+            }
+
 
             return true;
         }
@@ -651,15 +669,11 @@ function mouseMove(event) {
 
     lastMousePosition = { x: event.x, y: event.y };
 
-    highlightEntityUnderCursor(lastMousePosition, false);
     idleMouseTimerId = Script.setTimeout(handleIdleMouse, IDLE_MOUSE_TIMEOUT);
 }
 
 function handleIdleMouse() {
     idleMouseTimerId = null;
-    if (isActive) {
-        highlightEntityUnderCursor(lastMousePosition, true);
-    }
 }
 
 function highlightEntityUnderCursor(position, accurateRay) {
@@ -783,6 +797,7 @@ function mouseClickEvent(event) {
                 selectionDisplay.select(selectedEntityID, event);
 
                 if (Menu.isOptionChecked(MENU_AUTO_FOCUS_ON_SELECT)) {
+                    cameraManager.enable();
                     cameraManager.focus(selectionManager.worldPosition,
                                         selectionManager.worldDimensions,
                                         Menu.isOptionChecked(MENU_EASE_ON_FOCUS));
@@ -1036,7 +1051,6 @@ function handeMenuEvent(menuItem) {
 // This function tries to find a reasonable position to place a new entity based on the camera
 // position. If a reasonable position within the world bounds can't be found, `null` will
 // be returned. The returned position will also take into account grid snapping settings.
-// FIXME - technically we should guard against very large positions too
 function getPositionToCreateEntity() {
     var distance = cameraManager.enabled ? cameraManager.zoomDistance : DEFAULT_ENTITY_DRAG_DROP_DISTANCE;
     var direction = Quat.getFront(Camera.orientation);
@@ -1047,18 +1061,20 @@ function getPositionToCreateEntity() {
     
     var HALF_TREE_SCALE = 16384;
 
-    var cameraOutOfBounds = cameraPosition.x < -HALF_TREE_SCALE || cameraPosition.y < -HALF_TREE_SCALE || 
-                            cameraPosition.z < -HALF_TREE_SCALE;
-    var placementOutOfBounds = placementPosition.x < -HALF_TREE_SCALE || placementPosition.y < -HALF_TREE_SCALE || 
-                            placementPosition.z < -HALF_TREE_SCALE;
+    var cameraOutOfBounds = Math.abs(cameraPosition.x) > HALF_TREE_SCALE
+                            || Math.abs(cameraPosition.y) > HALF_TREE_SCALE
+                            || Math.abs(cameraPosition.z) > HALF_TREE_SCALE;
+    var placementOutOfBounds = Math.abs(placementPosition.x) > HALF_TREE_SCALE
+                               || Math.abs(placementPosition.y) > HALF_TREE_SCALE
+                               || Math.abs(placementPosition.z) > HALF_TREE_SCALE;
 
     if (cameraOutOfBounds && placementOutOfBounds) {
         return null;
     }
 
-    placementPosition.x = Math.max(-HALF_TREE_SCALE, placementPosition.x);
-    placementPosition.y = Math.max(-HALF_TREE_SCALE, placementPosition.y);
-    placementPosition.z = Math.max(-HALF_TREE_SCALE, placementPosition.z);
+    placementPosition.x = Math.min(HALF_TREE_SCALE, Math.max(-HALF_TREE_SCALE, placementPosition.x));
+    placementPosition.y = Math.min(HALF_TREE_SCALE, Math.max(-HALF_TREE_SCALE, placementPosition.y));
+    placementPosition.z = Math.min(HALF_TREE_SCALE, Math.max(-HALF_TREE_SCALE, placementPosition.z));
 
     return placementPosition;
 }
@@ -1122,6 +1138,7 @@ Controller.keyReleaseEvent.connect(function (event) {
     } else if (event.text == "f") {
         if (isActive) {
             if (selectionManager.hasSelection()) {
+                cameraManager.enable();
                 cameraManager.focus(selectionManager.worldPosition,
                                     selectionManager.worldDimensions,
                                     Menu.isOptionChecked(MENU_EASE_ON_FOCUS));

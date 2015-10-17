@@ -196,16 +196,13 @@ void Avatar::simulate(float deltaTime) {
         PerformanceTimer perfTimer("hand");
         getHand()->simulate(deltaTime, false);
     }
-    _skeletonModel.setLODDistance(getLODDistance());
 
     if (!_shouldRenderBillboard && inViewFrustum) {
         {
             PerformanceTimer perfTimer("skeleton");
-            if (_hasNewJointRotations) {
-                for (int i = 0; i < _jointData.size(); i++) {
-                    const JointData& data = _jointData.at(i);
-                    _skeletonModel.setJointState(i, data.valid, data.rotation);
-                }
+            for (int i = 0; i < _jointData.size(); i++) {
+                const JointData& data = _jointData.at(i);
+                _skeletonModel.setJointState(i, true, data.rotation);
             }
             _skeletonModel.simulate(deltaTime, _hasNewJointRotations);
             simulateAttachments(deltaTime);
@@ -319,6 +316,7 @@ void Avatar::removeFromScene(AvatarSharedPointer self, std::shared_ptr<render::S
 }
 
 void Avatar::render(RenderArgs* renderArgs, const glm::vec3& cameraPosition) {
+    startRender();
     if (_referential) {
         _referential->update();
     }
@@ -393,6 +391,7 @@ void Avatar::render(RenderArgs* renderArgs, const glm::vec3& cameraPosition) {
     }
 
     if (frustum->sphereInFrustum(getPosition(), boundingRadius) == ViewFrustum::OUTSIDE) {
+        endRender();
         return;
     }
 
@@ -470,8 +469,8 @@ void Avatar::render(RenderArgs* renderArgs, const glm::vec3& cameraPosition) {
                 * (1.0f - ((float)(now - getHead()->getLookingAtMeStarted()))
                 / (LOOKING_AT_ME_DURATION * (float)USECS_PER_SECOND));
             if (alpha > 0.0f) {
-                QSharedPointer<NetworkGeometry> geometry = getHead()->getFaceModel().getGeometry();
-                if (geometry) {
+                QSharedPointer<NetworkGeometry> geometry = _skeletonModel.getGeometry();
+                if (geometry && geometry->isLoaded()) {
                     const float DEFAULT_EYE_DIAMETER = 0.048f;  // Typical human eye
                     const float RADIUS_INCREMENT = 0.005f;
                     Transform transform;
@@ -543,6 +542,7 @@ void Avatar::render(RenderArgs* renderArgs, const glm::vec3& cameraPosition) {
     if (!isMyAvatar() || cameraMode != CAMERA_MODE_FIRST_PERSON) {
         renderDisplayName(batch, *renderArgs->_viewFrustum, renderArgs->_viewport);
     }
+    endRender();
 }
 
 glm::quat Avatar::computeRotationFromBodyToWorldUp(float proportion) const {
@@ -562,24 +562,22 @@ glm::quat Avatar::computeRotationFromBodyToWorldUp(float proportion) const {
 }
 
 void Avatar::fixupModelsInScene() {
-    if (!(_skeletonModel.isRenderable() && getHead()->getFaceModel().isRenderable())) {
-        return;
-    }
 
     // check to see if when we added our models to the scene they were ready, if they were not ready, then
     // fix them up in the scene
     render::ScenePointer scene = Application::getInstance()->getMain3DScene();
     render::PendingChanges pendingChanges;
-    if (_skeletonModel.needsFixupInScene()) {
+    if (_skeletonModel.isRenderable() && _skeletonModel.needsFixupInScene()) {
         _skeletonModel.removeFromScene(scene, pendingChanges);
         _skeletonModel.addToScene(scene, pendingChanges);
     }
-    if (getHead()->getFaceModel().needsFixupInScene()) {
-        getHead()->getFaceModel().removeFromScene(scene, pendingChanges);
-        getHead()->getFaceModel().addToScene(scene, pendingChanges);
+    Model& faceModel = getHead()->getFaceModel();
+    if (faceModel.isRenderable() && faceModel.needsFixupInScene()) {
+        faceModel.removeFromScene(scene, pendingChanges);
+        faceModel.addToScene(scene, pendingChanges);
     }
     for (auto attachmentModel : _attachmentModels) {
-        if (attachmentModel->needsFixupInScene()) {
+        if (attachmentModel->isRenderable() && attachmentModel->needsFixupInScene()) {
             attachmentModel->removeFromScene(scene, pendingChanges);
             attachmentModel->addToScene(scene, pendingChanges);
         }
@@ -600,13 +598,12 @@ void Avatar::renderBody(RenderArgs* renderArgs, ViewFrustum* renderFrustum, floa
         if (_shouldRenderBillboard || !(_skeletonModel.isRenderable() && getHead()->getFaceModel().isRenderable())) {
             // render the billboard until both models are loaded
             renderBillboard(renderArgs);
-            return;
+        } else {
+            getHead()->render(renderArgs, 1.0f, renderFrustum);
         }
 
         getHand()->render(renderArgs, false);
     }
-    
-    getHead()->render(renderArgs, 1.0f, renderFrustum);
     getHead()->renderLookAts(renderArgs);
 }
 
@@ -621,11 +618,8 @@ void Avatar::simulateAttachments(float deltaTime) {
         int jointIndex = getJointIndex(attachment.jointName);
         glm::vec3 jointPosition;
         glm::quat jointRotation;
-        if (!isMyAvatar()) {
-            model->setLODDistance(getLODDistance());
-        }
         if (_skeletonModel.getJointPositionInWorldFrame(jointIndex, jointPosition) &&
-                _skeletonModel.getJointCombinedRotation(jointIndex, jointRotation)) {
+            _skeletonModel.getJointCombinedRotation(jointIndex, jointRotation)) {
             model->setTranslation(jointPosition + jointRotation * attachment.translation * _scale);
             model->setRotation(jointRotation * attachment.rotation);
             model->setScaleToFit(true, _scale * attachment.scale, true); // hack to force rescale
@@ -754,11 +748,12 @@ Transform Avatar::calculateDisplayNameTransform(const ViewFrustum& frustum, floa
             qDebug() << "ASSERT because isinf(scale)";
         }
         qDebug() << "textPosition =" << textPosition;
+        qDebug() << "projMat =" << projMat;
+        qDebug() << "viewMat =" << viewMat;
+        qDebug() << "viewProj =" << viewProj;
         qDebug() << "windowSizeY =" << windowSizeY;
-        qDebug() << "p1.y =" << p1.y;
-        qDebug() << "p1.w =" << p1.w;
-        qDebug() << "p0.y =" << p0.y;
-        qDebug() << "p0.w =" << p0.w;
+        qDebug() << "p1 =" << p1;
+        qDebug() << "p0 =" << p0;
         qDebug() << "qApp->getDevicePixelRatio() =" << qApp->getDevicePixelRatio();
         qDebug() << "fontSize =" << fontSize;
         qDebug() << "pixelHeight =" << pixelHeight;
@@ -790,8 +785,10 @@ Transform Avatar::calculateDisplayNameTransform(const ViewFrustum& frustum, floa
 void Avatar::renderDisplayName(gpu::Batch& batch, const ViewFrustum& frustum, const glm::ivec4& viewport) const {
     bool shouldShowReceiveStats = DependencyManager::get<AvatarManager>()->shouldShowReceiveStats() && !isMyAvatar();
 
-    // If we have nothing to draw, or it's tottaly transparent, return
-    if ((_displayName.isEmpty() && !shouldShowReceiveStats) || _displayNameAlpha == 0.0f) {
+    // If we have nothing to draw, or it's totally transparent, or it's too close or behind the camera, return
+    const float CLIP_DISTANCE = 0.2f;
+    if ((_displayName.isEmpty() && !shouldShowReceiveStats) || _displayNameAlpha == 0.0f
+        || (glm::dot(frustum.getDirection(), getDisplayNamePosition() - frustum.getPosition()) <= CLIP_DISTANCE)) {
         return;
     }
     auto renderer = textRenderer(DISPLAYNAME);
@@ -978,12 +975,12 @@ void Avatar::scaleVectorRelativeToPosition(glm::vec3 &positionToScale) const {
 
 void Avatar::setFaceModelURL(const QUrl& faceModelURL) {
     AvatarData::setFaceModelURL(faceModelURL);
-    getHead()->getFaceModel().setURL(_faceModelURL, AvatarData::defaultFullAvatarModelUrl(), true, !isMyAvatar());
+    getHead()->getFaceModel().setURL(_faceModelURL);
 }
 
 void Avatar::setSkeletonModelURL(const QUrl& skeletonModelURL) {
     AvatarData::setSkeletonModelURL(skeletonModelURL);
-    _skeletonModel.setURL(_skeletonModelURL, AvatarData::defaultFullAvatarModelUrl(), true, !isMyAvatar());
+    _skeletonModel.setURL(_skeletonModelURL);
 }
 
 void Avatar::setAttachmentData(const QVector<AttachmentData>& attachmentData) {
@@ -1025,6 +1022,7 @@ void Avatar::setBillboard(const QByteArray& billboard) {
 }
 
 int Avatar::parseDataFromBuffer(const QByteArray& buffer) {
+    startUpdate();
     if (!_initialized) {
         // now that we have data for this Avatar we are go for init
         init();
@@ -1040,6 +1038,7 @@ int Avatar::parseDataFromBuffer(const QByteArray& buffer) {
     if (_moving && _motionState) {
         _motionState->addDirtyFlags(EntityItem::DIRTY_POSITION);
     }
+    endUpdate();
 
     return bytesRead;
 }

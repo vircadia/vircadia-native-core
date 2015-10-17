@@ -156,6 +156,7 @@ public:
     void scaleVectorRelativeToPosition(glm::vec3 &positionToScale) const;
 
     void slamPosition(const glm::vec3& position);
+    virtual void updateAttitude() { _skeletonModel.updateAttitude(); }
 
     // Call this when updating Avatar position with a delta.  This will allow us to
     // _accurately_ measure position changes and compute the resulting velocity

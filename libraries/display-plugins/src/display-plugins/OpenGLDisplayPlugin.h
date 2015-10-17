@@ -25,7 +25,7 @@ public:
 
     virtual void activate() override;
     virtual void deactivate() override;
-
+    virtual void stop() override;
     virtual bool eventFilter(QObject* receiver, QEvent* event) override;
 
     virtual void display(GLuint sceneTexture, const glm::uvec2& sceneSize) override;
@@ -33,13 +33,19 @@ public:
 protected:
     virtual void customizeContext();
     virtual void drawUnitQuad();
+    virtual glm::uvec2 getSurfaceSize() const = 0;
     virtual void makeCurrent() = 0;
     virtual void doneCurrent() = 0;
     virtual void swapBuffers() = 0;
 
+    virtual bool isVsyncEnabled();
+    virtual void enableVsync(bool enable = true);
+
     mutable QTimer _timer;
     ProgramPtr _program;
     ShapeWrapperPtr _plane;
+    bool _active{ false };
+    bool _vsyncSupported{ false };
 };
 
 

@@ -122,7 +122,7 @@ void Octree::recurseElementWithPostOperation(OctreeElement* element, RecurseOctr
             recurseElementWithPostOperation(child, operation, extraData, recursionCount+1);
         }
     }
-	operation(element, extraData);
+    operation(element, extraData);
 }
 
 // Recurses voxel tree calling the RecurseOctreeOperation function for each element.
@@ -1318,7 +1318,8 @@ int Octree::encodeTreeBitstreamRecursion(OctreeElement* element,
                 // If the user also asked for occlusion culling, check if this element is occluded
                 if (params.wantOcclusionCulling && childElement->isLeaf()) {
                     // Don't check occlusion here, just add them to our distance ordered array...
-
+                    
+                    // FIXME params.ViewFrustum is used here, but later it is checked against nullptr.
                     OctreeProjectedPolygon* voxelPolygon = new OctreeProjectedPolygon(
                                 params.viewFrustum->getProjectedPolygon(childElement->getAACube()));
 
@@ -1909,7 +1910,7 @@ bool Octree::readSVOFromStream(unsigned long streamLength, QDataStream& inputStr
 
     bool wantImportProgress = true;
 
-    PacketType::Value expectedType = expectedDataPacketType();
+    PacketType expectedType = expectedDataPacketType();
     PacketVersion expectedVersion = versionForPacketType(expectedType);
     bool hasBufferBreaks = versionHasSVOfileBreaks(expectedVersion);
 
@@ -1917,7 +1918,7 @@ bool Octree::readSVOFromStream(unsigned long streamLength, QDataStream& inputStr
     if (getWantSVOfileVersions()) {
 
         // read just enough of the file to parse the header...
-        const unsigned long HEADER_LENGTH = sizeof(PacketType::Value) + sizeof(PacketVersion);
+        const unsigned long HEADER_LENGTH = sizeof(int) + sizeof(PacketVersion);
         unsigned char fileHeader[HEADER_LENGTH];
         inputStream.readRawData((char*)&fileHeader, HEADER_LENGTH);
 
@@ -1927,8 +1928,9 @@ bool Octree::readSVOFromStream(unsigned long streamLength, QDataStream& inputStr
         unsigned long  dataLength = HEADER_LENGTH;
 
         // if so, read the first byte of the file and see if it matches the expected version code
-        PacketType::Value gotType;
-        memcpy(&gotType, dataAt, sizeof(gotType));
+        int intPacketType;
+        memcpy(&intPacketType, dataAt, sizeof(intPacketType));
+        PacketType gotType = (PacketType) intPacketType;
 
         dataAt += sizeof(expectedType);
         dataLength -= sizeof(expectedType);
@@ -2087,7 +2089,7 @@ void Octree::writeToJSONFile(const char* fileName, OctreeElement* element, bool 
     }
 
     // include the "bitstream" version
-    PacketType::Value expectedType = expectedDataPacketType();
+    PacketType expectedType = expectedDataPacketType();
     PacketVersion expectedVersion = versionForPacketType(expectedType);
     entityDescription["Version"] = (int) expectedVersion;
 
@@ -2125,16 +2127,17 @@ void Octree::writeToSVOFile(const char* fileName, OctreeElement* element) {
     if(file.is_open()) {
         qCDebug(octree, "Saving binary SVO to file %s...", fileName);
 
-        PacketType::Value expectedType = expectedDataPacketType();
-        PacketVersion expectedVersion = versionForPacketType(expectedType);
+        PacketType expectedPacketType = expectedDataPacketType();
+        int expectedIntType = (int) expectedPacketType;
+        PacketVersion expectedVersion = versionForPacketType(expectedPacketType);
         bool hasBufferBreaks = versionHasSVOfileBreaks(expectedVersion);
 
         // before reading the file, check to see if this version of the Octree supports file versions
         if (getWantSVOfileVersions()) {
             // if so, read the first byte of the file and see if it matches the expected version code
-            file.write(reinterpret_cast<char*>(&expectedType), sizeof(expectedType));
+            file.write(reinterpret_cast<char*>(&expectedIntType), sizeof(expectedIntType));
             file.write(&expectedVersion, sizeof(expectedVersion));
-            qCDebug(octree) << "SVO file type: " << nameForPacketType(expectedType) << " version: " << (int)expectedVersion;
+            qCDebug(octree) << "SVO file type: " << expectedPacketType << " version: " << (int)expectedVersion;
 
             hasBufferBreaks = versionHasSVOfileBreaks(expectedVersion);
         }

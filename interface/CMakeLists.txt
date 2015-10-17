@@ -40,7 +40,7 @@ else ()
   list(REMOVE_ITEM INTERFACE_SRCS ${SPEECHRECOGNIZER_CPP})
 endif ()
 
-find_package(Qt5 COMPONENTS Gui Multimedia Network OpenGL Qml Quick Script Svg WebKitWidgets)
+find_package(Qt5 COMPONENTS Gui Multimedia Network OpenGL Qml Quick Script Svg WebKitWidgets WebSockets)
 
 # grab the ui files in resources/ui
 file (GLOB_RECURSE QT_UI_FILES ui/*.ui)
@@ -113,7 +113,7 @@ endif()
 target_link_libraries(${TARGET_NAME} ${BULLET_LIBRARIES})
 
 # link required hifi libraries
-link_hifi_libraries(shared octree environment gpu model render fbx networking entities avatars 
+link_hifi_libraries(shared octree environment gpu gpu-networking procedural  model render fbx networking entities avatars 
                     audio audio-client animation script-engine physics 
                     render-utils entities-renderer ui auto-updater 
                     plugins display-plugins input-plugins)

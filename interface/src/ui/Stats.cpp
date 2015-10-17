@@ -115,6 +115,7 @@ void Stats::updateStats() {
     STAT_UPDATE(serverCount, nodeList->size());
     STAT_UPDATE(framerate, (int)qApp->getFps());
     STAT_UPDATE(simrate, (int)Application::getInstance()->getAverageSimsPerSecond());
+    STAT_UPDATE(avatarSimrate, (int)qApp->getAvatarSimrate());
 
     auto bandwidthRecorder = DependencyManager::get<BandwidthRecorder>();
     STAT_UPDATE(packetInCount, bandwidthRecorder->getCachedTotalAverageInputPacketsPerSecond());
@@ -126,11 +127,13 @@ void Stats::updateStats() {
     if (Menu::getInstance()->isOptionChecked(MenuOption::TestPing)) {
         SharedNodePointer audioMixerNode = nodeList->soloNodeOfType(NodeType::AudioMixer);
         SharedNodePointer avatarMixerNode = nodeList->soloNodeOfType(NodeType::AvatarMixer);
+        SharedNodePointer assetServerNode = nodeList->soloNodeOfType(NodeType::AssetServer);
         STAT_UPDATE(audioPing, audioMixerNode ? audioMixerNode->getPingMs() : -1);
         STAT_UPDATE(avatarPing, avatarMixerNode ? avatarMixerNode->getPingMs() : -1);
+        STAT_UPDATE(assetPing, assetServerNode ? assetServerNode->getPingMs() : -1);
 
-        //// Now handle voxel servers, since there could be more than one, we average their ping times
-        unsigned long totalPingOctree = 0;
+        //// Now handle entity servers, since there could be more than one, we average their ping times
+        int totalPingOctree = 0;
         int octreeServerCount = 0;
         int pingOctreeMax = 0;
         nodeList->eachNode([&](const SharedNodePointer& node) {
@@ -143,6 +146,9 @@ void Stats::updateStats() {
                 }
             }
         });
+        
+        // update the entities ping with the average for all connected entity servers
+        STAT_UPDATE(entitiesPing, octreeServerCount ? totalPingOctree / octreeServerCount : -1);
     } else {
         // -2 causes the QML to hide the ping column
         STAT_UPDATE(audioPing, -2);

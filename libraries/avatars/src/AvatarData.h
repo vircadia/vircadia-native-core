@@ -59,9 +59,11 @@ typedef unsigned long long quint64;
 #include "Recorder.h"
 #include "Referential.h"
 
-typedef std::shared_ptr<AvatarData> AvatarSharedPointer;
-typedef std::weak_ptr<AvatarData> AvatarWeakPointer;
-typedef QHash<QUuid, AvatarSharedPointer> AvatarHash;
+using AvatarSharedPointer = std::shared_ptr<AvatarData>;
+using AvatarWeakPointer = std::weak_ptr<AvatarData>;
+using AvatarHash = QHash<QUuid, AvatarSharedPointer>;
+
+using AvatarDataSequenceNumber = uint16_t;
 
 // avatar motion behaviors
 const quint32 AVATAR_MOTION_KEYBOARD_MOTOR_ENABLED = 1U << 0;
@@ -103,13 +105,18 @@ const char IS_FINGER_POINTING_FLAG = 4;
 static const float MAX_AVATAR_SCALE = 1000.0f;
 static const float MIN_AVATAR_SCALE = .005f;
 
-const float MAX_AUDIO_LOUDNESS = 1000.0; // close enough for mouth animation
+const float MAX_AUDIO_LOUDNESS = 1000.0f; // close enough for mouth animation
 
 const int AVATAR_IDENTITY_PACKET_SEND_INTERVAL_MSECS = 1000;
 const int AVATAR_BILLBOARD_PACKET_SEND_INTERVAL_MSECS = 5000;
 
 // See also static AvatarData::defaultFullAvatarModelUrl().
 const QString DEFAULT_FULL_AVATAR_MODEL_NAME = QString("Default");
+
+// how often should we send a full report about joint rotations, even if they haven't changed?
+const float AVATAR_SEND_FULL_UPDATE_RATIO = 0.02f;
+// this controls how large a change in joint-rotation must be before the interface sends it to the avatar mixer
+const float AVATAR_MIN_ROTATION_DOT = 0.9999999f;
 
 
 // Where one's own Avatar begins in the world (will be overwritten if avatar data file is found).
@@ -171,7 +178,8 @@ public:
     glm::vec3 getHandPosition() const;
     void setHandPosition(const glm::vec3& handPosition);
 
-    virtual QByteArray toByteArray();
+    virtual QByteArray toByteArray(bool cullSmallChanges, bool sendAll);
+    virtual void doneEncoding(bool cullSmallChanges);
 
     /// \return true if an error should be logged
     bool shouldLogError(const quint64& now);
@@ -191,6 +199,17 @@ public:
 
     glm::quat getOrientation() const;
     virtual void setOrientation(const glm::quat& orientation, bool overideReferential = false);
+
+    void nextAttitude(glm::vec3 position, glm::quat orientation); // Can be safely called at any time.
+    void startCapture();    // start/end of the period in which the latest values are about to be captured for camera, etc.
+    void endCapture();
+    void startUpdate();     // start/end of update iteration
+    void endUpdate();
+    void startRender();     // start/end of rendering of this object
+    void startRenderRun();  // start/end of entire scene.
+    void endRenderRun();
+    void endRender();
+    virtual void updateAttitude() {} // Tell skeleton mesh about changes
 
     glm::quat getHeadOrientation() const { return _headData->getOrientation(); }
     void setHeadOrientation(const glm::quat& orientation) { _headData->setOrientation(orientation); }
@@ -350,6 +369,10 @@ protected:
     float _bodyPitch;   // degrees
     float _bodyRoll;    // degrees
 
+    glm::vec3 _nextPosition {};
+    glm::quat _nextOrientation {};
+    bool _nextAllowed {true};
+
     // Body scale
     float _targetScale;
 
@@ -357,6 +380,7 @@ protected:
     char _handState;
 
     QVector<JointData> _jointData; ///< the state of the skeleton joints
+    QVector<JointData> _lastSentJointData; ///< the state of the skeleton joints last time we transmitted
 
     // key state
     KeyState _keyState;
@@ -398,6 +422,8 @@ protected:
 
     SimpleMovingAverage _averageBytesReceived;
 
+    QMutex avatarLock; // Name is redundant, but it aids searches.
+
 private:
     static QUrl _defaultFullAvatarModelUrl;
     // privatize the copy constructor and assignment operator so they cannot be called
@@ -408,7 +434,6 @@ Q_DECLARE_METATYPE(AvatarData*)
 
 class JointData {
 public:
-    bool valid;
     glm::quat rotation;
 };
 

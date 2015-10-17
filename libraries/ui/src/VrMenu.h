@@ -38,9 +38,7 @@ public:
 
 protected:
     QObject* _rootMenu{ nullptr };
-
     QObject* findMenuObject(const QString& name);
-    const QObject* findMenuObject(const QString& name) const;
 
     static VrMenu* _instance;
     friend class MenuUserData;

@@ -23,6 +23,7 @@ class AssignmentClient : public QObject {
     Q_OBJECT
 public:
     AssignmentClient(Assignment::Type requestAssignmentType, QString assignmentPool,
+                     quint16 listenPort,
                      QUuid walletUUID, QString assignmentServerHostname, quint16 assignmentServerPort,
                      quint16 assignmentMonitorPort);
     ~AssignmentClient();

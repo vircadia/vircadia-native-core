@@ -102,13 +102,23 @@ input[type=button] {
 }
 
 #search-area {
-    width: 100%;
     padding: 0.5em;
     box-sizing: border-box;
+    padding-right: 6em;
 }
 
-#search-area input {
-    width: 100%;
+#filter {
+    width: 99%;
+}
+
+#radius-and-unit {
+    width: 6em;
+    float: right;
+    margin-right: -6em;
+}
+
+#radius {
+    width: 4em;
 }
 
 textarea, input {

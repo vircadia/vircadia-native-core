@@ -57,18 +57,18 @@ setupToolBars();
 
 
 function setupToolBars() {
-	if (toolBars.length > 0) {
-		print("Multiple calls to Recorder.js:setupToolBars()");
-		return;
-	}
+    if (toolBars.length > 0) {
+        print("Multiple calls to Recorder.js:setupToolBars()");
+        return;
+    }
     Tool.IMAGE_HEIGHT /= 2;
     Tool.IMAGE_WIDTH /= 2;
     
-	for (i = 0; i <= NUM_AC; i++) {
-		toolBars.push(new ToolBar(0, 0, ToolBar.HORIZONTAL));
-		toolBars[i].setBack((i === NUM_AC) ? COLOR_MASTER : COLOR_TOOL_BAR, ALPHA_OFF);
+    for (i = 0; i <= NUM_AC; i++) {
+        toolBars.push(new ToolBar(0, 0, ToolBar.HORIZONTAL));
+        toolBars[i].setBack((i === NUM_AC) ? COLOR_MASTER : COLOR_TOOL_BAR, ALPHA_OFF);
         
-		onOffIcon.push(toolBars[i].addTool({
+        onOffIcon.push(toolBars[i].addTool({
                                            imageURL: TOOL_ICON_URL + "ac-on-off.svg",
                                            subImage: { x: 0, y: 0, width: Tool.IMAGE_WIDTH, height: Tool.IMAGE_HEIGHT },
                                            x: 0, y: 0,
@@ -78,7 +78,7 @@ function setupToolBars() {
                                            visible: true
                                            }, true, true));
         
-		playIcon[i] = toolBars[i].addTool({
+        playIcon[i] = toolBars[i].addTool({
                                           imageURL: TOOL_ICON_URL + "play.svg",
                                           subImage: { x: 0, y: 0, width: Tool.IMAGE_WIDTH, height: Tool.IMAGE_HEIGHT },
                                           width: Tool.IMAGE_WIDTH,
@@ -88,7 +88,7 @@ function setupToolBars() {
                                           }, false);
         
         var playLoopWidthFactor = 1.65;
-		playLoopIcon[i] = toolBars[i].addTool({
+        playLoopIcon[i] = toolBars[i].addTool({
                                               imageURL: TOOL_ICON_URL + "play-and-loop.svg",
                                               subImage: { x: 0, y: 0, width: playLoopWidthFactor * Tool.IMAGE_WIDTH, height: Tool.IMAGE_HEIGHT },
                                               width: playLoopWidthFactor * Tool.IMAGE_WIDTH,
@@ -97,7 +97,7 @@ function setupToolBars() {
                                               visible: true
                                               }, false);
         
-		stopIcon[i] = toolBars[i].addTool({
+        stopIcon[i] = toolBars[i].addTool({
                                           imageURL: TOOL_ICON_URL + "recording-stop.svg",
                                           width: Tool.IMAGE_WIDTH,
                                           height: Tool.IMAGE_HEIGHT,
@@ -105,7 +105,7 @@ function setupToolBars() {
                                           visible: true
                                           }, false);
         
-		nameOverlays.push(Overlays.addOverlay("text", {
+        nameOverlays.push(Overlays.addOverlay("text", {
                                               backgroundColor: { red: 0, green: 0, blue: 0 },
                                               font: { size: TEXT_HEIGHT },
                                               text: (i === NUM_AC) ? "Master" : i + ". " +
@@ -120,30 +120,30 @@ function setupToolBars() {
                                               backgroundAlpha: ALPHA_OFF,
                                               visible: true
                                               }));
-	}
+    }
 }
 
 function sendCommand(id, action) {
-	if (action === SHOW) {
-		toolBars[id].selectTool(onOffIcon[id], false);
+    if (action === SHOW) {
+        toolBars[id].selectTool(onOffIcon[id], false);
         toolBars[id].setAlpha(ALPHA_ON, playIcon[id]);
         toolBars[id].setAlpha(ALPHA_ON, playLoopIcon[id]);
         toolBars[id].setAlpha(ALPHA_ON, stopIcon[id]);
-	} else if (action === HIDE) {
-		toolBars[id].selectTool(onOffIcon[id], true);
+    } else if (action === HIDE) {
+        toolBars[id].selectTool(onOffIcon[id], true);
         toolBars[id].setAlpha(ALPHA_OFF, playIcon[id]);
         toolBars[id].setAlpha(ALPHA_OFF, playLoopIcon[id]);
         toolBars[id].setAlpha(ALPHA_OFF, stopIcon[id]);
-	} else if (toolBars[id].toolSelected(onOffIcon[id])) {
+    } else if (toolBars[id].toolSelected(onOffIcon[id])) {
         return;
     }
-	
-	if (id === toolBars.length - 1) {
-		for (i = 0; i < NUM_AC; i++) {
-			sendCommand(i, action);
-		}
-		return;
-	}
+    
+    if (id === toolBars.length - 1) {
+        for (i = 0; i < NUM_AC; i++) {
+            sendCommand(i, action);
+        }
+        return;
+    }
 
   // TODO: Fix this to use some mechanism other than voxels
   //Voxels.setVoxel(controlVoxelPosition.x + id * controlVoxelSize, controlVoxelPosition.y, controlVoxelPosition.z, 
@@ -151,11 +151,11 @@ function sendCommand(id, action) {
 }
 
 function mousePressEvent(event) {
-	clickedOverlay = Overlays.getOverlayAtPoint({ x: event.x, y: event.y });
+    clickedOverlay = Overlays.getOverlayAtPoint({ x: event.x, y: event.y });
     
-	// Check master control
-	var i = toolBars.length - 1;
-	if (onOffIcon[i] === toolBars[i].clicked(clickedOverlay, false)) {
+    // Check master control
+    var i = toolBars.length - 1;
+    if (onOffIcon[i] === toolBars[i].clicked(clickedOverlay, false)) {
         if (toolBars[i].toolSelected(onOffIcon[i])) {
             sendCommand(i, SHOW);
         } else {
@@ -169,8 +169,8 @@ function mousePressEvent(event) {
         sendCommand(i, STOP);
     } else {
         // Check individual controls
-		for (i = 0; i < NUM_AC; i++) {
-			if (onOffIcon[i] === toolBars[i].clicked(clickedOverlay, false)) {
+        for (i = 0; i < NUM_AC; i++) {
+            if (onOffIcon[i] === toolBars[i].clicked(clickedOverlay, false)) {
                 if (toolBars[i].toolSelected(onOffIcon[i], false)) {
                     sendCommand(i, SHOW);
                 } else {
@@ -185,40 +185,40 @@ function mousePressEvent(event) {
             } else {
                 
             }
-		}
+        }
     }
 }
 
 function moveUI() {
     var textSize = TEXT_HEIGHT + 2 * TEXT_MARGIN;
-	var relative = { x: 70, y: 75 + (NUM_AC) * (Tool.IMAGE_HEIGHT + ToolBar.SPACING + textSize) };
+    var relative = { x: 70, y: 75 + (NUM_AC) * (Tool.IMAGE_HEIGHT + ToolBar.SPACING + textSize) };
     
-	for (i = 0; i <= NUM_AC; i++) {
-		toolBars[i].move(relative.x,
+    for (i = 0; i <= NUM_AC; i++) {
+        toolBars[i].move(relative.x,
                          windowDimensions.y - relative.y +
                          i * (Tool.IMAGE_HEIGHT + ToolBar.SPACING + textSize));
         
-		Overlays.editOverlay(nameOverlays[i], {
+        Overlays.editOverlay(nameOverlays[i], {
                              x: toolBars[i].x - ToolBar.SPACING,
                              y: toolBars[i].y - textSize
                              });
-	}
+    }
 }
 
 function update() {
-	var newDimensions = Controller.getViewportDimensions();
-	if (windowDimensions.x != newDimensions.x ||
-			windowDimensions.y != newDimensions.y) {
-		windowDimensions = newDimensions;
-		moveUI();
-	}
+    var newDimensions = Controller.getViewportDimensions();
+    if (windowDimensions.x != newDimensions.x ||
+            windowDimensions.y != newDimensions.y) {
+        windowDimensions = newDimensions;
+        moveUI();
+    }
 }
 
 function scriptEnding() {
-	for (i = 0; i <= NUM_AC; i++) {
-		toolBars[i].cleanup();
-		Overlays.deleteOverlay(nameOverlays[i]);
-	}
+    for (i = 0; i <= NUM_AC; i++) {
+        toolBars[i].cleanup();
+        Overlays.deleteOverlay(nameOverlays[i]);
+    }
 }
 
 Controller.mousePressEvent.connect(mousePressEvent);

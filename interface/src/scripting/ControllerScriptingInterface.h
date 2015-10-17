@@ -101,8 +101,10 @@ public slots:
     Q_INVOKABLE virtual void resetDevice(unsigned int device);
     Q_INVOKABLE virtual void resetAllDeviceBindings();
     Q_INVOKABLE virtual int findDevice(QString name);
+    Q_INVOKABLE virtual QVector<QString> getDeviceNames();
     
     Q_INVOKABLE virtual int findAction(QString actionName);
+    Q_INVOKABLE virtual QVector<QString> getActionNames() const;
 
     virtual bool isPrimaryButtonPressed() const;
     virtual glm::vec2 getPrimaryJoystickPosition() const;

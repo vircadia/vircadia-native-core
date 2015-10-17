@@ -259,8 +259,8 @@ void AvatarMixer::broadcastAvatarData() {
                         return;
                     }
 
-                    PacketSequenceNumber lastSeqToReceiver = nodeData->getLastBroadcastSequenceNumber(otherNode->getUUID());
-                    PacketSequenceNumber lastSeqFromSender = otherNode->getLastSequenceNumberForPacketType(PacketType::AvatarData);
+                    AvatarDataSequenceNumber lastSeqToReceiver = nodeData->getLastBroadcastSequenceNumber(otherNode->getUUID());
+                    AvatarDataSequenceNumber lastSeqFromSender = otherNodeData->getLastReceivedSequenceNumber();
 
                     if (lastSeqToReceiver > lastSeqFromSender) {
                         // Did we somehow get out of order packets from the sender?
@@ -289,13 +289,14 @@ void AvatarMixer::broadcastAvatarData() {
 
                     // set the last sent sequence number for this sender on the receiver
                     nodeData->setLastBroadcastSequenceNumber(otherNode->getUUID(),
-                        otherNode->getLastSequenceNumberForPacketType(PacketType::AvatarData));
+                                                             otherNodeData->getLastReceivedSequenceNumber());
 
                     // start a new segment in the PacketList for this avatar
                     avatarPacketList.startSegment();
 
                     numAvatarDataBytes += avatarPacketList.write(otherNode->getUUID().toRfc4122());
-                    numAvatarDataBytes += avatarPacketList.write(otherAvatar.toByteArray());
+                    numAvatarDataBytes +=
+                        avatarPacketList.write(otherAvatar.toByteArray(false, randFloat() < AVATAR_SEND_FULL_UPDATE_RATIO));
 
                     avatarPacketList.endSegment();
 
@@ -363,6 +364,31 @@ void AvatarMixer::broadcastAvatarData() {
             }
         }
     );
+
+    // We're done encoding this version of the otherAvatars.  Update their "lastSent" joint-states so
+    // that we can notice differences, next time around.
+    nodeList->eachMatchingNode(
+        [&](const SharedNodePointer& otherNode)->bool {
+            if (!otherNode->getLinkedData()) {
+                return false;
+            }
+            if (otherNode->getType() != NodeType::Agent) {
+                return false;
+            }
+            if (!otherNode->getActiveSocket()) {
+                return false;
+            }
+            return true;
+        },
+        [&](const SharedNodePointer& otherNode) {
+            AvatarMixerClientData* otherNodeData = reinterpret_cast<AvatarMixerClientData*>(otherNode->getLinkedData());
+            MutexTryLocker lock(otherNodeData->getMutex());
+            if (!lock.isLocked()) {
+                return;
+            }
+            AvatarData& otherAvatar = otherNodeData->getAvatar();
+            otherAvatar.doneEncoding(false);
+        });
 
     _lastFrameTimestamp = QDateTime::currentMSecsSinceEpoch();
 }
@@ -513,6 +539,7 @@ void AvatarMixer::run() {
     qDebug() << "Waiting for domain settings from domain-server.";
 
     // block until we get the settingsRequestComplete signal
+    
     QEventLoop loop;
     connect(&domainHandler, &DomainHandler::settingsReceived, &loop, &QEventLoop::quit);
     connect(&domainHandler, &DomainHandler::settingsReceiveFail, &loop, &QEventLoop::quit);

@@ -131,9 +131,10 @@ namespace MenuOption {
     const QString AboutApp = "About Interface";
     const QString AddRemoveFriends = "Add/Remove Friends...";
     const QString AddressBar = "Show Address Bar";
-    const QString AlignForearmsWithWrists = "Align Forearms with Wrists";
-    const QString AlternateIK = "Alternate IK";
     const QString Animations = "Animations...";
+    const QString AnimDebugDrawAnimPose = "Debug Draw Animation";
+    const QString AnimDebugDrawBindPose = "Debug Draw Bind Pose";
+    const QString Antialiasing = "Antialiasing";
     const QString Atmosphere = "Atmosphere";
     const QString Attachments = "Attachments...";
     const QString AudioNoiseReduction = "Audio Noise Reduction";
@@ -164,13 +165,16 @@ namespace MenuOption {
     const QString CopyAddress = "Copy Address to Clipboard";
     const QString CopyPath = "Copy Path to Clipboard";
     const QString CoupleEyelids = "Couple Eyelids";
+    const QString CrashInterface = "Crash Interface";
     const QString DebugAmbientOcclusion = "Debug Ambient Occlusion";
     const QString DecreaseAvatarSize = "Decrease Avatar Size";
     const QString DeleteBookmark = "Delete Bookmark...";
     const QString DisableActivityLogger = "Disable Activity Logger";
+    const QString DisableEyelidAdjustment = "Disable Eyelid Adjustment";
     const QString DisableLightEntities = "Disable Light Entities";
     const QString DisableNackPackets = "Disable Entity NACK Packets";
     const QString DiskCacheEditor = "Disk Cache Editor";
+    const QString DisplayCrashOptions = "Display Crash Options";
     const QString DisplayHands = "Show Hand Info";
     const QString DisplayHandTargets = "Show Hand Targets";
     const QString DisplayModelBounds = "Display Model Bounds";
@@ -184,7 +188,10 @@ namespace MenuOption {
     const QString EchoServerAudio = "Echo Server Audio";
     const QString EditEntitiesHelp = "Edit Entities Help...";
     const QString Enable3DTVMode = "Enable 3DTV Mode";
+    const QString EnableAvatarUpdateThreading = "Enable Avatar Update Threading";
+    const QString EnableAnimGraph = "Enable Anim Graph";
     const QString EnableCharacterController = "Enable avatar collisions";
+    const QString EnableRigAnimations = "Enable Rig Animations";
     const QString ExpandMyAvatarSimulateTiming = "Expand /myAvatar/simulation";
     const QString ExpandMyAvatarTiming = "Expand /myAvatar";
     const QString ExpandOtherAvatarTiming = "Expand /otherAvatar";
@@ -212,6 +219,7 @@ namespace MenuOption {
     const QString Log = "Log";
     const QString LogExtraTimings = "Log Extra Timing Details";
     const QString LowVelocityFilter = "Low Velocity Filter";
+    const QString MeshVisible = "Draw Mesh";
     const QString Mirror = "Mirror";
     const QString MuteAudio = "Mute Microphone";
     const QString MuteEnvironment = "Mute Environment";
@@ -237,13 +245,6 @@ namespace MenuOption {
     const QString RenderLookAtTargets = "Show Look-at Targets";
     const QString RenderLookAtVectors = "Show Look-at Vectors";
     const QString RenderSkeletonCollisionShapes = "Show Skeleton Collision Shapes";
-    const QString RenderTargetFramerate = "Framerate";
-    const QString RenderTargetFramerateUnlimited = "Unlimited";
-    const QString RenderTargetFramerate60 = "60";
-    const QString RenderTargetFramerate50 = "50";
-    const QString RenderTargetFramerate40 = "40";
-    const QString RenderTargetFramerate30 = "30";
-    const QString RenderTargetFramerateVSyncOn = "V-Sync On";
     const QString RenderResolution = "Scale Resolution";
     const QString RenderResolutionOne = "1";
     const QString RenderResolutionTwoThird = "2/3";
@@ -287,12 +288,14 @@ namespace MenuOption {
     const QString ToolWindow = "Tool Window";
     const QString TransmitterDrive = "Transmitter Drive";
     const QString TurnWithHead = "Turn using Head";
+    const QString UploadAsset = "Upload File to Asset Server";
     const QString UseAudioForMouth = "Use Audio for Mouth";
     const QString UseCamera = "Use Camera";
     const QString VelocityFilter = "Velocity Filter";
     const QString VisibleToEveryone = "Everyone";
     const QString VisibleToFriends = "Friends";
     const QString VisibleToNoOne = "No one";
+    const QString WorldAxes = "World Axes";
 }
 
 #endif // hifi_Menu_h

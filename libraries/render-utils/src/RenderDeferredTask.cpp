@@ -23,6 +23,7 @@
 
 #include "render/DrawStatus.h"
 #include "AmbientOcclusionEffect.h"
+#include "AntialiasingEffect.h"
 
 #include "overlay3D_vert.h"
 #include "overlay3D_frag.h"
@@ -35,6 +36,7 @@ void SetupDeferred::run(const SceneContextPointer& sceneContext, const RenderCon
     auto primaryFbo = DependencyManager::get<FramebufferCache>()->getPrimaryFramebufferDepthColor();
 
     gpu::Batch batch;
+    batch.enableStereo(false);
     batch.setFramebuffer(nullptr);
     batch.setFramebuffer(primaryFbo);
  
@@ -86,6 +88,11 @@ RenderDeferredTask::RenderDeferredTask() : Task() {
 
     _jobs.back().setEnabled(false);
     _occlusionJobIndex = _jobs.size() - 1;
+
+    _jobs.push_back(Job(new Antialiasing::JobModel("Antialiasing")));
+
+    _jobs.back().setEnabled(false);
+    _antialiasingJobIndex = _jobs.size() - 1;
 
     _jobs.push_back(Job(new FetchItems::JobModel("FetchTransparent",
          FetchItems(
@@ -145,6 +152,8 @@ void RenderDeferredTask::run(const SceneContextPointer& sceneContext, const Rend
     // TODO: turn on/off AO through menu item
     setOcclusionStatus(renderContext->_occlusionStatus);
 
+    setAntialiasingStatus(renderContext->_fxaaStatus);
+
     renderContext->args->_context->syncCache();
 
     for (auto job : _jobs) {
@@ -159,6 +168,8 @@ void DrawOpaqueDeferred::run(const SceneContextPointer& sceneContext, const Rend
 
     RenderArgs* args = renderContext->args;
     gpu::Batch batch;
+    batch.setViewportTransform(args->_viewport);
+    batch.setStateScissorRect(args->_viewport);
     args->_batch = &batch;
 
     renderContext->_numDrawnOpaqueItems = inItems.size();
@@ -188,6 +199,8 @@ void DrawTransparentDeferred::run(const SceneContextPointer& sceneContext, const
 
     RenderArgs* args = renderContext->args;
     gpu::Batch batch;
+    batch.setViewportTransform(args->_viewport);
+    batch.setStateScissorRect(args->_viewport);
     args->_batch = &batch;
     
     renderContext->_numDrawnTransparentItems = inItems.size();
@@ -247,30 +260,42 @@ void DrawOverlay3D::run(const SceneContextPointer& sceneContext, const RenderCon
     renderContext->_numFeedOverlay3DItems = inItems.size();
     renderContext->_numDrawnOverlay3DItems = inItems.size();
 
-    RenderArgs* args = renderContext->args;
-    gpu::Batch batch;
-    args->_batch = &batch;
-    args->_whiteTexture = DependencyManager::get<TextureCache>()->getWhiteTexture();
-
-    glm::mat4 projMat;
-    Transform viewMat;
-    args->_viewFrustum->evalProjectionMatrix(projMat);
-    args->_viewFrustum->evalViewTransform(viewMat);
-
-    batch.setProjectionTransform(projMat);
-    batch.setViewTransform(viewMat);
-    batch.setViewportTransform(args->_viewport);
-    batch.setStateScissorRect(args->_viewport);
-
-    batch.setPipeline(getOpaquePipeline());
-    batch.setResourceTexture(0, args->_whiteTexture);
-
     if (!inItems.empty()) {
-        batch.clearFramebuffer(gpu::Framebuffer::BUFFER_DEPTH, glm::vec4(), 1.f, 0, true);
-        renderItems(sceneContext, renderContext, inItems, renderContext->_maxDrawnOverlay3DItems);
-    }
+        RenderArgs* args = renderContext->args;
 
-    args->_context->render((*args->_batch));
-    args->_batch = nullptr;
-    args->_whiteTexture.reset();
+        // Clear the framebuffer without stereo
+        // Needs to be distinct from the other batch because using the clear call 
+        // while stereo is enabled triggers a warning
+        {
+            gpu::Batch batch;
+            batch.enableStereo(false);
+            batch.clearFramebuffer(gpu::Framebuffer::BUFFER_DEPTH, glm::vec4(), 1.f, 0, true);
+            args->_context->render(batch);
+        }
+
+        // Render the items
+        {
+            gpu::Batch batch;
+            args->_batch = &batch;
+            args->_whiteTexture = DependencyManager::get<TextureCache>()->getWhiteTexture();
+
+            glm::mat4 projMat;
+            Transform viewMat;
+            args->_viewFrustum->evalProjectionMatrix(projMat);
+            args->_viewFrustum->evalViewTransform(viewMat);
+
+            batch.setProjectionTransform(projMat);
+            batch.setViewTransform(viewMat);
+            batch.setViewportTransform(args->_viewport);
+            batch.setStateScissorRect(args->_viewport);
+
+            batch.setPipeline(getOpaquePipeline());
+            batch.setResourceTexture(0, args->_whiteTexture);
+            renderItems(sceneContext, renderContext, inItems, renderContext->_maxDrawnOverlay3DItems);
+
+            args->_context->render((*args->_batch));
+            args->_batch = nullptr;
+            args->_whiteTexture.reset();
+        }
+    }
 }

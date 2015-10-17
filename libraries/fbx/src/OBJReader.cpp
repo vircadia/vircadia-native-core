@@ -194,10 +194,10 @@ void OBJFace::addFrom(const OBJFace* face, int index) { // add using data from f
 }
 
 bool OBJReader::isValidTexture(const QByteArray &filename) {
-    if (!_url) {
+    if (_url.isEmpty()) {
         return false;
     }
-    QUrl candidateUrl = _url->resolved(QUrl(filename));
+    QUrl candidateUrl = _url.resolved(QUrl(filename));
     QNetworkReply *netReply = request(candidateUrl, true);
     bool isValid = netReply->isFinished() && (netReply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt() == 200);
     netReply->deleteLater();
@@ -211,13 +211,17 @@ void OBJReader::parseMaterialLibrary(QIODevice* device) {
     while (true) {
         switch (tokenizer.nextToken()) {
             case OBJTokenizer::COMMENT_TOKEN:
+                #ifdef WANT_DEBUG
                 qCDebug(modelformat) << "OBJ Reader MTLLIB comment:" << tokenizer.getComment();
+                #endif
                 break;
             case OBJTokenizer::DATUM_TOKEN:
                 break;
             default:
                 materials[matName] = currentMaterial;
+                #ifdef WANT_DEBUG
                 qCDebug(modelformat) << "OBJ Reader Last material shininess:" << currentMaterial.shininess << " opacity:" << currentMaterial.opacity << " diffuse color:" << currentMaterial.diffuseColor << " specular color:" << currentMaterial.specularColor << " diffuse texture:" << currentMaterial.diffuseTextureFilename << " specular texture:" << currentMaterial.specularTextureFilename;
+                #endif
                 return;
         }
         QByteArray token = tokenizer.getDatum();
@@ -229,14 +233,18 @@ void OBJReader::parseMaterialLibrary(QIODevice* device) {
             matName = tokenizer.getDatum();
             currentMaterial = materials[matName];
             currentMaterial.diffuseTextureFilename = "test";
+            #ifdef WANT_DEBUG
             qCDebug(modelformat) << "OBJ Reader Starting new material definition " << matName;
+            #endif
             currentMaterial.diffuseTextureFilename = "";
         } else if (token == "Ns") {
             currentMaterial.shininess = tokenizer.getFloat();
         } else if ((token == "d") || (token == "Tr")) {
             currentMaterial.opacity = tokenizer.getFloat();
         } else if (token == "Ka") {
+            #ifdef WANT_DEBUG
             qCDebug(modelformat) << "OBJ Reader Ignoring material Ka " << tokenizer.getVec3();
+            #endif
         } else if (token == "Kd") {
             currentMaterial.diffuseColor = tokenizer.getVec3();
         } else if (token == "Ks") {
@@ -244,7 +252,9 @@ void OBJReader::parseMaterialLibrary(QIODevice* device) {
         } else if ((token == "map_Kd") || (token == "map_Ks")) {
             QByteArray filename = QUrl(tokenizer.getLineAsDatum()).fileName().toUtf8();
             if (filename.endsWith(".tga")) {
+                #ifdef WANT_DEBUG
                 qCDebug(modelformat) << "OBJ Reader WARNING: currently ignoring tga texture " << filename << " in " << _url;
+                #endif
                 break;
             }
             if (isValidTexture(filename)) {
@@ -254,7 +264,9 @@ void OBJReader::parseMaterialLibrary(QIODevice* device) {
                     currentMaterial.specularTextureFilename = filename;
                 }
             } else {
+                #ifdef WANT_DEBUG
                 qCDebug(modelformat) << "OBJ Reader WARNING: " << _url << " ignoring missing texture " << filename;
+                #endif
             }
         }
     }
@@ -318,8 +330,7 @@ bool OBJReader::parseOBJGroup(OBJTokenizer& tokenizer, const QVariantHash& mappi
             }
             QByteArray groupName = tokenizer.getDatum();
             currentGroup = groupName;
-            //qCDebug(modelformat) << "new group:" << groupName;
-        } else if (token == "mtllib" && _url) {
+        } else if (token == "mtllib" && !_url.isEmpty()) {
             if (tokenizer.nextToken() != OBJTokenizer::DATUM_TOKEN) {
                 break;
             }
@@ -329,14 +340,18 @@ bool OBJReader::parseOBJGroup(OBJTokenizer& tokenizer, const QVariantHash& mappi
             }
             librariesSeen[libraryName] = true;
             // Throw away any path part of libraryName, and merge against original url.
-            QUrl libraryUrl = _url->resolved(QUrl(libraryName).fileName());
+            QUrl libraryUrl = _url.resolved(QUrl(libraryName).fileName());
+            #ifdef WANT_DEBUG
             qCDebug(modelformat) << "OBJ Reader new library:" << libraryName << " at:" << libraryUrl;
+            #endif
             QNetworkReply* netReply = request(libraryUrl, false);
             if (netReply->isFinished() && (netReply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt() == 200)) {
                 parseMaterialLibrary(netReply);
             } else {
+                #ifdef WANT_DEBUG
                 qCDebug(modelformat) << "OBJ Reader " << libraryName << " did not answer. Got "
                                      << netReply->attribute(QNetworkRequest::HttpReasonPhraseAttribute).toString();
+                #endif
             }
             netReply->deleteLater();
         } else if (token == "usemtl") {
@@ -344,7 +359,9 @@ bool OBJReader::parseOBJGroup(OBJTokenizer& tokenizer, const QVariantHash& mappi
                 break;
             }
             currentMaterialName = tokenizer.getDatum();
+            #ifdef WANT_DEBUG
             qCDebug(modelformat) << "OBJ Reader new current material:" << currentMaterialName;
+            #endif
         } else if (token == "v") {
             vertices.append(tokenizer.getVec3());
         } else if (token == "vn") {
@@ -394,21 +411,18 @@ done:
     } else {
         faceGroups.append(faces); // We're done with this group. Add the faces.
     }
-    //qCDebug(modelformat) << "end group:" << meshPart.materialID << " original faces:" << originalFaceCountForDebugging << " triangles:" << faces.count() << " keep going:" << result;
     return result;
 }
 
 
-FBXGeometry OBJReader::readOBJ(const QByteArray& model, const QVariantHash& mapping) {
-    QBuffer buffer(const_cast<QByteArray*>(&model));
+FBXGeometry* OBJReader::readOBJ(QByteArray& model, const QVariantHash& mapping, const QUrl& url) {
+    
+    QBuffer buffer { &model };
     buffer.open(QIODevice::ReadOnly);
-    return readOBJ(&buffer, mapping, nullptr);
-}
-
-
-FBXGeometry OBJReader::readOBJ(QIODevice* device, const QVariantHash& mapping, QUrl* url) {
-    FBXGeometry geometry;
-    OBJTokenizer tokenizer(device);
+    
+    FBXGeometry* geometryPtr = new FBXGeometry();
+    FBXGeometry& geometry = *geometryPtr;
+    OBJTokenizer tokenizer { &buffer };
     float scaleGuess = 1.0f;
 
     _url = url;
@@ -427,7 +441,6 @@ FBXGeometry OBJReader::readOBJ(QIODevice* device, const QVariantHash& mapping, Q
         geometry.joints[0].isFree = false;
         geometry.joints[0].parentIndex = -1;
         geometry.joints[0].distanceToParent = 0;
-        geometry.joints[0].boneRadius = 0;
         geometry.joints[0].translation = glm::vec3(0, 0, 0);
         geometry.joints[0].rotationMin = glm::vec3(0, 0, 0);
         geometry.joints[0].rotationMax = glm::vec3(0, 0, 0);
@@ -446,8 +459,8 @@ FBXGeometry OBJReader::readOBJ(QIODevice* device, const QVariantHash& mapping, Q
 
         // Some .obj files use the convention that a group with uv coordinates that doesn't define a material, should use
         // a texture with the same basename as the .obj file.
-        if (url) {
-            QString filename = url->fileName();
+        if (!url.isEmpty()) {
+            QString filename = url.fileName();
             int extIndex = filename.lastIndexOf('.'); // by construction, this does not fail
             QString basename = filename.remove(extIndex + 1, sizeof("obj"));
             OBJMaterial& preDefinedMaterial = materials[SMART_DEFAULT_MATERIAL_NAME];
@@ -474,13 +487,17 @@ FBXGeometry OBJReader::readOBJ(QIODevice* device, const QVariantHash& mapping, Q
             OBJFace leadFace = faceGroup[0]; // All the faces in the same group will have the same name and material.
             QString groupMaterialName = leadFace.materialName;
             if (groupMaterialName.isEmpty() && (leadFace.textureUVIndices.count() > 0)) {
+                #ifdef WANT_DEBUG
                 qCDebug(modelformat) << "OBJ Reader WARNING: " << url
                                      << " needs a texture that isn't specified. Using default mechanism.";
+                #endif
                 groupMaterialName = SMART_DEFAULT_MATERIAL_NAME;
             } else if (!groupMaterialName.isEmpty() && !materials.contains(groupMaterialName)) {
+                #ifdef WANT_DEBUG
                 qCDebug(modelformat) << "OBJ Reader WARNING: " << url
                                      << " specifies a material " << groupMaterialName
                                      << " that is not defined. Using default mechanism.";
+                #endif
                 groupMaterialName = SMART_DEFAULT_MATERIAL_NAME;
             }
             if  (!groupMaterialName.isEmpty()) {
@@ -495,7 +512,6 @@ FBXGeometry OBJReader::readOBJ(QIODevice* device, const QVariantHash& mapping, Q
                 meshPart._material->setGloss(material->shininess);
                 meshPart._material->setOpacity(material->opacity);
             }
-            // qCDebug(modelformat) << "OBJ Reader part:" << meshPartCount << "name:" << leadFace.groupName << "material:" << groupMaterialName << "diffuse:" << meshPart._material->getDiffuse() << "faces:" << faceGroup.count() << "triangle indices will start with:" << mesh.vertices.count();
             foreach(OBJFace face, faceGroup) {
                 glm::vec3 v0 = vertices[face.vertexIndices[0]];
                 glm::vec3 v1 = vertices[face.vertexIndices[1]];
@@ -545,7 +561,7 @@ FBXGeometry OBJReader::readOBJ(QIODevice* device, const QVariantHash& mapping, Q
         qCDebug(modelformat) << "OBJ reader fail: " << e.what();
     }
 
-    return geometry;
+    return geometryPtr;
 }
 
 
@@ -600,7 +616,6 @@ void fbxDebugDump(const FBXGeometry& fbxgeo) {
         qCDebug(modelformat) << "    freeLineage" << joint.freeLineage;
         qCDebug(modelformat) << "    parentIndex" << joint.parentIndex;
         qCDebug(modelformat) << "    distanceToParent" << joint.distanceToParent;
-        qCDebug(modelformat) << "    boneRadius" << joint.boneRadius;
         qCDebug(modelformat) << "    translation" << joint.translation;
         qCDebug(modelformat) << "    preTransform" << joint.preTransform;
         qCDebug(modelformat) << "    preRotation" << joint.preRotation;

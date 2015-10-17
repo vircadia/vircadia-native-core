@@ -4,6 +4,8 @@ EntityListTool = function(opts) {
     var url = Script.resolvePath('html/entityList.html');
     var webView = new WebWindow('Entities', url, 200, 280, true);
 
+    var searchRadius = 100;
+
     var visible = false;
 
     webView.setVisible(visible);
@@ -33,7 +35,7 @@ EntityListTool = function(opts) {
 
     that.sendUpdate = function() {
         var entities = [];
-        var ids = Entities.findEntities(MyAvatar.position, 100);
+        var ids = Entities.findEntities(MyAvatar.position, searchRadius);
         for (var i = 0; i < ids.length; i++) {
             var id = ids[i];
             var properties = Entities.getEntityProperties(id);
@@ -47,7 +49,7 @@ EntityListTool = function(opts) {
 
         var selectedIDs = [];
         for (var i = 0; i < selectionManager.selections.length; i++) {
-            selectedIDs.push(selectionManager.selections[i].id); // ?
+            selectedIDs.push(selectionManager.selections[i].id);
         }
 
         var data = {
@@ -68,6 +70,7 @@ EntityListTool = function(opts) {
             }
             selectionManager.setSelections(entityIDs);
             if (data.focus) {
+                cameraManager.enable();
                 cameraManager.focus(selectionManager.worldPosition,
                                     selectionManager.worldDimensions,
                                     Menu.isOptionChecked(MENU_EASE_ON_FOCUS));
@@ -80,6 +83,15 @@ EntityListTool = function(opts) {
             }
         } else if (data.type == "delete") {
             deleteSelectedEntities();
+        } else if (data.type === "radius") {
+            searchRadius = data.radius;
+            that.sendUpdate();
+        }
+    });
+
+    webView.visibilityChanged.connect(function (visible) {
+        if (visible) {
+            that.sendUpdate();
         }
     });
 

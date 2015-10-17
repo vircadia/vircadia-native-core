@@ -56,16 +56,17 @@ Sound::Sound(const QUrl& url, bool isStereo) :
 
 }
 
-void Sound::downloadFinished(QNetworkReply* reply) {
+void Sound::downloadFinished(const QByteArray& data) {
     // replace our byte array with the downloaded data
-    QByteArray rawAudioByteArray = reply->readAll();
-    QString fileName = reply->url().fileName();
+    QByteArray rawAudioByteArray = QByteArray(data);
+    QString fileName = getURL().fileName();
 
     const QString WAV_EXTENSION = ".wav";
 
-    if (reply->hasRawHeader("Content-Type") || fileName.endsWith(WAV_EXTENSION)) {
+    if (fileName.endsWith(WAV_EXTENSION)) {
 
-        QByteArray headerContentType = reply->rawHeader("Content-Type");
+        QString headerContentType = "audio/x-wav";
+        //QByteArray headerContentType = reply->rawHeader("Content-Type");
 
         // WAV audio file encountered
         if (headerContentType == "audio/x-wav"
@@ -80,9 +81,9 @@ void Sound::downloadFinished(QNetworkReply* reply) {
         } else {
             // check if this was a stereo raw file
             // since it's raw the only way for us to know that is if the file was called .stereo.raw
-            if (reply->url().fileName().toLower().endsWith("stereo.raw")) {
+            if (fileName.toLower().endsWith("stereo.raw")) {
                 _isStereo = true;
-                qCDebug(audio) << "Processing sound of" << rawAudioByteArray.size() << "bytes from" << reply->url() << "as stereo audio file.";
+                qCDebug(audio) << "Processing sound of" << rawAudioByteArray.size() << "bytes from" << getURL() << "as stereo audio file.";
             }
 
             // Process as RAW file
@@ -94,7 +95,6 @@ void Sound::downloadFinished(QNetworkReply* reply) {
     }
 
     _isReady = true;
-    reply->deleteLater();
 }
 
 void Sound::downSample(const QByteArray& rawAudioByteArray) {

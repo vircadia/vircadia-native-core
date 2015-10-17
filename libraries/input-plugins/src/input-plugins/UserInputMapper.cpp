@@ -32,6 +32,14 @@ UserInputMapper::DeviceProxy::Pointer UserInputMapper::getDeviceProxy(const Inpu
     }
 }
 
+QString UserInputMapper::getDeviceName(uint16 deviceID) { 
+    if (_registeredDevices.find(deviceID) != _registeredDevices.end()) {
+        return _registeredDevices[deviceID]->_name;
+    }
+    return QString("unknown");
+}
+
+
 void UserInputMapper::resetAllDeviceBindings() {
     for (auto device : _registeredDevices) {
         device.second->resetDeviceBindings();
@@ -53,6 +61,16 @@ int UserInputMapper::findDevice(QString name) {
     }
     return 0;
 }
+
+QVector<QString> UserInputMapper::getDeviceNames() {
+    QVector<QString> result;
+    for (auto device : _registeredDevices) {
+        QString deviceName = device.second->_name.split(" (")[0];
+        result << deviceName;
+    }
+    return result;
+}
+
 
 bool UserInputMapper::addInputChannel(Action action, const Input& input, float scale) {
     return addInputChannel(action, input, Input(), scale);
@@ -208,16 +226,19 @@ void UserInputMapper::update(float deltaTime) {
     }
 
     // Scale all the channel step with the scale
+    static const float EPSILON =  0.01f;
     for (auto i = 0; i < NUM_ACTIONS; i++) {
         _actionStates[i] *= _actionScales[i];
-        if (_actionStates[i] > 0) {
+        // Emit only on change, and emit when moving back to 0
+        if (fabsf(_actionStates[i] - _lastActionStates[i]) > EPSILON) {
+            _lastActionStates[i] = _actionStates[i];
             emit actionEvent(i, _actionStates[i]);
         }
         // TODO: emit signal for pose changes
     }
 }
 
-QVector<UserInputMapper::Action> UserInputMapper::getAllActions() {
+QVector<UserInputMapper::Action> UserInputMapper::getAllActions() const {
     QVector<Action> actions;
     for (auto i = 0; i < NUM_ACTIONS; i++) {
         actions.append(Action(i));
@@ -233,6 +254,25 @@ QVector<UserInputMapper::InputChannel> UserInputMapper::getInputChannelsForActio
         inputChannels.append(it->second);
     }
     return inputChannels;
+}
+
+int UserInputMapper::findAction(const QString& actionName) const {
+    auto actions = getAllActions();
+    for (auto action : actions) {
+        if (getActionName(action) == actionName) {
+            return action;
+        }
+    }
+    // If the action isn't found, return -1
+    return -1;
+}
+
+QVector<QString> UserInputMapper::getActionNames() const {
+    QVector<QString> result;
+    for (auto i = 0; i < NUM_ACTIONS; i++) {
+        result << _actionNames[i];
+    }
+    return result;
 }
 
 void UserInputMapper::assignDefaulActionScales() {

@@ -18,13 +18,13 @@ function length(v) {
 
 
 function printVector(v) {
-	print(v.x + ", " + v.y + ", " + v.z);
-	return;
+    print(v.x + ", " + v.y + ", " + v.z);
+    return;
 }
 
 function vMinus(a, b) { 
-	var rval = { x: a.x - b.x, y: a.y - b.y, z: a.z - b.z };
-	return rval;
+    var rval = { x: a.x - b.x, y: a.y - b.y, z: a.z - b.z };
+    return rval;
 }
 
 //  The model file to be used for the guitar 
@@ -58,11 +58,11 @@ var whichChord = 1;
 
 var leftHanded = true; 
 if (leftHanded) {
-	var strumHand = 0;
-	var chordHand = 1; 
+    var strumHand = 0;
+    var chordHand = 1; 
 } else {
-	var strumHand = 1;
-	var chordHand = 0;
+    var strumHand = 1;
+    var chordHand = 0;
 }
 
 var lastPosition = { x: 0.0,
@@ -76,77 +76,77 @@ var position;
 MyAvatar.attach(guitarModel, "Hips", {x: -0.2, y: 0.0, z: 0.1}, Quat.fromPitchYawRollDegrees(90, 00, 90), 1.0);
 
 function checkHands(deltaTime) {
-	for (var palm = 0; palm < 2; palm++) {
-		var palmVelocity = Controller.getSpatialControlVelocity(palm * 2 + 1);
-		var volume = length(palmVelocity) / 5.0;
-		var position = Controller.getSpatialControlPosition(palm * 2 + 1);
-		var myPelvis = MyAvatar.position;
-		var trigger = Controller.getTriggerValue(strumHand);
-		var chord = Controller.getTriggerValue(chordHand);
+    for (var palm = 0; palm < 2; palm++) {
+        var palmVelocity = Controller.getSpatialControlVelocity(palm * 2 + 1);
+        var volume = length(palmVelocity) / 5.0;
+        var position = Controller.getSpatialControlPosition(palm * 2 + 1);
+        var myPelvis = MyAvatar.position;
+        var trigger = Controller.getTriggerValue(strumHand);
+        var chord = Controller.getTriggerValue(chordHand);
 
-		if (volume > 1.0) volume = 1.0;
-		if ((chord > 0.1) && soundPlaying.isPlaying) {
-			// If chord finger trigger pulled, stop current chord
-			print("stopped sound");
-			soundPlaying.stop();
-		}
+        if (volume > 1.0) volume = 1.0;
+        if ((chord > 0.1) && soundPlaying.isPlaying) {
+            // If chord finger trigger pulled, stop current chord
+            print("stopped sound");
+            soundPlaying.stop();
+        }
 
-		var BUTTON_COUNT = 6;
+        var BUTTON_COUNT = 6;
 
-		//  Change guitars if button FWD (5) pressed
-		if (Controller.isButtonPressed(chordHand * BUTTON_COUNT + 5)) {
-			if (!selectorPressed) {
-				guitarSelector += NUM_CHORDS;
-				if (guitarSelector >= NUM_CHORDS * NUM_GUITARS) {
-					guitarSelector = 0;
-				} 
-				selectorPressed = true;
-			}
-		} else {
-			selectorPressed = false;
-		}
+        //  Change guitars if button FWD (5) pressed
+        if (Controller.isButtonPressed(chordHand * BUTTON_COUNT + 5)) {
+            if (!selectorPressed) {
+                guitarSelector += NUM_CHORDS;
+                if (guitarSelector >= NUM_CHORDS * NUM_GUITARS) {
+                    guitarSelector = 0;
+                } 
+                selectorPressed = true;
+            }
+        } else {
+            selectorPressed = false;
+        }
 
-		if (Controller.isButtonPressed(chordHand * BUTTON_COUNT + 1)) {
-			whichChord = 1;
-		} else if (Controller.isButtonPressed(chordHand * BUTTON_COUNT + 2)) {
-			whichChord = 2;
-		} else if (Controller.isButtonPressed(chordHand * BUTTON_COUNT + 3)) {
-			whichChord = 3;
-		} else if (Controller.isButtonPressed(chordHand * BUTTON_COUNT + 4)) {
-		  	whichChord = 4;
-		}
+        if (Controller.isButtonPressed(chordHand * BUTTON_COUNT + 1)) {
+            whichChord = 1;
+        } else if (Controller.isButtonPressed(chordHand * BUTTON_COUNT + 2)) {
+            whichChord = 2;
+        } else if (Controller.isButtonPressed(chordHand * BUTTON_COUNT + 3)) {
+            whichChord = 3;
+        } else if (Controller.isButtonPressed(chordHand * BUTTON_COUNT + 4)) {
+              whichChord = 4;
+        }
 
-		if (palm == strumHand) {
+        if (palm == strumHand) {
 
-			var STRUM_HEIGHT_ABOVE_PELVIS = 0.10;
-			var strumTriggerHeight = myPelvis.y + STRUM_HEIGHT_ABOVE_PELVIS;
-			//printVector(position);
-			if ( ( ((position.y < strumTriggerHeight) && (lastPosition.y >= strumTriggerHeight)) ||
-			       ((position.y > strumTriggerHeight) && (lastPosition.y <= strumTriggerHeight)) ) && (trigger > 0.1) ){
-				// If hand passes downward or upward through 'strings', and finger trigger pulled, play
-				playChord(position, volume);
-			}
-			lastPosition = Controller.getSpatialControlPosition(palm * 2 + 1);
-		} 
-	}
+            var STRUM_HEIGHT_ABOVE_PELVIS = 0.10;
+            var strumTriggerHeight = myPelvis.y + STRUM_HEIGHT_ABOVE_PELVIS;
+            //printVector(position);
+            if ( ( ((position.y < strumTriggerHeight) && (lastPosition.y >= strumTriggerHeight)) ||
+                   ((position.y > strumTriggerHeight) && (lastPosition.y <= strumTriggerHeight)) ) && (trigger > 0.1) ){
+                // If hand passes downward or upward through 'strings', and finger trigger pulled, play
+                playChord(position, volume);
+            }
+            lastPosition = Controller.getSpatialControlPosition(palm * 2 + 1);
+        } 
+    }
 }
 
 function playChord(position, volume) {
-	if (soundPlaying.isPlaying) {
-		print("stopped sound");
-		soundPlaying.stop();
-	}
+    if (soundPlaying.isPlaying) {
+        print("stopped sound");
+        soundPlaying.stop();
+    }
   
-	print("Played sound: " + whichChord + " at volume " + options.volume);
+    print("Played sound: " + whichChord + " at volume " + options.volume);
   if (!soundPlaying) {
-  	soundPlaying = Audio.playSound(chords[guitarSelector + whichChord], {
-  	  position: position,
+      soundPlaying = Audio.playSound(chords[guitarSelector + whichChord], {
+        position: position,
       volume: volume
-  	});	
+      });    
   } else {
     soundPlaying.restart();
   }
-	
+    
 }
 
 function keyPressEvent(event) {
@@ -156,14 +156,14 @@ function keyPressEvent(event) {
         whichChord = 1;
         playChord(MyAvatar.position, keyVolume);
     } else if (event.text == "2") {
-    	whichChord = 2;
-    	playChord(MyAvatar.position, keyVolume);
+        whichChord = 2;
+        playChord(MyAvatar.position, keyVolume);
     } else if (event.text == "3") {
-    	whichChord = 3;
-    	playChord(MyAvatar.position, keyVolume);
+        whichChord = 3;
+        playChord(MyAvatar.position, keyVolume);
     } else if (event.text == "4") {
         whichChord = 4;
-    	playChord(MyAvatar.position, keyVolume);
+        playChord(MyAvatar.position, keyVolume);
     }
 }
 

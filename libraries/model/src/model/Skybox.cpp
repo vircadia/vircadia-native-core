@@ -10,10 +10,12 @@
 //
 #include "Skybox.h"
 
-#include "gpu/Batch.h"
-#include "gpu/Context.h"
 
-#include "ViewFrustum.h"
+#include <gpu/Batch.h>
+#include <gpu/Context.h>
+#include <procedural/Procedural.h>
+#include <ViewFrustum.h>
+
 #include "Skybox_vert.h"
 #include "Skybox_frag.h"
 
@@ -38,19 +40,54 @@ void Skybox::setColor(const Color& color) {
     _color = color;
 }
 
+void Skybox::setProcedural(QSharedPointer<Procedural> procedural) {
+    _procedural = procedural;
+    if (_procedural) {
+        _procedural->_vertexSource = Skybox_vert;
+        _procedural->_fragmentSource = Skybox_frag;
+        // No pipeline state customization
+    }
+}
+
 void Skybox::setCubemap(const gpu::TexturePointer& cubemap) {
     _cubemap = cubemap;
 }
 
+
 void Skybox::render(gpu::Batch& batch, const ViewFrustum& viewFrustum, const Skybox& skybox) {
+    static gpu::BufferPointer theBuffer;
+    static gpu::Stream::FormatPointer theFormat;
 
-    if (skybox.getCubemap()) {
-        if (skybox.getCubemap()->isDefined()) {
+    if (skybox._procedural || skybox.getCubemap()) {
+        if (!theBuffer) {
+            const float CLIP = 1.0f;
+            const glm::vec2 vertices[4] = { { -CLIP, -CLIP }, { CLIP, -CLIP }, { -CLIP, CLIP }, { CLIP, CLIP } };
+            theBuffer = std::make_shared<gpu::Buffer>(sizeof(vertices), (const gpu::Byte*) vertices);
+            theFormat = std::make_shared<gpu::Stream::Format>();
+            theFormat->setAttribute(gpu::Stream::POSITION, gpu::Stream::POSITION, gpu::Element(gpu::VEC2, gpu::FLOAT, gpu::XYZ));
+        }
 
-            static gpu::PipelinePointer thePipeline;
-            static gpu::BufferPointer theBuffer;
-            static gpu::Stream::FormatPointer theFormat;
+        glm::mat4 projMat;
+        viewFrustum.evalProjectionMatrix(projMat);
+
+        Transform viewTransform;
+        viewFrustum.evalViewTransform(viewTransform);
+        batch.setProjectionTransform(projMat);
+        batch.setViewTransform(viewTransform);
+        batch.setModelTransform(Transform()); // only for Mac
+        batch.setInputBuffer(gpu::Stream::POSITION, theBuffer, 0, 8);
+        batch.setInputFormat(theFormat);
+
+        if (skybox._procedural && skybox._procedural->_enabled && skybox._procedural->ready()) {
+            if (skybox.getCubemap() && skybox.getCubemap()->isDefined()) {
+                batch.setResourceTexture(0, skybox.getCubemap());
+            }
+
+            skybox._procedural->prepare(batch, glm::vec3(1));
+            batch.draw(gpu::TRIANGLE_STRIP, 4);
+        } else if (skybox.getCubemap() && skybox.getCubemap()->isDefined()) {
             static gpu::BufferPointer theConstants;
+            static gpu::PipelinePointer thePipeline;
             static int SKYBOX_CONSTANTS_SLOT = 0; // need to be defined by the compilation of the shader
             if (!thePipeline) {
                 auto skyVS = gpu::ShaderPointer(gpu::Shader::createVertex(std::string(Skybox_vert)));
@@ -72,22 +109,9 @@ void Skybox::render(gpu::Batch& batch, const ViewFrustum& viewFrustum, const Sky
 
                 thePipeline = gpu::PipelinePointer(gpu::Pipeline::create(skyShader, skyState));
         
-                const float CLIP = 1.0f;
-                const glm::vec2 vertices[4] = { {-CLIP, -CLIP}, {CLIP, -CLIP}, {-CLIP, CLIP}, {CLIP, CLIP}};
-                theBuffer = std::make_shared<gpu::Buffer>(sizeof(vertices), (const gpu::Byte*) vertices);
-        
-                theFormat = std::make_shared<gpu::Stream::Format>();
-                theFormat->setAttribute(gpu::Stream::POSITION, gpu::Stream::POSITION, gpu::Element(gpu::VEC2, gpu::FLOAT, gpu::XYZ));
-        
                 auto color = glm::vec4(1.0f);
                 theConstants = std::make_shared<gpu::Buffer>(sizeof(color), (const gpu::Byte*) &color);
             }
-
-            glm::mat4 projMat;
-            viewFrustum.evalProjectionMatrix(projMat);
-
-            Transform viewTransform;
-            viewFrustum.evalViewTransform(viewTransform);
 
             if (glm::all(glm::equal(skybox.getColor(), glm::vec3(0.0f)))) { 
                 auto color = glm::vec4(1.0f);
@@ -96,13 +120,8 @@ void Skybox::render(gpu::Batch& batch, const ViewFrustum& viewFrustum, const Sky
                 theConstants->setSubData(0, sizeof(Color), (const gpu::Byte*) &skybox.getColor());
             }
 
-            batch.setProjectionTransform(projMat);
-            batch.setViewTransform(viewTransform);
-            batch.setModelTransform(Transform()); // only for Mac
             batch.setPipeline(thePipeline);
-            batch.setInputBuffer(gpu::Stream::POSITION, theBuffer, 0, 8);
             batch.setUniformBuffer(SKYBOX_CONSTANTS_SLOT, theConstants, 0, theConstants->getSize());
-            batch.setInputFormat(theFormat);
             batch.setResourceTexture(0, skybox.getCubemap());
             batch.draw(gpu::TRIANGLE_STRIP, 4);
         }

@@ -22,6 +22,7 @@
 #include <PerfStat.h>
 #include <SceneScriptingInterface.h>
 #include <ScriptEngine.h>
+#include <procedural/Procedural.h>
 #include <TextureCache.h>
 
 #include "EntityTreeRenderer.h"
@@ -454,13 +455,24 @@ void EntityTreeRenderer::applyZonePropertiesToScene(std::shared_ptr<ZoneEntityIt
             _viewState->endOverrideEnvironmentData();
             auto stage = scene->getSkyStage();
             if (zone->getBackgroundMode() == BACKGROUND_MODE_SKYBOX) {
-                stage->getSkybox()->setColor(zone->getSkyboxProperties().getColorVec3());
+                auto skybox = stage->getSkybox();
+                skybox->setColor(zone->getSkyboxProperties().getColorVec3());
+                static QString userData;
+                if (userData != zone->getUserData()) {
+                    userData = zone->getUserData();
+                    QSharedPointer<Procedural> procedural(new Procedural(userData));
+                    if (procedural->_enabled) {
+                        skybox->setProcedural(procedural);
+                    } else {
+                        skybox->setProcedural(QSharedPointer<Procedural>());
+                    }
+                }
                 if (zone->getSkyboxProperties().getURL().isEmpty()) {
-                    stage->getSkybox()->setCubemap(gpu::TexturePointer());
+                    skybox->setCubemap(gpu::TexturePointer());
                 } else {
                     // Update the Texture of the Skybox with the one pointed by this zone
                     auto cubeMap = DependencyManager::get<TextureCache>()->getTexture(zone->getSkyboxProperties().getURL(), CUBE_TEXTURE);
-                    stage->getSkybox()->setCubemap(cubeMap->getGPUTexture());
+                    skybox->setCubemap(cubeMap->getGPUTexture());
                 }
                 stage->setBackgroundMode(model::SunSkyStage::SKY_BOX);
             } else {

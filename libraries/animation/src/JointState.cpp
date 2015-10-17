@@ -41,7 +41,6 @@ void JointState::copyState(const JointState& other) {
     // DO NOT copy _constraint
     _name = other._name;
     _isFree = other._isFree;
-    _boneRadius = other._boneRadius;
     _parentIndex = other._parentIndex;
     _defaultRotation = other._defaultRotation;
     _inverseDefaultRotation = other._inverseDefaultRotation;
@@ -58,7 +57,6 @@ JointState::JointState(const FBXJoint& joint) {
     _rotationInConstrainedFrame = joint.rotation;
     _name = joint.name;
     _isFree = joint.isFree;
-    _boneRadius = joint.boneRadius;
     _parentIndex = joint.parentIndex;
     _translation = joint.translation;
     _defaultRotation = joint.rotation;
@@ -149,6 +147,24 @@ void JointState::setRotationInBindFrame(const glm::quat& rotation, float priorit
             _constraint->softClamp(targetRotation, _rotationInConstrainedFrame, 0.5f);
         }
         setRotationInConstrainedFrameInternal(targetRotation);
+        _animationPriority = priority;
+    }
+}
+
+void JointState::setRotationInModelFrame(const glm::quat& rotationInModelFrame, float priority, bool constrain) {
+    // rotation is from bind- to model-frame
+    if (priority >= _animationPriority) {
+        glm::quat parentRotation = computeParentRotation();
+
+        // R = Rp * Rpre * r * Rpost
+        // R' = Rp * Rpre * r' * Rpost
+        // r' = (Rp * Rpre)^ * R' * Rpost^
+        glm::quat targetRotation = glm::inverse(parentRotation * _preRotation) * rotationInModelFrame * glm::inverse(_postRotation);
+        if (constrain && _constraint) {
+            _constraint->softClamp(targetRotation, _rotationInConstrainedFrame, 0.5f);
+        }
+        _rotationInConstrainedFrame = glm::normalize(targetRotation);
+        _transformChanged = true;
         _animationPriority = priority;
     }
 }

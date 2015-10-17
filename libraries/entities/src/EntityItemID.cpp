@@ -11,8 +11,10 @@
 
 #include <QtCore/QObject>
 #include <QDebug>
+
 #include <BufferParser.h>
 #include <udt/PacketHeaders.h>
+#include <UUID.h>
 
 #include "RegisteredMetaTypes.h"
 #include "EntityItemID.h"

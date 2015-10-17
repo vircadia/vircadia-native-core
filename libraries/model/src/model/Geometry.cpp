@@ -43,12 +43,12 @@ void Mesh::addAttribute(Slot slot, const BufferView& buffer) {
 }
 
 const BufferView Mesh::getAttributeBuffer(int attrib) const {
-	auto attribBuffer = _attributeBuffers.find(attrib);
-	if (attribBuffer != _attributeBuffers.end()) {
-		return attribBuffer->second;
-	} else {
-		return BufferView();
-	}
+    auto attribBuffer = _attributeBuffers.find(attrib);
+    if (attribBuffer != _attributeBuffers.end()) {
+        return attribBuffer->second;
+    } else {
+        return BufferView();
+    }
 }
 
 void Mesh::evalVertexFormat() {

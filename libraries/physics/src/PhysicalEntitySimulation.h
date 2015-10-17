@@ -46,10 +46,13 @@ protected: // only called by EntitySimulation
 public:
     VectorOfMotionStates& getObjectsToDelete();
     VectorOfMotionStates& getObjectsToAdd();
+    void setObjectsToChange(VectorOfMotionStates& objectsToChange);
     VectorOfMotionStates& getObjectsToChange();
 
     void handleOutgoingChanges(VectorOfMotionStates& motionStates, const QUuid& sessionID);
     void handleCollisionEvents(CollisionEvents& collisionEvents);
+
+    EntityEditPacketSender* getPacketSender() { return _entityPacketSender; }
 
 private:
     // incoming changes
