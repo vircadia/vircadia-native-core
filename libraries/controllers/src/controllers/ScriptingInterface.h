@@ -73,6 +73,8 @@ namespace controller {
             enableMapping(mappingName, false);
         }
         Q_INVOKABLE QObject* parseMapping(const QString& json);
+        Q_INVOKABLE QObject* loadMapping(const QString& jsonUrl);
+
 
         Q_INVOKABLE bool isPrimaryButtonPressed() const;
         Q_INVOKABLE glm::vec2 getPrimaryJoystickPosition() const;
