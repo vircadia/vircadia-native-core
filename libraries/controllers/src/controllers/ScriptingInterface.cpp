@@ -62,9 +62,7 @@ namespace controller {
     };
 
     float ScriptEndpoint::value() {
-        if (QThread::currentThread() == thread()) {
-            updateValue();
-        }
+        updateValue();
         return _lastValue;
     }
 

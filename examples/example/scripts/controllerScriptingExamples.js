@@ -29,6 +29,9 @@ if (hydra !== undefined) {
     var mapping = Controller.newMapping("Test");
     var standard = Controller.Standard;
     print("standard:" + standard);
+    mapping.from(function () { return Math.sin(Date.now() / 250); }).to(function (newValue, oldValue, source) {
+        print("function source newValue:" + newValue + ", oldValue:" + oldValue + ", source:" + source);
+    });
     mapping.from(hydra.L1).to(standard.A);
     mapping.from(hydra.L2).to(standard.B);
     mapping.from(hydra.L3).to(function (newValue, oldValue, source) {
