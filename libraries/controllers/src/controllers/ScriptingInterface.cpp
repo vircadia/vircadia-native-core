@@ -481,31 +481,34 @@ namespace controller {
         auto devices = userInputMapper->getDevices();
         QSet<QString> foundDevices;
         for (const auto& deviceMapping : devices) {
-            auto device = deviceMapping.second.get();
-            auto deviceName = QString(device->getName()).remove(ScriptingInterface::SANITIZE_NAME_EXPRESSION);
-            qCDebug(controllers) << "Device" << deviceMapping.first << ":" << deviceName;
-            foundDevices.insert(device->getName());
-            if (_hardware.contains(deviceName)) {
-                continue;
-            }
-
-            // Expose the IDs to JS
-            _hardware.insert(deviceName, createDeviceMap(device));
-
-            // Create the endpoints
-            for (const auto& inputMapping : device->getAvailabeInputs()) {
-                const auto& input = inputMapping.first;
-                // Ignore aliases
-                if (_endpoints.count(input)) {
+            auto deviceID = deviceMapping.first;
+            if (deviceID != userInputMapper->getStandardDeviceID()) {
+                auto device = deviceMapping.second.get();
+                auto deviceName = QString(device->getName()).remove(ScriptingInterface::SANITIZE_NAME_EXPRESSION);
+                qCDebug(controllers) << "Device" << deviceMapping.first << ":" << deviceName;
+                foundDevices.insert(device->getName());
+                if (_hardware.contains(deviceName)) {
                     continue;
                 }
-                _endpoints[input] = std::make_shared<LambdaEndpoint>([=] {
-                    auto deviceProxy = userInputMapper->getDeviceProxy(input);
-                    if (!deviceProxy) {
-                        return 0.0f;
+
+                // Expose the IDs to JS
+                _hardware.insert(deviceName, createDeviceMap(device));
+
+                // Create the endpoints
+                for (const auto& inputMapping : device->getAvailabeInputs()) {
+                    const auto& input = inputMapping.first;
+                    // Ignore aliases
+                    if (_endpoints.count(input)) {
+                        continue;
                     }
-                    return deviceProxy->getValue(input, 0);
-                });
+                    _endpoints[input] = std::make_shared<LambdaEndpoint>([=] {
+                        auto deviceProxy = userInputMapper->getDeviceProxy(input);
+                        if (!deviceProxy) {
+                            return 0.0f;
+                        }
+                        return deviceProxy->getValue(input, 0);
+                    });
+                }
             }
         }
     }
