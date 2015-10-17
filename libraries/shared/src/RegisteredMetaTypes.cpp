@@ -104,6 +104,21 @@ QVector<float> qVectorFloatFromScriptValue(const QScriptValue& array) {
     return newVector;
 }
 
+QVector<QUuid> qVectorQUuidFromScriptValue(const QScriptValue& array) {
+    if (!array.isArray()) {
+        return QVector<QUuid>(); 
+    }
+    QVector<QUuid> newVector;
+    int length = array.property("length").toInteger();
+    newVector.reserve(length);
+    for (int i = 0; i < length; i++) {
+        QString uuidAsString = array.property(i).toString();
+        QUuid fromString(uuidAsString);
+        newVector << fromString;
+    }
+    return newVector;
+}
+
 QScriptValue qVectorFloatToScriptValue(QScriptEngine* engine, const QVector<float>& vector) {
     QScriptValue array = engine->newArray();
     for (int i = 0; i < vector.size(); i++) {

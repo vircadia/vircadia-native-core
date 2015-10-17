@@ -625,6 +625,8 @@ bool OctreeServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
         statsString += QString().sprintf("<b>%s Edit Statistics... <a href='/resetStats'>[RESET]</a></b>\r\n",
                                          getMyServerName());
         quint64 currentPacketsInQueue = _octreeInboundPacketProcessor->packetsToProcessCount();
+        float incomingPPS = _octreeInboundPacketProcessor->getIncomingPPS();
+        float processedPPS = _octreeInboundPacketProcessor->getProcessedPPS();
         quint64 averageTransitTimePerPacket = _octreeInboundPacketProcessor->getAverageTransitTimePerPacket();
         quint64 averageProcessTimePerPacket = _octreeInboundPacketProcessor->getAverageProcessTimePerPacket();
         quint64 averageLockWaitTimePerPacket = _octreeInboundPacketProcessor->getAverageLockWaitTimePerPacket();
@@ -639,11 +641,16 @@ bool OctreeServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
         quint64 averageCreateTime = _tree->getAverageCreateTime();
         quint64 averageLoggingTime = _tree->getAverageLoggingTime();
 
+        int FLOAT_PRECISION = 3;
 
         float averageElementsPerPacket = totalPacketsProcessed == 0 ? 0 : (float)totalElementsProcessed / totalPacketsProcessed;
 
-        statsString += QString("   Current Inbound Packets Queue: %1 packets\r\n")
+        statsString += QString("   Current Inbound Packets Queue: %1 packets \r\n")
             .arg(locale.toString((uint)currentPacketsInQueue).rightJustified(COLUMN_WIDTH, ' '));
+        statsString += QString("        Packets Queue Network IN: %1 PPS \r\n")
+            .arg(locale.toString(incomingPPS, 'f', FLOAT_PRECISION).rightJustified(COLUMN_WIDTH, ' '));
+        statsString += QString("    Packets Queue Processing OUT: %1 PPS \r\n")
+            .arg(locale.toString(processedPPS, 'f', FLOAT_PRECISION).rightJustified(COLUMN_WIDTH, ' '));
 
         statsString += QString("           Total Inbound Packets: %1 packets\r\n")
             .arg(locale.toString((uint)totalPacketsProcessed).rightJustified(COLUMN_WIDTH, ' '));
@@ -692,6 +699,16 @@ bool OctreeServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
             totalElementsProcessed = senderStats.getTotalElementsProcessed();
             totalPacketsProcessed = senderStats.getTotalPacketsProcessed();
 
+
+            auto received = senderStats._incomingEditSequenceNumberStats.getReceived();
+            auto expected = senderStats._incomingEditSequenceNumberStats.getExpectedReceived();
+            auto unreasonable = senderStats._incomingEditSequenceNumberStats.getUnreasonable();
+            auto outOfOrder = senderStats._incomingEditSequenceNumberStats.getOutOfOrder();
+            auto early = senderStats._incomingEditSequenceNumberStats.getEarly();
+            auto late = senderStats._incomingEditSequenceNumberStats.getLate();
+            auto lost = senderStats._incomingEditSequenceNumberStats.getLost();
+            auto recovered = senderStats._incomingEditSequenceNumberStats.getRecovered();
+
             averageElementsPerPacket = totalPacketsProcessed == 0 ? 0 : (float)totalElementsProcessed / totalPacketsProcessed;
 
             statsString += QString("               Total Inbound Packets: %1 packets\r\n")
@@ -702,7 +719,7 @@ bool OctreeServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
                                              (double)averageElementsPerPacket);
             statsString += QString("         Average Transit Time/Packet: %1 usecs\r\n")
                 .arg(locale.toString((uint)averageTransitTimePerPacket).rightJustified(COLUMN_WIDTH, ' '));
-            statsString += QString("        Average Process Time/Packet: %1 usecs\r\n")
+            statsString += QString("         Average Process Time/Packet: %1 usecs\r\n")
                 .arg(locale.toString((uint)averageProcessTimePerPacket).rightJustified(COLUMN_WIDTH, ' '));
             statsString += QString("       Average Wait Lock Time/Packet: %1 usecs\r\n")
                 .arg(locale.toString((uint)averageLockWaitTimePerPacket).rightJustified(COLUMN_WIDTH, ' '));
@@ -710,6 +727,24 @@ bool OctreeServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
                 .arg(locale.toString((uint)averageProcessTimePerElement).rightJustified(COLUMN_WIDTH, ' '));
             statsString += QString("      Average Wait Lock Time/Element: %1 usecs\r\n")
                 .arg(locale.toString((uint)averageLockWaitTimePerElement).rightJustified(COLUMN_WIDTH, ' '));
+
+            statsString += QString("\r\n       Inbound Edit Packets --------------------------------\r\n");
+            statsString += QString("                            Received: %1\r\n")
+                .arg(locale.toString(received).rightJustified(COLUMN_WIDTH, ' '));
+            statsString += QString("                            Expected: %1\r\n")
+                .arg(locale.toString(expected).rightJustified(COLUMN_WIDTH, ' '));
+            statsString += QString("                        Unreasonable: %1\r\n")
+                .arg(locale.toString(unreasonable).rightJustified(COLUMN_WIDTH, ' '));
+            statsString += QString("                        Out of Order: %1\r\n")
+                .arg(locale.toString(outOfOrder).rightJustified(COLUMN_WIDTH, ' '));
+            statsString += QString("                               Early: %1\r\n")
+                .arg(locale.toString(early).rightJustified(COLUMN_WIDTH, ' '));
+            statsString += QString("                                Late: %1\r\n")
+                .arg(locale.toString(late).rightJustified(COLUMN_WIDTH, ' '));
+            statsString += QString("                                Lost: %1\r\n")
+                .arg(locale.toString(lost).rightJustified(COLUMN_WIDTH, ' '));
+            statsString += QString("                           Recovered: %1\r\n")
+                .arg(locale.toString(recovered).rightJustified(COLUMN_WIDTH, ' '));
 
         }
 

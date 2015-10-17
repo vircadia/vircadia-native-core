@@ -495,12 +495,16 @@ bool EntityTreeElement::bestFitBounds(const glm::vec3& minPoint, const glm::vec3
 
 bool EntityTreeElement::findDetailedRayIntersection(const glm::vec3& origin, const glm::vec3& direction, bool& keepSearching,
                                     OctreeElementPointer& element, float& distance, BoxFace& face, glm::vec3& surfaceNormal,
-                                    void** intersectedObject, bool precisionPicking, float distanceToElementCube) {
+                                    const QVector<QUuid>& entityIdsToInclude, void** intersectedObject, bool precisionPicking, float distanceToElementCube) {
 
     // only called if we do intersect our bounding cube, but find if we actually intersect with entities...
     int entityNumber = 0;
     bool somethingIntersected = false;
     forEachEntity([&](EntityItemPointer entity) {
+        if (entityIdsToInclude.size() > 0 && !entityIdsToInclude.contains(entity->getID())) {
+            return;
+        }
+
         AABox entityBox = entity->getAABox();
         float localDistance;
         BoxFace localFace;

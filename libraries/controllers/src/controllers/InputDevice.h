@@ -11,6 +11,7 @@
 #pragma once
 
 #include "UserInputMapper.h"
+#include "StandardControls.h"
 
 // Event types for each controller
 const unsigned int CONTROLLER_0_EVENT = 1500U;
@@ -33,7 +34,7 @@ public:
     UserInputMapper::PoseValue getPose(int channel) const;
 
     virtual void registerToUserInputMapper(UserInputMapper& mapper) = 0;
-    virtual void assignDefaultInputMapping(UserInputMapper& mapper) = 0;
+    virtual void assignDefaultInputMapping(UserInputMapper& mapper) {};
 
     // Update call MUST be called once per simulation loop
     // It takes care of updating the action states and deltas
@@ -49,10 +50,17 @@ public:
 
     static bool getLowVelocityFilter() { return _lowVelocityFilter; };
 
+    UserInputMapper::Input makeInput(controller::StandardButtonChannel button);
+    UserInputMapper::Input makeInput(controller::StandardAxisChannel axis);
+    UserInputMapper::Input makeInput(controller::StandardPoseChannel pose);
+    UserInputMapper::InputPair makePair(controller::StandardButtonChannel button, const QString& name);
+    UserInputMapper::InputPair makePair(controller::StandardAxisChannel button, const QString& name);
+    UserInputMapper::InputPair makePair(controller::StandardPoseChannel button, const QString& name);
 public slots:
     static void setLowVelocityFilter(bool newLowVelocityFilter) { _lowVelocityFilter = newLowVelocityFilter; };
 
 protected:
+
     int _deviceID = 0;
 
     QString _name;

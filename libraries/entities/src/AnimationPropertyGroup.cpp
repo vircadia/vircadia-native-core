@@ -163,6 +163,19 @@ void AnimationPropertyGroup::debugDump() const {
     qDebug() << "currentFrame:" << getCurrentFrame() << " has changed:" << currentFrameChanged();
 }
 
+void AnimationPropertyGroup::listChangedProperties(QList<QString>& out) {
+    if (urlChanged()) {
+        out << "animation-url";
+    }
+    if (fpsChanged()) {
+        out << "animation-fps";
+    }
+    if (currentFrameChanged()) {
+        out << "animation-currentFrame";
+    }
+}
+
+
 bool AnimationPropertyGroup::appendToEditPacket(OctreePacketData* packetData,
                                     EntityPropertyFlags& requestedProperties,
                                     EntityPropertyFlags& propertyFlags,

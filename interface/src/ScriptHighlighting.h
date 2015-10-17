@@ -29,14 +29,14 @@ protected:
     void highlightBlock(const QString& text);
     void highlightKeywords(const QString& text);
     void formatComments(const QString& text);
-    void formatQoutedText(const QString& text);
+    void formatQuotedText(const QString& text);
     void formatNumbers(const QString& text);
     void formatTrueFalse(const QString& text);
 
 private:
     QRegExp _alphacharRegex;
     QRegExp _keywordRegex;
-    QRegExp _qoutedTextRegex;
+    QRegExp _quotedTextRegex;
     QRegExp _multiLineCommentBegin;
     QRegExp _multiLineCommentEnd;
     QRegExp _numberRegex;

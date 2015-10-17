@@ -35,7 +35,8 @@ public:
     void init();
 
     MyAvatar* getMyAvatar() { return _myAvatar.get(); }
-    
+    AvatarSharedPointer getAvatarBySessionID(const QUuid& sessionID);
+
     void updateMyAvatar(float deltaTime);
     void updateOtherAvatars(float deltaTime);
     

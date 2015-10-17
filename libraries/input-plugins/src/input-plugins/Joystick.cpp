@@ -143,22 +143,3 @@ void Joystick::registerToUserInputMapper(UserInputMapper& mapper) {
     mapper.registerDevice(_deviceID, proxy);
 }
 
-void Joystick::assignDefaultInputMapping(UserInputMapper& mapper) {
-#ifdef HAVE_SDL2
-    const float JOYSTICK_MOVE_SPEED = 1.0f;
-    const float DPAD_MOVE_SPEED = 0.5f;
-    const float JOYSTICK_YAW_SPEED = 0.5f;
-    const float JOYSTICK_PITCH_SPEED = 0.25f;
-    const float BOOM_SPEED = 0.1f;
-
-#endif
-}
-
-UserInputMapper::Input Joystick::makeInput(controller::StandardButtonChannel button) {
-    return UserInputMapper::Input(_deviceID, button, UserInputMapper::ChannelType::BUTTON);
-}
-
-UserInputMapper::Input Joystick::makeInput(controller::StandardAxisChannel axis) {
-    return UserInputMapper::Input(_deviceID, axis, UserInputMapper::ChannelType::AXIS);
-}
-

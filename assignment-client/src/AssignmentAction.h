@@ -19,7 +19,7 @@
 #include "EntityActionInterface.h"
 
 
-class AssignmentAction : public EntityActionInterface {
+class AssignmentAction : public EntityActionInterface, public ReadWriteLockable {
 public:
     AssignmentAction(EntityActionType type, const QUuid& id, EntityItemPointer ownerEntity);
     virtual ~AssignmentAction();

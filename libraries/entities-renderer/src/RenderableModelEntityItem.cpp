@@ -29,7 +29,7 @@ EntityItemPointer RenderableModelEntityItem::factory(const EntityItemID& entityI
 RenderableModelEntityItem::RenderableModelEntityItem(const EntityItemID& entityItemID,
                                                      const EntityItemProperties& properties) :
     ModelEntityItem(entityItemID, properties),
-    _dimensionsInitialized { properties.dimensionsChanged() }
+    _dimensionsInitialized(properties.getDimensionsInitialized())
 {
 }
 

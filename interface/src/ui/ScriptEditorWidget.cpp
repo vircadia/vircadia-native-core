@@ -52,10 +52,16 @@ ScriptEditorWidget::ScriptEditorWidget() :
     // We create a new ScriptHighligting QObject and provide it with a parent so this is NOT a memory leak.
     new ScriptHighlighting(_scriptEditorWidgetUI->scriptEdit->document());
     QTimer::singleShot(0, _scriptEditorWidgetUI->scriptEdit, SLOT(setFocus()));
+
+    _console = new JSConsole(this);
+    _console->setFixedHeight(CONSOLE_HEIGHT);
+    _scriptEditorWidgetUI->verticalLayout->addWidget(_console);
+    connect(_scriptEditorWidgetUI->clearButton, &QPushButton::clicked, _console, &JSConsole::clear);
 }
 
 ScriptEditorWidget::~ScriptEditorWidget() {
     delete _scriptEditorWidgetUI;
+    delete _console;
 }
 
 void ScriptEditorWidget::onScriptModified() {
@@ -68,6 +74,7 @@ void ScriptEditorWidget::onScriptModified() {
 
 void ScriptEditorWidget::onScriptFinished(const QString& scriptPath) {
     _scriptEngine = NULL;
+    _console->setScriptEngine(NULL);
     if (_isRestarting) {
         _isRestarting = false;
         setRunning(true);
@@ -89,8 +96,6 @@ bool ScriptEditorWidget::setRunning(bool run) {
 
     if (_scriptEngine != NULL) {
         disconnect(_scriptEngine, &ScriptEngine::runningStateChanged, this, &ScriptEditorWidget::runningStateChanged);
-        disconnect(_scriptEngine, &ScriptEngine::errorMessage, this, &ScriptEditorWidget::onScriptError);
-        disconnect(_scriptEngine, &ScriptEngine::printedMessage, this, &ScriptEditorWidget::onScriptPrint);
         disconnect(_scriptEngine, &ScriptEngine::update, this, &ScriptEditorWidget::onScriptModified);
         disconnect(_scriptEngine, &ScriptEngine::finished, this, &ScriptEditorWidget::onScriptFinished);
     }
@@ -100,15 +105,15 @@ bool ScriptEditorWidget::setRunning(bool run) {
         // Reload script so that an out of date copy is not retrieved from the cache
         _scriptEngine = qApp->loadScript(scriptURLString, true, true, false, true);
         connect(_scriptEngine, &ScriptEngine::runningStateChanged, this, &ScriptEditorWidget::runningStateChanged);
-        connect(_scriptEngine, &ScriptEngine::errorMessage, this, &ScriptEditorWidget::onScriptError);
-        connect(_scriptEngine, &ScriptEngine::printedMessage, this, &ScriptEditorWidget::onScriptPrint);
         connect(_scriptEngine, &ScriptEngine::update, this, &ScriptEditorWidget::onScriptModified);
         connect(_scriptEngine, &ScriptEngine::finished, this, &ScriptEditorWidget::onScriptFinished);
     } else {
         connect(_scriptEngine, &ScriptEngine::finished, this, &ScriptEditorWidget::onScriptFinished);
-        qApp->stopScript(_currentScript);
+        const QString& scriptURLString = QUrl(_currentScript).toString();
+        qApp->stopScript(scriptURLString);
         _scriptEngine = NULL;
     }
+    _console->setScriptEngine(_scriptEngine);
     return true;
 }
 
@@ -147,8 +152,6 @@ void ScriptEditorWidget::loadFile(const QString& scriptPath) {
 
         if (_scriptEngine != NULL) {
             disconnect(_scriptEngine, &ScriptEngine::runningStateChanged, this, &ScriptEditorWidget::runningStateChanged);
-            disconnect(_scriptEngine, &ScriptEngine::errorMessage, this, &ScriptEditorWidget::onScriptError);
-            disconnect(_scriptEngine, &ScriptEngine::printedMessage, this, &ScriptEditorWidget::onScriptPrint);
             disconnect(_scriptEngine, &ScriptEngine::update, this, &ScriptEditorWidget::onScriptModified);
             disconnect(_scriptEngine, &ScriptEngine::finished, this, &ScriptEditorWidget::onScriptFinished);
         }
@@ -168,16 +171,14 @@ void ScriptEditorWidget::loadFile(const QString& scriptPath) {
             static_cast<ScriptEditorWindow*>(this->parent()->parent()->parent())->terminateCurrentTab();
         }
     }
-
     const QString& scriptURLString = QUrl(_currentScript).toString();
     _scriptEngine = qApp->getScriptEngine(scriptURLString);
     if (_scriptEngine != NULL) {
         connect(_scriptEngine, &ScriptEngine::runningStateChanged, this, &ScriptEditorWidget::runningStateChanged);
-        connect(_scriptEngine, &ScriptEngine::errorMessage, this, &ScriptEditorWidget::onScriptError);
-        connect(_scriptEngine, &ScriptEngine::printedMessage, this, &ScriptEditorWidget::onScriptPrint);
         connect(_scriptEngine, &ScriptEngine::update, this, &ScriptEditorWidget::onScriptModified);
         connect(_scriptEngine, &ScriptEngine::finished, this, &ScriptEditorWidget::onScriptFinished);
     }
+    _console->setScriptEngine(_scriptEngine);
 }
 
 bool ScriptEditorWidget::save() {
@@ -210,17 +211,9 @@ bool ScriptEditorWidget::questionSave() {
         QMessageBox::StandardButton button = QMessageBox::warning(this, tr("Interface"),
             tr("The script has been modified.\nDo you want to save your changes?"), QMessageBox::Save | QMessageBox::Discard |
             QMessageBox::Cancel, QMessageBox::Save);
-        return button == QMessageBox::Save ? save() : (button == QMessageBox::Cancel ? false : true);
+        return button == QMessageBox::Save ? save() : (button == QMessageBox::Discard);
     }
     return true;
-}
-
-void ScriptEditorWidget::onScriptError(const QString& message) {
-    _scriptEditorWidgetUI->debugText->appendPlainText("ERROR: " + message);
-}
-
-void ScriptEditorWidget::onScriptPrint(const QString& message) {
-    _scriptEditorWidgetUI->debugText->appendPlainText("> " + message);
 }
 
 void ScriptEditorWidget::onWindowActivated() {
@@ -241,10 +234,8 @@ void ScriptEditorWidget::onWindowActivated() {
                     setRunning(false);
                     // Script is restarted once current script instance finishes.
                 }
-
             }
         }
-
         _isReloading = false;
     }
 }
