@@ -22,6 +22,12 @@
     var ON_SOUND_URL = 'http://hifi-public.s3.amazonaws.com/sounds/Switches%20and%20sliders/flashlight_on.wav';
     var OFF_SOUND_URL = 'http://hifi-public.s3.amazonaws.com/sounds/Switches%20and%20sliders/flashlight_off.wav';
 
+    //we are creating lights that we don't want to get stranded so lets make sure that we can get rid of them
+    var startTime = Date.now();
+    //if you're going to be using this in a dungeon or something and holding it for a long time, increase this lifetime value.
+    var LIFETIME = 25;
+    var MSEC_PER_SEC = 1000.0;
+
     // this is the "constructor" for the entity as a JS object we don't do much here, but we do want to remember
     // our this object, so we can access it in cases where we're called without a this (like in the case of various global signals)
     function Flashlight() {
@@ -32,10 +38,22 @@
     var DISABLE_LIGHT_THRESHOLD = 0.7;
 
     // These constants define the Spotlight position and orientation relative to the model 
-    var MODEL_LIGHT_POSITION = { x: 0, y: -0.3, z: 0 };
-    var MODEL_LIGHT_ROTATION = Quat.angleAxis(-90, { x: 1, y: 0, z: 0 });
+    var MODEL_LIGHT_POSITION = {
+        x: 0,
+        y: -0.3,
+        z: 0
+    };
+    var MODEL_LIGHT_ROTATION = Quat.angleAxis(-90, {
+        x: 1,
+        y: 0,
+        z: 0
+    });
 
-    var GLOW_LIGHT_POSITION = { x: 0, y: -0.1, z: 0};
+    var GLOW_LIGHT_POSITION = {
+        x: 0,
+        y: -0.1,
+        z: 0
+    };
 
     // Evaluate the world light entity positions and orientations from the model ones
     function evalLightWorldTransform(modelPos, modelRot) {
@@ -86,7 +104,8 @@
                     },
                     intensity: 2,
                     exponent: 0.3,
-                    cutoff: 20
+                    cutoff: 20,
+                    lifetime: LIFETIME
                 });
 
                 //this light creates the effect of a bulb at the end of the flashlight
@@ -105,6 +124,7 @@
                     },
                     exponent: 0,
                     cutoff: 90, // in degrees
+                    lifetime: LIFETIME
                 });
 
                 this.hasSpotlight = true;
@@ -151,11 +171,13 @@
             Entities.editEntity(this.spotlight, {
                 position: lightTransform.p,
                 rotation: lightTransform.q,
+                lifetime: (Date.now() - startTime) / MSEC_PER_SEC + LIFETIME
             });
 
             Entities.editEntity(this.glowLight, {
                 position: glowLightTransform.p,
                 rotation: glowLightTransform.q,
+                lifetime: (Date.now() - startTime) / MSEC_PER_SEC + LIFETIME
             });
 
         },

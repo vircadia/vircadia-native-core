@@ -1519,3 +1519,254 @@ void EntityItemProperties::setSimulationOwner(const QByteArray& data) {
         _simulationOwnerChanged = true;
     }
 }
+
+QList<QString> EntityItemProperties::listChangedProperties() {
+    QList<QString> out;
+    if (containsPositionChange()) {
+        out += "posistion";
+    }
+    if (dimensionsChanged()) {
+        out += "dimensions";
+    }
+    if (velocityChanged()) {
+        out += "velocity";
+    }
+    if (nameChanged()) {
+        out += "name";
+    }
+    if (visibleChanged()) {
+        out += "visible";
+    }
+    if (rotationChanged()) {
+        out += "rotation";
+    }
+    if (densityChanged()) {
+        out += "density";
+    }
+    if (gravityChanged()) {
+        out += "gravity";
+    }
+    if (accelerationChanged()) {
+        out += "acceleration";
+    }
+    if (dampingChanged()) {
+        out += "damping";
+    }
+    if (restitutionChanged()) {
+        out += "restitution";
+    }
+    if (frictionChanged()) {
+        out += "friction";
+    }
+    if (lifetimeChanged()) {
+        out += "lifetime";
+    }
+    if (scriptChanged()) {
+        out += "script";
+    }
+    if (scriptTimestampChanged()) {
+        out += "scriptTimestamp";
+    }
+    if (collisionSoundURLChanged()) {
+        out += "collisionSoundURL";
+    }
+    if (colorChanged()) {
+        out += "color";
+    }
+    if (colorSpreadChanged()) {
+        out += "colorSpread";
+    }
+    if (colorStartChanged()) {
+        out += "colorStart";
+    }
+    if (colorFinishChanged()) {
+        out += "colorFinish";
+    }
+    if (alphaChanged()) {
+        out += "alpha";
+    }
+    if (alphaSpreadChanged()) {
+        out += "alphaSpread";
+    }
+    if (alphaStartChanged()) {
+        out += "alphaStart";
+    }
+    if (alphaFinishChanged()) {
+        out += "alphaFinish";
+    }
+    if (modelURLChanged()) {
+        out += "modelURL";
+    }
+    if (compoundShapeURLChanged()) {
+        out += "compoundShapeURL";
+    }
+    if (registrationPointChanged()) {
+        out += "registrationPoint";
+    }
+    if (angularVelocityChanged()) {
+        out += "angularVelocity";
+    }
+    if (angularDampingChanged()) {
+        out += "angularDamping";
+    }
+    if (ignoreForCollisionsChanged()) {
+        out += "ignoreForCollisions";
+    }
+    if (collisionsWillMoveChanged()) {
+        out += "collisionsWillMove";
+    }
+    if (isSpotlightChanged()) {
+        out += "isSpotlight";
+    }
+    if (intensityChanged()) {
+        out += "intensity";
+    }
+    if (exponentChanged()) {
+        out += "exponent";
+    }
+    if (cutoffChanged()) {
+        out += "cutoff";
+    }
+    if (lockedChanged()) {
+        out += "locked";
+    }
+    if (texturesChanged()) {
+        out += "textures";
+    }
+    if (userDataChanged()) {
+        out += "userData";
+    }
+    if (simulationOwnerChanged()) {
+        out += "simulationOwner";
+    }
+    if (textChanged()) {
+        out += "text";
+    }
+    if (lineHeightChanged()) {
+        out += "lineHeight";
+    }
+    if (textColorChanged()) {
+        out += "textColor";
+    }
+    if (backgroundColorChanged()) {
+        out += "backgroundColor";
+    }
+    if (shapeTypeChanged()) {
+        out += "shapeType";
+    }
+    if (maxParticlesChanged()) {
+        out += "maxParticles";
+    }
+    if (lifespanChanged()) {
+        out += "lifespan";
+    }
+    if (isEmittingChanged()) {
+        out += "isEmitting";
+    }
+    if (emitRateChanged()) {
+        out += "emitRate";
+    }
+    if (emitSpeedChanged()) {
+        out += "emitSpeed";
+    }
+    if (speedSpreadChanged()) {
+        out += "speedSpread";
+    }
+    if (emitOrientationChanged()) {
+        out += "emitOrientation";
+    }
+    if (emitDimensionsChanged()) {
+        out += "emitDimensions";
+    }
+    if (emitRadiusStartChanged()) {
+        out += "emitRadiusStart";
+    }
+    if (polarStartChanged()) {
+        out += "polarStart";
+    }
+    if (polarFinishChanged()) {
+        out += "polarFinish";
+    }
+    if (azimuthStartChanged()) {
+        out += "azimuthStart";
+    }
+    if (azimuthFinishChanged()) {
+        out += "azimuthFinish";
+    }
+    if (emitAccelerationChanged()) {
+        out += "emitAcceleration";
+    }
+    if (accelerationSpreadChanged()) {
+        out += "accelerationSpread";
+    }
+    if (particleRadiusChanged()) {
+        out += "particleRadius";
+    }
+    if (radiusSpreadChanged()) {
+        out += "radiusSpread";
+    }
+    if (radiusStartChanged()) {
+        out += "radiusStart";
+    }
+    if (radiusFinishChanged()) {
+        out += "radiusFinish";
+    }
+    if (marketplaceIDChanged()) {
+        out += "marketplaceID";
+    }
+    if (backgroundModeChanged()) {
+        out += "backgroundMode";
+    }
+    if (voxelVolumeSizeChanged()) {
+        out += "voxelVolumeSize";
+    }
+    if (voxelDataChanged()) {
+        out += "voxelData";
+    }
+    if (voxelSurfaceStyleChanged()) {
+        out += "voxelSurfaceStyle";
+    }
+    if (hrefChanged()) {
+        out += "href";
+    }
+    if (descriptionChanged()) {
+        out += "description";
+    }
+    if (actionDataChanged()) {
+        out += "actionData";
+    }
+    if (xTextureURLChanged()) {
+        out += "xTextureURL";
+    }
+    if (yTextureURLChanged()) {
+        out += "yTextureURL";
+    }
+    if (zTextureURLChanged()) {
+        out += "zTextureURL";
+    }
+    if (xNNeighborIDChanged()) {
+        out += "xNNeighborID";
+    }
+    if (yNNeighborIDChanged()) {
+        out += "yNNeighborID";
+    }
+    if (zNNeighborIDChanged()) {
+        out += "zNNeighborID";
+    }
+    if (xPNeighborIDChanged()) {
+        out += "xPNeighborID";
+    }
+    if (yPNeighborIDChanged()) {
+        out += "yPNeighborID";
+    }
+    if (zPNeighborIDChanged()) {
+        out += "zPNeighborID";
+    }
+
+    getAnimation().listChangedProperties(out);
+    getAtmosphere().listChangedProperties(out);
+    getSkybox().listChangedProperties(out);
+    getStage().listChangedProperties(out);
+
+    return out;
+}
