@@ -644,14 +644,13 @@ void ParticleEffectEntityItem::stepSimulation(float deltaTime) {
 
     // update particles between head and tail
     for (quint32 i = _particleHeadIndex; i != _particleTailIndex; i = (i + 1) % _maxParticles) {
-        _particleLifetimes[i] -= deltaTime;
+        _particleLifetimes[i] += deltaTime;
 
         // if particle has died.
-        if (_particleLifetimes[i] <= 0.0f || _lifespan == 0.0f) {
+        if (_particleLifetimes[i] >= _lifespan || _lifespan < EPSILON) {
             // move head forward
             _particleHeadIndex = (_particleHeadIndex + 1) % _maxParticles;
-        }
-        else {
+        } else {
             float age = 1.0f - _particleLifetimes[i] / _lifespan;  // 0.0 .. 1.0
             updateRadius(i, age);
             updateColor(i, age);
@@ -672,7 +671,7 @@ void ParticleEffectEntityItem::stepSimulation(float deltaTime) {
 
             // emit a new particle at tail index.
             quint32 i = _particleTailIndex;
-            _particleLifetimes[i] = _lifespan;
+            _particleLifetimes[i] = 0.0f;
 
             // Radius
             if (_radiusSpread == 0.0f) {
