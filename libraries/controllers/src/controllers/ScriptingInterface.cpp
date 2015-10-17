@@ -209,6 +209,7 @@ namespace controller {
     }
 
     QObject* ScriptingInterface::loadMapping(const QString& jsonUrl) {
+        QObject* result = nullptr;
         auto request = ResourceManager::createResourceRequest(nullptr, QUrl(jsonUrl));
         if (request) {
             QEventLoop eventLoop;
@@ -220,12 +221,13 @@ namespace controller {
             }
 
             if (request->getResult() == ResourceRequest::Success) {
-                return parseMapping(QString(request->getData()));
+                result = parseMapping(QString(request->getData()));
             } else {
                 qDebug() << "Failed to load mapping url <" << jsonUrl << ">" << endl;
-                return nullptr;
             }
+            request->deleteLater();
         }
+        return result;
     }
 
     Q_INVOKABLE QObject* newMapping(const QJsonObject& json);
