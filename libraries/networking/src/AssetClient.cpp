@@ -65,6 +65,7 @@ void AssetClient::init() {
     }
 }
 
+
 AssetRequest* AssetClient::createRequest(const QString& hash, const QString& extension) {
     if (hash.length() != SHA256_HASH_HEX_LENGTH) {
         qCWarning(asset_client) << "Invalid hash size";
@@ -204,23 +205,18 @@ void AssetClient::handleAssetGetInfoReply(QSharedPointer<ReceivedMessage> messag
 }
 
 void AssetClient::handleAssetGetReply(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode) {
-
-    
-
     auto assetHash = message->read(SHA256_HASH_LENGTH);
     qCDebug(asset_client) << "Got reply for asset: " << assetHash.toHex();
 
     MessageID messageID;
-    message->readPrimitive(&messageID);
+    message->readHeadPrimitive(&messageID);
 
     AssetServerError error;
-    message->readPrimitive(&error);
-
-    // QByteArray assetData;
+    message->readHeadPrimitive(&error);
 
     DataOffset length = 0;
     if (!error) {
-        message->readPrimitive(&length);
+        message->readHeadPrimitive(&length);
     } else {
         qCWarning(asset_client) << "Failure getting asset: " << error;
     }
@@ -240,12 +236,18 @@ void AssetClient::handleAssetGetReply(QSharedPointer<ReceivedMessage> message, S
             if (message->isComplete()) {
                 callbacks.completeCallback(true, error, message->readAll());
             } else {
-                connect(message.data(), &ReceivedMessage::progress, this, [this, length, message, callbacks](ReceivedMessage* msg) {
-                    //qDebug() << "Progress: " << msg->getDataSize();
-                    callbacks.progressCallback(msg->getSize(), length);
+                connect(message.data(), &ReceivedMessage::progress, this, [this, length, message, callbacks]() {
+                    qDebug() << "Progress: " << message->getSize(), length;
+                    callbacks.progressCallback(message->getSize(), length);
                 });
-                connect(message.data(), &ReceivedMessage::completed, this, [this, message, error, callbacks](ReceivedMessage* msg) {
-                    callbacks.completeCallback(true, error, message->readAll());
+                connect(message.data(), &ReceivedMessage::completed, this, [this, message, error, callbacks]() {
+                    if (message->failed()) {
+                        qDebug() << "Failed to received asset :(";
+                        callbacks.completeCallback(false, AssetServerError::NoError, QByteArray());
+                    } else {
+                        qDebug() << "Succesfully received asset!";
+                        callbacks.completeCallback(true, error, message->readAll());
+                    }
                 });
             }
             messageCallbackMap.erase(requestIt);

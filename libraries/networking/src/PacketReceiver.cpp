@@ -103,36 +103,18 @@ bool PacketReceiver::registerListener(PacketType type, QObject* listener, const 
 
     if (matchingMethod.isValid()) {
         qDebug() << "Found: " << matchingMethod.methodSignature();
-        registerVerifiedListener(type, listener, matchingMethod);
+        registerVerifiedListener(type, listener, matchingMethod, deliverPending);
         return true;
     } else {
         return false;
     }
 }
-
-/*
-bool PacketReceiver::registerListener(PacketType type, QObject* listener, const char* slot) {
-    Q_ASSERT_X(listener, "PacketReceiver::registerListener", "No object to register");
-    Q_ASSERT_X(slot, "PacketReceiver::registerListener", "No slot to register");
-
-    QMetaMethod matchingMethod = matchingMethodForListener(type, listener, slot);
-
-    if (matchingMethod.isValid()) {
-        qDebug() << "Found: " << matchingMethod.methodSignature();
-        registerVerifiedListener(type, listener, matchingMethod);
-        return true;
-    } else {
-        return false;
-    }
-}
-*/
 
 QMetaMethod PacketReceiver::matchingMethodForListener(PacketType type, QObject* object, const char* slot) const {
     Q_ASSERT_X(object, "PacketReceiver::matchingMethodForListener", "No object to call");
     Q_ASSERT_X(slot, "PacketReceiver::matchingMethodForListener", "No slot to call");
 
     // normalize the slot with the expected parameters
-    
     static const QString SIGNATURE_TEMPLATE("%1(%2)");
     static const QString NON_SOURCED_MESSAGE_LISTENER_PARAMETERS = "QSharedPointer<ReceivedMessage>";
 
@@ -182,7 +164,7 @@ QMetaMethod PacketReceiver::matchingMethodForListener(PacketType type, QObject* 
     }
 }
 
-void PacketReceiver::registerVerifiedListener(PacketType type, QObject* object, const QMetaMethod& slot) {
+void PacketReceiver::registerVerifiedListener(PacketType type, QObject* object, const QMetaMethod& slot, bool deliverPending) {
     Q_ASSERT_X(object, "PacketReceiver::registerVerifiedListener", "No object to register");
     QMutexLocker locker(&_packetListenerLock);
 
@@ -192,7 +174,7 @@ void PacketReceiver::registerVerifiedListener(PacketType type, QObject* object, 
     }
     
     // add the mapping
-    _messageListenerMap[type] = { QPointer<QObject>(object), slot, false };
+    _messageListenerMap[type] = { QPointer<QObject>(object), slot, deliverPending };
 }
 
 void PacketReceiver::unregisterListener(QObject* listener) {
@@ -200,8 +182,6 @@ void PacketReceiver::unregisterListener(QObject* listener) {
     
     {
         QMutexLocker packetListenerLocker(&_packetListenerLock);
-        
-        // TODO: replace the two while loops below with a replace_if on the vector (once we move to Message everywhere)
         
         // clear any registrations for this listener in _messageListenerMap
         auto it = _messageListenerMap.begin();
@@ -229,7 +209,7 @@ void PacketReceiver::handleVerifiedPacket(std::unique_ptr<udt::Packet> packet) {
     
     // setup an NLPacket from the packet we were passed
     auto nlPacket = NLPacket::fromBase(std::move(packet));
-    auto receivedMessage = QSharedPointer<ReceivedMessage>(new ReceivedMessage(*nlPacket.get()));
+    auto receivedMessage = QSharedPointer<ReceivedMessage>::create(*nlPacket);
 
     _inPacketCount += 1;
     _inByteCount += nlPacket->size();
@@ -249,19 +229,29 @@ void PacketReceiver::handleVerifiedMessagePacket(std::unique_ptr<udt::Packet> pa
 
     if (it == _pendingMessages.end()) {
         // Create message
-        message = QSharedPointer<ReceivedMessage>(new ReceivedMessage(*nlPacket.release()));
+        message = QSharedPointer<ReceivedMessage>::create(*nlPacket);
         if (!message->isComplete()) {
             _pendingMessages[key] = message;
         }
         handleVerifiedMessage(message, true);
     } else {
         message = it->second;
-        message->appendPacket(std::move(nlPacket));
+        message->appendPacket(*nlPacket);
 
         if (message->isComplete()) {
             _pendingMessages.erase(it);
             handleVerifiedMessage(message, false);
         }
+    }
+}
+
+void PacketReceiver::handleMessageFailure(HifiSockAddr from, udt::Packet::MessageNumber messageNumber) {
+    auto key = std::pair<HifiSockAddr, udt::Packet::MessageNumber>(from, messageNumber);
+    auto it = _pendingMessages.find(key);
+    if (it != _pendingMessages.end()) {
+        auto message = it->second;
+        message->setFailed();
+        _pendingMessages.erase(it);
     }
 }
 

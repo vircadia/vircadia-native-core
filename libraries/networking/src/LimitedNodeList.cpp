@@ -95,9 +95,14 @@ LimitedNodeList::LimitedNodeList(unsigned short socketListenPort, unsigned short
             _packetReceiver->handleVerifiedPacket(std::move(packet));
         }
     );
-    _nodeSocket.setPendingMessageHandler(
+    _nodeSocket.setMessageHandler(
         [this](std::unique_ptr<udt::Packet> packet) {
             _packetReceiver->handleVerifiedMessagePacket(std::move(packet));
+        }
+    );
+    _nodeSocket.setMessageFailureHandler(
+        [this](HifiSockAddr from, udt::Packet::MessageNumber messageNumber) {
+            _packetReceiver->handleMessageFailure(from, messageNumber);
         }
     );
 

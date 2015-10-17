@@ -34,7 +34,6 @@ struct AssetInfo {
 using ReceivedAssetCallback = std::function<void(bool responseReceived, AssetServerError serverError, const QByteArray& data)>;
 using GetInfoCallback = std::function<void(bool responseReceived, AssetServerError serverError, AssetInfo info)>;
 using UploadResultCallback = std::function<void(bool responseReceived, AssetServerError serverError, const QString& hash)>;
-
 using ProgressCallback = std::function<void(qint64 totalReceived, qint64 total)>;
 
 

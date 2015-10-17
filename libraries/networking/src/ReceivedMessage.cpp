@@ -17,18 +17,23 @@
 static int receivedMessageMetaTypeId = qRegisterMetaType<ReceivedMessage*>("ReceivedMessage*");
 static int sharedPtrReceivedMessageMetaTypeId = qRegisterMetaType<QSharedPointer<ReceivedMessage>>("QSharedPointer<ReceivedMessage>");
 
+static const int HEAD_DATA_SIZE = 512;
+
 ReceivedMessage::ReceivedMessage(const NLPacketList& packetList)
     : _data(packetList.getMessage()),
+      _headData(_data.mid(0, HEAD_DATA_SIZE)),
       _sourceID(packetList.getSourceID()),
       _numPackets(packetList.getNumPackets()),
       _packetType(packetList.getType()),
       _packetVersion(packetList.getVersion()),
-      _senderSockAddr(packetList.getSenderSockAddr())
+      _senderSockAddr(packetList.getSenderSockAddr()),
+      _isComplete(true)
 {
 }
 
 ReceivedMessage::ReceivedMessage(NLPacket& packet)
     : _data(packet.readAll()),
+      _headData(_data.mid(0, HEAD_DATA_SIZE)),
       _sourceID(packet.getSourceID()),
       _numPackets(1),
       _packetType(packet.getType()),
@@ -38,14 +43,22 @@ ReceivedMessage::ReceivedMessage(NLPacket& packet)
 {
 }
 
-void ReceivedMessage::appendPacket(std::unique_ptr<NLPacket> packet) {
+void ReceivedMessage::setFailed() {
+    _failed = true;
+    _isComplete = true;
+    emit completed();
+}
+
+void ReceivedMessage::appendPacket(NLPacket& packet) {
+    Q_ASSERT_X(!_isComplete, "ReceivedMessage::appendPacket", 
+               "We should not be appending to a complete message");
     ++_numPackets;
 
-    _data.append(packet->getPayload(), packet->getPayloadSize());
-    emit progress(this);
-    if (packet->getPacketPosition() == NLPacket::PacketPosition::LAST) {
+    _data.append(packet.getPayload(), packet.getPayloadSize());
+    emit progress();
+    if (packet.getPacketPosition() == NLPacket::PacketPosition::LAST) {
         _isComplete = true;
-        emit completed(this);
+        emit completed();
     }
 }
 
@@ -60,12 +73,24 @@ qint64 ReceivedMessage::read(char* data, qint64 size) {
     return size;
 }
 
+qint64 ReceivedMessage::readHead(char* data, qint64 size) {
+    memcpy(data, _headData.constData() + _position, size);
+    _position += size;
+    return size;
+}
+
 QByteArray ReceivedMessage::peek(qint64 size) {
     return _data.mid(_position, size);
 }
 
 QByteArray ReceivedMessage::read(qint64 size) {
     auto data = _data.mid(_position, size);
+    _position += size;
+    return data;
+}
+
+QByteArray ReceivedMessage::readHead(qint64 size) {
+    auto data = _headData.mid(_position, size);
     _position += size;
     return data;
 }
@@ -82,5 +107,5 @@ QByteArray ReceivedMessage::readWithoutCopy(qint64 size) {
 
 void ReceivedMessage::onComplete() {
     _isComplete = true;
-    emit completed(this);
+    emit completed();
 }

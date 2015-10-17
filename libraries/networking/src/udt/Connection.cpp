@@ -136,7 +136,7 @@ void Connection::queueReceivedMessagePacket(std::unique_ptr<Packet> packet) {
 
     while (pendingMessage.hasAvailablePackets()) {
         auto packet = pendingMessage.removeNextPacket();
-        _parentSocket->pendingMessageReceived(std::move(packet));
+        _parentSocket->messageReceived(std::move(packet));
     }
 
     if (pendingMessage.isComplete()) {

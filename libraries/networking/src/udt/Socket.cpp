@@ -212,15 +212,9 @@ void Socket::cleanupConnection(HifiSockAddr sockAddr) {
     }
 }
 
-void Socket::messageReceived(std::unique_ptr<PacketList> packetList) {
-    if (_packetListHandler) {
-        _packetListHandler(std::move(packetList));
-    }
-}
-
-void Socket::pendingMessageReceived(std::unique_ptr<Packet> packet) {
-    if (_pendingMessageHandler) {
-        _pendingMessageHandler(std::move(packet));
+void Socket::messageReceived(std::unique_ptr<Packet> packet) {
+    if (_messageHandler) {
+        _messageHandler(std::move(packet));
     }
 }
 

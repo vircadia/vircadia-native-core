@@ -9,7 +9,6 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-
 #ifndef hifi_ReceivedMessage_h
 #define hifi_ReceivedMessage_h
 
@@ -17,7 +16,6 @@
 #include <QObject>
 
 #include <atomic>
-#include <mutex>
 
 #include "NLPacketList.h"
 
@@ -33,15 +31,17 @@ public:
     PacketType getType() const { return _packetType; }
     PacketVersion getVersion() const { return _packetVersion; }
 
-    void appendPacket(std::unique_ptr<NLPacket> packet);
+    void setFailed();
 
+    void appendPacket(NLPacket& packet);
+
+    bool failed() const { return _failed; }
     bool isComplete() const { return _isComplete; }
 
     const QUuid& getSourceID() const { return _sourceID; }
     const HifiSockAddr& getSenderSockAddr() { return _senderSockAddr; }
 
     qint64 getPosition() const { return _position; }
-    //qint64 size() const { return _data.size(); }
 
     // Get the number of packets that were used to send this message
     qint64 getNumPackets() const { return _numPackets; }
@@ -55,9 +55,15 @@ public:
     qint64 peek(char* data, qint64 size);
     qint64 read(char* data, qint64 size);
 
+    // Temporary functionality for reading in the first HEAD_DATA_SIZE bytes of the message
+    // safely across threads.
+    qint64 readHead(char* data, qint64 size);
+
     QByteArray peek(qint64 size);
     QByteArray read(qint64 size);
     QByteArray readAll();
+
+    QByteArray readHead(qint64 size);
 
     // This will return a QByteArray referencing the underlying data _without_ refcounting that data.
     // Be careful when using this method, only use it when the lifetime of the returned QByteArray will not
@@ -67,26 +73,30 @@ public:
     template<typename T> qint64 peekPrimitive(T* data);
     template<typename T> qint64 readPrimitive(T* data);
 
+    template<typename T> qint64 readHeadPrimitive(T* data);
+
 signals:
-    void progress(ReceivedMessage*);
-    void completed(ReceivedMessage*);
+    void progress();
+    void completed();
 
 private slots:
     void onComplete();
 
 private:
     QByteArray _data;
+    QByteArray _headData;
+
+    std::atomic<qint64> _size { true };  
+    std::atomic<qint64> _position { 0 };
+    std::atomic<qint64> _numPackets { 0 };
+
     QUuid _sourceID;
-    qint64 _numPackets;
     PacketType _packetType;
     PacketVersion _packetVersion;
-    qint64 _position { 0 };
     HifiSockAddr _senderSockAddr;
 
-    // Total size of message, including UDT headers. Does not include UDP headers.
-    qint64 _totalDataSize;
-
     std::atomic<bool> _isComplete { true };  
+    std::atomic<bool> _failed { false };
 };
 
 Q_DECLARE_METATYPE(ReceivedMessage*)
@@ -98,6 +108,10 @@ template<typename T> qint64 ReceivedMessage::peekPrimitive(T* data) {
 
 template<typename T> qint64 ReceivedMessage::readPrimitive(T* data) {
     return read(reinterpret_cast<char*>(data), sizeof(T));
+}
+
+template<typename T> qint64 ReceivedMessage::readHeadPrimitive(T* data) {
+    return readHead(reinterpret_cast<char*>(data), sizeof(T));
 }
 
 #endif

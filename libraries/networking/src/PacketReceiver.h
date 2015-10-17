@@ -66,6 +66,7 @@ public:
     
     void handleVerifiedPacket(std::unique_ptr<udt::Packet> packet);
     void handleVerifiedMessagePacket(std::unique_ptr<udt::Packet> message);
+    void handleMessageFailure(HifiSockAddr from, udt::Packet::MessageNumber messageNumber);
 
 signals:
     void dataReceived(quint8 channelType, int bytes);
@@ -85,7 +86,7 @@ private:
     void registerDirectListener(PacketType type, QObject* listener, const char* slot);
 
     QMetaMethod matchingMethodForListener(PacketType type, QObject* object, const char* slot) const;
-    void registerVerifiedListener(PacketType type, QObject* listener, const QMetaMethod& slot);
+    void registerVerifiedListener(PacketType type, QObject* listener, const QMetaMethod& slot, bool deliverPending = false);
 
     QMutex _packetListenerLock;
     // TODO: replace the two following hashes with an std::vector once we switch Packet/PacketList to Message
