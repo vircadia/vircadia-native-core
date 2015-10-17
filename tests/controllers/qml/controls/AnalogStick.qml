@@ -8,6 +8,8 @@ Item {
     property int size: 64
     width: size
     height: size
+    property bool invertY: false
+
 
     property int halfSize: size / 2
     property var controlIds: [ 0, 0 ]
@@ -18,6 +20,9 @@ Item {
             Controllers.getValue(controlIds[0]),
             Controllers.getValue(controlIds[1])
         );
+        if (root.invertY) {
+            value.y = value.y * -1.0
+        }
         canvas.requestPaint();
     }
 

@@ -10,16 +10,24 @@ Column {
     id: root
     property var actions: Controllers.Actions
     property var standard: Controllers.Standard
+    property var hydra: null
     property var testMapping: null
     property var xbox: null
 
 
     Component.onCompleted: {
-        var patt = /^X360Controller/;
+        var xboxRegex = /^X360Controller/;
+        var hydraRegex = /^Hydra/;
         for (var prop in Controllers.Hardware) {
-            if(patt.test(prop)) {
+            if(xboxRegex.test(prop)) {
                 root.xbox = Controllers.Hardware[prop]
-                break
+                print("found xbox")
+                continue
+            }
+            if (hydraRegex.test(prop)) {
+                root.hydra = Controllers.Hardware[prop]
+                print("found hydra")
+                continue
             }
         }
     }
@@ -79,23 +87,15 @@ Column {
                 mapping.join(standard.LB, standard.RB).to(actions.Yaw);
                 mapping.from(actions.Yaw).clamp(0, 1).invert().to(actions.YAW_RIGHT);
                 mapping.from(actions.Yaw).clamp(-1, 0).to(actions.YAW_LEFT);
-
                 // mapping.modifier(keyboard.Ctrl).scale(2.0)
-
 //                mapping.from(keyboard.A).to(actions.TranslateLeft)
 //                mapping.from(keyboard.A, keyboard.Shift).to(actions.TurnLeft)
 //                mapping.from(keyboard.A, keyboard.Shift, keyboard.Ctrl).scale(2.0).to(actions.TurnLeft)
-
 //                // First loopbacks
 //                // Then non-loopbacks by constraint level (number of inputs)
 //                mapping.from(xbox.RX).deadZone(0.2).to(xbox.RX)
-
 //                mapping.from(standard.RB, standard.LB, keyboard.Shift).to(actions.TurnLeft)
-
-
 //                mapping.from(keyboard.A, keyboard.Shift).to(actions.TurnLeft)
-
-
 //                mapping.from(keyboard.W).when(keyboard.Shift).to(actions.Forward)
                 testMapping = mapping;
                 enabled = false
@@ -115,11 +115,18 @@ Column {
     }
 
     Row {
+        Xbox { device: root.standard; label: "Standard"; width: 360 }
+    }
+    
+    Row {
         spacing: 8
-        Xbox { device: root.xbox }
-        Xbox { device: root.standard }
+        Xbox { device: root.xbox; label: "XBox"; width: 360 }
     }
 
+    Row {
+        spacing: 8
+        Hydra { device: root.hydra; width: 360 }
+    }
 
     Row {
         spacing: 8
