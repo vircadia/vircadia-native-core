@@ -31,13 +31,27 @@ UserInputMapper::UserInputMapper() {
 UserInputMapper::~UserInputMapper() {
 }
 
-
-bool UserInputMapper::registerDevice(uint16 deviceID, const DeviceProxy::Pointer& proxy){
-    proxy->_name += " (" + QString::number(deviceID) + ")";
-    _registeredDevices[deviceID] = proxy;
-    qCDebug(controllers) << "Registered input device <" << proxy->_name << "> deviceID = " << deviceID;
-    return true;
+int UserInputMapper::recordDeviceOfType(const QString& deviceName) {
+    if (!_deviceCounts.contains(deviceName)) {
+        _deviceCounts[deviceName] = 0;
+    }
+    _deviceCounts[deviceName] += 1;
+    return _deviceCounts[deviceName];
 }
+
+bool UserInputMapper::registerDevice(uint16 deviceID, const DeviceProxy::Pointer& proxy) {
+    int numberOfType = recordDeviceOfType(proxy->_name);
+    
+    if (numberOfType > 1) {
+        proxy->_name += QString::number(numberOfType);
+    }
+    
+    qCDebug(controllers) << "Registered input device <" << proxy->_name << "> deviceID = " << deviceID;
+    _registeredDevices[deviceID] = proxy;
+    return true;
+    
+}
+
 
 bool UserInputMapper::registerStandardDevice(const DeviceProxy::Pointer& device) {
     device->_name = "Standard"; // Just to make sure
