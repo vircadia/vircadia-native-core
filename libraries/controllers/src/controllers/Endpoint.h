@@ -54,8 +54,4 @@ namespace controller {
     };
 }
 
-// FIXME - do we want to include the source Endpoint::Pointer in our calls to JS? If
-// so we need to marshall this across the invokeMethod() properly
-//Q_DECLARE_METATYPE(controller::Endpoint::Pointer);
-
 #endif
