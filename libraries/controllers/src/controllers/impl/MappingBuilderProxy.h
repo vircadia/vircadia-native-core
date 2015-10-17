@@ -33,7 +33,7 @@ public:
 
     Q_INVOKABLE QObject* from(const QJSValue& source);
     Q_INVOKABLE QObject* from(const QScriptValue& source);
-    Q_INVOKABLE QObject* join(const QJSValue& source1, const QJSValue& source2);
+    Q_INVOKABLE QObject* makeAxis(const QJSValue& source1, const QJSValue& source2);
 
     Q_INVOKABLE QObject* enable(bool enable = true);
     Q_INVOKABLE QObject* disable() { return enable(false); }

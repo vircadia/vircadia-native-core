@@ -15,6 +15,7 @@
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QEventLoop>
+#include <QThread>
 
 #include <GLMHelpers.h>
 #include <DependencyManager.h>
@@ -60,24 +61,35 @@ namespace controller {
         QJSValue _callable;
     };
 
-    class ScriptEndpoint : public Endpoint {
-    public:
-        ScriptEndpoint(const QScriptValue& callable)
-            : Endpoint(UserInputMapper::Input::INVALID_INPUT), _callable(callable) {
+    float ScriptEndpoint::value() {
+        updateValue();
+        return _lastValue;
+    }
+
+    void ScriptEndpoint::updateValue() {
+        if (QThread::currentThread() != thread()) {
+            QMetaObject::invokeMethod(this, "updateValue", Qt::QueuedConnection);
+            return;
         }
 
-        virtual float value() {
-            float result = (float)_callable.call().toNumber();
-            return result;
-        }
+        _lastValue = (float)_callable.call().toNumber();
+    }
 
-        virtual void apply(float newValue, float oldValue, const Pointer& source) {
-            _callable.call(QScriptValue(), QScriptValueList({ QScriptValue(newValue) }));
-        }
+    void ScriptEndpoint::apply(float newValue, float oldValue, const Pointer& source) {
+        internalApply(newValue, oldValue, source->getInput().getID());
+    }
 
-    private:
-        QScriptValue _callable;
-    };
+    void ScriptEndpoint::internalApply(float newValue, float oldValue, int sourceID) {
+        if (QThread::currentThread() != thread()) {
+            QMetaObject::invokeMethod(this, "internalApply", Qt::QueuedConnection,
+                Q_ARG(float, newValue),
+                Q_ARG(float, oldValue),
+                Q_ARG(int, sourceID));
+            return;
+        }
+        _callable.call(QScriptValue(), 
+                       QScriptValueList({ QScriptValue(newValue), QScriptValue(oldValue),  QScriptValue(sourceID) }));
+    }
 
     class CompositeEndpoint : public Endpoint, Endpoint::Pair {
     public:
@@ -108,9 +120,9 @@ namespace controller {
         virtual void apply(float newValue, float oldValue, const Pointer& source) override { 
             
             _currentValue += newValue;
-            if (!(_id == UserInputMapper::Input::INVALID_INPUT)) {
+            if (!(_input == UserInputMapper::Input::INVALID_INPUT)) {
                 auto userInputMapper = DependencyManager::get<UserInputMapper>();
-                userInputMapper->deltaActionState(UserInputMapper::Action(_id.getChannel()), newValue);
+                userInputMapper->deltaActionState(UserInputMapper::Action(_input.getChannel()), newValue);
             }
         }
 
@@ -209,6 +221,7 @@ namespace controller {
     }
 
     QObject* ScriptingInterface::loadMapping(const QString& jsonUrl) {
+        QObject* result = nullptr;
         auto request = ResourceManager::createResourceRequest(nullptr, QUrl(jsonUrl));
         if (request) {
             QEventLoop eventLoop;
@@ -220,12 +233,13 @@ namespace controller {
             }
 
             if (request->getResult() == ResourceRequest::Success) {
-                return parseMapping(QString(request->getData()));
+                result = parseMapping(QString(request->getData()));
             } else {
                 qDebug() << "Failed to load mapping url <" << jsonUrl << ">" << endl;
-                return nullptr;
             }
+            request->deleteLater();
         }
+        return result;
     }
 
     Q_INVOKABLE QObject* newMapping(const QJsonObject& json);
@@ -325,7 +339,7 @@ namespace controller {
                     }
 
                     // Standard controller destinations can only be can only be used once.
-                    if (userInputMapper->getStandardDeviceID() == destination->getId().getDevice()) {
+                    if (userInputMapper->getStandardDeviceID() == destination->getInput().getDevice()) {
                         writtenEndpoints.insert(destination);
                     }
 
@@ -479,31 +493,34 @@ namespace controller {
         auto devices = userInputMapper->getDevices();
         QSet<QString> foundDevices;
         for (const auto& deviceMapping : devices) {
-            auto device = deviceMapping.second.get();
-            auto deviceName = QString(device->getName()).remove(ScriptingInterface::SANITIZE_NAME_EXPRESSION);
-            qCDebug(controllers) << "Device" << deviceMapping.first << ":" << deviceName;
-            foundDevices.insert(device->getName());
-            if (_hardware.contains(deviceName)) {
-                continue;
-            }
-
-            // Expose the IDs to JS
-            _hardware.insert(deviceName, createDeviceMap(device));
-
-            // Create the endpoints
-            for (const auto& inputMapping : device->getAvailabeInputs()) {
-                const auto& input = inputMapping.first;
-                // Ignore aliases
-                if (_endpoints.count(input)) {
+            auto deviceID = deviceMapping.first;
+            if (deviceID != userInputMapper->getStandardDeviceID()) {
+                auto device = deviceMapping.second.get();
+                auto deviceName = QString(device->getName()).remove(ScriptingInterface::SANITIZE_NAME_EXPRESSION);
+                qCDebug(controllers) << "Device" << deviceMapping.first << ":" << deviceName;
+                foundDevices.insert(device->getName());
+                if (_hardware.contains(deviceName)) {
                     continue;
                 }
-                _endpoints[input] = std::make_shared<LambdaEndpoint>([=] {
-                    auto deviceProxy = userInputMapper->getDeviceProxy(input);
-                    if (!deviceProxy) {
-                        return 0.0f;
+
+                // Expose the IDs to JS
+                _hardware.insert(deviceName, createDeviceMap(device));
+
+                // Create the endpoints
+                for (const auto& inputMapping : device->getAvailabeInputs()) {
+                    const auto& input = inputMapping.first;
+                    // Ignore aliases
+                    if (_endpoints.count(input)) {
+                        continue;
                     }
-                    return deviceProxy->getValue(input, 0);
-                });
+                    _endpoints[input] = std::make_shared<LambdaEndpoint>([=] {
+                        auto deviceProxy = userInputMapper->getDeviceProxy(input);
+                        if (!deviceProxy) {
+                            return 0.0f;
+                        }
+                        return deviceProxy->getValue(input, 0);
+                    });
+                }
             }
         }
     }

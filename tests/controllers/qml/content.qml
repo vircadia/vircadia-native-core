@@ -83,8 +83,7 @@ Column {
                 mapping.from(function() { return Math.sin(Date.now() / 250); }).to(standard.RX);
                 // Constrainting a value to -1, 0, or 1, with a deadzone
                 mapping.from(xbox.LY).deadZone(0.5).constrainToInteger().to(standard.LY);
-                // change join to makeAxis
-                mapping.join(standard.LB, standard.RB).to(actions.Yaw);
+                mapping.makeAxis(standard.LB, standard.RB).to(actions.Yaw);
                 mapping.from(actions.Yaw).clamp(0, 1).invert().to(actions.YAW_RIGHT);
                 mapping.from(actions.Yaw).clamp(-1, 0).to(actions.YAW_LEFT);
                 // mapping.modifier(keyboard.Ctrl).scale(2.0)

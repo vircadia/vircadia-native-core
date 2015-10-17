@@ -70,7 +70,7 @@ mapping2.enable();
 
 Controller.enableMapping("example2");
 */
-var mapping3 = Controller.loadMapping("E:/Github/hifi/examples/controllers/example3.json");
+var mapping3 = Controller.loadMapping(Script.resolvePath("example3.json"));
 Controller.enableMapping("example3");
 
 /*

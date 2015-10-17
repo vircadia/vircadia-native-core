@@ -21,6 +21,7 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
 
+#include <QThread>
 #include <QtCore/QObject>
 #include <QtCore/QVariant>
 
@@ -138,6 +139,25 @@ namespace controller {
         MappingMap _mappingsByName;
         MappingStack _activeMappings;
     };
+
+    class ScriptEndpoint : public Endpoint {
+        Q_OBJECT;
+    public:
+        ScriptEndpoint(const QScriptValue& callable)
+            : Endpoint(UserInputMapper::Input::INVALID_INPUT), _callable(callable) {
+        }
+
+        virtual float value();
+        virtual void apply(float newValue, float oldValue, const Pointer& source);
+
+    protected:
+        Q_INVOKABLE void updateValue();
+        Q_INVOKABLE virtual void internalApply(float newValue, float oldValue, int sourceID);
+    private:
+        QScriptValue _callable;
+        float _lastValue = 0.0f;
+    };
+
 }
 
 
