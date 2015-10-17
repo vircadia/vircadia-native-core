@@ -57,3 +57,28 @@ UserInputMapper::PoseValue InputDevice::getPose(int channel) const {
         return UserInputMapper::PoseValue();
     }
 }
+
+UserInputMapper::Input InputDevice::makeInput(controller::StandardButtonChannel button) {
+    return UserInputMapper::Input(_deviceID, button, UserInputMapper::ChannelType::BUTTON);
+}
+
+UserInputMapper::Input InputDevice::makeInput(controller::StandardAxisChannel axis) {
+    return UserInputMapper::Input(_deviceID, axis, UserInputMapper::ChannelType::AXIS);
+}
+
+UserInputMapper::Input InputDevice::makeInput(controller::StandardPoseChannel pose) {
+    return UserInputMapper::Input(_deviceID, pose, UserInputMapper::ChannelType::POSE);
+}
+
+UserInputMapper::InputPair InputDevice::makePair(controller::StandardButtonChannel button, const QString& name) {
+    return UserInputMapper::InputPair(makeInput(button), name);
+}
+
+UserInputMapper::InputPair InputDevice::makePair(controller::StandardAxisChannel axis, const QString& name) {
+    return UserInputMapper::InputPair(makeInput(axis), name);
+}
+
+UserInputMapper::InputPair InputDevice::makePair(controller::StandardPoseChannel pose, const QString& name) {
+    return UserInputMapper::InputPair(makeInput(pose), name);
+}
+
