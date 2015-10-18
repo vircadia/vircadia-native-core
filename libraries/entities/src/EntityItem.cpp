@@ -79,9 +79,9 @@ EntityItem::EntityItem(const EntityItemID& entityItemID) :
     _simulated(false)
 {
     // explicitly set transform parts to set dirty flags used by batch rendering
-    _transform.setTranslation(ENTITY_ITEM_DEFAULT_POSITION);
-    _transform.setRotation(ENTITY_ITEM_DEFAULT_ROTATION);
-    _transform.setScale(ENTITY_ITEM_DEFAULT_DIMENSIONS);
+    setPosition(ENTITY_ITEM_DEFAULT_POSITION);
+    setRotation(ENTITY_ITEM_DEFAULT_ROTATION);
+    setScale(ENTITY_ITEM_DEFAULT_DIMENSIONS);
     quint64 now = usecTimestampNow();
     _lastSimulated = now;
     _lastUpdated = now;
@@ -1176,7 +1176,7 @@ void EntityItem::setDimensions(const glm::vec3& value) {
     if (value.x <= 0.0f || value.y <= 0.0f || value.z <= 0.0f) {
         return;
     }
-    _transform.setScale(value);
+    setScale(value);
     requiresRecalcBoxes();
 }
 

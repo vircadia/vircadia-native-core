@@ -35,3 +35,15 @@ void SpatiallyNestable::setOrientation(const glm::quat& orientation) {
 const Transform& SpatiallyNestable::getTransform() const {
     return _transform;
 }
+
+void SpatiallyNestable::setTransform(const Transform& transform) {
+    _transform = transform;
+}
+
+const glm::vec3& SpatiallyNestable::getScale() const {
+    return _transform.getScale();
+}
+
+void SpatiallyNestable::setScale(const glm::vec3& scale) {
+    _transform.setScale(scale);
+}

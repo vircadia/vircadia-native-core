@@ -184,8 +184,7 @@ public:
     const Transform getTransformToCenter() const;
     void setTranformToCenter(const Transform& transform);
 
-    inline const Transform& getTransform() const { return _transform; }
-    inline void setTransform(const Transform& transform) { _transform = transform; requiresRecalcBoxes(); }
+    virtual void setTransform(const Transform& transform) { SpatiallyNestable::setTransform(transform); requiresRecalcBoxes(); }
 
     /// Position in meters (-TREE_SCALE - TREE_SCALE)
     virtual const glm::vec3& getPosition() const { return SpatiallyNestable::getPosition(); }
@@ -204,7 +203,7 @@ public:
     void setDescription(QString value) { _description = value; }
 
     /// Dimensions in meters (0.0 - TREE_SCALE)
-    inline const glm::vec3& getDimensions() const { return _transform.getScale(); }
+    inline const glm::vec3& getDimensions() const { return getScale(); }
     virtual void setDimensions(const glm::vec3& value);
 
     float getGlowLevel() const { return _glowLevel; }

@@ -27,20 +27,32 @@ public:
     SpatiallyNestable();
     virtual ~SpatiallyNestable() { }
 
+    // world frame
+    virtual const Transform& getTransform() const;
+    virtual void setTransform(const Transform& transform);
+
     virtual const glm::vec3& getPosition() const;
     virtual void setPosition(const glm::vec3& position);
+
     virtual const glm::quat& getOrientation() const;
     virtual void setOrientation(const glm::quat& orientation);
-    virtual const Transform& getTransform() const;
+
+    virtual const glm::vec3& getScale() const;
+    virtual void setScale(const glm::vec3& scale);
+
+    // model frame
+    // ...
+
 
 protected:
-    Transform _transform;
-
     QUuid _parentID; // what is this thing's transform relative to?
     int _parentJointIndex; // which joint of the parent is this relative to?
 
     SpatiallyNestableWeakPointer _parent;
     QVector<SpatiallyNestableWeakPointer> _children;
+
+private:
+    Transform _transform;
 };
 
 
