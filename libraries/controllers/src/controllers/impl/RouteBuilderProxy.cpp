@@ -20,6 +20,12 @@
 
 namespace controller {
 
+void RouteBuilderProxy::to(int destinationInput) {
+    qCDebug(controllers) << "Completing route " << destinationInput;
+    auto destinationEndpoint = _parent.endpointFor(UserInputMapper::Input(destinationInput));
+    return to(destinationEndpoint);
+}
+
 void RouteBuilderProxy::to(const QJSValue& destination) {
     qCDebug(controllers) << "Completing route " << destination.toString();
     auto destinationEndpoint = _parent.endpointFor(destination);

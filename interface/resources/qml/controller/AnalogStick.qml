@@ -17,8 +17,8 @@ Item {
 
     function update() {
         value = Qt.vector2d(
-            Controllers.getValue(controlIds[0]),
-            Controllers.getValue(controlIds[1])
+            Controller.getValue(controlIds[0]),
+            Controller.getValue(controlIds[1])
         );
         if (root.invertY) {
             value.y = value.y * -1.0

@@ -43,13 +43,33 @@
 #include <DependencyManager.h>
 #include <controllers/UserInputMapper.h>
 
-const QString& getQmlDir() {
+const QString& getResourcesDir() {
     static QString dir;
     if (dir.isEmpty()) {
         QDir path(__FILE__);
         path.cdUp();
-        dir = path.cleanPath(path.absoluteFilePath("../qml/")) + "/";
+        dir = path.cleanPath(path.absoluteFilePath("../../../interface/resources/")) + "/";
+        qDebug() << "Resources Path: " << dir;
+    }
+    return dir;
+}
+
+const QString& getQmlDir() {
+    static QString dir;
+    if (dir.isEmpty()) {
+        dir = getResourcesDir() + "qml/";
         qDebug() << "Qml Path: " << dir;
+    }
+    return dir;
+}
+
+const QString& getTestQmlDir() {
+    static QString dir;
+    if (dir.isEmpty()) {
+        QDir path(__FILE__);
+        path.cdUp();
+        dir = path.cleanPath(path.absoluteFilePath("../")) + "/qml/";
+        qDebug() << "Qml Test Path: " << dir;
     }
     return dir;
 }
@@ -88,6 +108,7 @@ public:
 int main(int argc, char** argv) {
     QGuiApplication app(argc, argv);
     QQmlApplicationEngine engine;
+    auto rootContext = engine.rootContext();
     new PluginContainerProxy();
 
     // Simulate our application idle loop
@@ -119,11 +140,16 @@ int main(int argc, char** argv) {
             }
             inputPlugin->pluginUpdate(0, false);
         }
-        auto rootContext = engine.rootContext();
         rootContext->setContextProperty("Controllers", new MyControllerScriptingInterface());
     }
-    
-    engine.load(getQmlDir() + "main.qml");
+    qDebug() << getQmlDir();
+    rootContext->setContextProperty("ResourcePath", getQmlDir());
+    engine.setBaseUrl(QUrl::fromLocalFile(getQmlDir()));
+    engine.addImportPath(getQmlDir());
+    engine.load(getTestQmlDir() + "main.qml");
+    for (auto pathItem : engine.importPathList()) {
+        qDebug() << pathItem;
+    }
     app.exec();
     return 0;
 }

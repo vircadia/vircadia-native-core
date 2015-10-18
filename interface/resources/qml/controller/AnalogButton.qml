@@ -5,19 +5,21 @@ import QtQuick.Dialogs 1.0
 
 Item {
     id: root
+    property int size: 64
     width: size
     height: size
-    property int size: 64
     property int controlId: 0
     property real value: 0
     property color color: 'black'
 
+    function update() {
+        value = Controller.getValue(controlId);
+        canvas.requestPaint();
+    }
+
     Timer {
         interval: 50; running: true; repeat: true
-        onTriggered: {
-            root.value = Controllers.getValue(root.controlId);
-            canvas.requestPaint();
-        }
+        onTriggered: root.update();
     }
 
     Canvas {
@@ -29,11 +31,11 @@ Item {
            var ctx = canvas.getContext('2d');
            ctx.save();
            ctx.beginPath();
-           ctx.clearRect(0, 0, width, height);
-           if (root.value > 0.0) {
-               ctx.fillStyle = root.color
-               ctx.fillRect(0, 0, canvas.width, canvas.height);
-           }
+           ctx.clearRect(0, 0, canvas.width, canvas.height);
+           var fillHeight = root.value * canvas.height;
+
+           ctx.fillStyle = 'red'
+           ctx.fillRect(0, canvas.height - fillHeight, canvas.width, fillHeight);
            ctx.fill();
            ctx.restore()
        }

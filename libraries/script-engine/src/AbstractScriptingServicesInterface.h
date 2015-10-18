@@ -12,24 +12,13 @@
 #ifndef hifi_AbstractScriptingServicesInterface_h
 #define hifi_AbstractScriptingServicesInterface_h
 
-namespace controller {
-    class ScriptingInterface;
-}
-
-class Transform;
 class ScriptEngine;
-class QThread;
 
 /// Interface provided by Application to other objects that need access to scripting services of the application
 class AbstractScriptingServicesInterface {
 public:
-    
-    /// Returns the controller interface for the application
-    virtual controller::ScriptingInterface* getControllerScriptingInterface() = 0;
-
     /// Registers application specific services with a script engine.
     virtual void registerScriptEngineWithApplicationServices(ScriptEngine* scriptEngine) = 0;
-
 };
 
 

@@ -26,7 +26,6 @@
 #include "Logging.h"
 #include "InputDevice.h"
 
-
 namespace controller {
 
     class VirtualEndpoint : public Endpoint {
@@ -144,39 +143,9 @@ namespace controller {
         }
         return deviceMap;
     }
+    
 
-    ScriptingInterface::ScriptingInterface() {
-        auto userInputMapper = DependencyManager::get<UserInputMapper>();
-        qCDebug(controllers) << "Setting up standard controller abstraction";
-        auto standardDevice = userInputMapper->getStandardDevice();
-        // Expose the IDs to JS
-        _standard = createDeviceMap(standardDevice.get());
-        // Create the endpoints
-        for (const auto& inputMapping : standardDevice->getAvailabeInputs()) {
-            const auto& standardInput = inputMapping.first;
-            // Ignore aliases
-            if (_endpoints.count(standardInput)) {
-                continue;
-            }
-            _endpoints[standardInput] = std::make_shared<VirtualEndpoint>(standardInput);
-        }
-
-        // FIXME allow custom user actions?
-        auto actionNames = userInputMapper->getActionNames();
-        int actionNumber = 0;
-        qCDebug(controllers) << "Setting up standard actions";
-        for (const auto& actionName : actionNames) {
-            UserInputMapper::Input actionInput(UserInputMapper::Input::ACTIONS_DEVICE, actionNumber++, UserInputMapper::ChannelType::AXIS);
-            qCDebug(controllers) << "\tAction: " << actionName << " " << QString::number(actionInput.getID(), 16);
-            // Expose the IDs to JS
-            QString cleanActionName = QString(actionName).remove(ScriptingInterface::SANITIZE_NAME_EXPRESSION);
-            _actions.insert(cleanActionName, actionInput.getID());
-
-            // Create the action endpoints
-            _endpoints[actionInput] = std::make_shared<ActionEndpoint>(actionInput);
-        }
-
-        updateMaps();
+    ScriptingInterface::~ScriptingInterface() {
     }
 
     QObject* ScriptingInterface::newMapping(const QString& mappingName) {
@@ -235,7 +204,7 @@ namespace controller {
             if (request->getResult() == ResourceRequest::Success) {
                 result = parseMapping(QString(request->getData()));
             } else {
-                qDebug() << "Failed to load mapping url <" << jsonUrl << ">" << endl;
+                qCWarning(controllers) << "Failed to load mapping url <" << jsonUrl << ">" << endl;
             }
             request->deleteLater();
         }
@@ -245,6 +214,7 @@ namespace controller {
     Q_INVOKABLE QObject* newMapping(const QJsonObject& json);
 
     void ScriptingInterface::enableMapping(const QString& mappingName, bool enable) {
+        qCDebug(controllers) << "Attempting to enable mapping " << mappingName;
         auto iterator = _mappingsByName.find(mappingName);
         if (_mappingsByName.end() == iterator) {
             qCWarning(controllers) << "Request to enable / disable unknown mapping " << mappingName;
@@ -524,8 +494,44 @@ namespace controller {
             }
         }
     }
-
 } // namespace controllers
+
+
+using namespace controller;
+// FIXME this throws a hissy fit on MSVC if I put it in the main controller namespace block
+ScriptingInterface::ScriptingInterface() {
+    auto userInputMapper = DependencyManager::get<UserInputMapper>();
+    qCDebug(controllers) << "Setting up standard controller abstraction";
+    auto standardDevice = userInputMapper->getStandardDevice();
+    // Expose the IDs to JS
+    _standard = createDeviceMap(standardDevice.get());
+    // Create the endpoints
+    for (const auto& inputMapping : standardDevice->getAvailabeInputs()) {
+        const auto& standardInput = inputMapping.first;
+        // Ignore aliases
+        if (_endpoints.count(standardInput)) {
+            continue;
+        }
+        _endpoints[standardInput] = std::make_shared<VirtualEndpoint>(standardInput);
+    }
+
+    // FIXME allow custom user actions?
+    auto actionNames = userInputMapper->getActionNames();
+    int actionNumber = 0;
+    qCDebug(controllers) << "Setting up standard actions";
+    for (const auto& actionName : actionNames) {
+        UserInputMapper::Input actionInput(UserInputMapper::Input::ACTIONS_DEVICE, actionNumber++, UserInputMapper::ChannelType::AXIS);
+        qCDebug(controllers) << "\tAction: " << actionName << " " << QString::number(actionInput.getID(), 16);
+        // Expose the IDs to JS
+        QString cleanActionName = QString(actionName).remove(ScriptingInterface::SANITIZE_NAME_EXPRESSION);
+        _actions.insert(cleanActionName, actionInput.getID());
+
+        // Create the action endpoints
+        _endpoints[actionInput] = std::make_shared<ActionEndpoint>(actionInput);
+    }
+
+    updateMaps();
+}
 
 //var mapping = Controller.newMapping();
 //mapping.map(hydra.LeftButton0, actions.ContextMenu);
