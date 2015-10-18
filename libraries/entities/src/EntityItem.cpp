@@ -46,7 +46,6 @@ EntityItem::EntityItem(const EntityItemID& entityItemID) :
     _lastEditedFromRemoteInRemoteTime(0),
     _created(UNKNOWN_CREATED_TIME),
     _changedOnServer(0),
-    _transform(),
     _glowLevel(ENTITY_ITEM_DEFAULT_GLOW_LEVEL),
     _localRenderAlpha(ENTITY_ITEM_DEFAULT_LOCAL_RENDER_ALPHA),
     _density(ENTITY_ITEM_DEFAULT_DENSITY),
@@ -1516,7 +1515,6 @@ bool EntityItem::addAction(EntitySimulation* simulation, EntityActionPointer act
 }
 
 bool EntityItem::addActionInternal(EntitySimulation* simulation, EntityActionPointer action) {
-    assertLocked();
     assert(action);
     assert(simulation);
     auto actionOwnerEntity = action->getOwnerEntity().lock();
@@ -1570,7 +1568,6 @@ bool EntityItem::removeAction(EntitySimulation* simulation, const QUuid& actionI
 }
 
 bool EntityItem::removeActionInternal(const QUuid& actionID, EntitySimulation* simulation) {
-    assertWriteLocked();
     _previouslyDeletedActions.insert(actionID, usecTimestampNow());
     if (_objectActions.contains(actionID)) {
         if (!simulation) {
@@ -1615,7 +1612,6 @@ bool EntityItem::clearActions(EntitySimulation* simulation) {
 
 
 void EntityItem::deserializeActions() {
-    assertUnlocked();
     withWriteLock([&] {
         deserializeActionsInternal();
     });
@@ -1623,8 +1619,6 @@ void EntityItem::deserializeActions() {
 
 
 void EntityItem::deserializeActionsInternal() {
-    assertWriteLocked();
-
     quint64 now = usecTimestampNow();
 
     if (!_element) {
@@ -1704,7 +1698,6 @@ void EntityItem::deserializeActionsInternal() {
 }
 
 void EntityItem::checkWaitingToRemove(EntitySimulation* simulation) {
-    assertLocked();
     foreach(QUuid actionID, _actionsToRemove) {
         removeActionInternal(actionID, simulation);
     }
@@ -1712,14 +1705,12 @@ void EntityItem::checkWaitingToRemove(EntitySimulation* simulation) {
 }
 
 void EntityItem::setActionData(QByteArray actionData) {
-    assertUnlocked();
     withWriteLock([&] {
         setActionDataInternal(actionData);
     });
 }
 
 void EntityItem::setActionDataInternal(QByteArray actionData) {
-    assertWriteLocked();
     if (_allActionsDataCache != actionData) {
         _allActionsDataCache = actionData;
         deserializeActionsInternal();
@@ -1728,8 +1719,6 @@ void EntityItem::setActionDataInternal(QByteArray actionData) {
 }
 
 void EntityItem::serializeActions(bool& success, QByteArray& result) const {
-    assertLocked();
-
     if (_objectActions.size() == 0) {
         success = true;
         result.clear();
@@ -1771,7 +1760,6 @@ const QByteArray EntityItem::getActionDataInternal() const {
 
 const QByteArray EntityItem::getActionData() const {
     QByteArray result;
-    assertUnlocked();
     withReadLock([&] {
         result = getActionDataInternal();
     });

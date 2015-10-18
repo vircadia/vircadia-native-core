@@ -199,10 +199,6 @@ public slots:
 
     Q_INVOKABLE void updateMotionBehaviorFromMenu();
 
-    void clearReferential();
-    bool setModelReferential(const QUuid& id);
-    bool setJointReferential(const QUuid& id, int jointIndex);
-
     bool isRecording();
     qint64 recorderElapsed();
     void startRecording();

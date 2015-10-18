@@ -43,7 +43,6 @@
 #include "AvatarManager.h"
 #include "Environment.h"
 #include "Menu.h"
-#include "ModelReferential.h"
 #include "MyAvatar.h"
 #include "Physics.h"
 #include "Recorder.h"
@@ -207,10 +206,6 @@ void MyAvatar::update(float deltaTime) {
         setPosition(_goToPosition);
         setOrientation(_goToOrientation);
         _goToPending = false;
-    }
-
-    if (_referential) {
-        _referential->update();
     }
 
     Head* head = getHead();
@@ -537,32 +532,6 @@ void MyAvatar::render(RenderArgs* renderArgs, const glm::vec3& cameraPosition) {
     if (Menu::getInstance()->isOptionChecked(MenuOption::ShowIKConstraints) &&
         renderArgs && renderArgs->_batch) {
         _skeletonModel.renderIKConstraints(*renderArgs->_batch);
-    }
-}
-
-void MyAvatar::clearReferential() {
-    changeReferential(NULL);
-}
-
-bool MyAvatar::setModelReferential(const QUuid& id) {
-    EntityTreePointer tree = qApp->getEntities()->getTree();
-    changeReferential(new ModelReferential(id, tree, this));
-    if (_referential->isValid()) {
-        return true;
-    } else {
-        changeReferential(NULL);
-        return false;
-    }
-}
-
-bool MyAvatar::setJointReferential(const QUuid& id, int jointIndex) {
-    EntityTreePointer tree = qApp->getEntities()->getTree();
-    changeReferential(new JointReferential(jointIndex, id, tree, this));
-    if (!_referential->isValid()) {
-        return true;
-    } else {
-        changeReferential(NULL);
-        return false;
     }
 }
 

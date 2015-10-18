@@ -57,7 +57,6 @@ typedef unsigned long long quint64;
 #include "PathUtils.h"
 #include "Player.h"
 #include "Recorder.h"
-#include "Referential.h"
 
 using AvatarSharedPointer = std::shared_ptr<AvatarData>;
 using AvatarWeakPointer = std::weak_ptr<AvatarData>;
@@ -174,7 +173,7 @@ public:
     const QUuid& getSessionUUID() const { return _sessionUUID; }
 
     const glm::vec3& getPosition() const;
-    virtual void setPosition(const glm::vec3 position, bool overideReferential = false);
+    virtual void setPosition(const glm::vec3 position);
 
     glm::vec3 getHandPosition() const;
     void setHandPosition(const glm::vec3& handPosition);
@@ -199,7 +198,7 @@ public:
     void setBodyRoll(float bodyRoll) { _bodyRoll = bodyRoll; }
 
     glm::quat getOrientation() const;
-    virtual void setOrientation(const glm::quat& orientation, bool overideReferential = false);
+    virtual void setOrientation(const glm::quat& orientation);
 
     void nextAttitude(glm::vec3 position, glm::quat orientation); // Can be safely called at any time.
     void startCapture();    // start/end of the period in which the latest values are about to be captured for camera, etc.
@@ -319,7 +318,6 @@ public:
     void setOwningAvatarMixer(const QWeakPointer<Node>& owningAvatarMixer) { _owningAvatarMixer = owningAvatarMixer; }
     
     const AABox& getLocalAABox() const { return _localAABox; }
-    const Referential* getReferential() const { return _referential; }
 
     int getUsecsSinceLastUpdate() const { return _averageBytesReceived.getUsecsSinceLastEvent(); }
     int getAverageBytesReceivedPerSecond() const;
@@ -339,7 +337,6 @@ public slots:
     void setBillboardFromNetworkReply();
     void setJointMappingsFromNetworkReply();
     void setSessionUUID(const QUuid& sessionUUID) { _sessionUUID = sessionUUID; }
-    bool hasReferential();
     
     bool isPlaying();
     bool isPaused();
@@ -369,8 +366,6 @@ protected:
     glm::vec3 _position = START_LOCATION;
     glm::vec3 _handPosition;
     
-    Referential* _referential;
-
     //  Body rotation
     float _bodyYaw;     // degrees
     float _bodyPitch;   // degrees
@@ -421,7 +416,6 @@ protected:
     
     /// Loads the joint indices, names from the FST file (if any)
     virtual void updateJointMappings();
-    void changeReferential(Referential* ref);
 
     glm::vec3 _velocity;
     glm::vec3 _targetVelocity;
