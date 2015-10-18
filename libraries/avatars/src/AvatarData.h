@@ -50,6 +50,7 @@ typedef unsigned long long quint64;
 #include <Node.h>
 #include <RegisteredMetaTypes.h>
 #include <SimpleMovingAverage.h>
+#include <SpatiallyNestable.h>
 
 #include "AABox.h"
 #include "HandData.h"
@@ -134,7 +135,7 @@ class QDataStream;
 class AttachmentData;
 class JointData;
 
-class AvatarData : public QObject {
+class AvatarData : public QObject, public SpatiallyNestable {
     Q_OBJECT
 
     Q_PROPERTY(glm::vec3 position READ getPosition WRITE setPosition)
@@ -172,9 +173,6 @@ public:
 
     const QUuid& getSessionUUID() const { return _sessionUUID; }
 
-    const glm::vec3& getPosition() const;
-    virtual void setPosition(const glm::vec3 position);
-
     glm::vec3 getHandPosition() const;
     void setHandPosition(const glm::vec3& handPosition);
 
@@ -189,16 +187,13 @@ public:
     /// \return number of bytes parsed
     virtual int parseDataFromBuffer(const QByteArray& buffer);
 
-    //  Body Rotation (degrees)
-    float getBodyYaw() const { return _bodyYaw; }
-    void setBodyYaw(float bodyYaw) { _bodyYaw = bodyYaw; }
-    float getBodyPitch() const { return _bodyPitch; }
-    void setBodyPitch(float bodyPitch) { _bodyPitch = bodyPitch; }
-    float getBodyRoll() const { return _bodyRoll; }
-    void setBodyRoll(float bodyRoll) { _bodyRoll = bodyRoll; }
-
-    glm::quat getOrientation() const;
-    virtual void setOrientation(const glm::quat& orientation);
+    // Body Rotation (degrees)
+    float getBodyYaw() const;
+    void setBodyYaw(float bodyYaw);
+    float getBodyPitch() const;
+    void setBodyPitch(float bodyPitch);
+    float getBodyRoll() const;
+    void setBodyRoll(float bodyRoll);
 
     void nextAttitude(glm::vec3 position, glm::quat orientation); // Can be safely called at any time.
     void startCapture();    // start/end of the period in which the latest values are about to be captured for camera, etc.
@@ -363,13 +358,7 @@ public slots:
     
 protected:
     QUuid _sessionUUID;
-    glm::vec3 _position = START_LOCATION;
     glm::vec3 _handPosition;
-    
-    //  Body rotation
-    float _bodyYaw;     // degrees
-    float _bodyPitch;   // degrees
-    float _bodyRoll;    // degrees
 
     glm::vec3 _nextPosition {};
     glm::quat _nextOrientation {};

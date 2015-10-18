@@ -43,7 +43,7 @@ void Hand::simulate(float deltaTime, bool isMine) {
 void Hand::renderHandTargets(RenderArgs* renderArgs, bool isMine) {
     float avatarScale = 1.0f;
     if (_owningAvatar) {
-        avatarScale = _owningAvatar->getScale();
+        avatarScale = _owningAvatar->getAvatarScale();
     }
 
     const float alpha = 1.0f;
