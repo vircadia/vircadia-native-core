@@ -19,6 +19,7 @@
 #include <QMutex>
 
 #include <PerfStat.h>
+#include <DependencyManager.h>
 #include <NumericalConstants.h>
 
 #include "GLEscrow.h"
@@ -614,3 +615,8 @@ QQuickWindow* OffscreenQmlSurface::getWindow() {
 QSize OffscreenQmlSurface::size() const {
     return _renderer->_quickWindow->geometry().size();
 }
+
+QQmlContext* OffscreenQmlSurface::getRootContext() {
+    return _qmlEngine->rootContext();
+}
+

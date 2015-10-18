@@ -3,8 +3,7 @@ import QtQuick.Controls 1.0
 import QtQuick.Layouts 1.0
 import QtQuick.Dialogs 1.0
 
-import "./../controls"
-
+import ".."
 
 Item {
     id: root
@@ -16,27 +15,31 @@ Item {
     property color color: 'black'
 
     ToggleButton {
-        controlId: device.Up
+        controlId: device.Y
         x: spacer
         width: spacer; height: spacer
+        color: 'yellow'
     }
 
     ToggleButton {
-        controlId: device.Left
+        controlId: device.X
         y: spacer
         width: spacer; height: spacer
+        color: 'blue'
     }
 
     ToggleButton {
-        controlId: device.Right
+        controlId: device.B
         x: spacer * 2; y: spacer
         width: spacer; height: spacer
+        color: 'red'
     }
 
     ToggleButton {
-        controlId: device.Down
+        controlId: device.A
         x: spacer; y: spacer * 2
         width: spacer; height: spacer
+        color: 'green'
     }
 }
 

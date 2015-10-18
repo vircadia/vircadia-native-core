@@ -30,6 +30,7 @@ class RouteBuilderProxy : public QObject {
         RouteBuilderProxy(ScriptingInterface& parent, Mapping::Pointer mapping, Route::Pointer route)
             : _parent(parent), _mapping(mapping), _route(route) { }
 
+        Q_INVOKABLE void to(int destination);
         Q_INVOKABLE void to(const QJSValue& destination);
         Q_INVOKABLE void to(const QScriptValue& destination);
 

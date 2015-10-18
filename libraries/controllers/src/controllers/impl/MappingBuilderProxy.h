@@ -31,6 +31,7 @@ public:
     MappingBuilderProxy(ScriptingInterface& parent, Mapping::Pointer mapping)
         : _parent(parent), _mapping(mapping) { }
 
+    Q_INVOKABLE QObject* from(int sourceInput);
     Q_INVOKABLE QObject* from(const QJSValue& source);
     Q_INVOKABLE QObject* from(const QScriptValue& source);
     Q_INVOKABLE QObject* makeAxis(const QJSValue& source1, const QJSValue& source2);

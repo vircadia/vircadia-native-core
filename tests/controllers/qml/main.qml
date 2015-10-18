@@ -7,8 +7,16 @@ ApplicationWindow {
     id: window
     visible: true
 
+    Timer {
+        interval: 50; running: true; repeat: true
+        onTriggered: {
+            Controller.update();
+        }
+    }
+
+
     Loader {
         id: pageLoader
-        source: "content.qml"
+        source: ResourcePath + "TestControllers.qml"
     }
 }

@@ -84,8 +84,7 @@ void inputControllerFromScriptValue(const QScriptValue &object, controller::Inpu
     out = qobject_cast<controller::InputController*>(object.toQObject());
 }
 
-ScriptEngine::ScriptEngine(const QString& scriptContents, const QString& fileNameString,
-    controller::ScriptingInterface* controllerScriptingInterface, bool wantSignals) :
+ScriptEngine::ScriptEngine(const QString& scriptContents, const QString& fileNameString, bool wantSignals) :
 
     _scriptContents(scriptContents),
     _isFinished(false),
@@ -93,7 +92,6 @@ ScriptEngine::ScriptEngine(const QString& scriptContents, const QString& fileNam
     _isInitialized(false),
     _timerFunctionMap(),
     _wantSignals(wantSignals),
-    _controllerScriptingInterface(controllerScriptingInterface), 
     _fileNameString(fileNameString),
     _quatLibrary(),
     _vec3Library(),
@@ -310,7 +308,8 @@ void ScriptEngine::init() {
 
     registerGlobalObject("Script", this);
     registerGlobalObject("Audio", &AudioScriptingInterface::getInstance());
-    registerGlobalObject("Controller", _controllerScriptingInterface);
+    auto scriptingInterface = DependencyManager::get<controller::ScriptingInterface>();
+    registerGlobalObject("Controller", scriptingInterface.data());
     registerGlobalObject("Entities", entityScriptingInterface.data());
     registerGlobalObject("Quat", &_quatLibrary);
     registerGlobalObject("Vec3", &_vec3Library);
@@ -320,8 +319,8 @@ void ScriptEngine::init() {
     // constants
     globalObject().setProperty("TREE_SCALE", newVariant(QVariant(TREE_SCALE)));
 
-    if (_controllerScriptingInterface) {
-        _controllerScriptingInterface->registerControllerTypes(this);
+    if (scriptingInterface) {
+        scriptingInterface->registerControllerTypes(this);
     }
 
 

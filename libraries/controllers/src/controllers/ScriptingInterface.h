@@ -28,6 +28,8 @@
 #include <QtQml/QJSValue>
 #include <QtScript/QScriptValue>
 
+#include <DependencyManager.h>
+
 #include "UserInputMapper.h"
 #include "StandardControls.h"
 #include "Mapping.h"
@@ -55,7 +57,7 @@ namespace controller {
     };
 
     /// handles scripting of input controller commands from JS
-    class ScriptingInterface : public QObject {
+    class ScriptingInterface : public QObject, public Dependency {
         Q_OBJECT
         Q_PROPERTY(QVariantMap Hardware READ getHardware CONSTANT FINAL)
         Q_PROPERTY(QVariantMap Actions READ getActions CONSTANT FINAL)
@@ -63,6 +65,7 @@ namespace controller {
 
     public:
         ScriptingInterface();
+        virtual ~ScriptingInterface();
 
         Q_INVOKABLE float getValue(const int& source) const;
         Q_INVOKABLE float getButtonValue(StandardButtonChannel source, uint16_t device = 0) const;

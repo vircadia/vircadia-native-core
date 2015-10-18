@@ -3,8 +3,7 @@ import QtQuick.Controls 1.0
 import QtQuick.Layouts 1.0
 import QtQuick.Dialogs 1.0
 
-import "./xbox"
-import "./controls"
+import "xbox"
 
 Item {
     id: root

@@ -60,6 +60,7 @@ public:
     QQuickItem* getRootItem();
     QQuickWindow* getWindow();
     QObject* getEventHandler();
+    QQmlContext* getRootContext();
 
     QPointF mapToVirtualScreen(const QPointF& originalPoint, QObject* originalWidget);
     virtual bool eventFilter(QObject* originalDestination, QEvent* event);

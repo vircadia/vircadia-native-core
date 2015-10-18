@@ -14,12 +14,17 @@
 #include <QtCore/QJsonObject>
 #include <QtCore/QJsonArray>
 
-
 #include "RouteBuilderProxy.h"
 #include "../ScriptingInterface.h"
 #include "../Logging.h"
 
 using namespace controller;
+
+QObject* MappingBuilderProxy::from(int input) {
+    qCDebug(controllers) << "Creating new Route builder proxy from " << input;
+    auto sourceEndpoint = _parent.endpointFor(UserInputMapper::Input(input));
+    return from(sourceEndpoint);
+}
 
 QObject* MappingBuilderProxy::from(const QJSValue& source) {
     qCDebug(controllers) << "Creating new Route builder proxy from " << source.toString();
