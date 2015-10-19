@@ -43,9 +43,9 @@ var PICK_MAX_DISTANCE = 500; // max length of pick-ray
 
 var NEAR_GRABBING_ACTION_TIMEFRAME = 0.05; // how quickly objects move to their new position
 var NEAR_GRABBING_VELOCITY_SMOOTH_RATIO = 1.0; // adjust time-averaging of held object's velocity.  1.0 to disable.
-var NEAR_PICK_MAX_DISTANCE = 0.1; // max length of pick-ray for close grabbing to be selected
+var NEAR_PICK_MAX_DISTANCE = 0.2; // max length of pick-ray for close grabbing to be selected
 var RELEASE_VELOCITY_MULTIPLIER = 1.5; // affects throwing things
-var PICK_BACKOFF_DISTANCE = 0.2; // helps when hand is intersecting the grabble object
+var PICK_BACKOFF_DISTANCE = 0.1; // helps when hand is intersecting the grabble object
 
 /////////////////////////////////////////////////////////////////
 //
