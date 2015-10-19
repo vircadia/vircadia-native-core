@@ -108,7 +108,7 @@ bool PolyLineEntityItem::setStrokeWidths(const QVector<float>& strokeWidths) {
 
 bool PolyLineEntityItem::setNormals(const QVector<glm::vec3>& normals) {
     _normals = normals;
-    if (_points.size() < 2 || _normals.size() < 2) {
+    if (_points.size() < 2 || _normals.size() < 2 || _strokeWidths.size() < 2) {
         return false;
     }
 
