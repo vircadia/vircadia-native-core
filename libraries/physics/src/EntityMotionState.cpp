@@ -256,6 +256,10 @@ bool EntityMotionState::remoteSimulationOutOfSync(uint32_t simulationStep) {
         _serverPosition = bulletToGLM(xform.getOrigin());
         _serverRotation = bulletToGLM(xform.getRotation());
         _serverVelocity = getBodyLinearVelocity();
+        if (glm::length2(_serverVelocity) < MIN_LINEAR_SPEED_SQUARED) {
+            _serverVelocity *= 0.0f;
+        }
+
         _serverAngularVelocity = bulletToGLM(_body->getAngularVelocity());
         _lastStep = simulationStep;
         _serverActionData = _entity->getActionData();
