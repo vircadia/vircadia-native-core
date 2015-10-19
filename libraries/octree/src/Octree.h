@@ -298,7 +298,7 @@ public:
         TryLock
     } lockType;
 
-    bool findRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
+    virtual bool findRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
                              OctreeElementPointer& node, float& distance, BoxFace& face, glm::vec3& surfaceNormal,
                              const QVector<QUuid>& entityIdsToInclude = QVector<QUuid>(),
                              void** intersectedObject = NULL,

@@ -80,6 +80,14 @@ public:
     virtual int processEditPacketData(NLPacket& packet, const unsigned char* editData, int maxLength,
                                       const SharedNodePointer& senderNode);
 
+    virtual bool findRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
+        OctreeElementPointer& node, float& distance, BoxFace& face, glm::vec3& surfaceNormal,
+        const QVector<QUuid>& entityIdsToInclude = QVector<QUuid>(),
+        void** intersectedObject = NULL,
+        Octree::lockType lockType = Octree::TryLock,
+        bool* accurateResult = NULL,
+        bool precisionPicking = false);
+
     virtual bool rootElementHasData() const { return true; }
 
     // the root at least needs to store the number of entities in the packet/buffer
