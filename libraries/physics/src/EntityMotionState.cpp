@@ -194,7 +194,12 @@ void EntityMotionState::setWorldTransform(const btTransform& worldTrans) {
     _entity->setPosition(bulletToGLM(worldTrans.getOrigin()) + ObjectMotionState::getWorldOffset());
     _entity->setRotation(bulletToGLM(worldTrans.getRotation()));
 
-    _entity->setVelocity(getBodyLinearVelocity());
+    glm::vec3 velocity = getBodyLinearVelocity();
+    if (glm::length2(velocity) < MIN_LINEAR_SPEED_SQUARED) {
+        velocity *= 0.0f;
+    }
+    _entity->setVelocity(velocity);
+
     _entity->setAngularVelocity(getBodyAngularVelocity());
 
     _entity->setLastSimulated(usecTimestampNow());

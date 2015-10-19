@@ -80,9 +80,7 @@ void ObjectMotionState::setBodyGravity(const glm::vec3& gravity) const {
 }
 
 glm::vec3 ObjectMotionState::getBodyLinearVelocity() const {
-    // returns the body's velocity
-    btVector3 velocity = _body->getLinearVelocity();
-    return bulletToGLM(velocity);
+    return bulletToGLM(_body->getLinearVelocity());
 }
 
 glm::vec3 ObjectMotionState::getObjectLinearVelocityChange() const {
