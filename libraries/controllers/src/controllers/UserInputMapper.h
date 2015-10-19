@@ -21,6 +21,7 @@
 #include "Pose.h"
 #include "Input.h"
 #include "DeviceProxy.h"
+#include "StandardControls.h"
 
 class StandardController;    
 typedef std::shared_ptr<StandardController> StandardControllerPointer;
@@ -84,8 +85,9 @@ public:
         ROTATE_Z, ROLL = ROTATE_Z,
 
         TRANSLATE_CAMERA_Z,
+        NUM_COMBINED_AXES,
 
-        LEFT_HAND,
+        LEFT_HAND = NUM_COMBINED_AXES,
         RIGHT_HAND,
 
         LEFT_HAND_CLICK,
@@ -144,6 +146,10 @@ public:
     // Return true if theinput channel is created correctly, false either
     bool addInputChannel(Action action, const Input& input, float scale = 1.0f);
     bool addInputChannel(Action action, const Input& input, const Input& modifer, float scale = 1.0f);
+
+    UserInputMapper::Input makeStandardInput(controller::StandardButtonChannel button);
+    UserInputMapper::Input makeStandardInput(controller::StandardAxisChannel axis);
+    UserInputMapper::Input makeStandardInput(controller::StandardPoseChannel pose);
 
     // Under the hood, the input channels are organized in map sorted on the _output
     // The InputChannel class is just the full values describing the input channel in one object 

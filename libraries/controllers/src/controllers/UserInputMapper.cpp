@@ -242,6 +242,12 @@ QVector<UserInputMapper::InputChannel> UserInputMapper::getAllInputsForDevice(ui
     return channels;
 }
 
+void fixBisectedAxis(float& full, float& negative, float& positive) {
+    full = full + (negative * -1.0f) + positive;
+    negative = full >= 0.0f ? 0.0f : full * -1.0f;
+    positive = full <= 0.0f ? 0.0f : full;
+}
+
 void UserInputMapper::update(float deltaTime) {
 
     // Reset the axis state for next loop
@@ -303,14 +309,25 @@ void UserInputMapper::update(float deltaTime) {
     }
 
     // Scale all the channel step with the scale
-    static const float EPSILON =  0.01f;
     for (auto i = 0; i < NUM_ACTIONS; i++) {
         if (_externalActionStates[i] != 0) {
             _actionStates[i] += _externalActionStates[i];
             _externalActionStates[i] = 0.0f;
         }
-        _actionStates[i] *= _actionScales[i];
+    }
 
+    // merge the bisected and non-bisected axes for now
+    fixBisectedAxis(_actionStates[TRANSLATE_X], _actionStates[LATERAL_LEFT], _actionStates[LATERAL_RIGHT]);
+    fixBisectedAxis(_actionStates[TRANSLATE_Y], _actionStates[VERTICAL_DOWN], _actionStates[VERTICAL_UP]);
+    fixBisectedAxis(_actionStates[TRANSLATE_Z], _actionStates[LONGITUDINAL_FORWARD], _actionStates[LONGITUDINAL_BACKWARD]);
+    fixBisectedAxis(_actionStates[TRANSLATE_CAMERA_Z], _actionStates[BOOM_IN], _actionStates[BOOM_OUT]);
+    fixBisectedAxis(_actionStates[ROTATE_Y], _actionStates[YAW_LEFT], _actionStates[YAW_RIGHT]);
+    fixBisectedAxis(_actionStates[ROTATE_X], _actionStates[PITCH_UP], _actionStates[PITCH_DOWN]);
+
+
+    static const float EPSILON = 0.01f;
+    for (auto i = 0; i < NUM_ACTIONS; i++) {
+        _actionStates[i] *= _actionScales[i];
         // Emit only on change, and emit when moving back to 0
         if (fabsf(_actionStates[i] - _lastActionStates[i]) > EPSILON) {
             _lastActionStates[i] = _actionStates[i];
@@ -420,8 +437,8 @@ void UserInputMapper::createActionNames() {
 void UserInputMapper::registerStandardDevice() {
     _standardController = std::make_shared<StandardController>();
     _standardController->registerToUserInputMapper(*this);
+    _standardController->assignDefaultInputMapping(*this);
 }
-
 
 static int actionMetaTypeId = qRegisterMetaType<UserInputMapper::Action>();
 static int inputMetaTypeId = qRegisterMetaType<UserInputMapper::Input>();
@@ -480,4 +497,16 @@ void UserInputMapper::registerControllerTypes(QScriptEngine* engine) {
     qScriptRegisterMetaType(engine, actionToScriptValue, actionFromScriptValue);
     qScriptRegisterMetaType(engine, inputToScriptValue, inputFromScriptValue);
     qScriptRegisterMetaType(engine, inputPairToScriptValue, inputPairFromScriptValue);
+}
+
+UserInputMapper::Input UserInputMapper::makeStandardInput(controller::StandardButtonChannel button) {
+    return Input(STANDARD_DEVICE, button, ChannelType::BUTTON);
+}
+
+UserInputMapper::Input UserInputMapper::makeStandardInput(controller::StandardAxisChannel axis) {
+    return Input(STANDARD_DEVICE, axis, ChannelType::AXIS);
+}
+
+UserInputMapper::Input UserInputMapper::makeStandardInput(controller::StandardPoseChannel pose) {
+    return Input(STANDARD_DEVICE, pose, ChannelType::POSE);
 }

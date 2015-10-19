@@ -145,6 +145,7 @@ void Joystick::registerToUserInputMapper(UserInputMapper& mapper) {
 
 
 void Joystick::assignDefaultInputMapping(UserInputMapper& mapper) {
+#if 0
 #ifdef HAVE_SDL2
     const float JOYSTICK_MOVE_SPEED = 1.0f;
     const float DPAD_MOVE_SPEED = 0.5f;
@@ -201,5 +202,6 @@ void Joystick::assignDefaultInputMapping(UserInputMapper& mapper) {
 
     mapper.addInputChannel(UserInputMapper::ACTION1, makeInput(controller::B));
     mapper.addInputChannel(UserInputMapper::ACTION2, makeInput(controller::A)); 
+#endif
 #endif
 }
