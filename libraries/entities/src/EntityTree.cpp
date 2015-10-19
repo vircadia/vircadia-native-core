@@ -467,7 +467,8 @@ public:
 bool findRayIntersectionOp(OctreeElementPointer element, void* extraData) {
     RayArgs* args = static_cast<RayArgs*>(extraData);
     bool keepSearching = true;
-    if (element->findRayIntersection(args->origin, args->direction, keepSearching,
+    EntityTreeElementPointer entityTreeElementPointer = std::dynamic_pointer_cast<EntityTreeElement>(element);
+    if (entityTreeElementPointer ->findRayIntersection(args->origin, args->direction, keepSearching,
         args->element, args->distance, args->face, args->surfaceNormal, args->entityIdsToInclude,
         args->intersectedObject, args->precisionPicking)) {
         args->found = true;

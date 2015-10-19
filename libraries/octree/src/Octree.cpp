@@ -694,28 +694,7 @@ OctreeElementPointer Octree::getOrCreateChildElementContaining(const AACube& box
     return getRoot()->getOrCreateChildElementContaining(box);
 }
 
-// combines the ray cast arguments into a single object
-class RayArgs {
-public:
-    glm::vec3 origin;
-    glm::vec3 direction;
-    OctreeElementPointer& element;
-    float& distance;
-    BoxFace& face;
-    glm::vec3& surfaceNormal;
-    const QVector<QUuid>& entityIdsToInclude;
-    void** intersectedObject;
-    bool found;
-    bool precisionPicking;
-};
 
-
-bool Octree::findRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
-                                    OctreeElementPointer& element, float& distance, 
-                                    BoxFace& face, glm::vec3& surfaceNormal, const QVector<QUuid>& entityIdsToInclude, void** intersectedObject,
-                                    Octree::lockType lockType, bool* accurateResult, bool precisionPicking) {
-    return false;
-}
 
 class SphereArgs {
 public:
