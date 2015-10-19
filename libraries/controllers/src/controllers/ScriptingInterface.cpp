@@ -300,7 +300,7 @@ namespace controller {
                     const auto& destination = route->_destination;
                     // THis could happen if the route destination failed to create
                     // FIXME: Maybe do not create the route if the destination failed and avoid this case ?
-                    if (!destination) {
+                    if (!source || !destination) {
                         continue;
                     }
 

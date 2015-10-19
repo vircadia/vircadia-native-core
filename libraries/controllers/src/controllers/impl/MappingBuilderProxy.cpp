@@ -39,9 +39,14 @@ QObject* MappingBuilderProxy::from(const QScriptValue& source) {
 }
 
 QObject* MappingBuilderProxy::from(const Endpoint::Pointer& source) {
-    auto route = Route::Pointer(new Route());
-    route->_source = source;
-    return new RouteBuilderProxy(_parent, _mapping, route);
+    if (source) {
+        auto route = Route::Pointer(new Route());
+        route->_source = source;
+        return new RouteBuilderProxy(_parent, _mapping, route);
+    } else {
+        qCDebug(controllers) << "MappingBuilderProxy::from : source is null so no route created";
+        return nullptr;
+    }
 }
 
 QObject* MappingBuilderProxy::makeAxis(const QJSValue& source1, const QJSValue& source2) {
