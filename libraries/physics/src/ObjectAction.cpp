@@ -62,7 +62,7 @@ void ObjectAction::updateAction(btCollisionWorld* collisionWorld, btScalar delta
     updateActionWorker(deltaTimeStep);
 }
 
-int ObjectAction::getEntityServerClockSkew() {
+int ObjectAction::getEntityServerClockSkew() const {
     auto nodeList = DependencyManager::get<NodeList>();
 
     auto ownerEntity = _ownerEntity.lock();
