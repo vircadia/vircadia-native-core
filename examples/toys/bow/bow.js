@@ -1,8 +1,9 @@
 //
 //  bow.js
 //
-//  This script creates a bow that you can pick up with a hand controller.  Use your other hand and press the trigger to grab the line, and release the trigger to fire.
-//  Created by James B. Pollack @imgntn on 10/10/2015
+//  This script attaches to a bow that you can pick up with a hand controller.  Use your other hand and press the trigger to grab the line, and release the trigger to fire.
+//
+//  Created by James B. Pollack @imgntn on 10/19/2015
 //  Copyright 2015 High Fidelity, Inc.
 //
 //  Distributed under the Apache License, Version 2.0.
@@ -10,7 +11,20 @@
 //
 
 (function() {
+
         var ARROW_MODEL_URL = '';
+        var ARROW_SCRIPT_URL = Script.resolvePath('arrow.js');
+        var ARROW_OFFSET = {
+            x: 0,
+            y: 0,
+            z: 0
+        };
+        var ARROW_GRAVITY = {
+            x: 0,
+            y: -9.8,
+            z: 0
+        };
+
         var TOP_NOTCH_OFFSET = {
             x: 0,
             y: 0,
@@ -24,6 +38,7 @@
         };
 
         var DRAW_STRING_THRESHOLD = 0.1;
+        var RELEASE_STRING_THRESHOLD = 0.85;
 
         var _this;
 
@@ -67,6 +82,8 @@
                     strokeWidths: this.stringData.bottom.strokeWidths,
                     color: stringData.currentColor
                 });
+
+                this.stringDrawn = true;
             },
 
             createStrings: function() {
@@ -80,7 +97,6 @@
             },
 
             createTopString: function() {
-
                 var stringProperties = {
                     type: 'Polyline'
                     position: Vec3.sum(this.position, this.TOP_NOTCH_OFFSET);
@@ -90,7 +106,6 @@
             },
 
             createBottomString: function() {
-
                 var stringProperties = {
                     type: 'Polyline'
                     position: Vec3.sum(this.position, this.TOP_NOTCH_OFFSET);
@@ -129,30 +144,44 @@
 
                 this.triggerValue = Controller.getActionValue(handClick);
 
-                if (this.triggerValue < DRAW_STRING_THRESHOLD && this.stringDrawn === true) {
+                if (this.triggerValue < RELEASE_STRING_THRESHOLD && this.stringDrawn === true) {
 
                     this.releaseArrow();
+                    this.stringDrawn = false;
+
                     this.deleteStrings();
+
                 } else if (this.triggerValue >= DRAW_STRING_THRESHOLD && this.stringDrawn === false) {
+
                     this.stringData.handPosition = this.getStringHandPosition();
                     this.stringData.handRotation = this.getStringHandRotation();
                     this.drawStrings();
+
                 }
 
-
             },
+
             releaseArrow: function() {
+
                 var handDistanceAtRelease = Vec3.length(this.bowProperties.position, this.stringData.handPosition);
-                var releaseDirection = this.stringData.handRotation;
-                var releaseVecotr = 'something';
+                var releaseDirection = Vec3.subtract(this.bowProperties.position, this.stringData.handPosition);
+                var releaseVector = Vec3.multiply(handDistanceAtRelease, releaseDirection);
+
                 var arrowProperties = {
                     type: 'Model',
                     dimensions: ARROW_DIMENSIONS,
                     position: Vec3.sum(this.bowProperties.position, ARROW_OFFSET),
-                    velocity: relesaeVector,
+                    velocity: releaseVector,
+                    rotation: this.bowProperties.rotation;
+                    collisionsWillMove: true,
+                    gravity: ARROW_GRAVITY,
+                    script: ARROW_SCRIPT_URL,
+                    lifetime: 30
                 };
-                this.arrow = Entities.addEntity(arrowProperties);
-            }
 
-                return new Bow;
+                this.arrow = Entities.addEntity(arrowProperties);
+            },
+
+
+            return new Bow;
         })
