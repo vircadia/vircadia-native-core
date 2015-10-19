@@ -173,14 +173,17 @@ void ControllerScriptingInterface::update() {
     float delta = now - last;
     last = now;
 
-    for(auto inputPlugin : PluginManager::getInstance()->getInputPlugins()) {
+    DependencyManager::get<UserInputMapper>()->update(delta);
+
+    bool jointsCaptured = false;
+    for (auto inputPlugin : PluginManager::getInstance()->getInputPlugins()) {
         if (inputPlugin->isActive()) {
-            inputPlugin->pluginUpdate(delta, false);
+            inputPlugin->pluginUpdate(delta, jointsCaptured);
+            if (inputPlugin->isJointController()) {
+                jointsCaptured = true;
+            }
         }
     }
-
-    auto userInputMapper = DependencyManager::get<UserInputMapper>();
-    userInputMapper->update(delta);
 
     for (auto entry : _inputControllers) {
         entry.second->update();
