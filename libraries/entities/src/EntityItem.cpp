@@ -1301,6 +1301,9 @@ void EntityItem::computeShapeInfo(ShapeInfo& info) {
 }
 
 void EntityItem::updatePosition(const glm::vec3& value) {
+    if (shouldSuppressLocationEdits()) {
+        return;
+    }
     auto delta = glm::distance(getPosition(), value);
     if (delta > IGNORE_POSITION_DELTA) {
         _dirtyFlags |= Simulation::DIRTY_POSITION;
@@ -1323,6 +1326,9 @@ void EntityItem::updateDimensions(const glm::vec3& value) {
 }
 
 void EntityItem::updateRotation(const glm::quat& rotation) {
+    if (shouldSuppressLocationEdits()) {
+        return;
+    }
     if (getRotation() != rotation) {
         setRotation(rotation);
 
@@ -1363,6 +1369,9 @@ void EntityItem::updateMass(float mass) {
 }
 
 void EntityItem::updateVelocity(const glm::vec3& value) {
+    if (shouldSuppressLocationEdits()) {
+        return;
+    }
     auto delta = glm::distance(_velocity, value);
     if (delta > IGNORE_LINEAR_VELOCITY_DELTA) {
         _dirtyFlags |= Simulation::DIRTY_LINEAR_VELOCITY;
@@ -1399,6 +1408,9 @@ void EntityItem::updateGravity(const glm::vec3& value) {
 }
 
 void EntityItem::updateAngularVelocity(const glm::vec3& value) {
+    if (shouldSuppressLocationEdits()) {
+        return;
+    }
     auto delta = glm::distance(_angularVelocity, value);
     if (delta > IGNORE_ANGULAR_VELOCITY_DELTA) {
         _dirtyFlags |= Simulation::DIRTY_ANGULAR_VELOCITY;
@@ -1807,28 +1819,4 @@ bool EntityItem::shouldSuppressLocationEdits() const {
     }
 
     return false;
-}
-
-void EntityItem::setPosition(const glm::vec3& value) {
-    if (!shouldSuppressLocationEdits()) {
-        _transform.setTranslation(value); requiresRecalcBoxes();
-    }
-}
-
-void EntityItem::setRotation(const glm::quat& rotation) {
-    if (!shouldSuppressLocationEdits()) {
-        _transform.setRotation(rotation); requiresRecalcBoxes();
-    }
-}
-
-void EntityItem::setVelocity(const glm::vec3& value) {
-    if (!shouldSuppressLocationEdits()) {
-        _velocity = value;
-    }
-}
-
-void EntityItem::setAcceleration(const glm::vec3& value) {
-    if (!shouldSuppressLocationEdits()) {
-        _acceleration = value;
-    }
 }
