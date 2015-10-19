@@ -1810,25 +1810,25 @@ bool EntityItem::shouldSuppressLocationEdits() const {
 }
 
 void EntityItem::setPosition(const glm::vec3& value) {
-    if (!entity->shouldSuppressLocationEdits()) {
+    if (!shouldSuppressLocationEdits()) {
         _transform.setTranslation(value); requiresRecalcBoxes();
     }
 }
 
 void EntityItem::setRotation(const glm::quat& rotation) {
-    if (!entity->shouldSuppressLocationEdits()) {
+    if (!shouldSuppressLocationEdits()) {
         _transform.setRotation(rotation); requiresRecalcBoxes();
     }
 }
 
 void EntityItem::setVelocity(const glm::vec3& value) {
-    if (!entity->shouldSuppressLocationEdits()) {
+    if (!shouldSuppressLocationEdits()) {
         _velocity = value;
     }
 }
 
 void EntityItem::setAcceleration(const glm::vec3& value) {
-    if (!entity->shouldSuppressLocationEdits()) {
+    if (!shouldSuppressLocationEdits()) {
         _acceleration = value;
     }
 }
