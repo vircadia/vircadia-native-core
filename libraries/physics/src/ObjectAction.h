@@ -50,6 +50,8 @@ public:
 
 protected:
 
+    int getEntityServerClockSkew();
+
     virtual btRigidBody* getRigidBody();
     virtual glm::vec3 getPosition();
     virtual void setPosition(glm::vec3 position);

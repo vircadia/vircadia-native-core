@@ -407,8 +407,11 @@ public:
     QVariantMap getActionArguments(const QUuid& actionID) const;
     void deserializeActions();
     void setActionDataDirty(bool value) const { _actionDataDirty = value; }
-    bool getActionDataDirty() const { return _actionDataDirty; }
     bool shouldSuppressLocationEdits() const;
+
+    void setSourceUUID(const QUuid& sourceUUID) { _sourceUUID = sourceUUID; }
+    const QUuid& getSourceUUID() const { return _sourceUUID; }
+    bool matchesSourceUUID(const QUuid& sourceUUID) const  { return _sourceUUID == sourceUUID; }
 
 protected:
 
@@ -510,6 +513,8 @@ protected:
     // _previouslyDeletedActions is used to avoid an action being re-added due to server round-trip lag
     static quint64 _rememberDeletedActionTime;
     mutable QHash<QUuid, quint64> _previouslyDeletedActions;
+
+    QUuid _sourceUUID; /// the server node UUID we came from
 };
 
 #endif // hifi_EntityItem_h

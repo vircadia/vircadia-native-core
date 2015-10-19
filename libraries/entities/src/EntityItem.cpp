@@ -342,6 +342,7 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
                         "ERROR CASE...args.bitstreamVersion < VERSION_ENTITIES_SUPPORT_SPLIT_MTU";
         return 0;
     }
+    setSourceUUID(args.sourceUUID);
 
     args.entitiesPerPacket++;
 
@@ -1534,6 +1535,8 @@ bool EntityItem::addActionInternal(EntitySimulation* simulation, EntityActionPoi
     if (success) {
         _allActionsDataCache = newDataCache;
         _dirtyFlags |= Simulation::DIRTY_PHYSICS_ACTIVATION;
+    } else {
+        qDebug() << "EntityItem::addActionInternal -- serializeActions failed";
     }
     return success;
 }
@@ -1628,6 +1631,7 @@ void EntityItem::deserializeActionsInternal() {
     quint64 now = usecTimestampNow();
 
     if (!_element) {
+        qDebug() << "EntityItem::deserializeActionsInternal -- no _element";
         return;
     }
 
@@ -1670,6 +1674,8 @@ void EntityItem::deserializeActionsInternal() {
             if (action) {
                 entity->addActionInternal(simulation, action);
                 action->locallyAddedButNotYetReceived = false;
+            } else {
+                qDebug() << "EntityItem::deserializeActionsInternal -- action creation failed";
             }
         }
     }
