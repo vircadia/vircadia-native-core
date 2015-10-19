@@ -230,27 +230,18 @@ public:
 
 class CullItems {
 public:
-    CullItems() {
-        qDebug() << "CullItems() created... ";
-    }
     void run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const ItemIDsBounds& inItems, ItemIDsBounds& outItems);
     typedef Job::ModelIO<CullItems, ItemIDsBounds, ItemIDsBounds> JobModel;
 };
 
 class CullItemsOpaque {
 public:
-    CullItemsOpaque() {
-        qDebug() << "CullItemsOpaque() created... ";
-    }
     void run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const ItemIDsBounds& inItems, ItemIDsBounds& outItems);
     typedef Job::ModelIO<CullItemsOpaque, ItemIDsBounds, ItemIDsBounds> JobModel;
 };
 
 class CullItemsTransparent {
 public:
-    CullItemsTransparent() {
-        qDebug() << "CullItemsTransparent() created... ";
-    }
     void run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const ItemIDsBounds& inItems, ItemIDsBounds& outItems);
     typedef Job::ModelIO<CullItemsTransparent, ItemIDsBounds, ItemIDsBounds> JobModel;
 };
