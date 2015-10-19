@@ -308,8 +308,6 @@ void ScriptEngine::init() {
 
     registerGlobalObject("Script", this);
     registerGlobalObject("Audio", &AudioScriptingInterface::getInstance());
-    auto scriptingInterface = DependencyManager::get<controller::ScriptingInterface>();
-    registerGlobalObject("Controller", scriptingInterface.data());
     registerGlobalObject("Entities", entityScriptingInterface.data());
     registerGlobalObject("Quat", &_quatLibrary);
     registerGlobalObject("Vec3", &_vec3Library);
@@ -319,11 +317,9 @@ void ScriptEngine::init() {
     // constants
     globalObject().setProperty("TREE_SCALE", newVariant(QVariant(TREE_SCALE)));
 
-    if (scriptingInterface) {
-        scriptingInterface->registerControllerTypes(this);
-    }
-
-
+    auto scriptingInterface = DependencyManager::get<controller::ScriptingInterface>();
+    registerGlobalObject("Controller", scriptingInterface.data());
+    UserInputMapper::registerControllerTypes(this);
 }
 
 void ScriptEngine::registerValue(const QString& valueName, QScriptValue value) {

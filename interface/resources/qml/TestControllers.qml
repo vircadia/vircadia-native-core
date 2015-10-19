@@ -50,9 +50,38 @@ HifiControls.VrDialog {
         Row {
             spacing: 8
             Button {
-                text: "Default Mapping"
+                text: "Standard Mapping"
                 onClicked: {
                     var mapping = Controller.newMapping("Default");
+                    mapping.from(standard.LX).to(actions.TranslateX);
+                    mapping.from(standard.LY).to(actions.TranslateZ);
+                    mapping.from(standard.RY).to(actions.Pitch);
+                    mapping.from(standard.RX).to(actions.Yaw);
+                    mapping.from(standard.DU).scale(0.5).to(actions.LONGITUDINAL_FORWARD);
+                    mapping.from(standard.DD).scale(0.5).to(actions.LONGITUDINAL_BACKWARD);
+                    mapping.from(standard.DL).scale(0.5).to(actions.LATERAL_LEFT);
+                    mapping.from(standard.DR).scale(0.5).to(actions.LATERAL_RIGHT);
+                    mapping.from(standard.X).to(actions.VERTICAL_DOWN);
+                    mapping.from(standard.Y).to(actions.VERTICAL_UP);
+                    mapping.from(standard.RT).scale(0.1).to(actions.BOOM_IN);
+                    mapping.from(standard.LT).scale(0.1).to(actions.BOOM_OUT);
+                    mapping.from(standard.B).to(actions.ACTION1);
+                    mapping.from(standard.A).to(actions.ACTION2);
+                    mapping.from(standard.RB).to(actions.SHIFT);
+                    mapping.from(standard.Back).to(actions.TOGGLE_MUTE);
+                    mapping.from(standard.Start).to(actions.CONTEXT_MENU);
+                    Controller.enableMapping("Default");
+                    enabled = false;
+                    text = "Standard Built"
+                }
+            }
+            
+            Button {
+                text: root.xbox ? "XBox Mapping" : "XBox not found"
+                property bool built: false
+                enabled: root.xbox && !built
+                onClicked: {
+                    var mapping = Controller.newMapping();
                     mapping.from(xbox.A).to(standard.A);
                     mapping.from(xbox.B).to(standard.B);
                     mapping.from(xbox.X).to(standard.X);
@@ -73,21 +102,39 @@ HifiControls.VrDialog {
                     mapping.from(xbox.RX).to(standard.RX);
                     mapping.from(xbox.LT).to(standard.LT);
                     mapping.from(xbox.RT).to(standard.RT);
-                    Controller.enableMapping("Default");
-                    enabled = false;
-                    text = "Built"
+                    mapping.enable();
+                    built = false;
+                    text = "XBox Built"
                 }
             }
 
             Button {
-                text: "Build Mapping"
+                text: root.hydra ? "Hydra Mapping" : "Hydra Not Found"
+                property bool built: false
+                enabled: root.hydra && !built
+                onClicked: {
+                    var mapping = Controller.newMapping();
+                    mapping.from(hydra.LY).invert().to(standard.LY);
+                    mapping.from(hydra.LX).to(standard.LX);
+                    mapping.from(hydra.RY).invert().to(standard.RY);
+                    mapping.from(hydra.RX).to(standard.RX);
+                    mapping.from(hydra.LT).to(standard.LT);
+                    mapping.from(hydra.RT).to(standard.RT);
+                    mapping.enable();
+                    built = false;
+                    text = "Hydra Built"
+                }
+            }
+
+            Button {
+                text: "Test Mapping"
                 onClicked: {
                     var mapping = Controller.newMapping();
                     // Inverting a value
                     mapping.from(hydra.RY).invert().to(standard.RY);
                     mapping.from(hydra.RX).to(standard.RX);
                     mapping.from(hydra.LY).to(standard.LY);
-                    mapping.from(hydra.LY).to(standard.LX);
+                    mapping.from(hydra.LX).to(standard.LX);
                     // Assigning a value from a function
                     // mapping.from(function() { return Math.sin(Date.now() / 250); }).to(standard.RX);
                     // Constrainting a value to -1, 0, or 1, with a deadzone

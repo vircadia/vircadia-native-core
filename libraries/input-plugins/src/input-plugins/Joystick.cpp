@@ -143,3 +143,65 @@ void Joystick::registerToUserInputMapper(UserInputMapper& mapper) {
     mapper.registerDevice(_deviceID, proxy);
 }
 
+
+void Joystick::assignDefaultInputMapping(UserInputMapper& mapper) {
+#if 0
+#ifdef HAVE_SDL2
+    const float JOYSTICK_MOVE_SPEED = 1.0f;
+    const float DPAD_MOVE_SPEED = 0.5f;
+    const float JOYSTICK_YAW_SPEED = 0.5f;
+    const float JOYSTICK_PITCH_SPEED = 0.25f;
+    const float BOOM_SPEED = 0.1f;
+
+    // Y axes are flipped (up is negative)
+    // Left Joystick: Movement, strafing
+    mapper.addInputChannel(UserInputMapper::TRANSLATE_Z, makeInput(controller::LY), JOYSTICK_MOVE_SPEED);
+    mapper.addInputChannel(UserInputMapper::TRANSLATE_X, makeInput(controller::LX), JOYSTICK_MOVE_SPEED);
+    // Right Joystick: Camera orientation
+    mapper.addInputChannel(UserInputMapper::YAW, makeInput(controller::RX), JOYSTICK_YAW_SPEED);
+    mapper.addInputChannel(UserInputMapper::PITCH, makeInput(controller::RY), JOYSTICK_PITCH_SPEED);
+
+    // Dpad movement
+    mapper.addInputChannel(UserInputMapper::LONGITUDINAL_FORWARD, makeInput(controller::DU), DPAD_MOVE_SPEED);
+    mapper.addInputChannel(UserInputMapper::LONGITUDINAL_BACKWARD, makeInput(controller::DD), DPAD_MOVE_SPEED);
+    mapper.addInputChannel(UserInputMapper::LATERAL_RIGHT, makeInput(controller::DR), DPAD_MOVE_SPEED);
+    mapper.addInputChannel(UserInputMapper::LATERAL_LEFT, makeInput(controller::DL), DPAD_MOVE_SPEED);
+
+    // Button controls
+    mapper.addInputChannel(UserInputMapper::VERTICAL_UP, makeInput(controller::Y), DPAD_MOVE_SPEED);
+    mapper.addInputChannel(UserInputMapper::VERTICAL_DOWN, makeInput(controller::X), DPAD_MOVE_SPEED);
+
+    // Zoom
+    mapper.addInputChannel(UserInputMapper::BOOM_IN, makeInput(controller::RT), BOOM_SPEED);
+    mapper.addInputChannel(UserInputMapper::BOOM_OUT, makeInput(controller::LT), BOOM_SPEED);
+
+    // Hold front right shoulder button for precision controls
+    // Left Joystick: Movement, strafing
+    mapper.addInputChannel(UserInputMapper::TRANSLATE_Z, makeInput(controller::LY), makeInput(controller::RB), JOYSTICK_MOVE_SPEED / 2.0f);
+    mapper.addInputChannel(UserInputMapper::TRANSLATE_X, makeInput(controller::LY), makeInput(controller::RB), JOYSTICK_MOVE_SPEED / 2.0f);
+
+    // Right Joystick: Camera orientation
+    mapper.addInputChannel(UserInputMapper::YAW, makeInput(controller::RX), makeInput(controller::RB), JOYSTICK_YAW_SPEED / 2.0f);
+    mapper.addInputChannel(UserInputMapper::PITCH, makeInput(controller::RY), makeInput(controller::RB), JOYSTICK_PITCH_SPEED / 2.0f);
+
+    // Dpad movement
+    mapper.addInputChannel(UserInputMapper::LONGITUDINAL_FORWARD, makeInput(controller::DU), makeInput(controller::RB), DPAD_MOVE_SPEED / 2.0f);
+    mapper.addInputChannel(UserInputMapper::LONGITUDINAL_BACKWARD, makeInput(controller::DD), makeInput(controller::RB), DPAD_MOVE_SPEED / 2.0f);
+    mapper.addInputChannel(UserInputMapper::LATERAL_RIGHT, makeInput(controller::DR), makeInput(controller::RB), DPAD_MOVE_SPEED / 2.0f);
+    mapper.addInputChannel(UserInputMapper::LATERAL_LEFT, makeInput(controller::DL), makeInput(controller::RB), DPAD_MOVE_SPEED / 2.0f);
+
+    // Button controls
+    mapper.addInputChannel(UserInputMapper::VERTICAL_UP, makeInput(controller::Y), makeInput(controller::RB), DPAD_MOVE_SPEED / 2.0f);
+    mapper.addInputChannel(UserInputMapper::VERTICAL_DOWN, makeInput(controller::X), makeInput(controller::RB), DPAD_MOVE_SPEED / 2.0f);
+
+    // Zoom
+    mapper.addInputChannel(UserInputMapper::BOOM_IN, makeInput(controller::RT), makeInput(controller::RB), BOOM_SPEED / 2.0f);
+    mapper.addInputChannel(UserInputMapper::BOOM_OUT, makeInput(controller::LT), makeInput(controller::RB), BOOM_SPEED / 2.0f);
+
+    mapper.addInputChannel(UserInputMapper::SHIFT, makeInput(controller::RB));
+
+    mapper.addInputChannel(UserInputMapper::ACTION1, makeInput(controller::B));
+    mapper.addInputChannel(UserInputMapper::ACTION2, makeInput(controller::A)); 
+#endif
+#endif
+}

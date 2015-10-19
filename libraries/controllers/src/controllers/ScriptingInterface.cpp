@@ -263,8 +263,8 @@ namespace controller {
         return getValue(UserInputMapper::Input(device, source, UserInputMapper::ChannelType::AXIS).getID());
     }
 
-    glm::mat4 ScriptingInterface::getPoseValue(StandardPoseChannel source, uint16_t device) const {
-        return glm::mat4();
+    Pose ScriptingInterface::getPoseValue(StandardPoseChannel source, uint16_t device) const {
+        return Pose();
     }
 
     void ScriptingInterface::update() {
@@ -494,6 +494,39 @@ namespace controller {
             }
         }
     }
+
+    QVector<UserInputMapper::Action> ScriptingInterface::getAllActions() {
+        return DependencyManager::get<UserInputMapper>()->getAllActions();
+    }
+
+    QString ScriptingInterface::getDeviceName(unsigned int device) {
+        return DependencyManager::get<UserInputMapper>()->getDeviceName((unsigned short)device);
+    }
+
+    QVector<UserInputMapper::InputPair> ScriptingInterface::getAvailableInputs(unsigned int device) {
+        return DependencyManager::get<UserInputMapper>()->getAvailableInputs((unsigned short)device);
+    }
+
+    int ScriptingInterface::findDevice(QString name) {
+        return DependencyManager::get<UserInputMapper>()->findDevice(name);
+    }
+
+    QVector<QString> ScriptingInterface::getDeviceNames() {
+        return DependencyManager::get<UserInputMapper>()->getDeviceNames();
+    }
+
+    float ScriptingInterface::getActionValue(int action) {
+        return DependencyManager::get<UserInputMapper>()->getActionState(UserInputMapper::Action(action));
+    }
+
+    int ScriptingInterface::findAction(QString actionName) {
+        return DependencyManager::get<UserInputMapper>()->findAction(actionName);
+    }
+
+    QVector<QString> ScriptingInterface::getActionNames() const {
+        return DependencyManager::get<UserInputMapper>()->getActionNames();
+    }
+
 } // namespace controllers
 
 
@@ -520,7 +553,7 @@ ScriptingInterface::ScriptingInterface() {
     int actionNumber = 0;
     qCDebug(controllers) << "Setting up standard actions";
     for (const auto& actionName : actionNames) {
-        UserInputMapper::Input actionInput(UserInputMapper::Input::ACTIONS_DEVICE, actionNumber++, UserInputMapper::ChannelType::AXIS);
+        UserInputMapper::Input actionInput(UserInputMapper::ACTIONS_DEVICE, actionNumber++, UserInputMapper::ChannelType::AXIS);
         qCDebug(controllers) << "\tAction: " << actionName << " " << QString::number(actionInput.getID(), 16);
         // Expose the IDs to JS
         QString cleanActionName = QString(actionName).remove(ScriptingInterface::SANITIZE_NAME_EXPRESSION);
@@ -532,43 +565,3 @@ ScriptingInterface::ScriptingInterface() {
 
     updateMaps();
 }
-
-//var mapping = Controller.newMapping();
-//mapping.map(hydra.LeftButton0, actions.ContextMenu);
-//mapping.map(hydra.LeftButton0).to(xbox.RT);
-//mapping.from(xbox.RT).constrainToBoolean().invert().to(actions.Foo)
-//    mapping.from(xbox.RY).invert().deadZone(0.2).to(actions.Pitch)
-//    mapping.from(xbox.RY).filter(function(newValue, oldValue) {
-//    return newValue * 2.0
-//}).to(actions.Pitch)
-
-//mapping.from(function(time) {
-//        return Math.cos(time);
-//    }).to(actions.Pitch);
-
-//    mapping.mapFromFunction(function() {
-//        return x;
-//    }, actions.ContextMenu);
-
-//    mapping.from(xbox.LY).clamp(0, 1).to(actions.Forward);
-//    mapping.from(xbox.LY).clamp(-1, 0).to(actions.Backward);
-//    mapping.from(xbox.RY).clamp(0, 1).to(actions.Forward);
-//    mapping.from(xbox.RS).to();
-//    mapping.from(xbox.ALL).to();
-
-//    mapping.from(xbox.RY).to(function(...) { ... });
-//    mapping.from(xbox.RY).pass();
-
-//    mapping.suppress() ≅ mapping.to(null)
-//        mapping.pass() ≅ mapping.to(fromControl)
-
-//        mapping.from(keyboard.RightParen).invert().to(actions.Yaw)
-//        mapping.from(keyboard.LeftParen).to(actions.Yaw)
-
-//        mapping.from(hydra.LX).pulse(MIN_SNAP_TIME, 3.0).to(Actions.Yaw)
-
-//        mapping.from(keyboard.LeftParen).pulse(MIN_SNAP_TIME).to(Actions.Yaw)
-//        // Enable and disable as above
-
-//        mappingSnap.from(hydra.LX).to(function(newValue, oldValue) {
-//        timeSinceLastYaw += deltaTime

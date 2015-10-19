@@ -67,15 +67,22 @@ namespace controller {
         ScriptingInterface();
         virtual ~ScriptingInterface();
 
+        Q_INVOKABLE QVector<UserInputMapper::Action> getAllActions();
+        Q_INVOKABLE QVector<UserInputMapper::InputPair> getAvailableInputs(unsigned int device);
+        Q_INVOKABLE QString getDeviceName(unsigned int device);
+        Q_INVOKABLE float getActionValue(int action);
+        Q_INVOKABLE int findDevice(QString name);
+        Q_INVOKABLE QVector<QString> getDeviceNames();
+        Q_INVOKABLE int findAction(QString actionName);
+        Q_INVOKABLE QVector<QString> getActionNames() const;
+
         Q_INVOKABLE float getValue(const int& source) const;
         Q_INVOKABLE float getButtonValue(StandardButtonChannel source, uint16_t device = 0) const;
         Q_INVOKABLE float getAxisValue(StandardAxisChannel source, uint16_t device = 0) const;
-        Q_INVOKABLE glm::mat4 getPoseValue(StandardPoseChannel source, uint16_t device = 0) const;
+        Q_INVOKABLE Pose getPoseValue(StandardPoseChannel source, uint16_t device = 0) const;
         Q_INVOKABLE QObject* newMapping(const QString& mappingName = QUuid::createUuid().toString());
         Q_INVOKABLE void enableMapping(const QString& mappingName, bool enable = true);
-        Q_INVOKABLE void disableMapping(const QString& mappingName) {
-            enableMapping(mappingName, false);
-        }
+        Q_INVOKABLE void disableMapping(const QString& mappingName) { enableMapping(mappingName, false); }
         Q_INVOKABLE QObject* parseMapping(const QString& json);
         Q_INVOKABLE QObject* loadMapping(const QString& jsonUrl);
 
@@ -102,12 +109,29 @@ namespace controller {
         Q_INVOKABLE const QVariantMap& getActions() { return _actions; }
         Q_INVOKABLE const QVariantMap& getStandard() { return _standard; }
 
+        bool isMouseCaptured() const { return _mouseCaptured; }
+        bool isTouchCaptured() const { return _touchCaptured; }
+        bool isWheelCaptured() const { return _wheelCaptured; }
+        bool areActionsCaptured() const { return _actionsCaptured; }
+
         static QRegularExpression SANITIZE_NAME_EXPRESSION;
 
     public slots:
         virtual void update();
-        virtual void registerControllerTypes(QScriptEngine* engine) = 0;
         virtual void updateMaps();
+
+        virtual void captureMouseEvents() { _mouseCaptured = true; }
+        virtual void releaseMouseEvents() { _mouseCaptured = false; }
+
+        virtual void captureTouchEvents() { _touchCaptured = true; }
+        virtual void releaseTouchEvents() { _touchCaptured = false; }
+
+        virtual void captureWheelEvents() { _wheelCaptured = true; }
+        virtual void releaseWheelEvents() { _wheelCaptured = false; }
+
+        virtual void captureActionEvents() { _actionsCaptured = true; }
+        virtual void releaseActionEvents() { _actionsCaptured = false; }
+
 
     private:
         friend class MappingBuilderProxy;
@@ -141,6 +165,11 @@ namespace controller {
         ValueMap _overrideValues;
         MappingMap _mappingsByName;
         MappingStack _activeMappings;
+
+        bool _mouseCaptured{ false };
+        bool _touchCaptured{ false };
+        bool _wheelCaptured{ false };
+        bool _actionsCaptured{ false };
     };
 
     class ScriptEndpoint : public Endpoint {

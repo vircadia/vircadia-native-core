@@ -1,7 +1,4 @@
 //
-//  UserInputMapper.h
-//  input-plugins/src/input-plugins
-//
 //  Created by Sam Gateau on 4/27/15.
 //  Copyright 2015 High Fidelity, Inc.
 //
@@ -9,6 +6,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#pragma once
 #ifndef hifi_UserInputMapper_h
 #define hifi_UserInputMapper_h
 
@@ -20,6 +18,11 @@
 #include <DependencyManager.h>
 #include <RegisteredMetaTypes.h>
 
+#include "Pose.h"
+#include "Input.h"
+#include "DeviceProxy.h"
+#include "StandardControls.h"
+
 class StandardController;    
 typedef std::shared_ptr<StandardController> StandardControllerPointer;
 
@@ -30,86 +33,22 @@ class UserInputMapper : public QObject, public Dependency {
 public:
     ~UserInputMapper();
 
+    using DeviceProxy = controller::DeviceProxy;
+    using PoseValue = controller::Pose;
+    using Input = controller::Input;
+    using ChannelType = controller::ChannelType;
+
     typedef unsigned short uint16;
     typedef unsigned int uint32;
 
-    enum class ChannelType {
-        UNKNOWN = 0,
-        BUTTON = 1,
-        AXIS,
-        POSE,
-    };
+    static void registerControllerTypes(QScriptEngine* engine);
 
-    // Input is the unique identifier to find a n input channel of a particular device
-    // Devices are responsible for registering to the UseInputMapper so their input channels can be sued and mapped
-    // to the Action channels
-    class Input {
-    public:
-        union {
-            struct {
-                uint16 _device; // Up to 64K possible devices
-                uint16 _channel : 13; // 2^13 possible channel per Device
-                uint16 _type : 2; // 2 bits to store the Type directly in the ID
-                uint16 _padding : 1; // 2 bits to store the Type directly in the ID
-            };
-            uint32 _id = 0; // by default Input is 0 meaning invalid
-        };
-        
-        bool isValid() const { return (_id != 0); }
-        
-        uint16 getDevice() const { return _device; }
-        uint16 getChannel() const { return _channel; }
-        uint32 getID() const { return _id; }
-        ChannelType getType() const { return (ChannelType) _type; }
-        
-        void setDevice(uint16 device) { _device = device; }
-        void setChannel(uint16 channel) { _channel = channel; }
-        void setType(uint16 type) { _type = type; }
-        void setID(uint32 ID) { _id = ID; }
-
-        bool isButton() const { return getType() == ChannelType::BUTTON; }
-        bool isAxis() const { return getType() == ChannelType::AXIS; }
-        bool isPose() const { return getType() == ChannelType::POSE; }
-
-        // WORKAROUND: the explicit initializer here avoids a bug in GCC-4.8.2 (but not found in 4.9.2)
-        // where the default initializer (a C++-11ism) for the union data above is not applied.
-        explicit Input() : _id(0) {}
-        explicit Input(uint32 id) : _id(id) {}
-        explicit Input(uint16 device, uint16 channel, ChannelType type) : _device(device), _channel(channel), _type(uint16(type)), _padding(0) {}
-        Input(const Input& src) : _id(src._id) {}
-        Input& operator = (const Input& src) { _id = src._id; return (*this); }
-        bool operator ==(const Input& right) const { return _id == right._id; }
-        bool operator < (const Input& src) const { return _id < src._id; }
-
-        static const Input INVALID_INPUT;
-        static const uint16 INVALID_DEVICE;
-        static const uint16 INVALID_CHANNEL;
-        static const uint16 INVALID_TYPE;
-        static const uint16 ACTIONS_DEVICE;
-        static const uint16 STANDARD_DEVICE;
-    };
+    static const uint16 ACTIONS_DEVICE;
+    static const uint16 STANDARD_DEVICE;
 
 
     // Modifiers are just button inputID
     typedef std::vector< Input > Modifiers;
-
-    class PoseValue {
-    public:
-        glm::vec3 _translation{ 0.0f };
-        glm::quat _rotation;
-        bool _valid;
-
-        PoseValue() : _valid(false) {};
-        PoseValue(glm::vec3 translation, glm::quat rotation) : _translation(translation), _rotation(rotation), _valid(true) {}
-        PoseValue(const PoseValue&) = default;
-        PoseValue& operator = (const PoseValue&) = default;
-        bool operator ==(const PoseValue& right) const { return _translation == right.getTranslation() && _rotation == right.getRotation() && _valid == right.isValid(); }
-        
-        bool isValid() const { return _valid; }
-        glm::vec3 getTranslation() const { return _translation; }
-        glm::quat getRotation() const { return _rotation; }
-    };
-    
     typedef std::function<bool (const Input& input, int timestamp)> ButtonGetter;
     typedef std::function<float (const Input& input, int timestamp)> AxisGetter;
     typedef std::function<PoseValue (const Input& input, int timestamp)> PoseGetter;
@@ -119,22 +58,6 @@ public:
     
     typedef QVector<InputPair> AvailableInput;
 
-   class DeviceProxy {
-    public:
-       DeviceProxy(QString name) : _baseName(name), _name(name) {}
-       const QString& getBaseName() const { return _baseName; }
-       const QString& getName() const { return _name; }
-
-       QString _baseName;
-       QString _name;
-       ButtonGetter getButton = [] (const Input& input, int timestamp) -> bool { return false; };
-       AxisGetter getAxis = [] (const Input& input, int timestamp) -> float { return 0.0f; };
-       PoseGetter getPose = [] (const Input& input, int timestamp) -> PoseValue { return PoseValue(); };
-       AvailableInputGetter getAvailabeInputs = [] () -> AvailableInput { return QVector<InputPair>(); };
-       ResetBindings resetDeviceBindings = [] () -> bool { return true; };
-       float getValue(const Input& input, int timestamp = 0) const;
-       typedef std::shared_ptr<DeviceProxy> Pointer;
-    };
     // GetFreeDeviceID should be called before registering a device to use an ID not used by a different device.
     uint16 getFreeDeviceID() { return _nextFreeDeviceID++; }
 
@@ -162,8 +85,9 @@ public:
         ROTATE_Z, ROLL = ROTATE_Z,
 
         TRANSLATE_CAMERA_Z,
+        NUM_COMBINED_AXES,
 
-        LEFT_HAND,
+        LEFT_HAND = NUM_COMBINED_AXES,
         RIGHT_HAND,
 
         LEFT_HAND_CLICK,
@@ -222,7 +146,11 @@ public:
     // Return true if theinput channel is created correctly, false either
     bool addInputChannel(Action action, const Input& input, float scale = 1.0f);
     bool addInputChannel(Action action, const Input& input, const Input& modifer, float scale = 1.0f);
-    
+
+    UserInputMapper::Input makeStandardInput(controller::StandardButtonChannel button);
+    UserInputMapper::Input makeStandardInput(controller::StandardAxisChannel axis);
+    UserInputMapper::Input makeStandardInput(controller::StandardPoseChannel pose);
+
     // Under the hood, the input channels are organized in map sorted on the _output
     // The InputChannel class is just the full values describing the input channel in one object 
     class InputChannel {
@@ -276,7 +204,7 @@ public:
     typedef std::map<int, DeviceProxy::Pointer> DevicesMap;
     DevicesMap getDevices() { return _registeredDevices; }
 
-    uint16 getStandardDeviceID() const { return Input::STANDARD_DEVICE; }
+    uint16 getStandardDeviceID() const { return STANDARD_DEVICE; }
     DeviceProxy::Pointer getStandardDevice() { return _registeredDevices[getStandardDeviceID()]; }
 
 signals:
@@ -288,7 +216,7 @@ protected:
     StandardControllerPointer _standardController;
         
     DevicesMap _registeredDevices;
-    uint16 _nextFreeDeviceID = Input::STANDARD_DEVICE + 1;
+    uint16 _nextFreeDeviceID = STANDARD_DEVICE + 1;
 
     typedef std::map<int, Modifiers> InputToMoModifiersMap;
     InputToMoModifiersMap _inputToModifiersMap;
@@ -309,6 +237,7 @@ protected:
 };
 
 Q_DECLARE_METATYPE(UserInputMapper::InputPair)
+Q_DECLARE_METATYPE(UserInputMapper::PoseValue)
 Q_DECLARE_METATYPE(QVector<UserInputMapper::InputPair>)
 Q_DECLARE_METATYPE(UserInputMapper::Input)
 Q_DECLARE_METATYPE(UserInputMapper::InputChannel)

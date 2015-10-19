@@ -2710,22 +2710,6 @@ void Application::update(float deltaTime) {
     auto myAvatar = getMyAvatar();
     auto userInputMapper = DependencyManager::get<UserInputMapper>();
     userInputMapper->setSensorToWorldMat(myAvatar->getSensorToWorldMatrix());
-  //  userInputMapper->update(deltaTime);
-
-    // This needs to go after userInputMapper->update() because of the keyboard
-    bool jointsCaptured = false;
-    auto inputPlugins = PluginManager::getInstance()->getInputPlugins();
-    foreach(auto inputPlugin, inputPlugins) {
-        QString name = inputPlugin->getName();
-        QAction* action = Menu::getInstance()->getActionForOption(name);
-        if (action && action->isChecked()) {
-            inputPlugin->pluginUpdate(deltaTime, jointsCaptured);
-            if (inputPlugin->isJointController()) {
-                jointsCaptured = true;
-            }
-        }
-    }
-
     // Dispatch input events
     _controllerScriptingInterface->update();
 
