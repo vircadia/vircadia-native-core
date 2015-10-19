@@ -299,9 +299,10 @@ void RenderableModelEntityItem::render(RenderArgs* args) {
 
                 bool movingOrAnimating = isMoving() || isAnimatingSomething();
                 if ((movingOrAnimating ||
-                     _needsInitialSimulation ||
-                     _model->getTranslation() != getPosition() ||
-                     _model->getRotation() != getRotation())
+                     _needsInitialSimulation // ||
+                     // _model->getTranslation() != getPosition() ||
+                     // _model->getRotation() != getRotation()
+                     )
                     && _model->isActive() && _dimensionsInitialized) {
                     _model->setScaleToFit(true, getDimensions());
                     _model->setSnapModelToRegistrationPoint(true, getRegistrationPoint());

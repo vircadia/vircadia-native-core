@@ -80,16 +80,8 @@ void ObjectMotionState::setBodyGravity(const glm::vec3& gravity) const {
 }
 
 glm::vec3 ObjectMotionState::getBodyLinearVelocity() const {
-    // returns the body's velocity unless it is moving too slow in which case returns zero
+    // returns the body's velocity
     btVector3 velocity = _body->getLinearVelocity();
-
-    // NOTE: the threshold to use here relates to the linear displacement threshold (dX) for sending updates
-    // to objects that are tracked server-side (e.g. entities which use dX = 2mm).  Hence an object moving 
-    // just under this velocity threshold would trigger an update about V/dX times per second.
-    const float MIN_LINEAR_SPEED_SQUARED = 0.0036f; // 6 mm/sec
-    if (velocity.length2() < MIN_LINEAR_SPEED_SQUARED) {
-        velocity *= 0.0f;
-    }
     return bulletToGLM(velocity);
 }
 
