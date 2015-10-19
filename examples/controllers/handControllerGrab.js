@@ -473,12 +473,23 @@ function MyController(hand, triggerAction) {
         var handRotation = this.getHandRotation();
         var handPosition = this.getHandPosition();
 
-        var objectRotation = grabbedProperties.rotation;
-        this.offsetRotation = Quat.multiply(Quat.inverse(handRotation), objectRotation);
+        var grabbableData = getEntityCustomData(GRABBABLE_DATA_KEY, this.grabbedEntity, DEFAULT_GRABBABLE_DATA);
 
-        var currentObjectPosition = grabbedProperties.position;
-        var offset = Vec3.subtract(currentObjectPosition, handPosition);
-        this.offsetPosition = Vec3.multiplyQbyV(Quat.inverse(Quat.multiply(handRotation, this.offsetRotation)), offset);
+        if (grabbableData.spatialKey) {
+            if (grabbableData.spatialKey.relativePosition) {
+                this.offsetPosition = grabbableData.spatialKey.relativePosition;
+            }
+            if (grabbableData.spatialKey.relativeRotation) {
+                this.offsetRotation = grabbableData.spatialKey.relativeRotation;
+            }
+        } else {
+            var objectRotation = grabbedProperties.rotation;
+            this.offsetRotation = Quat.multiply(Quat.inverse(handRotation), objectRotation);
+
+            var currentObjectPosition = grabbedProperties.position;
+            var offset = Vec3.subtract(currentObjectPosition, handPosition);
+            this.offsetPosition = Vec3.multiplyQbyV(Quat.inverse(Quat.multiply(handRotation, this.offsetRotation)), offset);
+        }
 
         this.actionID = NULL_ACTION_ID;
         this.actionID = Entities.addAction("hold", this.grabbedEntity, {
