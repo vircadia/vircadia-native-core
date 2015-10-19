@@ -497,8 +497,7 @@ function MyController(hand, triggerAction) {
             timeScale: NEAR_GRABBING_ACTION_TIMEFRAME,
             relativePosition: this.offsetPosition,
             relativeRotation: this.offsetRotation,
-            lifetime: ACTION_LIFETIME,
-            // kinematic: true,
+            lifetime: ACTION_LIFETIME
         });
         if (this.actionID === NULL_ACTION_ID) {
             this.actionID = null;
@@ -550,8 +549,7 @@ function MyController(hand, triggerAction) {
                 timeScale: NEAR_GRABBING_ACTION_TIMEFRAME,
                 relativePosition: this.offsetPosition,
                 relativeRotation: this.offsetRotation,
-                lifetime: ACTION_LIFETIME,
-                // kinematic: true
+                lifetime: ACTION_LIFETIME
             });
             this.actionTimeout = now + (ACTION_LIFETIME * MSEC_PER_SEC);
         }
