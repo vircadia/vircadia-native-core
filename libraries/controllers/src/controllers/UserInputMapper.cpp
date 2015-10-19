@@ -1,7 +1,4 @@
 //
-//  UserInputMapper.cpp
-//  input-plugins/src/input-plugins
-//
 //  Created by Sam Gateau on 4/27/15.
 //  Copyright 2015 High Fidelity, Inc.
 //
@@ -14,12 +11,8 @@
 
 #include "Logging.h"
 
-const UserInputMapper::Input UserInputMapper::Input::INVALID_INPUT = UserInputMapper::Input(UINT16_MAX);
-const uint16_t UserInputMapper::Input::INVALID_DEVICE = INVALID_INPUT.getDevice();
-const uint16_t UserInputMapper::Input::INVALID_CHANNEL = INVALID_INPUT.getChannel();
-const uint16_t UserInputMapper::Input::INVALID_TYPE = (uint16_t)INVALID_INPUT.getType();
-const uint16_t UserInputMapper::Input::ACTIONS_DEVICE = INVALID_DEVICE - (uint16)1;
-const uint16_t UserInputMapper::Input::STANDARD_DEVICE = 0;
+const uint16_t UserInputMapper::ACTIONS_DEVICE = Input::INVALID_DEVICE - (uint16)1;
+const uint16_t UserInputMapper::STANDARD_DEVICE = 0;
 
 // Default contruct allocate the poutput size with the current hardcoded action channels
 UserInputMapper::UserInputMapper() {
@@ -134,11 +127,11 @@ UserInputMapper::Input UserInputMapper::findDeviceInput(const QString& inputName
             qCDebug(controllers) << "Couldn\'t find InputChannel named <" << inputName << "> for device <" << deviceName << ">";
 
         } else if (deviceName == "Actions") {
-            deviceID = Input::ACTIONS_DEVICE;
+            deviceID = ACTIONS_DEVICE;
             int actionNum = 0;
             for (auto action : _actionNames) {
                 if (action == inputName) {
-                    return Input(Input::ACTIONS_DEVICE, actionNum, ChannelType::AXIS);
+                    return Input(ACTIONS_DEVICE, actionNum, ChannelType::AXIS);
                 }
                 actionNum++;
             }
@@ -152,7 +145,7 @@ UserInputMapper::Input UserInputMapper::findDeviceInput(const QString& inputName
         qCDebug(controllers) << "Couldn\'t understand <" << inputName << "> as a valid inputDevice.inputName";
     }
 
-    return Input();
+    return Input::INVALID_INPUT;
 }
 
 
@@ -261,7 +254,6 @@ void UserInputMapper::update(float deltaTime) {
     }
 
     int currentTimestamp = 0;
-
     for (auto& channelInput : _actionToInputsMap) {
         auto& inputMapping = channelInput.second;
         auto& inputID = inputMapping._input;
@@ -430,18 +422,62 @@ void UserInputMapper::registerStandardDevice() {
     _standardController->registerToUserInputMapper(*this);
 }
 
-float UserInputMapper::DeviceProxy::getValue(const Input& input, int timestamp) const {
-    switch (input.getType()) {
-        case UserInputMapper::ChannelType::BUTTON:
-            return getButton(input, timestamp) ? 1.0f : 0.0f;
 
-        case UserInputMapper::ChannelType::AXIS:
-            return getAxis(input, timestamp);
+static int actionMetaTypeId = qRegisterMetaType<UserInputMapper::Action>();
+static int inputMetaTypeId = qRegisterMetaType<UserInputMapper::Input>();
+static int inputPairMetaTypeId = qRegisterMetaType<UserInputMapper::InputPair>();
 
-        case UserInputMapper::ChannelType::POSE:
-            return getPose(input, timestamp)._valid ? 1.0f : 0.0f;
+QScriptValue inputToScriptValue(QScriptEngine* engine, const UserInputMapper::Input& input);
+void inputFromScriptValue(const QScriptValue& object, UserInputMapper::Input& input);
+QScriptValue actionToScriptValue(QScriptEngine* engine, const UserInputMapper::Action& action);
+void actionFromScriptValue(const QScriptValue& object, UserInputMapper::Action& action);
+QScriptValue inputPairToScriptValue(QScriptEngine* engine, const UserInputMapper::InputPair& inputPair);
+void inputPairFromScriptValue(const QScriptValue& object, UserInputMapper::InputPair& inputPair);
 
-        default:
-            return 0.0f;
-    }
+QScriptValue inputToScriptValue(QScriptEngine* engine, const UserInputMapper::Input& input) {
+    QScriptValue obj = engine->newObject();
+    obj.setProperty("device", input.getDevice());
+    obj.setProperty("channel", input.getChannel());
+    obj.setProperty("type", (unsigned short)input.getType());
+    obj.setProperty("id", input.getID());
+    return obj;
+}
+
+void inputFromScriptValue(const QScriptValue& object, UserInputMapper::Input& input) {
+    input.setDevice(object.property("device").toUInt16());
+    input.setChannel(object.property("channel").toUInt16());
+    input.setType(object.property("type").toUInt16());
+    input.setID(object.property("id").toInt32());
+}
+
+QScriptValue actionToScriptValue(QScriptEngine* engine, const UserInputMapper::Action& action) {
+    QScriptValue obj = engine->newObject();
+    auto userInputMapper = DependencyManager::get<UserInputMapper>();
+    obj.setProperty("action", (int)action);
+    obj.setProperty("actionName", userInputMapper->getActionName(action));
+    return obj;
+}
+
+void actionFromScriptValue(const QScriptValue& object, UserInputMapper::Action& action) {
+    action = UserInputMapper::Action(object.property("action").toVariant().toInt());
+}
+
+QScriptValue inputPairToScriptValue(QScriptEngine* engine, const UserInputMapper::InputPair& inputPair) {
+    QScriptValue obj = engine->newObject();
+    obj.setProperty("input", inputToScriptValue(engine, inputPair.first));
+    obj.setProperty("inputName", inputPair.second);
+    return obj;
+}
+
+void inputPairFromScriptValue(const QScriptValue& object, UserInputMapper::InputPair& inputPair) {
+    inputFromScriptValue(object.property("input"), inputPair.first);
+    inputPair.second = QString(object.property("inputName").toVariant().toString());
+}
+
+void UserInputMapper::registerControllerTypes(QScriptEngine* engine) {
+    qScriptRegisterSequenceMetaType<QVector<UserInputMapper::Action> >(engine);
+    qScriptRegisterSequenceMetaType<QVector<UserInputMapper::InputPair> >(engine);
+    qScriptRegisterMetaType(engine, actionToScriptValue, actionFromScriptValue);
+    qScriptRegisterMetaType(engine, inputToScriptValue, inputFromScriptValue);
+    qScriptRegisterMetaType(engine, inputPairToScriptValue, inputPairFromScriptValue);
 }

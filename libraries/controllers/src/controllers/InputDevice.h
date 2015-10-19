@@ -34,7 +34,7 @@ public:
     UserInputMapper::PoseValue getPose(int channel) const;
 
     virtual void registerToUserInputMapper(UserInputMapper& mapper) = 0;
-    virtual void assignDefaultInputMapping(UserInputMapper& mapper) {};
+    virtual void assignDefaultInputMapping(UserInputMapper& mapper) = 0;
 
     // Update call MUST be called once per simulation loop
     // It takes care of updating the action states and deltas
@@ -45,8 +45,8 @@ public:
     int getDeviceID() { return _deviceID; }
 
     static float getCursorPixelRangeMult();
-    static float getReticleMoveSpeed() { return reticleMoveSpeed; }
-    static void setReticleMoveSpeed(float sixenseReticleMoveSpeed) { reticleMoveSpeed = sixenseReticleMoveSpeed; }
+    static float getReticleMoveSpeed() { return _reticleMoveSpeed; }
+    static void setReticleMoveSpeed(float reticleMoveSpeed) { _reticleMoveSpeed = reticleMoveSpeed; }
 
     static bool getLowVelocityFilter() { return _lowVelocityFilter; };
 
@@ -72,5 +72,5 @@ protected:
     static bool _lowVelocityFilter;
 
 private:
-    static float reticleMoveSpeed;
+    static float _reticleMoveSpeed;
 };

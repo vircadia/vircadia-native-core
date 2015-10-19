@@ -87,7 +87,7 @@ HifiControls.VrDialog {
                     mapping.from(hydra.RY).invert().to(standard.RY);
                     mapping.from(hydra.RX).to(standard.RX);
                     mapping.from(hydra.LY).to(standard.LY);
-                    mapping.from(hydra.LY).to(standard.LX);
+                    mapping.from(hydra.LX).to(standard.LX);
                     // Assigning a value from a function
                     // mapping.from(function() { return Math.sin(Date.now() / 250); }).to(standard.RX);
                     // Constrainting a value to -1, 0, or 1, with a deadzone
