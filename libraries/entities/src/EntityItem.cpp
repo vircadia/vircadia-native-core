@@ -1808,3 +1808,27 @@ bool EntityItem::shouldSuppressLocationEdits() const {
 
     return false;
 }
+
+void EntityItem::setPosition(const glm::vec3& value) {
+    if (!entity->shouldSuppressLocationEdits()) {
+        _transform.setTranslation(value); requiresRecalcBoxes();
+    }
+}
+
+void EntityItem::setRotation(const glm::quat& rotation) {
+    if (!entity->shouldSuppressLocationEdits()) {
+        _transform.setRotation(rotation); requiresRecalcBoxes();
+    }
+}
+
+void EntityItem::setVelocity(const glm::vec3& value) {
+    if (!entity->shouldSuppressLocationEdits()) {
+        _velocity = value;
+    }
+}
+
+void EntityItem::setAcceleration(const glm::vec3& value) {
+    if (!entity->shouldSuppressLocationEdits()) {
+        _acceleration = value;
+    }
+}

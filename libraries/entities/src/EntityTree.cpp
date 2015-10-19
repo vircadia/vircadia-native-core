@@ -189,7 +189,7 @@ bool EntityTree::updateEntityWithElement(EntityItemPointer entity, const EntityI
             } else {
                 simulationBlocked = senderID != entity->getSimulatorID();
             }
-            if (simulationBlocked || entity->shouldSuppressLocationEdits()) {
+            if (simulationBlocked) {
                 // squash ownership and physics-related changes.
                 properties.setSimulationOwnerChanged(false);
                 properties.setPositionChanged(false);

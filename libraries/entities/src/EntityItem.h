@@ -209,10 +209,10 @@ public:
 
     /// Position in meters (-TREE_SCALE - TREE_SCALE)
     inline const glm::vec3& getPosition() const { return _transform.getTranslation(); }
-    inline void setPosition(const glm::vec3& value) { _transform.setTranslation(value); requiresRecalcBoxes(); }
+    void setPosition(const glm::vec3& value);
 
     inline const glm::quat& getRotation() const { return _transform.getRotation(); }
-    inline void setRotation(const glm::quat& rotation) { _transform.setRotation(rotation); requiresRecalcBoxes(); }
+    inline void setRotation(const glm::quat& rotation);
 
     inline void requiresRecalcBoxes() { _recalcAABox = true; _recalcMinAACube = true; _recalcMaxAACube = true; }
 
@@ -240,7 +240,7 @@ public:
     float getDensity() const { return _density; }
 
     const glm::vec3& getVelocity() const { return _velocity; } /// get velocity in meters
-    void setVelocity(const glm::vec3& value) { _velocity = value; } /// velocity in meters
+    void setVelocity(const glm::vec3& value);
     bool hasVelocity() const { return _velocity != ENTITY_ITEM_ZERO_VEC3; }
 
     const glm::vec3& getGravity() const { return _gravity; } /// get gravity in meters
@@ -248,7 +248,7 @@ public:
     bool hasGravity() const { return _gravity != ENTITY_ITEM_ZERO_VEC3; }
 
     const glm::vec3& getAcceleration() const { return _acceleration; } /// get acceleration in meters/second/second
-    void setAcceleration(const glm::vec3& value) { _acceleration = value; } /// acceleration in meters/second/second
+    void setAcceleration(const glm::vec3& value); /// acceleration in meters/second/second
     bool hasAcceleration() const { return _acceleration != ENTITY_ITEM_ZERO_VEC3; }
 
     float getDamping() const { return _damping; }
