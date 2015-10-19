@@ -89,11 +89,9 @@ render::ItemKey MeshPartPayload::getKey() const {
 }
 
 render::Item::Bound MeshPartPayload::getBound() const {
-    if (_isBoundInvalid) {
-        model->getPartBounds(meshIndex, partIndex);
-        _isBoundInvalid = false;
-    }
-    return _bound;
+    // NOTE: we can't cache this bounds because we need to handle the case of a moving
+    // entity or mesh part.
+    return model->getPartBounds(meshIndex, partIndex);
 }
 
 void MeshPartPayload::drawCall(gpu::Batch& batch) const {
