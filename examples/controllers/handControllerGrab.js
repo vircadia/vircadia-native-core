@@ -393,7 +393,8 @@ function MyController(hand, triggerAction) {
         this.lineOn(handPosition, Vec3.subtract(grabbedProperties.position, handPosition), INTERSECT_COLOR);
 
         // the action was set up on a previous call.  update the targets.
-        var radius = Math.max(Vec3.distance(this.currentObjectPosition, handControllerPosition) * DISTANCE_HOLDING_RADIUS_FACTOR, DISTANCE_HOLDING_RADIUS_FACTOR);
+        var radius = Math.max(Vec3.distance(this.currentObjectPosition, handControllerPosition) *
+                              DISTANCE_HOLDING_RADIUS_FACTOR, DISTANCE_HOLDING_RADIUS_FACTOR);
 
         // how far did avatar move this timestep?
         var currentPosition = MyAvatar.position;
@@ -492,7 +493,8 @@ function MyController(hand, triggerAction) {
             timeScale: NEAR_GRABBING_ACTION_TIMEFRAME,
             relativePosition: this.offsetPosition,
             relativeRotation: this.offsetRotation,
-            lifetime: ACTION_LIFETIME
+            lifetime: ACTION_LIFETIME,
+            // kinematic: true,
         });
         if (this.actionID === NULL_ACTION_ID) {
             this.actionID = null;
@@ -544,7 +546,8 @@ function MyController(hand, triggerAction) {
                 timeScale: NEAR_GRABBING_ACTION_TIMEFRAME,
                 relativePosition: this.offsetPosition,
                 relativeRotation: this.offsetRotation,
-                lifetime: ACTION_LIFETIME
+                lifetime: ACTION_LIFETIME,
+                // kinematic: true
             });
             this.actionTimeout = now + (ACTION_LIFETIME * MSEC_PER_SEC);
         }
@@ -584,7 +587,7 @@ function MyController(hand, triggerAction) {
             this.setState(STATE_RELEASE);
             return;
         }
-        
+
         Entities.callEntityMethod(this.grabbedEntity, "continueNearGrabbingNonColliding");
     };
 
@@ -599,6 +602,16 @@ function MyController(hand, triggerAction) {
             origin: handPosition,
             direction: Quat.getUp(this.getHandRotation())
         };
+
+        var now = Date.now();
+        if (now - this.lastPickTime > MSECS_PER_SEC / PICKS_PER_SECOND_PER_HAND) {
+            var intersection = Entities.findRayIntersection(pickRay, true);
+            this.lastPickTime = now;
+            if (intersection.entityID != this.grabbedEntity) {
+                this.setState(STATE_RELEASE);
+                return;
+            }
+        }
 
         this.lineOn(pickRay.origin, Vec3.multiply(pickRay.direction, LINE_LENGTH), NO_INTERSECT_COLOR);
         Entities.callEntityMethod(this.grabbedEntity, "continueFarGrabbingNonColliding");
