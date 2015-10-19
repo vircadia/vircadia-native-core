@@ -32,11 +32,6 @@ static const quint8 STEPS_TO_DECIDE_BALLISTIC = 4;
 const uint32_t LOOPS_FOR_SIMULATION_ORPHAN = 50;
 const quint64 USECS_BETWEEN_OWNERSHIP_BIDS = USECS_PER_SECOND / 5;
 
-// NOTE: the threshold to use here relates to the linear displacement threshold (dX) for sending updates
-// to objects that are tracked server-side (e.g. entities which use dX = 2mm).  Hence an object moving 
-// just under this velocity threshold would trigger an update about V/dX times per second.
-const float MIN_LINEAR_SPEED_SQUARED = 0.0036f; // 6 mm/sec
-
 #ifdef WANT_DEBUG_ENTITY_TREE_LOCKS
 bool EntityMotionState::entityTreeIsLocked() const {
     EntityTreeElementPointer element = _entity ? _entity->getElement() : nullptr;
@@ -253,11 +248,7 @@ bool EntityMotionState::remoteSimulationOutOfSync(uint32_t simulationStep) {
         btTransform xform = _body->getWorldTransform();
         _serverPosition = bulletToGLM(xform.getOrigin());
         _serverRotation = bulletToGLM(xform.getRotation());
-        _serverVelocity = getBodyLinearVelocity();
-        if (glm::length2(_serverVelocity) < MIN_LINEAR_SPEED_SQUARED) {
-            _serverVelocity *= 0.0f;
-        }
-
+        _serverVelocity = getBodyLinearVelocityGTSigma();
         _serverAngularVelocity = bulletToGLM(_body->getAngularVelocity());
         _lastStep = simulationStep;
         _serverActionData = _entity->getActionData();
@@ -556,11 +547,7 @@ void EntityMotionState::bump(quint8 priority) {
 void EntityMotionState::resetMeasuredBodyAcceleration() {
     _lastMeasureStep = ObjectMotionState::getWorldSimulationStep();
     if (_body) {
-        _lastVelocity = getBodyLinearVelocity();
-        // if _lastVelocity is too slow, set it to zero
-        if (glm::length2(_lastVelocity) < MIN_LINEAR_SPEED_SQUARED) {
-            _lastVelocity *= 0.0f;
-        }
+        _lastVelocity = getBodyLinearVelocityGTSigma();
     } else {
         _lastVelocity = glm::vec3(0.0f);
     }
@@ -579,10 +566,7 @@ void EntityMotionState::measureBodyAcceleration() {
 
         // Note: the integration equation for velocity uses damping:   v1 = (v0 + a * dt) * (1 - D)^dt
         // hence the equation for acceleration is: a = (v1 / (1 - D)^dt - v0) / dt
-        glm::vec3 velocity = getBodyLinearVelocity();
-        if (glm::length2(velocity) < MIN_LINEAR_SPEED_SQUARED) {
-            velocity *= 0.0f;
-        }
+        glm::vec3 velocity = getBodyLinearVelocityGTSigma();
 
         _measuredAcceleration = (velocity / powf(1.0f - _body->getLinearDamping(), dt) - _lastVelocity) * invDt;
         _lastVelocity = velocity;
