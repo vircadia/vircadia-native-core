@@ -745,10 +745,18 @@ FBXGeometry* FBXReader::extractFBXGeometry(const QVariantHash& mapping, const QS
                     
                     // see FBX documentation, http://download.autodesk.com/us/fbx/20112/FBX_SDK_HELP/index.html
                     model.translation = translation;
+
                     model.preTransform = glm::translate(rotationOffset) * glm::translate(rotationPivot);      
                     model.preRotation = glm::quat(glm::radians(preRotation));            
                     model.rotation = glm::quat(glm::radians(rotation));
                     model.postRotation = glm::quat(glm::radians(postRotation));
+
+                    if (geometry.applicationName.startsWith("Blender")) {
+                        // blender puts the jointOffset in the wrong place.
+                        model.preRotation = model.rotation;
+                        model.rotation = glm::quat();
+                    }
+
                     model.postTransform = glm::translate(-rotationPivot) * glm::translate(scaleOffset) *
                         glm::translate(scalePivot) * glm::scale(scale) * glm::translate(-scalePivot);
                     // NOTE: angles from the FBX file are in degrees
