@@ -369,9 +369,9 @@ Menu::Menu() {
     auto& atpMigrator = ATPAssetMigrator::getInstance();
     atpMigrator.setDialogParent(this);
     
-    /*QAction* assetMigration =*/ addActionToQMenuAndActionHash(assetDeveloperMenu, MenuOption::AssetMigration,
-                                                                0, &atpMigrator,
-                                                                SLOT(loadEntityServerFile()));
+    addActionToQMenuAndActionHash(assetDeveloperMenu, MenuOption::AssetMigration,
+                                                            0, &atpMigrator,
+                                                            SLOT(loadEntityServerFile()));
     
     MenuWrapper* avatarDebugMenu = developerMenu->addMenu("Avatar");
 
