@@ -32,10 +32,6 @@
 Q_DECLARE_LOGGING_CATEGORY(inputplugins)
 Q_LOGGING_CATEGORY(inputplugins, "hifi.inputplugins")
 
-// These bits aren't used for buttons, so they can be used as masks:
-const unsigned int LEFT_MASK = 0;
-const unsigned int RIGHT_MASK = 1U << 1;
-
 #ifdef HAVE_SIXENSE
 
 const int CALIBRATION_STATE_IDLE = 0;
