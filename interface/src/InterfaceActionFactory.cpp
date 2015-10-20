@@ -12,7 +12,6 @@
 
 
 #include <avatar/AvatarActionHold.h>
-#include <avatar/AvatarActionKinematicHold.h>
 #include <ObjectActionOffset.h>
 #include <ObjectActionSpring.h>
 
@@ -29,8 +28,6 @@ EntityActionPointer interfaceActionFactory(EntityActionType type, const QUuid& i
             return (EntityActionPointer) new ObjectActionSpring(id, ownerEntity);
         case ACTION_TYPE_HOLD:
             return (EntityActionPointer) new AvatarActionHold(id, ownerEntity);
-        case ACTION_TYPE_KINEMATIC_HOLD:
-            return (EntityActionPointer) new AvatarActionKinematicHold(id, ownerEntity);
     }
 
     assert(false);
@@ -69,6 +66,7 @@ EntityActionPointer InterfaceActionFactory::factoryBA(EntityItemPointer ownerEnt
     if (action) {
         action->deserialize(data);
         if (action->lifetimeIsOver()) {
+            qDebug() << "InterfaceActionFactory::factoryBA lifetimeIsOver during action creation";
             return nullptr;
         }
     }
