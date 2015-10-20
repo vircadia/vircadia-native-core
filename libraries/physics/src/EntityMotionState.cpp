@@ -9,6 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include <glm/gtx/norm.hpp>
+
 #include <EntityItem.h>
 #include <EntityItemProperties.h>
 #include <EntityEditPacketSender.h>
@@ -186,10 +188,8 @@ void EntityMotionState::setWorldTransform(const btTransform& worldTrans) {
     measureBodyAcceleration();
     _entity->setPosition(bulletToGLM(worldTrans.getOrigin()) + ObjectMotionState::getWorldOffset());
     _entity->setRotation(bulletToGLM(worldTrans.getRotation()));
-
     _entity->setVelocity(getBodyLinearVelocity());
     _entity->setAngularVelocity(getBodyAngularVelocity());
-
     _entity->setLastSimulated(usecTimestampNow());
 
     if (_entity->getSimulatorID().isNull()) {
@@ -248,7 +248,7 @@ bool EntityMotionState::remoteSimulationOutOfSync(uint32_t simulationStep) {
         btTransform xform = _body->getWorldTransform();
         _serverPosition = bulletToGLM(xform.getOrigin());
         _serverRotation = bulletToGLM(xform.getRotation());
-        _serverVelocity = getBodyLinearVelocity();
+        _serverVelocity = getBodyLinearVelocityGTSigma();
         _serverAngularVelocity = bulletToGLM(_body->getAngularVelocity());
         _lastStep = simulationStep;
         _serverActionData = _entity->getActionData();
@@ -547,7 +547,7 @@ void EntityMotionState::bump(quint8 priority) {
 void EntityMotionState::resetMeasuredBodyAcceleration() {
     _lastMeasureStep = ObjectMotionState::getWorldSimulationStep();
     if (_body) {
-        _lastVelocity = getBodyLinearVelocity();
+        _lastVelocity = getBodyLinearVelocityGTSigma();
     } else {
         _lastVelocity = glm::vec3(0.0f);
     }
@@ -566,7 +566,8 @@ void EntityMotionState::measureBodyAcceleration() {
 
         // Note: the integration equation for velocity uses damping:   v1 = (v0 + a * dt) * (1 - D)^dt
         // hence the equation for acceleration is: a = (v1 / (1 - D)^dt - v0) / dt
-        glm::vec3 velocity = getBodyLinearVelocity();
+        glm::vec3 velocity = getBodyLinearVelocityGTSigma();
+
         _measuredAcceleration = (velocity / powf(1.0f - _body->getLinearDamping(), dt) - _lastVelocity) * invDt;
         _lastVelocity = velocity;
         if (numSubsteps > PHYSICS_ENGINE_MAX_NUM_SUBSTEPS) {
