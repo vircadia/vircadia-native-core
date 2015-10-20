@@ -82,7 +82,7 @@ public:
 
     virtual bool findRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
         OctreeElementPointer& node, float& distance, BoxFace& face, glm::vec3& surfaceNormal,
-        const QVector<QUuid>& entityIdsToInclude = QVector<QUuid>(),
+        const QVector<EntityItemID>& entityIdsToInclude = QVector<EntityItemID>(),
         void** intersectedObject = NULL,
         Octree::lockType lockType = Octree::TryLock,
         bool* accurateResult = NULL,

@@ -495,7 +495,7 @@ bool EntityTreeElement::bestFitBounds(const glm::vec3& minPoint, const glm::vec3
 
 bool EntityTreeElement::findRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
     bool& keepSearching, OctreeElementPointer& element, float& distance,
-    BoxFace& face, glm::vec3& surfaceNormal, const QVector<QUuid>& entityIdsToInclude,
+    BoxFace& face, glm::vec3& surfaceNormal, const QVector<EntityItemID>& entityIdsToInclude,
     void** intersectedObject, bool precisionPicking) {
 
     keepSearching = true; // assume that we will continue searching after this.
@@ -536,7 +536,7 @@ bool EntityTreeElement::findRayIntersection(const glm::vec3& origin, const glm::
 
 bool EntityTreeElement::findDetailedRayIntersection(const glm::vec3& origin, const glm::vec3& direction, bool& keepSearching,
                                     OctreeElementPointer& element, float& distance, BoxFace& face, glm::vec3& surfaceNormal,
-                                    const QVector<QUuid>& entityIdsToInclude, void** intersectedObject, bool precisionPicking, float distanceToElementCube) {
+                                    const QVector<EntityItemID>& entityIdsToInclude, void** intersectedObject, bool precisionPicking, float distanceToElementCube) {
 
     // only called if we do intersect our bounding cube, but find if we actually intersect with entities...
     int entityNumber = 0;
