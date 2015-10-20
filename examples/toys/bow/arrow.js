@@ -12,37 +12,38 @@
 
 (function() {
 
-        var _this;
+    var _this;
 
-        function Arrow() {
-            _this = this;
-            return;
+    function Arrow() {
+        _this = this;
+        return;
+    }
+
+    Arrow.prototype = {
+        preload: function(entityID) {
+            this.entityID = entityID;
+        },
+        collisionWithEntity: function(me, otherEntity, collision) {
+
+            Vec3.print('penetration = ', collision.penetration);
+            Vec3.print('collision contact point = ', collision.contactPoint);
+
+            Entities.editEntity(this.entityID, {
+                velocity: {
+                    x: 0,
+                    y: 0,
+                    z: 0
+                },
+                gravity: {
+                    x: 0,
+                    y: 0,
+                    z: 0
+                },
+                collisionsWillMove: false
+
+            })
         }
+    }
 
-        Arrow.prototype = {
-            preload: function(entityID) {
-                this.entityID = entityID;
-            },
-            collisionWithEntity: function(me, otherEntity, collision) {
-
-                Vec3.print('penetration = ', collision.penetration);
-                Vec3.print('collision contact point = ', collision.contactPoint);
-
-                Entities.editEntity(this.entityID, {
-                    velocity: {
-                        x: 0,
-                        y: 0,
-                        z: 0
-                    },
-                    gravity: {
-                        x: 0,
-                        y: 0,
-                        z: 0
-                    }
-                    collisionsWillMove: false
-
-                })
-            }
-
-                return new Arrow;
-        })
+    return new Arrow;
+})
