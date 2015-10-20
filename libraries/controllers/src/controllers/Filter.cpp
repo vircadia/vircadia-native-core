@@ -72,7 +72,7 @@ DeadZoneFilter::FactoryEntryBuilder DeadZoneFilter::_factoryEntryBuilder;
 
 float DeadZoneFilter::apply(float value) const {
     float scale = 1.0f / (1.0f - _min);
-    if (abs(value) < _min) {
+    if (std::abs(value) < _min) {
         return 0.0f;
     }
     return (value - _min) * scale;
