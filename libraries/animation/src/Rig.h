@@ -246,6 +246,7 @@ public:
 
 private:
     QScriptValue _stateHandlers {};
+    QScriptValue _stateHandlersResults {};
 };
 
 #endif /* defined(__hifi__Rig__) */

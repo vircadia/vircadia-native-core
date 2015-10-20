@@ -621,8 +621,8 @@ void Rig::updateAnimations(float deltaTime, glm::mat4 rootTransform) {
             QScriptValue outboundMap = _animVars.animVariantMapToScriptValue(engine);
             QScriptValueList args;
             args << outboundMap;
-            QScriptValue inboundMap = _stateHandlers.call(QScriptValue(), args);
-            _animVars.animVariantMapFromScriptValue(inboundMap);
+            _stateHandlersResults = _stateHandlers.call(QScriptValue(), args);
+            _animVars.animVariantMapFromScriptValue(_stateHandlersResults);
             //qCDebug(animation) << _animVars.lookup("foo", QString("not set"));
         }
         // evaluate the animation
@@ -1201,7 +1201,9 @@ void Rig::updateFromHandParameters(const HandParameters& params, float dt) {
             _animVars.set("leftHandType", (int)IKTarget::Type::HipsRelativeRotationAndPosition);
         }
         if (params.isRightEnabled) {
-            _animVars.set("rightHandPosition", rootBindPose.trans + rootBindPose.rot * yFlipHACK * params.rightPosition);
+            if (!_stateHandlersResults.property("rightHandPosition", QScriptValue::ResolveLocal).isValid()) {
+                _animVars.set("rightHandPosition", rootBindPose.trans + rootBindPose.rot * yFlipHACK * params.rightPosition);
+            }
             _animVars.set("rightHandRotation", rootBindPose.rot * yFlipHACK * params.rightOrientation);
             _animVars.set("rightHandType", (int)IKTarget::Type::RotationAndPosition);
         } else {
