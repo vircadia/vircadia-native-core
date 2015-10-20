@@ -1,5 +1,5 @@
 //
-//  arrow.js
+//  arrow.js 
 //
 //  This script attaches to an arrow to make it stop and stick when it hits something.  Could use this to make it a fire arrow or really give any kind of property to itself or the entity it hits.
 //
