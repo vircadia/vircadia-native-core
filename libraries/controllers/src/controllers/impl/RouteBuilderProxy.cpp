@@ -41,7 +41,7 @@ void RouteBuilderProxy::to(const QScriptValue& destination) {
 void RouteBuilderProxy::to(const Endpoint::Pointer& destination) {
     auto sourceEndpoint = _route->source;
     _route->destination = destination;
-    _mapping->channelMappings[sourceEndpoint].push_back(_route);
+    _mapping->routes.push_back(_route);
     deleteLater();
 }
 

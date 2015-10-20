@@ -8,6 +8,8 @@
 
 #include "UserInputMapper.h"
 
+#include <set>
+
 #include <QtCore/QThread>
 #include <QtCore/QFile>
 
@@ -208,16 +210,45 @@ void UserInputMapper::registerDevice(InputDevice* device) {
     auto mapping = loadMapping(device->getDefaultMappingConfig());
     if (mapping) {
         _mappingsByDevice[deviceID] = mapping;
-        for (const auto& entry : mapping->channelMappings) {
-            const auto& source = entry.first;
-            const auto& routes = entry.second;
-            auto& list = _defaultMapping->channelMappings[source];
-            list.insert(list.end(), routes.begin(), routes.end());
-        }
+        auto& defaultRoutes = _defaultMapping->routes;
+
+        // New routes for a device get injected IN FRONT of existing routes.  Routes
+        // are processed in order so this ensures that the standard -> action processing 
+        // takes place after all of the hardware -> standard or hardware -> action processing
+        // because standard -> action is the first set of routes added.
+        defaultRoutes.insert(defaultRoutes.begin(), mapping->routes.begin(), mapping->routes.end());
     }
 
     emit hardwareChanged();
 }
+
+// FIXME remove the associated device mappings
+void UserInputMapper::removeDevice(int deviceID) {
+    auto proxyEntry = _registeredDevices.find(deviceID);
+    if (_registeredDevices.end() == proxyEntry) {
+        qCWarning(controllers) << "Attempted to remove unknown device " << deviceID;
+        return;
+    }
+    auto proxy = proxyEntry->second;
+    auto mappingsEntry = _mappingsByDevice.find(deviceID);
+    if (_mappingsByDevice.end() != mappingsEntry) {
+        const auto& mapping = mappingsEntry->second;
+        const auto& deviceRoutes = mapping->routes;
+        std::set<Route::Pointer> routeSet(deviceRoutes.begin(), deviceRoutes.end());
+
+        auto& defaultRoutes = _defaultMapping->routes;
+        std::remove_if(defaultRoutes.begin(), defaultRoutes.end(), [&](Route::Pointer route)->bool {
+            return routeSet.count(route) != 0;
+        });
+
+        _mappingsByDevice.erase(mappingsEntry);
+    }
+
+    _registeredDevices.erase(proxyEntry);
+
+    emit hardwareChanged();
+}
+
 
 DeviceProxy::Pointer UserInputMapper::getDeviceProxy(const Input& input) {
     auto device = _registeredDevices.find(input.getDevice());
@@ -288,11 +319,6 @@ Input UserInputMapper::findDeviceInput(const QString& inputName) const {
     }
 
     return Input::INVALID_INPUT;
-}
-
-// FIXME remove the associated device mappings
-void UserInputMapper::removeDevice(int device) {
-    _registeredDevices.erase(device);
 }
 
 void fixBisectedAxis(float& full, float& negative, float& positive) {
@@ -470,12 +496,6 @@ Input UserInputMapper::makeStandardInput(controller::StandardPoseChannel pose) {
     return Input(STANDARD_DEVICE, pose, ChannelType::POSE);
 }
 
-enum Pass {
-    HARDWARE_PASS,
-    STANDARD_PASS,
-    NUM_PASSES
-};
-
 void UserInputMapper::update() {
     static auto deviceNames = getDeviceNames();
     _overrideValues.clear();
@@ -485,66 +505,58 @@ void UserInputMapper::update() {
 
     // Now process the current values for each level of the stack
     for (auto& mapping : _activeMappings) {
-        for (int pass = HARDWARE_PASS; pass < NUM_PASSES; ++pass) {
-            for (const auto& mappingEntry : mapping->channelMappings) {
-                const auto& source = mappingEntry.first;
-                if (_inputsByEndpoint.count(source)) {
-                    auto sourceInput = _inputsByEndpoint[source];
-                    if ((sourceInput.device == STANDARD_DEVICE) ^ (pass == STANDARD_PASS)) {
-                        continue;
-                    }
-                }
+        for (const auto& route : mapping->routes) {
+            const auto& source = route->source;
+            // Endpoints can only be read once (though a given mapping can route them to 
+            // multiple places).  Consider... If the default is to wire the A button to JUMP
+            // and someone else wires it to CONTEXT_MENU, I don't want both to occur when 
+            // I press the button.  The exception is if I'm wiring a control back to itself
+            // in order to adjust my interface, like inverting the Y axis on an analog stick
+            if (readEndpoints.count(source)) {
+                continue;
+            }
 
-                // Endpoints can only be read once (though a given mapping can route them to 
-                // multiple places).  Consider... If the default is to wire the A button to JUMP
-                // and someone else wires it to CONTEXT_MENU, I don't want both to occur when 
-                // I press the button.  The exception is if I'm wiring a control back to itself
-                // in order to adjust my interface, like inverting the Y axis on an analog stick
-                if (readEndpoints.count(source)) {
+            const auto& destination = route->destination;
+            // THis could happen if the route destination failed to create
+            // FIXME: Maybe do not create the route if the destination failed and avoid this case ?
+            if (!destination) {
+                continue;
+            }
+
+            if (writtenEndpoints.count(destination)) {
+                continue;
+            }
+
+            if (route->conditional) {
+                if (!route->conditional->satisfied()) {
                     continue;
                 }
+            }
 
-                // Apply the value to all the routes
-                const auto& routes = mappingEntry.second;
+            // Standard controller destinations can only be can only be used once.
+            if (getStandardDeviceID() == destination->getInput().getDevice()) {
+                writtenEndpoints.insert(destination);
+            }
 
-                for (const auto& route : routes) {
-                    const auto& destination = route->destination;
-                    // THis could happen if the route destination failed to create
-                    // FIXME: Maybe do not create the route if the destination failed and avoid this case ?
-                    if (!destination) {
-                        continue;
-                    }
+            // Only consume the input if the route isn't a loopback.
+            // This allows mappings like `mapping.from(xbox.RY).invert().to(xbox.RY);`
+            bool loopback = source == destination;
+            if (!loopback) {
+                readEndpoints.insert(source);
+            }
 
-                    if (writtenEndpoints.count(destination)) {
-                        continue;
-                    }
+            // Fetch the value, may have been overriden by previous loopback routes
+            float value = getValue(source);
 
-                    // Standard controller destinations can only be can only be used once.
-                    if (getStandardDeviceID() == destination->getInput().getDevice()) {
-                        writtenEndpoints.insert(destination);
-                    }
+            // Apply each of the filters.
+            for (const auto& filter : route->filters) {
+                value = filter->apply(value);
+            }
 
-                    // Only consume the input if the route isn't a loopback.
-                    // This allows mappings like `mapping.from(xbox.RY).invert().to(xbox.RY);`
-                    bool loopback = source == destination;
-                    if (!loopback) {
-                        readEndpoints.insert(source);
-                    }
-
-                    // Fetch the value, may have been overriden by previous loopback routes
-                    float value = getValue(source);
-
-                    // Apply each of the filters.
-                    for (const auto& filter : route->filters) {
-                        value = filter->apply(value);
-                    }
-
-                    if (loopback) {
-                        _overrideValues[source] = value;
-                    } else {
-                        destination->apply(value, 0, source);
-                    }
-                }
+            if (loopback) {
+                _overrideValues[source] = value;
+            } else {
+                destination->apply(value, 0, source);
             }
         }
     }
@@ -693,6 +705,7 @@ Mapping::Pointer UserInputMapper::loadMapping(const QString& jsonFile) {
 const QString JSON_NAME = QStringLiteral("name");
 const QString JSON_CHANNELS = QStringLiteral("channels");
 const QString JSON_CHANNEL_FROM = QStringLiteral("from");
+const QString JSON_CHANNEL_WHEN = QStringLiteral("when");
 const QString JSON_CHANNEL_TO = QStringLiteral("to");
 const QString JSON_CHANNEL_FILTERS = QStringLiteral("filters");
 
@@ -705,6 +718,20 @@ Endpoint::Pointer UserInputMapper::parseEndpoint(const QJsonValue& value) {
         return Endpoint::Pointer();
     }
     return Endpoint::Pointer();
+}
+
+Conditional::Pointer UserInputMapper::parseConditional(const QJsonValue& value) {
+    if (value.isString()) {
+        auto input = findDeviceInput(value.toString());
+        auto endpoint = endpointFor(input);
+        if (!endpoint) {
+            return Conditional::Pointer();
+        }
+
+        return std::make_shared<EndpointConditional>(endpoint);
+    } 
+      
+    return Conditional::parse(value);
 }
 
 Route::Pointer UserInputMapper::parseRoute(const QJsonValue& value) {
@@ -723,6 +750,15 @@ Route::Pointer UserInputMapper::parseRoute(const QJsonValue& value) {
     if (!result->destination) {
         qWarning() << "Invalid route destination " << obj[JSON_CHANNEL_TO];
         return Route::Pointer();
+    }
+
+    if (obj.contains(JSON_CHANNEL_WHEN)) {
+        auto when = parseConditional(obj[JSON_CHANNEL_WHEN]);
+        if (!when) {
+            qWarning() << "Invalid route conditional " << obj[JSON_CHANNEL_TO];
+            return Route::Pointer();
+        }
+        result->conditional = when;
     }
 
     const auto& filtersValue = obj[JSON_CHANNEL_FILTERS];
@@ -752,16 +788,14 @@ Mapping::Pointer UserInputMapper::parseMapping(const QJsonValue& json) {
     auto obj = json.toObject();
     auto mapping = std::make_shared<Mapping>("default");
     mapping->name = obj[JSON_NAME].toString();
-    mapping->channelMappings.clear();
     const auto& jsonChannels = obj[JSON_CHANNELS].toArray();
-    Mapping::Map map;
     for (const auto& channelIt : jsonChannels) {
         Route::Pointer route = parseRoute(channelIt);
         if (!route) {
             qWarning() << "Couldn't parse route";
             continue;
         }
-        mapping->channelMappings[route->source].push_back(route);
+        mapping->routes.push_back(route);
     }
     return mapping;
 }
