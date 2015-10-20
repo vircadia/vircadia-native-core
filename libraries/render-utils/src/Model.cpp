@@ -1170,6 +1170,8 @@ void Model::segregateMeshGroups() {
     const FBXGeometry& geometry = _geometry->getFBXGeometry();
     const std::vector<std::unique_ptr<NetworkMesh>>& networkMeshes = _geometry->getMeshes();
 
+    _rig->makeAnimSkeleton(geometry);
+
     // all of our mesh vectors must match in size
     if ((int)networkMeshes.size() != geometry.meshes.size() ||
         geometry.meshes.size() != _meshStates.size()) {

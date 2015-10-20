@@ -341,6 +341,7 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
                         "ERROR CASE...args.bitstreamVersion < VERSION_ENTITIES_SUPPORT_SPLIT_MTU";
         return 0;
     }
+    setSourceUUID(args.sourceUUID);
 
     args.entitiesPerPacket++;
 
@@ -1299,6 +1300,9 @@ void EntityItem::computeShapeInfo(ShapeInfo& info) {
 }
 
 void EntityItem::updatePosition(const glm::vec3& value) {
+    if (shouldSuppressLocationEdits()) {
+        return;
+    }
     auto delta = glm::distance(getPosition(), value);
     if (delta > IGNORE_POSITION_DELTA) {
         _dirtyFlags |= Simulation::DIRTY_POSITION;
@@ -1321,6 +1325,9 @@ void EntityItem::updateDimensions(const glm::vec3& value) {
 }
 
 void EntityItem::updateRotation(const glm::quat& rotation) {
+    if (shouldSuppressLocationEdits()) {
+        return;
+    }
     if (getRotation() != rotation) {
         setRotation(rotation);
 
@@ -1361,6 +1368,9 @@ void EntityItem::updateMass(float mass) {
 }
 
 void EntityItem::updateVelocity(const glm::vec3& value) {
+    if (shouldSuppressLocationEdits()) {
+        return;
+    }
     auto delta = glm::distance(_velocity, value);
     if (delta > IGNORE_LINEAR_VELOCITY_DELTA) {
         _dirtyFlags |= Simulation::DIRTY_LINEAR_VELOCITY;
@@ -1397,6 +1407,9 @@ void EntityItem::updateGravity(const glm::vec3& value) {
 }
 
 void EntityItem::updateAngularVelocity(const glm::vec3& value) {
+    if (shouldSuppressLocationEdits()) {
+        return;
+    }
     auto delta = glm::distance(_angularVelocity, value);
     if (delta > IGNORE_ANGULAR_VELOCITY_DELTA) {
         _dirtyFlags |= Simulation::DIRTY_ANGULAR_VELOCITY;
@@ -1532,6 +1545,8 @@ bool EntityItem::addActionInternal(EntitySimulation* simulation, EntityActionPoi
     if (success) {
         _allActionsDataCache = newDataCache;
         _dirtyFlags |= Simulation::DIRTY_PHYSICS_ACTIVATION;
+    } else {
+        qDebug() << "EntityItem::addActionInternal -- serializeActions failed";
     }
     return success;
 }
@@ -1622,6 +1637,7 @@ void EntityItem::deserializeActionsInternal() {
     quint64 now = usecTimestampNow();
 
     if (!_element) {
+        qDebug() << "EntityItem::deserializeActionsInternal -- no _element";
         return;
     }
 
@@ -1664,6 +1680,8 @@ void EntityItem::deserializeActionsInternal() {
             if (action) {
                 entity->addActionInternal(simulation, action);
                 action->locallyAddedButNotYetReceived = false;
+            } else {
+                qDebug() << "EntityItem::deserializeActionsInternal -- action creation failed";
             }
         }
     }

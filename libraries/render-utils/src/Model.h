@@ -201,6 +201,10 @@ public:
         return ((index < 0) && (index >= _blendshapeCoefficients.size())) ? 0.0f : _blendshapeCoefficients.at(index);
      }
 
+    virtual RigPointer getRig() const { return _rig; }
+
+    const glm::vec3& getRegistrationPoint() const { return _registrationPoint; }
+
 protected:
 
     void setPupilDilation(float dilation) { _pupilDilation = dilation; }

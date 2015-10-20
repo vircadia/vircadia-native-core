@@ -89,6 +89,7 @@ public:
     void setBodyGravity(const glm::vec3& gravity) const;
 
     glm::vec3 getBodyLinearVelocity() const;
+    glm::vec3 getBodyLinearVelocityGTSigma() const;
     glm::vec3 getBodyAngularVelocity() const;
     virtual glm::vec3 getObjectLinearVelocityChange() const;
 

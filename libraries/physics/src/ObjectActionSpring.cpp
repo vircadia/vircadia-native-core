@@ -198,7 +198,7 @@ QByteArray ObjectActionSpring::serialize() const {
         dataStream << _rotationalTarget;
         dataStream << _angularTimeScale;
         dataStream << _rotationalTargetSet;
-        dataStream << _expires;
+        dataStream << _expires + getEntityServerClockSkew();
         dataStream << _tag;
     });
 
@@ -233,6 +233,7 @@ void ObjectActionSpring::deserialize(QByteArray serializedArguments) {
         dataStream >> _rotationalTargetSet;
 
         dataStream >> _expires;
+        _expires -= getEntityServerClockSkew();
         dataStream >> _tag;
 
         _active = true;
