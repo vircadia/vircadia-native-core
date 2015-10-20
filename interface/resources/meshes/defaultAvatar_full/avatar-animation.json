@@ -4,7 +4,7 @@
         "id": "ikOverlay",
         "type": "overlay",
         "data": {
-            "alpha": 1.0,
+            "alpha": 0.0,
             "boneSet": "fullBody"
         },
         "children": [
@@ -532,7 +532,8 @@
                                                     "alpha": 0.0,
                                                     "sync": true,
                                                     "timeScale": 1.0,
-                                                    "timeScaleVar": "walkTimeScale"
+                                                    "timeScaleVar": "walkTimeScale",
+                                                    "alphaVar": "walkAlpha"
                                                 },
                                                 "children": [
                                                     {
@@ -554,6 +555,18 @@
                                                             "url": "https://hifi-public.s3.amazonaws.com/ozan/anim/standard_anims/walk_fwd.fbx",
                                                             "startFrame": 0.0,
                                                             "endFrame": 35.0,
+                                                            "timeScale": 1.0,
+                                                            "loopFlag": true
+                                                        },
+                                                        "children": []
+                                                    },
+                                                    {
+                                                        "id": "walkFwdRun",
+                                                        "type": "clip",
+                                                        "data": {
+                                                            "url": "https://hifi-public.s3.amazonaws.com/ozan/anim/standard_anims/run_fwd.fbx",
+                                                            "startFrame": 0.0,
+                                                            "endFrame": 21.0,
                                                             "timeScale": 1.0,
                                                             "loopFlag": true
                                                         },
