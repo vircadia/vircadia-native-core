@@ -1,0 +1,25 @@
+*.cpp text
+*.c text
+*.h text
+*.qml text
+*.js text
+*.json text
+*.slv text
+*.slf text
+*.slh text
+*.vert text
+*.frag text
+*.fst text
+*.ini text
+*.html text
+*.ts text
+*.txt text
+
+# Denote all files that are truly binary and should not be modified.
+*.png binary
+*.jpg binary
+*.wav binary
+*.fbx binary
+*.dds binary
+*.svg binary
+*.ttf binary

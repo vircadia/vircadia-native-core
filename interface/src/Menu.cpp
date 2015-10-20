@@ -369,7 +369,7 @@ Menu::Menu() {
     auto& atpMigrator = ATPAssetMigrator::getInstance();
     atpMigrator.setDialogParent(this);
     
-    QAction* assetMigration = addActionToQMenuAndActionHash(assetDeveloperMenu, MenuOption::AssetMigration,
+    addActionToQMenuAndActionHash(assetDeveloperMenu, MenuOption::AssetMigration,
                                                             0, &atpMigrator,
                                                             SLOT(loadEntityServerFile()));
     

@@ -194,6 +194,7 @@ public:
     virtual void setHandPosition(int jointIndex, const glm::vec3& position, const glm::quat& rotation,
                                  float scale, float priority) = 0;
 
+    void makeAnimSkeleton(const FBXGeometry& fbxGeometry);
     void initAnimGraph(const QUrl& url, const FBXGeometry& fbxGeometry);
 
     AnimNode::ConstPointer getAnimNode() const { return _animNode; }
