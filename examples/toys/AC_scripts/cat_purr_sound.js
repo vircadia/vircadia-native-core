@@ -1,13 +1,10 @@
-//
-//  ambiance.js
-//  examples
-//
-//  Created by Clément Brisset on 11/18/14.
-//  Copyright 2014 High Fidelity, Inc.
+//  Adds a cat purring noise to Toybox.
+//  By Ryan Karpf 10/20/2015
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
+
 
 var soundURL = "http://hifi-public.s3.amazonaws.com/ryan/Cat_Purring_Deep_Low_Snor.wav";
 var position = { x: 551.48, y: 495.60, z: 502.08};
