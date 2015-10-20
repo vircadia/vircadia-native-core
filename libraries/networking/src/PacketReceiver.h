@@ -90,7 +90,6 @@ private:
 
     QMutex _packetListenerLock;
     // TODO: replace the two following hashes with an std::vector once we switch Packet/PacketList to Message
-    // QHash<PacketType, ObjectMethodPair> _packetListenerMap;
     QHash<PacketType, Listener> _messageListenerMap;
     int _inPacketCount = 0;
     int _inByteCount = 0;
