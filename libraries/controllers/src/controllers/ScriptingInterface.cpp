@@ -96,7 +96,7 @@ namespace controller {
             : Endpoint(UserInputMapper::Input(UserInputMapper::Input::INVALID_INPUT)), Pair(first, second) { }
 
         virtual float value() {
-            float result = first->value() * -1.0 + second->value();
+            float result = first->value() * -1.0f + second->value();
             return result;
         }
 
@@ -324,7 +324,6 @@ namespace controller {
                     float value = getValue(source);
 
                     // Apply each of the filters.
-                    const auto& filters = route->_filters;
                     for (const auto& filter : route->_filters) {
                         value = filter->apply(value);
                     }
@@ -406,7 +405,7 @@ namespace controller {
     }
 
     bool ScriptingInterface::isButtonPressed(int buttonIndex) const {
-        return getButtonValue((StandardButtonChannel)buttonIndex) == 0.0 ? false : true;
+        return getButtonValue((StandardButtonChannel)buttonIndex) == 0.0f ? false : true;
     }
 
     int ScriptingInterface::getNumberOfTriggers() const {

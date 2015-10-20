@@ -89,9 +89,9 @@ PulseFilter::FactoryEntryBuilder PulseFilter::_factoryEntryBuilder;
 
 
 float PulseFilter::apply(float value) const {
-    float result = 0.0;
+    float result = 0.0f;
 
-    if (0.0 != value) {
+    if (0.0f != value) {
         float now = secTimestampNow();
         float delta = now - _lastEmitTime;
         if (delta >= _interval) {

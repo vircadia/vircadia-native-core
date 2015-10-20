@@ -52,10 +52,9 @@ class RouteBuilderProxy : public QObject {
         void to(const Endpoint::Pointer& destination);
         void addFilter(Filter::Lambda lambda);
         void addFilter(Filter::Pointer filter);
+        ScriptingInterface& _parent;
         Mapping::Pointer _mapping;
         Route::Pointer _route;
-
-        ScriptingInterface& _parent;
     };
 
 }
