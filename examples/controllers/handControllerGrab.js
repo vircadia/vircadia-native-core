@@ -3,6 +3,7 @@
 //
 //  Created by Eric Levin on  9/2/15
 //  Additions by James B. Pollack @imgntn on 9/24/2015
+//  Additions By Seth Alves on 10/20/2015
 //  Copyright 2015 High Fidelity, Inc.
 //
 //  Grabs physically moveable entities with hydra-like controllers; it works for either near or far objects.
@@ -12,6 +13,13 @@
 /*global print, MyAvatar, Entities, AnimationCache, SoundCache, Scene, Camera, Overlays, Audio, HMD, AvatarList, AvatarManager, Controller, UndoStack, Window, Account, GlobalServices, Script, ScriptDiscoveryService, LODManager, Menu, Vec3, Quat, AudioDevice, Paths, Clipboard, Settings, XMLHttpRequest, randFloat, randInt, pointInExtents, vec3equal, setEntityCustomData, getEntityCustomData */
 
 Script.include("../libraries/utils.js");
+
+
+////////////////////////////////////////////////////////////
+//
+// add lines where the hand ray picking is happening
+//
+var DEBUG_HAND_RAY_PICKING = false;
 
 /////////////////////////////////////////////////////////////////
 //
@@ -43,9 +51,9 @@ var PICK_MAX_DISTANCE = 500; // max length of pick-ray
 
 var NEAR_GRABBING_ACTION_TIMEFRAME = 0.05; // how quickly objects move to their new position
 var NEAR_GRABBING_VELOCITY_SMOOTH_RATIO = 1.0; // adjust time-averaging of held object's velocity.  1.0 to disable.
-var NEAR_PICK_MAX_DISTANCE = 0.2; // max length of pick-ray for close grabbing to be selected
+var NEAR_PICK_MAX_DISTANCE = 0.3; // max length of pick-ray for close grabbing to be selected
 var RELEASE_VELOCITY_MULTIPLIER = 1.5; // affects throwing things
-var PICK_BACKOFF_DISTANCE = 0.1; // helps when hand is intersecting the grabble object
+var PICK_BACKOFF_DISTANCE = 0.2; // helps when hand is intersecting the grabble object
 
 /////////////////////////////////////////////////////////////////
 //
@@ -190,6 +198,19 @@ function MyController(hand, triggerAction) {
     }
 
 
+    this.debugLine = function(closePoint, farPoint, color){
+                 Entities.addEntity({
+                type: "Line",
+                name: "Debug Line",
+                dimensions: LINE_ENTITY_DIMENSIONS,
+                visible: true,
+                position: closePoint,
+                linePoints: [ZERO_VEC, farPoint],
+                color: color,
+                lifetime: 0.1
+            });
+    }
+
     this.lineOn = function(closePoint, farPoint, color) {
         // draw a line
         if (this.pointer === null) {
@@ -275,6 +296,13 @@ function MyController(hand, triggerAction) {
             length: NEAR_PICK_MAX_DISTANCE
         };
 
+        var otherPickRay = {
+            origin: handPosition,
+            direction: Quat.getRight(this.getHandRotation()),
+            length: NEAR_PICK_MAX_DISTANCE
+        };
+
+
         this.lineOn(distantPickRay.origin, Vec3.multiply(distantPickRay.direction, LINE_LENGTH), NO_INTERSECT_COLOR);
 
         // don't pick 60x per second.  do this check after updating the line so it's not jumpy.
@@ -284,7 +312,7 @@ function MyController(hand, triggerAction) {
         }
         this.lastPickTime = now;
 
-        var pickRays = [distantPickRay, palmPickRay];
+        var pickRays = [distantPickRay, palmPickRay, otherPickRay];
         for (var index=0; index < pickRays.length; ++index) {
             var pickRay = pickRays[index];
             var directionNormalized = Vec3.normalize(pickRay.direction);
@@ -294,7 +322,15 @@ function MyController(hand, triggerAction) {
                 direction: pickRay.direction
             };
 
+            if (DEBUG_HAND_RAY_PICKING)
+                this.debugLine(pickRayBacked.origin, Vec3.multiply(pickRayBacked.direction, NEAR_PICK_MAX_DISTANCE), {
+                    red: 0,
+                    green: 255,
+                    blue: 0
+                })
+
             var intersection = Entities.findRayIntersection(pickRayBacked, true);
+
             if (intersection.intersects && intersection.properties.locked === 0) {
                 // the ray is intersecting something we can move.
                 var intersectionDistance = Vec3.distance(pickRay.origin, intersection.intersection);

@@ -16,7 +16,7 @@
     var ARROW_COLLISION_HULL_URL = "https://hifi-public.s3.amazonaws.com/models/bow/arrow_collision_hull.obj";
     var ARROW_SCRIPT_URL = Script.resolvePath('arrow.js');
     var ARROW_OFFSET = 0.25;
-    var ARROW_FORCE = 0.25;
+    var ARROW_FORCE = 1.25;
     var ARROW_DIMENSIONS = {
         x: 0.08,
         y: 0.02,
@@ -290,7 +290,7 @@
 
         releaseArrow: function() {
 
-            var forwardVec = Quat.getFront(Quat.multiply(this.bowProperties.rotation, Quat.fromPitchYawRollDegrees(0, 180, 0)));
+            var forwardVec = Quat.getRight(Quat.multiply(this.bowProperties.rotation, Quat.fromPitchYawRollDegrees(0, 180, 0)));
             forwardVec = Vec3.normalize(forwardVec);
             var handDistanceAtRelease = Vec3.length(this.bowProperties.position, this.stringData.handPosition);
 
