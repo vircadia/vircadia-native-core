@@ -102,7 +102,7 @@ namespace controller {
             : Endpoint(UserInputMapper::Input(UserInputMapper::Input::INVALID_INPUT)), Pair(first, second) { }
 
         virtual float value() {
-            float result = first->value() * -1.0 + second->value();
+            float result = first->value() * -1.0f + second->value();
             return result;
         }
 
@@ -408,8 +408,7 @@ namespace controller {
                     // Fetch the value, may have been overriden by previous loopback routes
                     if (source->isPose()) {
                         Pose value = getPoseValue(source);
-
-
+                        // no filters yet for pose
                         destination->apply(value, Pose(), source);
                     } else {
                         float value = getValue(source);
@@ -498,7 +497,7 @@ namespace controller {
     }
 
     bool ScriptingInterface::isButtonPressed(int buttonIndex) const {
-        return getButtonValue((StandardButtonChannel)buttonIndex) == 0.0 ? false : true;
+        return getButtonValue((StandardButtonChannel)buttonIndex) == 0.0f ? false : true;
     }
 
     int ScriptingInterface::getNumberOfTriggers() const {

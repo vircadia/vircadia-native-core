@@ -342,14 +342,18 @@ void Stats::setRenderDetails(const RenderDetails& details) {
     STAT_UPDATE(triangles, details._trianglesRendered);
     STAT_UPDATE(materialSwitches, details._materialSwitches);
     if (_expanded) {
-        STAT_UPDATE(meshOpaque, details._opaque._rendered);
-        STAT_UPDATE(meshTranslucent, details._opaque._rendered);
         STAT_UPDATE(opaqueConsidered, details._opaque._considered);
         STAT_UPDATE(opaqueOutOfView, details._opaque._outOfView);
         STAT_UPDATE(opaqueTooSmall, details._opaque._tooSmall);
+        STAT_UPDATE(opaqueRendered, details._opaque._rendered);
         STAT_UPDATE(translucentConsidered, details._translucent._considered);
         STAT_UPDATE(translucentOutOfView, details._translucent._outOfView);
         STAT_UPDATE(translucentTooSmall, details._translucent._tooSmall);
+        STAT_UPDATE(translucentRendered, details._translucent._rendered);
+        STAT_UPDATE(otherConsidered, details._other._considered);
+        STAT_UPDATE(otherOutOfView, details._other._outOfView);
+        STAT_UPDATE(otherTooSmall, details._other._tooSmall);
+        STAT_UPDATE(otherRendered, details._other._rendered);
     }
 }
 
