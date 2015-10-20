@@ -46,11 +46,11 @@ var bow = Entities.addEntity({
     shapeType: 'compound',
     compoundShapeURL: COLLISION_HULL_URL,
     script: SCRIPT_URL,
-    // userData: JSON.stringify({
-    //     grabbableKey: {
-    //         invertSolidWhileHeld: true
-    //     }
-    // })
+    userData: JSON.stringify({
+        grabbableKey: {
+            invertSolidWhileHeld: true
+        }
+    })
 });
 
 function cleanup() {

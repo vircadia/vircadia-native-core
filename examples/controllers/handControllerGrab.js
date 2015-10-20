@@ -249,6 +249,9 @@ function MyController(hand, triggerAction) {
     }
 
     this.search = function() {
+        if(this.hasGrabbedEntity===true){
+            return;
+        }
         if (this.triggerSmoothedReleased()) {
             this.setState(STATE_RELEASE);
             return;
@@ -465,10 +468,20 @@ function MyController(hand, triggerAction) {
     this.nearGrabbing = function() {
         var now = Date.now();
 
+        var grabbableData = getEntityCustomData(GRABBABLE_DATA_KEY, this.grabbedEntity, DEFAULT_GRABBABLE_DATA);
+        var turnOffOtherHand = grabbableData["turnOffOtherHand"];
+        if (turnOffOtherHand === true) {
+            this.hasGrabbedEntity = true;
+            print('DONT ACTIVATE SECOND HAND GRAB BECAUSE THE SCRIPT HAS GOT IT')
+            return;
+        }
+
         if (this.triggerSmoothedReleased()) {
             this.setState(STATE_RELEASE);
             return;
         }
+
+
 
         this.lineOff();
 
@@ -689,6 +702,8 @@ function MyController(hand, triggerAction) {
     };
 
     this.release = function() {
+
+        this.hasGrabbedEntity=false;
 
         this.lineOff();
 

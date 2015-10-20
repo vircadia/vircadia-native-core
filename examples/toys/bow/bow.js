@@ -169,6 +169,13 @@
             }
             this.isGrabbed = true;
             this.initialHand = this.hand;
+            Entities.editEntity(this.entityID, {
+                userData: JSON.stringify({
+                    grabbableKey: {
+                        turnOffOtherHand: true
+                    }
+                })
+            });
         },
 
         continueNearGrab: function() {
@@ -182,6 +189,13 @@
                 this.stringDrawn = false;
                 this.deleteStrings();
                 this.hasArrow = false;
+                Entities.editEntity(this.entityID, {
+                    userData: JSON.stringify({
+                        grabbableKey: {
+                            turnOffOtherHand: false
+                        }
+                    })
+                });
             }
         },
 
@@ -200,24 +214,24 @@
             this.triggerValue = Controller.getActionValue(this.stringTriggerAction);
 
             if (this.triggerValue < DRAW_STRING_THRESHOLD && this.stringDrawn === true) {
-                print('TRIGGER 1')
-                    //let it fly
+               // print('TRIGGER 1');
+                //let it fly
                 this.stringDrawn = false;
                 this.deleteStrings();
                 this.hasArrow = false;
                 //this.releaseArrow();
 
             } else if (this.triggerValue >= DRAW_STRING_THRESHOLD && this.stringDrawn === true) {
-                print('TRIGGER 2')
-                    //update
+                //print('TRIGGER 2');
+                //update
                 this.stringData.handPosition = this.getStringHandPosition();
                 this.stringData.handRotation = this.getStringHandRotation();
                 this.drawStrings();
                 this.updateArrowPosition();
 
             } else if (this.triggerValue >= DRAW_STRING_THRESHOLD && this.stringDrawn === false) {
-                print('TRIGGER 3')
-                    //create
+               //print('TRIGGER 3');
+                //create
                 this.stringDrawn = true;
                 this.createStrings();
                 this.stringData.handPosition = this.getStringHandPosition();
@@ -233,25 +247,27 @@
         },
 
         getArrowPosition: function() {
- 
-            var arrowVector = Vec3.subtract(this.bowProperties.position,this.stringData.handPosition);
+
+            var arrowVector = Vec3.subtract(this.bowProperties.position, this.stringData.handPosition);
             arrowVector = Vec3.normalize(arrowVector);
-            arrowVector = Vec3.multiply(arrowVector,ARROW_OFFSET);
-            var arrowPosition = Vec3.sum(this.stringData.handPosition,arrowVector);
+            arrowVector = Vec3.multiply(arrowVector, ARROW_OFFSET);
+            var arrowPosition = Vec3.sum(this.stringData.handPosition, arrowVector);
             return arrowPosition;
         },
 
         updateArrowPosition: function() {
-          var arrowPosition = this.getArrowPosition();
-          print('ARROW POSITION:::' + JSON.stringify(arrowPosition));
+            var arrowPosition = this.getArrowPosition();
+
+            var arrowRotation = Quat.getFront(this.bowProperties.rotation);
+          //  print('ARROW POSITION:::' + JSON.stringify(arrowPosition));
             Entities.editEntity(this.arrow, {
                 position: arrowPosition,
-                rotation: this.bowProperties.rotation
+                rotation: arrowRotation
             });
         },
 
         createArrow: function() {
-            print('CREATING ARROW');
+          //  print('CREATING ARROW');
             var arrowProperties = {
                 name: 'Hifi-Arrow',
                 type: 'Model',
