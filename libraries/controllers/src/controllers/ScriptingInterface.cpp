@@ -35,10 +35,16 @@ namespace controller {
         }
 
         virtual float value() override { return _currentValue; }
-        virtual void apply(float newValue, float oldValue, const Pointer& source) override { _currentValue = newValue; }
-
+        virtual void apply(float newValue, float oldValue, const Pointer& source) override {
+            _currentValue = newValue;
+        }
+        virtual Pose pose() override { return _currentPose; }
+        virtual void apply(const Pose& newValue, const Pose& oldValue, const Pointer& source) override {
+            _currentPose = newValue;
+        }
     private:
         float _currentValue{ 0.0f };
+        Pose _currentPose{};
     };
 
 
@@ -109,6 +115,49 @@ namespace controller {
         Endpoint::Pointer _second;
     };
 
+    class InputEndpoint : public Endpoint {
+    public:
+        InputEndpoint(const UserInputMapper::Input& id = UserInputMapper::Input::INVALID_INPUT)
+            : Endpoint(id) {
+        }
+
+        virtual float value() override {
+            _currentValue = 0.0f;
+            if (isPose()) {
+                return _currentValue;
+            }
+            auto userInputMapper = DependencyManager::get<UserInputMapper>();
+            auto deviceProxy = userInputMapper->getDeviceProxy(_input);
+            if (!deviceProxy) {
+                return _currentValue;
+            }
+            _currentValue = deviceProxy->getValue(_input, 0);
+            return _currentValue;
+        }
+        virtual void apply(float newValue, float oldValue, const Pointer& source) override {}
+
+        virtual Pose pose() override {
+            _currentPose = Pose();
+            if (!isPose()) {
+                return _currentPose;
+            }
+            auto userInputMapper = DependencyManager::get<UserInputMapper>();
+            auto deviceProxy = userInputMapper->getDeviceProxy(_input);
+            if (!deviceProxy) {
+                return _currentPose;
+            }
+            _currentPose = deviceProxy->getPose(_input, 0);
+            return _currentPose;
+        }
+
+        virtual void apply(const Pose& newValue, const Pose& oldValue, const Pointer& source) override {
+        }
+
+    private:
+        float _currentValue{ 0.0f };
+        Pose _currentPose{};
+    };
+
     class ActionEndpoint : public Endpoint {
     public:
         ActionEndpoint(const UserInputMapper::Input& id = UserInputMapper::Input::INVALID_INPUT)
@@ -125,8 +174,18 @@ namespace controller {
             }
         }
 
+        virtual Pose pose() override { return _currentPose; }
+        virtual void apply(const Pose& newValue, const Pose& oldValue, const Pointer& source) override {
+            _currentPose = newValue;
+            if (!(_input == UserInputMapper::Input::INVALID_INPUT)) {
+                auto userInputMapper = DependencyManager::get<UserInputMapper>();
+                userInputMapper->setActionState(UserInputMapper::Action(_input.getChannel()), _currentPose);
+            }
+        }
+
     private:
         float _currentValue{ 0.0f };
+        Pose _currentPose{};
     };
 
     QRegularExpression ScriptingInterface::SANITIZE_NAME_EXPRESSION{ "[\\(\\)\\.\\s]" };
@@ -263,8 +322,34 @@ namespace controller {
         return getValue(UserInputMapper::Input(device, source, UserInputMapper::ChannelType::AXIS).getID());
     }
 
+
+    Pose ScriptingInterface::getPoseValue(const int& source) const {
+        if (!Input(source).isPose()) {
+            return Pose();
+        }
+
+        UserInputMapper::Input input(source);
+        auto iterator = _endpoints.find(input);
+        if (_endpoints.end() == iterator) {
+            return Pose();
+        }
+
+        const auto& endpoint = iterator->second;
+        return getPoseValue(endpoint);
+    }
+
+    Pose ScriptingInterface::getPoseValue(const Endpoint::Pointer& endpoint) const {
+      
+        /*auto valuesIterator = _overrideValues.find(endpoint);
+        if (_overrideValues.end() != valuesIterator) {
+            return valuesIterator->second;
+        }*/
+
+        return endpoint->pose();
+    }
+
     Pose ScriptingInterface::getPoseValue(StandardPoseChannel source, uint16_t device) const {
-        return Pose();
+        return getPoseValue(UserInputMapper::Input(device, source, UserInputMapper::ChannelType::POSE).getID());
     }
 
     void ScriptingInterface::update() {
@@ -321,18 +406,25 @@ namespace controller {
                     }
 
                     // Fetch the value, may have been overriden by previous loopback routes
-                    float value = getValue(source);
+                    if (source->isPose()) {
+                        Pose value = getPoseValue(source);
 
-                    // Apply each of the filters.
-                    const auto& filters = route->_filters;
-                    for (const auto& filter : route->_filters) {
-                        value = filter->apply(value);
-                    }
 
-                    if (loopback) {
-                        _overrideValues[source] = value;
+                        destination->apply(value, Pose(), source);
                     } else {
-                        destination->apply(value, 0, source);
+                        float value = getValue(source);
+
+                        // Apply each of the filters.
+                        const auto& filters = route->_filters;
+                        for (const auto& filter : route->_filters) {
+                            value = filter->apply(value);
+                        }
+
+                        if (loopback) {
+                            _overrideValues[source] = value;
+                        } else {
+                            destination->apply(value, 0, source);
+                        }
                     }
                 }
             }
@@ -483,13 +575,14 @@ namespace controller {
                     if (_endpoints.count(input)) {
                         continue;
                     }
-                    _endpoints[input] = std::make_shared<LambdaEndpoint>([=] {
+                   /* _endpoints[input] = std::make_shared<LambdaEndpoint>([=] {
                         auto deviceProxy = userInputMapper->getDeviceProxy(input);
                         if (!deviceProxy) {
                             return 0.0f;
                         }
                         return deviceProxy->getValue(input, 0);
-                    });
+                    });*/
+                    _endpoints[input] = std::make_shared<InputEndpoint>(input);
                 }
             }
         }

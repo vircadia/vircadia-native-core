@@ -308,11 +308,16 @@ void UserInputMapper::update(float deltaTime) {
         }
     }
 
-    // Scale all the channel step with the scale
+    //manage the external action states changes coming from the Controllers Graph
     for (auto i = 0; i < NUM_ACTIONS; i++) {
         if (_externalActionStates[i] != 0) {
             _actionStates[i] += _externalActionStates[i];
             _externalActionStates[i] = 0.0f;
+        }
+
+        if (_externalPoseStates[i].isValid()) {
+            _poseStates[i] = _externalPoseStates[i];
+            _externalPoseStates[i] = PoseValue();
         }
     }
 
@@ -432,6 +437,35 @@ void UserInputMapper::createActionNames() {
     _actionNames[ROLL] = "Roll";
     _actionNames[PITCH] = "Pitch";
     _actionNames[YAW] = "Yaw";
+
+    _actionInputs[LONGITUDINAL_BACKWARD] = Input(ACTIONS_DEVICE, LONGITUDINAL_BACKWARD, ChannelType::AXIS);
+    _actionInputs[LONGITUDINAL_FORWARD] = Input(ACTIONS_DEVICE, LONGITUDINAL_BACKWARD, ChannelType::AXIS);
+    _actionInputs[LATERAL_LEFT] = Input(ACTIONS_DEVICE, LATERAL_LEFT, ChannelType::AXIS);
+    _actionInputs[LATERAL_RIGHT] = Input(ACTIONS_DEVICE, LATERAL_RIGHT, ChannelType::AXIS);
+    _actionInputs[VERTICAL_DOWN] = Input(ACTIONS_DEVICE, VERTICAL_DOWN, ChannelType::AXIS);
+    _actionInputs[VERTICAL_UP] = Input(ACTIONS_DEVICE, VERTICAL_UP, ChannelType::AXIS);
+    _actionInputs[YAW_LEFT] = Input(ACTIONS_DEVICE, YAW_LEFT, ChannelType::AXIS);
+    _actionInputs[YAW_RIGHT] = Input(ACTIONS_DEVICE, YAW_RIGHT, ChannelType::AXIS);
+    _actionInputs[PITCH_DOWN] = Input(ACTIONS_DEVICE, PITCH_DOWN, ChannelType::AXIS);
+    _actionInputs[PITCH_UP] = Input(ACTIONS_DEVICE, PITCH_UP, ChannelType::AXIS);
+    _actionInputs[BOOM_IN] = Input(ACTIONS_DEVICE, BOOM_IN, ChannelType::AXIS);
+    _actionInputs[BOOM_OUT] = Input(ACTIONS_DEVICE, BOOM_OUT, ChannelType::AXIS);
+    _actionInputs[LEFT_HAND] = Input(ACTIONS_DEVICE, LEFT_HAND, ChannelType::POSE);
+    _actionInputs[RIGHT_HAND] = Input(ACTIONS_DEVICE, RIGHT_HAND, ChannelType::POSE);
+    _actionInputs[LEFT_HAND_CLICK] = Input(ACTIONS_DEVICE, LEFT_HAND_CLICK, ChannelType::AXIS);
+    _actionInputs[RIGHT_HAND_CLICK] = Input(ACTIONS_DEVICE, RIGHT_HAND_CLICK, ChannelType::AXIS);
+    _actionInputs[SHIFT] = Input(ACTIONS_DEVICE, SHIFT, ChannelType::BUTTON);
+    _actionInputs[ACTION1] = Input(ACTIONS_DEVICE, ACTION1, ChannelType::BUTTON);
+    _actionInputs[ACTION2] = Input(ACTIONS_DEVICE, ACTION2, ChannelType::BUTTON);
+    _actionInputs[CONTEXT_MENU] = Input(ACTIONS_DEVICE, CONTEXT_MENU, ChannelType::BUTTON);
+    _actionInputs[TOGGLE_MUTE] = Input(ACTIONS_DEVICE, TOGGLE_MUTE, ChannelType::AXIS);
+    _actionInputs[TRANSLATE_X] = Input(ACTIONS_DEVICE, TRANSLATE_X, ChannelType::AXIS);
+    _actionInputs[TRANSLATE_Y] = Input(ACTIONS_DEVICE, TRANSLATE_Y, ChannelType::AXIS);
+    _actionInputs[TRANSLATE_Z] = Input(ACTIONS_DEVICE, TRANSLATE_Z, ChannelType::AXIS);
+    _actionInputs[ROLL] = Input(ACTIONS_DEVICE, ROLL, ChannelType::AXIS);
+    _actionInputs[PITCH] = Input(ACTIONS_DEVICE, PITCH, ChannelType::AXIS);
+    _actionInputs[YAW] = Input(ACTIONS_DEVICE, YAW, ChannelType::AXIS);
+
 }
 
 void UserInputMapper::registerStandardDevice() {

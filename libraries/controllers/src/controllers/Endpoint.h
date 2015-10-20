@@ -35,7 +35,12 @@ namespace controller {
         Endpoint(const UserInputMapper::Input& input) : _input(input) {}
         virtual float value() = 0;
         virtual void apply(float newValue, float oldValue, const Pointer& source) = 0;
-        const UserInputMapper::Input& getInput() { return _input;  }
+        virtual Pose pose() { return Pose(); }
+        virtual void apply(const Pose& newValue, const Pose& oldValue, const Pointer& source) {}
+
+        virtual const bool isPose() { return _input.isPose(); }
+
+        const UserInputMapper::Input& getInput() { return _input; }
     protected:
         UserInputMapper::Input _input;
     };

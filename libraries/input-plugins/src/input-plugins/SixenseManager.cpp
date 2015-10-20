@@ -236,7 +236,7 @@ void SixenseManager::update(float deltaTime, bool jointsCaptured) {
                 _poseStateMap.clear();
             }
         } else {
-            _poseStateMap[left ? controller::StandardPoseChannel::LEFT : controller::StandardPoseChannel::RIGHT] = UserInputMapper::PoseValue();
+            _poseStateMap[left ? controller::StandardPoseChannel::LEFT_HAND : controller::StandardPoseChannel::RIGHT_HAND] = UserInputMapper::PoseValue();
         }
     }
 
@@ -444,7 +444,7 @@ void SixenseManager::handlePoseEvent(glm::vec3 position, glm::quat rotation, boo
     // TODO: find a shortcut with fewer rotations.
     rotation = _avatarRotation * postOffset * glm::inverse(sixenseToHand) * rotation * preOffset * sixenseToHand;
 
-    _poseStateMap[left ? controller::StandardPoseChannel::LEFT : controller::StandardPoseChannel::RIGHT] = 
+    _poseStateMap[left ? controller::StandardPoseChannel::LEFT_HAND : controller::StandardPoseChannel::RIGHT_HAND] = 
         UserInputMapper::PoseValue(position, rotation);
 #endif // HAVE_SIXENSE
 }
@@ -490,8 +490,8 @@ void SixenseManager::registerToUserInputMapper(UserInputMapper& mapper) {
         availableInputs.append(UserInputMapper::InputPair(makeInput(RX), "RX"));
         availableInputs.append(UserInputMapper::InputPair(makeInput(RY), "RY"));
         availableInputs.append(UserInputMapper::InputPair(makeInput(RT), "RT"));
-        availableInputs.append(UserInputMapper::InputPair(makeInput(LEFT), "LeftPose"));
-        availableInputs.append(UserInputMapper::InputPair(makeInput(RIGHT), "RightPose"));
+        availableInputs.append(UserInputMapper::InputPair(makeInput(LEFT_HAND), "LeftHand"));
+        availableInputs.append(UserInputMapper::InputPair(makeInput(RIGHT_HAND), "RightHand"));
         return availableInputs;
     };
     mapper.registerDevice(_deviceID, proxy);

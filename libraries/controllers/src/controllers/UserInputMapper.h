@@ -134,13 +134,15 @@ public:
     QVector<Action> getAllActions() const;
     QString getActionName(Action action) const { return UserInputMapper::_actionNames[(int) action]; }
     float getActionState(Action action) const { return _actionStates[action]; }
-    PoseValue getPoseState(Action action) const { return _poseStates[action]; }
+    const PoseValue& getPoseState(Action action) const { return _poseStates[action]; }
     int findAction(const QString& actionName) const;
     QVector<QString> getActionNames() const;
+    Input getActionInput(Action action) const { return _actionInputs[action]; }
     void assignDefaulActionScales();
 
     void setActionState(Action action, float value) { _externalActionStates[action] = value; }
     void deltaActionState(Action action, float delta) { _externalActionStates[action] += delta; }
+    void setActionState(Action action, const PoseValue& value) { _externalPoseStates[action] = value; }
 
     // Add input channel to the mapper and check that all the used channels are registered.
     // Return true if theinput channel is created correctly, false either
@@ -224,11 +226,14 @@ protected:
     typedef std::multimap<Action, InputChannel> ActionToInputsMap;
     ActionToInputsMap _actionToInputsMap;
  
+    std::vector<Input> _actionInputs = std::vector<Input>(NUM_ACTIONS, Input());
+
     std::vector<float> _actionStates = std::vector<float>(NUM_ACTIONS, 0.0f);
     std::vector<float> _externalActionStates = std::vector<float>(NUM_ACTIONS, 0.0f);
     std::vector<float> _actionScales = std::vector<float>(NUM_ACTIONS, 1.0f);
     std::vector<float> _lastActionStates = std::vector<float>(NUM_ACTIONS, 0.0f);
     std::vector<PoseValue> _poseStates = std::vector<PoseValue>(NUM_ACTIONS);
+    std::vector<PoseValue> _externalPoseStates = std::vector<PoseValue>(NUM_ACTIONS);
 
     glm::mat4 _sensorToWorldMat;
 

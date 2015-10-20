@@ -72,8 +72,8 @@ void StandardController::registerToUserInputMapper(UserInputMapper& mapper) {
         availableInputs.append(UserInputMapper::InputPair(makeInput(controller::RT), "RT"));
 
         // Poses
-        availableInputs.append(UserInputMapper::InputPair(makeInput(controller::LEFT), "LeftPose"));
-        availableInputs.append(UserInputMapper::InputPair(makeInput(controller::RIGHT), "RightPose"));
+        availableInputs.append(UserInputMapper::InputPair(makeInput(controller::LEFT_HAND), "LeftHand"));
+        availableInputs.append(UserInputMapper::InputPair(makeInput(controller::RIGHT_HAND), "RightHand"));
 
         // Aliases, PlayStation style names
         availableInputs.append(UserInputMapper::InputPair(makeInput(controller::LB), "L1"));
