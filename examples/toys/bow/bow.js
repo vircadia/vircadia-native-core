@@ -172,7 +172,9 @@
             Entities.editEntity(this.entityID, {
                 userData: JSON.stringify({
                     grabbableKey: {
-                        turnOffOtherHand: true
+                        turnOffOtherHand: true,
+                        turnOffOppositeBeam:true
+
                     }
                 })
             });
@@ -192,7 +194,9 @@
                 Entities.editEntity(this.entityID, {
                     userData: JSON.stringify({
                         grabbableKey: {
-                            turnOffOtherHand: false
+                            turnOffOtherHand: false,
+                            turnOffOppositeBeam:true
+
                         }
                     })
                 });
@@ -219,7 +223,7 @@
                 this.stringDrawn = false;
                 this.deleteStrings();
                 this.hasArrow = false;
-                //this.releaseArrow();
+                this.releaseArrow();
 
             } else if (this.triggerValue >= DRAW_STRING_THRESHOLD && this.stringDrawn === true) {
                 //print('TRIGGER 2');

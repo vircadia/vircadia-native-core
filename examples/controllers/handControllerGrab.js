@@ -91,6 +91,8 @@ var DEFAULT_GRABBABLE_DATA = {
     invertSolidWhileHeld: false
 };
 
+var disabledHand ='none';
+
 function getTag() {
     return "grab-" + MyAvatar.sessionUUID;
 }
@@ -249,14 +251,17 @@ function MyController(hand, triggerAction) {
     }
 
     this.search = function() {
-        if(this.hasGrabbedEntity===true){
+        //if this hand is the one that's disabled, we don't want to search for anything at all
+        if (this.hand === disabledHand) {
             return;
         }
+
         if (this.triggerSmoothedReleased()) {
             this.setState(STATE_RELEASE);
             return;
         }
 
+   
         // the trigger is being pressed, do a ray test
         var handPosition = this.getHandPosition();
         var distantPickRay = {
@@ -295,9 +300,20 @@ function MyController(hand, triggerAction) {
                 var intersectionDistance = Vec3.distance(pickRay.origin, intersection.intersection);
                 this.grabbedEntity = intersection.entityID;
 
-                var grabbableData = getEntityCustomData(GRABBABLE_DATA_KEY,
-                                                        intersection.entityID,
-                                                        DEFAULT_GRABBABLE_DATA);
+
+                //this code will disabled the beam for the opposite hand of the one that grabbed it if the entity says so
+                var grabbableData = getEntityCustomData(GRABBABLE_DATA_KEY, intersection.entityID, DEFAULT_GRABBABLE_DATA);
+                if (grabbableData["turnOffOppositeBeam"] === true) {
+                    if (this.hand === RIGHT_HAND) {
+                        disabledHand = LEFT_HAND;
+                    } else {
+                        disabledHand = RIGHT_HAND;
+                    }
+
+                } else {
+                    disabledHand = 'none';
+                }
+
                 if (grabbableData.grabbable === false) {
                     this.grabbedEntity = null;
                     continue;
@@ -389,9 +405,7 @@ function MyController(hand, triggerAction) {
         this.lineOn(handPosition, Vec3.subtract(grabbedProperties.position, handPosition), INTERSECT_COLOR);
 
         // the action was set up on a previous call.  update the targets.
-        var radius = Math.max(Vec3.distance(this.currentObjectPosition, handControllerPosition) *
-                              DISTANCE_HOLDING_RADIUS_FACTOR, DISTANCE_HOLDING_RADIUS_FACTOR);
-
+        var radius = Math.max(Vec3.distance(this.currentObjectPosition, handControllerPosition) * DISTANCE_HOLDING_RADIUS_FACTOR, DISTANCE_HOLDING_RADIUS_FACTOR);
         // how far did avatar move this timestep?
         var currentPosition = MyAvatar.position;
         var avatarDeltaPosition = Vec3.subtract(currentPosition, this.currentAvatarPosition);
@@ -441,9 +455,7 @@ function MyController(hand, triggerAction) {
         this.currentObjectTime = now;
 
         // this doubles hand rotation
-        var handChange = Quat.multiply(Quat.slerp(this.handPreviousRotation, handRotation,
-                                                  DISTANCE_HOLDING_ROTATION_EXAGGERATION_FACTOR),
-                                       Quat.inverse(this.handPreviousRotation));
+        var handChange = Quat.multiply(Quat.slerp(this.handPreviousRotation, handRotation, DISTANCE_HOLDING_ROTATION_EXAGGERATION_FACTOR), Quat.inverse(this.handPreviousRotation));
         this.handPreviousRotation = handRotation;
         this.currentObjectRotation = Quat.multiply(handChange, this.currentObjectRotation);
 
@@ -463,10 +475,10 @@ function MyController(hand, triggerAction) {
         var now = Date.now();
 
         var grabbableData = getEntityCustomData(GRABBABLE_DATA_KEY, this.grabbedEntity, DEFAULT_GRABBABLE_DATA);
+
         var turnOffOtherHand = grabbableData["turnOffOtherHand"];
         if (turnOffOtherHand === true) {
-            this.hasGrabbedEntity = true;
-            print('DONT ACTIVATE SECOND HAND GRAB BECAUSE THE SCRIPT HAS GOT IT')
+            //don't activate the second hand grab because the script is handling the second hand logic
             return;
         }
 
@@ -476,11 +488,9 @@ function MyController(hand, triggerAction) {
         }
 
 
-
         this.lineOff();
 
-        var grabbedProperties = Entities.getEntityProperties(this.grabbedEntity,
-                                                             ["position", "rotation", "gravity", "ignoreForCollisions"]);
+        var grabbedProperties = Entities.getEntityProperties(this.grabbedEntity, ["position", "rotation", "gravity", "ignoreForCollisions"]);
         this.activateEntity(this.grabbedEntity, grabbedProperties);
 
         var handRotation = this.getHandRotation();
@@ -718,8 +728,10 @@ function MyController(hand, triggerAction) {
 
     this.release = function() {
 
-        this.hasGrabbedEntity=false;
-
+        if(this.hand!==disabledHand){
+            //release the disabled hand when we let go with the main one
+            disabledHand='none';
+        }
         this.lineOff();
 
         if (this.grabbedEntity !== null) {
