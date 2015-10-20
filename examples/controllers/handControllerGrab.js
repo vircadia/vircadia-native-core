@@ -497,7 +497,8 @@ function MyController(hand, triggerAction) {
             timeScale: NEAR_GRABBING_ACTION_TIMEFRAME,
             relativePosition: this.offsetPosition,
             relativeRotation: this.offsetRotation,
-            lifetime: ACTION_LIFETIME
+            lifetime: ACTION_LIFETIME,
+            kinematic: (grabbableData.kinematicGrab && (grabbableData.kinematicGrab === true))
         });
         if (this.actionID === NULL_ACTION_ID) {
             this.actionID = null;
