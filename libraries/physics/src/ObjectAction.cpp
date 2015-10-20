@@ -62,6 +62,22 @@ void ObjectAction::updateAction(btCollisionWorld* collisionWorld, btScalar delta
     updateActionWorker(deltaTimeStep);
 }
 
+int ObjectAction::getEntityServerClockSkew() const {
+    auto nodeList = DependencyManager::get<NodeList>();
+
+    auto ownerEntity = _ownerEntity.lock();
+    if (!ownerEntity) {
+        return 0;
+    }
+
+    const QUuid& entityServerNodeID = ownerEntity->getSourceUUID();
+    auto entityServerNode = nodeList->nodeWithUUID(entityServerNodeID);
+    if (entityServerNode) {
+        return entityServerNode->getClockSkewUsec();
+    }
+    return 0;
+}
+
 bool ObjectAction::updateArguments(QVariantMap arguments) {
     bool somethingChanged = false;
 

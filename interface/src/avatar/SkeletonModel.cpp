@@ -229,6 +229,12 @@ void SkeletonModel::simulate(float deltaTime, bool fullUpdate) {
 
     Model::simulate(deltaTime, fullUpdate);
 
+    // let rig compute the model offset
+    glm::vec3 modelOffset;
+    if (_rig->getModelOffset(modelOffset)) {
+        setOffset(modelOffset);
+    }
+
     if (!isActive() || !_owningAvatar->isMyAvatar()) {
         return; // only simulate for own avatar
     }
@@ -245,12 +251,6 @@ void SkeletonModel::simulate(float deltaTime, bool fullUpdate) {
     int leftPalmIndex, rightPalmIndex;
     Hand* hand = _owningAvatar->getHand();
     hand->getLeftRightPalmIndices(leftPalmIndex, rightPalmIndex);
-
-    // let rig compute the model offset
-    glm::vec3 modelOffset;
-    if (_rig->getModelOffset(modelOffset)) {
-        setOffset(modelOffset);
-    }
 
     // Don't Relax toward hand positions when in animGraph mode.
     if (!_rig->getEnableAnimGraph()) {
