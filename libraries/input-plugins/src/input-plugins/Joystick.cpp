@@ -11,16 +11,15 @@
 
 #include "Joystick.h"
 
-#include <limits>
-#include <glm/glm.hpp>
+#include <PathUtils.h>
 
 const float CONTROLLER_THRESHOLD = 0.3f;
 
 #ifdef HAVE_SDL2
 const float MAX_AXIS = 32768.0f;
 
-Joystick::Joystick(SDL_JoystickID instanceId, const QString& name, SDL_GameController* sdlGameController) :
-        InputDevice(name),
+Joystick::Joystick(SDL_JoystickID instanceId, SDL_GameController* sdlGameController) :
+        InputDevice("GamePad"),
     _sdlGameController(sdlGameController),
     _sdlJoystick(SDL_GameControllerGetJoystick(_sdlGameController)),
     _instanceId(instanceId)
@@ -72,136 +71,63 @@ void Joystick::handleButtonEvent(const SDL_ControllerButtonEvent& event) {
 
 #endif
 
+void Joystick::buildDeviceProxy(controller::DeviceProxy::Pointer proxy) {
+    using namespace controller;
+    proxy->_name = _name;
+    proxy->getButton = [this](const Input& input, int timestamp) -> bool { return this->getButton(input.getChannel()); };
+    proxy->getAxis = [this](const Input& input, int timestamp) -> float { return this->getAxis(input.getChannel()); };
+    proxy->getAvailabeInputs = [this]() -> QVector<Input::NamedPair> {
+        QVector<Input::NamedPair> availableInputs{
+            makePair(A, "A"),
+            makePair(B, "B"),
+            makePair(X, "X"),
+            makePair(Y, "Y"),
+            // DPad
+            makePair(DU, "DU"),
+            makePair(DD, "DD"),
+            makePair(DL, "DL"),
+            makePair(DR, "DR"),
+            // Bumpers
+            makePair(LB, "LB"),
+            makePair(RB, "RB"),
+            // Stick press
+            makePair(LS, "LS"),
+            makePair(RS, "RS"),
+            // Center buttons
+            makePair(START, "Start"),
+            makePair(BACK, "Back"),
+            // Analog sticks
+            makePair(LX, "LX"),
+            makePair(LY, "LY"),
+            makePair(RX, "RX"),
+            makePair(RY, "RY"),
+ 
+            // Triggers
+            makePair(LT, "LT"),
+            makePair(RT, "RT"),
 
-void Joystick::registerToUserInputMapper(UserInputMapper& mapper) {
-    // Grab the current free device ID
-    _deviceID = mapper.getFreeDeviceID();
-    
-    auto proxy = std::make_shared<UserInputMapper::DeviceProxy>(_name);
-    proxy->getButton = [this] (const UserInputMapper::Input& input, int timestamp) -> bool { return this->getButton(input.getChannel()); };
-    proxy->getAxis = [this] (const UserInputMapper::Input& input, int timestamp) -> float { return this->getAxis(input.getChannel()); };
-    proxy->getAvailabeInputs = [this] () -> QVector<UserInputMapper::InputPair> {
-        QVector<UserInputMapper::InputPair> availableInputs;
-        // Buttons
-        availableInputs.append(UserInputMapper::InputPair(makeInput(controller::A), "A"));
-        availableInputs.append(UserInputMapper::InputPair(makeInput(controller::B), "B"));
-        availableInputs.append(UserInputMapper::InputPair(makeInput(controller::X), "X"));
-        availableInputs.append(UserInputMapper::InputPair(makeInput(controller::Y), "Y"));
-
-        // DPad
-        availableInputs.append(UserInputMapper::InputPair(makeInput(controller::DU), "DU"));
-        availableInputs.append(UserInputMapper::InputPair(makeInput(controller::DD), "DD"));
-        availableInputs.append(UserInputMapper::InputPair(makeInput(controller::DL), "DL"));
-        availableInputs.append(UserInputMapper::InputPair(makeInput(controller::DR), "DR"));
-
-        // Bumpers
-        availableInputs.append(UserInputMapper::InputPair(makeInput(controller::LB), "LB"));
-        availableInputs.append(UserInputMapper::InputPair(makeInput(controller::RB), "RB"));
-
-        // Stick press
-        availableInputs.append(UserInputMapper::InputPair(makeInput(controller::LS), "LS"));
-        availableInputs.append(UserInputMapper::InputPair(makeInput(controller::RS), "RS"));
-
-        // Center buttons
-        availableInputs.append(UserInputMapper::InputPair(makeInput(controller::START), "Start"));
-        availableInputs.append(UserInputMapper::InputPair(makeInput(controller::BACK), "Back"));
-
-        // Analog sticks
-        availableInputs.append(UserInputMapper::InputPair(makeInput(controller::LY), "LY"));
-        availableInputs.append(UserInputMapper::InputPair(makeInput(controller::LX), "LX"));
-        availableInputs.append(UserInputMapper::InputPair(makeInput(controller::RY), "RY"));
-        availableInputs.append(UserInputMapper::InputPair(makeInput(controller::RX), "RX"));
-
-        // Triggers
-        availableInputs.append(UserInputMapper::InputPair(makeInput(controller::LT), "LT"));
-        availableInputs.append(UserInputMapper::InputPair(makeInput(controller::RT), "RT"));
-
-        // Aliases, PlayStation style names
-        availableInputs.append(UserInputMapper::InputPair(makeInput(controller::LB), "L1"));
-        availableInputs.append(UserInputMapper::InputPair(makeInput(controller::RB), "R1"));
-        availableInputs.append(UserInputMapper::InputPair(makeInput(controller::LT), "L2"));
-        availableInputs.append(UserInputMapper::InputPair(makeInput(controller::RT), "R2"));
-        availableInputs.append(UserInputMapper::InputPair(makeInput(controller::LS), "L3"));
-        availableInputs.append(UserInputMapper::InputPair(makeInput(controller::RS), "R3"));
-        availableInputs.append(UserInputMapper::InputPair(makeInput(controller::BACK), "Select"));
-        availableInputs.append(UserInputMapper::InputPair(makeInput(controller::A), "Cross"));
-        availableInputs.append(UserInputMapper::InputPair(makeInput(controller::B), "Circle"));
-        availableInputs.append(UserInputMapper::InputPair(makeInput(controller::X), "Square"));
-        availableInputs.append(UserInputMapper::InputPair(makeInput(controller::Y), "Triangle"));
-        availableInputs.append(UserInputMapper::InputPair(makeInput(controller::DU), "Up"));
-        availableInputs.append(UserInputMapper::InputPair(makeInput(controller::DD), "Down"));
-        availableInputs.append(UserInputMapper::InputPair(makeInput(controller::DL), "Left"));
-        availableInputs.append(UserInputMapper::InputPair(makeInput(controller::DR), "Right"));
-
+            // Aliases, PlayStation style names
+            makePair(LB, "L1"),
+            makePair(RB, "R1"),
+            makePair(LT, "L2"),
+            makePair(RT, "R2"),
+            makePair(LS, "L3"),
+            makePair(RS, "R3"),
+            makePair(BACK, "Select"),
+            makePair(A, "Cross"),
+            makePair(B, "Circle"),
+            makePair(X, "Square"),
+            makePair(Y, "Triangle"),
+            makePair(DU, "Up"),
+            makePair(DD, "Down"),
+            makePair(DL, "Left"),
+            makePair(DR, "Right"),
+        };
         return availableInputs;
     };
-    proxy->resetDeviceBindings = [this, &mapper] () -> bool {
-        mapper.removeAllInputChannelsForDevice(_deviceID);
-        this->assignDefaultInputMapping(mapper);
-        return true;
-    };
-    mapper.registerDevice(_deviceID, proxy);
 }
 
-
-void Joystick::assignDefaultInputMapping(UserInputMapper& mapper) {
-#if 0
-#ifdef HAVE_SDL2
-    const float JOYSTICK_MOVE_SPEED = 1.0f;
-    const float DPAD_MOVE_SPEED = 0.5f;
-    const float JOYSTICK_YAW_SPEED = 0.5f;
-    const float JOYSTICK_PITCH_SPEED = 0.25f;
-    const float BOOM_SPEED = 0.1f;
-
-    // Y axes are flipped (up is negative)
-    // Left Joystick: Movement, strafing
-    mapper.addInputChannel(UserInputMapper::TRANSLATE_Z, makeInput(controller::LY), JOYSTICK_MOVE_SPEED);
-    mapper.addInputChannel(UserInputMapper::TRANSLATE_X, makeInput(controller::LX), JOYSTICK_MOVE_SPEED);
-    // Right Joystick: Camera orientation
-    mapper.addInputChannel(UserInputMapper::YAW, makeInput(controller::RX), JOYSTICK_YAW_SPEED);
-    mapper.addInputChannel(UserInputMapper::PITCH, makeInput(controller::RY), JOYSTICK_PITCH_SPEED);
-
-    // Dpad movement
-    mapper.addInputChannel(UserInputMapper::LONGITUDINAL_FORWARD, makeInput(controller::DU), DPAD_MOVE_SPEED);
-    mapper.addInputChannel(UserInputMapper::LONGITUDINAL_BACKWARD, makeInput(controller::DD), DPAD_MOVE_SPEED);
-    mapper.addInputChannel(UserInputMapper::LATERAL_RIGHT, makeInput(controller::DR), DPAD_MOVE_SPEED);
-    mapper.addInputChannel(UserInputMapper::LATERAL_LEFT, makeInput(controller::DL), DPAD_MOVE_SPEED);
-
-    // Button controls
-    mapper.addInputChannel(UserInputMapper::VERTICAL_UP, makeInput(controller::Y), DPAD_MOVE_SPEED);
-    mapper.addInputChannel(UserInputMapper::VERTICAL_DOWN, makeInput(controller::X), DPAD_MOVE_SPEED);
-
-    // Zoom
-    mapper.addInputChannel(UserInputMapper::BOOM_IN, makeInput(controller::RT), BOOM_SPEED);
-    mapper.addInputChannel(UserInputMapper::BOOM_OUT, makeInput(controller::LT), BOOM_SPEED);
-
-    // Hold front right shoulder button for precision controls
-    // Left Joystick: Movement, strafing
-    mapper.addInputChannel(UserInputMapper::TRANSLATE_Z, makeInput(controller::LY), makeInput(controller::RB), JOYSTICK_MOVE_SPEED / 2.0f);
-    mapper.addInputChannel(UserInputMapper::TRANSLATE_X, makeInput(controller::LY), makeInput(controller::RB), JOYSTICK_MOVE_SPEED / 2.0f);
-
-    // Right Joystick: Camera orientation
-    mapper.addInputChannel(UserInputMapper::YAW, makeInput(controller::RX), makeInput(controller::RB), JOYSTICK_YAW_SPEED / 2.0f);
-    mapper.addInputChannel(UserInputMapper::PITCH, makeInput(controller::RY), makeInput(controller::RB), JOYSTICK_PITCH_SPEED / 2.0f);
-
-    // Dpad movement
-    mapper.addInputChannel(UserInputMapper::LONGITUDINAL_FORWARD, makeInput(controller::DU), makeInput(controller::RB), DPAD_MOVE_SPEED / 2.0f);
-    mapper.addInputChannel(UserInputMapper::LONGITUDINAL_BACKWARD, makeInput(controller::DD), makeInput(controller::RB), DPAD_MOVE_SPEED / 2.0f);
-    mapper.addInputChannel(UserInputMapper::LATERAL_RIGHT, makeInput(controller::DR), makeInput(controller::RB), DPAD_MOVE_SPEED / 2.0f);
-    mapper.addInputChannel(UserInputMapper::LATERAL_LEFT, makeInput(controller::DL), makeInput(controller::RB), DPAD_MOVE_SPEED / 2.0f);
-
-    // Button controls
-    mapper.addInputChannel(UserInputMapper::VERTICAL_UP, makeInput(controller::Y), makeInput(controller::RB), DPAD_MOVE_SPEED / 2.0f);
-    mapper.addInputChannel(UserInputMapper::VERTICAL_DOWN, makeInput(controller::X), makeInput(controller::RB), DPAD_MOVE_SPEED / 2.0f);
-
-    // Zoom
-    mapper.addInputChannel(UserInputMapper::BOOM_IN, makeInput(controller::RT), makeInput(controller::RB), BOOM_SPEED / 2.0f);
-    mapper.addInputChannel(UserInputMapper::BOOM_OUT, makeInput(controller::LT), makeInput(controller::RB), BOOM_SPEED / 2.0f);
-
-    mapper.addInputChannel(UserInputMapper::SHIFT, makeInput(controller::RB));
-
-    mapper.addInputChannel(UserInputMapper::ACTION1, makeInput(controller::B));
-    mapper.addInputChannel(UserInputMapper::ACTION2, makeInput(controller::A)); 
-#endif
-#endif
+QString Joystick::getDefaultMappingConfig() {
+    static const QString MAPPING_JSON = PathUtils::resourcesPath() + "/controllers/xbox.json";
+    return MAPPING_JSON;
 }

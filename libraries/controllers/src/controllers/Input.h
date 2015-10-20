@@ -27,26 +27,21 @@ enum class ChannelType {
 // to the Action channels
 struct Input {
     union {
+        uint32_t id{ 0 }; // by default Input is 0 meaning invalid
         struct {
-            uint16_t _device; // Up to 64K possible devices
-            uint16_t _channel : 13; // 2^13 possible channel per Device
-            uint16_t _type : 2; // 2 bits to store the Type directly in the ID
-            uint16_t _padding : 1; // 2 bits to store the Type directly in the ID
+            uint16_t device; // Up to 64K possible devices
+            uint16_t channel : 13 ; // 2^13 possible channel per Device
+            uint16_t type : 2; // 2 bits to store the Type directly in the ID
+            uint16_t padding : 1; // 2 bits to store the Type directly in the ID
         };
-        uint32_t _id = 0; // by default Input is 0 meaning invalid
     };
 
-    bool isValid() const { return (_id != 0); }
+    bool isValid() const { return (id != INVALID_INPUT.id); }
 
-    uint16_t getDevice() const { return _device; }
-    uint16_t getChannel() const { return _channel; }
-    uint32_t getID() const { return _id; }
-    ChannelType getType() const { return (ChannelType) _type; }
-
-    void setDevice(uint16_t device) { _device = device; }
-    void setChannel(uint16_t channel) { _channel = channel; }
-    void setType(uint16_t type) { _type = type; }
-    void setID(uint32_t ID) { _id = ID; }
+    uint16_t getDevice() const { return device; }
+    uint16_t getChannel() const { return channel; }
+    uint32_t getID() const { return id; }
+    ChannelType getType() const { return (ChannelType) type; }
 
     bool isButton() const { return getType() == ChannelType::BUTTON; }
     bool isAxis() const { return getType() == ChannelType::AXIS; }
@@ -54,13 +49,13 @@ struct Input {
 
     // WORKAROUND: the explicit initializer here avoids a bug in GCC-4.8.2 (but not found in 4.9.2)
     // where the default initializer (a C++-11ism) for the union data above is not applied.
-    explicit Input() : _id(0) {}
-    explicit Input(uint32_t id) : _id(id) {}
-    explicit Input(uint16_t device, uint16_t channel, ChannelType type) : _device(device), _channel(channel), _type(uint16_t(type)), _padding(0) {}
-    Input(const Input& src) : _id(src._id) {}
-    Input& operator = (const Input& src) { _id = src._id; return (*this); }
-    bool operator ==(const Input& right) const { return _id == right._id; }
-    bool operator < (const Input& src) const { return _id < src._id; }
+    explicit Input() {}
+    explicit Input(uint32_t id) : id(id) {}
+    explicit Input(uint16_t device, uint16_t channel, ChannelType type) : device(device), channel(channel), type(uint16_t(type)), padding(0) {}
+    Input(const Input& src) : id(src.id) {}
+    Input& operator = (const Input& src) { id = src.id; return (*this); }
+    bool operator ==(const Input& right) const { return INVALID_INPUT.id != id && INVALID_INPUT.id != right.id && id == right.id; }
+    bool operator < (const Input& src) const { return id < src.id; }
 
     static const Input INVALID_INPUT;
     static const uint16_t INVALID_DEVICE;

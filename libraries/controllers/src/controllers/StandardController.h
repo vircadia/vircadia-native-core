@@ -12,37 +12,31 @@
 #ifndef hifi_StandardController_h
 #define hifi_StandardController_h
 
-#include <qobject.h>
-#include <qvector.h>
+#include <QtCore/QObject>
+#include <QtCore/QVector>
 
 #include "InputDevice.h"
-
 #include "StandardControls.h"
 
-typedef std::shared_ptr<StandardController> StandardControllerPointer;
+namespace controller {
 
 class StandardController : public QObject, public InputDevice {
     Q_OBJECT
     Q_PROPERTY(QString name READ getName)
 
 public:
-
     const QString& getName() const { return _name; }
 
     // Device functions
-    virtual void registerToUserInputMapper(UserInputMapper& mapper) override;
-    virtual void assignDefaultInputMapping(UserInputMapper& mapper) override;
+    virtual void buildDeviceProxy(DeviceProxy::Pointer proxy) override;
+    virtual QString getDefaultMappingConfig() override;
     virtual void update(float deltaTime, bool jointsCaptured) override;
     virtual void focusOutEvent() override;
-    
-    StandardController() : InputDevice("Standard") {}
-    ~StandardController();
-    
-    UserInputMapper::Input makeInput(controller::StandardButtonChannel button);
-    UserInputMapper::Input makeInput(controller::StandardAxisChannel axis);
-    UserInputMapper::Input makeInput(controller::StandardPoseChannel pose);
 
-private:
+    StandardController(); 
+    virtual ~StandardController();
 };
+
+}
 
 #endif // hifi_StandardController_h

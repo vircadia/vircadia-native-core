@@ -6,11 +6,3 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 #include "Mapping.h"
-
-namespace controller {
-    Mapping::Mapping(const QString& name ) : _name(name) {
-
-    }
-
-}
-

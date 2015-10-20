@@ -175,13 +175,12 @@ public slots:
 
 
 // connnects to the userinputmapper
-class ConnexionData : public QObject {
+class ConnexionData : public QObject, public controller::InputDevice {
     Q_OBJECT
 
 public:
     static ConnexionData& getInstance();
     ConnexionData();
-
     enum PositionChannel {
         POSITION_AXIS_X_POS = 1,
         POSITION_AXIS_X_NEG = 2,
@@ -209,19 +208,12 @@ public:
     float getButton(int channel) const;
     float getAxis(int channel) const;
 
-    UserInputMapper::Input makeInput(ConnexionData::PositionChannel axis);
-    UserInputMapper::Input makeInput(ConnexionData::ButtonChannel button);
-
-    void registerToUserInputMapper(UserInputMapper& mapper);
-    void assignDefaultInputMapping(UserInputMapper& mapper);
-
-    void update();
-    void focusOutEvent();
-
-    int getDeviceID() { return _deviceID; }
-    void setDeviceID(int deviceID) { _deviceID = deviceID; }
-
-    QString _name;
+    controller::Input makeInput(ConnexionData::PositionChannel axis);
+    controller::Input makeInput(ConnexionData::ButtonChannel button);
+    virtual void buildDeviceProxy(controller::DeviceProxy::Pointer proxy) override;
+    virtual QString getDefaultMappingConfig() override;
+    virtual void update(float deltaTime, bool jointsCaptured) override;
+    virtual void focusOutEvent() override;
 
     glm::vec3 cc_position;
     glm::vec3 cc_rotation;
@@ -229,12 +221,6 @@ public:
 
     void setButton(int lastButtonState);
     void handleAxisEvent();
-
-protected:
-    int _deviceID = 0;
-
-    ButtonPressedMap _buttonPressedMap;
-    AxisStateMap _axisStateMap;
 };
 
 #endif // defined(hifi_3DConnexionClient_h)

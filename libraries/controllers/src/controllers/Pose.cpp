@@ -12,17 +12,17 @@ namespace controller {
 
     Pose::Pose(const vec3& translation, const quat& rotation,
             const vec3& velocity, const quat& angularVelocity) :
-            _translation(translation), _rotation(rotation), _velocity(velocity), _angularVelocity(angularVelocity) { }
+            translation(translation), rotation(rotation), velocity(velocity), angularVelocity(angularVelocity) { }
 
     bool Pose::operator==(const Pose& right) const {
         // invalid poses return false for comparison, even against identical invalid poses, like NaN
-        if (_valid || !right._valid) {
+        if (!valid || !right.valid) {
             return false;
         }
 
         // FIXME add margin of error?  Or add an additional withinEpsilon function?
-        return _translation == right.getTranslation() && _rotation == right.getRotation() && 
-            _velocity == right.getVelocity() && _angularVelocity == right.getAngularVelocity();
+        return translation == right.getTranslation() && rotation == right.getRotation() && 
+            velocity == right.getVelocity() && angularVelocity == right.getAngularVelocity();
     }
 
 

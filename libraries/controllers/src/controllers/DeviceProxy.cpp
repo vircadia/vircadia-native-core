@@ -20,7 +20,7 @@ namespace controller {
             return getAxis(input, timestamp);
 
         case ChannelType::POSE:
-            return getPose(input, timestamp)._valid ? 1.0f : 0.0f;
+            return getPose(input, timestamp).valid ? 1.0f : 0.0f;
 
         default:
             return NAN;

@@ -23,7 +23,7 @@
 #include <controllers/InputDevice.h>
 #include <controllers/StandardControls.h>
 
-class Joystick : public QObject, public InputDevice {
+class Joystick : public QObject, public controller::InputDevice {
     Q_OBJECT
     Q_PROPERTY(QString name READ getName)
 
@@ -36,16 +36,16 @@ public:
     const QString& getName() const { return _name; }
 
     // Device functions
-    virtual void registerToUserInputMapper(UserInputMapper& mapper) override;
-    virtual void assignDefaultInputMapping(UserInputMapper& mapper) override;
+    virtual void buildDeviceProxy(controller::DeviceProxy::Pointer proxy) override;
+    virtual QString getDefaultMappingConfig() override;
     virtual void update(float deltaTime, bool jointsCaptured) override;
     virtual void focusOutEvent() override;
     
-    Joystick() : InputDevice("Joystick") {}
+    Joystick() : InputDevice("GamePad") {}
     ~Joystick();
     
 #ifdef HAVE_SDL2
-    Joystick(SDL_JoystickID instanceId, const QString& name, SDL_GameController* sdlGameController);
+    Joystick(SDL_JoystickID instanceId, SDL_GameController* sdlGameController);
 #endif
     
     void closeJoystick();

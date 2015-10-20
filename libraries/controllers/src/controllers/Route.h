@@ -16,20 +16,17 @@
 class QJsonObject;
 
 namespace controller {
-
     /*
     * encapsulates a source, destination and filters to apply
     */
     class Route {
     public:
-        Endpoint::Pointer _source;
-        Endpoint::Pointer _destination;
-        Filter::List _filters;
+        Endpoint::Pointer source;
+        Endpoint::Pointer destination;
+        Filter::List filters;
 
         using Pointer = std::shared_ptr<Route>;
         using List = std::list<Pointer>;
-
-        void parse(const QJsonObject);
     };
 }
 

@@ -123,20 +123,20 @@ int main(int argc, char** argv) {
             inputPlugin->pluginUpdate(delta, false);
         }
 
-        auto userInputMapper = DependencyManager::get<UserInputMapper>();
+        auto userInputMapper = DependencyManager::get<controller::UserInputMapper>();
         userInputMapper->update(delta);
     });
     timer.start(50);
 
     {
-        DependencyManager::set<UserInputMapper>();
+        DependencyManager::set<controller::UserInputMapper>();
         foreach(auto inputPlugin, PluginManager::getInstance()->getInputPlugins()) {
             QString name = inputPlugin->getName();
             inputPlugin->activate();
-            auto userInputMapper = DependencyManager::get<UserInputMapper>();
+            auto userInputMapper = DependencyManager::get<controller::UserInputMapper>();
             if (name == KeyboardMouseDevice::NAME) {
                 auto keyboardMouseDevice = static_cast<KeyboardMouseDevice*>(inputPlugin.data()); // TODO: this seems super hacky
-                keyboardMouseDevice->registerToUserInputMapper(*userInputMapper);
+                userInputMapper->registerDevice(keyboardMouseDevice);
             }
             inputPlugin->pluginUpdate(0, false);
         }

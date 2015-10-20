@@ -352,7 +352,7 @@ private:
 
     void update(float deltaTime);
 
-    void setPalmData(Hand* hand, UserInputMapper::PoseValue pose, float deltaTime, int index, float triggerValue);
+    void setPalmData(Hand* hand, const controller::Pose& pose, float deltaTime, int index, float triggerValue);
     void emulateMouse(Hand* hand, float click, float shift, int index);
 
     // Various helper functions called during update()
