@@ -41,9 +41,9 @@ private:
     QUuid _holderID;
 
     void doKinematicUpdate(float deltaTimeStep);
-    bool _kinematic = false;
-    bool _kinematicSetVelocity = false;
-    bool _previousSet = false;
+    bool _kinematic { false };
+    bool _kinematicSetVelocity { false };
+    bool _previousSet { false };
     glm::vec3 _previousPositionalTarget;
     glm::quat _previousRotationalTarget;
 };

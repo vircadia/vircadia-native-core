@@ -229,7 +229,6 @@ bool LODManager::shouldRender(const RenderArgs* args, const AABox& bounds) {
     static bool shouldRenderTableNeedsBuilding = true;
     static QMap<float, float> shouldRenderTable;
     if (shouldRenderTableNeedsBuilding) {
-        
         float SMALLEST_SCALE_IN_TABLE = 0.001f; // 1mm is plenty small
         float scale = maxScale;
         float factor = 1.0f;
@@ -254,7 +253,7 @@ bool LODManager::shouldRender(const RenderArgs* args, const AABox& bounds) {
     if (closestScale < largestDimension) {
         visibleDistanceAtClosestScale *= 2.0f;
     }
-    
+
     return distanceToCamera <= visibleDistanceAtClosestScale;
 };
 
