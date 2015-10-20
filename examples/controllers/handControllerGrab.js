@@ -64,7 +64,6 @@ var NULL_ACTION_ID = "{00000000-0000-0000-000000000000}";
 var MSEC_PER_SEC = 1000.0;
 
 // these control how long an abandoned pointer line will hang around
-var startTime = Date.now();
 var LIFETIME = 10;
 var ACTION_LIFETIME = 15; // seconds
 var ACTION_LIFETIME_REFRESH = 5;
@@ -203,11 +202,12 @@ function MyController(hand, triggerAction) {
                 lifetime: LIFETIME
             });
         } else {
+            var age = Entities.getEntityProperties(this.pointer, "age").age;
             Entities.editEntity(this.pointer, {
                 position: closePoint,
                 linePoints: [ZERO_VEC, farPoint],
                 color: color,
-                lifetime: (Date.now() - startTime) / MSEC_PER_SEC + LIFETIME
+                lifetime: age + LIFETIME
             });
         }
 
