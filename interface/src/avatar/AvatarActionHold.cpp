@@ -175,7 +175,7 @@ bool AvatarActionHold::updateArguments(QVariantMap arguments) {
 
         ok = true;
         kinematicSetVelocity = EntityActionInterface::extractBooleanArgument("hold", arguments,
-                                                                             "kinematic-set-velocity", ok, false);
+                                                                             "kinematicSetVelocity", ok, false);
         if (!ok) {
             _kinematicSetVelocity = false;
         }

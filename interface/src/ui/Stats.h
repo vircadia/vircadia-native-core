@@ -58,14 +58,18 @@ class Stats : public QQuickItem {
     STATS_PROPERTY(int, triangles, 0)
     STATS_PROPERTY(int, quads, 0)
     STATS_PROPERTY(int, materialSwitches, 0)
-    STATS_PROPERTY(int, meshOpaque, 0)
-    STATS_PROPERTY(int, meshTranslucent, 0)
     STATS_PROPERTY(int, opaqueConsidered, 0)
     STATS_PROPERTY(int, opaqueOutOfView, 0)
     STATS_PROPERTY(int, opaqueTooSmall, 0)
+    STATS_PROPERTY(int, opaqueRendered, 0)
     STATS_PROPERTY(int, translucentConsidered, 0)
     STATS_PROPERTY(int, translucentOutOfView, 0)
     STATS_PROPERTY(int, translucentTooSmall, 0)
+    STATS_PROPERTY(int, translucentRendered, 0)
+    STATS_PROPERTY(int, otherConsidered, 0)
+    STATS_PROPERTY(int, otherOutOfView, 0)
+    STATS_PROPERTY(int, otherTooSmall, 0)
+    STATS_PROPERTY(int, otherRendered, 0)
     STATS_PROPERTY(QString, sendingMode, QString())
     STATS_PROPERTY(QString, packetStats, QString())
     STATS_PROPERTY(QString, lodStatus, QString())
@@ -135,14 +139,18 @@ signals:
     void trianglesChanged();
     void quadsChanged();
     void materialSwitchesChanged();
-    void meshOpaqueChanged();
-    void meshTranslucentChanged();
     void opaqueConsideredChanged();
     void opaqueOutOfViewChanged();
     void opaqueTooSmallChanged();
+    void opaqueRenderedChanged();
     void translucentConsideredChanged();
     void translucentOutOfViewChanged();
     void translucentTooSmallChanged();
+    void translucentRenderedChanged();
+    void otherConsideredChanged();
+    void otherOutOfViewChanged();
+    void otherTooSmallChanged();
+    void otherRenderedChanged();
     void sendingModeChanged();
     void packetStatsChanged();
     void lodStatusChanged();

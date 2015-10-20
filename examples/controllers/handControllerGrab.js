@@ -64,7 +64,6 @@ var NULL_ACTION_ID = "{00000000-0000-0000-000000000000}";
 var MSEC_PER_SEC = 1000.0;
 
 // these control how long an abandoned pointer line will hang around
-var startTime = Date.now();
 var LIFETIME = 10;
 var ACTION_LIFETIME = 15; // seconds
 var ACTION_LIFETIME_REFRESH = 5;
@@ -203,11 +202,12 @@ function MyController(hand, triggerAction) {
                 lifetime: LIFETIME
             });
         } else {
+            var age = Entities.getEntityProperties(this.pointer, "age").age;
             Entities.editEntity(this.pointer, {
                 position: closePoint,
                 linePoints: [ZERO_VEC, farPoint],
                 color: color,
-                lifetime: (Date.now() - startTime) / MSEC_PER_SEC + LIFETIME
+                lifetime: age + LIFETIME
             });
         }
 
@@ -473,12 +473,23 @@ function MyController(hand, triggerAction) {
         var handRotation = this.getHandRotation();
         var handPosition = this.getHandPosition();
 
-        var objectRotation = grabbedProperties.rotation;
-        this.offsetRotation = Quat.multiply(Quat.inverse(handRotation), objectRotation);
+        var grabbableData = getEntityCustomData(GRABBABLE_DATA_KEY, this.grabbedEntity, DEFAULT_GRABBABLE_DATA);
 
-        var currentObjectPosition = grabbedProperties.position;
-        var offset = Vec3.subtract(currentObjectPosition, handPosition);
-        this.offsetPosition = Vec3.multiplyQbyV(Quat.inverse(Quat.multiply(handRotation, this.offsetRotation)), offset);
+        if (grabbableData.spatialKey) {
+            if (grabbableData.spatialKey.relativePosition) {
+                this.offsetPosition = grabbableData.spatialKey.relativePosition;
+            }
+            if (grabbableData.spatialKey.relativeRotation) {
+                this.offsetRotation = grabbableData.spatialKey.relativeRotation;
+            }
+        } else {
+            var objectRotation = grabbedProperties.rotation;
+            this.offsetRotation = Quat.multiply(Quat.inverse(handRotation), objectRotation);
+
+            var currentObjectPosition = grabbedProperties.position;
+            var offset = Vec3.subtract(currentObjectPosition, handPosition);
+            this.offsetPosition = Vec3.multiplyQbyV(Quat.inverse(Quat.multiply(handRotation, this.offsetRotation)), offset);
+        }
 
         this.actionID = NULL_ACTION_ID;
         this.actionID = Entities.addAction("hold", this.grabbedEntity, {
@@ -487,7 +498,7 @@ function MyController(hand, triggerAction) {
             relativePosition: this.offsetPosition,
             relativeRotation: this.offsetRotation,
             lifetime: ACTION_LIFETIME,
-            // kinematic: true,
+            kinematic: (grabbableData.kinematicGrab && (grabbableData.kinematicGrab === true))
         });
         if (this.actionID === NULL_ACTION_ID) {
             this.actionID = null;
@@ -539,8 +550,7 @@ function MyController(hand, triggerAction) {
                 timeScale: NEAR_GRABBING_ACTION_TIMEFRAME,
                 relativePosition: this.offsetPosition,
                 relativeRotation: this.offsetRotation,
-                lifetime: ACTION_LIFETIME,
-                // kinematic: true
+                lifetime: ACTION_LIFETIME
             });
             this.actionTimeout = now + (ACTION_LIFETIME * MSEC_PER_SEC);
         }
