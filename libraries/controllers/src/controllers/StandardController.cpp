@@ -18,8 +18,6 @@
 
 namespace controller {
 
-const float CONTROLLER_THRESHOLD = 0.3f;
-
 StandardController::StandardController() : InputDevice("Standard") { 
     _deviceID = UserInputMapper::STANDARD_DEVICE; 
 }

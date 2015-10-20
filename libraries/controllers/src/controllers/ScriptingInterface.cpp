@@ -54,7 +54,6 @@ controller::ScriptingInterface::ScriptingInterface() {
 
     // FIXME allow custom user actions?
     auto actionNames = userInputMapper->getActionNames();
-    int actionNumber = 0;
     qCDebug(controllers) << "Setting up standard actions";
     for (const auto& namedInput : userInputMapper->getActionInputs()) {
         const QString& actionName = namedInput.second;

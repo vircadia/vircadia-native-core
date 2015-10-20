@@ -470,7 +470,11 @@ Input UserInputMapper::makeStandardInput(controller::StandardPoseChannel pose) {
     return Input(STANDARD_DEVICE, pose, ChannelType::POSE);
 }
 
-
+enum Pass {
+    HARDWARE_PASS,
+    STANDARD_PASS,
+    NUM_PASSES
+};
 
 void UserInputMapper::update() {
     static auto deviceNames = getDeviceNames();
@@ -479,12 +483,9 @@ void UserInputMapper::update() {
     EndpointSet readEndpoints;
     EndpointSet writtenEndpoints;
 
-    static const int HARDWARE_PASS = 0;
-    static const int STANDARD_PASS = 1;
-
     // Now process the current values for each level of the stack
     for (auto& mapping : _activeMappings) {
-        for (int pass = 0; pass < 2; ++pass) {
+        for (int pass = HARDWARE_PASS; pass < NUM_PASSES; ++pass) {
             for (const auto& mappingEntry : mapping->channelMappings) {
                 const auto& source = mappingEntry.first;
                 if (_inputsByEndpoint.count(source)) {
@@ -534,7 +535,6 @@ void UserInputMapper::update() {
                     float value = getValue(source);
 
                     // Apply each of the filters.
-                    const auto& filters = route->filters;
                     for (const auto& filter : route->filters) {
                         value = filter->apply(value);
                     }
