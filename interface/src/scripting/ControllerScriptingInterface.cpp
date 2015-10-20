@@ -154,7 +154,7 @@ controller::InputController::Pointer ControllerScriptingInterface::createInputCo
             if (trackerID >= 0) {
                 controller::InputController::Pointer inputController = std::make_shared<InputController>(deviceID, trackerID, this);
                 controller::InputController::Key key = inputController->getKey();
-                _inputControllers.insert(InputControllerMap::value_type(inputController->getKey(), inputController));
+                _inputControllers.insert(InputControllerMap::value_type(key, inputController));
                 return inputController;
             }
         }

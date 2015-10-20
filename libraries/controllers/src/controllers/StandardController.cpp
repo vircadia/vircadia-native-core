@@ -15,8 +15,6 @@
 
 #include "StandardController.h"
 
-const float CONTROLLER_THRESHOLD = 0.3f;
-
 StandardController::~StandardController() {
 }
 
