@@ -10,10 +10,11 @@
 #define hifi_Controllers_Impl_RouteBuilderProxy_h
 
 #include <QtCore/QObject>
+
 #include "../Filter.h"
 #include "../Route.h"
 #include "../Mapping.h"
-
+#include "../UserInputMapper.h"
 class QJSValue;
 class QScriptValue;
 class QJsonValue;
@@ -27,7 +28,7 @@ class ScriptingInterface;
 class RouteBuilderProxy : public QObject {
         Q_OBJECT
     public:
-        RouteBuilderProxy(ScriptingInterface& parent, Mapping::Pointer mapping, Route::Pointer route)
+        RouteBuilderProxy(UserInputMapper& parent, Mapping::Pointer mapping, Route::Pointer route)
             : _parent(parent), _mapping(mapping), _route(route) { }
 
         Q_INVOKABLE void to(int destination);
@@ -44,15 +45,11 @@ class RouteBuilderProxy : public QObject {
         Q_INVOKABLE QObject* constrainToInteger();
         Q_INVOKABLE QObject* constrainToPositiveInteger();
 
-        // JSON route creation point
-        Q_INVOKABLE QObject* filters(const QJsonValue& json);
-        Q_INVOKABLE void to(const QJsonValue& json);
-
-    private:
+private:
         void to(const Endpoint::Pointer& destination);
         void addFilter(Filter::Lambda lambda);
         void addFilter(Filter::Pointer filter);
-        ScriptingInterface& _parent;
+        UserInputMapper& _parent;
         Mapping::Pointer _mapping;
         Route::Pointer _route;
     };

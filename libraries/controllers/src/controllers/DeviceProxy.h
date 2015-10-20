@@ -35,23 +35,15 @@ namespace controller {
 
     class DeviceProxy {
     public:
-       DeviceProxy(QString name) : _baseName(name), _name(name) {}
-       const QString& getBaseName() const { return _baseName; }
-       const QString& getName() const { return _name; }
-
-       ButtonGetter getButton = [] (const Input& input, int timestamp) -> bool { return false; };
-       AxisGetter getAxis = [] (const Input& input, int timestamp) -> float { return 0.0f; };
-       PoseGetter getPose = [](const Input& input, int timestamp) -> Pose { return Pose(); };
-       AvailableInputGetter getAvailabeInputs = []() -> Input::NamedVector { return Input::NamedVector(); };
-       ResetBindings resetDeviceBindings = [] () -> bool { return true; };
-       float getValue(const Input& input, int timestamp = 0) const;
-
-       using Pointer = std::shared_ptr<DeviceProxy>;
-
-       QString _baseName;
-       QString _name;
+        using Pointer = std::shared_ptr<DeviceProxy>;
+        const QString& getName() const { return _name; }
+        ButtonGetter getButton = [] (const Input& input, int timestamp) -> bool { return false; };
+        AxisGetter getAxis = [] (const Input& input, int timestamp) -> float { return 0.0f; };
+        PoseGetter getPose = [](const Input& input, int timestamp) -> Pose { return Pose(); };
+        AvailableInputGetter getAvailabeInputs = []() -> Input::NamedVector const { return Input::NamedVector(); };
+        float getValue(const Input& input, int timestamp = 0) const;
+        QString _name;
     };
-
 }
 
 #endif

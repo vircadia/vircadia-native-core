@@ -32,7 +32,6 @@
 
 #include "UserInputMapper.h"
 #include "StandardControls.h"
-#include "Mapping.h"
 
 namespace controller {
     class InputController : public QObject {
@@ -65,10 +64,10 @@ namespace controller {
 
     public:
         ScriptingInterface();
-        virtual ~ScriptingInterface();
+        virtual ~ScriptingInterface() {};
 
-        Q_INVOKABLE QVector<UserInputMapper::Action> getAllActions();
-        Q_INVOKABLE QVector<UserInputMapper::InputPair> getAvailableInputs(unsigned int device);
+        Q_INVOKABLE QVector<Action> getAllActions();
+        Q_INVOKABLE QVector<Input::NamedPair> getAvailableInputs(unsigned int device);
         Q_INVOKABLE QString getDeviceName(unsigned int device);
         Q_INVOKABLE float getActionValue(int action);
         Q_INVOKABLE int findDevice(QString name);
@@ -89,23 +88,23 @@ namespace controller {
         Q_INVOKABLE QObject* loadMapping(const QString& jsonUrl);
 
 
-        Q_INVOKABLE bool isPrimaryButtonPressed() const;
-        Q_INVOKABLE glm::vec2 getPrimaryJoystickPosition() const;
+        //Q_INVOKABLE bool isPrimaryButtonPressed() const;
+        //Q_INVOKABLE glm::vec2 getPrimaryJoystickPosition() const;
 
-        Q_INVOKABLE int getNumberOfButtons() const;
-        Q_INVOKABLE bool isButtonPressed(int buttonIndex) const;
+        //Q_INVOKABLE int getNumberOfButtons() const;
+        //Q_INVOKABLE bool isButtonPressed(int buttonIndex) const;
 
-        Q_INVOKABLE int getNumberOfTriggers() const;
-        Q_INVOKABLE float getTriggerValue(int triggerIndex) const;
+        //Q_INVOKABLE int getNumberOfTriggers() const;
+        //Q_INVOKABLE float getTriggerValue(int triggerIndex) const;
 
-        Q_INVOKABLE int getNumberOfJoysticks() const;
-        Q_INVOKABLE glm::vec2 getJoystickPosition(int joystickIndex) const;
+        //Q_INVOKABLE int getNumberOfJoysticks() const;
+        //Q_INVOKABLE glm::vec2 getJoystickPosition(int joystickIndex) const;
 
-        Q_INVOKABLE int getNumberOfSpatialControls() const;
-        Q_INVOKABLE glm::vec3 getSpatialControlPosition(int controlIndex) const;
-        Q_INVOKABLE glm::vec3 getSpatialControlVelocity(int controlIndex) const;
-        Q_INVOKABLE glm::vec3 getSpatialControlNormal(int controlIndex) const;
-        Q_INVOKABLE glm::quat getSpatialControlRawRotation(int controlIndex) const;
+        //Q_INVOKABLE int getNumberOfSpatialControls() const;
+        //Q_INVOKABLE glm::vec3 getSpatialControlPosition(int controlIndex) const;
+        //Q_INVOKABLE glm::vec3 getSpatialControlVelocity(int controlIndex) const;
+        //Q_INVOKABLE glm::vec3 getSpatialControlNormal(int controlIndex) const;
+        //Q_INVOKABLE glm::quat getSpatialControlRawRotation(int controlIndex) const;
 
         Q_INVOKABLE const QVariantMap& getHardware() { return _hardware; }
         Q_INVOKABLE const QVariantMap& getActions() { return _actions; }
@@ -116,11 +115,7 @@ namespace controller {
         bool isWheelCaptured() const { return _wheelCaptured; }
         bool areActionsCaptured() const { return _actionsCaptured; }
 
-        static QRegularExpression SANITIZE_NAME_EXPRESSION;
-
     public slots:
-        virtual void update();
-        virtual void updateMaps();
 
         virtual void captureMouseEvents() { _mouseCaptured = true; }
         virtual void releaseMouseEvents() { _mouseCaptured = false; }
@@ -136,38 +131,12 @@ namespace controller {
 
 
     private:
-        friend class MappingBuilderProxy;
-        friend class RouteBuilderProxy;
-
-        // FIXME move to unordered set / map
-        using MappingMap = std::map<QString, Mapping::Pointer>;
-        using MappingStack = std::list<Mapping::Pointer>;
-        using InputToEndpointMap = std::map<UserInputMapper::Input, Endpoint::Pointer>;
-        using EndpointSet = std::unordered_set<Endpoint::Pointer>;
-        using ValueMap = std::map<Endpoint::Pointer, float>;
-        using EndpointPair = std::pair<Endpoint::Pointer, Endpoint::Pointer>;
-        using EndpointPairMap = std::map<EndpointPair, Endpoint::Pointer>;
-
-        void update(Mapping::Pointer& mapping, EndpointSet& consumed);
-        float getValue(const Endpoint::Pointer& endpoint) const;
-        Pose getPoseValue(const Endpoint::Pointer& endpoint) const;
-        Endpoint::Pointer endpointFor(const QJSValue& endpoint);
-        Endpoint::Pointer endpointFor(const QScriptValue& endpoint);
-        Endpoint::Pointer endpointFor(const UserInputMapper::Input& endpoint);
-        Endpoint::Pointer compositeEndpointFor(Endpoint::Pointer first, Endpoint::Pointer second);
- 
-        UserInputMapper::Input inputFor(const QString& inputName);
+        // Update the exposed variant maps reporting active hardware
+        void updateMaps();
 
         QVariantMap _hardware;
         QVariantMap _actions;
         QVariantMap _standard;
-
-        InputToEndpointMap _endpoints;
-        EndpointPairMap _compositeEndpoints;
-
-        ValueMap _overrideValues;
-        MappingMap _mappingsByName;
-        MappingStack _activeMappings;
 
         bool _mouseCaptured{ false };
         bool _touchCaptured{ false };
@@ -175,23 +144,6 @@ namespace controller {
         bool _actionsCaptured{ false };
     };
 
-    class ScriptEndpoint : public Endpoint {
-        Q_OBJECT;
-    public:
-        ScriptEndpoint(const QScriptValue& callable)
-            : Endpoint(UserInputMapper::Input::INVALID_INPUT), _callable(callable) {
-        }
-
-        virtual float value();
-        virtual void apply(float newValue, float oldValue, const Pointer& source);
-
-    protected:
-        Q_INVOKABLE void updateValue();
-        Q_INVOKABLE virtual void internalApply(float newValue, float oldValue, int sourceID);
-    private:
-        QScriptValue _callable;
-        float _lastValue = 0.0f;
-    };
 
 }
 

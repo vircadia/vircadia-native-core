@@ -22,13 +22,14 @@ class QJsonValue;
 namespace controller {
 
 class ScriptingInterface;
+class UserInputMapper;
 
 // TODO migrate functionality to a MappingBuilder class and make the proxy defer to that 
 // (for easier use in both C++ and JS)
 class MappingBuilderProxy : public QObject {
     Q_OBJECT
 public:
-    MappingBuilderProxy(ScriptingInterface& parent, Mapping::Pointer mapping)
+    MappingBuilderProxy(UserInputMapper& parent, Mapping::Pointer mapping)
         : _parent(parent), _mapping(mapping) { }
 
     Q_INVOKABLE QObject* from(int sourceInput);
@@ -39,19 +40,11 @@ public:
     Q_INVOKABLE QObject* enable(bool enable = true);
     Q_INVOKABLE QObject* disable() { return enable(false); }
 
-
-    // JSON route creation point
-    Q_INVOKABLE QObject* from(const QJsonValue& json);
-
-
-    void parse(const QJsonObject& json);
-//  void serialize(QJsonObject& json);
-
 protected:
     QObject* from(const Endpoint::Pointer& source);
 
     friend class RouteBuilderProxy;
-    ScriptingInterface& _parent;
+    UserInputMapper& _parent;
     Mapping::Pointer _mapping;
 
 

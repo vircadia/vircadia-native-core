@@ -7,19 +7,213 @@
 //
 
 #include "UserInputMapper.h"
-#include "StandardController.h"
 
+#include <QtCore/QThread>
+#include <QtCore/QFile>
+
+#include <QtCore/QJsonDocument>
+#include <QtCore/QJsonObject>
+#include <QtCore/QJsonArray>
+
+#include <PathUtils.h>
+
+#include "StandardController.h"
 #include "Logging.h"
 
-const uint16_t UserInputMapper::ACTIONS_DEVICE = Input::INVALID_DEVICE - (uint16)1;
-const uint16_t UserInputMapper::STANDARD_DEVICE = 0;
+namespace controller {
+    const uint16_t UserInputMapper::ACTIONS_DEVICE = Input::INVALID_DEVICE - 0xFF;
+    const uint16_t UserInputMapper::STANDARD_DEVICE = 0;
+}
 
 // Default contruct allocate the poutput size with the current hardcoded action channels
-UserInputMapper::UserInputMapper() {
-    registerStandardDevice();
+controller::UserInputMapper::UserInputMapper() {
+    _activeMappings.push_back(_defaultMapping);
+    _standardController = std::make_shared<StandardController>();
+    registerDevice(new ActionsDevice());
+    registerDevice(_standardController.get());
     assignDefaulActionScales();
-    createActionNames();
 }
+
+namespace controller {
+
+class ScriptEndpoint : public Endpoint {
+    Q_OBJECT;
+public:
+    ScriptEndpoint(const QScriptValue& callable)
+        : Endpoint(Input::INVALID_INPUT), _callable(callable) {
+    }
+
+    virtual float value();
+    virtual void apply(float newValue, float oldValue, const Pointer& source);
+
+protected:
+    Q_INVOKABLE void updateValue();
+    Q_INVOKABLE virtual void internalApply(float newValue, float oldValue, int sourceID);
+private:
+    QScriptValue _callable;
+    float _lastValue = 0.0f;
+};
+
+class VirtualEndpoint : public Endpoint {
+public:
+    VirtualEndpoint(const Input& id = Input::INVALID_INPUT)
+        : Endpoint(id) {
+    }
+
+    virtual float value() override { return _currentValue; }
+    virtual void apply(float newValue, float oldValue, const Pointer& source) override { _currentValue = newValue; }
+
+    virtual Pose pose() override { return _currentPose; }
+    virtual void apply(const Pose& newValue, const Pose& oldValue, const Pointer& source) override {
+        _currentPose = newValue;
+    }
+private:
+    float _currentValue{ 0.0f };
+    Pose _currentPose{};
+};
+
+
+class JSEndpoint : public Endpoint {
+public:
+    JSEndpoint(const QJSValue& callable)
+        : Endpoint(Input::INVALID_INPUT), _callable(callable) {
+    }
+
+    virtual float value() {
+        float result = (float)_callable.call().toNumber();;
+        return result;
+    }
+
+    virtual void apply(float newValue, float oldValue, const Pointer& source) {
+        _callable.call(QJSValueList({ QJSValue(newValue) }));
+    }
+
+private:
+    QJSValue _callable;
+};
+
+float ScriptEndpoint::value() {
+    updateValue();
+    return _lastValue;
+}
+
+void ScriptEndpoint::updateValue() {
+    if (QThread::currentThread() != thread()) {
+        QMetaObject::invokeMethod(this, "updateValue", Qt::QueuedConnection);
+        return;
+    }
+
+    _lastValue = (float)_callable.call().toNumber();
+}
+
+void ScriptEndpoint::apply(float newValue, float oldValue, const Pointer& source) {
+    internalApply(newValue, oldValue, source->getInput().getID());
+}
+
+void ScriptEndpoint::internalApply(float newValue, float oldValue, int sourceID) {
+    if (QThread::currentThread() != thread()) {
+        QMetaObject::invokeMethod(this, "internalApply", Qt::QueuedConnection,
+            Q_ARG(float, newValue),
+            Q_ARG(float, oldValue),
+            Q_ARG(int, sourceID));
+        return;
+    }
+    _callable.call(QScriptValue(),
+                   QScriptValueList({ QScriptValue(newValue), QScriptValue(oldValue),  QScriptValue(sourceID) }));
+}
+
+class CompositeEndpoint : public Endpoint, Endpoint::Pair {
+public:
+    CompositeEndpoint(Endpoint::Pointer first, Endpoint::Pointer second)
+        : Endpoint(Input::INVALID_INPUT), Pair(first, second) { }
+
+    virtual float value() {
+        float result = first->value() * -1.0f + second->value();
+        return result;
+    }
+
+    virtual void apply(float newValue, float oldValue, const Pointer& source) {
+        // Composites are read only
+    }
+
+private:
+    Endpoint::Pointer _first;
+    Endpoint::Pointer _second;
+};
+
+
+class InputEndpoint : public Endpoint {
+public:
+    InputEndpoint(const Input& id = Input::INVALID_INPUT)
+        : Endpoint(id) {
+    }
+
+    virtual float value() override {
+        _currentValue = 0.0f;
+        if (isPose()) {
+            return _currentValue;
+        }
+        auto userInputMapper = DependencyManager::get<UserInputMapper>();
+        auto deviceProxy = userInputMapper->getDeviceProxy(_input);
+        if (!deviceProxy) {
+            return _currentValue;
+        }
+        _currentValue = deviceProxy->getValue(_input, 0);
+        return _currentValue;
+    }
+    virtual void apply(float newValue, float oldValue, const Pointer& source) override {}
+
+    virtual Pose pose() override {
+        _currentPose = Pose();
+        if (!isPose()) {
+            return _currentPose;
+        }
+        auto userInputMapper = DependencyManager::get<UserInputMapper>();
+        auto deviceProxy = userInputMapper->getDeviceProxy(_input);
+        if (!deviceProxy) {
+            return _currentPose;
+        }
+        _currentPose = deviceProxy->getPose(_input, 0);
+        return _currentPose;
+    }
+
+    virtual void apply(const Pose& newValue, const Pose& oldValue, const Pointer& source) override {
+    }
+
+private:
+    float _currentValue{ 0.0f };
+    Pose _currentPose{};
+};
+
+class ActionEndpoint : public Endpoint {
+public:
+    ActionEndpoint(const Input& id = Input::INVALID_INPUT)
+        : Endpoint(id) {
+    }
+
+    virtual float value() override { return _currentValue; }
+    virtual void apply(float newValue, float oldValue, const Pointer& source) override {
+
+        _currentValue += newValue;
+        if (!(_input == Input::INVALID_INPUT)) {
+            auto userInputMapper = DependencyManager::get<UserInputMapper>();
+            userInputMapper->deltaActionState(Action(_input.getChannel()), newValue);
+        }
+    }
+
+    virtual Pose pose() override { return _currentPose; }
+    virtual void apply(const Pose& newValue, const Pose& oldValue, const Pointer& source) override {
+        _currentPose = newValue;
+        if (!(_input == Input::INVALID_INPUT)) {
+            auto userInputMapper = DependencyManager::get<UserInputMapper>();
+            userInputMapper->setActionState(Action(_input.getChannel()), _currentPose);
+        }
+    }
+
+private:
+    float _currentValue{ 0.0f };
+    Pose _currentPose{};
+};
 
 UserInputMapper::~UserInputMapper() {
 }
@@ -32,28 +226,58 @@ int UserInputMapper::recordDeviceOfType(const QString& deviceName) {
     return _deviceCounts[deviceName];
 }
 
-bool UserInputMapper::registerDevice(uint16 deviceID, const DeviceProxy::Pointer& proxy) {
+void UserInputMapper::registerDevice(InputDevice* device) {
+    if (device->_deviceID == Input::INVALID_DEVICE) {
+        device->_deviceID = getFreeDeviceID();
+    }
+    const auto& deviceID = device->_deviceID;
+    DeviceProxy::Pointer proxy = std::make_shared<DeviceProxy>();
+    proxy->_name = device->_name;
+    device->buildDeviceProxy(proxy);
+
     int numberOfType = recordDeviceOfType(proxy->_name);
-    
     if (numberOfType > 1) {
         proxy->_name += QString::number(numberOfType);
     }
-    
+
     qCDebug(controllers) << "Registered input device <" << proxy->_name << "> deviceID = " << deviceID;
+
+    for (const auto& inputMapping : proxy->getAvailabeInputs()) {
+        const auto& input = inputMapping.first;
+        // Ignore aliases
+        if (_endpointsByInput.count(input)) {
+            continue;
+        }
+        Endpoint::Pointer endpoint;
+        if (input.device == STANDARD_DEVICE) {
+             endpoint = std::make_shared<VirtualEndpoint>(input);
+        } else if (input.device == ACTIONS_DEVICE) {
+            endpoint = std::make_shared<ActionEndpoint>(input);
+        } else {
+            endpoint = std::make_shared<LambdaEndpoint>([=] {
+                return proxy->getValue(input, 0);
+            });
+        }
+        _inputsByEndpoint[endpoint] = input;
+        _endpointsByInput[input] = endpoint;
+    }
+
     _registeredDevices[deviceID] = proxy;
-    return true;
-    
+    auto mapping = loadMapping(device->getDefaultMappingConfig());
+    if (mapping) {
+        _mappingsByDevice[deviceID] = mapping;
+        for (const auto& entry : mapping->channelMappings) {
+            const auto& source = entry.first;
+            const auto& routes = entry.second;
+            auto& list = _defaultMapping->channelMappings[source];
+            list.insert(list.end(), routes.begin(), routes.end());
+        }
+    }
+
+    emit hardwareChanged();
 }
 
-
-bool UserInputMapper::registerStandardDevice(const DeviceProxy::Pointer& device) {
-    device->_name = "Standard"; // Just to make sure
-    _registeredDevices[getStandardDeviceID()] = device;
-    return true;
-}
-
-
-UserInputMapper::DeviceProxy::Pointer UserInputMapper::getDeviceProxy(const Input& input) {
+DeviceProxy::Pointer UserInputMapper::getDeviceProxy(const Input& input) {
     auto device = _registeredDevices.find(input.getDevice());
     if (device != _registeredDevices.end()) {
         return (device->second);
@@ -69,25 +293,9 @@ QString UserInputMapper::getDeviceName(uint16 deviceID) {
     return QString("unknown");
 }
 
-
-void UserInputMapper::resetAllDeviceBindings() {
-    for (auto device : _registeredDevices) {
-        device.second->resetDeviceBindings();
-    }
-}
-
-void UserInputMapper::resetDevice(uint16 deviceID) {
-    auto device = _registeredDevices.find(deviceID);
-    if (device != _registeredDevices.end()) {
-        device->second->resetDeviceBindings();
-    }
-}
-
 int UserInputMapper::findDevice(QString name) const {
     for (auto device : _registeredDevices) {
-        if (device.second->_name.split(" (")[0] == name) {
-            return device.first;
-        } else if (device.second->_baseName == name) {
+        if (device.second->_name == name) {
             return device.first;
         }
     }
@@ -103,8 +311,11 @@ QVector<QString> UserInputMapper::getDeviceNames() {
     return result;
 }
 
-UserInputMapper::Input UserInputMapper::findDeviceInput(const QString& inputName) const {
-    
+int UserInputMapper::findAction(const QString& actionName) const {
+    return findDeviceInput("Actions." + actionName).getChannel();
+}
+
+Input UserInputMapper::findDeviceInput(const QString& inputName) const {
     // Split the full input name as such: deviceName.inputName
     auto names = inputName.split('.');
 
@@ -126,20 +337,9 @@ UserInputMapper::Input UserInputMapper::findDeviceInput(const QString& inputName
 
             qCDebug(controllers) << "Couldn\'t find InputChannel named <" << inputName << "> for device <" << deviceName << ">";
 
-        } else if (deviceName == "Actions") {
-            deviceID = ACTIONS_DEVICE;
-            int actionNum = 0;
-            for (auto action : _actionNames) {
-                if (action == inputName) {
-                    return Input(ACTIONS_DEVICE, actionNum, ChannelType::AXIS);
-                }
-                actionNum++;
-            }
-
-            qCDebug(controllers) << "Couldn\'t find ActionChannel named <" << inputName << "> among actions";
-
         } else {
             qCDebug(controllers) << "Couldn\'t find InputDevice named <" << deviceName << ">";
+            findDevice(deviceName);
         }
     } else {
         qCDebug(controllers) << "Couldn\'t understand <" << inputName << "> as a valid inputDevice.inputName";
@@ -148,98 +348,9 @@ UserInputMapper::Input UserInputMapper::findDeviceInput(const QString& inputName
     return Input::INVALID_INPUT;
 }
 
-
-
-bool UserInputMapper::addInputChannel(Action action, const Input& input, float scale) {
-    return addInputChannel(action, input, Input(), scale);
-}
-
-bool UserInputMapper::addInputChannel(Action action, const Input& input, const Input& modifier, float scale) {
-    // Check that the device is registered
-    if (!getDeviceProxy(input)) {
-        qDebug() << "UserInputMapper::addInputChannel: The input comes from a device #" << input.getDevice() << "is unknown. no inputChannel mapped.";
-        return false;
-    }
-    
-    auto inputChannel = InputChannel(input, modifier, action, scale);
-
-    // Insert or replace the input to modifiers
-    if (inputChannel.hasModifier()) {
-        auto& modifiers = _inputToModifiersMap[input.getID()];
-        modifiers.push_back(inputChannel._modifier);
-        std::sort(modifiers.begin(), modifiers.end());
-    }
-
-    // Now update the action To Inputs side of things
-    _actionToInputsMap.insert(ActionToInputsMap::value_type(action, inputChannel));
-
-    return true;
-}
-
-int UserInputMapper::addInputChannels(const InputChannels& channels) {
-    int nbAdded = 0;
-    for (auto& channel : channels) {
-        nbAdded += addInputChannel(channel._action, channel._input, channel._modifier, channel._scale);
-    }
-    return nbAdded;
-}
-
-bool UserInputMapper::removeInputChannel(InputChannel inputChannel) {
-    // Remove from Input to Modifiers map
-    if (inputChannel.hasModifier()) {
-        _inputToModifiersMap.erase(inputChannel._input.getID());
-    }
-    
-    // Remove from Action to Inputs map
-    std::pair<ActionToInputsMap::iterator, ActionToInputsMap::iterator> ret;
-    ret = _actionToInputsMap.equal_range(inputChannel._action);
-    for (ActionToInputsMap::iterator it=ret.first; it!=ret.second; ++it) {
-        if (it->second == inputChannel) {
-            _actionToInputsMap.erase(it);
-            return true;
-        }
-    }
-    
-    return false;
-}
-
-void UserInputMapper::removeAllInputChannels() {
-    _inputToModifiersMap.clear();
-    _actionToInputsMap.clear();
-}
-
-void UserInputMapper::removeAllInputChannelsForDevice(uint16 device) {
-    QVector<InputChannel> channels = getAllInputsForDevice(device);
-    for (auto& channel : channels) {
-        removeInputChannel(channel);
-    }
-}
-
+// FIXME remove the associated device mappings
 void UserInputMapper::removeDevice(int device) {
-    removeAllInputChannelsForDevice((uint16) device);
     _registeredDevices.erase(device);
-}
-
-int UserInputMapper::getInputChannels(InputChannels& channels) const {
-    for (auto& channel : _actionToInputsMap) {
-        channels.push_back(channel.second);
-    }
-
-    return _actionToInputsMap.size();
-}
-
-QVector<UserInputMapper::InputChannel> UserInputMapper::getAllInputsForDevice(uint16 device) {
-    InputChannels allChannels;
-    getInputChannels(allChannels);
-    
-    QVector<InputChannel> channels;
-    for (InputChannel inputChannel : allChannels) {
-        if (inputChannel._input._device == device) {
-            channels.push_back(inputChannel);
-        }
-    }
-    
-    return channels;
 }
 
 void fixBisectedAxis(float& full, float& negative, float& positive) {
@@ -249,67 +360,20 @@ void fixBisectedAxis(float& full, float& negative, float& positive) {
 }
 
 void UserInputMapper::update(float deltaTime) {
-
     // Reset the axis state for next loop
     for (auto& channel : _actionStates) {
         channel = 0.0f;
     }
     
     for (auto& channel : _poseStates) {
-        channel = PoseValue();
+        channel = Pose();
     }
 
-    int currentTimestamp = 0;
-    for (auto& channelInput : _actionToInputsMap) {
-        auto& inputMapping = channelInput.second;
-        auto& inputID = inputMapping._input;
-        bool enabled = true;
-        
-        // Check if this input channel has modifiers and collect the possibilities
-        auto modifiersIt = _inputToModifiersMap.find(inputID.getID());
-        if (modifiersIt != _inputToModifiersMap.end()) {
-            Modifiers validModifiers;
-            bool isActiveModifier = false;
-            for (auto& modifier : modifiersIt->second) {
-                auto deviceProxy = getDeviceProxy(modifier);
-                if (deviceProxy->getButton(modifier, currentTimestamp)) {
-                    validModifiers.push_back(modifier);
-                    isActiveModifier |= (modifier.getID() == inputMapping._modifier.getID());
-                }
-            }
-            enabled = (validModifiers.empty() && !inputMapping.hasModifier()) || isActiveModifier;
-        }
+    // Run the mappings code
+    update();
 
-        // if enabled: default input or all modifiers on
-        if (enabled) {
-            auto deviceProxy = getDeviceProxy(inputID);
-            switch (inputMapping._input.getType()) {
-                case ChannelType::BUTTON: {
-                    _actionStates[channelInput.first] += inputMapping._scale * float(deviceProxy->getButton(inputID, currentTimestamp));// * deltaTime; // weight the impulse by the deltaTime
-                    break;
-                }
-                case ChannelType::AXIS: {
-                    _actionStates[channelInput.first] += inputMapping._scale * deviceProxy->getAxis(inputID, currentTimestamp);
-                    break;
-                }
-                case ChannelType::POSE: {
-                    if (!_poseStates[channelInput.first].isValid()) {
-                        _poseStates[channelInput.first] = deviceProxy->getPose(inputID, currentTimestamp);
-                    }
-                    break;
-                }
-                default: {
-                    break; //silence please
-                }
-            }
-        } else{
-            // Channel input not enabled
-            enabled = false;
-        }
-    }
-
-    //manage the external action states changes coming from the Controllers Graph
-    for (auto i = 0; i < NUM_ACTIONS; i++) {
+    // Scale all the channel step with the scale
+    for (auto i = 0; i < toInt(Action::NUM_ACTIONS); i++) {
         if (_externalActionStates[i] != 0) {
             _actionStates[i] += _externalActionStates[i];
             _externalActionStates[i] = 0.0f;
@@ -317,21 +381,21 @@ void UserInputMapper::update(float deltaTime) {
 
         if (_externalPoseStates[i].isValid()) {
             _poseStates[i] = _externalPoseStates[i];
-            _externalPoseStates[i] = PoseValue();
+            _externalPoseStates[i] = Pose();
         }
     }
 
     // merge the bisected and non-bisected axes for now
-    fixBisectedAxis(_actionStates[TRANSLATE_X], _actionStates[LATERAL_LEFT], _actionStates[LATERAL_RIGHT]);
-    fixBisectedAxis(_actionStates[TRANSLATE_Y], _actionStates[VERTICAL_DOWN], _actionStates[VERTICAL_UP]);
-    fixBisectedAxis(_actionStates[TRANSLATE_Z], _actionStates[LONGITUDINAL_FORWARD], _actionStates[LONGITUDINAL_BACKWARD]);
-    fixBisectedAxis(_actionStates[TRANSLATE_CAMERA_Z], _actionStates[BOOM_IN], _actionStates[BOOM_OUT]);
-    fixBisectedAxis(_actionStates[ROTATE_Y], _actionStates[YAW_LEFT], _actionStates[YAW_RIGHT]);
-    fixBisectedAxis(_actionStates[ROTATE_X], _actionStates[PITCH_UP], _actionStates[PITCH_DOWN]);
+    fixBisectedAxis(_actionStates[toInt(Action::TRANSLATE_X)], _actionStates[toInt(Action::LATERAL_LEFT)], _actionStates[toInt(Action::LATERAL_RIGHT)]);
+    fixBisectedAxis(_actionStates[toInt(Action::TRANSLATE_Y)], _actionStates[toInt(Action::VERTICAL_DOWN)], _actionStates[toInt(Action::VERTICAL_UP)]);
+    fixBisectedAxis(_actionStates[toInt(Action::TRANSLATE_Z)], _actionStates[toInt(Action::LONGITUDINAL_FORWARD)], _actionStates[toInt(Action::LONGITUDINAL_BACKWARD)]);
+    fixBisectedAxis(_actionStates[toInt(Action::TRANSLATE_CAMERA_Z)], _actionStates[toInt(Action::BOOM_IN)], _actionStates[toInt(Action::BOOM_OUT)]);
+    fixBisectedAxis(_actionStates[toInt(Action::ROTATE_Y)], _actionStates[toInt(Action::YAW_LEFT)], _actionStates[toInt(Action::YAW_RIGHT)]);
+    fixBisectedAxis(_actionStates[toInt(Action::ROTATE_X)], _actionStates[toInt(Action::PITCH_UP)], _actionStates[toInt(Action::PITCH_DOWN)]);
 
 
     static const float EPSILON = 0.01f;
-    for (auto i = 0; i < NUM_ACTIONS; i++) {
+    for (auto i = 0; i < toInt(Action::NUM_ACTIONS); i++) {
         _actionStates[i] *= _actionScales[i];
         // Emit only on change, and emit when moving back to 0
         if (fabsf(_actionStates[i] - _lastActionStates[i]) > EPSILON) {
@@ -342,150 +406,79 @@ void UserInputMapper::update(float deltaTime) {
     }
 }
 
-QVector<UserInputMapper::Action> UserInputMapper::getAllActions() const {
+Input::NamedVector UserInputMapper::getAvailableInputs(uint16 deviceID) const {
+    auto iterator = _registeredDevices.find(deviceID);
+    return iterator->second->getAvailabeInputs();
+}
+
+QVector<Action> UserInputMapper::getAllActions() const {
     QVector<Action> actions;
-    for (auto i = 0; i < NUM_ACTIONS; i++) {
+    for (auto i = 0; i < toInt(Action::NUM_ACTIONS); i++) {
         actions.append(Action(i));
     }
     return actions;
 }
 
-QVector<UserInputMapper::InputChannel> UserInputMapper::getInputChannelsForAction(UserInputMapper::Action action) {
-    QVector<InputChannel> inputChannels;
-    std::pair <ActionToInputsMap::iterator, ActionToInputsMap::iterator> ret;
-    ret = _actionToInputsMap.equal_range(action);
-    for (ActionToInputsMap::iterator it=ret.first; it!=ret.second; ++it) {
-        inputChannels.append(it->second);
-    }
-    return inputChannels;
-}
-
-int UserInputMapper::findAction(const QString& actionName) const {
-    auto actions = getAllActions();
-    for (auto action : actions) {
-        if (getActionName(action) == actionName) {
-            return action;
+QString UserInputMapper::getActionName(Action action) const {
+    for (auto actionPair : getActionInputs()) {
+        if (actionPair.first.channel == toInt(action)) {
+            return actionPair.second;
         }
     }
-    // If the action isn't found, return -1
-    return -1;
+    return QString();
 }
+
 
 QVector<QString> UserInputMapper::getActionNames() const {
     QVector<QString> result;
-    for (auto i = 0; i < NUM_ACTIONS; i++) {
-        result << _actionNames[i];
+    for (auto actionPair : getActionInputs()) {
+        result << actionPair.second;
     }
     return result;
 }
-
+/*
 void UserInputMapper::assignDefaulActionScales() {
-    _actionScales[LONGITUDINAL_BACKWARD] = 1.0f; // 1m per unit
-    _actionScales[LONGITUDINAL_FORWARD] = 1.0f; // 1m per unit
-    _actionScales[LATERAL_LEFT] = 1.0f; // 1m per unit
-    _actionScales[LATERAL_RIGHT] = 1.0f; // 1m per unit
-    _actionScales[VERTICAL_DOWN] = 1.0f; // 1m per unit
-    _actionScales[VERTICAL_UP] = 1.0f; // 1m per unit
-    _actionScales[YAW_LEFT] = 1.0f; // 1 degree per unit
-    _actionScales[YAW_RIGHT] = 1.0f; // 1 degree per unit
-    _actionScales[PITCH_DOWN] = 1.0f; // 1 degree per unit
-    _actionScales[PITCH_UP] = 1.0f; // 1 degree per unit
-    _actionScales[BOOM_IN] = 0.5f; // .5m per unit
-    _actionScales[BOOM_OUT] = 0.5f; // .5m per unit
-    _actionScales[LEFT_HAND] = 1.0f; // default
-    _actionScales[RIGHT_HAND] = 1.0f; // default
-    _actionScales[LEFT_HAND_CLICK] = 1.0f; // on
-    _actionScales[RIGHT_HAND_CLICK] = 1.0f; // on
-    _actionScales[SHIFT] = 1.0f; // on
-    _actionScales[ACTION1] = 1.0f; // default
-    _actionScales[ACTION2] = 1.0f; // default
-    _actionScales[TRANSLATE_X] = 1.0f; // default
-    _actionScales[TRANSLATE_Y] = 1.0f; // default
-    _actionScales[TRANSLATE_Z] = 1.0f; // default
-    _actionScales[ROLL] = 1.0f; // default
-    _actionScales[PITCH] = 1.0f; // default
-    _actionScales[YAW] = 1.0f; // default
+    _actionScales[toInt(Action::LONGITUDINAL_BACKWARD)] = 1.0f; // 1m per unit
+    _actionScales[toInt(Action::LONGITUDINAL_FORWARD)] = 1.0f; // 1m per unit
+    _actionScales[toInt(Action::LATERAL_LEFT)] = 1.0f; // 1m per unit
+    _actionScales[toInt(Action::LATERAL_RIGHT)] = 1.0f; // 1m per unit
+    _actionScales[toInt(Action::VERTICAL_DOWN)] = 1.0f; // 1m per unit
+    _actionScales[toInt(Action::VERTICAL_UP)] = 1.0f; // 1m per unit
+    _actionScales[toInt(Action::YAW_LEFT)] = 1.0f; // 1 degree per unit
+    _actionScales[toInt(Action::YAW_RIGHT)] = 1.0f; // 1 degree per unit
+    _actionScales[toInt(Action::PITCH_DOWN)] = 1.0f; // 1 degree per unit
+    _actionScales[toInt(Action::PITCH_UP)] = 1.0f; // 1 degree per unit
+    _actionScales[toInt(Action::BOOM_IN)] = 0.5f; // .5m per unit
+    _actionScales[toInt(Action::BOOM_OUT)] = 0.5f; // .5m per unit
+    _actionScales[toInt(Action::LEFT_HAND)] = 1.0f; // default
+    _actionScales[toInt(Action::RIGHT_HAND)] = 1.0f; // default
+    _actionScales[toInt(Action::LEFT_HAND_CLICK)] = 1.0f; // on
+    _actionScales[toInt(Action::RIGHT_HAND_CLICK)] = 1.0f; // on
+    _actionScales[toInt(Action::SHIFT)] = 1.0f; // on
+    _actionScales[toInt(Action::ACTION1)] = 1.0f; // default
+    _actionScales[toInt(Action::ACTION2)] = 1.0f; // default
+    _actionScales[toInt(Action::TRANSLATE_X)] = 1.0f; // default
+    _actionScales[toInt(Action::TRANSLATE_Y)] = 1.0f; // default
+    _actionScales[toInt(Action::TRANSLATE_Z)] = 1.0f; // default
+    _actionScales[toInt(Action::ROLL)] = 1.0f; // default
+    _actionScales[toInt(Action::PITCH)] = 1.0f; // default
+    _actionScales[toInt(Action::YAW)] = 1.0f; // default
 }
+*/
 
-// This is only necessary as long as the actions are hardcoded
-// Eventually you can just add the string when you add the action
-void UserInputMapper::createActionNames() {
-    _actionNames[LONGITUDINAL_BACKWARD] = "LONGITUDINAL_BACKWARD";
-    _actionNames[LONGITUDINAL_FORWARD] = "LONGITUDINAL_FORWARD";
-    _actionNames[LATERAL_LEFT] = "LATERAL_LEFT";
-    _actionNames[LATERAL_RIGHT] = "LATERAL_RIGHT";
-    _actionNames[VERTICAL_DOWN] = "VERTICAL_DOWN";
-    _actionNames[VERTICAL_UP] = "VERTICAL_UP";
-    _actionNames[YAW_LEFT] = "YAW_LEFT";
-    _actionNames[YAW_RIGHT] = "YAW_RIGHT";
-    _actionNames[PITCH_DOWN] = "PITCH_DOWN";
-    _actionNames[PITCH_UP] = "PITCH_UP";
-    _actionNames[BOOM_IN] = "BOOM_IN";
-    _actionNames[BOOM_OUT] = "BOOM_OUT";
-    _actionNames[LEFT_HAND] = "LEFT_HAND";
-    _actionNames[RIGHT_HAND] = "RIGHT_HAND";
-    _actionNames[LEFT_HAND_CLICK] = "LEFT_HAND_CLICK";
-    _actionNames[RIGHT_HAND_CLICK] = "RIGHT_HAND_CLICK";
-    _actionNames[SHIFT] = "SHIFT";
-    _actionNames[ACTION1] = "ACTION1";
-    _actionNames[ACTION2] = "ACTION2";
-    _actionNames[CONTEXT_MENU] = "CONTEXT_MENU";
-    _actionNames[TOGGLE_MUTE] = "TOGGLE_MUTE";
-    _actionNames[TRANSLATE_X] = "TranslateX";
-    _actionNames[TRANSLATE_Y] = "TranslateY";
-    _actionNames[TRANSLATE_Z] = "TranslateZ";
-    _actionNames[ROLL] = "Roll";
-    _actionNames[PITCH] = "Pitch";
-    _actionNames[YAW] = "Yaw";
+static int actionMetaTypeId = qRegisterMetaType<Action>();
+static int inputMetaTypeId = qRegisterMetaType<Input>();
+static int inputPairMetaTypeId = qRegisterMetaType<InputPair>();
 
-    _actionInputs[LONGITUDINAL_BACKWARD] = Input(ACTIONS_DEVICE, LONGITUDINAL_BACKWARD, ChannelType::AXIS);
-    _actionInputs[LONGITUDINAL_FORWARD] = Input(ACTIONS_DEVICE, LONGITUDINAL_BACKWARD, ChannelType::AXIS);
-    _actionInputs[LATERAL_LEFT] = Input(ACTIONS_DEVICE, LATERAL_LEFT, ChannelType::AXIS);
-    _actionInputs[LATERAL_RIGHT] = Input(ACTIONS_DEVICE, LATERAL_RIGHT, ChannelType::AXIS);
-    _actionInputs[VERTICAL_DOWN] = Input(ACTIONS_DEVICE, VERTICAL_DOWN, ChannelType::AXIS);
-    _actionInputs[VERTICAL_UP] = Input(ACTIONS_DEVICE, VERTICAL_UP, ChannelType::AXIS);
-    _actionInputs[YAW_LEFT] = Input(ACTIONS_DEVICE, YAW_LEFT, ChannelType::AXIS);
-    _actionInputs[YAW_RIGHT] = Input(ACTIONS_DEVICE, YAW_RIGHT, ChannelType::AXIS);
-    _actionInputs[PITCH_DOWN] = Input(ACTIONS_DEVICE, PITCH_DOWN, ChannelType::AXIS);
-    _actionInputs[PITCH_UP] = Input(ACTIONS_DEVICE, PITCH_UP, ChannelType::AXIS);
-    _actionInputs[BOOM_IN] = Input(ACTIONS_DEVICE, BOOM_IN, ChannelType::AXIS);
-    _actionInputs[BOOM_OUT] = Input(ACTIONS_DEVICE, BOOM_OUT, ChannelType::AXIS);
-    _actionInputs[LEFT_HAND] = Input(ACTIONS_DEVICE, LEFT_HAND, ChannelType::POSE);
-    _actionInputs[RIGHT_HAND] = Input(ACTIONS_DEVICE, RIGHT_HAND, ChannelType::POSE);
-    _actionInputs[LEFT_HAND_CLICK] = Input(ACTIONS_DEVICE, LEFT_HAND_CLICK, ChannelType::AXIS);
-    _actionInputs[RIGHT_HAND_CLICK] = Input(ACTIONS_DEVICE, RIGHT_HAND_CLICK, ChannelType::AXIS);
-    _actionInputs[SHIFT] = Input(ACTIONS_DEVICE, SHIFT, ChannelType::BUTTON);
-    _actionInputs[ACTION1] = Input(ACTIONS_DEVICE, ACTION1, ChannelType::BUTTON);
-    _actionInputs[ACTION2] = Input(ACTIONS_DEVICE, ACTION2, ChannelType::BUTTON);
-    _actionInputs[CONTEXT_MENU] = Input(ACTIONS_DEVICE, CONTEXT_MENU, ChannelType::BUTTON);
-    _actionInputs[TOGGLE_MUTE] = Input(ACTIONS_DEVICE, TOGGLE_MUTE, ChannelType::AXIS);
-    _actionInputs[TRANSLATE_X] = Input(ACTIONS_DEVICE, TRANSLATE_X, ChannelType::AXIS);
-    _actionInputs[TRANSLATE_Y] = Input(ACTIONS_DEVICE, TRANSLATE_Y, ChannelType::AXIS);
-    _actionInputs[TRANSLATE_Z] = Input(ACTIONS_DEVICE, TRANSLATE_Z, ChannelType::AXIS);
-    _actionInputs[ROLL] = Input(ACTIONS_DEVICE, ROLL, ChannelType::AXIS);
-    _actionInputs[PITCH] = Input(ACTIONS_DEVICE, PITCH, ChannelType::AXIS);
-    _actionInputs[YAW] = Input(ACTIONS_DEVICE, YAW, ChannelType::AXIS);
 
-}
+QScriptValue inputToScriptValue(QScriptEngine* engine, const Input& input);
+void inputFromScriptValue(const QScriptValue& object, Input& input);
+QScriptValue actionToScriptValue(QScriptEngine* engine, const Action& action);
+void actionFromScriptValue(const QScriptValue& object, Action& action);
+QScriptValue inputPairToScriptValue(QScriptEngine* engine, const InputPair& inputPair);
+void inputPairFromScriptValue(const QScriptValue& object, InputPair& inputPair);
 
-void UserInputMapper::registerStandardDevice() {
-    _standardController = std::make_shared<StandardController>();
-    _standardController->registerToUserInputMapper(*this);
-    _standardController->assignDefaultInputMapping(*this);
-}
-
-static int actionMetaTypeId = qRegisterMetaType<UserInputMapper::Action>();
-static int inputMetaTypeId = qRegisterMetaType<UserInputMapper::Input>();
-static int inputPairMetaTypeId = qRegisterMetaType<UserInputMapper::InputPair>();
-
-QScriptValue inputToScriptValue(QScriptEngine* engine, const UserInputMapper::Input& input);
-void inputFromScriptValue(const QScriptValue& object, UserInputMapper::Input& input);
-QScriptValue actionToScriptValue(QScriptEngine* engine, const UserInputMapper::Action& action);
-void actionFromScriptValue(const QScriptValue& object, UserInputMapper::Action& action);
-QScriptValue inputPairToScriptValue(QScriptEngine* engine, const UserInputMapper::InputPair& inputPair);
-void inputPairFromScriptValue(const QScriptValue& object, UserInputMapper::InputPair& inputPair);
-
-QScriptValue inputToScriptValue(QScriptEngine* engine, const UserInputMapper::Input& input) {
+QScriptValue inputToScriptValue(QScriptEngine* engine, const Input& input) {
     QScriptValue obj = engine->newObject();
     obj.setProperty("device", input.getDevice());
     obj.setProperty("channel", input.getChannel());
@@ -494,14 +487,11 @@ QScriptValue inputToScriptValue(QScriptEngine* engine, const UserInputMapper::In
     return obj;
 }
 
-void inputFromScriptValue(const QScriptValue& object, UserInputMapper::Input& input) {
-    input.setDevice(object.property("device").toUInt16());
-    input.setChannel(object.property("channel").toUInt16());
-    input.setType(object.property("type").toUInt16());
-    input.setID(object.property("id").toInt32());
+void inputFromScriptValue(const QScriptValue& object, Input& input) {
+    input.id = object.property("id").toInt32();
 }
 
-QScriptValue actionToScriptValue(QScriptEngine* engine, const UserInputMapper::Action& action) {
+QScriptValue actionToScriptValue(QScriptEngine* engine, const Action& action) {
     QScriptValue obj = engine->newObject();
     auto userInputMapper = DependencyManager::get<UserInputMapper>();
     obj.setProperty("action", (int)action);
@@ -509,38 +499,381 @@ QScriptValue actionToScriptValue(QScriptEngine* engine, const UserInputMapper::A
     return obj;
 }
 
-void actionFromScriptValue(const QScriptValue& object, UserInputMapper::Action& action) {
-    action = UserInputMapper::Action(object.property("action").toVariant().toInt());
+void actionFromScriptValue(const QScriptValue& object, Action& action) {
+    action = Action(object.property("action").toVariant().toInt());
 }
 
-QScriptValue inputPairToScriptValue(QScriptEngine* engine, const UserInputMapper::InputPair& inputPair) {
+QScriptValue inputPairToScriptValue(QScriptEngine* engine, const InputPair& inputPair) {
     QScriptValue obj = engine->newObject();
     obj.setProperty("input", inputToScriptValue(engine, inputPair.first));
     obj.setProperty("inputName", inputPair.second);
     return obj;
 }
 
-void inputPairFromScriptValue(const QScriptValue& object, UserInputMapper::InputPair& inputPair) {
+void inputPairFromScriptValue(const QScriptValue& object, InputPair& inputPair) {
     inputFromScriptValue(object.property("input"), inputPair.first);
     inputPair.second = QString(object.property("inputName").toVariant().toString());
 }
 
 void UserInputMapper::registerControllerTypes(QScriptEngine* engine) {
-    qScriptRegisterSequenceMetaType<QVector<UserInputMapper::Action> >(engine);
-    qScriptRegisterSequenceMetaType<QVector<UserInputMapper::InputPair> >(engine);
+    qScriptRegisterSequenceMetaType<QVector<Action> >(engine);
+    qScriptRegisterSequenceMetaType<QVector<InputPair> >(engine);
     qScriptRegisterMetaType(engine, actionToScriptValue, actionFromScriptValue);
     qScriptRegisterMetaType(engine, inputToScriptValue, inputFromScriptValue);
     qScriptRegisterMetaType(engine, inputPairToScriptValue, inputPairFromScriptValue);
 }
 
-UserInputMapper::Input UserInputMapper::makeStandardInput(controller::StandardButtonChannel button) {
+Input UserInputMapper::makeStandardInput(controller::StandardButtonChannel button) {
     return Input(STANDARD_DEVICE, button, ChannelType::BUTTON);
 }
 
-UserInputMapper::Input UserInputMapper::makeStandardInput(controller::StandardAxisChannel axis) {
+Input UserInputMapper::makeStandardInput(controller::StandardAxisChannel axis) {
     return Input(STANDARD_DEVICE, axis, ChannelType::AXIS);
 }
 
-UserInputMapper::Input UserInputMapper::makeStandardInput(controller::StandardPoseChannel pose) {
+Input UserInputMapper::makeStandardInput(controller::StandardPoseChannel pose) {
     return Input(STANDARD_DEVICE, pose, ChannelType::POSE);
 }
+
+enum Pass {
+    HARDWARE_PASS,
+    STANDARD_PASS,
+    NUM_PASSES
+};
+
+void UserInputMapper::update() {
+    static auto deviceNames = getDeviceNames();
+    _overrideValues.clear();
+
+    EndpointSet readEndpoints;
+    EndpointSet writtenEndpoints;
+
+    // Now process the current values for each level of the stack
+    for (auto& mapping : _activeMappings) {
+        for (int pass = HARDWARE_PASS; pass < NUM_PASSES; ++pass) {
+            for (const auto& mappingEntry : mapping->channelMappings) {
+                const auto& source = mappingEntry.first;
+                if (_inputsByEndpoint.count(source)) {
+                    auto sourceInput = _inputsByEndpoint[source];
+                    if ((sourceInput.device == STANDARD_DEVICE) ^ (pass == STANDARD_PASS)) {
+                        continue;
+                    }
+                }
+
+                // Endpoints can only be read once (though a given mapping can route them to 
+                // multiple places).  Consider... If the default is to wire the A button to JUMP
+                // and someone else wires it to CONTEXT_MENU, I don't want both to occur when 
+                // I press the button.  The exception is if I'm wiring a control back to itself
+                // in order to adjust my interface, like inverting the Y axis on an analog stick
+                if (readEndpoints.count(source)) {
+                    continue;
+                }
+
+                // Apply the value to all the routes
+                const auto& routes = mappingEntry.second;
+
+                for (const auto& route : routes) {
+                    const auto& destination = route->destination;
+                    // THis could happen if the route destination failed to create
+                    // FIXME: Maybe do not create the route if the destination failed and avoid this case ?
+                    if (!destination) {
+                        continue;
+                    }
+
+                    if (writtenEndpoints.count(destination)) {
+                        continue;
+                    }
+
+                    // Standard controller destinations can only be can only be used once.
+                    if (getStandardDeviceID() == destination->getInput().getDevice()) {
+                        writtenEndpoints.insert(destination);
+                    }
+
+                    // Only consume the input if the route isn't a loopback.
+                    // This allows mappings like `mapping.from(xbox.RY).invert().to(xbox.RY);`
+                    bool loopback = source == destination;
+                    if (!loopback) {
+                        readEndpoints.insert(source);
+                    }
+
+                    // Fetch the value, may have been overriden by previous loopback routes
+                    if (source->isPose()) {
+                        Pose value = getPose(source);
+                        // no filters yet for pose
+                        destination->apply(value, Pose(), source);
+                    } else {
+                        float value = getValue(source);
+
+                        // Apply each of the filters.
+                        for (const auto& filter : route->filters) {
+                            value = filter->apply(value);
+                        }
+
+                        if (loopback) {
+                            _overrideValues[source] = value;
+                        } else {
+                            destination->apply(value, 0, source);
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+Endpoint::Pointer UserInputMapper::endpointFor(const QJSValue& endpoint) {
+    if (endpoint.isNumber()) {
+        return endpointFor(Input(endpoint.toInt()));
+    }
+
+    if (endpoint.isCallable()) {
+        auto result = std::make_shared<JSEndpoint>(endpoint);
+        return result;
+    }
+
+    qWarning() << "Unsupported input type " << endpoint.toString();
+    return Endpoint::Pointer();
+}
+
+Endpoint::Pointer UserInputMapper::endpointFor(const QScriptValue& endpoint) {
+    if (endpoint.isNumber()) {
+        return endpointFor(Input(endpoint.toInt32()));
+    }
+
+    if (endpoint.isFunction()) {
+        auto result = std::make_shared<ScriptEndpoint>(endpoint);
+        return result;
+    }
+
+    qWarning() << "Unsupported input type " << endpoint.toString();
+    return Endpoint::Pointer();
+}
+
+Endpoint::Pointer UserInputMapper::endpointFor(const Input& inputId) const {
+    auto iterator = _endpointsByInput.find(inputId);
+    if (_endpointsByInput.end() == iterator) {
+        qWarning() << "Unknown input: " << QString::number(inputId.getID(), 16);
+        return Endpoint::Pointer();
+    }
+    return iterator->second;
+}
+
+Endpoint::Pointer UserInputMapper::compositeEndpointFor(Endpoint::Pointer first, Endpoint::Pointer second) {
+    EndpointPair pair(first, second);
+    Endpoint::Pointer result;
+    auto iterator = _compositeEndpoints.find(pair);
+    if (_compositeEndpoints.end() == iterator) {
+        result = std::make_shared<CompositeEndpoint>(first, second);
+        _compositeEndpoints[pair] = result;
+    } else {
+        result = iterator->second;
+    }
+    return result;
+}
+
+
+Mapping::Pointer UserInputMapper::newMapping(const QString& mappingName) {
+    if (_mappingsByName.count(mappingName)) {
+        qCWarning(controllers) << "Refusing to recreate mapping named " << mappingName;
+    }
+    qDebug() << "Creating new Mapping " << mappingName;
+    auto mapping = std::make_shared<Mapping>(mappingName);
+    _mappingsByName[mappingName] = mapping;
+    return mapping;
+}
+
+// FIXME handle asynchronous loading in the UserInputMapper
+//QObject* ScriptingInterface::loadMapping(const QString& jsonUrl) {
+//    QObject* result = nullptr;
+//    auto request = ResourceManager::createResourceRequest(nullptr, QUrl(jsonUrl));
+//    if (request) {
+//        QEventLoop eventLoop;
+//        request->setCacheEnabled(false);
+//        connect(request, &ResourceRequest::finished, &eventLoop, &QEventLoop::quit);
+//        request->send();
+//        if (request->getState() != ResourceRequest::Finished) {
+//            eventLoop.exec();
+//        }
+//
+//        if (request->getResult() == ResourceRequest::Success) {
+//            result = parseMapping(QString(request->getData()));
+//        } else {
+//            qCWarning(controllers) << "Failed to load mapping url <" << jsonUrl << ">" << endl;
+//        }
+//        request->deleteLater();
+//    }
+//    return result;
+//}
+
+
+void UserInputMapper::enableMapping(const QString& mappingName, bool enable) {
+    qCDebug(controllers) << "Attempting to enable mapping " << mappingName;
+    auto iterator = _mappingsByName.find(mappingName);
+    if (_mappingsByName.end() == iterator) {
+        qCWarning(controllers) << "Request to enable / disable unknown mapping " << mappingName;
+        return;
+    }
+
+    auto mapping = iterator->second;
+    if (enable) {
+        _activeMappings.push_front(mapping);
+    } else {
+        auto activeIterator = std::find(_activeMappings.begin(), _activeMappings.end(), mapping);
+        if (_activeMappings.end() == activeIterator) {
+            qCWarning(controllers) << "Attempted to disable inactive mapping " << mappingName;
+            return;
+        }
+        _activeMappings.erase(activeIterator);
+    }
+}
+
+float UserInputMapper::getValue(const Endpoint::Pointer& endpoint) const {
+    auto valuesIterator = _overrideValues.find(endpoint);
+    if (_overrideValues.end() != valuesIterator) {
+        return valuesIterator->second;
+    }
+
+    return endpoint->value();
+}
+
+float UserInputMapper::getValue(const Input& input) const {
+    auto endpoint = endpointFor(input);
+    if (!endpoint) {
+        return 0;
+    }
+    return endpoint->value();
+}
+
+Pose UserInputMapper::getPose(const Endpoint::Pointer& endpoint) const {
+    if (!endpoint->isPose()) {
+        return Pose();
+    }
+    return endpoint->pose();
+}
+
+Pose UserInputMapper::getPose(const Input& input) const {
+    auto endpoint = endpointFor(input);
+    if (!endpoint) {
+        return Pose();
+    }
+    return getPose(endpoint);
+}
+
+Mapping::Pointer UserInputMapper::loadMapping(const QString& jsonFile) {
+    if (jsonFile.isEmpty()) {
+        return Mapping::Pointer();
+    }
+    QString json;
+    {
+        QFile file(jsonFile);
+        if (file.open(QFile::ReadOnly | QFile::Text)) {
+            json = QTextStream(&file).readAll();
+        }
+        file.close();
+    }
+    return parseMapping(json);
+}
+
+
+const QString JSON_NAME = QStringLiteral("name");
+const QString JSON_CHANNELS = QStringLiteral("channels");
+const QString JSON_CHANNEL_FROM = QStringLiteral("from");
+const QString JSON_CHANNEL_TO = QStringLiteral("to");
+const QString JSON_CHANNEL_FILTERS = QStringLiteral("filters");
+
+Endpoint::Pointer UserInputMapper::parseEndpoint(const QJsonValue& value) {
+    if (value.isString()) {
+        auto input = findDeviceInput(value.toString());
+        return endpointFor(input);
+    } else if (value.isObject()) {
+        // Endpoint is defined as an object, we expect a js function then
+        return Endpoint::Pointer();
+    }
+    return Endpoint::Pointer();
+}
+
+Route::Pointer UserInputMapper::parseRoute(const QJsonValue& value) {
+    if (!value.isObject()) {
+        return Route::Pointer();
+    }
+
+    const auto& obj = value.toObject();
+    Route::Pointer result = std::make_shared<Route>();
+    result->source = parseEndpoint(obj[JSON_CHANNEL_FROM]);
+    if (!result->source) {
+        qWarning() << "Invalid route source " << obj[JSON_CHANNEL_FROM];
+        return Route::Pointer();
+    }
+    result->destination = parseEndpoint(obj[JSON_CHANNEL_TO]);
+    if (!result->destination) {
+        qWarning() << "Invalid route destination " << obj[JSON_CHANNEL_TO];
+        return Route::Pointer();
+    }
+
+    const auto& filtersValue = obj[JSON_CHANNEL_FILTERS];
+    if (filtersValue.isArray()) {
+        auto filtersArray = filtersValue.toArray();
+        for (auto filterValue : filtersArray) {
+            if (filterValue.isObject()) {
+                qWarning() << "Invalid filter " << filterValue;
+                return Route::Pointer();
+            }
+            Filter::Pointer filter = Filter::parse(filterValue.toObject());
+            if (!filter) {
+                qWarning() << "Invalid filter " << filterValue;
+                return Route::Pointer();
+            }
+            result->filters.push_back(filter);
+        }
+    }
+    return result;
+}
+
+Mapping::Pointer UserInputMapper::parseMapping(const QJsonValue& json) {
+    if (!json.isObject()) {
+        return Mapping::Pointer();
+    }
+
+    auto obj = json.toObject();
+    auto mapping = std::make_shared<Mapping>("default");
+    mapping->name = obj[JSON_NAME].toString();
+    mapping->channelMappings.clear();
+    const auto& jsonChannels = obj[JSON_CHANNELS].toArray();
+    Mapping::Map map;
+    for (const auto& channelIt : jsonChannels) {
+        Route::Pointer route = parseRoute(channelIt);
+        if (!route) {
+            qWarning() << "Couldn't parse route";
+            continue;
+        }
+        mapping->channelMappings[route->source].push_back(route);
+    }
+    return mapping;
+}
+
+Mapping::Pointer UserInputMapper::parseMapping(const QString& json) {
+    Mapping::Pointer result;
+    QJsonObject obj;
+    QJsonParseError error;
+    QJsonDocument doc = QJsonDocument::fromJson(json.toUtf8(), &error);
+    // check validity of the document
+    if (doc.isNull()) {
+        return Mapping::Pointer();
+    }
+
+    if (!doc.isObject()) {
+        qWarning() << "Mapping json Document is not an object" << endl;
+        return Mapping::Pointer();
+    }
+
+    // FIXME how did we detect this?
+    //    qDebug() << "Invalid JSON...\n";
+    //    qDebug() << error.errorString();
+    //    qDebug() << "JSON was:\n" << json << endl;
+    //}
+    return parseMapping(doc.object());
+}
+
+}
+
+#include "UserInputMapper.moc"

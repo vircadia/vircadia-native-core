@@ -15,239 +15,162 @@
 #include <unordered_set>
 #include <functional>
 #include <memory>
+
+#include <QtQml/QJSValue>
+#include <QtScript/QScriptValue>
+
 #include <DependencyManager.h>
 #include <RegisteredMetaTypes.h>
 
 #include "Pose.h"
 #include "Input.h"
+#include "InputDevice.h"
 #include "DeviceProxy.h"
 #include "StandardControls.h"
+#include "Mapping.h"
+#include "Endpoint.h"
+#include "Actions.h"
 
-class StandardController;    
-typedef std::shared_ptr<StandardController> StandardControllerPointer;
+namespace controller {
+    class UserInputMapper : public QObject, public Dependency {
+        Q_OBJECT
+            SINGLETON_DEPENDENCY
+            Q_ENUMS(Action)
 
-class UserInputMapper : public QObject, public Dependency {
-    Q_OBJECT
-    SINGLETON_DEPENDENCY
-    Q_ENUMS(Action)
-public:
-    ~UserInputMapper();
-
-    using DeviceProxy = controller::DeviceProxy;
-    using PoseValue = controller::Pose;
-    using Input = controller::Input;
-    using ChannelType = controller::ChannelType;
-
-    typedef unsigned short uint16;
-    typedef unsigned int uint32;
-
-    static void registerControllerTypes(QScriptEngine* engine);
-
-    static const uint16 ACTIONS_DEVICE;
-    static const uint16 STANDARD_DEVICE;
-
-
-    // Modifiers are just button inputID
-    typedef std::vector< Input > Modifiers;
-    typedef std::function<bool (const Input& input, int timestamp)> ButtonGetter;
-    typedef std::function<float (const Input& input, int timestamp)> AxisGetter;
-    typedef std::function<PoseValue (const Input& input, int timestamp)> PoseGetter;
-    typedef QPair<Input, QString> InputPair;
-    typedef std::function<QVector<InputPair> ()> AvailableInputGetter;
-    typedef std::function<bool ()> ResetBindings;
-    
-    typedef QVector<InputPair> AvailableInput;
-
-    // GetFreeDeviceID should be called before registering a device to use an ID not used by a different device.
-    uint16 getFreeDeviceID() { return _nextFreeDeviceID++; }
-
-    bool registerDevice(uint16 deviceID, const DeviceProxy::Pointer& device);
-    bool registerStandardDevice(const DeviceProxy::Pointer& device);
-    DeviceProxy::Pointer getDeviceProxy(const Input& input);
-    QString getDeviceName(uint16 deviceID);
-    QVector<InputPair> getAvailableInputs(uint16 deviceID) { return _registeredDevices[deviceID]->getAvailabeInputs(); }
-    void resetAllDeviceBindings();
-    void resetDevice(uint16 deviceID);
-    int findDevice(QString name) const;
-    QVector<QString> getDeviceNames();
-
-    Input findDeviceInput(const QString& inputName) const;
-
-
-    // Actions are the output channels of the Mapper, that's what the InputChannel map to
-    // For now the Actions are hardcoded, this is bad, but we will fix that in the near future
-    enum Action {
-        TRANSLATE_X = 0,
-        TRANSLATE_Y,
-        TRANSLATE_Z,
-        ROTATE_X, PITCH = ROTATE_X,
-        ROTATE_Y, YAW = ROTATE_Y,
-        ROTATE_Z, ROLL = ROTATE_Z,
-
-        TRANSLATE_CAMERA_Z,
-        NUM_COMBINED_AXES,
-
-        LEFT_HAND = NUM_COMBINED_AXES,
-        RIGHT_HAND,
-
-        LEFT_HAND_CLICK,
-        RIGHT_HAND_CLICK,
-
-        ACTION1,
-        ACTION2,
-
-        CONTEXT_MENU,
-        TOGGLE_MUTE,
-
-        SHIFT,
-
-        // Biseced aliases for TRANSLATE_Z
-        LONGITUDINAL_BACKWARD,
-        LONGITUDINAL_FORWARD,
-
-        // Biseced aliases for TRANSLATE_X
-        LATERAL_LEFT,
-        LATERAL_RIGHT,
-
-        // Biseced aliases for TRANSLATE_Y
-        VERTICAL_DOWN,
-        VERTICAL_UP,
-
-        // Biseced aliases for ROTATE_Y
-        YAW_LEFT,
-        YAW_RIGHT,
- 
-        // Biseced aliases for ROTATE_X
-        PITCH_DOWN,
-        PITCH_UP,
-
-        // Biseced aliases for TRANSLATE_CAMERA_Z
-        BOOM_IN,
-        BOOM_OUT,
-
-        NUM_ACTIONS,
-    };
-    
-    std::vector<QString> _actionNames = std::vector<QString>(NUM_ACTIONS);
-    void createActionNames();
-
-    QVector<Action> getAllActions() const;
-    QString getActionName(Action action) const { return UserInputMapper::_actionNames[(int) action]; }
-    float getActionState(Action action) const { return _actionStates[action]; }
-    const PoseValue& getPoseState(Action action) const { return _poseStates[action]; }
-    int findAction(const QString& actionName) const;
-    QVector<QString> getActionNames() const;
-    Input getActionInput(Action action) const { return _actionInputs[action]; }
-    void assignDefaulActionScales();
-
-    void setActionState(Action action, float value) { _externalActionStates[action] = value; }
-    void deltaActionState(Action action, float delta) { _externalActionStates[action] += delta; }
-    void setActionState(Action action, const PoseValue& value) { _externalPoseStates[action] = value; }
-
-    // Add input channel to the mapper and check that all the used channels are registered.
-    // Return true if theinput channel is created correctly, false either
-    bool addInputChannel(Action action, const Input& input, float scale = 1.0f);
-    bool addInputChannel(Action action, const Input& input, const Input& modifer, float scale = 1.0f);
-
-    UserInputMapper::Input makeStandardInput(controller::StandardButtonChannel button);
-    UserInputMapper::Input makeStandardInput(controller::StandardAxisChannel axis);
-    UserInputMapper::Input makeStandardInput(controller::StandardPoseChannel pose);
-
-    // Under the hood, the input channels are organized in map sorted on the _output
-    // The InputChannel class is just the full values describing the input channel in one object 
-    class InputChannel {
     public:
-        Input _input;
-        Input _modifier = Input(); // make it invalid by default, meaning no modifier
-        Action _action = LONGITUDINAL_BACKWARD;
-        float _scale = 0.0f;
-        
-        Input getInput() const { return _input; }
-        Input getModifier() const { return _modifier; }
-        Action getAction() const { return _action; }
-        float getScale() const { return _scale; }
-        
-        void setInput(Input input) { _input = input; }
-        void setModifier(Input modifier) { _modifier = modifier; }
-        void setAction(Action action) { _action = action; }
-        void setScale(float scale) { _scale = scale; }
+        using InputPair = Input::NamedPair;
+        // FIXME move to unordered set / map
+        using EndpointToInputMap = std::map<Endpoint::Pointer, Input>;
+        using MappingNameMap = std::map<QString, Mapping::Pointer>;
+        using MappingDeviceMap = std::map<uint16_t, Mapping::Pointer>;
+        using MappingStack = std::list<Mapping::Pointer>;
+        using InputToEndpointMap = std::map<Input, Endpoint::Pointer>;
+        using EndpointSet = std::unordered_set<Endpoint::Pointer>;
+        using ValueMap = std::map<Endpoint::Pointer, float>;
+        using EndpointPair = std::pair<Endpoint::Pointer, Endpoint::Pointer>;
+        using EndpointPairMap = std::map<EndpointPair, Endpoint::Pointer>;
+        using DevicesMap = std::map<int, DeviceProxy::Pointer>;
+        using uint16 = uint16_t;
+        using uint32 = uint32_t;
 
-        InputChannel() {}
-        InputChannel(const Input& input, const Input& modifier, Action action, float scale = 1.0f) :
-            _input(input), _modifier(modifier), _action(action), _scale(scale) {}
-        InputChannel(const InputChannel& src) : InputChannel(src._input, src._modifier, src._action, src._scale) {}
-        InputChannel& operator = (const InputChannel& src) { _input = src._input; _modifier = src._modifier; _action = src._action; _scale = src._scale; return (*this); }
-        bool operator ==(const InputChannel& right) const { return _input == right._input && _modifier == right._modifier && _action == right._action && _scale == right._scale; }
-        bool hasModifier() { return _modifier.isValid(); }
+        static const uint16_t ACTIONS_DEVICE;
+        static const uint16_t STANDARD_DEVICE;
+
+        UserInputMapper();
+        virtual ~UserInputMapper();
+
+
+        static void registerControllerTypes(QScriptEngine* engine);
+
+
+        void registerDevice(InputDevice* device);
+        DeviceProxy::Pointer getDeviceProxy(const Input& input);
+        QString getDeviceName(uint16 deviceID);
+
+        Input::NamedVector getAvailableInputs(uint16 deviceID) const;
+        Input::NamedVector getActionInputs() const { return getAvailableInputs(ACTIONS_DEVICE); }
+        Input::NamedVector getStandardInputs() const { return getAvailableInputs(STANDARD_DEVICE); }
+
+        int findDevice(QString name) const;
+        QVector<QString> getDeviceNames();
+        Input findDeviceInput(const QString& inputName) const;
+
+        QVector<Action> getAllActions() const;
+        QString getActionName(Action action) const;
+        float getActionState(Action action) const { return _actionStates[toInt(action)]; }
+        Pose getPoseState(Action action) const { return _poseStates[toInt(action)]; }
+        int findAction(const QString& actionName) const;
+        QVector<QString> getActionNames() const;
+        void assignDefaulActionScales();
+
+        void setActionState(Action action, float value) { _externalActionStates[toInt(action)] = value; }
+        void deltaActionState(Action action, float delta) { _externalActionStates[toInt(action)] += delta; }
+        void setActionState(Action action, const Pose& value) { _externalPoseStates[toInt(action)] = value; }
+
+        static Input makeStandardInput(controller::StandardButtonChannel button);
+        static Input makeStandardInput(controller::StandardAxisChannel axis);
+        static Input makeStandardInput(controller::StandardPoseChannel pose);
+
+        void removeDevice(int device);
+
+        // Update means go grab all the device input channels and update the output channel values
+        void update(float deltaTime);
+
+        void setSensorToWorldMat(glm::mat4 sensorToWorldMat) { _sensorToWorldMat = sensorToWorldMat; }
+        glm::mat4 getSensorToWorldMat() { return _sensorToWorldMat; }
+
+        DevicesMap getDevices() { return _registeredDevices; }
+        uint16 getStandardDeviceID() const { return STANDARD_DEVICE; }
+        DeviceProxy::Pointer getStandardDevice() { return _registeredDevices[getStandardDeviceID()]; }
+
+        Mapping::Pointer newMapping(const QString& mappingName);
+        Mapping::Pointer parseMapping(const QString& json);
+        Mapping::Pointer loadMapping(const QString& jsonFile);
+
+        void enableMapping(const QString& mappingName, bool enable = true);
+        float getValue(const Input& input) const;
+        Pose getPose(const Input& input) const;
+
+    signals:
+        void actionEvent(int action, float state);
+        void hardwareChanged();
+
+    protected:
+        virtual void update();
+        // GetFreeDeviceID should be called before registering a device to use an ID not used by a different device.
+        uint16 getFreeDeviceID() { return _nextFreeDeviceID++; }
+
+        InputDevice::Pointer _standardController;
+        DevicesMap _registeredDevices;
+        uint16 _nextFreeDeviceID = STANDARD_DEVICE + 1;
+
+        std::vector<float> _actionStates = std::vector<float>(toInt(Action::NUM_ACTIONS), 0.0f);
+        std::vector<float> _externalActionStates = std::vector<float>(toInt(Action::NUM_ACTIONS), 0.0f);
+        std::vector<float> _actionScales = std::vector<float>(toInt(Action::NUM_ACTIONS), 1.0f);
+        std::vector<float> _lastActionStates = std::vector<float>(toInt(Action::NUM_ACTIONS), 0.0f);
+        std::vector<Pose> _poseStates = std::vector<Pose>(toInt(Action::NUM_ACTIONS));
+        std::vector<Pose> _externalPoseStates = std::vector<Pose>(toInt(Action::NUM_ACTIONS));
+
+        glm::mat4 _sensorToWorldMat;
+
+        int recordDeviceOfType(const QString& deviceName);
+        QHash<const QString&, int> _deviceCounts;
+
+        float getValue(const Endpoint::Pointer& endpoint) const;
+        Pose getPose(const Endpoint::Pointer& endpoint) const;
+
+        friend class ::controller::RouteBuilderProxy;
+        friend class ::controller::MappingBuilderProxy;
+        Endpoint::Pointer endpointFor(const QJSValue& endpoint);
+        Endpoint::Pointer endpointFor(const QScriptValue& endpoint);
+        Endpoint::Pointer endpointFor(const Input& endpoint) const;
+        Endpoint::Pointer compositeEndpointFor(Endpoint::Pointer first, Endpoint::Pointer second);
+        Mapping::Pointer parseMapping(const QJsonValue& json);
+        Route::Pointer parseRoute(const QJsonValue& value);
+        Endpoint::Pointer parseEndpoint(const QJsonValue& value);
+
+        InputToEndpointMap _endpointsByInput;
+        EndpointToInputMap _inputsByEndpoint;
+        EndpointPairMap _compositeEndpoints;
+
+        ValueMap _overrideValues;
+        MappingNameMap _mappingsByName;
+        Mapping::Pointer _defaultMapping{ std::make_shared<Mapping>("Default") };
+        MappingDeviceMap _mappingsByDevice;
+        MappingStack _activeMappings;
     };
-    typedef std::vector< InputChannel > InputChannels;
 
-    // Add a bunch of input channels, return the true number of channels that successfully were added
-    int addInputChannels(const InputChannels& channels);
-    // Remove the first found instance of the input channel from the input mapper, true if found
-    bool removeInputChannel(InputChannel channel);
-    void removeAllInputChannels();
-    void removeAllInputChannelsForDevice(uint16 device);
-    void removeDevice(int device);
-    //Grab all the input channels currently in use, return the number
-    int getInputChannels(InputChannels& channels) const;
-    QVector<InputChannel> getAllInputsForDevice(uint16 device);
-    QVector<InputChannel> getInputChannelsForAction(UserInputMapper::Action action);
-    std::multimap<Action, InputChannel> getActionToInputsMap() { return _actionToInputsMap; }
+}
 
-    // Update means go grab all the device input channels and update the output channel values
-    void update(float deltaTime);
-    
-    void setSensorToWorldMat(glm::mat4 sensorToWorldMat) { _sensorToWorldMat = sensorToWorldMat; }
-    glm::mat4 getSensorToWorldMat() { return _sensorToWorldMat; }
-    
-    UserInputMapper();
+Q_DECLARE_METATYPE(controller::UserInputMapper::InputPair)
+Q_DECLARE_METATYPE(controller::Pose)
+Q_DECLARE_METATYPE(QVector<controller::UserInputMapper::InputPair>)
+Q_DECLARE_METATYPE(controller::Input)
+Q_DECLARE_METATYPE(controller::Action)
+Q_DECLARE_METATYPE(QVector<controller::Action>)
 
-    typedef std::map<int, DeviceProxy::Pointer> DevicesMap;
-    DevicesMap getDevices() { return _registeredDevices; }
-
-    uint16 getStandardDeviceID() const { return STANDARD_DEVICE; }
-    DeviceProxy::Pointer getStandardDevice() { return _registeredDevices[getStandardDeviceID()]; }
-
-signals:
-    void actionEvent(int action, float state);
-
-
-protected:
-    void registerStandardDevice();
-    StandardControllerPointer _standardController;
-        
-    DevicesMap _registeredDevices;
-    uint16 _nextFreeDeviceID = STANDARD_DEVICE + 1;
-
-    typedef std::map<int, Modifiers> InputToMoModifiersMap;
-    InputToMoModifiersMap _inputToModifiersMap;
-
-    typedef std::multimap<Action, InputChannel> ActionToInputsMap;
-    ActionToInputsMap _actionToInputsMap;
- 
-    std::vector<Input> _actionInputs = std::vector<Input>(NUM_ACTIONS, Input());
-
-    std::vector<float> _actionStates = std::vector<float>(NUM_ACTIONS, 0.0f);
-    std::vector<float> _externalActionStates = std::vector<float>(NUM_ACTIONS, 0.0f);
-    std::vector<float> _actionScales = std::vector<float>(NUM_ACTIONS, 1.0f);
-    std::vector<float> _lastActionStates = std::vector<float>(NUM_ACTIONS, 0.0f);
-    std::vector<PoseValue> _poseStates = std::vector<PoseValue>(NUM_ACTIONS);
-    std::vector<PoseValue> _externalPoseStates = std::vector<PoseValue>(NUM_ACTIONS);
-
-    glm::mat4 _sensorToWorldMat;
-
-    int recordDeviceOfType(const QString& deviceName);
-    QHash<const QString&, int> _deviceCounts;
-};
-
-Q_DECLARE_METATYPE(UserInputMapper::InputPair)
-Q_DECLARE_METATYPE(UserInputMapper::PoseValue)
-Q_DECLARE_METATYPE(QVector<UserInputMapper::InputPair>)
-Q_DECLARE_METATYPE(UserInputMapper::Input)
-Q_DECLARE_METATYPE(UserInputMapper::InputChannel)
-Q_DECLARE_METATYPE(QVector<UserInputMapper::InputChannel>)
-Q_DECLARE_METATYPE(UserInputMapper::Action)
-Q_DECLARE_METATYPE(QVector<UserInputMapper::Action>)
+// Cheating.
+using UserInputMapper = controller::UserInputMapper;
+//>>>>>>> 9c031b6bef988f123cb955c81299395386ec488c
 
 #endif // hifi_UserInputMapper_h

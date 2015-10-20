@@ -27,13 +27,11 @@ namespace controller {
         using Map = std::map<Endpoint::Pointer, Route::List>;
         using Pointer = std::shared_ptr<Mapping>;
 
-        Mapping(const QString& name);
+        Mapping(const QString& name) : name(name) {}
 
-        Map _channelMappings;
+        Map channelMappings;
 
-        QString _name;
-
-    protected:
+        QString name;
     };
 
 }

@@ -1,0 +1,25 @@
+{
+    "name": "Keyboard/Mouse to Actions",
+    "channels": [
+        { "from": "Keyboard.W", "to": "Actions.LONGITUDINAL_FORWARD" },
+        { "from": "Keyboard.S", "to": "Actions.LONGITUDINAL_BACKWARD" }, 
+        { "from": "Keyboard.A", "to": "Actions.YAW_LEFT" }, 
+        { "from": "Keyboard.D", "to": "Actions.YAW_RIGHT" }, 
+        { "from": "Keyboard.A", "when": "Keyboard.Shift", "to": "Actions.LATERAL_LEFT" }, 
+        { "from": "Keyboard.D", "when": "Keyboard.Shift", "to": "Actions.LATERAL_RIGHT" }, 
+        { "from": "Keyboard.A", "when": "Keyboard.RightMouseClick", "to": "Actions.LATERAL_LEFT" }, 
+        { "from": "Keyboard.D", "when": "Keyboard.RightMouseClick", "to": "Actions.LATERAL_RIGHT" }, 
+        { "from": "Keyboard.C", "to": "Actions.VERTICAL_DOWN" },
+        { "from": "Keyboard.E", "to": "Actions.VERTICAL_UP" },
+        { "from": "Keyboard.Up", "to": "Actions.LONGITUDINAL_FORWARD" },
+        { "from": "Keyboard.Down", "to": "Actions.LONGITUDINAL_BACKWARD" }, 
+        { "from": "Keyboard.Left", "to": "Actions.YAW_LEFT" }, 
+        { "from": "Keyboard.Right", "to": "Actions.YAW_RIGHT" }, 
+        { "from": "Keyboard.PgDown", "to": "Actions.VERTICAL_DOWN" },
+        { "from": "Keyboard.PgUp", "to": "Actions.VERTICAL_UP" },
+        { "from": "Keyboard.MouseMoveLeft", "when": "Keyboard.RightMouseClick", "to": "Actions.YAW_LEFT" }, 
+        { "from": "Keyboard.MouseMoveRight", "when": "Keyboard.RightMouseClick", "to": "Actions.YAW_RIGHT" }, 
+        { "from": "Keyboard.MouseMoveUp", "when": "Keyboard.RightMouseClick", "to": "Actions.PITCH_UP" },
+        { "from": "Keyboard.MouseMoveDown", "when": "Keyboard.RightMouseClick", "to": "Actions.PITCH_DOWN" }
+    ]
+}

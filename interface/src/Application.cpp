@@ -631,7 +631,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
     connect(userInputMapper.data(), &UserInputMapper::actionEvent, [this](int action, float state) {
         if (state) {
             switch (action) {
-            case UserInputMapper::Action::TOGGLE_MUTE:
+            case controller::Action::TOGGLE_MUTE:
                 DependencyManager::get<AudioClient>()->toggleMute();
                 break;
             }
@@ -639,8 +639,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
     });
 
     // Setup the keyboardMouseDevice and the user input mapper with the default bindings
-    _keyboardMouseDevice->registerToUserInputMapper(*userInputMapper);
-    _keyboardMouseDevice->assignDefaultInputMapping(*userInputMapper);
+    userInputMapper->registerDevice(_keyboardMouseDevice);
 
     // check first run...
     if (_firstRun.get()) {
@@ -2182,7 +2181,7 @@ float Application::getAvatarSimrate() {
 }
 
 void Application::setLowVelocityFilter(bool lowVelocityFilter) {
-    InputDevice::setLowVelocityFilter(lowVelocityFilter);
+    controller::InputDevice::setLowVelocityFilter(lowVelocityFilter);
 }
 
 ivec2 Application::getMouse() const {
@@ -2710,19 +2709,28 @@ void Application::update(float deltaTime) {
     auto myAvatar = getMyAvatar();
     auto userInputMapper = DependencyManager::get<UserInputMapper>();
     userInputMapper->setSensorToWorldMat(myAvatar->getSensorToWorldMatrix());
-    // Dispatch input events
-    _controllerScriptingInterface->update();
+    userInputMapper->update(deltaTime);
+
+    bool jointsCaptured = false;
+    for (auto inputPlugin : PluginManager::getInstance()->getInputPlugins()) {
+        if (inputPlugin->isActive()) {
+            inputPlugin->pluginUpdate(deltaTime, jointsCaptured);
+            if (inputPlugin->isJointController()) {
+                jointsCaptured = true;
+            }
+        }
+    }
 
     // Transfer the user inputs to the driveKeys
     myAvatar->clearDriveKeys();
     if (_myCamera.getMode() != CAMERA_MODE_INDEPENDENT) {
         if (!_controllerScriptingInterface->areActionsCaptured()) {
-            myAvatar->setDriveKeys(FWD, userInputMapper->getActionState(UserInputMapper::LONGITUDINAL_FORWARD));
-            myAvatar->setDriveKeys(BACK, userInputMapper->getActionState(UserInputMapper::LONGITUDINAL_BACKWARD));
-            myAvatar->setDriveKeys(UP, userInputMapper->getActionState(UserInputMapper::VERTICAL_UP));
-            myAvatar->setDriveKeys(DOWN, userInputMapper->getActionState(UserInputMapper::VERTICAL_DOWN));
-            myAvatar->setDriveKeys(LEFT, userInputMapper->getActionState(UserInputMapper::LATERAL_LEFT));
-            myAvatar->setDriveKeys(RIGHT, userInputMapper->getActionState(UserInputMapper::LATERAL_RIGHT));
+            myAvatar->setDriveKeys(FWD, userInputMapper->getActionState(controller::Action::LONGITUDINAL_FORWARD));
+            myAvatar->setDriveKeys(BACK, userInputMapper->getActionState(controller::Action::LONGITUDINAL_BACKWARD));
+            myAvatar->setDriveKeys(UP, userInputMapper->getActionState(controller::Action::VERTICAL_UP));
+            myAvatar->setDriveKeys(DOWN, userInputMapper->getActionState(controller::Action::VERTICAL_DOWN));
+            myAvatar->setDriveKeys(LEFT, userInputMapper->getActionState(controller::Action::LATERAL_LEFT));
+            myAvatar->setDriveKeys(RIGHT, userInputMapper->getActionState(controller::Action::LATERAL_RIGHT));
             if (deltaTime > FLT_EPSILON) {
                 // For rotations what we really want are meausures of "angles per second" (in order to prevent 
                 // fps-dependent spin rates) so we need to scale the units of the controller contribution.
@@ -2730,25 +2738,25 @@ void Application::update(float deltaTime) {
                 // controllers to provide a delta_per_second value rather than a raw delta.)
                 const float EXPECTED_FRAME_RATE = 60.0f;
                 float timeFactor = EXPECTED_FRAME_RATE * deltaTime;
-                myAvatar->setDriveKeys(ROT_UP, userInputMapper->getActionState(UserInputMapper::PITCH_UP) / timeFactor);
-                myAvatar->setDriveKeys(ROT_DOWN, userInputMapper->getActionState(UserInputMapper::PITCH_DOWN) / timeFactor);
-                myAvatar->setDriveKeys(ROT_LEFT, userInputMapper->getActionState(UserInputMapper::YAW_LEFT) / timeFactor);
-                myAvatar->setDriveKeys(ROT_RIGHT, userInputMapper->getActionState(UserInputMapper::YAW_RIGHT) / timeFactor);
+                myAvatar->setDriveKeys(ROT_UP, userInputMapper->getActionState(controller::Action::PITCH_UP) / timeFactor);
+                myAvatar->setDriveKeys(ROT_DOWN, userInputMapper->getActionState(controller::Action::PITCH_DOWN) / timeFactor);
+                myAvatar->setDriveKeys(ROT_LEFT, userInputMapper->getActionState(controller::Action::YAW_LEFT) / timeFactor);
+                myAvatar->setDriveKeys(ROT_RIGHT, userInputMapper->getActionState(controller::Action::YAW_RIGHT) / timeFactor);
             }
         }
-        myAvatar->setDriveKeys(BOOM_IN, userInputMapper->getActionState(UserInputMapper::BOOM_IN));
-        myAvatar->setDriveKeys(BOOM_OUT, userInputMapper->getActionState(UserInputMapper::BOOM_OUT));
+        myAvatar->setDriveKeys(BOOM_IN, userInputMapper->getActionState(controller::Action::BOOM_IN));
+        myAvatar->setDriveKeys(BOOM_OUT, userInputMapper->getActionState(controller::Action::BOOM_OUT));
     }
-    UserInputMapper::PoseValue leftHand = userInputMapper->getPoseState(UserInputMapper::LEFT_HAND);
-    UserInputMapper::PoseValue rightHand = userInputMapper->getPoseState(UserInputMapper::RIGHT_HAND);
+    controller::Pose leftHand = userInputMapper->getPoseState(controller::Action::LEFT_HAND);
+    controller::Pose rightHand = userInputMapper->getPoseState(controller::Action::RIGHT_HAND);
     Hand* hand = DependencyManager::get<AvatarManager>()->getMyAvatar()->getHand();
-    setPalmData(hand, leftHand, deltaTime, LEFT_HAND_INDEX, userInputMapper->getActionState(UserInputMapper::LEFT_HAND_CLICK));
-    setPalmData(hand, rightHand, deltaTime, RIGHT_HAND_INDEX, userInputMapper->getActionState(UserInputMapper::RIGHT_HAND_CLICK));
+    setPalmData(hand, leftHand, deltaTime, LEFT_HAND_INDEX, userInputMapper->getActionState(controller::Action::LEFT_HAND_CLICK));
+    setPalmData(hand, rightHand, deltaTime, RIGHT_HAND_INDEX, userInputMapper->getActionState(controller::Action::RIGHT_HAND_CLICK));
     if (Menu::getInstance()->isOptionChecked(MenuOption::EnableHandMouseInput)) {
-        emulateMouse(hand, userInputMapper->getActionState(UserInputMapper::LEFT_HAND_CLICK),
-            userInputMapper->getActionState(UserInputMapper::SHIFT), LEFT_HAND_INDEX);
-        emulateMouse(hand, userInputMapper->getActionState(UserInputMapper::RIGHT_HAND_CLICK),
-            userInputMapper->getActionState(UserInputMapper::SHIFT), RIGHT_HAND_INDEX);
+        emulateMouse(hand, userInputMapper->getActionState(controller::Action::LEFT_HAND_CLICK),
+            userInputMapper->getActionState(controller::Action::SHIFT), LEFT_HAND_INDEX);
+        emulateMouse(hand, userInputMapper->getActionState(controller::Action::RIGHT_HAND_CLICK),
+            userInputMapper->getActionState(controller::Action::SHIFT), RIGHT_HAND_INDEX);
     }
 
     updateThreads(deltaTime); // If running non-threaded, then give the threads some time to process...
@@ -4806,7 +4814,7 @@ mat4 Application::getHMDSensorPose() const {
     return mat4();
 }
 
-void Application::setPalmData(Hand* hand, UserInputMapper::PoseValue pose, float deltaTime, int index, float triggerValue) {
+void Application::setPalmData(Hand* hand, const controller::Pose& pose, float deltaTime, int index, float triggerValue) {
     PalmData* palm;
     bool foundHand = false;
     for (size_t j = 0; j < hand->getNumPalms(); j++) {
@@ -4855,7 +4863,7 @@ void Application::setPalmData(Hand* hand, UserInputMapper::PoseValue pose, float
         palm->setRawAngularVelocity(glm::vec3(0.0f));
     }
 
-    if (InputDevice::getLowVelocityFilter()) {
+    if (controller::InputDevice::getLowVelocityFilter()) {
         //  Use a velocity sensitive filter to damp small motions and preserve large ones with
         //  no latency.
         float velocityFilter = glm::clamp(1.0f - glm::length(rawVelocity), 0.0f, 1.0f);
@@ -4911,7 +4919,7 @@ void Application::emulateMouse(Hand* hand, float click, float shift, int index) 
         float yAngle = 0.5f - ((atan2f(direction.z, direction.y) + (float)M_PI_2));
         auto canvasSize = getCanvasSize();
         // Get the pixel range over which the xAngle and yAngle are scaled
-        float cursorRange = canvasSize.x * InputDevice::getCursorPixelRangeMult();
+        float cursorRange = canvasSize.x * controller::InputDevice::getCursorPixelRangeMult();
 
         pos.setX(canvasSize.x / 2.0f + cursorRange * xAngle);
         pos.setY(canvasSize.y / 2.0f + cursorRange * yAngle);
