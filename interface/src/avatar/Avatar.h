@@ -174,6 +174,9 @@ public:
     void setMotionState(AvatarMotionState* motionState) { _motionState = motionState; }
     AvatarMotionState* getMotionState() { return _motionState; }
 
+    virtual void setPosition(const glm::vec3& position);
+    virtual void setOrientation(const glm::quat& orientation);
+
 public slots:
     glm::vec3 getLeftPalmPosition();
     glm::vec3 getLeftPalmVelocity();

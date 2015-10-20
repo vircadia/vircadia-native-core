@@ -44,13 +44,13 @@ typedef unsigned long long quint64;
 #include <QVariantMap>
 #include <QVector>
 #include <QtScript/QScriptable>
-#include <QReadWriteLock>
 
 #include <NLPacket.h>
 #include <Node.h>
 #include <RegisteredMetaTypes.h>
 #include <SimpleMovingAverage.h>
 #include <SpatiallyNestable.h>
+#include <shared/ReadWriteLockable.h>
 
 #include "AABox.h"
 #include "HandData.h"
@@ -58,6 +58,7 @@ typedef unsigned long long quint64;
 #include "PathUtils.h"
 #include "Player.h"
 #include "Recorder.h"
+
 
 using AvatarSharedPointer = std::shared_ptr<AvatarData>;
 using AvatarWeakPointer = std::weak_ptr<AvatarData>;
@@ -135,7 +136,7 @@ class QDataStream;
 class AttachmentData;
 class JointData;
 
-class AvatarData : public QObject, public SpatiallyNestable {
+class AvatarData : public QObject, public ReadWriteLockable, public SpatiallyNestable {
     Q_OBJECT
 
     Q_PROPERTY(glm::vec3 position READ getPosition WRITE setPosition)
@@ -195,15 +196,10 @@ public:
     float getBodyRoll() const;
     void setBodyRoll(float bodyRoll);
 
+    virtual void setPosition(const glm::vec3& position);
+    virtual void setOrientation(const glm::quat& orientation);
+
     void nextAttitude(glm::vec3 position, glm::quat orientation); // Can be safely called at any time.
-    void startCapture();    // start/end of the period in which the latest values are about to be captured for camera, etc.
-    void endCapture();
-    void startUpdate();     // start/end of update iteration
-    void endUpdate();
-    void startRender();     // start/end of rendering of this object
-    void startRenderRun();  // start/end of entire scene.
-    void endRenderRun();
-    void endRender();
     virtual void updateAttitude() {} // Tell skeleton mesh about changes
 
     glm::quat getHeadOrientation() const { return _headData->getOrientation(); }
@@ -360,10 +356,6 @@ protected:
     QUuid _sessionUUID;
     glm::vec3 _handPosition;
 
-    glm::vec3 _nextPosition {};
-    glm::quat _nextOrientation {};
-    bool _nextAllowed {true};
-
     // Body scale
     float _targetScale;
 
@@ -412,8 +404,6 @@ protected:
     AABox _localAABox;
 
     SimpleMovingAverage _averageBytesReceived;
-
-    QMutex avatarLock; // Name is redundant, but it aids searches.
 
 private:
     static QUrl _defaultFullAvatarModelUrl;

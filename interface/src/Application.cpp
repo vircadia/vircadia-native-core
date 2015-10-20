@@ -1086,75 +1086,77 @@ void Application::paintGL() {
 
     {
         PerformanceTimer perfTimer("CameraUpdates");
-        
         auto myAvatar = getMyAvatar();
-        
-        myAvatar->startCapture();
-        if (_myCamera.getMode() == CAMERA_MODE_FIRST_PERSON || _myCamera.getMode() == CAMERA_MODE_THIRD_PERSON) {
-            Menu::getInstance()->setIsOptionChecked(MenuOption::FirstPerson, myAvatar->getBoomLength() <= MyAvatar::ZOOM_MIN);
-            Menu::getInstance()->setIsOptionChecked(MenuOption::ThirdPerson, !(myAvatar->getBoomLength() <= MyAvatar::ZOOM_MIN));
-            cameraMenuChanged();
-        }
-
-        // The render mode is default or mirror if the camera is in mirror mode, assigned further below
-        renderArgs._renderMode = RenderArgs::DEFAULT_RENDER_MODE;
-
-        // Always use the default eye position, not the actual head eye position.
-        // Using the latter will cause the camera to wobble with idle animations,
-        // or with changes from the face tracker
-        if (_myCamera.getMode() == CAMERA_MODE_FIRST_PERSON) {
-            if (isHMDMode()) {
-                mat4 camMat = myAvatar->getSensorToWorldMatrix() * myAvatar->getHMDSensorMatrix();
-                _myCamera.setPosition(extractTranslation(camMat));
-                _myCamera.setRotation(glm::quat_cast(camMat));
-            } else {
-                _myCamera.setPosition(myAvatar->getDefaultEyePosition());
-                _myCamera.setRotation(myAvatar->getHead()->getCameraOrientation());
+        myAvatar->withReadLock([&] {
+            if (_myCamera.getMode() == CAMERA_MODE_FIRST_PERSON || _myCamera.getMode() == CAMERA_MODE_THIRD_PERSON) {
+                Menu::getInstance()->setIsOptionChecked(MenuOption::FirstPerson,
+                                                        myAvatar->getBoomLength() <= MyAvatar::ZOOM_MIN);
+                Menu::getInstance()->setIsOptionChecked(MenuOption::ThirdPerson,
+                                                        !(myAvatar->getBoomLength() <= MyAvatar::ZOOM_MIN));
+                cameraMenuChanged();
             }
-        } else if (_myCamera.getMode() == CAMERA_MODE_THIRD_PERSON) {
-            if (isHMDMode()) {
-                auto hmdWorldMat = myAvatar->getSensorToWorldMatrix() * myAvatar->getHMDSensorMatrix();
-                _myCamera.setRotation(glm::normalize(glm::quat_cast(hmdWorldMat)));
-                auto worldBoomOffset = myAvatar->getOrientation() * (myAvatar->getScale() * myAvatar->getBoomLength() * glm::vec3(0.0f, 0.0f, 1.0f));
-                _myCamera.setPosition(extractTranslation(hmdWorldMat) + worldBoomOffset);
-            } else {
-                _myCamera.setRotation(myAvatar->getHead()->getOrientation());
-                if (Menu::getInstance()->isOptionChecked(MenuOption::CenterPlayerInView)) {
-                    _myCamera.setPosition(myAvatar->getDefaultEyePosition()
-                        + _myCamera.getRotation()
-                        * (myAvatar->getScale() * myAvatar->getBoomLength() * glm::vec3(0.0f, 0.0f, 1.0f)));
+
+            // The render mode is default or mirror if the camera is in mirror mode, assigned further below
+            renderArgs._renderMode = RenderArgs::DEFAULT_RENDER_MODE;
+
+            // Always use the default eye position, not the actual head eye position.
+            // Using the latter will cause the camera to wobble with idle animations,
+            // or with changes from the face tracker
+            if (_myCamera.getMode() == CAMERA_MODE_FIRST_PERSON) {
+                if (isHMDMode()) {
+                    mat4 camMat = myAvatar->getSensorToWorldMatrix() * myAvatar->getHMDSensorMatrix();
+                    _myCamera.setPosition(extractTranslation(camMat));
+                    _myCamera.setRotation(glm::quat_cast(camMat));
                 } else {
-                    _myCamera.setPosition(myAvatar->getDefaultEyePosition()
-                        + myAvatar->getOrientation() 
-                        * (myAvatar->getScale() * myAvatar->getBoomLength() * glm::vec3(0.0f, 0.0f, 1.0f)));
+                    _myCamera.setPosition(myAvatar->getDefaultEyePosition());
+                    _myCamera.setRotation(myAvatar->getHead()->getCameraOrientation());
                 }
+            } else if (_myCamera.getMode() == CAMERA_MODE_THIRD_PERSON) {
+                if (isHMDMode()) {
+                    auto hmdWorldMat = myAvatar->getSensorToWorldMatrix() * myAvatar->getHMDSensorMatrix();
+                    _myCamera.setRotation(glm::normalize(glm::quat_cast(hmdWorldMat)));
+                    auto worldBoomOffset = myAvatar->getOrientation() *
+                        (myAvatar->getScale() * myAvatar->getBoomLength() * glm::vec3(0.0f, 0.0f, 1.0f));
+                    _myCamera.setPosition(extractTranslation(hmdWorldMat) + worldBoomOffset);
+                } else {
+                    _myCamera.setRotation(myAvatar->getHead()->getOrientation());
+                    if (Menu::getInstance()->isOptionChecked(MenuOption::CenterPlayerInView)) {
+                        _myCamera.setPosition(myAvatar->getDefaultEyePosition()
+                                              + _myCamera.getRotation() *
+                                              (myAvatar->getScale() * myAvatar->getBoomLength() * glm::vec3(0.0f, 0.0f, 1.0f)));
+                    } else {
+                        _myCamera.setPosition(myAvatar->getDefaultEyePosition()
+                                              + myAvatar->getOrientation() *
+                                              (myAvatar->getScale() * myAvatar->getBoomLength() * glm::vec3(0.0f, 0.0f, 1.0f)));
+                    }
+                }
+            } else if (_myCamera.getMode() == CAMERA_MODE_MIRROR) {
+                if (isHMDMode()) {
+                    glm::quat hmdRotation = extractRotation(myAvatar->getHMDSensorMatrix());
+                    _myCamera.setRotation(myAvatar->getWorldAlignedOrientation()
+                                          * glm::quat(glm::vec3(0.0f, PI + _rotateMirror, 0.0f)) * hmdRotation);
+                    glm::vec3 hmdOffset = extractTranslation(myAvatar->getHMDSensorMatrix());
+                    _myCamera.setPosition(myAvatar->getDefaultEyePosition()
+                                          + glm::vec3(0, _raiseMirror * myAvatar->getAvatarScale(), 0)
+                                          + (myAvatar->getOrientation() * glm::quat(glm::vec3(0.0f, _rotateMirror, 0.0f))) *
+                                          glm::vec3(0.0f, 0.0f, -1.0f) * MIRROR_FULLSCREEN_DISTANCE * _scaleMirror
+                                          + (myAvatar->getOrientation() *
+                                             glm::quat(glm::vec3(0.0f, PI + _rotateMirror, 0.0f))) * hmdOffset);
+                } else {
+                    _myCamera.setRotation(myAvatar->getWorldAlignedOrientation()
+                                          * glm::quat(glm::vec3(0.0f, PI + _rotateMirror, 0.0f)));
+                    _myCamera.setPosition(myAvatar->getDefaultEyePosition()
+                                          + glm::vec3(0, _raiseMirror * myAvatar->getAvatarScale(), 0)
+                                          + (myAvatar->getOrientation() * glm::quat(glm::vec3(0.0f, _rotateMirror, 0.0f))) *
+                                          glm::vec3(0.0f, 0.0f, -1.0f) * MIRROR_FULLSCREEN_DISTANCE * _scaleMirror);
+                }
+                renderArgs._renderMode = RenderArgs::MIRROR_RENDER_MODE;
             }
-        } else if (_myCamera.getMode() == CAMERA_MODE_MIRROR) {
-            if (isHMDMode()) {
-                glm::quat hmdRotation = extractRotation(myAvatar->getHMDSensorMatrix());
-                _myCamera.setRotation(myAvatar->getWorldAlignedOrientation() 
-                    * glm::quat(glm::vec3(0.0f, PI + _rotateMirror, 0.0f)) * hmdRotation);
-                glm::vec3 hmdOffset = extractTranslation(myAvatar->getHMDSensorMatrix());
-                _myCamera.setPosition(myAvatar->getDefaultEyePosition() 
-                    + glm::vec3(0, _raiseMirror * myAvatar->getAvatarScale(), 0) 
-                    + (myAvatar->getOrientation() * glm::quat(glm::vec3(0.0f, _rotateMirror, 0.0f))) *
-                    glm::vec3(0.0f, 0.0f, -1.0f) * MIRROR_FULLSCREEN_DISTANCE * _scaleMirror 
-                    + (myAvatar->getOrientation() * glm::quat(glm::vec3(0.0f, PI + _rotateMirror, 0.0f))) * hmdOffset);
-            } else {
-                _myCamera.setRotation(myAvatar->getWorldAlignedOrientation() 
-                    * glm::quat(glm::vec3(0.0f, PI + _rotateMirror, 0.0f)));
-                _myCamera.setPosition(myAvatar->getDefaultEyePosition() 
-                    + glm::vec3(0, _raiseMirror * myAvatar->getAvatarScale(), 0) 
-                    + (myAvatar->getOrientation() * glm::quat(glm::vec3(0.0f, _rotateMirror, 0.0f))) *
-                    glm::vec3(0.0f, 0.0f, -1.0f) * MIRROR_FULLSCREEN_DISTANCE * _scaleMirror);
+            // Update camera position
+            if (!isHMDMode()) {
+                _myCamera.update(1.0f / _fps);
             }
-            renderArgs._renderMode = RenderArgs::MIRROR_RENDER_MODE;
-        }
-        // Update camera position 
-        if (!isHMDMode()) {
-            _myCamera.update(1.0f / _fps);
-        }
-        myAvatar->endCapture();
+        });
     }
 
     // Primary rendering pass
@@ -3386,9 +3388,9 @@ void Application::displaySide(RenderArgs* renderArgs, Camera& theCamera, bool se
     // FIXME: This preRender call is temporary until we create a separate render::scene for the mirror rendering.
     // Then we can move this logic into the Avatar::simulate call.
     auto myAvatar = getMyAvatar();
-    myAvatar->startRender();
-    myAvatar->preRender(renderArgs);
-    myAvatar->endRender();
+    myAvatar->withReadLock([&] {
+        myAvatar->preRender(renderArgs);
+    });
 
 
     activeRenderingThread = QThread::currentThread();
@@ -3502,9 +3504,9 @@ void Application::displaySide(RenderArgs* renderArgs, Camera& theCamera, bool se
         _renderEngine->setRenderContext(renderContext);
 
         // Before the deferred pass, let's try to use the render engine
-        myAvatar->startRenderRun();
-        _renderEngine->run();
-        myAvatar->endRenderRun();
+        myAvatar->withReadLock([&] {
+            _renderEngine->run();
+        });
 
         auto engineRC = _renderEngine->getRenderContext();
         sceneInterface->setEngineFeedOpaqueItems(engineRC->_numFeedOpaqueItems);

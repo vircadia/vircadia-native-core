@@ -129,9 +129,9 @@ void AvatarManager::updateOtherAvatars(float deltaTime) {
             _avatarFades.push_back(avatarIterator.value());
             avatarIterator = _avatarHash.erase(avatarIterator);
         } else {
-            avatar->startUpdate();
-            avatar->simulate(deltaTime);
-            avatar->endUpdate();
+            avatar->withWriteLock([&] {
+                avatar->simulate(deltaTime);
+            });
             ++avatarIterator;
         }
     }
@@ -150,16 +150,16 @@ void AvatarManager::simulateAvatarFades(float deltaTime) {
     render::PendingChanges pendingChanges;
     while (fadingIterator != _avatarFades.end()) {
         auto avatar = std::static_pointer_cast<Avatar>(*fadingIterator);
-        avatar->startUpdate();
-        avatar->setTargetScale(avatar->getAvatarScale() * SHRINK_RATE, true);
-        if (avatar->getTargetScale() < MIN_FADE_SCALE) {
-            avatar->removeFromScene(*fadingIterator, scene, pendingChanges);
-            fadingIterator = _avatarFades.erase(fadingIterator);
-        } else {
-            avatar->simulate(deltaTime);
-            ++fadingIterator;
-        }
-        avatar->endUpdate();
+        avatar->withWriteLock([&] {
+            avatar->setTargetScale(avatar->getAvatarScale() * SHRINK_RATE, true);
+            if (avatar->getTargetScale() < MIN_FADE_SCALE) {
+                avatar->removeFromScene(*fadingIterator, scene, pendingChanges);
+                fadingIterator = _avatarFades.erase(fadingIterator);
+            } else {
+                avatar->simulate(deltaTime);
+                ++fadingIterator;
+            }
+        });
     }
     scene->enqueuePendingChanges(pendingChanges);
 }

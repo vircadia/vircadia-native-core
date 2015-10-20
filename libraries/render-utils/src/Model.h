@@ -86,7 +86,8 @@ public:
 
     bool isVisible() const { return _isVisible; }
 
-    AABox getPartBounds(int meshIndex, int partIndex);
+    void updateRenderItems();
+    AABox getPartBounds(int meshIndex, int partIndex, glm::vec3 modelPosition, glm::quat modelOrientation);
 
     bool maybeStartBlender();
 
@@ -109,7 +110,7 @@ public:
     bool getSnapModelToRegistrationPoint() { return _snapModelToRegistrationPoint; }
 
     virtual void simulate(float deltaTime, bool fullUpdate = true);
-    void updateClusterMatrices();
+    void updateClusterMatrices(glm::vec3 modelPosition, glm::quat modelOrientation);
 
     /// Returns a reference to the shared geometry.
     const QSharedPointer<NetworkGeometry>& getGeometry() const { return _geometry; }
@@ -183,6 +184,8 @@ public:
     void setScale(const glm::vec3& scale);
     const glm::vec3& getScale() const { return _scale; }
 
+    void enqueueLocationChange();
+
     /// enables/disables scale to fit behavior, the model will be automatically scaled to the specified largest dimension
     bool getIsScaledToFit() const { return _scaledToFit; } /// is model scaled to fit
     const glm::vec3& getScaleToFitDimensions() const { return _scaleToFitDimensions; } /// the dimensions model is scaled to
@@ -210,10 +213,10 @@ protected:
     Extents getUnscaledMeshExtents() const;
 
     /// Returns the scaled equivalent of some extents in model space.
-    Extents calculateScaledOffsetExtents(const Extents& extents) const;
+    Extents calculateScaledOffsetExtents(const Extents& extents, glm::vec3 modelPosition, glm::quat modelOrientation) const;
 
     /// Returns the world space equivalent of some box in model space.
-    AABox calculateScaledOffsetAABox(const AABox& box) const;
+    AABox calculateScaledOffsetAABox(const AABox& box, glm::vec3 modelPosition, glm::quat modelOrientation) const;
 
     /// Returns the scaled equivalent of a point in model space.
     glm::vec3 calculateScaledOffsetPoint(const glm::vec3& point) const;

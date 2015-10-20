@@ -303,8 +303,6 @@ void Avatar::removeFromScene(AvatarSharedPointer self, std::shared_ptr<render::S
 }
 
 void Avatar::render(RenderArgs* renderArgs, const glm::vec3& cameraPosition) {
-    startRender();
-
     auto& batch = *renderArgs->_batch;
 
     if (glm::distance(DependencyManager::get<AvatarManager>()->getMyAvatar()->getPosition(), getPosition()) < 10.0f) {
@@ -375,7 +373,6 @@ void Avatar::render(RenderArgs* renderArgs, const glm::vec3& cameraPosition) {
     }
 
     if (frustum->sphereInFrustum(getPosition(), boundingRadius) == ViewFrustum::OUTSIDE) {
-        endRender();
         return;
     }
 
@@ -529,7 +526,6 @@ void Avatar::render(RenderArgs* renderArgs, const glm::vec3& cameraPosition) {
             renderDisplayName(batch, frustum, textPosition);
         }
     }
-    endRender();
 }
 
 glm::quat Avatar::computeRotationFromBodyToWorldUp(float proportion) const {
@@ -993,23 +989,25 @@ void Avatar::setBillboard(const QByteArray& billboard) {
 }
 
 int Avatar::parseDataFromBuffer(const QByteArray& buffer) {
-    startUpdate();
-    if (!_initialized) {
-        // now that we have data for this Avatar we are go for init
-        init();
-    }
+    int bytesRead;
 
-    // change in position implies movement
-    glm::vec3 oldPosition = getPosition();
+    withWriteLock([&] {
+        if (!_initialized) {
+            // now that we have data for this Avatar we are go for init
+            init();
+        }
 
-    int bytesRead = AvatarData::parseDataFromBuffer(buffer);
+        // change in position implies movement
+        glm::vec3 oldPosition = getPosition();
 
-    const float MOVE_DISTANCE_THRESHOLD = 0.001f;
-    _moving = glm::distance(oldPosition, getPosition()) > MOVE_DISTANCE_THRESHOLD;
-    if (_moving && _motionState) {
-        _motionState->addDirtyFlags(Simulation::DIRTY_POSITION);
-    }
-    endUpdate();
+        bytesRead = AvatarData::parseDataFromBuffer(buffer);
+
+        const float MOVE_DISTANCE_THRESHOLD = 0.001f;
+        _moving = glm::distance(oldPosition, getPosition()) > MOVE_DISTANCE_THRESHOLD;
+        if (_moving && _motionState) {
+            _motionState->addDirtyFlags(Simulation::DIRTY_POSITION);
+        }
+    });
 
     return bytesRead;
 }
@@ -1200,4 +1198,14 @@ glm::quat Avatar::getRightPalmRotation() {
     glm::quat rightRotation;
     getSkeletonModel().getJointRotationInWorldFrame(getSkeletonModel().getRightHandJointIndex(), rightRotation);
     return rightRotation;
+}
+
+void Avatar::setPosition(const glm::vec3& position) {
+    AvatarData::setPosition(position);
+    updateAttitude();
+}
+
+void Avatar::setOrientation(const glm::quat& orientation) {
+    AvatarData::setOrientation(orientation);
+    updateAttitude();
 }
