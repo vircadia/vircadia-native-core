@@ -191,6 +191,7 @@
                                         "data": {
                                             "alpha": 0.0,
                                             "sync": false,
+                                            "timeScale": 1.0,
                                             "alphaVar": "rightHandGrabBlend"
                                         },
                                         "children": [
@@ -341,6 +342,7 @@
                                                 "data": {
                                                     "alpha": 0.0,
                                                     "sync": false,
+                                                    "timeScale": 1.0,
                                                     "alphaVar": "leftHandGrabBlend"
                                                 },
                                                 "children": [
@@ -525,16 +527,39 @@
                                             },
                                             {
                                                 "id": "walkFwd",
-                                                "type": "clip",
+                                                "type": "blendLinear",
                                                 "data": {
-                                                    "url": "https://hifi-public.s3.amazonaws.com/ozan/anim/standard_anims/walk_fwd.fbx",
-                                                    "startFrame": 0.0,
-                                                    "endFrame": 35.0,
+                                                    "alpha": 0.0,
+                                                    "sync": true,
                                                     "timeScale": 1.0,
-                                                    "loopFlag": true,
                                                     "timeScaleVar": "walkTimeScale"
                                                 },
-                                                "children": []
+                                                "children": [
+                                                    {
+                                                        "id": "walkFwdShort",
+                                                        "type": "clip",
+                                                        "data": {
+                                                            "url": "https://hifi-public.s3.amazonaws.com/ozan/anim/standard_anims/walk_short_fwd.fbx",
+                                                            "startFrame": 0.0,
+                                                            "endFrame": 39.0,
+                                                            "timeScale": 1.0,
+                                                            "loopFlag": true
+                                                        },
+                                                        "children": []
+                                                    },
+                                                    {
+                                                        "id": "walkFwdNormal",
+                                                        "type": "clip",
+                                                        "data": {
+                                                            "url": "https://hifi-public.s3.amazonaws.com/ozan/anim/standard_anims/walk_fwd.fbx",
+                                                            "startFrame": 0.0,
+                                                            "endFrame": 35.0,
+                                                            "timeScale": 1.0,
+                                                            "loopFlag": true
+                                                        },
+                                                        "children": []
+                                                    }
+                                                ]
                                             },
                                             {
                                                 "id": "walkBwd",

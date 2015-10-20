@@ -39,6 +39,9 @@ public:
     float getStartFrame() const { return _startFrame; }
     float getEndFrame() const { return _endFrame; }
 
+    void setTimeScale(float timeScale) { _timeScale = timeScale; }
+    float getTimeScale() const { return _timeScale; }
+
 protected:
     void loadURL(const QString& url);
 

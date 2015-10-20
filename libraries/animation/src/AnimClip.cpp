@@ -81,7 +81,7 @@ void AnimClip::setCurrentFrameInternal(float frame) {
     // because dt is 0, we should not encounter any triggers
     const float dt = 0.0f;
     Triggers triggers;
-    _frame = ::accumulateTime(_startFrame, _endFrame, _timeScale, frame * _timeScale, dt, _loopFlag, _id, triggers);
+    _frame = ::accumulateTime(_startFrame, _endFrame, _timeScale, frame, dt, _loopFlag, _id, triggers);
 }
 
 void AnimClip::copyFromNetworkAnim() {
