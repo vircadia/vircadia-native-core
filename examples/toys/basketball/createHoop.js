@@ -36,6 +36,10 @@ var hoop = Entities.addEntity({
         y: 3.99,
         z: 3.79
     },
+    userData: JSON.stringify({
+        grabbableKey: {
+            grabbable: false
+        }
+    })
     compoundShapeURL: hoopCollisionHullURL
 });
-
