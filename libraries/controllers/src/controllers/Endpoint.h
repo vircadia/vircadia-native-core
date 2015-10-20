@@ -14,7 +14,9 @@
 #include <memory>
 #include <functional>
 
-#include "UserInputMapper.h"
+#include <QtCore/QObject>
+
+#include "Input.h"
 
 class QScriptValue;
 
@@ -24,7 +26,7 @@ namespace controller {
     * i.e. Hydra.Button0, Standard.X, Action.Yaw
     */
     class Endpoint : public QObject {
-    Q_OBJECT;
+        Q_OBJECT;
     public:
         using Pointer = std::shared_ptr<Endpoint>;
         using List = std::list<Pointer>;
@@ -32,18 +34,18 @@ namespace controller {
         using ReadLambda = std::function<float()>;
         using WriteLambda = std::function<void(float)>;
 
-        Endpoint(const UserInputMapper::Input& input) : _input(input) {}
+        Endpoint(const Input& input) : _input(input) {}
         virtual float value() = 0;
         virtual void apply(float newValue, float oldValue, const Pointer& source) = 0;
-        const UserInputMapper::Input& getInput() { return _input;  }
+        const Input& getInput() { return _input;  }
     protected:
-        UserInputMapper::Input _input;
+        Input _input;
     };
 
     class LambdaEndpoint : public Endpoint {
     public:
         LambdaEndpoint(ReadLambda readLambda, WriteLambda writeLambda = [](float) {})
-            : Endpoint(UserInputMapper::Input::INVALID_INPUT), _readLambda(readLambda), _writeLambda(writeLambda) { }
+            : Endpoint(Input::INVALID_INPUT), _readLambda(readLambda), _writeLambda(writeLambda) { }
 
         virtual float value() override { return _readLambda(); }
         virtual void apply(float newValue, float oldValue, const Pointer& source) override { _writeLambda(newValue); }

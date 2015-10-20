@@ -25,7 +25,7 @@ HifiControls.VrDialog {
 
     Component.onCompleted: {
         enabled = true
-        var xboxRegex = /^X360Controller/;
+        var xboxRegex = /^GamePad/;
         var hydraRegex = /^Hydra/;
         for (var prop in Controller.Hardware) {
             if(xboxRegex.test(prop)) {

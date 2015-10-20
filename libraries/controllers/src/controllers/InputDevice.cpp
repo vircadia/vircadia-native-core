@@ -10,75 +10,78 @@
 //
 #include "InputDevice.h"
 
-bool InputDevice::_lowVelocityFilter = false;
+#include "Input.h"
 
-const float DEFAULT_HAND_RETICLE_MOVE_SPEED = 37.5f;
-float InputDevice::_reticleMoveSpeed = DEFAULT_HAND_RETICLE_MOVE_SPEED;
+namespace controller {
 
-//Constants for getCursorPixelRangeMultiplier()
-const float MIN_PIXEL_RANGE_MULT = 0.4f;
-const float MAX_PIXEL_RANGE_MULT = 2.0f;
-const float RANGE_MULT = (MAX_PIXEL_RANGE_MULT - MIN_PIXEL_RANGE_MULT) * 0.01f;
+    bool InputDevice::_lowVelocityFilter = false;
 
-//Returns a multiplier to be applied to the cursor range for the controllers
-float InputDevice::getCursorPixelRangeMult() {
-    //scales (0,100) to (MINIMUM_PIXEL_RANGE_MULT, MAXIMUM_PIXEL_RANGE_MULT)
-    return InputDevice::_reticleMoveSpeed * RANGE_MULT + MIN_PIXEL_RANGE_MULT;
-}
+    const float DEFAULT_HAND_RETICLE_MOVE_SPEED = 37.5f;
+    float InputDevice::_reticleMoveSpeed = DEFAULT_HAND_RETICLE_MOVE_SPEED;
 
-float InputDevice::getButton(int channel) const {
-    if (!_buttonPressedMap.empty()) {
-        if (_buttonPressedMap.find(channel) != _buttonPressedMap.end()) {
-            return 1.0f;
+    //Constants for getCursorPixelRangeMultiplier()
+    const float MIN_PIXEL_RANGE_MULT = 0.4f;
+    const float MAX_PIXEL_RANGE_MULT = 2.0f;
+    const float RANGE_MULT = (MAX_PIXEL_RANGE_MULT - MIN_PIXEL_RANGE_MULT) * 0.01f;
+
+    //Returns a multiplier to be applied to the cursor range for the controllers
+    float InputDevice::getCursorPixelRangeMult() {
+        //scales (0,100) to (MINIMUM_PIXEL_RANGE_MULT, MAXIMUM_PIXEL_RANGE_MULT)
+        return InputDevice::_reticleMoveSpeed * RANGE_MULT + MIN_PIXEL_RANGE_MULT;
+    }
+
+    float InputDevice::getButton(int channel) const {
+        if (!_buttonPressedMap.empty()) {
+            if (_buttonPressedMap.find(channel) != _buttonPressedMap.end()) {
+                return 1.0f;
+            } else {
+                return 0.0f;
+            }
         }
-        else {
+        return 0.0f;
+    }
+
+    float InputDevice::getAxis(int channel) const {
+        auto axis = _axisStateMap.find(channel);
+        if (axis != _axisStateMap.end()) {
+            return (*axis).second;
+        } else {
             return 0.0f;
         }
     }
-    return 0.0f;
-}
 
-float InputDevice::getAxis(int channel) const {
-    auto axis = _axisStateMap.find(channel);
-    if (axis != _axisStateMap.end()) {
-        return (*axis).second;
+    Pose InputDevice::getPose(int channel) const {
+        auto pose = _poseStateMap.find(channel);
+        if (pose != _poseStateMap.end()) {
+            return (*pose).second;
+        } else {
+            return Pose();
+        }
     }
-    else {
-        return 0.0f;
+
+    Input InputDevice::makeInput(controller::StandardButtonChannel button) {
+        return Input(_deviceID, button, ChannelType::BUTTON);
     }
-}
 
-UserInputMapper::PoseValue InputDevice::getPose(int channel) const {
-    auto pose = _poseStateMap.find(channel);
-    if (pose != _poseStateMap.end()) {
-        return (*pose).second;
+    Input InputDevice::makeInput(controller::StandardAxisChannel axis) {
+        return Input(_deviceID, axis, ChannelType::AXIS);
     }
-    else {
-        return UserInputMapper::PoseValue();
+
+    Input InputDevice::makeInput(controller::StandardPoseChannel pose) {
+        return Input(_deviceID, pose, ChannelType::POSE);
     }
-}
 
-UserInputMapper::Input InputDevice::makeInput(controller::StandardButtonChannel button) {
-    return UserInputMapper::Input(_deviceID, button, UserInputMapper::ChannelType::BUTTON);
-}
+    Input::NamedPair InputDevice::makePair(controller::StandardButtonChannel button, const QString& name) {
+        return Input::NamedPair(makeInput(button), name);
+    }
 
-UserInputMapper::Input InputDevice::makeInput(controller::StandardAxisChannel axis) {
-    return UserInputMapper::Input(_deviceID, axis, UserInputMapper::ChannelType::AXIS);
-}
+    Input::NamedPair InputDevice::makePair(controller::StandardAxisChannel axis, const QString& name) {
+        return Input::NamedPair(makeInput(axis), name);
+    }
 
-UserInputMapper::Input InputDevice::makeInput(controller::StandardPoseChannel pose) {
-    return UserInputMapper::Input(_deviceID, pose, UserInputMapper::ChannelType::POSE);
-}
+    Input::NamedPair InputDevice::makePair(controller::StandardPoseChannel pose, const QString& name) {
+        return Input::NamedPair(makeInput(pose), name);
+    }
 
-UserInputMapper::InputPair InputDevice::makePair(controller::StandardButtonChannel button, const QString& name) {
-    return UserInputMapper::InputPair(makeInput(button), name);
-}
 
-UserInputMapper::InputPair InputDevice::makePair(controller::StandardAxisChannel axis, const QString& name) {
-    return UserInputMapper::InputPair(makeInput(axis), name);
 }
-
-UserInputMapper::InputPair InputDevice::makePair(controller::StandardPoseChannel pose, const QString& name) {
-    return UserInputMapper::InputPair(makeInput(pose), name);
-}
-

@@ -24,7 +24,7 @@ class QKeyEvent;
 class QMouseEvent;
 class QWheelEvent;
 
-class KeyboardMouseDevice : public InputPlugin, public InputDevice {
+class KeyboardMouseDevice : public InputPlugin, public controller::InputDevice {
     Q_OBJECT
 public:
     enum KeyboardChannel {
@@ -72,8 +72,8 @@ public:
     virtual void pluginUpdate(float deltaTime, bool jointsCaptured) override { update(deltaTime, jointsCaptured); }
 
     // Device functions
-    virtual void registerToUserInputMapper(UserInputMapper& mapper) override;
-    virtual void assignDefaultInputMapping(UserInputMapper& mapper) override;
+    virtual void buildDeviceProxy(controller::DeviceProxy::Pointer proxy) override;
+    virtual QString getDefaultMappingConfig() override;
     virtual void update(float deltaTime, bool jointsCaptured) override;
     virtual void focusOutEvent() override;
  
@@ -91,11 +91,11 @@ public:
     void wheelEvent(QWheelEvent* event);
     
     // Let's make it easy for Qt because we assume we love Qt forever
-    UserInputMapper::Input makeInput(Qt::Key code);
-    UserInputMapper::Input makeInput(Qt::MouseButton code);
-    UserInputMapper::Input makeInput(KeyboardMouseDevice::MouseAxisChannel axis);
-    UserInputMapper::Input makeInput(KeyboardMouseDevice::TouchAxisChannel axis);
-    UserInputMapper::Input makeInput(KeyboardMouseDevice::TouchButtonChannel button);
+    controller::Input makeInput(Qt::Key code);
+    controller::Input makeInput(Qt::MouseButton code);
+    controller::Input makeInput(MouseAxisChannel axis);
+    controller::Input makeInput(TouchAxisChannel axis);
+    controller::Input makeInput(TouchButtonChannel button);
 
     static const QString NAME;
 

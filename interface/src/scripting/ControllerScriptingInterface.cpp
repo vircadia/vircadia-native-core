@@ -167,31 +167,6 @@ void ControllerScriptingInterface::releaseInputController(controller::InputContr
     _inputControllers.erase(input->getKey());
 }
 
-void ControllerScriptingInterface::update() {
-    static float last = secTimestampNow();
-    float now = secTimestampNow();
-    float delta = now - last;
-    last = now;
-
-    DependencyManager::get<UserInputMapper>()->update(delta);
-
-    bool jointsCaptured = false;
-    for (auto inputPlugin : PluginManager::getInstance()->getInputPlugins()) {
-        if (inputPlugin->isActive()) {
-            inputPlugin->pluginUpdate(delta, jointsCaptured);
-            if (inputPlugin->isJointController()) {
-                jointsCaptured = true;
-            }
-        }
-    }
-
-    for (auto entry : _inputControllers) {
-        entry.second->update();
-    }
-
-    controller::ScriptingInterface::update();
-}
-
 InputController::InputController(int deviceTrackerId, int subTrackerId, QObject* parent) :
     _deviceTrackerId(deviceTrackerId),
     _subTrackerId(subTrackerId),

@@ -26,8 +26,6 @@
 #include <LimitedNodeList.h>
 #include <EntityItemID.h>
 #include <EntitiesScriptEngineProvider.h>
-#include <controllers/ScriptingInterface.h>
-
 
 #include "MouseEvent.h"
 #include "ArrayBufferClass.h"

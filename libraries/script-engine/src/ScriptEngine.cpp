@@ -28,7 +28,9 @@
 #include <udt/PacketHeaders.h>
 #include <UUID.h>
 
-#include "AnimationObject.h"
+#include <controllers/ScriptingInterface.h>
+#include <AnimationObject.h>
+
 #include "ArrayBufferViewClass.h"
 #include "BatchLoader.h"
 #include "DataViewClass.h"

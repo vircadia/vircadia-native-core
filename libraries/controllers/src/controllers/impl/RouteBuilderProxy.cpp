@@ -22,7 +22,7 @@ namespace controller {
 
 void RouteBuilderProxy::to(int destinationInput) {
     qCDebug(controllers) << "Completing route " << destinationInput;
-    auto destinationEndpoint = _parent.endpointFor(UserInputMapper::Input(destinationInput));
+    auto destinationEndpoint = _parent.endpointFor(Input(destinationInput));
     return to(destinationEndpoint);
 }
 
@@ -39,9 +39,9 @@ void RouteBuilderProxy::to(const QScriptValue& destination) {
 }
 
 void RouteBuilderProxy::to(const Endpoint::Pointer& destination) {
-    auto sourceEndpoint = _route->_source;
-    _route->_destination = destination;
-    _mapping->_channelMappings[sourceEndpoint].push_back(_route);
+    auto sourceEndpoint = _route->source;
+    _route->destination = destination;
+    _mapping->channelMappings[sourceEndpoint].push_back(_route);
     deleteLater();
 }
 
@@ -104,37 +104,7 @@ void RouteBuilderProxy::addFilter(Filter::Lambda lambda) {
 }
 
 void RouteBuilderProxy::addFilter(Filter::Pointer filter) {
-    _route->_filters.push_back(filter);
-}
-
-
-QObject* RouteBuilderProxy::filters(const QJsonValue& json) {
-    // We expect an array of objects to define the filters
-    if (json.isArray()) {
-        const auto& jsonFilters = json.toArray();
-        for (auto jsonFilter : jsonFilters) {
-            if (jsonFilter.isObject()) {
-                // The filter is an object, now let s check for type and potential arguments
-                Filter::Pointer filter = Filter::parse(jsonFilter.toObject());
-                if (filter) {
-                    addFilter(filter);
-                }
-            }
-        }
-    }
-
-    return this;
-}
-
-void RouteBuilderProxy::to(const QJsonValue& json) {
-    if (json.isString()) {
-
-        return to(_parent.endpointFor(_parent.inputFor(json.toString())));
-    } else if (json.isObject()) {
-        // Endpoint is defined as an object, we expect a js function then
-        //return to((Endpoint*) nullptr);
-    }
-
+    _route->filters.push_back(filter);
 }
 
 }

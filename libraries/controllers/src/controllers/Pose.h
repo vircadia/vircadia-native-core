@@ -17,11 +17,11 @@ namespace controller {
 
     struct Pose {
     public:
-        vec3 _translation;
-        quat _rotation;
-        vec3 _velocity;
-        quat _angularVelocity;
-        bool _valid{ false };
+        vec3 translation;
+        quat rotation;
+        vec3 velocity;
+        quat angularVelocity;
+        bool valid{ false };
 
         Pose() {}
         Pose(const vec3& translation, const quat& rotation,
@@ -30,11 +30,11 @@ namespace controller {
         Pose(const Pose&) = default;
         Pose& operator = (const Pose&) = default;
         bool operator ==(const Pose& right) const;
-        bool isValid() const { return _valid; }
-        vec3 getTranslation() const { return _translation; }
-        quat getRotation() const { return _rotation; }
-        vec3 getVelocity() const { return _velocity; }
-        quat getAngularVelocity() const { return _angularVelocity; }
+        bool isValid() const { return valid; }
+        vec3 getTranslation() const { return translation; }
+        quat getRotation() const { return rotation; }
+        vec3 getVelocity() const { return velocity; }
+        quat getAngularVelocity() const { return angularVelocity; }
     };
 
 

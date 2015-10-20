@@ -42,7 +42,7 @@ const unsigned int BUTTON_TRIGGER = 1U << 8;
 const bool DEFAULT_INVERT_SIXENSE_MOUSE_BUTTONS = false;
 
 // Handles interaction with the Sixense SDK (e.g., Razer Hydra).
-class SixenseManager : public InputPlugin, public InputDevice {
+class SixenseManager : public InputPlugin, public controller::InputDevice {
     Q_OBJECT
 public:
     SixenseManager();
@@ -60,8 +60,8 @@ public:
     virtual void pluginUpdate(float deltaTime, bool jointsCaptured) override { update(deltaTime, jointsCaptured); }
 
     // Device functions
-    virtual void registerToUserInputMapper(UserInputMapper& mapper) override;
-    virtual void assignDefaultInputMapping(UserInputMapper& mapper) override;
+    virtual void buildDeviceProxy(controller::DeviceProxy::Pointer proxy) override;
+    virtual QString getDefaultMappingConfig() override;
 
     virtual void update(float deltaTime, bool jointsCaptured) override;
     virtual void focusOutEvent() override;
