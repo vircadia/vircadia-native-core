@@ -16,6 +16,7 @@
 #include <QtNetwork/QNetworkRequest>
 #include <QtNetwork/QNetworkReply>
 
+#include <AssetClient.h>
 #include <AvatarHashMap.h>
 #include <NetworkAccessManager.h>
 #include <NodeList.h>
@@ -42,7 +43,8 @@ Agent::Agent(NLPacket& packet) :
         DEFAULT_WINDOW_SECONDS_FOR_DESIRED_REDUCTION, false))
 {
     DependencyManager::get<EntityScriptingInterface>()->setPacketSender(&_entityEditSender);
-
+    
+    DependencyManager::set<AssetClient>();
     DependencyManager::set<ResourceCacheSharedItems>();
     DependencyManager::set<SoundCache>();
 
@@ -110,11 +112,12 @@ void Agent::run() {
     ThreadedAssignment::commonInit(AGENT_LOGGING_NAME, NodeType::Agent);
 
     auto nodeList = DependencyManager::get<NodeList>();
-    nodeList->addSetOfNodeTypesToNodeInterestSet(NodeSet()
-                                                 << NodeType::AudioMixer
-                                                 << NodeType::AvatarMixer
-                                                 << NodeType::EntityServer
-                                                );
+    nodeList->addSetOfNodeTypesToNodeInterestSet({
+        NodeType::AudioMixer,
+        NodeType::AvatarMixer,
+        NodeType::EntityServer,
+        NodeType::AssetServer
+    });
 
     _pingTimer = new QTimer(this);
     connect(_pingTimer, SIGNAL(timeout()), SLOT(sendPingRequests()));
