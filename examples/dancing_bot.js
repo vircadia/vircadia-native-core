@@ -19,7 +19,7 @@ Agent.isAvatar = true;
 
 var jointMapping;
 
-var frameIndex = 0.0;
+var currentFrame = 0.0;
 
 var FRAME_RATE = 30.0; // frames per second
 
@@ -35,9 +35,9 @@ Script.update.connect(function(deltaTime) {
             jointMapping[i] = animationJointNames.indexOf(avatarJointNames[i]);
         }
     }
-    frameIndex += deltaTime * FRAME_RATE;
+    currentFrame += deltaTime * FRAME_RATE;
     var frames = animation.frames;
-    var rotations = frames[Math.floor(frameIndex) % frames.length].rotations;
+    var rotations = frames[Math.floor(currentFrame) % frames.length].rotations;
     for (var j = 0; j < jointMapping.length; j++) {
         var rotationIndex = jointMapping[j];
         if (rotationIndex != -1) {

@@ -128,25 +128,6 @@
       </item>
      </layout>
     </item>
-    <item>
-     <widget class="QPlainTextEdit" name="debugText">
-      <property name="sizePolicy">
-       <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
-        <horstretch>0</horstretch>
-        <verstretch>0</verstretch>
-       </sizepolicy>
-      </property>
-      <property name="styleSheet">
-       <string notr="true">font: 15px &quot;Courier&quot;;</string>
-      </property>
-      <property name="readOnly">
-       <bool>true</bool>
-      </property>
-      <property name="plainText">
-       <string/>
-      </property>
-     </widget>
-    </item>
    </layout>
   </widget>
  </widget>
@@ -158,22 +139,4 @@
   </customwidget>
  </customwidgets>
  <resources/>
- <connections>
-  <connection>
-   <sender>clearButton</sender>
-   <signal>clicked()</signal>
-   <receiver>debugText</receiver>
-   <slot>clear()</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>663</x>
-     <y>447</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>350</x>
-     <y>501</y>
-    </hint>
-   </hints>
-  </connection>
- </connections>
 </ui>

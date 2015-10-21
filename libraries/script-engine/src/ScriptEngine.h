@@ -45,6 +45,7 @@ class EntityScriptDetails {
 public:
     QString scriptText;
     QScriptValue scriptObject;
+    int64_t lastModified;
 };
 
 class ScriptEngine : public QScriptEngine, public ScriptUser, public EntitiesScriptEngineProvider {
@@ -82,6 +83,9 @@ public:
     /// register a function as a method on a previously registered global object
     Q_INVOKABLE void registerFunction(const QString& parent, const QString& name, QScriptEngine::FunctionSignature fun,
                           int numArguments = -1);
+
+    /// registers a global object by name
+    Q_INVOKABLE void registerValue(const QString& valueName, QScriptValue value);
 
     /// evaluate some code in the context of the ScriptEngine and return the result
     Q_INVOKABLE QScriptValue evaluate(const QString& program, const QString& fileName = QString(), int lineNumber = 1); // this is also used by the script tool widget
@@ -171,6 +175,7 @@ private:
     bool evaluatePending() const { return _evaluatesPending > 0; }
     void timerFired();
     void stopAllTimers();
+    void refreshFileScript(const EntityItemID& entityID);
 
     void setParentURL(const QString& parentURL) { _parentURL = parentURL; }
 

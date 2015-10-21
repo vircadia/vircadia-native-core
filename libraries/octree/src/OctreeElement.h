@@ -118,14 +118,6 @@ public:
     virtual bool deleteApproved() const { return true; }
 
     virtual bool canRayIntersect() const { return isLeaf(); }
-    virtual bool findRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
-                             bool& keepSearching, OctreeElementPointer& node, float& distance, BoxFace& face, 
-                             void** intersectedObject = NULL, bool precisionPicking = false);
-
-    virtual bool findDetailedRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
-                         bool& keepSearching, OctreeElementPointer& element, float& distance, BoxFace& face, 
-                         void** intersectedObject, bool precisionPicking, float distanceToElementCube);
-
     /// \param center center of sphere in meters
     /// \param radius radius of sphere in meters
     /// \param[out] penetration pointing into cube from sphere

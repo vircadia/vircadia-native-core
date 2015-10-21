@@ -37,6 +37,9 @@ static const float SCALING_RATIO = .05f;
 static const float SMOOTHING_RATIO = .05f; // 0 < ratio < 1
 static const float RESCALING_TOLERANCE = .02f;
 
+static const float BILLBOARD_FIELD_OF_VIEW = 30.0f; // degrees
+static const float BILLBOARD_DISTANCE = 5.56f;       // meters
+
 extern const float CHAT_MESSAGE_SCALE;
 extern const float CHAT_MESSAGE_HEIGHT;
 
@@ -77,7 +80,7 @@ public:
 
     typedef render::Payload<AvatarData> Payload;
     typedef std::shared_ptr<render::Item::PayloadInterface> PayloadPointer;
-
+    
     void init();
     void simulate(float deltaTime);
 
@@ -115,6 +118,7 @@ public:
     
     virtual QVector<glm::quat> getJointRotations() const;
     virtual glm::quat getJointRotation(int index) const;
+    virtual glm::vec3 getJointTranslation(int index) const;
     virtual int getJointIndex(const QString& name) const;
     virtual QStringList getJointNames() const;
     
@@ -170,6 +174,16 @@ public:
     void setMotionState(AvatarMotionState* motionState) { _motionState = motionState; }
     AvatarMotionState* getMotionState() { return _motionState; }
 
+public slots:
+    glm::vec3 getLeftPalmPosition();
+    glm::vec3 getLeftPalmVelocity();
+    glm::vec3 getLeftPalmAngularVelocity();
+    glm::quat getLeftPalmRotation();
+    glm::vec3 getRightPalmPosition();
+    glm::vec3 getRightPalmVelocity();
+    glm::vec3 getRightPalmAngularVelocity();
+    glm::quat getRightPalmRotation();
+
 protected:
     SkeletonModel _skeletonModel;
     glm::vec3 _skeletonOffset;
@@ -197,7 +211,9 @@ protected:
     glm::vec3 _worldUpDirection;
     float _stringLength;
     bool _moving; ///< set when position is changing
-
+    
+    bool isLookingAtMe(AvatarSharedPointer avatar);
+    
     // protected methods...
     glm::vec3 getBodyRightDirection() const { return getOrientation() * IDENTITY_RIGHT; }
     glm::vec3 getBodyUpDirection() const { return getOrientation() * IDENTITY_UP; }
@@ -211,8 +227,8 @@ protected:
     float getPelvisFloatingHeight() const;
     glm::vec3 getDisplayNamePosition() const;
 
-    Transform calculateDisplayNameTransform(const ViewFrustum& frustum, float fontSize, const glm::ivec4& viewport) const;
-    void renderDisplayName(gpu::Batch& batch, const ViewFrustum& frustum, const glm::ivec4& viewport) const;
+    Transform calculateDisplayNameTransform(const ViewFrustum& frustum, const glm::vec3& textPosition) const;
+    void renderDisplayName(gpu::Batch& batch, const ViewFrustum& frustum, const glm::vec3& textPosition) const;
     virtual void renderBody(RenderArgs* renderArgs, ViewFrustum* renderFrustum, float glowLevel = 0.0f);
     virtual bool shouldRenderHead(const RenderArgs* renderArgs) const;
     virtual void fixupModelsInScene();

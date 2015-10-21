@@ -18,7 +18,7 @@ var RainSquall = function (properties) {
         dropFallSpeed = 1,                                      // m/s
         dropLifetime = 60,                                      // Seconds
         dropSpinMax = 0,                                        // Maximum angular velocity per axis; deg/s
-        debug = false,                                          // Display origin circle; don't use running on Stack Manager
+        debug = true,                                          // Display origin circle; don't use running on Stack Manager
         // Other
         squallCircle,
         SQUALL_CIRCLE_COLOR = { red: 255, green: 0, blue: 0 },
@@ -151,8 +151,10 @@ var RainSquall = function (properties) {
     };
 };
 
+var center = Vec3.sum(MyAvatar.position, Vec3.multiply(3, Quat.getFront(Camera.getOrientation())));
+center.y += 10;
 var rainSquall1 = new RainSquall({
-    origin: { x: 1195, y: 1223, z: 1020 },
+    origin:center,
     radius: 25,
     dropsPerMinute: 120,
     dropSize: { x: 0.1, y: 0.1, z: 0.1 },

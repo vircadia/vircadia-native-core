@@ -18,8 +18,10 @@
 
 #include <avatar/AvatarManager.h>
 #include <Application.h>
+#include <AudioClient.h>
 #include <GeometryCache.h>
 #include <LODManager.h>
+#include <OffscreenUi.h>
 #include <PerfStat.h>
 
 #include "BandwidthRecorder.h"
@@ -46,6 +48,7 @@ Stats::Stats(QQuickItem* parent) :  QQuickItem(parent) {
     INSTANCE = this;
     const QFont font = QFontDatabase::systemFont(QFontDatabase::FixedFont);
     _monospaceFont = font.family();
+    _audioStats = &DependencyManager::get<AudioClient>()->getStats();
 }
 
 bool Stats::includeTimingRecord(const QString& name) {
@@ -89,14 +92,14 @@ bool Stats::includeTimingRecord(const QString& name) {
     }
 
 
-void Stats::updateStats() {
-    if (!Menu::getInstance()->isOptionChecked(MenuOption::Stats)) {
-        if (isVisible()) {
-            setVisible(false);
-        }
-        return;
-    } else {
-        if (!isVisible()) {
+void Stats::updateStats(bool force) {
+    if (!force) {
+        if (!Menu::getInstance()->isOptionChecked(MenuOption::Stats)) {
+            if (isVisible()) {
+                setVisible(false);
+            }
+            return;
+        } else if (!isVisible()) {
             setVisible(true);
         }
     }
@@ -114,7 +117,7 @@ void Stats::updateStats() {
     STAT_UPDATE(avatarCount, avatarManager->size() - 1);
     STAT_UPDATE(serverCount, nodeList->size());
     STAT_UPDATE(framerate, (int)qApp->getFps());
-    STAT_UPDATE(simrate, (int)Application::getInstance()->getAverageSimsPerSecond());
+    STAT_UPDATE(simrate, (int)qApp->getAverageSimsPerSecond());
     STAT_UPDATE(avatarSimrate, (int)qApp->getAvatarSimrate());
 
     auto bandwidthRecorder = DependencyManager::get<BandwidthRecorder>();
@@ -161,21 +164,21 @@ void Stats::updateStats() {
     STAT_UPDATE(position, QVector3D(avatarPos.x, avatarPos.y, avatarPos.z));
     STAT_UPDATE_FLOAT(velocity, glm::length(myAvatar->getVelocity()), 0.1f);
     STAT_UPDATE_FLOAT(yaw, myAvatar->getBodyYaw(), 0.1f);
-    if (_expanded) {
+    if (_expanded || force) {
         SharedNodePointer avatarMixer = nodeList->soloNodeOfType(NodeType::AvatarMixer);
         if (avatarMixer) {
-            STAT_UPDATE(avatarMixerKbps, roundf(
-                bandwidthRecorder->getAverageInputKilobitsPerSecond(NodeType::AvatarMixer) +
-                bandwidthRecorder->getAverageOutputKilobitsPerSecond(NodeType::AvatarMixer)));
-            STAT_UPDATE(avatarMixerPps, roundf(
-                bandwidthRecorder->getAverageInputPacketsPerSecond(NodeType::AvatarMixer) +
-                bandwidthRecorder->getAverageOutputPacketsPerSecond(NodeType::AvatarMixer)));
+            STAT_UPDATE(avatarMixerInKbps, roundf(bandwidthRecorder->getAverageInputKilobitsPerSecond(NodeType::AvatarMixer)));
+            STAT_UPDATE(avatarMixerInPps, roundf(bandwidthRecorder->getAverageInputPacketsPerSecond(NodeType::AvatarMixer)));
+            STAT_UPDATE(avatarMixerOutKbps, roundf(bandwidthRecorder->getAverageOutputKilobitsPerSecond(NodeType::AvatarMixer)));
+            STAT_UPDATE(avatarMixerOutPps, roundf(bandwidthRecorder->getAverageOutputPacketsPerSecond(NodeType::AvatarMixer)));
         } else {
-            STAT_UPDATE(avatarMixerKbps, -1);
-            STAT_UPDATE(avatarMixerPps, -1);
+            STAT_UPDATE(avatarMixerInKbps, -1);
+            STAT_UPDATE(avatarMixerInPps, -1);
+            STAT_UPDATE(avatarMixerOutKbps, -1);
+            STAT_UPDATE(avatarMixerOutPps, -1);
         }
         SharedNodePointer audioMixerNode = nodeList->soloNodeOfType(NodeType::AudioMixer);
-        if (audioMixerNode) {
+        if (audioMixerNode || force) {
             STAT_UPDATE(audioMixerKbps, roundf(
                 bandwidthRecorder->getAverageInputKilobitsPerSecond(NodeType::AudioMixer) +
                 bandwidthRecorder->getAverageOutputKilobitsPerSecond(NodeType::AudioMixer)));
@@ -206,7 +209,7 @@ void Stats::updateStats() {
     unsigned long totalLeaves = 0;
     std::stringstream sendingModeStream("");
     sendingModeStream << "[";
-    NodeToOctreeSceneStats* octreeServerSceneStats = Application::getInstance()->getOcteeSceneStats();
+    NodeToOctreeSceneStats* octreeServerSceneStats = qApp->getOcteeSceneStats();
     for (NodeToOctreeSceneStatsIterator i = octreeServerSceneStats->begin(); i != octreeServerSceneStats->end(); i++) {
         //const QUuid& uuid = i->first;
         OctreeSceneStats& stats = i->second;
@@ -230,7 +233,7 @@ void Stats::updateStats() {
             totalLeaves += stats.getTotalLeaves();
         }
     }
-    if (_expanded) {
+    if (_expanded || force) {
         if (serverCount == 0) {
             sendingModeStream << "---";
         }
@@ -272,7 +275,7 @@ void Stats::updateStats() {
     STAT_UPDATE(serverElements, (int)totalNodes);
     STAT_UPDATE(localElements, (int)OctreeElement::getNodeCount());
 
-    if (_expanded) {
+    if (_expanded || force) {
         STAT_UPDATE(serverInternal, (int)totalInternal);
         STAT_UPDATE(serverLeaves, (int)totalLeaves);
         // Local Voxels
@@ -339,14 +342,18 @@ void Stats::setRenderDetails(const RenderDetails& details) {
     STAT_UPDATE(triangles, details._trianglesRendered);
     STAT_UPDATE(materialSwitches, details._materialSwitches);
     if (_expanded) {
-        STAT_UPDATE(meshOpaque, details._opaque._rendered);
-        STAT_UPDATE(meshTranslucent, details._opaque._rendered);
         STAT_UPDATE(opaqueConsidered, details._opaque._considered);
         STAT_UPDATE(opaqueOutOfView, details._opaque._outOfView);
         STAT_UPDATE(opaqueTooSmall, details._opaque._tooSmall);
+        STAT_UPDATE(opaqueRendered, details._opaque._rendered);
         STAT_UPDATE(translucentConsidered, details._translucent._considered);
         STAT_UPDATE(translucentOutOfView, details._translucent._outOfView);
         STAT_UPDATE(translucentTooSmall, details._translucent._tooSmall);
+        STAT_UPDATE(translucentRendered, details._translucent._rendered);
+        STAT_UPDATE(otherConsidered, details._other._considered);
+        STAT_UPDATE(otherOutOfView, details._other._outOfView);
+        STAT_UPDATE(otherTooSmall, details._other._tooSmall);
+        STAT_UPDATE(otherRendered, details._other._rendered);
     }
 }
 

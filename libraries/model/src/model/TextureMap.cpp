@@ -137,6 +137,40 @@ gpu::Texture* TextureUsage::create2DTextureFromImage(const QImage& srcImage, con
     return theTexture;
 }
 
+
+gpu::Texture* TextureUsage::createNormalTextureFromNormalImage(const QImage& srcImage, const std::string& srcImageName) {
+    QImage image = srcImage;
+
+    if (!image.hasAlphaChannel()) {
+        if (image.format() != QImage::Format_RGB888) {
+            image = image.convertToFormat(QImage::Format_RGB888);
+        }
+    } else {
+        if (image.format() != QImage::Format_ARGB32) {
+            image = image.convertToFormat(QImage::Format_ARGB32);
+        }
+    }
+
+    gpu::Texture* theTexture = nullptr;
+    if ((image.width() > 0) && (image.height() > 0)) {
+
+        bool isLinearRGB = true;
+
+        gpu::Element formatGPU = gpu::Element(gpu::VEC3, gpu::UINT8, (isLinearRGB ? gpu::RGB : gpu::SRGB));
+        gpu::Element formatMip = gpu::Element(gpu::VEC3, gpu::UINT8, (isLinearRGB ? gpu::RGB : gpu::SRGB));
+        if (image.hasAlphaChannel()) {
+            formatGPU = gpu::Element(gpu::VEC4, gpu::UINT8, (isLinearRGB ? gpu::RGBA : gpu::SRGBA));
+            formatMip = gpu::Element(gpu::VEC4, gpu::UINT8, (isLinearRGB ? gpu::BGRA : gpu::SBGRA));
+        }
+
+        theTexture = (gpu::Texture::create2D(formatGPU, image.width(), image.height(), gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_MIP_LINEAR)));
+        theTexture->assignStoredMip(0, formatMip, image.byteCount(), image.constBits());
+        theTexture->autoGenerateMips(-1);
+    }
+
+    return theTexture;
+}
+
 int clampPixelCoordinate(int coordinate, int maxCoordinate) {
     return coordinate - ((int)(coordinate < 0) * coordinate) + ((int)(coordinate > maxCoordinate) * (maxCoordinate - coordinate));
 }
@@ -152,6 +186,8 @@ double mapComponent(double sobelValue) {
 gpu::Texture* TextureUsage::createNormalTextureFromBumpImage(const QImage& srcImage, const std::string& srcImageName) {
     QImage image = srcImage;
     
+
+    #if 0
     // PR 5540 by AlessandroSigna
     // integrated here as a specialized TextureLoader for bumpmaps
     // The conversion is done using the Sobel Filter to calculate the derivatives from the grayscale image
@@ -202,6 +238,7 @@ gpu::Texture* TextureUsage::createNormalTextureFromBumpImage(const QImage& srcIm
             result.setPixel(i, j, qRgbValue);
         }
     }
+    #endif
     
     gpu::Texture* theTexture = nullptr;
     if ((image.width() > 0) && (image.height() > 0)) {

@@ -16,6 +16,7 @@
 #include <vector>
 
 #include "AnimNode.h"
+#include "IKTarget.h"
 
 #include "RotationAccumulator.h"
 
@@ -31,21 +32,15 @@ public:
     void loadPoses(const AnimPoseVec& poses);
     void computeAbsolutePoses(AnimPoseVec& absolutePoses) const;
 
-    void setTargetVars(const QString& jointName, const QString& positionVar, const QString& rotationVar);
+    void setTargetVars(const QString& jointName, const QString& positionVar, const QString& rotationVar, const QString& typeVar);
 
     virtual const AnimPoseVec& evaluate(const AnimVariantMap& animVars, float dt, AnimNode::Triggers& triggersOut) override;
     virtual const AnimPoseVec& overlay(const AnimVariantMap& animVars, float dt, Triggers& triggersOut, const AnimPoseVec& underPoses) override;
 
 protected:
-    struct IKTarget {
-        AnimPose pose;
-        int index;
-        int rootIndex;
-    };
-
-    void computeTargets(const AnimVariantMap& animVars, std::vector<IKTarget>& targets);
-    void solveWithCyclicCoordinateDescent(std::vector<IKTarget>& targets);
-    virtual void setSkeletonInternal(AnimSkeleton::ConstPointer skeleton);
+    void computeTargets(const AnimVariantMap& animVars, std::vector<IKTarget>& targets, const AnimPoseVec& underPoses);
+    void solveWithCyclicCoordinateDescent(const std::vector<IKTarget>& targets);
+    virtual void setSkeletonInternal(AnimSkeleton::ConstPointer skeleton) override;
 
     // for AnimDebugDraw rendering
     virtual const AnimPoseVec& getPosesInternal() const override { return _relativePoses; }
@@ -54,19 +49,27 @@ protected:
     void clearConstraints();
     void initConstraints();
 
+    // no copies
+    AnimInverseKinematics(const AnimInverseKinematics&) = delete;
+    AnimInverseKinematics& operator=(const AnimInverseKinematics&) = delete;
+
     struct IKTargetVar {
-        IKTargetVar(const QString& jointNameIn, const QString& positionVarIn, const QString& rotationVarIn) :
+        IKTargetVar(const QString& jointNameIn, 
+                const QString& positionVarIn, 
+                const QString& rotationVarIn, 
+                const QString& typeVarIn) :
             positionVar(positionVarIn),
             rotationVar(rotationVarIn),
+            typeVar(typeVarIn),
             jointName(jointNameIn),
-            jointIndex(-1),
-            rootIndex(-1) {}
+            jointIndex(-1)
+        {}
 
         QString positionVar;
         QString rotationVar;
+        QString typeVar;
         QString jointName;
         int jointIndex; // cached joint index
-        int rootIndex; // cached root index
     };
 
     std::map<int, RotationConstraint*> _constraints;
@@ -75,9 +78,9 @@ protected:
     AnimPoseVec _defaultRelativePoses; // poses of the relaxed state
     AnimPoseVec _relativePoses; // current relative poses
 
-    // no copies
-    AnimInverseKinematics(const AnimInverseKinematics&) = delete;
-    AnimInverseKinematics& operator=(const AnimInverseKinematics&) = delete;
+    // experimental data for moving hips during IK
+    int _headIndex = -1;
+    glm::vec3 _hipsOffset = Vectors::ZERO;
 
     // _maxTargetIndex is tracked to help optimize the recalculation of absolute poses
     // during the the cyclic coordinate descent algorithm

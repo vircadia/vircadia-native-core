@@ -16,18 +16,11 @@
 <@include gpu/Transform.slh@>
 <$declareStandardTransform()$>
 
-const int MAX_CLUSTERS = 128;
-const int INDICES_PER_VERTEX = 4;
-
-uniform mat4 clusterMatrices[MAX_CLUSTERS];
+<@include Skinning.slh@>
 
 void main(void) {
     vec4 position = vec4(0.0, 0.0, 0.0, 0.0);
-    for (int i = 0; i < INDICES_PER_VERTEX; i++) {
-        mat4 clusterMatrix = clusterMatrices[int(inSkinClusterIndex[i])];
-        float clusterWeight = inSkinClusterWeight[i];
-        position += clusterMatrix * inPosition * clusterWeight;
-    }
+    skinPosition(inSkinClusterIndex, inSkinClusterWeight, inPosition, position);
 
     // standard transform
     TransformCamera cam = getTransformCamera();

@@ -25,16 +25,18 @@ public:
     AssetUploadDialogFactory& operator=(const AssetUploadDialogFactory& rhs) = delete;
     
     static AssetUploadDialogFactory& getInstance();
+    static void showErrorDialog(AssetUpload* upload, QWidget* dialogParent, const QString& overrideMessage = QString());
     
     void setDialogParent(QWidget* dialogParent) { _dialogParent = dialogParent; }
+    
 public slots:
     void showDialog();
-private slots:
     void handleUploadFinished(AssetUpload* upload, const QString& hash);
-private:
-    AssetUploadDialogFactory();
     
-    void showErrorDialog(const QString& filename, const QString& additionalError);
+private:
+    AssetUploadDialogFactory() = default;
+    
+    
     
     QWidget* _dialogParent { nullptr };
 };

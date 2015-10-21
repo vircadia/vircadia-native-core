@@ -10,10 +10,11 @@
 
 #include "Overlays.h"
 
-#include <QScriptValueIterator>
-
 #include <limits>
 
+#include <QtScript/QScriptValueIterator>
+
+#include <OffscreenUi.h>
 #include <render/Scene.h>
 #include <RegisteredMetaTypes.h>
 
@@ -31,6 +32,7 @@
 #include "TextOverlay.h"
 #include "Text3DOverlay.h"
 #include "Web3DOverlay.h"
+#include <QtQuick/QQuickWindow>
 
 
 Overlays::Overlays() : _nextOverlayID(1) {
@@ -75,7 +77,7 @@ void Overlays::update(float deltatime) {
 
 void Overlays::cleanupOverlaysToDelete() {
     if (!_overlaysToDelete.isEmpty()) {
-        render::ScenePointer scene = Application::getInstance()->getMain3DScene();
+        render::ScenePointer scene = qApp->getMain3DScene();
         render::PendingChanges pendingChanges;
 
         {
@@ -168,7 +170,7 @@ unsigned int Overlays::addOverlay(const QString& type, const QScriptValue& prope
     } else if (type == Grid3DOverlay::TYPE) {
         thisOverlay = std::make_shared<Grid3DOverlay>();
     } else if (type == LocalModelsOverlay::TYPE) {
-        thisOverlay = std::make_shared<LocalModelsOverlay>(Application::getInstance()->getEntityClipboardRenderer());
+        thisOverlay = std::make_shared<LocalModelsOverlay>(qApp->getEntityClipboardRenderer());
     } else if (type == ModelOverlay::TYPE) {
         thisOverlay = std::make_shared<ModelOverlay>();
     } else if (type == Web3DOverlay::TYPE) {
@@ -195,7 +197,7 @@ unsigned int Overlays::addOverlay(Overlay::Pointer overlay) {
         } else {
             _overlaysWorld[thisID] = overlay;
 
-            render::ScenePointer scene = Application::getInstance()->getMain3DScene();
+            render::ScenePointer scene = qApp->getMain3DScene();
             render::PendingChanges pendingChanges;
 
             overlay->addToScene(overlay, scene, pendingChanges);
@@ -331,10 +333,6 @@ void Overlays::setParentPanel(unsigned int childId, unsigned int panelId) {
 
 unsigned int Overlays::getOverlayAtPoint(const glm::vec2& point) {
     glm::vec2 pointCopy = point;
-    if (qApp->isHMDMode()) {
-        pointCopy = qApp->getApplicationCompositor().screenToOverlay(point);
-    }
-    
     QReadLocker lock(&_lock);
     if (!_enabled) {
         return 0;
@@ -346,6 +344,7 @@ unsigned int Overlays::getOverlayAtPoint(const glm::vec2& point) {
     glm::vec3 origin(pointCopy.x, pointCopy.y, LARGE_NEGATIVE_FLOAT);
     glm::vec3 direction(0, 0, 1);
     BoxFace thisFace;
+    glm::vec3 thisSurfaceNormal;
     float distance;
 
     while (i.hasPrevious()) {
@@ -354,7 +353,7 @@ unsigned int Overlays::getOverlayAtPoint(const glm::vec2& point) {
         if (i.value()->is3D()) {
             auto thisOverlay = std::dynamic_pointer_cast<Base3DOverlay>(i.value());
             if (thisOverlay && !thisOverlay->getIgnoreRayIntersection()) {
-                if (thisOverlay->findRayIntersection(origin, direction, distance, thisFace)) {
+                if (thisOverlay->findRayIntersection(origin, direction, distance, thisFace, thisSurfaceNormal)) {
                     return thisID;
                 }
             }
@@ -423,8 +422,10 @@ RayToOverlayIntersectionResult Overlays::findRayIntersection(const PickRay& ray)
         if (thisOverlay && thisOverlay->getVisible() && !thisOverlay->getIgnoreRayIntersection() && thisOverlay->isLoaded()) {
             float thisDistance;
             BoxFace thisFace;
+            glm::vec3 thisSurfaceNormal;
             QString thisExtraInfo;
-            if (thisOverlay->findRayIntersectionExtraInfo(ray.origin, ray.direction, thisDistance, thisFace, thisExtraInfo)) {
+            if (thisOverlay->findRayIntersectionExtraInfo(ray.origin, ray.direction, thisDistance, 
+                                                            thisFace, thisSurfaceNormal, thisExtraInfo)) {
                 bool isDrawInFront = thisOverlay->getDrawInFront();
                 if (thisDistance < bestDistance && (!bestIsFront || isDrawInFront)) {
                     bestIsFront = isDrawInFront;
@@ -432,6 +433,7 @@ RayToOverlayIntersectionResult Overlays::findRayIntersection(const PickRay& ray)
                     result.intersects = true;
                     result.distance = thisDistance;
                     result.face = thisFace;
+                    result.surfaceNormal = thisSurfaceNormal;
                     result.overlayID = thisID;
                     result.intersection = ray.origin + (ray.direction * thisDistance);
                     result.extraInfo = thisExtraInfo;
@@ -602,4 +604,14 @@ void Overlays::deletePanel(unsigned int panelId) {
 
 bool Overlays::isAddedOverlay(unsigned int id) {
     return _overlaysHUD.contains(id) || _overlaysWorld.contains(id);
+}
+
+float Overlays::width() const {
+    auto offscreenUi = DependencyManager::get<OffscreenUi>();
+    return offscreenUi->getWindow()->size().width();
+}
+
+float Overlays::height() const {
+    auto offscreenUi = DependencyManager::get<OffscreenUi>();
+    return offscreenUi->getWindow()->size().height();
 }

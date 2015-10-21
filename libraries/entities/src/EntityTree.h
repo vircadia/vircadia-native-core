@@ -80,6 +80,14 @@ public:
     virtual int processEditPacketData(NLPacket& packet, const unsigned char* editData, int maxLength,
                                       const SharedNodePointer& senderNode);
 
+    virtual bool findRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
+        OctreeElementPointer& node, float& distance, BoxFace& face, glm::vec3& surfaceNormal,
+        const QVector<EntityItemID>& entityIdsToInclude = QVector<EntityItemID>(),
+        void** intersectedObject = NULL,
+        Octree::lockType lockType = Octree::TryLock,
+        bool* accurateResult = NULL,
+        bool precisionPicking = false);
+
     virtual bool rootElementHasData() const { return true; }
 
     // the root at least needs to store the number of entities in the packet/buffer
@@ -175,6 +183,9 @@ public:
     bool wantEditLogging() const { return _wantEditLogging; }
     void setWantEditLogging(bool value) { _wantEditLogging = value; }
 
+    bool wantTerseEditLogging() const { return _wantTerseEditLogging; }
+    void setWantTerseEditLogging(bool value) { _wantTerseEditLogging = value; }
+
     bool writeToMap(QVariantMap& entityDescription, OctreeElementPointer element, bool skipDefaultValues);
     bool readFromMap(QVariantMap& entityDescription);
 
@@ -240,6 +251,7 @@ private:
     EntitySimulation* _simulation;
 
     bool _wantEditLogging = false;
+    bool _wantTerseEditLogging = false;
     void maybeNotifyNewCollisionSoundURL(const QString& oldCollisionSoundURL, const QString& newCollisionSoundURL);
 
 

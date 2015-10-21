@@ -80,17 +80,20 @@ void ObjectMotionState::setBodyGravity(const glm::vec3& gravity) const {
 }
 
 glm::vec3 ObjectMotionState::getBodyLinearVelocity() const {
-    // returns the body's velocity unless it is moving too slow in which case returns zero
-    btVector3 velocity = _body->getLinearVelocity();
+    return bulletToGLM(_body->getLinearVelocity());
+}
 
+glm::vec3 ObjectMotionState::getBodyLinearVelocityGTSigma() const {
     // NOTE: the threshold to use here relates to the linear displacement threshold (dX) for sending updates
     // to objects that are tracked server-side (e.g. entities which use dX = 2mm).  Hence an object moving 
     // just under this velocity threshold would trigger an update about V/dX times per second.
     const float MIN_LINEAR_SPEED_SQUARED = 0.0036f; // 6 mm/sec
-    if (velocity.length2() < MIN_LINEAR_SPEED_SQUARED) {
+
+    glm::vec3 velocity = bulletToGLM(_body->getLinearVelocity());
+    if (glm::length2(velocity) < MIN_LINEAR_SPEED_SQUARED) {
         velocity *= 0.0f;
     }
-    return bulletToGLM(velocity);
+    return velocity;
 }
 
 glm::vec3 ObjectMotionState::getObjectLinearVelocityChange() const {
@@ -126,34 +129,34 @@ void ObjectMotionState::setRigidBody(btRigidBody* body) {
 }
 
 bool ObjectMotionState::handleEasyChanges(uint32_t flags, PhysicsEngine* engine) {
-    if (flags & EntityItem::DIRTY_POSITION) {
+    if (flags & Simulation::DIRTY_POSITION) {
         btTransform worldTrans;
-        if (flags & EntityItem::DIRTY_ROTATION) {
+        if (flags & Simulation::DIRTY_ROTATION) {
             worldTrans.setRotation(glmToBullet(getObjectRotation()));
         } else {
             worldTrans = _body->getWorldTransform();
         }
         worldTrans.setOrigin(glmToBullet(getObjectPosition()));
         _body->setWorldTransform(worldTrans);
-    } else if (flags & EntityItem::DIRTY_ROTATION) {
+    } else if (flags & Simulation::DIRTY_ROTATION) {
         btTransform worldTrans = _body->getWorldTransform();
         worldTrans.setRotation(glmToBullet(getObjectRotation()));
         _body->setWorldTransform(worldTrans);
     }
 
-    if (flags & EntityItem::DIRTY_LINEAR_VELOCITY) {
+    if (flags & Simulation::DIRTY_LINEAR_VELOCITY) {
         _body->setLinearVelocity(glmToBullet(getObjectLinearVelocity()));
         _body->setGravity(glmToBullet(getObjectGravity()));
     }
-    if (flags & EntityItem::DIRTY_ANGULAR_VELOCITY) {
+    if (flags & Simulation::DIRTY_ANGULAR_VELOCITY) {
         _body->setAngularVelocity(glmToBullet(getObjectAngularVelocity()));
     }
 
-    if (flags & EntityItem::DIRTY_MATERIAL) {
+    if (flags & Simulation::DIRTY_MATERIAL) {
         updateBodyMaterialProperties();
     }
 
-    if (flags & EntityItem::DIRTY_MASS) {
+    if (flags & Simulation::DIRTY_MASS) {
         updateBodyMassProperties();
     }
 
@@ -161,7 +164,7 @@ bool ObjectMotionState::handleEasyChanges(uint32_t flags, PhysicsEngine* engine)
 }
 
 bool ObjectMotionState::handleHardAndEasyChanges(uint32_t flags, PhysicsEngine* engine) {
-    if (flags & EntityItem::DIRTY_SHAPE) {
+    if (flags & Simulation::DIRTY_SHAPE) {
         // make sure the new shape is valid
         if (!isReadyToComputeShape()) {
             return false;
@@ -170,7 +173,7 @@ bool ObjectMotionState::handleHardAndEasyChanges(uint32_t flags, PhysicsEngine* 
         if (!newShape) {
             qCDebug(physics) << "Warning: failed to generate new shape!";
             // failed to generate new shape! --> keep old shape and remove shape-change flag
-            flags &= ~EntityItem::DIRTY_SHAPE;
+            flags &= ~Simulation::DIRTY_SHAPE;
             // TODO: force this object out of PhysicsEngine rather than just use the old shape
             if ((flags & HARD_DIRTY_PHYSICS_FLAGS) == 0) {
                 // no HARD flags remain, so do any EASY changes
@@ -186,7 +189,7 @@ bool ObjectMotionState::handleHardAndEasyChanges(uint32_t flags, PhysicsEngine* 
             _body->setCollisionShape(_shape);
         } else {
             // huh... the shape didn't actually change, so we clear the DIRTY_SHAPE flag
-            flags &= ~EntityItem::DIRTY_SHAPE;
+            flags &= ~Simulation::DIRTY_SHAPE;
         }
     }
     if (flags & EASY_DIRTY_PHYSICS_FLAGS) {

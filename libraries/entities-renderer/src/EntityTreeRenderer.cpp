@@ -113,9 +113,7 @@ void EntityTreeRenderer::init() {
         DependencyManager::get<EntityScriptingInterface>()->setEntitiesScriptEngine(_entitiesScriptEngine);
     }
 
-    // make sure our "last avatar position" is something other than our current position, so that on our
-    // first chance, we'll check for enter/leave entity events.
-    _lastAvatarPosition = _viewState->getAvatarPosition() + glm::vec3((float)TREE_SCALE);
+    forceRecheckEntities(); // setup our state to force checking our inside/outsideness of entities
 
     connect(entityTree.get(), &EntityTree::deletingEntity, this, &EntityTreeRenderer::deletingEntity, Qt::QueuedConnection);
     connect(entityTree.get(), &EntityTree::addingEntity, this, &EntityTreeRenderer::addingEntity, Qt::QueuedConnection);
@@ -141,6 +139,13 @@ void EntityTreeRenderer::update() {
         // check to see if the avatar has moved and if we need to handle enter/leave entity logic
         checkEnterLeaveEntities();
 
+        // even if we haven't changed positions, if we previously attempted to set the skybox, but
+        // have a pending download of the skybox texture, then we should attempt to reapply to 
+        // get the correct texture.
+        if (_pendingSkyboxTextureDownload) {
+            applyZonePropertiesToScene(_bestZone);
+        }
+
         // Even if we're not moving the mouse, if we started clicking on an entity and we have
         // not yet released the hold then this is still considered a holdingClickOnEntity event
         // and we want to simulate this message here as well as in mouse move
@@ -156,7 +161,7 @@ void EntityTreeRenderer::update() {
 void EntityTreeRenderer::checkEnterLeaveEntities() {
     if (_tree && !_shuttingDown) {
         glm::vec3 avatarPosition = _viewState->getAvatarPosition();
-        
+
         if (avatarPosition != _lastAvatarPosition) {
             float radius = 1.0f; // for now, assume 1 meter radius
             QVector<EntityItemPointer> foundEntities;
@@ -238,12 +243,16 @@ void EntityTreeRenderer::leaveAllEntities() {
             _entitiesScriptEngine->callEntityScriptMethod(entityID, "leaveEntity");
         }
         _currentEntitiesInside.clear();
-        
-        // make sure our "last avatar position" is something other than our current position, so that on our
-        // first chance, we'll check for enter/leave entity events.
-        _lastAvatarPosition = _viewState->getAvatarPosition() + glm::vec3((float)TREE_SCALE);
+        forceRecheckEntities();
     }
 }
+
+void EntityTreeRenderer::forceRecheckEntities() {
+    // make sure our "last avatar position" is something other than our current position, 
+    // so that on our next chance, we'll check for enter/leave entity events.
+    _lastAvatarPosition = _viewState->getAvatarPosition() + glm::vec3((float)TREE_SCALE);
+}
+
 
 void EntityTreeRenderer::applyZonePropertiesToScene(std::shared_ptr<ZoneEntityItem> zone) {
     QSharedPointer<SceneScriptingInterface> scene = DependencyManager::get<SceneScriptingInterface>();
@@ -289,7 +298,8 @@ void EntityTreeRenderer::applyZonePropertiesToScene(std::shared_ptr<ZoneEntityIt
             
             _viewState->overrideEnvironmentData(data);
             scene->getSkyStage()->setBackgroundMode(model::SunSkyStage::SKY_DOME);
-            
+            _pendingSkyboxTextureDownload = false;
+
         } else {
             _viewState->endOverrideEnvironmentData();
             auto stage = scene->getSkyStage();
@@ -308,17 +318,26 @@ void EntityTreeRenderer::applyZonePropertiesToScene(std::shared_ptr<ZoneEntityIt
                 }
                 if (zone->getSkyboxProperties().getURL().isEmpty()) {
                     skybox->setCubemap(gpu::TexturePointer());
+                    _pendingSkyboxTextureDownload = false;
                 } else {
                     // Update the Texture of the Skybox with the one pointed by this zone
                     auto cubeMap = DependencyManager::get<TextureCache>()->getTexture(zone->getSkyboxProperties().getURL(), CUBE_TEXTURE);
-                    skybox->setCubemap(cubeMap->getGPUTexture());
+
+                    if (cubeMap->getGPUTexture()) {
+                        skybox->setCubemap(cubeMap->getGPUTexture());
+                        _pendingSkyboxTextureDownload = false;
+                    } else {
+                        _pendingSkyboxTextureDownload = true;
+                    }
                 }
                 stage->setBackgroundMode(model::SunSkyStage::SKY_BOX);
             } else {
                 stage->setBackgroundMode(model::SunSkyStage::SKY_DOME); // let the application atmosphere through
+                _pendingSkyboxTextureDownload = false;
             }
         }
     } else {
+        _pendingSkyboxTextureDownload = false;
         if (_hasPreviousZone) {
             scene->setKeyLightColor(_previousKeyLightColor);
             scene->setKeyLightIntensity(_previousKeyLightIntensity);
@@ -463,16 +482,17 @@ void EntityTreeRenderer::deleteReleasedModels() {
 }
 
 RayToEntityIntersectionResult EntityTreeRenderer::findRayIntersectionWorker(const PickRay& ray, Octree::lockType lockType,
-                                                                                    bool precisionPicking) {
+                                                                                    bool precisionPicking, const QVector<EntityItemID>& entityIdsToInclude) {
     RayToEntityIntersectionResult result;
     if (_tree) {
         EntityTreePointer entityTree = std::static_pointer_cast<EntityTree>(_tree);
 
         OctreeElementPointer element;
         EntityItemPointer intersectedEntity = NULL;
-        result.intersects = entityTree->findRayIntersection(ray.origin, ray.direction, element, result.distance, result.face,
-                                                                (void**)&intersectedEntity, lockType, &result.accurate,
-                                                                precisionPicking);
+        result.intersects = entityTree->findRayIntersection(ray.origin, ray.direction, element, result.distance, 
+                                                            result.face, result.surfaceNormal, entityIdsToInclude,
+                                                            (void**)&intersectedEntity, lockType, &result.accurate,
+                                                            precisionPicking);
         if (result.intersects && intersectedEntity) {
             result.entityID = intersectedEntity->getEntityItemID();
             result.properties = intersectedEntity->getProperties();
@@ -641,6 +661,8 @@ void EntityTreeRenderer::deletingEntity(const EntityItemID& entityID) {
         _entitiesScriptEngine->unloadEntityScript(entityID);
     }
 
+    forceRecheckEntities(); // reset our state to force checking our inside/outsideness of entities
+
     // here's where we remove the entity payload from the scene
     if (_entitiesInScene.contains(entityID)) {
         auto entity = _entitiesInScene.take(entityID);
@@ -652,6 +674,7 @@ void EntityTreeRenderer::deletingEntity(const EntityItemID& entityID) {
 }
 
 void EntityTreeRenderer::addingEntity(const EntityItemID& entityID) {
+    forceRecheckEntities(); // reset our state to force checking our inside/outsideness of entities
     checkAndCallPreload(entityID);
     auto entity = std::static_pointer_cast<EntityTree>(_tree)->findEntityByID(entityID);
     if (entity) {
@@ -681,7 +704,9 @@ void EntityTreeRenderer::checkAndCallPreload(const EntityItemID& entityID, const
     if (_tree && !_shuttingDown) {
         EntityItemPointer entity = getTree()->findEntityByEntityItemID(entityID);
         if (entity && !entity->getScript().isEmpty()) {
-            _entitiesScriptEngine->loadEntityScript(entityID, entity->getScript(), reload);
+            QString scriptUrl = entity->getScript();
+            scriptUrl = ResourceManager::normalizeURL(scriptUrl);
+            _entitiesScriptEngine->loadEntityScript(entityID, scriptUrl, reload);
         }
     }
 }

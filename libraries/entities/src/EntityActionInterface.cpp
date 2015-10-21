@@ -232,16 +232,38 @@ float EntityActionInterface::extractFloatArgument(QString objectName, QVariantMa
         return 0.0f;
     }
 
-    QVariant vV = arguments[argumentName];
-    bool vOk = true;
-    float v = vV.toFloat(&vOk);
+    QVariant variant = arguments[argumentName];
+    bool variantOk = true;
+    float value = variant.toFloat(&variantOk);
 
-    if (!vOk || v != v) {
+    if (!variantOk || std::isnan(value)) {
         ok = false;
         return 0.0f;
     }
 
-    return v;
+    return value;
+}
+
+int EntityActionInterface::extractIntegerArgument(QString objectName, QVariantMap arguments,
+                                                  QString argumentName, bool& ok, bool required) {
+    if (!arguments.contains(argumentName)) {
+        if (required) {
+            qDebug() << objectName << "requires argument:" << argumentName;
+        }
+        ok = false;
+        return 0.0f;
+    }
+
+    QVariant variant = arguments[argumentName];
+    bool variantOk = true;
+    int value = variant.toInt(&variantOk);
+
+    if (!variantOk) {
+        ok = false;
+        return 0;
+    }
+
+    return value;
 }
 
 QString EntityActionInterface::extractStringArgument(QString objectName, QVariantMap arguments,
@@ -253,11 +275,22 @@ QString EntityActionInterface::extractStringArgument(QString objectName, QVarian
         ok = false;
         return "";
     }
-
-    QVariant vV = arguments[argumentName];
-    QString v = vV.toString();
-    return v;
+    return arguments[argumentName].toString();
 }
+
+bool EntityActionInterface::extractBooleanArgument(QString objectName, QVariantMap arguments,
+                                                   QString argumentName, bool& ok, bool required) {
+    if (!arguments.contains(argumentName)) {
+        if (required) {
+            qDebug() << objectName << "requires argument:" << argumentName;
+        }
+        ok = false;
+        return false;
+    }
+    return arguments[argumentName].toBool();
+}
+
+
 
 QDataStream& operator<<(QDataStream& stream, const EntityActionType& entityActionType)
 {

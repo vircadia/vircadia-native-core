@@ -18,11 +18,8 @@
 
 <$declareStandardTransform()$>
 
-const int MAX_TEXCOORDS = 2;
-const int MAX_CLUSTERS = 128;
-const int INDICES_PER_VERTEX = 4;
+<@include Skinning.slh@>
 
-uniform mat4 clusterMatrices[MAX_CLUSTERS];
 uniform mat4 texcoordMatrices[MAX_TEXCOORDS];
 
 out vec4 _position;
@@ -32,13 +29,9 @@ out vec3 _color;
 
 void main(void) {
     vec4 position = vec4(0.0, 0.0, 0.0, 0.0);
-    vec4 interpolatedNormal = vec4(0.0, 0.0, 0.0, 0.0);
-    for (int i = 0; i < INDICES_PER_VERTEX; i++) {
-        mat4 clusterMatrix = clusterMatrices[int(inSkinClusterIndex[i])];
-        float clusterWeight = inSkinClusterWeight[i];
-        position += clusterMatrix * inPosition * clusterWeight;
-        interpolatedNormal += clusterMatrix * vec4(inNormal.xyz, 0.0) * clusterWeight;
-    }
+    vec3 interpolatedNormal = vec3(0.0, 0.0, 0.0);
+
+    skinPositionNormal(inSkinClusterIndex, inSkinClusterWeight, inPosition, inNormal.xyz, position, interpolatedNormal);
 
     // pass along the diffuse color
     _color = inColor.rgb;

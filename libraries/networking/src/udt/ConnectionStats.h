@@ -13,16 +13,13 @@
 #define hifi_ConnectionStats_h
 
 #include <chrono>
-#include <vector>
+#include <array>
 
 namespace udt {
 
 class ConnectionStats {
 public:
     struct Stats {
-        std::chrono::microseconds startTime;
-        std::chrono::microseconds endTime;
-        
         enum Event {
             SentACK,
             ReceivedACK,
@@ -41,8 +38,14 @@ public:
             NumEvents
         };
         
+        using microseconds = std::chrono::microseconds;
+        using Events = std::array<int, NumEvents>;
+        
+        microseconds startTime;
+        microseconds endTime;
+        
         // construct a vector for the events of the size of our Enum - default value is zero
-        std::vector<int> events = std::vector<int>((int) Event::NumEvents, 0);
+        Events events;
         
         // packet counts and sizes
         int sentPackets { 0 };
@@ -66,6 +69,9 @@ public:
         int rtt { 0 };
         int congestionWindowSize { 0 };
         int packetSendPeriod { 0 };
+        
+        // TODO: Remove once Win build supports brace initialization: `Events events {{ 0 }};`
+        Stats() { events.fill(0); }
     };
     
     ConnectionStats();

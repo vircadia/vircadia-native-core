@@ -43,5 +43,6 @@ Q_DECLARE_METATYPE(EntityItemID);
 Q_DECLARE_METATYPE(QVector<EntityItemID>);
 QScriptValue EntityItemIDtoScriptValue(QScriptEngine* engine, const EntityItemID& properties);
 void EntityItemIDfromScriptValue(const QScriptValue &object, EntityItemID& properties);
+QVector<EntityItemID> qVectorEntityItemIDFromScriptValue(const QScriptValue& array);
 
 #endif // hifi_EntityItemID_h

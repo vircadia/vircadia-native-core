@@ -20,8 +20,8 @@ MarketplaceDialog::MarketplaceDialog(QQuickItem* parent) : OffscreenQmlDialog(pa
 
 bool MarketplaceDialog::navigationRequested(const QString& url) {
     qDebug() << url;
-    if (Application::getInstance()->canAcceptURL(url)) {
-        if (Application::getInstance()->acceptURL(url)) {
+    if (qApp->canAcceptURL(url)) {
+        if (qApp->acceptURL(url)) {
             return false; // we handled it, so QWebPage doesn't need to handle it
         }
     }

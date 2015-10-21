@@ -30,7 +30,8 @@ public:
     virtual bool setProperties(const EntityItemProperties& properties);
     virtual int readEntitySubclassDataFromBuffer(const unsigned char* data, int bytesLeftToRead,
                                                  ReadBitstreamToTreeParams& args,
-                                                 EntityPropertyFlags& propertyFlags, bool overwriteLocalData);
+                                                 EntityPropertyFlags& propertyFlags, bool overwriteLocalData,
+                                                 bool& somethingChanged);
 
     virtual void render(RenderArgs* args);
     virtual bool contains(const glm::vec3& point) const;

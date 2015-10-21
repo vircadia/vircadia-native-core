@@ -19,6 +19,7 @@
 #include <ViewFrustum.h>
 #include <gpu/Context.h>
 
+
 using namespace render;
 
 DrawSceneTask::DrawSceneTask() : Task() {
@@ -114,6 +115,26 @@ void CullItems::run(const SceneContextPointer& sceneContext, const RenderContext
 
     outItems.clear();
     outItems.reserve(inItems.size());
+    RenderArgs* args = renderContext->args;
+    args->_details.pointTo(RenderDetails::OTHER_ITEM);
+    cullItems(sceneContext, renderContext, inItems, outItems);
+}
+
+void CullItemsOpaque::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const ItemIDsBounds& inItems, ItemIDsBounds& outItems) {
+
+    outItems.clear();
+    outItems.reserve(inItems.size());
+    RenderArgs* args = renderContext->args;
+    args->_details.pointTo(RenderDetails::OPAQUE_ITEM);
+    cullItems(sceneContext, renderContext, inItems, outItems);
+}
+
+void CullItemsTransparent::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const ItemIDsBounds& inItems, ItemIDsBounds& outItems) {
+
+    outItems.clear();
+    outItems.reserve(inItems.size());
+    RenderArgs* args = renderContext->args;
+    args->_details.pointTo(RenderDetails::TRANSLUCENT_ITEM);
     cullItems(sceneContext, renderContext, inItems, outItems);
 }
 
@@ -232,13 +253,14 @@ void DrawLight::run(const SceneContextPointer& sceneContext, const RenderContext
 
     ItemIDsBounds culledItems;
     culledItems.reserve(inItems.size());
+    RenderArgs* args = renderContext->args;
+    args->_details.pointTo(RenderDetails::OTHER_ITEM);
     cullItems(sceneContext, renderContext, inItems, culledItems);
 
-    RenderArgs* args = renderContext->args;
-    gpu::Batch theBatch;
-    args->_batch = &theBatch;
-    renderItems(sceneContext, renderContext, culledItems);
-    args->_context->render((*args->_batch));
+    gpu::doInBatch(args->_context, [=](gpu::Batch& batch) {
+        args->_batch = &batch;
+        renderItems(sceneContext, renderContext, culledItems);
+    });
     args->_batch = nullptr;
 }
 
@@ -257,22 +279,22 @@ void DrawBackground::run(const SceneContextPointer& sceneContext, const RenderCo
         inItems.emplace_back(id);
     }
     RenderArgs* args = renderContext->args;
-    gpu::Batch batch;
-    batch.enableSkybox(true);
-    batch.setViewportTransform(args->_viewport);
-    batch.setStateScissorRect(args->_viewport);
-    args->_batch = &batch;
+    doInBatch(args->_context, [=](gpu::Batch& batch) {
+        args->_batch = &batch;
+        batch.enableSkybox(true);
+        batch.setViewportTransform(args->_viewport);
+        batch.setStateScissorRect(args->_viewport);
 
-    glm::mat4 projMat;
-    Transform viewMat;
-    args->_viewFrustum->evalProjectionMatrix(projMat);
-    args->_viewFrustum->evalViewTransform(viewMat);
+        glm::mat4 projMat;
+        Transform viewMat;
+        args->_viewFrustum->evalProjectionMatrix(projMat);
+        args->_viewFrustum->evalViewTransform(viewMat);
 
-    batch.setProjectionTransform(projMat);
-    batch.setViewTransform(viewMat);
+        batch.setProjectionTransform(projMat);
+        batch.setViewTransform(viewMat);
 
-    renderItems(sceneContext, renderContext, inItems);
-    args->_context->render((*args->_batch));
+        renderItems(sceneContext, renderContext, inItems);
+    });
     args->_batch = nullptr;
 }
 

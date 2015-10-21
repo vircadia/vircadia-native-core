@@ -25,15 +25,17 @@
 #include <Transform.h>
 
 #include "EntityItemID.h"
-#include "EntityItemProperties.h"
 #include "EntityItemPropertiesDefaults.h"
+#include "EntityPropertyFlags.h"
 #include "EntityTypes.h"
 #include "SimulationOwner.h"
+#include "SimulationFlags.h"
 
 class EntitySimulation;
 class EntityTreeElement;
 class EntityTreeElementExtraEncodeData;
 class EntityActionInterface;
+class EntityItemProperties;
 class EntityTree;
 typedef std::shared_ptr<EntityTree> EntityTreePointer;
 typedef std::shared_ptr<EntityActionInterface> EntityActionPointer;
@@ -101,24 +103,6 @@ class EntityItem : public std::enable_shared_from_this<EntityItem>, public ReadW
     friend class EntityTreeElement;
     friend class EntitySimulation;
 public:
-    enum EntityDirtyFlags {
-        DIRTY_POSITION = 0x0001,
-        DIRTY_ROTATION = 0x0002,
-        DIRTY_LINEAR_VELOCITY = 0x0004,
-        DIRTY_ANGULAR_VELOCITY = 0x0008,
-        DIRTY_MASS = 0x0010,
-        DIRTY_COLLISION_GROUP = 0x0020,
-        DIRTY_MOTION_TYPE = 0x0040,
-        DIRTY_SHAPE = 0x0080,
-        DIRTY_LIFETIME = 0x0100,
-        DIRTY_UPDATEABLE = 0x0200,
-        DIRTY_MATERIAL = 0x00400,
-        DIRTY_PHYSICS_ACTIVATION = 0x0800, // should activate object in physics engine
-        DIRTY_SIMULATOR_OWNERSHIP = 0x1000, // should claim simulator ownership
-        DIRTY_SIMULATOR_ID = 0x2000, // the simulatorID has changed
-        DIRTY_TRANSFORM = DIRTY_POSITION | DIRTY_ROTATION,
-        DIRTY_VELOCITIES = DIRTY_LINEAR_VELOCITY | DIRTY_ANGULAR_VELOCITY
-    };
 
     DONT_ALLOW_INSTANTIATION // This class can not be instantiated directly
 
@@ -179,8 +163,9 @@ public:
 
     virtual int readEntitySubclassDataFromBuffer(const unsigned char* data, int bytesLeftToRead,
                                                 ReadBitstreamToTreeParams& args,
-                                                EntityPropertyFlags& propertyFlags, bool overwriteLocalData)
-                                                { return 0; }
+                                                EntityPropertyFlags& propertyFlags, bool overwriteLocalData,
+                                                bool& somethingChanged)
+                                                { somethingChanged = false; return 0; }
 
     virtual bool addToScene(EntityItemPointer self, std::shared_ptr<render::Scene> scene,
                             render::PendingChanges& pendingChanges) { return false; } // by default entity items don't add to scene
@@ -206,7 +191,8 @@ public:
 
     virtual bool supportsDetailedRayIntersection() const { return false; }
     virtual bool findDetailedRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
-                         bool& keepSearching, OctreeElementPointer& element, float& distance, BoxFace& face,
+                         bool& keepSearching, OctreeElementPointer& element, float& distance, 
+                         BoxFace& face, glm::vec3& surfaceNormal,
                          void** intersectedObject, bool precisionPicking) const { return true; }
 
     // attributes applicable to all entity types
@@ -333,7 +319,7 @@ public:
     bool getCollisionsWillMove() const { return _collisionsWillMove; }
     void setCollisionsWillMove(bool value) { _collisionsWillMove = value; }
 
-    virtual bool shouldBePhysical() const { return !_ignoreForCollisions; }
+    virtual bool shouldBePhysical() const { return false; }
 
     bool getLocked() const { return _locked; }
     void setLocked(bool value) { _locked = value; }
@@ -408,7 +394,7 @@ public:
 
     void getAllTerseUpdateProperties(EntityItemProperties& properties) const;
 
-    void flagForOwnership() { _dirtyFlags |= DIRTY_SIMULATOR_OWNERSHIP; }
+    void flagForOwnership() { _dirtyFlags |= Simulation::DIRTY_SIMULATOR_OWNERSHIP; }
 
     bool addAction(EntitySimulation* simulation, EntityActionPointer action);
     bool updateAction(EntitySimulation* simulation, const QUuid& actionID, const QVariantMap& arguments);
@@ -421,6 +407,11 @@ public:
     QVariantMap getActionArguments(const QUuid& actionID) const;
     void deserializeActions();
     void setActionDataDirty(bool value) const { _actionDataDirty = value; }
+    bool shouldSuppressLocationEdits() const;
+
+    void setSourceUUID(const QUuid& sourceUUID) { _sourceUUID = sourceUUID; }
+    const QUuid& getSourceUUID() const { return _sourceUUID; }
+    bool matchesSourceUUID(const QUuid& sourceUUID) const  { return _sourceUUID == sourceUUID; }
 
 protected:
 
@@ -507,17 +498,23 @@ protected:
     bool addActionInternal(EntitySimulation* simulation, EntityActionPointer action);
     bool removeActionInternal(const QUuid& actionID, EntitySimulation* simulation = nullptr);
     void deserializeActionsInternal();
-    QByteArray serializeActions(bool& success) const;
+    void serializeActions(bool& success, QByteArray& result) const;
     QHash<QUuid, EntityActionPointer> _objectActions;
 
     static int _maxActionsDataSize;
     mutable QByteArray _allActionsDataCache;
+
     // when an entity-server starts up, EntityItem::setActionData is called before the entity-tree is
     // ready.  This means we can't find our EntityItemPointer or add the action to the simulation.  These
     // are used to keep track of and work around this situation.
     void checkWaitingToRemove(EntitySimulation* simulation = nullptr);
     mutable QSet<QUuid> _actionsToRemove;
     mutable bool _actionDataDirty = false;
+    // _previouslyDeletedActions is used to avoid an action being re-added due to server round-trip lag
+    static quint64 _rememberDeletedActionTime;
+    mutable QHash<QUuid, quint64> _previouslyDeletedActions;
+
+    QUuid _sourceUUID; /// the server node UUID we came from
 };
 
 #endif // hifi_EntityItem_h

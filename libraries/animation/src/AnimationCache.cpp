@@ -130,15 +130,15 @@ void Animation::animationParseError(int error, QString str) {
 
 AnimationDetails::AnimationDetails() :
     role(), url(), fps(0.0f), priority(0.0f), loop(false), hold(false), 
-    startAutomatically(false), firstFrame(0.0f), lastFrame(0.0f), running(false), frameIndex(0.0f) 
+    startAutomatically(false), firstFrame(0.0f), lastFrame(0.0f), running(false), currentFrame(0.0f) 
 {
 }
 
 AnimationDetails::AnimationDetails(QString role, QUrl url, float fps, float priority, bool loop,
-    bool hold, bool startAutomatically, float firstFrame, float lastFrame, bool running, float frameIndex) :
+    bool hold, bool startAutomatically, float firstFrame, float lastFrame, bool running, float currentFrame) :
     role(role), url(url), fps(fps), priority(priority), loop(loop), hold(hold), 
     startAutomatically(startAutomatically), firstFrame(firstFrame), lastFrame(lastFrame), 
-    running(running), frameIndex(frameIndex) 
+    running(running), currentFrame(currentFrame) 
 { 
 }
 
@@ -155,7 +155,7 @@ QScriptValue animationDetailsToScriptValue(QScriptEngine* engine, const Animatio
     obj.setProperty("firstFrame", details.firstFrame);
     obj.setProperty("lastFrame", details.lastFrame);
     obj.setProperty("running", details.running);
-    obj.setProperty("frameIndex", details.frameIndex);
+    obj.setProperty("currentFrame", details.currentFrame);
     return obj;
 }
 

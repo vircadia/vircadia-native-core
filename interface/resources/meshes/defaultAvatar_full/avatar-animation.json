@@ -16,22 +16,38 @@
                         {
                             "jointName": "RightHand",
                             "positionVar": "rightHandPosition",
-                            "rotationVar": "rightHandRotation"
+                            "rotationVar": "rightHandRotation",
+                            "typeVar": "rightHandType"
                         },
                         {
                             "jointName": "LeftHand",
                             "positionVar": "leftHandPosition",
-                            "rotationVar": "leftHandRotation"
+                            "rotationVar": "leftHandRotation",
+                            "typeVar": "leftHandType"
+                        },
+                        {
+                            "jointName": "RightFoot",
+                            "positionVar": "rightFootPosition",
+                            "rotationVar": "rightFootRotation",
+                            "typeVar": "rightFootType"
+                        },
+                        {
+                            "jointName": "LeftFoot",
+                            "positionVar": "leftFootPosition",
+                            "rotationVar": "leftFootRotation",
+                            "typeVar": "leftFootType"
                         },
                         {
                             "jointName": "Neck",
                             "positionVar": "neckPosition",
-                            "rotationVar": "neckRotation"
+                            "rotationVar": "neckRotation",
+                            "typeVar": "neckType"
                         },
                         {
                             "jointName": "Head",
                             "positionVar": "headPosition",
-                            "rotationVar": "headRotation"
+                            "rotationVar": "headRotation",
+                            "typeVar": "headType"
                         }
                     ]
                 },
@@ -49,7 +65,7 @@
                         "id": "spineLean",
                         "type": "manipulator",
                         "data": {
-                            "alpha": 1.0,
+                            "alpha": 0.0,
                             "joints": [
                                 { "var": "lean", "jointName": "Spine" }
                             ]
@@ -559,7 +575,7 @@
                                                 "id": "strafeLeft",
                                                 "type": "clip",
                                                 "data": {
-                                                    "url": "https://hifi-public.s3.amazonaws.com/ozan/anim/standard_anims/strafe_left.fbx",
+                                                    "url": "http://hifi-public.s3.amazonaws.com/ozan/anim/standard_anims/side_step_left.fbx",
                                                     "startFrame": 0.0,
                                                     "endFrame": 31.0,
                                                     "timeScale": 1.0,
@@ -571,7 +587,7 @@
                                                 "id": "strafeRight",
                                                 "type": "clip",
                                                 "data": {
-                                                    "url": "https://hifi-public.s3.amazonaws.com/ozan/anim/standard_anims/strafe_right.fbx",
+                                                    "url": "http://hifi-public.s3.amazonaws.com/ozan/anim/standard_anims/side_step_right.fbx",
                                                     "startFrame": 0.0,
                                                     "endFrame": 31.0,
                                                     "timeScale": 1.0,

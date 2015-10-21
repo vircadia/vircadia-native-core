@@ -46,15 +46,11 @@ public:
     static EntityActionType actionTypeFromString(QString actionTypeString);
     static QString actionTypeToString(EntityActionType actionType);
 
-protected:
-    virtual glm::vec3 getPosition() = 0;
-    virtual void setPosition(glm::vec3 position) = 0;
-    virtual glm::quat getRotation() = 0;
-    virtual void setRotation(glm::quat rotation) = 0;
-    virtual glm::vec3 getLinearVelocity() = 0;
-    virtual void setLinearVelocity(glm::vec3 linearVelocity) = 0;
-    virtual glm::vec3 getAngularVelocity() = 0;
-    virtual void setAngularVelocity(glm::vec3 angularVelocity) = 0;
+    virtual bool lifetimeIsOver() { return false; }
+
+    bool locallyAddedButNotYetReceived = false;
+
+    virtual bool shouldSuppressLocationEdits() { return false; }
 
     // these look in the arguments map for a named argument.  if it's not found or isn't well formed,
     // ok will be set to false (note that it's never set to true -- set it to true before calling these).
@@ -65,8 +61,22 @@ protected:
                                           QString argumentName, bool& ok, bool required = true);
     static float extractFloatArgument(QString objectName, QVariantMap arguments,
                                       QString argumentName, bool& ok, bool required = true);
+    static int extractIntegerArgument(QString objectName, QVariantMap arguments,
+                                      QString argumentName, bool& ok, bool required = true);
     static QString extractStringArgument(QString objectName, QVariantMap arguments,
                                          QString argumentName, bool& ok, bool required = true);
+    static bool extractBooleanArgument(QString objectName, QVariantMap arguments,
+                                       QString argumentName, bool& ok, bool required = true);
+
+protected:
+    virtual glm::vec3 getPosition() = 0;
+    virtual void setPosition(glm::vec3 position) = 0;
+    virtual glm::quat getRotation() = 0;
+    virtual void setRotation(glm::quat rotation) = 0;
+    virtual glm::vec3 getLinearVelocity() = 0;
+    virtual void setLinearVelocity(glm::vec3 linearVelocity) = 0;
+    virtual glm::vec3 getAngularVelocity() = 0;
+    virtual void setAngularVelocity(glm::vec3 angularVelocity) = 0;
 
     QUuid _id;
     EntityActionType _type;

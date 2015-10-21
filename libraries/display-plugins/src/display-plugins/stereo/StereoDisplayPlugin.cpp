@@ -61,9 +61,7 @@ glm::mat4 StereoDisplayPlugin::getProjection(Eye eye, const glm::mat4& baseProje
     return eyeProjection;
 }
 
-glm::mat4 StereoDisplayPlugin::getEyePose(Eye eye) const {
-    return mat4();
-}
+static const QString FRAMERATE = DisplayPlugin::MENU_PATH() + ">Framerate";
 
 std::vector<QAction*> _screenActions;
 void StereoDisplayPlugin::activate() {
@@ -80,6 +78,9 @@ void StereoDisplayPlugin::activate() {
             [this](bool clicked) { updateScreen(); }, true, checked, "Screens");
         _screenActions[i] = action;
     }
+
+    CONTAINER->removeMenu(FRAMERATE);
+
     CONTAINER->setFullscreen(qApp->primaryScreen());
     WindowOpenGLDisplayPlugin::activate();
 }

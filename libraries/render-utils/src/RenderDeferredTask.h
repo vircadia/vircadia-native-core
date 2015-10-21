@@ -59,6 +59,23 @@ public:
     typedef render::Job::ModelI<DrawTransparentDeferred, render::ItemIDsBounds> JobModel;
 };
 
+class DrawStencilDeferred {
+    static gpu::PipelinePointer _opaquePipeline; //lazy evaluation hence mutable
+public:
+    static const gpu::PipelinePointer& getOpaquePipeline();
+
+    void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext);
+
+    typedef render::Job::Model<DrawStencilDeferred> JobModel;
+};
+
+class DrawBackgroundDeferred {
+public:
+    void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext);
+
+    typedef render::Job::Model<DrawBackgroundDeferred> JobModel;
+};
+
 class DrawOverlay3D {
     static gpu::PipelinePointer _opaquePipeline; //lazy evaluation hence mutable
 public:

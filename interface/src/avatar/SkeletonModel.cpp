@@ -123,7 +123,7 @@ void SkeletonModel::updateRig(float deltaTime, glm::mat4 parentTransform) {
         Rig::HeadParameters headParams;
         headParams.modelRotation = getRotation();
         headParams.modelTranslation = getTranslation();
-        headParams.enableLean = qApp->getAvatarUpdater()->isHMDMode() && !myAvatar->getStandingHMDSensorMode();
+        headParams.enableLean = qApp->getAvatarUpdater()->isHMDMode();
         headParams.leanSideways = head->getFinalLeanSideways();
         headParams.leanForward = head->getFinalLeanForward();
         headParams.torsoTwist = head->getTorsoTwist();
@@ -135,7 +135,7 @@ void SkeletonModel::updateRig(float deltaTime, glm::mat4 parentTransform) {
             headParams.isInHMD = true;
 
             // get HMD position from sensor space into world space, and back into model space
-            AnimPose avatarToWorld(glm::vec3(1), myAvatar->getOrientation(), myAvatar->getPosition());
+            AnimPose avatarToWorld(glm::vec3(1.0f), myAvatar->getOrientation(), myAvatar->getPosition());
             glm::mat4 worldToAvatar = glm::inverse((glm::mat4)avatarToWorld);
             glm::mat4 worldHMDMat = myAvatar->getSensorToWorldMatrix() * myAvatar->getHMDSensorMatrix();
             glm::mat4 hmdMat = worldToAvatar * worldHMDMat;
@@ -229,6 +229,12 @@ void SkeletonModel::simulate(float deltaTime, bool fullUpdate) {
 
     Model::simulate(deltaTime, fullUpdate);
 
+    // let rig compute the model offset
+    glm::vec3 modelOffset;
+    if (_rig->getModelOffset(modelOffset)) {
+        setOffset(modelOffset);
+    }
+
     if (!isActive() || !_owningAvatar->isMyAvatar()) {
         return; // only simulate for own avatar
     }
@@ -246,33 +252,36 @@ void SkeletonModel::simulate(float deltaTime, bool fullUpdate) {
     Hand* hand = _owningAvatar->getHand();
     hand->getLeftRightPalmIndices(leftPalmIndex, rightPalmIndex);
 
-    const float HAND_RESTORATION_RATE = 0.25f;
-    if (leftPalmIndex == -1 && rightPalmIndex == -1) {
-        // palms are not yet set, use mouse
-        if (_owningAvatar->getHandState() == HAND_STATE_NULL) {
-            restoreRightHandPosition(HAND_RESTORATION_RATE, PALM_PRIORITY);
-        } else {
-            // transform into model-frame
-            glm::vec3 handPosition = glm::inverse(_rotation) * (_owningAvatar->getHandPosition() - _translation);
-            applyHandPosition(geometry.rightHandJointIndex, handPosition);
-        }
-        restoreLeftHandPosition(HAND_RESTORATION_RATE, PALM_PRIORITY);
-
-    } else if (leftPalmIndex == rightPalmIndex) {
-        // right hand only
-        applyPalmData(geometry.rightHandJointIndex, hand->getPalms()[leftPalmIndex]);
-        restoreLeftHandPosition(HAND_RESTORATION_RATE, PALM_PRIORITY);
-
-    } else {
-        if (leftPalmIndex != -1) {
-            applyPalmData(geometry.leftHandJointIndex, hand->getPalms()[leftPalmIndex]);
-        } else {
+    // Don't Relax toward hand positions when in animGraph mode.
+    if (!_rig->getEnableAnimGraph()) {
+        const float HAND_RESTORATION_RATE = 0.25f;
+        if (leftPalmIndex == -1 && rightPalmIndex == -1) {
+            // palms are not yet set, use mouse
+            if (_owningAvatar->getHandState() == HAND_STATE_NULL) {
+                restoreRightHandPosition(HAND_RESTORATION_RATE, PALM_PRIORITY);
+            } else {
+                // transform into model-frame
+                glm::vec3 handPosition = glm::inverse(_rotation) * (_owningAvatar->getHandPosition() - _translation);
+                applyHandPosition(geometry.rightHandJointIndex, handPosition);
+            }
             restoreLeftHandPosition(HAND_RESTORATION_RATE, PALM_PRIORITY);
-        }
-        if (rightPalmIndex != -1) {
-            applyPalmData(geometry.rightHandJointIndex, hand->getPalms()[rightPalmIndex]);
+
+        } else if (leftPalmIndex == rightPalmIndex) {
+            // right hand only
+            applyPalmData(geometry.rightHandJointIndex, hand->getPalms()[leftPalmIndex]);
+            restoreLeftHandPosition(HAND_RESTORATION_RATE, PALM_PRIORITY);
+
         } else {
-            restoreRightHandPosition(HAND_RESTORATION_RATE, PALM_PRIORITY);
+            if (leftPalmIndex != -1) {
+                applyPalmData(geometry.leftHandJointIndex, hand->getPalms()[leftPalmIndex]);
+            } else {
+                restoreLeftHandPosition(HAND_RESTORATION_RATE, PALM_PRIORITY);
+            }
+            if (rightPalmIndex != -1) {
+                applyPalmData(geometry.rightHandJointIndex, hand->getPalms()[rightPalmIndex]);
+            } else {
+                restoreRightHandPosition(HAND_RESTORATION_RATE, PALM_PRIORITY);
+            }
         }
     }
 }
@@ -317,7 +326,7 @@ void SkeletonModel::applyHandPosition(int jointIndex, const glm::vec3& position)
     float sign = (jointIndex == geometry.rightHandJointIndex) ? 1.0f : -1.0f;
     _rig->applyJointRotationDelta(jointIndex,
                                   rotationBetween(handRotation * glm::vec3(-sign, 0.0f, 0.0f), forearmVector),
-                                  true, PALM_PRIORITY);
+                                  PALM_PRIORITY);
 }
 
 void SkeletonModel::applyPalmData(int jointIndex, PalmData& palm) {
@@ -648,6 +657,7 @@ void SkeletonModel::computeBoundingShape() {
     // RECOVER FROM BOUNINDG SHAPE HACK: now that we're all done, restore the default pose
     for (int i = 0; i < numStates; i++) {
         _rig->restoreJointRotation(i, 1.0f, 1.0f);
+        _rig->restoreJointTranslation(i, 1.0f, 1.0f);
     }
 }
 

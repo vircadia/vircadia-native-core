@@ -9,11 +9,11 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include <QDesktopWidget>
+#include <QDialogButtonBox>
 #include <QFormLayout>
 #include <QGuiApplication>
-#include <QDialogButtonBox>
-
-#include <QDesktopWidget>
+#include <QLabel>
 #include <QPushButton>
 #include <QString>
 #include <QScreen>
@@ -22,6 +22,7 @@
 #include <plugins/PluginManager.h>
 #include <display-plugins/DisplayPlugin.h>
 
+#include "Application.h"
 #include "MainWindow.h"
 #include "Menu.h"
 #include "ui/DialogsManager.h"
@@ -78,11 +79,11 @@ HMDToolsDialog::HMDToolsDialog(QWidget* parent) :
     // what screens we're allowed on
     watchWindow(windowHandle());
     auto dialogsManager = DependencyManager::get<DialogsManager>();
-    if (Application::getInstance()->getRunningScriptsWidget()) {
-        watchWindow(Application::getInstance()->getRunningScriptsWidget()->windowHandle());
+    if (qApp->getRunningScriptsWidget()) {
+        watchWindow(qApp->getRunningScriptsWidget()->windowHandle());
     }
-    if (Application::getInstance()->getToolWindow()) {
-        watchWindow(Application::getInstance()->getToolWindow()->windowHandle());
+    if (qApp->getToolWindow()) {
+        watchWindow(qApp->getToolWindow()->windowHandle());
     }
     if (dialogsManager->getBandwidthDialog()) {
         watchWindow(dialogsManager->getBandwidthDialog()->windowHandle());
@@ -110,7 +111,7 @@ HMDToolsDialog::HMDToolsDialog(QWidget* parent) :
     });
 
     // watch for our application window moving screens. If it does we want to update our screen details
-    QWindow* mainWindow = Application::getInstance()->getWindow()->windowHandle();
+    QWindow* mainWindow = qApp->getWindow()->windowHandle();
     connect(mainWindow, &QWindow::screenChanged, [this]{
         updateUi();
     });
@@ -142,7 +143,7 @@ QString HMDToolsDialog::getDebugDetails() const {
     results += "Desktop's Primary Screen: " + desktopPrimaryScreen->name() + "\n";
 
     results += "Application Primary Screen: " + QGuiApplication::primaryScreen()->name() + "\n";
-    QScreen* mainWindowScreen = Application::getInstance()->getWindow()->windowHandle()->screen();
+    QScreen* mainWindowScreen = qApp->getWindow()->windowHandle()->screen();
     results += "Application Main Window Screen: " + mainWindowScreen->name() + "\n";
     results += "Total Screens: " + QString::number(QApplication::desktop()->screenCount()) + "\n";
 
@@ -159,15 +160,15 @@ void HMDToolsDialog::toggleHMDMode() {
 
 void HMDToolsDialog::enterHMDMode() {
     if (!qApp->isHMDMode()) {
-        Application::getInstance()->setActiveDisplayPlugin(_hmdPluginName);
-        Application::getInstance()->getWindow()->activateWindow();
+        qApp->setActiveDisplayPlugin(_hmdPluginName);
+        qApp->getWindow()->activateWindow();
     }
 }
 
 void HMDToolsDialog::leaveHMDMode() {
     if (qApp->isHMDMode()) {
-        Application::getInstance()->setActiveDisplayPlugin(_defaultPluginName);
-        Application::getInstance()->getWindow()->activateWindow();
+        qApp->setActiveDisplayPlugin(_defaultPluginName);
+        qApp->getWindow()->activateWindow();
     }
 }
 
@@ -200,7 +201,7 @@ void HMDToolsDialog::showEvent(QShowEvent* event) {
 
 void HMDToolsDialog::hideEvent(QHideEvent* event) {
     // center the cursor on the main application window
-    centerCursorOnWidget(Application::getInstance()->getWindow());
+    centerCursorOnWidget(qApp->getWindow());
 }
 
 void HMDToolsDialog::screenCountChanged(int newCount) {
@@ -275,7 +276,7 @@ void HMDWindowWatcher::windowScreenChanged(QScreen* screen) {
                 QScreen* betterScreen = NULL;
         
                 QScreen* lastApplicationScreen = _hmdTools->getLastApplicationScreen();
-                QWindow* appWindow = Application::getInstance()->getWindow()->windowHandle();
+                QWindow* appWindow = qApp->getWindow()->windowHandle();
                 QScreen* appScreen = appWindow->screen();
 
                 if (_previousScreen && _previousScreen != hmdScreen) {

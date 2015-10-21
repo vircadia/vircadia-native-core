@@ -1,0 +1,70 @@
+<!
+//  Skinning.slh
+//  libraries/render-utils/src
+//
+//  Created by Sam Gateau on 10/5/15.
+//  Copyright 2013 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+!>
+<@if not SKINNING_SLH@>
+<@def SKINNING_SLH@>
+
+const int MAX_TEXCOORDS = 2;
+const int MAX_CLUSTERS = 128;
+const int INDICES_PER_VERTEX = 4;
+
+layout(std140) uniform skinClusterBuffer {
+    mat4 clusterMatrices[MAX_CLUSTERS];
+};
+
+void skinPosition(vec4 skinClusterIndex, vec4 skinClusterWeight, vec4 inPosition, out vec4 skinnedPosition) {
+    vec4 newPosition = vec4(0.0, 0.0, 0.0, 0.0);
+
+    for (int i = 0; i < INDICES_PER_VERTEX; i++) {
+        mat4 clusterMatrix = clusterMatrices[int(skinClusterIndex[i])];
+        float clusterWeight = skinClusterWeight[i];
+        newPosition += clusterMatrix * inPosition * clusterWeight;
+    }
+
+    skinnedPosition = newPosition;
+}
+
+void skinPositionNormal(vec4 skinClusterIndex, vec4 skinClusterWeight, vec4 inPosition, vec3 inNormal,
+                        out vec4 skinnedPosition, out vec3 skinnedNormal) {
+    vec4 newPosition = vec4(0.0, 0.0, 0.0, 0.0);
+    vec4 newNormal = vec4(0.0, 0.0, 0.0, 0.0);
+
+    for (int i = 0; i < INDICES_PER_VERTEX; i++) {
+        mat4 clusterMatrix = clusterMatrices[int(skinClusterIndex[i])];
+        float clusterWeight = skinClusterWeight[i];
+        newPosition += clusterMatrix * inPosition * clusterWeight;
+        newNormal += clusterMatrix * vec4(inNormal.xyz, 0.0) * clusterWeight;
+    }
+
+    skinnedPosition = newPosition;
+    skinnedNormal = newNormal.xyz;
+}
+
+void skinPositionNormalTangent(vec4 skinClusterIndex, vec4 skinClusterWeight, vec4 inPosition, vec3 inNormal, vec3 inTangent,
+                               out vec4 skinnedPosition, out vec3 skinnedNormal, out vec3 skinnedTangent) {
+    vec4 newPosition = vec4(0.0, 0.0, 0.0, 0.0);
+    vec4 newNormal = vec4(0.0, 0.0, 0.0, 0.0);
+    vec4 newTangent = vec4(0.0, 0.0, 0.0, 0.0);
+
+    for (int i = 0; i < INDICES_PER_VERTEX; i++) {
+        mat4 clusterMatrix = clusterMatrices[int(skinClusterIndex[i])];
+        float clusterWeight = skinClusterWeight[i];
+        newPosition += clusterMatrix * inPosition * clusterWeight;
+        newNormal += clusterMatrix * vec4(inNormal.xyz, 0.0) * clusterWeight;
+        newTangent += clusterMatrix * vec4(inTangent.xyz, 0.0) * clusterWeight;
+    }
+
+    skinnedPosition = newPosition;
+    skinnedNormal = newNormal.xyz;
+    skinnedTangent = newTangent.xyz;
+}
+
+
+<@endif@>

@@ -11,12 +11,13 @@
 
 #include <QtCore/QCoreApplication>
 #include <QtCore/QEventLoop>
+#include <QtCore/QFileInfo>
 #include <QtCore/QTimer>
 #include <QtCore/QThread>
 #include <QtNetwork/QNetworkRequest>
 #include <QtNetwork/QNetworkReply>
-#include <QScriptEngine>
-#include <QScriptValue>
+#include <QtScript/QScriptEngine>
+#include <QtScript/QScriptValue>
 
 #include <AudioConstants.h>
 #include <AudioEffectOptions.h>
@@ -276,10 +277,6 @@ void ScriptEngine::init() {
     registerAvatarTypes(this);
     registerAudioMetaTypes(this);
 
-    if (_controllerScriptingInterface) {
-        _controllerScriptingInterface->registerControllerTypes(this);
-    }
-
     qScriptRegisterMetaType(this, EntityPropertyFlagsToScriptValue, EntityPropertyFlagsFromScriptValue);
     qScriptRegisterMetaType(this, EntityItemPropertiesToScriptValue, EntityItemPropertiesFromScriptValueHonorReadOnly);
     qScriptRegisterMetaType(this, EntityItemIDtoScriptValue, EntityItemIDfromScriptValue);
@@ -322,6 +319,43 @@ void ScriptEngine::init() {
 
     // constants
     globalObject().setProperty("TREE_SCALE", newVariant(QVariant(TREE_SCALE)));
+
+    if (_controllerScriptingInterface) {
+        _controllerScriptingInterface->registerControllerTypes(this);
+    }
+
+
+}
+
+void ScriptEngine::registerValue(const QString& valueName, QScriptValue value) {
+    if (QThread::currentThread() != thread()) {
+#ifdef THREAD_DEBUGGING
+        qDebug() << "*** WARNING *** ScriptEngine::registerValue() called on wrong thread [" << QThread::currentThread() << "], invoking on correct thread [" << thread() << "]  name:" << name;
+#endif
+        QMetaObject::invokeMethod(this, "registerValue",
+            Q_ARG(const QString&, valueName),
+            Q_ARG(QScriptValue, value));
+        return;
+    }
+
+    QStringList pathToValue = valueName.split(".");
+    int partsToGo = pathToValue.length();
+    QScriptValue partObject = globalObject();
+
+    for (const auto& pathPart : pathToValue) {
+        partsToGo--;
+        if (!partObject.property(pathPart).isValid()) {
+            if (partsToGo > 0) {
+                //QObject *object = new QObject;
+                QScriptValue partValue = newArray(); //newQObject(object, QScriptEngine::ScriptOwnership);
+                qDebug() << "partValue[" << pathPart<<"].isArray() :" << partValue.isArray();
+                partObject.setProperty(pathPart, partValue);
+            } else {
+                partObject.setProperty(pathPart, value);
+            }
+        }
+        partObject = partObject.property(pathPart);
+    }
 }
 
 void ScriptEngine::registerGlobalObject(const QString& name, QObject* object) {
@@ -338,9 +372,13 @@ void ScriptEngine::registerGlobalObject(const QString& name, QObject* object) {
     qDebug() << "ScriptEngine::registerGlobalObject() called on thread [" << QThread::currentThread() << "] name:" << name;
     #endif
 
-    if (object) {
-        QScriptValue value = newQObject(object);
-        globalObject().setProperty(name, value);
+    if (!globalObject().property(name).isValid()) {
+        if (object) {
+            QScriptValue value = newQObject(object);
+            globalObject().setProperty(name, value);
+        } else {
+            globalObject().setProperty(name, QScriptValue());
+        }
     }
 }
 
@@ -942,6 +980,7 @@ void ScriptEngine::entityScriptContentAvailable(const EntityItemID& entityID, co
     #endif
 
     auto scriptCache = DependencyManager::get<ScriptCache>();
+    bool isFileUrl = isURL && scriptOrURL.startsWith("file://");
 
     // first check the syntax of the script contents
     QScriptSyntaxCheckResult syntaxCheck = QScriptEngine::checkSyntax(contents);
@@ -950,7 +989,9 @@ void ScriptEngine::entityScriptContentAvailable(const EntityItemID& entityID, co
         qCDebug(scriptengine) << "   " << syntaxCheck.errorMessage() << ":"
                 << syntaxCheck.errorLineNumber() << syntaxCheck.errorColumnNumber();
         qCDebug(scriptengine) << "    SCRIPT:" << scriptOrURL;
-        scriptCache->addScriptToBadScriptList(scriptOrURL);
+        if (!isFileUrl) {
+            scriptCache->addScriptToBadScriptList(scriptOrURL);
+        }
         return; // done processing script
     }
 
@@ -965,14 +1006,21 @@ void ScriptEngine::entityScriptContentAvailable(const EntityItemID& entityID, co
         qCDebug(scriptengine) << "ScriptEngine::loadEntityScript() entity:" << entityID;
         qCDebug(scriptengine) << "    NOT CONSTRUCTOR";
         qCDebug(scriptengine) << "    SCRIPT:" << scriptOrURL;
-        scriptCache->addScriptToBadScriptList(scriptOrURL);
+        if (!isFileUrl) {
+            scriptCache->addScriptToBadScriptList(scriptOrURL);
+        }
         return; // done processing script
     }
 
-    QScriptValue entityScriptConstructor = evaluate(contents);
+    int64_t lastModified = 0;
+    if (isFileUrl) {
+        QString file = QUrl(scriptOrURL).toLocalFile();
+        lastModified = (quint64)QFileInfo(file).lastModified().toMSecsSinceEpoch();
+    }
 
+    QScriptValue entityScriptConstructor = evaluate(contents);
     QScriptValue entityScriptObject = entityScriptConstructor.construct();
-    EntityScriptDetails newDetails = { scriptOrURL, entityScriptObject };
+    EntityScriptDetails newDetails = { scriptOrURL, entityScriptObject, lastModified };
     _entityScripts[entityID] = newDetails;
     if (isURL) {
         setParentURL("");
@@ -1022,6 +1070,41 @@ void ScriptEngine::unloadAllEntityScripts() {
     _entityScripts.clear();
 }
 
+void ScriptEngine::refreshFileScript(const EntityItemID& entityID) {
+    if (!_entityScripts.contains(entityID)) {
+        return;
+    }
+
+    static bool recurseGuard = false;
+    if (recurseGuard) {
+        return;
+    }
+    recurseGuard = true;
+
+    EntityScriptDetails details = _entityScripts[entityID];
+    // Check to see if a file based script needs to be reloaded (easier debugging)
+    if (details.lastModified > 0) {
+        QString filePath = QUrl(details.scriptText).toLocalFile();
+        auto lastModified = QFileInfo(filePath).lastModified().toMSecsSinceEpoch();
+        if (lastModified > details.lastModified) {
+            qDebug() << "Reloading modified script " << details.scriptText;
+
+            QFile file(filePath);
+            file.open(QIODevice::ReadOnly);
+            QString scriptContents = QTextStream(&file).readAll();
+            this->unloadEntityScript(entityID);
+            this->entityScriptContentAvailable(entityID, details.scriptText, scriptContents, true, true);
+            if (!_entityScripts.contains(entityID)) {
+                qWarning() << "Reload script " << details.scriptText << " failed";
+            } else {
+                details = _entityScripts[entityID];
+            }
+        }
+    }
+    recurseGuard = false;
+}
+
+
 void ScriptEngine::callEntityScriptMethod(const EntityItemID& entityID, const QString& methodName) {
     if (QThread::currentThread() != thread()) {
         #ifdef THREAD_DEBUGGING
@@ -1039,6 +1122,7 @@ void ScriptEngine::callEntityScriptMethod(const EntityItemID& entityID, const QS
         "entityID:" << entityID << "methodName:" << methodName;
     #endif
 
+    refreshFileScript(entityID);
     if (_entityScripts.contains(entityID)) {
         EntityScriptDetails details = _entityScripts[entityID];
         QScriptValue entityScript = details.scriptObject; // previously loaded
@@ -1069,6 +1153,7 @@ void ScriptEngine::callEntityScriptMethod(const EntityItemID& entityID, const QS
         "entityID:" << entityID << "methodName:" << methodName << "event: mouseEvent";
     #endif
 
+    refreshFileScript(entityID);
     if (_entityScripts.contains(entityID)) {
         EntityScriptDetails details = _entityScripts[entityID];
         QScriptValue entityScript = details.scriptObject; // previously loaded
@@ -1101,6 +1186,7 @@ void ScriptEngine::callEntityScriptMethod(const EntityItemID& entityID, const QS
         "entityID:" << entityID << "methodName:" << methodName << "otherID:" << otherID << "collision: collision";
     #endif
 
+    refreshFileScript(entityID);
     if (_entityScripts.contains(entityID)) {
         EntityScriptDetails details = _entityScripts[entityID];
         QScriptValue entityScript = details.scriptObject; // previously loaded

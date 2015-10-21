@@ -198,7 +198,7 @@ void EntitySimulation::changeEntity(EntityItemPointer entity) {
     // we must check for that case here, however we rely on the change event to have set DIRTY_POSITION flag.
     bool wasRemoved = false;
     uint32_t dirtyFlags = entity->getDirtyFlags();
-    if (dirtyFlags & EntityItem::DIRTY_POSITION) {
+    if (dirtyFlags & Simulation::DIRTY_POSITION) {
         AACube domainBounds(glm::vec3((float)-HALF_TREE_SCALE), (float)TREE_SCALE);
         AACube newCube = entity->getMaximumAACube();
         if (!domainBounds.touches(newCube)) {
@@ -214,7 +214,7 @@ void EntitySimulation::changeEntity(EntityItemPointer entity) {
         }
     }
     if (!wasRemoved) {
-        if (dirtyFlags & EntityItem::DIRTY_LIFETIME) {
+        if (dirtyFlags & Simulation::DIRTY_LIFETIME) {
             if (entity->isMortal()) {
                 _mortalEntities.insert(entity);
                 quint64 expiry = entity->getExpiry();
@@ -224,7 +224,7 @@ void EntitySimulation::changeEntity(EntityItemPointer entity) {
             } else {
                 _mortalEntities.remove(entity);
             }
-            entity->clearDirtyFlags(EntityItem::DIRTY_LIFETIME);
+            entity->clearDirtyFlags(Simulation::DIRTY_LIFETIME);
         }
         if (entity->needsToCallUpdate()) {
             _entitiesToUpdate.insert(entity);

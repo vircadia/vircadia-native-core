@@ -87,10 +87,10 @@ public:
     QList<EntityItemID>& getEntitiesLastInScene() { return _entityIDsLastInScene; }
 
 signals:
-    void mousePressOnEntity(const RayToEntityIntersectionResult& entityItemID, const QMouseEvent* event, unsigned int deviceId);
-    void mousePressOffEntity(const RayToEntityIntersectionResult& entityItemID, const QMouseEvent* event, unsigned int deviceId);
-    void mouseMoveOnEntity(const RayToEntityIntersectionResult& entityItemID, const QMouseEvent* event, unsigned int deviceId);
-    void mouseReleaseOnEntity(const RayToEntityIntersectionResult& entityItemID, const QMouseEvent* event, unsigned int deviceId);
+    void mousePressOnEntity(const RayToEntityIntersectionResult& intersection, const QMouseEvent* event, unsigned int deviceId);
+    void mousePressOffEntity(const RayToEntityIntersectionResult& intersection, const QMouseEvent* event, unsigned int deviceId);
+    void mouseMoveOnEntity(const RayToEntityIntersectionResult& intersection, const QMouseEvent* event, unsigned int deviceId);
+    void mouseReleaseOnEntity(const RayToEntityIntersectionResult& intersection, const QMouseEvent* event, unsigned int deviceId);
 
     void clickDownOnEntity(const EntityItemID& entityItemID, const MouseEvent& event);
     void holdingClickOnEntity(const EntityItemID& entityItemID, const MouseEvent& event);
@@ -130,7 +130,7 @@ private:
 
     QList<Model*> _releasedModels;
     RayToEntityIntersectionResult findRayIntersectionWorker(const PickRay& ray, Octree::lockType lockType,
-                                                                bool precisionPicking);
+                                                                bool precisionPicking, const QVector<EntityItemID>& entityIdsToInclude = QVector<EntityItemID>());
 
     EntityItemID _currentHoverOverEntityID;
     EntityItemID _currentClickingOnEntityID;
@@ -138,7 +138,10 @@ private:
     QScriptValueList createEntityArgs(const EntityItemID& entityID);
     void checkEnterLeaveEntities();
     void leaveAllEntities();
+    void forceRecheckEntities();
+
     glm::vec3 _lastAvatarPosition;
+    bool _pendingSkyboxTextureDownload = false;
     QVector<EntityItemID> _currentEntitiesInside;
     
     bool _wantScripts;

@@ -46,16 +46,13 @@ public:
     const QByteArray& getData() const { return _data; }
     const State& getState() const { return _state; }
     const Error& getError() const { return _error; }
-    QUrl getUrl() const;
+    QUrl getUrl() const { return ::getATPUrl(_hash, _extension); }
 
 signals:
     void finished(AssetRequest* thisRequest);
     void progress(qint64 totalReceived, qint64 total);
 
 private:
-    bool loadFromCache();
-    bool saveToCache(const QByteArray& file) const;
-    
     State _state = NotStarted;
     Error _error = NoError;
     AssetInfo _info;

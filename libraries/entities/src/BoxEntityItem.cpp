@@ -15,10 +15,10 @@
 #include <ByteCountCoding.h>
 
 #include "BoxEntityItem.h"
-#include "EntityTree.h"
 #include "EntitiesLogging.h"
+#include "EntityItemProperties.h"
+#include "EntityTree.h"
 #include "EntityTreeElement.h"
-
 
 EntityItemPointer BoxEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
     EntityItemPointer result { new BoxEntityItem(entityID, properties) };
@@ -65,7 +65,8 @@ bool BoxEntityItem::setProperties(const EntityItemProperties& properties) {
 
 int BoxEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data, int bytesLeftToRead, 
                                                 ReadBitstreamToTreeParams& args,
-                                                EntityPropertyFlags& propertyFlags, bool overwriteLocalData) {
+                                                EntityPropertyFlags& propertyFlags, bool overwriteLocalData,
+                                                bool& somethingChanged) {
 
     int bytesRead = 0;
     const unsigned char* dataAt = data;

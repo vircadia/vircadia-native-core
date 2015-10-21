@@ -15,22 +15,13 @@
 #include "EntityItemProperties.h"
 #include "EntityItemPropertiesMacros.h"
 
-AtmospherePropertyGroup::AtmospherePropertyGroup() {
-    const glm::vec3 DEFAULT_CENTER = glm::vec3(0.0f, -1000.0f, 0.0f);
-    const float DEFAULT_INNER_RADIUS = 1000.0f;
-    const float DEFAULT_OUTER_RADIUS = 1025.0f;
-    const float DEFAULT_RAYLEIGH_SCATTERING = 0.0025f;
-    const float DEFAULT_MIE_SCATTERING = 0.0010f;
-    const glm::vec3 DEFAULT_SCATTERING_WAVELENGTHS = glm::vec3(0.650f, 0.570f, 0.475f);
-
-    _center = DEFAULT_CENTER;
-    _innerRadius = DEFAULT_INNER_RADIUS;
-    _outerRadius = DEFAULT_OUTER_RADIUS;
-    _mieScattering = DEFAULT_MIE_SCATTERING;
-    _rayleighScattering = DEFAULT_RAYLEIGH_SCATTERING;
-    _scatteringWavelengths = DEFAULT_SCATTERING_WAVELENGTHS;
-    _hasStars = true;
-}
+const glm::vec3 AtmospherePropertyGroup::DEFAULT_CENTER = glm::vec3(0.0f, -1000.0f, 0.0f);
+const float AtmospherePropertyGroup::DEFAULT_INNER_RADIUS = 1000.0f;
+const float AtmospherePropertyGroup::DEFAULT_OUTER_RADIUS = 1025.0f;
+const float AtmospherePropertyGroup::DEFAULT_RAYLEIGH_SCATTERING = 0.0025f;
+const float AtmospherePropertyGroup::DEFAULT_MIE_SCATTERING = 0.0010f;
+const glm::vec3 AtmospherePropertyGroup::DEFAULT_SCATTERING_WAVELENGTHS = glm::vec3(0.650f, 0.570f, 0.475f);
+const bool AtmospherePropertyGroup::DEFAULT_HAS_STARS = true;
 
 void AtmospherePropertyGroup::copyToScriptValue(const EntityPropertyFlags& desiredProperties, QScriptValue& properties, QScriptEngine* engine, bool skipDefaults, EntityItemProperties& defaultEntityProperties) const {
     COPY_GROUP_PROPERTY_TO_QSCRIPTVALUE(PROP_ATMOSPHERE_CENTER, Atmosphere, atmosphere, Center, center);
@@ -63,7 +54,31 @@ void AtmospherePropertyGroup::debugDump() const {
     qDebug() << "       Has Stars:" << getHasStars() << " has changed:" << hasStarsChanged();
 }
 
-bool AtmospherePropertyGroup::appentToEditPacket(OctreePacketData* packetData,                                     
+void AtmospherePropertyGroup::listChangedProperties(QList<QString>& out) {
+    if (centerChanged()) {
+        out << "center";
+    }
+    if (innerRadiusChanged()) {
+        out << "innerRadius";
+    }
+    if (outerRadiusChanged()) {
+        out << "outerRadius";
+    }
+    if (mieScatteringChanged()) {
+        out << "mieScattering";
+    }
+    if (rayleighScatteringChanged()) {
+        out << "rayleighScattering";
+    }
+    if (scatteringWavelengthsChanged()) {
+        out << "scatteringWavelengths";
+    }
+    if (hasStarsChanged()) {
+        out << "hasStars";
+    }
+}
+
+bool AtmospherePropertyGroup::appendToEditPacket(OctreePacketData* packetData,
                                     EntityPropertyFlags& requestedProperties,
                                     EntityPropertyFlags& propertyFlags,
                                     EntityPropertyFlags& propertiesDidntFit,
@@ -88,6 +103,7 @@ bool AtmospherePropertyGroup::decodeFromEditPacket(EntityPropertyFlags& property
 
     int bytesRead = 0;
     bool overwriteLocalData = true;
+    bool somethingChanged = false;
 
     READ_ENTITY_PROPERTY(PROP_ATMOSPHERE_CENTER, glm::vec3, setCenter);
     READ_ENTITY_PROPERTY(PROP_ATMOSPHERE_INNER_RADIUS, float, setInnerRadius);
@@ -106,6 +122,8 @@ bool AtmospherePropertyGroup::decodeFromEditPacket(EntityPropertyFlags& property
     DECODE_GROUP_PROPERTY_HAS_CHANGED(PROP_ATMOSPHERE_HAS_STARS, HasStars);
     
     processedBytes += bytesRead;
+
+    Q_UNUSED(somethingChanged);
 
     return true;
 }
@@ -194,7 +212,8 @@ void AtmospherePropertyGroup::appendSubclassData(OctreePacketData* packetData, E
 
 int AtmospherePropertyGroup::readEntitySubclassDataFromBuffer(const unsigned char* data, int bytesLeftToRead, 
                                             ReadBitstreamToTreeParams& args,
-                                            EntityPropertyFlags& propertyFlags, bool overwriteLocalData) {
+                                            EntityPropertyFlags& propertyFlags, bool overwriteLocalData,
+                                            bool& somethingChanged) {
 
     int bytesRead = 0;
     const unsigned char* dataAt = data;

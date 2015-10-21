@@ -231,8 +231,19 @@ public:
 class CullItems {
 public:
     void run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const ItemIDsBounds& inItems, ItemIDsBounds& outItems);
-
     typedef Job::ModelIO<CullItems, ItemIDsBounds, ItemIDsBounds> JobModel;
+};
+
+class CullItemsOpaque {
+public:
+    void run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const ItemIDsBounds& inItems, ItemIDsBounds& outItems);
+    typedef Job::ModelIO<CullItemsOpaque, ItemIDsBounds, ItemIDsBounds> JobModel;
+};
+
+class CullItemsTransparent {
+public:
+    void run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const ItemIDsBounds& inItems, ItemIDsBounds& outItems);
+    typedef Job::ModelIO<CullItemsTransparent, ItemIDsBounds, ItemIDsBounds> JobModel;
 };
 
 class DepthSortItems {
@@ -256,6 +267,7 @@ public:
 class DrawBackground {
 public:
     void run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext);
+
 
     typedef Job::Model<DrawBackground> JobModel;
 };

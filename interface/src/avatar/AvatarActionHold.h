@@ -27,7 +27,10 @@ public:
 
     virtual void updateActionWorker(float deltaTimeStep);
 
+    QByteArray serialize() const;
     virtual void deserialize(QByteArray serializedArguments);
+
+    virtual bool shouldSuppressLocationEdits() { return true; }
 
 private:
     static const uint16_t holdVersion;
@@ -35,7 +38,14 @@ private:
     glm::vec3 _relativePosition;
     glm::quat _relativeRotation;
     QString _hand;
-    bool _mine = false;
+    QUuid _holderID;
+
+    void doKinematicUpdate(float deltaTimeStep);
+    bool _kinematic { false };
+    bool _kinematicSetVelocity { false };
+    bool _previousSet { false };
+    glm::vec3 _previousPositionalTarget;
+    glm::quat _previousRotationalTarget;
 };
 
 #endif // hifi_AvatarActionHold_h
