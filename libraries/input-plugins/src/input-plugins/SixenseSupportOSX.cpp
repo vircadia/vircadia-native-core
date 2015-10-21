@@ -16,13 +16,7 @@
 #include <QtCore/QDebug>
 #include <QtCore/QLibrary>
 
-using std::string;
-using std::unique_ptr;
-using SixenseBaseFunction = int (*)();
-using SixenseTakeIntFunction = int (*)(int);
-using SixenseTakeIntAndSixenseControllerData = int (*)(int, sixenseControllerData*);
-
-static unique_ptr<QLibrary> SIXENSE;
+static std::unique_ptr<QLibrary> SIXENSE;
 
 void loadSixense() {
     if (!SIXENSE) {
@@ -51,7 +45,7 @@ template<typename... Args>
 int call(const char* name, Args... args) {
     Q_ASSERT_X(SIXENSE && SIXENSE->isLoaded(), __FUNCTION__, "Sixense library not loaded");
     auto func = reinterpret_cast<int(*)(Args...)>(SIXENSE->resolve(name));
-    Q_ASSERT_X(func, __FUNCTION__, string("Could not resolve ").append(name).c_str());
+    Q_ASSERT_X(func, __FUNCTION__, std::string("Could not resolve ").append(name).c_str());
     return func(args...);
 }
 
