@@ -150,6 +150,7 @@ namespace controller {
         Endpoint::Pointer compositeEndpointFor(Endpoint::Pointer first, Endpoint::Pointer second);
         Mapping::Pointer parseMapping(const QJsonValue& json);
         Route::Pointer parseRoute(const QJsonValue& value);
+        Conditional::Pointer parseConditional(const QJsonValue& value);
         Endpoint::Pointer parseEndpoint(const QJsonValue& value);
 
         InputToEndpointMap _endpointsByInput;
