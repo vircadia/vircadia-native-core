@@ -230,7 +230,7 @@ void SixenseManager::update(float deltaTime, bool jointsCaptured) {
             if (!jointsCaptured) {
                 //  Rotation of Palm
                 glm::quat rotation(data->rot_quat[3], data->rot_quat[0], data->rot_quat[1], data->rot_quat[2]);
-                handlePoseEvent(position, rotation, numActiveControllers - 1);
+                handlePoseEvent(position, rotation, left);
             } else {
                 _poseStateMap.clear();
             }
