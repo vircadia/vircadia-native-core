@@ -205,6 +205,9 @@ public:
     virtual Pose pose() override { return _currentPose; }
     virtual void apply(const Pose& newValue, const Pose& oldValue, const Pointer& source) override {
         _currentPose = newValue;
+        if (!_currentPose.isValid()) {
+            return;
+        }
         if (!(_input == Input::INVALID_INPUT)) {
             auto userInputMapper = DependencyManager::get<UserInputMapper>();
             userInputMapper->setActionState(Action(_input.getChannel()), _currentPose);

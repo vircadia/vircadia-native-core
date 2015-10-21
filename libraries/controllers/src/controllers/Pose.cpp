@@ -12,7 +12,7 @@ namespace controller {
 
     Pose::Pose(const vec3& translation, const quat& rotation,
             const vec3& velocity, const quat& angularVelocity) :
-            translation(translation), rotation(rotation), velocity(velocity), angularVelocity(angularVelocity) { }
+            translation(translation), rotation(rotation), velocity(velocity), angularVelocity(angularVelocity), valid (true) { }
 
     bool Pose::operator==(const Pose& right) const {
         // invalid poses return false for comparison, even against identical invalid poses, like NaN
