@@ -123,7 +123,8 @@ bool PolyLineEntityItem::setNormals(const QVector<glm::vec3>& normals) {
     _vertices.clear();
     glm::vec3 v1, v2, tangent, binormal, point;
 
-    for (int i = 0; i < minVectorSize - 1; i++) {
+    int finalIndex = minVectorSize -1;
+    for (int i = 0; i < finalIndex; i++) {
         float width = _strokeWidths.at(i);
         point = _points.at(i);
 
@@ -138,7 +139,7 @@ bool PolyLineEntityItem::setNormals(const QVector<glm::vec3>& normals) {
         _vertices << v1 << v2;
     }
     //for last point we can just assume binormals are same since it represents last two vertices of quad
-    point = _points.at(minVectorSize - 1);
+    point = _points.at(finalIndex);
     v1 = point + binormal;
     v2 = point - binormal;
     _vertices << v1 << v2;
