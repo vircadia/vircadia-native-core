@@ -280,18 +280,18 @@ QVector<QUuid> EntityScriptingInterface::findEntitiesInBox(const glm::vec3& corn
 }
 
 RayToEntityIntersectionResult EntityScriptingInterface::findRayIntersection(const PickRay& ray, bool precisionPicking, const QScriptValue& entityIdsToInclude) {
-    QVector<QUuid> entities = qVectorQUuidFromScriptValue(entityIdsToInclude);
+    QVector<EntityItemID> entities = qVectorEntityItemIDFromScriptValue(entityIdsToInclude);
     return findRayIntersectionWorker(ray, Octree::TryLock, precisionPicking, entities);
 }
 
 RayToEntityIntersectionResult EntityScriptingInterface::findRayIntersectionBlocking(const PickRay& ray, bool precisionPicking, const QScriptValue& entityIdsToInclude) {
-    const QVector<QUuid>& entities = qVectorQUuidFromScriptValue(entityIdsToInclude);
+    const QVector<EntityItemID>& entities = qVectorEntityItemIDFromScriptValue(entityIdsToInclude);
     return findRayIntersectionWorker(ray, Octree::Lock, precisionPicking, entities);
 }
 
 RayToEntityIntersectionResult EntityScriptingInterface::findRayIntersectionWorker(const PickRay& ray,
                                                                                     Octree::lockType lockType,
-                                                                                    bool precisionPicking, const QVector<QUuid>& entityIdsToInclude) {
+                                                                                    bool precisionPicking, const QVector<EntityItemID>& entityIdsToInclude) {
 
 
     RayToEntityIntersectionResult result;
