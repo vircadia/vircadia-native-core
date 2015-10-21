@@ -24,7 +24,7 @@ using SixenseTakeIntAndSixenseControllerData = int (*)(int, sixenseControllerDat
 
 static unique_ptr<QLibrary> SIXENSE;
 
-bool loadSixense() {
+void loadSixense() {
     if (!SIXENSE) {
         static const QString LIBRARY_PATH =
 #ifdef SIXENSE_LIB_FILENAME
@@ -41,57 +41,107 @@ bool loadSixense() {
         qDebug() << "Sixense library at" << SIXENSE->fileName() << "failed to load:" << SIXENSE->errorString();
         qDebug() << "Continuing without hydra support.";
     }
-    return SIXENSE->isLoaded();
 }
 
 void unloadSixense() {
     SIXENSE->unload();
 }
 
-template<typename Func>
-Func resolve(const char* name) {
+template<typename... Args>
+int call(const char* name, Args... args) {
     Q_ASSERT_X(SIXENSE && SIXENSE->isLoaded(), __FUNCTION__, "Sixense library not loaded");
-    auto func = reinterpret_cast<Func>(SIXENSE->resolve(name));
+    auto func = reinterpret_cast<int(*)(Args...)>(SIXENSE->resolve(name));
     Q_ASSERT_X(func, __FUNCTION__, string("Could not resolve ").append(name).c_str());
-    return func;
+    return func(args...);
 }
 
 // sixense.h wrapper for OSX dynamic linking
 int sixenseInit() {
     loadSixense();
-    auto sixenseInit = resolve<SixenseBaseFunction>("sixenseInit");
-    return sixenseInit();
+    return call(__FUNCTION__);
 }
-
 int sixenseExit() {
-    auto sixenseExit = resolve<SixenseBaseFunction>("sixenseExit");
-    auto returnCode = sixenseExit();
+    auto returnCode = call(__FUNCTION__);
     unloadSixense();
     return returnCode;
 }
 
-int sixenseSetFilterEnabled(int input) {
-    auto sixenseSetFilterEnabled = resolve<SixenseTakeIntFunction>("sixenseSetFilterEnabled");
-    return sixenseSetFilterEnabled(input);
+int sixenseGetMaxBases() {
+    return call(__FUNCTION__);
 }
-
-int sixenseGetNumActiveControllers() {
-    auto sixenseGetNumActiveControllers = resolve<SixenseBaseFunction>("sixenseGetNumActiveControllers");
-    return sixenseGetNumActiveControllers();
+int sixenseSetActiveBase(int i) {
+    return call(__FUNCTION__, i);
+}
+int sixenseIsBaseConnected(int i) {
+    return call(__FUNCTION__, i);
 }
 
 int sixenseGetMaxControllers() {
-    auto sixenseGetMaxControllers = resolve<SixenseBaseFunction>("sixenseGetMaxControllers");
-    return sixenseGetMaxControllers();
+    return call(__FUNCTION__);
+}
+int sixenseIsControllerEnabled(int which) {
+    return call(__FUNCTION__, which);
+}
+int sixenseGetNumActiveControllers() {
+    return call(__FUNCTION__);
 }
 
-int sixenseIsControllerEnabled(int input) {
-    auto sixenseIsControllerEnabled = resolve<SixenseTakeIntFunction>("sixenseIsControllerEnabled");
-    return sixenseIsControllerEnabled(input);
+int sixenseGetHistorySize() {
+    return call(__FUNCTION__);
 }
 
-int sixenseGetNewestData(int input1, sixenseControllerData* intput2) {
-    auto sixenseGetNewestData = resolve<SixenseTakeIntAndSixenseControllerData>("sixenseGetNewestData");
-    return sixenseGetNewestData(input1, intput2);
+int sixenseGetData(int which, int index_back, sixenseControllerData* data) {
+    return call(__FUNCTION__, which, index_back, data);
+}
+int sixenseGetAllData(int index_back, sixenseAllControllerData* data) {
+    return call(__FUNCTION__, index_back, data);
+}
+int sixenseGetNewestData(int which, sixenseControllerData* data) {
+    return call(__FUNCTION__, which, data);
+}
+int sixenseGetAllNewestData(sixenseAllControllerData* data) {
+    return call(__FUNCTION__, data);
+}
+
+int sixenseSetHemisphereTrackingMode(int which_controller, int state) {
+    return call(__FUNCTION__, which_controller, state);
+}
+int sixenseGetHemisphereTrackingMode(int which_controller, int* state) {
+    return call(__FUNCTION__, which_controller, state);
+}
+int sixenseAutoEnableHemisphereTracking(int which_controller) {
+    return call(__FUNCTION__, which_controller);
+}
+
+int sixenseSetHighPriorityBindingEnabled(int on_or_off) {
+    return call(__FUNCTION__, on_or_off);
+}
+int sixenseGetHighPriorityBindingEnabled(int* on_or_off) {
+    return call(__FUNCTION__, on_or_off);
+}
+
+int sixenseTriggerVibration(int controller_id, int duration_100ms, int pattern_id) {
+    return call(__FUNCTION__, controller_id, duration_100ms, pattern_id);
+}
+
+int sixenseSetFilterEnabled(int on_or_off) {
+    return call(__FUNCTION__, on_or_off);
+}
+int sixenseGetFilterEnabled(int* on_or_off) {
+    return call(__FUNCTION__, on_or_off);
+}
+
+int sixenseSetFilterParams(float near_range, float near_val, float far_range, float far_val) {
+    return call(__FUNCTION__, near_range, near_val, far_range, far_val);
+}
+int sixenseGetFilterParams(float* near_range, float* near_val, float* far_range, float* far_val) {
+    return call(__FUNCTION__, near_range, near_val, far_range, far_val);
+}
+
+int sixenseSetBaseColor(unsigned char red, unsigned char green, unsigned char blue) {
+    return call(__FUNCTION__, red, green, blue);
+}
+int sixenseGetBaseColor(unsigned char* red, unsigned char* green, unsigned char* blue) {
+    return call(__FUNCTION__, red, green, blue);
 }
 #endif
