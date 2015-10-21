@@ -142,6 +142,7 @@ function createBaseball(position, velocity, ballScale) {
 
 var buildBaseballHitCallback = function(entityID) {
     var f = function(entityA, entityB, collision) {
+        print("Got baseball hit callback");
         var properties = Entities.getEntityProperties(entityID, ['position', 'velocity']);
         var line = new InfiniteLine(properties.position, { red: 255, green: 128, blue: 89 });
         var lastPosition = properties.position;
@@ -154,11 +155,12 @@ var buildBaseballHitCallback = function(entityID) {
                 lastPosition = properties.position;
             }
         }, 50);
+        var speed = Vec3.length(properties.velocity);
         Entities.editEntity(entityID, {
-            velocity: Vec3.multiply(3, properties.velocity),
+            velocity: Vec3.multiply(2, properties.velocity),
             gravity: {
                 x: 0,
-                y: -2.8,
+                y: -9.8,
                 z: 0
             }
         });
