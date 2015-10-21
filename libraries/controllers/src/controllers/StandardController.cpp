@@ -40,59 +40,66 @@ void StandardController::buildDeviceProxy(DeviceProxy::Pointer proxy) {
     proxy->getAvailabeInputs = [this] () -> QVector<Input::NamedPair> {
         QVector<Input::NamedPair> availableInputs;
         // Buttons
-        availableInputs.append(Input::NamedPair(makeInput(controller::A), "A"));
-        availableInputs.append(Input::NamedPair(makeInput(controller::B), "B"));
-        availableInputs.append(Input::NamedPair(makeInput(controller::X), "X"));
-        availableInputs.append(Input::NamedPair(makeInput(controller::Y), "Y"));
+        availableInputs.append(makePair(A, "A"));
+        availableInputs.append(makePair(B, "B"));
+        availableInputs.append(makePair(X, "X"));
+        availableInputs.append(makePair(Y, "Y"));
 
         // DPad
-        availableInputs.append(Input::NamedPair(makeInput(controller::DU), "DU"));
-        availableInputs.append(Input::NamedPair(makeInput(controller::DD), "DD"));
-        availableInputs.append(Input::NamedPair(makeInput(controller::DL), "DL"));
-        availableInputs.append(Input::NamedPair(makeInput(controller::DR), "DR"));
+        availableInputs.append(makePair(DU, "DU"));
+        availableInputs.append(makePair(DD, "DD"));
+        availableInputs.append(makePair(DL, "DL"));
+        availableInputs.append(makePair(DR, "DR"));
 
         // Bumpers
-        availableInputs.append(Input::NamedPair(makeInput(controller::LB), "LB"));
-        availableInputs.append(Input::NamedPair(makeInput(controller::RB), "RB"));
+        availableInputs.append(makePair(LB, "LB"));
+        availableInputs.append(makePair(RB, "RB"));
 
         // Stick press
-        availableInputs.append(Input::NamedPair(makeInput(controller::LS), "LS"));
-        availableInputs.append(Input::NamedPair(makeInput(controller::RS), "RS"));
+        availableInputs.append(makePair(LS, "LS"));
+        availableInputs.append(makePair(RS, "RS"));
 
         // Center buttons
-        availableInputs.append(Input::NamedPair(makeInput(controller::START), "Start"));
-        availableInputs.append(Input::NamedPair(makeInput(controller::BACK), "Back"));
+        availableInputs.append(makePair(START, "Start"));
+        availableInputs.append(makePair(BACK, "Back"));
 
         // Analog sticks
-        availableInputs.append(Input::NamedPair(makeInput(controller::LY), "LY"));
-        availableInputs.append(Input::NamedPair(makeInput(controller::LX), "LX"));
-        availableInputs.append(Input::NamedPair(makeInput(controller::RY), "RY"));
-        availableInputs.append(Input::NamedPair(makeInput(controller::RX), "RX"));
+        availableInputs.append(makePair(LY, "LY"));
+        availableInputs.append(makePair(LX, "LX"));
+        availableInputs.append(makePair(RY, "RY"));
+        availableInputs.append(makePair(RX, "RX"));
 
         // Triggers
-        availableInputs.append(Input::NamedPair(makeInput(controller::LT), "LT"));
-        availableInputs.append(Input::NamedPair(makeInput(controller::RT), "RT"));
+        availableInputs.append(makePair(LT, "LT"));
+        availableInputs.append(makePair(RT, "RT"));
 
         // Poses
-        availableInputs.append(UserInputMapper::InputPair(makeInput(controller::LEFT_HAND), "LeftHand"));
-        availableInputs.append(UserInputMapper::InputPair(makeInput(controller::RIGHT_HAND), "RightHand"));
+        availableInputs.append(makePair(LEFT_HAND, "LeftHand"));
+        availableInputs.append(makePair(RIGHT_HAND, "RightHand"));
 
         // Aliases, PlayStation style names
-        availableInputs.append(Input::NamedPair(makeInput(controller::LB), "L1"));
-        availableInputs.append(Input::NamedPair(makeInput(controller::RB), "R1"));
-        availableInputs.append(Input::NamedPair(makeInput(controller::LT), "L2"));
-        availableInputs.append(Input::NamedPair(makeInput(controller::RT), "R2"));
-        availableInputs.append(Input::NamedPair(makeInput(controller::LS), "L3"));
-        availableInputs.append(Input::NamedPair(makeInput(controller::RS), "R3"));
-        availableInputs.append(Input::NamedPair(makeInput(controller::BACK), "Select"));
-        availableInputs.append(Input::NamedPair(makeInput(controller::A), "Cross"));
-        availableInputs.append(Input::NamedPair(makeInput(controller::B), "Circle"));
-        availableInputs.append(Input::NamedPair(makeInput(controller::X), "Square"));
-        availableInputs.append(Input::NamedPair(makeInput(controller::Y), "Triangle"));
-        availableInputs.append(Input::NamedPair(makeInput(controller::DU), "Up"));
-        availableInputs.append(Input::NamedPair(makeInput(controller::DD), "Down"));
-        availableInputs.append(Input::NamedPair(makeInput(controller::DL), "Left"));
-        availableInputs.append(Input::NamedPair(makeInput(controller::DR), "Right"));
+        availableInputs.append(makePair(LB, "L1"));
+        availableInputs.append(makePair(RB, "R1"));
+        availableInputs.append(makePair(LT, "L2"));
+        availableInputs.append(makePair(RT, "R2"));
+        availableInputs.append(makePair(LS, "L3"));
+        availableInputs.append(makePair(RS, "R3"));
+        availableInputs.append(makePair(BACK, "Select"));
+        availableInputs.append(makePair(A, "Cross"));
+        availableInputs.append(makePair(B, "Circle"));
+        availableInputs.append(makePair(X, "Square"));
+        availableInputs.append(makePair(Y, "Triangle"));
+        availableInputs.append(makePair(DU, "Up"));
+        availableInputs.append(makePair(DD, "Down"));
+        availableInputs.append(makePair(DL, "Left"));
+        availableInputs.append(makePair(DR, "Right"));
+
+
+        availableInputs.append(makePair(LeftPrimaryThumb, "LeftPrimaryThumb"));
+        availableInputs.append(makePair(LeftSecondaryThumb, "LeftSecondaryThumb"));
+        availableInputs.append(makePair(RightPrimaryThumb, "RightPrimaryThumb"));
+        availableInputs.append(makePair(RightSecondaryThumb, "RightSecondaryThumb"));
+
         return availableInputs;
     };
 }

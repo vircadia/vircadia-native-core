@@ -16,21 +16,32 @@ namespace controller {
         B,
         X,
         Y,
+
         // Center buttons
         BACK,
         GUIDE,
         START,
+
         // Stick press
         LS,
         RS,
+
         // Bumper press
         LB,
         RB,
+
         // DPad
         DU,
         DD,
         DL,
         DR,
+
+        // These don't map to SDL types
+        LeftPrimaryThumb,
+        LeftSecondaryThumb,
+        RightPrimaryThumb,
+        RightSecondaryThumb,
+
         NUM_STANDARD_BUTTONS
     };
 
