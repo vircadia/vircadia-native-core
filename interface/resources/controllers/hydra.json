@@ -23,6 +23,9 @@
         { "from": "Hydra.R1", "to": "Standard.X" },
         { "from": "Hydra.R2", "to": "Standard.A" }, 
         { "from": "Hydra.R3", "to": "Standard.B" }, 
-        { "from": "Hydra.R4", "to": "Standard.Y" }
-    ]
+        { "from": "Hydra.R4", "to": "Standard.Y" },
+
+        { "from": "Hydra.LeftHand", "to": "Standard.LeftHand" }, 
+        { "from": "Hydra.RightHand", "to": "Standard.RightHand" }
+  ]
 }

@@ -36,6 +36,8 @@
             "from": "Standard.LT", 
             "to": "Actions.BOOM_OUT", 
             "filters": [ { "type": "scale", "scale": 0.1 } ]
-        }
+        },
+        { "from": "Standard.LeftHand", "to": "Actions.LEFT_HAND" }, 
+        { "from": "Standard.RightHand", "to": "Actions.RIGHT_HAND" }
     ]
 }

@@ -174,6 +174,5 @@ Q_DECLARE_METATYPE(QVector<controller::Action>)
 
 // Cheating.
 using UserInputMapper = controller::UserInputMapper;
-//>>>>>>> 9c031b6bef988f123cb955c81299395386ec488c
 
 #endif // hifi_UserInputMapper_h
