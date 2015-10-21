@@ -20,9 +20,10 @@
 #undef main
 #endif
 
-#include "InputDevice.h"
+#include <controllers/InputDevice.h>
+#include <controllers/StandardControls.h>
 
-class Joystick : public QObject, public InputDevice {
+class Joystick : public QObject, public controller::InputDevice {
     Q_OBJECT
     Q_PROPERTY(QString name READ getName)
 
@@ -31,37 +32,20 @@ class Joystick : public QObject, public InputDevice {
 #endif
     
 public:
-    enum JoystickAxisChannel {
-        LEFT_AXIS_X_POS = 0,
-        LEFT_AXIS_X_NEG,
-        LEFT_AXIS_Y_POS,
-        LEFT_AXIS_Y_NEG,
-        RIGHT_AXIS_X_POS,
-        RIGHT_AXIS_X_NEG,
-        RIGHT_AXIS_Y_POS,
-        RIGHT_AXIS_Y_NEG,
-        RIGHT_SHOULDER,
-        LEFT_SHOULDER,
-    };
 
     const QString& getName() const { return _name; }
 
     // Device functions
-    virtual void registerToUserInputMapper(UserInputMapper& mapper) override;
-    virtual void assignDefaultInputMapping(UserInputMapper& mapper) override;
+    virtual void buildDeviceProxy(controller::DeviceProxy::Pointer proxy) override;
+    virtual QString getDefaultMappingConfig() override;
     virtual void update(float deltaTime, bool jointsCaptured) override;
     virtual void focusOutEvent() override;
     
-    Joystick() : InputDevice("Joystick") {}
+    Joystick() : InputDevice("GamePad") {}
     ~Joystick();
     
 #ifdef HAVE_SDL2
-    UserInputMapper::Input makeInput(SDL_GameControllerButton button);
-#endif
-    UserInputMapper::Input makeInput(Joystick::JoystickAxisChannel axis);
-    
-#ifdef HAVE_SDL2
-    Joystick(SDL_JoystickID instanceId, const QString& name, SDL_GameController* sdlGameController);
+    Joystick(SDL_JoystickID instanceId, SDL_GameController* sdlGameController);
 #endif
     
     void closeJoystick();

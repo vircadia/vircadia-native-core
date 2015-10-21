@@ -14,6 +14,7 @@
 #include <HFActionEvent.h>
 #include <HFBackEvent.h>
 #include <PerfStat.h>
+#include <controllers/UserInputMapper.h>
 
 #include "SDL2Manager.h"
 
@@ -47,11 +48,11 @@ void SDL2Manager::init() {
             if (controller) {
                 SDL_JoystickID id = getInstanceId(controller);
                 if (!_openJoysticks.contains(id)) {
-                    Joystick* joystick = new Joystick(id, SDL_GameControllerName(controller), controller);
+                    //Joystick* joystick = new Joystick(id, SDL_GameControllerName(controller), controller);
+                    Joystick* joystick = new Joystick(id, controller);
                     _openJoysticks[id] = joystick;
-                    auto userInputMapper = DependencyManager::get<UserInputMapper>();
-                    joystick->registerToUserInputMapper(*userInputMapper);
-                    joystick->assignDefaultInputMapping(*userInputMapper);
+                    auto userInputMapper = DependencyManager::get<controller::UserInputMapper>();
+                    userInputMapper->registerDevice(joystick);
                     emit joystickAdded(joystick);
                 }
             }
@@ -92,7 +93,7 @@ void SDL2Manager::pluginFocusOutEvent() {
 void SDL2Manager::pluginUpdate(float deltaTime, bool jointsCaptured) {
 #ifdef HAVE_SDL2
     if (_isInitialized) {
-        auto userInputMapper = DependencyManager::get<UserInputMapper>();
+        auto userInputMapper = DependencyManager::get<controller::UserInputMapper>();
         for (auto joystick : _openJoysticks) {
             joystick->update(deltaTime, jointsCaptured);
         }
@@ -124,13 +125,12 @@ void SDL2Manager::pluginUpdate(float deltaTime, bool jointsCaptured) {
                 
             } else if (event.type == SDL_CONTROLLERDEVICEADDED) {
                 SDL_GameController* controller = SDL_GameControllerOpen(event.cdevice.which);
-                
                 SDL_JoystickID id = getInstanceId(controller);
                 if (!_openJoysticks.contains(id)) {
-                    Joystick* joystick = new Joystick(id, SDL_GameControllerName(controller), controller);
+                    // Joystick* joystick = new Joystick(id, SDL_GameControllerName(controller), controller);
+                    Joystick* joystick = new Joystick(id, controller);
                     _openJoysticks[id] = joystick;
-                    joystick->registerToUserInputMapper(*userInputMapper);
-                    joystick->assignDefaultInputMapping(*userInputMapper);
+                    userInputMapper->registerDevice(joystick);
                     emit joystickAdded(joystick);
                 }
             } else if (event.type == SDL_CONTROLLERDEVICEREMOVED) {

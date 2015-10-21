@@ -106,8 +106,7 @@ void EntityTreeRenderer::init() {
     entityTree->setFBXService(this);
 
     if (_wantScripts) {
-        _entitiesScriptEngine = new ScriptEngine(NO_SCRIPT, "Entities",
-                                        _scriptingServices->getControllerScriptingInterface());
+        _entitiesScriptEngine = new ScriptEngine(NO_SCRIPT, "Entities");
         _scriptingServices->registerScriptEngineWithApplicationServices(_entitiesScriptEngine);
         _entitiesScriptEngine->runInThread();
         DependencyManager::get<EntityScriptingInterface>()->setEntitiesScriptEngine(_entitiesScriptEngine);

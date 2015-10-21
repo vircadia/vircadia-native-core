@@ -14,13 +14,15 @@
 
 #include <functional>
 
-#include <QApplication>
-#include <QHash>
-#include <QImage>
-#include <QPointer>
-#include <QSet>
-#include <QStringList>
-#include <QUndoStack>
+#include <QtCore/QHash>
+#include <QtCore/QPointer>
+#include <QtCore/QSet>
+#include <QtCore/QStringList>
+
+#include <QtGui/QImage>
+
+#include <QtWidgets/QApplication>
+#include <QtWidgets/QUndoStack>
 
 #include <AbstractScriptingServicesInterface.h>
 #include <AbstractViewStateInterface.h>
@@ -161,7 +163,7 @@ public:
 
     ToolWindow* getToolWindow() { return _toolWindow ; }
 
-    virtual AbstractControllerScriptingInterface* getControllerScriptingInterface() { return &_controllerScriptingInterface; }
+    virtual controller::ScriptingInterface* getControllerScriptingInterface() { return _controllerScriptingInterface; }
     virtual void registerScriptEngineWithApplicationServices(ScriptEngine* scriptEngine);
 
     QImage renderAvatarBillboard(RenderArgs* renderArgs);
@@ -350,7 +352,7 @@ private:
 
     void update(float deltaTime);
 
-    void setPalmData(Hand* hand, UserInputMapper::PoseValue pose, float deltaTime, int index, float triggerValue);
+    void setPalmData(Hand* hand, const controller::Pose& pose, float deltaTime, int index, float triggerValue);
     void emulateMouse(Hand* hand, float click, float shift, int index);
 
     // Various helper functions called during update()
@@ -474,8 +476,7 @@ private:
 
     NodeToJurisdictionMap _entityServerJurisdictions;
     NodeToOctreeSceneStats _octreeServerSceneStats;
-
-    ControllerScriptingInterface _controllerScriptingInterface;
+    ControllerScriptingInterface* _controllerScriptingInterface{ nullptr };
     QPointer<LogDialog> _logDialog;
     QPointer<SnapshotShareDialog> _snapshotShareDialog;
 

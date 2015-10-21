@@ -28,7 +28,9 @@
 #include <udt/PacketHeaders.h>
 #include <UUID.h>
 
-#include "AnimationObject.h"
+#include <controllers/ScriptingInterface.h>
+#include <AnimationObject.h>
+
 #include "ArrayBufferViewClass.h"
 #include "BatchLoader.h"
 #include "DataViewClass.h"
@@ -76,16 +78,15 @@ void avatarDataFromScriptValue(const QScriptValue &object, AvatarData* &out) {
     out = qobject_cast<AvatarData*>(object.toQObject());
 }
 
-QScriptValue inputControllerToScriptValue(QScriptEngine *engine, AbstractInputController* const &in) {
+QScriptValue inputControllerToScriptValue(QScriptEngine *engine, controller::InputController* const &in) {
     return engine->newQObject(in);
 }
 
-void inputControllerFromScriptValue(const QScriptValue &object, AbstractInputController* &out) {
-    out = qobject_cast<AbstractInputController*>(object.toQObject());
+void inputControllerFromScriptValue(const QScriptValue &object, controller::InputController* &out) {
+    out = qobject_cast<controller::InputController*>(object.toQObject());
 }
 
-ScriptEngine::ScriptEngine(const QString& scriptContents, const QString& fileNameString,
-            AbstractControllerScriptingInterface* controllerScriptingInterface, bool wantSignals) :
+ScriptEngine::ScriptEngine(const QString& scriptContents, const QString& fileNameString, bool wantSignals) :
 
     _scriptContents(scriptContents),
     _isFinished(false),
@@ -93,7 +94,6 @@ ScriptEngine::ScriptEngine(const QString& scriptContents, const QString& fileNam
     _isInitialized(false),
     _timerFunctionMap(),
     _wantSignals(wantSignals),
-    _controllerScriptingInterface(controllerScriptingInterface),
     _fileNameString(fileNameString),
     _quatLibrary(),
     _vec3Library(),
@@ -310,7 +310,6 @@ void ScriptEngine::init() {
 
     registerGlobalObject("Script", this);
     registerGlobalObject("Audio", &AudioScriptingInterface::getInstance());
-    registerGlobalObject("Controller", _controllerScriptingInterface);
     registerGlobalObject("Entities", entityScriptingInterface.data());
     registerGlobalObject("Quat", &_quatLibrary);
     registerGlobalObject("Vec3", &_vec3Library);
@@ -320,11 +319,9 @@ void ScriptEngine::init() {
     // constants
     globalObject().setProperty("TREE_SCALE", newVariant(QVariant(TREE_SCALE)));
 
-    if (_controllerScriptingInterface) {
-        _controllerScriptingInterface->registerControllerTypes(this);
-    }
-
-
+    auto scriptingInterface = DependencyManager::get<controller::ScriptingInterface>();
+    registerGlobalObject("Controller", scriptingInterface.data());
+    UserInputMapper::registerControllerTypes(this);
 }
 
 void ScriptEngine::registerValue(const QString& valueName, QScriptValue value) {
