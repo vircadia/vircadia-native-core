@@ -384,12 +384,7 @@ void SixenseManager::handleButtonEvent(unsigned int buttons, bool left) {
     }
 }
 
-#include <StreamUtils.h>
-
 void SixenseManager::handlePoseEvent(glm::vec3 position, glm::quat rotation, bool left) {
-
-    qDebug() << "SixenseManager::handlePoseEvent() position:" << position << "rotation:" << rotation << "left:" << left;
-
 #ifdef HAVE_SIXENSE
     // From ABOVE the sixense coordinate frame looks like this:
     //
