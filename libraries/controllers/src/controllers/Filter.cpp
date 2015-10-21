@@ -18,18 +18,27 @@
 
 using namespace controller;
 
+Filter::Factory Filter::_factory;
+
+REGISTER_FILTER_CLASS_INSTANCE(InvertFilter, "invert")
+REGISTER_FILTER_CLASS_INSTANCE(ConstrainToIntegerFilter, "constrainToInteger")
+REGISTER_FILTER_CLASS_INSTANCE(ConstrainToPositiveIntegerFilter, "constrainToPositiveInteger")
+REGISTER_FILTER_CLASS_INSTANCE(ScaleFilter, "scale")
+REGISTER_FILTER_CLASS_INSTANCE(ClampFilter, "clamp")
+REGISTER_FILTER_CLASS_INSTANCE(DeadZoneFilter, "deadZone")
+REGISTER_FILTER_CLASS_INSTANCE(PulseFilter, "pulse")
+
 
 const QString JSON_FILTER_TYPE = QStringLiteral("type");
 const QString JSON_FILTER_PARAMS = QStringLiteral("params");
 
-Filter::Factory Filter::_factory;
 
 Filter::Pointer Filter::parse(const QJsonObject& json) {
     // The filter is an object, now let s check for type and potential arguments
     Filter::Pointer filter;
     auto filterType = json[JSON_FILTER_TYPE];
     if (filterType.isString()) {
-        filter.reset(Filter::getFactory().create(filterType.toString().toStdString()));
+        filter = Filter::getFactory().create(filterType.toString());
         if (filter) {
             // Filter is defined, need to read the parameters and validate
             auto parameters = json[JSON_FILTER_PARAMS];
@@ -44,7 +53,6 @@ Filter::Pointer Filter::parse(const QJsonObject& json) {
     return Filter::Pointer();
 }
 
-ScaleFilter::FactoryEntryBuilder ScaleFilter::_factoryEntryBuilder;
 
 bool ScaleFilter::parseParameters(const QJsonArray& parameters) {
     if (parameters.size() > 1) {
@@ -53,10 +61,6 @@ bool ScaleFilter::parseParameters(const QJsonArray& parameters) {
     return true;
 }
 
-InvertFilter::FactoryEntryBuilder InvertFilter::_factoryEntryBuilder;
-
-
-ClampFilter::FactoryEntryBuilder ClampFilter::_factoryEntryBuilder;
 
 bool ClampFilter::parseParameters(const QJsonArray& parameters) {
     if (parameters.size() > 1) {
@@ -68,7 +72,6 @@ bool ClampFilter::parseParameters(const QJsonArray& parameters) {
     return true;
 }
 
-DeadZoneFilter::FactoryEntryBuilder DeadZoneFilter::_factoryEntryBuilder;
 
 float DeadZoneFilter::apply(float value) const {
     float scale = 1.0f / (1.0f - _min);
@@ -84,8 +87,6 @@ bool DeadZoneFilter::parseParameters(const QJsonArray& parameters) {
     }
     return true;
 }
-
-PulseFilter::FactoryEntryBuilder PulseFilter::_factoryEntryBuilder;
 
 
 float PulseFilter::apply(float value) const {
@@ -110,7 +111,4 @@ bool PulseFilter::parseParameters(const QJsonArray& parameters) {
     return true;
 }
 
-ConstrainToIntegerFilter::FactoryEntryBuilder ConstrainToIntegerFilter::_factoryEntryBuilder;
-
-ConstrainToPositiveIntegerFilter::FactoryEntryBuilder ConstrainToPositiveIntegerFilter::_factoryEntryBuilder;
 

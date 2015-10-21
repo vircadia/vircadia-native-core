@@ -12,8 +12,7 @@
 
 #include "Endpoint.h"
 #include "Filter.h"
-
-class QJsonObject;
+#include "Conditional.h"
 
 namespace controller {
     /*
@@ -23,6 +22,7 @@ namespace controller {
     public:
         Endpoint::Pointer source;
         Endpoint::Pointer destination;
+        Conditional::Pointer conditional;
         Filter::List filters;
 
         using Pointer = std::shared_ptr<Route>;

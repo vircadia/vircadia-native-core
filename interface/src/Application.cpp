@@ -629,12 +629,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
     auto userInputMapper = DependencyManager::get<UserInputMapper>();
     connect(userInputMapper.data(), &UserInputMapper::actionEvent, _controllerScriptingInterface, &ControllerScriptingInterface::actionEvent);
     connect(userInputMapper.data(), &UserInputMapper::actionEvent, [this](int action, float state) {
-        if (state) {
-            switch (controller::Action(action)) {
-            case controller::Action::TOGGLE_MUTE:
-                DependencyManager::get<AudioClient>()->toggleMute();
-                break;
-            }
+        if (state && action == toInt(controller::Action::TOGGLE_MUTE)) {
+            DependencyManager::get<AudioClient>()->toggleMute();
         }
     });
 

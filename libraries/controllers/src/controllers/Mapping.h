@@ -23,14 +23,12 @@ namespace controller {
 
     class Mapping {
     public:
-        // Map of source channels to route lists
-        using Map = std::map<Endpoint::Pointer, Route::List>;
         using Pointer = std::shared_ptr<Mapping>;
+        using List = Route::List;
 
         Mapping(const QString& name) : name(name) {}
 
-        Map channelMappings;
-
+        List routes;
         QString name;
     };
 

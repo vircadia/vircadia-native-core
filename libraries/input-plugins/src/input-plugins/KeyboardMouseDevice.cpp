@@ -183,24 +183,24 @@ void KeyboardMouseDevice::buildDeviceProxy(controller::DeviceProxy::Pointer prox
         availableInputs.append(Input::NamedPair(makeInput(Qt::Key_PageUp), QKeySequence(Qt::Key_PageUp).toString()));
         availableInputs.append(Input::NamedPair(makeInput(Qt::Key_PageDown), QKeySequence(Qt::Key_PageDown).toString()));
 
-        availableInputs.append(Input::NamedPair(makeInput(Qt::LeftButton), "Left Mouse Click"));
-        availableInputs.append(Input::NamedPair(makeInput(Qt::MiddleButton), "Middle Mouse Click"));
-        availableInputs.append(Input::NamedPair(makeInput(Qt::RightButton), "Right Mouse Click"));
+        availableInputs.append(Input::NamedPair(makeInput(Qt::LeftButton), "LeftMouseClick"));
+        availableInputs.append(Input::NamedPair(makeInput(Qt::MiddleButton), "MiddleMouseClick"));
+        availableInputs.append(Input::NamedPair(makeInput(Qt::RightButton), "RightMouseClick"));
         
-        availableInputs.append(Input::NamedPair(makeInput(MOUSE_AXIS_X_POS), "Mouse Move Right"));
-        availableInputs.append(Input::NamedPair(makeInput(MOUSE_AXIS_X_NEG), "Mouse Move Left"));
-        availableInputs.append(Input::NamedPair(makeInput(MOUSE_AXIS_Y_POS), "Mouse Move Up"));
-        availableInputs.append(Input::NamedPair(makeInput(MOUSE_AXIS_Y_NEG), "Mouse Move Down"));
+        availableInputs.append(Input::NamedPair(makeInput(MOUSE_AXIS_X_POS), "MouseMoveRight"));
+        availableInputs.append(Input::NamedPair(makeInput(MOUSE_AXIS_X_NEG), "MouseMoveLeft"));
+        availableInputs.append(Input::NamedPair(makeInput(MOUSE_AXIS_Y_POS), "MouseMoveUp"));
+        availableInputs.append(Input::NamedPair(makeInput(MOUSE_AXIS_Y_NEG), "MouseMoveDown"));
         
-        availableInputs.append(Input::NamedPair(makeInput(MOUSE_AXIS_WHEEL_Y_POS), "Mouse Wheel Right"));
-        availableInputs.append(Input::NamedPair(makeInput(MOUSE_AXIS_WHEEL_Y_NEG), "Mouse Wheel Left"));
-        availableInputs.append(Input::NamedPair(makeInput(MOUSE_AXIS_WHEEL_X_POS), "Mouse Wheel Up"));
-        availableInputs.append(Input::NamedPair(makeInput(MOUSE_AXIS_WHEEL_X_NEG), "Mouse Wheel Down"));
+        availableInputs.append(Input::NamedPair(makeInput(MOUSE_AXIS_WHEEL_Y_POS), "MouseWheelRight"));
+        availableInputs.append(Input::NamedPair(makeInput(MOUSE_AXIS_WHEEL_Y_NEG), "MouseWheelLeft"));
+        availableInputs.append(Input::NamedPair(makeInput(MOUSE_AXIS_WHEEL_X_POS), "MouseWheelUp"));
+        availableInputs.append(Input::NamedPair(makeInput(MOUSE_AXIS_WHEEL_X_NEG), "MouseWheelDown"));
         
-        availableInputs.append(Input::NamedPair(makeInput(TOUCH_AXIS_X_POS), "Touchpad Right"));
-        availableInputs.append(Input::NamedPair(makeInput(TOUCH_AXIS_X_NEG), "Touchpad Left"));
-        availableInputs.append(Input::NamedPair(makeInput(TOUCH_AXIS_Y_POS), "Touchpad Up"));
-        availableInputs.append(Input::NamedPair(makeInput(TOUCH_AXIS_Y_NEG), "Touchpad Down"));
+        availableInputs.append(Input::NamedPair(makeInput(TOUCH_AXIS_X_POS), "TouchpadRight"));
+        availableInputs.append(Input::NamedPair(makeInput(TOUCH_AXIS_X_NEG), "TouchpadLeft"));
+        availableInputs.append(Input::NamedPair(makeInput(TOUCH_AXIS_Y_POS), "TouchpadUp"));
+        availableInputs.append(Input::NamedPair(makeInput(TOUCH_AXIS_Y_NEG), "TouchpadDown"));
 
         return availableInputs;
     };
