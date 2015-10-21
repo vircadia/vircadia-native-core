@@ -1,6 +1,6 @@
 //
 //  SixenseSupportOSX.cpp
-//
+//  libraries/input-plugins/src/input-plugins
 //
 //  Created by Clement on 10/20/15.
 //  Copyright 2015 High Fidelity, Inc.
@@ -9,14 +9,31 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifdef __APPLE__
+#if defined(__APPLE__) && defined(HAVE_SIXENSE)
 #include "sixense.h"
 
 #include <QtCore/QCoreApplication>
 #include <QtCore/QDebug>
 #include <QtCore/QLibrary>
 
-static std::unique_ptr<QLibrary> SIXENSE;
+using Library = std::unique_ptr<QLibrary>;
+static Library SIXENSE;
+
+struct Callable {
+    template<typename... Args> int operator() (Args... args){
+        return reinterpret_cast<int(*)(Args...)>(function)(args...);
+    }
+    QFunctionPointer function;
+};
+
+Callable resolve(const Library& library, const char* name) {
+    Q_ASSERT_X(library && library->isLoaded(), __FUNCTION__, "Sixense library not loaded");
+    auto function = library->resolve(name);
+    Q_ASSERT_X(function, __FUNCTION__, std::string("Could not resolve ").append(name).c_str());
+    return Callable { function };
+}
+#define FOREWARD resolve(SIXENSE, __FUNCTION__)
+
 
 void loadSixense() {
     if (!SIXENSE) {
@@ -36,106 +53,98 @@ void loadSixense() {
         qDebug() << "Continuing without hydra support.";
     }
 }
-
 void unloadSixense() {
     SIXENSE->unload();
 }
 
-template<typename... Args>
-int call(const char* name, Args... args) {
-    Q_ASSERT_X(SIXENSE && SIXENSE->isLoaded(), __FUNCTION__, "Sixense library not loaded");
-    auto func = reinterpret_cast<int(*)(Args...)>(SIXENSE->resolve(name));
-    Q_ASSERT_X(func, __FUNCTION__, std::string("Could not resolve ").append(name).c_str());
-    return func(args...);
-}
 
 // sixense.h wrapper for OSX dynamic linking
 int sixenseInit() {
     loadSixense();
-    return call(__FUNCTION__);
+    return FOREWARD();
 }
 int sixenseExit() {
-    auto returnCode = call(__FUNCTION__);
+    auto returnCode = FOREWARD();
     unloadSixense();
     return returnCode;
 }
 
 int sixenseGetMaxBases() {
-    return call(__FUNCTION__);
+    return FOREWARD();
 }
 int sixenseSetActiveBase(int i) {
-    return call(__FUNCTION__, i);
+    return FOREWARD(i);
 }
 int sixenseIsBaseConnected(int i) {
-    return call(__FUNCTION__, i);
+    return FOREWARD(i);
 }
 
 int sixenseGetMaxControllers() {
-    return call(__FUNCTION__);
+    return FOREWARD();
 }
 int sixenseIsControllerEnabled(int which) {
-    return call(__FUNCTION__, which);
+    return FOREWARD(which);
 }
 int sixenseGetNumActiveControllers() {
-    return call(__FUNCTION__);
+    return FOREWARD();
 }
 
 int sixenseGetHistorySize() {
-    return call(__FUNCTION__);
+    return FOREWARD();
 }
 
 int sixenseGetData(int which, int index_back, sixenseControllerData* data) {
-    return call(__FUNCTION__, which, index_back, data);
+    return FOREWARD(which, index_back, data);
 }
 int sixenseGetAllData(int index_back, sixenseAllControllerData* data) {
-    return call(__FUNCTION__, index_back, data);
+    return FOREWARD(index_back, data);
 }
 int sixenseGetNewestData(int which, sixenseControllerData* data) {
-    return call(__FUNCTION__, which, data);
+    return FOREWARD(which, data);
 }
 int sixenseGetAllNewestData(sixenseAllControllerData* data) {
-    return call(__FUNCTION__, data);
+    return FOREWARD(data);
 }
 
 int sixenseSetHemisphereTrackingMode(int which_controller, int state) {
-    return call(__FUNCTION__, which_controller, state);
+    return FOREWARD(which_controller, state);
 }
 int sixenseGetHemisphereTrackingMode(int which_controller, int* state) {
-    return call(__FUNCTION__, which_controller, state);
+    return FOREWARD(which_controller, state);
 }
 int sixenseAutoEnableHemisphereTracking(int which_controller) {
-    return call(__FUNCTION__, which_controller);
+    return FOREWARD(which_controller);
 }
 
 int sixenseSetHighPriorityBindingEnabled(int on_or_off) {
-    return call(__FUNCTION__, on_or_off);
+    return FOREWARD(on_or_off);
 }
 int sixenseGetHighPriorityBindingEnabled(int* on_or_off) {
-    return call(__FUNCTION__, on_or_off);
+    return FOREWARD(on_or_off);
 }
 
 int sixenseTriggerVibration(int controller_id, int duration_100ms, int pattern_id) {
-    return call(__FUNCTION__, controller_id, duration_100ms, pattern_id);
+    return FOREWARD(controller_id, duration_100ms, pattern_id);
 }
 
 int sixenseSetFilterEnabled(int on_or_off) {
-    return call(__FUNCTION__, on_or_off);
+    return FOREWARD(on_or_off);
 }
 int sixenseGetFilterEnabled(int* on_or_off) {
-    return call(__FUNCTION__, on_or_off);
+    return FOREWARD(on_or_off);
 }
 
 int sixenseSetFilterParams(float near_range, float near_val, float far_range, float far_val) {
-    return call(__FUNCTION__, near_range, near_val, far_range, far_val);
+    return FOREWARD(near_range, near_val, far_range, far_val);
 }
 int sixenseGetFilterParams(float* near_range, float* near_val, float* far_range, float* far_val) {
-    return call(__FUNCTION__, near_range, near_val, far_range, far_val);
+    return FOREWARD(near_range, near_val, far_range, far_val);
 }
 
 int sixenseSetBaseColor(unsigned char red, unsigned char green, unsigned char blue) {
-    return call(__FUNCTION__, red, green, blue);
+    return FOREWARD(red, green, blue);
 }
 int sixenseGetBaseColor(unsigned char* red, unsigned char* green, unsigned char* blue) {
-    return call(__FUNCTION__, red, green, blue);
+    return FOREWARD(red, green, blue);
 }
 #endif
