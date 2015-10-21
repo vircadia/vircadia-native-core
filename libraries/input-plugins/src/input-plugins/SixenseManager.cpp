@@ -230,7 +230,7 @@ void SixenseManager::update(float deltaTime, bool jointsCaptured) {
             if (!jointsCaptured) {
                 //  Rotation of Palm
                 glm::quat rotation(data->rot_quat[3], data->rot_quat[0], data->rot_quat[1], data->rot_quat[2]);
-                handlePoseEvent(position, rotation, numActiveControllers - 1);
+                handlePoseEvent(position, rotation, left);
             } else {
                 _poseStateMap.clear();
             }
@@ -384,7 +384,12 @@ void SixenseManager::handleButtonEvent(unsigned int buttons, bool left) {
     }
 }
 
+#include <StreamUtils.h>
+
 void SixenseManager::handlePoseEvent(glm::vec3 position, glm::quat rotation, bool left) {
+
+    qDebug() << "SixenseManager::handlePoseEvent() position:" << position << "rotation:" << rotation << "left:" << left;
+
 #ifdef HAVE_SIXENSE
     // From ABOVE the sixense coordinate frame looks like this:
     //
