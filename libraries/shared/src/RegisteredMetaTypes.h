@@ -14,7 +14,6 @@
 
 #include <QtScript/QScriptEngine>
 #include <QtCore/QUuid>
-#include "../../entities/src/EntityItemID.h"
 
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
@@ -67,7 +66,6 @@ void qVectorFloatFromScriptValue(const QScriptValue& array, QVector<float>& vect
 QVector<float> qVectorFloatFromScriptValue(const QScriptValue& array);
 
 QVector<QUuid> qVectorQUuidFromScriptValue(const QScriptValue& array);
-QVector<EntityItemID> qVectorEntityItemIDFromScriptValue(const QScriptValue& array);
 
 class PickRay {
 public:
