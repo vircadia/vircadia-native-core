@@ -27,7 +27,6 @@ var targetsScriptURL = Script.resolvePath('../examples/toys/ping_pong_gun/wallTa
 
 MasterReset = function() {
     var resetKey = "resetMe";
-    var GRABBABLE_DATA_KEY = "grabbableKey";
 
     var HIFI_PUBLIC_BUCKET = "http://s3.amazonaws.com/hifi-public/";
 
@@ -505,6 +504,9 @@ MasterReset = function() {
                     resetMe: true,
                     on: true,
                     type: "Hall Light"
+                },
+                grabbableKey: {
+                    wantsTrigger: true
                 }
             })
         });
@@ -600,6 +602,9 @@ MasterReset = function() {
                     resetMe: true,
                     on: true,
                     type: "Garage Light"
+                },
+                grabbableKey: {
+                    wantsTrigger: true
                 }
             })
         });

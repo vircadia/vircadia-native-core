@@ -54,7 +54,6 @@
 
     MasterReset = function() {
         var resetKey = "resetMe";
-        var GRABBABLE_DATA_KEY = "grabbableKey";
 
         var HIFI_PUBLIC_BUCKET = "http://s3.amazonaws.com/hifi-public/";
 
@@ -96,8 +95,6 @@
                 y: 495.41,
                 z: 505.78
             });
-
-
 
             createCombinedArmChair({
                 x: 549.29,
@@ -487,7 +484,6 @@
                     grabbableKey: {
                         invertSolidWhileHeld: true
                     }
-
                 })
             });
 
@@ -533,6 +529,9 @@
                         resetMe: true,
                         on: true,
                         type: "Hall Light"
+                    },
+                    grabbableKey: {
+                        wantsTrigger: true
                     }
                 })
             });
@@ -628,6 +627,9 @@
                         resetMe: true,
                         on: true,
                         type: "Garage Light"
+                    },
+                    grabbableKey: {
+                        wantsTrigger: true
                     }
                 })
             });
@@ -759,6 +761,7 @@
                     grabbableKey: {
                         invertSolidWhileHeld: true
                     }
+
                 })
             };
             var dice1 = Entities.addEntity(diceProps);
@@ -851,6 +854,7 @@
                     grabbableKey: {
                         invertSolidWhileHeld: true
                     }
+
                 })
             });
         }
@@ -1176,7 +1180,7 @@
                     y: 0.05,
                     z: 0.25
                 }
-            } ];
+            }];
 
             var modelURL, entity;
             for (i = 0; i < blockTypes.length; i++) {
