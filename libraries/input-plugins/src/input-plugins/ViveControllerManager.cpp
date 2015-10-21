@@ -414,9 +414,9 @@ void ViveControllerManager::buildDeviceProxy(controller::DeviceProxy::Pointer pr
 
             makePair(LS, "LS"),
             makePair(RS, "RS"),
+            makePair(LEFT_HAND, "LeftHand"),
+            makePair(RIGHT_HAND, "RightHand"),
         };
-
-        //availableInputs.append(Input::NamedPair(makeInput(LEFT_HAND), "Left Hand"));
 
         //availableInputs.append(Input::NamedPair(makeInput(BUTTON_A, 0), "Left Button A"));
         //availableInputs.append(Input::NamedPair(makeInput(GRIP_BUTTON, 0), "Left Grip Button"));

@@ -182,18 +182,12 @@ public:
     static ConnexionData& getInstance();
     ConnexionData();
     enum PositionChannel {
-        POSITION_AXIS_X_POS = 1,
-        POSITION_AXIS_X_NEG = 2,
-        POSITION_AXIS_Y_POS = 3,
-        POSITION_AXIS_Y_NEG = 4,
-        POSITION_AXIS_Z_POS = 5,
-        POSITION_AXIS_Z_NEG = 6,
-        ROTATION_AXIS_X_POS = 7,
-        ROTATION_AXIS_X_NEG = 8,
-        ROTATION_AXIS_Y_POS = 9,
-        ROTATION_AXIS_Y_NEG = 10,
-        ROTATION_AXIS_Z_POS = 11,
-        ROTATION_AXIS_Z_NEG = 12
+        TRANSLATE_X,
+        TRANSLATE_Y,
+        TRANSLATE_Z,
+        ROTATE_X,
+        ROTATE_Y,
+        ROTATE_Z,
     };
 
     enum ButtonChannel {

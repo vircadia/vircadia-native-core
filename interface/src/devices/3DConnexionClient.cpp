@@ -33,18 +33,14 @@ ConnexionData::ConnexionData() : InputDevice("ConnexionClient") {}
 
 
 void ConnexionData::handleAxisEvent() {
-    _axisStateMap[makeInput(ROTATION_AXIS_Y_POS).getChannel()] = (cc_rotation.y > 0.0f) ? cc_rotation.y / MAX_AXIS : 0.0f;
-    _axisStateMap[makeInput(ROTATION_AXIS_Y_NEG).getChannel()] = (cc_rotation.y < 0.0f) ? -cc_rotation.y / MAX_AXIS : 0.0f;
-    _axisStateMap[makeInput(POSITION_AXIS_X_POS).getChannel()] = (cc_position.x > 0.0f) ? cc_position.x / MAX_AXIS : 0.0f;
-    _axisStateMap[makeInput(POSITION_AXIS_X_NEG).getChannel()] = (cc_position.x < 0.0f) ? -cc_position.x / MAX_AXIS : 0.0f;
-    _axisStateMap[makeInput(POSITION_AXIS_Y_POS).getChannel()] = (cc_position.y > 0.0f) ? cc_position.y / MAX_AXIS : 0.0f;
-    _axisStateMap[makeInput(POSITION_AXIS_Y_NEG).getChannel()] = (cc_position.y < 0.0f) ? -cc_position.y / MAX_AXIS : 0.0f;
-    _axisStateMap[makeInput(POSITION_AXIS_Z_POS).getChannel()] = (cc_position.z > 0.0f) ? cc_position.z / MAX_AXIS : 0.0f;
-    _axisStateMap[makeInput(POSITION_AXIS_Z_NEG).getChannel()] = (cc_position.z < 0.0f) ? -cc_position.z / MAX_AXIS : 0.0f;
-    _axisStateMap[makeInput(ROTATION_AXIS_X_POS).getChannel()] = (cc_rotation.x > 0.0f) ? cc_rotation.x / MAX_AXIS : 0.0f;
-    _axisStateMap[makeInput(ROTATION_AXIS_X_NEG).getChannel()] = (cc_rotation.x < 0.0f) ? -cc_rotation.x / MAX_AXIS : 0.0f;
-    _axisStateMap[makeInput(ROTATION_AXIS_Z_POS).getChannel()] = (cc_rotation.z > 0.0f) ? cc_rotation.z / MAX_AXIS : 0.0f;
-    _axisStateMap[makeInput(ROTATION_AXIS_Z_NEG).getChannel()] = (cc_rotation.z < 0.0f) ? -cc_rotation.z / MAX_AXIS : 0.0f;
+    auto rotation = cc_rotation / MAX_AXIS;
+    _axisStateMap[ROTATE_X] = rotation.x; 
+    _axisStateMap[ROTATE_Y] = rotation.y;
+    _axisStateMap[ROTATE_Z] = rotation.z;
+    auto position = cc_rotation / MAX_AXIS;
+    _axisStateMap[TRANSLATE_X] = position.x;
+    _axisStateMap[TRANSLATE_Y] = position.y;
+    _axisStateMap[TRANSLATE_Z] = position.z;
 }
 
 void ConnexionData::setButton(int lastButtonState) {
@@ -57,24 +53,18 @@ void ConnexionData::buildDeviceProxy(controller::DeviceProxy::Pointer proxy) {
     proxy->getButton = [this](const controller::Input& input, int timestamp) -> bool { return this->getButton(input.getChannel()); };
     proxy->getAxis = [this](const controller::Input& input, int timestamp) -> float { return this->getAxis(input.getChannel()); };
     proxy->getAvailabeInputs = [this]() -> QVector<controller::Input::NamedPair> {
-        QVector<controller::Input::NamedPair> availableInputs;
-
-        availableInputs.append(controller::Input::NamedPair(makeInput(BUTTON_1), "Left button"));
-        availableInputs.append(controller::Input::NamedPair(makeInput(BUTTON_2), "Right button"));
-        availableInputs.append(controller::Input::NamedPair(makeInput(BUTTON_3), "Both buttons"));
-
-        availableInputs.append(controller::Input::NamedPair(makeInput(POSITION_AXIS_Y_NEG), "Move backward"));
-        availableInputs.append(controller::Input::NamedPair(makeInput(POSITION_AXIS_Y_POS), "Move forward"));
-        availableInputs.append(controller::Input::NamedPair(makeInput(POSITION_AXIS_X_POS), "Move right"));
-        availableInputs.append(controller::Input::NamedPair(makeInput(POSITION_AXIS_X_NEG), "Move Left"));
-        availableInputs.append(controller::Input::NamedPair(makeInput(POSITION_AXIS_Z_POS), "Move up"));
-        availableInputs.append(controller::Input::NamedPair(makeInput(POSITION_AXIS_Z_NEG), "Move down"));
-        availableInputs.append(controller::Input::NamedPair(makeInput(ROTATION_AXIS_Y_NEG), "Rotate backward"));
-        availableInputs.append(controller::Input::NamedPair(makeInput(ROTATION_AXIS_Y_POS), "Rotate forward"));
-        availableInputs.append(controller::Input::NamedPair(makeInput(ROTATION_AXIS_X_POS), "Rotate right"));
-        availableInputs.append(controller::Input::NamedPair(makeInput(ROTATION_AXIS_X_NEG), "Rotate left"));
-        availableInputs.append(controller::Input::NamedPair(makeInput(ROTATION_AXIS_Z_POS), "Rotate up"));
-        availableInputs.append(controller::Input::NamedPair(makeInput(ROTATION_AXIS_Z_NEG), "Rotate down"));
+        using namespace controller;
+        static QVector<controller::Input::NamedPair> availableInputs {
+            Input::NamedPair(makeInput(BUTTON_1), "LeftButton"),
+            Input::NamedPair(makeInput(BUTTON_2), "RightButton"),
+            Input::NamedPair(makeInput(BUTTON_3), "BothButtons"),
+            Input::NamedPair(makeInput(TRANSLATE_X), "TranslateX"),
+            Input::NamedPair(makeInput(TRANSLATE_Y), "TranslateY"),
+            Input::NamedPair(makeInput(TRANSLATE_Z), "TranslateZ"),
+            Input::NamedPair(makeInput(ROTATE_X), "RotateX"),
+            Input::NamedPair(makeInput(ROTATE_Y), "RotateY"),
+            Input::NamedPair(makeInput(ROTATE_Z), "RotateZ"),
+        };
         return availableInputs;
     };
 }
