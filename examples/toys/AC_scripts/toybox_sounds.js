@@ -8,7 +8,6 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-
 var soundMap = [{
     name: 'river water',
     url: "http://hifi-public.s3.amazonaws.com/ryan/Water_Lap_River_Edge_Gentle.L.wav",
@@ -90,7 +89,6 @@ function loadSounds() {
     });
 }
 
-
 function playSound(soundData) {
     if (soundData.injector) {
         // try/catch in case the injector QObject has been deleted already
@@ -103,10 +101,12 @@ function playSound(soundData) {
 
 function checkDownloaded(soundData) {
     if (soundData.sound.downloaded) {
+
         Script.clearInterval(soundData.downloadTimer);
+
         if (soundData.hasOwnProperty('playAtInterval')) {
             soundData.playingInterval = Script.setInterval(function() {
-                playSound(soundData);
+                playSound(soundData)
             }, soundData.playAtInterval);
         } else {
             playSound(soundData);
@@ -118,23 +118,26 @@ function checkDownloaded(soundData) {
 function startCheckDownloadedTimers() {
     soundMap.forEach(function(soundData) {
         soundData.downloadTimer = Script.setInterval(function() {
-            checkDownloaded(soundData)
+            checkDownloaded(soundData);
         }, 1000);
     });
 }
 
 Script.scriptEnding.connect(function() {
     soundMap.forEach(function(soundData) {
+
         if (soundData.hasOwnProperty("injector")) {
             soundData.injector.stop();
         }
+
         if (soundData.hasOwnProperty("downloadTimer")) {
             Script.clearInterval(soundData.downloadTimer);
-
         }
+
         if (soundData.hasOwnProperty("playingInterval")) {
             Script.clearInterval(soundData.playingInterval);
         }
+
     });
 
 });
