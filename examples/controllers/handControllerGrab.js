@@ -381,7 +381,7 @@ function MyController(hand, triggerAction) {
                 var propsForCandidate =
                     Entities.getEntityProperties(nearbyEntities[i], ["position", "name", "collisionsWillMove", "locked"]);
                 distance = Vec3.distance(propsForCandidate.position, handPosition);
-                if (distance < minDistance && props.name !== "pointer") {
+                if (distance < minDistance && propsForCandidate.name !== "pointer") {
                     this.grabbedEntity = nearbyEntities[i];
                     minDistance = distance;
                     props = propsForCandidate;
