@@ -31,7 +31,6 @@ controller::UserInputMapper::UserInputMapper() {
     _standardController = std::make_shared<StandardController>();
     registerDevice(new ActionsDevice());
     registerDevice(_standardController.get());
-    assignDefaulActionScales();
 }
 
 namespace controller {
@@ -63,8 +62,13 @@ public:
     virtual float value() override { return _currentValue; }
     virtual void apply(float newValue, float oldValue, const Pointer& source) override { _currentValue = newValue; }
 
+    virtual Pose pose() override { return _currentPose; }
+    virtual void apply(const Pose& newValue, const Pose& oldValue, const Pointer& source) override {
+        _currentPose = newValue;
+    }
 private:
     float _currentValue{ 0.0f };
+    Pose _currentPose{};
 };
 
 
@@ -120,7 +124,7 @@ void ScriptEndpoint::internalApply(float newValue, float oldValue, int sourceID)
 class CompositeEndpoint : public Endpoint, Endpoint::Pair {
 public:
     CompositeEndpoint(Endpoint::Pointer first, Endpoint::Pointer second)
-        : Endpoint(Input(Input::INVALID_INPUT)), Pair(first, second) { }
+        : Endpoint(Input::INVALID_INPUT), Pair(first, second) { }
 
     virtual float value() {
         float result = first->value() * -1.0f + second->value();
@@ -134,6 +138,50 @@ public:
 private:
     Endpoint::Pointer _first;
     Endpoint::Pointer _second;
+};
+
+
+class InputEndpoint : public Endpoint {
+public:
+    InputEndpoint(const Input& id = Input::INVALID_INPUT)
+        : Endpoint(id) {
+    }
+
+    virtual float value() override {
+        _currentValue = 0.0f;
+        if (isPose()) {
+            return _currentValue;
+        }
+        auto userInputMapper = DependencyManager::get<UserInputMapper>();
+        auto deviceProxy = userInputMapper->getDeviceProxy(_input);
+        if (!deviceProxy) {
+            return _currentValue;
+        }
+        _currentValue = deviceProxy->getValue(_input, 0);
+        return _currentValue;
+    }
+    virtual void apply(float newValue, float oldValue, const Pointer& source) override {}
+
+    virtual Pose pose() override {
+        _currentPose = Pose();
+        if (!isPose()) {
+            return _currentPose;
+        }
+        auto userInputMapper = DependencyManager::get<UserInputMapper>();
+        auto deviceProxy = userInputMapper->getDeviceProxy(_input);
+        if (!deviceProxy) {
+            return _currentPose;
+        }
+        _currentPose = deviceProxy->getPose(_input, 0);
+        return _currentPose;
+    }
+
+    virtual void apply(const Pose& newValue, const Pose& oldValue, const Pointer& source) override {
+    }
+
+private:
+    float _currentValue{ 0.0f };
+    Pose _currentPose{};
 };
 
 class ActionEndpoint : public Endpoint {
@@ -152,10 +200,19 @@ public:
         }
     }
 
+    virtual Pose pose() override { return _currentPose; }
+    virtual void apply(const Pose& newValue, const Pose& oldValue, const Pointer& source) override {
+        _currentPose = newValue;
+        if (!(_input == Input::INVALID_INPUT)) {
+            auto userInputMapper = DependencyManager::get<UserInputMapper>();
+            userInputMapper->setActionState(Action(_input.getChannel()), _currentPose);
+        }
+    }
+
 private:
     float _currentValue{ 0.0f };
+    Pose _currentPose{};
 };
-
 
 UserInputMapper::~UserInputMapper() {
 }
@@ -315,24 +372,29 @@ void UserInputMapper::update(float deltaTime) {
     update();
 
     // Scale all the channel step with the scale
-    for (auto i = 0; i < NUM_ACTIONS; i++) {
+    for (auto i = 0; i < toInt(Action::NUM_ACTIONS); i++) {
         if (_externalActionStates[i] != 0) {
             _actionStates[i] += _externalActionStates[i];
             _externalActionStates[i] = 0.0f;
         }
+
+        if (_externalPoseStates[i].isValid()) {
+            _poseStates[i] = _externalPoseStates[i];
+            _externalPoseStates[i] = Pose();
+        }
     }
 
     // merge the bisected and non-bisected axes for now
-    fixBisectedAxis(_actionStates[TRANSLATE_X], _actionStates[LATERAL_LEFT], _actionStates[LATERAL_RIGHT]);
-    fixBisectedAxis(_actionStates[TRANSLATE_Y], _actionStates[VERTICAL_DOWN], _actionStates[VERTICAL_UP]);
-    fixBisectedAxis(_actionStates[TRANSLATE_Z], _actionStates[LONGITUDINAL_FORWARD], _actionStates[LONGITUDINAL_BACKWARD]);
-    fixBisectedAxis(_actionStates[TRANSLATE_CAMERA_Z], _actionStates[BOOM_IN], _actionStates[BOOM_OUT]);
-    fixBisectedAxis(_actionStates[ROTATE_Y], _actionStates[YAW_LEFT], _actionStates[YAW_RIGHT]);
-    fixBisectedAxis(_actionStates[ROTATE_X], _actionStates[PITCH_UP], _actionStates[PITCH_DOWN]);
+    fixBisectedAxis(_actionStates[toInt(Action::TRANSLATE_X)], _actionStates[toInt(Action::LATERAL_LEFT)], _actionStates[toInt(Action::LATERAL_RIGHT)]);
+    fixBisectedAxis(_actionStates[toInt(Action::TRANSLATE_Y)], _actionStates[toInt(Action::VERTICAL_DOWN)], _actionStates[toInt(Action::VERTICAL_UP)]);
+    fixBisectedAxis(_actionStates[toInt(Action::TRANSLATE_Z)], _actionStates[toInt(Action::LONGITUDINAL_FORWARD)], _actionStates[toInt(Action::LONGITUDINAL_BACKWARD)]);
+    fixBisectedAxis(_actionStates[toInt(Action::TRANSLATE_CAMERA_Z)], _actionStates[toInt(Action::BOOM_IN)], _actionStates[toInt(Action::BOOM_OUT)]);
+    fixBisectedAxis(_actionStates[toInt(Action::ROTATE_Y)], _actionStates[toInt(Action::YAW_LEFT)], _actionStates[toInt(Action::YAW_RIGHT)]);
+    fixBisectedAxis(_actionStates[toInt(Action::ROTATE_X)], _actionStates[toInt(Action::PITCH_UP)], _actionStates[toInt(Action::PITCH_DOWN)]);
 
 
     static const float EPSILON = 0.01f;
-    for (auto i = 0; i < NUM_ACTIONS; i++) {
+    for (auto i = 0; i < toInt(Action::NUM_ACTIONS); i++) {
         _actionStates[i] *= _actionScales[i];
         // Emit only on change, and emit when moving back to 0
         if (fabsf(_actionStates[i] - _lastActionStates[i]) > EPSILON) {
@@ -350,7 +412,7 @@ Input::NamedVector UserInputMapper::getAvailableInputs(uint16 deviceID) const {
 
 QVector<Action> UserInputMapper::getAllActions() const {
     QVector<Action> actions;
-    for (auto i = 0; i < NUM_ACTIONS; i++) {
+    for (auto i = 0; i < toInt(Action::NUM_ACTIONS); i++) {
         actions.append(Action(i));
     }
     return actions;
@@ -358,7 +420,7 @@ QVector<Action> UserInputMapper::getAllActions() const {
 
 QString UserInputMapper::getActionName(Action action) const {
     for (auto actionPair : getActionInputs()) {
-        if (actionPair.first.channel == action) {
+        if (actionPair.first.channel == toInt(action)) {
             return actionPair.second;
         }
     }
@@ -373,38 +435,40 @@ QVector<QString> UserInputMapper::getActionNames() const {
     }
     return result;
 }
-
+/*
 void UserInputMapper::assignDefaulActionScales() {
-    _actionScales[LONGITUDINAL_BACKWARD] = 1.0f; // 1m per unit
-    _actionScales[LONGITUDINAL_FORWARD] = 1.0f; // 1m per unit
-    _actionScales[LATERAL_LEFT] = 1.0f; // 1m per unit
-    _actionScales[LATERAL_RIGHT] = 1.0f; // 1m per unit
-    _actionScales[VERTICAL_DOWN] = 1.0f; // 1m per unit
-    _actionScales[VERTICAL_UP] = 1.0f; // 1m per unit
-    _actionScales[YAW_LEFT] = 1.0f; // 1 degree per unit
-    _actionScales[YAW_RIGHT] = 1.0f; // 1 degree per unit
-    _actionScales[PITCH_DOWN] = 1.0f; // 1 degree per unit
-    _actionScales[PITCH_UP] = 1.0f; // 1 degree per unit
-    _actionScales[BOOM_IN] = 0.5f; // .5m per unit
-    _actionScales[BOOM_OUT] = 0.5f; // .5m per unit
-    _actionScales[LEFT_HAND] = 1.0f; // default
-    _actionScales[RIGHT_HAND] = 1.0f; // default
-    _actionScales[LEFT_HAND_CLICK] = 1.0f; // on
-    _actionScales[RIGHT_HAND_CLICK] = 1.0f; // on
-    _actionScales[SHIFT] = 1.0f; // on
-    _actionScales[ACTION1] = 1.0f; // default
-    _actionScales[ACTION2] = 1.0f; // default
-    _actionScales[TRANSLATE_X] = 1.0f; // default
-    _actionScales[TRANSLATE_Y] = 1.0f; // default
-    _actionScales[TRANSLATE_Z] = 1.0f; // default
-    _actionScales[ROLL] = 1.0f; // default
-    _actionScales[PITCH] = 1.0f; // default
-    _actionScales[YAW] = 1.0f; // default
+    _actionScales[toInt(Action::LONGITUDINAL_BACKWARD)] = 1.0f; // 1m per unit
+    _actionScales[toInt(Action::LONGITUDINAL_FORWARD)] = 1.0f; // 1m per unit
+    _actionScales[toInt(Action::LATERAL_LEFT)] = 1.0f; // 1m per unit
+    _actionScales[toInt(Action::LATERAL_RIGHT)] = 1.0f; // 1m per unit
+    _actionScales[toInt(Action::VERTICAL_DOWN)] = 1.0f; // 1m per unit
+    _actionScales[toInt(Action::VERTICAL_UP)] = 1.0f; // 1m per unit
+    _actionScales[toInt(Action::YAW_LEFT)] = 1.0f; // 1 degree per unit
+    _actionScales[toInt(Action::YAW_RIGHT)] = 1.0f; // 1 degree per unit
+    _actionScales[toInt(Action::PITCH_DOWN)] = 1.0f; // 1 degree per unit
+    _actionScales[toInt(Action::PITCH_UP)] = 1.0f; // 1 degree per unit
+    _actionScales[toInt(Action::BOOM_IN)] = 0.5f; // .5m per unit
+    _actionScales[toInt(Action::BOOM_OUT)] = 0.5f; // .5m per unit
+    _actionScales[toInt(Action::LEFT_HAND)] = 1.0f; // default
+    _actionScales[toInt(Action::RIGHT_HAND)] = 1.0f; // default
+    _actionScales[toInt(Action::LEFT_HAND_CLICK)] = 1.0f; // on
+    _actionScales[toInt(Action::RIGHT_HAND_CLICK)] = 1.0f; // on
+    _actionScales[toInt(Action::SHIFT)] = 1.0f; // on
+    _actionScales[toInt(Action::ACTION1)] = 1.0f; // default
+    _actionScales[toInt(Action::ACTION2)] = 1.0f; // default
+    _actionScales[toInt(Action::TRANSLATE_X)] = 1.0f; // default
+    _actionScales[toInt(Action::TRANSLATE_Y)] = 1.0f; // default
+    _actionScales[toInt(Action::TRANSLATE_Z)] = 1.0f; // default
+    _actionScales[toInt(Action::ROLL)] = 1.0f; // default
+    _actionScales[toInt(Action::PITCH)] = 1.0f; // default
+    _actionScales[toInt(Action::YAW)] = 1.0f; // default
 }
+*/
 
 static int actionMetaTypeId = qRegisterMetaType<Action>();
 static int inputMetaTypeId = qRegisterMetaType<Input>();
 static int inputPairMetaTypeId = qRegisterMetaType<InputPair>();
+
 
 QScriptValue inputToScriptValue(QScriptEngine* engine, const Input& input);
 void inputFromScriptValue(const QScriptValue& object, Input& input);
@@ -532,17 +596,23 @@ void UserInputMapper::update() {
                     }
 
                     // Fetch the value, may have been overriden by previous loopback routes
-                    float value = getValue(source);
-
-                    // Apply each of the filters.
-                    for (const auto& filter : route->filters) {
-                        value = filter->apply(value);
-                    }
-
-                    if (loopback) {
-                        _overrideValues[source] = value;
+                    if (source->isPose()) {
+                        Pose value = getPose(source);
+                        // no filters yet for pose
+                        destination->apply(value, Pose(), source);
                     } else {
-                        destination->apply(value, 0, source);
+                        float value = getValue(source);
+
+                        // Apply each of the filters.
+                        for (const auto& filter : route->filters) {
+                            value = filter->apply(value);
+                        }
+
+                        if (loopback) {
+                            _overrideValues[source] = value;
+                        } else {
+                            destination->apply(value, 0, source);
+                        }
                     }
                 }
             }
@@ -673,6 +743,20 @@ float UserInputMapper::getValue(const Input& input) const {
     return endpoint->value();
 }
 
+Pose UserInputMapper::getPose(const Endpoint::Pointer& endpoint) const {
+    if (!endpoint->isPose()) {
+        return Pose();
+    }
+    return endpoint->pose();
+}
+
+Pose UserInputMapper::getPose(const Input& input) const {
+    auto endpoint = endpointFor(input);
+    if (!endpoint) {
+        return Pose();
+    }
+    return getPose(endpoint);
+}
 
 Mapping::Pointer UserInputMapper::loadMapping(const QString& jsonFile) {
     if (jsonFile.isEmpty()) {

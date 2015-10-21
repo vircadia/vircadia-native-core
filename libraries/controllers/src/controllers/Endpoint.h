@@ -17,6 +17,7 @@
 #include <QtCore/QObject>
 
 #include "Input.h"
+#include "Pose.h"
 
 class QScriptValue;
 
@@ -37,7 +38,13 @@ namespace controller {
         Endpoint(const Input& input) : _input(input) {}
         virtual float value() = 0;
         virtual void apply(float newValue, float oldValue, const Pointer& source) = 0;
+        virtual Pose pose() { return Pose(); }
+        virtual void apply(const Pose& newValue, const Pose& oldValue, const Pointer& source) {}
+
+        virtual const bool isPose() { return _input.isPose(); }
+
         const Input& getInput() { return _input;  }
+
     protected:
         Input _input;
     };

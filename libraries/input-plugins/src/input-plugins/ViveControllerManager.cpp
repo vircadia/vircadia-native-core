@@ -165,8 +165,8 @@ void ViveControllerManager::updateRendering(RenderArgs* args, render::ScenePoint
         //pendingChanges.updateItem(_leftHandRenderID, );
 
 
-        controller::Pose leftHand = _poseStateMap[controller::StandardPoseChannel::LEFT];
-        controller::Pose rightHand = _poseStateMap[controller::StandardPoseChannel::RIGHT];
+        controller::Pose leftHand = _poseStateMap[controller::StandardPoseChannel::LEFT_HAND];
+        controller::Pose rightHand = _poseStateMap[controller::StandardPoseChannel::RIGHT_HAND];
 
         gpu::doInBatch(args->_context, [=](gpu::Batch& batch) {
             auto geometryCache = DependencyManager::get<GeometryCache>();
@@ -389,7 +389,7 @@ void ViveControllerManager::handlePoseEvent(const mat4& mat, bool left) {
 
     position += rotation * glm::vec3(0, 0, -CONTROLLER_LENGTH_OFFSET);
 
-    _poseStateMap[left ? controller::LEFT : controller::RIGHT] = controller::Pose(position, rotation);
+    _poseStateMap[left ? controller::LEFT_HAND : controller::RIGHT_HAND] = controller::Pose(position, rotation);
 }
 
 void ViveControllerManager::buildDeviceProxy(controller::DeviceProxy::Pointer proxy) {

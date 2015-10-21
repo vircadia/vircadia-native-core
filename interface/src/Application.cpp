@@ -2725,12 +2725,12 @@ void Application::update(float deltaTime) {
     myAvatar->clearDriveKeys();
     if (_myCamera.getMode() != CAMERA_MODE_INDEPENDENT) {
         if (!_controllerScriptingInterface->areActionsCaptured()) {
-            myAvatar->setDriveKeys(FWD, userInputMapper->getActionState(controller::LONGITUDINAL_FORWARD));
-            myAvatar->setDriveKeys(BACK, userInputMapper->getActionState(controller::LONGITUDINAL_BACKWARD));
-            myAvatar->setDriveKeys(UP, userInputMapper->getActionState(controller::VERTICAL_UP));
-            myAvatar->setDriveKeys(DOWN, userInputMapper->getActionState(controller::VERTICAL_DOWN));
-            myAvatar->setDriveKeys(LEFT, userInputMapper->getActionState(controller::LATERAL_LEFT));
-            myAvatar->setDriveKeys(RIGHT, userInputMapper->getActionState(controller::LATERAL_RIGHT));
+            myAvatar->setDriveKeys(FWD, userInputMapper->getActionState(controller::Action::LONGITUDINAL_FORWARD));
+            myAvatar->setDriveKeys(BACK, userInputMapper->getActionState(controller::Action::LONGITUDINAL_BACKWARD));
+            myAvatar->setDriveKeys(UP, userInputMapper->getActionState(controller::Action::VERTICAL_UP));
+            myAvatar->setDriveKeys(DOWN, userInputMapper->getActionState(controller::Action::VERTICAL_DOWN));
+            myAvatar->setDriveKeys(LEFT, userInputMapper->getActionState(controller::Action::LATERAL_LEFT));
+            myAvatar->setDriveKeys(RIGHT, userInputMapper->getActionState(controller::Action::LATERAL_RIGHT));
             if (deltaTime > FLT_EPSILON) {
                 // For rotations what we really want are meausures of "angles per second" (in order to prevent 
                 // fps-dependent spin rates) so we need to scale the units of the controller contribution.
@@ -2738,25 +2738,25 @@ void Application::update(float deltaTime) {
                 // controllers to provide a delta_per_second value rather than a raw delta.)
                 const float EXPECTED_FRAME_RATE = 60.0f;
                 float timeFactor = EXPECTED_FRAME_RATE * deltaTime;
-                myAvatar->setDriveKeys(ROT_UP, userInputMapper->getActionState(controller::PITCH_UP) / timeFactor);
-                myAvatar->setDriveKeys(ROT_DOWN, userInputMapper->getActionState(controller::PITCH_DOWN) / timeFactor);
-                myAvatar->setDriveKeys(ROT_LEFT, userInputMapper->getActionState(controller::YAW_LEFT) / timeFactor);
-                myAvatar->setDriveKeys(ROT_RIGHT, userInputMapper->getActionState(controller::YAW_RIGHT) / timeFactor);
+                myAvatar->setDriveKeys(ROT_UP, userInputMapper->getActionState(controller::Action::PITCH_UP) / timeFactor);
+                myAvatar->setDriveKeys(ROT_DOWN, userInputMapper->getActionState(controller::Action::PITCH_DOWN) / timeFactor);
+                myAvatar->setDriveKeys(ROT_LEFT, userInputMapper->getActionState(controller::Action::YAW_LEFT) / timeFactor);
+                myAvatar->setDriveKeys(ROT_RIGHT, userInputMapper->getActionState(controller::Action::YAW_RIGHT) / timeFactor);
             }
         }
-        myAvatar->setDriveKeys(BOOM_IN, userInputMapper->getActionState(controller::BOOM_IN));
-        myAvatar->setDriveKeys(BOOM_OUT, userInputMapper->getActionState(controller::BOOM_OUT));
+        myAvatar->setDriveKeys(BOOM_IN, userInputMapper->getActionState(controller::Action::BOOM_IN));
+        myAvatar->setDriveKeys(BOOM_OUT, userInputMapper->getActionState(controller::Action::BOOM_OUT));
     }
-    controller::Pose leftHand = userInputMapper->getPoseState(controller::LEFT_HAND);
-    controller::Pose rightHand = userInputMapper->getPoseState(controller::RIGHT_HAND);
+    controller::Pose leftHand = userInputMapper->getPoseState(controller::Action::LEFT_HAND);
+    controller::Pose rightHand = userInputMapper->getPoseState(controller::Action::RIGHT_HAND);
     Hand* hand = DependencyManager::get<AvatarManager>()->getMyAvatar()->getHand();
-    setPalmData(hand, leftHand, deltaTime, LEFT_HAND_INDEX, userInputMapper->getActionState(controller::LEFT_HAND_CLICK));
-    setPalmData(hand, rightHand, deltaTime, RIGHT_HAND_INDEX, userInputMapper->getActionState(controller::RIGHT_HAND_CLICK));
+    setPalmData(hand, leftHand, deltaTime, LEFT_HAND_INDEX, userInputMapper->getActionState(controller::Action::LEFT_HAND_CLICK));
+    setPalmData(hand, rightHand, deltaTime, RIGHT_HAND_INDEX, userInputMapper->getActionState(controller::Action::RIGHT_HAND_CLICK));
     if (Menu::getInstance()->isOptionChecked(MenuOption::EnableHandMouseInput)) {
-        emulateMouse(hand, userInputMapper->getActionState(controller::LEFT_HAND_CLICK),
-            userInputMapper->getActionState(controller::SHIFT), LEFT_HAND_INDEX);
-        emulateMouse(hand, userInputMapper->getActionState(controller::RIGHT_HAND_CLICK),
-            userInputMapper->getActionState(controller::SHIFT), RIGHT_HAND_INDEX);
+        emulateMouse(hand, userInputMapper->getActionState(controller::Action::LEFT_HAND_CLICK),
+            userInputMapper->getActionState(controller::Action::SHIFT), LEFT_HAND_INDEX);
+        emulateMouse(hand, userInputMapper->getActionState(controller::Action::RIGHT_HAND_CLICK),
+            userInputMapper->getActionState(controller::Action::SHIFT), RIGHT_HAND_INDEX);
     }
 
     updateThreads(deltaTime); // If running non-threaded, then give the threads some time to process...

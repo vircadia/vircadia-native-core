@@ -50,8 +50,8 @@ namespace controller {
 
     // No correlation to SDL
     enum StandardPoseChannel {
-        LEFT = 0,
-        RIGHT,
+        LEFT_HAND = 0,
+        RIGHT_HAND,
         HEAD,
         NUM_STANDARD_POSES
     };

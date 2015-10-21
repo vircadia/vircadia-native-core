@@ -32,6 +32,10 @@
 #include "Actions.h"
 
 namespace controller {
+
+    class RouteBuilderProxy;
+    class MappingBuilderProxy;
+
     class UserInputMapper : public QObject, public Dependency {
         Q_OBJECT
             SINGLETON_DEPENDENCY
@@ -77,14 +81,14 @@ namespace controller {
 
         QVector<Action> getAllActions() const;
         QString getActionName(Action action) const;
-        float getActionState(Action action) const { return _actionStates[action]; }
-        Pose getPoseState(Action action) const { return _poseStates[action]; }
+        float getActionState(Action action) const { return _actionStates[toInt(action)]; }
+        Pose getPoseState(Action action) const { return _poseStates[toInt(action)]; }
         int findAction(const QString& actionName) const;
         QVector<QString> getActionNames() const;
-        void assignDefaulActionScales();
 
-        void setActionState(Action action, float value) { _externalActionStates[action] = value; }
-        void deltaActionState(Action action, float delta) { _externalActionStates[action] += delta; }
+        void setActionState(Action action, float value) { _externalActionStates[toInt(action)] = value; }
+        void deltaActionState(Action action, float delta) { _externalActionStates[toInt(action)] += delta; }
+        void setActionState(Action action, const Pose& value) { _externalPoseStates[toInt(action)] = value; }
 
         static Input makeStandardInput(controller::StandardButtonChannel button);
         static Input makeStandardInput(controller::StandardAxisChannel axis);
@@ -108,6 +112,7 @@ namespace controller {
 
         void enableMapping(const QString& mappingName, bool enable = true);
         float getValue(const Input& input) const;
+        Pose getPose(const Input& input) const;
 
     signals:
         void actionEvent(int action, float state);
@@ -122,11 +127,12 @@ namespace controller {
         DevicesMap _registeredDevices;
         uint16 _nextFreeDeviceID = STANDARD_DEVICE + 1;
 
-        std::vector<float> _actionStates = std::vector<float>(NUM_ACTIONS, 0.0f);
-        std::vector<float> _externalActionStates = std::vector<float>(NUM_ACTIONS, 0.0f);
-        std::vector<float> _actionScales = std::vector<float>(NUM_ACTIONS, 1.0f);
-        std::vector<float> _lastActionStates = std::vector<float>(NUM_ACTIONS, 0.0f);
-        std::vector<Pose> _poseStates = std::vector<Pose>(NUM_ACTIONS);
+        std::vector<float> _actionStates = std::vector<float>(toInt(Action::NUM_ACTIONS), 0.0f);
+        std::vector<float> _externalActionStates = std::vector<float>(toInt(Action::NUM_ACTIONS), 0.0f);
+        std::vector<float> _actionScales = std::vector<float>(toInt(Action::NUM_ACTIONS), 1.0f);
+        std::vector<float> _lastActionStates = std::vector<float>(toInt(Action::NUM_ACTIONS), 0.0f);
+        std::vector<Pose> _poseStates = std::vector<Pose>(toInt(Action::NUM_ACTIONS));
+        std::vector<Pose> _externalPoseStates = std::vector<Pose>(toInt(Action::NUM_ACTIONS));
 
         glm::mat4 _sensorToWorldMat;
 
@@ -134,6 +140,8 @@ namespace controller {
         QHash<const QString&, int> _deviceCounts;
 
         float getValue(const Endpoint::Pointer& endpoint) const;
+        Pose getPose(const Endpoint::Pointer& endpoint) const;
+
         friend class RouteBuilderProxy;
         friend class MappingBuilderProxy;
         Endpoint::Pointer endpointFor(const QJSValue& endpoint);
@@ -154,6 +162,7 @@ namespace controller {
         MappingDeviceMap _mappingsByDevice;
         MappingStack _activeMappings;
     };
+
 }
 
 Q_DECLARE_METATYPE(controller::UserInputMapper::InputPair)
