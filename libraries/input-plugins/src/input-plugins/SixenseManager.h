@@ -12,26 +12,12 @@
 #ifndef hifi_SixenseManager_h
 #define hifi_SixenseManager_h
 
-#ifdef HAVE_SIXENSE
-    #include <glm/glm.hpp>
-    #include <glm/gtc/quaternion.hpp>
-    #include "sixense.h"
-
-#ifdef __APPLE__
-    #include <QCoreApplication>
-    #include <qlibrary.h>
-#endif
-
-#endif
-
 #include <SimpleMovingAverage.h>
 
 #include <controllers/InputDevice.h>
 #include <controllers/StandardControls.h>
 
 #include "InputPlugin.h"
-
-class QLibrary;
 
 const unsigned int BUTTON_0 = 1U << 0; // the skinny button between 1 and 2
 const unsigned int BUTTON_1 = 1U << 5;
@@ -75,7 +61,6 @@ private:
     static const float CONTROLLER_THRESHOLD;
     static const float DEFAULT_REACH_LENGTH;
 
-
     using Samples = std::pair<  MovingAverage< glm::vec3, MAX_NUM_AVERAGING_SAMPLES>, MovingAverage< glm::vec4, MAX_NUM_AVERAGING_SAMPLES> >;
     using MovingAverageMap = std::map< int, Samples >;
 
@@ -113,9 +98,6 @@ private:
         glm::vec3 _reachRight;
     };
 
-
-
-    bool _useSixenseFilter = true;
     std::shared_ptr<InputDevice> _inputDevice { std::make_shared<InputDevice>() };
 
     static const QString NAME;

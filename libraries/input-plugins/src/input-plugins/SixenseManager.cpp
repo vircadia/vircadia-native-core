@@ -9,11 +9,20 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include <vector>
+#include "SixenseManager.h"
+
+#ifdef HAVE_SIXENSE
+#include "sixense.h"
+#endif
 
 #include <QCoreApplication>
 #include <QtCore/QSysInfo>
 #include <QtGlobal>
+
+// TODO: This should not be here
+#include <QLoggingCategory>
+Q_DECLARE_LOGGING_CATEGORY(inputplugins)
+Q_LOGGING_CATEGORY(inputplugins, "hifi.inputplugins")
 
 #include <GLMHelpers.h>
 #include <NumericalConstants.h>
@@ -25,39 +34,11 @@
 #include <UserActivityLogger.h>
 #include <controllers/UserInputMapper.h>
 
-#include "SixenseManager.h"
-
-
-#ifdef HAVE_SIXENSE
-    #include "sixense.h"
-
-#ifdef __APPLE__
-static QLibrary* _sixenseLibrary { nullptr };
-#endif
-
-#endif
-
-// TODO: This should not be here
-#include <QLoggingCategory>
-Q_DECLARE_LOGGING_CATEGORY(inputplugins)
-Q_LOGGING_CATEGORY(inputplugins, "hifi.inputplugins")
-
-#ifdef HAVE_SIXENSE
-
+#include "UserActivityLogger.h"
 
 const glm::vec3 SixenseManager::DEFAULT_AVATAR_POSITION { -0.25f, -0.35f, -0.3f }; // in hydra frame
 const float SixenseManager::CONTROLLER_THRESHOLD { 0.35f };
 const float SixenseManager::DEFAULT_REACH_LENGTH { 1.5f };
-
-#endif
-
-#ifdef __APPLE__
-typedef int (*SixenseBaseFunction)();
-typedef int (*SixenseTakeIntFunction)(int);
-#ifdef HAVE_SIXENSE
-typedef int (*SixenseTakeIntAndSixenseControllerData)(int, sixenseControllerData*);
-#endif
-#endif
 
 const QString SixenseManager::NAME = "Sixense";
 const QString SixenseManager::HYDRA_ID_STRING = "Razer Hydra";
@@ -94,31 +75,6 @@ void SixenseManager::activate() {
     auto userInputMapper = DependencyManager::get<controller::UserInputMapper>();
     userInputMapper->registerDevice(_inputDevice);
 
-#ifdef __APPLE__
-
-    if (!_sixenseLibrary) {
-
-#ifdef SIXENSE_LIB_FILENAME
-        _sixenseLibrary = new QLibrary(SIXENSE_LIB_FILENAME);
-#else
-        const QString SIXENSE_LIBRARY_NAME = "libsixense_x64";
-        QString frameworkSixenseLibrary = QCoreApplication::applicationDirPath() + "/../Frameworks/"
-            + SIXENSE_LIBRARY_NAME;
-
-        _sixenseLibrary = new QLibrary(frameworkSixenseLibrary);
-#endif
-    }
-
-    if (_sixenseLibrary->load()){
-        qCDebug(inputplugins) << "Loaded sixense library for hydra support -" << _sixenseLibrary->fileName();
-    } else {
-        qCDebug(inputplugins) << "Sixense library at" << _sixenseLibrary->fileName() << "failed to load."
-            << "Continuing without hydra support.";
-        return;
-    }
-
-    SixenseBaseFunction sixenseInit = (SixenseBaseFunction) _sixenseLibrary->resolve("sixenseInit");
-#endif
     loadSettings();
     sixenseInit();
 #endif
@@ -139,26 +95,13 @@ void SixenseManager::deactivate() {
         userInputMapper->removeDevice(_inputDevice->_deviceID);
     }
 
-#ifdef __APPLE__
-    SixenseBaseFunction sixenseExit = (SixenseBaseFunction)_sixenseLibrary->resolve("sixenseExit");
-#endif
-
     sixenseExit();
-
-#ifdef __APPLE__
-    delete _sixenseLibrary;
-#endif
-
 #endif
 }
 
 void SixenseManager::setSixenseFilter(bool filter) {
 #ifdef HAVE_SIXENSE
-#ifdef __APPLE__
-    SixenseTakeIntFunction sixenseSetFilterEnabled = (SixenseTakeIntFunction) _sixenseLibrary->resolve("sixenseSetFilterEnabled");
-#endif
-    int newFilter = filter ? 1 : 0;
-    sixenseSetFilterEnabled(newFilter);
+    sixenseSetFilterEnabled(filter ? 1 : 0);
 #endif
 }
 
@@ -179,11 +122,6 @@ void SixenseManager::InputDevice::update(float deltaTime, bool jointsCaptured) {
     //}
 #ifdef HAVE_SIXENSE
     _buttonPressedMap.clear();
-
-#ifdef __APPLE__
-    SixenseBaseFunction sixenseGetNumActiveControllers =
-    (SixenseBaseFunction) _sixenseLibrary->resolve("sixenseGetNumActiveControllers");
-#endif
 
     auto userInputMapper = DependencyManager::get<controller::UserInputMapper>();
 
@@ -213,23 +151,10 @@ void SixenseManager::InputDevice::update(float deltaTime, bool jointsCaptured) {
     // FIXME send this message once when we've positively identified hydra hardware
     //UserActivityLogger::getInstance().connectedDevice("spatial_controller", "hydra");
 
-#ifdef __APPLE__
-    SixenseBaseFunction sixenseGetMaxControllers =
-    (SixenseBaseFunction) _sixenseLibrary->resolve("sixenseGetMaxControllers");
-#endif
-
     int maxControllers = sixenseGetMaxControllers();
 
     // we only support two controllers
     sixenseControllerData controllers[2];
-
-#ifdef __APPLE__
-    SixenseTakeIntFunction sixenseIsControllerEnabled =
-    (SixenseTakeIntFunction) _sixenseLibrary->resolve("sixenseIsControllerEnabled");
-
-    SixenseTakeIntAndSixenseControllerData sixenseGetNewestData =
-    (SixenseTakeIntAndSixenseControllerData) _sixenseLibrary->resolve("sixenseGetNewestData");
-#endif
 
     int numActiveControllers = 0;
     for (int i = 0; i < maxControllers && numActiveControllers < 2; i++) {
@@ -478,8 +403,6 @@ void SixenseManager::InputDevice::handlePoseEvent(float deltaTime, glm::vec3 pos
 
     glm::vec3 velocity(0.0f);
     glm::quat angularVelocity;
-
-
 
     if (prevPose.isValid() && deltaTime > std::numeric_limits<float>::epsilon()) {
 
