@@ -255,9 +255,7 @@ void UserInputMapper::registerDevice(InputDevice* device) {
         } else if (input.device == ACTIONS_DEVICE) {
             endpoint = std::make_shared<ActionEndpoint>(input);
         } else {
-            endpoint = std::make_shared<LambdaEndpoint>([=] {
-                return proxy->getValue(input, 0);
-            });
+            endpoint = std::make_shared<InputEndpoint>(input);
         }
         _inputsByEndpoint[endpoint] = input;
         _endpointsByInput[input] = endpoint;
