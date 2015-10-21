@@ -79,7 +79,7 @@ private:
     QStringList _originalTextures;
     bool _originalTexturesRead = false;
     QVector<QVector<glm::vec3>> _points;
-    bool _dimensionsInitialized = false;
+    bool _dimensionsInitialized = true;
     
     render::ItemID _myMetaItem;
 };
