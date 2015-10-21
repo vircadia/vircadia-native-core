@@ -495,6 +495,7 @@ void UserInputMapper::assignDefaulActionScales() {
 static int actionMetaTypeId = qRegisterMetaType<Action>();
 static int inputMetaTypeId = qRegisterMetaType<Input>();
 static int inputPairMetaTypeId = qRegisterMetaType<InputPair>();
+static int poseMetaTypeId = qRegisterMetaType<controller::Pose>("Pose");
 
 
 QScriptValue inputToScriptValue(QScriptEngine* engine, const Input& input);
@@ -547,6 +548,8 @@ void UserInputMapper::registerControllerTypes(QScriptEngine* engine) {
     qScriptRegisterMetaType(engine, actionToScriptValue, actionFromScriptValue);
     qScriptRegisterMetaType(engine, inputToScriptValue, inputFromScriptValue);
     qScriptRegisterMetaType(engine, inputPairToScriptValue, inputPairFromScriptValue);
+
+    qScriptRegisterMetaType(engine, Pose::toScriptValue, Pose::fromScriptValue);
 }
 
 Input UserInputMapper::makeStandardInput(controller::StandardButtonChannel button) {
