@@ -393,7 +393,7 @@ function MyController(hand, triggerAction) {
                 return;
             } else if (props.locked === 0 && props.collisionsWillMove === 1) {
                 this.setState(STATE_NEAR_GRABBING);
-            } else if (props.collisionsWillMove === 0 & grabbableData.wantsTrigger) {
+            } else if (props.collisionsWillMove === 0 && grabbableData.wantsTrigger) {
                 // We have grabbed a non-physical object, so we want to trigger a non-colliding event as opposed to a grab event
                 this.setState(STATE_NEAR_GRABBING_NON_COLLIDING);
             }
