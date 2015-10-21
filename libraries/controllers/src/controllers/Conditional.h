@@ -17,8 +17,6 @@
 
 #include <shared/Factory.h>
 
-#include "Endpoint.h"
-
 class QJsonValue;
 
 namespace controller {
@@ -39,14 +37,6 @@ namespace controller {
         static Factory& getFactory() { return _factory; }
     protected:
         static Factory _factory;
-    };
-
-    class EndpointConditional : public Conditional {
-    public:
-        EndpointConditional(Endpoint::Pointer endpoint) : _endpoint(endpoint) { }
-        virtual bool satisfied() override;
-    private:
-        Endpoint::Pointer _endpoint;
     };
 
 }

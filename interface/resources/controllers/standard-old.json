@@ -1,0 +1,43 @@
+{
+    "name": "Standard to Action",
+    "channels": [
+        { "from": "Standard.LY", "to": "Actions.TranslateZ" },
+        { "from": "Standard.LX", "to": "Actions.TranslateX" },
+        { "from": "Standard.RX", "to": "Actions.Yaw" },
+        { "from": "Standard.RY", "to": "Actions.Pitch" },
+        {
+            "from": "Standard.DU", 
+            "to": "Actions.LONGITUDINAL_FORWARD",
+            "filters": [ { "type": "scale", "scale": 0.5 } ]
+        },
+        { 
+            "from": "Standard.DD", 
+            "to": "Actions.LONGITUDINAL_BACKWARD",
+            "filters": [ { "type": "scale", "scale": 0.5 } ]
+        },
+        { 
+            "from": "Standard.DR", 
+            "to": "Actions.LATERAL_RIGHT",
+            "filters": [ { "type": "scale", "scale": 0.5 } ]
+        },
+        { 
+            "from": "Standard.DL", 
+            "to": "Actions.LATERAL_LEFT",
+            "filters": [ { "type": "scale", "scale": 0.5 } ]
+        },
+        { "from": "Standard.Y", "to": "Actions.VERTICAL_UP" },
+        { "from": "Standard.X", "to": "Actions.VERTICAL_DOWN" },
+        { 
+            "from": "Standard.RT", 
+            "to": "Actions.BOOM_IN", 
+            "filters": [ { "type": "scale", "scale": 0.1 } ]
+        },
+        { 
+            "from": "Standard.LT", 
+            "to": "Actions.BOOM_OUT", 
+            "filters": [ { "type": "scale", "scale": 0.1 } ]
+        },
+        { "from": "Standard.LeftHand", "to": "Actions.LEFT_HAND" }, 
+        { "from": "Standard.RightHand", "to": "Actions.RIGHT_HAND" }
+    ]
+}

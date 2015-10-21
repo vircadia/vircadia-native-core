@@ -33,6 +33,7 @@ namespace controller {
         Pose(const Pose&) = default;
         Pose& operator = (const Pose&) = default;
         bool operator ==(const Pose& right) const;
+        bool operator !=(const Pose& right) const { return !(*this == right); }
         bool isValid() const { return valid; }
         vec3 getTranslation() const { return translation; }
         quat getRotation() const { return rotation; }

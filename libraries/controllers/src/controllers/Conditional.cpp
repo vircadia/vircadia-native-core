@@ -18,14 +18,4 @@ namespace controller {
         return Conditional::Pointer();
     }
 
-    bool EndpointConditional::satisfied() { 
-        if (!_endpoint) {
-            return false;
-        }
-        auto value = _endpoint->value();
-        if (value == 0.0f) {
-            return false;
-        }
-        return true;
-    }
 }
