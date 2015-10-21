@@ -6,8 +6,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include <QScriptEngine>
-#include <QScriptValue>
+#include <QtScript/QScriptEngine>
+#include <QtScript/QScriptValue>
 
 #include <RegisteredMetaTypes.h>
 

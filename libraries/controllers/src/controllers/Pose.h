@@ -11,7 +11,9 @@
 #ifndef hifi_controllers_Pose_h
 #define hifi_controllers_Pose_h
 
-#include <QScriptValue>
+class QScriptEngine;
+class QScriptValue;
+
 #include <GLMHelpers.h>
 
 namespace controller {
