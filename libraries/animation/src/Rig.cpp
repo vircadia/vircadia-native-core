@@ -408,6 +408,41 @@ glm::mat4 Rig::getJointTransform(int jointIndex) const {
     return _jointStates[jointIndex].getTransform();
 }
 
+void Rig::calcWalkForwardAlphaAndTimeScale(float speed, float* alphaOut, float* timeScaleOut) {
+
+    // filter speed using a moving average.
+    _averageForwardSpeed.updateAverage(speed);
+    speed = _averageForwardSpeed.getAverage();
+
+    const int NUM_FWD_SPEEDS = 3;
+    float FWD_SPEEDS[NUM_FWD_SPEEDS] = { 0.3f, 1.4f, 2.7f }; // m/s
+
+    // first calculate alpha by lerping between speeds.
+    float alpha = 0.0f;
+    if (speed <= FWD_SPEEDS[0]) {
+        alpha = 0.0f;
+    } else if (speed > FWD_SPEEDS[NUM_FWD_SPEEDS - 1]) {
+        alpha = (float)(NUM_FWD_SPEEDS - 1);
+    } else {
+        for (int i = 0; i < NUM_FWD_SPEEDS - 1; i++) {
+            if (FWD_SPEEDS[i] < speed && speed < FWD_SPEEDS[i + 1]) {
+                alpha = (float)i + ((speed - FWD_SPEEDS[i]) / (FWD_SPEEDS[i + 1] - FWD_SPEEDS[i]));
+                break;
+            }
+        }
+    }
+
+    // now keeping the alpha fixed compute the timeScale.
+    // NOTE: This makes the assumption that the velocity of a linear blend between two animations is also linear.
+    int prevIndex = glm::floor(alpha);
+    int nextIndex = glm::ceil(alpha);
+    float animSpeed = lerp(FWD_SPEEDS[prevIndex], FWD_SPEEDS[nextIndex], (float)glm::fract(alpha));
+    float timeScale = glm::clamp(0.5f, 2.0f, speed / animSpeed);
+
+    *alphaOut = alpha;
+    *timeScaleOut = timeScale;
+}
+
 void Rig::computeMotionAnimationState(float deltaTime, const glm::vec3& worldPosition, const glm::vec3& worldVelocity, const glm::quat& worldRotation) {
 
     glm::vec3 front = worldRotation * IDENTITY_FRONT;
@@ -435,10 +470,13 @@ void Rig::computeMotionAnimationState(float deltaTime, const glm::vec3& worldPos
 
         // sine wave LFO var for testing.
         static float t = 0.0f;
-        _animVars.set("sine", static_cast<float>(0.5 * sin(t) + 0.5));
+        _animVars.set("sine", 2.0f * static_cast<float>(0.5 * sin(t) + 0.5));
 
-        const float ANIM_WALK_SPEED = 1.4f; // m/s
-        _animVars.set("walkTimeScale", glm::clamp(0.5f, 2.0f, glm::length(localVel) / ANIM_WALK_SPEED));
+        float walkAlpha, walkTimeScale;
+        calcWalkForwardAlphaAndTimeScale(glm::length(localVel), &walkAlpha, &walkTimeScale);
+
+        _animVars.set("walkTimeScale", walkTimeScale);
+        _animVars.set("walkAlpha", walkAlpha);
 
         const float MOVE_ENTER_SPEED_THRESHOLD = 0.2f; // m/sec
         const float MOVE_EXIT_SPEED_THRESHOLD = 0.07f;  // m/sec

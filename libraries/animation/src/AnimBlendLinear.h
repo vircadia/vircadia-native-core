@@ -22,27 +22,43 @@
 // between 0 and n - 1.  This alpha can be used to linearly interpolate between
 // the closest two children poses.  This can be used to sweep through a series
 // of animation poses.
+//
+// The sync flag is used to synchronize between child animations of different lengths.
+// Typically used to synchronize blending between walk and run cycles.
 
 class AnimBlendLinear : public AnimNode {
 public:
     friend class AnimTests;
 
-    AnimBlendLinear(const QString& id, float alpha);
+    AnimBlendLinear(const QString& id, float alpha, bool sync, float timeScale);
     virtual ~AnimBlendLinear() override;
 
     virtual const AnimPoseVec& evaluate(const AnimVariantMap& animVars, float dt, Triggers& triggersOut) override;
 
     void setAlphaVar(const QString& alphaVar) { _alphaVar = alphaVar; }
+    void setTimeScaleVar(const QString& timeScaleVar) { _timeScaleVar = timeScaleVar; }
 
 protected:
     // for AnimDebugDraw rendering
     virtual const AnimPoseVec& getPosesInternal() const override;
 
+    void evaluateAndBlendChildren(const AnimVariantMap& animVars, Triggers& triggersOut, float alpha,
+                                  size_t prevPoseIndex, size_t nextPoseIndex, float dt);
+    void setSyncAndAccumulateTime(float dt, size_t prevPoseIndex, size_t nextPoseIndex, Triggers& triggersOut);
+
+    virtual void setCurrentFrameInternal(float frame) override;
+
     AnimPoseVec _poses;
 
     float _alpha;
+    bool _sync;
+    float _timeScale;
+
+    float _syncFrame = 0.0f;
+    float _averageLength = 0.0f;  // average length of child animations in frames.
 
     QString _alphaVar;
+    QString _timeScaleVar;
 
     // no copies
     AnimBlendLinear(const AnimBlendLinear&) = delete;
