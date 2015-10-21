@@ -32,6 +32,10 @@
 #include "Actions.h"
 
 namespace controller {
+
+    class RouteBuilderProxy;
+    class MappingBuilderProxy;
+
     class UserInputMapper : public QObject, public Dependency {
         Q_OBJECT
             SINGLETON_DEPENDENCY
@@ -81,7 +85,6 @@ namespace controller {
         Pose getPoseState(Action action) const { return _poseStates[toInt(action)]; }
         int findAction(const QString& actionName) const;
         QVector<QString> getActionNames() const;
-        void assignDefaulActionScales();
 
         void setActionState(Action action, float value) { _externalActionStates[toInt(action)] = value; }
         void deltaActionState(Action action, float delta) { _externalActionStates[toInt(action)] += delta; }
@@ -139,8 +142,8 @@ namespace controller {
         float getValue(const Endpoint::Pointer& endpoint) const;
         Pose getPose(const Endpoint::Pointer& endpoint) const;
 
-        friend class ::controller::RouteBuilderProxy;
-        friend class ::controller::MappingBuilderProxy;
+        friend class RouteBuilderProxy;
+        friend class MappingBuilderProxy;
         Endpoint::Pointer endpointFor(const QJSValue& endpoint);
         Endpoint::Pointer endpointFor(const QScriptValue& endpoint);
         Endpoint::Pointer endpointFor(const Input& endpoint) const;

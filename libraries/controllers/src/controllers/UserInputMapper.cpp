@@ -31,7 +31,6 @@ controller::UserInputMapper::UserInputMapper() {
     _standardController = std::make_shared<StandardController>();
     registerDevice(new ActionsDevice());
     registerDevice(_standardController.get());
-    assignDefaulActionScales();
 }
 
 namespace controller {

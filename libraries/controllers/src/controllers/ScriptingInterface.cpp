@@ -71,6 +71,16 @@ controller::ScriptingInterface::ScriptingInterface() {
 
 namespace controller {
 
+    QObject* ScriptingInterface::newMapping(const QString& mappingName) {
+        auto userInputMapper = DependencyManager::get<UserInputMapper>();
+        return new MappingBuilderProxy(*userInputMapper, userInputMapper->newMapping(mappingName));
+    }
+
+    void ScriptingInterface::enableMapping(const QString& mappingName, bool enable) {
+        auto userInputMapper = DependencyManager::get<UserInputMapper>();
+        userInputMapper->enableMapping(mappingName, enable);
+    }
+
     float ScriptingInterface::getValue(const int& source) const {
         auto userInputMapper = DependencyManager::get<UserInputMapper>();
         return userInputMapper->getValue(Input((uint32_t)source));
@@ -87,6 +97,10 @@ namespace controller {
     Pose ScriptingInterface::getPoseValue(const int& source) const {
         auto userInputMapper = DependencyManager::get<UserInputMapper>();
         return userInputMapper->getPose(Input((uint32_t)source)); 
+    }
+    
+    Pose ScriptingInterface::getPoseValue(StandardPoseChannel source, uint16_t device) const {
+        return getPoseValue(Input(device, source, ChannelType::POSE).getID());
     }
 
     //bool ScriptingInterface::isPrimaryButtonPressed() const {

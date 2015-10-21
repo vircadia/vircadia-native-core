@@ -71,7 +71,8 @@ enum class Action {
     NUM_ACTIONS,
 };
 
-int toInt(Action action) { return static_cast<int>(action); }
+template <typename T>
+int toInt(T enumValue) { return static_cast<int>(enumValue); }
 
 class ActionsDevice : public QObject, public InputDevice {
     Q_OBJECT
