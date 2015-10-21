@@ -19,7 +19,7 @@ namespace controller {
 
 // Actions are the output channels of the Mapper, that's what the InputChannel map to
 // For now the Actions are hardcoded, this is bad, but we will fix that in the near future
-enum Action {
+enum class Action {
     TRANSLATE_X = 0,
     TRANSLATE_Y,
     TRANSLATE_Z,
@@ -71,6 +71,8 @@ enum Action {
     NUM_ACTIONS,
 };
 
+template <typename T>
+int toInt(T enumValue) { return static_cast<int>(enumValue); }
 
 class ActionsDevice : public QObject, public InputDevice {
     Q_OBJECT

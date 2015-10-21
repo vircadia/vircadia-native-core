@@ -18,7 +18,7 @@
 #include "../ScriptingInterface.h"
 #include "../Logging.h"
 
-namespace controller {
+using namespace controller;
 
 void RouteBuilderProxy::to(int destinationInput) {
     qCDebug(controllers) << "Completing route " << destinationInput;
@@ -107,4 +107,3 @@ void RouteBuilderProxy::addFilter(Filter::Pointer filter) {
     _route->filters.push_back(filter);
 }
 
-}

@@ -74,8 +74,8 @@ void StandardController::buildDeviceProxy(DeviceProxy::Pointer proxy) {
         availableInputs.append(Input::NamedPair(makeInput(controller::RT), "RT"));
 
         // Poses
-        availableInputs.append(Input::NamedPair(makeInput(controller::LEFT), "LeftPose"));
-        availableInputs.append(Input::NamedPair(makeInput(controller::RIGHT), "RightPose"));
+        availableInputs.append(UserInputMapper::InputPair(makeInput(controller::LEFT_HAND), "LeftHand"));
+        availableInputs.append(UserInputMapper::InputPair(makeInput(controller::RIGHT_HAND), "RightHand"));
 
         // Aliases, PlayStation style names
         availableInputs.append(Input::NamedPair(makeInput(controller::LB), "L1"));

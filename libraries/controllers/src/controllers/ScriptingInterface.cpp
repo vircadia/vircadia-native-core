@@ -24,6 +24,7 @@
 #include "Logging.h"
 #include "InputDevice.h"
 
+
 static QRegularExpression SANITIZE_NAME_EXPRESSION{ "[\\(\\)\\.\\s]" };
 
 static QVariantMap createDeviceMap(const controller::DeviceProxy::Pointer device) {
@@ -93,8 +94,13 @@ namespace controller {
         return getValue(Input(device, source, ChannelType::AXIS).getID());
     }
 
+    Pose ScriptingInterface::getPoseValue(const int& source) const {
+        auto userInputMapper = DependencyManager::get<UserInputMapper>();
+        return userInputMapper->getPose(Input((uint32_t)source)); 
+    }
+    
     Pose ScriptingInterface::getPoseValue(StandardPoseChannel source, uint16_t device) const {
-        return Pose();
+        return getPoseValue(Input(device, source, ChannelType::POSE).getID());
     }
 
     //bool ScriptingInterface::isPrimaryButtonPressed() const {

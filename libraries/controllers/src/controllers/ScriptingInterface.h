@@ -78,7 +78,9 @@ namespace controller {
         Q_INVOKABLE float getValue(const int& source) const;
         Q_INVOKABLE float getButtonValue(StandardButtonChannel source, uint16_t device = 0) const;
         Q_INVOKABLE float getAxisValue(StandardAxisChannel source, uint16_t device = 0) const;
+        Q_INVOKABLE Pose getPoseValue(const int& source) const;
         Q_INVOKABLE Pose getPoseValue(StandardPoseChannel source, uint16_t device = 0) const;
+
         Q_INVOKABLE QObject* newMapping(const QString& mappingName = QUuid::createUuid().toString());
         Q_INVOKABLE void enableMapping(const QString& mappingName, bool enable = true);
         Q_INVOKABLE void disableMapping(const QString& mappingName) { enableMapping(mappingName, false); }
