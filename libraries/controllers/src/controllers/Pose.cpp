@@ -6,6 +6,11 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include <QtScript/QScriptEngine>
+#include <QtScript/QScriptValue>
+
+#include <RegisteredMetaTypes.h>
+
 #include "Pose.h"
 
 namespace controller {
@@ -25,6 +30,20 @@ namespace controller {
             velocity == right.getVelocity() && angularVelocity == right.getAngularVelocity();
     }
 
+    QScriptValue Pose::toScriptValue(QScriptEngine* engine, const Pose& pose) {
+        QScriptValue obj = engine->newObject();
+        obj.setProperty("translation", vec3toScriptValue(engine, pose.translation));
+        obj.setProperty("rotation", quatToScriptValue(engine, pose.rotation));
+        obj.setProperty("velocity", vec3toScriptValue(engine, pose.velocity));
+        obj.setProperty("angularVelocity", quatToScriptValue(engine, pose.angularVelocity));
+        obj.setProperty("valid", pose.valid);
+
+        return obj;
+    }
+
+    void Pose::fromScriptValue(const QScriptValue& object, Pose& pose) {
+        // nothing for now...
+    }
 
 }
 

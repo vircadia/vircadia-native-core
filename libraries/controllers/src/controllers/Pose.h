@@ -11,6 +11,9 @@
 #ifndef hifi_controllers_Pose_h
 #define hifi_controllers_Pose_h
 
+class QScriptEngine;
+class QScriptValue;
+
 #include <GLMHelpers.h>
 
 namespace controller {
@@ -35,9 +38,12 @@ namespace controller {
         quat getRotation() const { return rotation; }
         vec3 getVelocity() const { return velocity; }
         quat getAngularVelocity() const { return angularVelocity; }
+
+        static QScriptValue toScriptValue(QScriptEngine* engine, const Pose& event);
+        static void fromScriptValue(const QScriptValue& object, Pose& event);
     };
-
-
 }
+
+//Q_DECLARE_METATYPE(controller::Pose);
 
 #endif
