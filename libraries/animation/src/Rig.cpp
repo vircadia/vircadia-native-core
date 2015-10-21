@@ -13,6 +13,7 @@
 
 #include <glm/gtx/vector_angle.hpp>
 #include <queue>
+#include <QScriptValueIterator>
 
 #include <NumericalConstants.h>
 #include <DebugDraw.h>
@@ -604,6 +605,42 @@ void Rig::computeMotionAnimationState(float deltaTime, const glm::vec3& worldPos
     _lastPosition = worldPosition;
 }
 
+void Rig::addAnimationStateHandler(QScriptValue handler, QScriptValue propertiesList) {
+    _stateHandlers = handler;
+}
+void Rig::removeAnimationStateHandler(QScriptValue handler) {
+    _stateHandlersResultsToRemove = _stateHandlersResults;
+    _stateHandlers = _stateHandlersResults = QScriptValue();
+}
+void Rig::cleanupAnimationStateHandler() {
+    if (!_stateHandlersResultsToRemove.isValid()) {
+        return;
+    }
+    QScriptValueIterator property(_stateHandlersResultsToRemove);
+    while (property.hasNext()) {
+        property.next();
+        _animVars.unset(property.name());
+    }
+    _stateHandlersResultsToRemove = QScriptValue();
+}
+void Rig::updateAnimationStateHandlers() {
+    if (!_stateHandlers.isValid()) {
+        return;
+    }
+    // TODO: iterate multiple handlers, but with one shared arg.
+    // TODO: fill the properties based on the union of requested properties. (Keep all properties objs and compute new union when add/remove handler.)
+    // TODO: check QScriptEngine::hasUncaughtException()
+    // TODO: call asynchronously (through a signal on script), so that each script is single threaded, and so we never block here.
+    //       This will require inboundMaps to be kept in the list of per-handler data.
+    QScriptEngine* engine = _stateHandlers.engine();
+    QScriptValue outboundMap = _animVars.animVariantMapToScriptValue(engine);
+    QScriptValueList args;
+    args << outboundMap;
+    _stateHandlersResults = _stateHandlers.call(QScriptValue(), args);
+    _animVars.animVariantMapFromScriptValue(_stateHandlersResults);
+    //qCDebug(animation) << _animVars.lookup("foo", QString("not set"));
+}
+
 void Rig::updateAnimations(float deltaTime, glm::mat4 rootTransform) {
 
     if (_enableAnimGraph) {
@@ -611,20 +648,7 @@ void Rig::updateAnimations(float deltaTime, glm::mat4 rootTransform) {
             return;
         }
 
-        if (_stateHandlers.isValid()) {
-            // TODO: iterate multiple handlers, but with one shared arg.
-            // TODO: fill the properties based on the union of requested properties. (Keep all properties objs and compute new union when add/remove handler.)
-            // TODO: check QScriptEngine::hasUncaughtException()
-            // TODO: call asynchronously (through a signal on script), so that each script is single threaded, and so we never block here.
-            //       This will require inboundMaps to be kept in the list of per-handler data.
-            QScriptEngine* engine = _stateHandlers.engine();
-            QScriptValue outboundMap = _animVars.animVariantMapToScriptValue(engine);
-            QScriptValueList args;
-            args << outboundMap;
-            _stateHandlersResults = _stateHandlers.call(QScriptValue(), args);
-            _animVars.animVariantMapFromScriptValue(_stateHandlersResults);
-            //qCDebug(animation) << _animVars.lookup("foo", QString("not set"));
-        }
+        updateAnimationStateHandlers();
         // evaluate the animation
         AnimNode::Triggers triggersOut;
         AnimPoseVec poses = _animNode->evaluate(_animVars, deltaTime, triggersOut);
@@ -1201,9 +1225,7 @@ void Rig::updateFromHandParameters(const HandParameters& params, float dt) {
             _animVars.set("leftHandType", (int)IKTarget::Type::HipsRelativeRotationAndPosition);
         }
         if (params.isRightEnabled) {
-            if (!_stateHandlersResults.property("rightHandPosition", QScriptValue::ResolveLocal).isValid()) {
-                _animVars.set("rightHandPosition", rootBindPose.trans + rootBindPose.rot * yFlipHACK * params.rightPosition);
-            }
+            _animVars.set("rightHandPosition", rootBindPose.trans + rootBindPose.rot * yFlipHACK * params.rightPosition);
             _animVars.set("rightHandRotation", rootBindPose.rot * yFlipHACK * params.rightOrientation);
             _animVars.set("rightHandType", (int)IKTarget::Type::RotationAndPosition);
         } else {
