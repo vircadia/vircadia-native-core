@@ -186,7 +186,7 @@ private:
 
     /// actually does the work of finding the ray intersection, can be called in locking mode or tryLock mode
     RayToEntityIntersectionResult findRayIntersectionWorker(const PickRay& ray, Octree::lockType lockType,
-                                                            bool precisionPicking, const QVector<QUuid>& entityIdsToInclude);
+                                                            bool precisionPicking, const QVector<EntityItemID>& entityIdsToInclude);
 
     EntityTreePointer _entityTree;
     EntitiesScriptEngineProvider* _entitiesScriptEngine = nullptr;
