@@ -17,8 +17,8 @@ Item {
 
     function update() {
         value = Qt.vector2d(
-            Controller.getValue(controlIds[0]),
-            Controller.getValue(controlIds[1])
+            controlIds[0] ? Controller.getValue(controlIds[0]) : 0,
+            controlIds[1] ? Controller.getValue(controlIds[1]) : 0
         );
         if (root.invertY) {
             value.y = value.y * -1.0
@@ -27,7 +27,7 @@ Item {
     }
 
     Timer {
-        interval: 50; running: true; repeat: true
+        interval: 50; running: controlIds; repeat: true
         onTriggered: root.update()
     }
 

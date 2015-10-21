@@ -13,7 +13,7 @@ Item {
     property color color: 'black'
 
     function update() {
-        value = Controller.getValue(controlId);
+        value = controlId ? Controller.getValue(controlId) : 0;
         canvas.requestPaint();
     }
 

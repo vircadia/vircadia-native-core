@@ -55,6 +55,7 @@ struct Input {
     Input(const Input& src) : id(src.id) {}
     Input& operator = (const Input& src) { id = src.id; return (*this); }
     bool operator ==(const Input& right) const { return INVALID_INPUT.id != id && INVALID_INPUT.id != right.id && id == right.id; }
+    bool operator !=(const Input& right) const { return !(*this == right); }
     bool operator < (const Input& src) const { return id < src.id; }
 
     static const Input INVALID_INPUT;

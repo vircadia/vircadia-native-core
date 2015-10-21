@@ -183,32 +183,33 @@ HifiControls.VrDialog {
             Xbox { device: root.xbox; label: "XBox"; width: 360 }
             Hydra { device: root.hydra; width: 360 }
         }
-//        Row {
-//            spacing: 8
-//            ScrollingGraph {
-//                controlId: Controller.Actions.Yaw
-//                label: "Yaw"
-//                min: -3.0
-//                max: 3.0
-//                size: 128
-//            }
-//
-//            ScrollingGraph {
-//                controlId: Controller.Actions.YAW_LEFT
-//                label: "Yaw Left"
-//                min: -3.0
-//                max: 3.0
-//                size: 128
-//            }
-//
-//            ScrollingGraph {
-//                controlId: Controller.Actions.YAW_RIGHT
-//                label: "Yaw Right"
-//                min: -3.0
-//                max: 3.0
-//                size: 128
-//            }
-//        }
+        
+        Row {
+            spacing: 8
+            ScrollingGraph {
+                controlId: Controller.Actions.Yaw
+                label: "Yaw"
+                min: -3.0
+                max: 3.0
+                size: 128
+            }
+
+            ScrollingGraph {
+                controlId: Controller.Actions.YAW_LEFT
+                label: "Yaw Left"
+                min: -3.0
+                max: 3.0
+                size: 128
+            }
+
+            ScrollingGraph {
+                controlId: Controller.Actions.YAW_RIGHT
+                label: "Yaw Right"
+                min: -3.0
+                max: 3.0
+                size: 128
+            }
+        }
     }
 } // dialog
 

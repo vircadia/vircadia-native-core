@@ -40,8 +40,11 @@ namespace controller {
         virtual void apply(float newValue, float oldValue, const Pointer& source) = 0;
         virtual Pose pose() { return Pose(); }
         virtual void apply(const Pose& newValue, const Pose& oldValue, const Pointer& source) {}
-
         virtual const bool isPose() { return _input.isPose(); }
+
+        virtual bool writeable() const { return true; }
+        virtual bool readable() const { return true; }
+        virtual void reset() { }
 
         const Input& getInput() { return _input;  }
 
@@ -61,6 +64,26 @@ namespace controller {
         ReadLambda _readLambda;
         WriteLambda _writeLambda;
     };
+
+
+    class VirtualEndpoint : public Endpoint {
+    public:
+        VirtualEndpoint(const Input& id = Input::INVALID_INPUT)
+            : Endpoint(id) {
+        }
+
+        virtual float value() override { return _currentValue; }
+        virtual void apply(float newValue, float oldValue, const Pointer& source) override { _currentValue = newValue; }
+
+        virtual Pose pose() override { return _currentPose; }
+        virtual void apply(const Pose& newValue, const Pose& oldValue, const Pointer& source) override {
+            _currentPose = newValue;
+        }
+    protected:
+        float _currentValue { 0.0f };
+        Pose _currentPose {};
+    };
+
 }
 
 #endif
