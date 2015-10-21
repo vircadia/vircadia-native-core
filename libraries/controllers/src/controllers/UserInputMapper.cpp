@@ -845,10 +845,15 @@ Route::Pointer UserInputMapper::parseRoute(const QJsonValue& value) {
     }
 
     const auto& filtersValue = obj[JSON_CHANNEL_FILTERS];
+    // FIXME support strings for filters with no parameters, both in the array and at the top level...
+    // i.e.
+    // { "from": "Standard.DU", "to" : "Actions.LONGITUDINAL_FORWARD", "filters" : "invert" },
+    // and 
+    // { "from": "Standard.DU", "to" : "Actions.LONGITUDINAL_FORWARD", "filters" : [ "invert", "constrainToInteger" ] },
     if (filtersValue.isArray()) {
         auto filtersArray = filtersValue.toArray();
         for (auto filterValue : filtersArray) {
-            if (filterValue.isObject()) {
+            if (!filterValue.isObject()) {
                 qWarning() << "Invalid filter " << filterValue;
                 return Route::Pointer();
             }
