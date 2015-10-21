@@ -648,7 +648,6 @@ EntityItemPointer EntityTreeElement::getClosestEntity(glm::vec3 position) const 
 
 // TODO: change this to use better bounding shape for entity than sphere
 void EntityTreeElement::getEntities(const glm::vec3& searchPosition, float searchRadius, QVector<EntityItemPointer>& foundEntities) const {
-    float compareRadius = searchRadius * searchRadius;
     forEachEntity([&](EntityItemPointer entity) {
 
         AABox entityBox = entity->getAABox();
@@ -657,26 +656,41 @@ void EntityTreeElement::getEntities(const glm::vec3& searchPosition, float searc
         glm::vec3 penetration;
         if (entityBox.findSpherePenetration(searchPosition, searchRadius, penetration)) {
 
-            // FIXME - handle entity->getShapeType() == SHAPE_TYPE_SPHERE case better
+            glm::vec3 dimensions = entity->getDimensions();
+
             // FIXME - consider allowing the entity to determine penetration so that
             //         entities could presumably dull actuall hull testing if they wanted to
+            // FIXME - handle entity->getShapeType() == SHAPE_TYPE_SPHERE case better in particular
+            //         can we handle the ellipsoid case better? We only currently handle perfect spheres
+            //         with centered registration points
+            if (entity->getShapeType() == SHAPE_TYPE_SPHERE &&
+                (dimensions.x == dimensions.y && dimensions.y == dimensions.z)) {
 
-            // determine the worldToEntityMatrix that doesn't include scale because
-            // we're going to use the registration aware aa box in the entity frame
-            glm::mat4 rotation = glm::mat4_cast(entity->getRotation());
-            glm::mat4 translation = glm::translate(entity->getPosition());
-            glm::mat4 entityToWorldMatrix = translation * rotation;
-            glm::mat4 worldToEntityMatrix = glm::inverse(entityToWorldMatrix);
+                // NOTE: entity->getRadius() doesn't return the true radius, it returns the radius of the
+                //       maximum bounding sphere, which is actually larger than our actual radius
+                float entityTrueRadius = dimensions.x / 2.0f;
 
-            glm::vec3 dimensions = entity->getDimensions();
-            glm::vec3 registrationPoint = entity->getRegistrationPoint();
-            glm::vec3 corner = -(dimensions * registrationPoint);
+                if (findSphereSpherePenetration(searchPosition, searchRadius, 
+                        entity->getCenterPosition(), entityTrueRadius, penetration)) {
+                    foundEntities.push_back(entity);
+                }
+            } else {
+                // determine the worldToEntityMatrix that doesn't include scale because
+                // we're going to use the registration aware aa box in the entity frame
+                glm::mat4 rotation = glm::mat4_cast(entity->getRotation());
+                glm::mat4 translation = glm::translate(entity->getPosition());
+                glm::mat4 entityToWorldMatrix = translation * rotation;
+                glm::mat4 worldToEntityMatrix = glm::inverse(entityToWorldMatrix);
 
-            AABox entityFrameBox(corner, dimensions);
+                glm::vec3 registrationPoint = entity->getRegistrationPoint();
+                glm::vec3 corner = -(dimensions * registrationPoint);
 
-            glm::vec3 entityFrameSearchPosition = glm::vec3(worldToEntityMatrix * glm::vec4(searchPosition, 1.0f));
-            if (entityFrameBox.findSpherePenetration(entityFrameSearchPosition, searchRadius, penetration)) {
-                foundEntities.push_back(entity);
+                AABox entityFrameBox(corner, dimensions);
+
+                glm::vec3 entityFrameSearchPosition = glm::vec3(worldToEntityMatrix * glm::vec4(searchPosition, 1.0f));
+                if (entityFrameBox.findSpherePenetration(entityFrameSearchPosition, searchRadius, penetration)) {
+                    foundEntities.push_back(entity);
+                }
             }
         }
     });
