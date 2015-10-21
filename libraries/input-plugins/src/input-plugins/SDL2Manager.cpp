@@ -129,6 +129,7 @@ void SDL2Manager::pluginUpdate(float deltaTime, bool jointsCaptured) {
                 if (!_openJoysticks.contains(id)) {
                     // Joystick* joystick = new Joystick(id, SDL_GameControllerName(controller), controller);
                     Joystick* joystick = new Joystick(id, controller);
+                    _openJoysticks[id] = joystick;
                     userInputMapper->registerDevice(joystick);
                     emit joystickAdded(joystick);
                 }
