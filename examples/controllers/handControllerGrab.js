@@ -372,10 +372,11 @@ function MyController(hand, triggerAction) {
             // forward ray test failed, try sphere test.
             var nearbyEntities = Entities.findEntities(handPosition, GRAB_RADIUS);
             var minDistance = PICK_MAX_DISTANCE;
-            var i, props, distance;
+            var i, props, distance, grabbableData;
             for (i = 0; i < nearbyEntities.length; i++) {
-                var grabbableData = getEntityCustomData(GRABBABLE_DATA_KEY, nearbyEntities[i], DEFAULT_GRABBABLE_DATA);
-                if (grabbableData.grabbable === false) {
+                var grabbableDataForCandidate =
+                    getEntityCustomData(GRABBABLE_DATA_KEY, nearbyEntities[i], DEFAULT_GRABBABLE_DATA);
+                if (grabbableDataForCandidate.grabbable === false) {
                     continue;
                 }
                 var propsForCandidate =
@@ -385,13 +386,14 @@ function MyController(hand, triggerAction) {
                     this.grabbedEntity = nearbyEntities[i];
                     minDistance = distance;
                     props = propsForCandidate;
+                    grabbableData = grabbableDataForCandidate;
                 }
             }
             if (this.grabbedEntity === null) {
                 return;
             } else if (props.locked === 0 && props.collisionsWillMove === 1) {
                 this.setState(STATE_NEAR_GRABBING);
-            } else if (props.collisionsWillMove === 0) {
+            } else if (props.collisionsWillMove === 0 & grabbableData.wantsTrigger) {
                 // We have grabbed a non-physical object, so we want to trigger a non-colliding event as opposed to a grab event
                 this.setState(STATE_NEAR_GRABBING_NON_COLLIDING);
             }
