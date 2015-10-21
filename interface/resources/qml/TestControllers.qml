@@ -131,27 +131,8 @@ HifiControls.VrDialog {
                 onClicked: {
                     var mapping = Controller.newMapping();
                     // Inverting a value
-                    mapping.from(hydra.RY).invert().to(standard.RY);
-                    mapping.from(hydra.RX).to(standard.RX);
-                    mapping.from(hydra.LY).to(standard.LY);
-                    mapping.from(hydra.LX).to(standard.LX);
-                    // Assigning a value from a function
-                    // mapping.from(function() { return Math.sin(Date.now() / 250); }).to(standard.RX);
-                    // Constrainting a value to -1, 0, or 1, with a deadzone
-//                    mapping.from(xbox.LY).deadZone(0.5).constrainToInteger().to(standard.LY);
+                    mapping.from(standard.RY).invert().to(standard.RY);
                     mapping.makeAxis(standard.LB, standard.RB).to(actions.Yaw);
-//                    mapping.from(actions.Yaw).clamp(0, 1).invert().to(actions.YAW_RIGHT);
-//                    mapping.from(actions.Yaw).clamp(-1, 0).to(actions.YAW_LEFT);
-                    // mapping.modifier(keyboard.Ctrl).scale(2.0)
-//                    mapping.from(keyboard.A).to(actions.TranslateLeft)
-//                    mapping.from(keyboard.A, keyboard.Shift).to(actions.TurnLeft)
-//                    mapping.from(keyboard.A, keyboard.Shift, keyboard.Ctrl).scale(2.0).to(actions.TurnLeft)
-//                    // First loopbacks
-//                    // Then non-loopbacks by constraint level (number of inputs)
-//                    mapping.from(xbox.RX).deadZone(0.2).to(xbox.RX)
-//                    mapping.from(standard.RB, standard.LB, keyboard.Shift).to(actions.TurnLeft)
-//                    mapping.from(keyboard.A, keyboard.Shift).to(actions.TurnLeft)
-//                    mapping.from(keyboard.W).when(keyboard.Shift).to(actions.Forward)
                     testMapping = mapping;
                     enabled = false
                     text = "Built"
@@ -175,13 +156,13 @@ HifiControls.VrDialog {
         }
 
         Row {
-            Xbox { device: root.standard; label: "Standard"; width: 360 }
+            Standard { device: root.standard; label: "Standard"; width: 180 }
         }
         
         Row {
             spacing: 8
-            Xbox { device: root.xbox; label: "XBox"; width: 360 }
-            Hydra { device: root.hydra; width: 360 }
+            Xbox { device: root.xbox; label: "XBox"; width: 180 }
+            Hydra { device: root.hydra; width: 180 }
         }
         
         Row {

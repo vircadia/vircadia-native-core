@@ -37,10 +37,10 @@ namespace controller {
         DR,
 
         // These don't map to SDL types
-        LeftPrimaryThumb,
-        LeftSecondaryThumb,
-        RightPrimaryThumb,
-        RightSecondaryThumb,
+        LEFT_PRIMARY_THUMB,
+        LEFT_SECONDARY_THUMB,
+        RIGHT_PRIMARY_THUMB,
+        RIGHT_SECONDARY_THUMB,
 
         NUM_STANDARD_BUTTONS
     };

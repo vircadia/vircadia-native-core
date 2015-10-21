@@ -100,20 +100,5 @@ Item {
             width: 16 * root.scale; height: 12 * root.scale
             x: (177 * root.scale); y: (45 * root.scale)
         }
-        
-        // Left primary
-        ToggleButton {
-            x: 0; y: parent.height - height; 
-            controlId: root.device.LeftPrimaryThumb
-            width: 16 * root.scale; height: 16 * root.scale
-        }
-
-        // Left primary
-        ToggleButton {
-            x: parent.width - width; y: parent.height - height; 
-            controlId: root.device.RightPrimaryThumb
-            width: 16 * root.scale; height: 16 * root.scale
-        }
-
     }
 }

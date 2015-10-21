@@ -95,10 +95,10 @@ void StandardController::buildDeviceProxy(DeviceProxy::Pointer proxy) {
         availableInputs.append(makePair(DR, "Right"));
 
 
-        availableInputs.append(makePair(LeftPrimaryThumb, "LeftPrimaryThumb"));
-        availableInputs.append(makePair(LeftSecondaryThumb, "LeftSecondaryThumb"));
-        availableInputs.append(makePair(RightPrimaryThumb, "RightPrimaryThumb"));
-        availableInputs.append(makePair(RightSecondaryThumb, "RightSecondaryThumb"));
+        availableInputs.append(makePair(LEFT_PRIMARY_THUMB, "LeftPrimaryThumb"));
+        availableInputs.append(makePair(LEFT_SECONDARY_THUMB, "LeftSecondaryThumb"));
+        availableInputs.append(makePair(RIGHT_PRIMARY_THUMB, "RightPrimaryThumb"));
+        availableInputs.append(makePair(RIGHT_SECONDARY_THUMB, "RightSecondaryThumb"));
 
         return availableInputs;
     };
