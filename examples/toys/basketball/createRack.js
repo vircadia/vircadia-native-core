@@ -22,8 +22,6 @@ var DIAMETER = 0.30;
 var RESET_DISTANCE = 1;
 var MINIMUM_MOVE_LENGTH = 0.05;
 
-var GRABBABLE_DATA_KEY = "grabbableKey";
-
 var rackStartPosition =
     Vec3.sum(MyAvatar.position,
         Vec3.multiplyQbyV(MyAvatar.orientation, {
@@ -53,19 +51,17 @@ var rack = Entities.addEntity({
     ignoreForCollisions: false,
     collisionSoundURL: collisionSoundURL,
     compoundShapeURL: rackCollisionHullURL,
-    //  scriptURL: rackScriptURL
+    userData: JSON.stringify({
+        grabbableKey: {
+            grabbable: false
+        }
+    })
 });
 
-
-setEntityCustomData(GRABBABLE_DATA_KEY, rack, {
-    grabbable: false
-});
-
-var nonCollidingBalls = [];
-var collidingBalls = [];
+var balls = [];
 var originalBallPositions = [];
 
-function createCollidingBalls() {
+function createBalls() {
     var position = rackStartPosition;
 
     var i;
@@ -76,9 +72,9 @@ function createCollidingBalls() {
             z: position.z + (DIAMETER) - (DIAMETER * i)
         };
 
-        var collidingBall = Entities.addEntity({
+        var ball = Entities.addEntity({
             type: "Model",
-            name: 'Colliding Basketball',
+            name: 'Hifi-Basketball',
             shapeType: 'Sphere',
             position: ballPosition,
             dimensions: {
@@ -96,16 +92,21 @@ function createCollidingBalls() {
             collisionsWillMove: true,
             ignoreForCollisions: false,
             modelURL: basketballURL,
+            userData: JSON.stringify({
+                grabbableKey: {
+                    invertSolidWhileHeld: true
+                }
+            })
         });
 
-        collidingBalls.push(collidingBall);
+        balls.push(ball);
         originalBallPositions.push(position);
     }
 }
 
 function testBallDistanceFromStart() {
     var resetCount = 0;
-    collidingBalls.forEach(function(ball, index) {
+    balls.forEach(function(ball, index) {
         var currentPosition = Entities.getEntityProperties(ball, "position").position;
         var originalPosition = originalBallPositions[index];
         var distance = Vec3.subtract(originalPosition, currentPosition);
@@ -117,8 +118,8 @@ function testBallDistanceFromStart() {
                 if (moving < MINIMUM_MOVE_LENGTH) {
                     resetCount++;
                     if (resetCount === NUMBER_OF_BALLS) {
-                        deleteCollidingBalls();
-                        createCollidingBalls();
+                        deleteBalls();
+                        createBalls();
                     }
                 }
             }, 200)
@@ -128,19 +129,19 @@ function testBallDistanceFromStart() {
 
 function deleteEntity(entityID) {
     if (entityID === rack) {
-        deleteCollidingBalls();
+        deleteBalls();
         Script.clearInterval(distanceCheckInterval);
         Entities.deletingEntity.disconnect(deleteEntity);
     }
 }
 
-function deleteCollidingBalls() {
-    while (collidingBalls.length > 0) {
-        Entities.deleteEntity(collidingBalls.pop());
+function deleteBalls() {
+    while (balls.length > 0) {
+        Entities.deleteEntity(balls.pop());
     }
 }
 
-createCollidingBalls();
+createBalls();
 Entities.deletingEntity.connect(deleteEntity);
 
 var distanceCheckInterval = Script.setInterval(testBallDistanceFromStart, 1000);
