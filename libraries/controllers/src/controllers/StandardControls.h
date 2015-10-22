@@ -42,6 +42,14 @@ namespace controller {
         RIGHT_PRIMARY_THUMB,
         RIGHT_SECONDARY_THUMB,
 
+        LEFT_PRIMARY_INDEX,
+        LEFT_SECONDARY_INDEX,
+        RIGHT_PRIMARY_INDEX,
+        RIGHT_SECONDARY_INDEX,
+
+        LEFT_GRIP,
+        RIGHT_GRIP,
+
         NUM_STANDARD_BUTTONS
     };
 

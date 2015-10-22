@@ -73,9 +73,25 @@ void StandardController::buildDeviceProxy(DeviceProxy::Pointer proxy) {
         availableInputs.append(makePair(LT, "LT"));
         availableInputs.append(makePair(RT, "RT"));
 
+
+        // Finger abstractions
+        availableInputs.append(makePair(LEFT_PRIMARY_THUMB, "LeftPrimaryThumb"));
+        availableInputs.append(makePair(LEFT_SECONDARY_THUMB, "LeftSecondaryThumb"));
+        availableInputs.append(makePair(RIGHT_PRIMARY_THUMB, "RightPrimaryThumb"));
+        availableInputs.append(makePair(RIGHT_SECONDARY_THUMB, "RightSecondaryThumb"));
+
+        availableInputs.append(makePair(LEFT_PRIMARY_INDEX, "LeftPrimaryIndex"));
+        availableInputs.append(makePair(LEFT_SECONDARY_INDEX, "LeftSecondaryIndex"));
+        availableInputs.append(makePair(RIGHT_PRIMARY_INDEX, "RightPrimaryIndex"));
+        availableInputs.append(makePair(RIGHT_SECONDARY_INDEX, "RightSecondaryIndex"));
+
+        availableInputs.append(makePair(LEFT_GRIP, "LeftGrip"));
+        availableInputs.append(makePair(RIGHT_GRIP, "RightGrip"));
+
         // Poses
         availableInputs.append(makePair(LEFT_HAND, "LeftHand"));
         availableInputs.append(makePair(RIGHT_HAND, "RightHand"));
+
 
         // Aliases, PlayStation style names
         availableInputs.append(makePair(LB, "L1"));
@@ -95,10 +111,6 @@ void StandardController::buildDeviceProxy(DeviceProxy::Pointer proxy) {
         availableInputs.append(makePair(DR, "Right"));
 
 
-        availableInputs.append(makePair(LEFT_PRIMARY_THUMB, "LeftPrimaryThumb"));
-        availableInputs.append(makePair(LEFT_SECONDARY_THUMB, "LeftSecondaryThumb"));
-        availableInputs.append(makePair(RIGHT_PRIMARY_THUMB, "RightPrimaryThumb"));
-        availableInputs.append(makePair(RIGHT_SECONDARY_THUMB, "RightSecondaryThumb"));
 
         return availableInputs;
     };
