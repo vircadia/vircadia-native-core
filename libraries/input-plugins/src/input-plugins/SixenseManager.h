@@ -75,7 +75,7 @@ public slots:
 private:    
     void handleButtonEvent(unsigned int buttons, bool left);
     void handleAxisEvent(float x, float y, float trigger, bool left);
-    void handlePoseEvent(glm::vec3 position, glm::quat rotation, bool left);
+    void handlePoseEvent(float deltaTime, glm::vec3 position, glm::quat rotation, bool left);
 
     void updateCalibration(void* controllers);
     
