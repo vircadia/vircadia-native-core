@@ -27,7 +27,8 @@ HifiControls.VrDialog {
         testMapping = Controller.newMapping();
         testMapping.from(standard.RY).invert().to(actions.Pitch);
         testMapping.makeAxis(standard.LB, standard.RB).to(actions.Yaw);
-        testMapping.from(standard.RX).to(actions.StepYaw);
+        // Step yaw takes a number of degrees
+        testMapping.from(standard.RX).scale(15.0).to(actions.StepYaw);
     }
 
     function toggleMapping() {

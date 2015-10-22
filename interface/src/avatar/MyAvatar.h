@@ -21,6 +21,20 @@
 
 class ModelItemID;
 
+enum DriveKeys {
+    TRANSLATE_X = 0,
+    TRANSLATE_Y,
+    TRANSLATE_Z,
+    YAW,
+    STEP_TRANSLATE_X,
+    STEP_TRANSLATE_Y,
+    STEP_TRANSLATE_Z,
+    STEP_YAW,
+    PITCH,
+    ZOOM,
+    MAX_DRIVE_KEYS
+};
+
 enum eyeContactTarget {
     LEFT_EYE,
     RIGHT_EYE,
@@ -376,6 +390,8 @@ private:
     AtRestDetector _hmdAtRestDetector;
     glm::vec3 _lastPosition;
     bool _lastIsMoving = false;
+    quint64 _lastStepPulse = 0;
+    quint64 _thisStepPulse = 0;
 };
 
 QScriptValue audioListenModeToScriptValue(QScriptEngine* engine, const AudioListenerMode& audioListenerMode);

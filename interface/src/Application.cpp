@@ -2718,15 +2718,13 @@ void Application::update(float deltaTime) {
     }
 
     // Transfer the user inputs to the driveKeys
+    // FIXME can we drop drive keys and just have the avatar read the action states directly?
     myAvatar->clearDriveKeys();
     if (_myCamera.getMode() != CAMERA_MODE_INDEPENDENT) {
         if (!_controllerScriptingInterface->areActionsCaptured()) {
-            myAvatar->setDriveKeys(FWD, userInputMapper->getActionState(controller::Action::LONGITUDINAL_FORWARD));
-            myAvatar->setDriveKeys(BACK, userInputMapper->getActionState(controller::Action::LONGITUDINAL_BACKWARD));
-            myAvatar->setDriveKeys(UP, userInputMapper->getActionState(controller::Action::VERTICAL_UP));
-            myAvatar->setDriveKeys(DOWN, userInputMapper->getActionState(controller::Action::VERTICAL_DOWN));
-            myAvatar->setDriveKeys(LEFT, userInputMapper->getActionState(controller::Action::LATERAL_LEFT));
-            myAvatar->setDriveKeys(RIGHT, userInputMapper->getActionState(controller::Action::LATERAL_RIGHT));
+            myAvatar->setDriveKeys(TRANSLATE_Z, -1.0f * userInputMapper->getActionState(controller::Action::TRANSLATE_Z));
+            myAvatar->setDriveKeys(TRANSLATE_Y, userInputMapper->getActionState(controller::Action::TRANSLATE_Y));
+            myAvatar->setDriveKeys(TRANSLATE_X, userInputMapper->getActionState(controller::Action::TRANSLATE_X));
             if (deltaTime > FLT_EPSILON) {
                 // For rotations what we really want are meausures of "angles per second" (in order to prevent 
                 // fps-dependent spin rates) so we need to scale the units of the controller contribution.
@@ -2734,14 +2732,12 @@ void Application::update(float deltaTime) {
                 // controllers to provide a delta_per_second value rather than a raw delta.)
                 const float EXPECTED_FRAME_RATE = 60.0f;
                 float timeFactor = EXPECTED_FRAME_RATE * deltaTime;
-                myAvatar->setDriveKeys(ROT_UP, userInputMapper->getActionState(controller::Action::PITCH_UP) / timeFactor);
-                myAvatar->setDriveKeys(ROT_DOWN, userInputMapper->getActionState(controller::Action::PITCH_DOWN) / timeFactor);
-                myAvatar->setDriveKeys(ROT_LEFT, userInputMapper->getActionState(controller::Action::YAW_LEFT) / timeFactor);
-                myAvatar->setDriveKeys(ROT_RIGHT, userInputMapper->getActionState(controller::Action::YAW_RIGHT) / timeFactor);
+                myAvatar->setDriveKeys(PITCH, userInputMapper->getActionState(controller::Action::PITCH) / timeFactor);
+                myAvatar->setDriveKeys(YAW, -1.0f * userInputMapper->getActionState(controller::Action::YAW) / timeFactor);
+                myAvatar->setDriveKeys(STEP_YAW, -1.0f * userInputMapper->getActionState(controller::Action::STEP_YAW) / timeFactor);
             }
         }
-        myAvatar->setDriveKeys(BOOM_IN, userInputMapper->getActionState(controller::Action::BOOM_IN));
-        myAvatar->setDriveKeys(BOOM_OUT, userInputMapper->getActionState(controller::Action::BOOM_OUT));
+        myAvatar->setDriveKeys(ZOOM, userInputMapper->getActionState(controller::Action::TRANSLATE_CAMERA_Z));
     }
     controller::Pose leftHand = userInputMapper->getPoseState(controller::Action::LEFT_HAND);
     controller::Pose rightHand = userInputMapper->getPoseState(controller::Action::RIGHT_HAND);
