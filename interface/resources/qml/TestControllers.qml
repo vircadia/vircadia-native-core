@@ -25,15 +25,15 @@ HifiControls.VrDialog {
 
     function buildMapping() {
         testMapping = Controller.newMapping();
-        testMapping.from(standard.RY).invert().to(actions.Pitch);
-        testMapping.fromQmlFunction(function(){
+        testMapping.fromQml(standard.RY).invert().toQml(actions.Pitch);
+        testMapping.fromQml(function(){
             return Math.sin(Date.now() / 250); 
-        }).to(actions.Yaw);
+        }).toQml(actions.Yaw);
         //testMapping.makeAxis(standard.LB, standard.RB).to(actions.Yaw);
         // Step yaw takes a number of degrees
-        testMapping.from(standard.LB).pulse(0.10).invert().scale(40.0).to(actions.StepYaw);
-        testMapping.from(standard.RB).pulse(0.10).scale(15.0).to(actions.StepYaw);
-        testMapping.from(standard.RX).scale(15.0).to(actions.StepYaw);
+        testMapping.fromQml(standard.LB).pulse(0.10).invert().scale(40.0).toQml(actions.StepYaw);
+        testMapping.fromQml(standard.RB).pulse(0.10).scale(15.0).toQml(actions.StepYaw);
+        testMapping.fromQml(standard.RX).scale(15.0).toQml(actions.StepYaw);
     }
 
     function toggleMapping() {
@@ -91,8 +91,9 @@ HifiControls.VrDialog {
             Hydra { device: root.hydra; width: 180 }
         }
         
-        Row {
-            spacing: 8
+        Grid {
+            columns: 6
+            spacing: 4
             ScrollingGraph {
                 controlId: Controller.Actions.Yaw
                 label: "Yaw"

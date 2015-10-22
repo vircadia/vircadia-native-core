@@ -17,9 +17,9 @@ ControllerTest = function() {
         this.mapping.from(standard.RB).pulse(0.10).scale(15.0).to(actions.StepYaw);
     }
     
-    var testFunctionSource = false;
+    var testFunctionSource = true;
     if (testFunctionSource) {
-        this.mapping.fromFunction(function(){
+        this.mapping.from(function(){
             return Math.sin(Date.now() / 250); 
         }).to(actions.Yaw);
     }
@@ -27,22 +27,25 @@ ControllerTest = function() {
     this.mapping.enable();
     this.mappingEnabled = true;
 
-    print("Actions");
-    for (var prop in Controller.Actions) {
-        print("\t" + prop);
-    }
-    print("Standard");
-    for (var prop in Controller.Standard) {
-        print("\t" + prop);
-    }
-    print("Hardware");
-    for (var prop in Controller.Hardware) {
-        print("\t" + prop);
-        for (var prop2 in Controller.Hardware[prop]) {
-            print("\t\t" + prop2);
+    var dumpInputs = false;
+    if (dumpInputs) {
+        print("Actions");
+        for (var prop in Controller.Actions) {
+            print("\t" + prop);
         }
+        print("Standard");
+        for (var prop in Controller.Standard) {
+            print("\t" + prop);
+        }
+        print("Hardware");
+        for (var prop in Controller.Hardware) {
+            print("\t" + prop);
+            for (var prop2 in Controller.Hardware[prop]) {
+                print("\t\t" + prop2);
+            }
+        }
+        print("Done");
     }
-    print("Done");
 
     var that = this;
     Script.scriptEnding.connect(function() {
