@@ -225,20 +225,13 @@ static AnimNode::Pointer loadClipNode(const QJsonObject& jsonObj, const QString&
 static AnimNode::Pointer loadBlendLinearNode(const QJsonObject& jsonObj, const QString& id, const QUrl& jsonUrl) {
 
     READ_FLOAT(alpha, jsonObj, id, jsonUrl, nullptr);
-    READ_BOOL(sync, jsonObj, id, jsonUrl, nullptr);
-    READ_FLOAT(timeScale, jsonObj, id, jsonUrl, nullptr);
 
     READ_OPTIONAL_STRING(alphaVar, jsonObj);
-    READ_OPTIONAL_STRING(timeScaleVar, jsonObj);
 
-    auto node = std::make_shared<AnimBlendLinear>(id, alpha, sync, timeScale);
+    auto node = std::make_shared<AnimBlendLinear>(id, alpha);
 
     if (!alphaVar.isEmpty()) {
         node->setAlphaVar(alphaVar);
-    }
-
-    if (!timeScaleVar.isEmpty()) {
-        node->setTimeScaleVar(timeScaleVar);
     }
 
     return node;
