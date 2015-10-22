@@ -560,6 +560,18 @@ glm::vec3 MyAvatar::getRightHandPosition() const {
     return palmData ? palmData->getPosition() : glm::vec3(0.0f);
 }
 
+glm::vec3 MyAvatar::getLeftHandTipPosition() const {
+    const int LEFT_HAND = 0;
+    auto palmData = getActivePalm(LEFT_HAND);
+    return palmData ? palmData->getTipPosition() : glm::vec3(0.0f);
+}
+
+glm::vec3 MyAvatar::getRightHandTipPosition() const {
+    const int RIGHT_HAND = 1;
+    auto palmData = getActivePalm(RIGHT_HAND);
+    return palmData ? palmData->getTipPosition() : glm::vec3(0.0f);
+}
+
 // virtual
 void MyAvatar::render(RenderArgs* renderArgs, const glm::vec3& cameraPosition) {
     // don't render if we've been asked to disable local rendering

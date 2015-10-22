@@ -52,6 +52,8 @@ class MyAvatar : public Avatar {
 
     Q_PROPERTY(glm::vec3 leftHandPosition  READ getLeftHandPosition)
     Q_PROPERTY(glm::vec3 rightHandPosition  READ getRightHandPosition)
+    Q_PROPERTY(glm::vec3 leftHandTipPosition  READ getLeftHandTipPosition)
+    Q_PROPERTY(glm::vec3 rightHandTipPosition  READ getRightHandTipPosition)
 
 public:
     MyAvatar(RigPointer rig);
@@ -141,6 +143,8 @@ public:
 
     Q_INVOKABLE glm::vec3 getLeftHandPosition() const;
     Q_INVOKABLE glm::vec3 getRightHandPosition() const;
+    Q_INVOKABLE glm::vec3 getLeftHandTipPosition() const;
+    Q_INVOKABLE glm::vec3 getRightHandTipPosition() const;
 
     AvatarWeakPointer getLookAtTargetAvatar() const { return _lookAtTargetAvatar; }
     void updateLookAtTargetAvatar();
