@@ -31,11 +31,10 @@ class RouteBuilderProxy : public QObject {
         RouteBuilderProxy(UserInputMapper& parent, Mapping::Pointer mapping, Route::Pointer route)
             : _parent(parent), _mapping(mapping), _route(route) { }
 
-        Q_INVOKABLE void to(int destination);
-        Q_INVOKABLE void to(const QJSValue& destination);
-        Q_INVOKABLE void to(const QScriptValue& destination);
+        Q_INVOKABLE void toQml(const QJSValue& destination);
+        Q_INVOKABLE QObject* filterQml(const QJSValue& expression);
 
-        Q_INVOKABLE QObject* filter(const QJSValue& expression);
+        Q_INVOKABLE void to(const QScriptValue& destination);
         Q_INVOKABLE QObject* filter(const QScriptValue& expression);
         Q_INVOKABLE QObject* clamp(float min, float max);
         Q_INVOKABLE QObject* pulse(float interval);

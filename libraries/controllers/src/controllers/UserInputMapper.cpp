@@ -145,10 +145,17 @@ void ScriptEndpoint::internalApply(float newValue, float oldValue, int sourceID)
                    QScriptValueList({ QScriptValue(newValue), QScriptValue(oldValue),  QScriptValue(sourceID) }));
 }
 
+static const Input INVALID_STANDARD_INPUT = Input(UserInputMapper::STANDARD_DEVICE, Input::INVALID_CHANNEL, ChannelType::INVALID);
+
 class CompositeEndpoint : public Endpoint, Endpoint::Pair {
 public:
     CompositeEndpoint(Endpoint::Pointer first, Endpoint::Pointer second)
-        : Endpoint(Input::INVALID_INPUT), Pair(first, second) { }
+        : Endpoint(Input::INVALID_INPUT), Pair(first, second) { 
+        if (first->getInput().device == UserInputMapper::STANDARD_DEVICE &&
+            second->getInput().device == UserInputMapper::STANDARD_DEVICE) {
+            this->_input = INVALID_STANDARD_INPUT;
+        }
+    }
 
     virtual float value() {
         float result = first->value() * -1.0f + second->value();
@@ -188,7 +195,20 @@ class AnyEndpoint : public Endpoint {
     friend class UserInputMapper;
 public:
     using Pointer = std::shared_ptr<AnyEndpoint>;
-    AnyEndpoint() : Endpoint(Input::INVALID_INPUT) {}
+    AnyEndpoint(Endpoint::List children) : Endpoint(Input::INVALID_INPUT), _children(children) {
+        bool standard = true;
+        // Ensure if we're building a composite of standard devices the composite itself
+        // is treated as a standard device for rule processing order
+        for (auto endpoint : children) {
+            if (endpoint->getInput().device != UserInputMapper::STANDARD_DEVICE) {
+                standard = false;
+                break;
+            }
+        }
+        if (standard) {
+            this->_input = INVALID_STANDARD_INPUT;
+        }
+    }
 
     virtual float value() override {
         float result = 0;
@@ -1013,15 +1033,15 @@ Endpoint::Pointer UserInputMapper::parseDestination(const QJsonValue& value) {
 
 Endpoint::Pointer UserInputMapper::parseSource(const QJsonValue& value) {
     if (value.isArray()) {
-        AnyEndpoint::Pointer result = std::make_shared<AnyEndpoint>();
+        Endpoint::List children;
         for (auto arrayItem : value.toArray()) {
             Endpoint::Pointer destination = parseEndpoint(arrayItem);
             if (!destination) {
                 return Endpoint::Pointer();
             }
-            result->_children.push_back(destination);
+            children.push_back(destination);
         }
-        return result;
+        return std::make_shared<AnyEndpoint>(children);
     }
 
     return parseEndpoint(value);
