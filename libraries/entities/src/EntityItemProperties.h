@@ -270,7 +270,7 @@ private:
     bool _glowLevelChanged;
     bool _localRenderAlphaChanged;
     bool _defaultSettings;
-    bool _dimensionsInitialized = false; // Only true if creating an entity localy with no dimensions properties
+    bool _dimensionsInitialized = true; // Only false if creating an entity localy with no dimensions properties
 
     // NOTE: The following are pseudo client only properties. They are only used in clients which can access
     // properties of model geometry. But these properties are not serialized like other properties.

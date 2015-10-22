@@ -1,6 +1,5 @@
 //
 //  breakdanceCore.js
-//  examples/toys
 //
 //  This is the core breakdance game library, it can be used as part of an entity script, or an omniTool module, or bootstapped on it's own
 //  Created by Brad Hefta-Gaub on August 24, 2015
