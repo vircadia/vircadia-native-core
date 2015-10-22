@@ -9,22 +9,51 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-var BAT_MODEL = "atp:c47deaae09cca927f6bc9cca0e8bbe77fc618f8c3f2b49899406a63a59f885cb.fbx";
-var BAT_COLLISION_SHAPE = "atp:9eafceb7510c41d50661130090de7e0632aa4da236ebda84a0059a4be2130e0c.obj";
+var ROBOT_MODEL = "atp:ea02100c2ee63a8b9c0495557f32041be18ec94def157592e84a816665ce2f6e.fbx";
+var ROBOT_POSITION = { x: -0.54, y: 1.21, z: 2.57 }
 
-function createNewBat() {
-  // move entity three units in front of the avatar
-  var batPosition = Vec3.sum(MyAvatar.position,
-                             Vec3.multiplyQbyV(MyAvatar.orientation, { x: 0, y: -0.3, z: -2 }));
+var lastTriggerValue = 0.0;
 
-  var wand = Entities.addEntity({
-      name: 'Bat',
-      type: "Model",
-      modelURL: BAT_MODEL,
-      position: batPosition,
-      collisionsWillMove: true,
-      compoundShapeURL: BAT_COLLISION_SHAPE
-  });
+function checkTriggers() {
+  var rightTrigger = Controller.getTriggerValue(1);
+
+  if (rightTrigger == 0) {
+    if (lastTriggerValue > 0) {
+      // the trigger was just released, play out to the last frame of the swing
+      Entities.editEntity(robot, {
+        animation: {
+          running: true,
+          currentFrame: 21,
+          lastFrame: 115
+        }
+      });
+    }
+  } else {
+    if (lastTriggerValue == 0) {
+      // the trigger was just depressed, start the swing
+      Entities.editEntity(robot, {
+        animation: {
+          running: true,
+          currentFrame: 0,
+          lastFrame: 21 
+        }
+      });
+    }
+  }
+
+  lastTriggerValue = rightTrigger;
 }
 
-createNewBat();
+// add the fresh bat at home plate
+var robot = Entities.addEntity({
+    name: 'Robot',
+    type: "Model",
+    modelURL: ROBOT_MODEL,
+    position: ROBOT_POSITION,
+    animation: {
+      url: ROBOT_MODEL
+    }
+});
+
+// hook the update so we can check controller triggers
+Script.update.connect(checkTriggers);
