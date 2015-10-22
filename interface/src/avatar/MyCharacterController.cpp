@@ -52,7 +52,6 @@ protected:
 
 MyCharacterController::MyCharacterController(MyAvatar* avatar) {
     _halfHeight = 1.0f;
-    _shape = nullptr;
 
     assert(avatar);
     _avatar = avatar;
@@ -255,15 +254,7 @@ void MyCharacterController::setEnabled(bool enabled) {
 
 void MyCharacterController::updateShapeIfNecessary() {
     if (_pendingFlags & PENDING_FLAG_UPDATE_SHAPE) {
-        // make sure there is NO pending removal from simulation at this point
-        // (don't want to delete _rigidBody out from under the simulation)
-        assert(!(_pendingFlags & PENDING_FLAG_REMOVE_FROM_SIMULATION));
         _pendingFlags &= ~ PENDING_FLAG_UPDATE_SHAPE;
-        // delete shape and RigidBody
-        delete _rigidBody;
-        _rigidBody = nullptr;
-        delete _shape;
-        _shape = nullptr;
 
         // compute new dimensions from avatar's bounding box
         float x = _boxScale.x;
@@ -277,15 +268,23 @@ void MyCharacterController::updateShapeIfNecessary() {
         // NOTE: _shapeLocalOffset is already computed
 
         if (_radius > 0.0f) {
-            // create new shape
-            _shape = new btCapsuleShape(_radius, 2.0f * _halfHeight);
-
             // HACK: use some simple mass property defaults for now
             float mass = 100.0f;
             btVector3 inertia(30.0f, 8.0f, 30.0f);
 
-            // create new body
-            _rigidBody = new btRigidBody(mass, nullptr, _shape, inertia);
+            // create RigidBody if it doesn't exist
+            if (!_rigidBody) {
+                btCollisionShape* shape = new btCapsuleShape(_radius, 2.0f * _halfHeight);
+                _rigidBody = new btRigidBody(mass, nullptr, shape, inertia);
+            } else {
+                btCollisionShape* shape = _rigidBody->getCollisionShape();
+                if (shape) {
+                    delete shape;
+                }
+                shape = new btCapsuleShape(_radius, 2.0f * _halfHeight);
+                _rigidBody->setCollisionShape(shape);
+            }
+
             _rigidBody->setSleepingThresholds(0.0f, 0.0f);
             _rigidBody->setAngularFactor(0.0f);
             _rigidBody->setWorldTransform(btTransform(glmToBullet(_avatar->getOrientation()),

@@ -82,7 +82,6 @@ protected:
 
     quint64 _jumpToHoverStart;
 
-    btCollisionShape* _shape { nullptr };
     MyAvatar* _avatar { nullptr };
 
     btScalar _halfHeight;
