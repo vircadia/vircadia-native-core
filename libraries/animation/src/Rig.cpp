@@ -624,11 +624,12 @@ void Rig::animationStateHandlerResult(QScriptValue handler, QScriptValue result)
     }
     _stateHandlersResults.animVariantMapFromScriptValue(result); // Into our own copy.
 }
+
 void Rig::updateAnimationStateHandlers() { // called on avatar update thread (which may be main thread)
     if (_stateHandlers.isValid()) {
         // invokeMethod makes a copy of the args, and copies of AnimVariantMap do copy the underlying map, so this will correctly capture
         // the state of _animVars and allow continued changes to _animVars in this thread without conflict.
-        QMetaObject::invokeMethod(_stateHandlers.engine(), "invokeAnimationCallback",  Qt::QueuedConnection,
+        QMetaObject::invokeMethod(_stateHandlers.engine(), "callAnimationStateHandler",  Qt::QueuedConnection,
                                   Q_ARG(QScriptValue, _stateHandlers),
                                   Q_ARG(AnimVariantMap, _animVars));
     }

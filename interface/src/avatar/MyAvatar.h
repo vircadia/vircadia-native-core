@@ -118,7 +118,7 @@ public:
     Q_INVOKABLE void addAnimationStateHandler(QScriptValue handler, QScriptValue propertiesList) { _rig->addAnimationStateHandler(handler, propertiesList); }
     // Removes a handler previously added by addAnimationStateHandler.
     Q_INVOKABLE void removeAnimationStateHandler(QScriptValue handler) { _rig->removeAnimationStateHandler(handler); }
-    // Processes a handler result. Not really for user code, but used by invokeAnimationCallback.
+    // Processes a handler result. Not really for user code, but used by callAnimationStateHandler.
     Q_INVOKABLE void animationStateHandlerResult(QScriptValue handler, QScriptValue result) { _rig->animationStateHandlerResult(handler, result); }
 
     // get/set avatar data
