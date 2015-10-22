@@ -34,7 +34,6 @@ enum AudioListenerMode {
 };
 Q_DECLARE_METATYPE(AudioListenerMode);
 
-
 class MyAvatar : public Avatar {
     Q_OBJECT
     Q_PROPERTY(bool shouldRenderLocally READ getShouldRenderLocally WRITE setShouldRenderLocally)
@@ -49,6 +48,12 @@ class MyAvatar : public Avatar {
     Q_PROPERTY(AudioListenerMode FROM_CAMERA READ getAudioListenerModeCamera)
     Q_PROPERTY(AudioListenerMode CUSTOM READ getAudioListenerModeCustom)
     //TODO: make gravity feature work Q_PROPERTY(glm::vec3 gravity READ getGravity WRITE setGravity)
+
+
+    Q_PROPERTY(glm::vec3 leftHandPosition  READ getLeftHandPosition)
+    Q_PROPERTY(glm::vec3 rightHandPosition  READ getRightHandPosition)
+    Q_PROPERTY(glm::vec3 leftHandTipPosition  READ getLeftHandTipPosition)
+    Q_PROPERTY(glm::vec3 rightHandTipPosition  READ getRightHandTipPosition)
 
 public:
     MyAvatar(RigPointer rig);
@@ -135,6 +140,11 @@ public:
     Q_INVOKABLE glm::vec3 getEyePosition() const { return getHead()->getEyePosition(); }
 
     Q_INVOKABLE glm::vec3 getTargetAvatarPosition() const { return _targetAvatarPosition; }
+
+    Q_INVOKABLE glm::vec3 getLeftHandPosition() const;
+    Q_INVOKABLE glm::vec3 getRightHandPosition() const;
+    Q_INVOKABLE glm::vec3 getLeftHandTipPosition() const;
+    Q_INVOKABLE glm::vec3 getRightHandTipPosition() const;
 
     AvatarWeakPointer getLookAtTargetAvatar() const { return _lookAtTargetAvatar; }
     void updateLookAtTargetAvatar();
@@ -273,6 +283,9 @@ private:
     virtual void setSkeletonModelURL(const QUrl& skeletonModelURL) override;
 
     void setVisibleInSceneIfReady(Model* model, render::ScenePointer scene, bool visiblity);
+
+    const PalmData* getActivePalm(int palmIndex) const;
+
 
     // derive avatar body position and orientation from the current HMD Sensor location.
     // results are in sensor space

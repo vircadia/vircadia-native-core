@@ -524,6 +524,54 @@ void MyAvatar::updateFromTrackers(float deltaTime) {
 }
 
 
+// FIXME - this is super duper dumb... but this is how master works. When you have
+// hydras plugged in, you'll get 4 "palms" but only the number of controllers lifted
+// of the base station are considered active. So when you ask for "left" you get the
+// first active controller. If you have both controllers held up or just the left, that
+// will be correct. But if you lift the right controller, then it will be reported
+// as "left"... you also see this in the avatars hands. 
+const PalmData* MyAvatar::getActivePalm(int palmIndex) const {
+    const HandData* handData = DependencyManager::get<AvatarManager>()->getMyAvatar()->getHandData();
+    int numberOfPalms = handData->getNumPalms();
+    int numberOfActivePalms = 0;
+    for (int i = 0; i < numberOfPalms; i++) {
+        auto palm = handData->getPalms()[i];
+        if (palm.isActive()) {
+            // if we've reached the requested "active" palm, then we will return it
+            if (numberOfActivePalms == palmIndex) {
+                return &handData->getPalms()[i];
+            }
+            numberOfActivePalms++;
+        }
+    }
+    return NULL;
+}
+
+
+glm::vec3 MyAvatar::getLeftHandPosition() const {
+    const int LEFT_HAND = 0;
+    auto palmData = getActivePalm(LEFT_HAND);
+    return palmData ? palmData->getPosition() : glm::vec3(0.0f);
+}
+
+glm::vec3 MyAvatar::getRightHandPosition() const {
+    const int RIGHT_HAND = 1;
+    auto palmData = getActivePalm(RIGHT_HAND);
+    return palmData ? palmData->getPosition() : glm::vec3(0.0f);
+}
+
+glm::vec3 MyAvatar::getLeftHandTipPosition() const {
+    const int LEFT_HAND = 0;
+    auto palmData = getActivePalm(LEFT_HAND);
+    return palmData ? palmData->getTipPosition() : glm::vec3(0.0f);
+}
+
+glm::vec3 MyAvatar::getRightHandTipPosition() const {
+    const int RIGHT_HAND = 1;
+    auto palmData = getActivePalm(RIGHT_HAND);
+    return palmData ? palmData->getTipPosition() : glm::vec3(0.0f);
+}
+
 // virtual
 void MyAvatar::render(RenderArgs* renderArgs, const glm::vec3& cameraPosition) {
     // don't render if we've been asked to disable local rendering
