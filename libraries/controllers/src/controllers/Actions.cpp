@@ -42,6 +42,12 @@ namespace controller {
                 makeAxisPair(Action::ROLL, "Roll"),
                 makeAxisPair(Action::PITCH, "Pitch"),
                 makeAxisPair(Action::YAW, "Yaw"),
+                makeAxisPair(Action::STEP_YAW, "StepYaw"),
+                makeAxisPair(Action::STEP_PITCH, "StepPitch"),
+                makeAxisPair(Action::STEP_ROLL, "StepRoll"),
+                makeAxisPair(Action::STEP_TRANSLATE_X, "StepTranslateX"),
+                makeAxisPair(Action::STEP_TRANSLATE_X, "StepTranslateY"),
+                makeAxisPair(Action::STEP_TRANSLATE_X, "StepTranslateZ"),
                 makeAxisPair(Action::LONGITUDINAL_BACKWARD, "Backward"),
                 makeAxisPair(Action::LONGITUDINAL_FORWARD, "Forward"),
                 makeAxisPair(Action::LATERAL_LEFT, "StrafeLeft"),
@@ -66,7 +72,6 @@ namespace controller {
                 makeButtonPair(Action::ACTION2, "SecondaryAction"),
                 makeButtonPair(Action::CONTEXT_MENU, "ContextMenu"),
                 makeButtonPair(Action::TOGGLE_MUTE, "ToggleMute"),
-
 
                 // Deprecated aliases
                 // FIXME remove after we port all scripts

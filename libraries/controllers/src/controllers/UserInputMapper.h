@@ -15,6 +15,7 @@
 #include <unordered_set>
 #include <functional>
 #include <memory>
+#include <mutex>
 
 #include <QtQml/QJSValue>
 #include <QtScript/QScriptValue>
@@ -119,10 +120,8 @@ namespace controller {
         void hardwareChanged();
 
     protected:
-        virtual void runMappings();
         // GetFreeDeviceID should be called before registering a device to use an ID not used by a different device.
         uint16 getFreeDeviceID() { return _nextFreeDeviceID++; }
-
         InputDevice::Pointer _standardController;
         DevicesMap _registeredDevices;
         uint16 _nextFreeDeviceID = STANDARD_DEVICE + 1;
@@ -142,6 +141,11 @@ namespace controller {
 
         friend class RouteBuilderProxy;
         friend class MappingBuilderProxy;
+
+        void runMappings();
+        void applyRoute(const Route::Pointer& route);
+        void enableMapping(const Mapping::Pointer& mapping);
+        void disableMapping(const Mapping::Pointer& mapping);
         Endpoint::Pointer endpointFor(const QJSValue& endpoint);
         Endpoint::Pointer endpointFor(const QScriptValue& endpoint);
         Endpoint::Pointer endpointFor(const Input& endpoint) const;
@@ -163,9 +167,14 @@ namespace controller {
 
         EndpointOverrideMap _overrides;
         MappingNameMap _mappingsByName;
-        Mapping::Pointer _defaultMapping{ std::make_shared<Mapping>("Default") };
         MappingDeviceMap _mappingsByDevice;
-        MappingStack _activeMappings;
+
+        Route::List _deviceRoutes;
+        Route::List _standardRoutes;
+
+        using Locker = std::unique_lock<std::recursive_mutex>;
+
+        mutable std::recursive_mutex _lock;
     };
 
 }
