@@ -1,0 +1,22 @@
+//
+//  AssignmentParentFinder.cpp
+//  assignment-client/src/
+//
+//  Created by Seth Alves on 2015-10-22
+//  Copyright 2015 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+//
+
+#include "AssignmentParentFinder.h"
+
+SpatiallyNestableWeakPointer AssignmentParentFinder::find(QUuid parentID) const {
+    assert(false);
+    SpatiallyNestableWeakPointer parent;
+    // search entities
+    _tree->withReadLock([&] {
+        parent = _tree->findEntityByEntityItemID(parentID);
+    });
+    return parent;
+}

@@ -89,9 +89,6 @@ public:
     EntityItem(const EntityItemID& entityItemID);
     virtual ~EntityItem();
 
-    // ID and EntityItemID related methods
-    const QUuid& getID() const { return _id; }
-    void setID(const QUuid& id) { _id = id; }
     EntityItemID getEntityItemID() const { return EntityItemID(_id); }
 
     // methods for getting/setting all properties of an entity
@@ -399,7 +396,6 @@ protected:
 
     static bool _sendPhysicsUpdates;
     EntityTypes::EntityType _type;
-    QUuid _id;
     quint64 _lastSimulated; // last time this entity called simulate(), this includes velocity, angular velocity,
                             // and physics changes
     quint64 _lastUpdated; // last time this entity called update(), this includes animations and non-physics changes

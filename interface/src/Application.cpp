@@ -136,6 +136,8 @@
 #include "ui/Stats.h"
 #include "ui/UpdateDialog.h"
 #include "Util.h"
+#include "InterfaceParentFinder.h"
+
 
 // ON WIndows PC, NVidia Optimus laptop, we want to enable NVIDIA GPU
 // FIXME seems to be broken.
@@ -286,6 +288,7 @@ bool setupEssentials(int& argc, char** argv) {
     DependencyManager::registerInheritance<LimitedNodeList, NodeList>();
     DependencyManager::registerInheritance<AvatarHashMap, AvatarManager>();
     DependencyManager::registerInheritance<EntityActionFactoryInterface, InterfaceActionFactory>();
+    DependencyManager::registerInheritance<SpatialParentFinder, InterfaceParentFinder>();
 
     Setting::init();
 
@@ -327,6 +330,7 @@ bool setupEssentials(int& argc, char** argv) {
     DependencyManager::set<InterfaceActionFactory>();
     DependencyManager::set<AssetClient>();
     DependencyManager::set<UserInputMapper>();
+    DependencyManager::set<InterfaceParentFinder>();
 
     return true;
 }

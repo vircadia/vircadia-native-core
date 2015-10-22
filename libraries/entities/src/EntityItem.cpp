@@ -37,8 +37,8 @@ int EntityItem::_maxActionsDataSize = 800;
 quint64 EntityItem::_rememberDeletedActionTime = 20 * USECS_PER_SECOND;
 
 EntityItem::EntityItem(const EntityItemID& entityItemID) :
+    SpatiallyNestable(entityItemID),
     _type(EntityTypes::Unknown),
-    _id(entityItemID),
     _lastSimulated(0),
     _lastUpdated(0),
     _lastEdited(0),
@@ -1723,6 +1723,9 @@ void EntityItem::checkWaitingToRemove(EntitySimulation* simulation) {
 }
 
 void EntityItem::setActionData(QByteArray actionData) {
+    if (_id == QUuid("32147a6e-976d-44ea-8c33-056c820b4dbd")) {
+        qDebug() << "EntityItem::setActionData to " << actionData.size() << "bytes.";
+    }
     withWriteLock([&] {
         setActionDataInternal(actionData);
     });
@@ -1730,8 +1733,16 @@ void EntityItem::setActionData(QByteArray actionData) {
 
 void EntityItem::setActionDataInternal(QByteArray actionData) {
     if (_allActionsDataCache != actionData) {
+        if (_id == QUuid("32147a6e-976d-44ea-8c33-056c820b4dbd")) {
+            qDebug() << "EntityItem::setActionDataInternal to " << actionData.size() << "bytes.";
+        }
+
         _allActionsDataCache = actionData;
         deserializeActionsInternal();
+    } else {
+        if (_id == QUuid("32147a6e-976d-44ea-8c33-056c820b4dbd")) {
+            qDebug() << "EntityItem::setActionDataInternal NOT setting to " << actionData.size() << "bytes.";
+        }
     }
     checkWaitingToRemove();
 }
