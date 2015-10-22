@@ -37,7 +37,7 @@ const glm::vec3 DEFAULT_LOCAL_AABOX_CORNER(-0.5f);
 const glm::vec3 DEFAULT_LOCAL_AABOX_SCALE(1.0f);
 
 AvatarData::AvatarData() :
-    _sessionUUID(),
+    SpatiallyNestable(NestableTypes::Avatar, QUuid()),
     _handPosition(0.0f),
     _targetScale(1.0f),
     _handState(0),

@@ -12,6 +12,7 @@
 #ifndef hifi_UpdateEntityOperator_h
 #define hifi_UpdateEntityOperator_h
 
+#include "BoundingBoxRelatedProperties.h"
 #include "EntitiesLogging.h"
 #include "EntityItem.h"
 #include "EntityItemProperties.h"
@@ -21,7 +22,8 @@
 class UpdateEntityOperator : public RecurseOctreeOperator {
 public:
     UpdateEntityOperator(EntityTreePointer tree, EntityTreeElementPointer containingElement,
-                         EntityItemPointer existingEntity, const EntityItemProperties& properties);
+                         EntityItemPointer existingEntity, const BoundingBoxRelatedProperties& newProperties);
+
     ~UpdateEntityOperator();
 
     virtual bool preRecursion(OctreeElementPointer element);
@@ -32,7 +34,7 @@ private:
     EntityItemPointer _existingEntity;
     EntityTreeElementPointer _containingElement;
     AACube _containingElementCube; // we temporarily store our cube here in case we need to delete the containing element
-    EntityItemProperties _properties;
+    BoundingBoxRelatedProperties _newProperties;
     EntityItemID _entityItemID;
     bool _foundOld;
     bool _foundNew;

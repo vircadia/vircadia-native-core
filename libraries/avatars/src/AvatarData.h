@@ -172,7 +172,7 @@ public:
 
     virtual bool isMyAvatar() const { return false; }
 
-    const QUuid& getSessionUUID() const { return _sessionUUID; }
+    const QUuid& getSessionUUID() const { return getID(); }
 
     glm::vec3 getHandPosition() const;
     void setHandPosition(const glm::vec3& handPosition);
@@ -327,7 +327,7 @@ public slots:
     
     void setBillboardFromNetworkReply();
     void setJointMappingsFromNetworkReply();
-    void setSessionUUID(const QUuid& sessionUUID) { _sessionUUID = sessionUUID; }
+    void setSessionUUID(const QUuid& sessionUUID) { setID(sessionUUID); }
     
     bool isPlaying();
     bool isPaused();
@@ -353,7 +353,6 @@ public slots:
     void stopPlaying();
     
 protected:
-    QUuid _sessionUUID;
     glm::vec3 _handPosition;
 
     // Body scale

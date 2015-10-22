@@ -32,10 +32,13 @@ SpatiallyNestablePointer SpatiallyNestable::getParentPointer() const {
         return nullptr;
     }
 
+    SpatiallyNestableConstPointer constThisPointer = shared_from_this();
+    SpatiallyNestablePointer thisPointer = std::const_pointer_cast<SpatiallyNestable>(constThisPointer); // ermahgerd !!!
+
     if (parent && parent->getID() == _parentID) {
         // parent pointer is up-to-date
         if (!_parentKnowsMe) {
-            parent->beParentOfChild(shared_from_this());
+            parent->beParentOfChild(thisPointer);
             _parentKnowsMe = true;
         }
         return parent;
@@ -43,7 +46,7 @@ SpatiallyNestablePointer SpatiallyNestable::getParentPointer() const {
 
     if (parent) {
         // we have a parent pointer but our _parentID doesn't indicate this parent.
-        parent->forgetChild(shared_from_this());
+        parent->forgetChild(thisPointer);
         _parentKnowsMe = false;
         _parent.reset();
     }
@@ -53,17 +56,17 @@ SpatiallyNestablePointer SpatiallyNestable::getParentPointer() const {
     _parent = parentFinder->find(_parentID);
     parent = _parent.lock();
     if (parent) {
-        parent->beParentOfChild(shared_from_this());
+        parent->beParentOfChild(thisPointer);
         _parentKnowsMe = true;
     }
     return parent;
 }
 
-void SpatiallyNestable::beParentOfChild(SpatiallyNestableConstPointer newChild) const {
+void SpatiallyNestable::beParentOfChild(SpatiallyNestablePointer newChild) const {
     _children[newChild->getID()] = newChild;
 }
 
-void SpatiallyNestable::forgetChild(SpatiallyNestableConstPointer newChild) const {
+void SpatiallyNestable::forgetChild(SpatiallyNestablePointer newChild) const {
     _children.remove(newChild->getID());
 }
 
@@ -152,4 +155,15 @@ const glm::vec3& SpatiallyNestable::getLocalScale() const {
 
 void SpatiallyNestable::setLocalScale(const glm::vec3& scale) {
     _transform.setScale(scale);
+}
+
+QList<SpatiallyNestablePointer> SpatiallyNestable::getChildren() const {
+    QList<SpatiallyNestablePointer> children;
+    foreach (SpatiallyNestableWeakPointer childWP, _children.values()) {
+        SpatiallyNestablePointer child = childWP.lock();
+        if (child) {
+            children << child;
+        }
+    }
+    return children;
 }

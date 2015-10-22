@@ -37,7 +37,7 @@ int EntityItem::_maxActionsDataSize = 800;
 quint64 EntityItem::_rememberDeletedActionTime = 20 * USECS_PER_SECOND;
 
 EntityItem::EntityItem(const EntityItemID& entityItemID) :
-    SpatiallyNestable(entityItemID),
+    SpatiallyNestable(NestableTypes::Entity, entityItemID),
     _type(EntityTypes::Unknown),
     _lastSimulated(0),
     _lastUpdated(0),

@@ -24,11 +24,21 @@ using SpatiallyNestableWeakConstPointer = std::weak_ptr<const SpatiallyNestable>
 using SpatiallyNestablePointer = std::shared_ptr<SpatiallyNestable>;
 using SpatiallyNestableConstPointer = std::shared_ptr<const SpatiallyNestable>;
 
-class SpatiallyNestable : public std::enable_shared_from_this<SpatiallyNestable> {
-
+class NestableTypes {
 public:
-    SpatiallyNestable() : _transform() { } // XXX get rid of this one?
-    SpatiallyNestable(QUuid id) : _id(id), _transform() { }
+    using NestableType = enum NestableType_t {
+        Entity,
+        Avatar
+    };
+};
+
+class SpatiallyNestable : public std::enable_shared_from_this<SpatiallyNestable> {
+public:
+    // SpatiallyNestable() : _transform() { } // XXX get rid of this one?
+    SpatiallyNestable(NestableTypes::NestableType nestableType, QUuid id) :
+        _nestableType(nestableType),
+        _id(id),
+        _transform() { }
     virtual ~SpatiallyNestable() { }
 
     virtual const QUuid& getID() const { return _id; }
@@ -68,16 +78,20 @@ public:
     virtual const glm::vec3& getLocalScale() const;
     virtual void setLocalScale(const glm::vec3& scale);
 
+    QList<SpatiallyNestablePointer> getChildren() const;
+    NestableTypes::NestableType getNestableType() const { return _nestableType; }
+
 protected:
+    NestableTypes::NestableType _nestableType; // EntityItem or an AvatarData
     QUuid _id;
     QUuid _parentID; // what is this thing's transform relative to?
     quint16 _parentJointIndex; // which joint of the parent is this relative to?
     SpatiallyNestablePointer getParentPointer() const;
     mutable SpatiallyNestableWeakPointer _parent;
 
-    virtual void beParentOfChild(SpatiallyNestableConstPointer newChild) const;
-    virtual void forgetChild(SpatiallyNestableConstPointer newChild) const;
-    mutable QHash<QUuid, SpatiallyNestableWeakConstPointer> _children;
+    virtual void beParentOfChild(SpatiallyNestablePointer newChild) const;
+    virtual void forgetChild(SpatiallyNestablePointer newChild) const;
+    mutable QHash<QUuid, SpatiallyNestableWeakPointer> _children;
 
 private:
     Transform _transform; // this is to be combined with parent's world-transform to produce this' world-transform.
