@@ -14,20 +14,19 @@
 var utilitiesScript = Script.resolvePath("../examples/libraries/utils.js");
 Script.include(utilitiesScript);
 
-var sprayPaintScriptURL = Script.resolvePath("../examples/toys/sprayPaintCan.js");
-var catScriptURL = Script.resolvePath("../examples/toys/cat.js");
-var flashlightScriptURL = Script.resolvePath('../examples/toys/flashlight/flashlight.js');
-var pingPongScriptURL = Script.resolvePath('../examples/toys/ping_pong_gun/pingPongGun.js');
-var wandScriptURL = Script.resolvePath("../examples/toys/bubblewand/wand.js");
-var dollScriptURL = Script.resolvePath("../examples/toys/doll/doll.js");
-var lightsScriptURL = Script.resolvePath("../examples/toys/lightSwitch.js");
-var targetsScriptURL = Script.resolvePath('../examples/toys/ping_pong_gun/wallTarget.js');
+    var sprayPaintScriptURL = Script.resolvePath("../examples/toybox/spray_paint/sprayPaintCan.js");
+    var catScriptURL = Script.resolvePath("../examples/toybox/cat/cat.js");
+    var flashlightScriptURL = Script.resolvePath('../examples/toybox/flashlight/flashlight.js');
+    var pingPongScriptURL = Script.resolvePath('../examples/toybox/ping_pong_gun/pingPongGun.js');
+    var wandScriptURL = Script.resolvePath("../examples/toybox/bubblewand/wand.js");
+    var dollScriptURL = Script.resolvePath("../examples/toybox/doll/doll.js");
+    var lightsScriptURL = Script.resolvePath("../examples/toybox/lights/lightSwitch.js");
+    var targetsScriptURL = Script.resolvePath('../examples/toybox/ping_pong_gun/wallTarget.js');
 
 
 
 MasterReset = function() {
     var resetKey = "resetMe";
-    var GRABBABLE_DATA_KEY = "grabbableKey";
 
     var HIFI_PUBLIC_BUCKET = "http://s3.amazonaws.com/hifi-public/";
 
@@ -294,7 +293,7 @@ MasterReset = function() {
                         resetMe: {
                             resetMe: true
                         },
-                        grabbable: {
+                        grabbableKey: {
                             invertSolidWhileHeld: true
                         }
                     })
@@ -505,6 +504,9 @@ MasterReset = function() {
                     resetMe: true,
                     on: true,
                     type: "Hall Light"
+                },
+                grabbableKey: {
+                    wantsTrigger: true
                 }
             })
         });
@@ -600,6 +602,9 @@ MasterReset = function() {
                     resetMe: true,
                     on: true,
                     type: "Garage Light"
+                },
+                grabbableKey: {
+                    wantsTrigger: true
                 }
             })
         });
