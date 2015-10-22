@@ -619,6 +619,9 @@ void Rig::removeAnimationStateHandler(QScriptValue handler) { // called in scrip
 void Rig::animationStateHandlerResult(QScriptValue handler, QScriptValue result) { // called synchronously from script
     // handler is currently ignored but might be used in storing individual results
     QMutexLocker locker(&_stateMutex);
+    if (!_stateHandlers.isValid()) {
+        return; // Don't use late-breaking results that got reported after the handler was removed.
+    }
     _stateHandlersResults.animVariantMapFromScriptValue(result); // Into our own copy.
 }
 void Rig::updateAnimationStateHandlers() { // called on avatar update thread (which may be main thread)
