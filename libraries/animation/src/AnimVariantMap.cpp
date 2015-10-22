@@ -54,6 +54,10 @@ void AnimVariantMap::copyVariantsFrom(const AnimVariantMap& other) {
     }
 }
 void AnimVariantMap::animVariantMapFromScriptValue(const QScriptValue& source) {
+    if (QThread::currentThread() != source.engine()->thread()) {
+        qCWarning(animation) << "Cannot examine Javacript object from non-script thread" << QThread::currentThread();
+        return;
+    }
     // POTENTIAL OPTIMIZATION: cache the types we've seen. I.e, keep a dictionary mapping property names to an enumeration of types.
     // Whenever we identify a new outbound type in animVariantMapToScriptValue above, or a new inbound type in the code that follows here,
     // we would enter it into the dictionary. Then switch on that type here, with the code that follow being executed only if
