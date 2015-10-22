@@ -29,7 +29,7 @@ Item {
     // Left primary
     ToggleButton {
         x: parent.width - width; y: parent.height - height; 
-        controlId: root.device.RB
+        controlId: root.device.RightPrimaryThumb
         width: 16 * root.scale; height: 16 * root.scale
     }
 }

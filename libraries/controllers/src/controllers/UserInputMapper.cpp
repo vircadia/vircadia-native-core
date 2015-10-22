@@ -29,7 +29,6 @@ namespace controller {
 
 // Default contruct allocate the poutput size with the current hardcoded action channels
 controller::UserInputMapper::UserInputMapper() {
-    _activeMappings.push_back(_defaultMapping);
     _standardController = std::make_shared<StandardController>();
     registerDevice(new ActionsDevice());
     registerDevice(_standardController.get());
@@ -317,6 +316,7 @@ int UserInputMapper::recordDeviceOfType(const QString& deviceName) {
 }
 
 void UserInputMapper::registerDevice(InputDevice* device) {
+    Locker locker(_lock);
     if (device->_deviceID == Input::INVALID_DEVICE) {
         device->_deviceID = getFreeDeviceID();
     }
@@ -354,13 +354,7 @@ void UserInputMapper::registerDevice(InputDevice* device) {
     auto mapping = loadMapping(device->getDefaultMappingConfig());
     if (mapping) {
         _mappingsByDevice[deviceID] = mapping;
-        auto& defaultRoutes = _defaultMapping->routes;
-
-        // New routes for a device get injected IN FRONT of existing routes.  Routes
-        // are processed in order so this ensures that the standard -> action processing 
-        // takes place after all of the hardware -> standard or hardware -> action processing
-        // because standard -> action is the first set of routes added.
-        defaultRoutes.insert(defaultRoutes.begin(), mapping->routes.begin(), mapping->routes.end());
+        enableMapping(mapping);
     }
 
     emit hardwareChanged();
@@ -368,6 +362,7 @@ void UserInputMapper::registerDevice(InputDevice* device) {
 
 // FIXME remove the associated device mappings
 void UserInputMapper::removeDevice(int deviceID) {
+    Locker locker(_lock);
     auto proxyEntry = _registeredDevices.find(deviceID);
     if (_registeredDevices.end() == proxyEntry) {
         qCWarning(controllers) << "Attempted to remove unknown device " << deviceID;
@@ -376,15 +371,7 @@ void UserInputMapper::removeDevice(int deviceID) {
     auto proxy = proxyEntry->second;
     auto mappingsEntry = _mappingsByDevice.find(deviceID);
     if (_mappingsByDevice.end() != mappingsEntry) {
-        const auto& mapping = mappingsEntry->second;
-        const auto& deviceRoutes = mapping->routes;
-        std::set<Route::Pointer> routeSet(deviceRoutes.begin(), deviceRoutes.end());
-
-        auto& defaultRoutes = _defaultMapping->routes;
-        std::remove_if(defaultRoutes.begin(), defaultRoutes.end(), [&](Route::Pointer route)->bool {
-            return routeSet.count(route) != 0;
-        });
-
+        disableMapping(mappingsEntry->second);
         _mappingsByDevice.erase(mappingsEntry);
     }
 
@@ -395,6 +382,7 @@ void UserInputMapper::removeDevice(int deviceID) {
 
 
 DeviceProxy::Pointer UserInputMapper::getDeviceProxy(const Input& input) {
+    Locker locker(_lock);
     auto device = _registeredDevices.find(input.getDevice());
     if (device != _registeredDevices.end()) {
         return (device->second);
@@ -404,6 +392,7 @@ DeviceProxy::Pointer UserInputMapper::getDeviceProxy(const Input& input) {
 }
 
 QString UserInputMapper::getDeviceName(uint16 deviceID) { 
+    Locker locker(_lock);
     if (_registeredDevices.find(deviceID) != _registeredDevices.end()) {
         return _registeredDevices[deviceID]->_name;
     }
@@ -411,6 +400,7 @@ QString UserInputMapper::getDeviceName(uint16 deviceID) {
 }
 
 int UserInputMapper::findDevice(QString name) const {
+    Locker locker(_lock);
     for (auto device : _registeredDevices) {
         if (device.second->_name == name) {
             return device.first;
@@ -420,6 +410,7 @@ int UserInputMapper::findDevice(QString name) const {
 }
 
 QVector<QString> UserInputMapper::getDeviceNames() {
+    Locker locker(_lock);
     QVector<QString> result;
     for (auto device : _registeredDevices) {
         QString deviceName = device.second->_name.split(" (")[0];
@@ -433,6 +424,7 @@ int UserInputMapper::findAction(const QString& actionName) const {
 }
 
 Input UserInputMapper::findDeviceInput(const QString& inputName) const {
+    Locker locker(_lock);
     // Split the full input name as such: deviceName.inputName
     auto names = inputName.split('.');
 
@@ -472,6 +464,7 @@ void fixBisectedAxis(float& full, float& negative, float& positive) {
 }
 
 void UserInputMapper::update(float deltaTime) {
+    Locker locker(_lock);
     // Reset the axis state for next loop
     for (auto& channel : _actionStates) {
         channel = 0.0f;
@@ -505,11 +498,13 @@ void UserInputMapper::update(float deltaTime) {
 }
 
 Input::NamedVector UserInputMapper::getAvailableInputs(uint16 deviceID) const {
+    Locker locker(_lock);
     auto iterator = _registeredDevices.find(deviceID);
     return iterator->second->getAvailabeInputs();
 }
 
 QVector<Action> UserInputMapper::getAllActions() const {
+    Locker locker(_lock);
     QVector<Action> actions;
     for (auto i = 0; i < toInt(Action::NUM_ACTIONS); i++) {
         actions.append(Action(i));
@@ -518,6 +513,7 @@ QVector<Action> UserInputMapper::getAllActions() const {
 }
 
 QString UserInputMapper::getActionName(Action action) const {
+    Locker locker(_lock);
     for (auto actionPair : getActionInputs()) {
         if (actionPair.first.channel == toInt(action)) {
             return actionPair.second;
@@ -528,6 +524,7 @@ QString UserInputMapper::getActionName(Action action) const {
 
 
 QVector<QString> UserInputMapper::getActionNames() const {
+    Locker locker(_lock);
     QVector<QString> result;
     for (auto actionPair : getActionInputs()) {
         result << actionPair.second;
@@ -645,74 +642,87 @@ void UserInputMapper::runMappings() {
     }
 
     // Now process the current values for each level of the stack
-    for (auto& mapping : _activeMappings) {
-        for (const auto& route : mapping->routes) {
-            if (route->conditional) {
-                if (!route->conditional->satisfied()) {
-                    continue;
-                }
-            }
+    for (const auto& route : _deviceRoutes) {
+        if (!route) {
+            continue;
+        }
+        applyRoute(route);
+    }
 
-            auto source = route->source;
-            if (_overrides.count(source)) {
-                source = _overrides[source];
-            }
+    for (const auto& route : _standardRoutes) {
+        if (!route) {
+            continue;
+        }
+        applyRoute(route);
+    }
 
-            // Endpoints can only be read once (though a given mapping can route them to 
-            // multiple places).  Consider... If the default is to wire the A button to JUMP
-            // and someone else wires it to CONTEXT_MENU, I don't want both to occur when 
-            // I press the button.  The exception is if I'm wiring a control back to itself
-            // in order to adjust my interface, like inverting the Y axis on an analog stick
-            if (!source->readable()) {
-                continue;
-            }
+}
 
 
-            auto input = source->getInput();
-            float value = source->value();
-            if (value != 0.0) {
-                int i = 0;
-            }
-
-            auto destination = route->destination;
-            // THis could happen if the route destination failed to create
-            // FIXME: Maybe do not create the route if the destination failed and avoid this case ?
-            if (!destination) {
-                continue;
-            }
-
-            // FIXME?, should come before or after the override logic?
-            if (!destination->writeable()) {
-                continue;
-            }
-
-            // Only consume the input if the route isn't a loopback.
-            // This allows mappings like `mapping.from(xbox.RY).invert().to(xbox.RY);`
-            bool loopback = (source->getInput() == destination->getInput()) && (source->getInput() != Input::INVALID_INPUT);
-            // Each time we loop back we re-write the override 
-            if (loopback) {
-                _overrides[source] = destination = std::make_shared<StandardEndpoint>(source->getInput());
-            }
-
-            // Fetch the value, may have been overriden by previous loopback routes
-            if (source->isPose()) {
-                Pose value = getPose(source);
-                // no filters yet for pose
-                destination->apply(value, Pose(), source);
-            } else {
-                // Fetch the value, may have been overriden by previous loopback routes
-                float value = getValue(source);
-
-                // Apply each of the filters.
-                for (const auto& filter : route->filters) {
-                    value = filter->apply(value);
-                }
-
-                destination->apply(value, 0, source);
-            }
+void UserInputMapper::applyRoute(const Route::Pointer& route) {
+    if (route->conditional) {
+        if (!route->conditional->satisfied()) {
+            return;
         }
     }
 
+    auto source = route->source;
+    if (_overrides.count(source)) {
+        source = _overrides[source];
+    }
+
+    // Endpoints can only be read once (though a given mapping can route them to 
+    // multiple places).  Consider... If the default is to wire the A button to JUMP
+    // and someone else wires it to CONTEXT_MENU, I don't want both to occur when 
+    // I press the button.  The exception is if I'm wiring a control back to itself
+    // in order to adjust my interface, like inverting the Y axis on an analog stick
+    if (!source->readable()) {
+        return;
+    }
+
+
+    auto input = source->getInput();
+    float value = source->value();
+    if (value != 0.0) {
+        int i = 0;
+    }
+
+    auto destination = route->destination;
+    // THis could happen if the route destination failed to create
+    // FIXME: Maybe do not create the route if the destination failed and avoid this case ?
+    if (!destination) {
+        return;
+    }
+
+    // FIXME?, should come before or after the override logic?
+    if (!destination->writeable()) {
+        return;
+    }
+
+    // Only consume the input if the route isn't a loopback.
+    // This allows mappings like `mapping.from(xbox.RY).invert().to(xbox.RY);`
+    bool loopback = (source->getInput() == destination->getInput()) && (source->getInput() != Input::INVALID_INPUT);
+    // Each time we loop back we re-write the override 
+    if (loopback) {
+        _overrides[source] = destination = std::make_shared<StandardEndpoint>(source->getInput());
+    }
+
+    // Fetch the value, may have been overriden by previous loopback routes
+    if (source->isPose()) {
+        Pose value = getPose(source);
+        // no filters yet for pose
+        destination->apply(value, Pose(), source);
+    } else {
+        // Fetch the value, may have been overriden by previous loopback routes
+        float value = getValue(source);
+
+        // Apply each of the filters.
+        for (const auto& filter : route->filters) {
+            value = filter->apply(value);
+        }
+
+        destination->apply(value, 0, source);
+    }
 }
 
 Endpoint::Pointer UserInputMapper::endpointFor(const QJSValue& endpoint) {
@@ -744,6 +754,7 @@ Endpoint::Pointer UserInputMapper::endpointFor(const QScriptValue& endpoint) {
 }
 
 Endpoint::Pointer UserInputMapper::endpointFor(const Input& inputId) const {
+    Locker locker(_lock);
     auto iterator = _endpointsByInput.find(inputId);
     if (_endpointsByInput.end() == iterator) {
         qWarning() << "Unknown input: " << QString::number(inputId.getID(), 16);
@@ -767,6 +778,7 @@ Endpoint::Pointer UserInputMapper::compositeEndpointFor(Endpoint::Pointer first,
 
 
 Mapping::Pointer UserInputMapper::newMapping(const QString& mappingName) {
+    Locker locker(_lock);
     if (_mappingsByName.count(mappingName)) {
         qCWarning(controllers) << "Refusing to recreate mapping named " << mappingName;
     }
@@ -799,8 +811,8 @@ Mapping::Pointer UserInputMapper::newMapping(const QString& mappingName) {
 //    return result;
 //}
 
-
 void UserInputMapper::enableMapping(const QString& mappingName, bool enable) {
+    Locker locker(_lock);
     qCDebug(controllers) << "Attempting to enable mapping " << mappingName;
     auto iterator = _mappingsByName.find(mappingName);
     if (_mappingsByName.end() == iterator) {
@@ -810,18 +822,14 @@ void UserInputMapper::enableMapping(const QString& mappingName, bool enable) {
 
     auto mapping = iterator->second;
     if (enable) {
-        _activeMappings.push_front(mapping);
+        enableMapping(mapping);
     } else {
-        auto activeIterator = std::find(_activeMappings.begin(), _activeMappings.end(), mapping);
-        if (_activeMappings.end() == activeIterator) {
-            qCWarning(controllers) << "Attempted to disable inactive mapping " << mappingName;
-            return;
-        }
-        _activeMappings.erase(activeIterator);
+        disableMapping(mapping);
     }
 }
 
 float UserInputMapper::getValue(const Endpoint::Pointer& endpoint) const {
+    Locker locker(_lock);
     auto valuesIterator = _overrides.find(endpoint);
     if (_overrides.end() != valuesIterator) {
         return valuesIterator->second->value();
@@ -854,6 +862,7 @@ Pose UserInputMapper::getPose(const Input& input) const {
 }
 
 Mapping::Pointer UserInputMapper::loadMapping(const QString& jsonFile) {
+    Locker locker(_lock);
     if (jsonFile.isEmpty()) {
         return Mapping::Pointer();
     }
@@ -1100,6 +1109,36 @@ Mapping::Pointer UserInputMapper::parseMapping(const QString& json) {
     //    qDebug() << "JSON was:\n" << json << endl;
     //}
     return parseMapping(doc.object());
+}
+
+
+void UserInputMapper::enableMapping(const Mapping::Pointer& mapping) {
+    Locker locker(_lock);
+    // New routes for a device get injected IN FRONT of existing routes.  Routes
+    // are processed in order so this ensures that the standard -> action processing 
+    // takes place after all of the hardware -> standard or hardware -> action processing
+    // because standard -> action is the first set of routes added.
+    for (auto route : mapping->routes) {
+        if (route->source->getInput().device == STANDARD_DEVICE) {
+            _standardRoutes.push_front(route);
+        } else {
+            _deviceRoutes.push_front(route);
+        }
+    }
+}
+
+void UserInputMapper::disableMapping(const Mapping::Pointer& mapping) {
+    Locker locker(_lock);
+    const auto& deviceRoutes = mapping->routes;
+    std::set<Route::Pointer> routeSet(deviceRoutes.begin(), deviceRoutes.end());
+
+    // FIXME this seems to result in empty route pointers... need to find a better way to remove them.
+    std::remove_if(_deviceRoutes.begin(), _deviceRoutes.end(), [&](Route::Pointer route)->bool {
+        return routeSet.count(route) != 0;
+    });
+    std::remove_if(_standardRoutes.begin(), _standardRoutes.end(), [&](Route::Pointer route)->bool {
+        return routeSet.count(route) != 0;
+    });
 }
 
 }

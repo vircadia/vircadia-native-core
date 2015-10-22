@@ -3,12 +3,12 @@ import QtQuick.Controls 1.0
 import QtQuick.Layouts 1.0
 import QtQuick.Dialogs 1.0
 
-Item {
+Rectangle {
     id: root
     property int size: 64
     width: size
     height: size
-
+    color: 'black'
     property int controlId: 0
     property real value: 0.5
     property int scrollWidth: 1
@@ -16,7 +16,7 @@ Item {
     property real max: 1.0
     property bool log: false
     property real range: max - min
-    property color color: 'blue'
+    property color lineColor: 'yellow'
     property bool bar: false
     property real lastHeight: -1
     property string label: ""
@@ -49,19 +49,21 @@ Item {
        Text {
            anchors.top: parent.top
            text: root.label
-
+           color: 'white'
        }
 
        Text {
            anchors.right: parent.right
            anchors.top: parent.top
            text: root.max
+           color: 'white'
        }
 
        Text {
            anchors.right: parent.right
            anchors.bottom: parent.bottom
            text: root.min
+           color: 'white'
        }
 
        function scroll() {
@@ -92,7 +94,7 @@ Item {
 
            ctx.beginPath();
            ctx.lineWidth = 1
-           ctx.strokeStyle = root.color
+           ctx.strokeStyle = root.lineColor
            ctx.moveTo(canvas.width - root.scrollWidth, root.lastHeight).lineTo(canvas.width, currentHeight)
            ctx.stroke()
            ctx.restore()

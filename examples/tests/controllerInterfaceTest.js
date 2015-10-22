@@ -1,4 +1,12 @@
 ControllerTest = function() {
+    var standard = Controller.Standard;
+    var actions = Controller.Actions;
+    this.mappingEnabled = false;
+    this.mapping = Controller.newMapping();
+    this.mapping.from(standard.RX).to(actions.StepYaw);
+    this.mapping.enable();
+    this.mappingEnabled = true;
+
 
     print("Actions");
     for (var prop in Controller.Actions) {
@@ -24,6 +32,9 @@ ControllerTest = function() {
 }
 
 ControllerTest.prototype.onCleanup = function() {
+    if (this.mappingEnabled) {
+        this.mapping.disable();
+    }
 }
 
 

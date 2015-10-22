@@ -27,6 +27,16 @@ enum class Action {
     ROTATE_Y, YAW = ROTATE_Y,
     ROTATE_Z, ROLL = ROTATE_Z,
 
+    STEP_YAW,
+    // FIXME does this have a use case?
+    STEP_PITCH,
+    // FIXME does this have a use case?
+    STEP_ROLL,
+
+    STEP_TRANSLATE_X,
+    STEP_TRANSLATE_Y,
+    STEP_TRANSLATE_Z,
+
     TRANSLATE_CAMERA_Z,
     NUM_COMBINED_AXES,
 
