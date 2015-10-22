@@ -208,7 +208,7 @@ public:
     void updateLeanJoint(int index, float leanSideways, float leanForward, float torsoTwist);
     void updateNeckJoint(int index, const HeadParameters& params);
     void updateEyeJoint(int index, const glm::vec3& modelTranslation, const glm::quat& modelRotation, const glm::quat& worldHeadOrientation, const glm::vec3& lookAt, const glm::vec3& saccade);
-    void calcWalkForwardAlphaAndTimeScale(float speed, float* alphaOut, float* timeScaleOut);
+    void calcAnimAlphaAndTimeScale(float speed, const std::vector<float>& referenceSpeeds, float* alphaOut, float* timeScaleOut) const;
 
     QVector<JointState> _jointStates;
     int _rootJointIndex = -1;
@@ -245,6 +245,7 @@ public:
     float _rightHandOverlayAlpha = 0.0f;
 
     SimpleMovingAverage _averageForwardSpeed{ 25 };
+    SimpleMovingAverage _averageLateralSpeed{ 25 };
 };
 
 #endif /* defined(__hifi__Rig__) */

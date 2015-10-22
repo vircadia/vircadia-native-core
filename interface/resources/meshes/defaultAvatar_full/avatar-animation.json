@@ -4,7 +4,7 @@
         "id": "ikOverlay",
         "type": "overlay",
         "data": {
-            "alpha": 0.0,
+            "alpha": 1.0,
             "boneSet": "fullBody"
         },
         "children": [
@@ -532,8 +532,8 @@
                                                     "alpha": 0.0,
                                                     "sync": true,
                                                     "timeScale": 1.0,
-                                                    "timeScaleVar": "walkTimeScale",
-                                                    "alphaVar": "walkAlpha"
+                                                    "timeScaleVar": "moveForwardTimeScale",
+                                                    "alphaVar": "moveForwardAlpha"
                                                 },
                                                 "children": [
                                                     {
@@ -576,16 +576,40 @@
                                             },
                                             {
                                                 "id": "walkBwd",
-                                                "type": "clip",
+                                                "type": "blendLinear",
                                                 "data": {
-                                                    "url": "https://hifi-public.s3.amazonaws.com/ozan/anim/standard_anims/walk_bwd.fbx",
-                                                    "startFrame": 0.0,
-                                                    "endFrame": 37.0,
+                                                    "alpha": 1.0,
+                                                    "sync": true,
                                                     "timeScale": 1.0,
-                                                    "loopFlag": true,
-                                                    "timeScaleVar": "walkTimeScale"
+                                                    "timeScaleVar": "moveBackwardTimeScale",
+                                                    "alphaVar": "moveBackwardAlpha"
                                                 },
-                                                "children": []
+                                                "children": [
+                                                    {
+                                                        "id": "walkBwdShort",
+                                                        "type": "clip",
+                                                        "data": {
+                                                            "url": "https://hifi-public.s3.amazonaws.com/ozan/anim/standard_anims/walk_short_bwd.fbx",
+                                                            "startFrame": 0.0,
+                                                            "endFrame": 38.0,
+                                                            "timeScale": 1.0,
+                                                            "loopFlag": true
+                                                        },
+                                                        "children": []
+                                                    },
+                                                    {
+                                                        "id": "walkBwdNormal",
+                                                        "type": "clip",
+                                                        "data": {
+                                                            "url": "https://hifi-public.s3.amazonaws.com/ozan/anim/standard_anims/walk_bwd.fbx",
+                                                            "startFrame": 0.0,
+                                                            "endFrame": 36.0,
+                                                            "timeScale": 1.0,
+                                                            "loopFlag": true
+                                                        },
+                                                        "children": []
+                                                    }
+                                                ]
                                             },
                                             {
                                                 "id": "turnLeft",
@@ -613,27 +637,77 @@
                                             },
                                             {
                                                 "id": "strafeLeft",
-                                                "type": "clip",
+                                                "type": "blendLinear",
                                                 "data": {
-                                                    "url": "http://hifi-public.s3.amazonaws.com/ozan/anim/standard_anims/side_step_left.fbx",
-                                                    "startFrame": 0.0,
-                                                    "endFrame": 30.0,
+                                                    "alpha": 0.0,
+                                                    "sync": true,
                                                     "timeScale": 1.0,
-                                                    "loopFlag": true
+                                                    "timeScaleVar": "moveLateralTimeScale",
+                                                    "alphaVar": "moveLateralAlpha"
                                                 },
-                                                "children": []
+                                                "children": [
+                                                    {
+                                                        "id": "strafeLeftShort",
+                                                        "type": "clip",
+                                                        "data": {
+                                                            "url": "https://hifi-public.s3.amazonaws.com/ozan/anim/standard_anims/side_step_short_left.fbx",
+                                                            "startFrame": 0.0,
+                                                            "endFrame": 28.0,
+                                                            "timeScale": 1.0,
+                                                            "loopFlag": true
+                                                        },
+                                                        "children": []
+                                                    },
+                                                    {
+                                                        "id": "strafeLeftNormal",
+                                                        "type": "clip",
+                                                        "data": {
+                                                            "url": "http://hifi-public.s3.amazonaws.com/ozan/anim/standard_anims/side_step_left.fbx",
+                                                            "startFrame": 0.0,
+                                                            "endFrame": 30.0,
+                                                            "timeScale": 1.0,
+                                                            "loopFlag": true
+                                                        },
+                                                        "children": []
+                                                    }
+                                                ]
                                             },
                                             {
                                                 "id": "strafeRight",
-                                                "type": "clip",
+                                                "type": "blendLinear",
                                                 "data": {
-                                                    "url": "http://hifi-public.s3.amazonaws.com/ozan/anim/standard_anims/side_step_right.fbx",
-                                                    "startFrame": 0.0,
-                                                    "endFrame": 30.0,
+                                                    "alpha": 0.0,
+                                                    "sync": true,
                                                     "timeScale": 1.0,
-                                                    "loopFlag": true
+                                                    "timeScaleVar": "moveLateralTimeScale",
+                                                    "alphaVar": "moveLateralAlpha"
                                                 },
-                                                "children": []
+                                                "children": [
+                                                    {
+                                                        "id": "strafeRightShort",
+                                                        "type": "clip",
+                                                        "data": {
+                                                            "url": "http://hifi-public.s3.amazonaws.com/ozan/anim/standard_anims/side_step_short_right.fbx",
+                                                            "startFrame": 0.0,
+                                                            "endFrame": 28.0,
+                                                            "timeScale": 1.0,
+                                                            "loopFlag": true
+                                                        },
+                                                        "children": []
+                                                    },
+                                                    {
+                                                        "id": "strafeRightNormal",
+                                                        "type": "clip",
+                                                        "data": {
+                                                            "url": "http://hifi-public.s3.amazonaws.com/ozan/anim/standard_anims/side_step_right.fbx",
+                                                            "startFrame": 0.0,
+                                                            "endFrame": 30.0,
+                                                            "timeScale": 1.0,
+                                                            "loopFlag": true
+                                                        },
+                                                        "children": []
+                                                    }
+                                                ]
                                             }
                                         ]
                                     }
