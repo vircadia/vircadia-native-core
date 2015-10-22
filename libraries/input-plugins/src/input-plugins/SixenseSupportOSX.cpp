@@ -32,7 +32,7 @@ Callable resolve(const Library& library, const char* name) {
     Q_ASSERT_X(function, __FUNCTION__, std::string("Could not resolve ").append(name).c_str());
     return Callable { function };
 }
-#define FOREWARD resolve(SIXENSE, __FUNCTION__)
+#define FORWARD resolve(SIXENSE, __FUNCTION__)
 
 
 void loadSixense() {
@@ -61,90 +61,90 @@ void unloadSixense() {
 // sixense.h wrapper for OSX dynamic linking
 int sixenseInit() {
     loadSixense();
-    return FOREWARD();
+    return FORWARD();
 }
 int sixenseExit() {
-    auto returnCode = FOREWARD();
+    auto returnCode = FORWARD();
     unloadSixense();
     return returnCode;
 }
 
 int sixenseGetMaxBases() {
-    return FOREWARD();
+    return FORWARD();
 }
 int sixenseSetActiveBase(int i) {
-    return FOREWARD(i);
+    return FORWARD(i);
 }
 int sixenseIsBaseConnected(int i) {
-    return FOREWARD(i);
+    return FORWARD(i);
 }
 
 int sixenseGetMaxControllers() {
-    return FOREWARD();
+    return FORWARD();
 }
 int sixenseIsControllerEnabled(int which) {
-    return FOREWARD(which);
+    return FORWARD(which);
 }
 int sixenseGetNumActiveControllers() {
-    return FOREWARD();
+    return FORWARD();
 }
 
 int sixenseGetHistorySize() {
-    return FOREWARD();
+    return FORWARD();
 }
 
 int sixenseGetData(int which, int index_back, sixenseControllerData* data) {
-    return FOREWARD(which, index_back, data);
+    return FORWARD(which, index_back, data);
 }
 int sixenseGetAllData(int index_back, sixenseAllControllerData* data) {
-    return FOREWARD(index_back, data);
+    return FORWARD(index_back, data);
 }
 int sixenseGetNewestData(int which, sixenseControllerData* data) {
-    return FOREWARD(which, data);
+    return FORWARD(which, data);
 }
 int sixenseGetAllNewestData(sixenseAllControllerData* data) {
-    return FOREWARD(data);
+    return FORWARD(data);
 }
 
 int sixenseSetHemisphereTrackingMode(int which_controller, int state) {
-    return FOREWARD(which_controller, state);
+    return FORWARD(which_controller, state);
 }
 int sixenseGetHemisphereTrackingMode(int which_controller, int* state) {
-    return FOREWARD(which_controller, state);
+    return FORWARD(which_controller, state);
 }
 int sixenseAutoEnableHemisphereTracking(int which_controller) {
-    return FOREWARD(which_controller);
+    return FORWARD(which_controller);
 }
 
 int sixenseSetHighPriorityBindingEnabled(int on_or_off) {
-    return FOREWARD(on_or_off);
+    return FORWARD(on_or_off);
 }
 int sixenseGetHighPriorityBindingEnabled(int* on_or_off) {
-    return FOREWARD(on_or_off);
+    return FORWARD(on_or_off);
 }
 
 int sixenseTriggerVibration(int controller_id, int duration_100ms, int pattern_id) {
-    return FOREWARD(controller_id, duration_100ms, pattern_id);
+    return FORWARD(controller_id, duration_100ms, pattern_id);
 }
 
 int sixenseSetFilterEnabled(int on_or_off) {
-    return FOREWARD(on_or_off);
+    return FORWARD(on_or_off);
 }
 int sixenseGetFilterEnabled(int* on_or_off) {
-    return FOREWARD(on_or_off);
+    return FORWARD(on_or_off);
 }
 
 int sixenseSetFilterParams(float near_range, float near_val, float far_range, float far_val) {
-    return FOREWARD(near_range, near_val, far_range, far_val);
+    return FORWARD(near_range, near_val, far_range, far_val);
 }
 int sixenseGetFilterParams(float* near_range, float* near_val, float* far_range, float* far_val) {
-    return FOREWARD(near_range, near_val, far_range, far_val);
+    return FORWARD(near_range, near_val, far_range, far_val);
 }
 
 int sixenseSetBaseColor(unsigned char red, unsigned char green, unsigned char blue) {
-    return FOREWARD(red, green, blue);
+    return FORWARD(red, green, blue);
 }
 int sixenseGetBaseColor(unsigned char* red, unsigned char* green, unsigned char* blue) {
-    return FOREWARD(red, green, blue);
+    return FORWARD(red, green, blue);
 }
 #endif
