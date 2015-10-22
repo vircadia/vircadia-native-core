@@ -235,16 +235,6 @@ void MyCharacterController::setLocalBoundingBox(const glm::vec3& corner, const g
     _shapeLocalOffset = corner + 0.5f * _boxScale;
 }
 
-/* moved to base class
-bool MyCharacterController::needsRemoval() const {
-    return (bool)(_pendingFlags & PENDING_FLAG_REMOVE_FROM_SIMULATION);
-}
-
-bool MyCharacterController::needsAddition() const {
-    return (bool)(_pendingFlags & PENDING_FLAG_ADD_TO_SIMULATION);
-}
-*/
-
 void MyCharacterController::setEnabled(bool enabled) {
     if (enabled != _enabled) {
         if (enabled) {
@@ -262,36 +252,6 @@ void MyCharacterController::setEnabled(bool enabled) {
         _enabled = enabled;
     }
 }
-
-/* moved to base class
-void MyCharacterController::setDynamicsWorld(btDynamicsWorld* world) {
-    if (_dynamicsWorld != world) {
-        if (_dynamicsWorld) { 
-            if (_rigidBody) {
-                _dynamicsWorld->removeRigidBody(_rigidBody);
-                _dynamicsWorld->removeAction(this);
-            }
-            _dynamicsWorld = nullptr;
-        }
-        if (world && _rigidBody) {
-            _dynamicsWorld = world;
-            _pendingFlags &= ~ PENDING_FLAG_JUMP;
-            _dynamicsWorld->addRigidBody(_rigidBody, COLLISION_GROUP_MY_AVATAR, COLLISION_MASK_MY_AVATAR);
-            _dynamicsWorld->addAction(this);
-            //reset(_dynamicsWorld);
-        }
-    }
-    if (_dynamicsWorld) {
-        if (_pendingFlags & PENDING_FLAG_UPDATE_SHAPE) {
-            // shouldn't fall in here, but if we do make sure both ADD and REMOVE bits are still set
-            _pendingFlags |= PENDING_FLAG_ADD_TO_SIMULATION | PENDING_FLAG_REMOVE_FROM_SIMULATION;
-        } else {
-            _pendingFlags &= ~PENDING_FLAG_ADD_TO_SIMULATION;
-        }
-    } else {
-        _pendingFlags &= ~ PENDING_FLAG_REMOVE_FROM_SIMULATION;
-    }
-}*/
 
 void MyCharacterController::updateShapeIfNecessary() {
     if (_pendingFlags & PENDING_FLAG_UPDATE_SHAPE) {
@@ -391,14 +351,7 @@ glm::vec3 MyCharacterController::getLinearVelocity() const {
 
 void MyCharacterController::preSimulation() {
     if (_enabled && _dynamicsWorld) {
-        /*
-        glm::quat rotation = _avatarData->getOrientation();
-        // TODO: update gravity if up has changed
-        updateUpAxis(rotation);
-        glm::vec3 position = _avatarData->getPosition() + rotation * _shapeLocalOffset;
-        _rigidBody->setWorldTransform(btTransform(glmToBullet(rotation), glmToBullet(position)));
-        */
-
+        // slam body to where it is supposed to be
         _rigidBody->setWorldTransform(_avatarBodyTransform);
 
         // scan for distant floor
@@ -441,17 +394,5 @@ void MyCharacterController::preSimulation() {
 }
 
 void MyCharacterController::postSimulation() {
-    /*
-    _lastStepDuration += timeStep;
-    if (_enabled && _rigidBody) {
-        const btTransform& avatarTransform = _rigidBody->getWorldTransform();
-        glm::quat rotation = bulletToGLM(avatarTransform.getRotation());
-        glm::vec3 position = bulletToGLM(avatarTransform.getOrigin());
-
-        _avatarData->nextAttitude(position - rotation * _shapeLocalOffset, rotation);
-        _avatarData->setVelocity(bulletToGLM(_rigidBody->getLinearVelocity()));
-        _avatarData->applySimulationTime(_lastStepDuration);
-    }
-    _lastStepDuration = 0.0f;
-    */
+    // postSimulation() exists for symmetry and just in case we need to do something here later
 }
