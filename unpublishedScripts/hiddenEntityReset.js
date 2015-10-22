@@ -14,14 +14,15 @@
 
     var _this;
 
-    var sprayPaintScriptURL = Script.resolvePath("../examples/toys/sprayPaintCan.js");
-    var catScriptURL = Script.resolvePath("../examples/toys/cat.js");
-    var flashlightScriptURL = Script.resolvePath('../examples/toys/flashlight/flashlight.js');
-    var pingPongScriptURL = Script.resolvePath('../examples/toys/ping_pong_gun/pingPongGun.js');
-    var wandScriptURL = Script.resolvePath("../examples/toys/bubblewand/wand.js");
-    var dollScriptURL = Script.resolvePath("../examples/toys/doll/doll.js");
-    var lightsScriptURL = Script.resolvePath("../examples/toys/lightSwitch.js");
-    var targetsScriptURL = Script.resolvePath('../examples/toys/ping_pong_gun/wallTarget.js');
+    var sprayPaintScriptURL = Script.resolvePath("../examples/toybox/spray_paint/sprayPaintCan.js");
+    var catScriptURL = Script.resolvePath("../examples/toybox/cat/cat.js");
+    var flashlightScriptURL = Script.resolvePath('../examples/toybox/flashlight/flashlight.js');
+    var pingPongScriptURL = Script.resolvePath('../examples/toybox/ping_pong_gun/pingPongGun.js');
+    var wandScriptURL = Script.resolvePath("../examples/toybox/bubblewand/wand.js");
+    var dollScriptURL = Script.resolvePath("../examples/toybox/doll/doll.js");
+    var lightsScriptURL = Script.resolvePath("../examples/toybox/lights/lightSwitch.js");
+    var targetsScriptURL = Script.resolvePath('../examples/toybox/ping_pong_gun/wallTarget.js');
+
 
     ResetSwitch = function() {
         _this = this;
@@ -54,7 +55,6 @@
 
     MasterReset = function() {
         var resetKey = "resetMe";
-        var GRABBABLE_DATA_KEY = "grabbableKey";
 
         var HIFI_PUBLIC_BUCKET = "http://s3.amazonaws.com/hifi-public/";
 
@@ -96,8 +96,6 @@
                 y: 495.41,
                 z: 505.78
             });
-
-
 
             createCombinedArmChair({
                 x: 549.29,
@@ -321,7 +319,7 @@
                             resetMe: {
                                 resetMe: true
                             },
-                            grabbable: {
+                            grabbableKey: {
                                 invertSolidWhileHeld: true
                             }
                         })
@@ -487,7 +485,6 @@
                     grabbableKey: {
                         invertSolidWhileHeld: true
                     }
-
                 })
             });
 
@@ -533,6 +530,9 @@
                         resetMe: true,
                         on: true,
                         type: "Hall Light"
+                    },
+                    grabbableKey: {
+                        wantsTrigger: true
                     }
                 })
             });
@@ -628,6 +628,9 @@
                         resetMe: true,
                         on: true,
                         type: "Garage Light"
+                    },
+                    grabbableKey: {
+                        wantsTrigger: true
                     }
                 })
             });
@@ -759,6 +762,7 @@
                     grabbableKey: {
                         invertSolidWhileHeld: true
                     }
+
                 })
             };
             var dice1 = Entities.addEntity(diceProps);
@@ -851,6 +855,7 @@
                     grabbableKey: {
                         invertSolidWhileHeld: true
                     }
+
                 })
             });
         }
@@ -1176,7 +1181,7 @@
                     y: 0.05,
                     z: 0.25
                 }
-            } ];
+            }];
 
             var modelURL, entity;
             for (i = 0; i < blockTypes.length; i++) {

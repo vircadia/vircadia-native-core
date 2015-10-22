@@ -17,7 +17,7 @@
 
 (function () {
     var _this;
-    var utilitiesScript = Script.resolvePath("../libraries/utils.js");
+    var utilitiesScript = Script.resolvePath("../../libraries/utils.js");
     Script.include(utilitiesScript);
     LightSwitch = function () {
         _this = this;

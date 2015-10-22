@@ -13,7 +13,6 @@
 #include <QUrl>
 #include <QUuid>
 #include <QRect>
-
 #include <glm/gtc/quaternion.hpp>
 
 #include "RegisteredMetaTypes.h"
