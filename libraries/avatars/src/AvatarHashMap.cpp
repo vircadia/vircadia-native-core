@@ -23,6 +23,7 @@ AvatarHashMap::AvatarHashMap() {
 }
 
 bool AvatarHashMap::isAvatarInRange(const glm::vec3& position, const float range) {
+    QReadLocker locker(&_hashLock);
     foreach(const AvatarSharedPointer& sharedAvatar, _avatarHash) {
         glm::vec3 avatarPosition = sharedAvatar->getPosition();
         float distance = glm::distance(avatarPosition, position);
@@ -43,6 +44,7 @@ AvatarSharedPointer AvatarHashMap::addAvatar(const QUuid& sessionUUID, const QWe
     AvatarSharedPointer avatar = newSharedAvatar();
     avatar->setSessionUUID(sessionUUID);
     avatar->setOwningAvatarMixer(mixerWeakPointer);
+    QWriteLocker locker(&_hashLock);
     _avatarHash.insert(sessionUUID, avatar);
 
     return avatar;
@@ -134,6 +136,7 @@ void AvatarHashMap::processKillAvatar(QSharedPointer<NLPacket> packet, SharedNod
 }
 
 void AvatarHashMap::removeAvatar(const QUuid& sessionUUID) {
+    QWriteLocker locker(&_hashLock);
     _avatarHash.remove(sessionUUID);
 }
 
