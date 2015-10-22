@@ -37,6 +37,7 @@
 #define __hifi__Rig__
 
 #include <QObject>
+#include <QMutex>
 #include <QScriptValue>
 
 #include "JointState.h"  // We might want to change this (later) to something that doesn't depend on gpu, fbx and model. -HRS
