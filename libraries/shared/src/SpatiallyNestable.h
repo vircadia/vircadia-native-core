@@ -70,13 +70,13 @@ protected:
     QUuid _id;
     QUuid _parentID; // what is this thing's transform relative to?
     quint16 _parentJointIndex; // which joint of the parent is this relative to?
+    SpatiallyNestablePointer getParentPointer() const;
 
     mutable SpatiallyNestableWeakPointer _parent;
     QVector<SpatiallyNestableWeakPointer> _children;
 
 private:
     Transform _transform; // this is to be combined with parent's world-transform to produce this' world-transform.
-    SpatiallyNestablePointer getParentPointer() const;
 
     // these are so we can return by reference
     mutable glm::vec3 _absolutePositionCache;

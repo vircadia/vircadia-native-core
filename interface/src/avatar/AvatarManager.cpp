@@ -151,7 +151,7 @@ void AvatarManager::simulateAvatarFades(float deltaTime) {
     while (fadingIterator != _avatarFades.end()) {
         auto avatar = std::static_pointer_cast<Avatar>(*fadingIterator);
         avatar->withWriteLock([&] {
-            avatar->setTargetScale(avatar->getAvatarScale() * SHRINK_RATE, true);
+            avatar->setTargetScale(avatar->getAvatarScale() * SHRINK_RATE);
             if (avatar->getTargetScale() < MIN_FADE_SCALE) {
                 avatar->removeFromScene(*fadingIterator, scene, pendingChanges);
                 fadingIterator = _avatarFades.erase(fadingIterator);

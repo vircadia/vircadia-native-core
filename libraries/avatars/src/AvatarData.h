@@ -223,8 +223,8 @@ public:
 
     //  Scale
     float getTargetScale() const;
-    void setTargetScale(float targetScale, bool overideReferential = false);
-    void setClampedTargetScale(float targetScale, bool overideReferential = false);
+    void setTargetScale(float targetScale);
+    void setClampedTargetScale(float targetScale);
 
     //  Hand State
     Q_INVOKABLE void setHandState(char s) { _handState = s; }

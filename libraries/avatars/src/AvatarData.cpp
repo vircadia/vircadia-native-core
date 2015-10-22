@@ -135,15 +135,15 @@ float AvatarData::getTargetScale() const {
     return _targetScale;
 }
 
-void AvatarData::setTargetScale(float targetScale, bool overideReferential) {
+void AvatarData::setTargetScale(float targetScale) {
     _targetScale = targetScale;
 }
 
-void AvatarData::setClampedTargetScale(float targetScale, bool overideReferential) {
+void AvatarData::setClampedTargetScale(float targetScale) {
 
     targetScale =  glm::clamp(targetScale, MIN_AVATAR_SCALE, MAX_AVATAR_SCALE);
 
-    setTargetScale(targetScale, overideReferential);
+    setTargetScale(targetScale);
     qCDebug(avatars) << "Changed scale to " << _targetScale;
 }
 
@@ -214,14 +214,18 @@ QByteArray AvatarData::toByteArray(bool cullSmallChanges, bool sendAll) {
         setAtBit(bitItems, IS_EYE_TRACKER_CONNECTED);
     }
     // referential state
-    if (false) {
-        setAtBit(bitItems, HAS_REFERENTIAL); // XXX leaving this for later use
+    SpatiallyNestablePointer parent = getParentPointer();
+    if (parent) {
+        setAtBit(bitItems, HAS_REFERENTIAL);
     }
     *destinationBuffer++ = bitItems;
 
-    // XXX leaving this for later use
-    if (false) {
-        // destinationBuffer += _referential->packReferential(destinationBuffer);
+    if (parent) {
+        QByteArray referentialAsBytes = parent->getID().toRfc4122();
+        memcpy(destinationBuffer, referentialAsBytes.data(), referentialAsBytes.size());
+        destinationBuffer += referentialAsBytes.size();
+        memcpy(destinationBuffer, &_parentJointIndex, sizeof(_parentJointIndex));
+        destinationBuffer += sizeof(_parentJointIndex);
     }
 
     // If it is connected, pack up the data
@@ -541,8 +545,15 @@ int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
         _headData->_isEyeTrackerConnected = oneAtBit(bitItems, IS_EYE_TRACKER_CONNECTED);
         bool hasReferential = oneAtBit(bitItems, HAS_REFERENTIAL);
 
-        // XXX leaving this for later use Referential
         if (hasReferential) {
+            const int sizeOfPackedUuid = 16;
+            QByteArray referentialAsBytes((const char*)sourceBuffer, sizeOfPackedUuid);
+            _parentID = QUuid::fromRfc4122(referentialAsBytes);
+            sourceBuffer += sizeOfPackedUuid;
+            memcpy(&_parentJointIndex, sourceBuffer, sizeof(_parentJointIndex));
+            sourceBuffer += sizeof(_parentJointIndex);
+        } else {
+            _parentID = QUuid();
         }
 
         if (_headData->_isFaceTrackerConnected) {
