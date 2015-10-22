@@ -12,17 +12,8 @@
         { "from": [ "Standard.A", "Standard.B", "Standard.X", "Standard.Y" ], "to": "Standard.RightPrimaryThumb" },
         { "from": "Standard.Start", "to": "Standard.RightSecondaryThumb" },
 
-        { 
-            "from": "Standard.RT", 
-            "to": "Actions.BOOM_IN", 
-            "filters": [ { "type": "scale", "scale": 0.1 } ]
-        },
-
-        { 
-            "from": "Standard.LT", 
-            "to": "Actions.BOOM_OUT", 
-            "filters": [ { "type": "scale", "scale": 0.1 } ]
-        },
+        { "from": "Standard.LT", "to": "Actions.LEFT_HAND_CLICK" }, 
+        { "from": "Standard.RT", "to": "Actions.RIGHT_HAND_CLICK" },
 
         { "from": "Standard.LeftHand", "to": "Actions.LEFT_HAND" }, 
         { "from": "Standard.RightHand", "to": "Actions.RIGHT_HAND" }
