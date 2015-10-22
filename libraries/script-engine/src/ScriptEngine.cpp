@@ -260,11 +260,22 @@ void ScriptEngine::errorInLoadingScript(const QUrl& url) {
 
 // Even though we never pass AnimVariantMap directly to and from javascript, the queued invokeMethod of
 // callAnimationStateHandler requires that the type be registered.
+// These two are meaningful, if we ever do want to use them...
 static QScriptValue animVarMapToScriptValue(QScriptEngine* engine, const AnimVariantMap& parameters) {
     return parameters.animVariantMapToScriptValue(engine);
 }
 static void animVarMapFromScriptValue(const QScriptValue& value, AnimVariantMap& parameters) {
     parameters.animVariantMapFromScriptValue(value);
+}
+// ... while these two are not. But none of the four are ever used.
+static QScriptValue resultHandlerToScriptValue(QScriptEngine* engine, const AnimVariantResultHandler& resultHandler) {
+    qCCritical(scriptengine) << "Attempt to marshall result handler to javascript";
+    assert(false);
+    return QScriptValue();
+}
+static void resultHandlerFromScriptValue(const QScriptValue& value, AnimVariantResultHandler& resultHandler) {
+    qCCritical(scriptengine) << "Attempt to marshall result handler from javascript";
+    assert(false);
 }
 
 void ScriptEngine::init() {
@@ -326,6 +337,7 @@ void ScriptEngine::init() {
     registerGlobalObject("Uuid", &_uuidLibrary);
     registerGlobalObject("AnimationCache", DependencyManager::get<AnimationCache>().data());
     qScriptRegisterMetaType(this, animVarMapToScriptValue, animVarMapFromScriptValue);
+    qScriptRegisterMetaType(this, resultHandlerToScriptValue, resultHandlerFromScriptValue);
 
     // constants
     globalObject().setProperty("TREE_SCALE", newVariant(QVariant(TREE_SCALE)));
@@ -729,7 +741,7 @@ void ScriptEngine::stop() {
 }
 
 // Other threads can invoke this through invokeMethod, which causes the callback to be asynchronously executed in this script's thread.
-void ScriptEngine::callAnimationStateHandler(QScriptValue callback, AnimVariantMap parameters) {
+void ScriptEngine::callAnimationStateHandler(QScriptValue callback, AnimVariantMap parameters, AnimVariantResultHandler resultHandler) {
     if (QThread::currentThread() != thread()) {
 #ifdef THREAD_DEBUGGING
         qDebug() << "*** WARNING *** ScriptEngine::callAnimationStateHandler() called on wrong thread [" << QThread::currentThread() << "], invoking on correct thread [" << thread() << "]  name:" << name;
@@ -743,12 +755,7 @@ void ScriptEngine::callAnimationStateHandler(QScriptValue callback, AnimVariantM
     QScriptValueList callingArguments;
     callingArguments << javascriptParametgers;
     QScriptValue result = callback.call(QScriptValue(), callingArguments);
-    // We want to give the result back to the rig, but we don't have the rig or the avatar. But the global does.
-    // This is sort of like going through DependencyManager.get.
-    QScriptValue resultHandler = globalObject().property("MyAvatar").property("animationStateHandlerResult");
-    QScriptValueList resultArguments;
-    resultArguments << callback << result;
-    resultHandler.call(QScriptValue(), resultArguments); // Call it synchronously, on our own time and thread.
+    resultHandler(callback, result);
 }
 
 void ScriptEngine::timerFired() {

@@ -628,11 +628,15 @@ void Rig::animationStateHandlerResult(QScriptValue handler, QScriptValue result)
 
 void Rig::updateAnimationStateHandlers() { // called on avatar update thread (which may be main thread)
     if (_stateHandlers.isValid()) {
+        auto handleResult = [this](QScriptValue handler, QScriptValue result) {
+            animationStateHandlerResult(handler, result);
+        };
         // invokeMethod makes a copy of the args, and copies of AnimVariantMap do copy the underlying map, so this will correctly capture
         // the state of _animVars and allow continued changes to _animVars in this thread without conflict.
         QMetaObject::invokeMethod(_stateHandlers.engine(), "callAnimationStateHandler",  Qt::QueuedConnection,
                                   Q_ARG(QScriptValue, _stateHandlers),
-                                  Q_ARG(AnimVariantMap, _animVars));
+                                  Q_ARG(AnimVariantMap, _animVars),
+                                  Q_ARG(AnimVariantResultHandler, handleResult));
     }
     QMutexLocker locker(&_stateMutex); // as we examine/copy most recently computed state, if any. (Typically an earlier invocation.)
     _animVars.copyVariantsFrom(_stateHandlersResults);

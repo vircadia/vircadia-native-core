@@ -205,6 +205,8 @@ protected:
     std::set<QString> _triggers;
 };
 
+typedef std::function<void(QScriptValue, QScriptValue)> AnimVariantResultHandler;
+Q_DECLARE_METATYPE(AnimVariantResultHandler);
 Q_DECLARE_METATYPE(AnimVariantMap)
 
 #endif // hifi_AnimVariant_h
