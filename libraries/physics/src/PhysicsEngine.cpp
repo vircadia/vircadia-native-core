@@ -11,6 +11,7 @@
 
 #include <PhysicsCollisionGroups.h>
 
+#include "CharacterController.h"
 #include "ObjectMotionState.h"
 #include "PhysicsEngine.h"
 #include "PhysicsHelpers.h"
@@ -23,7 +24,7 @@ uint32_t PhysicsEngine::getNumSubsteps() {
 
 PhysicsEngine::PhysicsEngine(const glm::vec3& offset) :
         _originOffset(offset),
-        _characterController(nullptr) {
+        _myAvatarController(nullptr) {
     // build table of masks with their group as the key
     _collisionMasks.insert(btHashInt((int)COLLISION_GROUP_DEFAULT), COLLISION_MASK_DEFAULT);
     _collisionMasks.insert(btHashInt((int)COLLISION_GROUP_STATIC), COLLISION_MASK_STATIC);
@@ -38,8 +39,8 @@ PhysicsEngine::PhysicsEngine(const glm::vec3& offset) :
 }
 
 PhysicsEngine::~PhysicsEngine() {
-    if (_characterController) {
-        _characterController->setDynamicsWorld(nullptr);
+    if (_myAvatarController) {
+        _myAvatarController->setDynamicsWorld(nullptr);
     }
     delete _collisionConfig;
     delete _collisionDispatcher;
@@ -239,16 +240,18 @@ void PhysicsEngine::stepSimulation() {
     _clock.reset();
     float timeStep = btMin(dt, MAX_TIMESTEP);
 
-    // TODO: move character->preSimulation() into relayIncomingChanges
-    if (_characterController) {
-        if (_characterController->needsRemoval()) {
-            _characterController->setDynamicsWorld(nullptr);
+    if (_myAvatarController) {
+        // ADEBUG TODO: move this stuff outside and in front of stepSimulation, because 
+        // the updateShapeIfNecessary() call needs info from MyAvatar and should
+        // be done on the main thread during the pre-simulation stuff
+        if (_myAvatarController->needsRemoval()) {
+            _myAvatarController->setDynamicsWorld(nullptr);
         }
-        _characterController->updateShapeIfNecessary();
-        if (_characterController->needsAddition()) {
-            _characterController->setDynamicsWorld(_dynamicsWorld);
+        _myAvatarController->updateShapeIfNecessary();
+        if (_myAvatarController->needsAddition()) {
+            _myAvatarController->setDynamicsWorld(_dynamicsWorld);
         }
-        _characterController->preSimulation(timeStep);
+        _myAvatarController->preSimulation();
     }
 
     int numSubsteps = _dynamicsWorld->stepSimulation(timeStep, PHYSICS_ENGINE_MAX_NUM_SUBSTEPS, PHYSICS_ENGINE_FIXED_SUBSTEP);
@@ -257,8 +260,8 @@ void PhysicsEngine::stepSimulation() {
         _numSubsteps += (uint32_t)numSubsteps;
         ObjectMotionState::setWorldSimulationStep(_numSubsteps);
 
-        if (_characterController) {
-            _characterController->postSimulation();
+        if (_myAvatarController) {
+            _myAvatarController->postSimulation();
         }
         updateContactMap();
         _hasOutgoingChanges = true;
@@ -268,7 +271,7 @@ void PhysicsEngine::stepSimulation() {
 void PhysicsEngine::doOwnershipInfection(const btCollisionObject* objectA, const btCollisionObject* objectB) {
     BT_PROFILE("ownershipInfection");
 
-    const btCollisionObject* characterObject = _characterController ? _characterController->getCollisionObject() : nullptr;
+    const btCollisionObject* characterObject = _myAvatarController ? _myAvatarController->getCollisionObject() : nullptr;
 
     ObjectMotionState* motionStateA = static_cast<ObjectMotionState*>(objectA->getUserPointer());
     ObjectMotionState* motionStateB = static_cast<ObjectMotionState*>(objectB->getUserPointer());
@@ -431,15 +434,15 @@ void PhysicsEngine::bump(ObjectMotionState* motionState) {
     }
 }
 
-void PhysicsEngine::setCharacterController(DynamicCharacterController* character) {
-    if (_characterController != character) {
-        if (_characterController) {
+void PhysicsEngine::setCharacterController(CharacterController* character) {
+    if (_myAvatarController != character) {
+        if (_myAvatarController) {
             // remove the character from the DynamicsWorld immediately
-            _characterController->setDynamicsWorld(nullptr);
-            _characterController = nullptr;
+            _myAvatarController->setDynamicsWorld(nullptr);
+            _myAvatarController = nullptr;
         }
         // the character will be added to the DynamicsWorld later
-        _characterController = character;
+        _myAvatarController = character;
     }
 }
 
