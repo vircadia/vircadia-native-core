@@ -53,6 +53,7 @@
 
 using namespace std;
 
+static quint64 COMFORT_MODE_PULSE_TIMING = USECS_PER_SECOND / 2; // turn once per half second
 const glm::vec3 DEFAULT_UP_DIRECTION(0.0f, 1.0f, 0.0f);
 const float YAW_SPEED = 150.0f;   // degrees/sec
 const float PITCH_SPEED = 100.0f; // degrees/sec
@@ -240,9 +241,31 @@ void MyAvatar::simulate(float deltaTime) {
 
     {
         PerformanceTimer perfTimer("transform");
+        bool stepAction = false;
+        // When there are no step values, we zero out the last step pulse. 
+        // This allows a user to do faster snapping by tapping a control
+        for (int i = STEP_TRANSLATE_X; !stepAction && i <= STEP_YAW; ++i) {
+            if (_driveKeys[i] != 0.0f) {
+                stepAction = true;
+            }
+        }
+        quint64 now = usecTimestampNow();
+        quint64 pulseDeltaTime = now - _lastStepPulse;
+        if (!stepAction) {
+            _lastStepPulse = 0;
+        }
+
+        if (stepAction && pulseDeltaTime > COMFORT_MODE_PULSE_TIMING) {
+            _pulseUpdate = true;
+        }
+
         updateOrientation(deltaTime);
         updatePosition(deltaTime);
-        _lastStepPulse = _thisStepPulse;
+
+        if (_pulseUpdate) {
+            _lastStepPulse = now;
+            _pulseUpdate = false;
+        }
     }
 
     {
@@ -1553,8 +1576,6 @@ bool MyAvatar::shouldRenderHead(const RenderArgs* renderArgs) const {
             !cameraInsideHead());
 }
 
-static quint64 COMFORT_MODE_PULSE_TIMING = USECS_PER_SECOND / 2; // turn once per half second
-
 void MyAvatar::updateOrientation(float deltaTime) {
     //  Smoothly rotate body with arrow keys
     float targetSpeed = _driveKeys[YAW] * YAW_SPEED;
@@ -1588,7 +1609,6 @@ void MyAvatar::updateOrientation(float deltaTime) {
     // snap turn every half second.
     quint64 now = usecTimestampNow();
     if (_driveKeys[STEP_YAW] != 0.0f && now - _lastStepPulse > COMFORT_MODE_PULSE_TIMING) {
-        _thisStepPulse = now;
         totalBodyYaw += _driveKeys[STEP_YAW];
     }
 
@@ -1657,18 +1677,17 @@ glm::vec3 MyAvatar::applyKeyboardMotor(float deltaTime, const glm::vec3& localVe
     glm::vec3 newLocalVelocity = localVelocity;
     float stepControllerInput = fabsf(_driveKeys[STEP_TRANSLATE_Z]) + fabsf(_driveKeys[STEP_TRANSLATE_Z]) + fabsf(_driveKeys[STEP_TRANSLATE_Z]);
     quint64 now = usecTimestampNow();
+    // FIXME how do I implement step translation as well?
     if (stepControllerInput && now - _lastStepPulse > COMFORT_MODE_PULSE_TIMING) {
-        _thisStepPulse = now;
     }
 
     float keyboardInput = fabsf(_driveKeys[TRANSLATE_Z]) + fabsf(_driveKeys[TRANSLATE_X]) + fabsf(_driveKeys[TRANSLATE_Y]);
-    if (keyboardInput || (_thisStepPulse == now)) {
+    if (keyboardInput) {
         // Compute keyboard input
         glm::vec3 front = (_driveKeys[TRANSLATE_Z]) * IDENTITY_FRONT;
         glm::vec3 right = (_driveKeys[TRANSLATE_X]) * IDENTITY_RIGHT;
         glm::vec3 up = (_driveKeys[TRANSLATE_Y]) * IDENTITY_UP;
 
-        // FIXME how do I implement step translation as well?
         glm::vec3 direction = front + right + up;
         float directionLength = glm::length(direction);
 

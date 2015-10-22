@@ -391,7 +391,7 @@ private:
     glm::vec3 _lastPosition;
     bool _lastIsMoving = false;
     quint64 _lastStepPulse = 0;
-    quint64 _thisStepPulse = 0;
+    bool _pulseUpdate { false };
 };
 
 QScriptValue audioListenModeToScriptValue(QScriptEngine* engine, const AudioListenerMode& audioListenerMode);
