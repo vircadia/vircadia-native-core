@@ -255,7 +255,7 @@ void AnimInverseKinematics::solveWithCyclicCoordinateDescent(const std::vector<I
                 }
 
                 // store the rotation change in the accumulator
-                _accumulators[pivotIndex].add(newRot);
+                _accumulators[pivotIndex].add(newRot, target.getWeight());
 
                 // this joint has been changed so we check to see if it has the lowest index
                 if (pivotIndex < lowestMovedIndex) {

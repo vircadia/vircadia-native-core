@@ -142,11 +142,14 @@ public:
     virtual bool deleteApproved() const { return !hasEntities(); }
 
     virtual bool canRayIntersect() const { return hasEntities(); }
+    virtual bool findRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
+        bool& keepSearching, OctreeElementPointer& node, float& distance,
+        BoxFace& face, glm::vec3& surfaceNormal, const QVector<EntityItemID>& entityIdsToInclude,
+        void** intersectedObject = NULL, bool precisionPicking = false);
     virtual bool findDetailedRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
                          bool& keepSearching, OctreeElementPointer& element, float& distance, 
-                         BoxFace& face, glm::vec3& surfaceNormal, const QVector<QUuid>& entityIdsToInclude,
+                         BoxFace& face, glm::vec3& surfaceNormal, const QVector<EntityItemID>& entityIdsToInclude,
                          void** intersectedObject, bool precisionPicking, float distanceToElementCube);
-
     virtual bool findSpherePenetration(const glm::vec3& center, float radius,
                         glm::vec3& penetration, void** penetratedObject) const;
 
@@ -180,7 +183,12 @@ public:
     /// finds all entities that touch a box
     /// \param box the query box
     /// \param entities[out] vector of non-const EntityItemPointer
-    void getEntities(const AACube& box, QVector<EntityItemPointer>& foundEntities);
+    void getEntities(const AACube& cube, QVector<EntityItemPointer>& foundEntities);
+
+    /// finds all entities that touch a box
+    /// \param box the query box
+    /// \param entities[out] vector of non-const EntityItemPointer
+    void getEntities(const AABox& box, QVector<EntityItemPointer>& foundEntities);
 
     EntityItemPointer getEntityWithID(uint32_t id) const;
     EntityItemPointer getEntityWithEntityItemID(const EntityItemID& id) const;
