@@ -1,5 +1,5 @@
 //
-//  MyAvatar.h
+//  MyCharacterController.h
 //  interface/src/avatar
 //
 //  Created by AndrewMeadows 2015.10.21
