@@ -115,10 +115,10 @@ public:
     // adding one of the other handlers. While any handler may change a value in animStateDictionaryIn (or supply different values in animStateDictionaryOut)
     // a handler must not remove properties from animStateDictionaryIn, nor change property values that it does not intend to change.
     // It is not specified in what order multiple handlers are called.
-    Q_INVOKABLE void addAnimationStateHandler(QScriptValue handler, QScriptValue propertiesList) { _rig->addAnimationStateHandler(handler, propertiesList); }
+    Q_INVOKABLE QScriptValue addAnimationStateHandler(QScriptValue handler, QScriptValue propertiesList) { return _rig->addAnimationStateHandler(handler, propertiesList); }
     // Removes a handler previously added by addAnimationStateHandler.
     Q_INVOKABLE void removeAnimationStateHandler(QScriptValue handler) { _rig->removeAnimationStateHandler(handler); }
-    // Processes a handler result. Not really for user code, but used by invokeAnimationCallback.
+    // Processes a handler result. Not really for user code, but used by callAnimationStateHandler.
     Q_INVOKABLE void animationStateHandlerResult(QScriptValue handler, QScriptValue result) { _rig->animationStateHandlerResult(handler, result); }
 
     // get/set avatar data

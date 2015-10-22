@@ -144,7 +144,7 @@ public:
     ArrayBufferClass* getArrayBufferClass() { return _arrayBufferClass; }
 
 public slots:
-    void invokeAnimationCallback(QScriptValue callback, AnimVariantMap parameters);
+    void callAnimationStateHandler(QScriptValue callback, AnimVariantMap parameters, AnimVariantResultHandler resultHandler);
 
 signals:
     void scriptLoaded(const QString& scriptFilename);
@@ -173,7 +173,6 @@ protected:
     bool _wantSignals = true;
     QHash<EntityItemID, EntityScriptDetails> _entityScripts;
 private:
-    bool checkThread() const;
     void init();
     QString getFilename() const;
     void waitTillDoneRunning();

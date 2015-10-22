@@ -608,8 +608,9 @@ void Rig::computeMotionAnimationState(float deltaTime, const glm::vec3& worldPos
 // Allow script to add/remove handlers and report results, from within their thread.
 // TODO: iterate multiple handlers, but with one shared arg.
 // TODO: fill the properties based on the union of requested properties. (Keep all properties objs and compute new union when add/remove handler.)
-void Rig::addAnimationStateHandler(QScriptValue handler, QScriptValue propertiesList) { // called in script thread
+QScriptValue Rig::addAnimationStateHandler(QScriptValue handler, QScriptValue propertiesList) { // called in script thread
     _stateHandlers = handler;
+    return handler; // suitable for giving to removeAnimationStateHandler
 }
 void Rig::removeAnimationStateHandler(QScriptValue handler) { // called in script thread
     _stateHandlers = QScriptValue();
@@ -619,15 +620,23 @@ void Rig::removeAnimationStateHandler(QScriptValue handler) { // called in scrip
 void Rig::animationStateHandlerResult(QScriptValue handler, QScriptValue result) { // called synchronously from script
     // handler is currently ignored but might be used in storing individual results
     QMutexLocker locker(&_stateMutex);
+    if (!_stateHandlers.isValid()) {
+        return; // Don't use late-breaking results that got reported after the handler was removed.
+    }
     _stateHandlersResults.animVariantMapFromScriptValue(result); // Into our own copy.
 }
+
 void Rig::updateAnimationStateHandlers() { // called on avatar update thread (which may be main thread)
     if (_stateHandlers.isValid()) {
+        auto handleResult = [this](QScriptValue handler, QScriptValue result) {
+            animationStateHandlerResult(handler, result);
+        };
         // invokeMethod makes a copy of the args, and copies of AnimVariantMap do copy the underlying map, so this will correctly capture
         // the state of _animVars and allow continued changes to _animVars in this thread without conflict.
-        QMetaObject::invokeMethod(_stateHandlers.engine(), "invokeAnimationCallback",  Qt::QueuedConnection,
+        QMetaObject::invokeMethod(_stateHandlers.engine(), "callAnimationStateHandler",  Qt::QueuedConnection,
                                   Q_ARG(QScriptValue, _stateHandlers),
-                                  Q_ARG(AnimVariantMap, _animVars));
+                                  Q_ARG(AnimVariantMap, _animVars),
+                                  Q_ARG(AnimVariantResultHandler, handleResult));
     }
     QMutexLocker locker(&_stateMutex); // as we examine/copy most recently computed state, if any. (Typically an earlier invocation.)
     _animVars.copyVariantsFrom(_stateHandlersResults);

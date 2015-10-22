@@ -37,6 +37,7 @@
 #define __hifi__Rig__
 
 #include <QObject>
+#include <QMutex>
 #include <QScriptValue>
 
 #include "JointState.h"  // We might want to change this (later) to something that doesn't depend on gpu, fbx and model. -HRS
@@ -200,7 +201,7 @@ public:
     AnimNode::ConstPointer getAnimNode() const { return _animNode; }
     AnimSkeleton::ConstPointer getAnimSkeleton() const { return _animSkeleton; }
     bool disableHands {false}; // should go away with rig animation (and Rig::inverseKinematics)
-    void addAnimationStateHandler(QScriptValue handler, QScriptValue propertiesList);
+    QScriptValue addAnimationStateHandler(QScriptValue handler, QScriptValue propertiesList);
     void removeAnimationStateHandler(QScriptValue handler);
     void animationStateHandlerResult(QScriptValue handler, QScriptValue result);
 

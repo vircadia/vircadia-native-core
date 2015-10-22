@@ -53,9 +53,11 @@ public:
     Q_INVOKABLE void setLocalLights(const QVector<AvatarManager::LocalLight>& localLights);
     Q_INVOKABLE QVector<AvatarManager::LocalLight> getLocalLights() const;
     // Currently, your own avatar will be included as the null avatar id.
-    Q_INVOKABLE QVector<QUuid> getAvatars() const { return _avatarHash.keys().toVector(); }
+    Q_INVOKABLE QVector<QUuid> getAvatarIdentifiers() const { return _avatarHash.keys().toVector(); } // FIXME: see #6154
+    Q_INVOKABLE QVector<QUuid> getAvatars() const { return getAvatarIdentifiers(); } // FIXME: remove before merge. Compatability for testing scripts.
     // Minor Bug: A bogus avatarID answers your own avatar.
-    Q_INVOKABLE AvatarData* getAvatar(QUuid avatarID) const { return _avatarHash[avatarID].get(); }
+    Q_INVOKABLE AvatarData* getAvatar(QUuid avatarID) const { return _avatarHash[avatarID].get(); } // FIXME: see #6154
+
 
     void getObjectsToDelete(VectorOfMotionStates& motionStates);
     void getObjectsToAdd(VectorOfMotionStates& motionStates);
