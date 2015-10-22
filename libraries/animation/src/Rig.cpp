@@ -608,8 +608,9 @@ void Rig::computeMotionAnimationState(float deltaTime, const glm::vec3& worldPos
 // Allow script to add/remove handlers and report results, from within their thread.
 // TODO: iterate multiple handlers, but with one shared arg.
 // TODO: fill the properties based on the union of requested properties. (Keep all properties objs and compute new union when add/remove handler.)
-void Rig::addAnimationStateHandler(QScriptValue handler, QScriptValue propertiesList) { // called in script thread
+QScriptValue Rig::addAnimationStateHandler(QScriptValue handler, QScriptValue propertiesList) { // called in script thread
     _stateHandlers = handler;
+    return handler; // suitable for giving to removeAnimationStateHandler
 }
 void Rig::removeAnimationStateHandler(QScriptValue handler) { // called in script thread
     _stateHandlers = QScriptValue();

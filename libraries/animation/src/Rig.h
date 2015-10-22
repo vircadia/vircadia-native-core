@@ -201,7 +201,7 @@ public:
     AnimNode::ConstPointer getAnimNode() const { return _animNode; }
     AnimSkeleton::ConstPointer getAnimSkeleton() const { return _animSkeleton; }
     bool disableHands {false}; // should go away with rig animation (and Rig::inverseKinematics)
-    void addAnimationStateHandler(QScriptValue handler, QScriptValue propertiesList);
+    QScriptValue addAnimationStateHandler(QScriptValue handler, QScriptValue propertiesList);
     void removeAnimationStateHandler(QScriptValue handler);
     void animationStateHandlerResult(QScriptValue handler, QScriptValue result);
 
