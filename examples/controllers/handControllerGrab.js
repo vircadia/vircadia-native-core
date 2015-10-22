@@ -245,7 +245,7 @@ function MyController(hand, triggerAction) {
     };
 
     this.updateSmoothedTrigger = function() {
-        var triggerValue = Controller.getActionValue(this.triggerAction);
+        var triggerValue = Controller.getValue(this.triggerAction);
         // smooth out trigger value
         this.triggerValue = (this.triggerValue * TRIGGER_SMOOTH_RATIO) +
             (triggerValue * (1.0 - TRIGGER_SMOOTH_RATIO));
@@ -260,7 +260,7 @@ function MyController(hand, triggerAction) {
     };
 
     this.triggerSqueezed = function() {
-        var triggerValue = Controller.getActionValue(this.triggerAction);
+        var triggerValue = Controller.getValue(this.triggerAction);
         return triggerValue > TRIGGER_ON_VALUE;
     };
 
@@ -402,8 +402,9 @@ function MyController(hand, triggerAction) {
 
     this.distanceHolding = function() {
 
-        var handControllerPosition = Controller.getSpatialControlPosition(this.palm);
-        var handRotation = Quat.multiply(MyAvatar.orientation, Controller.getSpatialControlRawRotation(this.palm));
+        var handControllerPosition = (this.hand === RIGHT_HAND) ? MyAvatar.rightHandPosition : MyAvatar.leftHandPosition;
+        var controllerHandInput = (this.hand === RIGHT_HAND) ? Controller.Standard.RightHand : Controller.Standard.LeftHand;
+        var handRotation = Quat.multiply(MyAvatar.orientation, Controller.getPoseValue(controllerHandInput).rotation);
         var grabbedProperties = Entities.getEntityProperties(this.grabbedEntity, ["position", "rotation",
                                                                                   "gravity", "ignoreForCollisions"]);
         var now = Date.now();
@@ -452,8 +453,9 @@ function MyController(hand, triggerAction) {
         }
 
         var handPosition = this.getHandPosition();
-        var handControllerPosition = Controller.getSpatialControlPosition(this.palm);
-        var handRotation = Quat.multiply(MyAvatar.orientation, Controller.getSpatialControlRawRotation(this.palm));
+        var handControllerPosition = (this.hand === RIGHT_HAND) ? MyAvatar.rightHandPosition : MyAvatar.leftHandPosition;
+        var controllerHandInput = (this.hand === RIGHT_HAND) ? Controller.Standard.RightHand : Controller.Standard.LeftHand;
+        var handRotation = Quat.multiply(MyAvatar.orientation, Controller.getPoseValue(controllerHandInput).rotation);
         var grabbedProperties = Entities.getEntityProperties(this.grabbedEntity, ["position", "rotation"]);
 
         this.lineOn(handPosition, Vec3.subtract(grabbedProperties.position, handPosition), INTERSECT_COLOR);
@@ -595,7 +597,7 @@ function MyController(hand, triggerAction) {
 
         }
 
-        this.currentHandControllerTipPosition = Controller.getSpatialControlPosition(this.tip);
+        this.currentHandControllerTipPosition = (this.hand === RIGHT_HAND) ? MyAvatar.rightHandTipPosition : MyAvatar.leftHandTipPosition;;
 
         this.currentObjectTime = Date.now();
     };
@@ -613,7 +615,7 @@ function MyController(hand, triggerAction) {
         // of it's actual offset, let's try imparting a velocity which is at a fixed radius
         // from the palm.
 
-        var handControllerPosition = Controller.getSpatialControlPosition(this.tip);
+        var handControllerPosition = (this.hand === RIGHT_HAND) ? MyAvatar.rightHandPosition : MyAvatar.leftHandPosition;
         var now = Date.now();
 
         var deltaPosition = Vec3.subtract(handControllerPosition, this.currentHandControllerTipPosition); // meters
@@ -856,8 +858,8 @@ function MyController(hand, triggerAction) {
     };
 }
 
-var rightController = new MyController(RIGHT_HAND, Controller.findAction("RIGHT_HAND_CLICK"));
-var leftController = new MyController(LEFT_HAND, Controller.findAction("LEFT_HAND_CLICK"));
+var rightController = new MyController(RIGHT_HAND, Controller.Standard.RT);
+var leftController = new MyController(LEFT_HAND, Controller.Standard.LT);
 
 function update() {
     rightController.update();
