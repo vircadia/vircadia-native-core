@@ -12,11 +12,8 @@
 #include "AssignmentParentFinder.h"
 
 SpatiallyNestableWeakPointer AssignmentParentFinder::find(QUuid parentID) const {
-    assert(false);
     SpatiallyNestableWeakPointer parent;
     // search entities
-    _tree->withReadLock([&] {
-        parent = _tree->findEntityByEntityItemID(parentID);
-    });
+    parent = _tree->findEntityByEntityItemID(parentID);
     return parent;
 }

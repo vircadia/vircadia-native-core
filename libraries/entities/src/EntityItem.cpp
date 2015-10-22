@@ -242,7 +242,7 @@ OctreeElement::AppendState EntityItem::appendEntityData(OctreePacketData* packet
         //      PROP_CUSTOM_PROPERTIES_INCLUDED,
 
         APPEND_ENTITY_PROPERTY(PROP_SIMULATION_OWNER, _simulationOwner.toByteArray());
-        APPEND_ENTITY_PROPERTY(PROP_POSITION, getPosition());
+        APPEND_ENTITY_PROPERTY(PROP_POSITION, getLocalPosition());
         APPEND_ENTITY_PROPERTY(PROP_ROTATION, getRotation());
         APPEND_ENTITY_PROPERTY(PROP_VELOCITY, getVelocity());
         APPEND_ENTITY_PROPERTY(PROP_ANGULAR_VELOCITY, getAngularVelocity());
@@ -1038,7 +1038,7 @@ EntityItemProperties EntityItem::getProperties(EntityPropertyFlags desiredProper
     properties._type = getType();
 
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(simulationOwner, getSimulationOwner);
-    COPY_ENTITY_PROPERTY_TO_PROPERTIES(position, getPosition);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(position, getLocalPosition);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(dimensions, getDimensions); // NOTE: radius is obsolete
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(rotation, getRotation);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(density, getDensity);
@@ -1078,7 +1078,7 @@ EntityItemProperties EntityItem::getProperties(EntityPropertyFlags desiredProper
 
 void EntityItem::getAllTerseUpdateProperties(EntityItemProperties& properties) const {
     // a TerseUpdate includes the transform and its derivatives
-    properties._position = getPosition();
+    properties._position = getLocalPosition();
     properties._velocity = _velocity;
     properties._rotation = getRotation();
     properties._angularVelocity = _angularVelocity;
@@ -1313,10 +1313,10 @@ void EntityItem::updatePosition(const glm::vec3& value) {
     if (shouldSuppressLocationEdits()) {
         return;
     }
-    auto delta = glm::distance(getPosition(), value);
+    auto delta = glm::distance(getLocalPosition(), value);
     if (delta > IGNORE_POSITION_DELTA) {
         _dirtyFlags |= Simulation::DIRTY_POSITION;
-        setPosition(value);
+        setLocalPosition(value);
         if (delta > ACTIVATION_POSITION_DELTA) {
             _dirtyFlags |= Simulation::DIRTY_PHYSICS_ACTIVATION;
         }
@@ -1685,7 +1685,7 @@ void EntityItem::deserializeActionsInternal() {
             action->locallyAddedButNotYetReceived = false;
         } else {
             auto actionFactory = DependencyManager::get<EntityActionFactoryInterface>();
-            EntityItemPointer entity = shared_from_this();
+            EntityItemPointer entity = getThisPointer();
             EntityActionPointer action = actionFactory->factoryBA(entity, serializedAction);
             if (action) {
                 entity->addActionInternal(simulation, action);

@@ -547,7 +547,7 @@ bool RenderablePolyVoxEntityItem::addToScene(EntityItemPointer self,
                                              render::PendingChanges& pendingChanges) {
     _myItem = scene->allocateID();
 
-    auto renderItem = std::make_shared<PolyVoxPayload>(shared_from_this());
+    auto renderItem = std::make_shared<PolyVoxPayload>(getThisPointer());
     auto renderData = PolyVoxPayload::Pointer(renderItem);
     auto renderPayload = std::make_shared<PolyVoxPayload::Payload>(renderData);
 

@@ -34,19 +34,43 @@ SpatiallyNestablePointer SpatiallyNestable::getParentPointer() const {
 
     if (parent && parent->getID() == _parentID) {
         // parent pointer is up-to-date
+        if (!_parentKnowsMe) {
+            parent->beParentOfChild(shared_from_this());
+            _parentKnowsMe = true;
+        }
         return parent;
     }
 
-    if (parent && _parentID.isNull()) {
-        // we have a parent pointer but our _parentID is null
+    if (parent) {
+        // we have a parent pointer but our _parentID doesn't indicate this parent.
+        parent->forgetChild(shared_from_this());
+        _parentKnowsMe = false;
         _parent.reset();
-        return nullptr;
     }
 
     // we have a _parentID but no parent pointer, or our parent pointer is to the wrong thing
     QSharedPointer<SpatialParentFinder> parentFinder = DependencyManager::get<SpatialParentFinder>();
-   _parent = parentFinder->find(_parentID);
-    return _parent.lock();
+    _parent = parentFinder->find(_parentID);
+    parent = _parent.lock();
+    if (parent) {
+        parent->beParentOfChild(shared_from_this());
+        _parentKnowsMe = true;
+    }
+    return parent;
+}
+
+void SpatiallyNestable::beParentOfChild(SpatiallyNestableConstPointer newChild) const {
+    _children[newChild->getID()] = newChild;
+}
+
+void SpatiallyNestable::forgetChild(SpatiallyNestableConstPointer newChild) const {
+    _children.remove(newChild->getID());
+}
+
+
+void SpatiallyNestable::setParentID(const QUuid& parentID) {
+    _parentID = parentID;
+    _parentKnowsMe = false;
 }
 
 const glm::vec3& SpatiallyNestable::getPosition() const {

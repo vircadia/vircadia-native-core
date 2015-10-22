@@ -22,9 +22,7 @@ SpatiallyNestableWeakPointer InterfaceParentFinder::find(QUuid parentID) const {
     // search entities
     EntityTreeRenderer* treeRenderer = qApp->getEntities();
     EntityTreePointer tree = treeRenderer->getTree();
-    tree->withReadLock([&] {
-        parent = tree->findEntityByEntityItemID(parentID);
-    });
+    parent = tree->findEntityByEntityItemID(parentID);
     if (!parent.expired()) {
         return parent;
     }

@@ -174,14 +174,15 @@ QByteArray AvatarData::toByteArray(bool cullSmallChanges, bool sendAll) {
     unsigned char* destinationBuffer = reinterpret_cast<unsigned char*>(avatarDataByteArray.data());
     unsigned char* startPosition = destinationBuffer;
 
-    const glm::vec3& position = getPosition();
+    const glm::vec3& position = getLocalPosition();
     memcpy(destinationBuffer, &position, sizeof(position));
     destinationBuffer += sizeof(position);
 
     // Body rotation
-    destinationBuffer += packFloatAngleToTwoByte(destinationBuffer, getBodyYaw());
-    destinationBuffer += packFloatAngleToTwoByte(destinationBuffer, getBodyPitch());
-    destinationBuffer += packFloatAngleToTwoByte(destinationBuffer, getBodyRoll());
+    glm::vec3 bodyEulerAngles = glm::degrees(safeEulerAngles(getLocalOrientation()));
+    destinationBuffer += packFloatAngleToTwoByte(destinationBuffer, bodyEulerAngles.y);
+    destinationBuffer += packFloatAngleToTwoByte(destinationBuffer, bodyEulerAngles.x);
+    destinationBuffer += packFloatAngleToTwoByte(destinationBuffer, bodyEulerAngles.z);
 
     // Body scale
     destinationBuffer += packFloatRatioToTwoByte(destinationBuffer, _targetScale);
@@ -465,7 +466,7 @@ int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
             }
             return maxAvailableSize;
         }
-        setPosition(position);
+        setLocalPosition(position);
 
         // rotation (NOTE: This needs to become a quaternion to save two bytes)
         float yaw, pitch, roll;
@@ -483,7 +484,7 @@ int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
         if (getBodyYaw() != yaw || getBodyPitch() != pitch || getBodyRoll() != roll) {
             _hasNewJointRotations = true;
             glm::vec3 eulerAngles(pitch, yaw, roll);
-            setOrientation(glm::quat(glm::radians(eulerAngles)));
+            setLocalOrientation(glm::quat(glm::radians(eulerAngles)));
         }
 
         // scale

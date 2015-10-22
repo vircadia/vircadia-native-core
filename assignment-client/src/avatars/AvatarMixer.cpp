@@ -155,7 +155,7 @@ void AvatarMixer::broadcastAvatarData() {
             ++_sumListeners;
 
             AvatarData& avatar = nodeData->getAvatar();
-            glm::vec3 myPosition = avatar.getPosition();
+            glm::vec3 myPosition = avatar.getLocalPosition(); // XXX should be world position
 
             // reset the internal state for correct random number distribution
             distribution.reset();
@@ -248,7 +248,7 @@ void AvatarMixer::broadcastAvatarData() {
 
                     //  The full rate distance is the distance at which EVERY update will be sent for this avatar
                     //  at twice the full rate distance, there will be a 50% chance of sending this avatar's update
-                    glm::vec3 otherPosition = otherAvatar.getPosition();
+                    glm::vec3 otherPosition = otherAvatar.getLocalPosition(); // XXX should be world position
                     float distanceToAvatar = glm::length(myPosition - otherPosition);
 
                     // potentially update the max full rate distance for this frame

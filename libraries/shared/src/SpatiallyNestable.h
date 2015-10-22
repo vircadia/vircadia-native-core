@@ -20,9 +20,11 @@
 
 class SpatiallyNestable;
 using SpatiallyNestableWeakPointer = std::weak_ptr<SpatiallyNestable>;
+using SpatiallyNestableWeakConstPointer = std::weak_ptr<const SpatiallyNestable>;
 using SpatiallyNestablePointer = std::shared_ptr<SpatiallyNestable>;
+using SpatiallyNestableConstPointer = std::shared_ptr<const SpatiallyNestable>;
 
-class SpatiallyNestable {
+class SpatiallyNestable : public std::enable_shared_from_this<SpatiallyNestable> {
 
 public:
     SpatiallyNestable() : _transform() { } // XXX get rid of this one?
@@ -33,7 +35,7 @@ public:
     virtual void setID(const QUuid& id) { _id = id; }
 
     virtual const QUuid& getParentID() const { return _parentID; }
-    virtual void setParentID(const QUuid& parentID) { _parentID = parentID; }
+    virtual void setParentID(const QUuid& parentID);
 
     virtual quint16 getParentJointIndex() const { return _parentJointIndex; }
     virtual void setParentJointIndex(quint16 parentJointIndex) { _parentJointIndex = parentJointIndex; }
@@ -71,9 +73,11 @@ protected:
     QUuid _parentID; // what is this thing's transform relative to?
     quint16 _parentJointIndex; // which joint of the parent is this relative to?
     SpatiallyNestablePointer getParentPointer() const;
-
     mutable SpatiallyNestableWeakPointer _parent;
-    QVector<SpatiallyNestableWeakPointer> _children;
+
+    virtual void beParentOfChild(SpatiallyNestableConstPointer newChild) const;
+    virtual void forgetChild(SpatiallyNestableConstPointer newChild) const;
+    mutable QHash<QUuid, SpatiallyNestableWeakConstPointer> _children;
 
 private:
     Transform _transform; // this is to be combined with parent's world-transform to produce this' world-transform.
@@ -82,6 +86,7 @@ private:
     mutable glm::vec3 _absolutePositionCache;
     mutable glm::quat _absoluteRotationCache;
     mutable Transform _worldTransformCache;
+    mutable bool _parentKnowsMe = false;
 };
 
 
