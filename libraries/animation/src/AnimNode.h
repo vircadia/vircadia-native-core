@@ -38,6 +38,7 @@ public:
     enum class Type {
         Clip = 0,
         BlendLinear,
+        BlendLinearMove,
         Overlay,
         StateMachine,
         Manipulator,

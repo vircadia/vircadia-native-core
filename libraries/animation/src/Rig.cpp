@@ -408,11 +408,11 @@ glm::mat4 Rig::getJointTransform(int jointIndex) const {
     return _jointStates[jointIndex].getTransform();
 }
 
-void Rig::calcAnimAlphaAndTimeScale(float speed, const std::vector<float>& referenceSpeeds, float* alphaOut, float* timeScaleOut) const {
+void Rig::calcAnimAlpha(float speed, const std::vector<float>& referenceSpeeds, float* alphaOut) const {
 
     assert(referenceSpeeds.size() > 0);
 
-    // first calculate alpha by lerping between speeds.
+    // calculate alpha from linear combination of referenceSpeeds.
     float alpha = 0.0f;
     if (speed <= referenceSpeeds.front()) {
         alpha = 0.0f;
@@ -427,20 +427,12 @@ void Rig::calcAnimAlphaAndTimeScale(float speed, const std::vector<float>& refer
         }
     }
 
-    // now keeping the alpha fixed compute the timeScale.
-    // NOTE: This makes the assumption that the velocity of a linear blend between two animations is also linear.
-    int prevIndex = glm::floor(alpha);
-    int nextIndex = glm::ceil(alpha);
-    float animSpeed = lerp(referenceSpeeds[prevIndex], referenceSpeeds[nextIndex], (float)glm::fract(alpha));
-    float timeScale = glm::clamp(0.5f, 2.0f, speed / animSpeed);
-
     *alphaOut = alpha;
-    *timeScaleOut = timeScale;
 }
 
 // animation reference speeds.
-static const std::vector<float> FORWARD_SPEEDS = { 0.4f, 1.4f, 2.5f }; // m/s
-static const std::vector<float> BACKWARD_SPEEDS = { 0.45f, 1.4f }; // m/s
+static const std::vector<float> FORWARD_SPEEDS = { 0.4f, 1.4f, 4.5f }; // m/s
+static const std::vector<float> BACKWARD_SPEEDS = { 0.6f, 1.45f }; // m/s
 static const std::vector<float> LATERAL_SPEEDS = { 0.2f, 0.65f }; // m/s
 
 void Rig::computeMotionAnimationState(float deltaTime, const glm::vec3& worldPosition, const glm::vec3& worldVelocity, const glm::quat& worldRotation) {
@@ -477,22 +469,21 @@ void Rig::computeMotionAnimationState(float deltaTime, const glm::vec3& worldPos
         _animVars.set("sine", 2.0f * static_cast<float>(0.5 * sin(t) + 0.5));
 
         float moveForwardAlpha = 0.0f;
-        float moveForwardTimeScale = 1.0f;
         float moveBackwardAlpha = 0.0f;
-        float moveBackwardTimeScale = 1.0f;
         float moveLateralAlpha = 0.0f;
-        float moveLateralTimeScale = 1.0f;
 
         // calcuate the animation alpha and timeScale values based on current speeds and animation reference speeds.
-        calcAnimAlphaAndTimeScale(_averageForwardSpeed.getAverage(), FORWARD_SPEEDS, &moveForwardAlpha, &moveForwardTimeScale);
-        calcAnimAlphaAndTimeScale(-_averageForwardSpeed.getAverage(), BACKWARD_SPEEDS, &moveBackwardAlpha, &moveBackwardTimeScale);
-        calcAnimAlphaAndTimeScale(fabsf(_averageLateralSpeed.getAverage()), LATERAL_SPEEDS, &moveLateralAlpha, &moveLateralTimeScale);
+        calcAnimAlpha(_averageForwardSpeed.getAverage(), FORWARD_SPEEDS, &moveForwardAlpha);
+        calcAnimAlpha(-_averageForwardSpeed.getAverage(), BACKWARD_SPEEDS, &moveBackwardAlpha);
+        calcAnimAlpha(fabsf(_averageLateralSpeed.getAverage()), LATERAL_SPEEDS, &moveLateralAlpha);
 
-        _animVars.set("moveFowardTimeScale", moveForwardTimeScale);
+        _animVars.set("moveForwardSpeed", _averageForwardSpeed.getAverage());
         _animVars.set("moveForwardAlpha", moveForwardAlpha);
-        _animVars.set("moveBackwardTimeScale", moveBackwardTimeScale);
+
+        _animVars.set("moveBackwardSpeed", -_averageForwardSpeed.getAverage());
         _animVars.set("moveBackwardAlpha", moveBackwardAlpha);
-        _animVars.set("moveLateralTimeScale", moveLateralTimeScale);
+
+        _animVars.set("moveLateralSpeed", fabsf(_averageLateralSpeed.getAverage()));
         _animVars.set("moveLateralAlpha", moveLateralAlpha);
 
         const float MOVE_ENTER_SPEED_THRESHOLD = 0.2f; // m/sec

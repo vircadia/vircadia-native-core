@@ -527,13 +527,13 @@
                                             },
                                             {
                                                 "id": "walkFwd",
-                                                "type": "blendLinear",
+                                                "type": "blendLinearMove",
                                                 "data": {
                                                     "alpha": 0.0,
-                                                    "sync": true,
-                                                    "timeScale": 1.0,
-                                                    "timeScaleVar": "moveForwardTimeScale",
-                                                    "alphaVar": "moveForwardAlpha"
+                                                    "desiredSpeed": 1.4,
+                                                    "characteristicSpeeds": [0.5, 1.4, 4.5],
+                                                    "alphaVar": "moveForwardAlpha",
+                                                    "desiredSpeedVar": "moveForwardSpeed"
                                                 },
                                                 "children": [
                                                     {
@@ -576,13 +576,13 @@
                                             },
                                             {
                                                 "id": "walkBwd",
-                                                "type": "blendLinear",
+                                                "type": "blendLinearMove",
                                                 "data": {
-                                                    "alpha": 1.0,
-                                                    "sync": true,
-                                                    "timeScale": 1.0,
-                                                    "timeScaleVar": "moveBackwardTimeScale",
-                                                    "alphaVar": "moveBackwardAlpha"
+                                                    "alpha": 0.0,
+                                                    "desiredSpeed": 1.4,
+                                                    "characteristicSpeeds": [0.6, 1.45],
+                                                    "alphaVar": "moveBackwardAlpha",
+                                                    "desiredSpeedVar": "moveBackwardSpeed"
                                                 },
                                                 "children": [
                                                     {
@@ -637,13 +637,13 @@
                                             },
                                             {
                                                 "id": "strafeLeft",
-                                                "type": "blendLinear",
+                                                "type": "blendLinearMove",
                                                 "data": {
                                                     "alpha": 0.0,
-                                                    "sync": true,
-                                                    "timeScale": 1.0,
-                                                    "timeScaleVar": "moveLateralTimeScale",
-                                                    "alphaVar": "moveLateralAlpha"
+                                                    "desiredSpeed": 1.4,
+                                                    "characteristicSpeeds": [0.2, 0.65],
+                                                    "alphaVar": "moveLateralAlpha",
+                                                    "desiredSpeedVar": "moveLateralSpeed"
                                                 },
                                                 "children": [
                                                     {
@@ -674,13 +674,13 @@
                                             },
                                             {
                                                 "id": "strafeRight",
-                                                "type": "blendLinear",
+                                                "type": "blendLinearMove",
                                                 "data": {
                                                     "alpha": 0.0,
-                                                    "sync": true,
-                                                    "timeScale": 1.0,
-                                                    "timeScaleVar": "moveLateralTimeScale",
-                                                    "alphaVar": "moveLateralAlpha"
+                                                    "desiredSpeed": 1.4,
+                                                    "characteristicSpeeds": [0.2, 0.65],
+                                                    "alphaVar": "moveLateralAlpha",
+                                                    "desiredSpeedVar": "moveLateralSpeed"
                                                 },
                                                 "children": [
                                                     {
