@@ -15,6 +15,7 @@
 #include <unordered_set>
 #include <functional>
 #include <memory>
+#include <mutex>
 
 #include <QtQml/QJSValue>
 #include <QtScript/QScriptValue>
@@ -50,7 +51,7 @@ namespace controller {
         using MappingStack = std::list<Mapping::Pointer>;
         using InputToEndpointMap = std::map<Input, Endpoint::Pointer>;
         using EndpointSet = std::unordered_set<Endpoint::Pointer>;
-        using ValueMap = std::map<Endpoint::Pointer, float>;
+        using EndpointOverrideMap = std::map<Endpoint::Pointer, Endpoint::Pointer>;
         using EndpointPair = std::pair<Endpoint::Pointer, Endpoint::Pointer>;
         using EndpointPairMap = std::map<EndpointPair, Endpoint::Pointer>;
         using DevicesMap = std::map<int, DeviceProxy::Pointer>;
@@ -86,9 +87,9 @@ namespace controller {
         int findAction(const QString& actionName) const;
         QVector<QString> getActionNames() const;
 
-        void setActionState(Action action, float value) { _externalActionStates[toInt(action)] = value; }
-        void deltaActionState(Action action, float delta) { _externalActionStates[toInt(action)] += delta; }
-        void setActionState(Action action, const Pose& value) { _externalPoseStates[toInt(action)] = value; }
+        void setActionState(Action action, float value) { _actionStates[toInt(action)] = value; }
+        void deltaActionState(Action action, float delta) { _actionStates[toInt(action)] += delta; }
+        void setActionState(Action action, const Pose& value) { _poseStates[toInt(action)] = value; }
 
         static Input makeStandardInput(controller::StandardButtonChannel button);
         static Input makeStandardInput(controller::StandardAxisChannel axis);
@@ -119,20 +120,16 @@ namespace controller {
         void hardwareChanged();
 
     protected:
-        virtual void update();
         // GetFreeDeviceID should be called before registering a device to use an ID not used by a different device.
         uint16 getFreeDeviceID() { return _nextFreeDeviceID++; }
-
         InputDevice::Pointer _standardController;
         DevicesMap _registeredDevices;
         uint16 _nextFreeDeviceID = STANDARD_DEVICE + 1;
 
         std::vector<float> _actionStates = std::vector<float>(toInt(Action::NUM_ACTIONS), 0.0f);
-        std::vector<float> _externalActionStates = std::vector<float>(toInt(Action::NUM_ACTIONS), 0.0f);
         std::vector<float> _actionScales = std::vector<float>(toInt(Action::NUM_ACTIONS), 1.0f);
         std::vector<float> _lastActionStates = std::vector<float>(toInt(Action::NUM_ACTIONS), 0.0f);
         std::vector<Pose> _poseStates = std::vector<Pose>(toInt(Action::NUM_ACTIONS));
-        std::vector<Pose> _externalPoseStates = std::vector<Pose>(toInt(Action::NUM_ACTIONS));
 
         glm::mat4 _sensorToWorldMat;
 
@@ -144,24 +141,40 @@ namespace controller {
 
         friend class RouteBuilderProxy;
         friend class MappingBuilderProxy;
+
+        void runMappings();
+        void applyRoute(const Route::Pointer& route);
+        void enableMapping(const Mapping::Pointer& mapping);
+        void disableMapping(const Mapping::Pointer& mapping);
         Endpoint::Pointer endpointFor(const QJSValue& endpoint);
         Endpoint::Pointer endpointFor(const QScriptValue& endpoint);
         Endpoint::Pointer endpointFor(const Input& endpoint) const;
         Endpoint::Pointer compositeEndpointFor(Endpoint::Pointer first, Endpoint::Pointer second);
+        
         Mapping::Pointer parseMapping(const QJsonValue& json);
         Route::Pointer parseRoute(const QJsonValue& value);
-        Conditional::Pointer parseConditional(const QJsonValue& value);
+        Endpoint::Pointer parseDestination(const QJsonValue& value);
+        Endpoint::Pointer parseSource(const QJsonValue& value);
         Endpoint::Pointer parseEndpoint(const QJsonValue& value);
+        Conditional::Pointer parseConditional(const QJsonValue& value);
+
+        static Filter::Pointer parseFilter(const QJsonValue& value);
+        static Filter::List parseFilters(const QJsonValue& value);
 
         InputToEndpointMap _endpointsByInput;
         EndpointToInputMap _inputsByEndpoint;
         EndpointPairMap _compositeEndpoints;
 
-        ValueMap _overrideValues;
+        EndpointOverrideMap _overrides;
         MappingNameMap _mappingsByName;
-        Mapping::Pointer _defaultMapping{ std::make_shared<Mapping>("Default") };
         MappingDeviceMap _mappingsByDevice;
-        MappingStack _activeMappings;
+
+        Route::List _deviceRoutes;
+        Route::List _standardRoutes;
+
+        using Locker = std::unique_lock<std::recursive_mutex>;
+
+        mutable std::recursive_mutex _lock;
     };
 
 }

@@ -53,6 +53,7 @@
 
 using namespace std;
 
+static quint64 COMFORT_MODE_PULSE_TIMING = USECS_PER_SECOND / 2; // turn once per half second
 const glm::vec3 DEFAULT_UP_DIRECTION(0.0f, 1.0f, 0.0f);
 const float YAW_SPEED = 150.0f;   // degrees/sec
 const float PITCH_SPEED = 100.0f; // degrees/sec
@@ -240,8 +241,31 @@ void MyAvatar::simulate(float deltaTime) {
 
     {
         PerformanceTimer perfTimer("transform");
+        bool stepAction = false;
+        // When there are no step values, we zero out the last step pulse. 
+        // This allows a user to do faster snapping by tapping a control
+        for (int i = STEP_TRANSLATE_X; !stepAction && i <= STEP_YAW; ++i) {
+            if (_driveKeys[i] != 0.0f) {
+                stepAction = true;
+            }
+        }
+        quint64 now = usecTimestampNow();
+        quint64 pulseDeltaTime = now - _lastStepPulse;
+        if (!stepAction) {
+            _lastStepPulse = 0;
+        }
+
+        if (stepAction && pulseDeltaTime > COMFORT_MODE_PULSE_TIMING) {
+            _pulseUpdate = true;
+        }
+
         updateOrientation(deltaTime);
         updatePosition(deltaTime);
+
+        if (_pulseUpdate) {
+            _lastStepPulse = now;
+            _pulseUpdate = false;
+        }
     }
 
     {
@@ -523,6 +547,54 @@ void MyAvatar::updateFromTrackers(float deltaTime) {
                                     -MAX_LEAN, MAX_LEAN));
 }
 
+
+// FIXME - this is super duper dumb... but this is how master works. When you have
+// hydras plugged in, you'll get 4 "palms" but only the number of controllers lifted
+// of the base station are considered active. So when you ask for "left" you get the
+// first active controller. If you have both controllers held up or just the left, that
+// will be correct. But if you lift the right controller, then it will be reported
+// as "left"... you also see this in the avatars hands. 
+const PalmData* MyAvatar::getActivePalm(int palmIndex) const {
+    const HandData* handData = DependencyManager::get<AvatarManager>()->getMyAvatar()->getHandData();
+    int numberOfPalms = handData->getNumPalms();
+    int numberOfActivePalms = 0;
+    for (int i = 0; i < numberOfPalms; i++) {
+        auto palm = handData->getPalms()[i];
+        if (palm.isActive()) {
+            // if we've reached the requested "active" palm, then we will return it
+            if (numberOfActivePalms == palmIndex) {
+                return &handData->getPalms()[i];
+            }
+            numberOfActivePalms++;
+        }
+    }
+    return NULL;
+}
+
+
+glm::vec3 MyAvatar::getLeftHandPosition() const {
+    const int LEFT_HAND = 0;
+    auto palmData = getActivePalm(LEFT_HAND);
+    return palmData ? palmData->getPosition() : glm::vec3(0.0f);
+}
+
+glm::vec3 MyAvatar::getRightHandPosition() const {
+    const int RIGHT_HAND = 1;
+    auto palmData = getActivePalm(RIGHT_HAND);
+    return palmData ? palmData->getPosition() : glm::vec3(0.0f);
+}
+
+glm::vec3 MyAvatar::getLeftHandTipPosition() const {
+    const int LEFT_HAND = 0;
+    auto palmData = getActivePalm(LEFT_HAND);
+    return palmData ? palmData->getTipPosition() : glm::vec3(0.0f);
+}
+
+glm::vec3 MyAvatar::getRightHandTipPosition() const {
+    const int RIGHT_HAND = 1;
+    auto palmData = getActivePalm(RIGHT_HAND);
+    return palmData ? palmData->getTipPosition() : glm::vec3(0.0f);
+}
 
 // virtual
 void MyAvatar::render(RenderArgs* renderArgs, const glm::vec3& cameraPosition) {
@@ -1506,69 +1578,44 @@ bool MyAvatar::shouldRenderHead(const RenderArgs* renderArgs) const {
 
 void MyAvatar::updateOrientation(float deltaTime) {
     //  Smoothly rotate body with arrow keys
-    float targetSpeed = 0.0f;
-
-    // FIXME - this comfort mode code is a total hack, remove it when we have new input mapping
-    bool isComfortMode = Menu::getInstance()->isOptionChecked(MenuOption::ComfortMode);
-    bool isHMDMode = qApp->getAvatarUpdater()->isHMDMode();
-
-    if (!isHMDMode || !isComfortMode) {
-        targetSpeed = (_driveKeys[ROT_LEFT] - _driveKeys[ROT_RIGHT]) * YAW_SPEED;
-
-        if (targetSpeed != 0.0f) {
-            const float ROTATION_RAMP_TIMESCALE = 0.1f;
-            float blend = deltaTime / ROTATION_RAMP_TIMESCALE;
-            if (blend > 1.0f) {
-                blend = 1.0f;
-            }
-            _bodyYawDelta = (1.0f - blend) * _bodyYawDelta + blend * targetSpeed;
-        } else if (_bodyYawDelta != 0.0f) {
-            // attenuate body rotation speed
-            const float ROTATION_DECAY_TIMESCALE = 0.05f;
-            float attenuation = 1.0f - deltaTime / ROTATION_DECAY_TIMESCALE;
-            if (attenuation < 0.0f) {
-                attenuation = 0.0f;
-            }
-            _bodyYawDelta *= attenuation;
-
-            float MINIMUM_ROTATION_RATE = 2.0f;
-            if (fabsf(_bodyYawDelta) < MINIMUM_ROTATION_RATE) {
-                _bodyYawDelta = 0.0f;
-            }
+    float targetSpeed = _driveKeys[YAW] * YAW_SPEED;
+    if (targetSpeed != 0.0f) {
+        const float ROTATION_RAMP_TIMESCALE = 0.1f;
+        float blend = deltaTime / ROTATION_RAMP_TIMESCALE;
+        if (blend > 1.0f) {
+            blend = 1.0f;
         }
+        _bodyYawDelta = (1.0f - blend) * _bodyYawDelta + blend * targetSpeed;
+    } else if (_bodyYawDelta != 0.0f) {
+        // attenuate body rotation speed
+        const float ROTATION_DECAY_TIMESCALE = 0.05f;
+        float attenuation = 1.0f - deltaTime / ROTATION_DECAY_TIMESCALE;
+        if (attenuation < 0.0f) {
+            attenuation = 0.0f;
+        }
+        _bodyYawDelta *= attenuation;
 
-        // update body orientation by movement inputs
-        setOrientation(getOrientation() *
-            glm::quat(glm::radians(glm::vec3(0.0f, _bodyYawDelta * deltaTime, 0.0f))));
-
-    } else {
-        // Comfort Mode: If you press any of the left/right rotation drive keys or input, you'll
-        // get an instantaneous 15 degree turn. If you keep holding the key down you'll get another
-        // snap turn every half second.
-        _bodyYawDelta = 0.0f;
-
-        static quint64 lastPulse = 0;
-        quint64 now = usecTimestampNow();
-        quint64 COMFORT_MODE_PULSE_TIMING = USECS_PER_SECOND / 2; // turn once per half second
-
-        float driveLeft = _driveKeys[ROT_LEFT];
-        float driveRight= _driveKeys[ROT_RIGHT];
-
-        if ((driveLeft != 0.0f || driveRight != 0.0f) && (now - lastPulse > COMFORT_MODE_PULSE_TIMING)) {
-            lastPulse = now;
-
-            const float SNAP_TURN_DELTA = 15.0f; // degrees
-            float direction = (driveLeft - driveRight) < 0.0f ? -1.0f : 1.0f;
-            float turnAmount = direction * SNAP_TURN_DELTA;
-
-            // update body orientation by movement inputs
-            setOrientation(getOrientation() *
-                glm::quat(glm::radians(glm::vec3(0.0f, turnAmount, 0.0f))));
-
+        float MINIMUM_ROTATION_RATE = 2.0f;
+        if (fabsf(_bodyYawDelta) < MINIMUM_ROTATION_RATE) {
+            _bodyYawDelta = 0.0f;
         }
     }
 
-    getHead()->setBasePitch(getHead()->getBasePitch() + (_driveKeys[ROT_UP] - _driveKeys[ROT_DOWN]) * PITCH_SPEED * deltaTime);
+    float totalBodyYaw = _bodyYawDelta * deltaTime;
+
+
+    // Comfort Mode: If you press any of the left/right rotation drive keys or input, you'll
+    // get an instantaneous 15 degree turn. If you keep holding the key down you'll get another
+    // snap turn every half second.
+    quint64 now = usecTimestampNow();
+    if (_driveKeys[STEP_YAW] != 0.0f && now - _lastStepPulse > COMFORT_MODE_PULSE_TIMING) {
+        totalBodyYaw += _driveKeys[STEP_YAW];
+    }
+
+    // update body orientation by movement inputs
+    setOrientation(getOrientation() * glm::quat(glm::radians(glm::vec3(0.0f, totalBodyYaw, 0.0f))));
+
+    getHead()->setBasePitch(getHead()->getBasePitch() + _driveKeys[PITCH] * PITCH_SPEED * deltaTime);
 
     if (qApp->getAvatarUpdater()->isHMDMode()) {
         glm::quat orientation = glm::quat_cast(getSensorToWorldMatrix()) * getHMDSensorOrientation();
@@ -1628,14 +1675,18 @@ glm::vec3 MyAvatar::applyKeyboardMotor(float deltaTime, const glm::vec3& localVe
     float motorEfficiency = glm::clamp(deltaTime / timescale, 0.0f, 1.0f);
 
     glm::vec3 newLocalVelocity = localVelocity;
-    float keyboardInput = fabsf(_driveKeys[FWD] - _driveKeys[BACK]) +
-        (fabsf(_driveKeys[RIGHT] - _driveKeys[LEFT])) +
-        fabsf(_driveKeys[UP] - _driveKeys[DOWN]);
+    float stepControllerInput = fabsf(_driveKeys[STEP_TRANSLATE_Z]) + fabsf(_driveKeys[STEP_TRANSLATE_Z]) + fabsf(_driveKeys[STEP_TRANSLATE_Z]);
+    quint64 now = usecTimestampNow();
+    // FIXME how do I implement step translation as well?
+    if (stepControllerInput && now - _lastStepPulse > COMFORT_MODE_PULSE_TIMING) {
+    }
+
+    float keyboardInput = fabsf(_driveKeys[TRANSLATE_Z]) + fabsf(_driveKeys[TRANSLATE_X]) + fabsf(_driveKeys[TRANSLATE_Y]);
     if (keyboardInput) {
         // Compute keyboard input
-        glm::vec3 front = (_driveKeys[FWD] - _driveKeys[BACK]) * IDENTITY_FRONT;
-        glm::vec3 right = (_driveKeys[RIGHT] - _driveKeys[LEFT]) * IDENTITY_RIGHT;
-        glm::vec3 up = (_driveKeys[UP] - _driveKeys[DOWN]) * IDENTITY_UP;
+        glm::vec3 front = (_driveKeys[TRANSLATE_Z]) * IDENTITY_FRONT;
+        glm::vec3 right = (_driveKeys[TRANSLATE_X]) * IDENTITY_RIGHT;
+        glm::vec3 up = (_driveKeys[TRANSLATE_Y]) * IDENTITY_UP;
 
         glm::vec3 direction = front + right + up;
         float directionLength = glm::length(direction);
@@ -1686,7 +1737,7 @@ glm::vec3 MyAvatar::applyKeyboardMotor(float deltaTime, const glm::vec3& localVe
         }
     }
 
-    float boomChange = _driveKeys[BOOM_OUT] - _driveKeys[BOOM_IN];
+    float boomChange = _driveKeys[ZOOM];
     _boomLength += 2.0f * _boomLength * boomChange + boomChange * boomChange;
     _boomLength = glm::clamp<float>(_boomLength, ZOOM_MIN, ZOOM_MAX);
 
@@ -1935,7 +1986,7 @@ void MyAvatar::clearDriveKeys() {
 }
 
 void MyAvatar::relayDriveKeysToCharacterController() {
-    if (_driveKeys[UP] > 0.0f) {
+    if (_driveKeys[TRANSLATE_Y] > 0.0f) {
         _characterController.jump();
     }
 }

@@ -12,12 +12,14 @@ Item {
     property real value: 0
     property color color: 'black'
 
+    function update() {
+        value = controlId ? Controller.getValue(controlId) : 0;
+        canvas.requestPaint();
+    }
+
     Timer {
-        interval: 50; running: true; repeat: true
-        onTriggered: {
-            root.value = Controller.getValue(root.controlId);
-            canvas.requestPaint();
-        }
+        interval: 50; running: root.controlId; repeat: true
+        onTriggered: root.update()
     }
 
     Canvas {

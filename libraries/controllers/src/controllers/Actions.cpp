@@ -12,6 +12,23 @@
 
 namespace controller {
 
+    Input::NamedPair makePair(ChannelType type, Action action, const QString& name) {
+        auto input = Input(UserInputMapper::ACTIONS_DEVICE, toInt(action), type);
+        return Input::NamedPair(input, name);
+    }
+
+    Input::NamedPair makeAxisPair(Action action, const QString& name) {
+        return makePair(ChannelType::AXIS, action, name);
+    }
+
+    Input::NamedPair makeButtonPair(Action action, const QString& name) {
+        return makePair(ChannelType::BUTTON, action, name);
+    }
+
+    Input::NamedPair makePosePair(Action action, const QString& name) {
+        return makePair(ChannelType::POSE, action, name);
+    }
+
     // Device functions
     void ActionsDevice::buildDeviceProxy(DeviceProxy::Pointer proxy) {
         proxy->_name = _name;
@@ -19,33 +36,69 @@ namespace controller {
         proxy->getAxis = [this](const Input& input, int timestamp) -> float { return 0; };
         proxy->getAvailabeInputs = [this]() -> QVector<Input::NamedPair> {
             QVector<Input::NamedPair> availableInputs{
-                Input::NamedPair(Input(UserInputMapper::ACTIONS_DEVICE, toInt(Action::LONGITUDINAL_BACKWARD), ChannelType::AXIS), "LONGITUDINAL_BACKWARD"),
-                Input::NamedPair(Input(UserInputMapper::ACTIONS_DEVICE, toInt(Action::LONGITUDINAL_FORWARD), ChannelType::AXIS), "LONGITUDINAL_FORWARD"),
-                Input::NamedPair(Input(UserInputMapper::ACTIONS_DEVICE, toInt(Action::LATERAL_LEFT), ChannelType::AXIS), "LATERAL_LEFT"),
-                Input::NamedPair(Input(UserInputMapper::ACTIONS_DEVICE, toInt(Action::LATERAL_RIGHT), ChannelType::AXIS), "LATERAL_RIGHT"),
-                Input::NamedPair(Input(UserInputMapper::ACTIONS_DEVICE, toInt(Action::VERTICAL_DOWN), ChannelType::AXIS), "VERTICAL_DOWN"),
-                Input::NamedPair(Input(UserInputMapper::ACTIONS_DEVICE, toInt(Action::VERTICAL_UP), ChannelType::AXIS), "VERTICAL_UP"),
-                Input::NamedPair(Input(UserInputMapper::ACTIONS_DEVICE, toInt(Action::YAW_LEFT), ChannelType::AXIS), "YAW_LEFT"),
-                Input::NamedPair(Input(UserInputMapper::ACTIONS_DEVICE, toInt(Action::YAW_RIGHT), ChannelType::AXIS), "YAW_RIGHT"),
-                Input::NamedPair(Input(UserInputMapper::ACTIONS_DEVICE, toInt(Action::PITCH_DOWN), ChannelType::AXIS), "PITCH_DOWN"),
-                Input::NamedPair(Input(UserInputMapper::ACTIONS_DEVICE, toInt(Action::PITCH_UP), ChannelType::AXIS), "PITCH_UP"),
-                Input::NamedPair(Input(UserInputMapper::ACTIONS_DEVICE, toInt(Action::BOOM_IN), ChannelType::AXIS), "BOOM_IN"),
-                Input::NamedPair(Input(UserInputMapper::ACTIONS_DEVICE, toInt(Action::BOOM_OUT), ChannelType::AXIS), "BOOM_OUT"),
-                Input::NamedPair(Input(UserInputMapper::ACTIONS_DEVICE, toInt(Action::LEFT_HAND), ChannelType::POSE), "LEFT_HAND"),
-                Input::NamedPair(Input(UserInputMapper::ACTIONS_DEVICE, toInt(Action::RIGHT_HAND), ChannelType::POSE), "RIGHT_HAND"),
-                Input::NamedPair(Input(UserInputMapper::ACTIONS_DEVICE, toInt(Action::LEFT_HAND_CLICK), ChannelType::BUTTON), "LEFT_HAND_CLICK"),
-                Input::NamedPair(Input(UserInputMapper::ACTIONS_DEVICE, toInt(Action::RIGHT_HAND_CLICK), ChannelType::BUTTON), "RIGHT_HAND_CLICK"),
-                Input::NamedPair(Input(UserInputMapper::ACTIONS_DEVICE, toInt(Action::SHIFT), ChannelType::BUTTON), "SHIFT"),
-                Input::NamedPair(Input(UserInputMapper::ACTIONS_DEVICE, toInt(Action::ACTION1), ChannelType::BUTTON), "ACTION1"),
-                Input::NamedPair(Input(UserInputMapper::ACTIONS_DEVICE, toInt(Action::ACTION2), ChannelType::BUTTON), "ACTION2"),
-                Input::NamedPair(Input(UserInputMapper::ACTIONS_DEVICE, toInt(Action::CONTEXT_MENU), ChannelType::BUTTON), "CONTEXT_MENU"),
-                Input::NamedPair(Input(UserInputMapper::ACTIONS_DEVICE, toInt(Action::TOGGLE_MUTE), ChannelType::AXIS), "TOGGLE_MUTE"),
-                Input::NamedPair(Input(UserInputMapper::ACTIONS_DEVICE, toInt(Action::TRANSLATE_X), ChannelType::AXIS), "TranslateX"),
-                Input::NamedPair(Input(UserInputMapper::ACTIONS_DEVICE, toInt(Action::TRANSLATE_Y), ChannelType::AXIS), "TranslateY"),
-                Input::NamedPair(Input(UserInputMapper::ACTIONS_DEVICE, toInt(Action::TRANSLATE_Z), ChannelType::AXIS), "TranslateZ"),
-                Input::NamedPair(Input(UserInputMapper::ACTIONS_DEVICE, toInt(Action::ROLL), ChannelType::AXIS), "Roll"),
-                Input::NamedPair(Input(UserInputMapper::ACTIONS_DEVICE, toInt(Action::PITCH), ChannelType::AXIS), "Pitch"),
-                Input::NamedPair(Input(UserInputMapper::ACTIONS_DEVICE, toInt(Action::YAW), ChannelType::AXIS), "Yaw")
+                makeAxisPair(Action::TRANSLATE_X, "TranslateX"),
+                makeAxisPair(Action::TRANSLATE_Y, "TranslateY"),
+                makeAxisPair(Action::TRANSLATE_Z, "TranslateZ"),
+                makeAxisPair(Action::ROLL, "Roll"),
+                makeAxisPair(Action::PITCH, "Pitch"),
+                makeAxisPair(Action::YAW, "Yaw"),
+                makeAxisPair(Action::STEP_YAW, "StepYaw"),
+                makeAxisPair(Action::STEP_PITCH, "StepPitch"),
+                makeAxisPair(Action::STEP_ROLL, "StepRoll"),
+                makeAxisPair(Action::STEP_TRANSLATE_X, "StepTranslateX"),
+                makeAxisPair(Action::STEP_TRANSLATE_X, "StepTranslateY"),
+                makeAxisPair(Action::STEP_TRANSLATE_X, "StepTranslateZ"),
+                makeAxisPair(Action::LONGITUDINAL_BACKWARD, "Backward"),
+                makeAxisPair(Action::LONGITUDINAL_FORWARD, "Forward"),
+                makeAxisPair(Action::LATERAL_LEFT, "StrafeLeft"),
+                makeAxisPair(Action::LATERAL_RIGHT, "StrafeRight"),
+                makeAxisPair(Action::VERTICAL_DOWN, "Down"),
+                makeAxisPair(Action::VERTICAL_UP, "Up"),
+                makeAxisPair(Action::YAW_LEFT, "YawLeft"),
+                makeAxisPair(Action::YAW_RIGHT, "YawRight"),
+                makeAxisPair(Action::PITCH_DOWN, "PitchDown"),
+                makeAxisPair(Action::PITCH_UP, "PitchUp"),
+                makeAxisPair(Action::BOOM_IN, "BoomIn"),
+                makeAxisPair(Action::BOOM_OUT, "BoomOut"),
+
+                makePosePair(Action::LEFT_HAND, "LeftHand"),
+                makePosePair(Action::RIGHT_HAND, "RightHand"),
+
+                makeButtonPair(Action::LEFT_HAND_CLICK, "LeftHandClick"),
+                makeButtonPair(Action::RIGHT_HAND_CLICK, "RightHandClick"),
+
+                makeButtonPair(Action::SHIFT, "Shift"),
+                makeButtonPair(Action::ACTION1, "PrimaryAction"),
+                makeButtonPair(Action::ACTION2, "SecondaryAction"),
+                makeButtonPair(Action::CONTEXT_MENU, "ContextMenu"),
+                makeButtonPair(Action::TOGGLE_MUTE, "ToggleMute"),
+
+                // Deprecated aliases
+                // FIXME remove after we port all scripts
+                makeAxisPair(Action::LONGITUDINAL_BACKWARD, "LONGITUDINAL_BACKWARD"),
+                makeAxisPair(Action::LONGITUDINAL_FORWARD, "LONGITUDINAL_FORWARD"),
+                makeAxisPair(Action::LATERAL_LEFT, "LATERAL_LEFT"),
+                makeAxisPair(Action::LATERAL_RIGHT, "LATERAL_RIGHT"),
+                makeAxisPair(Action::VERTICAL_DOWN, "VERTICAL_DOWN"),
+                makeAxisPair(Action::VERTICAL_UP, "VERTICAL_UP"),
+                makeAxisPair(Action::YAW_LEFT, "YAW_LEFT"),
+                makeAxisPair(Action::YAW_RIGHT, "YAW_RIGHT"),
+                makeAxisPair(Action::PITCH_DOWN, "PITCH_DOWN"),
+                makeAxisPair(Action::PITCH_UP, "PITCH_UP"),
+                makeAxisPair(Action::BOOM_IN, "BOOM_IN"),
+                makeAxisPair(Action::BOOM_OUT, "BOOM_OUT"),
+
+                makePosePair(Action::LEFT_HAND, "LEFT_HAND"),
+                makePosePair(Action::RIGHT_HAND, "RIGHT_HAND"),
+
+                makeButtonPair(Action::LEFT_HAND_CLICK, "LEFT_HAND_CLICK"),
+                makeButtonPair(Action::RIGHT_HAND_CLICK, "RIGHT_HAND_CLICK"),
+
+                makeButtonPair(Action::SHIFT, "SHIFT"),
+                makeButtonPair(Action::ACTION1, "ACTION1"),
+                makeButtonPair(Action::ACTION2, "ACTION2"),
+                makeButtonPair(Action::CONTEXT_MENU, "CONTEXT_MENU"),
+                makeButtonPair(Action::TOGGLE_MUTE, "TOGGLE_MUTE"),
             };
             return availableInputs;
         };

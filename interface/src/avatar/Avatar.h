@@ -43,21 +43,6 @@ static const float BILLBOARD_DISTANCE = 5.56f;       // meters
 extern const float CHAT_MESSAGE_SCALE;
 extern const float CHAT_MESSAGE_HEIGHT;
 
-enum DriveKeys {
-    FWD = 0,
-    BACK,
-    LEFT,
-    RIGHT,
-    UP,
-    DOWN,
-    ROT_LEFT,
-    ROT_RIGHT,
-    ROT_UP,
-    ROT_DOWN,
-    BOOM_IN,
-    BOOM_OUT,
-    MAX_DRIVE_KEYS
-};
 
 enum ScreenTintLayer {
     SCREEN_TINT_BEFORE_LANDSCAPE = 0,
