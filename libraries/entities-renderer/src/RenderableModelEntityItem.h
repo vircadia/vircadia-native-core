@@ -67,6 +67,9 @@ public:
     void computeShapeInfo(ShapeInfo& info);
     
     virtual bool contains(const glm::vec3& point) const;
+    
+    virtual glm::vec3 getJointPosition(int jointIndex) const override;
+    virtual glm::quat getJointRotation(int jointIndex) const override;
 
 private:
     void remapTextures();
