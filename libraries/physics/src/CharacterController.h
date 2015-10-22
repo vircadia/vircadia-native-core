@@ -36,7 +36,6 @@ public:
 
     virtual void updateShapeIfNecessary() = 0;
     virtual void preSimulation() = 0;
-    virtual void incrementSimulationTime(btScalar stepTime) = 0;
     virtual void postSimulation() = 0;
 
     virtual void setWalkDirection(const btVector3 &walkDirection) { assert(false); }

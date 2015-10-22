@@ -16,7 +16,6 @@
 #include <BulletCollision/CollisionDispatch/btCollisionWorld.h>
 #include <LinearMath/btDefaultMotionState.h>
 
-#include <BulletUtil.h>
 #include <GLMHelpers.h>
 #include <PhysicsLogging.h>
 #include <PhysicsCollisionGroups.h>
@@ -161,6 +160,17 @@ void MyCharacterController::playerStep(btCollisionWorld* dynaWorld, btScalar dt)
             _rigidBody->setLinearVelocity(actualVelocity + tau * velocityCorrection);
         }
     }
+
+    // Rather than add _hmdVelocity to the velocity of the RigidBody, we explicitly teleport 
+    // the RigidBody forward according to the formula: distance = rate * time
+    if (_hmdVelocity.length2() > 0.0f) {
+        btTransform bodyTransform = _rigidBody->getWorldTransform();
+        bodyTransform.setOrigin(bodyTransform.getOrigin() + dt * _hmdVelocity);
+        _rigidBody->setWorldTransform(bodyTransform);
+    }
+    // MyAvatar will ask us how far we stepped for HMD motion, which will depend on how 
+    // much time has accumulated in _lastStepDuration.
+    _lastStepDuration += dt;
 }
 
 void MyCharacterController::jump() {
@@ -390,6 +400,7 @@ void MyCharacterController::preSimulation() {
             }
         }
     }
+    _lastStepDuration = 0.0f;
 }
 
 void MyCharacterController::postSimulation() {

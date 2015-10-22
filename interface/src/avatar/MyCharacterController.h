@@ -16,6 +16,7 @@
 #include <btBulletDynamicsCommon.h>
 #include <glm/glm.hpp>
 
+#include <BulletUtil.h>
 #include <CharacterController.h>
 #include <SharedUtil.h>
 
@@ -48,7 +49,6 @@ public:
     // overrides from CharacterController
     virtual void preSimulation() override;
     virtual void postSimulation() override;
-    virtual void incrementSimulationTime(btScalar timeStep) override { _lastStepDuration += timeStep; }
 
     bool isHovering() const { return _isHovering; }
     void setHovering(bool enabled);
@@ -65,6 +65,7 @@ public:
 
     void setTargetVelocity(const glm::vec3& velocity);
     void setHMDVelocity(const glm::vec3& velocity);
+    glm::vec3 getHMDShift() const { return _lastStepDuration * bulletToGLM(_hmdVelocity); }
 
     glm::vec3 getLinearVelocity() const;
 

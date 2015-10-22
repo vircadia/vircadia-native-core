@@ -114,7 +114,6 @@ MyAvatar::MyAvatar(RigPointer rig) :
     ,_hmdAtRestDetector(glm::vec3(0), glm::quat())
 #else
     ,_avatarOffsetFromHMD(0.0f)
-    ,_hmdVelocity(0.0f)
 #endif  // OLD_HMD_TRACKER
 {
     for (int i = 0; i < MAX_DRIVE_KEYS; i++) {
@@ -375,7 +374,14 @@ void MyAvatar::updateFromHMDSensorMatrix(const glm::mat4& hmdSensorMatrix) {
     }
 
     followHMD(deltaTime);
+#else
+    // TODO adebug BOOKMARK -- this is where we need to add the new code for HMD_TRACKER
 #endif  // OLD_HMD_TRACKER
+}
+
+glm::vec3 MyAvatar::getHMDCorrectionVelocity() const {
+    // TODO: impelement this
+    return Vectors::ZERO;
 }
 
 #ifdef OLD_HMD_TRACKER
@@ -433,10 +439,6 @@ void MyAvatar::followHMD(float deltaTime) {
             _bodySensorMatrix = createMatFromQuatAndPos(rot, pos);
         }
     }
-}
-#else
-void MyAvatar::harvestHMDOffset(glm::vec3 offset) {
-    
 }
 #endif // USE_OLD
 
@@ -1292,7 +1294,7 @@ void MyAvatar::prepareForPhysicsSimulation() {
     relayDriveKeysToCharacterController();
     _characterController.setTargetVelocity(getTargetVelocity());
     _characterController.setAvatarPositionAndOrientation(getPosition(), getOrientation());
-    //_characterController.setHMDVelocity(hmdVelocity);
+    _characterController.setHMDVelocity(getHMDCorrectionVelocity());
 }   
 
 void MyAvatar::harvestResultsFromPhysicsSimulation() {
@@ -1301,6 +1303,9 @@ void MyAvatar::harvestResultsFromPhysicsSimulation() {
     _characterController.getAvatarPositionAndOrientation(position, orientation);
     nextAttitude(position, orientation);
     setVelocity(_characterController.getLinearVelocity());
+    
+    // adebug TODO: harvest HMD shift here
+    //glm::vec3 hmdShift = _characterController.getHMDShift();
 }
 
 QString MyAvatar::getScriptedMotorFrame() const {

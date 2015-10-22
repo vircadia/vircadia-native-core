@@ -76,6 +76,8 @@ public:
     // as it moves through the world.
     void updateFromHMDSensorMatrix(const glm::mat4& hmdSensorMatrix);
 
+    glm::vec3 getHMDCorrectionVelocity() const;
+
     // best called at end of main loop, just before rendering.
     // update sensor to world matrix from current body position and hmd sensor.
     // This is so the correct camera can be used for rendering.
@@ -272,8 +274,6 @@ private:
     void beginFollowingHMD();
     bool shouldFollowHMD() const;
     void followHMD(float deltaTime);
-#else
-    void harvestHMDOffset(glm::vec3 offset);
 #endif
 
     bool cameraInsideHead() const;
@@ -376,7 +376,6 @@ private:
     bool _lastIsMoving { false };
 #else
     glm::vec3 _avatarOffsetFromHMD;
-    glm::vec3 _hmdVelocity;
 #endif // OLD_HMD_TRACKER
 };
 
