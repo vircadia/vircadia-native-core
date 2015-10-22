@@ -9,7 +9,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include "MyAvatarController.h"
+#include "MyCharacterController.h"
 
 #include <BulletCollision/CollisionShapes/btMultiSphereShape.h>
 #include <BulletDynamics/Dynamics/btRigidBody.h>
@@ -50,7 +50,7 @@ protected:
     btRigidBody* _me;
 };
 
-MyAvatarController::MyAvatarController(MyAvatar* avatar) {
+MyCharacterController::MyCharacterController(MyAvatar* avatar) {
     _halfHeight = 1.0f;
     _shape = nullptr;
 
@@ -76,10 +76,10 @@ MyAvatarController::MyAvatarController(MyAvatar* avatar) {
     updateShapeIfNecessary();
 }
 
-MyAvatarController::~MyAvatarController() {
+MyCharacterController::~MyCharacterController() {
 }
 
-void MyAvatarController::preStep(btCollisionWorld* collisionWorld) {
+void MyCharacterController::preStep(btCollisionWorld* collisionWorld) {
     // trace a ray straight down to see if we're standing on the ground
     const btTransform& xform = _rigidBody->getWorldTransform();
 
@@ -100,7 +100,7 @@ void MyAvatarController::preStep(btCollisionWorld* collisionWorld) {
     }
 }
 
-void MyAvatarController::playerStep(btCollisionWorld* dynaWorld, btScalar dt) {
+void MyCharacterController::playerStep(btCollisionWorld* dynaWorld, btScalar dt) {
     btVector3 actualVelocity = _rigidBody->getLinearVelocity();
     btScalar actualSpeed = actualVelocity.length();
 
@@ -164,7 +164,7 @@ void MyAvatarController::playerStep(btCollisionWorld* dynaWorld, btScalar dt) {
     }
 }
 
-void MyAvatarController::jump() {
+void MyCharacterController::jump() {
     // check for case where user is holding down "jump" key...
     // we'll eventually tansition to "hover"
     if (!_isJumping) {
@@ -182,12 +182,12 @@ void MyAvatarController::jump() {
     }
 }
 
-bool MyAvatarController::onGround() const {
+bool MyCharacterController::onGround() const {
     const btScalar FLOOR_PROXIMITY_THRESHOLD = 0.3f * _radius;
     return _floorDistance < FLOOR_PROXIMITY_THRESHOLD;
 }
 
-void MyAvatarController::setHovering(bool hover) {
+void MyCharacterController::setHovering(bool hover) {
     if (hover != _isHovering) {
         _isHovering = hover;
         _isJumping = false;
@@ -202,7 +202,7 @@ void MyAvatarController::setHovering(bool hover) {
     }
 }
 
-void MyAvatarController::setLocalBoundingBox(const glm::vec3& corner, const glm::vec3& scale) {
+void MyCharacterController::setLocalBoundingBox(const glm::vec3& corner, const glm::vec3& scale) {
     _boxScale = scale;
 
     float x = _boxScale.x;
@@ -236,16 +236,16 @@ void MyAvatarController::setLocalBoundingBox(const glm::vec3& corner, const glm:
 }
 
 /* moved to base class
-bool MyAvatarController::needsRemoval() const {
+bool MyCharacterController::needsRemoval() const {
     return (bool)(_pendingFlags & PENDING_FLAG_REMOVE_FROM_SIMULATION);
 }
 
-bool MyAvatarController::needsAddition() const {
+bool MyCharacterController::needsAddition() const {
     return (bool)(_pendingFlags & PENDING_FLAG_ADD_TO_SIMULATION);
 }
 */
 
-void MyAvatarController::setEnabled(bool enabled) {
+void MyCharacterController::setEnabled(bool enabled) {
     if (enabled != _enabled) {
         if (enabled) {
             // Don't bother clearing REMOVE bit since it might be paired with an UPDATE_SHAPE bit.
@@ -264,7 +264,7 @@ void MyAvatarController::setEnabled(bool enabled) {
 }
 
 /* moved to base class
-void MyAvatarController::setDynamicsWorld(btDynamicsWorld* world) {
+void MyCharacterController::setDynamicsWorld(btDynamicsWorld* world) {
     if (_dynamicsWorld != world) {
         if (_dynamicsWorld) { 
             if (_rigidBody) {
@@ -293,7 +293,7 @@ void MyAvatarController::setDynamicsWorld(btDynamicsWorld* world) {
     }
 }*/
 
-void MyAvatarController::updateShapeIfNecessary() {
+void MyCharacterController::updateShapeIfNecessary() {
     if (_pendingFlags & PENDING_FLAG_UPDATE_SHAPE) {
         // make sure there is NO pending removal from simulation at this point
         // (don't want to delete _rigidBody out from under the simulation)
@@ -342,7 +342,7 @@ void MyAvatarController::updateShapeIfNecessary() {
     }
 }
 
-void MyAvatarController::updateUpAxis(const glm::quat& rotation) {
+void MyCharacterController::updateUpAxis(const glm::quat& rotation) {
     btVector3 oldUp = _currentUp;
     _currentUp = quatRotate(glmToBullet(rotation), LOCAL_UP_AXIS);
     if (!_isHovering) {
@@ -353,7 +353,7 @@ void MyAvatarController::updateUpAxis(const glm::quat& rotation) {
     }
 }
 
-void MyAvatarController::setAvatarPositionAndOrientation(
+void MyCharacterController::setAvatarPositionAndOrientation(
         const glm::vec3& position, 
         const glm::quat& orientation) {
     // TODO: update gravity if up has changed
@@ -364,7 +364,7 @@ void MyAvatarController::setAvatarPositionAndOrientation(
     _avatarBodyTransform = btTransform(bodyOrientation, bodyPosition);
 }
 
-void MyAvatarController::getAvatarPositionAndOrientation(glm::vec3& position, glm::quat& rotation) const {
+void MyCharacterController::getAvatarPositionAndOrientation(glm::vec3& position, glm::quat& rotation) const {
     if (_enabled && _rigidBody) {
         const btTransform& avatarTransform = _rigidBody->getWorldTransform();
         rotation = bulletToGLM(avatarTransform.getRotation());
@@ -372,16 +372,16 @@ void MyAvatarController::getAvatarPositionAndOrientation(glm::vec3& position, gl
     }
 }
 
-void MyAvatarController::setTargetVelocity(const glm::vec3& velocity) {
+void MyCharacterController::setTargetVelocity(const glm::vec3& velocity) {
     //_walkVelocity = glmToBullet(_avatarData->getTargetVelocity());
     _walkVelocity = glmToBullet(velocity);
 }
 
-void MyAvatarController::setHMDVelocity(const glm::vec3& velocity) {
+void MyCharacterController::setHMDVelocity(const glm::vec3& velocity) {
     _hmdVelocity = glmToBullet(velocity);
 }
 
-glm::vec3 MyAvatarController::getLinearVelocity() const {
+glm::vec3 MyCharacterController::getLinearVelocity() const {
     glm::vec3 velocity(0.0f);
     if (_rigidBody) {
         velocity = bulletToGLM(_rigidBody->getLinearVelocity());
@@ -389,7 +389,7 @@ glm::vec3 MyAvatarController::getLinearVelocity() const {
     return velocity;
 }
 
-void MyAvatarController::preSimulation() {
+void MyCharacterController::preSimulation() {
     if (_enabled && _dynamicsWorld) {
         /*
         glm::quat rotation = _avatarData->getOrientation();
@@ -440,7 +440,7 @@ void MyAvatarController::preSimulation() {
     }
 }
 
-void MyAvatarController::postSimulation() {
+void MyCharacterController::postSimulation() {
     /*
     _lastStepDuration += timeStep;
     if (_enabled && _rigidBody) {

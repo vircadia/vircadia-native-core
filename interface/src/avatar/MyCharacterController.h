@@ -1,5 +1,5 @@
 //
-//  MyAvatar.h
+//  MyCharacterController.h
 //  interface/src/avatar
 //
 //  Created by AndrewMeadows 2015.10.21
@@ -10,8 +10,8 @@
 //
 
 
-#ifndef hifi_MyAvatarController_h
-#define hifi_MyAvatarController_h
+#ifndef hifi_MyCharacterController_h
+#define hifi_MyCharacterController_h
 
 #include <btBulletDynamicsCommon.h>
 #include <glm/glm.hpp>
@@ -22,10 +22,10 @@
 class btCollisionShape;
 class MyAvatar;
 
-class MyAvatarController : public CharacterController {
+class MyCharacterController : public CharacterController {
 public:
-    MyAvatarController(MyAvatar* avatar);
-    ~MyAvatarController ();
+    MyCharacterController(MyAvatar* avatar);
+    ~MyCharacterController ();
 
     // TODO: implement these when needed
     virtual void setVelocityForTimeInterval(const btVector3 &velocity, btScalar timeInterval) override { assert(false); }
@@ -103,4 +103,4 @@ protected:
     bool _isPushingUp;
 };
 
-#endif // hifi_MyAvatarController_h
+#endif // hifi_MyCharacterController_h

@@ -19,7 +19,7 @@
 
 #include "Avatar.h"
 //#include "AtRestDetector.h"
-#include "MyAvatarController.h"
+#include "MyCharacterController.h"
 
 //#define OLD_HMD_TRACKER
 
@@ -158,7 +158,7 @@ public:
 
     virtual void setAttachmentData(const QVector<AttachmentData>& attachmentData) override;
 
-    MyAvatarController* getCharacterController() { return &_characterController; }
+    MyCharacterController* getCharacterController() { return &_characterController; }
 
     void prepareForPhysicsSimulation();
     void harvestResultsFromPhysicsSimulation();
@@ -305,7 +305,7 @@ private:
     quint32 _motionBehaviors;
     QString _collisionSoundURL;
 
-    MyAvatarController _characterController;
+    MyCharacterController _characterController;
 
     AvatarWeakPointer _lookAtTargetAvatar;
     glm::vec3 _targetAvatarPosition;
