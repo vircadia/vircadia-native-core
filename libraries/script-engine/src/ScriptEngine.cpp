@@ -258,6 +258,15 @@ void ScriptEngine::errorInLoadingScript(const QUrl& url) {
     }
 }
 
+// Even though we never pass AnimVariantMap directly to and from javascript, the queued invokeMethod of
+// invokeAnimationCallback requires that the type be registered.
+static QScriptValue animVarMapToScriptValue(QScriptEngine* engine, const AnimVariantMap& parameters) {
+    return parameters.animVariantMapToScriptValue(engine);
+}
+static void animVarMapFromScriptValue(const QScriptValue& value, AnimVariantMap& parameters) {
+    parameters.animVariantMapFromScriptValue(value);
+}
+
 void ScriptEngine::init() {
     if (_isInitialized) {
         return; // only initialize once
@@ -316,6 +325,7 @@ void ScriptEngine::init() {
     registerGlobalObject("Vec3", &_vec3Library);
     registerGlobalObject("Uuid", &_uuidLibrary);
     registerGlobalObject("AnimationCache", DependencyManager::get<AnimationCache>().data());
+    qScriptRegisterMetaType(this, animVarMapToScriptValue, animVarMapFromScriptValue);
 
     // constants
     globalObject().setProperty("TREE_SCALE", newVariant(QVariant(TREE_SCALE)));
@@ -718,6 +728,21 @@ void ScriptEngine::stop() {
     }
 }
 
+// Other threads can invoke this through invokeMethod, which causes the callback to be asynchronously executed in this script's thread.
+void ScriptEngine::invokeAnimationCallback(QScriptValue callback, AnimVariantMap parameters) {
+    checkThread();
+    QScriptValue javascriptParametgers = parameters.animVariantMapToScriptValue(this);
+    QScriptValueList callingArguments;
+    callingArguments << javascriptParametgers;
+    QScriptValue result = callback.call(QScriptValue(), callingArguments);
+    // We want to give the result back to the rig, but we don't have the rig or the avatar. But the global does.
+    // This is sort of like going through DependencyManager.get.
+    QScriptValue resultHandler = globalObject().property("MyAvatar").property("animationStateHandlerResult");
+    QScriptValueList resultArguments;
+    resultArguments << callback << result;
+    resultHandler.call(QScriptValue(), resultArguments); // Call it synchronously, on our own time and thread.
+}
+
 void ScriptEngine::timerFired() {
     QTimer* callingTimer = reinterpret_cast<QTimer*>(sender());
     QScriptValue timerFunction = _timerFunctionMap.value(callingTimer);
@@ -898,14 +923,20 @@ void ScriptEngine::load(const QString& loadFile) {
     }
 }
 
-// Look up the handler associated with eventName and entityID. If found, evalute the argGenerator thunk and call the handler with those args
-void ScriptEngine::generalHandler(const EntityItemID& entityID, const QString& eventName, std::function<QScriptValueList()> argGenerator) {
+bool ScriptEngine::checkThread() const {
     if (QThread::currentThread() != thread()) {
         qDebug() << "*** ERROR *** ScriptEngine::generalHandler() called on wrong thread [" << QThread::currentThread() << "], invoking on correct thread [" << thread() << "]";
         assert(false);
+        return true;
+    }
+    return false;
+}
+
+// Look up the handler associated with eventName and entityID. If found, evalute the argGenerator thunk and call the handler with those args
+void ScriptEngine::generalHandler(const EntityItemID& entityID, const QString& eventName, std::function<QScriptValueList()> argGenerator) {
+    if (checkThread()) {
         return;
     }
-
     if (!_registeredHandlers.contains(entityID)) {
         return;
     }

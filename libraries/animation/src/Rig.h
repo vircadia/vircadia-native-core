@@ -202,7 +202,7 @@ public:
     bool disableHands {false}; // should go away with rig animation (and Rig::inverseKinematics)
     void addAnimationStateHandler(QScriptValue handler, QScriptValue propertiesList);
     void removeAnimationStateHandler(QScriptValue handler);
-    void cleanupAnimationStateHandler();
+    void animationStateHandlerResult(QScriptValue handler, QScriptValue result);
 
     bool getModelOffset(glm::vec3& modelOffsetOut) const;
 
@@ -248,9 +248,9 @@ public:
     float _rightHandOverlayAlpha = 0.0f;
 
 private:
-    QScriptValue _stateHandlers {};
-    QScriptValue _stateHandlersResults {};
-    QScriptValue _stateHandlersResultsToRemove {};
+    QScriptValue _stateHandlers;
+    AnimVariantMap _stateHandlersResults;
+    QMutex _stateMutex;
 };
 
 #endif /* defined(__hifi__Rig__) */

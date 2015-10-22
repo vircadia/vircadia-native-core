@@ -14,7 +14,7 @@
 #include <RegisteredMetaTypes.h>
 #include "AnimVariant.h"
 
-QScriptValue AnimVariantMap::animVariantMapToScriptValue(QScriptEngine* engine) {
+QScriptValue AnimVariantMap::animVariantMapToScriptValue(QScriptEngine* engine) const {
     QScriptValue target = engine->newObject();
     for (auto& pair : _map) {
         switch (pair.second.getType()) {
@@ -42,6 +42,11 @@ QScriptValue AnimVariantMap::animVariantMapToScriptValue(QScriptEngine* engine) 
         }
     }
     return target;
+}
+void AnimVariantMap::copyVariantsFrom(const AnimVariantMap& other) {
+    for (auto& pair : other._map) {
+        _map[pair.first] = pair.second;
+    }
 }
 void AnimVariantMap::animVariantMapFromScriptValue(const QScriptValue& source) {
     // POTENTIAL OPTIMIZATION: cache the types we've seen. I.e, keep a dictionary mapping property names to an enumeration of types.

@@ -605,40 +605,32 @@ void Rig::computeMotionAnimationState(float deltaTime, const glm::vec3& worldPos
     _lastPosition = worldPosition;
 }
 
-void Rig::addAnimationStateHandler(QScriptValue handler, QScriptValue propertiesList) {
+// Allow script to add/remove handlers and report results, from within their thread.
+// TODO: iterate multiple handlers, but with one shared arg.
+// TODO: fill the properties based on the union of requested properties. (Keep all properties objs and compute new union when add/remove handler.)
+void Rig::addAnimationStateHandler(QScriptValue handler, QScriptValue propertiesList) { // called in script thread
     _stateHandlers = handler;
 }
-void Rig::removeAnimationStateHandler(QScriptValue handler) {
-    _stateHandlersResultsToRemove = _stateHandlersResults;
-    _stateHandlers = _stateHandlersResults = QScriptValue();
+void Rig::removeAnimationStateHandler(QScriptValue handler) { // called in script thread
+    _stateHandlers = QScriptValue();
+    QMutexLocker locker(&_stateMutex); // guarding access to results
+    _stateHandlersResults.clearMap(); // TODO: When we have multiple handlers, we'll need to clear only his handler's results.
 }
-void Rig::cleanupAnimationStateHandler() {
-    if (!_stateHandlersResultsToRemove.isValid()) {
-        return;
-    }
-    QScriptValueIterator property(_stateHandlersResultsToRemove);
-    while (property.hasNext()) {
-        property.next();
-        _animVars.unset(property.name());
-    }
-    _stateHandlersResultsToRemove = QScriptValue();
+void Rig::animationStateHandlerResult(QScriptValue handler, QScriptValue result) { // called synchronously from script
+    // handler is currently ignored but might be used in storing individual results
+    QMutexLocker locker(&_stateMutex);
+    _stateHandlersResults.animVariantMapFromScriptValue(result); // Into our own copy.
 }
-void Rig::updateAnimationStateHandlers() {
-    if (!_stateHandlers.isValid()) {
-        return;
+void Rig::updateAnimationStateHandlers() { // called on avatar update thread (which may be main thread)
+    if (_stateHandlers.isValid()) {
+        // invokeMethod makes a copy of the args, and copies of AnimVariantMap do copy the underlying map, so this will correctly capture
+        // the state of _animVars and allow continued changes to _animVars in this thread without conflict.
+        QMetaObject::invokeMethod(_stateHandlers.engine(), "invokeAnimationCallback",  Qt::QueuedConnection,
+                                  Q_ARG(QScriptValue, _stateHandlers),
+                                  Q_ARG(AnimVariantMap, _animVars));
     }
-    // TODO: iterate multiple handlers, but with one shared arg.
-    // TODO: fill the properties based on the union of requested properties. (Keep all properties objs and compute new union when add/remove handler.)
-    // TODO: check QScriptEngine::hasUncaughtException()
-    // TODO: call asynchronously (through a signal on script), so that each script is single threaded, and so we never block here.
-    //       This will require inboundMaps to be kept in the list of per-handler data.
-    QScriptEngine* engine = _stateHandlers.engine();
-    QScriptValue outboundMap = _animVars.animVariantMapToScriptValue(engine);
-    QScriptValueList args;
-    args << outboundMap;
-    _stateHandlersResults = _stateHandlers.call(QScriptValue(), args);
-    _animVars.animVariantMapFromScriptValue(_stateHandlersResults);
-    //qCDebug(animation) << _animVars.lookup("foo", QString("not set"));
+    QMutexLocker locker(&_stateMutex); // as we examine/copy most recently computed state, if any. (Typically an earlier invocation.)
+    _animVars.copyVariantsFrom(_stateHandlersResults);
 }
 
 void Rig::updateAnimations(float deltaTime, glm::mat4 rootTransform) {
