@@ -493,9 +493,50 @@ bool EntityTreeElement::bestFitBounds(const glm::vec3& minPoint, const glm::vec3
     return false;
 }
 
+bool EntityTreeElement::findRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
+    bool& keepSearching, OctreeElementPointer& element, float& distance,
+    BoxFace& face, glm::vec3& surfaceNormal, const QVector<EntityItemID>& entityIdsToInclude,
+    void** intersectedObject, bool precisionPicking) {
+
+    keepSearching = true; // assume that we will continue searching after this.
+
+    float distanceToElementCube = std::numeric_limits<float>::max();
+    float distanceToElementDetails = distance;
+    BoxFace localFace;
+    glm::vec3 localSurfaceNormal;
+
+    // if the ray doesn't intersect with our cube, we can stop searching!
+    if (!_cube.findRayIntersection(origin, direction, distanceToElementCube, localFace, localSurfaceNormal)) {
+        keepSearching = false; // no point in continuing to search
+        return false; // we did not intersect
+    }
+
+    // by default, we only allow intersections with leaves with content
+    if (!canRayIntersect()) {
+        return false; // we don't intersect with non-leaves, and we keep searching
+    }
+
+    // if the distance to the element cube is not less than the current best distance, then it's not possible
+    // for any details inside the cube to be closer so we don't need to consider them.
+    if (_cube.contains(origin) || distanceToElementCube < distance) {
+
+        if (findDetailedRayIntersection(origin, direction, keepSearching, element, distanceToElementDetails,
+            face, localSurfaceNormal, entityIdsToInclude, intersectedObject, precisionPicking, distanceToElementCube)) {
+
+            if (distanceToElementDetails < distance) {
+                distance = distanceToElementDetails;
+                face = localFace;
+                surfaceNormal = localSurfaceNormal;
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
 bool EntityTreeElement::findDetailedRayIntersection(const glm::vec3& origin, const glm::vec3& direction, bool& keepSearching,
                                     OctreeElementPointer& element, float& distance, BoxFace& face, glm::vec3& surfaceNormal,
-                                    const QVector<QUuid>& entityIdsToInclude, void** intersectedObject, bool precisionPicking, float distanceToElementCube) {
+                                    const QVector<EntityItemID>& entityIdsToInclude, void** intersectedObject, bool precisionPicking, float distanceToElementCube) {
 
     // only called if we do intersect our bounding cube, but find if we actually intersect with entities...
     int entityNumber = 0;
@@ -607,27 +648,99 @@ EntityItemPointer EntityTreeElement::getClosestEntity(glm::vec3 position) const 
 
 // TODO: change this to use better bounding shape for entity than sphere
 void EntityTreeElement::getEntities(const glm::vec3& searchPosition, float searchRadius, QVector<EntityItemPointer>& foundEntities) const {
-    float compareRadius = searchRadius * searchRadius;
     forEachEntity([&](EntityItemPointer entity) {
-        // For iteration like this, avoid the use of square roots by comparing distances squared
-        float distanceSquared = glm::length2(entity->getPosition() - searchPosition);
-        float otherRadius = entity->getRadius();
-        if (distanceSquared < (compareRadius + (otherRadius * otherRadius))) {
+
+        AABox entityBox = entity->getAABox();
+
+        // if the sphere doesn't intersect with our world frame AABox, we don't need to consider the more complex case
+        glm::vec3 penetration;
+        if (entityBox.findSpherePenetration(searchPosition, searchRadius, penetration)) {
+
+            glm::vec3 dimensions = entity->getDimensions();
+
+            // FIXME - consider allowing the entity to determine penetration so that
+            //         entities could presumably dull actuall hull testing if they wanted to
+            // FIXME - handle entity->getShapeType() == SHAPE_TYPE_SPHERE case better in particular
+            //         can we handle the ellipsoid case better? We only currently handle perfect spheres
+            //         with centered registration points
+            if (entity->getShapeType() == SHAPE_TYPE_SPHERE &&
+                (dimensions.x == dimensions.y && dimensions.y == dimensions.z)) {
+
+                // NOTE: entity->getRadius() doesn't return the true radius, it returns the radius of the
+                //       maximum bounding sphere, which is actually larger than our actual radius
+                float entityTrueRadius = dimensions.x / 2.0f;
+
+                if (findSphereSpherePenetration(searchPosition, searchRadius, 
+                        entity->getCenterPosition(), entityTrueRadius, penetration)) {
+                    foundEntities.push_back(entity);
+                }
+            } else {
+                // determine the worldToEntityMatrix that doesn't include scale because
+                // we're going to use the registration aware aa box in the entity frame
+                glm::mat4 rotation = glm::mat4_cast(entity->getRotation());
+                glm::mat4 translation = glm::translate(entity->getPosition());
+                glm::mat4 entityToWorldMatrix = translation * rotation;
+                glm::mat4 worldToEntityMatrix = glm::inverse(entityToWorldMatrix);
+
+                glm::vec3 registrationPoint = entity->getRegistrationPoint();
+                glm::vec3 corner = -(dimensions * registrationPoint);
+
+                AABox entityFrameBox(corner, dimensions);
+
+                glm::vec3 entityFrameSearchPosition = glm::vec3(worldToEntityMatrix * glm::vec4(searchPosition, 1.0f));
+                if (entityFrameBox.findSpherePenetration(entityFrameSearchPosition, searchRadius, penetration)) {
+                    foundEntities.push_back(entity);
+                }
+            }
+        }
+    });
+}
+
+void EntityTreeElement::getEntities(const AACube& cube, QVector<EntityItemPointer>& foundEntities) {
+    forEachEntity([&](EntityItemPointer entity) {
+        AABox entityBox = entity->getAABox();
+        // FIXME - handle entity->getShapeType() == SHAPE_TYPE_SPHERE case better
+        // FIXME - consider allowing the entity to determine penetration so that
+        //         entities could presumably dull actuall hull testing if they wanted to
+        // FIXME - is there an easy way to translate the search cube into something in the
+        //         entity frame that can be easily tested against?
+        //         simple algorithm is probably:
+        //             if target box is fully inside search box == yes
+        //             if search box is fully inside target box == yes
+        //             for each face of search box:
+        //                 translate the triangles of the face into the box frame
+        //                 test the triangles of the face against the box?
+        //                 if translated search face triangle intersect target box
+        //                     add to result
+        //                 
+
+        // If the entities AABox touches the search cube then consider it to be found
+        if (entityBox.touches(cube)) {
             foundEntities.push_back(entity);
         }
     });
 }
 
-// TODO: change this to use better bounding shape for entity than sphere
-void EntityTreeElement::getEntities(const AACube& box, QVector<EntityItemPointer>& foundEntities) {
-    AACube entityCube;
+void EntityTreeElement::getEntities(const AABox& box, QVector<EntityItemPointer>& foundEntities) {
     forEachEntity([&](EntityItemPointer entity) {
-        float radius = entity->getRadius();
-        // NOTE: we actually do cube-cube collision queries here, which is sloppy but good enough for now
-        // TODO: decide whether to replace entityCube-cube query with sphere-cube (requires a square root
-        // but will be slightly more accurate).
-        entityCube.setBox(entity->getPosition() - glm::vec3(radius), 2.0f * radius);
-        if (entityCube.touches(box)) {
+        AABox entityBox = entity->getAABox();
+        // FIXME - handle entity->getShapeType() == SHAPE_TYPE_SPHERE case better
+        // FIXME - consider allowing the entity to determine penetration so that
+        //         entities could presumably dull actuall hull testing if they wanted to
+        // FIXME - is there an easy way to translate the search cube into something in the
+        //         entity frame that can be easily tested against?
+        //         simple algorithm is probably:
+        //             if target box is fully inside search box == yes
+        //             if search box is fully inside target box == yes
+        //             for each face of search box:
+        //                 translate the triangles of the face into the box frame
+        //                 test the triangles of the face against the box?
+        //                 if translated search face triangle intersect target box
+        //                     add to result
+        //                 
+
+        // If the entities AABox touches the search cube then consider it to be found
+        if (entityBox.touches(box)) {
             foundEntities.push_back(entity);
         }
     });
