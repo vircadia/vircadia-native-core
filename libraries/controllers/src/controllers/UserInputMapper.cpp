@@ -145,10 +145,17 @@ void ScriptEndpoint::internalApply(float newValue, float oldValue, int sourceID)
                    QScriptValueList({ QScriptValue(newValue), QScriptValue(oldValue),  QScriptValue(sourceID) }));
 }
 
+static const Input INVALID_STANDARD_INPUT = Input(UserInputMapper::STANDARD_DEVICE, Input::INVALID_CHANNEL, ChannelType::INVALID);
+
 class CompositeEndpoint : public Endpoint, Endpoint::Pair {
 public:
     CompositeEndpoint(Endpoint::Pointer first, Endpoint::Pointer second)
-        : Endpoint(Input::INVALID_INPUT), Pair(first, second) { }
+        : Endpoint(Input::INVALID_INPUT), Pair(first, second) { 
+        if (first->getInput().device == UserInputMapper::STANDARD_DEVICE &&
+            second->getInput().device == UserInputMapper::STANDARD_DEVICE) {
+            this->_input = INVALID_STANDARD_INPUT;
+        }
+    }
 
     virtual float value() {
         float result = first->value() * -1.0f + second->value();

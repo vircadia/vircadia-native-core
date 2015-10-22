@@ -33,9 +33,9 @@ public:
         : _parent(parent), _mapping(mapping) { }
 
     Q_INVOKABLE QObject* from(int sourceInput);
-    Q_INVOKABLE QObject* from(const QJSValue& source);
-    Q_INVOKABLE QObject* from(const QScriptValue& source);
-    Q_INVOKABLE QObject* makeAxis(const QJSValue& source1, const QJSValue& source2);
+    Q_INVOKABLE QObject* fromQmlFunction(const QJSValue& source);
+    Q_INVOKABLE QObject* fromFunction(const QScriptValue& source);
+    Q_INVOKABLE QObject* makeAxis(int source1, const int source2);
 
     Q_INVOKABLE QObject* enable(bool enable = true);
     Q_INVOKABLE QObject* disable() { return enable(false); }

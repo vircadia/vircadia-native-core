@@ -16,7 +16,7 @@
 namespace controller {
 
 enum class ChannelType {
-    UNKNOWN = 0,
+    INVALID = 0,
     BUTTON = 1,
     AXIS,
     POSE,

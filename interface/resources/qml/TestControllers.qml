@@ -26,10 +26,13 @@ HifiControls.VrDialog {
     function buildMapping() {
         testMapping = Controller.newMapping();
         testMapping.from(standard.RY).invert().to(actions.Pitch);
+        testMapping.fromQmlFunction(function(){
+            return Math.sin(Date.now() / 250); 
+        }).to(actions.Yaw);
         //testMapping.makeAxis(standard.LB, standard.RB).to(actions.Yaw);
         // Step yaw takes a number of degrees
-        testMapping.from(standard.LB).invert().scale(15.0).to(actions.StepYaw);
-        testMapping.from(standard.RB).scale(15.0).to(actions.StepYaw);
+        testMapping.from(standard.LB).pulse(0.10).invert().scale(40.0).to(actions.StepYaw);
+        testMapping.from(standard.RB).pulse(0.10).scale(15.0).to(actions.StepYaw);
         testMapping.from(standard.RX).scale(15.0).to(actions.StepYaw);
     }
 

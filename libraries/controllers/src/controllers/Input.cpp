@@ -10,10 +10,9 @@
 
 namespace controller {
 
-    const Input Input::INVALID_INPUT = Input(UINT32_MAX);
-    const uint16_t Input::INVALID_DEVICE = INVALID_INPUT.getDevice();
-    const uint16_t Input::INVALID_CHANNEL = INVALID_INPUT.getChannel();
-    const uint16_t Input::INVALID_TYPE = (uint16_t)INVALID_INPUT.getType();
-
+    const uint16_t Input::INVALID_DEVICE = 0xffff;
+    const uint16_t Input::INVALID_CHANNEL = 0x1fff;
+    const uint16_t Input::INVALID_TYPE = (uint16_t)ChannelType::INVALID;
+    const Input Input::INVALID_INPUT = Input(INVALID_DEVICE, INVALID_CHANNEL, ChannelType::INVALID);
 }
 
