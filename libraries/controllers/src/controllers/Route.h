@@ -24,6 +24,8 @@ namespace controller {
         Endpoint::Pointer destination;
         Conditional::Pointer conditional;
         Filter::List filters;
+        QString json;
+        bool debug { false };
 
         using Pointer = std::shared_ptr<Route>;
         using List = std::list<Pointer>;

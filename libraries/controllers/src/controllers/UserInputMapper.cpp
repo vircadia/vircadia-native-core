@@ -655,7 +655,6 @@ Input UserInputMapper::makeStandardInput(controller::StandardPoseChannel pose) {
 
 void UserInputMapper::runMappings() {
     static auto deviceNames = getDeviceNames();
-    _overrides.clear();
 
     for (auto endpointEntry : this->_endpointsByInput) {
         endpointEntry.second->reset();
@@ -680,55 +679,55 @@ void UserInputMapper::runMappings() {
 
 
 void UserInputMapper::applyRoute(const Route::Pointer& route) {
+    if (route->debug) {
+        qCDebug(controllers) << "Applying route " << route->json;
+    }
+
     if (route->conditional) {
         if (!route->conditional->satisfied()) {
+            if (route->debug) {
+                qCDebug(controllers) << "Conditional failed";
+            }
             return;
         }
     }
 
     auto source = route->source;
-    if (_overrides.count(source)) {
-        source = _overrides[source];
-    }
 
-    // Endpoints can only be read once (though a given mapping can route them to 
+    // Most endpoints can only be read once (though a given mapping can route them to 
     // multiple places).  Consider... If the default is to wire the A button to JUMP
     // and someone else wires it to CONTEXT_MENU, I don't want both to occur when 
     // I press the button.  The exception is if I'm wiring a control back to itself
     // in order to adjust my interface, like inverting the Y axis on an analog stick
     if (!source->readable()) {
+        if (route->debug) {
+            qCDebug(controllers) << "Source unreadable";
+        }
         return;
-    }
-
-
-    auto input = source->getInput();
-    float value = source->value();
-    if (value != 0.0) {
-        int i = 0;
     }
 
     auto destination = route->destination;
     // THis could happen if the route destination failed to create
     // FIXME: Maybe do not create the route if the destination failed and avoid this case ?
     if (!destination) {
+        if (route->debug) {
+            qCDebug(controllers) << "Bad Destination";
+        }
         return;
     }
 
-    // FIXME?, should come before or after the override logic?
     if (!destination->writeable()) {
+        if (route->debug) {
+            qCDebug(controllers) << "Destination unwritable";
+        }
         return;
-    }
-
-    // Only consume the input if the route isn't a loopback.
-    // This allows mappings like `mapping.from(xbox.RY).invert().to(xbox.RY);`
-    bool loopback = (source->getInput() == destination->getInput()) && (source->getInput() != Input::INVALID_INPUT);
-    // Each time we loop back we re-write the override 
-    if (loopback) {
-        _overrides[source] = destination = std::make_shared<StandardEndpoint>(source->getInput());
     }
 
     // Fetch the value, may have been overriden by previous loopback routes
     if (source->isPose()) {
+        if (route->debug) {
+            qCDebug(controllers) << "Applying pose";
+        }
         Pose value = getPose(source);
         // no filters yet for pose
         destination->apply(value, Pose(), source);
@@ -736,9 +735,16 @@ void UserInputMapper::applyRoute(const Route::Pointer& route) {
         // Fetch the value, may have been overriden by previous loopback routes
         float value = getValue(source);
 
+        if (route->debug) {
+            qCDebug(controllers) << "Value was " << value;
+        }
         // Apply each of the filters.
         for (const auto& filter : route->filters) {
             value = filter->apply(value);
+        }
+
+        if (route->debug) {
+            qCDebug(controllers) << "Filtered value was " << value;
         }
 
         destination->apply(value, 0, source);
@@ -850,11 +856,6 @@ void UserInputMapper::enableMapping(const QString& mappingName, bool enable) {
 
 float UserInputMapper::getValue(const Endpoint::Pointer& endpoint) const {
     Locker locker(_lock);
-    auto valuesIterator = _overrides.find(endpoint);
-    if (_overrides.end() != valuesIterator) {
-        return valuesIterator->second->value();
-    }
-
     return endpoint->value();
 }
 
@@ -900,6 +901,7 @@ Mapping::Pointer UserInputMapper::loadMapping(const QString& jsonFile) {
 static const QString JSON_NAME = QStringLiteral("name");
 static const QString JSON_CHANNELS = QStringLiteral("channels");
 static const QString JSON_CHANNEL_FROM = QStringLiteral("from");
+static const QString JSON_CHANNEL_DEBUG = QStringLiteral("debug");
 static const QString JSON_CHANNEL_WHEN = QStringLiteral("when");
 static const QString JSON_CHANNEL_TO = QStringLiteral("to");
 static const QString JSON_CHANNEL_FILTERS = QStringLiteral("filters");
@@ -1052,9 +1054,12 @@ Route::Pointer UserInputMapper::parseRoute(const QJsonValue& value) {
         return Route::Pointer();
     }
 
-    const auto& obj = value.toObject();
+    auto obj = value.toObject();
     Route::Pointer result = std::make_shared<Route>();
+
+    result->json = QString(QJsonDocument(obj).toJson());
     result->source = parseSource(obj[JSON_CHANNEL_FROM]);
+    result->debug = obj[JSON_CHANNEL_DEBUG].toBool();
     if (!result->source) {
         qWarning() << "Invalid route source " << obj[JSON_CHANNEL_FROM];
         return Route::Pointer();
@@ -1064,6 +1069,11 @@ Route::Pointer UserInputMapper::parseRoute(const QJsonValue& value) {
     result->destination = parseDestination(obj[JSON_CHANNEL_TO]);
     if (!result->destination) {
         qWarning() << "Invalid route destination " << obj[JSON_CHANNEL_TO];
+        return Route::Pointer();
+    }
+
+    if (result->source == result->destination) {
+        qWarning() << "Loopback routes not supported " << obj;
         return Route::Pointer();
     }
 
