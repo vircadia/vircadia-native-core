@@ -91,8 +91,7 @@ HifiControls.VrDialog {
             Hydra { device: root.hydra; width: 180 }
         }
         
-        Grid {
-            columns: 6
+        Row {
             spacing: 4
             ScrollingGraph {
                 controlId: Controller.Actions.Yaw
@@ -117,13 +116,41 @@ HifiControls.VrDialog {
                 max: 2.0
                 size: 64
             }
+
             ScrollingGraph {
                 controlId: Controller.Actions.StepYaw
                 label: "StepYaw"
+                min: -20.0
+                max: 20.0
+                size: 64
+            }
+        }
+
+        Row {
+            ScrollingGraph {
+                controlId: Controller.Actions.TranslateZ
+                label: "TranslateZ"
                 min: -2.0
                 max: 2.0
                 size: 64
             }
+
+            ScrollingGraph {
+                controlId: Controller.Actions.Forward
+                label: "Forward"
+                min: -2.0
+                max: 2.0
+                size: 64
+            }
+
+            ScrollingGraph {
+                controlId: Controller.Actions.Backward
+                label: "Backward"
+                min: -2.0
+                max: 2.0
+                size: 64
+            }
+
         }
     }
 } // dialog
