@@ -111,10 +111,6 @@ static const PalmData* getPalmWithIndex(Hand* hand, int index) {
 const float PALM_PRIORITY = DEFAULT_PRIORITY;
 // Called within Model::simulate call, below.
 void SkeletonModel::updateRig(float deltaTime, glm::mat4 parentTransform) {
-    if (_owningAvatar->isMyAvatar()) {
-        _rig->computeMotionAnimationState(deltaTime, _owningAvatar->getPosition(), _owningAvatar->getVelocity(), _owningAvatar->getOrientation());
-    }
-    Model::updateRig(deltaTime, parentTransform);
     Head* head = _owningAvatar->getHead();
     if (_owningAvatar->isMyAvatar()) {
         MyAvatar* myAvatar = static_cast<MyAvatar*>(_owningAvatar);
@@ -191,6 +187,8 @@ void SkeletonModel::updateRig(float deltaTime, glm::mat4 parentTransform) {
 
         _rig->updateFromHandParameters(handParams, deltaTime);
 
+        _rig->computeMotionAnimationState(deltaTime, _owningAvatar->getPosition(), _owningAvatar->getVelocity(), _owningAvatar->getOrientation());
+
     } else {
         // This is a little more work than we really want.
         //
@@ -212,6 +210,7 @@ void SkeletonModel::updateRig(float deltaTime, glm::mat4 parentTransform) {
                               getTranslation(), getRotation(),
                               head->getFinalOrientationInWorldFrame(), head->getCorrectedLookAtPosition());
      }
+    Model::updateRig(deltaTime, parentTransform);
 }
 
 void SkeletonModel::updateAttitude() {

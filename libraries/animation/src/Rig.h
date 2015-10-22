@@ -200,12 +200,14 @@ public:
     AnimNode::ConstPointer getAnimNode() const { return _animNode; }
     AnimSkeleton::ConstPointer getAnimSkeleton() const { return _animSkeleton; }
     bool disableHands {false}; // should go away with rig animation (and Rig::inverseKinematics)
-    void addAnimationStateHandler(QScriptValue handler, QScriptValue propertiesList) { _stateHandlers = handler; }
-    void removeAnimationStateHandler(QScriptValue handler) { _stateHandlers = QScriptValue(); }
+    void addAnimationStateHandler(QScriptValue handler, QScriptValue propertiesList);
+    void removeAnimationStateHandler(QScriptValue handler);
+    void animationStateHandlerResult(QScriptValue handler, QScriptValue result);
 
     bool getModelOffset(glm::vec3& modelOffsetOut) const;
 
  protected:
+    void updateAnimationStateHandlers();
 
     void updateLeanJoint(int index, float leanSideways, float leanForward, float torsoTwist);
     void updateNeckJoint(int index, const HeadParameters& params);
@@ -246,8 +248,9 @@ public:
     float _rightHandOverlayAlpha = 0.0f;
 
 private:
-    QScriptValue _stateHandlers {};
-    QScriptValue _stateHandlersResults {};
+    QScriptValue _stateHandlers;
+    AnimVariantMap _stateHandlersResults;
+    QMutex _stateMutex;
 };
 
 #endif /* defined(__hifi__Rig__) */

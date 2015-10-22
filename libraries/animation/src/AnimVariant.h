@@ -158,12 +158,14 @@ public:
     void setTrigger(const QString& key) { _triggers.insert(key); }
     void clearTriggers() { _triggers.clear(); }
 
+    void clearMap() { _map.clear(); }
     bool hasKey(const QString& key) const { return _map.find(key) != _map.end(); }
 
     // Answer a Plain Old Javascript Object (for the given engine) all of our values set as properties.
-    QScriptValue animVariantMapToScriptValue(QScriptEngine* engine);
+    QScriptValue animVariantMapToScriptValue(QScriptEngine* engine) const;
     // Side-effect us with the value of object's own properties. (No inherited properties.)
     void animVariantMapFromScriptValue(const QScriptValue& object);
+    void copyVariantsFrom(const AnimVariantMap& other);
 
 #ifdef NDEBUG
     void dump() const {
@@ -202,5 +204,7 @@ protected:
     std::map<QString, AnimVariant> _map;
     std::set<QString> _triggers;
 };
+
+Q_DECLARE_METATYPE(AnimVariantMap)
 
 #endif // hifi_AnimVariant_h
