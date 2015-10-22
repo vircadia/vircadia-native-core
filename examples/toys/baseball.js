@@ -22,7 +22,8 @@ var robot = Entities.addEntity({
     modelURL: ROBOT_MODEL,
     position: ROBOT_POSITION,
     animation: {
-      url: ROBOT_MODEL
+      url: ROBOT_MODEL,
+      running: true
     }
 });
 
@@ -74,18 +75,23 @@ function moveBat() {
 
   Vec3.print("forearmPosition=", forearmPosition);
 
-  Entities.addAction("spring", bat, {
-    targetPosition: forearmPosition,
-    targetRotation: forearmRotation,
-    tag: "bat-to-forearm",
-    linearTimeScale: DISTANCE_HOLDING_ACTION_TIMEFRAME,
-    angularTimeScale: DISTANCE_HOLDING_ACTION_TIMEFRAME
-    lifetime: ACTION_LIFETIME
+  // Entities.addAction("spring", bat, {
+  //   targetPosition: forearmPosition,
+  //   targetRotation: forearmRotation,
+  //   linearTimeScale: DISTANCE_HOLDING_ACTION_TIMEFRAME,
+  //   angularTimeScale: DISTANCE_HOLDING_ACTION_TIMEFRAME,
+  //   lifetime: ACTION_LIFETIME
+  // });
+
+  Entities.editEntity(bat, {
+    position: forearmPosition,
+    rotation: forearmRotation
   });
 }
 
 function update() {
   checkTriggers();
+  moveBat();
 }
 
 // hook the update so we can check controller triggers
