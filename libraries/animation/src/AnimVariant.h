@@ -12,6 +12,7 @@
 #define hifi_AnimVariant_h
 
 #include <cassert>
+#include <functional>
 #include <glm/glm.hpp>
 #include <glm/gtx/quaternion.hpp>
 #include <map>
