@@ -655,7 +655,6 @@ Input UserInputMapper::makeStandardInput(controller::StandardPoseChannel pose) {
 
 void UserInputMapper::runMappings() {
     static auto deviceNames = getDeviceNames();
-
     for (auto endpointEntry : this->_endpointsByInput) {
         endpointEntry.second->reset();
     }
@@ -674,7 +673,6 @@ void UserInputMapper::runMappings() {
         }
         applyRoute(route);
     }
-
 }
 
 
@@ -1148,26 +1146,28 @@ void UserInputMapper::enableMapping(const Mapping::Pointer& mapping) {
     // are processed in order so this ensures that the standard -> action processing 
     // takes place after all of the hardware -> standard or hardware -> action processing
     // because standard -> action is the first set of routes added.
-    for (auto route : mapping->routes) {
-        if (route->source->getInput().device == STANDARD_DEVICE) {
-            _standardRoutes.push_front(route);
-        } else {
-            _deviceRoutes.push_front(route);
-        }
-    }
+    Route::List standardRoutes = mapping->routes;
+    standardRoutes.remove_if([](const Route::Pointer& value) {
+        return (value->source->getInput().device == STANDARD_DEVICE);
+    });
+    _standardRoutes.insert(_standardRoutes.begin(), standardRoutes.begin(), standardRoutes.end());
+
+    Route::List deviceRoutes = mapping->routes;
+    deviceRoutes.remove_if([](const Route::Pointer& value) {
+        return (value->source->getInput().device != STANDARD_DEVICE);
+    });
+    _deviceRoutes.insert(_deviceRoutes.begin(), deviceRoutes.begin(), deviceRoutes.end());
 }
 
 void UserInputMapper::disableMapping(const Mapping::Pointer& mapping) {
     Locker locker(_lock);
     const auto& deviceRoutes = mapping->routes;
     std::set<Route::Pointer> routeSet(deviceRoutes.begin(), deviceRoutes.end());
-
-    // FIXME this seems to result in empty route pointers... need to find a better way to remove them.
-    std::remove_if(_deviceRoutes.begin(), _deviceRoutes.end(), [&](Route::Pointer route)->bool {
-        return routeSet.count(route) != 0;
+    _deviceRoutes.remove_if([&](const Route::Pointer& value){
+        return routeSet.count(value) != 0;
     });
-    std::remove_if(_standardRoutes.begin(), _standardRoutes.end(), [&](Route::Pointer route)->bool {
-        return routeSet.count(route) != 0;
+    _standardRoutes.remove_if([&](const Route::Pointer& value) {
+        return routeSet.count(value) != 0;
     });
 }
 
