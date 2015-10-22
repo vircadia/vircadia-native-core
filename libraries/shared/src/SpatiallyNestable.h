@@ -25,18 +25,24 @@ using SpatiallyNestablePointer = std::shared_ptr<SpatiallyNestable>;
 class SpatiallyNestable {
 
 public:
-    SpatiallyNestable() : _transform() { }
+    SpatiallyNestable() : _transform() { } // XXX get rid of this one?
     SpatiallyNestable(QUuid id) : _id(id), _transform() { }
     virtual ~SpatiallyNestable() { }
 
-    const QUuid& getID() const { return _id; }
-    void setID(const QUuid& id) { _id = id; }
+    virtual const QUuid& getID() const { return _id; }
+    virtual void setID(const QUuid& id) { _id = id; }
+
+    virtual const QUuid& getParentID() const { return _parentID; }
+    virtual void setParentID(const QUuid& parentID) { _parentID = parentID; }
+
+    virtual quint16 getParentJointIndex() const { return _parentJointIndex; }
+    virtual void setParentJointIndex(quint16 parentJointIndex) { _parentJointIndex = parentJointIndex; }
 
     // world frame
     virtual const Transform& getTransform() const;
     virtual void setTransform(const Transform& transform);
 
-    Transform getParentTransform() const;
+    virtual Transform getParentTransform() const;
 
     virtual const glm::vec3& getPosition() const;
     virtual void setPosition(const glm::vec3& position);
@@ -63,7 +69,7 @@ public:
 protected:
     QUuid _id;
     QUuid _parentID; // what is this thing's transform relative to?
-    int _parentJointIndex; // which joint of the parent is this relative to?
+    quint16 _parentJointIndex; // which joint of the parent is this relative to?
 
     mutable SpatiallyNestableWeakPointer _parent;
     QVector<SpatiallyNestableWeakPointer> _children;

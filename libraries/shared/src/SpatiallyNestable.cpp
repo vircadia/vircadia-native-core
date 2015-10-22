@@ -12,6 +12,8 @@
 #include "DependencyManager.h"
 #include "SpatiallyNestable.h"
 
+// TODO -- make use of parent joint index
+
 Transform SpatiallyNestable::getParentTransform() const {
     Transform result;
     SpatiallyNestablePointer parent = getParentPointer();

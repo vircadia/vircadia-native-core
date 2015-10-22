@@ -134,6 +134,8 @@ EntityPropertyFlags EntityItem::getEntityProperties(EncodeBitstreamParams& param
     requestedProperties += PROP_HREF;
     requestedProperties += PROP_DESCRIPTION;
     requestedProperties += PROP_ACTION_DATA;
+    requestedProperties += PROP_PARENT_ID;
+    requestedProperties += PROP_PARENT_JOINT_INDEX;
 
     return requestedProperties;
 }
@@ -268,7 +270,8 @@ OctreeElement::AppendState EntityItem::appendEntityData(OctreePacketData* packet
         APPEND_ENTITY_PROPERTY(PROP_HREF, getHref());
         APPEND_ENTITY_PROPERTY(PROP_DESCRIPTION, getDescription());
         APPEND_ENTITY_PROPERTY(PROP_ACTION_DATA, getActionData());
-
+        APPEND_ENTITY_PROPERTY(PROP_PARENT_ID, getParentID());
+        APPEND_ENTITY_PROPERTY(PROP_PARENT_JOINT_INDEX, getParentJointIndex());
 
         appendSubclassData(packetData, params, entityTreeElementExtraEncodeData,
                                 requestedProperties,
@@ -715,6 +718,9 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
         overwriteLocalData = oldOverwrite;
     }
 
+    READ_ENTITY_PROPERTY(PROP_PARENT_ID, QUuid, setParentID);
+    READ_ENTITY_PROPERTY(PROP_PARENT_JOINT_INDEX, quint16, setParentJointIndex);
+
     bytesRead += readEntitySubclassDataFromBuffer(dataAt, (bytesLeftToRead - bytesRead), args,
                                                   propertyFlags, overwriteLocalData, somethingChanged);
 
@@ -1062,6 +1068,8 @@ EntityItemProperties EntityItem::getProperties(EntityPropertyFlags desiredProper
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(href, getHref);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(description, getDescription);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(actionData, getActionData);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(parentID, getParentID);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(parentJointIndex, getParentJointIndex);
 
     properties._defaultSettings = false;
 
@@ -1124,6 +1132,8 @@ bool EntityItem::setProperties(const EntityItemProperties& properties) {
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(href, setHref);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(description, setDescription);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(actionData, setActionData);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(parentID, setParentID);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(parentJointIndex, setParentJointIndex);
 
     if (somethingChanged) {
         uint64_t now = usecTimestampNow();

@@ -191,6 +191,8 @@ public:
     DEFINE_PROPERTY_REF(PROP_X_P_NEIGHBOR_ID, XPNeighborID, xPNeighborID, EntityItemID, UNKNOWN_ENTITY_ID);
     DEFINE_PROPERTY_REF(PROP_Y_P_NEIGHBOR_ID, YPNeighborID, yPNeighborID, EntityItemID, UNKNOWN_ENTITY_ID);
     DEFINE_PROPERTY_REF(PROP_Z_P_NEIGHBOR_ID, ZPNeighborID, zPNeighborID, EntityItemID, UNKNOWN_ENTITY_ID);
+    DEFINE_PROPERTY_REF(PROP_PARENT_ID, ParentID, parentID, QUuid, UNKNOWN_ENTITY_ID);
+    DEFINE_PROPERTY_REF(PROP_PARENT_JOINT_INDEX, ParentJointIndex, parentJointIndex, quint16, 0);
 
     static QString getBackgroundModeString(BackgroundMode mode);
 
@@ -388,6 +390,9 @@ inline QDebug operator<<(QDebug debug, const EntityItemProperties& properties) {
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, XPNeighborID, xPNeighborID, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, YPNeighborID, yPNeighborID, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, ZPNeighborID, zPNeighborID, "");
+
+    DEBUG_PROPERTY_IF_CHANGED(debug, properties, ParentID, parentID, "");
+    DEBUG_PROPERTY_IF_CHANGED(debug, properties, ParentJointIndex, parentJointIndex, "");
 
     properties.getAnimation().debugDump();
     properties.getAtmosphere().debugDump();
