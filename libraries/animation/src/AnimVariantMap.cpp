@@ -11,10 +11,15 @@
 
 #include <QScriptEngine>
 #include <QScriptValueIterator>
+#include <QThread.h>
 #include <RegisteredMetaTypes.h>
 #include "AnimVariant.h"
 
 QScriptValue AnimVariantMap::animVariantMapToScriptValue(QScriptEngine* engine) const {
+    if (QThread::currentThread() != engine->thread()) {
+        qCWarning(animation) << "Cannot create Javacript object from non-script thread" << QThread::currentThread();
+        return QScriptValue();
+    }
     QScriptValue target = engine->newObject();
     for (auto& pair : _map) {
         switch (pair.second.getType()) {
