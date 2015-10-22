@@ -48,18 +48,6 @@ namespace controller {
                 makeAxisPair(Action::STEP_TRANSLATE_X, "StepTranslateX"),
                 makeAxisPair(Action::STEP_TRANSLATE_X, "StepTranslateY"),
                 makeAxisPair(Action::STEP_TRANSLATE_X, "StepTranslateZ"),
-                makeAxisPair(Action::LONGITUDINAL_BACKWARD, "Backward"),
-                makeAxisPair(Action::LONGITUDINAL_FORWARD, "Forward"),
-                makeAxisPair(Action::LATERAL_LEFT, "StrafeLeft"),
-                makeAxisPair(Action::LATERAL_RIGHT, "StrafeRight"),
-                makeAxisPair(Action::VERTICAL_DOWN, "Down"),
-                makeAxisPair(Action::VERTICAL_UP, "Up"),
-                makeAxisPair(Action::YAW_LEFT, "YawLeft"),
-                makeAxisPair(Action::YAW_RIGHT, "YawRight"),
-                makeAxisPair(Action::PITCH_DOWN, "PitchDown"),
-                makeAxisPair(Action::PITCH_UP, "PitchUp"),
-                makeAxisPair(Action::BOOM_IN, "BoomIn"),
-                makeAxisPair(Action::BOOM_OUT, "BoomOut"),
 
                 makePosePair(Action::LEFT_HAND, "LeftHand"),
                 makePosePair(Action::RIGHT_HAND, "RightHand"),
@@ -72,6 +60,20 @@ namespace controller {
                 makeButtonPair(Action::ACTION2, "SecondaryAction"),
                 makeButtonPair(Action::CONTEXT_MENU, "ContextMenu"),
                 makeButtonPair(Action::TOGGLE_MUTE, "ToggleMute"),
+
+                // Aliases and bisected versions
+                makeAxisPair(Action::LONGITUDINAL_BACKWARD, "Backward"),
+                makeAxisPair(Action::LONGITUDINAL_FORWARD, "Forward"),
+                makeAxisPair(Action::LATERAL_LEFT, "StrafeLeft"),
+                makeAxisPair(Action::LATERAL_RIGHT, "StrafeRight"),
+                makeAxisPair(Action::VERTICAL_DOWN, "Down"),
+                makeAxisPair(Action::VERTICAL_UP, "Up"),
+                makeAxisPair(Action::YAW_LEFT, "YawLeft"),
+                makeAxisPair(Action::YAW_RIGHT, "YawRight"),
+                makeAxisPair(Action::PITCH_DOWN, "PitchDown"),
+                makeAxisPair(Action::PITCH_UP, "PitchUp"),
+                makeAxisPair(Action::BOOM_IN, "BoomIn"),
+                makeAxisPair(Action::BOOM_OUT, "BoomOut"),
 
                 // Deprecated aliases
                 // FIXME remove after we port all scripts
