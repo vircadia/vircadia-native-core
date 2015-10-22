@@ -508,26 +508,29 @@ void ScriptEngine::addEventHandler(const EntityItemID& entityID, const QString& 
         // Connect up ALL the handlers to the global entities object's signals.
         // (We could go signal by signal, or even handler by handler, but I don't think the efficiency is worth the complexity.)
         auto entities = DependencyManager::get<EntityScriptingInterface>();
-        connect(entities.data(), &EntityScriptingInterface::deletingEntity, this,
-                [=](const EntityItemID& entityID) {
-                    _registeredHandlers.remove(entityID);
-                });
-
+        connect(entities.data(), &EntityScriptingInterface::deletingEntity, this, [this](const EntityItemID& entityID) {
+            _registeredHandlers.remove(entityID);
+        });
+        
         // Two common cases of event handler, differing only in argument signature.
-        auto makeSingleEntityHandler = [=](const QString& eventName) -> std::function<void(const EntityItemID&)> {
-            return [=](const EntityItemID& entityItemID) -> void {
-                generalHandler(entityItemID, eventName, [=]() -> QScriptValueList {
-                    return QScriptValueList() << entityItemID.toScriptValue(this);
-                });
+        auto makeSingleEntityHandler = [&](QString eventName) {
+            return [this, eventName](const EntityItemID& entityItemID) {
+                forwardHandlerCall(entityItemID, eventName, { entityItemID.toScriptValue(this) });
             };
         };
-        auto makeMouseHandler = [=](const QString& eventName) -> std::function<void(const EntityItemID&, const MouseEvent&)>  {
-            return [=](const EntityItemID& entityItemID, const MouseEvent& event) -> void {
-                generalHandler(entityItemID, eventName, [=]() -> QScriptValueList {
-                    return QScriptValueList() << entityItemID.toScriptValue(this) << event.toScriptValue(this);
-                });
+        auto makeMouseHandler = [&](QString eventName) {
+            return [this, eventName](const EntityItemID& entityItemID, const MouseEvent& event) {
+                forwardHandlerCall(entityItemID, eventName, { entityItemID.toScriptValue(this), event.toScriptValue(this) });
             };
         };
+        
+        auto makeCollisionHandler = [&](QString eventName) {
+            return [this, eventName](const EntityItemID& idA, const EntityItemID& idB, const Collision& collision) {
+                forwardHandlerCall(idA, eventName, { idA.toScriptValue(this), idB.toScriptValue(this),
+                                                     collisionToScriptValue(this, collision) });
+            };
+        };
+        
         connect(entities.data(), &EntityScriptingInterface::enterEntity, this, makeSingleEntityHandler("enterEntity"));
         connect(entities.data(), &EntityScriptingInterface::leaveEntity, this, makeSingleEntityHandler("leaveEntity"));
 
@@ -543,12 +546,7 @@ void ScriptEngine::addEventHandler(const EntityItemID& entityID, const QString& 
         connect(entities.data(), &EntityScriptingInterface::hoverOverEntity, this, makeMouseHandler("hoverOverEntity"));
         connect(entities.data(), &EntityScriptingInterface::hoverLeaveEntity, this, makeMouseHandler("hoverLeaveEntity"));
 
-        connect(entities.data(), &EntityScriptingInterface::collisionWithEntity, this,
-                [=](const EntityItemID& idA, const EntityItemID& idB, const Collision& collision) {
-                    generalHandler(idA, "collisionWithEntity", [=]() {
-                        return QScriptValueList () << idA.toScriptValue(this) << idB.toScriptValue(this) << collisionToScriptValue(this, collision);
-                    });
-                });
+        connect(entities.data(), &EntityScriptingInterface::collisionWithEntity, this, makeCollisionHandler("collisionWithEntity"));
     }
     if (!_registeredHandlers.contains(entityID)) {
         _registeredHandlers[entityID] = RegisteredEventHandlers();
@@ -899,9 +897,9 @@ void ScriptEngine::load(const QString& loadFile) {
 }
 
 // Look up the handler associated with eventName and entityID. If found, evalute the argGenerator thunk and call the handler with those args
-void ScriptEngine::generalHandler(const EntityItemID& entityID, const QString& eventName, std::function<QScriptValueList()> argGenerator) {
+void ScriptEngine::forwardHandlerCall(const EntityItemID& entityID, const QString& eventName, QScriptValueList eventHanderArgs) {
     if (QThread::currentThread() != thread()) {
-        qDebug() << "*** ERROR *** ScriptEngine::generalHandler() called on wrong thread [" << QThread::currentThread() << "], invoking on correct thread [" << thread() << "]";
+        qDebug() << "*** ERROR *** ScriptEngine::forwardHandlerCall() called on wrong thread [" << QThread::currentThread() << "], invoking on correct thread [" << thread() << "]";
         assert(false);
         return;
     }
@@ -915,9 +913,8 @@ void ScriptEngine::generalHandler(const EntityItemID& entityID, const QString& e
     }
     QScriptValueList handlersForEvent = handlersOnEntity[eventName];
     if (!handlersForEvent.isEmpty()) {
-        QScriptValueList args = argGenerator();
         for (int i = 0; i < handlersForEvent.count(); ++i) {
-            handlersForEvent[i].call(QScriptValue(), args);
+            handlersForEvent[i].call(QScriptValue(), eventHanderArgs);
         }
     }
 }
