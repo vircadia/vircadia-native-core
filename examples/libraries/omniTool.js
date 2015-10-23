@@ -22,10 +22,10 @@ OmniTool = function(left) {
     this.MAX_FRAMERATE = 60;
     this.UPDATE_INTERVAL = 1.0 / this.MAX_FRAMERATE
     this.left = left;
+    this.triggered = false;
     var actions = Controller.Actions;
     var standard = Controller.Standard;
     this.palmControl = left ? actions.LeftHand : actions.RightHand;
-    this.action = left ? standard.LeftPrimaryThumb : standard.RightPrimaryThumb;
     logDebug("Init OmniTool " + (left ? "left" : "right"));
     this.highlighter = new Highlighter();
     this.ignoreEntities = {};
@@ -50,9 +50,6 @@ OmniTool = function(left) {
 
     // Connect to desired events
     var that = this;
-    Controller.inputEvent.connect(function(action, state) {
-        that.onInputEvent(action, state);
-    });
 
     Script.update.connect(function(deltaTime) {
         that.lastUpdateInterval += deltaTime;
@@ -65,6 +62,12 @@ OmniTool = function(left) {
     Script.scriptEnding.connect(function() {
         that.onCleanup();
     });
+
+    this.mapping = Controller.newMapping();
+    this.mapping.from(left ? standard.LeftPrimaryThumb : standard.RightPrimaryThumb).to(function(value){
+        that.onUpdateTrigger(value);
+    })
+    this.mapping.enable();
 }
 
 OmniTool.prototype.showWand = function(show) {
@@ -83,29 +86,23 @@ OmniTool.prototype.showWand = function(show) {
     }
 }
 
-
 OmniTool.prototype.onCleanup = function(action) {
+    this.mapping.disable();
     this.unloadModule();
 }
 
-OmniTool.prototype.onInputEvent = function(action, state) {
-    // FIXME figure out the issues when only one spatial controller is active
-    var actionNames = Controller.getActionNames();
-    if (this.module && this.module.onInputEvent) {
-        this.module.onInputEvent(action, state);
-    }
 
-    if (action == this.action) {
-        if (state) {
+OmniTool.prototype.onUpdateTrigger = function (value) {
+    //logDebug("Trigger update value " + value);
+    var triggered = value != 0;
+    if (triggered != this.triggered) {
+        this.triggered = triggered;
+        if (this.triggered) {
             this.onClick();
         } else {
             this.onRelease();
         }
     }
-
-    // FIXME Does not work
-    //// with only one controller active (listed as 2 here because 'tip' + 'palm')
-    //// then treat the alt action button as the action button
 }
 
 OmniTool.prototype.getOmniToolData = function(entityId) {

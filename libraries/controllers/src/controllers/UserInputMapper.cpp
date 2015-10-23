@@ -21,7 +21,12 @@
 #include <NumericalConstants.h>
 
 #include "StandardController.h"
+
 #include "Logging.h"
+
+#include "Endpoint.h"
+#include "Route.h"
+#include "Mapping.h"
 
 namespace controller {
     const uint16_t UserInputMapper::ACTIONS_DEVICE = Input::INVALID_DEVICE - 0xFF;
@@ -210,6 +215,9 @@ public:
             this->_input = INVALID_STANDARD_INPUT;
         }
     }
+
+    // Process later than normal
+    virtual uint8_t priority() const override { return 0x6F; }
 
     virtual float value() override {
         float result = 0;
@@ -674,19 +682,27 @@ Input UserInputMapper::makeStandardInput(controller::StandardPoseChannel pose) {
 
 static auto lastDebugTime = usecTimestampNow();
 static auto debugRoutes = false;
+static auto debuggableRoutes = false;
 static const auto DEBUG_INTERVAL = USECS_PER_SECOND;
 
 void UserInputMapper::runMappings() {
     auto now = usecTimestampNow();
-    if (now - lastDebugTime > DEBUG_INTERVAL) {
+    if (debuggableRoutes && now - lastDebugTime > DEBUG_INTERVAL) {
         lastDebugTime = now;
         debugRoutes = true;
+    }
+
+    if (debugRoutes) {
+        qCDebug(controllers) << "Beginning mapping frame";
     }
     static auto deviceNames = getDeviceNames();
     for (auto endpointEntry : this->_endpointsByInput) {
         endpointEntry.second->reset();
     }
 
+    if (debugRoutes) {
+        qCDebug(controllers) << "Processing device routes";
+    }
     // Now process the current values for each level of the stack
     for (const auto& route : _deviceRoutes) {
         if (!route) {
@@ -695,11 +711,18 @@ void UserInputMapper::runMappings() {
         applyRoute(route);
     }
 
+    if (debugRoutes) {
+        qCDebug(controllers) << "Processing standard routes";
+    }
     for (const auto& route : _standardRoutes) {
         if (!route) {
             continue;
         }
         applyRoute(route);
+    }
+
+    if (debugRoutes) {
+        qCDebug(controllers) << "Done with mappings";
     }
     debugRoutes = false;
 }
@@ -1174,6 +1197,22 @@ Mapping::Pointer UserInputMapper::parseMapping(const QString& json) {
     return parseMapping(doc.object());
 }
 
+template <typename T>
+bool hasDebuggableRoute(const T& routes) {
+    for (auto route : routes) {
+        if (route->debug) {
+            return true;
+        }
+    }
+    return false;
+}
+
+void sortRoutes(Route::List& routes) {
+    std::stable_sort(routes.begin(), routes.end(), [](const Route::Pointer a, const Route::Pointer b) {
+        return a->source->priority() < b->source->priority();
+    });
+}
+
 
 void UserInputMapper::enableMapping(const Mapping::Pointer& mapping) {
     Locker locker(_lock);
@@ -1186,12 +1225,18 @@ void UserInputMapper::enableMapping(const Mapping::Pointer& mapping) {
         return (value->source->getInput().device != STANDARD_DEVICE);
     });
     _standardRoutes.insert(_standardRoutes.begin(), standardRoutes.begin(), standardRoutes.end());
+    sortRoutes(_standardRoutes);
 
     Route::List deviceRoutes = mapping->routes;
     deviceRoutes.remove_if([](const Route::Pointer& value) {
         return (value->source->getInput().device == STANDARD_DEVICE);
     });
     _deviceRoutes.insert(_deviceRoutes.begin(), deviceRoutes.begin(), deviceRoutes.end());
+    sortRoutes(_standardRoutes);
+
+    if (!debuggableRoutes) {
+        debuggableRoutes = hasDebuggableRoute(_deviceRoutes) || hasDebuggableRoute(_standardRoutes);
+    }
 }
 
 void UserInputMapper::disableMapping(const Mapping::Pointer& mapping) {
@@ -1204,6 +1249,10 @@ void UserInputMapper::disableMapping(const Mapping::Pointer& mapping) {
     _standardRoutes.remove_if([&](const Route::Pointer& value) {
         return routeSet.count(value) != 0;
     });
+
+    if (debuggableRoutes) {
+        debuggableRoutes = hasDebuggableRoute(_deviceRoutes) || hasDebuggableRoute(_standardRoutes);
+    }
 }
 
 }

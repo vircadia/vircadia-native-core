@@ -39,6 +39,11 @@ void RouteBuilderProxy::to(const Endpoint::Pointer& destination) {
     deleteLater();
 }
 
+QObject* RouteBuilderProxy::debug(bool enable) {
+    _route->debug = enable;
+    return this;
+}
+
 QObject* RouteBuilderProxy::filterQml(const QJSValue& expression) {
     if (expression.isCallable()) {
         addFilter([=](float value) {
