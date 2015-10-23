@@ -16,6 +16,8 @@
 #include <DynamicCharacterController.h>
 #include <Rig.h>
 
+#include <controllers/Pose.h>
+
 #include "Avatar.h"
 #include "AtRestDetector.h"
 
@@ -64,10 +66,15 @@ class MyAvatar : public Avatar {
     //TODO: make gravity feature work Q_PROPERTY(glm::vec3 gravity READ getGravity WRITE setGravity)
 
 
-    Q_PROPERTY(glm::vec3 leftHandPosition  READ getLeftHandPosition)
-    Q_PROPERTY(glm::vec3 rightHandPosition  READ getRightHandPosition)
-    Q_PROPERTY(glm::vec3 leftHandTipPosition  READ getLeftHandTipPosition)
-    Q_PROPERTY(glm::vec3 rightHandTipPosition  READ getRightHandTipPosition)
+    Q_PROPERTY(glm::vec3 leftHandPosition READ getLeftHandPosition)
+    Q_PROPERTY(glm::vec3 rightHandPosition READ getRightHandPosition)
+    Q_PROPERTY(glm::vec3 leftHandTipPosition READ getLeftHandTipPosition)
+    Q_PROPERTY(glm::vec3 rightHandTipPosition READ getRightHandTipPosition)
+
+    Q_PROPERTY(controller::Pose leftHandPose READ getLeftHandPose)
+    Q_PROPERTY(controller::Pose rightHandPose READ getRightHandPose)
+    Q_PROPERTY(controller::Pose leftHandTipPose READ getLeftHandTipPose)
+    Q_PROPERTY(controller::Pose rightHandTipPose READ getRightHandTipPose)
 
 public:
     MyAvatar(RigPointer rig);
@@ -159,6 +166,11 @@ public:
     Q_INVOKABLE glm::vec3 getRightHandPosition() const;
     Q_INVOKABLE glm::vec3 getLeftHandTipPosition() const;
     Q_INVOKABLE glm::vec3 getRightHandTipPosition() const;
+
+    Q_INVOKABLE controller::Pose getLeftHandPose() const;
+    Q_INVOKABLE controller::Pose getRightHandPose() const;
+    Q_INVOKABLE controller::Pose getLeftHandTipPose() const;
+    Q_INVOKABLE controller::Pose getRightHandTipPose() const;
 
     AvatarWeakPointer getLookAtTargetAvatar() const { return _lookAtTargetAvatar; }
     void updateLookAtTargetAvatar();
