@@ -516,6 +516,24 @@ void UserInputMapper::update(float deltaTime) {
         }
         // TODO: emit signal for pose changes
     }
+
+    auto standardInputs = getStandardInputs();
+    if (_lastStandardStates.size() != standardInputs.size()) {
+        _lastStandardStates.resize(standardInputs.size());
+        for (auto& lastValue : _lastStandardStates) {
+            lastValue = 0;
+        }
+    }
+
+    for (int i = 0; i < standardInputs.size(); ++i) {
+        const auto& input = standardInputs[i].first;
+        float value = getValue(input);
+        float& oldValue = _lastStandardStates[i];
+        if (value != oldValue) {
+            oldValue = value;
+            emit inputEvent(input.id, value);
+        }
+    }
 }
 
 Input::NamedVector UserInputMapper::getAvailableInputs(uint16 deviceID) const {

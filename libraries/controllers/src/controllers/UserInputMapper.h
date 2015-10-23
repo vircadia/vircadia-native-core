@@ -117,6 +117,7 @@ namespace controller {
 
     signals:
         void actionEvent(int action, float state);
+        void inputEvent(int input, float state);
         void hardwareChanged();
 
     protected:
@@ -130,6 +131,7 @@ namespace controller {
         std::vector<float> _actionScales = std::vector<float>(toInt(Action::NUM_ACTIONS), 1.0f);
         std::vector<float> _lastActionStates = std::vector<float>(toInt(Action::NUM_ACTIONS), 0.0f);
         std::vector<Pose> _poseStates = std::vector<Pose>(toInt(Action::NUM_ACTIONS));
+        std::vector<float> _lastStandardStates = std::vector<float>();
 
         glm::mat4 _sensorToWorldMat;
 

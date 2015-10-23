@@ -129,6 +129,9 @@ namespace controller {
         virtual void captureActionEvents() { _actionsCaptured = true; }
         virtual void releaseActionEvents() { _actionsCaptured = false; }
 
+    signals:
+        void actionEvent(int action, float state);
+        void inputEvent(int action, float state);
 
     private:
         // Update the exposed variant maps reporting active hardware

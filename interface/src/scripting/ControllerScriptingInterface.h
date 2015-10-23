@@ -120,8 +120,6 @@ signals:
 
     void wheelEvent(const WheelEvent& event);
 
-    void actionEvent(int action, float state);
-
 private:
     QString sanatizeName(const QString& name); /// makes a name clean for inclusing in JavaScript
 
