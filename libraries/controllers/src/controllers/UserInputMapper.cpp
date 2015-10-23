@@ -738,6 +738,47 @@ Endpoint::Pointer UserInputMapper::parseEndpoint(const QJsonValue& value) {
     return result;
 }
 
+
+Conditional::Pointer UserInputMapper::conditionalFor(const QJSValue& condition) {
+    return Conditional::Pointer();
+}
+
+Conditional::Pointer UserInputMapper::conditionalFor(const QScriptValue& condition) {
+    if (condition.isArray()) {
+        int length = condition.property("length").toInteger();
+        Conditional::List children;
+        for (int i = 0; i < length; i++) {
+            Conditional::Pointer destination = conditionalFor(condition.property(i));
+            if (!destination) {
+                return Conditional::Pointer();
+            }
+            children.push_back(destination);
+        }
+        return std::make_shared<AndConditional>(children);
+    }
+
+    if (condition.isNumber()) {
+        return conditionalFor(Input(condition.toInt32()));
+    }
+
+    if (condition.isFunction()) {
+        return std::make_shared<ScriptConditional>(condition);
+    }
+
+    qWarning() << "Unsupported conditional type " << condition.toString();
+    return Conditional::Pointer();
+}
+
+Conditional::Pointer UserInputMapper::conditionalFor(const Input& inputId) const {
+    Locker locker(_lock);
+    auto iterator = _endpointsByInput.find(inputId);
+    if (_endpointsByInput.end() == iterator) {
+        qWarning() << "Unknown input: " << QString::number(inputId.getID(), 16);
+        return Conditional::Pointer();
+    }
+    return std::make_shared<EndpointConditional>(iterator->second);
+}
+
 Conditional::Pointer UserInputMapper::parseConditional(const QJsonValue& value) {
     if (value.isArray()) {
         // Support "when" : [ "GamePad.RB", "GamePad.LB" ]
@@ -764,7 +805,6 @@ Conditional::Pointer UserInputMapper::parseConditional(const QJsonValue& value) 
     return Conditional::parse(value);
 }
 
-
 Filter::Pointer UserInputMapper::parseFilter(const QJsonValue& value) {
     Filter::Pointer result;
     if (value.isString()) {
@@ -779,7 +819,6 @@ Filter::Pointer UserInputMapper::parseFilter(const QJsonValue& value) {
       
     return result;
 }
-
 
 Filter::List UserInputMapper::parseFilters(const QJsonValue& value) {
     if (value.isNull()) {

@@ -28,6 +28,7 @@ namespace controller {
         using Pointer = std::shared_ptr<Conditional>;
         using List = std::list<Pointer>;
         using Factory = hifi::SimpleFactory<Conditional, QString>;
+        using Lambda = std::function<bool()>;
 
         virtual bool satisfied() = 0;
         virtual bool parseParameters(const QJsonValue& parameters) { return true; }
