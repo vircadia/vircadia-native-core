@@ -37,9 +37,17 @@ var hand;
 
 function setControllerID() {
     if (leftHanded)  {
-        hand = Controller.Standard.LeftHand;
+        hand = MyAvatar.getLeftHandPose();
     } else {
-        hand = Controller.Standard.RightHand; 
+        hand = MyAvatar.rightHandPosition; 
+    }
+}
+
+function getHandPose(){
+	if (leftHanded)  {
+         return MyAvatar.getLeftHandPose();
+    } else {
+        return MyAvatar.rightHandPosition; 
     }
 }
 
@@ -63,7 +71,7 @@ var ball, paddle, paddleModel, line;
 function createEntities() {
     ball = Entities.addEntity(
                 { type: "Sphere",
-                position: Controller.getPoseValue(hand).translation,
+                position: getHandPose().translation,
                 dimensions: { x: BALL_SIZE, y: BALL_SIZE, z: BALL_SIZE }, 
                   color: BALL_COLOR,
                   gravity: {  x: 0, y: GRAVITY, z: 0 },
@@ -73,27 +81,29 @@ function createEntities() {
 
     paddle = Entities.addEntity(
                 { type: "Box",
-                position: Controller.getPoseValue(hand).translation,  
+                position: getHandPose().translation,  
                 dimensions: { x: PADDLE_SIZE, y: PADDLE_THICKNESS, z: PADDLE_SIZE * 0.80 }, 
                   color: PADDLE_COLOR,
                   gravity: {  x: 0, y: 0, z: 0 },
                 ignoreCollisions: false,
                 damping: 0.10,
                 visible: false,
-                rotation: Quat.multiply(MyAvatar.orientation, Controller.getPoseValue(hand).rotation,
+                //rotation: Quat.multiply(MyAvatar.orientation, Controller.getPoseValue(hand).rotation, 
+				rotation : getHandPose().rotation,
                 collisionsWillMove: false });
 
     modelURL = "http://public.highfidelity.io/models/attachments/pong_paddle.fbx";
     paddleModel = Entities.addEntity(
                 { type: "Model",
-                position: Vec3.sum(Controller.getPoseValue(hand).translation, PADDLE_BOX_OFFSET),   
+                position: Vec3.sum(hand, PADDLE_BOX_OFFSET),   
                 dimensions: { x: PADDLE_SIZE * 1.5, y: PADDLE_THICKNESS, z: PADDLE_SIZE * 1.25 }, 
                   color: PADDLE_COLOR,
                   gravity: {  x: 0, y: 0, z: 0 },
                 ignoreCollisions: true,
                 modelURL: modelURL,
                 damping: 0.10,
-                rotation: Quat.multiply(MyAvatar.orientation, Controller.getPoseValue(hand).rotation,
+                //rotation: Quat.multiply(MyAvatar.orientation, Controller.getPoseValue(hand).rotation,
+				rotation : getHandPose().rotation,
                 collisionsWillMove: false });
 
     line = Overlays.addOverlay("line3d", {
@@ -118,7 +128,7 @@ function deleteEntities() {
 }
 
 function update(deltaTime) {
-    var palmPosition = Controller.getPoseValue(hand).translation;
+    var palmPosition = getHandPose().translation;
     var controllerActive = (Vec3.length(palmPosition) > 0);
 
     if (!gameOn && controllerActive) {
@@ -133,7 +143,7 @@ function update(deltaTime) {
     }
 
         var paddleOrientation = leftHanded ? PADDLE_ORIENTATION : Quat.multiply(PADDLE_ORIENTATION, Quat.fromPitchYawRollDegrees(0, 180, 0));
-        var paddleWorldOrientation = Quat.multiply(Quat.multiply(MyAvatar.orientation, Controller.getPoseValue(hand).rotation), paddleOrientation);
+        var paddleWorldOrientation = Quat.multiply(getHandPose().rotation, paddleOrientation);
         var holdPosition = Vec3.sum(leftHanded ? MyAvatar.getLeftPalmPosition() : MyAvatar.getRightPalmPosition(), 
                                     Vec3.multiplyQbyV(paddleWorldOrientation, leftHanded ? HOLD_POSITION_LEFT_OFFSET : HOLD_POSITION_RIGHT_OFFSET ));
 
@@ -146,10 +156,10 @@ function update(deltaTime) {
         Entities.editEntity(ball, { velocity: ballVelocity });
         Overlays.editOverlay(line, { start: props.position, end: holdPosition });
         Entities.editEntity(paddle, { position: holdPosition, 
-                                      velocity: Controller.getPoseValue(hand).velocity,
+                                      velocity: getHandPose().velocity,	//fix this maybe
                                       rotation: paddleWorldOrientation });
         Entities.editEntity(paddleModel, { position: Vec3.sum(holdPosition, Vec3.multiplyQbyV(paddleWorldOrientation, PADDLE_BOX_OFFSET)), 
-                                      velocity: Controller.getPoseValue(hand).velocity,
+                                      velocity: getHandPose().velocity, //fix this maybe
                                       rotation: paddleWorldOrientation });
 
 }
