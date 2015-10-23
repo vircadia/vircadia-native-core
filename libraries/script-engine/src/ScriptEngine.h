@@ -193,7 +193,7 @@ private:
     ArrayBufferClass* _arrayBufferClass;
 
     QHash<EntityItemID, RegisteredEventHandlers> _registeredHandlers;
-    void generalHandler(const EntityItemID& entityID, const QString& eventName, std::function<QScriptValueList()> argGenerator);
+    void forwardHandlerCall(const EntityItemID& entityID, const QString& eventName, QScriptValueList eventHanderArgs);
     Q_INVOKABLE void entityScriptContentAvailable(const EntityItemID& entityID, const QString& scriptOrURL, const QString& contents, bool isURL, bool success);
 
     static QSet<ScriptEngine*> _allKnownScriptEngines;
