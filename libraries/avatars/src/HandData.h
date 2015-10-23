@@ -103,6 +103,7 @@ public:
     const glm::vec3& getRawVelocity()  const { return _rawVelocity; }
     void setRawAngularVelocity(const glm::vec3& angularVelocity) { _rawAngularVelocity = angularVelocity; }
     const glm::vec3& getRawAngularVelocity() const { return _rawAngularVelocity; }
+    glm::quat getRawAngularVelocityAsQuat() const { return glm::quat(); } // FIXME
     void addToPosition(const glm::vec3& delta);
 
     void addToPenetration(const glm::vec3& penetration) { _totalPenetration += penetration; }
