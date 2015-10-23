@@ -9,7 +9,7 @@
 //
 
 #include "AnimBlendLinearMove.h"
-#include "GLMHelpers.h"
+#include <GLMHelpers.h>
 #include "AnimationLogging.h"
 #include "AnimUtil.h"
 #include "AnimClip.h"
