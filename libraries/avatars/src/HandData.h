@@ -104,8 +104,7 @@ public:
 
     void setRawAngularVelocity(const glm::vec3& angularVelocity) { _rawAngularVelocity = angularVelocity; }
     const glm::vec3& getRawAngularVelocity() const { return _rawAngularVelocity; }
-    void setRawDeltaRotation(glm::quat rawDeltaRotation) { _rawDeltaRotation = rawDeltaRotation; } // FIXME, is this really what we want?
-    glm::quat getRawDeltaRotation() const { return _rawDeltaRotation; }
+    glm::quat getRawAngularVelocityAsQuat() const { return glm::quat(_rawAngularVelocity); }
 
     void addToPosition(const glm::vec3& delta);
 

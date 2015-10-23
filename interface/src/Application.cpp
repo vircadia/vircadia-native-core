@@ -4851,10 +4851,8 @@ void Application::setPalmData(Hand* hand, const controller::Pose& pose, float de
         angularVelocity = glm::normalize(glm::axis(deltaRotation));
         angularVelocity *= (rotationAngle / deltaTime);
         palm->setRawAngularVelocity(angularVelocity);
-        palm->setRawDeltaRotation(deltaRotation); // FIXME - do we really want both RawAngularVelocity and RawDeltaRotation
     } else {
         palm->setRawAngularVelocity(glm::vec3(0.0f));
-        palm->setRawDeltaRotation(glm::quat());
     }
 
     if (controller::InputDevice::getLowVelocityFilter()) {
