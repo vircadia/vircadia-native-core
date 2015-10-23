@@ -20,13 +20,8 @@ HIFI_PUBLIC_BUCKET = "http://s3.amazonaws.com/hifi-public/";
 // maybe we should make these constants...
 var LEFT_PALM = 0;
 var LEFT_TIP = 1;
-var LEFT_BUTTON_FWD = 5;
-var LEFT_BUTTON_3 = 3;
-
 var RIGHT_PALM = 2;
 var RIGHT_TIP = 3;
-var RIGHT_BUTTON_FWD = 11;
-var RIGHT_BUTTON_3 = 9;
 
 var BALL_RADIUS = 0.08;
 var GRAVITY_STRENGTH = 3.0;
@@ -69,9 +64,6 @@ function getBallHoldPosition(whichSide) {
 }
 
 function checkControllerSide(whichSide) {
-    var BUTTON_FWD;
-    var BUTTON_3;
-    var TRIGGER;
     var palmPosition;
     var palmRotation;
     var ballAlreadyInHand;
@@ -79,35 +71,35 @@ function checkControllerSide(whichSide) {
     var linearVelocity;
     var angularVelocity; 
     var AVERAGE_FACTOR = 0.33;
-    
+	var grabButtonPressed;
+	
     if (whichSide == LEFT_PALM) {
-        BUTTON_FWD = LEFT_BUTTON_FWD;
-        BUTTON_3 = LEFT_BUTTON_3;
-        TRIGGER = 0;
-        palmPosition = Controller.getSpatialControlPosition(LEFT_PALM);
-        palmRotation = Quat.multiply(MyAvatar.orientation, Controller.getSpatialControlRawRotation(LEFT_PALM));
+		palmPosition = MyAvatar.leftHandPose.translation;
+        palmRotation = MyAvatar.leftHandPose.rotation;
         ballAlreadyInHand = leftBallAlreadyInHand;
         handMessage = "LEFT";
-        averageLinearVelocity[0] = Vec3.sum(Vec3.multiply(AVERAGE_FACTOR, Controller.getSpatialControlVelocity(LEFT_TIP)), 
+       averageLinearVelocity[0] = Vec3.sum(Vec3.multiply(AVERAGE_FACTOR, MyAvatar.leftHandTipPose.velocity), 
                                             Vec3.multiply(1.0 - AVERAGE_FACTOR, averageLinearVelocity[0]));
-        linearVelocity = averageLinearVelocity[0];
-        angularVelocity = Vec3.multiplyQbyV(MyAvatar.orientation, Controller.getSpatialControlRawAngularVelocity(LEFT_TIP));
+
+	   linearVelocity = averageLinearVelocity[0];
+       angularVelocity = MyAvatar.leftHandTipPose.angularVelocity;
+	   grabButtonPressed = (Controller.getValue(Controller.Standard.LT) > 0.5);
+    
     } else {
-        BUTTON_FWD = RIGHT_BUTTON_FWD;
-        BUTTON_3 = RIGHT_BUTTON_3;
-        TRIGGER = 1;
-        palmPosition = Controller.getSpatialControlPosition(RIGHT_PALM);
-        palmRotation = Quat.multiply(MyAvatar.orientation, Controller.getSpatialControlRawRotation(RIGHT_PALM));
-        ballAlreadyInHand = rightBallAlreadyInHand;
-        averageLinearVelocity[1] = Vec3.sum(Vec3.multiply(AVERAGE_FACTOR, Controller.getSpatialControlVelocity(RIGHT_TIP)), 
+		palmPosition = MyAvatar.rightHandPose.translation;
+        palmRotation = MyAvatar.rightHandPose.rotation;
+		ballAlreadyInHand = rightBallAlreadyInHand;
+		 averageLinearVelocity[1] = Vec3.sum(Vec3.multiply(AVERAGE_FACTOR, MyAvatar.rightHandTipPose.velocity), 
                                             Vec3.multiply(1.0 - AVERAGE_FACTOR, averageLinearVelocity[1]));
-        linearVelocity = averageLinearVelocity[1];
-        angularVelocity = Vec3.multiplyQbyV(MyAvatar.orientation, Controller.getSpatialControlRawAngularVelocity(RIGHT_TIP));
+ 
+		linearVelocity = averageLinearVelocity[1];
+		angularVelocity = MyAvatar.rightHandTipPose.angularVelocity;
         handMessage = "RIGHT";
+		grabButtonPressed = (Controller.getValue(Controller.Standard.RT) > 0.5);
+    
     }
 
-    var grabButtonPressed = (Controller.isButtonPressed(BUTTON_FWD) || Controller.isButtonPressed(BUTTON_3) || (Controller.getTriggerValue(TRIGGER) > 0.5));
-
+    
     // If I don't currently have a ball in my hand, then try to catch closest one
     if (!ballAlreadyInHand && grabButtonPressed) {
         var closestEntity = Entities.findClosestEntity(palmPosition, targetRadius);
@@ -231,22 +223,10 @@ function checkControllerSide(whichSide) {
         }
     }
 }
-
-
 function checkController(deltaTime) {
-    var numberOfButtons = Controller.getNumberOfButtons();
-    var numberOfTriggers = Controller.getNumberOfTriggers();
-    var numberOfSpatialControls = Controller.getNumberOfSpatialControls();
-    var controllersPerTrigger = numberOfSpatialControls / numberOfTriggers;
 
-    // this is expected for hydras
-    if (!(numberOfButtons==12 && numberOfTriggers == 2 && controllersPerTrigger == 2)) {
-        debugPrint("total buttons = " + numberOfButtons + ", Triggers = " + numberOfTriggers + ", controllers/trigger = " + controllersPerTrigger); 
-        return; // bail if no hydra
-    }
-
-    checkControllerSide(LEFT_PALM);
-    checkControllerSide(RIGHT_PALM);
+   checkControllerSide(LEFT_PALM);
+   checkControllerSide(RIGHT_PALM);
 }
 
 
