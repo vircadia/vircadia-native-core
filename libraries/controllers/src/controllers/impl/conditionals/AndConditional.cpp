@@ -18,3 +18,4 @@ bool AndConditional::satisfied() {
    }
    return true;
 }
+
