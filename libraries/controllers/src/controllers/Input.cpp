@@ -9,10 +9,9 @@
 #include "Input.h"
 
 namespace controller {
-
-    const uint16_t Input::INVALID_DEVICE = 0xffff;
-    const uint16_t Input::INVALID_CHANNEL = 0x1fff;
-    const uint16_t Input::INVALID_TYPE = (uint16_t)ChannelType::INVALID;
-    const Input Input::INVALID_INPUT = Input(INVALID_DEVICE, INVALID_CHANNEL, ChannelType::INVALID);
+    const Input Input::INVALID_INPUT = Input(0x7fffffff);
+    const uint16_t Input::INVALID_DEVICE = Input::INVALID_INPUT.device;
+    const uint16_t Input::INVALID_CHANNEL = Input::INVALID_INPUT.channel;
+    const uint16_t Input::INVALID_TYPE = Input::INVALID_INPUT.type;
 }
 
