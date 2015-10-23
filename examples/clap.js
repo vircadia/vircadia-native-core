@@ -71,10 +71,6 @@ function maybePlaySound(deltaTime) {
     var palm2Position = MyAvatar.getRightPalmPosition();
     var distanceBetween = Vec3.length(Vec3.subtract(palm1Position, palm2Position));
 
-    var palmPose = Controller.getPoseValue(Controller.Standard.LeftHand);
-
-
-
     var palm1Velocity = Controller.getPoseValue(Controller.Standard.LeftHand).velocity;
     var palm2Velocity = Controller.getPoseValue(Controller.Standard.RightHand).velocity;
     var closingVelocity = Vec3.length(Vec3.subtract(palm1Velocity, palm2Velocity));
