@@ -136,14 +136,15 @@ namespace controller {
         int recordDeviceOfType(const QString& deviceName);
         QHash<const QString&, int> _deviceCounts;
 
-        float getValue(const EndpointPointer& endpoint) const;
-        Pose getPose(const EndpointPointer& endpoint) const;
+        static float getValue(const EndpointPointer& endpoint);
+        static Pose getPose(const EndpointPointer& endpoint);
 
         friend class RouteBuilderProxy;
         friend class MappingBuilderProxy;
 
         void runMappings();
-        void applyRoute(const RoutePointer& route);
+        static void applyRoutes(const RouteList& route);
+        static bool applyRoute(const RoutePointer& route, bool force = false);
         void enableMapping(const MappingPointer& mapping);
         void disableMapping(const MappingPointer& mapping);
         EndpointPointer endpointFor(const QJSValue& endpoint);

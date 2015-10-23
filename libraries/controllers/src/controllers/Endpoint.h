@@ -36,7 +36,6 @@ namespace controller {
         using WriteLambda = std::function<void(float)>;
 
         Endpoint(const Input& input) : _input(input) {}
-        virtual uint8_t priority() const { return 0x7f; }
         virtual float value() = 0;
         virtual void apply(float newValue, float oldValue, const Pointer& source) = 0;
         virtual Pose pose() { return Pose(); }
