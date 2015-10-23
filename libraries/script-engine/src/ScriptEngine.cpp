@@ -556,7 +556,7 @@ void ScriptEngine::addEventHandler(const EntityItemID& entityID, const QString& 
 }
 
 
-QScriptValue ScriptEngine::evaluate(const QString& program, const QString& fileName, int lineNumber) {
+QScriptValue ScriptEngine::evaluate(const QString& sourceCode, const QString& fileName, int lineNumber) {
     if (_stoppingAllScripts) {
         return QScriptValue(); // bail early
     }
@@ -565,27 +565,30 @@ QScriptValue ScriptEngine::evaluate(const QString& program, const QString& fileN
         QScriptValue result;
         #ifdef THREAD_DEBUGGING
         qDebug() << "*** WARNING *** ScriptEngine::evaluate() called on wrong thread [" << QThread::currentThread() << "], invoking on correct thread [" << thread() << "] "
-            "program:" << program << " fileName:" << fileName << "lineNumber:" << lineNumber;
+            "sourceCode:" << sourceCode << " fileName:" << fileName << "lineNumber:" << lineNumber;
         #endif
         QMetaObject::invokeMethod(this, "evaluate", Qt::BlockingQueuedConnection,
             Q_RETURN_ARG(QScriptValue, result),
-            Q_ARG(const QString&, program),
+            Q_ARG(const QString&, sourceCode),
             Q_ARG(const QString&, fileName),
             Q_ARG(int, lineNumber));
         return result;
     }
+    
+    // Check synthax
+    const QScriptProgram program(sourceCode, fileName, lineNumber);
+    if (!checkSynthax(program)) {
+        return QScriptValue();
+    }
 
-    _evaluatesPending++;
-    QScriptValue result = QScriptEngine::evaluate(program, fileName, lineNumber);
-    if (hasUncaughtException()) {
-        int line = uncaughtExceptionLineNumber();
-        qCDebug(scriptengine) << "Uncaught exception at (" << _fileNameString << " : " << fileName << ") line" << line << ": " << result.toString();
-    }
-    _evaluatesPending--;
+    ++_evaluatesPending;
+    const auto result = QScriptEngine::evaluate(program);
+    --_evaluatesPending;
+    
+    const auto hadUncaughtException = checkExceptions(this, program.fileName());
     if (_wantSignals) {
-        emit evaluationFinished(result, hasUncaughtException());
+        emit evaluationFinished(result, hadUncaughtException);
     }
-    clearExceptions();
     return result;
 }
 
@@ -603,7 +606,7 @@ void ScriptEngine::run() {
         emit runningStateChanged();
     }
 
-    QScriptValue result = evaluate(_scriptContents);
+    QScriptValue result = evaluate(_scriptContents, _fileNameString);
 
     QElapsedTimer startTime;
     startTime.start();
@@ -644,15 +647,6 @@ void ScriptEngine::run() {
         qint64 now = usecTimestampNow();
         float deltaTime = (float) (now - lastUpdate) / (float) USECS_PER_SECOND;
 
-        if (hasUncaughtException()) {
-            int line = uncaughtExceptionLineNumber();
-            qCDebug(scriptengine) << "Uncaught exception at (" << _fileNameString << ") line" << line << ":" << uncaughtException().toString();
-            if (_wantSignals) {
-                emit errorMessage("Uncaught exception at (" + _fileNameString + ") line" + QString::number(line) + ":" + uncaughtException().toString());
-            }
-            clearExceptions();
-        }
-
         if (!_isFinished) {
             if (_wantSignals) {
                 emit update(deltaTime);
@@ -660,6 +654,7 @@ void ScriptEngine::run() {
         }
         lastUpdate = now;
 
+        checkExceptions(this, _fileNameString);
     }
 
     stopAllTimers(); // make sure all our timers are stopped if the script is ending
@@ -896,6 +891,38 @@ void ScriptEngine::load(const QString& loadFile) {
     }
 }
 
+
+bool ScriptEngine::checkSynthax(const QScriptProgram& program) {
+    const auto syntaxCheck = QScriptEngine::checkSyntax(program.sourceCode());
+    if (syntaxCheck.state() != QScriptSyntaxCheckResult::Valid) {
+        const auto error = syntaxCheck.errorMessage();
+        const auto line = QString::number(syntaxCheck.errorLineNumber());
+        const auto column = QString::number(syntaxCheck.errorColumnNumber());
+        const auto message = QString("[SyntaxError] %1 in %2:%3(%4)").arg(error, program.fileName(), line, column);
+        qCWarning(scriptengine) << qPrintable(message);
+        return false;
+    }
+    return true;
+}
+
+bool ScriptEngine::checkExceptions(QScriptEngine* engine, const QString& fileName) {
+    if (engine->hasUncaughtException()) {
+        const auto backtrace = engine->uncaughtExceptionBacktrace();
+        const auto exception = engine->uncaughtException().toString();
+        const auto line = QString::number(engine->uncaughtExceptionLineNumber());
+        engine->clearExceptions();
+        
+        auto message = QString("[UncaughtException] %1 in %2:%3").arg(exception, fileName, line);
+        if (!backtrace.empty()) {
+            static const auto lineSeparator = "\n    ";
+            message += QString("\n[Backtrace]%1%2").arg(lineSeparator, backtrace.join(lineSeparator));
+        }
+        qCWarning(scriptengine) << qPrintable(message);
+        return false;
+    }
+    return true;
+}
+
 // Look up the handler associated with eventName and entityID. If found, evalute the argGenerator thunk and call the handler with those args
 void ScriptEngine::forwardHandlerCall(const EntityItemID& entityID, const QString& eventName, QScriptValueList eventHanderArgs) {
     if (QThread::currentThread() != thread()) {
@@ -1015,7 +1042,8 @@ void ScriptEngine::entityScriptContentAvailable(const EntityItemID& entityID, co
         lastModified = (quint64)QFileInfo(file).lastModified().toMSecsSinceEpoch();
     }
 
-    QScriptValue entityScriptConstructor = evaluate(contents);
+    auto fileName = QString("(EntityID:%1, %2)").arg(entityID.toString(), isURL ? scriptOrURL : "EmbededEntityScript");
+    QScriptValue entityScriptConstructor = evaluate(contents, fileName);
     QScriptValue entityScriptObject = entityScriptConstructor.construct();
     EntityScriptDetails newDetails = { scriptOrURL, entityScriptObject, lastModified };
     _entityScripts[entityID] = newDetails;
