@@ -396,6 +396,8 @@ protected:
     const QByteArray getActionDataInternal() const;
     void setActionDataInternal(QByteArray actionData);
 
+    bool forSelfAndEachChildEntity(std::function<bool(EntityItemPointer)> actor);
+
     static bool _sendPhysicsUpdates;
     EntityTypes::EntityType _type;
     quint64 _lastSimulated; // last time this entity called simulate(), this includes velocity, angular velocity,

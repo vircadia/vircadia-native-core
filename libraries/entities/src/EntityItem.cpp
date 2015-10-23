@@ -1309,17 +1309,40 @@ void EntityItem::computeShapeInfo(ShapeInfo& info) {
     info.setParams(getShapeType(), 0.5f * getDimensions());
 }
 
+bool EntityItem::forSelfAndEachChildEntity(std::function<bool(EntityItemPointer)> actor) {
+    bool result = true;
+    QQueue<SpatiallyNestablePointer> toProcess;
+    toProcess.enqueue(shared_from_this());
+
+    while (!toProcess.empty()) {
+        EntityItemPointer entity = std::static_pointer_cast<EntityItem>(toProcess.dequeue());
+
+        result &= actor(entity);
+
+        foreach (SpatiallyNestablePointer child, entity->getChildren()) {
+            if (child && child->getNestableType() == NestableTypes::Entity) {
+                toProcess.enqueue(child);
+            }
+        }
+    }
+
+    return result;
+}
+
 void EntityItem::updatePosition(const glm::vec3& value) {
     if (shouldSuppressLocationEdits()) {
         return;
     }
     auto delta = glm::distance(getLocalPosition(), value);
     if (delta > IGNORE_POSITION_DELTA) {
-        _dirtyFlags |= Simulation::DIRTY_POSITION;
         setLocalPosition(value);
-        if (delta > ACTIVATION_POSITION_DELTA) {
-            _dirtyFlags |= Simulation::DIRTY_PHYSICS_ACTIVATION;
-        }
+        forSelfAndEachChildEntity([&](EntityItemPointer entity) {
+            entity->_dirtyFlags |= Simulation::DIRTY_POSITION;
+            if (delta > ACTIVATION_POSITION_DELTA) {
+                entity->_dirtyFlags |= Simulation::DIRTY_PHYSICS_ACTIVATION;
+            }
+            return true;
+        });
     }
 }
 
@@ -1342,12 +1365,16 @@ void EntityItem::updateRotation(const glm::quat& rotation) {
         setRotation(rotation);
 
         auto alignmentDot = glm::abs(glm::dot(getRotation(), rotation));
-        if (alignmentDot < IGNORE_ALIGNMENT_DOT) {
-            _dirtyFlags |= Simulation::DIRTY_ROTATION;
-        }
-        if (alignmentDot < ACTIVATION_ALIGNMENT_DOT) {
-            _dirtyFlags |= Simulation::DIRTY_PHYSICS_ACTIVATION;
-        }
+
+        forSelfAndEachChildEntity([&](EntityItemPointer entity) {
+            if (alignmentDot < IGNORE_ALIGNMENT_DOT) {
+                entity->_dirtyFlags |= Simulation::DIRTY_ROTATION;
+            }
+            if (alignmentDot < ACTIVATION_ALIGNMENT_DOT) {
+                entity->_dirtyFlags |= Simulation::DIRTY_PHYSICS_ACTIVATION;
+            }
+            return true;
+        });
     }
 }
 
