@@ -217,10 +217,10 @@ public:
     }
 
     virtual float value() override {
-        float result = 0;
+        float result = 0.0f;
         for (auto& child : _children) {
             float childResult = child->value();
-            if (childResult != 0.0f) {
+            if (childResult != 0.0f && result == 0.0f) {
                 result = childResult;
             }
         }
@@ -855,6 +855,21 @@ Endpoint::Pointer UserInputMapper::endpointFor(const QScriptValue& endpoint) {
         auto result = std::make_shared<ScriptEndpoint>(endpoint);
         return result;
     }
+
+    if (endpoint.isArray()) {
+        int length = endpoint.property("length").toInteger();
+        Endpoint::List children;
+        for (int i = 0; i < length; i++) {
+            QScriptValue arrayItem = endpoint.property(i);
+            Endpoint::Pointer destination = endpointFor(arrayItem);
+            if (!destination) {
+                return Endpoint::Pointer();
+            }
+            children.push_back(destination);
+        }
+        return std::make_shared<AnyEndpoint>(children);
+    }
+
 
     qWarning() << "Unsupported input type " << endpoint.toString();
     return Endpoint::Pointer();
