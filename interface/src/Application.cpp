@@ -627,7 +627,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
 
     // Setup the userInputMapper with the actions
     auto userInputMapper = DependencyManager::get<UserInputMapper>();
-    connect(userInputMapper.data(), &UserInputMapper::actionEvent, _controllerScriptingInterface, &ControllerScriptingInterface::actionEvent);
     connect(userInputMapper.data(), &UserInputMapper::actionEvent, [this](int action, float state) {
         if (state && action == toInt(controller::Action::TOGGLE_MUTE)) {
             DependencyManager::get<AudioClient>()->toggleMute();

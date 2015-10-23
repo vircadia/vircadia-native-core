@@ -16,10 +16,12 @@
 namespace controller {
 
 enum class ChannelType {
-    INVALID = 0,
-    BUTTON = 1,
+    UNKNOWN = 0,
+    BUTTON,
     AXIS,
     POSE,
+    RUMBLE,
+    INVALID = 0x7
 };
 
 // Input is the unique identifier to find a n input channel of a particular device
@@ -30,8 +32,8 @@ struct Input {
         uint32_t id{ 0 }; // by default Input is 0 meaning invalid
         struct {
             uint16_t device; // Up to 64K possible devices
-            uint16_t channel : 13 ; // 2^13 possible channel per Device
-            uint16_t type : 2; // 2 bits to store the Type directly in the ID
+            uint16_t channel : 12 ; // 2^12 possible channel per Device
+            uint16_t type : 3; // 2 bits to store the Type directly in the ID
             uint16_t padding : 1; // 2 bits to store the Type directly in the ID
         };
     };

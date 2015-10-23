@@ -23,13 +23,12 @@
 #include <DependencyManager.h>
 #include <RegisteredMetaTypes.h>
 
+#include "Forward.h"
 #include "Pose.h"
 #include "Input.h"
 #include "InputDevice.h"
 #include "DeviceProxy.h"
 #include "StandardControls.h"
-#include "Mapping.h"
-#include "Endpoint.h"
 #include "Actions.h"
 
 namespace controller {
@@ -45,15 +44,14 @@ namespace controller {
     public:
         using InputPair = Input::NamedPair;
         // FIXME move to unordered set / map
-        using EndpointToInputMap = std::map<Endpoint::Pointer, Input>;
-        using MappingNameMap = std::map<QString, Mapping::Pointer>;
-        using MappingDeviceMap = std::map<uint16_t, Mapping::Pointer>;
-        using MappingStack = std::list<Mapping::Pointer>;
-        using InputToEndpointMap = std::map<Input, Endpoint::Pointer>;
-        using EndpointSet = std::unordered_set<Endpoint::Pointer>;
-        using EndpointOverrideMap = std::map<Endpoint::Pointer, Endpoint::Pointer>;
-        using EndpointPair = std::pair<Endpoint::Pointer, Endpoint::Pointer>;
-        using EndpointPairMap = std::map<EndpointPair, Endpoint::Pointer>;
+        using EndpointToInputMap = std::map<EndpointPointer, Input>;
+        using MappingNameMap = std::map<QString, MappingPointer>;
+        using MappingDeviceMap = std::map<uint16_t, MappingPointer>;
+        using MappingStack = std::list<MappingPointer>;
+        using InputToEndpointMap = std::map<Input, EndpointPointer>;
+        using EndpointSet = std::unordered_set<EndpointPointer>;
+        using EndpointPair = std::pair<EndpointPointer, EndpointPointer>;
+        using EndpointPairMap = std::map<EndpointPair, EndpointPointer>;
         using DevicesMap = std::map<int, DeviceProxy::Pointer>;
         using uint16 = uint16_t;
         using uint32 = uint32_t;
@@ -107,9 +105,9 @@ namespace controller {
         uint16 getStandardDeviceID() const { return STANDARD_DEVICE; }
         DeviceProxy::Pointer getStandardDevice() { return _registeredDevices[getStandardDeviceID()]; }
 
-        Mapping::Pointer newMapping(const QString& mappingName);
-        Mapping::Pointer parseMapping(const QString& json);
-        Mapping::Pointer loadMapping(const QString& jsonFile);
+        MappingPointer newMapping(const QString& mappingName);
+        MappingPointer parseMapping(const QString& json);
+        MappingPointer loadMapping(const QString& jsonFile);
 
         void enableMapping(const QString& mappingName, bool enable = true);
         float getValue(const Input& input) const;
@@ -117,6 +115,7 @@ namespace controller {
 
     signals:
         void actionEvent(int action, float state);
+        void inputEvent(int input, float state);
         void hardwareChanged();
 
     protected:
@@ -130,36 +129,38 @@ namespace controller {
         std::vector<float> _actionScales = std::vector<float>(toInt(Action::NUM_ACTIONS), 1.0f);
         std::vector<float> _lastActionStates = std::vector<float>(toInt(Action::NUM_ACTIONS), 0.0f);
         std::vector<Pose> _poseStates = std::vector<Pose>(toInt(Action::NUM_ACTIONS));
+        std::vector<float> _lastStandardStates = std::vector<float>();
 
         glm::mat4 _sensorToWorldMat;
 
         int recordDeviceOfType(const QString& deviceName);
         QHash<const QString&, int> _deviceCounts;
 
-        float getValue(const Endpoint::Pointer& endpoint) const;
-        Pose getPose(const Endpoint::Pointer& endpoint) const;
+        static float getValue(const EndpointPointer& endpoint);
+        static Pose getPose(const EndpointPointer& endpoint);
 
         friend class RouteBuilderProxy;
         friend class MappingBuilderProxy;
 
         void runMappings();
-        void applyRoute(const Route::Pointer& route);
-        void enableMapping(const Mapping::Pointer& mapping);
-        void disableMapping(const Mapping::Pointer& mapping);
-        Endpoint::Pointer endpointFor(const QJSValue& endpoint);
-        Endpoint::Pointer endpointFor(const QScriptValue& endpoint);
-        Endpoint::Pointer endpointFor(const Input& endpoint) const;
-        Endpoint::Pointer compositeEndpointFor(Endpoint::Pointer first, Endpoint::Pointer second);
+        static void applyRoutes(const RouteList& route);
+        static bool applyRoute(const RoutePointer& route, bool force = false);
+        void enableMapping(const MappingPointer& mapping);
+        void disableMapping(const MappingPointer& mapping);
+        EndpointPointer endpointFor(const QJSValue& endpoint);
+        EndpointPointer endpointFor(const QScriptValue& endpoint);
+        EndpointPointer endpointFor(const Input& endpoint) const;
+        EndpointPointer compositeEndpointFor(EndpointPointer first, EndpointPointer second);
         
-        Mapping::Pointer parseMapping(const QJsonValue& json);
-        Route::Pointer parseRoute(const QJsonValue& value);
-        Endpoint::Pointer parseDestination(const QJsonValue& value);
-        Endpoint::Pointer parseSource(const QJsonValue& value);
-        Endpoint::Pointer parseEndpoint(const QJsonValue& value);
-        Conditional::Pointer parseConditional(const QJsonValue& value);
+        MappingPointer parseMapping(const QJsonValue& json);
+        RoutePointer parseRoute(const QJsonValue& value);
+        EndpointPointer parseDestination(const QJsonValue& value);
+        EndpointPointer parseSource(const QJsonValue& value);
+        EndpointPointer parseEndpoint(const QJsonValue& value);
+        ConditionalPointer parseConditional(const QJsonValue& value);
 
-        static Filter::Pointer parseFilter(const QJsonValue& value);
-        static Filter::List parseFilters(const QJsonValue& value);
+        static FilterPointer parseFilter(const QJsonValue& value);
+        static FilterList parseFilters(const QJsonValue& value);
 
         InputToEndpointMap _endpointsByInput;
         EndpointToInputMap _inputsByEndpoint;
@@ -168,8 +169,8 @@ namespace controller {
         MappingNameMap _mappingsByName;
         MappingDeviceMap _mappingsByDevice;
 
-        Route::List _deviceRoutes;
-        Route::List _standardRoutes;
+        RouteList _deviceRoutes;
+        RouteList _standardRoutes;
 
         using Locker = std::unique_lock<std::recursive_mutex>;
 
