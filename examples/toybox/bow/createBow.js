@@ -13,12 +13,12 @@
 
 var SCRIPT_URL = Script.resolvePath('bow.js');
 
-var MODEL_URL = "https://hifi-public.s3.amazonaws.com/models/bow/bow.fbx";
-var COLLISION_HULL_URL = "https://hifi-public.s3.amazonaws.com/models/bow/bow_collision_hull.obj";
+var MODEL_URL = "https://hifi-public.s3.amazonaws.com/models/bow/bow_good.fbx";
+var COLLISION_HULL_URL = "https://hifi-public.s3.amazonaws.com/models/bow/bow_good_collision_hull.obj";
 var BOW_DIMENSIONS = {
-    x: 0.1,
-    y: 0.02,
-    z: 1
+    x: 0.02,
+    y: 1,
+    z: 0.1
 };
 
 var BOW_GRAVITY = {
@@ -26,7 +26,7 @@ var BOW_GRAVITY = {
     y: 0,
     z: 0
 }
-var BOW_ROTATION = Quat.fromPitchYawRollDegrees(90, 180, 0);
+// var BOW_ROTATION = Quat.fromPitchYawRollDegrees(90, 180, 0);
 
 var center = Vec3.sum(Vec3.sum(MyAvatar.position, {
     x: 0,
@@ -39,7 +39,7 @@ var bow = Entities.addEntity({
     type: "Model",
     modelURL: MODEL_URL,
     position: center,
-    rotation: BOW_ROTATION,
+    // rotation: BOW_ROTATION,
     dimensions: BOW_DIMENSIONS,
     collisionsWillMove: true,
     gravity: BOW_GRAVITY,
