@@ -79,8 +79,6 @@ EntityItem::EntityItem(const EntityItemID& entityItemID) :
     _simulated(false)
 {
     // explicitly set transform parts to set dirty flags used by batch rendering
-    setPosition(ENTITY_ITEM_DEFAULT_POSITION);
-    setRotation(ENTITY_ITEM_DEFAULT_ROTATION);
     setScale(ENTITY_ITEM_DEFAULT_DIMENSIONS);
     quint64 now = usecTimestampNow();
     _lastSimulated = now;
@@ -1309,24 +1307,19 @@ void EntityItem::computeShapeInfo(ShapeInfo& info) {
     info.setParams(getShapeType(), 0.5f * getDimensions());
 }
 
-bool EntityItem::forSelfAndEachChildEntity(std::function<bool(EntityItemPointer)> actor) {
-    bool result = true;
+void EntityItem::forSelfAndEachChildEntity(std::function<void(EntityItemPointer)> actor) {
     QQueue<SpatiallyNestablePointer> toProcess;
     toProcess.enqueue(shared_from_this());
 
     while (!toProcess.empty()) {
         EntityItemPointer entity = std::static_pointer_cast<EntityItem>(toProcess.dequeue());
-
-        result &= actor(entity);
-
+        actor(entity);
         foreach (SpatiallyNestablePointer child, entity->getChildren()) {
             if (child && child->getNestableType() == NestableTypes::Entity) {
                 toProcess.enqueue(child);
             }
         }
     }
-
-    return result;
 }
 
 void EntityItem::updatePosition(const glm::vec3& value) {
@@ -1336,14 +1329,74 @@ void EntityItem::updatePosition(const glm::vec3& value) {
     auto delta = glm::distance(getLocalPosition(), value);
     if (delta > IGNORE_POSITION_DELTA) {
         setLocalPosition(value);
+        if (delta > ACTIVATION_POSITION_DELTA) {
+            _dirtyFlags |= Simulation::DIRTY_PHYSICS_ACTIVATION;
+        }
         forSelfAndEachChildEntity([&](EntityItemPointer entity) {
             entity->_dirtyFlags |= Simulation::DIRTY_POSITION;
-            if (delta > ACTIVATION_POSITION_DELTA) {
-                entity->_dirtyFlags |= Simulation::DIRTY_PHYSICS_ACTIVATION;
-            }
-            return true;
         });
     }
+}
+
+void EntityItem::setTransform(const Transform& transform) {
+    SpatiallyNestable::setTransform(transform);
+    forSelfAndEachChildEntity([&](EntityItemPointer entity) {
+        entity->requiresRecalcBoxes();
+    });
+}
+
+void EntityItem::setLocalTransform(const Transform& transform) {
+    SpatiallyNestable::setLocalTransform(transform);
+    forSelfAndEachChildEntity([&](EntityItemPointer entity) {
+        entity->requiresRecalcBoxes();
+    });
+}
+
+void EntityItem::setPosition(const glm::vec3& position) {
+    SpatiallyNestable::setPosition(position);
+    forSelfAndEachChildEntity([&](EntityItemPointer entity) {
+        entity->requiresRecalcBoxes();
+    });
+}
+
+void EntityItem::setLocalPosition(const glm::vec3& position) {
+    SpatiallyNestable::setLocalPosition(position);
+    forSelfAndEachChildEntity([&](EntityItemPointer entity) {
+        entity->requiresRecalcBoxes();
+    });
+}
+
+void EntityItem::updateRotation(const glm::quat& rotation) {
+    if (shouldSuppressLocationEdits()) {
+        return;
+    }
+    if (getRotation() != rotation) {
+        auto alignmentDot = glm::abs(glm::dot(getRotation(), rotation));
+        setRotation(rotation);
+        if (alignmentDot < ACTIVATION_ALIGNMENT_DOT) {
+            _dirtyFlags |= Simulation::DIRTY_PHYSICS_ACTIVATION;
+        }
+        forSelfAndEachChildEntity([&](EntityItemPointer entity) {
+            if (alignmentDot < IGNORE_ALIGNMENT_DOT) {
+                entity->_dirtyFlags |= Simulation::DIRTY_ROTATION;
+            }
+            entity->requiresRecalcBoxes();
+        });
+    }
+}
+
+void EntityItem::setRotation(const glm::quat& orientation) {
+    SpatiallyNestable::setOrientation(orientation);
+    forSelfAndEachChildEntity([&](EntityItemPointer entity) {
+        entity->requiresRecalcBoxes();
+    });
+}
+
+void EntityItem::setLocalRotation(const glm::quat& orientation) {
+    SpatiallyNestable::setLocalOrientation(orientation);
+    forSelfAndEachChildEntity([&](EntityItemPointer entity) {
+        entity->requiresRecalcBoxes();
+    });
 }
 
 void EntityItem::updateDimensions(const glm::vec3& value) {
@@ -1357,26 +1410,6 @@ void EntityItem::updateDimensions(const glm::vec3& value) {
     }
 }
 
-void EntityItem::updateRotation(const glm::quat& rotation) {
-    if (shouldSuppressLocationEdits()) {
-        return;
-    }
-    if (getRotation() != rotation) {
-        setRotation(rotation);
-
-        auto alignmentDot = glm::abs(glm::dot(getRotation(), rotation));
-
-        forSelfAndEachChildEntity([&](EntityItemPointer entity) {
-            if (alignmentDot < IGNORE_ALIGNMENT_DOT) {
-                entity->_dirtyFlags |= Simulation::DIRTY_ROTATION;
-            }
-            if (alignmentDot < ACTIVATION_ALIGNMENT_DOT) {
-                entity->_dirtyFlags |= Simulation::DIRTY_PHYSICS_ACTIVATION;
-            }
-            return true;
-        });
-    }
-}
 
 void EntityItem::updateMass(float mass) {
     // Setting the mass actually changes the _density (at fixed volume), however

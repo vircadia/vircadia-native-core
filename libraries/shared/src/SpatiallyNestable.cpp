@@ -14,6 +14,16 @@
 
 // TODO -- make use of parent joint index
 
+
+SpatiallyNestable::SpatiallyNestable(NestableTypes::NestableType nestableType, QUuid id) :
+    _nestableType(nestableType),
+    _id(id),
+    _transform() {
+    // set flags in _transform
+    _transform.setTranslation(glm::vec3(0.0f));
+    _transform.setRotation(glm::quat());
+}
+
 Transform SpatiallyNestable::getParentTransform() const {
     Transform result;
     SpatiallyNestablePointer parent = getParentPointer();
@@ -76,6 +86,26 @@ void SpatiallyNestable::setParentID(const QUuid& parentID) {
     _parentKnowsMe = false;
 }
 
+glm::vec3 SpatiallyNestable::worldToLocal(const glm::vec3& position) {
+    Transform parentTransform = getParentTransform();
+    Transform myWorldTransform;
+    Transform::mult(myWorldTransform, parentTransform, _transform);
+    myWorldTransform.setTranslation(position);
+    Transform result;
+    Transform::inverseMult(result, parentTransform, myWorldTransform);
+    return result.getTranslation();
+}
+
+glm::quat SpatiallyNestable::worldToLocal(const glm::quat& orientation) {
+    Transform parentTransform = getParentTransform();
+    Transform myWorldTransform;
+    Transform::mult(myWorldTransform, parentTransform, _transform);
+    myWorldTransform.setRotation(orientation);
+    Transform result;
+    Transform::inverseMult(result, parentTransform, myWorldTransform);
+    return result.getRotation();
+}
+
 const glm::vec3& SpatiallyNestable::getPosition() const {
     Transform parentTransformDescaled = getParentTransform();
     glm::mat4 parentMat;
@@ -131,6 +161,7 @@ const Transform& SpatiallyNestable::getLocalTransform() const {
 }
 
 void SpatiallyNestable::setLocalTransform(const Transform& transform) {
+    _transform = transform;
 }
 
 const glm::vec3& SpatiallyNestable::getLocalPosition() const {

@@ -34,11 +34,7 @@ public:
 
 class SpatiallyNestable : public std::enable_shared_from_this<SpatiallyNestable> {
 public:
-    // SpatiallyNestable() : _transform() { } // XXX get rid of this one?
-    SpatiallyNestable(NestableTypes::NestableType nestableType, QUuid id) :
-        _nestableType(nestableType),
-        _id(id),
-        _transform() { }
+    SpatiallyNestable(NestableTypes::NestableType nestableType, QUuid id);
     virtual ~SpatiallyNestable() { }
 
     virtual const QUuid& getID() const { return _id; }
@@ -49,6 +45,9 @@ public:
 
     virtual quint16 getParentJointIndex() const { return _parentJointIndex; }
     virtual void setParentJointIndex(quint16 parentJointIndex) { _parentJointIndex = parentJointIndex; }
+
+    glm::vec3 worldToLocal(const glm::vec3& position);
+    glm::quat worldToLocal(const glm::quat& orientation);
 
     // world frame
     virtual const Transform& getTransform() const;

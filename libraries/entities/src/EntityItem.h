@@ -183,15 +183,6 @@ public:
     const Transform getTransformToCenter() const;
     void setTranformToCenter(const Transform& transform);
 
-    virtual void setTransform(const Transform& transform) { SpatiallyNestable::setTransform(transform); requiresRecalcBoxes(); }
-
-    /// Position in meters (-TREE_SCALE - TREE_SCALE)
-    virtual const glm::vec3& getPosition() const { return SpatiallyNestable::getPosition(); }
-    virtual void setPosition(const glm::vec3& value) { SpatiallyNestable::setPosition(value); requiresRecalcBoxes(); }
-
-    virtual const glm::quat& getRotation() const { return SpatiallyNestable::getOrientation(); }
-    virtual void setRotation(const glm::quat& rotation) { SpatiallyNestable::setOrientation(rotation); requiresRecalcBoxes(); }
-
     inline void requiresRecalcBoxes() { _recalcAABox = true; _recalcMinAACube = true; _recalcMaxAACube = true; }
 
     // Hyperlink related getters and setters
@@ -330,6 +321,16 @@ public:
     /// return preferred shape type (actual physical shape may differ)
     virtual ShapeType getShapeType() const { return SHAPE_TYPE_NONE; }
 
+    virtual void setTransform(const Transform& transform);
+    virtual void setLocalTransform(const Transform& transform);
+    // virtual const glm::vec3& getPosition() const { return SpatiallyNestable::getPosition(); }
+    virtual const glm::quat& getRotation() const { return SpatiallyNestable::getOrientation(); }
+
+    virtual void setPosition(const glm::vec3& position);
+    virtual void setLocalPosition(const glm::vec3& position);
+    virtual void setRotation(const glm::quat& orientation);
+    virtual void setLocalRotation(const glm::quat& orientation);
+
     // updateFoo() methods to be used when changes need to be accumulated in the _dirtyFlags
     void updatePosition(const glm::vec3& value);
     void updateDimensions(const glm::vec3& value);
@@ -396,7 +397,7 @@ protected:
     const QByteArray getActionDataInternal() const;
     void setActionDataInternal(QByteArray actionData);
 
-    bool forSelfAndEachChildEntity(std::function<bool(EntityItemPointer)> actor);
+    void forSelfAndEachChildEntity(std::function<void(EntityItemPointer)> actor);
 
     static bool _sendPhysicsUpdates;
     EntityTypes::EntityType _type;
