@@ -82,6 +82,8 @@ public:
     NestableTypes::NestableType getNestableType() const { return _nestableType; }
 
 protected:
+    bool _constructing = true;
+
     NestableTypes::NestableType _nestableType; // EntityItem or an AvatarData
     QUuid _id;
     QUuid _parentID; // what is this thing's transform relative to?

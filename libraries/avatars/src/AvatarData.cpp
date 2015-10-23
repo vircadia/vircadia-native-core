@@ -60,6 +60,7 @@ AvatarData::AvatarData() :
     setBodyPitch(0.0f);
     setBodyYaw(-90.0f);
     setBodyRoll(0.0f);
+    _constructing = false;
 }
 
 AvatarData::~AvatarData() {
