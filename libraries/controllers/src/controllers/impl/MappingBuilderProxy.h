@@ -12,8 +12,8 @@
 #include <QtCore/QObject>
 #include <QtCore/QString>
 
-#include "../Mapping.h"
-#include "../Endpoint.h"
+#include "Mapping.h"
+#include "Endpoint.h"
 
 class QJSValue;
 class QScriptValue;

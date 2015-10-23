@@ -11,10 +11,12 @@
 
 #include <QtCore/QObject>
 
-#include "../Filter.h"
-#include "../Route.h"
-#include "../Mapping.h"
+#include "Filter.h"
+#include "Route.h"
+#include "Mapping.h"
+
 #include "../UserInputMapper.h"
+
 class QJSValue;
 class QScriptValue;
 class QJsonValue;
