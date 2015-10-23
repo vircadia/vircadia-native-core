@@ -101,9 +101,12 @@ public:
     void setRawPosition(const glm::vec3& pos)  { _rawPosition = pos; }
     void setRawVelocity(const glm::vec3& velocity) { _rawVelocity = velocity; }
     const glm::vec3& getRawVelocity()  const { return _rawVelocity; }
+
     void setRawAngularVelocity(const glm::vec3& angularVelocity) { _rawAngularVelocity = angularVelocity; }
     const glm::vec3& getRawAngularVelocity() const { return _rawAngularVelocity; }
-    glm::quat getRawAngularVelocityAsQuat() const { return glm::quat(); } // FIXME
+    void setRawDeltaRotation(glm::quat rawDeltaRotation) { _rawDeltaRotation = rawDeltaRotation; } // FIXME, is this really what we want?
+    glm::quat getRawDeltaRotation() const { return _rawDeltaRotation; }
+
     void addToPosition(const glm::vec3& delta);
 
     void addToPenetration(const glm::vec3& penetration) { _totalPenetration += penetration; }
@@ -156,6 +159,7 @@ private:
     glm::vec3 _rawPosition;
     glm::vec3 _rawVelocity;
     glm::vec3 _rawAngularVelocity;
+    glm::quat _rawDeltaRotation;
     glm::quat _lastRotation;
     
     glm::vec3 _tipPosition;

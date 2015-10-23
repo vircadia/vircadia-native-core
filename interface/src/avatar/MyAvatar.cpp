@@ -600,28 +600,28 @@ controller::Pose MyAvatar::getLeftHandPose() const {
     const int LEFT_HAND = 0;
     auto palmData = getActivePalm(LEFT_HAND);
     return palmData ? controller::Pose(palmData->getPosition(), palmData->getRotation(),
-        palmData->getVelocity(), palmData->getRawAngularVelocityAsQuat()) : controller::Pose();
+        palmData->getVelocity(), palmData->getRawDeltaRotation()) : controller::Pose();
 }
 
 controller::Pose MyAvatar::getRightHandPose() const {
     const int RIGHT_HAND = 1;
     auto palmData = getActivePalm(RIGHT_HAND);
     return palmData ? controller::Pose(palmData->getPosition(), palmData->getRotation(),
-        palmData->getVelocity(), palmData->getRawAngularVelocityAsQuat()) : controller::Pose();
+        palmData->getVelocity(), palmData->getRawDeltaRotation()) : controller::Pose();
 }
 
 controller::Pose MyAvatar::getLeftHandTipPose() const {
     const int LEFT_HAND = 0;
     auto palmData = getActivePalm(LEFT_HAND);
     return palmData ? controller::Pose(palmData->getTipPosition(), palmData->getRotation(),
-        palmData->getTipVelocity(), palmData->getRawAngularVelocityAsQuat()) : controller::Pose();
+        palmData->getTipVelocity(), palmData->getRawDeltaRotation()) : controller::Pose();
 }
 
 controller::Pose MyAvatar::getRightHandTipPose() const {
     const int RIGHT_HAND = 1;
     auto palmData = getActivePalm(RIGHT_HAND);
     return palmData ? controller::Pose(palmData->getTipPosition(), palmData->getRotation(),
-        palmData->getTipVelocity(), palmData->getRawAngularVelocityAsQuat()) : controller::Pose();
+        palmData->getTipVelocity(), palmData->getRawDeltaRotation()) : controller::Pose();
 }
 
 // virtual
