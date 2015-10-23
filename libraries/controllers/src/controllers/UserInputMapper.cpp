@@ -18,6 +18,7 @@
 #include <QtCore/QJsonArray>
 
 #include <PathUtils.h>
+#include <NumericalConstants.h>
 
 #include "StandardController.h"
 #include "Logging.h"
@@ -145,10 +146,17 @@ void ScriptEndpoint::internalApply(float newValue, float oldValue, int sourceID)
                    QScriptValueList({ QScriptValue(newValue), QScriptValue(oldValue),  QScriptValue(sourceID) }));
 }
 
+static const Input INVALID_STANDARD_INPUT = Input(UserInputMapper::STANDARD_DEVICE, Input::INVALID_CHANNEL, ChannelType::INVALID);
+
 class CompositeEndpoint : public Endpoint, Endpoint::Pair {
 public:
     CompositeEndpoint(Endpoint::Pointer first, Endpoint::Pointer second)
-        : Endpoint(Input::INVALID_INPUT), Pair(first, second) { }
+        : Endpoint(Input::INVALID_INPUT), Pair(first, second) { 
+        if (first->getInput().device == UserInputMapper::STANDARD_DEVICE &&
+            second->getInput().device == UserInputMapper::STANDARD_DEVICE) {
+            this->_input = INVALID_STANDARD_INPUT;
+        }
+    }
 
     virtual float value() {
         float result = first->value() * -1.0f + second->value();
@@ -188,7 +196,20 @@ class AnyEndpoint : public Endpoint {
     friend class UserInputMapper;
 public:
     using Pointer = std::shared_ptr<AnyEndpoint>;
-    AnyEndpoint() : Endpoint(Input::INVALID_INPUT) {}
+    AnyEndpoint(Endpoint::List children) : Endpoint(Input::INVALID_INPUT), _children(children) {
+        bool standard = true;
+        // Ensure if we're building a composite of standard devices the composite itself
+        // is treated as a standard device for rule processing order
+        for (auto endpoint : children) {
+            if (endpoint->getInput().device != UserInputMapper::STANDARD_DEVICE) {
+                standard = false;
+                break;
+            }
+        }
+        if (standard) {
+            this->_input = INVALID_STANDARD_INPUT;
+        }
+    }
 
     virtual float value() override {
         float result = 0;
@@ -633,10 +654,17 @@ Input UserInputMapper::makeStandardInput(controller::StandardPoseChannel pose) {
     return Input(STANDARD_DEVICE, pose, ChannelType::POSE);
 }
 
-void UserInputMapper::runMappings() {
-    static auto deviceNames = getDeviceNames();
-    _overrides.clear();
+static auto lastDebugTime = usecTimestampNow();
+static auto debugRoutes = false;
+static const auto DEBUG_INTERVAL = USECS_PER_SECOND;
 
+void UserInputMapper::runMappings() {
+    auto now = usecTimestampNow();
+    if (now - lastDebugTime > DEBUG_INTERVAL) {
+        lastDebugTime = now;
+        debugRoutes = true;
+    }
+    static auto deviceNames = getDeviceNames();
     for (auto endpointEntry : this->_endpointsByInput) {
         endpointEntry.second->reset();
     }
@@ -655,70 +683,83 @@ void UserInputMapper::runMappings() {
         }
         applyRoute(route);
     }
-
+    debugRoutes = false;
 }
 
-
 void UserInputMapper::applyRoute(const Route::Pointer& route) {
+    if (debugRoutes && route->debug) {
+        qCDebug(controllers) << "Applying route " << route->json;
+    }
+
     if (route->conditional) {
         if (!route->conditional->satisfied()) {
+            if (debugRoutes && route->debug) {
+                qCDebug(controllers) << "Conditional failed";
+            }
             return;
         }
     }
 
     auto source = route->source;
-    if (_overrides.count(source)) {
-        source = _overrides[source];
-    }
 
-    // Endpoints can only be read once (though a given mapping can route them to 
+    // Most endpoints can only be read once (though a given mapping can route them to 
     // multiple places).  Consider... If the default is to wire the A button to JUMP
     // and someone else wires it to CONTEXT_MENU, I don't want both to occur when 
     // I press the button.  The exception is if I'm wiring a control back to itself
     // in order to adjust my interface, like inverting the Y axis on an analog stick
     if (!source->readable()) {
+        if (debugRoutes && route->debug) {
+            qCDebug(controllers) << "Source unreadable";
+        }
         return;
-    }
-
-
-    auto input = source->getInput();
-    float value = source->value();
-    if (value != 0.0) {
-        int i = 0;
     }
 
     auto destination = route->destination;
     // THis could happen if the route destination failed to create
     // FIXME: Maybe do not create the route if the destination failed and avoid this case ?
     if (!destination) {
+        if (debugRoutes && route->debug) {
+            qCDebug(controllers) << "Bad Destination";
+        }
         return;
     }
 
-    // FIXME?, should come before or after the override logic?
     if (!destination->writeable()) {
+        if (debugRoutes && route->debug) {
+            qCDebug(controllers) << "Destination unwritable";
+        }
         return;
-    }
-
-    // Only consume the input if the route isn't a loopback.
-    // This allows mappings like `mapping.from(xbox.RY).invert().to(xbox.RY);`
-    bool loopback = (source->getInput() == destination->getInput()) && (source->getInput() != Input::INVALID_INPUT);
-    // Each time we loop back we re-write the override 
-    if (loopback) {
-        _overrides[source] = destination = std::make_shared<StandardEndpoint>(source->getInput());
     }
 
     // Fetch the value, may have been overriden by previous loopback routes
     if (source->isPose()) {
         Pose value = getPose(source);
+        static const Pose IDENTITY_POSE { vec3(), quat() };
+        if (debugRoutes && route->debug) {
+            if (!value.valid) {
+                qCDebug(controllers) << "Applying invalid pose";
+            } else if (value == IDENTITY_POSE) {
+                qCDebug(controllers) << "Applying identity pose";
+            } else {
+                qCDebug(controllers) << "Applying valid pose";
+            }
+        }
         // no filters yet for pose
         destination->apply(value, Pose(), source);
     } else {
         // Fetch the value, may have been overriden by previous loopback routes
         float value = getValue(source);
 
+        if (debugRoutes && route->debug) {
+            qCDebug(controllers) << "Value was " << value;
+        }
         // Apply each of the filters.
         for (const auto& filter : route->filters) {
             value = filter->apply(value);
+        }
+
+        if (debugRoutes && route->debug) {
+            qCDebug(controllers) << "Filtered value was " << value;
         }
 
         destination->apply(value, 0, source);
@@ -830,11 +871,6 @@ void UserInputMapper::enableMapping(const QString& mappingName, bool enable) {
 
 float UserInputMapper::getValue(const Endpoint::Pointer& endpoint) const {
     Locker locker(_lock);
-    auto valuesIterator = _overrides.find(endpoint);
-    if (_overrides.end() != valuesIterator) {
-        return valuesIterator->second->value();
-    }
-
     return endpoint->value();
 }
 
@@ -880,6 +916,7 @@ Mapping::Pointer UserInputMapper::loadMapping(const QString& jsonFile) {
 static const QString JSON_NAME = QStringLiteral("name");
 static const QString JSON_CHANNELS = QStringLiteral("channels");
 static const QString JSON_CHANNEL_FROM = QStringLiteral("from");
+static const QString JSON_CHANNEL_DEBUG = QStringLiteral("debug");
 static const QString JSON_CHANNEL_WHEN = QStringLiteral("when");
 static const QString JSON_CHANNEL_TO = QStringLiteral("to");
 static const QString JSON_CHANNEL_FILTERS = QStringLiteral("filters");
@@ -1013,15 +1050,15 @@ Endpoint::Pointer UserInputMapper::parseDestination(const QJsonValue& value) {
 
 Endpoint::Pointer UserInputMapper::parseSource(const QJsonValue& value) {
     if (value.isArray()) {
-        AnyEndpoint::Pointer result = std::make_shared<AnyEndpoint>();
+        Endpoint::List children;
         for (auto arrayItem : value.toArray()) {
             Endpoint::Pointer destination = parseEndpoint(arrayItem);
             if (!destination) {
                 return Endpoint::Pointer();
             }
-            result->_children.push_back(destination);
+            children.push_back(destination);
         }
-        return result;
+        return std::make_shared<AnyEndpoint>(children);
     }
 
     return parseEndpoint(value);
@@ -1032,9 +1069,12 @@ Route::Pointer UserInputMapper::parseRoute(const QJsonValue& value) {
         return Route::Pointer();
     }
 
-    const auto& obj = value.toObject();
+    auto obj = value.toObject();
     Route::Pointer result = std::make_shared<Route>();
+
+    result->json = QString(QJsonDocument(obj).toJson());
     result->source = parseSource(obj[JSON_CHANNEL_FROM]);
+    result->debug = obj[JSON_CHANNEL_DEBUG].toBool();
     if (!result->source) {
         qWarning() << "Invalid route source " << obj[JSON_CHANNEL_FROM];
         return Route::Pointer();
@@ -1044,6 +1084,11 @@ Route::Pointer UserInputMapper::parseRoute(const QJsonValue& value) {
     result->destination = parseDestination(obj[JSON_CHANNEL_TO]);
     if (!result->destination) {
         qWarning() << "Invalid route destination " << obj[JSON_CHANNEL_TO];
+        return Route::Pointer();
+    }
+
+    if (result->source == result->destination) {
+        qWarning() << "Loopback routes not supported " << obj;
         return Route::Pointer();
     }
 
@@ -1118,26 +1163,28 @@ void UserInputMapper::enableMapping(const Mapping::Pointer& mapping) {
     // are processed in order so this ensures that the standard -> action processing 
     // takes place after all of the hardware -> standard or hardware -> action processing
     // because standard -> action is the first set of routes added.
-    for (auto route : mapping->routes) {
-        if (route->source->getInput().device == STANDARD_DEVICE) {
-            _standardRoutes.push_front(route);
-        } else {
-            _deviceRoutes.push_front(route);
-        }
-    }
+    Route::List standardRoutes = mapping->routes;
+    standardRoutes.remove_if([](const Route::Pointer& value) {
+        return (value->source->getInput().device != STANDARD_DEVICE);
+    });
+    _standardRoutes.insert(_standardRoutes.begin(), standardRoutes.begin(), standardRoutes.end());
+
+    Route::List deviceRoutes = mapping->routes;
+    deviceRoutes.remove_if([](const Route::Pointer& value) {
+        return (value->source->getInput().device == STANDARD_DEVICE);
+    });
+    _deviceRoutes.insert(_deviceRoutes.begin(), deviceRoutes.begin(), deviceRoutes.end());
 }
 
 void UserInputMapper::disableMapping(const Mapping::Pointer& mapping) {
     Locker locker(_lock);
     const auto& deviceRoutes = mapping->routes;
     std::set<Route::Pointer> routeSet(deviceRoutes.begin(), deviceRoutes.end());
-
-    // FIXME this seems to result in empty route pointers... need to find a better way to remove them.
-    std::remove_if(_deviceRoutes.begin(), _deviceRoutes.end(), [&](Route::Pointer route)->bool {
-        return routeSet.count(route) != 0;
+    _deviceRoutes.remove_if([&](const Route::Pointer& value){
+        return routeSet.count(value) != 0;
     });
-    std::remove_if(_standardRoutes.begin(), _standardRoutes.end(), [&](Route::Pointer route)->bool {
-        return routeSet.count(route) != 0;
+    _standardRoutes.remove_if([&](const Route::Pointer& value) {
+        return routeSet.count(value) != 0;
     });
 }
 

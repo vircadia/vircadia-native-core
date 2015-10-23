@@ -165,7 +165,6 @@ namespace controller {
         EndpointToInputMap _inputsByEndpoint;
         EndpointPairMap _compositeEndpoints;
 
-        EndpointOverrideMap _overrides;
         MappingNameMap _mappingsByName;
         MappingDeviceMap _mappingsByDevice;
 

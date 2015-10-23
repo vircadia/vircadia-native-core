@@ -20,13 +20,7 @@
 
 using namespace controller;
 
-void RouteBuilderProxy::to(int destinationInput) {
-    qCDebug(controllers) << "Completing route " << destinationInput;
-    auto destinationEndpoint = _parent.endpointFor(Input(destinationInput));
-    return to(destinationEndpoint);
-}
-
-void RouteBuilderProxy::to(const QJSValue& destination) {
+void RouteBuilderProxy::toQml(const QJSValue& destination) {
     qCDebug(controllers) << "Completing route " << destination.toString();
     auto destinationEndpoint = _parent.endpointFor(destination);
     return to(destinationEndpoint);
@@ -45,7 +39,7 @@ void RouteBuilderProxy::to(const Endpoint::Pointer& destination) {
     deleteLater();
 }
 
-QObject* RouteBuilderProxy::filter(const QJSValue& expression) {
+QObject* RouteBuilderProxy::filterQml(const QJSValue& expression) {
     if (expression.isCallable()) {
         addFilter([=](float value) {
             QJSValue originalExpression = expression;

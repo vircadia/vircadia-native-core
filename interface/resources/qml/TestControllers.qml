@@ -25,12 +25,15 @@ HifiControls.VrDialog {
 
     function buildMapping() {
         testMapping = Controller.newMapping();
-        testMapping.from(standard.RY).invert().to(actions.Pitch);
+        testMapping.fromQml(standard.RY).invert().toQml(actions.Pitch);
+        testMapping.fromQml(function(){
+            return Math.sin(Date.now() / 250); 
+        }).toQml(actions.Yaw);
         //testMapping.makeAxis(standard.LB, standard.RB).to(actions.Yaw);
         // Step yaw takes a number of degrees
-        testMapping.from(standard.LB).invert().scale(15.0).to(actions.StepYaw);
-        testMapping.from(standard.RB).scale(15.0).to(actions.StepYaw);
-        testMapping.from(standard.RX).scale(15.0).to(actions.StepYaw);
+        testMapping.fromQml(standard.LB).pulse(0.10).invert().scale(40.0).toQml(actions.StepYaw);
+        testMapping.fromQml(standard.RB).pulse(0.10).scale(15.0).toQml(actions.StepYaw);
+        testMapping.fromQml(standard.RX).scale(15.0).toQml(actions.StepYaw);
     }
 
     function toggleMapping() {
@@ -89,7 +92,7 @@ HifiControls.VrDialog {
         }
         
         Row {
-            spacing: 8
+            spacing: 4
             ScrollingGraph {
                 controlId: Controller.Actions.Yaw
                 label: "Yaw"
@@ -113,13 +116,41 @@ HifiControls.VrDialog {
                 max: 2.0
                 size: 64
             }
+
             ScrollingGraph {
                 controlId: Controller.Actions.StepYaw
                 label: "StepYaw"
+                min: -20.0
+                max: 20.0
+                size: 64
+            }
+        }
+
+        Row {
+            ScrollingGraph {
+                controlId: Controller.Actions.TranslateZ
+                label: "TranslateZ"
                 min: -2.0
                 max: 2.0
                 size: 64
             }
+
+            ScrollingGraph {
+                controlId: Controller.Actions.Forward
+                label: "Forward"
+                min: -2.0
+                max: 2.0
+                size: 64
+            }
+
+            ScrollingGraph {
+                controlId: Controller.Actions.Backward
+                label: "Backward"
+                min: -2.0
+                max: 2.0
+                size: 64
+            }
+
         }
     }
 } // dialog
