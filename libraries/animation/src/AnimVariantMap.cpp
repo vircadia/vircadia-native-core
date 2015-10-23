@@ -11,7 +11,7 @@
 
 #include <QScriptEngine>
 #include <QScriptValueIterator>
-#include <QThread.h>
+#include <QThread>
 #include <RegisteredMetaTypes.h>
 #include "AnimVariant.h"
 
