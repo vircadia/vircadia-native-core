@@ -94,6 +94,36 @@ private:
     glm::vec3 _reachRight;
     float _lastDistance;
     bool _useSixenseFilter = true;
+
+    template <class T, int MAX_NUM_SAMPLES> class MovingAverage {
+    public:
+        using Samples = std::list< T >;
+        Samples samples;
+        T average;
+
+        void clear() {
+            samples.clear();
+        }
+
+        bool isAverageValid() const { return !samples.empty(); }
+
+        void addSample(T sample) {
+            samples.push_front(sample);
+            int numSamples = samples.size();
+
+            if (numSamples < MAX_NUM_SAMPLES) {
+                average = (sample + average * float(numSamples - 1)) / float(numSamples);
+            } else {
+                T tail = samples.back();
+                samples.pop_back();
+                average = average + (sample - tail) / float(numSamples);
+            }
+        }
+    };
+
+    static const int MAX_NUM_AVERAGING_SAMPLES = 10; // At ~100 updates per seconds this means averaging over ~.1s
+    using MovingAverageMap = std::map< int, MovingAverage< glm::vec3, MAX_NUM_AVERAGING_SAMPLES> >;
+    MovingAverageMap _collectedSamples;
     
 #ifdef __APPLE__
     QLibrary* _sixenseLibrary;
@@ -109,3 +139,4 @@ private:
 };
 
 #endif // hifi_SixenseManager_h
+
