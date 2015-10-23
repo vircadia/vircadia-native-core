@@ -230,7 +230,8 @@ void SixenseManager::update(float deltaTime, bool jointsCaptured) {
             if (!jointsCaptured) {
                 //  Rotation of Palm
                 glm::quat rotation(data->rot_quat[3], data->rot_quat[0], data->rot_quat[1], data->rot_quat[2]);
-                handlePoseEvent(position, rotation, left);
+                handlePoseEvent(deltaTime, position, rotation, left);
+                
             } else {
                 _poseStateMap.clear();
             }
@@ -384,7 +385,7 @@ void SixenseManager::handleButtonEvent(unsigned int buttons, bool left) {
     }
 }
 
-void SixenseManager::handlePoseEvent(glm::vec3 position, glm::quat rotation, bool left) {
+void SixenseManager::handlePoseEvent(float deltaTime, glm::vec3 position, glm::quat rotation, bool left) {
 #ifdef HAVE_SIXENSE
     // From ABOVE the sixense coordinate frame looks like this:
     //
@@ -400,6 +401,7 @@ void SixenseManager::handlePoseEvent(glm::vec3 position, glm::quat rotation, boo
     //                      |
     //                      |
     //                      z
+    auto prevPose = _poseStateMap[left ? controller::StandardPoseChannel::LEFT_HAND : controller::StandardPoseChannel::RIGHT_HAND];
 
     // Transform the measured position into body frame.
     position = _avatarRotation * (position + _avatarPosition);
@@ -443,8 +445,20 @@ void SixenseManager::handlePoseEvent(glm::vec3 position, glm::quat rotation, boo
     // TODO: find a shortcut with fewer rotations.
     rotation = _avatarRotation * postOffset * glm::inverse(sixenseToHand) * rotation * preOffset * sixenseToHand;
 
+    glm::vec3 velocity(0.0f);
+    glm::quat angularVelocity;
 
-    _poseStateMap[left ? controller::StandardPoseChannel::LEFT_HAND : controller::StandardPoseChannel::RIGHT_HAND] = controller::Pose(position, rotation);
+    if (prevPose.isValid() && deltaTime > std::numeric_limits<float>::epsilon()) {
+        velocity = (position - prevPose.getTranslation()) / deltaTime;
+
+        auto deltaRot = rotation * glm::conjugate(prevPose.getRotation());
+        auto axis = glm::axis(deltaRot);
+        auto angle = glm::angle(deltaRot);
+        angularVelocity = glm::angleAxis(angle / deltaTime, axis);
+
+    }
+
+    _poseStateMap[left ? controller::StandardPoseChannel::LEFT_HAND : controller::StandardPoseChannel::RIGHT_HAND] = controller::Pose(position, rotation, velocity, angularVelocity);
 #endif // HAVE_SIXENSE
 }
 
