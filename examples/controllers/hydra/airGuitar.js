@@ -32,6 +32,8 @@ var guitarModel = HIFI_PUBLIC_BUCKET + "models/attachments/guitar.fst";
 
 //  Load sounds that will be played
 
+var heyManWave = SoundCache.getSound("https://hifi-public.s3.amazonaws.com/sounds/KenDoll_1%2303.wav");
+
 var chords = new Array();
 // Nylon string guitar
 chords[1] = SoundCache.getSound(HIFI_PUBLIC_BUCKET + "sounds/Guitars/Guitar+-+Nylon+A.raw");
@@ -56,96 +58,121 @@ var NUM_GUITARS = 3;
 var guitarSelector = NUM_CHORDS;
 var whichChord = 1;
 
-var leftHanded = true; 
+var leftHanded = false;
+var strumHand, chordHand, strumTrigger, chordTrigger;
 if (leftHanded) {
-    var strumHand = 0;
-    var chordHand = 1; 
+    strumHand = Controller.Standard.LeftHand;
+    chordHand = Controller.Standard.RightHand;
+    strumTrigger = Controller.Standard.LT;
+    chordTrigger = Controller.Standard.RT;
+    changeGuitar = Controller.Standard.RB;
+    chord1 = Controller.Standard.X;
+    chord2 = Controller.Standard.Y;
+    chord3 = Controller.Standard.A;
+    chord4 = Controller.Standard.B;
 } else {
-    var strumHand = 1;
-    var chordHand = 0;
+    strumHand = Controller.Standard.RightHand;
+    chordHand = Controller.Standard.LeftHand;
+    strumTrigger = Controller.Standard.RT;
+    chordTrigger = Controller.Standard.LT;
+    changeGuitar = Controller.Standard.LB;
+    chord1 = Controller.Standard.DU; // these may not be correct, maybe we should map directly to Hydra??
+    chord2 = Controller.Standard.DD;
+    chord3 = Controller.Standard.DL;
+    chord4 = Controller.Standard.DR;
 }
 
 var lastPosition = { x: 0.0,
                  y: 0.0, 
                  z: 0.0 }; 
 
-var soundPlaying = false; 
+var audioInjector = null;
 var selectorPressed = false;
 var position;
 
 MyAvatar.attach(guitarModel, "Hips", {x: -0.2, y: 0.0, z: 0.1}, Quat.fromPitchYawRollDegrees(90, 00, 90), 1.0);
 
 function checkHands(deltaTime) {
-    for (var palm = 0; palm < 2; palm++) {
-        var palmVelocity = Controller.getSpatialControlVelocity(palm * 2 + 1);
-        var volume = length(palmVelocity) / 5.0;
-        var position = Controller.getSpatialControlPosition(palm * 2 + 1);
-        var myPelvis = MyAvatar.position;
-        var trigger = Controller.getTriggerValue(strumHand);
-        var chord = Controller.getTriggerValue(chordHand);
+    var strumVelocity = Controller.getPoseValue(strumHand).velocity;
+    var volume = length(strumVelocity) / 5.0;
 
-        if (volume > 1.0) volume = 1.0;
-        if ((chord > 0.1) && soundPlaying.isPlaying) {
-            // If chord finger trigger pulled, stop current chord
-            print("stopped sound");
-            soundPlaying.stop();
-        }
-
-        var BUTTON_COUNT = 6;
-
-        //  Change guitars if button FWD (5) pressed
-        if (Controller.isButtonPressed(chordHand * BUTTON_COUNT + 5)) {
-            if (!selectorPressed) {
-                guitarSelector += NUM_CHORDS;
-                if (guitarSelector >= NUM_CHORDS * NUM_GUITARS) {
-                    guitarSelector = 0;
-                } 
-                selectorPressed = true;
-            }
-        } else {
-            selectorPressed = false;
-        }
-
-        if (Controller.isButtonPressed(chordHand * BUTTON_COUNT + 1)) {
-            whichChord = 1;
-        } else if (Controller.isButtonPressed(chordHand * BUTTON_COUNT + 2)) {
-            whichChord = 2;
-        } else if (Controller.isButtonPressed(chordHand * BUTTON_COUNT + 3)) {
-            whichChord = 3;
-        } else if (Controller.isButtonPressed(chordHand * BUTTON_COUNT + 4)) {
-              whichChord = 4;
-        }
-
-        if (palm == strumHand) {
-
-            var STRUM_HEIGHT_ABOVE_PELVIS = 0.10;
-            var strumTriggerHeight = myPelvis.y + STRUM_HEIGHT_ABOVE_PELVIS;
-            //printVector(position);
-            if ( ( ((position.y < strumTriggerHeight) && (lastPosition.y >= strumTriggerHeight)) ||
-                   ((position.y > strumTriggerHeight) && (lastPosition.y <= strumTriggerHeight)) ) && (trigger > 0.1) ){
-                // If hand passes downward or upward through 'strings', and finger trigger pulled, play
-                playChord(position, volume);
-            }
-            lastPosition = Controller.getSpatialControlPosition(palm * 2 + 1);
-        } 
+    if (volume == 0.0) {
+        volume = 1.0;
     }
+
+    var strumHandPosition = leftHanded ? MyAvatar.leftHandPosition : MyAvatar.rightHandPosition;
+    var myPelvis = MyAvatar.position;
+    var strumming = Controller.getValue(strumTrigger);
+    var chord = Controller.getValue(chordTrigger);
+
+    if (volume > 1.0) volume = 1.0;
+    if ((chord > 0.1) && audioInjector && audioInjector.isPlaying) {
+        // If chord finger trigger pulled, stop current chord
+        print("stopping chord because cord trigger pulled");
+        audioInjector.stop();
+    }
+
+    //  Change guitars if button FWD (5) pressed
+    if (Controller.getValue(changeGuitar)) {
+        print("changeGuitar:" + changeGuitar);
+        if (!selectorPressed) {
+            guitarSelector += NUM_CHORDS;
+            if (guitarSelector >= NUM_CHORDS * NUM_GUITARS) {
+                guitarSelector = 0;
+            } 
+            selectorPressed = true;
+        }
+    } else {
+        selectorPressed = false;
+    }
+    //print("selectorPressed:" + selectorPressed);
+
+    if (Controller.getValue(chord1)) {
+        whichChord = 1;
+    } else if (Controller.getValue(chord2)) {
+        whichChord = 2;
+    } else if (Controller.getValue(chord3)) {
+        whichChord = 3;
+    } else if (Controller.getValue(chord4)) {
+        whichChord = 4;
+    }
+
+    var STRUM_HEIGHT_ABOVE_PELVIS = 0.10;
+    var strummingHeight = myPelvis.y + STRUM_HEIGHT_ABOVE_PELVIS;
+
+    var strumNowAbove = strumHandPosition.y > strummingHeight;
+    var strumNowBelow = strumHandPosition.y <= strummingHeight;
+    var strumWasAbove = lastPosition.y > strummingHeight;
+    var strumWasBelow = lastPosition.y <= strummingHeight;
+    var strumUp = strumNowAbove && strumWasBelow;
+    var strumDown = strumNowBelow && strumWasAbove;
+
+    if ((strumUp || strumDown) && (strumming > 0.1)) {
+        // If hand passes downward or upward through 'strings', and finger trigger pulled, play
+        playChord(strumHandPosition, volume);
+    }
+    lastPosition = strumHandPosition;
 }
 
 function playChord(position, volume) {
-    if (soundPlaying.isPlaying) {
+    if (audioInjector && audioInjector.isPlaying) {
         print("stopped sound");
-        soundPlaying.stop();
+        audioInjector.stop();
     }
   
-    print("Played sound: " + whichChord + " at volume " + options.volume);
-  if (!soundPlaying) {
-      soundPlaying = Audio.playSound(chords[guitarSelector + whichChord], {
-        position: position,
-      volume: volume
-      });    
-  } else {
-    soundPlaying.restart();
-  }
+    print("Played sound: " + whichChord + " at volume " + volume);
+    if (!audioInjector) {
+
+        // FIXME - we apparenlty broke RAW file playback, so we need WAV files for all these chords. In the mean
+        // time, we will just play the heyMan wave file for all chords
+        var chord = heyManWave; // chords[guitarSelector + whichChord];
+
+        audioInjector = Audio.playSound(chord, { position: position, volume: volume });
+        print("audioInjector: " + JSON.stringify(audioInjector));
+    } else {
+        print("audioInjector: " + JSON.stringify(audioInjector));
+        audioInjector.restart();
+    }
     
 }
 
