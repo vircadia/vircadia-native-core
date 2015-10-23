@@ -90,7 +90,7 @@ var audioInjector = null;
 var selectorPressed = false;
 var position;
 
-MyAvatar.attach(guitarModel, "Hips", {x: -0.2, y: 0.0, z: 0.1}, Quat.fromPitchYawRollDegrees(90, 00, 90), 1.0);
+MyAvatar.attach(guitarModel, "Hips", {x: leftHanded ? -0.2 : 0.2, y: 0.0, z: 0.1}, Quat.fromPitchYawRollDegrees(90, 00, leftHanded ? 75 : -75), 1.0);
 
 function checkHands(deltaTime) {
     var strumVelocity = Controller.getPoseValue(strumHand).velocity;
@@ -114,27 +114,32 @@ function checkHands(deltaTime) {
 
     //  Change guitars if button FWD (5) pressed
     if (Controller.getValue(changeGuitar)) {
-        print("changeGuitar:" + changeGuitar);
         if (!selectorPressed) {
+            print("changeGuitar:" + changeGuitar);
             guitarSelector += NUM_CHORDS;
             if (guitarSelector >= NUM_CHORDS * NUM_GUITARS) {
                 guitarSelector = 0;
             } 
+            print("new guitarBase: " + guitarSelector);
+            stopAudio(true);
             selectorPressed = true;
         }
     } else {
         selectorPressed = false;
     }
-    //print("selectorPressed:" + selectorPressed);
 
     if (Controller.getValue(chord1)) {
         whichChord = 1;
+        stopAudio(true);
     } else if (Controller.getValue(chord2)) {
         whichChord = 2;
+        stopAudio(true);
     } else if (Controller.getValue(chord3)) {
         whichChord = 3;
+        stopAudio(true);
     } else if (Controller.getValue(chord4)) {
         whichChord = 4;
+        stopAudio(true);
     }
 
     var STRUM_HEIGHT_ABOVE_PELVIS = 0.10;
@@ -154,26 +159,27 @@ function checkHands(deltaTime) {
     lastPosition = strumHandPosition;
 }
 
-function playChord(position, volume) {
+function stopAudio(killInjector) {
     if (audioInjector && audioInjector.isPlaying) {
         print("stopped sound");
         audioInjector.stop();
     }
-  
+    if (killInjector) {
+        audioInjector = null;
+    }
+}
+
+
+function playChord(position, volume) {
+    stopAudio();
     print("Played sound: " + whichChord + " at volume " + volume);
     if (!audioInjector) {
-
-        // FIXME - we apparenlty broke RAW file playback, so we need WAV files for all these chords. In the mean
-        // time, we will just play the heyMan wave file for all chords
-        var chord = heyManWave; // chords[guitarSelector + whichChord];
-
+        var index = guitarSelector + whichChord;
+        var chord = chords[guitarSelector + whichChord];
         audioInjector = Audio.playSound(chord, { position: position, volume: volume });
-        print("audioInjector: " + JSON.stringify(audioInjector));
     } else {
-        print("audioInjector: " + JSON.stringify(audioInjector));
         audioInjector.restart();
     }
-    
 }
 
 function keyPressEvent(event) {
@@ -181,15 +187,19 @@ function keyPressEvent(event) {
     keyVolume = 0.4;
     if (event.text == "1") {
         whichChord = 1;
+        stopAudio(true);
         playChord(MyAvatar.position, keyVolume);
     } else if (event.text == "2") {
         whichChord = 2;
+        stopAudio(true);
         playChord(MyAvatar.position, keyVolume);
     } else if (event.text == "3") {
         whichChord = 3;
+        stopAudio(true);
         playChord(MyAvatar.position, keyVolume);
     } else if (event.text == "4") {
         whichChord = 4;
+        stopAudio(true);
         playChord(MyAvatar.position, keyVolume);
     }
 }
@@ -197,6 +207,7 @@ function keyPressEvent(event) {
 function scriptEnding() {
     MyAvatar.detachOne(guitarModel);
 }
+
 // Connect a call back that happens every frame
 Script.update.connect(checkHands);
 Script.scriptEnding.connect(scriptEnding);
