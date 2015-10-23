@@ -31,13 +31,7 @@ scaleLine = function (start, end, scale) {
 }
 
 findAction = function(name) {
-    var actions = Controller.getAllActions();
-    for (var i = 0; i < actions.length; i++) {
-        if (actions[i].actionName == name) {
-            return i;
-        }
-    }
-    return 0;
+    return Controller.findAction(name);
 }
 
 addLine = function(origin, vector, color) {
