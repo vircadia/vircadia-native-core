@@ -16,6 +16,7 @@
 #include <QtCore/QSharedPointer>
 #include <QtCore/QUuid>
 
+#include <functional>
 #include <memory>
 
 #include <DependencyManager.h>
@@ -30,7 +31,7 @@ class AvatarHashMap : public QObject, public Dependency {
     SINGLETON_DEPENDENCY
 
 public:
-    const AvatarHash& getAvatarHash() { return _avatarHash; }
+    void withAvatarHash(std::function<void(const AvatarHash& hash)>);
     int size() { return _avatarHash.size(); }
 
 public slots:

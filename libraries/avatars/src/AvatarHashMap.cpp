@@ -22,6 +22,10 @@ AvatarHashMap::AvatarHashMap() {
     connect(DependencyManager::get<NodeList>().data(), &NodeList::uuidChanged, this, &AvatarHashMap::sessionUUIDChanged);
 }
 
+void AvatarHashMap::withAvatarHash(std::function<void(const AvatarHash& hash)> callback) {
+    QReadLocker locker(&_hashLock);
+    callback(_avatarHash);
+}
 bool AvatarHashMap::isAvatarInRange(const glm::vec3& position, const float range) {
     QReadLocker locker(&_hashLock);
     foreach(const AvatarSharedPointer& sharedAvatar, _avatarHash) {
