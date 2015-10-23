@@ -23,6 +23,11 @@ Rectangle {
 
     function update() {
         value = Controller.getValue(controlId);
+        if (log) {
+            var log = Math.log(10) / Math.log(Math.abs(value));
+            var sign = Math.sign(value);
+            value = log * sign;
+        }
         canvas.requestPaint();
     }
 
