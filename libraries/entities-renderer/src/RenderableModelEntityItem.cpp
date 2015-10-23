@@ -575,3 +575,28 @@ bool RenderableModelEntityItem::contains(const glm::vec3& point) const {
     
     return false;
 }
+
+glm::vec3 RenderableModelEntityItem::getJointPosition(int jointIndex) const {
+    glm::vec3 position;
+    
+    if (_model) {
+        if (!_model->getJointPositionInWorldFrame(jointIndex, position)) {
+            position = glm::vec3();
+        }
+    }
+    
+    return position;
+}
+
+glm::quat RenderableModelEntityItem::getJointRotation(int jointIndex) const {
+    glm::quat rotation;
+    
+    if (_model) {
+        if (!_model->getJointRotationInWorldFrame(jointIndex, rotation)) {
+            rotation = glm::quat();
+        }
+    }
+    
+    return rotation;
+}
+
