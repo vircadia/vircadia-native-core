@@ -320,7 +320,7 @@
             var arrowProperties = {
                 name: 'Hifi-Arrow',
                 type: 'Model',
-                shapeType:'box',
+                shapeType: 'box',
                 modelURL: ARROW_MODEL_URL,
                 dimensions: ARROW_DIMENSIONS,
                 position: this.getArrowPosition(),
@@ -350,21 +350,28 @@
             // forwardVec = Vec3.normalize(forwardVec);
             var handDistanceAtRelease = Vec3.distance(this.stringData.grabHandPosition, this.stringData.handPosition);
             print('HAND DISTANCE:: ' + handDistanceAtRelease);
-            var arrowForce = this.scaleArrowShotStrength(handDistanceAtRelease, 0, 1.5, 0, 10);
+            var arrowForce = this.scaleArrowShotStrength(handDistanceAtRelease, 0, 2, 20, 50);
             print('ARROW FORCE::' + arrowForce);
             var forwardVec = Vec3.multiply(handToHand, arrowForce);
 
             var arrowProperties = {
                 // rotation:handToHand,
-                velocity: forwardVec,
                 ignoreForCollisions: false,
                 collisionsWillMove: true,
                 gravity: ARROW_GRAVITY,
+                velocity: forwardVec,
                 lifetime: 20
             };
 
             Entities.editEntity(this.arrow, arrowProperties);
-     
+            Script.setTimeout(function() {
+                Entities.editEntity(this.arrow, {
+                    ignoreForCollisions: false,
+                    collisionsWillMove: true,
+                    gravity: ARROW_GRAVITY,
+                });
+            }, 100)
+
         },
         createTargetLine: function() {
             var handToHand = Vec3.subtract(this.stringData.handPosition, this.stringData.grabHandPosition);
