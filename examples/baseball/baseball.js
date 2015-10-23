@@ -14,7 +14,7 @@ var ROBOT_POSITION = { x: -0.81, y: 0.88, z: 2.12 };
 var ROBOT_DIMENSIONS = { x: 0.95, y: 1.76, z: 0.56 };
 
 var BAT_MODEL = "atp:07bdd769a57ff15ebe9331ae4e2c2eae8886a6792b4790cce03b4716eb3a81c7.fbx"
-var BAT_COLLISION_MODEL = "atp:1211ee12bc8ab0bb744e8582e15e728a00ca70a808550fc46d7284799b9a868a.obj"
+var BAT_COLLISION_MODEL = "atp:atp:9eafceb7510c41d50661130090de7e0632aa4da236ebda84a0059a4be2130e0c.obj"
 var BAT_DIMENSIONS = { x: 1.35, y: 0.10, z: 0.10 };
 var BAT_REGISTRATION_POINT = { x: 0.1, y: 0.5, z: 0.5 };
 
