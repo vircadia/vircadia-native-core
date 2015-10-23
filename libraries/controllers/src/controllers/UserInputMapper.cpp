@@ -18,6 +18,7 @@
 #include <QtCore/QJsonArray>
 
 #include <PathUtils.h>
+#include <NumericalConstants.h>
 
 #include "StandardController.h"
 #include "Logging.h"
@@ -653,7 +654,16 @@ Input UserInputMapper::makeStandardInput(controller::StandardPoseChannel pose) {
     return Input(STANDARD_DEVICE, pose, ChannelType::POSE);
 }
 
+static auto lastDebugTime = usecTimestampNow();
+static auto debugRoutes = false;
+static const auto DEBUG_INTERVAL = USECS_PER_SECOND;
+
 void UserInputMapper::runMappings() {
+    auto now = usecTimestampNow();
+    if (now - lastDebugTime > DEBUG_INTERVAL) {
+        lastDebugTime = now;
+        debugRoutes = true;
+    }
     static auto deviceNames = getDeviceNames();
     for (auto endpointEntry : this->_endpointsByInput) {
         endpointEntry.second->reset();
@@ -673,17 +683,17 @@ void UserInputMapper::runMappings() {
         }
         applyRoute(route);
     }
+    debugRoutes = false;
 }
 
-
 void UserInputMapper::applyRoute(const Route::Pointer& route) {
-    if (route->debug) {
+    if (debugRoutes && route->debug) {
         qCDebug(controllers) << "Applying route " << route->json;
     }
 
     if (route->conditional) {
         if (!route->conditional->satisfied()) {
-            if (route->debug) {
+            if (debugRoutes && route->debug) {
                 qCDebug(controllers) << "Conditional failed";
             }
             return;
@@ -698,7 +708,7 @@ void UserInputMapper::applyRoute(const Route::Pointer& route) {
     // I press the button.  The exception is if I'm wiring a control back to itself
     // in order to adjust my interface, like inverting the Y axis on an analog stick
     if (!source->readable()) {
-        if (route->debug) {
+        if (debugRoutes && route->debug) {
             qCDebug(controllers) << "Source unreadable";
         }
         return;
@@ -708,14 +718,14 @@ void UserInputMapper::applyRoute(const Route::Pointer& route) {
     // THis could happen if the route destination failed to create
     // FIXME: Maybe do not create the route if the destination failed and avoid this case ?
     if (!destination) {
-        if (route->debug) {
+        if (debugRoutes && route->debug) {
             qCDebug(controllers) << "Bad Destination";
         }
         return;
     }
 
     if (!destination->writeable()) {
-        if (route->debug) {
+        if (debugRoutes && route->debug) {
             qCDebug(controllers) << "Destination unwritable";
         }
         return;
@@ -723,17 +733,24 @@ void UserInputMapper::applyRoute(const Route::Pointer& route) {
 
     // Fetch the value, may have been overriden by previous loopback routes
     if (source->isPose()) {
-        if (route->debug) {
-            qCDebug(controllers) << "Applying pose";
-        }
         Pose value = getPose(source);
+        static const Pose IDENTITY_POSE { vec3(), quat() };
+        if (debugRoutes && route->debug) {
+            if (!value.valid) {
+                qCDebug(controllers) << "Applying invalid pose";
+            } else if (value == IDENTITY_POSE) {
+                qCDebug(controllers) << "Applying identity pose";
+            } else {
+                qCDebug(controllers) << "Applying valid pose";
+            }
+        }
         // no filters yet for pose
         destination->apply(value, Pose(), source);
     } else {
         // Fetch the value, may have been overriden by previous loopback routes
         float value = getValue(source);
 
-        if (route->debug) {
+        if (debugRoutes && route->debug) {
             qCDebug(controllers) << "Value was " << value;
         }
         // Apply each of the filters.
@@ -741,7 +758,7 @@ void UserInputMapper::applyRoute(const Route::Pointer& route) {
             value = filter->apply(value);
         }
 
-        if (route->debug) {
+        if (debugRoutes && route->debug) {
             qCDebug(controllers) << "Filtered value was " << value;
         }
 
@@ -1148,13 +1165,13 @@ void UserInputMapper::enableMapping(const Mapping::Pointer& mapping) {
     // because standard -> action is the first set of routes added.
     Route::List standardRoutes = mapping->routes;
     standardRoutes.remove_if([](const Route::Pointer& value) {
-        return (value->source->getInput().device == STANDARD_DEVICE);
+        return (value->source->getInput().device != STANDARD_DEVICE);
     });
     _standardRoutes.insert(_standardRoutes.begin(), standardRoutes.begin(), standardRoutes.end());
 
     Route::List deviceRoutes = mapping->routes;
     deviceRoutes.remove_if([](const Route::Pointer& value) {
-        return (value->source->getInput().device != STANDARD_DEVICE);
+        return (value->source->getInput().device == STANDARD_DEVICE);
     });
     _deviceRoutes.insert(_deviceRoutes.begin(), deviceRoutes.begin(), deviceRoutes.end());
 }
