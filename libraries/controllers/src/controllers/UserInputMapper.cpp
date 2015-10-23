@@ -21,7 +21,12 @@
 #include <NumericalConstants.h>
 
 #include "StandardController.h"
+
 #include "Logging.h"
+
+#include "Endpoint.h"
+#include "Route.h"
+#include "Mapping.h"
 
 namespace controller {
     const uint16_t UserInputMapper::ACTIONS_DEVICE = Input::INVALID_DEVICE - 0xFF;
@@ -226,7 +231,15 @@ public:
         qFatal("AnyEndpoint is read only");
     }
 
-    virtual bool writeable() const override { return false; }
+    // AnyEndpoint is used for reading, so return false if any child returns false (has been written to)
+    virtual bool writeable() const override { 
+        for (auto& child : _children) {
+            if (!child->writeable()) {
+                return false;
+            }
+        }
+        return true;
+    }
 
     virtual bool readable() const override { 
         for (auto& child : _children) {
@@ -278,13 +291,11 @@ public:
 
     virtual void apply(const Pose& newValue, const Pose& oldValue, const Pointer& source) override { }
 
-    virtual bool writeable() const { return !_written; }
+    virtual bool writeable() const { return false; }
     virtual bool readable() const { return !_read; }
-    virtual void reset() { _written = _read = false; }
+    virtual void reset() { _read = false; }
 
 private:
-
-    bool _written { false };
     bool _read { false };
 };
 
@@ -516,6 +527,24 @@ void UserInputMapper::update(float deltaTime) {
         }
         // TODO: emit signal for pose changes
     }
+
+    auto standardInputs = getStandardInputs();
+    if (_lastStandardStates.size() != standardInputs.size()) {
+        _lastStandardStates.resize(standardInputs.size());
+        for (auto& lastValue : _lastStandardStates) {
+            lastValue = 0;
+        }
+    }
+
+    for (int i = 0; i < standardInputs.size(); ++i) {
+        const auto& input = standardInputs[i].first;
+        float value = getValue(input);
+        float& oldValue = _lastStandardStates[i];
+        if (value != oldValue) {
+            oldValue = value;
+            emit inputEvent(input.id, value);
+        }
+    }
 }
 
 Input::NamedVector UserInputMapper::getAvailableInputs(uint16 deviceID) const {
@@ -656,51 +685,87 @@ Input UserInputMapper::makeStandardInput(controller::StandardPoseChannel pose) {
 
 static auto lastDebugTime = usecTimestampNow();
 static auto debugRoutes = false;
+static auto debuggableRoutes = false;
 static const auto DEBUG_INTERVAL = USECS_PER_SECOND;
 
 void UserInputMapper::runMappings() {
     auto now = usecTimestampNow();
-    if (now - lastDebugTime > DEBUG_INTERVAL) {
+    if (debuggableRoutes && now - lastDebugTime > DEBUG_INTERVAL) {
         lastDebugTime = now;
         debugRoutes = true;
     }
-    static auto deviceNames = getDeviceNames();
+
+    if (debugRoutes) {
+        qCDebug(controllers) << "Beginning mapping frame";
+    }
     for (auto endpointEntry : this->_endpointsByInput) {
         endpointEntry.second->reset();
     }
 
-    // Now process the current values for each level of the stack
-    for (const auto& route : _deviceRoutes) {
-        if (!route) {
-            continue;
-        }
-        applyRoute(route);
+    if (debugRoutes) {
+        qCDebug(controllers) << "Processing device routes";
     }
+    // Now process the current values for each level of the stack
+    applyRoutes(_deviceRoutes);
 
-    for (const auto& route : _standardRoutes) {
-        if (!route) {
-            continue;
-        }
-        applyRoute(route);
+    if (debugRoutes) {
+        qCDebug(controllers) << "Processing standard routes";
+    }
+    applyRoutes(_standardRoutes);
+
+    if (debugRoutes) {
+        qCDebug(controllers) << "Done with mappings";
     }
     debugRoutes = false;
 }
 
-void UserInputMapper::applyRoute(const Route::Pointer& route) {
+// Encapsulate the logic that routes should not be read before they are written
+void UserInputMapper::applyRoutes(const Route::List& routes) {
+    Route::List deferredRoutes;
+
+    for (const auto& route : routes) {
+        if (!route) {
+            continue;
+        }
+
+        // Try all the deferred routes
+        deferredRoutes.remove_if([](Route::Pointer route) {
+            return UserInputMapper::applyRoute(route);
+        });
+
+        if (!applyRoute(route)) {
+            deferredRoutes.push_back(route);
+        }
+    }
+
+    bool force = true;
+    for (const auto& route : deferredRoutes) {
+        UserInputMapper::applyRoute(route, force);
+    }
+}
+
+
+bool UserInputMapper::applyRoute(const Route::Pointer& route, bool force) {
     if (debugRoutes && route->debug) {
         qCDebug(controllers) << "Applying route " << route->json;
     }
 
+    // If the source hasn't been written yet, defer processing of this route
+    auto source = route->source;
+    if (!force && source->writeable()) {
+        return false;
+    }
+
     if (route->conditional) {
+        // FIXME for endpoint conditionals we need to check if they've been written
         if (!route->conditional->satisfied()) {
             if (debugRoutes && route->debug) {
                 qCDebug(controllers) << "Conditional failed";
             }
-            return;
+            return true;
         }
     }
 
-    auto source = route->source;
 
     // Most endpoints can only be read once (though a given mapping can route them to 
     // multiple places).  Consider... If the default is to wire the A button to JUMP
@@ -711,7 +776,7 @@ void UserInputMapper::applyRoute(const Route::Pointer& route) {
         if (debugRoutes && route->debug) {
             qCDebug(controllers) << "Source unreadable";
         }
-        return;
+        return true;
     }
 
     auto destination = route->destination;
@@ -721,14 +786,14 @@ void UserInputMapper::applyRoute(const Route::Pointer& route) {
         if (debugRoutes && route->debug) {
             qCDebug(controllers) << "Bad Destination";
         }
-        return;
+        return true;
     }
 
     if (!destination->writeable()) {
         if (debugRoutes && route->debug) {
             qCDebug(controllers) << "Destination unwritable";
         }
-        return;
+        return true;
     }
 
     // Fetch the value, may have been overriden by previous loopback routes
@@ -764,6 +829,7 @@ void UserInputMapper::applyRoute(const Route::Pointer& route) {
 
         destination->apply(value, 0, source);
     }
+    return true;
 }
 
 Endpoint::Pointer UserInputMapper::endpointFor(const QJSValue& endpoint) {
@@ -869,12 +935,12 @@ void UserInputMapper::enableMapping(const QString& mappingName, bool enable) {
     }
 }
 
-float UserInputMapper::getValue(const Endpoint::Pointer& endpoint) const {
-    Locker locker(_lock);
+float UserInputMapper::getValue(const Endpoint::Pointer& endpoint) {
     return endpoint->value();
 }
 
 float UserInputMapper::getValue(const Input& input) const {
+    Locker locker(_lock);
     auto endpoint = endpointFor(input);
     if (!endpoint) {
         return 0;
@@ -882,7 +948,7 @@ float UserInputMapper::getValue(const Input& input) const {
     return endpoint->value();
 }
 
-Pose UserInputMapper::getPose(const Endpoint::Pointer& endpoint) const {
+Pose UserInputMapper::getPose(const Endpoint::Pointer& endpoint) {
     if (!endpoint->isPose()) {
         return Pose();
     }
@@ -890,6 +956,7 @@ Pose UserInputMapper::getPose(const Endpoint::Pointer& endpoint) const {
 }
 
 Pose UserInputMapper::getPose(const Input& input) const {
+    Locker locker(_lock);
     auto endpoint = endpointFor(input);
     if (!endpoint) {
         return Pose();
@@ -1156,6 +1223,16 @@ Mapping::Pointer UserInputMapper::parseMapping(const QString& json) {
     return parseMapping(doc.object());
 }
 
+template <typename T>
+bool hasDebuggableRoute(const T& routes) {
+    for (auto route : routes) {
+        if (route->debug) {
+            return true;
+        }
+    }
+    return false;
+}
+
 
 void UserInputMapper::enableMapping(const Mapping::Pointer& mapping) {
     Locker locker(_lock);
@@ -1174,6 +1251,10 @@ void UserInputMapper::enableMapping(const Mapping::Pointer& mapping) {
         return (value->source->getInput().device == STANDARD_DEVICE);
     });
     _deviceRoutes.insert(_deviceRoutes.begin(), deviceRoutes.begin(), deviceRoutes.end());
+
+    if (!debuggableRoutes) {
+        debuggableRoutes = hasDebuggableRoute(_deviceRoutes) || hasDebuggableRoute(_standardRoutes);
+    }
 }
 
 void UserInputMapper::disableMapping(const Mapping::Pointer& mapping) {
@@ -1186,6 +1267,10 @@ void UserInputMapper::disableMapping(const Mapping::Pointer& mapping) {
     _standardRoutes.remove_if([&](const Route::Pointer& value) {
         return routeSet.count(value) != 0;
     });
+
+    if (debuggableRoutes) {
+        debuggableRoutes = hasDebuggableRoute(_deviceRoutes) || hasDebuggableRoute(_standardRoutes);
+    }
 }
 
 }

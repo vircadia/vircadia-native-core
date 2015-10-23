@@ -44,6 +44,9 @@ static QVariantMap createDeviceMap(const controller::DeviceProxy::Pointer device
 controller::ScriptingInterface::ScriptingInterface() {
     auto userInputMapper = DependencyManager::get<UserInputMapper>();
 
+    connect(userInputMapper.data(), &UserInputMapper::actionEvent, this, &controller::ScriptingInterface::actionEvent);
+    connect(userInputMapper.data(), &UserInputMapper::inputEvent, this, &controller::ScriptingInterface::inputEvent);
+
     // FIXME make this thread safe
     connect(userInputMapper.data(), &UserInputMapper::hardwareChanged, [=] {
         updateMaps();

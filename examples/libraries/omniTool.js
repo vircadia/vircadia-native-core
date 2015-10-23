@@ -15,16 +15,18 @@ Script.include("omniTool/models/invisibleWand.js");
 
 OmniToolModules = {};
 OmniToolModuleType = null;
+LOG_DEBUG = 1;
 
-OmniTool = function(side) {
+OmniTool = function(left) {
     this.OMNI_KEY = "OmniTool";
     this.MAX_FRAMERATE = 60;
     this.UPDATE_INTERVAL = 1.0 / this.MAX_FRAMERATE
-    this.SIDE = side;
-    this.PALM = 2 * side;
-    this.ACTION = findAction(side ? "ACTION2" : "ACTION1");
-    this.ALT_ACTION = findAction(side ? "ACTION1" : "ACTION2");
-
+    this.left = left;
+    this.triggered = false;
+    var actions = Controller.Actions;
+    var standard = Controller.Standard;
+    this.palmControl = left ? actions.LeftHand : actions.RightHand;
+    logDebug("Init OmniTool " + (left ? "left" : "right"));
     this.highlighter = new Highlighter();
     this.ignoreEntities = {};
     this.nearestOmniEntity = {
@@ -47,22 +49,25 @@ OmniTool = function(side) {
     this.showWand(false);
 
     // Connect to desired events
-    var _this = this;
-    Controller.actionEvent.connect(function(action, state) {
-        _this.onActionEvent(action, state);
-    });
+    var that = this;
 
     Script.update.connect(function(deltaTime) {
-        _this.lastUpdateInterval += deltaTime;
-        if (_this.lastUpdateInterval >= _this.UPDATE_INTERVAL) {
-            _this.onUpdate(_this.lastUpdateInterval);
-            _this.lastUpdateInterval = 0;
+        that.lastUpdateInterval += deltaTime;
+        if (that.lastUpdateInterval >= that.UPDATE_INTERVAL) {
+            that.onUpdate(that.lastUpdateInterval);
+            that.lastUpdateInterval = 0;
         }
     });
 
     Script.scriptEnding.connect(function() {
-        _this.onCleanup();
+        that.onCleanup();
     });
+
+    this.mapping = Controller.newMapping();
+    this.mapping.from(left ? standard.LeftPrimaryThumb : standard.RightPrimaryThumb).to(function(value){
+        that.onUpdateTrigger(value);
+    })
+    this.mapping.enable();
 }
 
 OmniTool.prototype.showWand = function(show) {
@@ -81,30 +86,23 @@ OmniTool.prototype.showWand = function(show) {
     }
 }
 
-
 OmniTool.prototype.onCleanup = function(action) {
+    this.mapping.disable();
     this.unloadModule();
 }
 
-OmniTool.prototype.onActionEvent = function(action, state) {
-    // FIXME figure out the issues when only one spatial controller is active 
-    // logDebug("Action: " + action + " " + state);
 
-    if (this.module && this.module.onActionEvent) {
-        this.module.onActionEvent(action, state);
-    }
-
-    if (action == this.ACTION) {
-        if (state) {
+OmniTool.prototype.onUpdateTrigger = function (value) {
+    //logDebug("Trigger update value " + value);
+    var triggered = value != 0;
+    if (triggered != this.triggered) {
+        this.triggered = triggered;
+        if (this.triggered) {
             this.onClick();
         } else {
             this.onRelease();
         }
     }
-
-    // FIXME Does not work
-    //// with only one controller active (listed as 2 here because 'tip' + 'palm')
-    //// then treat the alt action button as the action button
 }
 
 OmniTool.prototype.getOmniToolData = function(entityId) {
@@ -127,7 +125,7 @@ OmniTool.prototype.setActive = function(active) {
     if (active === this.active) {
         return;
     }
-    logDebug("OmniTool changing active state: " + active);
+    logDebug("OmniTool " + this.left  + " changing active state: " + active);
     this.active = active;
     this.model.setVisible(this.active);
     if (this.module && this.module.onActiveChanged) {
@@ -138,17 +136,17 @@ OmniTool.prototype.setActive = function(active) {
 
 OmniTool.prototype.onUpdate = function(deltaTime) {
     // FIXME this returns data if either the left or right controller is not on the base
-    this.position = Controller.getSpatialControlPosition(this.PALM);
+    this.pose = Controller.getPoseValue(this.palmControl);
+    this.position = this.left ? MyAvatar.leftHandTipPosition : MyAvatar.rightHandTipPosition;
     // When on the base, hydras report a position of 0
     this.setActive(Vec3.length(this.position) > 0.001);
     if (!this.active) {
         return;
     }
     
-    
     if (this.model) {
         // Update the wand
-        var rawRotation = Controller.getSpatialControlRawRotation(this.PALM);
+        var rawRotation = this.pose.rotation;
         this.rotation = Quat.multiply(MyAvatar.orientation, rawRotation);
         this.model.setTransform({
             rotation: this.rotation,
@@ -306,6 +304,7 @@ OmniTool.prototype.scan = function() {
 }
 
 OmniTool.prototype.unloadModule = function() {
+    logDebug("Unloading omniTool module")
     if (this.module && this.module.onUnload) {
         this.module.onUnload();
     }
@@ -348,4 +347,4 @@ OmniTool.prototype.activateNewOmniModule = function() {
 }
 
 // FIXME find a good way to sync the two omni tools
-OMNI_TOOLS = [ new OmniTool(0), new OmniTool(1) ];
+OMNI_TOOLS = [ new OmniTool(true), new OmniTool(false) ];
