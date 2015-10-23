@@ -85,7 +85,6 @@ EntityItem::EntityItem(const EntityItemID& entityItemID) :
     quint64 now = usecTimestampNow();
     _lastSimulated = now;
     _lastUpdated = now;
-    _constructing = false;
 }
 
 EntityItem::~EntityItem() {

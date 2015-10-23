@@ -25,7 +25,9 @@
 #include "../render-utils/simple_frag.h"
 
 EntityItemPointer RenderableBoxEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
-    return std::make_shared<RenderableBoxEntityItem>(entityID, properties);
+    EntityItemPointer entity{ new RenderableBoxEntityItem(entityID) };
+    entity->setProperties(properties);
+    return entity;
 }
 
 void RenderableBoxEntityItem::setUserData(const QString& value) {

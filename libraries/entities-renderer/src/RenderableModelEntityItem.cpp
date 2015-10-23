@@ -24,13 +24,14 @@
 #include "RenderableModelEntityItem.h"
 
 EntityItemPointer RenderableModelEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
-    return std::make_shared<RenderableModelEntityItem>(entityID, properties);
+    EntityItemPointer entity{ new RenderableModelEntityItem(entityID, properties.getDimensionsInitialized()) };
+    entity->setProperties(properties);
+    return entity;
 }
-RenderableModelEntityItem::RenderableModelEntityItem(const EntityItemID& entityItemID,
-                                                     const EntityItemProperties& properties) :
-    ModelEntityItem(entityItemID, properties),
-    _dimensionsInitialized(properties.getDimensionsInitialized())
-{
+
+RenderableModelEntityItem::RenderableModelEntityItem(const EntityItemID& entityItemID, bool dimensionsInitialized) :
+    ModelEntityItem(entityItemID),
+    _dimensionsInitialized(dimensionsInitialized) {
 }
 
 RenderableModelEntityItem::~RenderableModelEntityItem() {

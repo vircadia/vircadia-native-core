@@ -25,7 +25,7 @@ class RenderablePolyLineEntityItem : public PolyLineEntityItem {
 public:
     static EntityItemPointer factory(const EntityItemID& entityID, const EntityItemProperties& properties);
     static void createPipeline();
-    RenderablePolyLineEntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties);
+    RenderablePolyLineEntityItem(const EntityItemID& entityItemID);
     
     virtual void render(RenderArgs* args);
     

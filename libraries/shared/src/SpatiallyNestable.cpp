@@ -32,11 +32,6 @@ SpatiallyNestablePointer SpatiallyNestable::getParentPointer() const {
         return nullptr;
     }
 
-    if (_constructing) {
-        // we can't use shared_from_this yet, so stop here.
-        return nullptr;
-    }
-
     SpatiallyNestableConstPointer constThisPointer = shared_from_this();
     SpatiallyNestablePointer thisPointer = std::const_pointer_cast<SpatiallyNestable>(constThisPointer); // ermahgerd !!!
 

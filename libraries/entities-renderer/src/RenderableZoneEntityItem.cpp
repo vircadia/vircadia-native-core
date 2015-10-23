@@ -24,7 +24,9 @@
 static const float SPHERE_ENTITY_SCALE = 0.5f;
 
 EntityItemPointer RenderableZoneEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
-    return std::make_shared<RenderableZoneEntityItem>(entityID, properties);
+    EntityItemPointer entity{ new RenderableZoneEntityItem(entityID) };
+    entity->setProperties(properties);
+    return entity;
 }
 
 template<typename Lambda>

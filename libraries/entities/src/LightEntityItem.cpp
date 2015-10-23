@@ -24,23 +24,20 @@
 bool LightEntityItem::_lightsArePickable = false;
 
 EntityItemPointer LightEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
-    EntityItemPointer result { new LightEntityItem(entityID, properties) };
-    return result;
+    EntityItemPointer entity { new LightEntityItem(entityID) };
+    entity->setProperties(properties);
+    return entity;
 }
 
 // our non-pure virtual subclass for now...
-LightEntityItem::LightEntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties) :
-        EntityItem(entityItemID) 
-{
+LightEntityItem::LightEntityItem(const EntityItemID& entityItemID) : EntityItem(entityItemID) {
     _type = EntityTypes::Light;
-    
+
     // default property values
     _color[RED_INDEX] = _color[GREEN_INDEX] = _color[BLUE_INDEX] = 0;
     _intensity = 1.0f;
     _exponent = 0.0f;
     _cutoff = PI;
-
-    setProperties(properties);
 }
 
 void LightEntityItem::setDimensions(const glm::vec3& value) {

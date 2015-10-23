@@ -23,15 +23,15 @@
 #include "paintStroke_frag.h"
 
 
-
 EntityItemPointer RenderablePolyLineEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
-    return EntityItemPointer(new RenderablePolyLineEntityItem(entityID, properties));
+    EntityItemPointer entity{ new RenderablePolyLineEntityItem(entityID) };
+    entity->setProperties(properties);
+    return entity;
 }
 
-RenderablePolyLineEntityItem::RenderablePolyLineEntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties) :
-PolyLineEntityItem(entityItemID, properties) {
+RenderablePolyLineEntityItem::RenderablePolyLineEntityItem(const EntityItemID& entityItemID) :
+    PolyLineEntityItem(entityItemID) {
     _numVertices = 0;
-
 }
 
 gpu::PipelinePointer RenderablePolyLineEntityItem::_pipeline;

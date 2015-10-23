@@ -20,7 +20,9 @@
 #include "RenderableLineEntityItem.h"
 
 EntityItemPointer RenderableLineEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
-    return std::make_shared<RenderableLineEntityItem>(entityID, properties);
+    EntityItemPointer entity{ new RenderableLineEntityItem(entityID) };
+    entity->setProperties(properties);
+    return entity;
 }
 
 void RenderableLineEntityItem::updateGeometry() {

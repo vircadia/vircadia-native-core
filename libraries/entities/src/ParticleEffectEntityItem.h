@@ -20,7 +20,7 @@ public:
 
     static EntityItemPointer factory(const EntityItemID& entityID, const EntityItemProperties& properties);
 
-    ParticleEffectEntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties);
+    ParticleEffectEntityItem(const EntityItemID& entityItemID);
     virtual ~ParticleEffectEntityItem();
 
     ALLOW_INSTANTIATION // This class can be instantiated

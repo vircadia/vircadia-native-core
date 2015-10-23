@@ -97,11 +97,13 @@ const QString ParticleEffectEntityItem::DEFAULT_TEXTURES = "";
 
 
 EntityItemPointer ParticleEffectEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
-    return std::make_shared<ParticleEffectEntityItem>(entityID, properties);
+    EntityItemPointer entity { new ParticleEffectEntityItem(entityID) };
+    entity->setProperties(properties);
+    return entity;
 }
 
 // our non-pure virtual subclass for now...
-ParticleEffectEntityItem::ParticleEffectEntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties) :
+ParticleEffectEntityItem::ParticleEffectEntityItem(const EntityItemID& entityItemID) :
     EntityItem(entityItemID),
     _lastSimulated(usecTimestampNow()),
     _particleLifetimes(DEFAULT_MAX_PARTICLES, 0.0f),
@@ -121,12 +123,9 @@ ParticleEffectEntityItem::ParticleEffectEntityItem(const EntityItemID& entityIte
     _alphaMiddles(DEFAULT_MAX_PARTICLES, DEFAULT_ALPHA),
     _alphaFinishes(DEFAULT_MAX_PARTICLES, DEFAULT_ALPHA),
     _particleMaxBound(glm::vec3(1.0f, 1.0f, 1.0f)),
-    _particleMinBound(glm::vec3(-1.0f, -1.0f, -1.0f)) 
-{
-
+    _particleMinBound(glm::vec3(-1.0f, -1.0f, -1.0f)) {
     _type = EntityTypes::ParticleEffect;
     setColor(DEFAULT_COLOR);
-    setProperties(properties);
 }
 
 ParticleEffectEntityItem::~ParticleEffectEntityItem() {

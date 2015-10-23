@@ -18,10 +18,7 @@
 class RenderableLightEntityItem : public LightEntityItem  {
 public:
     static EntityItemPointer factory(const EntityItemID& entityID, const EntityItemProperties& properties);
-
-    RenderableLightEntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties) :
-        LightEntityItem(entityItemID, properties)
-        { }
+    RenderableLightEntityItem(const EntityItemID& entityItemID) : LightEntityItem(entityItemID) { }
 
     virtual void render(RenderArgs* args);
     virtual bool supportsDetailedRayIntersection() const { return true; }

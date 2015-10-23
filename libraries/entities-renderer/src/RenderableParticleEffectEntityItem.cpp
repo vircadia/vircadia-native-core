@@ -117,13 +117,15 @@ namespace render {
 gpu::PipelinePointer RenderableParticleEffectEntityItem::_texturedPipeline;
 gpu::PipelinePointer RenderableParticleEffectEntityItem::_untexturedPipeline;
 
-EntityItemPointer RenderableParticleEffectEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
-    return std::make_shared<RenderableParticleEffectEntityItem>(entityID, properties);
+EntityItemPointer RenderableParticleEffectEntityItem::factory(const EntityItemID& entityID,
+                                                              const EntityItemProperties& properties) {
+    EntityItemPointer entity{ new RenderableParticleEffectEntityItem(entityID) };
+    entity->setProperties(properties);
+    return entity;
 }
 
-RenderableParticleEffectEntityItem::RenderableParticleEffectEntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties) :
-    ParticleEffectEntityItem(entityItemID, properties) {
-
+RenderableParticleEffectEntityItem::RenderableParticleEffectEntityItem(const EntityItemID& entityItemID) :
+    ParticleEffectEntityItem(entityItemID) {
     // lazy creation of particle system pipeline
     if (!_untexturedPipeline && !_texturedPipeline) {
         createPipelines();

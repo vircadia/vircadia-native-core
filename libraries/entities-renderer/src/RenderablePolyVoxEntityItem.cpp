@@ -49,12 +49,13 @@ gpu::PipelinePointer RenderablePolyVoxEntityItem::_pipeline = nullptr;
 const float MARCHING_CUBE_COLLISION_HULL_OFFSET = 0.5;
 
 EntityItemPointer RenderablePolyVoxEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
-    return std::make_shared<RenderablePolyVoxEntityItem>(entityID, properties);
+    EntityItemPointer entity{ new RenderablePolyVoxEntityItem(entityID) };
+    entity->setProperties(properties);
+    return entity;
 }
 
-RenderablePolyVoxEntityItem::RenderablePolyVoxEntityItem(const EntityItemID& entityItemID,
-                                                         const EntityItemProperties& properties) :
-    PolyVoxEntityItem(entityItemID, properties),
+RenderablePolyVoxEntityItem::RenderablePolyVoxEntityItem(const EntityItemID& entityItemID) :
+    PolyVoxEntityItem(entityItemID),
     _mesh(new model::Mesh()),
     _meshDirty(true),
     _xTexture(nullptr),

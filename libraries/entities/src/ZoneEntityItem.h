@@ -24,7 +24,7 @@ class ZoneEntityItem : public EntityItem {
 public:
     static EntityItemPointer factory(const EntityItemID& entityID, const EntityItemProperties& properties);
 
-    ZoneEntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties);
+    ZoneEntityItem(const EntityItemID& entityItemID);
     
     ALLOW_INSTANTIATION // This class can be instantiated
     

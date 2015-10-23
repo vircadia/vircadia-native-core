@@ -18,7 +18,7 @@ class PolyLineEntityItem : public EntityItem {
  public:
     static EntityItemPointer factory(const EntityItemID& entityID, const EntityItemProperties& properties);
 
-    PolyLineEntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties);
+    PolyLineEntityItem(const EntityItemID& entityItemID);
     
     ALLOW_INSTANTIATION // This class can be instantiated
     

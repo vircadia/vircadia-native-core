@@ -25,7 +25,7 @@ class RenderableModelEntityItem : public ModelEntityItem {
 public:
     static EntityItemPointer factory(const EntityItemID& entityID, const EntityItemProperties& properties);
 
-    RenderableModelEntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties);
+    RenderableModelEntityItem(const EntityItemID& entityItemID, bool dimensionsInitialized);
 
     virtual ~RenderableModelEntityItem();
 
