@@ -19,9 +19,7 @@ HIFI_PUBLIC_BUCKET = "http://s3.amazonaws.com/hifi-public/";
 
 // maybe we should make these constants...
 var LEFT_PALM = 0;
-var LEFT_TIP = 1;
 var RIGHT_PALM = 2;
-var RIGHT_TIP = 3;
 
 var BALL_RADIUS = 0.08;
 var GRAVITY_STRENGTH = 3.0;
@@ -179,10 +177,8 @@ function checkControllerSide(whichSide) {
     if (ballAlreadyInHand) {
         if (whichSide == LEFT_PALM) {
             handEntity = leftHandEntity;
-            whichTip = LEFT_TIP;
         } else {
             handEntity = rightHandEntity;
-            whichTip = RIGHT_TIP;
         }
 
         //  If holding the ball keep it in the palm
