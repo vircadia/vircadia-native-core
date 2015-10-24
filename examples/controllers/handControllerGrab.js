@@ -867,10 +867,12 @@ function MyController(hand, triggerAction) {
 var rightController = new MyController(RIGHT_HAND, Controller.Standard.RT);
 var leftController = new MyController(LEFT_HAND, Controller.Standard.LT);
 
-var mapping = Controller.newMapping("com.highfidelity.handControllerGrab");
+var MAPPING_NAME = "com.highfidelity.handControllerGrab";
+
+var mapping = Controller.newMapping(MAPPING_NAME);
 mapping.from([Controller.Standard.RB, Controller.Standard.RT]).to(rightController.eitherTrigger);
 mapping.from([Controller.Standard.LB, Controller.Standard.LT]).to(leftController.eitherTrigger);
-Controller.enableMapping("com.highfidelity.handControllerGrab");
+Controller.enableMapping(MAPPING_NAME);
 
 
 function update() {
@@ -881,7 +883,7 @@ function update() {
 function cleanup() {
     rightController.cleanup();
     leftController.cleanup();
-    Controller.disableMapping("com.highfidelity.handControllerGrab");
+    Controller.disableMapping(MAPPING_NAME);
 }
 
 Script.scriptEnding.connect(cleanup);
