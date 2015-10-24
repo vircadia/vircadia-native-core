@@ -4,7 +4,9 @@ ControllerTest = function() {
     var xbox = Controller.Hardware.GamePad;
     this.mappingEnabled = false;
     this.mapping = Controller.newMapping();
+    this.mapping.from(standard.LX).when([standard.LB, standard.RB]).to(actions.Yaw);
     this.mapping.from(standard.RX).to(actions.StepYaw);
+    this.mapping.from(standard.RY).invert().to(actions.Pitch);
     this.mapping.from(standard.RY).invert().to(actions.Pitch);
 
 
