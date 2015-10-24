@@ -637,6 +637,15 @@ void Rig::updateAnimationStateHandlers() { // called on avatar update thread (wh
                                   Q_ARG(QScriptValue, _stateHandlers),
                                   Q_ARG(AnimVariantMap, _animVars),
                                   Q_ARG(AnimVariantResultHandler, handleResult));
+        // It turns out that, for thread-safety reasons, ScriptEngine::callAnimationStateHandler will invoke itself if called from other
+        // than the script thread. Thus the above _could_ be replaced with an ordinary call, which will then trigger the same
+        // invokeMethod as is done explicitly above. However, the script-engine library depends on this animation library, not vice versa.
+        // We could create an AnimVariantCallingMixin class in shared, with an abstract virtual slot
+        // AnimVariantCallingMixin::callAnimationStateHandler (and move AnimVariantMap/AnimVaraintResultHandler to shared), but the
+        // call site here would look like this instead of the above:
+        //   dynamic_cast<AnimVariantCallingMixin*>(_stateHandlers.engine())->callAnimationStateHandler(_stateHandlers, _animVars, handleResult);
+        // This works (I tried it), but the result would be that we would still have same runtime type checks as the invokeMethod above
+        // (occuring within the ScriptEngine::callAnimationStateHandler invokeMethod trampoline), _plus_ another runtime check for the dynamic_cast.
     }
     QMutexLocker locker(&_stateMutex); // as we examine/copy most recently computed state, if any. (Typically an earlier invocation.)
     _animVars.copyVariantsFrom(_stateHandlersResults);

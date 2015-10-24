@@ -748,7 +748,8 @@ void ScriptEngine::callAnimationStateHandler(QScriptValue callback, AnimVariantM
 #endif
         QMetaObject::invokeMethod(this, "callAnimationStateHandler",
                                   Q_ARG(QScriptValue, callback),
-                                  Q_ARG(AnimVariantMap, parameters));
+                                  Q_ARG(AnimVariantMap, parameters),
+                                  Q_ARG(AnimVariantResultHandler, resultHandler));
         return;
     }
     QScriptValue javascriptParametgers = parameters.animVariantMapToScriptValue(this);
