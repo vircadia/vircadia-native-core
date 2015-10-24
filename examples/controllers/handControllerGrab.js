@@ -869,10 +869,10 @@ function MyController(hand, triggerAction) {
 var rightController = new MyController(RIGHT_HAND, Controller.Standard.RT);
 var leftController = new MyController(LEFT_HAND, Controller.Standard.LT);
 
-var mapping = Controller.newMapping("handGrab");
+var mapping = Controller.newMapping("com.highfidelity.handControllerGrab");
 mapping.from([Controller.Standard.RB, Controller.Standard.RT]).to(rightController.eitherTrigger);
 mapping.from([Controller.Standard.LB, Controller.Standard.LT]).to(leftController.eitherTrigger);
-Controller.enableMapping("handGrab");
+Controller.enableMapping("com.highfidelity.handControllerGrab");
 
 
 function update() {
