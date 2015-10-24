@@ -16,8 +16,8 @@
 
 #include <QtCore/QObject>
 
-#include "Input.h"
-#include "Pose.h"
+#include "../Input.h"
+#include "../Pose.h"
 
 class QScriptValue;
 

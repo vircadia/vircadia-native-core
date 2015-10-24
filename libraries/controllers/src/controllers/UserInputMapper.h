@@ -143,6 +143,7 @@ namespace controller {
         friend class MappingBuilderProxy;
 
         void runMappings();
+
         static void applyRoutes(const RouteList& route);
         static bool applyRoute(const RoutePointer& route, bool force = false);
         void enableMapping(const MappingPointer& mapping);
@@ -151,6 +152,9 @@ namespace controller {
         EndpointPointer endpointFor(const QScriptValue& endpoint);
         EndpointPointer endpointFor(const Input& endpoint) const;
         EndpointPointer compositeEndpointFor(EndpointPointer first, EndpointPointer second);
+        ConditionalPointer conditionalFor(const QJSValue& endpoint);
+        ConditionalPointer conditionalFor(const QScriptValue& endpoint);
+        ConditionalPointer conditionalFor(const Input& endpoint) const;
         
         MappingPointer parseMapping(const QJsonValue& json);
         RoutePointer parseRoute(const QJsonValue& value);

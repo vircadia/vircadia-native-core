@@ -33,7 +33,6 @@ void RouteBuilderProxy::to(const QScriptValue& destination) {
 }
 
 void RouteBuilderProxy::to(const Endpoint::Pointer& destination) {
-    auto sourceEndpoint = _route->source;
     _route->destination = destination;
     _mapping->routes.push_back(_route);
     deleteLater();
@@ -55,6 +54,17 @@ QObject* RouteBuilderProxy::filterQml(const QJSValue& expression) {
     }
     return this;
 }
+
+QObject* RouteBuilderProxy::when(const QScriptValue& expression) {
+    _route->conditional = _parent.conditionalFor(expression);
+    return this;
+}
+
+QObject* RouteBuilderProxy::whenQml(const QJSValue& expression) {
+    _route->conditional = _parent.conditionalFor(expression);
+    return this;
+}
+
 
 QObject* RouteBuilderProxy::filter(const QScriptValue& expression) {
     return this;

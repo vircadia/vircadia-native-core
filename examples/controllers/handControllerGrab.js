@@ -148,6 +148,7 @@ function MyController(hand, triggerAction) {
     this.state = STATE_OFF;
     this.pointer = null; // entity-id of line object
     this.triggerValue = 0; // rolling average of trigger value
+    this.rawTriggerValue = 0;
 
     var _this = this;
 
@@ -244,12 +245,17 @@ function MyController(hand, triggerAction) {
         this.pointer = null;
     };
 
-    this.updateSmoothedTrigger = function() {
-        var triggerValue = Controller.getValue(this.triggerAction);
+    this.eitherTrigger = function (value) {
+        _this.rawTriggerValue = value;
+    };
+
+    this.updateSmoothedTrigger = function () {
+        var triggerValue = this.rawTriggerValue;
         // smooth out trigger value
         this.triggerValue = (this.triggerValue * TRIGGER_SMOOTH_RATIO) +
             (triggerValue * (1.0 - TRIGGER_SMOOTH_RATIO));
-    }
+
+    };
 
     this.triggerSmoothedSqueezed = function() {
         return this.triggerValue > TRIGGER_ON_VALUE;
@@ -259,8 +265,8 @@ function MyController(hand, triggerAction) {
         return this.triggerValue < TRIGGER_OFF_VALUE;
     };
 
-    this.triggerSqueezed = function() {
-        var triggerValue = Controller.getValue(this.triggerAction);
+    this.triggerSqueezed = function() { 
+        var triggerValue = this.rawTriggerValue;
         return triggerValue > TRIGGER_ON_VALUE;
     };
 
@@ -861,6 +867,14 @@ function MyController(hand, triggerAction) {
 var rightController = new MyController(RIGHT_HAND, Controller.Standard.RT);
 var leftController = new MyController(LEFT_HAND, Controller.Standard.LT);
 
+var MAPPING_NAME = "com.highfidelity.handControllerGrab";
+
+var mapping = Controller.newMapping(MAPPING_NAME);
+mapping.from([Controller.Standard.RB, Controller.Standard.RT]).to(rightController.eitherTrigger);
+mapping.from([Controller.Standard.LB, Controller.Standard.LT]).to(leftController.eitherTrigger);
+Controller.enableMapping(MAPPING_NAME);
+
+
 function update() {
     rightController.update();
     leftController.update();
@@ -869,6 +883,7 @@ function update() {
 function cleanup() {
     rightController.cleanup();
     leftController.cleanup();
+    Controller.disableMapping(MAPPING_NAME);
 }
 
 Script.scriptEnding.connect(cleanup);

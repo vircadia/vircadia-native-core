@@ -11,10 +11,12 @@
 
 #include <QtCore/QObject>
 
-#include "../Filter.h"
-#include "../Route.h"
-#include "../Mapping.h"
+#include "Filter.h"
+#include "Route.h"
+#include "Mapping.h"
+
 #include "../UserInputMapper.h"
+
 class QJSValue;
 class QScriptValue;
 class QJsonValue;
@@ -33,9 +35,11 @@ class RouteBuilderProxy : public QObject {
 
         Q_INVOKABLE void toQml(const QJSValue& destination);
         Q_INVOKABLE QObject* filterQml(const QJSValue& expression);
+        Q_INVOKABLE QObject* whenQml(const QJSValue& expression);
 
         Q_INVOKABLE void to(const QScriptValue& destination);
         Q_INVOKABLE QObject* debug(bool enable = true);
+        Q_INVOKABLE QObject* when(const QScriptValue& expression);
         Q_INVOKABLE QObject* filter(const QScriptValue& expression);
         Q_INVOKABLE QObject* clamp(float min, float max);
         Q_INVOKABLE QObject* pulse(float interval);
@@ -47,6 +51,7 @@ class RouteBuilderProxy : public QObject {
 
 private:
         void to(const Endpoint::Pointer& destination);
+        void conditional(const Conditional::Pointer& conditional);
         void addFilter(Filter::Lambda lambda);
         void addFilter(Filter::Pointer filter);
         UserInputMapper& _parent;
