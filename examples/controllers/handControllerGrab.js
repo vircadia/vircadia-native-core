@@ -38,9 +38,21 @@ var TRIGGER_OFF_VALUE = 0.15;
 var DISTANCE_HOLDING_RADIUS_FACTOR = 5; // multiplied by distance between hand and object
 var DISTANCE_HOLDING_ACTION_TIMEFRAME = 0.1; // how quickly objects move to their new position
 var DISTANCE_HOLDING_ROTATION_EXAGGERATION_FACTOR = 2.0; // object rotates this much more than hand did
-var NO_INTERSECT_COLOR = { red: 10, green: 10, blue: 255}; // line color when pick misses
-var INTERSECT_COLOR = { red: 250, green: 10, blue: 10}; // line color when pick hits
-var LINE_ENTITY_DIMENSIONS = { x: 1000, y: 1000,z: 1000};
+var NO_INTERSECT_COLOR = {
+    red: 10,
+    green: 10,
+    blue: 255
+}; // line color when pick misses
+var INTERSECT_COLOR = {
+    red: 250,
+    green: 10,
+    blue: 10
+}; // line color when pick hits
+var LINE_ENTITY_DIMENSIONS = {
+    x: 1000,
+    y: 1000,
+    z: 1000
+};
 var LINE_LENGTH = 500;
 var PICK_MAX_DISTANCE = 500; // max length of pick-ray
 
@@ -100,7 +112,7 @@ var DEFAULT_GRABBABLE_DATA = {
     invertSolidWhileHeld: false
 };
 
-var disabledHand ='none';
+var disabledHand = 'none';
 
 function getTag() {
     return "grab-" + MyAvatar.sessionUUID;
@@ -200,7 +212,7 @@ function MyController(hand, triggerAction) {
         this.state = newState;
     }
 
-    this.debugLine = function(closePoint, farPoint, color){
+    this.debugLine = function(closePoint, farPoint, color) {
         Entities.addEntity({
             type: "Line",
             name: "Debug Line",
@@ -301,7 +313,7 @@ function MyController(hand, triggerAction) {
             this.lastPickTime = now;
         }
 
-        for (var index=0; index < pickRays.length; ++index) {
+        for (var index = 0; index < pickRays.length; ++index) {
             var pickRay = pickRays[index];
             var directionNormalized = Vec3.normalize(pickRay.direction);
             var directionBacked = Vec3.multiply(directionNormalized, PICK_BACKOFF_DISTANCE);
@@ -376,6 +388,15 @@ function MyController(hand, triggerAction) {
             for (i = 0; i < nearbyEntities.length; i++) {
                 var grabbableDataForCandidate =
                     getEntityCustomData(GRABBABLE_DATA_KEY, nearbyEntities[i], DEFAULT_GRABBABLE_DATA);
+                if (grabbableDataForCandidate["turnOffOppositeBeam"] === true) {
+                    if (this.hand === RIGHT_HAND) {
+                        disabledHand = LEFT_HAND;
+                    } else {
+                        disabledHand = RIGHT_HAND;
+                    }
+                } else {
+                    disabledHand = 'none';
+                }
                 if (grabbableDataForCandidate.grabbable === false) {
                     continue;
                 }
@@ -405,7 +426,8 @@ function MyController(hand, triggerAction) {
         var handControllerPosition = Controller.getSpatialControlPosition(this.palm);
         var handRotation = Quat.multiply(MyAvatar.orientation, Controller.getSpatialControlRawRotation(this.palm));
         var grabbedProperties = Entities.getEntityProperties(this.grabbedEntity, ["position", "rotation",
-                                                                                  "gravity", "ignoreForCollisions"]);
+            "gravity", "ignoreForCollisions"
+        ]);
         var now = Date.now();
 
         // add the action and initialize some variables
@@ -460,7 +482,7 @@ function MyController(hand, triggerAction) {
 
         // the action was set up on a previous call.  update the targets.
         var radius = Math.max(Vec3.distance(this.currentObjectPosition, handControllerPosition) *
-                              DISTANCE_HOLDING_RADIUS_FACTOR, DISTANCE_HOLDING_RADIUS_FACTOR);
+            DISTANCE_HOLDING_RADIUS_FACTOR, DISTANCE_HOLDING_RADIUS_FACTOR);
         // how far did avatar move this timestep?
         var currentPosition = MyAvatar.position;
         var avatarDeltaPosition = Vec3.subtract(currentPosition, this.currentAvatarPosition);
@@ -511,9 +533,9 @@ function MyController(hand, triggerAction) {
 
         // this doubles hand rotation
         var handChange = Quat.multiply(Quat.slerp(this.handPreviousRotation,
-                                                  handRotation,
-                                                  DISTANCE_HOLDING_ROTATION_EXAGGERATION_FACTOR),
-                                       Quat.inverse(this.handPreviousRotation));
+                handRotation,
+                DISTANCE_HOLDING_ROTATION_EXAGGERATION_FACTOR),
+            Quat.inverse(this.handPreviousRotation));
         this.handPreviousRotation = handRotation;
         this.currentObjectRotation = Quat.multiply(handChange, this.currentObjectRotation);
 
@@ -548,8 +570,7 @@ function MyController(hand, triggerAction) {
 
         this.lineOff();
 
-        var grabbedProperties = Entities.getEntityProperties(this.grabbedEntity,
-                                                             ["position", "rotation", "gravity", "ignoreForCollisions"]);
+        var grabbedProperties = Entities.getEntityProperties(this.grabbedEntity, ["position", "rotation", "gravity", "ignoreForCollisions"]);
         this.activateEntity(this.grabbedEntity, grabbedProperties);
 
         var handRotation = this.getHandRotation();
@@ -787,7 +808,7 @@ function MyController(hand, triggerAction) {
 
     this.release = function() {
 
-        if(this.hand !== disabledHand){
+        if (this.hand !== disabledHand) {
             //release the disabled hand when we let go with the main one
             disabledHand = 'none';
         }
@@ -828,9 +849,15 @@ function MyController(hand, triggerAction) {
         if (data["refCount"] == 1) {
             data["gravity"] = grabbedProperties.gravity;
             data["ignoreForCollisions"] = grabbedProperties.ignoreForCollisions;
-            var whileHeldProperties = {gravity: {x:0, y:0, z:0}};
+            var whileHeldProperties = {
+                gravity: {
+                    x: 0,
+                    y: 0,
+                    z: 0
+                }
+            };
             if (invertSolidWhileHeld) {
-                whileHeldProperties["ignoreForCollisions"] = ! grabbedProperties.ignoreForCollisions;
+                whileHeldProperties["ignoreForCollisions"] = !grabbedProperties.ignoreForCollisions;
             }
             Entities.editEntity(entityID, whileHeldProperties);
         }

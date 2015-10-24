@@ -10,6 +10,16 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+// TODO: 
+// make it so you can shoot without blocking your view with your hand
+// make arrows more visible
+// make arrow rotate toward ground as it flies
+// different model?  compound bow will look better in the HMD, and be easier to aim. this is what HTC uses in the longbow demo: http://www.turbosquid.com/3d-models/3d-model-bow-arrow/773106
+// add noise when you release arrow -> add the sound to the arrow and keep it with position so you hear it whizz by 
+// add noise when you draw string
+// re-enable arrows sticking when they hit
+// prepare for haptics 
+
 (function() {
 
     var ZERO_VEC = {
@@ -17,6 +27,7 @@
         y: 0,
         z: 0
     };
+
     var LINE_ENTITY_DIMENSIONS = {
         x: 1000,
         y: 1000,
@@ -27,12 +38,12 @@
     var ARROW_MODEL_URL = "https://hifi-public.s3.amazonaws.com/models/bow/arrow_good.fbx";
     var ARROW_COLLISION_HULL_URL = "https://hifi-public.s3.amazonaws.com/models/bow/arrow_good_collision_hull.obj";
     var ARROW_SCRIPT_URL = Script.resolvePath('arrow.js');
-    var ARROW_OFFSET = 0.25;
+    var ARROW_OFFSET = 0.32;
     var ARROW_FORCE = 1.25;
     var ARROW_DIMENSIONS = {
         x: 0.02,
         y: 0.02,
-        z: 0.16
+        z: 0.64
     };
 
     var ARROW_GRAVITY = {
@@ -53,6 +64,9 @@
     var DRAW_STRING_THRESHOLD = 0.80;
 
     var TARGET_LINE_LENGTH = 1;
+
+    var LEFT_TIP = 1;
+    var RIGHT_TIP = 3;
 
     var _this;
 
@@ -189,7 +203,7 @@
                     grabbableKey: {
                         turnOffOtherHand: true,
                         turnOffOppositeBeam: true,
-                        invertSolidWhileHeld: true,
+                        invertSolidWhileHeld: true
                     }
                 })
             });
@@ -207,12 +221,13 @@
                 this.stringDrawn = false;
                 this.deleteStrings();
                 this.hasArrow = false;
+                Entities.deleteEntity(this.arrow);
                 Entities.editEntity(this.entityID, {
                     userData: JSON.stringify({
                         grabbableKey: {
                             turnOffOtherHand: false,
                             turnOffOppositeBeam: true,
-                            invertSolidWhileHeld: true,
+                            invertSolidWhileHeld: true
                         }
                     })
                 });
@@ -246,20 +261,21 @@
             } else if (this.triggerValue >= DRAW_STRING_THRESHOLD && this.stringDrawn === true) {
                 this.stringData.handPosition = this.getStringHandPosition();
                 this.stringData.handRotation = this.getStringHandRotation();
-                this.stringData.grabHandPosition = this.getGrabHandPosition();
+                this.initialHand === 'right' ? this.stringData.grabHandPosition = Controller.getSpatialControlPosition(RIGHT_TIP) : this.stringData.grabHandPosition = Controller.getSpatialControlPosition(LEFT_TIP);
+                //   this.stringData.grabHandPosition = this.getGrabHandPosition();
                 this.stringData.grabHandRotation = this.getGrabHandRotation();
 
 
                 this.drawStrings();
                 this.updateArrowPosition();
-                this.createTargetLine();
 
             } else if (this.triggerValue >= DRAW_STRING_THRESHOLD && this.stringDrawn === false) {
                 this.stringDrawn = true;
                 this.createStrings();
                 this.stringData.handPosition = this.getStringHandPosition();
                 this.stringData.handRotation = this.getStringHandRotation();
-                this.stringData.grabHandPosition = this.getGrabHandPosition();
+                // this.stringData.grabHandPosition = this.getGrabHandPosition();
+                this.initialHand === 'right' ? this.stringData.grabHandPosition = Controller.getSpatialControlPosition(RIGHT_TIP) : this.stringData.grabHandPosition = Controller.getSpatialControlPosition(LEFT_TIP);
                 this.stringData.grabHandRotation = this.getGrabHandRotation();
                 if (this.hasArrow === false) {
                     this.createArrow();
@@ -268,17 +284,15 @@
 
                 this.drawStrings();
                 this.updateArrowPosition();
-                this.createTargetLine();
 
             }
         },
 
         getArrowPosition: function() {
-
-            var arrowVector = Vec3.subtract(this.bowProperties.position, this.stringData.handPosition);
+            var arrowVector = Vec3.subtract(this.stringData.handPosition, this.stringData.grabHandPosition);
             arrowVector = Vec3.normalize(arrowVector);
             arrowVector = Vec3.multiply(arrowVector, ARROW_OFFSET);
-            var arrowPosition = Vec3.sum(this.stringData.handPosition, arrowVector);
+            var arrowPosition = Vec3.sum(this.stringData.grabHandPosition, arrowVector);
             return arrowPosition;
         },
         orientationOf: function(vector) {
@@ -372,87 +386,6 @@
                 });
             }, 100)
 
-        },
-        createTargetLine: function() {
-            var handToHand = Vec3.subtract(this.stringData.handPosition, this.stringData.grabHandPosition);
-
-            var arrowRotation = this.orientationOf(handToHand);
-
-            // Entities.addEntity({
-            //     type: "Line",
-            //     name: "Debug Line",
-            //     dimensions: LINE_ENTITY_DIMENSIONS,
-            //     visible: true,
-            //     rotation: arrowRotation,
-            //     position: this.stringData.handPosition,
-            //     linePoints: [ZERO_VEC, Vec3.multiply(-TARGET_LINE_LENGTH, handToHand)],
-            //     color: {
-            //         red: 255,
-            //         green: 0,
-            //         blue: 255
-            //     },
-            //     lifetime: 0.1
-            // });
-
-            // Entities.addEntity({
-            //     type: "Line",
-            //     name: "Debug Line",
-            //     dimensions: LINE_ENTITY_DIMENSIONS,
-            //     visible: true,
-            //     // rotation: bowRotation,
-            //     position: this.bowProperties.position,
-            //     linePoints: [ZERO_VEC, Vec3.multiply(TARGET_LINE_LENGTH, {
-            //         x: 1,
-            //         y: 0,
-            //         z: 0
-            //     })],
-            //     color: {
-            //         red: 255,
-            //         green: 0,
-            //         blue: 0
-            //     },
-            //     lifetime: 0.1
-            // });
-
-            // Entities.addEntity({
-            //     type: "Line",
-            //     name: "Debug Line",
-            //     dimensions: LINE_ENTITY_DIMENSIONS,
-            //     visible: true,
-            //     // rotation: bowRotation,
-            //     position: this.bowProperties.position,
-            //     linePoints: [ZERO_VEC, Vec3.multiply(TARGET_LINE_LENGTH, {
-            //         x: 0,
-            //         y: 1,
-            //         z: 0
-            //     })],
-            //     color: {
-            //         red: 0,
-            //         green: 255,
-            //         blue: 0
-            //     },
-            //     lifetime: 0.1
-            // });
-
-            // Entities.addEntity({
-            //     type: "Line",
-            //     name: "Debug Line",
-            //     dimensions: LINE_ENTITY_DIMENSIONS,
-            //     visible: true,
-            //     // rotation:bowRotation,
-            //     position: this.bowProperties.position,
-            //     linePoints: [ZERO_VEC, Vec3.multiply(TARGET_LINE_LENGTH, {
-            //         x: 0,
-            //         y: 0,
-            //         z: 1
-            //     })],
-            //     color: {
-            //         red: 0,
-            //         green: 0,
-            //         blue: 255
-            //     },
-            //     lifetime: 0.1
-            // });
         },
         getLocalLineVectors: function() {
             var topVector = Vec3.subtract(this.stringData.handPosition, this.topStringPosition);
