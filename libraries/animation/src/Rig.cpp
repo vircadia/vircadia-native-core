@@ -443,8 +443,14 @@ void Rig::computeMotionAnimationState(float deltaTime, const glm::vec3& worldPos
     // but some modes (e.g., hmd standing) update position without updating velocity.
     // It's very hard to debug hmd standing. (Look down at yourself, or have a second person observe. HMD third person is a bit undefined...)
     // So, let's create our own workingVelocity from the worldPosition...
+    glm::vec3 workingVelocity = _lastVelocity;
     glm::vec3 positionDelta = worldPosition - _lastPosition;
-    glm::vec3 workingVelocity = positionDelta / deltaTime;
+
+    // don't trust position delta if deltaTime is 'small'.
+    const float SMALL_DELTA_TIME = 0.006f;  // 6 ms
+    if (deltaTime > SMALL_DELTA_TIME) {
+        workingVelocity = positionDelta / deltaTime;
+    }
 
 #if !WANT_DEBUG
     // But for smoothest (non-hmd standing) results, go ahead and use velocity:
@@ -453,9 +459,12 @@ void Rig::computeMotionAnimationState(float deltaTime, const glm::vec3& worldPos
     }
 #endif
 
+    _lastVelocity = workingVelocity;
+
     if (_enableAnimGraph) {
 
         glm::vec3 localVel = glm::inverse(worldRotation) * workingVelocity;
+
         float forwardSpeed = glm::dot(localVel, IDENTITY_FRONT);
         float lateralSpeed = glm::dot(localVel, IDENTITY_RIGHT);
         float turningSpeed = glm::orientedAngle(front, _lastFront, IDENTITY_UP) / deltaTime;
