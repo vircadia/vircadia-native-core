@@ -121,7 +121,7 @@ private:
         }
     };
 
-    static const int MAX_NUM_AVERAGING_SAMPLES = 10; // At ~100 updates per seconds this means averaging over ~.1s
+    static const int MAX_NUM_AVERAGING_SAMPLES = 1000; // At ~100 updates per seconds this means averaging over ~.1s
     using MovingAverageMap = std::map< int, MovingAverage< glm::vec3, MAX_NUM_AVERAGING_SAMPLES> >;
     MovingAverageMap _collectedSamples;
     
