@@ -24,9 +24,22 @@
 
 #include "Logging.h"
 
-#include "Endpoint.h"
-#include "Route.h"
-#include "Mapping.h"
+#include "impl/conditionals/AndConditional.h"
+#include "impl/conditionals/EndpointConditional.h"
+#include "impl/conditionals/ScriptConditional.h"
+
+#include "impl/endpoints/ActionEndpoint.h"
+#include "impl/endpoints/AnyEndpoint.h"
+#include "impl/endpoints/ArrayEndpoint.h"
+#include "impl/endpoints/CompositeEndpoint.h"
+#include "impl/endpoints/InputEndpoint.h"
+#include "impl/endpoints/JSEndpoint.h"
+#include "impl/endpoints/ScriptEndpoint.h"
+#include "impl/endpoints/StandardEndpoint.h"
+
+#include "impl/Route.h"
+#include "impl/Mapping.h"
+
 
 namespace controller {
     const uint16_t UserInputMapper::ACTIONS_DEVICE = Input::INVALID_DEVICE - 0xFF;
@@ -41,300 +54,6 @@ controller::UserInputMapper::UserInputMapper() {
 }
 
 namespace controller {
-
-class ScriptEndpoint : public Endpoint {
-    Q_OBJECT;
-public:
-    ScriptEndpoint(const QScriptValue& callable)
-        : Endpoint(Input::INVALID_INPUT), _callable(callable) {
-    }
-
-    virtual float value();
-    virtual void apply(float newValue, float oldValue, const Pointer& source);
-
-protected:
-    Q_INVOKABLE void updateValue();
-    Q_INVOKABLE virtual void internalApply(float newValue, float oldValue, int sourceID);
-private:
-    QScriptValue _callable;
-    float _lastValue = 0.0f;
-};
-
-class StandardEndpoint : public VirtualEndpoint {
-public:
-    StandardEndpoint(const Input& input) : VirtualEndpoint(input) {}
-    virtual bool writeable() const override { return !_written; }
-    virtual bool readable() const override { return !_read; }
-    virtual void reset() override { 
-        apply(0.0f, 0.0f, Endpoint::Pointer());
-        apply(Pose(), Pose(), Endpoint::Pointer());
-        _written = _read = false;
-    }
-
-    virtual float value() override { 
-        _read = true;
-        return VirtualEndpoint::value();
-    }
-
-    virtual void apply(float newValue, float oldValue, const Pointer& source) override { 
-        // For standard endpoints, the first NON-ZERO write counts.  
-        if (newValue != 0.0) {
-            _written = true;
-        }
-        VirtualEndpoint::apply(newValue, oldValue, source);
-    }
-
-    virtual Pose pose() override { 
-        _read = true;
-        return VirtualEndpoint::pose();
-    }
-
-    virtual void apply(const Pose& newValue, const Pose& oldValue, const Pointer& source) override {
-        if (newValue != Pose()) {
-            _written = true;
-        }
-        VirtualEndpoint::apply(newValue, oldValue, source);
-    }
-
-private:
-    bool _written { false };
-    bool _read { false };
-};
-
-
-class JSEndpoint : public Endpoint {
-public:
-    JSEndpoint(const QJSValue& callable)
-        : Endpoint(Input::INVALID_INPUT), _callable(callable) {
-    }
-
-    virtual float value() {
-        float result = (float)_callable.call().toNumber();;
-        return result;
-    }
-
-    virtual void apply(float newValue, float oldValue, const Pointer& source) {
-        _callable.call(QJSValueList({ QJSValue(newValue) }));
-    }
-
-private:
-    QJSValue _callable;
-};
-
-float ScriptEndpoint::value() {
-    updateValue();
-    return _lastValue;
-}
-
-void ScriptEndpoint::updateValue() {
-    if (QThread::currentThread() != thread()) {
-        QMetaObject::invokeMethod(this, "updateValue", Qt::QueuedConnection);
-        return;
-    }
-
-    _lastValue = (float)_callable.call().toNumber();
-}
-
-void ScriptEndpoint::apply(float newValue, float oldValue, const Pointer& source) {
-    internalApply(newValue, oldValue, source->getInput().getID());
-}
-
-void ScriptEndpoint::internalApply(float newValue, float oldValue, int sourceID) {
-    if (QThread::currentThread() != thread()) {
-        QMetaObject::invokeMethod(this, "internalApply", Qt::QueuedConnection,
-            Q_ARG(float, newValue),
-            Q_ARG(float, oldValue),
-            Q_ARG(int, sourceID));
-        return;
-    }
-    _callable.call(QScriptValue(),
-                   QScriptValueList({ QScriptValue(newValue), QScriptValue(oldValue),  QScriptValue(sourceID) }));
-}
-
-static const Input INVALID_STANDARD_INPUT = Input(UserInputMapper::STANDARD_DEVICE, Input::INVALID_CHANNEL, ChannelType::INVALID);
-
-class CompositeEndpoint : public Endpoint, Endpoint::Pair {
-public:
-    CompositeEndpoint(Endpoint::Pointer first, Endpoint::Pointer second)
-        : Endpoint(Input::INVALID_INPUT), Pair(first, second) { 
-        if (first->getInput().device == UserInputMapper::STANDARD_DEVICE &&
-            second->getInput().device == UserInputMapper::STANDARD_DEVICE) {
-            this->_input = INVALID_STANDARD_INPUT;
-        }
-    }
-
-    virtual float value() {
-        float result = first->value() * -1.0f + second->value();
-        return result;
-    }
-
-    virtual void apply(float newValue, float oldValue, const Pointer& source) {
-        // Composites are read only
-    }
-};
-
-class ArrayEndpoint : public Endpoint {
-    friend class UserInputMapper;
-public:
-    using Pointer = std::shared_ptr<ArrayEndpoint>;
-    ArrayEndpoint() : Endpoint(Input::INVALID_INPUT) { }
-
-    virtual float value() override {
-        return 0.0;
-    }
-
-    virtual void apply(float newValue, float oldValue, const Endpoint::Pointer& source) override {
-        for (auto& child : _children) {
-            if (child->writeable()) {
-                child->apply(newValue, oldValue, source);
-            }
-        }
-    }
-
-    virtual bool readable() const override { return false; }
-
-private:
-    Endpoint::List _children;
-};
-
-class AnyEndpoint : public Endpoint {
-    friend class UserInputMapper;
-public:
-    using Pointer = std::shared_ptr<AnyEndpoint>;
-    AnyEndpoint(Endpoint::List children) : Endpoint(Input::INVALID_INPUT), _children(children) {
-        bool standard = true;
-        // Ensure if we're building a composite of standard devices the composite itself
-        // is treated as a standard device for rule processing order
-        for (auto endpoint : children) {
-            if (endpoint->getInput().device != UserInputMapper::STANDARD_DEVICE) {
-                standard = false;
-                break;
-            }
-        }
-        if (standard) {
-            this->_input = INVALID_STANDARD_INPUT;
-        }
-    }
-
-    virtual float value() override {
-        float result = 0.0f;
-        for (auto& child : _children) {
-            float childResult = child->value();
-            if (childResult != 0.0f && result == 0.0f) {
-                result = childResult;
-            }
-        }
-        return result;
-    }
-
-    virtual void apply(float newValue, float oldValue, const Endpoint::Pointer& source) override {
-        qFatal("AnyEndpoint is read only");
-    }
-
-    // AnyEndpoint is used for reading, so return false if any child returns false (has been written to)
-    virtual bool writeable() const override { 
-        for (auto& child : _children) {
-            if (!child->writeable()) {
-                return false;
-            }
-        }
-        return true;
-    }
-
-    virtual bool readable() const override { 
-        for (auto& child : _children) {
-            if (!child->readable()) {
-                return false;
-            }
-        }
-        return true;
-    }
-
-private:
-    Endpoint::List _children;
-};
-
-class InputEndpoint : public Endpoint {
-public:
-    InputEndpoint(const Input& id = Input::INVALID_INPUT)
-        : Endpoint(id) {
-    }
-
-    virtual float value() override {
-        _read = true;
-        if (isPose()) {
-            return pose().valid ? 1.0f : 0.0f;
-        }
-        auto userInputMapper = DependencyManager::get<UserInputMapper>();
-        auto deviceProxy = userInputMapper->getDeviceProxy(_input);
-        if (!deviceProxy) {
-            return 0.0f;
-        }
-        return deviceProxy->getValue(_input, 0);
-    }
-
-    // FIXME need support for writing back to vibration / force feedback effects
-    virtual void apply(float newValue, float oldValue, const Pointer& source) override {}
-
-    virtual Pose pose() override {
-        _read = true;
-        if (!isPose()) {
-            return Pose();
-        }
-        auto userInputMapper = DependencyManager::get<UserInputMapper>();
-        auto deviceProxy = userInputMapper->getDeviceProxy(_input);
-        if (!deviceProxy) {
-            return Pose();
-        }
-        return deviceProxy->getPose(_input, 0);
-    }
-
-    virtual void apply(const Pose& newValue, const Pose& oldValue, const Pointer& source) override { }
-
-    virtual bool writeable() const { return false; }
-    virtual bool readable() const { return !_read; }
-    virtual void reset() { _read = false; }
-
-private:
-    bool _read { false };
-};
-
-class ActionEndpoint : public Endpoint {
-public:
-    ActionEndpoint(const Input& id = Input::INVALID_INPUT)
-        : Endpoint(id) {
-    }
-
-    virtual float value() override { return _currentValue; }
-    virtual void apply(float newValue, float oldValue, const Pointer& source) override {
-        _currentValue += newValue;
-        if (_input != Input::INVALID_INPUT) {
-            auto userInputMapper = DependencyManager::get<UserInputMapper>();
-            userInputMapper->deltaActionState(Action(_input.getChannel()), newValue);
-        }
-    }
-
-    virtual Pose pose() override { return _currentPose; }
-    virtual void apply(const Pose& newValue, const Pose& oldValue, const Pointer& source) override {
-        _currentPose = newValue;
-        if (!_currentPose.isValid()) {
-            return;
-        }
-        if (_input != Input::INVALID_INPUT) {
-            auto userInputMapper = DependencyManager::get<UserInputMapper>();
-            userInputMapper->setActionState(Action(_input.getChannel()), _currentPose);
-        }
-    }
-
-    virtual void reset() override {
-        _currentValue = 0.0f;
-        _currentPose = Pose();
-    }
-
-private:
-    float _currentValue{ 0.0f };
-    Pose _currentPose{};
-};
 
 UserInputMapper::~UserInputMapper() {
 }
@@ -1019,33 +738,6 @@ Endpoint::Pointer UserInputMapper::parseEndpoint(const QJsonValue& value) {
     return result;
 }
 
-class AndConditional : public Conditional {
-public:
-    using Pointer = std::shared_ptr<AndConditional>;
-
-    AndConditional(Conditional::List children) : _children(children) { }
-
-    virtual bool satisfied() override {
-        for (auto& conditional : _children) {
-            if (!conditional->satisfied()) {
-                return false;
-            }
-        }
-        return true;
-    }
-
-private:
-    Conditional::List _children;
-};
-
-class EndpointConditional : public Conditional {
-public:
-    EndpointConditional(Endpoint::Pointer endpoint) : _endpoint(endpoint) {}
-    virtual bool satisfied() override { return _endpoint && _endpoint->value() != 0.0; }
-private:
-    Endpoint::Pointer _endpoint;
-};
-
 Conditional::Pointer UserInputMapper::parseConditional(const QJsonValue& value) {
     if (value.isArray()) {
         // Support "when" : [ "GamePad.RB", "GamePad.LB" ]
@@ -1290,4 +982,3 @@ void UserInputMapper::disableMapping(const Mapping::Pointer& mapping) {
 
 }
 
-#include "UserInputMapper.moc"
