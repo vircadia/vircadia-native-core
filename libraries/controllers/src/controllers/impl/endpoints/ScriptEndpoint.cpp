@@ -14,7 +14,7 @@ using namespace controller;
 
 float ScriptEndpoint::value() {
     updateValue();
-    return _lastValue;
+    return _lastValueRead;
 }
 
 void ScriptEndpoint::updateValue() {
@@ -23,14 +23,18 @@ void ScriptEndpoint::updateValue() {
         return;
     }
 
-    _lastValue = (float)_callable.call().toNumber();
+    _lastValueRead = (float)_callable.call().toNumber();
 }
 
 void ScriptEndpoint::apply(float newValue, float oldValue, const Pointer& source) {
+    if (newValue == _lastValueWritten) {
+        return;
+    }
     internalApply(newValue, oldValue, source->getInput().getID());
 }
 
 void ScriptEndpoint::internalApply(float newValue, float oldValue, int sourceID) {
+    _lastValueWritten = newValue;
     if (QThread::currentThread() != thread()) {
         QMetaObject::invokeMethod(this, "internalApply", Qt::QueuedConnection,
             Q_ARG(float, newValue),

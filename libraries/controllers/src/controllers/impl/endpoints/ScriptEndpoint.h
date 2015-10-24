@@ -31,7 +31,8 @@ protected:
     Q_INVOKABLE virtual void internalApply(float newValue, float oldValue, int sourceID);
 private:
     QScriptValue _callable;
-    float _lastValue = 0.0f;
+    float _lastValueRead { 0.0f };
+    float _lastValueWritten { 0.0f };
 };
 
 }
