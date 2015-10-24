@@ -881,7 +881,7 @@ function update() {
 function cleanup() {
     rightController.cleanup();
     leftController.cleanup();
-    Controller.disableMapping("handGrab");
+    Controller.disableMapping("com.highfidelity.handControllerGrab");
 }
 
 Script.scriptEnding.connect(cleanup);
