@@ -71,10 +71,8 @@ function controller(side, cycleColorButton) {
     this.triggerHeld = false;
     this.triggerThreshold = 0.9;
     this.side = side;
-    this.palm = 2 * side;
-    this.tip = 2 * side + 1;
-    this.trigger = side;
-    this.cycleColorButton = cycleColorButton;
+    this.trigger = side == LEFT ? Controller.Stantard.LT : Controller.Standard.RT;
+    this.cycleColorButton = side == LEFT ? Controller.Stantard.LeftPrimaryThumb : Controller.Standard.RightPrimaryThumb;
 
     this.points = [];
     this.normals = [];
@@ -173,11 +171,10 @@ function controller(side, cycleColorButton) {
 
 
     this.updateControllerState = function() {
-        this.cycleColorButtonPressed = Controller.isButtonPressed(this.cycleColorButton);
-        this.palmPosition = Controller.getSpatialControlPosition(this.palm);
-        this.tipPosition = Controller.getSpatialControlPosition(this.tip);
-        this.palmNormal = Controller.getSpatialControlNormal(this.palm);
-        this.triggerValue = Controller.getTriggerValue(this.trigger);
+        this.cycleColorButtonPressed = Controller.getValue(this.cycleColorButton);
+        this.palmPosition = this.side == RIGHT ? MyAvatar.rightHandPose.translation : MyAvatar.leftHandPose.translation;
+        this.tipPosition = this.side == RIGHT ? MyAvatar.rightHandTipPose.translation : MyAvatar.leftHandTipPose.translation;
+        this.triggerValue = Controller.getValue(this.trigger);
 
         
         if (this.prevCycleColorButtonPressed === true && this.cycleColorButtonPressed === false) {
@@ -215,8 +212,8 @@ function vectorIsZero(v) {
 }
 
 
-var rightController = new controller(RIGHT, RIGHT_BUTTON_4);
-var leftController = new controller(LEFT, LEFT_BUTTON_4);
+var rightController = new controller(RIGHT);
+var leftController = new controller(LEFT);
 Script.update.connect(update);
 Script.scriptEnding.connect(scriptEnding);
 
