@@ -250,7 +250,6 @@ function MyController(hand, triggerAction) {
     };
 
     this.updateSmoothedTrigger = function () {
-        //var triggerValue = Controller.getValue(this.triggerAction); // this.rawTriggerValue; // 
         var triggerValue = this.rawTriggerValue;
         // smooth out trigger value
         this.triggerValue = (this.triggerValue * TRIGGER_SMOOTH_RATIO) +
@@ -267,8 +266,7 @@ function MyController(hand, triggerAction) {
     };
 
     this.triggerSqueezed = function() { 
-        var triggerValue = Controller.getValue(this.triggerAction); // this.rawTriggerValue; // 
-        print("triggerSqueezed() triggerValue:" + triggerValue);
+        var triggerValue = this.rawTriggerValue;
         return triggerValue > TRIGGER_ON_VALUE;
     };
 
