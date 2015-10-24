@@ -69,31 +69,31 @@ function checkControllerSide(whichSide) {
     var linearVelocity;
     var angularVelocity; 
     var AVERAGE_FACTOR = 0.33;
-	var grabButtonPressed;
+    var grabButtonPressed;
 	
     if (whichSide == LEFT_PALM) {
-		palmPosition = MyAvatar.leftHandPose.translation;
+        palmPosition = MyAvatar.leftHandPose.translation;
         palmRotation = MyAvatar.leftHandPose.rotation;
         ballAlreadyInHand = leftBallAlreadyInHand;
         handMessage = "LEFT";
-       averageLinearVelocity[0] = Vec3.sum(Vec3.multiply(AVERAGE_FACTOR, MyAvatar.leftHandTipPose.velocity), 
+        averageLinearVelocity[0] = Vec3.sum(Vec3.multiply(AVERAGE_FACTOR, MyAvatar.leftHandTipPose.velocity), 
                                             Vec3.multiply(1.0 - AVERAGE_FACTOR, averageLinearVelocity[0]));
 
-	   linearVelocity = averageLinearVelocity[0];
-       angularVelocity = MyAvatar.leftHandTipPose.angularVelocity;
-	   grabButtonPressed = (Controller.getValue(Controller.Standard.LT) > 0.5);
+        linearVelocity = averageLinearVelocity[0];
+        angularVelocity = MyAvatar.leftHandTipPose.angularVelocity;
+        grabButtonPressed = (Controller.getValue(Controller.Standard.LT) > 0.5);
     
     } else {
-		palmPosition = MyAvatar.rightHandPose.translation;
+        palmPosition = MyAvatar.rightHandPose.translation;
         palmRotation = MyAvatar.rightHandPose.rotation;
-		ballAlreadyInHand = rightBallAlreadyInHand;
-		 averageLinearVelocity[1] = Vec3.sum(Vec3.multiply(AVERAGE_FACTOR, MyAvatar.rightHandTipPose.velocity), 
+        ballAlreadyInHand = rightBallAlreadyInHand;
+        averageLinearVelocity[1] = Vec3.sum(Vec3.multiply(AVERAGE_FACTOR, MyAvatar.rightHandTipPose.velocity), 
                                             Vec3.multiply(1.0 - AVERAGE_FACTOR, averageLinearVelocity[1]));
  
-		linearVelocity = averageLinearVelocity[1];
-		angularVelocity = MyAvatar.rightHandTipPose.angularVelocity;
+        linearVelocity = averageLinearVelocity[1];
+        angularVelocity = MyAvatar.rightHandTipPose.angularVelocity;
         handMessage = "RIGHT";
-		grabButtonPressed = (Controller.getValue(Controller.Standard.RT) > 0.5);
+        grabButtonPressed = (Controller.getValue(Controller.Standard.RT) > 0.5);
     
     }
 
