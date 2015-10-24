@@ -121,8 +121,9 @@ private:
         }
     };
 
-    static const int MAX_NUM_AVERAGING_SAMPLES = 1000; // At ~100 updates per seconds this means averaging over ~.1s
-    using MovingAverageMap = std::map< int, MovingAverage< glm::vec3, MAX_NUM_AVERAGING_SAMPLES> >;
+    static const int MAX_NUM_AVERAGING_SAMPLES = 50; // At ~100 updates per seconds this means averaging over ~.5s
+    using Samples = std::pair<  MovingAverage< glm::vec3, MAX_NUM_AVERAGING_SAMPLES>, MovingAverage< glm::vec4, MAX_NUM_AVERAGING_SAMPLES> >;
+    using MovingAverageMap = std::map< int, Samples >;
     MovingAverageMap _collectedSamples;
     
 #ifdef __APPLE__

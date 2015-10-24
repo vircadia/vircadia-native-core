@@ -51,8 +51,7 @@ function setup() {
 	}
 }
 
-function updateHand(handNum) {
-
+function updateHand(handNum, deltaTime) {
 	var pose;
 	var handName = "right";
 	if (handNum == LEFT_HAND) {
@@ -69,7 +68,7 @@ function updateHand(handNum) {
 	        position: pose.translation,
 	        visible: true,
 	    });
-	   	var vpos = Vec3.sum(pose.velocity, pose.translation);
+	   	var vpos = Vec3.sum(Vec3.multiply(10 * deltaTime, pose.velocity), pose.translation);
 	    Overlays.editOverlay(app.spheres[index(handNum, 1)], {
 	        position: vpos,
 	        visible: true,
@@ -85,9 +84,9 @@ function updateHand(handNum) {
 	}
 }
 
-function update() {
-	updateHand(LEFT_HAND);
-	updateHand(RIGHT_HAND);
+function update(deltaTime) {
+	updateHand(LEFT_HAND, deltaTime);
+	updateHand(RIGHT_HAND, deltaTime);
 }
 
 function scriptEnding() {

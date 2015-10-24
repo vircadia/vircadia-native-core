@@ -240,7 +240,8 @@ void SixenseManager::update(float deltaTime, bool jointsCaptured) {
         } else {
             auto hand = left ? controller::StandardPoseChannel::LEFT_HAND : controller::StandardPoseChannel::RIGHT_HAND;
             _poseStateMap[hand] = controller::Pose();
-            _collectedSamples[hand].clear();
+            _collectedSamples[hand].first.clear();
+            _collectedSamples[hand].second.clear();
         }
     }
 
@@ -467,10 +468,15 @@ void SixenseManager::handlePoseEvent(float deltaTime, glm::vec3 position, glm::q
 
         // Average
         auto& samples = _collectedSamples[hand];
-        samples.addSample(velocity);
-        velocity = samples.average;
+        samples.first.addSample(velocity);
+        velocity = samples.first.average;
+     
+        // FIXME: // Not using quaternion average yet for angular velocity because it s probably wrong but keep the MovingAverage in place
+        //samples.second.addSample(glm::vec4(angularVelocity.x, angularVelocity.y, angularVelocity.z, angularVelocity.w));
+        //angularVelocity = glm::quat(samples.second.average.w, samples.second.average.x, samples.second.average.y, samples.second.average.z);
     } else if (!prevPose.isValid()) {
-        _collectedSamples[hand].clear();
+        _collectedSamples[hand].first.clear();
+        _collectedSamples[hand].second.clear();
     }
 
     _poseStateMap[hand] = controller::Pose(position, rotation, velocity, angularVelocity);
