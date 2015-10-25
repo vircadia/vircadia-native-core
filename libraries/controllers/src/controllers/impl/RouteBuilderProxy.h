@@ -34,14 +34,13 @@ class RouteBuilderProxy : public QObject {
             : _parent(parent), _mapping(mapping), _route(route) { }
 
         Q_INVOKABLE void toQml(const QJSValue& destination);
-        Q_INVOKABLE QObject* filterQml(const QJSValue& expression);
         Q_INVOKABLE QObject* whenQml(const QJSValue& expression);
 
         Q_INVOKABLE void to(const QScriptValue& destination);
         Q_INVOKABLE QObject* debug(bool enable = true);
         Q_INVOKABLE QObject* when(const QScriptValue& expression);
-        Q_INVOKABLE QObject* filter(const QScriptValue& expression);
         Q_INVOKABLE QObject* clamp(float min, float max);
+        Q_INVOKABLE QObject* hysteresis(float min, float max);
         Q_INVOKABLE QObject* pulse(float interval);
         Q_INVOKABLE QObject* scale(float multiplier);
         Q_INVOKABLE QObject* invert();
@@ -52,7 +51,6 @@ class RouteBuilderProxy : public QObject {
 private:
         void to(const Endpoint::Pointer& destination);
         void conditional(const Conditional::Pointer& conditional);
-        void addFilter(Filter::Lambda lambda);
         void addFilter(Filter::Pointer filter);
         UserInputMapper& _parent;
         Mapping::Pointer _mapping;

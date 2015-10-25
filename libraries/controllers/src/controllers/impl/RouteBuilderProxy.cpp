@@ -18,6 +18,15 @@
 #include "../ScriptingInterface.h"
 #include "../Logging.h"
 
+#include "filters/ClampFilter.h"
+#include "filters/ConstrainToIntegerFilter.h"
+#include "filters/ConstrainToPositiveIntegerFilter.h"
+#include "filters/DeadZoneFilter.h"
+#include "filters/HysteresisFilter.h"
+#include "filters/InvertFilter.h"
+#include "filters/PulseFilter.h"
+#include "filters/ScaleFilter.h"
+
 using namespace controller;
 
 void RouteBuilderProxy::toQml(const QJSValue& destination) {
@@ -43,18 +52,6 @@ QObject* RouteBuilderProxy::debug(bool enable) {
     return this;
 }
 
-QObject* RouteBuilderProxy::filterQml(const QJSValue& expression) {
-    if (expression.isCallable()) {
-        addFilter([=](float value) {
-            QJSValue originalExpression = expression;
-            QJSValueList params({ QJSValue(value) });
-            auto result = originalExpression.call(params);
-            return (float)(result.toNumber());
-        });
-    }
-    return this;
-}
-
 QObject* RouteBuilderProxy::when(const QScriptValue& expression) {
     _route->conditional = _parent.conditionalFor(expression);
     return this;
@@ -65,51 +62,44 @@ QObject* RouteBuilderProxy::whenQml(const QJSValue& expression) {
     return this;
 }
 
-
-QObject* RouteBuilderProxy::filter(const QScriptValue& expression) {
-    return this;
-}
-
-
 QObject* RouteBuilderProxy::clamp(float min, float max) {
-    addFilter(Filter::Pointer(new ClampFilter(min, max)));
+    addFilter(std::make_shared<ClampFilter>(min, max));
     return this;
 }
 
 QObject* RouteBuilderProxy::scale(float multiplier) {
-    addFilter(Filter::Pointer(new ScaleFilter(multiplier)));
+    addFilter(std::make_shared<ScaleFilter>(multiplier));
     return this;
 }
 
 QObject* RouteBuilderProxy::invert() {
-    addFilter(Filter::Pointer(new InvertFilter()));
+    addFilter(std::make_shared<InvertFilter>());
+    return this;
+}
+
+QObject* RouteBuilderProxy::hysteresis(float min, float max) {
+    addFilter(std::make_shared<HysteresisFilter>(min, max));
     return this;
 }
 
 QObject* RouteBuilderProxy::deadZone(float min) {
-    addFilter(Filter::Pointer(new DeadZoneFilter(min)));
+    addFilter(std::make_shared<DeadZoneFilter>(min));
     return this;
 }
 
 QObject* RouteBuilderProxy::constrainToInteger() {
-    addFilter(Filter::Pointer(new ConstrainToIntegerFilter()));
+    addFilter(std::make_shared<ConstrainToIntegerFilter>());
     return this;
 }
 
 QObject* RouteBuilderProxy::constrainToPositiveInteger() {
-    addFilter(Filter::Pointer(new ConstrainToPositiveIntegerFilter()));
+    addFilter(std::make_shared<ConstrainToPositiveIntegerFilter>());
     return this;
 }
-
 
 QObject* RouteBuilderProxy::pulse(float interval) {
-    addFilter(Filter::Pointer(new PulseFilter(interval)));
+    addFilter(std::make_shared<PulseFilter>(interval));
     return this;
-}
-
-void RouteBuilderProxy::addFilter(Filter::Lambda lambda) {
-    Filter::Pointer filterPointer = std::make_shared < LambdaFilter > (lambda);
-    addFilter(filterPointer);
 }
 
 void RouteBuilderProxy::addFilter(Filter::Pointer filter) {
