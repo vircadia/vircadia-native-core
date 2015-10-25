@@ -15,9 +15,12 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-Script.include([ "../../libraries/utils.js" ]);
-Script.include([ "../../libraries/constants.js" ]);
-Script.include([ "../../libraries/toolBars.js" ]);
+// FIXME kickback functionality was removed because the joint setting interface in 
+// MyAvatar has apparently changed, breaking it.  
+
+Script.include("../../libraries/utils.js");
+Script.include("../../libraries/constants.js");
+Script.include("../../libraries/toolBars.js");
 
 HIFI_PUBLIC_BUCKET = "http://s3.amazonaws.com/hifi-public/";
 
@@ -100,14 +103,11 @@ var bulletID = false;
 var targetID = false;
 
 // Create overlay buttons and reticle
-
 var BUTTON_SIZE = 32;
 var PADDING = 3;
 var NUM_BUTTONS = 3;
-
 var screenSize = Controller.getViewportDimensions();
 var startX = screenSize.x / 2 - (NUM_BUTTONS * (BUTTON_SIZE + PADDING)) / 2;
-
 var toolBar = new ToolBar(0, 0, ToolBar.HORIZONTAL, "highfidelity.gun.toolbar", function(screenSize) {
     return {
         x: startX,
@@ -441,11 +441,6 @@ function keyPressEvent(event) {
         shootFromMouse(true);
     } else if (event.text == "r") {
         playLoadSound();
-    } else if (event.text == "s") {
-        // Hit this key to dump a posture from hydra to log
-        Quat.print("arm = ", MyAvatar.getJointRotation("LeftArm"));
-        Quat.print("forearm = ", MyAvatar.getJointRotation("LeftForeArm"));
-        Quat.print("hand = ", MyAvatar.getJointRotation("LeftHand"));
     }
 }
 
@@ -478,9 +473,7 @@ function update(deltaTime) {
 
         // Need to adjust the laser
         var tipPose = tipPoses[side];
-        var handRotation = MyAvatar.getJointCombinedRotation(side == 0 ? "LeftHand" : "RightHand");
-        // handRotation = Quat.multiply(Quat.inverse(MyAvatar.orientation),
-        // handRotation);
+        var handRotation = tipPoses[side].rotation;
         var barrelOffset = Vec3.multiplyQbyV(handRotation, BARREL_OFFSETS[side]);
         barrelTips[side] = Vec3.sum(tipPose.translation, barrelOffset);
         barrelVectors[side] = Vec3.multiplyQbyV(handRotation, {
@@ -536,17 +529,17 @@ function scriptEnding() {
     clearPose();
 }
 
-MyAvatar.attach(GUN_MODEL, "LeftHand", GUN_OFFSETS[0], GUN_ORIENTATIONS[1], 0.40);
+MyAvatar.attach(GUN_MODEL, "LeftHand", GUN_OFFSETS[0], GUN_ORIENTATIONS[0], 0.40);
 MyAvatar.attach(GUN_MODEL, "RightHand", GUN_OFFSETS[1], GUN_ORIENTATIONS[1], 0.40);
 
 // Give a bit of time to load before playing sound
 Script.setTimeout(playLoadSound, 2000);
 
-mapping.from(Controller.Standard.LT).constrainToPositiveInteger().to(function(value) {
+mapping.from(Controller.Standard.LT).hysteresis(0.1, 0.5).to(function(value) {
     triggerChanged(0, value);
 });
 
-mapping.from(Controller.Standard.RT).constrainToPositiveInteger().to(function(value) {
+mapping.from(Controller.Standard.RT).hysteresis(0.1, 0.5).to(function(value) {
     triggerChanged(1, value);
 });
 mapping.enable();

@@ -13,6 +13,13 @@
 
 using namespace controller;
 
+HysteresisFilter::HysteresisFilter(float min, float max) : _min(min), _max(max) {
+    if (_min > _max) {
+        std::swap(_min, _max);
+    }
+};
+
+
 float HysteresisFilter::apply(float value) const {
     if (_signaled) {
         if (value <= _min) {
