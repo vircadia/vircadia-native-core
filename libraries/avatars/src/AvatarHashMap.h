@@ -33,6 +33,10 @@ public:
     const AvatarHash& getAvatarHash() { return _avatarHash; }
     int size() { return _avatarHash.size(); }
 
+signals:
+    void avatarAddedEvent(const QUuid& sessionUUID);
+    void avatarRemovedEvent(const QUuid& sessionUUID);
+
 public slots:
     bool isAvatarInRange(const glm::vec3 & position, const float range);
     

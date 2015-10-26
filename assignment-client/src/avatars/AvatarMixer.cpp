@@ -254,10 +254,10 @@ void AvatarMixer::broadcastAvatarData() {
                     // potentially update the max full rate distance for this frame
                     maxAvatarDistanceThisFrame = std::max(maxAvatarDistanceThisFrame, distanceToAvatar);
 
-                    if (distanceToAvatar != 0.0f
+		                        if (distanceToAvatar != 0.0f
                         && distribution(generator) > (nodeData->getFullRateDistance() / distanceToAvatar)) {
                         return;
-                    }
+			}
 
                     AvatarDataSequenceNumber lastSeqToReceiver = nodeData->getLastBroadcastSequenceNumber(otherNode->getUUID());
                     AvatarDataSequenceNumber lastSeqFromSender = otherNodeData->getLastReceivedSequenceNumber();

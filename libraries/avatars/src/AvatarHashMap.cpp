@@ -44,7 +44,7 @@ AvatarSharedPointer AvatarHashMap::addAvatar(const QUuid& sessionUUID, const QWe
     avatar->setSessionUUID(sessionUUID);
     avatar->setOwningAvatarMixer(mixerWeakPointer);
     _avatarHash.insert(sessionUUID, avatar);
-
+    emit avatarAddedEvent(sessionUUID);
     return avatar;
 }
 
@@ -131,10 +131,12 @@ void AvatarHashMap::processKillAvatar(QSharedPointer<NLPacket> packet, SharedNod
     // read the node id
     QUuid sessionUUID = QUuid::fromRfc4122(packet->readWithoutCopy(NUM_BYTES_RFC4122_UUID));
     removeAvatar(sessionUUID);
+
 }
 
 void AvatarHashMap::removeAvatar(const QUuid& sessionUUID) {
     _avatarHash.remove(sessionUUID);
+    emit avatarRemovedEvent(sessionUUID);
 }
 
 void AvatarHashMap::sessionUUIDChanged(const QUuid& sessionUUID, const QUuid& oldUUID) {
