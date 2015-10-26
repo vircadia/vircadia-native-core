@@ -387,7 +387,7 @@
 
         function createTargetResetter() {
             var dimensions = {
-                x: 0.5,
+                x: 1,
                 y: 0.1,
                 z: 0.01
             };

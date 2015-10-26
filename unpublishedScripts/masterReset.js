@@ -365,7 +365,7 @@ MasterReset = function() {
 
     function createTargetResetter() {
         var dimensions = {
-            x: 0.5,
+            x: 1,
             y: 0.1,
             z: 0.01
         };
@@ -377,7 +377,7 @@ MasterReset = function() {
         };
 
         var rotation = Quat.fromPitchYawRollDegrees(0, 0, 0);
-        
+
         var resetter = Entities.addEntity({
             type: "Text",
             position: position,
