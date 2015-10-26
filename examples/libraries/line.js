@@ -26,7 +26,7 @@ var PolyLine = function(position, color, defaultStrokeWidth) {
         strokeWidths: this.strokeWidths,
         dimensions: LINE_DIMENSIONS,
         color: color,
-        lifetime: 20,
+        lifetime: 20
     });
 };
 
@@ -43,7 +43,7 @@ PolyLine.prototype.enqueuePoint = function(position) {
     Entities.editEntity(this.entityID, {
         linePoints: this.points,
         normals: this.normals,
-        strokeWidths: this.strokeWidths,
+        strokeWidths: this.strokeWidths
     });
 };
 
@@ -60,7 +60,7 @@ PolyLine.prototype.dequeuePoint = function() {
     Entities.editEntity(this.entityID, {
         linePoints: this.points,
         normals: this.normals,
-        strokeWidths: this.strokeWidths,
+        strokeWidths: this.strokeWidths
     });
 };
 
