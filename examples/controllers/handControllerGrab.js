@@ -74,8 +74,8 @@ var MSEC_PER_SEC = 1000.0;
 
 // these control how long an abandoned pointer line will hang around
 var LIFETIME = 10;
-var ACTION_LIFETIME = 15; // seconds
-var ACTION_LIFETIME_REFRESH = 5;
+var ACTION_TTL = 15; // seconds
+var ACTION_TTL_REFRESH = 5;
 var PICKS_PER_SECOND_PER_HAND = 5;
 var MSECS_PER_SEC = 1000.0;
 
@@ -422,12 +422,12 @@ function MyController(hand, triggerAction) {
             targetRotation: this.currentObjectRotation,
             angularTimeScale: DISTANCE_HOLDING_ACTION_TIMEFRAME,
             tag: getTag(),
-            lifetime: ACTION_LIFETIME
+            ttl: ACTION_TTL
         });
         if (this.actionID === NULL_ACTION_ID) {
             this.actionID = null;
         }
-        this.actionTimeout = now + (ACTION_LIFETIME * MSEC_PER_SEC);
+        this.actionTimeout = now + (ACTION_TTL * MSEC_PER_SEC);
 
         if (this.actionID !== null) {
             this.setState(STATE_CONTINUE_DISTANCE_HOLDING);
@@ -524,9 +524,9 @@ function MyController(hand, triggerAction) {
             linearTimeScale: DISTANCE_HOLDING_ACTION_TIMEFRAME,
             targetRotation: this.currentObjectRotation,
             angularTimeScale: DISTANCE_HOLDING_ACTION_TIMEFRAME,
-            lifetime: ACTION_LIFETIME
+            ttl: ACTION_TTL
         });
-        this.actionTimeout = now + (ACTION_LIFETIME * MSEC_PER_SEC);
+        this.actionTimeout = now + (ACTION_TTL * MSEC_PER_SEC);
     };
 
     this.nearGrabbing = function() {
@@ -579,12 +579,12 @@ function MyController(hand, triggerAction) {
             timeScale: NEAR_GRABBING_ACTION_TIMEFRAME,
             relativePosition: this.offsetPosition,
             relativeRotation: this.offsetRotation,
-            lifetime: ACTION_LIFETIME
+            ttl: ACTION_TTL
         });
         if (this.actionID === NULL_ACTION_ID) {
             this.actionID = null;
         } else {
-            this.actionTimeout = now + (ACTION_LIFETIME * MSEC_PER_SEC);
+            this.actionTimeout = now + (ACTION_TTL * MSEC_PER_SEC);
             this.setState(STATE_CONTINUE_NEAR_GRABBING);
             if (this.hand === RIGHT_HAND) {
                 Entities.callEntityMethod(this.grabbedEntity, "setRightHand");
@@ -624,16 +624,16 @@ function MyController(hand, triggerAction) {
         this.currentObjectTime = now;
         Entities.callEntityMethod(this.grabbedEntity, "continueNearGrab");
 
-        if (this.actionTimeout - now < ACTION_LIFETIME_REFRESH * MSEC_PER_SEC) {
-            // if less than a 5 seconds left, refresh the actions lifetime
+        if (this.actionTimeout - now < ACTION_TTL_REFRESH * MSEC_PER_SEC) {
+            // if less than a 5 seconds left, refresh the actions ttl
             Entities.updateAction(this.grabbedEntity, this.actionID, {
                 hand: this.hand === RIGHT_HAND ? "right" : "left",
                 timeScale: NEAR_GRABBING_ACTION_TIMEFRAME,
                 relativePosition: this.offsetPosition,
                 relativeRotation: this.offsetRotation,
-                lifetime: ACTION_LIFETIME
+                ttl: ACTION_TTL
             });
-            this.actionTimeout = now + (ACTION_LIFETIME * MSEC_PER_SEC);
+            this.actionTimeout = now + (ACTION_TTL * MSEC_PER_SEC);
         }
     };
 

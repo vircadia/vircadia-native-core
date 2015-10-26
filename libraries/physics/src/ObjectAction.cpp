@@ -85,11 +85,11 @@ bool ObjectAction::updateArguments(QVariantMap arguments) {
         quint64 previousExpires = _expires;
         QString previousTag = _tag;
 
-        bool lifetimeSet = true;
-        float lifetime = EntityActionInterface::extractFloatArgument("action", arguments, "lifetime", lifetimeSet, false);
-        if (lifetimeSet) {
+        bool ttlSet = true;
+        float ttl = EntityActionInterface::extractFloatArgument("action", arguments, "ttl", ttlSet, false);
+        if (ttlSet) {
             quint64 now = usecTimestampNow();
-            _expires = now + (quint64)(lifetime * USECS_PER_SECOND);
+            _expires = now + (quint64)(ttl * USECS_PER_SECOND);
         } else {
             _expires = 0;
         }
@@ -114,10 +114,10 @@ QVariantMap ObjectAction::getArguments() {
     QVariantMap arguments;
     withReadLock([&]{
         if (_expires == 0) {
-            arguments["lifetime"] = 0.0f;
+            arguments["ttl"] = 0.0f;
         } else {
             quint64 now = usecTimestampNow();
-            arguments["lifetime"] = (float)(_expires - now) / (float)USECS_PER_SECOND;
+            arguments["ttl"] = (float)(_expires - now) / (float)USECS_PER_SECOND;
         }
         arguments["tag"] = _tag;
     });
@@ -244,4 +244,18 @@ bool ObjectAction::lifetimeIsOver() {
         return true;
     }
     return false;
+}
+
+quint64 ObjectAction::localTimeToServerTime(quint64 timeValue) {
+    if (timeValue == 0) {
+        return 0;
+    }
+    return timeValue + getEntityServerClockSkew();
+}
+
+quint64 ObjectAction::serverTimeToLocalTime(quint64 timeValue) {
+    if (timeValue == 0) {
+        return 0;
+    }
+    return timeValue - getEntityServerClockSkew();
 }

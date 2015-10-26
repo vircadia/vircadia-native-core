@@ -47,10 +47,9 @@ public:
     virtual void deserialize(QByteArray serializedArguments) = 0;
 
     virtual bool lifetimeIsOver();
+    virtual quint64 getExpires() { return _expires; }
 
 protected:
-
-    int getEntityServerClockSkew() const;
 
     virtual btRigidBody* getRigidBody();
     virtual glm::vec3 getPosition();
@@ -68,6 +67,12 @@ protected:
 
     quint64 _expires; // in seconds since epoch
     QString _tag;
+
+    quint64 localTimeToServerTime(quint64 timeValue);
+    quint64 serverTimeToLocalTime(quint64 timeValue);
+
+private:
+    int getEntityServerClockSkew() const;
 };
 
 #endif // hifi_ObjectAction_h
