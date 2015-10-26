@@ -65,7 +65,7 @@ var soundMap = [{
             y: 495.60,
             z: 502.08
         },
-        volume: 0.25,
+        volume: 0.05,
         loop: true
     }
 }, {
@@ -73,14 +73,27 @@ var soundMap = [{
     url: "http://hifi-public.s3.amazonaws.com/ryan/dogs_barking_1.L.wav",
     audioOptions: {
         position: {
-            x: 551.61,
+            x: 523,
             y: 494.88,
-            z: 502.00
+            z: 469
         },
-        volume: 0.15,
+        volume: 0.05,
         loop: false
     },
     playAtInterval: 60 * 1000
+}, {
+    name: 'arcade game',
+    url: "http://hifi-public.s3.amazonaws.com/ryan/ARCADE_GAMES_VID.L.L.wav",
+    audioOptions: {
+        position: {
+            x: 543.77,
+            y: 495.07,
+            z: 502.25
+        },
+        volume: 0.01,
+        loop: false,
+    },
+    playAtInterval: 90 * 1000
 }];
 
 function loadSounds() {
