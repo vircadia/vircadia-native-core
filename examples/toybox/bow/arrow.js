@@ -66,8 +66,6 @@
             } else {
                 return false;
             }
-
-
         },
 
         createGlowBox: function() {
