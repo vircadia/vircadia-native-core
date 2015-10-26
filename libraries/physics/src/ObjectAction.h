@@ -68,8 +68,8 @@ protected:
     quint64 _expires; // in seconds since epoch
     QString _tag;
 
-    quint64 localTimeToServerTime(quint64 timeValue);
-    quint64 serverTimeToLocalTime(quint64 timeValue);
+    quint64 localTimeToServerTime(quint64 timeValue) const;
+    quint64 serverTimeToLocalTime(quint64 timeValue) const;
 
 private:
     int getEntityServerClockSkew() const;

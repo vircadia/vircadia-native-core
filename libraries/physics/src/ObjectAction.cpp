@@ -246,14 +246,14 @@ bool ObjectAction::lifetimeIsOver() {
     return false;
 }
 
-quint64 ObjectAction::localTimeToServerTime(quint64 timeValue) {
+quint64 ObjectAction::localTimeToServerTime(quint64 timeValue) const {
     if (timeValue == 0) {
         return 0;
     }
     return timeValue + getEntityServerClockSkew();
 }
 
-quint64 ObjectAction::serverTimeToLocalTime(quint64 timeValue) {
+quint64 ObjectAction::serverTimeToLocalTime(quint64 timeValue) const {
     if (timeValue == 0) {
         return 0;
     }
