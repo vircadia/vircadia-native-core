@@ -437,7 +437,6 @@ int AudioMixer::prepareMixForListeningNode(Node* node) {
     AudioMixerClientData* listenerNodeData = static_cast<AudioMixerClientData*>(node->getLinkedData());
 
     // zero out the client mix for this node
-    memset(_preMixSamples, 0, sizeof(_preMixSamples));
     memset(_mixSamples, 0, sizeof(_mixSamples));
 
     // loop through all other nodes that have sufficient audio to mix
@@ -458,6 +457,9 @@ int AudioMixer::prepareMixForListeningNode(Node* node) {
                 if (otherNodeStream->getType() == PositionalAudioStream::Microphone) {
                     streamUUID = otherNode->getUUID();
                 }
+                
+                // clear out the pre-mix samples before filling it up with this source
+                memset(_preMixSamples, 0, sizeof(_preMixSamples));
 
                 if (*otherNode != *node || otherNodeStream->shouldLoopbackForNode()) {
                     streamsMixed += addStreamToMixForListeningNodeWithStream(listenerNodeData, streamUUID,
