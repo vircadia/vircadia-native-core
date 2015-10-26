@@ -6,4 +6,4 @@ var concatenate = fjs.curry(function(word1, word2) {
 });
 var concatenateHello = concatenate("Hello");
 var hi = concatenateHello("World");
-print('anyone listenig?' + hi)
+print('anyone listening? ' + hi)
