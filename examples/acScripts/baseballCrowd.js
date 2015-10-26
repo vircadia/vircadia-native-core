@@ -9,11 +9,11 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-var crowd1 = SoundCache.getSound("atp:0e921b644464d56d5b412ea2ea1d83f8ff3f7506c4b0471ea336a4770daf3b82.wav");
+var crowd1 = SoundCache.getSound("atp:d9978e693035d4e2b5c7b546c8cccfb2dde5677834d9eed5206ccb2da55b4732.wav");
 
 function maybePlaySound(deltaTime) {
     if (crowd1.downloaded && !crowd1.isPlaying) {
-        Audio.playSound(crowd1, { position: { x: 0, y: 0, z: 0}, loop: true});
+        Audio.playSound(crowd1, { position: { x: 0, y: 0, z: 0}, loop: true, volume: 0.5 });
         Script.update.disconnect(maybePlaySound);
     }
 }
