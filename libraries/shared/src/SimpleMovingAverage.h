@@ -15,7 +15,6 @@
 #define hifi_SimpleMovingAverage_h
 
 #include <stdint.h>
-#include <list>
 
 class SimpleMovingAverage {
 public:
@@ -44,27 +43,24 @@ private:
 
 template <class T, int MAX_NUM_SAMPLES> class MovingAverage {
 public:
-    using Samples = std::list< T >;
-    Samples samples;
+    const float WEIGHTING = 1.0f / (float)MAX_NUM_SAMPLES;
+    const float ONE_MINUS_WEIGHTING = 1.0f - WEIGHTING;
+    int numSamples{ 0 };
     T average;
 
     void clear() {
-        samples.clear();
+        numSamples = 0;
     }
 
-    bool isAverageValid() const { return !samples.empty(); }
+    bool isAverageValid() const { return (numSamples > 0); }
 
     void addSample(T sample) {
-        samples.push_front(sample);
-        int numSamples = samples.size();
-
-        if (numSamples < MAX_NUM_SAMPLES) {
-            average = (sample + average * (float)(numSamples - 1)) / (float)(numSamples);
+        if (numSamples > 0) {
+            average = (sample * WEIGHTING) + (average * ONE_MINUS_WEIGHTING);
         } else {
-            T tail = samples.back();
-            samples.pop_back();
-            average = average + (sample - tail) / (float)(numSamples);
+            average = sample;
         }
+        numSamples++;
     }
 };
 
