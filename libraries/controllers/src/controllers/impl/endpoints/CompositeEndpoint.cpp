@@ -25,7 +25,7 @@ float CompositeEndpoint::value() {
     return result;
 }
 
-void CompositeEndpoint::apply(float newValue, float oldValue, const Pointer& source) {
+void CompositeEndpoint::apply(float newValue, const Pointer& source) {
     // Composites are read only
 }
 

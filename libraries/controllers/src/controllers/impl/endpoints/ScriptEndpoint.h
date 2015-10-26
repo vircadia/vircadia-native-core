@@ -24,11 +24,11 @@ public:
     }
 
     virtual float value();
-    virtual void apply(float newValue, float oldValue, const Pointer& source);
+    virtual void apply(float newValue, const Pointer& source);
 
 protected:
     Q_INVOKABLE void updateValue();
-    Q_INVOKABLE virtual void internalApply(float newValue, float oldValue, int sourceID);
+    Q_INVOKABLE virtual void internalApply(float newValue, int sourceID);
 private:
     QScriptValue _callable;
     float _lastValueRead { 0.0f };

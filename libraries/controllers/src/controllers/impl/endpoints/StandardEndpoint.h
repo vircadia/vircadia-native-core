@@ -20,8 +20,8 @@ public:
     virtual bool writeable() const override { return !_written; }
     virtual bool readable() const override { return !_read; }
     virtual void reset() override {
-        apply(0.0f, 0.0f, Endpoint::Pointer());
-        apply(Pose(), Pose(), Endpoint::Pointer());
+        apply(0.0f, Endpoint::Pointer());
+        apply(Pose(), Endpoint::Pointer());
         _written = _read = false;
     }
 
@@ -30,12 +30,12 @@ public:
         return VirtualEndpoint::value();
     }
 
-    virtual void apply(float newValue, float oldValue, const Pointer& source) override {
+    virtual void apply(float value, const Pointer& source) override {
         // For standard endpoints, the first NON-ZERO write counts.
-        if (newValue != 0.0) {
+        if (value != 0.0) {
             _written = true;
         }
-        VirtualEndpoint::apply(newValue, oldValue, source);
+        VirtualEndpoint::apply(value, source);
     }
 
     virtual Pose pose() override {
@@ -43,11 +43,11 @@ public:
         return VirtualEndpoint::pose();
     }
 
-    virtual void apply(const Pose& newValue, const Pose& oldValue, const Pointer& source) override {
-        if (newValue != Pose()) {
+    virtual void apply(const Pose& value, const Pointer& source) override {
+        if (value != Pose()) {
             _written = true;
         }
-        VirtualEndpoint::apply(newValue, oldValue, source);
+        VirtualEndpoint::apply(value, source);
     }
 
 private:

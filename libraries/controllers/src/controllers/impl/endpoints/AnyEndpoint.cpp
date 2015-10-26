@@ -38,7 +38,7 @@ float AnyEndpoint::value() {
     return result;
 }
 
-void AnyEndpoint::apply(float newValue, float oldValue, const Endpoint::Pointer& source) {
+void AnyEndpoint::apply(float newValue, const Endpoint::Pointer& source) {
     qFatal("AnyEndpoint is read only");
 }
 
