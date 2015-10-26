@@ -79,7 +79,6 @@ void avatarDataFromScriptValue(const QScriptValue &object, AvatarData* &out) {
 QScriptValue inputControllerToScriptValue(QScriptEngine *engine, AbstractInputController* const &in) {
     return engine->newQObject(in);
 }
-
 void inputControllerFromScriptValue(const QScriptValue &object, AbstractInputController* &out) {
     out = qobject_cast<AbstractInputController*>(object.toQObject());
 }
@@ -95,9 +94,6 @@ ScriptEngine::ScriptEngine(const QString& scriptContents, const QString& fileNam
     _wantSignals(wantSignals),
     _controllerScriptingInterface(controllerScriptingInterface),
     _fileNameString(fileNameString),
-    _quatLibrary(),
-    _vec3Library(),
-    _uuidLibrary(),
     _isUserLoaded(false),
     _isReloading(false),
     _arrayBufferClass(new ArrayBufferClass(this))
@@ -654,7 +650,9 @@ void ScriptEngine::run() {
         }
         lastUpdate = now;
 
-        checkExceptions(this, _fileNameString);
+        if (!checkExceptions(this, _fileNameString)) {
+            stop();
+        }
     }
 
     stopAllTimers(); // make sure all our timers are stopped if the script is ending
@@ -891,7 +889,6 @@ void ScriptEngine::load(const QString& loadFile) {
     }
 }
 
-
 bool ScriptEngine::checkSyntax(const QScriptProgram& program) {
     const auto syntaxCheck = QScriptEngine::checkSyntax(program.sourceCode());
     if (syntaxCheck.state() != QScriptSyntaxCheckResult::Valid) {
@@ -1005,14 +1002,10 @@ void ScriptEngine::entityScriptContentAvailable(const EntityItemID& entityID, co
 
     auto scriptCache = DependencyManager::get<ScriptCache>();
     bool isFileUrl = isURL && scriptOrURL.startsWith("file://");
+    auto fileName = QString("(EntityID:%1, %2)").arg(entityID.toString(), isURL ? scriptOrURL : "EmbededEntityScript");
 
-    // first check the syntax of the script contents
-    QScriptSyntaxCheckResult syntaxCheck = QScriptEngine::checkSyntax(contents);
-    if (syntaxCheck.state() != QScriptSyntaxCheckResult::Valid) {
-        qCDebug(scriptengine) << "ScriptEngine::loadEntityScript() entity:" << entityID;
-        qCDebug(scriptengine) << "   " << syntaxCheck.errorMessage() << ":"
-                << syntaxCheck.errorLineNumber() << syntaxCheck.errorColumnNumber();
-        qCDebug(scriptengine) << "    SCRIPT:" << scriptOrURL;
+    QScriptProgram program(contents, fileName);
+    if (!checkSyntax(program)) {
         if (!isFileUrl) {
             scriptCache->addScriptToBadScriptList(scriptOrURL);
         }
@@ -1027,9 +1020,9 @@ void ScriptEngine::entityScriptContentAvailable(const EntityItemID& entityID, co
     QScriptValue testConstructor = sandbox.evaluate(contents);
 
     if (!testConstructor.isFunction()) {
-        qCDebug(scriptengine) << "ScriptEngine::loadEntityScript() entity:" << entityID;
-        qCDebug(scriptengine) << "    NOT CONSTRUCTOR";
-        qCDebug(scriptengine) << "    SCRIPT:" << scriptOrURL;
+        qCDebug(scriptengine) << "ScriptEngine::loadEntityScript() entity:" << entityID << "\n"
+                                 "    NOT CONSTRUCTOR\n"
+                                 "    SCRIPT:" << scriptOrURL;
         if (!isFileUrl) {
             scriptCache->addScriptToBadScriptList(scriptOrURL);
         }
@@ -1042,7 +1035,6 @@ void ScriptEngine::entityScriptContentAvailable(const EntityItemID& entityID, co
         lastModified = (quint64)QFileInfo(file).lastModified().toMSecsSinceEpoch();
     }
 
-    auto fileName = QString("(EntityID:%1, %2)").arg(entityID.toString(), isURL ? scriptOrURL : "EmbededEntityScript");
     QScriptValue entityScriptConstructor = evaluate(contents, fileName);
     QScriptValue entityScriptObject = entityScriptConstructor.construct();
     EntityScriptDetails newDetails = { scriptOrURL, entityScriptObject, lastModified };
