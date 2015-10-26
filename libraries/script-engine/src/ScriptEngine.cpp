@@ -509,18 +509,22 @@ void ScriptEngine::addEventHandler(const EntityItemID& entityID, const QString& 
         });
         
         // Two common cases of event handler, differing only in argument signature.
-        auto makeSingleEntityHandler = [&](QString eventName) {
+        using SingleEntityHandler = std::function<void(const EntityItemID&)>;
+        auto makeSingleEntityHandler = [this](QString eventName) -> SingleEntityHandler {
             return [this, eventName](const EntityItemID& entityItemID) {
                 forwardHandlerCall(entityItemID, eventName, { entityItemID.toScriptValue(this) });
             };
         };
-        auto makeMouseHandler = [&](QString eventName) {
+        
+        using MouseHandler = std::function<void(const EntityItemID&, const MouseEvent&)>;
+        auto makeMouseHandler = [this](QString eventName) -> MouseHandler {
             return [this, eventName](const EntityItemID& entityItemID, const MouseEvent& event) {
                 forwardHandlerCall(entityItemID, eventName, { entityItemID.toScriptValue(this), event.toScriptValue(this) });
             };
         };
         
-        auto makeCollisionHandler = [&](QString eventName) {
+        using CollisionHandler = std::function<void(const EntityItemID&, const EntityItemID&, const Collision&)>;
+        auto makeCollisionHandler = [this](QString eventName) -> CollisionHandler {
             return [this, eventName](const EntityItemID& idA, const EntityItemID& idB, const Collision& collision) {
                 forwardHandlerCall(idA, eventName, { idA.toScriptValue(this), idB.toScriptValue(this),
                                                      collisionToScriptValue(this, collision) });
