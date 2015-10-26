@@ -24,6 +24,8 @@
 
 #endif
 
+#include <SimpleMovingAverage.h>
+
 #include <controllers/InputDevice.h>
 #include <controllers/StandardControls.h>
 
@@ -94,6 +96,12 @@ private:
     glm::vec3 _reachRight;
     float _lastDistance;
     bool _useSixenseFilter = true;
+
+
+    static const int MAX_NUM_AVERAGING_SAMPLES = 50; // At ~100 updates per seconds this means averaging over ~.5s
+    using Samples = std::pair<  MovingAverage< glm::vec3, MAX_NUM_AVERAGING_SAMPLES>, MovingAverage< glm::vec4, MAX_NUM_AVERAGING_SAMPLES> >;
+    using MovingAverageMap = std::map< int, Samples >;
+    MovingAverageMap _collectedSamples;
     
 #ifdef __APPLE__
     QLibrary* _sixenseLibrary;
@@ -109,3 +117,4 @@ private:
 };
 
 #endif // hifi_SixenseManager_h
+

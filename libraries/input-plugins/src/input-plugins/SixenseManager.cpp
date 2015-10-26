@@ -178,6 +178,7 @@ void SixenseManager::update(float deltaTime, bool jointsCaptured) {
 
     if (sixenseGetNumActiveControllers() == 0) {
         _poseStateMap.clear();
+        _collectedSamples.clear();
         return;
     }
 
@@ -234,9 +235,13 @@ void SixenseManager::update(float deltaTime, bool jointsCaptured) {
                 
             } else {
                 _poseStateMap.clear();
+                _collectedSamples.clear();
             }
         } else {
-            _poseStateMap[left ? controller::StandardPoseChannel::LEFT_HAND : controller::StandardPoseChannel::RIGHT_HAND] = controller::Pose();
+            auto hand = left ? controller::StandardPoseChannel::LEFT_HAND : controller::StandardPoseChannel::RIGHT_HAND;
+            _poseStateMap[hand] = controller::Pose();
+            _collectedSamples[hand].first.clear();
+            _collectedSamples[hand].second.clear();
         }
     }
 
@@ -387,6 +392,8 @@ void SixenseManager::handleButtonEvent(unsigned int buttons, bool left) {
 
 void SixenseManager::handlePoseEvent(float deltaTime, glm::vec3 position, glm::quat rotation, bool left) {
 #ifdef HAVE_SIXENSE
+    auto hand = left ? controller::StandardPoseChannel::LEFT_HAND : controller::StandardPoseChannel::RIGHT_HAND;
+
     // From ABOVE the sixense coordinate frame looks like this:
     //
     //       |
@@ -401,7 +408,7 @@ void SixenseManager::handlePoseEvent(float deltaTime, glm::vec3 position, glm::q
     //                      |
     //                      |
     //                      z
-    auto prevPose = _poseStateMap[left ? controller::StandardPoseChannel::LEFT_HAND : controller::StandardPoseChannel::RIGHT_HAND];
+    auto prevPose = _poseStateMap[hand];
 
     // Transform the measured position into body frame.
     position = _avatarRotation * (position + _avatarPosition);
@@ -448,7 +455,10 @@ void SixenseManager::handlePoseEvent(float deltaTime, glm::vec3 position, glm::q
     glm::vec3 velocity(0.0f);
     glm::quat angularVelocity;
 
+
+
     if (prevPose.isValid() && deltaTime > std::numeric_limits<float>::epsilon()) {
+
         velocity = (position - prevPose.getTranslation()) / deltaTime;
 
         auto deltaRot = rotation * glm::conjugate(prevPose.getRotation());
@@ -456,9 +466,20 @@ void SixenseManager::handlePoseEvent(float deltaTime, glm::vec3 position, glm::q
         auto angle = glm::angle(deltaRot);
         angularVelocity = glm::angleAxis(angle / deltaTime, axis);
 
+        // Average
+        auto& samples = _collectedSamples[hand];
+        samples.first.addSample(velocity);
+        velocity = samples.first.average;
+     
+        // FIXME: // Not using quaternion average yet for angular velocity because it s probably wrong but keep the MovingAverage in place
+        //samples.second.addSample(glm::vec4(angularVelocity.x, angularVelocity.y, angularVelocity.z, angularVelocity.w));
+        //angularVelocity = glm::quat(samples.second.average.w, samples.second.average.x, samples.second.average.y, samples.second.average.z);
+    } else if (!prevPose.isValid()) {
+        _collectedSamples[hand].first.clear();
+        _collectedSamples[hand].second.clear();
     }
 
-    _poseStateMap[left ? controller::StandardPoseChannel::LEFT_HAND : controller::StandardPoseChannel::RIGHT_HAND] = controller::Pose(position, rotation, velocity, angularVelocity);
+    _poseStateMap[hand] = controller::Pose(position, rotation, velocity, angularVelocity);
 #endif // HAVE_SIXENSE
 }
 
