@@ -22,7 +22,8 @@
     var dollScriptURL = Script.resolvePath("../examples/toybox/doll/doll.js");
     var lightsScriptURL = Script.resolvePath("../examples/toybox/lights/lightSwitch.js");
     var targetsScriptURL = Script.resolvePath('../examples/toybox/ping_pong_gun/wallTarget.js');
-
+    var basketballResetterScriptURL = Script.resolvePath('basketballsResetter.js');
+    var targetsResetterScriptURL = Script.resolvePath('targetsResetter.js');
 
     ResetSwitch = function() {
         _this = this;
@@ -110,17 +111,18 @@
             });
 
             createPingPongBallGun();
+            createTargets();
+            createTargetResetter();
 
             createBasketballHoop();
             createBasketballRack();
+            createBasketballResetter();
 
             createGates();
 
             createFire();
             // Handles toggling of all sconce lights 
             createLights();
-
-
 
             createCat({
                 x: 551.09,
@@ -135,7 +137,6 @@
                 z: 503.91
             });
 
-            createTargets();
 
         }
 
@@ -275,10 +276,11 @@
                 })
             });
 
-            var collidingBalls = [];
+
 
             function createCollidingBalls() {
                 var position = rackStartPosition;
+                var collidingBalls = [];
 
                 var i;
                 for (i = 0; i < NUMBER_OF_BALLS; i++) {
@@ -333,6 +335,103 @@
             createCollidingBalls();
 
         }
+
+        function createBasketballResetter() {
+
+            var position = {
+                x: 542.86,
+                y: 494.44,
+                z: 475.06
+            };
+
+            var dimensions = {
+                x: 0.5,
+                y: 0.1,
+                z: 0.01
+            };
+
+            var rotation = Quat.fromPitchYawRollDegrees(0, 0, 0);
+
+            var resetter = Entities.addEntity({
+                type: "Text",
+                position: position,
+                name: "Basketball Resetter",
+                script: basketballResetterScriptURL,
+                rotation: rotation,
+                dimensions: dimensions,
+                backgroundColor: {
+                    red: 0,
+                    green: 0,
+                    blue: 0
+                },
+                textColor: {
+                    red: 255,
+                    green: 255,
+                    blue: 255
+                },
+                text: "RESET BALLS",
+                lineHeight: 0.07,
+                faceCamera: true,
+                userData: JSON.stringify({
+                    resetMe: {
+                        resetMe: true
+                    },
+                    grabbableKey: {
+                        wantsTrigger: true
+                    }
+                })
+            });
+
+
+        }
+
+        function createTargetResetter() {
+            var dimensions = {
+                x: 0.5,
+                y: 0.1,
+                z: 0.01
+            };
+
+            var position = {
+                x: 548.68,
+                y: 495.30,
+                z: 509.74
+            };
+
+            var rotation = Quat.fromPitchYawRollDegrees(0, 0, 0);
+
+            var resetter = Entities.addEntity({
+                type: "Text",
+                position: position,
+                name: "Target Resetter",
+                script: targetsResetterScriptURL,
+                rotation: rotation,
+                dimensions: dimensions,
+                backgroundColor: {
+                    red: 0,
+                    green: 0,
+                    blue: 0
+                },
+                textColor: {
+                    red: 255,
+                    green: 255,
+                    blue: 255
+                },
+                faceCamera: true,
+                text: "RESET TARGETS",
+                lineHeight: 0.07,
+                userData: JSON.stringify({
+                    resetMe: {
+                        resetMe: true
+                    },
+                    grabbableKey: {
+                        wantsTrigger: true
+                    }
+                })
+
+            });
+        }
+
 
         function createTargets() {
 
