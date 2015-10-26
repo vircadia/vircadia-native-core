@@ -43,20 +43,20 @@ Agent::Agent(NLPacket& packet) :
         DEFAULT_WINDOW_SECONDS_FOR_DESIRED_REDUCTION, false))
 {
     DependencyManager::get<EntityScriptingInterface>()->setPacketSender(&_entityEditSender);
-    
+
     auto assetClient = DependencyManager::set<AssetClient>();
-    
+
     QThread* assetThread = new QThread;
     assetThread->setObjectName("Asset Thread");
     assetClient->moveToThread(assetThread);
     connect(assetThread, &QThread::started, assetClient.data(), &AssetClient::init);
     assetThread->start();
-    
+
     DependencyManager::set<ResourceCacheSharedItems>();
     DependencyManager::set<SoundCache>();
 
     auto& packetReceiver = DependencyManager::get<NodeList>()->getPacketReceiver();
-    
+
     packetReceiver.registerListenerForTypes(
         { PacketType::MixedAudio, PacketType::SilentAudioFrame },
         this, "handleAudioPacket");
@@ -75,7 +75,7 @@ void Agent::handleOctreePacket(QSharedPointer<NLPacket> packet, SharedNodePointe
         if (packet->getPayloadSize() > statsMessageLength) {
             // pull out the piggybacked packet and create a new QSharedPointer<NLPacket> for it
             int piggyBackedSizeWithHeader = packet->getPayloadSize() - statsMessageLength;
-            
+
             auto buffer = std::unique_ptr<char[]>(new char[piggyBackedSizeWithHeader]);
             memcpy(buffer.get(), packet->getPayload() + statsMessageLength, piggyBackedSizeWithHeader);
 
@@ -102,7 +102,7 @@ void Agent::handleJurisdictionPacket(QSharedPointer<NLPacket> packet, SharedNode
         DependencyManager::get<EntityScriptingInterface>()->getJurisdictionListener()->
             queueReceivedPacket(packet, senderNode);
     }
-} 
+}
 
 void Agent::handleAudioPacket(QSharedPointer<NLPacket> packet) {
     _receivedAudioStream.parseData(*packet);
@@ -176,7 +176,7 @@ void Agent::run() {
 
     // give this AvatarData object to the script engine
     setAvatarData(&scriptedAvatar, "Avatar");
-    
+
     auto avatarHashMap = DependencyManager::set<AvatarHashMap>();
     _scriptEngine->registerGlobalObject("AvatarList", avatarHashMap.data());
 
@@ -189,7 +189,7 @@ void Agent::run() {
     // register ourselves to the script engine
     _scriptEngine->registerGlobalObject("Agent", this);
 
-    // FIXME -we shouldn't be calling this directly, it's normally called by run(), not sure why 
+    // FIXME -we shouldn't be calling this directly, it's normally called by run(), not sure why
     // viewers would need this called.
     //_scriptEngine->init(); // must be done before we set up the viewers
 
@@ -201,14 +201,14 @@ void Agent::run() {
     auto entityScriptingInterface = DependencyManager::get<EntityScriptingInterface>();
 
     _scriptEngine->registerGlobalObject("EntityViewer", &_entityViewer);
-    
+
     // we need to make sure that init has been called for our EntityScriptingInterface
     // so that it actually has a jurisdiction listener when we ask it for it next
     entityScriptingInterface->init();
     _entityViewer.setJurisdictionListener(entityScriptingInterface->getJurisdictionListener());
-    
+
     _entityViewer.init();
-    
+
     entityScriptingInterface->setEntityTree(_entityViewer.getTree());
 
     // wire up our additional agent related processing to the update signal
@@ -241,7 +241,7 @@ void Agent::setIsAvatar(bool isAvatar) {
             delete _avatarIdentityTimer;
             _avatarIdentityTimer = nullptr;
         }
-        
+
         if (_avatarBillboardTimer) {
             _avatarBillboardTimer->stop();
             delete _avatarBillboardTimer;
@@ -378,7 +378,7 @@ void Agent::processAgentAvatarAndAudio(float deltaTime) {
 
 void Agent::aboutToFinish() {
     setIsAvatar(false);// will stop timers for sending billboards and identity packets
-    
+
     if (_scriptEngine) {
         _scriptEngine->stop();
     }
@@ -390,7 +390,7 @@ void Agent::aboutToFinish() {
 
     // our entity tree is going to go away so tell that to the EntityScriptingInterface
     DependencyManager::get<EntityScriptingInterface>()->setEntityTree(NULL);
-    
+
     // cleanup the AssetClient thread
     QThread* assetThread = DependencyManager::get<AssetClient>()->thread();
     DependencyManager::destroy<AssetClient>();
@@ -406,6 +406,7 @@ void Agent::sendPingRequests() {
         case NodeType::AvatarMixer:
         case NodeType::AudioMixer:
         case NodeType::EntityServer:
+        case NodeType::AssetClient:
             return true;
         default:
             return false;
