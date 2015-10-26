@@ -575,9 +575,9 @@ QScriptValue ScriptEngine::evaluate(const QString& sourceCode, const QString& fi
         return result;
     }
     
-    // Check synthax
+    // Check syntax
     const QScriptProgram program(sourceCode, fileName, lineNumber);
-    if (!checkSynthax(program)) {
+    if (!checkSyntax(program)) {
         return QScriptValue();
     }
 
@@ -892,7 +892,7 @@ void ScriptEngine::load(const QString& loadFile) {
 }
 
 
-bool ScriptEngine::checkSynthax(const QScriptProgram& program) {
+bool ScriptEngine::checkSyntax(const QScriptProgram& program) {
     const auto syntaxCheck = QScriptEngine::checkSyntax(program.sourceCode());
     if (syntaxCheck.state() != QScriptSyntaxCheckResult::Valid) {
         const auto error = syntaxCheck.errorMessage();
