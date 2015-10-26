@@ -45,7 +45,7 @@ const QString MENU_PATH = MENU_PARENT + ">" + MENU_NAME;
 const QString RENDER_CONTROLLERS = "Render Hand Controllers";
 
 ViveControllerManager::ViveControllerManager() :
-        InputDevice("SteamVR Controller"),
+        InputDevice("Vive"),
     _trackedControllers(0),
     _modelLoaded(false),
     _leftHandRenderID(0),
@@ -313,7 +313,7 @@ void ViveControllerManager::handleButtonEvent(uint32_t button, bool pressed, boo
 
     if (button == vr::k_EButton_ApplicationMenu) {
         // FIXME?
-        _buttonPressedMap.insert(left ? controller::A : controller::A);
+        _buttonPressedMap.insert(left ? controller::B : controller::A);
     } else if (button == vr::k_EButton_Grip) {
         // Tony says these are harder to reach, so make them the meta buttons
         _buttonPressedMap.insert(left ? controller::BACK : controller::START);
