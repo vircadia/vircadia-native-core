@@ -529,7 +529,7 @@ bool UserInputMapper::applyRoute(const Route::Pointer& route, bool force) {
             }
         }
         // no filters yet for pose
-        destination->apply(value, Pose(), source);
+        destination->apply(value, source);
     } else {
         // Fetch the value, may have been overriden by previous loopback routes
         float value = getValue(source);
@@ -546,7 +546,7 @@ bool UserInputMapper::applyRoute(const Route::Pointer& route, bool force) {
             qCDebug(controllers) << "Filtered value was " << value;
         }
 
-        destination->apply(value, 0, source);
+        destination->apply(value, source);
     }
     return true;
 }

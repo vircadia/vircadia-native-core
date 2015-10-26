@@ -37,9 +37,9 @@ namespace controller {
 
         Endpoint(const Input& input) : _input(input) {}
         virtual float value() = 0;
-        virtual void apply(float newValue, float oldValue, const Pointer& source) = 0;
+        virtual void apply(float value, const Pointer& source) = 0;
         virtual Pose pose() { return Pose(); }
-        virtual void apply(const Pose& newValue, const Pose& oldValue, const Pointer& source) {}
+        virtual void apply(const Pose& value, const Pointer& source) {}
         virtual const bool isPose() { return _input.isPose(); }
 
         virtual bool writeable() const { return true; }
@@ -58,7 +58,7 @@ namespace controller {
             : Endpoint(Input::INVALID_INPUT), _readLambda(readLambda), _writeLambda(writeLambda) { }
 
         virtual float value() override { return _readLambda(); }
-        virtual void apply(float newValue, float oldValue, const Pointer& source) override { _writeLambda(newValue); }
+        virtual void apply(float value, const Pointer& source) override { _writeLambda(value); }
 
     private:
         ReadLambda _readLambda;
@@ -73,11 +73,11 @@ namespace controller {
         }
 
         virtual float value() override { return _currentValue; }
-        virtual void apply(float newValue, float oldValue, const Pointer& source) override { _currentValue = newValue; }
+        virtual void apply(float value, const Pointer& source) override { _currentValue = value; }
 
         virtual Pose pose() override { return _currentPose; }
-        virtual void apply(const Pose& newValue, const Pose& oldValue, const Pointer& source) override {
-            _currentPose = newValue;
+        virtual void apply(const Pose& value, const Pointer& source) override {
+            _currentPose = value;
         }
     protected:
         float _currentValue { 0.0f };

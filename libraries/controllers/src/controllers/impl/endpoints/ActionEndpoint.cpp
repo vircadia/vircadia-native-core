@@ -14,7 +14,7 @@
 
 using namespace controller;
 
-void ActionEndpoint::apply(float newValue, float oldValue, const Pointer& source) {
+void ActionEndpoint::apply(float newValue, const Pointer& source) {
     _currentValue += newValue;
     if (_input != Input::INVALID_INPUT) {
         auto userInputMapper = DependencyManager::get<UserInputMapper>();
@@ -22,8 +22,8 @@ void ActionEndpoint::apply(float newValue, float oldValue, const Pointer& source
     }
 }
 
-void ActionEndpoint::apply(const Pose& newValue, const Pose& oldValue, const Pointer& source) {
-    _currentPose = newValue;
+void ActionEndpoint::apply(const Pose& value, const Pointer& source) {
+    _currentPose = value;
     if (!_currentPose.isValid()) {
         return;
     }

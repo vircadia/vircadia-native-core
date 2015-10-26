@@ -28,7 +28,7 @@ public:
         return result;
     }
 
-    virtual void apply(float newValue, float oldValue, const Pointer& source) {
+    virtual void apply(float newValue, const Pointer& source) {
         _callable.call(QJSValueList({ QJSValue(newValue) }));
     }
 
