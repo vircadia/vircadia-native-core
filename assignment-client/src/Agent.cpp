@@ -44,7 +44,14 @@ Agent::Agent(NLPacket& packet) :
 {
     DependencyManager::get<EntityScriptingInterface>()->setPacketSender(&_entityEditSender);
     
-    DependencyManager::set<AssetClient>();
+    auto assetClient = DependencyManager::set<AssetClient>();
+    
+    QThread* assetThread = new QThread;
+    assetThread->setObjectName("Asset Thread");
+    assetClient->moveToThread(assetThread);
+    connect(assetThread, &QThread::started, assetClient.data(), &AssetClient::init);
+    assetThread->start();
+    
     DependencyManager::set<ResourceCacheSharedItems>();
     DependencyManager::set<SoundCache>();
 
@@ -368,6 +375,7 @@ void Agent::processAgentAvatarAndAudio(float deltaTime) {
 
 void Agent::aboutToFinish() {
     setIsAvatar(false);// will stop timers for sending billboards and identity packets
+    
     if (_scriptEngine) {
         _scriptEngine->stop();
     }
@@ -379,6 +387,12 @@ void Agent::aboutToFinish() {
 
     // our entity tree is going to go away so tell that to the EntityScriptingInterface
     DependencyManager::get<EntityScriptingInterface>()->setEntityTree(NULL);
+    
+    // cleanup the AssetClient thread
+    QThread* assetThread = DependencyManager::get<AssetClient>()->thread();
+    DependencyManager::destroy<AssetClient>();
+    assetThread->quit();
+    assetThread->wait();
 }
 
 void Agent::sendPingRequests() {
