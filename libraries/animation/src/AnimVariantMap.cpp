@@ -15,35 +15,48 @@
 #include <RegisteredMetaTypes.h>
 #include "AnimVariant.h"
 
-QScriptValue AnimVariantMap::animVariantMapToScriptValue(QScriptEngine* engine) const {
+QScriptValue AnimVariantMap::animVariantMapToScriptValue(QScriptEngine* engine, const QStringList& names, bool useNames) const {
     if (QThread::currentThread() != engine->thread()) {
         qCWarning(animation) << "Cannot create Javacript object from non-script thread" << QThread::currentThread();
         return QScriptValue();
     }
     QScriptValue target = engine->newObject();
-    for (auto& pair : _map) {
-        switch (pair.second.getType()) {
+    auto setOne = [&] (QString name, AnimVariant value) {
+        switch (value.getType()) {
             case AnimVariant::Type::Bool:
-                target.setProperty(pair.first, pair.second.getBool());
+                target.setProperty(name, value.getBool());
                 break;
             case AnimVariant::Type::Int:
-                target.setProperty(pair.first, pair.second.getInt());
+                target.setProperty(name, value.getInt());
                 break;
             case AnimVariant::Type::Float:
-                target.setProperty(pair.first, pair.second.getFloat());
+                target.setProperty(name, value.getFloat());
                 break;
             case AnimVariant::Type::String:
-                target.setProperty(pair.first, pair.second.getString());
+                target.setProperty(name, value.getString());
                 break;
             case AnimVariant::Type::Vec3:
-                target.setProperty(pair.first, vec3toScriptValue(engine, pair.second.getVec3()));
+                target.setProperty(name, vec3toScriptValue(engine, value.getVec3()));
                 break;
             case AnimVariant::Type::Quat:
-                target.setProperty(pair.first, quatToScriptValue(engine, pair.second.getQuat()));
+                target.setProperty(name, quatToScriptValue(engine, value.getQuat()));
                 break;
             default:
                 // Note that we don't do mat4 in Javascript currently, and there's not yet a reason to start now.
                 assert("AnimVariant::Type" == "valid");
+        }
+    };
+    if (useNames) { // copy only the requested names
+        for (const QString& name : names) {
+            auto search = _map.find(name);
+            if (search != _map.end()) { // scripts are allowed to request names that do not exist
+                setOne(name, search->second);
+            }
+        }
+
+    } else {  // copy all of them
+        for (auto& pair : _map) {
+            setOne(pair.first, pair.second);
         }
     }
     return target;

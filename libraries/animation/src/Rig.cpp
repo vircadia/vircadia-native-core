@@ -606,36 +606,51 @@ void Rig::computeMotionAnimationState(float deltaTime, const glm::vec3& worldPos
 }
 
 // Allow script to add/remove handlers and report results, from within their thread.
-// TODO: iterate multiple handlers, but with one shared arg.
-// TODO: fill the properties based on the union of requested properties. (Keep all properties objs and compute new union when add/remove handler.)
 QScriptValue Rig::addAnimationStateHandler(QScriptValue handler, QScriptValue propertiesList) { // called in script thread
-    _stateHandlers = handler;
-    return handler; // suitable for giving to removeAnimationStateHandler
-}
-void Rig::removeAnimationStateHandler(QScriptValue handler) { // called in script thread
-    _stateHandlers = QScriptValue();
-    QMutexLocker locker(&_stateMutex); // guarding access to results
-    _stateHandlersResults.clearMap(); // TODO: When we have multiple handlers, we'll need to clear only his handler's results.
-}
-void Rig::animationStateHandlerResult(QScriptValue handler, QScriptValue result) { // called synchronously from script
-    // handler is currently ignored but might be used in storing individual results
     QMutexLocker locker(&_stateMutex);
-    if (!_stateHandlers.isValid()) {
+    int identifier = ++_nextStateHandlerId; // 0 is unused
+    StateHandler& data = _stateHandlers[identifier];
+    data.function = handler;
+    data.useNames = propertiesList.isArray();
+    if (data.useNames) {
+        data.propertyNames = propertiesList.toVariant().toStringList();
+    }
+    return QScriptValue(identifier); // suitable for giving to removeAnimationStateHandler
+}
+void Rig::removeAnimationStateHandler(QScriptValue identifier) { // called in script thread
+    QMutexLocker locker(&_stateMutex);
+    _stateHandlers.remove(identifier.isNumber() ? identifier.toInt32() : 0); // silently continues if handler not present
+}
+void Rig::animationStateHandlerResult(int identifier, QScriptValue result) { // called synchronously from script
+    QMutexLocker locker(&_stateMutex);
+    auto found = _stateHandlers.find(identifier);
+    if (found == _stateHandlers.end()) {
         return; // Don't use late-breaking results that got reported after the handler was removed.
     }
-    _stateHandlersResults.animVariantMapFromScriptValue(result); // Into our own copy.
+    found.value().results.animVariantMapFromScriptValue(result); // Into our own copy.
 }
 
 void Rig::updateAnimationStateHandlers() { // called on avatar update thread (which may be main thread)
-    if (_stateHandlers.isValid()) {
-        auto handleResult = [this](QScriptValue handler, QScriptValue result) {
-            animationStateHandlerResult(handler, result);
+    QMutexLocker locker(&_stateMutex);
+    // It might pay to produce just one AnimVariantMap copy here, with a union of all the requested propertyNames,
+    // rather than having each callAnimationStateHandler invocation make its own copy.
+    // However, that copying is done on the script's own time rather than ours, so even if it's less cpu, it would be more
+    // work on the avatar update thread (which is possibly the main thread).
+    for (auto data = _stateHandlers.begin(); data != _stateHandlers.end(); data++) {
+        // call out:
+        int identifier = data.key();
+        StateHandler& value = data.value();
+        QScriptValue& function = value.function;
+        auto handleResult = [this, identifier](QScriptValue result) {
+            animationStateHandlerResult(identifier, result);
         };
         // invokeMethod makes a copy of the args, and copies of AnimVariantMap do copy the underlying map, so this will correctly capture
         // the state of _animVars and allow continued changes to _animVars in this thread without conflict.
-        QMetaObject::invokeMethod(_stateHandlers.engine(), "callAnimationStateHandler",  Qt::QueuedConnection,
-                                  Q_ARG(QScriptValue, _stateHandlers),
+        QMetaObject::invokeMethod(function.engine(), "callAnimationStateHandler",  Qt::QueuedConnection,
+                                  Q_ARG(QScriptValue, function),
                                   Q_ARG(AnimVariantMap, _animVars),
+                                  Q_ARG(QStringList, value.propertyNames),
+                                  Q_ARG(bool, value.useNames),
                                   Q_ARG(AnimVariantResultHandler, handleResult));
         // It turns out that, for thread-safety reasons, ScriptEngine::callAnimationStateHandler will invoke itself if called from other
         // than the script thread. Thus the above _could_ be replaced with an ordinary call, which will then trigger the same
@@ -643,12 +658,13 @@ void Rig::updateAnimationStateHandlers() { // called on avatar update thread (wh
         // We could create an AnimVariantCallingMixin class in shared, with an abstract virtual slot
         // AnimVariantCallingMixin::callAnimationStateHandler (and move AnimVariantMap/AnimVaraintResultHandler to shared), but the
         // call site here would look like this instead of the above:
-        //   dynamic_cast<AnimVariantCallingMixin*>(_stateHandlers.engine())->callAnimationStateHandler(_stateHandlers, _animVars, handleResult);
+        //   dynamic_cast<AnimVariantCallingMixin*>(function.engine())->callAnimationStateHandler(function, ..., handleResult);
         // This works (I tried it), but the result would be that we would still have same runtime type checks as the invokeMethod above
         // (occuring within the ScriptEngine::callAnimationStateHandler invokeMethod trampoline), _plus_ another runtime check for the dynamic_cast.
+
+        // gather results in (likely from an earlier update):
+        _animVars.copyVariantsFrom(value.results); // If multiple handlers write the same anim var, the last registgered wins. (_map preserves order).
     }
-    QMutexLocker locker(&_stateMutex); // as we examine/copy most recently computed state, if any. (Typically an earlier invocation.)
-    _animVars.copyVariantsFrom(_stateHandlersResults);
 }
 
 void Rig::updateAnimations(float deltaTime, glm::mat4 rootTransform) {

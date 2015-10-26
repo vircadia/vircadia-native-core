@@ -53,6 +53,12 @@ typedef std::shared_ptr<Rig> RigPointer;
 
 class Rig : public QObject, public std::enable_shared_from_this<Rig> {
 public:
+    struct StateHandler {
+        AnimVariantMap results;
+        QStringList propertyNames;
+        QScriptValue function;
+        bool useNames;
+    };
 
     struct HeadParameters {
         float leanSideways = 0.0f; // degrees
@@ -203,7 +209,7 @@ public:
     bool disableHands {false}; // should go away with rig animation (and Rig::inverseKinematics)
     QScriptValue addAnimationStateHandler(QScriptValue handler, QScriptValue propertiesList);
     void removeAnimationStateHandler(QScriptValue handler);
-    void animationStateHandlerResult(QScriptValue handler, QScriptValue result);
+    void animationStateHandlerResult(int identifier, QScriptValue result);
 
     bool getModelOffset(glm::vec3& modelOffsetOut) const;
 
@@ -249,8 +255,8 @@ public:
     float _rightHandOverlayAlpha = 0.0f;
 
 private:
-    QScriptValue _stateHandlers;
-    AnimVariantMap _stateHandlersResults;
+    QMap<int, StateHandler> _stateHandlers;
+    int _nextStateHandlerId {0};
     QMutex _stateMutex;
 };
 

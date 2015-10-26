@@ -262,7 +262,8 @@ void ScriptEngine::errorInLoadingScript(const QUrl& url) {
 // callAnimationStateHandler requires that the type be registered.
 // These two are meaningful, if we ever do want to use them...
 static QScriptValue animVarMapToScriptValue(QScriptEngine* engine, const AnimVariantMap& parameters) {
-    return parameters.animVariantMapToScriptValue(engine);
+    QStringList unused;
+    return parameters.animVariantMapToScriptValue(engine, unused, false);
 }
 static void animVarMapFromScriptValue(const QScriptValue& value, AnimVariantMap& parameters) {
     parameters.animVariantMapFromScriptValue(value);
@@ -741,7 +742,7 @@ void ScriptEngine::stop() {
 }
 
 // Other threads can invoke this through invokeMethod, which causes the callback to be asynchronously executed in this script's thread.
-void ScriptEngine::callAnimationStateHandler(QScriptValue callback, AnimVariantMap parameters, AnimVariantResultHandler resultHandler) {
+void ScriptEngine::callAnimationStateHandler(QScriptValue callback, AnimVariantMap parameters, QStringList names, bool useNames, AnimVariantResultHandler resultHandler) {
     if (QThread::currentThread() != thread()) {
 #ifdef THREAD_DEBUGGING
         qDebug() << "*** WARNING *** ScriptEngine::callAnimationStateHandler() called on wrong thread [" << QThread::currentThread() << "], invoking on correct thread [" << thread() << "]  name:" << name;
@@ -749,14 +750,16 @@ void ScriptEngine::callAnimationStateHandler(QScriptValue callback, AnimVariantM
         QMetaObject::invokeMethod(this, "callAnimationStateHandler",
                                   Q_ARG(QScriptValue, callback),
                                   Q_ARG(AnimVariantMap, parameters),
+                                  Q_ARG(QStringList, names),
+                                  Q_ARG(bool, useNames),
                                   Q_ARG(AnimVariantResultHandler, resultHandler));
         return;
     }
-    QScriptValue javascriptParametgers = parameters.animVariantMapToScriptValue(this);
+    QScriptValue javascriptParametgers = parameters.animVariantMapToScriptValue(this, names, useNames);
     QScriptValueList callingArguments;
     callingArguments << javascriptParametgers;
     QScriptValue result = callback.call(QScriptValue(), callingArguments);
-    resultHandler(callback, result);
+    resultHandler(result);
 }
 
 void ScriptEngine::timerFired() {

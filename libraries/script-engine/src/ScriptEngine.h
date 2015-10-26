@@ -144,7 +144,7 @@ public:
     ArrayBufferClass* getArrayBufferClass() { return _arrayBufferClass; }
 
 public slots:
-    void callAnimationStateHandler(QScriptValue callback, AnimVariantMap parameters, AnimVariantResultHandler resultHandler);
+    void callAnimationStateHandler(QScriptValue callback, AnimVariantMap parameters, QStringList names, bool useNames, AnimVariantResultHandler resultHandler);
 
 signals:
     void scriptLoaded(const QString& scriptFilename);
