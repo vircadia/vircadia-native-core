@@ -17,4 +17,4 @@ function playChatter() {
     }
 }
 
-chatter.downloaded.connect(playChatter);
+chatter.ready.connect(playChatter);
