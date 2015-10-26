@@ -8,15 +8,12 @@ var MAX_LINE_LENGTH = 40; // This must be 2 or greater;
 var PolyLine = function(position, color, defaultStrokeWidth) {
     this.position = position;
     this.color = color;
-    this.defaultStrokeWidth = 0.10;
+    this.defaultStrokeWidth = defaultStrokeWidth;
     this.points = [
-        { x: 0, y: 0, z: 0 }
     ];
     this.strokeWidths = [
-        this.defaultStrokeWidth
     ];
     this.normals = [
-        { x: 1, y: 0, z: 0 }
     ]
     this.entityID = Entities.addEntity({
         type: "PolyLine",
@@ -39,7 +36,7 @@ PolyLine.prototype.enqueuePoint = function(position) {
     position = Vec3.subtract(position, this.position);
     this.points.push(position);
     this.normals.push({ x: 1, y: 0, z: 0 });
-    this.strokeWidths.push(this.defaultStrokeWidth * Math.min(1.0, this.points.length / 10));
+    this.strokeWidths.push(this.defaultStrokeWidth);
     Entities.editEntity(this.entityID, {
         linePoints: this.points,
         normals: this.normals,
@@ -91,7 +88,7 @@ PolyLine.prototype.destroy = function() {
 InfiniteLine = function(position, color) {
     this.position = position;
     this.color = color;
-    this.lines = [new PolyLine(position, color)];
+    this.lines = [new PolyLine(position, color, 0.01)];
     this.size = 0;
 };
 
@@ -99,14 +96,15 @@ InfiniteLine.prototype.enqueuePoint = function(position) {
     var currentLine;
 
     if (this.lines.length == 0) {
-        currentLine = new PolyLine(position, this.color);
+        currentLine = new PolyLine(position, this.color, 0.01);
         this.lines.push(currentLine);
     } else {
         currentLine = this.lines[this.lines.length - 1];
     }
 
     if (currentLine.isFull()) {
-        var newLine = new PolyLine(currentLine.getLastPoint(), this.color);
+        var newLine = new PolyLine(currentLine.getLastPoint(), this.color, 0.01);
+        newLine.enqueuePoint(currentLine.getLastPoint());
         this.lines.push(newLine);
         currentLine = newLine;
     }
