@@ -65,7 +65,7 @@ var soundMap = [{
             y: 495.60,
             z: 502.08
         },
-        volume: 0.05,
+        volume: 0.03,
         loop: true
     }
 }, {
