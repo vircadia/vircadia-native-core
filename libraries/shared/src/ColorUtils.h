@@ -23,8 +23,8 @@ public:
 };
 
 inline glm::vec3 ColorUtils::toVec3(const xColor& color) {
-    const float ONE_OVER_256 = 1.0f / 256.0f;
-    return glm::vec3(color.red * ONE_OVER_256, color.green * ONE_OVER_256, color.blue * ONE_OVER_256);
+    const float ONE_OVER_255 = 1.0f / 255.0f;
+    return glm::vec3(color.red * ONE_OVER_255, color.green * ONE_OVER_255, color.blue * ONE_OVER_255);
 }
 
 #endif // hifi_ColorUtils_h
