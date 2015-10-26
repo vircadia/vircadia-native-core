@@ -12,6 +12,7 @@
 
 // TODO: 
 // make it so you can shoot without blocking your view with your hand
+// notching system
 // make arrows more visible
 // make arrow rotate toward ground as it flies
 // different model?  compound bow will look better in the HMD, and be easier to aim. this is what HTC uses in the longbow demo: http://www.turbosquid.com/3d-models/3d-model-bow-arrow/773106
@@ -68,6 +69,33 @@
     var LEFT_TIP = 1;
     var RIGHT_TIP = 3;
 
+    var NOTCH_DETECTOR_OFFSET = {
+        x: 0,
+        y: 0,
+        z: 0
+    };
+
+    var NOTCH_DETECTOR_DIMENSIONS = {
+        x: 0,
+        y: 0,
+        z: 0
+    };
+
+    var NOTCH_DETECTOR_DISTANCE = 0.1;
+
+    var RELOAD_DETECTOR_OFFSET = {
+        x: 0,
+        y: 0,
+        z: 0
+    };
+
+    var RELOAD_DETECTOR_DIMENSIONS = {
+        x: 0,
+        y: 0,
+        z: 0
+    };
+    var RELOAD_DETECTOR_DISTANCE = 0.1;
+
     var _this;
 
     function Bow() {
@@ -84,17 +112,29 @@
     // shoot arrow with velocity relative to distance between hand position and bow
     // delete lines
 
+    // with notching system (for reloading):
+    // pick up bow
+    // move other hand near reload detector
+    // move arrow near notch detector
+    // pull back on the trigger to draw the string
+    // release to fire
+
     Bow.prototype = {
         isGrabbed: false,
         stringDrawn: false,
         hasArrow: false,
+        arrowTipPosition: null,
+        arrowIsBurning: false,
+        hasArrowLoaded: false,
+        hasArrowNotched: false,
+        arrow: null,
+        fire: null,
         stringData: {
             currentColor: {
                 red: 0,
                 green: 255,
                 blue: 0
             }
-
         },
 
         preload: function(entityID) {
@@ -211,10 +251,47 @@
 
         continueNearGrab: function() {
             this.bowProperties = Entities.getEntityProperties(this.entityID, ["position", "rotation"]);
+
             this.checkStringHand();
+
+            if (this.useNotching === true) {
+
+
+                if (this.hasArrowLoaded === false) {
+                    this.updateReloadDetectorPosition();
+
+                }
+
+                if (this.hasArrowLoaded === true) {
+                    this.updateNotchDetectorPosition();
+                }
+
+                this.checkArrowHand();
+
+                if (this.hasArrowNotched === true) {
+                    //only test for strings now that an arrow is notched
+                    this.checkStringHand();
+                    //should probably draw a string straight across the bow until its notched
+                }
+            }
 
         },
 
+        createStringPreNotch: function() {
+            var properties = {};
+            this.preNotchString = Entities.addEntitiy(properties);
+        },
+
+        updatePreNotchStringPosition: function() {
+            var position;
+            Entities.editEntityProperties(this.preNotchString, {
+                position: position
+            })
+        },
+
+        deletePreNotchString: function() {
+            Entities.deleteEntity(this.preNotchString);
+        },
         releaseGrab: function() {
             if (this.isGrabbed === true && this.hand === this.initialHand) {
                 this.isGrabbed = false;
@@ -231,6 +308,43 @@
                         }
                     })
                 });
+            }
+        },
+
+        checkArrowHand: function() {
+            if (this.initialHand === 'left') {
+                this.getArrowHandPosition = MyAvatar.getRightPalmPosition;
+                this.getArrowHandRotation = MyAvatar.getRightPalmRotation;
+            } else if (this.initialHand === 'right') {
+                this.getArrowHandPosition = MyAvatar.getLeftPalmPosition;
+                this.getArrowHandRotation = MyAvatar.getLeftPalmRotation;
+            }
+            if (this.hasArrowLoaded === false) {
+                this.testForHandInReloadDetector();
+            }
+
+            if (this.hasArrowLoaded === true) {
+                this.testForHandInNotchDetector();
+            }
+
+        },
+
+        testForHandInReloadDetector: function() {
+            var arrowHandPosition = this.getArrowHandPosition();
+            var reloadDetectorPosition = Entities.getEntityProperties(this.reloadDetector, "position");
+            var fromArrowHandToReloadDetector = Vec3.distance(arrowHandPosition, reloadDetectorPosition);
+            if (fromArrowHandToReloadDetector < RELEOAD_DETECTOR_DISTANCE) {
+                this.hasArrowLoaded = true;
+            }
+        },
+
+        testForHandInNotchDetector: function() {
+            var arrowHandPosition = this.getArrowHandPosition();
+            var notchDetectorPosition = Entities.getEntityProperties(this.notchDetector, "position");
+            var fromArrowHandToNotchDetector = Vec3.distance(arrowHandPosition, notchDetectorPosition);
+            if (fromArrowHandToNotchDetector < NOTCH_DETECTOR_DISTANCE) {
+                this.hasArrowNotched = true;
+                this.notchArrow();
             }
         },
 
@@ -295,6 +409,7 @@
             var arrowPosition = Vec3.sum(this.stringData.grabHandPosition, arrowVector);
             return arrowPosition;
         },
+
         orientationOf: function(vector) {
             var Y_AXIS = {
                 x: 0,
@@ -328,7 +443,30 @@
                 position: arrowPosition,
                 rotation: arrowRotation
             });
+
+            if (this.arrowIsBurning === true) {
+                Entities.editEntity(this.fire, {
+                    position: this.arrow.position
+                });
+            }
         },
+
+        updateArrowPositionPreNotch: function() {
+
+            var arrowHandPosition = this.getArrowHandPosition();
+
+
+            Entities.editEntity(this.arrow, {
+                position: arrowPosition
+            });
+
+            if (this.arrowIsBurning === true) {
+                Entities.editEntity(this.fire, {
+                    position: this.arrow.position
+                });
+            }
+        },
+
         createArrow: function() {
             //  print('CREATING ARROW');
             var arrowProperties = {
@@ -353,6 +491,7 @@
             };
 
             this.arrow = Entities.addEntity(arrowProperties);
+
         },
 
         releaseArrow: function() {
@@ -360,8 +499,6 @@
 
             var arrowRotation = this.orientationOf(handToHand);
 
-            // var forwardVec = Quat.getFront(this.arrow.rotation);
-            // forwardVec = Vec3.normalize(forwardVec);
             var handDistanceAtRelease = Vec3.distance(this.stringData.grabHandPosition, this.stringData.handPosition);
             print('HAND DISTANCE:: ' + handDistanceAtRelease);
             var arrowForce = this.scaleArrowShotStrength(handDistanceAtRelease, 0, 2, 20, 50);
@@ -386,15 +523,145 @@
                 });
             }, 100)
 
+            this.arrow = null;
+            this.fire = null;
+            this.arrowIsBurnning = false;
+
         },
+
         getLocalLineVectors: function() {
             var topVector = Vec3.subtract(this.stringData.handPosition, this.topStringPosition);
             var bottomVector = Vec3.subtract(this.stringData.handPosition, this.bottomStringPosition);
             return [topVector, bottomVector];
         },
+
         scaleArrowShotStrength: function(value, min1, max1, min2, max2) {
             return min2 + (max2 - min2) * ((value - min1) / (max1 - min1));
+        },
+
+        createReloadDetector: function() {
+            var detectorProperties = {
+                type: 'Box',
+                shapeType: 'box',
+                visible: false,
+                dimensions: RELOAD_DETECTOR_DIMENSIONS,
+                position: detectorPosition
+            };
+            this.reloadDetector = Entities.addEntity(detectorProperties);
+        },
+
+        createNotchDetector: function() {
+            var detectorPosition = Vec3.sum(this.bowProperties.position, NOTCH_DETECTOR_OFFSET);
+
+            var detectorProperties = {
+                type: 'Box',
+                shapeType: 'box',
+                visible: false,
+                dimensions: NOTCH_DETECTOR_DIMENSIONS,
+                position: detectorPosition
+            };
+            this.notchDetector = Entities.addEntity(detectorProperties);
+        },
+        
+        updateReloadDetectorPosition: function() {
+            this.reloadDetectorPosition = Vec3.sum(MyAvatar.position, RELOAD_DETECTOR_OFFSET);
+            Entities.editEntity(this.reloadDetector, {
+                position: thi8s.reloadDetectorPosition
+            });
+        },
+
+        updateNotchDetectorPosition: function() {
+           this.notchDetectorPosition = Vec3.sum(MyAvatar.position, NOTCH_DETECTOR_OFFSET);
+            Entities.editEntity(this.notchDetector, {
+                position:  this.notchDetectorPosition 
+            });
+        },
+
+        updateArrowInHand: function() {
+            var arrowHandPosition = this.getArrowHandPosition();
+
+        },
+
+        updateArrowInNotch: function() {
+            var notchPosition = this.notchPosition
+        },
+
+        setArrowOnFire: function() {
+
+            var myOrientation = Quat.fromPitchYawRollDegrees(-90, 0, 0.0);
+
+            var animationSettings = JSON.stringify({
+                fps: 30,
+                running: true,
+                loop: true,
+                firstFrame: 1,
+                lastFrame: 10000
+            });
+
+
+            var fire = Entities.addEntity({
+                type: "ParticleEffect",
+                name: "Hifi-Arrow-Fire",
+                animationSettings: animationSettings,
+                textures: "https://hifi-public.s3.amazonaws.com/alan/Particles/Particle-Sprite-Smoke-1.png",
+                position: this.arrowTipPosition,
+                emitRate: 100,
+                colorStart: {
+                    red: 70,
+                    green: 70,
+                    blue: 137
+                },
+                color: {
+                    red: 200,
+                    green: 99,
+                    blue: 42
+                },
+                colorFinish: {
+                    red: 255,
+                    green: 99,
+                    blue: 32
+                },
+                radiusSpread: 0.01,
+                radiusStart: 0.02,
+                radiusEnd: 0.001,
+                particleRadius: 0.05,
+                radiusFinish: 0.0,
+                emitOrientation: myOrientation,
+                emitSpeed: 0.3,
+                speedSpread: 0.1,
+                alphaStart: 0.05,
+                alpha: 0.1,
+                alphaFinish: 0.05,
+                emitDimensions: {
+                    x: 1,
+                    y: 1,
+                    z: 0.1
+                },
+                polarFinish: 0.1,
+                emitAcceleration: {
+                    x: 0.0,
+                    y: 0.0,
+                    z: 0.0
+                },
+                accelerationSpread: {
+                    x: 0.1,
+                    y: 0.01,
+                    z: 0.1
+                },
+                lifespan: 1,
+            });
+
+            Entites.editEntityProperties(this.arrow, {
+                userData: JSON.stringify({
+                    hifiFireArrowKey: {
+                        fire: this.fire
+                    }
+                })
+            })
+
+            this.arrowIsBurning = true;
         }
+
     };
 
     return new Bow();

@@ -20,18 +20,56 @@
     }
 
     Arrow.prototype = {
+        stickOnCollision: false,
+        glow: false,
         glowBox: null,
+        isBurning:false,
         preload: function(entityID) {
             this.entityID = entityID;
-            if (this.glowBox === null) {
+            this.isBurning = this.checkIfBurning();
+            if (this.isBurning === true || this.glow === true) {
+                Script.update.connect(this.updateArrowProperties);
+            }
+            if (this.isBurning === true) {
+                Script.update.connect(this.updateFirePosition);
+
+            }
+            if (this.glow === true && this.glowBow === null) {
                 this.createGlowBox();
                 Script.update.connect(this.updateGlowBoxPosition);
             }
         },
+
         unload: function() {
-            Script.update.disconnect(this.updateGlowBoxPosition);
-            Entities.deleteEntity(this.glowBox);
+
+            Script.update.disconnect(this.updateArrowProperties);
+
+            if (this.isBurning) {
+                Script.update.disconnect(this.updateFirePosition);
+
+            }
+            if (this.glowBox !== null) {
+                Script.update.disconnect(this.updateGlowBoxPosition);
+            }
+
         },
+
+        checkIfBurning: function() {
+            var properties = Entities.getEntityProperties(this.entityID, "userData");
+            var userData = JSON.parse(properties.userData);
+            var fire = false;
+
+            if (userData.hasOwnProperty('hifiFireArrowKey')) {
+                this.fire = userData.hifiFireArrowKey.fire;
+                return true
+
+            } else {
+                return false;
+            }
+
+
+        },
+
         createGlowBox: function() {
             var glowBowProperties = {
                 name: 'Arrow Glow Box',
@@ -46,39 +84,61 @@
                     green: 0,
                     blue: 255
                 },
-            }
-            _this.glowBow = Entities.addEntity(glowBowProperties);
+            };
+
+            _this.glowBox = Entities.addEntity(glowBowProperties);
+        },
+        updateArrowProperties: function() {
+            _this.arrowProperties = Entities.getEntityProperties(_this.entityID, ["position", "rotation"]);
         },
         updateGlowBoxPosition: function() {
-            var arrowProperties = Entities.getEntityProperties(_this.entityID, ["position", "rotation"]);
             //once parenting is available, just attach the glowbow to the arrow
             Entities.editEntity(_this.entityID, {
-                position: arrowProperties.position,
-                rotation: arrowProperties.rotation
+                position: _this.arrowProperties.position,
+                rotation: _this.arrowProperties.rotation
+            })
+        },
+        updateFirePosition: function() {
+            //once parenting is available, just attach the glowbow to the arrow
+            Entities.editEntity(_this.entityID, {
+                position: _this.arrowProperties.position
             })
         },
 
         collisionWithEntity: function(me, otherEntity, collision) {
-
             Vec3.print('penetration = ', collision.penetration);
             Vec3.print('collision contact point = ', collision.contactPoint);
 
-            Entities.editEntity(this.entityID, {
-                velocity: {
-                    x: 0,
-                    y: 0,
-                    z: 0
-                },
-                gravity: {
-                    x: 0,
-                    y: 0,
-                    z: 0
-                },
-                collisionsWillMove: false
+            if (this.stickOnCollision === true) {
+                Entities.editEntity(this.entityID, {
+                    velocity: {
+                        x: 0,
+                        y: 0,
+                        z: 0
+                    },
+                    gravity: {
+                        x: 0,
+                        y: 0,
+                        z: 0
+                    },
+                    collisionsWillMove: false
 
-            })
+                })
+            }
+
         }
     }
+
+    function deleteEntity(entityID) {
+        if (entityID === this.entityID) {
+            if (_this.isBurning === true) {
+                _this.deleteEntity(_this.fire);
+            }
+        }
+    }
+
+    Entities.deletingEntity.connect(deleteEntity);
+
 
     return new Arrow;
 })
