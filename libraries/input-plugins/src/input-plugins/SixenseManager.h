@@ -24,6 +24,8 @@
 
 #endif
 
+#include <SimpleMovingAverage.h>
+
 #include <controllers/InputDevice.h>
 #include <controllers/StandardControls.h>
 
@@ -95,31 +97,6 @@ private:
     float _lastDistance;
     bool _useSixenseFilter = true;
 
-    template <class T, int MAX_NUM_SAMPLES> class MovingAverage {
-    public:
-        using Samples = std::list< T >;
-        Samples samples;
-        T average;
-
-        void clear() {
-            samples.clear();
-        }
-
-        bool isAverageValid() const { return !samples.empty(); }
-
-        void addSample(T sample) {
-            samples.push_front(sample);
-            int numSamples = samples.size();
-
-            if (numSamples < MAX_NUM_SAMPLES) {
-                average = (sample + average * float(numSamples - 1)) / float(numSamples);
-            } else {
-                T tail = samples.back();
-                samples.pop_back();
-                average = average + (sample - tail) / float(numSamples);
-            }
-        }
-    };
 
     static const int MAX_NUM_AVERAGING_SAMPLES = 50; // At ~100 updates per seconds this means averaging over ~.5s
     using Samples = std::pair<  MovingAverage< glm::vec3, MAX_NUM_AVERAGING_SAMPLES>, MovingAverage< glm::vec4, MAX_NUM_AVERAGING_SAMPLES> >;
