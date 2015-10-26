@@ -31,7 +31,7 @@ public:
     const QByteArray& getByteArray() { return _byteArray; }
     
 signals:
-    void downloaded();
+    void ready();
 
 private:
     QByteArray _byteArray;
