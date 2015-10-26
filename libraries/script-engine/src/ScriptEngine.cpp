@@ -585,7 +585,7 @@ QScriptValue ScriptEngine::evaluate(const QString& sourceCode, const QString& fi
     const auto result = QScriptEngine::evaluate(program);
     --_evaluatesPending;
     
-    const auto hadUncaughtException = checkExceptions(this, program.fileName());
+    const auto hadUncaughtException = checkExceptions(*this, program.fileName());
     if (_wantSignals) {
         emit evaluationFinished(result, hadUncaughtException);
     }
@@ -654,7 +654,7 @@ void ScriptEngine::run() {
         }
         lastUpdate = now;
 
-        if (!checkExceptions(this, _fileNameString)) {
+        if (!checkExceptions(*this, _fileNameString)) {
             stop();
         }
     }
@@ -906,12 +906,12 @@ bool ScriptEngine::checkSyntax(const QScriptProgram& program) {
     return true;
 }
 
-bool ScriptEngine::checkExceptions(QScriptEngine* engine, const QString& fileName) {
-    if (engine->hasUncaughtException()) {
-        const auto backtrace = engine->uncaughtExceptionBacktrace();
-        const auto exception = engine->uncaughtException().toString();
-        const auto line = QString::number(engine->uncaughtExceptionLineNumber());
-        engine->clearExceptions();
+bool ScriptEngine::checkExceptions(QScriptEngine& engine, const QString& fileName) {
+    if (engine.hasUncaughtException()) {
+        const auto backtrace = engine.uncaughtExceptionBacktrace();
+        const auto exception = engine.uncaughtException().toString();
+        const auto line = QString::number(engine.uncaughtExceptionLineNumber());
+        engine.clearExceptions();
         
         auto message = QString("[UncaughtException] %1 in %2:%3").arg(exception, fileName, line);
         if (!backtrace.empty()) {
@@ -1021,8 +1021,11 @@ void ScriptEngine::entityScriptContentAvailable(const EntityItemID& entityID, co
     }
 
     QScriptEngine sandbox;
-    QScriptValue testConstructor = sandbox.evaluate(contents);
-
+    QScriptValue testConstructor = sandbox.evaluate(program);
+    if (!checkExceptions(sandbox, program.fileName())) {
+        return;
+    }
+    
     if (!testConstructor.isFunction()) {
         qCDebug(scriptengine) << "ScriptEngine::loadEntityScript() entity:" << entityID << "\n"
                                  "    NOT CONSTRUCTOR\n"
