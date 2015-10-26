@@ -270,10 +270,11 @@ void EntityTreeRenderer::applyZonePropertiesToScene(std::shared_ptr<ZoneEntityIt
             _previousStageDay = scene->getStageYearTime();
             _hasPreviousZone = true;
         }
-        scene->setKeyLightColor(zone->getKeyLightColorVec3());
-        scene->setKeyLightIntensity(zone->getKeyLightIntensity());
-        scene->setKeyLightAmbientIntensity(zone->getKeyLightAmbientIntensity());
-        scene->setKeyLightDirection(zone->getKeyLightDirection());
+        auto xcolor = zone->getKeyLightProperties().getColor();
+        scene->setKeyLightColor(glm::vec3(xcolor.red / 256.0f, xcolor.green / 256.0f, xcolor.blue / 256.0f));
+        scene->setKeyLightIntensity(zone->getKeyLightProperties().getIntensity());
+        scene->setKeyLightAmbientIntensity(zone->getKeyLightProperties().getAmbientIntensity());
+        scene->setKeyLightDirection(zone->getKeyLightProperties().getDirection());
         scene->setStageSunModelEnable(zone->getStageProperties().getSunModelEnabled());
         scene->setStageLocation(zone->getStageProperties().getLongitude(), zone->getStageProperties().getLatitude(),
                                 zone->getStageProperties().getAltitude());
