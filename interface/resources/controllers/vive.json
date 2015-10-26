@@ -1,0 +1,22 @@
+{
+    "name": "XBox to Standard",
+    "channels": [
+        { "from": "Vive.LY", "to": "Standard.LY" }, 
+        { "from": "Vive.LX", "to": "Standard.LX" },
+        { "from": "Vive.LT", "to": "Standard.LT" }, 
+        { "from": "Vive.LB", "to": "Standard.LB" }, 
+        { "from": "Vive.LS", "to": "Standard.LS" },
+
+        { "from": "Vive.RY", "to": "Standard.RY" }, 
+        { "from": "Vive.RX", "to": "Standard.RX" },
+        { "from": "Vive.RT", "to": "Standard.RT" }, 
+        { "from": "Vive.RB", "to": "Standard.RB" }, 
+        { "from": "Vive.RS", "to": "Standard.RS" },
+
+        { "from": "Vive.Back", "to": "Standard.Back" }, 
+        { "from": "Vive.Start", "to": "Standard.Start" }, 
+        
+        { "from": "Vive.A", "to": "Standard.A" }, 
+        { "from": "Vive.B", "to": "Standard.B" }
+    ]
+}
