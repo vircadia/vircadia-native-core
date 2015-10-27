@@ -8,6 +8,4 @@ set_target_properties(${TARGET_NAME} PROPERTIES FOLDER "Tests/manual-tests/")
 # link in the shared libraries
 link_hifi_libraries(render-utils gpu shared)
 
-message(${PROJECT_BINARY_DIR})
-
 copy_dlls_beside_windows_executable()
