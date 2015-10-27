@@ -1,3 +1,14 @@
+//
+//  line.js
+//  examples/libraries
+//
+//  Created by Ryan Huffman on October 27, 2015
+//  Copyright 2015 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+//
+
 function error(message) {
     print("[ERROR] " + message);
 }
