@@ -317,39 +317,24 @@ MasterReset = function() {
     function createBasketballResetter() {
 
         var position = {
-            x: 542.86,
-            y: 494.44,
-            z: 475.06
+            x: 543.58,
+            y: 495.47,
+            z: 469.59
         };
 
         var dimensions = {
-            x: 0.5,
-            y: 0.1,
-            z: 0.01
+            x: 1.65,
+            y: 1.71,
+            z: 1.75
         };
-
-        var rotation = Quat.fromPitchYawRollDegrees(0, 0, 0);
 
         var resetter = Entities.addEntity({
             type: "Text",
             position: position,
             name: "Basketball Resetter",
             script: basketballResetterScriptURL,
-            rotation: rotation,
             dimensions: dimensions,
-            backgroundColor: {
-                red: 0,
-                green: 0,
-                blue: 0
-            },
-            textColor: {
-                red: 255,
-                green: 255,
-                blue: 255
-            },
-            text: "RESET BALLS",
-            lineHeight: 0.07,
-            faceCamera: true,
+            visible:false,
             userData: JSON.stringify({
                 resetMe: {
                     resetMe: true
@@ -365,39 +350,24 @@ MasterReset = function() {
 
     function createTargetResetter() {
         var dimensions = {
-            x: 1,
-            y: 0.1,
-            z: 0.01
+            x: 0.21,
+            y: 0.61,
+            z: 0.21
         };
 
         var position = {
-            x: 548.68,
-            y: 495.30,
-            z: 509.74
+            x: 548.42,
+            y: 496.40,
+            z: 509.61
         };
 
-        var rotation = Quat.fromPitchYawRollDegrees(0, 0, 0);
-
         var resetter = Entities.addEntity({
-            type: "Text",
+            type: "Box",
             position: position,
             name: "Target Resetter",
             script: targetsResetterScriptURL,
-            rotation: rotation,
             dimensions: dimensions,
-            backgroundColor: {
-                red: 0,
-                green: 0,
-                blue: 0
-            },
-            textColor: {
-                red: 255,
-                green: 255,
-                blue: 255
-            },
-            faceCamera: true,
-            text: "RESET TARGETS",
-            lineHeight: 0.07,
+            visible:false,
             userData: JSON.stringify({
                 resetMe: {
                     resetMe: true
