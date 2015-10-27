@@ -36,6 +36,7 @@ var colors = [
 
 var whiteboard = Entities.addEntity({
     type: "Model",
+    shapeType: "box",
     modelURL: modelURL,
     name: "whiteboard base",
     position: center,
