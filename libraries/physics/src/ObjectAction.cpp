@@ -247,15 +247,29 @@ bool ObjectAction::lifetimeIsOver() {
 }
 
 quint64 ObjectAction::localTimeToServerTime(quint64 timeValue) const {
+    // 0 indicates no expiration
     if (timeValue == 0) {
         return 0;
     }
-    return timeValue + getEntityServerClockSkew();
+
+    int serverClockSkew = getEntityServerClockSkew();
+    if (serverClockSkew < 0 && timeValue <= (quint64)(-serverClockSkew)) {
+        return 1; // non-zero but long-expired value to avoid negative roll-over
+    }
+
+    return timeValue + serverClockSkew;
 }
 
 quint64 ObjectAction::serverTimeToLocalTime(quint64 timeValue) const {
+    // 0 indicates no expiration
     if (timeValue == 0) {
         return 0;
     }
-    return timeValue - getEntityServerClockSkew();
+
+    int serverClockSkew = getEntityServerClockSkew();
+    if (serverClockSkew > 0 && timeValue <= (quint64)serverClockSkew) {
+        return 1; // non-zero but long-expired value to avoid negative roll-over
+    }
+
+    return timeValue - serverClockSkew;
 }
