@@ -79,7 +79,6 @@ void avatarDataFromScriptValue(const QScriptValue &object, AvatarData* &out) {
 QScriptValue inputControllerToScriptValue(QScriptEngine *engine, AbstractInputController* const &in) {
     return engine->newQObject(in);
 }
-
 void inputControllerFromScriptValue(const QScriptValue &object, AbstractInputController* &out) {
     out = qobject_cast<AbstractInputController*>(object.toQObject());
 }
@@ -95,9 +94,6 @@ ScriptEngine::ScriptEngine(const QString& scriptContents, const QString& fileNam
     _wantSignals(wantSignals),
     _controllerScriptingInterface(controllerScriptingInterface),
     _fileNameString(fileNameString),
-    _quatLibrary(),
-    _vec3Library(),
-    _uuidLibrary(),
     _isUserLoaded(false),
     _isReloading(false),
     _arrayBufferClass(new ArrayBufferClass(this))
@@ -513,18 +509,22 @@ void ScriptEngine::addEventHandler(const EntityItemID& entityID, const QString& 
         });
         
         // Two common cases of event handler, differing only in argument signature.
-        auto makeSingleEntityHandler = [&](QString eventName) {
+        using SingleEntityHandler = std::function<void(const EntityItemID&)>;
+        auto makeSingleEntityHandler = [this](QString eventName) -> SingleEntityHandler {
             return [this, eventName](const EntityItemID& entityItemID) {
                 forwardHandlerCall(entityItemID, eventName, { entityItemID.toScriptValue(this) });
             };
         };
-        auto makeMouseHandler = [&](QString eventName) {
+        
+        using MouseHandler = std::function<void(const EntityItemID&, const MouseEvent&)>;
+        auto makeMouseHandler = [this](QString eventName) -> MouseHandler {
             return [this, eventName](const EntityItemID& entityItemID, const MouseEvent& event) {
                 forwardHandlerCall(entityItemID, eventName, { entityItemID.toScriptValue(this), event.toScriptValue(this) });
             };
         };
         
-        auto makeCollisionHandler = [&](QString eventName) {
+        using CollisionHandler = std::function<void(const EntityItemID&, const EntityItemID&, const Collision&)>;
+        auto makeCollisionHandler = [this](QString eventName) -> CollisionHandler {
             return [this, eventName](const EntityItemID& idA, const EntityItemID& idB, const Collision& collision) {
                 forwardHandlerCall(idA, eventName, { idA.toScriptValue(this), idB.toScriptValue(this),
                                                      collisionToScriptValue(this, collision) });
@@ -556,7 +556,7 @@ void ScriptEngine::addEventHandler(const EntityItemID& entityID, const QString& 
 }
 
 
-QScriptValue ScriptEngine::evaluate(const QString& program, const QString& fileName, int lineNumber) {
+QScriptValue ScriptEngine::evaluate(const QString& sourceCode, const QString& fileName, int lineNumber) {
     if (_stoppingAllScripts) {
         return QScriptValue(); // bail early
     }
@@ -565,27 +565,30 @@ QScriptValue ScriptEngine::evaluate(const QString& program, const QString& fileN
         QScriptValue result;
         #ifdef THREAD_DEBUGGING
         qDebug() << "*** WARNING *** ScriptEngine::evaluate() called on wrong thread [" << QThread::currentThread() << "], invoking on correct thread [" << thread() << "] "
-            "program:" << program << " fileName:" << fileName << "lineNumber:" << lineNumber;
+            "sourceCode:" << sourceCode << " fileName:" << fileName << "lineNumber:" << lineNumber;
         #endif
         QMetaObject::invokeMethod(this, "evaluate", Qt::BlockingQueuedConnection,
             Q_RETURN_ARG(QScriptValue, result),
-            Q_ARG(const QString&, program),
+            Q_ARG(const QString&, sourceCode),
             Q_ARG(const QString&, fileName),
             Q_ARG(int, lineNumber));
         return result;
     }
+    
+    // Check syntax
+    const QScriptProgram program(sourceCode, fileName, lineNumber);
+    if (!checkSyntax(program)) {
+        return QScriptValue();
+    }
 
-    _evaluatesPending++;
-    QScriptValue result = QScriptEngine::evaluate(program, fileName, lineNumber);
-    if (hasUncaughtException()) {
-        int line = uncaughtExceptionLineNumber();
-        qCDebug(scriptengine) << "Uncaught exception at (" << _fileNameString << " : " << fileName << ") line" << line << ": " << result.toString();
-    }
-    _evaluatesPending--;
+    ++_evaluatesPending;
+    const auto result = QScriptEngine::evaluate(program);
+    --_evaluatesPending;
+    
+    const auto hadUncaughtException = checkExceptions(*this, program.fileName());
     if (_wantSignals) {
-        emit evaluationFinished(result, hasUncaughtException());
+        emit evaluationFinished(result, hadUncaughtException);
     }
-    clearExceptions();
     return result;
 }
 
@@ -603,7 +606,7 @@ void ScriptEngine::run() {
         emit runningStateChanged();
     }
 
-    QScriptValue result = evaluate(_scriptContents);
+    QScriptValue result = evaluate(_scriptContents, _fileNameString);
 
     QElapsedTimer startTime;
     startTime.start();
@@ -644,15 +647,6 @@ void ScriptEngine::run() {
         qint64 now = usecTimestampNow();
         float deltaTime = (float) (now - lastUpdate) / (float) USECS_PER_SECOND;
 
-        if (hasUncaughtException()) {
-            int line = uncaughtExceptionLineNumber();
-            qCDebug(scriptengine) << "Uncaught exception at (" << _fileNameString << ") line" << line << ":" << uncaughtException().toString();
-            if (_wantSignals) {
-                emit errorMessage("Uncaught exception at (" + _fileNameString + ") line" + QString::number(line) + ":" + uncaughtException().toString());
-            }
-            clearExceptions();
-        }
-
         if (!_isFinished) {
             if (_wantSignals) {
                 emit update(deltaTime);
@@ -660,6 +654,9 @@ void ScriptEngine::run() {
         }
         lastUpdate = now;
 
+        if (!checkExceptions(*this, _fileNameString)) {
+            stop();
+        }
     }
 
     stopAllTimers(); // make sure all our timers are stopped if the script is ending
@@ -896,6 +893,37 @@ void ScriptEngine::load(const QString& loadFile) {
     }
 }
 
+bool ScriptEngine::checkSyntax(const QScriptProgram& program) {
+    const auto syntaxCheck = QScriptEngine::checkSyntax(program.sourceCode());
+    if (syntaxCheck.state() != QScriptSyntaxCheckResult::Valid) {
+        const auto error = syntaxCheck.errorMessage();
+        const auto line = QString::number(syntaxCheck.errorLineNumber());
+        const auto column = QString::number(syntaxCheck.errorColumnNumber());
+        const auto message = QString("[SyntaxError] %1 in %2:%3(%4)").arg(error, program.fileName(), line, column);
+        qCWarning(scriptengine) << qPrintable(message);
+        return false;
+    }
+    return true;
+}
+
+bool ScriptEngine::checkExceptions(QScriptEngine& engine, const QString& fileName) {
+    if (engine.hasUncaughtException()) {
+        const auto backtrace = engine.uncaughtExceptionBacktrace();
+        const auto exception = engine.uncaughtException().toString();
+        const auto line = QString::number(engine.uncaughtExceptionLineNumber());
+        engine.clearExceptions();
+        
+        auto message = QString("[UncaughtException] %1 in %2:%3").arg(exception, fileName, line);
+        if (!backtrace.empty()) {
+            static const auto lineSeparator = "\n    ";
+            message += QString("\n[Backtrace]%1%2").arg(lineSeparator, backtrace.join(lineSeparator));
+        }
+        qCWarning(scriptengine) << qPrintable(message);
+        return false;
+    }
+    return true;
+}
+
 // Look up the handler associated with eventName and entityID. If found, evalute the argGenerator thunk and call the handler with those args
 void ScriptEngine::forwardHandlerCall(const EntityItemID& entityID, const QString& eventName, QScriptValueList eventHanderArgs) {
     if (QThread::currentThread() != thread()) {
@@ -978,14 +1006,10 @@ void ScriptEngine::entityScriptContentAvailable(const EntityItemID& entityID, co
 
     auto scriptCache = DependencyManager::get<ScriptCache>();
     bool isFileUrl = isURL && scriptOrURL.startsWith("file://");
+    auto fileName = QString("(EntityID:%1, %2)").arg(entityID.toString(), isURL ? scriptOrURL : "EmbededEntityScript");
 
-    // first check the syntax of the script contents
-    QScriptSyntaxCheckResult syntaxCheck = QScriptEngine::checkSyntax(contents);
-    if (syntaxCheck.state() != QScriptSyntaxCheckResult::Valid) {
-        qCDebug(scriptengine) << "ScriptEngine::loadEntityScript() entity:" << entityID;
-        qCDebug(scriptengine) << "   " << syntaxCheck.errorMessage() << ":"
-                << syntaxCheck.errorLineNumber() << syntaxCheck.errorColumnNumber();
-        qCDebug(scriptengine) << "    SCRIPT:" << scriptOrURL;
+    QScriptProgram program(contents, fileName);
+    if (!checkSyntax(program)) {
         if (!isFileUrl) {
             scriptCache->addScriptToBadScriptList(scriptOrURL);
         }
@@ -997,12 +1021,15 @@ void ScriptEngine::entityScriptContentAvailable(const EntityItemID& entityID, co
     }
 
     QScriptEngine sandbox;
-    QScriptValue testConstructor = sandbox.evaluate(contents);
-
+    QScriptValue testConstructor = sandbox.evaluate(program);
+    if (!checkExceptions(sandbox, program.fileName())) {
+        return;
+    }
+    
     if (!testConstructor.isFunction()) {
-        qCDebug(scriptengine) << "ScriptEngine::loadEntityScript() entity:" << entityID;
-        qCDebug(scriptengine) << "    NOT CONSTRUCTOR";
-        qCDebug(scriptengine) << "    SCRIPT:" << scriptOrURL;
+        qCDebug(scriptengine) << "ScriptEngine::loadEntityScript() entity:" << entityID << "\n"
+                                 "    NOT CONSTRUCTOR\n"
+                                 "    SCRIPT:" << scriptOrURL;
         if (!isFileUrl) {
             scriptCache->addScriptToBadScriptList(scriptOrURL);
         }
@@ -1015,7 +1042,7 @@ void ScriptEngine::entityScriptContentAvailable(const EntityItemID& entityID, co
         lastModified = (quint64)QFileInfo(file).lastModified().toMSecsSinceEpoch();
     }
 
-    QScriptValue entityScriptConstructor = evaluate(contents);
+    QScriptValue entityScriptConstructor = evaluate(contents, fileName);
     QScriptValue entityScriptObject = entityScriptConstructor.construct();
     EntityScriptDetails newDetails = { scriptOrURL, entityScriptObject, lastModified };
     _entityScripts[entityID] = newDetails;
