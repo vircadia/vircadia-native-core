@@ -239,7 +239,7 @@
         unload: function() {
 
             Overlays.deleteOverlay(this.laserPointer);
-            // this.eraseBoard();
+            this.eraseBoard();
         }
 
     };
