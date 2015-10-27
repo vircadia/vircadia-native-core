@@ -33,24 +33,32 @@ var colors = [
     hexToRgb("#993369"),
     hexToRgb("#000000")
 ];
+
 var whiteboard = Entities.addEntity({
     type: "Model",
     modelURL: modelURL,
-    name: "whiteboard",
+    name: "whiteboard base",
     position: center,
     rotation: rotation,
+});
+
+var surfaceCenter = Vec3.sum(center, Vec3.multiply(-0.1, Quat.getFront(rotation)));
+surfaceCenter.y +=  0.55;
+var drawingSurface = Entities.addEntity({
+    type: "Box",
+    color: {red: 255, green: 255, blue: 255},
+    name: "whiteboard surface",
+    position: surfaceCenter,
+    dimensions: {x: 1.8, y: 1.4, z: 0.01},
     script: scriptURL,
-    color: {
-        red: 255,
-        green: 255,
-        blue: 255
-    },
-    userData: JSON.stringify({
+    rotation: rotation, 
+     userData: JSON.stringify({
         color: {
             currentColor: colors[0]
         }
     })
-});
+
+})
 
 Script.setTimeout(function() {
     whiteboardDimensions = Entities.getEntityProperties(whiteboard, "naturalDimensions").naturalDimensions;
@@ -80,11 +88,11 @@ function setUp() {
         dimensions: colorIndicatorDimensions,
         script: scriptURL,
         userData: JSON.stringify({
-            whiteboard: whiteboard
+            whiteboard: drawingSurface
         })
     });
 
-    Entities.editEntity(whiteboard, {
+    Entities.editEntity(drawingSurface, {
         userData: JSON.stringify({
             color: {
                 currentColor: colors[0]
@@ -121,7 +129,7 @@ function setUp() {
             color: colors[i],
             script: scriptURL,
             userData: JSON.stringify({
-                whiteboard: whiteboard,
+                whiteboard: drawingSurface,
                 colorIndicator: colorIndicatorBox
             })
         });
@@ -161,7 +169,7 @@ function setUp() {
         text: "ERASE BOARD",
         lineHeight: 0.07,
         userData: JSON.stringify({
-            whiteboard: whiteboard
+            whiteboard: drawingSurface
         })
     });
 
@@ -171,6 +179,7 @@ function setUp() {
 
 function cleanup() {
     Entities.deleteEntity(whiteboard);
+    Entities.deleteEntity(drawingSurface);
     Entities.deleteEntity(eraseAllText);
     Entities.deleteEntity(colorIndicatorBox);
     colorBoxes.forEach(function(colorBox) {
