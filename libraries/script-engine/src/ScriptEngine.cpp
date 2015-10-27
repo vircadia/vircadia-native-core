@@ -83,7 +83,7 @@ void inputControllerFromScriptValue(const QScriptValue &object, AbstractInputCon
     out = qobject_cast<AbstractInputController*>(object.toQObject());
 }
 
-bool checkSyntax(const QScriptProgram& program) {
+static bool hasCorrectSyntax(const QScriptProgram& program) {
     const auto syntaxCheck = QScriptEngine::checkSyntax(program.sourceCode());
     if (syntaxCheck.state() != QScriptSyntaxCheckResult::Valid) {
         const auto error = syntaxCheck.errorMessage();
@@ -96,7 +96,7 @@ bool checkSyntax(const QScriptProgram& program) {
     return true;
 }
 
-bool checkExceptions(QScriptEngine& engine, const QString& fileName) {
+static bool hadUncauchtExceptions(QScriptEngine& engine, const QString& fileName) {
     if (engine.hasUncaughtException()) {
         const auto backtrace = engine.uncaughtExceptionBacktrace();
         const auto exception = engine.uncaughtException().toString();
@@ -109,9 +109,9 @@ bool checkExceptions(QScriptEngine& engine, const QString& fileName) {
             message += QString("\n[Backtrace]%1%2").arg(lineSeparator, backtrace.join(lineSeparator));
         }
         qCWarning(scriptengine) << qPrintable(message);
-        return false;
+        return true;
     }
-    return true;
+    return false;
 }
 
 ScriptEngine::ScriptEngine(const QString& scriptContents, const QString& fileNameString,
@@ -608,7 +608,7 @@ QScriptValue ScriptEngine::evaluate(const QString& sourceCode, const QString& fi
     
     // Check syntax
     const QScriptProgram program(sourceCode, fileName, lineNumber);
-    if (!checkSyntax(program)) {
+    if (!hasCorrectSyntax(program)) {
         return QScriptValue();
     }
 
@@ -616,7 +616,7 @@ QScriptValue ScriptEngine::evaluate(const QString& sourceCode, const QString& fi
     const auto result = QScriptEngine::evaluate(program);
     --_evaluatesPending;
     
-    const auto hadUncaughtException = checkExceptions(*this, program.fileName());
+    const auto hadUncaughtException = hadUncauchtExceptions(*this, program.fileName());
     if (_wantSignals) {
         emit evaluationFinished(result, hadUncaughtException);
     }
@@ -685,7 +685,7 @@ void ScriptEngine::run() {
         }
         lastUpdate = now;
 
-        if (!checkExceptions(*this, _fileNameString)) {
+        if (hadUncauchtExceptions(*this, _fileNameString)) {
             stop();
         }
     }
@@ -1009,7 +1009,7 @@ void ScriptEngine::entityScriptContentAvailable(const EntityItemID& entityID, co
     auto fileName = QString("(EntityID:%1, %2)").arg(entityID.toString(), isURL ? scriptOrURL : "EmbededEntityScript");
 
     QScriptProgram program(contents, fileName);
-    if (!checkSyntax(program)) {
+    if (!hasCorrectSyntax(program)) {
         if (!isFileUrl) {
             scriptCache->addScriptToBadScriptList(scriptOrURL);
         }
@@ -1022,7 +1022,7 @@ void ScriptEngine::entityScriptContentAvailable(const EntityItemID& entityID, co
 
     QScriptEngine sandbox;
     QScriptValue testConstructor = sandbox.evaluate(program);
-    if (!checkExceptions(sandbox, program.fileName())) {
+    if (hadUncauchtExceptions(sandbox, program.fileName())) {
         return;
     }
     
