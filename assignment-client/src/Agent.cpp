@@ -403,7 +403,7 @@ void Agent::sendPingRequests() {
         case NodeType::AvatarMixer:
         case NodeType::AudioMixer:
         case NodeType::EntityServer:
-        case NodeType::AssetClient:
+        case NodeType::AssetServer:
             return true;
         default:
             return false;
