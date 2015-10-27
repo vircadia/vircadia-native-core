@@ -1289,8 +1289,7 @@ void MyAvatar::harvestResultsFromPhysicsSimulation() {
     _characterController.getAvatarPositionAndOrientation(position, orientation);
     nextAttitude(position, orientation);
     setVelocity(_characterController.getLinearVelocity());
-    
-    // adebug TODO: harvest HMD shift here
+    // TODO: harvest HMD shift here
     //glm::vec3 hmdShift = _characterController.getHMDShift();
 }
 
