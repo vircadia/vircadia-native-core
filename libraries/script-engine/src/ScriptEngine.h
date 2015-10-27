@@ -181,9 +181,6 @@ private:
 
     QObject* setupTimerWithInterval(const QScriptValue& function, int intervalMS, bool isSingleShot);
     void stopTimer(QTimer* timer);
-
-    static bool checkSyntax(const QScriptProgram& program);
-    static bool checkExceptions(QScriptEngine& engine, const QString& fileName);
     
     AbstractControllerScriptingInterface* _controllerScriptingInterface;
     QString _fileNameString;
