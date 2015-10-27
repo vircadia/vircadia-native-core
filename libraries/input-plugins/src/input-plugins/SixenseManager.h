@@ -108,6 +108,8 @@ private:
 #endif
     
     bool _hydrasConnected;
+    int _badDataCount;
+    int _allowedBadDataCount;
 
     static const QString NAME;
     static const QString HYDRA_ID_STRING;
