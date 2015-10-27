@@ -953,19 +953,17 @@ Mapping::Pointer UserInputMapper::parseMapping(const QString& json) {
     QJsonDocument doc = QJsonDocument::fromJson(json.toUtf8(), &error);
     // check validity of the document
     if (doc.isNull()) {
+        qDebug() << "Invalid JSON...\n";
+        qDebug() << error.errorString();
+        qDebug() << "JSON was:\n" << json << endl;
         return Mapping::Pointer();
     }
 
     if (!doc.isObject()) {
         qWarning() << "Mapping json Document is not an object" << endl;
+        qDebug() << "JSON was:\n" << json << endl;
         return Mapping::Pointer();
     }
-
-    // FIXME how did we detect this?
-    //    qDebug() << "Invalid JSON...\n";
-    //    qDebug() << error.errorString();
-    //    qDebug() << "JSON was:\n" << json << endl;
-    //}
     return parseMapping(doc.object());
 }
 
@@ -1017,6 +1015,14 @@ void UserInputMapper::disableMapping(const Mapping::Pointer& mapping) {
     if (debuggableRoutes) {
         debuggableRoutes = hasDebuggableRoute(_deviceRoutes) || hasDebuggableRoute(_standardRoutes);
     }
+}
+
+void UserInputMapper::resetActionState(Action action, float value) {
+    auto endpoint = endpointFor(inputFromAction(action));
+    if (endpoint) {
+        endpoint->apply(value, 0.0f, Endpoint::Pointer());
+    }
+    _actionStates[toInt(action)] = value;
 }
 
 }

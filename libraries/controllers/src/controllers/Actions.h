@@ -78,6 +78,8 @@ enum class Action {
     BOOM_IN,
     BOOM_OUT,
 
+    IN_HMD, // THis is a read only action ?
+
     NUM_ACTIONS,
 };
 

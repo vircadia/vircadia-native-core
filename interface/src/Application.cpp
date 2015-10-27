@@ -2703,6 +2703,9 @@ void Application::update(float deltaTime) {
 
     auto myAvatar = getMyAvatar();
     auto userInputMapper = DependencyManager::get<UserInputMapper>();
+    // Reflect some state into the Actions of the UserInpuMapper
+    userInputMapper->resetActionState(controller::Action::IN_HMD, (float)qApp->getAvatarUpdater()->isHMDMode());
+
     userInputMapper->setSensorToWorldMat(myAvatar->getSensorToWorldMatrix());
     userInputMapper->update(deltaTime);
 
@@ -2737,6 +2740,11 @@ void Application::update(float deltaTime) {
             }
         }
         myAvatar->setDriveKeys(ZOOM, userInputMapper->getActionState(controller::Action::TRANSLATE_CAMERA_Z));
+    }
+
+    float lhc = userInputMapper->getActionState(controller::Action::LEFT_HAND_CLICK);
+    if (lhc != 0.0f) {
+        std::cout << "Left Hand click = " << lhc << std::endl;
     }
     controller::Pose leftHand = userInputMapper->getPoseState(controller::Action::LEFT_HAND);
     controller::Pose rightHand = userInputMapper->getPoseState(controller::Action::RIGHT_HAND);
