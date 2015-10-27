@@ -12,7 +12,7 @@
 #include <QMainWindow>
 #include <QGLWidget>
 #include <GLMHelpers.h>
-#include <GlWindow.h>
+#include <gl/GlWindow.h>
 #include <QEvent>
 #include <QResizeEvent>
 #include <QOpenGLContext>
@@ -20,7 +20,7 @@
 #include <QScreen>
 
 #include <PerfStat.h>
-#include <OglplusHelpers.h>
+#include <gl/OglplusHelpers.h>
 #include <ViewFrustum.h>
 
 #include "plugins/PluginContainer.h"

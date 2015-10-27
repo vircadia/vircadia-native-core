@@ -23,7 +23,6 @@
 
 #include "GLEscrow.h"
 #include "OffscreenGlCanvas.h"
-#include "AbstractViewStateInterface.h"
 
 // FIXME move to threaded rendering with Qt 5.5
 // #define QML_THREADED 
@@ -207,9 +206,7 @@ private:
         qreal pixelRatio = 1.0;
         if (_renderControl && _renderControl->_renderWindow) {
             pixelRatio = _renderControl->_renderWindow->devicePixelRatio();
-        } else {
-            pixelRatio = AbstractViewStateInterface::instance()->getDevicePixelRatio();
-        }
+        } 
 
         uvec2 newOffscreenSize = toGlm(newSize * pixelRatio);
         _textures.setSize(newOffscreenSize);
