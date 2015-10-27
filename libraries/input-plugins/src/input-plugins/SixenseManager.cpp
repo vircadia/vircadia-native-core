@@ -67,11 +67,7 @@ const float DEFAULT_REACH_LENGTH = 1.5f;
 
 SixenseManager::SixenseManager() :
     InputDevice("Hydra"),
-    _reachLength(DEFAULT_REACH_LENGTH),
-#ifdef __APPLE__
-    _sixenseLibrary(nullptr),
-#endif
-    _hydrasConnected(false)
+    _reachLength(DEFAULT_REACH_LENGTH) 
 {
 }
 
@@ -93,6 +89,9 @@ void SixenseManager::activate() {
     CONTAINER->addMenuItem(MENU_PATH, TOGGLE_SMOOTH,
                            [this] (bool clicked) { this->setSixenseFilter(clicked); },
                            true, true);
+
+    auto userInputMapper = DependencyManager::get<controller::UserInputMapper>();
+    userInputMapper->registerDevice(this);
 
 #ifdef __APPLE__
 
@@ -121,9 +120,6 @@ void SixenseManager::activate() {
 #endif
     loadSettings();
     sixenseInit();
-    _activated = true;
-    auto userInputMapper = DependencyManager::get<controller::UserInputMapper>();
-    userInputMapper->registerDevice(this);
 #endif
 }
 
@@ -134,13 +130,19 @@ void SixenseManager::deactivate() {
     CONTAINER->removeMenu(MENU_PATH);
 
     _poseStateMap.clear();
+    _collectedSamples.clear();
+
+    if (_deviceID != controller::Input::INVALID_DEVICE) {
+        auto userInputMapper = DependencyManager::get<controller::UserInputMapper>();
+        userInputMapper->removeDevice(_deviceID);
+        _deviceID = controller::Input::INVALID_DEVICE;
+    }
 
 #ifdef __APPLE__
     SixenseBaseFunction sixenseExit = (SixenseBaseFunction)_sixenseLibrary->resolve("sixenseExit");
 #endif
 
     sixenseExit();
-    _activated = false;
 
 #ifdef __APPLE__
     delete _sixenseLibrary;
@@ -176,29 +178,31 @@ void SixenseManager::update(float deltaTime, bool jointsCaptured) {
 
     auto userInputMapper = DependencyManager::get<controller::UserInputMapper>();
 
+    static const float MAX_DISCONNECTED_TIME = 2.0f;
+    static bool disconnected { false };
+    static float disconnectedInterval { 0.0f };
     if (sixenseGetNumActiveControllers() == 0) {
-        if (_hydrasConnected) {
-            qCDebug(inputplugins) << "hydra disconnected" << _badDataCount;
-            if (_badDataCount++ < _allowedBadDataCount) { // gotta get some no-active in a row before we shut things down
-                return;
-            }
+        if (!disconnected) {
+            disconnectedInterval += deltaTime;
         }
-        _hydrasConnected = false;
-        if (_deviceID != 0) {
-            userInputMapper->removeDevice(_deviceID);
-            _deviceID = 0;
+        if (disconnectedInterval > MAX_DISCONNECTED_TIME) {
+            disconnected = true;
+            _axisStateMap.clear();
+            _buttonPressedMap.clear();
             _poseStateMap.clear();
             _collectedSamples.clear();
         }
         return;
     }
 
-    PerformanceTimer perfTimer("sixense");
-    if (!_hydrasConnected) {
-        _hydrasConnected = true;
-        _badDataCount = 0;
-        UserActivityLogger::getInstance().connectedDevice("spatial_controller", "hydra");
+    if (disconnected) {
+        disconnected = 0;
+        disconnectedInterval = 0.0f;
     }
+
+    PerformanceTimer perfTimer("sixense");
+    // FIXME send this message once when we've positively identified hydra hardware
+    //UserActivityLogger::getInstance().connectedDevice("spatial_controller", "hydra");
 
 #ifdef __APPLE__
     SixenseBaseFunction sixenseGetMaxControllers =
@@ -600,7 +604,6 @@ void SixenseManager::saveSettings() const {
         settings.setVec3Value(QString("avatarPosition"), _avatarPosition);
         settings.setQuatValue(QString("avatarRotation"), _avatarRotation);
         settings.setValue(QString("reachLength"), QVariant(_reachLength));
-        settings.setValue(QString("allowedHydraFailures"), 120);
     }
     settings.endGroup();
 }
@@ -613,7 +616,6 @@ void SixenseManager::loadSettings() {
         settings.getVec3ValueIfValid(QString("avatarPosition"), _avatarPosition);
         settings.getQuatValueIfValid(QString("avatarRotation"), _avatarRotation);
         settings.getFloatValueIfValid(QString("reachLength"), _reachLength);
-        _allowedBadDataCount = settings.value(QString("allowedHydraFailures"), 120).toInt();
     }
     settings.endGroup();
 }
