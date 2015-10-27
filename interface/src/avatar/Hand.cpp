@@ -51,8 +51,7 @@ void Hand::renderHandTargets(RenderArgs* renderArgs, bool isMine) {
 
     gpu::Batch& batch = *renderArgs->_batch;
     if (isMine) {
-        for (size_t i = 0; i < palms.size(); i++) {
-            PalmData& palm = palms[i];
+        for (const auto& palm : palms) {
             if (!palm.isActive()) {
                 continue;
             }
@@ -78,8 +77,7 @@ void Hand::renderHandTargets(RenderArgs* renderArgs, bool isMine) {
     const float AXIS_LENGTH = 10.0f * SPHERE_RADIUS;
 
     // Draw the coordinate frames of the hand targets
-    for (size_t i = 0; i < palms.size(); ++i) {
-        PalmData& palm = palms[i];
+    for (const auto& palm : palms) {
         if (palm.isActive()) {
             glm::vec3 root = palm.getPosition();
 

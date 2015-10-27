@@ -321,8 +321,7 @@ void ApplicationCompositor::displayOverlayTextureHmd(RenderArgs* renderArgs, int
         if (Menu::getInstance()->isOptionChecked(MenuOption::EnableHandMouseInput)) {
             MyAvatar* myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
             auto palms = myAvatar->getHand()->getCopyOfPalms();
-            for (int i = 0; i < (int)palms.size(); i++) {
-                const auto& palm = palms[i];
+            for (const auto& palm : palms) {
                 if (palm.isActive()) {
                     glm::vec2 polar = getPolarCoordinates(palm);
                     // Convert to quaternion

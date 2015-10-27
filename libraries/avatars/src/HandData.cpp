@@ -85,8 +85,7 @@ bool HandData::findSpherePenetration(const glm::vec3& penetratorCenter, float pe
                                         const PalmData*& collidingPalm) const {
     QReadLocker locker(&_palmsLock);
 
-    for (size_t i = 0; i < _palms.size(); ++i) {
-        const PalmData& palm = _palms[i];
+    for (const auto& palm : _palms) {
         if (!palm.isActive()) {
             continue;
         }
