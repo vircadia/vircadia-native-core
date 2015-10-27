@@ -18,7 +18,7 @@ namespace controller {
         CompositeEndpoint(Endpoint::Pointer first, Endpoint::Pointer second);
 
         virtual float value() override;
-        virtual void apply(float newValue, float oldValue, const Pointer& source) override;
+        virtual void apply(float newValue, const Pointer& source) override;
     };
 
 }

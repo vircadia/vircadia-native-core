@@ -24,10 +24,10 @@ public:
         return 0.0;
     }
 
-    virtual void apply(float newValue, float oldValue, const Endpoint::Pointer& source) override {
+    virtual void apply(float value, const Endpoint::Pointer& source) override {
         for (auto& child : _children) {
             if (child->writeable()) {
-                child->apply(newValue, oldValue, source);
+                child->apply(value, source);
             }
         }
     }

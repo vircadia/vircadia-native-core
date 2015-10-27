@@ -26,22 +26,21 @@ void ScriptEndpoint::updateValue() {
     _lastValueRead = (float)_callable.call().toNumber();
 }
 
-void ScriptEndpoint::apply(float newValue, float oldValue, const Pointer& source) {
-    if (newValue == _lastValueWritten) {
+void ScriptEndpoint::apply(float value, const Pointer& source) {
+    if (value == _lastValueWritten) {
         return;
     }
-    internalApply(newValue, oldValue, source->getInput().getID());
+    internalApply(value, source->getInput().getID());
 }
 
-void ScriptEndpoint::internalApply(float newValue, float oldValue, int sourceID) {
-    _lastValueWritten = newValue;
+void ScriptEndpoint::internalApply(float value, int sourceID) {
+    _lastValueWritten = value;
     if (QThread::currentThread() != thread()) {
         QMetaObject::invokeMethod(this, "internalApply", Qt::QueuedConnection,
-            Q_ARG(float, newValue),
-            Q_ARG(float, oldValue),
+            Q_ARG(float, value),
             Q_ARG(int, sourceID));
         return;
     }
     _callable.call(QScriptValue(),
-        QScriptValueList({ QScriptValue(newValue), QScriptValue(oldValue), QScriptValue(sourceID) }));
+        QScriptValueList({ QScriptValue(value), QScriptValue(sourceID) }));
 }

@@ -22,9 +22,9 @@ public:
 
     virtual float value() override;
     // FIXME need support for writing back to vibration / force feedback effects
-    virtual void apply(float newValue, float oldValue, const Pointer& source) override {}
+    virtual void apply(float newValue, const Pointer& source) override {}
     virtual Pose pose() override;
-    virtual void apply(const Pose& newValue, const Pose& oldValue, const Pointer& source) override { }
+    virtual void apply(const Pose& value, const Pointer& source) override { }
 
     virtual bool writeable() const { return false; }
     virtual bool readable() const { return !_read; }

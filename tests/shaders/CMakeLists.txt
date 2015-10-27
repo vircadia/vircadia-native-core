@@ -17,6 +17,4 @@ include_directories("${PROJECT_BINARY_DIR}/../../libraries/render-utils/")
 include_directories("${PROJECT_BINARY_DIR}/../../libraries/entities-renderer/")
 include_directories("${PROJECT_BINARY_DIR}/../../libraries/model/")
 
-message(${PROJECT_BINARY_DIR})
-
 copy_dlls_beside_windows_executable()
