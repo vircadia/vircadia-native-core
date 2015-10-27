@@ -104,18 +104,11 @@ private:
     MovingAverageMap _collectedSamples;
     
 #ifdef __APPLE__
-    QLibrary* _sixenseLibrary;
+    QLibrary* _sixenseLibrary { nullptr };
 #endif
     
-    bool _hydrasConnected;
-    int _badDataCount;
-    int _allowedBadDataCount;
-
     static const QString NAME;
     static const QString HYDRA_ID_STRING;
-
-    bool _activated = false;
-
 };
 
 #endif // hifi_SixenseManager_h
