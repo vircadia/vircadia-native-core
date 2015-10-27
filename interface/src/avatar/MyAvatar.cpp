@@ -569,8 +569,8 @@ PalmData MyAvatar::getActivePalmData(int palmIndex) const {
             numberOfActivePalms++;
         }
     }
-    PalmData noData(nullptr);
-    return noData;
+    ;
+    return PalmData();
 }
 
 
