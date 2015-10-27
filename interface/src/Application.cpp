@@ -4811,30 +4811,9 @@ void Application::setPalmData(Hand* hand, const controller::Pose& pose, float de
     // reading or writing to the Palms. This is definitely not the best way of handling this, and I'd like to see more
     // of this palm manipulation in the Hand class itself. But unfortunately the Hand and Palm don't knbow about
     // controller::Pose. More work is needed to clean this up.
-    hand->modifyPalms([&](std::vector<PalmData>& palms) {
+    hand->modifyPalm(whichHand, [&](PalmData& palm) {
         auto myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
-        PalmData* palm;
-        bool foundHand = false;
-
-        // FIXME - this little chuck of code is a hot mess. It's basically searching the palms
-        // for the one that matches the "sixenseID" that is the "index" parameter. If it 
-        // doesn't find it, then it creates a new palm and sets that palm's ID this really
-        // can and should be inside the HandData class
-        for (size_t j = 0; j < palms.size(); j++) {
-            if (palms[j].whichHand() == whichHand) {
-                palm = &(palms[j]);
-                foundHand = true;
-                break;
-            }
-        }
-        if (!foundHand) {
-            PalmData newPalm(hand);
-            palms.push_back(newPalm);
-            palm = &(palms[palms.size() - 1]); // FIXME - lame
-            palm->setHand(whichHand);
-        }
-    
-        palm->setActive(pose.isValid());
+        palm.setActive(pose.isValid());
 
         // transform from sensor space, to world space, to avatar model space.
         glm::mat4 poseMat = createMatFromQuatAndPos(pose.getRotation(), pose.getTranslation());
@@ -4848,46 +4827,46 @@ void Application::setPalmData(Hand* hand, const controller::Pose& pose, float de
         //  Compute current velocity from position change
         glm::vec3 rawVelocity;
         if (deltaTime > 0.0f) {
-            rawVelocity = (position - palm->getRawPosition()) / deltaTime;
+            rawVelocity = (position - palm.getRawPosition()) / deltaTime;
         } else {
             rawVelocity = glm::vec3(0.0f);
         }
-        palm->setRawVelocity(rawVelocity);   //  meters/sec
+        palm.setRawVelocity(rawVelocity);   //  meters/sec
     
         //  Angular Velocity of Palm
-        glm::quat deltaRotation = rotation * glm::inverse(palm->getRawRotation());
+        glm::quat deltaRotation = rotation * glm::inverse(palm.getRawRotation());
         glm::vec3 angularVelocity(0.0f);
         float rotationAngle = glm::angle(deltaRotation);
         if ((rotationAngle > EPSILON) && (deltaTime > 0.0f)) {
             angularVelocity = glm::normalize(glm::axis(deltaRotation));
             angularVelocity *= (rotationAngle / deltaTime);
-            palm->setRawAngularVelocity(angularVelocity);
+            palm.setRawAngularVelocity(angularVelocity);
         } else {
-            palm->setRawAngularVelocity(glm::vec3(0.0f));
+            palm.setRawAngularVelocity(glm::vec3(0.0f));
         }
 
         if (controller::InputDevice::getLowVelocityFilter()) {
             //  Use a velocity sensitive filter to damp small motions and preserve large ones with
             //  no latency.
             float velocityFilter = glm::clamp(1.0f - glm::length(rawVelocity), 0.0f, 1.0f);
-            position = palm->getRawPosition() * velocityFilter + position * (1.0f - velocityFilter);
-            rotation = safeMix(palm->getRawRotation(), rotation, 1.0f - velocityFilter);
+            position = palm.getRawPosition() * velocityFilter + position * (1.0f - velocityFilter);
+            rotation = safeMix(palm.getRawRotation(), rotation, 1.0f - velocityFilter);
         }
-        palm->setRawPosition(position);
-        palm->setRawRotation(rotation);
+        palm.setRawPosition(position);
+        palm.setRawRotation(rotation);
 
         // Store the one fingertip in the palm structure so we can track velocity
         const float FINGER_LENGTH = 0.3f;   //  meters
         const glm::vec3 FINGER_VECTOR(0.0f, FINGER_LENGTH, 0.0f);
         const glm::vec3 newTipPosition = position + rotation * FINGER_VECTOR;
-        glm::vec3 oldTipPosition = palm->getTipRawPosition();
+        glm::vec3 oldTipPosition = palm.getTipRawPosition();
         if (deltaTime > 0.0f) {
-            palm->setTipVelocity((newTipPosition - oldTipPosition) / deltaTime);
+            palm.setTipVelocity((newTipPosition - oldTipPosition) / deltaTime);
         } else {
-            palm->setTipVelocity(glm::vec3(0.0f));
+            palm.setTipVelocity(glm::vec3(0.0f));
         }
-        palm->setTipPosition(newTipPosition);
-        palm->setTrigger(triggerValue);
+        palm.setTipPosition(newTipPosition);
+        palm.setTrigger(triggerValue);
     });
 }
 

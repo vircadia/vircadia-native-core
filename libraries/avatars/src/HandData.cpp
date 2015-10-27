@@ -21,20 +21,17 @@
 HandData::HandData(AvatarData* owningAvatar) :
     _owningAvatarData(owningAvatar)
 {
-    // FIXME - this is likely the source of the fact that with Hydras and other input plugins with hand controllers
-    // we end up with 4 palms... because we end up adding palms once we know the SixenseIDs
-    // Start with two palms
-    addNewPalm();
-    addNewPalm();
+    addNewPalm(LeftHand);
+    addNewPalm(RightHand);
 }
 
 glm::vec3 HandData::worldToLocalVector(const glm::vec3& worldVector) const {
     return glm::inverse(getBaseOrientation()) * worldVector / getBaseScale();
 }
 
-PalmData& HandData::addNewPalm()  {
+PalmData& HandData::addNewPalm(Hand whichHand)  {
     QWriteLocker locker(&_palmsLock);
-    _palms.push_back(PalmData(this));
+    _palms.push_back(PalmData(this, whichHand));
     return _palms.back();
 }
 
@@ -48,7 +45,8 @@ PalmData HandData::getCopyOfPalmData(Hand hand) const {
             return palm;
         }
     }
-    return PalmData(nullptr); // invalid hand
+    PalmData noData;
+    return noData; // invalid hand
 }
 
 void HandData::getLeftRightPalmIndices(int& leftPalmIndex, int& rightPalmIndex) const {
@@ -68,7 +66,7 @@ void HandData::getLeftRightPalmIndices(int& leftPalmIndex, int& rightPalmIndex) 
     }
 }
 
-PalmData::PalmData(HandData* owningHandData) :
+PalmData::PalmData(HandData* owningHandData, HandData::Hand hand) :
 _rawRotation(0.0f, 0.0f, 0.0f, 1.0f),
 _rawPosition(0.0f),
 _rawVelocity(0.0f),
@@ -76,7 +74,8 @@ _rawAngularVelocity(0.0f),
 _totalPenetration(0.0f),
 _isActive(false),
 _numFramesWithoutData(0),
-_owningHandData(owningHandData) {
+_owningHandData(owningHandData),
+_hand(hand) {
 }
 
 void PalmData::addToPosition(const glm::vec3& delta) {

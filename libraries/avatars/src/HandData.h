@@ -30,9 +30,9 @@ class PalmData;
 class HandData {
 public:
     enum Hand {
-        UnknownHand,
-        RightHand,
         LeftHand,
+        RightHand,
+        UnknownHand,
         NUMBER_OF_HANDS
     };
 
@@ -52,7 +52,6 @@ public:
 
     PalmData getCopyOfPalmData(Hand hand) const;
 
-    PalmData& addNewPalm();
     std::vector<PalmData> getCopyOfPalms() const { QReadLocker locker(&_palmsLock); return _palms; }
 
     /// Finds the indices of the left and right palms according to their locations, or -1 if either or
@@ -70,9 +69,17 @@ public:
 
     glm::quat getBaseOrientation() const;
 
-    /// Allows a lamda function write access to the palms for this Hand
-    void modifyPalms(std::function<void(std::vector<PalmData>& palms)> callback) 
-            { QWriteLocker locker(&_palmsLock); callback(_palms);}
+    /// Allows a lamda function write access to the specific palm for this Hand, this might
+    /// modify the _palms vector
+    template<typename PalmModifierFunction> void modifyPalm(Hand whichHand, PalmModifierFunction callback) {
+        QReadLocker locker(&_palmsLock);
+        for (auto& palm : _palms) {
+            if (palm.whichHand() == whichHand && palm.isValid()) {
+                callback(palm);
+                return;
+            }
+        }
+    }
 
     friend class AvatarData;
 protected:
@@ -82,7 +89,10 @@ protected:
     
     glm::vec3 getBasePosition() const;
     float getBaseScale() const;
-    
+
+    PalmData& addNewPalm(Hand whichHand);
+    PalmData& getPalmData(Hand hand);
+
 private:
     // privatize copy ctor and assignment operator so copies of this object cannot be made
     HandData(const HandData&);
@@ -92,7 +102,7 @@ private:
 
 class PalmData {
 public:
-    PalmData(HandData* owningHandData);
+    PalmData(HandData* owningHandData = nullptr, HandData::Hand hand = HandData::UnknownHand);
     glm::vec3 getPosition() const { return _owningHandData->localToWorldPosition(_rawPosition); }
     glm::vec3 getVelocity() const { return _owningHandData->localToWorldDirection(_rawVelocity); }
 
@@ -158,7 +168,7 @@ private:
     float _trigger;
     
     bool _isActive; /// This has current valid data
-    HandData::Hand _hand = HandData::UnknownHand;
+    HandData::Hand _hand;
     int _numFramesWithoutData; /// after too many frames without data, this tracked object assumed lost.
     HandData* _owningHandData;
 };
