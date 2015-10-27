@@ -17,7 +17,8 @@
 Script.include("../../libraries/utils.js");
 var scriptURL = Script.resolvePath("whiteboardEntityScript.js");
 //var modelURL = "https://hifi-public.s3.amazonaws.com/ozan/support/for_eric/whiteboard/whiteboard.fbx";
-var modelURL = "http://localhost:8080/whiteboard.fbx?v1" + Math.random();
+//var modelURL = "http://localhost:8080/whiteboard.fbx?v1" + Math.random();
+var modelURL = "https://s3.amazonaws.com/hifi-public/eric/models/whiteboard.fbx";
 var rotation = Quat.safeEulerAngles(Camera.getOrientation());
 rotation = Quat.fromPitchYawRollDegrees(0, rotation.y, 0);
 var center = Vec3.sum(MyAvatar.position, Vec3.multiply(3, Quat.getFront(rotation)));
