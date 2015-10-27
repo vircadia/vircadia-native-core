@@ -329,7 +329,7 @@ MasterReset = function() {
         };
 
         var resetter = Entities.addEntity({
-            type: "Text",
+            type: "Box",
             position: position,
             name: "Basketball Resetter",
             script: basketballResetterScriptURL,

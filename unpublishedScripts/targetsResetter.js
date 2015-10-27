@@ -17,7 +17,7 @@
 
     Resetter.prototype = {
 
-        startFarGrabNonColliding: function() {
+        startNearGrabNonColliding: function() {
             this.resetObjects();
         },
 
