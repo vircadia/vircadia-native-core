@@ -29,6 +29,9 @@ public:
     bool isReady() const { return _isReady; }
      
     const QByteArray& getByteArray() { return _byteArray; }
+    
+signals:
+    void ready();
 
 private:
     QByteArray _byteArray;
