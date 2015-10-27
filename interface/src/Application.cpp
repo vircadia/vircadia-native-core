@@ -2707,7 +2707,7 @@ void Application::update(float deltaTime) {
     userInputMapper->resetActionState(controller::Action::IN_HMD, (float)qApp->getAvatarUpdater()->isHMDMode());
 
     userInputMapper->setSensorToWorldMat(myAvatar->getSensorToWorldMatrix());
-    userInputMapper->update(deltaTime);
+  //  userInputMapper->update(deltaTime);
 
     bool jointsCaptured = false;
     for (auto inputPlugin : PluginManager::getInstance()->getInputPlugins()) {
@@ -2718,6 +2718,7 @@ void Application::update(float deltaTime) {
             }
         }
     }
+    userInputMapper->update(deltaTime);
 
     // Transfer the user inputs to the driveKeys
     // FIXME can we drop drive keys and just have the avatar read the action states directly?

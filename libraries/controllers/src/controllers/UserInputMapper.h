@@ -58,6 +58,7 @@ namespace controller {
 
         static const uint16_t ACTIONS_DEVICE;
         static const uint16_t STANDARD_DEVICE;
+        static const uint16_t STATE_DEVICE;
 
         UserInputMapper();
         virtual ~UserInputMapper();

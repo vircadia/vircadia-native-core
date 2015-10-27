@@ -43,6 +43,7 @@
 
 namespace controller {
     const uint16_t UserInputMapper::ACTIONS_DEVICE = Input::INVALID_DEVICE - 0xFF;
+    const uint16_t UserInputMapper::STATE_DEVICE = ACTIONS_DEVICE - 0xFF;
     const uint16_t UserInputMapper::STANDARD_DEVICE = 0;
 }
 
@@ -89,13 +90,16 @@ void UserInputMapper::registerDevice(InputDevice* device) {
         if (_endpointsByInput.count(input)) {
             continue;
         }
-        Endpoint::Pointer endpoint;
-        if (input.device == STANDARD_DEVICE) {
-            endpoint = std::make_shared<StandardEndpoint>(input);
-        } else if (input.device == ACTIONS_DEVICE) {
-            endpoint = std::make_shared<ActionEndpoint>(input);
-        } else {
-            endpoint = std::make_shared<InputEndpoint>(input);
+
+        Endpoint::Pointer endpoint = proxy->createEndpoint(input);
+        if (!endpoint) {
+            if (input.device == STANDARD_DEVICE) {
+                endpoint = std::make_shared<StandardEndpoint>(input);
+            } else if (input.device == ACTIONS_DEVICE) {
+                endpoint = std::make_shared<ActionEndpoint>(input);
+            } else {
+                endpoint = std::make_shared<InputEndpoint>(input);
+            }
         }
         _inputsByEndpoint[endpoint] = input;
         _endpointsByInput[input] = endpoint;
@@ -1020,7 +1024,7 @@ void UserInputMapper::disableMapping(const Mapping::Pointer& mapping) {
 void UserInputMapper::resetActionState(Action action, float value) {
     auto endpoint = endpointFor(inputFromAction(action));
     if (endpoint) {
-        endpoint->apply(value, 0.0f, Endpoint::Pointer());
+        endpoint->apply(value, Endpoint::Pointer());
     }
     _actionStates[toInt(action)] = value;
 }

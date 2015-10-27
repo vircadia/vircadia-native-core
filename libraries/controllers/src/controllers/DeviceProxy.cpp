@@ -26,6 +26,5 @@ namespace controller {
             return NAN;
         }
     }
-
 }
 

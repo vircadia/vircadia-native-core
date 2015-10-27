@@ -32,6 +32,7 @@ var RIGHT_HAND = 1;
 
 var COLORS = [ { red: 255, green: 0, blue: 0 }, { red: 0, green: 0, blue: 255 } ];
 
+
 function index(handNum, indexNum) {
 	return handNum * NUM_HANDS + indexNum;
 }
@@ -84,9 +85,46 @@ function updateHand(handNum, deltaTime) {
 	}
 }
 
+function updateHydra(handNum, deltaTime) {
+	var pose;
+	var handName = "right";
+	if (handNum == LEFT_HAND) {
+		pose = Controller.getPoseValue(Controller.Hardware.Hydra.LeftHand);
+		handName = "left";
+	} else {
+		pose = Controller.getPoseValue(Controller.Hardware.Hydra.RightHand);
+		handName = "right";
+	}
+
+	if (pose.valid) {
+		//print(handName + " hand moving" +  JSON.stringify(pose));
+		var wpos = Vec3.sum(MyAvatar.getPosition(), pose.translation);
+	    
+		Overlays.editOverlay(app.spheres[index(handNum, 0)], {
+	        position: pose.translation,
+	        visible: true,
+	    });
+	   	/*var vpos = Vec3.sum(Vec3.multiply(10 * deltaTime, pose.velocity), pose.translation);
+	    Overlays.editOverlay(app.spheres[index(handNum, 1)], {
+	        position: vpos,
+	        visible: true,
+	    });*/
+	} else {
+		Overlays.editOverlay(app.spheres[index(handNum, 0)], {
+	        visible: false
+	    });
+
+	    Overlays.editOverlay(app.spheres[index(handNum, 1)], {
+	        visible: false
+	    });
+	}
+}
+
 function update(deltaTime) {
-	updateHand(LEFT_HAND, deltaTime);
-	updateHand(RIGHT_HAND, deltaTime);
+	//updateHand(LEFT_HAND, deltaTime);
+	//updateHand(RIGHT_HAND, deltaTime);
+	updateHydra(LEFT_HAND, deltaTime);
+	updateHydra(RIGHT_HAND, deltaTime);
 }
 
 function scriptEnding() {

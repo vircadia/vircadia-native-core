@@ -3,8 +3,7 @@
     "channels": [
         { "from": "Standard.LY", "to": "Actions.TranslateZ" },
         { "from": "Standard.LX", "to": "Actions.TranslateX" },
-        { "from": "Standard.RX", "with": "Actions.InHMD", "to": "Actions.StepYaw" },
-        { "from": "Standard.RX", "to": "Actions.Yaw" },
+         { "from": "Standard.RX", "to": "Actions.Yaw" },
         { "from": "Standard.RY", "to": "Actions.Pitch" },
 
         { "from": [ "Standard.DU", "Standard.DU", "Standard.DU", "Standard.DD" ], "to": "Standard.LeftPrimaryThumb" },

@@ -23,7 +23,8 @@ namespace controller {
 
     using Modifiers = std::vector<Input>;
     typedef QPair<Input, QString> InputPair;
-
+    class Endpoint;
+    using EndpointPtr = std::shared_ptr<Endpoint>;
     
     template<typename T>
     using InputGetter = std::function<T(const Input& input, int timestamp)>;
@@ -32,6 +33,7 @@ namespace controller {
     using PoseGetter = InputGetter<Pose>;
     using ResetBindings = std::function<bool()>;
     using AvailableInputGetter = std::function<Input::NamedVector()>;
+    using EndpointCreator = std::function<EndpointPtr(const Input&)>;
 
     class DeviceProxy {
     public:
@@ -42,6 +44,9 @@ namespace controller {
         PoseGetter getPose = [](const Input& input, int timestamp) -> Pose { return Pose(); };
         AvailableInputGetter getAvailabeInputs = []() -> Input::NamedVector const { return Input::NamedVector(); };
         float getValue(const Input& input, int timestamp = 0) const;
+        
+        EndpointCreator createEndpoint = [](const Input& input) -> EndpointPtr { return EndpointPtr(); };
+
         QString _name;
     };
 }
