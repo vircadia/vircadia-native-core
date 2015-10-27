@@ -31,7 +31,7 @@ var colors = [
     hexToRgb("#491849"),
     hexToRgb("#6AB03B"),
     hexToRgb("#993369"),
-    hexToRgb("#9B47C2")
+    hexToRgb("#000000")
 ];
 var whiteboard = Entities.addEntity({
     type: "Model",
@@ -92,12 +92,19 @@ function setUp() {
     var direction = Quat.getRight(rotation);
     var colorBoxPosition = Vec3.subtract(center, Vec3.multiply(direction, whiteboardDimensions.x / 2));
     var colorSquareDimensions = {
-        x: 0.1,
-        y: 0.1,
+        x: 0.13,
+        y: 0.13,
         z: 0.002
     };
-    colorBoxPosition.y += whiteboardDimensions.y / 2 + colorIndicatorDimensions.y + colorSquareDimensions.y / 2;
-    var spaceBetweenColorBoxes = Vec3.multiply(direction, colorSquareDimensions.x * 2);
+
+    var palleteDepthOffset = -0.06;
+    var palleteHeightOffset = -0.28;
+
+    colorBoxPosition = Vec3.sum(colorBoxPosition, Vec3.multiply(palleteDepthOffset, Quat.getFront(rotation)));
+    colorBoxPosition.y += palleteHeightOffset;
+    var spaceBetweenColorBoxes = Vec3.multiply(direction, colorSquareDimensions.x * 1.76);
+    var palleteXOffset = Vec3.multiply(direction, 0.43);
+    colorBoxPosition = Vec3.sum(colorBoxPosition, palleteXOffset);
     var scriptURL = Script.resolvePath("colorSelectorEntityScript.js");
     for (var i = 0; i < colors.length; i++) {
         var colorBox = Entities.addEntity({
