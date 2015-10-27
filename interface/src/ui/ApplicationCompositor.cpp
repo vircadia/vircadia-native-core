@@ -320,8 +320,9 @@ void ApplicationCompositor::displayOverlayTextureHmd(RenderArgs* renderArgs, int
         // Only render the hand pointers if the EnableHandMouseInput is enabled
         if (Menu::getInstance()->isOptionChecked(MenuOption::EnableHandMouseInput)) {
             MyAvatar* myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
-            for (int i = 0; i < (int)myAvatar->getHand()->getNumPalms(); i++) {
-                PalmData& palm = myAvatar->getHand()->getPalms()[i];
+            auto palms = myAvatar->getHand()->getCopyOfPalms();
+            for (int i = 0; i < (int)palms.size(); i++) {
+                const auto& palm = palms[i];
                 if (palm.isActive()) {
                     glm::vec2 polar = getPolarCoordinates(palm);
                     // Convert to quaternion
@@ -446,6 +447,7 @@ void ApplicationCompositor::renderPointers(gpu::Batch& batch) {
 }
 
 
+// FIXME - this is old code that likely needs to be removed and/or reworked to support the new input control model
 void ApplicationCompositor::renderControllerPointers(gpu::Batch& batch) {
     MyAvatar* myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
 
@@ -455,23 +457,24 @@ void ApplicationCompositor::renderControllerPointers(gpu::Batch& batch) {
     static bool stateWhenPressed[NUMBER_OF_RETICLES] = { false, false, false };
 
     const HandData* handData = DependencyManager::get<AvatarManager>()->getMyAvatar()->getHandData();
+    auto palms = handData->getCopyOfPalms();
 
     for (unsigned int palmIndex = 2; palmIndex < 4; palmIndex++) {
         const int index = palmIndex - 1;
 
         const PalmData* palmData = NULL;
 
-        if (palmIndex >= handData->getPalms().size()) {
+        if (palmIndex >= palms.size()) {
             return;
         }
 
-        if (handData->getPalms()[palmIndex].isActive()) {
-            palmData = &handData->getPalms()[palmIndex];
+        if (palms[palmIndex].isActive()) {
+            palmData = &palms[palmIndex];
         } else {
             continue;
         }
 
-        int controllerButtons = palmData->getControllerButtons();
+        int controllerButtons = 0;
 
         //Check for if we should toggle or drag the magnification window
         if (controllerButtons & BUTTON_3) {

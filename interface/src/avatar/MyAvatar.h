@@ -294,7 +294,6 @@ private:
                         const glm::vec3& translation = glm::vec3(), const glm::quat& rotation = glm::quat(), float scale = 1.0f,
                         bool allowDuplicates = false, bool useSaved = true) override;
 
-    void renderLaserPointers(gpu::Batch& batch);
     const RecorderPointer getRecorder() const { return _recorder; }
     const PlayerPointer getPlayer() const { return _player; }
 
@@ -310,8 +309,7 @@ private:
 
     void setVisibleInSceneIfReady(Model* model, render::ScenePointer scene, bool visiblity);
 
-    const PalmData* getActivePalm(int palmIndex) const;
-
+    PalmData getActivePalmData(int palmIndex) const;
 
     // derive avatar body position and orientation from the current HMD Sensor location.
     // results are in sensor space

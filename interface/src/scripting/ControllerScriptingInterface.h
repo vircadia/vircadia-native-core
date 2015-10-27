@@ -123,11 +123,6 @@ signals:
 private:
     QString sanatizeName(const QString& name); /// makes a name clean for inclusing in JavaScript
 
-    const PalmData* getPrimaryPalm() const;
-    const PalmData* getPalm(int palmIndex) const;
-    int getNumberOfActivePalms() const;
-    const PalmData* getActivePalm(int palmIndex) const;
-    
     QMultiMap<int,KeyEvent> _capturedKeys;
     QSet<int> _capturedJoysticks;
 

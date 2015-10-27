@@ -21,6 +21,8 @@
 HandData::HandData(AvatarData* owningAvatar) :
     _owningAvatarData(owningAvatar)
 {
+    // FIXME - this is likely the source of the fact that with Hydras and other input plugins with hand controllers
+    // we end up with 4 palms... because we end up adding palms once we know the SixenseIDs
     // Start with two palms
     addNewPalm();
     addNewPalm();
@@ -31,32 +33,35 @@ glm::vec3 HandData::worldToLocalVector(const glm::vec3& worldVector) const {
 }
 
 PalmData& HandData::addNewPalm()  {
+    QWriteLocker locker(&_palmsLock);
     _palms.push_back(PalmData(this));
     return _palms.back();
 }
 
-const PalmData* HandData::getPalm(int sixSenseID) const {
+PalmData HandData::getCopyOfPalmData(Hand hand) const {
+    QReadLocker locker(&_palmsLock);
+
     // the palms are not necessarily added in left-right order, 
-    // so we have to search for the right SixSenseID
-    for (unsigned int i = 0; i < _palms.size(); i++) {
-        const PalmData* palm = &(_palms[i]);
-        if (palm->getSixenseID() == sixSenseID) {
-            return palm->isActive() ? palm : NULL;
+    // so we have to search for the correct hand
+    for (const auto& palm : _palms) {
+        if (palm.whichHand() == hand && palm.isActive()) {
+            return palm;
         }
     }
-    return NULL;
+    return PalmData(nullptr); // invalid hand
 }
 
 void HandData::getLeftRightPalmIndices(int& leftPalmIndex, int& rightPalmIndex) const {
+    QReadLocker locker(&_palmsLock);
     leftPalmIndex = -1;
     rightPalmIndex = -1;
     for (size_t i = 0; i < _palms.size(); i++) {
         const PalmData& palm = _palms[i];
         if (palm.isActive()) {
-            if (palm.getSixenseID() == LEFT_HAND_INDEX) {
+            if (palm.whichHand() == LeftHand) {
                 leftPalmIndex = i;
             }
-            if (palm.getSixenseID() == RIGHT_HAND_INDEX) {
+            if (palm.whichHand() == RightHand) {
                 rightPalmIndex = i;
             }
         }
@@ -69,14 +74,9 @@ _rawPosition(0.0f),
 _rawVelocity(0.0f),
 _rawAngularVelocity(0.0f),
 _totalPenetration(0.0f),
-_controllerButtons(0),
 _isActive(false),
-_sixenseID(SIXENSEID_INVALID),
 _numFramesWithoutData(0),
-_owningHandData(owningHandData),
-_isCollidingWithVoxel(false),
-_isCollidingWithPalm(false),
-_collisionlessPaddleExpiry(0) {
+_owningHandData(owningHandData) {
 }
 
 void PalmData::addToPosition(const glm::vec3& delta) {
@@ -85,7 +85,8 @@ void PalmData::addToPosition(const glm::vec3& delta) {
 
 bool HandData::findSpherePenetration(const glm::vec3& penetratorCenter, float penetratorRadius, glm::vec3& penetration, 
                                         const PalmData*& collidingPalm) const {
-    
+    QReadLocker locker(&_palmsLock);
+
     for (size_t i = 0; i < _palms.size(); ++i) {
         const PalmData& palm = _palms[i];
         if (!palm.isActive()) {
