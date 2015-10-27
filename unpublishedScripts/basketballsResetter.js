@@ -17,7 +17,7 @@ var HIFI_PUBLIC_BUCKET = "http://s3.amazonaws.com/hifi-public/";
 
     Resetter.prototype = {
 
-        startFarGrabNonColliding: function() {
+        startNearGrabNonColliding: function() {
             this.resetObjects();
         },
 
