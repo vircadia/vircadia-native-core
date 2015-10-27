@@ -366,7 +366,7 @@ const AnimPoseVec& AnimInverseKinematics::overlay(const AnimVariantMap& animVars
             if (offsetLength > MIN_HIPS_OFFSET_LENGTH) {
                 // but only if offset is long enough
                 float scaleFactor = ((offsetLength - MIN_HIPS_OFFSET_LENGTH) / offsetLength);
-                _relativePoses[0].trans = underPoses[0].trans + scaleFactor * _hipsOffset;
+                _relativePoses[_hipsIndex].trans = underPoses[_hipsIndex].trans + scaleFactor * _hipsOffset;
             }
 
             solveWithCyclicCoordinateDescent(targets);
@@ -758,8 +758,10 @@ void AnimInverseKinematics::setSkeletonInternal(AnimSkeleton::ConstPointer skele
     if (skeleton) {
         initConstraints();
         _headIndex = _skeleton->nameToJointIndex("Head");
+        _hipsIndex = _skeleton->nameToJointIndex("Hips");
     } else {
         clearConstraints();
         _headIndex = -1;
+        _hipsIndex = -1;
     }
 }
