@@ -4807,7 +4807,7 @@ mat4 Application::getHMDSensorPose() const {
 
 void Application::setPalmData(Hand* hand, const controller::Pose& pose, float deltaTime, HandData::Hand whichHand, float triggerValue) {
 
-    // NOTE: the Hand::modifyPalms() will allow the lambda to modify the palm data while ensuring some other user isn't
+    // NOTE: the Hand::modifyPalm() will allow the lambda to modify the palm data while ensuring some other user isn't
     // reading or writing to the Palms. This is definitely not the best way of handling this, and I'd like to see more
     // of this palm manipulation in the Hand class itself. But unfortunately the Hand and Palm don't knbow about
     // controller::Pose. More work is needed to clean this up.
@@ -4866,7 +4866,7 @@ void Application::setPalmData(Hand* hand, const controller::Pose& pose, float de
             palm.setTipVelocity(glm::vec3(0.0f));
         }
         palm.setTipPosition(newTipPosition);
-        palm.setTrigger(triggerValue);
+        palm.setTrigger(triggerValue); // FIXME - we want to get rid of this idea of PalmData having a trigger
     });
 }
 

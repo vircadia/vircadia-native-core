@@ -45,8 +45,7 @@ PalmData HandData::getCopyOfPalmData(Hand hand) const {
             return palm;
         }
     }
-    PalmData noData;
-    return noData; // invalid hand
+    return PalmData(); // invalid hand
 }
 
 void HandData::getLeftRightPalmIndices(int& leftPalmIndex, int& rightPalmIndex) const {

@@ -71,15 +71,7 @@ public:
 
     /// Allows a lamda function write access to the specific palm for this Hand, this might
     /// modify the _palms vector
-    template<typename PalmModifierFunction> void modifyPalm(Hand whichHand, PalmModifierFunction callback) {
-        QReadLocker locker(&_palmsLock);
-        for (auto& palm : _palms) {
-            if (palm.whichHand() == whichHand && palm.isValid()) {
-                callback(palm);
-                return;
-            }
-        }
-    }
+    template<typename PalmModifierFunction> void modifyPalm(Hand whichHand, PalmModifierFunction callback);
 
     friend class AvatarData;
 protected:
@@ -115,7 +107,7 @@ public:
     HandData::Hand whichHand() const { return _hand; }
     void setHand(HandData::Hand hand) { _hand = hand; }
 
-    void setRawRotation(const glm::quat rawRotation) { _rawRotation = rawRotation; };
+    void setRawRotation(const glm::quat& rawRotation) { _rawRotation = rawRotation; };
     glm::quat getRawRotation() const { return _rawRotation; }
     glm::quat getRotation() const { return _owningHandData->getBaseOrientation() * _rawRotation; }
     void setRawPosition(const glm::vec3& pos)  { _rawPosition = pos; }
@@ -168,9 +160,19 @@ private:
     float _trigger;
     
     bool _isActive; /// This has current valid data
-    HandData::Hand _hand;
     int _numFramesWithoutData; /// after too many frames without data, this tracked object assumed lost.
     HandData* _owningHandData;
+    HandData::Hand _hand;
 };
+
+template<typename PalmModifierFunction> void HandData::modifyPalm(Hand whichHand, PalmModifierFunction callback) {
+    QReadLocker locker(&_palmsLock);
+    for (auto& palm : _palms) {
+        if (palm.whichHand() == whichHand && palm.isValid()) {
+            callback(palm);
+            return;
+        }
+    }
+}
 
 #endif // hifi_HandData_h

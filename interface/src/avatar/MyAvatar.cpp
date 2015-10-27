@@ -548,80 +548,46 @@ void MyAvatar::updateFromTrackers(float deltaTime) {
 }
 
 
-// FIXME - this is super duper dumb... but this is how master works. When you have
-// hydras plugged in, you'll get 4 "palms" but only the number of controllers lifted
-// of the base station are considered active. So when you ask for "left" you get the
-// first active controller. If you have both controllers held up or just the left, that
-// will be correct. But if you lift the right controller, then it will be reported
-// as "left"... you also see this in the avatars hands. 
-PalmData MyAvatar::getActivePalmData(int palmIndex) const {
-    auto palms = getHandData()->getCopyOfPalms();
-
-    int numberOfPalms = palms.size();
-    int numberOfActivePalms = 0;
-    for (int i = 0; i < numberOfPalms; i++) {
-        auto palm = palms[i];
-        if (palm.isActive()) {
-            // if we've reached the requested "active" palm, then we will return it
-            if (numberOfActivePalms == palmIndex) {
-                return palm;
-            }
-            numberOfActivePalms++;
-        }
-    }
-    ;
-    return PalmData();
-}
-
-
 glm::vec3 MyAvatar::getLeftHandPosition() const {
-    const int LEFT_HAND = 0;
-    auto palmData = getActivePalmData(LEFT_HAND);
+    auto palmData = getHandData()->getCopyOfPalmData(HandData::LeftHand);
     return palmData.isValid() ? palmData.getPosition() : glm::vec3(0.0f);
 }
 
 glm::vec3 MyAvatar::getRightHandPosition() const {
-    const int RIGHT_HAND = 1;
-    auto palmData = getActivePalmData(RIGHT_HAND);
+    auto palmData = getHandData()->getCopyOfPalmData(HandData::RightHand);
     return palmData.isValid() ? palmData.getPosition() : glm::vec3(0.0f);
 }
 
 glm::vec3 MyAvatar::getLeftHandTipPosition() const {
-    const int LEFT_HAND = 0;
-    auto palmData = getActivePalmData(LEFT_HAND);
+    auto palmData = getHandData()->getCopyOfPalmData(HandData::LeftHand);
     return palmData.isValid() ? palmData.getTipPosition() : glm::vec3(0.0f);
 }
 
 glm::vec3 MyAvatar::getRightHandTipPosition() const {
-    const int RIGHT_HAND = 1;
-    auto palmData = getActivePalmData(RIGHT_HAND);
+    auto palmData = getHandData()->getCopyOfPalmData(HandData::RightHand);
     return palmData.isValid() ? palmData.getTipPosition() : glm::vec3(0.0f);
 }
 
 controller::Pose MyAvatar::getLeftHandPose() const {
-    const int LEFT_HAND = 0;
-    auto palmData = getActivePalmData(LEFT_HAND);
+    auto palmData = getHandData()->getCopyOfPalmData(HandData::LeftHand);
     return palmData.isValid() ? controller::Pose(palmData.getPosition(), palmData.getRotation(),
         palmData.getVelocity(), palmData.getRawAngularVelocityAsQuat()) : controller::Pose();
 }
 
 controller::Pose MyAvatar::getRightHandPose() const {
-    const int RIGHT_HAND = 1;
-    auto palmData = getActivePalmData(RIGHT_HAND);
+    auto palmData = getHandData()->getCopyOfPalmData(HandData::RightHand);
     return palmData.isValid() ? controller::Pose(palmData.getPosition(), palmData.getRotation(),
         palmData.getVelocity(), palmData.getRawAngularVelocityAsQuat()) : controller::Pose();
 }
 
 controller::Pose MyAvatar::getLeftHandTipPose() const {
-    const int LEFT_HAND = 0;
-    auto palmData = getActivePalmData(LEFT_HAND);
+    auto palmData = getHandData()->getCopyOfPalmData(HandData::LeftHand);
     return palmData.isValid() ? controller::Pose(palmData.getTipPosition(), palmData.getRotation(),
         palmData.getTipVelocity(), palmData.getRawAngularVelocityAsQuat()) : controller::Pose();
 }
 
 controller::Pose MyAvatar::getRightHandTipPose() const {
-    const int RIGHT_HAND = 1;
-    auto palmData = getActivePalmData(RIGHT_HAND);
+    auto palmData = getHandData()->getCopyOfPalmData(HandData::RightHand);
     return palmData.isValid() ? controller::Pose(palmData.getTipPosition(), palmData.getRotation(),
         palmData.getTipVelocity(), palmData.getRawAngularVelocityAsQuat()) : controller::Pose();
 }
