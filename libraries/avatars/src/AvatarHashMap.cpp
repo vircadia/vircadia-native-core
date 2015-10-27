@@ -141,4 +141,5 @@ void AvatarHashMap::removeAvatar(const QUuid& sessionUUID) {
 
 void AvatarHashMap::sessionUUIDChanged(const QUuid& sessionUUID, const QUuid& oldUUID) {
     _lastOwnerSessionUUID = oldUUID;
+    emit avatarSessionChangedEvent(sessionUUID, oldUUID);
 }
