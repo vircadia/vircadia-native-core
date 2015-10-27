@@ -13,7 +13,6 @@
 #include "ui/DialogsManager.h"
 
 PluginContainerProxy::PluginContainerProxy() {
-    Plugin::setContainer(this);
 }
 
 PluginContainerProxy::~PluginContainerProxy() {

@@ -7,7 +7,7 @@
 //
 #pragma once
 
-#include "../WindowOpenGLDisplayPlugin.h"
+#include <display-plugins/WindowOpenGLDisplayPlugin.h>
 
 #include <QTimer>
 
@@ -35,6 +35,7 @@ public:
     virtual float getIPD() const override final;
 
 protected:
+    virtual void customizeContext() override;
     virtual void preRender() override final;
     virtual void display(GLuint finalTexture, const glm::uvec2& sceneSize) override;
 

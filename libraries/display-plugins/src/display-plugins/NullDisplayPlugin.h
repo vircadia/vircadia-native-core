@@ -21,7 +21,7 @@ public:
     virtual bool hasFocus() const override;
     virtual void preRender() override;
     virtual void preDisplay() override;
-    virtual void display(GLuint sceneTexture, const glm::uvec2& sceneSize) override;
+    virtual void display(uint32_t sceneTexture, const glm::uvec2& sceneSize) override;
     virtual void finishFrame() override;
 
 private:

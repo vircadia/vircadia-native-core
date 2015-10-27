@@ -7,7 +7,7 @@
 //
 #pragma once
 
-#include "../WindowOpenGLDisplayPlugin.h"
+#include <display-plugins/WindowOpenGLDisplayPlugin.h>
 
 #include <QTimer>
 
