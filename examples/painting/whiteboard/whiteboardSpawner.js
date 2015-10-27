@@ -65,7 +65,7 @@ var drawingSurface = Entities.addEntity({
 Script.setTimeout(function() {
     whiteboardDimensions = Entities.getEntityProperties(whiteboard, "naturalDimensions").naturalDimensions;
     setUp();
-}, 500)
+}, 1000)
 
 
 function setUp() {
