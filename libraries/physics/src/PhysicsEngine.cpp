@@ -251,7 +251,12 @@ void PhysicsEngine::stepSimulation() {
         _characterController->preSimulation(timeStep);
     }
 
-    int numSubsteps = _dynamicsWorld->stepSimulation(timeStep, PHYSICS_ENGINE_MAX_NUM_SUBSTEPS, PHYSICS_ENGINE_FIXED_SUBSTEP);
+    auto onSubStep = [this]() {
+        updateContactMap();
+        _hasOutgoingChanges = true;
+    };
+
+    int numSubsteps = _dynamicsWorld->stepSimulation(timeStep, PHYSICS_ENGINE_MAX_NUM_SUBSTEPS, PHYSICS_ENGINE_FIXED_SUBSTEP, onSubStep);
     if (numSubsteps > 0) {
         BT_PROFILE("postSimulation");
         _numSubsteps += (uint32_t)numSubsteps;
@@ -260,8 +265,6 @@ void PhysicsEngine::stepSimulation() {
         if (_characterController) {
             _characterController->postSimulation();
         }
-        updateContactMap();
-        _hasOutgoingChanges = true;
     }
 }
 
