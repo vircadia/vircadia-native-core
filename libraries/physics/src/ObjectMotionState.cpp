@@ -115,6 +115,21 @@ void ObjectMotionState::setMotionType(MotionType motionType) {
     _motionType = motionType;
 }
 
+void ObjectMotionState::updateCCDConfiguration() {
+    if (_body) {
+        if (_shape) {
+            btVector3 center;
+            btScalar radius;
+            _shape->getBoundingSphere(center, radius);
+            _body->setCcdMotionThreshold(radius * 2.0f);
+            _body->setCcdSweptSphereRadius(radius);
+        } else {
+            // Disable CCD
+            _body->setCcdMotionThreshold(0);
+        }
+    }
+}
+
 void ObjectMotionState::setRigidBody(btRigidBody* body) {
     // give the body a (void*) back-pointer to this ObjectMotionState
     if (_body != body) {
@@ -125,6 +140,7 @@ void ObjectMotionState::setRigidBody(btRigidBody* body) {
         if (_body) {
             _body->setUserPointer(this);
         }
+        updateCCDConfiguration();
     }
 }
 
@@ -187,6 +203,8 @@ bool ObjectMotionState::handleHardAndEasyChanges(uint32_t flags, PhysicsEngine* 
         if (_shape != newShape) {
             _shape = newShape;
             _body->setCollisionShape(_shape);
+
+            updateCCDConfiguration();
         } else {
             // huh... the shape didn't actually change, so we clear the DIRTY_SHAPE flag
             flags &= ~Simulation::DIRTY_SHAPE;

@@ -88,7 +88,7 @@ public:
     Q_INVOKABLE void registerValue(const QString& valueName, QScriptValue value);
 
     /// evaluate some code in the context of the ScriptEngine and return the result
-    Q_INVOKABLE QScriptValue evaluate(const QString& program, const QString& fileName = QString(), int lineNumber = 1); // this is also used by the script tool widget
+    Q_INVOKABLE QScriptValue evaluate(const QString& program, const QString& fileName, int lineNumber = 1); // this is also used by the script tool widget
 
     /// if the script engine is not already running, this will download the URL and start the process of seting it up
     /// to run... NOTE - this is used by Application currently to load the url. We don't really want it to be exposed 
@@ -182,6 +182,9 @@ private:
     QObject* setupTimerWithInterval(const QScriptValue& function, int intervalMS, bool isSingleShot);
     void stopTimer(QTimer* timer);
 
+    static bool checkSyntax(const QScriptProgram& program);
+    static bool checkExceptions(QScriptEngine& engine, const QString& fileName);
+    
     AbstractControllerScriptingInterface* _controllerScriptingInterface;
     QString _fileNameString;
     Quat _quatLibrary;
