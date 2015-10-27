@@ -18,10 +18,9 @@
 #include <Rig.h>
 
 #include "Avatar.h"
-//#include "AtRestDetector.h"
+#include "AtRestDetector.h"
 #include "MyCharacterController.h"
 
-//#define OLD_HMD_TRACKER
 
 class ModelItemID;
 
@@ -270,11 +269,9 @@ private:
     const RecorderPointer getRecorder() const { return _recorder; }
     const PlayerPointer getPlayer() const { return _player; }
 
-#ifdef OLD_HMD_TRACKER
     void beginFollowingHMD();
     bool shouldFollowHMD() const;
     void followHMD(float deltaTime);
-#endif
 
     bool cameraInsideHead() const;
 
@@ -366,7 +363,6 @@ private:
     glm::vec3 _customListenPosition;
     glm::quat _customListenOrientation;
 
-#ifdef OLD_HMD_TRACKER
     bool _isFollowingHMD { false };
     float _followHMDAlpha{0.0f};
 
@@ -374,9 +370,6 @@ private:
     AtRestDetector _hmdAtRestDetector;
     glm::vec3 _lastPosition;
     bool _lastIsMoving { false };
-#else
-    glm::vec3 _avatarOffsetFromHMD;
-#endif // OLD_HMD_TRACKER
 };
 
 QScriptValue audioListenModeToScriptValue(QScriptEngine* engine, const AudioListenerMode& audioListenerMode);

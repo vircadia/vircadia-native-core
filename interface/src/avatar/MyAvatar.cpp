@@ -109,12 +109,8 @@ MyAvatar::MyAvatar(RigPointer rig) :
     _goToOrientation(),
     _rig(rig),
     _prevShouldDrawHead(true),
-    _audioListenerMode(FROM_HEAD)
-#ifdef OLD_HMD_TRACKER
-    ,_hmdAtRestDetector(glm::vec3(0), glm::quat())
-#else
-    ,_avatarOffsetFromHMD(0.0f)
-#endif  // OLD_HMD_TRACKER
+    _audioListenerMode(FROM_HEAD),
+    _hmdAtRestDetector(glm::vec3(0), glm::quat())
 {
     for (int i = 0; i < MAX_DRIVE_KEYS; i++) {
         _driveKeys[i] = 0.0f;
@@ -159,9 +155,7 @@ void MyAvatar::reset(bool andReload) {
 
     // Reset dynamic state.
     _wasPushing = _isPushing = _isBraking = _billboardValid = false;
-#ifdef OLD_HMD_TRACKER
     _isFollowingHMD = false;
-#endif  // OLD_HMD_TRACKER
     _skeletonModel.reset();
     getHead()->reset();
     _targetVelocity = glm::vec3(0.0f);
@@ -309,7 +303,6 @@ glm::mat4 MyAvatar::getSensorToWorldMatrix() const {
     return _sensorToWorldMatrix;
 }
 
-#ifdef OLD_HMD_TRACKER
 // returns true if pos is OUTSIDE of the vertical capsule
 // where the middle cylinder length is defined by capsuleLen and the radius by capsuleRad.
 static bool pointIsOutsideCapsule(const glm::vec3& pos, float capsuleLen, float capsuleRad) {
@@ -328,7 +321,6 @@ static bool pointIsOutsideCapsule(const glm::vec3& pos, float capsuleLen, float 
         return false;
     }
 }
-#endif  // OLD_HMD_TRACKER
 
 // Pass a recent sample of the HMD to the avatar.
 // This can also update the avatar's position to follow the HMD
@@ -339,7 +331,6 @@ void MyAvatar::updateFromHMDSensorMatrix(const glm::mat4& hmdSensorMatrix) {
     _hmdSensorPosition = extractTranslation(hmdSensorMatrix);
     _hmdSensorOrientation = glm::quat_cast(hmdSensorMatrix);
 
-#ifdef OLD_HMD_TRACKER
     // calc deltaTime
     auto now = usecTimestampNow();
     auto deltaUsecs = now - _lastUpdateFromHMDTime;
@@ -374,9 +365,6 @@ void MyAvatar::updateFromHMDSensorMatrix(const glm::mat4& hmdSensorMatrix) {
     }
 
     followHMD(deltaTime);
-#else
-    // TODO adebug BOOKMARK -- this is where we need to add the new code for HMD_TRACKER
-#endif  // OLD_HMD_TRACKER
 }
 
 glm::vec3 MyAvatar::getHMDCorrectionVelocity() const {
@@ -384,7 +372,6 @@ glm::vec3 MyAvatar::getHMDCorrectionVelocity() const {
     return Vectors::ZERO;
 }
 
-#ifdef OLD_HMD_TRACKER
 void MyAvatar::beginFollowingHMD() {
     // begin homing toward derived body position.
     if (!_isFollowingHMD) {
@@ -440,7 +427,6 @@ void MyAvatar::followHMD(float deltaTime) {
         }
     }
 }
-#endif // USE_OLD
 
 // best called at end of main loop, just before rendering.
 // update sensor to world matrix from current body position and hmd sensor.
