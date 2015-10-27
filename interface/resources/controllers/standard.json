@@ -6,7 +6,7 @@
         { "from": "Standard.RX", "to": "Actions.Yaw" },
         { "from": "Standard.RY", "to": "Actions.Pitch" },
 
-        { "from": [ "Standard.DU", "Standard.DU", "Standard.DU", "Standard.DD" ], "to": "Standard.LeftPrimaryThumb" },
+        { "from": [ "Standard.DU", "Standard.DL", "Standard.DR", "Standard.DD" ], "to": "Standard.LeftPrimaryThumb" },
         { "from": "Standard.Back", "to": "Standard.LeftSecondaryThumb" },
 
         { "from": [ "Standard.A", "Standard.B", "Standard.X", "Standard.Y" ], "to": "Standard.RightPrimaryThumb" },
