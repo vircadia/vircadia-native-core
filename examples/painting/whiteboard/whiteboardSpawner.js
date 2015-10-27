@@ -44,7 +44,12 @@ var whiteboard = Entities.addEntity({
         red: 255,
         green: 255,
         blue: 255
-    }
+    },
+    userData: JSON.stringify({
+        color: {
+            currentColor: colors[0]
+        }
+    })
 });
 
 Script.setTimeout(function() {
