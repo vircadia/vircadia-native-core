@@ -37,8 +37,8 @@
     };
 
 
-    var ARROW_MODEL_URL = "https://hifi-public.s3.amazonaws.com/models/bow/arrow_good.fbx";
-    var ARROW_COLLISION_HULL_URL = "https://hifi-public.s3.amazonaws.com/models/bow/arrow_good_collision_hull.obj";
+    var ARROW_MODEL_URL = "https://hifi-public.s3.amazonaws.com/models/bow/new/arrow.fbx";
+    var ARROW_COLLISION_HULL_URL = "https://hifi-public.s3.amazonaws.com/models/bow/new/arrow_collision_hull.obj";
     var ARROW_SCRIPT_URL = Script.resolvePath('arrow.js');
     var ARROW_OFFSET = 0.32;
     var ARROW_FORCE = 1.25;
@@ -164,21 +164,21 @@
         },
 
         continueNearGrab: function() {
-            this.bowProperties = Entities.getEntityProperties(this.entityID, ["position", "rotation","userData"]);
+            this.bowProperties = Entities.getEntityProperties(this.entityID, ["position", "rotation", "userData"]);
 
-                if (this.notchDetector === null) {
-                    this.createNotchDetector();
-                }
+            if (this.notchDetector === null) {
+                this.createNotchDetector();
+            }
 
-                this.updateNotchDetectorPosition();
+            this.updateNotchDetectorPosition();
 
-                this.checkArrowHand();
+            this.checkArrowHand();
 
-                if (this.hasArrowNotched === true) {
-                    //only test for strings now that an arrow is notched
-                    //  this.checkStringHand();
-                    //should probably draw a string straight across the bow until its notched
-                }
+            if (this.hasArrowNotched === true) {
+                //only test for strings now that an arrow is notched
+                //  this.checkStringHand();
+                //should probably draw a string straight across the bow until its notched
+            }
         },
 
         releaseGrab: function() {
@@ -200,7 +200,8 @@
                 Entities.deleteEntity(this.notchDetector);
                 this.notchDetector = null;
 
-        }},
+            }
+        },
 
         createStrings: function() {
             this.createTopString();
@@ -328,7 +329,7 @@
         deletePreNotchString: function() {
             Entities.deleteEntity(this.preNotchString);
         },
-        getArrowHandPosition:function(){
+        getArrowHandPosition: function() {
             return
         },
 

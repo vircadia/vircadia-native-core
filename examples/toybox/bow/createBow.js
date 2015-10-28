@@ -13,8 +13,8 @@
 
 var SCRIPT_URL = Script.resolvePath('bow.js');
 
-var MODEL_URL = "https://hifi-public.s3.amazonaws.com/models/bow/bow_good_2.fbx";
-var COLLISION_HULL_URL = "https://hifi-public.s3.amazonaws.com/models/bow/bow_good_2_collision_hull.obj";
+var MODEL_URL = "https://hifi-public.s3.amazonaws.com/models/bow/new/bow.fbx";
+var COLLISION_HULL_URL = "https://hifi-public.s3.amazonaws.com/models/bow/new/bow_collision_hull.obj";
 var BOW_DIMENSIONS = {
     x: 0.02,
     y: 1,
@@ -38,7 +38,6 @@ var bow = Entities.addEntity({
     type: "Model",
     modelURL: MODEL_URL,
     position: center,
-    // rotation: BOW_ROTATION,
     dimensions: BOW_DIMENSIONS,
     collisionsWillMove: true,
     gravity: BOW_GRAVITY,
@@ -48,7 +47,7 @@ var bow = Entities.addEntity({
     userData: JSON.stringify({
         grabbableKey: {
             invertSolidWhileHeld: true,
-            turnOffOppositeBeam:true
+            turnOffOppositeBeam: true
         }
     })
 });
