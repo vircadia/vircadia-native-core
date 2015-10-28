@@ -401,7 +401,7 @@ public:
     bool removeAction(EntitySimulation* simulation, const QUuid& actionID);
     bool clearActions(EntitySimulation* simulation);
     void setActionData(QByteArray actionData);
-    QByteArray getActionData() const;
+    const QByteArray getActionData() const;
     bool hasActions() { return !_objectActions.empty(); }
     QList<QUuid> getActionIDs() { return _objectActions.keys(); }
     QVariantMap getActionArguments(const QUuid& actionID) const;
@@ -415,7 +415,7 @@ public:
 
 protected:
 
-    QByteArray getActionDataInternal() const;
+    const QByteArray getActionDataInternal() const;
     void setActionDataInternal(QByteArray actionData);
 
     static bool _sendPhysicsUpdates;
