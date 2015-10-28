@@ -224,7 +224,7 @@ void SkeletonModel::updateRig(float deltaTime, glm::mat4 parentTransform) {
         Rig::EyeParameters eyeParams;
         eyeParams.worldHeadOrientation = head->getFinalOrientationInWorldFrame();
         eyeParams.eyeLookAt = head->getCorrectedLookAtPosition();
-        eyeParams.eyeSaccade = glm::vec3(0);
+        eyeParams.eyeSaccade = glm::vec3();
         eyeParams.modelRotation = getRotation();
         eyeParams.modelTranslation = getTranslation();
         eyeParams.leftEyeJointIndex = geometry.leftEyeJointIndex;
