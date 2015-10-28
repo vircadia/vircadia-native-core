@@ -2756,7 +2756,6 @@ void Application::update(float deltaTime) {
 
     {
         PerformanceTimer perfTimer("physics");
-        myAvatar->relayDriveKeysToCharacterController();
 
         static VectorOfMotionStates motionStates;
         _entitySimulation.getObjectsToDelete(motionStates);
@@ -2783,6 +2782,8 @@ void Application::update(float deltaTime) {
         avatarManager->getObjectsToChange(motionStates);
         _physicsEngine->changeObjects(motionStates);
 
+        myAvatar->prepareForPhysicsSimulation();
+
         _entities.getTree()->withWriteLock([&] {
             _physicsEngine->stepSimulation();
         });
@@ -2807,6 +2808,8 @@ void Application::update(float deltaTime) {
                 // and will simulate entity motion (the EntityTree has been given an EntitySimulation).
                 _entities.update(); // update the models...
             }
+
+            myAvatar->harvestResultsFromPhysicsSimulation();
         }
     }
 
