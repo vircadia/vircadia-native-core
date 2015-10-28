@@ -16,15 +16,11 @@
 
 Script.include("../../libraries/utils.js");
 var scriptURL = Script.resolvePath("whiteboardEntityScript.js");
-//var modelURL = "https://hifi-public.s3.amazonaws.com/ozan/support/for_eric/whiteboard/whiteboard.fbx";
-var modelURL = "http://localhost:8080/whiteboard.fbx?v1" + Math.random();
-// var modelURL = "https://s3.amazonaws.com/hifi-public/eric/models/whiteboard.fbx";
+var modelURL = "https://s3.amazonaws.com/hifi-public/eric/models/whiteboard.fbx";
 
-var colorIndicatorBorderModelURL = "http://localhost:8080/colorIndicatorBorder.fbx?v1" + Math.random();
-
-var eraseModelURL = "http://localhost:8080/eraser.fbx?v1" + Math.random();
-
-var surfaceModelURL = "http://localhost:8080/boardSurface.fbx?v1" + Math.random();
+var colorIndicatorBorderModelURL = "https://s3.amazonaws.com/hifi-public/eric/models/colorIndicatorBorder.fbx";
+var eraserModelURL = "https://s3.amazonaws.com/hifi-public/eric/models/eraser.fbx";
+var surfaceModelURL = "https://s3.amazonaws.com/hifi-public/eric/models/boardSurface.fbx";
 var rotation = Quat.safeEulerAngles(Camera.getOrientation());
 rotation = Quat.fromPitchYawRollDegrees(0, rotation.y, 0);
 var center = Vec3.sum(MyAvatar.position, Vec3.multiply(3, Quat.getFront(rotation)));
@@ -87,7 +83,7 @@ var eraseModelPosition = Vec3.sum(center, {x: 0, y: 2, z: 0 });
 scriptURL = Script.resolvePath("eraseBoardEntityScript.js");
 var eraser = Entities.addEntity({
     type: "Model",
-    modelURL: eraseModelURL,
+    modelURL: eraserModelURL,
     position: eraseModelPosition,
     name: "Eraser",
     script: scriptURL,
@@ -101,13 +97,10 @@ Script.setTimeout(function() {
     whiteboardDimensions = Entities.getEntityProperties(whiteboard, "naturalDimensions").naturalDimensions;
     colorIndicatorBorderDimensions = Entities.getEntityProperties(colorIndicatorBorder, "naturalDimensions").naturalDimensions;
     setUp();
-}, 1000)
+}, 2000)
 
 
 function setUp() {
-    // COLOR INDICATOR BOX
-
-
     var eraseModelDimensions = Entities.getEntityProperties(eraser, "naturalDimensions").naturalDimensions;
     Entities.editEntity(eraser, {dimensions: eraseModelDimensions});
     Entities.editEntity(colorIndicatorBorder, {dimensions: colorIndicatorBorderDimensions});
@@ -194,4 +187,4 @@ function cleanup() {
 
 
 // Uncomment this line to delete whiteboard and all associated entity on script close
-Script.scriptEnding.connect(cleanup);
+// Script.scriptEnding.connect(cleanup);

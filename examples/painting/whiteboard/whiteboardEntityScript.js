@@ -243,11 +243,9 @@
         unload: function() {
 
             Overlays.deleteOverlay(this.laserPointer);
-            // this.eraseBoard();
+            this.eraseBoard();
         }
-
     };
-
 
     // entity scripts always need to return a newly constructed object of our type
     return new Whiteboard();
