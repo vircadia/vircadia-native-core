@@ -47,6 +47,7 @@
             if (this.painting) {
                 return;
             }
+            this.whichHand = this.hand;
             if (this.hand === RIGHT_HAND) {
                 this.getHandPosition = MyAvatar.getRightPalmPosition;
                 this.getHandRotation = MyAvatar.getRightPalmRotation;
@@ -183,6 +184,9 @@
         },
 
         releaseGrab: function() {
+            if(this.hand !== this.whichHand) {
+                return;
+            }
             this.stopPainting();
 
         },

@@ -22,12 +22,14 @@ var modelURL = "http://localhost:8080/whiteboard.fbx?v1" + Math.random();
 
 var colorIndicatorBorderModelURL = "http://localhost:8080/colorIndicatorBorder.fbx?v1" + Math.random();
 
+var eraseModelURL = "http://localhost:8080/eraser.fbx?v1" + Math.random();
+
 var surfaceModelURL = "http://localhost:8080/boardSurface.fbx?v1" + Math.random();
 var rotation = Quat.safeEulerAngles(Camera.getOrientation());
 rotation = Quat.fromPitchYawRollDegrees(0, rotation.y, 0);
 var center = Vec3.sum(MyAvatar.position, Vec3.multiply(3, Quat.getFront(rotation)));
 
-var whiteboardDimensions, colorIndicatorBoxDimensions, colorIndicatorBox, eraseAllText
+var whiteboardDimensions, colorIndicatorBoxDimensions, colorIndicatorBox, eraser;
 var colorBoxes = [];
 
 var colors = [
@@ -48,7 +50,11 @@ var whiteboard = Entities.addEntity({
     rotation: rotation,
 });
 
-var colorIndicatorPosition = {x: center.x, y: center.y, z: center.z};
+var colorIndicatorPosition = {
+    x: center.x,
+    y: center.y,
+    z: center.z
+};
 colorIndicatorPosition.y += 1.55;
 colorIndicatorPosition = Vec3.sum(colorIndicatorPosition, Vec3.multiply(-0.1, Quat.getFront(rotation)));
 var colorIndicatorBorder = Entities.addEntity({
@@ -60,27 +66,40 @@ var colorIndicatorBorder = Entities.addEntity({
 });
 
 var surfaceCenter = Vec3.sum(center, Vec3.multiply(-0.1, Quat.getFront(rotation)));
-surfaceCenter.y +=  0.6;
+surfaceCenter.y += 0.6;
 var drawingSurface = Entities.addEntity({
     type: "Model",
     modelURL: surfaceModelURL,
     shapeType: "box",
     name: "whiteboard surface",
     position: surfaceCenter,
-    // dimensions: {x: 1.7, y: 1.3, z: 0.01},
     script: scriptURL,
-    rotation: rotation, 
-     userData: JSON.stringify({
+    rotation: rotation,
+    userData: JSON.stringify({
         color: {
             currentColor: colors[0]
         }
     })
 
-})
+});
+
+var eraseModelPosition = Vec3.sum(center, {x: 0, y: 2, z: 0 });
+scriptURL = Script.resolvePath("eraseBoardEntityScript.js");
+var eraser = Entities.addEntity({
+    type: "Model",
+    modelURL: eraseModelURL,
+    position: eraseModelPosition,
+    name: "Eraser",
+    script: scriptURL,
+    rotation: rotation,
+    userData: JSON.stringify({
+        whiteboard: drawingSurface
+    })
+});
 
 Script.setTimeout(function() {
     whiteboardDimensions = Entities.getEntityProperties(whiteboard, "naturalDimensions").naturalDimensions;
-    colorIndicatorDimensions = Entities.getEntityProperties(colorIndicatorBorder, "naturalDimensions").naturalDimensions;
+    colorIndicatorBorderDimensions = Entities.getEntityProperties(colorIndicatorBorder, "naturalDimensions").naturalDimensions;
     setUp();
 }, 1000)
 
@@ -89,24 +108,25 @@ function setUp() {
     // COLOR INDICATOR BOX
 
 
-    var colorIndicatorDimensions = {
-        x: whiteboardDimensions.x,
-        y: 0.5,
-        z: 0.02
-    };
+    var eraseModelDimensions = Entities.getEntityProperties(eraser, "naturalDimensions").naturalDimensions;
+    Entities.editEntity(eraser, {dimensions: eraseModelDimensions});
+    Entities.editEntity(colorIndicatorBorder, {dimensions: colorIndicatorBorderDimensions});
+
     scriptURL = Script.resolvePath("colorIndicatorEntityScript.js");
     var colorIndicatorPosition = Vec3.sum(center, {
         x: 0,
-        y: whiteboardDimensions.y / 2 + colorIndicatorDimensions.y / 2,
+        y: whiteboardDimensions.y / 2 + colorIndicatorBorderDimensions.y / 2,
         z: 0
     });
+    colorIndicatorPosition = Vec3.sum(colorIndicatorPosition, Vec3.multiply(-.1, Quat.getFront(rotation)));
+    var colorIndicatorBoxDimensions = Vec3.multiply(colorIndicatorBorderDimensions, 0.9);
     colorIndicatorBox = Entities.addEntity({
         type: "Box",
         name: "Color Indicator",
         color: colors[0],
         rotation: rotation,
         position: colorIndicatorPosition,
-        dimensions: colorIndicatorDimensions,
+        dimensions: colorIndicatorBoxDimensions,
         script: scriptURL,
         userData: JSON.stringify({
             whiteboard: drawingSurface
@@ -158,49 +178,13 @@ function setUp() {
         colorBoxPosition = Vec3.sum(colorBoxPosition, spaceBetweenColorBoxes);
     }
 
-    var eraseBoxDimensions = {
-        x: 0.5,
-        y: 0.1,
-        z: 0.01
-    };
-
-
-    var eraseBoxPosition = Vec3.sum(center, Vec3.multiply(direction, whiteboardDimensions.x / 2 + eraseBoxDimensions.x / 2 + 0.01));
-    eraseBoxPosition.y += 0.3;
-    scriptURL = Script.resolvePath("eraseBoardEntityScript.js");
-    eraseAllText = Entities.addEntity({
-        type: "Text",
-        position: eraseBoxPosition,
-        name: "Eraser",
-        script: scriptURL,
-        rotation: rotation,
-        dimensions: eraseBoxDimensions,
-        backgroundColor: {
-            red: 0,
-            green: 60,
-            blue: 0
-        },
-        textColor: {
-            red: 255,
-            green: 10,
-            blue: 10
-        },
-        text: "ERASE BOARD",
-        lineHeight: 0.07,
-        userData: JSON.stringify({
-            whiteboard: drawingSurface
-        })
-    });
-
-
-
 }
 
 function cleanup() {
     Entities.deleteEntity(whiteboard);
     Entities.deleteEntity(drawingSurface);
     Entities.deleteEntity(colorIndicatorBorder);
-    Entities.deleteEntity(eraseAllText);
+    Entities.deleteEntity(eraser);
     Entities.deleteEntity(colorIndicatorBox);
     colorBoxes.forEach(function(colorBox) {
         Entities.deleteEntity(colorBox);
