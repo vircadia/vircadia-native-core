@@ -1790,9 +1790,17 @@ const QByteArray EntityItem::getActionDataInternal() const {
 const QByteArray EntityItem::getActionData() const {
     QByteArray result;
     assertUnlocked();
-    withReadLock([&] {
-        result = getActionDataInternal();
-    });
+
+    if (_actionDataDirty) {
+        withWriteLock([&] {
+            getActionDataInternal();
+            result = _allActionsDataCache;
+        });
+    } else {
+        withReadLock([&] {
+            result = _allActionsDataCache;
+        });
+    }
     return result;
 }
 

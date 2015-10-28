@@ -12,8 +12,8 @@
 #include <QPoint>
 #include <functional>
 
-#include "gpu/GPUConfig.h"
-#include "GLMHelpers.h"
+#include <gl/Config.h>
+#include <GLMHelpers.h>
 
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>

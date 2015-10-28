@@ -12,10 +12,11 @@
 
 #include "OffscreenGlCanvas.h"
 
-#include <GLHelpers.h>
-#include <QOpenGLDebugLogger>
-#include <QOpenGLContext>
-#include <QOffscreenSurface>
+#include <QtGui/QOffscreenSurface>
+#include <QtGui/QOpenGLDebugLogger>
+#include <QtGui/QOpenGLContext>
+
+#include "GLHelpers.h"
 
 OffscreenGlCanvas::OffscreenGlCanvas() : _context(new QOpenGLContext), _offscreenSurface(new QOffscreenSurface){
 }

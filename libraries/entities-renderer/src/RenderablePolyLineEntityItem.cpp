@@ -37,7 +37,7 @@ PolyLineEntityItem(entityItemID, properties) {
 gpu::PipelinePointer RenderablePolyLineEntityItem::_pipeline;
 gpu::Stream::FormatPointer RenderablePolyLineEntityItem::_format;
 gpu::TexturePointer RenderablePolyLineEntityItem::_texture;
-GLint RenderablePolyLineEntityItem::PAINTSTROKE_GPU_SLOT;
+int32_t RenderablePolyLineEntityItem::PAINTSTROKE_GPU_SLOT;
 
 void RenderablePolyLineEntityItem::createPipeline() {
     static const int NORMAL_OFFSET = 12;
