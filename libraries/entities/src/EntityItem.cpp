@@ -1795,7 +1795,6 @@ const QByteArray EntityItem::getActionData() const {
         EntityItem* unconstThis = const_cast<EntityItem*>(this);
         unconstThis->withWriteLock([&] {
             getActionDataInternal();
-            return _allActionsDataCache;
         });
     }
 
