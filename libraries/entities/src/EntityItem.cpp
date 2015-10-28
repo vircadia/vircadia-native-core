@@ -1792,8 +1792,7 @@ const QByteArray EntityItem::getActionData() const {
     assertUnlocked();
 
     if (_actionDataDirty) {
-        EntityItem* unconstThis = const_cast<EntityItem*>(this);
-        unconstThis->withWriteLock([&] {
+        withWriteLock([&] {
             getActionDataInternal();
             result = _allActionsDataCache;
         });
