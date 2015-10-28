@@ -59,30 +59,46 @@
             // }
 
         },
-
+        startNearGrab: function() {
+            print('STARTING GRAB ON ARROW!!')
+        },
         continueNearGrab: function() {
+            this.currentProperties = Entities.getEntityProperties(this.entityID, "position");
             this.searchForNotchDetectors();
         },
 
         searchForNotchDetectors: function() {
+            if (this.notched === true) {
+                return
+            };
+            print('SEARCHING FOR NOTCH DETECTOR');
 
-            var ids = Entities.findEntities(MyAvatar.position, NOTCH_DETECTOR_SEARCH_RADIUS);
+            var ids = Entities.findEntities(this.currentProperties.position, NOTCH_DETECTOR_SEARCH_RADIUS);
             var i, properties;
             for (i = 0; i < ids.length; i++) {
                 id = ids[i];
                 properties = Entities.getEntityProperties(id, 'name');
                 if (properties.name == "Hifi-NotchDetector") {
-                    this.tellBowArrowIsNotched(this.getBowID());
+                    print('NEAR THE NOTCH!!!')
+                    this.notched = true;
+                    this.tellBowArrowIsNotched(this.getBowID(id));
                     this.disableGrab();
                 }
             }
 
         },
-        getBowID: function() {
-            var properties = Entities.getEntityProperties(notchDetector, "userData");
+        getBowID: function(notchDetectorID) {
+            var properties = Entities.getEntityProperties(notchDetectorID, "userData");
             var userData = JSON.parse(properties.userData);
             if (userData.hasOwnProperty('hifiBowKey')) {
                 return userData.hifiBowKey.bowID;
+            }
+        },
+        getActionID: function() {
+            var properties = Entities.getEntityProperties(this.entityID, "userData");
+            var userData = JSON.parse(properties.userData);
+            if (userData.hasOwnProperty('hifiHoldActionKey')) {
+                return userData.hifiHoldActionKey.holdActionID;
             }
         },
 
@@ -94,9 +110,13 @@
         },
 
         disableGrab: function() {
+            print('ACTION ID IS::: ' + this.getActionID());
+            Entities.deleteAction(this.entityID, this.getActionID());
+
             setEntityCustomData('grabbableKey', this.entityID, {
                 grabbable: false
             });
+
         },
 
         checkIfBurning: function() {

@@ -613,6 +613,9 @@ function MyController(hand, triggerAction) {
                 Entities.callEntityMethod(this.grabbedEntity, "setLeftHand");
             }
             Entities.callEntityMethod(this.grabbedEntity, "startNearGrab");
+            setEntityCustomData('hifiHoldActionKey', this.grabbedEntity, {
+                holdActionID: this.actionID
+            })
 
         }
 

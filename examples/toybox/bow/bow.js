@@ -519,7 +519,6 @@
                 })
             };
 
-
             this.notchDetector = Entities.addEntity(detectorProperties);
         },
 
