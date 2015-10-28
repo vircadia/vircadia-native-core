@@ -155,8 +155,8 @@
             Entities.editEntity(this.entityID, {
                 userData: JSON.stringify({
                     grabbableKey: {
-                        turnOffOtherHand: true,
-                        turnOffOppositeBeam: true,
+                        turnOffOtherHand: false,
+                        turnOffOppositeBeam: false,
                         invertSolidWhileHeld: true
                     }
                 })
@@ -192,7 +192,7 @@
                     userData: JSON.stringify({
                         grabbableKey: {
                             turnOffOtherHand: false,
-                            turnOffOppositeBeam: true,
+                            turnOffOppositeBeam: false,
                             invertSolidWhileHeld: true
                         }
                     })

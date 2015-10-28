@@ -47,7 +47,7 @@ var bow = Entities.addEntity({
     userData: JSON.stringify({
         grabbableKey: {
             invertSolidWhileHeld: true,
-            turnOffOppositeBeam: true
+            turnOffOppositeBeam: false
         }
     })
 });
