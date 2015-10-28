@@ -8,9 +8,10 @@
 
 #include "GlWindow.h"
 
-#include <QOpenGLContext>
-#include <QOpenGLDebugLogger>
-#include <GLHelpers.h>
+#include <QtGui/QOpenGLContext>
+#include <QtGui/QOpenGLDebugLogger>
+
+#include "GLHelpers.h"
 
 GlWindow::GlWindow(QOpenGLContext* shareContext) : GlWindow(getDefaultOpenGlSurfaceFormat(), shareContext) {
 }
