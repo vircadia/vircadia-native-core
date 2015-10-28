@@ -355,9 +355,6 @@ AvatarSharedPointer AvatarManager::getAvatarBySessionID(const QUuid& sessionID) 
     if (sessionID == _myAvatar->getSessionUUID()) {
         return std::static_pointer_cast<Avatar>(_myAvatar);
     }
-    AvatarSharedPointer avatar;
-    withAvatarHash([&avatar, &sessionID] (const AvatarHash& hash) {
-        avatar = hash[sessionID];
-    });
-    return avatar;
+    QReadLocker locker(&_hashLock);
+    return _avatarHash[sessionID];
 }
