@@ -79,6 +79,14 @@ var drawingSurface = Entities.addEntity({
 
 });
 
+var lightPosition = Vec3.sum(center, Vec3.multiply(-2, Quat.getFront(rotation)));
+var light = Entities.addEntity({
+    type: 'Light',
+    position: lightPosition,
+    dimensions: {x: 5, y: 5, z: 5},
+    color: {red: 255, green: 255, blue: 255}
+});
+
 var eraseModelPosition = Vec3.sum(center, {x: 0, y: 2, z: 0 });
 scriptURL = Script.resolvePath("eraseBoardEntityScript.js");
 var eraser = Entities.addEntity({
@@ -179,6 +187,7 @@ function cleanup() {
     Entities.deleteEntity(colorIndicatorBorder);
     Entities.deleteEntity(eraser);
     Entities.deleteEntity(colorIndicatorBox);
+    Entities.deleteEntity(light);
     colorBoxes.forEach(function(colorBox) {
         Entities.deleteEntity(colorBox);
     });
