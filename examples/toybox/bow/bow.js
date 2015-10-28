@@ -11,16 +11,20 @@
 //
 
 // TODO: 
-// make it so you can shoot without blocking your view with your hand
-// notching system
+//  [x] make it so you can shoot without blocking your view with your hand
+//  [x] notching system
 // make arrows more visible
 // make arrow rotate toward ground as it flies
-// different model?  compound bow will look better in the HMD, and be easier to aim. http://www.turbosquid.com/3d-models/3d-model-bow-arrow/773106
+// [x] different model?  compound bow will look better in the HMD, and be easier to aim. http://www.turbosquid.com/3d-models/3d-model-bow-arrow/773106
 // add noise when you release arrow -> add the sound to the arrow and keep it with position so you hear it whizz by 
 // add noise when you draw string
 // re-enable arrows sticking when they hit
 // prepare for haptics 
 
+// from chat w/ ryan
+// 5 arrows on table
+// pick up arrow entity
+// notch it
 (function() {
 
     var ZERO_VEC = {
@@ -163,7 +167,11 @@
             }
             this.isGrabbed = true;
             this.initialHand = this.hand;
-            this.createReloadDetector();
+
+            if (this.useNotching === true) {
+                this.createReloadDetector();
+
+            }
 
             Entities.editEntity(this.entityID, {
                 userData: JSON.stringify({
@@ -178,31 +186,31 @@
 
         continueNearGrab: function() {
             this.bowProperties = Entities.getEntityProperties(this.entityID, ["position", "rotation"]);
-            if (this.notchDetector === null) {
-                this.createNotchDetector();
-            }
-
-            this.updateNotchDetectorPosition();
-            this.updateReloadDetectorPosition();
 
             this.checkStringHand();
 
             if (this.useNotching === true) {
-         this.checkArrowHand();
+                if (this.notchDetector === null) {
+                    this.createNotchDetector();
+                }
 
-                if (this.hasArrowLoaded === false) {
-                    this.updateArrowPositionPreNotch();
+                this.updateNotchDetectorPosition();
+                this.updateReloadDetectorPosition();
 
+                this.checkArrowHand();
+
+                if (this.hasArrowLoaded === true && this.hasArrowNotched === false) {
+                    updateArrowPositionPreNotch();
                 }
 
                 if (this.hasArrowLoaded === true) {
                     this.updateNotchDetectorPosition();
                 }
 
-       
+
                 if (this.hasArrowNotched === true) {
                     //only test for strings now that an arrow is notched
-                  //  this.checkStringHand();
+                    //  this.checkStringHand();
                     //should probably draw a string straight across the bow until its notched
                 }
             }
@@ -287,7 +295,6 @@
                 position: this.topStringPosition
             });
 
-
         },
 
         drawStrings: function() {
@@ -318,6 +325,14 @@
         },
 
 
+        getLocalLineVectors: function() {
+            var topVector = Vec3.subtract(this.stringData.handPosition, this.topStringPosition);
+            var bottomVector = Vec3.subtract(this.stringData.handPosition, this.bottomStringPosition);
+            return [topVector, bottomVector];
+        },
+
+
+
         createPreNotchString: function() {
             var stringProperties = {
                 type: 'Line',
@@ -332,6 +347,10 @@
 
             this.updateStringPositions();
 
+            var downVector = Vec3.multiply(-1, Quat.getUp(this.bowProperties.rotation));
+            var downOffset = Vec3.multiply(downVector, BOTTOM_NOTCH_OFFSET * 2);
+
+
             Entities.editEntity(this.preNotchString, {
                 linePoints: [{
                     x: 0,
@@ -341,7 +360,7 @@
                     x: 0,
                     y: 0,
                     z: 0
-                }, BOTTOM_NOTCH_OFFSET * 2)],
+                }, downOffset)],
                 lineWidth: 5,
                 color: this.stringData.currentColor
             });
@@ -374,11 +393,39 @@
             var reloadDetectorPosition = Entities.getEntityProperties(this.reloadDetector, "position");
             var fromArrowHandToReloadDetector = Vec3.subtract(arrowHandPosition, reloadDetectorPosition);
             var distance = Vec3.length(fromArrowHandToReloadDetector);
-            print('fromArrowHandToReloadDetector distance :: '+distance);
+            print('fromArrowHandToReloadDetector distance :: ' + distance);
             if (fromArrowHandToReloadDetector < RELOAD_DETECTOR_DISTANCE) {
                 print('ARROW LOADED');
-                this.hasArrowLoaded = true;
+                if (this.hasArrowLoaded === false) {
+                    this.hasArrowLoaded = true;
+                    this.loadArrow()
+                }
             }
+        },
+
+        loadArrow: function() {
+            var arrowProperties = {
+                name: 'Hifi-Arrow',
+                type: 'Model',
+                shapeType: 'box',
+                modelURL: ARROW_MODEL_URL,
+                dimensions: ARROW_DIMENSIONS,
+                position: this.getArrowHandPosition(),
+                rotation: this.getArrowHandRotation(),
+                collisionsWillMove: false,
+                ignoreForCollisions: true,
+                gravity: ARROW_GRAVITY,
+                // script: ARROW_SCRIPT_URL,
+                lifetime: 40,
+                userData: JSON.stringify({
+                    grabbableKey: {
+                        grabbable: false,
+
+                    }
+                })
+            };
+
+            this.arrow = Entities.addEntity(arrowProperties);
         },
 
         testForHandInNotchDetector: function() {
@@ -388,9 +435,17 @@
             var distance = Vec3.length(fromArrowHandToNotchDetector);
             if (distance < NOTCH_DETECTOR_DISTANCE) {
                 print('ARROW NOTCHED');
-                this.hasArrowNotched = true;
-                this.notchArrow();
+                if (this.hasArrowNotched === false) {
+                    this.hasArrowNotched = true;
+                    this.notchArrow();
+                }
+
             }
+        },
+
+        notchArrow: function() {
+
+            //put the arrow in the notch
         },
 
         checkStringHand: function() {
@@ -590,12 +645,6 @@
             this.fire = null;
             this.arrowIsBurnning = false;
 
-        },
-
-        getLocalLineVectors: function() {
-            var topVector = Vec3.subtract(this.stringData.handPosition, this.topStringPosition);
-            var bottomVector = Vec3.subtract(this.stringData.handPosition, this.bottomStringPosition);
-            return [topVector, bottomVector];
         },
 
         scaleArrowShotStrength: function(value, min1, max1, min2, max2) {
