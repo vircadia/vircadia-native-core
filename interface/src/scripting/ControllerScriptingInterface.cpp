@@ -35,51 +35,6 @@ void ControllerScriptingInterface::handleMetaEvent(HFMetaEvent* event) {
     }
 }
 
-const PalmData* ControllerScriptingInterface::getPrimaryPalm() const {
-    int leftPalmIndex, rightPalmIndex;
-
-    const HandData* handData = DependencyManager::get<AvatarManager>()->getMyAvatar()->getHandData();
-    handData->getLeftRightPalmIndices(leftPalmIndex, rightPalmIndex);
-    
-    if (rightPalmIndex != -1) {
-        return &handData->getPalms()[rightPalmIndex];
-    }
-
-    return NULL;
-}
-
-int ControllerScriptingInterface::getNumberOfActivePalms() const {
-    const HandData* handData = DependencyManager::get<AvatarManager>()->getMyAvatar()->getHandData();
-    int numberOfPalms = handData->getNumPalms();
-    int numberOfActivePalms = 0;
-    for (int i = 0; i < numberOfPalms; i++) {
-        if (getPalm(i)->isActive()) {
-            numberOfActivePalms++;
-        }
-    }
-    return numberOfActivePalms;
-}
-
-const PalmData* ControllerScriptingInterface::getPalm(int palmIndex) const {
-    const HandData* handData = DependencyManager::get<AvatarManager>()->getMyAvatar()->getHandData();
-    return &handData->getPalms()[palmIndex];
-}
-
-const PalmData* ControllerScriptingInterface::getActivePalm(int palmIndex) const {
-    const HandData* handData = DependencyManager::get<AvatarManager>()->getMyAvatar()->getHandData();
-    int numberOfPalms = handData->getNumPalms();
-    int numberOfActivePalms = 0;
-    for (int i = 0; i < numberOfPalms; i++) {
-        if (getPalm(i)->isActive()) {
-            if (numberOfActivePalms == palmIndex) {
-                return &handData->getPalms()[i];
-            }
-            numberOfActivePalms++;
-        }
-    }
-    return NULL;
-}
-
 bool ControllerScriptingInterface::isKeyCaptured(QKeyEvent* event) const {
     return isKeyCaptured(KeyEvent(*event));
 }

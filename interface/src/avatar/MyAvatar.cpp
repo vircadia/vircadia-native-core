@@ -548,80 +548,48 @@ void MyAvatar::updateFromTrackers(float deltaTime) {
 }
 
 
-// FIXME - this is super duper dumb... but this is how master works. When you have
-// hydras plugged in, you'll get 4 "palms" but only the number of controllers lifted
-// of the base station are considered active. So when you ask for "left" you get the
-// first active controller. If you have both controllers held up or just the left, that
-// will be correct. But if you lift the right controller, then it will be reported
-// as "left"... you also see this in the avatars hands. 
-const PalmData* MyAvatar::getActivePalm(int palmIndex) const {
-    const HandData* handData = DependencyManager::get<AvatarManager>()->getMyAvatar()->getHandData();
-    int numberOfPalms = handData->getNumPalms();
-    int numberOfActivePalms = 0;
-    for (int i = 0; i < numberOfPalms; i++) {
-        auto palm = handData->getPalms()[i];
-        if (palm.isActive()) {
-            // if we've reached the requested "active" palm, then we will return it
-            if (numberOfActivePalms == palmIndex) {
-                return &handData->getPalms()[i];
-            }
-            numberOfActivePalms++;
-        }
-    }
-    return NULL;
-}
-
-
 glm::vec3 MyAvatar::getLeftHandPosition() const {
-    const int LEFT_HAND = 0;
-    auto palmData = getActivePalm(LEFT_HAND);
-    return palmData ? palmData->getPosition() : glm::vec3(0.0f);
+    auto palmData = getHandData()->getCopyOfPalmData(HandData::LeftHand);
+    return palmData.isValid() ? palmData.getPosition() : glm::vec3(0.0f);
 }
 
 glm::vec3 MyAvatar::getRightHandPosition() const {
-    const int RIGHT_HAND = 1;
-    auto palmData = getActivePalm(RIGHT_HAND);
-    return palmData ? palmData->getPosition() : glm::vec3(0.0f);
+    auto palmData = getHandData()->getCopyOfPalmData(HandData::RightHand);
+    return palmData.isValid() ? palmData.getPosition() : glm::vec3(0.0f);
 }
 
 glm::vec3 MyAvatar::getLeftHandTipPosition() const {
-    const int LEFT_HAND = 0;
-    auto palmData = getActivePalm(LEFT_HAND);
-    return palmData ? palmData->getTipPosition() : glm::vec3(0.0f);
+    auto palmData = getHandData()->getCopyOfPalmData(HandData::LeftHand);
+    return palmData.isValid() ? palmData.getTipPosition() : glm::vec3(0.0f);
 }
 
 glm::vec3 MyAvatar::getRightHandTipPosition() const {
-    const int RIGHT_HAND = 1;
-    auto palmData = getActivePalm(RIGHT_HAND);
-    return palmData ? palmData->getTipPosition() : glm::vec3(0.0f);
+    auto palmData = getHandData()->getCopyOfPalmData(HandData::RightHand);
+    return palmData.isValid() ? palmData.getTipPosition() : glm::vec3(0.0f);
 }
 
 controller::Pose MyAvatar::getLeftHandPose() const {
-    const int LEFT_HAND = 0;
-    auto palmData = getActivePalm(LEFT_HAND);
-    return palmData ? controller::Pose(palmData->getPosition(), palmData->getRotation(),
-        palmData->getVelocity(), palmData->getRawAngularVelocityAsQuat()) : controller::Pose();
+    auto palmData = getHandData()->getCopyOfPalmData(HandData::LeftHand);
+    return palmData.isValid() ? controller::Pose(palmData.getPosition(), palmData.getRotation(),
+        palmData.getVelocity(), palmData.getRawAngularVelocityAsQuat()) : controller::Pose();
 }
 
 controller::Pose MyAvatar::getRightHandPose() const {
-    const int RIGHT_HAND = 1;
-    auto palmData = getActivePalm(RIGHT_HAND);
-    return palmData ? controller::Pose(palmData->getPosition(), palmData->getRotation(),
-        palmData->getVelocity(), palmData->getRawAngularVelocityAsQuat()) : controller::Pose();
+    auto palmData = getHandData()->getCopyOfPalmData(HandData::RightHand);
+    return palmData.isValid() ? controller::Pose(palmData.getPosition(), palmData.getRotation(),
+        palmData.getVelocity(), palmData.getRawAngularVelocityAsQuat()) : controller::Pose();
 }
 
 controller::Pose MyAvatar::getLeftHandTipPose() const {
-    const int LEFT_HAND = 0;
-    auto palmData = getActivePalm(LEFT_HAND);
-    return palmData ? controller::Pose(palmData->getTipPosition(), palmData->getRotation(),
-        palmData->getTipVelocity(), palmData->getRawAngularVelocityAsQuat()) : controller::Pose();
+    auto palmData = getHandData()->getCopyOfPalmData(HandData::LeftHand);
+    return palmData.isValid() ? controller::Pose(palmData.getTipPosition(), palmData.getRotation(),
+        palmData.getTipVelocity(), palmData.getRawAngularVelocityAsQuat()) : controller::Pose();
 }
 
 controller::Pose MyAvatar::getRightHandTipPose() const {
-    const int RIGHT_HAND = 1;
-    auto palmData = getActivePalm(RIGHT_HAND);
-    return palmData ? controller::Pose(palmData->getTipPosition(), palmData->getRotation(),
-        palmData->getTipVelocity(), palmData->getRawAngularVelocityAsQuat()) : controller::Pose();
+    auto palmData = getHandData()->getCopyOfPalmData(HandData::RightHand);
+    return palmData.isValid() ? controller::Pose(palmData.getTipPosition(), palmData.getRotation(),
+        palmData.getTipVelocity(), palmData.getRawAngularVelocityAsQuat()) : controller::Pose();
 }
 
 // virtual
@@ -1965,28 +1933,6 @@ void MyAvatar::updateMotionBehaviorFromMenu() {
         _motionBehaviors &= ~AVATAR_MOTION_SCRIPTED_MOTOR_ENABLED;
     }
     _characterController.setEnabled(menu->isOptionChecked(MenuOption::EnableCharacterController));
-}
-
-//Renders sixense laser pointers for UI selection with controllers
-void MyAvatar::renderLaserPointers(gpu::Batch& batch) {
-    const float PALM_TIP_ROD_RADIUS = 0.002f;
-
-    //If the Oculus is enabled, we will draw a blue cursor ray
-
-    for (size_t i = 0; i < getHand()->getNumPalms(); ++i) {
-        PalmData& palm = getHand()->getPalms()[i];
-        if (palm.isActive()) {
-            glm::vec3 tip = getLaserPointerTipPosition(&palm);
-            glm::vec3 root = palm.getPosition();
-
-            //Scale the root vector with the avatar scale
-            scaleVectorRelativeToPosition(root);
-            Transform transform = Transform();
-            transform.setTranslation(glm::vec3());
-            batch.setModelTransform(transform);
-            Avatar::renderJointConnectingCone(batch, root, tip, PALM_TIP_ROD_RADIUS, PALM_TIP_ROD_RADIUS, glm::vec4(0, 1, 1, 1));
-        }
-    }
 }
 
 //Gets the tip position for the laser pointer

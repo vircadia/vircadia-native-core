@@ -97,17 +97,6 @@ void SkeletonModel::initJointStates(QVector<JointState> states) {
     emit skeletonLoaded();
 }
 
-static const PalmData* getPalmWithIndex(Hand* hand, int index) {
-    const PalmData* palm = nullptr;
-    for (size_t j = 0; j < hand->getNumPalms(); j++) {
-        if (hand->getPalms()[j].getSixenseID() == index) {
-            palm = &(hand->getPalms()[j]);
-            break;
-        }
-    }
-    return palm;
-}
-
 const float PALM_PRIORITY = DEFAULT_PRIORITY;
 // Called within Model::simulate call, below.
 void SkeletonModel::updateRig(float deltaTime, glm::mat4 parentTransform) {
@@ -169,22 +158,22 @@ void SkeletonModel::updateRig(float deltaTime, glm::mat4 parentTransform) {
 
         Rig::HandParameters handParams;
 
-        const PalmData* leftPalm = getPalmWithIndex(myAvatar->getHand(), LEFT_HAND_INDEX);
-        if (leftPalm && leftPalm->isActive()) {
+        auto leftPalm = myAvatar->getHand()->getCopyOfPalmData(HandData::LeftHand);
+        if (leftPalm.isValid() && leftPalm.isActive()) {
             handParams.isLeftEnabled = true;
-            handParams.leftPosition = leftPalm->getRawPosition();
-            handParams.leftOrientation = leftPalm->getRawRotation();
-            handParams.leftTrigger = leftPalm->getTrigger();
+            handParams.leftPosition = leftPalm.getRawPosition();
+            handParams.leftOrientation = leftPalm.getRawRotation();
+            handParams.leftTrigger = leftPalm.getTrigger();
         } else {
             handParams.isLeftEnabled = false;
         }
 
-        const PalmData* rightPalm = getPalmWithIndex(myAvatar->getHand(), RIGHT_HAND_INDEX);
-        if (rightPalm && rightPalm->isActive()) {
+        auto rightPalm = myAvatar->getHand()->getCopyOfPalmData(HandData::RightHand);
+        if (rightPalm.isValid() && rightPalm.isActive()) {
             handParams.isRightEnabled = true;
-            handParams.rightPosition = rightPalm->getRawPosition();
-            handParams.rightOrientation = rightPalm->getRawRotation();
-            handParams.rightTrigger = rightPalm->getTrigger();
+            handParams.rightPosition = rightPalm.getRawPosition();
+            handParams.rightOrientation = rightPalm.getRawRotation();
+            handParams.rightTrigger = rightPalm.getTrigger();
         } else {
             handParams.isRightEnabled = false;
         }
@@ -247,15 +236,15 @@ void SkeletonModel::simulate(float deltaTime, bool fullUpdate) {
 
     const FBXGeometry& geometry = _geometry->getFBXGeometry();
 
-    // find the left and rightmost active palms
-    int leftPalmIndex, rightPalmIndex;
-    Hand* hand = _owningAvatar->getHand();
-    hand->getLeftRightPalmIndices(leftPalmIndex, rightPalmIndex);
-
     // Don't Relax toward hand positions when in animGraph mode.
     if (!_rig->getEnableAnimGraph()) {
+
+        Hand* hand = _owningAvatar->getHand();
+        auto leftPalm = hand->getCopyOfPalmData(HandData::LeftHand);
+        auto rightPalm = hand->getCopyOfPalmData(HandData::RightHand);
+
         const float HAND_RESTORATION_RATE = 0.25f;
-        if (leftPalmIndex == -1 && rightPalmIndex == -1) {
+        if (!leftPalm.isActive() && !rightPalm.isActive()) {
             // palms are not yet set, use mouse
             if (_owningAvatar->getHandState() == HAND_STATE_NULL) {
                 restoreRightHandPosition(HAND_RESTORATION_RATE, PALM_PRIORITY);
@@ -265,20 +254,14 @@ void SkeletonModel::simulate(float deltaTime, bool fullUpdate) {
                 applyHandPosition(geometry.rightHandJointIndex, handPosition);
             }
             restoreLeftHandPosition(HAND_RESTORATION_RATE, PALM_PRIORITY);
-
-        } else if (leftPalmIndex == rightPalmIndex) {
-            // right hand only
-            applyPalmData(geometry.rightHandJointIndex, hand->getPalms()[leftPalmIndex]);
-            restoreLeftHandPosition(HAND_RESTORATION_RATE, PALM_PRIORITY);
-
         } else {
-            if (leftPalmIndex != -1) {
-                applyPalmData(geometry.leftHandJointIndex, hand->getPalms()[leftPalmIndex]);
+            if (leftPalm.isActive()) {
+                applyPalmData(geometry.leftHandJointIndex, leftPalm);
             } else {
                 restoreLeftHandPosition(HAND_RESTORATION_RATE, PALM_PRIORITY);
             }
-            if (rightPalmIndex != -1) {
-                applyPalmData(geometry.rightHandJointIndex, hand->getPalms()[rightPalmIndex]);
+            if (rightPalm.isActive()) {
+                applyPalmData(geometry.rightHandJointIndex, rightPalm);
             } else {
                 restoreRightHandPosition(HAND_RESTORATION_RATE, PALM_PRIORITY);
             }
@@ -329,7 +312,7 @@ void SkeletonModel::applyHandPosition(int jointIndex, const glm::vec3& position)
                                   PALM_PRIORITY);
 }
 
-void SkeletonModel::applyPalmData(int jointIndex, PalmData& palm) {
+void SkeletonModel::applyPalmData(int jointIndex, const PalmData& palm) {
     if (jointIndex == -1 || jointIndex >= _rig->getJointStateCount()) {
         return;
     }
