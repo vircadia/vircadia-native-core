@@ -2755,10 +2755,6 @@ void Application::update(float deltaTime) {
         myAvatar->setDriveKeys(ZOOM, userInputMapper->getActionState(controller::Action::TRANSLATE_CAMERA_Z));
     }
 
-    float lhc = userInputMapper->getActionState(controller::Action::LEFT_HAND_CLICK);
-    if (lhc != 0.0f) {
-        std::cout << "Left Hand click = " << lhc << std::endl;
-    }
     controller::Pose leftHand = userInputMapper->getPoseState(controller::Action::LEFT_HAND);
     controller::Pose rightHand = userInputMapper->getPoseState(controller::Action::RIGHT_HAND);
     Hand* hand = DependencyManager::get<AvatarManager>()->getMyAvatar()->getHand();
