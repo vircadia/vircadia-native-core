@@ -32,7 +32,7 @@ void CharacterController::setDynamicsWorld(btDynamicsWorld* world) {
         }
         if (world && _rigidBody) {
             _dynamicsWorld = world;
-            _pendingFlags &= ~ PENDING_FLAG_JUMP;
+            _pendingFlags &= ~PENDING_FLAG_JUMP;
             _dynamicsWorld->addRigidBody(_rigidBody, COLLISION_GROUP_MY_AVATAR, COLLISION_MASK_MY_AVATAR);
             _dynamicsWorld->addAction(this);
             //reset(_dynamicsWorld);
@@ -46,7 +46,7 @@ void CharacterController::setDynamicsWorld(btDynamicsWorld* world) {
             _pendingFlags &= ~PENDING_FLAG_ADD_TO_SIMULATION;
         }
     } else {
-        _pendingFlags &= ~ PENDING_FLAG_REMOVE_FROM_SIMULATION;
+        _pendingFlags &= ~PENDING_FLAG_REMOVE_FROM_SIMULATION;
     }
 }   
 

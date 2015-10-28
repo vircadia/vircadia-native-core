@@ -164,7 +164,7 @@ public:
     void prepareForPhysicsSimulation();
     void harvestResultsFromPhysicsSimulation();
 
-    const QString& getCollisionSoundURL() {return _collisionSoundURL; }
+    const QString& getCollisionSoundURL() { return _collisionSoundURL; }
     void setCollisionSoundURL(const QString& url);
 
     void clearScriptableSettings();
@@ -364,9 +364,9 @@ private:
     glm::quat _customListenOrientation;
 
     bool _isFollowingHMD { false };
-    float _followHMDAlpha{0.0f};
+    float _followHMDAlpha { 0.0f };
 
-    quint64 _lastUpdateFromHMDTime{usecTimestampNow()};
+    quint64 _lastUpdateFromHMDTime { usecTimestampNow() };
     AtRestDetector _hmdAtRestDetector;
     glm::vec3 _lastPosition;
     bool _lastIsMoving { false };
