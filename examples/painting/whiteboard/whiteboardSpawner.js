@@ -25,7 +25,7 @@ var rotation = Quat.safeEulerAngles(Camera.getOrientation());
 rotation = Quat.fromPitchYawRollDegrees(0, rotation.y, 0);
 var center = Vec3.sum(MyAvatar.position, Vec3.multiply(3, Quat.getFront(rotation)));
 
-var whiteboardDimensions, colorIndicatorBoxDimensions, colorIndicatorBox, eraser;
+var whiteboardDimensions, colorIndicatorBoxDimensions, colorIndicatorBox, eraser, blocker;
 var colorBoxes = [];
 
 var colors = [
@@ -87,12 +87,13 @@ var light = Entities.addEntity({
     color: {red: 255, green: 255, blue: 255}
 });
 
-var eraseModelPosition = Vec3.sum(center, {x: 0, y: 2, z: 0 });
+var eraserPosition = Vec3.sum(center, {x: 0, y: 2.05, z: 0 });
+eraserPosition = Vec3.sum(eraserPosition, Vec3.multiply(-0.1, rotation));
 scriptURL = Script.resolvePath("eraseBoardEntityScript.js");
 var eraser = Entities.addEntity({
     type: "Model",
     modelURL: eraserModelURL,
-    position: eraseModelPosition,
+    position: eraserPosition,
     name: "Eraser",
     script: scriptURL,
     rotation: rotation,
@@ -109,6 +110,17 @@ Script.setTimeout(function() {
 
 
 function setUp() {
+    var blockerPosition = Vec3.sum(center, {x: 0, y: -1, z: 0 });
+    blockerPosition = Vec3.sum(blockerPosition, Vec3.multiply(-1, Quat.getFront(rotation)));
+    blocker = Entities.addEntity({
+        type: "Box",
+        rotation: rotation,
+        position: blockerPosition,
+        dimensions: {x: whiteboardDimensions.x, y: 1, z: 0.1},
+        shapeType: "box",
+        visible: false
+    });
+
     var eraseModelDimensions = Entities.getEntityProperties(eraser, "naturalDimensions").naturalDimensions;
     Entities.editEntity(eraser, {dimensions: eraseModelDimensions});
     Entities.editEntity(colorIndicatorBorder, {dimensions: colorIndicatorBorderDimensions});
@@ -187,6 +199,7 @@ function cleanup() {
     Entities.deleteEntity(colorIndicatorBorder);
     Entities.deleteEntity(eraser);
     Entities.deleteEntity(colorIndicatorBox);
+    Entities.deleteEntity(blocker);
     Entities.deleteEntity(light);
     colorBoxes.forEach(function(colorBox) {
         Entities.deleteEntity(colorBox);
@@ -196,4 +209,4 @@ function cleanup() {
 
 
 // Uncomment this line to delete whiteboard and all associated entity on script close
-// Script.scriptEnding.connect(cleanup);
+Script.scriptEnding.connect(cleanup);
