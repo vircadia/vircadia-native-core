@@ -30,7 +30,7 @@ void StateController::update(float deltaTime, bool jointsCaptured) {}
 void StateController::focusOutEvent() {}
 
 void StateController::addInputVariant(QString name, ReadLambda& lambda) {
-    namedReadLambdas.push_back(NamedReadLambda(name, lambda));
+    _namedReadLambdas.push_back(NamedReadLambda(name, lambda));
 }
 void StateController::buildDeviceProxy(DeviceProxy::Pointer proxy) {
     proxy->_name = _name;
@@ -42,15 +42,15 @@ void StateController::buildDeviceProxy(DeviceProxy::Pointer proxy) {
         QVector<Input::NamedPair> availableInputs;
         
         int i = 0;
-        for (auto pair : namedReadLambdas) {
+        for (auto& pair : _namedReadLambdas) {
             availableInputs.push_back(Input::NamedPair(Input(_deviceID, i, ChannelType::BUTTON), pair.first));
             i++;
         }
         return availableInputs;
     };
     proxy->createEndpoint = [this] (const Input& input) -> Endpoint::Pointer {
-        if (input.getChannel() < namedReadLambdas.size()) {
-            return std::make_shared<LambdaEndpoint>(namedReadLambdas[input.getChannel()].second);
+        if (input.getChannel() < _namedReadLambdas.size()) {
+            return std::make_shared<LambdaEndpoint>(_namedReadLambdas[input.getChannel()].second);
         }
 
         return Endpoint::Pointer();

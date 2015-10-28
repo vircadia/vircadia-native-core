@@ -647,7 +647,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
     // Setup the keyboardMouseDevice and the user input mapper with the default bindings
     userInputMapper->registerDevice(_keyboardMouseDevice);
 
-    //userInputMapper->getApplicationDevice()->(float)qApp->getAvatarUpdater()->isHMDMode()
 
     // check first run...
     if (_firstRun.get()) {

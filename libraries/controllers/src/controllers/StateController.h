@@ -40,8 +40,7 @@ public:
 
     void addInputVariant(QString name, ReadLambda& lambda);
 
-    QVector<NamedReadLambda> namedReadLambdas;
-    QVector<Input::NamedPair> availableInputs;
+    QVector<NamedReadLambda> _namedReadLambdas;
 };
 
 }

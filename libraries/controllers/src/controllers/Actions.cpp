@@ -75,8 +75,6 @@ namespace controller {
                 makeAxisPair(Action::BOOM_IN, "BoomIn"),
                 makeAxisPair(Action::BOOM_OUT, "BoomOut"),
 
-                makeButtonPair(Action::IN_HMD, "InHMD"),
-
                 // Deprecated aliases
                 // FIXME remove after we port all scripts
                 makeAxisPair(Action::LONGITUDINAL_BACKWARD, "LONGITUDINAL_BACKWARD"),

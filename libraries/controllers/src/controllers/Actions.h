@@ -77,9 +77,7 @@ enum class Action {
     // Biseced aliases for TRANSLATE_CAMERA_Z
     BOOM_IN,
     BOOM_OUT,
-
-    IN_HMD, // THis is a read only action ?
-
+    
     NUM_ACTIONS,
 };
 
