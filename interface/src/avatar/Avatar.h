@@ -160,13 +160,11 @@ public:
     AvatarMotionState* getMotionState() { return _motionState; }
 
 public slots:
+
+    // FIXME - these should be migrated to use Pose data instead
     glm::vec3 getLeftPalmPosition();
-    glm::vec3 getLeftPalmVelocity();
-    glm::vec3 getLeftPalmAngularVelocity();
     glm::quat getLeftPalmRotation();
     glm::vec3 getRightPalmPosition();
-    glm::vec3 getRightPalmVelocity();
-    glm::vec3 getRightPalmAngularVelocity();
     glm::quat getRightPalmRotation();
 
 protected:

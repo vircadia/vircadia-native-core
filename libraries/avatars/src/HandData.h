@@ -12,11 +12,14 @@
 #ifndef hifi_HandData_h
 #define hifi_HandData_h
 
+#include <functional>
 #include <iostream>
 #include <vector>
 
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
+
+#include <QReadWriteLock>
 
 #include <NumericalConstants.h>
 #include <SharedUtil.h>
@@ -24,14 +27,15 @@
 class AvatarData;
 class PalmData;
 
-const int LEFT_HAND_INDEX = 0;
-const int RIGHT_HAND_INDEX = 1;
-const int NUM_HANDS = 2;
-
-const int SIXENSEID_INVALID = -1;
-
 class HandData {
 public:
+    enum Hand {
+        LeftHand,
+        RightHand,
+        UnknownHand,
+        NUMBER_OF_HANDS
+    };
+
     HandData(AvatarData* owningAvatar);
     virtual ~HandData() {}
     
@@ -46,15 +50,9 @@ public:
 
     glm::vec3 worldToLocalVector(const glm::vec3& worldVector) const;
 
-    std::vector<PalmData>& getPalms() { return _palms; }
-    const std::vector<PalmData>& getPalms() const { return _palms; }
-    const PalmData* getPalm(int sixSenseID) const;
-    size_t getNumPalms() const { return _palms.size(); }
-    PalmData& addNewPalm();
+    PalmData getCopyOfPalmData(Hand hand) const;
 
-    /// Finds the indices of the left and right palms according to their locations, or -1 if either or
-    /// both is not found.
-    void getLeftRightPalmIndices(int& leftPalmIndex, int& rightPalmIndex) const;
+    std::vector<PalmData> getCopyOfPalms() const { QReadLocker locker(&_palmsLock); return _palms; }
 
     /// Checks for penetration between the described sphere and the hand.
     /// \param penetratorCenter the center of the penetration test sphere
@@ -67,14 +65,22 @@ public:
 
     glm::quat getBaseOrientation() const;
 
+    /// Allows a lamda function write access to the specific palm for this Hand, this might
+    /// modify the _palms vector
+    template<typename PalmModifierFunction> void modifyPalm(Hand whichHand, PalmModifierFunction callback);
+
     friend class AvatarData;
 protected:
     AvatarData* _owningAvatarData;
     std::vector<PalmData> _palms;
+    mutable QReadWriteLock _palmsLock{ QReadWriteLock::Recursive };
     
     glm::vec3 getBasePosition() const;
     float getBaseScale() const;
-    
+
+    PalmData& addNewPalm(Hand whichHand);
+    PalmData& getPalmData(Hand hand);
+
 private:
     // privatize copy ctor and assignment operator so copies of this object cannot be made
     HandData(const HandData&);
@@ -84,18 +90,20 @@ private:
 
 class PalmData {
 public:
-    PalmData(HandData* owningHandData);
+    PalmData(HandData* owningHandData = nullptr, HandData::Hand hand = HandData::UnknownHand);
     glm::vec3 getPosition() const { return _owningHandData->localToWorldPosition(_rawPosition); }
     glm::vec3 getVelocity() const { return _owningHandData->localToWorldDirection(_rawVelocity); }
 
     const glm::vec3& getRawPosition() const { return _rawPosition; }
     bool isActive() const { return _isActive; }
-    int getSixenseID() const { return _sixenseID; }
+    bool isValid() const { return _owningHandData; }
 
     void setActive(bool active) { _isActive = active; }
-    void setSixenseID(int id) { _sixenseID = id; }
 
-    void setRawRotation(const glm::quat rawRotation) { _rawRotation = rawRotation; };
+    HandData::Hand whichHand() const { return _hand; }
+    void setHand(HandData::Hand hand) { _hand = hand; }
+
+    void setRawRotation(const glm::quat& rawRotation) { _rawRotation = rawRotation; };
     glm::quat getRawRotation() const { return _rawRotation; }
     glm::quat getRotation() const { return _owningHandData->getBaseOrientation() * _rawRotation; }
     void setRawPosition(const glm::vec3& pos)  { _rawPosition = pos; }
@@ -123,31 +131,11 @@ public:
     void resetFramesWithoutData() { _numFramesWithoutData = 0; }
     int  getFramesWithoutData() const { return _numFramesWithoutData; }
     
-    // Controller buttons
-    void setControllerButtons(unsigned int controllerButtons) { _controllerButtons = controllerButtons; }
-    void setLastControllerButtons(unsigned int controllerButtons) { _lastControllerButtons = controllerButtons; }
-
-    unsigned int getControllerButtons() const { return _controllerButtons; }
-    unsigned int getLastControllerButtons() const { return _lastControllerButtons; }
-    
+    // FIXME - these are used in SkeletonModel::updateRig() the skeleton/rig should probably get this information
+    // from an action and/or the UserInputMapper instead of piping it through here.
     void setTrigger(float trigger) { _trigger = trigger; }
     float getTrigger() const { return _trigger; }
-    void setJoystick(float joystickX, float joystickY) { _joystickX = joystickX; _joystickY = joystickY; }
-    float getJoystickX() const { return _joystickX; }
-    float getJoystickY() const { return _joystickY; }
     
-    bool getIsCollidingWithVoxel() const { return _isCollidingWithVoxel; }
-    void setIsCollidingWithVoxel(bool isCollidingWithVoxel) { _isCollidingWithVoxel = isCollidingWithVoxel; }
-
-    bool getIsCollidingWithPalm() const { return _isCollidingWithPalm; }
-    void setIsCollidingWithPalm(bool isCollidingWithPalm) { _isCollidingWithPalm = isCollidingWithPalm; }
-
-    bool hasPaddle() const { return _collisionlessPaddleExpiry < usecTimestampNow(); }
-    void updateCollisionlessPaddleExpiry() { _collisionlessPaddleExpiry = usecTimestampNow() + USECS_PER_SECOND; }
-
-    /// Store position where the palm holds the ball.
-    void getBallHoldPosition(glm::vec3& position) const;
-
     // return world-frame:
     glm::vec3 getFingerDirection() const;
     glm::vec3 getNormal() const;
@@ -163,21 +151,24 @@ private:
     
     glm::vec3 _tipPosition;
     glm::vec3 _tipVelocity;
-    glm::vec3 _totalPenetration;    // accumulator for per-frame penetrations
+    glm::vec3 _totalPenetration; /// accumulator for per-frame penetrations
 
-    unsigned int _controllerButtons;
-    unsigned int _lastControllerButtons;
     float _trigger;
-    float _joystickX, _joystickY;
     
-    bool      _isActive;             // This has current valid data
-    int       _sixenseID;            // Sixense controller ID for this palm
-    int       _numFramesWithoutData; // after too many frames without data, this tracked object assumed lost.
+    bool _isActive; /// This has current valid data
+    int _numFramesWithoutData; /// after too many frames without data, this tracked object assumed lost.
     HandData* _owningHandData;
-    
-    bool      _isCollidingWithVoxel;  /// Whether the finger of this palm is inside a leaf voxel
-    bool      _isCollidingWithPalm;
-    quint64  _collisionlessPaddleExpiry; /// Timestamp after which paddle starts colliding
+    HandData::Hand _hand;
 };
+
+template<typename PalmModifierFunction> void HandData::modifyPalm(Hand whichHand, PalmModifierFunction callback) {
+    QReadLocker locker(&_palmsLock);
+    for (auto& palm : _palms) {
+        if (palm.whichHand() == whichHand && palm.isValid()) {
+            callback(palm);
+            return;
+        }
+    }
+}
 
 #endif // hifi_HandData_h
