@@ -1790,8 +1790,16 @@ const QByteArray EntityItem::getActionDataInternal() const {
 const QByteArray EntityItem::getActionData() const {
     QByteArray result;
     assertUnlocked();
+
+    if (_actionDataDirty) {
+        EntityItem* unconstThis = const_cast<EntityItem*>(this);
+        unconstThis->withWriteLock([&] {
+            getActionDataInternal();
+        });
+    }
+
     withReadLock([&] {
-        result = getActionDataInternal();
+        result = _allActionsDataCache;
     });
     return result;
 }
