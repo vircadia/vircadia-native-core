@@ -14,7 +14,7 @@
 class ReadWriteLockable {
 public:
     template <typename F>
-    bool withWriteLock(F f, bool require = true) {
+    bool withWriteLock(F f, bool require = true) const {
         if (!require) {
             bool result = _lock.tryLockForWrite();
             if (result) {
@@ -22,7 +22,7 @@ public:
                 _lock.unlock();
             }
             return result;
-        } 
+        }
 
         QWriteLocker locker(&_lock);
         f();
@@ -30,7 +30,7 @@ public:
     }
 
     template <typename F>
-    bool withTryWriteLock(F f) {
+    bool withTryWriteLock(F f) const {
         return withWriteLock(f, false);
     }
 

@@ -1,6 +1,6 @@
 set(TARGET_NAME display-plugins)
 setup_hifi_library(OpenGL)
-link_hifi_libraries(shared plugins gpu render-utils)
+link_hifi_libraries(shared plugins gpu gl)
 
 target_opengl()
 
