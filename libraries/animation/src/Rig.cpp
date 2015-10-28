@@ -961,8 +961,10 @@ void Rig::updateFromHeadParameters(const HeadParameters& params, float dt) {
 }
 
 void Rig::updateFromEyeParameters(const EyeParameters& params, float dt) {
-    updateEyeJoints(params.leftEyeJointIndex, params.rightEyeJointIndex, params.modelTranslation, params.modelRotation,
-                    params.worldHeadOrientation, params.eyeLookAt, params.eyeSaccade);
+    updateEyeJoint(params.leftEyeJointIndex, params.modelTranslation, params.modelRotation,
+                   params.worldHeadOrientation, params.eyeLookAt, params.eyeSaccade);
+    updateEyeJoint(params.rightEyeJointIndex, params.modelTranslation, params.modelRotation,
+                   params.worldHeadOrientation, params.eyeLookAt, params.eyeSaccade);
 }
 
 static const glm::vec3 X_AXIS(1.0f, 0.0f, 0.0f);
@@ -1118,12 +1120,6 @@ void Rig::updateNeckJoint(int index, const HeadParameters& params) {
                                                state.getDefaultRotation(), DEFAULT_PRIORITY);
         }
     }
-}
-
-void Rig::updateEyeJoints(int leftEyeIndex, int rightEyeIndex, const glm::vec3& modelTranslation, const glm::quat& modelRotation,
-                          const glm::quat& worldHeadOrientation, const glm::vec3& lookAtSpot, const glm::vec3& saccade) {
-    updateEyeJoint(leftEyeIndex, modelTranslation, modelRotation, worldHeadOrientation, lookAtSpot, saccade);
-    updateEyeJoint(rightEyeIndex, modelTranslation, modelRotation, worldHeadOrientation, lookAtSpot, saccade);
 }
 
 void Rig::updateEyeJoint(int index, const glm::vec3& modelTranslation, const glm::quat& modelRotation, const glm::quat& worldHeadOrientation, const glm::vec3& lookAtSpot, const glm::vec3& saccade) {
