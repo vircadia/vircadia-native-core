@@ -21,6 +21,7 @@
 #include <NumericalConstants.h>
 
 #include "StandardController.h"
+#include "StateController.h"
 
 #include "Logging.h"
 
@@ -89,13 +90,16 @@ void UserInputMapper::registerDevice(InputDevice* device) {
         if (_endpointsByInput.count(input)) {
             continue;
         }
-        Endpoint::Pointer endpoint;
-        if (input.device == STANDARD_DEVICE) {
-            endpoint = std::make_shared<StandardEndpoint>(input);
-        } else if (input.device == ACTIONS_DEVICE) {
-            endpoint = std::make_shared<ActionEndpoint>(input);
-        } else {
-            endpoint = std::make_shared<InputEndpoint>(input);
+
+        Endpoint::Pointer endpoint = proxy->createEndpoint(input);
+        if (!endpoint) {
+            if (input.device == STANDARD_DEVICE) {
+                endpoint = std::make_shared<StandardEndpoint>(input);
+            } else if (input.device == ACTIONS_DEVICE) {
+                endpoint = std::make_shared<ActionEndpoint>(input);
+            } else {
+                endpoint = std::make_shared<InputEndpoint>(input);
+            }
         }
         _inputsByEndpoint[endpoint] = input;
         _endpointsByInput[input] = endpoint;
@@ -953,19 +957,17 @@ Mapping::Pointer UserInputMapper::parseMapping(const QString& json) {
     QJsonDocument doc = QJsonDocument::fromJson(json.toUtf8(), &error);
     // check validity of the document
     if (doc.isNull()) {
+        qDebug() << "Invalid JSON...\n";
+        qDebug() << error.errorString();
+        qDebug() << "JSON was:\n" << json << endl;
         return Mapping::Pointer();
     }
 
     if (!doc.isObject()) {
         qWarning() << "Mapping json Document is not an object" << endl;
+        qDebug() << "JSON was:\n" << json << endl;
         return Mapping::Pointer();
     }
-
-    // FIXME how did we detect this?
-    //    qDebug() << "Invalid JSON...\n";
-    //    qDebug() << error.errorString();
-    //    qDebug() << "JSON was:\n" << json << endl;
-    //}
     return parseMapping(doc.object());
 }
 

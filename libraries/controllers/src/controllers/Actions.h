@@ -77,7 +77,7 @@ enum class Action {
     // Biseced aliases for TRANSLATE_CAMERA_Z
     BOOM_IN,
     BOOM_OUT,
-
+    
     NUM_ACTIONS,
 };
 

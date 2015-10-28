@@ -84,6 +84,7 @@ namespace controller {
         Pose getPoseState(Action action) const { return _poseStates[toInt(action)]; }
         int findAction(const QString& actionName) const;
         QVector<QString> getActionNames() const;
+        Input inputFromAction(Action action) const { return getActionInputs()[toInt(action)].first; }
 
         void setActionState(Action action, float value) { _actionStates[toInt(action)] = value; }
         void deltaActionState(Action action, float delta) { _actionStates[toInt(action)] += delta; }
