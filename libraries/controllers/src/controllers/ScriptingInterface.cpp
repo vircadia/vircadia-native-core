@@ -48,11 +48,10 @@ controller::ScriptingInterface::ScriptingInterface() {
     connect(userInputMapper.data(), &UserInputMapper::inputEvent, this, &controller::ScriptingInterface::inputEvent);
 
     // FIXME make this thread safe
-    connect(userInputMapper.data(), &UserInputMapper::hardwareChanged, [=] {
+    connect(userInputMapper.data(), &UserInputMapper::hardwareChanged, this, [=] {
         updateMaps();
         emit hardwareChanged();
     });
-
 
     qCDebug(controllers) << "Setting up standard controller abstraction";
     _standard = createDeviceMap(userInputMapper->getStandardDevice());
