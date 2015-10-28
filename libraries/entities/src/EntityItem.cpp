@@ -1795,12 +1795,13 @@ const QByteArray EntityItem::getActionData() const {
         EntityItem* unconstThis = const_cast<EntityItem*>(this);
         unconstThis->withWriteLock([&] {
             getActionDataInternal();
+            result = _allActionsDataCache;
+        });
+    } else {
+        withReadLock([&] {
+            result = _allActionsDataCache;
         });
     }
-
-    withReadLock([&] {
-        result = _allActionsDataCache;
-    });
     return result;
 }
 
