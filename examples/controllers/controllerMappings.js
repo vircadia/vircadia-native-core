@@ -88,3 +88,8 @@ Object.keys(Controller.Actions).forEach(function (actionName) {
     print("Controller.Actions." + actionName + ":" + Controller.Actions[actionName]);
 });
 */
+
+
+Controller.hardwareChanged.connect(function () {
+    print("hardwareChanged");
+});
