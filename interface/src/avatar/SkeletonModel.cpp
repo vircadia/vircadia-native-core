@@ -114,15 +114,12 @@ void SkeletonModel::updateRig(float deltaTime, glm::mat4 parentTransform) {
     if (_owningAvatar->isMyAvatar()) {
         _rig->computeMotionAnimationState(deltaTime, _owningAvatar->getPosition(), _owningAvatar->getVelocity(), _owningAvatar->getOrientation());
     }
-    Model::updateRig(deltaTime, parentTransform);
     Head* head = _owningAvatar->getHead();
     if (_owningAvatar->isMyAvatar()) {
         MyAvatar* myAvatar = static_cast<MyAvatar*>(_owningAvatar);
         const FBXGeometry& geometry = _geometry->getFBXGeometry();
 
         Rig::HeadParameters headParams;
-        headParams.modelRotation = getRotation();
-        headParams.modelTranslation = getTranslation();
         headParams.enableLean = qApp->getAvatarUpdater()->isHMDMode();
         headParams.leanSideways = head->getFinalLeanSideways();
         headParams.leanForward = head->getFinalLeanForward();
@@ -156,19 +153,13 @@ void SkeletonModel::updateRig(float deltaTime, glm::mat4 parentTransform) {
             headParams.worldHeadOrientation = head->getFinalOrientationInWorldFrame();
         }
 
-        headParams.eyeLookAt = head->getLookAtPosition();
-        headParams.eyeSaccade = head->getSaccade();
         headParams.leanJointIndex = geometry.leanJointIndex;
         headParams.neckJointIndex = geometry.neckJointIndex;
-        headParams.leftEyeJointIndex = geometry.leftEyeJointIndex;
-        headParams.rightEyeJointIndex = geometry.rightEyeJointIndex;
-
         headParams.isTalking = head->getTimeWithoutTalking() <= 1.5f;
 
         _rig->updateFromHeadParameters(headParams, deltaTime);
 
         Rig::HandParameters handParams;
-
         const PalmData* leftPalm = getPalmWithIndex(myAvatar->getHand(), LEFT_HAND_INDEX);
         if (leftPalm && leftPalm->isActive()) {
             handParams.isLeftEnabled = true;
@@ -191,7 +182,28 @@ void SkeletonModel::updateRig(float deltaTime, glm::mat4 parentTransform) {
 
         _rig->updateFromHandParameters(handParams, deltaTime);
 
+        // evaluate AnimGraph animation and update jointStates.
+        Model::updateRig(deltaTime, parentTransform);
+
+        Rig::EyeParameters eyeParams;
+        eyeParams.worldHeadOrientation = headParams.worldHeadOrientation;
+        eyeParams.eyeLookAt = head->getLookAtPosition();
+        eyeParams.eyeSaccade = head->getSaccade();
+        eyeParams.modelRotation = getRotation();
+        eyeParams.modelTranslation = getTranslation();
+        eyeParams.leftEyeJointIndex = geometry.leftEyeJointIndex;
+        eyeParams.rightEyeJointIndex = geometry.rightEyeJointIndex;
+
+        _rig->updateFromEyeParameters(eyeParams, deltaTime);
+
+        // rebuild the jointState transform for the eyes only
+        _rig->updateJointState(eyeParams.leftEyeJointIndex, parentTransform);
+        _rig->updateJointState(eyeParams.rightEyeJointIndex, parentTransform);
+
     } else {
+
+        Model::updateRig(deltaTime, parentTransform);
+
         // This is a little more work than we really want.
         //
         // Other avatars joint, including their eyes, should already be set just like any other joints
@@ -208,9 +220,16 @@ void SkeletonModel::updateRig(float deltaTime, glm::mat4 parentTransform) {
         head->setBasePitch(glm::degrees(-eulers.x));
         head->setBaseYaw(glm::degrees(eulers.y));
         head->setBaseRoll(glm::degrees(-eulers.z));
-        _rig->updateEyeJoints(geometry.leftEyeJointIndex, geometry.rightEyeJointIndex,
-                              getTranslation(), getRotation(),
-                              head->getFinalOrientationInWorldFrame(), head->getCorrectedLookAtPosition());
+
+        Rig::EyeParameters eyeParams;
+        eyeParams.worldHeadOrientation = head->getFinalOrientationInWorldFrame();
+        eyeParams.eyeLookAt = head->getCorrectedLookAtPosition();
+        eyeParams.eyeSaccade = glm::vec3(0);
+        eyeParams.modelRotation = getRotation();
+        eyeParams.modelTranslation = getTranslation();
+        eyeParams.leftEyeJointIndex = geometry.leftEyeJointIndex;
+        eyeParams.rightEyeJointIndex = geometry.rightEyeJointIndex;
+        _rig->updateFromEyeParameters(eyeParams, deltaTime);
      }
 }
 
