@@ -685,9 +685,8 @@ void ScriptEngine::run() {
         }
         lastUpdate = now;
 
-        if (hadUncauchtExceptions(*this, _fileNameString)) {
-            stop();
-        }
+        // Debug and clear exceptions
+        hadUncauchtExceptions(*this, _fileNameString);
     }
 
     stopAllTimers(); // make sure all our timers are stopped if the script is ending
