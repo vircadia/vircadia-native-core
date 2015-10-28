@@ -155,7 +155,8 @@ void MyAvatar::reset(bool andReload) {
     }
 
     // Reset dynamic state.
-    _wasPushing = _isPushing = _isBraking = _billboardValid = _straighteningLean = false;
+    _wasPushing = _isPushing = _isBraking = _billboardValid = false;
+    _isFollowingHMD = false;
     _skeletonModel.reset();
     getHead()->reset();
     _targetVelocity = glm::vec3(0.0f);
@@ -328,7 +329,7 @@ glm::mat4 MyAvatar::getSensorToWorldMatrix() const {
 
 // returns true if pos is OUTSIDE of the vertical capsule
 // where the middle cylinder length is defined by capsuleLen and the radius by capsuleRad.
-static bool capsuleCheck(const glm::vec3& pos, float capsuleLen, float capsuleRad) {
+static bool pointIsOutsideCapsule(const glm::vec3& pos, float capsuleLen, float capsuleRad) {
     const float halfCapsuleLen = capsuleLen / 2.0f;
     if (fabs(pos.y) <= halfCapsuleLen) {
         // cylinder check for middle capsule
@@ -349,6 +350,10 @@ static bool capsuleCheck(const glm::vec3& pos, float capsuleLen, float capsuleRa
 // This can also update the avatar's position to follow the HMD
 // as it moves through the world.
 void MyAvatar::updateFromHMDSensorMatrix(const glm::mat4& hmdSensorMatrix) {
+    // update the sensorMatrices based on the new hmd pose
+    _hmdSensorMatrix = hmdSensorMatrix;
+    _hmdSensorPosition = extractTranslation(hmdSensorMatrix);
+    _hmdSensorOrientation = glm::quat_cast(hmdSensorMatrix);
 
     // calc deltaTime
     auto now = usecTimestampNow();
@@ -357,11 +362,6 @@ void MyAvatar::updateFromHMDSensorMatrix(const glm::mat4& hmdSensorMatrix) {
     double actualDeltaTime = (double)deltaUsecs / (double)USECS_PER_SECOND;
     const float BIGGEST_DELTA_TIME_SECS = 0.25f;
     float deltaTime = glm::clamp((float)actualDeltaTime, 0.0f, BIGGEST_DELTA_TIME_SECS);
-
-    // update the sensorMatrices based on the new hmd pose
-    _hmdSensorMatrix = hmdSensorMatrix;
-    _hmdSensorPosition = extractTranslation(hmdSensorMatrix);
-    _hmdSensorOrientation = glm::quat_cast(hmdSensorMatrix);
 
     bool hmdIsAtRest = _hmdAtRestDetector.update(deltaTime, _hmdSensorPosition, _hmdSensorOrientation);
 
@@ -384,58 +384,60 @@ void MyAvatar::updateFromHMDSensorMatrix(const glm::mat4& hmdSensorMatrix) {
     bool justStartedMoving = (_lastIsMoving != isMoving) && isMoving;
     _lastIsMoving = isMoving;
 
-    if (shouldBeginStraighteningLean() || hmdIsAtRest || justStartedMoving) {
-        beginStraighteningLean();
+    if (shouldFollowHMD() || hmdIsAtRest || justStartedMoving) {
+        beginFollowingHMD();
     }
 
-    processStraighteningLean(deltaTime);
+    followHMD(deltaTime);
 }
 
-void MyAvatar::beginStraighteningLean() {
+glm::vec3 MyAvatar::getHMDCorrectionVelocity() const {
+    // TODO: impelement this
+    return Vectors::ZERO;
+}
+
+void MyAvatar::beginFollowingHMD() {
     // begin homing toward derived body position.
-    if (!_straighteningLean) {
-        _straighteningLean = true;
-        _straighteningLeanAlpha = 0.0f;
+    if (!_isFollowingHMD) {
+        _isFollowingHMD = true;
+        _followHMDAlpha = 0.0f;
     }
 }
 
-bool MyAvatar::shouldBeginStraighteningLean() const {
-    // define a vertical capsule
-    const float STRAIGHTENING_LEAN_CAPSULE_RADIUS = 0.2f;  // meters
-    const float STRAIGHTENING_LEAN_CAPSULE_LENGTH = 0.05f;  // length of the cylinder part of the capsule in meters.
-
-    // detect if the derived body position is outside of a capsule around the _bodySensorMatrix
-    auto newBodySensorMatrix = deriveBodyFromHMDSensor();
-    glm::vec3 diff = extractTranslation(newBodySensorMatrix) - extractTranslation(_bodySensorMatrix);
-    bool isBodyPosOutsideCapsule = capsuleCheck(diff, STRAIGHTENING_LEAN_CAPSULE_LENGTH, STRAIGHTENING_LEAN_CAPSULE_RADIUS);
-
-    if (isBodyPosOutsideCapsule) {
-        return true;
-    } else {
-        return false;
+bool MyAvatar::shouldFollowHMD() const {
+    if (!_isFollowingHMD) {
+        // define a vertical capsule
+        const float FOLLOW_HMD_CAPSULE_RADIUS = 0.2f;  // meters
+        const float FOLLOW_HMD_CAPSULE_LENGTH = 0.05f;  // length of the cylinder part of the capsule in meters.
+    
+        // detect if the derived body position is outside of a capsule around the _bodySensorMatrix
+        auto newBodySensorMatrix = deriveBodyFromHMDSensor();
+        glm::vec3 localPoint = extractTranslation(newBodySensorMatrix) - extractTranslation(_bodySensorMatrix);
+        return pointIsOutsideCapsule(localPoint, FOLLOW_HMD_CAPSULE_LENGTH, FOLLOW_HMD_CAPSULE_RADIUS);
     }
+    return false;
 }
 
-void MyAvatar::processStraighteningLean(float deltaTime) {
-    if (_straighteningLean) {
+void MyAvatar::followHMD(float deltaTime) {
+    if (_isFollowingHMD) {
 
-        const float STRAIGHTENING_LEAN_DURATION = 0.5f;  // seconds
+        const float FOLLOW_HMD_DURATION = 0.5f;  // seconds
 
         auto newBodySensorMatrix = deriveBodyFromHMDSensor();
         auto worldBodyMatrix = _sensorToWorldMatrix * newBodySensorMatrix;
         glm::vec3 worldBodyPos = extractTranslation(worldBodyMatrix);
         glm::quat worldBodyRot = glm::normalize(glm::quat_cast(worldBodyMatrix));
 
-        _straighteningLeanAlpha += (1.0f / STRAIGHTENING_LEAN_DURATION) * deltaTime;
+        _followHMDAlpha += (1.0f / FOLLOW_HMD_DURATION) * deltaTime;
 
-        if (_straighteningLeanAlpha >= 1.0f) {
-            _straighteningLean = false;
+        if (_followHMDAlpha >= 1.0f) {
+            _isFollowingHMD = false;
             nextAttitude(worldBodyPos, worldBodyRot);
             _bodySensorMatrix = newBodySensorMatrix;
         } else {
             // interp position toward the desired pos
-            glm::vec3 pos = lerp(getPosition(), worldBodyPos, _straighteningLeanAlpha);
-            glm::quat rot = glm::normalize(safeMix(getOrientation(), worldBodyRot, _straighteningLeanAlpha));
+            glm::vec3 pos = lerp(getPosition(), worldBodyPos, _followHMDAlpha);
+            glm::quat rot = glm::normalize(safeMix(getOrientation(), worldBodyRot, _followHMDAlpha));
             nextAttitude(pos, rot);
 
             // interp sensor matrix toward desired
@@ -443,8 +445,8 @@ void MyAvatar::processStraighteningLean(float deltaTime) {
             glm::quat nextBodyRot = glm::normalize(glm::quat_cast(newBodySensorMatrix));
             glm::vec3 prevBodyPos = extractTranslation(_bodySensorMatrix);
             glm::quat prevBodyRot = glm::normalize(glm::quat_cast(_bodySensorMatrix));
-            pos = lerp(prevBodyPos, nextBodyPos, _straighteningLeanAlpha);
-            rot = glm::normalize(safeMix(prevBodyRot, nextBodyRot, _straighteningLeanAlpha));
+            pos = lerp(prevBodyPos, nextBodyPos, _followHMDAlpha);
+            rot = glm::normalize(safeMix(prevBodyRot, nextBodyRot, _followHMDAlpha));
             _bodySensorMatrix = createMatFromQuatAndPos(rot, pos);
         }
     }
@@ -1340,6 +1342,23 @@ void MyAvatar::rebuildSkeletonBody() {
     corner += _skeletonModel.getBoundingCapsuleOffset();
     glm::vec3 scale(2.0f * radius, height, 2.0f * radius);
     _characterController.setLocalBoundingBox(corner, scale);
+}
+
+void MyAvatar::prepareForPhysicsSimulation() {
+    relayDriveKeysToCharacterController();
+    _characterController.setTargetVelocity(getTargetVelocity());
+    _characterController.setAvatarPositionAndOrientation(getPosition(), getOrientation());
+    _characterController.setHMDVelocity(getHMDCorrectionVelocity());
+}   
+
+void MyAvatar::harvestResultsFromPhysicsSimulation() {
+    glm::vec3 position = getPosition();
+    glm::quat orientation = getOrientation();
+    _characterController.getAvatarPositionAndOrientation(position, orientation);
+    nextAttitude(position, orientation);
+    setVelocity(_characterController.getLinearVelocity());
+    // TODO: harvest HMD shift here
+    //glm::vec3 hmdShift = _characterController.getHMDShift();
 }
 
 QString MyAvatar::getScriptedMotorFrame() const {

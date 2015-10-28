@@ -75,7 +75,7 @@
 #include <ObjectMotionState.h>
 #include <OctalCode.h>
 #include <OctreeSceneStats.h>
-#include <OffscreenGlCanvas.h>
+#include <gl/OffscreenGlCanvas.h>
 #include <PathUtils.h>
 #include <PerfStat.h>
 #include <PhysicsEngine.h>
@@ -2757,7 +2757,6 @@ void Application::update(float deltaTime) {
 
     {
         PerformanceTimer perfTimer("physics");
-        myAvatar->relayDriveKeysToCharacterController();
 
         static VectorOfMotionStates motionStates;
         _entitySimulation.getObjectsToDelete(motionStates);
@@ -2784,6 +2783,8 @@ void Application::update(float deltaTime) {
         avatarManager->getObjectsToChange(motionStates);
         _physicsEngine->changeObjects(motionStates);
 
+        myAvatar->prepareForPhysicsSimulation();
+
         _entities.getTree()->withWriteLock([&] {
             _physicsEngine->stepSimulation();
         });
@@ -2808,6 +2809,8 @@ void Application::update(float deltaTime) {
                 // and will simulate entity motion (the EntityTree has been given an EntitySimulation).
                 _entities.update(); // update the models...
             }
+
+            myAvatar->harvestResultsFromPhysicsSimulation();
         }
     }
 

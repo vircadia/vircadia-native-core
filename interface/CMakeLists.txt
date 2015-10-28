@@ -96,7 +96,8 @@ else()
 endif()
 
 # link required hifi libraries
-link_hifi_libraries(shared octree environment gpu procedural  model render fbx networking model-networking entities avatars 
+link_hifi_libraries(shared octree environment gpu gl procedural model render 
+                    fbx networking model-networking entities avatars 
                     audio audio-client animation script-engine physics 
                     render-utils entities-renderer ui auto-updater
                     controllers plugins display-plugins input-plugins )
