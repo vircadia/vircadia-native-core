@@ -11,11 +11,8 @@
 //
 
 // TODO: 
-//  [x] make it so you can shoot without blocking your view with your hand
-//  [x] notching system
 // make arrows more visible
 // make arrow rotate toward ground as it flies
-// [x] different model?  compound bow will look better in the HMD, and be easier to aim. http://www.turbosquid.com/3d-models/3d-model-bow-arrow/773106
 // add noise when you release arrow -> add the sound to the arrow and keep it with position so you hear it whizz by 
 // add noise when you draw string
 // re-enable arrows sticking when they hit
@@ -89,16 +86,6 @@
 
     var NOTCH_DETECTOR_DISTANCE = 0.1;
 
-    var RELOAD_DETECTOR_OFFSET = 0.3;
-
-    var RELOAD_DETECTOR_DIMENSIONS = {
-        x: 0.5,
-        y: 0.5,
-        z: 0.5
-    };
-
-    var RELOAD_DETECTOR_DISTANCE = 0.1;
-
     var _this;
 
     function Bow() {
@@ -117,19 +104,16 @@
 
     // with notching system (for reloading):
     // pick up bow
-    // move other hand near reload detector
+    // pick up arrow
     // move arrow near notch detector
     // pull back on the trigger to draw the string
     // release to fire
 
     Bow.prototype = {
-        useNotching: true,
         isGrabbed: false,
         stringDrawn: false,
         hasArrow: false,
         arrowTipPosition: null,
-        hasArrowLoaded: false,
-        reloadDetector: null,
         hasArrowNotched: false,
         notchDetector: null,
         arrow: null,
@@ -168,11 +152,6 @@
             this.isGrabbed = true;
             this.initialHand = this.hand;
 
-            if (this.useNotching === true) {
-                this.createReloadDetector();
-
-            }
-
             Entities.editEntity(this.entityID, {
                 userData: JSON.stringify({
                     grabbableKey: {
@@ -185,36 +164,21 @@
         },
 
         continueNearGrab: function() {
-            this.bowProperties = Entities.getEntityProperties(this.entityID, ["position", "rotation"]);
+            this.bowProperties = Entities.getEntityProperties(this.entityID, ["position", "rotation","userData"]);
 
-            this.checkStringHand();
-
-            if (this.useNotching === true) {
                 if (this.notchDetector === null) {
                     this.createNotchDetector();
                 }
 
                 this.updateNotchDetectorPosition();
-                this.updateReloadDetectorPosition();
 
                 this.checkArrowHand();
-
-                if (this.hasArrowLoaded === true && this.hasArrowNotched === false) {
-                    updateArrowPositionPreNotch();
-                }
-
-                if (this.hasArrowLoaded === true) {
-                    this.updateNotchDetectorPosition();
-                }
-
 
                 if (this.hasArrowNotched === true) {
                     //only test for strings now that an arrow is notched
                     //  this.checkStringHand();
                     //should probably draw a string straight across the bow until its notched
                 }
-            }
-
         },
 
         releaseGrab: function() {
@@ -233,15 +197,10 @@
                         }
                     })
                 });
-                Entities.deleteEntity(this.reloadDetector);
                 Entities.deleteEntity(this.notchDetector);
                 this.notchDetector = null;
-                this.reloadDetector = null;
-                // if(this.useNotching===true){
 
-                // }
-            }
-        },
+        }},
 
         createStrings: function() {
             this.createTopString();
@@ -369,63 +328,8 @@
         deletePreNotchString: function() {
             Entities.deleteEntity(this.preNotchString);
         },
-
-        checkArrowHand: function() {
-            if (this.initialHand === 'left') {
-                this.getArrowHandPosition = MyAvatar.getRightPalmPosition;
-                this.getArrowHandRotation = MyAvatar.getRightPalmRotation;
-            } else if (this.initialHand === 'right') {
-                this.getArrowHandPosition = MyAvatar.getLeftPalmPosition;
-                this.getArrowHandRotation = MyAvatar.getLeftPalmRotation;
-            }
-            if (this.hasArrowLoaded === false) {
-                this.testForHandInReloadDetector();
-            }
-
-            if (this.hasArrowLoaded === true) {
-                this.testForHandInNotchDetector();
-            }
-
-        },
-
-        testForHandInReloadDetector: function() {
-            var arrowHandPosition = this.getArrowHandPosition();
-            var reloadDetectorPosition = Entities.getEntityProperties(this.reloadDetector, "position");
-            var fromArrowHandToReloadDetector = Vec3.subtract(arrowHandPosition, reloadDetectorPosition);
-            var distance = Vec3.length(fromArrowHandToReloadDetector);
-            print('fromArrowHandToReloadDetector distance :: ' + distance);
-            if (fromArrowHandToReloadDetector < RELOAD_DETECTOR_DISTANCE) {
-                print('ARROW LOADED');
-                if (this.hasArrowLoaded === false) {
-                    this.hasArrowLoaded = true;
-                    this.loadArrow()
-                }
-            }
-        },
-
-        loadArrow: function() {
-            var arrowProperties = {
-                name: 'Hifi-Arrow',
-                type: 'Model',
-                shapeType: 'box',
-                modelURL: ARROW_MODEL_URL,
-                dimensions: ARROW_DIMENSIONS,
-                position: this.getArrowHandPosition(),
-                rotation: this.getArrowHandRotation(),
-                collisionsWillMove: false,
-                ignoreForCollisions: true,
-                gravity: ARROW_GRAVITY,
-                // script: ARROW_SCRIPT_URL,
-                lifetime: 40,
-                userData: JSON.stringify({
-                    grabbableKey: {
-                        grabbable: false,
-
-                    }
-                })
-            };
-
-            this.arrow = Entities.addEntity(arrowProperties);
+        getArrowHandPosition:function(){
+            return
         },
 
         testForHandInNotchDetector: function() {
@@ -476,10 +380,7 @@
                 this.stringData.handPosition = this.getStringHandPosition();
                 this.stringData.handRotation = this.getStringHandRotation();
                 this.initialHand === 'right' ? this.stringData.grabHandPosition = Controller.getSpatialControlPosition(RIGHT_TIP) : this.stringData.grabHandPosition = Controller.getSpatialControlPosition(LEFT_TIP);
-                //   this.stringData.grabHandPosition = this.getGrabHandPosition();
                 this.stringData.grabHandRotation = this.getGrabHandRotation();
-
-
                 this.drawStrings();
                 this.updateArrowPosition();
 
@@ -488,7 +389,6 @@
                 this.createStrings();
                 this.stringData.handPosition = this.getStringHandPosition();
                 this.stringData.handRotation = this.getStringHandRotation();
-                // this.stringData.grabHandPosition = this.getGrabHandPosition();
                 this.initialHand === 'right' ? this.stringData.grabHandPosition = Controller.getSpatialControlPosition(RIGHT_TIP) : this.stringData.grabHandPosition = Controller.getSpatialControlPosition(LEFT_TIP);
                 this.stringData.grabHandRotation = this.getGrabHandRotation();
                 if (this.hasArrow === false) {
@@ -651,36 +551,6 @@
             return min2 + (max2 - min2) * ((value - min1) / (max1 - min1));
         },
 
-        getReloadDetectorPosition: function() {
-            var avatarHeadPosition = MyAvatar.getHeadPosition();
-            var offsetDirection;
-            this.initialHand === 'left' ? offsetDirection = Quat.getRight(MyAvatar.orientation) : offsetDirection = Vec3.multiply(-1, Quat.getRight(MyAvatar.orientation));
-            var offset = Vec3.multiply(offsetDirection, RELOAD_DETECTOR_OFFSET);
-            var detectorPosition = Vec3.sum(avatarHeadPosition, offset);
-
-            return detectorPosition
-        },
-
-        createReloadDetector: function() {
-
-            var detectorPosition = this.getReloadDetectorPosition();
-
-            var detectorProperties = {
-                type: 'Box',
-                visible: true,
-                ignoreForCollisions: true,
-                dimensions: RELOAD_DETECTOR_DIMENSIONS,
-                position: detectorPosition,
-                color: {
-                    red: 255,
-                    green: 0,
-                    blue: 0
-                }
-            };
-
-            this.reloadDetector = Entities.addEntity(detectorProperties);
-        },
-
         createNotchDetector: function() {
             var detectorPosition = Vec3.sum(this.bowProperties.position, NOTCH_DETECTOR_OFFSET);
 
@@ -698,13 +568,6 @@
             };
 
             this.notchDetector = Entities.addEntity(detectorProperties);
-        },
-
-        updateReloadDetectorPosition: function() {
-            this.reloadDetectorPosition = this.getReloadDetectorPosition();
-            Entities.editEntity(this.reloadDetector, {
-                position: this.reloadDetectorPosition
-            });
         },
 
         updateNotchDetectorPosition: function() {
