@@ -21,6 +21,7 @@
 #include <NumericalConstants.h>
 
 #include "StandardController.h"
+#include "StateController.h"
 
 #include "Logging.h"
 
@@ -43,7 +44,6 @@
 
 namespace controller {
     const uint16_t UserInputMapper::ACTIONS_DEVICE = Input::INVALID_DEVICE - 0xFF;
-    const uint16_t UserInputMapper::STATE_DEVICE = ACTIONS_DEVICE - 0xFF;
     const uint16_t UserInputMapper::STANDARD_DEVICE = 0;
 }
 
@@ -1019,14 +1019,6 @@ void UserInputMapper::disableMapping(const Mapping::Pointer& mapping) {
     if (debuggableRoutes) {
         debuggableRoutes = hasDebuggableRoute(_deviceRoutes) || hasDebuggableRoute(_standardRoutes);
     }
-}
-
-void UserInputMapper::resetActionState(Action action, float value) {
-    auto endpoint = endpointFor(inputFromAction(action));
-    if (endpoint) {
-        endpoint->apply(value, Endpoint::Pointer());
-    }
-    _actionStates[toInt(action)] = value;
 }
 
 }

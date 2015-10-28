@@ -143,6 +143,8 @@
 #include "ui/UpdateDialog.h"
 #include "Util.h"
 
+#include "controllers/StateController.h"
+
 // ON WIndows PC, NVidia Optimus laptop, we want to enable NVIDIA GPU
 // FIXME seems to be broken.
 #if defined(Q_OS_WIN)
@@ -346,47 +348,47 @@ int _keyboardFocusHighlightID{ -1 };
 PluginContainer* _pluginContainer;
 
 Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
-        QApplication(argc, argv),
-        _dependencyManagerIsSetup(setupEssentials(argc, argv)),
-        _window(new MainWindow(desktop())),
-        _toolWindow(NULL),
-        _undoStackScriptingInterface(&_undoStack),
-        _frameCount(0),
-        _fps(60.0f),
-        _physicsEngine(new PhysicsEngine(Vectors::ZERO)),
-        _entities(true, this, this),
-        _entityClipboardRenderer(false, this, this),
-        _entityClipboard(new EntityTree()),
-        _lastQueriedTime(usecTimestampNow()),
-        _mirrorViewRect(QRect(MIRROR_VIEW_LEFT_PADDING, MIRROR_VIEW_TOP_PADDING, MIRROR_VIEW_WIDTH, MIRROR_VIEW_HEIGHT)),
-        _firstRun("firstRun", true),
-        _previousScriptLocation("LastScriptLocation", DESKTOP_LOCATION),
-        _scriptsLocationHandle("scriptsLocation", DESKTOP_LOCATION),
-        _fieldOfView("fieldOfView", DEFAULT_FIELD_OF_VIEW_DEGREES),
-        _scaleMirror(1.0f),
-        _rotateMirror(0.0f),
-        _raiseMirror(0.0f),
-        _lastMouseMoveWasSimulated(false),
-        _enableProcessOctreeThread(true),
-        _runningScriptsWidget(NULL),
-        _runningScriptsWidgetWasVisible(false),
-        _lastNackTime(usecTimestampNow()),
-        _lastSendDownstreamAudioStats(usecTimestampNow()),
-        _aboutToQuit(false),
-        _notifiedPacketVersionMismatchThisDomain(false),
-        _maxOctreePPS(maxOctreePacketsPerSecond.get()),
-        _lastFaceTrackerUpdate(0)
+QApplication(argc, argv),
+_dependencyManagerIsSetup(setupEssentials(argc, argv)),
+_window(new MainWindow(desktop())),
+_toolWindow(NULL),
+_undoStackScriptingInterface(&_undoStack),
+_frameCount(0),
+_fps(60.0f),
+_physicsEngine(new PhysicsEngine(Vectors::ZERO)),
+_entities(true, this, this),
+_entityClipboardRenderer(false, this, this),
+_entityClipboard(new EntityTree()),
+_lastQueriedTime(usecTimestampNow()),
+_mirrorViewRect(QRect(MIRROR_VIEW_LEFT_PADDING, MIRROR_VIEW_TOP_PADDING, MIRROR_VIEW_WIDTH, MIRROR_VIEW_HEIGHT)),
+_firstRun("firstRun", true),
+_previousScriptLocation("LastScriptLocation", DESKTOP_LOCATION),
+_scriptsLocationHandle("scriptsLocation", DESKTOP_LOCATION),
+_fieldOfView("fieldOfView", DEFAULT_FIELD_OF_VIEW_DEGREES),
+_scaleMirror(1.0f),
+_rotateMirror(0.0f),
+_raiseMirror(0.0f),
+_lastMouseMoveWasSimulated(false),
+_enableProcessOctreeThread(true),
+_runningScriptsWidget(NULL),
+_runningScriptsWidgetWasVisible(false),
+_lastNackTime(usecTimestampNow()),
+_lastSendDownstreamAudioStats(usecTimestampNow()),
+_aboutToQuit(false),
+_notifiedPacketVersionMismatchThisDomain(false),
+_maxOctreePPS(maxOctreePacketsPerSecond.get()),
+_lastFaceTrackerUpdate(0)
 {
     thread()->setObjectName("Main Thread");
-    
+
     setInstance(this);
-    
+
     auto controllerScriptingInterface = DependencyManager::get<controller::ScriptingInterface>().data();
     _controllerScriptingInterface = dynamic_cast<ControllerScriptingInterface*>(controllerScriptingInterface);
     // to work around the Qt constant wireless scanning, set the env for polling interval very high
     const QByteArray EXTREME_BEARER_POLL_TIMEOUT = QString::number(INT_MAX).toLocal8Bit();
     qputenv("QT_BEARER_POLL_TIMEOUT", EXTREME_BEARER_POLL_TIMEOUT);
-    
+
     _entityClipboard->createRootElement();
 
     _pluginContainer = new PluginContainerProxy();
@@ -449,7 +451,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
     audioIO->moveToThread(audioThread);
 
     auto& audioScriptingInterface = AudioScriptingInterface::getInstance();
-    
+
     connect(audioThread, &QThread::started, audioIO.data(), &AudioClient::start);
     connect(audioIO.data(), &AudioClient::destroyed, audioThread, &QThread::quit);
     connect(audioThread, &QThread::finished, audioThread, &QThread::deleteLater);
@@ -488,7 +490,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
     connect(&domainHandler, SIGNAL(disconnectedFromDomain()), SLOT(clearDomainOctreeDetails()));
     connect(&domainHandler, &DomainHandler::settingsReceived, this, &Application::domainSettingsReceived);
     connect(&domainHandler, &DomainHandler::hostnameChanged,
-            DependencyManager::get<AddressManager>().data(), &AddressManager::storeCurrentAddress);
+        DependencyManager::get<AddressManager>().data(), &AddressManager::storeCurrentAddress);
 
     // update our location every 5 seconds in the metaverse server, assuming that we are authenticated with one
     const qint64 DATA_SERVER_LOCATION_CHANGE_UPDATE_MSECS = 5 * 1000;
@@ -499,7 +501,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
 
     // if we get a domain change, immediately attempt update location in metaverse server
     connect(&nodeList->getDomainHandler(), &DomainHandler::connectedToDomain,
-            discoverabilityManager.data(), &DiscoverabilityManager::updateLocation);
+        discoverabilityManager.data(), &DiscoverabilityManager::updateLocation);
 
     connect(nodeList.data(), &NodeList::nodeAdded, this, &Application::nodeAdded);
     connect(nodeList.data(), &NodeList::nodeKilled, this, &Application::nodeKilled);
@@ -538,14 +540,14 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
     connect(addressManager.data(), &AddressManager::hostChanged, this, &Application::updateWindowTitle);
     connect(this, &QCoreApplication::aboutToQuit, addressManager.data(), &AddressManager::storeCurrentAddress);
 
-    #ifdef _WIN32
+#ifdef _WIN32
     WSADATA WsaData;
-    int wsaresult = WSAStartup(MAKEWORD(2,2), &WsaData);
-    #endif
+    int wsaresult = WSAStartup(MAKEWORD(2, 2), &WsaData);
+#endif
 
     // tell the NodeList instance who to tell the domain server we care about
     nodeList->addSetOfNodeTypesToNodeInterestSet(NodeSet() << NodeType::AudioMixer << NodeType::AvatarMixer
-                                                 << NodeType::EntityServer << NodeType::AssetServer);
+        << NodeType::EntityServer << NodeType::AssetServer);
 
     // connect to the packet sent signal of the _entityEditSender
     connect(&_entityEditSender, &EntityEditPacketSender::packetSent, this, &Application::packetSent);
@@ -618,12 +620,12 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
     // hook up bandwidth estimator
     QSharedPointer<BandwidthRecorder> bandwidthRecorder = DependencyManager::get<BandwidthRecorder>();
     connect(nodeList.data(), &LimitedNodeList::dataSent,
-            bandwidthRecorder.data(), &BandwidthRecorder::updateOutboundData);
+        bandwidthRecorder.data(), &BandwidthRecorder::updateOutboundData);
     connect(&nodeList->getPacketReceiver(), &PacketReceiver::dataReceived,
-            bandwidthRecorder.data(), &BandwidthRecorder::updateInboundData);
+        bandwidthRecorder.data(), &BandwidthRecorder::updateInboundData);
 
     connect(&getMyAvatar()->getSkeletonModel(), &SkeletonModel::skeletonLoaded,
-            this, &Application::checkSkeleton, Qt::QueuedConnection);
+        this, &Application::checkSkeleton, Qt::QueuedConnection);
 
     // Setup the userInputMapper with the actions
     auto userInputMapper = DependencyManager::get<UserInputMapper>();
@@ -633,8 +635,18 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
         }
     });
 
+    static controller::StateController _stateController;
+    auto InHMDLambda = controller::StateController::ReadLambda([]() -> float {
+        return (float) qApp->getAvatarUpdater()->isHMDMode();
+    });
+    _stateController.addInputVariant("InHMD", InHMDLambda);
+
+    userInputMapper->registerDevice(&_stateController);
+    
     // Setup the keyboardMouseDevice and the user input mapper with the default bindings
     userInputMapper->registerDevice(_keyboardMouseDevice);
+
+    //userInputMapper->getApplicationDevice()->(float)qApp->getAvatarUpdater()->isHMDMode()
 
     // check first run...
     if (_firstRun.get()) {
@@ -2703,9 +2715,6 @@ void Application::update(float deltaTime) {
 
     auto myAvatar = getMyAvatar();
     auto userInputMapper = DependencyManager::get<UserInputMapper>();
-    // Reflect some state into the Actions of the UserInpuMapper
-    userInputMapper->resetActionState(controller::Action::IN_HMD, (float)qApp->getAvatarUpdater()->isHMDMode());
-
     userInputMapper->setSensorToWorldMat(myAvatar->getSensorToWorldMatrix());
   //  userInputMapper->update(deltaTime);
 
