@@ -132,6 +132,7 @@ namespace controller {
     signals:
         void actionEvent(int action, float state);
         void inputEvent(int action, float state);
+        void hardwareChanged();
 
     private:
         // Update the exposed variant maps reporting active hardware
