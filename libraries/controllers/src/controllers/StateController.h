@@ -32,7 +32,7 @@ public:
     virtual void update(float deltaTime, bool jointsCaptured) override;
     virtual void focusOutEvent() override;
 
-    StateController();
+    StateController(QString name);
     virtual ~StateController();
 
     using ReadLambda = std::function<float()>;

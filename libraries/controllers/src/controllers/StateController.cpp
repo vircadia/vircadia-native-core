@@ -19,7 +19,7 @@
 
 namespace controller {
 
-StateController::StateController() : InputDevice("Application") {
+StateController::StateController(QString name) : InputDevice(name) {
 }
 
 StateController::~StateController() {

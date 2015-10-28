@@ -66,6 +66,7 @@
 #include <input-plugins/InputPlugin.h>
 #include <input-plugins/Joystick.h> // this should probably be removed
 #include <controllers/UserInputMapper.h>
+#include <controllers/StateController.h>
 #include <LogHandler.h>
 #include <MainWindow.h>
 #include <MessageDialog.h>
@@ -143,7 +144,6 @@
 #include "ui/UpdateDialog.h"
 #include "Util.h"
 
-#include "controllers/StateController.h"
 
 // ON WIndows PC, NVidia Optimus laptop, we want to enable NVIDIA GPU
 // FIXME seems to be broken.
@@ -348,36 +348,36 @@ int _keyboardFocusHighlightID{ -1 };
 PluginContainer* _pluginContainer;
 
 Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
-QApplication(argc, argv),
-_dependencyManagerIsSetup(setupEssentials(argc, argv)),
-_window(new MainWindow(desktop())),
-_toolWindow(NULL),
-_undoStackScriptingInterface(&_undoStack),
-_frameCount(0),
-_fps(60.0f),
-_physicsEngine(new PhysicsEngine(Vectors::ZERO)),
-_entities(true, this, this),
-_entityClipboardRenderer(false, this, this),
-_entityClipboard(new EntityTree()),
-_lastQueriedTime(usecTimestampNow()),
-_mirrorViewRect(QRect(MIRROR_VIEW_LEFT_PADDING, MIRROR_VIEW_TOP_PADDING, MIRROR_VIEW_WIDTH, MIRROR_VIEW_HEIGHT)),
-_firstRun("firstRun", true),
-_previousScriptLocation("LastScriptLocation", DESKTOP_LOCATION),
-_scriptsLocationHandle("scriptsLocation", DESKTOP_LOCATION),
-_fieldOfView("fieldOfView", DEFAULT_FIELD_OF_VIEW_DEGREES),
-_scaleMirror(1.0f),
-_rotateMirror(0.0f),
-_raiseMirror(0.0f),
-_lastMouseMoveWasSimulated(false),
-_enableProcessOctreeThread(true),
-_runningScriptsWidget(NULL),
-_runningScriptsWidgetWasVisible(false),
-_lastNackTime(usecTimestampNow()),
-_lastSendDownstreamAudioStats(usecTimestampNow()),
-_aboutToQuit(false),
-_notifiedPacketVersionMismatchThisDomain(false),
-_maxOctreePPS(maxOctreePacketsPerSecond.get()),
-_lastFaceTrackerUpdate(0)
+    QApplication(argc, argv),
+    _dependencyManagerIsSetup(setupEssentials(argc, argv)),
+    _window(new MainWindow(desktop())),
+    _toolWindow(NULL),
+    _undoStackScriptingInterface(&_undoStack),
+    _frameCount(0),
+    _fps(60.0f),
+    _physicsEngine(new PhysicsEngine(Vectors::ZERO)),
+    _entities(true, this, this),
+    _entityClipboardRenderer(false, this, this),
+    _entityClipboard(new EntityTree()),
+    _lastQueriedTime(usecTimestampNow()),
+    _mirrorViewRect(QRect(MIRROR_VIEW_LEFT_PADDING, MIRROR_VIEW_TOP_PADDING, MIRROR_VIEW_WIDTH, MIRROR_VIEW_HEIGHT)),
+    _firstRun("firstRun", true),
+    _previousScriptLocation("LastScriptLocation", DESKTOP_LOCATION),
+    _scriptsLocationHandle("scriptsLocation", DESKTOP_LOCATION),
+    _fieldOfView("fieldOfView", DEFAULT_FIELD_OF_VIEW_DEGREES),
+    _scaleMirror(1.0f),
+    _rotateMirror(0.0f),
+    _raiseMirror(0.0f),
+    _lastMouseMoveWasSimulated(false),
+    _enableProcessOctreeThread(true),
+    _runningScriptsWidget(NULL),
+    _runningScriptsWidgetWasVisible(false),
+    _lastNackTime(usecTimestampNow()),
+    _lastSendDownstreamAudioStats(usecTimestampNow()),
+    _aboutToQuit(false),
+    _notifiedPacketVersionMismatchThisDomain(false),
+    _maxOctreePPS(maxOctreePacketsPerSecond.get()),
+    _lastFaceTrackerUpdate(0)
 {
     thread()->setObjectName("Main Thread");
 
@@ -635,13 +635,14 @@ _lastFaceTrackerUpdate(0)
         }
     });
 
-    static controller::StateController _stateController;
+    // A new controllerInput device used to reflect current values from the application state
+    _applicationStateDevice = new controller::StateController("Application");
     auto InHMDLambda = controller::StateController::ReadLambda([]() -> float {
         return (float) qApp->getAvatarUpdater()->isHMDMode();
     });
-    _stateController.addInputVariant("InHMD", InHMDLambda);
+    _applicationStateDevice->addInputVariant("InHMD", InHMDLambda);
 
-    userInputMapper->registerDevice(&_stateController);
+    userInputMapper->registerDevice(_applicationStateDevice);
     
     // Setup the keyboardMouseDevice and the user input mapper with the default bindings
     userInputMapper->registerDevice(_keyboardMouseDevice);
@@ -806,6 +807,10 @@ void Application::cleanupBeforeQuit() {
 #endif
 
     AnimDebugDraw::getInstance().shutdown();
+
+    // FIXME: once we move to shared pointer for the INputDevice we shoud remove this naked delete:
+    delete _applicationStateDevice;
+    _applicationStateDevice = nullptr;
 
     if (_keyboardFocusHighlightID > 0) {
         getOverlays().deleteOverlay(_keyboardFocusHighlightID);
@@ -2716,7 +2721,7 @@ void Application::update(float deltaTime) {
     auto myAvatar = getMyAvatar();
     auto userInputMapper = DependencyManager::get<UserInputMapper>();
     userInputMapper->setSensorToWorldMat(myAvatar->getSensorToWorldMatrix());
-  //  userInputMapper->update(deltaTime);
+    userInputMapper->update(deltaTime);
 
     bool jointsCaptured = false;
     for (auto inputPlugin : PluginManager::getInstance()->getInputPlugins()) {
@@ -2727,7 +2732,6 @@ void Application::update(float deltaTime) {
             }
         }
     }
-    userInputMapper->update(deltaTime);
 
     // Transfer the user inputs to the driveKeys
     // FIXME can we drop drive keys and just have the avatar read the action states directly?

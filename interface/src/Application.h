@@ -71,6 +71,10 @@ class FaceTracker;
 class MainWindow;
 class AssetUpload;
 
+namespace controller {
+    class StateController;
+}
+
 #ifdef Q_OS_WIN
 static const UINT UWM_IDENTIFY_INSTANCES =
     RegisterWindowMessage("UWM_IDENTIFY_INSTANCES_{8AB82783-B74A-4258-955B-8188C22AA0D6}_" + qgetenv("USERNAME"));
@@ -442,6 +446,7 @@ private:
 
     OctreeQuery _octreeQuery; // NodeData derived class for querying octee cells from octree servers
 
+    controller::StateController* _applicationStateDevice{ nullptr }; // Default ApplicationDevice reflecting the state of different properties of the session
     KeyboardMouseDevice* _keyboardMouseDevice{ nullptr };   // Default input device, the good old keyboard mouse and maybe touchpad
     AvatarUpdate* _avatarUpdate {nullptr};
     SimpleMovingAverage _avatarSimsPerSecond {10};
