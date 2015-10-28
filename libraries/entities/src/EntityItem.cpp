@@ -1776,7 +1776,7 @@ void EntityItem::serializeActions(bool& success, QByteArray& result) const {
     return;
 }
 
-const QByteArray EntityItem::getActionDataInternal() const {
+QByteArray EntityItem::getActionDataInternal() const {
     if (_actionDataDirty) {
         bool success;
         serializeActions(success, _allActionsDataCache);
@@ -1787,7 +1787,7 @@ const QByteArray EntityItem::getActionDataInternal() const {
     return _allActionsDataCache;
 }
 
-const QByteArray EntityItem::getActionData() const {
+QByteArray EntityItem::getActionData() const {
     QByteArray result;
     assertUnlocked();
 
