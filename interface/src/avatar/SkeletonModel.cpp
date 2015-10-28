@@ -236,20 +236,15 @@ void SkeletonModel::simulate(float deltaTime, bool fullUpdate) {
 
     const FBXGeometry& geometry = _geometry->getFBXGeometry();
 
-    // find the left and rightmost active palms
-    int leftPalmIndex, rightPalmIndex;
-    Hand* hand = _owningAvatar->getHand();
-
-    // FIXME - it's possible that the left/right hand indices could change between this call
-    // and the call to hand->getCopyOfPalms(); This logic should be reworked to only operate on
-    // the copy of the palms data
-    hand->getLeftRightPalmIndices(leftPalmIndex, rightPalmIndex); 
-
     // Don't Relax toward hand positions when in animGraph mode.
     if (!_rig->getEnableAnimGraph()) {
-        auto palms = hand->getCopyOfPalms();
+
+        Hand* hand = _owningAvatar->getHand();
+        auto leftPalm = hand->getCopyOfPalmData(HandData::LeftHand);
+        auto rightPalm = hand->getCopyOfPalmData(HandData::RightHand);
+
         const float HAND_RESTORATION_RATE = 0.25f;
-        if (leftPalmIndex == -1 && rightPalmIndex == -1) {
+        if (!leftPalm.isActive() && !rightPalm.isActive()) {
             // palms are not yet set, use mouse
             if (_owningAvatar->getHandState() == HAND_STATE_NULL) {
                 restoreRightHandPosition(HAND_RESTORATION_RATE, PALM_PRIORITY);
@@ -259,20 +254,14 @@ void SkeletonModel::simulate(float deltaTime, bool fullUpdate) {
                 applyHandPosition(geometry.rightHandJointIndex, handPosition);
             }
             restoreLeftHandPosition(HAND_RESTORATION_RATE, PALM_PRIORITY);
-
-        } else if (leftPalmIndex == rightPalmIndex) {
-            // right hand only
-            applyPalmData(geometry.rightHandJointIndex, palms[leftPalmIndex]);
-            restoreLeftHandPosition(HAND_RESTORATION_RATE, PALM_PRIORITY);
-
         } else {
-            if (leftPalmIndex != -1) {
-                applyPalmData(geometry.leftHandJointIndex, palms[leftPalmIndex]);
+            if (leftPalm.isActive()) {
+                applyPalmData(geometry.leftHandJointIndex, leftPalm);
             } else {
                 restoreLeftHandPosition(HAND_RESTORATION_RATE, PALM_PRIORITY);
             }
-            if (rightPalmIndex != -1) {
-                applyPalmData(geometry.rightHandJointIndex, palms[rightPalmIndex]);
+            if (rightPalm.isActive()) {
+                applyPalmData(geometry.rightHandJointIndex, rightPalm);
             } else {
                 restoreRightHandPosition(HAND_RESTORATION_RATE, PALM_PRIORITY);
             }

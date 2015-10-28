@@ -48,23 +48,6 @@ PalmData HandData::getCopyOfPalmData(Hand hand) const {
     return PalmData(); // invalid hand
 }
 
-void HandData::getLeftRightPalmIndices(int& leftPalmIndex, int& rightPalmIndex) const {
-    QReadLocker locker(&_palmsLock);
-    leftPalmIndex = -1;
-    rightPalmIndex = -1;
-    for (size_t i = 0; i < _palms.size(); i++) {
-        const PalmData& palm = _palms[i];
-        if (palm.isActive()) {
-            if (palm.whichHand() == LeftHand) {
-                leftPalmIndex = i;
-            }
-            if (palm.whichHand() == RightHand) {
-                rightPalmIndex = i;
-            }
-        }
-    }
-}
-
 PalmData::PalmData(HandData* owningHandData, HandData::Hand hand) :
 _rawRotation(0.0f, 0.0f, 0.0f, 1.0f),
 _rawPosition(0.0f),

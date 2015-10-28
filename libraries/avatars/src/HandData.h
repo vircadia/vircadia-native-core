@@ -54,10 +54,6 @@ public:
 
     std::vector<PalmData> getCopyOfPalms() const { QReadLocker locker(&_palmsLock); return _palms; }
 
-    /// Finds the indices of the left and right palms according to their locations, or -1 if either or
-    /// both is not found.
-    void getLeftRightPalmIndices(int& leftPalmIndex, int& rightPalmIndex) const;
-
     /// Checks for penetration between the described sphere and the hand.
     /// \param penetratorCenter the center of the penetration test sphere
     /// \param penetratorRadius the radius of the penetration test sphere
