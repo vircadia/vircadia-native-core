@@ -40,6 +40,7 @@ public:
 
     void addInputVariant(QString name, ReadLambda& lambda);
 
+protected:
     QVector<NamedReadLambda> _namedReadLambdas;
 };
 
