@@ -446,7 +446,9 @@ void Rig::computeMotionAnimationState(float deltaTime, const glm::vec3& worldPos
     glm::vec3 workingVelocity = _lastVelocity;
     glm::vec3 positionDelta = worldPosition - _lastPosition;
 
-    // don't trust position delta if deltaTime is 'small'.
+    // Don't trust position delta if deltaTime is 'small'.
+    // NOTE: This is mostly just a work around for an issue in oculus 0.7 runtime, where
+    // Application::idle() is being called more frequently and with smaller dt's then expected.
     const float SMALL_DELTA_TIME = 0.006f;  // 6 ms
     if (deltaTime > SMALL_DELTA_TIME) {
         workingVelocity = positionDelta / deltaTime;
@@ -459,7 +461,9 @@ void Rig::computeMotionAnimationState(float deltaTime, const glm::vec3& worldPos
     }
 #endif
 
-    _lastVelocity = workingVelocity;
+    if (deltaTime > SMALL_DELTA_TIME) {
+        _lastVelocity = workingVelocity;
+    }
 
     if (_enableAnimGraph) {
 
