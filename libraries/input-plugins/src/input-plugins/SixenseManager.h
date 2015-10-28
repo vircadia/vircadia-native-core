@@ -62,8 +62,8 @@ public:
     virtual void pluginUpdate(float deltaTime, bool jointsCaptured) override { update(deltaTime, jointsCaptured); }
 
     // Device functions
-    virtual void buildDeviceProxy(controller::DeviceProxy::Pointer proxy) override;
-    virtual QString getDefaultMappingConfig() override;
+    virtual controller::Input::NamedVector getAvailableInputs() const override;
+    virtual QString getDefaultMappingConfig() const override;
 
     virtual void update(float deltaTime, bool jointsCaptured) override;
     virtual void focusOutEvent() override;

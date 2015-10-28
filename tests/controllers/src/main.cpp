@@ -136,7 +136,7 @@ int main(int argc, char** argv) {
             auto userInputMapper = DependencyManager::get<controller::UserInputMapper>();
             if (name == KeyboardMouseDevice::NAME) {
                 auto keyboardMouseDevice = static_cast<KeyboardMouseDevice*>(inputPlugin.data()); // TODO: this seems super hacky
-                userInputMapper->registerDevice(keyboardMouseDevice);
+                userInputMapper->registerDevice(std::shared_ptr<InputDevice>(keyboardMouseDevice));
             }
             inputPlugin->pluginUpdate(0, false);
         }

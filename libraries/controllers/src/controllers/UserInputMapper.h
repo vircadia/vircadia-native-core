@@ -42,7 +42,6 @@ namespace controller {
             Q_ENUMS(Action)
 
     public:
-        using InputPair = Input::NamedPair;
         // FIXME move to unordered set / map
         using EndpointToInputMap = std::map<EndpointPointer, Input>;
         using MappingNameMap = std::map<QString, MappingPointer>;
@@ -52,7 +51,7 @@ namespace controller {
         using EndpointSet = std::unordered_set<EndpointPointer>;
         using EndpointPair = std::pair<EndpointPointer, EndpointPointer>;
         using EndpointPairMap = std::map<EndpointPair, EndpointPointer>;
-        using DevicesMap = std::map<int, DeviceProxy::Pointer>;
+        using DevicesMap = std::map<int, InputDevice::Pointer>;
         using uint16 = uint16_t;
         using uint32 = uint32_t;
 
@@ -65,9 +64,8 @@ namespace controller {
 
         static void registerControllerTypes(QScriptEngine* engine);
 
-
-        void registerDevice(InputDevice* device);
-        DeviceProxy::Pointer getDeviceProxy(const Input& input);
+        void registerDevice(InputDevice::Pointer device);
+        InputDevice::Pointer getDevice(const Input& input);
         QString getDeviceName(uint16 deviceID);
 
         Input::NamedVector getAvailableInputs(uint16 deviceID) const;
@@ -104,7 +102,7 @@ namespace controller {
 
         DevicesMap getDevices() { return _registeredDevices; }
         uint16 getStandardDeviceID() const { return STANDARD_DEVICE; }
-        DeviceProxy::Pointer getStandardDevice() { return _registeredDevices[getStandardDeviceID()]; }
+        InputDevice::Pointer getStandardDevice() { return _registeredDevices[getStandardDeviceID()]; }
 
         MappingPointer newMapping(const QString& mappingName);
         MappingPointer parseMapping(const QString& json);
@@ -122,7 +120,6 @@ namespace controller {
     protected:
         // GetFreeDeviceID should be called before registering a device to use an ID not used by a different device.
         uint16 getFreeDeviceID() { return _nextFreeDeviceID++; }
-        InputDevice::Pointer _standardController;
         DevicesMap _registeredDevices;
         uint16 _nextFreeDeviceID = STANDARD_DEVICE + 1;
 
@@ -184,9 +181,9 @@ namespace controller {
 
 }
 
-Q_DECLARE_METATYPE(controller::UserInputMapper::InputPair)
+Q_DECLARE_METATYPE(controller::Input::NamedPair)
 Q_DECLARE_METATYPE(controller::Pose)
-Q_DECLARE_METATYPE(QVector<controller::UserInputMapper::InputPair>)
+Q_DECLARE_METATYPE(QVector<controller::Input::NamedPair>)
 Q_DECLARE_METATYPE(controller::Input)
 Q_DECLARE_METATYPE(controller::Action)
 Q_DECLARE_METATYPE(QVector<controller::Action>)

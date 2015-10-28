@@ -11,6 +11,7 @@
 #include "InputDevice.h"
 
 #include "Input.h"
+#include "impl/endpoints/InputEndpoint.h"
 
 namespace controller {
 
@@ -59,29 +60,55 @@ namespace controller {
         }
     }
 
-    Input InputDevice::makeInput(controller::StandardButtonChannel button) {
+    Input InputDevice::makeInput(controller::StandardButtonChannel button) const {
         return Input(_deviceID, button, ChannelType::BUTTON);
     }
 
-    Input InputDevice::makeInput(controller::StandardAxisChannel axis) {
+    Input InputDevice::makeInput(controller::StandardAxisChannel axis) const {
         return Input(_deviceID, axis, ChannelType::AXIS);
     }
 
-    Input InputDevice::makeInput(controller::StandardPoseChannel pose) {
+    Input InputDevice::makeInput(controller::StandardPoseChannel pose) const {
         return Input(_deviceID, pose, ChannelType::POSE);
     }
 
-    Input::NamedPair InputDevice::makePair(controller::StandardButtonChannel button, const QString& name) {
+    Input::NamedPair InputDevice::makePair(controller::StandardButtonChannel button, const QString& name) const {
         return Input::NamedPair(makeInput(button), name);
     }
 
-    Input::NamedPair InputDevice::makePair(controller::StandardAxisChannel axis, const QString& name) {
+    Input::NamedPair InputDevice::makePair(controller::StandardAxisChannel axis, const QString& name) const {
         return Input::NamedPair(makeInput(axis), name);
     }
 
-    Input::NamedPair InputDevice::makePair(controller::StandardPoseChannel pose, const QString& name) {
+    Input::NamedPair InputDevice::makePair(controller::StandardPoseChannel pose, const QString& name) const {
         return Input::NamedPair(makeInput(pose), name);
     }
 
+    float InputDevice::getValue(ChannelType channelType, uint16_t channel) const {
+        switch (channelType) {
+            case ChannelType::AXIS:
+                return getAxis(channel);
+
+            case ChannelType::BUTTON:
+                return getButton(channel);
+
+            case ChannelType::POSE:
+                return getPose(channel).valid ? 1.0f : 0.0f;
+
+            default:
+                break;
+        }
+
+        return 0.0f;
+    }
+
+
+    float InputDevice::getValue(const Input& input) const {
+        return getValue(input.getType(), input.channel);
+    }
+
+    EndpointPointer InputDevice::createEndpoint(const Input& input) const {
+        return std::make_shared<InputEndpoint>(input);
+    }
 
 }

@@ -130,7 +130,7 @@ void KeyboardMouseDevice::touchUpdateEvent(const QTouchEvent* event) {
     _lastTouch = currentPos;
 }
 
-controller::Input KeyboardMouseDevice::makeInput(Qt::Key code) {
+controller::Input KeyboardMouseDevice::makeInput(Qt::Key code) const {
     auto shortCode = (uint16_t)(code & KEYBOARD_MASK);
     if (shortCode != code) {
        shortCode |= 0x0800; // add this bit instead of the way Qt::Key add a bit on the 3rd byte for some keys
@@ -138,7 +138,7 @@ controller::Input KeyboardMouseDevice::makeInput(Qt::Key code) {
     return controller::Input(_deviceID, shortCode, controller::ChannelType::BUTTON);
 }
 
-controller::Input KeyboardMouseDevice::makeInput(Qt::MouseButton code) {
+controller::Input KeyboardMouseDevice::makeInput(Qt::MouseButton code) const {
     switch (code) {
         case Qt::LeftButton:
             return controller::Input(_deviceID, MOUSE_BUTTON_LEFT, controller::ChannelType::BUTTON);
@@ -151,31 +151,30 @@ controller::Input KeyboardMouseDevice::makeInput(Qt::MouseButton code) {
     };
 }
 
-controller::Input KeyboardMouseDevice::makeInput(KeyboardMouseDevice::MouseAxisChannel axis) {
+controller::Input KeyboardMouseDevice::makeInput(KeyboardMouseDevice::MouseAxisChannel axis) const {
     return controller::Input(_deviceID, axis, controller::ChannelType::AXIS);
 }
 
-controller::Input KeyboardMouseDevice::makeInput(KeyboardMouseDevice::TouchAxisChannel axis) {
+controller::Input KeyboardMouseDevice::makeInput(KeyboardMouseDevice::TouchAxisChannel axis) const {
     return controller::Input(_deviceID, axis, controller::ChannelType::AXIS);
 }
 
-controller::Input KeyboardMouseDevice::makeInput(KeyboardMouseDevice::TouchButtonChannel button) {
+controller::Input KeyboardMouseDevice::makeInput(KeyboardMouseDevice::TouchButtonChannel button) const {
     return controller::Input(_deviceID, button, controller::ChannelType::BUTTON);
 }
 
-void KeyboardMouseDevice::buildDeviceProxy(controller::DeviceProxy::Pointer proxy) {
+controller::Input::NamedVector KeyboardMouseDevice::getAvailableInputs() const {
     using namespace controller;
-    proxy->getButton = [this] (const controller::Input& input, int timestamp) -> bool { return this->getButton(input.getChannel()); };
-    proxy->getAxis = [this] (const controller::Input& input, int timestamp) -> float { return this->getAxis(input.getChannel()); };
-    proxy->getAvailabeInputs = [this] () -> QVector<Input::NamedPair> {
-        QVector<Input::NamedPair> availableInputs;
-        for (int i = (int) Qt::Key_0; i <= (int) Qt::Key_9; i++) {
+    static QVector<Input::NamedPair> availableInputs;
+    static std::once_flag once;
+    std::call_once(once, [&] {
+        for (int i = (int)Qt::Key_0; i <= (int)Qt::Key_9; i++) {
             availableInputs.append(Input::NamedPair(makeInput(Qt::Key(i)), QKeySequence(Qt::Key(i)).toString()));
         }
-        for (int i = (int) Qt::Key_A; i <= (int) Qt::Key_Z; i++) {
+        for (int i = (int)Qt::Key_A; i <= (int)Qt::Key_Z; i++) {
             availableInputs.append(Input::NamedPair(makeInput(Qt::Key(i)), QKeySequence(Qt::Key(i)).toString()));
         }
-        for (int i = (int) Qt::Key_Left; i <= (int) Qt::Key_Down; i++) {
+        for (int i = (int)Qt::Key_Left; i <= (int)Qt::Key_Down; i++) {
             availableInputs.append(Input::NamedPair(makeInput(Qt::Key(i)), QKeySequence(Qt::Key(i)).toString()));
         }
         availableInputs.append(Input::NamedPair(makeInput(Qt::Key_Space), QKeySequence(Qt::Key_Space).toString()));
@@ -186,27 +185,26 @@ void KeyboardMouseDevice::buildDeviceProxy(controller::DeviceProxy::Pointer prox
         availableInputs.append(Input::NamedPair(makeInput(Qt::LeftButton), "LeftMouseClick"));
         availableInputs.append(Input::NamedPair(makeInput(Qt::MiddleButton), "MiddleMouseClick"));
         availableInputs.append(Input::NamedPair(makeInput(Qt::RightButton), "RightMouseClick"));
-        
+
         availableInputs.append(Input::NamedPair(makeInput(MOUSE_AXIS_X_POS), "MouseMoveRight"));
         availableInputs.append(Input::NamedPair(makeInput(MOUSE_AXIS_X_NEG), "MouseMoveLeft"));
         availableInputs.append(Input::NamedPair(makeInput(MOUSE_AXIS_Y_POS), "MouseMoveUp"));
         availableInputs.append(Input::NamedPair(makeInput(MOUSE_AXIS_Y_NEG), "MouseMoveDown"));
-        
+
         availableInputs.append(Input::NamedPair(makeInput(MOUSE_AXIS_WHEEL_Y_POS), "MouseWheelRight"));
         availableInputs.append(Input::NamedPair(makeInput(MOUSE_AXIS_WHEEL_Y_NEG), "MouseWheelLeft"));
         availableInputs.append(Input::NamedPair(makeInput(MOUSE_AXIS_WHEEL_X_POS), "MouseWheelUp"));
         availableInputs.append(Input::NamedPair(makeInput(MOUSE_AXIS_WHEEL_X_NEG), "MouseWheelDown"));
-        
+
         availableInputs.append(Input::NamedPair(makeInput(TOUCH_AXIS_X_POS), "TouchpadRight"));
         availableInputs.append(Input::NamedPair(makeInput(TOUCH_AXIS_X_NEG), "TouchpadLeft"));
         availableInputs.append(Input::NamedPair(makeInput(TOUCH_AXIS_Y_POS), "TouchpadUp"));
         availableInputs.append(Input::NamedPair(makeInput(TOUCH_AXIS_Y_NEG), "TouchpadDown"));
-
-        return availableInputs;
-    };
+    });
+    return availableInputs;
 }
 
-QString KeyboardMouseDevice::getDefaultMappingConfig() {
+QString KeyboardMouseDevice::getDefaultMappingConfig() const {
     static const QString MAPPING_JSON = PathUtils::resourcesPath() + "/controllers/keyboardMouse.json";
     return MAPPING_JSON;
 }

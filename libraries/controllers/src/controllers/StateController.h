@@ -27,12 +27,11 @@ public:
     const QString& getName() const { return _name; }
 
     // Device functions
-    virtual void buildDeviceProxy(DeviceProxy::Pointer proxy) override;
-    virtual QString getDefaultMappingConfig() override { return QString(); }
+    virtual Input::NamedVector getAvailableInputs() const override;
     virtual void update(float deltaTime, bool jointsCaptured) override;
     virtual void focusOutEvent() override;
 
-    StateController(QString name);
+    StateController();
     virtual ~StateController();
 
     using ReadLambda = std::function<float()>;

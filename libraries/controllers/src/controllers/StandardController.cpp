@@ -13,8 +13,8 @@
 
 #include <PathUtils.h>
 
-#include "DeviceProxy.h"
 #include "UserInputMapper.h"
+#include "impl/endpoints/StandardEndpoint.h"
 
 namespace controller {
 
@@ -33,91 +33,87 @@ void StandardController::focusOutEvent() {
     _buttonPressedMap.clear();
 };
 
-void StandardController::buildDeviceProxy(DeviceProxy::Pointer proxy) {
-    proxy->_name = _name;
-    proxy->getButton = [this] (const Input& input, int timestamp) -> bool { return getButton(input.getChannel()); };
-    proxy->getAxis = [this] (const Input& input, int timestamp) -> float { return getAxis(input.getChannel()); };
-    proxy->getAvailabeInputs = [this] () -> QVector<Input::NamedPair> {
-        QVector<Input::NamedPair> availableInputs;
+Input::NamedVector StandardController::getAvailableInputs() const {
+    static Input::NamedVector availableInputs {
         // Buttons
-        availableInputs.append(makePair(A, "A"));
-        availableInputs.append(makePair(B, "B"));
-        availableInputs.append(makePair(X, "X"));
-        availableInputs.append(makePair(Y, "Y"));
+        makePair(A, "A"),
+        makePair(B, "B"),
+        makePair(X, "X"),
+        makePair(Y, "Y"),
 
         // DPad
-        availableInputs.append(makePair(DU, "DU"));
-        availableInputs.append(makePair(DD, "DD"));
-        availableInputs.append(makePair(DL, "DL"));
-        availableInputs.append(makePair(DR, "DR"));
+        makePair(DU, "DU"),
+        makePair(DD, "DD"),
+        makePair(DL, "DL"),
+        makePair(DR, "DR"),
 
         // Bumpers
-        availableInputs.append(makePair(LB, "LB"));
-        availableInputs.append(makePair(RB, "RB"));
+        makePair(LB, "LB"),
+        makePair(RB, "RB"),
 
         // Stick press
-        availableInputs.append(makePair(LS, "LS"));
-        availableInputs.append(makePair(RS, "RS"));
+        makePair(LS, "LS"),
+        makePair(RS, "RS"),
 
         // Center buttons
-        availableInputs.append(makePair(START, "Start"));
-        availableInputs.append(makePair(BACK, "Back"));
+        makePair(START, "Start"),
+        makePair(BACK, "Back"),
 
         // Analog sticks
-        availableInputs.append(makePair(LY, "LY"));
-        availableInputs.append(makePair(LX, "LX"));
-        availableInputs.append(makePair(RY, "RY"));
-        availableInputs.append(makePair(RX, "RX"));
+        makePair(LY, "LY"),
+        makePair(LX, "LX"),
+        makePair(RY, "RY"),
+        makePair(RX, "RX"),
 
         // Triggers
-        availableInputs.append(makePair(LT, "LT"));
-        availableInputs.append(makePair(RT, "RT"));
+        makePair(LT, "LT"),
+        makePair(RT, "RT"),
 
 
         // Finger abstractions
-        availableInputs.append(makePair(LEFT_PRIMARY_THUMB, "LeftPrimaryThumb"));
-        availableInputs.append(makePair(LEFT_SECONDARY_THUMB, "LeftSecondaryThumb"));
-        availableInputs.append(makePair(RIGHT_PRIMARY_THUMB, "RightPrimaryThumb"));
-        availableInputs.append(makePair(RIGHT_SECONDARY_THUMB, "RightSecondaryThumb"));
+        makePair(LEFT_PRIMARY_THUMB, "LeftPrimaryThumb"),
+        makePair(LEFT_SECONDARY_THUMB, "LeftSecondaryThumb"),
+        makePair(RIGHT_PRIMARY_THUMB, "RightPrimaryThumb"),
+        makePair(RIGHT_SECONDARY_THUMB, "RightSecondaryThumb"),
 
-        availableInputs.append(makePair(LEFT_PRIMARY_INDEX, "LeftPrimaryIndex"));
-        availableInputs.append(makePair(LEFT_SECONDARY_INDEX, "LeftSecondaryIndex"));
-        availableInputs.append(makePair(RIGHT_PRIMARY_INDEX, "RightPrimaryIndex"));
-        availableInputs.append(makePair(RIGHT_SECONDARY_INDEX, "RightSecondaryIndex"));
+        makePair(LEFT_PRIMARY_INDEX, "LeftPrimaryIndex"),
+        makePair(LEFT_SECONDARY_INDEX, "LeftSecondaryIndex"),
+        makePair(RIGHT_PRIMARY_INDEX, "RightPrimaryIndex"),
+        makePair(RIGHT_SECONDARY_INDEX, "RightSecondaryIndex"),
 
-        availableInputs.append(makePair(LEFT_GRIP, "LeftGrip"));
-        availableInputs.append(makePair(RIGHT_GRIP, "RightGrip"));
+        makePair(LEFT_GRIP, "LeftGrip"),
+        makePair(RIGHT_GRIP, "RightGrip"),
 
         // Poses
-        availableInputs.append(makePair(LEFT_HAND, "LeftHand"));
-        availableInputs.append(makePair(RIGHT_HAND, "RightHand"));
+        makePair(LEFT_HAND, "LeftHand"),
+        makePair(RIGHT_HAND, "RightHand"),
 
 
         // Aliases, PlayStation style names
-        availableInputs.append(makePair(LB, "L1"));
-        availableInputs.append(makePair(RB, "R1"));
-        availableInputs.append(makePair(LT, "L2"));
-        availableInputs.append(makePair(RT, "R2"));
-        availableInputs.append(makePair(LS, "L3"));
-        availableInputs.append(makePair(RS, "R3"));
-        availableInputs.append(makePair(BACK, "Select"));
-        availableInputs.append(makePair(A, "Cross"));
-        availableInputs.append(makePair(B, "Circle"));
-        availableInputs.append(makePair(X, "Square"));
-        availableInputs.append(makePair(Y, "Triangle"));
-        availableInputs.append(makePair(DU, "Up"));
-        availableInputs.append(makePair(DD, "Down"));
-        availableInputs.append(makePair(DL, "Left"));
-        availableInputs.append(makePair(DR, "Right"));
-
-
-
-        return availableInputs;
+        makePair(LB, "L1"),
+        makePair(RB, "R1"),
+        makePair(LT, "L2"),
+        makePair(RT, "R2"),
+        makePair(LS, "L3"),
+        makePair(RS, "R3"),
+        makePair(BACK, "Select"),
+        makePair(A, "Cross"),
+        makePair(B, "Circle"),
+        makePair(X, "Square"),
+        makePair(Y, "Triangle"),
+        makePair(DU, "Up"),
+        makePair(DD, "Down"),
+        makePair(DL, "Left"),
+        makePair(DR, "Right"),
     };
+    return availableInputs;
 }
 
+EndpointPointer StandardController::createEndpoint(const Input& input) const {
+    return std::make_shared<StandardEndpoint>(input);
+}
 
-QString StandardController::getDefaultMappingConfig() {
+QString StandardController::getDefaultMappingConfig() const {
     static const QString DEFAULT_MAPPING_JSON = PathUtils::resourcesPath() + "/controllers/standard.json";
     return DEFAULT_MAPPING_JSON;
 }

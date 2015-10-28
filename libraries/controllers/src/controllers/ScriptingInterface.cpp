@@ -27,10 +27,10 @@
 
 static QRegularExpression SANITIZE_NAME_EXPRESSION{ "[\\(\\)\\.\\s]" };
 
-static QVariantMap createDeviceMap(const controller::DeviceProxy::Pointer device) {
+static QVariantMap createDeviceMap(const controller::InputDevice::Pointer device) {
     auto userInputMapper = DependencyManager::get<controller::UserInputMapper>();
     QVariantMap deviceMap;
-    for (const auto& inputMapping : device->getAvailabeInputs()) {
+    for (const auto& inputMapping : userInputMapper->getAvailableInputs(device->getDeviceID())) {
         const auto& input = inputMapping.first;
         const auto inputName = QString(inputMapping.second).remove(SANITIZE_NAME_EXPRESSION);
         qCDebug(controllers) << "\tInput " << input.getChannel() << (int)input.getType()
@@ -179,7 +179,7 @@ namespace controller {
         return DependencyManager::get<UserInputMapper>()->getDeviceName((unsigned short)device);
     }
 
-    QVector<InputPair> ScriptingInterface::getAvailableInputs(unsigned int device) {
+    QVector<Input::NamedPair> ScriptingInterface::getAvailableInputs(unsigned int device) {
         return DependencyManager::get<UserInputMapper>()->getAvailableInputs((unsigned short)device);
     }
 

@@ -9,8 +9,10 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+
 #include "3DConnexionClient.h"
 
+#if 0
 #include <UserActivityLogger.h>
 #include <PathUtils.h>
 
@@ -967,3 +969,4 @@ void MessageHandler(unsigned int connection, unsigned int messageType, void *mes
 #endif // __APPLE__
 
 #endif // HAVE_3DCONNEXIONCLIENT
+#endif
