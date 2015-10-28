@@ -352,16 +352,16 @@ const CollisionEvents& PhysicsEngine::getCollisionEvents() {
             glm::vec3 velocityChange = (motionStateA ? motionStateA->getObjectLinearVelocityChange() : glm::vec3(0.0f)) +
                 (motionStateB ? motionStateB->getObjectLinearVelocityChange() : glm::vec3(0.0f));
 
-            if (motionStateA && motionStateA->getType() == MOTIONSTATE_TYPE_ENTITY) {
+            if (motionStateA) {
                 QUuid idA = motionStateA->getObjectID();
                 QUuid idB;
-                if (motionStateB && motionStateB->getType() == MOTIONSTATE_TYPE_ENTITY) {
+                if (motionStateB) {
                     idB = motionStateB->getObjectID();
                 }
                 glm::vec3 position = bulletToGLM(contact.getPositionWorldOnB()) + _originOffset;
                 glm::vec3 penetration = bulletToGLM(contact.distance * contact.normalWorldOnB);
                 _collisionEvents.push_back(Collision(type, idA, idB, position, penetration, velocityChange));
-            } else if (motionStateB && motionStateB->getType() == MOTIONSTATE_TYPE_ENTITY) {
+            } else if (motionStateB) {
                 QUuid idB = motionStateB->getObjectID();
                 glm::vec3 position = bulletToGLM(contact.getPositionWorldOnA()) + _originOffset;
                 // NOTE: we're flipping the order of A and B (so that the first objectID is never NULL)
