@@ -12,6 +12,10 @@
 
 (function() {
 
+    Script.include("../../libraries/utils.js");
+
+    var NOTCH_DETECTOR_SEARCH_RADIUS = 0.25;
+
     var _this;
 
     function Arrow() {
@@ -23,35 +27,76 @@
         stickOnCollision: false,
         glow: false,
         glowBox: null,
-        isBurning:false,
+        isBurning: false,
         preload: function(entityID) {
             this.entityID = entityID;
-            this.isBurning = this.checkIfBurning();
-            if (this.isBurning === true || this.glow === true) {
-                Script.update.connect(this.updateArrowProperties);
-            }
-            if (this.isBurning === true) {
-                Script.update.connect(this.updateFirePosition);
 
-            }
-            if (this.glow === true && this.glowBow === null) {
-                this.createGlowBox();
-                Script.update.connect(this.updateGlowBoxPosition);
-            }
+
+            // this.isBurning = this.checkIfBurning();
+            // if (this.isBurning === true || this.glow === true) {
+            //     Script.update.connect(this.updateArrowProperties);
+            // }
+            // if (this.isBurning === true) {
+            //     Script.update.connect(this.updateFirePosition);
+
+            // }
+            // if (this.glow === true && this.glowBow === null) {
+            //     this.createGlowBox();
+            //     Script.update.connect(this.updateGlowBoxPosition);
+            // }
         },
 
         unload: function() {
 
-            Script.update.disconnect(this.updateArrowProperties);
+            // Script.update.disconnect(this.updateArrowProperties);
 
-            if (this.isBurning) {
-                Script.update.disconnect(this.updateFirePosition);
+            // if (this.isBurning) {
+            //     Script.update.disconnect(this.updateFirePosition);
 
+            // }
+            // if (this.glowBox !== null) {
+            //     Script.update.disconnect(this.updateGlowBoxPosition);
+            // }
+
+        },
+
+        continueNearGrab: function() {
+            this.searchForNotchDetectors();
+        },
+
+        searchForNotchDetectors: function() {
+
+            var ids = Entities.findEntities(MyAvatar.position, NOTCH_DETECTOR_SEARCH_RADIUS);
+            var i, properties;
+            for (i = 0; i < ids.length; i++) {
+                id = ids[i];
+                properties = Entities.getEntityProperties(id, 'name');
+                if (properties.name == "Hifi-NotchDetector") {
+                    this.tellBowArrowIsNotched(this.getBowID());
+                    this.disableGrab();
+                }
             }
-            if (this.glowBox !== null) {
-                Script.update.disconnect(this.updateGlowBoxPosition);
-            }
 
+        },
+        getBowID: function() {
+            var properties = Entities.getEntityProperties(notchDetector, "userData");
+            var userData = JSON.parse(properties.userData);
+            if (userData.hasOwnProperty('hifiBowKey')) {
+                return userData.hifiBowKey.bowID;
+            }
+        },
+
+        tellBowArrowIsNotched: function(bowID) {
+            setEntityCustomData('hifiBowKey', bowID, {
+                arrowNotched: true,
+                arrowID: this.entityID
+            });
+        },
+
+        disableGrab: function() {
+            setEntityCustomData('grabbableKey', this.entityID, {
+                grabbable: false
+            });
         },
 
         checkIfBurning: function() {

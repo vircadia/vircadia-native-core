@@ -16,9 +16,9 @@ var SCRIPT_URL = Script.resolvePath('bow.js');
 var MODEL_URL = "https://hifi-public.s3.amazonaws.com/models/bow/new/bow.fbx";
 var COLLISION_HULL_URL = "https://hifi-public.s3.amazonaws.com/models/bow/new/bow_collision_hull.obj";
 var BOW_DIMENSIONS = {
-    x: 0.02,
-    y: 1,
-    z: 0.1
+    x: 0.04,
+    y: 1.3,
+    z: 0.21
 };
 
 var BOW_GRAVITY = {

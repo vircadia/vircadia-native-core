@@ -1,8 +1,7 @@
 //
 //  bow.js
 //
-//  This script attaches to a bow that you can pick up with a hand controller.  Use your other hand and press the trigger to grab the line, and release the trigger to fire.
-//
+//  This script attaches to a bow that you can pick up with a hand controller. Load an arrow and then shoot it.
 //  Created by James B. Pollack @imgntn on 10/19/2015
 //  Copyright 2015 High Fidelity, Inc.
 //
@@ -24,6 +23,8 @@
 // notch it
 (function() {
 
+    Script.include("../../libraries/utils.js");
+
     var ZERO_VEC = {
         x: 0,
         y: 0,
@@ -36,17 +37,7 @@
         z: 1000
     };
 
-
-    var ARROW_MODEL_URL = "https://hifi-public.s3.amazonaws.com/models/bow/new/arrow.fbx";
-    var ARROW_COLLISION_HULL_URL = "https://hifi-public.s3.amazonaws.com/models/bow/new/arrow_collision_hull.obj";
-    var ARROW_SCRIPT_URL = Script.resolvePath('arrow.js');
     var ARROW_OFFSET = 0.32;
-    var ARROW_FORCE = 1.25;
-    var ARROW_DIMENSIONS = {
-        x: 0.02,
-        y: 0.02,
-        z: 0.64
-    };
 
     var ARROW_GRAVITY = {
         x: 0,
@@ -54,10 +45,8 @@
         z: 0
     };
 
-    var ARROW_TIP_OFFSET = 0.32;
-
-    var TOP_NOTCH_OFFSET = 0.5;
-    var BOTTOM_NOTCH_OFFSET = 0.5;
+    var TOP_NOTCH_OFFSET = 0.6;
+    var BOTTOM_NOTCH_OFFSET = 0.6;
 
     var LINE_DIMENSIONS = {
         x: 5,
@@ -93,16 +82,6 @@
         return;
     }
 
-    // create bow
-    // on pickup, wait for other hand to start trigger pull
-    // then create strings that start at top and bottom of bow
-    // extend them to the other hand position
-    // on trigger release, 
-    // create arrow 
-    // shoot arrow with velocity relative to distance between hand position and bow
-    // delete lines
-
-    // with notching system (for reloading):
     // pick up bow
     // pick up arrow
     // move arrow near notch detector
@@ -114,6 +93,7 @@
         stringDrawn: false,
         hasArrow: false,
         arrowTipPosition: null,
+        preNotchString: null,
         hasArrowNotched: false,
         notchDetector: null,
         arrow: null,
@@ -152,32 +132,50 @@
             this.isGrabbed = true;
             this.initialHand = this.hand;
 
-            Entities.editEntity(this.entityID, {
-                userData: JSON.stringify({
-                    grabbableKey: {
-                        turnOffOtherHand: false,
-                        turnOffOppositeBeam: false,
-                        invertSolidWhileHeld: true
-                    }
-                })
+            setEntityCustomData('grabbableKey', this.entityID, {
+                turnOffOtherHand: false,
+                turnOffOppositeBeam: false,
+                invertSolidWhileHeld: true
             });
+
         },
 
         continueNearGrab: function() {
             this.bowProperties = Entities.getEntityProperties(this.entityID, ["position", "rotation", "userData"]);
 
+            //check to see if an arrow has notched itself in our notch detector
+            var userData = JSON.parse(this.bowProperties.userData);
+            if (userData.hasOwnProperty('hifiBowKey')) {
+                if (this.hasArrowNotched === false) {
+                    this.hasArrowNotched = userData.hifiBowKey.hasArrowNotched;
+                }
+                this.arrow = userData.hifiBowKey.arrowID;
+            }
+
+            //create a string across the bow when we pick it up
+            if (this.preNotchString === null) {
+                this.createPreNotchString();
+            }
+
+            if (this.preNotchString !== null && this.hasArrowNotched === false) {
+                this.drawPreNotchStrings();
+            }
+
+            // create the notch detector that arrows will look for
             if (this.notchDetector === null) {
                 this.createNotchDetector();
             }
 
-            this.updateNotchDetectorPosition();
-
-            this.checkArrowHand();
-
+            //if we have an arrow notched, then draw some new strings
             if (this.hasArrowNotched === true) {
+                Entities.deleteEntity(this.preNotchString);
                 //only test for strings now that an arrow is notched
-                //  this.checkStringHand();
-                //should probably draw a string straight across the bow until its notched
+                this.checkStringHand();
+
+            } else {
+                //otherwise, just update the notch detector position
+                this.updateNotchDetectorPosition();
+
             }
         },
 
@@ -188,17 +186,15 @@
                 this.deleteStrings();
                 this.hasArrow = false;
                 Entities.deleteEntity(this.arrow);
-                Entities.editEntity(this.entityID, {
-                    userData: JSON.stringify({
-                        grabbableKey: {
-                            turnOffOtherHand: false,
-                            turnOffOppositeBeam: false,
-                            invertSolidWhileHeld: true
-                        }
-                    })
+                setEntityCustomData('grabbableKey', this.entityID, {
+                    turnOffOtherHand: false,
+                    turnOffOppositeBeam: false,
+                    invertSolidWhileHeld: true
                 });
                 Entities.deleteEntity(this.notchDetector);
                 this.notchDetector = null;
+                Entities.deleteEntity(this.preNotchString);
+                this.preNotchString = null;
 
             }
         },
@@ -239,9 +235,12 @@
             var upOffset = Vec3.multiply(upVector, TOP_NOTCH_OFFSET);
             var downVector = Vec3.multiply(-1, Quat.getUp(this.bowProperties.rotation));
             var downOffset = Vec3.multiply(downVector, BOTTOM_NOTCH_OFFSET);
+            var backOffset = Vec3.multiply(-0.1, Quat.getFront(this.bowProperties.rotation));
 
-            this.topStringPosition = Vec3.sum(this.bowProperties.position, upOffset);
-            this.bottomStringPosition = Vec3.sum(this.bowProperties.position, downOffset);
+            var topStringPosition = Vec3.sum(this.bowProperties.position, upOffset);
+            this.topStringPosition = Vec3.sum(topStringPosition, backOffset);
+            var bottomStringPosition = Vec3.sum(this.bowProperties.position, downOffset);
+            this.bottomStringPosition = Vec3.sum(bottomStringPosition, backOffset);
 
             Entities.editEntity(this.topString, {
                 position: this.topStringPosition
@@ -297,7 +296,12 @@
             var stringProperties = {
                 type: 'Line',
                 position: Vec3.sum(this.bowProperties.position, TOP_NOTCH_OFFSET),
-                dimensions: LINE_DIMENSIONS
+                dimensions: LINE_DIMENSIONS,
+                userData: JSON.stringify({
+                    grabbableKey: {
+                        grabbable: false
+                    }
+                })
             };
 
             this.preNotchString = Entities.addEntity(stringProperties);
@@ -326,33 +330,6 @@
             });
         },
 
-        deletePreNotchString: function() {
-            Entities.deleteEntity(this.preNotchString);
-        },
-        getArrowHandPosition: function() {
-            return
-        },
-
-        testForHandInNotchDetector: function() {
-            var arrowHandPosition = this.getArrowHandPosition();
-            var notchDetectorPosition = Entities.getEntityProperties(this.notchDetector, "position");
-            var fromArrowHandToNotchDetector = Vec3.subtract(arrowHandPosition, notchDetectorPosition);
-            var distance = Vec3.length(fromArrowHandToNotchDetector);
-            if (distance < NOTCH_DETECTOR_DISTANCE) {
-                print('ARROW NOTCHED');
-                if (this.hasArrowNotched === false) {
-                    this.hasArrowNotched = true;
-                    this.notchArrow();
-                }
-
-            }
-        },
-
-        notchArrow: function() {
-
-            //put the arrow in the notch
-        },
-
         checkStringHand: function() {
             //invert the hands because our string will be held with the opposite hand of the first one we pick up the bow with
             if (this.initialHand === 'left') {
@@ -372,12 +349,16 @@
             this.triggerValue = Controller.getActionValue(this.stringTriggerAction);
 
             if (this.triggerValue < DRAW_STRING_THRESHOLD && this.stringDrawn === true) {
+
+                //firing the arrow
                 this.stringDrawn = false;
                 this.deleteStrings();
                 this.hasArrow = false;
+                this.preNotchString = null;
                 this.releaseArrow();
 
             } else if (this.triggerValue >= DRAW_STRING_THRESHOLD && this.stringDrawn === true) {
+                //continuing to aim the arrow
                 this.stringData.handPosition = this.getStringHandPosition();
                 this.stringData.handRotation = this.getStringHandRotation();
                 this.initialHand === 'right' ? this.stringData.grabHandPosition = Controller.getSpatialControlPosition(RIGHT_TIP) : this.stringData.grabHandPosition = Controller.getSpatialControlPosition(LEFT_TIP);
@@ -386,16 +367,13 @@
                 this.updateArrowPosition();
 
             } else if (this.triggerValue >= DRAW_STRING_THRESHOLD && this.stringDrawn === false) {
+                //the first time aiming the arrow
                 this.stringDrawn = true;
                 this.createStrings();
                 this.stringData.handPosition = this.getStringHandPosition();
                 this.stringData.handRotation = this.getStringHandRotation();
                 this.initialHand === 'right' ? this.stringData.grabHandPosition = Controller.getSpatialControlPosition(RIGHT_TIP) : this.stringData.grabHandPosition = Controller.getSpatialControlPosition(LEFT_TIP);
                 this.stringData.grabHandRotation = this.getGrabHandRotation();
-                if (this.hasArrow === false) {
-                    this.createArrow();
-                    this.hasArrow = true;
-                }
 
                 this.drawStrings();
                 this.updateArrowPosition();
@@ -480,39 +458,6 @@
 
         },
 
-        createArrow: function() {
-            //  print('CREATING ARROW');
-            var arrowProperties = {
-                name: 'Hifi-Arrow',
-                type: 'Model',
-                shapeType: 'box',
-                modelURL: ARROW_MODEL_URL,
-                dimensions: ARROW_DIMENSIONS,
-                position: this.getArrowPosition(),
-                rotation: this.bowProperties.rotation,
-                collisionsWillMove: false,
-                ignoreForCollisions: true,
-                gravity: ARROW_GRAVITY,
-                // script: ARROW_SCRIPT_URL,
-                lifetime: 40,
-                userData: JSON.stringify({
-                    grabbableKey: {
-                        grabbable: false,
-
-                    }
-                })
-            };
-
-            this.arrow = Entities.addEntity(arrowProperties);
-
-        },
-
-        getArrowTipPosition: function() {
-            var arrowPosition = this.getArrowPosition();
-            var arrowTipPosition = Vec3.sum(arrowPosition, ARROW_TIP_OFFSET);
-            return arrowTipPosition
-        },
-
         releaseArrow: function() {
             var handToHand = Vec3.subtract(this.stringData.grabHandPosition, this.stringData.handPosition);
 
@@ -556,8 +501,9 @@
             var detectorPosition = Vec3.sum(this.bowProperties.position, NOTCH_DETECTOR_OFFSET);
 
             var detectorProperties = {
+                name: 'Hifi-NotchDetector',
                 type: 'Box',
-                visible: true,
+                visible: false,
                 ignoreForCollisions: true,
                 dimensions: NOTCH_DETECTOR_DIMENSIONS,
                 position: detectorPosition,
@@ -565,8 +511,14 @@
                     red: 0,
                     green: 255,
                     blue: 0
-                }
+                },
+                userData: JSON.stringify({
+                    hifiBowKey: {
+                        bowID: this.entityID
+                    }
+                })
             };
+
 
             this.notchDetector = Entities.addEntity(detectorProperties);
         },
@@ -642,13 +594,11 @@
                 lifespan: 1,
             });
 
-            Entites.editEntityProperties(this.arrow, {
-                userData: JSON.stringify({
-                    hifiFireArrowKey: {
-                        fire: this.fire
-                    }
-                })
-            })
+            setEntityCustomData('hifiFireArrowKey', this.arrow, {
+                fire: this.fire
+
+            });
+
 
             this.arrowIsBurning = true;
         }
