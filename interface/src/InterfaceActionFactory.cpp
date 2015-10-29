@@ -66,7 +66,8 @@ EntityActionPointer InterfaceActionFactory::factoryBA(EntityItemPointer ownerEnt
     if (action) {
         action->deserialize(data);
         if (action->lifetimeIsOver()) {
-            qDebug() << "InterfaceActionFactory::factoryBA lifetimeIsOver during action creation";
+            qDebug() << "InterfaceActionFactory::factoryBA lifetimeIsOver during action creation --"
+                     << action->getExpires() << "<" << usecTimestampNow();
             return nullptr;
         }
     }
