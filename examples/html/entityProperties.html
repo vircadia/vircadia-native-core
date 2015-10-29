@@ -1479,8 +1479,12 @@
             </span>
         </div>
 
-        <div class="zone-section property">
-            <div class="label">Key Light Color</div>
+        <div class="sub-section-header zone-section keyLight-section">
+            <label>KeyLight</label>
+        </div>
+
+        <div class="zone-section keyLight-section property">
+            <div class="label">Light Color</div>
             <div class="value">
                 <div class='color-picker' id="property-zone-key-light-color"></div>
                 <div class="input-area">R <input class="coord" type='number' id="property-zone-key-light-color-red" min="0" max="255" step="1"></div>
@@ -1488,20 +1492,16 @@
                 <div class="input-area">B <input class="coord" type='number' id="property-zone-key-light-color-blue" min="0" max="255" step="1"></div>
             </div>
         </div>
-        <div class="zone-section property">
-            <div class="label">Key Light Intensity</div>
+
+        <div class="zone-section keyLight-section property">
+            <div class="label">Light Intensity</div>
             <div class="value">
                 <input class="coord" type='number' id="property-zone-key-intensity" min="0" max="10" step="0.1">
             </div>
         </div>
-        <div class="zone-section property">
-            <div class="label">Key Light Ambient Intensity</div>
-            <div class="value">
-                <input class="coord" type='number' id="property-zone-key-ambient-intensity" min="0" max="10" step="0.1">
-            </div>
-        </div>
-        <div class="zone-section property">
-            <div class="label">Key Light Direction</div>
+        
+        <div class="zone-section keyLight-section property">
+            <div class="label">Light Direction</div>
             <div class="value">
                 <div class="input-area">Pitch <input class="coord" type='number' id="property-zone-key-light-direction-x"></div>
                 <div class="input-area">Yaw <input class="coord" type='number' id="property-zone-key-light-direction-y"></div>
@@ -1509,46 +1509,69 @@
             </div>
         </div>
 
-        <div class="zone-section property">
+        <div class="zone-section keyLight-section property">
+            <div class="label">Ambient Intensity</div>
+            <div class="value">
+                <input class="coord" type='number' id="property-zone-key-ambient-intensity" min="0" max="10" step="0.1">
+            </div>
+        </div>
+
+        
+        <div class="zone-section keyLight-section property">
+            <div class="label">Ambient URL</div>
+            <div class="value">
+                <input type="text" id="property-zone-skybox-url" class="url">
+            </div>
+        </div>
+
+        <div class="sub-section-header zone-section stage-section">
+            <label>Stage</label>
+        </div>
+
+        <div class="zone-section stage-section property">
             <div class="label">Stage Latitude</div>
             <div class="value">
                 <input class="coord" type='number' id="property-zone-stage-latitude" min="-90" max="90" step="1">
             </div>
         </div>
-        <div class="zone-section property">
+        <div class="zone-section stage-section property">
             <div class="label">Stage Longitude</div>
             <div class="value">
                 <input class="coord" type='number' id="property-zone-stage-longitude" min="-180" max="180" step="1">
             </div>
         </div>
-        <div class="zone-section property">
+        <div class="zone-section stage-section property">
             <div class="label">Stage Altitude</div>
             <div class="value">
                 <input class="coord" type='number' id="property-zone-stage-altitude" step="1">
             </div>
         </div>
 
-        <div class="zone-section property">
+        <div class="zone-section stage-section property">
             <span class="label">Automatically calculate stage hour and day from location and clock.</span>
             <span class="value">
                 <input type='checkbox' id="property-zone-stage-automatic-hour-day">
             </span>
         </div>
 
-        <div class="zone-section property">
+        <div class="zone-section stage-section property">
             <div class="label">Stage Day</div>
             <div class="value">
                 <input class="coord" type='number' id="property-zone-stage-day" min="0" max="365" step="1">
             </div>
         </div>
-        <div class="zone-section property">
+        <div class="zone-section stage-section property">
             <div class="label">Stage Hour</div>
             <div class="value">
                 <input class="coord" type='number' id="property-zone-stage-hour" min="0" max="24" step="0.5">
             </div>
         </div>
 
-        <div class="zone-section property">
+        <div class="sub-section-header zone-section background-section">
+            <label>Background</label>
+        </div>
+
+        <div class="zone-section background-section property">
             <div class="label">Background Mode</div>
             <div class="value">
                 <select name="SelectBackgroundMode" id="property-zone-background-mode">
