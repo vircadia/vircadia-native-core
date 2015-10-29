@@ -69,6 +69,9 @@ private:
     bool _renderControllers;
 
     static const QString NAME;
+
+    bool _registeredWithInputMapper { false };
+
 };
 
 #endif // hifi__ViveControllerManager
