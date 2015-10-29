@@ -14,6 +14,7 @@
 
 #include <EnvironmentData.h>
 
+#include "KeyLightPropertyGroup.h"
 #include "AtmospherePropertyGroup.h"
 #include "EntityItem.h"
 #include "EntityTree.h"
@@ -48,36 +49,7 @@ public:
                                                 EntityPropertyFlags& propertyFlags, bool overwriteLocalData,
                                                 bool& somethingChanged);
 
-    xColor getKeyLightColor() const { xColor color = { _keyLightColor[RED_INDEX], _keyLightColor[GREEN_INDEX], _keyLightColor[BLUE_INDEX] }; return color; }
-    void setKeyLightColor(const xColor& value) {
-        _keyLightColor[RED_INDEX] = value.red;
-        _keyLightColor[GREEN_INDEX] = value.green;
-        _keyLightColor[BLUE_INDEX] = value.blue;
-    }
 
-    void setKeyLightColor(const rgbColor& value) {
-        _keyLightColor[RED_INDEX] = value[RED_INDEX];
-        _keyLightColor[GREEN_INDEX] = value[GREEN_INDEX];
-        _keyLightColor[BLUE_INDEX] = value[BLUE_INDEX];
-    }
-
-    glm::vec3 getKeyLightColorVec3() const {
-        const quint8 MAX_COLOR = 255;
-        glm::vec3 color = { (float)_keyLightColor[RED_INDEX] / (float)MAX_COLOR,
-                            (float)_keyLightColor[GREEN_INDEX] / (float)MAX_COLOR,
-                            (float)_keyLightColor[BLUE_INDEX] / (float)MAX_COLOR };
-        return color;
-    }
-
-    
-    float getKeyLightIntensity() const { return _keyLightIntensity; }
-    void setKeyLightIntensity(float value) { _keyLightIntensity = value; }
-
-    float getKeyLightAmbientIntensity() const { return _keyLightAmbientIntensity; }
-    void setKeyLightAmbientIntensity(float value) { _keyLightAmbientIntensity = value; }
-
-    const glm::vec3& getKeyLightDirection() const { return _keyLightDirection; }
-    void setKeyLightDirection(const glm::vec3& value) { _keyLightDirection = value; }
 
     static bool getZonesArePickable() { return _zonesArePickable; }
     static void setZonesArePickable(bool value) { _zonesArePickable = value; }
@@ -92,6 +64,8 @@ public:
     virtual bool hasCompoundShapeURL() const { return !_compoundShapeURL.isEmpty(); }
     const QString getCompoundShapeURL() const { return _compoundShapeURL; }
     virtual void setCompoundShapeURL(const QString& url);
+
+    const KeyLightPropertyGroup& getKeyLightProperties() const { return _keyLightProperties; }
 
     void setBackgroundMode(BackgroundMode value) { _backgroundMode = value; }
     BackgroundMode getBackgroundMode() const { return _backgroundMode; }
@@ -109,19 +83,11 @@ public:
 
     virtual void debugDump() const;
 
-    static const xColor DEFAULT_KEYLIGHT_COLOR;
-    static const float DEFAULT_KEYLIGHT_INTENSITY;
-    static const float DEFAULT_KEYLIGHT_AMBIENT_INTENSITY;
-    static const glm::vec3 DEFAULT_KEYLIGHT_DIRECTION;
     static const ShapeType DEFAULT_SHAPE_TYPE;
     static const QString DEFAULT_COMPOUND_SHAPE_URL;
     
 protected:
-    // properties of the "sun" in the zone
-    rgbColor _keyLightColor;
-    float _keyLightIntensity;
-    float _keyLightAmbientIntensity;
-    glm::vec3 _keyLightDirection;
+    KeyLightPropertyGroup _keyLightProperties;
     
     ShapeType _shapeType = DEFAULT_SHAPE_TYPE;
     QString _compoundShapeURL;
