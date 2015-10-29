@@ -259,7 +259,11 @@ void PhysicsEngine::stepSimulation() {
         _myAvatarController->preSimulation();
     }
 
-    int numSubsteps = _dynamicsWorld->stepSimulation(timeStep, PHYSICS_ENGINE_MAX_NUM_SUBSTEPS, PHYSICS_ENGINE_FIXED_SUBSTEP);
+    auto onSubStep = [this]() {
+        updateContactMap();
+    };
+
+    int numSubsteps = _dynamicsWorld->stepSimulation(timeStep, PHYSICS_ENGINE_MAX_NUM_SUBSTEPS, PHYSICS_ENGINE_FIXED_SUBSTEP, onSubStep);
     if (numSubsteps > 0) {
         BT_PROFILE("postSimulation");
         _numSubsteps += (uint32_t)numSubsteps;
@@ -268,7 +272,7 @@ void PhysicsEngine::stepSimulation() {
         if (_myAvatarController) {
             _myAvatarController->postSimulation();
         }
-        updateContactMap();
+
         _hasOutgoingChanges = true;
     }
 }
