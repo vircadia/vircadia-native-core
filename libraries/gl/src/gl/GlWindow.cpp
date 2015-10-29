@@ -8,9 +8,10 @@
 
 #include "GlWindow.h"
 
-#include <QOpenGLContext>
-#include <QOpenGLDebugLogger>
-#include <GLHelpers.h>
+#include <QtGui/QOpenGLContext>
+#include <QtGui/QOpenGLDebugLogger>
+
+#include "GLHelpers.h"
 
 GlWindow::GlWindow(QOpenGLContext* shareContext) : GlWindow(getDefaultOpenGlSurfaceFormat(), shareContext) {
 }
@@ -43,11 +44,9 @@ bool GlWindow::makeCurrent() {
         qDebug() << "GL Renderer: " << QString((const char*) glGetString(GL_RENDERER));
     });
     
-    #ifndef QT_NO_DEBUG
-    QOpenGLContext * currentContext =
-    #endif
-        QOpenGLContext::currentContext();
+    QOpenGLContext * currentContext = QOpenGLContext::currentContext();
     Q_ASSERT(_context == currentContext);
+    
     return makeCurrentResult;
 }
 

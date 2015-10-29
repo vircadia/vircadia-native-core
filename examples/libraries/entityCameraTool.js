@@ -564,12 +564,12 @@ CameraTool = function(cameraManager) {
 
     var ORIENTATION_OVERLAY_SIZE = 26;
     var ORIENTATION_OVERLAY_HALF_SIZE = ORIENTATION_OVERLAY_SIZE / 2;
-    var ORIENTATION_OVERLAY_CUBE_SIZE = 10.5,
+    var ORIENTATION_OVERLAY_CUBE_SIZE = 10.5;
 
-        var ORIENTATION_OVERLAY_OFFSET = {
-            x: 30,
-            y: 30,
-        }
+    var ORIENTATION_OVERLAY_OFFSET = {
+        x: 30,
+        y: 30,
+    }
 
     var UI_WIDTH = 70;
     var UI_HEIGHT = 70;

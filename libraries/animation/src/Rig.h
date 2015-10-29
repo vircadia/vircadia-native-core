@@ -58,24 +58,26 @@ public:
         float leanForward = 0.0f; // degrees
         float torsoTwist = 0.0f; // degrees
         bool enableLean = false;
-        glm::quat modelRotation = glm::quat();
+        glm::quat worldHeadOrientation = glm::quat();
         glm::quat localHeadOrientation = glm::quat();
         float localHeadPitch = 0.0f; // degrees
         float localHeadYaw = 0.0f; // degrees
         float localHeadRoll = 0.0f; // degrees
         glm::vec3 localHeadPosition = glm::vec3();
         bool isInHMD = false;
+        int leanJointIndex = -1;
+        int neckJointIndex = -1;
+        bool isTalking = false;
+    };
+
+    struct EyeParameters {
         glm::quat worldHeadOrientation = glm::quat();
         glm::vec3 eyeLookAt = glm::vec3();  // world space
         glm::vec3 eyeSaccade = glm::vec3(); // world space
         glm::vec3 modelTranslation = glm::vec3();
-        int leanJointIndex = -1;
-        int neckJointIndex = -1;
+        glm::quat modelRotation = glm::quat();
         int leftEyeJointIndex = -1;
         int rightEyeJointIndex = -1;
-        bool isTalking = false;
-
-        void dump() const;
     };
 
     struct HandParameters {
@@ -186,9 +188,7 @@ public:
     bool getEnableAnimGraph() const { return _enableAnimGraph; }
 
     void updateFromHeadParameters(const HeadParameters& params, float dt);
-    void updateEyeJoints(int leftEyeIndex, int rightEyeIndex, const glm::vec3& modelTranslation, const glm::quat& modelRotation,
-                         const glm::quat& worldHeadOrientation, const glm::vec3& lookAtSpot, const glm::vec3& saccade = glm::vec3(0.0f));
-
+    void updateFromEyeParameters(const EyeParameters& params);
     void updateFromHandParameters(const HandParameters& params, float dt);
 
     virtual void setHandPosition(int jointIndex, const glm::vec3& position, const glm::quat& rotation,

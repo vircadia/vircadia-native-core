@@ -454,7 +454,7 @@ void Avatar::render(RenderArgs* renderArgs, const glm::vec3& cameraPosition) {
         */
 
         bool renderBounding = Menu::getInstance()->isOptionChecked(MenuOption::RenderBoundingCollisionShapes);
-        if (renderBounding && shouldRenderHead(renderArgs)) {
+        if (renderBounding && shouldRenderHead(renderArgs) && _skeletonModel.isRenderable()) {
             _skeletonModel.renderBoundingCollisionShapes(*renderArgs->_batch, 0.7f);
         }
 

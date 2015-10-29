@@ -147,7 +147,7 @@ void MeshPartPayload::bindMaterial(gpu::Batch& batch, const ModelRender::Locatio
             batch.setResourceTexture(ModelRender::DIFFUSE_MAP_SLOT, textureCache->getGrayTexture());
         }
     } else {
-        batch.setResourceTexture(ModelRender::DIFFUSE_MAP_SLOT, textureCache->getGrayTexture());
+        batch.setResourceTexture(ModelRender::DIFFUSE_MAP_SLOT, textureCache->getWhiteTexture());
     }
 
     // Normal map
@@ -229,7 +229,7 @@ void MeshPartPayload::bindTransform(gpu::Batch& batch, const ModelRender::Locati
 
 void MeshPartPayload::render(RenderArgs* args) const {
     PerformanceTimer perfTimer("MeshPartPayload::render");
-    if (!model->_readyWhenAdded) {
+    if (!model->_readyWhenAdded || !model->_isVisible) {
         return; // bail asap
     }
 
