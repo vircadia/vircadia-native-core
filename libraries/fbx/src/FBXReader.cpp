@@ -64,7 +64,7 @@ Extents FBXGeometry::getUnscaledMeshExtents() const {
     glm::vec3 minimum = glm::vec3(offset * glm::vec4(extents.minimum, 1.0f));
     glm::vec3 maximum = glm::vec3(offset * glm::vec4(extents.maximum, 1.0f));
     Extents scaledExtents = { minimum, maximum };
-        
+
     return scaledExtents;
 }
 
@@ -73,7 +73,7 @@ bool FBXGeometry::convexHullContains(const glm::vec3& point) const {
     if (!getUnscaledMeshExtents().containsPoint(point)) {
         return false;
     }
-    
+
     auto checkEachPrimitive = [=](FBXMesh& mesh, QVector<int> indices, int primitiveSize) -> bool {
         // Check whether the point is "behind" all the primitives.
         for (int j = 0; j < indices.size(); j += primitiveSize) {
@@ -87,11 +87,11 @@ bool FBXGeometry::convexHullContains(const glm::vec3& point) const {
         }
         return true;
     };
-    
+
     // Check that the point is contained in at least one convex mesh.
     for (auto mesh : meshes) {
         bool insideMesh = true;
-        
+
         // To be considered inside a convex mesh,
         // the point needs to be "behind" all the primitives respective planes.
         for (auto part : mesh.parts) {
@@ -108,7 +108,7 @@ bool FBXGeometry::convexHullContains(const glm::vec3& point) const {
             return true;
         }
     }
-    
+
     // It wasn't in any mesh, return false.
     return false;
 }
@@ -194,7 +194,7 @@ public:
     glm::vec3 rotationMax;  // radians
 };
 
-glm::mat4 getGlobalTransform(const QMultiHash<QString, QString>& _connectionParentMap,
+glm::mat4 getGlobalTransform(const QMultiMap<QString, QString>& _connectionParentMap,
         const QHash<QString, FBXModel>& models, QString nodeID, bool mixamoHack) {
     glm::mat4 globalTransform;
     while (!nodeID.isNull()) {
@@ -228,12 +228,12 @@ void printNode(const FBXNode& node, int indentLevel) {
     int indentLength = 2;
     QByteArray spaces(indentLevel * indentLength, ' ');
     QDebug nodeDebug = qDebug(modelformat);
-    
+
     nodeDebug.nospace() << spaces.data() << node.name.data() << ": ";
     foreach (const QVariant& property, node.properties) {
         nodeDebug << property;
     }
-    
+
     foreach (const FBXNode& child, node.children) {
         printNode(child, indentLevel + 1);
     }
@@ -246,7 +246,7 @@ public:
     glm::mat4 transformLink;
 };
 
-void appendModelIDs(const QString& parentID, const QMultiHash<QString, QString>& connectionChildMap,
+void appendModelIDs(const QString& parentID, const QMultiMap<QString, QString>& connectionChildMap,
         QHash<QString, FBXModel>& models, QSet<QString>& remainingModels, QVector<QString>& modelIDs) {
     if (remainingModels.contains(parentID)) {
         modelIDs.append(parentID);
@@ -331,7 +331,7 @@ void addBlendshapes(const ExtractedBlendshape& extracted, const QList<WeightedIn
     }
 }
 
-QString getTopModelID(const QMultiHash<QString, QString>& connectionParentMap,
+QString getTopModelID(const QMultiMap<QString, QString>& connectionParentMap,
         const QHash<QString, FBXModel>& models, const QString& modelID) {
     QString topID = modelID;
     forever {
@@ -342,7 +342,7 @@ QString getTopModelID(const QMultiHash<QString, QString>& connectionParentMap,
             }
         }
         return topID;
-        
+
         outerContinue: ;
     }
 }
@@ -361,7 +361,7 @@ public:
 };
 
 bool checkMaterialsHaveTextures(const QHash<QString, FBXMaterial>& materials,
-        const QHash<QString, QByteArray>& textureFilenames, const QMultiHash<QString, QString>& _connectionChildMap) {
+        const QHash<QString, QByteArray>& textureFilenames, const QMultiMap<QString, QString>& _connectionChildMap) {
     foreach (const QString& materialID, materials.keys()) {
         foreach (const QString& childID, _connectionChildMap.values(materialID)) {
             if (textureFilenames.contains(childID)) {
@@ -443,8 +443,8 @@ QByteArray fileOnUrl(const QByteArray& filenameString, const QString& url) {
 }
 
 FBXGeometry* FBXReader::extractFBXGeometry(const QVariantHash& mapping, const QString& url) {
-    const FBXNode& node = _fbxNode; 
-    QHash<QString, ExtractedMesh> meshes;
+    const FBXNode& node = _fbxNode;
+    QMap<QString, ExtractedMesh> meshes;
     QHash<QString, QString> modelIDsToNames;
     QHash<QString, int> meshIDsToMeshIndices;
     QHash<QString, QString> ooChildToParent;
@@ -497,7 +497,7 @@ FBXGeometry* FBXReader::extractFBXGeometry(const QVariantHash& mapping, const QS
     QVector<QString> humanIKJointIDs(humanIKJointNames.size());
 
     QVariantHash blendshapeMappings = mapping.value("bs").toHash();
-    
+
     QMultiHash<QByteArray, WeightedIndex> blendshapeIndices;
     for (int i = 0;; i++) {
         QByteArray blendshapeName = FACESHIFT_BLENDSHAPES[i];
@@ -527,7 +527,7 @@ FBXGeometry* FBXReader::extractFBXGeometry(const QVariantHash& mapping, const QS
     QString hifiGlobalNodeID;
     unsigned int meshIndex = 0;
     foreach (const FBXNode& child, node.children) {
-    
+
         if (child.name == "FBXHeaderExtension") {
             foreach (const FBXNode& object, child.children) {
                 if (object.name == "SceneInfo") {
@@ -537,7 +537,7 @@ FBXGeometry* FBXReader::extractFBXGeometry(const QVariantHash& mapping, const QS
                                 if (subsubobject.name == "Author") {
                                     geometry.author = subsubobject.properties.at(0).toString();
                                 }
-                            } 
+                            }
                         } else if (subobject.name == "Properties70") {
                             foreach (const FBXNode& subsubobject, subobject.children) {
                                 if (subsubobject.name == "P" && subsubobject.properties.size() >= 5 &&
@@ -620,7 +620,7 @@ FBXGeometry* FBXReader::extractFBXGeometry(const QVariantHash& mapping, const QS
                     if (humanIKJointIndex != -1) {
                         humanIKJointIDs[humanIKJointIndex] = getID(object.properties);
                     }
-                    
+
                     glm::vec3 translation;
                     // NOTE: the euler angles as supplied by the FBX file are in degrees
                     glm::vec3 rotationOffset;
@@ -709,7 +709,7 @@ FBXGeometry* FBXReader::extractFBXGeometry(const QVariantHash& mapping, const QS
                             // it's a mesh as well as a model
                             mesh = &meshes[getID(object.properties)];
                             *mesh = extractMesh(object, meshIndex);
-                             
+
                         } else if (subobject.name == "Shape") {
                             ExtractedBlendshape blendshape =  { subobject.properties.at(0).toString(),
                                 extractBlendshape(subobject) };
@@ -720,7 +720,7 @@ FBXGeometry* FBXReader::extractFBXGeometry(const QVariantHash& mapping, const QS
                             QString attributetype = subobject.properties.at(0).toString();
                             if (!attributetype.empty()) {
                                 if (attributetype == "Light") {
-                                    QString lightprop; 
+                                    QString lightprop;
                                     foreach (const QVariant& vprop, subobject.properties) {
                                         lightprop = vprop.toString();
                                     }
@@ -731,23 +731,23 @@ FBXGeometry* FBXReader::extractFBXGeometry(const QVariantHash& mapping, const QS
                         } else {
                             QString whatisthat = subobject.name;
                             if (whatisthat == "Shape") {
-                            } 
+                            }
                         }
 #endif
                     }
-                    
+
                     // add the blendshapes included in the model, if any
                     if (mesh) {
                         foreach (const ExtractedBlendshape& extracted, blendshapes) {
                             addBlendshapes(extracted, blendshapeIndices.values(extracted.id.toLatin1()), *mesh);
                         }
                     }
-                    
+
                     // see FBX documentation, http://download.autodesk.com/us/fbx/20112/FBX_SDK_HELP/index.html
                     model.translation = translation;
 
-                    model.preTransform = glm::translate(rotationOffset) * glm::translate(rotationPivot);      
-                    model.preRotation = glm::quat(glm::radians(preRotation));            
+                    model.preTransform = glm::translate(rotationOffset) * glm::translate(rotationPivot);
+                    model.preRotation = glm::quat(glm::radians(preRotation));
                     model.rotation = glm::quat(glm::radians(rotation));
                     model.postRotation = glm::quat(glm::radians(postRotation));
 
@@ -862,7 +862,7 @@ FBXGeometry* FBXReader::extractFBXGeometry(const QVariantHash& mapping, const QS
                         if (subobject.name == "RelativeFilename") {
                             filename = subobject.properties.at(0).toByteArray();
                             filename = fileOnUrl(filename, url);
-                            
+
                         } else if (subobject.name == "Content" && !subobject.properties.isEmpty()) {
                             content = subobject.properties.at(0).toByteArray();
                         }
@@ -905,10 +905,10 @@ FBXGeometry* FBXReader::extractFBXGeometry(const QVariantHash& mapping, const QS
 
                                     } else if (property.properties.at(0) == "Emissive") {
                                         material.emissiveColor = getVec3(property.properties, index);
-                                    
+
                                     } else if (property.properties.at(0) == "Shininess") {
                                         material.shininess = property.properties.at(index).value<double>();
-                                    
+
                                     } else if (property.properties.at(0) == "Opacity") {
                                         material.opacity = property.properties.at(index).value<double>();
                                     }
@@ -1001,7 +1001,7 @@ FBXGeometry* FBXReader::extractFBXGeometry(const QVariantHash& mapping, const QS
                         }
                     }
                     animationCurves.insert(getID(object.properties), curve);
-                
+
                 }
 #if defined(DEBUG_FBXREADER)
                  else {
@@ -1013,7 +1013,7 @@ FBXGeometry* FBXReader::extractFBXGeometry(const QVariantHash& mapping, const QS
                     } else {
                         unknown++;
                     }
-                } 
+                }
 #endif
             }
         } else if (child.name == "Connections") {
@@ -1041,14 +1041,14 @@ FBXGeometry* FBXReader::extractFBXGeometry(const QVariantHash& mapping, const QS
                             diffuseTextures.insert(getID(connection.properties, 2), getID(connection.properties, 1));
 
                         } else if (type.contains("transparentcolor")) { // it should be TransparentColor...
-                            // THis is how Maya assign a texture that affect diffuse color AND transparency ? 
+                            // THis is how Maya assign a texture that affect diffuse color AND transparency ?
                             diffuseTextures.insert(getID(connection.properties, 2), getID(connection.properties, 1));
                         } else if (type.contains("bump")) {
                             bumpTextures.insert(getID(connection.properties, 2), getID(connection.properties, 1));
                         } else if (type.contains("normal")) {
                             normalTextures.insert(getID(connection.properties, 2), getID(connection.properties, 1));
                         } else if (type.contains("specular") || type.contains("reflection")) {
-                            specularTextures.insert(getID(connection.properties, 2), getID(connection.properties, 1));    
+                            specularTextures.insert(getID(connection.properties, 2), getID(connection.properties, 1));
 
                         } else if (type == "lcl rotation") {
                             localRotations.insert(getID(connection.properties, 2), getID(connection.properties, 1));
@@ -1097,7 +1097,7 @@ FBXGeometry* FBXReader::extractFBXGeometry(const QVariantHash& mapping, const QS
             } else {
                 unknown++;
             }
-        } 
+        }
 #endif
     }
 
@@ -1142,7 +1142,7 @@ FBXGeometry* FBXReader::extractFBXGeometry(const QVariantHash& mapping, const QS
             }
         }
         outerBreak:
-    
+
         // make sure the parent is in the child map
         QString parent = _connectionParentMap.value(model.key());
         if (!_connectionChildMap.contains(parent, model.key())) {
@@ -1172,7 +1172,7 @@ FBXGeometry* FBXReader::extractFBXGeometry(const QVariantHash& mapping, const QS
         frame.translations.resize(modelIDs.size());
         geometry.animationFrames.append(frame);
     }
-    
+
     // convert the models to joints
     QVariantList freeJoints = mapping.values("freeJoint");
     geometry.hasSkeletonJoints = false;
@@ -1181,7 +1181,7 @@ FBXGeometry* FBXReader::extractFBXGeometry(const QVariantHash& mapping, const QS
         FBXJoint joint;
         joint.isFree = freeJoints.contains(model.name);
         joint.parentIndex = model.parentIndex;
- 
+
         // get the indices of all ancestors starting with the first free one (if any)
         int jointIndex = geometry.joints.size();
         joint.freeLineage.append(jointIndex);
@@ -1203,7 +1203,7 @@ FBXGeometry* FBXReader::extractFBXGeometry(const QVariantHash& mapping, const QS
         joint.rotationMax = model.rotationMax;
         glm::quat combinedRotation = joint.preRotation * joint.rotation * joint.postRotation;
         if (joint.parentIndex == -1) {
-            joint.transform = geometry.offset * glm::translate(joint.translation) * joint.preTransform * 
+            joint.transform = geometry.offset * glm::translate(joint.translation) * joint.preTransform *
                 glm::mat4_cast(combinedRotation) * joint.postTransform;
             joint.inverseDefaultRotation = glm::inverse(combinedRotation);
            joint.distanceToParent = 0.0f;
@@ -1272,11 +1272,11 @@ FBXGeometry* FBXReader::extractFBXGeometry(const QVariantHash& mapping, const QS
     geometry.rightHandJointIndex = modelIDs.indexOf(jointRightHandID);
     geometry.leftToeJointIndex = modelIDs.indexOf(jointLeftToeID);
     geometry.rightToeJointIndex = modelIDs.indexOf(jointRightToeID);
-    
+
     foreach (const QString& id, humanIKJointIDs) {
         geometry.humanIKJointIndices.append(modelIDs.indexOf(id));
     }
-    
+
     // extract the translation component of the neck transform
     if (geometry.neckJointIndex != -1) {
         const glm::mat4& transform = geometry.joints.at(geometry.neckJointIndex).transform;
@@ -1285,7 +1285,7 @@ FBXGeometry* FBXReader::extractFBXGeometry(const QVariantHash& mapping, const QS
 
     geometry.bindExtents.reset();
     geometry.meshExtents.reset();
-    
+
     // Create the Material Library
     consolidateFBXMaterials();
     geometry.materials = _fbxMaterials;
@@ -1293,9 +1293,9 @@ FBXGeometry* FBXReader::extractFBXGeometry(const QVariantHash& mapping, const QS
     // see if any materials have texture children
     bool materialsHaveTextures = checkMaterialsHaveTextures(_fbxMaterials, _textureFilenames, _connectionChildMap);
 
-    for (QHash<QString, ExtractedMesh>::iterator it = meshes.begin(); it != meshes.end(); it++) {
+    for (QMap<QString, ExtractedMesh>::iterator it = meshes.begin(); it != meshes.end(); it++) {
         ExtractedMesh& extracted = it.value();
-        
+
         extracted.mesh.meshExtents.reset();
 
         // accumulate local transforms
@@ -1335,7 +1335,7 @@ FBXGeometry* FBXReader::extractFBXGeometry(const QVariantHash& mapping, const QS
                 }
 
                 materialIndex++;
-                
+
             } else if (_textureFilenames.contains(childID)) {
                 FBXTexture texture = getTexture(childID);
                 for (int j = 0; j < extracted.partMaterialTextures.size(); j++) {
@@ -1360,7 +1360,7 @@ FBXGeometry* FBXReader::extractFBXGeometry(const QVariantHash& mapping, const QS
                     setTangents(extracted.mesh, part.quadIndices.at(i + 2), part.quadIndices.at(i + 3));
                     setTangents(extracted.mesh, part.quadIndices.at(i + 3), part.quadIndices.at(i));
                 }
-                // <= size - 3 in order to prevent overflowing triangleIndices when (i % 3) != 0 
+                // <= size - 3 in order to prevent overflowing triangleIndices when (i % 3) != 0
                 // This is most likely evidence of a further problem in extractMesh()
                 for (int i = 0; i <= part.triangleIndices.size() - 3; i += 3) {
                     setTangents(extracted.mesh, part.triangleIndices.at(i), part.triangleIndices.at(i + 1));
@@ -1500,7 +1500,7 @@ FBXGeometry* FBXReader::extractFBXGeometry(const QVariantHash& mapping, const QS
                 glm::vec4& weights = extracted.mesh.clusterWeights[i];
                 float total = weights.x + weights.y + weights.z + weights.w;
                 if (total != 1.0f && total != 0.0f) {
-                    weights /= total; 
+                    weights /= total;
                 }
             }
         } else {
@@ -1573,7 +1573,7 @@ FBXGeometry* FBXReader::extractFBXGeometry(const QVariantHash& mapping, const QS
                 avgRadius += glm::length(offset - projection * axis);
             }
             avgRadius /= (float)points.size();
-        
+
             // compute endpoints of capsule in joint-frame
             glm::vec3 capsuleBegin = avgPoint;
             glm::vec3 capsuleEnd = avgPoint;
@@ -1594,27 +1594,27 @@ FBXGeometry* FBXReader::extractFBXGeometry(const QVariantHash& mapping, const QS
         joint.shapeInfo.radius = avgRadius;
     }
     geometry.palmDirection = parseVec3(mapping.value("palmDirection", "0, -1, 0").toString());
-    
+
     // Add sitting points
     QVariantHash sittingPoints = mapping.value("sit").toHash();
     for (QVariantHash::const_iterator it = sittingPoints.constBegin(); it != sittingPoints.constEnd(); it++) {
         SittingPoint sittingPoint;
         sittingPoint.name = it.key();
-        
+
         QVariantList properties = it->toList();
         sittingPoint.position = parseVec3(properties.at(0).toString());
         sittingPoint.rotation = glm::quat(glm::radians(parseVec3(properties.at(1).toString())));
-        
+
         geometry.sittingPoints.append(sittingPoint);
     }
-    
+
     // attempt to map any meshes to a named model
-    for (QHash<QString, int>::const_iterator m = meshIDsToMeshIndices.constBegin(); 
+    for (QHash<QString, int>::const_iterator m = meshIDsToMeshIndices.constBegin();
             m != meshIDsToMeshIndices.constEnd(); m++) {
-            
+
         const QString& meshID = m.key();
         int meshIndex = m.value();
-        
+
         if (ooChildToParent.contains(meshID)) {
             const QString& modelID = ooChildToParent.value(meshID);
             if (modelIDsToNames.contains(modelID)) {
@@ -1623,7 +1623,7 @@ FBXGeometry* FBXReader::extractFBXGeometry(const QVariantHash& mapping, const QS
             }
         }
     }
-    
+
     return geometryPtr;
 }
 
@@ -1641,5 +1641,3 @@ FBXGeometry* readFBX(QIODevice* device, const QVariantHash& mapping, const QStri
 
     return reader.extractFBXGeometry(mapping, url);
 }
-
-
