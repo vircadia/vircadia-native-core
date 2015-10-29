@@ -3,9 +3,21 @@
     "channels": [
         { "from": "Standard.LY", "to": "Actions.TranslateZ" },
         { "from": "Standard.LX", "to": "Actions.TranslateX" },
-        { "from": "Standard.RX", "when": [ "Application.InHMD", "Application.ComfortMode" ], "to": "Actions.StepYaw" },
+
+        { "from": "Standard.RX",
+          "when": [ "Application.InHMD", "Application.ComfortMode" ],
+          "to": "Actions.StepYaw",
+          "filters":
+            [
+                { "type": "pulse", "interval": 0.5 },
+                { "type": "scale", "scale": 15 }
+            ]
+        },
+
+
         { "from": "Standard.RX", "to": "Actions.Yaw" },
         { "from": "Standard.RY", "to": "Actions.Pitch" },
+
 
         { "from": [ "Standard.DU", "Standard.DL", "Standard.DR", "Standard.DD" ], "to": "Standard.LeftPrimaryThumb" },
         { "from": "Standard.Back", "to": "Standard.LeftSecondaryThumb" },
@@ -20,3 +32,5 @@
         { "from": "Standard.RightHand", "to": "Actions.RightHand" }
     ]
 }
+
+
