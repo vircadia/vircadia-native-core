@@ -18,6 +18,7 @@
 QScriptValue AnimVariantMap::animVariantMapToScriptValue(QScriptEngine* engine, const QStringList& names, bool useNames) const {
     if (QThread::currentThread() != engine->thread()) {
         qCWarning(animation) << "Cannot create Javacript object from non-script thread" << QThread::currentThread();
+        Q_ASSERT(false);
         return QScriptValue();
     }
     QScriptValue target = engine->newObject();
@@ -69,6 +70,7 @@ void AnimVariantMap::copyVariantsFrom(const AnimVariantMap& other) {
 void AnimVariantMap::animVariantMapFromScriptValue(const QScriptValue& source) {
     if (QThread::currentThread() != source.engine()->thread()) {
         qCWarning(animation) << "Cannot examine Javacript object from non-script thread" << QThread::currentThread();
+        Q_ASSERT(false);
         return;
     }
     // POTENTIAL OPTIMIZATION: cache the types we've seen. I.e, keep a dictionary mapping property names to an enumeration of types.
