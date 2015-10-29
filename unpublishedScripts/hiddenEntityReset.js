@@ -22,7 +22,8 @@
     var dollScriptURL = Script.resolvePath("../examples/toybox/doll/doll.js");
     var lightsScriptURL = Script.resolvePath("../examples/toybox/lights/lightSwitch.js");
     var targetsScriptURL = Script.resolvePath('../examples/toybox/ping_pong_gun/wallTarget.js');
-
+    var basketballResetterScriptURL = Script.resolvePath('basketballsResetter.js');
+    var targetsResetterScriptURL = Script.resolvePath('targetsResetter.js');
 
     ResetSwitch = function() {
         _this = this;
@@ -110,17 +111,18 @@
             });
 
             createPingPongBallGun();
+            createTargets();
+            createTargetResetter();
 
             createBasketballHoop();
             createBasketballRack();
+            createBasketballResetter();
 
             createGates();
 
             createFire();
             // Handles toggling of all sconce lights 
             createLights();
-
-
 
             createCat({
                 x: 551.09,
@@ -135,7 +137,6 @@
                 z: 503.91
             });
 
-            createTargets();
 
         }
 
@@ -275,10 +276,11 @@
                 })
             });
 
-            var collidingBalls = [];
+
 
             function createCollidingBalls() {
                 var position = rackStartPosition;
+                var collidingBalls = [];
 
                 var i;
                 for (i = 0; i < NUMBER_OF_BALLS; i++) {
@@ -333,6 +335,74 @@
             createCollidingBalls();
 
         }
+
+        function createBasketballResetter() {
+
+            var position = {
+                x: 543.58,
+                y: 495.47,
+                z: 469.59
+            };
+
+            var dimensions = {
+                x: 1.65,
+                y: 1.71,
+                z: 1.75
+            };
+
+            var resetter = Entities.addEntity({
+                type: "Box",
+                position: position,
+                name: "Basketball Resetter",
+                script: basketballResetterScriptURL,
+                dimensions: dimensions,
+                visible: false,
+                userData: JSON.stringify({
+                    resetMe: {
+                        resetMe: true
+                    },
+                    grabbableKey: {
+                        wantsTrigger: true
+                    }
+                })
+            });
+
+
+        }
+
+        function createTargetResetter() {
+            var dimensions = {
+                x: 0.21,
+                y: 0.61,
+                z: 0.21
+            };
+
+            var position = {
+                x: 548.42,
+                y: 496.40,
+                z: 509.61
+            };
+
+            var resetter = Entities.addEntity({
+                type: "Box",
+                position: position,
+                name: "Target Resetter",
+                script: targetsResetterScriptURL,
+                dimensions: dimensions,
+                visible: false,
+                userData: JSON.stringify({
+                    resetMe: {
+                        resetMe: true
+                    },
+                    grabbableKey: {
+                        wantsTrigger: true
+                    }
+                })
+
+            });
+        }
+
+
 
         function createTargets() {
 
