@@ -81,7 +81,6 @@ bool SixenseManager::isSupported() const {
 }
 
 void SixenseManager::activate() {
-    qDebug() << "SixenseManager::activate()...";
     InputPlugin::activate();
 #ifdef HAVE_SIXENSE
     _calibrationState = CALIBRATION_STATE_IDLE;
@@ -126,7 +125,6 @@ void SixenseManager::activate() {
 }
 
 void SixenseManager::deactivate() {
-    qDebug() << "SixenseManager::deactivate()...";
     InputPlugin::deactivate();
 
 #ifdef HAVE_SIXENSE
