@@ -47,10 +47,15 @@ function createArrow() {
         compoundShapeURL: ARROW_COLLISION_HULL_URL,
         dimensions: ARROW_DIMENSIONS,
         position: center,
-        script:ARROW_SCRIPT_URL,
+        script: ARROW_SCRIPT_URL,
         collisionsWillMove: true,
         ignoreForCollisions: false,
-        gravity: ARROW_GRAVITY
+        gravity: ARROW_GRAVITY,
+        userData: JSON.stringify({
+            grabbableKey: {
+                invertSolidWhileHeld: true
+            }
+        })
     });
 
 }

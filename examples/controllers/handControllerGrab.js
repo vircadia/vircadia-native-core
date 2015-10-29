@@ -286,10 +286,7 @@ function MyController(hand, triggerAction) {
 
     this.search = function() {
         //if this hand is the one that's disabled, we don't want to search for anything at all
-        if (this.hand === disabledHand) {
-            return;
-        }
-
+   
         if (this.triggerSmoothedReleased()) {
             this.setState(STATE_RELEASE);
             return;
@@ -303,7 +300,14 @@ function MyController(hand, triggerAction) {
             length: PICK_MAX_DISTANCE
         };
 
-        this.lineOn(distantPickRay.origin, Vec3.multiply(distantPickRay.direction, LINE_LENGTH), NO_INTERSECT_COLOR);
+             if (this.hand === disabledHand) {
+        
+        }
+        else{
+                    this.lineOn(distantPickRay.origin, Vec3.multiply(distantPickRay.direction, LINE_LENGTH), NO_INTERSECT_COLOR);
+
+        }
+
 
         // don't pick 60x per second.
         var pickRays = [];

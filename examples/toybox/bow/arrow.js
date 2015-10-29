@@ -102,8 +102,14 @@
             });
 
             setEntityCustomData('grabbableKey', this.entityID, {
-                grabbable: false
+                grabbable: false,
+                invertSolidWhileHeld:true
             });
+            
+            Entities.editEntity(this.entityID,{
+                collisionsWillMove:false,
+                ignoreForCollisions:true
+            })
 
             setEntityCustomData('hifiBowKey', bowID, {
                 hasArrowNotched: true,
