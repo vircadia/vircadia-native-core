@@ -413,8 +413,8 @@ public:
     float _lightmapOffset = 0.0f;
     float _lightmapLevel;
 
-    QMultiHash<QString, QString> _connectionParentMap;
-    QMultiHash<QString, QString> _connectionChildMap;
+    QMultiMap<QString, QString> _connectionParentMap;
+    QMultiMap<QString, QString> _connectionChildMap;
 
     static glm::vec3 getVec3(const QVariantList& properties, int index);
     static QVector<glm::vec4> createVec4Vector(const QVector<double>& doubleVector);
