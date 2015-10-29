@@ -96,7 +96,7 @@ static bool hasCorrectSyntax(const QScriptProgram& program) {
     return true;
 }
 
-static bool hadUncauchtExceptions(QScriptEngine& engine, const QString& fileName) {
+static bool hadUncaughtExceptions(QScriptEngine& engine, const QString& fileName) {
     if (engine.hasUncaughtException()) {
         const auto backtrace = engine.uncaughtExceptionBacktrace();
         const auto exception = engine.uncaughtException().toString();
@@ -616,7 +616,7 @@ QScriptValue ScriptEngine::evaluate(const QString& sourceCode, const QString& fi
     const auto result = QScriptEngine::evaluate(program);
     --_evaluatesPending;
     
-    const auto hadUncaughtException = hadUncauchtExceptions(*this, program.fileName());
+    const auto hadUncaughtException = hadUncaughtExceptions(*this, program.fileName());
     if (_wantSignals) {
         emit evaluationFinished(result, hadUncaughtException);
     }
@@ -684,10 +684,9 @@ void ScriptEngine::run() {
             }
         }
         lastUpdate = now;
-        
-        if (hadUncauchtExceptions(*this, _fileNameString)) {
-            stop();
-        }
+
+        // Debug and clear exceptions
+        hadUncaughtExceptions(*this, _fileNameString);
     }
     
     stopAllTimers(); // make sure all our timers are stopped if the script is ending
@@ -1022,7 +1021,7 @@ void ScriptEngine::entityScriptContentAvailable(const EntityItemID& entityID, co
     
     QScriptEngine sandbox;
     QScriptValue testConstructor = sandbox.evaluate(program);
-    if (hadUncauchtExceptions(sandbox, program.fileName())) {
+    if (hadUncaughtExceptions(sandbox, program.fileName())) {
         return;
     }
     

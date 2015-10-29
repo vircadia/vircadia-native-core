@@ -47,7 +47,7 @@ var IDENTITY_QUAT = {
     z: 0,
     w: 0
 };
-var ACTION_LIFETIME = 10; // seconds
+var ACTION_TTL = 10; // seconds
 
 function getTag() {
     return "grab-" + MyAvatar.sessionUUID;
@@ -403,7 +403,7 @@ Grabber.prototype.moveEvent = function(event) {
 
     var actionArgs = {
         tag: getTag(),
-        lifetime: ACTION_LIFETIME
+        ttl: ACTION_TTL
     };
 
     if (this.mode === "rotate") {
@@ -424,7 +424,7 @@ Grabber.prototype.moveEvent = function(event) {
             targetRotation: this.lastRotation,
             angularTimeScale: 0.1,
             tag: getTag(),
-            lifetime: ACTION_LIFETIME
+            ttl: ACTION_TTL
         };
 
     } else {
@@ -459,7 +459,7 @@ Grabber.prototype.moveEvent = function(event) {
             targetPosition: this.targetPosition,
             linearTimeScale: 0.1,
             tag: getTag(),
-            lifetime: ACTION_LIFETIME
+            ttl: ACTION_TTL
         };
 
 

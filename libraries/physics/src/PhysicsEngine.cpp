@@ -261,7 +261,6 @@ void PhysicsEngine::stepSimulation() {
 
     auto onSubStep = [this]() {
         updateContactMap();
-        _hasOutgoingChanges = true;
     };
 
     int numSubsteps = _dynamicsWorld->stepSimulation(timeStep, PHYSICS_ENGINE_MAX_NUM_SUBSTEPS, PHYSICS_ENGINE_FIXED_SUBSTEP, onSubStep);
@@ -273,6 +272,8 @@ void PhysicsEngine::stepSimulation() {
         if (_myAvatarController) {
             _myAvatarController->postSimulation();
         }
+
+        _hasOutgoingChanges = true;
     }
 }
 

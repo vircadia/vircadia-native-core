@@ -16,6 +16,7 @@
 #include <QtCore/QSharedPointer>
 #include <QtCore/QUuid>
 
+#include <functional>
 #include <memory>
 
 #include <DependencyManager.h>
@@ -30,7 +31,7 @@ class AvatarHashMap : public QObject, public Dependency {
     SINGLETON_DEPENDENCY
 
 public:
-    const AvatarHash& getAvatarHash() { return _avatarHash; }
+    void withAvatarHash(std::function<void(const AvatarHash& hash)>);
     int size() { return _avatarHash.size(); }
 
 public slots:
@@ -52,6 +53,9 @@ protected:
     virtual void removeAvatar(const QUuid& sessionUUID);
 
     AvatarHash _avatarHash;
+    // "Case-based safety": Most access to the _avatarHash is on the same thread. Write access is protected by a write-lock.
+    // If you read from a different thread, you must read-lock the _hashLock. (Scripted write access is not supported).
+    QReadWriteLock _hashLock;
 
 private:
     QUuid _lastOwnerSessionUUID;

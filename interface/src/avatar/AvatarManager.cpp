@@ -77,7 +77,10 @@ AvatarManager::AvatarManager(QObject* parent) :
 
 void AvatarManager::init() {
     _myAvatar->init();
-    _avatarHash.insert(MY_AVATAR_KEY, _myAvatar);
+    {
+        QWriteLocker locker(&_hashLock);
+        _avatarHash.insert(MY_AVATAR_KEY, _myAvatar);
+    }
 
     connect(DependencyManager::get<SceneScriptingInterface>().data(), &SceneScriptingInterface::shouldRenderAvatarsChanged, this, &AvatarManager::updateAvatarRenderStatus, Qt::QueuedConnection);
 
@@ -127,6 +130,7 @@ void AvatarManager::updateOtherAvatars(float deltaTime) {
         } else if (avatar->shouldDie()) {
             removeAvatarMotionState(avatar);
             _avatarFades.push_back(avatarIterator.value());
+            QWriteLocker locker(&_hashLock);
             avatarIterator = _avatarHash.erase(avatarIterator);
         } else {
             avatar->startUpdate();
@@ -202,6 +206,7 @@ void AvatarManager::removeAvatar(const QUuid& sessionUUID) {
         if (avatar != _myAvatar && avatar->isInitialized()) {
             removeAvatarMotionState(avatar);
             _avatarFades.push_back(avatarIterator.value());
+            QWriteLocker locker(&_hashLock);
             _avatarHash.erase(avatarIterator);
         }
     }
@@ -218,6 +223,7 @@ void AvatarManager::clearOtherAvatars() {
         } else {
             removeAvatarMotionState(avatar);
             _avatarFades.push_back(avatarIterator.value());
+            QWriteLocker locker(&_hashLock);
             avatarIterator = _avatarHash.erase(avatarIterator);
         }
     }
@@ -349,5 +355,6 @@ AvatarSharedPointer AvatarManager::getAvatarBySessionID(const QUuid& sessionID) 
     if (sessionID == _myAvatar->getSessionUUID()) {
         return std::static_pointer_cast<Avatar>(_myAvatar);
     }
-    return getAvatarHash()[sessionID];
+    QReadLocker locker(&_hashLock);
+    return _avatarHash[sessionID];
 }
