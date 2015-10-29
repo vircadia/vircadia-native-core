@@ -22,7 +22,7 @@ QScriptValue AnimVariantMap::animVariantMapToScriptValue(QScriptEngine* engine, 
         return QScriptValue();
     }
     QScriptValue target = engine->newObject();
-    auto setOne = [&] (QString name, AnimVariant value) {
+    auto setOne = [&] (const QString& name, const AnimVariant& value) {
         switch (value.getType()) {
             case AnimVariant::Type::Bool:
                 target.setProperty(name, value.getBool());
