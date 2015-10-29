@@ -313,7 +313,9 @@ QAudioDeviceInfo defaultAudioDeviceForMode(QAudio::Mode mode) {
 bool adjustedFormatForAudioDevice(const QAudioDeviceInfo& audioDevice,
                                   const QAudioFormat& desiredAudioFormat,
                                   QAudioFormat& adjustedAudioFormat) {
-    if (!audioDevice.isFormatSupported(desiredAudioFormat)) {
+    // FIXME: directly using 24khz has a bug somewhere that causes channels to be swapped.
+    // Continue using our internal resampler, for now.
+    if (true || !audioDevice.isFormatSupported(desiredAudioFormat)) {
         qCDebug(audioclient) << "The desired format for audio I/O is" << desiredAudioFormat;
         qCDebug(audioclient, "The desired audio format is not supported by this device");
 
@@ -321,7 +323,7 @@ bool adjustedFormatForAudioDevice(const QAudioDeviceInfo& audioDevice,
             adjustedAudioFormat = desiredAudioFormat;
             adjustedAudioFormat.setChannelCount(2);
 
-            if (audioDevice.isFormatSupported(adjustedAudioFormat)) {
+            if (false && audioDevice.isFormatSupported(adjustedAudioFormat)) {
                 return true;
             } else {
                 adjustedAudioFormat.setChannelCount(1);
