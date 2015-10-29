@@ -106,8 +106,11 @@ void JSConsole::executeCommand(const QString& command) {
 
 QScriptValue JSConsole::executeCommandInWatcher(const QString& command) {
     QScriptValue result;
+    static const QString filename = "JSConcole";
     QMetaObject::invokeMethod(_scriptEngine, "evaluate", Qt::ConnectionType::BlockingQueuedConnection,
-        Q_RETURN_ARG(QScriptValue, result), Q_ARG(const QString&, command));
+                              Q_RETURN_ARG(QScriptValue, result),
+                              Q_ARG(const QString&, command),
+                              Q_ARG(const QString&, filename));
     return result;
 }
 

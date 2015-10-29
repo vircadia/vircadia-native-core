@@ -12,12 +12,15 @@
 #ifndef hifi_MyAvatar_h
 #define hifi_MyAvatar_h
 
+#include <glm/glm.hpp>
+
 #include <SettingHandle.h>
-#include <DynamicCharacterController.h>
 #include <Rig.h>
 
 #include "Avatar.h"
 #include "AtRestDetector.h"
+#include "MyCharacterController.h"
+
 
 class ModelItemID;
 
@@ -71,6 +74,8 @@ public:
     // This can also update the avatar's position to follow the HMD
     // as it moves through the world.
     void updateFromHMDSensorMatrix(const glm::mat4& hmdSensorMatrix);
+
+    glm::vec3 getHMDCorrectionVelocity() const;
 
     // best called at end of main loop, just before rendering.
     // update sensor to world matrix from current body position and hmd sensor.
@@ -166,10 +171,12 @@ public:
 
     virtual void setAttachmentData(const QVector<AttachmentData>& attachmentData) override;
 
-    DynamicCharacterController* getCharacterController() { return &_characterController; }
+    MyCharacterController* getCharacterController() { return &_characterController; }
 
+    void prepareForPhysicsSimulation();
+    void harvestResultsFromPhysicsSimulation();
 
-    const QString& getCollisionSoundURL() {return _collisionSoundURL; }
+    const QString& getCollisionSoundURL() { return _collisionSoundURL; }
     void setCollisionSoundURL(const QString& url);
 
     void clearScriptableSettings();
@@ -274,9 +281,9 @@ private:
     const RecorderPointer getRecorder() const { return _recorder; }
     const PlayerPointer getPlayer() const { return _player; }
 
-    void beginStraighteningLean();
-    bool shouldBeginStraighteningLean() const;
-    void processStraighteningLean(float deltaTime);
+    void beginFollowingHMD();
+    bool shouldFollowHMD() const;
+    void followHMD(float deltaTime);
 
     bool cameraInsideHead() const;
 
@@ -307,7 +314,7 @@ private:
     quint32 _motionBehaviors;
     QString _collisionSoundURL;
 
-    DynamicCharacterController _characterController;
+    MyCharacterController _characterController;
 
     AvatarWeakPointer _lookAtTargetAvatar;
     glm::vec3 _targetAvatarPosition;
@@ -360,21 +367,21 @@ private:
     RigPointer _rig;
     bool _prevShouldDrawHead;
 
-    bool _enableDebugDrawBindPose = false;
-    bool _enableDebugDrawAnimPose = false;
-    AnimSkeleton::ConstPointer _debugDrawSkeleton = nullptr;
+    bool _enableDebugDrawBindPose { false };
+    bool _enableDebugDrawAnimPose { false };
+    AnimSkeleton::ConstPointer _debugDrawSkeleton { nullptr };
 
     AudioListenerMode _audioListenerMode;
     glm::vec3 _customListenPosition;
     glm::quat _customListenOrientation;
 
-    bool _straighteningLean = false;
-    float _straighteningLeanAlpha = 0.0f;
+    bool _isFollowingHMD { false };
+    float _followHMDAlpha { 0.0f };
 
-    quint64 _lastUpdateFromHMDTime = usecTimestampNow();
+    quint64 _lastUpdateFromHMDTime { usecTimestampNow() };
     AtRestDetector _hmdAtRestDetector;
     glm::vec3 _lastPosition;
-    bool _lastIsMoving = false;
+    bool _lastIsMoving { false };
 };
 
 QScriptValue audioListenModeToScriptValue(QScriptEngine* engine, const AudioListenerMode& audioListenerMode);
