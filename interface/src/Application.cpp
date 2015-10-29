@@ -637,16 +637,21 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
 
     // A new controllerInput device used to reflect current values from the application state
     _applicationStateDevice = std::make_shared<controller::StateController>();
-    auto InHMDLambda = controller::StateController::ReadLambda([]() -> float {
-        return (float) qApp->getAvatarUpdater()->isHMDMode();
-    });
-    _applicationStateDevice->addInputVariant("InHMD", InHMDLambda);
+
+    _applicationStateDevice->addInputVariant(QString("InHMD"), controller::StateController::ReadLambda([]() -> float {
+        return (float)qApp->getAvatarUpdater()->isHMDMode();
+    }));
+    _applicationStateDevice->addInputVariant(QString("ComfortMode"), controller::StateController::ReadLambda([]() -> float {
+        return (float)Menu::getInstance()->isOptionChecked(MenuOption::ComfortMode);
+    }));
 
     userInputMapper->registerDevice(_applicationStateDevice);
     
     // Setup the keyboardMouseDevice and the user input mapper with the default bindings
     userInputMapper->registerDevice(_keyboardMouseDevice);
 
+
+    userInputMapper->loadDefaultMapping(userInputMapper->getStandardDeviceID());
 
     // check first run...
     if (_firstRun.get()) {

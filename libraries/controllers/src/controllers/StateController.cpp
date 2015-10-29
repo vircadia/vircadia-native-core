@@ -29,7 +29,7 @@ void StateController::update(float deltaTime, bool jointsCaptured) {}
 
 void StateController::focusOutEvent() {}
 
-void StateController::addInputVariant(QString name, ReadLambda& lambda) {
+void StateController::addInputVariant(QString name, ReadLambda lambda) {
     _namedReadLambdas.push_back(NamedReadLambda(name, lambda));
 }
 
@@ -41,6 +41,10 @@ Input::NamedVector StateController::getAvailableInputs() const {
         i++;
     }
     return availableInputs;
+}
+
+EndpointPointer StateController::createEndpoint(const Input& input) const {
+    return std::make_shared<LambdaEndpoint>(_namedReadLambdas[input.getChannel()].second);
 }
 
 }

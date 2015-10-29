@@ -3,6 +3,7 @@
     "channels": [
         { "from": "Standard.LY", "to": "Actions.TranslateZ" },
         { "from": "Standard.LX", "to": "Actions.TranslateX" },
+        { "from": "Standard.RX", "when": [ "Application.InHMD", "Application.ComfortMode" ], "to": "Actions.StepYaw" },
         { "from": "Standard.RX", "to": "Actions.Yaw" },
         { "from": "Standard.RY", "to": "Actions.Pitch" },
 

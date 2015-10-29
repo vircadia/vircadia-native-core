@@ -37,7 +37,10 @@ public:
     using ReadLambda = std::function<float()>;
     using NamedReadLambda = QPair<QString, ReadLambda>;
 
-    void addInputVariant(QString name, ReadLambda& lambda);
+    void addInputVariant(QString name, ReadLambda lambda);
+
+    virtual EndpointPointer createEndpoint(const Input& input) const override;
+
 
 protected:
     QVector<NamedReadLambda> _namedReadLambdas;
