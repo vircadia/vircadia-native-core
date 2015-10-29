@@ -117,8 +117,9 @@ var BASEBALL_PROPERTIES = {
 var BASEBALL_STATE = {
     PITCHING: 0,
     HIT: 1,
-    STRIKE: 2,
-    FOUL: 3
+    HIT_LANDED: 2,
+    STRIKE: 3,
+    FOUL: 4
 };
 
 
@@ -232,6 +233,11 @@ function Baseball(position, velocity, ballScale) {
     // Create entity
     this.entityID = Entities.addEntity(properties);
 
+    this.timeSincePitched = 0;
+    this.timeSinceHit = 0;
+    this.hitBallAtPosition = null;
+    this.distanceTravelled = 0;
+
     // Listen for collision for the lifetime of the entity
     Script.addEventHandler(this.entityID, "collisionWithEntity", function(entityA, entityB, collision) {
          self.collisionCallback(entityA, entityB, collision);
@@ -254,6 +260,31 @@ function Baseball(position, velocity, ballScale) {
 }
 
 Baseball.prototype = {
+    finished: function() {
+        return this.state == BASEBALL_STATE.FOUL
+            || this.state == BASEBALL_STATE.STRIKE
+            || this.state == BASEBALL_STATE.HIT_LANDED;
+    },
+    update: function(dt) {
+        this.timeSincePitched += dt;
+        if (this.state == BASEBALL_STATE.HIT) {
+            this.timeSinceHit += dt;
+            var myProperties = Entities.getEntityProperties(this.entityID, ['position', 'velocity']);
+            var speed = Vec3.length(myProperties.velocity);
+            this.distanceTravelled = Vec3.distance(this.hitBallAtPosition, myProperties.position);
+            if (this.timeSinceHit > 10 || speed < 1) {
+                this.state = BASEBALL_STATE.HIT_LANDED;
+                print("Ball took " + this.timeSinceHit.toFixed(3) + " seconds to land");
+                print("Ball travelled " + this.distanceTravelled + " meters")
+            }
+        } else if (this.state == BASEBALL_STATE.PITCHING) {
+            if (this.timeSincePitched > 10) {
+                print("TIMED OUT WHILE PITCHING");
+                this.state = BASEBALL_STATE.STRIKE;
+                
+            }
+        }
+    },
     collisionCallback: function(entityA, entityB, collision) {
         var self = this;
         var myProperties = Entities.getEntityProperties(this.entityID, ['position', 'velocity']);
@@ -280,6 +311,7 @@ Baseball.prototype = {
                     if (Math.abs(pitch) < 15) {
                         print("Reversing hit");
                         myVelocity.z *= -1;
+                        foul = false;
                     }
                 }
 
@@ -333,6 +365,8 @@ Baseball.prototype = {
     }
 }
 
+var baseball = null;
+
 function pitchBall() {
     var machineProperties = Entities.getEntityProperties(pitchingMachineID, ["dimensions", "position", "rotation"]);
     var pitchFromPositionBase = machineProperties.position;
@@ -346,7 +380,7 @@ function pitchBall() {
     var speed = randomFloat(BASEBALL_MIN_SPEED, BASEBALL_MAX_SPEED)
     var timeToPassPlate = (DISTANCE_FROM_PLATE + 1.0) / speed;
 
-    var baseball = new Baseball(pitchFromPosition, Vec3.multiply(speed, pitchDirection), ballScale);
+    baseball = new Baseball(pitchFromPosition, Vec3.multiply(speed, pitchDirection), ballScale);
 
     if (!injector) {
         injector = Audio.playSound(pitchSound, {
@@ -355,6 +389,17 @@ function pitchBall() {
         });
     } else {
         injector.restart();
+    }
+}
+
+function update(dt) {
+    if (baseball) {
+        baseball.update(dt);
+        if (baseball.finished()) {
+            print("BALL IS FINSIEHD");
+            baseball = null;
+            pitchBall();
+        }
     }
 }
 
@@ -397,4 +442,6 @@ Script.scriptEnding.connect(function() {
     Entities.deleteEntity(pitchingMachineID);
 });
 
-Script.setInterval(pitchBall, PITCH_RATE);
+//Script.setInterval(pitchBall, PITCH_RATE);
+Script.update.connect(update);
+pitchBall();
