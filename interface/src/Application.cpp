@@ -636,7 +636,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
     });
 
     // A new controllerInput device used to reflect current values from the application state
-    _applicationStateDevice = new controller::StateController("Application");
+    _applicationStateDevice = std::make_shared<controller::StateController>();
     auto InHMDLambda = controller::StateController::ReadLambda([]() -> float {
         return (float) qApp->getAvatarUpdater()->isHMDMode();
     });
@@ -719,8 +719,10 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
     // Now that menu is initalized we can sync myAvatar with it's state.
     getMyAvatar()->updateMotionBehaviorFromMenu();
 
+#if 0
     // the 3Dconnexion device wants to be initiliazed after a window is displayed.
     ConnexionClient::getInstance().init();
+#endif
 
     auto& packetReceiver = nodeList->getPacketReceiver();
     packetReceiver.registerListener(PacketType::DomainConnectionDenied, this, "handleDomainConnectionDeniedPacket");
@@ -808,8 +810,7 @@ void Application::cleanupBeforeQuit() {
     AnimDebugDraw::getInstance().shutdown();
 
     // FIXME: once we move to shared pointer for the INputDevice we shoud remove this naked delete:
-    delete _applicationStateDevice;
-    _applicationStateDevice = nullptr;
+    _applicationStateDevice.reset();
 
     if (_keyboardFocusHighlightID > 0) {
         getOverlays().deleteOverlay(_keyboardFocusHighlightID);
@@ -921,7 +922,10 @@ Application::~Application() {
     
     Leapmotion::destroy();
     RealSense::destroy();
+
+#if 0
     ConnexionClient::getInstance().destroy();
+#endif
 
     qInstallMessageHandler(NULL); // NOTE: Do this as late as possible so we continue to get our log messages
 }
@@ -1024,7 +1028,10 @@ void Application::initializeUi() {
     foreach(auto inputPlugin, PluginManager::getInstance()->getInputPlugins()) {
         QString name = inputPlugin->getName();
         if (name == KeyboardMouseDevice::NAME) {
-            _keyboardMouseDevice = static_cast<KeyboardMouseDevice*>(inputPlugin.data()); // TODO: this seems super hacky
+            auto kbm = static_cast<KeyboardMouseDevice*>(inputPlugin.data());
+            // FIXME incredibly evil.... _keyboardMouseDevice is now owned by 
+            // both a QSharedPointer and a std::shared_ptr
+            _keyboardMouseDevice = std::shared_ptr<KeyboardMouseDevice>(kbm);
         }
     }
     updateInputModes();
@@ -1824,7 +1831,9 @@ void Application::focusOutEvent(QFocusEvent* event) {
             inputPlugin->pluginFocusOutEvent();
         }
     }
+#if 0
     ConnexionData::getInstance().focusOutEvent();
+#endif
 
     // synthesize events for keys currently pressed, since we may not get their release events
     foreach (int key, _keysPressed) {

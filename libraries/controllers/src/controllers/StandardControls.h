@@ -58,9 +58,11 @@ namespace controller {
         // Left Analog stick
         LX = 0,
         LY,
+        LZ,
         // Right Analog stick
         RX,
         RY,
+        RZ,
         // Triggers
         LT,
         RT,

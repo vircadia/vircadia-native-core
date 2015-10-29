@@ -72,8 +72,8 @@ public:
     virtual void pluginUpdate(float deltaTime, bool jointsCaptured) override { update(deltaTime, jointsCaptured); }
 
     // Device functions
-    virtual void buildDeviceProxy(controller::DeviceProxy::Pointer proxy) override;
-    virtual QString getDefaultMappingConfig() override;
+    virtual controller::Input::NamedVector getAvailableInputs() const override;
+    virtual QString getDefaultMappingConfig() const override;
     virtual void update(float deltaTime, bool jointsCaptured) override;
     virtual void focusOutEvent() override;
  
@@ -91,11 +91,11 @@ public:
     void wheelEvent(QWheelEvent* event);
     
     // Let's make it easy for Qt because we assume we love Qt forever
-    controller::Input makeInput(Qt::Key code);
-    controller::Input makeInput(Qt::MouseButton code);
-    controller::Input makeInput(MouseAxisChannel axis);
-    controller::Input makeInput(TouchAxisChannel axis);
-    controller::Input makeInput(TouchButtonChannel button);
+    controller::Input makeInput(Qt::Key code) const;
+    controller::Input makeInput(Qt::MouseButton code) const;
+    controller::Input makeInput(MouseAxisChannel axis) const;
+    controller::Input makeInput(TouchAxisChannel axis) const;
+    controller::Input makeInput(TouchButtonChannel button) const;
 
     static const QString NAME;
 

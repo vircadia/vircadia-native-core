@@ -10,21 +10,5 @@
 #include "DeviceProxy.h"
 
 namespace controller {
-
-    float DeviceProxy::getValue(const Input& input, int timestamp) const {
-        switch (input.getType()) {
-        case ChannelType::BUTTON:
-            return getButton(input, timestamp) ? 1.0f : 0.0f;
-
-        case ChannelType::AXIS:
-            return getAxis(input, timestamp);
-
-        case ChannelType::POSE:
-            return getPose(input, timestamp).valid ? 1.0f : 0.0f;
-
-        default:
-            return NAN;
-        }
-    }
 }
 

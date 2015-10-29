@@ -21,11 +21,15 @@
 #include "StandardControls.h"
 #include "DeviceProxy.h"
 
+
 // Event types for each controller
 const unsigned int CONTROLLER_0_EVENT = 1500U;
 const unsigned int CONTROLLER_1_EVENT = 1501U;
 
 namespace controller {
+
+class Endpoint;
+using EndpointPointer = std::shared_ptr<Endpoint>;
 
 // NOTE: If something inherits from both InputDevice and InputPlugin, InputPlugin must go first.
 // e.g. class Example : public InputPlugin, public InputDevice
@@ -45,8 +49,11 @@ public:
     float getAxis(int channel) const;
     Pose getPose(int channel) const;
 
-    virtual void buildDeviceProxy(DeviceProxy::Pointer proxy) = 0;
-    virtual QString getDefaultMappingConfig() = 0;
+    float getValue(const Input& input) const;
+    float getValue(ChannelType channelType, uint16_t channel) const;
+    Pose getPoseValue(uint16_t channel) const;
+    
+    const QString& getName() const { return _name; }
 
     // Update call MUST be called once per simulation loop
     // It takes care of updating the action states and deltas
@@ -63,20 +70,25 @@ public:
 
     static bool getLowVelocityFilter() { return _lowVelocityFilter; };
 
-    Input makeInput(StandardButtonChannel button);
-    Input makeInput(StandardAxisChannel axis);
-    Input makeInput(StandardPoseChannel pose);
-    Input::NamedPair makePair(StandardButtonChannel button, const QString& name);
-    Input::NamedPair makePair(StandardAxisChannel button, const QString& name);
-    Input::NamedPair makePair(StandardPoseChannel button, const QString& name);
-    public slots:
+    Input makeInput(StandardButtonChannel button) const;
+    Input makeInput(StandardAxisChannel axis) const;
+    Input makeInput(StandardPoseChannel pose) const;
+    Input::NamedPair makePair(StandardButtonChannel button, const QString& name) const;
+    Input::NamedPair makePair(StandardAxisChannel button, const QString& name) const;
+    Input::NamedPair makePair(StandardPoseChannel button, const QString& name) const;
+public slots:
     static void setLowVelocityFilter(bool newLowVelocityFilter) { _lowVelocityFilter = newLowVelocityFilter; };
 
 protected:
     friend class UserInputMapper;
-    uint16_t _deviceID{ Input::INVALID_DEVICE };
 
-    QString _name;
+    virtual Input::NamedVector getAvailableInputs() const = 0;
+    virtual QString getDefaultMappingConfig() const { return QString(); }
+    virtual EndpointPointer createEndpoint(const Input& input) const;
+
+    uint16_t _deviceID { Input::INVALID_DEVICE };
+
+    const QString _name;
 
     ButtonPressedMap _buttonPressedMap;
     AxisStateMap _axisStateMap;

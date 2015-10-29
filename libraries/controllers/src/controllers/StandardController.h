@@ -25,11 +25,9 @@ class StandardController : public QObject, public InputDevice {
     Q_PROPERTY(QString name READ getName)
 
 public:
-    const QString& getName() const { return _name; }
-
-    // Device functions
-    virtual void buildDeviceProxy(DeviceProxy::Pointer proxy) override;
-    virtual QString getDefaultMappingConfig() override;
+    virtual EndpointPointer createEndpoint(const Input& input) const override;
+    virtual Input::NamedVector getAvailableInputs() const override;
+    virtual QString getDefaultMappingConfig() const override;
     virtual void update(float deltaTime, bool jointsCaptured) override;
     virtual void focusOutEvent() override;
 
