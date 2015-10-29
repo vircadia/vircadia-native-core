@@ -27,7 +27,7 @@ ThreadSafeDynamicsWorld::ThreadSafeDynamicsWorld(
     :   btDiscreteDynamicsWorld(dispatcher, pairCache, constraintSolver, collisionConfiguration) {
 }
 
-int ThreadSafeDynamicsWorld::stepSimulation( btScalar timeStep, int maxSubSteps, btScalar fixedTimeStep) {
+int ThreadSafeDynamicsWorld::stepSimulation( btScalar timeStep, int maxSubSteps, btScalar fixedTimeStep, SubStepCallback onSubStep) {
     BT_PROFILE("stepSimulation");
     int subSteps = 0;
     if (maxSubSteps) {
@@ -70,6 +70,7 @@ int ThreadSafeDynamicsWorld::stepSimulation( btScalar timeStep, int maxSubSteps,
 
         for (int i=0;i<clampedSimulationSteps;i++) {
             internalSingleStepSimulation(fixedTimeStep);
+            onSubStep();
         }
     }
 
