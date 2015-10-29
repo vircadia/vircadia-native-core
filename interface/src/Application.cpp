@@ -637,10 +637,13 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
 
     // A new controllerInput device used to reflect current values from the application state
     _applicationStateDevice = std::make_shared<controller::StateController>();
-    auto InHMDLambda = controller::StateController::ReadLambda([]() -> float {
-        return (float) qApp->getAvatarUpdater()->isHMDMode();
-    });
-    _applicationStateDevice->addInputVariant("InHMD", InHMDLambda);
+
+    _applicationStateDevice->addInputVariant("InHMD", controller::StateController::ReadLambda([]() -> float {
+        return (float)qApp->getAvatarUpdater()->isHMDMode();
+    }));
+    _applicationStateDevice->addInputVariant("ComfortMode", controller::StateController::ReadLambda([]() -> float {
+        return (float)Menu::getInstance()->isOptionChecked(MenuOption::ComfortMode);
+    }));
 
     userInputMapper->registerDevice(_applicationStateDevice);
     

@@ -43,4 +43,8 @@ Input::NamedVector StateController::getAvailableInputs() const {
     return availableInputs;
 }
 
+EndpointPointer StateController::createEndpoint(const Input& input) const {
+    return std::make_shared<LambdaEndpoint>(_namedReadLambdas[input.getChannel()].second);
+}
+
 }

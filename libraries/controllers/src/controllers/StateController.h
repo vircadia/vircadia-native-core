@@ -39,6 +39,9 @@ public:
 
     void addInputVariant(QString name, ReadLambda& lambda);
 
+    virtual EndpointPointer createEndpoint(const Input& input) const override;
+
+
 protected:
     QVector<NamedReadLambda> _namedReadLambdas;
 };
