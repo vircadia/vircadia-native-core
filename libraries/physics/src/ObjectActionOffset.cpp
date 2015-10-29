@@ -160,7 +160,7 @@ QByteArray ObjectActionOffset::serialize() const {
         dataStream << _linearDistance;
         dataStream << _linearTimeScale;
         dataStream << _positionalTargetSet;
-        dataStream << _expires + getEntityServerClockSkew();
+        dataStream << localTimeToServerTime(_expires);
         dataStream << _tag;
     });
 
@@ -189,8 +189,11 @@ void ObjectActionOffset::deserialize(QByteArray serializedArguments) {
         dataStream >> _linearDistance;
         dataStream >> _linearTimeScale;
         dataStream >> _positionalTargetSet;
-        dataStream >> _expires;
-        _expires -= getEntityServerClockSkew();
+
+        quint64 serverExpires;
+        dataStream >> serverExpires;
+        _expires = serverTimeToLocalTime(serverExpires);
+
         dataStream >> _tag;
         _active = true;
     });
