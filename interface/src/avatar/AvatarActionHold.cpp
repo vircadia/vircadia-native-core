@@ -243,7 +243,7 @@ QByteArray AvatarActionHold::serialize() const {
         dataStream << _linearTimeScale;
         dataStream << _hand;
 
-        dataStream << _expires + getEntityServerClockSkew();
+        dataStream << localTimeToServerTime(_expires);
         dataStream << _tag;
         dataStream << _kinematic;
         dataStream << _kinematicSetVelocity;
@@ -277,8 +277,10 @@ void AvatarActionHold::deserialize(QByteArray serializedArguments) {
         _angularTimeScale = _linearTimeScale;
         dataStream >> _hand;
 
-        dataStream >> _expires;
-        _expires -= getEntityServerClockSkew();
+        quint64 serverExpires;
+        dataStream >> serverExpires;
+        _expires = serverTimeToLocalTime(serverExpires);
+
         dataStream >> _tag;
         dataStream >> _kinematic;
         dataStream >> _kinematicSetVelocity;

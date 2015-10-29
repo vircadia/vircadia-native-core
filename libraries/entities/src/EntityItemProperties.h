@@ -160,10 +160,7 @@ public:
     DEFINE_PROPERTY(PROP_RADIUS_START, RadiusStart, radiusStart, float, ParticleEffectEntityItem::DEFAULT_RADIUS_START);
     DEFINE_PROPERTY(PROP_RADIUS_FINISH, RadiusFinish, radiusFinish, float, ParticleEffectEntityItem::DEFAULT_RADIUS_FINISH);
     DEFINE_PROPERTY_REF(PROP_MARKETPLACE_ID, MarketplaceID, marketplaceID, QString, ENTITY_ITEM_DEFAULT_MARKETPLACE_ID);
-    DEFINE_PROPERTY_REF(PROP_KEYLIGHT_COLOR, KeyLightColor, keyLightColor, xColor, ZoneEntityItem::DEFAULT_KEYLIGHT_COLOR);
-    DEFINE_PROPERTY(PROP_KEYLIGHT_INTENSITY, KeyLightIntensity, keyLightIntensity, float, ZoneEntityItem::DEFAULT_KEYLIGHT_INTENSITY);
-    DEFINE_PROPERTY(PROP_KEYLIGHT_AMBIENT_INTENSITY, KeyLightAmbientIntensity, keyLightAmbientIntensity, float, ZoneEntityItem::DEFAULT_KEYLIGHT_AMBIENT_INTENSITY);
-    DEFINE_PROPERTY_REF(PROP_KEYLIGHT_DIRECTION, KeyLightDirection, keyLightDirection, glm::vec3, ZoneEntityItem::DEFAULT_KEYLIGHT_DIRECTION);
+    DEFINE_PROPERTY_GROUP(KeyLight, keyLight, KeyLightPropertyGroup);
     DEFINE_PROPERTY_REF(PROP_VOXEL_VOLUME_SIZE, VoxelVolumeSize, voxelVolumeSize, glm::vec3, PolyVoxEntityItem::DEFAULT_VOXEL_VOLUME_SIZE);
     DEFINE_PROPERTY_REF(PROP_VOXEL_DATA, VoxelData, voxelData, QByteArray, PolyVoxEntityItem::DEFAULT_VOXEL_DATA);
     DEFINE_PROPERTY_REF(PROP_VOXEL_SURFACE_STYLE, VoxelSurfaceStyle, voxelSurfaceStyle, uint16_t, PolyVoxEntityItem::DEFAULT_VOXEL_SURFACE_STYLE);

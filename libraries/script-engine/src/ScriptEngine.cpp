@@ -83,6 +83,37 @@ void inputControllerFromScriptValue(const QScriptValue &object, AbstractInputCon
     out = qobject_cast<AbstractInputController*>(object.toQObject());
 }
 
+static bool hasCorrectSyntax(const QScriptProgram& program) {
+    const auto syntaxCheck = QScriptEngine::checkSyntax(program.sourceCode());
+    if (syntaxCheck.state() != QScriptSyntaxCheckResult::Valid) {
+        const auto error = syntaxCheck.errorMessage();
+        const auto line = QString::number(syntaxCheck.errorLineNumber());
+        const auto column = QString::number(syntaxCheck.errorColumnNumber());
+        const auto message = QString("[SyntaxError] %1 in %2:%3(%4)").arg(error, program.fileName(), line, column);
+        qCWarning(scriptengine) << qPrintable(message);
+        return false;
+    }
+    return true;
+}
+
+static bool hadUncaughtExceptions(QScriptEngine& engine, const QString& fileName) {
+    if (engine.hasUncaughtException()) {
+        const auto backtrace = engine.uncaughtExceptionBacktrace();
+        const auto exception = engine.uncaughtException().toString();
+        const auto line = QString::number(engine.uncaughtExceptionLineNumber());
+        engine.clearExceptions();
+        
+        auto message = QString("[UncaughtException] %1 in %2:%3").arg(exception, fileName, line);
+        if (!backtrace.empty()) {
+            static const auto lineSeparator = "\n    ";
+            message += QString("\n[Backtrace]%1%2").arg(lineSeparator, backtrace.join(lineSeparator));
+        }
+        qCWarning(scriptengine) << qPrintable(message);
+        return true;
+    }
+    return false;
+}
+
 ScriptEngine::ScriptEngine(const QString& scriptContents, const QString& fileNameString,
             AbstractControllerScriptingInterface* controllerScriptingInterface, bool wantSignals) :
 
@@ -577,7 +608,7 @@ QScriptValue ScriptEngine::evaluate(const QString& sourceCode, const QString& fi
     
     // Check syntax
     const QScriptProgram program(sourceCode, fileName, lineNumber);
-    if (!checkSyntax(program)) {
+    if (!hasCorrectSyntax(program)) {
         return QScriptValue();
     }
 
@@ -585,7 +616,7 @@ QScriptValue ScriptEngine::evaluate(const QString& sourceCode, const QString& fi
     const auto result = QScriptEngine::evaluate(program);
     --_evaluatesPending;
     
-    const auto hadUncaughtException = checkExceptions(*this, program.fileName());
+    const auto hadUncaughtException = hadUncaughtExceptions(*this, program.fileName());
     if (_wantSignals) {
         emit evaluationFinished(result, hadUncaughtException);
     }
@@ -654,9 +685,8 @@ void ScriptEngine::run() {
         }
         lastUpdate = now;
 
-        if (!checkExceptions(*this, _fileNameString)) {
-            stop();
-        }
+        // Debug and clear exceptions
+        hadUncaughtExceptions(*this, _fileNameString);
     }
 
     stopAllTimers(); // make sure all our timers are stopped if the script is ending
@@ -893,37 +923,6 @@ void ScriptEngine::load(const QString& loadFile) {
     }
 }
 
-bool ScriptEngine::checkSyntax(const QScriptProgram& program) {
-    const auto syntaxCheck = QScriptEngine::checkSyntax(program.sourceCode());
-    if (syntaxCheck.state() != QScriptSyntaxCheckResult::Valid) {
-        const auto error = syntaxCheck.errorMessage();
-        const auto line = QString::number(syntaxCheck.errorLineNumber());
-        const auto column = QString::number(syntaxCheck.errorColumnNumber());
-        const auto message = QString("[SyntaxError] %1 in %2:%3(%4)").arg(error, program.fileName(), line, column);
-        qCWarning(scriptengine) << qPrintable(message);
-        return false;
-    }
-    return true;
-}
-
-bool ScriptEngine::checkExceptions(QScriptEngine& engine, const QString& fileName) {
-    if (engine.hasUncaughtException()) {
-        const auto backtrace = engine.uncaughtExceptionBacktrace();
-        const auto exception = engine.uncaughtException().toString();
-        const auto line = QString::number(engine.uncaughtExceptionLineNumber());
-        engine.clearExceptions();
-        
-        auto message = QString("[UncaughtException] %1 in %2:%3").arg(exception, fileName, line);
-        if (!backtrace.empty()) {
-            static const auto lineSeparator = "\n    ";
-            message += QString("\n[Backtrace]%1%2").arg(lineSeparator, backtrace.join(lineSeparator));
-        }
-        qCWarning(scriptengine) << qPrintable(message);
-        return false;
-    }
-    return true;
-}
-
 // Look up the handler associated with eventName and entityID. If found, evalute the argGenerator thunk and call the handler with those args
 void ScriptEngine::forwardHandlerCall(const EntityItemID& entityID, const QString& eventName, QScriptValueList eventHanderArgs) {
     if (QThread::currentThread() != thread()) {
@@ -1009,7 +1008,7 @@ void ScriptEngine::entityScriptContentAvailable(const EntityItemID& entityID, co
     auto fileName = QString("(EntityID:%1, %2)").arg(entityID.toString(), isURL ? scriptOrURL : "EmbededEntityScript");
 
     QScriptProgram program(contents, fileName);
-    if (!checkSyntax(program)) {
+    if (!hasCorrectSyntax(program)) {
         if (!isFileUrl) {
             scriptCache->addScriptToBadScriptList(scriptOrURL);
         }
@@ -1022,7 +1021,7 @@ void ScriptEngine::entityScriptContentAvailable(const EntityItemID& entityID, co
 
     QScriptEngine sandbox;
     QScriptValue testConstructor = sandbox.evaluate(program);
-    if (!checkExceptions(sandbox, program.fileName())) {
+    if (hadUncaughtExceptions(sandbox, program.fileName())) {
         return;
     }
     

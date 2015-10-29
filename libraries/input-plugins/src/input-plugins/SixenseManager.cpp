@@ -167,7 +167,10 @@ void SixenseManager::update(float deltaTime, bool jointsCaptured) {
 
     if (sixenseGetNumActiveControllers() == 0) {
         if (_hydrasConnected) {
-            qCDebug(inputplugins, "hydra disconnected");
+            qCDebug(inputplugins) << "hydra disconnected" << _badDataCount;
+            if (_badDataCount++ < _allowedBadDataCount) { // gotta get some no-active in a row before we shut things down
+                return;
+            }
         }
         _hydrasConnected = false;
         if (_deviceID != 0) {
@@ -181,6 +184,7 @@ void SixenseManager::update(float deltaTime, bool jointsCaptured) {
     PerformanceTimer perfTimer("sixense");
     if (!_hydrasConnected) {
         _hydrasConnected = true;
+        _badDataCount = 0;
         registerToUserInputMapper(*userInputMapper);
         assignDefaultInputMapping(*userInputMapper);
         UserActivityLogger::getInstance().connectedDevice("spatial_controller", "hydra");
@@ -555,6 +559,7 @@ void SixenseManager::saveSettings() const {
         settings.setVec3Value(QString("avatarPosition"), _avatarPosition);
         settings.setQuatValue(QString("avatarRotation"), _avatarRotation);
         settings.setValue(QString("reachLength"), QVariant(_reachLength));
+        settings.setValue(QString("allowedHydraFailures"), 120);
     }
     settings.endGroup();
 }
@@ -567,6 +572,7 @@ void SixenseManager::loadSettings() {
         settings.getVec3ValueIfValid(QString("avatarPosition"), _avatarPosition);
         settings.getQuatValueIfValid(QString("avatarRotation"), _avatarRotation);
         settings.getFloatValueIfValid(QString("reachLength"), _reachLength);
+        _allowedBadDataCount = settings.value(QString("allowedHydraFailures"), 120).toInt();
     }
     settings.endGroup();
 }

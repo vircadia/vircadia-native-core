@@ -1,24 +1,32 @@
+//
+//  MyCharacterController.h
+//  interface/src/avatar
+//
+//  Created by AndrewMeadows 2015.10.21
+//  Copyright 2015 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+//
+
+#include "MyCharacterController.h"
+
 #include <BulletCollision/CollisionShapes/btMultiSphereShape.h>
 #include <BulletDynamics/Dynamics/btRigidBody.h>
 #include <BulletCollision/CollisionDispatch/btCollisionWorld.h>
 #include <LinearMath/btDefaultMotionState.h>
 
+#include <GLMHelpers.h>
+#include <PhysicsLogging.h>
 #include <PhysicsCollisionGroups.h>
 
-#include "BulletUtil.h"
-#include "DynamicCharacterController.h"
-#include "PhysicsLogging.h"
+#include "MyAvatar.h"
 
 const btVector3 LOCAL_UP_AXIS(0.0f, 1.0f, 0.0f);
 const float DEFAULT_GRAVITY = -5.0f;
 const float JUMP_SPEED = 3.5f;
 
 const float MAX_FALL_HEIGHT = 20.0f;
-
-const uint32_t PENDING_FLAG_ADD_TO_SIMULATION = 1U << 0;
-const uint32_t PENDING_FLAG_REMOVE_FROM_SIMULATION = 1U << 1;
-const uint32_t PENDING_FLAG_UPDATE_SHAPE = 1U << 2;
-const uint32_t PENDING_FLAG_JUMP = 1U << 3;
 
 // TODO: improve walking up steps
 // TODO: make avatars able to walk up and down steps/slopes
@@ -41,19 +49,18 @@ protected:
     btRigidBody* _me;
 };
 
-DynamicCharacterController::DynamicCharacterController(AvatarData* avatarData) {
+MyCharacterController::MyCharacterController(MyAvatar* avatar) {
     _halfHeight = 1.0f;
-    _shape = nullptr;
-    _rigidBody = nullptr;
 
-    assert(avatarData);
-    _avatarData = avatarData;
+    assert(avatar);
+    _avatar = avatar;
 
     _enabled = false;
 
     _floorDistance = MAX_FALL_HEIGHT;
 
-    _walkVelocity.setValue(0.0f,0.0f,0.0f);
+    _walkVelocity.setValue(0.0f, 0.0f, 0.0f);
+    _hmdVelocity.setValue(0.0f, 0.0f, 0.0f);
     _jumpSpeed = JUMP_SPEED;
     _isOnGround = false;
     _isJumping = false;
@@ -61,21 +68,16 @@ DynamicCharacterController::DynamicCharacterController(AvatarData* avatarData) {
     _isHovering = true;
     _isPushingUp = false;
     _jumpToHoverStart = 0;
+    _lastStepDuration = 0.0f;
 
     _pendingFlags = PENDING_FLAG_UPDATE_SHAPE;
     updateShapeIfNecessary();
 }
 
-DynamicCharacterController::~DynamicCharacterController() {
+MyCharacterController::~MyCharacterController() {
 }
 
-// virtual 
-void DynamicCharacterController::setWalkDirection(const btVector3& walkDirection) {
-    // do nothing -- walkVelocity is upated in preSimulation()
-    //_walkVelocity = walkDirection;
-}
-
-void DynamicCharacterController::preStep(btCollisionWorld* collisionWorld) {
+void MyCharacterController::preStep(btCollisionWorld* collisionWorld) {
     // trace a ray straight down to see if we're standing on the ground
     const btTransform& xform = _rigidBody->getWorldTransform();
 
@@ -96,7 +98,7 @@ void DynamicCharacterController::preStep(btCollisionWorld* collisionWorld) {
     }
 }
 
-void DynamicCharacterController::playerStep(btCollisionWorld* dynaWorld, btScalar dt) {
+void MyCharacterController::playerStep(btCollisionWorld* dynaWorld, btScalar dt) {
     btVector3 actualVelocity = _rigidBody->getLinearVelocity();
     btScalar actualSpeed = actualVelocity.length();
 
@@ -158,9 +160,20 @@ void DynamicCharacterController::playerStep(btCollisionWorld* dynaWorld, btScala
             _rigidBody->setLinearVelocity(actualVelocity + tau * velocityCorrection);
         }
     }
+
+    // Rather than add _hmdVelocity to the velocity of the RigidBody, we explicitly teleport 
+    // the RigidBody forward according to the formula: distance = rate * time
+    if (_hmdVelocity.length2() > 0.0f) {
+        btTransform bodyTransform = _rigidBody->getWorldTransform();
+        bodyTransform.setOrigin(bodyTransform.getOrigin() + dt * _hmdVelocity);
+        _rigidBody->setWorldTransform(bodyTransform);
+    }
+    // MyAvatar will ask us how far we stepped for HMD motion, which will depend on how 
+    // much time has accumulated in _lastStepDuration.
+    _lastStepDuration += dt;
 }
 
-void DynamicCharacterController::jump() {
+void MyCharacterController::jump() {
     // check for case where user is holding down "jump" key...
     // we'll eventually tansition to "hover"
     if (!_isJumping) {
@@ -178,12 +191,12 @@ void DynamicCharacterController::jump() {
     }
 }
 
-bool DynamicCharacterController::onGround() const {
+bool MyCharacterController::onGround() const {
     const btScalar FLOOR_PROXIMITY_THRESHOLD = 0.3f * _radius;
     return _floorDistance < FLOOR_PROXIMITY_THRESHOLD;
 }
 
-void DynamicCharacterController::setHovering(bool hover) {
+void MyCharacterController::setHovering(bool hover) {
     if (hover != _isHovering) {
         _isHovering = hover;
         _isJumping = false;
@@ -198,7 +211,7 @@ void DynamicCharacterController::setHovering(bool hover) {
     }
 }
 
-void DynamicCharacterController::setLocalBoundingBox(const glm::vec3& corner, const glm::vec3& scale) {
+void MyCharacterController::setLocalBoundingBox(const glm::vec3& corner, const glm::vec3& scale) {
     _boxScale = scale;
 
     float x = _boxScale.x;
@@ -231,15 +244,7 @@ void DynamicCharacterController::setLocalBoundingBox(const glm::vec3& corner, co
     _shapeLocalOffset = corner + 0.5f * _boxScale;
 }
 
-bool DynamicCharacterController::needsRemoval() const {
-    return (bool)(_pendingFlags & PENDING_FLAG_REMOVE_FROM_SIMULATION);
-}
-
-bool DynamicCharacterController::needsAddition() const {
-    return (bool)(_pendingFlags & PENDING_FLAG_ADD_TO_SIMULATION);
-}
-
-void DynamicCharacterController::setEnabled(bool enabled) {
+void MyCharacterController::setEnabled(bool enabled) {
     if (enabled != _enabled) {
         if (enabled) {
             // Don't bother clearing REMOVE bit since it might be paired with an UPDATE_SHAPE bit.
@@ -257,46 +262,9 @@ void DynamicCharacterController::setEnabled(bool enabled) {
     }
 }
 
-void DynamicCharacterController::setDynamicsWorld(btDynamicsWorld* world) {
-    if (_dynamicsWorld != world) {
-        if (_dynamicsWorld) { 
-            if (_rigidBody) {
-                _dynamicsWorld->removeRigidBody(_rigidBody);
-                _dynamicsWorld->removeAction(this);
-            }
-            _dynamicsWorld = nullptr;
-        }
-        if (world && _rigidBody) {
-            _dynamicsWorld = world;
-            _pendingFlags &= ~ PENDING_FLAG_JUMP;
-            _dynamicsWorld->addRigidBody(_rigidBody, COLLISION_GROUP_MY_AVATAR, COLLISION_MASK_MY_AVATAR);
-            _dynamicsWorld->addAction(this);
-            //reset(_dynamicsWorld);
-        }
-    }
-    if (_dynamicsWorld) {
-        if (_pendingFlags & PENDING_FLAG_UPDATE_SHAPE) {
-            // shouldn't fall in here, but if we do make sure both ADD and REMOVE bits are still set
-            _pendingFlags |= PENDING_FLAG_ADD_TO_SIMULATION | PENDING_FLAG_REMOVE_FROM_SIMULATION;
-        } else {
-            _pendingFlags &= ~PENDING_FLAG_ADD_TO_SIMULATION;
-        }
-    } else {
-        _pendingFlags &= ~ PENDING_FLAG_REMOVE_FROM_SIMULATION;
-    }
-}
-
-void DynamicCharacterController::updateShapeIfNecessary() {
+void MyCharacterController::updateShapeIfNecessary() {
     if (_pendingFlags & PENDING_FLAG_UPDATE_SHAPE) {
-        // make sure there is NO pending removal from simulation at this point
-        // (don't want to delete _rigidBody out from under the simulation)
-        assert(!(_pendingFlags & PENDING_FLAG_REMOVE_FROM_SIMULATION));
         _pendingFlags &= ~ PENDING_FLAG_UPDATE_SHAPE;
-        // delete shape and RigidBody
-        delete _rigidBody;
-        _rigidBody = nullptr;
-        delete _shape;
-        _shape = nullptr;
 
         // compute new dimensions from avatar's bounding box
         float x = _boxScale.x;
@@ -310,19 +278,27 @@ void DynamicCharacterController::updateShapeIfNecessary() {
         // NOTE: _shapeLocalOffset is already computed
 
         if (_radius > 0.0f) {
-            // create new shape
-            _shape = new btCapsuleShape(_radius, 2.0f * _halfHeight);
-
             // HACK: use some simple mass property defaults for now
             float mass = 100.0f;
             btVector3 inertia(30.0f, 8.0f, 30.0f);
 
-            // create new body
-            _rigidBody = new btRigidBody(mass, nullptr, _shape, inertia);
+            // create RigidBody if it doesn't exist
+            if (!_rigidBody) {
+                btCollisionShape* shape = new btCapsuleShape(_radius, 2.0f * _halfHeight);
+                _rigidBody = new btRigidBody(mass, nullptr, shape, inertia);
+            } else {
+                btCollisionShape* shape = _rigidBody->getCollisionShape();
+                if (shape) {
+                    delete shape;
+                }
+                shape = new btCapsuleShape(_radius, 2.0f * _halfHeight);
+                _rigidBody->setCollisionShape(shape);
+            }
+
             _rigidBody->setSleepingThresholds(0.0f, 0.0f);
             _rigidBody->setAngularFactor(0.0f);
-            _rigidBody->setWorldTransform(btTransform(glmToBullet(_avatarData->getOrientation()),
-                                                      glmToBullet(_avatarData->getPosition())));
+            _rigidBody->setWorldTransform(btTransform(glmToBullet(_avatar->getOrientation()),
+                                                      glmToBullet(_avatar->getPosition())));
             if (_isHovering) {
                 _rigidBody->setGravity(btVector3(0.0f, 0.0f, 0.0f));
             } else {
@@ -335,7 +311,7 @@ void DynamicCharacterController::updateShapeIfNecessary() {
     }
 }
 
-void DynamicCharacterController::updateUpAxis(const glm::quat& rotation) {
+void MyCharacterController::updateUpAxis(const glm::quat& rotation) {
     btVector3 oldUp = _currentUp;
     _currentUp = quatRotate(glmToBullet(rotation), LOCAL_UP_AXIS);
     if (!_isHovering) {
@@ -346,24 +322,50 @@ void DynamicCharacterController::updateUpAxis(const glm::quat& rotation) {
     }
 }
 
-void DynamicCharacterController::preSimulation(btScalar timeStep) {
+void MyCharacterController::setAvatarPositionAndOrientation(
+        const glm::vec3& position, 
+        const glm::quat& orientation) {
+    // TODO: update gravity if up has changed
+    updateUpAxis(orientation);
+
+    btQuaternion bodyOrientation = glmToBullet(orientation);
+    btVector3 bodyPosition = glmToBullet(position + orientation * _shapeLocalOffset);
+    _avatarBodyTransform = btTransform(bodyOrientation, bodyPosition);
+}
+
+void MyCharacterController::getAvatarPositionAndOrientation(glm::vec3& position, glm::quat& rotation) const {
+    if (_enabled && _rigidBody) {
+        const btTransform& avatarTransform = _rigidBody->getWorldTransform();
+        rotation = bulletToGLM(avatarTransform.getRotation());
+        position = bulletToGLM(avatarTransform.getOrigin()) - rotation * _shapeLocalOffset;
+    }
+}
+
+void MyCharacterController::setTargetVelocity(const glm::vec3& velocity) {
+    //_walkVelocity = glmToBullet(_avatarData->getTargetVelocity());
+    _walkVelocity = glmToBullet(velocity);
+}
+
+void MyCharacterController::setHMDVelocity(const glm::vec3& velocity) {
+    _hmdVelocity = glmToBullet(velocity);
+}
+
+glm::vec3 MyCharacterController::getLinearVelocity() const {
+    glm::vec3 velocity(0.0f);
+    if (_rigidBody) {
+        velocity = bulletToGLM(_rigidBody->getLinearVelocity());
+    }
+    return velocity;
+}
+
+void MyCharacterController::preSimulation() {
     if (_enabled && _dynamicsWorld) {
-        glm::quat rotation = _avatarData->getOrientation();
-
-        // TODO: update gravity if up has changed
-        updateUpAxis(rotation);
-
-        glm::vec3 position = _avatarData->getPosition() + rotation * _shapeLocalOffset;
-        _rigidBody->setWorldTransform(btTransform(glmToBullet(rotation), glmToBullet(position)));
-
-        // the rotation is dictated by AvatarData
-        btTransform xform = _rigidBody->getWorldTransform();
-        xform.setRotation(glmToBullet(rotation));
-        _rigidBody->setWorldTransform(xform);
+        // slam body to where it is supposed to be
+        _rigidBody->setWorldTransform(_avatarBodyTransform);
 
         // scan for distant floor
         // rayStart is at center of bottom sphere
-        btVector3 rayStart = xform.getOrigin() - _halfHeight * _currentUp;
+        btVector3 rayStart = _avatarBodyTransform.getOrigin() - _halfHeight * _currentUp;
     
         // rayEnd is straight down MAX_FALL_HEIGHT
         btScalar rayLength = _radius + MAX_FALL_HEIGHT;
@@ -388,8 +390,6 @@ void DynamicCharacterController::preSimulation(btScalar timeStep) {
             setHovering(true);
         }
 
-        _walkVelocity = glmToBullet(_avatarData->getTargetVelocity());
-
         if (_pendingFlags & PENDING_FLAG_JUMP) {
             _pendingFlags &= ~ PENDING_FLAG_JUMP;
             if (onGround()) {
@@ -400,15 +400,9 @@ void DynamicCharacterController::preSimulation(btScalar timeStep) {
             }
         }
     }
+    _lastStepDuration = 0.0f;
 }
 
-void DynamicCharacterController::postSimulation() {
-    if (_enabled && _rigidBody) {
-        const btTransform& avatarTransform = _rigidBody->getWorldTransform();
-        glm::quat rotation = bulletToGLM(avatarTransform.getRotation());
-        glm::vec3 position = bulletToGLM(avatarTransform.getOrigin());
-
-        _avatarData->nextAttitude(position - rotation * _shapeLocalOffset, rotation);
-        _avatarData->setVelocity(bulletToGLM(_rigidBody->getLinearVelocity()));
-    }
+void MyCharacterController::postSimulation() {
+    // postSimulation() exists for symmetry and just in case we need to do something here later
 }

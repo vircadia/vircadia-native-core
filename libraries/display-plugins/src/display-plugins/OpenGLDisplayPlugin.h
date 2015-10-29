@@ -7,10 +7,10 @@
 //
 #pragma once
 
-#include <QTimer>
-
 #include "DisplayPlugin.h"
-#include "OglplusHelpers.h"
+
+#include <QTimer>
+#include <gl/OglplusHelpers.h>
 
 class GlWindow;
 class QOpenGLContext;
