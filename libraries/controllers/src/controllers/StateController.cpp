@@ -29,7 +29,7 @@ void StateController::update(float deltaTime, bool jointsCaptured) {}
 
 void StateController::focusOutEvent() {}
 
-void StateController::addInputVariant(QString name, ReadLambda& lambda) {
+void StateController::addInputVariant(QString name, ReadLambda lambda) {
     _namedReadLambdas.push_back(NamedReadLambda(name, lambda));
 }
 
