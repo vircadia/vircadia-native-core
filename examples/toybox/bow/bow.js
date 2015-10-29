@@ -61,16 +61,13 @@
     var LEFT_TIP = 1;
     var RIGHT_TIP = 3;
 
-    var NOTCH_DETECTOR_OFFSET = {
-        x: 0,
-        y: 0,
-        z: 0
-    };
+    var NOTCH_DETECTOR_OFFSET_FORWARD = 0.08;
+    var NOTCH_DETECTOR_OFFSET_UP = 0.035;
 
     var NOTCH_DETECTOR_DIMENSIONS = {
-        x: 0.15,
-        y: 0.15,
-        z: 0.15
+        x: 0.05,
+        y: 0.05,
+        z: 0.05
     };
 
     var NOTCH_DETECTOR_DISTANCE = 0.1;
@@ -134,8 +131,7 @@
 
             setEntityCustomData('grabbableKey', this.entityID, {
                 turnOffOtherHand: false,
-                turnOffOppositeBeam: false,
-                invertSolidWhileHeld: true
+                turnOffOppositeBeam: false
             });
 
         },
@@ -150,13 +146,15 @@
                 if (this.hasArrowNotched === false) {
                     this.hasArrowNotched = userData.hifiBowKey.hasArrowNotched;
 
-
                     this.arrow = userData.hifiBowKey.arrowID;
+                    Entities.editEntity(this.arrow, {
+                        collisionsWillMove: false,
+                        ignoreForCollisions: true
+                    });
 
                     setEntityCustomData('grabbableKey', this.entityID, {
                         turnOffOtherHand: true,
-                        turnOffOppositeBeam: false,
-                        invertSolidWhileHeld: true
+                        turnOffOppositeBeam: false
                     });
                 }
 
@@ -187,7 +185,7 @@
                 this.checkStringHand();
 
             } else {
-                //otherwise, just update the notch detector position
+                //otherwise, don't do much of anything.
 
             }
         },
@@ -201,8 +199,7 @@
                 Entities.deleteEntity(this.arrow);
                 setEntityCustomData('grabbableKey', this.entityID, {
                     turnOffOtherHand: false,
-                    turnOffOppositeBeam: false,
-                    invertSolidWhileHeld: true
+                    turnOffOppositeBeam: false
                 });
                 Entities.deleteEntity(this.notchDetector);
                 this.notchDetector = null;
@@ -363,12 +360,11 @@
 
             if (this.triggerValue < DRAW_STRING_THRESHOLD && this.stringDrawn === true) {
 
-
-                //firing the arrow
-                // this.stringDrawn = false;
-                // this.deleteStrings();
-                // this.hasArrow = false;
-                // this.releaseArrow();
+                // firing the arrow
+                this.stringDrawn = false;
+                this.deleteStrings();
+                this.hasArrow = false;
+                this.releaseArrow();
 
             } else if (this.triggerValue >= DRAW_STRING_THRESHOLD && this.stringDrawn === true) {
                 //continuing to aim the arrow
@@ -428,27 +424,19 @@
 
         updateArrowPositionInNotch: function() {
 
-           var arrowRotation =  {
-            x:0,
-            y:0,
-            z:0,
-            w:1
-           }
-         
-            var arrowOffset = Vec3.multiply(Quat.getFront(this.bowProperties.rotation),ARROW_OFFSET);
-            var arrowPosition = Vec3.sum(this.notchDetectorPosition,arrowOffset)
+
+            var arrowOffset = Vec3.multiply(Quat.getFront(this.bowProperties.rotation), ARROW_OFFSET);
+            var arrowPosition = Vec3.sum(this.notchDetectorPosition, arrowOffset)
 
             var handToNotch = Vec3.subtract(this.stringData.handPosition, this.notchDetectorPosition);
 
-            var rotation1 = Entities.getEntityProperties(this.arrow,"rotation").rotation;
 
-            //var arrowRotation = this.orientationOf(handToNotch);
+            var arrowRotation = this.orientationOf(handToNotch);
             Entities.editEntity(this.arrow, {
-                position: arrowPosition,
+                position: this.notchDetectorPosition,
                 rotation: arrowRotation
             })
 
-            var rotation2 = Entities.getEntityProperties(this.arrow,"rotation").rotation;
 
             if (this.arrowIsBurning === true) {
                 Entities.editEntity(this.fire, {
@@ -499,13 +487,20 @@
         },
 
         createNotchDetector: function() {
-            var detectorPosition = Vec3.sum(this.bowProperties.position, NOTCH_DETECTOR_OFFSET);
+            var detectorPosition;
+            var frontVector = Quat.getFront(this.bowProperties.rotation);
+            var notchVectorForward = Vec3.multiply(frontVector, NOTCH_DETECTOR_OFFSET_FORWARD);
+            var upVector = Quat.getUp(this.bowProperties.rotation);
+            var notchVectorUp = Vec3.multiply(upVector, NOTCH_DETECTOR_OFFSET_UP);
+
+            detectorPosition = Vec3.sum(this.bowProperties.position, notchVectorForward);
+            detectorPosition = Vec3.sum(detectorPosition, notchVectorUp);
 
             var detectorProperties = {
                 name: 'Hifi-NotchDetector',
                 type: 'Box',
-                visible: false,
-                collisionsWillMove:false,
+                visible: true,
+                collisionsWillMove: false,
                 ignoreForCollisions: true,
                 dimensions: NOTCH_DETECTOR_DIMENSIONS,
                 position: detectorPosition,
@@ -525,7 +520,16 @@
         },
 
         updateNotchDetectorPosition: function() {
-            this.notchDetectorPosition = Vec3.sum(this.bowProperties.position, NOTCH_DETECTOR_OFFSET);
+            var detectorPosition;
+            var frontVector = Quat.getFront(this.bowProperties.rotation);
+            var notchVectorForward = Vec3.multiply(frontVector, NOTCH_DETECTOR_OFFSET_FORWARD);
+            var upVector = Quat.getUp(this.bowProperties.rotation);
+            var notchVectorUp = Vec3.multiply(upVector, NOTCH_DETECTOR_OFFSET_UP);
+
+            detectorPosition = Vec3.sum(this.bowProperties.position, notchVectorForward);
+            detectorPosition = Vec3.sum(detectorPosition, notchVectorUp);
+
+            this.notchDetectorPosition = detectorPosition;
             Entities.editEntity(this.notchDetector, {
                 position: this.notchDetectorPosition
             });

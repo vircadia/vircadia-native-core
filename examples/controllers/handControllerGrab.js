@@ -647,16 +647,19 @@ function MyController(hand, triggerAction) {
         Entities.callEntityMethod(this.grabbedEntity, "continueNearGrab");
         var properties = Entities.getEntityProperties(this.grabbedEntity, ["userData","name"]);
         var userData = JSON.parse(properties.userData);
-        var shouldRelease;
+  
         if (userData.hasOwnProperty('hifiBowKey')) {
-            var shouldRelease;
-            if (userData.hifiBowKey.shouldRelease === true) {
+            if (userData.hifiBowKey.shouldRelease === true && userData.hifiBowKey.didRelease===false) {
                 this.setState(STATE_RELEASE);
-                shouldRelease=true;
+           
+                setEntityCustomData('hifiBowKey', this.grabbedEntity, {
+                    shouldRelease:false,
+                    didRelease: true
+                });
                 return;
             }
         }
-
+        
         if (this.actionTimeout - now < ACTION_LIFETIME_REFRESH * MSEC_PER_SEC) {
             // if less than a 5 seconds left, refresh the actions lifetime
             Entities.updateAction(this.grabbedEntity, this.actionID, {

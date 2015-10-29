@@ -94,17 +94,11 @@
                 return userData.hifiBowKey.bowID;
             }
         },
-        getActionID: function() {
-            var properties = Entities.getEntityProperties(this.entityID, "userData");
-            var userData = JSON.parse(properties.userData);
-            if (userData.hasOwnProperty('hifiHoldActionKey')) {
-                return userData.hifiHoldActionKey.holdActionID;
-            }
-        },
 
         tellBowArrowIsNotched: function(bowID) {
             setEntityCustomData('hifiBowKey', this.entityID, {
-                shouldRelease: true
+                shouldRelease: true,
+                didRelease: false
             });
 
             setEntityCustomData('grabbableKey', this.entityID, {
@@ -167,10 +161,10 @@
         },
 
         collisionWithEntity: function(me, otherEntity, collision) {
-            Vec3.print('penetration = ', collision.penetration);
-            Vec3.print('collision contact point = ', collision.contactPoint);
 
             if (this.stickOnCollision === true) {
+                Vec3.print('penetration = ', collision.penetration);
+                Vec3.print('collision contact point = ', collision.contactPoint);
                 Entities.editEntity(this.entityID, {
                     velocity: {
                         x: 0,
