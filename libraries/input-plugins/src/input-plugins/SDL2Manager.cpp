@@ -75,19 +75,23 @@ void SDL2Manager::deinit() {
 }
 
 void SDL2Manager::activate() {
+#ifdef HAVE_SDL2
     auto userInputMapper = DependencyManager::get<controller::UserInputMapper>();
     for (auto joystick : _openJoysticks) {
         userInputMapper->registerDevice(joystick);
         emit joystickAdded(joystick.get());
     }
+#endif
 }
 
 void SDL2Manager::deactivate() {
+#ifdef HAVE_SDL2
     auto userInputMapper = DependencyManager::get<controller::UserInputMapper>();
     for (auto joystick : _openJoysticks) {
         userInputMapper->removeDevice(joystick->getDeviceID());
         emit joystickRemoved(joystick.get());
     }
+#endif
 }
 
 
