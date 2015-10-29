@@ -1,6 +1,47 @@
 {
     "name": "Keyboard/Mouse to Actions",
     "channels": [
+
+        { "from": ["Keyboard.A", "Keyboard.Left", "Keyboard.TouchpadLeft"],
+          "when": [ "Application.InHMD", "Application.ComfortMode" ],
+          "to": "Actions.StepYaw",
+          "filters":
+            [
+                { "type": "pulse", "interval": 0.5 },
+                { "type": "scale", "scale": -15 }
+            ]
+        },
+
+        { "from": ["Keyboard.D", "Keyboard.Right", "Keyboard.TouchpadRight"],
+          "when": [ "Application.InHMD", "Application.ComfortMode" ],
+          "to": "Actions.StepYaw",
+          "filters":
+            [
+                { "type": "pulse", "interval": 0.5 },
+                { "type": "scale", "scale": 15 }
+            ]
+        },
+
+        { "from": "Keyboard.MouseMoveLeft",
+          "when": [ "Application.InHMD", "Application.ComfortMode", "Keyboard.RightMouseClick" ],
+          "to": "Actions.StepYaw",
+          "filters":
+            [
+                { "type": "pulse", "interval": 0.5 },
+                { "type": "scale", "scale": -15 }
+            ]
+        },
+
+        { "from": "Keyboard.MouseMoveRight",
+          "when": [ "Application.InHMD", "Application.ComfortMode", "Keyboard.RightMouseClick" ],
+          "to": "Actions.StepYaw",
+          "filters":
+            [
+                { "type": "pulse", "interval": 0.5 },
+                { "type": "scale", "scale": 15 }
+            ]
+        },
+
         { "from": "Keyboard.A", "when": "Keyboard.Shift", "to": "Actions.LATERAL_LEFT" },
         { "from": "Keyboard.D", "when": "Keyboard.Shift", "to": "Actions.LATERAL_RIGHT" },
         { "from": "Keyboard.A", "when": "Keyboard.RightMouseClick", "to": "Actions.LATERAL_LEFT" },
@@ -28,6 +69,7 @@
         { "from": "Keyboard.Down", "to": "Actions.LONGITUDINAL_BACKWARD" },
         { "from": "Keyboard.Left", "to": "Actions.YAW_LEFT" },
         { "from": "Keyboard.Right", "to": "Actions.YAW_RIGHT" },
+
         { "from": "Keyboard.PgDown", "to": "Actions.VERTICAL_DOWN" },
         { "from": "Keyboard.PgUp", "to": "Actions.VERTICAL_UP" },
 
