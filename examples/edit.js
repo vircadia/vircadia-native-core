@@ -1510,9 +1510,9 @@ PropertiesTool = function(opts) {
             if (entity.properties.rotation !== undefined) {
                 entity.properties.rotation = Quat.safeEulerAngles(entity.properties.rotation);
             }
-            if (entity.properties.keyLight.Direction !== undefined) {
-                entity.properties.keyLight.Direction = Vec3.multiply(RADIANS_TO_DEGREES, Vec3.toPolar(entity.properties.keyLight.Direction));
-                entity.properties.keyLight.Direction.z = 0.0;
+            if (entity.properties.keyLight.direction !== undefined) {
+                entity.properties.keyLight.direction = Vec3.multiply(RADIANS_TO_DEGREES, Vec3.toPolar(entity.properties.keyLight.direction));
+                entity.properties.keyLight.direction.z = 0.0;
             }
             selections.push(entity);
         }
@@ -1541,9 +1541,9 @@ PropertiesTool = function(opts) {
                     var rotation = data.properties.rotation;
                     data.properties.rotation = Quat.fromPitchYawRollDegrees(rotation.x, rotation.y, rotation.z);
                 }
-                if (data.properties.keyLight.Direction !== undefined) {
-                    data.properties.keyLight.Direction = Vec3.fromPolar(
-                        data.properties.keyLight.Direction.x * DEGREES_TO_RADIANS, data.properties.keyLight.Direction.y * DEGREES_TO_RADIANS);
+                if (data.properties.keyLight.direction !== undefined) {
+                    data.properties.keyLight.direction = Vec3.fromPolar(
+                        data.properties.keyLight.direction.x * DEGREES_TO_RADIANS, data.properties.keyLight.direction.y * DEGREES_TO_RADIANS);
                 }
                 Entities.editEntity(selectionManager.selections[0], data.properties);
                 if (data.properties.name != undefined) {
