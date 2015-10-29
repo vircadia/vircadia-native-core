@@ -645,21 +645,23 @@ function MyController(hand, triggerAction) {
         this.currentHandControllerTipPosition = handControllerPosition;
         this.currentObjectTime = now;
         Entities.callEntityMethod(this.grabbedEntity, "continueNearGrab");
-        var properties = Entities.getEntityProperties(this.grabbedEntity, ["userData","name"]);
+        var properties = Entities.getEntityProperties(this.grabbedEntity, ["userData", "name"]);
         var userData = JSON.parse(properties.userData);
-  
-        if (userData.hasOwnProperty('hifiBowKey')) {
-            if (userData.hifiBowKey.shouldRelease === true && userData.hifiBowKey.didRelease===false) {
-                this.setState(STATE_RELEASE);
-           
-                setEntityCustomData('hifiBowKey', this.grabbedEntity, {
-                    shouldRelease:false,
+
+        if (userData.hasOwnProperty('releaseGrabKey')) {
+            if (userData.releaseGrabKey.shouldRelease === true && userData.releaseGrabKey.didRelease === false) {
+
+                setEntityCustomData('releaseGrabKey', this.grabbedEntity, {
+                    shouldRelease: false,
                     didRelease: true
                 });
+
+                this.setState(STATE_RELEASE);
+
                 return;
             }
         }
-        
+
         if (this.actionTimeout - now < ACTION_LIFETIME_REFRESH * MSEC_PER_SEC) {
             // if less than a 5 seconds left, refresh the actions lifetime
             Entities.updateAction(this.grabbedEntity, this.actionID, {

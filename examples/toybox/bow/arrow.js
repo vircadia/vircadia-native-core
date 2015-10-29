@@ -96,7 +96,7 @@
         },
 
         tellBowArrowIsNotched: function(bowID) {
-            setEntityCustomData('hifiBowKey', this.entityID, {
+            setEntityCustomData('releaseGrabKey', this.entityID, {
                 shouldRelease: true,
                 didRelease: false
             });

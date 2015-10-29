@@ -9,7 +9,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-// TODO: 
+// to do: 
 // make arrows more visible
 // make arrow rotate toward ground as it flies
 // add noise when you release arrow -> add the sound to the arrow and keep it with position so you hear it whizz by 
@@ -131,12 +131,14 @@
 
             setEntityCustomData('grabbableKey', this.entityID, {
                 turnOffOtherHand: false,
-                turnOffOppositeBeam: false
+                turnOffOppositeBeam: false,
+                invertSolidWhileHeld: true
             });
 
         },
 
         continueNearGrab: function() {
+            print('GRABBING BOW!!')
             this.bowProperties = Entities.getEntityProperties(this.entityID, ["position", "rotation", "userData"]);
             this.updateNotchDetectorPosition();
 
@@ -154,7 +156,8 @@
 
                     setEntityCustomData('grabbableKey', this.entityID, {
                         turnOffOtherHand: true,
-                        turnOffOppositeBeam: false
+                        turnOffOppositeBeam: true,
+                        invertSolidWhileHeld: true
                     });
                 }
 
@@ -199,7 +202,8 @@
                 Entities.deleteEntity(this.arrow);
                 setEntityCustomData('grabbableKey', this.entityID, {
                     turnOffOtherHand: false,
-                    turnOffOppositeBeam: false
+                    turnOffOppositeBeam: false,
+                    invertSolidWhileHeld: true
                 });
                 Entities.deleteEntity(this.notchDetector);
                 this.notchDetector = null;
@@ -370,7 +374,7 @@
                 //continuing to aim the arrow
                 this.stringData.handPosition = this.getStringHandPosition();
                 this.stringData.handRotation = this.getStringHandRotation();
-                this.initialHand === 'right' ? this.stringData.grabHandPosition = Controller.getSpatialControlPosition(RIGHT_TIP) : this.stringData.grabHandPosition = Controller.getSpatialControlPosition(LEFT_TIP);
+                // this.initialHand === 'right' ? this.stringData.grabHandPosition = Controller.getSpatialControlPosition(RIGHT_TIP) : this.stringData.grabHandPosition = Controller.getSpatialControlPosition(LEFT_TIP);
                 this.stringData.grabHandRotation = this.getGrabHandRotation();
                 this.drawStrings();
                 this.updateArrowPositionInNotch();
@@ -381,7 +385,7 @@
                 this.createStrings();
                 this.stringData.handPosition = this.getStringHandPosition();
                 this.stringData.handRotation = this.getStringHandRotation();
-                this.initialHand === 'right' ? this.stringData.grabHandPosition = Controller.getSpatialControlPosition(RIGHT_TIP) : this.stringData.grabHandPosition = Controller.getSpatialControlPosition(LEFT_TIP);
+                // this.initialHand === 'right' ? this.stringData.grabHandPosition = Controller.getSpatialControlPosition(RIGHT_TIP) : this.stringData.grabHandPosition = Controller.getSpatialControlPosition(LEFT_TIP);
                 this.stringData.grabHandRotation = this.getGrabHandRotation();
 
                 this.drawStrings();
@@ -472,9 +476,9 @@
                 Entities.editEntity(this.arrow, {
                     ignoreForCollisions: false,
                     collisionsWillMove: true,
-                    gravity: ARROW_GRAVITY,
+                    gravity: ARROW_GRAVITY
                 });
-            }, 100)
+            }, 100);
 
             this.arrow = null;
             this.fire = null;
@@ -499,7 +503,7 @@
             var detectorProperties = {
                 name: 'Hifi-NotchDetector',
                 type: 'Box',
-                visible: true,
+                visible: false,
                 collisionsWillMove: false,
                 ignoreForCollisions: true,
                 dimensions: NOTCH_DETECTOR_DIMENSIONS,
@@ -596,7 +600,7 @@
                     y: 0.01,
                     z: 0.1
                 },
-                lifespan: 1,
+                lifespan: 1
             });
 
             setEntityCustomData('hifiFireArrowKey', this.arrow, {

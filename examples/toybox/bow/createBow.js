@@ -46,9 +46,7 @@ var bow = Entities.addEntity({
     script: SCRIPT_URL,
     userData: JSON.stringify({
         grabbableKey: {
-            turnOffOppositeBeam: false
-        },
-        grabKey: {
+            turnOffOppositeBeam: false,
             invertSolidWhileHeld: true
         }
     })
