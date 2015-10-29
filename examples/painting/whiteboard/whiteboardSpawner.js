@@ -79,11 +79,13 @@ var drawingSurface = Entities.addEntity({
 
 });
 
-var lightPosition = Vec3.sum(center, Vec3.multiply(-2, Quat.getFront(rotation)));
+var lightPosition = Vec3.sum(center, Vec3.multiply(-4, Quat.getFront(rotation)));
 var light = Entities.addEntity({
     type: 'Light',
+    name: 'whiteboard light',
     position: lightPosition,
-    dimensions: {x: 5, y: 5, z: 5},
+    dimensions: {x: 10, y: 10, z: 10},
+    intensity: 2,
     color: {red: 255, green: 255, blue: 255}
 });
 
