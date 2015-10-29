@@ -209,6 +209,11 @@ void MyAvatar::update(float deltaTime) {
         setPosition(_goToPosition);
         setOrientation(_goToOrientation);
         _goToPending = false;
+        // updateFromHMDSensorMatrix (called from paintGL) expects that the sensorToWorldMatrix is updated for any position changes
+        // that happen between render and Application::update (which calls updateSensorToWorldMatrix to do so).
+        // However, render/MyAvatar::update/Application::update don't always match (e.g., when using the separate avatar update thread),
+        // so we update now. It's ok if it updates again in the normal way.
+        updateSensorToWorldMatrix();
     }
 
     if (_referential) {
@@ -1088,7 +1093,11 @@ void MyAvatar::updateLookAtTargetAvatar() {
     const float KEEP_LOOKING_AT_CURRENT_ANGLE_FACTOR = 1.3f;
     const float GREATEST_LOOKING_AT_DISTANCE = 10.0f;
 
-    foreach (const AvatarSharedPointer& avatarPointer, DependencyManager::get<AvatarManager>()->getAvatarHash()) {
+    AvatarHash hash;
+    DependencyManager::get<AvatarManager>()->withAvatarHash([&] (const AvatarHash& locked) {
+        hash = locked; // make a shallow copy and operate on that, to minimize lock time
+    });
+    foreach (const AvatarSharedPointer& avatarPointer, hash) {
         auto avatar = static_pointer_cast<Avatar>(avatarPointer);
         bool isCurrentTarget = avatar->getIsLookAtTarget();
         float distanceTo = glm::length(avatar->getHead()->getEyePosition() - cameraPosition);
@@ -1120,7 +1129,6 @@ void MyAvatar::updateLookAtTargetAvatar() {
                 glm::vec3 humanLeftEye = humanSystem->getPosition() + (humanSystem->getOrientation() * leftEyeHeadLocal);
                 glm::vec3 humanRightEye = humanSystem->getPosition() + (humanSystem->getOrientation() * rightEyeHeadLocal);
 
-
                 // First find out where (in world space) the person is looking relative to that bridge-of-the-avatar point.
                 // (We will be adding that offset to the camera position, after making some other adjustments.)
                 glm::vec3 gazeOffset = lookAtPosition - getHead()->getEyePosition();
@@ -1132,14 +1140,14 @@ void MyAvatar::updateLookAtTargetAvatar() {
 
                 // If the camera is also not oriented with the head, adjust by getting the offset in head-space...
                 /* Not needed (i.e., code is a no-op), but I'm leaving the example code here in case something like this is needed someday.
-                glm::quat avatarHeadOrientation = getHead()->getOrientation();
-                glm::vec3 gazeOffsetLocalToHead = glm::inverse(avatarHeadOrientation) * gazeOffset;
-                // ... and treat that as though it were in camera space, bringing it back to world space.
-                // But camera is fudged to make the picture feel like the avatar's orientation.
-                glm::quat humanOrientation = humanSystem->getOrientation(); // or just avatar getOrienation() ?
-                gazeOffset = humanOrientation * gazeOffsetLocalToHead;
-                glm::vec3 corrected = humanSystem->getPosition() + gazeOffset;
-               */
+                 glm::quat avatarHeadOrientation = getHead()->getOrientation();
+                 glm::vec3 gazeOffsetLocalToHead = glm::inverse(avatarHeadOrientation) * gazeOffset;
+                 // ... and treat that as though it were in camera space, bringing it back to world space.
+                 // But camera is fudged to make the picture feel like the avatar's orientation.
+                 glm::quat humanOrientation = humanSystem->getOrientation(); // or just avatar getOrienation() ?
+                 gazeOffset = humanOrientation * gazeOffsetLocalToHead;
+                 glm::vec3 corrected = humanSystem->getPosition() + gazeOffset;
+                 */
 
                 // And now we can finally add that offset to the camera.
                 glm::vec3 corrected = qApp->getViewFrustum()->getPosition() + gazeOffset;
