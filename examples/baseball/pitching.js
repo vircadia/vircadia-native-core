@@ -1,5 +1,7 @@
 Script.include("line.js");
 
+var DISTANCE_BILLBOARD_ENTITY_ID = "{5fe0daf5-3fc5-43e3-a4eb-81a8e840a52b}";
+
 var AUDIO = {
     crowdBoos: [
         SoundCache.getSound("atp:c632c92b166ade60aa16b23ff1dfdf712856caeb83bd9311980b2d5edac821af.wav", false)
@@ -106,6 +108,7 @@ var BASEBALL_PROPERTIES = {
     damping: 0.0,
     restitution: 0.5,
     friction: 0.0,
+    friction: 0.5,
     lifetime: 20,
     //collisionSoundURL: PITCH_THUNK_SOUND_URL,
     gravity: {
@@ -259,6 +262,12 @@ function Baseball(position, velocity, ballScale) {
     */
 }
 
+function updateBillboard(value) {
+    Entities.editEntity(DISTANCE_BILLBOARD_ENTITY_ID, {
+        text: value,
+    });
+}
+
 Baseball.prototype = {
     finished: function() {
         return this.state == BASEBALL_STATE.FOUL
@@ -272,6 +281,7 @@ Baseball.prototype = {
             var myProperties = Entities.getEntityProperties(this.entityID, ['position', 'velocity']);
             var speed = Vec3.length(myProperties.velocity);
             this.distanceTravelled = Vec3.distance(this.hitBallAtPosition, myProperties.position);
+            updateBillboard(Math.ceil(this.distanceTravelled));
             if (this.timeSinceHit > 10 || speed < 1) {
                 this.state = BASEBALL_STATE.HIT_LANDED;
                 print("Ball took " + this.timeSinceHit.toFixed(3) + " seconds to land");
@@ -338,6 +348,7 @@ Baseball.prototype = {
                     });
                 }, 500);
                 if (foul) {
+                    updateBillboard("FOUL!");
                     print("FOUL ", yaw)
                     this.state = BASEBALL_STATE.FOUL;
                     playRandomSound(AUDIO.foul, {
@@ -352,9 +363,13 @@ Baseball.prototype = {
         } else if (name == "stadium") {
             print("PARTICLES");
             entityCollisionWithGround(entityB, this.entityID, collision);
+            if (this.state == BASEBALL_STATE.HIT) {
+                this.state = BASEBALL_STATE.HIT_LANDED;
+            }
         } else if (name == "backstop") {
             if (this.state == BASEBALL_STATE.PITCHING) {
                 this.state = BASEBALL_STATE.STRIKE;
+                updateBillboard("STRIKE!");
                 print("STRIKE");
                 playRandomSound(AUDIO.strike, {
                     position: myPosition,
@@ -368,6 +383,7 @@ Baseball.prototype = {
 var baseball = null;
 
 function pitchBall() {
+    updateBillboard("");
     var machineProperties = Entities.getEntityProperties(pitchingMachineID, ["dimensions", "position", "rotation"]);
     var pitchFromPositionBase = machineProperties.position;
     var pitchFromOffset = vec3Mult(machineProperties.dimensions, PITCHING_MACHINE_OUTPUT_OFFSET_PCT);
@@ -398,7 +414,7 @@ function update(dt) {
         if (baseball.finished()) {
             print("BALL IS FINSIEHD");
             baseball = null;
-            pitchBall();
+            Script.setTimeout(pitchBall, 3000);
         }
     }
 }
