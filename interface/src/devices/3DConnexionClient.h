@@ -11,6 +11,7 @@
 #ifndef hifi_3DConnexionClient_h
 #define hifi_3DConnexionClient_h
 
+#if 0
 #include <QObject>
 #include <QLibrary>
 #include <controllers/UserInputMapper.h>
@@ -216,5 +217,7 @@ public:
     void setButton(int lastButtonState);
     void handleAxisEvent();
 };
+
+#endif
 
 #endif // defined(hifi_3DConnexionClient_h)

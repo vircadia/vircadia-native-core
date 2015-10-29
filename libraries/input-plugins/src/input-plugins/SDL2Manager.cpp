@@ -49,11 +49,11 @@ void SDL2Manager::init() {
                 SDL_JoystickID id = getInstanceId(controller);
                 if (!_openJoysticks.contains(id)) {
                     //Joystick* joystick = new Joystick(id, SDL_GameControllerName(controller), controller);
-                    Joystick* joystick = new Joystick(id, controller);
+                    Joystick::Pointer joystick  = std::make_shared<Joystick>(id, controller);
                     _openJoysticks[id] = joystick;
                     auto userInputMapper = DependencyManager::get<controller::UserInputMapper>();
                     userInputMapper->registerDevice(joystick);
-                    emit joystickAdded(joystick);
+                    emit joystickAdded(joystick.get());
                 }
             }
         }
@@ -68,7 +68,7 @@ void SDL2Manager::init() {
 
 void SDL2Manager::deinit() {
 #ifdef HAVE_SDL2
-    qDeleteAll(_openJoysticks);
+    _openJoysticks.clear();
 
     SDL_Quit();
 #endif
@@ -78,7 +78,7 @@ void SDL2Manager::activate() {
     auto userInputMapper = DependencyManager::get<controller::UserInputMapper>();
     for (auto joystick : _openJoysticks) {
         userInputMapper->registerDevice(joystick);
-        emit joystickAdded(joystick);
+        emit joystickAdded(joystick.get());
     }
 }
 
@@ -86,7 +86,7 @@ void SDL2Manager::deactivate() {
     auto userInputMapper = DependencyManager::get<controller::UserInputMapper>();
     for (auto joystick : _openJoysticks) {
         userInputMapper->removeDevice(joystick->getDeviceID());
-        emit joystickRemoved(joystick);
+        emit joystickRemoved(joystick.get());
     }
 }
 
@@ -120,12 +120,12 @@ void SDL2Manager::pluginUpdate(float deltaTime, bool jointsCaptured) {
         SDL_Event event;
         while (SDL_PollEvent(&event)) {
             if (event.type == SDL_CONTROLLERAXISMOTION) {
-                Joystick* joystick = _openJoysticks[event.caxis.which];
+                Joystick::Pointer joystick = _openJoysticks[event.caxis.which];
                 if (joystick) {
                     joystick->handleAxisEvent(event.caxis);
                 }
             } else if (event.type == SDL_CONTROLLERBUTTONDOWN || event.type == SDL_CONTROLLERBUTTONUP) {
-                Joystick* joystick = _openJoysticks[event.cbutton.which];
+                Joystick::Pointer joystick = _openJoysticks[event.cbutton.which];
                 if (joystick) {
                     joystick->handleButtonEvent(event.cbutton);
                 }
@@ -145,16 +145,18 @@ void SDL2Manager::pluginUpdate(float deltaTime, bool jointsCaptured) {
                 SDL_JoystickID id = getInstanceId(controller);
                 if (!_openJoysticks.contains(id)) {
                     // Joystick* joystick = new Joystick(id, SDL_GameControllerName(controller), controller);
-                    Joystick* joystick = new Joystick(id, controller);
+                    Joystick::Pointer joystick = std::make_shared<Joystick>(id, controller);
                     _openJoysticks[id] = joystick;
                     userInputMapper->registerDevice(joystick);
-                    emit joystickAdded(joystick);
+                    emit joystickAdded(joystick.get());
                 }
             } else if (event.type == SDL_CONTROLLERDEVICEREMOVED) {
-                Joystick* joystick = _openJoysticks[event.cdevice.which];
-                _openJoysticks.remove(event.cdevice.which);
-                userInputMapper->removeDevice(joystick->getDeviceID());
-                emit joystickRemoved(joystick);
+                if (_openJoysticks.contains(event.cdevice.which)) {
+                    Joystick::Pointer joystick = _openJoysticks[event.cdevice.which];
+                    _openJoysticks.remove(event.cdevice.which);
+                    userInputMapper->removeDevice(joystick->getDeviceID());
+                    emit joystickRemoved(joystick.get());
+                }
             }
         }
     }

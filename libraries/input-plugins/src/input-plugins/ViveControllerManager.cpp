@@ -44,6 +44,8 @@ const QString MENU_NAME = "Vive Controllers";
 const QString MENU_PATH = MENU_PARENT + ">" + MENU_NAME;
 const QString RENDER_CONTROLLERS = "Render Hand Controllers";
 
+static std::shared_ptr<ViveControllerManager> instance;
+
 ViveControllerManager::ViveControllerManager() :
         InputDevice("Vive"),
     _trackedControllers(0),
@@ -52,7 +54,7 @@ ViveControllerManager::ViveControllerManager() :
     _rightHandRenderID(0),
     _renderControllers(false)
 {
-    
+    instance = std::shared_ptr<ViveControllerManager>(this);
 }
 
 bool ViveControllerManager::isSupported() const {
@@ -136,7 +138,7 @@ void ViveControllerManager::activate() {
 
     // unregister with UserInputMapper
     auto userInputMapper = DependencyManager::get<controller::UserInputMapper>();
-    userInputMapper->registerDevice(this);
+    userInputMapper->registerDevice(instance);
     _registeredWithInputMapper = true;
 }
 
@@ -288,7 +290,7 @@ void ViveControllerManager::update(float deltaTime, bool jointsCaptured) {
     }
         
     if (_trackedControllers == 0 && numTrackedControllers > 0) {
-        userInputMapper->registerDevice(this);
+        userInputMapper->registerDevice(instance);
         _registeredWithInputMapper = true;
         UserActivityLogger::getInstance().connectedDevice("spatial_controller", "steamVR");
     }
@@ -403,62 +405,43 @@ void ViveControllerManager::handlePoseEvent(const mat4& mat, bool left) {
     _poseStateMap[left ? controller::LEFT_HAND : controller::RIGHT_HAND] = controller::Pose(position, rotation);
 }
 
-void ViveControllerManager::buildDeviceProxy(controller::DeviceProxy::Pointer proxy) {
+controller::Input::NamedVector ViveControllerManager::getAvailableInputs() const {
     using namespace controller;
-    proxy->_name = _name;
-    proxy->getButton = [this](const Input& input, int timestamp) -> bool { return this->getButton(input.getChannel()); };
-    proxy->getAxis = [this](const Input& input, int timestamp) -> float { return this->getAxis(input.getChannel()); };
-    proxy->getPose = [this](const Input& input, int timestamp) -> Pose { return this->getPose(input.getChannel()); };
-    proxy->getAvailabeInputs = [this]() -> QVector<Input::NamedPair> {
-        QVector<Input::NamedPair> availableInputs{
-            // Trackpad analogs
-            makePair(LX, "LX"),
-            makePair(LY, "LY"),
-            makePair(RX, "RX"),
-            makePair(RY, "RY"),
-            // trigger analogs
-            makePair(LT, "LT"),
-            makePair(RT, "RT"),
+    QVector<Input::NamedPair> availableInputs{
+        // Trackpad analogs
+        makePair(LX, "LX"),
+        makePair(LY, "LY"),
+        makePair(RX, "RX"),
+        makePair(RY, "RY"),
+        // trigger analogs
+        makePair(LT, "LT"),
+        makePair(RT, "RT"),
 
-            makePair(LB, "LB"),
-            makePair(RB, "RB"),
+        makePair(LB, "LB"),
+        makePair(RB, "RB"),
 
-            makePair(LS, "LS"),
-            makePair(RS, "RS"),
-            makePair(LEFT_HAND, "LeftHand"),
-            makePair(RIGHT_HAND, "RightHand"),
-        };
-
-        //availableInputs.append(Input::NamedPair(makeInput(BUTTON_A, 0), "Left Button A"));
-        //availableInputs.append(Input::NamedPair(makeInput(GRIP_BUTTON, 0), "Left Grip Button"));
-        //availableInputs.append(Input::NamedPair(makeInput(TRACKPAD_BUTTON, 0), "Left Trackpad Button"));
-        //availableInputs.append(Input::NamedPair(makeInput(TRIGGER_BUTTON, 0), "Left Trigger Button"));
-
-        //availableInputs.append(Input::NamedPair(makeInput(AXIS_Y_POS, 0), "Left Trackpad Up"));
-        //availableInputs.append(Input::NamedPair(makeInput(AXIS_Y_NEG, 0), "Left Trackpad Down"));
-        //availableInputs.append(Input::NamedPair(makeInput(AXIS_X_POS, 0), "Left Trackpad Right"));
-        //availableInputs.append(Input::NamedPair(makeInput(AXIS_X_NEG, 0), "Left Trackpad Left"));
-        //availableInputs.append(Input::NamedPair(makeInput(BACK_TRIGGER, 0), "Left Back Trigger"));
-
-
-        //availableInputs.append(Input::NamedPair(makeInput(RIGHT_HAND), "Right Hand"));
-
-        //availableInputs.append(Input::NamedPair(makeInput(BUTTON_A, 1), "Right Button A"));
-        //availableInputs.append(Input::NamedPair(makeInput(GRIP_BUTTON, 1), "Right Grip Button"));
-        //availableInputs.append(Input::NamedPair(makeInput(TRACKPAD_BUTTON, 1), "Right Trackpad Button"));
-        //availableInputs.append(Input::NamedPair(makeInput(TRIGGER_BUTTON, 1), "Right Trigger Button"));
-
-        //availableInputs.append(Input::NamedPair(makeInput(AXIS_Y_POS, 1), "Right Trackpad Up"));
-        //availableInputs.append(Input::NamedPair(makeInput(AXIS_Y_NEG, 1), "Right Trackpad Down"));
-        //availableInputs.append(Input::NamedPair(makeInput(AXIS_X_POS, 1), "Right Trackpad Right"));
-        //availableInputs.append(Input::NamedPair(makeInput(AXIS_X_NEG, 1), "Right Trackpad Left"));
-        //availableInputs.append(Input::NamedPair(makeInput(BACK_TRIGGER, 1), "Right Back Trigger"));
-
-        return availableInputs;
+        makePair(LS, "LS"),
+        makePair(RS, "RS"),
+        makePair(LEFT_HAND, "LeftHand"),
+        makePair(RIGHT_HAND, "RightHand"),
     };
+
+    //availableInputs.append(Input::NamedPair(makeInput(BUTTON_A, 0), "Left Button A"));
+    //availableInputs.append(Input::NamedPair(makeInput(GRIP_BUTTON, 0), "Left Grip Button"));
+    //availableInputs.append(Input::NamedPair(makeInput(TRACKPAD_BUTTON, 0), "Left Trackpad Button"));
+    //availableInputs.append(Input::NamedPair(makeInput(TRIGGER_BUTTON, 0), "Left Trigger Button"));
+    //availableInputs.append(Input::NamedPair(makeInput(BACK_TRIGGER, 0), "Left Back Trigger"));
+    //availableInputs.append(Input::NamedPair(makeInput(RIGHT_HAND), "Right Hand"));
+    //availableInputs.append(Input::NamedPair(makeInput(BUTTON_A, 1), "Right Button A"));
+    //availableInputs.append(Input::NamedPair(makeInput(GRIP_BUTTON, 1), "Right Grip Button"));
+    //availableInputs.append(Input::NamedPair(makeInput(TRACKPAD_BUTTON, 1), "Right Trackpad Button"));
+    //availableInputs.append(Input::NamedPair(makeInput(TRIGGER_BUTTON, 1), "Right Trigger Button"));
+    //availableInputs.append(Input::NamedPair(makeInput(BACK_TRIGGER, 1), "Right Back Trigger"));
+
+    return availableInputs;
 }
 
-QString ViveControllerManager::getDefaultMappingConfig() {
+QString ViveControllerManager::getDefaultMappingConfig() const {
     static const QString MAPPING_JSON = PathUtils::resourcesPath() + "/controllers/vive.json";
     return MAPPING_JSON;
 }

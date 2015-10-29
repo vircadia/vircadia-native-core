@@ -64,11 +64,12 @@ const QString MENU_PATH = MENU_PARENT + ">" + MENU_NAME;
 const QString TOGGLE_SMOOTH = "Smooth Sixense Movement";
 const float DEFAULT_REACH_LENGTH = 1.5f;
 
-
+static std::shared_ptr<SixenseManager> instance;
 SixenseManager::SixenseManager() :
     InputDevice("Hydra"),
     _reachLength(DEFAULT_REACH_LENGTH) 
 {
+    instance = std::shared_ptr<SixenseManager>(this);
 }
 
 bool SixenseManager::isSupported() const {
@@ -80,6 +81,7 @@ bool SixenseManager::isSupported() const {
 }
 
 void SixenseManager::activate() {
+    qDebug() << "SixenseManager::activate()...";
     InputPlugin::activate();
 #ifdef HAVE_SIXENSE
     _calibrationState = CALIBRATION_STATE_IDLE;
@@ -91,9 +93,7 @@ void SixenseManager::activate() {
                            true, true);
 
     auto userInputMapper = DependencyManager::get<controller::UserInputMapper>();
-    userInputMapper->registerDevice(this);
-    qDebug() << "just called registerDevice hydra id:" << _deviceID;
-
+    userInputMapper->registerDevice(instance);
 
 #ifdef __APPLE__
 
@@ -126,6 +126,7 @@ void SixenseManager::activate() {
 }
 
 void SixenseManager::deactivate() {
+    qDebug() << "SixenseManager::deactivate()...";
     InputPlugin::deactivate();
 
 #ifdef HAVE_SIXENSE
@@ -514,42 +515,37 @@ static const auto R4 = controller::Y;
 
 using namespace controller;
 
-void SixenseManager::buildDeviceProxy(controller::DeviceProxy::Pointer proxy) {
-    proxy->getButton = [this](const Input& input, int timestamp) -> bool { return this->getButton(input.getChannel()); };
-    proxy->getAxis = [this](const Input& input, int timestamp) -> float { 
-        return this->getAxis(input.getChannel()); 
+controller::Input::NamedVector SixenseManager::getAvailableInputs() const {
+    using namespace controller;
+    static const Input::NamedVector availableInputs {
+        makePair(L0, "L0"),
+        makePair(L1, "L1"),
+        makePair(L2, "L2"),
+        makePair(L3, "L3"),
+        makePair(L4, "L4"),
+        makePair(LB, "LB"),
+        makePair(LS, "LS"),
+        makePair(LX, "LX"),
+        makePair(LY, "LY"),
+        makePair(LT, "LT"),
+        makePair(R0, "R0"),
+        makePair(R1, "R1"),
+        makePair(R2, "R2"),
+        makePair(R3, "R3"),
+        makePair(R4, "R4"),
+        makePair(RB, "RB"),
+        makePair(RS, "RS"),
+        makePair(RX, "RX"),
+        makePair(RY, "RY"),
+        makePair(RT, "RT"),
+        makePair(LEFT_HAND, "LeftHand"),
+        makePair(RIGHT_HAND, "RightHand"),
     };
-    proxy->getPose = [this](const Input& input, int timestamp) -> Pose { return this->getPose(input.getChannel()); };
-    proxy->getAvailabeInputs = [this]() -> QVector<Input::NamedPair> {
-        QVector<Input::NamedPair> availableInputs;
-        availableInputs.append(Input::NamedPair(makeInput(L0), "L0"));
-        availableInputs.append(Input::NamedPair(makeInput(L1), "L1"));
-        availableInputs.append(Input::NamedPair(makeInput(L2), "L2"));
-        availableInputs.append(Input::NamedPair(makeInput(L3), "L3"));
-        availableInputs.append(Input::NamedPair(makeInput(L4), "L4"));
-        availableInputs.append(Input::NamedPair(makeInput(LB), "LB"));
-        availableInputs.append(Input::NamedPair(makeInput(LS), "LS"));
-        availableInputs.append(Input::NamedPair(makeInput(LX), "LX"));
-        availableInputs.append(Input::NamedPair(makeInput(LY), "LY"));
-        availableInputs.append(Input::NamedPair(makeInput(LT), "LT"));
-        availableInputs.append(Input::NamedPair(makeInput(R0), "R0"));
-        availableInputs.append(Input::NamedPair(makeInput(R1), "R1"));
-        availableInputs.append(Input::NamedPair(makeInput(R2), "R2"));
-        availableInputs.append(Input::NamedPair(makeInput(R3), "R3"));
-        availableInputs.append(Input::NamedPair(makeInput(R4), "R4"));
-        availableInputs.append(Input::NamedPair(makeInput(RB), "RB"));
-        availableInputs.append(Input::NamedPair(makeInput(RS), "RS"));
-        availableInputs.append(Input::NamedPair(makeInput(RX), "RX"));
-        availableInputs.append(Input::NamedPair(makeInput(RY), "RY"));
-        availableInputs.append(Input::NamedPair(makeInput(RT), "RT"));
-        availableInputs.append(Input::NamedPair(makeInput(LEFT_HAND), "LeftHand"));
-        availableInputs.append(Input::NamedPair(makeInput(RIGHT_HAND), "RightHand"));
-        return availableInputs;
-    };
-}
+    return availableInputs;
+};
 
 
-QString SixenseManager::getDefaultMappingConfig() {
+QString SixenseManager::getDefaultMappingConfig() const {
     static const QString MAPPING_JSON = PathUtils::resourcesPath() + "/controllers/hydra.json";
     return MAPPING_JSON;
 }

@@ -81,7 +81,7 @@ private:
     int buttonPressed() const { return SDL_PRESSED; }
     int buttonRelease() const { return SDL_RELEASED; }
 
-    QMap<SDL_JoystickID, Joystick*> _openJoysticks;
+    QMap<SDL_JoystickID, Joystick::Pointer> _openJoysticks;
 #endif
     bool _isInitialized;
     static const QString NAME;

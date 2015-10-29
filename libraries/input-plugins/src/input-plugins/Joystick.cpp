@@ -71,63 +71,58 @@ void Joystick::handleButtonEvent(const SDL_ControllerButtonEvent& event) {
 
 #endif
 
-void Joystick::buildDeviceProxy(controller::DeviceProxy::Pointer proxy) {
+controller::Input::NamedVector Joystick::getAvailableInputs() const {
     using namespace controller;
-    proxy->_name = _name;
-    proxy->getButton = [this](const Input& input, int timestamp) -> bool { return this->getButton(input.getChannel()); };
-    proxy->getAxis = [this](const Input& input, int timestamp) -> float { return this->getAxis(input.getChannel()); };
-    proxy->getAvailabeInputs = [this]() -> QVector<Input::NamedPair> {
-        QVector<Input::NamedPair> availableInputs{
-            makePair(A, "A"),
-            makePair(B, "B"),
-            makePair(X, "X"),
-            makePair(Y, "Y"),
-            // DPad
-            makePair(DU, "DU"),
-            makePair(DD, "DD"),
-            makePair(DL, "DL"),
-            makePair(DR, "DR"),
-            // Bumpers
-            makePair(LB, "LB"),
-            makePair(RB, "RB"),
-            // Stick press
-            makePair(LS, "LS"),
-            makePair(RS, "RS"),
-            // Center buttons
-            makePair(START, "Start"),
-            makePair(BACK, "Back"),
-            // Analog sticks
-            makePair(LX, "LX"),
-            makePair(LY, "LY"),
-            makePair(RX, "RX"),
-            makePair(RY, "RY"),
+    static const Input::NamedVector availableInputs{
+        makePair(A, "A"),
+        makePair(B, "B"),
+        makePair(X, "X"),
+        makePair(Y, "Y"),
+        // DPad
+        makePair(DU, "DU"),
+        makePair(DD, "DD"),
+        makePair(DL, "DL"),
+        makePair(DR, "DR"),
+        // Bumpers
+        makePair(LB, "LB"),
+        makePair(RB, "RB"),
+        // Stick press
+        makePair(LS, "LS"),
+        makePair(RS, "RS"),
+        // Center buttons
+        makePair(START, "Start"),
+        makePair(BACK, "Back"),
+        // Analog sticks
+        makePair(LX, "LX"),
+        makePair(LY, "LY"),
+        makePair(RX, "RX"),
+        makePair(RY, "RY"),
  
-            // Triggers
-            makePair(LT, "LT"),
-            makePair(RT, "RT"),
+        // Triggers
+        makePair(LT, "LT"),
+        makePair(RT, "RT"),
 
-            // Aliases, PlayStation style names
-            makePair(LB, "L1"),
-            makePair(RB, "R1"),
-            makePair(LT, "L2"),
-            makePair(RT, "R2"),
-            makePair(LS, "L3"),
-            makePair(RS, "R3"),
-            makePair(BACK, "Select"),
-            makePair(A, "Cross"),
-            makePair(B, "Circle"),
-            makePair(X, "Square"),
-            makePair(Y, "Triangle"),
-            makePair(DU, "Up"),
-            makePair(DD, "Down"),
-            makePair(DL, "Left"),
-            makePair(DR, "Right"),
-        };
-        return availableInputs;
+        // Aliases, PlayStation style names
+        makePair(LB, "L1"),
+        makePair(RB, "R1"),
+        makePair(LT, "L2"),
+        makePair(RT, "R2"),
+        makePair(LS, "L3"),
+        makePair(RS, "R3"),
+        makePair(BACK, "Select"),
+        makePair(A, "Cross"),
+        makePair(B, "Circle"),
+        makePair(X, "Square"),
+        makePair(Y, "Triangle"),
+        makePair(DU, "Up"),
+        makePair(DD, "Down"),
+        makePair(DL, "Left"),
+        makePair(DR, "Right"),
     };
+    return availableInputs;
 }
 
-QString Joystick::getDefaultMappingConfig() {
+QString Joystick::getDefaultMappingConfig() const {
     static const QString MAPPING_JSON = PathUtils::resourcesPath() + "/controllers/xbox.json";
     return MAPPING_JSON;
 }

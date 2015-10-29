@@ -19,11 +19,11 @@ float InputEndpoint::value(){
         return pose().valid ? 1.0f : 0.0f;
     }
     auto userInputMapper = DependencyManager::get<UserInputMapper>();
-    auto deviceProxy = userInputMapper->getDeviceProxy(_input);
+    auto deviceProxy = userInputMapper->getDevice(_input);
     if (!deviceProxy) {
         return 0.0f;
     }
-    return deviceProxy->getValue(_input, 0);
+    return deviceProxy->getValue(_input);
 }
 
 Pose InputEndpoint::pose() {
@@ -32,10 +32,10 @@ Pose InputEndpoint::pose() {
         return Pose();
     }
     auto userInputMapper = DependencyManager::get<UserInputMapper>();
-    auto deviceProxy = userInputMapper->getDeviceProxy(_input);
+    auto deviceProxy = userInputMapper->getDevice(_input);
     if (!deviceProxy) {
         return Pose();
     }
-    return deviceProxy->getPose(_input, 0);
+    return deviceProxy->getPose(_input.channel);
 }
 

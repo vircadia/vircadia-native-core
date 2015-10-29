@@ -49,13 +49,13 @@ namespace controller {
 
 // Default contruct allocate the poutput size with the current hardcoded action channels
 controller::UserInputMapper::UserInputMapper() {
-    _standardController = std::make_shared<StandardController>();
-    registerDevice(new ActionsDevice());
-    registerDevice(_standardController.get());
+    registerDevice(std::make_shared<ActionsDevice>());
+    registerDevice(std::make_shared<StandardController>());
 }
 
 namespace controller {
 
+    
 UserInputMapper::~UserInputMapper() {
 }
 
@@ -67,31 +67,24 @@ int UserInputMapper::recordDeviceOfType(const QString& deviceName) {
     return _deviceCounts[deviceName];
 }
 
-void UserInputMapper::registerDevice(InputDevice* device) {
+void UserInputMapper::registerDevice(InputDevice::Pointer device) {
     Locker locker(_lock);
     if (device->_deviceID == Input::INVALID_DEVICE) {
         device->_deviceID = getFreeDeviceID();
     }
     const auto& deviceID = device->_deviceID;
-    DeviceProxy::Pointer proxy = std::make_shared<DeviceProxy>();
-    proxy->_name = device->_name;
-    device->buildDeviceProxy(proxy);
 
-    int numberOfType = recordDeviceOfType(proxy->_name);
-    if (numberOfType > 1) {
-        proxy->_name += QString::number(numberOfType);
-    }
+    int numberOfType = recordDeviceOfType(device->getName());
 
-    qCDebug(controllers) << "Registered input device <" << proxy->_name << "> deviceID = " << deviceID;
-
-    for (const auto& inputMapping : proxy->getAvailabeInputs()) {
+    qCDebug(controllers) << "Registered input device <" << device->getName() << "> deviceID = " << deviceID;
+    for (const auto& inputMapping : device->getAvailableInputs()) {
         const auto& input = inputMapping.first;
         // Ignore aliases
         if (_endpointsByInput.count(input)) {
             continue;
         }
 
-        Endpoint::Pointer endpoint = proxy->createEndpoint(input);
+        Endpoint::Pointer endpoint = device->createEndpoint(input);
         if (!endpoint) {
             if (input.device == STANDARD_DEVICE) {
                 endpoint = std::make_shared<StandardEndpoint>(input);
@@ -105,7 +98,7 @@ void UserInputMapper::registerDevice(InputDevice* device) {
         _endpointsByInput[input] = endpoint;
     }
 
-    _registeredDevices[deviceID] = proxy;
+    _registeredDevices[deviceID] = device;
     auto mapping = loadMapping(device->getDefaultMappingConfig());
     if (mapping) {
         _mappingsByDevice[deviceID] = mapping;
@@ -136,13 +129,13 @@ void UserInputMapper::removeDevice(int deviceID) {
 }
 
 
-DeviceProxy::Pointer UserInputMapper::getDeviceProxy(const Input& input) {
+InputDevice::Pointer UserInputMapper::getDevice(const Input& input) {
     Locker locker(_lock);
     auto device = _registeredDevices.find(input.getDevice());
     if (device != _registeredDevices.end()) {
         return (device->second);
     } else {
-        return DeviceProxy::Pointer();
+        return InputDevice::Pointer();
     }
 }
 
@@ -190,8 +183,8 @@ Input UserInputMapper::findDeviceInput(const QString& inputName) const {
 
         int deviceID = findDevice(deviceName);
         if (deviceID != Input::INVALID_DEVICE) {
-            const auto& deviceProxy = _registeredDevices.at(deviceID);
-            auto deviceInputs = deviceProxy->getAvailabeInputs();
+            const auto& device = _registeredDevices.at(deviceID);
+            auto deviceInputs = device->getAvailableInputs();
 
             for (auto input : deviceInputs) {
                 if (input.second == inputName) {
@@ -273,7 +266,7 @@ void UserInputMapper::update(float deltaTime) {
 Input::NamedVector UserInputMapper::getAvailableInputs(uint16 deviceID) const {
     Locker locker(_lock);
     auto iterator = _registeredDevices.find(deviceID);
-    return iterator->second->getAvailabeInputs();
+    return iterator->second->getAvailableInputs();
 }
 
 QVector<Action> UserInputMapper::getAllActions() const {
@@ -336,7 +329,7 @@ void UserInputMapper::assignDefaulActionScales() {
 
 static int actionMetaTypeId = qRegisterMetaType<Action>();
 static int inputMetaTypeId = qRegisterMetaType<Input>();
-static int inputPairMetaTypeId = qRegisterMetaType<InputPair>();
+static int inputPairMetaTypeId = qRegisterMetaType<Input::NamedPair>();
 static int poseMetaTypeId = qRegisterMetaType<controller::Pose>("Pose");
 
 
@@ -344,8 +337,8 @@ QScriptValue inputToScriptValue(QScriptEngine* engine, const Input& input);
 void inputFromScriptValue(const QScriptValue& object, Input& input);
 QScriptValue actionToScriptValue(QScriptEngine* engine, const Action& action);
 void actionFromScriptValue(const QScriptValue& object, Action& action);
-QScriptValue inputPairToScriptValue(QScriptEngine* engine, const InputPair& inputPair);
-void inputPairFromScriptValue(const QScriptValue& object, InputPair& inputPair);
+QScriptValue inputPairToScriptValue(QScriptEngine* engine, const Input::NamedPair& inputPair);
+void inputPairFromScriptValue(const QScriptValue& object, Input::NamedPair& inputPair);
 
 QScriptValue inputToScriptValue(QScriptEngine* engine, const Input& input) {
     QScriptValue obj = engine->newObject();
@@ -372,21 +365,21 @@ void actionFromScriptValue(const QScriptValue& object, Action& action) {
     action = Action(object.property("action").toVariant().toInt());
 }
 
-QScriptValue inputPairToScriptValue(QScriptEngine* engine, const InputPair& inputPair) {
+QScriptValue inputPairToScriptValue(QScriptEngine* engine, const Input::NamedPair& inputPair) {
     QScriptValue obj = engine->newObject();
     obj.setProperty("input", inputToScriptValue(engine, inputPair.first));
     obj.setProperty("inputName", inputPair.second);
     return obj;
 }
 
-void inputPairFromScriptValue(const QScriptValue& object, InputPair& inputPair) {
+void inputPairFromScriptValue(const QScriptValue& object, Input::NamedPair& inputPair) {
     inputFromScriptValue(object.property("input"), inputPair.first);
     inputPair.second = QString(object.property("inputName").toVariant().toString());
 }
 
 void UserInputMapper::registerControllerTypes(QScriptEngine* engine) {
     qScriptRegisterSequenceMetaType<QVector<Action> >(engine);
-    qScriptRegisterSequenceMetaType<QVector<InputPair> >(engine);
+    qScriptRegisterSequenceMetaType<Input::NamedVector>(engine);
     qScriptRegisterMetaType(engine, actionToScriptValue, actionFromScriptValue);
     qScriptRegisterMetaType(engine, inputToScriptValue, inputFromScriptValue);
     qScriptRegisterMetaType(engine, inputPairToScriptValue, inputPairFromScriptValue);

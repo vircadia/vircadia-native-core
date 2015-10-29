@@ -19,7 +19,7 @@
 
 namespace controller {
 
-StateController::StateController(QString name) : InputDevice(name) {
+StateController::StateController() : InputDevice("Application") {
 }
 
 StateController::~StateController() {
@@ -32,30 +32,15 @@ void StateController::focusOutEvent() {}
 void StateController::addInputVariant(QString name, ReadLambda& lambda) {
     _namedReadLambdas.push_back(NamedReadLambda(name, lambda));
 }
-void StateController::buildDeviceProxy(DeviceProxy::Pointer proxy) {
-    proxy->_name = _name;
-    proxy->getButton = [this] (const Input& input, int timestamp) -> bool { return getButton(input.getChannel()); };
-    proxy->getAxis = [this] (const Input& input, int timestamp) -> float { return getAxis(input.getChannel()); };
-    proxy->getAvailabeInputs = [this] () -> QVector<Input::NamedPair> {
-    
-        
-        QVector<Input::NamedPair> availableInputs;
-        
-        int i = 0;
-        for (auto& pair : _namedReadLambdas) {
-            availableInputs.push_back(Input::NamedPair(Input(_deviceID, i, ChannelType::BUTTON), pair.first));
-            i++;
-        }
-        return availableInputs;
-    };
-    proxy->createEndpoint = [this] (const Input& input) -> Endpoint::Pointer {
-        if (input.getChannel() < _namedReadLambdas.size()) {
-            return std::make_shared<LambdaEndpoint>(_namedReadLambdas[input.getChannel()].second);
-        }
 
-        return Endpoint::Pointer();
-    };
+Input::NamedVector StateController::getAvailableInputs() const {
+    Input::NamedVector availableInputs;
+    int i = 0;
+    for (auto& pair : _namedReadLambdas) {
+        availableInputs.push_back(Input::NamedPair(Input(_deviceID, i, ChannelType::BUTTON), pair.first));
+        i++;
+    }
+    return availableInputs;
 }
-
 
 }
