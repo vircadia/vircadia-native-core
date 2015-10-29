@@ -1,6 +1,7 @@
 Script.include("line.js");
 
 var DISTANCE_BILLBOARD_ENTITY_ID = "{5fe0daf5-3fc5-43e3-a4eb-81a8e840a52b}";
+var METERS_TO_FEET = 3.28084;
 
 var AUDIO = {
     crowdBoos: [
@@ -163,9 +164,9 @@ function playRandomSound(sounds, options) {
 
 function vec3Mult(a, b) {
     return {
-    x: a.x * b.x,
-    y: a.y * b.y,
-    z: a.z * b.z,
+        x: a.x * b.x,
+        y: a.y * b.y,
+        z: a.z * b.z,
     };
 }
 
@@ -281,7 +282,7 @@ Baseball.prototype = {
             var myProperties = Entities.getEntityProperties(this.entityID, ['position', 'velocity']);
             var speed = Vec3.length(myProperties.velocity);
             this.distanceTravelled = Vec3.distance(this.hitBallAtPosition, myProperties.position);
-            updateBillboard(Math.ceil(this.distanceTravelled));
+            updateBillboard(Math.ceil(this.distanceTravelled * METERS_TO_FEET));
             if (this.timeSinceHit > 10 || speed < 1) {
                 this.state = BASEBALL_STATE.HIT_LANDED;
                 print("Ball took " + this.timeSinceHit.toFixed(3) + " seconds to land");
@@ -383,6 +384,7 @@ Baseball.prototype = {
 var baseball = null;
 
 function pitchBall() {
+    cleanupTrail();
     updateBillboard("");
     var machineProperties = Entities.getEntityProperties(pitchingMachineID, ["dimensions", "position", "rotation"]);
     var pitchFromPositionBase = machineProperties.position;
