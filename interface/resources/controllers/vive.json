@@ -17,6 +17,9 @@
         { "from": "Vive.Start", "to": "Standard.Start" }, 
         
         { "from": "Vive.A", "to": "Standard.A" }, 
-        { "from": "Vive.B", "to": "Standard.B" }
+        { "from": "Vive.B", "to": "Standard.B" },
+
+        { "from": "Vive.LeftHand", "to": "Standard.LeftHand" },
+        { "from": "Vive.RightHand", "to": "Standard.RightHand" }
     ]
 }
