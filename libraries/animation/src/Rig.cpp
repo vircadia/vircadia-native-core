@@ -22,34 +22,6 @@
 #include "AnimSkeleton.h"
 #include "IKTarget.h"
 
-
-void Rig::HeadParameters::dump() const {
-    qCDebug(animation, "HeadParameters =");
-    qCDebug(animation, "    leanSideways = %0.5f", (double)leanSideways);
-    qCDebug(animation, "    leanForward = %0.5f", (double)leanForward);
-    qCDebug(animation, "    torsoTwist = %0.5f", (double)torsoTwist);
-    glm::vec3 axis = glm::axis(localHeadOrientation);
-    float theta = glm::angle(localHeadOrientation);
-    qCDebug(animation, "    localHeadOrientation axis = (%.5f, %.5f, %.5f), theta = %0.5f", (double)axis.x, (double)axis.y, (double)axis.z, (double)theta);
-    axis = glm::axis(worldHeadOrientation);
-    theta = glm::angle(worldHeadOrientation);
-    qCDebug(animation, "    localHead pitch = %.5f, yaw = %.5f, roll = %.5f", (double)localHeadPitch, (double)localHeadYaw, (double)localHeadRoll);
-    qCDebug(animation, "    localHeadPosition = (%.5f, %.5f, %.5f)", (double)localHeadPosition.x, (double)localHeadPosition.y, (double)localHeadPosition.z);
-    qCDebug(animation, "    isInHMD = %s", isInHMD ? "true" : "false");
-    qCDebug(animation, "    worldHeadOrientation axis = (%.5f, %.5f, %.5f), theta = %0.5f", (double)axis.x, (double)axis.y, (double)axis.z, (double)theta);
-    axis = glm::axis(modelRotation);
-    theta = glm::angle(modelRotation);
-    qCDebug(animation, "    modelRotation axis = (%.5f, %.5f, %.5f), theta = %0.5f", (double)axis.x, (double)axis.y, (double)axis.z, (double)theta);
-    qCDebug(animation, "    modelTranslation = (%.5f, %.5f, %.5f)", (double)modelTranslation.x, (double)modelTranslation.y, (double)modelTranslation.z);
-    qCDebug(animation, "    eyeLookAt = (%.5f, %.5f, %.5f)", (double)eyeLookAt.x, (double)eyeLookAt.y, (double)eyeLookAt.z);
-    qCDebug(animation, "    eyeSaccade = (%.5f, %.5f, %.5f)", (double)eyeSaccade.x, (double)eyeSaccade.y, (double)eyeSaccade.z);
-    qCDebug(animation, "    leanJointIndex = %.d", leanJointIndex);
-    qCDebug(animation, "    neckJointIndex = %.d", neckJointIndex);
-    qCDebug(animation, "    leftEyeJointIndex = %.d", leftEyeJointIndex);
-    qCDebug(animation, "    rightEyeJointIndex = %.d", rightEyeJointIndex);
-    qCDebug(animation, "    isTalking = %s", isTalking ? "true" : "false");
-}
-
 void insertSorted(QList<AnimationHandlePointer>& handles, const AnimationHandlePointer& handle) {
     for (QList<AnimationHandlePointer>::iterator it = handles.begin(); it != handles.end(); it++) {
         if (handle->getPriority() > (*it)->getPriority()) {
@@ -981,13 +953,18 @@ void Rig::updateFromHeadParameters(const HeadParameters& params, float dt) {
         _animVars.unset("lean");
     }
     updateNeckJoint(params.neckJointIndex, params);
-    updateEyeJoints(params.leftEyeJointIndex, params.rightEyeJointIndex, params.modelTranslation, params.modelRotation,
-                    params.worldHeadOrientation, params.eyeLookAt, params.eyeSaccade);
 
     if (_enableAnimGraph) {
         _animVars.set("isTalking", params.isTalking);
         _animVars.set("notIsTalking", !params.isTalking);
     }
+}
+
+void Rig::updateFromEyeParameters(const EyeParameters& params) {
+    updateEyeJoint(params.leftEyeJointIndex, params.modelTranslation, params.modelRotation,
+                   params.worldHeadOrientation, params.eyeLookAt, params.eyeSaccade);
+    updateEyeJoint(params.rightEyeJointIndex, params.modelTranslation, params.modelRotation,
+                   params.worldHeadOrientation, params.eyeLookAt, params.eyeSaccade);
 }
 
 static const glm::vec3 X_AXIS(1.0f, 0.0f, 0.0f);
@@ -1143,12 +1120,6 @@ void Rig::updateNeckJoint(int index, const HeadParameters& params) {
                                                state.getDefaultRotation(), DEFAULT_PRIORITY);
         }
     }
-}
-
-void Rig::updateEyeJoints(int leftEyeIndex, int rightEyeIndex, const glm::vec3& modelTranslation, const glm::quat& modelRotation,
-                          const glm::quat& worldHeadOrientation, const glm::vec3& lookAtSpot, const glm::vec3& saccade) {
-    updateEyeJoint(leftEyeIndex, modelTranslation, modelRotation, worldHeadOrientation, lookAtSpot, saccade);
-    updateEyeJoint(rightEyeIndex, modelTranslation, modelRotation, worldHeadOrientation, lookAtSpot, saccade);
 }
 
 void Rig::updateEyeJoint(int index, const glm::vec3& modelTranslation, const glm::quat& modelRotation, const glm::quat& worldHeadOrientation, const glm::vec3& lookAtSpot, const glm::vec3& saccade) {
