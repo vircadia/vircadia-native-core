@@ -14,6 +14,7 @@
 #include <QEventLoop>
 #include <QScriptSyntaxCheckResult>
 
+#include <ColorUtils.h>
 #include <AbstractScriptingServicesInterface.h>
 #include <AbstractViewStateInterface.h>
 #include <DeferredLightingEffect.h>
@@ -269,10 +270,10 @@ void EntityTreeRenderer::applyZonePropertiesToScene(std::shared_ptr<ZoneEntityIt
             _previousStageDay = scene->getStageYearTime();
             _hasPreviousZone = true;
         }
-        scene->setKeyLightColor(zone->getKeyLightColorVec3());
-        scene->setKeyLightIntensity(zone->getKeyLightIntensity());
-        scene->setKeyLightAmbientIntensity(zone->getKeyLightAmbientIntensity());
-        scene->setKeyLightDirection(zone->getKeyLightDirection());
+        scene->setKeyLightColor(ColorUtils::toVec3(zone->getKeyLightProperties().getColor()));
+        scene->setKeyLightIntensity(zone->getKeyLightProperties().getIntensity());
+        scene->setKeyLightAmbientIntensity(zone->getKeyLightProperties().getAmbientIntensity());
+        scene->setKeyLightDirection(zone->getKeyLightProperties().getDirection());
         scene->setStageSunModelEnable(zone->getStageProperties().getSunModelEnabled());
         scene->setStageLocation(zone->getStageProperties().getLongitude(), zone->getStageProperties().getLatitude(),
                                 zone->getStageProperties().getAltitude());
