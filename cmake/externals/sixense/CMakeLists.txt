@@ -1,30 +1,20 @@
 include(ExternalProject)
-include(SelectLibraryConfigurations)
 
-set(EXTERNAL_NAME Sixense)
+set(EXTERNAL_NAME sixense)
 
 string(TOUPPER ${EXTERNAL_NAME} EXTERNAL_NAME_UPPER)
 
 ExternalProject_Add(
   ${EXTERNAL_NAME}
-  URL ./SixenseSDK_062612.zip
-  URL_MD5 10cc8dc470d2ac1244a88cf04bc549cc
+  URL http://hifi-public.s3.amazonaws.com/dependencies/SixenseSDK_071615.zip
+  URL_MD5 752a3901f334124e9cffc2ba4136ef7d
   CONFIGURE_COMMAND ""
   BUILD_COMMAND ""
   INSTALL_COMMAND ""
   LOG_DOWNLOAD 1
 )
 
-if (APPLE)
-  find_library(SIXENSE_LIBRARY_RELEASE lib/osx_x64/release_dll/libsixense_x64.dylib HINTS ${SIXENSE_SEARCH_DIRS})
-  find_library(SIXENSE_LIBRARY_DEBUG lib/osx_x64/debug_dll/libsixensed_x64.dylib HINTS ${SIXENSE_SEARCH_DIRS})
-elseif (UNIX)
-  find_library(SIXENSE_LIBRARY_RELEASE lib/linux_x64/release/libsixense_x64.so HINTS ${SIXENSE_SEARCH_DIRS})
-  # find_library(SIXENSE_LIBRARY_DEBUG lib/linux_x64/debug/libsixensed_x64.so HINTS ${SIXENSE_SEARCH_DIRS})
-elseif (WIN32)
-endif ()
-
-
+set_target_properties(${EXTERNAL_NAME} PROPERTIES FOLDER "hidden/externals")
 
 ExternalProject_Get_Property(${EXTERNAL_NAME} SOURCE_DIR)
 
@@ -39,22 +29,18 @@ if (WIN32)
         set(ARCH_DIR "Win32")
         set(ARCH_SUFFIX "")
     endif()
-
-  # FIXME need to account for different architectures 
-  set(${EXTERNAL_NAME_UPPER}_LIBRARIES "${SOURCE_DIR}/lib/${ARCH_DIR}/release_dll/sixense${ARCH_SUFFIX}.lib" CACHE TYPE INTERNAL)
-  add_paths_to_fixup_libs(${SOURCE_DIR}/bin/win32)
+    
+    set(${EXTERNAL_NAME_UPPER}_LIBRARIES "${SOURCE_DIR}/lib/${ARCH_DIR}/VS2013/release_dll/sixense${ARCH_SUFFIX}.lib" CACHE TYPE INTERNAL)
+    add_paths_to_fixup_libs("${SOURCE_DIR}/bin/${ARCH_DIR}/VS2013/release_dll")
 
 elseif(APPLE)
 
-  # FIXME need to account for different architectures 
-  set(${EXTERNAL_NAME_UPPER}_LIBRARIES ${SOURCE_DIR}/lib/osx_x64/release_dll/libsixense_x64.dylib CACHE TYPE INTERNAL)
-  add_paths_to_fixup_libs(${SOURCE_DIR}/bin/osx32)
+    set(${EXTERNAL_NAME_UPPER}_LIBRARIES ${SOURCE_DIR}/lib/osx_x64/release_dll/libsixense_x64.dylib CACHE TYPE INTERNAL)
 
 elseif(NOT ANDROID)
 
-  # FIXME need to account for different architectures 
-  set(${EXTERNAL_NAME_UPPER}_LIBRARIES ${SOURCE_DIR}/lib/linux_x64/release/libsixense_x64.so CACHE TYPE INTERNAL)
-  add_paths_to_fixup_libs(${SOURCE_DIR}/bin/linux32)
-  
+    # FIXME need to account for different architectures 
+    set(${EXTERNAL_NAME_UPPER}_LIBRARIES ${SOURCE_DIR}/lib/linux_x64/release/libsixense_x64.so CACHE TYPE INTERNAL)
+
 endif()
 
