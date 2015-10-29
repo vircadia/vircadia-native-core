@@ -328,6 +328,7 @@
             var elZoneSections = document.querySelectorAll(".zone-section");
             allSections.push(elZoneSections);
             var elZoneStageSunModelEnabled = document.getElementById("property-zone-stage-sun-model-enabled");
+
             var elZoneKeyLightColor = document.getElementById("property-zone-key-light-color");
             var elZoneKeyLightColorRed = document.getElementById("property-zone-key-light-color-red");
             var elZoneKeyLightColorGreen = document.getElementById("property-zone-key-light-color-green");
@@ -337,6 +338,7 @@
             var elZoneKeyLightDirectionX = document.getElementById("property-zone-key-light-direction-x");
             var elZoneKeyLightDirectionY = document.getElementById("property-zone-key-light-direction-y");
             var elZoneKeyLightDirectionZ = document.getElementById("property-zone-key-light-direction-z");
+            var elZoneKeyLightAmbientURL = document.getElementById("property-zone-key-ambient-url");
 
             var elZoneStageLatitude = document.getElementById("property-zone-stage-latitude");
             var elZoneStageLongitude = document.getElementById("property-zone-stage-longitude");
@@ -568,15 +570,17 @@
                                 }
 
                                 elZoneStageSunModelEnabled.checked = properties.stage.sunModelEnabled;
-                                elZoneKeyLightColor.style.backgroundColor = "rgb(" + properties.keyLightColor.red  + "," + properties.keyLightColor.green + "," + properties.keyLightColor.blue + ")";
-                                elZoneKeyLightColorRed.value = properties.keyLightColor.red;
-                                elZoneKeyLightColorGreen.value = properties.keyLightColor.green;
-                                elZoneKeyLightColorBlue.value = properties.keyLightColor.blue;
-                                elZoneKeyLightIntensity.value = properties.keyLightIntensity.toFixed(2);
-                                elZoneKeyLightAmbientIntensity.value = properties.keyLightAmbientIntensity.toFixed(2);
-                                elZoneKeyLightDirectionX.value = properties.keyLightDirection.x.toFixed(2);
-                                elZoneKeyLightDirectionY.value = properties.keyLightDirection.y.toFixed(2);
-                                elZoneKeyLightDirectionZ.value = properties.keyLightDirection.z.toFixed(2);
+                                elZoneKeyLightColor.style.backgroundColor = "rgb(" + properties.keyLight.color.red  + "," + properties.keyLight.color.green + "," + properties.keyLight.color.blue + ")";
+                                elZoneKeyLightColorRed.value = properties.keyLight.color.red;
+                                elZoneKeyLightColorGreen.value = properties.keyLight.color.green;
+                                elZoneKeyLightColorBlue.value = properties.keyLight.color.blue;
+                                elZoneKeyLightIntensity.value = properties.keyLight.intensity.toFixed(2);
+                                elZoneKeyLightAmbientIntensity.value = properties.keyLight.ambientIntensity.toFixed(2);
+                                elZoneKeyLightDirectionX.value = properties.keyLight.direction.x.toFixed(2);
+                                elZoneKeyLightDirectionY.value = properties.keyLight.direction.y.toFixed(2);
+                                elZoneKeyLightDirectionZ.value = properties.keyLight.direction.z.toFixed(2);
+                                elZoneKeyLightAmbientURL.value = properties.keyLight.ambientURL;
+
 
                                 elZoneStageLatitude.value = properties.stage.latitude.toFixed(2);
                                 elZoneStageLongitude.value = properties.stage.longitude.toFixed(2);
@@ -819,21 +823,20 @@
                 onSubmit: function(hsb, hex, rgb, el) {
                     $(el).css('background-color', '#'+hex);
                     $(el).colpickHide();
-                    emitColorPropertyUpdate('keyLightColor', rgb.r, rgb.g, rgb.b);
+                    emitColorPropertyUpdate('color', rgb.r, rgb.g, rgb.b, 'keyLight');
                 }
             });
-            var zoneKeyLightColorChangeFunction = createEmitColorPropertyUpdateFunction(
-                'keyLightColor', elZoneKeyLightColorRed, elZoneKeyLightColorGreen, elZoneKeyLightColorBlue);
+            var zoneKeyLightColorChangeFunction = createEmitGroupColorPropertyUpdateFunction('keyLight','color', elZoneKeyLightColorRed, elZoneKeyLightColorGreen, elZoneKeyLightColorBlue);
             elZoneKeyLightColorRed.addEventListener('change', zoneKeyLightColorChangeFunction);
             elZoneKeyLightColorGreen.addEventListener('change', zoneKeyLightColorChangeFunction);
             elZoneKeyLightColorBlue.addEventListener('change', zoneKeyLightColorChangeFunction);
-            elZoneKeyLightIntensity.addEventListener('change', createEmitNumberPropertyUpdateFunction('keyLightIntensity'));
-            elZoneKeyLightAmbientIntensity.addEventListener('change', createEmitNumberPropertyUpdateFunction('keyLightAmbientIntensity'));
-            var zoneKeyLightDirectionChangeFunction = createEmitVec3PropertyUpdateFunction(
-                'keyLightDirection', elZoneKeyLightDirectionX, elZoneKeyLightDirectionY, elZoneKeyLightDirectionZ);
+            elZoneKeyLightIntensity.addEventListener('change', createEmitGroupNumberPropertyUpdateFunction('intensity','keyLight'));
+            elZoneKeyLightAmbientIntensity.addEventListener('change', createEmitGroupNumberPropertyUpdateFunction('keyLight','ambientIntensity'));
+            var zoneKeyLightDirectionChangeFunction = createEmitGroupVec3PropertyUpdateFunction('keyLight','direction', elZoneKeyLightDirectionX, elZoneKeyLightDirectionY, elZoneKeyLightDirectionZ);
             elZoneKeyLightDirectionX.addEventListener('change', zoneKeyLightDirectionChangeFunction);
             elZoneKeyLightDirectionY.addEventListener('change', zoneKeyLightDirectionChangeFunction);
             elZoneKeyLightDirectionZ.addEventListener('change', zoneKeyLightDirectionChangeFunction);
+            elZoneKeyLightAmbientURL.addEventListener('change', createEmitGroupTextPropertyUpdateFunction('keyLight','ambientURL'));
 
             elZoneStageLatitude.addEventListener('change', createEmitGroupNumberPropertyUpdateFunction('stage','latitude'));
             elZoneStageLongitude.addEventListener('change', createEmitGroupNumberPropertyUpdateFunction('stage','longitude'));
@@ -1476,8 +1479,12 @@
             </span>
         </div>
 
-        <div class="zone-section property">
-            <div class="label">Key Light Color</div>
+        <div class="sub-section-header zone-section keyLight-section">
+            <label>KeyLight</label>
+        </div>
+
+        <div class="zone-section keyLight-section property">
+            <div class="label">Light Color</div>
             <div class="value">
                 <div class='color-picker' id="property-zone-key-light-color"></div>
                 <div class="input-area">R <input class="coord" type='number' id="property-zone-key-light-color-red" min="0" max="255" step="1"></div>
@@ -1485,20 +1492,16 @@
                 <div class="input-area">B <input class="coord" type='number' id="property-zone-key-light-color-blue" min="0" max="255" step="1"></div>
             </div>
         </div>
-        <div class="zone-section property">
-            <div class="label">Key Light Intensity</div>
+
+        <div class="zone-section keyLight-section property">
+            <div class="label">Light Intensity</div>
             <div class="value">
                 <input class="coord" type='number' id="property-zone-key-intensity" min="0" max="10" step="0.1">
             </div>
         </div>
-        <div class="zone-section property">
-            <div class="label">Key Light Ambient Intensity</div>
-            <div class="value">
-                <input class="coord" type='number' id="property-zone-key-ambient-intensity" min="0" max="10" step="0.1">
-            </div>
-        </div>
-        <div class="zone-section property">
-            <div class="label">Key Light Direction</div>
+        
+        <div class="zone-section keyLight-section property">
+            <div class="label">Light Direction</div>
             <div class="value">
                 <div class="input-area">Pitch <input class="coord" type='number' id="property-zone-key-light-direction-x"></div>
                 <div class="input-area">Yaw <input class="coord" type='number' id="property-zone-key-light-direction-y"></div>
@@ -1506,46 +1509,69 @@
             </div>
         </div>
 
-        <div class="zone-section property">
+        <div class="zone-section keyLight-section property">
+            <div class="label">Ambient Intensity</div>
+            <div class="value">
+                <input class="coord" type='number' id="property-zone-key-ambient-intensity" min="0" max="10" step="0.1">
+            </div>
+        </div>
+
+        
+        <div class="zone-section keyLight-section property">
+            <div class="label">Ambient URL</div>
+            <div class="value">
+                <input type="text" id="property-zone-skybox-url" class="url">
+            </div>
+        </div>
+
+        <div class="sub-section-header zone-section stage-section">
+            <label>Stage</label>
+        </div>
+
+        <div class="zone-section stage-section property">
             <div class="label">Stage Latitude</div>
             <div class="value">
                 <input class="coord" type='number' id="property-zone-stage-latitude" min="-90" max="90" step="1">
             </div>
         </div>
-        <div class="zone-section property">
+        <div class="zone-section stage-section property">
             <div class="label">Stage Longitude</div>
             <div class="value">
                 <input class="coord" type='number' id="property-zone-stage-longitude" min="-180" max="180" step="1">
             </div>
         </div>
-        <div class="zone-section property">
+        <div class="zone-section stage-section property">
             <div class="label">Stage Altitude</div>
             <div class="value">
                 <input class="coord" type='number' id="property-zone-stage-altitude" step="1">
             </div>
         </div>
 
-        <div class="zone-section property">
+        <div class="zone-section stage-section property">
             <span class="label">Automatically calculate stage hour and day from location and clock.</span>
             <span class="value">
                 <input type='checkbox' id="property-zone-stage-automatic-hour-day">
             </span>
         </div>
 
-        <div class="zone-section property">
+        <div class="zone-section stage-section property">
             <div class="label">Stage Day</div>
             <div class="value">
                 <input class="coord" type='number' id="property-zone-stage-day" min="0" max="365" step="1">
             </div>
         </div>
-        <div class="zone-section property">
+        <div class="zone-section stage-section property">
             <div class="label">Stage Hour</div>
             <div class="value">
                 <input class="coord" type='number' id="property-zone-stage-hour" min="0" max="24" step="0.5">
             </div>
         </div>
 
-        <div class="zone-section property">
+        <div class="sub-section-header zone-section background-section">
+            <label>Background</label>
+        </div>
+
+        <div class="zone-section background-section property">
             <div class="label">Background Mode</div>
             <div class="value">
                 <select name="SelectBackgroundMode" id="property-zone-background-mode">

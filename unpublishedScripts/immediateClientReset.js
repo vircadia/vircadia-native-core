@@ -8,14 +8,10 @@
 
 /*global print, MyAvatar, Entities, AnimationCache, SoundCache, Scene, Camera, Overlays, Audio, HMD, AvatarList, AvatarManager, Controller, UndoStack, Window, Account, GlobalServices, Script, ScriptDiscoveryService, LODManager, Menu, Vec3, Quat, AudioDevice, Paths, Clipboard, Settings, XMLHttpRequest, pointInExtents, vec3equal, setEntityCustomData, getEntityCustomData */
 
-
 var masterResetScript = Script.resolvePath("masterReset.js");
 var hiddenEntityScriptURL = Script.resolvePath("hiddenEntityReset.js");
 
-
 Script.include(masterResetScript);
-
-
 
 function createHiddenMasterSwitch() {
 
@@ -31,7 +27,6 @@ function createHiddenMasterSwitch() {
     });
 }
 
-
 var entities = Entities.findEntities(MyAvatar.position, 100);
 
 entities.forEach(function(entity) {
@@ -41,5 +36,7 @@ entities.forEach(function(entity) {
         Entities.deleteEntity(entity);
     }
 });
+
 createHiddenMasterSwitch();
+
 MasterReset();
