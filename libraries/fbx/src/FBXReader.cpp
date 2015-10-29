@@ -1401,11 +1401,6 @@ FBXGeometry* FBXReader::extractFBXGeometry(const QVariantHash& mapping, const QS
                 joint.bindTransform = cluster.transformLink;
                 joint.bindTransformFoundInCluster = true;
 
-                if (fbxCluster.jointIndex == 63) { // Head
-                    qCDebug(modelformat) << "AJT: Head found in cluster, id = " << clusterID;
-                    qCDebug(modelformat) << "AJT:     trans = " << extractTranslation(cluster.transformLink);
-                }
-
                 // update the bind pose extents
                 glm::vec3 bindTranslation = extractTranslation(geometry.offset * joint.bindTransform);
                 geometry.bindExtents.addPoint(bindTranslation);
