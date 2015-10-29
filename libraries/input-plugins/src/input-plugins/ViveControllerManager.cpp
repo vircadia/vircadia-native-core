@@ -135,6 +135,11 @@ void ViveControllerManager::activate() {
         _renderControllers = true;
     }
 #endif
+
+    // unregister with UserInputMapper
+    auto userInputMapper = DependencyManager::get<controller::UserInputMapper>();
+    userInputMapper->registerDevice(instance);
+    _registeredWithInputMapper = true;
 }
 
 void ViveControllerManager::deactivate() {
@@ -152,6 +157,11 @@ void ViveControllerManager::deactivate() {
     }
     _poseStateMap.clear();
 #endif
+
+    // unregister with UserInputMapper
+    auto userInputMapper = DependencyManager::get<controller::UserInputMapper>();
+    userInputMapper->removeDevice(_deviceID);
+    _registeredWithInputMapper = false;
 }
 
 void ViveControllerManager::updateRendering(RenderArgs* args, render::ScenePointer scene, render::PendingChanges pendingChanges) {
@@ -272,15 +282,16 @@ void ViveControllerManager::update(float deltaTime, bool jointsCaptured) {
     auto userInputMapper = DependencyManager::get<controller::UserInputMapper>();
         
     if (numTrackedControllers == 0) {
-        if (_deviceID != 0) {
+        if (_registeredWithInputMapper) {
             userInputMapper->removeDevice(_deviceID);
-            _deviceID = 0;
+            _registeredWithInputMapper = false;
             _poseStateMap.clear();
         }
     }
         
     if (_trackedControllers == 0 && numTrackedControllers > 0) {
         userInputMapper->registerDevice(instance);
+        _registeredWithInputMapper = true;
         UserActivityLogger::getInstance().connectedDevice("spatial_controller", "steamVR");
     }
         

@@ -126,6 +126,7 @@ void SixenseManager::activate() {
 
 void SixenseManager::deactivate() {
     InputPlugin::deactivate();
+
 #ifdef HAVE_SIXENSE
     CONTAINER->removeMenuItem(MENU_NAME, TOGGLE_SMOOTH);
     CONTAINER->removeMenu(MENU_PATH);
@@ -136,7 +137,6 @@ void SixenseManager::deactivate() {
     if (_deviceID != controller::Input::INVALID_DEVICE) {
         auto userInputMapper = DependencyManager::get<controller::UserInputMapper>();
         userInputMapper->removeDevice(_deviceID);
-        _deviceID = controller::Input::INVALID_DEVICE;
     }
 
 #ifdef __APPLE__
