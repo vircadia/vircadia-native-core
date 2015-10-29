@@ -613,9 +613,6 @@ function MyController(hand, triggerAction) {
                 Entities.callEntityMethod(this.grabbedEntity, "setLeftHand");
             }
             Entities.callEntityMethod(this.grabbedEntity, "startNearGrab");
-            setEntityCustomData('hifiHoldActionKey', this.grabbedEntity, {
-                holdActionID: this.actionID
-            })
 
         }
 
@@ -625,6 +622,7 @@ function MyController(hand, triggerAction) {
     };
 
     this.continueNearGrabbing = function() {
+
         if (this.triggerSmoothedReleased()) {
             this.setState(STATE_RELEASE);
             return;
@@ -647,6 +645,17 @@ function MyController(hand, triggerAction) {
         this.currentHandControllerTipPosition = handControllerPosition;
         this.currentObjectTime = now;
         Entities.callEntityMethod(this.grabbedEntity, "continueNearGrab");
+        var properties = Entities.getEntityProperties(this.grabbedEntity, ["userData","name"]);
+        var userData = JSON.parse(properties.userData);
+        var shouldRelease;
+        if (userData.hasOwnProperty('hifiBowKey')) {
+            var shouldRelease;
+            if (userData.hifiBowKey.shouldRelease === true) {
+                this.setState(STATE_RELEASE);
+                shouldRelease=true;
+                return;
+            }
+        }
 
         if (this.actionTimeout - now < ACTION_LIFETIME_REFRESH * MSEC_PER_SEC) {
             // if less than a 5 seconds left, refresh the actions lifetime
@@ -823,6 +832,7 @@ function MyController(hand, triggerAction) {
             }
             Entities.callEntityMethod(this.grabbedEntity, "releaseGrab");
         }
+
 
         // the action will tend to quickly bring an object's velocity to zero.  now that
         // the action is gone, set the objects velocity to something the holder might expect.

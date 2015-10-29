@@ -28,6 +28,7 @@
         glow: false,
         glowBox: null,
         isBurning: false,
+        notched: false,
         preload: function(entityID) {
             this.entityID = entityID;
 
@@ -59,19 +60,19 @@
             // }
 
         },
-        startNearGrab: function() {
-            print('STARTING GRAB ON ARROW!!')
-        },
+
         continueNearGrab: function() {
             this.currentProperties = Entities.getEntityProperties(this.entityID, "position");
-            this.searchForNotchDetectors();
+            if (this.notched !== true) {
+                this.searchForNotchDetectors();
+
+            }
         },
 
         searchForNotchDetectors: function() {
             if (this.notched === true) {
                 return
             };
-            print('SEARCHING FOR NOTCH DETECTOR');
 
             var ids = Entities.findEntities(this.currentProperties.position, NOTCH_DETECTOR_SEARCH_RADIUS);
             var i, properties;
@@ -82,7 +83,6 @@
                     print('NEAR THE NOTCH!!!')
                     this.notched = true;
                     this.tellBowArrowIsNotched(this.getBowID(id));
-                    this.disableGrab();
                 }
             }
 
@@ -103,20 +103,18 @@
         },
 
         tellBowArrowIsNotched: function(bowID) {
-            setEntityCustomData('hifiBowKey', bowID, {
-                arrowNotched: true,
-                arrowID: this.entityID
+            setEntityCustomData('hifiBowKey', this.entityID, {
+                shouldRelease: true
             });
-        },
-
-        disableGrab: function() {
-            print('ACTION ID IS::: ' + this.getActionID());
-            Entities.deleteAction(this.entityID, this.getActionID());
 
             setEntityCustomData('grabbableKey', this.entityID, {
                 grabbable: false
             });
 
+            setEntityCustomData('hifiBowKey', bowID, {
+                hasArrowNotched: true,
+                arrowID: this.entityID
+            });
         },
 
         checkIfBurning: function() {
@@ -201,7 +199,6 @@
     }
 
     Entities.deletingEntity.connect(deleteEntity);
-
 
     return new Arrow;
 })
