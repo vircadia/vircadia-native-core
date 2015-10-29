@@ -187,8 +187,7 @@ public:
     bool getEnableAnimGraph() const { return _enableAnimGraph; }
 
     void updateFromHeadParameters(const HeadParameters& params, float dt);
-    void updateFromEyeParameters(const EyeParameters& params, float dt);
-
+    void updateFromEyeParameters(const EyeParameters& params);
     void updateFromHandParameters(const HandParameters& params, float dt);
 
     virtual void setHandPosition(int jointIndex, const glm::vec3& position, const glm::quat& rotation,

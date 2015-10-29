@@ -960,7 +960,7 @@ void Rig::updateFromHeadParameters(const HeadParameters& params, float dt) {
     }
 }
 
-void Rig::updateFromEyeParameters(const EyeParameters& params, float dt) {
+void Rig::updateFromEyeParameters(const EyeParameters& params) {
     updateEyeJoint(params.leftEyeJointIndex, params.modelTranslation, params.modelRotation,
                    params.worldHeadOrientation, params.eyeLookAt, params.eyeSaccade);
     updateEyeJoint(params.rightEyeJointIndex, params.modelTranslation, params.modelRotation,

@@ -194,7 +194,7 @@ void SkeletonModel::updateRig(float deltaTime, glm::mat4 parentTransform) {
         eyeParams.leftEyeJointIndex = geometry.leftEyeJointIndex;
         eyeParams.rightEyeJointIndex = geometry.rightEyeJointIndex;
 
-        _rig->updateFromEyeParameters(eyeParams, deltaTime);
+        _rig->updateFromEyeParameters(eyeParams);
 
         // rebuild the jointState transform for the eyes only
         _rig->updateJointState(eyeParams.leftEyeJointIndex, parentTransform);
@@ -229,7 +229,7 @@ void SkeletonModel::updateRig(float deltaTime, glm::mat4 parentTransform) {
         eyeParams.modelTranslation = getTranslation();
         eyeParams.leftEyeJointIndex = geometry.leftEyeJointIndex;
         eyeParams.rightEyeJointIndex = geometry.rightEyeJointIndex;
-        _rig->updateFromEyeParameters(eyeParams, deltaTime);
+        _rig->updateFromEyeParameters(eyeParams);
      }
 }
 
