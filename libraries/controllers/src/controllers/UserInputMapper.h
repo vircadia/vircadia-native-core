@@ -108,6 +108,7 @@ namespace controller {
         MappingPointer parseMapping(const QString& json);
         MappingPointer loadMapping(const QString& jsonFile);
 
+        void loadDefaultMapping(uint16 deviceID);
         void enableMapping(const QString& mappingName, bool enable = true);
         float getValue(const Input& input) const;
         Pose getPose(const Input& input) const;

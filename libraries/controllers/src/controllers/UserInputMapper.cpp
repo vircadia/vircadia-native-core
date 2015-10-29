@@ -129,6 +129,27 @@ void UserInputMapper::removeDevice(int deviceID) {
 }
 
 
+void UserInputMapper::loadDefaultMapping(uint16 deviceID) {
+    Locker locker(_lock);
+    auto proxyEntry = _registeredDevices.find(deviceID);
+    if (_registeredDevices.end() == proxyEntry) {
+        qCWarning(controllers) << "Unknown deviceID " << deviceID;
+        return;
+    }
+
+
+    auto mapping = loadMapping(proxyEntry->second->getDefaultMappingConfig());
+    if (mapping) {
+        auto prevMapping = _mappingsByDevice[deviceID];
+        disableMapping(prevMapping);
+
+        _mappingsByDevice[deviceID] = mapping;
+        enableMapping(mapping);
+    }
+
+    emit hardwareChanged();
+}
+
 InputDevice::Pointer UserInputMapper::getDevice(const Input& input) {
     Locker locker(_lock);
     auto device = _registeredDevices.find(input.getDevice());
@@ -710,6 +731,8 @@ Mapping::Pointer UserInputMapper::loadMapping(const QString& jsonFile) {
     }
     return parseMapping(json);
 }
+
+
 
 static const QString JSON_NAME = QStringLiteral("name");
 static const QString JSON_CHANNELS = QStringLiteral("channels");

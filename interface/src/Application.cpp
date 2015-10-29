@@ -648,6 +648,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
     userInputMapper->registerDevice(_keyboardMouseDevice);
 
 
+    userInputMapper->loadDefaultMapping(userInputMapper->getStandardDeviceID());
+
     // check first run...
     if (_firstRun.get()) {
         qCDebug(interfaceapp) << "This is a first run...";
