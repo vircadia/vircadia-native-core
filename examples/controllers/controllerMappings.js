@@ -91,5 +91,11 @@ Object.keys(Controller.Actions).forEach(function (actionName) {
 
 
 Controller.hardwareChanged.connect(function () {
-    print("hardwareChanged");
+    print("hardwareChanged ---------------------------------------------------");
+    Object.keys(Controller.Hardware).forEach(function (deviceName) {
+        Object.keys(Controller.Hardware[deviceName]).forEach(function (input) {
+            print("Controller.Hardware." + deviceName + "." + input + ":" + Controller.Hardware[deviceName][input]);
+        });
+    });
+    print("-------------------------------------------------------------------");
 });

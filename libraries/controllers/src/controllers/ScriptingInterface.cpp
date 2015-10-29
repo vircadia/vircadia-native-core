@@ -204,25 +204,24 @@ namespace controller {
     }
 
     void ScriptingInterface::updateMaps() {
+        QVariantMap newHardware;
         auto userInputMapper = DependencyManager::get<controller::UserInputMapper>();
         auto devices = userInputMapper->getDevices();
-        QSet<QString> foundDevices;
         for (const auto& deviceMapping : devices) {
             auto deviceID = deviceMapping.first;
             if (deviceID != userInputMapper->getStandardDeviceID()) {
                 auto device = deviceMapping.second;
                 auto deviceName = QString(device->getName()).remove(SANITIZE_NAME_EXPRESSION);
                 qCDebug(controllers) << "Device" << deviceMapping.first << ":" << deviceName;
-                foundDevices.insert(device->getName());
-                if (_hardware.contains(deviceName)) {
+                if (newHardware.contains(deviceName)) {
                     continue;
                 }
 
                 // Expose the IDs to JS
-                _hardware.insert(deviceName, createDeviceMap(device));
+                newHardware.insert(deviceName, createDeviceMap(device));
             }
-
         }
+        _hardware = newHardware;
     }
 
 
