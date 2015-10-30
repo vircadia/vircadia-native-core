@@ -22,7 +22,7 @@ triggers[1] = Controller.Standard.RT;
 function checkController(deltaTime) {
     var triggerToggled = false;
 	for (var t = 0; t < NUMBER_OF_TRIGGERS; t++) {
-            var triggerValue = Controller.getValue(triggers[t]]);
+            var triggerValue = Controller.getValue(triggers[t]);
             if (triggerPulled[t]) {
                 // must release to at least 0.1
                 if (triggerValue < 0.1) {
