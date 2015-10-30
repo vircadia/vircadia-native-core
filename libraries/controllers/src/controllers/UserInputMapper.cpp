@@ -747,7 +747,15 @@ Endpoint::Pointer UserInputMapper::parseEndpoint(const QJsonValue& value) {
     if (value.isString()) {
         auto input = findDeviceInput(value.toString());
         result = endpointFor(input);
+    } else if (value.isArray()) {
+        return parseAny(value);
     } else if (value.isObject()) {
+        auto axisEndpoint = parseAxis(value);
+        if (axisEndpoint) {
+            return axisEndpoint;
+        }
+        // if we have other types of endpoints that are objects, follow the axisEndpoint example, and place them here
+
         // Endpoint is defined as an object, we expect a js function then
         return Endpoint::Pointer();
     }
@@ -881,7 +889,28 @@ Endpoint::Pointer UserInputMapper::parseDestination(const QJsonValue& value) {
     return parseEndpoint(value);
 }
 
-Endpoint::Pointer UserInputMapper::parseSource(const QJsonValue& value) {
+Endpoint::Pointer UserInputMapper::parseAxis(const QJsonValue& value) {
+    if (value.isObject()) {
+        auto object = value.toObject();
+        if (object.contains("makeAxis")) {
+            auto axisValue = object.value("makeAxis");
+            if (axisValue.isArray()) {
+                auto axisArray = axisValue.toArray();
+                static const int AXIS_ARRAY_SIZE = 2; // axis can only have 2 children
+                if (axisArray.size() == AXIS_ARRAY_SIZE) {
+                    Endpoint::Pointer first = parseEndpoint(axisArray.first());
+                    Endpoint::Pointer second = parseEndpoint(axisArray.last());
+                    if (first && second) {
+                        return std::make_shared<CompositeEndpoint>(first, second);
+                    }
+                }
+            }
+        }
+    }
+    return Endpoint::Pointer();
+}
+
+Endpoint::Pointer UserInputMapper::parseAny(const QJsonValue& value) {
     if (value.isArray()) {
         Endpoint::List children;
         for (auto arrayItem : value.toArray()) {
@@ -893,7 +922,19 @@ Endpoint::Pointer UserInputMapper::parseSource(const QJsonValue& value) {
         }
         return std::make_shared<AnyEndpoint>(children);
     }
+    return Endpoint::Pointer();
+}
 
+Endpoint::Pointer UserInputMapper::parseSource(const QJsonValue& value) {
+    if (value.isObject()) {
+        auto axisEndpoint = parseAxis(value);
+        if (axisEndpoint) {
+            return axisEndpoint;
+        }
+        // if we have other types of endpoints that are objects, follow the axisEndpoint example, and place them here
+    } else if (value.isArray()) {
+        return parseAny(value);
+    }
     return parseEndpoint(value);
 }
 
