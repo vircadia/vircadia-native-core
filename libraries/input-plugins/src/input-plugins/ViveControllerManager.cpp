@@ -307,11 +307,13 @@ void ViveControllerManager::focusOutEvent() {
 // These functions do translation from the Steam IDs to the standard controller IDs
 void ViveControllerManager::handleAxisEvent(uint32_t axis, float x, float y, bool left) {
 #ifdef Q_OS_WIN
+    axis += vr::k_EButton_Axis0;
     using namespace controller;
     if (axis == vr::k_EButton_SteamVR_Touchpad) {
         _axisStateMap[left ? LX : RX] = x;
         _axisStateMap[left ? LY : RY] = y;
     } else if (axis == vr::k_EButton_SteamVR_Trigger) {
+        //FIX ME: Seems that enters here everytime
         _axisStateMap[left ? LT : RT] = x;
     }
 #endif
@@ -325,15 +327,17 @@ void ViveControllerManager::handleButtonEvent(uint32_t button, bool pressed, boo
     }
 
     if (button == vr::k_EButton_ApplicationMenu) {
-        // FIXME?
-        _buttonPressedMap.insert(left ? controller::B : controller::A);
+        _buttonPressedMap.insert(left ? controller::LEFT_PRIMARY_THUMB : controller::RIGHT_PRIMARY_THUMB);
     } else if (button == vr::k_EButton_Grip) {
         // Tony says these are harder to reach, so make them the meta buttons
-        _buttonPressedMap.insert(left ? controller::BACK : controller::START);
-    } else if (button == vr::k_EButton_SteamVR_Trigger) {
         _buttonPressedMap.insert(left ? controller::LB : controller::RB);
+    } else if (button == vr::k_EButton_SteamVR_Trigger) {
+        _buttonPressedMap.insert(left ? controller::LT : controller::RT);
     } else if (button == vr::k_EButton_SteamVR_Touchpad) {
         _buttonPressedMap.insert(left ? controller::LS : controller::RS);
+    } else if (button == vr::k_EButton_System) {
+        //FIX ME: not able to ovrewrite the behaviour of this button
+        _buttonPressedMap.insert(left ? controller::LEFT_SECONDARY_THUMB : controller::RIGHT_SECONDARY_THUMB);
     }
 #endif
 }
@@ -425,10 +429,10 @@ controller::Input::NamedVector ViveControllerManager::getAvailableInputs() const
         makePair(LEFT_HAND, "LeftHand"),
         makePair(RIGHT_HAND, "RightHand"),
 
-        makePair(A, "A"),
-        makePair(B, "B"),
-        makePair(BACK, "Back"),
-        makePair(START, "Start"),
+        makePair(LEFT_PRIMARY_THUMB, "LeftPrimaryThumb"),
+        makePair(LEFT_SECONDARY_THUMB, "LeftSecondaryThumb"),
+        makePair(RIGHT_PRIMARY_THUMB, "RightPrimaryThumb"),
+        makePair(RIGHT_SECONDARY_THUMB, "RightSecondaryThumb"),
     };
 
     //availableInputs.append(Input::NamedPair(makeInput(BUTTON_A, 0), "Left Button A"));
