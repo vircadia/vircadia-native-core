@@ -366,5 +366,10 @@ AvatarSharedPointer AvatarManager::getAvatarBySessionID(const QUuid& sessionID) 
         return std::static_pointer_cast<Avatar>(_myAvatar);
     }
     QReadLocker locker(&_hashLock);
-    return _avatarHash[sessionID];
+    auto iter = _avatarHash.find(sessionID);
+    if (iter != _avatarHash.end()) {
+        return iter.value();
+    } else {
+        return AvatarSharedPointer();
+    }
 }
