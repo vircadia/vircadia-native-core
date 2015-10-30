@@ -248,6 +248,16 @@ QVector<AvatarManager::LocalLight> AvatarManager::getLocalLights() const {
     return _localLights;
 }
 
+QVector<QUuid> AvatarManager::getAvatarIdentifiers() {
+    QReadLocker locker(&_hashLock);
+    return _avatarHash.keys().toVector();
+}
+AvatarData* AvatarManager::getAvatar(QUuid avatarID) {
+    QReadLocker locker(&_hashLock);
+    return _avatarHash[avatarID].get();  // Non-obvious: A bogus avatarID answers your own avatar.
+}
+
+
 void AvatarManager::getObjectsToDelete(VectorOfMotionStates& result) {
     result.clear();
     result.swap(_motionStatesToDelete);
