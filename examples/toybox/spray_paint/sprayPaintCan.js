@@ -33,12 +33,17 @@
     var MIN_POINT_DISTANCE = 0.01;
     var STROKE_WIDTH = 0.02;
 
+    var TRIGGER_CONTROLS = [
+        Controller.Standard.LT,
+        Controller.Standard.RT,
+    ];
+    
     this.setRightHand = function () {
-        this.hand = 'RIGHT';
+        this.hand = 1;
     }
 
     this.setLeftHand = function () {
-        this.hand = 'LEFT';
+        this.hand = 0;
     }
 
     this.startNearGrab = function () {
@@ -46,11 +51,7 @@
     }
 
     this.toggleWithTriggerPressure = function () {
-        var handClickString = this.whichHand + "_HAND_CLICK";
-
-        var handClick = Controller.findAction(handClickString);
-
-        this.triggerValue = Controller.getActionValue(handClick);
+        this.triggerValue = Controller.getValue(TRIGGER_CONTROLS[this.whichHand]);
         if (this.triggerValue < DISABLE_SPRAY_THRESHOLD && this.spraying === true) {
             this.spraying = false;
             this.disableStream();
