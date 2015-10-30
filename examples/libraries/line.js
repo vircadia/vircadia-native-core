@@ -102,7 +102,7 @@ InfiniteLine = function(position, color, lifetime) {
     this.position = position;
     this.color = color;
     this.lifetime = lifetime === undefined ? DEFAULT_LIFETIME : lifetime;
-    this.lines = [new PolyLine(position, color, 0.01)];
+    this.lines = [];
     this.size = 0;
 };
 
