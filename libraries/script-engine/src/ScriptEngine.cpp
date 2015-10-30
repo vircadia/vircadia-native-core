@@ -780,9 +780,9 @@ void ScriptEngine::callAnimationStateHandler(QScriptValue callback, AnimVariantM
                                   Q_ARG(AnimVariantResultHandler, resultHandler));
         return;
     }
-    QScriptValue javascriptParametgers = parameters.animVariantMapToScriptValue(this, names, useNames);
+    QScriptValue javascriptParameters = parameters.animVariantMapToScriptValue(this, names, useNames);
     QScriptValueList callingArguments;
-    callingArguments << javascriptParametgers;
+    callingArguments << javascriptParameters;
     QScriptValue result = callback.call(QScriptValue(), callingArguments);
     resultHandler(result);
 }
