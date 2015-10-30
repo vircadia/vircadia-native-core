@@ -65,8 +65,13 @@ inline bool operator!=(const xColor& lhs, const xColor& rhs)
 // Use a custom User-Agent to avoid ModSecurity filtering, e.g. by hosting providers.
 const QByteArray HIGH_FIDELITY_USER_AGENT = "Mozilla/5.0 (HighFidelityInterface)";
 
+// Equivalent to time_t but in usecs instead of secs
 quint64 usecTimestampNow(bool wantDebug = false);
 void usecTimestampNowForceClockSkew(int clockSkew);
+
+// Number of seconds expressed since the first call to this function, expressed as a float
+// Maximum accuracy in msecs
+float secTimestampNow();
 
 float randFloat();
 int randIntInRange (int min, int max);
