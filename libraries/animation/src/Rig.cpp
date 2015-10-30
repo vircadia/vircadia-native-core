@@ -615,7 +615,7 @@ void Rig::updateAnimationStateHandlers() { // called on avatar update thread (wh
         int identifier = data.key();
         StateHandler& value = data.value();
         QScriptValue& function = value.function;
-        auto handleResult = [this, identifier](QScriptValue result) {
+        auto handleResult = [this, identifier](QScriptValue result) { // called in script thread to get the result back to us.
             animationStateHandlerResult(identifier, result);
         };
         // invokeMethod makes a copy of the args, and copies of AnimVariantMap do copy the underlying map, so this will correctly capture
