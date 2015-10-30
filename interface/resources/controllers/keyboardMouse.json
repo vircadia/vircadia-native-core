@@ -38,7 +38,7 @@
 
         { "from": { "makeAxis" : ["Keyboard.MouseMoveLeft", "Keyboard.MouseMoveRight"] },
           "when": "Keyboard.RightMouseClick",
-          "to": "Actions.Yaw",
+          "to": "Actions.Yaw"
         },
 
         { "from": "Keyboard.A", "when": "Keyboard.Shift", "to": "Actions.LATERAL_LEFT" },
