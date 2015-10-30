@@ -67,6 +67,7 @@ void AnimVariantMap::copyVariantsFrom(const AnimVariantMap& other) {
         _map[pair.first] = pair.second;
     }
 }
+
 void AnimVariantMap::animVariantMapFromScriptValue(const QScriptValue& source) {
     if (QThread::currentThread() != source.engine()->thread()) {
         qCWarning(animation) << "Cannot examine Javacript object from non-script thread" << QThread::currentThread();
@@ -84,10 +85,8 @@ void AnimVariantMap::animVariantMapFromScriptValue(const QScriptValue& source) {
         QScriptValue value = property.value();
         if (value.isBool()) {
             set(property.name(), value.toBool());
-            continue;
         } else if (value.isString()) {
             set(property.name(), value.toString());
-            continue;
         } else if (value.isNumber()) {
             int asInteger = value.toInt32();
             float asFloat = value.toNumber();
@@ -96,25 +95,27 @@ void AnimVariantMap::animVariantMapFromScriptValue(const QScriptValue& source) {
             } else {
                 set(property.name(), asFloat);
             }
-            continue;
-        } else if (value.isObject()) {
-            QScriptValue x = value.property("x");
-            if (x.isNumber()) {
-                QScriptValue y = value.property("y");
-                if (y.isNumber()) {
-                    QScriptValue z = value.property("z");
-                    if (z.isNumber()) {
-                        QScriptValue w = value.property("w");
-                        if (w.isNumber()) {
-                            set(property.name(), glm::quat(x.toNumber(), y.toNumber(), z.toNumber(), w.toNumber()));
-                        } else {
-                            set(property.name(), glm::vec3(x.toNumber(), y.toNumber(), z.toNumber()));
+        } else { // Try to get x,y,z and possibly w
+            if (value.isObject()) {
+                QScriptValue x = value.property("x");
+                if (x.isNumber()) {
+                    QScriptValue y = value.property("y");
+                    if (y.isNumber()) {
+                        QScriptValue z = value.property("z");
+                        if (z.isNumber()) {
+                            QScriptValue w = value.property("w");
+                            if (w.isNumber()) {
+                                set(property.name(), glm::quat(x.toNumber(), y.toNumber(), z.toNumber(), w.toNumber()));
+                            } else {
+                                set(property.name(), glm::vec3(x.toNumber(), y.toNumber(), z.toNumber()));
+                            }
+                            continue; // we got either a vector or quaternion object, so don't fall through to warning
                         }
-                        continue;
                     }
                 }
             }
+            qCWarning(animation) << "Ignoring unrecognized data" << value.toString() << "for animation property" << property.name();
+            Q_ASSERT(false);
         }
-        qCWarning(animation) << "Ignoring unrecognized data" << value.toString() << "for animation property" << property.name();
-     }
+    }
 }
