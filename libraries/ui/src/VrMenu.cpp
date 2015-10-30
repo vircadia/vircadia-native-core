@@ -113,6 +113,7 @@ void VrMenu::addMenu(QMenu* menu) {
                                                   Q_ARG(QVariant, QVariant::fromValue(qmlParent)),
                                                   Q_ARG(QVariant, QVariant::fromValue(menu->title())));
     Q_ASSERT(invokeResult);
+    Q_UNUSED(invokeResult); // FIXME - apparently we haven't upgraded the Qt on our unix Jenkins environments to 5.5.x
     QObject* result = returnedValue.value<QObject*>();
     Q_ASSERT(result);
 
@@ -153,6 +154,7 @@ void VrMenu::addAction(QMenu* menu, QAction* action) {
                                                   Q_ARG(QVariant, QVariant::fromValue(menuQml)),
                                                   Q_ARG(QVariant, QVariant::fromValue(action->text())));
     Q_ASSERT(invokeResult);
+    Q_UNUSED(invokeResult); // FIXME - apparently we haven't upgraded the Qt on our unix Jenkins environments to 5.5.x
     QObject* result = returnedValue.value<QObject*>();
     Q_ASSERT(result);
     // Bind the QML and Widget together
@@ -174,6 +176,7 @@ void VrMenu::insertAction(QAction* before, QAction* action) {
                                                   Q_ARG(QVariant, QVariant::fromValue(beforeQml)),
                                                   Q_ARG(QVariant, QVariant::fromValue(action->text())));
     Q_ASSERT(invokeResult);
+    Q_UNUSED(invokeResult); // FIXME - apparently we haven't upgraded the Qt on our unix Jenkins environments to 5.5.x
     QObject* result = returnedValue.value<QObject*>();
     Q_ASSERT(result);
     bindActionToQmlAction(result, action);
@@ -192,4 +195,5 @@ void VrMenu::removeAction(QAction* action) {
         Q_ARG(QVariant, QVariant::fromValue(menu)),
         Q_ARG(QVariant, QVariant::fromValue(item)));
     Q_ASSERT(invokeResult);
+    Q_UNUSED(invokeResult); // FIXME - apparently we haven't upgraded the Qt on our unix Jenkins environments to 5.5.x
 }

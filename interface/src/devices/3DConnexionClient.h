@@ -11,9 +11,10 @@
 #ifndef hifi_3DConnexionClient_h
 #define hifi_3DConnexionClient_h
 
+#if 0
 #include <QObject>
 #include <QLibrary>
-#include <input-plugins/UserInputMapper.h>
+#include <controllers/UserInputMapper.h>
 
 #include "InterfaceLogging.h"
 
@@ -175,26 +176,19 @@ public slots:
 
 
 // connnects to the userinputmapper
-class ConnexionData : public QObject {
+class ConnexionData : public QObject, public controller::InputDevice {
     Q_OBJECT
 
 public:
     static ConnexionData& getInstance();
     ConnexionData();
-
     enum PositionChannel {
-        POSITION_AXIS_X_POS = 1,
-        POSITION_AXIS_X_NEG = 2,
-        POSITION_AXIS_Y_POS = 3,
-        POSITION_AXIS_Y_NEG = 4,
-        POSITION_AXIS_Z_POS = 5,
-        POSITION_AXIS_Z_NEG = 6,
-        ROTATION_AXIS_X_POS = 7,
-        ROTATION_AXIS_X_NEG = 8,
-        ROTATION_AXIS_Y_POS = 9,
-        ROTATION_AXIS_Y_NEG = 10,
-        ROTATION_AXIS_Z_POS = 11,
-        ROTATION_AXIS_Z_NEG = 12
+        TRANSLATE_X,
+        TRANSLATE_Y,
+        TRANSLATE_Z,
+        ROTATE_X,
+        ROTATE_Y,
+        ROTATE_Z,
     };
 
     enum ButtonChannel {
@@ -209,19 +203,12 @@ public:
     float getButton(int channel) const;
     float getAxis(int channel) const;
 
-    UserInputMapper::Input makeInput(ConnexionData::PositionChannel axis);
-    UserInputMapper::Input makeInput(ConnexionData::ButtonChannel button);
-
-    void registerToUserInputMapper(UserInputMapper& mapper);
-    void assignDefaultInputMapping(UserInputMapper& mapper);
-
-    void update();
-    void focusOutEvent();
-
-    int getDeviceID() { return _deviceID; }
-    void setDeviceID(int deviceID) { _deviceID = deviceID; }
-
-    QString _name;
+    controller::Input makeInput(ConnexionData::PositionChannel axis);
+    controller::Input makeInput(ConnexionData::ButtonChannel button);
+    virtual void buildDeviceProxy(controller::DeviceProxy::Pointer proxy) override;
+    virtual QString getDefaultMappingConfig() override;
+    virtual void update(float deltaTime, bool jointsCaptured) override;
+    virtual void focusOutEvent() override;
 
     glm::vec3 cc_position;
     glm::vec3 cc_rotation;
@@ -229,12 +216,8 @@ public:
 
     void setButton(int lastButtonState);
     void handleAxisEvent();
-
-protected:
-    int _deviceID = 0;
-
-    ButtonPressedMap _buttonPressedMap;
-    AxisStateMap _axisStateMap;
 };
+
+#endif
 
 #endif // defined(hifi_3DConnexionClient_h)

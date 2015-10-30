@@ -51,7 +51,10 @@ public:
     
     template<typename T, typename ...Args>
     static QSharedPointer<T> set(Args&&... args);
-    
+
+    template<typename T, typename I, typename ...Args>
+    static QSharedPointer<T> set(Args&&... args);
+
     template<typename T>
     static void destroy();
     
@@ -89,13 +92,26 @@ QSharedPointer<T> DependencyManager::get() {
 template <typename T, typename ...Args>
 QSharedPointer<T> DependencyManager::set(Args&&... args) {
     static size_t hashCode = _manager.getHashCode<T>();
-    
+
     QSharedPointer<Dependency>& instance = _manager.safeGet(hashCode);
     instance.clear(); // Clear instance before creation of new one to avoid edge cases
     QSharedPointer<T> newInstance(new T(args...), &T::customDeleter);
     QSharedPointer<Dependency> storedInstance = qSharedPointerCast<Dependency>(newInstance);
     instance.swap(storedInstance);
-    
+
+    return newInstance;
+}
+
+template <typename T, typename I, typename ...Args>
+QSharedPointer<T> DependencyManager::set(Args&&... args) {
+    static size_t hashCode = _manager.getHashCode<T>();
+
+    QSharedPointer<Dependency>& instance = _manager.safeGet(hashCode);
+    instance.clear(); // Clear instance before creation of new one to avoid edge cases
+    QSharedPointer<T> newInstance(new I(args...), &I::customDeleter);
+    QSharedPointer<Dependency> storedInstance = qSharedPointerCast<Dependency>(newInstance);
+    instance.swap(storedInstance);
+
     return newInstance;
 }
 

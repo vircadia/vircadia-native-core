@@ -37,8 +37,9 @@ public:
             btConstraintSolver* constraintSolver,
             btCollisionConfiguration* collisionConfiguration);
 
-    // virtual overrides from btDiscreteDynamicsWorld
-    int stepSimulation( btScalar timeStep, int maxSubSteps=1, btScalar fixedTimeStep=btScalar(1.)/btScalar(60.), SubStepCallback onSubStep = []() { });
+    int stepSimulationWithSubstepCallback(btScalar timeStep, int maxSubSteps = 1,
+                                          btScalar fixedTimeStep = btScalar(1.)/btScalar(60.),
+                                          SubStepCallback onSubStep = []() { });
     void synchronizeMotionStates();
 
     // btDiscreteDynamicsWorld::m_localTime is the portion of real-time that has not yet been simulated

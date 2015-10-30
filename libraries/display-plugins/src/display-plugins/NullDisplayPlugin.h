@@ -15,8 +15,6 @@ public:
     virtual ~NullDisplayPlugin() final {}
     virtual const QString & getName() const override;
 
-    void activate() override;
-    void deactivate() override;
     void stop() override;
 
     virtual glm::uvec2 getRecommendedRenderSize() const override;
