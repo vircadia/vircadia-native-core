@@ -580,6 +580,7 @@ void Rig::computeMotionAnimationState(float deltaTime, const glm::vec3& worldPos
 // Allow script to add/remove handlers and report results, from within their thread.
 QScriptValue Rig::addAnimationStateHandler(QScriptValue handler, QScriptValue propertiesList) { // called in script thread
     QMutexLocker locker(&_stateMutex);
+    // Find a safe id, even if there are lots of many scripts add and remove handlers repeatedly.
     while (!_nextStateHandlerId || _stateHandlers.contains(_nextStateHandlerId)) { // 0 is unused, and don't reuse existing after wrap.
       _nextStateHandlerId++;
     }
