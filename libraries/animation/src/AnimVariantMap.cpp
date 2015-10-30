@@ -13,7 +13,7 @@
 #include <QScriptValueIterator>
 #include <QThread>
 #include <RegisteredMetaTypes.h>
-#include "AnimVariant.h"
+#include "AnimVariant.h" // which has AnimVariant/AnimVariantMap
 
 QScriptValue AnimVariantMap::animVariantMapToScriptValue(QScriptEngine* engine, const QStringList& names, bool useNames) const {
     if (QThread::currentThread() != engine->thread()) {
