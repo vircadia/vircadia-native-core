@@ -14,11 +14,11 @@
 #include "PhysicsCollisionGroups.h"
 
 bool CharacterController::needsRemoval() const {
-    return (bool)(_pendingFlags & PENDING_FLAG_REMOVE_FROM_SIMULATION);
+    return ((_pendingFlags & PENDING_FLAG_REMOVE_FROM_SIMULATION) == PENDING_FLAG_REMOVE_FROM_SIMULATION);
 }
 
 bool CharacterController::needsAddition() const {
-    return (bool)(_pendingFlags & PENDING_FLAG_ADD_TO_SIMULATION);
+    return ((_pendingFlags & PENDING_FLAG_ADD_TO_SIMULATION) == PENDING_FLAG_ADD_TO_SIMULATION);
 }
 
 void CharacterController::setDynamicsWorld(btDynamicsWorld* world) {

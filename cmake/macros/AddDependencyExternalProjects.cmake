@@ -16,7 +16,7 @@ macro(ADD_DEPENDENCY_EXTERNAL_PROJECTS)
     string(TOUPPER ${_PROJ_NAME} _PROJ_NAME_UPPER)
     
     # has the user told us they specific don't want this as an external project?
-    if (GET_${_PROJ_NAME_UPPER})
+    if (NOT USE_LOCAL_${_PROJ_NAME_UPPER})
       # have we already detected we can't have this as external project on this OS?
       if (NOT DEFINED ${_PROJ_NAME_UPPER}_EXTERNAL_PROJECT OR ${_PROJ_NAME_UPPER}_EXTERNAL_PROJECT)
         # have we already setup the target?
