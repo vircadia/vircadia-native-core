@@ -588,7 +588,8 @@ function MyController(hand, triggerAction) {
             relativePosition: this.offsetPosition,
             relativeRotation: this.offsetRotation,
             ttl: ACTION_TTL,
-            kinematic: NEAR_GRABBING_KINEMATIC
+            kinematic: NEAR_GRABBING_KINEMATIC,
+            kinematicSetVelocity: true
         });
         if (this.actionID === NULL_ACTION_ID) {
             this.actionID = null;
@@ -641,7 +642,8 @@ function MyController(hand, triggerAction) {
                 relativePosition: this.offsetPosition,
                 relativeRotation: this.offsetRotation,
                 ttl: ACTION_TTL,
-                kinematic: NEAR_GRABBING_KINEMATIC
+                kinematic: NEAR_GRABBING_KINEMATIC,
+                kinematicSetVelocity: true
             });
             this.actionTimeout = now + (ACTION_TTL * MSEC_PER_SEC);
         }
@@ -810,12 +812,13 @@ function MyController(hand, triggerAction) {
             Entities.callEntityMethod(this.grabbedEntity, "releaseGrab");
         }
 
+        this.deactivateEntity(this.grabbedEntity);
+
         // the action will tend to quickly bring an object's velocity to zero.  now that
         // the action is gone, set the objects velocity to something the holder might expect.
         Entities.editEntity(this.grabbedEntity, {
             velocity: this.grabbedVelocity
         });
-        this.deactivateEntity(this.grabbedEntity);
 
         this.grabbedVelocity = ZERO_VEC;
         this.grabbedEntity = null;
