@@ -4,8 +4,8 @@
  *
  * This software is provided 'as-is', without any express or implied warranty.
  * In no event will the authors be held liable for any damages arising from the use of this software.
- * Permission is granted to anyone to use this software for any purpose, 
- * including commercial applications, and to alter it and redistribute it freely, 
+ * Permission is granted to anyone to use this software for any purpose,
+ * including commercial applications, and to alter it and redistribute it freely,
  * subject to the following restrictions:
  *
  * 1. The origin of this software must not be misrepresented; you must not claim that you wrote the original software. If you use this software in a product, an acknowledgment in the product documentation would be appreciated but is not required.
@@ -75,7 +75,7 @@ int ThreadSafeDynamicsWorld::stepSimulationWithSubstepCallback(btScalar timeStep
         }
     }
 
-    // NOTE: We do NOT call synchronizeMotionState() after each substep (to avoid multiple locks on the
+    // NOTE: We do NOT call synchronizeMotionStates() after each substep (to avoid multiple locks on the
     // object data outside of the physics engine).  A consequence of this is that the transforms of the
     // external objects only ever update at the end of the full step.
 
@@ -85,6 +85,33 @@ int ThreadSafeDynamicsWorld::stepSimulationWithSubstepCallback(btScalar timeStep
     clearForces();
 
     return subSteps;
+}
+
+// call this instead of non-virtual btDiscreteDynamicsWorld::synchronizeSingleMotionState()
+void ThreadSafeDynamicsWorld::synchronizeMotionState(btRigidBody* body) {
+    btAssert(body);
+    if (body->getMotionState() && !body->isStaticObject()) {
+        //we need to call the update at least once, even for sleeping objects
+        //otherwise the 'graphics' transform never updates properly
+        ///@todo: add 'dirty' flag
+        //if (body->getActivationState() != ISLAND_SLEEPING)
+        {
+            if (body->isKinematicObject()) {
+                ObjectMotionState* objectMotionState = static_cast<ObjectMotionState*>(body->getMotionState());
+                if (!objectMotionState->hasInternalKinematicChanges()) {
+                    return;
+                } else {
+                    objectMotionState->clearInternalKinematicChanges();
+                }
+            }
+            btTransform interpolatedTransform;
+            btTransformUtil::integrateTransform(body->getInterpolationWorldTransform(),
+                body->getInterpolationLinearVelocity(),body->getInterpolationAngularVelocity(),
+                (m_latencyMotionStateInterpolation && m_fixedTimeStep) ? m_localTime - m_fixedTimeStep : m_localTime*body->getHitFraction(),
+                interpolatedTransform);
+            body->getMotionState()->setWorldTransform(interpolatedTransform);
+        }
+    }
 }
 
 void ThreadSafeDynamicsWorld::synchronizeMotionStates() {
@@ -97,22 +124,22 @@ void ThreadSafeDynamicsWorld::synchronizeMotionStates() {
             btRigidBody* body = btRigidBody::upcast(colObj);
             if (body) {
                 if (body->getMotionState()) {
-                    synchronizeSingleMotionState(body);
+                    synchronizeMotionState(body);
                     _changedMotionStates.push_back(static_cast<ObjectMotionState*>(body->getMotionState()));
                 }
             }
         }
-    } else  {       
+    } else  {
         //iterate over all active rigid bodies
         for (int i=0;i<m_nonStaticRigidBodies.size();i++) {
             btRigidBody* body = m_nonStaticRigidBodies[i];
             if (body->isActive()) {
                 if (body->getMotionState()) {
-                    synchronizeSingleMotionState(body);
+                    synchronizeMotionState(body);
                     _changedMotionStates.push_back(static_cast<ObjectMotionState*>(body->getMotionState()));
                 }
             }
         }
-    }   
-}       
+    }
+}
 

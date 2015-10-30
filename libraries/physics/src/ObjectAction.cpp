@@ -16,7 +16,6 @@
 ObjectAction::ObjectAction(EntityActionType type, const QUuid& id, EntityItemPointer ownerEntity) :
     btActionInterface(),
     EntityActionInterface(type, id),
-    _active(false),
     _ownerEntity(ownerEntity) {
 }
 
