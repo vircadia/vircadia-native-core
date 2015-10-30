@@ -489,7 +489,11 @@ bool UserInputMapper::applyRoute(const Route::Pointer& route, bool force) {
 
     // If the source hasn't been written yet, defer processing of this route
     auto source = route->source;
-    if (!force && source->writeable()) {
+    auto sourceInput = source->getInput();
+    if (sourceInput.device == STANDARD_DEVICE && !force && source->writeable()) {
+        if (debugRoutes && route->debug) {
+            qCDebug(controllers) << "Source not yet written, deferring";
+        }
         return false;
     }
 

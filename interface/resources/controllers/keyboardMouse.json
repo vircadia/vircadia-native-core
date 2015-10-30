@@ -2,17 +2,24 @@
     "name": "Keyboard/Mouse to Actions",
     "channels": [
 
-        { "from": ["Keyboard.A", "Keyboard.Left", "Keyboard.TouchpadLeft"],
-          "when": [ "Application.InHMD", "Application.ComfortMode" ],
+        
+        { "from": { "makeAxis" : ["Keyboard.MouseMoveLeft", "Keyboard.MouseMoveRight"] },
+          "when": [ "Application.InHMD", "Application.ComfortMode", "Keyboard.RightMouseClick" ],
           "to": "Actions.StepYaw",
           "filters":
             [
+                "constrainToInteger",
                 { "type": "pulse", "interval": 0.5 },
-                { "type": "scale", "scale": -15 }
+                { "type": "scale", "scale": 15 }
             ]
         },
 
-        { "from": ["Keyboard.D", "Keyboard.Right", "Keyboard.TouchpadRight"],
+        { "from": { "makeAxis" : [
+                ["Keyboard.A", "Keyboard.Left", "Keyboard.TouchpadLeft"],
+                ["Keyboard.D", "Keyboard.Right", "Keyboard.TouchpadRight"]
+            ]
+          },
+
           "when": [ "Application.InHMD", "Application.ComfortMode" ],
           "to": "Actions.StepYaw",
           "filters":
@@ -22,25 +29,10 @@
             ]
         },
 
-        { "from": "Keyboard.MouseMoveLeft",
-          "when": [ "Application.InHMD", "Application.ComfortMode", "Keyboard.RightMouseClick" ],
-          "to": "Actions.StepYaw",
-          "filters":
-            [
-                { "type": "pulse", "interval": 0.5 },
-                { "type": "scale", "scale": -15 }
-            ]
-        },
-
-        { "from": "Keyboard.MouseMoveRight",
-          "when": [ "Application.InHMD", "Application.ComfortMode", "Keyboard.RightMouseClick" ],
-          "to": "Actions.StepYaw",
-          "filters":
-            [
-                { "type": "pulse", "interval": 0.5 },
-                { "type": "scale", "scale": 15 }
-            ]
-        },
+        { "from": ["Keyboard.A", "Keyboard.Left", "Keyboard.TouchpadLeft"], "to": "Actions.YAW_LEFT" },
+        { "from": ["Keyboard.D", "Keyboard.Right", "Keyboard.TouchpadRight"], "to": "Actions.YAW_RIGHT" },
+        { "from": "Keyboard.MouseMoveLeft", "when": "Keyboard.RightMouseClick", "to": "Actions.YAW_LEFT" },
+        { "from": "Keyboard.MouseMoveRight", "when": "Keyboard.RightMouseClick", "to": "Actions.YAW_RIGHT" },
 
         { "from": "Keyboard.A", "when": "Keyboard.Shift", "to": "Actions.LATERAL_LEFT" },
         { "from": "Keyboard.D", "when": "Keyboard.Shift", "to": "Actions.LATERAL_RIGHT" },
@@ -53,8 +45,6 @@
 
         { "from": "Keyboard.W", "to": "Actions.LONGITUDINAL_FORWARD" },
         { "from": "Keyboard.S", "to": "Actions.LONGITUDINAL_BACKWARD" },
-        { "from": "Keyboard.A", "to": "Actions.YAW_LEFT" },
-        { "from": "Keyboard.D", "to": "Actions.YAW_RIGHT" },
         { "from": "Keyboard.C", "to": "Actions.VERTICAL_DOWN" },
         { "from": "Keyboard.E", "to": "Actions.VERTICAL_UP" },
 
@@ -67,21 +57,15 @@
 
         { "from": "Keyboard.Up", "to": "Actions.LONGITUDINAL_FORWARD" },
         { "from": "Keyboard.Down", "to": "Actions.LONGITUDINAL_BACKWARD" },
-        { "from": "Keyboard.Left", "to": "Actions.YAW_LEFT" },
-        { "from": "Keyboard.Right", "to": "Actions.YAW_RIGHT" },
 
         { "from": "Keyboard.PgDown", "to": "Actions.VERTICAL_DOWN" },
         { "from": "Keyboard.PgUp", "to": "Actions.VERTICAL_UP" },
 
-        { "from": "Keyboard.MouseMoveLeft", "when": "Keyboard.RightMouseClick", "to": "Actions.YAW_LEFT" },
-        { "from": "Keyboard.MouseMoveRight", "when": "Keyboard.RightMouseClick", "to": "Actions.YAW_RIGHT" },
         { "from": "Keyboard.MouseMoveUp", "when": "Keyboard.RightMouseClick", "to": "Actions.PITCH_UP" },
         { "from": "Keyboard.MouseMoveDown", "when": "Keyboard.RightMouseClick", "to": "Actions.PITCH_DOWN" },
 
         { "from": "Keyboard.TouchpadDown", "to": "Actions.PITCH_DOWN" },
         { "from": "Keyboard.TouchpadUp", "to": "Actions.PITCH_UP" },
-        { "from": "Keyboard.TouchpadLeft", "to": "Actions.YAW_LEFT" },
-        { "from": "Keyboard.TouchpadRight", "to": "Actions.YAW_RIGHT" },
 
         { "from": "Keyboard.MouseWheelUp", "to": "Actions.LATERAL_RIGHT" },
         { "from": "Keyboard.MouseWheelDown", "to": "Actions.LATERAL_LEFT" },
