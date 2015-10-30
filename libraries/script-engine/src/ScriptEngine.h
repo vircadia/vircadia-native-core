@@ -21,6 +21,7 @@
 #include <QtScript/QScriptEngine>
 
 #include <AnimationCache.h>
+#include <AnimVariant.h>
 #include <AvatarData.h>
 #include <AvatarHashMap.h>
 #include <LimitedNodeList.h>
@@ -141,6 +142,9 @@ public:
 
     // NOTE - this is used by the TypedArray implemetation. we need to review this for thread safety
     ArrayBufferClass* getArrayBufferClass() { return _arrayBufferClass; }
+
+public slots:
+    void callAnimationStateHandler(QScriptValue callback, AnimVariantMap parameters, QStringList names, bool useNames, AnimVariantResultHandler resultHandler);
 
 signals:
     void scriptLoaded(const QString& scriptFilename);
