@@ -13,7 +13,7 @@
 
 var SCRIPT_URL = Script.resolvePath('bow.js');
 
-var MODEL_URL = "https://hifi-public.s3.amazonaws.com/models/bow/new/bow.fbx";
+var MODEL_URL = "https://hifi-public.s3.amazonaws.com/models/bow/new/bow-deadly.fbx";
 var COLLISION_HULL_URL = "https://hifi-public.s3.amazonaws.com/models/bow/new/bow_collision_hull.obj";
 var BOW_DIMENSIONS = {
     x: 0.04,
@@ -46,7 +46,6 @@ var bow = Entities.addEntity({
     script: SCRIPT_URL,
     userData: JSON.stringify({
         grabbableKey: {
-            turnOffOppositeBeam: true,
             invertSolidWhileHeld: true
         }
     })

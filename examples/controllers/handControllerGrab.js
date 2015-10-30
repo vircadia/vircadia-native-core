@@ -88,7 +88,7 @@ var MSEC_PER_SEC = 1000.0;
 var LIFETIME = 10;
 var ACTION_TTL = 15; // seconds
 var ACTION_TTL_REFRESH = 5;
-var PICKS_PER_SECOND_PER_HAND = 5;
+var PICKS_PER_SECOND_PER_HAND = 10;
 var MSECS_PER_SEC = 1000.0;
 
 // states for the state machine
@@ -286,7 +286,7 @@ function MyController(hand, triggerAction) {
 
     this.search = function() {
         //if this hand is the one that's disabled, we don't want to search for anything at all
-   
+
         if (this.triggerSmoothedReleased()) {
             this.setState(STATE_RELEASE);
             return;
@@ -300,13 +300,8 @@ function MyController(hand, triggerAction) {
             length: PICK_MAX_DISTANCE
         };
 
-             if (this.hand === disabledHand) {
-        
-        }
-        else{
-                    this.lineOn(distantPickRay.origin, Vec3.multiply(distantPickRay.direction, LINE_LENGTH), NO_INTERSECT_COLOR);
 
-        }
+        this.lineOn(distantPickRay.origin, Vec3.multiply(distantPickRay.direction, LINE_LENGTH), NO_INTERSECT_COLOR);
 
 
         // don't pick 60x per second.
@@ -561,6 +556,7 @@ function MyController(hand, triggerAction) {
         var grabbableData = getEntityCustomData(GRABBABLE_DATA_KEY, this.grabbedEntity, DEFAULT_GRABBABLE_DATA);
 
         var turnOffOtherHand = grabbableData["turnOffOtherHand"];
+        print('SECOND GRAB ON ALREADY HELD OBJEcT')
         if (turnOffOtherHand === true) {
             //don't activate the second hand grab because the script is handling the second hand logic
             return;

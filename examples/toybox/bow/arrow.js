@@ -103,12 +103,12 @@
 
             setEntityCustomData('grabbableKey', this.entityID, {
                 grabbable: false,
-                invertSolidWhileHeld:true
+                invertSolidWhileHeld: true
             });
-            
-            Entities.editEntity(this.entityID,{
-                collisionsWillMove:false,
-                ignoreForCollisions:true
+
+            Entities.editEntity(this.entityID, {
+                collisionsWillMove: false,
+                ignoreForCollisions: true
             })
 
             setEntityCustomData('hifiBowKey', bowID, {
@@ -149,9 +149,11 @@
 
             _this.glowBox = Entities.addEntity(glowBowProperties);
         },
+        
         updateArrowProperties: function() {
             _this.arrowProperties = Entities.getEntityProperties(_this.entityID, ["position", "rotation"]);
         },
+
         updateGlowBoxPosition: function() {
             //once parenting is available, just attach the glowbow to the arrow
             Entities.editEntity(_this.entityID, {
@@ -159,6 +161,7 @@
                 rotation: _this.arrowProperties.rotation
             })
         },
+
         updateFirePosition: function() {
             //once parenting is available, just attach the glowbow to the arrow
             Entities.editEntity(_this.entityID, {

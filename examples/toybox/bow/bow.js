@@ -130,8 +130,7 @@
             this.initialHand = this.hand;
 
             setEntityCustomData('grabbableKey', this.entityID, {
-                turnOffOtherHand: false,
-                turnOffOppositeBeam: false,
+                turnOffOtherHand: true,
                 invertSolidWhileHeld: true
             });
 
@@ -152,7 +151,6 @@
 
                     setEntityCustomData('grabbableKey', this.entityID, {
                         turnOffOtherHand: true,
-                        turnOffOppositeBeam: true,
                         invertSolidWhileHeld: true
                     });
                 }
@@ -198,7 +196,6 @@
                 Entities.deleteEntity(this.arrow);
                 setEntityCustomData('grabbableKey', this.entityID, {
                     turnOffOtherHand: false,
-                    turnOffOppositeBeam: false,
                     invertSolidWhileHeld: true
                 });
                 Entities.deleteEntity(this.notchDetector);
@@ -218,7 +215,14 @@
             var stringProperties = {
                 type: 'Line',
                 position: Vec3.sum(this.bowProperties.position, TOP_NOTCH_OFFSET),
-                dimensions: LINE_DIMENSIONS
+                dimensions: LINE_DIMENSIONS,
+                collisionsWillMove: false,
+                ignoreForCollisions: true,
+                userData: JSON.stringify({
+                    grabbableKey: {
+                        grabbable: false
+                    }
+                })
             };
 
             this.topString = Entities.addEntity(stringProperties);
@@ -228,7 +232,14 @@
             var stringProperties = {
                 type: 'Line',
                 position: Vec3.sum(this.bowProperties.position, BOTTOM_NOTCH_OFFSET),
-                dimensions: LINE_DIMENSIONS
+                dimensions: LINE_DIMENSIONS,
+                collisionsWillMove: false,
+                ignoreForCollisions: true,
+                userData: JSON.stringify({
+                    grabbableKey: {
+                        grabbable: false
+                    }
+                })
             };
 
             this.bottomString = Entities.addEntity(stringProperties);
@@ -361,13 +372,15 @@
             if (this.triggerValue < DRAW_STRING_THRESHOLD && this.stringDrawn === true) {
 
                 // firing the arrow
-                // this.stringDrawn = false;
-                // this.deleteStrings();
-                // this.hasArrow = false;
-                // this.releaseArrow();
+                print('HIT RELEASE LOOP IN CHECK')
+                    // this.stringDrawn = false;
+                    // this.deleteStrings();
+                    // this.hasArrow = false;
+                    // this.releaseArrow();
 
             } else if (this.triggerValue >= DRAW_STRING_THRESHOLD && this.stringDrawn === true) {
-                //continuing to aim the arrow
+                print('HIT CONTINUE LOOP IN CHECK')
+                    //continuing to aim the arrow
                 this.stringData.handPosition = this.getStringHandPosition();
                 this.stringData.handRotation = this.getStringHandRotation();
                 this.initialHand === 'right' ? this.stringData.grabHandPosition = Controller.getSpatialControlPosition(RIGHT_TIP) : this.stringData.grabHandPosition = Controller.getSpatialControlPosition(LEFT_TIP);
@@ -376,7 +389,8 @@
                 this.updateArrowPositionInNotch();
 
             } else if (this.triggerValue >= DRAW_STRING_THRESHOLD && this.stringDrawn === false) {
-                //the first time aiming the arrow
+                print('HIT START LOOP IN CHECK')
+                    //the first time aiming the arrow
                 this.stringDrawn = true;
                 this.createStrings();
                 this.stringData.handPosition = this.getStringHandPosition();
@@ -427,12 +441,12 @@
             var handToNotch = Vec3.subtract(this.stringData.handPosition, this.notchDetectorPosition);
             var pullBackDistance = Vec3.length(handToNotch);
 
-            if(pullBackDistance>=0.6){
-                pullBackDistance= 0.6;
+            if (pullBackDistance >= 0.6) {
+                pullBackDistance = 0.6;
             }
 
-            var pullBackOffset = Vec3.multiply(handToNotch,pullBackDistance);
-            var arrowPosition = Vec3.sum(this.notchDetectorPosition,pullBackOffset);
+            var pullBackOffset = Vec3.multiply(handToNotch, pullBackDistance);
+            var arrowPosition = Vec3.sum(this.notchDetectorPosition, pullBackOffset);
 
             var pushForwardOffset = Vec3.multiply(handToNotch, ARROW_OFFSET);
             var finalArrowPosition = Vec3.sum(arrowPosition, pushForwardOffset);
@@ -455,34 +469,40 @@
         releaseArrow: function() {
 
             print('RELEASE ARROW!!!')
-            var handToHand = Vec3.subtract(this.stringData.grabHandPosition, this.stringData.handPosition);
 
-            var arrowRotation = this.orientationOf(handToHand);
+            var handToNotch = Vec3.subtract(this.notchDetectorPosition, this.stringData.handPosition);
+            var pullBackDistance = Vec3.length(handToNotch);
 
-            var handDistanceAtRelease = Vec3.distance(this.stringData.grabHandPosition, this.stringData.handPosition);
-            print('HAND DISTANCE:: ' + handDistanceAtRelease);
-            var arrowForce = this.scaleArrowShotStrength(handDistanceAtRelease, 0, 2, 20, 50);
+            var arrowRotation = this.orientationOf(handToNotch);
+
+            print('HAND DISTANCE:: ' + pullBackDistance);
+            var arrowForce = this.scaleArrowShotStrength(pullBackDistance, 0, 2, 20, 50);
             print('ARROW FORCE::' + arrowForce);
-            var forwardVec = Vec3.multiply(handToHand, arrowForce);
+            var forwardVec = Vec3.multiply(handToNotch, arrowForce);
 
+            print('FWD VEC:::' + JSON.stringify(forwardVec));
             var arrowProperties = {
                 // rotation:handToHand,
-                ignoreForCollisions: false,
-                collisionsWillMove: true,
-                gravity: ARROW_GRAVITY,
+
                 velocity: forwardVec
             };
 
             Entities.editEntity(this.arrow, arrowProperties);
             Script.setTimeout(function() {
+
                 Entities.editEntity(this.arrow, {
                     ignoreForCollisions: false,
                     collisionsWillMove: true,
                     gravity: ARROW_GRAVITY
                 });
-            }, 100);
 
+            }, 100)
+
+            print('ARROW collisions??:::' + Entities.getEntityProperties(this.arrow, "collisionsWillMove").collisionsWillMove);
+
+            print('ARROW velocity:::' + JSON.stringify(Entities.getEntityProperties(this.arrow, "velocity").velocity))
             this.arrow = null;
+            this.hasArrowNotched = false;
             this.fire = null;
             this.arrowIsBurnning = false;
 
