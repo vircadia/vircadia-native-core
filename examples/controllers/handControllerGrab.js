@@ -55,6 +55,7 @@ var NEAR_GRABBING_VELOCITY_SMOOTH_RATIO = 1.0; // adjust time-averaging of held 
 var NEAR_PICK_MAX_DISTANCE = 0.3; // max length of pick-ray for close grabbing to be selected
 var RELEASE_VELOCITY_MULTIPLIER = 1.5; // affects throwing things
 var PICK_BACKOFF_DISTANCE = 0.2; // helps when hand is intersecting the grabble object
+var NEAR_GRABBING_KINEMATIC = true; // force objects to be kinematic when near-grabbed
 
 /////////////////////////////////////////////////////////////////
 //
@@ -404,8 +405,9 @@ function MyController(hand, triggerAction) {
 
         var handControllerPosition = Controller.getSpatialControlPosition(this.palm);
         var handRotation = Quat.multiply(MyAvatar.orientation, Controller.getSpatialControlRawRotation(this.palm));
-        var grabbedProperties = Entities.getEntityProperties(this.grabbedEntity, ["position", "rotation",
-                                                                                  "gravity", "ignoreForCollisions"]);
+        var grabbedProperties = Entities.getEntityProperties(this.grabbedEntity, ["position", "rotation", "gravity",
+                                                                                  "ignoreForCollisions",
+                                                                                  "collisionsWillMove"]);
         var now = Date.now();
 
         // add the action and initialize some variables
@@ -549,8 +551,14 @@ function MyController(hand, triggerAction) {
         this.lineOff();
 
         var grabbedProperties = Entities.getEntityProperties(this.grabbedEntity,
-                                                             ["position", "rotation", "gravity", "ignoreForCollisions"]);
+                                                             ["position", "rotation", "gravity",
+                                                              "ignoreForCollisions", "collisionsWillMove"]);
         this.activateEntity(this.grabbedEntity, grabbedProperties);
+        if (grabbedProperties.collisionsWillMove && NEAR_GRABBING_KINEMATIC) {
+            Entities.editEntity(this.grabbedEntity, {
+                collisionsWillMove: false
+            });
+        }
 
         var handRotation = this.getHandRotation();
         var handPosition = this.getHandPosition();
@@ -579,7 +587,8 @@ function MyController(hand, triggerAction) {
             timeScale: NEAR_GRABBING_ACTION_TIMEFRAME,
             relativePosition: this.offsetPosition,
             relativeRotation: this.offsetRotation,
-            ttl: ACTION_TTL
+            ttl: ACTION_TTL,
+            kinematic: NEAR_GRABBING_KINEMATIC
         });
         if (this.actionID === NULL_ACTION_ID) {
             this.actionID = null;
@@ -631,7 +640,8 @@ function MyController(hand, triggerAction) {
                 timeScale: NEAR_GRABBING_ACTION_TIMEFRAME,
                 relativePosition: this.offsetPosition,
                 relativeRotation: this.offsetRotation,
-                ttl: ACTION_TTL
+                ttl: ACTION_TTL,
+                kinematic: NEAR_GRABBING_KINEMATIC
             });
             this.actionTimeout = now + (ACTION_TTL * MSEC_PER_SEC);
         }
@@ -828,6 +838,7 @@ function MyController(hand, triggerAction) {
         if (data["refCount"] == 1) {
             data["gravity"] = grabbedProperties.gravity;
             data["ignoreForCollisions"] = grabbedProperties.ignoreForCollisions;
+            data["collisionsWillMove"] = grabbedProperties.collisionsWillMove;
             var whileHeldProperties = {gravity: {x:0, y:0, z:0}};
             if (invertSolidWhileHeld) {
                 whileHeldProperties["ignoreForCollisions"] = ! grabbedProperties.ignoreForCollisions;
@@ -845,7 +856,8 @@ function MyController(hand, triggerAction) {
             if (data["refCount"] < 1) {
                 Entities.editEntity(entityID, {
                     gravity: data["gravity"],
-                    ignoreForCollisions: data["ignoreForCollisions"]
+                    ignoreForCollisions: data["ignoreForCollisions"],
+                    collisionsWillMove: data["collisionsWillMove"]
                 });
                 data = null;
             }

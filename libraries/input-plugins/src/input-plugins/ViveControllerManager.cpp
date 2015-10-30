@@ -217,6 +217,15 @@ void ViveControllerManager::renderHand(UserInputMapper::PoseValue pose, gpu::Bat
     batch.drawIndexed(gpu::TRIANGLES, mesh->getNumIndices(), 0);
 }
 
+glm::vec3 ViveControllerManager::getPosition(int hand) const {
+	const mat4& mat = _trackedDevicePoseMat4[hand ? 3 : 4];
+	return extractTranslation(mat);
+}
+glm::quat ViveControllerManager::getRotation(int hand) const {
+	const mat4& mat = _trackedDevicePoseMat4[hand ? 3 : 4];
+	return glm::quat_cast(mat);
+}
+
 void ViveControllerManager::update(float deltaTime, bool jointsCaptured) {
 #ifdef Q_OS_WIN
     _poseStateMap.clear();
@@ -250,7 +259,7 @@ void ViveControllerManager::update(float deltaTime, bool jointsCaptured) {
         numTrackedControllers++;
             
         const mat4& mat = _trackedDevicePoseMat4[device];
-                  
+		
         if (!jointsCaptured) {
             handlePoseEvent(mat, numTrackedControllers - 1);
         }
@@ -372,16 +381,23 @@ void ViveControllerManager::handlePoseEvent(const mat4& mat, int index) {
     //    Q = (deltaQ * QOffset) * (yFlip * quarterTurnAboutX)
     //
     //    Q = (deltaQ * inverse(deltaQForAlignedHand)) * (yFlip * quarterTurnAboutX)
-   
+
+    float sign = (index == LEFT_HAND) ? -1.0f : 1.0f;
+
     const glm::quat quarterX = glm::angleAxis(PI / 2.0f, glm::vec3(1.0f, 0.0f, 0.0f));
     const glm::quat yFlip = glm::angleAxis(PI, glm::vec3(0.0f, 1.0f, 0.0f));
-    float sign = (index == LEFT_HAND) ? -1.0f : 1.0f;
     const glm::quat signedQuaterZ = glm::angleAxis(sign * PI / 2.0f, glm::vec3(0.0f, 0.0f, 1.0f)); 
     const glm::quat eighthX = glm::angleAxis(PI / 4.0f, glm::vec3(1.0f, 0.0f, 0.0f));
-    const glm::quat offset = glm::inverse(signedQuaterZ * eighthX);
-    rotation = rotation * offset * yFlip * quarterX;
+    
+	
+	const glm::quat rotationOffset = glm::inverse(signedQuaterZ * eighthX) * yFlip * quarterX;
+	const glm::vec3 translationOffset = glm::vec3(sign * CONTROLLER_LENGTH_OFFSET / 2.0f,
+												  CONTROLLER_LENGTH_OFFSET / 2.0f,
+												  2.0f * CONTROLLER_LENGTH_OFFSET); 
 
-    position += rotation * glm::vec3(0, 0, -CONTROLLER_LENGTH_OFFSET);
+	position += rotation * translationOffset;
+	rotation = rotation * rotationOffset;
+	//{quat, x = 0.653281, y = -0.270598, z = 0.653281, w = 0.270598}{vec3, x = 0.0381, y = -0.0381, z = -0.1524}
 
     _poseStateMap[makeInput(JointChannel(index)).getChannel()] = UserInputMapper::PoseValue(position, rotation);
 }
