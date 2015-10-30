@@ -16,9 +16,9 @@
 #include <SDL.h>
 #endif
 
-#include "InputPlugin.h"
-#include "UserInputMapper.h"
+#include <controllers/UserInputMapper.h>
 
+#include "InputPlugin.h"
 #include "Joystick.h"
 
 class SDL2Manager : public InputPlugin {
@@ -34,9 +34,12 @@ public:
 
     virtual void init() override;
     virtual void deinit() override;
-    virtual void activate() override {};
-    virtual void deactivate() override {};
-    
+
+    /// Called when a plugin is being activated for use.  May be called multiple times.
+    virtual void activate() override;
+    /// Called when a plugin is no longer being used.  May be called multiple times.
+    virtual void deactivate() override;
+
     virtual void pluginFocusOutEvent() override;
     virtual void pluginUpdate(float deltaTime, bool jointsCaptured) override;
     
@@ -78,7 +81,7 @@ private:
     int buttonPressed() const { return SDL_PRESSED; }
     int buttonRelease() const { return SDL_RELEASED; }
 
-    QMap<SDL_JoystickID, Joystick*> _openJoysticks;
+    QMap<SDL_JoystickID, Joystick::Pointer> _openJoysticks;
 #endif
     bool _isInitialized;
     static const QString NAME;

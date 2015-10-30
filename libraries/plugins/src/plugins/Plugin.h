@@ -33,9 +33,18 @@ public:
     virtual void deinit();
 
     /// Called when a plugin is being activated for use.  May be called multiple times.
-    virtual void activate() = 0;
+    virtual void activate() {
+        _active = true;
+    }
+
     /// Called when a plugin is no longer being used.  May be called multiple times.
-    virtual void deactivate() = 0;
+    virtual void deactivate() {
+        _active = false;
+    }
+
+    virtual bool isActive() {
+        return _active;
+    }
 
     /**
      * Called by the application during it's idle phase.  If the plugin needs to do
@@ -48,6 +57,7 @@ public:
     virtual void loadSettings() {}
 
 protected:
+    bool _active{ false };
     static PluginContainer* CONTAINER;
     static QString UNKNOWN_PLUGIN_ID;
 

@@ -59,9 +59,7 @@ function controller(side) {
   this.triggerHeld = false;
   this.triggerThreshold = 0.9;
   this.side = side;
-  this.palm = 2 * side;
-  this.tip = 2 * side + 1;
-  this.trigger = side;
+  this.trigger = side == LEFT ? Controller.Standard.LT : Controller.Standard.RT;
   this.originalGravity = {
     x: 0,
     y: 0,
@@ -150,8 +148,8 @@ function controller(side) {
 
 
   this.updateControllerState = function() {
-    this.palmPosition = Controller.getSpatialControlPosition(this.palm);
-    this.tipPosition = Controller.getSpatialControlPosition(this.tip);
+    this.palmPosition = this.side == RIGHT ? MyAvatar.rightHandPose.translation : MyAvatar.leftHandPose.translation;
+    this.tipPosition = this.side == RIGHT ? MyAvatar.rightHandTipPose.translation : MyAvatar.leftHandTipPose.translation;
     this.triggerValue = Controller.getTriggerValue(this.trigger);
   }
 
