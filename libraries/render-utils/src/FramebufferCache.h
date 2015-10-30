@@ -37,6 +37,9 @@ public:
     gpu::TexturePointer getPrimaryNormalTexture();
     gpu::TexturePointer getPrimarySpecularTexture();
 
+    gpu::TexturePointer getBeautyTexture();
+    gpu::FramebufferPointer getBeautyFramebuffer();
+
     /// Returns the framebuffer object used to render shadow maps;
     gpu::FramebufferPointer getShadowFramebuffer();
 
@@ -64,6 +67,10 @@ private:
     gpu::TexturePointer _primaryNormalTexture;
     gpu::TexturePointer _primarySpecularTexture;
     
+    
+    gpu::TexturePointer _beautyTexture;
+    gpu::FramebufferPointer _beautyFramebuffer;
+
     gpu::FramebufferPointer _shadowFramebuffer;
 
     gpu::FramebufferPointer _selfieFramebuffer;

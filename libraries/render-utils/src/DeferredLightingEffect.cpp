@@ -143,7 +143,37 @@ void DeferredLightingEffect::init(AbstractViewStateInterface* viewState) {
     {
         //auto VSFS = gpu::StandardShaderLib::getDrawViewportQuadTransformTexcoordVS();
         //auto PSBlit = gpu::StandardShaderLib::getDrawTexturePS();
-        auto blitProgram = gpu::StandardShaderLib::getProgram(gpu::StandardShaderLib::getDrawViewportQuadTransformTexcoordVS, gpu::StandardShaderLib::getDrawTexturePS);
+        const char BlitTextureGamma_frag[] = R"SCRIBE(#version 410 core
+        //  Generated on Sat Oct 24 09:34:37 2015
+        //
+        //  Draw texture 0 fetched at texcoord.xy
+        //
+        //  Created by Sam Gateau on 6/22/2015
+        //  Copyright 2015 High Fidelity, Inc.
+        //
+        //  Distributed under the Apache License, Version 2.0.
+        //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+        //
+        
+        
+        uniform sampler2D colorMap;
+        
+        in vec2 varTexCoord0;
+        out vec4 outFragColor;
+        
+        void main(void) {
+            outFragColor = texture(colorMap, varTexCoord0);
+            if (gl_FragCoord.x > 1000) {
+                outFragColor.xyz = pow( outFragColor.xyz , vec3(1.0/2.2) );
+            }
+        }
+        
+        )SCRIBE";
+        auto blitPS = gpu::ShaderPointer(gpu::Shader::createPixel(std::string(BlitTextureGamma_frag)));
+        
+        //auto blitProgram = gpu::StandardShaderLib::getProgram(gpu::StandardShaderLib::getDrawViewportQuadTransformTexcoordVS, gpu::StandardShaderLib::getDrawTexturePS);
+        auto blitVS = gpu::StandardShaderLib::getDrawViewportQuadTransformTexcoordVS();
+        auto blitProgram = gpu::ShaderPointer(gpu::Shader::createProgram(blitVS, blitPS));
         gpu::Shader::makeProgram(*blitProgram);
         auto blitState = std::make_shared<gpu::State>();
         blitState->setBlendFunction(true,
@@ -375,7 +405,8 @@ void DeferredLightingEffect::render(RenderArgs* args) {
         QSize framebufferSize = framebufferCache->getFrameBufferSize();
     
         // binding the first framebuffer
-        _copyFBO = framebufferCache->getFramebuffer();
+       // _copyFBO = framebufferCache->getFramebuffer();
+        _copyFBO = framebufferCache->getBeautyFramebuffer();
         batch.setFramebuffer(_copyFBO);
 
         // Clearing it
@@ -712,7 +743,7 @@ void DeferredLightingEffect::copyBack(RenderArgs* args) {
 
         args->_context->render(batch);
     });
-    framebufferCache->releaseFramebuffer(_copyFBO);
+ //   framebufferCache->releaseFramebuffer(_copyFBO);
 }
 
 void DeferredLightingEffect::setupTransparent(RenderArgs* args, int lightBufferUnit) {

@@ -41,6 +41,8 @@ void FramebufferCache::setFrameBufferSize(QSize frameBufferSize) {
         _primarySpecularTexture.reset();
         _selfieFramebuffer.reset();
         _cachedFramebuffers.clear();
+        _beautyTexture.reset();
+        _beautyFramebuffer.reset();
     }
 }
 
@@ -74,6 +76,12 @@ void FramebufferCache::createPrimaryFramebuffer() {
     _selfieFramebuffer = gpu::FramebufferPointer(gpu::Framebuffer::create());
     auto tex = gpu::TexturePointer(gpu::Texture::create2D(colorFormat, width * 0.5, height * 0.5, defaultSampler));
     _selfieFramebuffer->setRenderBuffer(0, tex);
+    
+    
+    _beautyTexture = gpu::TexturePointer(gpu::Texture::create2D(gpu::Element(gpu::VEC4, gpu::NUINT8, gpu::RGBA), width, height, defaultSampler));
+//    _beautyTexture = gpu::TexturePointer(gpu::Texture::create2D(gpu::Element(gpu::VEC4, gpu::NUINT8, gpu::SRGBA), width, height, defaultSampler));
+    _beautyFramebuffer  = gpu::FramebufferPointer(gpu::Framebuffer::create());
+    _beautyFramebuffer->setRenderBuffer(0, _beautyTexture);
 }
 
 gpu::FramebufferPointer FramebufferCache::getPrimaryFramebuffer() {
@@ -116,6 +124,20 @@ gpu::TexturePointer FramebufferCache::getPrimarySpecularTexture() {
         createPrimaryFramebuffer();
     }
     return _primarySpecularTexture;
+}
+
+gpu::FramebufferPointer FramebufferCache::getBeautyFramebuffer() {
+    if (!_beautyFramebuffer) {
+        createPrimaryFramebuffer();
+    }
+    return _beautyFramebuffer;
+}
+
+gpu::TexturePointer FramebufferCache::getBeautyTexture() {
+    if (!_beautyTexture) {
+        createPrimaryFramebuffer();
+    }
+    return _beautyTexture;
 }
 
 gpu::FramebufferPointer FramebufferCache::getFramebuffer() {
