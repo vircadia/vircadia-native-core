@@ -80,6 +80,18 @@ var ACTION_TTL_REFRESH = 5;
 var PICKS_PER_SECOND_PER_HAND = 5;
 var MSECS_PER_SEC = 1000.0;
 
+
+var GRABBABLE_DATA_KEY = "grabbableKey"; // shared with grab.js
+var GRAB_USER_DATA_KEY = "grabKey"; // shared with grab.js
+
+var DEFAULT_GRABBABLE_DATA = {
+    grabbable: true,
+    invertSolidWhileHeld: false
+};
+
+var disabledHand ='none';
+
+
 // states for the state machine
 var STATE_OFF = 0;
 var STATE_SEARCHING = 1;
@@ -93,15 +105,35 @@ var STATE_FAR_GRABBING_NON_COLLIDING = 8;
 var STATE_CONTINUE_FAR_GRABBING_NON_COLLIDING = 9;
 var STATE_RELEASE = 10;
 
-var GRABBABLE_DATA_KEY = "grabbableKey"; // shared with grab.js
-var GRAB_USER_DATA_KEY = "grabKey"; // shared with grab.js
 
-var DEFAULT_GRABBABLE_DATA = {
-    grabbable: true,
-    invertSolidWhileHeld: false
-};
+function stateToName(state) {
+    switch (state) {
+    case STATE_OFF:
+        return "off";
+    case STATE_SEARCHING:
+        return "searching";
+    case STATE_DISTANCE_HOLDING:
+        return "distance_holding";
+    case STATE_CONTINUE_DISTANCE_HOLDING:
+        return "continue_distance_holding";
+    case STATE_NEAR_GRABBING:
+        return "near_grabbing";
+    case STATE_CONTINUE_NEAR_GRABBING:
+        return "continue_near_grabbing";
+    case STATE_NEAR_GRABBING_NON_COLLIDING:
+        return "near_grabbing_non_colliding";
+    case STATE_CONTINUE_NEAR_GRABBING_NON_COLLIDING:
+        return "continue_near_grabbing_non_colliding";
+    case STATE_FAR_GRABBING_NON_COLLIDING:
+        return "far_grabbing_non_colliding";
+    case STATE_CONTINUE_FAR_GRABBING_NON_COLLIDING:
+        return "continue_far_grabbing_non_colliding";
+    case STATE_RELEASE:
+        return "release";
+    }
 
-var disabledHand ='none';
+    return "unknown";
+}
 
 function getTag() {
     return "grab-" + MyAvatar.sessionUUID;
@@ -196,7 +228,7 @@ function MyController(hand, triggerAction) {
 
     this.setState = function(newState) {
         if (WANT_DEBUG) {
-            print("STATE: " + this.state + " --> " + newState);
+            print("STATE: " + stateToName(this.state) + " --> " + newState + ", hand: " + this.hand);
         }
         this.state = newState;
     }
@@ -348,10 +380,11 @@ function MyController(hand, triggerAction) {
                 }
                 if (intersectionDistance <= NEAR_PICK_MAX_DISTANCE) {
                     // the hand is very close to the intersected object.  go into close-grabbing mode.
-                    if (intersection.properties.collisionsWillMove === 1) {
-                        this.setState(STATE_NEAR_GRABBING);
-                    } else {
+                    var grabbableData = getEntityCustomData(GRABBABLE_DATA_KEY, this.grabbedEntity, DEFAULT_GRABBABLE_DATA);
+                    if (grabbableData.wantsTrigger) {
                         this.setState(STATE_NEAR_GRABBING_NON_COLLIDING);
+                    } else {
+                        this.setState(STATE_NEAR_GRABBING);
                     }
                 } else {
                     // don't allow two people to distance grab the same object
@@ -392,11 +425,11 @@ function MyController(hand, triggerAction) {
             }
             if (this.grabbedEntity === null) {
                 return;
-            } else if (props.locked === 0 && props.collisionsWillMove === 1) {
-                this.setState(STATE_NEAR_GRABBING);
-            } else if (props.collisionsWillMove === 0 && grabbableData.wantsTrigger) {
-                // We have grabbed a non-physical object, so we want to trigger a non-colliding event as opposed to a grab event
+            }
+            if (grabbableData.wantsTrigger) {
                 this.setState(STATE_NEAR_GRABBING_NON_COLLIDING);
+            } else if (props.locked === 0) {
+                this.setState(STATE_NEAR_GRABBING);
             }
         }
     };
@@ -816,6 +849,7 @@ function MyController(hand, triggerAction) {
 
         // the action will tend to quickly bring an object's velocity to zero.  now that
         // the action is gone, set the objects velocity to something the holder might expect.
+        print("release velocity is " + vec3toStr(this.grabbedVelocity));
         Entities.editEntity(this.grabbedEntity, {
             velocity: this.grabbedVelocity
         });
