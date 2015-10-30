@@ -159,6 +159,8 @@ namespace controller {
         RoutePointer parseRoute(const QJsonValue& value);
         EndpointPointer parseDestination(const QJsonValue& value);
         EndpointPointer parseSource(const QJsonValue& value);
+        EndpointPointer parseAxis(const QJsonValue& value);
+        EndpointPointer parseAny(const QJsonValue& value);
         EndpointPointer parseEndpoint(const QJsonValue& value);
         ConditionalPointer parseConditional(const QJsonValue& value);
 

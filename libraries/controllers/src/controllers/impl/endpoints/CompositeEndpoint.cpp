@@ -20,6 +20,10 @@ CompositeEndpoint::CompositeEndpoint(Endpoint::Pointer first, Endpoint::Pointer 
     }
 }
 
+bool CompositeEndpoint::readable() const {
+    return first->readable() && second->readable();
+}
+
 float CompositeEndpoint::value() {
     float result = first->value() * -1.0f + second->value();
     return result;

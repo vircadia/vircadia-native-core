@@ -19,6 +19,8 @@ namespace controller {
 
         virtual float value() override;
         virtual void apply(float newValue, const Pointer& source) override;
+        virtual bool readable() const override;
+
     };
 
 }
