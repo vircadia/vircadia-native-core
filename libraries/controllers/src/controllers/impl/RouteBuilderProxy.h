@@ -38,6 +38,7 @@ class RouteBuilderProxy : public QObject {
 
         Q_INVOKABLE void to(const QScriptValue& destination);
         Q_INVOKABLE QObject* debug(bool enable = true);
+        Q_INVOKABLE QObject* peek(bool enable = true);
         Q_INVOKABLE QObject* when(const QScriptValue& expression);
         Q_INVOKABLE QObject* clamp(float min, float max);
         Q_INVOKABLE QObject* hysteresis(float min, float max);
@@ -48,7 +49,7 @@ class RouteBuilderProxy : public QObject {
         Q_INVOKABLE QObject* constrainToInteger();
         Q_INVOKABLE QObject* constrainToPositiveInteger();
 
-private:
+    private:
         void to(const Endpoint::Pointer& destination);
         void conditional(const Conditional::Pointer& conditional);
         void addFilter(Filter::Pointer filter);

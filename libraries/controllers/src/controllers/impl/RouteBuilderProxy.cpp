@@ -52,6 +52,11 @@ QObject* RouteBuilderProxy::debug(bool enable) {
     return this;
 }
 
+QObject* RouteBuilderProxy::peek(bool enable) {
+    _route->peek = enable;
+    return this;
+}
+
 QObject* RouteBuilderProxy::when(const QScriptValue& expression) {
     _route->conditional = _parent.conditionalFor(expression);
     return this;

@@ -24,8 +24,8 @@ public:
         : Endpoint(Input::INVALID_INPUT), _callable(callable) {
     }
 
-    virtual float value();
-    virtual void apply(float newValue, const Pointer& source);
+    virtual float peek() const override;
+    virtual void apply(float newValue, const Pointer& source) override;
 
 protected:
     Q_INVOKABLE void updateValue();

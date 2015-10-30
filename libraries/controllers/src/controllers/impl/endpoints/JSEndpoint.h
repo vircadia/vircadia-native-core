@@ -24,9 +24,8 @@ public:
         : Endpoint(Input::INVALID_INPUT), _callable(callable) {
     }
 
-    virtual float value() {
-        float result = (float)_callable.call().toNumber();
-        return result;
+    virtual float peek() const {
+        return (float)const_cast<JSEndpoint*>(this)->_callable.call().toNumber();
     }
 
     virtual void apply(float newValue, const Pointer& source) {

@@ -27,6 +27,17 @@ AnyEndpoint::AnyEndpoint(Endpoint::List children) : Endpoint(Input::INVALID_INPU
     }
 }
 
+float AnyEndpoint::peek() const {
+    for (auto& child : _children) {
+        float childResult = child->peek();
+        if (childResult != 0.0f) {
+            return childResult;
+        }
+    }
+    return 0.0f;
+}
+
+// Fetching the value must trigger any necessary side effects of value() on ALL the children.
 float AnyEndpoint::value() {
     float result = 0;
     for (auto& child : _children) {

@@ -909,8 +909,8 @@ var leftController = new MyController(LEFT_HAND);
 var MAPPING_NAME = "com.highfidelity.handControllerGrab";
 
 var mapping = Controller.newMapping(MAPPING_NAME);
-mapping.from([Controller.Standard.RB, Controller.Standard.RT]).to(rightController.eitherTrigger);
-mapping.from([Controller.Standard.LB, Controller.Standard.LT]).to(leftController.eitherTrigger);
+mapping.from([Controller.Standard.RB, Controller.Standard.RT]).peek().to(rightController.eitherTrigger);
+mapping.from([Controller.Standard.LB, Controller.Standard.LT]).peek().to(leftController.eitherTrigger);
 Controller.enableMapping(MAPPING_NAME);
 
 
