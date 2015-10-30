@@ -2,6 +2,15 @@
     "name": "Keyboard/Mouse to Actions",
     "channels": [
 
+        { "from": "Keyboard.A", "when": "Keyboard.Shift", "to": "Actions.LATERAL_LEFT" },
+        { "from": "Keyboard.D", "when": "Keyboard.Shift", "to": "Actions.LATERAL_RIGHT" },
+        { "from": "Keyboard.A", "when": "Keyboard.RightMouseClick", "to": "Actions.LATERAL_LEFT" },
+        { "from": "Keyboard.D", "when": "Keyboard.RightMouseClick", "to": "Actions.LATERAL_RIGHT" },
+        { "from": "Keyboard.E", "when": "Keyboard.Shift", "to": "Actions.BOOM_IN", "filters": [ { "type": "scale", "scale": 0.05 } ] },
+        { "from": "Keyboard.C", "when": "Keyboard.Shift", "to": "Actions.BOOM_OUT", "filters": [ { "type": "scale", "scale": 0.05 } ] },
+        { "from": "Keyboard.S", "when": "Keyboard.Shift", "to": "Actions.PITCH_DOWN" },
+        { "from": "Keyboard.W", "when": "Keyboard.Shift", "to": "Actions.PITCH_UP" },
+
         
         { "from": { "makeAxis" : ["Keyboard.MouseMoveLeft", "Keyboard.MouseMoveRight"] },
           "when": [ "Application.InHMD", "Application.ComfortMode", "Keyboard.RightMouseClick" ],
@@ -40,15 +49,6 @@
           "when": "Keyboard.RightMouseClick",
           "to": "Actions.Yaw"
         },
-
-        { "from": "Keyboard.A", "when": "Keyboard.Shift", "to": "Actions.LATERAL_LEFT" },
-        { "from": "Keyboard.D", "when": "Keyboard.Shift", "to": "Actions.LATERAL_RIGHT" },
-        { "from": "Keyboard.A", "when": "Keyboard.RightMouseClick", "to": "Actions.LATERAL_LEFT" },
-        { "from": "Keyboard.D", "when": "Keyboard.RightMouseClick", "to": "Actions.LATERAL_RIGHT" },
-        { "from": "Keyboard.E", "when": "Keyboard.Shift", "to": "Actions.BOOM_IN", "filters": [ { "type": "scale", "scale": 0.05 } ] },
-        { "from": "Keyboard.C", "when": "Keyboard.Shift", "to": "Actions.BOOM_OUT", "filters": [ { "type": "scale", "scale": 0.05 } ] },
-        { "from": "Keyboard.S", "when": "Keyboard.Shift", "to": "Actions.PITCH_DOWN" },
-        { "from": "Keyboard.W", "when": "Keyboard.Shift", "to": "Actions.PITCH_UP" },
 
         { "from": "Keyboard.W", "to": "Actions.LONGITUDINAL_FORWARD" },
         { "from": "Keyboard.S", "to": "Actions.LONGITUDINAL_BACKWARD" },
