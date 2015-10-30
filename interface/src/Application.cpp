@@ -950,8 +950,8 @@ void Application::initializeGL() {
     checkFPStimer.start(1000);
 
     // call our idle function whenever we can
-    connect(&idleTimer, &QTimer::timeout, this, &Application::idle);
-    idleTimer.start(TARGET_SIM_FRAME_PERIOD_MS);
+ //   connect(&idleTimer, &QTimer::timeout, this, &Application::idle);
+ //  idleTimer.start(TARGET_SIM_FRAME_PERIOD_MS);
     _idleLoopStdev.reset();
 
     // update before the first render
@@ -1023,6 +1023,10 @@ void Application::paintGL() {
     if (_inPaint) {
         return;
     }
+	
+	// this is a good idea
+	idle();
+
     _inPaint = true;
     Finally clearFlagLambda([this] { _inPaint = false; });
 
@@ -2070,7 +2074,7 @@ void Application::idle() {
     float secondsSinceLastUpdate = timeSinceLastUpdateUs / USECS_PER_SECOND;
 
     if (isThrottled && (timeSinceLastUpdateUs / USECS_PER_MSEC) < THROTTLED_SIM_FRAME_PERIOD_MS) {
-        return; // bail early, we're throttled and not enough time has elapsed
+        //return; // bail early, we're throttled and not enough time has elapsed
     }
 
     _lastTimeUpdated.start();
