@@ -98,13 +98,11 @@ void ThreadSafeDynamicsWorld::synchronizeMotionState(btRigidBody* body) {
         {
             if (body->isKinematicObject()) {
                 ObjectMotionState* objectMotionState = static_cast<ObjectMotionState*>(body->getMotionState());
-                if (!objectMotionState->hasInternalKinematicChanges()) {
-                    return;
-                } else {
+                if (objectMotionState->hasInternalKinematicChanges()) {
                     objectMotionState->clearInternalKinematicChanges();
                     body->getMotionState()->setWorldTransform(body->getWorldTransform());
-                    return;
                 }
+                return;
             }
             btTransform interpolatedTransform;
             btTransformUtil::integrateTransform(body->getInterpolationWorldTransform(),

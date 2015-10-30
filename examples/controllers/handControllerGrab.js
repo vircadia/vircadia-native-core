@@ -15,13 +15,11 @@
 Script.include("../libraries/utils.js");
 
 
-////////////////////////////////////////////////////////////
 //
 // add lines where the hand ray picking is happening
 //
 var WANT_DEBUG = false;
 
-/////////////////////////////////////////////////////////////////
 //
 // these tune time-averaging and "on" value for analog trigger
 //
@@ -30,7 +28,6 @@ var TRIGGER_SMOOTH_RATIO = 0.1; // 0.0 disables smoothing of trigger value
 var TRIGGER_ON_VALUE = 0.4;
 var TRIGGER_OFF_VALUE = 0.15;
 
-/////////////////////////////////////////////////////////////////
 //
 // distant manipulation
 //
@@ -44,7 +41,6 @@ var LINE_ENTITY_DIMENSIONS = { x: 1000, y: 1000,z: 1000};
 var LINE_LENGTH = 500;
 var PICK_MAX_DISTANCE = 500; // max length of pick-ray
 
-/////////////////////////////////////////////////////////////////
 //
 // near grabbing
 //
@@ -57,7 +53,6 @@ var RELEASE_VELOCITY_MULTIPLIER = 1.5; // affects throwing things
 var PICK_BACKOFF_DISTANCE = 0.2; // helps when hand is intersecting the grabble object
 var NEAR_GRABBING_KINEMATIC = true; // force objects to be kinematic when near-grabbed
 
-/////////////////////////////////////////////////////////////////
 //
 // other constants
 //
@@ -228,7 +223,7 @@ function MyController(hand, triggerAction) {
 
     this.setState = function(newState) {
         if (WANT_DEBUG) {
-            print("STATE: " + stateToName(this.state) + " --> " + newState + ", hand: " + this.hand);
+            print("STATE: " + stateToName(this.state) + " --> " + stateToName(newState) + ", hand: " + this.hand);
         }
         this.state = newState;
     }
@@ -849,7 +844,6 @@ function MyController(hand, triggerAction) {
 
         // the action will tend to quickly bring an object's velocity to zero.  now that
         // the action is gone, set the objects velocity to something the holder might expect.
-        print("release velocity is " + vec3toStr(this.grabbedVelocity));
         Entities.editEntity(this.grabbedEntity, {
             velocity: this.grabbedVelocity
         });
