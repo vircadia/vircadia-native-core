@@ -27,6 +27,8 @@
 class ViveControllerManager : public InputPlugin, public InputDevice {
     Q_OBJECT
 public:
+	static const QString NAME;
+
     enum JoystickAxisChannel {
         AXIS_Y_POS = 1U << 1,
         AXIS_Y_NEG = 1U << 2,
@@ -74,6 +76,10 @@ public:
     UserInputMapper::Input makeInput(unsigned int button, int index);
     UserInputMapper::Input makeInput(JoystickAxisChannel axis, int index);
     UserInputMapper::Input makeInput(JointChannel joint);
+
+	int getNumDevices() const; 
+	glm::vec3 getPosition(int device) const;
+	glm::quat getRotation(int device) const;
     
 private:
     void renderHand(UserInputMapper::PoseValue pose, gpu::Batch& batch, int index);
@@ -92,8 +98,6 @@ private:
     int _rightHandRenderID;
 
     bool _renderControllers;
-
-    static const QString NAME;
 };
 
 #endif // hifi__ViveControllerManager

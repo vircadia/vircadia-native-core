@@ -29,6 +29,15 @@ enum MotionType {
     MOTION_TYPE_KINEMATIC   // keyframed motion
 };
 
+inline QString motionTypeToString(MotionType motionType) {
+    switch(motionType) {
+        case MOTION_TYPE_STATIC: return QString("static");
+        case MOTION_TYPE_DYNAMIC: return QString("dynamic");
+        case MOTION_TYPE_KINEMATIC: return QString("kinematic");
+    }
+    return QString("unknown");
+}
+
 enum MotionStateType {
     MOTIONSTATE_TYPE_INVALID,
     MOTIONSTATE_TYPE_ENTITY,
@@ -137,6 +146,7 @@ protected:
     virtual bool isReadyToComputeShape() = 0;
     virtual btCollisionShape* computeNewShape() = 0;
     void setMotionType(MotionType motionType);
+    void updateCCDConfiguration();
 
     // clearObjectBackPointer() overrrides should call the base method, then actually clear the object back pointer.
     virtual void clearObjectBackPointer() { _type = MOTIONSTATE_TYPE_INVALID; }
