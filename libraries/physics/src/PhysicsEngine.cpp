@@ -228,7 +228,7 @@ void PhysicsEngine::removeContacts(ObjectMotionState* motionState) {
 
 void PhysicsEngine::stepSimulation() {
     CProfileManager::Reset();
-    BT_PROFILE("stepSimulationWithSubstepCallback");
+    BT_PROFILE("stepSimulation");
     // NOTE: the grand order of operations is:
     // (1) pull incoming changes
     // (2) step simulation
@@ -241,7 +241,7 @@ void PhysicsEngine::stepSimulation() {
     float timeStep = btMin(dt, MAX_TIMESTEP);
 
     if (_myAvatarController) {
-        // ADEBUG TODO: move this stuff outside and in front of stepSimulationWithSubstepCallback, because
+        // ADEBUG TODO: move this stuff outside and in front of stepSimulation, because
         // the updateShapeIfNecessary() call needs info from MyAvatar and should
         // be done on the main thread during the pre-simulation stuff
         if (_myAvatarController->needsRemoval()) {
