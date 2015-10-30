@@ -61,8 +61,9 @@ public:
     void setString(const QString& value) { assert(_type == Type::String); _stringVal = value; }
 
     bool getBool() const { assert(_type == Type::Bool); return _val.boolVal; }
-    int getInt() const { assert(_type == Type::Int); return _val.intVal; }
-    float getFloat() const { assert(_type == Type::Float); return _val.floats[0]; }
+    int getInt() const { assert(_type == Type::Int || _type == Type::Float); return _type == Type::Float ? (int)_val.floats[0] : _val.intVal; }
+    float getFloat() const { assert(_type == Type::Float || _type == Type::Int); return _type == Type::Int ? (float)_val.intVal : _val.floats[0]; }
+
     const glm::vec3& getVec3() const { assert(_type == Type::Vec3); return *reinterpret_cast<const glm::vec3*>(&_val); }
     const glm::quat& getQuat() const { assert(_type == Type::Quat); return *reinterpret_cast<const glm::quat*>(&_val); }
     const glm::mat4& getMat4() const { assert(_type == Type::Mat4); return *reinterpret_cast<const glm::mat4*>(&_val); }
