@@ -111,9 +111,6 @@ static const PalmData* getPalmWithIndex(Hand* hand, int index) {
 const float PALM_PRIORITY = DEFAULT_PRIORITY;
 // Called within Model::simulate call, below.
 void SkeletonModel::updateRig(float deltaTime, glm::mat4 parentTransform) {
-    if (_owningAvatar->isMyAvatar()) {
-        _rig->computeMotionAnimationState(deltaTime, _owningAvatar->getPosition(), _owningAvatar->getVelocity(), _owningAvatar->getOrientation());
-    }
     Head* head = _owningAvatar->getHead();
     if (_owningAvatar->isMyAvatar()) {
         MyAvatar* myAvatar = static_cast<MyAvatar*>(_owningAvatar);
@@ -182,6 +179,7 @@ void SkeletonModel::updateRig(float deltaTime, glm::mat4 parentTransform) {
 
         _rig->updateFromHandParameters(handParams, deltaTime);
 
+        _rig->computeMotionAnimationState(deltaTime, _owningAvatar->getPosition(), _owningAvatar->getVelocity(), _owningAvatar->getOrientation());
         // evaluate AnimGraph animation and update jointStates.
         Model::updateRig(deltaTime, parentTransform);
 
@@ -196,7 +194,7 @@ void SkeletonModel::updateRig(float deltaTime, glm::mat4 parentTransform) {
 
         _rig->updateFromEyeParameters(eyeParams);
 
-        // rebuild the jointState transform for the eyes only
+        // rebuild the jointState transform for the eyes only. Must be after updateRig.
         _rig->updateJointState(eyeParams.leftEyeJointIndex, parentTransform);
         _rig->updateJointState(eyeParams.rightEyeJointIndex, parentTransform);
 
