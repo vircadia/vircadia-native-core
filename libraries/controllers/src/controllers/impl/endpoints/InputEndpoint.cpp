@@ -13,10 +13,10 @@
 #include "../../UserInputMapper.h"
 
 using namespace controller;
-float InputEndpoint::value(){
-    _read = true;
+
+float InputEndpoint::peek() const {
     if (isPose()) {
-        return pose().valid ? 1.0f : 0.0f;
+        return peekPose().valid ? 1.0f : 0.0f;
     }
     auto userInputMapper = DependencyManager::get<UserInputMapper>();
     auto deviceProxy = userInputMapper->getDevice(_input);
@@ -26,8 +26,12 @@ float InputEndpoint::value(){
     return deviceProxy->getValue(_input);
 }
 
-Pose InputEndpoint::pose() {
+float InputEndpoint::value(){
     _read = true;
+    return peek();
+}
+
+Pose InputEndpoint::peekPose() const {
     if (!isPose()) {
         return Pose();
     }
@@ -37,5 +41,10 @@ Pose InputEndpoint::pose() {
         return Pose();
     }
     return deviceProxy->getPose(_input.channel);
+}
+
+Pose InputEndpoint::pose() {
+    _read = true;
+    return peekPose();
 }
 

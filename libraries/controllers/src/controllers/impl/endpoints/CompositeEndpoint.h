@@ -18,6 +18,7 @@ namespace controller {
         using Endpoint::apply;
         CompositeEndpoint(Endpoint::Pointer first, Endpoint::Pointer second);
 
+        virtual float peek() const override;
         virtual float value() override;
         virtual void apply(float newValue, const Pointer& source) override;
         virtual bool readable() const override;

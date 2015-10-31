@@ -38,8 +38,8 @@ namespace controller {
 
     class UserInputMapper : public QObject, public Dependency {
         Q_OBJECT
-            SINGLETON_DEPENDENCY
-            Q_ENUMS(Action)
+        SINGLETON_DEPENDENCY
+        Q_ENUMS(Action)
 
     public:
         // FIXME move to unordered set / map
@@ -135,8 +135,8 @@ namespace controller {
         int recordDeviceOfType(const QString& deviceName);
         QHash<const QString&, int> _deviceCounts;
 
-        static float getValue(const EndpointPointer& endpoint);
-        static Pose getPose(const EndpointPointer& endpoint);
+        static float getValue(const EndpointPointer& endpoint, bool peek = false);
+        static Pose getPose(const EndpointPointer& endpoint, bool peek = false);
 
         friend class RouteBuilderProxy;
         friend class MappingBuilderProxy;
