@@ -118,7 +118,7 @@ protected:
     /// \param position position of joint in model-frame
     void applyHandPosition(int jointIndex, const glm::vec3& position);
 
-    void applyPalmData(int jointIndex, PalmData& palm);
+    void applyPalmData(int jointIndex, const PalmData& palm);
 private:
 
     void renderJointConstraints(gpu::Batch& batch, int jointIndex);

@@ -10,11 +10,26 @@
 //
 #pragma once
 
-#include "UserInputMapper.h"
+#include <memory>
+#include <map>
+#include <unordered_set>
+
+#include <QtCore/QString>
+
+#include "Pose.h"
+#include "Input.h"
+#include "StandardControls.h"
+#include "DeviceProxy.h"
+
 
 // Event types for each controller
 const unsigned int CONTROLLER_0_EVENT = 1500U;
 const unsigned int CONTROLLER_1_EVENT = 1501U;
+
+namespace controller {
+
+class Endpoint;
+using EndpointPointer = std::shared_ptr<Endpoint>;
 
 // NOTE: If something inherits from both InputDevice and InputPlugin, InputPlugin must go first.
 // e.g. class Example : public InputPlugin, public InputDevice
@@ -23,17 +38,22 @@ class InputDevice {
 public:
     InputDevice(const QString& name) : _name(name) {}
 
+    using Pointer = std::shared_ptr<InputDevice>;
+
     typedef std::unordered_set<int> ButtonPressedMap;
     typedef std::map<int, float> AxisStateMap;
-    typedef std::map<int, UserInputMapper::PoseValue> PoseStateMap;
+    typedef std::map<int, Pose> PoseStateMap;
 
     // Get current state for each channel
     float getButton(int channel) const;
     float getAxis(int channel) const;
-    UserInputMapper::PoseValue getPose(int channel) const;
+    Pose getPose(int channel) const;
 
-    virtual void registerToUserInputMapper(UserInputMapper& mapper) = 0;
-    virtual void assignDefaultInputMapping(UserInputMapper& mapper) = 0;
+    float getValue(const Input& input) const;
+    float getValue(ChannelType channelType, uint16_t channel) const;
+    Pose getPoseValue(uint16_t channel) const;
+    
+    const QString& getName() const { return _name; }
 
     // Update call MUST be called once per simulation loop
     // It takes care of updating the action states and deltas
@@ -42,20 +62,33 @@ public:
     virtual void focusOutEvent() = 0;
 
     int getDeviceID() { return _deviceID; }
+    void setDeviceID(int deviceID) { _deviceID = deviceID; }
 
     static float getCursorPixelRangeMult();
-    static float getReticleMoveSpeed() { return reticleMoveSpeed; }
-    static void setReticleMoveSpeed(float sixenseReticleMoveSpeed) { reticleMoveSpeed = sixenseReticleMoveSpeed; }
+    static float getReticleMoveSpeed() { return _reticleMoveSpeed; }
+    static void setReticleMoveSpeed(float reticleMoveSpeed) { _reticleMoveSpeed = reticleMoveSpeed; }
 
     static bool getLowVelocityFilter() { return _lowVelocityFilter; };
 
+    Input makeInput(StandardButtonChannel button) const;
+    Input makeInput(StandardAxisChannel axis) const;
+    Input makeInput(StandardPoseChannel pose) const;
+    Input::NamedPair makePair(StandardButtonChannel button, const QString& name) const;
+    Input::NamedPair makePair(StandardAxisChannel button, const QString& name) const;
+    Input::NamedPair makePair(StandardPoseChannel button, const QString& name) const;
 public slots:
     static void setLowVelocityFilter(bool newLowVelocityFilter) { _lowVelocityFilter = newLowVelocityFilter; };
 
 protected:
-    int _deviceID = 0;
+    friend class UserInputMapper;
 
-    QString _name;
+    virtual Input::NamedVector getAvailableInputs() const = 0;
+    virtual QString getDefaultMappingConfig() const { return QString(); }
+    virtual EndpointPointer createEndpoint(const Input& input) const;
+
+    uint16_t _deviceID { Input::INVALID_DEVICE };
+
+    const QString _name;
 
     ButtonPressedMap _buttonPressedMap;
     AxisStateMap _axisStateMap;
@@ -64,5 +97,7 @@ protected:
     static bool _lowVelocityFilter;
 
 private:
-    static float reticleMoveSpeed;
+    static float _reticleMoveSpeed;
 };
+
+}

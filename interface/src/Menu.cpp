@@ -464,11 +464,13 @@ Menu::Menu() {
     addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::MeshVisible, 0, true,
                                            avatar, SLOT(setEnableMeshVisible(bool)));
     addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::DisableEyelidAdjustment, 0, false);
+#if 0
     addCheckableActionToQMenuAndActionHash(avatarDebugMenu,
                                            MenuOption::Connexion,
                                            0, false,
                                            &ConnexionClient::getInstance(),
                                            SLOT(toggleConnexion(bool)));
+#endif
     addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::ComfortMode, 0, true);
 
     MenuWrapper* handOptionsMenu = developerMenu->addMenu("Hands");
