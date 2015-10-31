@@ -32,7 +32,7 @@ public:
 
     virtual void apply(float value, const Pointer& source) override {
         // For standard endpoints, the first NON-ZERO write counts.
-        if (value != 0.0) {
+        if (value != 0.0f) {
             _written = true;
         }
         VirtualEndpoint::apply(value, source);

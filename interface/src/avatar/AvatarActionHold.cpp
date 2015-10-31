@@ -119,6 +119,8 @@ void AvatarActionHold::doKinematicUpdate(float deltaTimeStep) {
         worldTrans.setRotation(glmToBullet(_rotationalTarget));
         rigidBody->setWorldTransform(worldTrans);
 
+        motionState->dirtyInternalKinematicChanges();
+
         _previousPositionalTarget = _positionalTarget;
         _previousRotationalTarget = _rotationalTarget;
         _previousSet = true;
@@ -224,6 +226,8 @@ QVariantMap AvatarActionHold::getArguments() {
         arguments["relativeRotation"] = glmToQMap(_relativeRotation);
         arguments["timeScale"] = _linearTimeScale;
         arguments["hand"] = _hand;
+        arguments["kinematic"] = _kinematic;
+        arguments["kinematicSetVelocity"] = _kinematicSetVelocity;
     });
     return arguments;
 }

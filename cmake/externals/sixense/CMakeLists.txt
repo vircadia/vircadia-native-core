@@ -30,17 +30,40 @@ if (WIN32)
         set(ARCH_SUFFIX "")
     endif()
     
-    set(${EXTERNAL_NAME_UPPER}_LIBRARIES "${SOURCE_DIR}/lib/${ARCH_DIR}/VS2013/release_dll/sixense${ARCH_SUFFIX}.lib" CACHE TYPE INTERNAL)
+    set(${EXTERNAL_NAME_UPPER}_LIBRARY_RELEASE "${SOURCE_DIR}/lib/${ARCH_DIR}/VS2013/release_dll/sixense${ARCH_SUFFIX}.lib" CACHE TYPE INTERNAL)
     add_paths_to_fixup_libs("${SOURCE_DIR}/bin/${ARCH_DIR}/VS2013/release_dll")
 
 elseif(APPLE)
 
-    set(${EXTERNAL_NAME_UPPER}_LIBRARIES ${SOURCE_DIR}/lib/osx_x64/release_dll/libsixense_x64.dylib CACHE TYPE INTERNAL)
+    set(${EXTERNAL_NAME_UPPER}_LIBRARY_RELEASE ${SOURCE_DIR}/lib/osx_x64/release_dll/libsixense_x64.dylib CACHE TYPE INTERNAL)
+    set(${EXTERNAL_NAME_UPPER}_LIBRARY_DEBUG ${SOURCE_DIR}/lib/osx_x64/debug_dll/libsixensed_x64.dylib CACHE TYPE INTERNAL)
+  
+    set(_SIXENSE_LIB_DIR "${SOURCE_DIR}/lib/osx_x64")
+    ExternalProject_Add_Step(
+      ${EXTERNAL_NAME}
+      change-install-name-release
+      COMMENT "Calling install_name_tool on libraries to fix install name for dylib linking"
+      COMMAND ${CMAKE_COMMAND} -DINSTALL_NAME_LIBRARY_DIR=${_SIXENSE_LIB_DIR}/release_dll -P ${EXTERNAL_PROJECT_DIR}/OSXInstallNameChange.cmake
+      DEPENDEES install
+      WORKING_DIRECTORY <SOURCE_DIR>
+      LOG 1
+    )
 
+    set(_SIXENSE_LIB_DIR "${SOURCE_DIR}/lib/osx_x64")
+    ExternalProject_Add_Step(
+      ${EXTERNAL_NAME}
+      change-install-name-debug
+      COMMENT "Calling install_name_tool on libraries to fix install name for dylib linking"
+      COMMAND ${CMAKE_COMMAND} -DINSTALL_NAME_LIBRARY_DIR=${_SIXENSE_LIB_DIR}/debug_dll -P ${EXTERNAL_PROJECT_DIR}/OSXInstallNameChange.cmake
+      DEPENDEES install
+      WORKING_DIRECTORY <SOURCE_DIR>
+      LOG 1
+    )
+    
 elseif(NOT ANDROID)
 
     # FIXME need to account for different architectures 
-    set(${EXTERNAL_NAME_UPPER}_LIBRARIES ${SOURCE_DIR}/lib/linux_x64/release/libsixense_x64.so CACHE TYPE INTERNAL)
+    set(${EXTERNAL_NAME_UPPER}_LIBRARY_RELEASE ${SOURCE_DIR}/lib/linux_x64/release/libsixense_x64.so CACHE TYPE INTERNAL)
 
 endif()
 
