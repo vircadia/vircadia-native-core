@@ -154,7 +154,7 @@ function entityIsGrabbedByOther(entityID) {
 }
 
 
-function MyController(hand, triggerAction) {
+function MyController(hand) {
     this.hand = hand;
     if (this.hand === RIGHT_HAND) {
         this.getHandPosition = MyAvatar.getRightPalmPosition;
@@ -166,7 +166,6 @@ function MyController(hand, triggerAction) {
 
     var SPATIAL_CONTROLLERS_PER_PALM = 2;
     var TIP_CONTROLLER_OFFSET = 1;
-    this.triggerAction = triggerAction;
     this.palm = SPATIAL_CONTROLLERS_PER_PALM * hand;
     this.tip = SPATIAL_CONTROLLERS_PER_PALM * hand + TIP_CONTROLLER_OFFSET;
 
@@ -282,7 +281,6 @@ function MyController(hand, triggerAction) {
         // smooth out trigger value
         this.triggerValue = (this.triggerValue * TRIGGER_SMOOTH_RATIO) +
             (triggerValue * (1.0 - TRIGGER_SMOOTH_RATIO));
-
     };
 
     this.triggerSmoothedSqueezed = function() {
@@ -439,8 +437,7 @@ function MyController(hand, triggerAction) {
         var handControllerPosition = (this.hand === RIGHT_HAND) ? MyAvatar.rightHandPosition : MyAvatar.leftHandPosition;
         var controllerHandInput = (this.hand === RIGHT_HAND) ? Controller.Standard.RightHand : Controller.Standard.LeftHand;
         var handRotation = Quat.multiply(MyAvatar.orientation, Controller.getPoseValue(controllerHandInput).rotation);
-        var grabbedProperties = Entities.getEntityProperties(this.grabbedEntity, ["position", "rotation",
-                                                                                  "gravity", "ignoreForCollisions",
+        var grabbedProperties = Entities.getEntityProperties(this.grabbedEntity, ["position", "rotation"]);
  
         var now = Date.now();
 
@@ -906,8 +903,8 @@ function MyController(hand, triggerAction) {
     };
 }
 
-var rightController = new MyController(RIGHT_HAND, Controller.Standard.RT);
-var leftController = new MyController(LEFT_HAND, Controller.Standard.LT);
+var rightController = new MyController(RIGHT_HAND);
+var leftController = new MyController(LEFT_HAND);
 
 var MAPPING_NAME = "com.highfidelity.handControllerGrab";
 
