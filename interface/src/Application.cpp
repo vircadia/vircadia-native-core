@@ -630,8 +630,12 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
     // Setup the userInputMapper with the actions
     auto userInputMapper = DependencyManager::get<UserInputMapper>();
     connect(userInputMapper.data(), &UserInputMapper::actionEvent, [this](int action, float state) {
-        if (state && action == toInt(controller::Action::TOGGLE_MUTE)) {
-            DependencyManager::get<AudioClient>()->toggleMute();
+        if (state) {
+            if (action == controller::toInt(controller::Action::TOGGLE_MUTE)) {
+                DependencyManager::get<AudioClient>()->toggleMute();
+            } else if (action == controller::toInt(controller::Action::CYCLE_CAMERA)) {
+                cycleCamera();
+            }
         }
     });
 
@@ -2618,6 +2622,30 @@ void Application::updateThreads(float deltaTime) {
         _octreeProcessor.threadRoutine();
         _entityEditSender.threadRoutine();
     }
+}
+
+void Application::cycleCamera() {
+    auto menu = Menu::getInstance();
+    if (menu->isOptionChecked(MenuOption::FullscreenMirror)) {
+
+        menu->setIsOptionChecked(MenuOption::FullscreenMirror, false);
+        menu->setIsOptionChecked(MenuOption::FirstPerson, true);
+
+    } else if (menu->isOptionChecked(MenuOption::FirstPerson)) {
+
+        menu->setIsOptionChecked(MenuOption::FirstPerson, false);
+        menu->setIsOptionChecked(MenuOption::ThirdPerson, true);
+
+    } else if (menu->isOptionChecked(MenuOption::ThirdPerson)) {
+
+        menu->setIsOptionChecked(MenuOption::ThirdPerson, false);
+        menu->setIsOptionChecked(MenuOption::FullscreenMirror, true);
+
+    } else if (menu->isOptionChecked(MenuOption::IndependentMode)) {
+        // do nothing if in independe mode
+        return;
+    }
+    cameraMenuChanged(); // handle the menu change
 }
 
 void Application::cameraMenuChanged() {
