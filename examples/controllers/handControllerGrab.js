@@ -437,8 +437,9 @@ function MyController(hand) {
         var handControllerPosition = (this.hand === RIGHT_HAND) ? MyAvatar.rightHandPosition : MyAvatar.leftHandPosition;
         var controllerHandInput = (this.hand === RIGHT_HAND) ? Controller.Standard.RightHand : Controller.Standard.LeftHand;
         var handRotation = Quat.multiply(MyAvatar.orientation, Controller.getPoseValue(controllerHandInput).rotation);
-        var grabbedProperties = Entities.getEntityProperties(this.grabbedEntity, ["position", "rotation"]);
- 
+        var grabbedProperties = Entities.getEntityProperties(this.grabbedEntity, ["position", "rotation",
+                                                                                  "gravity", "ignoreForCollisions",
+                                                                                  "collisionsWillMove"]);
         var now = Date.now();
 
         // add the action and initialize some variables
