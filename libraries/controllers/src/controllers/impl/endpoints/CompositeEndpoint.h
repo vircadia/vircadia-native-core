@@ -15,6 +15,7 @@
 namespace controller {
     class CompositeEndpoint : public Endpoint, Endpoint::Pair {
     public:
+        using Endpoint::apply;
         CompositeEndpoint(Endpoint::Pointer first, Endpoint::Pointer second);
 
         virtual float value() override;

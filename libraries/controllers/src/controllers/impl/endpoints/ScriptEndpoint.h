@@ -19,6 +19,7 @@ namespace controller {
 class ScriptEndpoint : public Endpoint {
     Q_OBJECT;
 public:
+    using Endpoint::apply;
     ScriptEndpoint(const QScriptValue& callable)
         : Endpoint(Input::INVALID_INPUT), _callable(callable) {
     }

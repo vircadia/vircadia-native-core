@@ -40,7 +40,7 @@ namespace controller {
         virtual void apply(float value, const Pointer& source) = 0;
         virtual Pose pose() { return Pose(); }
         virtual void apply(const Pose& value, const Pointer& source) {}
-        virtual const bool isPose() { return _input.isPose(); }
+        virtual bool isPose() { return _input.isPose(); }
 
         virtual bool writeable() const { return true; }
         virtual bool readable() const { return true; }
@@ -54,6 +54,7 @@ namespace controller {
 
     class LambdaEndpoint : public Endpoint {
     public:
+        using Endpoint::apply;
         LambdaEndpoint(ReadLambda readLambda, WriteLambda writeLambda = [](float) {})
             : Endpoint(Input::INVALID_INPUT), _readLambda(readLambda), _writeLambda(writeLambda) { }
 

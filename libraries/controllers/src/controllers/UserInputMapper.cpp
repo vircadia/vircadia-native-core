@@ -74,7 +74,7 @@ void UserInputMapper::registerDevice(InputDevice::Pointer device) {
     }
     const auto& deviceID = device->_deviceID;
 
-    int numberOfType = recordDeviceOfType(device->getName());
+    recordDeviceOfType(device->getName());
 
     qCDebug(controllers) << "Registered input device <" << device->getName() << "> deviceID = " << deviceID;
     for (const auto& inputMapping : device->getAvailableInputs()) {
@@ -266,7 +266,7 @@ void UserInputMapper::update(float deltaTime) {
     }
 
     auto standardInputs = getStandardInputs();
-    if (_lastStandardStates.size() != standardInputs.size()) {
+    if ((int)_lastStandardStates.size() != standardInputs.size()) {
         _lastStandardStates.resize(standardInputs.size());
         for (auto& lastValue : _lastStandardStates) {
             lastValue = 0;
