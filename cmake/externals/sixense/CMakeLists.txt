@@ -30,7 +30,7 @@ if (WIN32)
         set(ARCH_SUFFIX "")
     endif()
     
-    set(${EXTERNAL_NAME_UPPER}_LIBRARIES "${SOURCE_DIR}/lib/${ARCH_DIR}/VS2013/release_dll/sixense${ARCH_SUFFIX}.lib" CACHE TYPE INTERNAL)
+    set(${EXTERNAL_NAME_UPPER}_LIBRARY_RELEASE "${SOURCE_DIR}/lib/${ARCH_DIR}/VS2013/release_dll/sixense${ARCH_SUFFIX}.lib" CACHE TYPE INTERNAL)
     add_paths_to_fixup_libs("${SOURCE_DIR}/bin/${ARCH_DIR}/VS2013/release_dll")
 
 elseif(APPLE)
@@ -63,7 +63,7 @@ elseif(APPLE)
 elseif(NOT ANDROID)
 
     # FIXME need to account for different architectures 
-    set(${EXTERNAL_NAME_UPPER}_LIBRARIES ${SOURCE_DIR}/lib/linux_x64/release/libsixense_x64.so CACHE TYPE INTERNAL)
+    set(${EXTERNAL_NAME_UPPER}_LIBRARY_RELEASE ${SOURCE_DIR}/lib/linux_x64/release/libsixense_x64.so CACHE TYPE INTERNAL)
 
 endif()
 
