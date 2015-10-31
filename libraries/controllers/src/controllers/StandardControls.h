@@ -58,15 +58,15 @@ namespace controller {
         // Left Analog stick
         LX = 0,
         LY,
-        LZ,
         // Right Analog stick
         RX,
         RY,
-        RZ,
         // Triggers
         LT,
         RT,
-        NUM_STANDARD_AXES
+        NUM_STANDARD_AXES,
+        LZ = LT,
+        RZ = RT
     };
 
     // No correlation to SDL
