@@ -18,6 +18,10 @@
 #  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 # 
 
+include(SelectLibraryConfigurations)
+select_library_configurations(SIXENSE)
+
+set(SIXENSE_REQUIREMENTS SIXENSE_INCLUDE_DIRS SIXENSE_LIBRARIES)
 include(FindPackageHandleStandardArgs)
 find_package_handle_standard_args(Sixense DEFAULT_MSG SIXENSE_INCLUDE_DIRS SIXENSE_LIBRARIES)
 mark_as_advanced(SIXENSE_LIBRARIES SIXENSE_INCLUDE_DIRS SIXENSE_SEARCH_DIRS)
