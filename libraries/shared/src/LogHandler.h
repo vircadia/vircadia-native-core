@@ -13,11 +13,11 @@
 #ifndef hifi_LogHandler_h
 #define hifi_LogHandler_h
 
-#include <qhash.h>
-#include <qobject.h>
-#include <qregexp.h>
-#include <qset.h>
-#include <qstring.h>
+#include <QHash>
+#include <QObject>
+#include <QSet>
+#include <QString>
+#include <QMutex>
 
 const int VERBOSE_LOG_INTERVAL_SECONDS = 5;
 

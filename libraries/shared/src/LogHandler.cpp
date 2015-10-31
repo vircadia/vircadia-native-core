@@ -16,6 +16,8 @@
 #include <QDebug>
 #include <QTimer>
 #include <QThread>
+#include <QMutexLocker>
+#include <QRegExp>
 
 #include "LogHandler.h"
 
