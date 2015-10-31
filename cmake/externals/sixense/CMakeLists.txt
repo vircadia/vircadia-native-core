@@ -37,6 +37,18 @@ elseif(APPLE)
 
     set(${EXTERNAL_NAME_UPPER}_LIBRARIES ${SOURCE_DIR}/lib/osx_x64/release_dll/libsixense_x64.dylib CACHE TYPE INTERNAL)
 
+    set(_SIXENSE_LIB_DIR "${SOURCE_DIR}/lib/osx_x64/release_dll")
+
+    ExternalProject_Add_Step(
+      ${EXTERNAL_NAME}
+      change-install-name-release
+      COMMENT "Calling install_name_tool on libraries to fix install name for dylib linking"
+      COMMAND ${CMAKE_COMMAND} -DINSTALL_NAME_LIBRARY_DIR=${_SIXENSE_LIB_DIR} -P ${EXTERNAL_PROJECT_DIR}/OSXInstallNameChange.cmake
+      DEPENDEES install
+      WORKING_DIRECTORY <SOURCE_DIR>
+      LOG 1
+    )
+
 elseif(NOT ANDROID)
 
     # FIXME need to account for different architectures 
