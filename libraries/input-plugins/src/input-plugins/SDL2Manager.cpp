@@ -82,6 +82,7 @@ void SDL2Manager::activate() {
         emit joystickAdded(joystick.get());
     }
 #endif
+    InputPlugin::activate();
 }
 
 void SDL2Manager::deactivate() {
@@ -92,6 +93,7 @@ void SDL2Manager::deactivate() {
         emit joystickRemoved(joystick.get());
     }
 #endif
+    InputPlugin::deactivate();
 }
 
 
