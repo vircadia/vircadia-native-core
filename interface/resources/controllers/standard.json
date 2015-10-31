@@ -16,7 +16,7 @@
 
 
         { "from": "Standard.RX", "to": "Actions.Yaw" },
-        { "from": "Standard.RY", "to": "Actions.Pitch" },
+        { "from": "Standard.RY", "filters": "invert", "to": "Actions.TranslateY" }, 
 
 
         { "from": [ "Standard.DU", "Standard.DL", "Standard.DR", "Standard.DD" ], "to": "Standard.LeftPrimaryThumb" },
