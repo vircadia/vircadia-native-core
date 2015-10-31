@@ -19,6 +19,7 @@ namespace controller {
 
 class JSEndpoint : public Endpoint {
 public:
+    using Endpoint::apply;
     JSEndpoint(const QJSValue& callable)
         : Endpoint(Input::INVALID_INPUT), _callable(callable) {
     }

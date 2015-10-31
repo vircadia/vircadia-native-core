@@ -17,6 +17,7 @@ namespace controller {
 class ArrayEndpoint : public Endpoint {
     friend class UserInputMapper;
 public:
+    using Endpoint::apply;
     using Pointer = std::shared_ptr<ArrayEndpoint>;
     ArrayEndpoint() : Endpoint(Input::INVALID_INPUT) { }
 
