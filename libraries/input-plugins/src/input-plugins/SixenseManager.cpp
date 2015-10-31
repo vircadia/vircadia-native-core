@@ -12,6 +12,8 @@
 #include <vector>
 
 #include <QCoreApplication>
+#include <QtCore/QSysInfo>
+#include <QtGlobal>
 
 #include <GLMHelpers.h>
 #include <NumericalConstants.h>
@@ -74,7 +76,13 @@ SixenseManager::SixenseManager() :
 
 bool SixenseManager::isSupported() const {
 #ifdef HAVE_SIXENSE
+
+#if defined(Q_OS_OSX)
+    return QSysInfo::macVersion() <= QSysInfo::MV_MAVERICKS;
+#else
     return true;
+#endif
+    
 #else
     return false;
 #endif
