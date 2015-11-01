@@ -193,7 +193,7 @@ void OculusLegacyDisplayPlugin::deactivate() {
 // DLL based display plugins MUST initialize GLEW inside the DLL code.
 void OculusLegacyDisplayPlugin::customizeContext() {
     glewExperimental = true;
-    GLenum err = glewInit();
+    glewInit();
     glGetError();
     WindowOpenGLDisplayPlugin::customizeContext();
 }
