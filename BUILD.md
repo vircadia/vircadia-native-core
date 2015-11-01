@@ -13,17 +13,13 @@
 * [Intel Threading Building Blocks](https://www.threadingbuildingblocks.org/) ~> 4.3
 * [glm](http://glm.g-truc.net/0.9.5/index.html) ~> 0.9.5.4
 * [gverb](https://github.com/highfidelity/gverb)
-
-The following external projects are optional dependencies. You can indicate to CMake that you would like to include them by passing -DGET_$NAME=1 when running a clean CMake build. For example, to get CMake to download and compile SDL2 you would pass -DGET_SDL2=1.
-
 * [SDL2](https://www.libsdl.org/download-2.0.php) ~> 2.0.3
-  * Enables game controller support in Interface
 
 The above dependencies will be downloaded, built, linked and included automatically by CMake where we require them. The CMakeLists files that handle grabbing each of the following external dependencies can be found in the [cmake/externals folder](cmake/externals). The resulting downloads, source files and binaries will be placed in the `build/ext` folder in each of the subfolders for each external project. 
 
 These are not placed in your normal build tree when doing an out of source build so that they do not need to be re-downloaded and re-compiled every time the CMake build folder is cleared. Should you want to force a re-download and re-compile of a specific external, you can simply remove that directory from the appropriate subfolder in `build/ext`. Should you want to force a re-download and re-compile of all externals, just remove the `build/ext` folder.
 
-If you would like to use a specific install of a dependency instead of the version that would be grabbed as a CMake ExternalProject, you can pass -DGET_$NAME=0 (where $NAME is the name of the subfolder in [cmake/externals](cmake/externals)) when you run CMake to tell it not to get that dependency as an external project.
+If you would like to use a specific install of a dependency instead of the version that would be grabbed as a CMake ExternalProject, you can pass -DUSE_LOCAL_$NAME=0 (where $NAME is the name of the subfolder in [cmake/externals](cmake/externals)) when you run CMake to tell it not to get that dependency as an external project.
 
 ###OS Specific Build Guides
 * [BUILD_OSX.md](BUILD_OSX.md) - additional instructions for OS X.
