@@ -7,7 +7,7 @@
 //
 #pragma once
 
-#include "../WindowOpenGLDisplayPlugin.h"
+#include <display-plugins/WindowOpenGLDisplayPlugin.h>
 
 #include <QTimer>
 
@@ -35,6 +35,7 @@ public:
     virtual glm::mat4 getHeadPose() const override;
 
 protected:
+    virtual void customizeContext() override;
     virtual void preRender() override;
     virtual void preDisplay() override;
     virtual void display(GLuint finalTexture, const glm::uvec2& sceneSize) override;

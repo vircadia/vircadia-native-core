@@ -74,21 +74,21 @@ void StereoDisplayPlugin::activate() {
         if (screen == qApp->primaryScreen()) {
             checked = true;
         }
-        auto action = CONTAINER->addMenuItem(MENU_PATH(), name,
+        auto action = _container->addMenuItem(MENU_PATH(), name,
             [this](bool clicked) { updateScreen(); }, true, checked, "Screens");
         _screenActions[i] = action;
     }
 
-    CONTAINER->removeMenu(FRAMERATE);
+    _container->removeMenu(FRAMERATE);
 
-    CONTAINER->setFullscreen(qApp->primaryScreen());
+    _container->setFullscreen(qApp->primaryScreen());
     WindowOpenGLDisplayPlugin::activate();
 }
 
 void StereoDisplayPlugin::updateScreen() {
     for (uint32_t i = 0; i < _screenActions.size(); ++i) {
         if (_screenActions[i]->isChecked()) {
-            CONTAINER->setFullscreen(qApp->screens().at(i));
+            _container->setFullscreen(qApp->screens().at(i));
             break;
         }
     }
@@ -96,7 +96,7 @@ void StereoDisplayPlugin::updateScreen() {
 
 void StereoDisplayPlugin::deactivate() {
     _screenActions.clear();
-    CONTAINER->unsetFullscreen();
+    _container->unsetFullscreen();
     WindowOpenGLDisplayPlugin::deactivate();
 }
 
