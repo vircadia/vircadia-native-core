@@ -75,16 +75,6 @@ To prevent these problems, install OpenSSL yourself. Download the following bina
 
 Install OpenSSL into the Windows system directory, to make sure that Qt uses the version that you've just installed, and not some other version.
 
-####zlib
-
-Install zlib from
-
-  [Zlib for Windows](http://gnuwin32.sourceforge.net/packages/zlib.htm)
-
-and fix a header file, as described here:
-
-  [zlib zconf.h bug](http://sourceforge.net/p/gnuwin32/bugs/169/)
-
 ###Build High Fidelity using Visual Studio
 Follow the same build steps from the CMake section of [BUILD.md](BUILD.md), but pass a different generator to CMake.
 

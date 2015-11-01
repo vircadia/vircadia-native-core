@@ -94,8 +94,8 @@ void SixenseManager::activate() {
     _calibrationState = CALIBRATION_STATE_IDLE;
     _avatarPosition = DEFAULT_AVATAR_POSITION;
 
-    CONTAINER->addMenu(MENU_PATH);
-    CONTAINER->addMenuItem(MENU_PATH, TOGGLE_SMOOTH,
+    _container->addMenu(MENU_PATH);
+    _container->addMenuItem(MENU_PATH, TOGGLE_SMOOTH,
                            [this] (bool clicked) { this->setSixenseFilter(clicked); },
                            true, true);
 
@@ -136,8 +136,8 @@ void SixenseManager::deactivate() {
     InputPlugin::deactivate();
 
 #ifdef HAVE_SIXENSE
-    CONTAINER->removeMenuItem(MENU_NAME, TOGGLE_SMOOTH);
-    CONTAINER->removeMenu(MENU_PATH);
+    _container->removeMenuItem(MENU_NAME, TOGGLE_SMOOTH);
+    _container->removeMenu(MENU_PATH);
 
     _poseStateMap.clear();
     _collectedSamples.clear();
@@ -319,7 +319,7 @@ void SixenseManager::updateCalibration(void* controllersX) {
                 _avatarRotation = glm::inverse(glm::quat_cast(glm::mat3(xAxis, Vectors::UNIT_Y, zAxis)));
                 const float Y_OFFSET_CALIBRATED_HANDS_TO_AVATAR = -0.3f;
                 _avatarPosition.y += Y_OFFSET_CALIBRATED_HANDS_TO_AVATAR;
-                CONTAINER->requestReset();
+                _container->requestReset();
                 qCDebug(inputplugins, "succeess: sixense calibration");
             }
             break;

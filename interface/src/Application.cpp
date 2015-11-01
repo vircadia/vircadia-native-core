@@ -392,7 +392,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
     _entityClipboard->createRootElement();
 
     _pluginContainer = new PluginContainerProxy();
-    Plugin::setContainer(_pluginContainer);
 #ifdef Q_OS_WIN
     installNativeEventFilter(&MyNativeEventFilter::getInstance());
 #endif
@@ -635,6 +634,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
                 DependencyManager::get<AudioClient>()->toggleMute();
             } else if (action == controller::toInt(controller::Action::CYCLE_CAMERA)) {
                 cycleCamera();
+            } else if (action == controller::toInt(controller::Action::CONTEXT_MENU)) {
+                VrMenu::toggle(); // show context menu even on non-stereo displays
             }
         }
     });
@@ -1789,9 +1790,7 @@ void Application::keyPressEvent(QKeyEvent* event) {
 
 void Application::keyReleaseEvent(QKeyEvent* event) {
     if (event->key() == Qt::Key_Alt && _altPressed && hasFocus()) {
-        if (getActiveDisplayPlugin()->isStereo()) {
-            VrMenu::toggle();
-        }
+        VrMenu::toggle(); // show context menu even on non-stereo displays
     }
 
     _keysPressed.remove(event->key());

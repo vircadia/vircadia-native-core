@@ -35,36 +35,36 @@ QAction* _vsyncAction{ nullptr };
 
 void Basic2DWindowOpenGLDisplayPlugin::activate() {
     _framerateActions.clear();
-    CONTAINER->addMenuItem(MENU_PATH(), FULLSCREEN,
+    _container->addMenuItem(MENU_PATH(), FULLSCREEN,
         [this](bool clicked) {
             if (clicked) {
-                CONTAINER->setFullscreen(getFullscreenTarget());
+                _container->setFullscreen(getFullscreenTarget());
             } else {
-                CONTAINER->unsetFullscreen();
+                _container->unsetFullscreen();
             }
         }, true, false);
-    CONTAINER->addMenu(FRAMERATE);
+    _container->addMenu(FRAMERATE);
     _framerateActions.push_back(
-        CONTAINER->addMenuItem(FRAMERATE, FRAMERATE_UNLIMITED,
+        _container->addMenuItem(FRAMERATE, FRAMERATE_UNLIMITED,
             [this](bool) { updateFramerate(); }, true, true, FRAMERATE));
     _framerateActions.push_back(
-        CONTAINER->addMenuItem(FRAMERATE, FRAMERATE_60,
+        _container->addMenuItem(FRAMERATE, FRAMERATE_60,
             [this](bool) { updateFramerate(); }, true, false, FRAMERATE));
     _framerateActions.push_back(
-        CONTAINER->addMenuItem(FRAMERATE, FRAMERATE_50,
+        _container->addMenuItem(FRAMERATE, FRAMERATE_50,
             [this](bool) { updateFramerate(); }, true, false, FRAMERATE));
     _framerateActions.push_back(
-        CONTAINER->addMenuItem(FRAMERATE, FRAMERATE_40,
+        _container->addMenuItem(FRAMERATE, FRAMERATE_40,
             [this](bool) { updateFramerate(); }, true, false, FRAMERATE));
     _framerateActions.push_back(
-        CONTAINER->addMenuItem(FRAMERATE, FRAMERATE_30,
+        _container->addMenuItem(FRAMERATE, FRAMERATE_30,
             [this](bool) { updateFramerate(); }, true, false, FRAMERATE));
 
     WindowOpenGLDisplayPlugin::activate();
 
     // Vsync detection happens in the parent class activate, so we need to check after that
     if (_vsyncSupported) {
-        _vsyncAction = CONTAINER->addMenuItem(MENU_PATH(), VSYNC_ON, [this](bool) {}, true, true);
+        _vsyncAction = _container->addMenuItem(MENU_PATH(), VSYNC_ON, [this](bool) {}, true, true);
     } else {
         _vsyncAction = nullptr;
     }
@@ -107,7 +107,7 @@ int Basic2DWindowOpenGLDisplayPlugin::getDesiredInterval() const {
 bool Basic2DWindowOpenGLDisplayPlugin::isThrottled() const {
     static const QString ThrottleFPSIfNotFocus = "Throttle FPS If Not Focus"; // FIXME - this value duplicated in Menu.h
 
-    bool shouldThrottle = (!CONTAINER->isForeground() && CONTAINER->isOptionChecked(ThrottleFPSIfNotFocus));
+    bool shouldThrottle = (!_container->isForeground() && _container->isOptionChecked(ThrottleFPSIfNotFocus));
     
     if (_isThrottled != shouldThrottle) {
         _isThrottled = shouldThrottle;
