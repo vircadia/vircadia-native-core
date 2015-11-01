@@ -26,6 +26,7 @@ private slots:
     void testLoader();
     void testVariant();
     void testAccumulateTime();
+    void testTokenizer();
 };
 
 #endif // hifi_AnimTests_h

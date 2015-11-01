@@ -8,12 +8,13 @@
 //
 
 #include "AnimTests.h"
-#include "AnimNodeLoader.h"
-#include "AnimClip.h"
-#include "AnimBlendLinear.h"
-#include "AnimationLogging.h"
-#include "AnimVariant.h"
-#include "AnimUtil.h"
+#include <AnimNodeLoader.h>
+#include <AnimClip.h>
+#include <AnimBlendLinear.h>
+#include <AnimationLogging.h>
+#include <AnimVariant.h>
+#include <AnimExpression.h>
+#include <AnimUtil.h>
 
 #include <../QTestExtensions.h>
 
@@ -322,4 +323,44 @@ void AnimTests::testAccumulateTimeWithParameters(float startFrame, float endFram
     QVERIFY(resultFrame == startFrame + 0.5f);
     QVERIFY(!triggers.empty() && triggers[0] == "testNodeOnLoop");
     triggers.clear();
+
+void AnimTests::testTokenizer() {
+    QString str = "(10 +  x) >= 20 && (y != !z)";
+    AnimExpression e("");
+    auto iter = str.cbegin();
+    AnimExpression::Token token = e.consumeToken(str, iter);
+    QVERIFY(token.type == AnimExpression::Token::LeftParen);
+    token = e.consumeToken(str, iter);
+    QVERIFY(token.type == AnimExpression::Token::LiteralInt);
+    QVERIFY(token.intVal == 10);
+    token = e.consumeToken(str, iter);
+    QVERIFY(token.type == AnimExpression::Token::Plus);
+    token = e.consumeToken(str, iter);
+    QVERIFY(token.type == AnimExpression::Token::Identifier);
+    QVERIFY(token.strVal == "x");
+    token = e.consumeToken(str, iter);
+    QVERIFY(token.type == AnimExpression::Token::RightParen);
+    token = e.consumeToken(str, iter);
+    QVERIFY(token.type == AnimExpression::Token::GreaterThanEqual);
+    token = e.consumeToken(str, iter);
+    QVERIFY(token.type == AnimExpression::Token::LiteralInt);
+    QVERIFY(token.intVal == 20);
+    token = e.consumeToken(str, iter);
+    QVERIFY(token.type == AnimExpression::Token::And);
+    token = e.consumeToken(str, iter);
+    QVERIFY(token.type == AnimExpression::Token::LeftParen);
+    token = e.consumeToken(str, iter);
+    QVERIFY(token.type == AnimExpression::Token::Identifier);
+    QVERIFY(token.strVal == "y");
+    token = e.consumeToken(str, iter);
+    QVERIFY(token.type == AnimExpression::Token::NotEqual);
+    token = e.consumeToken(str, iter);
+    QVERIFY(token.type == AnimExpression::Token::Not);
+    token = e.consumeToken(str, iter);
+    QVERIFY(token.type == AnimExpression::Token::Identifier);
+    QVERIFY(token.strVal == "z");
+    token = e.consumeToken(str, iter);
+    QVERIFY(token.type == AnimExpression::Token::RightParen);
+    token = e.consumeToken(str, iter);
 }
+
