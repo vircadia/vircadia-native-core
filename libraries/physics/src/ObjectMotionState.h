@@ -29,18 +29,27 @@ enum MotionType {
     MOTION_TYPE_KINEMATIC   // keyframed motion
 };
 
+inline QString motionTypeToString(MotionType motionType) {
+    switch(motionType) {
+        case MOTION_TYPE_STATIC: return QString("static");
+        case MOTION_TYPE_DYNAMIC: return QString("dynamic");
+        case MOTION_TYPE_KINEMATIC: return QString("kinematic");
+    }
+    return QString("unknown");
+}
+
 enum MotionStateType {
     MOTIONSTATE_TYPE_INVALID,
     MOTIONSTATE_TYPE_ENTITY,
     MOTIONSTATE_TYPE_AVATAR
 };
 
-// The update flags trigger two varieties of updates: "hard" which require the body to be pulled 
+// The update flags trigger two varieties of updates: "hard" which require the body to be pulled
 // and re-added to the physics engine and "easy" which just updates the body properties.
-const uint32_t HARD_DIRTY_PHYSICS_FLAGS = (uint32_t)(Simulation::DIRTY_MOTION_TYPE | Simulation::DIRTY_SHAPE | 
+const uint32_t HARD_DIRTY_PHYSICS_FLAGS = (uint32_t)(Simulation::DIRTY_MOTION_TYPE | Simulation::DIRTY_SHAPE |
                                                      Simulation::DIRTY_COLLISION_GROUP);
 const uint32_t EASY_DIRTY_PHYSICS_FLAGS = (uint32_t)(Simulation::DIRTY_TRANSFORM | Simulation::DIRTY_VELOCITIES |
-                                                     Simulation::DIRTY_MASS | Simulation::DIRTY_MATERIAL | 
+                                                     Simulation::DIRTY_MASS | Simulation::DIRTY_MATERIAL |
                                                      Simulation::DIRTY_SIMULATOR_ID | Simulation::DIRTY_SIMULATOR_OWNERSHIP);
 
 // These are the set of incoming flags that the PhysicsEngine needs to hear about:
@@ -57,7 +66,7 @@ class PhysicsEngine;
 class ObjectMotionState : public btMotionState {
 public:
     // These poroperties of the PhysicsEngine are "global" within the context of all ObjectMotionStates
-    // (assuming just one PhysicsEngine).  They are cached as statics for fast calculations in the 
+    // (assuming just one PhysicsEngine).  They are cached as statics for fast calculations in the
     // ObjectMotionState context.
     static void setWorldOffset(const glm::vec3& offset);
     static const glm::vec3& getWorldOffset();
@@ -112,7 +121,7 @@ public:
     virtual float getObjectFriction() const = 0;
     virtual float getObjectLinearDamping() const = 0;
     virtual float getObjectAngularDamping() const = 0;
-    
+
     virtual glm::vec3 getObjectPosition() const = 0;
     virtual glm::quat getObjectRotation() const = 0;
     virtual glm::vec3 getObjectLinearVelocity() const = 0;
@@ -130,6 +139,11 @@ public:
     virtual int16_t computeCollisionGroup() = 0;
 
     bool isActive() const { return _body ? _body->isActive() : false; }
+
+    bool hasInternalKinematicChanges() const { return _hasInternalKinematicChanges; }
+
+    void dirtyInternalKinematicChanges() { _hasInternalKinematicChanges = true; }
+    void clearInternalKinematicChanges() { _hasInternalKinematicChanges = false; }
 
     friend class PhysicsEngine;
 
@@ -151,6 +165,7 @@ protected:
     float _mass;
 
     uint32_t _lastKinematicStep;
+    bool _hasInternalKinematicChanges { false };
 };
 
 typedef QSet<ObjectMotionState*> SetOfMotionStates;

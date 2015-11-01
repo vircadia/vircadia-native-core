@@ -52,6 +52,7 @@
 
 using namespace std;
 
+static quint64 COMFORT_MODE_PULSE_TIMING = USECS_PER_SECOND / 2; // turn once per half second
 const glm::vec3 DEFAULT_UP_DIRECTION(0.0f, 1.0f, 0.0f);
 const float YAW_SPEED = 150.0f;   // degrees/sec
 const float PITCH_SPEED = 100.0f; // degrees/sec
@@ -153,7 +154,8 @@ void MyAvatar::reset(bool andReload) {
     }
 
     // Reset dynamic state.
-    _wasPushing = _isPushing = _isBraking = _billboardValid = _straighteningLean = false;
+    _wasPushing = _isPushing = _isBraking = _billboardValid = false;
+    _isFollowingHMD = false;
     _skeletonModel.reset();
     getHead()->reset();
     _targetVelocity = glm::vec3(0.0f);
@@ -206,6 +208,11 @@ void MyAvatar::update(float deltaTime) {
         setPosition(_goToPosition);
         setOrientation(_goToOrientation);
         _goToPending = false;
+        // updateFromHMDSensorMatrix (called from paintGL) expects that the sensorToWorldMatrix is updated for any position changes
+        // that happen between render and Application::update (which calls updateSensorToWorldMatrix to do so).
+        // However, render/MyAvatar::update/Application::update don't always match (e.g., when using the separate avatar update thread),
+        // so we update now. It's ok if it updates again in the normal way.
+        updateSensorToWorldMatrix();
     }
 
     Head* head = getHead();
@@ -235,8 +242,31 @@ void MyAvatar::simulate(float deltaTime) {
 
     {
         PerformanceTimer perfTimer("transform");
+        bool stepAction = false;
+        // When there are no step values, we zero out the last step pulse. 
+        // This allows a user to do faster snapping by tapping a control
+        for (int i = STEP_TRANSLATE_X; !stepAction && i <= STEP_YAW; ++i) {
+            if (_driveKeys[i] != 0.0f) {
+                stepAction = true;
+            }
+        }
+        quint64 now = usecTimestampNow();
+        quint64 pulseDeltaTime = now - _lastStepPulse;
+        if (!stepAction) {
+            _lastStepPulse = 0;
+        }
+
+        if (stepAction && pulseDeltaTime > COMFORT_MODE_PULSE_TIMING) {
+            _pulseUpdate = true;
+        }
+
         updateOrientation(deltaTime);
         updatePosition(deltaTime);
+
+        if (_pulseUpdate) {
+            _lastStepPulse = now;
+            _pulseUpdate = false;
+        }
     }
 
     {
@@ -299,7 +329,7 @@ glm::mat4 MyAvatar::getSensorToWorldMatrix() const {
 
 // returns true if pos is OUTSIDE of the vertical capsule
 // where the middle cylinder length is defined by capsuleLen and the radius by capsuleRad.
-static bool capsuleCheck(const glm::vec3& pos, float capsuleLen, float capsuleRad) {
+static bool pointIsOutsideCapsule(const glm::vec3& pos, float capsuleLen, float capsuleRad) {
     const float halfCapsuleLen = capsuleLen / 2.0f;
     if (fabs(pos.y) <= halfCapsuleLen) {
         // cylinder check for middle capsule
@@ -320,6 +350,10 @@ static bool capsuleCheck(const glm::vec3& pos, float capsuleLen, float capsuleRa
 // This can also update the avatar's position to follow the HMD
 // as it moves through the world.
 void MyAvatar::updateFromHMDSensorMatrix(const glm::mat4& hmdSensorMatrix) {
+    // update the sensorMatrices based on the new hmd pose
+    _hmdSensorMatrix = hmdSensorMatrix;
+    _hmdSensorPosition = extractTranslation(hmdSensorMatrix);
+    _hmdSensorOrientation = glm::quat_cast(hmdSensorMatrix);
 
     // calc deltaTime
     auto now = usecTimestampNow();
@@ -328,11 +362,6 @@ void MyAvatar::updateFromHMDSensorMatrix(const glm::mat4& hmdSensorMatrix) {
     double actualDeltaTime = (double)deltaUsecs / (double)USECS_PER_SECOND;
     const float BIGGEST_DELTA_TIME_SECS = 0.25f;
     float deltaTime = glm::clamp((float)actualDeltaTime, 0.0f, BIGGEST_DELTA_TIME_SECS);
-
-    // update the sensorMatrices based on the new hmd pose
-    _hmdSensorMatrix = hmdSensorMatrix;
-    _hmdSensorPosition = extractTranslation(hmdSensorMatrix);
-    _hmdSensorOrientation = glm::quat_cast(hmdSensorMatrix);
 
     bool hmdIsAtRest = _hmdAtRestDetector.update(deltaTime, _hmdSensorPosition, _hmdSensorOrientation);
 
@@ -355,58 +384,60 @@ void MyAvatar::updateFromHMDSensorMatrix(const glm::mat4& hmdSensorMatrix) {
     bool justStartedMoving = (_lastIsMoving != isMoving) && isMoving;
     _lastIsMoving = isMoving;
 
-    if (shouldBeginStraighteningLean() || hmdIsAtRest || justStartedMoving) {
-        beginStraighteningLean();
+    if (shouldFollowHMD() || hmdIsAtRest || justStartedMoving) {
+        beginFollowingHMD();
     }
 
-    processStraighteningLean(deltaTime);
+    followHMD(deltaTime);
 }
 
-void MyAvatar::beginStraighteningLean() {
+glm::vec3 MyAvatar::getHMDCorrectionVelocity() const {
+    // TODO: impelement this
+    return Vectors::ZERO;
+}
+
+void MyAvatar::beginFollowingHMD() {
     // begin homing toward derived body position.
-    if (!_straighteningLean) {
-        _straighteningLean = true;
-        _straighteningLeanAlpha = 0.0f;
+    if (!_isFollowingHMD) {
+        _isFollowingHMD = true;
+        _followHMDAlpha = 0.0f;
     }
 }
 
-bool MyAvatar::shouldBeginStraighteningLean() const {
-    // define a vertical capsule
-    const float STRAIGHTENING_LEAN_CAPSULE_RADIUS = 0.2f;  // meters
-    const float STRAIGHTENING_LEAN_CAPSULE_LENGTH = 0.05f;  // length of the cylinder part of the capsule in meters.
-
-    // detect if the derived body position is outside of a capsule around the _bodySensorMatrix
-    auto newBodySensorMatrix = deriveBodyFromHMDSensor();
-    glm::vec3 diff = extractTranslation(newBodySensorMatrix) - extractTranslation(_bodySensorMatrix);
-    bool isBodyPosOutsideCapsule = capsuleCheck(diff, STRAIGHTENING_LEAN_CAPSULE_LENGTH, STRAIGHTENING_LEAN_CAPSULE_RADIUS);
-
-    if (isBodyPosOutsideCapsule) {
-        return true;
-    } else {
-        return false;
+bool MyAvatar::shouldFollowHMD() const {
+    if (!_isFollowingHMD) {
+        // define a vertical capsule
+        const float FOLLOW_HMD_CAPSULE_RADIUS = 0.2f;  // meters
+        const float FOLLOW_HMD_CAPSULE_LENGTH = 0.05f;  // length of the cylinder part of the capsule in meters.
+    
+        // detect if the derived body position is outside of a capsule around the _bodySensorMatrix
+        auto newBodySensorMatrix = deriveBodyFromHMDSensor();
+        glm::vec3 localPoint = extractTranslation(newBodySensorMatrix) - extractTranslation(_bodySensorMatrix);
+        return pointIsOutsideCapsule(localPoint, FOLLOW_HMD_CAPSULE_LENGTH, FOLLOW_HMD_CAPSULE_RADIUS);
     }
+    return false;
 }
 
-void MyAvatar::processStraighteningLean(float deltaTime) {
-    if (_straighteningLean) {
+void MyAvatar::followHMD(float deltaTime) {
+    if (_isFollowingHMD) {
 
-        const float STRAIGHTENING_LEAN_DURATION = 0.5f;  // seconds
+        const float FOLLOW_HMD_DURATION = 0.5f;  // seconds
 
         auto newBodySensorMatrix = deriveBodyFromHMDSensor();
         auto worldBodyMatrix = _sensorToWorldMatrix * newBodySensorMatrix;
         glm::vec3 worldBodyPos = extractTranslation(worldBodyMatrix);
         glm::quat worldBodyRot = glm::normalize(glm::quat_cast(worldBodyMatrix));
 
-        _straighteningLeanAlpha += (1.0f / STRAIGHTENING_LEAN_DURATION) * deltaTime;
+        _followHMDAlpha += (1.0f / FOLLOW_HMD_DURATION) * deltaTime;
 
-        if (_straighteningLeanAlpha >= 1.0f) {
-            _straighteningLean = false;
+        if (_followHMDAlpha >= 1.0f) {
+            _isFollowingHMD = false;
             nextAttitude(worldBodyPos, worldBodyRot);
             _bodySensorMatrix = newBodySensorMatrix;
         } else {
             // interp position toward the desired pos
-            glm::vec3 pos = lerp(getPosition(), worldBodyPos, _straighteningLeanAlpha);
-            glm::quat rot = glm::normalize(safeMix(getOrientation(), worldBodyRot, _straighteningLeanAlpha));
+            glm::vec3 pos = lerp(getPosition(), worldBodyPos, _followHMDAlpha);
+            glm::quat rot = glm::normalize(safeMix(getOrientation(), worldBodyRot, _followHMDAlpha));
             nextAttitude(pos, rot);
 
             // interp sensor matrix toward desired
@@ -414,8 +445,8 @@ void MyAvatar::processStraighteningLean(float deltaTime) {
             glm::quat nextBodyRot = glm::normalize(glm::quat_cast(newBodySensorMatrix));
             glm::vec3 prevBodyPos = extractTranslation(_bodySensorMatrix);
             glm::quat prevBodyRot = glm::normalize(glm::quat_cast(_bodySensorMatrix));
-            pos = lerp(prevBodyPos, nextBodyPos, _straighteningLeanAlpha);
-            rot = glm::normalize(safeMix(prevBodyRot, nextBodyRot, _straighteningLeanAlpha));
+            pos = lerp(prevBodyPos, nextBodyPos, _followHMDAlpha);
+            rot = glm::normalize(safeMix(prevBodyRot, nextBodyRot, _followHMDAlpha));
             _bodySensorMatrix = createMatFromQuatAndPos(rot, pos);
         }
     }
@@ -518,6 +549,50 @@ void MyAvatar::updateFromTrackers(float deltaTime) {
                                     -MAX_LEAN, MAX_LEAN));
 }
 
+
+glm::vec3 MyAvatar::getLeftHandPosition() const {
+    auto palmData = getHandData()->getCopyOfPalmData(HandData::LeftHand);
+    return palmData.isValid() ? palmData.getPosition() : glm::vec3(0.0f);
+}
+
+glm::vec3 MyAvatar::getRightHandPosition() const {
+    auto palmData = getHandData()->getCopyOfPalmData(HandData::RightHand);
+    return palmData.isValid() ? palmData.getPosition() : glm::vec3(0.0f);
+}
+
+glm::vec3 MyAvatar::getLeftHandTipPosition() const {
+    auto palmData = getHandData()->getCopyOfPalmData(HandData::LeftHand);
+    return palmData.isValid() ? palmData.getTipPosition() : glm::vec3(0.0f);
+}
+
+glm::vec3 MyAvatar::getRightHandTipPosition() const {
+    auto palmData = getHandData()->getCopyOfPalmData(HandData::RightHand);
+    return palmData.isValid() ? palmData.getTipPosition() : glm::vec3(0.0f);
+}
+
+controller::Pose MyAvatar::getLeftHandPose() const {
+    auto palmData = getHandData()->getCopyOfPalmData(HandData::LeftHand);
+    return palmData.isValid() ? controller::Pose(palmData.getPosition(), palmData.getRotation(),
+        palmData.getVelocity(), palmData.getRawAngularVelocityAsQuat()) : controller::Pose();
+}
+
+controller::Pose MyAvatar::getRightHandPose() const {
+    auto palmData = getHandData()->getCopyOfPalmData(HandData::RightHand);
+    return palmData.isValid() ? controller::Pose(palmData.getPosition(), palmData.getRotation(),
+        palmData.getVelocity(), palmData.getRawAngularVelocityAsQuat()) : controller::Pose();
+}
+
+controller::Pose MyAvatar::getLeftHandTipPose() const {
+    auto palmData = getHandData()->getCopyOfPalmData(HandData::LeftHand);
+    return palmData.isValid() ? controller::Pose(palmData.getTipPosition(), palmData.getRotation(),
+        palmData.getTipVelocity(), palmData.getRawAngularVelocityAsQuat()) : controller::Pose();
+}
+
+controller::Pose MyAvatar::getRightHandTipPose() const {
+    auto palmData = getHandData()->getCopyOfPalmData(HandData::RightHand);
+    return palmData.isValid() ? controller::Pose(palmData.getTipPosition(), palmData.getRotation(),
+        palmData.getTipVelocity(), palmData.getRawAngularVelocityAsQuat()) : controller::Pose();
+}
 
 // virtual
 void MyAvatar::render(RenderArgs* renderArgs, const glm::vec3& cameraPosition) {
@@ -987,7 +1062,11 @@ void MyAvatar::updateLookAtTargetAvatar() {
     const float KEEP_LOOKING_AT_CURRENT_ANGLE_FACTOR = 1.3f;
     const float GREATEST_LOOKING_AT_DISTANCE = 10.0f;
 
-    foreach (const AvatarSharedPointer& avatarPointer, DependencyManager::get<AvatarManager>()->getAvatarHash()) {
+    AvatarHash hash;
+    DependencyManager::get<AvatarManager>()->withAvatarHash([&] (const AvatarHash& locked) {
+        hash = locked; // make a shallow copy and operate on that, to minimize lock time
+    });
+    foreach (const AvatarSharedPointer& avatarPointer, hash) {
         auto avatar = static_pointer_cast<Avatar>(avatarPointer);
         bool isCurrentTarget = avatar->getIsLookAtTarget();
         float distanceTo = glm::length(avatar->getHead()->getEyePosition() - cameraPosition);
@@ -1020,7 +1099,6 @@ void MyAvatar::updateLookAtTargetAvatar() {
                 glm::vec3 humanLeftEye = humanSystem->getPosition() + (humanSystem->getOrientation() * leftEyeHeadLocal);
                 glm::vec3 humanRightEye = humanSystem->getPosition() + (humanSystem->getOrientation() * rightEyeHeadLocal);
 
-
                 // First find out where (in world space) the person is looking relative to that bridge-of-the-avatar point.
                 // (We will be adding that offset to the camera position, after making some other adjustments.)
                 glm::vec3 gazeOffset = lookAtPosition - getHead()->getEyePosition();
@@ -1032,14 +1110,14 @@ void MyAvatar::updateLookAtTargetAvatar() {
 
                 // If the camera is also not oriented with the head, adjust by getting the offset in head-space...
                 /* Not needed (i.e., code is a no-op), but I'm leaving the example code here in case something like this is needed someday.
-                glm::quat avatarHeadOrientation = getHead()->getOrientation();
-                glm::vec3 gazeOffsetLocalToHead = glm::inverse(avatarHeadOrientation) * gazeOffset;
-                // ... and treat that as though it were in camera space, bringing it back to world space.
-                // But camera is fudged to make the picture feel like the avatar's orientation.
-                glm::quat humanOrientation = humanSystem->getOrientation(); // or just avatar getOrienation() ?
-                gazeOffset = humanOrientation * gazeOffsetLocalToHead;
-                glm::vec3 corrected = humanSystem->getPosition() + gazeOffset;
-               */
+                 glm::quat avatarHeadOrientation = getHead()->getOrientation();
+                 glm::vec3 gazeOffsetLocalToHead = glm::inverse(avatarHeadOrientation) * gazeOffset;
+                 // ... and treat that as though it were in camera space, bringing it back to world space.
+                 // But camera is fudged to make the picture feel like the avatar's orientation.
+                 glm::quat humanOrientation = humanSystem->getOrientation(); // or just avatar getOrienation() ?
+                 gazeOffset = humanOrientation * gazeOffsetLocalToHead;
+                 glm::vec3 corrected = humanSystem->getPosition() + gazeOffset;
+                 */
 
                 // And now we can finally add that offset to the camera.
                 glm::vec3 corrected = qApp->getViewFrustum()->getPosition() + gazeOffset;
@@ -1242,6 +1320,23 @@ void MyAvatar::rebuildSkeletonBody() {
     corner += _skeletonModel.getBoundingCapsuleOffset();
     glm::vec3 scale(2.0f * radius, height, 2.0f * radius);
     _characterController.setLocalBoundingBox(corner, scale);
+}
+
+void MyAvatar::prepareForPhysicsSimulation() {
+    relayDriveKeysToCharacterController();
+    _characterController.setTargetVelocity(getTargetVelocity());
+    _characterController.setAvatarPositionAndOrientation(getPosition(), getOrientation());
+    _characterController.setHMDVelocity(getHMDCorrectionVelocity());
+}   
+
+void MyAvatar::harvestResultsFromPhysicsSimulation() {
+    glm::vec3 position = getPosition();
+    glm::quat orientation = getOrientation();
+    _characterController.getAvatarPositionAndOrientation(position, orientation);
+    nextAttitude(position, orientation);
+    setVelocity(_characterController.getLinearVelocity());
+    // TODO: harvest HMD shift here
+    //glm::vec3 hmdShift = _characterController.getHMDShift();
 }
 
 QString MyAvatar::getScriptedMotorFrame() const {
@@ -1476,69 +1571,44 @@ bool MyAvatar::shouldRenderHead(const RenderArgs* renderArgs) const {
 
 void MyAvatar::updateOrientation(float deltaTime) {
     //  Smoothly rotate body with arrow keys
-    float targetSpeed = 0.0f;
-
-    // FIXME - this comfort mode code is a total hack, remove it when we have new input mapping
-    bool isComfortMode = Menu::getInstance()->isOptionChecked(MenuOption::ComfortMode);
-    bool isHMDMode = qApp->getAvatarUpdater()->isHMDMode();
-
-    if (!isHMDMode || !isComfortMode) {
-        targetSpeed = (_driveKeys[ROT_LEFT] - _driveKeys[ROT_RIGHT]) * YAW_SPEED;
-
-        if (targetSpeed != 0.0f) {
-            const float ROTATION_RAMP_TIMESCALE = 0.1f;
-            float blend = deltaTime / ROTATION_RAMP_TIMESCALE;
-            if (blend > 1.0f) {
-                blend = 1.0f;
-            }
-            _bodyYawDelta = (1.0f - blend) * _bodyYawDelta + blend * targetSpeed;
-        } else if (_bodyYawDelta != 0.0f) {
-            // attenuate body rotation speed
-            const float ROTATION_DECAY_TIMESCALE = 0.05f;
-            float attenuation = 1.0f - deltaTime / ROTATION_DECAY_TIMESCALE;
-            if (attenuation < 0.0f) {
-                attenuation = 0.0f;
-            }
-            _bodyYawDelta *= attenuation;
-
-            float MINIMUM_ROTATION_RATE = 2.0f;
-            if (fabsf(_bodyYawDelta) < MINIMUM_ROTATION_RATE) {
-                _bodyYawDelta = 0.0f;
-            }
+    float targetSpeed = _driveKeys[YAW] * YAW_SPEED;
+    if (targetSpeed != 0.0f) {
+        const float ROTATION_RAMP_TIMESCALE = 0.1f;
+        float blend = deltaTime / ROTATION_RAMP_TIMESCALE;
+        if (blend > 1.0f) {
+            blend = 1.0f;
         }
+        _bodyYawDelta = (1.0f - blend) * _bodyYawDelta + blend * targetSpeed;
+    } else if (_bodyYawDelta != 0.0f) {
+        // attenuate body rotation speed
+        const float ROTATION_DECAY_TIMESCALE = 0.05f;
+        float attenuation = 1.0f - deltaTime / ROTATION_DECAY_TIMESCALE;
+        if (attenuation < 0.0f) {
+            attenuation = 0.0f;
+        }
+        _bodyYawDelta *= attenuation;
 
-        // update body orientation by movement inputs
-        setOrientation(getOrientation() *
-            glm::quat(glm::radians(glm::vec3(0.0f, _bodyYawDelta * deltaTime, 0.0f))));
-
-    } else {
-        // Comfort Mode: If you press any of the left/right rotation drive keys or input, you'll
-        // get an instantaneous 15 degree turn. If you keep holding the key down you'll get another
-        // snap turn every half second.
-        _bodyYawDelta = 0.0f;
-
-        static quint64 lastPulse = 0;
-        quint64 now = usecTimestampNow();
-        quint64 COMFORT_MODE_PULSE_TIMING = USECS_PER_SECOND / 2; // turn once per half second
-
-        float driveLeft = _driveKeys[ROT_LEFT];
-        float driveRight= _driveKeys[ROT_RIGHT];
-
-        if ((driveLeft != 0.0f || driveRight != 0.0f) && (now - lastPulse > COMFORT_MODE_PULSE_TIMING)) {
-            lastPulse = now;
-
-            const float SNAP_TURN_DELTA = 15.0f; // degrees
-            float direction = (driveLeft - driveRight) < 0.0f ? -1.0f : 1.0f;
-            float turnAmount = direction * SNAP_TURN_DELTA;
-
-            // update body orientation by movement inputs
-            setOrientation(getOrientation() *
-                glm::quat(glm::radians(glm::vec3(0.0f, turnAmount, 0.0f))));
-
+        float MINIMUM_ROTATION_RATE = 2.0f;
+        if (fabsf(_bodyYawDelta) < MINIMUM_ROTATION_RATE) {
+            _bodyYawDelta = 0.0f;
         }
     }
 
-    getHead()->setBasePitch(getHead()->getBasePitch() + (_driveKeys[ROT_UP] - _driveKeys[ROT_DOWN]) * PITCH_SPEED * deltaTime);
+    float totalBodyYaw = _bodyYawDelta * deltaTime;
+
+
+    // Comfort Mode: If you press any of the left/right rotation drive keys or input, you'll
+    // get an instantaneous 15 degree turn. If you keep holding the key down you'll get another
+    // snap turn every half second.
+    quint64 now = usecTimestampNow();
+    if (_driveKeys[STEP_YAW] != 0.0f && now - _lastStepPulse > COMFORT_MODE_PULSE_TIMING) {
+        totalBodyYaw += _driveKeys[STEP_YAW];
+    }
+
+    // update body orientation by movement inputs
+    setOrientation(getOrientation() * glm::quat(glm::radians(glm::vec3(0.0f, totalBodyYaw, 0.0f))));
+
+    getHead()->setBasePitch(getHead()->getBasePitch() + _driveKeys[PITCH] * PITCH_SPEED * deltaTime);
 
     if (qApp->getAvatarUpdater()->isHMDMode()) {
         glm::quat orientation = glm::quat_cast(getSensorToWorldMatrix()) * getHMDSensorOrientation();
@@ -1598,14 +1668,18 @@ glm::vec3 MyAvatar::applyKeyboardMotor(float deltaTime, const glm::vec3& localVe
     float motorEfficiency = glm::clamp(deltaTime / timescale, 0.0f, 1.0f);
 
     glm::vec3 newLocalVelocity = localVelocity;
-    float keyboardInput = fabsf(_driveKeys[FWD] - _driveKeys[BACK]) +
-        (fabsf(_driveKeys[RIGHT] - _driveKeys[LEFT])) +
-        fabsf(_driveKeys[UP] - _driveKeys[DOWN]);
+    float stepControllerInput = fabsf(_driveKeys[STEP_TRANSLATE_Z]) + fabsf(_driveKeys[STEP_TRANSLATE_Z]) + fabsf(_driveKeys[STEP_TRANSLATE_Z]);
+    quint64 now = usecTimestampNow();
+    // FIXME how do I implement step translation as well?
+    if (stepControllerInput && now - _lastStepPulse > COMFORT_MODE_PULSE_TIMING) {
+    }
+
+    float keyboardInput = fabsf(_driveKeys[TRANSLATE_Z]) + fabsf(_driveKeys[TRANSLATE_X]) + fabsf(_driveKeys[TRANSLATE_Y]);
     if (keyboardInput) {
         // Compute keyboard input
-        glm::vec3 front = (_driveKeys[FWD] - _driveKeys[BACK]) * IDENTITY_FRONT;
-        glm::vec3 right = (_driveKeys[RIGHT] - _driveKeys[LEFT]) * IDENTITY_RIGHT;
-        glm::vec3 up = (_driveKeys[UP] - _driveKeys[DOWN]) * IDENTITY_UP;
+        glm::vec3 front = (_driveKeys[TRANSLATE_Z]) * IDENTITY_FRONT;
+        glm::vec3 right = (_driveKeys[TRANSLATE_X]) * IDENTITY_RIGHT;
+        glm::vec3 up = (_driveKeys[TRANSLATE_Y]) * IDENTITY_UP;
 
         glm::vec3 direction = front + right + up;
         float directionLength = glm::length(direction);
@@ -1656,7 +1730,7 @@ glm::vec3 MyAvatar::applyKeyboardMotor(float deltaTime, const glm::vec3& localVe
         }
     }
 
-    float boomChange = _driveKeys[BOOM_OUT] - _driveKeys[BOOM_IN];
+    float boomChange = _driveKeys[ZOOM];
     _boomLength += 2.0f * _boomLength * boomChange + boomChange * boomChange;
     _boomLength = glm::clamp<float>(_boomLength, ZOOM_MIN, ZOOM_MAX);
 
@@ -1858,28 +1932,6 @@ void MyAvatar::updateMotionBehaviorFromMenu() {
     _characterController.setEnabled(menu->isOptionChecked(MenuOption::EnableCharacterController));
 }
 
-//Renders sixense laser pointers for UI selection with controllers
-void MyAvatar::renderLaserPointers(gpu::Batch& batch) {
-    const float PALM_TIP_ROD_RADIUS = 0.002f;
-
-    //If the Oculus is enabled, we will draw a blue cursor ray
-
-    for (size_t i = 0; i < getHand()->getNumPalms(); ++i) {
-        PalmData& palm = getHand()->getPalms()[i];
-        if (palm.isActive()) {
-            glm::vec3 tip = getLaserPointerTipPosition(&palm);
-            glm::vec3 root = palm.getPosition();
-
-            //Scale the root vector with the avatar scale
-            scaleVectorRelativeToPosition(root);
-            Transform transform = Transform();
-            transform.setTranslation(glm::vec3());
-            batch.setModelTransform(transform);
-            Avatar::renderJointConnectingCone(batch, root, tip, PALM_TIP_ROD_RADIUS, PALM_TIP_ROD_RADIUS, glm::vec4(0, 1, 1, 1));
-        }
-    }
-}
-
 //Gets the tip position for the laser pointer
 glm::vec3 MyAvatar::getLaserPointerTipPosition(const PalmData* palm) {
     glm::vec3 direction = glm::normalize(palm->getTipPosition() - palm->getPosition());
@@ -1905,7 +1957,7 @@ void MyAvatar::clearDriveKeys() {
 }
 
 void MyAvatar::relayDriveKeysToCharacterController() {
-    if (_driveKeys[UP] > 0.0f) {
+    if (_driveKeys[TRANSLATE_Y] > 0.0f) {
         _characterController.jump();
     }
 }

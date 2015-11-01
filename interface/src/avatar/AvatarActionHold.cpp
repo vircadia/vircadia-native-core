@@ -119,6 +119,8 @@ void AvatarActionHold::doKinematicUpdate(float deltaTimeStep) {
         worldTrans.setRotation(glmToBullet(_rotationalTarget));
         rigidBody->setWorldTransform(worldTrans);
 
+        motionState->dirtyInternalKinematicChanges();
+
         _previousPositionalTarget = _positionalTarget;
         _previousRotationalTarget = _rotationalTarget;
         _previousSet = true;
@@ -224,6 +226,8 @@ QVariantMap AvatarActionHold::getArguments() {
         arguments["relativeRotation"] = glmToQMap(_relativeRotation);
         arguments["timeScale"] = _linearTimeScale;
         arguments["hand"] = _hand;
+        arguments["kinematic"] = _kinematic;
+        arguments["kinematicSetVelocity"] = _kinematicSetVelocity;
     });
     return arguments;
 }
@@ -243,7 +247,7 @@ QByteArray AvatarActionHold::serialize() const {
         dataStream << _linearTimeScale;
         dataStream << _hand;
 
-        dataStream << _expires + getEntityServerClockSkew();
+        dataStream << localTimeToServerTime(_expires);
         dataStream << _tag;
         dataStream << _kinematic;
         dataStream << _kinematicSetVelocity;
@@ -277,8 +281,10 @@ void AvatarActionHold::deserialize(QByteArray serializedArguments) {
         _angularTimeScale = _linearTimeScale;
         dataStream >> _hand;
 
-        dataStream >> _expires;
-        _expires -= getEntityServerClockSkew();
+        quint64 serverExpires;
+        dataStream >> serverExpires;
+        _expires = serverTimeToLocalTime(serverExpires);
+
         dataStream >> _tag;
         dataStream >> _kinematic;
         dataStream >> _kinematicSetVelocity;

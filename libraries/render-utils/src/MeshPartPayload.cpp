@@ -239,7 +239,7 @@ void MeshPartPayload::bindTransform(gpu::Batch& batch, const ModelRender::Locati
 
 void MeshPartPayload::render(RenderArgs* args) const {
     PerformanceTimer perfTimer("MeshPartPayload::render");
-    if (!model->_readyWhenAdded) {
+    if (!model->_readyWhenAdded || !model->_isVisible) {
         return; // bail asap
     }
 

@@ -226,7 +226,7 @@ SharedNodePointer DomainGatekeeper::processAgentConnectRequest(const NodeConnect
     // if the allowed editors list is empty then everyone can adjust locks
     bool canAdjustLocks = allowedEditors.empty();
     
-    if (allowedEditors.contains(username)) {
+    if (allowedEditors.contains(username, Qt::CaseInsensitive)) {
         // we have a non-empty allowed editors list - check if this user is verified to be in it
         if (!verifiedUsername) {
             if (!verifyUserSignature(username, usernameSignature, HifiSockAddr())) {

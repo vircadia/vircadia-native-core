@@ -739,18 +739,11 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
         // is sending us data with a known "last simulated" time. That time is likely in the past, and therefore
         // this "new" data is actually slightly out of date. We calculate the time we need to skip forward and
         // use our simulation helper routine to get a best estimate of where the entity should be.
-        const float MIN_TIME_SKIP = 0.0f;
-        const float MAX_TIME_SKIP = 1.0f; // in seconds
-        float skipTimeForward = glm::clamp((float)(now - lastSimulatedFromBufferAdjusted) / (float)(USECS_PER_SECOND),
-                MIN_TIME_SKIP, MAX_TIME_SKIP);
-        if (skipTimeForward > 0.0f) {
-            #ifdef WANT_DEBUG
-                qCDebug(entities) << "skipTimeForward:" << skipTimeForward;
-            #endif
-            // we want to extrapolate the motion forward to compensate for packet travel time, but
-            // we don't want the side effect of flag setting.
-            simulateKinematicMotion(skipTimeForward, false);
-        }
+        float skipTimeForward = (float)(now - lastSimulatedFromBufferAdjusted) / (float)(USECS_PER_SECOND);
+        
+        // we want to extrapolate the motion forward to compensate for packet travel time, but
+        // we don't want the side effect of flag setting.
+        simulateKinematicMotion(skipTimeForward, false);
     }
 
     if (overwriteLocalData) {
@@ -890,6 +883,15 @@ void EntityItem::simulate(const quint64& now) {
 }
 
 void EntityItem::simulateKinematicMotion(float timeElapsed, bool setFlags) {
+#ifdef WANT_DEBUG
+    qCDebug(entities) << "EntityItem::simulateKinematicMotion timeElapsed" << timeElapsed;
+#endif
+    
+    const float MIN_TIME_SKIP = 0.0f;
+    const float MAX_TIME_SKIP = 1.0f; // in seconds
+    
+    timeElapsed = glm::clamp(timeElapsed, MIN_TIME_SKIP, MAX_TIME_SKIP);
+    
     if (hasActions()) {
         return;
     }
@@ -1859,9 +1861,18 @@ const QByteArray EntityItem::getActionDataInternal() const {
 
 const QByteArray EntityItem::getActionData() const {
     QByteArray result;
-    withReadLock([&] {
-        result = getActionDataInternal();
-    });
+    assertUnlocked();
+
+    if (_actionDataDirty) {
+        withWriteLock([&] {
+            getActionDataInternal();
+            result = _allActionsDataCache;
+        });
+    } else {
+        withReadLock([&] {
+            result = _allActionsDataCache;
+        });
+    }
     return result;
 }
 

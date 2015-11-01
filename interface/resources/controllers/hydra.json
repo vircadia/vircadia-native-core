@@ -1,0 +1,31 @@
+{
+    "name": "Hydra to Standard",
+    "channels": [
+        { "from": "Hydra.LY", "filters": "invert", "to": "Standard.LY" }, 
+        { "from": "Hydra.LX", "to": "Standard.LX" },
+        { "from": "Hydra.LT", "to": "Standard.LT" }, 
+        { "from": "Hydra.RY", "filters": "invert", "to": "Standard.RY" }, 
+        { "from": "Hydra.RX", "to": "Standard.RX" },
+        { "from": "Hydra.RT", "to": "Standard.RT" }, 
+
+        { "from": "Hydra.LB", "to": "Standard.LB" }, 
+        { "from": "Hydra.LS", "to": "Standard.LS" },
+        { "from": "Hydra.RB", "to": "Standard.RB" }, 
+        { "from": "Hydra.RS", "to": "Standard.RS" },
+
+        { "from": "Hydra.L0", "to": "Standard.Back" }, 
+        { "from": "Hydra.L1", "to": "Standard.DL" },
+        { "from": "Hydra.L2", "to": "Standard.DD" }, 
+        { "from": "Hydra.L3", "to": "Standard.DR" }, 
+        { "from": "Hydra.L4", "to": "Standard.DU" },
+
+        { "from": "Hydra.R0", "to": "Standard.Start" }, 
+        { "from": "Hydra.R1", "to": "Standard.X" },
+        { "from": "Hydra.R2", "to": "Standard.A" }, 
+        { "from": "Hydra.R3", "to": "Standard.B" }, 
+        { "from": "Hydra.R4", "to": "Standard.Y" },
+
+        { "from": "Hydra.LeftHand", "to": "Standard.LeftHand" }, 
+        { "from": "Hydra.RightHand", "to": "Standard.RightHand" }
+  ]
+}

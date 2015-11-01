@@ -14,16 +14,16 @@
 var utilitiesScript = Script.resolvePath("../examples/libraries/utils.js");
 Script.include(utilitiesScript);
 
-    var sprayPaintScriptURL = Script.resolvePath("../examples/toybox/spray_paint/sprayPaintCan.js");
-    var catScriptURL = Script.resolvePath("../examples/toybox/cat/cat.js");
-    var flashlightScriptURL = Script.resolvePath('../examples/toybox/flashlight/flashlight.js');
-    var pingPongScriptURL = Script.resolvePath('../examples/toybox/ping_pong_gun/pingPongGun.js');
-    var wandScriptURL = Script.resolvePath("../examples/toybox/bubblewand/wand.js");
-    var dollScriptURL = Script.resolvePath("../examples/toybox/doll/doll.js");
-    var lightsScriptURL = Script.resolvePath("../examples/toybox/lights/lightSwitch.js");
-    var targetsScriptURL = Script.resolvePath('../examples/toybox/ping_pong_gun/wallTarget.js');
-
-
+var sprayPaintScriptURL = Script.resolvePath("../examples/toybox/spray_paint/sprayPaintCan.js");
+var catScriptURL = Script.resolvePath("../examples/toybox/cat/cat.js");
+var flashlightScriptURL = Script.resolvePath('../examples/toybox/flashlight/flashlight.js');
+var pingPongScriptURL = Script.resolvePath('../examples/toybox/ping_pong_gun/pingPongGun.js');
+var wandScriptURL = Script.resolvePath("../examples/toybox/bubblewand/wand.js");
+var dollScriptURL = Script.resolvePath("../examples/toybox/doll/doll.js");
+var lightsScriptURL = Script.resolvePath("../examples/toybox/lights/lightSwitch.js");
+var targetsScriptURL = Script.resolvePath('../examples/toybox/ping_pong_gun/wallTarget.js');
+var basketballResetterScriptURL = Script.resolvePath('basketballsResetter.js');
+var targetsResetterScriptURL = Script.resolvePath('targetsResetter.js');
 
 MasterReset = function() {
     var resetKey = "resetMe";
@@ -84,9 +84,12 @@ MasterReset = function() {
         });
 
         createPingPongBallGun();
+        createTargets();
+        createTargetResetter();
 
         createBasketballHoop();
         createBasketballRack();
+        createBasketballResetter();
 
         createGates();
 
@@ -109,7 +112,7 @@ MasterReset = function() {
             z: 503.91
         });
 
-        createTargets();
+
 
     }
 
@@ -201,6 +204,7 @@ MasterReset = function() {
         });
     }
 
+
     function createBasketballRack() {
         var NUMBER_OF_BALLS = 4;
         var DIAMETER = 0.30;
@@ -249,10 +253,11 @@ MasterReset = function() {
             })
         });
 
-        var collidingBalls = [];
+
 
         function createCollidingBalls() {
             var position = rackStartPosition;
+            var collidingBalls = [];
 
             var i;
             for (i = 0; i < NUMBER_OF_BALLS; i++) {
@@ -307,6 +312,75 @@ MasterReset = function() {
         createCollidingBalls();
 
     }
+
+
+    function createBasketballResetter() {
+
+        var position = {
+            x: 543.58,
+            y: 495.47,
+            z: 469.59
+        };
+
+        var dimensions = {
+            x: 1.65,
+            y: 1.71,
+            z: 1.75
+        };
+
+        var resetter = Entities.addEntity({
+            type: "Box",
+            position: position,
+            name: "Basketball Resetter",
+            script: basketballResetterScriptURL,
+            dimensions: dimensions,
+            visible:false,
+            userData: JSON.stringify({
+                resetMe: {
+                    resetMe: true
+                },
+                grabbableKey: {
+                    wantsTrigger: true
+                }
+            })
+        });
+
+
+    }
+
+    function createTargetResetter() {
+        var dimensions = {
+            x: 0.21,
+            y: 0.61,
+            z: 0.21
+        };
+
+        var position = {
+            x: 548.42,
+            y: 496.40,
+            z: 509.61
+        };
+
+        var resetter = Entities.addEntity({
+            type: "Box",
+            position: position,
+            name: "Target Resetter",
+            script: targetsResetterScriptURL,
+            dimensions: dimensions,
+            visible:false,
+            userData: JSON.stringify({
+                resetMe: {
+                    resetMe: true
+                },
+                grabbableKey: {
+                    wantsTrigger: true
+                }
+            })
+
+        });
+    }
+
+
 
     function createTargets() {
 

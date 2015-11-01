@@ -77,7 +77,10 @@ AvatarManager::AvatarManager(QObject* parent) :
 
 void AvatarManager::init() {
     _myAvatar->init();
-    _avatarHash.insert(MY_AVATAR_KEY, _myAvatar);
+    {
+        QWriteLocker locker(&_hashLock);
+        _avatarHash.insert(MY_AVATAR_KEY, _myAvatar);
+    }
 
     connect(DependencyManager::get<SceneScriptingInterface>().data(), &SceneScriptingInterface::shouldRenderAvatarsChanged, this, &AvatarManager::updateAvatarRenderStatus, Qt::QueuedConnection);
 
@@ -127,6 +130,7 @@ void AvatarManager::updateOtherAvatars(float deltaTime) {
         } else if (avatar->shouldDie()) {
             removeAvatarMotionState(avatar);
             _avatarFades.push_back(avatarIterator.value());
+            QWriteLocker locker(&_hashLock);
             avatarIterator = _avatarHash.erase(avatarIterator);
         } else {
             avatar->withWriteLock([&] {
@@ -202,6 +206,7 @@ void AvatarManager::removeAvatar(const QUuid& sessionUUID) {
         if (avatar != _myAvatar && avatar->isInitialized()) {
             removeAvatarMotionState(avatar);
             _avatarFades.push_back(avatarIterator.value());
+            QWriteLocker locker(&_hashLock);
             _avatarHash.erase(avatarIterator);
         }
     }
@@ -218,6 +223,7 @@ void AvatarManager::clearOtherAvatars() {
         } else {
             removeAvatarMotionState(avatar);
             _avatarFades.push_back(avatarIterator.value());
+            QWriteLocker locker(&_hashLock);
             avatarIterator = _avatarHash.erase(avatarIterator);
         }
     }
@@ -241,6 +247,16 @@ QVector<AvatarManager::LocalLight> AvatarManager::getLocalLights() const {
     }
     return _localLights;
 }
+
+QVector<QUuid> AvatarManager::getAvatarIdentifiers() {
+    QReadLocker locker(&_hashLock);
+    return _avatarHash.keys().toVector();
+}
+AvatarData* AvatarManager::getAvatar(QUuid avatarID) {
+    QReadLocker locker(&_hashLock);
+    return _avatarHash[avatarID].get();  // Non-obvious: A bogus avatarID answers your own avatar.
+}
+
 
 void AvatarManager::getObjectsToDelete(VectorOfMotionStates& result) {
     result.clear();
@@ -349,5 +365,11 @@ AvatarSharedPointer AvatarManager::getAvatarBySessionID(const QUuid& sessionID) 
     if (sessionID == _myAvatar->getSessionUUID()) {
         return std::static_pointer_cast<Avatar>(_myAvatar);
     }
-    return getAvatarHash()[sessionID];
+    QReadLocker locker(&_hashLock);
+    auto iter = _avatarHash.find(sessionID);
+    if (iter != _avatarHash.end()) {
+        return iter.value();
+    } else {
+        return AvatarSharedPointer();
+    }
 }

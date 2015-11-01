@@ -18,7 +18,6 @@
 #include "RenderableEntityItem.h"
 #include <GeometryCache.h>
 #include <QReadWriteLock>
-#include <gpu/GPUConfig.h>
 
 
 class RenderablePolyLineEntityItem : public PolyLineEntityItem {
@@ -34,7 +33,7 @@ public:
     static gpu::PipelinePointer _pipeline;
     static gpu::Stream::FormatPointer _format;
     static gpu::TexturePointer _texture;
-    static GLint PAINTSTROKE_GPU_SLOT;
+    static int32_t PAINTSTROKE_GPU_SLOT;
     
 protected:
     void updateGeometry();
