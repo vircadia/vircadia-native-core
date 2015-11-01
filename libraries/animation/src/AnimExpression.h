@@ -45,6 +45,7 @@ protected:
             Plus,
             Multiply,
             Modulus,
+            Comma,
             Error
         };
         Token(Type type) : type(type) {}
@@ -58,9 +59,6 @@ protected:
         glm::vec3 vec3Val;
         glm::vec4 vec4Val;
         glm::quat quatVal;
-#ifndef NDEBUG
-        void dump();
-#endif
     };
     bool parseExpression(const QString& str);
     Token consumeToken(const QString& str, QString::const_iterator& iter) const;

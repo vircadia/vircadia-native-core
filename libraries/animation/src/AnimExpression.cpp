@@ -14,83 +14,6 @@
 #include "AnimExpression.h"
 #include "AnimationLogging.h"
 
-
-#ifndef NDEBUG
-void AnimExpression::Token::dump() {
-    switch (type) {
-    case End:
-        qCDebug(animation) << "    End";
-        break;
-    case Identifier:
-        qCDebug(animation) << "    Identifer =" << strVal;
-        break;
-    case LiteralInt:
-        qCDebug(animation) << "    LiteralInt =" << intVal;
-        break;
-    case LiteralFloat:
-        qCDebug(animation) << "    LiteralFloat" << floatVal;
-        break;
-    case LiteralVec3:
-        qCDebug(animation) << "    LiteralVec3" << vec3Val;
-        break;
-    case LiteralVec4:
-        qCDebug(animation) << "    LiteralVec4" << vec4Val;
-        break;
-    case LiteralQuat:
-        qCDebug(animation) << "    LiteralQuat" << quatVal;
-        break;
-    case And:
-        qCDebug(animation) << "    And";
-        break;
-    case Or:
-        qCDebug(animation) << "    Or";
-        break;
-    case GreaterThan:
-        qCDebug(animation) << "    GreaterThan";
-        break;
-    case GreaterThanEqual:
-        qCDebug(animation) << "    GreaterThanEqual";
-        break;
-    case LessThan:
-        qCDebug(animation) << "    LessThan";
-        break;
-    case LessThanEqual:
-        qCDebug(animation) << "    LessThanEqual";
-        break;
-    case Equal:
-        qCDebug(animation) << "    Equal";
-        break;
-    case NotEqual:
-        qCDebug(animation) << "    NotEqual";
-        break;
-    case LeftParen:
-        qCDebug(animation) << "    LeftParen";
-        break;
-    case RightParen:
-        qCDebug(animation) << "    RightParen";
-        break;
-    case Not:
-        qCDebug(animation) << "    Not";
-        break;
-    case Minus:
-        qCDebug(animation) << "    Minus";
-        break;
-    case Plus:
-        qCDebug(animation) << "    Plus";
-        break;
-    case Multiply:
-        qCDebug(animation) << "    Multiply";
-        break;
-    case Modulus:
-        qCDebug(animation) << "    Modulus";
-        break;
-    case Error:
-        qCDebug(animation) << "    Error";
-        break;
-    }
-}
-#endif
-
 AnimExpression::AnimExpression(const QString& str) :
     _expression(str) {
     parseExpression(_expression);
@@ -130,6 +53,7 @@ AnimExpression::Token AnimExpression::consumeToken(const QString& str, QString::
             case '+': ++iter; return Token(Token::Plus);
             case '*': ++iter; return Token(Token::Multiply);
             case '%': ++iter; return Token(Token::Modulus);
+            case ',': ++iter; return Token(Token::Comma);
             default:
                 qCCritical(animation) << "AnimExpression: unexpected char" << *iter << "at index " << (int)(iter - str.begin());
                 return Token(Token::Error);
@@ -261,4 +185,3 @@ AnimExpression::Token AnimExpression::consumeNot(const QString& str, QString::co
         return Token(Token::Not);
     }
 }
-
