@@ -5,15 +5,24 @@
 * [OpenSSL](https://www.openssl.org/related/binaries.html) ~> 1.0.1m
   * IMPORTANT: Using the recommended version of OpenSSL is critical to avoid security vulnerabilities.
 * [VHACD](https://github.com/virneo/v-hacd)(clone this repository)(Optional)
-* [zlib](http://www.zlib.net/)
 
 ####CMake External Project Dependencies
 
+* [boostconfig](https://github.com/boostorg/config) ~> 1.58
 * [Bullet Physics Engine](https://code.google.com/p/bullet/downloads/list) ~> 2.82
-* [Intel Threading Building Blocks](https://www.threadingbuildingblocks.org/) ~> 4.3
+* [Faceshift](http://www.faceshift.com/) ~> 4.3
+* [GLEW](http://glew.sourceforge.net/)
 * [glm](http://glm.g-truc.net/0.9.5/index.html) ~> 0.9.5.4
 * [gverb](https://github.com/highfidelity/gverb)
+* [Oculus SDK](https://developer.oculus.com/downloads/) ~> 0.6 (Win32) / 0.5 (Mac / Linux)
+* [oglplus](http://oglplus.org/) ~> 0.63
+* [OpenVR](https://github.com/ValveSoftware/openvr) ~> 0.91 (Win32 only)
+* [Polyvox](http://www.volumesoffun.com/) ~> 0.2.1
 * [SDL2](https://www.libsdl.org/download-2.0.php) ~> 2.0.3
+* [soxr](http://soxr.sourceforge.net) ~> 0.1.1
+* [Intel Threading Building Blocks](https://www.threadingbuildingblocks.org/) ~> 4.3
+* [Sixense](http://sixense.com/) ~> 071615 
+* [zlib](http://www.zlib.net/) ~> 1.28 (Win32 only)
 
 The above dependencies will be downloaded, built, linked and included automatically by CMake where we require them. The CMakeLists files that handle grabbing each of the following external dependencies can be found in the [cmake/externals folder](cmake/externals). The resulting downloads, source files and binaries will be placed in the `build/ext` folder in each of the subfolders for each external project. 
 
@@ -59,7 +68,7 @@ For example, to pass the QT_CMAKE_PREFIX_PATH variable during build file generat
 
 ####Finding Dependencies
 
-The following applies for dependencies we do not grab via CMake ExternalProject (OpenSSL is an example), or for dependencies you have opted not to grab as a CMake ExternalProject (via -DGET_$NAME=0). The list of dependencies we grab by default as external projects can be found in [the CMake External Project Dependencies section](#cmake-external-project-dependencies).
+The following applies for dependencies we do not grab via CMake ExternalProject (OpenSSL is an example), or for dependencies you have opted not to grab as a CMake ExternalProject (via -DUSE_LOCAL_$NAME=0). The list of dependencies we grab by default as external projects can be found in [the CMake External Project Dependencies section](#cmake-external-project-dependencies).
 
 You can point our [Cmake find modules](cmake/modules/) to the correct version of dependencies by setting one of the three following variables to the location of the correct version of the dependency.
 
@@ -73,5 +82,5 @@ In the examples below the variable $NAME would be replaced by the name of the de
 
 ####Devices
 
-You can support external input/output devices such as Oculus Rift, Leap Motion, Faceshift, MIDI, Razr Hydra and more by adding each individual SDK in the visible building path. Refer to the readme file available in each device folder in [interface/external/](interface/external) for the detailed explanation of the requirements to use the device.
+You can support external input/output devices such as Leap Motion, MIDI, and more by adding each individual SDK in the visible building path. Refer to the readme file available in each device folder in [interface/external/](interface/external) for the detailed explanation of the requirements to use the device.
 
