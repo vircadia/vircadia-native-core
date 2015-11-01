@@ -325,7 +325,7 @@ void AnimTests::testAccumulateTimeWithParameters(float startFrame, float endFram
     triggers.clear();
 
 void AnimTests::testTokenizer() {
-    QString str = "(10 +  x) >= 20 && (y != !z)";
+    QString str = "(10 +  x) >= 20.1 && (y != !z)";
     AnimExpression e("");
     auto iter = str.cbegin();
     AnimExpression::Token token = e.consumeToken(str, iter);
@@ -343,8 +343,8 @@ void AnimTests::testTokenizer() {
     token = e.consumeToken(str, iter);
     QVERIFY(token.type == AnimExpression::Token::GreaterThanEqual);
     token = e.consumeToken(str, iter);
-    QVERIFY(token.type == AnimExpression::Token::LiteralInt);
-    QVERIFY(token.intVal == 20);
+    QVERIFY(token.type == AnimExpression::Token::LiteralFloat);
+    QVERIFY(fabsf(token.floatVal - 20.1f) < 0.0001f);
     token = e.consumeToken(str, iter);
     QVERIFY(token.type == AnimExpression::Token::And);
     token = e.consumeToken(str, iter);

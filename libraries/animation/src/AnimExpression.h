@@ -50,6 +50,7 @@ protected:
         Token(Type type) : type(type) {}
         Token(const QStringRef& strRef) : type(Type::Identifier), strVal(strRef.toString()) {}
         Token(int val) : type(Type::LiteralInt), intVal(val) {}
+        Token(float val) : type(Type::LiteralFloat), floatVal(val) {}
         Type type = End;
         QString strVal;
         int intVal;

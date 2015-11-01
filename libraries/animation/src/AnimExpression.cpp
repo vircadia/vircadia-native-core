@@ -151,6 +151,21 @@ AnimExpression::Token AnimExpression::consumeIdentifier(const QString& str, QStr
     return Token(QStringRef(const_cast<const QString*>(&str), pos, len));
 }
 
+// TODO: not very efficient or accruate, but it's close enough for now.
+static float computeFractionalPart(int fractionalPart)
+{
+    float frac = (float)fractionalPart;
+    while (fractionalPart) {
+        fractionalPart /= 10;
+        frac /= 10.0f;
+    }
+    return frac;
+}
+
+static float computeFloat(int whole, int fraction) {
+    return (float)whole + computeFractionalPart(fraction);
+}
+
 AnimExpression::Token AnimExpression::consumeNumber(const QString& str, QString::const_iterator& iter) const {
     assert(iter != str.end());
     assert(iter->isDigit());
@@ -158,10 +173,31 @@ AnimExpression::Token AnimExpression::consumeNumber(const QString& str, QString:
     while (iter->isDigit() && iter != str.end()) {
         ++iter;
     }
+
+    // parse whole integer part
     int pos = (int)(begin - str.begin());
     int len = (int)(iter - begin);
     QString sub = QStringRef(const_cast<const QString*>(&str), pos, len).toString();
-    return Token(sub.toInt());
+    int whole = sub.toInt();
+
+    // parse optional fractional part
+    if (iter->unicode() == '.') {
+        iter++;
+        auto begin = iter;
+        while (iter->isDigit() && iter != str.end()) {
+            ++iter;
+        }
+
+        int pos = (int)(begin - str.begin());
+        int len = (int)(iter - begin);
+        QString sub = QStringRef(const_cast<const QString*>(&str), pos, len).toString();
+        int fraction = sub.toInt();
+
+        return Token(computeFloat(whole, fraction));
+
+    } else {
+        return Token(whole);
+    }
 }
 
 AnimExpression::Token AnimExpression::consumeAnd(const QString& str, QString::const_iterator& iter) const {
