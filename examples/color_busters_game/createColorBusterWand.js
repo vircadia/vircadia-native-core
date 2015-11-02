@@ -44,7 +44,7 @@ function createColorBusterWand() {
 		userData: JSON.stringify({
 			hifiColorBusterWandKey: {
 				owner: MyAvatar.sessionUUID,
-				currentColor: startingColor[1]
+				currentColor: startingColor[1],
 				originalColorName: startingColor[0],
 				colorLocked: false
 			}

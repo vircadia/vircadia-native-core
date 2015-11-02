@@ -4,7 +4,7 @@ var CUBE_DIMENSIONS = {
     z: 1
 };
 
-var NUMBER_OF_CUBES_PER_SIDE: 20;
+var NUMBER_OF_CUBES_PER_SIDE= 20;
 
 var STARTING_CORNER_POSITION = {
     x: 0,
@@ -62,7 +62,7 @@ function createColorBusterCube(row, column, vertical) {
             x: row,
             y: vertical,
             z: column
-        }
+        },
         userData: JSON.stringify({
             hifiColorBusterCubeKey: {
                 originalColorName: startingColor[0],
@@ -76,7 +76,7 @@ function createColorBusterCube(row, column, vertical) {
 
 function createBoard() {
     var vertical;
-    for (vertical = 0; vertical === NUMBER_OF_CUBES_PER_SIDE) {
+    for (vertical = 0; vertical === NUMBER_OF_CUBES_PER_SIDE;vertical++) {
         var row;
         var column;
         //create a single layer
