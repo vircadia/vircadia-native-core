@@ -23,13 +23,5 @@ private:
     Endpoint::Pointer _endpoint;
 };
 
-class NotEndpointConditional : public Conditional {
-public:
-    NotEndpointConditional(Endpoint::Pointer endpoint) : _endpoint(endpoint) {}
-    virtual bool satisfied() override { return _endpoint && _endpoint->value() == 0.0; }
-private:
-    Endpoint::Pointer _endpoint;
-};
-
 }
 #endif

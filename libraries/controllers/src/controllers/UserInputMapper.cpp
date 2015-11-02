@@ -26,6 +26,7 @@
 #include "Logging.h"
 
 #include "impl/conditionals/AndConditional.h"
+#include "impl/conditionals/NotConditional.h"
 #include "impl/conditionals/EndpointConditional.h"
 #include "impl/conditionals/ScriptConditional.h"
 
@@ -838,18 +839,16 @@ Conditional::Pointer UserInputMapper::parseConditional(const QJsonValue& value) 
 
         auto input = findDeviceInput(conditionalToken);
         auto endpoint = endpointFor(input);
-        if (!endpoint) {
-            return Conditional::Pointer();
-        }
+        auto conditional = std::make_shared<EndpointConditional>(endpoint);
 
         if (!conditionalModifier.isEmpty()) {
             if (conditionalModifier == JSON_CONDITIONAL_MODIFIER_NOT) {
-                return std::make_shared<NotEndpointConditional>(endpoint);
+                return std::make_shared<NotConditional>(conditional);
             }
         }
 
         // Default and conditional behavior
-        return std::make_shared<EndpointConditional>(endpoint);
+        return conditional;
     }
 
     return Conditional::parse(value);
