@@ -37,6 +37,9 @@ public:
         MOUSE_BUTTON_LEFT = KEYBOARD_LAST + 1,
         MOUSE_BUTTON_RIGHT,
         MOUSE_BUTTON_MIDDLE,
+        MOUSE_BUTTON_LEFT_QUICK_CLICK,
+        MOUSE_BUTTON_RIGHT_QUICK_CLICK,
+        MOUSE_BUTTON_MIDDLE_QUICK_CLICK,
     };
 
     enum MouseAxisChannel {
@@ -83,6 +86,7 @@ public:
     void mouseMoveEvent(QMouseEvent* event, unsigned int deviceID = 0);
     void mousePressEvent(QMouseEvent* event, unsigned int deviceID = 0);
     void mouseReleaseEvent(QMouseEvent* event, unsigned int deviceID = 0);
+    void eraseMouseClicked();
 
     void touchBeginEvent(const QTouchEvent* event);
     void touchEndEvent(const QTouchEvent* event);
@@ -92,7 +96,7 @@ public:
     
     // Let's make it easy for Qt because we assume we love Qt forever
     controller::Input makeInput(Qt::Key code) const;
-    controller::Input makeInput(Qt::MouseButton code) const;
+    controller::Input makeInput(Qt::MouseButton code, bool quickClicked = false) const;
     controller::Input makeInput(MouseAxisChannel axis) const;
     controller::Input makeInput(TouchAxisChannel axis) const;
     controller::Input makeInput(TouchButtonChannel button) const;
@@ -101,6 +105,7 @@ public:
 
 protected:
     QPoint _lastCursor;
+    QPoint _mousePressAt;
     glm::vec2 _lastTouch;
     bool _isTouching = false;
     
