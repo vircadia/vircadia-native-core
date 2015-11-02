@@ -27,8 +27,9 @@ ThreadSafeDynamicsWorld::ThreadSafeDynamicsWorld(
     :   btDiscreteDynamicsWorld(dispatcher, pairCache, constraintSolver, collisionConfiguration) {
 }
 
-int ThreadSafeDynamicsWorld::stepSimulation( btScalar timeStep, int maxSubSteps, btScalar fixedTimeStep, SubStepCallback onSubStep) {
-    BT_PROFILE("stepSimulation");
+int ThreadSafeDynamicsWorld::stepSimulationWithSubstepCallback(btScalar timeStep, int maxSubSteps,
+                                                               btScalar fixedTimeStep, SubStepCallback onSubStep) {
+    BT_PROFILE("stepSimulationWithSubstepCallback");
     int subSteps = 0;
     if (maxSubSteps) {
         //fixed timestep with interpolation

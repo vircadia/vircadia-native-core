@@ -29,6 +29,15 @@ enum MotionType {
     MOTION_TYPE_KINEMATIC   // keyframed motion
 };
 
+inline QString motionTypeToString(MotionType motionType) {
+    switch(motionType) {
+        case MOTION_TYPE_STATIC: return QString("static");
+        case MOTION_TYPE_DYNAMIC: return QString("dynamic");
+        case MOTION_TYPE_KINEMATIC: return QString("kinematic");
+    }
+    return QString("unknown");
+}
+
 enum MotionStateType {
     MOTIONSTATE_TYPE_INVALID,
     MOTIONSTATE_TYPE_ENTITY,

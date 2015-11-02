@@ -13,6 +13,7 @@
 
 #include <glm/gtx/vector_angle.hpp>
 #include <queue>
+#include <QScriptValueIterator>
 
 #include <NumericalConstants.h>
 #include <DebugDraw.h>
@@ -21,34 +22,6 @@
 #include "AnimationLogging.h"
 #include "AnimSkeleton.h"
 #include "IKTarget.h"
-
-
-void Rig::HeadParameters::dump() const {
-    qCDebug(animation, "HeadParameters =");
-    qCDebug(animation, "    leanSideways = %0.5f", (double)leanSideways);
-    qCDebug(animation, "    leanForward = %0.5f", (double)leanForward);
-    qCDebug(animation, "    torsoTwist = %0.5f", (double)torsoTwist);
-    glm::vec3 axis = glm::axis(localHeadOrientation);
-    float theta = glm::angle(localHeadOrientation);
-    qCDebug(animation, "    localHeadOrientation axis = (%.5f, %.5f, %.5f), theta = %0.5f", (double)axis.x, (double)axis.y, (double)axis.z, (double)theta);
-    axis = glm::axis(worldHeadOrientation);
-    theta = glm::angle(worldHeadOrientation);
-    qCDebug(animation, "    localHead pitch = %.5f, yaw = %.5f, roll = %.5f", (double)localHeadPitch, (double)localHeadYaw, (double)localHeadRoll);
-    qCDebug(animation, "    localHeadPosition = (%.5f, %.5f, %.5f)", (double)localHeadPosition.x, (double)localHeadPosition.y, (double)localHeadPosition.z);
-    qCDebug(animation, "    isInHMD = %s", isInHMD ? "true" : "false");
-    qCDebug(animation, "    worldHeadOrientation axis = (%.5f, %.5f, %.5f), theta = %0.5f", (double)axis.x, (double)axis.y, (double)axis.z, (double)theta);
-    axis = glm::axis(modelRotation);
-    theta = glm::angle(modelRotation);
-    qCDebug(animation, "    modelRotation axis = (%.5f, %.5f, %.5f), theta = %0.5f", (double)axis.x, (double)axis.y, (double)axis.z, (double)theta);
-    qCDebug(animation, "    modelTranslation = (%.5f, %.5f, %.5f)", (double)modelTranslation.x, (double)modelTranslation.y, (double)modelTranslation.z);
-    qCDebug(animation, "    eyeLookAt = (%.5f, %.5f, %.5f)", (double)eyeLookAt.x, (double)eyeLookAt.y, (double)eyeLookAt.z);
-    qCDebug(animation, "    eyeSaccade = (%.5f, %.5f, %.5f)", (double)eyeSaccade.x, (double)eyeSaccade.y, (double)eyeSaccade.z);
-    qCDebug(animation, "    leanJointIndex = %.d", leanJointIndex);
-    qCDebug(animation, "    neckJointIndex = %.d", neckJointIndex);
-    qCDebug(animation, "    leftEyeJointIndex = %.d", leftEyeJointIndex);
-    qCDebug(animation, "    rightEyeJointIndex = %.d", rightEyeJointIndex);
-    qCDebug(animation, "    isTalking = %s", isTalking ? "true" : "false");
-}
 
 void insertSorted(QList<AnimationHandlePointer>& handles, const AnimationHandlePointer& handle) {
     for (QList<AnimationHandlePointer>::iterator it = handles.begin(); it != handles.end(); it++) {
@@ -604,6 +577,71 @@ void Rig::computeMotionAnimationState(float deltaTime, const glm::vec3& worldPos
     _lastPosition = worldPosition;
 }
 
+// Allow script to add/remove handlers and report results, from within their thread.
+QScriptValue Rig::addAnimationStateHandler(QScriptValue handler, QScriptValue propertiesList) { // called in script thread
+    QMutexLocker locker(&_stateMutex);
+    // Find a safe id, even if there are lots of many scripts add and remove handlers repeatedly.
+    while (!_nextStateHandlerId || _stateHandlers.contains(_nextStateHandlerId)) { // 0 is unused, and don't reuse existing after wrap.
+      _nextStateHandlerId++;
+    }
+    StateHandler& data = _stateHandlers[_nextStateHandlerId];
+    data.function = handler;
+    data.useNames = propertiesList.isArray();
+    if (data.useNames) {
+        data.propertyNames = propertiesList.toVariant().toStringList();
+    }
+    return QScriptValue(_nextStateHandlerId); // suitable for giving to removeAnimationStateHandler
+}
+void Rig::removeAnimationStateHandler(QScriptValue identifier) { // called in script thread
+    QMutexLocker locker(&_stateMutex);
+    _stateHandlers.remove(identifier.isNumber() ? identifier.toInt32() : 0); // silently continues if handler not present. 0 is unused
+}
+void Rig::animationStateHandlerResult(int identifier, QScriptValue result) { // called synchronously from script
+    QMutexLocker locker(&_stateMutex);
+    auto found = _stateHandlers.find(identifier);
+    if (found == _stateHandlers.end()) {
+        return; // Don't use late-breaking results that got reported after the handler was removed.
+    }
+    found.value().results.animVariantMapFromScriptValue(result); // Into our own copy.
+}
+
+void Rig::updateAnimationStateHandlers() { // called on avatar update thread (which may be main thread)
+    QMutexLocker locker(&_stateMutex);
+    // It might pay to produce just one AnimVariantMap copy here, with a union of all the requested propertyNames,
+    // rather than having each callAnimationStateHandler invocation make its own copy.
+    // However, that copying is done on the script's own time rather than ours, so even if it's less cpu, it would be more
+    // work on the avatar update thread (which is possibly the main thread).
+    for (auto data = _stateHandlers.begin(); data != _stateHandlers.end(); data++) {
+        // call out:
+        int identifier = data.key();
+        StateHandler& value = data.value();
+        QScriptValue& function = value.function;
+        auto handleResult = [this, identifier](QScriptValue result) { // called in script thread to get the result back to us.
+            animationStateHandlerResult(identifier, result);
+        };
+        // invokeMethod makes a copy of the args, and copies of AnimVariantMap do copy the underlying map, so this will correctly capture
+        // the state of _animVars and allow continued changes to _animVars in this thread without conflict.
+        QMetaObject::invokeMethod(function.engine(), "callAnimationStateHandler",  Qt::QueuedConnection,
+                                  Q_ARG(QScriptValue, function),
+                                  Q_ARG(AnimVariantMap, _animVars),
+                                  Q_ARG(QStringList, value.propertyNames),
+                                  Q_ARG(bool, value.useNames),
+                                  Q_ARG(AnimVariantResultHandler, handleResult));
+        // It turns out that, for thread-safety reasons, ScriptEngine::callAnimationStateHandler will invoke itself if called from other
+        // than the script thread. Thus the above _could_ be replaced with an ordinary call, which will then trigger the same
+        // invokeMethod as is done explicitly above. However, the script-engine library depends on this animation library, not vice versa.
+        // We could create an AnimVariantCallingMixin class in shared, with an abstract virtual slot
+        // AnimVariantCallingMixin::callAnimationStateHandler (and move AnimVariantMap/AnimVaraintResultHandler to shared), but the
+        // call site here would look like this instead of the above:
+        //   dynamic_cast<AnimVariantCallingMixin*>(function.engine())->callAnimationStateHandler(function, ..., handleResult);
+        // This works (I tried it), but the result would be that we would still have same runtime type checks as the invokeMethod above
+        // (occuring within the ScriptEngine::callAnimationStateHandler invokeMethod trampoline), _plus_ another runtime check for the dynamic_cast.
+
+        // gather results in (likely from an earlier update):
+        _animVars.copyVariantsFrom(value.results); // If multiple handlers write the same anim var, the last registgered wins. (_map preserves order).
+    }
+}
+
 void Rig::updateAnimations(float deltaTime, glm::mat4 rootTransform) {
 
     if (_enableAnimGraph) {
@@ -611,6 +649,7 @@ void Rig::updateAnimations(float deltaTime, glm::mat4 rootTransform) {
             return;
         }
 
+        updateAnimationStateHandlers();
         // evaluate the animation
         AnimNode::Triggers triggersOut;
         AnimPoseVec poses = _animNode->evaluate(_animVars, deltaTime, triggersOut);
@@ -981,13 +1020,18 @@ void Rig::updateFromHeadParameters(const HeadParameters& params, float dt) {
         _animVars.unset("lean");
     }
     updateNeckJoint(params.neckJointIndex, params);
-    updateEyeJoints(params.leftEyeJointIndex, params.rightEyeJointIndex, params.modelTranslation, params.modelRotation,
-                    params.worldHeadOrientation, params.eyeLookAt, params.eyeSaccade);
 
     if (_enableAnimGraph) {
         _animVars.set("isTalking", params.isTalking);
         _animVars.set("notIsTalking", !params.isTalking);
     }
+}
+
+void Rig::updateFromEyeParameters(const EyeParameters& params) {
+    updateEyeJoint(params.leftEyeJointIndex, params.modelTranslation, params.modelRotation,
+                   params.worldHeadOrientation, params.eyeLookAt, params.eyeSaccade);
+    updateEyeJoint(params.rightEyeJointIndex, params.modelTranslation, params.modelRotation,
+                   params.worldHeadOrientation, params.eyeLookAt, params.eyeSaccade);
 }
 
 static const glm::vec3 X_AXIS(1.0f, 0.0f, 0.0f);
@@ -1143,12 +1187,6 @@ void Rig::updateNeckJoint(int index, const HeadParameters& params) {
                                                state.getDefaultRotation(), DEFAULT_PRIORITY);
         }
     }
-}
-
-void Rig::updateEyeJoints(int leftEyeIndex, int rightEyeIndex, const glm::vec3& modelTranslation, const glm::quat& modelRotation,
-                          const glm::quat& worldHeadOrientation, const glm::vec3& lookAtSpot, const glm::vec3& saccade) {
-    updateEyeJoint(leftEyeIndex, modelTranslation, modelRotation, worldHeadOrientation, lookAtSpot, saccade);
-    updateEyeJoint(rightEyeIndex, modelTranslation, modelRotation, worldHeadOrientation, lookAtSpot, saccade);
 }
 
 void Rig::updateEyeJoint(int index, const glm::vec3& modelTranslation, const glm::quat& modelRotation, const glm::quat& worldHeadOrientation, const glm::vec3& lookAtSpot, const glm::vec3& saccade) {

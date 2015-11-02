@@ -35,7 +35,8 @@ AvatarActionHold::~AvatarActionHold() {
     qDebug() << "AvatarActionHold::~AvatarActionHold";
     #endif
 }
-
+#include <plugins/PluginManager.h>
+#include <input-plugins/ViveControllerManager.h>
 void AvatarActionHold::updateActionWorker(float deltaTimeStep) {
     bool gotLock = false;
     glm::quat rotation;
@@ -51,7 +52,25 @@ void AvatarActionHold::updateActionWorker(float deltaTimeStep) {
             glm::vec3 offset;
             glm::vec3 palmPosition;
             glm::quat palmRotation;
-            if (_hand == "right") {
+
+			const auto& plugins = PluginManager::getInstance()->getInputPlugins();
+			auto it = std::find_if(std::begin(plugins), std::end(plugins), [](const InputPluginPointer& plugin) {
+				return plugin->getName() == ViveControllerManager::NAME;
+			});
+				
+			if (it != std::end(plugins)) {
+				const auto& vive = it->dynamicCast<ViveControllerManager>();
+				auto index = (_hand == "right") ? 0 : 1;
+                auto userInputMapper = DependencyManager::get<UserInputMapper>();
+				auto translation = extractTranslation(userInputMapper->getSensorToWorldMat());
+				auto rotation = glm::quat_cast(userInputMapper->getSensorToWorldMat());
+
+
+				const glm::quat quarterX = glm::angleAxis(PI / 2.0f, glm::vec3(1.0f, 0.0f, 0.0f));
+				const glm::quat yFlip = glm::angleAxis(PI, glm::vec3(0.0f, 1.0f, 0.0f));
+				palmPosition = translation + rotation * vive->getPosition(index);
+				palmRotation = rotation * vive->getRotation(index) * yFlip * quarterX;
+			} else if (_hand == "right") {
                 palmPosition = holdingAvatar->getRightPalmPosition();
                 palmRotation = holdingAvatar->getRightPalmRotation();
             } else {
@@ -118,6 +137,9 @@ void AvatarActionHold::doKinematicUpdate(float deltaTimeStep) {
         worldTrans.setOrigin(glmToBullet(_positionalTarget));
         worldTrans.setRotation(glmToBullet(_rotationalTarget));
         rigidBody->setWorldTransform(worldTrans);
+
+        ownerEntity->setPosition(_positionalTarget);
+        ownerEntity->setRotation(_rotationalTarget);
 
         _previousPositionalTarget = _positionalTarget;
         _previousRotationalTarget = _rotationalTarget;
@@ -224,6 +246,8 @@ QVariantMap AvatarActionHold::getArguments() {
         arguments["relativeRotation"] = glmToQMap(_relativeRotation);
         arguments["timeScale"] = _linearTimeScale;
         arguments["hand"] = _hand;
+        arguments["kinematic"] = _kinematic;
+        arguments["kinematicSetVelocity"] = _kinematicSetVelocity;
     });
     return arguments;
 }
@@ -243,7 +267,7 @@ QByteArray AvatarActionHold::serialize() const {
         dataStream << _linearTimeScale;
         dataStream << _hand;
 
-        dataStream << _expires + getEntityServerClockSkew();
+        dataStream << localTimeToServerTime(_expires);
         dataStream << _tag;
         dataStream << _kinematic;
         dataStream << _kinematicSetVelocity;
@@ -277,8 +301,10 @@ void AvatarActionHold::deserialize(QByteArray serializedArguments) {
         _angularTimeScale = _linearTimeScale;
         dataStream >> _hand;
 
-        dataStream >> _expires;
-        _expires -= getEntityServerClockSkew();
+        quint64 serverExpires;
+        dataStream >> serverExpires;
+        _expires = serverTimeToLocalTime(serverExpires);
+
         dataStream >> _tag;
         dataStream >> _kinematic;
         dataStream >> _kinematicSetVelocity;

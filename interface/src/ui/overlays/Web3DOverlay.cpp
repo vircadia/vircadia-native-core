@@ -27,7 +27,7 @@
 #include <RegisteredMetaTypes.h>
 #include <AbstractViewStateInterface.h>
 
-#include <OffscreenQmlSurface.h>
+#include <gl/OffscreenQmlSurface.h>
 
 static const float DPI = 30.47f;
 static const float INCHES_TO_METERS = 1.0f / 39.3701f;

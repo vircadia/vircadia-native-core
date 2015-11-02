@@ -35,7 +35,9 @@ void ObjectAction::updateAction(btCollisionWorld* collisionWorld, btScalar delta
     if (ownerEntityExpired) {
         qDebug() << "warning -- action with no entity removing self from btCollisionWorld.";
         btDynamicsWorld* dynamicsWorld = static_cast<btDynamicsWorld*>(collisionWorld);
-        dynamicsWorld->removeAction(this);
+        if (dynamicsWorld) {
+            dynamicsWorld->removeAction(this);
+        }
         return;
     }
 
@@ -85,11 +87,11 @@ bool ObjectAction::updateArguments(QVariantMap arguments) {
         quint64 previousExpires = _expires;
         QString previousTag = _tag;
 
-        bool lifetimeSet = true;
-        float lifetime = EntityActionInterface::extractFloatArgument("action", arguments, "lifetime", lifetimeSet, false);
-        if (lifetimeSet) {
+        bool ttlSet = true;
+        float ttl = EntityActionInterface::extractFloatArgument("action", arguments, "ttl", ttlSet, false);
+        if (ttlSet) {
             quint64 now = usecTimestampNow();
-            _expires = now + (quint64)(lifetime * USECS_PER_SECOND);
+            _expires = now + (quint64)(ttl * USECS_PER_SECOND);
         } else {
             _expires = 0;
         }
@@ -114,12 +116,23 @@ QVariantMap ObjectAction::getArguments() {
     QVariantMap arguments;
     withReadLock([&]{
         if (_expires == 0) {
-            arguments["lifetime"] = 0.0f;
+            arguments["ttl"] = 0.0f;
         } else {
             quint64 now = usecTimestampNow();
-            arguments["lifetime"] = (float)(_expires - now) / (float)USECS_PER_SECOND;
+            arguments["ttl"] = (float)(_expires - now) / (float)USECS_PER_SECOND;
         }
         arguments["tag"] = _tag;
+
+        EntityItemPointer entity = _ownerEntity.lock();
+        if (entity) {
+            ObjectMotionState* motionState = static_cast<ObjectMotionState*>(entity->getPhysicsInfo());
+            if (motionState) {
+                arguments["::active"] = motionState->isActive();
+                arguments["::motion-type"] = motionTypeToString(motionState->getMotionType());
+            } else {
+                arguments["::no-motion-state"] = true;
+            }
+        }
     });
     return arguments;
 }
@@ -244,4 +257,32 @@ bool ObjectAction::lifetimeIsOver() {
         return true;
     }
     return false;
+}
+
+quint64 ObjectAction::localTimeToServerTime(quint64 timeValue) const {
+    // 0 indicates no expiration
+    if (timeValue == 0) {
+        return 0;
+    }
+
+    int serverClockSkew = getEntityServerClockSkew();
+    if (serverClockSkew < 0 && timeValue <= (quint64)(-serverClockSkew)) {
+        return 1; // non-zero but long-expired value to avoid negative roll-over
+    }
+
+    return timeValue + serverClockSkew;
+}
+
+quint64 ObjectAction::serverTimeToLocalTime(quint64 timeValue) const {
+    // 0 indicates no expiration
+    if (timeValue == 0) {
+        return 0;
+    }
+
+    int serverClockSkew = getEntityServerClockSkew();
+    if (serverClockSkew > 0 && timeValue <= (quint64)serverClockSkew) {
+        return 1; // non-zero but long-expired value to avoid negative roll-over
+    }
+
+    return timeValue - serverClockSkew;
 }
