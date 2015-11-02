@@ -59,11 +59,27 @@ void KeyboardMouseDevice::mousePressEvent(QMouseEvent* event, unsigned int devic
         // key pressed again ? without catching the release event ?
     }
     _lastCursor = event->pos();
+    _mousePressAt = event->pos();
+
+    eraseMouseClicked();
 }
 
 void KeyboardMouseDevice::mouseReleaseEvent(QMouseEvent* event, unsigned int deviceID) {
     auto input = makeInput((Qt::MouseButton) event->button());
     _buttonPressedMap.erase(input.getChannel());
+
+    // if we pressed and released at the same location, then create a "_CLICKED" input for this button
+    // we might want to add some small tolerance to this so if you do a small drag it still counts as
+    // a clicked.
+    if (_mousePressAt == event->pos()) {
+        _buttonPressedMap.insert(makeInput((Qt::MouseButton) event->button(), true).getChannel());
+    }
+}
+
+void KeyboardMouseDevice::eraseMouseClicked() {
+    _buttonPressedMap.erase(makeInput(Qt::LeftButton, true).getChannel());
+    _buttonPressedMap.erase(makeInput(Qt::MiddleButton, true).getChannel());
+    _buttonPressedMap.erase(makeInput(Qt::RightButton, true).getChannel());
 }
 
 void KeyboardMouseDevice::mouseMoveEvent(QMouseEvent* event, unsigned int deviceID) {
@@ -77,6 +93,8 @@ void KeyboardMouseDevice::mouseMoveEvent(QMouseEvent* event, unsigned int device
     _axisStateMap[makeInput(MOUSE_AXIS_Y_NEG).getChannel()] = (currentMove.y() > 0 ? currentMove.y() : 0.0f);
 
     _lastCursor = currentPos;
+
+    eraseMouseClicked();
 }
 
 void KeyboardMouseDevice::wheelEvent(QWheelEvent* event) {
@@ -138,14 +156,17 @@ controller::Input KeyboardMouseDevice::makeInput(Qt::Key code) const {
     return controller::Input(_deviceID, shortCode, controller::ChannelType::BUTTON);
 }
 
-controller::Input KeyboardMouseDevice::makeInput(Qt::MouseButton code) const {
+controller::Input KeyboardMouseDevice::makeInput(Qt::MouseButton code, bool clicked) const {
     switch (code) {
         case Qt::LeftButton:
-            return controller::Input(_deviceID, MOUSE_BUTTON_LEFT, controller::ChannelType::BUTTON);
+            return controller::Input(_deviceID, clicked ? MOUSE_BUTTON_LEFT_CLICKED :
+                                                MOUSE_BUTTON_LEFT, controller::ChannelType::BUTTON);
         case Qt::RightButton:
-            return controller::Input(_deviceID, MOUSE_BUTTON_RIGHT, controller::ChannelType::BUTTON);
+            return controller::Input(_deviceID, clicked ? MOUSE_BUTTON_RIGHT_CLICKED :
+                                                MOUSE_BUTTON_RIGHT, controller::ChannelType::BUTTON);
         case Qt::MiddleButton:
-            return controller::Input(_deviceID, MOUSE_BUTTON_MIDDLE, controller::ChannelType::BUTTON);
+            return controller::Input(_deviceID, clicked ? MOUSE_BUTTON_MIDDLE_CLICKED :
+                                                MOUSE_BUTTON_MIDDLE, controller::ChannelType::BUTTON);
         default:
             return controller::Input();
     };
@@ -182,9 +203,13 @@ controller::Input::NamedVector KeyboardMouseDevice::getAvailableInputs() const {
         availableInputs.append(Input::NamedPair(makeInput(Qt::Key_PageUp), QKeySequence(Qt::Key_PageUp).toString()));
         availableInputs.append(Input::NamedPair(makeInput(Qt::Key_PageDown), QKeySequence(Qt::Key_PageDown).toString()));
 
-        availableInputs.append(Input::NamedPair(makeInput(Qt::LeftButton), "LeftMouseClick"));
-        availableInputs.append(Input::NamedPair(makeInput(Qt::MiddleButton), "MiddleMouseClick"));
-        availableInputs.append(Input::NamedPair(makeInput(Qt::RightButton), "RightMouseClick"));
+        availableInputs.append(Input::NamedPair(makeInput(Qt::LeftButton), "LeftMouseButton"));
+        availableInputs.append(Input::NamedPair(makeInput(Qt::MiddleButton), "MiddleMouseButton"));
+        availableInputs.append(Input::NamedPair(makeInput(Qt::RightButton), "RightMouseButton"));
+
+        availableInputs.append(Input::NamedPair(makeInput(Qt::LeftButton, true), "LeftMouseClicked"));
+        availableInputs.append(Input::NamedPair(makeInput(Qt::MiddleButton, true), "MiddleMouseClicked"));
+        availableInputs.append(Input::NamedPair(makeInput(Qt::RightButton, true), "RightMouseClicked"));
 
         availableInputs.append(Input::NamedPair(makeInput(MOUSE_AXIS_X_POS), "MouseMoveRight"));
         availableInputs.append(Input::NamedPair(makeInput(MOUSE_AXIS_X_NEG), "MouseMoveLeft"));
