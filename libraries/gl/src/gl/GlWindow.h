@@ -11,7 +11,7 @@
 #define hifi_GlWindow_h
 
 #include <mutex>
-#include <QWindow>
+#include <QtGui/QWindow>
 
 class QOpenGLContext;
 class QOpenGLDebugLogger;
