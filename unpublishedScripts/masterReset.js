@@ -921,6 +921,7 @@ MasterReset = function() {
 
         var hoop = Entities.addEntity({
             type: "Model",
+            name: "Basketball Hoop",
             modelURL: hoopURL,
             position: position,
             rotation: rotation,

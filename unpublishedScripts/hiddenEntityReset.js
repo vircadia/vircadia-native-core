@@ -944,6 +944,7 @@
             var hoop = Entities.addEntity({
                 type: "Model",
                 modelURL: hoopURL,
+                name: "Basketball Hoop",
                 position: position,
                 rotation: rotation,
                 shapeType: 'compound',
