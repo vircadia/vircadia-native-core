@@ -55,8 +55,8 @@ Input::NamedVector StandardController::getAvailableInputs() const {
         makePair(LS, "LS"),
         makePair(RS, "RS"),
 
-        makePair(LS, "LS_TOUCH"),
-        makePair(RS, "RS_TOUCH"),
+        makePair(LS_TOUCH, "LSTouch"),
+        makePair(RS_TOUCH, "RSTouch"),
 
         // Center buttons
         makePair(START, "Start"),
