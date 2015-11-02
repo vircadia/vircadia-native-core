@@ -16,6 +16,7 @@
 #include "AnimNode.h"
 #include "AnimClip.h"
 #include "AnimBlendLinear.h"
+#include "AnimBlendLinearMove.h"
 #include "AnimationLogging.h"
 #include "AnimOverlay.h"
 #include "AnimNodeLoader.h"
@@ -29,6 +30,7 @@ using NodeProcessFunc = bool (*)(AnimNode::Pointer node, const QJsonObject& json
 // factory functions
 static AnimNode::Pointer loadClipNode(const QJsonObject& jsonObj, const QString& id, const QUrl& jsonUrl);
 static AnimNode::Pointer loadBlendLinearNode(const QJsonObject& jsonObj, const QString& id, const QUrl& jsonUrl);
+static AnimNode::Pointer loadBlendLinearMoveNode(const QJsonObject& jsonObj, const QString& id, const QUrl& jsonUrl);
 static AnimNode::Pointer loadOverlayNode(const QJsonObject& jsonObj, const QString& id, const QUrl& jsonUrl);
 static AnimNode::Pointer loadStateMachineNode(const QJsonObject& jsonObj, const QString& id, const QUrl& jsonUrl);
 static AnimNode::Pointer loadManipulatorNode(const QJsonObject& jsonObj, const QString& id, const QUrl& jsonUrl);
@@ -36,17 +38,14 @@ static AnimNode::Pointer loadInverseKinematicsNode(const QJsonObject& jsonObj, c
 
 // called after children have been loaded
 // returns node on success, nullptr on failure.
-static bool processClipNode(AnimNode::Pointer node, const QJsonObject& jsonObj, const QString& id, const QUrl& jsonUrl) { return true; }
-static bool processBlendLinearNode(AnimNode::Pointer node, const QJsonObject& jsonObj, const QString& id, const QUrl& jsonUrl) { return true; }
-static bool processOverlayNode(AnimNode::Pointer node, const QJsonObject& jsonObj, const QString& id, const QUrl& jsonUrl) { return true; }
+static bool processDoNothing(AnimNode::Pointer node, const QJsonObject& jsonObj, const QString& id, const QUrl& jsonUrl) { return true; }
 bool processStateMachineNode(AnimNode::Pointer node, const QJsonObject& jsonObj, const QString& id, const QUrl& jsonUrl);
-static bool processManipulatorNode(AnimNode::Pointer node, const QJsonObject& jsonObj, const QString& id, const QUrl& jsonUrl) { return true; }
-static bool processInverseKinematicsNode(AnimNode::Pointer node, const QJsonObject& jsonObj, const QString& id, const QUrl& jsonUrl) { return true; }
 
 static const char* animNodeTypeToString(AnimNode::Type type) {
     switch (type) {
     case AnimNode::Type::Clip: return "clip";
     case AnimNode::Type::BlendLinear: return "blendLinear";
+    case AnimNode::Type::BlendLinearMove: return "blendLinearMove";
     case AnimNode::Type::Overlay: return "overlay";
     case AnimNode::Type::StateMachine: return "stateMachine";
     case AnimNode::Type::Manipulator: return "manipulator";
@@ -60,6 +59,7 @@ static NodeLoaderFunc animNodeTypeToLoaderFunc(AnimNode::Type type) {
     switch (type) {
     case AnimNode::Type::Clip: return loadClipNode;
     case AnimNode::Type::BlendLinear: return loadBlendLinearNode;
+    case AnimNode::Type::BlendLinearMove: return loadBlendLinearMoveNode;
     case AnimNode::Type::Overlay: return loadOverlayNode;
     case AnimNode::Type::StateMachine: return loadStateMachineNode;
     case AnimNode::Type::Manipulator: return loadManipulatorNode;
@@ -71,12 +71,13 @@ static NodeLoaderFunc animNodeTypeToLoaderFunc(AnimNode::Type type) {
 
 static NodeProcessFunc animNodeTypeToProcessFunc(AnimNode::Type type) {
     switch (type) {
-    case AnimNode::Type::Clip: return processClipNode;
-    case AnimNode::Type::BlendLinear: return processBlendLinearNode;
-    case AnimNode::Type::Overlay: return processOverlayNode;
+    case AnimNode::Type::Clip: return processDoNothing;
+    case AnimNode::Type::BlendLinear: return processDoNothing;
+    case AnimNode::Type::BlendLinearMove: return processDoNothing;
+    case AnimNode::Type::Overlay: return processDoNothing;
     case AnimNode::Type::StateMachine: return processStateMachineNode;
-    case AnimNode::Type::Manipulator: return processManipulatorNode;
-    case AnimNode::Type::InverseKinematics: return processInverseKinematicsNode;
+    case AnimNode::Type::Manipulator: return processDoNothing;
+    case AnimNode::Type::InverseKinematics: return processDoNothing;
     case AnimNode::Type::NumTypes: return nullptr;
     };
     return nullptr;
@@ -160,6 +161,9 @@ static AnimNode::Pointer loadNode(const QJsonObject& jsonObj, const QUrl& jsonUr
 
     assert((int)type >= 0 && type < AnimNode::Type::NumTypes);
     auto node = (animNodeTypeToLoaderFunc(type))(dataObj, id, jsonUrl);
+    if (!node) {
+        return nullptr;
+    }
 
     auto childrenValue = jsonObj.value("children");
     if (!childrenValue.isArray()) {
@@ -232,6 +236,45 @@ static AnimNode::Pointer loadBlendLinearNode(const QJsonObject& jsonObj, const Q
 
     return node;
 }
+
+static AnimNode::Pointer loadBlendLinearMoveNode(const QJsonObject& jsonObj, const QString& id, const QUrl& jsonUrl) {
+
+    READ_FLOAT(alpha, jsonObj, id, jsonUrl, nullptr);
+    READ_FLOAT(desiredSpeed, jsonObj, id, jsonUrl, nullptr);
+
+    std::vector<float> characteristicSpeeds;
+    auto speedsValue = jsonObj.value("characteristicSpeeds");
+    if (!speedsValue.isArray()) {
+        qCCritical(animation) << "AnimNodeLoader, bad array \"characteristicSpeeds\" in blendLinearMove node, id =" << id << ", url =" << jsonUrl.toDisplayString();
+        return nullptr;
+    }
+
+    auto speedsArray = speedsValue.toArray();
+    for (const auto& speedValue : speedsArray) {
+        if (!speedValue.isDouble()) {
+            qCCritical(animation) << "AnimNodeLoader, bad number in \"characteristicSpeeds\", id =" << id << ", url =" << jsonUrl.toDisplayString();
+            return nullptr;
+        }
+        float speedVal = (float)speedValue.toDouble();
+        characteristicSpeeds.push_back(speedVal);
+    };
+
+    READ_OPTIONAL_STRING(alphaVar, jsonObj);
+    READ_OPTIONAL_STRING(desiredSpeedVar, jsonObj);
+
+    auto node = std::make_shared<AnimBlendLinearMove>(id, alpha, desiredSpeed, characteristicSpeeds);
+
+    if (!alphaVar.isEmpty()) {
+        node->setAlphaVar(alphaVar);
+    }
+
+    if (!desiredSpeedVar.isEmpty()) {
+        node->setDesiredSpeedVar(desiredSpeedVar);
+    }
+
+    return node;
+}
+
 
 static const char* boneSetStrings[AnimOverlay::NumBoneSets] = {
     "fullBody",
