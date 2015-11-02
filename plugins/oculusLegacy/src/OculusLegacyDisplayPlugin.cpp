@@ -9,15 +9,15 @@
 
 #include <memory>
 
-#include <QMainWindow>
-#include <QGLWidget>
+#include <QtWidgets/QMainWindow>
+#include <QtOpenGL/QGLWidget>
 #include <GLMHelpers.h>
 #include <gl/GlWindow.h>
 #include <QEvent>
-#include <QResizeEvent>
-#include <QOpenGLContext>
-#include <QGuiApplication>
-#include <QScreen>
+#include <QtGui/QResizeEvent>
+#include <QtGui/QOpenGLContext>
+#include <QtGui/QGuiApplication>
+#include <QtGui/QScreen>
 
 #include <PerfStat.h>
 #include <gl/OglplusHelpers.h>
