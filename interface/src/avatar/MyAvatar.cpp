@@ -250,7 +250,7 @@ void MyAvatar::simulate(float deltaTime) {
     {
         PerformanceTimer perfTimer("transform");
         bool stepAction = false;
-        // When there are no step values, we zero out the last step pulse. 
+        // When there are no step values, we zero out the last step pulse.
         // This allows a user to do faster snapping by tapping a control
         for (int i = STEP_TRANSLATE_X; !stepAction && i <= STEP_YAW; ++i) {
             if (_driveKeys[i] != 0.0f) {
@@ -1297,7 +1297,7 @@ void MyAvatar::prepareForPhysicsSimulation() {
     _characterController.setAvatarPositionAndOrientation(getPosition(), getOrientation());
     updateHMDFollowVelocity();
     _characterController.setHMDVelocity(_hmdFollowVelocity);
-}   
+}
 
 void MyAvatar::harvestResultsFromPhysicsSimulation() {
     glm::vec3 position = getPosition();
@@ -1338,7 +1338,7 @@ void MyAvatar::adjustSensorTransform(glm::vec3 hmdShift) {
         _bodySensorMatrix = newBodySensorMatrix;
     } else {
         // physics already did the positional blending for us
-        glm::vec3 newBodyPosition = getPosition(); 
+        glm::vec3 newBodyPosition = getPosition();
         // but the rotational part must be done manually
         glm::quat newBodyRotation = glm::normalize(safeMix(getOrientation(), finalBodyRotation, blendFactor));
         nextAttitude(newBodyPosition, newBodyRotation);
@@ -1453,7 +1453,7 @@ void MyAvatar::renderBody(RenderArgs* renderArgs, ViewFrustum* renderFrustum, fl
         getHead()->renderLookAts(renderArgs);
     }
 
-    if (renderArgs->_renderMode != RenderArgs::SHADOW_RENDER_MODE && 
+    if (renderArgs->_renderMode != RenderArgs::SHADOW_RENDER_MODE &&
             Menu::getInstance()->isOptionChecked(MenuOption::DisplayHandTargets)) {
         getHand()->renderHandTargets(renderArgs, true);
     }
@@ -1932,7 +1932,7 @@ void MyAvatar::updateMotionBehaviorFromMenu() {
         QMetaObject::invokeMethod(this, "updateMotionBehaviorFromMenu");
         return;
     }
-    
+
     Menu* menu = Menu::getInstance();
     if (menu->isOptionChecked(MenuOption::KeyboardMotorControl)) {
         _motionBehaviors |= AVATAR_MOTION_KEYBOARD_MOTOR_ENABLED;

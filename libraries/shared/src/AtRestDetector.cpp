@@ -31,7 +31,7 @@ void AtRestDetector::reset(const glm::vec3& startPosition, const glm::quat& star
 }
 
 bool AtRestDetector::update(const glm::vec3& position, const glm::quat& rotation) {
-    uint64_t now = usecTimestampNow(); 
+    uint64_t now = usecTimestampNow();
     float dt = (float)(_lastUpdateTime - now) / (float)USECS_PER_SECOND;
     _lastUpdateTime = now;
     const float TAU = 1.0f;
