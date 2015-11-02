@@ -8,6 +8,9 @@
 
 if (WIN32)
 
+    # we're using static GLEW, so define GLEW_STATIC
+    add_definitions(-DGLEW_STATIC)
+
     set(TARGET_NAME oculus)
     setup_hifi_plugin()
     link_hifi_libraries(shared gl plugins display-plugins)
