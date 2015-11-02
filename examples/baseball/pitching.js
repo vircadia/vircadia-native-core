@@ -106,7 +106,7 @@ function findEntities(properties, searchRadius) {
 
 getPitchingMachine = function() {
     // Search for pitching machine
-    var entities = findEntities({ name: PITCHING_MACHINE_PROPERTIES.name }, 100);
+    var entities = findEntities({ name: PITCHING_MACHINE_PROPERTIES.name }, 1000);
     var pitchingMachineID = null;
 
     // Create if it doesn't exist
@@ -183,6 +183,8 @@ PitchingMachine.prototype = {
                 var self = this;
                 Script.setTimeout(function() { self.pitchBall() }, 3000);
             }
+        } else if (this.enabled) {
+            this.pitchBall();
         }
     }
 };
