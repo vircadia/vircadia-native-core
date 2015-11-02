@@ -59,11 +59,27 @@ void KeyboardMouseDevice::mousePressEvent(QMouseEvent* event, unsigned int devic
         // key pressed again ? without catching the release event ?
     }
     _lastCursor = event->pos();
+    _mousePressAt = event->pos();
+
+    eraseMouseClicked();
 }
 
 void KeyboardMouseDevice::mouseReleaseEvent(QMouseEvent* event, unsigned int deviceID) {
     auto input = makeInput((Qt::MouseButton) event->button());
     _buttonPressedMap.erase(input.getChannel());
+
+    // if we pressed and released at the same location, then create a "_CLICKED" input for this button
+    // we might want to add some small tolerance to this so if you do a small drag it still counts as
+    // a clicked.
+    if (_mousePressAt == event->pos()) {
+        _buttonPressedMap.insert(makeInput((Qt::MouseButton) event->button(), true).getChannel());
+    }
+}
+
+void KeyboardMouseDevice::eraseMouseClicked() {
+    _buttonPressedMap.erase(makeInput(Qt::LeftButton, true).getChannel());
+    _buttonPressedMap.erase(makeInput(Qt::MiddleButton, true).getChannel());
+    _buttonPressedMap.erase(makeInput(Qt::RightButton, true).getChannel());
 }
 
 void KeyboardMouseDevice::mouseMoveEvent(QMouseEvent* event, unsigned int deviceID) {
@@ -77,6 +93,8 @@ void KeyboardMouseDevice::mouseMoveEvent(QMouseEvent* event, unsigned int device
     _axisStateMap[makeInput(MOUSE_AXIS_Y_NEG).getChannel()] = (currentMove.y() > 0 ? currentMove.y() : 0.0f);
 
     _lastCursor = currentPos;
+
+    eraseMouseClicked();
 }
 
 void KeyboardMouseDevice::wheelEvent(QWheelEvent* event) {
@@ -138,14 +156,17 @@ controller::Input KeyboardMouseDevice::makeInput(Qt::Key code) const {
     return controller::Input(_deviceID, shortCode, controller::ChannelType::BUTTON);
 }
 
-controller::Input KeyboardMouseDevice::makeInput(Qt::MouseButton code) const {
+controller::Input KeyboardMouseDevice::makeInput(Qt::MouseButton code, bool clicked) const {
     switch (code) {
         case Qt::LeftButton:
-            return controller::Input(_deviceID, MOUSE_BUTTON_LEFT, controller::ChannelType::BUTTON);
+            return controller::Input(_deviceID, clicked ? MOUSE_BUTTON_LEFT_CLICKED :
+                                                MOUSE_BUTTON_LEFT, controller::ChannelType::BUTTON);
         case Qt::RightButton:
-            return controller::Input(_deviceID, MOUSE_BUTTON_RIGHT, controller::ChannelType::BUTTON);
+            return controller::Input(_deviceID, clicked ? MOUSE_BUTTON_RIGHT_CLICKED :
+                                                MOUSE_BUTTON_RIGHT, controller::ChannelType::BUTTON);
         case Qt::MiddleButton:
-            return controller::Input(_deviceID, MOUSE_BUTTON_MIDDLE, controller::ChannelType::BUTTON);
+            return controller::Input(_deviceID, clicked ? MOUSE_BUTTON_MIDDLE_CLICKED :
+                                                MOUSE_BUTTON_MIDDLE, controller::ChannelType::BUTTON);
         default:
             return controller::Input();
     };
@@ -182,9 +203,13 @@ controller::Input::NamedVector KeyboardMouseDevice::getAvailableInputs() const {
         availableInputs.append(Input::NamedPair(makeInput(Qt::Key_PageUp), QKeySequence(Qt::Key_PageUp).toString()));
         availableInputs.append(Input::NamedPair(makeInput(Qt::Key_PageDown), QKeySequence(Qt::Key_PageDown).toString()));
 
-        availableInputs.append(Input::NamedPair(makeInput(Qt::LeftButton), "LeftMouseClick"));
-        availableInputs.append(Input::NamedPair(makeInput(Qt::MiddleButton), "MiddleMouseClick"));
-        availableInputs.append(Input::NamedPair(makeInput(Qt::RightButton), "RightMouseClick"));
+        availableInputs.append(Input::NamedPair(makeInput(Qt::LeftButton), "LeftMouseButton"));
+        availableInputs.append(Input::NamedPair(makeInput(Qt::MiddleButton), "MiddleMouseButton"));
+        availableInputs.append(Input::NamedPair(makeInput(Qt::RightButton), "RightMouseButton"));
+
+        availableInputs.append(Input::NamedPair(makeInput(Qt::LeftButton, true), "LeftMouseClicked"));
+        availableInputs.append(Input::NamedPair(makeInput(Qt::MiddleButton, true), "MiddleMouseClicked"));
+        availableInputs.append(Input::NamedPair(makeInput(Qt::RightButton, true), "RightMouseClicked"));
 
         availableInputs.append(Input::NamedPair(makeInput(MOUSE_AXIS_X_POS), "MouseMoveRight"));
         availableInputs.append(Input::NamedPair(makeInput(MOUSE_AXIS_X_NEG), "MouseMoveLeft"));
@@ -208,73 +233,4 @@ QString KeyboardMouseDevice::getDefaultMappingConfig() const {
     static const QString MAPPING_JSON = PathUtils::resourcesPath() + "/controllers/keyboardMouse.json";
     return MAPPING_JSON;
 }
-
-//void KeyboardMouseDevice::assignDefaultInputMapping(UserInputMapper& mapper) {
-//    const float BUTTON_MOVE_SPEED = 1.0f;
-//    const float BUTTON_YAW_SPEED = 0.75f;
-//    const float BUTTON_PITCH_SPEED = 0.5f;
-//    const float MOUSE_YAW_SPEED = 0.5f;
-//    const float MOUSE_PITCH_SPEED = 0.25f;
-//    const float TOUCH_YAW_SPEED = 0.5f;
-//    const float TOUCH_PITCH_SPEED = 0.25f;
-//    const float BUTTON_BOOM_SPEED = 0.1f;
-// 
-//    // AWSD keys mapping
-//
-//    mapper.addInputChannel(controller::BOOM_IN, makeInput(Qt::Key_E), makeInput(Qt::Key_Shift), BUTTON_BOOM_SPEED);
-//    mapper.addInputChannel(controller::BOOM_OUT, makeInput(Qt::Key_C), makeInput(Qt::Key_Shift), BUTTON_BOOM_SPEED);
-//    mapper.addInputChannel(controller::LATERAL_LEFT, makeInput(Qt::Key_A), makeInput(Qt::RightButton), BUTTON_YAW_SPEED);
-//    mapper.addInputChannel(controller::LATERAL_RIGHT, makeInput(Qt::Key_D), makeInput(Qt::RightButton), BUTTON_YAW_SPEED);
-//    mapper.addInputChannel(controller::LATERAL_LEFT, makeInput(Qt::Key_A), makeInput(Qt::Key_Shift), BUTTON_YAW_SPEED);
-//    mapper.addInputChannel(controller::LATERAL_RIGHT, makeInput(Qt::Key_D), makeInput(Qt::Key_Shift), BUTTON_YAW_SPEED);
-//    mapper.addInputChannel(controller::PITCH_DOWN, makeInput(Qt::Key_S), makeInput(Qt::Key_Shift), BUTTON_PITCH_SPEED);
-//    mapper.addInputChannel(controller::PITCH_UP, makeInput(Qt::Key_W), makeInput(Qt::Key_Shift), BUTTON_PITCH_SPEED);
-//
-//    // Arrow keys mapping
-//    mapper.addInputChannel(controller::LONGITUDINAL_BACKWARD, makeInput(Qt::Key_Down), BUTTON_MOVE_SPEED);
-//    mapper.addInputChannel(controller::LONGITUDINAL_FORWARD, makeInput(Qt::Key_Up), BUTTON_MOVE_SPEED);
-//    mapper.addInputChannel(controller::YAW_LEFT, makeInput(Qt::Key_Left), BUTTON_MOVE_SPEED);
-//    mapper.addInputChannel(controller::YAW_RIGHT, makeInput(Qt::Key_Right), BUTTON_MOVE_SPEED);
-//    mapper.addInputChannel(controller::VERTICAL_DOWN, makeInput(Qt::Key_PageDown), BUTTON_MOVE_SPEED);
-//    mapper.addInputChannel(controller::VERTICAL_UP, makeInput(Qt::Key_PageUp), BUTTON_MOVE_SPEED);
-//
-//    mapper.addInputChannel(controller::LATERAL_LEFT, makeInput(Qt::Key_Left), makeInput(Qt::RightButton), BUTTON_YAW_SPEED);
-//    mapper.addInputChannel(controller::LATERAL_RIGHT, makeInput(Qt::Key_Right), makeInput(Qt::RightButton), BUTTON_YAW_SPEED);
-//    mapper.addInputChannel(controller::LATERAL_LEFT, makeInput(Qt::Key_Left), makeInput(Qt::Key_Shift), BUTTON_YAW_SPEED);
-//    mapper.addInputChannel(controller::LATERAL_RIGHT, makeInput(Qt::Key_Right), makeInput(Qt::Key_Shift), BUTTON_YAW_SPEED);
-//    mapper.addInputChannel(controller::PITCH_DOWN, makeInput(Qt::Key_Down), makeInput(Qt::Key_Shift), BUTTON_PITCH_SPEED);
-//    mapper.addInputChannel(controller::PITCH_UP, makeInput(Qt::Key_Up), makeInput(Qt::Key_Shift), BUTTON_PITCH_SPEED);
-//
-//    // Mouse move
-//    mapper.addInputChannel(controller::PITCH_DOWN, makeInput(MOUSE_AXIS_Y_NEG), makeInput(Qt::RightButton), MOUSE_PITCH_SPEED);
-//    mapper.addInputChannel(controller::PITCH_UP, makeInput(MOUSE_AXIS_Y_POS), makeInput(Qt::RightButton), MOUSE_PITCH_SPEED);
-//    mapper.addInputChannel(controller::YAW_LEFT, makeInput(MOUSE_AXIS_X_NEG), makeInput(Qt::RightButton), MOUSE_YAW_SPEED);
-//    mapper.addInputChannel(controller::YAW_RIGHT, makeInput(MOUSE_AXIS_X_POS), makeInput(Qt::RightButton), MOUSE_YAW_SPEED);
-//
-//    
-//#ifdef Q_OS_MAC
-//    // wheel event modifier on Mac collide with the touchpad scroll event
-//    mapper.addInputChannel(controller::PITCH_DOWN, makeInput(TOUCH_AXIS_Y_NEG), TOUCH_PITCH_SPEED);
-//    mapper.addInputChannel(controller::PITCH_UP, makeInput(TOUCH_AXIS_Y_POS), TOUCH_PITCH_SPEED);
-//    mapper.addInputChannel(controller::YAW_LEFT, makeInput(TOUCH_AXIS_X_NEG), TOUCH_YAW_SPEED);
-//    mapper.addInputChannel(controller::YAW_RIGHT, makeInput(TOUCH_AXIS_X_POS), TOUCH_YAW_SPEED);
-//#else
-//    // Touch pad yaw pitch
-//    mapper.addInputChannel(controller::PITCH_DOWN, makeInput(TOUCH_AXIS_Y_NEG), TOUCH_PITCH_SPEED);
-//    mapper.addInputChannel(controller::PITCH_UP, makeInput(TOUCH_AXIS_Y_POS), TOUCH_PITCH_SPEED);
-//    mapper.addInputChannel(controller::YAW_LEFT, makeInput(TOUCH_AXIS_X_NEG), TOUCH_YAW_SPEED);
-//    mapper.addInputChannel(controller::YAW_RIGHT, makeInput(TOUCH_AXIS_X_POS), TOUCH_YAW_SPEED);
-//    
-//    // Wheel move
-//    mapper.addInputChannel(controller::BOOM_IN, makeInput(MOUSE_AXIS_WHEEL_Y_POS), BUTTON_BOOM_SPEED);
-//    mapper.addInputChannel(controller::BOOM_OUT, makeInput(MOUSE_AXIS_WHEEL_Y_NEG), BUTTON_BOOM_SPEED);
-//    mapper.addInputChannel(controller::LATERAL_LEFT, makeInput(MOUSE_AXIS_WHEEL_X_NEG), BUTTON_YAW_SPEED);
-//    mapper.addInputChannel(controller::LATERAL_RIGHT, makeInput(MOUSE_AXIS_WHEEL_X_POS), BUTTON_YAW_SPEED);
-//
-//#endif
-//    
-//    mapper.addInputChannel(controller::SHIFT, makeInput(Qt::Key_Space));
-//    mapper.addInputChannel(controller::ACTION1, makeInput(Qt::Key_R));
-//    mapper.addInputChannel(controller::ACTION2, makeInput(Qt::Key_T));
-//}
 

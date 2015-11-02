@@ -27,13 +27,19 @@ AnyEndpoint::AnyEndpoint(Endpoint::List children) : Endpoint(Input::INVALID_INPU
     }
 }
 
+float AnyEndpoint::peek() const {
+    float result = 0;
+    for (auto& child : _children) {
+        result = std::max(result, child->peek());
+    }
+    return result;
+}
+
+// Fetching the value must trigger any necessary side effects of value() on ALL the children.
 float AnyEndpoint::value() {
     float result = 0;
     for (auto& child : _children) {
-        float childResult = child->value();
-        if (childResult != 0.0f) {
-            result = childResult;
-        }
+        result = std::max(result, child->value());
     }
     return result;
 }

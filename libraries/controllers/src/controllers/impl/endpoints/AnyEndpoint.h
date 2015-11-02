@@ -17,7 +17,9 @@ namespace controller {
 class AnyEndpoint : public Endpoint {
     friend class UserInputMapper;
 public:
+    using Endpoint::apply;
     AnyEndpoint(Endpoint::List children);
+    virtual float peek() const override;
     virtual float value() override;
     virtual void apply(float newValue, const Endpoint::Pointer& source) override;
     virtual bool writeable() const override;

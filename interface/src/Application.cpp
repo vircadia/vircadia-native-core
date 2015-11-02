@@ -392,7 +392,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
     _entityClipboard->createRootElement();
 
     _pluginContainer = new PluginContainerProxy();
-    Plugin::setContainer(_pluginContainer);
 #ifdef Q_OS_WIN
     installNativeEventFilter(&MyNativeEventFilter::getInstance());
 #endif
@@ -630,8 +629,14 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
     // Setup the userInputMapper with the actions
     auto userInputMapper = DependencyManager::get<UserInputMapper>();
     connect(userInputMapper.data(), &UserInputMapper::actionEvent, [this](int action, float state) {
-        if (state && action == toInt(controller::Action::TOGGLE_MUTE)) {
-            DependencyManager::get<AudioClient>()->toggleMute();
+        if (state) {
+            if (action == controller::toInt(controller::Action::TOGGLE_MUTE)) {
+                DependencyManager::get<AudioClient>()->toggleMute();
+            } else if (action == controller::toInt(controller::Action::CYCLE_CAMERA)) {
+                cycleCamera();
+            } else if (action == controller::toInt(controller::Action::CONTEXT_MENU)) {
+                VrMenu::toggle(); // show context menu even on non-stereo displays
+            }
         }
     });
 
@@ -1789,9 +1794,7 @@ void Application::keyPressEvent(QKeyEvent* event) {
 
 void Application::keyReleaseEvent(QKeyEvent* event) {
     if (event->key() == Qt::Key_Alt && _altPressed && hasFocus()) {
-        if (getActiveDisplayPlugin()->isStereo()) {
-            VrMenu::toggle();
-        }
+        VrMenu::toggle(); // show context menu even on non-stereo displays
     }
 
     _keysPressed.remove(event->key());
@@ -2622,6 +2625,30 @@ void Application::updateThreads(float deltaTime) {
         _octreeProcessor.threadRoutine();
         _entityEditSender.threadRoutine();
     }
+}
+
+void Application::cycleCamera() {
+    auto menu = Menu::getInstance();
+    if (menu->isOptionChecked(MenuOption::FullscreenMirror)) {
+
+        menu->setIsOptionChecked(MenuOption::FullscreenMirror, false);
+        menu->setIsOptionChecked(MenuOption::FirstPerson, true);
+
+    } else if (menu->isOptionChecked(MenuOption::FirstPerson)) {
+
+        menu->setIsOptionChecked(MenuOption::FirstPerson, false);
+        menu->setIsOptionChecked(MenuOption::ThirdPerson, true);
+
+    } else if (menu->isOptionChecked(MenuOption::ThirdPerson)) {
+
+        menu->setIsOptionChecked(MenuOption::ThirdPerson, false);
+        menu->setIsOptionChecked(MenuOption::FullscreenMirror, true);
+
+    } else if (menu->isOptionChecked(MenuOption::IndependentMode)) {
+        // do nothing if in independe mode
+        return;
+    }
+    cameraMenuChanged(); // handle the menu change
 }
 
 void Application::cameraMenuChanged() {

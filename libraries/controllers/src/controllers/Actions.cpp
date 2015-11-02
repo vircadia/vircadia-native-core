@@ -60,6 +60,7 @@ namespace controller {
             makeButtonPair(Action::ACTION2, "SecondaryAction"),
             makeButtonPair(Action::CONTEXT_MENU, "ContextMenu"),
             makeButtonPair(Action::TOGGLE_MUTE, "ToggleMute"),
+            makeButtonPair(Action::CYCLE_CAMERA, "CycleCamera"),
 
             // Aliases and bisected versions
             makeAxisPair(Action::LONGITUDINAL_BACKWARD, "Backward"),

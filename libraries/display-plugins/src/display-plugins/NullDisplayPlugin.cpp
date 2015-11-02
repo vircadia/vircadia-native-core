@@ -25,6 +25,6 @@ bool NullDisplayPlugin::hasFocus() const {
 
 void NullDisplayPlugin::preRender() {}
 void NullDisplayPlugin::preDisplay() {}
-void NullDisplayPlugin::display(GLuint sceneTexture, const glm::uvec2& sceneSize) {}
+void NullDisplayPlugin::display(uint32_t sceneTexture, const glm::uvec2& sceneSize) {}
 void NullDisplayPlugin::finishFrame() {}
 void NullDisplayPlugin::stop() {}

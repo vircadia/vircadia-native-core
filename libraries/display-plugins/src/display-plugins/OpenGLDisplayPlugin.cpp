@@ -9,6 +9,7 @@
 #include <QOpenGLContext>
 #include <QCoreApplication>
 
+#include <gl/Config.h>
 #include <gl/GlWindow.h>
 #include <GLMHelpers.h>
 

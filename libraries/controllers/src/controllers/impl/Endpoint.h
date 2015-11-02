@@ -36,12 +36,13 @@ namespace controller {
         using WriteLambda = std::function<void(float)>;
 
         Endpoint(const Input& input) : _input(input) {}
-        virtual float value() = 0;
+        virtual float value() { return peek(); }
+        virtual float peek() const = 0;
         virtual void apply(float value, const Pointer& source) = 0;
-        virtual Pose pose() { return Pose(); }
+        virtual Pose peekPose() const { return Pose(); };
+        virtual Pose pose() { return peekPose(); }
         virtual void apply(const Pose& value, const Pointer& source) {}
-        virtual const bool isPose() { return _input.isPose(); }
-
+        virtual bool isPose() const { return _input.isPose(); }
         virtual bool writeable() const { return true; }
         virtual bool readable() const { return true; }
         virtual void reset() { }
@@ -54,10 +55,11 @@ namespace controller {
 
     class LambdaEndpoint : public Endpoint {
     public:
+        using Endpoint::apply;
         LambdaEndpoint(ReadLambda readLambda, WriteLambda writeLambda = [](float) {})
             : Endpoint(Input::INVALID_INPUT), _readLambda(readLambda), _writeLambda(writeLambda) { }
 
-        virtual float value() override { return _readLambda(); }
+        virtual float peek() const override { return _readLambda(); }
         virtual void apply(float value, const Pointer& source) override { _writeLambda(value); }
 
     private:
@@ -72,10 +74,10 @@ namespace controller {
             : Endpoint(id) {
         }
 
-        virtual float value() override { return _currentValue; }
+        virtual float peek() const override { return _currentValue; }
         virtual void apply(float value, const Pointer& source) override { _currentValue = value; }
 
-        virtual Pose pose() override { return _currentPose; }
+        virtual Pose peekPose() const override { return _currentPose; }
         virtual void apply(const Pose& value, const Pointer& source) override {
             _currentPose = value;
         }
