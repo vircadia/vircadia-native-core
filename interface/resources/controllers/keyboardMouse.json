@@ -81,7 +81,6 @@
 
         { "from": "Keyboard.Space", "to": "Actions.SHIFT" },
         { "from": "Keyboard.R", "to": "Actions.ACTION1" },
-        { "from": "Keyboard.T", "to": "Actions.ACTION2" },
-        { "from": "Keyboard.RightMouseClick", "to": "Actions.ContextMenu" }
+        { "from": "Keyboard.T", "to": "Actions.ACTION2" }
     ]
 }
