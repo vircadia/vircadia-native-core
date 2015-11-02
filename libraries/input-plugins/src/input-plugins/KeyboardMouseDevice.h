@@ -96,7 +96,7 @@ public:
     
     // Let's make it easy for Qt because we assume we love Qt forever
     controller::Input makeInput(Qt::Key code) const;
-    controller::Input makeInput(Qt::MouseButton code, bool quickClicked = false) const;
+    controller::Input makeInput(Qt::MouseButton code, bool clicked = false) const;
     controller::Input makeInput(MouseAxisChannel axis) const;
     controller::Input makeInput(TouchAxisChannel axis) const;
     controller::Input makeInput(TouchButtonChannel button) const;

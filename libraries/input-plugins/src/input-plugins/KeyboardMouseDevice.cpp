@@ -156,16 +156,16 @@ controller::Input KeyboardMouseDevice::makeInput(Qt::Key code) const {
     return controller::Input(_deviceID, shortCode, controller::ChannelType::BUTTON);
 }
 
-controller::Input KeyboardMouseDevice::makeInput(Qt::MouseButton code, bool quickClicked) const {
+controller::Input KeyboardMouseDevice::makeInput(Qt::MouseButton code, bool clicked) const {
     switch (code) {
         case Qt::LeftButton:
-            return controller::Input(_deviceID, quickClicked ? MOUSE_BUTTON_LEFT_CLICKED : 
+            return controller::Input(_deviceID, clicked ? MOUSE_BUTTON_LEFT_CLICKED :
                                                 MOUSE_BUTTON_LEFT, controller::ChannelType::BUTTON);
         case Qt::RightButton:
-            return controller::Input(_deviceID, quickClicked ? MOUSE_BUTTON_RIGHT_CLICKED :
+            return controller::Input(_deviceID, clicked ? MOUSE_BUTTON_RIGHT_CLICKED :
                                                 MOUSE_BUTTON_RIGHT, controller::ChannelType::BUTTON);
         case Qt::MiddleButton:
-            return controller::Input(_deviceID, quickClicked ? MOUSE_BUTTON_MIDDLE_CLICKED :
+            return controller::Input(_deviceID, clicked ? MOUSE_BUTTON_MIDDLE_CLICKED :
                                                 MOUSE_BUTTON_MIDDLE, controller::ChannelType::BUTTON);
         default:
             return controller::Input();
