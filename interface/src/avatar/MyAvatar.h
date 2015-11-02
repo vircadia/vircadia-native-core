@@ -101,8 +101,6 @@ public:
     // as it moves through the world.
     void updateFromHMDSensorMatrix(const glm::mat4& hmdSensorMatrix);
 
-    glm::vec3 getHMDCorrectionVelocity() const;
-
     // best called at end of main loop, just before rendering.
     // update sensor to world matrix from current body position and hmd sensor.
     // This is so the correct camera can be used for rendering.
@@ -211,6 +209,7 @@ public:
 
     void prepareForPhysicsSimulation();
     void harvestResultsFromPhysicsSimulation();
+    void adjustSensorTransform(glm::vec3 hmdShift);
 
     const QString& getCollisionSoundURL() { return _collisionSoundURL; }
     void setCollisionSoundURL(const QString& url);
@@ -316,9 +315,10 @@ private:
     const RecorderPointer getRecorder() const { return _recorder; }
     const PlayerPointer getPlayer() const { return _player; }
 
-    void beginFollowingHMD();
-    bool shouldFollowHMD() const;
-    void followHMD(float deltaTime);
+    //void beginFollowingHMD();
+    //bool shouldFollowHMD() const;
+    //void followHMD(float deltaTime);
+    void updateHMDFollowVelocity();
 
     bool cameraInsideHead() const;
 
@@ -395,6 +395,9 @@ private:
 
     // used to transform any sensor into world space, including the _hmdSensorMat, or hand controllers.
     glm::mat4 _sensorToWorldMatrix;
+    glm::vec3 _hmdFollowOffset { Vectors::ZERO };
+    glm::vec3 _hmdFollowVelocity { Vectors::ZERO };
+    float _hmdFollowSpeed { 0.0f };
 
     bool _goToPending;
     glm::vec3 _goToPosition;
@@ -415,9 +418,7 @@ private:
     bool _isFollowingHMD { false };
     float _followHMDAlpha { 0.0f };
 
-    quint64 _lastUpdateFromHMDTime { usecTimestampNow() };
     AtRestDetector _hmdAtRestDetector;
-    glm::vec3 _lastPosition;
     bool _lastIsMoving { false };
     quint64 _lastStepPulse { 0 };
     bool _pulseUpdate { false };
