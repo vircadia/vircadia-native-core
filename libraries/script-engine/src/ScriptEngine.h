@@ -141,7 +141,10 @@ public:
     
     // NOTE - this is used by the TypedArray implemetation. we need to review this for thread safety
     ArrayBufferClass* getArrayBufferClass() { return _arrayBufferClass; }
-
+    
+public slots:
+    void callAnimationStateHandler(QScriptValue callback, AnimVariantMap parameters, QStringList names, bool useNames, AnimVariantResultHandler resultHandler);
+    
 signals:
     void scriptLoaded(const QString& scriptFilename);
     void errorLoadingScript(const QString& scriptFilename);
@@ -181,9 +184,6 @@ private:
     
     QObject* setupTimerWithInterval(const QScriptValue& function, int intervalMS, bool isSingleShot);
     void stopTimer(QTimer* timer);
-
-    static bool checkSyntax(const QScriptProgram& program);
-    static bool checkExceptions(QScriptEngine& engine, const QString& fileName);
     
     QString _fileNameString;
     Quat _quatLibrary;
