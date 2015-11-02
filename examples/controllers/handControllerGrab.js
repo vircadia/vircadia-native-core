@@ -446,7 +446,7 @@ function MyController(hand) {
         this.currentObjectPosition = grabbedProperties.position;
         this.currentObjectRotation = grabbedProperties.rotation;
         this.currentObjectTime = now;
-        this.handPreviousPosition = handControllerPosition;
+        this.handRelativePreviousPosition = Vec3.subtract(handControllerPosition, MyAvatar.position);
         this.handPreviousRotation = handRotation;
 
         this.actionID = NULL_ACTION_ID;
@@ -523,11 +523,10 @@ function MyController(hand) {
         this.currentAvatarOrientation = currentOrientation;
 
         // how far did hand move this timestep?
-        var handMoved = Vec3.subtract(handControllerPosition, this.handPreviousPosition);
-        this.handPreviousPosition = handControllerPosition;
+        var handMoved = Vec3.subtract(handToAvatar, this.handRelativePreviousPosition);
+        this.handRelativePreviousPosition = handToAvatar;
 
         //  magnify the hand movement but not the change from avatar movement & rotation
-        handMoved = Vec3.subtract(handMoved, avatarDeltaPosition);
         handMoved = Vec3.subtract(handMoved, handMovementFromTurning);
         var superHandMoved = Vec3.multiply(handMoved, radius);
 
