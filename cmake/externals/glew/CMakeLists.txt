@@ -7,13 +7,14 @@ endif ()
 include(ExternalProject)
 ExternalProject_Add(
   ${EXTERNAL_NAME}
-  URL http://hifi-public.s3.amazonaws.com/dependencies/glew_simple.zip
-  URL_MD5 0507dc08337a82a5e7ecbc5417f92cc1
+  URL http://hifi-public.s3.amazonaws.com/dependencies/glew_simple2.zip
+  URL_MD5 f05d858e8203c32b689da208ad8b39db
   CONFIGURE_COMMAND CMAKE_ARGS ${ANDROID_CMAKE_ARGS} -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE} -DCMAKE_INSTALL_PREFIX:PATH=<INSTALL_DIR>
   LOG_DOWNLOAD 1
   LOG_CONFIGURE 1
   LOG_BUILD 1
 )
+
 
 # Hide this external target (for ide users)
 set_target_properties(${EXTERNAL_NAME} PROPERTIES FOLDER "hidden/externals")

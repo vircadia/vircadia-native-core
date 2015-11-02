@@ -13,11 +13,11 @@
 #ifndef hifi_LogHandler_h
 #define hifi_LogHandler_h
 
-#include <qhash.h>
-#include <qobject.h>
-#include <qregexp.h>
-#include <qset.h>
-#include <qstring.h>
+#include <QHash>
+#include <QObject>
+#include <QSet>
+#include <QString>
+#include <QMutex>
 
 const int VERBOSE_LOG_INTERVAL_SECONDS = 5;
 
@@ -34,34 +34,38 @@ class LogHandler : public QObject {
     Q_OBJECT
 public:
     static LogHandler& getInstance();
-    
+
     /// sets the target name to output via the verboseMessageHandler, called once before logging begins
     /// \param targetName the desired target name to output in logs
     void setTargetName(const QString& targetName) { _targetName = targetName; }
-    
-    void setShouldOutputPID(bool shouldOutputPID) { _shouldOutputPID = shouldOutputPID; }
-    
+
+    void setShouldOutputProcessID(bool shouldOutputProcessID) { _shouldOutputProcessID = shouldOutputProcessID; }
+    void setShouldOutputThreadID(bool shouldOutputThreadID) { _shouldOutputThreadID = shouldOutputThreadID; }
+
     QString printMessage(LogMsgType type, const QMessageLogContext& context, const QString &message);
-    
+
     /// a qtMessageHandler that can be hooked up to a target that links to Qt
     /// prints various process, message type, and time information
     static void verboseMessageHandler(QtMsgType type, const QMessageLogContext& context, const QString &message);
-    
-    const QString& addRepeatedMessageRegex(const QString& regexString) { return *_repeatedMessageRegexes.insert(regexString); }
-    const QString& addOnlyOnceMessageRegex(const QString& regexString) { return *_onlyOnceMessageRegexes.insert(regexString); }
+
+    const QString& addRepeatedMessageRegex(const QString& regexString);
+    const QString& addOnlyOnceMessageRegex(const QString& regexString);
 private:
     LogHandler();
-    
+
     void flushRepeatedMessages();
-    
+
     QString _targetName;
-    bool _shouldOutputPID;
+    bool _shouldOutputProcessID;
+    bool _shouldOutputThreadID;
     QSet<QString> _repeatedMessageRegexes;
     QHash<QString, int> _repeatMessageCountHash;
     QHash<QString, QString> _lastRepeatedMessage;
+    QMutex _repeatedMessageLock;
 
     QSet<QString> _onlyOnceMessageRegexes;
     QHash<QString, int> _onlyOnceMessageCountHash;
+    QMutex _onlyOnceMessageLock;
 };
 
 #endif // hifi_LogHandler_h

@@ -37,11 +37,14 @@
 #define __hifi__Rig__
 
 #include <QObject>
+#include <QMutex>
+#include <QScriptValue>
 
 #include "JointState.h"  // We might want to change this (later) to something that doesn't depend on gpu, fbx and model. -HRS
 
 #include "AnimNode.h"
 #include "AnimNodeLoader.h"
+#include "SimpleMovingAverage.h"
 
 class AnimationHandle;
 typedef std::shared_ptr<AnimationHandle> AnimationHandlePointer;
@@ -51,6 +54,12 @@ typedef std::shared_ptr<Rig> RigPointer;
 
 class Rig : public QObject, public std::enable_shared_from_this<Rig> {
 public:
+    struct StateHandler {
+        AnimVariantMap results;
+        QStringList propertyNames;
+        QScriptValue function;
+        bool useNames;
+    };
 
     struct HeadParameters {
         float leanSideways = 0.0f; // degrees
@@ -199,14 +208,19 @@ public:
     AnimNode::ConstPointer getAnimNode() const { return _animNode; }
     AnimSkeleton::ConstPointer getAnimSkeleton() const { return _animSkeleton; }
     bool disableHands {false}; // should go away with rig animation (and Rig::inverseKinematics)
+    QScriptValue addAnimationStateHandler(QScriptValue handler, QScriptValue propertiesList);
+    void removeAnimationStateHandler(QScriptValue handler);
+    void animationStateHandlerResult(int identifier, QScriptValue result);
 
     bool getModelOffset(glm::vec3& modelOffsetOut) const;
 
  protected:
+    void updateAnimationStateHandlers();
 
     void updateLeanJoint(int index, float leanSideways, float leanForward, float torsoTwist);
     void updateNeckJoint(int index, const HeadParameters& params);
     void updateEyeJoint(int index, const glm::vec3& modelTranslation, const glm::quat& modelRotation, const glm::quat& worldHeadOrientation, const glm::vec3& lookAt, const glm::vec3& saccade);
+    void calcAnimAlpha(float speed, const std::vector<float>& referenceSpeeds, float* alphaOut) const;
 
     QVector<JointState> _jointStates;
     int _rootJointIndex = -1;
@@ -226,6 +240,7 @@ public:
     bool _enableAnimGraph = false;
     glm::vec3 _lastFront;
     glm::vec3 _lastPosition;
+    glm::vec3 _lastVelocity;
 
     std::shared_ptr<AnimNode> _animNode;
     std::shared_ptr<AnimSkeleton> _animSkeleton;
@@ -241,6 +256,14 @@ public:
     float _desiredStateAge = 0.0f;
     float _leftHandOverlayAlpha = 0.0f;
     float _rightHandOverlayAlpha = 0.0f;
+
+    SimpleMovingAverage _averageForwardSpeed{ 10 };
+    SimpleMovingAverage _averageLateralSpeed{ 10 };
+
+private:
+    QMap<int, StateHandler> _stateHandlers;
+    int _nextStateHandlerId {0};
+    QMutex _stateMutex;
 };
 
 #endif /* defined(__hifi__Rig__) */
