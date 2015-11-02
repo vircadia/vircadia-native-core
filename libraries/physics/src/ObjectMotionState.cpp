@@ -20,17 +20,17 @@
 // origin of physics simulation in world-frame
 glm::vec3 _worldOffset(0.0f);
 
-// static 
+// static
 void ObjectMotionState::setWorldOffset(const glm::vec3& offset) {
     _worldOffset = offset;
 }
 
-// static 
+// static
 const glm::vec3& ObjectMotionState::getWorldOffset() {
     return _worldOffset;
 }
 
-// static 
+// static
 uint32_t worldSimulationStep = 0;
 void ObjectMotionState::setWorldSimulationStep(uint32_t step) {
     assert(step > worldSimulationStep);
@@ -41,7 +41,7 @@ uint32_t ObjectMotionState::getWorldSimulationStep() {
     return worldSimulationStep;
 }
 
-// static 
+// static
 ShapeManager* shapeManager = nullptr;
 void ObjectMotionState::setShapeManager(ShapeManager* manager) {
     assert(manager);
@@ -85,7 +85,7 @@ glm::vec3 ObjectMotionState::getBodyLinearVelocity() const {
 
 glm::vec3 ObjectMotionState::getBodyLinearVelocityGTSigma() const {
     // NOTE: the threshold to use here relates to the linear displacement threshold (dX) for sending updates
-    // to objects that are tracked server-side (e.g. entities which use dX = 2mm).  Hence an object moving 
+    // to objects that are tracked server-side (e.g. entities which use dX = 2mm).  Hence an object moving
     // just under this velocity threshold would trigger an update about V/dX times per second.
     const float MIN_LINEAR_SPEED_SQUARED = 0.0036f; // 6 mm/sec
 

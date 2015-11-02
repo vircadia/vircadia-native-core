@@ -7,11 +7,14 @@
 //
 #include "OculusDisplayPlugin.h"
 
-#include <QGLWidget>
+#include <QtOpenGL/QGLWidget>
+
+// FIXME get rid of this
+#include <gl/Config.h>
+#include <plugins/PluginContainer.h>
 
 #include "OculusHelpers.h"
 
-#include <plugins/PluginContainer.h>
 
 #if (OVR_MAJOR_VERSION >= 6)
 
@@ -142,16 +145,16 @@ static const QString FRAMERATE = DisplayPlugin::MENU_PATH() + ">Framerate";
 
 void OculusDisplayPlugin::activate() {
 
-    CONTAINER->addMenuItem(MENU_PATH(), MONO_PREVIEW,
+    _container->addMenuItem(MENU_PATH(), MONO_PREVIEW,
         [this](bool clicked) {
             _monoPreview = clicked;
         }, true, true);
-    CONTAINER->removeMenu(FRAMERATE);
+    _container->removeMenu(FRAMERATE);
     OculusBaseDisplayPlugin::activate();
 }
 
 void OculusDisplayPlugin::customizeContext() {
-    WindowOpenGLDisplayPlugin::customizeContext();
+    OculusBaseDisplayPlugin::customizeContext();
 #if (OVR_MAJOR_VERSION >= 6)
     _sceneFbo = SwapFboPtr(new SwapFramebufferWrapper(_hmd));
     _sceneFbo->Init(getRecommendedRenderSize());

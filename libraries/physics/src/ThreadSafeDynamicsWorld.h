@@ -4,8 +4,8 @@
  *
  * This software is provided 'as-is', without any express or implied warranty.
  * In no event will the authors be held liable for any damages arising from the use of this software.
- * Permission is granted to anyone to use this software for any purpose, 
- * including commercial applications, and to alter it and redistribute it freely, 
+ * Permission is granted to anyone to use this software for any purpose,
+ * including commercial applications, and to alter it and redistribute it freely,
  * subject to the following restrictions:
  *
  * 1. The origin of this software must not be misrepresented; you must not claim that you wrote the original software. If you use this software in a product, an acknowledgment in the product documentation would be appreciated but is not required.
@@ -43,13 +43,16 @@ public:
     void synchronizeMotionStates();
 
     // btDiscreteDynamicsWorld::m_localTime is the portion of real-time that has not yet been simulated
-    // but is used for MotionState::setWorldTransform() extrapolation (a feature that Bullet uses to provide 
+    // but is used for MotionState::setWorldTransform() extrapolation (a feature that Bullet uses to provide
     // smoother rendering of objects when the physics simulation loop is ansynchronous to the render loop).
     float getLocalTimeAccumulation() const { return m_localTime; }
 
     VectorOfMotionStates& getChangedMotionStates() { return _changedMotionStates; }
 
 private:
+    // call this instead of non-virtual btDiscreteDynamicsWorld::synchronizeSingleMotionState()
+    void synchronizeMotionState(btRigidBody* body);
+
     VectorOfMotionStates _changedMotionStates;
 };
 

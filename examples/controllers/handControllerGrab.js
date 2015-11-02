@@ -15,13 +15,11 @@
 Script.include("../libraries/utils.js");
 
 
-////////////////////////////////////////////////////////////
 //
 // add lines where the hand ray picking is happening
 //
 var WANT_DEBUG = false;
 
-/////////////////////////////////////////////////////////////////
 //
 // these tune time-averaging and "on" value for analog trigger
 //
@@ -30,7 +28,6 @@ var TRIGGER_SMOOTH_RATIO = 0.1; // 0.0 disables smoothing of trigger value
 var TRIGGER_ON_VALUE = 0.4;
 var TRIGGER_OFF_VALUE = 0.15;
 
-/////////////////////////////////////////////////////////////////
 //
 // distant manipulation
 //
@@ -44,7 +41,6 @@ var LINE_ENTITY_DIMENSIONS = { x: 1000, y: 1000,z: 1000};
 var LINE_LENGTH = 500;
 var PICK_MAX_DISTANCE = 500; // max length of pick-ray
 
-/////////////////////////////////////////////////////////////////
 //
 // near grabbing
 //
@@ -57,7 +53,6 @@ var RELEASE_VELOCITY_MULTIPLIER = 1.5; // affects throwing things
 var PICK_BACKOFF_DISTANCE = 0.2; // helps when hand is intersecting the grabble object
 var NEAR_GRABBING_KINEMATIC = true; // force objects to be kinematic when near-grabbed
 
-/////////////////////////////////////////////////////////////////
 //
 // other constants
 //
@@ -80,6 +75,18 @@ var ACTION_TTL_REFRESH = 5;
 var PICKS_PER_SECOND_PER_HAND = 5;
 var MSECS_PER_SEC = 1000.0;
 
+
+var GRABBABLE_DATA_KEY = "grabbableKey"; // shared with grab.js
+var GRAB_USER_DATA_KEY = "grabKey"; // shared with grab.js
+
+var DEFAULT_GRABBABLE_DATA = {
+    grabbable: true,
+    invertSolidWhileHeld: false
+};
+
+var disabledHand ='none';
+
+
 // states for the state machine
 var STATE_OFF = 0;
 var STATE_SEARCHING = 1;
@@ -93,15 +100,35 @@ var STATE_FAR_GRABBING_NON_COLLIDING = 8;
 var STATE_CONTINUE_FAR_GRABBING_NON_COLLIDING = 9;
 var STATE_RELEASE = 10;
 
-var GRABBABLE_DATA_KEY = "grabbableKey"; // shared with grab.js
-var GRAB_USER_DATA_KEY = "grabKey"; // shared with grab.js
 
-var DEFAULT_GRABBABLE_DATA = {
-    grabbable: true,
-    invertSolidWhileHeld: false
-};
+function stateToName(state) {
+    switch (state) {
+    case STATE_OFF:
+        return "off";
+    case STATE_SEARCHING:
+        return "searching";
+    case STATE_DISTANCE_HOLDING:
+        return "distance_holding";
+    case STATE_CONTINUE_DISTANCE_HOLDING:
+        return "continue_distance_holding";
+    case STATE_NEAR_GRABBING:
+        return "near_grabbing";
+    case STATE_CONTINUE_NEAR_GRABBING:
+        return "continue_near_grabbing";
+    case STATE_NEAR_GRABBING_NON_COLLIDING:
+        return "near_grabbing_non_colliding";
+    case STATE_CONTINUE_NEAR_GRABBING_NON_COLLIDING:
+        return "continue_near_grabbing_non_colliding";
+    case STATE_FAR_GRABBING_NON_COLLIDING:
+        return "far_grabbing_non_colliding";
+    case STATE_CONTINUE_FAR_GRABBING_NON_COLLIDING:
+        return "continue_far_grabbing_non_colliding";
+    case STATE_RELEASE:
+        return "release";
+    }
 
-var disabledHand ='none';
+    return "unknown";
+}
 
 function getTag() {
     return "grab-" + MyAvatar.sessionUUID;
@@ -127,7 +154,7 @@ function entityIsGrabbedByOther(entityID) {
 }
 
 
-function MyController(hand, triggerAction) {
+function MyController(hand) {
     this.hand = hand;
     if (this.hand === RIGHT_HAND) {
         this.getHandPosition = MyAvatar.getRightPalmPosition;
@@ -139,7 +166,6 @@ function MyController(hand, triggerAction) {
 
     var SPATIAL_CONTROLLERS_PER_PALM = 2;
     var TIP_CONTROLLER_OFFSET = 1;
-    this.triggerAction = triggerAction;
     this.palm = SPATIAL_CONTROLLERS_PER_PALM * hand;
     this.tip = SPATIAL_CONTROLLERS_PER_PALM * hand + TIP_CONTROLLER_OFFSET;
 
@@ -197,7 +223,7 @@ function MyController(hand, triggerAction) {
 
     this.setState = function(newState) {
         if (WANT_DEBUG) {
-            print("STATE: " + this.state + " --> " + newState);
+            print("STATE: " + stateToName(this.state) + " --> " + stateToName(newState) + ", hand: " + this.hand);
         }
         this.state = newState;
     }
@@ -255,7 +281,6 @@ function MyController(hand, triggerAction) {
         // smooth out trigger value
         this.triggerValue = (this.triggerValue * TRIGGER_SMOOTH_RATIO) +
             (triggerValue * (1.0 - TRIGGER_SMOOTH_RATIO));
-
     };
 
     this.triggerSmoothedSqueezed = function() {
@@ -354,10 +379,11 @@ function MyController(hand, triggerAction) {
                 }
                 if (intersectionDistance <= NEAR_PICK_MAX_DISTANCE) {
                     // the hand is very close to the intersected object.  go into close-grabbing mode.
-                    if (intersection.properties.collisionsWillMove === 1) {
-                        this.setState(STATE_NEAR_GRABBING);
-                    } else {
+                    var grabbableData = getEntityCustomData(GRABBABLE_DATA_KEY, this.grabbedEntity, DEFAULT_GRABBABLE_DATA);
+                    if (grabbableData.wantsTrigger) {
                         this.setState(STATE_NEAR_GRABBING_NON_COLLIDING);
+                    } else {
+                        this.setState(STATE_NEAR_GRABBING);
                     }
                 } else {
                     // don't allow two people to distance grab the same object
@@ -398,22 +424,22 @@ function MyController(hand, triggerAction) {
             }
             if (this.grabbedEntity === null) {
                 return;
-            } else if (props.locked === 0 && props.collisionsWillMove === 1) {
-                this.setState(STATE_NEAR_GRABBING);
-            } else if (props.collisionsWillMove === 0 && grabbableData.wantsTrigger) {
-                // We have grabbed a non-physical object, so we want to trigger a non-colliding event as opposed to a grab event
+            }
+            if (grabbableData.wantsTrigger) {
                 this.setState(STATE_NEAR_GRABBING_NON_COLLIDING);
+            } else if (props.locked === 0) {
+                this.setState(STATE_NEAR_GRABBING);
             }
         }
     };
 
     this.distanceHolding = function() {
-
         var handControllerPosition = (this.hand === RIGHT_HAND) ? MyAvatar.rightHandPosition : MyAvatar.leftHandPosition;
         var controllerHandInput = (this.hand === RIGHT_HAND) ? Controller.Standard.RightHand : Controller.Standard.LeftHand;
         var handRotation = Quat.multiply(MyAvatar.orientation, Controller.getPoseValue(controllerHandInput).rotation);
         var grabbedProperties = Entities.getEntityProperties(this.grabbedEntity, ["position", "rotation",
-                                                                                  "gravity", "ignoreForCollisions"]);
+                                                                                  "gravity", "ignoreForCollisions",
+                                                                                  "collisionsWillMove"]);
         var now = Date.now();
 
         // add the action and initialize some variables
@@ -595,7 +621,8 @@ function MyController(hand, triggerAction) {
             relativePosition: this.offsetPosition,
             relativeRotation: this.offsetRotation,
             ttl: ACTION_TTL,
-            kinematic: NEAR_GRABBING_KINEMATIC
+            kinematic: NEAR_GRABBING_KINEMATIC,
+            kinematicSetVelocity: true
         });
         if (this.actionID === NULL_ACTION_ID) {
             this.actionID = null;
@@ -648,7 +675,8 @@ function MyController(hand, triggerAction) {
                 relativePosition: this.offsetPosition,
                 relativeRotation: this.offsetRotation,
                 ttl: ACTION_TTL,
-                kinematic: NEAR_GRABBING_KINEMATIC
+                kinematic: NEAR_GRABBING_KINEMATIC,
+                kinematicSetVelocity: true
             });
             this.actionTimeout = now + (ACTION_TTL * MSEC_PER_SEC);
         }
@@ -817,12 +845,13 @@ function MyController(hand, triggerAction) {
             Entities.callEntityMethod(this.grabbedEntity, "releaseGrab");
         }
 
+        this.deactivateEntity(this.grabbedEntity);
+
         // the action will tend to quickly bring an object's velocity to zero.  now that
         // the action is gone, set the objects velocity to something the holder might expect.
         Entities.editEntity(this.grabbedEntity, {
             velocity: this.grabbedVelocity
         });
-        this.deactivateEntity(this.grabbedEntity);
 
         this.grabbedVelocity = ZERO_VEC;
         this.grabbedEntity = null;
@@ -875,14 +904,14 @@ function MyController(hand, triggerAction) {
     };
 }
 
-var rightController = new MyController(RIGHT_HAND, Controller.Standard.RT);
-var leftController = new MyController(LEFT_HAND, Controller.Standard.LT);
+var rightController = new MyController(RIGHT_HAND);
+var leftController = new MyController(LEFT_HAND);
 
 var MAPPING_NAME = "com.highfidelity.handControllerGrab";
 
 var mapping = Controller.newMapping(MAPPING_NAME);
-mapping.from([Controller.Standard.RB, Controller.Standard.RT]).to(rightController.eitherTrigger);
-mapping.from([Controller.Standard.LB, Controller.Standard.LT]).to(leftController.eitherTrigger);
+mapping.from([Controller.Standard.RB, Controller.Standard.RT]).peek().to(rightController.eitherTrigger);
+mapping.from([Controller.Standard.LB, Controller.Standard.LT]).peek().to(leftController.eitherTrigger);
 Controller.enableMapping(MAPPING_NAME);
 
 

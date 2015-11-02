@@ -16,7 +16,7 @@
 
 
         { "from": "Standard.RX", "to": "Actions.Yaw" },
-        { "from": "Standard.RY", "to": "Actions.Pitch" },
+        { "from": "Standard.RY", "filters": "invert", "to": "Actions.TranslateY" }, 
 
 
         { "from": [ "Standard.DU", "Standard.DL", "Standard.DR", "Standard.DD" ], "to": "Standard.LeftPrimaryThumb" },
@@ -24,6 +24,9 @@
 
         { "from": [ "Standard.A", "Standard.B", "Standard.X", "Standard.Y" ], "to": "Standard.RightPrimaryThumb" },
         { "from": "Standard.Start", "to": "Standard.RightSecondaryThumb" },
+
+        { "from": "Standard.LeftSecondaryThumb", "to": "Actions.CycleCamera" }, 
+        { "from": "Standard.RightSecondaryThumb", "to": "Actions.ContextMenu" },
 
         { "from": "Standard.LT", "to": "Actions.LeftHandClick" }, 
         { "from": "Standard.RT", "to": "Actions.RightHandClick" },

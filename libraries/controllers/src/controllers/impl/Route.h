@@ -26,6 +26,7 @@ namespace controller {
         Filter::List filters;
         QString json;
         bool debug { false };
+        bool peek { false };
 
         using Pointer = std::shared_ptr<Route>;
         using List = std::list<Pointer>;

@@ -80,9 +80,6 @@ using namespace controller;
 class PluginContainerProxy : public QObject, PluginContainer {
     Q_OBJECT
 public:
-    PluginContainerProxy() {
-        Plugin::setContainer(this);
-    }
     virtual ~PluginContainerProxy() {}
     virtual void addMenu(const QString& menuName) override {}
     virtual void removeMenu(const QString& menuName) override {}

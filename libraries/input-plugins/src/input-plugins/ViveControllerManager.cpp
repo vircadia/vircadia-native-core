@@ -75,8 +75,8 @@ bool ViveControllerManager::isSupported() const {
 void ViveControllerManager::activate() {
     InputPlugin::activate();
 #ifdef Q_OS_WIN
-    CONTAINER->addMenu(MENU_PATH);
-    CONTAINER->addMenuItem(MENU_PATH, RENDER_CONTROLLERS,
+    _container->addMenu(MENU_PATH);
+    _container->addMenuItem(MENU_PATH, RENDER_CONTROLLERS,
         [this] (bool clicked) { this->setRenderControllers(clicked); },
         true, true);
 
@@ -146,8 +146,8 @@ void ViveControllerManager::deactivate() {
     InputPlugin::deactivate();
 
 #ifdef Q_OS_WIN
-    CONTAINER->removeMenuItem(MENU_NAME, RENDER_CONTROLLERS);
-    CONTAINER->removeMenu(MENU_PATH);
+    _container->removeMenuItem(MENU_NAME, RENDER_CONTROLLERS);
+    _container->removeMenu(MENU_PATH);
 
     hmdRefCount--;
 
@@ -265,7 +265,7 @@ void ViveControllerManager::update(float deltaTime, bool jointsCaptured) {
         }
             
         numTrackedControllers++;
-        bool left = numTrackedControllers == 1;
+        bool left = numTrackedControllers == 2;
             
         const mat4& mat = _trackedDevicePoseMat4[device];
 		
@@ -318,13 +318,13 @@ void ViveControllerManager::focusOutEvent() {
 // These functions do translation from the Steam IDs to the standard controller IDs
 void ViveControllerManager::handleAxisEvent(uint32_t axis, float x, float y, bool left) {
 #ifdef Q_OS_WIN
+    //FIX ME? It enters here every frame: probably we want to enter only if an event occurs
     axis += vr::k_EButton_Axis0;
     using namespace controller;
     if (axis == vr::k_EButton_SteamVR_Touchpad) {
         _axisStateMap[left ? LX : RX] = x;
         _axisStateMap[left ? LY : RY] = y;
     } else if (axis == vr::k_EButton_SteamVR_Trigger) {
-        //FIX ME: Seems that enters here everytime
         _axisStateMap[left ? LT : RT] = x;
     }
 #endif

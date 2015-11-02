@@ -142,8 +142,7 @@ void AvatarActionHold::doKinematicUpdate(float deltaTimeStep) {
         worldTrans.setRotation(glmToBullet(_rotationalTarget));
         rigidBody->setWorldTransform(worldTrans);
 
-        ownerEntity->setPosition(_positionalTarget);
-        ownerEntity->setRotation(_rotationalTarget);
+        motionState->dirtyInternalKinematicChanges();
 
         _previousPositionalTarget = _positionalTarget;
         _previousRotationalTarget = _rotationalTarget;
