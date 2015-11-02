@@ -10,7 +10,7 @@
 //per script
 
 
-/*global deleteAllToys, createAllToys, createGates,  createPingPongBallGun, createFire, createPottedPlant, createCombinedArmChair, createBasketballHoop, createBasketBall, createSprayCan, createDoll, createWand, createDice, createCat, deleteAllToys, createFlashlight, createBlocks, createMagballs, createLights */
+/*global deleteAllToys, createAllToys, createGates,  createPingPongBallGun, createFire, createPottedPlant, createCombinedArmChair, createBasketBall, createSprayCan, createDoll, createWand, createDice, createCat, deleteAllToys, createFlashlight, createBlocks, createMagballs, createLights */
 var utilitiesScript = Script.resolvePath("../examples/libraries/utils.js");
 Script.include(utilitiesScript);
 
@@ -87,7 +87,6 @@ MasterReset = function() {
         createTargets();
         createTargetResetter();
 
-        createBasketballHoop();
         createBasketballRack();
         createBasketballResetter();
 
@@ -904,46 +903,6 @@ MasterReset = function() {
                     invertSolidWhileHeld: true
                 }
 
-            })
-        });
-    }
-
-    function createBasketballHoop() {
-        var position = {
-            x: 539.23,
-            y: 496.13,
-            z: 475.89
-        };
-        var rotation = Quat.fromPitchYawRollDegrees(0, 58.49, 0);
-
-        var hoopURL = "http://hifi-public.s3.amazonaws.com/models/basketball_hoop/basketball_hoop.fbx";
-        var hoopCollisionHullURL = "http://hifi-public.s3.amazonaws.com/models/basketball_hoop/basketball_hoop_collision_hull.obj";
-
-        var hoop = Entities.addEntity({
-            type: "Model",
-            name: "Basketball Hoop",
-            modelURL: hoopURL,
-            position: position,
-            rotation: rotation,
-            shapeType: 'compound',
-            gravity: {
-                x: 0,
-                y: -9.8,
-                z: 0
-            },
-            dimensions: {
-                x: 1.89,
-                y: 3.99,
-                z: 3.79
-            },
-            compoundShapeURL: hoopCollisionHullURL,
-            userData: JSON.stringify({
-                resetMe: {
-                    resetMe: true
-                },
-                grabbableKey: {
-                    grabbable: false
-                }
             })
         });
     }
