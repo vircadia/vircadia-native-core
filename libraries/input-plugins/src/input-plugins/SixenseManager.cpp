@@ -94,8 +94,8 @@ void SixenseManager::activate() {
     _calibrationState = CALIBRATION_STATE_IDLE;
     _avatarPosition = DEFAULT_AVATAR_POSITION;
 
-    CONTAINER->addMenu(MENU_PATH);
-    CONTAINER->addMenuItem(MENU_PATH, TOGGLE_SMOOTH,
+    _container->addMenu(MENU_PATH);
+    _container->addMenuItem(MENU_PATH, TOGGLE_SMOOTH,
                            [this] (bool clicked) { this->setSixenseFilter(clicked); },
                            true, true);
 
@@ -136,8 +136,8 @@ void SixenseManager::deactivate() {
     InputPlugin::deactivate();
 
 #ifdef HAVE_SIXENSE
-    CONTAINER->removeMenuItem(MENU_NAME, TOGGLE_SMOOTH);
-    CONTAINER->removeMenu(MENU_PATH);
+    _container->removeMenuItem(MENU_NAME, TOGGLE_SMOOTH);
+    _container->removeMenu(MENU_PATH);
 
     _poseStateMap.clear();
     _collectedSamples.clear();
@@ -319,7 +319,7 @@ void SixenseManager::updateCalibration(void* controllersX) {
                 _avatarRotation = glm::inverse(glm::quat_cast(glm::mat3(xAxis, Vectors::UNIT_Y, zAxis)));
                 const float Y_OFFSET_CALIBRATED_HANDS_TO_AVATAR = -0.3f;
                 _avatarPosition.y += Y_OFFSET_CALIBRATED_HANDS_TO_AVATAR;
-                CONTAINER->requestReset();
+                _container->requestReset();
                 qCDebug(inputplugins, "succeess: sixense calibration");
             }
             break;
@@ -555,49 +555,6 @@ QString SixenseManager::getDefaultMappingConfig() const {
     static const QString MAPPING_JSON = PathUtils::resourcesPath() + "/controllers/hydra.json";
     return MAPPING_JSON;
 }
-
-//
-//void SixenseManager::assignDefaultInputMapping(UserInputMapper& mapper) {
-//    const float JOYSTICK_MOVE_SPEED = 1.0f;
-//    const float JOYSTICK_YAW_SPEED = 0.5f;
-//    const float JOYSTICK_PITCH_SPEED = 0.25f;
-//    const float BUTTON_MOVE_SPEED = 1.0f;
-//    const float BOOM_SPEED = 0.1f;
-//    using namespace controller;
-//
-//    // Left Joystick: Movement, strafing
-//    mapper.addInputChannel(UserInputMapper::TRANSLATE_Z, makeInput(LY), JOYSTICK_MOVE_SPEED);
-//    mapper.addInputChannel(UserInputMapper::TRANSLATE_X, makeInput(LX), JOYSTICK_MOVE_SPEED);
-//
-//    // Right Joystick: Camera orientation
-//    mapper.addInputChannel(UserInputMapper::YAW, makeInput(RX), JOYSTICK_YAW_SPEED);
-//    mapper.addInputChannel(UserInputMapper::PITCH, makeInput(RY), JOYSTICK_PITCH_SPEED);
-//
-//    // Buttons
-//    mapper.addInputChannel(UserInputMapper::BOOM_IN, makeInput(L3), BOOM_SPEED);
-//    mapper.addInputChannel(UserInputMapper::BOOM_OUT, makeInput(L1), BOOM_SPEED);
-//
-//    mapper.addInputChannel(UserInputMapper::VERTICAL_UP, makeInput(R3), BUTTON_MOVE_SPEED);
-//    mapper.addInputChannel(UserInputMapper::VERTICAL_DOWN, makeInput(R1), BUTTON_MOVE_SPEED);
-//
-//    mapper.addInputChannel(UserInputMapper::SHIFT, makeInput(L2));
-//    mapper.addInputChannel(UserInputMapper::SHIFT, makeInput(R2));
-//
-//    mapper.addInputChannel(UserInputMapper::ACTION1, makeInput(L4));
-//    mapper.addInputChannel(UserInputMapper::ACTION2, makeInput(R4));
-//
-//    // FIXME
-////    mapper.addInputChannel(UserInputMapper::LEFT_HAND, makeInput(LEFT_HAND));
-////    mapper.addInputChannel(UserInputMapper::RIGHT_HAND, makeInput(RIGHT_HAND));
-//
-//    mapper.addInputChannel(UserInputMapper::LEFT_HAND_CLICK, makeInput(LT));
-//    mapper.addInputChannel(UserInputMapper::RIGHT_HAND_CLICK, makeInput(RT));
-//
-//    // TODO find a mechanism to allow users to navigate the context menu via
-//    mapper.addInputChannel(UserInputMapper::CONTEXT_MENU, makeInput(L0));
-//    mapper.addInputChannel(UserInputMapper::TOGGLE_MUTE, makeInput(R0));
-//
-//}
 
 // virtual
 void SixenseManager::saveSettings() const {

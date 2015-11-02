@@ -24,6 +24,12 @@ bool CompositeEndpoint::readable() const {
     return first->readable() && second->readable();
 }
 
+float CompositeEndpoint::peek() const {
+    float result = first->peek() * -1.0f + second->peek();
+    return result;
+}
+
+// Fetching via value() must trigger any side effects of value() on the children
 float CompositeEndpoint::value() {
     float result = first->value() * -1.0f + second->value();
     return result;

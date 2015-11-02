@@ -21,9 +21,7 @@ public:
     using Pointer = std::shared_ptr<ArrayEndpoint>;
     ArrayEndpoint() : Endpoint(Input::INVALID_INPUT) { }
 
-    virtual float value() override {
-        return 0.0;
-    }
+    virtual float peek() const override { return 0.0f; }
 
     virtual void apply(float value, const Endpoint::Pointer& source) override {
         for (auto& child : _children) {

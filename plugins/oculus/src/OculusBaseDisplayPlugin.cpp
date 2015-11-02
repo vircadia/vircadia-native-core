@@ -61,6 +61,14 @@ bool OculusBaseDisplayPlugin::isSupported() const {
 #endif
 }
 
+// DLL based display plugins MUST initialize GLEW inside the DLL code.
+void OculusBaseDisplayPlugin::customizeContext() {
+    glewExperimental = true;
+    GLenum err = glewInit();
+    glGetError();
+    WindowOpenGLDisplayPlugin::customizeContext();
+}
+
 void OculusBaseDisplayPlugin::init() {
 }
 

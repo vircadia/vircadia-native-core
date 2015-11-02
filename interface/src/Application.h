@@ -293,8 +293,9 @@ public slots:
     void aboutApp();
     void showEditEntitiesHelp();
 
+    void cycleCamera();
     void cameraMenuChanged();
-    
+
     void reloadResourceCaches();
 
     void crashApplication();
