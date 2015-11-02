@@ -545,7 +545,7 @@ void MyAvatar::render(RenderArgs* renderArgs, const glm::vec3& cameraPosition) {
     if (!_shouldRender) {
         return; // exit early
     }
-
+    
     Avatar::render(renderArgs, cameraPosition);
 
     // don't display IK constraints in shadow mode
@@ -1431,7 +1431,7 @@ void MyAvatar::renderBody(RenderArgs* renderArgs, ViewFrustum* renderFrustum, fl
     if (!_skeletonModel.isRenderable()) {
         return; // wait until all models are loaded
     }
-
+    
     fixupModelsInScene();
 
     //  Render head so long as the camera isn't inside it
