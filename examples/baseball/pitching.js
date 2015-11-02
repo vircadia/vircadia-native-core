@@ -85,10 +85,12 @@ var PITCH_RATE = 5000;
 function findEntities(properties, searchRadius) {
     var entities = Entities.findEntities(MyAvatar.position, searchRadius);
     var matchedEntities = [];
+    var keys = Object.keys(properties);
     for (var i = 0; i < entities.length; ++i) {
         var match = true;
+        var candidateProperties = Entities.getEntityProperties(entities[i], keys);
         for (var key in properties) {
-            if (entities[key] != properties[key]) {
+            if (candidateProperties[key] != properties[key]) {
                 // This isn't a match, move to next entity
                 match = false;
                 break;
