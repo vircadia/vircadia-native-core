@@ -146,7 +146,7 @@ MotionType EntityMotionState::computeObjectMotionType() const {
     if (_entity->getCollisionsWillMove()) {
         return MOTION_TYPE_DYNAMIC;
     }
-    return _entity->isMoving() ?  MOTION_TYPE_KINEMATIC : MOTION_TYPE_STATIC;
+    return (_entity->isMoving() || _entity->hasActions()) ?  MOTION_TYPE_KINEMATIC : MOTION_TYPE_STATIC;
 }
 
 bool EntityMotionState::isMoving() const {
@@ -184,6 +184,7 @@ void EntityMotionState::setWorldTransform(const btTransform& worldTrans) {
     if (!_entity) {
         return;
     }
+
     assert(entityTreeIsLocked());
     measureBodyAcceleration();
     _entity->setPosition(bulletToGLM(worldTrans.getOrigin()) + ObjectMotionState::getWorldOffset());

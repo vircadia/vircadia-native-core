@@ -13,6 +13,7 @@
 
 #include <glm/gtx/vector_angle.hpp>
 #include <queue>
+#include <QScriptValueIterator>
 
 #include <NumericalConstants.h>
 #include <DebugDraw.h>
@@ -380,6 +381,33 @@ glm::mat4 Rig::getJointTransform(int jointIndex) const {
     return _jointStates[jointIndex].getTransform();
 }
 
+void Rig::calcAnimAlpha(float speed, const std::vector<float>& referenceSpeeds, float* alphaOut) const {
+
+    assert(referenceSpeeds.size() > 0);
+
+    // calculate alpha from linear combination of referenceSpeeds.
+    float alpha = 0.0f;
+    if (speed <= referenceSpeeds.front()) {
+        alpha = 0.0f;
+    } else if (speed > referenceSpeeds.back()) {
+        alpha = (float)(referenceSpeeds.size() - 1);
+    } else {
+        for (size_t i = 0; i < referenceSpeeds.size() - 1; i++) {
+            if (referenceSpeeds[i] < speed && speed < referenceSpeeds[i + 1]) {
+                alpha = (float)i + ((speed - referenceSpeeds[i]) / (referenceSpeeds[i + 1] - referenceSpeeds[i]));
+                break;
+            }
+        }
+    }
+
+    *alphaOut = alpha;
+}
+
+// animation reference speeds.
+static const std::vector<float> FORWARD_SPEEDS = { 0.4f, 1.4f, 4.5f }; // m/s
+static const std::vector<float> BACKWARD_SPEEDS = { 0.6f, 1.45f }; // m/s
+static const std::vector<float> LATERAL_SPEEDS = { 0.2f, 0.65f }; // m/s
+
 void Rig::computeMotionAnimationState(float deltaTime, const glm::vec3& worldPosition, const glm::vec3& worldVelocity, const glm::quat& worldRotation) {
 
     glm::vec3 front = worldRotation * IDENTITY_FRONT;
@@ -388,8 +416,16 @@ void Rig::computeMotionAnimationState(float deltaTime, const glm::vec3& worldPos
     // but some modes (e.g., hmd standing) update position without updating velocity.
     // It's very hard to debug hmd standing. (Look down at yourself, or have a second person observe. HMD third person is a bit undefined...)
     // So, let's create our own workingVelocity from the worldPosition...
+    glm::vec3 workingVelocity = _lastVelocity;
     glm::vec3 positionDelta = worldPosition - _lastPosition;
-    glm::vec3 workingVelocity = positionDelta / deltaTime;
+
+    // Don't trust position delta if deltaTime is 'small'.
+    // NOTE: This is mostly just a work around for an issue in oculus 0.7 runtime, where
+    // Application::idle() is being called more frequently and with smaller dt's then expected.
+    const float SMALL_DELTA_TIME = 0.006f;  // 6 ms
+    if (deltaTime > SMALL_DELTA_TIME) {
+        workingVelocity = positionDelta / deltaTime;
+    }
 
 #if !WANT_DEBUG
     // But for smoothest (non-hmd standing) results, go ahead and use velocity:
@@ -398,19 +434,43 @@ void Rig::computeMotionAnimationState(float deltaTime, const glm::vec3& worldPos
     }
 #endif
 
+    if (deltaTime > SMALL_DELTA_TIME) {
+        _lastVelocity = workingVelocity;
+    }
+
     if (_enableAnimGraph) {
 
         glm::vec3 localVel = glm::inverse(worldRotation) * workingVelocity;
+
         float forwardSpeed = glm::dot(localVel, IDENTITY_FRONT);
         float lateralSpeed = glm::dot(localVel, IDENTITY_RIGHT);
         float turningSpeed = glm::orientedAngle(front, _lastFront, IDENTITY_UP) / deltaTime;
 
+        // filter speeds using a simple moving average.
+        _averageForwardSpeed.updateAverage(forwardSpeed);
+        _averageLateralSpeed.updateAverage(lateralSpeed);
+
         // sine wave LFO var for testing.
         static float t = 0.0f;
-        _animVars.set("sine", static_cast<float>(0.5 * sin(t) + 0.5));
+        _animVars.set("sine", 2.0f * static_cast<float>(0.5 * sin(t) + 0.5));
 
-        const float ANIM_WALK_SPEED = 1.4f; // m/s
-        _animVars.set("walkTimeScale", glm::clamp(0.5f, 2.0f, glm::length(localVel) / ANIM_WALK_SPEED));
+        float moveForwardAlpha = 0.0f;
+        float moveBackwardAlpha = 0.0f;
+        float moveLateralAlpha = 0.0f;
+
+        // calcuate the animation alpha and timeScale values based on current speeds and animation reference speeds.
+        calcAnimAlpha(_averageForwardSpeed.getAverage(), FORWARD_SPEEDS, &moveForwardAlpha);
+        calcAnimAlpha(-_averageForwardSpeed.getAverage(), BACKWARD_SPEEDS, &moveBackwardAlpha);
+        calcAnimAlpha(fabsf(_averageLateralSpeed.getAverage()), LATERAL_SPEEDS, &moveLateralAlpha);
+
+        _animVars.set("moveForwardSpeed", _averageForwardSpeed.getAverage());
+        _animVars.set("moveForwardAlpha", moveForwardAlpha);
+
+        _animVars.set("moveBackwardSpeed", -_averageForwardSpeed.getAverage());
+        _animVars.set("moveBackwardAlpha", moveBackwardAlpha);
+
+        _animVars.set("moveLateralSpeed", fabsf(_averageLateralSpeed.getAverage()));
+        _animVars.set("moveLateralAlpha", moveLateralAlpha);
 
         const float MOVE_ENTER_SPEED_THRESHOLD = 0.2f; // m/sec
         const float MOVE_EXIT_SPEED_THRESHOLD = 0.07f;  // m/sec
@@ -576,6 +636,71 @@ void Rig::computeMotionAnimationState(float deltaTime, const glm::vec3& worldPos
     _lastPosition = worldPosition;
 }
 
+// Allow script to add/remove handlers and report results, from within their thread.
+QScriptValue Rig::addAnimationStateHandler(QScriptValue handler, QScriptValue propertiesList) { // called in script thread
+    QMutexLocker locker(&_stateMutex);
+    // Find a safe id, even if there are lots of many scripts add and remove handlers repeatedly.
+    while (!_nextStateHandlerId || _stateHandlers.contains(_nextStateHandlerId)) { // 0 is unused, and don't reuse existing after wrap.
+      _nextStateHandlerId++;
+    }
+    StateHandler& data = _stateHandlers[_nextStateHandlerId];
+    data.function = handler;
+    data.useNames = propertiesList.isArray();
+    if (data.useNames) {
+        data.propertyNames = propertiesList.toVariant().toStringList();
+    }
+    return QScriptValue(_nextStateHandlerId); // suitable for giving to removeAnimationStateHandler
+}
+void Rig::removeAnimationStateHandler(QScriptValue identifier) { // called in script thread
+    QMutexLocker locker(&_stateMutex);
+    _stateHandlers.remove(identifier.isNumber() ? identifier.toInt32() : 0); // silently continues if handler not present. 0 is unused
+}
+void Rig::animationStateHandlerResult(int identifier, QScriptValue result) { // called synchronously from script
+    QMutexLocker locker(&_stateMutex);
+    auto found = _stateHandlers.find(identifier);
+    if (found == _stateHandlers.end()) {
+        return; // Don't use late-breaking results that got reported after the handler was removed.
+    }
+    found.value().results.animVariantMapFromScriptValue(result); // Into our own copy.
+}
+
+void Rig::updateAnimationStateHandlers() { // called on avatar update thread (which may be main thread)
+    QMutexLocker locker(&_stateMutex);
+    // It might pay to produce just one AnimVariantMap copy here, with a union of all the requested propertyNames,
+    // rather than having each callAnimationStateHandler invocation make its own copy.
+    // However, that copying is done on the script's own time rather than ours, so even if it's less cpu, it would be more
+    // work on the avatar update thread (which is possibly the main thread).
+    for (auto data = _stateHandlers.begin(); data != _stateHandlers.end(); data++) {
+        // call out:
+        int identifier = data.key();
+        StateHandler& value = data.value();
+        QScriptValue& function = value.function;
+        auto handleResult = [this, identifier](QScriptValue result) { // called in script thread to get the result back to us.
+            animationStateHandlerResult(identifier, result);
+        };
+        // invokeMethod makes a copy of the args, and copies of AnimVariantMap do copy the underlying map, so this will correctly capture
+        // the state of _animVars and allow continued changes to _animVars in this thread without conflict.
+        QMetaObject::invokeMethod(function.engine(), "callAnimationStateHandler",  Qt::QueuedConnection,
+                                  Q_ARG(QScriptValue, function),
+                                  Q_ARG(AnimVariantMap, _animVars),
+                                  Q_ARG(QStringList, value.propertyNames),
+                                  Q_ARG(bool, value.useNames),
+                                  Q_ARG(AnimVariantResultHandler, handleResult));
+        // It turns out that, for thread-safety reasons, ScriptEngine::callAnimationStateHandler will invoke itself if called from other
+        // than the script thread. Thus the above _could_ be replaced with an ordinary call, which will then trigger the same
+        // invokeMethod as is done explicitly above. However, the script-engine library depends on this animation library, not vice versa.
+        // We could create an AnimVariantCallingMixin class in shared, with an abstract virtual slot
+        // AnimVariantCallingMixin::callAnimationStateHandler (and move AnimVariantMap/AnimVaraintResultHandler to shared), but the
+        // call site here would look like this instead of the above:
+        //   dynamic_cast<AnimVariantCallingMixin*>(function.engine())->callAnimationStateHandler(function, ..., handleResult);
+        // This works (I tried it), but the result would be that we would still have same runtime type checks as the invokeMethod above
+        // (occuring within the ScriptEngine::callAnimationStateHandler invokeMethod trampoline), _plus_ another runtime check for the dynamic_cast.
+
+        // gather results in (likely from an earlier update):
+        _animVars.copyVariantsFrom(value.results); // If multiple handlers write the same anim var, the last registgered wins. (_map preserves order).
+    }
+}
+
 void Rig::updateAnimations(float deltaTime, glm::mat4 rootTransform) {
 
     if (_enableAnimGraph) {
@@ -583,6 +708,7 @@ void Rig::updateAnimations(float deltaTime, glm::mat4 rootTransform) {
             return;
         }
 
+        updateAnimationStateHandlers();
         // evaluate the animation
         AnimNode::Triggers triggersOut;
         AnimPoseVec poses = _animNode->evaluate(_animVars, deltaTime, triggersOut);

@@ -16,7 +16,7 @@
 #include <glm/gtc/quaternion.hpp>
 
 const int PHYSICS_ENGINE_MAX_NUM_SUBSTEPS = 6; // Bullet will start to "lose time" at 10 FPS.
-const float PHYSICS_ENGINE_FIXED_SUBSTEP = 1.0f / 60.0f;
+const float PHYSICS_ENGINE_FIXED_SUBSTEP = 1.0f / 90.0f;
 
 // return incremental rotation (Bullet-style) caused by angularVelocity over timeStep
 glm::quat computeBulletRotationStep(const glm::vec3& angularVelocity, float timeStep);

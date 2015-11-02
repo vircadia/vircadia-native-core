@@ -43,7 +43,8 @@ strokeSpeed[1] = 0.0;
 
 function checkSticks(deltaTime) {
     for (var palm = 0; palm < 2; palm++) {
-        var palmVelocity = Controller.getSpatialControlVelocity(palm * 2 + 1);
+        var handPose = (palm == 0) ? MyAvatar.leftHandPose : MyAvatar.rightHandPose;
+        var palmVelocity = handPose.velocity;
         var speed = length(palmVelocity);
         
         const TRIGGER_SPEED = 0.30;            //    Lower this value to let you 'drum' more gently
@@ -64,7 +65,7 @@ function checkSticks(deltaTime) {
             if ((palmVelocity.y > 0.0) || (speed < STOP_SPEED)) {
                 state[palm] = 0;
         
-                var options = { position: Controller.getSpatialControlPosition(palm * 2 + 1) };
+                var options = { position: handPose.translation };
         
                 if (strokeSpeed[palm] > 1.0) { strokeSpeed[palm] = 1.0; }
                 options.volume = strokeSpeed[palm];
