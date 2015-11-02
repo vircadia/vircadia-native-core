@@ -676,7 +676,7 @@ Mapping::Pointer UserInputMapper::newMapping(const QString& mappingName) {
 
 void UserInputMapper::enableMapping(const QString& mappingName, bool enable) {
     Locker locker(_lock);
-    qCDebug(controllers) << "Attempting to enable mapping " << mappingName;
+    qCDebug(controllers) << "Attempting to " << (enable ? "enable" : "disable") << " mapping " << mappingName;
     auto iterator = _mappingsByName.find(mappingName);
     if (_mappingsByName.end() == iterator) {
         qCWarning(controllers) << "Request to enable / disable unknown mapping " << mappingName;
