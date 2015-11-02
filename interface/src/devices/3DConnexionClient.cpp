@@ -9,9 +9,14 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+
 #include "3DConnexionClient.h"
+
+#if 0
+#include <UserActivityLogger.h>
+#include <PathUtils.h>
+
 #include "Menu.h"
-#include "UserActivityLogger.h"
 
 const float MAX_AXIS = 75.0f;  // max forward = 2x speed
 
@@ -25,22 +30,19 @@ ConnexionData& ConnexionData::getInstance() {
     return sharedInstance;
 }
 
-ConnexionData::ConnexionData() {
-}
+
+ConnexionData::ConnexionData() : InputDevice("ConnexionClient") {}
+
 
 void ConnexionData::handleAxisEvent() {
-    _axisStateMap[makeInput(ROTATION_AXIS_Y_POS).getChannel()] = (cc_rotation.y > 0.0f) ? cc_rotation.y / MAX_AXIS : 0.0f;
-    _axisStateMap[makeInput(ROTATION_AXIS_Y_NEG).getChannel()] = (cc_rotation.y < 0.0f) ? -cc_rotation.y / MAX_AXIS : 0.0f;
-    _axisStateMap[makeInput(POSITION_AXIS_X_POS).getChannel()] = (cc_position.x > 0.0f) ? cc_position.x / MAX_AXIS : 0.0f;
-    _axisStateMap[makeInput(POSITION_AXIS_X_NEG).getChannel()] = (cc_position.x < 0.0f) ? -cc_position.x / MAX_AXIS : 0.0f;
-    _axisStateMap[makeInput(POSITION_AXIS_Y_POS).getChannel()] = (cc_position.y > 0.0f) ? cc_position.y / MAX_AXIS : 0.0f;
-    _axisStateMap[makeInput(POSITION_AXIS_Y_NEG).getChannel()] = (cc_position.y < 0.0f) ? -cc_position.y / MAX_AXIS : 0.0f;
-    _axisStateMap[makeInput(POSITION_AXIS_Z_POS).getChannel()] = (cc_position.z > 0.0f) ? cc_position.z / MAX_AXIS : 0.0f;
-    _axisStateMap[makeInput(POSITION_AXIS_Z_NEG).getChannel()] = (cc_position.z < 0.0f) ? -cc_position.z / MAX_AXIS : 0.0f;
-    _axisStateMap[makeInput(ROTATION_AXIS_X_POS).getChannel()] = (cc_rotation.x > 0.0f) ? cc_rotation.x / MAX_AXIS : 0.0f;
-    _axisStateMap[makeInput(ROTATION_AXIS_X_NEG).getChannel()] = (cc_rotation.x < 0.0f) ? -cc_rotation.x / MAX_AXIS : 0.0f;
-    _axisStateMap[makeInput(ROTATION_AXIS_Z_POS).getChannel()] = (cc_rotation.z > 0.0f) ? cc_rotation.z / MAX_AXIS : 0.0f;
-    _axisStateMap[makeInput(ROTATION_AXIS_Z_NEG).getChannel()] = (cc_rotation.z < 0.0f) ? -cc_rotation.z / MAX_AXIS : 0.0f;
+    auto rotation = cc_rotation / MAX_AXIS;
+    _axisStateMap[ROTATE_X] = rotation.x; 
+    _axisStateMap[ROTATE_Y] = rotation.y;
+    _axisStateMap[ROTATE_Z] = rotation.z;
+    auto position = cc_rotation / MAX_AXIS;
+    _axisStateMap[TRANSLATE_X] = position.x;
+    _axisStateMap[TRANSLATE_Y] = position.y;
+    _axisStateMap[TRANSLATE_Z] = position.z;
 }
 
 void ConnexionData::setButton(int lastButtonState) {
@@ -48,75 +50,64 @@ void ConnexionData::setButton(int lastButtonState) {
     _buttonPressedMap.insert(lastButtonState);
 }
 
-void ConnexionData::registerToUserInputMapper(UserInputMapper& mapper) {
-    // Grab the current free device ID
-    _deviceID = mapper.getFreeDeviceID();
-
-    auto proxy = UserInputMapper::DeviceProxy::Pointer(new UserInputMapper::DeviceProxy("ConnexionClient"));
-    proxy->getButton = [this](const UserInputMapper::Input& input, int timestamp) -> bool { return this->getButton(input.getChannel()); };
-    proxy->getAxis = [this](const UserInputMapper::Input& input, int timestamp) -> float { return this->getAxis(input.getChannel()); };
-    proxy->getAvailabeInputs = [this]() -> QVector<UserInputMapper::InputPair> {
-        QVector<UserInputMapper::InputPair> availableInputs;
-
-        availableInputs.append(UserInputMapper::InputPair(makeInput(BUTTON_1), "Left button"));
-        availableInputs.append(UserInputMapper::InputPair(makeInput(BUTTON_2), "Right button"));
-        availableInputs.append(UserInputMapper::InputPair(makeInput(BUTTON_3), "Both buttons"));
-
-        availableInputs.append(UserInputMapper::InputPair(makeInput(POSITION_AXIS_Y_NEG), "Move backward"));
-        availableInputs.append(UserInputMapper::InputPair(makeInput(POSITION_AXIS_Y_POS), "Move forward"));
-        availableInputs.append(UserInputMapper::InputPair(makeInput(POSITION_AXIS_X_POS), "Move right"));
-        availableInputs.append(UserInputMapper::InputPair(makeInput(POSITION_AXIS_X_NEG), "Move Left"));
-        availableInputs.append(UserInputMapper::InputPair(makeInput(POSITION_AXIS_Z_POS), "Move up"));
-        availableInputs.append(UserInputMapper::InputPair(makeInput(POSITION_AXIS_Z_NEG), "Move down"));
-        availableInputs.append(UserInputMapper::InputPair(makeInput(ROTATION_AXIS_Y_NEG), "Rotate backward"));
-        availableInputs.append(UserInputMapper::InputPair(makeInput(ROTATION_AXIS_Y_POS), "Rotate forward"));
-        availableInputs.append(UserInputMapper::InputPair(makeInput(ROTATION_AXIS_X_POS), "Rotate right"));
-        availableInputs.append(UserInputMapper::InputPair(makeInput(ROTATION_AXIS_X_NEG), "Rotate left"));
-        availableInputs.append(UserInputMapper::InputPair(makeInput(ROTATION_AXIS_Z_POS), "Rotate up"));
-        availableInputs.append(UserInputMapper::InputPair(makeInput(ROTATION_AXIS_Z_NEG), "Rotate down"));
-
+void ConnexionData::buildDeviceProxy(controller::DeviceProxy::Pointer proxy) {
+    proxy->_name = _name = "ConnexionClient";
+    proxy->getButton = [this](const controller::Input& input, int timestamp) -> bool { return this->getButton(input.getChannel()); };
+    proxy->getAxis = [this](const controller::Input& input, int timestamp) -> float { return this->getAxis(input.getChannel()); };
+    proxy->getAvailabeInputs = [this]() -> QVector<controller::Input::NamedPair> {
+        using namespace controller;
+        static QVector<controller::Input::NamedPair> availableInputs {
+            Input::NamedPair(makeInput(BUTTON_1), "LeftButton"),
+            Input::NamedPair(makeInput(BUTTON_2), "RightButton"),
+            Input::NamedPair(makeInput(BUTTON_3), "BothButtons"),
+            Input::NamedPair(makeInput(TRANSLATE_X), "TranslateX"),
+            Input::NamedPair(makeInput(TRANSLATE_Y), "TranslateY"),
+            Input::NamedPair(makeInput(TRANSLATE_Z), "TranslateZ"),
+            Input::NamedPair(makeInput(ROTATE_X), "RotateX"),
+            Input::NamedPair(makeInput(ROTATE_Y), "RotateY"),
+            Input::NamedPair(makeInput(ROTATE_Z), "RotateZ"),
+        };
         return availableInputs;
     };
-    proxy->resetDeviceBindings = [this, &mapper]() -> bool {
-        mapper.removeAllInputChannelsForDevice(_deviceID);
-        this->assignDefaultInputMapping(mapper);
-        return true;
-    };
-    mapper.registerDevice(_deviceID, proxy);
 }
 
-void ConnexionData::assignDefaultInputMapping(UserInputMapper& mapper) {
-    const float JOYSTICK_MOVE_SPEED = 1.0f;
-    //const float DPAD_MOVE_SPEED = 0.5f;
-    const float JOYSTICK_YAW_SPEED = 0.5f;
-    const float JOYSTICK_PITCH_SPEED = 0.25f;
-    const float BOOM_SPEED = 0.1f;
-
-    // Y axes are flipped (up is negative)
-    // postion: Movement, strafing
-    mapper.addInputChannel(UserInputMapper::LONGITUDINAL_FORWARD, makeInput(POSITION_AXIS_Y_NEG), JOYSTICK_MOVE_SPEED);
-    mapper.addInputChannel(UserInputMapper::LONGITUDINAL_BACKWARD, makeInput(POSITION_AXIS_Y_POS), JOYSTICK_MOVE_SPEED);
-    mapper.addInputChannel(UserInputMapper::LATERAL_RIGHT, makeInput(POSITION_AXIS_X_POS), JOYSTICK_MOVE_SPEED);
-    mapper.addInputChannel(UserInputMapper::LATERAL_LEFT, makeInput(POSITION_AXIS_X_NEG), JOYSTICK_MOVE_SPEED);
-    mapper.addInputChannel(UserInputMapper::VERTICAL_UP, makeInput(POSITION_AXIS_Z_NEG), JOYSTICK_MOVE_SPEED);
-    mapper.addInputChannel(UserInputMapper::VERTICAL_DOWN, makeInput(POSITION_AXIS_Z_POS), JOYSTICK_MOVE_SPEED);
-
-    // Rotation: Camera orientation with button 1
-    mapper.addInputChannel(UserInputMapper::YAW_RIGHT, makeInput(ROTATION_AXIS_Z_POS), JOYSTICK_YAW_SPEED);
-    mapper.addInputChannel(UserInputMapper::YAW_LEFT, makeInput(ROTATION_AXIS_Z_NEG), JOYSTICK_YAW_SPEED);
-    mapper.addInputChannel(UserInputMapper::PITCH_DOWN, makeInput(ROTATION_AXIS_Y_NEG), JOYSTICK_PITCH_SPEED);
-    mapper.addInputChannel(UserInputMapper::PITCH_UP, makeInput(ROTATION_AXIS_Y_POS), JOYSTICK_PITCH_SPEED);
-
-    // Button controls
-    // Zoom
-    mapper.addInputChannel(UserInputMapper::BOOM_IN, makeInput(BUTTON_1), BOOM_SPEED);
-    mapper.addInputChannel(UserInputMapper::BOOM_OUT, makeInput(BUTTON_2), BOOM_SPEED);
-
-    // Zoom
-    //  mapper.addInputChannel(UserInputMapper::BOOM_IN, makeInput(ROTATION_AXIS_Z_NEG), BOOM_SPEED);
-    //  mapper.addInputChannel(UserInputMapper::BOOM_OUT, makeInput(ROTATION_AXIS_Z_POS), BOOM_SPEED);
-
+QString ConnexionData::getDefaultMappingConfig() {
+    static const QString MAPPING_JSON = PathUtils::resourcesPath() + "/controllers/vive.json";
+    return MAPPING_JSON;
 }
+
+//void ConnexionData::assignDefaultInputMapping(UserInputMapper& mapper) {
+//    const float JOYSTICK_MOVE_SPEED = 1.0f;
+//    //const float DPAD_MOVE_SPEED = 0.5f;
+//    const float JOYSTICK_YAW_SPEED = 0.5f;
+//    const float JOYSTICK_PITCH_SPEED = 0.25f;
+//    const float BOOM_SPEED = 0.1f;
+//
+//    // Y axes are flipped (up is negative)
+//    // postion: Movement, strafing
+//    mapper.addInputChannel(UserInputMapper::LONGITUDINAL_FORWARD, makeInput(POSITION_AXIS_Y_NEG), JOYSTICK_MOVE_SPEED);
+//    mapper.addInputChannel(UserInputMapper::LONGITUDINAL_BACKWARD, makeInput(POSITION_AXIS_Y_POS), JOYSTICK_MOVE_SPEED);
+//    mapper.addInputChannel(UserInputMapper::LATERAL_RIGHT, makeInput(POSITION_AXIS_X_POS), JOYSTICK_MOVE_SPEED);
+//    mapper.addInputChannel(UserInputMapper::LATERAL_LEFT, makeInput(POSITION_AXIS_X_NEG), JOYSTICK_MOVE_SPEED);
+//    mapper.addInputChannel(UserInputMapper::VERTICAL_UP, makeInput(POSITION_AXIS_Z_NEG), JOYSTICK_MOVE_SPEED);
+//    mapper.addInputChannel(UserInputMapper::VERTICAL_DOWN, makeInput(POSITION_AXIS_Z_POS), JOYSTICK_MOVE_SPEED);
+//
+//    // Rotation: Camera orientation with button 1
+//    mapper.addInputChannel(UserInputMapper::YAW_RIGHT, makeInput(ROTATION_AXIS_Z_POS), JOYSTICK_YAW_SPEED);
+//    mapper.addInputChannel(UserInputMapper::YAW_LEFT, makeInput(ROTATION_AXIS_Z_NEG), JOYSTICK_YAW_SPEED);
+//    mapper.addInputChannel(UserInputMapper::PITCH_DOWN, makeInput(ROTATION_AXIS_Y_NEG), JOYSTICK_PITCH_SPEED);
+//    mapper.addInputChannel(UserInputMapper::PITCH_UP, makeInput(ROTATION_AXIS_Y_POS), JOYSTICK_PITCH_SPEED);
+//
+//    // Button controls
+//    // Zoom
+//    mapper.addInputChannel(UserInputMapper::BOOM_IN, makeInput(BUTTON_1), BOOM_SPEED);
+//    mapper.addInputChannel(UserInputMapper::BOOM_OUT, makeInput(BUTTON_2), BOOM_SPEED);
+//
+//    // Zoom
+//    //  mapper.addInputChannel(UserInputMapper::BOOM_IN, makeInput(ROTATION_AXIS_Z_NEG), BOOM_SPEED);
+//    //  mapper.addInputChannel(UserInputMapper::BOOM_OUT, makeInput(ROTATION_AXIS_Z_POS), BOOM_SPEED);
+//
+//}
 
 float ConnexionData::getButton(int channel) const {
     if (!_buttonPressedMap.empty()) {
@@ -138,15 +129,15 @@ float ConnexionData::getAxis(int channel) const {
     }
 }
 
-UserInputMapper::Input ConnexionData::makeInput(ConnexionData::ButtonChannel button) {
-    return UserInputMapper::Input(_deviceID, button, UserInputMapper::ChannelType::BUTTON);
+controller::Input ConnexionData::makeInput(ConnexionData::ButtonChannel button) {
+    return controller::Input(_deviceID, button, controller::ChannelType::BUTTON);
 }
 
-UserInputMapper::Input ConnexionData::makeInput(ConnexionData::PositionChannel axis) {
-    return UserInputMapper::Input(_deviceID, axis, UserInputMapper::ChannelType::AXIS);
+controller::Input ConnexionData::makeInput(ConnexionData::PositionChannel axis) {
+    return controller::Input(_deviceID, axis, controller::ChannelType::AXIS);
 }
 
-void ConnexionData::update() {
+void ConnexionData::update(float deltaTime, bool jointsCaptured) {
     // the update is done in the ConnexionClient class.
     // for windows in the nativeEventFilter the inputmapper is connected or registed or removed when an 3Dconnnexion device is attached or detached
     // for osx the api will call DeviceAddedHandler or DeviceRemoveHandler when a 3Dconnexion device is attached or detached
@@ -187,7 +178,6 @@ void ConnexionClient::destroy() {
     QAbstractEventDispatcher::instance()->removeNativeEventFilter(this);
     ConnexionData& connexiondata = ConnexionData::getInstance();
     int deviceid = connexiondata.getDeviceID();
-    connexiondata.setDeviceID(0);
     auto userInputMapper = DependencyManager::get<UserInputMapper>();
     userInputMapper->removeDevice(deviceid);
 }
@@ -295,13 +285,10 @@ bool ConnexionClient::RawInputEventFilter(void* msg, long* result) {
     ConnexionData& connexiondata = ConnexionData::getInstance();
     auto userInputMapper = DependencyManager::get<UserInputMapper>();
     if (Is3dmouseAttached() && connexiondata.getDeviceID() == 0) {
-        connexiondata.registerToUserInputMapper(*userInputMapper);
-        connexiondata.assignDefaultInputMapping(*userInputMapper);
+        userInputMapper->registerDevice(&connexiondata);
         UserActivityLogger::getInstance().connectedDevice("controller", "3Dconnexion");
     } else if (!Is3dmouseAttached() && connexiondata.getDeviceID() != 0) {
-        int deviceid = connexiondata.getDeviceID();
-        connexiondata.setDeviceID(0);
-        userInputMapper->removeDevice(deviceid);
+        userInputMapper->removeDevice(connexiondata.getDeviceID());
     }
 
     if (!Is3dmouseAttached()) {
@@ -894,8 +881,7 @@ void ConnexionClient::init() {
 
         if (Is3dmouseAttached() && connexiondata.getDeviceID() == 0) {
             auto userInputMapper = DependencyManager::get<UserInputMapper>();
-            connexiondata.registerToUserInputMapper(*userInputMapper);
-            connexiondata.assignDefaultInputMapping(*userInputMapper);
+            userInputMapper->registerDevice(&connexiondata);
             UserActivityLogger::getInstance().connectedDevice("controller", "3Dconnexion");
         }
         //let one axis be dominant
@@ -926,8 +912,7 @@ void DeviceAddedHandler(unsigned int connection) {
     if (connexiondata.getDeviceID() == 0) {
         qCWarning(interfaceapp) << "3Dconnexion device added ";
         auto userInputMapper = DependencyManager::get<UserInputMapper>();
-        connexiondata.registerToUserInputMapper(*userInputMapper);
-        connexiondata.assignDefaultInputMapping(*userInputMapper);
+        userInputMapper->registerDevice(&connexiondata);
         UserActivityLogger::getInstance().connectedDevice("controller", "3Dconnexion");
     }
 }
@@ -984,3 +969,4 @@ void MessageHandler(unsigned int connection, unsigned int messageType, void *mes
 #endif // __APPLE__
 
 #endif // HAVE_3DCONNEXIONCLIENT
+#endif

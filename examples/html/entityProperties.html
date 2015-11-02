@@ -830,7 +830,7 @@
             elZoneKeyLightColorRed.addEventListener('change', zoneKeyLightColorChangeFunction);
             elZoneKeyLightColorGreen.addEventListener('change', zoneKeyLightColorChangeFunction);
             elZoneKeyLightColorBlue.addEventListener('change', zoneKeyLightColorChangeFunction);
-            elZoneKeyLightIntensity.addEventListener('change', createEmitGroupNumberPropertyUpdateFunction('intensity','keyLight'));
+            elZoneKeyLightIntensity.addEventListener('change', createEmitGroupNumberPropertyUpdateFunction('keyLight','intensity'));
             elZoneKeyLightAmbientIntensity.addEventListener('change', createEmitGroupNumberPropertyUpdateFunction('keyLight','ambientIntensity'));
             var zoneKeyLightDirectionChangeFunction = createEmitGroupVec3PropertyUpdateFunction('keyLight','direction', elZoneKeyLightDirectionX, elZoneKeyLightDirectionY, elZoneKeyLightDirectionZ);
             elZoneKeyLightDirectionX.addEventListener('change', zoneKeyLightDirectionChangeFunction);
@@ -1520,7 +1520,7 @@
         <div class="zone-section keyLight-section property">
             <div class="label">Ambient URL</div>
             <div class="value">
-                <input type="text" id="property-zone-skybox-url" class="url">
+                <input type="text" id="property-zone-key-ambient-url" class="url">
             </div>
         </div>
 

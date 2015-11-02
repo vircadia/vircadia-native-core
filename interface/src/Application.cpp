@@ -17,27 +17,32 @@
 #include <glm/gtx/vector_angle.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
-#include <QAbstractNativeEventFilter>
-#include <QActionGroup>
-#include <QDebug>
-#include <QDesktopServices>
-#include <QDesktopWidget>
-#include <QImage>
-#include <QFileDialog>
-#include <QInputDialog>
-#include <QKeyEvent>
-#include <QMediaPlayer>
-#include <QMenuBar>
-#include <QMessageBox>
-#include <QMimeData>
-#include <QMouseEvent>
-#include <QNetworkDiskCache>
-#include <QObject>
-#include <QScreen>
-#include <QTimer>
-#include <QUrl>
-#include <QWheelEvent>
-#include <QWindow>
+#include <QtCore/QDebug>
+#include <QtCore/QObject>
+#include <QtCore/QUrl>
+#include <QtCore/QTimer>
+#include <QtCore/QAbstractNativeEventFilter>
+#include <QtCore/QMimeData>
+
+#include <QtGui/QScreen>
+#include <QtGui/QImage>
+#include <QtGui/QWheelEvent>
+#include <QtGui/QWindow>
+#include <QtQml/QQmlContext>
+#include <QtGui/QKeyEvent>
+#include <QtGui/QMouseEvent>
+#include <QtGui/QDesktopServices>
+
+#include <QtWidgets/QActionGroup>
+#include <QtWidgets/QDesktopWidget>
+#include <QtWidgets/QFileDialog>
+#include <QtWidgets/QInputDialog>
+#include <QtWidgets/QMenuBar>
+#include <QtWidgets/QMessageBox>
+
+#include <QtMultimedia/QMediaPlayer>
+
+#include <QtNetwork/QNetworkDiskCache>
 
 #include <AccountManager.h>
 #include <AddressManager.h>
@@ -60,7 +65,8 @@
 #include <InfoView.h>
 #include <input-plugins/InputPlugin.h>
 #include <input-plugins/Joystick.h> // this should probably be removed
-#include <input-plugins/UserInputMapper.h>
+#include <controllers/UserInputMapper.h>
+#include <controllers/StateController.h>
 #include <LogHandler.h>
 #include <MainWindow.h>
 #include <MessageDialog.h>
@@ -120,6 +126,7 @@
 #include "scripting/SettingsScriptingInterface.h"
 #include "scripting/WebWindowClass.h"
 #include "scripting/WindowScriptingInterface.h"
+#include "scripting/ControllerScriptingInterface.h"
 #if defined(Q_OS_MAC) || defined(Q_OS_WIN)
 #include "SpeechRecognizer.h"
 #endif
@@ -136,6 +143,7 @@
 #include "ui/Stats.h"
 #include "ui/UpdateDialog.h"
 #include "Util.h"
+
 
 // ON WIndows PC, NVidia Optimus laptop, we want to enable NVIDIA GPU
 // FIXME seems to be broken.
@@ -316,6 +324,7 @@ bool setupEssentials(int& argc, char** argv) {
     DependencyManager::set<EntityScriptingInterface>();
     DependencyManager::set<WindowScriptingInterface>();
     DependencyManager::set<HMDScriptingInterface>();
+
 #if defined(Q_OS_MAC) || defined(Q_OS_WIN)
     DependencyManager::set<SpeechRecognizer>();
 #endif
@@ -327,7 +336,7 @@ bool setupEssentials(int& argc, char** argv) {
     DependencyManager::set<InterfaceActionFactory>();
     DependencyManager::set<AssetClient>();
     DependencyManager::set<UserInputMapper>();
-
+    DependencyManager::set<controller::ScriptingInterface, ControllerScriptingInterface>();
     return true;
 }
 
@@ -339,49 +348,50 @@ int _keyboardFocusHighlightID{ -1 };
 PluginContainer* _pluginContainer;
 
 Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
-        QApplication(argc, argv),
-        _dependencyManagerIsSetup(setupEssentials(argc, argv)),
-        _window(new MainWindow(desktop())),
-        _toolWindow(NULL),
-        _undoStackScriptingInterface(&_undoStack),
-        _frameCount(0),
-        _fps(60.0f),
-        _physicsEngine(new PhysicsEngine(Vectors::ZERO)),
-        _entities(true, this, this),
-        _entityClipboardRenderer(false, this, this),
-        _entityClipboard(new EntityTree()),
-        _lastQueriedTime(usecTimestampNow()),
-        _mirrorViewRect(QRect(MIRROR_VIEW_LEFT_PADDING, MIRROR_VIEW_TOP_PADDING, MIRROR_VIEW_WIDTH, MIRROR_VIEW_HEIGHT)),
-        _firstRun("firstRun", true),
-        _previousScriptLocation("LastScriptLocation", DESKTOP_LOCATION),
-        _scriptsLocationHandle("scriptsLocation", DESKTOP_LOCATION),
-        _fieldOfView("fieldOfView", DEFAULT_FIELD_OF_VIEW_DEGREES),
-        _scaleMirror(1.0f),
-        _rotateMirror(0.0f),
-        _raiseMirror(0.0f),
-        _lastMouseMoveWasSimulated(false),
-        _enableProcessOctreeThread(true),
-        _runningScriptsWidget(NULL),
-        _runningScriptsWidgetWasVisible(false),
-        _lastNackTime(usecTimestampNow()),
-        _lastSendDownstreamAudioStats(usecTimestampNow()),
-        _aboutToQuit(false),
-        _notifiedPacketVersionMismatchThisDomain(false),
-        _maxOctreePPS(maxOctreePacketsPerSecond.get()),
-        _lastFaceTrackerUpdate(0)
+    QApplication(argc, argv),
+    _dependencyManagerIsSetup(setupEssentials(argc, argv)),
+    _window(new MainWindow(desktop())),
+    _toolWindow(NULL),
+    _undoStackScriptingInterface(&_undoStack),
+    _frameCount(0),
+    _fps(60.0f),
+    _physicsEngine(new PhysicsEngine(Vectors::ZERO)),
+    _entities(true, this, this),
+    _entityClipboardRenderer(false, this, this),
+    _entityClipboard(new EntityTree()),
+    _lastQueriedTime(usecTimestampNow()),
+    _mirrorViewRect(QRect(MIRROR_VIEW_LEFT_PADDING, MIRROR_VIEW_TOP_PADDING, MIRROR_VIEW_WIDTH, MIRROR_VIEW_HEIGHT)),
+    _firstRun("firstRun", true),
+    _previousScriptLocation("LastScriptLocation", DESKTOP_LOCATION),
+    _scriptsLocationHandle("scriptsLocation", DESKTOP_LOCATION),
+    _fieldOfView("fieldOfView", DEFAULT_FIELD_OF_VIEW_DEGREES),
+    _scaleMirror(1.0f),
+    _rotateMirror(0.0f),
+    _raiseMirror(0.0f),
+    _lastMouseMoveWasSimulated(false),
+    _enableProcessOctreeThread(true),
+    _runningScriptsWidget(NULL),
+    _runningScriptsWidgetWasVisible(false),
+    _lastNackTime(usecTimestampNow()),
+    _lastSendDownstreamAudioStats(usecTimestampNow()),
+    _aboutToQuit(false),
+    _notifiedPacketVersionMismatchThisDomain(false),
+    _maxOctreePPS(maxOctreePacketsPerSecond.get()),
+    _lastFaceTrackerUpdate(0)
 {
     thread()->setObjectName("Main Thread");
-    
+
     setInstance(this);
-    
+
+    auto controllerScriptingInterface = DependencyManager::get<controller::ScriptingInterface>().data();
+    _controllerScriptingInterface = dynamic_cast<ControllerScriptingInterface*>(controllerScriptingInterface);
     // to work around the Qt constant wireless scanning, set the env for polling interval very high
     const QByteArray EXTREME_BEARER_POLL_TIMEOUT = QString::number(INT_MAX).toLocal8Bit();
     qputenv("QT_BEARER_POLL_TIMEOUT", EXTREME_BEARER_POLL_TIMEOUT);
-    
+
     _entityClipboard->createRootElement();
 
     _pluginContainer = new PluginContainerProxy();
-    Plugin::setContainer(_pluginContainer);
 #ifdef Q_OS_WIN
     installNativeEventFilter(&MyNativeEventFilter::getInstance());
 #endif
@@ -440,7 +450,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
     audioIO->moveToThread(audioThread);
 
     auto& audioScriptingInterface = AudioScriptingInterface::getInstance();
-    
+
     connect(audioThread, &QThread::started, audioIO.data(), &AudioClient::start);
     connect(audioIO.data(), &AudioClient::destroyed, audioThread, &QThread::quit);
     connect(audioThread, &QThread::finished, audioThread, &QThread::deleteLater);
@@ -479,7 +489,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
     connect(&domainHandler, SIGNAL(disconnectedFromDomain()), SLOT(clearDomainOctreeDetails()));
     connect(&domainHandler, &DomainHandler::settingsReceived, this, &Application::domainSettingsReceived);
     connect(&domainHandler, &DomainHandler::hostnameChanged,
-            DependencyManager::get<AddressManager>().data(), &AddressManager::storeCurrentAddress);
+        DependencyManager::get<AddressManager>().data(), &AddressManager::storeCurrentAddress);
 
     // update our location every 5 seconds in the metaverse server, assuming that we are authenticated with one
     const qint64 DATA_SERVER_LOCATION_CHANGE_UPDATE_MSECS = 5 * 1000;
@@ -490,7 +500,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
 
     // if we get a domain change, immediately attempt update location in metaverse server
     connect(&nodeList->getDomainHandler(), &DomainHandler::connectedToDomain,
-            discoverabilityManager.data(), &DiscoverabilityManager::updateLocation);
+        discoverabilityManager.data(), &DiscoverabilityManager::updateLocation);
 
     connect(nodeList.data(), &NodeList::nodeAdded, this, &Application::nodeAdded);
     connect(nodeList.data(), &NodeList::nodeKilled, this, &Application::nodeKilled);
@@ -529,14 +539,14 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
     connect(addressManager.data(), &AddressManager::hostChanged, this, &Application::updateWindowTitle);
     connect(this, &QCoreApplication::aboutToQuit, addressManager.data(), &AddressManager::storeCurrentAddress);
 
-    #ifdef _WIN32
+#ifdef _WIN32
     WSADATA WsaData;
-    int wsaresult = WSAStartup(MAKEWORD(2,2), &WsaData);
-    #endif
+    int wsaresult = WSAStartup(MAKEWORD(2, 2), &WsaData);
+#endif
 
     // tell the NodeList instance who to tell the domain server we care about
     nodeList->addSetOfNodeTypesToNodeInterestSet(NodeSet() << NodeType::AudioMixer << NodeType::AvatarMixer
-                                                 << NodeType::EntityServer << NodeType::AssetServer);
+        << NodeType::EntityServer << NodeType::AssetServer);
 
     // connect to the packet sent signal of the _entityEditSender
     connect(&_entityEditSender, &EntityEditPacketSender::packetSent, this, &Application::packetSent);
@@ -609,29 +619,44 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
     // hook up bandwidth estimator
     QSharedPointer<BandwidthRecorder> bandwidthRecorder = DependencyManager::get<BandwidthRecorder>();
     connect(nodeList.data(), &LimitedNodeList::dataSent,
-            bandwidthRecorder.data(), &BandwidthRecorder::updateOutboundData);
+        bandwidthRecorder.data(), &BandwidthRecorder::updateOutboundData);
     connect(&nodeList->getPacketReceiver(), &PacketReceiver::dataReceived,
-            bandwidthRecorder.data(), &BandwidthRecorder::updateInboundData);
+        bandwidthRecorder.data(), &BandwidthRecorder::updateInboundData);
 
     connect(&getMyAvatar()->getSkeletonModel(), &SkeletonModel::skeletonLoaded,
-            this, &Application::checkSkeleton, Qt::QueuedConnection);
+        this, &Application::checkSkeleton, Qt::QueuedConnection);
 
     // Setup the userInputMapper with the actions
     auto userInputMapper = DependencyManager::get<UserInputMapper>();
-    connect(userInputMapper.data(), &UserInputMapper::actionEvent, &_controllerScriptingInterface, &AbstractControllerScriptingInterface::actionEvent);
     connect(userInputMapper.data(), &UserInputMapper::actionEvent, [this](int action, float state) {
         if (state) {
-            switch (action) {
-            case UserInputMapper::Action::TOGGLE_MUTE:
+            if (action == controller::toInt(controller::Action::TOGGLE_MUTE)) {
                 DependencyManager::get<AudioClient>()->toggleMute();
-                break;
+            } else if (action == controller::toInt(controller::Action::CYCLE_CAMERA)) {
+                cycleCamera();
+            } else if (action == controller::toInt(controller::Action::CONTEXT_MENU)) {
+                VrMenu::toggle(); // show context menu even on non-stereo displays
             }
         }
     });
 
+    // A new controllerInput device used to reflect current values from the application state
+    _applicationStateDevice = std::make_shared<controller::StateController>();
+
+    _applicationStateDevice->addInputVariant(QString("InHMD"), controller::StateController::ReadLambda([]() -> float {
+        return (float)qApp->getAvatarUpdater()->isHMDMode();
+    }));
+    _applicationStateDevice->addInputVariant(QString("ComfortMode"), controller::StateController::ReadLambda([]() -> float {
+        return (float)Menu::getInstance()->isOptionChecked(MenuOption::ComfortMode);
+    }));
+
+    userInputMapper->registerDevice(_applicationStateDevice);
+    
     // Setup the keyboardMouseDevice and the user input mapper with the default bindings
-    _keyboardMouseDevice->registerToUserInputMapper(*userInputMapper);
-    _keyboardMouseDevice->assignDefaultInputMapping(*userInputMapper);
+    userInputMapper->registerDevice(_keyboardMouseDevice);
+
+
+    userInputMapper->loadDefaultMapping(userInputMapper->getStandardDeviceID());
 
     // check first run...
     if (_firstRun.get()) {
@@ -704,8 +729,10 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
     // Now that menu is initalized we can sync myAvatar with it's state.
     getMyAvatar()->updateMotionBehaviorFromMenu();
 
+#if 0
     // the 3Dconnexion device wants to be initiliazed after a window is displayed.
     ConnexionClient::getInstance().init();
+#endif
 
     auto& packetReceiver = nodeList->getPacketReceiver();
     packetReceiver.registerListener(PacketType::DomainConnectionDenied, this, "handleDomainConnectionDeniedPacket");
@@ -791,6 +818,9 @@ void Application::cleanupBeforeQuit() {
 #endif
 
     AnimDebugDraw::getInstance().shutdown();
+
+    // FIXME: once we move to shared pointer for the INputDevice we shoud remove this naked delete:
+    _applicationStateDevice.reset();
 
     if (_keyboardFocusHighlightID > 0) {
         getOverlays().deleteOverlay(_keyboardFocusHighlightID);
@@ -902,7 +932,10 @@ Application::~Application() {
     
     Leapmotion::destroy();
     RealSense::destroy();
+
+#if 0
     ConnexionClient::getInstance().destroy();
+#endif
 
     qInstallMessageHandler(NULL); // NOTE: Do this as late as possible so we continue to get our log messages
 }
@@ -975,6 +1008,8 @@ void Application::initializeUi() {
     offscreenUi->setBaseUrl(QUrl::fromLocalFile(PathUtils::resourcesPath() + "/qml/"));
     offscreenUi->load("Root.qml");
     offscreenUi->load("RootMenu.qml");
+    auto scriptingInterface = DependencyManager::get<controller::ScriptingInterface>();
+    offscreenUi->getRootContext()->setContextProperty("Controller", scriptingInterface.data());
     _glWidget->installEventFilter(offscreenUi.data());
     VrMenu::load();
     VrMenu::executeQueuedLambdas();
@@ -1003,7 +1038,10 @@ void Application::initializeUi() {
     foreach(auto inputPlugin, PluginManager::getInstance()->getInputPlugins()) {
         QString name = inputPlugin->getName();
         if (name == KeyboardMouseDevice::NAME) {
-            _keyboardMouseDevice = static_cast<KeyboardMouseDevice*>(inputPlugin.data()); // TODO: this seems super hacky
+            auto kbm = static_cast<KeyboardMouseDevice*>(inputPlugin.data());
+            // FIXME incredibly evil.... _keyboardMouseDevice is now owned by 
+            // both a QSharedPointer and a std::shared_ptr
+            _keyboardMouseDevice = std::shared_ptr<KeyboardMouseDevice>(kbm);
         }
     }
     updateInputModes();
@@ -1456,7 +1494,7 @@ bool Application::event(QEvent* event) {
     }
 
     if (HFActionEvent::types().contains(event->type())) {
-        _controllerScriptingInterface.handleMetaEvent(static_cast<HFMetaEvent*>(event));
+        _controllerScriptingInterface->handleMetaEvent(static_cast<HFMetaEvent*>(event));
     }
 
     return QApplication::event(event);
@@ -1470,7 +1508,7 @@ bool Application::eventFilter(QObject* object, QEvent* event) {
         }
 
         // Filter out captured keys before they're used for shortcut actions.
-        if (_controllerScriptingInterface.isKeyCaptured(static_cast<QKeyEvent*>(event))) {
+        if (_controllerScriptingInterface->isKeyCaptured(static_cast<QKeyEvent*>(event))) {
             event->accept();
             return true;
         }
@@ -1485,10 +1523,10 @@ void Application::keyPressEvent(QKeyEvent* event) {
     _altPressed = event->key() == Qt::Key_Alt;
     _keysPressed.insert(event->key());
 
-    _controllerScriptingInterface.emitKeyPressEvent(event); // send events to any registered scripts
+    _controllerScriptingInterface->emitKeyPressEvent(event); // send events to any registered scripts
 
     // if one of our scripts have asked to capture this event, then stop processing it
-    if (_controllerScriptingInterface.isKeyCaptured(event)) {
+    if (_controllerScriptingInterface->isKeyCaptured(event)) {
         return;
     }
 
@@ -1518,6 +1556,13 @@ void Application::keyPressEvent(QKeyEvent* event) {
                 if (isMeta) {
                     auto offscreenUi = DependencyManager::get<OffscreenUi>();
                     offscreenUi->load("Browser.qml");
+                } 
+                break;
+
+            case Qt::Key_X:
+                if (isMeta && isShifted) {
+                    auto offscreenUi = DependencyManager::get<OffscreenUi>();
+                    offscreenUi->load("TestControllers.qml");
                 }
                 break;
 
@@ -1745,17 +1790,15 @@ void Application::keyPressEvent(QKeyEvent* event) {
 
 void Application::keyReleaseEvent(QKeyEvent* event) {
     if (event->key() == Qt::Key_Alt && _altPressed && hasFocus()) {
-        if (getActiveDisplayPlugin()->isStereo()) {
-            VrMenu::toggle();
-        }
+        VrMenu::toggle(); // show context menu even on non-stereo displays
     }
 
     _keysPressed.remove(event->key());
 
-    _controllerScriptingInterface.emitKeyReleaseEvent(event); // send events to any registered scripts
+    _controllerScriptingInterface->emitKeyReleaseEvent(event); // send events to any registered scripts
 
     // if one of our scripts have asked to capture this event, then stop processing it
-    if (_controllerScriptingInterface.isKeyCaptured(event)) {
+    if (_controllerScriptingInterface->isKeyCaptured(event)) {
         return;
     }
 
@@ -1796,7 +1839,9 @@ void Application::focusOutEvent(QFocusEvent* event) {
             inputPlugin->pluginFocusOutEvent();
         }
     }
+#if 0
     ConnexionData::getInstance().focusOutEvent();
+#endif
 
     // synthesize events for keys currently pressed, since we may not get their release events
     foreach (int key, _keysPressed) {
@@ -1844,10 +1889,10 @@ void Application::mouseMoveEvent(QMouseEvent* event, unsigned int deviceID) {
 
 
     _entities.mouseMoveEvent(&mappedEvent, deviceID);
-    _controllerScriptingInterface.emitMouseMoveEvent(&mappedEvent, deviceID); // send events to any registered scripts
+    _controllerScriptingInterface->emitMouseMoveEvent(&mappedEvent, deviceID); // send events to any registered scripts
 
     // if one of our scripts have asked to capture this event, then stop processing it
-    if (_controllerScriptingInterface.isMouseCaptured()) {
+    if (_controllerScriptingInterface->isMouseCaptured()) {
         return;
     }
 
@@ -1872,10 +1917,10 @@ void Application::mousePressEvent(QMouseEvent* event, unsigned int deviceID) {
         _entities.mousePressEvent(&mappedEvent, deviceID);
     }
 
-    _controllerScriptingInterface.emitMousePressEvent(&mappedEvent); // send events to any registered scripts
+    _controllerScriptingInterface->emitMousePressEvent(&mappedEvent); // send events to any registered scripts
 
     // if one of our scripts have asked to capture this event, then stop processing it
-    if (_controllerScriptingInterface.isMouseCaptured()) {
+    if (_controllerScriptingInterface->isMouseCaptured()) {
         return;
     }
 
@@ -1897,11 +1942,11 @@ void Application::mousePressEvent(QMouseEvent* event, unsigned int deviceID) {
 
 void Application::mouseDoublePressEvent(QMouseEvent* event, unsigned int deviceID) {
     // if one of our scripts have asked to capture this event, then stop processing it
-    if (_controllerScriptingInterface.isMouseCaptured()) {
+    if (_controllerScriptingInterface->isMouseCaptured()) {
         return;
     }
 
-    _controllerScriptingInterface.emitMouseDoublePressEvent(event);
+    _controllerScriptingInterface->emitMouseDoublePressEvent(event);
 }
 
 void Application::mouseReleaseEvent(QMouseEvent* event, unsigned int deviceID) {
@@ -1917,10 +1962,10 @@ void Application::mouseReleaseEvent(QMouseEvent* event, unsigned int deviceID) {
         _entities.mouseReleaseEvent(&mappedEvent, deviceID);
     }
 
-    _controllerScriptingInterface.emitMouseReleaseEvent(&mappedEvent); // send events to any registered scripts
+    _controllerScriptingInterface->emitMouseReleaseEvent(&mappedEvent); // send events to any registered scripts
 
     // if one of our scripts have asked to capture this event, then stop processing it
-    if (_controllerScriptingInterface.isMouseCaptured()) {
+    if (_controllerScriptingInterface->isMouseCaptured()) {
         return;
     }
 
@@ -1943,12 +1988,12 @@ void Application::touchUpdateEvent(QTouchEvent* event) {
 
     if (event->type() == QEvent::TouchUpdate) {
         TouchEvent thisEvent(*event, _lastTouchEvent);
-        _controllerScriptingInterface.emitTouchUpdateEvent(thisEvent); // send events to any registered scripts
+        _controllerScriptingInterface->emitTouchUpdateEvent(thisEvent); // send events to any registered scripts
         _lastTouchEvent = thisEvent;
     }
 
     // if one of our scripts have asked to capture this event, then stop processing it
-    if (_controllerScriptingInterface.isTouchCaptured()) {
+    if (_controllerScriptingInterface->isTouchCaptured()) {
         return;
     }
 
@@ -1960,13 +2005,13 @@ void Application::touchUpdateEvent(QTouchEvent* event) {
 void Application::touchBeginEvent(QTouchEvent* event) {
     _altPressed = false;
     TouchEvent thisEvent(*event); // on touch begin, we don't compare to last event
-    _controllerScriptingInterface.emitTouchBeginEvent(thisEvent); // send events to any registered scripts
+    _controllerScriptingInterface->emitTouchBeginEvent(thisEvent); // send events to any registered scripts
 
     _lastTouchEvent = thisEvent; // and we reset our last event to this event before we call our update
     touchUpdateEvent(event);
 
     // if one of our scripts have asked to capture this event, then stop processing it
-    if (_controllerScriptingInterface.isTouchCaptured()) {
+    if (_controllerScriptingInterface->isTouchCaptured()) {
         return;
     }
 
@@ -1979,11 +2024,11 @@ void Application::touchBeginEvent(QTouchEvent* event) {
 void Application::touchEndEvent(QTouchEvent* event) {
     _altPressed = false;
     TouchEvent thisEvent(*event, _lastTouchEvent);
-    _controllerScriptingInterface.emitTouchEndEvent(thisEvent); // send events to any registered scripts
+    _controllerScriptingInterface->emitTouchEndEvent(thisEvent); // send events to any registered scripts
     _lastTouchEvent = thisEvent;
 
     // if one of our scripts have asked to capture this event, then stop processing it
-    if (_controllerScriptingInterface.isTouchCaptured()) {
+    if (_controllerScriptingInterface->isTouchCaptured()) {
         return;
     }
 
@@ -1996,10 +2041,10 @@ void Application::touchEndEvent(QTouchEvent* event) {
 
 void Application::wheelEvent(QWheelEvent* event) {
     _altPressed = false;
-    _controllerScriptingInterface.emitWheelEvent(event); // send events to any registered scripts
+    _controllerScriptingInterface->emitWheelEvent(event); // send events to any registered scripts
 
     // if one of our scripts have asked to capture this event, then stop processing it
-    if (_controllerScriptingInterface.isWheelCaptured()) {
+    if (_controllerScriptingInterface->isWheelCaptured()) {
         return;
     }
     
@@ -2164,7 +2209,7 @@ float Application::getAvatarSimrate() {
 }
 
 void Application::setLowVelocityFilter(bool lowVelocityFilter) {
-    InputDevice::setLowVelocityFilter(lowVelocityFilter);
+    controller::InputDevice::setLowVelocityFilter(lowVelocityFilter);
 }
 
 ivec2 Application::getMouse() const {
@@ -2578,6 +2623,30 @@ void Application::updateThreads(float deltaTime) {
     }
 }
 
+void Application::cycleCamera() {
+    auto menu = Menu::getInstance();
+    if (menu->isOptionChecked(MenuOption::FullscreenMirror)) {
+
+        menu->setIsOptionChecked(MenuOption::FullscreenMirror, false);
+        menu->setIsOptionChecked(MenuOption::FirstPerson, true);
+
+    } else if (menu->isOptionChecked(MenuOption::FirstPerson)) {
+
+        menu->setIsOptionChecked(MenuOption::FirstPerson, false);
+        menu->setIsOptionChecked(MenuOption::ThirdPerson, true);
+
+    } else if (menu->isOptionChecked(MenuOption::ThirdPerson)) {
+
+        menu->setIsOptionChecked(MenuOption::ThirdPerson, false);
+        menu->setIsOptionChecked(MenuOption::FullscreenMirror, true);
+
+    } else if (menu->isOptionChecked(MenuOption::IndependentMode)) {
+        // do nothing if in independe mode
+        return;
+    }
+    cameraMenuChanged(); // handle the menu change
+}
+
 void Application::cameraMenuChanged() {
     if (Menu::getInstance()->isOptionChecked(MenuOption::FullscreenMirror)) {
         if (_myCamera.getMode() != CAMERA_MODE_MIRROR) {
@@ -2694,13 +2763,9 @@ void Application::update(float deltaTime) {
     userInputMapper->setSensorToWorldMat(myAvatar->getSensorToWorldMatrix());
     userInputMapper->update(deltaTime);
 
-    // This needs to go after userInputMapper->update() because of the keyboard
     bool jointsCaptured = false;
-    auto inputPlugins = PluginManager::getInstance()->getInputPlugins();
-    foreach(auto inputPlugin, inputPlugins) {
-        QString name = inputPlugin->getName();
-        QAction* action = Menu::getInstance()->getActionForOption(name);
-        if (action && action->isChecked()) {
+    for (auto inputPlugin : PluginManager::getInstance()->getInputPlugins()) {
+        if (inputPlugin->isActive()) {
             inputPlugin->pluginUpdate(deltaTime, jointsCaptured);
             if (inputPlugin->isJointController()) {
                 jointsCaptured = true;
@@ -2708,19 +2773,14 @@ void Application::update(float deltaTime) {
         }
     }
 
-    // Dispatch input events
-    _controllerScriptingInterface.updateInputControllers();
-
     // Transfer the user inputs to the driveKeys
+    // FIXME can we drop drive keys and just have the avatar read the action states directly?
     myAvatar->clearDriveKeys();
     if (_myCamera.getMode() != CAMERA_MODE_INDEPENDENT) {
-        if (!_controllerScriptingInterface.areActionsCaptured()) {
-            myAvatar->setDriveKeys(FWD, userInputMapper->getActionState(UserInputMapper::LONGITUDINAL_FORWARD));
-            myAvatar->setDriveKeys(BACK, userInputMapper->getActionState(UserInputMapper::LONGITUDINAL_BACKWARD));
-            myAvatar->setDriveKeys(UP, userInputMapper->getActionState(UserInputMapper::VERTICAL_UP));
-            myAvatar->setDriveKeys(DOWN, userInputMapper->getActionState(UserInputMapper::VERTICAL_DOWN));
-            myAvatar->setDriveKeys(LEFT, userInputMapper->getActionState(UserInputMapper::LATERAL_LEFT));
-            myAvatar->setDriveKeys(RIGHT, userInputMapper->getActionState(UserInputMapper::LATERAL_RIGHT));
+        if (!_controllerScriptingInterface->areActionsCaptured()) {
+            myAvatar->setDriveKeys(TRANSLATE_Z, -1.0f * userInputMapper->getActionState(controller::Action::TRANSLATE_Z));
+            myAvatar->setDriveKeys(TRANSLATE_Y, userInputMapper->getActionState(controller::Action::TRANSLATE_Y));
+            myAvatar->setDriveKeys(TRANSLATE_X, userInputMapper->getActionState(controller::Action::TRANSLATE_X));
             if (deltaTime > FLT_EPSILON) {
                 // For rotations what we really want are meausures of "angles per second" (in order to prevent 
                 // fps-dependent spin rates) so we need to scale the units of the controller contribution.
@@ -2728,25 +2788,24 @@ void Application::update(float deltaTime) {
                 // controllers to provide a delta_per_second value rather than a raw delta.)
                 const float EXPECTED_FRAME_RATE = 60.0f;
                 float timeFactor = EXPECTED_FRAME_RATE * deltaTime;
-                myAvatar->setDriveKeys(ROT_UP, userInputMapper->getActionState(UserInputMapper::PITCH_UP) / timeFactor);
-                myAvatar->setDriveKeys(ROT_DOWN, userInputMapper->getActionState(UserInputMapper::PITCH_DOWN) / timeFactor);
-                myAvatar->setDriveKeys(ROT_LEFT, userInputMapper->getActionState(UserInputMapper::YAW_LEFT) / timeFactor);
-                myAvatar->setDriveKeys(ROT_RIGHT, userInputMapper->getActionState(UserInputMapper::YAW_RIGHT) / timeFactor);
+                myAvatar->setDriveKeys(PITCH, -1.0f * userInputMapper->getActionState(controller::Action::PITCH) / timeFactor);
+                myAvatar->setDriveKeys(YAW, -1.0f * userInputMapper->getActionState(controller::Action::YAW) / timeFactor);
+                myAvatar->setDriveKeys(STEP_YAW, -1.0f * userInputMapper->getActionState(controller::Action::STEP_YAW) / timeFactor);
             }
         }
-        myAvatar->setDriveKeys(BOOM_IN, userInputMapper->getActionState(UserInputMapper::BOOM_IN));
-        myAvatar->setDriveKeys(BOOM_OUT, userInputMapper->getActionState(UserInputMapper::BOOM_OUT));
+        myAvatar->setDriveKeys(ZOOM, userInputMapper->getActionState(controller::Action::TRANSLATE_CAMERA_Z));
     }
-    UserInputMapper::PoseValue leftHand = userInputMapper->getPoseState(UserInputMapper::LEFT_HAND);
-    UserInputMapper::PoseValue rightHand = userInputMapper->getPoseState(UserInputMapper::RIGHT_HAND);
+
+    controller::Pose leftHand = userInputMapper->getPoseState(controller::Action::LEFT_HAND);
+    controller::Pose rightHand = userInputMapper->getPoseState(controller::Action::RIGHT_HAND);
     Hand* hand = DependencyManager::get<AvatarManager>()->getMyAvatar()->getHand();
-    setPalmData(hand, leftHand, deltaTime, LEFT_HAND_INDEX, userInputMapper->getActionState(UserInputMapper::LEFT_HAND_CLICK));
-    setPalmData(hand, rightHand, deltaTime, RIGHT_HAND_INDEX, userInputMapper->getActionState(UserInputMapper::RIGHT_HAND_CLICK));
+    setPalmData(hand, leftHand, deltaTime, HandData::LeftHand, userInputMapper->getActionState(controller::Action::LEFT_HAND_CLICK));
+    setPalmData(hand, rightHand, deltaTime, HandData::RightHand, userInputMapper->getActionState(controller::Action::RIGHT_HAND_CLICK));
     if (Menu::getInstance()->isOptionChecked(MenuOption::EnableHandMouseInput)) {
-        emulateMouse(hand, userInputMapper->getActionState(UserInputMapper::LEFT_HAND_CLICK),
-            userInputMapper->getActionState(UserInputMapper::SHIFT), LEFT_HAND_INDEX);
-        emulateMouse(hand, userInputMapper->getActionState(UserInputMapper::RIGHT_HAND_CLICK),
-            userInputMapper->getActionState(UserInputMapper::SHIFT), RIGHT_HAND_INDEX);
+        emulateMouse(hand, userInputMapper->getActionState(controller::Action::LEFT_HAND_CLICK),
+            userInputMapper->getActionState(controller::Action::SHIFT), HandData::LeftHand);
+        emulateMouse(hand, userInputMapper->getActionState(controller::Action::RIGHT_HAND_CLICK),
+            userInputMapper->getActionState(controller::Action::SHIFT), HandData::RightHand);
     }
 
     updateThreads(deltaTime); // If running non-threaded, then give the threads some time to process...
@@ -4807,86 +4866,80 @@ mat4 Application::getHMDSensorPose() const {
     return mat4();
 }
 
-void Application::setPalmData(Hand* hand, UserInputMapper::PoseValue pose, float deltaTime, int index, float triggerValue) {
-    PalmData* palm;
-    bool foundHand = false;
-    for (size_t j = 0; j < hand->getNumPalms(); j++) {
-        if (hand->getPalms()[j].getSixenseID() == index) {
-            palm = &(hand->getPalms()[j]);
-            foundHand = true;
-            break;
+void Application::setPalmData(Hand* hand, const controller::Pose& pose, float deltaTime, HandData::Hand whichHand, float triggerValue) {
+
+    // NOTE: the Hand::modifyPalm() will allow the lambda to modify the palm data while ensuring some other user isn't
+    // reading or writing to the Palms. This is definitely not the best way of handling this, and I'd like to see more
+    // of this palm manipulation in the Hand class itself. But unfortunately the Hand and Palm don't knbow about
+    // controller::Pose. More work is needed to clean this up.
+    hand->modifyPalm(whichHand, [&](PalmData& palm) {
+        auto myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
+        palm.setActive(pose.isValid());
+
+        // transform from sensor space, to world space, to avatar model space.
+        glm::mat4 poseMat = createMatFromQuatAndPos(pose.getRotation(), pose.getTranslation());
+        glm::mat4 sensorToWorldMat = myAvatar->getSensorToWorldMatrix();
+        glm::mat4 modelMat = createMatFromQuatAndPos(myAvatar->getOrientation(), myAvatar->getPosition());
+        glm::mat4 objectPose = glm::inverse(modelMat) * sensorToWorldMat * poseMat;
+
+        glm::vec3 position = extractTranslation(objectPose);
+        glm::quat rotation = glm::quat_cast(objectPose);
+
+        //  Compute current velocity from position change
+        glm::vec3 rawVelocity;
+        if (deltaTime > 0.0f) {
+            rawVelocity = (position - palm.getRawPosition()) / deltaTime;
+        } else {
+            rawVelocity = glm::vec3(0.0f);
         }
-    }
-    if (!foundHand) {
-        PalmData newPalm(hand);
-        hand->getPalms().push_back(newPalm);
-        palm = &(hand->getPalms()[hand->getNumPalms() - 1]);
-        palm->setSixenseID(index);
-    }
+        palm.setRawVelocity(rawVelocity);   //  meters/sec
     
-    palm->setActive(pose.isValid());
+        //  Angular Velocity of Palm
+        glm::quat deltaRotation = rotation * glm::inverse(palm.getRawRotation());
+        glm::vec3 angularVelocity(0.0f);
+        float rotationAngle = glm::angle(deltaRotation);
+        if ((rotationAngle > EPSILON) && (deltaTime > 0.0f)) {
+            angularVelocity = glm::normalize(glm::axis(deltaRotation));
+            angularVelocity *= (rotationAngle / deltaTime);
+            palm.setRawAngularVelocity(angularVelocity);
+        } else {
+            palm.setRawAngularVelocity(glm::vec3(0.0f));
+        }
 
-    // transform from sensor space, to world space, to avatar model space.
-    glm::mat4 poseMat = createMatFromQuatAndPos(pose.getRotation(), pose.getTranslation());
-    glm::mat4 sensorToWorldMat = getMyAvatar()->getSensorToWorldMatrix();
-    glm::mat4 modelMat = createMatFromQuatAndPos(getMyAvatar()->getOrientation(), getMyAvatar()->getPosition());
-    glm::mat4 objectPose = glm::inverse(modelMat) * sensorToWorldMat * poseMat;
+        if (controller::InputDevice::getLowVelocityFilter()) {
+            //  Use a velocity sensitive filter to damp small motions and preserve large ones with
+            //  no latency.
+            float velocityFilter = glm::clamp(1.0f - glm::length(rawVelocity), 0.0f, 1.0f);
+            position = palm.getRawPosition() * velocityFilter + position * (1.0f - velocityFilter);
+            rotation = safeMix(palm.getRawRotation(), rotation, 1.0f - velocityFilter);
+        }
+        palm.setRawPosition(position);
+        palm.setRawRotation(rotation);
 
-    glm::vec3 position = extractTranslation(objectPose);
-    glm::quat rotation = glm::quat_cast(objectPose);
-
-    //  Compute current velocity from position change
-    glm::vec3 rawVelocity;
-    if (deltaTime > 0.0f) {
-        rawVelocity = (position - palm->getRawPosition()) / deltaTime;
-    } else {
-        rawVelocity = glm::vec3(0.0f);
-    }
-    palm->setRawVelocity(rawVelocity);   //  meters/sec
-    
-    //  Angular Velocity of Palm
-    glm::quat deltaRotation = rotation * glm::inverse(palm->getRawRotation());
-    glm::vec3 angularVelocity(0.0f);
-    float rotationAngle = glm::angle(deltaRotation);
-    if ((rotationAngle > EPSILON) && (deltaTime > 0.0f)) {
-        angularVelocity = glm::normalize(glm::axis(deltaRotation));
-        angularVelocity *= (rotationAngle / deltaTime);
-        palm->setRawAngularVelocity(angularVelocity);
-    } else {
-        palm->setRawAngularVelocity(glm::vec3(0.0f));
-    }
-
-    if (InputDevice::getLowVelocityFilter()) {
-        //  Use a velocity sensitive filter to damp small motions and preserve large ones with
-        //  no latency.
-        float velocityFilter = glm::clamp(1.0f - glm::length(rawVelocity), 0.0f, 1.0f);
-        position = palm->getRawPosition() * velocityFilter + position * (1.0f - velocityFilter);
-        rotation = safeMix(palm->getRawRotation(), rotation, 1.0f - velocityFilter);
-    }
-    palm->setRawPosition(position);
-    palm->setRawRotation(rotation);
-
-    // Store the one fingertip in the palm structure so we can track velocity
-    const float FINGER_LENGTH = 0.3f;   //  meters
-    const glm::vec3 FINGER_VECTOR(0.0f, FINGER_LENGTH, 0.0f);
-    const glm::vec3 newTipPosition = position + rotation * FINGER_VECTOR;
-    glm::vec3 oldTipPosition = palm->getTipRawPosition();
-    if (deltaTime > 0.0f) {
-        palm->setTipVelocity((newTipPosition - oldTipPosition) / deltaTime);
-    } else {
-        palm->setTipVelocity(glm::vec3(0.0f));
-    }
-    palm->setTipPosition(newTipPosition);
-    palm->setTrigger(triggerValue);
+        // Store the one fingertip in the palm structure so we can track velocity
+        const float FINGER_LENGTH = 0.3f;   //  meters
+        const glm::vec3 FINGER_VECTOR(0.0f, FINGER_LENGTH, 0.0f);
+        const glm::vec3 newTipPosition = position + rotation * FINGER_VECTOR;
+        glm::vec3 oldTipPosition = palm.getTipRawPosition();
+        if (deltaTime > 0.0f) {
+            palm.setTipVelocity((newTipPosition - oldTipPosition) / deltaTime);
+        } else {
+            palm.setTipVelocity(glm::vec3(0.0f));
+        }
+        palm.setTipPosition(newTipPosition);
+        palm.setTrigger(triggerValue); // FIXME - we want to get rid of this idea of PalmData having a trigger
+    });
 }
 
-void Application::emulateMouse(Hand* hand, float click, float shift, int index) {
+void Application::emulateMouse(Hand* hand, float click, float shift, HandData::Hand whichHand) {
+    auto palms = hand->getCopyOfPalms();
+
     // Locate the palm, if it exists and is active
     PalmData* palm;
     bool foundHand = false;
-    for (size_t j = 0; j < hand->getNumPalms(); j++) {
-        if (hand->getPalms()[j].getSixenseID() == index) {
-            palm = &(hand->getPalms()[j]);
+    for (size_t j = 0; j < palms.size(); j++) {
+        if (palms[j].whichHand() == whichHand) {
+            palm = &(palms[j]);
             foundHand = true;
             break;
         }
@@ -4898,12 +4951,14 @@ void Application::emulateMouse(Hand* hand, float click, float shift, int index) 
     // Process the mouse events
     QPoint pos;
 
-    unsigned int deviceID = index == 0 ? CONTROLLER_0_EVENT : CONTROLLER_1_EVENT;
+
+    // FIXME - this mouse emulation stuff needs to be reworked for new controller input plugins
+    unsigned int deviceID = whichHand == HandData::LeftHand ? CONTROLLER_0_EVENT : CONTROLLER_1_EVENT;
+    int index = (int)whichHand; // FIXME - hack attack
 
     if (isHMDMode()) {
         pos = getApplicationCompositor().getPalmClickLocation(palm);
-    }
-    else {
+    } else {
         // Get directon relative to avatar orientation
         glm::vec3 direction = glm::inverse(getMyAvatar()->getOrientation()) * palm->getFingerDirection();
 
@@ -4912,7 +4967,7 @@ void Application::emulateMouse(Hand* hand, float click, float shift, int index) 
         float yAngle = 0.5f - ((atan2f(direction.z, direction.y) + (float)M_PI_2));
         auto canvasSize = getCanvasSize();
         // Get the pixel range over which the xAngle and yAngle are scaled
-        float cursorRange = canvasSize.x * InputDevice::getCursorPixelRangeMult();
+        float cursorRange = canvasSize.x * controller::InputDevice::getCursorPixelRangeMult();
 
         pos.setX(canvasSize.x / 2.0f + cursorRange * xAngle);
         pos.setY(canvasSize.y / 2.0f + cursorRange * yAngle);

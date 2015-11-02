@@ -89,7 +89,7 @@ bool OpenVrDisplayPlugin::isSupported() const {
 }
 
 void OpenVrDisplayPlugin::activate() {
-    CONTAINER->setIsOptionChecked(StandingHMDSensorMode, true);
+    _container->setIsOptionChecked(StandingHMDSensorMode, true);
 
     hmdRefCount++;
     vr::HmdError eError = vr::HmdError_None;
@@ -132,7 +132,7 @@ void OpenVrDisplayPlugin::activate() {
 }
 
 void OpenVrDisplayPlugin::deactivate() {
-    CONTAINER->setIsOptionChecked(StandingHMDSensorMode, false);
+    _container->setIsOptionChecked(StandingHMDSensorMode, false);
 
     hmdRefCount--;
 

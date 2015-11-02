@@ -37,6 +37,8 @@
 #define __hifi__Rig__
 
 #include <QObject>
+#include <QMutex>
+#include <QScriptValue>
 
 #include "JointState.h"  // We might want to change this (later) to something that doesn't depend on gpu, fbx and model. -HRS
 
@@ -52,6 +54,12 @@ typedef std::shared_ptr<Rig> RigPointer;
 
 class Rig : public QObject, public std::enable_shared_from_this<Rig> {
 public:
+    struct StateHandler {
+        AnimVariantMap results;
+        QStringList propertyNames;
+        QScriptValue function;
+        bool useNames;
+    };
 
     struct HeadParameters {
         float leanSideways = 0.0f; // degrees
@@ -200,10 +208,14 @@ public:
     AnimNode::ConstPointer getAnimNode() const { return _animNode; }
     AnimSkeleton::ConstPointer getAnimSkeleton() const { return _animSkeleton; }
     bool disableHands {false}; // should go away with rig animation (and Rig::inverseKinematics)
+    QScriptValue addAnimationStateHandler(QScriptValue handler, QScriptValue propertiesList);
+    void removeAnimationStateHandler(QScriptValue handler);
+    void animationStateHandlerResult(int identifier, QScriptValue result);
 
     bool getModelOffset(glm::vec3& modelOffsetOut) const;
 
  protected:
+    void updateAnimationStateHandlers();
 
     void updateLeanJoint(int index, float leanSideways, float leanForward, float torsoTwist);
     void updateNeckJoint(int index, const HeadParameters& params);
@@ -247,6 +259,11 @@ public:
 
     SimpleMovingAverage _averageForwardSpeed{ 10 };
     SimpleMovingAverage _averageLateralSpeed{ 10 };
+
+private:
+    QMap<int, StateHandler> _stateHandlers;
+    int _nextStateHandlerId {0};
+    QMutex _stateMutex;
 };
 
 #endif /* defined(__hifi__Rig__) */

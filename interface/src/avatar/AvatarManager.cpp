@@ -248,6 +248,16 @@ QVector<AvatarManager::LocalLight> AvatarManager::getLocalLights() const {
     return _localLights;
 }
 
+QVector<QUuid> AvatarManager::getAvatarIdentifiers() {
+    QReadLocker locker(&_hashLock);
+    return _avatarHash.keys().toVector();
+}
+AvatarData* AvatarManager::getAvatar(QUuid avatarID) {
+    QReadLocker locker(&_hashLock);
+    return _avatarHash[avatarID].get();  // Non-obvious: A bogus avatarID answers your own avatar.
+}
+
+
 void AvatarManager::getObjectsToDelete(VectorOfMotionStates& result) {
     result.clear();
     result.swap(_motionStatesToDelete);
@@ -356,5 +366,10 @@ AvatarSharedPointer AvatarManager::getAvatarBySessionID(const QUuid& sessionID) 
         return std::static_pointer_cast<Avatar>(_myAvatar);
     }
     QReadLocker locker(&_hashLock);
-    return _avatarHash[sessionID];
+    auto iter = _avatarHash.find(sessionID);
+    if (iter != _avatarHash.end()) {
+        return iter.value();
+    } else {
+        return AvatarSharedPointer();
+    }
 }

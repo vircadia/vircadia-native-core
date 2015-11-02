@@ -82,12 +82,12 @@ void PhysicsEngine::addObject(ObjectMotionState* motionState) {
                 btCollisionShape* shape = motionState->getShape();
                 assert(shape);
                 body = new btRigidBody(mass, motionState, shape, inertia);
+                motionState->setRigidBody(body);
             } else {
                 body->setMassProps(mass, inertia);
             }
             body->setCollisionFlags(btCollisionObject::CF_KINEMATIC_OBJECT);
             body->updateInertiaTensor();
-            motionState->setRigidBody(body);
             motionState->updateBodyVelocities();
             const float KINEMATIC_LINEAR_VELOCITY_THRESHOLD = 0.01f;  // 1 cm/sec
             const float KINEMATIC_ANGULAR_VELOCITY_THRESHOLD = 0.01f;  // ~1 deg/sec
@@ -101,12 +101,15 @@ void PhysicsEngine::addObject(ObjectMotionState* motionState) {
             shape->calculateLocalInertia(mass, inertia);
             if (!body) {
                 body = new btRigidBody(mass, motionState, shape, inertia);
+                motionState->setRigidBody(body);
             } else {
                 body->setMassProps(mass, inertia);
             }
+            body->setCollisionFlags(body->getCollisionFlags() & ~(btCollisionObject::CF_KINEMATIC_OBJECT |
+                                                                  btCollisionObject::CF_STATIC_OBJECT));
             body->updateInertiaTensor();
-            motionState->setRigidBody(body);
             motionState->updateBodyVelocities();
+
             // NOTE: Bullet will deactivate any object whose velocity is below these thresholds for longer than 2 seconds.
             // (the 2 seconds is determined by: static btRigidBody::gDeactivationTime
             const float DYNAMIC_LINEAR_VELOCITY_THRESHOLD = 0.05f;  // 5 cm/sec
@@ -123,12 +126,12 @@ void PhysicsEngine::addObject(ObjectMotionState* motionState) {
             if (!body) {
                 assert(motionState->getShape());
                 body = new btRigidBody(mass, motionState, motionState->getShape(), inertia);
+                motionState->setRigidBody(body);
             } else {
                 body->setMassProps(mass, inertia);
             }
             body->setCollisionFlags(btCollisionObject::CF_STATIC_OBJECT);
             body->updateInertiaTensor();
-            motionState->setRigidBody(body);
             break;
         }
     }
@@ -241,7 +244,7 @@ void PhysicsEngine::stepSimulation() {
     float timeStep = btMin(dt, MAX_TIMESTEP);
 
     if (_myAvatarController) {
-        // ADEBUG TODO: move this stuff outside and in front of stepSimulation, because 
+        // ADEBUG TODO: move this stuff outside and in front of stepSimulation, because
         // the updateShapeIfNecessary() call needs info from MyAvatar and should
         // be done on the main thread during the pre-simulation stuff
         if (_myAvatarController->needsRemoval()) {
@@ -259,7 +262,12 @@ void PhysicsEngine::stepSimulation() {
         _myAvatarController->preSimulation();
     }
 
-    int numSubsteps = _dynamicsWorld->stepSimulation(timeStep, PHYSICS_ENGINE_MAX_NUM_SUBSTEPS, PHYSICS_ENGINE_FIXED_SUBSTEP);
+    auto onSubStep = [this]() {
+        updateContactMap();
+    };
+
+    int numSubsteps = _dynamicsWorld->stepSimulationWithSubstepCallback(timeStep, PHYSICS_ENGINE_MAX_NUM_SUBSTEPS,
+                                                                        PHYSICS_ENGINE_FIXED_SUBSTEP, onSubStep);
     if (numSubsteps > 0) {
         BT_PROFILE("postSimulation");
         _numSubsteps += (uint32_t)numSubsteps;
@@ -268,7 +276,7 @@ void PhysicsEngine::stepSimulation() {
         if (_myAvatarController) {
             _myAvatarController->postSimulation();
         }
-        updateContactMap();
+
         _hasOutgoingChanges = true;
     }
 }

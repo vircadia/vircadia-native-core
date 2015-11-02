@@ -89,7 +89,6 @@ AssetRequest* AssetClient::createRequest(const QString& hash, const QString& ext
         
         // Move to the AssetClient thread in case we are not currently on that thread (which will usually be the case)
         request->moveToThread(thread());
-        request->setParent(this);
         
         return request;
     } else {
@@ -105,7 +104,6 @@ AssetUpload* AssetClient::createUpload(const QString& filename) {
         auto upload = new AssetUpload(filename);
         
         upload->moveToThread(thread());
-        upload->setParent(this);
         
         return upload;
     } else {
@@ -118,7 +116,6 @@ AssetUpload* AssetClient::createUpload(const QByteArray& data, const QString& ex
         auto upload = new AssetUpload(data, extension);
         
         upload->moveToThread(thread());
-        upload->setParent(this);
         
         return upload;
     } else {
