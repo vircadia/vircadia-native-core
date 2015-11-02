@@ -1295,8 +1295,13 @@ void MyAvatar::prepareForPhysicsSimulation() {
     relayDriveKeysToCharacterController();
     _characterController.setTargetVelocity(getTargetVelocity());
     _characterController.setAvatarPositionAndOrientation(getPosition(), getOrientation());
-    updateHMDFollowVelocity();
-    _characterController.setHMDVelocity(_hmdFollowVelocity);
+    if (qApp->isHMDMode()) {
+        updateHMDFollowVelocity();
+        _characterController.setHMDVelocity(_hmdFollowVelocity);
+    } else {
+        _characterController.setHMDVelocity(Vectors::ZERO);
+        _isFollowingHMD = false;
+    }
 }
 
 void MyAvatar::harvestResultsFromPhysicsSimulation() {
