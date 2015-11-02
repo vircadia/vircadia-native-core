@@ -365,15 +365,16 @@ void MyAvatar::updateHMDFollowVelocity() {
     // compute offset to body's target position (in sensor-frame)
     auto sensorBodyMatrix = deriveBodyFromHMDSensor();
     _hmdFollowOffset = extractTranslation(sensorBodyMatrix) - extractTranslation(_bodySensorMatrix);
-    if (_hmdFollowOffset.y < 0.0f) {
+    glm::vec3 truncatedOffset = _hmdFollowOffset;
+    if (truncatedOffset.y < 0.0f) {
         // don't pull the body DOWN to match the target (allow animation system to squat)
-        _hmdFollowOffset.y = 0.0f;
+        truncatedOffset.y = 0.0f;
     }
 
     bool needNewFollowSpeed = (_isFollowingHMD && _hmdFollowSpeed == 0.0f);
     if (!needNewFollowSpeed) {
         // check to see if offset has exceeded its threshold
-        float distance = glm::length(_hmdFollowOffset);
+        float distance = glm::length(truncatedOffset);
         const float MAX_HMD_HIP_SHIFT = 0.2f;
         if (distance > MAX_HMD_HIP_SHIFT) {
             _isFollowingHMD = true;
