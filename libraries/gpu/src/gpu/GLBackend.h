@@ -18,7 +18,7 @@
 #include <utility>
 #include <list>
 
-#include "GPUConfig.h"
+#include <gl/Config.h>
 
 #include "Context.h"
 

@@ -20,10 +20,11 @@ var BALL_SIZE = 0.08;
 var PADDLE_SIZE = 0.20;
 var PADDLE_THICKNESS = 0.06;
 var PADDLE_COLOR = { red: 184, green: 134, blue: 11 };
-var BALL_COLOR = { red: 255, green: 0, blue: 0 };
+var BALL_COLOR = { red: 0, green: 255, blue: 0 };
 var LINE_COLOR = { red: 255, green: 255, blue: 0 };
 var PADDLE_BOX_OFFSET = { x: 0.05, y: 0.0, z: 0.0 };
 
+//probably we need to fix these initial values (offsets and orientation)
 var HOLD_POSITION_LEFT_OFFSET = { x: -0.15, y: 0.05, z: -0.05 }; 
 var HOLD_POSITION_RIGHT_OFFSET = { x: -0.15, y: 0.05, z: 0.05 }; 
 var PADDLE_ORIENTATION = Quat.fromPitchYawRollDegrees(0,0,0);
@@ -32,18 +33,7 @@ var SPRING_FORCE = 15.0;
 var lastSoundTime = 0; 
 var gameOn = false; 
 var leftHanded = true; 
-var controllerID;
 
-
-function setControllerID() {
-    if (leftHanded)  {
-        controllerID = 1;
-    } else {
-        controllerID = 3; 
-    }
-}
-
-setControllerID(); 
 Menu.addMenu("PaddleBall");
 Menu.addMenuItem({ menuName: "PaddleBall", menuItemName: "Left-Handed", isCheckable: true, isChecked: true });
 
@@ -63,7 +53,7 @@ var ball, paddle, paddleModel, line;
 function createEntities() {
     ball = Entities.addEntity(
                 { type: "Sphere",
-                position: Controller.getSpatialControlPosition(controllerID),   
+                position: leftHanded ? MyAvatar.leftHandPose.translation : MyAvatar.rightHandPose.translation,
                 dimensions: { x: BALL_SIZE, y: BALL_SIZE, z: BALL_SIZE }, 
                   color: BALL_COLOR,
                   gravity: {  x: 0, y: GRAVITY, z: 0 },
@@ -73,28 +63,28 @@ function createEntities() {
 
     paddle = Entities.addEntity(
                 { type: "Box",
-                position: Controller.getSpatialControlPosition(controllerID),   
+                position: leftHanded ? MyAvatar.leftHandPose.translation : MyAvatar.rightHandPose.translation,
                 dimensions: { x: PADDLE_SIZE, y: PADDLE_THICKNESS, z: PADDLE_SIZE * 0.80 }, 
                   color: PADDLE_COLOR,
                   gravity: {  x: 0, y: 0, z: 0 },
                 ignoreCollisions: false,
                 damping: 0.10,
                 visible: false,
-                rotation: Quat.multiply(MyAvatar.orientation, Controller.getSpatialControlRawRotation(controllerID)),
-                collisionsWillMove: false });
+				rotation : leftHanded ? MyAvatar.leftHandPose.rotation : MyAvatar.rightHandPose.rotation,
+				collisionsWillMove: false });
 
     modelURL = "http://public.highfidelity.io/models/attachments/pong_paddle.fbx";
     paddleModel = Entities.addEntity(
                 { type: "Model",
-                position: Vec3.sum(Controller.getSpatialControlPosition(controllerID), PADDLE_BOX_OFFSET),   
+                position: Vec3.sum( leftHanded ? MyAvatar.leftHandPose.translation : MyAvatar.rightHandPose.translation, PADDLE_BOX_OFFSET),   
                 dimensions: { x: PADDLE_SIZE * 1.5, y: PADDLE_THICKNESS, z: PADDLE_SIZE * 1.25 }, 
                   color: PADDLE_COLOR,
                   gravity: {  x: 0, y: 0, z: 0 },
                 ignoreCollisions: true,
                 modelURL: modelURL,
                 damping: 0.10,
-                rotation: Quat.multiply(MyAvatar.orientation, Controller.getSpatialControlRawRotation(controllerID)),
-                collisionsWillMove: false });
+                rotation : leftHanded ? MyAvatar.leftHandPose.rotation : MyAvatar.rightHandPose.rotation,
+				collisionsWillMove: false });
 
     line = Overlays.addOverlay("line3d", {
                 start: { x: 0, y: 0, z: 0 },
@@ -118,7 +108,7 @@ function deleteEntities() {
 }
 
 function update(deltaTime) {
-    var palmPosition = Controller.getSpatialControlPosition(controllerID);
+    var palmPosition = leftHanded ? MyAvatar.leftHandPose.translation : MyAvatar.rightHandPose.translation;
     var controllerActive = (Vec3.length(palmPosition) > 0);
 
     if (!gameOn && controllerActive) {
@@ -133,8 +123,8 @@ function update(deltaTime) {
     }
 
         var paddleOrientation = leftHanded ? PADDLE_ORIENTATION : Quat.multiply(PADDLE_ORIENTATION, Quat.fromPitchYawRollDegrees(0, 180, 0));
-        var paddleWorldOrientation = Quat.multiply(Quat.multiply(MyAvatar.orientation, Controller.getSpatialControlRawRotation(controllerID)), paddleOrientation);
-        var holdPosition = Vec3.sum(leftHanded ? MyAvatar.getLeftPalmPosition() : MyAvatar.getRightPalmPosition(), 
+        var paddleWorldOrientation = Quat.multiply(leftHanded ? MyAvatar.leftHandPose.rotation : MyAvatar.rightHandPose.rotation, paddleOrientation);
+        var holdPosition = Vec3.sum(leftHanded ? MyAvatar.leftHandPose.translation : MyAvatar.rightHandPose.translation, 
                                     Vec3.multiplyQbyV(paddleWorldOrientation, leftHanded ? HOLD_POSITION_LEFT_OFFSET : HOLD_POSITION_RIGHT_OFFSET ));
 
         var props = Entities.getEntityProperties(ball);
@@ -146,10 +136,10 @@ function update(deltaTime) {
         Entities.editEntity(ball, { velocity: ballVelocity });
         Overlays.editOverlay(line, { start: props.position, end: holdPosition });
         Entities.editEntity(paddle, { position: holdPosition, 
-                                      velocity: Controller.getSpatialControlVelocity(controllerID),
+                                      velocity: leftHanded ? MyAvatar.leftHandPose.velocity : MyAvatar.rightHandPose.velocity,
                                       rotation: paddleWorldOrientation });
         Entities.editEntity(paddleModel, { position: Vec3.sum(holdPosition, Vec3.multiplyQbyV(paddleWorldOrientation, PADDLE_BOX_OFFSET)), 
-                                      velocity: Controller.getSpatialControlVelocity(controllerID),
+                                      velocity: leftHanded ? MyAvatar.leftHandPose.velocity : MyAvatar.rightHandPose.velocity,
                                       rotation: paddleWorldOrientation });
 
 }
@@ -182,7 +172,6 @@ function menuItemEvent(menuItem) {
         leftHanded = Menu.isOptionChecked("Left-Handed");
     }
     if ((leftHanded != oldHanded) && gameOn) {
-        setControllerID();
         deleteEntities(); 
         createEntities();
     }

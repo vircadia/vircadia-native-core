@@ -8,8 +8,8 @@ set_target_properties(${TARGET_NAME} PROPERTIES FOLDER "Tests/manual-tests/")
 #include_oglplus()
 
 # link in the shared libraries
-link_hifi_libraries(shared octree environment gpu model render fbx networking entities 
-                    script-engine physics
+link_hifi_libraries(shared octree environment gl gpu model render fbx networking entities 
+                    script-engine physics 
                     render-utils entities-renderer)
 
 include_directories("${PROJECT_BINARY_DIR}/../../libraries/gpu/")

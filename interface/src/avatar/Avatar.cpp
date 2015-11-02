@@ -454,7 +454,7 @@ void Avatar::render(RenderArgs* renderArgs, const glm::vec3& cameraPosition) {
         */
 
         bool renderBounding = Menu::getInstance()->isOptionChecked(MenuOption::RenderBoundingCollisionShapes);
-        if (renderBounding && shouldRenderHead(renderArgs)) {
+        if (renderBounding && shouldRenderHead(renderArgs) && _skeletonModel.isRenderable()) {
             _skeletonModel.renderBoundingCollisionShapes(*renderArgs->_batch, 0.7f);
         }
 
@@ -1177,22 +1177,6 @@ glm::vec3 Avatar::getLeftPalmPosition() {
     return leftHandPosition;
 }
 
-glm::vec3 Avatar::getLeftPalmVelocity() {
-    const PalmData* palm = getHand()->getPalm(LEFT_HAND_INDEX);
-    if (palm != NULL) {
-        return palm->getVelocity();
-    }
-    return glm::vec3(0.0f);
-}
-
-glm::vec3 Avatar::getLeftPalmAngularVelocity() {
-    const PalmData* palm = getHand()->getPalm(LEFT_HAND_INDEX);
-    if (palm != NULL) {
-        return palm->getRawAngularVelocity();
-    }
-    return glm::vec3(0.0f);
-}
-
 glm::quat Avatar::getLeftPalmRotation() {
     glm::quat leftRotation;
     getSkeletonModel().getJointRotationInWorldFrame(getSkeletonModel().getLeftHandJointIndex(), leftRotation);
@@ -1206,22 +1190,6 @@ glm::vec3 Avatar::getRightPalmPosition() {
     getSkeletonModel().getJointRotationInWorldFrame(getSkeletonModel().getRightHandJointIndex(), rightRotation);
     rightHandPosition += HAND_TO_PALM_OFFSET * glm::inverse(rightRotation);
     return rightHandPosition;
-}
-
-glm::vec3 Avatar::getRightPalmVelocity() {
-    const PalmData* palm = getHand()->getPalm(RIGHT_HAND_INDEX);
-    if (palm != NULL) {
-        return palm->getVelocity();
-    }
-    return glm::vec3(0.0f);
-}
-
-glm::vec3 Avatar::getRightPalmAngularVelocity() {
-    const PalmData* palm = getHand()->getPalm(RIGHT_HAND_INDEX);
-    if (palm != NULL) {
-        return palm->getRawAngularVelocity();
-    }
-    return glm::vec3(0.0f);
 }
 
 glm::quat Avatar::getRightPalmRotation() {

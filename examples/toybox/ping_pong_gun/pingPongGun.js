@@ -45,6 +45,12 @@
         green: 255,
         blue: 255
     };
+    
+    var TRIGGER_CONTROLS = [
+        Controller.Standard.LT,
+        Controller.Standard.RT,
+    ];
+    
 
     PingPongGun.prototype = {
         hand: null,
@@ -53,11 +59,11 @@
         canShoot: false,
         canShootTimeout: null,
         setRightHand: function() {
-            this.hand = 'RIGHT';
+            this.hand = 1;
         },
 
         setLeftHand: function() {
-            this.hand = 'LEFT';
+            this.hand = 0;
         },
 
         startNearGrab: function() {
@@ -92,12 +98,7 @@
         },
 
         checkTriggerPressure: function(gunHand) {
-            var handClickString = gunHand + "_HAND_CLICK";
-
-            var handClick = Controller.findAction(handClickString);
-
-            this.triggerValue = Controller.getActionValue(handClick);
-
+            this.triggerValue = Controller.getValue(TRIGGER_CONTROLS[gunHand]);
             if (this.triggerValue < RELOAD_THRESHOLD) {
                 // print('RELOAD');
                 this.canShoot = true;

@@ -21,13 +21,14 @@
 #include <QtScript/QScriptEngine>
 
 #include <AnimationCache.h>
+#include <AnimVariant.h>
 #include <AvatarData.h>
 #include <AvatarHashMap.h>
 #include <LimitedNodeList.h>
 #include <EntityItemID.h>
 #include <EntitiesScriptEngineProvider.h>
 
-#include "AbstractControllerScriptingInterface.h"
+#include "MouseEvent.h"
 #include "ArrayBufferClass.h"
 #include "AudioScriptingInterface.h"
 #include "Quat.h"
@@ -53,7 +54,6 @@ class ScriptEngine : public QScriptEngine, public ScriptUser, public EntitiesScr
 public:
     ScriptEngine(const QString& scriptContents = NO_SCRIPT,
                  const QString& fileNameString = QString(""),
-                 AbstractControllerScriptingInterface* controllerScriptingInterface = NULL,
                  bool wantSignals = true);
 
     ~ScriptEngine();
@@ -141,6 +141,9 @@ public:
 
     // NOTE - this is used by the TypedArray implemetation. we need to review this for thread safety
     ArrayBufferClass* getArrayBufferClass() { return _arrayBufferClass; }
+
+public slots:
+    void callAnimationStateHandler(QScriptValue callback, AnimVariantMap parameters, QStringList names, bool useNames, AnimVariantResultHandler resultHandler);
 
 signals:
     void scriptLoaded(const QString& scriptFilename);

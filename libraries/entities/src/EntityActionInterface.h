@@ -47,6 +47,7 @@ public:
     static QString actionTypeToString(EntityActionType actionType);
 
     virtual bool lifetimeIsOver() { return false; }
+    virtual quint64 getExpires() { return 0; }
 
     bool locallyAddedButNotYetReceived = false;
 
