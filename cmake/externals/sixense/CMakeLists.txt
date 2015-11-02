@@ -6,8 +6,8 @@ string(TOUPPER ${EXTERNAL_NAME} EXTERNAL_NAME_UPPER)
 
 ExternalProject_Add(
   ${EXTERNAL_NAME}
-  URL http://hifi-public.s3.amazonaws.com/dependencies/SixenseSDK_071615.zip
-  URL_MD5 752a3901f334124e9cffc2ba4136ef7d
+  URL https://hifi-public.s3.amazonaws.com/dependencies/SixenseSDK_102215.zip
+  URL_MD5 93c3a6795cce777a0f472b09532935f1
   CONFIGURE_COMMAND ""
   BUILD_COMMAND ""
   INSTALL_COMMAND ""
