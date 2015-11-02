@@ -188,7 +188,6 @@ private:
     static bool checkSyntax(const QScriptProgram& program);
     static bool checkExceptions(QScriptEngine& engine, const QString& fileName);
     
-    AbstractControllerScriptingInterface* _controllerScriptingInterface;
     QString _fileNameString;
     Quat _quatLibrary;
     Vec3 _vec3Library;
