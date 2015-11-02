@@ -331,7 +331,7 @@ void AnimTests::testTokenizer() {
     AnimExpression::Token token = e.consumeToken(str, iter);
     QVERIFY(token.type == AnimExpression::Token::LeftParen);
     token = e.consumeToken(str, iter);
-    QVERIFY(token.type == AnimExpression::Token::LiteralInt);
+    QVERIFY(token.type == AnimExpression::Token::Int);
     QVERIFY(token.intVal == 10);
     token = e.consumeToken(str, iter);
     QVERIFY(token.type == AnimExpression::Token::Plus);
@@ -343,7 +343,7 @@ void AnimTests::testTokenizer() {
     token = e.consumeToken(str, iter);
     QVERIFY(token.type == AnimExpression::Token::GreaterThanEqual);
     token = e.consumeToken(str, iter);
-    QVERIFY(token.type == AnimExpression::Token::LiteralFloat);
+    QVERIFY(token.type == AnimExpression::Token::Float);
     QVERIFY(fabsf(token.floatVal - 20.1f) < 0.0001f);
     token = e.consumeToken(str, iter);
     QVERIFY(token.type == AnimExpression::Token::And);

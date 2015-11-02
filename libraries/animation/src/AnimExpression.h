@@ -25,11 +25,8 @@ protected:
         enum Type {
             End = 0,
             Identifier,
-            LiteralInt,
-            LiteralFloat,
-            LiteralVec3,
-            LiteralVec4,
-            LiteralQuat,
+            Int,
+            Float,
             And,
             Or,
             GreaterThan,
@@ -50,8 +47,8 @@ protected:
         };
         Token(Type type) : type(type) {}
         Token(const QStringRef& strRef) : type(Type::Identifier), strVal(strRef.toString()) {}
-        Token(int val) : type(Type::LiteralInt), intVal(val) {}
-        Token(float val) : type(Type::LiteralFloat), floatVal(val) {}
+        Token(int val) : type(Type::Int), intVal(val) {}
+        Token(float val) : type(Type::Float), floatVal(val) {}
         Type type = End;
         QString strVal;
         int intVal;
