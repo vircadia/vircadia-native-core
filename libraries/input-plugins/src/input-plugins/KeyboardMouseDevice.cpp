@@ -68,9 +68,11 @@ void KeyboardMouseDevice::mouseReleaseEvent(QMouseEvent* event, unsigned int dev
     auto input = makeInput((Qt::MouseButton) event->button());
     _buttonPressedMap.erase(input.getChannel());
 
+    // if we pressed and released at the same location, then create a "_CLICKED" input for this button
+    // we might want to add some small tolerance to this so if you do a small drag it still counts as
+    // a clicked.
     if (_mousePressAt == event->pos()) {
-        auto input = makeInput((Qt::MouseButton) event->button(), true); // clicked
-        auto result = _buttonPressedMap.insert(input.getChannel());
+        _buttonPressedMap.insert(makeInput((Qt::MouseButton) event->button(), true).getChannel());
     }
 }
 
@@ -157,13 +159,13 @@ controller::Input KeyboardMouseDevice::makeInput(Qt::Key code) const {
 controller::Input KeyboardMouseDevice::makeInput(Qt::MouseButton code, bool quickClicked) const {
     switch (code) {
         case Qt::LeftButton:
-            return controller::Input(_deviceID, quickClicked ? MOUSE_BUTTON_LEFT_QUICK_CLICK : 
+            return controller::Input(_deviceID, quickClicked ? MOUSE_BUTTON_LEFT_CLICKED : 
                                                 MOUSE_BUTTON_LEFT, controller::ChannelType::BUTTON);
         case Qt::RightButton:
-            return controller::Input(_deviceID, quickClicked ? MOUSE_BUTTON_RIGHT_QUICK_CLICK : 
+            return controller::Input(_deviceID, quickClicked ? MOUSE_BUTTON_RIGHT_CLICKED :
                                                 MOUSE_BUTTON_RIGHT, controller::ChannelType::BUTTON);
         case Qt::MiddleButton:
-            return controller::Input(_deviceID, quickClicked ? MOUSE_BUTTON_MIDDLE_QUICK_CLICK : 
+            return controller::Input(_deviceID, quickClicked ? MOUSE_BUTTON_MIDDLE_CLICKED :
                                                 MOUSE_BUTTON_MIDDLE, controller::ChannelType::BUTTON);
         default:
             return controller::Input();
