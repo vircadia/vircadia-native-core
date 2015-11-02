@@ -18,6 +18,33 @@
 
 #include "SDL2Manager.h"
 
+#ifdef HAVE_SDL2
+static_assert(
+    (int)controller::A == (int)SDL_CONTROLLER_BUTTON_A &&
+    (int)controller::B == (int)SDL_CONTROLLER_BUTTON_B &&
+    (int)controller::X == (int)SDL_CONTROLLER_BUTTON_X &&
+    (int)controller::Y == (int)SDL_CONTROLLER_BUTTON_Y &&
+    (int)controller::BACK == (int)SDL_CONTROLLER_BUTTON_BACK &&
+    (int)controller::GUIDE == (int)SDL_CONTROLLER_BUTTON_GUIDE &&
+    (int)controller::START == (int)SDL_CONTROLLER_BUTTON_START &&
+    (int)controller::LS == (int)SDL_CONTROLLER_BUTTON_LEFTSTICK &&
+    (int)controller::RS == (int)SDL_CONTROLLER_BUTTON_RIGHTSTICK &&
+    (int)controller::LB == (int)SDL_CONTROLLER_BUTTON_LEFTSHOULDER &&
+    (int)controller::RB == (int)SDL_CONTROLLER_BUTTON_RIGHTSHOULDER &&
+    (int)controller::DU == (int)SDL_CONTROLLER_BUTTON_DPAD_UP &&
+    (int)controller::DD == (int)SDL_CONTROLLER_BUTTON_DPAD_DOWN &&
+    (int)controller::DL == (int)SDL_CONTROLLER_BUTTON_DPAD_LEFT &&
+    (int)controller::DR == (int)SDL_CONTROLLER_BUTTON_DPAD_RIGHT &&
+    (int)controller::LX == (int)SDL_CONTROLLER_AXIS_LEFTX &&
+    (int)controller::LY == (int)SDL_CONTROLLER_AXIS_LEFTY &&
+    (int)controller::RX == (int)SDL_CONTROLLER_AXIS_RIGHTX &&
+    (int)controller::RY == (int)SDL_CONTROLLER_AXIS_RIGHTY &&
+    (int)controller::LT == (int)SDL_CONTROLLER_AXIS_TRIGGERLEFT &&
+    (int)controller::RT == (int)SDL_CONTROLLER_AXIS_TRIGGERRIGHT,
+    "SDL2 equvalence: Enums and values from StandardControls.h are assumed to match enums from SDL_gamecontroller.h");
+#endif
+
+
 const QString SDL2Manager::NAME = "SDL2";
 
 #ifdef HAVE_SDL2
@@ -82,6 +109,7 @@ void SDL2Manager::activate() {
         emit joystickAdded(joystick.get());
     }
 #endif
+    InputPlugin::activate();
 }
 
 void SDL2Manager::deactivate() {
@@ -92,6 +120,7 @@ void SDL2Manager::deactivate() {
         emit joystickRemoved(joystick.get());
     }
 #endif
+    InputPlugin::deactivate();
 }
 
 

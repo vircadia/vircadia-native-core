@@ -19,12 +19,13 @@ namespace controller {
 class ScriptEndpoint : public Endpoint {
     Q_OBJECT;
 public:
+    using Endpoint::apply;
     ScriptEndpoint(const QScriptValue& callable)
         : Endpoint(Input::INVALID_INPUT), _callable(callable) {
     }
 
-    virtual float value();
-    virtual void apply(float newValue, const Pointer& source);
+    virtual float peek() const override;
+    virtual void apply(float newValue, const Pointer& source) override;
 
 protected:
     Q_INVOKABLE void updateValue();

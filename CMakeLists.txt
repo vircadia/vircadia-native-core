@@ -203,6 +203,7 @@ if (NOT ANDROID)
   add_subdirectory(interface)
   set_target_properties(interface PROPERTIES FOLDER "Apps")
   add_subdirectory(tests)
+  add_subdirectory(plugins)
   add_subdirectory(tools)
 endif ()
 
