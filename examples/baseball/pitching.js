@@ -2,9 +2,35 @@ print("Loading pitching");
 //Script.include("../libraries/line.js");
 Script.include("https://raw.githubusercontent.com/huffman/hifi/line-js/examples/libraries/line.js");
 
+// Return all entities with properties `properties` within radius `searchRadius`
+function findEntities(properties, searchRadius) {
+    var entities = Entities.findEntities(MyAvatar.position, searchRadius);
+    var matchedEntities = [];
+    var keys = Object.keys(properties);
+    for (var i = 0; i < entities.length; ++i) {
+        var match = true;
+        var candidateProperties = Entities.getEntityProperties(entities[i], keys);
+        for (var key in properties) {
+            if (candidateProperties[key] != properties[key]) {
+                // This isn't a match, move to next entity
+                match = false;
+                break;
+            }
+        }
+        if (match) {
+            matchedEntities.push(entities[i]);
+        }
+    }
+
+    return matchedEntities;
+}
+
 // These are hard-coded to the relevant entity IDs on the sport server
-var DISTANCE_BILLBOARD_ENTITY_ID = "{faa88b15-5b85-408c-ae07-a31e5a5ca791}";
-var HIGH_SCORE_BILLBOARD_ENTITY_ID = "{5fe0daf5-3fc5-43e3-a4eb-81a8e840a52b}";
+var DISTANCE_BILLBOARD_NAME = "CurrentScore";
+var HIGH_SCORE_BILLBOARD_NAME = "HighScore";
+var DISTANCE_BILLBOARD_ENTITY_ID = findEntities({name: DISTANCE_BILLBOARD_NAME }, 1000)[0];
+var HIGH_SCORE_BILLBOARD_ENTITY_ID = findEntities({name: HIGH_SCORE_BILLBOARD_NAME }, 1000)[0];
+print("Distance: ", DISTANCE_BILLBOARD_ENTITY_ID)
 
 var METERS_TO_FEET = 3.28084;
 
@@ -80,29 +106,6 @@ PITCHING_MACHINE_PROPERTIES.dimensions = Vec3.multiply(2.5, PITCHING_MACHINE_PRO
 var DISTANCE_FROM_PLATE = PITCHING_MACHINE_PROPERTIES.position.z;
 
 var PITCH_RATE = 5000;
-
-// Return all entities with properties `properties` within radius `searchRadius`
-function findEntities(properties, searchRadius) {
-    var entities = Entities.findEntities(MyAvatar.position, searchRadius);
-    var matchedEntities = [];
-    var keys = Object.keys(properties);
-    for (var i = 0; i < entities.length; ++i) {
-        var match = true;
-        var candidateProperties = Entities.getEntityProperties(entities[i], keys);
-        for (var key in properties) {
-            if (candidateProperties[key] != properties[key]) {
-                // This isn't a match, move to next entity
-                match = false;
-                break;
-            }
-        }
-        if (match) {
-            matchedEntities.push(entities[i]);
-        }
-    }
-
-    return matchedEntities;
-}
 
 getPitchingMachine = function() {
     // Search for pitching machine
