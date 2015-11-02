@@ -839,6 +839,9 @@ Conditional::Pointer UserInputMapper::parseConditional(const QJsonValue& value) 
 
         auto input = findDeviceInput(conditionalToken);
         auto endpoint = endpointFor(input);
+        if (!endpoint) {
+            return Conditional::Pointer();
+        }
         auto conditional = std::make_shared<EndpointConditional>(endpoint);
 
         if (!conditionalModifier.isEmpty()) {
