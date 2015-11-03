@@ -159,7 +159,7 @@ static QTimer locationUpdateTimer;
 static QTimer balanceUpdateTimer;
 static QTimer identityPacketTimer;
 static QTimer billboardPacketTimer;
-static QTimer checkFPStimer;
+static QTimer pingTimer;
 
 static const QString SNAPSHOT_EXTENSION  = ".jpg";
 static const QString SVO_EXTENSION  = ".svo";
@@ -183,9 +183,7 @@ static const quint64 TOO_LONG_SINCE_LAST_SEND_DOWNSTREAM_AUDIO_STATS = 1 * USECS
 static const QString INFO_HELP_PATH = "html/interface-welcome.html";
 static const QString INFO_EDIT_ENTITIES_PATH = "html/edit-commands.html";
 
-static const unsigned int TARGET_SIM_FRAMERATE = 60;
 static const unsigned int THROTTLED_SIM_FRAMERATE = 15;
-static const int TARGET_SIM_FRAME_PERIOD_MS = MSECS_PER_SECOND / TARGET_SIM_FRAMERATE;
 static const int THROTTLED_SIM_FRAME_PERIOD_MS = MSECS_PER_SECOND / THROTTLED_SIM_FRAMERATE;
 
 #ifndef __APPLE__
@@ -842,7 +840,7 @@ void Application::cleanupBeforeQuit() {
     balanceUpdateTimer.stop();
     identityPacketTimer.stop();
     billboardPacketTimer.stop();
-    checkFPStimer.stop();
+    pingTimer.stop();
     QMetaObject::invokeMethod(&_settingsTimer, "stop", Qt::BlockingQueuedConnection);
 
     // save state
@@ -977,8 +975,8 @@ void Application::initializeGL() {
     _entityEditSender.initialize(_enableProcessOctreeThread);
 
     // call our timer function every second
-    connect(&checkFPStimer, &QTimer::timeout, this, &Application::checkFPS);
-    checkFPStimer.start(1000);
+    connect(&pingTimer, &QTimer::timeout, this, &Application::ping);
+    pingTimer.start(1000);
 
     _idleLoopStdev.reset();
 
@@ -1312,7 +1310,6 @@ void Application::paintGL() {
     {
         PerformanceTimer perfTimer("makeCurrent");
         _offscreenContext->makeCurrent();
-        _frameCount++;
         Stats::getInstance()->setRenderDetails(renderArgs._details);
 
         // Reset the gpu::Context Stages
@@ -1320,6 +1317,24 @@ void Application::paintGL() {
         gpu::doInBatch(renderArgs._context, [=](gpu::Batch& batch) {
             batch.resetStages();
         });
+    }
+
+    // update fps moving average
+    {
+        uint64_t now = usecTimestampNow();
+        static uint64_t lastPaintEnd{ now };
+        uint64_t diff = now - lastPaintEnd;
+        if (diff != 0) {
+            _framesPerSecond.updateAverage((float)USECS_PER_SECOND / (float)diff);
+        }
+        lastPaintEnd = now;
+
+        // update fps once a second
+        if (now - _lastFramesPerSecondUpdate > USECS_PER_SECOND) {
+            _fps = _framesPerSecond.getAverage();
+            _lastFramesPerSecondUpdate = now;
+        }
+        _frameCount++;
     }
 }
 
@@ -2085,17 +2100,11 @@ bool Application::acceptSnapshot(const QString& urlString) {
     return true;
 }
 
-//  Every second, check the frame rates and other stuff
-void Application::checkFPS() {
+//  Every second, send a ping, if menu item is checked.
+void Application::ping() {
     if (Menu::getInstance()->isOptionChecked(MenuOption::TestPing)) {
         DependencyManager::get<NodeList>()->sendPingPackets();
     }
-
-    float diffTime = (float)_timerStart.nsecsElapsed() / 1000000000.0f;
-
-    _fps = (float)_frameCount / diffTime;
-    _frameCount = 0;
-    _timerStart.start();
 }
 
 void Application::idle() {

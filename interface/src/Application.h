@@ -306,7 +306,7 @@ public slots:
     
 private slots:
     void clearDomainOctreeDetails();
-    void checkFPS();
+    void ping();
     void idle();
     void aboutToQuit();
 
@@ -541,6 +541,8 @@ private:
     EntityItemID _keyboardFocusedItem;
     quint64 _lastAcceptedKeyPress = 0;
 
+    SimpleMovingAverage _framesPerSecond{10};
+    quint64 _lastFramesPerSecondUpdate = 0;
     SimpleMovingAverage _simsPerSecond{10};
     int _simsPerSecondReport = 0;
     quint64 _lastSimsPerSecondUpdate = 0;
