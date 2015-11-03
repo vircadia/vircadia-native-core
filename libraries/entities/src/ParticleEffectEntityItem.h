@@ -209,6 +209,12 @@ public:
         }
     }
 
+    static const bool DEFAULT_ADDITIVE_BLENDING;
+    bool getAdditiveBlending() const { return _additiveBlending; }
+    void setAdditiveBlending(bool additiveBlending) {
+        _additiveBlending = additiveBlending;
+    }
+
 protected:
 
     bool isAnimatingSomething() const;
@@ -219,7 +225,6 @@ protected:
     void extendBounds(const glm::vec3& point);
     void integrateParticle(quint32 index, float deltaTime);
     quint32 getLivingParticleCount() const;
-
     // the properties of this entity
     rgbColor _color;
     xColor _colorStart = DEFAULT_COLOR;
@@ -284,6 +289,8 @@ protected:
     // bounding volume
     glm::vec3 _particleMaxBound;
     glm::vec3 _particleMinBound;
+
+    bool _additiveBlending;
 };
 
 #endif // hifi_ParticleEffectEntityItem_h

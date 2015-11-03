@@ -114,8 +114,7 @@ namespace render {
     }
 }
 
-gpu::PipelinePointer RenderableParticleEffectEntityItem::_texturedPipeline;
-gpu::PipelinePointer RenderableParticleEffectEntityItem::_untexturedPipeline;
+
 
 EntityItemPointer RenderableParticleEffectEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
     return std::make_shared<RenderableParticleEffectEntityItem>(entityID, properties);
@@ -203,7 +202,16 @@ void RenderableParticleEffectEntityItem::updateRenderItem() {
 
     // sort particles back to front
     // NOTE: this is view frustum might be one frame out of date.
+    
     auto frustum = AbstractViewStateInterface::instance()->getCurrentViewFrustum();
+
+    // No need to sort if we're doing additive blending
+    if (_additiveBlending != true) {
+        ::zSortAxis = frustum->getDirection();
+        qSort(particleDetails.begin(), particleDetails.end(), zSort);
+    }
+
+
 
     // allocate vertices
     _vertices.clear();
@@ -307,12 +315,21 @@ void RenderableParticleEffectEntityItem::updateRenderItem() {
 }
 
 void RenderableParticleEffectEntityItem::createPipelines() {
+    bool writeToDepthBuffer = false;
+    gpu::State::BlendArg destinationColorBlendArg;
+    if (_additiveBlending) {
+        destinationColorBlendArg = gpu::State::ONE;
+    }
+    else {
+        destinationColorBlendArg = gpu::State::INV_SRC_ALPHA;
+        writeToDepthBuffer = true;
+    }
     if (!_untexturedPipeline) {
         auto state = std::make_shared<gpu::State>();
         state->setCullMode(gpu::State::CULL_BACK);
-        state->setDepthTest(true, false, gpu::LESS_EQUAL);
+        state->setDepthTest(true, writeToDepthBuffer, gpu::LESS_EQUAL);
         state->setBlendFunction(true, gpu::State::SRC_ALPHA, gpu::State::BLEND_OP_ADD,
-                                gpu::State::ONE, gpu::State::FACTOR_ALPHA,
+                                destinationColorBlendArg, gpu::State::FACTOR_ALPHA,
                                 gpu::State::BLEND_OP_ADD, gpu::State::ONE);
         auto vertShader = gpu::ShaderPointer(gpu::Shader::createVertex(std::string(untextured_particle_vert)));
         auto fragShader = gpu::ShaderPointer(gpu::Shader::createPixel(std::string(untextured_particle_frag)));
@@ -322,13 +339,18 @@ void RenderableParticleEffectEntityItem::createPipelines() {
     if (!_texturedPipeline) {
         auto state = std::make_shared<gpu::State>();
         state->setCullMode(gpu::State::CULL_BACK);
-        state->setDepthTest(true, false, gpu::LESS_EQUAL);
+       
+
+        bool writeToDepthBuffer = !_additiveBlending;
+        qDebug() << "ADDITIVE BLENDING" << _additiveBlending;
+        state->setDepthTest(true, writeToDepthBuffer, gpu::LESS_EQUAL);
         state->setBlendFunction(true, gpu::State::SRC_ALPHA, gpu::State::BLEND_OP_ADD,
-                                gpu::State::INV_SRC_ALPHA, gpu::State::FACTOR_ALPHA,
+                                destinationColorBlendArg, gpu::State::FACTOR_ALPHA,
                                 gpu::State::BLEND_OP_ADD, gpu::State::ONE);
         auto vertShader = gpu::ShaderPointer(gpu::Shader::createVertex(std::string(textured_particle_vert)));
         auto fragShader = gpu::ShaderPointer(gpu::Shader::createPixel(std::string(textured_particle_frag)));
         auto program = gpu::ShaderPointer(gpu::Shader::createProgram(vertShader, fragShader));
         _texturedPipeline = gpu::PipelinePointer(gpu::Pipeline::create(program, state));
+   
     }
 }
