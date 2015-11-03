@@ -13,6 +13,7 @@
 #define hifi_SharedUtil_h
 
 #include <memory>
+#include <mutex>
 #include <math.h>
 #include <stdint.h>
 
@@ -20,7 +21,32 @@
 #include <unistd.h> // not on windows, not needed for mac or windows
 #endif
 
-#include <QDebug>
+#include <QtCore/QDebug>
+#include <QtCore/QCoreApplication>
+
+// Provides efficient access to a named global type.  By storing the value
+// in the QApplication by name we can implement the singleton pattern and 
+// have the single instance function across DLL boundaries.  
+template <typename T, typename ...Args>
+T& globalInstace(const char* propertyName, Args&&... args) {
+    static T *instance { nullptr };
+    static std::mutex mutex;
+    if (!instance) {
+        std::unique_lock<std::mutex> lock(mutex);
+        if (!instance) {
+            auto variant = qApp->property(propertyName);
+            if (variant.isNull()) {
+                auto* typedInstance = new T(args...);
+                void* voidInstance = typedInstance;
+                variant = QVariant::fromValue(voidInstance);
+                qApp->setProperty(propertyName, variant);
+            }
+            void* returnedVoidInstance = variant.value<void*>();
+            instance = static_cast<T*>(returnedVoidInstance);
+        }
+    }
+    return *instance;
+}
 
 const int BYTES_PER_COLOR = 3;
 const int BYTES_PER_FLAGS = 1;

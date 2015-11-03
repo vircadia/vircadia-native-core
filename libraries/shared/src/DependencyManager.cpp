@@ -11,7 +11,14 @@
 
 #include "DependencyManager.h"
 
-DependencyManager DependencyManager::_manager;
+#include "SharedUtil.h"
+
+static const char* const DEPENDENCY_PROPERTY_NAME = "com.highfidelity.DependencyMananger";
+
+DependencyManager& DependencyManager::manager() {
+    static DependencyManager& instance = globalInstace<DependencyManager>(DEPENDENCY_PROPERTY_NAME);
+    return instance;
+}
 
 QSharedPointer<Dependency>& DependencyManager::safeGet(size_t hashCode) {
     return _instanceHash[hashCode];
