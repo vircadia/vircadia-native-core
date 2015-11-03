@@ -291,7 +291,7 @@ function MyController(hand) {
         return this.triggerValue < TRIGGER_OFF_VALUE;
     };
 
-    this.triggerSqueezed = function() { 
+    this.triggerSqueezed = function() {
         var triggerValue = this.rawTriggerValue;
         return triggerValue > TRIGGER_ON_VALUE;
     };
@@ -352,7 +352,7 @@ function MyController(hand) {
 
             var intersection = Entities.findRayIntersection(pickRayBacked, true);
 
-            if (intersection.intersects && !intersection.properties.locked) {
+            if (intersection.intersects) {
                 // the ray is intersecting something we can move.
                 var intersectionDistance = Vec3.distance(pickRay.origin, intersection.intersection);
                 this.grabbedEntity = intersection.entityID;
@@ -381,7 +381,7 @@ function MyController(hand) {
                     // the hand is very close to the intersected object.  go into close-grabbing mode.
                     if (grabbableData.wantsTrigger) {
                         this.setState(STATE_NEAR_GRABBING_NON_COLLIDING);
-                    } else {
+                    } else if (!intersection.properties.locked) {
                         this.setState(STATE_NEAR_GRABBING);
                     }
                 } else {
@@ -390,7 +390,8 @@ function MyController(hand) {
                         this.grabbedEntity = null;
                     } else {
                         // the hand is far from the intersected object.  go into distance-holding mode
-                        if (intersection.properties.collisionsWillMove) {
+                        if (intersection.properties.collisionsWillMove
+                            && !intersection.properties.locked) {
                             this.setState(STATE_DISTANCE_HOLDING);
                         } else {
                             this.setState(STATE_FAR_GRABBING_NON_COLLIDING);
@@ -502,7 +503,7 @@ function MyController(hand) {
 
         // How far did the avatar turn this timestep?
         // Note:  The following code is too long because we need a Quat.quatBetween() function
-        // that returns the minimum quaternion between two quaternions. 
+        // that returns the minimum quaternion between two quaternions.
         var currentOrientation = MyAvatar.orientation;
         if (Quat.dot(currentOrientation, this.currentAvatarOrientation) < 0.0) {
             var negativeCurrentOrientation = {
