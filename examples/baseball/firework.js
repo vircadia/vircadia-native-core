@@ -1,4 +1,4 @@
-Script.include("utils.js");
+Script.include(Script.resolvePath("utils.js"));
 
 var emitters = [];
 
