@@ -369,7 +369,7 @@ function MyController(hand) {
                     disabledHand = 'none';
                 }
 
-                if (!grabbableData.grabbable) {
+                if (typeof grabbableData.grabbable !== 'undefined' && !grabbableData.grabbable) {
                     this.grabbedEntity = null;
                     continue;
                 }
@@ -379,7 +379,6 @@ function MyController(hand) {
                 }
                 if (intersectionDistance <= NEAR_PICK_MAX_DISTANCE) {
                     // the hand is very close to the intersected object.  go into close-grabbing mode.
-                    var grabbableData = getEntityCustomData(GRABBABLE_DATA_KEY, this.grabbedEntity, DEFAULT_GRABBABLE_DATA);
                     if (grabbableData.wantsTrigger) {
                         this.setState(STATE_NEAR_GRABBING_NON_COLLIDING);
                     } else {
