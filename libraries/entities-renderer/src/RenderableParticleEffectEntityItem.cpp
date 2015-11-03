@@ -342,7 +342,6 @@ void RenderableParticleEffectEntityItem::createPipelines() {
        
 
         bool writeToDepthBuffer = !_additiveBlending;
-        qDebug() << "ADDITIVE BLENDING" << _additiveBlending;
         state->setDepthTest(true, writeToDepthBuffer, gpu::LESS_EQUAL);
         state->setBlendFunction(true, gpu::State::SRC_ALPHA, gpu::State::BLEND_OP_ADD,
                                 destinationColorBlendArg, gpu::State::FACTOR_ALPHA,
