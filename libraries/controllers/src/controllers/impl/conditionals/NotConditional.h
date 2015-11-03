@@ -12,5 +12,19 @@
 
 #include "../Conditional.h"
 
+namespace controller {
+
+    class NotConditional : public Conditional {
+    public:
+        using Pointer = std::shared_ptr<NotConditional>;
+
+        NotConditional(Conditional::Pointer operand) : _operand(operand) { }
+
+        virtual bool satisfied() override;
+
+    private:
+        Conditional::Pointer _operand;
+    };
+}
 
 #endif

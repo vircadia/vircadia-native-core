@@ -15,6 +15,11 @@
 #include <list>
 #include <glm/gtc/type_ptr.hpp>
 
+#if defined(NSIGHT_FOUND)
+#include "nvToolsExt.h"
+#endif
+
+
 using namespace gpu;
 
 GLBackend::CommandCall GLBackend::_commandCalls[Batch::NUM_COMMANDS] = 
@@ -69,6 +74,9 @@ GLBackend::CommandCall GLBackend::_commandCalls[Batch::NUM_COMMANDS] =
     (&::gpu::GLBackend::do_glUniformMatrix4fv),
 
     (&::gpu::GLBackend::do_glColor4f),
+
+    (&::gpu::GLBackend::do_pushProfileRange),
+    (&::gpu::GLBackend::do_popProfileRange),
 };
 
 void GLBackend::init() {
@@ -709,4 +717,18 @@ void GLBackend::do_glColor4f(Batch& batch, uint32 paramOffset) {
         glVertexAttrib4fv(gpu::Stream::COLOR, &_input._colorAttribute.r);
     }
     (void) CHECK_GL_ERROR();
+}
+
+
+void GLBackend::do_pushProfileRange(Batch& batch, uint32 paramOffset) {
+#if defined(NSIGHT_FOUND)
+    auto name = batch._profileRanges.get(batch._params[paramOffset]._uint);
+    nvtxRangePush(name.c_str());
+#endif
+}
+
+void GLBackend::do_popProfileRange(Batch& batch, uint32 paramOffset) {
+#if defined(NSIGHT_FOUND)
+    nvtxRangePop();
+#endif
 }

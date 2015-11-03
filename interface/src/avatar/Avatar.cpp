@@ -73,6 +73,7 @@ namespace render {
         avatarPtr->setDisplayingLookatTarget(renderLookAtTarget);
 
         if (avatarPtr->isInitialized() && args) {
+            PROFILE_RANGE_BATCH(*args->_batch, "renderAvatarPayload");
             avatarPtr->render(args, qApp->getCamera()->getPosition());
         }
     }
@@ -334,6 +335,7 @@ void Avatar::render(RenderArgs* renderArgs, const glm::vec3& cameraPosition) {
     }
 
     auto& batch = *renderArgs->_batch;
+    PROFILE_RANGE_BATCH(batch, __FUNCTION__);
 
     if (glm::distance(DependencyManager::get<AvatarManager>()->getMyAvatar()->getPosition(), _position) < 10.0f) {
         auto geometryCache = DependencyManager::get<GeometryCache>();
@@ -360,6 +362,7 @@ void Avatar::render(RenderArgs* renderArgs, const glm::vec3& cameraPosition) {
             }
 
             if (havePosition && haveRotation) {
+                PROFILE_RANGE_BATCH(batch, __FUNCTION__":leftHandPointer");
                 Transform pointerTransform;
                 pointerTransform.setTranslation(position);
                 pointerTransform.setRotation(rotation);
@@ -383,6 +386,7 @@ void Avatar::render(RenderArgs* renderArgs, const glm::vec3& cameraPosition) {
             }
 
             if (havePosition && haveRotation) {
+                PROFILE_RANGE_BATCH(batch, __FUNCTION__":rightHandPointer");
                 Transform pointerTransform;
                 pointerTransform.setTranslation(position);
                 pointerTransform.setRotation(rotation);
@@ -455,6 +459,7 @@ void Avatar::render(RenderArgs* renderArgs, const glm::vec3& cameraPosition) {
 
         bool renderBounding = Menu::getInstance()->isOptionChecked(MenuOption::RenderBoundingCollisionShapes);
         if (renderBounding && shouldRenderHead(renderArgs) && _skeletonModel.isRenderable()) {
+            PROFILE_RANGE_BATCH(batch, __FUNCTION__":skeletonBoundingCollisionShapes");
             _skeletonModel.renderBoundingCollisionShapes(*renderArgs->_batch, 0.7f);
         }
 
@@ -464,6 +469,7 @@ void Avatar::render(RenderArgs* renderArgs, const glm::vec3& cameraPosition) {
             static const float INDICATOR_RADIUS = 0.03f;
             static const glm::vec4 LOOK_AT_INDICATOR_COLOR = { 0.8f, 0.0f, 0.0f, 0.75f };
             glm::vec3 position = glm::vec3(_position.x, getDisplayNamePosition().y + INDICATOR_OFFSET, _position.z);
+            PROFILE_RANGE_BATCH(batch, __FUNCTION__":renderFocusIndicator");
             Transform transform;
             transform.setTranslation(position);
             transform.postScale(INDICATOR_RADIUS);
@@ -472,6 +478,7 @@ void Avatar::render(RenderArgs* renderArgs, const glm::vec3& cameraPosition) {
 
         // If the avatar is looking at me, indicate that they are
         if (getHead()->isLookingAtMe() && Menu::getInstance()->isOptionChecked(MenuOption::ShowWhosLookingAtMe)) {
+            PROFILE_RANGE_BATCH(batch, __FUNCTION__":renderLookingAtMe");
             const glm::vec3 LOOKING_AT_ME_COLOR = { 1.0f, 1.0f, 1.0f };
             const float LOOKING_AT_ME_ALPHA_START = 0.8f;
             const float LOOKING_AT_ME_DURATION = 0.5f;  // seconds
@@ -517,6 +524,7 @@ void Avatar::render(RenderArgs* renderArgs, const glm::vec3& cameraPosition) {
         const float MIN_VOICE_SPHERE_DISTANCE = 12.0f;
         if (Menu::getInstance()->isOptionChecked(MenuOption::BlueSpeechSphere)
             && distanceToTarget > MIN_VOICE_SPHERE_DISTANCE) {
+            PROFILE_RANGE_BATCH(batch, __FUNCTION__":renderVoiceSphere");
 
             // render voice intensity sphere for avatars that are farther away
             const float MAX_SPHERE_ANGLE = 10.0f * RADIANS_PER_DEGREE;
@@ -653,6 +661,9 @@ void Avatar::updateJointMappings() {
 }
 
 void Avatar::renderBillboard(RenderArgs* renderArgs) {
+    // FIXME disabling the billboard because it doesn't appear to work reliably
+    // the billboard is ending up with a random texture and position.
+    return;
     if (_billboard.isEmpty()) {
         return;
     }
@@ -684,6 +695,7 @@ void Avatar::renderBillboard(RenderArgs* renderArgs) {
     glm::vec2 texCoordBottomRight(1.0f, 1.0f);
     
     gpu::Batch& batch = *renderArgs->_batch;
+    PROFILE_RANGE_BATCH(batch, __FUNCTION__);
     batch.setResourceTexture(0, _billboardTexture->getGPUTexture());
     DependencyManager::get<DeferredLightingEffect>()->bindSimpleProgram(batch, true);
     DependencyManager::get<GeometryCache>()->renderQuad(batch, topLeft, bottomRight, texCoordTopLeft, texCoordBottomRight,
@@ -766,6 +778,8 @@ Transform Avatar::calculateDisplayNameTransform(const ViewFrustum& frustum, cons
 }
 
 void Avatar::renderDisplayName(gpu::Batch& batch, const ViewFrustum& frustum, const glm::vec3& textPosition) const {
+    PROFILE_RANGE_BATCH(batch, __FUNCTION__);
+
     bool shouldShowReceiveStats = DependencyManager::get<AvatarManager>()->shouldShowReceiveStats() && !isMyAvatar();
 
     // If we have nothing to draw, or it's totally transparent, or it's too close or behind the camera, return
@@ -816,17 +830,24 @@ void Avatar::renderDisplayName(gpu::Batch& batch, const ViewFrustum& frustum, co
         // Test on extent above insures abs(height) > 0.0f
         textTransform.postScale(1.0f / height);
         batch.setModelTransform(textTransform);
-        
-        DependencyManager::get<DeferredLightingEffect>()->bindSimpleProgram(batch, false, true, true, true);
-        DependencyManager::get<GeometryCache>()->renderBevelCornersRect(batch, left, bottom, width, height,
-                                                                        bevelDistance, backgroundColor);
+
+        {
+            PROFILE_RANGE_BATCH(batch, __FUNCTION__":renderBevelCornersRect");
+            DependencyManager::get<DeferredLightingEffect>()->bindSimpleProgram(batch, false, true, true, true);
+            DependencyManager::get<GeometryCache>()->renderBevelCornersRect(batch, left, bottom, width, height,
+                bevelDistance, backgroundColor);
+        }
+
         // Render actual name
         QByteArray nameUTF8 = renderedDisplayName.toLocal8Bit();
         
         // Render text slightly in front to avoid z-fighting
         textTransform.postTranslate(glm::vec3(0.0f, 0.0f, SLIGHTLY_IN_FRONT * renderer->getFontSize()));
         batch.setModelTransform(textTransform);
-        renderer->draw(batch, text_x, -text_y, nameUTF8.data(), textColor);
+        {
+            PROFILE_RANGE_BATCH(batch, __FUNCTION__":renderText");
+            renderer->draw(batch, text_x, -text_y, nameUTF8.data(), textColor);
+        }
     }
 }
 
@@ -1089,6 +1110,7 @@ void Avatar::renderJointConnectingCone(gpu::Batch& batch, glm::vec3 position1, g
             points << p1a << p1b << p2a << p1b << p2a << p2b;
         }
 
+        PROFILE_RANGE_BATCH(batch, __FUNCTION__);
         // TODO: this is really inefficient constantly recreating these vertices buffers. It would be
         // better if the avatars cached these buffers for each of the joints they are rendering
         geometryCache->updateVertices(_jointConesID, points, color);
