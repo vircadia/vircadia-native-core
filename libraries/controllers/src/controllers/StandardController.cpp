@@ -55,6 +55,9 @@ Input::NamedVector StandardController::getAvailableInputs() const {
         makePair(LS, "LS"),
         makePair(RS, "RS"),
 
+        makePair(LS_TOUCH, "LSTouch"),
+        makePair(RS_TOUCH, "RSTouch"),
+
         // Center buttons
         makePair(START, "Start"),
         makePair(BACK, "Back"),
@@ -69,25 +72,40 @@ Input::NamedVector StandardController::getAvailableInputs() const {
         makePair(LT, "LT"),
         makePair(RT, "RT"),
 
-
         // Finger abstractions
         makePair(LEFT_PRIMARY_THUMB, "LeftPrimaryThumb"),
         makePair(LEFT_SECONDARY_THUMB, "LeftSecondaryThumb"),
+        makePair(LEFT_THUMB_UP, "LeftThumbUp"),
         makePair(RIGHT_PRIMARY_THUMB, "RightPrimaryThumb"),
         makePair(RIGHT_SECONDARY_THUMB, "RightSecondaryThumb"),
+        makePair(RIGHT_THUMB_UP, "RightThumbUp"),
+
+        makePair(LEFT_PRIMARY_THUMB_TOUCH, "LeftPrimaryThumbTouch"),
+        makePair(LEFT_SECONDARY_THUMB_TOUCH, "LeftSecondaryThumbTouch"),
+        makePair(RIGHT_PRIMARY_THUMB_TOUCH, "RightPrimaryThumbTouch"),
+        makePair(RIGHT_SECONDARY_THUMB_TOUCH, "RightSecondaryThumbTouch"),
+
+        makePair(LEFT_INDEX_POINT, "LeftIndexPoint"),
+        makePair(RIGHT_INDEX_POINT, "RightIndexPoint"),
 
         makePair(LEFT_PRIMARY_INDEX, "LeftPrimaryIndex"),
         makePair(LEFT_SECONDARY_INDEX, "LeftSecondaryIndex"),
         makePair(RIGHT_PRIMARY_INDEX, "RightPrimaryIndex"),
         makePair(RIGHT_SECONDARY_INDEX, "RightSecondaryIndex"),
 
+        makePair(LEFT_PRIMARY_INDEX_TOUCH, "LeftPrimaryIndexTouch"),
+        makePair(LEFT_SECONDARY_INDEX_TOUCH, "LeftSecondaryIndexTouch"),
+        makePair(RIGHT_PRIMARY_INDEX_TOUCH, "RightPrimaryIndexTouch"),
+        makePair(RIGHT_SECONDARY_INDEX_TOUCH, "RightSecondaryIndexTouch"),
+
         makePair(LEFT_GRIP, "LeftGrip"),
+        makePair(LEFT_GRIP_TOUCH, "LeftGripTouch"),
         makePair(RIGHT_GRIP, "RightGrip"),
+        makePair(RIGHT_GRIP_TOUCH, "RightGripTouch"),
 
         // Poses
         makePair(LEFT_HAND, "LeftHand"),
         makePair(RIGHT_HAND, "RightHand"),
-
 
         // Aliases, PlayStation style names
         makePair(LB, "L1"),
