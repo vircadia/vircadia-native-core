@@ -1,5 +1,13 @@
 var modelURL = "https://s3.amazonaws.com/hifi-public/eric/models/helicopter.fbx?v3";
-var center = Vec3.sum(MyAvatar.position, Vec3.multiply(2, Quat.getFront(Camera.getOrientation())));
+var spawnPosition = {x: 1031, y: 135, z: 1041};
+
+var speed = .1;
+
+var helicopterSound = SoundCache.getSound("https://hifi-public.s3.amazonaws.com/ryan/helicopter.L.wav");
+var audioInjector = Audio.playSound(helicopterSound, {
+    volume: 1,
+    loop: true
+});
 
 // These constants define the Spotlight position and orientation relative to the model 
 var MODEL_LIGHT_POSITION = {
@@ -29,8 +37,7 @@ var helicopter = Entities.addEntity({
     modelURL: modelURL,
     dimensions: {x: 12.13, y: 3.14, z: 9.92},
     // rotation: Quat.fromPitchYawRollDegrees(0, -90, 0),
-    position: center,
-    collisionsWillMove: true
+    position: spawnPosition,
 });
 
 
@@ -50,8 +57,8 @@ var spotlight = Entities.addEntity({
         y: 2,
         z: 200
     },
-    exponent: .1,
-    cutoff: 10,
+    exponent: 1,
+    cutoff: 40,
     isSpotlight: true
 });
 
@@ -87,6 +94,18 @@ function update() {
          position: lightTransform.p,
          rotation: lightTransform.q
     });
+
+      audioInjector.setOptions({
+        position: modelProperties.position,
+      });
+
+      //Move forward 
+      var newRotation = Quat.multiply(modelProperties.rotation, {x: 0, y: .001, z: 0, w: 1})
+      var newPosition = Vec3.sum(modelProperties.position, Vec3.multiply(speed, Quat.getFront(modelProperties.rotation)));
+      Entities.editEntity(helicopter, {
+        position: newPosition,
+        rotation: newRotation
+      })
 }
 
 
