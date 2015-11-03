@@ -285,11 +285,17 @@ void ViveControllerManager::update(float deltaTime, bool jointsCaptured) {
                 handleButtonEvent(i, pressed, left);
             }
             for (uint32_t i = 0; i < vr::k_unControllerStateAxisCount; i++) {
-                handleAxisEvent(i, controllerState.rAxis[i].x, controllerState.rAxis[i].y, left);
+                auto mask = vr::ButtonMaskFromId((vr::EVRButtonId)(i + vr::k_EButton_Axis0));
+                bool pressed = 0 != (controllerState.ulButtonPressed & mask);
+                if (pressed || true) {
+                    handleAxisEvent(i, controllerState.rAxis[i].x, controllerState.rAxis[i].y, left);
+                } else {
+                    handleAxisEvent(i, 0.0f, 0.0f, left);
+                }
             }
         }
     }
-        
+    
     auto userInputMapper = DependencyManager::get<controller::UserInputMapper>();
         
     if (numTrackedControllers == 0) {
@@ -422,7 +428,6 @@ void ViveControllerManager::handlePoseEvent(const mat4& mat, bool left) {
     
     position += rotation * translationOffset;
     rotation = rotation * rotationOffset;
-    //{quat, x = 0.653281, y = -0.270598, z = 0.653281, w = 0.270598}{vec3, x = 0.0381, y = -0.0381, z = -0.1524}
     
     _poseStateMap[left ? controller::LEFT_HAND : controller::RIGHT_HAND] = controller::Pose(position, rotation);
 }

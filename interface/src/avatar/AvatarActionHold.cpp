@@ -62,7 +62,7 @@ void AvatarActionHold::updateActionWorker(float deltaTimeStep) {
             
             if (it != std::end(plugins)) {
                 const auto& vive = it->dynamicCast<ViveControllerManager>();
-                auto index = (_hand == "right") ? 0 : 1;
+                auto index = (_hand == "left") ? 0 : 1;
                 auto userInputMapper = DependencyManager::get<UserInputMapper>();
                 auto translation = extractTranslation(userInputMapper->getSensorToWorldMat());
                 auto rotation = glm::quat_cast(userInputMapper->getSensorToWorldMat());
@@ -71,16 +71,16 @@ void AvatarActionHold::updateActionWorker(float deltaTimeStep) {
                 const glm::quat quarterX = glm::angleAxis(PI / 2.0f, glm::vec3(1.0f, 0.0f, 0.0f));
                 const glm::quat yFlip = glm::angleAxis(PI, glm::vec3(0.0f, 1.0f, 0.0f));
                 palmPosition = translation + rotation * vive->getPosition(index);
-                palmRotation = rotation * vive->getRotation(index) * yFlip * quarterX;
+                palmRotation = rotation * vive->getRotation(index) * yFlip * quarterX * glm::angleAxis(PI, glm::vec3(1.0f, 0.0f, 0.0f)) * glm::angleAxis(PI_OVER_TWO, glm::vec3(0.0f, 0.0f, 1.0f));
             } else
 #endif
-                if (_hand == "right") {
-                    palmPosition = holdingAvatar->getRightPalmPosition();
-                    palmRotation = holdingAvatar->getRightPalmRotation();
-                } else {
-                    palmPosition = holdingAvatar->getLeftPalmPosition();
-                    palmRotation = holdingAvatar->getLeftPalmRotation();
-                }
+            if (_hand == "right") {
+                palmPosition = holdingAvatar->getRightPalmPosition();
+                palmRotation = holdingAvatar->getRightPalmRotation();
+            } else {
+                palmPosition = holdingAvatar->getLeftPalmPosition();
+                palmRotation = holdingAvatar->getLeftPalmRotation();
+            }
             
             rotation = palmRotation * _relativeRotation;
             offset = rotation * _relativePosition;
