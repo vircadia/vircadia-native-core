@@ -115,6 +115,8 @@ void ObjectMotionState::setMotionType(MotionType motionType) {
     _motionType = motionType;
 }
 
+// Update the Continuous Collision Detection (CCD) configuration settings of our RigidBody so that
+// CCD will be enabled automatically when its speed surpasses a certain threshold.
 void ObjectMotionState::updateCCDConfiguration() {
     if (_body) {
         if (_shape) {
