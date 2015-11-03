@@ -11,7 +11,7 @@
 //
 
 
-var DELETE_AT_ENDING = true;
+var DELETE_AT_ENDING = false;
 
 var CUBE_DIMENSIONS = {
     x: 1,
