@@ -1,5 +1,10 @@
 var modelURL = "https://s3.amazonaws.com/hifi-public/eric/models/helicopter.fbx?v3";
-var spawnPosition = {x: 1031, y: 135, z: 1041};
+var animationURL = "https://s3.amazonaws.com/hifi-public/eric/models/bladeAnimation.fbx?v7";
+var spawnPosition = {
+    x: 1031,
+    y: 135,
+    z: 1041
+};
 
 var speed = .1;
 
@@ -15,7 +20,7 @@ var MODEL_LIGHT_POSITION = {
     y: 0,
     z: -5
 };
-var MODEL_LIGHT_ROTATION = Quat.angleAxis(0,  {
+var MODEL_LIGHT_ROTATION = Quat.angleAxis(0, {
     x: 0,
     y: 0,
     z: 1
@@ -35,7 +40,17 @@ var helicopter = Entities.addEntity({
     type: "Model",
     name: "Helicopter",
     modelURL: modelURL,
-    dimensions: {x: 12.13, y: 3.14, z: 9.92},
+    animation: {
+        url: animationURL,
+        running: true,  
+        fps: 180
+
+    },
+    dimensions: {
+        x: 12.13,
+        y: 3.14,
+        z: 9.92
+    },
     // rotation: Quat.fromPitchYawRollDegrees(0, -90, 0),
     position: spawnPosition,
 });
@@ -87,25 +102,30 @@ function update() {
     var modelProperties = Entities.getEntityProperties(helicopter, ['position', 'rotation']);
     var lightTransform = evalLightWorldTransform(modelProperties.position, modelProperties.rotation);
     Entities.editEntity(spotlight, {
-         position: lightTransform.p,
-         // rotation: lightTransform.q
+        position: lightTransform.p,
+        // rotation: lightTransform.q
     });
-      Entities.editEntity(debugLight, {
-         position: lightTransform.p,
-         rotation: lightTransform.q
+    Entities.editEntity(debugLight, {
+        position: lightTransform.p,
+        rotation: lightTransform.q
     });
 
-      audioInjector.setOptions({
+    audioInjector.setOptions({
         position: modelProperties.position,
-      });
+    });
 
-      //Move forward 
-      var newRotation = Quat.multiply(modelProperties.rotation, {x: 0, y: .001, z: 0, w: 1})
-      var newPosition = Vec3.sum(modelProperties.position, Vec3.multiply(speed, Quat.getFront(modelProperties.rotation)));
-      Entities.editEntity(helicopter, {
+    //Move forward 
+    var newRotation = Quat.multiply(modelProperties.rotation, {
+        x: 0,
+        y: .001,
+        z: 0,
+        w: 1
+    })
+    var newPosition = Vec3.sum(modelProperties.position, Vec3.multiply(speed, Quat.getFront(modelProperties.rotation)));
+    Entities.editEntity(helicopter, {
         position: newPosition,
         rotation: newRotation
-      })
+    })
 }
 
 
