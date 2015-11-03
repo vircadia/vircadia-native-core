@@ -100,7 +100,7 @@
 #include "audio/AudioScope.h"
 #include "avatar/AvatarManager.h"
 #include "CrashHandler.h"
-#include "devices/3DConnexionClient.h"
+#include "input-plugins/SpacemouseManager.h"
 #include "devices/DdeFaceTracker.h"
 #include "devices/EyeTracker.h"
 #include "devices/Faceshift.h"
@@ -729,10 +729,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
     // Now that menu is initalized we can sync myAvatar with it's state.
     getMyAvatar()->updateMotionBehaviorFromMenu();
 
-#if 0
     // the 3Dconnexion device wants to be initiliazed after a window is displayed.
-    ConnexionClient::getInstance().init();
-#endif
+    SpacemouseManager::getInstance().init();
 
     auto& packetReceiver = nodeList->getPacketReceiver();
     packetReceiver.registerListener(PacketType::DomainConnectionDenied, this, "handleDomainConnectionDeniedPacket");
@@ -1839,9 +1837,10 @@ void Application::focusOutEvent(QFocusEvent* event) {
             inputPlugin->pluginFocusOutEvent();
         }
     }
-#if 0
-    ConnexionData::getInstance().focusOutEvent();
-#endif
+
+    //SpacemouseDevice::getInstance().focusOutEvent();
+    //SpacemouseManager::getInstance().getDevice()->focusOutEvent();
+    SpacemouseManager::getInstance().ManagerFocusOutEvent();
 
     // synthesize events for keys currently pressed, since we may not get their release events
     foreach (int key, _keysPressed) {
