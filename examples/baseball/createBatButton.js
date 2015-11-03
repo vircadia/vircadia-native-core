@@ -59,5 +59,5 @@
           script: SCRIPT_URL,
           userData: '{"grabbableKey":{"spatialKey":{"relativePosition":{"x":0.9,"y":0,"z":0}}}}'
       });
-    }
-})
+    };
+});
