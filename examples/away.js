@@ -1,7 +1,16 @@
 "use strict";
 /*jslint vars: true, plusplus: true*/
 /*global HMD, AudioDevice, MyAvatar, Controller, Script, Overlays, print*/
-
+//
+//  away.js
+//  examples
+//
+//  Created by Howard Stearns 11/3/15
+//  Copyright 2015 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+//
 // Goes into "paused" when the '.' key (and automatically when started in HMD), and normal when pressing any key.
 // See MAIN CONTROL, below, for what "paused" actually does.
 
