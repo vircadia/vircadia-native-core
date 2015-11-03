@@ -2,7 +2,7 @@ set(TARGET_NAME interface)
 project(${TARGET_NAME})
 
 # set a default root dir for each of our optional externals if it was not passed
-set(OPTIONAL_EXTERNALS "LeapMotion" "RtMidi" "RSSDK" "iViewHMD")
+set(OPTIONAL_EXTERNALS "LeapMotion" "RtMidi" "RSSDK")
 
 if(WIN32)
     list(APPEND OPTIONAL_EXTERNALS "3DConnexionClient")

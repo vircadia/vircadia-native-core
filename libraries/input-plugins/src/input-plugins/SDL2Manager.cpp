@@ -20,27 +20,27 @@
 
 #ifdef HAVE_SDL2
 static_assert(
-    controller::A == SDL_CONTROLLER_BUTTON_A &&
-    controller::B == SDL_CONTROLLER_BUTTON_B &&
-    controller::X == SDL_CONTROLLER_BUTTON_X &&
-    controller::Y == SDL_CONTROLLER_BUTTON_Y &&
-    controller::BACK == SDL_CONTROLLER_BUTTON_BACK &&
-    controller::GUIDE == SDL_CONTROLLER_BUTTON_GUIDE &&
-    controller::START == SDL_CONTROLLER_BUTTON_START &&
-    controller::LS == SDL_CONTROLLER_BUTTON_LEFTSTICK &&
-    controller::RS == SDL_CONTROLLER_BUTTON_RIGHTSTICK &&
-    controller::LB == SDL_CONTROLLER_BUTTON_LEFTSHOULDER &&
-    controller::RB == SDL_CONTROLLER_BUTTON_RIGHTSHOULDER &&
-    controller::DU == SDL_CONTROLLER_BUTTON_DPAD_UP &&
-    controller::DD == SDL_CONTROLLER_BUTTON_DPAD_DOWN &&
-    controller::DL == SDL_CONTROLLER_BUTTON_DPAD_LEFT &&
-    controller::DR == SDL_CONTROLLER_BUTTON_DPAD_RIGHT &&
-    controller::LX == SDL_CONTROLLER_AXIS_LEFTX &&
-    controller::LY == SDL_CONTROLLER_AXIS_LEFTY &&
-    controller::RX == SDL_CONTROLLER_AXIS_RIGHTX &&
-    controller::RY == SDL_CONTROLLER_AXIS_RIGHTY &&
-    controller::LT == SDL_CONTROLLER_AXIS_TRIGGERLEFT &&
-    controller::RT == SDL_CONTROLLER_AXIS_TRIGGERRIGHT,
+    (int)controller::A == (int)SDL_CONTROLLER_BUTTON_A &&
+    (int)controller::B == (int)SDL_CONTROLLER_BUTTON_B &&
+    (int)controller::X == (int)SDL_CONTROLLER_BUTTON_X &&
+    (int)controller::Y == (int)SDL_CONTROLLER_BUTTON_Y &&
+    (int)controller::BACK == (int)SDL_CONTROLLER_BUTTON_BACK &&
+    (int)controller::GUIDE == (int)SDL_CONTROLLER_BUTTON_GUIDE &&
+    (int)controller::START == (int)SDL_CONTROLLER_BUTTON_START &&
+    (int)controller::LS == (int)SDL_CONTROLLER_BUTTON_LEFTSTICK &&
+    (int)controller::RS == (int)SDL_CONTROLLER_BUTTON_RIGHTSTICK &&
+    (int)controller::LB == (int)SDL_CONTROLLER_BUTTON_LEFTSHOULDER &&
+    (int)controller::RB == (int)SDL_CONTROLLER_BUTTON_RIGHTSHOULDER &&
+    (int)controller::DU == (int)SDL_CONTROLLER_BUTTON_DPAD_UP &&
+    (int)controller::DD == (int)SDL_CONTROLLER_BUTTON_DPAD_DOWN &&
+    (int)controller::DL == (int)SDL_CONTROLLER_BUTTON_DPAD_LEFT &&
+    (int)controller::DR == (int)SDL_CONTROLLER_BUTTON_DPAD_RIGHT &&
+    (int)controller::LX == (int)SDL_CONTROLLER_AXIS_LEFTX &&
+    (int)controller::LY == (int)SDL_CONTROLLER_AXIS_LEFTY &&
+    (int)controller::RX == (int)SDL_CONTROLLER_AXIS_RIGHTX &&
+    (int)controller::RY == (int)SDL_CONTROLLER_AXIS_RIGHTY &&
+    (int)controller::LT == (int)SDL_CONTROLLER_AXIS_TRIGGERLEFT &&
+    (int)controller::RT == (int)SDL_CONTROLLER_AXIS_TRIGGERRIGHT,
     "SDL2 equvalence: Enums and values from StandardControls.h are assumed to match enums from SDL_gamecontroller.h");
 #endif
 

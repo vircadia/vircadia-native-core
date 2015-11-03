@@ -381,6 +381,33 @@ glm::mat4 Rig::getJointTransform(int jointIndex) const {
     return _jointStates[jointIndex].getTransform();
 }
 
+void Rig::calcAnimAlpha(float speed, const std::vector<float>& referenceSpeeds, float* alphaOut) const {
+
+    assert(referenceSpeeds.size() > 0);
+
+    // calculate alpha from linear combination of referenceSpeeds.
+    float alpha = 0.0f;
+    if (speed <= referenceSpeeds.front()) {
+        alpha = 0.0f;
+    } else if (speed > referenceSpeeds.back()) {
+        alpha = (float)(referenceSpeeds.size() - 1);
+    } else {
+        for (size_t i = 0; i < referenceSpeeds.size() - 1; i++) {
+            if (referenceSpeeds[i] < speed && speed < referenceSpeeds[i + 1]) {
+                alpha = (float)i + ((speed - referenceSpeeds[i]) / (referenceSpeeds[i + 1] - referenceSpeeds[i]));
+                break;
+            }
+        }
+    }
+
+    *alphaOut = alpha;
+}
+
+// animation reference speeds.
+static const std::vector<float> FORWARD_SPEEDS = { 0.4f, 1.4f, 4.5f }; // m/s
+static const std::vector<float> BACKWARD_SPEEDS = { 0.6f, 1.45f }; // m/s
+static const std::vector<float> LATERAL_SPEEDS = { 0.2f, 0.65f }; // m/s
+
 void Rig::computeMotionAnimationState(float deltaTime, const glm::vec3& worldPosition, const glm::vec3& worldVelocity, const glm::quat& worldRotation) {
 
     glm::vec3 front = worldRotation * IDENTITY_FRONT;
@@ -389,8 +416,16 @@ void Rig::computeMotionAnimationState(float deltaTime, const glm::vec3& worldPos
     // but some modes (e.g., hmd standing) update position without updating velocity.
     // It's very hard to debug hmd standing. (Look down at yourself, or have a second person observe. HMD third person is a bit undefined...)
     // So, let's create our own workingVelocity from the worldPosition...
+    glm::vec3 workingVelocity = _lastVelocity;
     glm::vec3 positionDelta = worldPosition - _lastPosition;
-    glm::vec3 workingVelocity = positionDelta / deltaTime;
+
+    // Don't trust position delta if deltaTime is 'small'.
+    // NOTE: This is mostly just a work around for an issue in oculus 0.7 runtime, where
+    // Application::idle() is being called more frequently and with smaller dt's then expected.
+    const float SMALL_DELTA_TIME = 0.006f;  // 6 ms
+    if (deltaTime > SMALL_DELTA_TIME) {
+        workingVelocity = positionDelta / deltaTime;
+    }
 
 #if !WANT_DEBUG
     // But for smoothest (non-hmd standing) results, go ahead and use velocity:
@@ -399,19 +434,43 @@ void Rig::computeMotionAnimationState(float deltaTime, const glm::vec3& worldPos
     }
 #endif
 
+    if (deltaTime > SMALL_DELTA_TIME) {
+        _lastVelocity = workingVelocity;
+    }
+
     if (_enableAnimGraph) {
 
         glm::vec3 localVel = glm::inverse(worldRotation) * workingVelocity;
+
         float forwardSpeed = glm::dot(localVel, IDENTITY_FRONT);
         float lateralSpeed = glm::dot(localVel, IDENTITY_RIGHT);
         float turningSpeed = glm::orientedAngle(front, _lastFront, IDENTITY_UP) / deltaTime;
 
+        // filter speeds using a simple moving average.
+        _averageForwardSpeed.updateAverage(forwardSpeed);
+        _averageLateralSpeed.updateAverage(lateralSpeed);
+
         // sine wave LFO var for testing.
         static float t = 0.0f;
-        _animVars.set("sine", static_cast<float>(0.5 * sin(t) + 0.5));
+        _animVars.set("sine", 2.0f * static_cast<float>(0.5 * sin(t) + 0.5));
 
-        const float ANIM_WALK_SPEED = 1.4f; // m/s
-        _animVars.set("walkTimeScale", glm::clamp(0.5f, 2.0f, glm::length(localVel) / ANIM_WALK_SPEED));
+        float moveForwardAlpha = 0.0f;
+        float moveBackwardAlpha = 0.0f;
+        float moveLateralAlpha = 0.0f;
+
+        // calcuate the animation alpha and timeScale values based on current speeds and animation reference speeds.
+        calcAnimAlpha(_averageForwardSpeed.getAverage(), FORWARD_SPEEDS, &moveForwardAlpha);
+        calcAnimAlpha(-_averageForwardSpeed.getAverage(), BACKWARD_SPEEDS, &moveBackwardAlpha);
+        calcAnimAlpha(fabsf(_averageLateralSpeed.getAverage()), LATERAL_SPEEDS, &moveLateralAlpha);
+
+        _animVars.set("moveForwardSpeed", _averageForwardSpeed.getAverage());
+        _animVars.set("moveForwardAlpha", moveForwardAlpha);
+
+        _animVars.set("moveBackwardSpeed", -_averageForwardSpeed.getAverage());
+        _animVars.set("moveBackwardAlpha", moveBackwardAlpha);
+
+        _animVars.set("moveLateralSpeed", fabsf(_averageLateralSpeed.getAverage()));
+        _animVars.set("moveLateralAlpha", moveLateralAlpha);
 
         const float MOVE_ENTER_SPEED_THRESHOLD = 0.2f; // m/sec
         const float MOVE_EXIT_SPEED_THRESHOLD = 0.07f;  // m/sec

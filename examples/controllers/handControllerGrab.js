@@ -352,14 +352,14 @@ function MyController(hand) {
 
             var intersection = Entities.findRayIntersection(pickRayBacked, true);
 
-            if (intersection.intersects && intersection.properties.locked === 0) {
+            if (intersection.intersects && !intersection.properties.locked) {
                 // the ray is intersecting something we can move.
                 var intersectionDistance = Vec3.distance(pickRay.origin, intersection.intersection);
                 this.grabbedEntity = intersection.entityID;
 
                 //this code will disabled the beam for the opposite hand of the one that grabbed it if the entity says so
                 var grabbableData = getEntityCustomData(GRABBABLE_DATA_KEY, intersection.entityID, DEFAULT_GRABBABLE_DATA);
-                if (grabbableData["turnOffOppositeBeam"] === true) {
+                if (grabbableData["turnOffOppositeBeam"]) {
                     if (this.hand === RIGHT_HAND) {
                         disabledHand = LEFT_HAND;
                     } else {
@@ -369,7 +369,7 @@ function MyController(hand) {
                     disabledHand = 'none';
                 }
 
-                if (grabbableData.grabbable === false) {
+                if (typeof grabbableData.grabbable !== 'undefined' && !grabbableData.grabbable) {
                     this.grabbedEntity = null;
                     continue;
                 }
@@ -379,7 +379,6 @@ function MyController(hand) {
                 }
                 if (intersectionDistance <= NEAR_PICK_MAX_DISTANCE) {
                     // the hand is very close to the intersected object.  go into close-grabbing mode.
-                    var grabbableData = getEntityCustomData(GRABBABLE_DATA_KEY, this.grabbedEntity, DEFAULT_GRABBABLE_DATA);
                     if (grabbableData.wantsTrigger) {
                         this.setState(STATE_NEAR_GRABBING_NON_COLLIDING);
                     } else {
@@ -391,7 +390,7 @@ function MyController(hand) {
                         this.grabbedEntity = null;
                     } else {
                         // the hand is far from the intersected object.  go into distance-holding mode
-                        if (intersection.properties.collisionsWillMove === 1) {
+                        if (intersection.properties.collisionsWillMove) {
                             this.setState(STATE_DISTANCE_HOLDING);
                         } else {
                             this.setState(STATE_FAR_GRABBING_NON_COLLIDING);
@@ -409,7 +408,7 @@ function MyController(hand) {
             for (i = 0; i < nearbyEntities.length; i++) {
                 var grabbableDataForCandidate =
                     getEntityCustomData(GRABBABLE_DATA_KEY, nearbyEntities[i], DEFAULT_GRABBABLE_DATA);
-                if (grabbableDataForCandidate.grabbable === false) {
+                if (!grabbableDataForCandidate.grabbable) {
                     continue;
                 }
                 var propsForCandidate =
@@ -427,7 +426,7 @@ function MyController(hand) {
             }
             if (grabbableData.wantsTrigger) {
                 this.setState(STATE_NEAR_GRABBING_NON_COLLIDING);
-            } else if (props.locked === 0) {
+            } else if (!props.locked) {
                 this.setState(STATE_NEAR_GRABBING);
             }
         }
@@ -446,7 +445,7 @@ function MyController(hand) {
         this.currentObjectPosition = grabbedProperties.position;
         this.currentObjectRotation = grabbedProperties.rotation;
         this.currentObjectTime = now;
-        this.handPreviousPosition = handControllerPosition;
+        this.handRelativePreviousPosition = Vec3.subtract(handControllerPosition, MyAvatar.position);
         this.handPreviousRotation = handRotation;
 
         this.actionID = NULL_ACTION_ID;
@@ -523,11 +522,10 @@ function MyController(hand) {
         this.currentAvatarOrientation = currentOrientation;
 
         // how far did hand move this timestep?
-        var handMoved = Vec3.subtract(handControllerPosition, this.handPreviousPosition);
-        this.handPreviousPosition = handControllerPosition;
+        var handMoved = Vec3.subtract(handToAvatar, this.handRelativePreviousPosition);
+        this.handRelativePreviousPosition = handToAvatar;
 
         //  magnify the hand movement but not the change from avatar movement & rotation
-        handMoved = Vec3.subtract(handMoved, avatarDeltaPosition);
         handMoved = Vec3.subtract(handMoved, handMovementFromTurning);
         var superHandMoved = Vec3.multiply(handMoved, radius);
 
@@ -570,7 +568,7 @@ function MyController(hand) {
         var grabbableData = getEntityCustomData(GRABBABLE_DATA_KEY, this.grabbedEntity, DEFAULT_GRABBABLE_DATA);
 
         var turnOffOtherHand = grabbableData["turnOffOtherHand"];
-        if (turnOffOtherHand === true) {
+        if (turnOffOtherHand) {
             //don't activate the second hand grab because the script is handling the second hand logic
             return;
         }
@@ -783,11 +781,11 @@ function MyController(hand) {
                     // we haven't been touched before, but either right or left is touching us now
                     _this.allTouchedIDs[id] = true;
                     _this.startTouch(id);
-                } else if ((leftIsTouching || rightIsTouching) && _this.allTouchedIDs[id] === true) {
+                } else if ((leftIsTouching || rightIsTouching) && _this.allTouchedIDs[id]) {
                     // we have been touched before and are still being touched
                     // continue touch
                     _this.continueTouch(id);
-                } else if (_this.allTouchedIDs[id] === true) {
+                } else if (_this.allTouchedIDs[id]) {
                     delete _this.allTouchedIDs[id];
                     _this.stopTouch(id);
 

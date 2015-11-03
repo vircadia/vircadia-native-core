@@ -9,15 +9,15 @@
 
 #include <memory>
 
-#include <QMainWindow>
-#include <QGLWidget>
+#include <QtWidgets/QMainWindow>
+#include <QtOpenGL/QGLWidget>
 #include <GLMHelpers.h>
 #include <gl/GlWindow.h>
 #include <QEvent>
-#include <QResizeEvent>
-#include <QOpenGLContext>
-#include <QGuiApplication>
-#include <QScreen>
+#include <QtGui/QResizeEvent>
+#include <QtGui/QOpenGLContext>
+#include <QtGui/QGuiApplication>
+#include <QtGui/QScreen>
 
 #include <PerfStat.h>
 #include <gl/OglplusHelpers.h>
@@ -193,7 +193,7 @@ void OculusLegacyDisplayPlugin::deactivate() {
 // DLL based display plugins MUST initialize GLEW inside the DLL code.
 void OculusLegacyDisplayPlugin::customizeContext() {
     glewExperimental = true;
-    GLenum err = glewInit();
+    glewInit();
     glGetError();
     WindowOpenGLDisplayPlugin::customizeContext();
 }
