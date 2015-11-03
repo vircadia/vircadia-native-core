@@ -1,42 +1,63 @@
+//
+//  colorBusterWand.js
+//
+//  Created by James B. Pollack @imgntn on 11/2/2015
+//  Copyright 2015 High Fidelity, Inc.
+//
+//  This is the entity script that attaches to a wand for the Color Busters game
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+//
+
+
+
 (function() {
+    Script.include("../../../libraries/utils.js");
 
-    //seconds that the combination lasts
-    var COMBINED_COLOR_DURATION = 10;
+    var COMBINED_COLOR_DURATION = 5;
 
-    var INDICATOR_OFFSET_UP = 0.5;
+    var INDICATOR_OFFSET_UP = 0.40;
 
-    var REMOVE_CUBE_SOUND_URL = '';
-    var COMBINE_COLORS_SOUND_URL = '';
+    var REMOVE_CUBE_SOUND_URL = 'http://hifi-public.s3.amazonaws.com/sounds/color_busters/boop.wav';
+    var COMBINE_COLORS_SOUND_URL = 'http://hifi-public.s3.amazonaws.com/sounds/color_busters/powerup.wav';
+
+    var COLOR_INDICATOR_DIMENSIONS = {
+        x: 0.10,
+        y: 0.10,
+        z: 0.10
+    };
 
     var _this;
 
-    function ColorWand() {
+    function ColorBusterWand() {
         _this = this;
-    };
+    }
 
     ColorBusterWand.prototype = {
         combinedColorsTimer: null,
-
+        soundIsPlaying: false,
         preload: function(entityID) {
             print("preload");
             this.entityID = entityID;
             this.REMOVE_CUBE_SOUND = SoundCache.getSound(REMOVE_CUBE_SOUND_URL);
             this.COMBINE_COLORS_SOUND = SoundCache.getSound(COMBINE_COLORS_SOUND_URL);
-
         },
 
-        entityCollisionWithEntity: function(me, otherEntity, collision) {
-
+        collisionWithEntity: function(me, otherEntity, collision) {
             var otherProperties = Entities.getEntityProperties(otherEntity, ["name", "userData"]);
-            var myProperties = Entities.getEntityProperties(otherEntity, ["userData"]);
+            var myProperties = Entities.getEntityProperties(me, ["userData"]);
             var myUserData = JSON.parse(myProperties.userData);
             var otherUserData = JSON.parse(otherProperties.userData);
 
             if (otherProperties.name === 'Hifi-ColorBusterWand') {
+                print('HIT ANOTHER COLOR WAND!!');
                 if (otherUserData.hifiColorBusterWandKey.colorLocked !== true && myUserData.hifiColorBusterWandKey.colorLocked !== true) {
                     if (otherUserData.hifiColorBusterWandKey.originalColorName === myUserData.hifiColorBusterWandKey.originalColorName) {
+                        print('BUT ITS THE SAME COLOR!')
                         return;
                     } else {
+                        print('COMBINE COLORS!' + this.entityID);
                         this.combineColorsWithOtherWand(otherUserData.hifiColorBusterWandKey.originalColorName, myUserData.hifiColorBusterWandKey.originalColorName);
                     }
                 }
@@ -44,15 +65,23 @@
 
             if (otherProperties.name === 'Hifi-ColorBusterCube') {
                 if (otherUserData.hifiColorBusterCubeKey.originalColorName === myUserData.hifiColorBusterWandKey.currentColor) {
-                    removeCubeOfSameColor(otherEntity);
+                    print('HIT THE SAME COLOR CUBE');
+                    this.removeCubeOfSameColor(otherEntity);
+                } else {
+                    print('HIT A CUBE OF A DIFFERENT COLOR');
                 }
-
             }
         },
 
         combineColorsWithOtherWand: function(otherColor, myColor) {
-            var newColor;
+            print('combining my :' + myColor + " with their: " + otherColor);
 
+            if ((myColor === 'violet') || (myColor === 'orange') || (myColor === 'green')) {
+                print('MY WAND ALREADY COMBINED');
+                return;
+            }
+
+            var newColor;
             if ((otherColor === 'red' && myColor == 'yellow') || (myColor === 'red' && otherColor === 'yellow')) {
                 //orange
                 newColor = 'orange';
@@ -73,19 +102,18 @@
                 _this.combinedColorsTimer = null;
             }, COMBINED_COLOR_DURATION * 1000);
 
-            setEntityCustomData(hifiColorWandKey, this.entityID, {
+            setEntityCustomData('hifiColorBusterWandKey', this.entityID, {
                 owner: MyAvatar.sessionUUID,
-                currentColor: newColor
+                currentColor: newColor,
                 originalColorName: myColor,
                 colorLocked: false
             });
 
-            _this.setCurrentColor(newColor);
 
+            this.playSoundAtCurrentPosition(false);
         },
 
         setCurrentColor: function(newColor) {
-
             var color;
 
             if (newColor === 'orange') {
@@ -138,23 +166,27 @@
 
             Entities.editEntity(this.colorIndicator, {
                 color: color
-            })
+            });
+
+            // print('SET THIS COLOR INDICATOR TO:' + newColor);
         },
 
         resetToOriginalColor: function(myColor) {
-            setEntityCustomData(hifiColorWandKey, this.entityID, {
+            setEntityCustomData('hifiColorBusterWandKey', this.entityID, {
                 owner: MyAvatar.sessionUUID,
-                currentColor: myColor
+                currentColor: myColor,
                 originalColorName: myColor,
-                colorLocked: true
+                colorLocked: false
             });
 
             this.setCurrentColor(myColor);
         },
 
         removeCubeOfSameColor: function(cube) {
+            this.playSoundAtCurrentPosition(true);
             Entities.callEntityMethod(cube, 'cubeEnding');
             Entities.deleteEntity(cube);
+
         },
 
         startNearGrab: function() {
@@ -164,24 +196,31 @@
 
         continueNearGrab: function() {
             this.currentProperties = Entities.getEntityProperties(this.entityID);
+
+            var color = JSON.parse(this.currentProperties.userData).hifiColorBusterWandKey.currentColor;
+
+            this.setCurrentColor(color);
             this.updateColorIndicatorLocation();
         },
 
         releaseGrab: function() {
-            this.deleteEntity(this.colorIndicator);
+            Entities.deleteEntity(this.colorIndicator);
             if (this.combinedColorsTimer !== null) {
                 Script.clearTimeout(this.combinedColorsTimer);
             }
 
         },
 
-        createColorIndicator: function() {
+        createColorIndicator: function(color) {
+
+
             var properties = {
                 name: 'Hifi-ColorBusterIndicator',
                 type: 'Box',
                 dimensions: COLOR_INDICATOR_DIMENSIONS,
-                color: this.currentProperties.position,
-                position: this.currentProperties.position
+                position: this.currentProperties.position,
+                collisionsWillMove: false,
+                ignoreForCollisions: true
             }
 
             this.colorIndicator = Entities.addEntity(properties);
@@ -204,15 +243,15 @@
         },
 
 
-        playSoundAtCurrentPosition: function(removeCubeSound) {
-            var position = Entities.getEntityProperties(this.entityID, "position").position;
+        playSoundAtCurrentPosition: function(isRemoveCubeSound) {
 
+            var position = Entities.getEntityProperties(this.entityID, "position").position;
             var audioProperties = {
-                volume: 0.25,
+                volume: 0.5,
                 position: position
             };
 
-            if (removeCubeSound) {
+            if (isRemoveCubeSound === true) {
                 Audio.playSound(this.REMOVE_CUBE_SOUND, audioProperties);
             } else {
                 Audio.playSound(this.COMBINE_COLORS_SOUND, audioProperties);
