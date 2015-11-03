@@ -2,9 +2,8 @@
     "name": "Standard to Action",
     "channels": [
         { "from": "Standard.LY", "to": "Actions.TranslateZ" },
-        { "from": "Standard.LX", "to": "Actions.TranslateX" },
 
-        { "from": "Standard.RX",
+        { "from": "Standard.LX",
           "when": [ "Application.InHMD", "Application.ComfortMode" ],
           "to": "Actions.StepYaw",
           "filters":
@@ -14,8 +13,9 @@
             ]
         },
 
+        { "from": "Standard.LX", "to": "Actions.Yaw" },
 
-        { "from": "Standard.RX", "to": "Actions.Yaw" },
+        { "from": "Standard.RX", "to": "Actions.TranslateX" },
         { "from": "Standard.RY", "filters": "invert", "to": "Actions.TranslateY" }, 
 
 
