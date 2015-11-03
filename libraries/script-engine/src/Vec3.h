@@ -84,7 +84,7 @@ private:
     const glm::vec3& TWO() { return Vectors::TWO; }
     const glm::vec3& HALF() { return Vectors::HALF; }
     const glm::vec3& RIGHT() { return Vectors::RIGHT; }
-    const glm::vec3& UP() { return Vectors::UNIT_X; }
+    const glm::vec3& UP() { return Vectors::UP; }
     const glm::vec3& FRONT() { return Vectors::FRONT; }
 };
 
