@@ -285,13 +285,7 @@ void ViveControllerManager::update(float deltaTime, bool jointsCaptured) {
                 handleButtonEvent(i, pressed, left);
             }
             for (uint32_t i = 0; i < vr::k_unControllerStateAxisCount; i++) {
-                auto mask = vr::ButtonMaskFromId((vr::EVRButtonId)(i + vr::k_EButton_Axis0));
-                bool pressed = 0 != (controllerState.ulButtonPressed & mask);
-                if (pressed || true) {
-                    handleAxisEvent(i, controllerState.rAxis[i].x, controllerState.rAxis[i].y, left);
-                } else {
-                    handleAxisEvent(i, 0.0f, 0.0f, left);
-                }
+                handleAxisEvent(i, controllerState.rAxis[i].x, controllerState.rAxis[i].y, left);
             }
         }
     }
