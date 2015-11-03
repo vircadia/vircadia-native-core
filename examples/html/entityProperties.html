@@ -830,7 +830,7 @@
             elZoneKeyLightColorRed.addEventListener('change', zoneKeyLightColorChangeFunction);
             elZoneKeyLightColorGreen.addEventListener('change', zoneKeyLightColorChangeFunction);
             elZoneKeyLightColorBlue.addEventListener('change', zoneKeyLightColorChangeFunction);
-            elZoneKeyLightIntensity.addEventListener('change', createEmitGroupNumberPropertyUpdateFunction('intensity','keyLight'));
+            elZoneKeyLightIntensity.addEventListener('change', createEmitGroupNumberPropertyUpdateFunction('keyLight','intensity'));
             elZoneKeyLightAmbientIntensity.addEventListener('change', createEmitGroupNumberPropertyUpdateFunction('keyLight','ambientIntensity'));
             var zoneKeyLightDirectionChangeFunction = createEmitGroupVec3PropertyUpdateFunction('keyLight','direction', elZoneKeyLightDirectionX, elZoneKeyLightDirectionY, elZoneKeyLightDirectionZ);
             elZoneKeyLightDirectionX.addEventListener('change', zoneKeyLightDirectionChangeFunction);

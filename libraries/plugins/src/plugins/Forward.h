@@ -21,3 +21,4 @@ using DisplayPluginPointer = QSharedPointer<DisplayPlugin>;
 using DisplayPluginList = QVector<DisplayPluginPointer>;
 using InputPluginPointer = QSharedPointer<InputPlugin>;
 using InputPluginList = QVector<InputPluginPointer>;
+

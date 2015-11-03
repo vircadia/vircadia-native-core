@@ -38,6 +38,7 @@ public:
     enum class Type {
         Clip = 0,
         BlendLinear,
+        BlendLinearMove,
         Overlay,
         StateMachine,
         Manipulator,
@@ -75,9 +76,9 @@ public:
         return evaluate(animVars, dt, triggersOut);
     }
 
-protected:
-
     void setCurrentFrame(float frame);
+
+protected:
 
     virtual void setCurrentFrameInternal(float frame) {}
     virtual void setSkeletonInternal(AnimSkeleton::ConstPointer skeleton) { _skeleton = skeleton; }

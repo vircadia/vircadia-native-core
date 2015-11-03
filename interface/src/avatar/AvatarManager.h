@@ -52,6 +52,10 @@ public:
     
     Q_INVOKABLE void setLocalLights(const QVector<AvatarManager::LocalLight>& localLights);
     Q_INVOKABLE QVector<AvatarManager::LocalLight> getLocalLights() const;
+    // Currently, your own avatar will be included as the null avatar id.
+    Q_INVOKABLE QVector<QUuid> getAvatarIdentifiers();
+    Q_INVOKABLE AvatarData* getAvatar(QUuid avatarID);
+
 
     void getObjectsToDelete(VectorOfMotionStates& motionStates);
     void getObjectsToAdd(VectorOfMotionStates& motionStates);

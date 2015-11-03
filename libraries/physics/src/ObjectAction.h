@@ -50,6 +50,8 @@ public:
     virtual quint64 getExpires() { return _expires; }
 
 protected:
+    quint64 localTimeToServerTime(quint64 timeValue) const;
+    quint64 serverTimeToLocalTime(quint64 timeValue) const;
 
     virtual btRigidBody* getRigidBody();
     virtual glm::vec3 getPosition();
@@ -62,14 +64,10 @@ protected:
     virtual void setAngularVelocity(glm::vec3 angularVelocity);
     virtual void activateBody();
 
-    bool _active;
     EntityItemWeakPointer _ownerEntity;
-
-    quint64 _expires; // in seconds since epoch
     QString _tag;
-
-    quint64 localTimeToServerTime(quint64 timeValue) const;
-    quint64 serverTimeToLocalTime(quint64 timeValue) const;
+    quint64 _expires { 0 }; // in seconds since epoch
+    bool _active { false };
 
 private:
     int getEntityServerClockSkew() const;

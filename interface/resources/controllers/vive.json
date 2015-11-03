@@ -1,0 +1,26 @@
+{
+    "name": "Vive to Standard",
+    "channels": [
+        { "from": "Vive.LY", "filters": [ "invert", { "type": "deadZone", "min": 0.7 } ], "to": "Standard.LY" },
+        { "from": "Vive.LX", "filters": { "type": "deadZone", "min": 0.7 }, "to": "Standard.LX" },
+
+        { "from": "Vive.LT", "to": "Standard.LT" },
+        { "from": "Vive.LB", "to": "Standard.LB" },
+        { "from": "Vive.LS", "to": "Standard.LS" },
+
+        { "from": "Vive.RY", "filters": "invert", "to": "Standard.RY" },
+        { "from": "Vive.RX", "to": "Standard.RX" },
+
+        { "from": "Vive.RT", "to": "Standard.RT" },
+        { "from": "Vive.RB", "to": "Standard.RB" },
+        { "from": "Vive.RS", "to": "Standard.RS" },
+
+        { "from": "Vive.LeftPrimaryThumb", "to": "Standard.LeftPrimaryThumb" },
+        { "from": "Vive.RightPrimaryThumb", "to": "Standard.RightPrimaryThumb" },
+        { "from": "Vive.LeftSecondaryThumb", "to": "Standard.LeftSecondaryThumb" },
+        { "from": "Vive.RightSecondaryThumb", "to": "Standard.RightSecondaryThumb" },
+
+        { "from": "Vive.LeftHand", "to": "Standard.LeftHand" },
+        { "from": "Vive.RightHand", "to": "Standard.RightHand" }
+    ]
+}
