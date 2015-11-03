@@ -2,15 +2,15 @@ var modelURL = "https://s3.amazonaws.com/hifi-public/eric/models/helicopter.fbx?
 var animationURL = "https://s3.amazonaws.com/hifi-public/eric/models/bladeAnimation.fbx?v7";
 var spawnPosition = {
     x: 1031,
-    y: 135,
+    y: 145,
     z: 1041
 };
 
-var speed = .1;
+var speed = .15;
 
 var helicopterSound = SoundCache.getSound("https://hifi-public.s3.amazonaws.com/ryan/helicopter.L.wav");
 var audioInjector = Audio.playSound(helicopterSound, {
-    volume: 1,
+    volume: 0.3,
     loop: true
 });
 
@@ -20,10 +20,10 @@ var MODEL_LIGHT_POSITION = {
     y: 0,
     z: -5
 };
-var MODEL_LIGHT_ROTATION = Quat.angleAxis(0, {
-    x: 0,
+var MODEL_LIGHT_ROTATION = Quat.angleAxis(-90, {
+    x: 1,
     y: 0,
-    z: 1
+    z: 0
 });
 
 // Evaluate the world light entity positions and orientations from the model ones
@@ -66,14 +66,14 @@ var spotlight = Entities.addEntity({
         green: 200,
         blue: 255
     },
-    intensity: 10,
+    intensity: 1,
     dimensions: {
         x: 2,
         y: 2,
         z: 200
     },
-    exponent: 1,
-    cutoff: 40,
+    exponent: 0.01,
+    cutoff: 10,
     isSpotlight: true
 });
 
@@ -103,7 +103,7 @@ function update() {
     var lightTransform = evalLightWorldTransform(modelProperties.position, modelProperties.rotation);
     Entities.editEntity(spotlight, {
         position: lightTransform.p,
-        // rotation: lightTransform.q
+        rotation: lightTransform.q
     });
     Entities.editEntity(debugLight, {
         position: lightTransform.p,
@@ -117,7 +117,7 @@ function update() {
     //Move forward 
     var newRotation = Quat.multiply(modelProperties.rotation, {
         x: 0,
-        y: .001,
+        y: .002,
         z: 0,
         w: 1
     })
