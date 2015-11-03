@@ -121,6 +121,12 @@ MyAvatar::MyAvatar(RigPointer rig) :
     connect(DependencyManager::get<AddressManager>().data(), &AddressManager::locationChangeRequired,
             this, &MyAvatar::goToLocation);
     _characterController.setEnabled(true);
+
+    _hmdSensorMatrix = glm::mat4();
+    _hmdSensorPosition = extractTranslation(_hmdSensorMatrix);
+    _hmdSensorOrientation = glm::quat_cast(_hmdSensorMatrix);
+    _bodySensorMatrix = deriveBodyFromHMDSensor();
+    updateSensorToWorldMatrix();
 }
 
 MyAvatar::~MyAvatar() {
