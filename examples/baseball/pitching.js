@@ -133,7 +133,6 @@ function PitchingMachine(pitchingMachineID) {
 PitchingMachine.prototype = {
     pitchBall: function() {
         cleanupTrail();
-        updateBillboard("");
 
         if (!this.enabled) {
             return;
@@ -171,9 +170,17 @@ PitchingMachine.prototype = {
     },
     start: function() {
         print("Starting Pitching Machine");
+        if (this.enabled) {
+            print("Already enabled")
+            return;
+        }
         this.enabled = true;
+        this.pitchBall();
     },
     stop: function() {
+        if (!this.enabled) {
+            return;
+        }
         print("Stopping Pitching Machine");
         this.enabled = false;
     },
@@ -186,8 +193,6 @@ PitchingMachine.prototype = {
                 var self = this;
                 Script.setTimeout(function() { self.pitchBall() }, 3000);
             }
-        } else if (this.enabled) {
-            this.pitchBall();
         }
     }
 };
@@ -312,7 +317,6 @@ function ObjectTrail(entityID, startPosition) {
     trailInterval = Script.setInterval(function() {
         var properties = Entities.getEntityProperties(entityID, ['position']);
         if (Vec3.distance(properties.position, lastPosition)) {
-            Vec3.print("Adding trail", properties.position);
             var strokeWidth = Math.log(1 + trail.size) * 0.05;
             trail.enqueuePoint(properties.position, strokeWidth);
             lastPosition = properties.position;
@@ -505,7 +509,7 @@ Baseball.prototype = {
                     });
                 }, 500);
                 if (foul) {
-                    updateBillboard("FOUL!");
+                    updateBillboard("FOUL");
                     print("FOUL ", yaw)
                     this.state = BASEBALL_STATE.FOUL;
                     playRandomSound(AUDIO.foul, {
@@ -526,7 +530,7 @@ Baseball.prototype = {
         } else if (name == "backstop") {
             if (this.state == BASEBALL_STATE.PITCHING) {
                 this.state = BASEBALL_STATE.STRIKE;
-                updateBillboard("STRIKE!");
+                updateBillboard("STRIKE");
                 print("STRIKE");
                 playRandomSound(AUDIO.strike, {
                     position: myPosition,
