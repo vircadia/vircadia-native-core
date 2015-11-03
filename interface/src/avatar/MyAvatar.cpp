@@ -347,23 +347,6 @@ void MyAvatar::updateFromHMDSensorMatrix(const glm::mat4& hmdSensorMatrix) {
 }
 
 void MyAvatar::updateHMDFollowVelocity() {
-    bool isMoving;
-    if (_lastIsMoving) {
-        const float MOVE_EXIT_SPEED_THRESHOLD = 0.07f;  // m/sec
-        isMoving = glm::length(_velocity) >= MOVE_EXIT_SPEED_THRESHOLD;
-    } else {
-        const float MOVE_ENTER_SPEED_THRESHOLD = 0.2f; // m/sec
-        isMoving = glm::length(_velocity) > MOVE_ENTER_SPEED_THRESHOLD;
-    }
-
-    bool justStartedMoving = (_lastIsMoving != isMoving) && isMoving;
-    _lastIsMoving = isMoving;
-
-    bool hmdIsAtRest = _hmdAtRestDetector.update(_hmdSensorPosition, _hmdSensorOrientation);
-    if (hmdIsAtRest || justStartedMoving) {
-        _isFollowingHMD = true;
-    }
-
     // compute offset to body's target position (in sensor-frame)
     auto sensorBodyMatrix = deriveBodyFromHMDSensor();
     _hmdFollowOffset = extractTranslation(sensorBodyMatrix) - extractTranslation(_bodySensorMatrix);
@@ -372,13 +355,29 @@ void MyAvatar::updateHMDFollowVelocity() {
         // don't pull the body DOWN to match the target (allow animation system to squat)
         truncatedOffset.y = 0.0f;
     }
+    float truncatedOffsetDistance = glm::length(truncatedOffset);
+
+    bool isMoving;
+    if (_lastIsMoving) {
+        const float MOVE_EXIT_SPEED_THRESHOLD = 0.07f;  // m/sec
+        isMoving = glm::length(_velocity) >= MOVE_EXIT_SPEED_THRESHOLD;
+    } else {
+        const float MOVE_ENTER_SPEED_THRESHOLD = 0.2f; // m/sec
+        isMoving = glm::length(_velocity) > MOVE_ENTER_SPEED_THRESHOLD;
+    }
+    bool justStartedMoving = (_lastIsMoving != isMoving) && isMoving;
+    _lastIsMoving = isMoving;
+    bool hmdIsAtRest = _hmdAtRestDetector.update(_hmdSensorPosition, _hmdSensorOrientation);
+    const float MIN_HMD_HIP_SHIFT = 0.05f;
+    if (justStartedMoving || (hmdIsAtRest && truncatedOffsetDistance > MIN_HMD_HIP_SHIFT)) {
+        _isFollowingHMD = true;
+    }
 
     bool needNewFollowSpeed = (_isFollowingHMD && _hmdFollowSpeed == 0.0f);
     if (!needNewFollowSpeed) {
         // check to see if offset has exceeded its threshold
-        float distance = glm::length(truncatedOffset);
         const float MAX_HMD_HIP_SHIFT = 0.2f;
-        if (distance > MAX_HMD_HIP_SHIFT) {
+        if (truncatedOffsetDistance > MAX_HMD_HIP_SHIFT) {
             _isFollowingHMD = true;
             needNewFollowSpeed = true;
         }
