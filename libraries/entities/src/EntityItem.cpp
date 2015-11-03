@@ -1861,7 +1861,6 @@ const QByteArray EntityItem::getActionDataInternal() const {
 
 const QByteArray EntityItem::getActionData() const {
     QByteArray result;
-    assertUnlocked();
 
     if (_actionDataDirty) {
         withWriteLock([&] {
