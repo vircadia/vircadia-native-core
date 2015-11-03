@@ -14,13 +14,15 @@
 
 #include <functional>
 
-#include <QApplication>
-#include <QHash>
-#include <QImage>
-#include <QPointer>
-#include <QSet>
-#include <QStringList>
-#include <QUndoStack>
+#include <QtCore/QHash>
+#include <QtCore/QPointer>
+#include <QtCore/QSet>
+#include <QtCore/QStringList>
+
+#include <QtGui/QImage>
+
+#include <QtWidgets/QApplication>
+#include <QtWidgets/QUndoStack>
 
 #include <AbstractScriptingServicesInterface.h>
 #include <AbstractViewStateInterface.h>
@@ -68,6 +70,10 @@ class GLCanvas;
 class FaceTracker;
 class MainWindow;
 class AssetUpload;
+
+namespace controller {
+    class StateController;
+}
 
 #ifdef Q_OS_WIN
 static const UINT UWM_IDENTIFY_INSTANCES =
@@ -161,7 +167,7 @@ public:
 
     ToolWindow* getToolWindow() { return _toolWindow ; }
 
-    virtual AbstractControllerScriptingInterface* getControllerScriptingInterface() { return &_controllerScriptingInterface; }
+    virtual controller::ScriptingInterface* getControllerScriptingInterface() { return _controllerScriptingInterface; }
     virtual void registerScriptEngineWithApplicationServices(ScriptEngine* scriptEngine);
 
     QImage renderAvatarBillboard(RenderArgs* renderArgs);
@@ -287,8 +293,9 @@ public slots:
     void aboutApp();
     void showEditEntitiesHelp();
 
+    void cycleCamera();
     void cameraMenuChanged();
-    
+
     void reloadResourceCaches();
 
     void crashApplication();
@@ -350,8 +357,8 @@ private:
 
     void update(float deltaTime);
 
-    void setPalmData(Hand* hand, UserInputMapper::PoseValue pose, float deltaTime, int index, float triggerValue);
-    void emulateMouse(Hand* hand, float click, float shift, int index);
+    void setPalmData(Hand* hand, const controller::Pose& pose, float deltaTime, HandData::Hand whichHand, float triggerValue);
+    void emulateMouse(Hand* hand, float click, float shift, HandData::Hand whichHand);
 
     // Various helper functions called during update()
     void updateLOD();
@@ -440,7 +447,8 @@ private:
 
     OctreeQuery _octreeQuery; // NodeData derived class for querying octee cells from octree servers
 
-    KeyboardMouseDevice* _keyboardMouseDevice{ nullptr };   // Default input device, the good old keyboard mouse and maybe touchpad
+    std::shared_ptr<controller::StateController> _applicationStateDevice; // Default ApplicationDevice reflecting the state of different properties of the session
+    std::shared_ptr<KeyboardMouseDevice> _keyboardMouseDevice;   // Default input device, the good old keyboard mouse and maybe touchpad
     AvatarUpdate* _avatarUpdate {nullptr};
     SimpleMovingAverage _avatarSimsPerSecond {10};
     int _avatarSimsPerSecondReport {0};
@@ -474,8 +482,7 @@ private:
 
     NodeToJurisdictionMap _entityServerJurisdictions;
     NodeToOctreeSceneStats _octreeServerSceneStats;
-
-    ControllerScriptingInterface _controllerScriptingInterface;
+    ControllerScriptingInterface* _controllerScriptingInterface{ nullptr };
     QPointer<LogDialog> _logDialog;
     QPointer<SnapshotShareDialog> _snapshotShareDialog;
 
@@ -521,10 +528,13 @@ private:
     ApplicationCompositor _compositor;
     OverlayConductor _overlayConductor;
 
-    int _oldHandMouseX[2];
-    int _oldHandMouseY[2];
-    bool _oldHandLeftClick[2];
-    bool _oldHandRightClick[2];
+
+    // FIXME - Hand Controller to mouse emulation helpers. This is crufty and should be moved
+    // into the input plugins or something.
+    int _oldHandMouseX[(int)HandData::NUMBER_OF_HANDS];
+    int _oldHandMouseY[(int)HandData::NUMBER_OF_HANDS];
+    bool _oldHandLeftClick[(int)HandData::NUMBER_OF_HANDS];
+    bool _oldHandRightClick[(int)HandData::NUMBER_OF_HANDS];
 
     DialogsManagerScriptingInterface* _dialogsManagerScriptingInterface = new DialogsManagerScriptingInterface();
 

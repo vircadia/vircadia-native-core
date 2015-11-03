@@ -24,8 +24,12 @@
 
 #endif
 
+#include <SimpleMovingAverage.h>
+
+#include <controllers/InputDevice.h>
+#include <controllers/StandardControls.h>
+
 #include "InputPlugin.h"
-#include "InputDevice.h"
 
 class QLibrary;
 
@@ -40,22 +44,9 @@ const unsigned int BUTTON_TRIGGER = 1U << 8;
 const bool DEFAULT_INVERT_SIXENSE_MOUSE_BUTTONS = false;
 
 // Handles interaction with the Sixense SDK (e.g., Razer Hydra).
-class SixenseManager : public InputPlugin, public InputDevice {
+class SixenseManager : public InputPlugin, public controller::InputDevice {
     Q_OBJECT
 public:
-    enum JoystickAxisChannel {
-        AXIS_Y_POS = 1U << 0,
-        AXIS_Y_NEG = 1U << 3,
-        AXIS_X_POS = 1U << 4,
-        AXIS_X_NEG = 1U << 5,
-        BACK_TRIGGER = 1U << 6,
-    };
-    
-    enum JointChannel {
-        LEFT_HAND = 0,
-        RIGHT_HAND,
-    };
-
     SixenseManager();
     
     // Plugin functions
@@ -71,14 +62,11 @@ public:
     virtual void pluginUpdate(float deltaTime, bool jointsCaptured) override { update(deltaTime, jointsCaptured); }
 
     // Device functions
-    virtual void registerToUserInputMapper(UserInputMapper& mapper) override;
-    virtual void assignDefaultInputMapping(UserInputMapper& mapper) override;
+    virtual controller::Input::NamedVector getAvailableInputs() const override;
+    virtual QString getDefaultMappingConfig() const override;
+
     virtual void update(float deltaTime, bool jointsCaptured) override;
     virtual void focusOutEvent() override;
-
-    UserInputMapper::Input makeInput(unsigned int button, int index);
-    UserInputMapper::Input makeInput(JoystickAxisChannel axis, int index);
-    UserInputMapper::Input makeInput(JointChannel joint);
 
     virtual void saveSettings() const override;
     virtual void loadSettings() override;
@@ -87,9 +75,9 @@ public slots:
     void setSixenseFilter(bool filter);
 
 private:    
-    void handleButtonEvent(unsigned int buttons, int index);
-    void handleAxisEvent(float x, float y, float trigger, int index);
-    void handlePoseEvent(glm::vec3 position, glm::quat rotation, int index);
+    void handleButtonEvent(unsigned int buttons, bool left);
+    void handleAxisEvent(float x, float y, float trigger, bool left);
+    void handlePoseEvent(float deltaTime, glm::vec3 position, glm::quat rotation, bool left);
 
     void updateCalibration(void* controllers);
     
@@ -108,17 +96,20 @@ private:
     glm::vec3 _reachRight;
     float _lastDistance;
     bool _useSixenseFilter = true;
+
+
+    static const int MAX_NUM_AVERAGING_SAMPLES = 50; // At ~100 updates per seconds this means averaging over ~.5s
+    using Samples = std::pair<  MovingAverage< glm::vec3, MAX_NUM_AVERAGING_SAMPLES>, MovingAverage< glm::vec4, MAX_NUM_AVERAGING_SAMPLES> >;
+    using MovingAverageMap = std::map< int, Samples >;
+    MovingAverageMap _collectedSamples;
     
 #ifdef __APPLE__
-    QLibrary* _sixenseLibrary;
+    QLibrary* _sixenseLibrary { nullptr };
 #endif
     
-    bool _hydrasConnected;
-    int _badDataCount;
-    int _allowedBadDataCount;
-
     static const QString NAME;
     static const QString HYDRA_ID_STRING;
 };
 
 #endif // hifi_SixenseManager_h
+

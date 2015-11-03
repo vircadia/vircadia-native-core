@@ -21,14 +21,17 @@ public:
     void reset(const glm::vec3& startPosition, const glm::quat& startRotation);
 
     // returns true if object is at rest, dt in assumed to be seconds.
-    bool update(float dt, const glm::vec3& position, const glm::quat& startRotation);
+    bool update(const glm::vec3& position, const glm::quat& startRotation);
+
+    bool isAtRest() const { return _isAtRest; }
 
 protected:
     glm::vec3 _positionAverage;
-    float _positionVariance;
-
     glm::vec3 _quatLogAverage;
-    float _quatLogVariance;
+    uint64_t _lastUpdateTime { 0 };
+    float _positionVariance { 0.0f };
+    float _quatLogVariance { 0.0f };
+    bool _isAtRest { false };
 };
 
 #endif

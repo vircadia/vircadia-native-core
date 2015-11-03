@@ -9,6 +9,7 @@
 #include <QOpenGLContext>
 #include <QCoreApplication>
 
+#include <gl/Config.h>
 #include <gl/GlWindow.h>
 #include <GLMHelpers.h>
 
@@ -57,12 +58,12 @@ void OpenGLDisplayPlugin::customizeContext() {
 }
 
 void OpenGLDisplayPlugin::activate() {
-    _active = true;
+    DisplayPlugin::activate();
     _timer.start(1);
 }
 
 void OpenGLDisplayPlugin::stop() {
-    _active = false;
+    DisplayPlugin::activate();
     _timer.stop();
 }
 

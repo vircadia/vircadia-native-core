@@ -1,0 +1,39 @@
+{
+    "name": "Standard to Action",
+    "channels": [
+        { "from": "Standard.LY", "to": "Actions.TranslateZ" },
+
+        { "from": "Standard.LX",
+          "when": [ "Application.InHMD", "Application.ComfortMode" ],
+          "to": "Actions.StepYaw",
+          "filters":
+            [
+                { "type": "pulse", "interval": 0.5 },
+                { "type": "scale", "scale": 15 }
+            ]
+        },
+
+        { "from": "Standard.LX", "to": "Actions.Yaw" },
+
+        { "from": "Standard.RX", "to": "Actions.TranslateX" },
+        { "from": "Standard.RY", "filters": "invert", "to": "Actions.TranslateY" }, 
+
+
+        { "from": [ "Standard.DU", "Standard.DL", "Standard.DR", "Standard.DD" ], "to": "Standard.LeftPrimaryThumb" },
+        { "from": "Standard.Back", "to": "Standard.LeftSecondaryThumb" },
+
+        { "from": [ "Standard.A", "Standard.B", "Standard.X", "Standard.Y" ], "to": "Standard.RightPrimaryThumb" },
+        { "from": "Standard.Start", "to": "Standard.RightSecondaryThumb" },
+
+        { "from": "Standard.LeftSecondaryThumb", "to": "Actions.CycleCamera" }, 
+        { "from": "Standard.RightSecondaryThumb", "to": "Actions.ContextMenu" },
+
+        { "from": "Standard.LT", "to": "Actions.LeftHandClick" }, 
+        { "from": "Standard.RT", "to": "Actions.RightHandClick" },
+
+        { "from": "Standard.LeftHand", "to": "Actions.LeftHand" }, 
+        { "from": "Standard.RightHand", "to": "Actions.RightHand" }
+    ]
+}
+
+

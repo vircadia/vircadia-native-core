@@ -2,7 +2,12 @@ set(TARGET_NAME interface)
 project(${TARGET_NAME})
 
 # set a default root dir for each of our optional externals if it was not passed
-set(OPTIONAL_EXTERNALS "Faceshift" "LeapMotion" "RtMidi" "RSSDK" "3DConnexionClient" "iViewHMD")
+set(OPTIONAL_EXTERNALS "LeapMotion" "RtMidi" "RSSDK")
+
+if(WIN32)
+    list(APPEND OPTIONAL_EXTERNALS "3DConnexionClient")
+endif()
+
 foreach(EXTERNAL ${OPTIONAL_EXTERNALS})
   string(TOUPPER ${EXTERNAL} ${EXTERNAL}_UPPERCASE)
   if (NOT ${${EXTERNAL}_UPPERCASE}_ROOT_DIR)
@@ -99,15 +104,17 @@ endif()
 link_hifi_libraries(shared octree environment gpu gl procedural model render 
                     fbx networking model-networking entities avatars 
                     audio audio-client animation script-engine physics 
-                    render-utils entities-renderer ui auto-updater 
-                    plugins display-plugins input-plugins)
+                    render-utils entities-renderer ui auto-updater
+                    controllers plugins display-plugins input-plugins )
 
+#fixme find a way to express faceshift as a plugin
 target_bullet()
 target_glew()
 target_opengl()
 
-
-add_dependency_external_projects(sdl2)
+if (WIN32 OR APPLE)
+    target_faceshift()
+endif()
 
 # perform standard include and linking for found externals
 foreach(EXTERNAL ${OPTIONAL_EXTERNALS})

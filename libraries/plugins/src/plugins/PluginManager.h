@@ -12,6 +12,7 @@
 class PluginManager : public QObject {
 public:
   static PluginManager* getInstance();
+  PluginManager();
 
   const DisplayPluginList& getDisplayPlugins();
   const InputPluginList& getInputPlugins();
