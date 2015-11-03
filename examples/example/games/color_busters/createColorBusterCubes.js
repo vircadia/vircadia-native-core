@@ -19,7 +19,7 @@ var CUBE_DIMENSIONS = {
     z: 1
 };
 
-var NUMBER_OF_CUBES_PER_SIDE = 5;
+var NUMBER_OF_CUBES_PER_SIDE = 8;
 
 var STARTING_CORNER_POSITION = {
     x: 100,

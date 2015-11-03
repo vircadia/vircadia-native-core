@@ -247,7 +247,7 @@
 
             var position = Entities.getEntityProperties(this.entityID, "position").position;
             var audioProperties = {
-                volume: 0.5,
+                volume: 0.25,
                 position: position
             };
 
