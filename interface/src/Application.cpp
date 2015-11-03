@@ -160,7 +160,6 @@ static QTimer balanceUpdateTimer;
 static QTimer identityPacketTimer;
 static QTimer billboardPacketTimer;
 static QTimer checkFPStimer;
-static QTimer idleTimer;
 
 static const QString SNAPSHOT_EXTENSION  = ".jpg";
 static const QString SVO_EXTENSION  = ".svo";
@@ -844,7 +843,6 @@ void Application::cleanupBeforeQuit() {
     identityPacketTimer.stop();
     billboardPacketTimer.stop();
     checkFPStimer.stop();
-    idleTimer.stop();
     QMetaObject::invokeMethod(&_settingsTimer, "stop", Qt::BlockingQueuedConnection);
 
     // save state
@@ -982,9 +980,6 @@ void Application::initializeGL() {
     connect(&checkFPStimer, &QTimer::timeout, this, &Application::checkFPS);
     checkFPStimer.start(1000);
 
-    // call our idle function whenever we can
-    connect(&idleTimer, &QTimer::timeout, this, &Application::idle);
-    idleTimer.start(TARGET_SIM_FRAME_PERIOD_MS);
     _idleLoopStdev.reset();
 
     // update before the first render
@@ -1048,6 +1043,9 @@ void Application::initializeUi() {
 }
 
 void Application::paintGL() {
+
+    idle();
+
     PROFILE_RANGE(__FUNCTION__);
     PerformanceTimer perfTimer("paintGL");
 
