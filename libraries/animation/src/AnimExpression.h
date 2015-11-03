@@ -12,7 +12,6 @@
 #define hifi_AnimExpression
 
 #include <QString>
-#include <QVector>
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
 
@@ -53,11 +52,7 @@ protected:
         QString strVal;
         int intVal;
         float floatVal;
-        glm::vec3 vec3Val;
-        glm::vec4 vec4Val;
-        glm::quat quatVal;
     };
-    bool parseExpression(const QString& str);
     Token consumeToken(const QString& str, QString::const_iterator& iter) const;
     Token consumeIdentifier(const QString& str, QString::const_iterator& iter) const;
     Token consumeNumber(const QString& str, QString::const_iterator& iter) const;
@@ -66,6 +61,8 @@ protected:
     Token consumeGreaterThan(const QString& str, QString::const_iterator& iter) const;
     Token consumeLessThan(const QString& str, QString::const_iterator& iter) const;
     Token consumeNot(const QString& str, QString::const_iterator& iter) const;
+
+    bool parseExpression(const QString& str);
 
     QString _expression;
 };
