@@ -307,7 +307,7 @@ public slots:
 private slots:
     void clearDomainOctreeDetails();
     void ping();
-    void idle();
+    void idle(uint64_t now);
     void aboutToQuit();
 
     void handleScriptEngineLoaded(const QString& scriptFilename);

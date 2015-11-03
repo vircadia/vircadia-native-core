@@ -1041,8 +1041,25 @@ void Application::initializeUi() {
 }
 
 void Application::paintGL() {
+    _frameCount++;
 
-    idle();
+    // update fps moving average
+    uint64_t now = usecTimestampNow();
+    static uint64_t lastPaintBegin{ now };
+    uint64_t diff = now - lastPaintBegin;
+    if (diff != 0) {
+        _framesPerSecond.updateAverage((float)USECS_PER_SECOND / (float)diff);
+    }
+
+    lastPaintBegin = now;
+
+    // update fps once a second
+    if (now - _lastFramesPerSecondUpdate > USECS_PER_SECOND) {
+        _fps = _framesPerSecond.getAverage();
+        _lastFramesPerSecondUpdate = now;
+    }
+
+    idle(now);
 
     PROFILE_RANGE(__FUNCTION__);
     PerformanceTimer perfTimer("paintGL");
@@ -1317,24 +1334,6 @@ void Application::paintGL() {
         gpu::doInBatch(renderArgs._context, [=](gpu::Batch& batch) {
             batch.resetStages();
         });
-    }
-
-    // update fps moving average
-    {
-        uint64_t now = usecTimestampNow();
-        static uint64_t lastPaintEnd{ now };
-        uint64_t diff = now - lastPaintEnd;
-        if (diff != 0) {
-            _framesPerSecond.updateAverage((float)USECS_PER_SECOND / (float)diff);
-        }
-        lastPaintEnd = now;
-
-        // update fps once a second
-        if (now - _lastFramesPerSecondUpdate > USECS_PER_SECOND) {
-            _fps = _framesPerSecond.getAverage();
-            _lastFramesPerSecondUpdate = now;
-        }
-        _frameCount++;
     }
 }
 
@@ -2107,7 +2106,7 @@ void Application::ping() {
     }
 }
 
-void Application::idle() {
+void Application::idle(uint64_t now) {
     if (_aboutToQuit) {
         return; // bail early, nothing to do here.
     }
@@ -2130,7 +2129,6 @@ void Application::idle() {
 
     {
         PROFILE_RANGE(__FUNCTION__);
-        uint64_t now = usecTimestampNow();
         static uint64_t lastIdleStart{ now };
         uint64_t idleStartToStartDuration = now - lastIdleStart;
         if (idleStartToStartDuration != 0) {
