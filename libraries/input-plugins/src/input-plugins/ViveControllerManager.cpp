@@ -223,6 +223,7 @@ void ViveControllerManager::renderHand(const controller::Pose& pose, gpu::Batch&
     batch.drawIndexed(gpu::TRIANGLES, mesh->getNumIndices(), 0);
 }
 
+#ifdef Q_OS_WIN
 glm::vec3 ViveControllerManager::getPosition(int hand) const {
 	const mat4& mat = _trackedDevicePoseMat4[hand ? 3 : 4];
 	return extractTranslation(mat);
@@ -231,6 +232,7 @@ glm::quat ViveControllerManager::getRotation(int hand) const {
 	const mat4& mat = _trackedDevicePoseMat4[hand ? 3 : 4];
 	return glm::quat_cast(mat);
 }
+#endif
 
 void ViveControllerManager::update(float deltaTime, bool jointsCaptured) {
 #ifdef Q_OS_WIN
@@ -278,22 +280,22 @@ void ViveControllerManager::update(float deltaTime, bool jointsCaptured) {
             //qDebug() << "Trackpad: " << controllerState.rAxis[0].x << " " << controllerState.rAxis[0].y;
             //qDebug() << "Trigger: " << controllerState.rAxis[1].x << " " << controllerState.rAxis[1].y;
             for (uint32_t i = 0; i < vr::k_EButton_Max; ++i) {
-				auto mask = vr::ButtonMaskFromId((vr::EVRButtonId)i);
-				bool pressed = 0 != (controllerState.ulButtonPressed & mask);
+                auto mask = vr::ButtonMaskFromId((vr::EVRButtonId)i);
+                bool pressed = 0 != (controllerState.ulButtonPressed & mask);
                 handleButtonEvent(i, pressed, left);
             }
-			for (uint32_t i = 0; i < vr::k_unControllerStateAxisCount; i++) {
-				auto mask = vr::ButtonMaskFromId((vr::EVRButtonId)(i + vr::k_EButton_Axis0));
-				bool pressed = 0 != (controllerState.ulButtonPressed & mask);
-				if (pressed || true) {
-					handleAxisEvent(i, controllerState.rAxis[i].x, controllerState.rAxis[i].y, left);
-				} else {
-					handleAxisEvent(i, 0.0f, 0.0f, left);
-				}
+            for (uint32_t i = 0; i < vr::k_unControllerStateAxisCount; i++) {
+                auto mask = vr::ButtonMaskFromId((vr::EVRButtonId)(i + vr::k_EButton_Axis0));
+                bool pressed = 0 != (controllerState.ulButtonPressed & mask);
+                if (pressed || true) {
+                    handleAxisEvent(i, controllerState.rAxis[i].x, controllerState.rAxis[i].y, left);
+                } else {
+                    handleAxisEvent(i, 0.0f, 0.0f, left);
+                }
             }
         }
     }
-        
+    
     auto userInputMapper = DependencyManager::get<controller::UserInputMapper>();
         
     if (numTrackedControllers == 0) {
@@ -412,11 +414,12 @@ void ViveControllerManager::handlePoseEvent(const mat4& mat, bool left) {
     //    Q = (deltaQ * inverse(deltaQForAlignedHand)) * (yFlip * quarterTurnAboutX)
     
     float sign = left ? -1.0f : 1.0f;
-
+    
     const glm::quat quarterX = glm::angleAxis(PI / 2.0f, glm::vec3(1.0f, 0.0f, 0.0f));
     const glm::quat yFlip = glm::angleAxis(PI, glm::vec3(0.0f, 1.0f, 0.0f));
-    const glm::quat signedQuaterZ = glm::angleAxis(sign * PI / 2.0f, glm::vec3(0.0f, 0.0f, 1.0f)); 
+    const glm::quat signedQuaterZ = glm::angleAxis(sign * PI / 2.0f, glm::vec3(0.0f, 0.0f, 1.0f));
     const glm::quat eighthX = glm::angleAxis(PI / 4.0f, glm::vec3(1.0f, 0.0f, 0.0f));
+    
     
     const glm::quat rotationOffset = glm::inverse(signedQuaterZ * eighthX) * yFlip * quarterX;
     const glm::vec3 translationOffset = glm::vec3(sign * CONTROLLER_LENGTH_OFFSET / 2.0f,

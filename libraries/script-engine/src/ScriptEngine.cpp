@@ -367,10 +367,10 @@ void ScriptEngine::init() {
     registerGlobalObject("AnimationCache", DependencyManager::get<AnimationCache>().data());
     qScriptRegisterMetaType(this, animVarMapToScriptValue, animVarMapFromScriptValue);
     qScriptRegisterMetaType(this, resultHandlerToScriptValue, resultHandlerFromScriptValue);
-
+    
     // constants
     globalObject().setProperty("TREE_SCALE", newVariant(QVariant(TREE_SCALE)));
-
+    
     auto scriptingInterface = DependencyManager::get<controller::ScriptingInterface>();
     registerGlobalObject("Controller", scriptingInterface.data());
     UserInputMapper::registerControllerTypes(this);
@@ -706,7 +706,7 @@ void ScriptEngine::run() {
             }
         }
         lastUpdate = now;
-
+        
         // Debug and clear exceptions
         hadUncaughtExceptions(*this, _fileNameString);
     }

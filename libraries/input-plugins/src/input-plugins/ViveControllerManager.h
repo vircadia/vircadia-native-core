@@ -27,8 +27,8 @@
 class ViveControllerManager : public InputPlugin, public controller::InputDevice {
     Q_OBJECT
 public:
-	static const QString NAME;
-
+    static const QString NAME;
+    
     ViveControllerManager();
 
     // Plugin functions
@@ -52,9 +52,11 @@ public:
 
     void setRenderControllers(bool renderControllers) { _renderControllers = renderControllers; }
 
-	int getNumDevices() const; 
+
+#ifdef Q_OS_WIN
 	glm::vec3 getPosition(int device) const;
 	glm::quat getRotation(int device) const;
+#endif
 private:
     void renderHand(const controller::Pose& pose, gpu::Batch& batch, int sign);
     
