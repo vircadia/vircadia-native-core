@@ -23,7 +23,6 @@
 class SpacemouseManager : public QObject {
     Q_OBJECT
 public:
-    static SpacemouseManager& getInstance();
     void ManagerFocusOutEvent();
     void init();
     void destroy() {};
@@ -92,7 +91,6 @@ class SpacemouseManager : public QObject, public QAbstractNativeEventFilter {
 public:
     SpacemouseManager() {};
 
-    static SpacemouseManager& getInstance();
     void init();
     void destroy();
     bool Is3dmouseAttached();
@@ -169,7 +167,6 @@ private:
 class SpacemouseManager : public QObject {
     Q_OBJECT
 public:
-    static SpacemouseManager& getInstance();
     void init();
     void destroy();
     bool Is3dmouseAttached();

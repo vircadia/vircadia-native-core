@@ -44,10 +44,11 @@ const unsigned int BUTTON_TRIGGER = 1U << 8;
 const bool DEFAULT_INVERT_SIXENSE_MOUSE_BUTTONS = false;
 
 // Handles interaction with the Sixense SDK (e.g., Razer Hydra).
-class SixenseManager : public InputPlugin, public controller::InputDevice {
+class SixenseManager : public InputPlugin {
     Q_OBJECT
 public:
-    SixenseManager();
+    SixenseManager() {}
+    virtual ~SixenseManager() {}
     
     // Plugin functions
     virtual bool isSupported() const override;
@@ -58,15 +59,8 @@ public:
     virtual void activate() override;
     virtual void deactivate() override;
 
-    virtual void pluginFocusOutEvent() override { focusOutEvent(); }
-    virtual void pluginUpdate(float deltaTime, bool jointsCaptured) override { update(deltaTime, jointsCaptured); }
-
-    // Device functions
-    virtual controller::Input::NamedVector getAvailableInputs() const override;
-    virtual QString getDefaultMappingConfig() const override;
-
-    virtual void update(float deltaTime, bool jointsCaptured) override;
-    virtual void focusOutEvent() override;
+    virtual void pluginFocusOutEvent() override { _inputDevice->focusOutEvent(); }
+    virtual void pluginUpdate(float deltaTime, bool jointsCaptured) override;
 
     virtual void saveSettings() const override;
     virtual void loadSettings() override;
@@ -75,38 +69,57 @@ public slots:
     void setSixenseFilter(bool filter);
 
 private:    
-    void handleButtonEvent(unsigned int buttons, bool left);
-    void handleAxisEvent(float x, float y, float trigger, bool left);
-    void handlePoseEvent(float deltaTime, glm::vec3 position, glm::quat rotation, bool left);
-
-    void updateCalibration(void* controllers);
-    
-    int _calibrationState;
-
-    // these are calibration results
-    glm::vec3 _avatarPosition; // in hydra-frame
-    glm::quat _avatarRotation; // in hydra-frame
-    float _reachLength;
-
-    // these are measured values used to compute the calibration results
-    quint64 _lockExpiry;
-    glm::vec3 _averageLeft;
-    glm::vec3 _averageRight;
-    glm::vec3 _reachLeft;
-    glm::vec3 _reachRight;
-    float _lastDistance;
-    bool _useSixenseFilter = true;
-
-
     static const int MAX_NUM_AVERAGING_SAMPLES = 50; // At ~100 updates per seconds this means averaging over ~.5s
+    static const int CALIBRATION_STATE_IDLE = 0;
+    static const int CALIBRATION_STATE_IN_PROGRESS = 1;
+    static const int CALIBRATION_STATE_COMPLETE = 2;
+    static const glm::vec3 DEFAULT_AVATAR_POSITION; 
+    static const float CONTROLLER_THRESHOLD;
+    static const float DEFAULT_REACH_LENGTH;
+
+
     using Samples = std::pair<  MovingAverage< glm::vec3, MAX_NUM_AVERAGING_SAMPLES>, MovingAverage< glm::vec4, MAX_NUM_AVERAGING_SAMPLES> >;
     using MovingAverageMap = std::map< int, Samples >;
-    MovingAverageMap _collectedSamples;
+
+    class InputDevice : public controller::InputDevice {
+    public:
+        InputDevice() : controller::InputDevice("Hydra") {}
+    private:
+        // Device functions
+        virtual controller::Input::NamedVector getAvailableInputs() const override;
+        virtual QString getDefaultMappingConfig() const override;
+        virtual void update(float deltaTime, bool jointsCaptured) override;
+        virtual void focusOutEvent() override;
+
+        void handleButtonEvent(unsigned int buttons, bool left);
+        void handleAxisEvent(float x, float y, float trigger, bool left);
+        void handlePoseEvent(float deltaTime, glm::vec3 position, glm::quat rotation, bool left);
+        void updateCalibration(void* controllers);
+
+        friend class SixenseManager;
+
+        MovingAverageMap _collectedSamples;
+
+        int _calibrationState { CALIBRATION_STATE_IDLE };
+        // these are calibration results
+        glm::vec3 _avatarPosition { DEFAULT_AVATAR_POSITION }; // in hydra-frame
+        glm::quat _avatarRotation; // in hydra-frame
     
-#ifdef __APPLE__
-    QLibrary* _sixenseLibrary { nullptr };
-#endif
-    
+        float _reachLength { DEFAULT_REACH_LENGTH };
+        float _lastDistance;
+        // these are measured values used to compute the calibration results
+        quint64 _lockExpiry;
+        glm::vec3 _averageLeft;
+        glm::vec3 _averageRight;
+        glm::vec3 _reachLeft;
+        glm::vec3 _reachRight;
+    };
+
+
+
+    bool _useSixenseFilter = true;
+    std::shared_ptr<InputDevice> _inputDevice { std::make_shared<InputDevice>() };
+
     static const QString NAME;
     static const QString HYDRA_ID_STRING;
 };
