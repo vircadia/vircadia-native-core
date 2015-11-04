@@ -51,7 +51,7 @@
             relativePosition: {
               x: 0.9, y: 0, z: 0
             },
-            relativeRotation: Quat.fromPitchYawRollDegrees(0, -90, 0)
+            relativeRotation: Quat.fromPitchYawRollDegrees(0, 90, 0)
           }
         }
       }
