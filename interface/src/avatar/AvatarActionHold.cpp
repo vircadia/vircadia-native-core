@@ -50,7 +50,6 @@ void AvatarActionHold::updateActionWorker(float deltaTimeStep) {
         holdingAvatar = std::static_pointer_cast<Avatar>(holdingAvatarData);
         
         if (holdingAvatar) {
-            glm::vec3 offset;
             glm::vec3 palmPosition;
             glm::quat palmRotation;
             
@@ -64,14 +63,16 @@ void AvatarActionHold::updateActionWorker(float deltaTimeStep) {
                 const auto& vive = it->dynamicCast<ViveControllerManager>();
                 auto index = (_hand == "left") ? 0 : 1;
                 auto userInputMapper = DependencyManager::get<UserInputMapper>();
-                auto translation = extractTranslation(userInputMapper->getSensorToWorldMat());
-                auto rotation = glm::quat_cast(userInputMapper->getSensorToWorldMat());
+                auto pos = extractTranslation(userInputMapper->getSensorToWorldMat());
+                auto rot = glm::quat_cast(userInputMapper->getSensorToWorldMat());
                 
-                
-                const glm::quat quarterX = glm::angleAxis(PI / 2.0f, glm::vec3(1.0f, 0.0f, 0.0f));
-                const glm::quat yFlip = glm::angleAxis(PI, glm::vec3(0.0f, 1.0f, 0.0f));
-                palmPosition = translation + rotation * vive->getPosition(index);
-                palmRotation = rotation * vive->getRotation(index) * yFlip * quarterX * glm::angleAxis(PI, glm::vec3(1.0f, 0.0f, 0.0f)) * glm::angleAxis(PI_OVER_TWO, glm::vec3(0.0f, 0.0f, 1.0f));
+
+                static const glm::quat yFlip = glm::angleAxis(PI, Vectors::UNIT_Y);
+                static const glm::quat quarterX = glm::angleAxis(PI_OVER_TWO, Vectors::UNIT_X);
+                static const glm::quat viveToHand = yFlip * quarterX;
+
+                palmPosition = pos + rot * vive->getPosition(index);
+                palmRotation = rot * vive->getRotation(index);// * viveToHand * glm::angleAxis(PI, glm::vec3(1.0f, 0.0f, 0.0f)) * glm::angleAxis(PI_OVER_TWO, glm::vec3(0.0f, 0.0f, 1.0f));
             } else
 #endif
             if (_hand == "right") {
@@ -83,8 +84,7 @@ void AvatarActionHold::updateActionWorker(float deltaTimeStep) {
             }
             
             rotation = palmRotation * _relativeRotation;
-            offset = rotation * _relativePosition;
-            position = palmPosition + offset;
+            position = palmPosition + rotation * _relativePosition;
         }
     });
     

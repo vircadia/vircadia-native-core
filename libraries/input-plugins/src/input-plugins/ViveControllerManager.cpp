@@ -35,6 +35,7 @@ extern mat4 _trackedDevicePoseMat4[vr::k_unMaxTrackedDeviceCount];
 
 
 const float CONTROLLER_LENGTH_OFFSET = 0.0762f;  // three inches
+const glm::vec3 CONTROLLER_OFFSET = glm::vec3(CONTROLLER_LENGTH_OFFSET / 2.0f, CONTROLLER_LENGTH_OFFSET / 2.0f, 2.0f * CONTROLLER_LENGTH_OFFSET);  // three inches
 const QString CONTROLLER_MODEL_STRING = "vr_controller_05_wireless_b";
 
 const QString ViveControllerManager::NAME = "OpenVR";
@@ -354,14 +355,11 @@ void ViveControllerManager::handleButtonEvent(uint32_t button, bool pressed, boo
 }
 
 void ViveControllerManager::handlePoseEvent(const mat4& mat, bool left) {
-    glm::vec3 position = extractTranslation(mat);
-    glm::quat rotation = glm::quat_cast(mat);
-
     // When the sensor-to-world rotation is identity the coordinate axes look like this:
     //
     //                       user
     //                      forward
-    //                         z
+    //                        -z
     //                         |
     //                        y|      user
     //      y                  o----x right
@@ -406,22 +404,26 @@ void ViveControllerManager::handlePoseEvent(const mat4& mat, bool left) {
     //    Q = (deltaQ * QOffset) * (yFlip * quarterTurnAboutX)
     //
     //    Q = (deltaQ * inverse(deltaQForAlignedHand)) * (yFlip * quarterTurnAboutX)
-    
-    float sign = left ? -1.0f : 1.0f;
-    
-    const glm::quat quarterX = glm::angleAxis(PI / 2.0f, glm::vec3(1.0f, 0.0f, 0.0f));
-    const glm::quat yFlip = glm::angleAxis(PI, glm::vec3(0.0f, 1.0f, 0.0f));
-    const glm::quat signedQuaterZ = glm::angleAxis(sign * PI / 2.0f, glm::vec3(0.0f, 0.0f, 1.0f));
-    const glm::quat eighthX = glm::angleAxis(PI / 4.0f, glm::vec3(1.0f, 0.0f, 0.0f));
-    
-    
-    const glm::quat rotationOffset = glm::inverse(signedQuaterZ * eighthX) * yFlip * quarterX;
-    const glm::vec3 translationOffset = glm::vec3(sign * CONTROLLER_LENGTH_OFFSET / 2.0f,
-                                                  CONTROLLER_LENGTH_OFFSET / 2.0f,
-                                                  2.0f * CONTROLLER_LENGTH_OFFSET);
-    
-    position += rotation * translationOffset;
-    rotation = rotation * rotationOffset;
+
+    static const glm::quat yFlip = glm::angleAxis(PI, Vectors::UNIT_Y);
+    static const glm::quat quarterX = glm::angleAxis(PI_OVER_TWO, Vectors::UNIT_X);
+    static const glm::quat viveToHand = yFlip * quarterX;
+
+    static const glm::quat leftQuaterZ = glm::angleAxis(-PI_OVER_TWO, Vectors::UNIT_Z);
+    static const glm::quat rightQuaterZ = glm::angleAxis(PI_OVER_TWO, Vectors::UNIT_Z);
+    static const glm::quat eighthX = glm::angleAxis(PI / 4.0f, Vectors::UNIT_X);
+
+    static const glm::quat leftRotationOffset = glm::inverse(leftQuaterZ * eighthX) * viveToHand;
+    static const glm::quat rightRotationOffset = glm::inverse(rightQuaterZ * eighthX) * viveToHand;
+
+    static const glm::vec3 leftTranslationOffset = glm::vec3(-1.0f, 1.0f, 1.0f) * CONTROLLER_OFFSET;
+    static const glm::vec3 rightTranslationOffset = CONTROLLER_OFFSET;
+
+    glm::vec3 position = extractTranslation(mat);
+    glm::quat rotation = glm::quat_cast(mat);
+
+    position += rotation * (left ? leftTranslationOffset : rightTranslationOffset);
+    rotation = rotation * (left ? leftRotationOffset : rightRotationOffset);
     
     _poseStateMap[left ? controller::LEFT_HAND : controller::RIGHT_HAND] = controller::Pose(position, rotation);
 }
