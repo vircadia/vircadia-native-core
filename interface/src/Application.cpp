@@ -1204,13 +1204,13 @@ void Application::paintGL() {
             EntityItemPointer cameraEntity = _myCamera.getCameraEntityPointer();
             if (cameraEntity != nullptr) {
                 if (isHMDMode()) {
-                    glm::vec3 hmdOffset = extractTranslation(myAvatar->getHMDSensorMatrix());
-                    _myCamera.setPosition(cameraEntity->getPosition() + hmdOffset);
                     glm::quat hmdRotation = extractRotation(myAvatar->getHMDSensorMatrix());
                     _myCamera.setRotation(cameraEntity->getRotation() * hmdRotation);
+                    glm::vec3 hmdOffset = extractTranslation(myAvatar->getHMDSensorMatrix());
+                    _myCamera.setPosition(cameraEntity->getPosition() + (hmdRotation * hmdOffset));
                 } else {
-                    _myCamera.setPosition(cameraEntity->getPosition());
                     _myCamera.setRotation(cameraEntity->getRotation());
+                    _myCamera.setPosition(cameraEntity->getPosition());
                 }
             }
         }
