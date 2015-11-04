@@ -38,7 +38,10 @@ function playAwayAnimation() {
 }
 function stopAwayAnimation() {
     MyAvatar.removeAnimationStateHandler(awayAnimationHandlerId);
-    if (stopper) { print('WARNING: unexpected double stop'); return; }
+    if (stopper) {
+        print('WARNING: unexpected double stop');
+        return;
+    }
     // How do we know when to turn ikOverlayAlpha back on?
     // It cannot be as soon as we want to stop the away animation, because then things will look goofy as we come out of that animation.
     // (Imagine an away animation that sits or kneels, and then stands back up when coming out of it. If head is at the HMD, then it won't
