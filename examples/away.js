@@ -98,16 +98,16 @@ function goActive(event) {
         if (event.text === '.') {
             goAway(event);
         }
-        return;
+    } else {
+        isAway = false;
+        print('going "active"');
+        if (!wasMuted) {
+            AudioDevice.toggleMute();
+        }
+        MyAvatar.setEnableMeshVisible(true); // IWBNI we respected Developer->Avatar->Draw Mesh setting.
+        stopAwayAnimation();
+        hideOverlay();
     }
-    isAway = false;
-    print('going "active"');
-    if (!wasMuted) {
-        AudioDevice.toggleMute();
-    }
-    MyAvatar.setEnableMeshVisible(true); // IWBNI we respected Developer->Avatar->Draw Mesh setting.
-    stopAwayAnimation();
-    hideOverlay();
 }
 Controller.keyPressEvent.connect(goActive);
 Script.scriptEnding.connect(goActive);
