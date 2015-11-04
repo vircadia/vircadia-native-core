@@ -289,7 +289,7 @@ void ViveControllerManager::update(float deltaTime, bool jointsCaptured) {
             }
         }
     }
-        
+    
     auto userInputMapper = DependencyManager::get<controller::UserInputMapper>();
         
     if (numTrackedControllers == 0) {
@@ -422,7 +422,6 @@ void ViveControllerManager::handlePoseEvent(const mat4& mat, bool left) {
     
     position += rotation * translationOffset;
     rotation = rotation * rotationOffset;
-    //{quat, x = 0.653281, y = -0.270598, z = 0.653281, w = 0.270598}{vec3, x = 0.0381, y = -0.0381, z = -0.1524}
     
     _poseStateMap[left ? controller::LEFT_HAND : controller::RIGHT_HAND] = controller::Pose(position, rotation);
 }

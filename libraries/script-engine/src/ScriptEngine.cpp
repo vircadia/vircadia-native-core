@@ -120,16 +120,16 @@ static bool hadUncaughtExceptions(QScriptEngine& engine, const QString& fileName
 }
 
 ScriptEngine::ScriptEngine(const QString& scriptContents, const QString& fileNameString, bool wantSignals) :
-_scriptContents(scriptContents),
-_isFinished(false),
-_isRunning(false),
-_isInitialized(false),
-_timerFunctionMap(),
-_wantSignals(wantSignals),
-_fileNameString(fileNameString),
-_isUserLoaded(false),
-_isReloading(false),
-_arrayBufferClass(new ArrayBufferClass(this))
+    _scriptContents(scriptContents),
+    _isFinished(false),
+    _isRunning(false),
+    _isInitialized(false),
+    _timerFunctionMap(),
+    _wantSignals(wantSignals),
+    _fileNameString(fileNameString),
+    _isUserLoaded(false),
+    _isReloading(false),
+    _arrayBufferClass(new ArrayBufferClass(this))
 {
     _allScriptsMutex.lock();
     _allKnownScriptEngines.insert(this);
@@ -580,7 +580,7 @@ void ScriptEngine::addEventHandler(const EntityItemID& entityID, const QString& 
         auto makeCollisionHandler = [this](QString eventName) -> CollisionHandler {
             return [this, eventName](const EntityItemID& idA, const EntityItemID& idB, const Collision& collision) {
                 forwardHandlerCall(idA, eventName, { idA.toScriptValue(this), idB.toScriptValue(this),
-                    collisionToScriptValue(this, collision) });
+                                                     collisionToScriptValue(this, collision) });
             };
         };
         
