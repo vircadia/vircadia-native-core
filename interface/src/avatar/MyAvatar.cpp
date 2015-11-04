@@ -1284,11 +1284,11 @@ void MyAvatar::prepareForPhysicsSimulation() {
     _characterController.setAvatarPositionAndOrientation(getPosition(), getOrientation());
     if (qApp->isHMDMode()) {
         updateHMDFollowVelocity();
-        _characterController.setHMDVelocity(_hmdFollowVelocity);
-    } else {
-        _characterController.setHMDVelocity(Vectors::ZERO);
+    } else if (_isFollowingHMD) {
         _isFollowingHMD = false;
+        _hmdFollowVelocity = Vectors::ZERO;
     }
+    _characterController.setHMDVelocity(_hmdFollowVelocity);
 }
 
 void MyAvatar::harvestResultsFromPhysicsSimulation() {
@@ -1324,6 +1324,7 @@ void MyAvatar::adjustSensorTransform(glm::vec3 hmdShift) {
         // the "adjustment" is more or less complete so stop following
         _isFollowingHMD = false;
         _hmdFollowSpeed = 0.0f;
+        _hmdFollowVelocity = Vectors::ZERO;
         // and slam the body's transform anyway to eliminate any slight errors
         glm::vec3 finalBodyPosition = extractTranslation(worldBodyMatrix);
         nextAttitude(finalBodyPosition, finalBodyRotation);
