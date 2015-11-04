@@ -98,12 +98,20 @@ function shootFirework(position, color, options) {
         emitRate: 100
     };
 
+    smokeTrailSettings.position = position;
+    smokeTrailSettings.velocity = randomVec3(-5, 5, 10, 20, 10, 15);
+    smokeTrailSettings.gravity = randomVec3(-5, 5, -9.8, -9.8, 20, 40);
+    smokeTrailSettings.emitRate = 100;
+    
+
     var idx = currentIdx;
     currentIdx = (currentIdx + 1) % MAX_SIMULTANEOUS_FIREWORKS;
+
     playRandomSound(fireSounds, { position: {x: 0, y: 0 , z: 0}, volume: 3.0 });
-    var smokeID = smokeTrailEmitters[idx];
-    var burstID = burstEmitters[idx];
-    Entities.editEntity(smokeID, updatedSmokeProperties);
+    //var smokeID = smokeTrailEmitters[idx];
+    //var burstID = burstEmitters[idx];
+    //Entities.editEntity(smokeID, updatedSmokeProperties);
+    var smokeID = Entities.addEntity(smokeTrailSettings);
 
     Script.setTimeout(function() {
         Entities.editEntity(smokeID, { emitRate: 0 });
@@ -114,7 +122,12 @@ function shootFirework(position, color, options) {
             colorFinish: color,
             emitRate: 1000
         };
-        Entities.editEntity(burstID, updatedBurstProperties);
+        fireworkSettings.position = position;
+        fireworkSettings.colorStart = color;
+        fireworkSettings.colorFinish = color;
+        fireworkSettings.emitRate = 1000;
+        var burstID = Entities.addEntity(fireworkSettings);
+        //Entities.editEntity(burstID, updatedBurstProperties);
         playRandomSound(popSounds, { position: {x: 0, y: 0 , z: 0}, volume: 3.0 });
         Script.setTimeout(function() {
             Entities.editEntity(burstID, { emitRate: 0 });
@@ -137,7 +150,7 @@ playFireworkShow = function(numberOfFireworks, duration) {
     }
 }
 
-var MAX_SIMULTANEOUS_FIREWORKS = 50;
+var MAX_SIMULTANEOUS_FIREWORKS = 0;
 
 smokeTrailSettings.emitRate = 0;
 fireworkSettings.emitRate = 0;
