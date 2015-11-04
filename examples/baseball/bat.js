@@ -10,6 +10,9 @@
         pitchingMachine.start();
         MyAvatar.shouldRenderLocally = false;
     };
+    this.continueNearGrab = function() {
+        MyAvatar.shouldRenderLocally = false;
+    }
     this.releaseGrab = function() {
         print("Stopped near grab!");
         if (pitchingMachine) {

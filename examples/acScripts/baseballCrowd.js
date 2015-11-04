@@ -17,9 +17,12 @@ var extras = [
   SoundCache.getSound("atp:44a83a788ccfd2924e35c902c34808b24dbd0309d000299ce01a355f91cf8115.wav") // clapping
 ];
 
+var CHATTER_VOLUME = 0.10
+var EXTRA_VOLUME = 0.15
+
 function playChatter() {
     if (chatter.downloaded && !chatter.isPlaying) {
-        Audio.playSound(chatter, { loop: true, volume: 0.5 });
+        Audio.playSound(chatter, { loop: true, volume: CHATTER_VOLUME });
     }
 }
 
@@ -32,7 +35,7 @@ function playRandomExtras() {
         // play a random extra sound about every 30s
         currentInjector = Audio.playSound(
           extras[Math.floor(Math.random() * extras.length)],
-          { volume: 0.33 }
+          { volume: EXTRA_VOLUME }
         );
     }
 }
