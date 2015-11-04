@@ -31,8 +31,8 @@ function playAwayAnimation() {
         return {isAway: true, isNotAway: false, isNotMoving: false, ikOverlayAlpha: 0.0};
     }
     if (stopper) {
-	Script.clearTimeout(stopper);
-	MyAvatar.removeAnimationStateHandler(activeAnimationHandlerId); // do it now, before making new assignment
+        Script.clearTimeout(stopper);
+        MyAvatar.removeAnimationStateHandler(activeAnimationHandlerId); // do it now, before making new assignment
     }
     awayAnimationHandlerId = MyAvatar.addAnimationStateHandler(animateAway, null);
 }
@@ -47,16 +47,16 @@ function stopAwayAnimation() {
     // So... Just give us a fixed amount of time to be done with animation, before we turn ik back on.
     var backToNormal = false;
     stopper = Script.setTimeout(function () {
-	backToNormal = true;
-	stopper = false;
+        backToNormal = true;
+        stopper = false;
     }, IK_WINDOW_AFTER_GOING_ACTIVE);
     function animateActive(state) {
-	if (state.ikOverlayAlpha) {
-	    // Once the right state gets reflected back to us, we don't need the hander any more.
-	    // But we are locked against handler changes during the execution of a handler, so remove asynchronously.
-	    Script.setTimeout(function () { MyAvatar.removeAnimationStateHandler(activeAnimationHandlerId); }, 0);
-	}
-	// It might be cool to "come back to life" by fading the ik overlay back in over a short time. But let's see how this goes.
+        if (state.ikOverlayAlpha) {
+            // Once the right state gets reflected back to us, we don't need the hander any more.
+            // But we are locked against handler changes during the execution of a handler, so remove asynchronously.
+            Script.setTimeout(function () { MyAvatar.removeAnimationStateHandler(activeAnimationHandlerId); }, 0);
+        }
+        // It might be cool to "come back to life" by fading the ik overlay back in over a short time. But let's see how this goes.
         return {isAway: false, isNotAway: true, ikOverlayAlpha: backToNormal ? 1.0 : 0.0}; // IWBNI we had a way of deleting an anim var.
     }
     activeAnimationHandlerId = MyAvatar.addAnimationStateHandler(animateActive, ['isAway', 'isNotAway', 'isNotMoving', 'ikOverlayAlpha']);
