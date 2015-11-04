@@ -93,7 +93,7 @@ function goAway(event) {
     playAwayAnimation(); // animation is still seen by others
     showOverlay();
 }
-function goActive(event) {
+function switchActiveState(event) {
     if (!isAway || event.isAutoRepeat) {
         if (event.text === '.') {
             goAway(event);
@@ -109,8 +109,8 @@ function goActive(event) {
         hideOverlay();
     }
 }
-Controller.keyPressEvent.connect(goActive);
-Script.scriptEnding.connect(goActive);
+Controller.keyPressEvent.connect(switchActiveState);
+Script.scriptEnding.connect(switchActiveState);
 if (HMD.active) {
     goAway({}); // give a dummy event object
 }
