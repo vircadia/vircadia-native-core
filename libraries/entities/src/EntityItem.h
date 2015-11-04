@@ -398,6 +398,7 @@ protected:
     void setActionDataInternal(QByteArray actionData);
 
     void forSelfAndEachChildEntity(std::function<void(EntityItemPointer)> actor);
+    virtual void parentChanged();
 
     static bool _sendPhysicsUpdates;
     EntityTypes::EntityType _type;

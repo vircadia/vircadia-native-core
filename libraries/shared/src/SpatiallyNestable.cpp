@@ -71,7 +71,7 @@ SpatiallyNestablePointer SpatiallyNestable::getParentPointer() const {
     }
 
     if (parent || _parentID.isNull()) {
-        parentChanged();
+        thisPointer->parentChanged();
     }
 
     return parent;

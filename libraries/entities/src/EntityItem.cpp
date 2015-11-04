@@ -1324,6 +1324,12 @@ void EntityItem::forSelfAndEachChildEntity(std::function<void(EntityItemPointer)
     }
 }
 
+void EntityItem::parentChanged() {
+    forSelfAndEachChildEntity([&](EntityItemPointer entity) {
+        entity->requiresRecalcBoxes();
+    });
+}
+
 void EntityItem::updatePosition(const glm::vec3& value) {
     if (shouldSuppressLocationEdits()) {
         return;
