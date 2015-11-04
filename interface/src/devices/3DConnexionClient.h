@@ -218,7 +218,7 @@ public:
     void handleAxisEvent();
 };
 
-#endif
+#else // #if 0
 
 #include <QObject>
 #include <QLibrary>
@@ -234,5 +234,7 @@ public:
 public slots:
     void toggleConnexion(bool shouldEnable) {};
 };
+
+#endif
 
 #endif // defined(hifi_3DConnexionClient_h)
