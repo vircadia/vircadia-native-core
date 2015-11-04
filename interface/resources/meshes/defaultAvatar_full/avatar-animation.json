@@ -5,6 +5,7 @@
         "type": "overlay",
         "data": {
             "alpha": 1.0,
+            "alphaVar": "ikOverlayAlpha",
             "boneSet": "fullBody"
         },
         "children": [
