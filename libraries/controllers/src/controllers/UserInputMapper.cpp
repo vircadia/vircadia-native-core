@@ -1029,6 +1029,7 @@ Mapping::Pointer UserInputMapper::parseMapping(const QJsonValue& json) {
         }
         mapping->routes.push_back(route);
     }
+    _mappingsByName[mapping->name] = mapping;
     return mapping;
 }
 
