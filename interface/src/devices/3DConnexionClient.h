@@ -220,4 +220,19 @@ public:
 
 #endif
 
+#include <QObject>
+#include <QLibrary>
+
+// stub
+class ConnexionClient : public QObject {
+    Q_OBJECT
+public:
+    static ConnexionClient& getInstance();
+    void init() {};
+    void destroy() {};
+    bool Is3dmouseAttached() { return false; };
+public slots:
+    void toggleConnexion(bool shouldEnable) {};
+};
+
 #endif // defined(hifi_3DConnexionClient_h)

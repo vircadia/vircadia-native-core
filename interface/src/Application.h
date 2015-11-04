@@ -414,7 +414,7 @@ private:
 
     bool _dependencyManagerIsSetup;
 
-    OffscreenGlCanvas* _offscreenContext;
+    OffscreenGlCanvas* _offscreenContext {nullptr};
     DisplayPluginPointer _displayPlugin;
     InputPluginList _activeInputPlugins;
 
@@ -548,6 +548,7 @@ private:
     quint64 _lastSimsPerSecondUpdate = 0;
     bool _isForeground = true; // starts out assumed to be in foreground
     bool _inPaint = false;
+    bool _isGLInitialized {false};
 };
 
 #endif // hifi_Application_h
