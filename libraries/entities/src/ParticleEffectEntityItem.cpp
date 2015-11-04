@@ -440,7 +440,6 @@ int ParticleEffectEntityItem::readEntitySubclassDataFromBuffer(const unsigned ch
     if (args.bitstreamVersion < VERSION_ENTITIES_PARTICLE_ELLIPSOID_EMITTER) {
         // OLD PROP_EMIT_VELOCITY FAKEOUT
         SKIP_ENTITY_PROPERTY(PROP_EMIT_SPEED, glm::vec3);
-        SKIP_ENTITY_PROPERTY(PROP_ADDITIVE_BLENDING, bool)
     }
     
     if (args.bitstreamVersion >= VERSION_ENTITIES_PARTICLE_MODIFICATIONS) {
@@ -487,6 +486,9 @@ int ParticleEffectEntityItem::readEntitySubclassDataFromBuffer(const unsigned ch
         READ_ENTITY_PROPERTY(PROP_POLAR_FINISH, float, setPolarFinish);
         READ_ENTITY_PROPERTY(PROP_AZIMUTH_START, float, setAzimuthStart);
         READ_ENTITY_PROPERTY(PROP_AZIMUTH_FINISH, float, setAzimuthFinish);
+    }
+
+    if (args.bitstreamVersion >= VERSION_ENTITIES_PARTICLES_ADDITIVE_BLENDING) {
         READ_ENTITY_PROPERTY(PROP_ADDITIVE_BLENDING, bool, setAdditiveBlending);
     }
 

@@ -23,6 +23,7 @@
 #include "untextured_particle_frag.h"
 #include "textured_particle_vert.h"
 #include "textured_particle_frag.h"
+#include "textured_particle_alpha_discard_frag.h"
 
 class ParticlePayload {
 public:
@@ -347,7 +348,14 @@ void RenderableParticleEffectEntityItem::createPipelines() {
                                 destinationColorBlendArg, gpu::State::FACTOR_ALPHA,
                                 gpu::State::BLEND_OP_ADD, gpu::State::ONE);
         auto vertShader = gpu::ShaderPointer(gpu::Shader::createVertex(std::string(textured_particle_vert)));
-        auto fragShader = gpu::ShaderPointer(gpu::Shader::createPixel(std::string(textured_particle_frag)));
+        gpu::ShaderPointer fragShader;
+        if (_additiveBlending) {
+           fragShader = gpu::ShaderPointer(gpu::Shader::createPixel(std::string(textured_particle_frag)));
+        }
+        else {
+            //If we are sorting and have no additive blending, we want to discard pixels with low alpha to avoid inter-particle entity artifacts
+           fragShader = gpu::ShaderPointer(gpu::Shader::createPixel(std::string(textured_particle_alpha_discard_frag)));
+        }
         auto program = gpu::ShaderPointer(gpu::Shader::createProgram(vertShader, fragShader));
         _texturedPipeline = gpu::PipelinePointer(gpu::Pipeline::create(program, state));
    
