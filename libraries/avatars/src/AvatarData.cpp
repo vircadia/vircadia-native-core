@@ -128,10 +128,6 @@ void AvatarData::nextAttitude(glm::vec3 position, glm::quat orientation) {
 }
 void AvatarData::startCapture() {
     avatarLock.lock();
-    assert(_nextAllowed);
-    _nextAllowed = false;
-    _nextPosition = getPosition();
-    _nextOrientation = getOrientation();
 }
 void AvatarData::endCapture() {
     avatarLock.unlock();
@@ -151,19 +147,10 @@ void AvatarData::endRenderRun() {
     avatarLock.unlock();
 }
 void AvatarData::startRender() {
-    glm::vec3 pos = getPosition();
-    glm::quat rot = getOrientation();
-    setPosition(_nextPosition);
-    setOrientation(_nextOrientation);
     updateAttitude();
-    _nextPosition = pos;
-    _nextOrientation = rot;
 }
 void AvatarData::endRender() {
-    setPosition(_nextPosition);
-    setOrientation(_nextOrientation);
     updateAttitude();
-    _nextAllowed = true;
 }
 
 float AvatarData::getTargetScale() const {

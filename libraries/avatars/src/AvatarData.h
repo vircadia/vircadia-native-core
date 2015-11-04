@@ -363,10 +363,6 @@ public slots:
 protected:
     glm::vec3 _handPosition;
 
-    glm::vec3 _nextPosition {};
-    glm::quat _nextOrientation {};
-    bool _nextAllowed {true};
-
     // Body scale
     float _targetScale;
 

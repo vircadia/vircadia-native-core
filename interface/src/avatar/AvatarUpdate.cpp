@@ -62,7 +62,6 @@ bool AvatarUpdate::process() {
     manager->updateMyAvatar(deltaSeconds);
     myAvatar->endUpdate();
 
-
     if (!isThreaded()) {
         return true;
     }
