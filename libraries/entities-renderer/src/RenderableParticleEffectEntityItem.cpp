@@ -354,7 +354,7 @@ void RenderableParticleEffectEntityItem::createPipelines() {
         }
         else {
             //If we are sorting and have no additive blending, we want to discard pixels with low alpha to avoid inter-particle entity artifacts
-           fragShader = gpu::ShaderPointer(gpu::Shader::createPixel(std::string(textured_particle_alpha_discard_frag)));
+            fragShader = gpu::ShaderPointer(gpu::Shader::createPixel(std::string(textured_particle_alpha_discard_frag)));
         }
         auto program = gpu::ShaderPointer(gpu::Shader::createProgram(vertShader, fragShader));
         _texturedPipeline = gpu::PipelinePointer(gpu::Pipeline::create(program, state));
