@@ -452,6 +452,14 @@ function MyController(hand) {
                 continue;
             }
 
+            if (propsForCandidate.type == 'ParticleEffect') {
+                continue;
+            }
+
+            if (propsForCandidate.type == 'Zone') {
+                continue;
+            }
+
             if (propsForCandidate.locked && !grabbableDataForCandidate.wantsTrigger) {
                 continue;
             }
