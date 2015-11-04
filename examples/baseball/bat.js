@@ -11,6 +11,11 @@
         MyAvatar.shouldRenderLocally = false;
     };
     this.continueNearGrab = function() {
+        if (!pitchingMachine) {
+            pitchingMachine = getPitchingMachine();
+            Script.update.connect(function(dt) { pitchingMachine.update(dt); });
+        }
+        pitchingMachine.start();
         MyAvatar.shouldRenderLocally = false;
     }
     this.releaseGrab = function() {
