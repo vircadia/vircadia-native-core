@@ -448,6 +448,10 @@ function MyController(hand) {
                 continue;
             }
 
+            if (propsForCandidate.type == 'Light') {
+                continue;
+            }
+
             if (propsForCandidate.locked && !grabbableDataForCandidate.wantsTrigger) {
                 continue;
             }
