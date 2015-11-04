@@ -132,6 +132,10 @@ function shootFirework(position, color, options) {
         Script.setTimeout(function() {
             Entities.editEntity(burstID, { emitRate: 0 });
         }, 500);
+        Script.setTimeout(function() {
+            Entities.deleteEntity(smokeID);
+            Entities.deleteEntity(burstID);
+        }, 10000);
     }, 2000);
 }
 
