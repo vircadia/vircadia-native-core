@@ -43,7 +43,7 @@
 
       var BAT_MODEL = "atp:c47deaae09cca927f6bc9cca0e8bbe77fc618f8c3f2b49899406a63a59f885cb.fbx";
       var BAT_COLLISION_HULL = "atp:9eafceb7510c41d50661130090de7e0632aa4da236ebda84a0059a4be2130e0c.obj";
-      var SCRIPT_URL = "https://raw.githubusercontent.com/birarda/hifi/baseball/examples/baseball/bat.js"
+      var SCRIPT_URL = "http://raw.githubusercontent.com/birarda/hifi/baseball/examples/baseball/bat.js"
 
       // add the fresh bat at the drop position
       var bat = Entities.addEntity({
