@@ -940,14 +940,12 @@ void Application::initializeGL() {
     qCDebug(interfaceapp) << "Created Display Window.";
 
     // initialize glut for shape drawing; Qt apparently initializes it on OS X
-    #ifndef __APPLE__
-    static bool isInitialized = false;
-    if (isInitialized) {
+    if (_isGLInitialized) {
         return;
     } else {
-        isInitialized = true;
+        _isGLInitialized = true;
     }
-    #endif
+
     // Where the gpuContext is initialized and where the TRUE Backend is created and assigned
     gpu::Context::init<gpu::GLBackend>();
     _gpuContext = std::make_shared<gpu::Context>();
@@ -1059,7 +1057,9 @@ void Application::paintGL() {
         _lastFramesPerSecondUpdate = now;
     }
 
-    idle(now);
+    if (_isGLInitialized) {
+        idle(now);
+    }
 
     PROFILE_RANGE(__FUNCTION__);
     PerformanceTimer perfTimer("paintGL");
