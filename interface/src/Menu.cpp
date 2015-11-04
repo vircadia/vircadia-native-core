@@ -465,7 +465,7 @@ Menu::Menu() {
                                            avatar, SLOT(setEnableMeshVisible(bool)));
     addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::DisableEyelidAdjustment, 0, false);
 
-    addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::Connexion, 0, false, &SpacemouseManager::getInstance(), SLOT(toggleConnexion(bool)));
+    addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::Connexion, 0, false, &SpacemouseManager::getInstance(), SLOT(toggleSpacemouse(bool)));
 
     addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::ComfortMode, 0, true);
 

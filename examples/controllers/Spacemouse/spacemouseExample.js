@@ -37,32 +37,32 @@ function update(deltaTime) {
     if(spacemouseCheck){        
         if(Controller.getValue(Controller.Standard.LY) != 0){  
             toggleFirstMove();
-            print("Controller TX: " + Controller.getValue(Controller.Standard.LY));
+            print("- Controller TY: " + Controller.getValue(Controller.Standard.LY));
         }            
         
         if(Controller.getValue(Controller.Standard.LX) != 0){
             toggleFirstMove();
-            print("Controller TZ: " + Controller.getValue(Controller.Standard.LX));
+            print("- Controller RZ: " + Controller.getValue(Controller.Standard.LX));
         }
         
         if(Controller.getValue(Controller.Standard.LT) != 0){
             toggleFirstMove();
-            print("Controller TY: " + Controller.getValue(Controller.Standard.LT));
+            print("- Controller LEFTB: " + Controller.getValue(Controller.Standard.LT));
         }
         
         if(Controller.getValue(Controller.Standard.RY) != 0){
             toggleFirstMove();
-            print("Controller RX: " + Controller.getValue(Controller.Standard.RY));
+            print("- Controller TZ: " + Controller.getValue(Controller.Standard.RY));
         }
         
         if(Controller.getValue(Controller.Standard.RX) != 0){
             toggleFirstMove();
-            print("Controller RZ: " + Controller.getValue(Controller.Standard.RX));
+            print("- Controller TX: " + Controller.getValue(Controller.Standard.RX));
         }
         
         if(Controller.getValue(Controller.Standard.RT) != 0){
             toggleFirstMove();
-            print("Controller RY: " + Controller.getValue(Controller.Standard.RT));
+            print("- Controller RIGHTB: " + Controller.getValue(Controller.Standard.RT));
         }    
         
         firstmove = 1;

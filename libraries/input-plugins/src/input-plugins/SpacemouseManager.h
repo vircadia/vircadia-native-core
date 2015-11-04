@@ -11,6 +11,8 @@
 #ifndef hifi_SpacemouseManager_h
 #define hifi_SpacemouseManager_h
 
+#define HAVE_3DCONNEXIONCLIENT
+
 #include <QObject>
 #include <QLibrary>
 #include <controllers/UserInputMapper.h>
@@ -19,7 +21,7 @@
 
 #include "InputPlugin.h"
 
-#ifndef HAVE_SPACEMOUSE
+#ifndef HAVE_3DCONNEXIONCLIENT
 class SpacemouseManager : public QObject {
     Q_OBJECT
 public:
@@ -29,11 +31,11 @@ public:
     void destroy() {};
     bool Is3dmouseAttached() { return false; };
     public slots:
-    void toggleConnexion(bool shouldEnable) {};
+    void toggleSpacemouse(bool shouldEnable) {};
 };
 #endif
 
-#ifdef HAVE_SPACEMOUSE
+#ifdef HAVE_3DCONNEXIONCLIENT
 // the windows connexion rawinput
 #ifdef Q_OS_WIN
 

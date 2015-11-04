@@ -1,15 +1,15 @@
 {
     "name": "Spacemouse to Standard",
     "channels": [
-        { "from": "Spacemouse.TranslateX", "to": "Standard.LY" }, 
-        { "from": "Spacemouse.TranslateZ", "filters": "invert", "to": "Standard.LX" }, 
-
-        { "from": "Spacemouse.RotateX", "to": "Standard.RY" }, 
-        { "from": "Spacemouse.RotateZ", "to": "Standard.RX" },
-
-        { "from": "Spacemouse.LeftButton", "to": "Standard.Back" },
-        { "from": "Spacemouse.RightButton", "to": "Standard.Start" }
         
+        { "from": "Spacemouse.TranslateX", "to": "Standard.RX" },
+        { "from": "Spacemouse.TranslateY", "to": "Standard.LY" },
+        { "from": "Spacemouse.TranslateZ", "to": "Standard.RY" },
+        
+        { "from": "Spacemouse.RotateZ", "to": "Standard.LX" },
+        
+        { "from": "Spacemouse.LeftButton", "to": "Standard.LT" },
+        { "from": "Spacemouse.RightButton", "to": "Standard.RT" }
     ]
 }
 

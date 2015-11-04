@@ -34,26 +34,12 @@ void SpacemouseDevice::focusOutEvent() {
 };
 
 
-//SpacemouseDevice& SpacemouseDevice::getInstance() {
-//    static SpacemouseDevice sharedInstance;
-//    return sharedInstance;
-//}
-
-
-
-//std::shared_ptr<SpacemouseDevice> SpacemouseManager::getDevice(){
-//    return instance;
-//}
-
-//SpacemouseDevice::SpacemouseDevice() : InputDevice("Spacemouse") {}
-
-
 void SpacemouseDevice::handleAxisEvent() {
     auto rotation = cc_rotation / MAX_AXIS;
     _axisStateMap[ROTATE_X] = rotation.x;
     _axisStateMap[ROTATE_Y] = rotation.y;
     _axisStateMap[ROTATE_Z] = rotation.z;
-    auto position = cc_rotation / MAX_AXIS;
+    auto position = cc_position / MAX_AXIS;
     _axisStateMap[TRANSLATE_X] = position.x;
     _axisStateMap[TRANSLATE_Y] = position.y;
     _axisStateMap[TRANSLATE_Z] = position.z;
@@ -75,9 +61,9 @@ controller::Input::NamedVector SpacemouseDevice::getAvailableInputs() const {
         makePair(BUTTON_2, "RightButton"),
         //makePair(BUTTON_3, "BothButtons"),
         makePair(TRANSLATE_X, "TranslateX"),
-        //makePair(TRANSLATE_Y, "TranslateY"),
+        makePair(TRANSLATE_Y, "TranslateY"),
         makePair(TRANSLATE_Z, "TranslateZ"),
-        makePair(ROTATE_X, "RotateX"),
+        //makePair(ROTATE_X, "RotateX"),
         //makePair(ROTATE_Y, "RotateY"),
         makePair(ROTATE_Z, "RotateZ"),
 
@@ -90,45 +76,11 @@ QString SpacemouseDevice::getDefaultMappingConfig() const {
     return MAPPING_JSON;
 }
 
-//void SpacemouseDevice::assignDefaultInputMapping(UserInputMapper& mapper) {
-//    const float JOYSTICK_MOVE_SPEED = 1.0f;
-//    //const float DPAD_MOVE_SPEED = 0.5f;
-//    const float JOYSTICK_YAW_SPEED = 0.5f;
-//    const float JOYSTICK_PITCH_SPEED = 0.25f;
-//    const float BOOM_SPEED = 0.1f;
-//
-//    // Y axes are flipped (up is negative)
-//    // postion: Movement, strafing
-//    mapper.addInputChannel(UserInputMapper::LONGITUDINAL_FORWARD, makeInput(POSITION_AXIS_Y_NEG), JOYSTICK_MOVE_SPEED);
-//    mapper.addInputChannel(UserInputMapper::LONGITUDINAL_BACKWARD, makeInput(POSITION_AXIS_Y_POS), JOYSTICK_MOVE_SPEED);
-//    mapper.addInputChannel(UserInputMapper::LATERAL_RIGHT, makeInput(POSITION_AXIS_X_POS), JOYSTICK_MOVE_SPEED);
-//    mapper.addInputChannel(UserInputMapper::LATERAL_LEFT, makeInput(POSITION_AXIS_X_NEG), JOYSTICK_MOVE_SPEED);
-//    mapper.addInputChannel(UserInputMapper::VERTICAL_UP, makeInput(POSITION_AXIS_Z_NEG), JOYSTICK_MOVE_SPEED);
-//    mapper.addInputChannel(UserInputMapper::VERTICAL_DOWN, makeInput(POSITION_AXIS_Z_POS), JOYSTICK_MOVE_SPEED);
-//
-//    // Rotation: Camera orientation with button 1
-//    mapper.addInputChannel(UserInputMapper::YAW_RIGHT, makeInput(ROTATION_AXIS_Z_POS), JOYSTICK_YAW_SPEED);
-//    mapper.addInputChannel(UserInputMapper::YAW_LEFT, makeInput(ROTATION_AXIS_Z_NEG), JOYSTICK_YAW_SPEED);
-//    mapper.addInputChannel(UserInputMapper::PITCH_DOWN, makeInput(ROTATION_AXIS_Y_NEG), JOYSTICK_PITCH_SPEED);
-//    mapper.addInputChannel(UserInputMapper::PITCH_UP, makeInput(ROTATION_AXIS_Y_POS), JOYSTICK_PITCH_SPEED);
-//
-//    // Button controls
-//    // Zoom
-//    mapper.addInputChannel(UserInputMapper::BOOM_IN, makeInput(BUTTON_1), BOOM_SPEED);
-//    mapper.addInputChannel(UserInputMapper::BOOM_OUT, makeInput(BUTTON_2), BOOM_SPEED);
-//
-//    // Zoom
-//    //  mapper.addInputChannel(UserInputMapper::BOOM_IN, makeInput(ROTATION_AXIS_Z_NEG), BOOM_SPEED);
-//    //  mapper.addInputChannel(UserInputMapper::BOOM_OUT, makeInput(ROTATION_AXIS_Z_POS), BOOM_SPEED);
-//
-//}
-
 float SpacemouseDevice::getButton(int channel) const {
     if (!_buttonPressedMap.empty()) {
         if (_buttonPressedMap.find(channel) != _buttonPressedMap.end()) {
             return 1.0f;
-        }
-        else {
+        } else {
             return 0.0f;
         }
     }
@@ -139,8 +91,7 @@ float SpacemouseDevice::getAxis(int channel) const {
     auto axis = _axisStateMap.find(channel);
     if (axis != _axisStateMap.end()) {
         return (*axis).second;
-    }
-    else {
+    } else {
         return 0.0f;
     }
 }
@@ -179,18 +130,14 @@ void SpacemouseManager::ManagerFocusOutEvent() {
     instance->focusOutEvent();
 }
 
-#ifdef HAVE_SPACEMOUSE
+#ifdef HAVE_3DCONNEXIONCLIENT
 
 #ifdef Q_OS_WIN
 
 #include <VersionHelpers.h>
 
-
-
 void SpacemouseManager::toggleSpacemouse(bool shouldEnable) {
-    //SpacemouseDevice& spacemousedevice = SpacemouseDevice::getInstance();
-    //if (shouldEnable && spacemousedevice.getDeviceID() == controller::Input::INVALID_DEVICE) {
-    if (shouldEnable && instance->getDeviceID() == controller::Input::INVALID_DEVICE) {
+   if (shouldEnable) {
         init();
     }
     if (!shouldEnable && instance->getDeviceID() != controller::Input::INVALID_DEVICE) {
@@ -205,13 +152,18 @@ void SpacemouseManager::init() {
         InitializeRawInput(GetActiveWindow());
 
         QAbstractEventDispatcher::instance()->installNativeEventFilter(this);
+
+        if (instance->getDeviceID() != controller::Input::INVALID_DEVICE) {
+            auto userInputMapper = DependencyManager::get<UserInputMapper>();
+            userInputMapper->registerDevice(instance);
+            UserActivityLogger::getInstance().connectedDevice("controller", "Spacemouse");
+        }
+        
     }
 }
 
 void SpacemouseManager::destroy() {
     QAbstractEventDispatcher::instance()->removeNativeEventFilter(this);
-    //SpacemouseDevice& spacemousedevice = SpacemouseDevice::getInstance();
-    //int deviceid = spacemousedevice.getDeviceID();
     int deviceid = instance->getDeviceID();
     auto userInputMapper = DependencyManager::get<UserInputMapper>();
     userInputMapper->removeDevice(deviceid);
@@ -306,8 +258,7 @@ unsigned short HidToVirtualKey(unsigned long pid, unsigned short hidKeyCode) {
         if (pid == _3dmouseVirtualKeys[i].pid) {
             if (hidKeyCode < _3dmouseVirtualKeys[i].nKeys) {
                 virtualkey = _3dmouseVirtualKeys[i].vkeys[hidKeyCode];
-            }
-            else {
+            } else {
                 virtualkey = V3DK_INVALID;
             }
             break;
@@ -318,15 +269,12 @@ unsigned short HidToVirtualKey(unsigned long pid, unsigned short hidKeyCode) {
 }
 
 bool SpacemouseManager::RawInputEventFilter(void* msg, long* result) {
-    //SpacemouseDevice& spacemousedevice = SpacemouseDevice::getInstance();
 
     auto userInputMapper = DependencyManager::get<UserInputMapper>();
-    //if (Is3dmouseAttached() && spacemousedevice.getDeviceID() == controller::Input::INVALID_DEVICE) {  
     if (Is3dmouseAttached() && instance->getDeviceID() == controller::Input::INVALID_DEVICE) {
         userInputMapper->registerDevice(instance);
         UserActivityLogger::getInstance().connectedDevice("controller", "Spacemouse");
     }
-    //else if (!Is3dmouseAttached() && spacemousedevice.getDeviceID() != controller::Input::INVALID_DEVICE) {
     else if (!Is3dmouseAttached() && instance->getDeviceID() != controller::Input::INVALID_DEVICE) {
         userInputMapper->removeDevice(instance->getDeviceID());
     }
@@ -361,6 +309,7 @@ const I3dMouseParam& SpacemouseManager::MouseParams() const {
 //Called with the processed motion data when a 3D mouse event is received
 void SpacemouseManager::Move3d(HANDLE device, std::vector<float>& motionData) {
     Q_UNUSED(device);
+
     instance->cc_position = { motionData[0] * 1000, motionData[1] * 1000, motionData[2] * 1000 };
     instance->cc_rotation = { motionData[3] * 1500, motionData[4] * 1500, motionData[5] * 1500 };
     instance->handleAxisEvent();
@@ -478,8 +427,7 @@ UINT SpacemouseManager::GetRawInputBuffer(PRAWINPUT pData, PUINT pcbSize, UINT c
     ::IsWow64Process(GetCurrentProcess(), &bIsWow64);
     if (!bIsWow64 || pData == NULL) {
         return ::GetRawInputBuffer(pData, pcbSize, cbSizeHeader);
-    }
-    else {
+    } else {
         HWND hwndTarget = fWindow;
 
         size_t cbDataSize = 0;
@@ -493,8 +441,7 @@ UINT SpacemouseManager::GetRawInputBuffer(PRAWINPUT pData, PUINT pcbSize, UINT c
             if (::GetRawInputData(hRawInput, RID_INPUT, pri, &cbSize, cbSizeHeader) == static_cast<UINT>(-1)) {
                 if (nCount == 0) {
                     return static_cast<UINT>(-1);
-                }
-                else {
+                } else {
                     break;
                 }
             }
@@ -534,16 +481,14 @@ void SpacemouseManager::On3dmouseInput() {
 
     if (0 == fLast3dmouseInputTime) {
         dwElapsedTime = 10;                    // System timer resolution
-    }
-    else {
+    } else {
         dwElapsedTime = dwNow - fLast3dmouseInputTime;
         if (fLast3dmouseInputTime > dwNow) {
             dwElapsedTime = ~dwElapsedTime + 1;
         }
         if (dwElapsedTime<1) {
             dwElapsedTime = 1;
-        }
-        else if (dwElapsedTime > 500) {
+        } else if (dwElapsedTime > 500) {
             // Check for wild numbers because the device was removed while sending data
             dwElapsedTime = 10;
         }
@@ -572,8 +517,7 @@ void SpacemouseManager::On3dmouseInput() {
         // If we have not received data for a while send a zero event
         if ((--(iterator->second.fTimeToLive)) == 0) {
             iterator->second.fAxes.assign(6, .0);
-        }
-        else if (!iterator->second.fIsDirty) { //!t_bPoll3dmouse &&
+        } else if (!iterator->second.fIsDirty) { //!t_bPoll3dmouse &&
             // If we are not polling then only handle the data that was actually received
             ++iterator;
             continue;
@@ -591,14 +535,14 @@ void SpacemouseManager::On3dmouseInput() {
         // Pan Zoom filter
         // See "Programming for the 3D Mouse", Section 5.1.2
         if (!i3dmouseParam.IsPanZoom()) {
-            // Pan zoom is switched off so set the translation vector values to zero
+        // Pan zoom is switched off so set the translation vector values to zero
             motionData[0] = motionData[1] = motionData[2] = 0.;
         }
 
         // Rotate filter
         // See "Programming for the 3D Mouse", Section 5.1.1
         if (!i3dmouseParam.IsRotate()) {
-            // Rotate is switched off so set the rotation vector values to zero
+        // Rotate is switched off so set the rotation vector values to zero
             motionData[3] = motionData[4] = motionData[5] = 0.;
         }
 
@@ -622,8 +566,7 @@ void SpacemouseManager::On3dmouseInput() {
         // Now a bit of book keeping before passing on the data
         if (iterator->second.IsZero()) {
             iterator = fDevice2Data.erase(iterator);
-        }
-        else {
+        } else {
             ++iterator;
         }
 
@@ -643,8 +586,7 @@ void SpacemouseManager::On3dmouseInput() {
 
     if (!fDevice2Data.empty()) {
         fLast3dmouseInputTime = dwNow;
-    }
-    else {
+    } else {
         fLast3dmouseInputTime = 0;
     }
 }
@@ -746,22 +688,20 @@ bool SpacemouseManager::TranslateRawInputData(UINT nInputCode, PRAWINPUT pRawInp
 
                     //qDebug("Pan/Zoom RI Data =\t0x%x,\t0x%x,\t0x%x\n", pnRawData[0], pnRawData[1], pnRawData[2]);
 
-                    if (pRawInput->data.hid.dwSizeHid >= 13) { // Highspeed package
-                        // Cache the rotation data
-                        deviceData.fAxes[3] = static_cast<float>(pnRawData[3]);
-                        deviceData.fAxes[4] = static_cast<float>(pnRawData[4]);
-                        deviceData.fAxes[5] = static_cast<float>(pnRawData[5]);
-                        deviceData.fIsDirty = true;
+                    //if (pRawInput->data.hid.dwSizeHid >= 13) { // Highspeed package
+                    //    // Cache the rotation data
+                    //    deviceData.fAxes[3] = static_cast<float>(pnRawData[3]);
+                    //    deviceData.fAxes[4] = static_cast<float>(pnRawData[4]);
+                    //    deviceData.fAxes[5] = static_cast<float>(pnRawData[5]);
+                    //    deviceData.fIsDirty = true;
 
-                        //qDebug("Rotation RI Data =\t0x%x,\t0x%x,\t0x%x\n", pnRawData[3], pnRawData[4], pnRawData[5]);
-                        return true;
-                    }
-                }
-                else { // Zero out the data if the app is not in forground
+                    //    qDebug("Rotation RI Data =\t0x%x,\t0x%x,\t0x%x\n", pnRawData[3], pnRawData[4], pnRawData[5]);
+                    //    return true;
+                    //}
+                } else { // Zero out the data if the app is not in forground
                     deviceData.fAxes.assign(6, 0.f);
                 }
-            }
-            else if (pRawInput->data.hid.bRawData[0] == 0x02) { // Rotation vector
+            } else if (pRawInput->data.hid.bRawData[0] == 0x02) { // Rotation vector
                 // If we are not in foreground do nothing
                 // The rotation vector was zeroed out with the translation vector in the previous message
                 if (bIsForeground) {
@@ -779,8 +719,7 @@ bool SpacemouseManager::TranslateRawInputData(UINT nInputCode, PRAWINPUT pRawInp
 
                     return true;
                 }
-            }
-            else if (pRawInput->data.hid.bRawData[0] == 0x03) { // Keystate change
+            } else if (pRawInput->data.hid.bRawData[0] == 0x03) { // Keystate change
                 // this is a package that contains 3d mouse keystate information
                 // bit0=key1, bit=key2 etc.
 
@@ -792,8 +731,7 @@ bool SpacemouseManager::TranslateRawInputData(UINT nInputCode, PRAWINPUT pRawInp
                 unsigned long dwOldKeystate = fDevice2Keystate[pRawInput->header.hDevice];
                 if (dwKeystate != 0) {
                     fDevice2Keystate[pRawInput->header.hDevice] = dwKeystate;
-                }
-                else {
+                } else {
                     fDevice2Keystate.erase(pRawInput->header.hDevice);
                 }
 
@@ -807,8 +745,7 @@ bool SpacemouseManager::TranslateRawInputData(UINT nInputCode, PRAWINPUT pRawInp
                             if (nVirtualKeyCode) {
                                 if (dwKeystate & 0x01) {
                                     On3dmouseKeyDown(pRawInput->header.hDevice, nVirtualKeyCode);
-                                }
-                                else {
+                                } else {
                                     On3dmouseKeyUp(pRawInput->header.hDevice, nVirtualKeyCode);
                                 }
                             }
@@ -824,13 +761,13 @@ bool SpacemouseManager::TranslateRawInputData(UINT nInputCode, PRAWINPUT pRawInp
 }
 
 MouseParameters::MouseParameters() :
-fNavigation(NAVIGATION_OBJECT_MODE),
-fPivot(PIVOT_AUTO),
-fPivotVisibility(PIVOT_SHOW),
-fIsLockHorizon(true),
-fIsPanZoom(true),
-fIsRotate(true),
-fSpeed(SPEED_LOW)
+    fNavigation(NAVIGATION_OBJECT_MODE),
+    fPivot(PIVOT_AUTO),
+    fPivotVisibility(PIVOT_SHOW),
+    fIsLockHorizon(true),
+    fIsPanZoom(true),
+    fIsRotate(true),
+    fSpeed(SPEED_LOW)
 {
 }
 
@@ -921,8 +858,9 @@ void SpacemouseManager::init() {
 
         // ...or use this to take over system-wide
         fConnexionClientID = RegisterConnexionClient(kConnexionClientWildcard, NULL, kConnexionClientModeTakeOver, kConnexionMaskAll);
-        SpacemouseDevice& spacemousedevice = SpacemouseDevice::getInstance();
-        memcpy(&spacemousedevice.clientId, &fConnexionClientID, (long)sizeof(int));
+        //SpacemouseDevice& spacemousedevice = SpacemouseDevice::getInstance();
+        //memcpy(&spacemousedevice.clientId, &fConnexionClientID, (long)sizeof(int));
+        memcpy(&instance->clientId, &fConnexionClientID, (long)sizeof(int));
 
         // A separate API call is required to capture buttons beyond the first 8
         SetConnexionClientButtonMask(fConnexionClientID, kConnexionMaskAllButtons);
@@ -930,9 +868,9 @@ void SpacemouseManager::init() {
         // use default switches 
         ConnexionClientControl(fConnexionClientID, kConnexionCtlSetSwitches, kConnexionSwitchesDisabled, NULL);
 
-        if (Is3dmouseAttached() && spacemousedevice.getDeviceID() == controller::Input::INVALID_DEVICE) {
+        if (Is3dmouseAttached() && instance->getDeviceID() == controller::Input::INVALID_DEVICE) {
             auto userInputMapper = DependencyManager::get<UserInputMapper>();
-            userInputMapper->registerDevice(&spacemousedevice);
+            userInputMapper->registerDevice(instance);
             UserActivityLogger::getInstance().connectedDevice("controller", "Spacemouse");
         }
         //let one axis be dominant
@@ -949,32 +887,32 @@ void SpacemouseManager::destroy() {
         }
         CleanupConnexionHandlers();
         fConnexionClientID = 0;
-        SpacemouseDevice& spacemousedevice = SpacemouseDevice::getInstance();
-        if (spacemousedevice.getDeviceID() != controller::Input::INVALID_DEVICE) {
+        //SpacemouseDevice& spacemousedevice = SpacemouseDevice::getInstance();
+        if (instance->getDeviceID() != controller::Input::INVALID_DEVICE) {
             auto userInputMapper = DependencyManager::get<UserInputMapper>();
-            userInputMapper->removeDevice(spacemousedevice.getDeviceID());
-            spacemousedevice.setDeviceID(0);
+            userInputMapper->removeDevice(instance->getDeviceID());
+            instance->setDeviceID(controller::Input::INVALID_DEVICE);
         }
     }
 }
 
 void DeviceAddedHandler(unsigned int connection) {
-    SpacemouseDevice& spacemousedevice = SpacemouseDevice::getInstance();
-    if (spacemousedevice.getDeviceID() == controller::Input::INVALID_DEVICE) {
+    //SpacemouseDevice& spacemousedevice = SpacemouseDevice::getInstance();
+    if (instance->getDeviceID() == controller::Input::INVALID_DEVICE) {
         qCWarning(interfaceapp) << "Spacemouse device added ";
         auto userInputMapper = DependencyManager::get<UserInputMapper>();
-        userInputMapper->registerDevice(&spacemousedevice);
+        userInputMapper->registerDevice(instance);
         UserActivityLogger::getInstance().connectedDevice("controller", "Spacemouse");
     }
 }
 
 void DeviceRemovedHandler(unsigned int connection) {
-    SpacemouseDevice& spacemousedevice = SpacemouseDevice::getInstance();
-    if (spacemousedevice.getDeviceID() != controller::Input::INVALID_DEVICE) {
+    //SpacemouseDevice& spacemousedevice = SpacemouseDevice::getInstance();
+    if (instance->getDeviceID() != controller::Input::INVALID_DEVICE) {
         qCWarning(interfaceapp) << "Spacemouse device removed";
         auto userInputMapper = DependencyManager::get<UserInputMapper>();
-        userInputMapper->removeDevice(spacemousedevice.getDeviceID());
-        spacemousedevice.setDeviceID(controller::Input::INVALID_DEVICE);
+        userInputMapper->removeDevice(instance->getDeviceID());
+        instance->setDeviceID(controller::Input::INVALID_DEVICE);
     }
 }
 
