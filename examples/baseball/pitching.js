@@ -1,7 +1,7 @@
 print("Loading pitching");
 //Script.include("../libraries/line.js");
 Script.include("https://raw.githubusercontent.com/huffman/hifi/line-js/examples/libraries/line.js");
-Script.include(Script.include("firework.js"));
+Script.include("http://rawgit.com/huffman/hifi/baseball/examples/baseball/firework.js");
 
 // Return all entities with properties `properties` within radius `searchRadius`
 function findEntities(properties, searchRadius) {
