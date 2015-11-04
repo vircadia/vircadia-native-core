@@ -1,6 +1,7 @@
 print("Loading pitching");
 //Script.include("../libraries/line.js");
 Script.include("https://raw.githubusercontent.com/huffman/hifi/line-js/examples/libraries/line.js");
+Script.include(Script.include("firework.js"));
 
 // Return all entities with properties `properties` within radius `searchRadius`
 function findEntities(properties, searchRadius) {
@@ -357,7 +358,6 @@ function setupTrail(entityID, position) {
     trailInterval = Script.setInterval(function() {
         var properties = Entities.getEntityProperties(entityID, ['position']);
         if (Vec3.distance(properties.position, lastPosition)) {
-            Vec3.print("Adding trail", properties.position);
             var strokeWidth = Math.log(1 + trail.size) * 0.05;
             trail.enqueuePoint(properties.position, strokeWidth);
             lastPosition = properties.position;
@@ -430,6 +430,8 @@ function updateBillboard(distance) {
     }
 }
 
+var FIREWORK_SHOW_DISTANCE_FEET = 200;
+
 Baseball.prototype = {
     finished: function() {
         return this.state == BASEBALL_STATE.FOUL
@@ -442,12 +444,10 @@ Baseball.prototype = {
             this.timeSinceHit += dt;
             var myProperties = Entities.getEntityProperties(this.entityID, ['position', 'velocity']);
             var speed = Vec3.length(myProperties.velocity);
-            this.distanceTravelled = Vec3.distance(this.hitBallAtPosition, myProperties.position);
-            updateBillboard(Math.ceil(this.distanceTravelled * METERS_TO_FEET));
+            this.distanceTravelled = Vec3.distance(this.hitBallAtPosition, myProperties.position) * METERS_TO_FEET;
+            updateBillboard(Math.ceil(this.distanceTravelled));
             if (this.timeSinceHit > 10 || speed < 1) {
-                this.state = BASEBALL_STATE.HIT_LANDED;
-                print("Ball took " + this.timeSinceHit.toFixed(3) + " seconds to land");
-                print("Ball travelled " + this.distanceTravelled + " meters")
+                this.ballLanded();
             }
         } else if (this.state == BASEBALL_STATE.PITCHING) {
             if (this.timeSincePitched > 10) {
@@ -455,6 +455,15 @@ Baseball.prototype = {
                 this.state = BASEBALL_STATE.STRIKE;
             }
         }
+    },
+    ballLanded: function() {
+        this.state = BASEBALL_STATE.HIT_LANDED;
+        if (this.distanceTravelled > FIREWORK_SHOW_DISTANCE_FEET) {
+            print("PLAYING SHOW")
+            playFireworkShow(50, 10000);
+        }
+        print("Ball took " + this.timeSinceHit.toFixed(3) + " seconds to land");
+        print("Ball travelled " + this.distanceTravelled + " feet")
     },
     collisionCallback: function(entityA, entityB, collision) {
         var self = this;
@@ -525,7 +534,7 @@ Baseball.prototype = {
             print("PARTICLES");
             entityCollisionWithGround(entityB, this.entityID, collision);
             if (this.state == BASEBALL_STATE.HIT) {
-                this.state = BASEBALL_STATE.HIT_LANDED;
+                this.ballLanded();
             }
         } else if (name == "backstop") {
             if (this.state == BASEBALL_STATE.PITCHING) {
