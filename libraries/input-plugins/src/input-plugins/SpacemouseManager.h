@@ -89,8 +89,7 @@ private:
 };
 
 class SpacemouseManager : public QObject, public QAbstractNativeEventFilter {
-//class SpacemouseManager : public InputPlugin, public controller::InputDevice {
-    
+   
     Q_OBJECT
 public:
     SpacemouseManager() {};
@@ -118,10 +117,7 @@ public:
     }
 
         public slots:
-    void toggleSpacemouse(bool shouldEnable);
-
-    //std::shared_ptr<SpacemouseDevice> getDevice();
-    
+    void toggleSpacemouse(bool shouldEnable);  
 
 signals:
     void Move3d(std::vector<float>& motionData);
@@ -193,7 +189,6 @@ class SpacemouseDevice : public QObject, public controller::InputDevice {
     Q_OBJECT
 
 public:
-    //static SpacemouseDevice& getInstance();
     SpacemouseDevice();
     enum PositionChannel {
         TRANSLATE_X,

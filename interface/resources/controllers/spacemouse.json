@@ -8,8 +8,8 @@
         
         { "from": "Spacemouse.RotateZ", "to": "Standard.LX" },
         
-        { "from": "Spacemouse.LeftButton", "to": "Standard.LT" },
-        { "from": "Spacemouse.RightButton", "to": "Standard.RT" }
+        { "from": "Spacemouse.LeftButton", "to": "Standard.LB" },
+        { "from": "Spacemouse.RightButton", "to": "Standard.RB" }
     ]
 }
 

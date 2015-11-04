@@ -45,9 +45,9 @@ function update(deltaTime) {
             print("- Controller RZ: " + Controller.getValue(Controller.Standard.LX));
         }
         
-        if(Controller.getValue(Controller.Standard.LT) != 0){
+        if(Controller.getValue(Controller.Standard.LB) != 0){
             toggleFirstMove();
-            print("- Controller LEFTB: " + Controller.getValue(Controller.Standard.LT));
+            print("- Controller LEFTB: " + Controller.getValue(Controller.Standard.LB));
         }
         
         if(Controller.getValue(Controller.Standard.RY) != 0){
@@ -60,9 +60,9 @@ function update(deltaTime) {
             print("- Controller TX: " + Controller.getValue(Controller.Standard.RX));
         }
         
-        if(Controller.getValue(Controller.Standard.RT) != 0){
+        if(Controller.getValue(Controller.Standard.RB) != 0){
             toggleFirstMove();
-            print("- Controller RIGHTB: " + Controller.getValue(Controller.Standard.RT));
+            print("- Controller RIGHTB: " + Controller.getValue(Controller.Standard.RB));
         }    
         
         firstmove = 1;

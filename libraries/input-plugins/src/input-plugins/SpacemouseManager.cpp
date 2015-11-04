@@ -21,7 +21,7 @@
 
 const float MAX_AXIS = 75.0f;  // max forward = 2x speed
 
-static std::shared_ptr<SpacemouseDevice> instance = NULL;
+static std::shared_ptr<SpacemouseDevice> instance;
 SpacemouseDevice::SpacemouseDevice() :
 InputDevice("Spacemouse")
 {
@@ -120,9 +120,9 @@ void SpacemouseDevice::update(float deltaTime, bool jointsCaptured) {
 
 SpacemouseManager& SpacemouseManager::getInstance() {
     static SpacemouseManager sharedInstance;
-    if (instance == NULL){
+    if (instance == nullptr) {
         new SpacemouseDevice();
-        }
+    }
     return sharedInstance;
 }
 
@@ -318,14 +318,12 @@ void SpacemouseManager::Move3d(HANDLE device, std::vector<float>& motionData) {
 //Called when a 3D mouse key is pressed
 void SpacemouseManager::On3dmouseKeyDown(HANDLE device, int virtualKeyCode) {
     Q_UNUSED(device);
-    //SpacemouseDevice& spacemousedevice = SpacemouseDevice::getInstance();
     instance->setButton(virtualKeyCode);
 }
 
 //Called when a 3D mouse key is released
 void SpacemouseManager::On3dmouseKeyUp(HANDLE device, int virtualKeyCode) {
     Q_UNUSED(device);
-    //SpacemouseDevice& spacemousedevice = SpacemouseDevice::getInstance();
     instance->setButton(0);
 }
 
@@ -858,8 +856,6 @@ void SpacemouseManager::init() {
 
         // ...or use this to take over system-wide
         fConnexionClientID = RegisterConnexionClient(kConnexionClientWildcard, NULL, kConnexionClientModeTakeOver, kConnexionMaskAll);
-        //SpacemouseDevice& spacemousedevice = SpacemouseDevice::getInstance();
-        //memcpy(&spacemousedevice.clientId, &fConnexionClientID, (long)sizeof(int));
         memcpy(&instance->clientId, &fConnexionClientID, (long)sizeof(int));
 
         // A separate API call is required to capture buttons beyond the first 8
@@ -887,7 +883,6 @@ void SpacemouseManager::destroy() {
         }
         CleanupConnexionHandlers();
         fConnexionClientID = 0;
-        //SpacemouseDevice& spacemousedevice = SpacemouseDevice::getInstance();
         if (instance->getDeviceID() != controller::Input::INVALID_DEVICE) {
             auto userInputMapper = DependencyManager::get<UserInputMapper>();
             userInputMapper->removeDevice(instance->getDeviceID());
@@ -897,7 +892,6 @@ void SpacemouseManager::destroy() {
 }
 
 void DeviceAddedHandler(unsigned int connection) {
-    //SpacemouseDevice& spacemousedevice = SpacemouseDevice::getInstance();
     if (instance->getDeviceID() == controller::Input::INVALID_DEVICE) {
         qCWarning(interfaceapp) << "Spacemouse device added ";
         auto userInputMapper = DependencyManager::get<UserInputMapper>();
@@ -907,7 +901,6 @@ void DeviceAddedHandler(unsigned int connection) {
 }
 
 void DeviceRemovedHandler(unsigned int connection) {
-    //SpacemouseDevice& spacemousedevice = SpacemouseDevice::getInstance();
     if (instance->getDeviceID() != controller::Input::INVALID_DEVICE) {
         qCWarning(interfaceapp) << "Spacemouse device removed";
         auto userInputMapper = DependencyManager::get<UserInputMapper>();
@@ -934,7 +927,6 @@ void MessageHandler(unsigned int connection, unsigned int messageType, void *mes
     case kConnexionMsgDeviceState:
         state = (SpacemouseDeviceState*)messageArgument;
         if (state->client == fConnexionClientID) {
-            //SpacemouseDevice& spacemousedevice = SpacemouseDevice::getInstance();
             instance->cc_position = { state->axis[0], state->axis[1], state->axis[2] };
             instance->cc_rotation = { state->axis[3], state->axis[4], state->axis[5] };
 
