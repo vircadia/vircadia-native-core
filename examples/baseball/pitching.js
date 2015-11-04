@@ -142,8 +142,8 @@ PitchingMachine.prototype = {
         print("Pitching ball");
         var pitchDirection = { x: 0, y: 0, z: 1 };
         var machineProperties = Entities.getEntityProperties(this.pitchingMachineID, ["dimensions", "position", "rotation"]);
-        print("PROPS");
-        print("props ", JSON.stringify(machineProperties));
+        //print("PROPS");
+        //print("props ", JSON.stringify(machineProperties));
         var pitchFromPositionBase = machineProperties.position;
         var pitchFromOffset = vec3Mult(machineProperties.dimensions, PITCHING_MACHINE_OUTPUT_OFFSET_PCT);
         pitchFromOffset = Vec3.multiplyQbyV(machineProperties.rotation, pitchFromOffset);
@@ -539,8 +539,8 @@ Baseball.prototype = {
                 }
             }
         } else if (name == "stadium") {
-            print("PARTICLES");
-            entityCollisionWithGround(entityB, this.entityID, collision);
+            //iprint("PARTICLES");
+            //entityCollisionWithGround(entityB, this.entityID, collision);
             this.landed = true;
         } else if (name == "backstop") {
             if (this.state == BASEBALL_STATE.PITCHING) {
