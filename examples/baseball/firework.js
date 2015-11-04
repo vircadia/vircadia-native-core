@@ -1,4 +1,4 @@
-Script.include(Script.resolvePath("utils.js"));
+Script.include("http://rawgit.com/huffman/hifi/baseball/examples/baseball/utils.js");
 
 var emitters = [];
 
