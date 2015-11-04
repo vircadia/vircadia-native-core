@@ -45,6 +45,17 @@
       var BAT_COLLISION_HULL = "atp:9eafceb7510c41d50661130090de7e0632aa4da236ebda84a0059a4be2130e0c.obj";
       var SCRIPT_URL = "http://raw.githubusercontent.com/birarda/hifi/baseball/examples/baseball/bat.js"
 
+      var batUserData = {
+        grabbableKey: {
+          spatialKey: {
+            relativePosition: {
+              x: 0.9, y: 0, z: 0
+            },
+            relativeRotation: Quat.fromPitchYawRollDegrees(0, -90, 0)
+          }
+        }
+      }
+
       // add the fresh bat at the drop position
       var bat = Entities.addEntity({
           name: 'Bat',
@@ -57,7 +68,7 @@
           gravity: { x: 0, y: -9.81, z: 0},
           rotation: Quat.fromPitchYawRollDegrees(0.0, 0.0, -90.0),
           script: SCRIPT_URL,
-          userData: '{"grabbableKey":{"spatialKey":{"relativePosition":{"x":0.9,"y":0,"z":0}}}}'
+          userData: JSON.stringify(batUserData)
       });
     };
 });
