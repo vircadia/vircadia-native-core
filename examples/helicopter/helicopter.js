@@ -6,7 +6,7 @@ var spawnPosition = {
     z: 1041
 };
 
-var speed = .15;
+var speed = 0;
 
 var helicopterSound = SoundCache.getSound("https://hifi-public.s3.amazonaws.com/ryan/helicopter.L.wav");
 var audioInjector = Audio.playSound(helicopterSound, {
