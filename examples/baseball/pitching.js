@@ -464,10 +464,8 @@ Baseball.prototype = {
         this.state = BASEBALL_STATE.HIT_LANDED;
         if (this.distanceTravelled > FIREWORK_SHOW_DISTANCE_FEET) {
             print("PLAYING SHOW")
-            var numberOfFireworks = Math.floor(this.distanceTraveled / 100);
-            if (this.wasHighScore) {
-                numberOfFireworks = 20;
-            }
+            var numberOfFireworks = Math.floor(this.distanceTravelled / 200);
+            numberOfFireworks = Math.min(10, numberOfFireworks);
             playFireworkShow(numberOfFireworks, 2000);
         }
         print("Ball took " + this.timeSinceHit.toFixed(3) + " seconds to land");
