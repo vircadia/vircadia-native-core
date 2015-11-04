@@ -22,6 +22,26 @@ public:
     
     ALLOW_INSTANTIATION // This class can be instantiated
 
+    // methods for getting/setting all properties of an entity
+    virtual EntityItemProperties getProperties(EntityPropertyFlags desiredProperties = EntityPropertyFlags()) const;
+    virtual bool setProperties(const EntityItemProperties& properties);
+
+    // TODO: eventually only include properties changed since the params.lastViewFrustumSent time
+    virtual EntityPropertyFlags getEntityProperties(EncodeBitstreamParams& params) const;
+
+    virtual void appendSubclassData(OctreePacketData* packetData, EncodeBitstreamParams& params,
+        EntityTreeElementExtraEncodeData* modelTreeElementExtraEncodeData,
+        EntityPropertyFlags& requestedProperties,
+        EntityPropertyFlags& propertyFlags,
+        EntityPropertyFlags& propertiesDidntFit,
+        int& propertyCount,
+        OctreeElement::AppendState& appendState) const;
+
+    virtual int readEntitySubclassDataFromBuffer(const unsigned char* data, int bytesLeftToRead,
+        ReadBitstreamToTreeParams& args,
+        EntityPropertyFlags& propertyFlags, bool overwriteLocalData,
+        bool& somethingChanged);
+        
 };
 
 #endif // hifi_CameraEntityItem_h

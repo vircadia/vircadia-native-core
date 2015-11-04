@@ -28,3 +28,57 @@ CameraEntityItem::CameraEntityItem(const EntityItemID& entityItemID, const Entit
 
     setProperties(properties);
 }
+
+
+EntityItemProperties CameraEntityItem::getProperties(EntityPropertyFlags desiredProperties) const {
+    EntityItemProperties properties = EntityItem::getProperties(desiredProperties); // get the properties from our base class
+    return properties;
+}
+
+bool CameraEntityItem::setProperties(const EntityItemProperties& properties) {
+    bool somethingChanged = false;
+    somethingChanged = EntityItem::setProperties(properties); // set the properties in our base class
+
+    if (somethingChanged) {
+        bool wantDebug = false;
+        if (wantDebug) {
+            uint64_t now = usecTimestampNow();
+            int elapsed = now - getLastEdited();
+            qCDebug(entities) << "CameraEntityItem::setProperties() AFTER update... edited AGO=" << elapsed <<
+                "now=" << now << " getLastEdited()=" << getLastEdited();
+        }
+        setLastEdited(properties._lastEdited);
+    }
+
+    return somethingChanged;
+}
+
+int CameraEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data, int bytesLeftToRead,
+    ReadBitstreamToTreeParams& args,
+    EntityPropertyFlags& propertyFlags, bool overwriteLocalData,
+    bool& somethingChanged) {
+
+    int bytesRead = 0;
+    const unsigned char* dataAt = data;
+
+    return bytesRead;
+}
+
+
+// TODO: eventually only include properties changed since the params.lastViewFrustumSent time
+EntityPropertyFlags CameraEntityItem::getEntityProperties(EncodeBitstreamParams& params) const {
+    EntityPropertyFlags requestedProperties = EntityItem::getEntityProperties(params);
+    return requestedProperties;
+}
+
+void CameraEntityItem::appendSubclassData(OctreePacketData* packetData, EncodeBitstreamParams& params,
+    EntityTreeElementExtraEncodeData* modelTreeElementExtraEncodeData,
+    EntityPropertyFlags& requestedProperties,
+    EntityPropertyFlags& propertyFlags,
+    EntityPropertyFlags& propertiesDidntFit,
+    int& propertyCount,
+    OctreeElement::AppendState& appendState) const {
+
+    bool successPropertyFits = true;
+}
+
