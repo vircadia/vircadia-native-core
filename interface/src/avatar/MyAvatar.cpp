@@ -52,7 +52,6 @@
 
 using namespace std;
 
-static quint64 COMFORT_MODE_PULSE_TIMING = USECS_PER_SECOND / 2; // turn once per half second
 const glm::vec3 DEFAULT_UP_DIRECTION(0.0f, 1.0f, 0.0f);
 const float YAW_SPEED = 150.0f;   // degrees/sec
 const float PITCH_SPEED = 100.0f; // degrees/sec
@@ -254,23 +253,9 @@ void MyAvatar::simulate(float deltaTime) {
                 stepAction = true;
             }
         }
-        quint64 now = usecTimestampNow();
-        quint64 pulseDeltaTime = now - _lastStepPulse;
-        if (!stepAction) {
-            _lastStepPulse = 0;
-        }
-
-        if (stepAction && pulseDeltaTime > COMFORT_MODE_PULSE_TIMING) {
-            _pulseUpdate = true;
-        }
 
         updateOrientation(deltaTime);
         updatePosition(deltaTime);
-
-        if (_pulseUpdate) {
-            _lastStepPulse = now;
-            _pulseUpdate = false;
-        }
     }
 
     {
@@ -1269,11 +1254,11 @@ void MyAvatar::prepareForPhysicsSimulation() {
     _characterController.setAvatarPositionAndOrientation(getPosition(), getOrientation());
     if (qApp->isHMDMode()) {
         updateHMDFollowVelocity();
-        _characterController.setHMDVelocity(_hmdFollowVelocity);
-    } else {
-        _characterController.setHMDVelocity(Vectors::ZERO);
+    } else if (_isFollowingHMD) {
         _isFollowingHMD = false;
+        _hmdFollowVelocity = Vectors::ZERO;
     }
+    _characterController.setHMDVelocity(_hmdFollowVelocity);
 }
 
 void MyAvatar::harvestResultsFromPhysicsSimulation() {
@@ -1309,6 +1294,7 @@ void MyAvatar::adjustSensorTransform(glm::vec3 hmdShift) {
         // the "adjustment" is more or less complete so stop following
         _isFollowingHMD = false;
         _hmdFollowSpeed = 0.0f;
+        _hmdFollowVelocity = Vectors::ZERO;
         // and slam the body's transform anyway to eliminate any slight errors
         glm::vec3 finalBodyPosition = extractTranslation(worldBodyMatrix);
         nextAttitude(finalBodyPosition, finalBodyRotation);
@@ -1593,7 +1579,7 @@ void MyAvatar::updateOrientation(float deltaTime) {
     // get an instantaneous 15 degree turn. If you keep holding the key down you'll get another
     // snap turn every half second.
     quint64 now = usecTimestampNow();
-    if (_driveKeys[STEP_YAW] != 0.0f && now - _lastStepPulse > COMFORT_MODE_PULSE_TIMING) {
+    if (_driveKeys[STEP_YAW] != 0.0f) {
         totalBodyYaw += _driveKeys[STEP_YAW];
     }
 
@@ -1662,9 +1648,9 @@ glm::vec3 MyAvatar::applyKeyboardMotor(float deltaTime, const glm::vec3& localVe
     glm::vec3 newLocalVelocity = localVelocity;
     float stepControllerInput = fabsf(_driveKeys[STEP_TRANSLATE_Z]) + fabsf(_driveKeys[STEP_TRANSLATE_Z]) + fabsf(_driveKeys[STEP_TRANSLATE_Z]);
     quint64 now = usecTimestampNow();
+
     // FIXME how do I implement step translation as well?
-    if (stepControllerInput && now - _lastStepPulse > COMFORT_MODE_PULSE_TIMING) {
-    }
+
 
     float keyboardInput = fabsf(_driveKeys[TRANSLATE_Z]) + fabsf(_driveKeys[TRANSLATE_X]) + fabsf(_driveKeys[TRANSLATE_Y]);
     if (keyboardInput) {
