@@ -466,7 +466,7 @@ Baseball.prototype = {
             print("PLAYING SHOW")
             var numberOfFireworks = Math.floor(this.distanceTraveled / 100);
             if (this.wasHighScore) {
-                numberOfFireworks = 30;
+                numberOfFireworks = 20;
             }
             playFireworkShow(numberOfFireworks, 2000);
         }
