@@ -155,7 +155,6 @@ public slots:
     Q_INVOKABLE glm::quat getJointRotation(const QUuid& entityID, int jointIndex);
 
 signals:
-    void entityCollisionWithEntity(const EntityItemID& idA, const EntityItemID& idB, const Collision& collision);
     void collisionWithEntity(const EntityItemID& idA, const EntityItemID& idB, const Collision& collision);
 
     void canAdjustLocksChanged(bool canAdjustLocks);
