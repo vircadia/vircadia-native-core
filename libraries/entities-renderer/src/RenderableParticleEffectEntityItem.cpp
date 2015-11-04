@@ -218,10 +218,10 @@ void RenderableParticleEffectEntityItem::updateRenderItem() {
 
     // build vertices from particle positions and radiuses
     glm::vec3 frustumPosition = frustum->getPosition();
+    glm::vec3 dir = frustum->getDirection();
     for (auto&& particle : particleDetails) {
-        glm::vec3 particleDirection = particle.position - frustumPosition;
-        glm::vec3 right = glm::normalize(glm::cross(glm::vec3(0.0f, 1.0f, 0.0f), particleDirection));
-        glm::vec3 up = glm::normalize(glm::cross(right, particleDirection));
+        glm::vec3 right = glm::normalize(glm::cross(glm::vec3(0.0f, 1.0f, 0.0f), dir));
+        glm::vec3 up = glm::normalize(glm::cross(right, dir));
 
         glm::vec3 upOffset = up * particle.radius;
         glm::vec3 rightOffset = right * particle.radius;
