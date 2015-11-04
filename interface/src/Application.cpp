@@ -2795,7 +2795,7 @@ void Application::update(float deltaTime) {
                 float timeFactor = EXPECTED_FRAME_RATE * deltaTime;
                 myAvatar->setDriveKeys(PITCH, -1.0f * userInputMapper->getActionState(controller::Action::PITCH) / timeFactor);
                 myAvatar->setDriveKeys(YAW, -1.0f * userInputMapper->getActionState(controller::Action::YAW) / timeFactor);
-                myAvatar->setDriveKeys(STEP_YAW, -1.0f * userInputMapper->getActionState(controller::Action::STEP_YAW) / timeFactor);
+                myAvatar->setDriveKeys(STEP_YAW, -1.0f * userInputMapper->getActionState(controller::Action::STEP_YAW));
             }
         }
         myAvatar->setDriveKeys(ZOOM, userInputMapper->getActionState(controller::Action::TRANSLATE_CAMERA_Z));
