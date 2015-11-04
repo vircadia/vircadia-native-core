@@ -12,6 +12,7 @@
 const CAMERA_OFFSET = {x: 0, y: 4, z: -14};
 const LOOKAT_START_OFFSET = {x: -10, y: 0, z: 14};
 const LOOKAT_END_OFFSET = {x: 10, y: 0, z: 14};
+const TINY_VALUE = 0.001;
 
 var lookatTargets = [Vec3.sum(MyAvatar.position, LOOKAT_START_OFFSET), Vec3.sum(MyAvatar.position, LOOKAT_END_OFFSET)];
 var currentTarget = 0;
@@ -37,11 +38,11 @@ Camera.cameraEntity = cameraEntity;
 Script.update.connect(function(deltaTime) {
     var cameraProperties = Entities.getEntityProperties(cameraEntity, ["position", "rotation"]);
     var targetOrientation = cameraLookAt(cameraProperties.position, lookatTargets[currentTarget]);
-    if (Math.abs(targetOrientation.x - cameraProperties.rotation.x) < 0.01 && 
-        Math.abs(targetOrientation.y - cameraProperties.rotation.y) < 0.01 && 
-        Math.abs(targetOrientation.z - cameraProperties.rotation.z) < 0.01 && 
-        Math.abs(targetOrientation.w - cameraProperties.rotation.w) < 0.01
-          ) {
+    if (Math.abs(targetOrientation.x - cameraProperties.rotation.x) < TINY_VALUE && 
+        Math.abs(targetOrientation.y - cameraProperties.rotation.y) < TINY_VALUE && 
+        Math.abs(targetOrientation.z - cameraProperties.rotation.z) < TINY_VALUE && 
+        Math.abs(targetOrientation.w - cameraProperties.rotation.w) < TINY_VALUE) {
+
         currentTarget = (currentTarget + 1) % lookatTargets.length;
         return;
     }
