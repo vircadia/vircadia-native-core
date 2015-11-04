@@ -10,7 +10,7 @@
           "filters":
             [
                 { "type": "pulse", "interval": 0.5 },
-                { "type": "scale", "scale": 15 }
+                { "type": "scale", "scale": 22.5 }
             ]
         },
         { "from": "Standard.RX", "to": "Actions.Yaw" },
