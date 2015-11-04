@@ -176,6 +176,9 @@ function MyController(hand) {
     this.pointer = null; // entity-id of line object
     this.triggerValue = 0; // rolling average of trigger value
     this.rawTriggerValue = 0;
+    
+    this.offsetPosition = { x: 0.0, y: 0.0, z: 0.0 };
+    this.offsetRotation = { x: 0.0, y: 0.0, z: 0.0, w: 1.0 };
 
     var _this = this;
 
