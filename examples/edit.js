@@ -301,12 +301,12 @@ var toolBar = (function() {
         });
 
         newCameraButton = toolBar.addTool({
-            imageURL: toolIconUrl + "polyvox.svg",
+            imageURL: toolIconUrl + "light.svg",
             subImage: {
                 x: 0,
-                y: 0,
-                width: 256,
-                height: 256
+                y: Tool.IMAGE_WIDTH,
+                width: Tool.IMAGE_WIDTH,
+                height: Tool.IMAGE_HEIGHT
             },
             width: toolWidth,
             height: toolHeight,
@@ -1639,6 +1639,11 @@ PropertiesTool = function(opts) {
                     }
                     pushCommandForSelections();
                     selectionManager._update();
+                }
+            } else if (data.action == "previewCamera") {
+                if (selectionManager.hasSelection()) {
+                    Camera.mode = "camera entity";
+                    Camera.cameraEntity = selectionManager.selections[0];
                 }
             } else if (data.action == "rescaleDimensions") {
                 var multiplier = data.percentage / 100;

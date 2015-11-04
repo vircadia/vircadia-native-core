@@ -382,7 +382,7 @@
             var elHyperlinkHref = document.getElementById("property-hyperlink-href");
             var elHyperlinkDescription = document.getElementById("property-hyperlink-description");
 
-
+            var elPreviewCameraButton = document.getElementById("preview-camera-button");
 
             if (window.EventBridge !== undefined) {
                 EventBridge.scriptEventReceived.connect(function(data) {
@@ -931,6 +931,12 @@
                     action: "centerAtmosphereToZone",
                 }));
             });
+            elPreviewCameraButton.addEventListener("click", function() {
+                EventBridge.emitWebEvent(JSON.stringify({
+                    type: "action",
+                    action: "previewCamera"
+                }));
+            });
 
             window.onblur = function() {
                 // Fake a change event
@@ -1032,7 +1038,7 @@
 
 
         <div class="section-header">
-            <label>Spacial Properites</label>
+            <label>Spacial Properties</label>
         </div>
 
         <div class="property">
@@ -1044,6 +1050,7 @@
                 <div>
                     <input type="button" id="move-selection-to-grid" value="Selection to Grid">
                     <input type="button" id="move-all-to-grid" value="All to Grid">
+                    <input type="button" id="preview-camera-button" value="Preview Camera">
                 </div>
             </div>
         </div>

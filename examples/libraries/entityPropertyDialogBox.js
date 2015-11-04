@@ -204,7 +204,7 @@ EntityPropertyDialogBox = (function () {
         array.push({ label: "Collisions Will Move:", type: "checkbox", value: properties.collisionsWillMove });
         index++;
         array.push({ label: "Collision Sound URL:", value: properties.collisionSoundURL });
-    index++;
+        index++;
 
         array.push({ label: "Lifetime:", value: properties.lifetime.toFixed(decimals) });
         index++;
@@ -260,6 +260,12 @@ EntityPropertyDialogBox = (function () {
             array.push({ label: "Cutoff (in degrees):", value: properties.cutoff });
             index++;
         }
+
+        if (properties.type == "Camera") {
+            array.push({ label: "", type: "inlineButton", buttonLabel: "Preview Camera", name: "previewCamera" });
+            index++;
+        }
+
         array.push({ button: "Cancel" });
         index++;
 
@@ -268,6 +274,11 @@ EntityPropertyDialogBox = (function () {
     };
 
     Window.inlineButtonClicked.connect(function (name) {
+        if (name == "previewCamera") {
+            Camera.mode = "camera entity";
+            Camera.cameraEntity = propertiesForEditedEntity.id;
+        }
+
         if (name == "resetDimensions") {
             Window.reloadNonBlockingForm([
                 { value: propertiesForEditedEntity.naturalDimensions.x.toFixed(decimals), oldIndex: dimensionX },
