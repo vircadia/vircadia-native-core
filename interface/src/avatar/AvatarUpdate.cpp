@@ -56,11 +56,12 @@ bool AvatarUpdate::process() {
     //gets current lookat data, removes missing avatars, etc.
     manager->updateOtherAvatars(deltaSeconds);
 
-    myAvatar->withWriteLock([&] {
-        qApp->updateMyAvatarLookAtPosition();
-        // Sample hardware, update view frustum if needed, and send avatar data to mixer/nodes
-        manager->updateMyAvatar(deltaSeconds);
-    });
+    myAvatar->startUpdate();
+    qApp->updateMyAvatarLookAtPosition();
+    // Sample hardware, update view frustum if needed, and send avatar data to mixer/nodes
+    manager->updateMyAvatar(deltaSeconds);
+    myAvatar->endUpdate();
+
 
     if (!isThreaded()) {
         return true;

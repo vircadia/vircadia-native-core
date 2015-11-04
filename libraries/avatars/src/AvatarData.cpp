@@ -111,24 +111,59 @@ void AvatarData::setBodyRoll(float bodyRoll) {
 }
 
 void AvatarData::setPosition(const glm::vec3& position) {
-    withWriteLock([&] {
-        SpatiallyNestable::setPosition(position);
-    });
+    SpatiallyNestable::setPosition(position);
 }
 
 void AvatarData::setOrientation(const glm::quat& orientation) {
-    withWriteLock([&] {
-        SpatiallyNestable::setOrientation(orientation);
-    });
+    SpatiallyNestable::setOrientation(orientation);
 }
 
 // There are a number of possible strategies for this set of tools through endRender, below.
 void AvatarData::nextAttitude(glm::vec3 position, glm::quat orientation) {
-    withWriteLock([&] {
-        SpatiallyNestable::setPosition(position);
-        SpatiallyNestable::setOrientation(orientation);
-    });
+    avatarLock.lock();
+    SpatiallyNestable::setPosition(position);
+    SpatiallyNestable::setOrientation(orientation);
+    avatarLock.unlock();
     updateAttitude();
+}
+void AvatarData::startCapture() {
+    avatarLock.lock();
+    assert(_nextAllowed);
+    _nextAllowed = false;
+    _nextPosition = getPosition();
+    _nextOrientation = getOrientation();
+}
+void AvatarData::endCapture() {
+    avatarLock.unlock();
+}
+void AvatarData::startUpdate() {
+    avatarLock.lock();
+}
+void AvatarData::endUpdate() {
+    avatarLock.unlock();
+}
+void AvatarData::startRenderRun() {
+    // I'd like to get rid of this and just (un)lock at (end-)startRender.
+    // But somehow that causes judder in rotations.
+    avatarLock.lock();
+}
+void AvatarData::endRenderRun() {
+    avatarLock.unlock();
+}
+void AvatarData::startRender() {
+    glm::vec3 pos = getPosition();
+    glm::quat rot = getOrientation();
+    setPosition(_nextPosition);
+    setOrientation(_nextOrientation);
+    updateAttitude();
+    _nextPosition = pos;
+    _nextOrientation = rot;
+}
+void AvatarData::endRender() {
+    setPosition(_nextPosition);
+    setOrientation(_nextOrientation);
+    updateAttitude();
+    _nextAllowed = true;
 }
 
 float AvatarData::getTargetScale() const {

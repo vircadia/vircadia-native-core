@@ -61,7 +61,7 @@ SpatiallyNestablePointer SpatiallyNestable::getParentPointer() const {
         _parent.reset();
     }
 
-    // we have a _parentID but no parent pointer, or our parent pointer is to the wrong thing
+    // we have a _parentID but no parent pointer, or our parent pointer was to the wrong thing
     QSharedPointer<SpatialParentFinder> parentFinder = DependencyManager::get<SpatialParentFinder>();
     _parent = parentFinder->find(_parentID);
     parent = _parent.lock();
@@ -69,6 +69,11 @@ SpatiallyNestablePointer SpatiallyNestable::getParentPointer() const {
         parent->beParentOfChild(thisPointer);
         _parentKnowsMe = true;
     }
+
+    if (parent || _parentID.isNull()) {
+        parentChanged();
+    }
+
     return parent;
 }
 
@@ -80,10 +85,11 @@ void SpatiallyNestable::forgetChild(SpatiallyNestablePointer newChild) const {
     _children.remove(newChild->getID());
 }
 
-
 void SpatiallyNestable::setParentID(const QUuid& parentID) {
-    _parentID = parentID;
-    _parentKnowsMe = false;
+    if (_parentID != parentID) {
+        _parentID = parentID;
+        _parentKnowsMe = false;
+    }
 }
 
 glm::vec3 SpatiallyNestable::worldToLocal(const glm::vec3& position) {

@@ -377,6 +377,7 @@ void Avatar::render(RenderArgs* renderArgs, const glm::vec3& cameraPosition) {
     }
 
     if (frustum->sphereInFrustum(getPosition(), boundingRadius) == ViewFrustum::OUTSIDE) {
+        endRender();
         return;
     }
 
@@ -535,6 +536,7 @@ void Avatar::render(RenderArgs* renderArgs, const glm::vec3& cameraPosition) {
             renderDisplayName(batch, frustum, textPosition);
         }
     }
+    endRender();
 }
 
 glm::quat Avatar::computeRotationFromBodyToWorldUp(float proportion) const {
@@ -1011,25 +1013,23 @@ void Avatar::setBillboard(const QByteArray& billboard) {
 }
 
 int Avatar::parseDataFromBuffer(const QByteArray& buffer) {
-    int bytesRead;
+    startUpdate();
+    if (!_initialized) {
+        // now that we have data for this Avatar we are go for init
+        init();
+    }
 
-    withWriteLock([&] {
-        if (!_initialized) {
-            // now that we have data for this Avatar we are go for init
-            init();
-        }
+    // change in position implies movement
+    glm::vec3 oldPosition = getPosition();
 
-        // change in position implies movement
-        glm::vec3 oldPosition = getPosition();
+    int bytesRead = AvatarData::parseDataFromBuffer(buffer);
 
-        bytesRead = AvatarData::parseDataFromBuffer(buffer);
-
-        const float MOVE_DISTANCE_THRESHOLD = 0.001f;
-        _moving = glm::distance(oldPosition, getPosition()) > MOVE_DISTANCE_THRESHOLD;
-        if (_moving && _motionState) {
-            _motionState->addDirtyFlags(Simulation::DIRTY_POSITION);
-        }
-    });
+    const float MOVE_DISTANCE_THRESHOLD = 0.001f;
+    _moving = glm::distance(oldPosition, getPosition()) > MOVE_DISTANCE_THRESHOLD;
+    if (_moving && _motionState) {
+        _motionState->addDirtyFlags(Simulation::DIRTY_POSITION);
+    }
+    endUpdate();
 
     return bytesRead;
 }

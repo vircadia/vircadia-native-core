@@ -92,6 +92,8 @@ protected:
     virtual void forgetChild(SpatiallyNestablePointer newChild) const;
     mutable QHash<QUuid, SpatiallyNestableWeakPointer> _children;
 
+    virtual void parentChanged() const {} // called when parent pointer is updated
+
 private:
     Transform _transform; // this is to be combined with parent's world-transform to produce this' world-transform.
 
