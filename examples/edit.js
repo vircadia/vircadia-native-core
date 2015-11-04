@@ -155,6 +155,7 @@ var toolBar = (function() {
         newWebButton,
         newZoneButton,
         newPolyVoxButton,
+        newCameraButton,
         browseMarketplaceButton;
 
     function initialize() {
@@ -299,6 +300,20 @@ var toolBar = (function() {
             visible: false
         });
 
+        newCameraButton = toolBar.addTool({
+            imageURL: toolIconUrl + "polyvox.svg",
+            subImage: {
+                x: 0,
+                y: 0,
+                width: 256,
+                height: 256
+            },
+            width: toolWidth,
+            height: toolHeight,
+            alpha: 0.9,
+            visible: false
+        });
+
         that.setActive(false);
     }
 
@@ -345,6 +360,7 @@ var toolBar = (function() {
         toolBar.showTool(newWebButton, doShow);
         toolBar.showTool(newZoneButton, doShow);
         toolBar.showTool(newPolyVoxButton, doShow);
+        toolBar.showTool(newCameraButton, doShow);
     };
 
     var RESIZE_INTERVAL = 50;
@@ -600,6 +616,13 @@ var toolBar = (function() {
                 }, 255);
             }
 
+
+            return true;
+        }
+        if (newCameraButton === toolBar.clicked(clickedOverlay)) {
+            createNewEntity({
+                type: "Camera"
+            });
 
             return true;
         }

@@ -28,6 +28,8 @@ CameraMode stringToMode(const QString& mode) {
         return CAMERA_MODE_MIRROR;
     } else if (mode == "independent") {
         return CAMERA_MODE_INDEPENDENT;
+    } else if (mode == "camera entity") {
+        return CAMERA_MODE_CAMERA_ENTITY;
     }
     return CAMERA_MODE_NULL;
 }
@@ -41,6 +43,8 @@ QString modeToString(CameraMode mode) {
         return "mirror";
     } else if (mode == CAMERA_MODE_INDEPENDENT) {
         return "independent";
+    } else if (mode == CAMERA_MODE_CAMERA_ENTITY) {
+        return "camera entity";
     }
     return "unknown";
 }
@@ -94,6 +98,26 @@ void Camera::setMode(CameraMode mode) {
     emit modeUpdated(modeToString(mode));
 }
 
+QUuid Camera::getCameraEntity() const {
+    if (_cameraEntity != nullptr) {
+        return _cameraEntity->getID();
+    }
+    return QUuid();
+};
+
+void Camera::setCameraEntity(QUuid cameraEntityID) {
+     EntityItemPointer entity = qApp->getEntities()->getTree()->findEntityByID(cameraEntityID);
+     if (entity == nullptr) {
+         qDebug() << "entity pointer not found";
+         return;
+     }
+     if (entity->getType() != EntityTypes::Camera) {
+         qDebug() << "entity type is not camera";
+         return;
+     }
+     _cameraEntity = entity;
+}
+
 void Camera::setProjection(const glm::mat4& projection) { 
     _projection = projection;
 }
@@ -117,6 +141,9 @@ void Camera::setModeString(const QString& mode) {
             break;
         case CAMERA_MODE_INDEPENDENT:
             Menu::getInstance()->setIsOptionChecked(MenuOption::IndependentMode, true);
+            break;
+        case CAMERA_MODE_CAMERA_ENTITY:
+            Menu::getInstance()->setIsOptionChecked(MenuOption::CameraEntityMode, true);
             break;
         default:
             break;

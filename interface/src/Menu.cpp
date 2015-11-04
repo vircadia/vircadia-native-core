@@ -280,6 +280,9 @@ Menu::Menu() {
                                                                       MenuOption::IndependentMode, 0,
                                                                       false, qApp, SLOT(cameraMenuChanged())));
     cameraModeGroup->addAction(addCheckableActionToQMenuAndActionHash(cameraModeMenu,
+                                                                      MenuOption::CameraEntityMode, 0,
+                                                                      false, qApp, SLOT(cameraMenuChanged())));
+    cameraModeGroup->addAction(addCheckableActionToQMenuAndActionHash(cameraModeMenu,
                                                                       MenuOption::FullscreenMirror, 0, // QML Qt::Key_H,
                                                                       false, qApp, SLOT(cameraMenuChanged())));
 

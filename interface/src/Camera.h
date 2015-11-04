@@ -24,6 +24,7 @@ enum CameraMode
     CAMERA_MODE_FIRST_PERSON,
     CAMERA_MODE_MIRROR,
     CAMERA_MODE_INDEPENDENT,
+    CAMERA_MODE_CAMERA_ENTITY,
     NUM_CAMERA_MODES
 };
 
@@ -36,6 +37,7 @@ class Camera : public QObject {
     Q_PROPERTY(glm::vec3 position READ getPosition WRITE setPosition)
     Q_PROPERTY(glm::quat orientation READ getOrientation WRITE setOrientation)
     Q_PROPERTY(QString mode READ getModeString WRITE setModeString)
+    Q_PROPERTY(QUuid cameraEntity READ getCameraEntity WRITE setCameraEntity)
 public:
     Camera();
 
@@ -48,6 +50,8 @@ public:
     
     void loadViewFrustum(ViewFrustum& frustum) const;
     ViewFrustum toViewFrustum() const;
+
+    EntityItemPointer getCameraEntityPointer() const { return _cameraEntity; }
 
 public slots:
     QString getModeString() const;
@@ -67,6 +71,9 @@ public slots:
 
     const glm::mat4& getProjection() const { return _projection; }
     void setProjection(const glm::mat4& projection);
+
+    QUuid getCameraEntity() const;
+    void setCameraEntity(QUuid cameraEntityID);
 
     PickRay computePickRay(float x, float y);
 
@@ -97,6 +104,7 @@ private:
     glm::quat _rotation;
     bool _isKeepLookingAt{ false };
     glm::vec3 _lookingAt;
+    EntityItemPointer _cameraEntity;
 };
 
 #endif // hifi_Camera_h

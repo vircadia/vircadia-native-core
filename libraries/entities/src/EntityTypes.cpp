@@ -29,6 +29,7 @@
 #include "LineEntityItem.h"
 #include "PolyVoxEntityItem.h"
 #include "PolyLineEntityItem.h"
+#include "CameraEntityItem.h"
 
 QMap<EntityTypes::EntityType, QString> EntityTypes::_typeToNameMap;
 QMap<QString, EntityTypes::EntityType> EntityTypes::_nameToTypeMap;
@@ -48,7 +49,8 @@ REGISTER_ENTITY_TYPE(ParticleEffect)
 REGISTER_ENTITY_TYPE(Zone)
 REGISTER_ENTITY_TYPE(Line)
 REGISTER_ENTITY_TYPE(PolyVox)
-REGISTER_ENTITY_TYPE(PolyLine);
+REGISTER_ENTITY_TYPE(PolyLine)
+REGISTER_ENTITY_TYPE(Camera);
 
 const QString& EntityTypes::getEntityTypeName(EntityType entityType) {
     QMap<EntityType, QString>::iterator matchedTypeName = _typeToNameMap.find(entityType);
