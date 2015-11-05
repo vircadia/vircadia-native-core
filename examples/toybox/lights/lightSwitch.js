@@ -15,35 +15,35 @@
 
 /*global  LightSwitch */
 
-(function () {
+(function() {
     var _this;
     var utilitiesScript = Script.resolvePath("../../libraries/utils.js");
     Script.include(utilitiesScript);
-    LightSwitch = function () {
+    LightSwitch = function() {
         _this = this;
         this.switchSound = SoundCache.getSound("https://hifi-public.s3.amazonaws.com/sounds/Switches%20and%20sliders/lamp_switch_2.wav");
     };
 
     LightSwitch.prototype = {
 
-        clickReleaseOnEntity: function (entityID, mouseEvent) {
+        clickReleaseOnEntity: function(entityID, mouseEvent) {
             if (!mouseEvent.isLeftButton) {
                 return;
             }
             this.toggleLights();
         },
 
-        startNearTrigger: function () {
+        startNearTrigger: function() {
             this.toggleLights();
         },
 
-        toggleLights: function () {
+        toggleLights: function() {
             var lightData = getEntityCustomData(this.resetKey, this.entityID, {});
             var on = !lightData.on;
             var lightType = lightData.type;
 
             var lights = Entities.findEntities(this.position, 20);
-            lights.forEach(function (light) {
+            lights.forEach(function(light) {
                 var type = getEntityCustomData(_this.resetKey, light, {}).type;
                 if (type === lightType && JSON.stringify(light) !== JSON.stringify(_this.entityID)) {
                     Entities.editEntity(light, {
@@ -61,12 +61,15 @@
             setEntityCustomData(this.resetKey, this.entityID, {
                 on: on,
                 type: lightType,
-                resetMe: true,
-                grabbableKey: {wantsTrigger:true}
+                resetMe: true
+            });
+
+            setEntityCustomData('grabbableKey', this.entityID, {
+                wantsTrigger: true
             });
         },
 
-        flipSwitch: function () {
+        flipSwitch: function() {
             var rotation = Entities.getEntityProperties(this.entityID, "rotation").rotation;
             var axis = {
                 x: 0,
@@ -80,7 +83,7 @@
                 rotation: rotation
             });
         },
-        preload: function (entityID) {
+        preload: function(entityID) {
             this.entityID = entityID;
             this.resetKey = "resetMe";
             //The light switch is static, so just cache its position once
