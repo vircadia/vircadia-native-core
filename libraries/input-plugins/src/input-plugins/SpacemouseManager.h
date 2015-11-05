@@ -11,8 +11,6 @@
 #ifndef hifi_SpacemouseManager_h
 #define hifi_SpacemouseManager_h
 
-#define HAVE_3DCONNEXIONCLIENT
-
 #include <QObject>
 #include <QLibrary>
 #include <controllers/UserInputMapper.h>
