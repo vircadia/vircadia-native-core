@@ -25,7 +25,7 @@ class SpacemouseManager : public QObject {
 public:
     static SpacemouseManager& getInstance();
     void ManagerFocusOutEvent();
-    void init() {};
+    void init();
     void destroy() {};
     bool Is3dmouseAttached() { return false; };
     public slots:
