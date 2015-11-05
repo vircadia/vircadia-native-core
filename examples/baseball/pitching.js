@@ -490,6 +490,8 @@ Baseball.prototype = {
                 var yaw = Math.atan2(myVelocity.x, myVelocity.z) * 180 / Math.PI;
                 var foul = yaw > -135 && yaw < 135;
 
+                var speedMultiplier = 2;
+
                 if (foul && myVelocity.z > 0) {
                     var xzDist = Math.sqrt(myVelocity.x * myVelocity.x + myVelocity.z * myVelocity.z);
                     var pitch = Math.atan2(myVelocity.y, xzDist) * 180 / Math.PI;
@@ -497,13 +499,16 @@ Baseball.prototype = {
                     if (Math.abs(pitch) < 15) {
                         print("Reversing hit");
                         myVelocity.z *= -1;
+                        myVelocity.y *= -1;
+                        Vec3.length(myVelocity);
                         foul = false;
+                        speedMultiplier = 10;
                     }
                 }
 
                 // Update ball velocity
                 Entities.editEntity(self.entityID, {
-                    velocity: Vec3.multiply(2, myVelocity),
+                    velocity: Vec3.multiply(speedMultiplier, myVelocity),
                 });
 
                 // Setup line update interval
