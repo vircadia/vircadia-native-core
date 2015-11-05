@@ -74,6 +74,9 @@ var drawingSurface = Entities.addEntity({
     userData: JSON.stringify({
         color: {
             currentColor: colors[0]
+        },
+        "grabbableKey": {
+            wantsTrigger:true
         }
     })
 

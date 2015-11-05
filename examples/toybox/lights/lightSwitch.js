@@ -33,7 +33,7 @@
             this.toggleLights();
         },
 
-        startNearGrabNonColliding: function () {
+        startNearTrigger: function () {
             this.toggleLights();
         },
 
@@ -61,7 +61,8 @@
             setEntityCustomData(this.resetKey, this.entityID, {
                 on: on,
                 type: lightType,
-                resetMe: true
+                resetMe: true,
+                grabbableKey: {wantsTrigger:true}
             });
         },
 
