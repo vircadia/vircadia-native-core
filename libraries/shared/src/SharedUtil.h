@@ -28,24 +28,27 @@
 // in the QApplication by name we can implement the singleton pattern and 
 // have the single instance function across DLL boundaries.  
 template <typename T, typename ...Args>
-T& globalInstace(const char* propertyName, Args&&... args) {
-    static T *instance { nullptr };
+T* globalInstace(const char* propertyName, Args&&... args) {
+    static std::shared_ptr<T> instancePtr;
+    static T *resultInstance { nullptr };
     static std::mutex mutex;
-    if (!instance) {
+    if (!resultInstance) {
         std::unique_lock<std::mutex> lock(mutex);
-        if (!instance) {
+        if (!resultInstance) {
             auto variant = qApp->property(propertyName);
             if (variant.isNull()) {
-                auto* typedInstance = new T(args...);
-                void* voidInstance = typedInstance;
+                // Since we're building the object, store it in a shared_ptr so it's 
+                // destroyed by the destructor of the static instancePtr
+                instancePtr = std::make_shared<T>(args...);
+                void* voidInstance = &(*instancePtr);
                 variant = QVariant::fromValue(voidInstance);
                 qApp->setProperty(propertyName, variant);
             }
             void* returnedVoidInstance = variant.value<void*>();
-            instance = static_cast<T*>(returnedVoidInstance);
+            resultInstance = static_cast<T*>(returnedVoidInstance);
         }
     }
-    return *instance;
+    return resultInstance;
 }
 
 const int BYTES_PER_COLOR = 3;
