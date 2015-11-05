@@ -15,7 +15,7 @@
         },
         { "from": "Standard.RX", "to": "Actions.Yaw" },
         { "from": "Standard.RY", "when": "!Application.InHMD", "to": "Actions.Pitch" }, 
-
+        { "from": "Standard.RY", "when": "Application.InHMD", "filters": "invert", "to": "Actions.TranslateY" }, 
 
         { "from": [ "Standard.DU", "Standard.DL", "Standard.DR", "Standard.DD" ], "to": "Standard.LeftPrimaryThumb" },
         { "from": "Standard.Back", "to": "Standard.LeftSecondaryThumb" },
@@ -33,5 +33,8 @@
         { "from": "Standard.RightHand", "to": "Actions.RightHand" }
     ]
 }
+
+
+
 
 
