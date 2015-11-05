@@ -94,7 +94,7 @@ public slots:
     /// engine. If the entity does not have an entity script or the method does not exist, this call will have
     /// no effect.
     Q_INVOKABLE void callEntityMethod(QUuid entityID, const QString& method);
-
+    Q_INVOKABLE void callEntityMethod(QUuid entityID, const QString& method, const QStringList& params);
     /// finds the closest model to the center point, within the radius
     /// will return a EntityItemID.isKnownID = false if no models are in the radius
     /// this function will not find any models in script engine contexts which don't have access to models
