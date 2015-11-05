@@ -170,7 +170,7 @@
         },
 
         collisionWithEntity: function(me, otherEntity, collision) {
-
+print('ARROW HAD COLLISION')
             if (this.stickOnCollision === true) {
                 Vec3.print('penetration = ', collision.penetration);
                 Vec3.print('collision contact point = ', collision.contactPoint);

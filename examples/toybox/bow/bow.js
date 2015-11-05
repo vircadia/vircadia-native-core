@@ -368,6 +368,7 @@
             }
 
             this.triggerValue = Controller.getActionValue(this.stringTriggerAction);
+          //  print('TRIGGER VALUE:::' + this.triggerValue)
 
             if (this.triggerValue < DRAW_STRING_THRESHOLD && this.stringDrawn === true) {
 
@@ -379,11 +380,11 @@
                     // this.releaseArrow();
 
             } else if (this.triggerValue >= DRAW_STRING_THRESHOLD && this.stringDrawn === true) {
-                print('HIT CONTINUE LOOP IN CHECK')
+              //  print('HIT CONTINUE LOOP IN CHECK')
                     //continuing to aim the arrow
                 this.stringData.handPosition = this.getStringHandPosition();
                 this.stringData.handRotation = this.getStringHandRotation();
-                this.initialHand === 'right' ? this.stringData.grabHandPosition = Controller.getSpatialControlPosition(RIGHT_TIP) : this.stringData.grabHandPosition = Controller.getSpatialControlPosition(LEFT_TIP);
+                this.stringData.grabHandPosition = this.getGrabHandPosition();
                 this.stringData.grabHandRotation = this.getGrabHandRotation();
                 this.drawStrings();
                 this.updateArrowPositionInNotch();
@@ -395,7 +396,8 @@
                 this.createStrings();
                 this.stringData.handPosition = this.getStringHandPosition();
                 this.stringData.handRotation = this.getStringHandRotation();
-                this.initialHand === 'right' ? this.stringData.grabHandPosition = Controller.getSpatialControlPosition(RIGHT_TIP) : this.stringData.grabHandPosition = Controller.getSpatialControlPosition(LEFT_TIP);
+                this.stringData.grabHandPosition = this.getGrabHandPosition();
+
                 this.stringData.grabHandRotation = this.getGrabHandRotation();
 
                 this.drawStrings();
@@ -436,33 +438,36 @@
 
 
         updateArrowPositionInNotch: function() {
-
             //move it backwards
             var handToNotch = Vec3.subtract(this.stringData.handPosition, this.notchDetectorPosition);
-            var pullBackDistance = Vec3.length(handToNotch);
+            // var pullBackDistance = Vec3.length(handToNotch);
 
-            if (pullBackDistance >= 0.6) {
-                pullBackDistance = 0.6;
-            }
+            // if (pullBackDistance >= 0.6) {
+            //     pullBackDistance = 0.6;
+            // }
 
-            var pullBackOffset = Vec3.multiply(handToNotch, pullBackDistance);
-            var arrowPosition = Vec3.sum(this.notchDetectorPosition, pullBackOffset);
+            // var pullBackOffset = Vec3.multiply(handToNotch, pullBackDistance);
+            // var arrowPosition = Vec3.sum(this.notchDetectorPosition, pullBackOffset);
 
-            var pushForwardOffset = Vec3.multiply(handToNotch, ARROW_OFFSET);
-            var finalArrowPosition = Vec3.sum(arrowPosition, pushForwardOffset);
+            // var pushForwardOffset = Vec3.multiply(handToNotch, ARROW_OFFSET);
+            // var finalArrowPosition = Vec3.sum(arrowPosition, pushForwardOffset);
 
             var arrowRotation = this.orientationOf(handToNotch);
-
+            print('ARROW ROTATION:: ' + JSON.stringify(arrowRotation));
             Entities.editEntity(this.arrow, {
-                position: finalArrowPosition,
+                position: this.notchDetectorPosition,
                 rotation: arrowRotation
             })
 
-            if (this.arrowIsBurning === true) {
-                Entities.editEntity(this.fire, {
-                    position: arrowTipPosition
-                });
-            }
+            var currentRotation = Entities.getEntityProperties(this.arrow,"rotation").rotation
+            print('ACTUAL ARROW ROTATION::' +JSON.stringify(currentRotation));
+
+            print('DIFFERENCE::: '+(1-Quat.dot(arrowRotation,currentRotation)));
+            // if (this.arrowIsBurning === true) {
+            //     Entities.editEntity(this.fire, {
+            //         position: arrowTipPosition
+            //     });
+            // }
 
         },
 
