@@ -895,9 +895,9 @@ function MyController(hand) {
 
         // the action will tend to quickly bring an object's velocity to zero.  now that
         // the action is gone, set the objects velocity to something the holder might expect.
-        Entities.editEntity(this.grabbedEntity, {
-            velocity: this.grabbedVelocity
-        });
+        // Entities.editEntity(this.grabbedEntity, {
+        //     velocity: this.grabbedVelocity
+        // });
 
         this.grabbedVelocity = ZERO_VEC;
         this.grabbedEntity = null;
