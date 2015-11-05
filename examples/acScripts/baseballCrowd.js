@@ -17,8 +17,8 @@ var extras = [
   SoundCache.getSound("atp:44a83a788ccfd2924e35c902c34808b24dbd0309d000299ce01a355f91cf8115.wav") // clapping
 ];
 
-var CHATTER_VOLUME = 0.10
-var EXTRA_VOLUME = 0.15
+var CHATTER_VOLUME = 0.20
+var EXTRA_VOLUME = 0.25
 
 function playChatter() {
     if (chatter.downloaded && !chatter.isPlaying) {

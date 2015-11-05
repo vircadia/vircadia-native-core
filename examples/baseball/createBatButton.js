@@ -19,6 +19,9 @@
     this.startNearGrabNonColliding = function() {
         this.dropBats();
     };
+    this.startFarGrabNonColliding = function() {
+      this.dropBats();
+    };
     this.dropBats = function() {
       // if the bat box is near us, grab it's position
       var nearby = Entities.findEntities(this.position, 20);
