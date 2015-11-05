@@ -357,20 +357,91 @@ void AnimTests::testExpressionTokenizer() {
 }
 
 void AnimTests::testExpressionParser() {
-    QString str = "(!x)";
-    AnimExpression e(str);
+
+    auto vars = AnimVariantMap();
+    vars.set("f", false);
+    vars.set("t", true);
+    vars.set("ten", (int)10);
+    vars.set("twenty", (int)20);
+    vars.set("five", (float)5.0f);
+    vars.set("forty", (float)40.0f);
+
+    AnimExpression e("(!f)");
     QVERIFY(e._opCodes.size() == 2);
     if (e._opCodes.size() == 2) {
         QVERIFY(e._opCodes[0].type == AnimExpression::OpCode::Identifier);
-        QVERIFY(e._opCodes[0].strVal == "x");
+        QVERIFY(e._opCodes[0].strVal == "f");
         QVERIFY(e._opCodes[1].type == AnimExpression::OpCode::Not);
+
+        auto opCode = e.evaluate(vars);
+        QVERIFY(opCode.type == AnimExpression::OpCode::Bool);
+        QVERIFY((opCode.intVal != 0) == true);
     }
 
-    auto vars = AnimVariantMap();
-    vars.set("x", false);
+    e = AnimExpression("!!f");
+    QVERIFY(e._opCodes.size() == 3);
+    if (e._opCodes.size() == 3) {
+        QVERIFY(e._opCodes[0].type == AnimExpression::OpCode::Identifier);
+        QVERIFY(e._opCodes[0].strVal == "f");
+        QVERIFY(e._opCodes[1].type == AnimExpression::OpCode::Not);
+        QVERIFY(e._opCodes[2].type == AnimExpression::OpCode::Not);
 
-    auto opCode = e.evaluate(vars);
-    QVERIFY(opCode.type == AnimExpression::OpCode::Bool);
-    QVERIFY(opCode.coerceBool(vars) == true);
+        auto opCode = e.evaluate(vars);
+        QVERIFY(opCode.type == AnimExpression::OpCode::Bool);
+        QVERIFY((opCode.intVal != 0) == false);
+    }
+
+    e = AnimExpression("!!(!f)");
+    QVERIFY(e._opCodes.size() == 4);
+    if (e._opCodes.size() == 4) {
+        QVERIFY(e._opCodes[0].type == AnimExpression::OpCode::Identifier);
+        QVERIFY(e._opCodes[0].strVal == "f");
+        QVERIFY(e._opCodes[1].type == AnimExpression::OpCode::Not);
+        QVERIFY(e._opCodes[2].type == AnimExpression::OpCode::Not);
+        QVERIFY(e._opCodes[3].type == AnimExpression::OpCode::Not);
+
+        auto opCode = e.evaluate(vars);
+        QVERIFY(opCode.type == AnimExpression::OpCode::Bool);
+        QVERIFY((opCode.intVal != 0) == true);
+    }
+/*
+    e = AnimExpression("f || !f");
+    QVERIFY(e._opCodes.size() == 4);
+    if (e._opCodes.size() == 4) {
+        QVERIFY(e._opCodes[0].type == AnimExpression::OpCode::Identifier);
+        QVERIFY(e._opCodes[0].strVal == "f");
+        QVERIFY(e._opCodes[1].type == AnimExpression::OpCode::Identifier);
+        QVERIFY(e._opCodes[1].strVal == "f");
+        QVERIFY(e._opCodes[2].type == AnimExpression::OpCode::Not);
+        QVERIFY(e._opCodes[3].type == AnimExpression::OpCode::Or);
+
+        auto opCode = e.evaluate(vars);
+        QVERIFY(opCode.type == AnimExpression::OpCode::Bool);
+        QVERIFY((opCode.intVal != 0) == true);
+    }
+*/
+    e = AnimExpression("-10");
+    QVERIFY(e._opCodes.size() == 2);
+    if (e._opCodes.size() == 1) {
+        QVERIFY(e._opCodes[0].type == AnimExpression::OpCode::Int);
+        QVERIFY(e._opCodes[0].intVal == 10);
+        QVERIFY(e._opCodes[1].type == AnimExpression::OpCode::Minus);
+
+        auto opCode = e.evaluate(vars);
+        QVERIFY(opCode.type == AnimExpression::OpCode::Int);
+        QVERIFY(opCode.intVal == 10);
+    }
+
+    e = AnimExpression("-ten");
+    QVERIFY(e._opCodes.size() == 2);
+    if (e._opCodes.size() == 1) {
+        QVERIFY(e._opCodes[0].type == AnimExpression::OpCode::Identifier);
+        QVERIFY(e._opCodes[0].strVal == "ten");
+        QVERIFY(e._opCodes[1].type == AnimExpression::OpCode::Minus);
+
+        auto opCode = e.evaluate(vars);
+        QVERIFY(opCode.type == AnimExpression::OpCode::Int);
+        QVERIFY(opCode.intVal == 10);
+    }
 }
 

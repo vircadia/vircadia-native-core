@@ -71,15 +71,12 @@ protected:
             LessThanEqual,
             Equal,
             NotEqual,
-            LeftParen,
-            RightParen,
             Not,
-            Minus,
-            Plus,
+            Subtract,
+            Add,
             Multiply,
             Modulus,
-            UnaryPlus,
-            UnaryMinus
+            Minus
         };
         OpCode(Type type) : type {type} {}
         OpCode(const QStringRef& strRef) : type {Type::Identifier}, strVal {strRef.toString()} {}
@@ -118,12 +115,24 @@ protected:
     bool parseUnaryExpression(const QString& str, QString::const_iterator& iter);
 
     OpCode evaluate(const AnimVariantMap& map) const;
+    void evalAnd(const AnimVariantMap& map, std::stack<OpCode>& stack) const;
+    void evalOr(const AnimVariantMap& map, std::stack<OpCode>& stack) const;
+    void evalGreaterThan(const AnimVariantMap& map, std::stack<OpCode>& stack) const;
+    void evalGreaterThanEqual(const AnimVariantMap& map, std::stack<OpCode>& stack) const;
+    void evalLessThan(const AnimVariantMap& map, std::stack<OpCode>& stack) const;
+    void evalLessThanEqual(const AnimVariantMap& map, std::stack<OpCode>& stack) const;
+    void evalEqual(const AnimVariantMap& map, std::stack<OpCode>& stack) const;
+    void evalNotEqual(const AnimVariantMap& map, std::stack<OpCode>& stack) const;
     void evalNot(const AnimVariantMap& map, std::stack<OpCode>& stack) const;
+    void evalSubtract(const AnimVariantMap& map, std::stack<OpCode>& stack) const;
+    void evalAdd(const AnimVariantMap& map, std::stack<OpCode>& stack) const;
+    void evalMultiply(const AnimVariantMap& map, std::stack<OpCode>& stack) const;
+    void evalModulus(const AnimVariantMap& map, std::stack<OpCode>& stack) const;
+    void evalMinus(const AnimVariantMap& map, std::stack<OpCode>& stack) const;
 
     QString _expression;
-    mutable std::stack<Token> _tokenStack;
+    mutable std::stack<Token> _tokenStack;    // TODO: remove, only needed during parsing
     std::vector<OpCode> _opCodes;
-
 };
 
 #endif

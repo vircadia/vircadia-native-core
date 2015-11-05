@@ -214,23 +214,27 @@ bool AnimExpression::parseExpression(const QString& str, QString::const_iterator
             return false;
         }
     } else {
-        qCCritical(animation) << "Error parsing expression, unexpected symbol";
-        return false;
+        unconsumeToken(token);
+        if (parseUnaryExpression(str, iter)) {
+            return true;
+        } else {
+            qCCritical(animation) << "Error parsing expression";
+            return false;
+        }
     }
 }
 
 bool AnimExpression::parseUnaryExpression(const QString& str, QString::const_iterator& iter) {
     auto token = consumeToken(str, iter);
-    if (token.type == Token::Plus) {
+    if (token.type == Token::Plus) { // unary plus is a no op.
         if (parseExpression(str, iter)) {
-            _opCodes.push_back(OpCode {OpCode::UnaryPlus});
             return true;
         } else {
             return false;
         }
     } else if (token.type == Token::Minus) {
         if (parseExpression(str, iter)) {
-            _opCodes.push_back(OpCode {OpCode::UnaryMinus});
+            _opCodes.push_back(OpCode {OpCode::Minus});
             return true;
         } else {
             return false;
@@ -255,21 +259,173 @@ AnimExpression::OpCode AnimExpression::evaluate(const AnimVariantMap& map) const
         case OpCode::Identifier:
         case OpCode::Int:
         case OpCode::Float:
+        case OpCode::Bool:
             stack.push(opCode);
             break;
-        default:
-            switch (opCode.type) {
-            case OpCode::Not:
-                evalNot(map, stack);
-                break;
-            }
+        case OpCode::And: evalAnd(map, stack); break;
+        case OpCode::Or: evalOr(map, stack); break;
+        case OpCode::GreaterThan: evalGreaterThan(map, stack); break;
+        case OpCode::GreaterThanEqual: evalGreaterThanEqual(map, stack); break;
+        case OpCode::LessThan: evalLessThan(map, stack); break;
+        case OpCode::LessThanEqual: evalLessThanEqual(map, stack); break;
+        case OpCode::Equal: evalEqual(map, stack); break;
+        case OpCode::NotEqual: evalNotEqual(map, stack); break;
+        case OpCode::Not: evalNot(map, stack); break;
+        case OpCode::Subtract: evalSubtract(map, stack); break;
+        case OpCode::Add: evalAdd(map, stack); break;
+        case OpCode::Multiply: evalMultiply(map, stack); break;
+        case OpCode::Modulus: evalModulus(map, stack); break;
+        case OpCode::Minus: evalMinus(map, stack); break;
         }
     }
     return stack.top();
 }
 
+#define POP_BOOL(NAME)                           \
+    const OpCode& NAME##_temp = stack.top();     \
+    bool NAME = NAME##_temp.coerceBool(map);     \
+    stack.pop()
+
+#define PUSH(EXPR)                              \
+    stack.push(OpCode {(EXPR)})
+
+void AnimExpression::evalAnd(const AnimVariantMap& map, std::stack<OpCode>& stack) const {
+    POP_BOOL(lhs);
+    POP_BOOL(rhs);
+    PUSH(lhs && rhs);
+}
+
+void AnimExpression::evalOr(const AnimVariantMap& map, std::stack<OpCode>& stack) const {
+    POP_BOOL(lhs);
+    POP_BOOL(rhs);
+    PUSH(lhs || rhs);
+}
+
+void AnimExpression::evalGreaterThan(const AnimVariantMap& map, std::stack<OpCode>& stack) const {
+    OpCode lhs = stack.top(); stack.pop();
+    OpCode rhs = stack.top(); stack.pop();
+
+    // TODO:
+    PUSH(false);
+}
+
+void AnimExpression::evalGreaterThanEqual(const AnimVariantMap& map, std::stack<OpCode>& stack) const {
+    OpCode lhs = stack.top(); stack.pop();
+    OpCode rhs = stack.top(); stack.pop();
+
+    // TODO:
+    PUSH(false);
+}
+
+void AnimExpression::evalLessThan(const AnimVariantMap& map, std::stack<OpCode>& stack) const {
+    OpCode lhs = stack.top(); stack.pop();
+    OpCode rhs = stack.top(); stack.pop();
+
+    // TODO:
+    PUSH(false);
+}
+
+void AnimExpression::evalLessThanEqual(const AnimVariantMap& map, std::stack<OpCode>& stack) const {
+    OpCode lhs = stack.top(); stack.pop();
+    OpCode rhs = stack.top(); stack.pop();
+
+    // TODO:
+    PUSH(false);
+}
+
+void AnimExpression::evalEqual(const AnimVariantMap& map, std::stack<OpCode>& stack) const {
+    OpCode lhs = stack.top(); stack.pop();
+    OpCode rhs = stack.top(); stack.pop();
+
+    // TODO:
+    PUSH(false);
+}
+
+void AnimExpression::evalNotEqual(const AnimVariantMap& map, std::stack<OpCode>& stack) const {
+    OpCode lhs = stack.top(); stack.pop();
+    OpCode rhs = stack.top(); stack.pop();
+
+    // TODO:
+    PUSH(false);
+}
+
 void AnimExpression::evalNot(const AnimVariantMap& map, std::stack<OpCode>& stack) const {
-    bool lhs = stack.top().coerceBool(map);
-    stack.pop();
-    stack.push(OpCode {!lhs});
+    POP_BOOL(rhs);
+    PUSH(!rhs);
+}
+
+void AnimExpression::evalSubtract(const AnimVariantMap& map, std::stack<OpCode>& stack) const {
+    OpCode lhs = stack.top(); stack.pop();
+    OpCode rhs = stack.top(); stack.pop();
+
+    // TODO:
+    PUSH(0.0f);
+}
+
+void AnimExpression::evalAdd(const AnimVariantMap& map, std::stack<OpCode>& stack) const {
+    OpCode lhs = stack.top(); stack.pop();
+    OpCode rhs = stack.top(); stack.pop();
+
+    // TODO:
+    PUSH(0.0f);
+}
+
+void AnimExpression::evalMultiply(const AnimVariantMap& map, std::stack<OpCode>& stack) const {
+    OpCode lhs = stack.top(); stack.pop();
+    OpCode rhs = stack.top(); stack.pop();
+
+    // TODO:
+    PUSH(0.0f);
+}
+
+void AnimExpression::evalModulus(const AnimVariantMap& map, std::stack<OpCode>& stack) const {
+    OpCode lhs = stack.top(); stack.pop();
+    OpCode rhs = stack.top(); stack.pop();
+
+    // TODO:
+    PUSH((int)0);
+}
+
+void AnimExpression::evalMinus(const AnimVariantMap& map, std::stack<OpCode>& stack) const {
+    OpCode rhs = stack.top(); stack.pop();
+
+    switch (rhs.type) {
+    case OpCode::Identifier: {
+        const AnimVariant& var = map.get(rhs.strVal);
+        switch (var.getType()) {
+        case AnimVariant::Type::Bool:
+            qCWarning(animation) << "AnimExpression: type missmatch for unary minus, expected a number not a bool";
+            // interpret this as boolean not.
+            PUSH(!var.getBool());
+            break;
+        case AnimVariant::Type::Int:
+            PUSH(-var.getInt());
+            break;
+        case AnimVariant::Type::Float:
+            PUSH(-var.getFloat());
+            break;
+        default:
+            // TODO: Vec3, Quat are unsupported
+            assert(false);
+            PUSH(false);
+            break;
+        }
+    }
+    case OpCode::Int:
+        PUSH(-rhs.intVal);
+        break;
+    case OpCode::Float:
+        PUSH(-rhs.floatVal);
+        break;
+    case OpCode::Bool:
+        qCWarning(animation) << "AnimExpression: type missmatch for unary minus, expected a number not a bool";
+        // interpret this as boolean not.
+        PUSH(!rhs.coerceBool(map));
+        break;
+    default:
+        qCCritical(animation) << "AnimExpression: ERRROR for unary minus, expected a number, type = " << rhs.type;
+        assert(false);
+        PUSH(false);
+        break;
+    }
 }

@@ -34,6 +34,8 @@ public:
         NumTypes
     };
 
+    static const AnimVariant FALSE;
+
     AnimVariant() : _type(Type::Bool) { memset(&_val, 0, sizeof(_val)); }
     AnimVariant(bool value) : _type(Type::Bool) { _val.boolVal = value; }
     AnimVariant(int value) : _type(Type::Int) { _val.intVal = value; }
@@ -185,6 +187,15 @@ public:
 
     void clearMap() { _map.clear(); }
     bool hasKey(const QString& key) const { return _map.find(key) != _map.end(); }
+
+    const AnimVariant& get(const QString& key) const {
+        auto iter = _map.find(key);
+        if (iter != _map.end()) {
+            return iter->second;
+        } else {
+            return AnimVariant::FALSE;
+        }
+    }
 
     // Answer a Plain Old Javascript Object (for the given engine) all of our values set as properties.
     QScriptValue animVariantMapToScriptValue(QScriptEngine* engine, const QStringList& names, bool useNames) const;
