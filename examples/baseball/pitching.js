@@ -74,9 +74,9 @@ var PITCHING_MACHINE_PROPERTIES = {
     name: "Pitching Machine",
     type: "Model",
     position: {
-        x: 0,
+        x: -0.93,
         y: 0.8,
-        z: -18.3,
+        z: -19.8,
     },
     velocity: {
         x: 0,
@@ -142,8 +142,8 @@ PitchingMachine.prototype = {
         print("Pitching ball");
         var pitchDirection = { x: 0, y: 0, z: 1 };
         var machineProperties = Entities.getEntityProperties(this.pitchingMachineID, ["dimensions", "position", "rotation"]);
-        print("PROPS");
-        print("props ", JSON.stringify(machineProperties));
+        //print("PROPS");
+        //print("props ", JSON.stringify(machineProperties));
         var pitchFromPositionBase = machineProperties.position;
         var pitchFromOffset = vec3Mult(machineProperties.dimensions, PITCHING_MACHINE_OUTPUT_OFFSET_PCT);
         pitchFromOffset = Vec3.multiplyQbyV(machineProperties.rotation, pitchFromOffset);
@@ -170,11 +170,10 @@ PitchingMachine.prototype = {
         print("Created baseball");
     },
     start: function() {
-        print("Starting Pitching Machine");
         if (this.enabled) {
-            print("Already enabled")
             return;
         }
+        print("Starting Pitching Machine");
         this.enabled = true;
         this.pitchBall();
     },
@@ -390,6 +389,8 @@ function Baseball(position, velocity, ballScale) {
     this.timeSinceHit = 0;
     this.hitBallAtPosition = null;
     this.distanceTravelled = 0;
+    this.wasHighScore = false;
+    this.landed = false;
 
     // Listen for collision for the lifetime of the entity
     Script.addEventHandler(this.entityID, "collisionWithEntity", function(entityA, entityB, collision) {
@@ -422,15 +423,17 @@ function updateBillboard(distance) {
     if (!isNaN(distance)) {
         var properties = Entities.getEntityProperties(HIGH_SCORE_BILLBOARD_ENTITY_ID, ["text"]);
         var bestDistance = parseInt(properties.text);
-        if (distance > bestDistance) {
+        if (distance >= bestDistance) {
             Entities.editEntity(HIGH_SCORE_BILLBOARD_ENTITY_ID, {
                 text: distance,
             });
+            return true;
         }
     }
+    return false;
 }
 
-var FIREWORK_SHOW_DISTANCE_FEET = 200;
+var FIREWORK_SHOW_DISTANCE_FEET = 2;
 
 Baseball.prototype = {
     finished: function() {
@@ -445,8 +448,9 @@ Baseball.prototype = {
             var myProperties = Entities.getEntityProperties(this.entityID, ['position', 'velocity']);
             var speed = Vec3.length(myProperties.velocity);
             this.distanceTravelled = Vec3.distance(this.hitBallAtPosition, myProperties.position) * METERS_TO_FEET;
-            updateBillboard(Math.ceil(this.distanceTravelled));
-            if (this.timeSinceHit > 10 || speed < 1) {
+            var wasHighScore = updateBillboard(Math.ceil(this.distanceTravelled));
+            if (this.landed || this.timeSinceHit > 10 || speed < 1) {
+                this.wasHighScore = wasHighScore;
                 this.ballLanded();
             }
         } else if (this.state == BASEBALL_STATE.PITCHING) {
@@ -460,7 +464,9 @@ Baseball.prototype = {
         this.state = BASEBALL_STATE.HIT_LANDED;
         if (this.distanceTravelled > FIREWORK_SHOW_DISTANCE_FEET) {
             print("PLAYING SHOW")
-            playFireworkShow(50, 10000);
+            var numberOfFireworks = Math.floor(this.distanceTravelled / 200);
+            numberOfFireworks = Math.min(10, numberOfFireworks);
+            playFireworkShow(numberOfFireworks, 2000);
         }
         print("Ball took " + this.timeSinceHit.toFixed(3) + " seconds to land");
         print("Ball travelled " + this.distanceTravelled + " feet")
@@ -484,6 +490,8 @@ Baseball.prototype = {
                 var yaw = Math.atan2(myVelocity.x, myVelocity.z) * 180 / Math.PI;
                 var foul = yaw > -135 && yaw < 135;
 
+                var speedMultiplier = 2;
+
                 if (foul && myVelocity.z > 0) {
                     var xzDist = Math.sqrt(myVelocity.x * myVelocity.x + myVelocity.z * myVelocity.z);
                     var pitch = Math.atan2(myVelocity.y, xzDist) * 180 / Math.PI;
@@ -491,13 +499,16 @@ Baseball.prototype = {
                     if (Math.abs(pitch) < 15) {
                         print("Reversing hit");
                         myVelocity.z *= -1;
+                        myVelocity.y *= -1;
+                        Vec3.length(myVelocity);
                         foul = false;
+                        speedMultiplier = 10;
                     }
                 }
 
                 // Update ball velocity
                 Entities.editEntity(self.entityID, {
-                    velocity: Vec3.multiply(2, myVelocity),
+                    velocity: Vec3.multiply(speedMultiplier, myVelocity),
                 });
 
                 // Setup line update interval
@@ -531,11 +542,9 @@ Baseball.prototype = {
                 }
             }
         } else if (name == "stadium") {
-            print("PARTICLES");
-            entityCollisionWithGround(entityB, this.entityID, collision);
-            if (this.state == BASEBALL_STATE.HIT) {
-                this.ballLanded();
-            }
+            //iprint("PARTICLES");
+            //entityCollisionWithGround(entityB, this.entityID, collision);
+            this.landed = true;
         } else if (name == "backstop") {
             if (this.state == BASEBALL_STATE.PITCHING) {
                 this.state = BASEBALL_STATE.STRIKE;
