@@ -87,12 +87,24 @@ var light = Entities.addEntity({
     type: 'Light',
     name: 'whiteboard light',
     position: lightPosition,
-    dimensions: {x: 10, y: 10, z: 10},
+    dimensions: {
+        x: 10,
+        y: 10,
+        z: 10
+    },
     intensity: 2,
-    color: {red: 255, green: 255, blue: 255}
+    color: {
+        red: 255,
+        green: 255,
+        blue: 255
+    }
 });
 
-var eraserPosition = Vec3.sum(center, {x: 0, y: 2.05, z: 0 });
+var eraserPosition = Vec3.sum(center, {
+    x: 0,
+    y: 2.05,
+    z: 0
+});
 eraserPosition = Vec3.sum(eraserPosition, Vec3.multiply(-0.1, rotation));
 scriptURL = Script.resolvePath("eraseBoardEntityScript.js");
 var eraser = Entities.addEntity({
@@ -103,7 +115,10 @@ var eraser = Entities.addEntity({
     script: scriptURL,
     rotation: rotation,
     userData: JSON.stringify({
-        whiteboard: drawingSurface
+        whiteboard: drawingSurface,
+        grabbableKey: {
+            wantsTrigger: true
+        }
     })
 });
 
@@ -115,20 +130,32 @@ Script.setTimeout(function() {
 
 
 function setUp() {
-    var blockerPosition = Vec3.sum(center, {x: 0, y: -1, z: 0 });
+    var blockerPosition = Vec3.sum(center, {
+        x: 0,
+        y: -1,
+        z: 0
+    });
     blockerPosition = Vec3.sum(blockerPosition, Vec3.multiply(-1, Quat.getFront(rotation)));
     blocker = Entities.addEntity({
         type: "Box",
         rotation: rotation,
         position: blockerPosition,
-        dimensions: {x: whiteboardDimensions.x, y: 1, z: 0.1},
+        dimensions: {
+            x: whiteboardDimensions.x,
+            y: 1,
+            z: 0.1
+        },
         shapeType: "box",
         visible: false
     });
 
     var eraseModelDimensions = Entities.getEntityProperties(eraser, "naturalDimensions").naturalDimensions;
-    Entities.editEntity(eraser, {dimensions: eraseModelDimensions});
-    Entities.editEntity(colorIndicatorBorder, {dimensions: colorIndicatorBorderDimensions});
+    Entities.editEntity(eraser, {
+        dimensions: eraseModelDimensions
+    });
+    Entities.editEntity(colorIndicatorBorder, {
+        dimensions: colorIndicatorBorderDimensions
+    });
 
     scriptURL = Script.resolvePath("colorIndicatorEntityScript.js");
     var colorIndicatorPosition = Vec3.sum(center, {
@@ -193,7 +220,9 @@ function setUp() {
             userData: JSON.stringify({
                 whiteboard: drawingSurface,
                 colorIndicator: colorIndicatorBox,
-                grabbableKey: {wantsTrigger: true}
+                grabbableKey: {
+                    wantsTrigger: true
+                }
             })
         });
         colorBoxes.push(colorBox);
