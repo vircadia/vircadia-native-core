@@ -39,7 +39,7 @@
 
         },
 
-        startNearGrabNonColliding: function() {
+        startNearTrigger: function() {
             this.triggerReset();
         },
 
