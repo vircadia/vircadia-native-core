@@ -75,8 +75,8 @@ var drawingSurface = Entities.addEntity({
         color: {
             currentColor: colors[0]
         },
-        "grabbableKey": {
-            wantsTrigger:true
+        grabbableKey: {
+            wantsTrigger: true
         }
     })
 
@@ -156,7 +156,10 @@ function setUp() {
             color: {
                 currentColor: colors[0]
             },
-            colorIndicator: colorIndicatorBox
+            colorIndicator: colorIndicatorBox,
+            grabbableKey: {
+                wantsTrigger: true
+            }
         })
     });
 
@@ -189,7 +192,8 @@ function setUp() {
             script: scriptURL,
             userData: JSON.stringify({
                 whiteboard: drawingSurface,
-                colorIndicator: colorIndicatorBox
+                colorIndicator: colorIndicatorBox,
+                grabbableKey: {wantsTrigger: true}
             })
         });
         colorBoxes.push(colorBox);
