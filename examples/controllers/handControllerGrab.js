@@ -190,12 +190,11 @@ function MyController(hand) {
 
     this.actionID = null; // action this script created...
     this.grabbedEntity = null; // on this entity.
-    this.grabbedVelocity = ZERO_VEC; // rolling average of held object's velocity
     this.state = STATE_OFF;
     this.pointer = null; // entity-id of line object
     this.triggerValue = 0; // rolling average of trigger value
     this.rawTriggerValue = 0;
-    
+
     this.offsetPosition = { x: 0.0, y: 0.0, z: 0.0 };
     this.offsetRotation = { x: 0.0, y: 0.0, z: 0.0, w: 1.0 };
 
@@ -463,6 +462,14 @@ function MyController(hand) {
                 continue;
             }
 
+            if (propsForCandidate.type == 'ParticleEffect') {
+                continue;
+            }
+
+            if (propsForCandidate.type == 'Zone') {
+                continue;
+            }
+
             if (propsForCandidate.locked && !grabbableDataForCandidate.wantsTrigger) {
                 continue;
             }
@@ -598,7 +605,6 @@ function MyController(hand) {
         var deltaPosition = Vec3.subtract(newObjectPosition, this.currentObjectPosition); // meters
         var now = Date.now();
         var deltaTime = (now - this.currentObjectTime) / MSEC_PER_SEC; // convert to seconds
-        this.computeReleaseVelocity(deltaPosition, deltaTime, false);
 
         this.currentObjectPosition = newObjectPosition;
         this.currentObjectTime = now;
@@ -719,7 +725,6 @@ function MyController(hand) {
 
         var deltaPosition = Vec3.subtract(handControllerPosition, this.currentHandControllerTipPosition); // meters
         var deltaTime = (now - this.currentObjectTime) / MSEC_PER_SEC; // convert to seconds
-        this.computeReleaseVelocity(deltaPosition, deltaTime, true);
 
         this.currentHandControllerTipPosition = handControllerPosition;
         this.currentObjectTime = now;
@@ -887,23 +892,6 @@ function MyController(hand) {
         Entities.callEntityMethod(entityID, "stopTouch");
     };
 
-    this.computeReleaseVelocity = function(deltaPosition, deltaTime, useMultiplier) {
-        if (deltaTime > 0.0 && !vec3equal(deltaPosition, ZERO_VEC)) {
-            var grabbedVelocity = Vec3.multiply(deltaPosition, 1.0 / deltaTime);
-            // don't update grabbedVelocity if the trigger is off.  the smoothing of the trigger
-            // value would otherwise give the held object time to slow down.
-            if (this.triggerSqueezed()) {
-                this.grabbedVelocity =
-                    Vec3.sum(Vec3.multiply(this.grabbedVelocity, (1.0 - NEAR_GRABBING_VELOCITY_SMOOTH_RATIO)),
-                        Vec3.multiply(grabbedVelocity, NEAR_GRABBING_VELOCITY_SMOOTH_RATIO));
-            }
-
-            if (useMultiplier) {
-                this.grabbedVelocity = Vec3.multiply(this.grabbedVelocity, RELEASE_VELOCITY_MULTIPLIER);
-            }
-        }
-    };
-
     this.release = function() {
 
         if (this.hand !== disabledHand) {
@@ -921,13 +909,6 @@ function MyController(hand) {
 
         this.deactivateEntity(this.grabbedEntity);
 
-        // the action will tend to quickly bring an object's velocity to zero.  now that
-        // the action is gone, set the objects velocity to something the holder might expect.
-        Entities.editEntity(this.grabbedEntity, {
-            velocity: this.grabbedVelocity
-        });
-
-        this.grabbedVelocity = ZERO_VEC;
         this.grabbedEntity = null;
         this.actionID = null;
         this.setState(STATE_OFF);
