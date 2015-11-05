@@ -14,6 +14,9 @@
 #include <QString>
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
+#include <stack>
+#include <vector>
+#include "AnimVariant.h"
 
 class AnimExpression {
 public:
@@ -44,15 +47,64 @@ protected:
             Comma,
             Error
         };
-        Token(Type type) : type(type) {}
-        Token(const QStringRef& strRef) : type(Type::Identifier), strVal(strRef.toString()) {}
-        Token(int val) : type(Type::Int), intVal(val) {}
-        Token(float val) : type(Type::Float), floatVal(val) {}
-        Type type = End;
+        Token(Type type) : type {type} {}
+        Token(const QStringRef& strRef) : type {Type::Identifier}, strVal {strRef.toString()} {}
+        Token(int val) : type {Type::Int}, intVal {val} {}
+        Token(float val) : type {Type::Float}, floatVal {val} {}
+        Type type {End};
         QString strVal;
-        int intVal;
-        float floatVal;
+        int intVal {0};
+        float floatVal {0.0f};
     };
+
+    struct OpCode {
+        enum Type {
+            Identifier,
+            Bool,
+            Int,
+            Float,
+            And,
+            Or,
+            GreaterThan,
+            GreaterThanEqual,
+            LessThan,
+            LessThanEqual,
+            Equal,
+            NotEqual,
+            LeftParen,
+            RightParen,
+            Not,
+            Minus,
+            Plus,
+            Multiply,
+            Modulus,
+            UnaryPlus,
+            UnaryMinus
+        };
+        OpCode(Type type) : type {type} {}
+        OpCode(const QStringRef& strRef) : type {Type::Identifier}, strVal {strRef.toString()} {}
+        OpCode(const QString& str) : type {Type::Identifier}, strVal {str} {}
+        OpCode(int val) : type {Type::Int}, intVal {val} {}
+        OpCode(bool val) : type {Type::Bool}, intVal {(int)val} {}
+        OpCode(float val) : type {Type::Float}, floatVal {val} {}
+
+        bool coerceBool(const AnimVariantMap& map) const {
+            if (type == Int || type == Bool) {
+                return intVal != 0;
+            } else if (type == Identifier) {
+                return map.lookup(strVal, false);
+            } else {
+                return true;
+            }
+        }
+
+        Type type {Int};
+        QString strVal;
+        int intVal {0};
+        float floatVal {0.0f};
+    };
+
+    void unconsumeToken(const Token& token);
     Token consumeToken(const QString& str, QString::const_iterator& iter) const;
     Token consumeIdentifier(const QString& str, QString::const_iterator& iter) const;
     Token consumeNumber(const QString& str, QString::const_iterator& iter) const;
@@ -62,9 +114,16 @@ protected:
     Token consumeLessThan(const QString& str, QString::const_iterator& iter) const;
     Token consumeNot(const QString& str, QString::const_iterator& iter) const;
 
-    bool parseExpression(const QString& str);
+    bool parseExpression(const QString& str, QString::const_iterator& iter);
+    bool parseUnaryExpression(const QString& str, QString::const_iterator& iter);
+
+    OpCode evaluate(const AnimVariantMap& map) const;
+    void evalNot(const AnimVariantMap& map, std::stack<OpCode>& stack) const;
 
     QString _expression;
+    mutable std::stack<Token> _tokenStack;
+    std::vector<OpCode> _opCodes;
+
 };
 
 #endif

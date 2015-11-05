@@ -80,6 +80,7 @@ public:
     static const vec3& RIGHT;
     static const vec3& UP;
     static const vec3& FRONT;
+    static const vec3 ZERO4;
 };
 
 // These pack/unpack functions are designed to start specific known types in as efficient a manner

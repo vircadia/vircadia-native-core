@@ -195,10 +195,7 @@ void AnimTests::testVariant() {
     auto floatVarNegative = AnimVariant(-1.0f);
     auto vec3Var = AnimVariant(glm::vec3(1.0f, -2.0f, 3.0f));
     auto quatVar = AnimVariant(glm::quat(1.0f, 2.0f, -3.0f, 4.0f));
-    auto mat4Var = AnimVariant(glm::mat4(glm::vec4(1.0f, 2.0f, 3.0f, 4.0f),
-                                         glm::vec4(5.0f, 6.0f, -7.0f, 8.0f),
-                                         glm::vec4(9.0f, 10.0f, 11.0f, 12.0f),
-                                         glm::vec4(13.0f, 14.0f, 15.0f, 16.0f)));
+
     QVERIFY(defaultVar.isBool());
     QVERIFY(defaultVar.getBool() == false);
 
@@ -233,12 +230,6 @@ void AnimTests::testVariant() {
     QVERIFY(q.x == 2.0f);
     QVERIFY(q.y == -3.0f);
     QVERIFY(q.z == 4.0f);
-
-    QVERIFY(mat4Var.isMat4());
-    auto m = mat4Var.getMat4();
-    QVERIFY(m[0].x == 1.0f);
-    QVERIFY(m[1].z == -7.0f);
-    QVERIFY(m[3].w == 16.0f);
 }
 
 void AnimTests::testAccumulateTime() {
@@ -323,10 +314,11 @@ void AnimTests::testAccumulateTimeWithParameters(float startFrame, float endFram
     QVERIFY(resultFrame == startFrame + 0.5f);
     QVERIFY(!triggers.empty() && triggers[0] == "testNodeOnLoop");
     triggers.clear();
+}
 
-void AnimTests::testTokenizer() {
+void AnimTests::testExpressionTokenizer() {
     QString str = "(10 +  x) >= 20.1 && (y != !z)";
-    AnimExpression e("");
+    AnimExpression e("x");
     auto iter = str.cbegin();
     AnimExpression::Token token = e.consumeToken(str, iter);
     QVERIFY(token.type == AnimExpression::Token::LeftParen);
@@ -362,5 +354,23 @@ void AnimTests::testTokenizer() {
     token = e.consumeToken(str, iter);
     QVERIFY(token.type == AnimExpression::Token::RightParen);
     token = e.consumeToken(str, iter);
+}
+
+void AnimTests::testExpressionParser() {
+    QString str = "(!x)";
+    AnimExpression e(str);
+    QVERIFY(e._opCodes.size() == 2);
+    if (e._opCodes.size() == 2) {
+        QVERIFY(e._opCodes[0].type == AnimExpression::OpCode::Identifier);
+        QVERIFY(e._opCodes[0].strVal == "x");
+        QVERIFY(e._opCodes[1].type == AnimExpression::OpCode::Not);
+    }
+
+    auto vars = AnimVariantMap();
+    vars.set("x", false);
+
+    auto opCode = e.evaluate(vars);
+    QVERIFY(opCode.type == AnimExpression::OpCode::Bool);
+    QVERIFY(opCode.coerceBool(vars) == true);
 }
 
