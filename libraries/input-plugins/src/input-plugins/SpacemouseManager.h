@@ -1,4 +1,4 @@
-//  3DConnexionClient.h
+//  SpacemouseManager.h
 //  interface/src/devices
 //
 //  Created by Marcel Verhagen on 09-06-15.
@@ -8,34 +8,36 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef hifi_3DConnexionClient_h
-#define hifi_3DConnexionClient_h
+#ifndef hifi_SpacemouseManager_h
+#define hifi_SpacemouseManager_h
 
-#if 0
 #include <QObject>
 #include <QLibrary>
 #include <controllers/UserInputMapper.h>
+#include <controllers/InputDevice.h>
+#include <controllers/StandardControls.h>
 
-#include "InterfaceLogging.h"
+#include "InputPlugin.h"
 
 #ifndef HAVE_3DCONNEXIONCLIENT
-class ConnexionClient : public QObject {
+class SpacemouseManager : public QObject {
     Q_OBJECT
 public:
-    static ConnexionClient& getInstance();
-    void init() {};
+    static SpacemouseManager& getInstance();
+    void ManagerFocusOutEvent();
+    void init();
     void destroy() {};
     bool Is3dmouseAttached() { return false; };
-public slots:
-    void toggleConnexion(bool shouldEnable) {};
+    public slots:
+    void toggleSpacemouse(bool shouldEnable) {};
 };
-#endif // NOT_HAVE_3DCONNEXIONCLIENT
+#endif
 
 #ifdef HAVE_3DCONNEXIONCLIENT
 // the windows connexion rawinput
 #ifdef Q_OS_WIN
 
-#include "I3dMouseParams.h"
+#include "../../../interface/external/3dconnexionclient/include/I3dMouseParams.h"
 #include <QAbstractNativeEventFilter>
 #include <QAbstractEventDispatcher>
 #include <Winsock2.h>
@@ -67,6 +69,8 @@ public:
     void SetPivotVisibility(PivotVisibility visibility);
 
     static bool Is3dmouseAttached();
+    
+    
 
 private:
     MouseParameters(const MouseParameters&);
@@ -82,17 +86,20 @@ private:
     Speed fSpeed;
 };
 
-class ConnexionClient : public QObject, public QAbstractNativeEventFilter {
+class SpacemouseManager : public QObject, public QAbstractNativeEventFilter {
+   
     Q_OBJECT
 public:
-    ConnexionClient() {};
+    SpacemouseManager() {};
 
-    static ConnexionClient& getInstance();
+    static SpacemouseManager& getInstance();
     void init();
     void destroy();
     bool Is3dmouseAttached();
-    
-    ConnexionClient* client;
+
+    SpacemouseManager* client;
+
+    void ManagerFocusOutEvent();
 
     I3dMouseParam& MouseParams();
     const I3dMouseParam& MouseParams() const;
@@ -104,11 +111,11 @@ public:
     virtual bool nativeEventFilter(const QByteArray& eventType, void* message, long* result) Q_DECL_OVERRIDE
     {
         MSG* msg = static_cast< MSG * >(message);
-        return RawInputEventFilter(message,  result);
+        return RawInputEventFilter(message, result);
     }
 
-public slots:
-    void toggleConnexion(bool shouldEnable);
+        public slots:
+    void toggleSpacemouse(bool shouldEnable);  
 
 signals:
     void Move3d(std::vector<float>& motionData);
@@ -157,31 +164,30 @@ private:
 #else
 
 #include <glm/glm.hpp>
-#include "ConnexionClientAPI.h"
+#include "../../../interface/external/3dconnexionclient/include/ConnexionClientAPI.h"
 
-class ConnexionClient : public QObject {
+class SpacemouseManager : public QObject {
     Q_OBJECT
 public:
-    static ConnexionClient& getInstance();
+    static SpacemouseManager& getInstance();
     void init();
     void destroy();
     bool Is3dmouseAttached();
-public slots:
-    void toggleConnexion(bool shouldEnable);
+    public slots:
+    void toggleSpacemouse(bool shouldEnable);
 };
 
 #endif // __APPLE__
 
-#endif // HAVE_3DCONNEXIONCLIENT
+#endif 
 
 
 // connnects to the userinputmapper
-class ConnexionData : public QObject, public controller::InputDevice {
+class SpacemouseDevice : public QObject, public controller::InputDevice {
     Q_OBJECT
 
 public:
-    static ConnexionData& getInstance();
-    ConnexionData();
+    SpacemouseDevice();
     enum PositionChannel {
         TRANSLATE_X,
         TRANSLATE_Y,
@@ -203,10 +209,14 @@ public:
     float getButton(int channel) const;
     float getAxis(int channel) const;
 
-    controller::Input makeInput(ConnexionData::PositionChannel axis);
-    controller::Input makeInput(ConnexionData::ButtonChannel button);
-    virtual void buildDeviceProxy(controller::DeviceProxy::Pointer proxy) override;
-    virtual QString getDefaultMappingConfig() override;
+    controller::Input makeInput(SpacemouseDevice::PositionChannel axis) const;
+    controller::Input makeInput(SpacemouseDevice::ButtonChannel button) const;
+
+    controller::Input::NamedPair makePair(SpacemouseDevice::PositionChannel axis, const QString& name) const;
+    controller::Input::NamedPair makePair(SpacemouseDevice::ButtonChannel button, const QString& name) const;
+
+    virtual controller::Input::NamedVector getAvailableInputs() const override;
+    virtual QString getDefaultMappingConfig() const override;
     virtual void update(float deltaTime, bool jointsCaptured) override;
     virtual void focusOutEvent() override;
 
@@ -218,6 +228,4 @@ public:
     void handleAxisEvent();
 };
 
-#endif
-
-#endif // defined(hifi_3DConnexionClient_h)
+#endif // defined(hifi_SpacemouseManager_h)
