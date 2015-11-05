@@ -215,6 +215,8 @@ public:
         _additiveBlending = additiveBlending;
     }
 
+    virtual bool supportsDetailedRayIntersection() const { return false; }
+
 protected:
 
     bool isAnimatingSomething() const;
