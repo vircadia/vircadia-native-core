@@ -113,10 +113,10 @@ var STATE_DISTANCE_HOLDING = 2;
 var STATE_CONTINUE_DISTANCE_HOLDING = 3;
 var STATE_NEAR_GRABBING = 4;
 var STATE_CONTINUE_NEAR_GRABBING = 5;
-var STATE_NEAR_GRABBING_NON_COLLIDING = 6;
-var STATE_CONTINUE_NEAR_GRABBING_NON_COLLIDING = 7;
-var STATE_FAR_GRABBING_NON_COLLIDING = 8;
-var STATE_CONTINUE_FAR_GRABBING_NON_COLLIDING = 9;
+var STATE_NEAR_TRIGGER = 6;
+var STATE_CONTINUE_NEAR_TRIGGER = 7;
+var STATE_FAR_TRIGGER = 8;
+var STATE_CONTINUE_FAR_TRIGGER = 9;
 var STATE_RELEASE = 10;
 
 
@@ -134,14 +134,14 @@ function stateToName(state) {
         return "near_grabbing";
     case STATE_CONTINUE_NEAR_GRABBING:
         return "continue_near_grabbing";
-    case STATE_NEAR_GRABBING_NON_COLLIDING:
-        return "near_grabbing_non_colliding";
-    case STATE_CONTINUE_NEAR_GRABBING_NON_COLLIDING:
-        return "continue_near_grabbing_non_colliding";
-    case STATE_FAR_GRABBING_NON_COLLIDING:
-        return "far_grabbing_non_colliding";
-    case STATE_CONTINUE_FAR_GRABBING_NON_COLLIDING:
-        return "continue_far_grabbing_non_colliding";
+    case STATE_NEAR_TRIGGER:
+        return "near_trigger";
+    case STATE_CONTINUE_NEAR_TRIGGER:
+        return "continue_near_trigger";
+    case STATE_FAR_TRIGGER:
+        return "far_trigger";
+    case STATE_CONTINUE_FAR_TRIGGER:
+        return "continue_far_trigger";
     case STATE_RELEASE:
         return "release";
     }
@@ -224,17 +224,17 @@ function MyController(hand) {
             case STATE_CONTINUE_NEAR_GRABBING:
                 this.continueNearGrabbing();
                 break;
-            case STATE_NEAR_GRABBING_NON_COLLIDING:
-                this.nearGrabbingNonColliding();
+            case STATE_NEAR_TRIGGER:
+                this.nearTrigger();
                 break;
-            case STATE_CONTINUE_NEAR_GRABBING_NON_COLLIDING:
-                this.continueNearGrabbingNonColliding();
+            case STATE_CONTINUE_NEAR_TRIGGER:
+                this.continueNearTrigger();
                 break;
-            case STATE_FAR_GRABBING_NON_COLLIDING:
-                this.farGrabbingNonColliding();
+            case STATE_FAR_TRIGGER:
+                this.farTrigger();
                 break;
-            case STATE_CONTINUE_FAR_GRABBING_NON_COLLIDING:
-                this.continueFarGrabbingNonColliding();
+            case STATE_CONTINUE_FAR_TRIGGER:
+                this.continueFarTrigger();
                 break;
             case STATE_RELEASE:
                 this.release();
@@ -405,7 +405,7 @@ function MyController(hand) {
                     // the hand is very close to the intersected object.  go into close-grabbing mode.
                     if (grabbableData.wantsTrigger) {
                         this.grabbedEntity = intersection.entityID;
-                        this.setState(STATE_NEAR_GRABBING_NON_COLLIDING);
+                        this.setState(STATE_NEAR_TRIGGER);
                         return;
                     } else if (!intersection.properties.locked) {
                         this.grabbedEntity = intersection.entityID;
@@ -422,7 +422,7 @@ function MyController(hand) {
                         return;
                     } else if (grabbableData.wantsTrigger) {
                         this.grabbedEntity = intersection.entityID;
-                        this.setState(STATE_FAR_GRABBING_NON_COLLIDING);
+                        this.setState(STATE_FAR_TRIGGER);
                         return;
                     }
                 }
@@ -494,7 +494,7 @@ function MyController(hand) {
             return;
         }
         if (grabbableData.wantsTrigger) {
-            this.setState(STATE_NEAR_GRABBING_NON_COLLIDING);
+            this.setState(STATE_NEAR_TRIGGER);
             return;
         } else if (!props.locked) {
             this.setState(STATE_NEAR_GRABBING);
@@ -549,6 +549,7 @@ function MyController(hand) {
     this.continueDistanceHolding = function() {
         if (this.triggerSmoothedReleased()) {
             this.setState(STATE_RELEASE);
+            Entities.callEntityMethod(this.grabbedEntity, "releaseGrab");
             return;
         }
 
@@ -642,6 +643,7 @@ function MyController(hand) {
 
         if (this.triggerSmoothedReleased()) {
             this.setState(STATE_RELEASE);
+            Entities.callEntityMethod(this.grabbedEntity, "releaseGrab");
             return;
         }
 
@@ -710,6 +712,7 @@ function MyController(hand) {
 
         if (this.triggerSmoothedReleased()) {
             this.setState(STATE_RELEASE);
+            Entities.callEntityMethod(this.grabbedEntity, "releaseGrab");
             return;
         }
 
@@ -761,9 +764,10 @@ function MyController(hand) {
         }
     };
 
-    this.nearGrabbingNonColliding = function() {
+    this.nearTrigger = function() {
         if (this.triggerSmoothedReleased()) {
             this.setState(STATE_RELEASE);
+            Entities.callEntityMethod(this.grabbedEntity, "stopNearTrigger");
             return;
         }
         if (this.hand === RIGHT_HAND) {
@@ -771,13 +775,14 @@ function MyController(hand) {
         } else {
             Entities.callEntityMethod(this.grabbedEntity, "setLeftHand");
         }
-        Entities.callEntityMethod(this.grabbedEntity, "startNearGrabNonColliding");
-        this.setState(STATE_CONTINUE_NEAR_GRABBING_NON_COLLIDING);
+        Entities.callEntityMethod(this.grabbedEntity, "startNearTrigger");
+        this.setState(STATE_CONTINUE_NEAR_TRIGGER);
     };
 
-    this.farGrabbingNonColliding = function() {
+    this.farTrigger = function() {
         if (this.triggerSmoothedReleased()) {
             this.setState(STATE_RELEASE);
+            Entities.callEntityMethod(this.grabbedEntity, "stopFarTrigger");
             return;
         }
 
@@ -786,22 +791,24 @@ function MyController(hand) {
         } else {
             Entities.callEntityMethod(this.grabbedEntity, "setLeftHand");
         }
-        Entities.callEntityMethod(this.grabbedEntity, "startFarGrabNonColliding");
-        this.setState(STATE_CONTINUE_FAR_GRABBING_NON_COLLIDING);
+        Entities.callEntityMethod(this.grabbedEntity, "startFarTrigger");
+        this.setState(STATE_CONTINUE_FAR_TRIGGER);
     };
 
-    this.continueNearGrabbingNonColliding = function() {
+    this.continueNearTrigger = function() {
         if (this.triggerSmoothedReleased()) {
             this.setState(STATE_RELEASE);
+            Entities.callEntityMethod(this.grabbedEntity, "stopNearTrigger");
             return;
         }
 
-        Entities.callEntityMethod(this.grabbedEntity, "continueNearGrabbingNonColliding");
+        Entities.callEntityMethod(this.grabbedEntity, "continueNearTrigger");
     };
 
-    this.continueFarGrabbingNonColliding = function() {
+    this.continueFarTrigger = function() {
         if (this.triggerSmoothedReleased()) {
             this.setState(STATE_RELEASE);
+            Entities.callEntityMethod(this.grabbedEntity, "stopNearTrigger");
             return;
         }
 
@@ -817,12 +824,13 @@ function MyController(hand) {
             this.lastPickTime = now;
             if (intersection.entityID != this.grabbedEntity) {
                 this.setState(STATE_RELEASE);
+                Entities.callEntityMethod(this.grabbedEntity, "stopFarTrigger");
                 return;
             }
         }
 
         this.lineOn(pickRay.origin, Vec3.multiply(pickRay.direction, LINE_LENGTH), NO_INTERSECT_COLOR);
-        Entities.callEntityMethod(this.grabbedEntity, "continueFarGrabbingNonColliding");
+        Entities.callEntityMethod(this.grabbedEntity, "continueFarTrigger");
     };
 
     _this.allTouchedIDs = {};
@@ -904,7 +912,6 @@ function MyController(hand) {
             if (this.actionID !== null) {
                 Entities.deleteAction(this.grabbedEntity, this.actionID);
             }
-            Entities.callEntityMethod(this.grabbedEntity, "releaseGrab");
         }
 
         this.deactivateEntity(this.grabbedEntity);

@@ -247,7 +247,8 @@ MasterReset = function() {
                     resetMe: true
                 },
                 grabbableKey: {
-                    grabbable: false
+                    grabbable: false,
+                    wantsTrigger:true
                 }
             })
         });
