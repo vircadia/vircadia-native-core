@@ -130,6 +130,9 @@ void SpacemouseManager::ManagerFocusOutEvent() {
     instance->focusOutEvent();
 }
 
+void SpacemouseManager::init() {
+}
+
 #ifdef HAVE_3DCONNEXIONCLIENT
 
 #ifdef Q_OS_WIN
