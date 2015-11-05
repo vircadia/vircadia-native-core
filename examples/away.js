@@ -32,6 +32,7 @@ function playAwayAnimation() {
     }
     if (stopper) {
         Script.clearTimeout(stopper);
+        stopper = false;
         MyAvatar.removeAnimationStateHandler(activeAnimationHandlerId); // do it now, before making new assignment
     }
     awayAnimationHandlerId = MyAvatar.addAnimationStateHandler(animateAway, null);
@@ -79,8 +80,8 @@ hideOverlay();
 
 // MAIN CONTROL
 var wasMuted, isAway;
-function goAway(event) {
-    if (isAway || event.isAutoRepeat) { // isAutoRepeat is true when held down (or when Windows feels like it)
+function goAway() {
+    if (isAway) {
         return;
     }
     isAway = true;
@@ -93,24 +94,36 @@ function goAway(event) {
     playAwayAnimation(); // animation is still seen by others
     showOverlay();
 }
-function switchActiveState(event) {
-    if (!isAway || event.isAutoRepeat) {
-        if (event.text === '.') {
-            goAway(event);
-        }
-    } else {
-        isAway = false;
-        print('going "active"');
-        if (!wasMuted) {
-            AudioDevice.toggleMute();
-        }
-        MyAvatar.setEnableMeshVisible(true); // IWBNI we respected Developer->Avatar->Draw Mesh setting.
-        stopAwayAnimation();
-        hideOverlay();
+function goActive() {
+    if (!isAway) {
+        return;
     }
+    isAway = false;
+    print('going "active"');
+    if (!wasMuted) {
+        AudioDevice.toggleMute();
+    }
+    MyAvatar.setEnableMeshVisible(true); // IWBNI we respected Developer->Avatar->Draw Mesh setting.
+    stopAwayAnimation();
+    hideOverlay();
 }
-Controller.keyPressEvent.connect(switchActiveState);
-Script.scriptEnding.connect(switchActiveState);
-if (HMD.active) {
-    goAway({}); // give a dummy event object
-}
+Script.scriptEnding.connect(goActive);
+Controller.keyPressEvent.connect(function (event) {
+    if (event.isAutoRepeat) {  // isAutoRepeat is true when held down (or when Windows feels like it)
+        return;
+    }
+    if (!isAway && (event.text === '.')) {
+        goAway();
+    } else {
+        goActive();
+    }
+});
+var wasHmdActive = false;
+Script.update.connect(function () {
+    if (HMD.active !== wasHmdActive) {
+        wasHmdActive = !wasHmdActive;
+        if (wasHmdActive) {
+            goAway();
+        }
+    }
+});
