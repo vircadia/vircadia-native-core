@@ -1200,6 +1200,37 @@ void ScriptEngine::callEntityScriptMethod(const EntityItemID& entityID, const QS
     }
 }
 
+void ScriptEngine::callEntityScriptMethod(const EntityItemID& entityID, const QString& methodName, const QStringList& params) {
+    if (QThread::currentThread() != thread()) {
+        #ifdef THREAD_DEBUGGING
+        qDebug() << "*** WARNING *** ScriptEngine::callEntityScriptMethod() called on wrong thread [" << QThread::currentThread() << "], invoking on correct thread [" << thread() << "]  "
+            "entityID:" << entityID << "methodName:" << methodName;
+        #endif
+
+        QMetaObject::invokeMethod(this, "callEntityScriptMethod",
+            Q_ARG(const EntityItemID&, entityID),
+            Q_ARG(const QString&, methodName),
+            Q_ARG(const QStringList&, params));
+        return;
+    }
+    #ifdef THREAD_DEBUGGING
+    qDebug() << "ScriptEngine::callEntityScriptMethod() called on correct thread [" << thread() << "]  "
+        "entityID:" << entityID << "methodName:" << methodName;
+    #endif
+
+    refreshFileScript(entityID);
+    if (_entityScripts.contains(entityID)) {
+        EntityScriptDetails details = _entityScripts[entityID];
+        QScriptValue entityScript = details.scriptObject; // previously loaded
+        if (entityScript.property(methodName).isFunction()) {
+            QScriptValueList args;
+            args << entityID.toScriptValue(this);
+            entityScript.property(methodName).call(entityScript, args);
+        }
+
+    }
+}
+
 void ScriptEngine::callEntityScriptMethod(const EntityItemID& entityID, const QString& methodName, const MouseEvent& event) {
     if (QThread::currentThread() != thread()) {
         #ifdef THREAD_DEBUGGING
