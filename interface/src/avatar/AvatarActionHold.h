@@ -46,6 +46,9 @@ private:
     bool _previousSet { false };
     glm::vec3 _previousPositionalTarget;
     glm::quat _previousRotationalTarget;
+
+    float _previousDeltaTimeStep = 0.0f;
+    glm::vec3 _previousPositionalDelta;
 };
 
 #endif // hifi_AvatarActionHold_h
