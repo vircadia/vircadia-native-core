@@ -68,6 +68,7 @@ CacheExtractApp::CacheExtractApp(int& argc, char** argv) :
             if (out.open(QIODevice::WriteOnly)) {
                 out.write(contents);
                 out.close();
+                qDebug().noquote() << metaData.url.toDisplayString();
             }
         } else {
             qCritical() << "Error extracting = " << fileList.at(i);
