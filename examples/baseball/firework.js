@@ -2,8 +2,6 @@ Script.include("http://rawgit.com/huffman/hifi/baseball/examples/baseball/utils.
 
 var emitters = [];
 
-var currentIdx = 0;
-
 var smokeTrailSettings = {
     "name":"ParticlesTest Emitter",
     "type": "ParticleEffect",
@@ -93,9 +91,6 @@ function shootFirework(position, color, options) {
     smokeTrailSettings.position = position;
     smokeTrailSettings.velocity = randomVec3(-5, 5, 10, 20, 10, 15);
     smokeTrailSettings.gravity = randomVec3(-5, 5, -9.8, -9.8, 20, 40);
-
-    var idx = currentIdx;
-    currentIdx = (currentIdx + 1) % MAX_SIMULTANEOUS_FIREWORKS;
 
     playRandomSound(fireSounds, { position: {x: 0, y: 0 , z: 0}, volume: 3.0 });
     var smokeID = Entities.addEntity(smokeTrailSettings);
