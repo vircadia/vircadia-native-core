@@ -3,7 +3,7 @@
 //
 //  Script Type: Entity
 //
-//  Additions by James B. Pollack @imgntn on 11/6/2015
+//  Created by James B. Pollack @imgntn on 11/6/2015
 //  Copyright 2015 High Fidelity, Inc.
 //
 //  This script demonstrates how to recieve parameters from a Entities.callEntityMethod call

@@ -1,11 +1,10 @@
 //
 //  createParamsEntity.js
 //
-//
-//  Additions by James B. Pollack @imgntn on 11/6/2015
+//  Created by James B. Pollack @imgntn on 11/6/2015
 //  Copyright 2015 High Fidelity, Inc.
 //
-//  This script demonstrates creates an entity and sends it a method call with parameters.
+//  This script demonstrates creating an entity and sending it a method call with parameters.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
