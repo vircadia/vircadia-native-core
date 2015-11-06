@@ -646,13 +646,14 @@ QScriptValue ScriptEngine::evaluate(const QString& sourceCode, const QString& fi
 }
 
 void ScriptEngine::run() {
-    // TODO: can we add a short circuit for _stoppingAllScripts here? What does it mean to not start running if
-    // we're in the process of stopping?
+    if (_stoppingAllScripts) {
+        return; // bail early - avoid setting state in init(), as evaluate() will bail too
+    }
     
     if (!_isInitialized) {
         init();
     }
-    
+
     _isRunning = true;
     _isFinished = false;
     if (_wantSignals) {

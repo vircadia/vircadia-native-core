@@ -277,7 +277,10 @@ void Agent::processAgentAvatarAndAudio(float deltaTime) {
 
         QByteArray avatarByteArray = _avatarData->toByteArray(true, randFloat() < AVATAR_SEND_FULL_UPDATE_RATIO);
         _avatarData->doneEncoding(true);
-        auto avatarPacket = NLPacket::create(PacketType::AvatarData, avatarByteArray.size());
+
+        static AvatarDataSequenceNumber sequenceNumber = 0;
+        auto avatarPacket = NLPacket::create(PacketType::AvatarData, avatarByteArray.size() + sizeof(sequenceNumber));
+        avatarPacket->writePrimitive(sequenceNumber++);
 
         avatarPacket->write(avatarByteArray);
 

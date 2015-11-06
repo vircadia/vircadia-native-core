@@ -112,10 +112,9 @@ function setupTimer() {
         text: (0.00).toFixed(3),
         backgroundColor: COLOR_OFF,
         x: 0, y: 0,
-        width: 0,
-        height: 0,
-        alpha: 1.0,
-        backgroundAlpha: 1.0,
+        width: 0, height: 0,
+        leftMargin: 10, topMargin: 10,
+        alpha: 1.0, backgroundAlpha: 1.0,
         visible: true
     });
 

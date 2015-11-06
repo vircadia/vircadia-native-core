@@ -15,13 +15,27 @@
 
 namespace recording {
 
+using FrameType = uint16_t;
+
+struct Frame;
+
+using FramePointer = std::shared_ptr<Frame>;
+
 // A recording of some set of state from the application, usually avatar
 // data + audio for a single person
 class Clip;
 
-// An interface for interacting with clips, creating them by recording or
-// playing them back.  Also serialization to and from files / network sources
+using ClipPointer = std::shared_ptr<Clip>;
+
+// An interface for playing back clips
 class Deck;
+
+using DeckPointer = std::shared_ptr<Deck>;
+
+// An interface for recording a single clip
+class Recorder;
+
+using RecorderPointer = std::shared_ptr<Recorder>;
 
 }
 
