@@ -103,6 +103,7 @@ public:
     
     virtual QVector<glm::quat> getJointRotations() const;
     virtual glm::quat getJointRotation(int index) const;
+    virtual QVector<glm::vec3> getJointTranslations() const;
     virtual glm::vec3 getJointTranslation(int index) const;
     virtual int getJointIndex(const QString& name) const;
     virtual QStringList getJointNames() const;

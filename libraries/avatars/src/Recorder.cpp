@@ -101,6 +101,7 @@ void Recorder::record() {
         RecordingFrame frame;
         frame.setBlendshapeCoefficients(_avatar->getHeadData()->getBlendshapeCoefficients());
         frame.setJointRotations(_avatar->getJointRotations());
+        frame.setJointTranslations(_avatar->getJointTranslations());
         frame.setTranslation(context.orientationInv * (_avatar->getPosition() - context.position));
         frame.setRotation(context.orientationInv * _avatar->getOrientation());
         frame.setScale(_avatar->getTargetScale() / context.scale);
@@ -124,6 +125,7 @@ void Recorder::record() {
             qCDebug(avatars) << "Recording frame #" << _recording->getFrameNumber();
             qCDebug(avatars) << "Blendshapes:" << frame.getBlendshapeCoefficients().size();
             qCDebug(avatars) << "JointRotations:" << frame.getJointRotations().size();
+            qCDebug(avatars) << "JointRotations:" << frame.getJointTranslations().size();
             qCDebug(avatars) << "Translation:" << frame.getTranslation();
             qCDebug(avatars) << "Rotation:" << frame.getRotation();
             qCDebug(avatars) << "Scale:" << frame.getScale();
