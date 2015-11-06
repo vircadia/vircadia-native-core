@@ -217,13 +217,6 @@ void EntityScriptingInterface::deleteEntity(QUuid id) {
     }
 }
 
-void EntityScriptingInterface::callEntityMethod(QUuid id, const QString& method) {
-    if (_entitiesScriptEngine) {
-        EntityItemID entityID{ id };
-        _entitiesScriptEngine->callEntityScriptMethod(entityID, method);
-    }
-}
-
 void EntityScriptingInterface::callEntityMethod(QUuid id, const QString& method, const QStringList& params) {
     if (_entitiesScriptEngine) {
         EntityItemID entityID{ id };
