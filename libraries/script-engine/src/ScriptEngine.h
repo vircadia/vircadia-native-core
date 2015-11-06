@@ -19,6 +19,7 @@
 #include <QtCore/QSet>
 #include <QtCore/QWaitCondition>
 #include <QtScript/QScriptEngine>
+#include <QtCore/QStringList>
 
 #include <AnimationCache.h>
 #include <AnimVariant.h>

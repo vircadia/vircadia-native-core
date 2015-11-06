@@ -18,6 +18,7 @@
 #include <QtNetwork/QNetworkReply>
 #include <QtScript/QScriptEngine>
 #include <QtScript/QScriptValue>
+#include <QtCore/QStringList>
 
 #include <AudioConstants.h>
 #include <AudioEffectOptions.h>
@@ -1225,6 +1226,7 @@ void ScriptEngine::callEntityScriptMethod(const EntityItemID& entityID, const QS
         if (entityScript.property(methodName).isFunction()) {
             QScriptValueList args;
             args << entityID.toScriptValue(this);
+            args << qScriptValueFromSequence(this, params);
             entityScript.property(methodName).call(entityScript, args);
         }
 

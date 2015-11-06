@@ -15,6 +15,7 @@
 #define hifi_EntityScriptingInterface_h
 
 #include <QtCore/QObject>
+#include <QtCore/QStringList>
 
 #include <DependencyManager.h>
 #include <Octree.h>
