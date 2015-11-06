@@ -1027,10 +1027,7 @@ void Application::initializeUi() {
     foreach(auto inputPlugin, PluginManager::getInstance()->getInputPlugins()) {
         QString name = inputPlugin->getName();
         if (name == KeyboardMouseDevice::NAME) {
-            auto kbm = static_cast<KeyboardMouseDevice*>(inputPlugin.data());
-            // FIXME incredibly evil.... _keyboardMouseDevice is now owned by 
-            // both a QSharedPointer and a std::shared_ptr
-            _keyboardMouseDevice = std::shared_ptr<KeyboardMouseDevice>(kbm);
+            _keyboardMouseDevice = std::dynamic_pointer_cast<KeyboardMouseDevice>(inputPlugin);
         }
     }
     updateInputModes();
@@ -4645,7 +4642,7 @@ DisplayPlugin* Application::getActiveDisplayPlugin() {
         updateDisplayMode();
         Q_ASSERT(_displayPlugin);
     }
-    return _displayPlugin.data();
+    return _displayPlugin.get();
 }
 
 const DisplayPlugin* Application::getActiveDisplayPlugin() const {
@@ -4685,10 +4682,10 @@ void Application::updateDisplayMode() {
         bool first = true;
         foreach(auto displayPlugin, displayPlugins) {
             addDisplayPluginToMenu(displayPlugin, first);
-            QObject::connect(displayPlugin.data(), &DisplayPlugin::requestRender, [this] {
+            QObject::connect(displayPlugin.get(), &DisplayPlugin::requestRender, [this] {
                 paintGL();
             });
-            QObject::connect(displayPlugin.data(), &DisplayPlugin::recommendedFramebufferSizeChanged, [this](const QSize & size) {
+            QObject::connect(displayPlugin.get(), &DisplayPlugin::recommendedFramebufferSizeChanged, [this](const QSize & size) {
                 resizeGL();
             });
 
@@ -4814,12 +4811,14 @@ void Application::updateInputModes() {
     foreach(auto inputPlugin, inputPlugins) {
         QString name = inputPlugin->getName();
         QAction* action = menu->getActionForOption(name);
-        if (action->isChecked() && !_activeInputPlugins.contains(inputPlugin)) {
-            _activeInputPlugins.append(inputPlugin);
-            newInputPlugins.append(inputPlugin);
-        } else if (!action->isChecked() && _activeInputPlugins.contains(inputPlugin)) {
-            _activeInputPlugins.removeOne(inputPlugin);
-            removedInputPlugins.append(inputPlugin);
+
+        auto it = std::find(std::begin(_activeInputPlugins), std::end(_activeInputPlugins), inputPlugin);
+        if (action->isChecked() && it == std::end(_activeInputPlugins)) {
+            _activeInputPlugins.push_back(inputPlugin);
+            newInputPlugins.push_back(inputPlugin);
+        } else if (!action->isChecked() && it != std::end(_activeInputPlugins)) {
+            _activeInputPlugins.erase(it);
+            removedInputPlugins.push_back(inputPlugin);
         }
     }
 
