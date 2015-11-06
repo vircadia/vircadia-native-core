@@ -118,9 +118,7 @@ function shootFirework(position, color, options) {
     }, 2000);
 }
 
-playFireworkShow = function(numberOfFireworks, duration) {
-    var position = { x: 0, y: 0, z: -78.0 };
-
+playFireworkShow = function(position, numberOfFireworks, duration) {
     for (var i = 0; i < numberOfFireworks; i++) {
         var randomOffset = randomVec3(-15, 15, -3, 3, -1, 1);
         var randomPosition = Vec3.sum(position, randomOffset);
