@@ -438,7 +438,8 @@ function updateBillboard(distance) {
     return false;
 }
 
-var FIREWORK_SHOW_DISTANCE_FEET = 2;
+var FIREWORK_PER_X_FEET = 100;
+var MAX_FIREWORKS = 10;
 
 Baseball.prototype = {
     finished: function() {
@@ -467,10 +468,9 @@ Baseball.prototype = {
     },
     ballLanded: function() {
         this.state = BASEBALL_STATE.HIT_LANDED;
-        if (this.distanceTravelled > FIREWORK_SHOW_DISTANCE_FEET) {
-            print("PLAYING SHOW")
-            var numberOfFireworks = Math.floor(this.distanceTravelled / 200);
-            numberOfFireworks = Math.min(10, numberOfFireworks);
+        var numberOfFireworks = Math.floor(this.distanceTravelled / FIREWORK_PER_X_FEET);
+        if (numberOfFireworks > 0) {
+            numberOfFireworks = Math.min(MAX_FIREWORKS, numberOfFireworks);
             playFireworkShow(numberOfFireworks, 2000);
         }
         print("Ball took " + this.timeSinceHit.toFixed(3) + " seconds to land");
