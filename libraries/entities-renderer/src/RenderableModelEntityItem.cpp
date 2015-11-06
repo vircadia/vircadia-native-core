@@ -18,6 +18,7 @@
 #include <Model.h>
 #include <PerfStat.h>
 #include <render/Scene.h>
+#include <ObjectMotionState.h>
 
 #include "EntityTreeRenderer.h"
 #include "EntitiesRendererLogging.h"
@@ -186,15 +187,28 @@ void makeEntityItemStatusGetters(RenderableModelEntityItem* entity, render::Item
         float normalizedDelta = delta * WAIT_THRESHOLD_INV;
         // Status icon will scale from 1.0f down to 0.0f after WAIT_THRESHOLD
         // Color is red if last update is after WAIT_THRESHOLD, green otherwise (120 deg is green)
-        return render::Item::Status::Value(1.0f - normalizedDelta, (normalizedDelta > 1.0f ? render::Item::Status::Value::GREEN : render::Item::Status::Value::RED));
+        return render::Item::Status::Value(1.0f - normalizedDelta, (normalizedDelta > 1.0f ?
+                                                                    render::Item::Status::Value::GREEN :
+                                                                    render::Item::Status::Value::RED));
     });
+
     statusGetters.push_back([entity] () -> render::Item::Status::Value {
         quint64 delta = usecTimestampNow() - entity->getLastBroadcast();
         const float WAIT_THRESHOLD_INV = 1.0f / (0.4f * USECS_PER_SECOND);
         float normalizedDelta = delta * WAIT_THRESHOLD_INV;
         // Status icon will scale from 1.0f down to 0.0f after WAIT_THRESHOLD
         // Color is Magenta if last update is after WAIT_THRESHOLD, cyan otherwise (180 deg is green)
-        return render::Item::Status::Value(1.0f - normalizedDelta, (normalizedDelta > 1.0f ? render::Item::Status::Value::MAGENTA : render::Item::Status::Value::CYAN));
+        return render::Item::Status::Value(1.0f - normalizedDelta, (normalizedDelta > 1.0f ?
+                                                                    render::Item::Status::Value::MAGENTA :
+                                                                    render::Item::Status::Value::CYAN));
+    });
+
+    statusGetters.push_back([entity] () -> render::Item::Status::Value {
+        ObjectMotionState* motionState = static_cast<ObjectMotionState*>(entity->getPhysicsInfo());
+        if (motionState && motionState->isActive()) {
+            return render::Item::Status::Value(1.0f, render::Item::Status::Value::BLUE);
+        }
+        return render::Item::Status::Value(0.0f, render::Item::Status::Value::BLUE);
     });
 }
 
@@ -320,11 +334,12 @@ void RenderableModelEntityItem::render(RenderArgs* args) {
             }
         }
     } else {
-        glm::vec4 greenColor(0.0f, 1.0f, 0.0f, 1.0f);
-        RenderableDebugableEntityItem::renderBoundingBox(this, args, 0.0f, greenColor);
+        static glm::vec4 greenColor(0.0f, 1.0f, 0.0f, 1.0f);
+        gpu::Batch& batch = *args->_batch;
+        auto shapeTransform = getTransformToCenter();
+        batch.setModelTransform(Transform()); // we want to include the scale as well
+        DependencyManager::get<DeferredLightingEffect>()->renderWireCubeInstance(batch, shapeTransform, greenColor);
     }
-
-    RenderableDebugableEntityItem::render(this, args);
 }
 
 Model* RenderableModelEntityItem::getModel(EntityTreeRenderer* renderer) {

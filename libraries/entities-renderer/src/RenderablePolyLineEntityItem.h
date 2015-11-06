@@ -14,7 +14,6 @@
 
 #include <gpu/Batch.h>
 #include <PolyLineEntityItem.h>
-#include "RenderableDebugableEntityItem.h"
 #include "RenderableEntityItem.h"
 #include <GeometryCache.h>
 #include <QReadWriteLock>

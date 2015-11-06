@@ -16,7 +16,6 @@
 #include <QStringList>
 
 #include <ModelEntityItem.h>
-#include "RenderableDebugableEntityItem.h"
 
 class Model;
 class EntityTreeRenderer;

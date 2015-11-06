@@ -538,8 +538,6 @@ void RenderablePolyVoxEntityItem::render(RenderArgs* args) {
     batch._glUniform3f(voxelVolumeSizeLocation, _voxelVolumeSize.x, _voxelVolumeSize.y, _voxelVolumeSize.z);
 
     batch.drawIndexed(gpu::TRIANGLES, mesh->getNumIndices(), 0);
-
-    RenderableDebugableEntityItem::render(this, args);
 }
 
 bool RenderablePolyVoxEntityItem::addToScene(EntityItemPointer self,
