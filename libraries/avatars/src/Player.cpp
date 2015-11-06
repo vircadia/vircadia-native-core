@@ -397,16 +397,15 @@ bool Player::computeCurrentFrame() {
     }
     
     qint64 elapsed = glm::clamp(Player::elapsed() - _audioOffset, (qint64)0, (qint64)_recording->getLength());
-    while(_currentFrame >= 0 &&
-          _recording->getFrameTimestamp(_currentFrame) > elapsed) {
-        --_currentFrame;
-    }
-    
     while (_currentFrame < _recording->getFrameNumber() &&
            _recording->getFrameTimestamp(_currentFrame) < elapsed) {
         ++_currentFrame;
     }
-    --_currentFrame;
+    
+    while(_currentFrame > 0 &&
+          _recording->getFrameTimestamp(_currentFrame) > elapsed) {
+        --_currentFrame;
+    }
     
     if (_currentFrame == _recording->getFrameNumber() - 1) {
         --_currentFrame;

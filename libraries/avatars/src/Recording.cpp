@@ -69,10 +69,10 @@ const RecordingFrame& Recording::getFrame(int i) const {
 
 int Recording::numberAudioChannel() const {
     // Check for stereo audio
-    int MSEC_PER_SEC = 1000;
-    int channelLength = (getLength() / MSEC_PER_SEC) *
-                        AudioConstants::SAMPLE_RATE * sizeof(AudioConstants::AudioSample);
-    return glm::round((float)channelLength / (float)getAudioData().size());
+    float MSEC_PER_SEC = 1000.0f;
+    float channelLength = ((float)getLength() / MSEC_PER_SEC) * AudioConstants::SAMPLE_RATE *
+                            sizeof(AudioConstants::AudioSample);
+    return glm::round((float)getAudioData().size() / channelLength);
 }
 
 void Recording::addFrame(int timestamp, RecordingFrame &frame) {
