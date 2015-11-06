@@ -20,7 +20,7 @@
 
     ColorSelector.prototype = {
 
-        startFarGrabNonColliding: function() {
+        startFarTrigger: function() {
             this.selectColor();
         },
 
