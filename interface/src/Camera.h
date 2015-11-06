@@ -24,7 +24,7 @@ enum CameraMode
     CAMERA_MODE_FIRST_PERSON,
     CAMERA_MODE_MIRROR,
     CAMERA_MODE_INDEPENDENT,
-    CAMERA_MODE_CAMERA_ENTITY,
+    CAMERA_MODE_ENTITY,
     NUM_CAMERA_MODES
 };
 
@@ -73,7 +73,7 @@ public slots:
     void setProjection(const glm::mat4& projection);
 
     QUuid getCameraEntity() const;
-    void setCameraEntity(QUuid cameraEntityID);
+    void setCameraEntity(QUuid entityID);
 
     PickRay computePickRay(float x, float y);
 

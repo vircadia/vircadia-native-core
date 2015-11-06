@@ -28,11 +28,11 @@ var cameraLookAt = function(cameraPos, lookAtPos) {
 };
 
 cameraEntity = Entities.addEntity({
-	type: "Camera",
-	position: Vec3.sum(MyAvatar.position, CAMERA_OFFSET)
+    type: "Anchor",
+    position: Vec3.sum(MyAvatar.position, CAMERA_OFFSET)
 });
 
-Camera.mode = "camera entity";
+Camera.mode = "entity";
 Camera.cameraEntity = cameraEntity;
 
 Script.update.connect(function(deltaTime) {

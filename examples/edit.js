@@ -155,7 +155,7 @@ var toolBar = (function() {
         newWebButton,
         newZoneButton,
         newPolyVoxButton,
-        newCameraButton,
+        newAnchorButton,
         browseMarketplaceButton;
 
     function initialize() {
@@ -300,8 +300,8 @@ var toolBar = (function() {
             visible: false
         });
 
-        newCameraButton = toolBar.addTool({
-            imageURL: toolIconUrl + "light.svg",
+        newAnchorButton = toolBar.addTool({
+            imageURL: toolIconUrl + "add-anchor.svg",
             subImage: {
                 x: 0,
                 y: Tool.IMAGE_WIDTH,
@@ -360,7 +360,7 @@ var toolBar = (function() {
         toolBar.showTool(newWebButton, doShow);
         toolBar.showTool(newZoneButton, doShow);
         toolBar.showTool(newPolyVoxButton, doShow);
-        toolBar.showTool(newCameraButton, doShow);
+        toolBar.showTool(newAnchorButton, doShow);
     };
 
     var RESIZE_INTERVAL = 50;
@@ -619,9 +619,9 @@ var toolBar = (function() {
 
             return true;
         }
-        if (newCameraButton === toolBar.clicked(clickedOverlay)) {
+        if (newAnchorButton === toolBar.clicked(clickedOverlay)) {
             createNewEntity({
-                type: "Camera"
+                type: "Anchor"
             });
 
             return true;
@@ -1642,7 +1642,7 @@ PropertiesTool = function(opts) {
                 }
             } else if (data.action == "previewCamera") {
                 if (selectionManager.hasSelection()) {
-                    Camera.mode = "camera entity";
+                    Camera.mode = "entity";
                     Camera.cameraEntity = selectionManager.selections[0];
                 }
             } else if (data.action == "rescaleDimensions") {

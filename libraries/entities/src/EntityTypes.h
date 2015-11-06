@@ -48,8 +48,8 @@ public:
         Line,
         PolyVox,
         PolyLine,
-        Camera,
-        LAST = Camera
+        Anchor,
+        LAST = Anchor
     } EntityType;
 
     static const QString& getEntityTypeName(EntityType entityType);

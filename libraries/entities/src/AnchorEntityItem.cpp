@@ -1,5 +1,5 @@
 //
-//  CameraEntityItem.cpp
+//  AnchorEntityItem.cpp
 //  libraries/entities/src
 //
 //  Created by Thijs Wenker on 11/4/15.
@@ -12,30 +12,30 @@
 #include "EntitiesLogging.h"
 #include "EntityItemID.h"
 #include "EntityItemProperties.h"
-#include "CameraEntityItem.h"
+#include "AnchorEntityItem.h"
 
 
-EntityItemPointer CameraEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
-    EntityItemPointer result { new CameraEntityItem(entityID, properties) };
+EntityItemPointer AnchorEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
+    EntityItemPointer result { new AnchorEntityItem(entityID, properties) };
     return result;
 }
 
 // our non-pure virtual subclass for now...
-CameraEntityItem::CameraEntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties) :
+AnchorEntityItem::AnchorEntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties) :
         EntityItem(entityItemID) 
 {
-    _type = EntityTypes::Camera;
+    _type = EntityTypes::Anchor;
 
     setProperties(properties);
 }
 
 
-EntityItemProperties CameraEntityItem::getProperties(EntityPropertyFlags desiredProperties) const {
+EntityItemProperties AnchorEntityItem::getProperties(EntityPropertyFlags desiredProperties) const {
     EntityItemProperties properties = EntityItem::getProperties(desiredProperties); // get the properties from our base class
     return properties;
 }
 
-bool CameraEntityItem::setProperties(const EntityItemProperties& properties) {
+bool AnchorEntityItem::setProperties(const EntityItemProperties& properties) {
     bool somethingChanged = false;
     somethingChanged = EntityItem::setProperties(properties); // set the properties in our base class
 
@@ -44,7 +44,7 @@ bool CameraEntityItem::setProperties(const EntityItemProperties& properties) {
         if (wantDebug) {
             uint64_t now = usecTimestampNow();
             int elapsed = now - getLastEdited();
-            qCDebug(entities) << "CameraEntityItem::setProperties() AFTER update... edited AGO=" << elapsed <<
+            qCDebug(entities) << "AnchorEntityItem::setProperties() AFTER update... edited AGO=" << elapsed <<
                 "now=" << now << " getLastEdited()=" << getLastEdited();
         }
         setLastEdited(properties._lastEdited);
@@ -53,7 +53,7 @@ bool CameraEntityItem::setProperties(const EntityItemProperties& properties) {
     return somethingChanged;
 }
 
-int CameraEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data, int bytesLeftToRead,
+int AnchorEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data, int bytesLeftToRead,
     ReadBitstreamToTreeParams& args,
     EntityPropertyFlags& propertyFlags, bool overwriteLocalData,
     bool& somethingChanged) {
@@ -66,12 +66,12 @@ int CameraEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data
 
 
 // TODO: eventually only include properties changed since the params.lastViewFrustumSent time
-EntityPropertyFlags CameraEntityItem::getEntityProperties(EncodeBitstreamParams& params) const {
+EntityPropertyFlags AnchorEntityItem::getEntityProperties(EncodeBitstreamParams& params) const {
     EntityPropertyFlags requestedProperties = EntityItem::getEntityProperties(params);
     return requestedProperties;
 }
 
-void CameraEntityItem::appendSubclassData(OctreePacketData* packetData, EncodeBitstreamParams& params,
+void AnchorEntityItem::appendSubclassData(OctreePacketData* packetData, EncodeBitstreamParams& params,
     EntityTreeElementExtraEncodeData* modelTreeElementExtraEncodeData,
     EntityPropertyFlags& requestedProperties,
     EntityPropertyFlags& propertyFlags,

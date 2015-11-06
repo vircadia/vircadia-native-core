@@ -1200,7 +1200,7 @@ void Application::paintGL() {
                     glm::vec3(0.0f, 0.0f, -1.0f) * MIRROR_FULLSCREEN_DISTANCE * _scaleMirror);
             }
             renderArgs._renderMode = RenderArgs::MIRROR_RENDER_MODE;
-        } else if (_myCamera.getMode() == CAMERA_MODE_CAMERA_ENTITY) {
+        } else if (_myCamera.getMode() == CAMERA_MODE_ENTITY) {
             EntityItemPointer cameraEntity = _myCamera.getCameraEntityPointer();
             if (cameraEntity != nullptr) {
                 if (isHMDMode()) {
@@ -2687,8 +2687,8 @@ void Application::cameraMenuChanged() {
             _myCamera.setMode(CAMERA_MODE_INDEPENDENT);
         }
     } else if (Menu::getInstance()->isOptionChecked(MenuOption::CameraEntityMode)) {
-        if (_myCamera.getMode() != CAMERA_MODE_CAMERA_ENTITY) {
-            _myCamera.setMode(CAMERA_MODE_CAMERA_ENTITY);
+        if (_myCamera.getMode() != CAMERA_MODE_ENTITY) {
+            _myCamera.setMode(CAMERA_MODE_ENTITY);
         }
     }
 }

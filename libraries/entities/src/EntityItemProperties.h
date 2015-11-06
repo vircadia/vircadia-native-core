@@ -64,7 +64,7 @@ class EntityItemProperties {
     friend class LineEntityItem; // TODO: consider removing this friend relationship and use public methods
     friend class PolyVoxEntityItem; // TODO: consider removing this friend relationship and use public methods
     friend class PolyLineEntityItem; // TODO: consider removing this friend relationship and use public methods
-    friend class CameraEntityItem; // TODO: consider removing this friend relationship and use public methods
+    friend class AnchorEntityItem; // TODO: consider removing this friend relationship and use public methods
 public:
     EntityItemProperties(EntityPropertyFlags desiredProperties = EntityPropertyFlags());
     virtual ~EntityItemProperties() = default;

@@ -275,7 +275,7 @@ EntityPropertyDialogBox = (function () {
 
     Window.inlineButtonClicked.connect(function (name) {
         if (name == "previewCamera") {
-            Camera.mode = "camera entity";
+            Camera.mode = "entity";
             Camera.cameraEntity = propertiesForEditedEntity.id;
         }
 

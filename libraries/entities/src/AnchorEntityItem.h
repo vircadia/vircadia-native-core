@@ -1,5 +1,5 @@
 //
-//  CameraEntityItem.h
+//  AnchorEntityItem.h
 //  libraries/entities/src
 //
 //  Created by Thijs Wenker on 11/4/15.
@@ -9,16 +9,16 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef hifi_CameraEntityItem_h
-#define hifi_CameraEntityItem_h
+#ifndef hifi_AnchorEntityItem_h
+#define hifi_AnchorEntityItem_h
 
 #include "EntityItem.h"
 
-class CameraEntityItem : public EntityItem {
+class AnchorEntityItem : public EntityItem {
 public:
     static EntityItemPointer factory(const EntityItemID& entityID, const EntityItemProperties& properties);
 
-    CameraEntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties);
+    AnchorEntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties);
     
     ALLOW_INSTANTIATION // This class can be instantiated
 
@@ -44,4 +44,4 @@ public:
         
 };
 
-#endif // hifi_CameraEntityItem_h
+#endif // hifi_AnchorEntityItem_h
