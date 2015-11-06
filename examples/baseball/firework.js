@@ -3,8 +3,6 @@ Script.include("http://rawgit.com/huffman/hifi/baseball/examples/baseball/utils.
 var emitters = [];
 
 var currentIdx = 0;
-var smokeTrailEmitters = [];
-var burstEmitters = [];
 
 var smokeTrailSettings = {
     "name":"ParticlesTest Emitter",
@@ -12,9 +10,9 @@ var smokeTrailSettings = {
     "color":{"red":205,"green":84.41176470588235,"blue":84.41176470588235},
     "maxParticles":1000,
     "velocity": { x: 0, y: 18.0, z: 0 },
-    //"lifetime": 20,
+    "lifetime": 20,
     "lifespan":3,
-    "emitRate":1000,
+    "emitRate":100,
     "emitSpeed":0.5,
     "speedSpread":0,
     "emitOrientation":{"x":0,"y":0,"z":0,"w":1},
@@ -45,7 +43,7 @@ var fireworkSettings = {
     "type": "ParticleEffect",
     "color":{"red":205,"green":84.41176470588235,"blue":84.41176470588235},
     "maxParticles":1000,
-    //"lifetime": 20,
+    "lifetime": 20,
     "lifespan":4,
     "emitRate":1000,
     "emitSpeed":1.5,
@@ -79,55 +77,36 @@ var popSounds = getSounds([
     "atp:830312930577cb1ea36ba2d743e957debbacceb441b20addead5a6faa05a3771.wav",
     "atp:62e80d0a9f084cf731bcc66ca6e9020ee88587417071a281eee3167307b53560.wav"
 ]);
+
 var fireSounds = getSounds([
     "atp:ee6afe565576c4546c6d6cd89c1af532484c9b60ab30574d6b40c2df022f7260.wav",
     "atp:91ef19ba1c78be82d3fd06530cd05ceb90d1e75f4204c66819c208c55da049ef.wav",
     "atp:ee56993daf775012cf49293bfd5971eec7e5c396642f8bfbea902ba8f47b56cd.wav",
     "atp:37775d267f00f82242a7e7f61f3f3d7bf64a54c5a3799e7f2540fa5f6b79bd02.wav"
-])
+]);
 
 function playRandomSound(sounds, options) {
     Audio.playSound(sounds[randomInt(sounds.length)], options);
 }
 
 function shootFirework(position, color, options) {
-    var updatedSmokeProperties = {
-        position: position,
-        velocity: randomVec3(-5, 5, 10, 20, 10, 15),
-        gravity: randomVec3(-5, 5, -9.8, -9.8, 20, 40),
-        emitRate: 100
-    };
-
     smokeTrailSettings.position = position;
     smokeTrailSettings.velocity = randomVec3(-5, 5, 10, 20, 10, 15);
     smokeTrailSettings.gravity = randomVec3(-5, 5, -9.8, -9.8, 20, 40);
-    smokeTrailSettings.emitRate = 100;
-    
 
     var idx = currentIdx;
     currentIdx = (currentIdx + 1) % MAX_SIMULTANEOUS_FIREWORKS;
 
     playRandomSound(fireSounds, { position: {x: 0, y: 0 , z: 0}, volume: 3.0 });
-    //var smokeID = smokeTrailEmitters[idx];
-    //var burstID = burstEmitters[idx];
-    //Entities.editEntity(smokeID, updatedSmokeProperties);
     var smokeID = Entities.addEntity(smokeTrailSettings);
 
     Script.setTimeout(function() {
         Entities.editEntity(smokeID, { emitRate: 0 });
         var position = Entities.getEntityProperties(smokeID, ['position']).position;
-        var updatedBurstProperties = {
-            position: position,
-            colorStart: color,
-            colorFinish: color,
-            emitRate: 1000
-        };
         fireworkSettings.position = position;
         fireworkSettings.colorStart = color;
         fireworkSettings.colorFinish = color;
-        fireworkSettings.emitRate = 1000;
         var burstID = Entities.addEntity(fireworkSettings);
-        //Entities.editEntity(burstID, updatedBurstProperties);
         playRandomSound(popSounds, { position: {x: 0, y: 0 , z: 0}, volume: 3.0 });
         Script.setTimeout(function() {
             Entities.editEntity(burstID, { emitRate: 0 });
@@ -154,19 +133,4 @@ playFireworkShow = function(numberOfFireworks, duration) {
     }
 }
 
-var MAX_SIMULTANEOUS_FIREWORKS = 0;
-
-smokeTrailSettings.emitRate = 0;
-fireworkSettings.emitRate = 0;
-for (var i = 0; i < MAX_SIMULTANEOUS_FIREWORKS; ++i) {
-    smokeTrailEmitters.push(Entities.addEntity(smokeTrailSettings));
-    burstEmitters.push(Entities.addEntity(fireworkSettings));
-}
-Script.scriptEnding.connect(function() {
-    for (var i = 0; i < MAX_SIMULTANEOUS_FIREWORKS; ++i) {
-        Entities.deleteEntity(smokeTrailEmitters[i]);
-        Entities.deleteEntity(burstEmitters[i]);
-    }
-});
-
-//playFireworkShow(30, 2000);
+playFireworkShow(10, 2000);
