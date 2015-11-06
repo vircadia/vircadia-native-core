@@ -455,6 +455,10 @@ function MyController(hand) {
                 continue;
             }
 
+            if (propsForCandidate.type == 'PolyLine') {
+                continue;
+            }
+
             if (propsForCandidate.type == 'Zone') {
                 continue;
             }

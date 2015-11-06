@@ -604,7 +604,7 @@ void MyAvatar::startRecording() {
     // connect to AudioClient's signal so we get input audio
     auto audioClient = DependencyManager::get<AudioClient>();
     connect(audioClient.data(), &AudioClient::inputReceived, _recorder.data(),
-            &Recorder::recordAudio, Qt::BlockingQueuedConnection);
+            &Recorder::recordAudio, Qt::QueuedConnection);
 
     _recorder->startRecording();
 }
