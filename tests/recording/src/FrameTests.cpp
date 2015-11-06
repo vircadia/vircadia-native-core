@@ -8,6 +8,9 @@
 
 #include "FrameTests.h"
 #include "Constants.h"
+
+#if 0
+
 #include "../QTestExtensions.h"
 
 #include <recording/Frame.h>
@@ -27,3 +30,4 @@ void FrameTests::registerFrameTypeTest() {
     QCOMPARE(backMap[recording::Frame::TYPE_HEADER], HEADER_NAME);
 }
 
+#endif

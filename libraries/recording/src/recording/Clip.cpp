@@ -16,33 +16,34 @@
 using namespace recording;
 
 Clip::Pointer Clip::fromFile(const QString& filePath) {
-    return std::make_shared<FileClip>(filePath);
+    auto result = std::make_shared<FileClip>(filePath);
+    if (result->frameCount() == 0) {
+        return Clip::Pointer();
+    }
+    return result;
 }
 
-void Clip::toFile(Clip::Pointer clip, const QString& filePath) {
-    // FIXME
+void Clip::toFile(const QString& filePath, Clip::Pointer clip) {
+    FileClip::write(filePath, clip->duplicate());
+}
+
+Clip::Pointer Clip::newClip() {
+    return std::make_shared<BufferClip>();
 }
 
 Clip::Pointer Clip::duplicate() {
     Clip::Pointer result = std::make_shared<BufferClip>();
 
+    Locker lock(_mutex);
     float currentPosition = position();
     seek(0);
 
     Frame::Pointer frame = nextFrame();
     while (frame) {
-        result->appendFrame(frame);
+        result->addFrame(frame);
+        frame = nextFrame();
     }
 
     seek(currentPosition);
     return result;
 }
-
-#if 0
-Clip::Pointer Clip::fromIODevice(QIODevice * device) {
-    return std::make_shared<IOClip>(device);
-}
-
-void Clip::fromIODevice(Clip::Pointer clip, QIODevice * device) {
-}
-#endif

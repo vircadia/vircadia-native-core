@@ -13,6 +13,7 @@
 #include "../Clip.h"
 
 #include <QtCore/QFile>
+#include <QtCore/QJsonDocument>
 
 #include <mutex>
 
@@ -22,22 +23,25 @@ class FileClip : public Clip {
 public:
     using Pointer = std::shared_ptr<FileClip>;
 
-    FileClip(const QString& file, QObject* parent = nullptr);
+    FileClip(const QString& file);
     virtual ~FileClip();
+
+    virtual float duration() const override;
+    virtual size_t frameCount() const override;
 
     virtual void seek(float offset) override;
     virtual float position() const override;
 
     virtual FramePointer peekFrame() const override;
     virtual FramePointer nextFrame() override;
-    virtual void appendFrame(FramePointer) override;
     virtual void skipFrame() override;
+    virtual void addFrame(FramePointer) override;
 
-private:
-    using Mutex = std::mutex;
-    using Locker = std::unique_lock<Mutex>;
+    const QJsonDocument& getHeader() {
+        return _fileHeader;
+    }
 
-    virtual void reset() override;
+    static bool write(const QString& filePath, Clip::Pointer clip);
 
     struct FrameHeader {
         FrameType type;
@@ -46,15 +50,20 @@ private:
         quint64 fileOffset;
     };
 
-    using FrameHeaders = std::vector<FrameHeader>;
+private:
+
+    virtual void reset() override;
+
+
+    using FrameHeaderVector = std::vector<FrameHeader>;
 
     FramePointer readFrame(uint32_t frameIndex) const;
 
-    mutable Mutex _mutex;
+    QJsonDocument _fileHeader;
     QFile _file;
     uint32_t _frameIndex { 0 };
-    uchar* _map;
-    FrameHeaders _frameHeaders;
+    uchar* _map { nullptr };
+    FrameHeaderVector _frameHeaders;
 };
 
 }

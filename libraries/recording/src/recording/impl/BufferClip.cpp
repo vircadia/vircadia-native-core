@@ -51,11 +51,15 @@ FramePointer BufferClip::nextFrame() {
     return result;
 }
 
-void BufferClip::appendFrame(FramePointer newFrame) {
+void BufferClip::addFrame(FramePointer newFrame) {
+    if (newFrame->timeOffset < 0.0f) {
+        throw std::runtime_error("Frames may not have negative time offsets");
+    }
     auto currentPosition = position();
     seek(newFrame->timeOffset);
     {
         Locker lock(_mutex);
+
         _frames.insert(_frames.begin() + _frameIndex, newFrame);
     }
     seek(currentPosition);
@@ -72,3 +76,15 @@ void BufferClip::reset() {
     Locker lock(_mutex);
     _frameIndex = 0;
 }
+
+float BufferClip::duration() const {
+    if (_frames.empty()) {
+        return 0;
+    }
+    return (*_frames.rbegin())->timeOffset;
+}
+
+size_t BufferClip::frameCount() const {
+    return _frames.size();
+}
+
