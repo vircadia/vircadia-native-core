@@ -749,8 +749,9 @@ void AudioClient::handleAudioInput() {
     }
 
     float inputToNetworkInputRatio = calculateDeviceToNetworkInputRatio();
-
+    
     int inputSamplesRequired = (int)((float)AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL * inputToNetworkInputRatio);
+    auto inputAudioSamples = std::unique_ptr<int16_t[]>(new int16_t[inputSamplesRequired]);
 
     static int leadingBytes = sizeof(quint16) + sizeof(glm::vec3) + sizeof(glm::quat) + sizeof(quint8);
     int16_t* networkAudioSamples = (int16_t*)(_audioPacket->getPayload() + leadingBytes);
@@ -802,9 +803,7 @@ void AudioClient::handleAudioInput() {
                 _timeSinceLastClip += (float) numNetworkSamples / (float) AudioConstants::SAMPLE_RATE;
             }
 
-            auto inputAudioSamples = std::unique_ptr<int16_t[]>(new int16_t[inputSamplesRequired]);
             _inputRingBuffer.readSamples(inputAudioSamples.get(), inputSamplesRequired);
-
             possibleResampling(_inputToNetworkResampler,
                                inputAudioSamples.get(), networkAudioSamples,
                                inputSamplesRequired, numNetworkSamples,
