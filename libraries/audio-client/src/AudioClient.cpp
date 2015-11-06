@@ -748,13 +748,13 @@ void AudioClient::handleAudioInput() {
         _audioPacket = NLPacket::create(PacketType::MicrophoneAudioNoEcho);
     }
 
-    float inputToNetworkInputRatio = calculateDeviceToNetworkInputRatio();
+    const float inputToNetworkInputRatio = calculateDeviceToNetworkInputRatio();
     
-    int inputSamplesRequired = (int)((float)AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL * inputToNetworkInputRatio);
-    auto inputAudioSamples = std::unique_ptr<int16_t[]>(new int16_t[inputSamplesRequired]);
+    const int inputSamplesRequired = (int)((float)AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL * inputToNetworkInputRatio);
+    const auto inputAudioSamples = std::unique_ptr<int16_t[]>(new int16_t[inputSamplesRequired]);
 
-    static int leadingBytes = sizeof(quint16) + sizeof(glm::vec3) + sizeof(glm::quat) + sizeof(quint8);
-    int16_t* networkAudioSamples = (int16_t*)(_audioPacket->getPayload() + leadingBytes);
+    static const int leadingBytes = sizeof(quint16) + sizeof(glm::vec3) + sizeof(glm::quat) + sizeof(quint8);
+    int16_t* const networkAudioSamples = (int16_t*)(_audioPacket->getPayload() + leadingBytes);
 
     QByteArray inputByteArray = _inputDevice->readAll();
 
