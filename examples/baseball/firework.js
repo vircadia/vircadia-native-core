@@ -126,4 +126,4 @@ playFireworkShow = function(position, numberOfFireworks, duration) {
     }
 }
 
-playFireworkShow(10, 2000);
+//playFireworkShow(10, 2000);
