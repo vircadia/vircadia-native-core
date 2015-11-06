@@ -76,7 +76,7 @@ var popSounds = getSounds([
     "atp:62e80d0a9f084cf731bcc66ca6e9020ee88587417071a281eee3167307b53560.wav"
 ]);
 
-var fireSounds = getSounds([
+var launchSounds = getSounds([
     "atp:ee6afe565576c4546c6d6cd89c1af532484c9b60ab30574d6b40c2df022f7260.wav",
     "atp:91ef19ba1c78be82d3fd06530cd05ceb90d1e75f4204c66819c208c55da049ef.wav",
     "atp:ee56993daf775012cf49293bfd5971eec7e5c396642f8bfbea902ba8f47b56cd.wav",
@@ -92,7 +92,7 @@ function shootFirework(position, color, options) {
     smokeTrailSettings.velocity = randomVec3(-5, 5, 10, 20, 10, 15);
     smokeTrailSettings.gravity = randomVec3(-5, 5, -9.8, -9.8, 20, 40);
 
-    playRandomSound(fireSounds, { position: {x: 0, y: 0 , z: 0}, volume: 3.0 });
+    playRandomSound(launchSounds, { position: {x: 0, y: 0 , z: 0}, volume: 3.0 });
     var smokeID = Entities.addEntity(smokeTrailSettings);
 
     Script.setTimeout(function() {
