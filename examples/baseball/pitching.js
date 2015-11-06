@@ -496,8 +496,9 @@ Baseball.prototype = {
                     print("Pitch: ", pitch);
                     if (Math.abs(pitch) < 15) {
                         print("Reversing hit");
-                        myVelocity.z *= -1;
+                        myVelocity.x *= -1;
                         myVelocity.y *= -1;
+                        myVelocity.z *= -1;
                         Vec3.length(myVelocity);
                         foul = false;
                         speedMultiplier = 10;
