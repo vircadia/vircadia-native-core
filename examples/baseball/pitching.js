@@ -3,6 +3,11 @@ print("Loading pitching");
 Script.include("https://raw.githubusercontent.com/huffman/hifi/line-js/examples/libraries/line.js");
 Script.include("http://rawgit.com/huffman/hifi/baseball/examples/baseball/firework.js");
 
+function findEntity(properties, searchRadius) {
+    var entities = findEntities(properties, searchRadius);
+    return entities.length > 0 ? entities[0] : null;
+}
+
 // Return all entities with properties `properties` within radius `searchRadius`
 function findEntities(properties, searchRadius) {
     var entities = Entities.findEntities(MyAvatar.position, searchRadius);
@@ -26,11 +31,11 @@ function findEntities(properties, searchRadius) {
     return matchedEntities;
 }
 
-// These are hard-coded to the relevant entity IDs on the sport server
 var DISTANCE_BILLBOARD_NAME = "CurrentScore";
 var HIGH_SCORE_BILLBOARD_NAME = "HighScore";
-var DISTANCE_BILLBOARD_ENTITY_ID = findEntities({name: DISTANCE_BILLBOARD_NAME }, 1000)[0];
-var HIGH_SCORE_BILLBOARD_ENTITY_ID = findEntities({name: HIGH_SCORE_BILLBOARD_NAME }, 1000)[0];
+var DISTANCE_BILLBOARD_ENTITY_ID = findEntity({name: DISTANCE_BILLBOARD_NAME }, 1000);
+var HIGH_SCORE_BILLBOARD_ENTITY_ID = findEntity({name: HIGH_SCORE_BILLBOARD_NAME }, 1000);
+
 print("Distance: ", DISTANCE_BILLBOARD_ENTITY_ID)
 
 var METERS_TO_FEET = 3.28084;
