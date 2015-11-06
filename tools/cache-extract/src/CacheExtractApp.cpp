@@ -14,6 +14,7 @@
 #include <QStandardPaths>
 #include <QDir>
 #include <QtNetwork/QAbstractNetworkCache>
+#include <QDataStream>
 
 // extracted from qnetworkdiskcache.cpp
 #define CACHE_VERSION 8
@@ -21,19 +22,18 @@ enum {
    CacheMagic = 0xe8,
    CurrentCacheVersion = CACHE_VERSION
 };
-#define DATA_DIR QLatin1String("data")
 
 CacheExtractApp::CacheExtractApp(int& argc, char** argv) :
     QCoreApplication(argc, argv)
 {
     QString myDataLoc = QStandardPaths::writableLocation(QStandardPaths::DataLocation);
-    int lastSlash = myDataLoc.lastIndexOf(QDir::separator());
-    QString cachePath = myDataLoc.leftRef(lastSlash).toString() + QDir::separator() +
-        "High Fidelity" + QDir::separator() + "Interface" + QDir::separator() +
-        DATA_DIR + QString::number(CACHE_VERSION) + QLatin1Char('/');
+    int lastSlash = myDataLoc.lastIndexOf("/");
+    QString cachePath = myDataLoc.leftRef(lastSlash).toString() + "/" +
+        "High Fidelity" + "/" + "Interface" + "/" +
+        "data" + QString::number(CACHE_VERSION) + "/";
 
-    QString outputPath = myDataLoc.leftRef(lastSlash).toString() + QDir::separator() +
-        "High Fidelity" + QDir::separator() + "Interface" + QDir::separator() + "extracted";
+    QString outputPath = myDataLoc.leftRef(lastSlash).toString() + "/" +
+        "High Fidelity" + "/" + "Interface" + "/" + "extracted";
 
     qDebug() << "Searching cachePath = " << cachePath << "...";
 
@@ -60,15 +60,18 @@ CacheExtractApp::CacheExtractApp(int& argc, char** argv) :
         MyMetaData metaData;
         if (extractFile(fileList.at(i), metaData, contents)) {
             QString outFileName = outputPath + metaData.url.path();
-            int lastSlash = outFileName.lastIndexOf(QDir::separator());
+            int lastSlash = outFileName.lastIndexOf("/");
             QString outDirName = outFileName.leftRef(lastSlash).toString();
-            QDir dir(outputPath);
+            QDir dir;
             dir.mkpath(outDirName);
             QFile out(outFileName);
             if (out.open(QIODevice::WriteOnly)) {
                 out.write(contents);
                 out.close();
                 qDebug().noquote() << metaData.url.toDisplayString();
+            }
+            else {
+                qCritical() << "Error opening outputFile = " << outFileName;
             }
         } else {
             qCritical() << "Error extracting = " << fileList.at(i);
@@ -123,4 +126,5 @@ QDataStream &operator>>(QDataStream& in, MyMetaData& metaData) {
     in >> metaData.saveToDisk;
     in >> metaData.attributes;
     in >> metaData.rawHeaders;
+    return in;
 }
