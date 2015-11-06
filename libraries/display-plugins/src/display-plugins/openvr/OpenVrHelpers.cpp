@@ -14,6 +14,8 @@
 #include <atomic>
 #include <mutex>
 
+#include "../Logging.h"
+
 using Mutex = std::mutex;
 using Lock = std::unique_lock<Mutex>;
 
@@ -28,13 +30,13 @@ vr::IVRSystem* acquireOpenVrSystem() {
     if (hmdPresent) {
         Lock lock(mutex);
         if (!activeHmd) {
-            qDebug() << "openvr: No vr::IVRSystem instance active, building";
+            qCDebug(displayPlugins) << "openvr: No vr::IVRSystem instance active, building";
             vr::HmdError eError = vr::HmdError_None;
             activeHmd = vr::VR_Init(&eError);
-            qDebug() << "openvr display: HMD is " << activeHmd << " error is " << eError;
+            qCDebug(displayPlugins) << "openvr display: HMD is " << activeHmd << " error is " << eError;
         }
         if (activeHmd) {
-            qDebug() << "openvr: incrementing refcount";
+            qCDebug(displayPlugins) << "openvr: incrementing refcount";
             ++refCount;
         }
     }

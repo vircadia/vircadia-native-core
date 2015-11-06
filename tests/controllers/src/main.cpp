@@ -132,7 +132,7 @@ int main(int argc, char** argv) {
             inputPlugin->activate();
             auto userInputMapper = DependencyManager::get<controller::UserInputMapper>();
             if (name == KeyboardMouseDevice::NAME) {
-                userInputMapper->registerDevice(dynamic_cast<KeyboardMouseDevice*>(inputPlugin.get())->getInputDevice());
+                userInputMapper->registerDevice(std::dynamic_pointer_cast<KeyboardMouseDevice>(inputPlugin)->getInputDevice());
             }
             inputPlugin->pluginUpdate(0, false);
         }

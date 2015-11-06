@@ -47,9 +47,7 @@ const bool DEFAULT_INVERT_SIXENSE_MOUSE_BUTTONS = false;
 class SixenseManager : public InputPlugin {
     Q_OBJECT
 public:
-    SixenseManager() {}
-    virtual ~SixenseManager() {}
-    
+
     // Plugin functions
     virtual bool isSupported() const override;
     virtual bool isJointController() const override { return true; }

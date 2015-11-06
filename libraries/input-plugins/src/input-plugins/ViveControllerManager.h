@@ -31,8 +31,6 @@ namespace vr {
 class ViveControllerManager : public InputPlugin {
     Q_OBJECT
 public:
-    ViveControllerManager() {}
-    virtual ~ViveControllerManager() {}
 
     // Plugin functions
     virtual bool isSupported() const override;

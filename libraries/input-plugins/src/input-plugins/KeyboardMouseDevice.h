@@ -64,12 +64,6 @@ public:
         TOUCH_BUTTON_PRESS = TOUCH_AXIS_Y_NEG + 1,
     };
 
-    KeyboardMouseDevice() {}
-
-    virtual ~KeyboardMouseDevice() {}
-
-    controller::InputDevice::Pointer getInputDevice() { return _inputDevice; }
-
     // Plugin functions
     virtual bool isSupported() const override { return true; }
     virtual bool isJointController() const override { return false; }
@@ -116,6 +110,10 @@ protected:
         friend class KeyboardMouseDevice;
     };
 
+public:
+    const std::shared_ptr<InputDevice>& getInputDevice() const { return _inputDevice; }
+
+protected:
     QPoint _lastCursor;
     QPoint _mousePressAt;
     glm::vec2 _lastTouch;
