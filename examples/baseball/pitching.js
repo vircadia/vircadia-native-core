@@ -198,8 +198,8 @@ PitchingMachine.prototype = {
 };
 
 var BASEBALL_MODEL_URL = "atp:7185099f1f650600ca187222573a88200aeb835454bd2f578f12c7fb4fd190fa.fbx";
-var BASEBALL_MIN_SPEED = 2.7;
-var BASEBALL_MAX_SPEED = 5.7;
+var BASEBALL_MIN_SPEED = 5.0;
+var BASEBALL_MAX_SPEED = 20.0;
 var BASEBALL_RADIUS = 0.07468;
 var BASEBALL_PROPERTIES = {
     name: "Baseball",
