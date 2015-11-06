@@ -109,10 +109,10 @@ void AvatarActionHold::doKinematicUpdate(float deltaTimeStep) {
             if (_previousSet) {
                 // smooth velocity over 2 frames
                 glm::vec3 positionalDelta = _positionalTarget - _previousPositionalTarget;
-                glm::vec3 positionalVelocity = (positionalDelta + previousPositionalDelta) / (deltaTimeStep + previousDeltaTimeStep);
+                glm::vec3 positionalVelocity = (positionalDelta + _previousPositionalDelta) / (deltaTimeStep + _previousDeltaTimeStep);
                 rigidBody->setLinearVelocity(glmToBullet(positionalVelocity));
-                previousPositionalDelta = positionalDelta;
-                previousDeltaTimeStep = deltaTimeStep;
+                _previousPositionalDelta = positionalDelta;
+                _previousDeltaTimeStep = deltaTimeStep;
             }
         }
 
