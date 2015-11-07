@@ -144,20 +144,25 @@ void DrawStatus::run(const SceneContextPointer& sceneContext, const RenderContex
 
         const unsigned int VEC3_ADRESS_OFFSET = 3;
 
-        for (int i = 0; i < nbItems; i++) {
-            batch._glUniform3fv(_drawItemBoundPosLoc, 1, (const float*) (itemAABox + i));
-            batch._glUniform3fv(_drawItemBoundDimLoc, 1, ((const float*) (itemAABox + i)) + VEC3_ADRESS_OFFSET);
+        if ((renderContext->_drawItemStatus & showDisplayStatusFlag) > 0) {
+            for (int i = 0; i < nbItems; i++) {
+                batch._glUniform3fv(_drawItemBoundPosLoc, 1, (const float*) (itemAABox + i));
+                batch._glUniform3fv(_drawItemBoundDimLoc, 1, ((const float*) (itemAABox + i)) + VEC3_ADRESS_OFFSET);
 
-            batch.draw(gpu::LINES, 24, 0);
+                batch.draw(gpu::LINES, 24, 0);
+            }
         }
 
         batch.setPipeline(getDrawItemStatusPipeline());
-        for (int i = 0; i < nbItems; i++) {
-            batch._glUniform3fv(_drawItemStatusPosLoc, 1, (const float*) (itemAABox + i));
-            batch._glUniform3fv(_drawItemStatusDimLoc, 1, ((const float*) (itemAABox + i)) + VEC3_ADRESS_OFFSET);
-            batch._glUniform4iv(_drawItemStatusValueLoc, 1, (const int*) (itemStatus + i));
 
-            batch.draw(gpu::TRIANGLES, 24, 0);
+        if ((renderContext->_drawItemStatus & showNetworkStatusFlag) > 0) {
+            for (int i = 0; i < nbItems; i++) {
+                batch._glUniform3fv(_drawItemStatusPosLoc, 1, (const float*) (itemAABox + i));
+                batch._glUniform3fv(_drawItemStatusDimLoc, 1, ((const float*) (itemAABox + i)) + VEC3_ADRESS_OFFSET);
+                batch._glUniform4iv(_drawItemStatusValueLoc, 1, (const int*) (itemStatus + i));
+
+                batch.draw(gpu::TRIANGLES, 24, 0);
+            }
         }
     });
 }

@@ -25,6 +25,10 @@ public:
 };
 typedef std::shared_ptr<SceneContext> SceneContextPointer;
 
+// see examples/utilities/tools/renderEngineDebug.js
+const int showDisplayStatusFlag = 1;
+const int showNetworkStatusFlag = 2;
+
 
 class RenderContext {
 public:
@@ -49,7 +53,7 @@ public:
     int _numDrawnOverlay3DItems = 0;
     int _maxDrawnOverlay3DItems = -1;
 
-    bool _drawItemStatus = false;
+    int _drawItemStatus = 0;
     bool _drawHitEffect = false;
 
     bool _occlusionStatus = false;
