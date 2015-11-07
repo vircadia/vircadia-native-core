@@ -14,6 +14,7 @@
             ]
         },
         { "from": "Standard.RX", "to": "Actions.Yaw" },
+        
         { "from": "Standard.RY", 
           "when": "Application.Grounded", 
           "to": "Actions.Up", 
@@ -41,8 +42,4 @@
         { "from": "Standard.RightHand", "to": "Actions.RightHand" }
     ]
 }
-
-
-
-
 
