@@ -308,6 +308,7 @@
                             z: 0
                         },
                         collisionsWillMove: true,
+                        collisionSoundURL: 'http://hifi-public.s3.amazonaws.com/sounds/basketball/basketball.wav',
                         ignoreForCollisions: false,
                         modelURL: basketballURL,
                         userData: JSON.stringify({
