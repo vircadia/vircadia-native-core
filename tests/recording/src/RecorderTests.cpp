@@ -8,6 +8,9 @@
 
 #include "RecorderTests.h"
 #include "Constants.h"
+
+#if 0
+
 #include "../QTestExtensions.h"
 
 #include <recording/Recorder.h>
@@ -23,3 +26,4 @@ void RecorderTests::recorderTest() {
     //QCOMPARE(recoreder.isRecording(), false);
 }
 
+#endif

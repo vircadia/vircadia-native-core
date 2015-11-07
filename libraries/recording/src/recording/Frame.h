@@ -29,6 +29,10 @@ public:
     float timeOffset { 0 };
     QByteArray data;
 
+    Frame() {}
+    Frame(FrameType type, float timeOffset, const QByteArray& data) 
+        : type(type), timeOffset(timeOffset), data(data) {}
+
     static FrameType registerFrameType(const QString& frameTypeName);
     static QMap<QString, FrameType> getFrameTypes();
     static QMap<FrameType, QString> getFrameTypeNames();
