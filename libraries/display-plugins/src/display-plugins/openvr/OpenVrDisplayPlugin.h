@@ -10,6 +10,7 @@
 #include <QtGlobal>
 
 #if defined(Q_OS_WIN)
+#include <openvr.h>
 
 #include "../WindowOpenGLDisplayPlugin.h"
 
@@ -39,6 +40,7 @@ protected:
     virtual void finishFrame() override;
 
 private:
+    vr::IVRSystem* _hmd { nullptr };
     static const QString NAME;
 };
 

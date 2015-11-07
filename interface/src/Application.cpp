@@ -646,11 +646,14 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
     _applicationStateDevice->addInputVariant(QString("ComfortMode"), controller::StateController::ReadLambda([]() -> float {
         return (float)Menu::getInstance()->isOptionChecked(MenuOption::ComfortMode);
     }));
+	_applicationStateDevice->addInputVariant(QString("Grounded"), controller::StateController::ReadLambda([]() -> float {
+		return (float)qApp->getMyAvatar()->getCharacterController()->onGround();
+	}));
 
     userInputMapper->registerDevice(_applicationStateDevice);
     
     // Setup the keyboardMouseDevice and the user input mapper with the default bindings
-    userInputMapper->registerDevice(_keyboardMouseDevice);
+    userInputMapper->registerDevice(_keyboardMouseDevice->getInputDevice());
 
 
     userInputMapper->loadDefaultMapping(userInputMapper->getStandardDeviceID());
@@ -726,8 +729,11 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
     // Now that menu is initalized we can sync myAvatar with it's state.
     getMyAvatar()->updateMotionBehaviorFromMenu();
 
+// FIXME spacemouse code still needs cleanup
+#if 0
     // the 3Dconnexion device wants to be initiliazed after a window is displayed.
     SpacemouseManager::getInstance().init();
+#endif
 
     auto& packetReceiver = nodeList->getPacketReceiver();
     packetReceiver.registerListener(PacketType::DomainConnectionDenied, this, "handleDomainConnectionDeniedPacket");
@@ -1847,9 +1853,12 @@ void Application::focusOutEvent(QFocusEvent* event) {
         }
     }
 
+// FIXME spacemouse code still needs cleanup
+#if 0
     //SpacemouseDevice::getInstance().focusOutEvent();
     //SpacemouseManager::getInstance().getDevice()->focusOutEvent();
     SpacemouseManager::getInstance().ManagerFocusOutEvent();
+#endif
 
     // synthesize events for keys currently pressed, since we may not get their release events
     foreach (int key, _keysPressed) {
