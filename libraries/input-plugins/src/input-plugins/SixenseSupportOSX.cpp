@@ -20,6 +20,10 @@
 
 #include "InputPluginsLogging.h"
 
+#ifndef SIXENSE_LIB_FILENAME
+#define SIXENSE_LIB_FILENAME QCoreApplication::applicationDirPath() + "/../Frameworks/libsixense_x64"
+#endif
+
 using Library = std::unique_ptr<QLibrary>;
 static Library SIXENSE;
 
@@ -41,15 +45,9 @@ Callable resolve(const Library& library, const char* name) {
 
 
 void loadSixense() {
-    if (!SIXENSE) {
-        static const QString LIBRARY_PATH =
-#ifdef SIXENSE_LIB_FILENAME
-                                SIXENSE_LIB_FILENAME;
-#else
-                                QCoreApplication::applicationDirPath() + "/../Frameworks/libsixense_x64";
-#endif
-        SIXENSE.reset(new QLibrary(LIBRARY_PATH));
-    }
+    Q_ASSERT_X(!(SIXENSE && SIXENSE->isLoaded()), __FUNCTION__, "Sixense library already loaded");
+    SIXENSE.reset(new QLibrary(SIXENSE_LIB_FILENAME));
+    Q_CHECK_PTR(SIXENSE);
     
     if (SIXENSE->load()){
         qDebug() << "Loaded sixense library for hydra support -" << SIXENSE->fileName();
