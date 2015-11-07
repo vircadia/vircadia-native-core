@@ -300,6 +300,8 @@ void Rig::setJointAnimatinoPriority(int index, float newPriority) {
     }
 }
 
+// Deprecated.
+// WARNING: this is not symmetric with getJointRotation. It's historical. Use the appropriate specific variation.
 void Rig::setJointRotation(int index, bool valid, const glm::quat& rotation, float priority) {
     if (index != -1 && index < _jointStates.size()) {
         JointState& state = _jointStates[index];
@@ -350,6 +352,8 @@ bool Rig::getJointRotationInWorldFrame(int jointIndex, glm::quat& result, const 
     return true;
 }
 
+// Deprecated.
+// WARNING: this is not symmetric with setJointRotation. It's historical. Use the appropriate specific variation.
 bool Rig::getJointRotation(int jointIndex, glm::quat& rotation) const {
     if (jointIndex == -1 || jointIndex >= _jointStates.size()) {
         return false;
