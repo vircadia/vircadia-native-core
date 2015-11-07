@@ -3,7 +3,6 @@
 //
 // A polyfill for UserTiming (http://www.w3.org/TR/user-timing/)
 //
-// Adapted for High Fidelity by James B. Pollack @imgntn on 11/6/2015
 // Copyright 2013 Nic Jansma
 // http://nicj.net
 //
@@ -11,6 +10,7 @@
 //
 // Licensed under the MIT license
 //
+// Adapted for High Fidelity by James B. Pollack @imgntn on 11/6/2015
 
 function userTiming() {
     "use strict";
