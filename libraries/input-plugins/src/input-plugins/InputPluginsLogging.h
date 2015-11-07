@@ -1,6 +1,6 @@
 //
 //  InputPluginsLogging.h
-//
+//  libraries/input-plugins/src/input-plugins
 //
 //  Created by Clement on 11/6/15.
 //  Copyright 2015 High Fidelity, Inc.
