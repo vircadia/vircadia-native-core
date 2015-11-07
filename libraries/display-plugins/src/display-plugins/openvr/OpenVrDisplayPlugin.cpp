@@ -14,7 +14,7 @@
 #include <QMainWindow>
 #include <QGLWidget>
 #include <GLMHelpers.h>
-#include <GlWindow.h>
+#include <gl/GlWindow.h>
 #include <QEvent>
 #include <QResizeEvent>
 
@@ -89,7 +89,7 @@ bool OpenVrDisplayPlugin::isSupported() const {
 }
 
 void OpenVrDisplayPlugin::activate() {
-    CONTAINER->setIsOptionChecked(StandingHMDSensorMode, true);
+    _container->setIsOptionChecked(StandingHMDSensorMode, true);
 
     hmdRefCount++;
     vr::HmdError eError = vr::HmdError_None;
@@ -132,7 +132,7 @@ void OpenVrDisplayPlugin::activate() {
 }
 
 void OpenVrDisplayPlugin::deactivate() {
-    CONTAINER->setIsOptionChecked(StandingHMDSensorMode, false);
+    _container->setIsOptionChecked(StandingHMDSensorMode, false);
 
     hmdRefCount--;
 
@@ -160,8 +160,8 @@ void OpenVrDisplayPlugin::resetSensors() {
     _sensorResetMat = glm::inverse(cancelOutRollAndPitch(_trackedDevicePoseMat4[0]));
 }
 
-glm::mat4 OpenVrDisplayPlugin::getEyePose(Eye eye) const {
-    return getHeadPose() * _eyesData[eye]._eyeOffset;
+glm::mat4 OpenVrDisplayPlugin::getEyeToHeadTransform(Eye eye) const {
+    return _eyesData[eye]._eyeOffset;
 }
 
 glm::mat4 OpenVrDisplayPlugin::getHeadPose() const {

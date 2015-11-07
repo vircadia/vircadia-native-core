@@ -58,6 +58,7 @@ private:
 
     gpu::FramebufferPointer _primaryFramebufferFull;
     gpu::FramebufferPointer _primaryFramebufferDepthColor;
+
     gpu::TexturePointer _primaryDepthTexture;
     gpu::TexturePointer _primaryColorTexture;
     gpu::TexturePointer _primaryNormalTexture;

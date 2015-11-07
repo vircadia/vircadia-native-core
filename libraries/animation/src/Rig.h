@@ -37,11 +37,14 @@
 #define __hifi__Rig__
 
 #include <QObject>
+#include <QMutex>
+#include <QScriptValue>
 
 #include "JointState.h"  // We might want to change this (later) to something that doesn't depend on gpu, fbx and model. -HRS
 
 #include "AnimNode.h"
 #include "AnimNodeLoader.h"
+#include "SimpleMovingAverage.h"
 
 class AnimationHandle;
 typedef std::shared_ptr<AnimationHandle> AnimationHandlePointer;
@@ -51,30 +54,38 @@ typedef std::shared_ptr<Rig> RigPointer;
 
 class Rig : public QObject, public std::enable_shared_from_this<Rig> {
 public:
+    struct StateHandler {
+        AnimVariantMap results;
+        QStringList propertyNames;
+        QScriptValue function;
+        bool useNames;
+    };
 
     struct HeadParameters {
         float leanSideways = 0.0f; // degrees
         float leanForward = 0.0f; // degrees
         float torsoTwist = 0.0f; // degrees
         bool enableLean = false;
-        glm::quat modelRotation = glm::quat();
+        glm::quat worldHeadOrientation = glm::quat();
         glm::quat localHeadOrientation = glm::quat();
         float localHeadPitch = 0.0f; // degrees
         float localHeadYaw = 0.0f; // degrees
         float localHeadRoll = 0.0f; // degrees
         glm::vec3 localHeadPosition = glm::vec3();
         bool isInHMD = false;
+        int leanJointIndex = -1;
+        int neckJointIndex = -1;
+        bool isTalking = false;
+    };
+
+    struct EyeParameters {
         glm::quat worldHeadOrientation = glm::quat();
         glm::vec3 eyeLookAt = glm::vec3();  // world space
         glm::vec3 eyeSaccade = glm::vec3(); // world space
         glm::vec3 modelTranslation = glm::vec3();
-        int leanJointIndex = -1;
-        int neckJointIndex = -1;
+        glm::quat modelRotation = glm::quat();
         int leftEyeJointIndex = -1;
         int rightEyeJointIndex = -1;
-        bool isTalking = false;
-
-        void dump() const;
     };
 
     struct HandParameters {
@@ -123,32 +134,36 @@ public:
                          int rightShoulderJointIndex);
     bool jointStatesEmpty() { return _jointStates.isEmpty(); };
     int getJointStateCount() const { return _jointStates.size(); }
-    int indexOfJoint(const QString& jointName) ;
+    int indexOfJoint(const QString& jointName);
 
     void initJointTransforms(glm::mat4 rootTransform);
     void clearJointTransformTranslation(int jointIndex);
     void reset(const QVector<FBXJoint>& fbxJoints);
     bool getJointStateRotation(int index, glm::quat& rotation) const;
-    void applyJointRotationDelta(int jointIndex, const glm::quat& delta, bool constrain, float priority);
+    bool getJointStateTranslation(int index, glm::vec3& translation) const;
+    void applyJointRotationDelta(int jointIndex, const glm::quat& delta, float priority);
     JointState getJointState(int jointIndex) const; // XXX
-    bool getVisibleJointState(int index, glm::quat& rotation) const;
     void clearJointState(int index);
     void clearJointStates();
     void clearJointAnimationPriority(int index);
     float getJointAnimatinoPriority(int index);
     void setJointAnimatinoPriority(int index, float newPriority);
-    void setJointState(int index, bool valid, const glm::quat& rotation, float priority);
+
+    virtual void setJointState(int index, bool valid, const glm::quat& rotation, const glm::vec3& translation,
+                               float priority) = 0;
+    virtual void setJointTranslation(int index, bool valid, const glm::vec3& translation, float priority) {}
+    void setJointRotation(int index, bool valid, const glm::quat& rotation, float priority);
+
     void restoreJointRotation(int index, float fraction, float priority);
+    void restoreJointTranslation(int index, float fraction, float priority);
     bool getJointPositionInWorldFrame(int jointIndex, glm::vec3& position,
                                       glm::vec3 translation, glm::quat rotation) const;
 
     bool getJointPosition(int jointIndex, glm::vec3& position) const;
     bool getJointRotationInWorldFrame(int jointIndex, glm::quat& result, const glm::quat& rotation) const;
     bool getJointRotation(int jointIndex, glm::quat& rotation) const;
+    bool getJointTranslation(int jointIndex, glm::vec3& translation) const;
     bool getJointCombinedRotation(int jointIndex, glm::quat& result, const glm::quat& rotation) const;
-    bool getVisibleJointPositionInWorldFrame(int jointIndex, glm::vec3& position,
-                                             glm::vec3 translation, glm::quat rotation) const;
-    bool getVisibleJointRotationInWorldFrame(int jointIndex, glm::quat& result, glm::quat rotation) const;
     glm::mat4 getJointTransform(int jointIndex) const;
     glm::mat4 getJointVisibleTransform(int jointIndex) const;
     void setJointVisibleTransform(int jointIndex, glm::mat4 newTransform);
@@ -165,13 +180,12 @@ public:
     float getLimbLength(int jointIndex, const QVector<int>& freeLineage,
                         const glm::vec3 scale, const QVector<FBXJoint>& fbxJoints) const;
 
-    glm::quat setJointRotationInBindFrame(int jointIndex, const glm::quat& rotation, float priority, bool constrain = false);
+    glm::quat setJointRotationInBindFrame(int jointIndex, const glm::quat& rotation, float priority);
     glm::vec3 getJointDefaultTranslationInConstrainedFrame(int jointIndex);
     glm::quat setJointRotationInConstrainedFrame(int jointIndex, glm::quat targetRotation,
-                                                 float priority, bool constrain = false, float mix = 1.0f);
+                                                 float priority, float mix = 1.0f);
     bool getJointRotationInConstrainedFrame(int jointIndex, glm::quat& rotOut) const;
     glm::quat getJointDefaultRotationInParentFrame(int jointIndex);
-    void updateVisibleJointStates();
     void clearJointStatePriorities();
 
     virtual void updateJointState(int index, glm::mat4 rootTransform) = 0;
@@ -182,25 +196,31 @@ public:
     bool getEnableAnimGraph() const { return _enableAnimGraph; }
 
     void updateFromHeadParameters(const HeadParameters& params, float dt);
-    void updateEyeJoints(int leftEyeIndex, int rightEyeIndex, const glm::vec3& modelTranslation, const glm::quat& modelRotation,
-                         const glm::quat& worldHeadOrientation, const glm::vec3& lookAtSpot, const glm::vec3& saccade = glm::vec3(0.0f));
-
+    void updateFromEyeParameters(const EyeParameters& params);
     void updateFromHandParameters(const HandParameters& params, float dt);
 
     virtual void setHandPosition(int jointIndex, const glm::vec3& position, const glm::quat& rotation,
                                  float scale, float priority) = 0;
 
+    void makeAnimSkeleton(const FBXGeometry& fbxGeometry);
     void initAnimGraph(const QUrl& url, const FBXGeometry& fbxGeometry);
 
     AnimNode::ConstPointer getAnimNode() const { return _animNode; }
     AnimSkeleton::ConstPointer getAnimSkeleton() const { return _animSkeleton; }
     bool disableHands {false}; // should go away with rig animation (and Rig::inverseKinematics)
+    QScriptValue addAnimationStateHandler(QScriptValue handler, QScriptValue propertiesList);
+    void removeAnimationStateHandler(QScriptValue handler);
+    void animationStateHandlerResult(int identifier, QScriptValue result);
+
+    bool getModelOffset(glm::vec3& modelOffsetOut) const;
 
  protected:
+    void updateAnimationStateHandlers();
 
     void updateLeanJoint(int index, float leanSideways, float leanForward, float torsoTwist);
     void updateNeckJoint(int index, const HeadParameters& params);
     void updateEyeJoint(int index, const glm::vec3& modelTranslation, const glm::quat& modelRotation, const glm::quat& worldHeadOrientation, const glm::vec3& lookAt, const glm::vec3& saccade);
+    void calcAnimAlpha(float speed, const std::vector<float>& referenceSpeeds, float* alphaOut) const;
 
     QVector<JointState> _jointStates;
     int _rootJointIndex = -1;
@@ -220,6 +240,7 @@ public:
     bool _enableAnimGraph = false;
     glm::vec3 _lastFront;
     glm::vec3 _lastPosition;
+    glm::vec3 _lastVelocity;
 
     std::shared_ptr<AnimNode> _animNode;
     std::shared_ptr<AnimSkeleton> _animSkeleton;
@@ -231,8 +252,18 @@ public:
         Move
     };
     RigRole _state = RigRole::Idle;
+    RigRole _desiredState = RigRole::Idle;
+    float _desiredStateAge = 0.0f;
     float _leftHandOverlayAlpha = 0.0f;
     float _rightHandOverlayAlpha = 0.0f;
+
+    SimpleMovingAverage _averageForwardSpeed{ 10 };
+    SimpleMovingAverage _averageLateralSpeed{ 10 };
+
+private:
+    QMap<int, StateHandler> _stateHandlers;
+    int _nextStateHandlerId {0};
+    QMutex _stateMutex;
 };
 
 #endif /* defined(__hifi__Rig__) */

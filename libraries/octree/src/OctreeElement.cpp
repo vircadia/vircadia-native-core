@@ -573,64 +573,6 @@ void OctreeElement::notifyUpdateHooks() {
     }
 }
 
-bool OctreeElement::findRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
-                         bool& keepSearching, OctreeElementPointer& element, float& distance, 
-                         BoxFace& face, glm::vec3& surfaceNormal,
-                         void** intersectedObject, bool precisionPicking) {
-
-    keepSearching = true; // assume that we will continue searching after this.
-
-    float distanceToElementCube = std::numeric_limits<float>::max();
-    float distanceToElementDetails = distance;
-    BoxFace localFace;
-    glm::vec3 localSurfaceNormal;
-
-    // if the ray doesn't intersect with our cube, we can stop searching!
-    if (!_cube.findRayIntersection(origin, direction, distanceToElementCube, localFace, localSurfaceNormal)) {
-        keepSearching = false; // no point in continuing to search
-        return false; // we did not intersect
-    }
-
-    // by default, we only allow intersections with leaves with content
-    if (!canRayIntersect()) {
-        return false; // we don't intersect with non-leaves, and we keep searching
-    }
-
-    // if the distance to the element cube is not less than the current best distance, then it's not possible
-    // for any details inside the cube to be closer so we don't need to consider them.
-    if (_cube.contains(origin) || distanceToElementCube < distance) {
-
-        if (findDetailedRayIntersection(origin, direction, keepSearching, element, distanceToElementDetails,
-                                    face, localSurfaceNormal, intersectedObject, precisionPicking, distanceToElementCube)) {
-
-            if (distanceToElementDetails < distance) {
-                distance = distanceToElementDetails;
-                face = localFace;
-                surfaceNormal = localSurfaceNormal;
-                return true;
-            }
-        }
-    }
-    return false;
-}
-
-bool OctreeElement::findDetailedRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
-                         bool& keepSearching, OctreeElementPointer& element, float& distance, 
-                         BoxFace& face, glm::vec3& surfaceNormal,
-                         void** intersectedObject, bool precisionPicking, float distanceToElementCube) {
-
-    // we did hit this element, so calculate appropriate distances
-    if (hasContent()) {
-        element = shared_from_this();
-        distance = distanceToElementCube;
-        if (intersectedObject) {
-            *intersectedObject = this;
-        }
-        keepSearching = false;
-        return true; // we did intersect
-    }
-    return false; // we did not intersect
-}
 
 bool OctreeElement::findSpherePenetration(const glm::vec3& center, float radius,
                         glm::vec3& penetration, void** penetratedObject) const {

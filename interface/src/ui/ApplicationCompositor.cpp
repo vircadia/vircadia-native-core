@@ -17,6 +17,7 @@
 
 #include <glm/gtc/type_ptr.hpp>
 
+#include <display-plugins/DisplayPlugin.h>
 #include <avatar/AvatarManager.h>
 #include <gpu/GLBackend.h>
 #include <NumericalConstants.h>
@@ -26,7 +27,7 @@
 
 #include "Application.h"
 #include <input-plugins/SixenseManager.h> // TODO: any references to sixense should be removed here
-#include <input-plugins/InputDevice.h>
+#include <controllers/InputDevice.h>
 
 
 // Used to animate the magnification windows
@@ -285,7 +286,10 @@ void ApplicationCompositor::displayOverlayTextureHmd(RenderArgs* renderArgs, int
 
         mat4 camMat;
         _cameraBaseTransform.getMatrix(camMat);
-        camMat = camMat * qApp->getEyePose(eye);
+        auto displayPlugin = qApp->getActiveDisplayPlugin();
+        auto headPose = displayPlugin->getHeadPose();
+        auto eyeToHead = displayPlugin->getEyeToHeadTransform((Eye)eye);
+        camMat = (headPose * eyeToHead) * camMat;
         batch.setViewportTransform(renderArgs->_viewport);
         batch.setViewTransform(camMat);
 
@@ -313,18 +317,21 @@ void ApplicationCompositor::displayOverlayTextureHmd(RenderArgs* renderArgs, int
         glm::mat4 overlayXfm;
         _modelTransform.getMatrix(overlayXfm);
 
-        MyAvatar* myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
-        for (int i = 0; i < (int)myAvatar->getHand()->getNumPalms(); i++) {
-            PalmData& palm = myAvatar->getHand()->getPalms()[i];
-            if (palm.isActive()) {
-                glm::vec2 polar = getPolarCoordinates(palm);
-                // Convert to quaternion
-                mat4 pointerXfm = glm::mat4_cast(quat(vec3(polar.y, -polar.x, 0.0f))) * glm::translate(mat4(), vec3(0, 0, -1));
-                mat4 reticleXfm = overlayXfm * pointerXfm;
-                reticleXfm = glm::scale(reticleXfm, reticleScale);
-                batch.setModelTransform(reticleXfm);
-                // Render reticle at location
-                geometryCache->renderUnitQuad(batch, glm::vec4(1), _reticleQuad);
+        // Only render the hand pointers if the EnableHandMouseInput is enabled
+        if (Menu::getInstance()->isOptionChecked(MenuOption::EnableHandMouseInput)) {
+            MyAvatar* myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
+            auto palms = myAvatar->getHand()->getCopyOfPalms();
+            for (const auto& palm : palms) {
+                if (palm.isActive()) {
+                    glm::vec2 polar = getPolarCoordinates(palm);
+                    // Convert to quaternion
+                    mat4 pointerXfm = glm::mat4_cast(quat(vec3(polar.y, -polar.x, 0.0f))) * glm::translate(mat4(), vec3(0, 0, -1));
+                    mat4 reticleXfm = overlayXfm * pointerXfm;
+                    reticleXfm = glm::scale(reticleXfm, reticleScale);
+                    batch.setModelTransform(reticleXfm);
+                    // Render reticle at location
+                    geometryCache->renderUnitQuad(batch, glm::vec4(1), _reticleQuad);
+                }
             }
         }
 
@@ -343,31 +350,28 @@ void ApplicationCompositor::displayOverlayTextureHmd(RenderArgs* renderArgs, int
 
 
 void ApplicationCompositor::computeHmdPickRay(glm::vec2 cursorPos, glm::vec3& origin, glm::vec3& direction) const {
-    cursorPos *= qApp->getCanvasSize();
-    const glm::vec2 projection = screenToSpherical(cursorPos);
+    const glm::vec2 projection = overlayToSpherical(cursorPos);
     // The overlay space orientation of the mouse coordinates
-    const glm::quat orientation(glm::vec3(-projection.y, projection.x, 0.0f));
-    // FIXME We now have the direction of the ray FROM THE DEFAULT HEAD POSE.
-    // Now we need to account for the actual camera position relative to the overlay
-    glm::vec3 overlaySpaceDirection = glm::normalize(orientation * IDENTITY_FRONT);
+    const glm::quat cursorOrientation(glm::vec3(-projection.y, projection.x, 0.0f));
 
+    // The orientation and position of the HEAD, not the overlay
+    glm::vec3 worldSpaceHeadPosition = qApp->getCamera()->getPosition();
+    glm::quat worldSpaceOrientation = qApp->getCamera()->getOrientation();
 
-    // We need the RAW camera orientation and position, because this is what the overlay is
-    // rendered relative to
-    glm::vec3 overlayPosition = qApp->getCamera()->getPosition();
-    glm::quat overlayOrientation = qApp->getCamera()->getRotation();
+    auto headPose = qApp->getHMDSensorPose();
+    auto headOrientation = glm::quat_cast(headPose);
+    auto headTranslation = extractTranslation(headPose);
 
+    auto overlayOrientation = worldSpaceOrientation * glm::inverse(headOrientation);
+    auto overlayPosition = worldSpaceHeadPosition - (overlayOrientation * headTranslation);
     if (Menu::getInstance()->isOptionChecked(MenuOption::StandingHMDSensorMode)) {
         overlayPosition = _modelTransform.getTranslation();
         overlayOrientation = _modelTransform.getRotation();
     }
 
-    // Intersection UI overlay space
-    glm::vec3 worldSpaceDirection = overlayOrientation * overlaySpaceDirection;
-    glm::vec3 worldSpaceIntersection = (glm::normalize(worldSpaceDirection) * _oculusUIRadius) + overlayPosition;
-    glm::vec3 worldSpaceHeadPosition = (overlayOrientation * extractTranslation(qApp->getHMDSensorPose())) + overlayPosition;
-
     // Intersection in world space
+    glm::vec3 worldSpaceIntersection = ((overlayOrientation * (cursorOrientation * Vectors::FRONT)) * _oculusUIRadius) + overlayPosition;
+
     origin = worldSpaceHeadPosition;
     direction = glm::normalize(worldSpaceIntersection - worldSpaceHeadPosition);
 }
@@ -422,17 +426,18 @@ bool ApplicationCompositor::calculateRayUICollisionPoint(const glm::vec3& positi
 
 //Renders optional pointers
 void ApplicationCompositor::renderPointers(gpu::Batch& batch) {
-    if (qApp->isHMDMode() && !qApp->getLastMouseMoveWasSimulated() && !qApp->isMouseHidden()) {
+    if (qApp->isHMDMode() && !qApp->getLastMouseMoveWasSimulated()) {
         //If we are in oculus, render reticle later
         auto trueMouse = qApp->getTrueMouse();
         trueMouse /= qApp->getCanvasSize();
-        QPoint position = QPoint(qApp->getTrueMouseX(), qApp->getTrueMouseY());
+        QPoint position = QPoint(qApp->getTrueMouse().x, qApp->getTrueMouse().y);
         _reticlePosition[MOUSE] = position;
         _reticleActive[MOUSE] = true;
         _magActive[MOUSE] = _magnifier;
         _reticleActive[LEFT_CONTROLLER] = false;
         _reticleActive[RIGHT_CONTROLLER] = false;
-    } else if (qApp->getLastMouseMoveWasSimulated() && Menu::getInstance()->isOptionChecked(MenuOption::HandMouseInput)) {
+    } else if (qApp->getLastMouseMoveWasSimulated() 
+                && Menu::getInstance()->isOptionChecked(MenuOption::EnableHandMouseInput)) {
         //only render controller pointer if we aren't already rendering a mouse pointer
         _reticleActive[MOUSE] = false;
         _magActive[MOUSE] = false;
@@ -441,6 +446,7 @@ void ApplicationCompositor::renderPointers(gpu::Batch& batch) {
 }
 
 
+// FIXME - this is old code that likely needs to be removed and/or reworked to support the new input control model
 void ApplicationCompositor::renderControllerPointers(gpu::Batch& batch) {
     MyAvatar* myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
 
@@ -450,23 +456,24 @@ void ApplicationCompositor::renderControllerPointers(gpu::Batch& batch) {
     static bool stateWhenPressed[NUMBER_OF_RETICLES] = { false, false, false };
 
     const HandData* handData = DependencyManager::get<AvatarManager>()->getMyAvatar()->getHandData();
+    auto palms = handData->getCopyOfPalms();
 
     for (unsigned int palmIndex = 2; palmIndex < 4; palmIndex++) {
         const int index = palmIndex - 1;
 
         const PalmData* palmData = NULL;
 
-        if (palmIndex >= handData->getPalms().size()) {
+        if (palmIndex >= palms.size()) {
             return;
         }
 
-        if (handData->getPalms()[palmIndex].isActive()) {
-            palmData = &handData->getPalms()[palmIndex];
+        if (palms[palmIndex].isActive()) {
+            palmData = &palms[palmIndex];
         } else {
             continue;
         }
 
-        int controllerButtons = palmData->getControllerButtons();
+        int controllerButtons = 0;
 
         //Check for if we should toggle or drag the magnification window
         if (controllerButtons & BUTTON_3) {
@@ -516,7 +523,7 @@ void ApplicationCompositor::renderControllerPointers(gpu::Batch& batch) {
         float yAngle = 0.5f - ((atan2f(direction.z, direction.y) + (float)PI_OVER_TWO));
 
         // Get the pixel range over which the xAngle and yAngle are scaled
-        float cursorRange = canvasSize.x * InputDevice::getCursorPixelRangeMult();
+        float cursorRange = canvasSize.x * controller::InputDevice::getCursorPixelRangeMult();
 
         mouseX = (canvasSize.x / 2.0f + cursorRange * xAngle);
         mouseY = (canvasSize.y / 2.0f + cursorRange * yAngle);
@@ -679,7 +686,6 @@ glm::vec2 ApplicationCompositor::screenToSpherical(const glm::vec2& screenPos) {
     result.y = (screenPos.y / screenSize.y - 0.5f);
     result.x *= MOUSE_YAW_RANGE;
     result.y *= MOUSE_PITCH_RANGE;
-
     return result;
 }
 
@@ -698,13 +704,13 @@ glm::vec2 ApplicationCompositor::sphericalToOverlay(const glm::vec2&  sphericalP
     result /= _textureFov;
     result.x /= _textureAspectRatio;
     result += 0.5f;
-    result *= qApp->getCanvasSize();
+    result *= qApp->getUiSize();
     return result;
 }
 
 glm::vec2 ApplicationCompositor::overlayToSpherical(const glm::vec2&  overlayPos) const {
     glm::vec2 result = overlayPos;
-    result /= qApp->getCanvasSize();
+    result /= qApp->getUiSize();
     result -= 0.5f;
     result *= _textureFov;
     result.x *= _textureAspectRatio;

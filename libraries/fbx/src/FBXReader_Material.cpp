@@ -107,6 +107,8 @@ void FBXReader::consolidateFBXMaterials() {
         if (!specularTextureID.isNull()) {
             specularTexture = getTexture(specularTextureID);
             detectDifferentUVs |= (specularTexture.texcoordSet != 0) || (!specularTexture.transform.isIdentity());
+        
+            material.specularTexture = specularTexture;            
         }
 
         FBXTexture emissiveTexture;
@@ -144,13 +146,12 @@ void FBXReader::consolidateFBXMaterials() {
         // FIXME: Do not use the Specular Factor yet as some FBX models have it set to 0
         // metallic *= material.specularFactor;
         material._material->setMetallic(metallic);
-        material._material->setGloss(material.shininess); 
+        material._material->setGloss(material.shininess);
 
         if (material.opacity <= 0.0f) {
-            material._material->setOpacity(1.0f); 
+            material._material->setOpacity(1.0f);
         } else {
-            material._material->setOpacity(material.opacity); 
+            material._material->setOpacity(material.opacity);
         }
     }
 }
-

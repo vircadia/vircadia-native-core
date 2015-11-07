@@ -14,18 +14,15 @@
 
 #include <ByteCountCoding.h>
 
-#include "ZoneEntityItem.h"
-#include "EntityTree.h"
 #include "EntitiesLogging.h"
+#include "EntityItemProperties.h"
+#include "EntityTree.h"
 #include "EntityTreeElement.h"
+#include "ZoneEntityItem.h"
 
 bool ZoneEntityItem::_zonesArePickable = false;
 bool ZoneEntityItem::_drawZoneBoundaries = false;
 
-const xColor ZoneEntityItem::DEFAULT_KEYLIGHT_COLOR = { 255, 255, 255 };
-const float ZoneEntityItem::DEFAULT_KEYLIGHT_INTENSITY = 1.0f;
-const float ZoneEntityItem::DEFAULT_KEYLIGHT_AMBIENT_INTENSITY = 0.5f;
-const glm::vec3 ZoneEntityItem::DEFAULT_KEYLIGHT_DIRECTION = { 0.0f, -1.0f, 0.0f };
 const ShapeType ZoneEntityItem::DEFAULT_SHAPE_TYPE = SHAPE_TYPE_BOX;
 const QString ZoneEntityItem::DEFAULT_COMPOUND_SHAPE_URL = "";
 
@@ -38,13 +35,6 @@ ZoneEntityItem::ZoneEntityItem(const EntityItemID& entityItemID, const EntityIte
 {
     _type = EntityTypes::Zone;
 
-    _keyLightColor[RED_INDEX] = DEFAULT_KEYLIGHT_COLOR.red;
-    _keyLightColor[GREEN_INDEX] = DEFAULT_KEYLIGHT_COLOR.green;
-    _keyLightColor[BLUE_INDEX] = DEFAULT_KEYLIGHT_COLOR.blue;
-
-    _keyLightIntensity = DEFAULT_KEYLIGHT_INTENSITY;
-    _keyLightAmbientIntensity = DEFAULT_KEYLIGHT_AMBIENT_INTENSITY;
-    _keyLightDirection = DEFAULT_KEYLIGHT_DIRECTION;
     _shapeType = DEFAULT_SHAPE_TYPE;
     _compoundShapeURL = DEFAULT_COMPOUND_SHAPE_URL;
 
@@ -76,11 +66,9 @@ EnvironmentData ZoneEntityItem::getEnvironmentData() const {
 EntityItemProperties ZoneEntityItem::getProperties(EntityPropertyFlags desiredProperties) const {
     EntityItemProperties properties = EntityItem::getProperties(desiredProperties); // get the properties from our base class
 
-    COPY_ENTITY_PROPERTY_TO_PROPERTIES(keyLightColor, getKeyLightColor);
-    COPY_ENTITY_PROPERTY_TO_PROPERTIES(keyLightIntensity, getKeyLightIntensity);
-    COPY_ENTITY_PROPERTY_TO_PROPERTIES(keyLightAmbientIntensity, getKeyLightAmbientIntensity);
-    COPY_ENTITY_PROPERTY_TO_PROPERTIES(keyLightDirection, getKeyLightDirection);
-
+    
+    _keyLightProperties.getProperties(properties);
+    
     _stageProperties.getProperties(properties);
 
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(shapeType, getShapeType);
@@ -97,11 +85,8 @@ bool ZoneEntityItem::setProperties(const EntityItemProperties& properties) {
     bool somethingChanged = false;
     somethingChanged = EntityItem::setProperties(properties); // set the properties in our base class
 
-    SET_ENTITY_PROPERTY_FROM_PROPERTIES(keyLightColor, setKeyLightColor);
-    SET_ENTITY_PROPERTY_FROM_PROPERTIES(keyLightIntensity, setKeyLightIntensity);
-    SET_ENTITY_PROPERTY_FROM_PROPERTIES(keyLightAmbientIntensity, setKeyLightAmbientIntensity);
-    SET_ENTITY_PROPERTY_FROM_PROPERTIES(keyLightDirection, setKeyLightDirection);
-
+    bool somethingChangedInKeyLight = _keyLightProperties.setProperties(properties);
+    
     bool somethingChangedInStage = _stageProperties.setProperties(properties);
 
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(shapeType, updateShapeType);
@@ -111,7 +96,7 @@ bool ZoneEntityItem::setProperties(const EntityItemProperties& properties) {
     bool somethingChangedInAtmosphere = _atmosphereProperties.setProperties(properties);
     bool somethingChangedInSkybox = _skyboxProperties.setProperties(properties);
 
-    somethingChanged = somethingChanged || somethingChangedInStage || somethingChangedInAtmosphere || somethingChangedInSkybox;
+    somethingChanged = somethingChanged  || somethingChangedInKeyLight || somethingChangedInStage || somethingChangedInAtmosphere || somethingChangedInSkybox;
 
     if (somethingChanged) {
         bool wantDebug = false;
@@ -129,18 +114,20 @@ bool ZoneEntityItem::setProperties(const EntityItemProperties& properties) {
 
 int ZoneEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data, int bytesLeftToRead, 
                                                 ReadBitstreamToTreeParams& args,
-                                                EntityPropertyFlags& propertyFlags, bool overwriteLocalData) {
+                                                EntityPropertyFlags& propertyFlags, bool overwriteLocalData,
+                                                bool& somethingChanged) {
     int bytesRead = 0;
     const unsigned char* dataAt = data;
 
-    READ_ENTITY_PROPERTY(PROP_KEYLIGHT_COLOR, rgbColor, setKeyLightColor);
-    READ_ENTITY_PROPERTY(PROP_KEYLIGHT_INTENSITY, float, setKeyLightIntensity);
-    READ_ENTITY_PROPERTY(PROP_KEYLIGHT_AMBIENT_INTENSITY, float, setKeyLightAmbientIntensity);
-    READ_ENTITY_PROPERTY(PROP_KEYLIGHT_DIRECTION, glm::vec3, setKeyLightDirection);
+    int bytesFromKeylight = _keyLightProperties.readEntitySubclassDataFromBuffer(dataAt, (bytesLeftToRead - bytesRead), args,
+                                                                                 propertyFlags, overwriteLocalData, somethingChanged);
+    
+    bytesRead += bytesFromKeylight;
+    dataAt += bytesFromKeylight;
 
     int bytesFromStage = _stageProperties.readEntitySubclassDataFromBuffer(dataAt, (bytesLeftToRead - bytesRead), args, 
-                                                                               propertyFlags, overwriteLocalData);
-                                                                               
+                                                                               propertyFlags, overwriteLocalData, somethingChanged);
+    
     bytesRead += bytesFromStage;
     dataAt += bytesFromStage;
 
@@ -149,13 +136,13 @@ int ZoneEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data, 
     READ_ENTITY_PROPERTY(PROP_BACKGROUND_MODE, BackgroundMode, setBackgroundMode);
 
     int bytesFromAtmosphere = _atmosphereProperties.readEntitySubclassDataFromBuffer(dataAt, (bytesLeftToRead - bytesRead), args, 
-                                                                               propertyFlags, overwriteLocalData);
+                                                                               propertyFlags, overwriteLocalData, somethingChanged);
                                                                                
     bytesRead += bytesFromAtmosphere;
     dataAt += bytesFromAtmosphere;
 
     int bytesFromSkybox = _skyboxProperties.readEntitySubclassDataFromBuffer(dataAt, (bytesLeftToRead - bytesRead), args, 
-                                                                           propertyFlags, overwriteLocalData);
+                                                                           propertyFlags, overwriteLocalData, somethingChanged);
     bytesRead += bytesFromSkybox;
     dataAt += bytesFromSkybox;
 
@@ -167,10 +154,8 @@ int ZoneEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data, 
 EntityPropertyFlags ZoneEntityItem::getEntityProperties(EncodeBitstreamParams& params) const {
     EntityPropertyFlags requestedProperties = EntityItem::getEntityProperties(params);
 
-    requestedProperties += PROP_KEYLIGHT_COLOR;
-    requestedProperties += PROP_KEYLIGHT_INTENSITY;
-    requestedProperties += PROP_KEYLIGHT_AMBIENT_INTENSITY;
-    requestedProperties += PROP_KEYLIGHT_DIRECTION;
+    requestedProperties += _keyLightProperties.getEntityProperties(params);
+    
     requestedProperties += PROP_SHAPE_TYPE;
     requestedProperties += PROP_COMPOUND_SHAPE_URL;
     requestedProperties += PROP_BACKGROUND_MODE;
@@ -191,10 +176,8 @@ void ZoneEntityItem::appendSubclassData(OctreePacketData* packetData, EncodeBits
 
     bool successPropertyFits = true;
 
-    APPEND_ENTITY_PROPERTY(PROP_KEYLIGHT_COLOR, _keyLightColor);
-    APPEND_ENTITY_PROPERTY(PROP_KEYLIGHT_INTENSITY, getKeyLightIntensity());
-    APPEND_ENTITY_PROPERTY(PROP_KEYLIGHT_AMBIENT_INTENSITY, getKeyLightAmbientIntensity());
-    APPEND_ENTITY_PROPERTY(PROP_KEYLIGHT_DIRECTION, getKeyLightDirection());
+    _keyLightProperties.appendSubclassData(packetData, params, modelTreeElementExtraEncodeData, requestedProperties,
+                                         propertyFlags, propertiesDidntFit, propertyCount, appendState);
 
     _stageProperties.appendSubclassData(packetData, params, modelTreeElementExtraEncodeData, requestedProperties,
                                     propertyFlags, propertiesDidntFit, propertyCount, appendState);
@@ -215,15 +198,12 @@ void ZoneEntityItem::appendSubclassData(OctreePacketData* packetData, EncodeBits
 void ZoneEntityItem::debugDump() const {
     quint64 now = usecTimestampNow();
     qCDebug(entities) << "   ZoneEntityItem id:" << getEntityItemID() << "---------------------------------------------";
-    qCDebug(entities) << "             keyLightColor:" << _keyLightColor[0] << "," << _keyLightColor[1] << "," << _keyLightColor[2];
     qCDebug(entities) << "                  position:" << debugTreeVector(getPosition());
     qCDebug(entities) << "                dimensions:" << debugTreeVector(getDimensions());
     qCDebug(entities) << "             getLastEdited:" << debugTime(getLastEdited(), now);
-    qCDebug(entities) << "        _keyLightIntensity:" << _keyLightIntensity;
-    qCDebug(entities) << " _keyLightAmbientIntensity:" << _keyLightAmbientIntensity;
-    qCDebug(entities) << "        _keyLightDirection:" << _keyLightDirection;
     qCDebug(entities) << "               _backgroundMode:" << EntityItemProperties::getBackgroundModeString(_backgroundMode);
 
+    _keyLightProperties.debugDump();
     _stageProperties.debugDump();
     _atmosphereProperties.debugDump();
     _skyboxProperties.debugDump();

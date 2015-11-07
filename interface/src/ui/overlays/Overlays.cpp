@@ -10,10 +10,11 @@
 
 #include "Overlays.h"
 
-#include <QScriptValueIterator>
-
 #include <limits>
 
+#include <QtScript/QScriptValueIterator>
+
+#include <OffscreenUi.h>
 #include <render/Scene.h>
 #include <RegisteredMetaTypes.h>
 
@@ -31,6 +32,7 @@
 #include "TextOverlay.h"
 #include "Text3DOverlay.h"
 #include "Web3DOverlay.h"
+#include <QtQuick/QQuickWindow>
 
 
 Overlays::Overlays() : _nextOverlayID(1) {
@@ -75,7 +77,7 @@ void Overlays::update(float deltatime) {
 
 void Overlays::cleanupOverlaysToDelete() {
     if (!_overlaysToDelete.isEmpty()) {
-        render::ScenePointer scene = Application::getInstance()->getMain3DScene();
+        render::ScenePointer scene = qApp->getMain3DScene();
         render::PendingChanges pendingChanges;
 
         {
@@ -168,7 +170,7 @@ unsigned int Overlays::addOverlay(const QString& type, const QScriptValue& prope
     } else if (type == Grid3DOverlay::TYPE) {
         thisOverlay = std::make_shared<Grid3DOverlay>();
     } else if (type == LocalModelsOverlay::TYPE) {
-        thisOverlay = std::make_shared<LocalModelsOverlay>(Application::getInstance()->getEntityClipboardRenderer());
+        thisOverlay = std::make_shared<LocalModelsOverlay>(qApp->getEntityClipboardRenderer());
     } else if (type == ModelOverlay::TYPE) {
         thisOverlay = std::make_shared<ModelOverlay>();
     } else if (type == Web3DOverlay::TYPE) {
@@ -195,7 +197,7 @@ unsigned int Overlays::addOverlay(Overlay::Pointer overlay) {
         } else {
             _overlaysWorld[thisID] = overlay;
 
-            render::ScenePointer scene = Application::getInstance()->getMain3DScene();
+            render::ScenePointer scene = qApp->getMain3DScene();
             render::PendingChanges pendingChanges;
 
             overlay->addToScene(overlay, scene, pendingChanges);
@@ -331,10 +333,6 @@ void Overlays::setParentPanel(unsigned int childId, unsigned int panelId) {
 
 unsigned int Overlays::getOverlayAtPoint(const glm::vec2& point) {
     glm::vec2 pointCopy = point;
-    if (qApp->isHMDMode()) {
-        pointCopy = qApp->getApplicationCompositor().screenToOverlay(point);
-    }
-    
     QReadLocker lock(&_lock);
     if (!_enabled) {
         return 0;
@@ -606,4 +604,14 @@ void Overlays::deletePanel(unsigned int panelId) {
 
 bool Overlays::isAddedOverlay(unsigned int id) {
     return _overlaysHUD.contains(id) || _overlaysWorld.contains(id);
+}
+
+float Overlays::width() const {
+    auto offscreenUi = DependencyManager::get<OffscreenUi>();
+    return offscreenUi->getWindow()->size().width();
+}
+
+float Overlays::height() const {
+    auto offscreenUi = DependencyManager::get<OffscreenUi>();
+    return offscreenUi->getWindow()->size().height();
 }

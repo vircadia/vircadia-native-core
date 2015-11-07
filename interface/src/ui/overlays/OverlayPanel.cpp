@@ -18,7 +18,6 @@
 
 #include "avatar/AvatarManager.h"
 #include "avatar/MyAvatar.h"
-#include "Application.h"
 #include "Base3DOverlay.h"
 
 PropertyBinding::PropertyBinding(QString avatar, QUuid entity) :

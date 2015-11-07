@@ -27,10 +27,10 @@ public:
     SkeletonModel(Avatar* owningAvatar, QObject* parent = nullptr, RigPointer rig = nullptr);
     ~SkeletonModel();
 
-    virtual void initJointStates(QVector<JointState> states);
+    virtual void initJointStates(QVector<JointState> states) override;
 
-    virtual void simulate(float deltaTime, bool fullUpdate = true);
-    virtual void updateRig(float deltaTime, glm::mat4 parentTransform);
+    virtual void simulate(float deltaTime, bool fullUpdate = true) override;
+    virtual void updateRig(float deltaTime, glm::mat4 parentTransform) override;
     void updateAttitude();
 
     void renderIKConstraints(gpu::Batch& batch);
@@ -118,7 +118,7 @@ protected:
     /// \param position position of joint in model-frame
     void applyHandPosition(int jointIndex, const glm::vec3& position);
 
-    void applyPalmData(int jointIndex, PalmData& palm);
+    void applyPalmData(int jointIndex, const PalmData& palm);
 private:
 
     void renderJointConstraints(gpu::Batch& batch, int jointIndex);

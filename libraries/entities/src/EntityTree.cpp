@@ -448,6 +448,53 @@ bool EntityTree::findNearPointOperation(OctreeElementPointer element, void* extr
     // if this element doesn't contain the point, then none of its children can contain the point, so stop searching
     return false;
 }
+// combines the ray cast arguments into a single object
+class RayArgs {
+public:
+    glm::vec3 origin;
+    glm::vec3 direction;
+    OctreeElementPointer& element;
+    float& distance;
+    BoxFace& face;
+    glm::vec3& surfaceNormal;
+    const QVector<EntityItemID>& entityIdsToInclude;
+    void** intersectedObject;
+    bool found;
+    bool precisionPicking;
+};
+
+
+bool findRayIntersectionOp(OctreeElementPointer element, void* extraData) {
+    RayArgs* args = static_cast<RayArgs*>(extraData);
+    bool keepSearching = true;
+    EntityTreeElementPointer entityTreeElementPointer = std::dynamic_pointer_cast<EntityTreeElement>(element);
+    if (entityTreeElementPointer ->findRayIntersection(args->origin, args->direction, keepSearching,
+        args->element, args->distance, args->face, args->surfaceNormal, args->entityIdsToInclude,
+        args->intersectedObject, args->precisionPicking)) {
+        args->found = true;
+    }
+    return keepSearching;
+}
+
+bool EntityTree::findRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
+                                    OctreeElementPointer& element, float& distance, 
+                                    BoxFace& face, glm::vec3& surfaceNormal, const QVector<EntityItemID>& entityIdsToInclude, void** intersectedObject,
+                                    Octree::lockType lockType, bool* accurateResult, bool precisionPicking) {
+    RayArgs args = { origin, direction, element, distance, face, surfaceNormal, entityIdsToInclude, intersectedObject, false, precisionPicking };
+    distance = FLT_MAX;
+
+    bool requireLock = lockType == Octree::Lock;
+    bool lockResult = withReadLock([&]{
+        recurseTreeWithOperation(findRayIntersectionOp, &args);
+    }, requireLock);
+
+    if (accurateResult) {
+        *accurateResult = lockResult; // if user asked to accuracy or result, let them know this is accurate
+    }
+
+    return args.found;
+}
+
 
 EntityItemPointer EntityTree::findClosestEntity(glm::vec3 position, float targetRadius) {
     FindNearPointArgs args = { position, targetRadius, false, NULL, FLT_MAX };
@@ -564,6 +611,16 @@ EntityItemPointer EntityTree::findEntityByEntityItemID(const EntityItemID& entit
     return foundEntity;
 }
 
+void EntityTree::fixupTerseEditLogging(EntityItemProperties& properties, QList<QString>& changedProperties) {
+    if (properties.simulationOwnerChanged()) {
+        int simIndex = changedProperties.indexOf("simulationOwner");
+        if (simIndex >= 0) {
+            SimulationOwner simOwner = properties.getSimulationOwner();
+            changedProperties[simIndex] = QString("simulationOwner:") + QString::number((int)simOwner.getPriority());
+        }
+    }
+}
+
 int EntityTree::processEditPacketData(NLPacket& packet, const unsigned char* editData, int maxLength,
                                      const SharedNodePointer& senderNode) {
 
@@ -613,6 +670,11 @@ int EntityTree::processEditPacketData(NLPacket& packet, const unsigned char* edi
                         qCDebug(entities) << "User [" << senderNode->getUUID() << "] editing entity. ID:" << entityItemID;
                         qCDebug(entities) << "   properties:" << properties;
                     }
+                    if (wantTerseEditLogging()) {
+                        QList<QString> changedProperties = properties.listChangedProperties();
+                        fixupTerseEditLogging(properties, changedProperties);
+                        qCDebug(entities) << "edit" << entityItemID.toString() << changedProperties;
+                    }
                     endLogging = usecTimestampNow();
 
                     startUpdate = usecTimestampNow();
@@ -638,6 +700,11 @@ int EntityTree::processEditPacketData(NLPacket& packet, const unsigned char* edi
                                                 << newEntity->getEntityItemID();
                                 qCDebug(entities) << "   properties:" << properties;
                             }
+                            if (wantTerseEditLogging()) {
+                                QList<QString> changedProperties = properties.listChangedProperties();
+                                fixupTerseEditLogging(properties, changedProperties);
+                                qCDebug(entities) << "add" << entityItemID.toString() << changedProperties;
+                            }
                             endLogging = usecTimestampNow();
 
                         }
@@ -647,8 +714,10 @@ int EntityTree::processEditPacketData(NLPacket& packet, const unsigned char* edi
                     }
                 } else {
                     static QString repeatedMessage =
-                        LogHandler::getInstance().addRepeatedMessageRegex("^Add or Edit failed.*");
-                    qCDebug(entities) << "Add or Edit failed." << packet.getType() << existingEntity.get();
+                        LogHandler::getInstance().addRepeatedMessageRegex("^Edit failed.*");
+                    qCDebug(entities) << "Edit failed. [" << packet.getType() <<"] " <<
+                            "entity id:" << entityItemID << 
+                            "existingEntity pointer:" << existingEntity.get();
                 }
             }
 
@@ -869,7 +938,7 @@ int EntityTree::processEraseMessage(NLPacket& packet, const SharedNodePointer& s
                 EntityItemID entityItemID(entityID);
                 entityItemIDsToDelete << entityItemID;
 
-                if (wantEditLogging()) {
+                if (wantEditLogging() || wantTerseEditLogging()) {
                     qCDebug(entities) << "User [" << sourceNode->getUUID() << "] deleting entity. ID:" << entityItemID;
                 }
 
@@ -913,7 +982,7 @@ int EntityTree::processEraseMessageDetails(const QByteArray& dataByteArray, cons
             EntityItemID entityItemID(entityID);
             entityItemIDsToDelete << entityItemID;
 
-            if (wantEditLogging()) {
+            if (wantEditLogging() || wantTerseEditLogging()) {
                 qCDebug(entities) << "User [" << sourceNode->getUUID() << "] deleting entity. ID:" << entityItemID;
             }
 

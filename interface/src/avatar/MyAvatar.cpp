@@ -25,6 +25,7 @@
 #include <AudioClient.h>
 #include <DependencyManager.h>
 #include <display-plugins/DisplayPlugin.h>
+#include <FSTReader.h>
 #include <GeometryUtil.h>
 #include <NodeList.h>
 #include <udt/PacketHeaders.h>
@@ -36,6 +37,7 @@
 #include <AnimDebugDraw.h>
 
 #include "devices/Faceshift.h"
+
 
 #include "Application.h"
 #include "AvatarManager.h"
@@ -78,12 +80,10 @@ const float MyAvatar::ZOOM_DEFAULT = 1.5f;
 
 MyAvatar::MyAvatar(RigPointer rig) :
     Avatar(rig),
-    _gravity(0.0f, 0.0f, 0.0f),
     _wasPushing(false),
     _isPushing(false),
     _isBraking(false),
     _boomLength(ZOOM_DEFAULT),
-    _trapDuration(0.0f),
     _thrust(0.0f),
     _keyboardMotorVelocity(0.0f),
     _keyboardMotorTimescale(DEFAULT_KEYBOARD_MOTOR_TIMESCALE),
@@ -109,7 +109,8 @@ MyAvatar::MyAvatar(RigPointer rig) :
     _goToOrientation(),
     _rig(rig),
     _prevShouldDrawHead(true),
-    _audioListenerMode(FROM_HEAD)
+    _audioListenerMode(FROM_HEAD),
+    _hmdAtRestDetector(glm::vec3(0), glm::quat())
 {
     for (int i = 0; i < MAX_DRIVE_KEYS; i++) {
         _driveKeys[i] = 0.0f;
@@ -119,6 +120,8 @@ MyAvatar::MyAvatar(RigPointer rig) :
     connect(DependencyManager::get<AddressManager>().data(), &AddressManager::locationChangeRequired,
             this, &MyAvatar::goToLocation);
     _characterController.setEnabled(true);
+
+    _bodySensorMatrix = deriveBodyFromHMDSensor();
 }
 
 MyAvatar::~MyAvatar() {
@@ -126,7 +129,7 @@ MyAvatar::~MyAvatar() {
 }
 
 QByteArray MyAvatar::toByteArray(bool cullSmallChanges, bool sendAll) {
-    CameraMode mode = Application::getInstance()->getCamera()->getMode();
+    CameraMode mode = qApp->getCamera()->getMode();
     if (mode == CAMERA_MODE_THIRD_PERSON || mode == CAMERA_MODE_INDEPENDENT) {
         // fake the avatar position that is sent up to the AvatarMixer
         glm::vec3 oldPosition = _position;
@@ -139,27 +142,57 @@ QByteArray MyAvatar::toByteArray(bool cullSmallChanges, bool sendAll) {
     return AvatarData::toByteArray(cullSmallChanges, sendAll);
 }
 
-void MyAvatar::reset() {
-    _skeletonModel.reset();
-    getHead()->reset();
-
-    _targetVelocity = glm::vec3(0.0f);
-    setThrust(glm::vec3(0.0f));
-    //  Reset the pitch and roll components of the avatar's orientation, preserve yaw direction
-    glm::vec3 eulers = safeEulerAngles(getOrientation());
-    eulers.x = 0.0f;
-    eulers.z = 0.0f;
-    setOrientation(glm::quat(eulers));
-
+void MyAvatar::reset(bool andReload) {
+    // Gather animation mode...
     // This should be simpler when we have only graph animations always on.
     bool isRig = _rig->getEnableRig();
-    bool isGraph = _rig->getEnableAnimGraph();
-    qApp->setRawAvatarUpdateThreading(false);
-    _rig->disableHands = true;
-    setEnableRigAnimations(true);
-    _skeletonModel.simulate(0.1f);  // non-zero
-    setEnableRigAnimations(false);
-    _skeletonModel.simulate(0.1f);
+    // seting rig animation to true, below, will clear the graph animation menu item, so grab it now.
+    bool isGraph = _rig->getEnableAnimGraph() || Menu::getInstance()->isOptionChecked(MenuOption::EnableAnimGraph);
+    // ... and get to sane configuration where other activity won't bother us.
+    if (andReload) {
+        qApp->setRawAvatarUpdateThreading(false);
+        _rig->disableHands = true;
+        setEnableRigAnimations(true);
+    }
+
+    // Reset dynamic state.
+    _wasPushing = _isPushing = _isBraking = _billboardValid = false;
+    _isFollowingHMD = false;
+    _hmdFollowVelocity = Vectors::ZERO;
+    _hmdFollowSpeed = 0.0f;
+    _skeletonModel.reset();
+    getHead()->reset();
+    _targetVelocity = glm::vec3(0.0f);
+    setThrust(glm::vec3(0.0f));
+
+    if (andReload) {
+        // Get fresh data, in case we're really slow and out of wack.
+        _hmdSensorMatrix = qApp->getHMDSensorPose();
+        _hmdSensorPosition = extractTranslation(_hmdSensorMatrix);
+        _hmdSensorOrientation = glm::quat_cast(_hmdSensorMatrix);
+
+        // Reset body position/orientation under the head.
+        auto newBodySensorMatrix = deriveBodyFromHMDSensor(); // Based on current cached HMD position/rotation..
+        auto worldBodyMatrix = _sensorToWorldMatrix * newBodySensorMatrix;
+        glm::vec3 worldBodyPos = extractTranslation(worldBodyMatrix);
+        glm::quat worldBodyRot = glm::normalize(glm::quat_cast(worldBodyMatrix));
+
+        // FIXME: Hack to retain the previous behavior wrt height.
+        // I'd like to make the body match head height, but that will have to wait for separate PR.
+        worldBodyPos.y = getPosition().y;
+
+        setPosition(worldBodyPos);
+        setOrientation(worldBodyRot);
+        // If there is any discrepency between positioning and the head (as there is in initial deriveBodyFromHMDSensor),
+        // we can make that right by setting _bodySensorMatrix = newBodySensorMatrix.
+        // However, doing so will make the head want to point to the previous body orientation, as cached above.
+        //_bodySensorMatrix = newBodySensorMatrix;
+        //updateSensorToWorldMatrix(); // Uses updated position/orientation and _bodySensorMatrix changes
+
+        _skeletonModel.simulate(0.1f);  // non-zero
+        setEnableRigAnimations(false);
+        _skeletonModel.simulate(0.1f);
+    }
     if (isRig) {
         setEnableRigAnimations(true);
         Menu::getInstance()->setIsOptionChecked(MenuOption::EnableRigAnimations, true);
@@ -167,8 +200,10 @@ void MyAvatar::reset() {
         setEnableAnimGraph(true);
         Menu::getInstance()->setIsOptionChecked(MenuOption::EnableAnimGraph, true);
     }
-    _rig->disableHands = false;
-    qApp->setRawAvatarUpdateThreading();
+    if (andReload) {
+        _rig->disableHands = false;
+        qApp->setRawAvatarUpdateThreading();
+    }
 }
 
 void MyAvatar::update(float deltaTime) {
@@ -177,6 +212,11 @@ void MyAvatar::update(float deltaTime) {
         setPosition(_goToPosition);
         setOrientation(_goToOrientation);
         _goToPending = false;
+        // updateFromHMDSensorMatrix (called from paintGL) expects that the sensorToWorldMatrix is updated for any position changes
+        // that happen between render and Application::update (which calls updateSensorToWorldMatrix to do so).
+        // However, render/MyAvatar::update/Application::update don't always match (e.g., when using the separate avatar update thread),
+        // so we update now. It's ok if it updates again in the normal way.
+        updateSensorToWorldMatrix();
     }
 
     if (_referential) {
@@ -210,6 +250,15 @@ void MyAvatar::simulate(float deltaTime) {
 
     {
         PerformanceTimer perfTimer("transform");
+        bool stepAction = false;
+        // When there are no step values, we zero out the last step pulse.
+        // This allows a user to do faster snapping by tapping a control
+        for (int i = STEP_TRANSLATE_X; !stepAction && i <= STEP_YAW; ++i) {
+            if (_driveKeys[i] != 0.0f) {
+                stepAction = true;
+            }
+        }
+
         updateOrientation(deltaTime);
         updatePosition(deltaTime);
     }
@@ -239,9 +288,11 @@ void MyAvatar::simulate(float deltaTime) {
         PerformanceTimer perfTimer("joints");
         // copy out the skeleton joints from the model
         _jointData.resize(_rig->getJointStateCount());
+
         for (int i = 0; i < _jointData.size(); i++) {
             JointData& data = _jointData[i];
-            _rig->getJointStateRotation(i, data.rotation);
+            data.rotationSet |= _rig->getJointStateRotation(i, data.rotation);
+            data.translationSet |= _rig->getJointStateTranslation(i, data.translation);
         }
     }
 
@@ -274,61 +325,64 @@ glm::mat4 MyAvatar::getSensorToWorldMatrix() const {
 // This can also update the avatar's position to follow the HMD
 // as it moves through the world.
 void MyAvatar::updateFromHMDSensorMatrix(const glm::mat4& hmdSensorMatrix) {
-
-    auto now = usecTimestampNow();
-    auto deltaUsecs = now - _lastUpdateFromHMDTime;
-    _lastUpdateFromHMDTime = now;
-    double actualDeltaTime = (double)deltaUsecs / (double)USECS_PER_SECOND;
-    const float BIGGEST_DELTA_TIME_SECS = 0.25f;
-    float deltaTime = glm::clamp((float)actualDeltaTime, 0.0f, BIGGEST_DELTA_TIME_SECS);
-
     // update the sensorMatrices based on the new hmd pose
     _hmdSensorMatrix = hmdSensorMatrix;
     _hmdSensorPosition = extractTranslation(hmdSensorMatrix);
     _hmdSensorOrientation = glm::quat_cast(hmdSensorMatrix);
+}
 
-    const float STRAIGHTING_LEAN_DURATION = 0.5f;  // seconds
-    const float STRAIGHTING_LEAN_THRESHOLD = 0.2f;  // meters
+void MyAvatar::updateHMDFollowVelocity() {
+    // compute offset to body's target position (in sensor-frame)
+    auto sensorBodyMatrix = deriveBodyFromHMDSensor();
+    _hmdFollowOffset = extractTranslation(sensorBodyMatrix) - extractTranslation(_bodySensorMatrix);
+    glm::vec3 truncatedOffset = _hmdFollowOffset;
+    if (truncatedOffset.y < 0.0f) {
+        // don't pull the body DOWN to match the target (allow animation system to squat)
+        truncatedOffset.y = 0.0f;
+    }
+    float truncatedOffsetDistance = glm::length(truncatedOffset);
 
-    auto newBodySensorMatrix = deriveBodyFromHMDSensor();
-    glm::vec3 diff = extractTranslation(newBodySensorMatrix) - extractTranslation(_bodySensorMatrix);
-    if (!_straightingLean && glm::length(diff) > STRAIGHTING_LEAN_THRESHOLD) {
+    bool isMoving;
+    if (_lastIsMoving) {
+        const float MOVE_EXIT_SPEED_THRESHOLD = 0.07f;  // m/sec
+        isMoving = glm::length(_velocity) >= MOVE_EXIT_SPEED_THRESHOLD;
+    } else {
+        const float MOVE_ENTER_SPEED_THRESHOLD = 0.2f; // m/sec
+        isMoving = glm::length(_velocity) > MOVE_ENTER_SPEED_THRESHOLD;
+    }
+    bool justStartedMoving = (_lastIsMoving != isMoving) && isMoving;
+    _lastIsMoving = isMoving;
+    bool hmdIsAtRest = _hmdAtRestDetector.update(_hmdSensorPosition, _hmdSensorOrientation);
+    const float MIN_HMD_HIP_SHIFT = 0.05f;
+    if (justStartedMoving || (hmdIsAtRest && truncatedOffsetDistance > MIN_HMD_HIP_SHIFT)) {
+        _isFollowingHMD = true;
+    }
 
-        // begin homing toward derived body position.
-        _straightingLean = true;
-        _straightingLeanAlpha = 0.0f;
-
-    } else if (_straightingLean) {
-
-        auto newBodySensorMatrix = deriveBodyFromHMDSensor();
-        auto worldBodyMatrix = _sensorToWorldMatrix * newBodySensorMatrix;
-        glm::vec3 worldBodyPos = extractTranslation(worldBodyMatrix);
-        glm::quat worldBodyRot = glm::normalize(glm::quat_cast(worldBodyMatrix));
-
-        _straightingLeanAlpha += (1.0f / STRAIGHTING_LEAN_DURATION) * deltaTime;
-
-        if (_straightingLeanAlpha >= 1.0f) {
-            _straightingLean = false;
-            nextAttitude(worldBodyPos, worldBodyRot);
-            _bodySensorMatrix = newBodySensorMatrix;
-        } else {
-            // interp position toward the desired pos
-            glm::vec3 pos = lerp(getPosition(), worldBodyPos, _straightingLeanAlpha);
-            glm::quat rot = glm::normalize(safeMix(getOrientation(), worldBodyRot, _straightingLeanAlpha));
-            nextAttitude(pos, rot);
-
-            // interp sensor matrix toward desired
-            glm::vec3 nextBodyPos = extractTranslation(newBodySensorMatrix);
-            glm::quat nextBodyRot = glm::normalize(glm::quat_cast(newBodySensorMatrix));
-            glm::vec3 prevBodyPos = extractTranslation(_bodySensorMatrix);
-            glm::quat prevBodyRot = glm::normalize(glm::quat_cast(_bodySensorMatrix));
-            pos = lerp(prevBodyPos, nextBodyPos, _straightingLeanAlpha);
-            rot = glm::normalize(safeMix(prevBodyRot, nextBodyRot, _straightingLeanAlpha));
-            _bodySensorMatrix = createMatFromQuatAndPos(rot, pos);
+    bool needNewFollowSpeed = (_isFollowingHMD && _hmdFollowSpeed == 0.0f);
+    if (!needNewFollowSpeed) {
+        // check to see if offset has exceeded its threshold
+        const float MAX_HMD_HIP_SHIFT = 0.2f;
+        if (truncatedOffsetDistance > MAX_HMD_HIP_SHIFT) {
+            _isFollowingHMD = true;
+            needNewFollowSpeed = true;
         }
     }
+    if (_isFollowingHMD) {
+        // only bother to rotate into world frame if we're following
+        glm::quat sensorToWorldRotation = extractRotation(_sensorToWorldMatrix);
+        _hmdFollowOffset = sensorToWorldRotation * _hmdFollowOffset;
+    }
+    if (needNewFollowSpeed) {
+        // compute new velocity that will be used to resolve offset of hips from body
+        const float FOLLOW_HMD_DURATION = 0.5f;  // seconds
+        _hmdFollowVelocity = (_hmdFollowOffset / FOLLOW_HMD_DURATION);
+        _hmdFollowSpeed = glm::length(_hmdFollowVelocity);
+    } else if (_isFollowingHMD) {
+        // compute new velocity (but not new speed)
+        _hmdFollowVelocity = _hmdFollowSpeed * glm::normalize(_hmdFollowOffset);
+    }
 }
-// 
+
 // best called at end of main loop, just before rendering.
 // update sensor to world matrix from current body position and hmd sensor.
 // This is so the correct camera can be used for rendering.
@@ -349,7 +403,7 @@ void MyAvatar::updateFromTrackers(float deltaTime) {
         return;
     }
 
-    FaceTracker* tracker = Application::getInstance()->getActiveFaceTracker();
+    FaceTracker* tracker = qApp->getActiveFaceTracker();
     bool inFacetracker = tracker && !tracker->isMuted();
 
     if (inHmd) {
@@ -363,7 +417,7 @@ void MyAvatar::updateFromTrackers(float deltaTime) {
         estimatedPosition = tracker->getHeadTranslation();
         _trackedHeadPosition = estimatedPosition;
         estimatedRotation = glm::degrees(safeEulerAngles(tracker->getHeadRotation()));
-        if (Application::getInstance()->getCamera()->getMode() == CAMERA_MODE_MIRROR) {
+        if (qApp->getCamera()->getMode() == CAMERA_MODE_MIRROR) {
             // Invert yaw and roll when in mirror mode
             // NOTE: this is kinda a hack, it's the same hack we use to make the head tilt. But it's not really a mirror
             // it just makes you feel like you're looking in a mirror because the body movements of the avatar appear to
@@ -401,8 +455,7 @@ void MyAvatar::updateFromTrackers(float deltaTime) {
         head->setDeltaYaw(estimatedRotation.y);
         head->setDeltaRoll(estimatedRotation.z);
     } else {
-        float magnifyFieldOfView = qApp->getFieldOfView() /
-                                   _realWorldFieldOfView.get();
+        float magnifyFieldOfView = qApp->getViewFrustum()->getFieldOfView() / _realWorldFieldOfView.get();
         head->setDeltaPitch(estimatedRotation.x * magnifyFieldOfView);
         head->setDeltaYaw(estimatedRotation.y * magnifyFieldOfView);
         head->setDeltaRoll(estimatedRotation.z);
@@ -411,22 +464,66 @@ void MyAvatar::updateFromTrackers(float deltaTime) {
     //  Update torso lean distance based on accelerometer data
     const float TORSO_LENGTH = 0.5f;
     glm::vec3 relativePosition = estimatedPosition - glm::vec3(0.0f, -TORSO_LENGTH, 0.0f);
-    const float MAX_LEAN = 45.0f;
 
     // Invert left/right lean when in mirror mode
     // NOTE: this is kinda a hack, it's the same hack we use to make the head tilt. But it's not really a mirror
     // it just makes you feel like you're looking in a mirror because the body movements of the avatar appear to
     // match your body movements.
-    if ((inHmd || inFacetracker) && Application::getInstance()->getCamera()->getMode() == CAMERA_MODE_MIRROR) {
+    if ((inHmd || inFacetracker) && qApp->getCamera()->getMode() == CAMERA_MODE_MIRROR) {
         relativePosition.x = -relativePosition.x;
     }
 
+    const float MAX_LEAN = 45.0f;
     head->setLeanSideways(glm::clamp(glm::degrees(atanf(relativePosition.x * _leanScale / TORSO_LENGTH)),
                                      -MAX_LEAN, MAX_LEAN));
     head->setLeanForward(glm::clamp(glm::degrees(atanf(relativePosition.z * _leanScale / TORSO_LENGTH)),
                                     -MAX_LEAN, MAX_LEAN));
 }
 
+
+glm::vec3 MyAvatar::getLeftHandPosition() const {
+    auto palmData = getHandData()->getCopyOfPalmData(HandData::LeftHand);
+    return palmData.isValid() ? palmData.getPosition() : glm::vec3(0.0f);
+}
+
+glm::vec3 MyAvatar::getRightHandPosition() const {
+    auto palmData = getHandData()->getCopyOfPalmData(HandData::RightHand);
+    return palmData.isValid() ? palmData.getPosition() : glm::vec3(0.0f);
+}
+
+glm::vec3 MyAvatar::getLeftHandTipPosition() const {
+    auto palmData = getHandData()->getCopyOfPalmData(HandData::LeftHand);
+    return palmData.isValid() ? palmData.getTipPosition() : glm::vec3(0.0f);
+}
+
+glm::vec3 MyAvatar::getRightHandTipPosition() const {
+    auto palmData = getHandData()->getCopyOfPalmData(HandData::RightHand);
+    return palmData.isValid() ? palmData.getTipPosition() : glm::vec3(0.0f);
+}
+
+controller::Pose MyAvatar::getLeftHandPose() const {
+    auto palmData = getHandData()->getCopyOfPalmData(HandData::LeftHand);
+    return palmData.isValid() ? controller::Pose(palmData.getPosition(), palmData.getRotation(),
+        palmData.getVelocity(), palmData.getRawAngularVelocityAsQuat()) : controller::Pose();
+}
+
+controller::Pose MyAvatar::getRightHandPose() const {
+    auto palmData = getHandData()->getCopyOfPalmData(HandData::RightHand);
+    return palmData.isValid() ? controller::Pose(palmData.getPosition(), palmData.getRotation(),
+        palmData.getVelocity(), palmData.getRawAngularVelocityAsQuat()) : controller::Pose();
+}
+
+controller::Pose MyAvatar::getLeftHandTipPose() const {
+    auto palmData = getHandData()->getCopyOfPalmData(HandData::LeftHand);
+    return palmData.isValid() ? controller::Pose(palmData.getTipPosition(), palmData.getRotation(),
+        palmData.getTipVelocity(), palmData.getRawAngularVelocityAsQuat()) : controller::Pose();
+}
+
+controller::Pose MyAvatar::getRightHandTipPose() const {
+    auto palmData = getHandData()->getCopyOfPalmData(HandData::RightHand);
+    return palmData.isValid() ? controller::Pose(palmData.getTipPosition(), palmData.getRotation(),
+        palmData.getTipVelocity(), palmData.getRawAngularVelocityAsQuat()) : controller::Pose();
+}
 
 // virtual
 void MyAvatar::render(RenderArgs* renderArgs, const glm::vec3& cameraPosition) {
@@ -444,76 +541,12 @@ void MyAvatar::render(RenderArgs* renderArgs, const glm::vec3& cameraPosition) {
     }
 }
 
-const glm::vec3 HAND_TO_PALM_OFFSET(0.0f, 0.12f, 0.08f);
-
-glm::vec3 MyAvatar::getLeftPalmPosition() {
-    glm::vec3 leftHandPosition;
-    getSkeletonModel().getLeftHandPosition(leftHandPosition);
-    glm::quat leftRotation;
-    getSkeletonModel().getJointRotationInWorldFrame(getSkeletonModel().getLeftHandJointIndex(), leftRotation);
-    leftHandPosition += HAND_TO_PALM_OFFSET * glm::inverse(leftRotation);
-    return leftHandPosition;
-}
-
-glm::vec3 MyAvatar::getLeftPalmVelocity() {
-    const PalmData* palm = getHand()->getPalm(LEFT_HAND_INDEX);
-    if (palm != NULL) {
-        return palm->getVelocity();
-    }
-    return glm::vec3(0.0f);
-}
-
-glm::vec3 MyAvatar::getLeftPalmAngularVelocity() {
-    const PalmData* palm = getHand()->getPalm(LEFT_HAND_INDEX);
-    if (palm != NULL) {
-        return palm->getRawAngularVelocity();
-    }
-    return glm::vec3(0.0f);
-}
-
-glm::quat MyAvatar::getLeftPalmRotation() {
-    glm::quat leftRotation;
-    getSkeletonModel().getJointRotationInWorldFrame(getSkeletonModel().getLeftHandJointIndex(), leftRotation);
-    return leftRotation;
-}
-
-glm::vec3 MyAvatar::getRightPalmPosition() {
-    glm::vec3 rightHandPosition;
-    getSkeletonModel().getRightHandPosition(rightHandPosition);
-    glm::quat rightRotation;
-    getSkeletonModel().getJointRotationInWorldFrame(getSkeletonModel().getRightHandJointIndex(), rightRotation);
-    rightHandPosition += HAND_TO_PALM_OFFSET * glm::inverse(rightRotation);
-    return rightHandPosition;
-}
-
-glm::vec3 MyAvatar::getRightPalmVelocity() {
-    const PalmData* palm = getHand()->getPalm(RIGHT_HAND_INDEX);
-    if (palm != NULL) {
-        return palm->getVelocity();
-    }
-    return glm::vec3(0.0f);
-}
-
-glm::vec3 MyAvatar::getRightPalmAngularVelocity() {
-    const PalmData* palm = getHand()->getPalm(RIGHT_HAND_INDEX);
-    if (palm != NULL) {
-        return palm->getRawAngularVelocity();
-    }
-    return glm::vec3(0.0f);
-}
-
-glm::quat MyAvatar::getRightPalmRotation() {
-    glm::quat rightRotation;
-    getSkeletonModel().getJointRotationInWorldFrame(getSkeletonModel().getRightHandJointIndex(), rightRotation);
-    return rightRotation;
-}
-
 void MyAvatar::clearReferential() {
     changeReferential(NULL);
 }
 
 bool MyAvatar::setModelReferential(const QUuid& id) {
-    EntityTreePointer tree = Application::getInstance()->getEntities()->getTree();
+    EntityTreePointer tree = qApp->getEntities()->getTree();
     changeReferential(new ModelReferential(id, tree, this));
     if (_referential->isValid()) {
         return true;
@@ -524,7 +557,7 @@ bool MyAvatar::setModelReferential(const QUuid& id) {
 }
 
 bool MyAvatar::setJointReferential(const QUuid& id, int jointIndex) {
-    EntityTreePointer tree = Application::getInstance()->getEntities()->getTree();
+    EntityTreePointer tree = qApp->getEntities()->getTree();
     changeReferential(new JointReferential(jointIndex, id, tree, this));
     if (!_referential->isValid()) {
         return true;
@@ -571,7 +604,7 @@ void MyAvatar::startRecording() {
     // connect to AudioClient's signal so we get input audio
     auto audioClient = DependencyManager::get<AudioClient>();
     connect(audioClient.data(), &AudioClient::inputReceived, _recorder.data(),
-            &Recorder::recordAudio, Qt::BlockingQueuedConnection);
+            &Recorder::recordAudio, Qt::QueuedConnection);
 
     _recorder->startRecording();
 }
@@ -831,7 +864,7 @@ void MyAvatar::setEnableDebugDrawAnimPose(bool isEnabled) {
 }
 
 void MyAvatar::setEnableMeshVisible(bool isEnabled) {
-    render::ScenePointer scene = Application::getInstance()->getMain3DScene();
+    render::ScenePointer scene = qApp->getMain3DScene();
     _skeletonModel.setVisibleInScene(isEnabled, scene);
 }
 
@@ -980,13 +1013,17 @@ void MyAvatar::updateLookAtTargetAvatar() {
     _targetAvatarPosition = glm::vec3(0.0f);
 
     glm::vec3 lookForward = getHead()->getFinalOrientationInWorldFrame() * IDENTITY_FRONT;
-    glm::vec3 cameraPosition = Application::getInstance()->getCamera()->getPosition();
+    glm::vec3 cameraPosition = qApp->getCamera()->getPosition();
 
     float smallestAngleTo = glm::radians(DEFAULT_FIELD_OF_VIEW_DEGREES) / 2.0f;
     const float KEEP_LOOKING_AT_CURRENT_ANGLE_FACTOR = 1.3f;
     const float GREATEST_LOOKING_AT_DISTANCE = 10.0f;
 
-    foreach (const AvatarSharedPointer& avatarPointer, DependencyManager::get<AvatarManager>()->getAvatarHash()) {
+    AvatarHash hash;
+    DependencyManager::get<AvatarManager>()->withAvatarHash([&] (const AvatarHash& locked) {
+        hash = locked; // make a shallow copy and operate on that, to minimize lock time
+    });
+    foreach (const AvatarSharedPointer& avatarPointer, hash) {
         auto avatar = static_pointer_cast<Avatar>(avatarPointer);
         bool isCurrentTarget = avatar->getIsLookAtTarget();
         float distanceTo = glm::length(avatar->getHead()->getEyePosition() - cameraPosition);
@@ -998,7 +1035,7 @@ void MyAvatar::updateLookAtTargetAvatar() {
                 _targetAvatarPosition = avatarPointer->getPosition();
                 smallestAngleTo = angleTo;
             }
-            if (Application::getInstance()->isLookingAtMyAvatar(avatar)) {
+            if (isLookingAtMe(avatar)) {
 
                 // Alter their gaze to look directly at my camera; this looks more natural than looking at my avatar's face.
                 glm::vec3 lookAtPosition = avatar->getHead()->getLookAtPosition(); // A position, in world space, on my avatar.
@@ -1010,14 +1047,13 @@ void MyAvatar::updateLookAtTargetAvatar() {
                 // When not in HMD, these might both answer identity (i.e., the bridge of the nose). That's ok.
                 // By my inpsection of the code and live testing, getEyeOffset and getEyePose are the same. (Application hands identity as offset matrix.)
                 // This might be more work than needed for any given use, but as we explore different formulations, we go mad if we don't work in world space.
-                glm::mat4 leftEye = Application::getInstance()->getEyeOffset(Eye::Left);
-                glm::mat4 rightEye = Application::getInstance()->getEyeOffset(Eye::Right);
+                glm::mat4 leftEye = qApp->getEyeOffset(Eye::Left);
+                glm::mat4 rightEye = qApp->getEyeOffset(Eye::Right);
                 glm::vec3 leftEyeHeadLocal = glm::vec3(leftEye[3]);
                 glm::vec3 rightEyeHeadLocal = glm::vec3(rightEye[3]);
-                auto humanSystem = Application::getInstance()->getViewFrustum();
+                auto humanSystem = qApp->getViewFrustum();
                 glm::vec3 humanLeftEye = humanSystem->getPosition() + (humanSystem->getOrientation() * leftEyeHeadLocal);
                 glm::vec3 humanRightEye = humanSystem->getPosition() + (humanSystem->getOrientation() * rightEyeHeadLocal);
-
 
                 // First find out where (in world space) the person is looking relative to that bridge-of-the-avatar point.
                 // (We will be adding that offset to the camera position, after making some other adjustments.)
@@ -1030,17 +1066,17 @@ void MyAvatar::updateLookAtTargetAvatar() {
 
                 // If the camera is also not oriented with the head, adjust by getting the offset in head-space...
                 /* Not needed (i.e., code is a no-op), but I'm leaving the example code here in case something like this is needed someday.
-                glm::quat avatarHeadOrientation = getHead()->getOrientation();
-                glm::vec3 gazeOffsetLocalToHead = glm::inverse(avatarHeadOrientation) * gazeOffset;
-                // ... and treat that as though it were in camera space, bringing it back to world space.
-                // But camera is fudged to make the picture feel like the avatar's orientation.
-                glm::quat humanOrientation = humanSystem->getOrientation(); // or just avatar getOrienation() ?
-                gazeOffset = humanOrientation * gazeOffsetLocalToHead;
-                glm::vec3 corrected = humanSystem->getPosition() + gazeOffset;
-               */
+                 glm::quat avatarHeadOrientation = getHead()->getOrientation();
+                 glm::vec3 gazeOffsetLocalToHead = glm::inverse(avatarHeadOrientation) * gazeOffset;
+                 // ... and treat that as though it were in camera space, bringing it back to world space.
+                 // But camera is fudged to make the picture feel like the avatar's orientation.
+                 glm::quat humanOrientation = humanSystem->getOrientation(); // or just avatar getOrienation() ?
+                 gazeOffset = humanOrientation * gazeOffsetLocalToHead;
+                 glm::vec3 corrected = humanSystem->getPosition() + gazeOffset;
+                 */
 
                 // And now we can finally add that offset to the camera.
-                glm::vec3 corrected = Application::getInstance()->getViewFrustum()->getPosition() + gazeOffset;
+                glm::vec3 corrected = qApp->getViewFrustum()->getPosition() + gazeOffset;
 
                 avatar->getHead()->setCorrectedLookAtPosition(corrected);
 
@@ -1092,23 +1128,54 @@ void MyAvatar::setJointRotations(QVector<glm::quat> jointRotations) {
     int numStates = glm::min(_skeletonModel.getJointStateCount(), jointRotations.size());
     for (int i = 0; i < numStates; ++i) {
         // HACK: ATM only Recorder calls setJointRotations() so we hardcode its priority here
-        _skeletonModel.setJointState(i, true, jointRotations[i], RECORDER_PRIORITY);
+        _skeletonModel.setJointRotation(i, true, jointRotations[i], RECORDER_PRIORITY);
     }
 }
 
-void MyAvatar::setJointData(int index, const glm::quat& rotation) {
-    if (QThread::currentThread() == thread()) {
-        // HACK: ATM only JS scripts call setJointData() on MyAvatar so we hardcode the priority
-        _rig->setJointState(index, true, rotation, SCRIPT_PRIORITY);
+void MyAvatar::setJointTranslations(QVector<glm::vec3> jointTranslations) {
+    int numStates = glm::min(_skeletonModel.getJointStateCount(), jointTranslations.size());
+    for (int i = 0; i < numStates; ++i) {
+        // HACK: ATM only Recorder calls setJointTranslations() so we hardcode its priority here
+        _skeletonModel.setJointTranslation(i, true, jointTranslations[i], RECORDER_PRIORITY);
     }
+}
+
+void MyAvatar::setJointData(int index, const glm::quat& rotation, const glm::vec3& translation) {
+    if (QThread::currentThread() != thread()) {
+        QMetaObject::invokeMethod(this, "setJointData", Q_ARG(int, index), Q_ARG(const glm::quat&, rotation),
+            Q_ARG(const glm::vec3&, translation));
+        return;
+    }
+    // HACK: ATM only JS scripts call setJointData() on MyAvatar so we hardcode the priority
+    _rig->setJointState(index, true, rotation, translation, SCRIPT_PRIORITY);
+}
+
+void MyAvatar::setJointRotation(int index, const glm::quat& rotation) {
+    if (QThread::currentThread() != thread()) {
+        QMetaObject::invokeMethod(this, "setJointRotation", Q_ARG(int, index), Q_ARG(const glm::quat&, rotation));
+        return;
+    }
+    // HACK: ATM only JS scripts call setJointData() on MyAvatar so we hardcode the priority
+    _rig->setJointRotation(index, true, rotation, SCRIPT_PRIORITY);
+}
+
+void MyAvatar::setJointTranslation(int index, const glm::vec3& translation) {
+    if (QThread::currentThread() != thread()) {
+        QMetaObject::invokeMethod(this, "setJointTranslation", Q_ARG(int, index), Q_ARG(const glm::vec3&, translation));
+        return;
+    }
+    // HACK: ATM only JS scripts call setJointData() on MyAvatar so we hardcode the priority
+    _rig->setJointTranslation(index, true, translation, SCRIPT_PRIORITY);
 }
 
 void MyAvatar::clearJointData(int index) {
-    if (QThread::currentThread() == thread()) {
-        // HACK: ATM only JS scripts call clearJointData() on MyAvatar so we hardcode the priority
-        _rig->setJointState(index, false, glm::quat(), 0.0f);
-        _rig->clearJointAnimationPriority(index);
+    if (QThread::currentThread() != thread()) {
+        QMetaObject::invokeMethod(this, "clearJointData", Q_ARG(int, index));
+        return;
     }
+    // HACK: ATM only JS scripts call clearJointData() on MyAvatar so we hardcode the priority
+    _rig->setJointState(index, false, glm::quat(), glm::vec3(), 0.0f);
+    _rig->clearJointAnimationPriority(index);
 }
 
 void MyAvatar::clearJointsData() {
@@ -1125,7 +1192,7 @@ void MyAvatar::clearJointAnimationPriorities() {
 void MyAvatar::setFaceModelURL(const QUrl& faceModelURL) {
 
     Avatar::setFaceModelURL(faceModelURL);
-    render::ScenePointer scene = Application::getInstance()->getMain3DScene();
+    render::ScenePointer scene = qApp->getMain3DScene();
     getHead()->getFaceModel().setVisibleInScene(_prevShouldDrawHead, scene);
     _billboardValid = false;
 }
@@ -1133,7 +1200,7 @@ void MyAvatar::setFaceModelURL(const QUrl& faceModelURL) {
 void MyAvatar::setSkeletonModelURL(const QUrl& skeletonModelURL) {
 
     Avatar::setSkeletonModelURL(skeletonModelURL);
-    render::ScenePointer scene = Application::getInstance()->getMain3DScene();
+    render::ScenePointer scene = qApp->getMain3DScene();
     _billboardValid = false;
     _skeletonModel.setVisibleInScene(true, scene);
     _headBoneSet.clear();
@@ -1191,7 +1258,7 @@ void MyAvatar::setAttachmentData(const QVector<AttachmentData>& attachmentData) 
 }
 
 glm::vec3 MyAvatar::getSkeletonPosition() const {
-    CameraMode mode = Application::getInstance()->getCamera()->getMode();
+    CameraMode mode = qApp->getCamera()->getMode();
     if (mode == CAMERA_MODE_THIRD_PERSON || mode == CAMERA_MODE_INDEPENDENT) {
         // The avatar is rotated PI about the yAxis, so we have to correct for it
         // to get the skeleton offset contribution in the world-frame.
@@ -1209,6 +1276,75 @@ void MyAvatar::rebuildSkeletonBody() {
     corner += _skeletonModel.getBoundingCapsuleOffset();
     glm::vec3 scale(2.0f * radius, height, 2.0f * radius);
     _characterController.setLocalBoundingBox(corner, scale);
+}
+
+void MyAvatar::prepareForPhysicsSimulation() {
+    relayDriveKeysToCharacterController();
+    _characterController.setTargetVelocity(getTargetVelocity());
+    _characterController.setAvatarPositionAndOrientation(getPosition(), getOrientation());
+    if (qApp->isHMDMode()) {
+        updateHMDFollowVelocity();
+    } else if (_isFollowingHMD) {
+        _isFollowingHMD = false;
+        _hmdFollowVelocity = Vectors::ZERO;
+    }
+    _characterController.setHMDVelocity(_hmdFollowVelocity);
+}
+
+void MyAvatar::harvestResultsFromPhysicsSimulation() {
+    glm::vec3 position = getPosition();
+    glm::quat orientation = getOrientation();
+    _characterController.getAvatarPositionAndOrientation(position, orientation);
+    nextAttitude(position, orientation);
+    if (_isFollowingHMD) {
+        setVelocity(_characterController.getLinearVelocity() + _hmdFollowVelocity);
+        glm::vec3 hmdShift = _characterController.getHMDShift();
+        adjustSensorTransform(hmdShift);
+    } else {
+        setVelocity(_characterController.getLinearVelocity());
+    }
+}
+
+void MyAvatar::adjustSensorTransform(glm::vec3 hmdShift) {
+    // compute blendFactor of latest hmdShift
+    // which we'll use to blend the rotation part
+    float blendFactor = 1.0f;
+    float shiftLength = glm::length(hmdShift);
+    if (shiftLength > 1.0e-5f) {
+        float offsetLength = glm::length(_hmdFollowOffset);
+        if (offsetLength > shiftLength) {
+            blendFactor = shiftLength / offsetLength;
+        }
+    }
+
+    auto newBodySensorMatrix = deriveBodyFromHMDSensor();
+    auto worldBodyMatrix = _sensorToWorldMatrix * newBodySensorMatrix;
+    glm::quat finalBodyRotation = glm::normalize(glm::quat_cast(worldBodyMatrix));
+    if (blendFactor >= 0.99f) {
+        // the "adjustment" is more or less complete so stop following
+        _isFollowingHMD = false;
+        _hmdFollowSpeed = 0.0f;
+        _hmdFollowVelocity = Vectors::ZERO;
+        // and slam the body's transform anyway to eliminate any slight errors
+        glm::vec3 finalBodyPosition = extractTranslation(worldBodyMatrix);
+        nextAttitude(finalBodyPosition, finalBodyRotation);
+        _bodySensorMatrix = newBodySensorMatrix;
+    } else {
+        // physics already did the positional blending for us
+        glm::vec3 newBodyPosition = getPosition();
+        // but the rotational part must be done manually
+        glm::quat newBodyRotation = glm::normalize(safeMix(getOrientation(), finalBodyRotation, blendFactor));
+        nextAttitude(newBodyPosition, newBodyRotation);
+
+        // interp sensor matrix toward the desired
+        glm::vec3 prevPosition = extractTranslation(_bodySensorMatrix);
+        glm::quat prevRotation = glm::normalize(glm::quat_cast(_bodySensorMatrix));
+        glm::vec3 nextPosition = extractTranslation(newBodySensorMatrix);
+        glm::quat nextRotation = glm::normalize(glm::quat_cast(newBodySensorMatrix));
+        _bodySensorMatrix = createMatFromQuatAndPos(
+                glm::normalize(safeMix(prevRotation, nextRotation, blendFactor)),
+                lerp(prevPosition, nextPosition, blendFactor));
+    }
 }
 
 QString MyAvatar::getScriptedMotorFrame() const {
@@ -1292,14 +1428,16 @@ void MyAvatar::renderBody(RenderArgs* renderArgs, ViewFrustum* renderFrustum, fl
 
     // This is drawing the lookat vectors from our avatar to wherever we're looking.
     if (qApp->isHMDMode()) {
-        glm::vec3 cameraPosition = Application::getInstance()->getCamera()->getPosition();
+        glm::vec3 cameraPosition = qApp->getCamera()->getPosition();
 
-        glm::mat4 leftEyePose = Application::getInstance()->getActiveDisplayPlugin()->getEyePose(Eye::Left);
-        glm::vec3 leftEyePosition = glm::vec3(leftEyePose[3]);
-        glm::mat4 rightEyePose = Application::getInstance()->getActiveDisplayPlugin()->getEyePose(Eye::Right);
-        glm::vec3 rightEyePosition = glm::vec3(rightEyePose[3]);
-        glm::mat4 headPose = Application::getInstance()->getActiveDisplayPlugin()->getHeadPose();
-        glm::vec3 headPosition = glm::vec3(headPose[3]);
+        glm::mat4 headPose = qApp->getActiveDisplayPlugin()->getHeadPose();
+        glm::mat4 leftEyePose = qApp->getActiveDisplayPlugin()->getEyeToHeadTransform(Eye::Left);
+        leftEyePose = leftEyePose * headPose;
+        glm::vec3 leftEyePosition = extractTranslation(leftEyePose);
+        glm::mat4 rightEyePose = qApp->getActiveDisplayPlugin()->getEyeToHeadTransform(Eye::Right);
+        rightEyePose = rightEyePose * headPose;
+        glm::vec3 rightEyePosition = extractTranslation(rightEyePose);
+        glm::vec3 headPosition = extractTranslation(headPose);
 
         getHead()->renderLookAts(renderArgs,
             cameraPosition + getOrientation() * (leftEyePosition - headPosition),
@@ -1308,7 +1446,7 @@ void MyAvatar::renderBody(RenderArgs* renderArgs, ViewFrustum* renderFrustum, fl
         getHead()->renderLookAts(renderArgs);
     }
 
-    if (renderArgs->_renderMode != RenderArgs::SHADOW_RENDER_MODE && 
+    if (renderArgs->_renderMode != RenderArgs::SHADOW_RENDER_MODE &&
             Menu::getInstance()->isOptionChecked(MenuOption::DisplayHandTargets)) {
         getHand()->renderHandTargets(renderArgs, true);
     }
@@ -1374,7 +1512,7 @@ void MyAvatar::destroyAnimGraph() {
 
 void MyAvatar::preRender(RenderArgs* renderArgs) {
 
-    render::ScenePointer scene = Application::getInstance()->getMain3DScene();
+    render::ScenePointer scene = qApp->getMain3DScene();
     const bool shouldDrawHead = shouldRenderHead(renderArgs);
 
     if (_skeletonModel.initWhenReady(scene)) {
@@ -1405,7 +1543,10 @@ void MyAvatar::preRender(RenderArgs* renderArgs) {
                 AnimPose pose = _debugDrawSkeleton->getRelativeBindPose(i);
                 glm::quat jointRot;
                 _rig->getJointRotationInConstrainedFrame(i, jointRot);
+                glm::vec3 jointTrans;
+                _rig->getJointTranslation(i, jointTrans);
                 pose.rot = pose.rot * jointRot;
+                pose.trans = jointTrans;
                 poses.push_back(pose);
             }
 
@@ -1426,19 +1567,19 @@ const float RENDER_HEAD_CUTOFF_DISTANCE = 0.50f;
 
 bool MyAvatar::cameraInsideHead() const {
     const Head* head = getHead();
-    const glm::vec3 cameraPosition = Application::getInstance()->getCamera()->getPosition();
+    const glm::vec3 cameraPosition = qApp->getCamera()->getPosition();
     return glm::length(cameraPosition - head->getEyePosition()) < (RENDER_HEAD_CUTOFF_DISTANCE * _scale);
 }
 
 bool MyAvatar::shouldRenderHead(const RenderArgs* renderArgs) const {
     return ((renderArgs->_renderMode != RenderArgs::DEFAULT_RENDER_MODE) ||
-            (Application::getInstance()->getCamera()->getMode() != CAMERA_MODE_FIRST_PERSON) ||
+            (qApp->getCamera()->getMode() != CAMERA_MODE_FIRST_PERSON) ||
             !cameraInsideHead());
 }
 
 void MyAvatar::updateOrientation(float deltaTime) {
     //  Smoothly rotate body with arrow keys
-    float targetSpeed = (_driveKeys[ROT_LEFT] - _driveKeys[ROT_RIGHT]) * YAW_SPEED;
+    float targetSpeed = _driveKeys[YAW] * YAW_SPEED;
     if (targetSpeed != 0.0f) {
         const float ROTATION_RAMP_TIMESCALE = 0.1f;
         float blend = deltaTime / ROTATION_RAMP_TIMESCALE;
@@ -1461,10 +1602,21 @@ void MyAvatar::updateOrientation(float deltaTime) {
         }
     }
 
-    getHead()->setBasePitch(getHead()->getBasePitch() + (_driveKeys[ROT_UP] - _driveKeys[ROT_DOWN]) * PITCH_SPEED * deltaTime);
+    float totalBodyYaw = _bodyYawDelta * deltaTime;
+
+
+    // Comfort Mode: If you press any of the left/right rotation drive keys or input, you'll
+    // get an instantaneous 15 degree turn. If you keep holding the key down you'll get another
+    // snap turn every half second.
+    quint64 now = usecTimestampNow();
+    if (_driveKeys[STEP_YAW] != 0.0f) {
+        totalBodyYaw += _driveKeys[STEP_YAW];
+    }
+
     // update body orientation by movement inputs
-    setOrientation(getOrientation() *
-                   glm::quat(glm::radians(glm::vec3(0.0f, _bodyYawDelta * deltaTime, 0.0f))));
+    setOrientation(getOrientation() * glm::quat(glm::radians(glm::vec3(0.0f, totalBodyYaw, 0.0f))));
+
+    getHead()->setBasePitch(getHead()->getBasePitch() + _driveKeys[PITCH] * PITCH_SPEED * deltaTime);
 
     if (qApp->getAvatarUpdater()->isHMDMode()) {
         glm::quat orientation = glm::quat_cast(getSensorToWorldMatrix()) * getHMDSensorOrientation();
@@ -1476,7 +1628,7 @@ void MyAvatar::updateOrientation(float deltaTime) {
         glm::vec3 euler = glm::eulerAngles(localOrientation) * DEGREES_PER_RADIAN;
 
         //Invert yaw and roll when in mirror mode
-        if (Application::getInstance()->getCamera()->getMode() == CAMERA_MODE_MIRROR) {
+        if (qApp->getCamera()->getMode() == CAMERA_MODE_MIRROR) {
             YAW(euler) *= -1.0f;
             ROLL(euler) *= -1.0f;
         }
@@ -1524,14 +1676,18 @@ glm::vec3 MyAvatar::applyKeyboardMotor(float deltaTime, const glm::vec3& localVe
     float motorEfficiency = glm::clamp(deltaTime / timescale, 0.0f, 1.0f);
 
     glm::vec3 newLocalVelocity = localVelocity;
-    float keyboardInput = fabsf(_driveKeys[FWD] - _driveKeys[BACK]) +
-        (fabsf(_driveKeys[RIGHT] - _driveKeys[LEFT])) +
-        fabsf(_driveKeys[UP] - _driveKeys[DOWN]);
+    float stepControllerInput = fabsf(_driveKeys[STEP_TRANSLATE_Z]) + fabsf(_driveKeys[STEP_TRANSLATE_Z]) + fabsf(_driveKeys[STEP_TRANSLATE_Z]);
+    quint64 now = usecTimestampNow();
+
+    // FIXME how do I implement step translation as well?
+
+
+    float keyboardInput = fabsf(_driveKeys[TRANSLATE_Z]) + fabsf(_driveKeys[TRANSLATE_X]) + fabsf(_driveKeys[TRANSLATE_Y]);
     if (keyboardInput) {
         // Compute keyboard input
-        glm::vec3 front = (_driveKeys[FWD] - _driveKeys[BACK]) * IDENTITY_FRONT;
-        glm::vec3 right = (_driveKeys[RIGHT] - _driveKeys[LEFT]) * IDENTITY_RIGHT;
-        glm::vec3 up = (_driveKeys[UP] - _driveKeys[DOWN]) * IDENTITY_UP;
+        glm::vec3 front = (_driveKeys[TRANSLATE_Z]) * IDENTITY_FRONT;
+        glm::vec3 right = (_driveKeys[TRANSLATE_X]) * IDENTITY_RIGHT;
+        glm::vec3 up = (_driveKeys[TRANSLATE_Y]) * IDENTITY_UP;
 
         glm::vec3 direction = front + right + up;
         float directionLength = glm::length(direction);
@@ -1582,7 +1738,7 @@ glm::vec3 MyAvatar::applyKeyboardMotor(float deltaTime, const glm::vec3& localVe
         }
     }
 
-    float boomChange = _driveKeys[BOOM_OUT] - _driveKeys[BOOM_IN];
+    float boomChange = _driveKeys[ZOOM];
     _boomLength += 2.0f * _boomLength * boomChange + boomChange * boomChange;
     _boomLength = glm::clamp<float>(_boomLength, ZOOM_MIN, ZOOM_MAX);
 
@@ -1764,6 +1920,12 @@ void MyAvatar::goToLocation(const glm::vec3& newPosition,
 }
 
 void MyAvatar::updateMotionBehaviorFromMenu() {
+
+    if (QThread::currentThread() != thread()) {
+        QMetaObject::invokeMethod(this, "updateMotionBehaviorFromMenu");
+        return;
+    }
+
     Menu* menu = Menu::getInstance();
     if (menu->isOptionChecked(MenuOption::KeyboardMotorControl)) {
         _motionBehaviors |= AVATAR_MOTION_KEYBOARD_MOTOR_ENABLED;
@@ -1776,28 +1938,6 @@ void MyAvatar::updateMotionBehaviorFromMenu() {
         _motionBehaviors &= ~AVATAR_MOTION_SCRIPTED_MOTOR_ENABLED;
     }
     _characterController.setEnabled(menu->isOptionChecked(MenuOption::EnableCharacterController));
-}
-
-//Renders sixense laser pointers for UI selection with controllers
-void MyAvatar::renderLaserPointers(gpu::Batch& batch) {
-    const float PALM_TIP_ROD_RADIUS = 0.002f;
-
-    //If the Oculus is enabled, we will draw a blue cursor ray
-
-    for (size_t i = 0; i < getHand()->getNumPalms(); ++i) {
-        PalmData& palm = getHand()->getPalms()[i];
-        if (palm.isActive()) {
-            glm::vec3 tip = getLaserPointerTipPosition(&palm);
-            glm::vec3 root = palm.getPosition();
-
-            //Scale the root vector with the avatar scale
-            scaleVectorRelativeToPosition(root);
-            Transform transform = Transform();
-            transform.setTranslation(glm::vec3());
-            batch.setModelTransform(transform);
-            Avatar::renderJointConnectingCone(batch, root, tip, PALM_TIP_ROD_RADIUS, PALM_TIP_ROD_RADIUS, glm::vec4(0, 1, 1, 1));
-        }
-    }
 }
 
 //Gets the tip position for the laser pointer
@@ -1825,7 +1965,7 @@ void MyAvatar::clearDriveKeys() {
 }
 
 void MyAvatar::relayDriveKeysToCharacterController() {
-    if (_driveKeys[UP] > 0.0f) {
+    if (_driveKeys[TRANSLATE_Y] > 0.0f) {
         _characterController.jump();
     }
 }
@@ -1847,13 +1987,39 @@ glm::mat4 MyAvatar::deriveBodyFromHMDSensor() const {
     const glm::quat hmdOrientation = getHMDSensorOrientation();
     const glm::quat hmdOrientationYawOnly = cancelOutRollAndPitch(hmdOrientation);
 
-    // In sensor space, figure out where the avatar body should be,
-    // by applying offsets from the avatar's neck & head joints.
-    vec3 localEyes = _skeletonModel.getDefaultEyeModelPosition();
-    vec3 localNeck(0.0f, 0.48f, 0.0f);  // start with some kind of guess if the skeletonModel is not loaded yet.
-    _skeletonModel.getLocalNeckPosition(localNeck);
+    const glm::vec3 DEFAULT_RIGHT_EYE_POS(-0.3f, 1.6f, 0.0f);
+    const glm::vec3 DEFAULT_LEFT_EYE_POS(0.3f, 1.6f, 0.0f);
+    const glm::vec3 DEFAULT_NECK_POS(0.0f, 1.5f, 0.0f);
+    const glm::vec3 DEFAULT_HIPS_POS(0.0f, 1.0f, 0.0f);
+
+    vec3 localEyes, localNeck;
+    if (!_debugDrawSkeleton) {
+        const glm::quat rotY180 = glm::angleAxis((float)PI, glm::vec3(0.0f, 1.0f, 0.0f));
+        localEyes = rotY180 * (((DEFAULT_RIGHT_EYE_POS + DEFAULT_LEFT_EYE_POS) / 2.0f) - DEFAULT_HIPS_POS);
+        localNeck = rotY180 * (DEFAULT_NECK_POS - DEFAULT_HIPS_POS);
+    } else {
+        // TODO: At the moment MyAvatar does not have access to the rig, which has the skeleton, which has the bind poses.
+        // for now use the _debugDrawSkeleton, which is initialized with the same FBX model as the rig.
+
+        // TODO: cache these indices.
+        int rightEyeIndex = _debugDrawSkeleton->nameToJointIndex("RightEye");
+        int leftEyeIndex = _debugDrawSkeleton->nameToJointIndex("LeftEye");
+        int neckIndex = _debugDrawSkeleton->nameToJointIndex("Neck");
+        int hipsIndex = _debugDrawSkeleton->nameToJointIndex("Hips");
+
+        glm::vec3 absRightEyePos = rightEyeIndex != -1 ? _debugDrawSkeleton->getAbsoluteBindPose(rightEyeIndex).trans : DEFAULT_RIGHT_EYE_POS;
+        glm::vec3 absLeftEyePos = leftEyeIndex != -1 ? _debugDrawSkeleton->getAbsoluteBindPose(leftEyeIndex).trans : DEFAULT_LEFT_EYE_POS;
+        glm::vec3 absNeckPos = neckIndex != -1 ? _debugDrawSkeleton->getAbsoluteBindPose(neckIndex).trans : DEFAULT_NECK_POS;
+        glm::vec3 absHipsPos = neckIndex != -1 ? _debugDrawSkeleton->getAbsoluteBindPose(hipsIndex).trans : DEFAULT_HIPS_POS;
+
+        const glm::quat rotY180 = glm::angleAxis((float)PI, glm::vec3(0.0f, 1.0f, 0.0f));
+        localEyes = rotY180 * (((absRightEyePos + absLeftEyePos) / 2.0f) - absHipsPos);
+        localNeck = rotY180 * (absNeckPos - absHipsPos);
+    }
 
     // apply simplistic head/neck model
+    // figure out where the avatar body should be by applying offsets from the avatar's neck & head joints.
+
     // eyeToNeck offset is relative full HMD orientation.
     // while neckToRoot offset is only relative to HMDs yaw.
     glm::vec3 eyeToNeck = hmdOrientation * (localNeck - localEyes);
@@ -1869,7 +2035,7 @@ glm::vec3 MyAvatar::getPositionForAudio() {
         case AudioListenerMode::FROM_HEAD:
             return getHead()->getPosition();
         case AudioListenerMode::FROM_CAMERA:
-            return Application::getInstance()->getCamera()->getPosition();
+            return qApp->getCamera()->getPosition();
         case AudioListenerMode::CUSTOM:
             return _customListenPosition;
     }
@@ -1881,7 +2047,7 @@ glm::quat MyAvatar::getOrientationForAudio() {
         case AudioListenerMode::FROM_HEAD:
             return getHead()->getFinalOrientationInWorldFrame();
         case AudioListenerMode::FROM_CAMERA:
-            return Application::getInstance()->getCamera()->getOrientation();
+            return qApp->getCamera()->getOrientation();
         case AudioListenerMode::CUSTOM:
             return _customListenOrientation;
     }

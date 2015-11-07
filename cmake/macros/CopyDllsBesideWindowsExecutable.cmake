@@ -37,7 +37,7 @@ macro(COPY_DLLS_BESIDE_WINDOWS_EXECUTABLE)
     add_custom_command(
       TARGET ${TARGET_NAME}
       POST_BUILD
-      COMMAND CMD /C "SET PATH=%PATH%;${QT_DIR}/bin && ${WINDEPLOYQT_COMMAND} $<TARGET_FILE:${TARGET_NAME}>"
+      COMMAND CMD /C "SET PATH=%PATH%;${QT_DIR}/bin && ${WINDEPLOYQT_COMMAND} $<$<OR:$<CONFIG:Release>,$<CONFIG:MinSizeRel>,$<CONFIG:RelWithDebInfo>>:--release> $<TARGET_FILE:${TARGET_NAME}>"
     )
   endif ()
 endmacro()

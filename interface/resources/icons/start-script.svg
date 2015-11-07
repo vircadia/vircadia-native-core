@@ -14,7 +14,7 @@
    height="45"
    id="svg3827"
    version="1.1"
-   inkscape:version="0.48.1 r9760"
+   inkscape:version="0.48.3.1 r9886"
    sodipodi:docname="start-script.svg">
   <defs
      id="defs3829">
@@ -439,16 +439,16 @@
      borderopacity="1.0"
      inkscape:pageopacity="0.0"
      inkscape:pageshadow="2"
-     inkscape:zoom="5.6"
-     inkscape:cx="76.804753"
-     inkscape:cy="13.198134"
+     inkscape:zoom="22.4"
+     inkscape:cx="44.04179"
+     inkscape:cy="22.346221"
      inkscape:document-units="px"
      inkscape:current-layer="layer1"
      showgrid="false"
-     inkscape:window-width="1920"
-     inkscape:window-height="1028"
+     inkscape:window-width="1680"
+     inkscape:window-height="997"
      inkscape:window-x="-8"
-     inkscape:window-y="-8"
+     inkscape:window-y="21"
      inkscape:window-maximized="1" />
   <metadata
      id="metadata3832">
@@ -536,5 +536,15 @@
        height="44.57473"
        x="84.498352"
        y="1050.0748" />
+    <g
+       id="run-arrow"
+       transform="translate(-46.607143,-3.5714285)"
+       inkscape:label="#run-arrow">
+      <path
+         d="m 75.506508,1023.3478 1.372845,5.4631 -14.094975,-1.152 2.35e-4,7.2772 14.094975,-1.152 -1.372845,5.1249 13.761293,-7.6113 -13.761293,-7.9499 z"
+         id="arrow-rect"
+         inkscape:connector-curvature="0"
+         style="fill:#d3d3d3;fill-opacity:0.75;fill-rule:evenodd;stroke:#000000;stroke-width:0.77974033;stroke-linecap:round;stroke-linejoin:round" />
+    </g>
   </g>
 </svg>

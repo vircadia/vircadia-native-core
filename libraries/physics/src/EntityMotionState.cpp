@@ -9,7 +9,10 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include <glm/gtx/norm.hpp>
+
 #include <EntityItem.h>
+#include <EntityItemProperties.h>
 #include <EntityEditPacketSender.h>
 #include <PhysicsCollisionGroups.h>
 
@@ -76,8 +79,13 @@ EntityMotionState::~EntityMotionState() {
     assert(!_entity);
 }
 
-void EntityMotionState::updateServerPhysicsVariables() {
+void EntityMotionState::updateServerPhysicsVariables(const QUuid& sessionID) {
     assert(entityTreeIsLocked());
+    if (_entity->getSimulatorID() == sessionID) {
+        // don't slam these values if we are the simulation owner
+        return;
+    }
+
     _serverPosition = _entity->getPosition();
     _serverRotation = _entity->getRotation();
     _serverVelocity = _entity->getVelocity();
@@ -89,16 +97,16 @@ void EntityMotionState::updateServerPhysicsVariables() {
 // virtual
 bool EntityMotionState::handleEasyChanges(uint32_t flags, PhysicsEngine* engine) {
     assert(entityTreeIsLocked());
-    updateServerPhysicsVariables();
+    updateServerPhysicsVariables(engine->getSessionID());
     ObjectMotionState::handleEasyChanges(flags, engine);
 
-    if (flags & EntityItem::DIRTY_SIMULATOR_ID) {
+    if (flags & Simulation::DIRTY_SIMULATOR_ID) {
         _loopsWithoutOwner = 0;
         if (_entity->getSimulatorID().isNull()) {
             // simulation ownership is being removed
             // remove the ACTIVATION flag because this object is coming to rest
             // according to a remote simulation and we don't want to wake it up again
-            flags &= ~EntityItem::DIRTY_PHYSICS_ACTIVATION;
+            flags &= ~Simulation::DIRTY_PHYSICS_ACTIVATION;
             // hint to Bullet that the object is deactivating
             _body->setActivationState(WANTS_DEACTIVATION);
             _outgoingPriority = NO_PRORITY;
@@ -110,13 +118,13 @@ bool EntityMotionState::handleEasyChanges(uint32_t flags, PhysicsEngine* engine)
             }
         }
     }
-    if (flags & EntityItem::DIRTY_SIMULATOR_OWNERSHIP) {
+    if (flags & Simulation::DIRTY_SIMULATOR_OWNERSHIP) {
         // (DIRTY_SIMULATOR_OWNERSHIP really means "we should bid for ownership with SCRIPT priority")
         // we're manipulating this object directly via script, so we artificially 
         // manipulate the logic to trigger an immediate bid for ownership
         setOutgoingPriority(SCRIPT_EDIT_SIMULATION_PRIORITY);
     }
-    if ((flags & EntityItem::DIRTY_PHYSICS_ACTIVATION) && !_body->isActive()) {
+    if ((flags & Simulation::DIRTY_PHYSICS_ACTIVATION) && !_body->isActive()) {
         _body->activate();
     }
 
@@ -126,7 +134,7 @@ bool EntityMotionState::handleEasyChanges(uint32_t flags, PhysicsEngine* engine)
 
 // virtual
 bool EntityMotionState::handleHardAndEasyChanges(uint32_t flags, PhysicsEngine* engine) {
-    updateServerPhysicsVariables();
+    updateServerPhysicsVariables(engine->getSessionID());
     return ObjectMotionState::handleHardAndEasyChanges(flags, engine);
 }
 
@@ -143,7 +151,7 @@ MotionType EntityMotionState::computeObjectMotionType() const {
     if (_entity->getCollisionsWillMove()) {
         return MOTION_TYPE_DYNAMIC;
     }
-    return _entity->isMoving() ?  MOTION_TYPE_KINEMATIC : MOTION_TYPE_STATIC;
+    return (_entity->isMoving() || _entity->hasActions()) ?  MOTION_TYPE_KINEMATIC : MOTION_TYPE_STATIC;
 }
 
 bool EntityMotionState::isMoving() const {
@@ -181,14 +189,13 @@ void EntityMotionState::setWorldTransform(const btTransform& worldTrans) {
     if (!_entity) {
         return;
     }
+
     assert(entityTreeIsLocked());
     measureBodyAcceleration();
     _entity->setPosition(bulletToGLM(worldTrans.getOrigin()) + ObjectMotionState::getWorldOffset());
     _entity->setRotation(bulletToGLM(worldTrans.getRotation()));
-
     _entity->setVelocity(getBodyLinearVelocity());
     _entity->setAngularVelocity(getBodyAngularVelocity());
-
     _entity->setLastSimulated(usecTimestampNow());
 
     if (_entity->getSimulatorID().isNull()) {
@@ -247,7 +254,7 @@ bool EntityMotionState::remoteSimulationOutOfSync(uint32_t simulationStep) {
         btTransform xform = _body->getWorldTransform();
         _serverPosition = bulletToGLM(xform.getOrigin());
         _serverRotation = bulletToGLM(xform.getRotation());
-        _serverVelocity = getBodyLinearVelocity();
+        _serverVelocity = getBodyLinearVelocityGTSigma();
         _serverAngularVelocity = bulletToGLM(_body->getAngularVelocity());
         _lastStep = simulationStep;
         _serverActionData = _entity->getActionData();
@@ -288,6 +295,10 @@ bool EntityMotionState::remoteSimulationOutOfSync(uint32_t simulationStep) {
     if (_serverActionData != _entity->getActionData()) {
         setOutgoingPriority(SCRIPT_EDIT_SIMULATION_PRIORITY);
         return true;
+    }
+
+    if (_entity->shouldSuppressLocationEdits()) {
+        return false;
     }
 
     // Else we measure the error between current and extrapolated transform (according to expected behavior
@@ -502,7 +513,7 @@ uint32_t EntityMotionState::getIncomingDirtyFlags() {
         bool isMoving = _entity->isMoving();
         if (((bodyFlags & btCollisionObject::CF_STATIC_OBJECT) && isMoving) ||
                 (bodyFlags & btCollisionObject::CF_KINEMATIC_OBJECT && !isMoving)) {
-            dirtyFlags |= EntityItem::DIRTY_MOTION_TYPE;
+            dirtyFlags |= Simulation::DIRTY_MOTION_TYPE;
         }
     }
     return dirtyFlags;
@@ -542,7 +553,7 @@ void EntityMotionState::bump(quint8 priority) {
 void EntityMotionState::resetMeasuredBodyAcceleration() {
     _lastMeasureStep = ObjectMotionState::getWorldSimulationStep();
     if (_body) {
-        _lastVelocity = getBodyLinearVelocity();
+        _lastVelocity = getBodyLinearVelocityGTSigma();
     } else {
         _lastVelocity = glm::vec3(0.0f);
     }
@@ -561,7 +572,8 @@ void EntityMotionState::measureBodyAcceleration() {
 
         // Note: the integration equation for velocity uses damping:   v1 = (v0 + a * dt) * (1 - D)^dt
         // hence the equation for acceleration is: a = (v1 / (1 - D)^dt - v0) / dt
-        glm::vec3 velocity = getBodyLinearVelocity();
+        glm::vec3 velocity = getBodyLinearVelocityGTSigma();
+
         _measuredAcceleration = (velocity / powf(1.0f - _body->getLinearDamping(), dt) - _lastVelocity) * invDt;
         _lastVelocity = velocity;
         if (numSubsteps > PHYSICS_ENGINE_MAX_NUM_SUBSTEPS) {
@@ -596,6 +608,12 @@ QString EntityMotionState::getName() {
 
 // virtual
 int16_t EntityMotionState::computeCollisionGroup() {
+    if (!_entity) {
+        return COLLISION_GROUP_STATIC;
+    }
+    if (_entity->getIgnoreForCollisions()) {
+        return COLLISION_GROUP_COLLISIONLESS;
+    }
     switch (computeObjectMotionType()){
         case MOTION_TYPE_STATIC:
             return COLLISION_GROUP_STATIC;

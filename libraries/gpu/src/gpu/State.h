@@ -143,11 +143,11 @@ public:
         static const int PASS_OP_OFFSET = 12;
 
         uint16 _functionAndOperations;
-        uint8 _reference = 0;
+        int8 _reference = 0;
         uint8 _readMask = 0xff;
      public:
 
-        StencilTest(uint8 reference = 0, uint8 readMask =0xFF, ComparisonFunction func = ALWAYS, StencilOp failOp = STENCIL_OP_KEEP, StencilOp depthFailOp = STENCIL_OP_KEEP, StencilOp passOp = STENCIL_OP_KEEP) :
+        StencilTest(int8 reference = 0, uint8 readMask =0xFF, ComparisonFunction func = ALWAYS, StencilOp failOp = STENCIL_OP_KEEP, StencilOp depthFailOp = STENCIL_OP_KEEP, StencilOp passOp = STENCIL_OP_KEEP) :
              _functionAndOperations(func | (failOp << FAIL_OP_OFFSET) | (depthFailOp << DEPTH_FAIL_OP_OFFSET) | (passOp << PASS_OP_OFFSET)),
             _reference(reference), _readMask(readMask)
             {}
@@ -157,7 +157,7 @@ public:
         StencilOp getDepthFailOp() const { return StencilOp((_functionAndOperations & DEPTH_FAIL_OP_MASK) >> DEPTH_FAIL_OP_OFFSET); }
         StencilOp getPassOp() const { return StencilOp((_functionAndOperations & PASS_OP_MASK) >> PASS_OP_OFFSET); }
 
-        uint8 getReference() const { return _reference; }
+        int8 getReference() const { return _reference; }
         uint8 getReadMask() const { return _readMask; }
 
         int32 getRaw() const { return *(reinterpret_cast<const int32*>(this)); }

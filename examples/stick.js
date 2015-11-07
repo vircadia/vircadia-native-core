@@ -10,7 +10,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-var hand = "left";
+var hand = "right";
 var nullActionID = "00000000-0000-0000-0000-000000000000";
 var controllerID;
 var controllerActive;
@@ -32,7 +32,7 @@ function makeNewStick() {
             modelURL: "https://hifi-public.s3.amazonaws.com/eric/models/stick.fbx",
             compoundShapeURL: "https://hifi-public.s3.amazonaws.com/eric/models/stick.obj",
             dimensions: {x: .11, y: .11, z: 1.0},
-            position: MyAvatar.getRightPalmPosition(), // initial position doesn't matter, as long as it's close
+            position: MyAvatar.rightHandPosition, // initial position doesn't matter, as long as it's close
             rotation: MyAvatar.orientation,
             damping: .1,
             collisionSoundURL: "http://public.highfidelity.io/sounds/Collisions-hitsandslaps/67LCollision07.wav",
@@ -84,23 +84,15 @@ function mouseMoveEvent(event) {
 }
 
 
-function initControls(){
-    if (hand == "right") {
-        controllerID = 3; // right handed
-    } else {
-        controllerID = 4; // left handed
-    }
-}
-
-
 function update(deltaTime){
-    var palmPosition = Controller.getSpatialControlPosition(controllerID);
+    var handPose = (hand == "right") ? MyAvatar.rightHandPose : MyAvatar.leftHandPose;
+    var palmPosition = handPose.translation;
     controllerActive = (Vec3.length(palmPosition) > 0);
     if(!controllerActive){
         return;
     }
 
-    stickOrientation = Controller.getSpatialControlRawRotation(controllerID);
+    stickOrientation = handPose.rotation;
     var adjustment = Quat.fromPitchYawRollDegrees(180, 0, 0);
     stickOrientation = Quat.multiply(stickOrientation, adjustment);
 

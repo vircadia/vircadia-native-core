@@ -27,6 +27,7 @@
 #include <UUIDHasher.h>
 
 const QString OUTBOUND_AVATAR_DATA_STATS_KEY = "outbound_av_data_kbps";
+const QString INBOUND_AVATAR_DATA_STATS_KEY = "inbound_av_data_kbps";
 
 class AvatarMixerClientData : public NodeData {
     Q_OBJECT

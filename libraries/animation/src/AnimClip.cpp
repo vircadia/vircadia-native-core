@@ -35,7 +35,9 @@ const AnimPoseVec& AnimClip::evaluate(const AnimVariantMap& animVars, float dt, 
     _endFrame = animVars.lookup(_endFrameVar, _endFrame);
     _timeScale = animVars.lookup(_timeScaleVar, _timeScale);
     _loopFlag = animVars.lookup(_loopFlagVar, _loopFlag);
-    _frame = accumulateTime(animVars.lookup(_frameVar, _frame), dt, triggersOut);
+    float frame = animVars.lookup(_frameVar, _frame);
+
+    _frame = ::accumulateTime(_startFrame, _endFrame, _timeScale, frame, dt, _loopFlag, _id, triggersOut);
 
     // poll network anim to see if it's finished loading yet.
     if (_networkAnim && _networkAnim->isLoaded() && _skeleton) {
@@ -45,16 +47,17 @@ const AnimPoseVec& AnimClip::evaluate(const AnimVariantMap& animVars, float dt, 
     }
 
     if (_anim.size()) {
-        int frameCount = _anim.size();
-
         int prevIndex = (int)glm::floor(_frame);
-        int nextIndex = (int)glm::ceil(_frame);
-        if (_loopFlag && nextIndex >= frameCount) {
-            nextIndex = 0;
+        int nextIndex;
+        if (_loopFlag && _frame >= _endFrame) {
+            nextIndex = (int)glm::ceil(_startFrame);
+        } else {
+            nextIndex = (int)glm::ceil(_frame);
         }
 
         // It can be quite possible for the user to set _startFrame and _endFrame to
         // values before or past valid ranges.  We clamp the frames here.
+        int frameCount = _anim.size();
         prevIndex = std::min(std::max(0, prevIndex), frameCount - 1);
         nextIndex = std::min(std::max(0, nextIndex), frameCount - 1);
 
@@ -78,39 +81,7 @@ void AnimClip::setCurrentFrameInternal(float frame) {
     // because dt is 0, we should not encounter any triggers
     const float dt = 0.0f;
     Triggers triggers;
-    _frame = accumulateTime(frame * _timeScale, dt, triggers);
-}
-
-float AnimClip::accumulateTime(float frame, float dt, Triggers& triggersOut) const {
-    const float startFrame = std::min(_startFrame, _endFrame);
-    if (startFrame == _endFrame) {
-        // when startFrame >= endFrame
-        frame = _endFrame;
-    } else if (_timeScale > 0.0f) {
-        // accumulate time, keeping track of loops and end of animation events.
-        const float FRAMES_PER_SECOND = 30.0f;
-        float framesRemaining = (dt * _timeScale) * FRAMES_PER_SECOND;
-        while (framesRemaining > 0.0f) {
-            float framesTillEnd = _endFrame - _frame;
-            if (framesRemaining >= framesTillEnd) {
-                if (_loopFlag) {
-                    // anim loop
-                    triggersOut.push_back(_id + "OnLoop");
-                    framesRemaining -= framesTillEnd;
-                    frame = startFrame;
-                } else {
-                    // anim end
-                    triggersOut.push_back(_id + "OnDone");
-                    frame = _endFrame;
-                    framesRemaining = 0.0f;
-                }
-            } else {
-                frame += framesRemaining;
-                framesRemaining = 0.0f;
-            }
-        }
-    }
-    return frame;
+    _frame = ::accumulateTime(_startFrame, _endFrame, _timeScale, frame + _startFrame, dt, _loopFlag, _id, triggers);
 }
 
 void AnimClip::copyFromNetworkAnim() {
@@ -135,23 +106,46 @@ void AnimClip::copyFromNetworkAnim() {
     const int frameCount = geom.animationFrames.size();
     const int skeletonJointCount = _skeleton->getNumJoints();
     _anim.resize(frameCount);
-    for (int i = 0; i < frameCount; i++) {
+
+    const glm::vec3 offsetScale = extractScale(geom.offset);
+
+    for (int frame = 0; frame < frameCount; frame++) {
 
         // init all joints in animation to bind pose
-        _anim[i].reserve(skeletonJointCount);
-        for (int j = 0; j < skeletonJointCount; j++) {
-            _anim[i].push_back(_skeleton->getRelativeBindPose(j));
+        // this will give us a resonable result for bones in the skeleton but not in the animation.
+        _anim[frame].reserve(skeletonJointCount);
+        for (int skeletonJoint = 0; skeletonJoint < skeletonJointCount; skeletonJoint++) {
+            _anim[frame].push_back(_skeleton->getRelativeBindPose(skeletonJoint));
         }
 
-        // init over all joint animations
-        for (int j = 0; j < animJointCount; j++) {
-            int k = jointMap[j];
-            if (k >= 0 && k < skeletonJointCount) {
-                // currently FBX animations only have rotation.
-                _anim[i][k].rot = _skeleton->getRelativeBindPose(k).rot * geom.animationFrames[i].rotations[j];
+        for (int animJoint = 0; animJoint < animJointCount; animJoint++) {
+
+            int skeletonJoint = jointMap[animJoint];
+
+            // skip joints that are in the animation but not in the skeleton.
+            if (skeletonJoint >= 0 && skeletonJoint < skeletonJointCount) {
+
+                const glm::vec3& fbxZeroTrans = geom.animationFrames[0].translations[animJoint] * offsetScale;
+                const AnimPose& relBindPose = _skeleton->getRelativeBindPose(skeletonJoint);
+
+                // used to adjust translation offsets, so large translation animatons on the reference skeleton
+                // will be adjusted when played on a skeleton with short limbs.
+                float limbLengthScale = fabsf(glm::length(fbxZeroTrans)) <= 0.0001f ? 1.0f : (glm::length(relBindPose.trans) / glm::length(fbxZeroTrans));
+
+                AnimPose& pose = _anim[frame][skeletonJoint];
+                const FBXAnimationFrame& fbxAnimFrame = geom.animationFrames[frame];
+
+                // rotation in fbxAnimationFrame is a delta from a reference skeleton bind pose.
+                pose.rot = relBindPose.rot * fbxAnimFrame.rotations[animJoint];
+
+                // translation in fbxAnimationFrame is not a delta.
+                // convert it into a delta by subtracting from the first frame.
+                const glm::vec3& fbxTrans = fbxAnimFrame.translations[animJoint] * offsetScale;
+                pose.trans = relBindPose.trans + limbLengthScale * (fbxTrans - fbxZeroTrans);
             }
         }
     }
+
     _poses.resize(skeletonJointCount);
 }
 

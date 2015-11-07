@@ -65,8 +65,8 @@ void EntityScriptingInterface::setEntityTree(EntityTreePointer elementTree) {
 }
 
 QUuid EntityScriptingInterface::addEntity(const EntityItemProperties& properties) {
-
     EntityItemProperties propertiesWithSimID = properties;
+    propertiesWithSimID.setDimensionsInitialized(properties.dimensionsChanged());
 
     EntityItemID id = EntityItemID(QUuid::createUuid());
 
@@ -279,17 +279,19 @@ QVector<QUuid> EntityScriptingInterface::findEntitiesInBox(const glm::vec3& corn
     return result;
 }
 
-RayToEntityIntersectionResult EntityScriptingInterface::findRayIntersection(const PickRay& ray, bool precisionPicking) {
-    return findRayIntersectionWorker(ray, Octree::TryLock, precisionPicking);
+RayToEntityIntersectionResult EntityScriptingInterface::findRayIntersection(const PickRay& ray, bool precisionPicking, const QScriptValue& entityIdsToInclude) {
+    QVector<EntityItemID> entities = qVectorEntityItemIDFromScriptValue(entityIdsToInclude);
+    return findRayIntersectionWorker(ray, Octree::TryLock, precisionPicking, entities);
 }
 
-RayToEntityIntersectionResult EntityScriptingInterface::findRayIntersectionBlocking(const PickRay& ray, bool precisionPicking) {
-    return findRayIntersectionWorker(ray, Octree::Lock, precisionPicking);
+RayToEntityIntersectionResult EntityScriptingInterface::findRayIntersectionBlocking(const PickRay& ray, bool precisionPicking, const QScriptValue& entityIdsToInclude) {
+    const QVector<EntityItemID>& entities = qVectorEntityItemIDFromScriptValue(entityIdsToInclude);
+    return findRayIntersectionWorker(ray, Octree::Lock, precisionPicking, entities);
 }
 
 RayToEntityIntersectionResult EntityScriptingInterface::findRayIntersectionWorker(const PickRay& ray,
                                                                                     Octree::lockType lockType,
-                                                                                    bool precisionPicking) {
+                                                                                    bool precisionPicking, const QVector<EntityItemID>& entityIdsToInclude) {
 
 
     RayToEntityIntersectionResult result;
@@ -297,7 +299,7 @@ RayToEntityIntersectionResult EntityScriptingInterface::findRayIntersectionWorke
         OctreeElementPointer element;
         EntityItemPointer intersectedEntity = NULL;
         result.intersects = _entityTree->findRayIntersection(ray.origin, ray.direction, element, result.distance, result.face,
-                                                                result.surfaceNormal, (void**)&intersectedEntity, lockType, &result.accurate,
+                                                                result.surfaceNormal, entityIdsToInclude, (void**)&intersectedEntity, lockType, &result.accurate,
                                                                 precisionPicking);
         if (result.intersects && intersectedEntity) {
             result.entityID = intersectedEntity->getEntityItemID();

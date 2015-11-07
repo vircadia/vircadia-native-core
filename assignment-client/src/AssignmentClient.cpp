@@ -39,8 +39,6 @@
 const QString ASSIGNMENT_CLIENT_TARGET_NAME = "assignment-client";
 const long long ASSIGNMENT_REQUEST_INTERVAL_MSECS = 1 * 1000;
 
-int hifiSockAddrMeta = qRegisterMetaType<HifiSockAddr>("HifiSockAddr");
-
 AssignmentClient::AssignmentClient(Assignment::Type requestAssignmentType, QString assignmentPool,
                                    quint16 listenPort, QUuid walletUUID, QString assignmentServerHostname,
                                    quint16 assignmentServerPort, quint16 assignmentMonitorPort) :
@@ -76,7 +74,7 @@ AssignmentClient::AssignmentClient(Assignment::Type requestAssignmentType, QStri
     LogHandler::getInstance().setTargetName(ASSIGNMENT_CLIENT_TARGET_NAME);
 
     // make sure we output process IDs for a child AC otherwise it's insane to parse
-    LogHandler::getInstance().setShouldOutputPID(true);
+    LogHandler::getInstance().setShouldOutputProcessID(true);
 
     // setup our _requestAssignment member variable from the passed arguments
     _requestAssignment = Assignment(Assignment::RequestCommand, requestAssignmentType, assignmentPool);

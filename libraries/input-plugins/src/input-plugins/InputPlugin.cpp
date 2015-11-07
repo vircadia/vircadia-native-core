@@ -29,11 +29,17 @@ InputPluginList getInputPlugins() {
 
     InputPluginList result;
     for (int i = 0; PLUGIN_POOL[i]; ++i) {
-        InputPlugin * plugin = PLUGIN_POOL[i];
+        InputPlugin* plugin = PLUGIN_POOL[i];
         if (plugin->isSupported()) {
             plugin->init();
             result.push_back(InputPluginPointer(plugin));
         }
     }
     return result;
+}
+
+void saveInputPluginSettings(const InputPluginList& plugins) {
+    foreach (auto inputPlugin, plugins) {
+        inputPlugin->saveSettings();
+    }
 }

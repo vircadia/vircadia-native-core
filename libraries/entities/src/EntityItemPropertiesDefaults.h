@@ -16,11 +16,13 @@
 
 #include <glm/glm.hpp>
 
+#include <NumericalConstants.h>
+
 // There is a minor performance gain when comparing/copying an existing glm::vec3 rather than 
 // creating a new one on the stack so we declare the ZERO_VEC3 constant as an optimization.
 const glm::vec3 ENTITY_ITEM_ZERO_VEC3 = glm::vec3(0.0f);
-const glm::vec3 ENTITY_ITEM_ONE_VEC3 = glm::vec3(1.0f, 1.0f, 1.0f);
-const glm::vec3 ENTITY_ITEM_HALF_VEC3 = ENTITY_ITEM_ONE_VEC3 / 2.0f;
+const glm::vec3 ENTITY_ITEM_ONE_VEC3 = glm::vec3(1.0f);
+const glm::vec3 ENTITY_ITEM_HALF_VEC3 = glm::vec3(0.5f);
 
 const bool ENTITY_ITEM_DEFAULT_LOCKED = false;
 const QString ENTITY_ITEM_DEFAULT_USER_DATA = QString("");

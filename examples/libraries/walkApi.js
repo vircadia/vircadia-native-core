@@ -18,24 +18,8 @@ Script.include("./libraries/walkConstants.js");
 
 Avatar = function() {
     // if Hydras are connected, the only way to enable use is to never set any arm joint rotation
-    this.hydraCheck = function() {
-        // function courtesy of Thijs Wenker (frisbee.js)
-        var numberOfButtons = Controller.getNumberOfButtons();
-        var numberOfTriggers = Controller.getNumberOfTriggers();
-        var numberOfSpatialControls = Controller.getNumberOfSpatialControls();
-        const HYDRA_BUTTONS = 12;
-        const HYDRA_TRIGGERS = 2;
-        const HYDRA_CONTROLLERS_PER_TRIGGER = 2;
-        var controllersPerTrigger = numberOfSpatialControls / numberOfTriggers;
-        if (numberOfButtons == HYDRA_BUTTONS &&
-            numberOfTriggers == HYDRA_TRIGGERS &&
-            controllersPerTrigger == HYDRA_CONTROLLERS_PER_TRIGGER) {
-            print('walk.js info: Razer Hydra detected. Setting arms free (not controlled by script)');
-            return true;
-        } else {
-            print('walk.js info: Razer Hydra not detected. Arms will be controlled by script.');
-            return false;
-        }
+    this.hydraCheck = function () {
+        return Controller.Hardware.Hydra !== undefined;
     }
     // settings
     this.headFree = true;
@@ -82,7 +66,7 @@ Avatar = function() {
 
                 // only need to zero right leg IK chain and hips
                 if (IKChain === "RightLeg" || joint === "Hips" ) {
-                    MyAvatar.setJointData(joint, Quat.fromPitchYawRollDegrees(0, 0, 0));
+                    MyAvatar.setJointRotation(joint, Quat.fromPitchYawRollDegrees(0, 0, 0));
                 }
             }
             this.calibration.hipsToFeet = MyAvatar.getJointPosition("Hips").y - MyAvatar.getJointPosition("RightToeBase").y;
@@ -112,16 +96,16 @@ Avatar = function() {
     this.poseFingers = function() {
         for (knuckle in walkAssets.animationReference.leftHand) {
             if (walkAssets.animationReference.leftHand[knuckle].IKChain === "LeftHandThumb") {
-                MyAvatar.setJointData(knuckle, Quat.fromPitchYawRollDegrees(0, 0, -4));
+                MyAvatar.setJointRotation(knuckle, Quat.fromPitchYawRollDegrees(0, 0, -4));
             } else {
-                MyAvatar.setJointData(knuckle, Quat.fromPitchYawRollDegrees(16, 0, 5));
+                MyAvatar.setJointRotation(knuckle, Quat.fromPitchYawRollDegrees(16, 0, 5));
             }
         }
         for (knuckle in walkAssets.animationReference.rightHand) {
             if (walkAssets.animationReference.rightHand[knuckle].IKChain === "RightHandThumb") {
-                MyAvatar.setJointData(knuckle, Quat.fromPitchYawRollDegrees(0, 0, 4));
+                MyAvatar.setJointRotation(knuckle, Quat.fromPitchYawRollDegrees(0, 0, 4));
             } else {
-                MyAvatar.setJointData(knuckle, Quat.fromPitchYawRollDegrees(16, 0, -5));
+                MyAvatar.setJointRotation(knuckle, Quat.fromPitchYawRollDegrees(16, 0, -5));
             }
         }
     };

@@ -142,8 +142,15 @@ Item {
                         color: root.fontColor;
                         font.pixelSize: root.fontSize
                         visible: root.expanded;
-                        text: "Avatar Mixer: " + root.avatarMixerKbps + " kbps, " +
-                            root.avatarMixerPps + "pps";
+                        text: "Avatar Mixer In: " + root.avatarMixerInKbps + " kbps, " +
+                            root.avatarMixerInPps + "pps";
+                    }
+                    Text {
+                        color: root.fontColor;
+                        font.pixelSize: root.fontSize
+                        visible: root.expanded;
+                        text: "Avatar Mixer Out: " + root.avatarMixerOutKbps + " kbps, " +
+                            root.avatarMixerOutPps + "pps";
                     }
                     Text {
                         color: root.fontColor;
@@ -174,15 +181,33 @@ Item {
                         color: root.fontColor;
                         font.pixelSize: root.fontSize
                         visible: root.expanded;
-                        text: "\tMesh Parts Rendered Opaque: " + root.meshOpaque +
-                            " / Translucent: " + root.meshTranslucent;
+                        text: "\tItems Rendered Opaque: " + root.opaqueRendered +
+                            " / Translucent: " + root.translucentRendered +
+                            " / Other: " + root.otherRendered;
                     }
                     Text {
                         color: root.fontColor;
                         font.pixelSize: root.fontSize
                         visible: root.expanded;
                         text: "\tOpaque considered: " + root.opaqueConsidered +
-                            " / Out of view: " + root.opaqueOutOfView + " / Too small: " + root.opaqueTooSmall;
+                            " / Out of view: " + root.opaqueOutOfView + 
+                            " / Too small: " + root.opaqueTooSmall;
+                    }
+                    Text {
+                        color: root.fontColor;
+                        font.pixelSize: root.fontSize
+                        visible: root.expanded;
+                        text: "\tTranslucent considered: " + root.translucentConsidered +
+                            " / Out of view: " + root.translucentOutOfView + 
+                            " / Too small: " + root.translucentTooSmall;
+                    }
+                    Text {
+                        color: root.fontColor;
+                        font.pixelSize: root.fontSize
+                        visible: root.expanded;
+                        text: "\tOther considered: " + root.otherConsidered +
+                            " / Out of view: " + root.otherOutOfView + 
+                            " / Too small: " + root.otherTooSmall;
                     }
                     Text {
                         color: root.fontColor;

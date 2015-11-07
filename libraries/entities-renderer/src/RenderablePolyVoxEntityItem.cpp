@@ -1057,7 +1057,7 @@ void RenderablePolyVoxEntityItem::getMeshAsync() {
                                        gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::RAW)));
 
     _meshLock.lockForWrite();
-    _dirtyFlags |= EntityItem::DIRTY_SHAPE | EntityItem::DIRTY_MASS;
+    _dirtyFlags |= Simulation::DIRTY_SHAPE | Simulation::DIRTY_MASS;
     _mesh = mesh;
     _meshDirty = true;
     _meshLock.unlock();

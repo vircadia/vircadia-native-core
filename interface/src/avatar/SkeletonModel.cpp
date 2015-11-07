@@ -97,32 +97,15 @@ void SkeletonModel::initJointStates(QVector<JointState> states) {
     emit skeletonLoaded();
 }
 
-static const PalmData* getPalmWithIndex(Hand* hand, int index) {
-    const PalmData* palm = nullptr;
-    for (size_t j = 0; j < hand->getNumPalms(); j++) {
-        if (hand->getPalms()[j].getSixenseID() == index) {
-            palm = &(hand->getPalms()[j]);
-            break;
-        }
-    }
-    return palm;
-}
-
 const float PALM_PRIORITY = DEFAULT_PRIORITY;
 // Called within Model::simulate call, below.
 void SkeletonModel::updateRig(float deltaTime, glm::mat4 parentTransform) {
-    if (_owningAvatar->isMyAvatar()) {
-        _rig->computeMotionAnimationState(deltaTime, _owningAvatar->getPosition(), _owningAvatar->getVelocity(), _owningAvatar->getOrientation());
-    }
-    Model::updateRig(deltaTime, parentTransform);
     Head* head = _owningAvatar->getHead();
     if (_owningAvatar->isMyAvatar()) {
         MyAvatar* myAvatar = static_cast<MyAvatar*>(_owningAvatar);
         const FBXGeometry& geometry = _geometry->getFBXGeometry();
 
         Rig::HeadParameters headParams;
-        headParams.modelRotation = getRotation();
-        headParams.modelTranslation = getTranslation();
         headParams.enableLean = qApp->getAvatarUpdater()->isHMDMode();
         headParams.leanSideways = head->getFinalLeanSideways();
         headParams.leanForward = head->getFinalLeanForward();
@@ -135,7 +118,7 @@ void SkeletonModel::updateRig(float deltaTime, glm::mat4 parentTransform) {
             headParams.isInHMD = true;
 
             // get HMD position from sensor space into world space, and back into model space
-            AnimPose avatarToWorld(glm::vec3(1), myAvatar->getOrientation(), myAvatar->getPosition());
+            AnimPose avatarToWorld(glm::vec3(1.0f), myAvatar->getOrientation(), myAvatar->getPosition());
             glm::mat4 worldToAvatar = glm::inverse((glm::mat4)avatarToWorld);
             glm::mat4 worldHMDMat = myAvatar->getSensorToWorldMatrix() * myAvatar->getHMDSensorMatrix();
             glm::mat4 hmdMat = worldToAvatar * worldHMDMat;
@@ -156,42 +139,59 @@ void SkeletonModel::updateRig(float deltaTime, glm::mat4 parentTransform) {
             headParams.worldHeadOrientation = head->getFinalOrientationInWorldFrame();
         }
 
-        headParams.eyeLookAt = head->getLookAtPosition();
-        headParams.eyeSaccade = head->getSaccade();
         headParams.leanJointIndex = geometry.leanJointIndex;
         headParams.neckJointIndex = geometry.neckJointIndex;
-        headParams.leftEyeJointIndex = geometry.leftEyeJointIndex;
-        headParams.rightEyeJointIndex = geometry.rightEyeJointIndex;
-
         headParams.isTalking = head->getTimeWithoutTalking() <= 1.5f;
 
         _rig->updateFromHeadParameters(headParams, deltaTime);
 
         Rig::HandParameters handParams;
 
-        const PalmData* leftPalm = getPalmWithIndex(myAvatar->getHand(), LEFT_HAND_INDEX);
-        if (leftPalm && leftPalm->isActive()) {
+        auto leftPalm = myAvatar->getHand()->getCopyOfPalmData(HandData::LeftHand);
+        if (leftPalm.isValid() && leftPalm.isActive()) {
             handParams.isLeftEnabled = true;
-            handParams.leftPosition = leftPalm->getRawPosition();
-            handParams.leftOrientation = leftPalm->getRawRotation();
-            handParams.leftTrigger = leftPalm->getTrigger();
+            handParams.leftPosition = leftPalm.getRawPosition();
+            handParams.leftOrientation = leftPalm.getRawRotation();
+            handParams.leftTrigger = leftPalm.getTrigger();
         } else {
             handParams.isLeftEnabled = false;
         }
 
-        const PalmData* rightPalm = getPalmWithIndex(myAvatar->getHand(), RIGHT_HAND_INDEX);
-        if (rightPalm && rightPalm->isActive()) {
+        auto rightPalm = myAvatar->getHand()->getCopyOfPalmData(HandData::RightHand);
+        if (rightPalm.isValid() && rightPalm.isActive()) {
             handParams.isRightEnabled = true;
-            handParams.rightPosition = rightPalm->getRawPosition();
-            handParams.rightOrientation = rightPalm->getRawRotation();
-            handParams.rightTrigger = rightPalm->getTrigger();
+            handParams.rightPosition = rightPalm.getRawPosition();
+            handParams.rightOrientation = rightPalm.getRawRotation();
+            handParams.rightTrigger = rightPalm.getTrigger();
         } else {
             handParams.isRightEnabled = false;
         }
 
         _rig->updateFromHandParameters(handParams, deltaTime);
 
+        _rig->computeMotionAnimationState(deltaTime, _owningAvatar->getPosition(), _owningAvatar->getVelocity(), _owningAvatar->getOrientation());
+        // evaluate AnimGraph animation and update jointStates.
+        Model::updateRig(deltaTime, parentTransform);
+
+        Rig::EyeParameters eyeParams;
+        eyeParams.worldHeadOrientation = headParams.worldHeadOrientation;
+        eyeParams.eyeLookAt = head->getLookAtPosition();
+        eyeParams.eyeSaccade = head->getSaccade();
+        eyeParams.modelRotation = getRotation();
+        eyeParams.modelTranslation = getTranslation();
+        eyeParams.leftEyeJointIndex = geometry.leftEyeJointIndex;
+        eyeParams.rightEyeJointIndex = geometry.rightEyeJointIndex;
+
+        _rig->updateFromEyeParameters(eyeParams);
+
+        // rebuild the jointState transform for the eyes only. Must be after updateRig.
+        _rig->updateJointState(eyeParams.leftEyeJointIndex, parentTransform);
+        _rig->updateJointState(eyeParams.rightEyeJointIndex, parentTransform);
+
     } else {
+
+        Model::updateRig(deltaTime, parentTransform);
+
         // This is a little more work than we really want.
         //
         // Other avatars joint, including their eyes, should already be set just like any other joints
@@ -208,9 +208,16 @@ void SkeletonModel::updateRig(float deltaTime, glm::mat4 parentTransform) {
         head->setBasePitch(glm::degrees(-eulers.x));
         head->setBaseYaw(glm::degrees(eulers.y));
         head->setBaseRoll(glm::degrees(-eulers.z));
-        _rig->updateEyeJoints(geometry.leftEyeJointIndex, geometry.rightEyeJointIndex,
-                              getTranslation(), getRotation(),
-                              head->getFinalOrientationInWorldFrame(), head->getCorrectedLookAtPosition());
+
+        Rig::EyeParameters eyeParams;
+        eyeParams.worldHeadOrientation = head->getFinalOrientationInWorldFrame();
+        eyeParams.eyeLookAt = head->getCorrectedLookAtPosition();
+        eyeParams.eyeSaccade = glm::vec3();
+        eyeParams.modelRotation = getRotation();
+        eyeParams.modelTranslation = getTranslation();
+        eyeParams.leftEyeJointIndex = geometry.leftEyeJointIndex;
+        eyeParams.rightEyeJointIndex = geometry.rightEyeJointIndex;
+        _rig->updateFromEyeParameters(eyeParams);
      }
 }
 
@@ -229,6 +236,12 @@ void SkeletonModel::simulate(float deltaTime, bool fullUpdate) {
 
     Model::simulate(deltaTime, fullUpdate);
 
+    // let rig compute the model offset
+    glm::vec3 modelOffset;
+    if (_rig->getModelOffset(modelOffset)) {
+        setOffset(modelOffset);
+    }
+
     if (!isActive() || !_owningAvatar->isMyAvatar()) {
         return; // only simulate for own avatar
     }
@@ -241,15 +254,15 @@ void SkeletonModel::simulate(float deltaTime, bool fullUpdate) {
 
     const FBXGeometry& geometry = _geometry->getFBXGeometry();
 
-    // find the left and rightmost active palms
-    int leftPalmIndex, rightPalmIndex;
-    Hand* hand = _owningAvatar->getHand();
-    hand->getLeftRightPalmIndices(leftPalmIndex, rightPalmIndex);
-
     // Don't Relax toward hand positions when in animGraph mode.
     if (!_rig->getEnableAnimGraph()) {
+
+        Hand* hand = _owningAvatar->getHand();
+        auto leftPalm = hand->getCopyOfPalmData(HandData::LeftHand);
+        auto rightPalm = hand->getCopyOfPalmData(HandData::RightHand);
+
         const float HAND_RESTORATION_RATE = 0.25f;
-        if (leftPalmIndex == -1 && rightPalmIndex == -1) {
+        if (!leftPalm.isActive() && !rightPalm.isActive()) {
             // palms are not yet set, use mouse
             if (_owningAvatar->getHandState() == HAND_STATE_NULL) {
                 restoreRightHandPosition(HAND_RESTORATION_RATE, PALM_PRIORITY);
@@ -259,20 +272,14 @@ void SkeletonModel::simulate(float deltaTime, bool fullUpdate) {
                 applyHandPosition(geometry.rightHandJointIndex, handPosition);
             }
             restoreLeftHandPosition(HAND_RESTORATION_RATE, PALM_PRIORITY);
-
-        } else if (leftPalmIndex == rightPalmIndex) {
-            // right hand only
-            applyPalmData(geometry.rightHandJointIndex, hand->getPalms()[leftPalmIndex]);
-            restoreLeftHandPosition(HAND_RESTORATION_RATE, PALM_PRIORITY);
-
         } else {
-            if (leftPalmIndex != -1) {
-                applyPalmData(geometry.leftHandJointIndex, hand->getPalms()[leftPalmIndex]);
+            if (leftPalm.isActive()) {
+                applyPalmData(geometry.leftHandJointIndex, leftPalm);
             } else {
                 restoreLeftHandPosition(HAND_RESTORATION_RATE, PALM_PRIORITY);
             }
-            if (rightPalmIndex != -1) {
-                applyPalmData(geometry.rightHandJointIndex, hand->getPalms()[rightPalmIndex]);
+            if (rightPalm.isActive()) {
+                applyPalmData(geometry.rightHandJointIndex, rightPalm);
             } else {
                 restoreRightHandPosition(HAND_RESTORATION_RATE, PALM_PRIORITY);
             }
@@ -320,10 +327,10 @@ void SkeletonModel::applyHandPosition(int jointIndex, const glm::vec3& position)
     float sign = (jointIndex == geometry.rightHandJointIndex) ? 1.0f : -1.0f;
     _rig->applyJointRotationDelta(jointIndex,
                                   rotationBetween(handRotation * glm::vec3(-sign, 0.0f, 0.0f), forearmVector),
-                                  true, PALM_PRIORITY);
+                                  PALM_PRIORITY);
 }
 
-void SkeletonModel::applyPalmData(int jointIndex, PalmData& palm) {
+void SkeletonModel::applyPalmData(int jointIndex, const PalmData& palm) {
     if (jointIndex == -1 || jointIndex >= _rig->getJointStateCount()) {
         return;
     }
@@ -651,6 +658,7 @@ void SkeletonModel::computeBoundingShape() {
     // RECOVER FROM BOUNINDG SHAPE HACK: now that we're all done, restore the default pose
     for (int i = 0; i < numStates; i++) {
         _rig->restoreJointRotation(i, 1.0f, 1.0f);
+        _rig->restoreJointTranslation(i, 1.0f, 1.0f);
     }
 }
 

@@ -2,7 +2,12 @@ set(TARGET_NAME interface)
 project(${TARGET_NAME})
 
 # set a default root dir for each of our optional externals if it was not passed
-set(OPTIONAL_EXTERNALS "Faceshift" "LeapMotion" "RtMidi" "RSSDK" "3DConnexionClient" "iViewHMD")
+set(OPTIONAL_EXTERNALS "LeapMotion" "RtMidi" "RSSDK")
+
+if(WIN32)
+    list(APPEND OPTIONAL_EXTERNALS "3DConnexionClient")
+endif()
+
 foreach(EXTERNAL ${OPTIONAL_EXTERNALS})
   string(TOUPPER ${EXTERNAL} ${EXTERNAL}_UPPERCASE)
   if (NOT ${${EXTERNAL}_UPPERCASE}_ROOT_DIR)
@@ -95,30 +100,21 @@ else()
   add_executable(${TARGET_NAME} ${INTERFACE_SRCS} ${QM})
 endif()
 
-add_dependency_external_projects(glm bullet)
-
-# set up the external glm library
-find_package(GLM REQUIRED)
-target_include_directories(${TARGET_NAME} PRIVATE ${GLM_INCLUDE_DIRS})
-
-find_package(Bullet REQUIRED)
-
-# perform the system include hack for OS X to ignore warnings
-if (APPLE)
-  SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -isystem ${BULLET_INCLUDE_DIRS}")
-else()
-  target_include_directories(${TARGET_NAME} SYSTEM PRIVATE ${BULLET_INCLUDE_DIRS})
-endif()
-
-target_link_libraries(${TARGET_NAME} ${BULLET_LIBRARIES})
-
 # link required hifi libraries
-link_hifi_libraries(shared octree environment gpu procedural  model render fbx networking model-networking entities avatars 
+link_hifi_libraries(shared octree environment gpu gl procedural model render 
+                    recording fbx networking model-networking entities avatars 
                     audio audio-client animation script-engine physics 
-                    render-utils entities-renderer ui auto-updater 
-                    plugins display-plugins input-plugins)
+                    render-utils entities-renderer ui auto-updater
+                    controllers plugins display-plugins input-plugins )
 
-add_dependency_external_projects(sdl2)
+#fixme find a way to express faceshift as a plugin
+target_bullet()
+target_glew()
+target_opengl()
+
+if (WIN32 OR APPLE)
+    target_faceshift()
+endif()
 
 # perform standard include and linking for found externals
 foreach(EXTERNAL ${OPTIONAL_EXTERNALS})

@@ -19,41 +19,20 @@
 
 #include <model/Geometry.h>
 #include <gpu/Texture.h>
-#include "InputDevice.h"
+#include <controllers/InputDevice.h>
 #include "InputPlugin.h"
 #include <RenderArgs.h>
 #include <render/Scene.h>
 
-class ViveControllerManager : public InputPlugin, public InputDevice {
+class ViveControllerManager : public InputPlugin, public controller::InputDevice {
     Q_OBJECT
 public:
-    enum JoystickAxisChannel {
-        AXIS_Y_POS = 1U << 1,
-        AXIS_Y_NEG = 1U << 2,
-        AXIS_X_POS = 1U << 3,
-        AXIS_X_NEG = 1U << 4,
-        BACK_TRIGGER = 1U << 5,
-    };
-
-    enum Axis {
-        TRACKPAD_AXIS = 0,
-        TRIGGER_AXIS,
-        AXIS_2,
-        AXIS_3,
-        AXIS_4,
-    };
-
-    enum JointChannel {
-        LEFT_HAND = 0,
-        RIGHT_HAND,
-    };
-
     ViveControllerManager();
 
     // Plugin functions
     virtual bool isSupported() const override;
     virtual bool isJointController() const override { return true; }
-    const QString& getName() const { return NAME; }
+    const QString& getName() const override { return NAME; }
 
     virtual void activate() override;
     virtual void deactivate() override;
@@ -62,8 +41,8 @@ public:
     virtual void pluginUpdate(float deltaTime, bool jointsCaptured) override { update(deltaTime, jointsCaptured); }
 
     // Device functions
-    virtual void registerToUserInputMapper(UserInputMapper& mapper) override;
-    virtual void assignDefaultInputMapping(UserInputMapper& mapper) override;
+    virtual controller::Input::NamedVector getAvailableInputs() const override;
+    virtual QString getDefaultMappingConfig() const override;
     virtual void update(float deltaTime, bool jointsCaptured) override;
     virtual void focusOutEvent() override;
 
@@ -71,16 +50,12 @@ public:
 
     void setRenderControllers(bool renderControllers) { _renderControllers = renderControllers; }
     
-    UserInputMapper::Input makeInput(unsigned int button, int index);
-    UserInputMapper::Input makeInput(JoystickAxisChannel axis, int index);
-    UserInputMapper::Input makeInput(JointChannel joint);
-    
 private:
-    void renderHand(UserInputMapper::PoseValue pose, gpu::Batch& batch, int index);
+    void renderHand(const controller::Pose& pose, gpu::Batch& batch, int sign);
     
-    void handleButtonEvent(uint64_t buttons, int index);
-    void handleAxisEvent(Axis axis, float x, float y, int index);
-    void handlePoseEvent(const mat4& mat, int index);
+    void handleButtonEvent(uint32_t button, bool pressed, bool left);
+    void handleAxisEvent(uint32_t axis, float x, float y, bool left);
+    void handlePoseEvent(const mat4& mat, bool left);
     
     int _trackedControllers;
 
@@ -94,6 +69,9 @@ private:
     bool _renderControllers;
 
     static const QString NAME;
+
+    bool _registeredWithInputMapper { false };
+
 };
 
 #endif // hifi__ViveControllerManager

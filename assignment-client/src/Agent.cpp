@@ -233,8 +233,8 @@ void Agent::setIsAvatar(bool isAvatar) {
         }
         
         if (_avatarBillboardTimer) {
-            _avatarIdentityTimer->stop();
-            delete _avatarIdentityTimer;
+            _avatarBillboardTimer->stop();
+            delete _avatarBillboardTimer;
             _avatarBillboardTimer = nullptr;
         }
     }
@@ -267,7 +267,10 @@ void Agent::processAgentAvatarAndAudio(float deltaTime) {
 
         QByteArray avatarByteArray = _avatarData->toByteArray(true, randFloat() < AVATAR_SEND_FULL_UPDATE_RATIO);
         _avatarData->doneEncoding(true);
-        auto avatarPacket = NLPacket::create(PacketType::AvatarData, avatarByteArray.size());
+
+        static AvatarDataSequenceNumber sequenceNumber = 0;
+        auto avatarPacket = NLPacket::create(PacketType::AvatarData, avatarByteArray.size() + sizeof(sequenceNumber));
+        avatarPacket->writePrimitive(sequenceNumber++);
 
         avatarPacket->write(avatarByteArray);
 
@@ -364,10 +367,15 @@ void Agent::processAgentAvatarAndAudio(float deltaTime) {
 }
 
 void Agent::aboutToFinish() {
-    _scriptEngine->stop();
+    setIsAvatar(false);// will stop timers for sending billboards and identity packets
+    if (_scriptEngine) {
+        _scriptEngine->stop();
+    }
 
-    _pingTimer->stop();
-    delete _pingTimer;
+    if (_pingTimer) {
+        _pingTimer->stop();
+        delete _pingTimer;
+    }
 
     // our entity tree is going to go away so tell that to the EntityScriptingInterface
     DependencyManager::get<EntityScriptingInterface>()->setEntityTree(NULL);

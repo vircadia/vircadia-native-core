@@ -21,118 +21,18 @@
 #include "EntitiesLogging.h"
 #include "EntityItem.h"
 #include "EntityItemProperties.h"
-#include "EntityItemPropertiesDefaults.h"
 #include "ModelEntityItem.h"
-#include "ParticleEffectEntityItem.h"
-#include "TextEntityItem.h"
-#include "ZoneEntityItem.h"
-#include "PolyVoxEntityItem.h"
-#include "LineEntityItem.h"
 #include "PolyLineEntityItem.h"
 
+AnimationPropertyGroup EntityItemProperties::_staticAnimation;
 AtmospherePropertyGroup EntityItemProperties::_staticAtmosphere;
 SkyboxPropertyGroup EntityItemProperties::_staticSkybox;
 StagePropertyGroup EntityItemProperties::_staticStage;
+KeyLightPropertyGroup EntityItemProperties::_staticKeyLight;
 
 EntityPropertyList PROP_LAST_ITEM = (EntityPropertyList)(PROP_AFTER_LAST_ITEM - 1);
 
 EntityItemProperties::EntityItemProperties(EntityPropertyFlags desiredProperties) :
-
-CONSTRUCT_PROPERTY(visible, ENTITY_ITEM_DEFAULT_VISIBLE),
-CONSTRUCT_PROPERTY(position, 0.0f),
-CONSTRUCT_PROPERTY(dimensions, ENTITY_ITEM_DEFAULT_DIMENSIONS),
-CONSTRUCT_PROPERTY(rotation, ENTITY_ITEM_DEFAULT_ROTATION),
-CONSTRUCT_PROPERTY(density, ENTITY_ITEM_DEFAULT_DENSITY),
-CONSTRUCT_PROPERTY(velocity, ENTITY_ITEM_DEFAULT_VELOCITY),
-CONSTRUCT_PROPERTY(gravity, ENTITY_ITEM_DEFAULT_GRAVITY),
-CONSTRUCT_PROPERTY(acceleration, ENTITY_ITEM_DEFAULT_ACCELERATION),
-CONSTRUCT_PROPERTY(damping, ENTITY_ITEM_DEFAULT_DAMPING),
-CONSTRUCT_PROPERTY(restitution, ENTITY_ITEM_DEFAULT_RESTITUTION),
-CONSTRUCT_PROPERTY(friction, ENTITY_ITEM_DEFAULT_FRICTION),
-CONSTRUCT_PROPERTY(lifetime, ENTITY_ITEM_DEFAULT_LIFETIME),
-CONSTRUCT_PROPERTY(created, UNKNOWN_CREATED_TIME),
-CONSTRUCT_PROPERTY(script, ENTITY_ITEM_DEFAULT_SCRIPT),
-CONSTRUCT_PROPERTY(scriptTimestamp, ENTITY_ITEM_DEFAULT_SCRIPT_TIMESTAMP),
-CONSTRUCT_PROPERTY(collisionSoundURL, ENTITY_ITEM_DEFAULT_COLLISION_SOUND_URL),
-CONSTRUCT_PROPERTY(color, ),
-CONSTRUCT_PROPERTY(colorSpread, ParticleEffectEntityItem::DEFAULT_COLOR_SPREAD),
-CONSTRUCT_PROPERTY(colorStart, ParticleEffectEntityItem::DEFAULT_COLOR),
-CONSTRUCT_PROPERTY(colorFinish, ParticleEffectEntityItem::DEFAULT_COLOR),
-CONSTRUCT_PROPERTY(alpha, ENTITY_ITEM_DEFAULT_ALPHA),
-CONSTRUCT_PROPERTY(alphaSpread, ParticleEffectEntityItem::DEFAULT_ALPHA_SPREAD),
-CONSTRUCT_PROPERTY(alphaStart, ParticleEffectEntityItem::DEFAULT_ALPHA_START),
-CONSTRUCT_PROPERTY(alphaFinish, ParticleEffectEntityItem::DEFAULT_ALPHA_FINISH),
-CONSTRUCT_PROPERTY(modelURL, ""),
-CONSTRUCT_PROPERTY(compoundShapeURL, ""),
-CONSTRUCT_PROPERTY(animationURL, ""),
-CONSTRUCT_PROPERTY(animationFPS, ModelEntityItem::DEFAULT_ANIMATION_FPS),
-CONSTRUCT_PROPERTY(animationFrameIndex, ModelEntityItem::DEFAULT_ANIMATION_FRAME_INDEX),
-CONSTRUCT_PROPERTY(animationIsPlaying, ModelEntityItem::DEFAULT_ANIMATION_IS_PLAYING),
-CONSTRUCT_PROPERTY(registrationPoint, ENTITY_ITEM_DEFAULT_REGISTRATION_POINT),
-CONSTRUCT_PROPERTY(angularVelocity, ENTITY_ITEM_DEFAULT_ANGULAR_VELOCITY),
-CONSTRUCT_PROPERTY(angularDamping, ENTITY_ITEM_DEFAULT_ANGULAR_DAMPING),
-CONSTRUCT_PROPERTY(ignoreForCollisions, ENTITY_ITEM_DEFAULT_IGNORE_FOR_COLLISIONS),
-CONSTRUCT_PROPERTY(collisionsWillMove, ENTITY_ITEM_DEFAULT_COLLISIONS_WILL_MOVE),
-CONSTRUCT_PROPERTY(isSpotlight, false),
-CONSTRUCT_PROPERTY(intensity, 1.0f),
-CONSTRUCT_PROPERTY(exponent, 0.0f),
-CONSTRUCT_PROPERTY(cutoff, ENTITY_ITEM_DEFAULT_CUTOFF),
-CONSTRUCT_PROPERTY(locked, ENTITY_ITEM_DEFAULT_LOCKED),
-CONSTRUCT_PROPERTY(textures, ""),
-CONSTRUCT_PROPERTY(animationSettings, "{\"firstFrame\":0,\"fps\":30,\"frameIndex\":0,\"hold\":false,"
-                   "\"lastFrame\":100000,\"loop\":false,\"running\":false,\"startAutomatically\":false}"),
-CONSTRUCT_PROPERTY(userData, ENTITY_ITEM_DEFAULT_USER_DATA),
-CONSTRUCT_PROPERTY(simulationOwner, SimulationOwner()),
-CONSTRUCT_PROPERTY(text, TextEntityItem::DEFAULT_TEXT),
-CONSTRUCT_PROPERTY(lineHeight, TextEntityItem::DEFAULT_LINE_HEIGHT),
-CONSTRUCT_PROPERTY(textColor, TextEntityItem::DEFAULT_TEXT_COLOR),
-CONSTRUCT_PROPERTY(backgroundColor, TextEntityItem::DEFAULT_BACKGROUND_COLOR),
-CONSTRUCT_PROPERTY(shapeType, SHAPE_TYPE_NONE),
-CONSTRUCT_PROPERTY(maxParticles, ParticleEffectEntityItem::DEFAULT_MAX_PARTICLES),
-CONSTRUCT_PROPERTY(lifespan, ParticleEffectEntityItem::DEFAULT_LIFESPAN),
-CONSTRUCT_PROPERTY(emitRate, ParticleEffectEntityItem::DEFAULT_EMIT_RATE),
-CONSTRUCT_PROPERTY(emitSpeed, ParticleEffectEntityItem::DEFAULT_EMIT_SPEED),
-CONSTRUCT_PROPERTY(speedSpread, ParticleEffectEntityItem::DEFAULT_SPEED_SPREAD),
-CONSTRUCT_PROPERTY(emitOrientation, ParticleEffectEntityItem::DEFAULT_EMIT_ORIENTATION),
-CONSTRUCT_PROPERTY(emitDimensions, ParticleEffectEntityItem::DEFAULT_EMIT_DIMENSIONS),
-CONSTRUCT_PROPERTY(emitRadiusStart, ParticleEffectEntityItem::DEFAULT_EMIT_RADIUS_START),
-CONSTRUCT_PROPERTY(polarStart, ParticleEffectEntityItem::DEFAULT_POLAR_START),
-CONSTRUCT_PROPERTY(polarFinish, ParticleEffectEntityItem::DEFAULT_POLAR_FINISH),
-CONSTRUCT_PROPERTY(azimuthStart, ParticleEffectEntityItem::DEFAULT_AZIMUTH_START),
-CONSTRUCT_PROPERTY(azimuthFinish, ParticleEffectEntityItem::DEFAULT_AZIMUTH_FINISH),
-CONSTRUCT_PROPERTY(emitAcceleration, ParticleEffectEntityItem::DEFAULT_EMIT_ACCELERATION),
-CONSTRUCT_PROPERTY(accelerationSpread, ParticleEffectEntityItem::DEFAULT_ACCELERATION_SPREAD),
-CONSTRUCT_PROPERTY(particleRadius, ParticleEffectEntityItem::DEFAULT_PARTICLE_RADIUS),
-CONSTRUCT_PROPERTY(radiusSpread, ParticleEffectEntityItem::DEFAULT_RADIUS_SPREAD),
-CONSTRUCT_PROPERTY(radiusStart, ParticleEffectEntityItem::DEFAULT_RADIUS_START),
-CONSTRUCT_PROPERTY(radiusFinish, ParticleEffectEntityItem::DEFAULT_RADIUS_FINISH),
-CONSTRUCT_PROPERTY(marketplaceID, ENTITY_ITEM_DEFAULT_MARKETPLACE_ID),
-CONSTRUCT_PROPERTY(keyLightColor, ZoneEntityItem::DEFAULT_KEYLIGHT_COLOR),
-CONSTRUCT_PROPERTY(keyLightIntensity, ZoneEntityItem::DEFAULT_KEYLIGHT_INTENSITY),
-CONSTRUCT_PROPERTY(keyLightAmbientIntensity, ZoneEntityItem::DEFAULT_KEYLIGHT_AMBIENT_INTENSITY),
-CONSTRUCT_PROPERTY(keyLightDirection, ZoneEntityItem::DEFAULT_KEYLIGHT_DIRECTION),
-CONSTRUCT_PROPERTY(voxelVolumeSize, PolyVoxEntityItem::DEFAULT_VOXEL_VOLUME_SIZE),
-CONSTRUCT_PROPERTY(voxelData, PolyVoxEntityItem::DEFAULT_VOXEL_DATA),
-CONSTRUCT_PROPERTY(voxelSurfaceStyle, PolyVoxEntityItem::DEFAULT_VOXEL_SURFACE_STYLE),
-CONSTRUCT_PROPERTY(name, ENTITY_ITEM_DEFAULT_NAME),
-CONSTRUCT_PROPERTY(backgroundMode, BACKGROUND_MODE_INHERIT),
-CONSTRUCT_PROPERTY(sourceUrl, ""),
-CONSTRUCT_PROPERTY(lineWidth, LineEntityItem::DEFAULT_LINE_WIDTH),
-CONSTRUCT_PROPERTY(linePoints, QVector<glm::vec3>()),
-CONSTRUCT_PROPERTY(faceCamera, TextEntityItem::DEFAULT_FACE_CAMERA),
-CONSTRUCT_PROPERTY(actionData, QByteArray()),
-CONSTRUCT_PROPERTY(normals, QVector<glm::vec3>()),
-CONSTRUCT_PROPERTY(strokeWidths, QVector<float>()),
-CONSTRUCT_PROPERTY(xTextureURL, ""),
-CONSTRUCT_PROPERTY(yTextureURL, ""),
-CONSTRUCT_PROPERTY(zTextureURL, ""),
-CONSTRUCT_PROPERTY(xNNeighborID, UNKNOWN_ENTITY_ID),
-CONSTRUCT_PROPERTY(yNNeighborID, UNKNOWN_ENTITY_ID),
-CONSTRUCT_PROPERTY(zNNeighborID, UNKNOWN_ENTITY_ID),
-CONSTRUCT_PROPERTY(xPNeighborID, UNKNOWN_ENTITY_ID),
-CONSTRUCT_PROPERTY(yPNeighborID, UNKNOWN_ENTITY_ID),
-CONSTRUCT_PROPERTY(zPNeighborID, UNKNOWN_ENTITY_ID),
-
 
 _id(UNKNOWN_ENTITY_ID),
 _idSet(false),
@@ -152,9 +52,6 @@ _desiredProperties(desiredProperties)
 {
 }
 
-EntityItemProperties::~EntityItemProperties() {
-}
-
 void EntityItemProperties::setSittingPoints(const QVector<SittingPoint>& sittingPoints) {
     _sittingPoints.clear();
     foreach (SittingPoint sitPoint, sittingPoints) {
@@ -165,63 +62,6 @@ void EntityItemProperties::setSittingPoints(const QVector<SittingPoint>& sitting
 void EntityItemProperties::calculateNaturalPosition(const glm::vec3& min, const glm::vec3& max) {
     glm::vec3 halfDimension = (max - min) / 2.0f;
     _naturalPosition = max - halfDimension;
-}
-
-bool EntityItemProperties::animationSettingsChanged() const {
-    return _animationSettingsChanged;
-}
-
-void EntityItemProperties::setAnimationSettings(const QString& value) {
-    // the animations setting is a JSON string that may contain various animation settings.
-    // if it includes fps, frameIndex, or running, those values will be parsed out and
-    // will over ride the regular animation settings
-
-    QJsonDocument settingsAsJson = QJsonDocument::fromJson(value.toUtf8());
-    QJsonObject settingsAsJsonObject = settingsAsJson.object();
-    QVariantMap settingsMap = settingsAsJsonObject.toVariantMap();
-    if (settingsMap.contains("fps")) {
-        float fps = settingsMap["fps"].toFloat();
-        setAnimationFPS(fps);
-    }
-
-    if (settingsMap.contains("frameIndex")) {
-        float frameIndex = settingsMap["frameIndex"].toFloat();
-        setAnimationFrameIndex(frameIndex);
-    }
-
-    if (settingsMap.contains("running")) {
-        bool running = settingsMap["running"].toBool();
-        setAnimationIsPlaying(running);
-    }
-
-    _animationSettings = value;
-    _animationSettingsChanged = true;
-}
-
-QString EntityItemProperties::getAnimationSettings() const {
-    // the animations setting is a JSON string that may contain various animation settings.
-    // if it includes fps, frameIndex, or running, those values will be parsed out and
-    // will over ride the regular animation settings
-    QString value = _animationSettings;
-
-    QJsonDocument settingsAsJson = QJsonDocument::fromJson(value.toUtf8());
-    QJsonObject settingsAsJsonObject = settingsAsJson.object();
-    QVariantMap settingsMap = settingsAsJsonObject.toVariantMap();
-
-    QVariant fpsValue(getAnimationFPS());
-    settingsMap["fps"] = fpsValue;
-
-    QVariant frameIndexValue(getAnimationFrameIndex());
-    settingsMap["frameIndex"] = frameIndexValue;
-
-    QVariant runningValue(getAnimationIsPlaying());
-    settingsMap["running"] = runningValue;
-
-    settingsAsJsonObject = QJsonObject::fromVariantMap(settingsMap);
-    QJsonDocument newDocument(settingsAsJsonObject);
-    QByteArray jsonByteArray = newDocument.toJson(QJsonDocument::Compact);
-    QString jsonByteString(jsonByteArray);
-    return jsonByteString;
 }
 
 void EntityItemProperties::setCreated(QDateTime &v) {
@@ -238,9 +78,11 @@ void EntityItemProperties::debugDump() const {
     qCDebug(entities) << "   _modelURL=" << _modelURL;
     qCDebug(entities) << "   _compoundShapeURL=" << _compoundShapeURL;
 
+    getAnimation().debugDump();
     getAtmosphere().debugDump();
     getSkybox().debugDump();
-
+    getKeyLight().debugDump();
+    
     qCDebug(entities) << "   changed properties...";
     EntityPropertyFlags props = getChangedProperties();
     props.debugDumpBits();
@@ -355,11 +197,6 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
     CHECK_PROPERTY_CHANGE(PROP_ALPHA_FINISH, alphaFinish);
     CHECK_PROPERTY_CHANGE(PROP_MODEL_URL, modelURL);
     CHECK_PROPERTY_CHANGE(PROP_COMPOUND_SHAPE_URL, compoundShapeURL);
-    CHECK_PROPERTY_CHANGE(PROP_ANIMATION_URL, animationURL);
-    CHECK_PROPERTY_CHANGE(PROP_ANIMATION_PLAYING, animationIsPlaying);
-    CHECK_PROPERTY_CHANGE(PROP_ANIMATION_FRAME_INDEX, animationFrameIndex);
-    CHECK_PROPERTY_CHANGE(PROP_ANIMATION_FPS, animationFPS);
-    CHECK_PROPERTY_CHANGE(PROP_ANIMATION_SETTINGS, animationSettings);
     CHECK_PROPERTY_CHANGE(PROP_VISIBLE, visible);
     CHECK_PROPERTY_CHANGE(PROP_REGISTRATION_POINT, registrationPoint);
     CHECK_PROPERTY_CHANGE(PROP_ANGULAR_VELOCITY, angularVelocity);
@@ -379,6 +216,7 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
     CHECK_PROPERTY_CHANGE(PROP_TEXT_COLOR, textColor);
     CHECK_PROPERTY_CHANGE(PROP_BACKGROUND_COLOR, backgroundColor);
     CHECK_PROPERTY_CHANGE(PROP_SHAPE_TYPE, shapeType);
+    CHECK_PROPERTY_CHANGE(PROP_EMITTING_PARTICLES, isEmitting);
     CHECK_PROPERTY_CHANGE(PROP_MAX_PARTICLES, maxParticles);
     CHECK_PROPERTY_CHANGE(PROP_LIFESPAN, lifespan);
     CHECK_PROPERTY_CHANGE(PROP_EMIT_RATE, emitRate);
@@ -399,10 +237,6 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
     CHECK_PROPERTY_CHANGE(PROP_RADIUS_FINISH, radiusFinish);
     CHECK_PROPERTY_CHANGE(PROP_MARKETPLACE_ID, marketplaceID);
     CHECK_PROPERTY_CHANGE(PROP_NAME, name);
-    CHECK_PROPERTY_CHANGE(PROP_KEYLIGHT_COLOR, keyLightColor);
-    CHECK_PROPERTY_CHANGE(PROP_KEYLIGHT_INTENSITY, keyLightIntensity);
-    CHECK_PROPERTY_CHANGE(PROP_KEYLIGHT_AMBIENT_INTENSITY, keyLightAmbientIntensity);
-    CHECK_PROPERTY_CHANGE(PROP_KEYLIGHT_DIRECTION, keyLightDirection);
     CHECK_PROPERTY_CHANGE(PROP_BACKGROUND_MODE, backgroundMode);
     CHECK_PROPERTY_CHANGE(PROP_SOURCE_URL, sourceUrl);
     CHECK_PROPERTY_CHANGE(PROP_VOXEL_VOLUME_SIZE, voxelVolumeSize);
@@ -426,9 +260,11 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
     CHECK_PROPERTY_CHANGE(PROP_Y_P_NEIGHBOR_ID, yPNeighborID);
     CHECK_PROPERTY_CHANGE(PROP_Z_P_NEIGHBOR_ID, zPNeighborID);
 
-    changedProperties += _stage.getChangedProperties();
+    changedProperties += _animation.getChangedProperties();
+    changedProperties += _keyLight.getChangedProperties();
     changedProperties += _atmosphere.getChangedProperties();
     changedProperties += _skybox.getChangedProperties();
+    changedProperties += _stage.getChangedProperties();
 
     return changedProperties;
 }
@@ -489,6 +325,7 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine, bool
 
     // Particles only
     if (_type == EntityTypes::ParticleEffect) {
+        COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_EMITTING_PARTICLES, isEmitting);
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_MAX_PARTICLES, maxParticles);
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_LIFESPAN, lifespan);
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_EMIT_RATE, emitRate);
@@ -519,7 +356,7 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine, bool
     // Models only
     if (_type == EntityTypes::Model) {
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_MODEL_URL, modelURL);
-        COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_ANIMATION_URL, animationURL);
+        _animation.copyToScriptValue(_desiredProperties, properties, engine, skipDefaults, defaultEntityProperties);
     }
 
     if (_type == EntityTypes::Model || _type == EntityTypes::Zone || _type == EntityTypes::ParticleEffect) {
@@ -534,10 +371,6 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine, bool
     // Models & Particles
     if (_type == EntityTypes::Model || _type == EntityTypes::ParticleEffect) {
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_TEXTURES, textures);
-        COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_ANIMATION_PLAYING, animationIsPlaying);
-        COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_ANIMATION_FPS, animationFPS);
-        COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_ANIMATION_FRAME_INDEX, animationFrameIndex);
-        COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER(PROP_ANIMATION_SETTINGS, animationSettings, getAnimationSettings());
     }
 
     // Lights only
@@ -558,10 +391,8 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine, bool
 
     // Zones only
     if (_type == EntityTypes::Zone) {
-        COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_KEYLIGHT_COLOR, keyLightColor);
-        COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_KEYLIGHT_INTENSITY, keyLightIntensity);
-        COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_KEYLIGHT_AMBIENT_INTENSITY, keyLightAmbientIntensity);
-        COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_KEYLIGHT_DIRECTION, keyLightDirection);
+        _keyLight.copyToScriptValue(_desiredProperties, properties, engine, skipDefaults, defaultEntityProperties);
+        
         COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER(PROP_BACKGROUND_MODE, backgroundMode, getBackgroundModeAsString());
 
         _stage.copyToScriptValue(_desiredProperties, properties, engine, skipDefaults, defaultEntityProperties);
@@ -673,11 +504,6 @@ void EntityItemProperties::copyFromScriptValue(const QScriptValue& object, bool 
     COPY_PROPERTY_FROM_QSCRIPTVALUE(alphaFinish, float, setAlphaFinish);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(modelURL, QString, setModelURL);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(compoundShapeURL, QString, setCompoundShapeURL);
-    COPY_PROPERTY_FROM_QSCRIPTVALUE(animationURL, QString, setAnimationURL);
-    COPY_PROPERTY_FROM_QSCRIPTVALUE(animationIsPlaying, bool, setAnimationIsPlaying);
-    COPY_PROPERTY_FROM_QSCRIPTVALUE(animationFPS, float, setAnimationFPS);
-    COPY_PROPERTY_FROM_QSCRIPTVALUE(animationFrameIndex, float, setAnimationFrameIndex);
-    COPY_PROPERTY_FROM_QSCRIPTVALUE(animationSettings, QString, setAnimationSettings);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(glowLevel, float, setGlowLevel);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(localRenderAlpha, float, setLocalRenderAlpha);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(ignoreForCollisions, bool, setIgnoreForCollisions);
@@ -694,8 +520,9 @@ void EntityItemProperties::copyFromScriptValue(const QScriptValue& object, bool 
     COPY_PROPERTY_FROM_QSCRIPTVALUE(textColor, xColor, setTextColor);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(backgroundColor, xColor, setBackgroundColor);
     COPY_PROPERTY_FROM_QSCRITPTVALUE_ENUM(shapeType, ShapeType);
-    COPY_PROPERTY_FROM_QSCRIPTVALUE(maxParticles, float, setMaxParticles);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(maxParticles, quint32, setMaxParticles);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(lifespan, float, setLifespan);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(isEmitting, bool, setIsEmitting);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(emitRate, float, setEmitRate);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(emitSpeed, float, setEmitSpeed);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(speedSpread, float, setSpeedSpread);
@@ -716,10 +543,6 @@ void EntityItemProperties::copyFromScriptValue(const QScriptValue& object, bool 
     COPY_PROPERTY_FROM_QSCRIPTVALUE(name, QString, setName);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(collisionSoundURL, QString, setCollisionSoundURL);
 
-    COPY_PROPERTY_FROM_QSCRIPTVALUE(keyLightColor, xColor, setKeyLightColor);
-    COPY_PROPERTY_FROM_QSCRIPTVALUE(keyLightIntensity, float, setKeyLightIntensity);
-    COPY_PROPERTY_FROM_QSCRIPTVALUE(keyLightAmbientIntensity, float, setKeyLightAmbientIntensity);
-    COPY_PROPERTY_FROM_QSCRIPTVALUE(keyLightDirection, glmVec3, setKeyLightDirection);
     COPY_PROPERTY_FROM_QSCRITPTVALUE_ENUM(backgroundMode, BackgroundMode);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(sourceUrl, QString, setSourceUrl);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(voxelVolumeSize, glmVec3, setVoxelVolumeSize);
@@ -744,10 +567,11 @@ void EntityItemProperties::copyFromScriptValue(const QScriptValue& object, bool 
         //COPY_PROPERTY_FROM_QSCRIPTVALUE(simulationOwner, ???, setSimulatorPriority);
     }
 
-    _stage.copyFromScriptValue(object, _defaultSettings);
+    _animation.copyFromScriptValue(object, _defaultSettings);
+    _keyLight.copyFromScriptValue(object, _defaultSettings);
     _atmosphere.copyFromScriptValue(object, _defaultSettings);
     _skybox.copyFromScriptValue(object, _defaultSettings);
-
+    _stage.copyFromScriptValue(object, _defaultSettings);
 
     COPY_PROPERTY_FROM_QSCRIPTVALUE(xTextureURL, QString, setXTextureURL);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(yTextureURL, QString, setYTextureURL);
@@ -828,10 +652,6 @@ void EntityItemProperties::entityPropertyFlagsFromScriptValue(const QScriptValue
         ADD_PROPERTY_TO_MAP(PROP_ALPHA_FINISH, AlphaFinish, alphaFinish, float);
         ADD_PROPERTY_TO_MAP(PROP_MODEL_URL, ModelURL, modelURL, QString);
         ADD_PROPERTY_TO_MAP(PROP_COMPOUND_SHAPE_URL, CompoundShapeURL, compoundShapeURL, QString);
-        ADD_PROPERTY_TO_MAP(PROP_ANIMATION_URL, AnimationURL, animationURL, QString);
-        ADD_PROPERTY_TO_MAP(PROP_ANIMATION_FPS, AnimationFPS, animationFPS, float);
-        ADD_PROPERTY_TO_MAP(PROP_ANIMATION_FRAME_INDEX, AnimationFrameIndex, animationFrameIndex, float);
-        ADD_PROPERTY_TO_MAP(PROP_ANIMATION_PLAYING, AnimationIsPlaying, animationIsPlaying, bool);
         ADD_PROPERTY_TO_MAP(PROP_REGISTRATION_POINT, RegistrationPoint, registrationPoint, glm::vec3);
         ADD_PROPERTY_TO_MAP(PROP_ANGULAR_VELOCITY, AngularVelocity, angularVelocity, glm::vec3);
         ADD_PROPERTY_TO_MAP(PROP_ANGULAR_DAMPING, AngularDamping, angularDamping, float);
@@ -843,7 +663,6 @@ void EntityItemProperties::entityPropertyFlagsFromScriptValue(const QScriptValue
         ADD_PROPERTY_TO_MAP(PROP_CUTOFF, Cutoff, cutoff, float);
         ADD_PROPERTY_TO_MAP(PROP_LOCKED, Locked, locked, bool);
         ADD_PROPERTY_TO_MAP(PROP_TEXTURES, Textures, textures, QString);
-        ADD_PROPERTY_TO_MAP(PROP_ANIMATION_SETTINGS, AnimationSettings, animationSettings, QString);
         ADD_PROPERTY_TO_MAP(PROP_USER_DATA, UserData, userData, QString);
         ADD_PROPERTY_TO_MAP(PROP_SIMULATION_OWNER, SimulationOwner, simulationOwner, SimulationOwner);
         ADD_PROPERTY_TO_MAP(PROP_TEXT, Text, text, QString);
@@ -853,6 +672,7 @@ void EntityItemProperties::entityPropertyFlagsFromScriptValue(const QScriptValue
         ADD_PROPERTY_TO_MAP(PROP_SHAPE_TYPE, ShapeType, shapeType, ShapeType);
         ADD_PROPERTY_TO_MAP(PROP_MAX_PARTICLES, MaxParticles, maxParticles, quint32);
         ADD_PROPERTY_TO_MAP(PROP_LIFESPAN, Lifespan, lifespan, float);
+        ADD_PROPERTY_TO_MAP(PROP_EMITTING_PARTICLES, IsEmitting, isEmitting, bool);
         ADD_PROPERTY_TO_MAP(PROP_EMIT_RATE, EmitRate, emitRate, float);
         ADD_PROPERTY_TO_MAP(PROP_EMIT_SPEED, EmitSpeed, emitSpeed, glm::vec3);
         ADD_PROPERTY_TO_MAP(PROP_SPEED_SPREAD, SpeedSpread, speedSpread, glm::vec3);
@@ -898,8 +718,15 @@ void EntityItemProperties::entityPropertyFlagsFromScriptValue(const QScriptValue
         ADD_PROPERTY_TO_MAP(PROP_Y_P_NEIGHBOR_ID, YPNeighborID, yPNeighborID, EntityItemID);
         ADD_PROPERTY_TO_MAP(PROP_Z_P_NEIGHBOR_ID, ZPNeighborID, zPNeighborID, EntityItemID);
 
-        ADD_GROUP_PROPERTY_TO_MAP(PROP_SKYBOX_COLOR, Skybox, skybox, Color, color);
-        ADD_GROUP_PROPERTY_TO_MAP(PROP_SKYBOX_URL, Skybox, skybox, URL, url);
+        ADD_GROUP_PROPERTY_TO_MAP(PROP_ANIMATION_URL, Animation, animation, URL, url);
+        ADD_GROUP_PROPERTY_TO_MAP(PROP_ANIMATION_FPS, Animation, animation, FPS, fps);
+        ADD_GROUP_PROPERTY_TO_MAP(PROP_ANIMATION_FRAME_INDEX, Animation, animation, CurrentFrame, currentFrame);
+        ADD_GROUP_PROPERTY_TO_MAP(PROP_ANIMATION_PLAYING, Animation, animation, Running, running);
+        ADD_GROUP_PROPERTY_TO_MAP(PROP_ANIMATION_LOOP, Animation, animation, Loop, loop);
+        ADD_GROUP_PROPERTY_TO_MAP(PROP_ANIMATION_FIRST_FRAME, Animation, animation, FirstFrame, firstFrame);
+        ADD_GROUP_PROPERTY_TO_MAP(PROP_ANIMATION_LAST_FRAME, Animation, animation, LastFrame, lastFrame);
+        ADD_GROUP_PROPERTY_TO_MAP(PROP_ANIMATION_HOLD, Animation, animation, Hold, hold);
+        ADD_GROUP_PROPERTY_TO_MAP(PROP_ANIMATION_START_AUTOMATICALLY, Animation, animation, StartAutomatically, startAutomatically);
 
         ADD_GROUP_PROPERTY_TO_MAP(PROP_ATMOSPHERE_CENTER, Atmosphere, atmosphere, Center, center);
         ADD_GROUP_PROPERTY_TO_MAP(PROP_ATMOSPHERE_INNER_RADIUS, Atmosphere, atmosphere, InnerRadius, innerRadius);
@@ -908,6 +735,9 @@ void EntityItemProperties::entityPropertyFlagsFromScriptValue(const QScriptValue
         ADD_GROUP_PROPERTY_TO_MAP(PROP_ATMOSPHERE_RAYLEIGH_SCATTERING, Atmosphere, atmosphere, RayleighScattering, rayleighScattering);
         ADD_GROUP_PROPERTY_TO_MAP(PROP_ATMOSPHERE_SCATTERING_WAVELENGTHS, Atmosphere, atmosphere, ScatteringWavelengths, scatteringWavelengths);
         ADD_GROUP_PROPERTY_TO_MAP(PROP_ATMOSPHERE_HAS_STARS, Atmosphere, atmosphere, HasStars, hasStars);
+
+        ADD_GROUP_PROPERTY_TO_MAP(PROP_SKYBOX_COLOR, Skybox, skybox, Color, color);
+        ADD_GROUP_PROPERTY_TO_MAP(PROP_SKYBOX_URL, Skybox, skybox, URL, url);
 
         ADD_GROUP_PROPERTY_TO_MAP(PROP_STAGE_SUN_MODEL_ENABLED, Stage, stage, SunModelEnabled, sunModelEnabled);
         ADD_GROUP_PROPERTY_TO_MAP(PROP_STAGE_LATITUDE, Stage, stage, Latitude, latitude);
@@ -1087,13 +917,11 @@ bool EntityItemProperties::encodeEntityEditPacket(PacketType command, EntityItem
             if (properties.getType() == EntityTypes::Model) {
                 APPEND_ENTITY_PROPERTY(PROP_MODEL_URL, properties.getModelURL());
                 APPEND_ENTITY_PROPERTY(PROP_COMPOUND_SHAPE_URL, properties.getCompoundShapeURL());
-                APPEND_ENTITY_PROPERTY(PROP_ANIMATION_URL, properties.getAnimationURL());
-                APPEND_ENTITY_PROPERTY(PROP_ANIMATION_FPS, properties.getAnimationFPS());
-                APPEND_ENTITY_PROPERTY(PROP_ANIMATION_FRAME_INDEX, properties.getAnimationFrameIndex());
-                APPEND_ENTITY_PROPERTY(PROP_ANIMATION_PLAYING, properties.getAnimationIsPlaying());
                 APPEND_ENTITY_PROPERTY(PROP_TEXTURES, properties.getTextures());
-                APPEND_ENTITY_PROPERTY(PROP_ANIMATION_SETTINGS, properties.getAnimationSettings());
                 APPEND_ENTITY_PROPERTY(PROP_SHAPE_TYPE, (uint32_t)(properties.getShapeType()));
+
+                _staticAnimation.setProperties(properties);
+                _staticAnimation.appendToEditPacket(packetData, requestedProperties, propertyFlags, propertiesDidntFit, propertyCount, appendState);
             }
 
             if (properties.getType() == EntityTypes::Light) {
@@ -1105,13 +933,10 @@ bool EntityItemProperties::encodeEntityEditPacket(PacketType command, EntityItem
             }
 
             if (properties.getType() == EntityTypes::ParticleEffect) {
-                APPEND_ENTITY_PROPERTY(PROP_ANIMATION_FPS, properties.getAnimationFPS());
-                APPEND_ENTITY_PROPERTY(PROP_ANIMATION_FRAME_INDEX, properties.getAnimationFrameIndex());
-                APPEND_ENTITY_PROPERTY(PROP_ANIMATION_PLAYING, properties.getAnimationIsPlaying());
-                APPEND_ENTITY_PROPERTY(PROP_ANIMATION_SETTINGS, properties.getAnimationSettings());
                 APPEND_ENTITY_PROPERTY(PROP_TEXTURES, properties.getTextures());
                 APPEND_ENTITY_PROPERTY(PROP_MAX_PARTICLES, properties.getMaxParticles());
                 APPEND_ENTITY_PROPERTY(PROP_LIFESPAN, properties.getLifespan());
+                APPEND_ENTITY_PROPERTY(PROP_EMITTING_PARTICLES, properties.getIsEmitting());
                 APPEND_ENTITY_PROPERTY(PROP_EMIT_RATE, properties.getEmitRate());
                 APPEND_ENTITY_PROPERTY(PROP_EMIT_SPEED, properties.getEmitSpeed());
                 APPEND_ENTITY_PROPERTY(PROP_SPEED_SPREAD, properties.getSpeedSpread());
@@ -1137,13 +962,11 @@ bool EntityItemProperties::encodeEntityEditPacket(PacketType command, EntityItem
             }
 
             if (properties.getType() == EntityTypes::Zone) {
-                APPEND_ENTITY_PROPERTY(PROP_KEYLIGHT_COLOR, properties.getKeyLightColor());
-                APPEND_ENTITY_PROPERTY(PROP_KEYLIGHT_INTENSITY,  properties.getKeyLightIntensity());
-                APPEND_ENTITY_PROPERTY(PROP_KEYLIGHT_AMBIENT_INTENSITY, properties.getKeyLightAmbientIntensity());
-                APPEND_ENTITY_PROPERTY(PROP_KEYLIGHT_DIRECTION, properties.getKeyLightDirection());
-
+                _staticKeyLight.setProperties(properties);
+                _staticKeyLight.appendToEditPacket(packetData, requestedProperties, propertyFlags, propertiesDidntFit, propertyCount, appendState);
+                                                   
                 _staticStage.setProperties(properties);
-                _staticStage.appentToEditPacket(packetData, requestedProperties, propertyFlags, propertiesDidntFit,  propertyCount, appendState );
+                _staticStage.appendToEditPacket(packetData, requestedProperties, propertyFlags, propertiesDidntFit, propertyCount, appendState);
 
                 APPEND_ENTITY_PROPERTY(PROP_SHAPE_TYPE, (uint32_t)properties.getShapeType());
                 APPEND_ENTITY_PROPERTY(PROP_COMPOUND_SHAPE_URL, properties.getCompoundShapeURL());
@@ -1151,10 +974,10 @@ bool EntityItemProperties::encodeEntityEditPacket(PacketType command, EntityItem
                 APPEND_ENTITY_PROPERTY(PROP_BACKGROUND_MODE, (uint32_t)properties.getBackgroundMode());
 
                 _staticAtmosphere.setProperties(properties);
-                _staticAtmosphere.appentToEditPacket(packetData, requestedProperties, propertyFlags, propertiesDidntFit,  propertyCount, appendState );
+                _staticAtmosphere.appendToEditPacket(packetData, requestedProperties, propertyFlags, propertiesDidntFit, propertyCount, appendState);
 
                 _staticSkybox.setProperties(properties);
-                _staticSkybox.appentToEditPacket(packetData, requestedProperties, propertyFlags, propertiesDidntFit,  propertyCount, appendState );
+                _staticSkybox.appendToEditPacket(packetData, requestedProperties, propertyFlags, propertiesDidntFit, propertyCount, appendState);
             }
 
             if (properties.getType() == EntityTypes::PolyVox) {
@@ -1190,6 +1013,7 @@ bool EntityItemProperties::encodeEntityEditPacket(PacketType command, EntityItem
             APPEND_ENTITY_PROPERTY(PROP_ACTION_DATA, properties.getActionData());
             APPEND_ENTITY_PROPERTY(PROP_ALPHA, properties.getAlpha());
         }
+
         if (propertyCount > 0) {
             int endOfEntityItemData = packetData->getUncompressedByteOffset();
 
@@ -1222,7 +1046,6 @@ bool EntityItemProperties::encodeEntityEditPacket(PacketType command, EntityItem
 
         // If any part of the model items didn't fit, then the element is considered partial
         if (appendState != OctreeElement::COMPLETED) {
-
             // TODO: handle mechanism for handling partial fitting data!
             // add this item into our list for the next appendElementData() pass
             //modelTreeElementExtraEncodeData->includedItems.insert(getEntityItemID(), propertiesDidntFit);
@@ -1377,13 +1200,10 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
     if (properties.getType() == EntityTypes::Model) {
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_MODEL_URL, QString, setModelURL);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_COMPOUND_SHAPE_URL, QString, setCompoundShapeURL);
-        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_ANIMATION_URL, QString, setAnimationURL);
-        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_ANIMATION_FPS, float, setAnimationFPS);
-        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_ANIMATION_FRAME_INDEX, float, setAnimationFrameIndex);
-        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_ANIMATION_PLAYING, bool, setAnimationIsPlaying);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_TEXTURES, QString, setTextures);
-        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_ANIMATION_SETTINGS, QString, setAnimationSettings);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_SHAPE_TYPE, ShapeType, setShapeType);
+
+        properties.getAnimation().decodeFromEditPacket(propertyFlags, dataAt, processedBytes);
     }
 
     if (properties.getType() == EntityTypes::Light) {
@@ -1395,14 +1215,10 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
     }
 
     if (properties.getType() == EntityTypes::ParticleEffect) {
-        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_ANIMATION_FPS, float, setAnimationFPS);
-        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_ANIMATION_FRAME_INDEX, float, setAnimationFrameIndex);
-        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_ANIMATION_PLAYING, bool, setAnimationIsPlaying);
-        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_ANIMATION_SETTINGS, QString, setAnimationSettings);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_TEXTURES, QString, setTextures);
-
-        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_MAX_PARTICLES, float, setMaxParticles);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_MAX_PARTICLES, quint32, setMaxParticles);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_LIFESPAN, float, setLifespan);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_EMITTING_PARTICLES, bool, setIsEmitting);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_EMIT_RATE, float, setEmitRate);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_EMIT_SPEED, float, setEmitSpeed);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_SPEED_SPREAD, float, setSpeedSpread);
@@ -1428,11 +1244,7 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
     }
 
     if (properties.getType() == EntityTypes::Zone) {
-        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_KEYLIGHT_COLOR, xColor, setKeyLightColor);
-        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_KEYLIGHT_INTENSITY,  float, setKeyLightIntensity);
-        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_KEYLIGHT_AMBIENT_INTENSITY, float, setKeyLightAmbientIntensity);
-        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_KEYLIGHT_DIRECTION, glm::vec3, setKeyLightDirection);
-
+        properties.getKeyLight().decodeFromEditPacket(propertyFlags, dataAt , processedBytes);
         properties.getStage().decodeFromEditPacket(propertyFlags, dataAt , processedBytes);
 
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_SHAPE_TYPE, ShapeType, setShapeType);
@@ -1534,11 +1346,6 @@ void EntityItemProperties::markAllChanged() {
     _alphaChanged = true;
     _modelURLChanged = true;
     _compoundShapeURLChanged = true;
-    _animationURLChanged = true;
-    _animationIsPlayingChanged = true;
-    _animationFrameIndexChanged = true;
-    _animationFPSChanged = true;
-    _animationSettingsChanged = true;
     _glowLevelChanged = true;
     _localRenderAlphaChanged = true;
     _isSpotlightChanged = true;
@@ -1557,6 +1364,7 @@ void EntityItemProperties::markAllChanged() {
     _backgroundColorChanged = true;
     _shapeTypeChanged = true;
 
+    _isEmittingChanged = true;
     _maxParticlesChanged = true;
     _lifespanChanged = true;
     _emitRateChanged = true;
@@ -1573,26 +1381,28 @@ void EntityItemProperties::markAllChanged() {
     _accelerationSpreadChanged = true;
     _particleRadiusChanged = true;
     _radiusSpreadChanged = true;
-    _radiusStartChanged = true;
-    _radiusFinishChanged = true;
     _colorSpreadChanged = true;
-    _colorStartChanged = true;
-    _colorFinishChanged = true;
     _alphaSpreadChanged = true;
-    _alphaStartChanged = true;
-    _alphaFinishChanged = true;
+
+    // Only mark the following as changed if their values are specified in the properties when the particle is created. If their
+    // values are specified then they are marked as changed in getChangedProperties().
+    //_radiusStartChanged = true;
+    //_radiusFinishChanged = true;
+    //_colorStartChanged = true;
+    //_colorFinishChanged = true;
+    //_alphaStartChanged = true;
+    //_alphaFinishChanged = true;
 
     _marketplaceIDChanged = true;
 
-    _keyLightColorChanged = true;
-    _keyLightIntensityChanged = true;
-    _keyLightAmbientIntensityChanged = true;
-    _keyLightDirectionChanged = true;
+    _keyLight.markAllChanged();
 
     _backgroundModeChanged = true;
-    _stage.markAllChanged();
+
+    _animation.markAllChanged();
     _atmosphere.markAllChanged();
     _skybox.markAllChanged();
+    _stage.markAllChanged();
 
     _sourceUrlChanged = true;
     _voxelVolumeSizeChanged = true;
@@ -1693,4 +1503,256 @@ void EntityItemProperties::setSimulationOwner(const QByteArray& data) {
     if (_simulationOwner.fromByteArray(data)) {
         _simulationOwnerChanged = true;
     }
+}
+
+QList<QString> EntityItemProperties::listChangedProperties() {
+    QList<QString> out;
+    if (containsPositionChange()) {
+        out += "posistion";
+    }
+    if (dimensionsChanged()) {
+        out += "dimensions";
+    }
+    if (velocityChanged()) {
+        out += "velocity";
+    }
+    if (nameChanged()) {
+        out += "name";
+    }
+    if (visibleChanged()) {
+        out += "visible";
+    }
+    if (rotationChanged()) {
+        out += "rotation";
+    }
+    if (densityChanged()) {
+        out += "density";
+    }
+    if (gravityChanged()) {
+        out += "gravity";
+    }
+    if (accelerationChanged()) {
+        out += "acceleration";
+    }
+    if (dampingChanged()) {
+        out += "damping";
+    }
+    if (restitutionChanged()) {
+        out += "restitution";
+    }
+    if (frictionChanged()) {
+        out += "friction";
+    }
+    if (lifetimeChanged()) {
+        out += "lifetime";
+    }
+    if (scriptChanged()) {
+        out += "script";
+    }
+    if (scriptTimestampChanged()) {
+        out += "scriptTimestamp";
+    }
+    if (collisionSoundURLChanged()) {
+        out += "collisionSoundURL";
+    }
+    if (colorChanged()) {
+        out += "color";
+    }
+    if (colorSpreadChanged()) {
+        out += "colorSpread";
+    }
+    if (colorStartChanged()) {
+        out += "colorStart";
+    }
+    if (colorFinishChanged()) {
+        out += "colorFinish";
+    }
+    if (alphaChanged()) {
+        out += "alpha";
+    }
+    if (alphaSpreadChanged()) {
+        out += "alphaSpread";
+    }
+    if (alphaStartChanged()) {
+        out += "alphaStart";
+    }
+    if (alphaFinishChanged()) {
+        out += "alphaFinish";
+    }
+    if (modelURLChanged()) {
+        out += "modelURL";
+    }
+    if (compoundShapeURLChanged()) {
+        out += "compoundShapeURL";
+    }
+    if (registrationPointChanged()) {
+        out += "registrationPoint";
+    }
+    if (angularVelocityChanged()) {
+        out += "angularVelocity";
+    }
+    if (angularDampingChanged()) {
+        out += "angularDamping";
+    }
+    if (ignoreForCollisionsChanged()) {
+        out += "ignoreForCollisions";
+    }
+    if (collisionsWillMoveChanged()) {
+        out += "collisionsWillMove";
+    }
+    if (isSpotlightChanged()) {
+        out += "isSpotlight";
+    }
+    if (intensityChanged()) {
+        out += "intensity";
+    }
+    if (exponentChanged()) {
+        out += "exponent";
+    }
+    if (cutoffChanged()) {
+        out += "cutoff";
+    }
+    if (lockedChanged()) {
+        out += "locked";
+    }
+    if (texturesChanged()) {
+        out += "textures";
+    }
+    if (userDataChanged()) {
+        out += "userData";
+    }
+    if (simulationOwnerChanged()) {
+        out += "simulationOwner";
+    }
+    if (textChanged()) {
+        out += "text";
+    }
+    if (lineHeightChanged()) {
+        out += "lineHeight";
+    }
+    if (textColorChanged()) {
+        out += "textColor";
+    }
+    if (backgroundColorChanged()) {
+        out += "backgroundColor";
+    }
+    if (shapeTypeChanged()) {
+        out += "shapeType";
+    }
+    if (maxParticlesChanged()) {
+        out += "maxParticles";
+    }
+    if (lifespanChanged()) {
+        out += "lifespan";
+    }
+    if (isEmittingChanged()) {
+        out += "isEmitting";
+    }
+    if (emitRateChanged()) {
+        out += "emitRate";
+    }
+    if (emitSpeedChanged()) {
+        out += "emitSpeed";
+    }
+    if (speedSpreadChanged()) {
+        out += "speedSpread";
+    }
+    if (emitOrientationChanged()) {
+        out += "emitOrientation";
+    }
+    if (emitDimensionsChanged()) {
+        out += "emitDimensions";
+    }
+    if (emitRadiusStartChanged()) {
+        out += "emitRadiusStart";
+    }
+    if (polarStartChanged()) {
+        out += "polarStart";
+    }
+    if (polarFinishChanged()) {
+        out += "polarFinish";
+    }
+    if (azimuthStartChanged()) {
+        out += "azimuthStart";
+    }
+    if (azimuthFinishChanged()) {
+        out += "azimuthFinish";
+    }
+    if (emitAccelerationChanged()) {
+        out += "emitAcceleration";
+    }
+    if (accelerationSpreadChanged()) {
+        out += "accelerationSpread";
+    }
+    if (particleRadiusChanged()) {
+        out += "particleRadius";
+    }
+    if (radiusSpreadChanged()) {
+        out += "radiusSpread";
+    }
+    if (radiusStartChanged()) {
+        out += "radiusStart";
+    }
+    if (radiusFinishChanged()) {
+        out += "radiusFinish";
+    }
+    if (marketplaceIDChanged()) {
+        out += "marketplaceID";
+    }
+    if (backgroundModeChanged()) {
+        out += "backgroundMode";
+    }
+    if (voxelVolumeSizeChanged()) {
+        out += "voxelVolumeSize";
+    }
+    if (voxelDataChanged()) {
+        out += "voxelData";
+    }
+    if (voxelSurfaceStyleChanged()) {
+        out += "voxelSurfaceStyle";
+    }
+    if (hrefChanged()) {
+        out += "href";
+    }
+    if (descriptionChanged()) {
+        out += "description";
+    }
+    if (actionDataChanged()) {
+        out += "actionData";
+    }
+    if (xTextureURLChanged()) {
+        out += "xTextureURL";
+    }
+    if (yTextureURLChanged()) {
+        out += "yTextureURL";
+    }
+    if (zTextureURLChanged()) {
+        out += "zTextureURL";
+    }
+    if (xNNeighborIDChanged()) {
+        out += "xNNeighborID";
+    }
+    if (yNNeighborIDChanged()) {
+        out += "yNNeighborID";
+    }
+    if (zNNeighborIDChanged()) {
+        out += "zNNeighborID";
+    }
+    if (xPNeighborIDChanged()) {
+        out += "xPNeighborID";
+    }
+    if (yPNeighborIDChanged()) {
+        out += "yPNeighborID";
+    }
+    if (zPNeighborIDChanged()) {
+        out += "zPNeighborID";
+    }
+
+    getAnimation().listChangedProperties(out);
+    getKeyLight().listChangedProperties(out);
+    getAtmosphere().listChangedProperties(out);
+    getSkybox().listChangedProperties(out);
+    getStage().listChangedProperties(out);
+
+    return out;
 }

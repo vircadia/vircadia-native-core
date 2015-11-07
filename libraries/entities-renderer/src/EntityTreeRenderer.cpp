@@ -14,6 +14,7 @@
 #include <QEventLoop>
 #include <QScriptSyntaxCheckResult>
 
+#include <ColorUtils.h>
 #include <AbstractScriptingServicesInterface.h>
 #include <AbstractViewStateInterface.h>
 #include <DeferredLightingEffect.h>
@@ -106,8 +107,7 @@ void EntityTreeRenderer::init() {
     entityTree->setFBXService(this);
 
     if (_wantScripts) {
-        _entitiesScriptEngine = new ScriptEngine(NO_SCRIPT, "Entities",
-                                        _scriptingServices->getControllerScriptingInterface());
+        _entitiesScriptEngine = new ScriptEngine(NO_SCRIPT, "Entities");
         _scriptingServices->registerScriptEngineWithApplicationServices(_entitiesScriptEngine);
         _entitiesScriptEngine->runInThread();
         DependencyManager::get<EntityScriptingInterface>()->setEntitiesScriptEngine(_entitiesScriptEngine);
@@ -270,10 +270,10 @@ void EntityTreeRenderer::applyZonePropertiesToScene(std::shared_ptr<ZoneEntityIt
             _previousStageDay = scene->getStageYearTime();
             _hasPreviousZone = true;
         }
-        scene->setKeyLightColor(zone->getKeyLightColorVec3());
-        scene->setKeyLightIntensity(zone->getKeyLightIntensity());
-        scene->setKeyLightAmbientIntensity(zone->getKeyLightAmbientIntensity());
-        scene->setKeyLightDirection(zone->getKeyLightDirection());
+        scene->setKeyLightColor(ColorUtils::toVec3(zone->getKeyLightProperties().getColor()));
+        scene->setKeyLightIntensity(zone->getKeyLightProperties().getIntensity());
+        scene->setKeyLightAmbientIntensity(zone->getKeyLightProperties().getAmbientIntensity());
+        scene->setKeyLightDirection(zone->getKeyLightProperties().getDirection());
         scene->setStageSunModelEnable(zone->getStageProperties().getSunModelEnabled());
         scene->setStageLocation(zone->getStageProperties().getLongitude(), zone->getStageProperties().getLatitude(),
                                 zone->getStageProperties().getAltitude());
@@ -482,7 +482,7 @@ void EntityTreeRenderer::deleteReleasedModels() {
 }
 
 RayToEntityIntersectionResult EntityTreeRenderer::findRayIntersectionWorker(const PickRay& ray, Octree::lockType lockType,
-                                                                                    bool precisionPicking) {
+                                                                                    bool precisionPicking, const QVector<EntityItemID>& entityIdsToInclude) {
     RayToEntityIntersectionResult result;
     if (_tree) {
         EntityTreePointer entityTree = std::static_pointer_cast<EntityTree>(_tree);
@@ -490,7 +490,7 @@ RayToEntityIntersectionResult EntityTreeRenderer::findRayIntersectionWorker(cons
         OctreeElementPointer element;
         EntityItemPointer intersectedEntity = NULL;
         result.intersects = entityTree->findRayIntersection(ray.origin, ray.direction, element, result.distance, 
-                                                            result.face, result.surfaceNormal, 
+                                                            result.face, result.surfaceNormal, entityIdsToInclude,
                                                             (void**)&intersectedEntity, lockType, &result.accurate,
                                                             precisionPicking);
         if (result.intersects && intersectedEntity) {
@@ -704,7 +704,9 @@ void EntityTreeRenderer::checkAndCallPreload(const EntityItemID& entityID, const
     if (_tree && !_shuttingDown) {
         EntityItemPointer entity = getTree()->findEntityByEntityItemID(entityID);
         if (entity && !entity->getScript().isEmpty()) {
-            _entitiesScriptEngine->loadEntityScript(entityID, entity->getScript(), reload);
+            QString scriptUrl = entity->getScript();
+            scriptUrl = ResourceManager::normalizeURL(scriptUrl);
+            _entitiesScriptEngine->loadEntityScript(entityID, scriptUrl, reload);
         }
     }
 }
@@ -772,7 +774,7 @@ void EntityTreeRenderer::entityCollisionWithEntity(const EntityItemID& idA, cons
     }
     // Don't respond to small continuous contacts.
     const float COLLISION_MINUMUM_PENETRATION = 0.002f;
-    if ((collision.type != CONTACT_EVENT_TYPE_START) && (glm::length(collision.penetration) < COLLISION_MINUMUM_PENETRATION)) {
+    if ((collision.type == CONTACT_EVENT_TYPE_CONTINUE) && (glm::length(collision.penetration) < COLLISION_MINUMUM_PENETRATION)) {
         return;
     }
 

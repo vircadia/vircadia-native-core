@@ -65,43 +65,62 @@ void AssetClient::init() {
     }
 }
 
+bool haveAssetServer() {
+    auto nodeList = DependencyManager::get<NodeList>();
+    SharedNodePointer assetServer = nodeList->soloNodeOfType(NodeType::AssetServer);
+    
+    if (!assetServer) {
+        qCWarning(asset_client) << "Could not complete AssetClient operation "
+            << "since you are not currently connected to an asset-server.";
+        return false;
+    }
+    
+    return true;
+}
+
 AssetRequest* AssetClient::createRequest(const QString& hash, const QString& extension) {
     if (hash.length() != SHA256_HASH_HEX_LENGTH) {
         qCWarning(asset_client) << "Invalid hash size";
         return nullptr;
     }
 
-    auto nodeList = DependencyManager::get<NodeList>();
-    SharedNodePointer assetServer = nodeList->soloNodeOfType(NodeType::AssetServer);
-
-    if (!assetServer) {
-        qCWarning(asset_client).nospace() << "Could not request " << hash << "." << extension
-            << " since you are not currently connected to an asset-server.";
+    if (haveAssetServer()) {
+        auto request = new AssetRequest(hash, extension);
+        
+        // Move to the AssetClient thread in case we are not currently on that thread (which will usually be the case)
+        request->moveToThread(thread());
+        
+        return request;
+    } else {
         return nullptr;
     }
-
-    auto request = new AssetRequest(hash, extension);
-
-    // Move to the AssetClient thread in case we are not currently on that thread (which will usually be the case)
-    request->moveToThread(thread());
-
-    return request;
 }
 
+
+
 AssetUpload* AssetClient::createUpload(const QString& filename) {
-    auto nodeList = DependencyManager::get<NodeList>();
-    SharedNodePointer assetServer = nodeList->soloNodeOfType(NodeType::AssetServer);
     
-    if (!assetServer) {
-        qCWarning(asset_client) << "Could not upload" << filename << "since you are not currently connected to an asset-server.";
+    if (haveAssetServer()) {
+        auto upload = new AssetUpload(filename);
+        
+        upload->moveToThread(thread());
+        
+        return upload;
+    } else {
         return nullptr;
     }
-    
-    auto upload = new AssetUpload(this, filename);
+}
 
-    upload->moveToThread(thread());
-
-    return upload;
+AssetUpload* AssetClient::createUpload(const QByteArray& data, const QString& extension) {
+    if (haveAssetServer()) {
+        auto upload = new AssetUpload(data, extension);
+        
+        upload->moveToThread(thread());
+        
+        return upload;
+    } else {
+        return nullptr;
+    }
 }
 
 bool AssetClient::getAsset(const QString& hash, const QString& extension, DataOffset start, DataOffset end,

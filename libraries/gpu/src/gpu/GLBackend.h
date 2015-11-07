@@ -18,7 +18,7 @@
 #include <utility>
 #include <list>
 
-#include "GPUConfig.h"
+#include <gl/Config.h>
 
 #include "Context.h"
 
@@ -286,7 +286,7 @@ protected:
         BufferPointer _indexBuffer;
         Offset _indexBufferOffset;
         Type _indexBufferType;
-
+        
         BufferPointer _indirectBuffer;
         Offset _indirectBufferOffset{ 0 };
         Offset _indirectBufferStride{ 0 };
@@ -314,6 +314,7 @@ protected:
     void do_setViewTransform(Batch& batch, uint32 paramOffset);
     void do_setProjectionTransform(Batch& batch, uint32 paramOffset);
     void do_setViewportTransform(Batch& batch, uint32 paramOffset);
+    void do_setDepthRangeTransform(Batch& batch, uint32 paramOffset);
 
     void initTransform();
     void killTransform();
@@ -339,6 +340,7 @@ protected:
         Transform _view;
         Mat4 _projection;
         Vec4i _viewport{ 0, 0, 1, 1 };
+        Vec2 _depthRange{ 0.0f, 1.0f };
         bool _invalidModel{true};
         bool _invalidView{false};
         bool _invalidProj{false};
@@ -476,6 +478,9 @@ protected:
     void do_glUniformMatrix4fv(Batch& batch, uint32 paramOffset);
 
     void do_glColor4f(Batch& batch, uint32 paramOffset);
+
+    void do_pushProfileRange(Batch& batch, uint32 paramOffset);
+    void do_popProfileRange(Batch& batch, uint32 paramOffset);
 
     typedef void (GLBackend::*CommandCall)(Batch&, uint32);
     static CommandCall _commandCalls[Batch::NUM_COMMANDS];

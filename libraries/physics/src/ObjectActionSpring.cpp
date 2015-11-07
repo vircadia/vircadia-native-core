@@ -38,6 +38,7 @@ ObjectActionSpring::~ObjectActionSpring() {
 }
 
 void ObjectActionSpring::updateActionWorker(btScalar deltaTimeStep) {
+    // don't risk hanging the thread running the physics simulation
     auto lockResult = withTryReadLock([&]{
         auto ownerEntity = _ownerEntity.lock();
         if (!ownerEntity) {
@@ -100,62 +101,78 @@ void ObjectActionSpring::updateActionWorker(btScalar deltaTimeStep) {
         }
     });
     if (!lockResult) {
-        // don't risk hanging the thread running the physics simulation
         qDebug() << "ObjectActionSpring::updateActionWorker lock failed";
-        return;
     }
 }
 
 const float MIN_TIMESCALE = 0.1f;
 
+
 bool ObjectActionSpring::updateArguments(QVariantMap arguments) {
-    // targets are required, spring-constants are optional
-    bool ok = true;
-    glm::vec3 positionalTarget =
-        EntityActionInterface::extractVec3Argument("spring action", arguments, "targetPosition", ok, false);
-    if (!ok) {
-        positionalTarget = _positionalTarget;
-    }
-    ok = true;
-    float linearTimeScale =
-        EntityActionInterface::extractFloatArgument("spring action", arguments, "linearTimeScale", ok, false);
-    if (!ok || linearTimeScale <= 0.0f) {
-        linearTimeScale = _linearTimeScale;
-    }
+    glm::vec3 positionalTarget;
+    float linearTimeScale;
+    glm::quat rotationalTarget;
+    float angularTimeScale;
 
-    ok = true;
-    glm::quat rotationalTarget =
-        EntityActionInterface::extractQuatArgument("spring action", arguments, "targetRotation", ok, false);
-    if (!ok) {
-        rotationalTarget = _rotationalTarget;
-    }
+    bool needUpdate = false;
+    bool somethingChanged = ObjectAction::updateArguments(arguments);
+    withReadLock([&]{
+        // targets are required, spring-constants are optional
+        bool ok = true;
+        positionalTarget = EntityActionInterface::extractVec3Argument("spring action", arguments, "targetPosition", ok, false);
+        if (!ok) {
+            positionalTarget = _positionalTarget;
+        }
+        ok = true;
+        linearTimeScale = EntityActionInterface::extractFloatArgument("spring action", arguments, "linearTimeScale", ok, false);
+        if (!ok || linearTimeScale <= 0.0f) {
+            linearTimeScale = _linearTimeScale;
+        }
 
-    ok = true;
-    float angularTimeScale =
-        EntityActionInterface::extractFloatArgument("spring action", arguments, "angularTimeScale", ok, false);
-    if (!ok) {
-        angularTimeScale = _angularTimeScale;
-    }
+        ok = true;
+        rotationalTarget = EntityActionInterface::extractQuatArgument("spring action", arguments, "targetRotation", ok, false);
+        if (!ok) {
+            rotationalTarget = _rotationalTarget;
+        }
 
-    if (positionalTarget != _positionalTarget
-            || linearTimeScale != _linearTimeScale
-            || rotationalTarget != _rotationalTarget
-            || angularTimeScale != _angularTimeScale) {
-        // something changed
+        ok = true;
+        angularTimeScale =
+            EntityActionInterface::extractFloatArgument("spring action", arguments, "angularTimeScale", ok, false);
+        if (!ok) {
+            angularTimeScale = _angularTimeScale;
+        }
+
+        if (somethingChanged ||
+            positionalTarget != _positionalTarget ||
+            linearTimeScale != _linearTimeScale ||
+            rotationalTarget != _rotationalTarget ||
+            angularTimeScale != _angularTimeScale) {
+            // something changed
+            needUpdate = true;
+        }
+    });
+
+    if (needUpdate) {
         withWriteLock([&] {
             _positionalTarget = positionalTarget;
             _linearTimeScale = glm::max(MIN_TIMESCALE, glm::abs(linearTimeScale));
             _rotationalTarget = rotationalTarget;
             _angularTimeScale = glm::max(MIN_TIMESCALE, glm::abs(angularTimeScale));
             _active = true;
-            activateBody();
+
+            auto ownerEntity = _ownerEntity.lock();
+            if (ownerEntity) {
+                ownerEntity->setActionDataDirty(true);
+            }
         });
+        activateBody();
     }
+
     return true;
 }
 
 QVariantMap ObjectActionSpring::getArguments() {
-    QVariantMap arguments;
+    QVariantMap arguments = ObjectAction::getArguments();
     withReadLock([&] {
         arguments["linearTimeScale"] = _linearTimeScale;
         arguments["targetPosition"] = glmToQMap(_positionalTarget);
@@ -174,13 +191,16 @@ QByteArray ObjectActionSpring::serialize() const {
     dataStream << getID();
     dataStream << ObjectActionSpring::springVersion;
 
-    dataStream << _positionalTarget;
-    dataStream << _linearTimeScale;
-    dataStream << _positionalTargetSet;
-
-    dataStream << _rotationalTarget;
-    dataStream << _angularTimeScale;
-    dataStream << _rotationalTargetSet;
+    withReadLock([&] {
+        dataStream << _positionalTarget;
+        dataStream << _linearTimeScale;
+        dataStream << _positionalTargetSet;
+        dataStream << _rotationalTarget;
+        dataStream << _angularTimeScale;
+        dataStream << _rotationalTargetSet;
+        dataStream << localTimeToServerTime(_expires);
+        dataStream << _tag;
+    });
 
     return serializedActionArguments;
 }
@@ -199,16 +219,25 @@ void ObjectActionSpring::deserialize(QByteArray serializedArguments) {
     uint16_t serializationVersion;
     dataStream >> serializationVersion;
     if (serializationVersion != ObjectActionSpring::springVersion) {
+        assert(false);
         return;
     }
 
-    dataStream >> _positionalTarget;
-    dataStream >> _linearTimeScale;
-    dataStream >> _positionalTargetSet;
+    withWriteLock([&] {
+        dataStream >> _positionalTarget;
+        dataStream >> _linearTimeScale;
+        dataStream >> _positionalTargetSet;
 
-    dataStream >> _rotationalTarget;
-    dataStream >> _angularTimeScale;
-    dataStream >> _rotationalTargetSet;
+        dataStream >> _rotationalTarget;
+        dataStream >> _angularTimeScale;
+        dataStream >> _rotationalTargetSet;
 
-    _active = true;
+        quint64 serverExpires;
+        dataStream >> serverExpires;
+        _expires = serverTimeToLocalTime(serverExpires);
+
+        dataStream >> _tag;
+
+        _active = true;
+    });
 }

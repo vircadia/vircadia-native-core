@@ -116,6 +116,8 @@ public:
     bool isEmpty() const { return (_bufferMask == 0); }
     bool hasColor() const { return (getBufferMask() & BUFFER_COLORS); }
     bool hasDepthStencil() const { return (getBufferMask() & BUFFER_DEPTHSTENCIL); }
+    bool hasDepth() const { return (getBufferMask() & BUFFER_DEPTH); }
+    bool hasStencil() const { return (getBufferMask() & BUFFER_STENCIL); }
 
     bool validateTargetCompatibility(const Texture& texture, uint32 subresource = 0) const;
 

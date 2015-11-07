@@ -12,12 +12,19 @@
 #ifndef hifi_KeyboardMouseDevice_h
 #define hifi_KeyboardMouseDevice_h
 
-#include <QTouchEvent>
 #include <chrono>
-#include "InputDevice.h"
+
+#include <QtCore/QPoint>
+
+#include <controllers/InputDevice.h>
 #include "InputPlugin.h"
 
-class KeyboardMouseDevice : public InputPlugin, public InputDevice {
+class QTouchEvent;
+class QKeyEvent;
+class QMouseEvent;
+class QWheelEvent;
+
+class KeyboardMouseDevice : public InputPlugin, public controller::InputDevice {
     Q_OBJECT
 public:
     enum KeyboardChannel {
@@ -30,6 +37,9 @@ public:
         MOUSE_BUTTON_LEFT = KEYBOARD_LAST + 1,
         MOUSE_BUTTON_RIGHT,
         MOUSE_BUTTON_MIDDLE,
+        MOUSE_BUTTON_LEFT_CLICKED,
+        MOUSE_BUTTON_RIGHT_CLICKED,
+        MOUSE_BUTTON_MIDDLE_CLICKED,
     };
 
     enum MouseAxisChannel {
@@ -59,17 +69,14 @@ public:
     // Plugin functions
     virtual bool isSupported() const override { return true; }
     virtual bool isJointController() const override { return false; }
-    const QString& getName() const { return NAME; }
-
-    virtual void activate() override {};
-    virtual void deactivate() override {};
+    const QString& getName() const override { return NAME; }
 
     virtual void pluginFocusOutEvent() override { focusOutEvent(); }
     virtual void pluginUpdate(float deltaTime, bool jointsCaptured) override { update(deltaTime, jointsCaptured); }
 
     // Device functions
-    virtual void registerToUserInputMapper(UserInputMapper& mapper) override;
-    virtual void assignDefaultInputMapping(UserInputMapper& mapper) override;
+    virtual controller::Input::NamedVector getAvailableInputs() const override;
+    virtual QString getDefaultMappingConfig() const override;
     virtual void update(float deltaTime, bool jointsCaptured) override;
     virtual void focusOutEvent() override;
  
@@ -79,6 +86,7 @@ public:
     void mouseMoveEvent(QMouseEvent* event, unsigned int deviceID = 0);
     void mousePressEvent(QMouseEvent* event, unsigned int deviceID = 0);
     void mouseReleaseEvent(QMouseEvent* event, unsigned int deviceID = 0);
+    void eraseMouseClicked();
 
     void touchBeginEvent(const QTouchEvent* event);
     void touchEndEvent(const QTouchEvent* event);
@@ -87,20 +95,20 @@ public:
     void wheelEvent(QWheelEvent* event);
     
     // Let's make it easy for Qt because we assume we love Qt forever
-    UserInputMapper::Input makeInput(Qt::Key code);
-    UserInputMapper::Input makeInput(Qt::MouseButton code);
-    UserInputMapper::Input makeInput(KeyboardMouseDevice::MouseAxisChannel axis);
-    UserInputMapper::Input makeInput(KeyboardMouseDevice::TouchAxisChannel axis);
-    UserInputMapper::Input makeInput(KeyboardMouseDevice::TouchButtonChannel button);
+    controller::Input makeInput(Qt::Key code) const;
+    controller::Input makeInput(Qt::MouseButton code, bool clicked = false) const;
+    controller::Input makeInput(MouseAxisChannel axis) const;
+    controller::Input makeInput(TouchAxisChannel axis) const;
+    controller::Input makeInput(TouchButtonChannel button) const;
 
     static const QString NAME;
 
 protected:
     QPoint _lastCursor;
+    QPoint _mousePressAt;
     glm::vec2 _lastTouch;
     bool _isTouching = false;
     
-    glm::vec2 evalAverageTouchPoints(const QList<QTouchEvent::TouchPoint>& points) const;
     std::chrono::high_resolution_clock _clock;
     std::chrono::high_resolution_clock::time_point _lastTouchTime;
 };

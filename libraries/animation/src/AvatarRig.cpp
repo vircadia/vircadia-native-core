@@ -13,16 +13,14 @@
 
 /// Updates the state of the joint at the specified index.
 void AvatarRig::updateJointState(int index, glm::mat4 rootTransform) {
-    if (index < 0 && index >= _jointStates.size()) {
+    if (index < 0 || index >= _jointStates.size()) {
         return; // bail
     }
     JointState& state = _jointStates[index];
 
     // compute model transforms
     if (index == _rootJointIndex) {
-        // we always zero-out the translation part of an avatar's root join-transform.
         state.computeTransform(rootTransform);
-        clearJointTransformTranslation(index);
     } else {
         // guard against out-of-bounds access to _jointStates
         int parentIndex = state.getParentIndex();
@@ -96,4 +94,29 @@ void AvatarRig::setHandPosition(int jointIndex,
                                 rotationBetween(shoulderRotation * forwardVector, wristPosition - elbowPosition) *
                                 shoulderRotation, priority);
     setJointRotationInBindFrame(jointIndex, rotation, priority);
+}
+
+void AvatarRig::setJointTranslation(int index, bool valid, const glm::vec3& translation, float priority) {
+    if (index != -1 && index < _jointStates.size()) {
+        JointState& state = _jointStates[index];
+        if (valid) {
+            state.setTranslation(translation, priority);
+        } else {
+            state.restoreTranslation(1.0f, priority);
+        }
+    }
+}
+
+
+void AvatarRig::setJointState(int index, bool valid, const glm::quat& rotation, const glm::vec3& translation, float priority) {
+    if (index != -1 && index < _jointStates.size()) {
+        JointState& state = _jointStates[index];
+        if (valid) {
+            state.setRotationInConstrainedFrame(rotation, priority);
+            state.setTranslation(translation, priority);
+        } else {
+            state.restoreRotation(1.0f, priority);
+            state.restoreTranslation(1.0f, priority);
+        }
+    }
 }

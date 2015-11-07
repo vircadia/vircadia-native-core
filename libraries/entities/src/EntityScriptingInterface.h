@@ -28,7 +28,7 @@
 
 #include "EntityEditPacketSender.h"
 #include "EntitiesScriptEngineProvider.h"
-
+#include "EntityItemProperties.h"
 
 class EntityTree;
 class MouseEvent;
@@ -111,11 +111,11 @@ public slots:
     /// If the scripting context has visible entities, this will determine a ray intersection, the results
     /// may be inaccurate if the engine is unable to access the visible entities, in which case result.accurate
     /// will be false.
-    Q_INVOKABLE RayToEntityIntersectionResult findRayIntersection(const PickRay& ray, bool precisionPicking = false);
+    Q_INVOKABLE RayToEntityIntersectionResult findRayIntersection(const PickRay& ray, bool precisionPicking = false, const QScriptValue& entityIdsToInclude = QScriptValue());
 
     /// If the scripting context has visible entities, this will determine a ray intersection, and will block in
     /// order to return an accurate result
-    Q_INVOKABLE RayToEntityIntersectionResult findRayIntersectionBlocking(const PickRay& ray, bool precisionPicking = false);
+    Q_INVOKABLE RayToEntityIntersectionResult findRayIntersectionBlocking(const PickRay& ray, bool precisionPicking = false, const QScriptValue& entityIdsToInclude = QScriptValue());
 
     Q_INVOKABLE void setLightsArePickable(bool value);
     Q_INVOKABLE bool getLightsArePickable() const;
@@ -152,7 +152,6 @@ public slots:
     Q_INVOKABLE glm::vec3 localCoordsToVoxelCoords(const QUuid& entityID, glm::vec3 localCoords);
 
 signals:
-    void entityCollisionWithEntity(const EntityItemID& idA, const EntityItemID& idB, const Collision& collision);
     void collisionWithEntity(const EntityItemID& idA, const EntityItemID& idB, const Collision& collision);
 
     void canAdjustLocksChanged(bool canAdjustLocks);
@@ -186,7 +185,7 @@ private:
 
     /// actually does the work of finding the ray intersection, can be called in locking mode or tryLock mode
     RayToEntityIntersectionResult findRayIntersectionWorker(const PickRay& ray, Octree::lockType lockType,
-                                                                        bool precisionPicking);
+                                                            bool precisionPicking, const QVector<EntityItemID>& entityIdsToInclude);
 
     EntityTreePointer _entityTree;
     EntitiesScriptEngineProvider* _entitiesScriptEngine = nullptr;

@@ -53,6 +53,12 @@ const glm::vec3 IDENTITY_FRONT = glm::vec3( 0.0f, 0.0f,-1.0f);
 
 glm::quat safeMix(const glm::quat& q1, const glm::quat& q2, float alpha);
 
+
+class Quaternions {
+ public:
+    static const quat IDENTITY;
+};
+
 class Vectors {
 public:
     static const vec3 UNIT_X;
@@ -176,6 +182,11 @@ T toNormalizedDeviceScale(const T& value, const T& size) {
 #define YAW(euler) euler.y
 #define PITCH(euler) euler.x
 #define ROLL(euler) euler.z
+
+// float - linear interpolate
+inline float lerp(float x, float y, float a) {
+    return x * (1.0f - a) + (y * a);
+}
 
 // vec2 lerp - linear interpolate
 template<typename T, glm::precision P>

@@ -25,21 +25,18 @@ class RenderableModelEntityItem : public ModelEntityItem {
 public:
     static EntityItemPointer factory(const EntityItemID& entityID, const EntityItemProperties& properties);
 
-    RenderableModelEntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties) :
-        ModelEntityItem(entityItemID, properties),
-        _model(NULL),
-        _needsInitialSimulation(true),
-        _needsModelReload(true),
-        _myRenderer(NULL),
-        _originalTexturesRead(false) { }
+    RenderableModelEntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties);
 
     virtual ~RenderableModelEntityItem();
 
+    virtual void setDimensions(const glm::vec3& value) override;
+    
     virtual EntityItemProperties getProperties(EntityPropertyFlags desiredProperties = EntityPropertyFlags()) const;
     virtual bool setProperties(const EntityItemProperties& properties);
     virtual int readEntitySubclassDataFromBuffer(const unsigned char* data, int bytesLeftToRead, 
                                                 ReadBitstreamToTreeParams& args,
-                                                EntityPropertyFlags& propertyFlags, bool overwriteLocalData);
+                                                EntityPropertyFlags& propertyFlags, bool overwriteLocalData,
+                                                bool& somethingChanged);
                                                 
     virtual void somethingChangedNotification() { 
         // FIX ME: this is overly aggressive. We only really need to simulate() if something about
@@ -60,8 +57,9 @@ public:
                         void** intersectedObject, bool precisionPicking) const;
 
     Model* getModel(EntityTreeRenderer* renderer);
-
-    bool needsToCallUpdate() const;
+    
+    virtual bool needsToCallUpdate() const;
+    virtual void update(const quint64& now);
 
     virtual void setCompoundShapeURL(const QString& url);
 
@@ -73,14 +71,15 @@ public:
 private:
     void remapTextures();
     
-    Model* _model;
-    bool _needsInitialSimulation;
-    bool _needsModelReload;
-    EntityTreeRenderer* _myRenderer;
+    Model* _model = nullptr;
+    bool _needsInitialSimulation = true;
+    bool _needsModelReload = true;
+    EntityTreeRenderer* _myRenderer = nullptr;
     QString _currentTextures;
     QStringList _originalTextures;
-    bool _originalTexturesRead;
+    bool _originalTexturesRead = false;
     QVector<QVector<glm::vec3>> _points;
+    bool _dimensionsInitialized = true;
     
     render::ItemID _myMetaItem;
 };

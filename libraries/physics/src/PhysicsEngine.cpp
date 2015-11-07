@@ -11,6 +11,7 @@
 
 #include <PhysicsCollisionGroups.h>
 
+#include "CharacterController.h"
 #include "ObjectMotionState.h"
 #include "PhysicsEngine.h"
 #include "PhysicsHelpers.h"
@@ -23,7 +24,7 @@ uint32_t PhysicsEngine::getNumSubsteps() {
 
 PhysicsEngine::PhysicsEngine(const glm::vec3& offset) :
         _originOffset(offset),
-        _characterController(nullptr) {
+        _myAvatarController(nullptr) {
     // build table of masks with their group as the key
     _collisionMasks.insert(btHashInt((int)COLLISION_GROUP_DEFAULT), COLLISION_MASK_DEFAULT);
     _collisionMasks.insert(btHashInt((int)COLLISION_GROUP_STATIC), COLLISION_MASK_STATIC);
@@ -38,8 +39,8 @@ PhysicsEngine::PhysicsEngine(const glm::vec3& offset) :
 }
 
 PhysicsEngine::~PhysicsEngine() {
-    if (_characterController) {
-        _characterController->setDynamicsWorld(nullptr);
+    if (_myAvatarController) {
+        _myAvatarController->setDynamicsWorld(nullptr);
     }
     delete _collisionConfig;
     delete _collisionDispatcher;
@@ -81,12 +82,12 @@ void PhysicsEngine::addObject(ObjectMotionState* motionState) {
                 btCollisionShape* shape = motionState->getShape();
                 assert(shape);
                 body = new btRigidBody(mass, motionState, shape, inertia);
+                motionState->setRigidBody(body);
             } else {
                 body->setMassProps(mass, inertia);
             }
             body->setCollisionFlags(btCollisionObject::CF_KINEMATIC_OBJECT);
             body->updateInertiaTensor();
-            motionState->setRigidBody(body);
             motionState->updateBodyVelocities();
             const float KINEMATIC_LINEAR_VELOCITY_THRESHOLD = 0.01f;  // 1 cm/sec
             const float KINEMATIC_ANGULAR_VELOCITY_THRESHOLD = 0.01f;  // ~1 deg/sec
@@ -100,12 +101,15 @@ void PhysicsEngine::addObject(ObjectMotionState* motionState) {
             shape->calculateLocalInertia(mass, inertia);
             if (!body) {
                 body = new btRigidBody(mass, motionState, shape, inertia);
+                motionState->setRigidBody(body);
             } else {
                 body->setMassProps(mass, inertia);
             }
+            body->setCollisionFlags(body->getCollisionFlags() & ~(btCollisionObject::CF_KINEMATIC_OBJECT |
+                                                                  btCollisionObject::CF_STATIC_OBJECT));
             body->updateInertiaTensor();
-            motionState->setRigidBody(body);
             motionState->updateBodyVelocities();
+
             // NOTE: Bullet will deactivate any object whose velocity is below these thresholds for longer than 2 seconds.
             // (the 2 seconds is determined by: static btRigidBody::gDeactivationTime
             const float DYNAMIC_LINEAR_VELOCITY_THRESHOLD = 0.05f;  // 5 cm/sec
@@ -122,12 +126,12 @@ void PhysicsEngine::addObject(ObjectMotionState* motionState) {
             if (!body) {
                 assert(motionState->getShape());
                 body = new btRigidBody(mass, motionState, motionState->getShape(), inertia);
+                motionState->setRigidBody(body);
             } else {
                 body->setMassProps(mass, inertia);
             }
             body->setCollisionFlags(btCollisionObject::CF_STATIC_OBJECT);
             body->updateInertiaTensor();
-            motionState->setRigidBody(body);
             break;
         }
     }
@@ -239,28 +243,40 @@ void PhysicsEngine::stepSimulation() {
     _clock.reset();
     float timeStep = btMin(dt, MAX_TIMESTEP);
 
-    // TODO: move character->preSimulation() into relayIncomingChanges
-    if (_characterController) {
-        if (_characterController->needsRemoval()) {
-            _characterController->setDynamicsWorld(nullptr);
+    if (_myAvatarController) {
+        // ADEBUG TODO: move this stuff outside and in front of stepSimulation, because
+        // the updateShapeIfNecessary() call needs info from MyAvatar and should
+        // be done on the main thread during the pre-simulation stuff
+        if (_myAvatarController->needsRemoval()) {
+            _myAvatarController->setDynamicsWorld(nullptr);
+
+            // We must remove any existing contacts for the avatar so that any new contacts will have
+            // valid data.  MyAvatar's RigidBody is the ONLY one in the simulation that does not yet 
+            // have a MotionState so we pass nullptr to removeContacts().
+            removeContacts(nullptr);
         }
-        _characterController->updateShapeIfNecessary();
-        if (_characterController->needsAddition()) {
-            _characterController->setDynamicsWorld(_dynamicsWorld);
+        _myAvatarController->updateShapeIfNecessary();
+        if (_myAvatarController->needsAddition()) {
+            _myAvatarController->setDynamicsWorld(_dynamicsWorld);
         }
-        _characterController->preSimulation(timeStep);
+        _myAvatarController->preSimulation();
     }
 
-    int numSubsteps = _dynamicsWorld->stepSimulation(timeStep, PHYSICS_ENGINE_MAX_NUM_SUBSTEPS, PHYSICS_ENGINE_FIXED_SUBSTEP);
+    auto onSubStep = [this]() {
+        updateContactMap();
+    };
+
+    int numSubsteps = _dynamicsWorld->stepSimulationWithSubstepCallback(timeStep, PHYSICS_ENGINE_MAX_NUM_SUBSTEPS,
+                                                                        PHYSICS_ENGINE_FIXED_SUBSTEP, onSubStep);
     if (numSubsteps > 0) {
         BT_PROFILE("postSimulation");
         _numSubsteps += (uint32_t)numSubsteps;
         ObjectMotionState::setWorldSimulationStep(_numSubsteps);
 
-        if (_characterController) {
-            _characterController->postSimulation();
+        if (_myAvatarController) {
+            _myAvatarController->postSimulation();
         }
-        updateContactMap();
+
         _hasOutgoingChanges = true;
     }
 }
@@ -268,7 +284,7 @@ void PhysicsEngine::stepSimulation() {
 void PhysicsEngine::doOwnershipInfection(const btCollisionObject* objectA, const btCollisionObject* objectB) {
     BT_PROFILE("ownershipInfection");
 
-    const btCollisionObject* characterObject = _characterController ? _characterController->getCollisionObject() : nullptr;
+    const btCollisionObject* characterObject = _myAvatarController ? _myAvatarController->getCollisionObject() : nullptr;
 
     ObjectMotionState* motionStateA = static_cast<ObjectMotionState*>(objectA->getUserPointer());
     ObjectMotionState* motionStateB = static_cast<ObjectMotionState*>(objectB->getUserPointer());
@@ -344,16 +360,16 @@ const CollisionEvents& PhysicsEngine::getCollisionEvents() {
             glm::vec3 velocityChange = (motionStateA ? motionStateA->getObjectLinearVelocityChange() : glm::vec3(0.0f)) +
                 (motionStateB ? motionStateB->getObjectLinearVelocityChange() : glm::vec3(0.0f));
 
-            if (motionStateA && motionStateA->getType() == MOTIONSTATE_TYPE_ENTITY) {
+            if (motionStateA) {
                 QUuid idA = motionStateA->getObjectID();
                 QUuid idB;
-                if (motionStateB && motionStateB->getType() == MOTIONSTATE_TYPE_ENTITY) {
+                if (motionStateB) {
                     idB = motionStateB->getObjectID();
                 }
                 glm::vec3 position = bulletToGLM(contact.getPositionWorldOnB()) + _originOffset;
                 glm::vec3 penetration = bulletToGLM(contact.distance * contact.normalWorldOnB);
                 _collisionEvents.push_back(Collision(type, idA, idB, position, penetration, velocityChange));
-            } else if (motionStateB && motionStateB->getType() == MOTIONSTATE_TYPE_ENTITY) {
+            } else if (motionStateB) {
                 QUuid idB = motionStateB->getObjectID();
                 glm::vec3 position = bulletToGLM(contact.getPositionWorldOnA()) + _originOffset;
                 // NOTE: we're flipping the order of A and B (so that the first objectID is never NULL)
@@ -431,15 +447,15 @@ void PhysicsEngine::bump(ObjectMotionState* motionState) {
     }
 }
 
-void PhysicsEngine::setCharacterController(DynamicCharacterController* character) {
-    if (_characterController != character) {
-        if (_characterController) {
+void PhysicsEngine::setCharacterController(CharacterController* character) {
+    if (_myAvatarController != character) {
+        if (_myAvatarController) {
             // remove the character from the DynamicsWorld immediately
-            _characterController->setDynamicsWorld(nullptr);
-            _characterController = nullptr;
+            _myAvatarController->setDynamicsWorld(nullptr);
+            _myAvatarController = nullptr;
         }
         // the character will be added to the DynamicsWorld later
-        _characterController = character;
+        _myAvatarController = character;
     }
 }
 

@@ -254,22 +254,17 @@ void AvatarMixer::broadcastAvatarData() {
                     // potentially update the max full rate distance for this frame
                     maxAvatarDistanceThisFrame = std::max(maxAvatarDistanceThisFrame, distanceToAvatar);
 
-                    if (distanceToAvatar != 0.0f
+		    if (distanceToAvatar != 0.0f
                         && distribution(generator) > (nodeData->getFullRateDistance() / distanceToAvatar)) {
-                        return;
-                    }
+		      return;
+		    }
 
                     AvatarDataSequenceNumber lastSeqToReceiver = nodeData->getLastBroadcastSequenceNumber(otherNode->getUUID());
                     AvatarDataSequenceNumber lastSeqFromSender = otherNodeData->getLastReceivedSequenceNumber();
 
-                    if (lastSeqToReceiver > lastSeqFromSender) {
-                        // Did we somehow get out of order packets from the sender?
-                        // We don't expect this to happen - in RELEASE we add this to a trackable stat
-                        // and in DEBUG we crash on the assert
-
+                    if (lastSeqToReceiver > lastSeqFromSender && lastSeqToReceiver != UINT16_MAX) {
+                        // we got out out of order packets from the sender, track it
                         otherNodeData->incrementNumOutOfOrderSends();
-
-                        assert(false);
                     }
 
                     // make sure we haven't already sent this data from this sender to this receiver
@@ -485,10 +480,13 @@ void AvatarMixer::sendStatsPacket() {
         QJsonObject avatarStats;
 
         const QString NODE_OUTBOUND_KBPS_STAT_KEY = "outbound_kbps";
+        const QString NODE_INBOUND_KBPS_STAT_KEY = "inbound_kbps";
 
         // add the key to ask the domain-server for a username replacement, if it has it
         avatarStats[USERNAME_UUID_REPLACEMENT_STATS_KEY] = uuidStringWithoutCurlyBraces(node->getUUID());
+        
         avatarStats[NODE_OUTBOUND_KBPS_STAT_KEY] = node->getOutboundBandwidth();
+        avatarStats[NODE_INBOUND_KBPS_STAT_KEY] = node->getInboundBandwidth();
 
         AvatarMixerClientData* clientData = static_cast<AvatarMixerClientData*>(node->getLinkedData());
         if (clientData) {

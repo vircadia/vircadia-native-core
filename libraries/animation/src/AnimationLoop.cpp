@@ -9,6 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include <NumericalConstants.h>
+
 #include "AnimationCache.h"
 #include "AnimationLoop.h"
 
@@ -22,8 +24,10 @@ AnimationLoop::AnimationLoop() :
     _firstFrame(0.0f),
     _lastFrame(MAXIMUM_POSSIBLE_FRAME),
     _running(false),
-    _frameIndex(0.0f),
-    _maxFrameIndexHint(MAXIMUM_POSSIBLE_FRAME)
+    _currentFrame(0.0f),
+    _maxFrameIndexHint(MAXIMUM_POSSIBLE_FRAME),
+    _resetOnRunning(true),
+    _lastSimulated(usecTimestampNow())
 {
 }
 
@@ -35,12 +39,14 @@ AnimationLoop::AnimationLoop(const AnimationDetails& animationDetails) :
     _firstFrame(animationDetails.firstFrame),
     _lastFrame(animationDetails.lastFrame),
     _running(animationDetails.running),
-    _frameIndex(animationDetails.frameIndex)
+    _currentFrame(animationDetails.currentFrame),
+    _resetOnRunning(true),
+    _lastSimulated(usecTimestampNow())
 {
 }
 
 AnimationLoop::AnimationLoop(float fps, bool loop, bool hold, bool startAutomatically, float firstFrame, 
-                    float lastFrame, bool running, float frameIndex) :
+                    float lastFrame, bool running, float currentFrame) :
     _fps(fps),
     _loop(loop),
     _hold(hold),
@@ -48,37 +54,44 @@ AnimationLoop::AnimationLoop(float fps, bool loop, bool hold, bool startAutomati
     _firstFrame(firstFrame),
     _lastFrame(lastFrame),
     _running(running),
-    _frameIndex(frameIndex)
+    _currentFrame(currentFrame),
+    _resetOnRunning(true),
+    _lastSimulated(usecTimestampNow())
 {
 }
 
+void AnimationLoop::simulateAtTime(quint64 now) {
+    float deltaTime = (float)(now - _lastSimulated) / (float)USECS_PER_SECOND;
+    _lastSimulated = now;
+    simulate(deltaTime);
+}
+
 void AnimationLoop::simulate(float deltaTime) {
-    _frameIndex += deltaTime * _fps;
+    _currentFrame += deltaTime * _fps;
 
     // If we knew the number of frames from the animation, we'd consider using it here 
     // animationGeometry.animationFrames.size()
     float maxFrame = _maxFrameIndexHint;
     float endFrameIndex = qMin(_lastFrame, maxFrame - (_loop ? 0.0f : 1.0f));
     float startFrameIndex = qMin(_firstFrame, endFrameIndex);
-    if ((!_loop && (_frameIndex < startFrameIndex || _frameIndex > endFrameIndex)) || startFrameIndex == endFrameIndex) {
+    if ((!_loop && (_currentFrame < startFrameIndex || _currentFrame > endFrameIndex)) || startFrameIndex == endFrameIndex) {
         // passed the end; apply the last frame
-        _frameIndex = glm::clamp(_frameIndex, startFrameIndex, endFrameIndex);
+        _currentFrame = glm::clamp(_currentFrame, startFrameIndex, endFrameIndex);
         if (!_hold) {
             stop();
         }
     } else {
         // wrap within the the desired range
-        if (_frameIndex < startFrameIndex) {
-            _frameIndex = endFrameIndex - glm::mod(endFrameIndex - _frameIndex, endFrameIndex - startFrameIndex);
-    
-        } else if (_frameIndex > endFrameIndex) {
-            _frameIndex = startFrameIndex + glm::mod(_frameIndex - startFrameIndex, endFrameIndex - startFrameIndex);
+        if (_currentFrame < startFrameIndex) {
+            _currentFrame = endFrameIndex - glm::mod(endFrameIndex - _currentFrame, endFrameIndex - startFrameIndex);
+        } else if (_currentFrame > endFrameIndex) {
+            _currentFrame = startFrameIndex + glm::mod(_currentFrame - startFrameIndex, endFrameIndex - startFrameIndex);
         }
     }
 }
 
 void AnimationLoop::setStartAutomatically(bool startAutomatically) {
-    if ((_startAutomatically = startAutomatically) && !isRunning()) {
+    if ((_startAutomatically = startAutomatically) && !getRunning()) {
         start();
     }
 }
@@ -89,9 +102,14 @@ void AnimationLoop::setRunning(bool running) {
         _running = running;
         
         // If we just set running to true, then also reset the frame to the first frame
-        if (running) {
+        if (running && (_resetOnRunning)) {
             // move back to the beginning
-            _frameIndex = _firstFrame;
+            _currentFrame = _firstFrame;
+        }
+
+        // If we just started running, set our 
+        if (_running) {
+            _lastSimulated = usecTimestampNow();
         }
     }
 }

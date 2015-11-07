@@ -187,6 +187,7 @@ public:
     void setProjectionTransform(const Mat4& proj);
     // Viewport is xy = low left corner in framebuffer, zw = width height of the viewport, expressed in pixels
     void setViewportTransform(const Vec4i& viewport);
+    void setDepthRangeTransform(float nearDepth, float farDepth);
 
     // Pipeline Stage
     void setPipeline(const PipelinePointer& pipeline);
@@ -228,6 +229,10 @@ public:
     // Reset the stage caches and states
     void resetStages();
 
+    // Debugging
+    void pushProfileRange(const char* name);
+    void popProfileRange();
+
     // TODO: As long as we have gl calls explicitely issued from interface
     // code, we need to be able to record and batch these calls. THe long 
     // term strategy is to get rid of any GL calls in favor of the HIFI GPU API
@@ -245,6 +250,26 @@ public:
     void _glUniform4fv(int location, int count, const float* value);
     void _glUniform4iv(int location, int count, const int* value);
     void _glUniformMatrix4fv(int location, int count, unsigned char transpose, const float* value);
+
+    void _glUniform(int location, int v0) {
+        _glUniform1i(location, v0);
+    }
+
+    void _glUniform(int location, float v0) {
+        _glUniform1f(location, v0);
+    }
+
+    void _glUniform(int location, const glm::vec2& v) {
+        _glUniform2f(location, v.x, v.y);
+    }
+
+    void _glUniform(int location, const glm::vec3& v) {
+        _glUniform3f(location, v.x, v.y, v.z);
+    }
+
+    void _glUniform(int location, const glm::vec4& v) {
+        _glUniform4f(location, v.x, v.y, v.z, v.w);
+    }
 
     void _glColor4f(float red, float green, float blue, float alpha);
 
@@ -265,6 +290,7 @@ public:
         COMMAND_setViewTransform,
         COMMAND_setProjectionTransform,
         COMMAND_setViewportTransform,
+        COMMAND_setDepthRangeTransform,
 
         COMMAND_setPipeline,
         COMMAND_setStateBlendFactor,
@@ -301,6 +327,9 @@ public:
         COMMAND_glUniformMatrix4fv,
 
         COMMAND_glColor4f,
+
+        COMMAND_pushProfileRange,
+        COMMAND_popProfileRange,
 
         NUM_COMMANDS,
     };
@@ -367,6 +396,7 @@ public:
     typedef Cache<PipelinePointer>::Vector PipelineCaches;
     typedef Cache<FramebufferPointer>::Vector FramebufferCaches;
     typedef Cache<QueryPointer>::Vector QueryCaches;
+    typedef Cache<std::string>::Vector ProfileRangeCaches;
     typedef Cache<std::function<void()>>::Vector LambdaCache;
 
     // Cache Data in a byte array if too big to fit in Param
@@ -394,6 +424,7 @@ public:
     FramebufferCaches _framebuffers;
     QueryCaches _queries;
     LambdaCache _lambdas;
+    ProfileRangeCaches _profileRanges;
 
     NamedBatchDataMap _namedData;
 
@@ -406,6 +437,25 @@ protected:
 };
 
 }
+
+#if defined(NSIGHT_FOUND)
+
+class ProfileRangeBatch {
+public:
+    ProfileRangeBatch(gpu::Batch& batch, const char *name);
+    ~ProfileRangeBatch();
+
+private:
+    gpu::Batch& _batch;
+};
+
+#define PROFILE_RANGE_BATCH(batch, name) ProfileRangeBatch profileRangeThis(batch, name);
+
+#else
+
+#define PROFILE_RANGE_BATCH(batch, name) 
+
+#endif
 
 QDebug& operator<<(QDebug& debug, const gpu::Batch::CacheState& cacheState);
 

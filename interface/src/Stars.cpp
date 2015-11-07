@@ -141,6 +141,7 @@ void Stars::render(RenderArgs* renderArgs, float alpha) {
             auto state = gpu::StatePointer(new gpu::State());
             // enable decal blend
             state->setDepthTest(gpu::State::DepthTest(false));
+            state->setStencilTest(true, 0xFF, gpu::State::StencilTest(0, 0xFF, gpu::EQUAL, gpu::State::STENCIL_OP_KEEP, gpu::State::STENCIL_OP_KEEP, gpu::State::STENCIL_OP_KEEP));
             state->setBlendFunction(true, gpu::State::SRC_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::INV_SRC_ALPHA);
             _gridPipeline.reset(gpu::Pipeline::create(program, state));
         }
@@ -152,6 +153,7 @@ void Stars::render(RenderArgs* renderArgs, float alpha) {
             auto state = gpu::StatePointer(new gpu::State());
             // enable decal blend
             state->setDepthTest(gpu::State::DepthTest(false));
+            state->setStencilTest(true, 0xFF, gpu::State::StencilTest(0, 0xFF, gpu::EQUAL, gpu::State::STENCIL_OP_KEEP, gpu::State::STENCIL_OP_KEEP, gpu::State::STENCIL_OP_KEEP));
             state->setAntialiasedLineEnable(true); // line smoothing also smooth points
             state->setBlendFunction(true, gpu::State::SRC_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::INV_SRC_ALPHA);
             _starsPipeline.reset(gpu::Pipeline::create(program, state));

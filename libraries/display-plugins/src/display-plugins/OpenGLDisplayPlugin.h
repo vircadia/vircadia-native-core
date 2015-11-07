@@ -7,10 +7,10 @@
 //
 #pragma once
 
-#include <QTimer>
-
 #include "DisplayPlugin.h"
-#include "OglplusHelpers.h"
+
+#include <QTimer>
+#include <gl/OglplusHelpers.h>
 
 class GlWindow;
 class QOpenGLContext;
@@ -44,7 +44,6 @@ protected:
     mutable QTimer _timer;
     ProgramPtr _program;
     ShapeWrapperPtr _plane;
-    bool _active{ false };
     bool _vsyncSupported{ false };
 };
 

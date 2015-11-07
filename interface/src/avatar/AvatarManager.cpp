@@ -77,11 +77,14 @@ AvatarManager::AvatarManager(QObject* parent) :
 
 void AvatarManager::init() {
     _myAvatar->init();
-    _avatarHash.insert(MY_AVATAR_KEY, _myAvatar);
+    {
+        QWriteLocker locker(&_hashLock);
+        _avatarHash.insert(MY_AVATAR_KEY, _myAvatar);
+    }
 
     connect(DependencyManager::get<SceneScriptingInterface>().data(), &SceneScriptingInterface::shouldRenderAvatarsChanged, this, &AvatarManager::updateAvatarRenderStatus, Qt::QueuedConnection);
 
-    render::ScenePointer scene = Application::getInstance()->getMain3DScene();
+    render::ScenePointer scene = qApp->getMain3DScene();
     render::PendingChanges pendingChanges;
     if (DependencyManager::get<SceneScriptingInterface>()->shouldRenderAvatars()) {
         _myAvatar->addToScene(_myAvatar, scene, pendingChanges);
@@ -127,6 +130,7 @@ void AvatarManager::updateOtherAvatars(float deltaTime) {
         } else if (avatar->shouldDie()) {
             removeAvatarMotionState(avatar);
             _avatarFades.push_back(avatarIterator.value());
+            QWriteLocker locker(&_hashLock);
             avatarIterator = _avatarHash.erase(avatarIterator);
         } else {
             avatar->startUpdate();
@@ -146,7 +150,7 @@ void AvatarManager::simulateAvatarFades(float deltaTime) {
     const float SHRINK_RATE = 0.9f;
     const float MIN_FADE_SCALE = 0.001f;
 
-    render::ScenePointer scene = Application::getInstance()->getMain3DScene();
+    render::ScenePointer scene = qApp->getMain3DScene();
     render::PendingChanges pendingChanges;
     while (fadingIterator != _avatarFades.end()) {
         auto avatar = std::static_pointer_cast<Avatar>(*fadingIterator);
@@ -171,7 +175,7 @@ AvatarSharedPointer AvatarManager::newSharedAvatar() {
 // virtual
 AvatarSharedPointer AvatarManager::addAvatar(const QUuid& sessionUUID, const QWeakPointer<Node>& mixerWeakPointer) {
     auto avatar = std::dynamic_pointer_cast<Avatar>(AvatarHashMap::addAvatar(sessionUUID, mixerWeakPointer));
-    render::ScenePointer scene = Application::getInstance()->getMain3DScene();
+    render::ScenePointer scene = qApp->getMain3DScene();
     render::PendingChanges pendingChanges;
     if (DependencyManager::get<SceneScriptingInterface>()->shouldRenderAvatars()) {
         avatar->addToScene(avatar, scene, pendingChanges);
@@ -202,6 +206,7 @@ void AvatarManager::removeAvatar(const QUuid& sessionUUID) {
         if (avatar != _myAvatar && avatar->isInitialized()) {
             removeAvatarMotionState(avatar);
             _avatarFades.push_back(avatarIterator.value());
+            QWriteLocker locker(&_hashLock);
             _avatarHash.erase(avatarIterator);
         }
     }
@@ -218,6 +223,7 @@ void AvatarManager::clearOtherAvatars() {
         } else {
             removeAvatarMotionState(avatar);
             _avatarFades.push_back(avatarIterator.value());
+            QWriteLocker locker(&_hashLock);
             avatarIterator = _avatarHash.erase(avatarIterator);
         }
     }
@@ -241,6 +247,16 @@ QVector<AvatarManager::LocalLight> AvatarManager::getLocalLights() const {
     }
     return _localLights;
 }
+
+QVector<QUuid> AvatarManager::getAvatarIdentifiers() {
+    QReadLocker locker(&_hashLock);
+    return _avatarHash.keys().toVector();
+}
+AvatarData* AvatarManager::getAvatar(QUuid avatarID) {
+    QReadLocker locker(&_hashLock);
+    return _avatarHash[avatarID].get();  // Non-obvious: A bogus avatarID answers your own avatar.
+}
+
 
 void AvatarManager::getObjectsToDelete(VectorOfMotionStates& result) {
     result.clear();
@@ -270,10 +286,10 @@ void AvatarManager::handleOutgoingChanges(const VectorOfMotionStates& motionStat
 
 void AvatarManager::handleCollisionEvents(const CollisionEvents& collisionEvents) {
     for (Collision collision : collisionEvents) {
-        // TODO: Current physics uses null idA or idB for non-entities. The plan is to handle MOTIONSTATE_TYPE_AVATAR,
-        // and then MOTIONSTATE_TYPE_MYAVATAR. As it is, this code only covers the case of my avatar (in which case one
-        // if the ids will be null), and the behavior for other avatars is not specified. This has to be fleshed
-        // out as soon as we use the new motionstates.
+        // TODO: The plan is to handle MOTIONSTATE_TYPE_AVATAR, and then MOTIONSTATE_TYPE_MYAVATAR. As it is, other
+        // people's avatars will have an id that doesn't match any entities, and one's own avatar will have
+        // an id of null. Thus this code handles any collision in which one of the participating objects is
+        // my avatar. (Other user machines will make a similar analysis and inject sound for their collisions.)
         if (collision.idA.isNull() || collision.idB.isNull()) {
             MyAvatar* myAvatar = getMyAvatar();
             const QString& collisionSoundURL = myAvatar->getCollisionSoundURL();
@@ -283,9 +299,7 @@ void AvatarManager::handleCollisionEvents(const CollisionEvents& collisionEvents
                 const bool isSound = (collision.type == CONTACT_EVENT_TYPE_START) && (velocityChange > MIN_AVATAR_COLLISION_ACCELERATION);
 
                 if (!isSound) {
-                    // TODO: When the new motion states are used, we'll probably break from the whole loop as soon as we hit our own avatar
-                    // (regardless of isSound), because other users should inject for their own avatars.
-                    continue;
+                    return;  // No sense iterating for others. We only have one avatar.
                 }
                 // Your avatar sound is personal to you, so let's say the "mass" part of the kinetic energy is already accounted for.
                 const float energy = velocityChange * velocityChange;
@@ -298,7 +312,7 @@ void AvatarManager::handleCollisionEvents(const CollisionEvents& collisionEvents
 
                 AudioInjector::playSound(collisionSoundURL, energyFactorOfFull, AVATAR_STRETCH_FACTOR, myAvatar->getPosition());
                 myAvatar->collisionWithEntity(collision);
-            }
+                return;            }
         }
     }
 }
@@ -309,7 +323,7 @@ void AvatarManager::updateAvatarPhysicsShape(const QUuid& id) {
         auto avatar = std::static_pointer_cast<Avatar>(avatarItr.value());
         AvatarMotionState* motionState = avatar->getMotionState();
         if (motionState) {
-            motionState->addDirtyFlags(EntityItem::DIRTY_SHAPE);
+            motionState->addDirtyFlags(Simulation::DIRTY_SHAPE);
         } else {
             ShapeInfo shapeInfo;
             avatar->computeShapeInfo(shapeInfo);
@@ -328,7 +342,7 @@ void AvatarManager::updateAvatarRenderStatus(bool shouldRenderAvatars) {
     if (DependencyManager::get<SceneScriptingInterface>()->shouldRenderAvatars()) {
         for (auto avatarData : _avatarHash) {
             auto avatar = std::dynamic_pointer_cast<Avatar>(avatarData);
-            render::ScenePointer scene = Application::getInstance()->getMain3DScene();
+            render::ScenePointer scene = qApp->getMain3DScene();
             render::PendingChanges pendingChanges;
             avatar->addToScene(avatar, scene, pendingChanges);
             scene->enqueuePendingChanges(pendingChanges);
@@ -336,10 +350,24 @@ void AvatarManager::updateAvatarRenderStatus(bool shouldRenderAvatars) {
     } else {
         for (auto avatarData : _avatarHash) {
             auto avatar = std::dynamic_pointer_cast<Avatar>(avatarData);
-            render::ScenePointer scene = Application::getInstance()->getMain3DScene();
+            render::ScenePointer scene = qApp->getMain3DScene();
             render::PendingChanges pendingChanges;
             avatar->removeFromScene(avatar, scene, pendingChanges);
             scene->enqueuePendingChanges(pendingChanges);
         }
+    }
+}
+
+
+AvatarSharedPointer AvatarManager::getAvatarBySessionID(const QUuid& sessionID) {
+    if (sessionID == _myAvatar->getSessionUUID()) {
+        return std::static_pointer_cast<Avatar>(_myAvatar);
+    }
+    QReadLocker locker(&_hashLock);
+    auto iter = _avatarHash.find(sessionID);
+    if (iter != _avatarHash.end()) {
+        return iter.value();
+    } else {
+        return AvatarSharedPointer();
     }
 }

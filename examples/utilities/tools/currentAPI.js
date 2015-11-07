@@ -10,22 +10,21 @@
 //
 
 var array = [];
-var buffer = "\n\n\n\n\n======= JS API list =======";
 function listKeys(string, object) {
-    if (string == "listKeys" || string == "array" || string == "buffer" || string == "i") {
+    if (string === "listKeys" || string === "array" || string === "buffer" || string === "i") {
         return;
     }
     
-    if (typeof(object) != "object") {
+    if (typeof(object) !== "object" || object === null) {
         array.push(string + " " + typeof(object));
         return;
     }
     
     var keys = Object.keys(object);
     for (var i = 0; i < keys.length; ++i) {
-        if (string == "") {
+        if (string === "") {
             listKeys(keys[i], object[keys[i]]);
-        } else {
+        } else if (keys[i] !== "parent") {
             listKeys(string + "." + keys[i], object[keys[i]]);
         }
     }
@@ -34,9 +33,10 @@ function listKeys(string, object) {
 listKeys("", this);
 array.sort();
 
+var buffer = "\n======= JS API list =======";
 for (var i = 0; i < array.length; ++i) {
-    buffer = buffer + "\n" + array[i];
+    buffer += "\n" + array[i];
 }
-buffer = buffer + "\n========= API END =========\n\n\n\n\n";
+buffer += "\n========= API END =========\n";
 
 print(buffer);

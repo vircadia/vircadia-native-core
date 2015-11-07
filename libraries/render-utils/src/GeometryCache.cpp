@@ -19,8 +19,6 @@
 #include <FSTReader.h>
 #include <NumericalConstants.h>
 
-#include <gpu/GLBackend.h>
-
 #include "TextureCache.h"
 #include "RenderUtilsLogging.h"
 
@@ -59,7 +57,8 @@ static gpu::Stream::FormatPointer INSTANCED_SOLID_STREAM_FORMAT;
 
 static const uint SHAPE_VERTEX_STRIDE = sizeof(glm::vec3) * 2; // vertices and normals
 static const uint SHAPE_NORMALS_OFFSET = sizeof(glm::vec3);
-
+static const gpu::Type SHAPE_INDEX_TYPE = gpu::UINT16;
+static const uint SHAPE_INDEX_SIZE = sizeof(gpu::uint16);
 
 void GeometryCache::ShapeData::setupVertices(gpu::BufferPointer& vertexBuffer, const VertexVector& vertices) {
     vertexBuffer->append(vertices);
@@ -73,13 +72,13 @@ void GeometryCache::ShapeData::setupVertices(gpu::BufferPointer& vertexBuffer, c
 void GeometryCache::ShapeData::setupIndices(gpu::BufferPointer& indexBuffer, const IndexVector& indices, const IndexVector& wireIndices) {
     _indices = indexBuffer;
     if (!indices.empty()) {
-        _indexOffset = indexBuffer->getSize();
+        _indexOffset = indexBuffer->getSize() / SHAPE_INDEX_SIZE;
         _indexCount = indices.size();
         indexBuffer->append(indices);
     }
 
     if (!wireIndices.empty()) {
-        _wireIndexOffset = indexBuffer->getSize();
+        _wireIndexOffset = indexBuffer->getSize() / SHAPE_INDEX_SIZE;
         _wireIndexCount = wireIndices.size();
         indexBuffer->append(wireIndices);
     }
@@ -88,7 +87,7 @@ void GeometryCache::ShapeData::setupIndices(gpu::BufferPointer& indexBuffer, con
 void GeometryCache::ShapeData::setupBatch(gpu::Batch& batch) const {
     batch.setInputBuffer(gpu::Stream::POSITION, _positionView);
     batch.setInputBuffer(gpu::Stream::NORMAL, _normalView);
-    batch.setIndexBuffer(gpu::UINT16, _indices, 0);
+    batch.setIndexBuffer(SHAPE_INDEX_TYPE, _indices, 0);
 }
 
 void GeometryCache::ShapeData::draw(gpu::Batch& batch) const {
@@ -572,8 +571,8 @@ void GeometryCache::renderGrid(gpu::Batch& batch, int xDivisions, int yDivisions
     if (!_gridBuffers.contains(key)) {
         auto verticesBuffer = std::make_shared<gpu::Buffer>();
 
-        GLfloat* vertexData = new GLfloat[vertices * 2];
-        GLfloat* vertex = vertexData;
+        float* vertexData = new float[vertices * 2];
+        float* vertex = vertexData;
 
         for (int i = 0; i <= xDivisions; i++) {
             float x = (float)i / xDivisions;
@@ -594,7 +593,7 @@ void GeometryCache::renderGrid(gpu::Batch& batch, int xDivisions, int yDivisions
             *(vertex++) = y;
         }
 
-        verticesBuffer->append(sizeof(GLfloat) * vertices * 2, (gpu::Byte*) vertexData);
+        verticesBuffer->append(sizeof(float) * vertices * 2, (gpu::Byte*) vertexData);
         delete[] vertexData;
         
         _gridBuffers[key] = verticesBuffer;
@@ -673,8 +672,8 @@ void GeometryCache::renderGrid(gpu::Batch& batch, int x, int y, int width, int h
             _alternateGridBuffers[key] = verticesBuffer;
         }
 
-        GLfloat* vertexData = new GLfloat[vertices * 2];
-        GLfloat* vertex = vertexData;
+        float* vertexData = new float[vertices * 2];
+        float* vertex = vertexData;
 
         int dx = width / cols;
         int dy = height / rows;
@@ -701,7 +700,7 @@ void GeometryCache::renderGrid(gpu::Batch& batch, int x, int y, int width, int h
             tx += dx;
         }
 
-        verticesBuffer->append(sizeof(GLfloat) * vertices * 2, (gpu::Byte*) vertexData);
+        verticesBuffer->append(sizeof(float) * vertices * 2, (gpu::Byte*) vertexData);
         delete[] vertexData;
     }
 
@@ -784,8 +783,8 @@ void GeometryCache::updateVertices(int id, const QVector<glm::vec2>& points, con
                         ((int(color.z * 255.0f) & 0xFF) << 16) |
                         ((int(color.w * 255.0f) & 0xFF) << 24);
 
-    GLfloat* vertexData = new GLfloat[details.vertices * FLOATS_PER_VERTEX];
-    GLfloat* vertex = vertexData;
+    float* vertexData = new float[details.vertices * FLOATS_PER_VERTEX];
+    float* vertex = vertexData;
 
     int* colorData = new int[details.vertices];
     int* colorDataAt = colorData;
@@ -797,7 +796,7 @@ void GeometryCache::updateVertices(int id, const QVector<glm::vec2>& points, con
         *(colorDataAt++) = compactColor;
     }
 
-    details.verticesBuffer->append(sizeof(GLfloat) * FLOATS_PER_VERTEX * details.vertices, (gpu::Byte*) vertexData);
+    details.verticesBuffer->append(sizeof(float) * FLOATS_PER_VERTEX * details.vertices, (gpu::Byte*) vertexData);
     details.colorBuffer->append(sizeof(int) * details.vertices, (gpu::Byte*) colorData);
     delete[] vertexData;
     delete[] colorData;
@@ -845,8 +844,8 @@ void GeometryCache::updateVertices(int id, const QVector<glm::vec3>& points, con
                         ((int(color.z * 255.0f) & 0xFF) << 16) |
                         ((int(color.w * 255.0f) & 0xFF) << 24);
 
-    GLfloat* vertexData = new GLfloat[details.vertices * FLOATS_PER_VERTEX];
-    GLfloat* vertex = vertexData;
+    float* vertexData = new float[details.vertices * FLOATS_PER_VERTEX];
+    float* vertex = vertexData;
 
     int* colorData = new int[details.vertices];
     int* colorDataAt = colorData;
@@ -859,7 +858,7 @@ void GeometryCache::updateVertices(int id, const QVector<glm::vec3>& points, con
         *(colorDataAt++) = compactColor;
     }
 
-    details.verticesBuffer->append(sizeof(GLfloat) * FLOATS_PER_VERTEX * details.vertices, (gpu::Byte*) vertexData);
+    details.verticesBuffer->append(sizeof(float) * FLOATS_PER_VERTEX * details.vertices, (gpu::Byte*) vertexData);
     details.colorBuffer->append(sizeof(int) * details.vertices, (gpu::Byte*) colorData);
     delete[] vertexData;
     delete[] colorData;
@@ -911,8 +910,8 @@ void GeometryCache::updateVertices(int id, const QVector<glm::vec3>& points, con
                         ((int(color.z * 255.0f) & 0xFF) << 16) |
                         ((int(color.w * 255.0f) & 0xFF) << 24);
 
-    GLfloat* vertexData = new GLfloat[details.vertices * FLOATS_PER_VERTEX];
-    GLfloat* vertex = vertexData;
+    float* vertexData = new float[details.vertices * FLOATS_PER_VERTEX];
+    float* vertex = vertexData;
 
     int* colorData = new int[details.vertices];
     int* colorDataAt = colorData;
@@ -929,7 +928,7 @@ void GeometryCache::updateVertices(int id, const QVector<glm::vec3>& points, con
         *(colorDataAt++) = compactColor;
     }
 
-    details.verticesBuffer->append(sizeof(GLfloat) * FLOATS_PER_VERTEX * details.vertices, (gpu::Byte*) vertexData);
+    details.verticesBuffer->append(sizeof(float) * FLOATS_PER_VERTEX * details.vertices, (gpu::Byte*) vertexData);
     details.colorBuffer->append(sizeof(int) * details.vertices, (gpu::Byte*) colorData);
     delete[] vertexData;
     delete[] colorData;
@@ -996,7 +995,7 @@ void GeometryCache::renderBevelCornersRect(gpu::Batch& batch, int x, int y, int 
         details.stream->addBuffer(details.colorBuffer, 0, details.streamFormat->getChannels().at(1)._stride);
 
 
-        GLfloat vertexBuffer[NUM_FLOATS]; // only vertices, no normals because we're a 2D quad
+        float vertexBuffer[NUM_FLOATS]; // only vertices, no normals because we're a 2D quad
         int vertexPoint = 0;
 
         // Triangle strip points
@@ -1437,8 +1436,8 @@ void GeometryCache::renderDashedLine(gpu::Batch& batch, const glm::vec3& start, 
         int* colorData = new int[details.vertices];
         int* colorDataAt = colorData;
 
-        GLfloat* vertexData = new GLfloat[details.vertices * FLOATS_PER_VERTEX];
-        GLfloat* vertex = vertexData;
+        float* vertexData = new float[details.vertices * FLOATS_PER_VERTEX];
+        float* vertex = vertexData;
 
         glm::vec3 point = start;
         *(vertex++) = point.x;
@@ -1464,7 +1463,7 @@ void GeometryCache::renderDashedLine(gpu::Batch& batch, const glm::vec3& start, 
         *(vertex++) = end.z;
         *(colorDataAt++) = compactColor;
 
-        details.verticesBuffer->append(sizeof(GLfloat) * FLOATS_PER_VERTEX * details.vertices, (gpu::Byte*) vertexData);
+        details.verticesBuffer->append(sizeof(float) * FLOATS_PER_VERTEX * details.vertices, (gpu::Byte*) vertexData);
         details.colorBuffer->append(sizeof(int) * details.vertices, (gpu::Byte*) colorData);
         delete[] vertexData;
         delete[] colorData;

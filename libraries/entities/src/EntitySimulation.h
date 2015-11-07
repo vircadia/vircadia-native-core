@@ -28,18 +28,18 @@ typedef QVector<EntityItemPointer> VectorOfEntities;
 // the EntitySimulation needs to know when these things change on an entity,
 // so it can sort EntityItem or relay its state to the PhysicsEngine.
 const int DIRTY_SIMULATION_FLAGS =
-        EntityItem::DIRTY_POSITION |
-        EntityItem::DIRTY_ROTATION |
-        EntityItem::DIRTY_LINEAR_VELOCITY |
-        EntityItem::DIRTY_ANGULAR_VELOCITY |
-        EntityItem::DIRTY_MASS |
-        EntityItem::DIRTY_COLLISION_GROUP |
-        EntityItem::DIRTY_MOTION_TYPE |
-        EntityItem::DIRTY_SHAPE |
-        EntityItem::DIRTY_LIFETIME |
-        EntityItem::DIRTY_UPDATEABLE |
-        EntityItem::DIRTY_MATERIAL |
-        EntityItem::DIRTY_SIMULATOR_ID;
+        Simulation::DIRTY_POSITION |
+        Simulation::DIRTY_ROTATION |
+        Simulation::DIRTY_LINEAR_VELOCITY |
+        Simulation::DIRTY_ANGULAR_VELOCITY |
+        Simulation::DIRTY_MASS |
+        Simulation::DIRTY_COLLISION_GROUP |
+        Simulation::DIRTY_MOTION_TYPE |
+        Simulation::DIRTY_SHAPE |
+        Simulation::DIRTY_LIFETIME |
+        Simulation::DIRTY_UPDATEABLE |
+        Simulation::DIRTY_MATERIAL |
+        Simulation::DIRTY_SIMULATOR_ID;
 
 class EntitySimulation : public QObject {
 Q_OBJECT

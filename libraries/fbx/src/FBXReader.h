@@ -12,8 +12,6 @@
 #ifndef hifi_FBXReader_h
 #define hifi_FBXReader_h
 
-#define USE_MODEL_MESH 1
-
 #include <QMetaType>
 #include <QUrl>
 #include <QVarLengthArray>
@@ -123,15 +121,10 @@ class FBXMeshPart {
 public:
 
     QVector<int> quadIndices; // original indices from the FBX mesh
+    QVector<int> quadTrianglesIndices; // original indices from the FBX mesh of the quad converted as triangles
     QVector<int> triangleIndices; // original indices from the FBX mesh
-    mutable gpu::BufferPointer mergedTrianglesIndicesBuffer; // both the quads and the triangles merged into a single set of triangles
 
     QString materialID;
-
-    mutable bool mergedTrianglesAvailable = false;
-    mutable int mergedTrianglesIndicesCount = 0;
-
-    gpu::BufferPointer getMergedTriangles() const;
 };
 
 class FBXMaterial {
@@ -193,9 +186,8 @@ public:
     QVector<FBXBlendshape> blendshapes;
 
     unsigned int meshIndex; // the order the meshes appeared in the object file
-#   if USE_MODEL_MESH
-    model::Mesh _mesh;
-#   endif
+
+    model::MeshPointer _mesh;
 };
 
 class ExtractedMesh {
@@ -211,8 +203,8 @@ public:
 /// A single animation frame extracted from an FBX document.
 class FBXAnimationFrame {
 public:
-    
     QVector<glm::quat> rotations;
+    QVector<glm::vec3> translations;
 };
 
 /// A light in an FBX document.
@@ -396,7 +388,7 @@ public:
 
     ExtractedMesh extractMesh(const FBXNode& object, unsigned int& meshIndex);
     QHash<QString, ExtractedMesh> meshes;
-    void buildModelMesh(ExtractedMesh& extracted, const QString& url);
+    static void buildModelMesh(FBXMesh& extractedMesh, const QString& url);
 
     FBXTexture getTexture(const QString& textureID);
 
@@ -421,8 +413,8 @@ public:
     float _lightmapOffset = 0.0f;
     float _lightmapLevel;
 
-    QMultiHash<QString, QString> _connectionParentMap;
-    QMultiHash<QString, QString> _connectionChildMap;
+    QMultiMap<QString, QString> _connectionParentMap;
+    QMultiMap<QString, QString> _connectionChildMap;
 
     static glm::vec3 getVec3(const QVariantList& properties, int index);
     static QVector<glm::vec4> createVec4Vector(const QVector<double>& doubleVector);
