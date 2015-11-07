@@ -17,7 +17,7 @@
 static const char* const DEPENDENCY_PROPERTY_NAME = "com.highfidelity.DependencyMananger";
 
 DependencyManager& DependencyManager::manager() {
-    static DependencyManager* instance = globalInstace<DependencyManager>(DEPENDENCY_PROPERTY_NAME);
+    static DependencyManager* instance = globalInstance<DependencyManager>(DEPENDENCY_PROPERTY_NAME);
     return *instance;
 }
 

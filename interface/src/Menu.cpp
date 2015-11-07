@@ -47,7 +47,7 @@
 static const char* const MENU_PROPERTY_NAME = "com.highfidelity.Menu";
 
 Menu* Menu::getInstance() {
-    static Menu* instance = globalInstace<Menu>(MENU_PROPERTY_NAME);
+    static Menu* instance = globalInstance<Menu>(MENU_PROPERTY_NAME);
     return instance;
 }
 
