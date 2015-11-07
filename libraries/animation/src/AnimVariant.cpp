@@ -44,7 +44,7 @@ QScriptValue AnimVariantMap::animVariantMapToScriptValue(QScriptEngine* engine, 
                 break;
             default:
                 // Note that we don't do mat4 in Javascript currently, and there's not yet a reason to start now.
-                assert("AnimVariant::Type" == "valid");
+                assert(QString("AnimVariant::Type") == QString("valid"));
         }
     };
     if (useNames) { // copy only the requested names

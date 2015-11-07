@@ -51,6 +51,7 @@ enum class Action {
 
     CONTEXT_MENU,
     TOGGLE_MUTE,
+    CYCLE_CAMERA,
 
     SHIFT,
 

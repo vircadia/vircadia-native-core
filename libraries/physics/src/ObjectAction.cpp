@@ -16,7 +16,6 @@
 ObjectAction::ObjectAction(EntityActionType type, const QUuid& id, EntityItemPointer ownerEntity) :
     btActionInterface(),
     EntityActionInterface(type, id),
-    _active(false),
     _ownerEntity(ownerEntity) {
 }
 
@@ -35,7 +34,9 @@ void ObjectAction::updateAction(btCollisionWorld* collisionWorld, btScalar delta
     if (ownerEntityExpired) {
         qDebug() << "warning -- action with no entity removing self from btCollisionWorld.";
         btDynamicsWorld* dynamicsWorld = static_cast<btDynamicsWorld*>(collisionWorld);
-        dynamicsWorld->removeAction(this);
+        if (dynamicsWorld) {
+            dynamicsWorld->removeAction(this);
+        }
         return;
     }
 
@@ -120,6 +121,17 @@ QVariantMap ObjectAction::getArguments() {
             arguments["ttl"] = (float)(_expires - now) / (float)USECS_PER_SECOND;
         }
         arguments["tag"] = _tag;
+
+        EntityItemPointer entity = _ownerEntity.lock();
+        if (entity) {
+            ObjectMotionState* motionState = static_cast<ObjectMotionState*>(entity->getPhysicsInfo());
+            if (motionState) {
+                arguments["::active"] = motionState->isActive();
+                arguments["::motion-type"] = motionTypeToString(motionState->getMotionType());
+            } else {
+                arguments["::no-motion-state"] = true;
+            }
+        }
     });
     return arguments;
 }

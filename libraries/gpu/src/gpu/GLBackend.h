@@ -479,6 +479,9 @@ protected:
 
     void do_glColor4f(Batch& batch, uint32 paramOffset);
 
+    void do_pushProfileRange(Batch& batch, uint32 paramOffset);
+    void do_popProfileRange(Batch& batch, uint32 paramOffset);
+
     typedef void (GLBackend::*CommandCall)(Batch&, uint32);
     static CommandCall _commandCalls[Batch::NUM_COMMANDS];
 };

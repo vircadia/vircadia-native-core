@@ -21,14 +21,15 @@ public:
     PulseFilter() {}
     PulseFilter(float interval) : _interval(interval) {}
 
-
     virtual float apply(float value) const override;
 
     virtual bool parseParameters(const QJsonValue& parameters);
 
 private:
-    mutable float _lastEmitTime { -::std::numeric_limits<float>::max() };
-    float _interval = 1.0f;
+    static const float DEFAULT_LAST_EMIT_TIME;
+    mutable float _lastEmitTime { DEFAULT_LAST_EMIT_TIME };
+    bool _resetOnZero { false };
+    float _interval { 1.0f };
 };
 
 }

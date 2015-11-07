@@ -39,16 +39,33 @@ namespace controller {
         // These don't map to SDL types
         LEFT_PRIMARY_THUMB,
         LEFT_SECONDARY_THUMB,
+        LEFT_PRIMARY_THUMB_TOUCH,
+        LEFT_SECONDARY_THUMB_TOUCH,
+        LS_TOUCH,
+        LEFT_THUMB_UP,
+
         RIGHT_PRIMARY_THUMB,
         RIGHT_SECONDARY_THUMB,
+        RIGHT_PRIMARY_THUMB_TOUCH,
+        RIGHT_SECONDARY_THUMB_TOUCH,
+        RS_TOUCH,
+        RIGHT_THUMB_UP,
 
         LEFT_PRIMARY_INDEX,
         LEFT_SECONDARY_INDEX,
+        LEFT_PRIMARY_INDEX_TOUCH,
+        LEFT_SECONDARY_INDEX_TOUCH,
+        LEFT_INDEX_POINT,
         RIGHT_PRIMARY_INDEX,
         RIGHT_SECONDARY_INDEX,
+        RIGHT_PRIMARY_INDEX_TOUCH,
+        RIGHT_SECONDARY_INDEX_TOUCH,
+        RIGHT_INDEX_POINT,
 
         LEFT_GRIP,
+        LEFT_GRIP_TOUCH,
         RIGHT_GRIP,
+        RIGHT_GRIP_TOUCH,
 
         NUM_STANDARD_BUTTONS
     };
@@ -58,15 +75,15 @@ namespace controller {
         // Left Analog stick
         LX = 0,
         LY,
-        LZ,
         // Right Analog stick
         RX,
         RY,
-        RZ,
         // Triggers
         LT,
         RT,
-        NUM_STANDARD_AXES
+        NUM_STANDARD_AXES,
+        LZ = LT,
+        RZ = RT
     };
 
     // No correlation to SDL

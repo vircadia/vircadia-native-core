@@ -77,6 +77,7 @@ public:
     virtual bool canProcessVersion(PacketVersion thisVersion) const
                     { return thisVersion >= VERSION_ENTITIES_USE_METERS_AND_RADIANS; }
     virtual bool handlesEditPacketType(PacketType packetType) const;
+    void fixupTerseEditLogging(EntityItemProperties& properties, QList<QString>& changedProperties);
     virtual int processEditPacketData(NLPacket& packet, const unsigned char* editData, int maxLength,
                                       const SharedNodePointer& senderNode);
 

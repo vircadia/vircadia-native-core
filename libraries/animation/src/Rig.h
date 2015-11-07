@@ -44,6 +44,7 @@
 
 #include "AnimNode.h"
 #include "AnimNodeLoader.h"
+#include "SimpleMovingAverage.h"
 
 class AnimationHandle;
 typedef std::shared_ptr<AnimationHandle> AnimationHandlePointer;
@@ -219,6 +220,7 @@ public:
     void updateLeanJoint(int index, float leanSideways, float leanForward, float torsoTwist);
     void updateNeckJoint(int index, const HeadParameters& params);
     void updateEyeJoint(int index, const glm::vec3& modelTranslation, const glm::quat& modelRotation, const glm::quat& worldHeadOrientation, const glm::vec3& lookAt, const glm::vec3& saccade);
+    void calcAnimAlpha(float speed, const std::vector<float>& referenceSpeeds, float* alphaOut) const;
 
     QVector<JointState> _jointStates;
     int _rootJointIndex = -1;
@@ -238,6 +240,7 @@ public:
     bool _enableAnimGraph = false;
     glm::vec3 _lastFront;
     glm::vec3 _lastPosition;
+    glm::vec3 _lastVelocity;
 
     std::shared_ptr<AnimNode> _animNode;
     std::shared_ptr<AnimSkeleton> _animSkeleton;
@@ -253,6 +256,9 @@ public:
     float _desiredStateAge = 0.0f;
     float _leftHandOverlayAlpha = 0.0f;
     float _rightHandOverlayAlpha = 0.0f;
+
+    SimpleMovingAverage _averageForwardSpeed{ 10 };
+    SimpleMovingAverage _averageLateralSpeed{ 10 };
 
 private:
     QMap<int, StateHandler> _stateHandlers;

@@ -748,12 +748,13 @@ void AudioClient::handleAudioInput() {
         _audioPacket = NLPacket::create(PacketType::MicrophoneAudioNoEcho);
     }
 
-    float inputToNetworkInputRatio = calculateDeviceToNetworkInputRatio();
+    const float inputToNetworkInputRatio = calculateDeviceToNetworkInputRatio();
+    
+    const int inputSamplesRequired = (int)((float)AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL * inputToNetworkInputRatio);
+    const auto inputAudioSamples = std::unique_ptr<int16_t[]>(new int16_t[inputSamplesRequired]);
 
-    int inputSamplesRequired = (int)((float)AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL * inputToNetworkInputRatio);
-
-    static int leadingBytes = sizeof(quint16) + sizeof(glm::vec3) + sizeof(glm::quat) + sizeof(quint8);
-    int16_t* networkAudioSamples = (int16_t*)(_audioPacket->getPayload() + leadingBytes);
+    static const int leadingBytes = sizeof(quint16) + sizeof(glm::vec3) + sizeof(glm::quat) + sizeof(quint8);
+    int16_t* const networkAudioSamples = (int16_t*)(_audioPacket->getPayload() + leadingBytes);
 
     QByteArray inputByteArray = _inputDevice->readAll();
 
@@ -802,15 +803,11 @@ void AudioClient::handleAudioInput() {
                 _timeSinceLastClip += (float) numNetworkSamples / (float) AudioConstants::SAMPLE_RATE;
             }
 
-            int16_t* inputAudioSamples = new int16_t[inputSamplesRequired];
-            _inputRingBuffer.readSamples(inputAudioSamples, inputSamplesRequired);
-
+            _inputRingBuffer.readSamples(inputAudioSamples.get(), inputSamplesRequired);
             possibleResampling(_inputToNetworkResampler,
-                               inputAudioSamples, networkAudioSamples,
+                               inputAudioSamples.get(), networkAudioSamples,
                                inputSamplesRequired, numNetworkSamples,
                                _inputFormat, _desiredInputFormat);
-
-            delete[] inputAudioSamples;
 
             //  Remove DC offset
             if (!_isStereoInput && !_audioSourceInjectEnabled) {
@@ -842,8 +839,7 @@ void AudioClient::handleAudioInput() {
                 _lastInputLoudness = fabs(loudness / numNetworkSamples);
             }
 
-            emit inputReceived(QByteArray(reinterpret_cast<const char*>(networkAudioSamples),
-                                          AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL * sizeof(AudioConstants::AudioSample)));
+            emit inputReceived({reinterpret_cast<char*>(networkAudioSamples), numNetworkBytes});
 
         } else {
             // our input loudness is 0, since we're muted

@@ -6,4 +6,16 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+
 #include "NotConditional.h"
+
+using namespace controller;
+
+bool NotConditional::satisfied() {
+    if (_operand) {
+        return (!_operand->satisfied());
+    } else {
+        return false;
+    }
+}
+

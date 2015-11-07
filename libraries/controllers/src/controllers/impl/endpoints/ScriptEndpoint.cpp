@@ -12,8 +12,8 @@
 
 using namespace controller;
 
-float ScriptEndpoint::value() {
-    updateValue();
+float ScriptEndpoint::peek() const {
+    const_cast<ScriptEndpoint*>(this)->updateValue();
     return _lastValueRead;
 }
 

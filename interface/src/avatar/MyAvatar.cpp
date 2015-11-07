@@ -53,7 +53,6 @@
 
 using namespace std;
 
-static quint64 COMFORT_MODE_PULSE_TIMING = USECS_PER_SECOND / 2; // turn once per half second
 const glm::vec3 DEFAULT_UP_DIRECTION(0.0f, 1.0f, 0.0f);
 const float YAW_SPEED = 150.0f;   // degrees/sec
 const float PITCH_SPEED = 100.0f; // degrees/sec
@@ -121,6 +120,8 @@ MyAvatar::MyAvatar(RigPointer rig) :
     connect(DependencyManager::get<AddressManager>().data(), &AddressManager::locationChangeRequired,
             this, &MyAvatar::goToLocation);
     _characterController.setEnabled(true);
+
+    _bodySensorMatrix = deriveBodyFromHMDSensor();
 }
 
 MyAvatar::~MyAvatar() {
@@ -157,6 +158,8 @@ void MyAvatar::reset(bool andReload) {
     // Reset dynamic state.
     _wasPushing = _isPushing = _isBraking = _billboardValid = false;
     _isFollowingHMD = false;
+    _hmdFollowVelocity = Vectors::ZERO;
+    _hmdFollowSpeed = 0.0f;
     _skeletonModel.reset();
     getHead()->reset();
     _targetVelocity = glm::vec3(0.0f);
@@ -248,30 +251,16 @@ void MyAvatar::simulate(float deltaTime) {
     {
         PerformanceTimer perfTimer("transform");
         bool stepAction = false;
-        // When there are no step values, we zero out the last step pulse. 
+        // When there are no step values, we zero out the last step pulse.
         // This allows a user to do faster snapping by tapping a control
         for (int i = STEP_TRANSLATE_X; !stepAction && i <= STEP_YAW; ++i) {
             if (_driveKeys[i] != 0.0f) {
                 stepAction = true;
             }
         }
-        quint64 now = usecTimestampNow();
-        quint64 pulseDeltaTime = now - _lastStepPulse;
-        if (!stepAction) {
-            _lastStepPulse = 0;
-        }
-
-        if (stepAction && pulseDeltaTime > COMFORT_MODE_PULSE_TIMING) {
-            _pulseUpdate = true;
-        }
 
         updateOrientation(deltaTime);
         updatePosition(deltaTime);
-
-        if (_pulseUpdate) {
-            _lastStepPulse = now;
-            _pulseUpdate = false;
-        }
     }
 
     {
@@ -332,25 +321,6 @@ glm::mat4 MyAvatar::getSensorToWorldMatrix() const {
     return _sensorToWorldMatrix;
 }
 
-// returns true if pos is OUTSIDE of the vertical capsule
-// where the middle cylinder length is defined by capsuleLen and the radius by capsuleRad.
-static bool pointIsOutsideCapsule(const glm::vec3& pos, float capsuleLen, float capsuleRad) {
-    const float halfCapsuleLen = capsuleLen / 2.0f;
-    if (fabs(pos.y) <= halfCapsuleLen) {
-        // cylinder check for middle capsule
-        glm::vec2 horizPos(pos.x, pos.z);
-        return glm::length(horizPos) > capsuleRad;
-    } else if (pos.y > halfCapsuleLen) {
-        glm::vec3 center(0.0f, halfCapsuleLen, 0.0f);
-        return glm::length(center - pos) > capsuleRad;
-    } else if (pos.y < halfCapsuleLen) {
-        glm::vec3 center(0.0f, -halfCapsuleLen, 0.0f);
-        return glm::length(center - pos) > capsuleRad;
-    } else {
-        return false;
-    }
-}
-
 // Pass a recent sample of the HMD to the avatar.
 // This can also update the avatar's position to follow the HMD
 // as it moves through the world.
@@ -359,101 +329,57 @@ void MyAvatar::updateFromHMDSensorMatrix(const glm::mat4& hmdSensorMatrix) {
     _hmdSensorMatrix = hmdSensorMatrix;
     _hmdSensorPosition = extractTranslation(hmdSensorMatrix);
     _hmdSensorOrientation = glm::quat_cast(hmdSensorMatrix);
+}
 
-    // calc deltaTime
-    auto now = usecTimestampNow();
-    auto deltaUsecs = now - _lastUpdateFromHMDTime;
-    _lastUpdateFromHMDTime = now;
-    double actualDeltaTime = (double)deltaUsecs / (double)USECS_PER_SECOND;
-    const float BIGGEST_DELTA_TIME_SECS = 0.25f;
-    float deltaTime = glm::clamp((float)actualDeltaTime, 0.0f, BIGGEST_DELTA_TIME_SECS);
+void MyAvatar::updateHMDFollowVelocity() {
+    // compute offset to body's target position (in sensor-frame)
+    auto sensorBodyMatrix = deriveBodyFromHMDSensor();
+    _hmdFollowOffset = extractTranslation(sensorBodyMatrix) - extractTranslation(_bodySensorMatrix);
+    glm::vec3 truncatedOffset = _hmdFollowOffset;
+    if (truncatedOffset.y < 0.0f) {
+        // don't pull the body DOWN to match the target (allow animation system to squat)
+        truncatedOffset.y = 0.0f;
+    }
+    float truncatedOffsetDistance = glm::length(truncatedOffset);
 
-    bool hmdIsAtRest = _hmdAtRestDetector.update(deltaTime, _hmdSensorPosition, _hmdSensorOrientation);
-
-    // It can be more accurate/smooth to use velocity rather than position,
-    // but some modes (e.g., hmd standing) update position without updating velocity.
-    // So, let's create our own workingVelocity from the worldPosition...
-    glm::vec3 positionDelta = getPosition() - _lastPosition;
-    glm::vec3 workingVelocity = positionDelta / deltaTime;
-    _lastPosition = getPosition();
-
-    const float MOVE_ENTER_SPEED_THRESHOLD = 0.2f; // m/sec
-    const float MOVE_EXIT_SPEED_THRESHOLD = 0.07f;  // m/sec
     bool isMoving;
     if (_lastIsMoving) {
-        isMoving = glm::length(workingVelocity) >= MOVE_EXIT_SPEED_THRESHOLD;
+        const float MOVE_EXIT_SPEED_THRESHOLD = 0.07f;  // m/sec
+        isMoving = glm::length(_velocity) >= MOVE_EXIT_SPEED_THRESHOLD;
     } else {
-        isMoving = glm::length(workingVelocity) > MOVE_ENTER_SPEED_THRESHOLD;
+        const float MOVE_ENTER_SPEED_THRESHOLD = 0.2f; // m/sec
+        isMoving = glm::length(_velocity) > MOVE_ENTER_SPEED_THRESHOLD;
     }
-
     bool justStartedMoving = (_lastIsMoving != isMoving) && isMoving;
     _lastIsMoving = isMoving;
-
-    if (shouldFollowHMD() || hmdIsAtRest || justStartedMoving) {
-        beginFollowingHMD();
-    }
-
-    followHMD(deltaTime);
-}
-
-glm::vec3 MyAvatar::getHMDCorrectionVelocity() const {
-    // TODO: impelement this
-    return Vectors::ZERO;
-}
-
-void MyAvatar::beginFollowingHMD() {
-    // begin homing toward derived body position.
-    if (!_isFollowingHMD) {
+    bool hmdIsAtRest = _hmdAtRestDetector.update(_hmdSensorPosition, _hmdSensorOrientation);
+    const float MIN_HMD_HIP_SHIFT = 0.05f;
+    if (justStartedMoving || (hmdIsAtRest && truncatedOffsetDistance > MIN_HMD_HIP_SHIFT)) {
         _isFollowingHMD = true;
-        _followHMDAlpha = 0.0f;
     }
-}
 
-bool MyAvatar::shouldFollowHMD() const {
-    if (!_isFollowingHMD) {
-        // define a vertical capsule
-        const float FOLLOW_HMD_CAPSULE_RADIUS = 0.2f;  // meters
-        const float FOLLOW_HMD_CAPSULE_LENGTH = 0.05f;  // length of the cylinder part of the capsule in meters.
-    
-        // detect if the derived body position is outside of a capsule around the _bodySensorMatrix
-        auto newBodySensorMatrix = deriveBodyFromHMDSensor();
-        glm::vec3 localPoint = extractTranslation(newBodySensorMatrix) - extractTranslation(_bodySensorMatrix);
-        return pointIsOutsideCapsule(localPoint, FOLLOW_HMD_CAPSULE_LENGTH, FOLLOW_HMD_CAPSULE_RADIUS);
-    }
-    return false;
-}
-
-void MyAvatar::followHMD(float deltaTime) {
-    if (_isFollowingHMD) {
-
-        const float FOLLOW_HMD_DURATION = 0.5f;  // seconds
-
-        auto newBodySensorMatrix = deriveBodyFromHMDSensor();
-        auto worldBodyMatrix = _sensorToWorldMatrix * newBodySensorMatrix;
-        glm::vec3 worldBodyPos = extractTranslation(worldBodyMatrix);
-        glm::quat worldBodyRot = glm::normalize(glm::quat_cast(worldBodyMatrix));
-
-        _followHMDAlpha += (1.0f / FOLLOW_HMD_DURATION) * deltaTime;
-
-        if (_followHMDAlpha >= 1.0f) {
-            _isFollowingHMD = false;
-            nextAttitude(worldBodyPos, worldBodyRot);
-            _bodySensorMatrix = newBodySensorMatrix;
-        } else {
-            // interp position toward the desired pos
-            glm::vec3 pos = lerp(getPosition(), worldBodyPos, _followHMDAlpha);
-            glm::quat rot = glm::normalize(safeMix(getOrientation(), worldBodyRot, _followHMDAlpha));
-            nextAttitude(pos, rot);
-
-            // interp sensor matrix toward desired
-            glm::vec3 nextBodyPos = extractTranslation(newBodySensorMatrix);
-            glm::quat nextBodyRot = glm::normalize(glm::quat_cast(newBodySensorMatrix));
-            glm::vec3 prevBodyPos = extractTranslation(_bodySensorMatrix);
-            glm::quat prevBodyRot = glm::normalize(glm::quat_cast(_bodySensorMatrix));
-            pos = lerp(prevBodyPos, nextBodyPos, _followHMDAlpha);
-            rot = glm::normalize(safeMix(prevBodyRot, nextBodyRot, _followHMDAlpha));
-            _bodySensorMatrix = createMatFromQuatAndPos(rot, pos);
+    bool needNewFollowSpeed = (_isFollowingHMD && _hmdFollowSpeed == 0.0f);
+    if (!needNewFollowSpeed) {
+        // check to see if offset has exceeded its threshold
+        const float MAX_HMD_HIP_SHIFT = 0.2f;
+        if (truncatedOffsetDistance > MAX_HMD_HIP_SHIFT) {
+            _isFollowingHMD = true;
+            needNewFollowSpeed = true;
         }
+    }
+    if (_isFollowingHMD) {
+        // only bother to rotate into world frame if we're following
+        glm::quat sensorToWorldRotation = extractRotation(_sensorToWorldMatrix);
+        _hmdFollowOffset = sensorToWorldRotation * _hmdFollowOffset;
+    }
+    if (needNewFollowSpeed) {
+        // compute new velocity that will be used to resolve offset of hips from body
+        const float FOLLOW_HMD_DURATION = 0.5f;  // seconds
+        _hmdFollowVelocity = (_hmdFollowOffset / FOLLOW_HMD_DURATION);
+        _hmdFollowSpeed = glm::length(_hmdFollowVelocity);
+    } else if (_isFollowingHMD) {
+        // compute new velocity (but not new speed)
+        _hmdFollowVelocity = _hmdFollowSpeed * glm::normalize(_hmdFollowOffset);
     }
 }
 
@@ -678,7 +604,7 @@ void MyAvatar::startRecording() {
     // connect to AudioClient's signal so we get input audio
     auto audioClient = DependencyManager::get<AudioClient>();
     connect(audioClient.data(), &AudioClient::inputReceived, _recorder.data(),
-            &Recorder::recordAudio, Qt::BlockingQueuedConnection);
+            &Recorder::recordAudio, Qt::QueuedConnection);
 
     _recorder->startRecording();
 }
@@ -1356,17 +1282,69 @@ void MyAvatar::prepareForPhysicsSimulation() {
     relayDriveKeysToCharacterController();
     _characterController.setTargetVelocity(getTargetVelocity());
     _characterController.setAvatarPositionAndOrientation(getPosition(), getOrientation());
-    _characterController.setHMDVelocity(getHMDCorrectionVelocity());
-}   
+    if (qApp->isHMDMode()) {
+        updateHMDFollowVelocity();
+    } else if (_isFollowingHMD) {
+        _isFollowingHMD = false;
+        _hmdFollowVelocity = Vectors::ZERO;
+    }
+    _characterController.setHMDVelocity(_hmdFollowVelocity);
+}
 
 void MyAvatar::harvestResultsFromPhysicsSimulation() {
     glm::vec3 position = getPosition();
     glm::quat orientation = getOrientation();
     _characterController.getAvatarPositionAndOrientation(position, orientation);
     nextAttitude(position, orientation);
-    setVelocity(_characterController.getLinearVelocity());
-    // TODO: harvest HMD shift here
-    //glm::vec3 hmdShift = _characterController.getHMDShift();
+    if (_isFollowingHMD) {
+        setVelocity(_characterController.getLinearVelocity() + _hmdFollowVelocity);
+        glm::vec3 hmdShift = _characterController.getHMDShift();
+        adjustSensorTransform(hmdShift);
+    } else {
+        setVelocity(_characterController.getLinearVelocity());
+    }
+}
+
+void MyAvatar::adjustSensorTransform(glm::vec3 hmdShift) {
+    // compute blendFactor of latest hmdShift
+    // which we'll use to blend the rotation part
+    float blendFactor = 1.0f;
+    float shiftLength = glm::length(hmdShift);
+    if (shiftLength > 1.0e-5f) {
+        float offsetLength = glm::length(_hmdFollowOffset);
+        if (offsetLength > shiftLength) {
+            blendFactor = shiftLength / offsetLength;
+        }
+    }
+
+    auto newBodySensorMatrix = deriveBodyFromHMDSensor();
+    auto worldBodyMatrix = _sensorToWorldMatrix * newBodySensorMatrix;
+    glm::quat finalBodyRotation = glm::normalize(glm::quat_cast(worldBodyMatrix));
+    if (blendFactor >= 0.99f) {
+        // the "adjustment" is more or less complete so stop following
+        _isFollowingHMD = false;
+        _hmdFollowSpeed = 0.0f;
+        _hmdFollowVelocity = Vectors::ZERO;
+        // and slam the body's transform anyway to eliminate any slight errors
+        glm::vec3 finalBodyPosition = extractTranslation(worldBodyMatrix);
+        nextAttitude(finalBodyPosition, finalBodyRotation);
+        _bodySensorMatrix = newBodySensorMatrix;
+    } else {
+        // physics already did the positional blending for us
+        glm::vec3 newBodyPosition = getPosition();
+        // but the rotational part must be done manually
+        glm::quat newBodyRotation = glm::normalize(safeMix(getOrientation(), finalBodyRotation, blendFactor));
+        nextAttitude(newBodyPosition, newBodyRotation);
+
+        // interp sensor matrix toward the desired
+        glm::vec3 prevPosition = extractTranslation(_bodySensorMatrix);
+        glm::quat prevRotation = glm::normalize(glm::quat_cast(_bodySensorMatrix));
+        glm::vec3 nextPosition = extractTranslation(newBodySensorMatrix);
+        glm::quat nextRotation = glm::normalize(glm::quat_cast(newBodySensorMatrix));
+        _bodySensorMatrix = createMatFromQuatAndPos(
+                glm::normalize(safeMix(prevRotation, nextRotation, blendFactor)),
+                lerp(prevPosition, nextPosition, blendFactor));
+    }
 }
 
 QString MyAvatar::getScriptedMotorFrame() const {
@@ -1468,7 +1446,7 @@ void MyAvatar::renderBody(RenderArgs* renderArgs, ViewFrustum* renderFrustum, fl
         getHead()->renderLookAts(renderArgs);
     }
 
-    if (renderArgs->_renderMode != RenderArgs::SHADOW_RENDER_MODE && 
+    if (renderArgs->_renderMode != RenderArgs::SHADOW_RENDER_MODE &&
             Menu::getInstance()->isOptionChecked(MenuOption::DisplayHandTargets)) {
         getHand()->renderHandTargets(renderArgs, true);
     }
@@ -1631,7 +1609,7 @@ void MyAvatar::updateOrientation(float deltaTime) {
     // get an instantaneous 15 degree turn. If you keep holding the key down you'll get another
     // snap turn every half second.
     quint64 now = usecTimestampNow();
-    if (_driveKeys[STEP_YAW] != 0.0f && now - _lastStepPulse > COMFORT_MODE_PULSE_TIMING) {
+    if (_driveKeys[STEP_YAW] != 0.0f) {
         totalBodyYaw += _driveKeys[STEP_YAW];
     }
 
@@ -1700,9 +1678,9 @@ glm::vec3 MyAvatar::applyKeyboardMotor(float deltaTime, const glm::vec3& localVe
     glm::vec3 newLocalVelocity = localVelocity;
     float stepControllerInput = fabsf(_driveKeys[STEP_TRANSLATE_Z]) + fabsf(_driveKeys[STEP_TRANSLATE_Z]) + fabsf(_driveKeys[STEP_TRANSLATE_Z]);
     quint64 now = usecTimestampNow();
+
     // FIXME how do I implement step translation as well?
-    if (stepControllerInput && now - _lastStepPulse > COMFORT_MODE_PULSE_TIMING) {
-    }
+
 
     float keyboardInput = fabsf(_driveKeys[TRANSLATE_Z]) + fabsf(_driveKeys[TRANSLATE_X]) + fabsf(_driveKeys[TRANSLATE_Y]);
     if (keyboardInput) {
@@ -1947,7 +1925,7 @@ void MyAvatar::updateMotionBehaviorFromMenu() {
         QMetaObject::invokeMethod(this, "updateMotionBehaviorFromMenu");
         return;
     }
-    
+
     Menu* menu = Menu::getInstance();
     if (menu->isOptionChecked(MenuOption::KeyboardMotorControl)) {
         _motionBehaviors |= AVATAR_MOTION_KEYBOARD_MOTOR_ENABLED;

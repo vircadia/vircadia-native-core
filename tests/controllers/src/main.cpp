@@ -80,9 +80,6 @@ using namespace controller;
 class PluginContainerProxy : public QObject, PluginContainer {
     Q_OBJECT
 public:
-    PluginContainerProxy() {
-        Plugin::setContainer(this);
-    }
     virtual ~PluginContainerProxy() {}
     virtual void addMenu(const QString& menuName) override {}
     virtual void removeMenu(const QString& menuName) override {}
@@ -135,8 +132,7 @@ int main(int argc, char** argv) {
             inputPlugin->activate();
             auto userInputMapper = DependencyManager::get<controller::UserInputMapper>();
             if (name == KeyboardMouseDevice::NAME) {
-                auto keyboardMouseDevice = static_cast<KeyboardMouseDevice*>(inputPlugin.data()); // TODO: this seems super hacky
-                userInputMapper->registerDevice(std::shared_ptr<InputDevice>(keyboardMouseDevice));
+                userInputMapper->registerDevice(std::dynamic_pointer_cast<KeyboardMouseDevice>(inputPlugin)->getInputDevice());
             }
             inputPlugin->pluginUpdate(0, false);
         }

@@ -107,10 +107,12 @@ void AvatarActionHold::doKinematicUpdate(float deltaTimeStep) {
     withWriteLock([&]{
         if (_kinematicSetVelocity) {
             if (_previousSet) {
-                glm::vec3 positionalVelocity = (_positionalTarget - _previousPositionalTarget) / deltaTimeStep;
+                // smooth velocity over 2 frames
+                glm::vec3 positionalDelta = _positionalTarget - _previousPositionalTarget;
+                glm::vec3 positionalVelocity = (positionalDelta + _previousPositionalDelta) / (deltaTimeStep + _previousDeltaTimeStep);
                 rigidBody->setLinearVelocity(glmToBullet(positionalVelocity));
-                // back up along velocity a bit in order to smooth out a "vibrating" appearance
-                _positionalTarget -= positionalVelocity * deltaTimeStep / 2.0f;
+                _previousPositionalDelta = positionalDelta;
+                _previousDeltaTimeStep = deltaTimeStep;
             }
         }
 
@@ -118,6 +120,8 @@ void AvatarActionHold::doKinematicUpdate(float deltaTimeStep) {
         worldTrans.setOrigin(glmToBullet(_positionalTarget));
         worldTrans.setRotation(glmToBullet(_rotationalTarget));
         rigidBody->setWorldTransform(worldTrans);
+
+        motionState->dirtyInternalKinematicChanges();
 
         _previousPositionalTarget = _positionalTarget;
         _previousRotationalTarget = _rotationalTarget;
@@ -224,6 +228,8 @@ QVariantMap AvatarActionHold::getArguments() {
         arguments["relativeRotation"] = glmToQMap(_relativeRotation);
         arguments["timeScale"] = _linearTimeScale;
         arguments["hand"] = _hand;
+        arguments["kinematic"] = _kinematic;
+        arguments["kinematicSetVelocity"] = _kinematicSetVelocity;
     });
     return arguments;
 }

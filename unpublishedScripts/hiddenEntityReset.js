@@ -39,7 +39,7 @@
 
         },
 
-        startNearGrabNonColliding: function() {
+        startNearTrigger: function() {
             this.triggerReset();
         },
 
@@ -114,7 +114,6 @@
             createTargets();
             createTargetResetter();
 
-            createBasketballHoop();
             createBasketballRack();
             createBasketballResetter();
 
@@ -130,14 +129,11 @@
                 z: 503.49
             });
 
-
             createSprayCan({
                 x: 549.7,
                 y: 495.6,
                 z: 503.91
             });
-
-
         }
 
         function deleteAllToys() {
@@ -930,49 +926,9 @@
             });
         }
 
-        function createBasketballHoop() {
-            var position = {
-                x: 539.23,
-                y: 496.13,
-                z: 475.89
-            };
-            var rotation = Quat.fromPitchYawRollDegrees(0, 58.49, 0);
-
-            var hoopURL = "http://hifi-public.s3.amazonaws.com/models/basketball_hoop/basketball_hoop.fbx";
-            var hoopCollisionHullURL = "http://hifi-public.s3.amazonaws.com/models/basketball_hoop/basketball_hoop_collision_hull.obj";
-
-            var hoop = Entities.addEntity({
-                type: "Model",
-                modelURL: hoopURL,
-                position: position,
-                rotation: rotation,
-                shapeType: 'compound',
-                gravity: {
-                    x: 0,
-                    y: -9.8,
-                    z: 0
-                },
-                dimensions: {
-                    x: 1.89,
-                    y: 3.99,
-                    z: 3.79
-                },
-                compoundShapeURL: hoopCollisionHullURL,
-                userData: JSON.stringify({
-                    resetMe: {
-                        resetMe: true
-                    },
-                    grabbableKey: {
-                        grabbable: false
-                    }
-                })
-            });
-        }
-
         function createWand(position) {
-            var WAND_MODEL = 'http://hifi-public.s3.amazonaws.com/james/bubblewand/models/wand/wand.fbx';
-            var WAND_COLLISION_SHAPE = 'http://hifi-public.s3.amazonaws.com/james/bubblewand/models/wand/actual_no_top_collision_hull.obj';
-
+            var WAND_MODEL = 'http://hifi-public.s3.amazonaws.com/models/bubblewand/wand.fbx';
+            var WAND_COLLISION_SHAPE = 'http://hifi-public.s3.amazonaws.com/models/bubblewand/actual_no_top_collision_hull.obj';
             var entity = Entities.addEntity({
                 name: 'Bubble Wand',
                 type: "Model",

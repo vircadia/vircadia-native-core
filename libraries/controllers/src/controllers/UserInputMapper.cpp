@@ -26,6 +26,7 @@
 #include "Logging.h"
 
 #include "impl/conditionals/AndConditional.h"
+#include "impl/conditionals/NotConditional.h"
 #include "impl/conditionals/EndpointConditional.h"
 #include "impl/conditionals/ScriptConditional.h"
 
@@ -74,7 +75,7 @@ void UserInputMapper::registerDevice(InputDevice::Pointer device) {
     }
     const auto& deviceID = device->_deviceID;
 
-    int numberOfType = recordDeviceOfType(device->getName());
+    recordDeviceOfType(device->getName());
 
     qCDebug(controllers) << "Registered input device <" << device->getName() << "> deviceID = " << deviceID;
     for (const auto& inputMapping : device->getAvailableInputs()) {
@@ -266,7 +267,7 @@ void UserInputMapper::update(float deltaTime) {
     }
 
     auto standardInputs = getStandardInputs();
-    if (_lastStandardStates.size() != standardInputs.size()) {
+    if ((int)_lastStandardStates.size() != standardInputs.size()) {
         _lastStandardStates.resize(standardInputs.size());
         for (auto& lastValue : _lastStandardStates) {
             lastValue = 0;
@@ -513,7 +514,7 @@ bool UserInputMapper::applyRoute(const Route::Pointer& route, bool force) {
     // and someone else wires it to CONTEXT_MENU, I don't want both to occur when 
     // I press the button.  The exception is if I'm wiring a control back to itself
     // in order to adjust my interface, like inverting the Y axis on an analog stick
-    if (!source->readable()) {
+    if (!route->peek && !source->readable()) {
         if (debugRoutes && route->debug) {
             qCDebug(controllers) << "Source unreadable";
         }
@@ -539,7 +540,7 @@ bool UserInputMapper::applyRoute(const Route::Pointer& route, bool force) {
 
     // Fetch the value, may have been overriden by previous loopback routes
     if (source->isPose()) {
-        Pose value = getPose(source);
+        Pose value = getPose(source, route->peek);
         static const Pose IDENTITY_POSE { vec3(), quat() };
         if (debugRoutes && route->debug) {
             if (!value.valid) {
@@ -554,7 +555,7 @@ bool UserInputMapper::applyRoute(const Route::Pointer& route, bool force) {
         destination->apply(value, source);
     } else {
         // Fetch the value, may have been overriden by previous loopback routes
-        float value = getValue(source);
+        float value = getValue(source, route->peek);
 
         if (debugRoutes && route->debug) {
             qCDebug(controllers) << "Value was " << value;
@@ -676,7 +677,7 @@ Mapping::Pointer UserInputMapper::newMapping(const QString& mappingName) {
 
 void UserInputMapper::enableMapping(const QString& mappingName, bool enable) {
     Locker locker(_lock);
-    qCDebug(controllers) << "Attempting to enable mapping " << mappingName;
+    qCDebug(controllers) << "Attempting to " << (enable ? "enable" : "disable") << " mapping " << mappingName;
     auto iterator = _mappingsByName.find(mappingName);
     if (_mappingsByName.end() == iterator) {
         qCWarning(controllers) << "Request to enable / disable unknown mapping " << mappingName;
@@ -691,8 +692,8 @@ void UserInputMapper::enableMapping(const QString& mappingName, bool enable) {
     }
 }
 
-float UserInputMapper::getValue(const Endpoint::Pointer& endpoint) {
-    return endpoint->value();
+float UserInputMapper::getValue(const Endpoint::Pointer& endpoint, bool peek) {
+    return peek ? endpoint->peek() : endpoint->value();
 }
 
 float UserInputMapper::getValue(const Input& input) const {
@@ -704,11 +705,11 @@ float UserInputMapper::getValue(const Input& input) const {
     return endpoint->value();
 }
 
-Pose UserInputMapper::getPose(const Endpoint::Pointer& endpoint) {
+Pose UserInputMapper::getPose(const Endpoint::Pointer& endpoint, bool peek) {
     if (!endpoint->isPose()) {
         return Pose();
     }
-    return endpoint->pose();
+    return peek ? endpoint->peekPose() : endpoint->pose();
 }
 
 Pose UserInputMapper::getPose(const Input& input) const {
@@ -742,6 +743,7 @@ static const QString JSON_NAME = QStringLiteral("name");
 static const QString JSON_CHANNELS = QStringLiteral("channels");
 static const QString JSON_CHANNEL_FROM = QStringLiteral("from");
 static const QString JSON_CHANNEL_DEBUG = QStringLiteral("debug");
+static const QString JSON_CHANNEL_PEEK = QStringLiteral("peek");
 static const QString JSON_CHANNEL_WHEN = QStringLiteral("when");
 static const QString JSON_CHANNEL_TO = QStringLiteral("to");
 static const QString JSON_CHANNEL_FILTERS = QStringLiteral("filters");
@@ -825,13 +827,31 @@ Conditional::Pointer UserInputMapper::parseConditional(const QJsonValue& value) 
         return std::make_shared<AndConditional>(children);
     } else if (value.isString()) {
         // Support "when" : "GamePad.RB"
-        auto input = findDeviceInput(value.toString());
+        auto conditionalToken = value.toString();
+        
+        // Detect for modifier case (Not...)
+        QString conditionalModifier;
+        const QString JSON_CONDITIONAL_MODIFIER_NOT("!");
+        if (conditionalToken.startsWith(JSON_CONDITIONAL_MODIFIER_NOT)) {
+            conditionalModifier = JSON_CONDITIONAL_MODIFIER_NOT;
+            conditionalToken = conditionalToken.right(conditionalToken.size() - conditionalModifier.size());
+        }
+
+        auto input = findDeviceInput(conditionalToken);
         auto endpoint = endpointFor(input);
         if (!endpoint) {
             return Conditional::Pointer();
         }
+        auto conditional = std::make_shared<EndpointConditional>(endpoint);
 
-        return std::make_shared<EndpointConditional>(endpoint);
+        if (!conditionalModifier.isEmpty()) {
+            if (conditionalModifier == JSON_CONDITIONAL_MODIFIER_NOT) {
+                return std::make_shared<NotConditional>(conditional);
+            }
+        }
+
+        // Default and conditional behavior
+        return conditional;
     }
 
     return Conditional::parse(value);
@@ -953,6 +973,7 @@ Route::Pointer UserInputMapper::parseRoute(const QJsonValue& value) {
     result->json = QString(QJsonDocument(obj).toJson());
     result->source = parseSource(obj[JSON_CHANNEL_FROM]);
     result->debug = obj[JSON_CHANNEL_DEBUG].toBool();
+    result->debug = obj[JSON_CHANNEL_PEEK].toBool();
     if (!result->source) {
         qWarning() << "Invalid route source " << obj[JSON_CHANNEL_FROM];
         return Route::Pointer();
@@ -1008,6 +1029,7 @@ Mapping::Pointer UserInputMapper::parseMapping(const QJsonValue& json) {
         }
         mapping->routes.push_back(route);
     }
+    _mappingsByName[mapping->name] = mapping;
     return mapping;
 }
 
