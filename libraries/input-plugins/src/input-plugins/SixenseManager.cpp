@@ -12,7 +12,7 @@
 #include "SixenseManager.h"
 
 #ifdef HAVE_SIXENSE
-#include "sixense.h"
+#include <sixense.h>
 #endif
 
 #include <QCoreApplication>
@@ -27,6 +27,8 @@
 #include <plugins/PluginContainer.h>
 #include <SettingHandle.h>
 #include <UserActivityLogger.h>
+
+#include "InputPluginsLogging.h"
 
 static const unsigned int BUTTON_0 = 1U << 0; // the skinny button between 1 and 2
 static const unsigned int BUTTON_1 = 1U << 5;

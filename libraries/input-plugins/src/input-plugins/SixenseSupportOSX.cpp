@@ -9,11 +9,13 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+// Mock implementation of sixense.h to hide dynamic linking on OS X
 #if defined(__APPLE__) && defined(HAVE_SIXENSE)
-#include "sixense.h"
+#include <type_traits>
+
+#include <sixense.h>
 
 #include <QtCore/QCoreApplication>
-#include <QtCore/QDebug>
 #include <QtCore/QLibrary>
 
 #include "InputPluginsLogging.h"
@@ -22,8 +24,9 @@ using Library = std::unique_ptr<QLibrary>;
 static Library SIXENSE;
 
 struct Callable {
-    template<typename... Args> int operator() (Args... args){
-        return reinterpret_cast<int(*)(Args...)>(function)(args...);
+    template<typename... Args>
+    int operator() (Args&&... args){
+        return reinterpret_cast<int(*)(Args...)>(function)(std::forward<Args>(args)...);
     }
     QFunctionPointer function;
 };
