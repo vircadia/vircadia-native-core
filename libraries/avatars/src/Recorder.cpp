@@ -100,13 +100,15 @@ void Recorder::record() {
         const RecordingContext& context = _recording->getContext();
         RecordingFrame frame;
         frame.setBlendshapeCoefficients(_avatar->getHeadData()->getBlendshapeCoefficients());
-        frame.setJointRotations(_avatar->getJointRotations());
-        frame.setJointTranslations(_avatar->getJointTranslations());
+        // FIXME: here we need to make sure the correct joint data on the AvatarData to get correct play back.
+        // This should be fixed by a fix coming from Howard soon
+        frame.setJointRotations(_avatar->::AvatarData::getJointRotations());
+        frame.setJointTranslations(_avatar->::AvatarData::getJointTranslations());
+
         frame.setTranslation(context.orientationInv * (_avatar->getPosition() - context.position));
         frame.setRotation(context.orientationInv * _avatar->getOrientation());
         frame.setScale(_avatar->getTargetScale() / context.scale);
-        
-        
+
         const HeadData* head = _avatar->getHeadData();
         if (head) {
             glm::vec3 rotationDegrees = glm::vec3(head->getFinalPitch(),

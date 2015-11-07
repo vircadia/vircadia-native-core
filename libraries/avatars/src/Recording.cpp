@@ -239,12 +239,21 @@ void writeRecordingToFile(RecordingPointer recording, const QString& filename) {
             if (i == 0 ||
                 frame._jointRotations[j] != previousFrame._jointRotations[j]) {
                 writeQuat(stream, frame._jointRotations[j]);
-                // TODO -- handle translations
                 mask.setBit(maskIndex);
             }
             maskIndex++;
         }
-        
+
+        // Joint Translations
+        for (quint32 j = 0; j < numJoints; ++j) {
+            if (i == 0 ||
+                frame._jointTranslations[j] != previousFrame._jointTranslations[j]) {
+                writeVec3(stream, frame._jointTranslations[j]);
+                mask.setBit(maskIndex);
+            }
+            maskIndex++;
+        }
+
         // Translation
         if (i == 0) {
             mask.resize(mask.size() + 1);
@@ -563,8 +572,14 @@ RecordingPointer readRecordingFromFile(RecordingPointer recording, const QString
             }
         }
 
-        // TODO -- handle translations
-
+        // Joint Translations
+        frame._jointTranslations.resize(numJoints);
+        for (quint32 j = 0; j < numJoints; ++j) {
+            if (!mask[maskIndex++] || !readVec3(stream, frame._jointTranslations[j])) {
+                frame._jointTranslations[j] = previousFrame._jointTranslations[j];
+            }
+        }
+        
         if (!mask[maskIndex++] || !readVec3(stream, frame._translation)) {
             frame._translation = previousFrame._translation;
         }
