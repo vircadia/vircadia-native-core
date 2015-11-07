@@ -1,16 +1,16 @@
 Script.include('usertiming.js');
 var timing = loadUserTiming();
 //set a mark
-timing.performance.mark('mark_fully_loaded')
+timing.performance.mark('firstMark')
 
-var count = 0;
+//do something that takes time -- we're just going to set a timeout here as an example
+
 Script.setTimeout(function() {
-    //do something that takes time
     //and set another mark
-    timing.performance.mark('mark_fully_loaded2')
+    timing.performance.mark('secondMark')
         //measure time between marks (first parameter is a name for the measurement)
-    timing.performance.measure('howlong', 'mark_fully_loaded', 'mark_fully_loaded2');
-    //you can also get the marks, but the measure is usually what you're looking for
-    var items = timing.performance.getEntriesByType('measure');
-    print('items is:::' + JSON.stringify(items))
+    timing.performance.measure('howlong', 'firstMark', 'secondMark');
+    //you can also get the marks by changing the type below
+    var measures = timing.performance.getEntriesByType('measure');
+    print('measures:::' + JSON.stringify(measures))
 }, 1000)
