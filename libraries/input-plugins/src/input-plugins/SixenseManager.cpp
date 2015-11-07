@@ -19,11 +19,6 @@
 #include <QtCore/QSysInfo>
 #include <QtGlobal>
 
-// TODO: This should not be here
-#include <QLoggingCategory>
-Q_DECLARE_LOGGING_CATEGORY(inputplugins)
-Q_LOGGING_CATEGORY(inputplugins, "hifi.inputplugins")
-
 #include <controllers/UserInputMapper.h>
 #include <GLMHelpers.h>
 #include <NumericalConstants.h>

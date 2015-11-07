@@ -16,6 +16,8 @@
 #include <QtCore/QDebug>
 #include <QtCore/QLibrary>
 
+#include "InputPluginsLogging.h"
+
 using Library = std::unique_ptr<QLibrary>;
 static Library SIXENSE;
 
