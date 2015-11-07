@@ -246,21 +246,19 @@ void Player::play() {
                            nextFrame.getScale(),
                            _frameInterpolationFactor);
     _avatar->setTargetScale(context->scale * scale);
-    
-    float animFactor = 0.0f;
 
     QVector<glm::quat> jointRotations(currentFrame.getJointRotations().size());
     for (int i = 0; i < currentFrame.getJointRotations().size(); ++i) {
         jointRotations[i] = safeMix(currentFrame.getJointRotations()[i],
                                     nextFrame.getJointRotations()[i],
-                                    animFactor);
+                                    _frameInterpolationFactor);
     }
 
     QVector<glm::vec3> jointTranslations(currentFrame.getJointTranslations().size());
     for (int i = 0; i < currentFrame.getJointTranslations().size(); ++i) {
         jointTranslations[i] = glm::mix(currentFrame.getJointTranslations()[i],
                                         nextFrame.getJointTranslations()[i],
-                                        animFactor);
+                                        _frameInterpolationFactor);
     }
 
     _avatar->setJointRotations(jointRotations);
