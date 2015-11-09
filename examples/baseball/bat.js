@@ -14,17 +14,25 @@ Script.include("pitching.js");
 (function() {
     var pitchingMachine = null;
 
-    this.startNearGrab = this.continueNearGrab = function() {
-        // send the avatar to the baseball location so that they're ready to bat
-        MyAvatar.location = "/baseball"
-
+    this.pitchAndHideAvatar = function() {
         if (!pitchingMachine) {
             pitchingMachine = getOrCreatePitchingMachine();
             Script.update.connect(function(dt) { pitchingMachine.update(dt); });
         }
         pitchingMachine.start();
         MyAvatar.shouldRenderLocally = false;
+    }
+
+    this.startNearGrab = function() {
+        // send the avatar to the baseball location so that they're ready to bat
+        MyAvatar.location = "/baseball"
+
+        pitchAndHideAvatar()
     };
+
+    this.continueNearGrab = function() {
+        pitchAndHideAvatar()
+    }
 
     this.releaseGrab = function() {
         if (pitchingMachine) {
