@@ -60,7 +60,7 @@ void AvatarActionHold::updateActionWorker(float deltaTimeStep) {
             });
             
             if (it != std::end(plugins)) {
-                const auto& vive = it->dynamicCast<ViveControllerManager>();
+                const auto& vive = std::dynamic_pointer_cast<ViveControllerManager>(*it);
                 auto index = (_hand == "left") ? 0 : 1;
                 auto userInputMapper = DependencyManager::get<UserInputMapper>();
                 auto pos = extractTranslation(userInputMapper->getSensorToWorldMat());
