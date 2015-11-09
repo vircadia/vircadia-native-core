@@ -902,15 +902,20 @@ void ScriptEngine::include(const QStringList& includeFiles, QScriptValue callbac
     BatchLoader* loader = new BatchLoader(urls);
     
     auto evaluateScripts = [=](const QMap<QUrl, QString>& data) {
+        auto parentURL = _parentURL;
         for (QUrl url : urls) {
             QString contents = data[url];
             if (contents.isNull()) {
                 qCDebug(scriptengine) << "Error loading file: " << url << "line:" << __LINE__;
             } else {
+                // Set the parent url so that path resolution will be relative
+                // to this script's url during its initial evaluation
+                _parentURL = url.toString();
                 QScriptValue result = evaluate(contents, url.toString());
             }
         }
-        
+        _parentURL = parentURL;
+
         if (callback.isFunction()) {
             QScriptValue(callback).call();
         }
