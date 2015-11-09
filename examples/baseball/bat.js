@@ -15,6 +15,9 @@ Script.include("pitching.js");
     var pitchingMachine = null;
 
     this.startNearGrab = this.continueNearGrab = function() {
+        // send the avatar to the baseball location so that they're ready to bat
+        MyAvatar.location = "/baseball"
+
         if (!pitchingMachine) {
             pitchingMachine = getOrCreatePitchingMachine();
             Script.update.connect(function(dt) { pitchingMachine.update(dt); });
