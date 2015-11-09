@@ -173,7 +173,7 @@ void AnimInverseKinematics::solveWithCyclicCoordinateDescent(const std::vector<I
             glm::quat tipParentRotation = absolutePoses[pivotIndex].rot;
 
             // descend toward root, pivoting each joint to get tip closer to target
-            while (pivotsParentIndex != -1 && pivotIndex != _hipsIndex) {
+            while (pivotIndex != _hipsIndex && pivotsParentIndex != -1) {
                 // compute the two lines that should be aligned
                 glm::vec3 jointPosition = absolutePoses[pivotIndex].trans;
                 glm::vec3 leverArm = tipPosition - jointPosition;
