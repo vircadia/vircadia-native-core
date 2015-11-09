@@ -1,42 +1,32 @@
+//
+//  pitching.js
+//  examples/baseball/
+//
+//  Created by Ryan Huffman on Nov 9, 2015
+//  Copyright 2015 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+//
+
 print("Loading pitching");
-//Script.include("../libraries/line.js");
-Script.include("https://raw.githubusercontent.com/huffman/hifi/line-js/examples/libraries/line.js");
-Script.include("http://rawgit.com/huffman/hifi/baseball/examples/baseball/firework.js");
 
-function findEntity(properties, searchRadius) {
-    var entities = findEntities(properties, searchRadius);
-    return entities.length > 0 ? entities[0] : null;
-}
-
-// Return all entities with properties `properties` within radius `searchRadius`
-function findEntities(properties, searchRadius) {
-    var entities = Entities.findEntities(MyAvatar.position, searchRadius);
-    var matchedEntities = [];
-    var keys = Object.keys(properties);
-    for (var i = 0; i < entities.length; ++i) {
-        var match = true;
-        var candidateProperties = Entities.getEntityProperties(entities[i], keys);
-        for (var key in properties) {
-            if (candidateProperties[key] != properties[key]) {
-                // This isn't a match, move to next entity
-                match = false;
-                break;
-            }
-        }
-        if (match) {
-            matchedEntities.push(entities[i]);
-        }
-    }
-
-    return matchedEntities;
-}
+Script.include("../libraries/line.js");
+Script.include("firework.js");
+Script.include("utils.js");
 
 var DISTANCE_BILLBOARD_NAME = "CurrentScore";
 var HIGH_SCORE_BILLBOARD_NAME = "HighScore";
+
 var DISTANCE_BILLBOARD_ENTITY_ID = findEntity({name: DISTANCE_BILLBOARD_NAME }, 1000);
 var HIGH_SCORE_BILLBOARD_ENTITY_ID = findEntity({name: HIGH_SCORE_BILLBOARD_NAME }, 1000);
 
-print("Distance: ", DISTANCE_BILLBOARD_ENTITY_ID)
+if (DISTANCE_BILLBOARD_ENTITY_ID === null) {
+    print("WARNING: Distance billboard cannot be found.");
+}
+if (HIGH_SCORE_BILLBOARD_ENTITY_ID === null) {
+    print("WARNING: High Score billboard cannot be found.");
+}
 
 var METERS_TO_FEET = 3.28084;
 
@@ -71,6 +61,11 @@ var pitchSound = SoundCache.getSound(PITCH_THUNK_SOUND_URL, false);
 updateBillboard("");
 
 var PITCHING_MACHINE_URL = "atp:87d4879530b698741ecc45f6f31789aac11f7865a2c3bec5fe9b061a182c80d4.fbx";
+// This defines an offset to pitch a ball from with respect to the machine's position. The offset is a
+// percentage of the machine's dimensions. So, { x: 0.5, y: -1.0, z: 0.0 } would offset on 50% on the
+// machine's x axis, -100% on the y axis, and 0% on the z-axis. For the dimensions { x: 100, y: 100, z: 100 },
+// that would result in an offset of { x: 50, y: -100, z: 0 }. This makes it easy to calculate an offset if
+// the machine's dimensions change.
 var PITCHING_MACHINE_OUTPUT_OFFSET_PCT = {
     x: 0.0,
     y: 0.25,
@@ -82,7 +77,7 @@ var PITCHING_MACHINE_PROPERTIES = {
     position: {
         x: -0.93,
         y: 0.8,
-        z: -19.8,
+        z: -19.8
     },
     velocity: {
         x: 0,
@@ -97,7 +92,7 @@ var PITCHING_MACHINE_PROPERTIES = {
     registrationPoint: {
         x: 0.5,
         y: 0.5,
-        z: 0.5,
+        z: 0.5
     },
     rotation: Quat.fromPitchYawRollDegrees(0, 180, 0),
     modelURL: PITCHING_MACHINE_URL,
@@ -107,14 +102,14 @@ var PITCHING_MACHINE_PROPERTIES = {
         z: 0.39
     },
     collisionsWillMove: false,
-    shapeType: "Box",
+    shapeType: "Box"
 };
 PITCHING_MACHINE_PROPERTIES.dimensions = Vec3.multiply(2.5, PITCHING_MACHINE_PROPERTIES.dimensions);
 var DISTANCE_FROM_PLATE = PITCHING_MACHINE_PROPERTIES.position.z;
 
 var PITCH_RATE = 5000;
 
-getPitchingMachine = function() {
+getOrCreatePitchingMachine = function() {
     // Search for pitching machine
     var entities = findEntities({ name: PITCHING_MACHINE_PROPERTIES.name }, 1000);
     var pitchingMachineID = null;
@@ -130,6 +125,8 @@ getPitchingMachine = function() {
     return new PitchingMachine(pitchingMachineID);
 }
 
+// The pitching machine wraps an entity ID and uses it's position & rotation to determin where to
+// pitch the ball from and in which direction, and uses the dimensions to determine the scale of them ball.
 function PitchingMachine(pitchingMachineID) {
     this.pitchingMachineID = pitchingMachineID;
     this.enabled = false;
@@ -146,7 +143,6 @@ PitchingMachine.prototype = {
         }
 
         print("Pitching ball");
-        var pitchDirection = { x: 0, y: 0, z: 1 };
         var machineProperties = Entities.getEntityProperties(this.pitchingMachineID, ["dimensions", "position", "rotation"]);
         var pitchFromPositionBase = machineProperties.position;
         var pitchFromOffset = vec3Mult(machineProperties.dimensions, PITCHING_MACHINE_OUTPUT_OFFSET_PCT);
@@ -168,7 +164,6 @@ PitchingMachine.prototype = {
         } else {
             this.injector.restart();
         }
-        print("Created baseball");
     },
     start: function() {
         if (this.enabled) {
@@ -191,15 +186,15 @@ PitchingMachine.prototype = {
             if (this.baseball.finished()) {
                 this.baseball = null;
                 var self = this;
-                Script.setTimeout(function() { self.pitchBall() }, 3000);
+                Script.setTimeout(function() { self.pitchBall(); }, 3000);
             }
         }
     }
 };
 
 var BASEBALL_MODEL_URL = "atp:7185099f1f650600ca187222573a88200aeb835454bd2f578f12c7fb4fd190fa.fbx";
-var BASEBALL_MIN_SPEED = 2.7;
-var BASEBALL_MAX_SPEED = 5.7;
+var BASEBALL_MIN_SPEED = 7.0;
+var BASEBALL_MAX_SPEED = 15.0;
 var BASEBALL_RADIUS = 0.07468;
 var BASEBALL_PROPERTIES = {
     name: "Baseball",
@@ -247,35 +242,6 @@ var BASEBALL_STATE = {
 };
 
 
-function shallowCopy(obj) {
-    var copy = {}
-    for (var key in obj) {
-        copy[key] = obj[key];
-    }
-    return copy;
-}
-
-function randomInt(low, high) {
-    return Math.floor(randomFloat(low, high));
-}
-
-function randomFloat(low, high) {
-    if (high === undefined) {
-        high = low;
-        low = 0;
-    }
-    return low + Math.random() * (high - low);
-}
-
-function playRandomSound(sounds, options) {
-    if (options === undefined) {
-        options = {
-            volume: 1.0,
-            position: MyAvatar.position,
-        }
-    }
-    Audio.playSound(sounds[randomInt(sounds.length)], options);
-}
 
 function vec3Mult(a, b) {
     return {
@@ -305,35 +271,6 @@ var ACCELERATION_SPREAD = 0.35;
 
 var TRAIL_COLOR = { red: 128, green: 255, blue: 89 };
 var TRAIL_LIFETIME = 20;
-
-function ObjectTrail(entityID, startPosition) {
-    this.entityID = entityID;
-    this.line = null;
-    var lineInterval = null;
-
-    var lastPosition = startPosition;
-    trail = new InfiniteLine(startPosition, trailColor, trailLifetime);
-    trailInterval = Script.setInterval(function() {
-        var properties = Entities.getEntityProperties(entityID, ['position']);
-        if (Vec3.distance(properties.position, lastPosition)) {
-            var strokeWidth = Math.log(1 + trail.size) * 0.05;
-            trail.enqueuePoint(properties.position, strokeWidth);
-            lastPosition = properties.position;
-        }
-    }, 50);
-}
-
-ObjectTrail.prototype = {
-    destroy: function() {
-        if (this.line) {
-            Script.clearInterval(this.lineInterval);
-            this.lineInterval = null;
-
-            this.line.destroy();
-            this.line = null;
-        }
-    }
-};
 
 var trail = null;
 var trailInterval = null;
@@ -409,21 +346,21 @@ function Baseball(position, velocity, ballScale) {
     }
 }
 
-// Update the stadium billboard with the current distance and update the high score
+// Update the stadium billboard with the current distance or a text message and update the high score
 // if it has been beaten.
-function updateBillboard(distance) {
+function updateBillboard(distanceOrMessage) {
     Entities.editEntity(DISTANCE_BILLBOARD_ENTITY_ID, {
-        text: distance,
+        text: distanceOrMessage,
     });
 
     // If a number was passed in, let's see if it is larger than the current high score
     // and update it if so.
-    if (!isNaN(distance)) {
+    if (!isNaN(distanceOrMessage)) {
         var properties = Entities.getEntityProperties(HIGH_SCORE_BILLBOARD_ENTITY_ID, ["text"]);
         var bestDistance = parseInt(properties.text);
-        if (distance >= bestDistance) {
+        if (distanceOrMessage >= bestDistance) {
             Entities.editEntity(HIGH_SCORE_BILLBOARD_ENTITY_ID, {
-                text: distance,
+                text: distanceOrMessage,
             });
             return true;
         }
@@ -485,28 +422,38 @@ Baseball.prototype = {
         if (name == "Bat") {
             if (this.state == BASEBALL_STATE.PITCHING) {
                 print("HIT");
+
+                var FOUL_MIN_YAW = -135.0;
+                var FOUL_MAX_YAW = 135.0;
+
                 var yaw = Math.atan2(myVelocity.x, myVelocity.z) * 180 / Math.PI;
-                var foul = yaw > -135 && yaw < 135;
+                var foul = yaw > FOUL_MIN_YAW && yaw < FOUL_MAX_YAW;
 
                 var speedMultiplier = 2;
 
                 if (foul && myVelocity.z > 0) {
+                    var TUNNELED_PITCH_RANGE = 15.0;
                     var xzDist = Math.sqrt(myVelocity.x * myVelocity.x + myVelocity.z * myVelocity.z);
                     var pitch = Math.atan2(myVelocity.y, xzDist) * 180 / Math.PI;
                     print("Pitch: ", pitch);
-                    if (Math.abs(pitch) < 15) {
+                    // If the pitch is going straight out the back and has a pitch in the range TUNNELED_PITCH_RANGE,
+                    // let's assume the ball tunneled through the bat and reverse its direction.
+                    if (Math.abs(pitch) < TUNNELED_PITCH_RANGE) {
                         print("Reversing hit");
-                        myVelocity.z *= -1;
+                        myVelocity.x *= -1;
                         myVelocity.y *= -1;
-                        Vec3.length(myVelocity);
-                        foul = false;
-                        speedMultiplier = 10;
+                        myVelocity.z *= -1;
+
+                        yaw = Math.atan2(myVelocity.x, myVelocity.z) * 180 / Math.PI;
+                        foul = yaw > FOUL_MIN_YAW && yaw < FOUL_MAX_YAW;
+
+                        speedMultiplier = 3;
                     }
                 }
 
                 // Update ball velocity
                 Entities.editEntity(self.entityID, {
-                    velocity: Vec3.multiply(speedMultiplier, myVelocity),
+                    velocity: Vec3.multiply(speedMultiplier, myVelocity)
                 });
 
                 // Setup line update interval
@@ -557,18 +504,6 @@ Baseball.prototype = {
     }
 }
 
-var baseball = null;
-
-function update(dt) {
-    if (baseball) {
-        baseball.update(dt);
-        if (baseball.finished()) {
-            baseball = null;
-            Script.setTimeout(pitchBall, 3000);
-        }
-    }
-}
-
 function entityCollisionWithGround(ground, entity, collision) {
     var ZERO_VEC = { x: 0, y: 0, z: 0 };
     var dVelocityMagnitude = Vec3.length(collision.velocityChange);
@@ -607,10 +542,3 @@ Script.scriptEnding.connect(function() {
     cleanupTrail();
     Entities.deleteEntity(pitchingMachineID);
 });
-
-//Script.update.connect(update);
-//var pitchingMachine = getPitchingMachine();
-//pitchingMachine.pitchBall();
-//Script.update.connect(function(dt) { pitchingMachine.update(dt); });
-
-print("Done loading pitching.js");
