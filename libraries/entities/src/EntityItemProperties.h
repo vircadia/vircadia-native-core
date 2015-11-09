@@ -159,6 +159,7 @@ public:
     DEFINE_PROPERTY(PROP_RADIUS_SPREAD, RadiusSpread, radiusSpread, float, ParticleEffectEntityItem::DEFAULT_RADIUS_SPREAD);
     DEFINE_PROPERTY(PROP_RADIUS_START, RadiusStart, radiusStart, float, ParticleEffectEntityItem::DEFAULT_RADIUS_START);
     DEFINE_PROPERTY(PROP_RADIUS_FINISH, RadiusFinish, radiusFinish, float, ParticleEffectEntityItem::DEFAULT_RADIUS_FINISH);
+    DEFINE_PROPERTY(PROP_ADDITIVE_BLENDING, AdditiveBlending, additiveBlending, bool, ParticleEffectEntityItem::DEFAULT_ADDITIVE_BLENDING);
     DEFINE_PROPERTY_REF(PROP_MARKETPLACE_ID, MarketplaceID, marketplaceID, QString, ENTITY_ITEM_DEFAULT_MARKETPLACE_ID);
     DEFINE_PROPERTY_GROUP(KeyLight, keyLight, KeyLightPropertyGroup);
     DEFINE_PROPERTY_REF(PROP_VOXEL_VOLUME_SIZE, VoxelVolumeSize, voxelVolumeSize, glm::vec3, PolyVoxEntityItem::DEFAULT_VOXEL_VOLUME_SIZE);
