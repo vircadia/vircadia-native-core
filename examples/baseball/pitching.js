@@ -143,7 +143,6 @@ PitchingMachine.prototype = {
         }
 
         print("Pitching ball");
-        var pitchDirection = { x: 0, y: 0, z: 1 };
         var machineProperties = Entities.getEntityProperties(this.pitchingMachineID, ["dimensions", "position", "rotation"]);
         var pitchFromPositionBase = machineProperties.position;
         var pitchFromOffset = vec3Mult(machineProperties.dimensions, PITCHING_MACHINE_OUTPUT_OFFSET_PCT);
@@ -165,7 +164,6 @@ PitchingMachine.prototype = {
         } else {
             this.injector.restart();
         }
-        print("Created baseball");
     },
     start: function() {
         if (this.enabled) {
@@ -188,7 +186,7 @@ PitchingMachine.prototype = {
             if (this.baseball.finished()) {
                 this.baseball = null;
                 var self = this;
-                Script.setTimeout(function() { self.pitchBall() }, 3000);
+                Script.setTimeout(function() { self.pitchBall(); }, 3000);
             }
         }
     }
@@ -424,29 +422,38 @@ Baseball.prototype = {
         if (name == "Bat") {
             if (this.state == BASEBALL_STATE.PITCHING) {
                 print("HIT");
+
+                var FOUL_MIN_YAW = -135.0;
+                var FOUL_MAX_YAW = 135.0;
+
                 var yaw = Math.atan2(myVelocity.x, myVelocity.z) * 180 / Math.PI;
-                var foul = yaw > -135 && yaw < 135;
+                var foul = yaw > FOUL_MIN_YAW && yaw < FOUL_MAX_YAW;
 
                 var speedMultiplier = 2;
 
                 if (foul && myVelocity.z > 0) {
+                    var TUNNELED_PITCH_RANGE = 15.0;
                     var xzDist = Math.sqrt(myVelocity.x * myVelocity.x + myVelocity.z * myVelocity.z);
                     var pitch = Math.atan2(myVelocity.y, xzDist) * 180 / Math.PI;
                     print("Pitch: ", pitch);
-                    if (Math.abs(pitch) < 15) {
+                    // If the pitch is going straight out the back and has a pitch in the range TUNNELED_PITCH_RANGE,
+                    // let's assume the ball tunneled through the bat and reverse its direction.
+                    if (Math.abs(pitch) < TUNNELED_PITCH_RANGE) {
                         print("Reversing hit");
                         myVelocity.x *= -1;
                         myVelocity.y *= -1;
                         myVelocity.z *= -1;
-                        Vec3.length(myVelocity);
-                        foul = false;
-                        speedMultiplier = 10;
+
+                        yaw = Math.atan2(myVelocity.x, myVelocity.z) * 180 / Math.PI;
+                        foul = yaw > FOUL_MIN_YAW && yaw < FOUL_MAX_YAW;
+
+                        speedMultiplier = 3;
                     }
                 }
 
                 // Update ball velocity
                 Entities.editEntity(self.entityID, {
-                    velocity: Vec3.multiply(speedMultiplier, myVelocity),
+                    velocity: Vec3.multiply(speedMultiplier, myVelocity)
                 });
 
                 // Setup line update interval
