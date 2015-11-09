@@ -9,9 +9,9 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-Script.include("pitching.js");
-
 (function() {
+    Script.include("pitching.js");
+
     var pitchingMachine = null;
 
     this.pitchAndHideAvatar = function() {
@@ -21,7 +21,7 @@ Script.include("pitching.js");
         }
         pitchingMachine.start();
         MyAvatar.shouldRenderLocally = false;
-    }
+    };
 
     this.startNearGrab = function() {
         // send the avatar to the baseball location so that they're ready to bat
@@ -32,7 +32,7 @@ Script.include("pitching.js");
 
     this.continueNearGrab = function() {
         pitchAndHideAvatar()
-    }
+    };
 
     this.releaseGrab = function() {
         if (pitchingMachine) {
