@@ -347,21 +347,21 @@ function Baseball(position, velocity, ballScale) {
     }
 }
 
-// Update the stadium billboard with the current distance and update the high score
+// Update the stadium billboard with the current distance or a text message and update the high score
 // if it has been beaten.
-function updateBillboard(distance) {
+function updateBillboard(distanceOrMessage) {
     Entities.editEntity(DISTANCE_BILLBOARD_ENTITY_ID, {
-        text: distance,
+        text: distanceOrMessage,
     });
 
     // If a number was passed in, let's see if it is larger than the current high score
     // and update it if so.
-    if (!isNaN(distance)) {
+    if (!isNaN(distanceOrMessage)) {
         var properties = Entities.getEntityProperties(HIGH_SCORE_BILLBOARD_ENTITY_ID, ["text"]);
         var bestDistance = parseInt(properties.text);
-        if (distance >= bestDistance) {
+        if (distanceOrMessage >= bestDistance) {
             Entities.editEntity(HIGH_SCORE_BILLBOARD_ENTITY_ID, {
-                text: distance,
+                text: distanceOrMessage,
             });
             return true;
         }
