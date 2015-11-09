@@ -1,5 +1,5 @@
 //
-//  3DConnexionClient.cpp
+//  SpacemouseManager.cpp
 //  interface/src/devices
 //
 //  Created by MarcelEdward Verhagen on 09-06-15.
@@ -9,107 +9,73 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "SpacemouseManager.h"
 
-#include "3DConnexionClient.h"
-
-#if 0
 #include <UserActivityLogger.h>
 #include <PathUtils.h>
 
-#include "Menu.h"
+#include <plugins/PluginContainer.h>
+#include <controllers/UserInputMapper.h>
+
+#include "../../../interface/src/Menu.h"
 
 const float MAX_AXIS = 75.0f;  // max forward = 2x speed
 
-void ConnexionData::focusOutEvent() {
+static std::shared_ptr<SpacemouseDevice> instance = std::make_shared<SpacemouseDevice>();
+
+SpacemouseDevice::SpacemouseDevice() : InputDevice("Spacemouse")
+{
+}
+
+void SpacemouseDevice::focusOutEvent() {
     _axisStateMap.clear();
     _buttonPressedMap.clear();
 };
 
-ConnexionData& ConnexionData::getInstance() {
-    static ConnexionData sharedInstance;
-    return sharedInstance;
-}
 
-
-ConnexionData::ConnexionData() : InputDevice("ConnexionClient") {}
-
-
-void ConnexionData::handleAxisEvent() {
+void SpacemouseDevice::handleAxisEvent() {
     auto rotation = cc_rotation / MAX_AXIS;
-    _axisStateMap[ROTATE_X] = rotation.x; 
+    _axisStateMap[ROTATE_X] = rotation.x;
     _axisStateMap[ROTATE_Y] = rotation.y;
     _axisStateMap[ROTATE_Z] = rotation.z;
-    auto position = cc_rotation / MAX_AXIS;
+    auto position = cc_position / MAX_AXIS;
     _axisStateMap[TRANSLATE_X] = position.x;
     _axisStateMap[TRANSLATE_Y] = position.y;
     _axisStateMap[TRANSLATE_Z] = position.z;
 }
 
-void ConnexionData::setButton(int lastButtonState) {
+void SpacemouseDevice::setButton(int lastButtonState) {
     _buttonPressedMap.clear();
     _buttonPressedMap.insert(lastButtonState);
 }
 
-void ConnexionData::buildDeviceProxy(controller::DeviceProxy::Pointer proxy) {
-    proxy->_name = _name = "ConnexionClient";
-    proxy->getButton = [this](const controller::Input& input, int timestamp) -> bool { return this->getButton(input.getChannel()); };
-    proxy->getAxis = [this](const controller::Input& input, int timestamp) -> float { return this->getAxis(input.getChannel()); };
-    proxy->getAvailabeInputs = [this]() -> QVector<controller::Input::NamedPair> {
-        using namespace controller;
-        static QVector<controller::Input::NamedPair> availableInputs {
-            Input::NamedPair(makeInput(BUTTON_1), "LeftButton"),
-            Input::NamedPair(makeInput(BUTTON_2), "RightButton"),
-            Input::NamedPair(makeInput(BUTTON_3), "BothButtons"),
-            Input::NamedPair(makeInput(TRANSLATE_X), "TranslateX"),
-            Input::NamedPair(makeInput(TRANSLATE_Y), "TranslateY"),
-            Input::NamedPair(makeInput(TRANSLATE_Z), "TranslateZ"),
-            Input::NamedPair(makeInput(ROTATE_X), "RotateX"),
-            Input::NamedPair(makeInput(ROTATE_Y), "RotateY"),
-            Input::NamedPair(makeInput(ROTATE_Z), "RotateZ"),
-        };
-        return availableInputs;
+
+controller::Input::NamedVector SpacemouseDevice::getAvailableInputs() const {
+    using namespace controller;
+
+
+    static const Input::NamedVector availableInputs{
+
+        makePair(BUTTON_1, "LeftButton"),
+        makePair(BUTTON_2, "RightButton"),
+        //makePair(BUTTON_3, "BothButtons"),
+        makePair(TRANSLATE_X, "TranslateX"),
+        makePair(TRANSLATE_Y, "TranslateY"),
+        makePair(TRANSLATE_Z, "TranslateZ"),
+        //makePair(ROTATE_X, "RotateX"),
+        //makePair(ROTATE_Y, "RotateY"),
+        makePair(ROTATE_Z, "RotateZ"),
+
     };
+    return availableInputs;
 }
 
-QString ConnexionData::getDefaultMappingConfig() {
-    static const QString MAPPING_JSON = PathUtils::resourcesPath() + "/controllers/vive.json";
+QString SpacemouseDevice::getDefaultMappingConfig() const {
+    static const QString MAPPING_JSON = PathUtils::resourcesPath() + "/controllers/spacemouse.json";
     return MAPPING_JSON;
 }
 
-//void ConnexionData::assignDefaultInputMapping(UserInputMapper& mapper) {
-//    const float JOYSTICK_MOVE_SPEED = 1.0f;
-//    //const float DPAD_MOVE_SPEED = 0.5f;
-//    const float JOYSTICK_YAW_SPEED = 0.5f;
-//    const float JOYSTICK_PITCH_SPEED = 0.25f;
-//    const float BOOM_SPEED = 0.1f;
-//
-//    // Y axes are flipped (up is negative)
-//    // postion: Movement, strafing
-//    mapper.addInputChannel(UserInputMapper::LONGITUDINAL_FORWARD, makeInput(POSITION_AXIS_Y_NEG), JOYSTICK_MOVE_SPEED);
-//    mapper.addInputChannel(UserInputMapper::LONGITUDINAL_BACKWARD, makeInput(POSITION_AXIS_Y_POS), JOYSTICK_MOVE_SPEED);
-//    mapper.addInputChannel(UserInputMapper::LATERAL_RIGHT, makeInput(POSITION_AXIS_X_POS), JOYSTICK_MOVE_SPEED);
-//    mapper.addInputChannel(UserInputMapper::LATERAL_LEFT, makeInput(POSITION_AXIS_X_NEG), JOYSTICK_MOVE_SPEED);
-//    mapper.addInputChannel(UserInputMapper::VERTICAL_UP, makeInput(POSITION_AXIS_Z_NEG), JOYSTICK_MOVE_SPEED);
-//    mapper.addInputChannel(UserInputMapper::VERTICAL_DOWN, makeInput(POSITION_AXIS_Z_POS), JOYSTICK_MOVE_SPEED);
-//
-//    // Rotation: Camera orientation with button 1
-//    mapper.addInputChannel(UserInputMapper::YAW_RIGHT, makeInput(ROTATION_AXIS_Z_POS), JOYSTICK_YAW_SPEED);
-//    mapper.addInputChannel(UserInputMapper::YAW_LEFT, makeInput(ROTATION_AXIS_Z_NEG), JOYSTICK_YAW_SPEED);
-//    mapper.addInputChannel(UserInputMapper::PITCH_DOWN, makeInput(ROTATION_AXIS_Y_NEG), JOYSTICK_PITCH_SPEED);
-//    mapper.addInputChannel(UserInputMapper::PITCH_UP, makeInput(ROTATION_AXIS_Y_POS), JOYSTICK_PITCH_SPEED);
-//
-//    // Button controls
-//    // Zoom
-//    mapper.addInputChannel(UserInputMapper::BOOM_IN, makeInput(BUTTON_1), BOOM_SPEED);
-//    mapper.addInputChannel(UserInputMapper::BOOM_OUT, makeInput(BUTTON_2), BOOM_SPEED);
-//
-//    // Zoom
-//    //  mapper.addInputChannel(UserInputMapper::BOOM_IN, makeInput(ROTATION_AXIS_Z_NEG), BOOM_SPEED);
-//    //  mapper.addInputChannel(UserInputMapper::BOOM_OUT, makeInput(ROTATION_AXIS_Z_POS), BOOM_SPEED);
-//
-//}
-
-float ConnexionData::getButton(int channel) const {
+float SpacemouseDevice::getButton(int channel) const {
     if (!_buttonPressedMap.empty()) {
         if (_buttonPressedMap.find(channel) != _buttonPressedMap.end()) {
             return 1.0f;
@@ -120,7 +86,7 @@ float ConnexionData::getButton(int channel) const {
     return 0.0f;
 }
 
-float ConnexionData::getAxis(int channel) const {
+float SpacemouseDevice::getAxis(int channel) const {
     auto axis = _axisStateMap.find(channel);
     if (axis != _axisStateMap.end()) {
         return (*axis).second;
@@ -129,23 +95,33 @@ float ConnexionData::getAxis(int channel) const {
     }
 }
 
-controller::Input ConnexionData::makeInput(ConnexionData::ButtonChannel button) {
+controller::Input SpacemouseDevice::makeInput(SpacemouseDevice::ButtonChannel button) const {
     return controller::Input(_deviceID, button, controller::ChannelType::BUTTON);
 }
 
-controller::Input ConnexionData::makeInput(ConnexionData::PositionChannel axis) {
+controller::Input SpacemouseDevice::makeInput(SpacemouseDevice::PositionChannel axis) const {
     return controller::Input(_deviceID, axis, controller::ChannelType::AXIS);
 }
 
-void ConnexionData::update(float deltaTime, bool jointsCaptured) {
-    // the update is done in the ConnexionClient class.
+controller::Input::NamedPair SpacemouseDevice::makePair(SpacemouseDevice::ButtonChannel button, const QString& name) const {
+    return controller::Input::NamedPair(makeInput(button), name);
+}
+
+controller::Input::NamedPair SpacemouseDevice::makePair(SpacemouseDevice::PositionChannel axis, const QString& name) const {
+    return controller::Input::NamedPair(makeInput(axis), name);
+}
+
+void SpacemouseDevice::update(float deltaTime, bool jointsCaptured) {
+    // the update is done in the SpacemouseManager class.
     // for windows in the nativeEventFilter the inputmapper is connected or registed or removed when an 3Dconnnexion device is attached or detached
     // for osx the api will call DeviceAddedHandler or DeviceRemoveHandler when a 3Dconnexion device is attached or detached
 }
 
-ConnexionClient& ConnexionClient::getInstance() {
-    static ConnexionClient sharedInstance;
-    return sharedInstance;
+void SpacemouseManager::ManagerFocusOutEvent() {
+    instance->focusOutEvent();
+}
+
+void SpacemouseManager::init() {
 }
 
 #ifdef HAVE_3DCONNEXIONCLIENT
@@ -154,30 +130,35 @@ ConnexionClient& ConnexionClient::getInstance() {
 
 #include <VersionHelpers.h>
 
-void ConnexionClient::toggleConnexion(bool shouldEnable) {
-    ConnexionData& connexiondata = ConnexionData::getInstance();
-    if (shouldEnable && connexiondata.getDeviceID() == 0) {
+void SpacemouseManager::toggleSpacemouse(bool shouldEnable) {
+   if (shouldEnable) {
         init();
     }
-    if (!shouldEnable && connexiondata.getDeviceID() != 0) {
+    if (!shouldEnable && instance->getDeviceID() != controller::Input::INVALID_DEVICE) {
         destroy();
     }
 }
 
-void ConnexionClient::init() {
+void SpacemouseManager::init() {
     if (Menu::getInstance()->isOptionChecked(MenuOption::Connexion)) {
         fLast3dmouseInputTime = 0;
 
         InitializeRawInput(GetActiveWindow());
 
         QAbstractEventDispatcher::instance()->installNativeEventFilter(this);
+
+        if (instance->getDeviceID() != controller::Input::INVALID_DEVICE) {
+            auto userInputMapper = DependencyManager::get<UserInputMapper>();
+            userInputMapper->registerDevice(instance);
+            UserActivityLogger::getInstance().connectedDevice("controller", "Spacemouse");
+        }
+        
     }
 }
 
-void ConnexionClient::destroy() {
+void SpacemouseManager::destroy() {
     QAbstractEventDispatcher::instance()->removeNativeEventFilter(this);
-    ConnexionData& connexiondata = ConnexionData::getInstance();
-    int deviceid = connexiondata.getDeviceID();
+    int deviceid = instance->getDeviceID();
     auto userInputMapper = DependencyManager::get<UserInputMapper>();
     userInputMapper->removeDevice(deviceid);
 }
@@ -281,14 +262,15 @@ unsigned short HidToVirtualKey(unsigned long pid, unsigned short hidKeyCode) {
     return virtualkey;
 }
 
-bool ConnexionClient::RawInputEventFilter(void* msg, long* result) {
-    ConnexionData& connexiondata = ConnexionData::getInstance();
+bool SpacemouseManager::RawInputEventFilter(void* msg, long* result) {
+
     auto userInputMapper = DependencyManager::get<UserInputMapper>();
-    if (Is3dmouseAttached() && connexiondata.getDeviceID() == 0) {
-        userInputMapper->registerDevice(&connexiondata);
-        UserActivityLogger::getInstance().connectedDevice("controller", "3Dconnexion");
-    } else if (!Is3dmouseAttached() && connexiondata.getDeviceID() != 0) {
-        userInputMapper->removeDevice(connexiondata.getDeviceID());
+    if (Is3dmouseAttached() && instance->getDeviceID() == controller::Input::INVALID_DEVICE) {
+        userInputMapper->registerDevice(instance);
+        UserActivityLogger::getInstance().connectedDevice("controller", "Spacemouse");
+    }
+    else if (!Is3dmouseAttached() && instance->getDeviceID() != controller::Input::INVALID_DEVICE) {
+        userInputMapper->removeDevice(instance->getDeviceID());
     }
 
     if (!Is3dmouseAttached()) {
@@ -309,36 +291,34 @@ bool ConnexionClient::RawInputEventFilter(void* msg, long* result) {
 }
 
 // Access the mouse parameters structure
-I3dMouseParam& ConnexionClient::MouseParams() {
+I3dMouseParam& SpacemouseManager::MouseParams() {
     return f3dMouseParams;
 }
 
 // Access the mouse parameters structure
-const I3dMouseParam& ConnexionClient::MouseParams() const {
+const I3dMouseParam& SpacemouseManager::MouseParams() const {
     return f3dMouseParams;
 }
 
 //Called with the processed motion data when a 3D mouse event is received
-void ConnexionClient::Move3d(HANDLE device, std::vector<float>& motionData) {
+void SpacemouseManager::Move3d(HANDLE device, std::vector<float>& motionData) {
     Q_UNUSED(device);
-    ConnexionData& connexiondata = ConnexionData::getInstance();
-    connexiondata.cc_position = { motionData[0] * 1000, motionData[1] * 1000, motionData[2] * 1000 };
-    connexiondata.cc_rotation = { motionData[3] * 1500, motionData[4] * 1500, motionData[5] * 1500 };
-    connexiondata.handleAxisEvent();
+
+    instance->cc_position = { motionData[0] * 1000, motionData[1] * 1000, motionData[2] * 1000 };
+    instance->cc_rotation = { motionData[3] * 1500, motionData[4] * 1500, motionData[5] * 1500 };
+    instance->handleAxisEvent();
 }
 
 //Called when a 3D mouse key is pressed
-void ConnexionClient::On3dmouseKeyDown(HANDLE device, int virtualKeyCode) {
+void SpacemouseManager::On3dmouseKeyDown(HANDLE device, int virtualKeyCode) {
     Q_UNUSED(device);
-    ConnexionData& connexiondata = ConnexionData::getInstance();
-    connexiondata.setButton(virtualKeyCode);
+    instance->setButton(virtualKeyCode);
 }
 
 //Called when a 3D mouse key is released
-void ConnexionClient::On3dmouseKeyUp(HANDLE device, int virtualKeyCode) {
+void SpacemouseManager::On3dmouseKeyUp(HANDLE device, int virtualKeyCode) {
     Q_UNUSED(device);
-    ConnexionData& connexiondata = ConnexionData::getInstance();
-    connexiondata.setButton(0);
+    instance->setButton(0);
 }
 
 //Get an initialized array of PRAWINPUTDEVICE for the 3D devices
@@ -357,7 +337,7 @@ static PRAWINPUTDEVICE GetDevicesToRegister(unsigned int* pNumDevices) {
 }
 
 //Detect the 3D mouse
-bool ConnexionClient::Is3dmouseAttached() {
+bool SpacemouseManager::Is3dmouseAttached() {
     unsigned int numDevicesOfInterest = 0;
     PRAWINPUTDEVICE devicesToRegister = GetDevicesToRegister(&numDevicesOfInterest);
 
@@ -400,7 +380,7 @@ bool ConnexionClient::Is3dmouseAttached() {
 
 // Initialize the window to recieve raw-input messages
 // This needs to be called initially so that Windows will send the messages from the 3D mouse to the window.
-bool ConnexionClient::InitializeRawInput(HWND hwndTarget) {
+bool SpacemouseManager::InitializeRawInput(HWND hwndTarget) {
     fWindow = hwndTarget;
 
     // Simply fail if there is no window
@@ -429,7 +409,7 @@ bool ConnexionClient::InitializeRawInput(HWND hwndTarget) {
 }
 
 //Get the raw input data from Windows
-UINT ConnexionClient::GetRawInputBuffer(PRAWINPUT pData, PUINT pcbSize, UINT cbSizeHeader) {
+UINT SpacemouseManager::GetRawInputBuffer(PRAWINPUT pData, PUINT pcbSize, UINT cbSizeHeader) {
     //Includes workaround for incorrect alignment of the RAWINPUT structure on x64 os
     //when running as Wow64 (copied directly from 3DConnexion code)
 #ifdef _WIN64
@@ -477,7 +457,7 @@ UINT ConnexionClient::GetRawInputBuffer(PRAWINPUT pData, PUINT pcbSize, UINT cbS
 // Process the raw input device data
 // On3dmouseInput() does all the preprocessing of the rawinput device data before
 // finally calling the Move3d method.
-void ConnexionClient::On3dmouseInput() {
+void SpacemouseManager::On3dmouseInput() {
     // Don't do any data processing in background
     bool bIsForeground = (::GetActiveWindow() != NULL);
     if (!bIsForeground) {
@@ -529,7 +509,7 @@ void ConnexionClient::On3dmouseInput() {
         // If we have not received data for a while send a zero event
         if ((--(iterator->second.fTimeToLive)) == 0) {
             iterator->second.fAxes.assign(6, .0);
-        } else if ( !iterator->second.fIsDirty) { //!t_bPoll3dmouse &&
+        } else if (!iterator->second.fIsDirty) { //!t_bPoll3dmouse &&
             // If we are not polling then only handle the data that was actually received
             ++iterator;
             continue;
@@ -604,7 +584,7 @@ void ConnexionClient::On3dmouseInput() {
 }
 
 //Called when new raw input data is available
-void ConnexionClient::OnRawInput(UINT nInputCode, HRAWINPUT hRawInput) {
+void SpacemouseManager::OnRawInput(UINT nInputCode, HRAWINPUT hRawInput) {
     const size_t cbSizeOfBuffer = 1024;
     BYTE pBuffer[cbSizeOfBuffer];
 
@@ -645,7 +625,7 @@ void ConnexionClient::OnRawInput(UINT nInputCode, HRAWINPUT hRawInput) {
     }
 }
 
-bool ConnexionClient::TranslateRawInputData(UINT nInputCode, PRAWINPUT pRawInput) {
+bool SpacemouseManager::TranslateRawInputData(UINT nInputCode, PRAWINPUT pRawInput) {
     bool bIsForeground = (nInputCode == RIM_INPUT);
 
     // We are not interested in keyboard or mouse data received via raw input
@@ -670,20 +650,20 @@ bool ConnexionClient::TranslateRawInputData(UINT nInputCode, PRAWINPUT pRawInput
     if (::GetRawInputDeviceInfo(pRawInput->header.hDevice, RIDI_DEVICEINFO, &sRidDeviceInfo, &cbSize) == cbSize) {
         if (TRACE_RIDI_DEVICEINFO == 1) {
             switch (sRidDeviceInfo.dwType) {
-                case RIM_TYPEMOUSE:
-                    qDebug("\tsRidDeviceInfo.dwType=RIM_TYPEMOUSE\n");
-                    break;
-                case RIM_TYPEKEYBOARD:
-                    qDebug("\tsRidDeviceInfo.dwType=RIM_TYPEKEYBOARD\n");
-                    break;
-                case RIM_TYPEHID:
-                    qDebug("\tsRidDeviceInfo.dwType=RIM_TYPEHID\n");
-                    qDebug("\tVendor=0x%x\n\tProduct=0x%x\n\tUsagePage=0x%x\n\tUsage=0x%x\n",
-                           sRidDeviceInfo.hid.dwVendorId,
-                           sRidDeviceInfo.hid.dwProductId,
-                           sRidDeviceInfo.hid.usUsagePage,
-                           sRidDeviceInfo.hid.usUsage);
-                    break;
+            case RIM_TYPEMOUSE:
+                qDebug("\tsRidDeviceInfo.dwType=RIM_TYPEMOUSE\n");
+                break;
+            case RIM_TYPEKEYBOARD:
+                qDebug("\tsRidDeviceInfo.dwType=RIM_TYPEKEYBOARD\n");
+                break;
+            case RIM_TYPEHID:
+                qDebug("\tsRidDeviceInfo.dwType=RIM_TYPEHID\n");
+                qDebug("\tVendor=0x%x\n\tProduct=0x%x\n\tUsagePage=0x%x\n\tUsage=0x%x\n",
+                    sRidDeviceInfo.hid.dwVendorId,
+                    sRidDeviceInfo.hid.dwProductId,
+                    sRidDeviceInfo.hid.usUsagePage,
+                    sRidDeviceInfo.hid.usUsage);
+                break;
             }
         }
 
@@ -700,16 +680,16 @@ bool ConnexionClient::TranslateRawInputData(UINT nInputCode, PRAWINPUT pRawInput
 
                     //qDebug("Pan/Zoom RI Data =\t0x%x,\t0x%x,\t0x%x\n", pnRawData[0], pnRawData[1], pnRawData[2]);
 
-                    if (pRawInput->data.hid.dwSizeHid >= 13) { // Highspeed package
-                        // Cache the rotation data
-                        deviceData.fAxes[3] = static_cast<float>(pnRawData[3]);
-                        deviceData.fAxes[4] = static_cast<float>(pnRawData[4]);
-                        deviceData.fAxes[5] = static_cast<float>(pnRawData[5]);
-                        deviceData.fIsDirty = true;
+                    //if (pRawInput->data.hid.dwSizeHid >= 13) { // Highspeed package
+                    //    // Cache the rotation data
+                    //    deviceData.fAxes[3] = static_cast<float>(pnRawData[3]);
+                    //    deviceData.fAxes[4] = static_cast<float>(pnRawData[4]);
+                    //    deviceData.fAxes[5] = static_cast<float>(pnRawData[5]);
+                    //    deviceData.fIsDirty = true;
 
-                        //qDebug("Rotation RI Data =\t0x%x,\t0x%x,\t0x%x\n", pnRawData[3], pnRawData[4], pnRawData[5]);
-                        return true;
-                    }
+                    //    qDebug("Rotation RI Data =\t0x%x,\t0x%x,\t0x%x\n", pnRawData[3], pnRawData[4], pnRawData[5]);
+                    //    return true;
+                    //}
                 } else { // Zero out the data if the app is not in forground
                     deviceData.fAxes.assign(6, 0.f);
                 }
@@ -824,15 +804,15 @@ bool MouseParameters::IsLockHorizon() const {
 }
 
 void MouseParameters::SetLockHorizon(bool bOn) {
-    fIsLockHorizon=bOn;
+    fIsLockHorizon = bOn;
 }
 
 void MouseParameters::SetNavigationMode(Navigation navigation) {
-    fNavigation=navigation;
+    fNavigation = navigation;
 }
 
 void MouseParameters::SetPivotMode(Pivot pivot) {
-    if (fPivot!=PIVOT_MANUAL || pivot!=PIVOT_AUTO_OVERRIDE) {
+    if (fPivot != PIVOT_MANUAL || pivot != PIVOT_AUTO_OVERRIDE) {
         fPivot = pivot;
     }
 }
@@ -845,13 +825,13 @@ void MouseParameters::SetPivotVisibility(PivotVisibility visibility) {
 
 int fConnexionClientID;
 
-static ConnexionDeviceState lastState;
+static SpacemouseDeviceState lastState;
 
 static void DeviceAddedHandler(unsigned int connection);
 static void DeviceRemovedHandler(unsigned int connection);
 static void MessageHandler(unsigned int connection, unsigned int messageType, void *messageArgument);
 
-void ConnexionClient::toggleConnexion(bool shouldEnable) {
+void SpacemouseManager::toggleSpacemouse(bool shouldEnable) {
     if (shouldEnable && !Is3dmouseAttached()) {
         init();
     }
@@ -860,7 +840,7 @@ void ConnexionClient::toggleConnexion(bool shouldEnable) {
     }
 }
 
-void ConnexionClient::init() {
+void SpacemouseManager::init() {
     // Make sure the framework is installed
     if (Menu::getInstance()->isOptionChecked(MenuOption::Connexion)) {
         // Install message handler and register our client
@@ -870,8 +850,7 @@ void ConnexionClient::init() {
 
         // ...or use this to take over system-wide
         fConnexionClientID = RegisterConnexionClient(kConnexionClientWildcard, NULL, kConnexionClientModeTakeOver, kConnexionMaskAll);
-        ConnexionData& connexiondata = ConnexionData::getInstance();
-        memcpy(&connexiondata.clientId, &fConnexionClientID, (long)sizeof(int));
+        memcpy(&instance->clientId, &fConnexionClientID, (long)sizeof(int));
 
         // A separate API call is required to capture buttons beyond the first 8
         SetConnexionClientButtonMask(fConnexionClientID, kConnexionMaskAllButtons);
@@ -879,17 +858,17 @@ void ConnexionClient::init() {
         // use default switches 
         ConnexionClientControl(fConnexionClientID, kConnexionCtlSetSwitches, kConnexionSwitchesDisabled, NULL);
 
-        if (Is3dmouseAttached() && connexiondata.getDeviceID() == 0) {
+        if (Is3dmouseAttached() && instance->getDeviceID() == controller::Input::INVALID_DEVICE) {
             auto userInputMapper = DependencyManager::get<UserInputMapper>();
-            userInputMapper->registerDevice(&connexiondata);
-            UserActivityLogger::getInstance().connectedDevice("controller", "3Dconnexion");
+            userInputMapper->registerDevice(instance);
+            UserActivityLogger::getInstance().connectedDevice("controller", "Spacemouse");
         }
         //let one axis be dominant
         //ConnexionClientControl(fConnexionClientID, kConnexionCtlSetSwitches, kConnexionSwitchDominant | kConnexionSwitchEnableAll, NULL);
     }
 }
 
-void ConnexionClient::destroy() {
+void SpacemouseManager::destroy() {
     // Make sure the framework is installed
     if (&InstallConnexionHandlers != NULL) {
         // Unregister our client and clean up all handlers
@@ -898,36 +877,33 @@ void ConnexionClient::destroy() {
         }
         CleanupConnexionHandlers();
         fConnexionClientID = 0;
-        ConnexionData& connexiondata = ConnexionData::getInstance();
-        if (connexiondata.getDeviceID()!=0) {
+        if (instance->getDeviceID() != controller::Input::INVALID_DEVICE) {
             auto userInputMapper = DependencyManager::get<UserInputMapper>();
-            userInputMapper->removeDevice(connexiondata.getDeviceID());
-            connexiondata.setDeviceID(0);
+            userInputMapper->removeDevice(instance->getDeviceID());
+            instance->setDeviceID(controller::Input::INVALID_DEVICE);
         }
     }
 }
 
 void DeviceAddedHandler(unsigned int connection) {
-    ConnexionData& connexiondata = ConnexionData::getInstance();
-    if (connexiondata.getDeviceID() == 0) {
-        qCWarning(interfaceapp) << "3Dconnexion device added ";
+    if (instance->getDeviceID() == controller::Input::INVALID_DEVICE) {
+        qCWarning(interfaceapp) << "Spacemouse device added ";
         auto userInputMapper = DependencyManager::get<UserInputMapper>();
-        userInputMapper->registerDevice(&connexiondata);
-        UserActivityLogger::getInstance().connectedDevice("controller", "3Dconnexion");
+        userInputMapper->registerDevice(instance);
+        UserActivityLogger::getInstance().connectedDevice("controller", "Spacemouse");
     }
 }
 
 void DeviceRemovedHandler(unsigned int connection) {
-    ConnexionData& connexiondata = ConnexionData::getInstance();
-    if (connexiondata.getDeviceID() != 0) {
-        qCWarning(interfaceapp) << "3Dconnexion device removed";
+    if (instance->getDeviceID() != controller::Input::INVALID_DEVICE) {
+        qCWarning(interfaceapp) << "Spacemouse device removed";
         auto userInputMapper = DependencyManager::get<UserInputMapper>();
-        userInputMapper->removeDevice(connexiondata.getDeviceID());
-        connexiondata.setDeviceID(0);
+        userInputMapper->removeDevice(instance->getDeviceID());
+        instance->setDeviceID(controller::Input::INVALID_DEVICE);
     }
 }
 
-bool ConnexionClient::Is3dmouseAttached() {
+bool SpacemouseManager::Is3dmouseAttached() {
     int result;
     if (fConnexionClientID) {
         if (ConnexionControl(kConnexionCtlGetDeviceID, 0, &result)) {
@@ -939,21 +915,20 @@ bool ConnexionClient::Is3dmouseAttached() {
 }
 
 void MessageHandler(unsigned int connection, unsigned int messageType, void *messageArgument) {
-    ConnexionDeviceState *state;
+    SpacemouseDeviceState *state;
 
     switch (messageType) {
     case kConnexionMsgDeviceState:
-        state = (ConnexionDeviceState*)messageArgument;
+        state = (SpacemouseDeviceState*)messageArgument;
         if (state->client == fConnexionClientID) {
-            ConnexionData& connexiondata = ConnexionData::getInstance();
-            connexiondata.cc_position = { state->axis[0], state->axis[1], state->axis[2] };
-            connexiondata.cc_rotation = { state->axis[3], state->axis[4], state->axis[5] };
+            instance->cc_position = { state->axis[0], state->axis[1], state->axis[2] };
+            instance->cc_rotation = { state->axis[3], state->axis[4], state->axis[5] };
 
-            connexiondata.handleAxisEvent();
+            instance->handleAxisEvent();
             if (state->buttons != lastState.buttons) {
-                connexiondata.setButton(state->buttons);
+                instance->setButton(state->buttons);
             }
-            memmove(&lastState, state, (long)sizeof(ConnexionDeviceState));
+            memmove(&lastState, state, (long)sizeof(SpacemouseDeviceState));
         }
         break;
     case kConnexionMsgPrefsChanged:
@@ -968,5 +943,4 @@ void MessageHandler(unsigned int connection, unsigned int messageType, void *mes
 
 #endif // __APPLE__
 
-#endif // HAVE_3DCONNEXIONCLIENT
-#endif
+#endif 

@@ -661,6 +661,9 @@ void Avatar::updateJointMappings() {
 }
 
 void Avatar::renderBillboard(RenderArgs* renderArgs) {
+    // FIXME disabling the billboard because it doesn't appear to work reliably
+    // the billboard is ending up with a random texture and position.
+    return;
     if (_billboard.isEmpty()) {
         return;
     }

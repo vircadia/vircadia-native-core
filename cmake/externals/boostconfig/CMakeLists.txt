@@ -4,7 +4,8 @@ string(TOUPPER ${EXTERNAL_NAME} EXTERNAL_NAME_UPPER)
 include(ExternalProject)
 ExternalProject_Add(
     ${EXTERNAL_NAME}
-    URL https://github.com/boostorg/config/archive/boost-1.58.0.zip
+    #URL https://github.com/boostorg/config/archive/boost-1.58.0.zip
+    URL http://hifi-public.s3.amazonaws.com/dependencies/config-boost-1.58.0.zip
     URL_MD5 42fa673bae2b7645a22736445e80eb8d
     CONFIGURE_COMMAND ""
     BUILD_COMMAND ""

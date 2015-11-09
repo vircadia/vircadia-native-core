@@ -306,8 +306,8 @@ public slots:
     
 private slots:
     void clearDomainOctreeDetails();
-    void checkFPS();
-    void idle();
+    void ping();
+    void idle(uint64_t now);
     void aboutToQuit();
 
     void handleScriptEngineLoaded(const QString& scriptFilename);
@@ -414,7 +414,7 @@ private:
 
     bool _dependencyManagerIsSetup;
 
-    OffscreenGlCanvas* _offscreenContext;
+    OffscreenGlCanvas* _offscreenContext { nullptr };
     DisplayPluginPointer _displayPlugin;
     InputPluginList _activeInputPlugins;
 
@@ -541,11 +541,14 @@ private:
     EntityItemID _keyboardFocusedItem;
     quint64 _lastAcceptedKeyPress = 0;
 
+    SimpleMovingAverage _framesPerSecond{10};
+    quint64 _lastFramesPerSecondUpdate = 0;
     SimpleMovingAverage _simsPerSecond{10};
     int _simsPerSecondReport = 0;
     quint64 _lastSimsPerSecondUpdate = 0;
     bool _isForeground = true; // starts out assumed to be in foreground
     bool _inPaint = false;
+    bool _isGLInitialized { false };
 };
 
 #endif // hifi_Application_h
