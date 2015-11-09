@@ -27,11 +27,11 @@
         // send the avatar to the baseball location so that they're ready to bat
         MyAvatar.location = "/baseball"
 
-        pitchAndHideAvatar()
+        this.pitchAndHideAvatar()
     };
 
     this.continueNearGrab = function() {
-        pitchAndHideAvatar()
+        this.pitchAndHideAvatar()
     };
 
     this.releaseGrab = function() {
