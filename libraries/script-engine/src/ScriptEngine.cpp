@@ -18,6 +18,7 @@
 #include <QtNetwork/QNetworkReply>
 #include <QtScript/QScriptEngine>
 #include <QtScript/QScriptValue>
+#include <QtCore/QStringList>
 
 #include <AudioConstants.h>
 #include <AudioEffectOptions.h>
@@ -1170,8 +1171,7 @@ void ScriptEngine::refreshFileScript(const EntityItemID& entityID) {
     recurseGuard = false;
 }
 
-
-void ScriptEngine::callEntityScriptMethod(const EntityItemID& entityID, const QString& methodName) {
+void ScriptEngine::callEntityScriptMethod(const EntityItemID& entityID, const QString& methodName, const QStringList& params) {
     if (QThread::currentThread() != thread()) {
 #ifdef THREAD_DEBUGGING
         qDebug() << "*** WARNING *** ScriptEngine::callEntityScriptMethod() called on wrong thread [" << QThread::currentThread() << "], invoking on correct thread [" << thread() << "]  "
@@ -1180,7 +1180,8 @@ void ScriptEngine::callEntityScriptMethod(const EntityItemID& entityID, const QS
         
         QMetaObject::invokeMethod(this, "callEntityScriptMethod",
                                   Q_ARG(const EntityItemID&, entityID),
-                                  Q_ARG(const QString&, methodName));
+                                  Q_ARG(const QString&, methodName),
+                                  Q_ARG(const QStringList&, params));
         return;
     }
 #ifdef THREAD_DEBUGGING
@@ -1195,6 +1196,7 @@ void ScriptEngine::callEntityScriptMethod(const EntityItemID& entityID, const QS
         if (entityScript.property(methodName).isFunction()) {
             QScriptValueList args;
             args << entityID.toScriptValue(this);
+            args << qScriptValueFromSequence(this, params);
             entityScript.property(methodName).call(entityScript, args);
         }
         
