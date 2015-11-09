@@ -9,7 +9,12 @@ var HIGH_SCORE_BILLBOARD_NAME = "HighScore";
 var DISTANCE_BILLBOARD_ENTITY_ID = findEntity({name: DISTANCE_BILLBOARD_NAME }, 1000);
 var HIGH_SCORE_BILLBOARD_ENTITY_ID = findEntity({name: HIGH_SCORE_BILLBOARD_NAME }, 1000);
 
-print("Distance: ", DISTANCE_BILLBOARD_ENTITY_ID)
+if (DISTANCE_BILLBOARD_ENTITY_ID === null) {
+    print("WARNING: Distance billboard cannot be found.");
+}
+if (HIGH_SCORE_BILLBOARD_ENTITY_ID === null) {
+    print("WARNING: High Score billboard cannot be found.");
+}
 
 var METERS_TO_FEET = 3.28084;
 
