@@ -1,3 +1,14 @@
+//
+//  utils.js
+//  examples/baseball/
+//
+//  Created by Ryan Huffman on Nov 9, 2015
+//  Copyright 2015 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+//
+
 randomInt = function(low, high) {
     return Math.floor(randomFloat(low, high));
 };

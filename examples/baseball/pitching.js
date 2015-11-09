@@ -1,3 +1,14 @@
+//
+//  pitching.js
+//  examples/baseball/
+//
+//  Created by Ryan Huffman on Nov 9, 2015
+//  Copyright 2015 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+//
+
 print("Loading pitching");
 //Script.include("../libraries/line.js");
 Script.include("https://raw.githubusercontent.com/huffman/hifi/line-js/examples/libraries/line.js");
