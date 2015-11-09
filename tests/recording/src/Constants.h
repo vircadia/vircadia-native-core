@@ -11,6 +11,8 @@
 #ifndef hifi_Constants_h
 #define hifi_Constants_h
 
+#include <QtCore/QString>
+
 static const QString HEADER_NAME = "com.highfidelity.recording.Header";
 static const QString TEST_NAME = "com.highfidelity.recording.Test";
 

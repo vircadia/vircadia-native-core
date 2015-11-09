@@ -240,7 +240,8 @@ public:
     Q_INVOKABLE void setHandState(char s) { _handState = s; }
     Q_INVOKABLE char getHandState() const { return _handState; }
 
-    const QVector<JointData>& getJointData() const { return _jointData; }
+    const QVector<JointData>& getRawJointData() const { return _jointData; }
+    void setRawJointData(QVector<JointData> data)  { _jointData = data; }
 
     Q_INVOKABLE virtual void setJointData(int index, const glm::quat& rotation, const glm::vec3& translation);
     Q_INVOKABLE virtual void setJointRotation(int index, const glm::quat& rotation);

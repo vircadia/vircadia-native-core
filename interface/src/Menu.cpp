@@ -44,22 +44,11 @@
 
 #include "Menu.h"
 
-Menu* Menu::_instance = NULL;
+static const char* const MENU_PROPERTY_NAME = "com.highfidelity.Menu";
 
 Menu* Menu::getInstance() {
-    static QMutex menuInstanceMutex;
-
-    // lock the menu instance mutex to make sure we don't race and create two menus and crash
-    menuInstanceMutex.lock();
-
-    if (!_instance) {
-        qCDebug(interfaceapp, "First call to Menu::getInstance() - initing menu.");
-        _instance = new Menu();
-    }
-
-    menuInstanceMutex.unlock();
-
-    return _instance;
+    static Menu* instance = globalInstance<Menu>(MENU_PROPERTY_NAME);
+    return instance;
 }
 
 Menu::Menu() {

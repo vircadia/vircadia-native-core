@@ -62,8 +62,8 @@ public:
     static void registerInheritance();
     
 private:
-    static DependencyManager _manager;
-    
+    static DependencyManager& manager();
+
     template<typename T>
     size_t getHashCode();
     
@@ -75,11 +75,11 @@ private:
 
 template <typename T>
 QSharedPointer<T> DependencyManager::get() {
-    static size_t hashCode = _manager.getHashCode<T>();
+    static size_t hashCode = manager().getHashCode<T>();
     static QWeakPointer<T> instance;
     
     if (instance.isNull()) {
-        instance = qSharedPointerCast<T>(_manager.safeGet(hashCode));
+        instance = qSharedPointerCast<T>(manager().safeGet(hashCode));
         
         if (instance.isNull()) {
             qWarning() << "DependencyManager::get(): No instance available for" << typeid(T).name();
@@ -91,9 +91,9 @@ QSharedPointer<T> DependencyManager::get() {
 
 template <typename T, typename ...Args>
 QSharedPointer<T> DependencyManager::set(Args&&... args) {
-    static size_t hashCode = _manager.getHashCode<T>();
+    static size_t hashCode = manager().getHashCode<T>();
 
-    QSharedPointer<Dependency>& instance = _manager.safeGet(hashCode);
+    QSharedPointer<Dependency>& instance = manager().safeGet(hashCode);
     instance.clear(); // Clear instance before creation of new one to avoid edge cases
     QSharedPointer<T> newInstance(new T(args...), &T::customDeleter);
     QSharedPointer<Dependency> storedInstance = qSharedPointerCast<Dependency>(newInstance);
@@ -104,9 +104,9 @@ QSharedPointer<T> DependencyManager::set(Args&&... args) {
 
 template <typename T, typename I, typename ...Args>
 QSharedPointer<T> DependencyManager::set(Args&&... args) {
-    static size_t hashCode = _manager.getHashCode<T>();
+    static size_t hashCode = manager().getHashCode<T>();
 
-    QSharedPointer<Dependency>& instance = _manager.safeGet(hashCode);
+    QSharedPointer<Dependency>& instance = manager().safeGet(hashCode);
     instance.clear(); // Clear instance before creation of new one to avoid edge cases
     QSharedPointer<T> newInstance(new I(args...), &I::customDeleter);
     QSharedPointer<Dependency> storedInstance = qSharedPointerCast<Dependency>(newInstance);
@@ -117,15 +117,15 @@ QSharedPointer<T> DependencyManager::set(Args&&... args) {
 
 template <typename T>
 void DependencyManager::destroy() {
-    static size_t hashCode = _manager.getHashCode<T>();
-    _manager.safeGet(hashCode).clear();
+    static size_t hashCode = manager().getHashCode<T>();
+    manager().safeGet(hashCode).clear();
 }
 
 template<typename Base, typename Derived>
 void DependencyManager::registerInheritance() {
     size_t baseHashCode = typeid(Base).hash_code();
     size_t derivedHashCode = typeid(Derived).hash_code();
-    _manager._inheritanceHash.insert(baseHashCode, derivedHashCode);
+    manager()._inheritanceHash.insert(baseHashCode, derivedHashCode);
 }
 
 template<typename T>
