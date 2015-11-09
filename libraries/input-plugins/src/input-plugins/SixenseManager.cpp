@@ -108,19 +108,13 @@ void SixenseManager::setSixenseFilter(bool filter) {
 
 void SixenseManager::pluginUpdate(float deltaTime, bool jointsCaptured) {
     _inputDevice->update(deltaTime, jointsCaptured);
-    if (_inputDevice->_calibrationState == CALIBRATION_STATE_COMPLETE) {
+    if (_inputDevice->_requestReset) {
         _container->requestReset();
-        _inputDevice->_calibrationState = CALIBRATION_STATE_IDLE;
+        _inputDevice->_requestReset = false;
     }
 }
 
 void SixenseManager::InputDevice::update(float deltaTime, bool jointsCaptured) {
-    // FIXME - Some of the code in update() will crash if you haven't actually activated the
-    // plugin. But we want register with the UserInputMapper if we don't call this.
-    // We need to clean this up.
-    //if (!_activated) {
-    //    return;
-    //}
 #ifdef HAVE_SIXENSE
     _buttonPressedMap.clear();
 
@@ -221,21 +215,23 @@ static const float MINIMUM_ARM_REACH = 0.3f; // meters
 static const float MAXIMUM_NOISE_LEVEL = 0.05f; // meters
 static const quint64 LOCK_DURATION = USECS_PER_SECOND / 4; // time for lock to be acquired
 
-void SixenseManager::InputDevice::updateCalibration(void* controllersX) {
-    auto controllers = reinterpret_cast<sixenseControllerData*>(controllersX);
+static bool calibrationRequested(sixenseControllerData* controllers) {
+    return (controllers[0].buttons == BUTTON_FWD && controllers[1].buttons == BUTTON_FWD);
+}
+
+void SixenseManager::InputDevice::updateCalibration(sixenseControllerData* controllers) {
     const sixenseControllerData* dataLeft = controllers;
     const sixenseControllerData* dataRight = controllers + 1;
 
-    // calibration only happpens while both hands are holding BUTTON_FORWARD
-    if (dataLeft->buttons != BUTTON_FWD || dataRight->buttons != BUTTON_FWD) {
-        if (_calibrationState == CALIBRATION_STATE_IDLE) {
-            return;
-        }
+    // Calibration buttons aren't set, so check the state, and request a reset if necessary.
+    if (!calibrationRequested(controllers)) {
         switch (_calibrationState) {
+            case CALIBRATION_STATE_IDLE:
+                return;
             case CALIBRATION_STATE_COMPLETE:
                 {
                     // compute calibration results
-                    _avatarPosition = - 0.5f * (_reachLeft + _reachRight); // neck is midway between right and left hands
+                    _avatarPosition = -0.5f * (_reachLeft + _reachRight); // neck is midway between right and left hands
                     glm::vec3 xAxis = glm::normalize(_reachRight - _reachLeft);
                     glm::vec3 zAxis = glm::normalize(glm::cross(xAxis, Vectors::UNIT_Y));
                     xAxis = glm::normalize(glm::cross(Vectors::UNIT_Y, zAxis));
@@ -243,16 +239,19 @@ void SixenseManager::InputDevice::updateCalibration(void* controllersX) {
                     const float Y_OFFSET_CALIBRATED_HANDS_TO_AVATAR = -0.3f;
                     _avatarPosition.y += Y_OFFSET_CALIBRATED_HANDS_TO_AVATAR;
                     qCDebug(inputplugins, "succeess: sixense calibration");
+                    _requestReset = true;
                 }
                 break;
             default:
-                _calibrationState = CALIBRATION_STATE_IDLE;
                 qCDebug(inputplugins, "failed: sixense calibration");
                 break;
         }
+
+        _calibrationState = CALIBRATION_STATE_IDLE;
         return;
     }
 
+    // Calibration buttons are set, continue calibration work
     // NOTE: Sixense API returns pos data in millimeters but we IMMEDIATELY convert to meters.
     const float* pos = dataLeft->pos;
     glm::vec3 positionLeft(pos[0], pos[1], pos[2]);
@@ -261,6 +260,7 @@ void SixenseManager::InputDevice::updateCalibration(void* controllersX) {
     glm::vec3 positionRight(pos[0], pos[1], pos[2]);
     positionRight *= METERS_PER_MILLIMETER;
 
+    // Gather initial calibration data
     if (_calibrationState == CALIBRATION_STATE_IDLE) {
         float reach = glm::distance(positionLeft, positionRight);
         if (reach > 2.0f * MINIMUM_ARM_REACH) {
@@ -307,9 +307,6 @@ void SixenseManager::InputDevice::focusOutEvent() {
     _axisStateMap.clear();
     _buttonPressedMap.clear();
 };
-
-void SixenseManager::InputDevice::handleAxisEvent(float stickX, float stickY, float trigger, bool left) {
-}
 
 void SixenseManager::InputDevice::handleButtonEvent(unsigned int buttons, bool left) {
     using namespace controller;
