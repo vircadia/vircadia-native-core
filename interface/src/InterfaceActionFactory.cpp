@@ -21,17 +21,17 @@
 EntityActionPointer interfaceActionFactory(EntityActionType type, const QUuid& id, EntityItemPointer ownerEntity) {
     switch (type) {
         case ACTION_TYPE_NONE:
-            return nullptr;
+            return EntityActionPointer();
         case ACTION_TYPE_OFFSET:
-            return (EntityActionPointer) new ObjectActionOffset(id, ownerEntity);
+            return std::make_shared<ObjectActionOffset>(id, ownerEntity);
         case ACTION_TYPE_SPRING:
-            return (EntityActionPointer) new ObjectActionSpring(id, ownerEntity);
+            return std::make_shared<ObjectActionSpring>(id, ownerEntity);
         case ACTION_TYPE_HOLD:
-            return (EntityActionPointer) new AvatarActionHold(id, ownerEntity);
+            return std::make_shared<AvatarActionHold>(id, ownerEntity);
     }
 
-    assert(false);
-    return nullptr;
+    Q_ASSERT_X(false, Q_FUNC_INFO, "Unknown entity action type");
+    return EntityActionPointer();
 }
 
 
