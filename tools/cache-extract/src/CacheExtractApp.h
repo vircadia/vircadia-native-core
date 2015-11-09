@@ -22,9 +22,9 @@
 // copy of QNetworkCacheMetaData
 class MyMetaData {
 public:
-    typedef QPair<QByteArray, QByteArray> RawHeader;
-    typedef QList<RawHeader> RawHeaderList;
-    typedef QHash<qint32, QVariant> AttributesMap;
+    using RawHeader = QPair<QByteArray, QByteArray>;
+    using RawHeaderList = QList<RawHeader>;
+    using AttributesMap = QHash<qint32, QVariant>;
 
     QUrl url;
     QDateTime expirationDate;
@@ -34,7 +34,7 @@ public:
     RawHeaderList rawHeaders;
 };
 
-QDataStream &operator>>(QDataStream &, MyMetaData &);
+QDataStream &operator>>(QDataStream& in, MyMetaData& metaData);
 
 class CacheExtractApp : public QCoreApplication {
     Q_OBJECT
