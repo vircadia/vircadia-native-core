@@ -223,21 +223,21 @@ public:
     void calcAnimAlpha(float speed, const std::vector<float>& referenceSpeeds, float* alphaOut) const;
 
     QVector<JointState> _jointStates;
-    int _rootJointIndex = -1;
+    int _rootJointIndex { -1 };
 
-    int _leftHandJointIndex = -1;
-    int _leftElbowJointIndex = -1;
-    int _leftShoulderJointIndex = -1;
+    int _leftHandJointIndex { -1 };
+    int _leftElbowJointIndex { -1 };
+    int _leftShoulderJointIndex { -1 };
 
-    int _rightHandJointIndex = -1;
-    int _rightElbowJointIndex = -1;
-    int _rightShoulderJointIndex = -1;
+    int _rightHandJointIndex { -1 };
+    int _rightElbowJointIndex { -1 };
+    int _rightShoulderJointIndex { -1 };
 
     QList<AnimationHandlePointer> _animationHandles;
     QList<AnimationHandlePointer> _runningAnimations;
 
-    bool _enableRig = false;
-    bool _enableAnimGraph = false;
+    bool _enableRig { false };
+    bool _enableAnimGraph { false };
     glm::vec3 _lastFront;
     glm::vec3 _lastPosition;
     glm::vec3 _lastVelocity;
@@ -251,18 +251,25 @@ public:
         Turn,
         Move
     };
-    RigRole _state = RigRole::Idle;
-    RigRole _desiredState = RigRole::Idle;
-    float _desiredStateAge = 0.0f;
-    float _leftHandOverlayAlpha = 0.0f;
-    float _rightHandOverlayAlpha = 0.0f;
+    RigRole _state { RigRole::Idle };
+    RigRole _desiredState { RigRole::Idle };
+    float _desiredStateAge { 0.0f };
+    enum class UserAnimState {
+        None = 0,
+        A,
+        B
+    };
+    UserAnimState _userAnimState { UserAnimState::None };
+    QString _currentUserAnimURL;
+    float _leftHandOverlayAlpha { 0.0f };
+    float _rightHandOverlayAlpha { 0.0f };
 
-    SimpleMovingAverage _averageForwardSpeed{ 10 };
-    SimpleMovingAverage _averageLateralSpeed{ 10 };
+    SimpleMovingAverage _averageForwardSpeed { 10 };
+    SimpleMovingAverage _averageLateralSpeed { 10 };
 
 private:
     QMap<int, StateHandler> _stateHandlers;
-    int _nextStateHandlerId {0};
+    int _nextStateHandlerId { 0 };
     QMutex _stateMutex;
 };
 

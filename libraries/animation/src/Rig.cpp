@@ -21,6 +21,7 @@
 #include "AnimationHandle.h"
 #include "AnimationLogging.h"
 #include "AnimSkeleton.h"
+#include "AnimClip.h"
 #include "IKTarget.h"
 
 void insertSorted(QList<AnimationHandlePointer>& handles, const AnimationHandlePointer& handle) {
@@ -45,28 +46,61 @@ void Rig::removeAnimationHandle(const AnimationHandlePointer& handle) {
 }
 
 void Rig::startAnimation(const QString& url, float fps, float priority,
-                              bool loop, bool hold, float firstFrame, float lastFrame, const QStringList& maskedJoints) {
-    // This is different than startAnimationByRole, in which we use the existing values if the animation already exists.
-    // Here we reuse the animation handle if possible, but in any case, we set the values to those given (or defaulted).
-    AnimationHandlePointer handle = nullptr;
-    foreach (const AnimationHandlePointer& candidate, _animationHandles) {
-        if (candidate->getURL() == url) {
-            handle = candidate;
+                         bool loop, bool hold, float firstFrame, float lastFrame, const QStringList& maskedJoints) {
+    if (_enableAnimGraph) {
+
+        // NOTE: mask joints are unsupported, priority is now meaningless, hold flag is essentially always true
+        // when using the AnimGraph system.
+
+        // find an unused AnimClip clipNode
+        std::shared_ptr<AnimClip> clip;
+        if (_userAnimState == UserAnimState::None || _userAnimState == UserAnimState::B) {
+            _userAnimState = UserAnimState::A;
+            clip = std::dynamic_pointer_cast<AnimClip>(_animNode->getChild((int)_userAnimState));
+        } else if (_userAnimState == UserAnimState::A) {
+            _userAnimState = UserAnimState::B;
+            clip = std::dynamic_pointer_cast<AnimClip>(_animNode->getChild((int)_userAnimState));
         }
+
+        // set parameters
+        clip->setLoopFlag(loop);
+        clip->setStartFrame(firstFrame);
+        clip->setEndFrame(lastFrame);
+        const float REFERENCE_FRAMES_PER_SECOND = 30.0f;
+        clip->setTimeScale(fps / REFERENCE_FRAMES_PER_SECOND);
+        clip->loadURL(url);
+
+        _currentUserAnimURL = url;
+
+        // notify the userAnimStateMachine the desired state.
+        _animVars.set("userAnimNone", false);
+        _animVars.set("userAnimA", _userAnimState == UserAnimState::A);
+        _animVars.set("userAnimB", _userAnimState == UserAnimState::B);
+
+    } else {
+
+        // This is different than startAnimationByRole, in which we use the existing values if the animation already exists.
+        // Here we reuse the animation handle if possible, but in any case, we set the values to those given (or defaulted).
+        AnimationHandlePointer handle = nullptr;
+        foreach (const AnimationHandlePointer& candidate, _animationHandles) {
+            if (candidate->getURL() == url) {
+                handle = candidate;
+            }
+        }
+        if (!handle) {
+            handle = createAnimationHandle();
+            handle->setURL(url);
+        }
+        handle->setFade(1.0f);     // If you want to fade, use the startAnimationByRole system.
+        handle->setFPS(fps);
+        handle->setPriority(priority);
+        handle->setLoop(loop);
+        handle->setHold(hold);
+        handle->setFirstFrame(firstFrame);
+        handle->setLastFrame(lastFrame);
+        handle->setMaskedJoints(maskedJoints);
+        handle->start();
     }
-    if (!handle) {
-        handle = createAnimationHandle();
-        handle->setURL(url);
-    }
-    handle->setFade(1.0f);     // If you want to fade, use the startAnimationByRole system.
-    handle->setFPS(fps);
-    handle->setPriority(priority);
-    handle->setLoop(loop);
-    handle->setHold(hold);
-    handle->setFirstFrame(firstFrame);
-    handle->setLastFrame(lastFrame);
-    handle->setMaskedJoints(maskedJoints);
-    handle->start();
 }
 
 AnimationHandlePointer Rig::addAnimationByRole(const QString& role, const QString& url, float fps, float priority,
@@ -138,10 +172,20 @@ void Rig::stopAnimationByRole(const QString& role) {
 }
 
 void Rig::stopAnimation(const QString& url) {
-     foreach (const AnimationHandlePointer& handle, getRunningAnimations()) {
-        if (handle->getURL() == url) {
-            handle->setFade(0.0f); // right away. Will be remove during updateAnimations, without locking
-            handle->setFadePerSecond(-(FRAMES_PER_SECOND / FADE_FRAMES)); // so that the updateAnimation code notices
+    if (_enableAnimGraph) {
+        if (url == _currentUserAnimURL) {
+            _currentUserAnimURL = "";
+            // notify the userAnimStateMachine the desired state.
+            _animVars.set("userAnimNone", true);
+            _animVars.set("userAnimA", false);
+            _animVars.set("userAnimB", false);
+        }
+    } else {
+        foreach (const AnimationHandlePointer& handle, getRunningAnimations()) {
+            if (handle->getURL() == url) {
+                handle->setFade(0.0f); // right away. Will be remove during updateAnimations, without locking
+                handle->setFadePerSecond(-(FRAMES_PER_SECOND / FADE_FRAMES)); // so that the updateAnimation code notices
+            }
         }
     }
 }

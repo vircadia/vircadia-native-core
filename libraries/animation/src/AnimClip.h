@@ -37,13 +37,18 @@ public:
     void setFrameVar(const QString& frameVar) { _frameVar = frameVar; }
 
     float getStartFrame() const { return _startFrame; }
+    void setStartFrame(float startFrame) { _startFrame = startFrame; }
     float getEndFrame() const { return _endFrame; }
+    void setEndFrame(float endFrame) { _endFrame = endFrame; }
 
     void setTimeScale(float timeScale) { _timeScale = timeScale; }
     float getTimeScale() const { return _timeScale; }
 
-protected:
+    bool getLoopFlag() const { return _loopFlag; }
+    void setLoopFlag(bool loopFlag) { _loopFlag = loopFlag; }
+
     void loadURL(const QString& url);
+protected:
 
     virtual void setCurrentFrameInternal(float frame) override;
 
