@@ -25,7 +25,7 @@
 
     this.startNearGrab = function() {
         // send the avatar to the baseball location so that they're ready to bat
-        Window.location = "/baseball"
+        location = "/baseball"
 
         this.pitchAndHideAvatar()
     };
