@@ -30,7 +30,7 @@
 #include "devices/DdeFaceTracker.h"
 #include "devices/Faceshift.h"
 #include "devices/RealSense.h"
-#include "devices/3DConnexionClient.h"
+#include "input-plugins/SpacemouseManager.h"
 #include "MainWindow.h"
 #include "scripting/MenuScriptingInterface.h"
 #include "ui/AssetUploadDialogFactory.h"
@@ -44,22 +44,11 @@
 
 #include "Menu.h"
 
-Menu* Menu::_instance = NULL;
+static const char* const MENU_PROPERTY_NAME = "com.highfidelity.Menu";
 
 Menu* Menu::getInstance() {
-    static QMutex menuInstanceMutex;
-
-    // lock the menu instance mutex to make sure we don't race and create two menus and crash
-    menuInstanceMutex.lock();
-
-    if (!_instance) {
-        qCDebug(interfaceapp, "First call to Menu::getInstance() - initing menu.");
-        _instance = new Menu();
-    }
-
-    menuInstanceMutex.unlock();
-
-    return _instance;
+    static Menu* instance = globalInstance<Menu>(MENU_PROPERTY_NAME);
+    return instance;
 }
 
 Menu::Menu() {
@@ -467,13 +456,7 @@ Menu::Menu() {
     addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::MeshVisible, 0, true,
                                            avatar, SLOT(setEnableMeshVisible(bool)));
     addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::DisableEyelidAdjustment, 0, false);
-#if 0
-    addCheckableActionToQMenuAndActionHash(avatarDebugMenu,
-                                           MenuOption::Connexion,
-                                           0, false,
-                                           &ConnexionClient::getInstance(),
-                                           SLOT(toggleConnexion(bool)));
-#endif
+
     addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::ComfortMode, 0, true);
 
     MenuWrapper* handOptionsMenu = developerMenu->addMenu("Hands");

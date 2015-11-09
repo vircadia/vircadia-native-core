@@ -100,7 +100,7 @@
 #include "audio/AudioScope.h"
 #include "avatar/AvatarManager.h"
 #include "CrashHandler.h"
-#include "devices/3DConnexionClient.h"
+#include "input-plugins/SpacemouseManager.h"
 #include "devices/DdeFaceTracker.h"
 #include "devices/EyeTracker.h"
 #include "devices/Faceshift.h"
@@ -646,11 +646,14 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
     _applicationStateDevice->addInputVariant(QString("ComfortMode"), controller::StateController::ReadLambda([]() -> float {
         return (float)Menu::getInstance()->isOptionChecked(MenuOption::ComfortMode);
     }));
+	_applicationStateDevice->addInputVariant(QString("Grounded"), controller::StateController::ReadLambda([]() -> float {
+		return (float)qApp->getMyAvatar()->getCharacterController()->onGround();
+	}));
 
     userInputMapper->registerDevice(_applicationStateDevice);
     
     // Setup the keyboardMouseDevice and the user input mapper with the default bindings
-    userInputMapper->registerDevice(_keyboardMouseDevice);
+    userInputMapper->registerDevice(_keyboardMouseDevice->getInputDevice());
 
 
     userInputMapper->loadDefaultMapping(userInputMapper->getStandardDeviceID());
@@ -726,9 +729,10 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
     // Now that menu is initalized we can sync myAvatar with it's state.
     getMyAvatar()->updateMotionBehaviorFromMenu();
 
+// FIXME spacemouse code still needs cleanup
 #if 0
     // the 3Dconnexion device wants to be initiliazed after a window is displayed.
-    ConnexionClient::getInstance().init();
+    SpacemouseManager::getInstance().init();
 #endif
 
     auto& packetReceiver = nodeList->getPacketReceiver();
@@ -940,14 +944,12 @@ void Application::initializeGL() {
     qCDebug(interfaceapp) << "Created Display Window.";
 
     // initialize glut for shape drawing; Qt apparently initializes it on OS X
-    #ifndef __APPLE__
-    static bool isInitialized = false;
-    if (isInitialized) {
+    if (_isGLInitialized) {
         return;
     } else {
-        isInitialized = true;
+        _isGLInitialized = true;
     }
-    #endif
+
     // Where the gpuContext is initialized and where the TRUE Backend is created and assigned
     gpu::Context::init<gpu::GLBackend>();
     _gpuContext = std::make_shared<gpu::Context>();
@@ -1031,10 +1033,7 @@ void Application::initializeUi() {
     foreach(auto inputPlugin, PluginManager::getInstance()->getInputPlugins()) {
         QString name = inputPlugin->getName();
         if (name == KeyboardMouseDevice::NAME) {
-            auto kbm = static_cast<KeyboardMouseDevice*>(inputPlugin.data());
-            // FIXME incredibly evil.... _keyboardMouseDevice is now owned by 
-            // both a QSharedPointer and a std::shared_ptr
-            _keyboardMouseDevice = std::shared_ptr<KeyboardMouseDevice>(kbm);
+            _keyboardMouseDevice = std::dynamic_pointer_cast<KeyboardMouseDevice>(inputPlugin);
         }
     }
     updateInputModes();
@@ -1059,7 +1058,9 @@ void Application::paintGL() {
         _lastFramesPerSecondUpdate = now;
     }
 
-    idle(now);
+    if (_isGLInitialized) {
+        idle(now);
+    }
 
     PROFILE_RANGE(__FUNCTION__);
     PerformanceTimer perfTimer("paintGL");
@@ -1864,8 +1865,12 @@ void Application::focusOutEvent(QFocusEvent* event) {
             inputPlugin->pluginFocusOutEvent();
         }
     }
+
+// FIXME spacemouse code still needs cleanup
 #if 0
-    ConnexionData::getInstance().focusOutEvent();
+    //SpacemouseDevice::getInstance().focusOutEvent();
+    //SpacemouseManager::getInstance().getDevice()->focusOutEvent();
+    SpacemouseManager::getInstance().ManagerFocusOutEvent();
 #endif
 
     // synthesize events for keys currently pressed, since we may not get their release events
@@ -2812,7 +2817,7 @@ void Application::update(float deltaTime) {
                 float timeFactor = EXPECTED_FRAME_RATE * deltaTime;
                 myAvatar->setDriveKeys(PITCH, -1.0f * userInputMapper->getActionState(controller::Action::PITCH) / timeFactor);
                 myAvatar->setDriveKeys(YAW, -1.0f * userInputMapper->getActionState(controller::Action::YAW) / timeFactor);
-                myAvatar->setDriveKeys(STEP_YAW, -1.0f * userInputMapper->getActionState(controller::Action::STEP_YAW) / timeFactor);
+                myAvatar->setDriveKeys(STEP_YAW, -1.0f * userInputMapper->getActionState(controller::Action::STEP_YAW));
             }
         }
         myAvatar->setDriveKeys(ZOOM, userInputMapper->getActionState(controller::Action::TRANSLATE_CAMERA_Z));
@@ -4663,7 +4668,7 @@ DisplayPlugin* Application::getActiveDisplayPlugin() {
         updateDisplayMode();
         Q_ASSERT(_displayPlugin);
     }
-    return _displayPlugin.data();
+    return _displayPlugin.get();
 }
 
 const DisplayPlugin* Application::getActiveDisplayPlugin() const {
@@ -4703,10 +4708,10 @@ void Application::updateDisplayMode() {
         bool first = true;
         foreach(auto displayPlugin, displayPlugins) {
             addDisplayPluginToMenu(displayPlugin, first);
-            QObject::connect(displayPlugin.data(), &DisplayPlugin::requestRender, [this] {
+            QObject::connect(displayPlugin.get(), &DisplayPlugin::requestRender, [this] {
                 paintGL();
             });
-            QObject::connect(displayPlugin.data(), &DisplayPlugin::recommendedFramebufferSizeChanged, [this](const QSize & size) {
+            QObject::connect(displayPlugin.get(), &DisplayPlugin::recommendedFramebufferSizeChanged, [this](const QSize & size) {
                 resizeGL();
             });
 
@@ -4832,12 +4837,14 @@ void Application::updateInputModes() {
     foreach(auto inputPlugin, inputPlugins) {
         QString name = inputPlugin->getName();
         QAction* action = menu->getActionForOption(name);
-        if (action->isChecked() && !_activeInputPlugins.contains(inputPlugin)) {
-            _activeInputPlugins.append(inputPlugin);
-            newInputPlugins.append(inputPlugin);
-        } else if (!action->isChecked() && _activeInputPlugins.contains(inputPlugin)) {
-            _activeInputPlugins.removeOne(inputPlugin);
-            removedInputPlugins.append(inputPlugin);
+
+        auto it = std::find(std::begin(_activeInputPlugins), std::end(_activeInputPlugins), inputPlugin);
+        if (action->isChecked() && it == std::end(_activeInputPlugins)) {
+            _activeInputPlugins.push_back(inputPlugin);
+            newInputPlugins.push_back(inputPlugin);
+        } else if (!action->isChecked() && it != std::end(_activeInputPlugins)) {
+            _activeInputPlugins.erase(it);
+            removedInputPlugins.push_back(inputPlugin);
         }
     }
 

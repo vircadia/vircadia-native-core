@@ -2,22 +2,29 @@
     "name": "Standard to Action",
     "channels": [
         { "from": "Standard.LY", "to": "Actions.TranslateZ" },
+        { "from": "Standard.LX", "to": "Actions.TranslateX" },
 
-        { "from": "Standard.LX",
+        { "from": "Standard.RX",
           "when": [ "Application.InHMD", "Application.ComfortMode" ],
           "to": "Actions.StepYaw",
           "filters":
             [
                 { "type": "pulse", "interval": 0.5 },
-                { "type": "scale", "scale": 15 }
+                { "type": "scale", "scale": 22.5 }
             ]
         },
-
-        { "from": "Standard.LX", "to": "Actions.Yaw" },
-
-        { "from": "Standard.RX", "to": "Actions.TranslateX" },
-        { "from": "Standard.RY", "filters": "invert", "to": "Actions.TranslateY" }, 
-
+        { "from": "Standard.RX", "to": "Actions.Yaw" },
+        
+        { "from": "Standard.RY", 
+          "when": "Application.Grounded", 
+          "to": "Actions.Up", 
+          "filters": 
+            [
+                { "type": "deadZone", "min": 0.95 },
+                "invert"
+            ]
+        }, 
+        { "from": "Standard.RY", "to": "Actions.Up", "filters": "invert"}, 
 
         { "from": [ "Standard.DU", "Standard.DL", "Standard.DR", "Standard.DD" ], "to": "Standard.LeftPrimaryThumb" },
         { "from": "Standard.Back", "to": "Standard.LeftSecondaryThumb" },

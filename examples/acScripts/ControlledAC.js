@@ -12,27 +12,25 @@
 HIFI_PUBLIC_BUCKET = "http://s3.amazonaws.com/hifi-public/";
 
 // Set the following variables to the values needed
-var filename = HIFI_PUBLIC_BUCKET + "ozan/bartender.rec";
+var filename = "/Users/clement/Desktop/recording.hfr";
 var playFromCurrentLocation = true;
 var useDisplayName = true;
 var useAttachments = true;
-var useHeadModel = true;
-var useSkeletonModel = true;
+var useAvatarModel = true;
 
 // ID of the agent. Two agents can't have the same ID.
 var id = 0;
 
-// Set head and skeleton models
-Avatar.faceModelURL = "http://public.highfidelity.io/models/heads/EvilPhilip_v7.fst";
-Avatar.skeletonModelURL = "http://public.highfidelity.io/models/skeletons/Philip_Carl_Body_A-Pose.fst";
+// Set avatar model URL
+Avatar.skeletonModelURL = "https://hifi-public.s3.amazonaws.com/marketplace/contents/e21c0b95-e502-4d15-8c41-ea2fc40f1125/3585ddf674869a67d31d5964f7b52de1.fst?1427169998";
 // Set position/orientation/scale here if playFromCurrentLocation is true
 Avatar.position = { x:1, y: 1, z: 1 };
 Avatar.orientation = Quat.fromPitchYawRollDegrees(0, 0, 0);
 Avatar.scale = 1.0;
 
 // Those variables MUST be common to every scripts
-var controlVoxelSize = 0.25;
-var controlVoxelPosition = { x: 2000 , y: 0, z: 0 };
+var controlEntitySize = 0.25;
+var controlEntityPosition = { x: 2000, y: 0, z: 0 };
 
 // Script. DO NOT MODIFY BEYOND THIS LINE.
 var DO_NOTHING = 0;
@@ -49,113 +47,111 @@ COLORS[STOP] = { red: STOP, green: 0,  blue: 0 };
 COLORS[SHOW] = { red: SHOW, green: 0,  blue: 0 };
 COLORS[HIDE] = { red: HIDE, green: 0,  blue: 0 };
 
-controlVoxelPosition.x += id * controlVoxelSize;
-    
+controlEntityPosition.x += id * controlEntitySize;
+
 Avatar.loadRecording(filename);
 
 Avatar.setPlayFromCurrentLocation(playFromCurrentLocation);
 Avatar.setPlayerUseDisplayName(useDisplayName);
 Avatar.setPlayerUseAttachments(useAttachments);
-Avatar.setPlayerUseHeadModel(useHeadModel);
-Avatar.setPlayerUseSkeletonModel(useSkeletonModel);
+Avatar.setPlayerUseHeadModel(false);
+Avatar.setPlayerUseSkeletonModel(useAvatarModel);
 
-function setupVoxelViewer() {
-  var voxelViewerOffset = 10;
-  var voxelViewerPosition = JSON.parse(JSON.stringify(controlVoxelPosition));
-  voxelViewerPosition.x -= voxelViewerOffset;
-  var voxelViewerOrientation = Quat.fromPitchYawRollDegrees(0, -90, 0);
-
-  VoxelViewer.setPosition(voxelViewerPosition);
-  VoxelViewer.setOrientation(voxelViewerOrientation);
-  VoxelViewer.queryOctree();
+function setupEntityViewer() {
+    var entityViewerOffset = 10;
+    var entityViewerPosition = { x: controlEntityPosition.x - entityViewerOffset,
+        y: controlEntityPosition.y, z: controlEntityPosition.z };
+    var entityViewerOrientation = Quat.fromPitchYawRollDegrees(0, -90, 0);
+    
+    EntityViewer.setPosition(entityViewerPosition);
+    EntityViewer.setOrientation(entityViewerOrientation);
+    EntityViewer.queryOctree();
 }
 
-function getAction(controlVoxel) {
-  if (controlVoxel.x != controlVoxelPosition.x ||
-      controlVoxel.y != controlVoxelPosition.y ||
-      controlVoxel.z != controlVoxelPosition.z ||
-      controlVoxel.s != controlVoxelSize) {
-    return DO_NOTHING;
-  }
-
-  for (i in COLORS) {
-    if (controlVoxel.red === COLORS[i].red &&
-        controlVoxel.green === COLORS[i].green &&
-        controlVoxel.blue === COLORS[i].blue) {
-        
-          // TODO: Fix this to use some mechanism other than voxels
-          //Voxels.eraseVoxel(controlVoxelPosition.x, controlVoxelPosition.y, controlVoxelPosition.z, controlVoxelSize);
-          return parseInt(i);
+function getAction(controlEntity) {
+    if (controlEntity === null ||
+        controlEntity.position.x !== controlEntityPosition.x ||
+        controlEntity.position.y !== controlEntityPosition.y ||
+        controlEntity.position.z !== controlEntityPosition.z ||
+        controlEntity.dimensions.x !== controlEntitySize) {
+        return DO_NOTHING;
     }
-  }
-
-  return DO_NOTHING;
+    
+    for (i in COLORS) {
+        if (controlEntity.color.red === COLORS[i].red &&
+            controlEntity.color.green === COLORS[i].green &&
+            controlEntity.color.blue === COLORS[i].blue) {
+            Entities.deleteEntity(controlEntity.id);
+            return parseInt(i);
+        }
+    }
+    
+    return DO_NOTHING;
 }
 
-count = 300; // This is necessary to wait for the audio mixer to connect
+count = 100; // This is necessary to wait for the audio mixer to connect
 function update(event) {
-  VoxelViewer.queryOctree();
-  if (count > 0) {
-    count--;
-    return;
-  }
-
-  // TODO: Fix this to use some mechanism other than voxels
-  // Voxels.getVoxelAt(controlVoxelPosition.x, controlVoxelPosition.y, controlVoxelPosition.z, controlVoxelSize);
-  var controlVoxel = false; 
-  var action = getAction(controlVoxel);
-
-  switch(action) {
-    case PLAY:
-      print("Play");
-      if (!Agent.isAvatar) {
-        Agent.isAvatar = true;
-      }
-      if (!Avatar.isPlaying()) {
-        Avatar.startPlaying();
-      }
-      Avatar.setPlayerLoop(false);
-      break;
-    case PLAY_LOOP:
-      print("Play loop");
-      if (!Agent.isAvatar) {
-        Agent.isAvatar = true;
-      }
-      if (!Avatar.isPlaying()) {
-        Avatar.startPlaying();
-      }
-      Avatar.setPlayerLoop(true);
-      break;
-    case STOP:
-      print("Stop");
-      if (Avatar.isPlaying()) {
-        Avatar.stopPlaying();
-      }
-      break;
-    case SHOW:
-      print("Show");
-      if (!Agent.isAvatar) {
-        Agent.isAvatar = true;
-      }
-      break;
-    case HIDE:
-      print("Hide");
-      if (Avatar.isPlaying()) {
-        Avatar.stopPlaying();
-      }
-      Agent.isAvatar = false;
-      break;
-    case DO_NOTHING:
-      break;
-    default:
-      print("Unknown action: " + action);
-      break;
-  }
-  
-  if (Avatar.isPlaying()) {
-    Avatar.play();
-  }
+    EntityViewer.queryOctree();
+    if (count > 0) {
+        count--;
+        return;
+    }
+    
+    
+    var controlEntity = Entities.findClosestEntity(controlEntityPosition, controlEntitySize);
+    var action = getAction(Entities.getEntityProperties(controlEntity));
+    
+    switch(action) {
+        case PLAY:
+            print("Play");
+            if (!Agent.isAvatar) {
+                Agent.isAvatar = true;
+            }
+            if (!Avatar.isPlaying()) {
+                Avatar.startPlaying();
+            }
+            Avatar.setPlayerLoop(false);
+            break;
+        case PLAY_LOOP:
+            print("Play loop");
+            if (!Agent.isAvatar) {
+                Agent.isAvatar = true;
+            }
+            if (!Avatar.isPlaying()) {
+                Avatar.startPlaying();
+            }
+            Avatar.setPlayerLoop(true);
+            break;
+        case STOP:
+            print("Stop");
+            if (Avatar.isPlaying()) {
+                Avatar.stopPlaying();
+            }
+            break;
+        case SHOW:
+            print("Show");
+            if (!Agent.isAvatar) {
+                Agent.isAvatar = true;
+            }
+            break;
+        case HIDE:
+            print("Hide");
+            if (Avatar.isPlaying()) {
+                Avatar.stopPlaying();
+            }
+            Agent.isAvatar = false;
+            break;
+        case DO_NOTHING:
+            break;
+        default:
+            print("Unknown action: " + action);
+            break;
+    }
+    
+    if (Avatar.isPlaying()) {
+        Avatar.play();
+    }
 }
 
 Script.update.connect(update);
-setupVoxelViewer();
+setupEntityViewer();
