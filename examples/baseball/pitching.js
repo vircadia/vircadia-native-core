@@ -496,8 +496,6 @@ Baseball.prototype = {
     }
 }
 
-var baseball = null;
-
 function entityCollisionWithGround(ground, entity, collision) {
     var ZERO_VEC = { x: 0, y: 0, z: 0 };
     var dVelocityMagnitude = Vec3.length(collision.velocityChange);
@@ -536,5 +534,3 @@ Script.scriptEnding.connect(function() {
     cleanupTrail();
     Entities.deleteEntity(pitchingMachineID);
 });
-
-print("Done loading pitching.js");
