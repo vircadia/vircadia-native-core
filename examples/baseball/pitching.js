@@ -10,13 +10,14 @@
 //
 
 print("Loading pitching");
-//Script.include("../libraries/line.js");
-Script.include("https://raw.githubusercontent.com/huffman/hifi/line-js/examples/libraries/line.js");
-Script.include("http://rawgit.com/huffman/hifi/baseball/examples/baseball/firework.js");
-Script.include("http://rawgit.com/huffman/hifi/baseball/examples/baseball/utils.js");
+
+Script.include("../libraries/line.js");
+Script.include("firework.js");
+Script.include("utils.js");
 
 var DISTANCE_BILLBOARD_NAME = "CurrentScore";
 var HIGH_SCORE_BILLBOARD_NAME = "HighScore";
+
 var DISTANCE_BILLBOARD_ENTITY_ID = findEntity({name: DISTANCE_BILLBOARD_NAME }, 1000);
 var HIGH_SCORE_BILLBOARD_ENTITY_ID = findEntity({name: HIGH_SCORE_BILLBOARD_NAME }, 1000);
 
