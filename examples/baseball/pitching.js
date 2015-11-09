@@ -76,7 +76,7 @@ var PITCHING_MACHINE_PROPERTIES = {
     position: {
         x: -0.93,
         y: 0.8,
-        z: -19.8,
+        z: -19.8
     },
     velocity: {
         x: 0,
@@ -91,7 +91,7 @@ var PITCHING_MACHINE_PROPERTIES = {
     registrationPoint: {
         x: 0.5,
         y: 0.5,
-        z: 0.5,
+        z: 0.5
     },
     rotation: Quat.fromPitchYawRollDegrees(0, 180, 0),
     modelURL: PITCHING_MACHINE_URL,
@@ -124,6 +124,8 @@ getOrCreatePitchingMachine = function() {
     return new PitchingMachine(pitchingMachineID);
 }
 
+// The pitching machine wraps an entity ID and uses it's position & rotation to determin where to
+// pitch the ball from and in which direction, and uses the dimensions to determine the scale of them ball.
 function PitchingMachine(pitchingMachineID) {
     this.pitchingMachineID = pitchingMachineID;
     this.enabled = false;
@@ -270,35 +272,6 @@ var ACCELERATION_SPREAD = 0.35;
 
 var TRAIL_COLOR = { red: 128, green: 255, blue: 89 };
 var TRAIL_LIFETIME = 20;
-
-function ObjectTrail(entityID, startPosition) {
-    this.entityID = entityID;
-    this.line = null;
-    var lineInterval = null;
-
-    var lastPosition = startPosition;
-    trail = new InfiniteLine(startPosition, trailColor, trailLifetime);
-    trailInterval = Script.setInterval(function() {
-        var properties = Entities.getEntityProperties(entityID, ['position']);
-        if (Vec3.distance(properties.position, lastPosition)) {
-            var strokeWidth = Math.log(1 + trail.size) * 0.05;
-            trail.enqueuePoint(properties.position, strokeWidth);
-            lastPosition = properties.position;
-        }
-    }, 50);
-}
-
-ObjectTrail.prototype = {
-    destroy: function() {
-        if (this.line) {
-            Script.clearInterval(this.lineInterval);
-            this.lineInterval = null;
-
-            this.line.destroy();
-            this.line = null;
-        }
-    }
-};
 
 var trail = null;
 var trailInterval = null;
