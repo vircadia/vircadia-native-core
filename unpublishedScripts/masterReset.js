@@ -883,7 +883,7 @@ MasterReset = function() {
             type: "Model",
             modelURL: MODEL_URL,
             shapeType: 'compound',
-            compoundShapeURL:COLLISION_SOUND_URL,
+            compoundShapeURL:COLLISION_HULL_URL,
             script: pingPongScriptURL,
             position: position,
             rotation: rotation,
