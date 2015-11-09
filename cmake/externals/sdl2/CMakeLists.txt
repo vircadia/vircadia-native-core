@@ -7,7 +7,7 @@ string(TOUPPER ${EXTERNAL_NAME} EXTERNAL_NAME_UPPER)
 if (WIN32)
   ExternalProject_Add(
     ${EXTERNAL_NAME}
-    URL http://www.libsdl.org/release/SDL2-devel-2.0.3-VC.zip
+    URL http://hifi-public.s3.amazonaws.com/dependencies/SDL2-devel-2.0.3-VC.zip
     URL_MD5 30a333bcbe94bc5016e8799c73e86233
     CONFIGURE_COMMAND ""
     BUILD_COMMAND ""
@@ -18,7 +18,7 @@ elseif (APPLE)
 
     ExternalProject_Add(
       ${EXTERNAL_NAME}
-      URL https://hifi-public.s3.amazonaws.com/dependencies/SDL2-2.0.3.zip
+      URL http://hifi-public.s3.amazonaws.com/dependencies/SDL2-2.0.3.zip
       CMAKE_ARGS -DCMAKE_INSTALL_PREFIX:PATH=<INSTALL_DIR> -DVIDEO_OPENGL=OFF
       BINARY_DIR ${EXTERNAL_PROJECT_PREFIX}/build
       LOG_DOWNLOAD 1

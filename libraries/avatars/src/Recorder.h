@@ -43,7 +43,6 @@ public slots:
     void record();
     void recordAudio(const QByteArray& audioArray);
     
-    
 private:
     QElapsedTimer _timer;
     RecordingPointer _recording;

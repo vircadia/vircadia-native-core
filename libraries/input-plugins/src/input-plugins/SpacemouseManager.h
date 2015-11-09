@@ -11,8 +11,6 @@
 #ifndef hifi_SpacemouseManager_h
 #define hifi_SpacemouseManager_h
 
-#define HAVE_3DCONNEXIONCLIENT
-
 #include <QObject>
 #include <QLibrary>
 #include <controllers/UserInputMapper.h>
@@ -25,9 +23,8 @@
 class SpacemouseManager : public QObject {
     Q_OBJECT
 public:
-    static SpacemouseManager& getInstance();
     void ManagerFocusOutEvent();
-    void init() {};
+    void init();
     void destroy() {};
     bool Is3dmouseAttached() { return false; };
     public slots:
@@ -94,7 +91,6 @@ class SpacemouseManager : public QObject, public QAbstractNativeEventFilter {
 public:
     SpacemouseManager() {};
 
-    static SpacemouseManager& getInstance();
     void init();
     void destroy();
     bool Is3dmouseAttached();
@@ -171,7 +167,6 @@ private:
 class SpacemouseManager : public QObject {
     Q_OBJECT
 public:
-    static SpacemouseManager& getInstance();
     void init();
     void destroy();
     bool Is3dmouseAttached();

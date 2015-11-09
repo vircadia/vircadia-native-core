@@ -19,8 +19,8 @@
 
 const QString KeyboardMouseDevice::NAME = "Keyboard/Mouse";
 
-void KeyboardMouseDevice::update(float deltaTime, bool jointsCaptured) {
-    _axisStateMap.clear();
+void KeyboardMouseDevice::pluginUpdate(float deltaTime, bool jointsCaptured) { 
+    _inputDevice->update(deltaTime, jointsCaptured); 
 
     // For touch event, we need to check that the last event is not too long ago
     // Maybe it's a Qt issue, but the touch event sequence (begin, update, end) is not always called properly
@@ -35,26 +35,30 @@ void KeyboardMouseDevice::update(float deltaTime, bool jointsCaptured) {
     }
 }
 
-void KeyboardMouseDevice::focusOutEvent() {
+void KeyboardMouseDevice::InputDevice::update(float deltaTime, bool jointsCaptured) {
+    _axisStateMap.clear();
+}
+
+void KeyboardMouseDevice::InputDevice::focusOutEvent() {
     _buttonPressedMap.clear();
-};
+}
 
 void KeyboardMouseDevice::keyPressEvent(QKeyEvent* event) {
-    auto input = makeInput((Qt::Key) event->key());
-    auto result = _buttonPressedMap.insert(input.getChannel());
+    auto input = _inputDevice->makeInput((Qt::Key) event->key());
+    auto result = _inputDevice->_buttonPressedMap.insert(input.getChannel());
     if (!result.second) {
         // key pressed again ? without catching the release event ?
     }
 }
 
 void KeyboardMouseDevice::keyReleaseEvent(QKeyEvent* event) {
-    auto input = makeInput((Qt::Key) event->key());
-    _buttonPressedMap.erase(input.getChannel());
+    auto input = _inputDevice->makeInput((Qt::Key) event->key());
+    _inputDevice->_buttonPressedMap.erase(input.getChannel());
 }
 
 void KeyboardMouseDevice::mousePressEvent(QMouseEvent* event, unsigned int deviceID) {
-    auto input = makeInput((Qt::MouseButton) event->button());
-    auto result = _buttonPressedMap.insert(input.getChannel());
+    auto input = _inputDevice->makeInput((Qt::MouseButton) event->button());
+    auto result = _inputDevice->_buttonPressedMap.insert(input.getChannel());
     if (!result.second) {
         // key pressed again ? without catching the release event ?
     }
@@ -65,32 +69,32 @@ void KeyboardMouseDevice::mousePressEvent(QMouseEvent* event, unsigned int devic
 }
 
 void KeyboardMouseDevice::mouseReleaseEvent(QMouseEvent* event, unsigned int deviceID) {
-    auto input = makeInput((Qt::MouseButton) event->button());
-    _buttonPressedMap.erase(input.getChannel());
+    auto input = _inputDevice->makeInput((Qt::MouseButton) event->button());
+    _inputDevice->_buttonPressedMap.erase(input.getChannel());
 
     // if we pressed and released at the same location, then create a "_CLICKED" input for this button
     // we might want to add some small tolerance to this so if you do a small drag it still counts as
     // a clicked.
     if (_mousePressAt == event->pos()) {
-        _buttonPressedMap.insert(makeInput((Qt::MouseButton) event->button(), true).getChannel());
+        _inputDevice->_buttonPressedMap.insert(_inputDevice->makeInput((Qt::MouseButton) event->button(), true).getChannel());
     }
 }
 
 void KeyboardMouseDevice::eraseMouseClicked() {
-    _buttonPressedMap.erase(makeInput(Qt::LeftButton, true).getChannel());
-    _buttonPressedMap.erase(makeInput(Qt::MiddleButton, true).getChannel());
-    _buttonPressedMap.erase(makeInput(Qt::RightButton, true).getChannel());
+    _inputDevice->_buttonPressedMap.erase(_inputDevice->makeInput(Qt::LeftButton, true).getChannel());
+    _inputDevice->_buttonPressedMap.erase(_inputDevice->makeInput(Qt::MiddleButton, true).getChannel());
+    _inputDevice->_buttonPressedMap.erase(_inputDevice->makeInput(Qt::RightButton, true).getChannel());
 }
 
 void KeyboardMouseDevice::mouseMoveEvent(QMouseEvent* event, unsigned int deviceID) {
     QPoint currentPos = event->pos();
     QPoint currentMove = currentPos - _lastCursor;
 
-    _axisStateMap[makeInput(MOUSE_AXIS_X_POS).getChannel()] = (currentMove.x() > 0 ? currentMove.x() : 0.0f);
-    _axisStateMap[makeInput(MOUSE_AXIS_X_NEG).getChannel()] = (currentMove.x() < 0 ? -currentMove.x() : 0.0f);
+    _inputDevice->_axisStateMap[MOUSE_AXIS_X_POS] = (currentMove.x() > 0 ? currentMove.x() : 0.0f);
+    _inputDevice->_axisStateMap[MOUSE_AXIS_X_NEG] = (currentMove.x() < 0 ? -currentMove.x() : 0.0f);
      // Y mouse is inverted positive is pointing up the screen
-    _axisStateMap[makeInput(MOUSE_AXIS_Y_POS).getChannel()] = (currentMove.y() < 0 ? -currentMove.y() : 0.0f);
-    _axisStateMap[makeInput(MOUSE_AXIS_Y_NEG).getChannel()] = (currentMove.y() > 0 ? currentMove.y() : 0.0f);
+    _inputDevice->_axisStateMap[MOUSE_AXIS_Y_POS] = (currentMove.y() < 0 ? -currentMove.y() : 0.0f);
+    _inputDevice->_axisStateMap[MOUSE_AXIS_Y_NEG] = (currentMove.y() > 0 ? currentMove.y() : 0.0f);
 
     _lastCursor = currentPos;
 
@@ -100,10 +104,10 @@ void KeyboardMouseDevice::mouseMoveEvent(QMouseEvent* event, unsigned int device
 void KeyboardMouseDevice::wheelEvent(QWheelEvent* event) {
     auto currentMove = event->angleDelta() / 120.0f;
 
-    _axisStateMap[makeInput(MOUSE_AXIS_WHEEL_X_POS).getChannel()] = (currentMove.x() > 0 ? currentMove.x() : 0.0f);
-    _axisStateMap[makeInput(MOUSE_AXIS_WHEEL_X_NEG).getChannel()] = (currentMove.x() < 0 ? -currentMove.x() : 0.0f);
-    _axisStateMap[makeInput(MOUSE_AXIS_WHEEL_Y_POS).getChannel()] = (currentMove.y() > 0 ? currentMove.y() : 0.0f);
-    _axisStateMap[makeInput(MOUSE_AXIS_WHEEL_Y_NEG).getChannel()] = (currentMove.y() < 0 ? -currentMove.y() : 0.0f);
+    _inputDevice->_axisStateMap[_inputDevice->makeInput(MOUSE_AXIS_WHEEL_X_POS).getChannel()] = (currentMove.x() > 0 ? currentMove.x() : 0.0f);
+    _inputDevice->_axisStateMap[_inputDevice->makeInput(MOUSE_AXIS_WHEEL_X_NEG).getChannel()] = (currentMove.x() < 0 ? -currentMove.x() : 0.0f);
+    _inputDevice->_axisStateMap[_inputDevice->makeInput(MOUSE_AXIS_WHEEL_Y_POS).getChannel()] = (currentMove.y() > 0 ? currentMove.y() : 0.0f);
+    _inputDevice->_axisStateMap[_inputDevice->makeInput(MOUSE_AXIS_WHEEL_Y_NEG).getChannel()] = (currentMove.y() < 0 ? -currentMove.y() : 0.0f);
 }
 
 glm::vec2 evalAverageTouchPoints(const QList<QTouchEvent::TouchPoint>& points) {
@@ -138,17 +142,17 @@ void KeyboardMouseDevice::touchUpdateEvent(const QTouchEvent* event) {
     } else {
         auto currentMove = currentPos - _lastTouch;
     
-        _axisStateMap[makeInput(TOUCH_AXIS_X_POS).getChannel()] = (currentMove.x > 0 ? currentMove.x : 0.0f);
-        _axisStateMap[makeInput(TOUCH_AXIS_X_NEG).getChannel()] = (currentMove.x < 0 ? -currentMove.x : 0.0f);
+        _inputDevice->_axisStateMap[_inputDevice->makeInput(TOUCH_AXIS_X_POS).getChannel()] = (currentMove.x > 0 ? currentMove.x : 0.0f);
+        _inputDevice->_axisStateMap[_inputDevice->makeInput(TOUCH_AXIS_X_NEG).getChannel()] = (currentMove.x < 0 ? -currentMove.x : 0.0f);
         // Y mouse is inverted positive is pointing up the screen
-        _axisStateMap[makeInput(TOUCH_AXIS_Y_POS).getChannel()] = (currentMove.y < 0 ? -currentMove.y : 0.0f);
-        _axisStateMap[makeInput(TOUCH_AXIS_Y_NEG).getChannel()] = (currentMove.y > 0 ? currentMove.y : 0.0f);
+        _inputDevice->_axisStateMap[_inputDevice->makeInput(TOUCH_AXIS_Y_POS).getChannel()] = (currentMove.y < 0 ? -currentMove.y : 0.0f);
+        _inputDevice->_axisStateMap[_inputDevice->makeInput(TOUCH_AXIS_Y_NEG).getChannel()] = (currentMove.y > 0 ? currentMove.y : 0.0f);
     }
 
     _lastTouch = currentPos;
 }
 
-controller::Input KeyboardMouseDevice::makeInput(Qt::Key code) const {
+controller::Input KeyboardMouseDevice::InputDevice::makeInput(Qt::Key code) const {
     auto shortCode = (uint16_t)(code & KEYBOARD_MASK);
     if (shortCode != code) {
        shortCode |= 0x0800; // add this bit instead of the way Qt::Key add a bit on the 3rd byte for some keys
@@ -156,7 +160,7 @@ controller::Input KeyboardMouseDevice::makeInput(Qt::Key code) const {
     return controller::Input(_deviceID, shortCode, controller::ChannelType::BUTTON);
 }
 
-controller::Input KeyboardMouseDevice::makeInput(Qt::MouseButton code, bool clicked) const {
+controller::Input KeyboardMouseDevice::InputDevice::makeInput(Qt::MouseButton code, bool clicked) const {
     switch (code) {
         case Qt::LeftButton:
             return controller::Input(_deviceID, clicked ? MOUSE_BUTTON_LEFT_CLICKED :
@@ -172,19 +176,19 @@ controller::Input KeyboardMouseDevice::makeInput(Qt::MouseButton code, bool clic
     };
 }
 
-controller::Input KeyboardMouseDevice::makeInput(KeyboardMouseDevice::MouseAxisChannel axis) const {
+controller::Input KeyboardMouseDevice::InputDevice::makeInput(KeyboardMouseDevice::MouseAxisChannel axis) const {
     return controller::Input(_deviceID, axis, controller::ChannelType::AXIS);
 }
 
-controller::Input KeyboardMouseDevice::makeInput(KeyboardMouseDevice::TouchAxisChannel axis) const {
+controller::Input KeyboardMouseDevice::InputDevice::makeInput(KeyboardMouseDevice::TouchAxisChannel axis) const {
     return controller::Input(_deviceID, axis, controller::ChannelType::AXIS);
 }
 
-controller::Input KeyboardMouseDevice::makeInput(KeyboardMouseDevice::TouchButtonChannel button) const {
+controller::Input KeyboardMouseDevice::InputDevice::makeInput(KeyboardMouseDevice::TouchButtonChannel button) const {
     return controller::Input(_deviceID, button, controller::ChannelType::BUTTON);
 }
 
-controller::Input::NamedVector KeyboardMouseDevice::getAvailableInputs() const {
+controller::Input::NamedVector KeyboardMouseDevice::InputDevice::getAvailableInputs() const {
     using namespace controller;
     static QVector<Input::NamedPair> availableInputs;
     static std::once_flag once;
@@ -229,7 +233,7 @@ controller::Input::NamedVector KeyboardMouseDevice::getAvailableInputs() const {
     return availableInputs;
 }
 
-QString KeyboardMouseDevice::getDefaultMappingConfig() const {
+QString KeyboardMouseDevice::InputDevice::getDefaultMappingConfig() const {
     static const QString MAPPING_JSON = PathUtils::resourcesPath() + "/controllers/keyboardMouse.json";
     return MAPPING_JSON;
 }
