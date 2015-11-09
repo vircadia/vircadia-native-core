@@ -19,6 +19,9 @@
 
 #include "InputPlugin.h"
 
+struct _sixenseControllerData;
+using SixenseControllerData = _sixenseControllerData;
+
 // Handles interaction with the Sixense SDK (e.g., Razer Hydra).
 class SixenseManager : public InputPlugin {
     Q_OBJECT
@@ -65,9 +68,8 @@ private:
         virtual void focusOutEvent() override;
 
         void handleButtonEvent(unsigned int buttons, bool left);
-        void handleAxisEvent(float x, float y, float trigger, bool left);
         void handlePoseEvent(float deltaTime, glm::vec3 position, glm::quat rotation, bool left);
-        void updateCalibration(void* controllers);
+        void updateCalibration(SixenseControllerData* controllers);
 
         friend class SixenseManager;
 
@@ -79,6 +81,7 @@ private:
         glm::quat _avatarRotation; // in hydra-frame
     
         float _lastDistance;
+        bool _requestReset { false };
         // these are measured values used to compute the calibration results
         quint64 _lockExpiry;
         glm::vec3 _averageLeft;
