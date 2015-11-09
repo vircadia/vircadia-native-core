@@ -2,34 +2,7 @@ print("Loading pitching");
 //Script.include("../libraries/line.js");
 Script.include("https://raw.githubusercontent.com/huffman/hifi/line-js/examples/libraries/line.js");
 Script.include("http://rawgit.com/huffman/hifi/baseball/examples/baseball/firework.js");
-
-function findEntity(properties, searchRadius) {
-    var entities = findEntities(properties, searchRadius);
-    return entities.length > 0 ? entities[0] : null;
-}
-
-// Return all entities with properties `properties` within radius `searchRadius`
-function findEntities(properties, searchRadius) {
-    var entities = Entities.findEntities(MyAvatar.position, searchRadius);
-    var matchedEntities = [];
-    var keys = Object.keys(properties);
-    for (var i = 0; i < entities.length; ++i) {
-        var match = true;
-        var candidateProperties = Entities.getEntityProperties(entities[i], keys);
-        for (var key in properties) {
-            if (candidateProperties[key] != properties[key]) {
-                // This isn't a match, move to next entity
-                match = false;
-                break;
-            }
-        }
-        if (match) {
-            matchedEntities.push(entities[i]);
-        }
-    }
-
-    return matchedEntities;
-}
+Script.include("http://rawgit.com/huffman/hifi/baseball/examples/baseball/utils.js");
 
 var DISTANCE_BILLBOARD_NAME = "CurrentScore";
 var HIGH_SCORE_BILLBOARD_NAME = "HighScore";
@@ -247,35 +220,6 @@ var BASEBALL_STATE = {
 };
 
 
-function shallowCopy(obj) {
-    var copy = {}
-    for (var key in obj) {
-        copy[key] = obj[key];
-    }
-    return copy;
-}
-
-function randomInt(low, high) {
-    return Math.floor(randomFloat(low, high));
-}
-
-function randomFloat(low, high) {
-    if (high === undefined) {
-        high = low;
-        low = 0;
-    }
-    return low + Math.random() * (high - low);
-}
-
-function playRandomSound(sounds, options) {
-    if (options === undefined) {
-        options = {
-            volume: 1.0,
-            position: MyAvatar.position,
-        }
-    }
-    Audio.playSound(sounds[randomInt(sounds.length)], options);
-}
 
 function vec3Mult(a, b) {
     return {
