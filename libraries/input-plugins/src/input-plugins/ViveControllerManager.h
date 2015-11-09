@@ -24,12 +24,14 @@
 #include <RenderArgs.h>
 #include <render/Scene.h>
 
-class ViveControllerManager : public InputPlugin, public controller::InputDevice {
+namespace vr {
+    class IVRSystem;
+}
+
+class ViveControllerManager : public InputPlugin {
     Q_OBJECT
 public:
     static const QString NAME;
-    
-    ViveControllerManager();
 
     // Plugin functions
     virtual bool isSupported() const override;
@@ -39,14 +41,8 @@ public:
     virtual void activate() override;
     virtual void deactivate() override;
 
-    virtual void pluginFocusOutEvent() override { focusOutEvent(); }
-    virtual void pluginUpdate(float deltaTime, bool jointsCaptured) override { update(deltaTime, jointsCaptured); }
-
-    // Device functions
-    virtual controller::Input::NamedVector getAvailableInputs() const override;
-    virtual QString getDefaultMappingConfig() const override;
-    virtual void update(float deltaTime, bool jointsCaptured) override;
-    virtual void focusOutEvent() override;
+    virtual void pluginFocusOutEvent() override { _inputDevice->focusOutEvent(); }
+    virtual void pluginUpdate(float deltaTime, bool jointsCaptured) override;
 
     void updateRendering(RenderArgs* args, render::ScenePointer scene, render::PendingChanges pendingChanges);
 
@@ -57,25 +53,42 @@ public:
 	glm::vec3 getPosition(int device) const;
 	glm::quat getRotation(int device) const;
 #endif
+    
 private:
+    class InputDevice : public controller::InputDevice {
+    public:
+        InputDevice(vr::IVRSystem*& hmd) : controller::InputDevice("Vive"), _hmd(hmd) {}
+    private:
+        // Device functions
+        virtual controller::Input::NamedVector getAvailableInputs() const override;
+        virtual QString getDefaultMappingConfig() const override;
+        virtual void update(float deltaTime, bool jointsCaptured) override;
+        virtual void focusOutEvent() override;
+
+        void handleButtonEvent(uint32_t button, bool pressed, bool left);
+        void handleAxisEvent(uint32_t axis, float x, float y, bool left);
+        void handlePoseEvent(const mat4& mat, bool left);
+
+        int _trackedControllers { 0 };
+        vr::IVRSystem*& _hmd;
+        friend class ViveControllerManager;
+    };
+
     void renderHand(const controller::Pose& pose, gpu::Batch& batch, int sign);
     
-    void handleButtonEvent(uint32_t button, bool pressed, bool left);
-    void handleAxisEvent(uint32_t axis, float x, float y, bool left);
-    void handlePoseEvent(const mat4& mat, bool left);
     
-    int _trackedControllers;
 
-    bool _modelLoaded;
+    bool _registeredWithInputMapper { false };
+    bool _modelLoaded { false };
     model::Geometry _modelGeometry;
     gpu::TexturePointer _texture;
 
-    int _leftHandRenderID;
-    int _rightHandRenderID;
+    int _leftHandRenderID { 0 };
+    int _rightHandRenderID { 0 };
 
-    bool _renderControllers;
-
-    bool _registeredWithInputMapper { false };
+    bool _renderControllers { false };
+    vr::IVRSystem* _hmd { nullptr };
+    std::shared_ptr<InputDevice> _inputDevice { std::make_shared<InputDevice>(_hmd) };
 };
 
 #endif // hifi__ViveControllerManager

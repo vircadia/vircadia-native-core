@@ -51,7 +51,7 @@ void Recorder::recordFrame(FrameType type, QByteArray frameData) {
     frame->type = type;
     frame->data = frameData;
     frame->timeOffset = (float)(_elapsed + _timer.elapsed()) / MSECS_PER_SECOND;
-    _clip->appendFrame(frame);
+    _clip->addFrame(frame);
 }
 
 ClipPointer Recorder::getClip() {

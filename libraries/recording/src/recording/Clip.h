@@ -12,20 +12,24 @@
 
 #include "Forward.h"
 
+#include <mutex>
+
 #include <QtCore/QObject>
 
 class QIODevice;
 
 namespace recording {
 
-class Clip : public QObject {
+class Clip {
 public:
     using Pointer = std::shared_ptr<Clip>;
 
-    Clip(QObject* parent = nullptr) : QObject(parent) {}
     virtual ~Clip() {}
 
     Pointer duplicate();
+
+    virtual float duration() const = 0;
+    virtual size_t frameCount() const = 0;
 
     virtual void seek(float offset) = 0;
     virtual float position() const = 0;
@@ -33,14 +37,19 @@ public:
     virtual FramePointer peekFrame() const = 0;
     virtual FramePointer nextFrame() = 0;
     virtual void skipFrame() = 0;
-    virtual void appendFrame(FramePointer) = 0;
-
+    virtual void addFrame(FramePointer) = 0;
 
     static Pointer fromFile(const QString& filePath);
-    static void toFile(Pointer clip, const QString& filePath);
+    static void toFile(const QString& filePath, Pointer clip);
+    static Pointer newClip();
     
 protected:
+    using Mutex = std::recursive_mutex;
+    using Locker = std::unique_lock<Mutex>;
+
     virtual void reset() = 0;
+
+    mutable Mutex _mutex;
 };
 
 }

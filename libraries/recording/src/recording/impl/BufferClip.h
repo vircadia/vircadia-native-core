@@ -20,8 +20,10 @@ class BufferClip : public Clip {
 public:
     using Pointer = std::shared_ptr<BufferClip>;
 
-    BufferClip(QObject* parent = nullptr) : Clip(parent) {}
     virtual ~BufferClip() {}
+
+    virtual float duration() const override;
+    virtual size_t frameCount() const override;
 
     virtual void seek(float offset) override;
     virtual float position() const override;
@@ -29,16 +31,12 @@ public:
     virtual FramePointer peekFrame() const override;
     virtual FramePointer nextFrame() override;
     virtual void skipFrame() override;
-    virtual void appendFrame(FramePointer) override;
+    virtual void addFrame(FramePointer) override;
 
 private:
-    using Mutex = std::mutex;
-    using Locker = std::unique_lock<Mutex>;
-
     virtual void reset() override;
 
     std::vector<FramePointer> _frames;
-    mutable Mutex _mutex;
     mutable size_t _frameIndex { 0 };
 };
 
