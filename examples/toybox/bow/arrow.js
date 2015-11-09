@@ -94,8 +94,25 @@
                 return userData.hifiBowKey.bowID;
             }
         },
+        getActionID: function() {
+            var properties = Entities.getEntityProperties(this.entityID, "userData");
+            var userData = JSON.parse(properties.userData);
+            if (userData.hasOwnProperty('hifiHoldActionKey')) {
+                return userData.hifiHoldActionKey.holdActionID;
+            }
+        },
+
+        disableGrab: function() {
+           
+
+            var actionID = this.getActionID();
+     
+            print('actionID'+actionID)
+            Entities.deleteAction(this.entityID, actionID);
+        },
 
         tellBowArrowIsNotched: function(bowID) {
+            this.disableGrab();
             setEntityCustomData('releaseGrabKey', this.entityID, {
                 shouldRelease: true,
                 didRelease: false
@@ -115,6 +132,7 @@
                 hasArrowNotched: true,
                 arrowID: this.entityID
             });
+
         },
 
         checkIfBurning: function() {
@@ -149,7 +167,7 @@
 
             _this.glowBox = Entities.addEntity(glowBowProperties);
         },
-        
+
         updateArrowProperties: function() {
             _this.arrowProperties = Entities.getEntityProperties(_this.entityID, ["position", "rotation"]);
         },
@@ -170,7 +188,7 @@
         },
 
         collisionWithEntity: function(me, otherEntity, collision) {
-print('ARROW HAD COLLISION')
+            print('ARROW HAD COLLISION')
             if (this.stickOnCollision === true) {
                 Vec3.print('penetration = ', collision.penetration);
                 Vec3.print('collision contact point = ', collision.contactPoint);

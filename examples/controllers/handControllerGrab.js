@@ -704,7 +704,10 @@ function MyController(hand) {
                 Entities.callEntityMethod(this.grabbedEntity, "setLeftHand");
             }
             Entities.callEntityMethod(this.grabbedEntity, "startNearGrab");
-
+      
+            setEntityCustomData('hifiHoldActionKey', this.grabbedEntity, {
+                holdActionID: this.actionID
+            })
         }
 
         this.currentHandControllerTipPosition = (this.hand === RIGHT_HAND) ? MyAvatar.rightHandTipPosition : MyAvatar.leftHandTipPosition;;
