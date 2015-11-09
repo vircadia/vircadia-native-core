@@ -19,19 +19,8 @@
 
 #include "InputPlugin.h"
 
-class QLibrary;
-
-const unsigned int BUTTON_0 = 1U << 0; // the skinny button between 1 and 2
-const unsigned int BUTTON_1 = 1U << 5;
-const unsigned int BUTTON_2 = 1U << 6;
-const unsigned int BUTTON_3 = 1U << 3;
-const unsigned int BUTTON_4 = 1U << 4;
-const unsigned int BUTTON_FWD = 1U << 7;
-const unsigned int BUTTON_TRIGGER = 1U << 8;
-
-const bool DEFAULT_INVERT_SIXENSE_MOUSE_BUTTONS = false;
-
 struct _sixenseControllerData;
+using SixenseControllerData = _sixenseControllerData;
 
 // Handles interaction with the Sixense SDK (e.g., Razer Hydra).
 class SixenseManager : public InputPlugin {
@@ -80,7 +69,7 @@ private:
 
         void handleButtonEvent(unsigned int buttons, bool left);
         void handlePoseEvent(float deltaTime, glm::vec3 position, glm::quat rotation, bool left);
-        void updateCalibration(_sixenseControllerData* controllers);
+        void updateCalibration(SixenseControllerData* controllers);
 
         friend class SixenseManager;
 

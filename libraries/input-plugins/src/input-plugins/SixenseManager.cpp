@@ -147,14 +147,14 @@ void SixenseManager::InputDevice::update(float deltaTime, bool jointsCaptured) {
     int maxControllers = sixenseGetMaxControllers();
 
     // we only support two controllers
-    sixenseControllerData controllers[2];
+    SixenseControllerData controllers[2];
 
     int numActiveControllers = 0;
     for (int i = 0; i < maxControllers && numActiveControllers < 2; i++) {
         if (!sixenseIsControllerEnabled(i)) {
             continue;
         }
-        sixenseControllerData* data = controllers + numActiveControllers;
+        SixenseControllerData* data = controllers + numActiveControllers;
         ++numActiveControllers;
         sixenseGetNewestData(i, data);
 
@@ -215,21 +215,21 @@ static const float MINIMUM_ARM_REACH = 0.3f; // meters
 static const float MAXIMUM_NOISE_LEVEL = 0.05f; // meters
 static const quint64 LOCK_DURATION = USECS_PER_SECOND / 4; // time for lock to be acquired
 
-static bool calibrationRequested(sixenseControllerData* controllers) {
+static bool calibrationRequested(SixenseControllerData* controllers) {
     return (controllers[0].buttons == BUTTON_FWD && controllers[1].buttons == BUTTON_FWD);
 }
 
-void SixenseManager::InputDevice::updateCalibration(sixenseControllerData* controllers) {
-    const sixenseControllerData* dataLeft = controllers;
-    const sixenseControllerData* dataRight = controllers + 1;
+void SixenseManager::InputDevice::updateCalibration(SixenseControllerData* controllers) {
+    const SixenseControllerData* dataLeft = controllers;
+    const SixenseControllerData* dataRight = controllers + 1;
 
     // Calibration buttons aren't set, so check the state, and request a reset if necessary.
     if (!calibrationRequested(controllers)) {
         switch (_calibrationState) {
             case CALIBRATION_STATE_IDLE:
                 return;
-            case CALIBRATION_STATE_COMPLETE:
-                {
+                
+            case CALIBRATION_STATE_COMPLETE: {
                     // compute calibration results
                     _avatarPosition = -0.5f * (_reachLeft + _reachRight); // neck is midway between right and left hands
                     glm::vec3 xAxis = glm::normalize(_reachRight - _reachLeft);
