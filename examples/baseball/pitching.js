@@ -60,6 +60,11 @@ var pitchSound = SoundCache.getSound(PITCH_THUNK_SOUND_URL, false);
 updateBillboard("");
 
 var PITCHING_MACHINE_URL = "atp:87d4879530b698741ecc45f6f31789aac11f7865a2c3bec5fe9b061a182c80d4.fbx";
+// This defines an offset to pitch a ball from with respect to the machine's position. The offset is a
+// percentage of the machine's dimensions. So, { x: 0.5, y: -1.0, z: 0.0 } would offset on 50% on the
+// machine's x axis, -100% on the y axis, and 0% on the z-axis. For the dimensions { x: 100, y: 100, z: 100 },
+// that would result in an offset of { x: 50, y: -100, z: 0 }. This makes it easy to calculate an offset if
+// the machine's dimensions change.
 var PITCHING_MACHINE_OUTPUT_OFFSET_PCT = {
     x: 0.0,
     y: 0.25,
