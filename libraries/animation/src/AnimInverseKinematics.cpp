@@ -160,7 +160,7 @@ void AnimInverseKinematics::solveWithCyclicCoordinateDescent(const std::vector<I
                 continue;
             }
             int pivotsParentIndex = _skeleton->getParentIndex(pivotIndex);
-            if (pivotsParentIndex == -1 || pivotIndex == _hipsIndex) {
+            if (pivotsParentIndex == -1) {
                 // TODO?: handle case where tip's parent is root?
                 continue;
             }
@@ -173,7 +173,7 @@ void AnimInverseKinematics::solveWithCyclicCoordinateDescent(const std::vector<I
             glm::quat tipParentRotation = absolutePoses[pivotIndex].rot;
 
             // descend toward root, pivoting each joint to get tip closer to target
-            while (pivotsParentIndex != _hipsIndex && pivotsParentIndex != -1) {
+            while (pivotsParentIndex != -1) {
                 // compute the two lines that should be aligned
                 glm::vec3 jointPosition = absolutePoses[pivotIndex].trans;
                 glm::vec3 leverArm = tipPosition - jointPosition;
@@ -285,7 +285,7 @@ void AnimInverseKinematics::solveWithCyclicCoordinateDescent(const std::vector<I
         // only update the absolutePoses that need it: those between lowestMovedIndex and _maxTargetIndex
         for (int i = lowestMovedIndex; i <= _maxTargetIndex; ++i) {
             int parentIndex = _skeleton->getParentIndex(i);
-            if (parentIndex != -1 && parentIndex != _hipsIndex) {
+            if (parentIndex != -1) {
                 absolutePoses[i] = absolutePoses[parentIndex] * _relativePoses[i];
             }
         }
@@ -295,7 +295,7 @@ void AnimInverseKinematics::solveWithCyclicCoordinateDescent(const std::vector<I
     for (auto& target: targets) {
         int tipIndex = target.getIndex();
         int parentIndex = _skeleton->getParentIndex(tipIndex);
-        if (parentIndex != -1 && parentIndex != _hipsIndex) {
+        if (parentIndex != -1) {
             const glm::quat& targetRotation = target.getRotation();
             // compute tip's new parent-relative rotation
             // Q = Qp * q   -->   q' = Qp^ * Q
