@@ -498,16 +498,6 @@ Baseball.prototype = {
 
 var baseball = null;
 
-function update(dt) {
-    if (baseball) {
-        baseball.update(dt);
-        if (baseball.finished()) {
-            baseball = null;
-            Script.setTimeout(pitchBall, 3000);
-        }
-    }
-}
-
 function entityCollisionWithGround(ground, entity, collision) {
     var ZERO_VEC = { x: 0, y: 0, z: 0 };
     var dVelocityMagnitude = Vec3.length(collision.velocityChange);
@@ -546,10 +536,5 @@ Script.scriptEnding.connect(function() {
     cleanupTrail();
     Entities.deleteEntity(pitchingMachineID);
 });
-
-//Script.update.connect(update);
-//var pitchingMachine = getPitchingMachine();
-//pitchingMachine.pitchBall();
-//Script.update.connect(function(dt) { pitchingMachine.update(dt); });
 
 print("Done loading pitching.js");
