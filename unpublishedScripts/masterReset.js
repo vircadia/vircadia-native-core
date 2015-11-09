@@ -248,7 +248,7 @@ MasterReset = function() {
                 },
                 grabbableKey: {
                     grabbable: false,
-                    wantsTrigger:true
+                    wantsTrigger: true
                 }
             })
         });
@@ -289,6 +289,7 @@ MasterReset = function() {
                         z: 0
                     },
                     collisionsWillMove: true,
+                    collisionSoundURL: 'http://hifi-public.s3.amazonaws.com/sounds/basketball/basketball.wav',
                     ignoreForCollisions: false,
                     modelURL: basketballURL,
                     userData: JSON.stringify({
@@ -334,7 +335,7 @@ MasterReset = function() {
             name: "Basketball Resetter",
             script: basketballResetterScriptURL,
             dimensions: dimensions,
-            visible:false,
+            visible: false,
             userData: JSON.stringify({
                 resetMe: {
                     resetMe: true
@@ -367,7 +368,7 @@ MasterReset = function() {
             name: "Target Resetter",
             script: targetsResetterScriptURL,
             dimensions: dimensions,
-            visible:false,
+            visible: false,
             userData: JSON.stringify({
                 resetMe: {
                     resetMe: true
