@@ -80,14 +80,14 @@ var PITCHING_MACHINE_PROPERTIES = {
         z: 0.39
     },
     collisionsWillMove: false,
-    shapeType: "Box",
+    shapeType: "Box"
 };
 PITCHING_MACHINE_PROPERTIES.dimensions = Vec3.multiply(2.5, PITCHING_MACHINE_PROPERTIES.dimensions);
 var DISTANCE_FROM_PLATE = PITCHING_MACHINE_PROPERTIES.position.z;
 
 var PITCH_RATE = 5000;
 
-getPitchingMachine = function() {
+getOrCreatePitchingMachine = function() {
     // Search for pitching machine
     var entities = findEntities({ name: PITCHING_MACHINE_PROPERTIES.name }, 1000);
     var pitchingMachineID = null;

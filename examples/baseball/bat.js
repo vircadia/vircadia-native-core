@@ -4,7 +4,7 @@
     this.startNearGrab = function() {
         print("Started near grab!");
         if (!pitchingMachine) {
-            pitchingMachine = getPitchingMachine();
+            pitchingMachine = getOrCreatePitchingMachine();
             Script.update.connect(function(dt) { pitchingMachine.update(dt); });
         }
         pitchingMachine.start();
@@ -12,7 +12,7 @@
     };
     this.continueNearGrab = function() {
         if (!pitchingMachine) {
-            pitchingMachine = getPitchingMachine();
+            pitchingMachine = getOrCreatePitchingMachine();
             Script.update.connect(function(dt) { pitchingMachine.update(dt); });
         }
         pitchingMachine.start();
