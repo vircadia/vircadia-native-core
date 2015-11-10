@@ -86,6 +86,8 @@ void EntityMotionState::updateServerPhysicsVariables(const QUuid& sessionID) {
         return;
     }
 
+    _serverActionData = _entity->getActionData();
+
     if (_entity->shouldSuppressLocationEdits()) {
         // if we send now, the changes will be ignored, so don't update our idea of what the server knows.
         return;
@@ -96,7 +98,6 @@ void EntityMotionState::updateServerPhysicsVariables(const QUuid& sessionID) {
     _serverVelocity = _entity->getVelocity();
     _serverAngularVelocity = _entity->getAngularVelocity();
     _serverAcceleration = _entity->getAcceleration();
-    _serverActionData = _entity->getActionData();
 }
 
 // virtual
@@ -446,11 +447,13 @@ void EntityMotionState::sendUpdate(OctreeEditPacketSender* packetSender, const Q
     }
 
     // remember properties for local server prediction
-    _serverPosition = _entity->getPosition();
-    _serverRotation = _entity->getRotation();
-    _serverVelocity = _entity->getVelocity();
-    _serverAcceleration = _entity->getAcceleration();
-    _serverAngularVelocity = _entity->getAngularVelocity();
+    if (!_entity->shouldSuppressLocationEdits()) {
+        _serverPosition = _entity->getPosition();
+        _serverRotation = _entity->getRotation();
+        _serverVelocity = _entity->getVelocity();
+        _serverAcceleration = _entity->getAcceleration();
+        _serverAngularVelocity = _entity->getAngularVelocity();
+    }
     _serverActionData = _entity->getActionData();
 
     EntityItemProperties properties;
