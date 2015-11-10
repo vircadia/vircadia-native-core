@@ -445,24 +445,25 @@ void EntityMotionState::sendUpdate(OctreeEditPacketSender* packetSender, const Q
         _sentInactive = false;
     }
 
-    // remember properties for local server prediction
+    EntityItemProperties properties;
+
+
+    // explicitly set the properties that changed so that they will be packed
     if (!_serverShouldSuppressLocationEdits) {
+        // remember properties for local server prediction
         _serverPosition = _entity->getPosition();
         _serverRotation = _entity->getRotation();
         _serverVelocity = _entity->getVelocity();
         _serverAcceleration = _entity->getAcceleration();
         _serverAngularVelocity = _entity->getAngularVelocity();
+
+        properties.setPosition(_serverPosition);
+        properties.setRotation(_serverRotation);
+        properties.setVelocity(_serverVelocity);
+        properties.setAcceleration(_serverAcceleration);
+        properties.setAngularVelocity(_serverAngularVelocity);
     }
     _serverShouldSuppressLocationEdits = _entity->shouldSuppressLocationEdits();
-
-    EntityItemProperties properties;
-
-    // explicitly set the properties that changed so that they will be packed
-    properties.setPosition(_serverPosition);
-    properties.setRotation(_serverRotation);
-    properties.setVelocity(_serverVelocity);
-    properties.setAcceleration(_serverAcceleration);
-    properties.setAngularVelocity(_serverAngularVelocity);
     properties.setActionData(_serverActionData);
 
     // set the LastEdited of the properties but NOT the entity itself
