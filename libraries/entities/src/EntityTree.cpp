@@ -612,11 +612,83 @@ EntityItemPointer EntityTree::findEntityByEntityItemID(const EntityItemID& entit
 }
 
 void EntityTree::fixupTerseEditLogging(EntityItemProperties& properties, QList<QString>& changedProperties) {
+    static quint64 lastTerseLog = 0;
+    quint64 now = usecTimestampNow();
+
+    if (now - lastTerseLog > USECS_PER_SECOND) {
+        qCDebug(entities) << "-------------------------";
+    }
+    lastTerseLog = now;
+
     if (properties.simulationOwnerChanged()) {
         int simIndex = changedProperties.indexOf("simulationOwner");
         if (simIndex >= 0) {
             SimulationOwner simOwner = properties.getSimulationOwner();
             changedProperties[simIndex] = QString("simulationOwner:") + QString::number((int)simOwner.getPriority());
+        }
+    }
+
+    if (properties.velocityChanged()) {
+        int index = changedProperties.indexOf("velocity");
+        if (index >= 0) {
+            glm::vec3 value = properties.getVelocity();
+            QString changeHint = "0";
+            if (value.x + value.y + value.z > 0) {
+                changeHint = "+";
+            } else if (value.x + value.y + value.z < 0) {
+                changeHint = "-";
+            }
+            changedProperties[index] = QString("velocity:") + changeHint;
+        }
+    }
+
+    if (properties.gravityChanged()) {
+        int index = changedProperties.indexOf("gravity");
+        if (index >= 0) {
+            glm::vec3 value = properties.getGravity();
+            QString changeHint = "0";
+            if (value.x + value.y + value.z > 0) {
+                changeHint = "+";
+            } else if (value.x + value.y + value.z < 0) {
+                changeHint = "-";
+            }
+            changedProperties[index] = QString("gravity:") + changeHint;
+        }
+    }
+
+    if (properties.actionDataChanged()) {
+        int index = changedProperties.indexOf("actionData");
+        if (index >= 0) {
+            QByteArray value = properties.getActionData();
+            QString changeHint = "0";
+            if (value.size() > 0) {
+                changeHint = "+";
+            }
+            changedProperties[index] = QString("actionData:") + changeHint;
+        }
+    }
+
+    if (properties.ignoreForCollisionsChanged()) {
+        int index = changedProperties.indexOf("ignoreForCollisions");
+        if (index >= 0) {
+            bool value = properties.getIgnoreForCollisions();
+            QString changeHint = "0";
+            if (value) {
+                changeHint = "1";
+            }
+            changedProperties[index] = QString("ignoreForCollisions:") + changeHint;
+        }
+    }
+
+    if (properties.collisionsWillMoveChanged()) {
+        int index = changedProperties.indexOf("collisionsWillMove");
+        if (index >= 0) {
+            bool value = properties.getCollisionsWillMove();
+            QString changeHint = "0";
+            if (value) {
+                changeHint = "1";
+            }
+            changedProperties[index] = QString("collisionsWillMove:") + changeHint;
         }
     }
 }
@@ -673,7 +745,9 @@ int EntityTree::processEditPacketData(NLPacket& packet, const unsigned char* edi
                     if (wantTerseEditLogging()) {
                         QList<QString> changedProperties = properties.listChangedProperties();
                         fixupTerseEditLogging(properties, changedProperties);
-                        qCDebug(entities) << "edit" << entityItemID.toString() << changedProperties;
+                        QString itemName =
+                            existingEntity->getName() != "" ? existingEntity->getName() : entityItemID.toString();
+                        qCDebug(entities) << "edit" << itemName << changedProperties;
                     }
                     endLogging = usecTimestampNow();
 
@@ -703,7 +777,7 @@ int EntityTree::processEditPacketData(NLPacket& packet, const unsigned char* edi
                             if (wantTerseEditLogging()) {
                                 QList<QString> changedProperties = properties.listChangedProperties();
                                 fixupTerseEditLogging(properties, changedProperties);
-                                qCDebug(entities) << "add" << entityItemID.toString() << changedProperties;
+                                qCDebug(entities) << "add" << entityItemID << changedProperties;
                             }
                             endLogging = usecTimestampNow();
 

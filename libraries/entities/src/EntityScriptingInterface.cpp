@@ -611,7 +611,8 @@ QUuid EntityScriptingInterface::addAction(const QString& actionTypeString,
                                           const QVariantMap& arguments) {
     QUuid actionID = QUuid::createUuid();
     auto actionFactory = DependencyManager::get<EntityActionFactoryInterface>();
-    bool success = actionWorker(entityID, [&](EntitySimulation* simulation, EntityItemPointer entity) {
+    bool success = true;
+    actionWorker(entityID, [&](EntitySimulation* simulation, EntityItemPointer entity) {
             // create this action even if the entity doesn't have physics info.  it will often be the
             // case that a script adds an action immediately after an object is created, and the physicsInfo
             // is computed asynchronously.
@@ -620,17 +621,18 @@ QUuid EntityScriptingInterface::addAction(const QString& actionTypeString,
             // }
             EntityActionType actionType = EntityActionInterface::actionTypeFromString(actionTypeString);
             if (actionType == ACTION_TYPE_NONE) {
+                success = false;
                 return false;
             }
             EntityActionPointer action = actionFactory->factory(actionType, actionID, entity, arguments);
             if (action) {
-                entity->addAction(simulation, action);
+                success = entity->addAction(simulation, action);
                 auto nodeList = DependencyManager::get<NodeList>();
                 const QUuid myNodeID = nodeList->getSessionUUID();
                 if (entity->getSimulatorID() != myNodeID) {
                     entity->flagForOwnership();
                 }
-                return true;
+                return false; // Physics will cause a packet to be sent, so don't send from here.
             }
             return false;
         });
@@ -656,9 +658,12 @@ bool EntityScriptingInterface::updateAction(const QUuid& entityID, const QUuid& 
 }
 
 bool EntityScriptingInterface::deleteAction(const QUuid& entityID, const QUuid& actionID) {
-    return actionWorker(entityID, [&](EntitySimulation* simulation, EntityItemPointer entity) {
-            return entity->removeAction(simulation, actionID);
+    bool success = false;
+    actionWorker(entityID, [&](EntitySimulation* simulation, EntityItemPointer entity) {
+            success = entity->removeAction(simulation, actionID);
+            return false; // Physics will cause a packet to be sent, so don't send from here.
         });
+    return success;
 }
 
 QVector<QUuid> EntityScriptingInterface::getActionIDs(const QUuid& entityID) {

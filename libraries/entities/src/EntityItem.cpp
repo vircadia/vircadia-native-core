@@ -1770,6 +1770,7 @@ void EntityItem::serializeActions(bool& success, QByteArray& result) const {
     serializedActionsStream << serializedActions;
 
     if (result.size() >= _maxActionsDataSize) {
+        qDebug() << "EntityItem::serializeActions size is too large -- " << result.size() << ">=" << _maxActionsDataSize;
         success = false;
         return;
     }
