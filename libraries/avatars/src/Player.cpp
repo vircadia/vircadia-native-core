@@ -277,7 +277,7 @@ void Player::play() {
 
    // _avatar->setRawJointData(jointArray); // FIXME: Enable once the setRawJointData is fixed
      _avatar->setJointRotations(jointRotations); // FIXME: remove once the setRawJointData is fixed
-     _avatar->setJointTranslations(jointTranslations); // FIXME: remove once the setRawJointData is fixed
+   //  _avatar->setJointTranslations(jointTranslations); // FIXME: remove once the setRawJointData is fixed
 
     HeadData* head = const_cast<HeadData*>(_avatar->getHeadData());
     if (head) {
