@@ -9,7 +9,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-Script.include("libraries/overlayUtils.js");
+Script.include("overlayUtils.js");
 
 var MOUSE_SENSITIVITY = 0.9;
 var SCROLL_SENSITIVITY = 0.05;
