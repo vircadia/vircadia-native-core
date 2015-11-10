@@ -79,8 +79,13 @@ EntityMotionState::~EntityMotionState() {
     assert(!_entity);
 }
 
-void EntityMotionState::updateServerPhysicsVariables() {
+void EntityMotionState::updateServerPhysicsVariables(const QUuid& sessionID) {
     assert(entityTreeIsLocked());
+    if (_entity->getSimulatorID() == sessionID) {
+        // don't slam these values if we are the simulation owner
+        return;
+    }
+
     _serverPosition = _entity->getPosition();
     _serverRotation = _entity->getRotation();
     _serverVelocity = _entity->getVelocity();
@@ -92,7 +97,7 @@ void EntityMotionState::updateServerPhysicsVariables() {
 // virtual
 bool EntityMotionState::handleEasyChanges(uint32_t flags, PhysicsEngine* engine) {
     assert(entityTreeIsLocked());
-    updateServerPhysicsVariables();
+    updateServerPhysicsVariables(engine->getSessionID());
     ObjectMotionState::handleEasyChanges(flags, engine);
 
     if (flags & Simulation::DIRTY_SIMULATOR_ID) {
@@ -129,7 +134,7 @@ bool EntityMotionState::handleEasyChanges(uint32_t flags, PhysicsEngine* engine)
 
 // virtual
 bool EntityMotionState::handleHardAndEasyChanges(uint32_t flags, PhysicsEngine* engine) {
-    updateServerPhysicsVariables();
+    updateServerPhysicsVariables(engine->getSessionID());
     return ObjectMotionState::handleHardAndEasyChanges(flags, engine);
 }
 
