@@ -39,6 +39,9 @@ private:
     
     glm::vec3 _relativePosition { 0.0f };
     glm::quat _relativeRotation;
+    glm::vec3 _perHandRelativePosition { 0.0f };
+    glm::quat _perHandRelativeRotation;
+    
     QString _hand { "right" };
     QUuid _holderID;
 
