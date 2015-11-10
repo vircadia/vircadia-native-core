@@ -135,9 +135,6 @@ void Model::reset() {
         const FBXGeometry& geometry = _geometry->getFBXGeometry();
         _rig->reset(geometry.joints);
     }
-    _meshGroupsKnown = false;
-    _readyWhenAdded = false; // in case any of our users are using scenes
-    invalidCalculatedMeshBoxes(); // if we have to reload, we need to assume our mesh boxes are all invalid
 }
 
 bool Model::updateGeometry() {
