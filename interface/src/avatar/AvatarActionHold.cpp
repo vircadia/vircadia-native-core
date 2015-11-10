@@ -51,61 +51,79 @@ void AvatarActionHold::updateActionWorker(float deltaTimeStep) {
             glm::vec3 palmPosition;
             glm::quat palmRotation;
             
-            if (_hand == "right") {
-                palmPosition = holdingAvatar->getRightPalmPosition();
-                palmRotation = holdingAvatar->getRightPalmRotation();
+            bool ignoreIK = true;
+            if (ignoreIK) {
+                if (_hand == "right") {
+                    palmPosition = holdingAvatar->getHand()->getCopyOfPalmData(HandData::RightHand).getPosition();
+                    palmRotation = holdingAvatar->getHand()->getCopyOfPalmData(HandData::RightHand).getRotation();
+                } else {
+                    palmPosition = holdingAvatar->getHand()->getCopyOfPalmData(HandData::LeftHand).getPosition();
+                    palmRotation = holdingAvatar->getHand()->getCopyOfPalmData(HandData::LeftHand).getRotation();
+                }
             } else {
-                palmPosition = holdingAvatar->getLeftPalmPosition();
-                palmRotation = holdingAvatar->getLeftPalmRotation();
+                if (_hand == "right") {
+                    palmPosition = holdingAvatar->getRightPalmPosition();
+                    palmRotation = holdingAvatar->getRightPalmRotation();
+                } else {
+                    palmPosition = holdingAvatar->getLeftPalmPosition();
+                    palmRotation = holdingAvatar->getLeftPalmRotation();
+                }
             }
-            
-            static const float CONTROLLER_LENGTH_OFFSET = 0.0762f;  // three inches
-            static const glm::vec3 CONTROLLER_OFFSET = glm::vec3(CONTROLLER_LENGTH_OFFSET / 2.0f,
-                                                                 CONTROLLER_LENGTH_OFFSET / 2.0f,
-                                                                 CONTROLLER_LENGTH_OFFSET * 2.0f);
-            static const glm::quat yFlip = glm::angleAxis(PI, Vectors::UNIT_Y);
-            static const glm::quat quarterX = glm::angleAxis(PI_OVER_TWO, Vectors::UNIT_X);
-            static const glm::quat viveToHand = yFlip * quarterX;
-            
-            static const glm::quat leftQuaterZ = glm::angleAxis(-PI_OVER_TWO, Vectors::UNIT_Z);
-            static const glm::quat rightQuaterZ = glm::angleAxis(PI_OVER_TWO, Vectors::UNIT_Z);
-            static const glm::quat eighthX = glm::angleAxis(PI / 4.0f, Vectors::UNIT_X);
-            
-            static const glm::quat leftRotationOffset = glm::inverse(leftQuaterZ * eighthX) * viveToHand;
-            static const glm::quat rightRotationOffset = glm::inverse(rightQuaterZ * eighthX) * viveToHand;
-            
-            static const glm::vec3 leftTranslationOffset = glm::vec3(-1.0f, 1.0f, 1.0f) * CONTROLLER_OFFSET;
-            static const glm::vec3 rightTranslationOffset = CONTROLLER_OFFSET;
-            
-            if (_hand == "left") {
-                _relativeRotation = leftRotationOffset;
-                _relativePosition = glm::inverse(_relativeRotation) * leftTranslationOffset;
-            } else {
-                _relativeRotation = rightRotationOffset;
-                _relativePosition = glm::inverse(_relativeRotation) * rightTranslationOffset;
-            }
+            /*
+             static const float CONTROLLER_LENGTH_OFFSET = 0.0762f;  // three inches
+             static const glm::vec3 CONTROLLER_OFFSET = glm::vec3(CONTROLLER_LENGTH_OFFSET / 2.0f,
+             CONTROLLER_LENGTH_OFFSET / 2.0f,
+             CONTROLLER_LENGTH_OFFSET * 2.0f);
+             static const glm::quat yFlip = glm::angleAxis(PI, Vectors::UNIT_Y);
+             static const glm::quat quarterX = glm::angleAxis(PI_OVER_TWO, Vectors::UNIT_X);
+             static const glm::quat viveToHand = yFlip * quarterX;
+             
+             static const glm::quat leftQuaterZ = glm::angleAxis(-PI_OVER_TWO, Vectors::UNIT_Z);
+             static const glm::quat rightQuaterZ = glm::angleAxis(PI_OVER_TWO, Vectors::UNIT_Z);
+             static const glm::quat eighthX = glm::angleAxis(PI / 4.0f, Vectors::UNIT_X);
+             
+             static const glm::quat leftRotationOffset = glm::inverse(leftQuaterZ * eighthX) * viveToHand;
+             static const glm::quat rightRotationOffset = glm::inverse(rightQuaterZ * eighthX) * viveToHand;
+             
+             static const glm::vec3 leftTranslationOffset = glm::vec3(-1.0f, 1.0f, 1.0f) * CONTROLLER_OFFSET;
+             static const glm::vec3 rightTranslationOffset = CONTROLLER_OFFSET;
+             
+             glm::quat relRot = glm::inverse(rightRotationOffset);
+             glm::vec3 relPos = -rightTranslationOffset;
+             relRot = palmRotation * relRot;
+             relPos = palmPosition + relRot * relPos;
+             
+             rotation = relRot * _relativeRotation;
+             position = relPos + rotation * _relativePosition;
+             glm::quat diffRot = glm::inverse(palmRotation) * rotation;
+             glm::vec3 diffPos = glm::inverse(rotation) * (position - palmPosition);
+             qDebug() << "diffRot =" << safeEulerAngles(diffRot);
+             qDebug() << "diffPos =" << diffPos;
+             */
+            //[11 / 09 17:40 : 14] [DEBUG] diffRot = { type = 'glm::vec3', x = 3.14159, y = 9.04283e-09, z = 0.785398 }
+            //[11 / 09 17:40 : 14][DEBUG] diffPos = { type = 'glm::vec3', x = 1.0524, y = -0.0381001, z = -0.0380997 }
+            //_relativeRotation = glm::quat(glm::vec3(3.14159f, 0.0f, 0.785398));
+            //_relativePosition = glm::vec3(1.0524, -0.0381001, -0.0380997);
             
             rotation = palmRotation * _relativeRotation;
             position = palmPosition + rotation * _relativePosition;
         }
     });
     
-    if (holdingAvatar) {
+    if (holdingAvatar && gotLock) {
+        gotLock = withTryWriteLock([&]{
+            _positionalTarget = position;
+            _rotationalTarget = rotation;
+            _positionalTargetSet = true;
+            _rotationalTargetSet = true;
+            _active = true;
+        });
         if (gotLock) {
-            gotLock = withTryWriteLock([&]{
-                _positionalTarget = position;
-                _rotationalTarget = rotation;
-                _positionalTargetSet = true;
-                _rotationalTargetSet = true;
-                _active = true;
-            });
-            if (gotLock) {
-                if (_kinematic) {
-                    doKinematicUpdate(deltaTimeStep);
-                } else {
-                    activateBody();
-                    ObjectActionSpring::updateActionWorker(deltaTimeStep);
-                }
+            if (_kinematic) {
+                doKinematicUpdate(deltaTimeStep);
+            } else {
+                activateBody();
+                ObjectActionSpring::updateActionWorker(deltaTimeStep);
             }
         }
     }
