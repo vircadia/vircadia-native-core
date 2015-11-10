@@ -611,7 +611,7 @@ QUuid EntityScriptingInterface::addAction(const QString& actionTypeString,
                                           const QVariantMap& arguments) {
     QUuid actionID = QUuid::createUuid();
     auto actionFactory = DependencyManager::get<EntityActionFactoryInterface>();
-    bool success = true;
+    bool success = false;
     actionWorker(entityID, [&](EntitySimulation* simulation, EntityItemPointer entity) {
             // create this action even if the entity doesn't have physics info.  it will often be the
             // case that a script adds an action immediately after an object is created, and the physicsInfo
@@ -621,20 +621,19 @@ QUuid EntityScriptingInterface::addAction(const QString& actionTypeString,
             // }
             EntityActionType actionType = EntityActionInterface::actionTypeFromString(actionTypeString);
             if (actionType == ACTION_TYPE_NONE) {
-                success = false;
                 return false;
             }
             EntityActionPointer action = actionFactory->factory(actionType, actionID, entity, arguments);
-            if (action) {
-                success = entity->addAction(simulation, action);
-                auto nodeList = DependencyManager::get<NodeList>();
-                const QUuid myNodeID = nodeList->getSessionUUID();
-                if (entity->getSimulatorID() != myNodeID) {
-                    entity->flagForOwnership();
-                }
-                return false; // Physics will cause a packet to be sent, so don't send from here.
+            if (!action) {
+                return false;
             }
-            return false;
+            success = entity->addAction(simulation, action);
+            auto nodeList = DependencyManager::get<NodeList>();
+            const QUuid myNodeID = nodeList->getSessionUUID();
+            if (entity->getSimulatorID() != myNodeID) {
+                entity->flagForOwnership();
+            }
+            return false; // Physics will cause a packet to be sent, so don't send from here.
         });
     if (success) {
         return actionID;

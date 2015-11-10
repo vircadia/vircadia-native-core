@@ -86,6 +86,11 @@ void EntityMotionState::updateServerPhysicsVariables(const QUuid& sessionID) {
         return;
     }
 
+    if (_entity->shouldSuppressLocationEdits()) {
+        // if we send now, the changes will be ignored, so don't update our idea of what the server knows.
+        return;
+    }
+
     _serverPosition = _entity->getPosition();
     _serverRotation = _entity->getRotation();
     _serverVelocity = _entity->getVelocity();
