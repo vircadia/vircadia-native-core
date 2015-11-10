@@ -12,8 +12,6 @@
 
 #include "Constants.h"
 
-#define QVERIFY Q_ASSERT
-
 using namespace recording;
 FrameType TEST_FRAME_TYPE { Frame::TYPE_INVALID };
 
@@ -30,7 +28,8 @@ void testFrameTypeRegistration() {
     auto backMap = recording::Frame::getFrameTypeNames();
     QVERIFY(backMap.count(TEST_FRAME_TYPE) == 1);
     QVERIFY(backMap[TEST_FRAME_TYPE] == TEST_NAME);
-    QVERIFY(backMap[recording::Frame::TYPE_HEADER] == HEADER_NAME);
+    auto typeHeader = recording::Frame::TYPE_HEADER;
+    QVERIFY(backMap[typeHeader] == HEADER_NAME);
 }
 
 void testFilePersist() {

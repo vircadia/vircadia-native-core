@@ -16,10 +16,10 @@
         }
         this.dropBats();
     };
-    this.startNearGrabNonColliding = function() {
+    this.startNearTrigger = function() {
         this.dropBats();
     };
-    this.startFarGrabNonColliding = function() {
+    this.startFarTrigger = function() {
       this.dropBats();
     };
     this.dropBats = function() {
