@@ -25,6 +25,7 @@ class AttachmentData;
 class Recording;
 class RecordingFrame;
 class Sound;
+class JointData;
 
 typedef QSharedPointer<Recording> RecordingPointer;
 
@@ -82,8 +83,7 @@ private:
 class RecordingFrame {
 public:
     QVector<float> getBlendshapeCoefficients() const { return _blendshapeCoefficients; }
-    QVector<glm::quat> getJointRotations() const { return _jointRotations; }
-    QVector<glm::vec3> getJointTranslations() const { return _jointTranslations; }
+    QVector<JointData> getJointArray() const { return _jointArray; }
     glm::vec3 getTranslation() const { return _translation; }
     glm::quat getRotation() const { return _rotation; }
     float getScale() const { return _scale; }
@@ -94,8 +94,7 @@ public:
     
 protected:
     void setBlendshapeCoefficients(QVector<float> blendshapeCoefficients);
-    void setJointRotations(QVector<glm::quat> jointRotations) { _jointRotations = jointRotations; }
-    void setJointTranslations(QVector<glm::vec3> jointTranslations) { _jointTranslations = jointTranslations; }
+    void setJointArray(const QVector<JointData>& jointArray) { _jointArray = jointArray; }
     void setTranslation(const glm::vec3& translation) { _translation = translation; }
     void setRotation(const glm::quat& rotation) { _rotation = rotation; }
     void setScale(float scale) { _scale = scale; }
@@ -106,8 +105,8 @@ protected:
     
 private:
     QVector<float> _blendshapeCoefficients;
-    QVector<glm::quat> _jointRotations;
-    QVector<glm::vec3> _jointTranslations;
+    QVector<JointData> _jointArray;
+
     glm::vec3 _translation;
     glm::quat _rotation;
     float _scale;
@@ -125,6 +124,5 @@ private:
 
 void writeRecordingToFile(RecordingPointer recording, const QString& filename);
 RecordingPointer readRecordingFromFile(RecordingPointer recording, const QString& filename);
-RecordingPointer readRecordingFromRecFile(RecordingPointer recording, const QString& filename, const QByteArray& byteArray);
 
 #endif // hifi_Recording_h
