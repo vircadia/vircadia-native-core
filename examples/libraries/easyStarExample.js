@@ -29,7 +29,6 @@ var grid = [
 ];
 
 
-
 easystar.setGrid(grid);
 
 easystar.setAcceptableTiles([0]);
@@ -40,6 +39,7 @@ easystar.findPath(0, 0, 8, 0, function(path) {
         Script.update.disconnect(tickEasyStar);
     } else {
         print('path' + JSON.stringify(path));
+
         convertPath(path);
         Script.update.disconnect(tickEasyStar);
     }
@@ -78,6 +78,16 @@ var playerSphere = Entities.addEntity({
     collisionsWillMove: true,
     linearDamping: 0.2
 });
+
+Script.setInterval(function(){
+    Entities.editEntity(playerSphere,{
+        velocity:{
+            x:0,
+            y:4,
+            z:0
+        }
+    })
+},1000)
 
 var sphereProperties;
 
@@ -187,12 +197,8 @@ function updatePosition() {
             x: currentSpherePosition.z,
             y: sphereProperties.position.y,
             z: currentSpherePosition.x
-        },
-        velocity: {
-            x: 0,
-            y: velocityShaper.y,
-            z: 0
         }
+
     });
 }
 
@@ -227,19 +233,9 @@ function createTweenPath(convertedPath) {
         stepTweens[j].chain(stepTweens[j + 1]);
     }
 
-
-    var velocityUpTween = new TWEEN.Tween(velocityShaper).to(upVelocity, ANIMATION_DURATION).onUpdate(updatePosition);
-    var velocityDownTween = new TWEEN.Tween(velocityShaper).to(noVelocity, ANIMATION_DURATION).onUpdate(updatePosition);
-
-    velocityUpTween.chain(velocityDownTween);
-    velocityDownTween.chain(velocityUpTween);
-
-
-    velocityUpTween.easing(TWEEN.Easing.Linear.None)
-    velocityDownTween.easing(TWEEN.Easing.Back.InOut)
-        //start the tween
+    //start the tween
     stepTweens[0].start();
-    velocityUpTween.start();
+
 }
 
 var velocityShaper = {
