@@ -53,13 +53,11 @@ function kneelDown() {
     kneeling = true;
 
     var playbackRate = 30;  // 30 fps is normal speed.
-    var priority = 0; // obsolete
     var loopFlag = false;
-    var holdFlag = false; // obsolete
     var startFrame = 0;
     var endFrame = 82;
-    var maskedJoints = []; // obsolete
-    MyAvatar.startAnimation(KNEEL_ANIM_URL, playbackRate, priority, loopFlag, holdFlag, startFrame, endFrame, maskedJoints);
+
+    MyAvatar.startAnimation(KNEEL_ANIM_URL, playbackRate, loopFlag, startFrame, endFrame);
 
     Overlays.editOverlay(kneelDownButton, { visible: false });
     Overlays.editOverlay(standUpButton, { visible: true });

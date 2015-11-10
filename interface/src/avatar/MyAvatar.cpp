@@ -657,15 +657,13 @@ void MyAvatar::loadLastRecording() {
     _player->loadRecording(_recorder->getRecording());
 }
 
-void MyAvatar::startAnimation(const QString& url, float fps, float priority,
-        bool loop, bool hold, float firstFrame, float lastFrame, const QStringList& maskedJoints) {
+void MyAvatar::startAnimation(const QString& url, float fps, bool loop, float firstFrame, float lastFrame) {
     if (QThread::currentThread() != thread()) {
         QMetaObject::invokeMethod(this, "startAnimation", Q_ARG(const QString&, url), Q_ARG(float, fps),
-            Q_ARG(float, priority), Q_ARG(bool, loop), Q_ARG(bool, hold), Q_ARG(float, firstFrame),
-            Q_ARG(float, lastFrame), Q_ARG(const QStringList&, maskedJoints));
+                                  Q_ARG(bool, loop), Q_ARG(float, firstFrame), Q_ARG(float, lastFrame));
         return;
     }
-    _rig->startAnimation(url, fps, priority, loop, hold, firstFrame, lastFrame, maskedJoints);
+    _rig->startAnimation(url, fps, loop, firstFrame, lastFrame);
 }
 
 void MyAvatar::startAnimationByRole(const QString& role, const QString& url, float fps, float priority,

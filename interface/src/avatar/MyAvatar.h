@@ -118,9 +118,7 @@ public:
     AnimationHandlePointer addAnimationHandle() { return _rig->createAnimationHandle(); }
     void removeAnimationHandle(const AnimationHandlePointer& handle) { _rig->removeAnimationHandle(handle); }
     /// Allows scripts to run animations.
-    Q_INVOKABLE void startAnimation(const QString& url, float fps = 30.0f, float priority = 1.0f, bool loop = false,
-                                    bool hold = false, float firstFrame = 0.0f,
-                                    float lastFrame = FLT_MAX, const QStringList& maskedJoints = QStringList());
+    Q_INVOKABLE void startAnimation(const QString& url, float fps, bool loop, float firstFrame, float lastFrame);
 
     /// Stops an animation as identified by a URL.
     Q_INVOKABLE void stopAnimation(const QString& url);

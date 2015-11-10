@@ -45,12 +45,8 @@ void Rig::removeAnimationHandle(const AnimationHandlePointer& handle) {
     _animationHandles.removeOne(handle);
 }
 
-void Rig::startAnimation(const QString& url, float fps, float priority,
-                         bool loop, bool hold, float firstFrame, float lastFrame, const QStringList& maskedJoints) {
+void Rig::startAnimation(const QString& url, float fps, bool loop, float firstFrame, float lastFrame) {
     if (_enableAnimGraph) {
-
-        // NOTE: mask joints are unsupported, priority is now meaningless, hold flag is essentially always true
-        // when using the AnimGraph system.
 
         // find an unused AnimClip clipNode
         std::shared_ptr<AnimClip> clip;
@@ -79,6 +75,10 @@ void Rig::startAnimation(const QString& url, float fps, float priority,
 
     } else {
 
+        float priority = 1.0f;
+        bool hold = true;
+        QStringList maskedJoints;
+
         // This is different than startAnimationByRole, in which we use the existing values if the animation already exists.
         // Here we reuse the animation handle if possible, but in any case, we set the values to those given (or defaulted).
         AnimationHandlePointer handle = nullptr;
@@ -105,6 +105,7 @@ void Rig::startAnimation(const QString& url, float fps, float priority,
 
 AnimationHandlePointer Rig::addAnimationByRole(const QString& role, const QString& url, float fps, float priority,
                                                bool loop, bool hold, float firstFrame, float lastFrame, const QStringList& maskedJoints, bool startAutomatically) {
+
     // check for a configured animation for the role
     //qCDebug(animation) << "addAnimationByRole" << role << url << fps << priority << loop << hold << firstFrame << lastFrame << maskedJoints << startAutomatically;
     foreach (const AnimationHandlePointer& candidate, _animationHandles) {
