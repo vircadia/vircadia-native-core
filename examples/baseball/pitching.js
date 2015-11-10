@@ -18,14 +18,20 @@ Script.include("utils.js");
 var DISTANCE_BILLBOARD_NAME = "CurrentScore";
 var HIGH_SCORE_BILLBOARD_NAME = "HighScore";
 
-var DISTANCE_BILLBOARD_ENTITY_ID = findEntity({name: DISTANCE_BILLBOARD_NAME }, 1000);
-var HIGH_SCORE_BILLBOARD_ENTITY_ID = findEntity({name: HIGH_SCORE_BILLBOARD_NAME }, 1000);
+var distanceBillboardEntityID = null;
+var highScoreBillboardEntityID = null;
 
-if (DISTANCE_BILLBOARD_ENTITY_ID === null) {
-    print("WARNING: Distance billboard cannot be found.");
+function getDistanceBillboardEntityID() {
+    if (distanceBillboardEntityID === null) {
+        distanceBillboardEntityID = findEntity({name: DISTANCE_BILLBOARD_NAME }, 1000);
+    }
+    return distanceBillboardEntityID;
 }
-if (HIGH_SCORE_BILLBOARD_ENTITY_ID === null) {
-    print("WARNING: High Score billboard cannot be found.");
+function getHighScoreBillboardEntityID() {
+    if (highScoreBillboardEntityID === null) {
+        highScoreBillboardEntityID = findEntity({name: HIGH_SCORE_BILLBOARD_NAME }, 1000);
+    }
+    return highScoreBillboardEntityID;
 }
 
 var METERS_TO_FEET = 3.28084;
@@ -349,17 +355,21 @@ function Baseball(position, velocity, ballScale) {
 // Update the stadium billboard with the current distance or a text message and update the high score
 // if it has been beaten.
 function updateBillboard(distanceOrMessage) {
-    Entities.editEntity(DISTANCE_BILLBOARD_ENTITY_ID, {
-        text: distanceOrMessage,
-    });
+    var distanceBillboardEntityID = getDistanceBillboardEntityID();
+    if (distanceBillboardEntityID) {
+        Entities.editEntity(distanceBillboardEntityID, {
+            text: distanceOrMessage
+        });
+    }
 
+    var highScoreBillboardEntityID = getHighScoreBillboardEntityID;
     // If a number was passed in, let's see if it is larger than the current high score
     // and update it if so.
-    if (!isNaN(distanceOrMessage)) {
-        var properties = Entities.getEntityProperties(HIGH_SCORE_BILLBOARD_ENTITY_ID, ["text"]);
+    if (!isNaN(distanceOrMessage) && highScoreBillboardEntityID) {
+        var properties = Entities.getEntityProperties(highScoreBillboardEntityID, ["text"]);
         var bestDistance = parseInt(properties.text);
         if (distanceOrMessage >= bestDistance) {
-            Entities.editEntity(HIGH_SCORE_BILLBOARD_ENTITY_ID, {
+            Entities.editEntity(highScoreBillboardEntityID, {
                 text: distanceOrMessage,
             });
             return true;
