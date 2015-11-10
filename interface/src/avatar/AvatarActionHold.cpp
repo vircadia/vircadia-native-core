@@ -48,8 +48,9 @@ void AvatarActionHold::updateActionWorker(float deltaTimeStep) {
             glm::vec3 palmPosition;
             glm::quat palmRotation;
             
-            bool ignoreIK = true;
-            if (ignoreIK) {
+            if (_ignoreIK && holdingAvatar->isMyAvatar()) {
+                // We cannot ignore other avatars IK and this is not the point of this option
+                // This is meant to make the grabbing behavior more reactive.
                 if (_hand == "right") {
                     palmPosition = holdingAvatar->getHand()->getCopyOfPalmData(HandData::RightHand).getPosition();
                     palmRotation = holdingAvatar->getHand()->getCopyOfPalmData(HandData::RightHand).getRotation();
@@ -179,6 +180,7 @@ bool AvatarActionHold::updateArguments(QVariantMap arguments) {
     QUuid holderID;
     bool kinematic;
     bool kinematicSetVelocity;
+    bool ignoreIK;
     bool needUpdate = false;
 
     bool somethingChanged = ObjectAction::updateArguments(arguments);
@@ -216,12 +218,18 @@ bool AvatarActionHold::updateArguments(QVariantMap arguments) {
         if (!ok) {
             _kinematic = false;
         }
-
+        
         ok = true;
         kinematicSetVelocity = EntityActionInterface::extractBooleanArgument("hold", arguments,
                                                                              "kinematicSetVelocity", ok, false);
         if (!ok) {
             _kinematicSetVelocity = false;
+        }
+        
+        ok = true;
+        ignoreIK = EntityActionInterface::extractBooleanArgument("hold", arguments, "ignoreIK", ok, false);
+        if (!ok) {
+            _ignoreIK = true;
         }
 
         if (somethingChanged ||
@@ -231,7 +239,8 @@ bool AvatarActionHold::updateArguments(QVariantMap arguments) {
             hand != _hand ||
             holderID != _holderID ||
             kinematic != _kinematic ||
-            kinematicSetVelocity != _kinematicSetVelocity) {
+            kinematicSetVelocity != _kinematicSetVelocity ||
+            ignoreIK != _ignoreIK) {
             needUpdate = true;
         }
     });
@@ -247,6 +256,7 @@ bool AvatarActionHold::updateArguments(QVariantMap arguments) {
             _holderID = holderID;
             _kinematic = kinematic;
             _kinematicSetVelocity = kinematicSetVelocity;
+            _ignoreIK = ignoreIK;
             _active = true;
 
             auto ownerEntity = _ownerEntity.lock();
@@ -270,6 +280,7 @@ QVariantMap AvatarActionHold::getArguments() {
         arguments["hand"] = _hand;
         arguments["kinematic"] = _kinematic;
         arguments["kinematicSetVelocity"] = _kinematicSetVelocity;
+        arguments["ignoreIK"] = _ignoreIK;
     });
     return arguments;
 }
