@@ -247,11 +247,14 @@ void Player::play() {
                            _frameInterpolationFactor);
     _avatar->setTargetScale(context->scale * scale);
 
+    // Joint array playback
+    // FIXME: THis is still using a deprecated path to assign the joint orientation since setting the full RawJointData array doesn't
+    //        work for Avatar. We need to fix this working with the animation team
     const auto& prevJointArray = currentFrame.getJointArray();
     const auto& nextJointArray = currentFrame.getJointArray();
     QVector<JointData> jointArray(prevJointArray.size());
-    QVector<glm::quat> jointRotations(prevJointArray.size());
-    QVector<glm::vec3> jointTranslations(prevJointArray.size());
+    QVector<glm::quat> jointRotations(prevJointArray.size()); // FIXME: remove once the setRawJointData is fixed
+    QVector<glm::vec3> jointTranslations(prevJointArray.size()); // FIXME: remove once the setRawJointData is fixed
 
     for (int i = 0; i < jointArray.size(); i++) {
         const auto& prevJoint = prevJointArray[i];
@@ -262,35 +265,19 @@ void Player::play() {
         joint.rotationSet = prevJoint.rotationSet || nextJoint.rotationSet;
         if (joint.rotationSet) {
             joint.rotation = safeMix(prevJoint.rotation, nextJoint.rotation, _frameInterpolationFactor);
-            jointRotations[i] = joint.rotation;
+            jointRotations[i] = joint.rotation; // FIXME: remove once the setRawJointData is fixed
         }
 
         joint.translationSet = prevJoint.translationSet || nextJoint.translationSet;
         if (joint.translationSet) {
             joint.translation = glm::mix(prevJoint.translation, nextJoint.translation, _frameInterpolationFactor);
-            jointTranslations[i] = joint.translation;
+            jointTranslations[i] = joint.translation; // FIXME: remove once the setRawJointData is fixed
         }
     }
-   // _avatar->setRawJointData(jointArray);
-     _avatar->setJointRotations(jointRotations);
-   //  _avatar->setJointTranslations(jointTranslations);
 
-/*    QVector<glm::quat> jointRotations(currentFrame.getJointRotations().size());
-    for (int i = 0; i < currentFrame.getJointRotations().size(); ++i) {
-        jointRotations[i] = safeMix(currentFrame.getJointRotations()[i],
-                                    nextFrame.getJointRotations()[i],
-                                    _frameInterpolationFactor);
-    }
-    */
-  /*  QVector<glm::vec3> jointTranslations(currentFrame.getJointTranslations().size());
-    for (int i = 0; i < currentFrame.getJointTranslations().size(); ++i) {
-        jointTranslations[i] = glm::mix(currentFrame.getJointTranslations()[i],
-                                        nextFrame.getJointTranslations()[i],
-                                        _frameInterpolationFactor);
-    }
-    */
-   // _avatar->setJointRotations(jointRotations);
- //   _avatar->setJointTranslations(jointTranslations);
+   // _avatar->setRawJointData(jointArray); // FIXME: Enable once the setRawJointData is fixed
+     _avatar->setJointRotations(jointRotations); // FIXME: remove once the setRawJointData is fixed
+     _avatar->setJointTranslations(jointTranslations); // FIXME: remove once the setRawJointData is fixed
 
     HeadData* head = const_cast<HeadData*>(_avatar->getHeadData());
     if (head) {

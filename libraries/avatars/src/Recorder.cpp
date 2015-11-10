@@ -100,13 +100,10 @@ void Recorder::record() {
         const RecordingContext& context = _recording->getContext();
         RecordingFrame frame;
         frame.setBlendshapeCoefficients(_avatar->getHeadData()->getBlendshapeCoefficients());
-        // FIXME: here we need to make sure the correct joint data on the AvatarData to get correct play back.
-        // This should be fixed by a fix coming from Howard soon
-        auto& jointData = _avatar->getRawJointData();
 
+        // Capture the full skeleton joint data
+        auto& jointData = _avatar->getRawJointData();
         frame.setJointArray(jointData);
-     //   frame.setJointRotations(_avatar->::AvatarData::getJointRotations());
-    //    frame.setJointTranslations(_avatar->::AvatarData::getJointTranslations());
 
         frame.setTranslation(context.orientationInv * (_avatar->getPosition() - context.position));
         frame.setRotation(context.orientationInv * _avatar->getOrientation());
@@ -129,8 +126,7 @@ void Recorder::record() {
         if (wantDebug) {
             qCDebug(avatars) << "Recording frame #" << _recording->getFrameNumber();
             qCDebug(avatars) << "Blendshapes:" << frame.getBlendshapeCoefficients().size();
-            qCDebug(avatars) << "JointRotations:" << frame.getJointRotations().size();
-            qCDebug(avatars) << "JointRotations:" << frame.getJointTranslations().size();
+            qCDebug(avatars) << "JointArray:" << frame.getJointArray().size();
             qCDebug(avatars) << "Translation:" << frame.getTranslation();
             qCDebug(avatars) << "Rotation:" << frame.getRotation();
             qCDebug(avatars) << "Scale:" << frame.getScale();
