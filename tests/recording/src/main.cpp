@@ -94,6 +94,7 @@ void testClipOrdering() {
     for (auto writeFrame = writeClip->nextFrame(); writeFrame; writeFrame = writeClip->nextFrame()) {
         QVERIFY(writeClip->position() >= lastFrameTimeOffset);
     }
+    Q_UNUSED(lastFrameTimeOffset); // FIXME - Unix build not yet upgraded to Qt 5.5.1 we can remove this once it is
 }
 
 #ifdef Q_OS_WIN32
