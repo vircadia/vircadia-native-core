@@ -35,9 +35,7 @@ AvatarActionHold::~AvatarActionHold() {
     qDebug() << "AvatarActionHold::~AvatarActionHold";
     #endif
 }
-#include <plugins/PluginManager.h>
-#include <input-plugins/ViveControllerManager.h>
-#include <controllers/UserInputMapper.h>
+
 void AvatarActionHold::updateActionWorker(float deltaTimeStep) {
     bool gotLock = false;
     glm::quat rotation;
@@ -53,34 +51,38 @@ void AvatarActionHold::updateActionWorker(float deltaTimeStep) {
             glm::vec3 palmPosition;
             glm::quat palmRotation;
             
-#ifdef Q_OS_WIN
-            const auto& plugins = PluginManager::getInstance()->getInputPlugins();
-            auto it = std::find_if(std::begin(plugins), std::end(plugins), [](const InputPluginPointer& plugin) {
-                return plugin->getName() == ViveControllerManager::NAME;
-            });
-            
-            if (it != std::end(plugins)) {
-                const auto& vive = std::dynamic_pointer_cast<ViveControllerManager>(*it);
-                auto index = (_hand == "left") ? 0 : 1;
-                auto userInputMapper = DependencyManager::get<UserInputMapper>();
-                auto pos = extractTranslation(userInputMapper->getSensorToWorldMat());
-                auto rot = glm::quat_cast(userInputMapper->getSensorToWorldMat());
-                
-
-                static const glm::quat yFlip = glm::angleAxis(PI, Vectors::UNIT_Y);
-                static const glm::quat quarterX = glm::angleAxis(PI_OVER_TWO, Vectors::UNIT_X);
-                static const glm::quat viveToHand = yFlip * quarterX;
-
-                palmPosition = pos + rot * vive->getPosition(index);
-                palmRotation = rot * vive->getRotation(index);// * viveToHand * glm::angleAxis(PI, glm::vec3(1.0f, 0.0f, 0.0f)) * glm::angleAxis(PI_OVER_TWO, glm::vec3(0.0f, 0.0f, 1.0f));
-            } else
-#endif
             if (_hand == "right") {
                 palmPosition = holdingAvatar->getRightPalmPosition();
                 palmRotation = holdingAvatar->getRightPalmRotation();
             } else {
                 palmPosition = holdingAvatar->getLeftPalmPosition();
                 palmRotation = holdingAvatar->getLeftPalmRotation();
+            }
+            
+            static const float CONTROLLER_LENGTH_OFFSET = 0.0762f;  // three inches
+            static const glm::vec3 CONTROLLER_OFFSET = glm::vec3(CONTROLLER_LENGTH_OFFSET / 2.0f,
+                                                                 CONTROLLER_LENGTH_OFFSET / 2.0f,
+                                                                 CONTROLLER_LENGTH_OFFSET * 2.0f);
+            static const glm::quat yFlip = glm::angleAxis(PI, Vectors::UNIT_Y);
+            static const glm::quat quarterX = glm::angleAxis(PI_OVER_TWO, Vectors::UNIT_X);
+            static const glm::quat viveToHand = yFlip * quarterX;
+            
+            static const glm::quat leftQuaterZ = glm::angleAxis(-PI_OVER_TWO, Vectors::UNIT_Z);
+            static const glm::quat rightQuaterZ = glm::angleAxis(PI_OVER_TWO, Vectors::UNIT_Z);
+            static const glm::quat eighthX = glm::angleAxis(PI / 4.0f, Vectors::UNIT_X);
+            
+            static const glm::quat leftRotationOffset = glm::inverse(leftQuaterZ * eighthX) * viveToHand;
+            static const glm::quat rightRotationOffset = glm::inverse(rightQuaterZ * eighthX) * viveToHand;
+            
+            static const glm::vec3 leftTranslationOffset = glm::vec3(-1.0f, 1.0f, 1.0f) * CONTROLLER_OFFSET;
+            static const glm::vec3 rightTranslationOffset = CONTROLLER_OFFSET;
+            
+            if (_hand == "left") {
+                _relativeRotation = leftRotationOffset;
+                _relativePosition = glm::inverse(_relativeRotation) * leftTranslationOffset;
+            } else {
+                _relativeRotation = rightRotationOffset;
+                _relativePosition = glm::inverse(_relativeRotation) * rightTranslationOffset;
             }
             
             rotation = palmRotation * _relativeRotation;
