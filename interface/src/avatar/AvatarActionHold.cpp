@@ -76,11 +76,11 @@ void AvatarActionHold::updateActionWorker(float deltaTimeStep) {
                 auto mirroredRotation = _perHandRelativeRotation;
                 auto mirroredPosition = _perHandRelativePosition;
 
-                // Mirror along z axis
-                mirroredRotation.z *= -1;
+                // Mirror along x axis
+                mirroredRotation.x *= -1;
                 mirroredRotation.w *= -1;
                 
-                mirroredPosition.z *= -1;
+                mirroredPosition.x *= -1;
                 
                 rotation = palmRotation * mirroredRotation;
                 position = palmPosition + rotation * mirroredPosition;
