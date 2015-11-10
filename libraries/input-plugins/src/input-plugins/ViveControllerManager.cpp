@@ -35,16 +35,18 @@ vr::IVRSystem* acquireOpenVrSystem();
 void releaseOpenVrSystem();
 
 
-const float CONTROLLER_LENGTH_OFFSET = 0.0762f;  // three inches
-const glm::vec3 CONTROLLER_OFFSET = glm::vec3(CONTROLLER_LENGTH_OFFSET / 2.0f, CONTROLLER_LENGTH_OFFSET / 2.0f, 2.0f * CONTROLLER_LENGTH_OFFSET);  // three inches
-const QString CONTROLLER_MODEL_STRING = "vr_controller_05_wireless_b";
+static const float CONTROLLER_LENGTH_OFFSET = 0.0762f;  // three inches
+static const glm::vec3 CONTROLLER_OFFSET = glm::vec3(CONTROLLER_LENGTH_OFFSET / 2.0f,
+                                                     CONTROLLER_LENGTH_OFFSET / 2.0f,
+                                                     CONTROLLER_LENGTH_OFFSET * 2.0f);
+static const QString CONTROLLER_MODEL_STRING = "vr_controller_05_wireless_b";
+
+static const QString MENU_PARENT = "Avatar";
+static const QString MENU_NAME = "Vive Controllers";
+static const QString MENU_PATH = MENU_PARENT + ">" + MENU_NAME;
+static const QString RENDER_CONTROLLERS = "Render Hand Controllers";
 
 const QString ViveControllerManager::NAME = "OpenVR";
-
-const QString MENU_PARENT = "Avatar";
-const QString MENU_NAME = "Vive Controllers";
-const QString MENU_PATH = MENU_PARENT + ">" + MENU_NAME;
-const QString RENDER_CONTROLLERS = "Render Hand Controllers";
 
 bool ViveControllerManager::isSupported() const {
 #ifdef Q_OS_WIN

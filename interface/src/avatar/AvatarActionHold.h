@@ -35,12 +35,13 @@ public:
 private:
     static const uint16_t holdVersion;
 
-    glm::vec3 _relativePosition;
+    void doKinematicUpdate(float deltaTimeStep);
+    
+    glm::vec3 _relativePosition { 0.0f };
     glm::quat _relativeRotation;
-    QString _hand;
+    QString _hand { "right" };
     QUuid _holderID;
 
-    void doKinematicUpdate(float deltaTimeStep);
     bool _kinematic { false };
     bool _kinematicSetVelocity { false };
     bool _previousSet { false };

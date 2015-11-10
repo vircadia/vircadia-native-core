@@ -9,31 +9,28 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include "QVariantGLM.h"
+#include "AvatarActionHold.h"
+
+#include <QVariantGLM.h>
+
 #include "avatar/MyAvatar.h"
 #include "avatar/AvatarManager.h"
-
-#include "AvatarActionHold.h"
 
 const uint16_t AvatarActionHold::holdVersion = 1;
 
 AvatarActionHold::AvatarActionHold(const QUuid& id, EntityItemPointer ownerEntity) :
-    ObjectActionSpring(id, ownerEntity),
-    _relativePosition(glm::vec3(0.0f)),
-    _relativeRotation(glm::quat()),
-    _hand("right"),
-    _holderID(QUuid())
+    ObjectActionSpring(id, ownerEntity)
 {
     _type = ACTION_TYPE_HOLD;
-    #if WANT_DEBUG
+#if WANT_DEBUG
     qDebug() << "AvatarActionHold::AvatarActionHold";
-    #endif
+#endif
 }
 
 AvatarActionHold::~AvatarActionHold() {
-    #if WANT_DEBUG
+#if WANT_DEBUG
     qDebug() << "AvatarActionHold::~AvatarActionHold";
-    #endif
+#endif
 }
 
 void AvatarActionHold::updateActionWorker(float deltaTimeStep) {
