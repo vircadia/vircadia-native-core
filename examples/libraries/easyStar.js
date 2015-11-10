@@ -302,7 +302,6 @@ var eStar = function() {
          * This should be a 2D Array of Numbers.
          **/
         this.setGrid = function(grid) {
-            print('EASY GRID')
             collisionGrid = grid;
 
             //Setup cost map

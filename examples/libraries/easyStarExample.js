@@ -1,25 +1,45 @@
+//
+//  easyStarExample.js
+//
+//  Created by James B. Pollack @imgntn on 11/9/2015
+//  Copyright 2015 High Fidelity, Inc.
+//
+//  This is a script that sets up a grid of obstacles and passable tiles, finds a path, and then moves an entity along the path.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+
+//  To-Do:
+//  Abstract start position and make tiles, spheres, etc. relative
+//  Handle dynamically changing grids
+
 Script.include('easyStar.js');
 var easystar = loadEasyStar();
+Script.include('tween.js');
+var TWEEN = loadTween();
 
+var ANIMATION_DURATION = 350;
 var grid = [
-    [0, 0, 1, 0, 0],
-    [0, 0, 1, 0, 0],
-    [0, 0, 1, 0, 0],
-    [0, 0, 1, 0, 0],
-    [0, 0, 0, 0, 0]
+    [0, 0, 1, 0, 0, 0, 0, 0, 0],
+    [0, 1, 1, 0, 1, 0, 1, 0, 0],
+    [0, 0, 1, 0, 0, 0, 0, 1, 1],
+    [0, 0, 1, 1, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 1, 1, 1, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0, 0]
 ];
 
 easystar.setGrid(grid);
 
 easystar.setAcceptableTiles([0]);
 
-easystar.findPath(0, 0, 4, 0, function(path) {
+easystar.findPath(0, 0, 8, 0, function(path) {
     if (path === null) {
         print("Path was not found.");
-        Script.update.disconnect(tickEasyStar)
+        Script.update.disconnect(tickEasyStar);
     } else {
-        print("Path was found. The first Point is " + path[0].x + " " + path[0].y);
-        Script.update.disconnect(tickEasyStar)
+        print('path' + JSON.stringify(path));
+        convertPath(path);
+        Script.update.disconnect(tickEasyStar);
     }
 });
 
@@ -28,3 +48,177 @@ var tickEasyStar = function() {
 }
 
 Script.update.connect(tickEasyStar);
+
+//a sphere that will get moved
+var playerSphere = Entities.addEntity({
+    type: 'Sphere',
+    shape: 'Sphere',
+    color: {
+        red: 255,
+        green: 0,
+        blue: 0
+    },
+    dimensions: {
+        x: 0.5,
+        y: 0.5,
+        z: 0.5
+    },
+    position: {
+        x: 0,
+        y: 0,
+        z: 0
+    }
+})
+
+
+//for keeping track of entities
+var obstacles = [];
+var passables = [];
+
+function createPassableAtTilePosition(posX, posY) {
+    var properties = {
+        type: 'Box',
+        shapeType: 'Box',
+        dimensions: {
+            x: 1,
+            y: 1,
+            z: 1
+        },
+        position: {
+            x: posY,
+            y: -1,
+            z: posX
+        },
+        color: {
+            red: 0,
+            green: 0,
+            blue: 255
+        }
+    };
+    var passable = Entities.addEntity(properties);
+    passables.push(passable);
+}
+
+function createObstacleAtTilePosition(posX, posY) {
+    var properties = {
+        type: 'Box',
+        shapeType: 'Box',
+        dimensions: {
+            x: 1,
+            y: 1,
+            z: 1
+        },
+        position: {
+            x: posY,
+            y: 0,
+            z: posX
+        },
+        color: {
+            red: 0,
+            green: 255,
+            blue: 0
+        }
+    };
+    var obstacle = Entities.addEntity(properties);
+    obstacles.push(obstacle);
+}
+
+function createObstacles(grid) {
+    grid.forEach(function(row, rowIndex) {
+        row.forEach(function(v, index) {
+            if (v === 1) {
+                createObstacleAtTilePosition(rowIndex, index);
+            }
+            if (v === 0) {
+                createPassableAtTilePosition(rowIndex, index);
+            }
+        })
+
+    })
+}
+
+
+
+createObstacles(grid);
+
+
+var currentSpherePosition = {
+    x: 0,
+    y: 0,
+    z: 0
+};
+
+
+function convertPathPointToCoordinates(x, y) {
+    return {
+        x: y,
+        y: 0,
+        z: x
+    };
+}
+
+var convertedPath = [];
+
+//convert our path to Vec3s
+function convertPath(path) {
+    path.forEach(function(point) {
+        var convertedPoint = convertPathPointToCoordinates(point.x, point.y);
+        convertedPath.push(convertedPoint);
+    });
+    createTweenPath(convertedPath);
+}
+
+function updatePosition() {
+    Entities.editEntity(playerSphere, {
+        position: {
+            x: currentSpherePosition.z,
+            y: currentSpherePosition.y,
+            z: currentSpherePosition.x
+        }
+    });
+}
+
+function createTweenPath(convertedPath) {
+    var i;
+    var stepTweens = [];
+
+    //create the tweens
+    for (i = 0; i < convertedPath.length - 1; i++) {
+        var stepTween = new TWEEN.Tween(currentSpherePosition).to(convertedPath[i + 1], ANIMATION_DURATION).onUpdate(updatePosition).onComplete(tweenStep);
+        stepTweens.push(stepTween);
+    }
+
+    var j;
+    //chain one tween to the next
+    for (j = 0; j < stepTweens.length - 1; j++) {
+        stepTweens[j].chain(stepTweens[j + 1]);
+    }
+
+    //start the tween
+    stepTweens[0].start();
+}
+
+function tweenStep() {
+    // print('step between tweens')
+}
+
+function updateTweens() {
+    //hook tween updates into our update loop
+    TWEEN.update();
+}
+
+Script.update.connect(updateTweens);
+
+function cleanup() {
+    while (obstacles.length > 0) {
+        Entities.deleteEntity(obstacles.pop());
+    }
+    while (passables.length > 0) {
+        Entities.deleteEntity(passables.pop());
+    }
+    Entities.deleteEntity(playerSphere);
+    Script.update.disconnect(updateTweens);
+}
+
+
+Script.scriptEnding.connect(cleanup);
