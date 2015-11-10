@@ -862,6 +862,12 @@ std::unique_ptr<NLPacket> EntityTree::encodeEntitiesDeletedSince(OCTREE_PACKET_S
                 // if the timestamp is more recent then out last sent time, include it
                 if (it.key() > considerEntitiesSince) {
                     QUuid entityID = values.at(valueItem);
+
+                    // FIXME - we still seem to see cases where incorrect EntityIDs get sent from the server
+                    // to the client. These were causing "lost" entities like flashlights and laser pointers
+                    // now that we keep around some additional history of the erased entities and resend that
+                    // history for a longer time window, these entities are not "lost". But we haven't yet
+                    // found/fixed the underlying issue that caused bad UUIDs to be sent to some users.
                     deletesPacket->write(entityID.toRfc4122());
                     ++numberOfIDs;
 
