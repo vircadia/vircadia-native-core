@@ -691,6 +691,18 @@ void EntityTree::fixupTerseEditLogging(EntityItemProperties& properties, QList<Q
             changedProperties[index] = QString("collisionsWillMove:") + changeHint;
         }
     }
+
+    if (properties.lockedChanged()) {
+        int index = changedProperties.indexOf("locked");
+        if (index >= 0) {
+            bool value = properties.getLocked();
+            QString changeHint = "0";
+            if (value) {
+                changeHint = "1";
+            }
+            changedProperties[index] = QString("locked:") + changeHint;
+        }
+    }
 }
 
 int EntityTree::processEditPacketData(NLPacket& packet, const unsigned char* editData, int maxLength,

@@ -87,17 +87,15 @@ void EntityMotionState::updateServerPhysicsVariables(const QUuid& sessionID) {
     }
 
     _serverActionData = _entity->getActionData();
-
-    if (_entity->shouldSuppressLocationEdits()) {
-        // if we send now, the changes will be ignored, so don't update our idea of what the server knows.
-        return;
+    if (!_serverShouldSuppressLocationEdits) {
+        _serverPosition = _entity->getPosition();
+        _serverRotation = _entity->getRotation();
+        _serverVelocity = _entity->getVelocity();
+        _serverAngularVelocity = _entity->getAngularVelocity();
+        _serverAcceleration = _entity->getAcceleration();
     }
 
-    _serverPosition = _entity->getPosition();
-    _serverRotation = _entity->getRotation();
-    _serverVelocity = _entity->getVelocity();
-    _serverAngularVelocity = _entity->getAngularVelocity();
-    _serverAcceleration = _entity->getAcceleration();
+    _serverShouldSuppressLocationEdits = _entity->shouldSuppressLocationEdits();
 }
 
 // virtual
@@ -264,6 +262,7 @@ bool EntityMotionState::remoteSimulationOutOfSync(uint32_t simulationStep) {
         _serverAngularVelocity = bulletToGLM(_body->getAngularVelocity());
         _lastStep = simulationStep;
         _serverActionData = _entity->getActionData();
+        _serverShouldSuppressLocationEdits = _entity->shouldSuppressLocationEdits();
         _sentInactive = true;
         return false;
     }
@@ -447,14 +446,14 @@ void EntityMotionState::sendUpdate(OctreeEditPacketSender* packetSender, const Q
     }
 
     // remember properties for local server prediction
-    if (!_entity->shouldSuppressLocationEdits()) {
+    if (!_serverShouldSuppressLocationEdits) {
         _serverPosition = _entity->getPosition();
         _serverRotation = _entity->getRotation();
         _serverVelocity = _entity->getVelocity();
         _serverAcceleration = _entity->getAcceleration();
         _serverAngularVelocity = _entity->getAngularVelocity();
     }
-    _serverActionData = _entity->getActionData();
+    _serverShouldSuppressLocationEdits = _entity->shouldSuppressLocationEdits();
 
     EntityItemProperties properties;
 

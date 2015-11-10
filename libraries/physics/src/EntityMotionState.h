@@ -110,6 +110,7 @@ protected:
     glm::vec3 _serverGravity;
     glm::vec3 _serverAcceleration;
     QByteArray _serverActionData;
+    bool _serverShouldSuppressLocationEdits = false;
 
     uint32_t _lastMeasureStep;
     glm::vec3 _lastVelocity;
