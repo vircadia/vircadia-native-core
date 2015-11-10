@@ -76,10 +76,13 @@ public:
         return !_needsReload && isRenderable() && isActive() && isLoaded();
     }
     bool initWhenReady(render::ScenePointer scene);
-    bool addToScene(std::shared_ptr<render::Scene> scene, render::PendingChanges& pendingChanges);
     bool addToScene(std::shared_ptr<render::Scene> scene,
                     render::PendingChanges& pendingChanges,
-                    render::Item::Status::Getters& statusGetters);
+                    bool showCollisionHull = false);
+    bool addToScene(std::shared_ptr<render::Scene> scene,
+                    render::PendingChanges& pendingChanges,
+                    render::Item::Status::Getters& statusGetters,
+                    bool showCollisionHull = false);
     void removeFromScene(std::shared_ptr<render::Scene> scene, render::PendingChanges& pendingChanges);
     void renderSetup(RenderArgs* args);
     bool isRenderable() const { return !_meshStates.isEmpty() || (isActive() && _geometry->getMeshes().empty()); }
@@ -368,6 +371,7 @@ private:
     bool _readyWhenAdded = false;
     bool _needsReload = true;
     bool _needsUpdateClusterMatrices = true;
+    bool _showCollisionHull = false;
 
     friend class MeshPartPayload;
 protected:

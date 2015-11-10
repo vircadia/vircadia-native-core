@@ -81,6 +81,8 @@ private:
     bool _dimensionsInitialized = true;
     
     render::ItemID _myMetaItem;
+
+    bool _showCollisionHull = false;
 };
 
 #endif // hifi_RenderableModelEntityItem_h
