@@ -238,7 +238,7 @@ void writeRecordingToFile(RecordingPointer recording, const QString& filename) {
         }
         for (quint32 j = 0; j < numJoints; j++) {
             const auto& joint = jointArray[j];
-            if (joint.rotationSet) {
+            if (true) { //(joint.rotationSet) {
                 writeQuat(stream, joint.rotation);
                 mask.setBit(maskIndex);
             }

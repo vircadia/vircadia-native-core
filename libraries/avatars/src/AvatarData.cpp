@@ -1146,21 +1146,6 @@ void AvatarData::setJointRotations(QVector<glm::quat> jointRotations) {
     }
 }
 
-QVector<glm::vec3> AvatarData::getJointTranslations() const {
-    if (QThread::currentThread() != thread()) {
-        QVector<glm::vec3> result;
-        QMetaObject::invokeMethod(const_cast<AvatarData*>(this),
-            "getJointTranslations", Qt::BlockingQueuedConnection,
-            Q_RETURN_ARG(QVector<glm::vec3>, result));
-        return result;
-    }
-    QVector<glm::vec3> jointTranslations(_jointData.size());
-    for (int i = 0; i < _jointData.size(); ++i) {
-        jointTranslations[i] = _jointData[i].translation;
-    }
-    return jointTranslations;
-}
-
 void AvatarData::setJointTranslations(QVector<glm::vec3> jointTranslations) {
     if (QThread::currentThread() != thread()) {
         QVector<glm::quat> result;

@@ -261,7 +261,6 @@ public:
     
     Q_INVOKABLE virtual QVector<glm::quat> getJointRotations() const;
     Q_INVOKABLE virtual void setJointRotations(QVector<glm::quat> jointRotations);
-    Q_INVOKABLE virtual QVector<glm::vec3> getJointTranslations() const;
     Q_INVOKABLE virtual void setJointTranslations(QVector<glm::vec3> jointTranslations);
     
     Q_INVOKABLE virtual void clearJointsData();
