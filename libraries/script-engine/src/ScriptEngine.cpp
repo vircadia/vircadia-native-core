@@ -18,6 +18,7 @@
 #include <QtNetwork/QNetworkReply>
 #include <QtScript/QScriptEngine>
 #include <QtScript/QScriptValue>
+#include <QtCore/QStringList>
 
 #include <AudioConstants.h>
 #include <AudioEffectOptions.h>
@@ -646,13 +647,14 @@ QScriptValue ScriptEngine::evaluate(const QString& sourceCode, const QString& fi
 }
 
 void ScriptEngine::run() {
-    // TODO: can we add a short circuit for _stoppingAllScripts here? What does it mean to not start running if
-    // we're in the process of stopping?
-
+    if (_stoppingAllScripts) {
+        return; // bail early - avoid setting state in init(), as evaluate() will bail too
+    }
+    
     if (!_isInitialized) {
         init();
     }
-    
+
     _isRunning = true;
     _isFinished = false;
     if (_wantSignals) {
@@ -1169,8 +1171,7 @@ void ScriptEngine::refreshFileScript(const EntityItemID& entityID) {
     recurseGuard = false;
 }
 
-
-void ScriptEngine::callEntityScriptMethod(const EntityItemID& entityID, const QString& methodName) {
+void ScriptEngine::callEntityScriptMethod(const EntityItemID& entityID, const QString& methodName, const QStringList& params) {
     if (QThread::currentThread() != thread()) {
         #ifdef THREAD_DEBUGGING
         qDebug() << "*** WARNING *** ScriptEngine::callEntityScriptMethod() called on wrong thread [" << QThread::currentThread() << "], invoking on correct thread [" << thread() << "]  "
@@ -1179,7 +1180,8 @@ void ScriptEngine::callEntityScriptMethod(const EntityItemID& entityID, const QS
 
         QMetaObject::invokeMethod(this, "callEntityScriptMethod",
             Q_ARG(const EntityItemID&, entityID),
-            Q_ARG(const QString&, methodName));
+            Q_ARG(const QString&, methodName),
+            Q_ARG(const QStringList&, params));
         return;
     }
     #ifdef THREAD_DEBUGGING
@@ -1194,6 +1196,7 @@ void ScriptEngine::callEntityScriptMethod(const EntityItemID& entityID, const QS
         if (entityScript.property(methodName).isFunction()) {
             QScriptValueList args;
             args << entityID.toScriptValue(this);
+            args << qScriptValueFromSequence(this, params);
             entityScript.property(methodName).call(entityScript, args);
         }
 

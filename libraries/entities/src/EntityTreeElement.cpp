@@ -18,6 +18,7 @@
 #include "EntityItemProperties.h"
 #include "EntityTree.h"
 #include "EntityTreeElement.h"
+#include "EntityTypes.h"
 
 EntityTreeElement::EntityTreeElement(unsigned char* octalCode) : OctreeElement() {
     init(octalCode);
@@ -591,7 +592,8 @@ bool EntityTreeElement::findDetailedRayIntersection(const glm::vec3& origin, con
                     }
                 } else {
                     // if the entity type doesn't support a detailed intersection, then just return the non-AABox results
-                    if (localDistance < distance) {
+                    // Never intersect with particle effect entities
+                    if (localDistance < distance && EntityTypes::getEntityTypeName(entity->getType()) != "ParticleEffect") {
                         distance = localDistance;
                         face = localFace;
                         surfaceNormal = localSurfaceNormal;

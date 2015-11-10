@@ -100,7 +100,7 @@
 #include "audio/AudioScope.h"
 #include "avatar/AvatarManager.h"
 #include "CrashHandler.h"
-#include "devices/3DConnexionClient.h"
+#include "input-plugins/SpacemouseManager.h"
 #include "devices/DdeFaceTracker.h"
 #include "devices/EyeTracker.h"
 #include "devices/Faceshift.h"
@@ -159,8 +159,7 @@ static QTimer locationUpdateTimer;
 static QTimer balanceUpdateTimer;
 static QTimer identityPacketTimer;
 static QTimer billboardPacketTimer;
-static QTimer checkFPStimer;
-static QTimer idleTimer;
+static QTimer pingTimer;
 
 static const QString SNAPSHOT_EXTENSION  = ".jpg";
 static const QString SVO_EXTENSION  = ".svo";
@@ -184,9 +183,7 @@ static const quint64 TOO_LONG_SINCE_LAST_SEND_DOWNSTREAM_AUDIO_STATS = 1 * USECS
 static const QString INFO_HELP_PATH = "html/interface-welcome.html";
 static const QString INFO_EDIT_ENTITIES_PATH = "html/edit-commands.html";
 
-static const unsigned int TARGET_SIM_FRAMERATE = 60;
 static const unsigned int THROTTLED_SIM_FRAMERATE = 15;
-static const int TARGET_SIM_FRAME_PERIOD_MS = MSECS_PER_SECOND / TARGET_SIM_FRAMERATE;
 static const int THROTTLED_SIM_FRAME_PERIOD_MS = MSECS_PER_SECOND / THROTTLED_SIM_FRAMERATE;
 
 #ifndef __APPLE__
@@ -649,11 +646,14 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
     _applicationStateDevice->addInputVariant(QString("ComfortMode"), controller::StateController::ReadLambda([]() -> float {
         return (float)Menu::getInstance()->isOptionChecked(MenuOption::ComfortMode);
     }));
+	_applicationStateDevice->addInputVariant(QString("Grounded"), controller::StateController::ReadLambda([]() -> float {
+		return (float)qApp->getMyAvatar()->getCharacterController()->onGround();
+	}));
 
     userInputMapper->registerDevice(_applicationStateDevice);
     
     // Setup the keyboardMouseDevice and the user input mapper with the default bindings
-    userInputMapper->registerDevice(_keyboardMouseDevice);
+    userInputMapper->registerDevice(_keyboardMouseDevice->getInputDevice());
 
 
     userInputMapper->loadDefaultMapping(userInputMapper->getStandardDeviceID());
@@ -729,9 +729,10 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
     // Now that menu is initalized we can sync myAvatar with it's state.
     getMyAvatar()->updateMotionBehaviorFromMenu();
 
+// FIXME spacemouse code still needs cleanup
 #if 0
     // the 3Dconnexion device wants to be initiliazed after a window is displayed.
-    ConnexionClient::getInstance().init();
+    SpacemouseManager::getInstance().init();
 #endif
 
     auto& packetReceiver = nodeList->getPacketReceiver();
@@ -843,8 +844,7 @@ void Application::cleanupBeforeQuit() {
     balanceUpdateTimer.stop();
     identityPacketTimer.stop();
     billboardPacketTimer.stop();
-    checkFPStimer.stop();
-    idleTimer.stop();
+    pingTimer.stop();
     QMetaObject::invokeMethod(&_settingsTimer, "stop", Qt::BlockingQueuedConnection);
 
     // save state
@@ -944,14 +944,12 @@ void Application::initializeGL() {
     qCDebug(interfaceapp) << "Created Display Window.";
 
     // initialize glut for shape drawing; Qt apparently initializes it on OS X
-    #ifndef __APPLE__
-    static bool isInitialized = false;
-    if (isInitialized) {
+    if (_isGLInitialized) {
         return;
     } else {
-        isInitialized = true;
+        _isGLInitialized = true;
     }
-    #endif
+
     // Where the gpuContext is initialized and where the TRUE Backend is created and assigned
     gpu::Context::init<gpu::GLBackend>();
     _gpuContext = std::make_shared<gpu::Context>();
@@ -979,12 +977,9 @@ void Application::initializeGL() {
     _entityEditSender.initialize(_enableProcessOctreeThread);
 
     // call our timer function every second
-    connect(&checkFPStimer, &QTimer::timeout, this, &Application::checkFPS);
-    checkFPStimer.start(1000);
+    connect(&pingTimer, &QTimer::timeout, this, &Application::ping);
+    pingTimer.start(1000);
 
-    // call our idle function whenever we can
-    connect(&idleTimer, &QTimer::timeout, this, &Application::idle);
-    idleTimer.start(TARGET_SIM_FRAME_PERIOD_MS);
     _idleLoopStdev.reset();
 
     // update before the first render
@@ -1038,16 +1033,35 @@ void Application::initializeUi() {
     foreach(auto inputPlugin, PluginManager::getInstance()->getInputPlugins()) {
         QString name = inputPlugin->getName();
         if (name == KeyboardMouseDevice::NAME) {
-            auto kbm = static_cast<KeyboardMouseDevice*>(inputPlugin.data());
-            // FIXME incredibly evil.... _keyboardMouseDevice is now owned by 
-            // both a QSharedPointer and a std::shared_ptr
-            _keyboardMouseDevice = std::shared_ptr<KeyboardMouseDevice>(kbm);
+            _keyboardMouseDevice = std::dynamic_pointer_cast<KeyboardMouseDevice>(inputPlugin);
         }
     }
     updateInputModes();
 }
 
 void Application::paintGL() {
+    _frameCount++;
+
+    // update fps moving average
+    uint64_t now = usecTimestampNow();
+    static uint64_t lastPaintBegin{ now };
+    uint64_t diff = now - lastPaintBegin;
+    if (diff != 0) {
+        _framesPerSecond.updateAverage((float)USECS_PER_SECOND / (float)diff);
+    }
+
+    lastPaintBegin = now;
+
+    // update fps once a second
+    if (now - _lastFramesPerSecondUpdate > USECS_PER_SECOND) {
+        _fps = _framesPerSecond.getAverage();
+        _lastFramesPerSecondUpdate = now;
+    }
+
+    if (_isGLInitialized) {
+        idle(now);
+    }
+
     PROFILE_RANGE(__FUNCTION__);
     PerformanceTimer perfTimer("paintGL");
 
@@ -1314,7 +1328,6 @@ void Application::paintGL() {
     {
         PerformanceTimer perfTimer("makeCurrent");
         _offscreenContext->makeCurrent();
-        _frameCount++;
         Stats::getInstance()->setRenderDetails(renderArgs._details);
 
         // Reset the gpu::Context Stages
@@ -1839,8 +1852,12 @@ void Application::focusOutEvent(QFocusEvent* event) {
             inputPlugin->pluginFocusOutEvent();
         }
     }
+
+// FIXME spacemouse code still needs cleanup
 #if 0
-    ConnexionData::getInstance().focusOutEvent();
+    //SpacemouseDevice::getInstance().focusOutEvent();
+    //SpacemouseManager::getInstance().getDevice()->focusOutEvent();
+    SpacemouseManager::getInstance().ManagerFocusOutEvent();
 #endif
 
     // synthesize events for keys currently pressed, since we may not get their release events
@@ -2087,20 +2104,14 @@ bool Application::acceptSnapshot(const QString& urlString) {
     return true;
 }
 
-//  Every second, check the frame rates and other stuff
-void Application::checkFPS() {
+//  Every second, send a ping, if menu item is checked.
+void Application::ping() {
     if (Menu::getInstance()->isOptionChecked(MenuOption::TestPing)) {
         DependencyManager::get<NodeList>()->sendPingPackets();
     }
-
-    float diffTime = (float)_timerStart.nsecsElapsed() / 1000000000.0f;
-
-    _fps = (float)_frameCount / diffTime;
-    _frameCount = 0;
-    _timerStart.start();
 }
 
-void Application::idle() {
+void Application::idle(uint64_t now) {
     if (_aboutToQuit) {
         return; // bail early, nothing to do here.
     }
@@ -2123,7 +2134,6 @@ void Application::idle() {
 
     {
         PROFILE_RANGE(__FUNCTION__);
-        uint64_t now = usecTimestampNow();
         static uint64_t lastIdleStart{ now };
         uint64_t idleStartToStartDuration = now - lastIdleStart;
         if (idleStartToStartDuration != 0) {
@@ -2790,7 +2800,7 @@ void Application::update(float deltaTime) {
                 float timeFactor = EXPECTED_FRAME_RATE * deltaTime;
                 myAvatar->setDriveKeys(PITCH, -1.0f * userInputMapper->getActionState(controller::Action::PITCH) / timeFactor);
                 myAvatar->setDriveKeys(YAW, -1.0f * userInputMapper->getActionState(controller::Action::YAW) / timeFactor);
-                myAvatar->setDriveKeys(STEP_YAW, -1.0f * userInputMapper->getActionState(controller::Action::STEP_YAW) / timeFactor);
+                myAvatar->setDriveKeys(STEP_YAW, -1.0f * userInputMapper->getActionState(controller::Action::STEP_YAW));
             }
         }
         myAvatar->setDriveKeys(ZOOM, userInputMapper->getActionState(controller::Action::TRANSLATE_CAMERA_Z));
@@ -4641,7 +4651,7 @@ DisplayPlugin* Application::getActiveDisplayPlugin() {
         updateDisplayMode();
         Q_ASSERT(_displayPlugin);
     }
-    return _displayPlugin.data();
+    return _displayPlugin.get();
 }
 
 const DisplayPlugin* Application::getActiveDisplayPlugin() const {
@@ -4681,10 +4691,10 @@ void Application::updateDisplayMode() {
         bool first = true;
         foreach(auto displayPlugin, displayPlugins) {
             addDisplayPluginToMenu(displayPlugin, first);
-            QObject::connect(displayPlugin.data(), &DisplayPlugin::requestRender, [this] {
+            QObject::connect(displayPlugin.get(), &DisplayPlugin::requestRender, [this] {
                 paintGL();
             });
-            QObject::connect(displayPlugin.data(), &DisplayPlugin::recommendedFramebufferSizeChanged, [this](const QSize & size) {
+            QObject::connect(displayPlugin.get(), &DisplayPlugin::recommendedFramebufferSizeChanged, [this](const QSize & size) {
                 resizeGL();
             });
 
@@ -4810,12 +4820,14 @@ void Application::updateInputModes() {
     foreach(auto inputPlugin, inputPlugins) {
         QString name = inputPlugin->getName();
         QAction* action = menu->getActionForOption(name);
-        if (action->isChecked() && !_activeInputPlugins.contains(inputPlugin)) {
-            _activeInputPlugins.append(inputPlugin);
-            newInputPlugins.append(inputPlugin);
-        } else if (!action->isChecked() && _activeInputPlugins.contains(inputPlugin)) {
-            _activeInputPlugins.removeOne(inputPlugin);
-            removedInputPlugins.append(inputPlugin);
+
+        auto it = std::find(std::begin(_activeInputPlugins), std::end(_activeInputPlugins), inputPlugin);
+        if (action->isChecked() && it == std::end(_activeInputPlugins)) {
+            _activeInputPlugins.push_back(inputPlugin);
+            newInputPlugins.push_back(inputPlugin);
+        } else if (!action->isChecked() && it != std::end(_activeInputPlugins)) {
+            _activeInputPlugins.erase(it);
+            removedInputPlugins.push_back(inputPlugin);
         }
     }
 

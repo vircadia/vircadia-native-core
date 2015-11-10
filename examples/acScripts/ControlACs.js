@@ -16,11 +16,11 @@ var NUM_AC = 3; // This is the number of AC. Their ID need to be unique and betw
 var NAMES = new Array("Craig", "Clement", "Jeff"); // ACs names ordered by IDs (Default name is "ACx", x = ID + 1))
 
 // Those variables MUST be common to every scripts
-var controlVoxelSize = 0.25;
-var controlVoxelPosition = { x: 2000 , y: 0, z: 0 };
+var controlEntitySize = 0.25;
+var controlEntityPosition = { x: 2000 , y: 0, z: 0 };
 
 // Script. DO NOT MODIFY BEYOND THIS LINE.
-Script.include("libraries/toolBars.js");
+Script.include("../libraries/toolBars.js");
 
 var DO_NOTHING = 0;
 var PLAY = 1;
@@ -138,16 +138,22 @@ function sendCommand(id, action) {
         return;
     }
     
-    if (id === toolBars.length - 1) {
+    if (id === (toolBars.length - 1)) {
         for (i = 0; i < NUM_AC; i++) {
             sendCommand(i, action);
         }
         return;
     }
-
-  // TODO: Fix this to use some mechanism other than voxels
-  //Voxels.setVoxel(controlVoxelPosition.x + id * controlVoxelSize, controlVoxelPosition.y, controlVoxelPosition.z, 
-  //            controlVoxelSize, COLORS[action].red, COLORS[action].green, COLORS[action].blue);
+    
+    var position = { x: controlEntityPosition.x + id * controlEntitySize,
+                     y: controlEntityPosition.y, z: controlEntityPosition.z };
+    Entities.addEntity({
+        type: "Box",
+        position: position, 
+        dimensions: { x: controlEntitySize, y: controlEntitySize, z: controlEntitySize }, 
+        color: COLORS[action],
+        lifetime: 5
+    });
 }
 
 function mousePressEvent(event) {

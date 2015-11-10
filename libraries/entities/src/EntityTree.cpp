@@ -611,6 +611,16 @@ EntityItemPointer EntityTree::findEntityByEntityItemID(const EntityItemID& entit
     return foundEntity;
 }
 
+void EntityTree::fixupTerseEditLogging(EntityItemProperties& properties, QList<QString>& changedProperties) {
+    if (properties.simulationOwnerChanged()) {
+        int simIndex = changedProperties.indexOf("simulationOwner");
+        if (simIndex >= 0) {
+            SimulationOwner simOwner = properties.getSimulationOwner();
+            changedProperties[simIndex] = QString("simulationOwner:") + QString::number((int)simOwner.getPriority());
+        }
+    }
+}
+
 int EntityTree::processEditPacketData(NLPacket& packet, const unsigned char* editData, int maxLength,
                                      const SharedNodePointer& senderNode) {
 
@@ -661,7 +671,9 @@ int EntityTree::processEditPacketData(NLPacket& packet, const unsigned char* edi
                         qCDebug(entities) << "   properties:" << properties;
                     }
                     if (wantTerseEditLogging()) {
-                        qCDebug(entities) << "edit" << entityItemID.toString() << properties.listChangedProperties();
+                        QList<QString> changedProperties = properties.listChangedProperties();
+                        fixupTerseEditLogging(properties, changedProperties);
+                        qCDebug(entities) << "edit" << entityItemID.toString() << changedProperties;
                     }
                     endLogging = usecTimestampNow();
 
@@ -689,7 +701,9 @@ int EntityTree::processEditPacketData(NLPacket& packet, const unsigned char* edi
                                 qCDebug(entities) << "   properties:" << properties;
                             }
                             if (wantTerseEditLogging()) {
-                                qCDebug(entities) << "add" << entityItemID.toString() << properties.listChangedProperties();
+                                QList<QString> changedProperties = properties.listChangedProperties();
+                                fixupTerseEditLogging(properties, changedProperties);
+                                qCDebug(entities) << "add" << entityItemID.toString() << changedProperties;
                             }
                             endLogging = usecTimestampNow();
 

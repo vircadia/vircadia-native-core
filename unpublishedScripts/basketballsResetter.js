@@ -17,7 +17,7 @@ var HIFI_PUBLIC_BUCKET = "http://s3.amazonaws.com/hifi-public/";
 
     Resetter.prototype = {
 
-        startNearGrabNonColliding: function() {
+        startNearTrigger: function() {
             this.resetObjects();
         },
 
@@ -82,7 +82,7 @@ var HIFI_PUBLIC_BUCKET = "http://s3.amazonaws.com/hifi-public/";
                         z: 0
                     },
                     collisionsWillMove: true,
-                    collisionsSoundURL: basketballCollisionSoundURL,
+                    collisionSoundURL: basketballCollisionSoundURL,
                     ignoreForCollisions: false,
                     modelURL: basketballURL,
                     userData: JSON.stringify({

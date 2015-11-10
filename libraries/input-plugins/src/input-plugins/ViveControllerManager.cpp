@@ -27,11 +27,12 @@
 #include <controllers/StandardControls.h>
 
 #ifdef Q_OS_WIN
-extern vr::IVRSystem* _hmd;
-extern int hmdRefCount;
 extern vr::TrackedDevicePose_t _trackedDevicePose[vr::k_unMaxTrackedDeviceCount];
 extern mat4 _trackedDevicePoseMat4[vr::k_unMaxTrackedDeviceCount];
 #endif
+
+vr::IVRSystem* acquireOpenVrSystem();
+void releaseOpenVrSystem();
 
 
 const float CONTROLLER_LENGTH_OFFSET = 0.0762f;  // three inches
@@ -44,28 +45,11 @@ const QString MENU_NAME = "Vive Controllers";
 const QString MENU_PATH = MENU_PARENT + ">" + MENU_NAME;
 const QString RENDER_CONTROLLERS = "Render Hand Controllers";
 
-static std::shared_ptr<ViveControllerManager> instance;
-
-ViveControllerManager::ViveControllerManager() :
-        InputDevice("Vive"),
-    _trackedControllers(0),
-    _modelLoaded(false),
-    _leftHandRenderID(0),
-    _rightHandRenderID(0),
-    _renderControllers(false)
-{
-    instance = std::shared_ptr<ViveControllerManager>(this);
-}
-
 bool ViveControllerManager::isSupported() const {
 #ifdef Q_OS_WIN
-    bool success = vr::VR_IsHmdPresent();
-    if (success) {
-        vr::HmdError eError = vr::HmdError_None;
-        auto hmd = vr::VR_Init(&eError);
-        success = (hmd != nullptr);
-        vr::VR_Shutdown();
-    }
+    auto hmd = acquireOpenVrSystem();
+    bool success = hmd != nullptr;
+    releaseOpenVrSystem();
     return success;
 #else 
     return false;
@@ -80,11 +64,8 @@ void ViveControllerManager::activate() {
         [this] (bool clicked) { this->setRenderControllers(clicked); },
         true, true);
 
-    hmdRefCount++;
     if (!_hmd) {
-        vr::HmdError eError = vr::HmdError_None;
-        _hmd = vr::VR_Init(&eError);
-        Q_ASSERT(eError == vr::HmdError_None);
+        _hmd = acquireOpenVrSystem();
     }
     Q_ASSERT(_hmd);
 
@@ -138,7 +119,7 @@ void ViveControllerManager::activate() {
 
     // unregister with UserInputMapper
     auto userInputMapper = DependencyManager::get<controller::UserInputMapper>();
-    userInputMapper->registerDevice(instance);
+    userInputMapper->registerDevice(_inputDevice);
     _registeredWithInputMapper = true;
 }
 
@@ -149,18 +130,17 @@ void ViveControllerManager::deactivate() {
     _container->removeMenuItem(MENU_NAME, RENDER_CONTROLLERS);
     _container->removeMenu(MENU_PATH);
 
-    hmdRefCount--;
-
-    if (hmdRefCount == 0 && _hmd) {
-        vr::VR_Shutdown();
+    if (_hmd) {
+        releaseOpenVrSystem();
         _hmd = nullptr;
     }
-    _poseStateMap.clear();
+
+    _inputDevice->_poseStateMap.clear();
 #endif
 
     // unregister with UserInputMapper
     auto userInputMapper = DependencyManager::get<controller::UserInputMapper>();
-    userInputMapper->removeDevice(_deviceID);
+    userInputMapper->removeDevice(_inputDevice->_deviceID);
     _registeredWithInputMapper = false;
 }
 
@@ -177,8 +157,8 @@ void ViveControllerManager::updateRendering(RenderArgs* args, render::ScenePoint
         //pendingChanges.updateItem(_leftHandRenderID, );
 
 
-        controller::Pose leftHand = _poseStateMap[controller::StandardPoseChannel::LEFT_HAND];
-        controller::Pose rightHand = _poseStateMap[controller::StandardPoseChannel::RIGHT_HAND];
+        controller::Pose leftHand = _inputDevice->_poseStateMap[controller::StandardPoseChannel::LEFT_HAND];
+        controller::Pose rightHand = _inputDevice->_poseStateMap[controller::StandardPoseChannel::RIGHT_HAND];
 
         gpu::doInBatch(args->_context, [=](gpu::Batch& batch) {
             auto geometryCache = DependencyManager::get<GeometryCache>();
@@ -223,14 +203,27 @@ void ViveControllerManager::renderHand(const controller::Pose& pose, gpu::Batch&
     batch.drawIndexed(gpu::TRIANGLES, mesh->getNumIndices(), 0);
 }
 
-void ViveControllerManager::update(float deltaTime, bool jointsCaptured) {
+
+void ViveControllerManager::pluginUpdate(float deltaTime, bool jointsCaptured) { 
+    _inputDevice->update(deltaTime, jointsCaptured); 
+    auto userInputMapper = DependencyManager::get<controller::UserInputMapper>();
+
+    if (_inputDevice->_trackedControllers == 0 && _registeredWithInputMapper) {
+        userInputMapper->removeDevice(_inputDevice->_deviceID);
+        _registeredWithInputMapper = false;
+        _inputDevice->_poseStateMap.clear();
+    }
+
+    if (!_registeredWithInputMapper && _inputDevice->_trackedControllers > 0) {
+        userInputMapper->registerDevice(_inputDevice);
+        _registeredWithInputMapper = true;
+        UserActivityLogger::getInstance().connectedDevice("spatial_controller", "steamVR");
+    }
+}
+
+void ViveControllerManager::InputDevice::update(float deltaTime, bool jointsCaptured) {
 #ifdef Q_OS_WIN
     _poseStateMap.clear();
-
-    // TODO: This shouldn't be necessary
-    if (!_hmd) {
-        return;
-    }
 
     _buttonPressedMap.clear();
 
@@ -279,33 +272,17 @@ void ViveControllerManager::update(float deltaTime, bool jointsCaptured) {
         }
     }
         
-    auto userInputMapper = DependencyManager::get<controller::UserInputMapper>();
-        
-    if (numTrackedControllers == 0) {
-        if (_registeredWithInputMapper) {
-            userInputMapper->removeDevice(_deviceID);
-            _registeredWithInputMapper = false;
-            _poseStateMap.clear();
-        }
-    }
-        
-    if (_trackedControllers == 0 && numTrackedControllers > 0) {
-        userInputMapper->registerDevice(instance);
-        _registeredWithInputMapper = true;
-        UserActivityLogger::getInstance().connectedDevice("spatial_controller", "steamVR");
-    }
-        
     _trackedControllers = numTrackedControllers;
 #endif
 }
 
-void ViveControllerManager::focusOutEvent() {
+void ViveControllerManager::InputDevice::focusOutEvent() {
     _axisStateMap.clear();
     _buttonPressedMap.clear();
 };
 
 // These functions do translation from the Steam IDs to the standard controller IDs
-void ViveControllerManager::handleAxisEvent(uint32_t axis, float x, float y, bool left) {
+void ViveControllerManager::InputDevice::handleAxisEvent(uint32_t axis, float x, float y, bool left) {
 #ifdef Q_OS_WIN
     //FIX ME? It enters here every frame: probably we want to enter only if an event occurs
     axis += vr::k_EButton_Axis0;
@@ -320,7 +297,7 @@ void ViveControllerManager::handleAxisEvent(uint32_t axis, float x, float y, boo
 }
 
 // These functions do translation from the Steam IDs to the standard controller IDs
-void ViveControllerManager::handleButtonEvent(uint32_t button, bool pressed, bool left) {
+void ViveControllerManager::InputDevice::handleButtonEvent(uint32_t button, bool pressed, bool left) {
 #ifdef Q_OS_WIN
     if (!pressed) {
         return;
@@ -342,7 +319,7 @@ void ViveControllerManager::handleButtonEvent(uint32_t button, bool pressed, boo
 #endif
 }
 
-void ViveControllerManager::handlePoseEvent(const mat4& mat, bool left) {
+void ViveControllerManager::InputDevice::handlePoseEvent(const mat4& mat, bool left) {
     glm::vec3 position = extractTranslation(mat);
     glm::quat rotation = glm::quat_cast(mat);
 
@@ -409,7 +386,7 @@ void ViveControllerManager::handlePoseEvent(const mat4& mat, bool left) {
     _poseStateMap[left ? controller::LEFT_HAND : controller::RIGHT_HAND] = controller::Pose(position, rotation);
 }
 
-controller::Input::NamedVector ViveControllerManager::getAvailableInputs() const {
+controller::Input::NamedVector ViveControllerManager::InputDevice::getAvailableInputs() const {
     using namespace controller;
     QVector<Input::NamedPair> availableInputs{
         // Trackpad analogs
@@ -450,7 +427,7 @@ controller::Input::NamedVector ViveControllerManager::getAvailableInputs() const
     return availableInputs;
 }
 
-QString ViveControllerManager::getDefaultMappingConfig() const {
+QString ViveControllerManager::InputDevice::getDefaultMappingConfig() const {
     static const QString MAPPING_JSON = PathUtils::resourcesPath() + "/controllers/vive.json";
     return MAPPING_JSON;
 }
