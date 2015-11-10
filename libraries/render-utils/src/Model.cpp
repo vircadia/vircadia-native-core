@@ -1153,6 +1153,9 @@ void Model::segregateMeshGroups() {
         return;
     }
 
+    Q_ASSERT(_renderItems.isEmpty()); // We should not have any existing renderItems if we enter this section of code
+    Q_ASSERT(_renderItemsSet.isEmpty()); // We should not have any existing renderItemsSet if we enter this section of code
+
     _renderItemsSet.clear();
 
     // Run through all of the meshes, and place them into their segregated, but unsorted buckets
