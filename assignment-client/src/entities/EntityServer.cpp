@@ -82,7 +82,6 @@ bool EntityServer::hasSpecialPacketsToSend(const SharedNodePointer& node) {
     EntityNodeData* nodeData = static_cast<EntityNodeData*>(node->getLinkedData());
     if (nodeData) {
         quint64 deletedEntitiesSentAt = nodeData->getLastDeletedEntitiesSentAt();
-
         EntityTreePointer tree = std::static_pointer_cast<EntityTree>(_tree);
         shouldSendDeletedEntities = tree->hasEntitiesDeletedSince(deletedEntitiesSentAt);
     }
@@ -97,7 +96,6 @@ int EntityServer::sendSpecialPackets(const SharedNodePointer& node, OctreeQueryN
     if (nodeData) {
         quint64 deletedEntitiesSentAt = nodeData->getLastDeletedEntitiesSentAt();
         quint64 deletePacketSentAt = usecTimestampNow();
-
         EntityTreePointer tree = std::static_pointer_cast<EntityTree>(_tree);
         bool hasMoreToSend = true;
 
@@ -127,7 +125,6 @@ void EntityServer::pruneDeletedEntities() {
     if (tree->hasAnyDeletedEntities()) {
 
         quint64 earliestLastDeletedEntitiesSent = usecTimestampNow() + 1; // in the future
-
         DependencyManager::get<NodeList>()->eachNode([&earliestLastDeletedEntitiesSent](const SharedNodePointer& node) {
             if (node->getLinkedData()) {
                 EntityNodeData* nodeData = static_cast<EntityNodeData*>(node->getLinkedData());
@@ -138,6 +135,8 @@ void EntityServer::pruneDeletedEntities() {
             }
         });
 
+        int EXTRA_SECONDS_TO_KEEP = 4;
+        earliestLastDeletedEntitiesSent -= USECS_PER_SECOND * EXTRA_SECONDS_TO_KEEP;
         tree->forgetEntitiesDeletedBefore(earliestLastDeletedEntitiesSent);
     }
 }

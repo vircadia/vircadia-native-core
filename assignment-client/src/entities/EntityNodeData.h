@@ -18,9 +18,7 @@
 
 class EntityNodeData : public OctreeQueryNode {
 public:
-    EntityNodeData() :
-        OctreeQueryNode(),
-        _lastDeletedEntitiesSentAt(0) { }
+    EntityNodeData() : OctreeQueryNode() { }
 
     virtual PacketType getMyPacketType() const { return PacketType::EntityData; }
 
@@ -28,7 +26,7 @@ public:
     void setLastDeletedEntitiesSentAt(quint64 sentAt) { _lastDeletedEntitiesSentAt = sentAt; }
 
 private:
-    quint64 _lastDeletedEntitiesSentAt;
+    quint64 _lastDeletedEntitiesSentAt { usecTimestampNow() };
 };
 
 #endif // hifi_EntityNodeData_h
