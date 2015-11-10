@@ -7,11 +7,11 @@
 //
 
 // FIXME Script paths have to be relative to the caller, in this case libraries/OmniTool.js
-Script.include("../magBalls/constants.js");
-Script.include("../magBalls/graph.js");
-Script.include("../magBalls/edgeSpring.js");
-Script.include("../magBalls/magBalls.js");
-Script.include("avatarRelativeOverlays.js");
+Script.include("magBalls/constants.js");
+Script.include("magBalls/graph.js");
+Script.include("magBalls/edgeSpring.js");
+Script.include("magBalls/magBalls.js");
+Script.include("libraries/avatarRelativeOverlays.js");
 
 OmniToolModuleType = "MagBallsController"
 
