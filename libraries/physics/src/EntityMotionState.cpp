@@ -464,6 +464,7 @@ void EntityMotionState::sendUpdate(OctreeEditPacketSender* packetSender, const Q
         properties.setAngularVelocity(_serverAngularVelocity);
     }
     _serverShouldSuppressLocationEdits = _entity->shouldSuppressLocationEdits();
+    _serverActionData = _entity->getActionData();
     properties.setActionData(_serverActionData);
 
     // set the LastEdited of the properties but NOT the entity itself
