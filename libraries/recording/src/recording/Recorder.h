@@ -20,18 +20,23 @@ namespace recording {
 // An interface for interacting with clips, creating them by recording or
 // playing them back.  Also serialization to and from files / network sources
 class Recorder : public QObject {
+    Q_OBJECT
 public:
     using Pointer = std::shared_ptr<Recorder>;
 
     Recorder(QObject* parent = nullptr) : QObject(parent) {}
     virtual ~Recorder();
 
+    Time position();
+
     // Start recording frames
     void start();
     // Stop recording
     void stop();
+
     // Test if recording is active
     bool isRecording();
+
     // Erase the currently recorded content
     void clear();
 
@@ -46,7 +51,8 @@ signals:
 private:
     QElapsedTimer _timer;
     ClipPointer _clip;
-    quint64 _elapsed;
+    quint64 _elapsed { 0 };
+    quint64 _startEpoch { 0 };
     bool _recording { false };
 };
 

@@ -8,24 +8,26 @@
 
 #include "BufferClip.h"
 
+#include <NumericalConstants.h>
+
 #include "../Frame.h"
 
 using namespace recording;
 
 
-void BufferClip::seek(float offset) {
+void BufferClip::seek(Time offset) {
     Locker lock(_mutex);
-    auto itr = std::lower_bound(_frames.begin(), _frames.end(), offset, 
-        [](Frame::Pointer a, float b)->bool{
+    auto itr = std::lower_bound(_frames.begin(), _frames.end(), offset,
+        [](Frame::Pointer a, Time b)->bool {
             return a->timeOffset < b;
         }
     );
     _frameIndex = itr - _frames.begin();
 }
 
-float BufferClip::position() const {
+Time BufferClip::position() const {
     Locker lock(_mutex);
-    float result = std::numeric_limits<float>::max();
+    Time result = INVALID_TIME;
     if (_frameIndex < _frames.size()) {
         result = _frames[_frameIndex]->timeOffset;
     }
@@ -77,7 +79,7 @@ void BufferClip::reset() {
     _frameIndex = 0;
 }
 
-float BufferClip::duration() const {
+Time BufferClip::duration() const {
     if (_frames.empty()) {
         return 0;
     }

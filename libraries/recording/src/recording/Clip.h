@@ -28,11 +28,11 @@ public:
 
     Pointer duplicate();
 
-    virtual float duration() const = 0;
+    virtual Time duration() const = 0;
     virtual size_t frameCount() const = 0;
 
-    virtual void seek(float offset) = 0;
-    virtual float position() const = 0;
+    virtual void seek(Time offset) = 0;
+    virtual Time position() const = 0;
 
     virtual FramePointer peekFrame() const = 0;
     virtual FramePointer nextFrame() = 0;
