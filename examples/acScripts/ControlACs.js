@@ -22,8 +22,8 @@ var controlEntityPosition = { x: 0, y: 0, z: 0 };
 // Script. DO NOT MODIFY BEYOND THIS LINE.
 Script.include("../libraries/toolBars.js");
 
-var filename = null;
-var fileloaded = null;
+var clip_url = null;
+var input_text = null;
 
 var DO_NOTHING = 0;
 var PLAY = 1;
@@ -164,7 +164,8 @@ function sendCommand(id, action) {
     var position = { x: controlEntityPosition.x + id * controlEntitySize,
                      y: controlEntityPosition.y, z: controlEntityPosition.z };
     Entities.addEntity({
-        name: filename,
+        name: "Actor Controller",
+        userData: clip_url,
         type: "Box",
         position: position, 
         dimensions: { x: controlEntitySize, y: controlEntitySize, z: controlEntitySize }, 
@@ -208,9 +209,9 @@ function mousePressEvent(event) {
             } else if (stopIcon[i] === toolBars[i].clicked(clickedOverlay, false)) {
                 sendCommand(i, STOP);
             } else if (loadIcon[i] === toolBars[i].clicked(clickedOverlay, false)) {                
-                fileloaded = Window.browse("Load recording from file", ".", "Recordings (*.hfr *.rec *.HFR *.REC)");
-                if (!(fileloaded === "null" || fileloaded === null || fileloaded === "")) {
-                    filename = fileloaded;
+                input_text = Window.prompt("Insert the url of the clip: ","");
+                if(!(input_text === "" || input_text === null)){
+                    clip_url = input_text;
                     sendCommand(i, LOAD);
                 }                
             } else {

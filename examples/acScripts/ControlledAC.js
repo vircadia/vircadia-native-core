@@ -12,7 +12,7 @@
 HIFI_PUBLIC_BUCKET = "http://s3.amazonaws.com/hifi-public/";
 
 // Set the following variables to the values needed
-var filename = "/Users/clement/Desktop/recording.hfr";
+var clip_url = "https://dl.dropboxusercontent.com/u/14127429/Clips/recording1.hfr";
 var playFromCurrentLocation = true;
 var useDisplayName = true;
 var useAttachments = true;
@@ -51,7 +51,7 @@ COLORS[LOAD] = { red: LOAD, green: 0,  blue: 0 };
 
 controlEntityPosition.x += id * controlEntitySize;
 
-Avatar.loadRecording(filename);
+Avatar.loadRecording(clip_url);
 
 Avatar.setPlayFromCurrentLocation(playFromCurrentLocation);
 Avatar.setPlayerUseDisplayName(useDisplayName);
@@ -71,7 +71,7 @@ function setupEntityViewer() {
 }
 
 function getAction(controlEntity) {    
-    filename = controlEntity.name;
+    clip_url = controlEntity.userData;
     
     if (controlEntity === null ||
         controlEntity.position.x !== controlEntityPosition.x ||
@@ -147,8 +147,8 @@ function update(event) {
             break;
         case LOAD:
             print("Load");            
-            if(filename !== null) {
-                Avatar.loadRecording(filename);
+            if(clip_url !== null) {
+                Avatar.loadRecording(clip_url);
             }
             break;
         case DO_NOTHING:
