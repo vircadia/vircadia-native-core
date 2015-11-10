@@ -28,10 +28,12 @@ var grid = [
     [0, 0, 0, 0, 0, 0, 0, 0, 0]
 ];
 
+
+
 easystar.setGrid(grid);
 
 easystar.setAcceptableTiles([0]);
-
+easystar.enableCornerCutting();
 easystar.findPath(0, 0, 8, 0, function(path) {
     if (path === null) {
         print("Path was not found.");
@@ -67,9 +69,17 @@ var playerSphere = Entities.addEntity({
         x: 0,
         y: 0,
         z: 0
-    }
-})
+    },
+    gravity: {
+        x: 0,
+        y: -9.8,
+        z: 0
+    },
+    collisionsWillMove: true,
+    linearDamping: 0.2
+});
 
+var sphereProperties;
 
 //for keeping track of entities
 var obstacles = [];
@@ -99,13 +109,15 @@ function createPassableAtTilePosition(posX, posY) {
     passables.push(passable);
 }
 
+
+
 function createObstacleAtTilePosition(posX, posY) {
     var properties = {
         type: 'Box',
         shapeType: 'Box',
         dimensions: {
             x: 1,
-            y: 1,
+            y: 2,
             z: 1
         },
         position: {
@@ -152,7 +164,6 @@ var currentSpherePosition = {
 function convertPathPointToCoordinates(x, y) {
     return {
         x: y,
-        y: 0,
         z: x
     };
 }
@@ -169,22 +180,44 @@ function convertPath(path) {
 }
 
 function updatePosition() {
+    sphereProperties = Entities.getEntityProperties(playerSphere, "position");
+
     Entities.editEntity(playerSphere, {
         position: {
             x: currentSpherePosition.z,
-            y: currentSpherePosition.y,
+            y: sphereProperties.position.y,
             z: currentSpherePosition.x
+        },
+        velocity: {
+            x: 0,
+            y: velocityShaper.y,
+            z: 0
         }
     });
+}
+
+var upVelocity = {
+    x: 0,
+    y: 2.5,
+    z: 0
+}
+
+var noVelocity = {
+    x: 0,
+    y: -3.5,
+    z: 0
 }
 
 function createTweenPath(convertedPath) {
     var i;
     var stepTweens = [];
+    var velocityTweens = [];
 
     //create the tweens
     for (i = 0; i < convertedPath.length - 1; i++) {
         var stepTween = new TWEEN.Tween(currentSpherePosition).to(convertedPath[i + 1], ANIMATION_DURATION).onUpdate(updatePosition).onComplete(tweenStep);
+
+
         stepTweens.push(stepTween);
     }
 
@@ -194,8 +227,25 @@ function createTweenPath(convertedPath) {
         stepTweens[j].chain(stepTweens[j + 1]);
     }
 
-    //start the tween
+
+    var velocityUpTween = new TWEEN.Tween(velocityShaper).to(upVelocity, ANIMATION_DURATION).onUpdate(updatePosition);
+    var velocityDownTween = new TWEEN.Tween(velocityShaper).to(noVelocity, ANIMATION_DURATION).onUpdate(updatePosition);
+
+    velocityUpTween.chain(velocityDownTween);
+    velocityDownTween.chain(velocityUpTween);
+
+
+    velocityUpTween.easing(TWEEN.Easing.Linear.None)
+    velocityDownTween.easing(TWEEN.Easing.Back.InOut)
+        //start the tween
     stepTweens[0].start();
+    velocityUpTween.start();
+}
+
+var velocityShaper = {
+    x: 0,
+    y: 0,
+    z: 0
 }
 
 function tweenStep() {
