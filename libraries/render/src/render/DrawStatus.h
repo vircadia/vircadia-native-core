@@ -28,15 +28,22 @@ namespace render {
         gpu::PipelinePointer _drawItemStatusPipeline;
         gpu::BufferPointer _itemBounds;
         gpu::BufferPointer _itemStatus;
+        gpu::TexturePointer _statusIconMap;
 
     public:
+
+        DrawStatus() {}
+        DrawStatus(const gpu::TexturePointer statusIconMap) { setStatusIconMap(statusIconMap); }
 
         void run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const ItemIDsBounds& inItems);
 
         typedef Job::ModelI<DrawStatus, ItemIDsBounds> JobModel;
 
-        const gpu::PipelinePointer& getDrawItemBoundsPipeline();
-        const gpu::PipelinePointer& getDrawItemStatusPipeline();
+        const gpu::PipelinePointer getDrawItemBoundsPipeline();
+        const gpu::PipelinePointer getDrawItemStatusPipeline();
+
+        void setStatusIconMap(const gpu::TexturePointer& map);
+        const gpu::TexturePointer getStatusIconMap() const;
     };
 }
 

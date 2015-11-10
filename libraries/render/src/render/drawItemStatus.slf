@@ -12,9 +12,16 @@
 //
 
 in vec4 varColor;
+in vec3 varTexcoord;
 out vec4 outFragColor;
+
+uniform sampler2D _icons;
 
 
 void main(void) {
-    outFragColor = varColor;
+    if (varTexcoord.z > 0.0f) {
+        outFragColor = texture(_icons, varTexcoord.xy) * varColor;
+    } else {
+        outFragColor = varColor;
+    }
 }

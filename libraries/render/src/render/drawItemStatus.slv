@@ -17,6 +17,7 @@
 <$declareStandardTransform()$>
 
 out vec4 varColor;
+out vec3 varTexcoord;
 
 uniform vec3 inBoundPos;
 uniform vec3 inBoundDim;
@@ -43,9 +44,10 @@ vec3 paintRainbow(float normalizedHue) {
     }
 }
 
-vec2 unpackStatus(int v) {
-    return vec2(clamp(float(int((v >> 0) & 0xFFFF) - 32727) / 32727.0, -1.0, 1.0),
-                clamp(float(int((v >> 16) & 0xFFFF) - 32727) / 32727.0, -1.0, 1.0));
+vec3 unpackStatus(int v) {
+    return vec3(clamp(float(int((v >> 0) & 0xFFFF) - 32727) / 32727.0, -1.0, 1.0),
+                clamp(float(uint((v >> 16) & 0xFF)) / 255.0, 0.0, 1.0),
+                clamp(float(int((v >> 24) & 0xFF)), 0.0, 256.0));
 }
 
 void main(void) {
@@ -78,14 +80,14 @@ void main(void) {
     }
 
     // unpack to get x and y satus
-    vec2 iconStatus = unpackStatus(inStatus[iconNum]);
+    vec3 iconStatus = unpackStatus(inStatus[iconNum]);
 
     // Use the status for showing a color
     varColor = vec4(paintRainbow(abs(iconStatus.y)), 1.0);
 
     // Also changes the size of the notification
     vec2 iconScale = ICON_PIXEL_SIZE;
-    iconScale = max(vec2(1, 1), (iconScale * iconStatus.x));
+    iconScale = max(vec2(0, 0), (iconScale * iconStatus.x));
 
     //Offset icon to the right based on the iconNum
     vec2 offset = vec2(iconNum * (ICON_PIXEL_SIZE.x + MARGIN_PIXEL_SIZE.x), 0);

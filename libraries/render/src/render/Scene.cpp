@@ -72,7 +72,10 @@ void Item::Status::Value::setScale(float scale) {
 void Item::Status::Value::setColor(float hue) {
     // Convert the HUe from range [0, 360] to signed normalized value
     const float HUE_MAX = 360.0f;
-    _color = (std::numeric_limits<unsigned short>::max() - 1) * 0.5f * (1.0f + std::max(std::min(hue, HUE_MAX), 0.0f) / HUE_MAX);
+    _color = (std::numeric_limits<unsigned char>::max()) * (std::max(std::min(hue, HUE_MAX), 0.0f) / HUE_MAX);
+}
+void Item::Status::Value::setIcon(unsigned char icon) {
+    _icon = icon;
 }
 
 void Item::Status::getPackedValues(glm::ivec4& values) const {

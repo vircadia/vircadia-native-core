@@ -12,6 +12,7 @@
 #include "RenderDeferredTask.h"
 
 #include <PerfStat.h>
+#include <PathUtils.h>
 #include <RenderArgs.h>
 #include <ViewFrustum.h>
 #include <gpu/Context.h>
@@ -111,7 +112,11 @@ RenderDeferredTask::RenderDeferredTask() : Task() {
     _jobs.push_back(Job(new DepthSortItems::JobModel("DepthSortTransparent", _jobs.back().getOutput(), DepthSortItems(false))));
     _jobs.push_back(Job(new DrawTransparentDeferred::JobModel("TransparentDeferred", _jobs.back().getOutput())));
     
-    _jobs.push_back(Job(new render::DrawStatus::JobModel("DrawStatus", renderedOpaques)));
+	// Grab a texture map representing the different status icons and assign that to the drawStatsuJob
+	auto iconMapPath = PathUtils::resourcesPath() + "images/hifi-logo.svg";
+
+	auto statusIconMap = DependencyManager::get<TextureCache>()->getImageTexture(iconMapPath);
+	_jobs.push_back(Job(new render::DrawStatus::JobModel("DrawStatus", renderedOpaques, DrawStatus(statusIconMap))));
 
 
     _jobs.back().setEnabled(false);

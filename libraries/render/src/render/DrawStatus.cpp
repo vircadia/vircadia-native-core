@@ -29,7 +29,7 @@ using namespace render;
 
 
 
-const gpu::PipelinePointer& DrawStatus::getDrawItemBoundsPipeline() {
+const gpu::PipelinePointer DrawStatus::getDrawItemBoundsPipeline() {
     if (!_drawItemBoundsPipeline) {
         auto vs = gpu::ShaderPointer(gpu::Shader::createVertex(std::string(drawItemBounds_vert)));
         auto ps = gpu::ShaderPointer(gpu::Shader::createPixel(std::string(drawItemBounds_frag)));
@@ -56,13 +56,14 @@ const gpu::PipelinePointer& DrawStatus::getDrawItemBoundsPipeline() {
     return _drawItemBoundsPipeline;
 }
 
-const gpu::PipelinePointer& DrawStatus::getDrawItemStatusPipeline() {
+const gpu::PipelinePointer DrawStatus::getDrawItemStatusPipeline() {
     if (!_drawItemStatusPipeline) {
         auto vs = gpu::ShaderPointer(gpu::Shader::createVertex(std::string(drawItemStatus_vert)));
         auto ps = gpu::ShaderPointer(gpu::Shader::createPixel(std::string(drawItemStatus_frag)));
         gpu::ShaderPointer program = gpu::ShaderPointer(gpu::Shader::createProgram(vs, ps));
 
         gpu::Shader::BindingSet slotBindings;
+        slotBindings.insert(gpu::Shader::Binding(std::string("iconStatusMap"), 0));
         gpu::Shader::makeProgram(*program, slotBindings);
 
         _drawItemStatusPosLoc = program->getUniforms().findLocation("inBoundPos");
@@ -82,6 +83,14 @@ const gpu::PipelinePointer& DrawStatus::getDrawItemStatusPipeline() {
         _drawItemStatusPipeline.reset(gpu::Pipeline::create(program, state));
     }
     return _drawItemStatusPipeline;
+}
+
+void DrawStatus::setStatusIconMap(const gpu::TexturePointer& map) {
+	_statusIconMap = map;
+}
+
+const gpu::TexturePointer DrawStatus::getStatusIconMap() const {
+	return _statusIconMap;
 }
 
 void DrawStatus::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const ItemIDsBounds& inItems) {
@@ -151,6 +160,8 @@ void DrawStatus::run(const SceneContextPointer& sceneContext, const RenderContex
             batch.draw(gpu::LINES, 24, 0);
         }
 
+        batch.setResourceTexture(0, gpu::TextureView(getStatusIconMap(), 0));
+
         batch.setPipeline(getDrawItemStatusPipeline());
         for (int i = 0; i < nbItems; i++) {
             batch._glUniform3fv(_drawItemStatusPosLoc, 1, (const float*) (itemAABox + i));
@@ -159,5 +170,6 @@ void DrawStatus::run(const SceneContextPointer& sceneContext, const RenderContex
 
             batch.draw(gpu::TRIANGLES, 24, 0);
         }
+        batch.setResourceTexture(0, 0);
     });
 }
