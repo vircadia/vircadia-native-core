@@ -122,7 +122,7 @@ void ObjectMotionState::updateCCDConfiguration() {
         if (_shape) {
             // If this object moves faster than its bounding radius * RADIUS_MOTION_THRESHOLD_MULTIPLIER,
             // CCD will be enabled for this object.
-            const auto RADIUS_MOTION_THRESHOLD_MULTIPLIER = 2.0f;
+            const auto RADIUS_MOTION_THRESHOLD_MULTIPLIER = 0.5f;
 
             btVector3 center;
             btScalar radius;
