@@ -51,7 +51,6 @@ var helicopter = Entities.addEntity({
         y: 3.14,
         z: 9.92
     },
-    // rotation: Quat.fromPitchYawRollDegrees(0, -90, 0),
     position: spawnPosition,
 });
 
