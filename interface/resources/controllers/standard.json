@@ -14,8 +14,17 @@
             ]
         },
         { "from": "Standard.RX", "to": "Actions.Yaw" },
-        { "from": "Standard.RY", "when": "!Application.InHMD", "to": "Actions.Pitch" }, 
-
+        
+        { "from": "Standard.RY", 
+          "when": "Application.Grounded", 
+          "to": "Actions.Up", 
+          "filters": 
+            [
+                { "type": "deadZone", "min": 0.95 },
+                "invert"
+            ]
+        }, 
+        { "from": "Standard.RY", "to": "Actions.Up", "filters": "invert"}, 
 
         { "from": [ "Standard.DU", "Standard.DL", "Standard.DR", "Standard.DD" ], "to": "Standard.LeftPrimaryThumb" },
         { "from": "Standard.Back", "to": "Standard.LeftSecondaryThumb" },

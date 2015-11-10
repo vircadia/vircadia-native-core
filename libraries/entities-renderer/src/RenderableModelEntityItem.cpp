@@ -227,7 +227,7 @@ bool RenderableModelEntityItem::addToScene(EntityItemPointer self, std::shared_p
         
         // note: we don't care if the model fails to add items, we always added our meta item and therefore we return
         // true so that the system knows our meta item is in the scene!
-        _model->addToScene(scene, pendingChanges, statusGetters);
+        _model->addToScene(scene, pendingChanges, statusGetters, _showCollisionHull);
     }
 
     return true;
@@ -259,14 +259,16 @@ void RenderableModelEntityItem::render(RenderArgs* args) {
 
             // check to see if when we added our models to the scene they were ready, if they were not ready, then
             // fix them up in the scene
-            if (_model->needsFixupInScene()) {
+            bool shouldShowCollisionHull = (args->_debugFlags & (int)RenderArgs::RENDER_DEBUG_HULLS) > 0;
+            if (_model->needsFixupInScene() || _showCollisionHull != shouldShowCollisionHull) {
+                _showCollisionHull = shouldShowCollisionHull;
                 render::PendingChanges pendingChanges;
 
                 _model->removeFromScene(scene, pendingChanges);
 
                 render::Item::Status::Getters statusGetters;
                 makeEntityItemStatusGetters(this, statusGetters);
-                _model->addToScene(scene, pendingChanges, statusGetters);
+                _model->addToScene(scene, pendingChanges, statusGetters, _showCollisionHull);
 
                 scene->enqueuePendingChanges(pendingChanges);
             }
@@ -288,7 +290,7 @@ void RenderableModelEntityItem::render(RenderArgs* args) {
                 EntityTreeRenderer* renderer = static_cast<EntityTreeRenderer*>(args->_renderer);
                 getModel(renderer);
             }
-            
+
             if (_model) {
                 // handle animations..
                 if (hasAnimation()) {

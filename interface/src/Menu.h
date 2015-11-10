@@ -57,6 +57,7 @@ private:
 class Menu : public QMenuBar {
     Q_OBJECT
 public:
+    Menu();
     static Menu* getInstance();
 
     void loadSettings();
@@ -103,9 +104,6 @@ public slots:
     void setIsOptionChecked(const QString& menuOption, bool isChecked);
 
 private:
-    static Menu* _instance;
-    Menu();
-
     typedef void(*settingsAction)(Settings&, QAction&);
     static void loadAction(Settings& settings, QAction& action);
     static void saveAction(Settings& settings, QAction& action);

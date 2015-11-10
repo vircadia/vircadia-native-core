@@ -135,9 +135,6 @@ void Model::reset() {
         const FBXGeometry& geometry = _geometry->getFBXGeometry();
         _rig->reset(geometry.joints);
     }
-    _meshGroupsKnown = false;
-    _readyWhenAdded = false; // in case any of our users are using scenes
-    invalidCalculatedMeshBoxes(); // if we have to reload, we need to assume our mesh boxes are all invalid
 }
 
 bool Model::updateGeometry() {
@@ -508,8 +505,10 @@ void Model::setVisibleInScene(bool newValue, std::shared_ptr<render::Scene> scen
 }
 
 
-bool Model::addToScene(std::shared_ptr<render::Scene> scene, render::PendingChanges& pendingChanges) {
-    if (!_meshGroupsKnown && isLoaded()) {
+bool Model::addToScene(std::shared_ptr<render::Scene> scene, render::PendingChanges& pendingChanges, bool showCollisionHull) {
+
+    if ((!_meshGroupsKnown || showCollisionHull != _showCollisionHull) && isLoaded()) {
+        _showCollisionHull = showCollisionHull;
         segregateMeshGroups();
     }
 
@@ -532,8 +531,12 @@ bool Model::addToScene(std::shared_ptr<render::Scene> scene, render::PendingChan
     return somethingAdded;
 }
 
-bool Model::addToScene(std::shared_ptr<render::Scene> scene, render::PendingChanges& pendingChanges, render::Item::Status::Getters& statusGetters) {
-    if (!_meshGroupsKnown && isLoaded()) {
+bool Model::addToScene(std::shared_ptr<render::Scene> scene,
+                       render::PendingChanges& pendingChanges,
+                       render::Item::Status::Getters& statusGetters,
+                       bool showCollisionHull) {
+    if ((!_meshGroupsKnown || showCollisionHull != _showCollisionHull) && isLoaded()) {
+        _showCollisionHull = showCollisionHull;
         segregateMeshGroups();
     }
 
@@ -1144,8 +1147,14 @@ AABox Model::getPartBounds(int meshIndex, int partIndex) {
 }
 
 void Model::segregateMeshGroups() {
-    const FBXGeometry& geometry = _geometry->getFBXGeometry();
-    const std::vector<std::unique_ptr<NetworkMesh>>& networkMeshes = _geometry->getMeshes();
+    QSharedPointer<NetworkGeometry> networkGeometry;
+    if (_showCollisionHull && _collisionGeometry && _collisionGeometry->isLoaded()) {
+        networkGeometry = _collisionGeometry;
+    } else {
+        networkGeometry = _geometry;
+    }
+    const FBXGeometry& geometry = networkGeometry->getFBXGeometry();
+    const std::vector<std::unique_ptr<NetworkMesh>>& networkMeshes = networkGeometry->getMeshes();
 
     _rig->makeAnimSkeleton(geometry);
 
@@ -1155,6 +1164,9 @@ void Model::segregateMeshGroups() {
         qDebug() << "WARNING!!!! Mesh Sizes don't match! We will not segregate mesh groups yet.";
         return;
     }
+
+    Q_ASSERT(_renderItems.isEmpty()); // We should not have any existing renderItems if we enter this section of code
+    Q_ASSERT(_renderItemsSet.isEmpty()); // We should not have any existing renderItemsSet if we enter this section of code
 
     _renderItemsSet.clear();
 

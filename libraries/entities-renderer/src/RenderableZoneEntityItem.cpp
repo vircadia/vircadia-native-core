@@ -112,7 +112,7 @@ void RenderableZoneEntityItem::render(RenderArgs* args) {
                     render::ScenePointer scene = AbstractViewStateInterface::instance()->getMain3DScene();
                     render::PendingChanges pendingChanges;
                     _model->removeFromScene(scene, pendingChanges);
-                    _model->addToScene(scene, pendingChanges);
+                    _model->addToScene(scene, pendingChanges, false);
                     
                     scene->enqueuePendingChanges(pendingChanges);
                     
