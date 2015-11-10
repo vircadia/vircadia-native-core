@@ -7,11 +7,11 @@
 //
 
 // FIXME Script paths have to be relative to the caller, in this case libraries/OmniTool.js
-Script.include("../magBalls/constants.js");
-Script.include("../magBalls/graph.js");
-Script.include("../magBalls/edgeSpring.js");
-Script.include("../magBalls/magBalls.js");
-Script.include("avatarRelativeOverlays.js");
+Script.include("magBalls/constants.js");
+Script.include("magBalls/graph.js");
+Script.include("magBalls/edgeSpring.js");
+Script.include("magBalls/magBalls.js");
+Script.include("libraries/avatarRelativeOverlays.js");
 
 OmniToolModuleType = "MagBallsController"
 
@@ -34,7 +34,7 @@ MODE_INFO[BALL_EDIT_MODE_ADD] = {
     },
     colors: [ COLORS.GREEN, COLORS.BLUE ],
     // FIXME use an http path or find a way to get the relative path to the file
-    url: Script.resolvePath('../html/magBalls/addMode.html'),
+    url: Script.resolvePath('html/magBalls/addMode.html'),
 };
 
 MODE_INFO[BALL_EDIT_MODE_DELETE] = {
@@ -45,7 +45,7 @@ MODE_INFO[BALL_EDIT_MODE_DELETE] = {
     },
     colors: [ COLORS.RED, COLORS.BLUE ],
     // FIXME use an http path or find a way to get the relative path to the file
-    url: Script.resolvePath('../html/magBalls/deleteMode.html'),
+    url: Script.resolvePath('html/magBalls/deleteMode.html'),
 };
 
 var UI_POSITION_MODE_LABEL = Vec3.multiply(0.5,
