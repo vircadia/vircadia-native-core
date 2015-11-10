@@ -102,8 +102,11 @@ void Recorder::record() {
         frame.setBlendshapeCoefficients(_avatar->getHeadData()->getBlendshapeCoefficients());
         // FIXME: here we need to make sure the correct joint data on the AvatarData to get correct play back.
         // This should be fixed by a fix coming from Howard soon
-        frame.setJointRotations(_avatar->::AvatarData::getJointRotations());
-        frame.setJointTranslations(_avatar->::AvatarData::getJointTranslations());
+        auto& jointData = _avatar->getRawJointData();
+
+        frame.setJointArray(jointData);
+     //   frame.setJointRotations(_avatar->::AvatarData::getJointRotations());
+    //    frame.setJointTranslations(_avatar->::AvatarData::getJointTranslations());
 
         frame.setTranslation(context.orientationInv * (_avatar->getPosition() - context.position));
         frame.setRotation(context.orientationInv * _avatar->getOrientation());

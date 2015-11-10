@@ -25,6 +25,7 @@ class AttachmentData;
 class Recording;
 class RecordingFrame;
 class Sound;
+class JointData;
 
 typedef QSharedPointer<Recording> RecordingPointer;
 
@@ -82,6 +83,7 @@ private:
 class RecordingFrame {
 public:
     QVector<float> getBlendshapeCoefficients() const { return _blendshapeCoefficients; }
+    QVector<JointData> getJointArray() const { return _jointArray; }
     QVector<glm::quat> getJointRotations() const { return _jointRotations; }
     QVector<glm::vec3> getJointTranslations() const { return _jointTranslations; }
     glm::vec3 getTranslation() const { return _translation; }
@@ -94,6 +96,7 @@ public:
     
 protected:
     void setBlendshapeCoefficients(QVector<float> blendshapeCoefficients);
+    void setJointArray(const QVector<JointData>& jointArray) { _jointArray = jointArray; }
     void setJointRotations(QVector<glm::quat> jointRotations) { _jointRotations = jointRotations; }
     void setJointTranslations(QVector<glm::vec3> jointTranslations) { _jointTranslations = jointTranslations; }
     void setTranslation(const glm::vec3& translation) { _translation = translation; }
@@ -108,6 +111,8 @@ private:
     QVector<float> _blendshapeCoefficients;
     QVector<glm::quat> _jointRotations;
     QVector<glm::vec3> _jointTranslations;
+    QVector<JointData> _jointArray;
+
     glm::vec3 _translation;
     glm::quat _rotation;
     float _scale;

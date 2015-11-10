@@ -229,7 +229,28 @@ void writeRecordingToFile(RecordingPointer recording, const QString& filename) {
             ++maskIndex;
         }
         
-        // Joint Rotations
+        const auto& jointArray = frame.getJointArray();
+        if (i == 0) {
+            numJoints = jointArray.size();
+            stream << numJoints;
+            // 2 fields per joints
+            mask.resize(mask.size() + numJoints * 2);
+        }
+        for (int j = 0; j < numJoints; j++) {
+            const auto& joint = jointArray[j];
+            if (joint.rotationSet) {
+                writeQuat(stream, joint.rotation);
+                mask.setBit(maskIndex);
+            }
+            maskIndex++;
+            if (joint.translationSet) {
+                writeVec3(stream, joint.translation);
+                mask.setBit(maskIndex);
+            }
+            maskIndex++;
+        }
+
+        /* // Joint Rotations
         if (i == 0) {
             numJoints = frame.getJointRotations().size();
             stream << numJoints;
@@ -252,7 +273,7 @@ void writeRecordingToFile(RecordingPointer recording, const QString& filename) {
                 mask.setBit(maskIndex);
             }
             maskIndex++;
-        }
+        } */
 
         // Translation
         if (i == 0) {
@@ -561,10 +582,29 @@ RecordingPointer readRecordingFromFile(RecordingPointer recording, const QString
                 stream >> frame._blendshapeCoefficients[j];
             }
         }
-        // Joint Rotations
+        // Joint Array
         if (i == 0) {
             stream >> numJoints;
         }
+
+        frame._jointArray.resize(numJoints);
+        for (quint32 j = 0; j < numJoints; ++j) {
+            auto& joint = frame._jointArray[2];
+
+            if (mask[maskIndex++] && readQuat(stream, joint.rotation)) {
+                joint.rotationSet = true;
+            } else {
+                joint.rotationSet = false;
+            }
+
+            if (mask[maskIndex++] || readVec3(stream, joint.translation)) {
+                joint.translationSet = true;
+            } else {
+                joint.translationSet = false;
+            }
+        }
+
+        /*
         frame._jointRotations.resize(numJoints);
         for (quint32 j = 0; j < numJoints; ++j) {
             if (!mask[maskIndex++] || !readQuat(stream, frame._jointRotations[j])) {
@@ -573,13 +613,14 @@ RecordingPointer readRecordingFromFile(RecordingPointer recording, const QString
         }
 
         // Joint Translations
-        frame._jointTranslations.resize(numJoints);
+        /*frame._jointTranslations.resize(numJoints);
         for (quint32 j = 0; j < numJoints; ++j) {
             if (!mask[maskIndex++] || !readVec3(stream, frame._jointTranslations[j])) {
                 frame._jointTranslations[j] = previousFrame._jointTranslations[j];
             }
         }
-        
+        */
+
         if (!mask[maskIndex++] || !readVec3(stream, frame._translation)) {
             frame._translation = previousFrame._translation;
         }

@@ -247,22 +247,50 @@ void Player::play() {
                            _frameInterpolationFactor);
     _avatar->setTargetScale(context->scale * scale);
 
-    QVector<glm::quat> jointRotations(currentFrame.getJointRotations().size());
+    const auto& prevJointArray = currentFrame.getJointArray();
+    const auto& nextJointArray = currentFrame.getJointArray();
+    QVector<JointData> jointArray(prevJointArray.size());
+    QVector<glm::quat> jointRotations(prevJointArray.size());
+    QVector<glm::vec3> jointTranslations(prevJointArray.size());
+
+    for (int i = 0; i < jointArray.size(); i++) {
+        const auto& prevJoint = prevJointArray[i];
+        const auto& nextJoint = nextJointArray[i];
+        auto& joint = jointArray[i];
+
+        // Rotation
+        joint.rotationSet = prevJoint.rotationSet || nextJoint.rotationSet;
+        if (joint.rotationSet) {
+            joint.rotation = safeMix(prevJoint.rotation, nextJoint.rotation, _frameInterpolationFactor);
+            jointRotations[i] = joint.rotation;
+        }
+
+        joint.translationSet = prevJoint.translationSet || nextJoint.translationSet;
+        if (joint.translationSet) {
+            joint.translation = glm::mix(prevJoint.translation, nextJoint.translation, _frameInterpolationFactor);
+            jointTranslations[i] = joint.translation;
+        }
+    }
+   // _avatar->setRawJointData(jointArray);
+     _avatar->setJointRotations(jointRotations);
+   //  _avatar->setJointTranslations(jointTranslations);
+
+/*    QVector<glm::quat> jointRotations(currentFrame.getJointRotations().size());
     for (int i = 0; i < currentFrame.getJointRotations().size(); ++i) {
         jointRotations[i] = safeMix(currentFrame.getJointRotations()[i],
                                     nextFrame.getJointRotations()[i],
                                     _frameInterpolationFactor);
     }
-
-    QVector<glm::vec3> jointTranslations(currentFrame.getJointTranslations().size());
+    */
+  /*  QVector<glm::vec3> jointTranslations(currentFrame.getJointTranslations().size());
     for (int i = 0; i < currentFrame.getJointTranslations().size(); ++i) {
         jointTranslations[i] = glm::mix(currentFrame.getJointTranslations()[i],
                                         nextFrame.getJointTranslations()[i],
                                         _frameInterpolationFactor);
     }
-
-    _avatar->setJointRotations(jointRotations);
-    _avatar->setJointTranslations(jointTranslations);
+    */
+   // _avatar->setJointRotations(jointRotations);
+ //   _avatar->setJointTranslations(jointTranslations);
 
     HeadData* head = const_cast<HeadData*>(_avatar->getHeadData());
     if (head) {
@@ -422,3 +450,4 @@ bool Player::computeCurrentFrame() {
     }
     return true;
 }
+
