@@ -33,7 +33,7 @@ class QJsonObject;
 //   * evaluate method, perform actual joint manipulations here and return result by reference.
 //     Also, append any triggers that are detected during evaluation.
 
-class AnimNode {
+class AnimNode : public std::enable_shared_from_this<AnimNode> {
 public:
     enum class Type {
         Clip = 0,
@@ -77,6 +77,30 @@ public:
     }
 
     void setCurrentFrame(float frame);
+
+    template <typename F>
+    bool traverse(F func) {
+        if (func(shared_from_this())) {
+            for (auto&& child : _children) {
+                if (!child->traverse(func)) {
+                    return false;
+                }
+            }
+        }
+        return true;
+    }
+
+    Pointer findByName(const QString& id) {
+        Pointer result;
+        traverse([&](Pointer node) {
+            if (id == node->getID()) {
+                result = node;
+                return true;
+            }
+            return false;
+        });
+        return result;
+    }
 
 protected:
 

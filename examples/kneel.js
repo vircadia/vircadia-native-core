@@ -66,7 +66,7 @@ function kneelDown() {
 function standUp() {
     kneeling = false;
 
-    MyAvatar.stopAnimation(KNEEL_ANIM_URL);
+    MyAvatar.stopAnimation();
 
     Overlays.editOverlay(standUpButton, { visible: false });
     Overlays.editOverlay(kneelDownButton, { visible: true });

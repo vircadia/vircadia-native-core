@@ -113,15 +113,13 @@ public:
     void deleteAnimations();
     void destroyAnimGraph();
     const QList<AnimationHandlePointer>& getAnimationHandles() const { return _animationHandles; }
+
     void startAnimation(const QString& url, float fps, bool loop, float firstFrame, float lastFrame);
-    void stopAnimation(const QString& url);
-    void startAnimationByRole(const QString& role, const QString& url = QString(), float fps = 30.0f,
-                              float priority = 1.0f, bool loop = false, bool hold = false, float firstFrame = 0.0f,
-                              float lastFrame = FLT_MAX, const QStringList& maskedJoints = QStringList());
-    void stopAnimationByRole(const QString& role);
-    AnimationHandlePointer addAnimationByRole(const QString& role, const QString& url = QString(), float fps = 30.0f,
-                                              float priority = 1.0f, bool loop = false, bool hold = false, float firstFrame = 0.0f,
-                                              float lastFrame = FLT_MAX, const QStringList& maskedJoints = QStringList(), bool startAutomatically = false);
+    void stopAnimation();
+    QStringList getAnimationRoles() const;
+    void overrideAnimationRole(const QString& role, const QString& url, float fps, bool loop, float firstFrame, float lastFrame);
+    void restoreAnimationRole(const QString& role);
+    void prefetchAnimation(const QString& url);
 
     void initJointStates(QVector<JointState> states, glm::mat4 rootTransform,
                          int rootJointIndex,

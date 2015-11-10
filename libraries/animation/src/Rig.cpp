@@ -79,6 +79,8 @@ void Rig::startAnimation(const QString& url, float fps, bool loop, float firstFr
         bool hold = true;
         QStringList maskedJoints;
 
+        _currentUserAnimURL = url;
+
         // This is different than startAnimationByRole, in which we use the existing values if the animation already exists.
         // Here we reuse the animation handle if possible, but in any case, we set the values to those given (or defaulted).
         AnimationHandlePointer handle = nullptr;
@@ -102,79 +104,12 @@ void Rig::startAnimation(const QString& url, float fps, bool loop, float firstFr
         handle->start();
     }
 }
-
-AnimationHandlePointer Rig::addAnimationByRole(const QString& role, const QString& url, float fps, float priority,
-                                               bool loop, bool hold, float firstFrame, float lastFrame, const QStringList& maskedJoints, bool startAutomatically) {
-
-    // check for a configured animation for the role
-    //qCDebug(animation) << "addAnimationByRole" << role << url << fps << priority << loop << hold << firstFrame << lastFrame << maskedJoints << startAutomatically;
-    foreach (const AnimationHandlePointer& candidate, _animationHandles) {
-        if (candidate->getRole() == role) {
-            if (startAutomatically) {
-                candidate->start();
-            }
-            return candidate;
-        }
-    }
-    AnimationHandlePointer handle = createAnimationHandle();
-    QString standard = "";
-    if (url.isEmpty()) {  // Default animations for fight club
-        const QString& base = "https://hifi-public.s3.amazonaws.com/ozan/anim/standard_anims/";
-        if (role == "walk") {
-            standard = base + "walk_fwd.fbx";
-        } else if (role == "backup") {
-            standard = base + "walk_bwd.fbx";
-        } else if (role == "leftTurn") {
-            standard = base + "turn_left.fbx";
-        } else if (role == "rightTurn") {
-            standard = base + "turn_right.fbx";
-        } else if (role == "leftStrafe") {
-            standard = base + "strafe_left.fbx";
-        } else if (role == "rightStrafe") {
-            standard = base + "strafe_right.fbx";
-        } else if (role == "idle") {
-            standard = base + "idle.fbx";
-            fps = 25.0f;
-        }
-        if (!standard.isEmpty()) {
-            loop = true;
-        }
-    }
-    handle->setRole(role);
-    handle->setURL(url.isEmpty() ? standard : url);
-    handle->setFPS(fps);
-    handle->setPriority(priority);
-    handle->setLoop(loop);
-    handle->setHold(hold);
-    handle->setFirstFrame(firstFrame);
-    handle->setLastFrame(lastFrame);
-    handle->setMaskedJoints(maskedJoints);
-    if (startAutomatically) {
-        handle->start();
-    }
-    return handle;
-}
-
-const float FADE_FRAMES = 30.0f;
 const float FRAMES_PER_SECOND = 30.0f;
+const float FADE_FRAMES = 30.0f;
 
-void Rig::startAnimationByRole(const QString& role, const QString& url, float fps, float priority,
-                               bool loop, bool hold, float firstFrame, float lastFrame, const QStringList& maskedJoints) {
-    AnimationHandlePointer handle = addAnimationByRole(role, url, fps, priority, loop, hold, firstFrame, lastFrame, maskedJoints, true);
-    handle->setFadePerSecond(FRAMES_PER_SECOND / FADE_FRAMES); // For now. Could be individualized later.
-}
-
-void Rig::stopAnimationByRole(const QString& role) {
-    foreach (const AnimationHandlePointer& handle, getRunningAnimations()) {
-        if (handle->getRole() == role) {
-            handle->setFadePerSecond(-(FRAMES_PER_SECOND / FADE_FRAMES)); // For now. Could be individualized later.
-        }
-    }
-}
-
-void Rig::stopAnimation(const QString& url) {
+void Rig::stopAnimation() {
     if (_enableAnimGraph) {
-        if (url == _currentUserAnimURL) {
+        if (_currentUserAnimURL != "") {
             _currentUserAnimURL = "";
             // notify the userAnimStateMachine the desired state.
             _animVars.set("userAnimNone", true);
@@ -183,11 +118,64 @@ void Rig::stopAnimation(const QString& url) {
         }
     } else {
         foreach (const AnimationHandlePointer& handle, getRunningAnimations()) {
-            if (handle->getURL() == url) {
+            if (handle->getURL() == _currentUserAnimURL) {
                 handle->setFade(0.0f); // right away. Will be remove during updateAnimations, without locking
                 handle->setFadePerSecond(-(FRAMES_PER_SECOND / FADE_FRAMES)); // so that the updateAnimation code notices
             }
         }
+    }
+}
+
+QStringList Rig::getAnimationRoles() const {
+    if (_enableAnimGraph && _animNode) {
+        QStringList list;
+        _animNode->traverse([&](AnimNode::Pointer node) {
+            list.append(node->getID());
+            return true;
+        });
+        return list;
+    } else {
+        return QStringList();
+    }
+}
+
+void Rig::overrideAnimationRole(const QString& role, const QString& url, float fps, bool loop, float firstFrame, float lastFrame) {
+    if (_enableAnimGraph && _animNode) {
+        AnimNode::Pointer node = _animNode->findByName(role);
+        if (node) {
+            //_previousRoleAnimations[role] = node;
+            // TODO: create clip node.
+            // TODO: AnimNode needs the following methods.
+            // Pointer getParent() const;
+            // void swapChild(Pointer child, Pointer newChild);
+            //
+            // pseudo code
+            //
+            // auto clipNode = std::make_shared<AnimClip>(role, url, fps, firstFrame, lastFrame, loop);
+            // node->getParent()->swapChild(node, clipNode);
+
+        } else {
+            qCWarning(animation) << "Rig::overrideAnimationRole could not find role " << role;
+        }
+    }
+}
+
+void Rig::restoreAnimationRole(const QString& role) {
+    if (_enableAnimGraph && _animNode) {
+        AnimNode::Pointer node = _animNode->findByName(role);
+        if (node) {
+            // TODO: pseudo code
+            // origNode = _previousRoleAnimations.find(role);
+            // if (origNode) {
+            //     node->getParent()->swapChild(node, origNode);
+            // }
+        }
+    }
+}
+
+void Rig::prefetchAnimation(const QString& url) {
+    if (_enableAnimGraph) {
+        // TODO:
     }
 }
 
@@ -661,13 +649,13 @@ void Rig::computeMotionAnimationState(float deltaTime, const glm::vec3& worldPos
             if (isOn) {
                 if (!isRunningRole(role)) {
                     qCDebug(animation) << "Rig STARTING" << role;
-                    startAnimationByRole(role);
+                    //startAnimationByRole(role);
 
                 }
             } else {
                 if (isRunningRole(role)) {
                     qCDebug(animation) << "Rig stopping" << role;
-                    stopAnimationByRole(role);
+                    //stopAnimationByRole(role);
                 }
             }
         };

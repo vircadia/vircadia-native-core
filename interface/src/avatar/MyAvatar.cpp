@@ -666,65 +666,47 @@ void MyAvatar::startAnimation(const QString& url, float fps, bool loop, float fi
     _rig->startAnimation(url, fps, loop, firstFrame, lastFrame);
 }
 
-void MyAvatar::startAnimationByRole(const QString& role, const QString& url, float fps, float priority,
-        bool loop, bool hold, float firstFrame, float lastFrame, const QStringList& maskedJoints) {
+void MyAvatar::stopAnimation() {
     if (QThread::currentThread() != thread()) {
-        QMetaObject::invokeMethod(this, "startAnimationByRole", Q_ARG(const QString&, role), Q_ARG(const QString&, url),
-            Q_ARG(float, fps), Q_ARG(float, priority), Q_ARG(bool, loop), Q_ARG(bool, hold), Q_ARG(float, firstFrame),
-            Q_ARG(float, lastFrame), Q_ARG(const QStringList&, maskedJoints));
+        QMetaObject::invokeMethod(this, "stopAnimation");
         return;
     }
-    _rig->startAnimationByRole(role, url, fps, priority, loop, hold, firstFrame, lastFrame, maskedJoints);
+    _rig->stopAnimation();
 }
 
-void MyAvatar::stopAnimationByRole(const QString& role) {
+QStringList MyAvatar::getAnimationRoles() {
     if (QThread::currentThread() != thread()) {
-        QMetaObject::invokeMethod(this, "stopAnimationByRole", Q_ARG(const QString&, role));
-        return;
-    }
-    _rig->stopAnimationByRole(role);
-}
-
-void MyAvatar::stopAnimation(const QString& url) {
-    if (QThread::currentThread() != thread()) {
-        QMetaObject::invokeMethod(this, "stopAnimation", Q_ARG(const QString&, url));
-        return;
-    }
-    _rig->stopAnimation(url);
-}
-
-AnimationDetails MyAvatar::getAnimationDetailsByRole(const QString& role) {
-    AnimationDetails result;
-    if (QThread::currentThread() != thread()) {
-        QMetaObject::invokeMethod(this, "getAnimationDetailsByRole", Qt::BlockingQueuedConnection,
-            Q_RETURN_ARG(AnimationDetails, result),
-            Q_ARG(const QString&, role));
+        QStringList result;
+        QMetaObject::invokeMethod(this, "getAnimationRoles", Qt::BlockingQueuedConnection, Q_RETURN_ARG(QStringList, result));
         return result;
     }
-    foreach (const AnimationHandlePointer& handle, _rig->getRunningAnimations()) {
-        if (handle->getRole() == role) {
-            result = handle->getAnimationDetails();
-            break;
-        }
-    }
-    return result;
+    return _rig->getAnimationRoles();
 }
 
-AnimationDetails MyAvatar::getAnimationDetails(const QString& url) {
-    AnimationDetails result;
+void MyAvatar::overrideAnimationRole(const QString& role, const QString& url, float fps, bool loop,
+                                     float firstFrame, float lastFrame) {
     if (QThread::currentThread() != thread()) {
-        QMetaObject::invokeMethod(this, "getAnimationDetails", Qt::BlockingQueuedConnection,
-            Q_RETURN_ARG(AnimationDetails, result),
-            Q_ARG(const QString&, url));
-        return result;
+        QMetaObject::invokeMethod(this, "overrideAnimationRole", Q_ARG(const QString&, role), Q_ARG(const QString&, url),
+                                  Q_ARG(float, fps), Q_ARG(bool, loop), Q_ARG(float, firstFrame), Q_ARG(float, lastFrame));
+        return;
     }
-    foreach (const AnimationHandlePointer& handle, _rig->getRunningAnimations()) {
-        if (handle->getURL() == url) {
-            result = handle->getAnimationDetails();
-            break;
-        }
+    _rig->overrideAnimationRole(role, url, fps, loop, firstFrame, lastFrame);
+}
+
+void MyAvatar::restoreAnimationRole(const QString& role) {
+    if (QThread::currentThread() != thread()) {
+        QMetaObject::invokeMethod(this, "restoreAnimationRole", Q_ARG(const QString&, role));
+        return;
     }
-    return result;
+    _rig->restoreAnimationRole(role);
+}
+
+void MyAvatar::prefetchAnimation(const QString& url) {
+    if (QThread::currentThread() != thread()) {
+        QMetaObject::invokeMethod(this, "prefetchAnimation", Q_ARG(const QString&, url));
+        return;
+    }
+    _rig->prefetchAnimation(url);
 }
 
 void MyAvatar::saveData() {
@@ -797,6 +779,7 @@ float loadSetting(QSettings& settings, const char* name, float defaultValue) {
 // If we demand the animation from the update thread while we're locked, we'll deadlock.
 // Until we untangle this, code puts the updates back on the main thread temporarilly and starts all the loading.
 void MyAvatar::safelyLoadAnimations() {
+    /*
     _rig->addAnimationByRole("idle");
     _rig->addAnimationByRole("walk");
     _rig->addAnimationByRole("backup");
@@ -804,6 +787,7 @@ void MyAvatar::safelyLoadAnimations() {
     _rig->addAnimationByRole("rightTurn");
     _rig->addAnimationByRole("leftStrafe");
     _rig->addAnimationByRole("rightStrafe");
+    */
 }
 
 void MyAvatar::setEnableRigAnimations(bool isEnabled) {
@@ -904,23 +888,6 @@ void MyAvatar::loadData() {
     }
     settings.endArray();
     setAttachmentData(attachmentData);
-
-    int animationCount = settings.beginReadArray("animationHandles");
-    _rig->deleteAnimations();
-    for (int i = 0; i < animationCount; i++) {
-        settings.setArrayIndex(i);
-        _rig->addAnimationByRole(settings.value("role", "idle").toString(),
-                                 settings.value("url").toString(),
-                                 loadSetting(settings, "fps", 30.0f),
-                                 loadSetting(settings, "priority", 1.0f),
-                                 settings.value("loop", true).toBool(),
-                                 settings.value("hold", false).toBool(),
-                                 settings.value("firstFrame", 0.0f).toFloat(),
-                                 settings.value("lastFrame", INT_MAX).toFloat(),
-                                 settings.value("maskedJoints").toStringList(),
-                                 settings.value("startAutomatically", true).toBool());
-    }
-    settings.endArray();
 
     setDisplayName(settings.value("displayName").toString());
     setCollisionSoundURL(settings.value("collisionSoundURL", DEFAULT_AVATAR_COLLISION_SOUND_URL).toString());
@@ -1177,14 +1144,7 @@ void MyAvatar::clearJointData(int index) {
 }
 
 void MyAvatar::clearJointsData() {
-    clearJointAnimationPriorities();
-}
-
-void MyAvatar::clearJointAnimationPriorities() {
-    int numStates = _skeletonModel.getJointStateCount();
-    for (int i = 0; i < numStates; ++i) {
-        _rig->clearJointAnimationPriority(i);
-    }
+    //clearJointAnimationPriorities();
 }
 
 void MyAvatar::setFaceModelURL(const QUrl& faceModelURL) {
@@ -1382,7 +1342,6 @@ void MyAvatar::setScriptedMotorFrame(QString frame) {
 }
 
 void MyAvatar::clearScriptableSettings() {
-    clearJointAnimationPriorities();
     _scriptedMotorVelocity = glm::vec3(0.0f);
     _scriptedMotorTimescale = DEFAULT_SCRIPTED_MOTOR_TIMESCALE;
 }

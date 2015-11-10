@@ -4294,10 +4294,6 @@ void Application::stopAllScripts(bool restart) {
         it.value()->stop();
         qCDebug(interfaceapp) << "stopping script..." << it.key();
     }
-    // HACK: ATM scripts cannot set/get their animation priorities, so we clear priorities
-    // whenever a script stops in case it happened to have been setting joint rotations.
-    // TODO: expose animation priorities and provide a layered animation control system.
-    getMyAvatar()->clearJointAnimationPriorities();
     getMyAvatar()->clearScriptableSettings();
 }
 
@@ -4313,10 +4309,6 @@ bool Application::stopScript(const QString& scriptHash, bool restart) {
         scriptEngine->stop();
         stoppedScript = true;
         qCDebug(interfaceapp) << "stopping script..." << scriptHash;
-        // HACK: ATM scripts cannot set/get their animation priorities, so we clear priorities
-        // whenever a script stops in case it happened to have been setting joint rotations.
-        // TODO: expose animation priorities and provide a layered animation control system.
-        getMyAvatar()->clearJointAnimationPriorities();
     }
     if (_scriptEnginesHash.empty()) {
         getMyAvatar()->clearScriptableSettings();
