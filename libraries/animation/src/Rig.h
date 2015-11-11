@@ -265,6 +265,7 @@ public:
     SimpleMovingAverage _averageLateralSpeed { 10 };
 
     std::map<QString, AnimNode::Pointer> _origRoleAnimations;
+    std::vector<AnimNode::Pointer> _prefetchedAnimations;
 
 private:
     QMap<int, StateHandler> _stateHandlers;

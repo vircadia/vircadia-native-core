@@ -20,7 +20,9 @@ for (i = 0; i < l; i++) {
     print(roles[i]);
 }
 
-// replace point with the bird!
+MyAvatar.prefetchAnimation(THE_BIRD_RIGHT_URL);
+
+// replace point animations with the bird!
 MyAvatar.overrideRoleAnimation("rightHandPointIntro", THE_BIRD_RIGHT_URL, 30, false, 0, 12);
 MyAvatar.overrideRoleAnimation("rightHandPointHold", THE_BIRD_RIGHT_URL, 30, false, 12, 12);
 MyAvatar.overrideRoleAnimation("rightHandPointOutro", THE_BIRD_RIGHT_URL, 30, false, 19, 30);
