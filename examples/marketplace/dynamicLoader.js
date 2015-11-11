@@ -30,7 +30,6 @@ function createGrid() {
     var fbxUrls = urls.filter(function(url) {
         return url.indexOf('fbx') !== -1;
     });
-    print(JSON.stringify(fbxUrls));
 
     var modelParams = {
         type: "Model",
