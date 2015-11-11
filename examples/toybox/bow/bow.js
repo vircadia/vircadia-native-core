@@ -194,7 +194,7 @@
                 this.stringDrawn = false;
                 this.deleteStrings();
                 this.hasArrow = false;
-               // Entities.deleteEntity(this.arrow);
+                // Entities.deleteEntity(this.arrow);
                 setEntityCustomData('grabbableKey', this.entityID, {
                     turnOffOtherHand: false,
                     invertSolidWhileHeld: true
@@ -369,7 +369,7 @@
             }
 
             this.triggerValue = Controller.getActionValue(this.stringTriggerAction);
-          //  print('TRIGGER VALUE:::' + this.triggerValue)
+            //  print('TRIGGER VALUE:::' + this.triggerValue)
 
             if (this.triggerValue < DRAW_STRING_THRESHOLD && this.stringDrawn === true) {
 
@@ -381,8 +381,8 @@
                     // this.releaseArrow();
 
             } else if (this.triggerValue >= DRAW_STRING_THRESHOLD && this.stringDrawn === true) {
-              //  print('HIT CONTINUE LOOP IN CHECK')
-                    //continuing to aim the arrow
+                //  print('HIT CONTINUE LOOP IN CHECK')
+                //continuing to aim the arrow
                 this.stringData.handPosition = this.getStringHandPosition();
                 this.stringData.handRotation = this.getStringHandRotation();
                 this.stringData.grabHandPosition = this.getGrabHandPosition();
@@ -454,26 +454,26 @@
             var finalArrowPosition = Vec3.sum(arrowPosition, pushForwardOffset);
 
             var arrowRotation = this.orientationOf(handToNotch);
-          //  print('ARROW ROTATION:: ' + JSON.stringify(arrowRotation));
+            //  print('ARROW ROTATION:: ' + JSON.stringify(arrowRotation));
             Entities.editEntity(this.arrow, {
-                position:this.notchDetectorPosition,
+                position: this.notchDetectorPosition,
                 rotation: arrowRotation,
-                      velocity: {
-            x: 0,
-            y: 0,
-            z: 0
-        },
-        angularVelocity: {
-            x: 0,
-            y: 0,
-            z: 0
-        }
+                velocity: {
+                    x: 0,
+                    y: 0,
+                    z: 0
+                },
+                angularVelocity: {
+                    x: 0,
+                    y: 0,
+                    z: 0
+                }
             })
 
-            var currentRotation = Entities.getEntityProperties(this.arrow,"rotation").rotation
-          //  print('ACTUAL ARROW ROTATION::' +JSON.stringify(currentRotation));
+            var currentRotation = Entities.getEntityProperties(this.arrow, "rotation").rotation
+                //  print('ACTUAL ARROW ROTATION::' +JSON.stringify(currentRotation));
 
-          print('DIFFERENCE::: '+(1-Quat.dot(arrowRotation,currentRotation)));
+            print('DIFFERENCE::: ' + (1 - Quat.dot(arrowRotation, currentRotation)));
             // if (this.arrowIsBurning === true) {
             //     Entities.editEntity(this.fire, {
             //         position: arrowTipPosition

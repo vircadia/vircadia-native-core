@@ -32,7 +32,7 @@
         preload: function(entityID) {
             this.entityID = entityID;
 
-
+            Script.update.connect(this.update);
             // this.isBurning = this.checkIfBurning();
             // if (this.isBurning === true || this.glow === true) {
             //     Script.update.connect(this.updateArrowProperties);
@@ -48,7 +48,7 @@
         },
 
         unload: function() {
-
+            Script.update.disconnect(this.update);
             // Script.update.disconnect(this.updateArrowProperties);
 
             // if (this.isBurning) {
@@ -103,11 +103,11 @@
         },
 
         disableGrab: function() {
-           
+
 
             var actionID = this.getActionID();
-     
-            print('actionID'+actionID)
+
+            print('actionID' + actionID)
             Entities.deleteAction(this.entityID, actionID);
         },
 
@@ -125,7 +125,17 @@
 
             Entities.editEntity(this.entityID, {
                 collisionsWillMove: false,
-                ignoreForCollisions: true
+                ignoreForCollisions: true,
+                velocity: {
+                    x: 0,
+                    y: 0,
+                    z: 0
+                },
+                angularVelocity: {
+                    x: 0,
+                    y: 0,
+                    z: 0
+                }
             })
 
             setEntityCustomData('hifiBowKey', bowID, {
@@ -133,6 +143,11 @@
                 arrowID: this.entityID
             });
 
+        },
+        update:function(){
+
+          //  var actions = Entities.getActionIDs(_this.entityID);
+          //  print('ACTIONS ON ME:::'+actions)
         },
 
         checkIfBurning: function() {
