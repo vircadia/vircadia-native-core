@@ -17,13 +17,11 @@ var floor = Entities.addEntity({
 var urls = [];
 var req = new XMLHttpRequest();
 req.open("GET", "https://serene-headland-4300.herokuapp.com/?assetDir=ozan/3d_marketplace/sets", false);
-// req.open("GET", "http://localhost:5000", false);
 req.send();
 
 var res = req.responseText;
 var urls = JSON.parse(res).urls;
 if (urls.length > 0) {
-    print("WAAAH")
         // We've got an array of urls back from server- let's display them in grid
     createGrid();
 }
@@ -36,11 +34,11 @@ function createGrid() {
 
     var modelParams = {
         type: "Model",
-        // dimensions: {
-        //     x: 31.85,
-        //     y: 7.75,
-        //     z: 54.51
-        // },
+        dimensions: {
+            x: 10,
+            y: 10,
+            z: 10
+        },
     };
 
     var modelPosition = {
@@ -61,6 +59,15 @@ function createGrid() {
         var model = Entities.addEntity(modelParams);
         models.push(model);
     }
+
+    Script.setTimeout(function() {
+        //Until we add callbacks on model loaded, we need to set a timeout and hope model is loaded by the time 
+        //we hit it in order to set model dimensions correctly
+        for(var i = 0; i < models.length; i++){
+            var modelDimensions = Entities.getEntityProperties(models[i], 'naturalDimensions').naturalDimensions;
+            Entities.editEntity(models[i], {dimensions: modelDimensions});
+        }    
+    }, 10000);
 }
 
 function cleanup() {
