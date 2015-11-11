@@ -741,24 +741,6 @@ void MyAvatar::saveData() {
     }
     settings.endArray();
 
-    settings.beginWriteArray("animationHandles");
-    auto animationHandles = _rig->getAnimationHandles();
-    for (int i = 0; i < animationHandles.size(); i++) {
-        settings.setArrayIndex(i);
-        const AnimationHandlePointer& pointer = animationHandles.at(i);
-        settings.setValue("role", pointer->getRole());
-        settings.setValue("url", pointer->getURL());
-        settings.setValue("fps", pointer->getFPS());
-        settings.setValue("priority", pointer->getPriority());
-        settings.setValue("loop", pointer->getLoop());
-        settings.setValue("hold", pointer->getHold());
-        settings.setValue("startAutomatically", pointer->getStartAutomatically());
-        settings.setValue("firstFrame", pointer->getFirstFrame());
-        settings.setValue("lastFrame", pointer->getLastFrame());
-        settings.setValue("maskedJoints", pointer->getMaskedJoints());
-    }
-    settings.endArray();
-
     settings.setValue("displayName", _displayName);
     settings.setValue("collisionSoundURL", _collisionSoundURL);
 
