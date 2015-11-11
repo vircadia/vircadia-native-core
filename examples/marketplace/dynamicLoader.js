@@ -5,7 +5,8 @@
 //  Created by Eric Levin on 11/10/2015.
 //  Copyright 2013 High Fidelity, Inc.
 //
-//  This is script loads models from a specified directory
+//  This script is an example of a way to dynamically load and place models in a grid from a specified s3 directory on the hifi-public bucket. 
+//  The directory can be specified by changing the query string variable on line 19 to the desired relative path.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
