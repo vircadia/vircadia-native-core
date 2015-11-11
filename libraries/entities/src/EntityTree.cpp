@@ -942,6 +942,7 @@ void EntityTree::forgetEntitiesDeletedBefore(quint64 sinceTime) {
 
 // TODO: consider consolidating processEraseMessageDetails() and processEraseMessage()
 int EntityTree::processEraseMessage(NLPacket& packet, const SharedNodePointer& sourceNode) {
+    qDebug() << "EntityTree::processEraseMessage()";
     withWriteLock([&] {
         packet.seek(sizeof(OCTREE_PACKET_FLAGS) + sizeof(OCTREE_PACKET_SEQUENCE) + sizeof(OCTREE_PACKET_SENT_TIME));
 
@@ -959,6 +960,7 @@ int EntityTree::processEraseMessage(NLPacket& packet, const SharedNodePointer& s
                 }
 
                 QUuid entityID = QUuid::fromRfc4122(packet.readWithoutCopy(NUM_BYTES_RFC4122_UUID));
+                qDebug() << "    ---- EntityTree::processEraseMessage() contained ID:" << entityID;
 
                 EntityItemID entityItemID(entityID);
                 entityItemIDsToDelete << entityItemID;
@@ -978,6 +980,7 @@ int EntityTree::processEraseMessage(NLPacket& packet, const SharedNodePointer& s
 // NOTE: Caller must lock the tree before calling this.
 // TODO: consider consolidating processEraseMessageDetails() and processEraseMessage()
 int EntityTree::processEraseMessageDetails(const QByteArray& dataByteArray, const SharedNodePointer& sourceNode) {
+    qDebug() << "EntityTree::processEraseMessageDetails()";
     const unsigned char* packetData = (const unsigned char*)dataByteArray.constData();
     const unsigned char* dataAt = packetData;
     size_t packetLength = dataByteArray.size();
@@ -1003,6 +1006,8 @@ int EntityTree::processEraseMessageDetails(const QByteArray& dataByteArray, cons
             QUuid entityID = QUuid::fromRfc4122(encodedID);
             dataAt += encodedID.size();
             processedBytes += encodedID.size();
+
+            qDebug() << "    ---- EntityTree::processEraseMessageDetails() contains id:" << entityID;
 
             EntityItemID entityItemID(entityID);
             entityItemIDsToDelete << entityItemID;
