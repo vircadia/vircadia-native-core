@@ -64,7 +64,7 @@ OmniTool = function(left) {
     });
 
     this.mapping = Controller.newMapping();
-    this.mapping.from(left ? standard.LeftPrimaryThumb : standard.RightPrimaryThumb).to(function(value){
+    this.mapping.from(left ? standard.LeftPrimaryThumb : standard.RightSecondaryThumb).to(function(value){
         that.onUpdateTrigger(value);
     })
     this.mapping.enable();
