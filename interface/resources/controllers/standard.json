@@ -33,7 +33,7 @@
         { "from": "Standard.Start", "to": "Standard.RightSecondaryThumb" },
 
         { "from": "Standard.LeftSecondaryThumb", "to": "Actions.CycleCamera" }, 
-        { "from": "Standard.RightPrimaryThumb", "to": "Actions.ContextMenu" },
+        { "from": "Standard.RightSecondaryThumb", "to": "Actions.ContextMenu" },
 
         { "from": "Standard.LT", "to": "Actions.LeftHandClick" }, 
         { "from": "Standard.RT", "to": "Actions.RightHandClick" },
