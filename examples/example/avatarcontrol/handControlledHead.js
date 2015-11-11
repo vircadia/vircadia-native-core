@@ -1,6 +1,14 @@
-// handControlledHead.js
-
-//This script allows you to look around, driving the rotation of the avatar's head by the right hand orientation.
+//
+//  handControlledHead.js
+//  examples
+//
+//  Created by Alessandro Signa on 10/11/15.
+//  Copyright 2015 High Fidelity, Inc.
+//
+//  This script allows you to look around, driving the rotation of the avatar's head by the right hand orientation.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 
 const YAW_MULTIPLIER = 20000;
 const PITCH_MULTIPLIER = 15000;
