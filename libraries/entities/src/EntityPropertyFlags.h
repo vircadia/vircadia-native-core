@@ -149,6 +149,8 @@ enum EntityPropertyList {
     PROP_ANIMATION_HOLD,
     PROP_ANIMATION_START_AUTOMATICALLY,
 
+    PROP_ADDITIVE_BLENDING,
+
     ////////////////////////////////////////////////////////////////////////////////////////////////////
     // ATTENTION: add new properties to end of list just ABOVE this line
     PROP_AFTER_LAST_ITEM,

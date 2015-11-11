@@ -869,8 +869,8 @@ MasterReset = function() {
 
     function createPingPongBallGun() {
         var MODEL_URL = 'http://hifi-public.s3.amazonaws.com/models/ping_pong_gun/ping_pong_gun.fbx';
-        var COLLISION_HULL_URL = 'http://hifi-public.s3.amazonaws.com/models/ping_pong_gun/ping_pong_gun_collision_hull.obj';
-
+        var COLLISION_HULL_URL = 'http://hifi-public.s3.amazonaws.com/models/ping_pong_gun/ping_pong_gun_convex.obj';
+        var COLLISION_SOUND_URL = 'http://hifi-public.s3.amazonaws.com/sounds/Collisions-otherorganic/plastic_impact.L.wav';
         var position = {
             x: 548.6,
             y: 495.4,
@@ -882,7 +882,8 @@ MasterReset = function() {
         var pingPongGun = Entities.addEntity({
             type: "Model",
             modelURL: MODEL_URL,
-            shapeType: 'box',
+            shapeType: 'compound',
+            compoundShapeURL:COLLISION_HULL_URL,
             script: pingPongScriptURL,
             position: position,
             rotation: rotation,
@@ -897,6 +898,7 @@ MasterReset = function() {
                 z: 0.47
             },
             collisionsWillMove: true,
+            collisionSoundURL: COLLISION_SOUND_URL,
             userData: JSON.stringify({
                 resetMe: {
                     resetMe: true

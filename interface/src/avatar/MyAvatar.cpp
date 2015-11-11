@@ -1097,14 +1097,6 @@ void MyAvatar::setJointRotations(QVector<glm::quat> jointRotations) {
     }
 }
 
-void MyAvatar::setJointTranslations(QVector<glm::vec3> jointTranslations) {
-    int numStates = glm::min(_skeletonModel.getJointStateCount(), jointTranslations.size());
-    for (int i = 0; i < numStates; ++i) {
-        // HACK: ATM only Recorder calls setJointTranslations() so we hardcode its priority here
-        _skeletonModel.setJointTranslation(i, true, jointTranslations[i], RECORDER_PRIORITY);
-    }
-}
-
 void MyAvatar::setJointData(int index, const glm::quat& rotation, const glm::vec3& translation) {
     if (QThread::currentThread() != thread()) {
         QMetaObject::invokeMethod(this, "setJointData", Q_ARG(int, index), Q_ARG(const glm::quat&, rotation),
@@ -1565,7 +1557,6 @@ void MyAvatar::updateOrientation(float deltaTime) {
     // Comfort Mode: If you press any of the left/right rotation drive keys or input, you'll
     // get an instantaneous 15 degree turn. If you keep holding the key down you'll get another
     // snap turn every half second.
-    quint64 now = usecTimestampNow();
     if (_driveKeys[STEP_YAW] != 0.0f) {
         totalBodyYaw += _driveKeys[STEP_YAW];
     }
@@ -1633,8 +1624,6 @@ glm::vec3 MyAvatar::applyKeyboardMotor(float deltaTime, const glm::vec3& localVe
     float motorEfficiency = glm::clamp(deltaTime / timescale, 0.0f, 1.0f);
 
     glm::vec3 newLocalVelocity = localVelocity;
-    float stepControllerInput = fabsf(_driveKeys[STEP_TRANSLATE_Z]) + fabsf(_driveKeys[STEP_TRANSLATE_Z]) + fabsf(_driveKeys[STEP_TRANSLATE_Z]);
-    quint64 now = usecTimestampNow();
 
     // FIXME how do I implement step translation as well?
 

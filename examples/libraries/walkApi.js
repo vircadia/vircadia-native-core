@@ -14,7 +14,7 @@
 //
 
 // included here to ensure walkApi.js can be used as an API, separate from walk.js
-Script.include("./libraries/walkConstants.js");
+Script.include("walkConstants.js");
 
 Avatar = function() {
     // if Hydras are connected, the only way to enable use is to never set any arm joint rotation

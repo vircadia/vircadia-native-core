@@ -489,7 +489,7 @@ function MyController(hand) {
         if (grabbableData.wantsTrigger) {
             this.setState(STATE_NEAR_TRIGGER);
             return;
-        } else if (!props.locked) {
+        } else if (!props.locked && props.collisionsWillMove) {
             this.setState(STATE_NEAR_GRABBING);
             return;
         }
