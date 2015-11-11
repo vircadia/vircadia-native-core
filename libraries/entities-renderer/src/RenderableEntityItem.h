@@ -25,6 +25,8 @@ enum class RenderItemStatusIcon {
     NONE = 255
 };
 
+void makeEntityItemStatusGetters(EntityItemPointer entity, render::Item::Status::Getters& statusGetters);
+
 
 class RenderableEntityItemProxy {
 public:
@@ -50,6 +52,10 @@ public:
         auto renderData = std::make_shared<RenderableEntityItemProxy>(self);
         auto renderPayload = std::make_shared<RenderableEntityItemProxy::Payload>(renderData);
 
+        render::Item::Status::Getters statusGetters;
+        makeEntityItemStatusGetters(self, statusGetters);
+        renderPayload->addStatusGetters(statusGetters);
+
         pendingChanges.resetItem(_myItem, renderPayload);
 
         return true;
@@ -71,7 +77,5 @@ public: \
 private: \
     SimpleRenderableEntityItem _renderHelper;
 
-
-void makeEntityItemStatusGetters(EntityItem* entity, render::Item::Status::Getters& statusGetters);
 
 #endif // hifi_RenderableEntityItem_h

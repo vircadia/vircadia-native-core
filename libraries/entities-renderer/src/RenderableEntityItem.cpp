@@ -41,7 +41,7 @@ namespace render {
     }
 }
 
-void makeEntityItemStatusGetters(EntityItem* entity, render::Item::Status::Getters& statusGetters) {
+void makeEntityItemStatusGetters(EntityItemPointer entity, render::Item::Status::Getters& statusGetters) {
     statusGetters.push_back([entity] () -> render::Item::Status::Value {
         quint64 delta = usecTimestampNow() - entity->getLastEditedFromRemote();
         const float WAIT_THRESHOLD_INV = 1.0f / (0.2f * USECS_PER_SECOND);
