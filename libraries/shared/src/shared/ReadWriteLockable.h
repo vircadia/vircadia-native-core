@@ -21,7 +21,7 @@ class ReadWriteLockable {
 public:
     // Write locks
     template <typename F>
-    bool withWriteLock(F&& f) const;
+    void withWriteLock(F&& f) const;
     
     template <typename F>
     bool withWriteLock(F&& f, bool require) const;
@@ -34,7 +34,7 @@ public:
     
     // Read locks
     template <typename F>
-    bool withReadLock(F&& f) const;
+    void withReadLock(F&& f) const;
     
     template <typename F>
     bool withReadLock(F&& f, bool require) const;
@@ -51,16 +51,16 @@ private:
 
 // ReadWriteLockable
 template <typename F>
-inline bool ReadWriteLockable::withWriteLock(F&& f) const {
+inline void ReadWriteLockable::withWriteLock(F&& f) const {
     QWriteLocker locker(&_lock);
     f();
-    return true;
 }
 
 template <typename F>
 inline bool ReadWriteLockable::withWriteLock(F&& f, bool require) const {
     if (require) {
-        return withWriteLock(std::forward<F>(f));
+        withWriteLock(std::forward<F>(f));
+        return true;
     } else {
         return withTryReadLock(std::forward<F>(f));
     }
@@ -87,16 +87,16 @@ inline bool ReadWriteLockable::withTryWriteLock(F&& f, int timeout) const {
 }
 
 template <typename F>
-inline bool ReadWriteLockable::withReadLock(F&& f) const {
+inline void ReadWriteLockable::withReadLock(F&& f) const {
     QReadLocker locker(&_lock);
     f();
-    return true;
 }
 
 template <typename F>
 inline bool ReadWriteLockable::withReadLock(F&& f, bool require) const {
     if (require) {
-        return withReadLock(std::forward<F>(f));
+        withReadLock(std::forward<F>(f));
+        return true;
     } else {
         return withTryReadLock(std::forward<F>(f));
     }
