@@ -119,19 +119,19 @@ public:
     void removeAnimationHandle(const AnimationHandlePointer& handle) { _rig->removeAnimationHandle(handle); }
 
     // Interrupt the current animation with a custom animation.
-    Q_INVOKABLE void startAnimation(const QString& url, float fps, bool loop, float firstFrame, float lastFrame);
+    Q_INVOKABLE void overrideAnimation(const QString& url, float fps, bool loop, float firstFrame, float lastFrame);
 
-    // Stops the animation that was started with startAnimation and go back to the standard animation.
-    Q_INVOKABLE void stopAnimation();
+    // Stop the animation that was started with overrideAnimation and go back to the standard animation.
+    Q_INVOKABLE void restoreAnimation();
 
     // Returns a list of all clips that are available
     Q_INVOKABLE QStringList getAnimationRoles();
 
     // Replace an existing standard role animation with a custom one.
-    Q_INVOKABLE void overrideAnimationRole(const QString& role, const QString& url, float fps, bool loop, float firstFrame, float lastFrame);
+    Q_INVOKABLE void overrideRoleAnimation(const QString& role, const QString& url, float fps, bool loop, float firstFrame, float lastFrame);
 
     // remove an animation role override and return to the standard animation.
-    Q_INVOKABLE void restoreAnimationRole(const QString& role);
+    Q_INVOKABLE void restoreRoleAnimation(const QString& role);
 
     // prefetch animation
     Q_INVOKABLE void prefetchAnimation(const QString& url);

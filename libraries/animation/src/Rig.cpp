@@ -45,7 +45,7 @@ void Rig::removeAnimationHandle(const AnimationHandlePointer& handle) {
     _animationHandles.removeOne(handle);
 }
 
-void Rig::startAnimation(const QString& url, float fps, bool loop, float firstFrame, float lastFrame) {
+void Rig::overrideAnimation(const QString& url, float fps, bool loop, float firstFrame, float lastFrame) {
     if (_enableAnimGraph) {
 
         // find an unused AnimClip clipNode
@@ -63,7 +63,8 @@ void Rig::startAnimation(const QString& url, float fps, bool loop, float firstFr
         clip->setStartFrame(firstFrame);
         clip->setEndFrame(lastFrame);
         const float REFERENCE_FRAMES_PER_SECOND = 30.0f;
-        clip->setTimeScale(fps / REFERENCE_FRAMES_PER_SECOND);
+        float timeScale = fps / REFERENCE_FRAMES_PER_SECOND;
+        clip->setTimeScale(timeScale);
         clip->loadURL(url);
 
         _currentUserAnimURL = url;
@@ -107,7 +108,7 @@ void Rig::startAnimation(const QString& url, float fps, bool loop, float firstFr
 const float FRAMES_PER_SECOND = 30.0f;
 const float FADE_FRAMES = 30.0f;
 
-void Rig::stopAnimation() {
+void Rig::restoreAnimation() {
     if (_enableAnimGraph) {
         if (_currentUserAnimURL != "") {
             _currentUserAnimURL = "";
@@ -130,7 +131,14 @@ QStringList Rig::getAnimationRoles() const {
     if (_enableAnimGraph && _animNode) {
         QStringList list;
         _animNode->traverse([&](AnimNode::Pointer node) {
-            list.append(node->getID());
+            // only report clip nodes as valid roles.
+            auto clipNode = std::dynamic_pointer_cast<AnimClip>(node);
+            if (clipNode) {
+                // filter out the userAnims, they are for internal use only.
+                if (!clipNode->getID().startsWith("userAnim")) {
+                    list.append(node->getID());
+                }
+            }
             return true;
         });
         return list;
@@ -139,36 +147,33 @@ QStringList Rig::getAnimationRoles() const {
     }
 }
 
-void Rig::overrideAnimationRole(const QString& role, const QString& url, float fps, bool loop, float firstFrame, float lastFrame) {
+void Rig::overrideRoleAnimation(const QString& role, const QString& url, float fps, bool loop, float firstFrame, float lastFrame) {
     if (_enableAnimGraph && _animNode) {
         AnimNode::Pointer node = _animNode->findByName(role);
         if (node) {
-            //_previousRoleAnimations[role] = node;
-            // TODO: create clip node.
-            // TODO: AnimNode needs the following methods.
-            // Pointer getParent() const;
-            // void swapChild(Pointer child, Pointer newChild);
-            //
-            // pseudo code
-            //
-            // auto clipNode = std::make_shared<AnimClip>(role, url, fps, firstFrame, lastFrame, loop);
-            // node->getParent()->swapChild(node, clipNode);
-
+            _origRoleAnimations[role] = node;
+            const float REFERENCE_FRAMES_PER_SECOND = 30.0f;
+            float timeScale = fps / REFERENCE_FRAMES_PER_SECOND;
+            auto clipNode = std::make_shared<AnimClip>(role, url, firstFrame, lastFrame, timeScale, loop);
+            AnimNode::Pointer parent = node->getParent();
+            parent->replaceChild(node, clipNode);
         } else {
-            qCWarning(animation) << "Rig::overrideAnimationRole could not find role " << role;
+            qCWarning(animation) << "Rig::overrideRoleAnimation could not find role " << role;
         }
     }
 }
 
-void Rig::restoreAnimationRole(const QString& role) {
+void Rig::restoreRoleAnimation(const QString& role) {
     if (_enableAnimGraph && _animNode) {
         AnimNode::Pointer node = _animNode->findByName(role);
         if (node) {
-            // TODO: pseudo code
-            // origNode = _previousRoleAnimations.find(role);
-            // if (origNode) {
-            //     node->getParent()->swapChild(node, origNode);
-            // }
+            auto iter = _origRoleAnimations.find(role);
+            if (iter != _origRoleAnimations.end()) {
+                node->getParent()->replaceChild(node, iter->second);
+                _origRoleAnimations.erase(iter);
+            } else {
+                qCWarning(animation) << "Rig::restoreRoleAnimation could not find role " << role;
+            }
         }
     }
 }

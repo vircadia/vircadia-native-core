@@ -114,11 +114,11 @@ public:
     void destroyAnimGraph();
     const QList<AnimationHandlePointer>& getAnimationHandles() const { return _animationHandles; }
 
-    void startAnimation(const QString& url, float fps, bool loop, float firstFrame, float lastFrame);
-    void stopAnimation();
+    void overrideAnimation(const QString& url, float fps, bool loop, float firstFrame, float lastFrame);
+    void restoreAnimation();
     QStringList getAnimationRoles() const;
-    void overrideAnimationRole(const QString& role, const QString& url, float fps, bool loop, float firstFrame, float lastFrame);
-    void restoreAnimationRole(const QString& role);
+    void overrideRoleAnimation(const QString& role, const QString& url, float fps, bool loop, float firstFrame, float lastFrame);
+    void restoreRoleAnimation(const QString& role);
     void prefetchAnimation(const QString& url);
 
     void initJointStates(QVector<JointState> states, glm::mat4 rootTransform,
@@ -263,6 +263,8 @@ public:
 
     SimpleMovingAverage _averageForwardSpeed { 10 };
     SimpleMovingAverage _averageLateralSpeed { 10 };
+
+    std::map<QString, AnimNode::Pointer> _origRoleAnimations;
 
 private:
     QMap<int, StateHandler> _stateHandlers;

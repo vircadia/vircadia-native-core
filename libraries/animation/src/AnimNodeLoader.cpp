@@ -393,9 +393,9 @@ AnimNode::Pointer loadInverseKinematicsNode(const QJsonObject& jsonObj, const QS
     return node;
 }
 
-void buildChildMap(std::map<QString, AnimNode::Pointer>& map, AnimNode::Pointer node) {
-    for ( auto child : node->_children ) {
-        map.insert(std::pair<QString, AnimNode::Pointer>(child->_id, child));
+void buildChildMap(std::map<QString, int>& map, AnimNode::Pointer node) {
+    for (int i = 0; i < (int)node->getChildCount(); ++i) {
+        map.insert(std::pair<QString, int>(node->getChild(i)->getID(), i));
     }
 }
 
@@ -412,7 +412,7 @@ bool processStateMachineNode(AnimNode::Pointer node, const QJsonObject& jsonObj,
     }
 
     // build a map for all children by name.
-    std::map<QString, AnimNode::Pointer> childMap;
+    std::map<QString, int> childMap;
     buildChildMap(childMap, node);
 
     // first pass parse all the states and build up the state and transition map.

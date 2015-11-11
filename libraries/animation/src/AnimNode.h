@@ -60,14 +60,15 @@ public:
     Type getType() const { return _type; }
 
     // hierarchy accessors
-    void addChild(Pointer child) { _children.push_back(child); }
+    Pointer getParent();
+    void addChild(Pointer child);
     void removeChild(Pointer child);
-
+    void replaceChild(Pointer oldChild, Pointer newChild);
     Pointer getChild(int i) const;
     int getChildCount() const { return (int)_children.size(); }
 
     // pair this AnimNode graph with a skeleton.
-    void setSkeleton(const AnimSkeleton::Pointer skeleton);
+    void setSkeleton(AnimSkeleton::ConstPointer skeleton);
 
     AnimSkeleton::ConstPointer getSkeleton() const { return _skeleton; }
 
@@ -95,9 +96,9 @@ public:
         traverse([&](Pointer node) {
             if (id == node->getID()) {
                 result = node;
-                return true;
+                return false;
             }
-            return false;
+            return true;
         });
         return result;
     }
@@ -114,6 +115,7 @@ protected:
     QString _id;
     std::vector<AnimNode::Pointer> _children;
     AnimSkeleton::ConstPointer _skeleton;
+    std::weak_ptr<AnimNode> _parent;
 
     // no copies
     AnimNode(const AnimNode&) = delete;

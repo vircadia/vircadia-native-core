@@ -657,21 +657,21 @@ void MyAvatar::loadLastRecording() {
     _player->loadRecording(_recorder->getRecording());
 }
 
-void MyAvatar::startAnimation(const QString& url, float fps, bool loop, float firstFrame, float lastFrame) {
+void MyAvatar::overrideAnimation(const QString& url, float fps, bool loop, float firstFrame, float lastFrame) {
     if (QThread::currentThread() != thread()) {
-        QMetaObject::invokeMethod(this, "startAnimation", Q_ARG(const QString&, url), Q_ARG(float, fps),
+        QMetaObject::invokeMethod(this, "overrideAnimation", Q_ARG(const QString&, url), Q_ARG(float, fps),
                                   Q_ARG(bool, loop), Q_ARG(float, firstFrame), Q_ARG(float, lastFrame));
         return;
     }
-    _rig->startAnimation(url, fps, loop, firstFrame, lastFrame);
+    _rig->overrideAnimation(url, fps, loop, firstFrame, lastFrame);
 }
 
-void MyAvatar::stopAnimation() {
+void MyAvatar::restoreAnimation() {
     if (QThread::currentThread() != thread()) {
-        QMetaObject::invokeMethod(this, "stopAnimation");
+        QMetaObject::invokeMethod(this, "restoreAnimation");
         return;
     }
-    _rig->stopAnimation();
+    _rig->restoreAnimation();
 }
 
 QStringList MyAvatar::getAnimationRoles() {
@@ -683,22 +683,22 @@ QStringList MyAvatar::getAnimationRoles() {
     return _rig->getAnimationRoles();
 }
 
-void MyAvatar::overrideAnimationRole(const QString& role, const QString& url, float fps, bool loop,
+void MyAvatar::overrideRoleAnimation(const QString& role, const QString& url, float fps, bool loop,
                                      float firstFrame, float lastFrame) {
     if (QThread::currentThread() != thread()) {
-        QMetaObject::invokeMethod(this, "overrideAnimationRole", Q_ARG(const QString&, role), Q_ARG(const QString&, url),
+        QMetaObject::invokeMethod(this, "overrideRoleAnimation", Q_ARG(const QString&, role), Q_ARG(const QString&, url),
                                   Q_ARG(float, fps), Q_ARG(bool, loop), Q_ARG(float, firstFrame), Q_ARG(float, lastFrame));
         return;
     }
-    _rig->overrideAnimationRole(role, url, fps, loop, firstFrame, lastFrame);
+    _rig->overrideRoleAnimation(role, url, fps, loop, firstFrame, lastFrame);
 }
 
-void MyAvatar::restoreAnimationRole(const QString& role) {
+void MyAvatar::restoreRoleAnimation(const QString& role) {
     if (QThread::currentThread() != thread()) {
-        QMetaObject::invokeMethod(this, "restoreAnimationRole", Q_ARG(const QString&, role));
+        QMetaObject::invokeMethod(this, "restoreRoleAnimation", Q_ARG(const QString&, role));
         return;
     }
-    _rig->restoreAnimationRole(role);
+    _rig->restoreRoleAnimation(role);
 }
 
 void MyAvatar::prefetchAnimation(const QString& url) {

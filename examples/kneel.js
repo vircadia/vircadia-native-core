@@ -57,7 +57,7 @@ function kneelDown() {
     var startFrame = 0;
     var endFrame = 82;
 
-    MyAvatar.startAnimation(KNEEL_ANIM_URL, playbackRate, loopFlag, startFrame, endFrame);
+    MyAvatar.overrideAnimation(KNEEL_ANIM_URL, playbackRate, loopFlag, startFrame, endFrame);
 
     Overlays.editOverlay(kneelDownButton, { visible: false });
     Overlays.editOverlay(standUpButton, { visible: true });
@@ -66,7 +66,7 @@ function kneelDown() {
 function standUp() {
     kneeling = false;
 
-    MyAvatar.stopAnimation();
+    MyAvatar.restoreAnimation();
 
     Overlays.editOverlay(standUpButton, { visible: false });
     Overlays.editOverlay(kneelDownButton, { visible: true });
