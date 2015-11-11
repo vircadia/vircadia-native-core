@@ -18,9 +18,9 @@
 // FIXME kickback functionality was removed because the joint setting interface in 
 // MyAvatar has apparently changed, breaking it.  
 
-Script.include("../../libraries/utils.js");
-Script.include("../../libraries/constants.js");
-Script.include("../../libraries/toolBars.js");
+Script.include("../libraries/utils.js");
+Script.include("../libraries/constants.js");
+Script.include("../libraries/toolBars.js");
 
 HIFI_PUBLIC_BUCKET = "http://s3.amazonaws.com/hifi-public/";
 
@@ -82,7 +82,6 @@ function getRandomFloat(min, max) {
     return Math.random() * (max - min) + min;
 }
 
-var showScore = false;
 // Load some sound to use for loading and firing
 var fireSound = SoundCache.getSound(HIFI_PUBLIC_BUCKET + "sounds/Guns/GUN-SHOT2.raw");
 var loadSound = SoundCache.getSound(HIFI_PUBLIC_BUCKET + "sounds/Guns/Gun_Reload_Weapon22.raw");
@@ -115,89 +114,7 @@ var toolBar = new ToolBar(0, 0, ToolBar.HORIZONTAL, "highfidelity.gun.toolbar", 
     };
 });
 
-var offButton = toolBar.addOverlay("image", {
-    width: BUTTON_SIZE,
-    height: BUTTON_SIZE,
-    imageURL: HIFI_PUBLIC_BUCKET + "images/gun/close.svg",
-    alpha: 1
-});
 
-startX += BUTTON_SIZE + PADDING;
-var platformButton = toolBar.addOverlay("image", {
-    x: startX,
-    y: screenSize.y - (BUTTON_SIZE + PADDING),
-    width: BUTTON_SIZE,
-    height: BUTTON_SIZE,
-    imageURL: HIFI_PUBLIC_BUCKET + "images/gun/platform-targets.svg",
-    alpha: 1
-});
-
-startX += BUTTON_SIZE + PADDING;
-var gridButton = toolBar.addOverlay("image", {
-    x: startX,
-    y: screenSize.y - (BUTTON_SIZE + PADDING),
-    width: BUTTON_SIZE,
-    height: BUTTON_SIZE,
-    imageURL: HIFI_PUBLIC_BUCKET + "images/gun/floating-targets.svg",
-    alpha: 1
-});
-
-if (showScore) {
-    var text = Overlays.addOverlay("text", {
-        x: screenSize.x / 2 - 100,
-        y: screenSize.y / 2 - 50,
-        width: 150,
-        height: 50,
-        color: {
-            red: 0,
-            green: 0,
-            blue: 0
-        },
-        textColor: {
-            red: 255,
-            green: 0,
-            blue: 0
-        },
-        topMargin: 4,
-        leftMargin: 4,
-        text: "Score: " + score
-    });
-}
-
-function entityCollisionWithEntity(entity1, entity2, collision) {
-    if (entity2 === targetID) {
-        score++;
-        if (showScore) {
-            Overlays.editOverlay(text, {
-                text: "Score: " + score
-            });
-        }
-
-        // We will delete the bullet and target in 1/2 sec, but for now we can
-        // see them bounce!
-        Script.setTimeout(deleteBulletAndTarget, 500);
-
-        // Turn the target and the bullet white
-        Entities.editEntity(entity1, {
-            color: {
-                red: 255,
-                green: 255,
-                blue: 255
-            }
-        });
-        Entities.editEntity(entity2, {
-            color: {
-                red: 255,
-                green: 255,
-                blue: 255
-            }
-        });
-
-        // play the sound near the camera so the shooter can hear it
-        audioOptions.position = Vec3.sum(Camera.getPosition(), Quat.getFront(Camera.getOrientation()));
-        Audio.playSound(targetHitSound, audioOptions);
-    }
-}
 
 function shootBullet(position, velocity, grenade) {
     var BULLET_SIZE = .09;
@@ -248,200 +165,23 @@ function shootBullet(position, velocity, grenade) {
     }
 }
 
-function shootTarget() {
-    var TARGET_SIZE = 0.50;
-    var TARGET_GRAVITY = 0.0;
-    var TARGET_LIFETIME = 300.0;
-    var TARGET_UP_VELOCITY = 0.0;
-    var TARGET_FWD_VELOCITY = 0.0;
-    var DISTANCE_TO_LAUNCH_FROM = 5.0;
-    var ANGLE_RANGE_FOR_LAUNCH = 20.0;
-    var camera = Camera.getPosition();
-
-    var targetDirection = Quat.angleAxis(getRandomFloat(-ANGLE_RANGE_FOR_LAUNCH, ANGLE_RANGE_FOR_LAUNCH), {
-        x: 0,
-        y: 1,
-        z: 0
-    });
-    targetDirection = Quat.multiply(Camera.getOrientation(), targetDirection);
-    var forwardVector = Quat.getFront(targetDirection);
-
-    var newPosition = Vec3.sum(camera, Vec3.multiply(forwardVector, DISTANCE_TO_LAUNCH_FROM));
-
-    var velocity = Vec3.multiply(forwardVector, TARGET_FWD_VELOCITY);
-    velocity.y += TARGET_UP_VELOCITY;
-
-    targetID = Entities.addEntity({
-        type: "Box",
-        position: newPosition,
-        dimensions: {
-            x: TARGET_SIZE * (0.5 + Math.random()),
-            y: TARGET_SIZE * (0.5 + Math.random()),
-            z: TARGET_SIZE * (0.5 + Math.random()) / 4.0
-        },
-        color: {
-            red: Math.random() * 255,
-            green: Math.random() * 255,
-            blue: Math.random() * 255
-        },
-        velocity: velocity,
-        gravity: {
-            x: 0,
-            y: TARGET_GRAVITY,
-            z: 0
-        },
-        lifetime: TARGET_LIFETIME,
-        rotation: Camera.getOrientation(),
-        damping: 0.1,
-        density: 100.0,
-        collisionsWillMove: true
-    });
-
-    // Record start time
-    shotTime = new Date();
-
-    // Play target shoot sound
-    audioOptions.position = newPosition;
-    Audio.playSound(targetLaunchSound, audioOptions);
-}
-
-function makeGrid(type, scale, size) {
-    var separation = scale * 2;
-    var pos = Vec3.sum(Camera.getPosition(), Vec3.multiply(10.0 * scale * separation, Quat.getFront(Camera.getOrientation())));
-    var x, y, z;
-    var GRID_LIFE = 60.0;
-    var dimensions;
-
-    for (x = 0; x < size; x++) {
-        for (y = 0; y < size; y++) {
-            for (z = 0; z < size; z++) {
-
-                dimensions = {
-                    x: separation / 2.0 * (0.5 + Math.random()),
-                    y: separation / 2.0 * (0.5 + Math.random()),
-                    z: separation / 2.0 * (0.5 + Math.random()) / 4.0
-                };
-
-                Entities.addEntity({
-                    type: type,
-                    position: {
-                        x: pos.x + x * separation,
-                        y: pos.y + y * separation,
-                        z: pos.z + z * separation
-                    },
-                    dimensions: dimensions,
-                    color: {
-                        red: Math.random() * 255,
-                        green: Math.random() * 255,
-                        blue: Math.random() * 255
-                    },
-                    velocity: {
-                        x: 0,
-                        y: 0,
-                        z: 0
-                    },
-                    gravity: {
-                        x: 0,
-                        y: 0,
-                        z: 0
-                    },
-                    lifetime: GRID_LIFE,
-                    rotation: Camera.getOrientation(),
-                    damping: 0.1,
-                    density: 100.0,
-                    collisionsWillMove: true
-                });
-            }
-        }
+function keyPressEvent(event) {
+    // if our tools are off, then don't do anything
+    if (event.text == "t") {
+        var time = MIN_THROWER_DELAY + Math.random() * MAX_THROWER_DELAY;
+        Script.setTimeout(shootTarget, time);
+    } else if ((event.text == ".") || (event.text == "SPACE")) {
+        shootFromMouse(false);
+    } else if (event.text == ",") {
+        shootFromMouse(true);
+    } else if (event.text == "r") {
+        playLoadSound();
     }
 }
-
-function makePlatform(gravity, scale, size) {
-    var separation = scale * 2;
-    var pos = Vec3.sum(Camera.getPosition(), Vec3.multiply(10.0 * scale * separation, Quat.getFront(Camera.getOrientation())));
-    pos.y -= separation * size;
-    var x, y, z;
-    var TARGET_LIFE = 60.0;
-    var INITIAL_GAP = 0.5;
-    var dimensions;
-
-    for (x = 0; x < size; x++) {
-        for (y = 0; y < size; y++) {
-            for (z = 0; z < size; z++) {
-
-                dimensions = {
-                    x: separation / 2.0,
-                    y: separation,
-                    z: separation / 2.0
-                };
-
-                Entities.addEntity({
-                    type: "Box",
-                    position: {
-                        x: pos.x - (separation * size / 2.0) + x * separation,
-                        y: pos.y + y * (separation + INITIAL_GAP),
-                        z: pos.z - (separation * size / 2.0) + z * separation
-                    },
-                    dimensions: dimensions,
-                    color: {
-                        red: Math.random() * 255,
-                        green: Math.random() * 255,
-                        blue: Math.random() * 255
-                    },
-                    velocity: {
-                        x: 0,
-                        y: 0.05,
-                        z: 0
-                    },
-                    gravity: {
-                        x: 0,
-                        y: gravity,
-                        z: 0
-                    },
-                    lifetime: TARGET_LIFE,
-                    damping: 0.1,
-                    density: 100.0,
-                    collisionsWillMove: true
-                });
-            }
-        }
-    }
-
-    // Make a floor for this stuff to fall onto
-    Entities.addEntity({
-        type: "Box",
-        position: {
-            x: pos.x,
-            y: pos.y - separation / 2.0,
-            z: pos.z
-        },
-        dimensions: {
-            x: 2.0 * separation * size,
-            y: separation / 2.0,
-            z: 2.0 * separation * size
-        },
-        color: {
-            red: 100,
-            green: 100,
-            blue: 100
-        },
-        lifetime: TARGET_LIFE
-    });
-
-}
-
-
 
 function playLoadSound() {
     audioOptions.position = MyAvatar.leftHandPose.translation;
     Audio.playSound(loadSound, audioOptions);
-}
-
-function deleteBulletAndTarget() {
-    Entities.deleteEntity(bulletID);
-    Entities.deleteEntity(targetID);
-    bulletID = false;
-    targetID = false;
 }
 
 function update(deltaTime) {
@@ -511,7 +251,6 @@ function scriptEnding() {
     for (var i = 0; i < pointer.length; ++i) {
         Overlays.deleteOverlay(pointer[i]);
     }
-    Overlays.deleteOverlay(text);
     MyAvatar.detachOne(GUN_MODEL);
     MyAvatar.detachOne(GUN_MODEL);
     clearPose();
