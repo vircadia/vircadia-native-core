@@ -15,11 +15,11 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-// FIXME kickback functionality was removed because the joint setting interface in 
-// MyAvatar has apparently changed, breaking it.  
-
 Script.include("../libraries/utils.js");
 Script.include("../libraries/constants.js");
+
+var animVarName = "rightHandPosition";
+var jointName = "RightHand";
 
 HIFI_PUBLIC_BUCKET = "http://s3.amazonaws.com/hifi-public/";
 var fireSound = SoundCache.getSound("https://s3.amazonaws.com/hifi-public/sounds/Guns/GUN-SHOT2.raw");
@@ -120,6 +120,11 @@ function update(deltaTime) {
     }
 }
 
+var kickback = function() {
+    print("TEST PARAM *******");
+    print(JSON.stringify(testParam));
+}
+
 function triggerChanged(side, value) {
     var pressed = (value != 0);
     if (pressed) {
@@ -134,10 +139,10 @@ function triggerChanged(side, value) {
             direction: shotDirection
         };
         createMuzzleFlash(barrelTips[side]);
+        var kickbackHandler = MyAvatar.addAnimationStateHandler(kickback, ["yo"]);
         var intersection = Entities.findRayIntersection(pickRay, true);
         if (intersection.intersects) {
             if (intersection.properties.name === "rat") {
-                print("HOLY SHIT YOU JUST HIT A RAT!");
                 var forceDirection = JSON.stringify({
                     forceDirection: shotDirection
                 });
@@ -226,9 +231,9 @@ function createWallHit(position) {
             "z": 0
         },
         "particleRadius": 0.01,
-        "radiusSpread": 0.005,
-        "radiusStart": 0.01,
-        "radiusFinish": 0.01,
+        "radiusSpread": 0.01,
+        "radiusStart": 0.02,
+        "radiusFinish": 0.02,
         "colorSpread": {
             red: 100,
             green: 100,
