@@ -25,6 +25,7 @@
 #include "RecurseOctreeToMapOperator.h"
 #include "LogHandler.h"
 
+const quint64 EntityTree::DELETED_ENTITIES_EXTRA_USECS_TO_CONSIDER = USECS_PER_MSEC * 500;
 
 EntityTree::EntityTree(bool shouldReaverage) :
     Octree(shouldReaverage),
@@ -803,21 +804,26 @@ void EntityTree::update() {
 }
 
 bool EntityTree::hasEntitiesDeletedSince(quint64 sinceTime) {
-    int EXTRA_SECONDS_TO_CONSIDER = 4;
-    quint64 considerEntitiesSince = sinceTime - (USECS_PER_SECOND * EXTRA_SECONDS_TO_CONSIDER);
+    quint64 considerEntitiesSince = sinceTime - DELETED_ENTITIES_EXTRA_USECS_TO_CONSIDER;
 
     // we can probably leverage the ordered nature of QMultiMap to do this quickly...
     bool hasSomethingNewer = false;
-    {
-        QReadLocker locker(&_recentlyDeletedEntitiesLock);
 
-        QMultiMap<quint64, QUuid>::const_iterator iterator = _recentlyDeletedEntityItemIDs.constBegin();
-        while (iterator != _recentlyDeletedEntityItemIDs.constEnd()) {
-            if (iterator.key() > considerEntitiesSince) {
-                hasSomethingNewer = true;
-            }
-            ++iterator;
+    QReadLocker locker(&_recentlyDeletedEntitiesLock);
+    QMultiMap<quint64, QUuid>::const_iterator iterator = _recentlyDeletedEntityItemIDs.constBegin();
+    while (iterator != _recentlyDeletedEntityItemIDs.constEnd()) {
+        if (iterator.key() > considerEntitiesSince) {
+            hasSomethingNewer = true;
+            break; // if we have at least one item, we don't need to keep searching
         }
+        ++iterator;
+    }
+
+    if (hasSomethingNewer) {
+        int elapsed = usecTimestampNow() - considerEntitiesSince;
+        int difference = considerEntitiesSince - sinceTime;
+        qDebug() << "EntityTree::hasEntitiesDeletedSince() sinceTime:" << sinceTime 
+                    << "considerEntitiesSince:" << considerEntitiesSince << "elapsed:" << elapsed << "difference:" << difference;
     }
 
     return hasSomethingNewer;
@@ -826,14 +832,16 @@ bool EntityTree::hasEntitiesDeletedSince(quint64 sinceTime) {
 // sinceTime is an in/out parameter - it will be side effected with the last time sent out
 std::unique_ptr<NLPacket> EntityTree::encodeEntitiesDeletedSince(OCTREE_PACKET_SEQUENCE sequenceNumber, quint64& sinceTime,
                                                                  bool& hasMore) {
+    qDebug() << "EntityTree::encodeEntitiesDeletedSince()";
 
-    int EXTRA_SECONDS_TO_CONSIDER = 4;
-    quint64 considerEntitiesSince = sinceTime - (USECS_PER_SECOND * EXTRA_SECONDS_TO_CONSIDER);
+    quint64 considerEntitiesSince = sinceTime - DELETED_ENTITIES_EXTRA_USECS_TO_CONSIDER;
     auto deletesPacket = NLPacket::create(PacketType::EntityErase);
+    qDebug() << "    ---- at line:" << __LINE__ << " deletes packet size:" << deletesPacket->getDataSize();
 
     // pack in flags
     OCTREE_PACKET_FLAGS flags = 0;
     deletesPacket->writePrimitive(flags);
+    qDebug() << "    ---- at line:" << __LINE__ << " deletes packet size:" << deletesPacket->getDataSize();
 
     // pack in sequence number
     deletesPacket->writePrimitive(sequenceNumber);
@@ -841,11 +849,13 @@ std::unique_ptr<NLPacket> EntityTree::encodeEntitiesDeletedSince(OCTREE_PACKET_S
     // pack in timestamp
     OCTREE_PACKET_SENT_TIME now = usecTimestampNow();
     deletesPacket->writePrimitive(now);
+    qDebug() << "    ---- at line:" << __LINE__ << " deletes packet size:" << deletesPacket->getDataSize();
 
     // figure out where we are now and pack a temporary number of IDs
     uint16_t numberOfIDs = 0;
     qint64 numberOfIDsPos = deletesPacket->pos();
     deletesPacket->writePrimitive(numberOfIDs);
+    qDebug() << "    ---- at line:" << __LINE__ << " deletes packet size:" << deletesPacket->getDataSize();
 
     // we keep a multi map of entity IDs to timestamps, we only want to include the entity IDs that have been
     // deleted since we last sent to this node
@@ -869,6 +879,8 @@ std::unique_ptr<NLPacket> EntityTree::encodeEntitiesDeletedSince(OCTREE_PACKET_S
                     // history for a longer time window, these entities are not "lost". But we haven't yet
                     // found/fixed the underlying issue that caused bad UUIDs to be sent to some users.
                     deletesPacket->write(entityID.toRfc4122());
+                    qDebug() << "EntityTree::encodeEntitiesDeletedSince() including:" << entityID;
+                    qDebug() << "    ---- at line:" << __LINE__ << " deletes packet size:" << deletesPacket->getDataSize();
                     ++numberOfIDs;
 
                     // check to make sure we have room for one more ID
@@ -898,6 +910,9 @@ std::unique_ptr<NLPacket> EntityTree::encodeEntitiesDeletedSince(OCTREE_PACKET_S
     // replace the count for the number of included IDs
     deletesPacket->seek(numberOfIDsPos);
     deletesPacket->writePrimitive(numberOfIDs);
+    qDebug() << "    ---- at line:" << __LINE__ <<" deletes packet size:" << deletesPacket->getDataSize();
+
+    qDebug() << "    ---- EntityTree::encodeEntitiesDeletedSince() numberOfIDs:" << numberOfIDs;
 
     return deletesPacket;
 }
@@ -905,24 +920,22 @@ std::unique_ptr<NLPacket> EntityTree::encodeEntitiesDeletedSince(OCTREE_PACKET_S
 
 // called by the server when it knows all nodes have been sent deleted packets
 void EntityTree::forgetEntitiesDeletedBefore(quint64 sinceTime) {
+    quint64 considerSinceTime = sinceTime - DELETED_ENTITIES_EXTRA_USECS_TO_CONSIDER;
     QSet<quint64> keysToRemove;
+    QWriteLocker locker(&_recentlyDeletedEntitiesLock);
+    QMultiMap<quint64, QUuid>::iterator iterator = _recentlyDeletedEntityItemIDs.begin();
 
-    {
-        QWriteLocker locker(&_recentlyDeletedEntitiesLock);
-        QMultiMap<quint64, QUuid>::iterator iterator = _recentlyDeletedEntityItemIDs.begin();
-
-        // First find all the keys in the map that are older and need to be deleted
-        while (iterator != _recentlyDeletedEntityItemIDs.end()) {
-            if (iterator.key() <= sinceTime) {
-                keysToRemove << iterator.key();
-            }
-            ++iterator;
+    // First find all the keys in the map that are older and need to be deleted
+    while (iterator != _recentlyDeletedEntityItemIDs.end()) {
+        if (iterator.key() <= considerSinceTime) {
+            keysToRemove << iterator.key();
         }
+        ++iterator;
+    }
 
-        // Now run through the keysToRemove and remove them
-        foreach (quint64 value, keysToRemove) {
-            _recentlyDeletedEntityItemIDs.remove(value);
-        }
+    // Now run through the keysToRemove and remove them
+    foreach (quint64 value, keysToRemove) {
+        _recentlyDeletedEntityItemIDs.remove(value);
     }
 }
 

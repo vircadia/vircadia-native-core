@@ -84,6 +84,10 @@ bool EntityServer::hasSpecialPacketsToSend(const SharedNodePointer& node) {
         quint64 deletedEntitiesSentAt = nodeData->getLastDeletedEntitiesSentAt();
         EntityTreePointer tree = std::static_pointer_cast<EntityTree>(_tree);
         shouldSendDeletedEntities = tree->hasEntitiesDeletedSince(deletedEntitiesSentAt);
+        if (shouldSendDeletedEntities) {
+            int elapsed = usecTimestampNow() - deletedEntitiesSentAt;
+            qDebug() << "shouldSendDeletedEntities to node:" << node->getUUID() << "deletedEntitiesSentAt:" << deletedEntitiesSentAt << "elapsed:" << elapsed;
+        }
     }
 
     return shouldSendDeletedEntities;
@@ -116,6 +120,10 @@ int EntityServer::sendSpecialPackets(const SharedNodePointer& node, OctreeQueryN
         nodeData->setLastDeletedEntitiesSentAt(deletePacketSentAt);
     }
 
+    if (packetsSent > 0) {
+        qDebug() << "EntityServer::sendSpecialPackets() sent " << packetsSent << "special packets of " << totalBytes << " total bytes to node:" << node->getUUID();
+    }
+
     // TODO: caller is expecting a packetLength, what if we send more than one packet??
     return totalBytes;
 }
@@ -134,9 +142,6 @@ void EntityServer::pruneDeletedEntities() {
                 }
             }
         });
-
-        int EXTRA_SECONDS_TO_KEEP = 4;
-        earliestLastDeletedEntitiesSent -= USECS_PER_SECOND * EXTRA_SECONDS_TO_KEEP;
         tree->forgetEntitiesDeletedBefore(earliestLastDeletedEntitiesSent);
     }
 }
