@@ -21,16 +21,13 @@
     Rat.prototype = {
 
         onHit: function(myId, params) {
-            print("OOWWW YOU SHOT ME!");
             var force = JSON.parse(params[0]);
-            // print(JSON.stringify(force))
             Entities.editEntity(this.entityID, {
                 velocity: force.forceDirection
             });
         },
 
         preload: function(entityID) {
-            print("HEY HEY I'm a rat!");
             this.entityID = entityID;
         },
 

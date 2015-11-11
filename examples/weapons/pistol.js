@@ -22,16 +22,17 @@ Script.include("../libraries/utils.js");
 Script.include("../libraries/constants.js");
 
 HIFI_PUBLIC_BUCKET = "http://s3.amazonaws.com/hifi-public/";
+var fireSound = SoundCache.getSound("https://s3.amazonaws.com/hifi-public/sounds/Guns/GUN-SHOT2.raw");
 
 var LASER_WIDTH = 2;
-var POSE_CONTROLS = [ Controller.Standard.LeftHand, Controller.Standard.RightHand ];
-var TRIGGER_CONTROLS = [ Controller.Standard.LT, Controller.Standard.RT ];
+var POSE_CONTROLS = [Controller.Standard.LeftHand, Controller.Standard.RightHand];
+var TRIGGER_CONTROLS = [Controller.Standard.LT, Controller.Standard.RT];
 var MIN_THROWER_DELAY = 1000;
 var MAX_THROWER_DELAY = 1000;
 var RELOAD_INTERVAL = 5;
 var GUN_MODEL = HIFI_PUBLIC_BUCKET + "cozza13/gun/m1911-handgun+1.fbx?v=4";
 var BULLET_VELOCITY = 10.0;
-var GUN_OFFSETS = [ {
+var GUN_OFFSETS = [{
     x: -0.04,
     y: 0.26,
     z: 0.04
@@ -39,11 +40,11 @@ var GUN_OFFSETS = [ {
     x: 0.04,
     y: 0.26,
     z: 0.04
-} ];
+}];
 
-var GUN_ORIENTATIONS = [ Quat.fromPitchYawRollDegrees(0, 90, 90), Quat.fromPitchYawRollDegrees(0, -90, 270) ];
+var GUN_ORIENTATIONS = [Quat.fromPitchYawRollDegrees(0, 90, 90), Quat.fromPitchYawRollDegrees(0, -90, 270)];
 
-var BARREL_OFFSETS = [ {
+var BARREL_OFFSETS = [{
     x: -0.12,
     y: 0.12,
     z: 0.04
@@ -51,13 +52,13 @@ var BARREL_OFFSETS = [ {
     x: 0.12,
     y: 0.12,
     z: 0.04
-} ];
+}];
 
 
 var mapping = Controller.newMapping();
-var validPoses = [ false, false ];
-var barrelVectors = [ 0, 0 ];
-var barrelTips = [ 0, 0 ];
+var validPoses = [false, false];
+var barrelVectors = [0, 0];
+var barrelTips = [0, 0];
 var pointer = [];
 
 pointer.push(Overlays.addOverlay("line3d", {
@@ -81,7 +82,7 @@ pointer.push(Overlays.addOverlay("line3d", {
 
 function update(deltaTime) {
     // FIXME we should also expose MyAvatar.handPoses[2], MyAvatar.tipPoses[2]
-    var tipPoses = [ MyAvatar.leftHandTipPose, MyAvatar.rightHandTipPose ];
+    var tipPoses = [MyAvatar.leftHandTipPose, MyAvatar.rightHandTipPose];
 
     for (var side = 0; side < 2; side++) {
         // First check if the controller is valid
@@ -119,20 +120,28 @@ function update(deltaTime) {
 function triggerChanged(side, value) {
     var pressed = (value != 0);
     if (pressed) {
+        Audio.playSound(fireSound, {
+            position: barrelTips[side],
+            volume: 1.0
+        });
         var pickRay = {
             origin: barrelTips[side],
             direction: Vec3.normalize(barrelVectors[side])
-        }
+        };
+        createMuzzleFlash(barrelTips[side]);
         var intersection = Entities.findRayIntersection(pickRay, true);
         if (intersection.intersects) {
             if (intersection.properties.name === "rat") {
                 print("HOLY SHIT YOU JUST HIT A RAT!");
-                var forceDirection = JSON.stringify({forceDirection: barrelVectors[side]});
+                var forceDirection = JSON.stringify({
+                    forceDirection: barrelVectors[side]
+                });
                 Entities.callEntityMethod(intersection.entityID, 'onHit', [forceDirection]);
             }
         }
     }
 }
+
 
 
 function scriptEnding() {
@@ -159,3 +168,59 @@ mapping.enable();
 
 Script.scriptEnding.connect(scriptEnding);
 Script.update.connect(update);
+
+
+function createMuzzleFlash(position) {
+    var flash = Entities.addEntity({
+        type: "ParticleEffect",
+        position: position,
+        "name": "ParticlesTest Emitter",
+        "color": {},
+        "maxParticles": 1000,
+        "lifespan": 0.1,
+        "emitRate": 200,
+        "emitSpeed": 0.3,
+        "speedSpread": 0,
+        "emitOrientation": {
+            "x": -0.4,
+            "y": 1,
+            "z": -0.2,
+            "w": 0.7071068286895752
+        },
+        "emitDimensions": {
+            "x": 0,
+            "y": 0,
+            "z": 0
+        },
+        "emitRadiusStart": 1,
+        "polarStart": 0,
+        "polarFinish": 2,
+        "azimuthStart": -3.1415927410125732,
+        "azimuthFinish": 2,
+        "emitAcceleration": {
+            "x": 0,
+            "y": 0,
+            "z": 0
+        },
+        "accelerationSpread": {
+            "x": 0,
+            "y": 0,
+            "z": 0
+        },
+        "particleRadius": 0.006,
+        "radiusSpread": 0,
+        "radiusStart": 0.01,
+        "radiusFinish": 0.02,
+        "colorSpread": {},
+        "colorStart": {},
+        "colorFinish": {},
+        "alpha": 1,
+        "alphaSpread": 0,
+        "alphaStart": 1,
+        "alphaFinish": 1,
+        "additiveBlending": 0,
+        "textures": "https://hifi-public.s3.amazonaws.com/alan/Particles/Particle-Sprite-Smoke-1.png"
+    });
+
+
+}
