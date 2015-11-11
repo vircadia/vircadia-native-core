@@ -9,10 +9,9 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-HIFI_PUBLIC_BUCKET = "http://s3.amazonaws.com/hifi-public/";
 
 // Set the following variables to the values needed
-var clip_url = "https://dl.dropboxusercontent.com/u/14127429/Clips/recording1.hfr";
+var clip_url = null;
 var playFromCurrentLocation = true;
 var useDisplayName = true;
 var useAttachments = true;
@@ -21,8 +20,6 @@ var useAvatarModel = true;
 // ID of the agent. Two agents can't have the same ID.
 var id = 0;
 
-// Set avatar model URL
-Avatar.skeletonModelURL = "https://hifi-public.s3.amazonaws.com/marketplace/contents/d029ae8d-2905-4eb7-ba46-4bd1b8cb9d73/4618d52e711fbb34df442b414da767bb.fst?1427170144";
 // Set position/orientation/scale here if playFromCurrentLocation is true
 Avatar.position = { x:1, y: 1, z: 1 };
 Avatar.orientation = Quat.fromPitchYawRollDegrees(0, 0, 0);
