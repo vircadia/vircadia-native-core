@@ -30,22 +30,22 @@ public:
     
 private:
     Q_DISABLE_COPY(QTryReadLocker)
-    quintptr q_val;
+    quintptr _val;
 };
 
 // Implementation
-inline QTryReadLocker::QTryReadLocker(QReadWriteLock *areadWriteLock) :
-    q_val(reinterpret_cast<quintptr>(areadWriteLock))
+inline QTryReadLocker::QTryReadLocker(QReadWriteLock* areadWriteLock) :
+    _val(reinterpret_cast<quintptr>(areadWriteLock))
 {
-    Q_ASSERT_X((q_val & quintptr(1u)) == quintptr(0),
+    Q_ASSERT_X((_val & quintptr(1u)) == quintptr(0),
                "QTryReadLocker", "QTryReadLocker pointer is misaligned");
     tryRelock();
 }
 
-inline QTryReadLocker::QTryReadLocker(QReadWriteLock *areadWriteLock, int timeout) :
-    q_val(reinterpret_cast<quintptr>(areadWriteLock))
+inline QTryReadLocker::QTryReadLocker(QReadWriteLock* areadWriteLock, int timeout) :
+    _val(reinterpret_cast<quintptr>(areadWriteLock))
 {
-    Q_ASSERT_X((q_val & quintptr(1u)) == quintptr(0),
+    Q_ASSERT_X((_val & quintptr(1u)) == quintptr(0),
                "QTryReadLocker", "QTryReadLocker pointer is misaligned");
     tryRelock(timeout);
 }
@@ -55,20 +55,20 @@ inline QTryReadLocker::~QTryReadLocker() {
 }
 
 inline bool QTryReadLocker::isLocked() const {
-    return (q_val & quintptr(1u)) == quintptr(1u);
+    return (_val & quintptr(1u)) == quintptr(1u);
 }
 
 inline void QTryReadLocker::unlock() {
-    if (q_val && isLocked()) {
-        q_val &= ~quintptr(1u);
+    if (_val && isLocked()) {
+        _val &= ~quintptr(1u);
         readWriteLock()->unlock();
     }
 }
 
 inline bool QTryReadLocker::tryRelock() {
-    if (q_val && !isLocked()) {
+    if (_val && !isLocked()) {
         if (readWriteLock()->tryLockForRead()) {
-            q_val |= quintptr(1u);
+            _val |= quintptr(1u);
             return true;
         }
     }
@@ -76,9 +76,9 @@ inline bool QTryReadLocker::tryRelock() {
 }
 
 inline bool QTryReadLocker::tryRelock(int timeout) {
-    if (q_val && !isLocked()) {
+    if (_val && !isLocked()) {
         if (readWriteLock()->tryLockForRead(timeout)) {
-            q_val |= quintptr(1u);
+            _val |= quintptr(1u);
             return true;
         }
     }
@@ -86,7 +86,7 @@ inline bool QTryReadLocker::tryRelock(int timeout) {
 }
 
 inline QReadWriteLock* QTryReadLocker::readWriteLock() const {
-    return reinterpret_cast<QReadWriteLock*>(q_val & ~quintptr(1u));
+    return reinterpret_cast<QReadWriteLock*>(_val & ~quintptr(1u));
 }
 
 #endif // hifi_QTryReadLocker_h
