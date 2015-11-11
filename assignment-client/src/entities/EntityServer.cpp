@@ -84,10 +84,13 @@ bool EntityServer::hasSpecialPacketsToSend(const SharedNodePointer& node) {
         quint64 deletedEntitiesSentAt = nodeData->getLastDeletedEntitiesSentAt();
         EntityTreePointer tree = std::static_pointer_cast<EntityTree>(_tree);
         shouldSendDeletedEntities = tree->hasEntitiesDeletedSince(deletedEntitiesSentAt);
-        if (shouldSendDeletedEntities) {
-            int elapsed = usecTimestampNow() - deletedEntitiesSentAt;
-            qDebug() << "shouldSendDeletedEntities to node:" << node->getUUID() << "deletedEntitiesSentAt:" << deletedEntitiesSentAt << "elapsed:" << elapsed;
-        }
+
+        #ifdef EXTRA_ERASE_DEBUGGING
+            if (shouldSendDeletedEntities) {
+                int elapsed = usecTimestampNow() - deletedEntitiesSentAt;
+                qDebug() << "shouldSendDeletedEntities to node:" << node->getUUID() << "deletedEntitiesSentAt:" << deletedEntitiesSentAt << "elapsed:" << elapsed;
+            }
+        #endif
     }
 
     return shouldSendDeletedEntities;
@@ -120,9 +123,12 @@ int EntityServer::sendSpecialPackets(const SharedNodePointer& node, OctreeQueryN
         nodeData->setLastDeletedEntitiesSentAt(deletePacketSentAt);
     }
 
-    if (packetsSent > 0) {
-        qDebug() << "EntityServer::sendSpecialPackets() sent " << packetsSent << "special packets of " << totalBytes << " total bytes to node:" << node->getUUID();
-    }
+    #ifdef EXTRA_ERASE_DEBUGGING
+        if (packetsSent > 0) {
+            qDebug() << "EntityServer::sendSpecialPackets() sent " << packetsSent << "special packets of " 
+                        << totalBytes << " total bytes to node:" << node->getUUID();
+        }
+    #endif
 
     // TODO: caller is expecting a packetLength, what if we send more than one packet??
     return totalBytes;

@@ -25,7 +25,7 @@
 #include "RecurseOctreeToMapOperator.h"
 #include "LogHandler.h"
 
-const quint64 EntityTree::DELETED_ENTITIES_EXTRA_USECS_TO_CONSIDER = USECS_PER_MSEC * 500;
+const quint64 EntityTree::DELETED_ENTITIES_EXTRA_USECS_TO_CONSIDER = USECS_PER_MSEC * 50;
 
 EntityTree::EntityTree(bool shouldReaverage) :
     Octree(shouldReaverage),
@@ -819,12 +819,14 @@ bool EntityTree::hasEntitiesDeletedSince(quint64 sinceTime) {
         ++iterator;
     }
 
+#ifdef EXTRA_ERASE_DEBUGGING
     if (hasSomethingNewer) {
         int elapsed = usecTimestampNow() - considerEntitiesSince;
         int difference = considerEntitiesSince - sinceTime;
         qDebug() << "EntityTree::hasEntitiesDeletedSince() sinceTime:" << sinceTime 
                     << "considerEntitiesSince:" << considerEntitiesSince << "elapsed:" << elapsed << "difference:" << difference;
     }
+#endif
 
     return hasSomethingNewer;
 }
@@ -832,16 +834,12 @@ bool EntityTree::hasEntitiesDeletedSince(quint64 sinceTime) {
 // sinceTime is an in/out parameter - it will be side effected with the last time sent out
 std::unique_ptr<NLPacket> EntityTree::encodeEntitiesDeletedSince(OCTREE_PACKET_SEQUENCE sequenceNumber, quint64& sinceTime,
                                                                  bool& hasMore) {
-    qDebug() << "EntityTree::encodeEntitiesDeletedSince()";
-
     quint64 considerEntitiesSince = sinceTime - DELETED_ENTITIES_EXTRA_USECS_TO_CONSIDER;
     auto deletesPacket = NLPacket::create(PacketType::EntityErase);
-    qDebug() << "    ---- at line:" << __LINE__ << " deletes packet size:" << deletesPacket->getDataSize();
 
     // pack in flags
     OCTREE_PACKET_FLAGS flags = 0;
     deletesPacket->writePrimitive(flags);
-    qDebug() << "    ---- at line:" << __LINE__ << " deletes packet size:" << deletesPacket->getDataSize();
 
     // pack in sequence number
     deletesPacket->writePrimitive(sequenceNumber);
@@ -849,13 +847,11 @@ std::unique_ptr<NLPacket> EntityTree::encodeEntitiesDeletedSince(OCTREE_PACKET_S
     // pack in timestamp
     OCTREE_PACKET_SENT_TIME now = usecTimestampNow();
     deletesPacket->writePrimitive(now);
-    qDebug() << "    ---- at line:" << __LINE__ << " deletes packet size:" << deletesPacket->getDataSize();
 
     // figure out where we are now and pack a temporary number of IDs
     uint16_t numberOfIDs = 0;
     qint64 numberOfIDsPos = deletesPacket->pos();
     deletesPacket->writePrimitive(numberOfIDs);
-    qDebug() << "    ---- at line:" << __LINE__ << " deletes packet size:" << deletesPacket->getDataSize();
 
     // we keep a multi map of entity IDs to timestamps, we only want to include the entity IDs that have been
     // deleted since we last sent to this node
@@ -879,9 +875,11 @@ std::unique_ptr<NLPacket> EntityTree::encodeEntitiesDeletedSince(OCTREE_PACKET_S
                     // history for a longer time window, these entities are not "lost". But we haven't yet
                     // found/fixed the underlying issue that caused bad UUIDs to be sent to some users.
                     deletesPacket->write(entityID.toRfc4122());
-                    qDebug() << "EntityTree::encodeEntitiesDeletedSince() including:" << entityID;
-                    qDebug() << "    ---- at line:" << __LINE__ << " deletes packet size:" << deletesPacket->getDataSize();
                     ++numberOfIDs;
+
+                    #ifdef EXTRA_ERASE_DEBUGGING
+                        qDebug() << "EntityTree::encodeEntitiesDeletedSince() including:" << entityID;
+                    #endif
 
                     // check to make sure we have room for one more ID
                     if (NUM_BYTES_RFC4122_UUID > deletesPacket->bytesAvailableForWrite()) {
@@ -910,9 +908,6 @@ std::unique_ptr<NLPacket> EntityTree::encodeEntitiesDeletedSince(OCTREE_PACKET_S
     // replace the count for the number of included IDs
     deletesPacket->seek(numberOfIDsPos);
     deletesPacket->writePrimitive(numberOfIDs);
-    qDebug() << "    ---- at line:" << __LINE__ <<" deletes packet size:" << deletesPacket->getDataSize();
-
-    qDebug() << "    ---- EntityTree::encodeEntitiesDeletedSince() numberOfIDs:" << numberOfIDs;
 
     return deletesPacket;
 }
@@ -942,7 +937,9 @@ void EntityTree::forgetEntitiesDeletedBefore(quint64 sinceTime) {
 
 // TODO: consider consolidating processEraseMessageDetails() and processEraseMessage()
 int EntityTree::processEraseMessage(NLPacket& packet, const SharedNodePointer& sourceNode) {
-    qDebug() << "EntityTree::processEraseMessage()";
+    #ifdef EXTRA_ERASE_DEBUGGING
+        qDebug() << "EntityTree::processEraseMessage()";
+    #endif
     withWriteLock([&] {
         packet.seek(sizeof(OCTREE_PACKET_FLAGS) + sizeof(OCTREE_PACKET_SEQUENCE) + sizeof(OCTREE_PACKET_SENT_TIME));
 
@@ -960,7 +957,9 @@ int EntityTree::processEraseMessage(NLPacket& packet, const SharedNodePointer& s
                 }
 
                 QUuid entityID = QUuid::fromRfc4122(packet.readWithoutCopy(NUM_BYTES_RFC4122_UUID));
-                qDebug() << "    ---- EntityTree::processEraseMessage() contained ID:" << entityID;
+                #ifdef EXTRA_ERASE_DEBUGGING
+                    qDebug() << "    ---- EntityTree::processEraseMessage() contained ID:" << entityID;
+                #endif
 
                 EntityItemID entityItemID(entityID);
                 entityItemIDsToDelete << entityItemID;
@@ -980,7 +979,9 @@ int EntityTree::processEraseMessage(NLPacket& packet, const SharedNodePointer& s
 // NOTE: Caller must lock the tree before calling this.
 // TODO: consider consolidating processEraseMessageDetails() and processEraseMessage()
 int EntityTree::processEraseMessageDetails(const QByteArray& dataByteArray, const SharedNodePointer& sourceNode) {
-    qDebug() << "EntityTree::processEraseMessageDetails()";
+    #ifdef EXTRA_ERASE_DEBUGGING
+        qDebug() << "EntityTree::processEraseMessageDetails()";
+    #endif
     const unsigned char* packetData = (const unsigned char*)dataByteArray.constData();
     const unsigned char* dataAt = packetData;
     size_t packetLength = dataByteArray.size();
@@ -1007,7 +1008,9 @@ int EntityTree::processEraseMessageDetails(const QByteArray& dataByteArray, cons
             dataAt += encodedID.size();
             processedBytes += encodedID.size();
 
-            qDebug() << "    ---- EntityTree::processEraseMessageDetails() contains id:" << entityID;
+            #ifdef EXTRA_ERASE_DEBUGGING
+                qDebug() << "    ---- EntityTree::processEraseMessageDetails() contains id:" << entityID;
+            #endif
 
             EntityItemID entityItemID(entityID);
             entityItemIDsToDelete << entityItemID;
