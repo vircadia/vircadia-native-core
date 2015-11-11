@@ -198,6 +198,13 @@ bool EntityTree::updateEntityWithElement(EntityItemPointer entity, const EntityI
                 properties.setAngularVelocityChanged(false);
                 properties.setAccelerationChanged(false);
             }
+
+            if (wantTerseEditLogging()) {
+                if (properties.simulationOwnerChanged()) {
+                    QString itemName = entity->getName() != "" ? entity->getName() : entity->getID().toString();
+                    qCDebug(entities) << "sim ownership for" << itemName << "is now" << senderID;
+                }
+            }
         }
         // else client accepts what the server says
 

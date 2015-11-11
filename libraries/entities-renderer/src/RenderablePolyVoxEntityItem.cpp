@@ -549,6 +549,10 @@ bool RenderablePolyVoxEntityItem::addToScene(EntityItemPointer self,
     auto renderData = PolyVoxPayload::Pointer(renderItem);
     auto renderPayload = std::make_shared<PolyVoxPayload::Payload>(renderData);
 
+    render::Item::Status::Getters statusGetters;
+    makeEntityItemStatusGetters(this, statusGetters);
+    renderPayload->addStatusGetters(statusGetters);
+
     pendingChanges.resetItem(_myItem, renderPayload);
 
     return true;

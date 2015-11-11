@@ -62,5 +62,6 @@ private: \
     SimpleRenderableEntityItem _renderHelper;
 
 
+void makeEntityItemStatusGetters(EntityItem* entity, render::Item::Status::Getters& statusGetters);
 
 #endif // hifi_RenderableEntityItem_h

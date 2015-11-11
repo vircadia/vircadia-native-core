@@ -10,6 +10,7 @@
 //
 
 
+#include <ObjectMotionState.h>
 #include "RenderableEntityItem.h"
 
 namespace render {
@@ -39,6 +40,3 @@ namespace render {
         }
     }
 }
-
-
-
