@@ -35,8 +35,8 @@ AvatarActionHold::~AvatarActionHold() {
 
 void AvatarActionHold::updateActionWorker(float deltaTimeStep) {
     bool gotLock = false;
-    glm::quat rotation;
-    glm::vec3 position;
+    glm::quat rotation { Quaternions::IDENTITY };
+    glm::vec3 position { Vectors::ZERO };
     std::shared_ptr<Avatar> holdingAvatar = nullptr;
     
     gotLock = withTryReadLock([&]{
@@ -46,9 +46,11 @@ void AvatarActionHold::updateActionWorker(float deltaTimeStep) {
         
         if (holdingAvatar) {
             bool isRightHand = (_hand == "right");
-            glm::vec3 palmPosition;
-            glm::quat palmRotation;
+            glm::vec3 palmPosition { Vectors::ZERO };
+            glm::quat palmRotation { Quaternions::IDENTITY };
             
+            
+            static const glm::quat yFlip = glm::angleAxis(PI, Vectors::UNIT_Y);
             if (_ignoreIK && holdingAvatar->isMyAvatar()) {
                 // We cannot ignore other avatars IK and this is not the point of this option
                 // This is meant to make the grabbing behavior more reactive.
@@ -58,6 +60,7 @@ void AvatarActionHold::updateActionWorker(float deltaTimeStep) {
                 } else {
                     palmPosition = holdingAvatar->getHand()->getCopyOfPalmData(HandData::LeftHand).getPosition();
                     palmRotation = holdingAvatar->getHand()->getCopyOfPalmData(HandData::LeftHand).getRotation();
+                    palmRotation *= yFlip; // Match right hand frame of reference
                 }
             } else {
                 if (isRightHand) {
@@ -66,28 +69,31 @@ void AvatarActionHold::updateActionWorker(float deltaTimeStep) {
                 } else {
                     palmPosition = holdingAvatar->getLeftPalmPosition();
                     palmRotation = holdingAvatar->getLeftPalmRotation();
+                    palmRotation *= yFlip; // Match right hand frame of reference
                 }
             }
             
+            rotation = palmRotation * _relativeRotation;
+            position = palmPosition + rotation * _relativePosition;
+            
             if (isRightHand) {
-                rotation = palmRotation * _perHandRelativeRotation;
-                position = palmPosition + rotation * _perHandRelativePosition;
+                rotation *= _perHandRelativeRotation;
+                position += rotation * _perHandRelativePosition;
             } else {
                 auto mirroredRotation = _perHandRelativeRotation;
                 auto mirroredPosition = _perHandRelativePosition;
 
-                // Mirror along x axis
-                mirroredRotation.x *= -1;
-                mirroredRotation.w *= -1;
+                // Mirror along z axis
+                auto eulerAngles = safeEulerAngles(mirroredRotation);
+                eulerAngles.x *= -1;
+                eulerAngles.y *= -1;
+                mirroredRotation = glm::quat(eulerAngles);
                 
-                mirroredPosition.x *= -1;
+                mirroredPosition.z *= -1;
                 
-                rotation = palmRotation * mirroredRotation;
-                position = palmPosition + rotation * mirroredPosition;
+                rotation *= mirroredRotation;
+                position += rotation * mirroredPosition;
             }
-            
-            rotation = rotation * _relativeRotation;
-            position = position + rotation * _relativePosition;
         }
     });
     
