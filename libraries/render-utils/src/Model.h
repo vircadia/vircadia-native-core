@@ -28,10 +28,10 @@
 #include <render/Scene.h>
 #include <Transform.h>
 
-#include "AnimationHandle.h"
 #include "GeometryCache.h"
 #include "JointState.h"
 #include "TextureCache.h"
+#include "Rig.h"
 
 class AbstractViewStateInterface;
 class QScriptEngine;

@@ -247,12 +247,7 @@ void PreferencesDialog::savePreferences() {
     myAvatar->setLeanScale(ui.leanScaleSpin->value());
     myAvatar->setClampedTargetScale(ui.avatarScaleSpin->value());
     if (myAvatar->getAnimGraphUrl() != ui.avatarAnimationEdit->text()) { // If changed, destroy the old and start with the new
-        bool isEnabled = myAvatar->getEnableAnimGraph();
-        myAvatar->setEnableAnimGraph(false);
         myAvatar->setAnimGraphUrl(ui.avatarAnimationEdit->text());
-        if (isEnabled) {
-            myAvatar->setEnableAnimGraph(true);
-        }
     }
 
     myAvatar->setRealWorldFieldOfView(ui.realWorldFieldOfViewSpin->value());

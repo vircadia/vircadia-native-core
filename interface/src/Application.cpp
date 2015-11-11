@@ -2503,17 +2503,11 @@ void Application::setAvatarUpdateThreading(bool isThreaded) {
     }
     
     auto myAvatar = getMyAvatar();
-    bool isRigEnabled = myAvatar->getEnableRigAnimations();
-    bool isGraphEnabled = myAvatar->getEnableAnimGraph();
     if (_avatarUpdate) {
         _avatarUpdate->terminate(); // Must be before we shutdown anim graph.
     }
-    myAvatar->setEnableRigAnimations(false);
-    myAvatar->setEnableAnimGraph(false);
     _avatarUpdate = new AvatarUpdate();
     _avatarUpdate->initialize(isThreaded);
-    myAvatar->setEnableRigAnimations(isRigEnabled);
-    myAvatar->setEnableAnimGraph(isGraphEnabled);
 }
 
 void Application::updateLOD() {

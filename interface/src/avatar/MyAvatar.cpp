@@ -21,7 +21,6 @@
 
 #include <AccountManager.h>
 #include <AddressManager.h>
-#include <AnimationHandle.h>
 #include <AudioClient.h>
 #include <DependencyManager.h>
 #include <display-plugins/DisplayPlugin.h>
@@ -143,16 +142,9 @@ QByteArray MyAvatar::toByteArray(bool cullSmallChanges, bool sendAll) {
 }
 
 void MyAvatar::reset(bool andReload) {
-    // Gather animation mode...
-    // This should be simpler when we have only graph animations always on.
-    bool isRig = _rig->getEnableRig();
-    // seting rig animation to true, below, will clear the graph animation menu item, so grab it now.
-    bool isGraph = _rig->getEnableAnimGraph() || Menu::getInstance()->isOptionChecked(MenuOption::EnableAnimGraph);
-    // ... and get to sane configuration where other activity won't bother us.
+
     if (andReload) {
         qApp->setRawAvatarUpdateThreading(false);
-        _rig->disableHands = true;
-        setEnableRigAnimations(true);
     }
 
     // Reset dynamic state.
@@ -189,19 +181,6 @@ void MyAvatar::reset(bool andReload) {
         //_bodySensorMatrix = newBodySensorMatrix;
         //updateSensorToWorldMatrix(); // Uses updated position/orientation and _bodySensorMatrix changes
 
-        _skeletonModel.simulate(0.1f);  // non-zero
-        setEnableRigAnimations(false);
-        _skeletonModel.simulate(0.1f);
-    }
-    if (isRig) {
-        setEnableRigAnimations(true);
-        Menu::getInstance()->setIsOptionChecked(MenuOption::EnableRigAnimations, true);
-    } else if (isGraph) {
-        setEnableAnimGraph(true);
-        Menu::getInstance()->setIsOptionChecked(MenuOption::EnableAnimGraph, true);
-    }
-    if (andReload) {
-        _rig->disableHands = false;
         qApp->setRawAvatarUpdateThreading();
     }
 }
@@ -760,57 +739,6 @@ float loadSetting(QSettings& settings, const char* name, float defaultValue) {
 // Meanwhile, the main thread will also eventually lock as it tries to render us.
 // If we demand the animation from the update thread while we're locked, we'll deadlock.
 // Until we untangle this, code puts the updates back on the main thread temporarilly and starts all the loading.
-void MyAvatar::safelyLoadAnimations() {
-    /*
-    _rig->addAnimationByRole("idle");
-    _rig->addAnimationByRole("walk");
-    _rig->addAnimationByRole("backup");
-    _rig->addAnimationByRole("leftTurn");
-    _rig->addAnimationByRole("rightTurn");
-    _rig->addAnimationByRole("leftStrafe");
-    _rig->addAnimationByRole("rightStrafe");
-    */
-}
-
-void MyAvatar::setEnableRigAnimations(bool isEnabled) {
-    if (_rig->getEnableRig() == isEnabled) {
-        return;
-    }
-    if (isEnabled) {
-        qApp->setRawAvatarUpdateThreading(false);
-        setEnableAnimGraph(false);
-        Menu::getInstance()->setIsOptionChecked(MenuOption::EnableAnimGraph, false);
-        safelyLoadAnimations();
-        qApp->setRawAvatarUpdateThreading();
-        _rig->setEnableRig(true);
-    } else {
-        _rig->setEnableRig(false);
-        _rig->deleteAnimations();
-    }
-}
-
-void MyAvatar::setEnableAnimGraph(bool isEnabled) {
-    if (_rig->getEnableAnimGraph() == isEnabled) {
-        return;
-    }
-    if (isEnabled) {
-        qApp->setRawAvatarUpdateThreading(false);
-        setEnableRigAnimations(false);
-        Menu::getInstance()->setIsOptionChecked(MenuOption::EnableRigAnimations, false);
-        safelyLoadAnimations();
-        if (_skeletonModel.readyToAddToScene()) {
-            _rig->setEnableAnimGraph(true);
-           initAnimGraph(); // must be enabled for the init to happen
-            _rig->setEnableAnimGraph(false); // must be disable to safely reset threading
-       }
-        qApp->setRawAvatarUpdateThreading();
-        _rig->setEnableAnimGraph(true);
-    } else {
-        _rig->setEnableAnimGraph(false);
-        destroyAnimGraph();
-    }
-}
-
 void MyAvatar::setEnableDebugDrawBindPose(bool isEnabled) {
     _enableDebugDrawBindPose = isEnabled;
 
@@ -875,7 +803,7 @@ void MyAvatar::loadData() {
     setCollisionSoundURL(settings.value("collisionSoundURL", DEFAULT_AVATAR_COLLISION_SOUND_URL).toString());
 
     settings.endGroup();
-    _rig->setEnableRig(Menu::getInstance()->isOptionChecked(MenuOption::EnableRigAnimations));
+
     setEnableMeshVisible(Menu::getInstance()->isOptionChecked(MenuOption::MeshVisible));
     setEnableDebugDrawBindPose(Menu::getInstance()->isOptionChecked(MenuOption::AnimDebugDrawBindPose));
     setEnableDebugDrawAnimPose(Menu::getInstance()->isOptionChecked(MenuOption::AnimDebugDrawAnimPose));
@@ -1163,16 +1091,8 @@ void MyAvatar::useFullAvatarURL(const QUrl& fullAvatarURL, const QString& modelN
 
     const QString& urlString = fullAvatarURL.toString();
     if (urlString.isEmpty() || (fullAvatarURL != getSkeletonModelURL())) {
-        bool isRigEnabled = getEnableRigAnimations();
-        bool isGraphEnabled = getEnableAnimGraph();
         qApp->setRawAvatarUpdateThreading(false);
-        setEnableRigAnimations(false);
-        setEnableAnimGraph(false);
-
         setSkeletonModelURL(fullAvatarURL);
-
-        setEnableRigAnimations(isRigEnabled);
-        setEnableAnimGraph(isGraphEnabled);
         qApp->setRawAvatarUpdateThreading();
         UserActivityLogger::getInstance().changedModel("skeleton", urlString);
     }

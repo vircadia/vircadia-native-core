@@ -251,40 +251,6 @@ void SkeletonModel::simulate(float deltaTime, bool fullUpdate) {
         // Don't take inputs if playing back a recording.
         return;
     }
-
-    const FBXGeometry& geometry = _geometry->getFBXGeometry();
-
-    // Don't Relax toward hand positions when in animGraph mode.
-    if (!_rig->getEnableAnimGraph()) {
-
-        Hand* hand = _owningAvatar->getHand();
-        auto leftPalm = hand->getCopyOfPalmData(HandData::LeftHand);
-        auto rightPalm = hand->getCopyOfPalmData(HandData::RightHand);
-
-        const float HAND_RESTORATION_RATE = 0.25f;
-        if (!leftPalm.isActive() && !rightPalm.isActive()) {
-            // palms are not yet set, use mouse
-            if (_owningAvatar->getHandState() == HAND_STATE_NULL) {
-                restoreRightHandPosition(HAND_RESTORATION_RATE, PALM_PRIORITY);
-            } else {
-                // transform into model-frame
-                glm::vec3 handPosition = glm::inverse(_rotation) * (_owningAvatar->getHandPosition() - _translation);
-                applyHandPosition(geometry.rightHandJointIndex, handPosition);
-            }
-            restoreLeftHandPosition(HAND_RESTORATION_RATE, PALM_PRIORITY);
-        } else {
-            if (leftPalm.isActive()) {
-                applyPalmData(geometry.leftHandJointIndex, leftPalm);
-            } else {
-                restoreLeftHandPosition(HAND_RESTORATION_RATE, PALM_PRIORITY);
-            }
-            if (rightPalm.isActive()) {
-                applyPalmData(geometry.rightHandJointIndex, rightPalm);
-            } else {
-                restoreRightHandPosition(HAND_RESTORATION_RATE, PALM_PRIORITY);
-            }
-        }
-    }
 }
 
 void SkeletonModel::renderIKConstraints(gpu::Batch& batch) {
@@ -344,8 +310,6 @@ void SkeletonModel::applyPalmData(int jointIndex, const PalmData& palm) {
     glm::quat inverseRotation = glm::inverse(_rotation);
     glm::vec3 palmPosition = inverseRotation * (palm.getPosition() - _translation);
     glm::quat palmRotation = inverseRotation * palm.getRotation();
-
-    inverseKinematics(jointIndex, palmPosition, palmRotation, PALM_PRIORITY);
 }
 
 void SkeletonModel::renderJointConstraints(gpu::Batch& batch, int jointIndex) {

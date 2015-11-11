@@ -26,6 +26,7 @@
 #include "Head.h"
 #include "SkeletonModel.h"
 #include "world.h"
+#include "Rig.h"
 
 namespace render {
     template <> const ItemKey payloadGetKey(const AvatarSharedPointer& avatar);

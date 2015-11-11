@@ -46,9 +46,6 @@
 #include "AnimNodeLoader.h"
 #include "SimpleMovingAverage.h"
 
-class AnimationHandle;
-typedef std::shared_ptr<AnimationHandle> AnimationHandlePointer;
-
 class Rig;
 typedef std::shared_ptr<Rig> RigPointer;
 
@@ -101,18 +98,7 @@ public:
 
     virtual ~Rig() {}
 
-    RigPointer getRigPointer() { return shared_from_this(); }
-
-    AnimationHandlePointer createAnimationHandle();
-    void removeAnimationHandle(const AnimationHandlePointer& handle);
-    bool removeRunningAnimation(AnimationHandlePointer animationHandle);
-    void addRunningAnimation(AnimationHandlePointer animationHandle);
-    bool isRunningAnimation(AnimationHandlePointer animationHandle);
-    bool isRunningRole(const QString& role); // There can be multiple animations per role, so this is more general than isRunningAnimation.
-    const QList<AnimationHandlePointer>& getRunningAnimations() const { return _runningAnimations; }
-    void deleteAnimations();
     void destroyAnimGraph();
-    const QList<AnimationHandlePointer>& getAnimationHandles() const { return _animationHandles; }
 
     void overrideAnimation(const QString& url, float fps, bool loop, float firstFrame, float lastFrame);
     void restoreAnimation();
@@ -187,11 +173,6 @@ public:
 
     virtual void updateJointState(int index, glm::mat4 rootTransform) = 0;
 
-    void setEnableRig(bool isEnabled) { _enableRig = isEnabled; }
-    bool getEnableRig() const { return _enableRig; }
-    void setEnableAnimGraph(bool isEnabled) { _enableAnimGraph = isEnabled; }
-    bool getEnableAnimGraph() const { return _enableAnimGraph; }
-
     void updateFromHeadParameters(const HeadParameters& params, float dt);
     void updateFromEyeParameters(const EyeParameters& params);
     void updateFromHandParameters(const HandParameters& params, float dt);
@@ -204,7 +185,6 @@ public:
 
     AnimNode::ConstPointer getAnimNode() const { return _animNode; }
     AnimSkeleton::ConstPointer getAnimSkeleton() const { return _animSkeleton; }
-    bool disableHands {false}; // should go away with rig animation (and Rig::inverseKinematics)
     QScriptValue addAnimationStateHandler(QScriptValue handler, QScriptValue propertiesList);
     void removeAnimationStateHandler(QScriptValue handler);
     void animationStateHandlerResult(int identifier, QScriptValue result);
@@ -230,11 +210,6 @@ public:
     int _rightElbowJointIndex { -1 };
     int _rightShoulderJointIndex { -1 };
 
-    QList<AnimationHandlePointer> _animationHandles;
-    QList<AnimationHandlePointer> _runningAnimations;
-
-    bool _enableRig { false };
-    bool _enableAnimGraph { false };
     glm::vec3 _lastFront;
     glm::vec3 _lastPosition;
     glm::vec3 _lastVelocity;

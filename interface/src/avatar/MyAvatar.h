@@ -114,10 +114,6 @@ public:
 
     float getRealWorldFieldOfView() { return _realWorldFieldOfView.get(); }
 
-    const QList<AnimationHandlePointer>& getAnimationHandles() const { return _rig->getAnimationHandles(); }
-    AnimationHandlePointer addAnimationHandle() { return _rig->createAnimationHandle(); }
-    void removeAnimationHandle(const AnimationHandlePointer& handle) { _rig->removeAnimationHandle(handle); }
-
     // Interrupt the current animation with a custom animation.
     Q_INVOKABLE void overrideAnimation(const QString& url, float fps, bool loop, float firstFrame, float lastFrame);
 
@@ -266,11 +262,8 @@ public slots:
 
     virtual void rebuildSkeletonBody() override;
 
-    bool getEnableRigAnimations() const { return _rig->getEnableRig(); }
-    void setEnableRigAnimations(bool isEnabled);
-    bool getEnableAnimGraph() const { return _rig->getEnableAnimGraph(); }
     const QString& getAnimGraphUrl() const { return _animGraphUrl; }
-    void setEnableAnimGraph(bool isEnabled);
+
     void setEnableDebugDrawBindPose(bool isEnabled);
     void setEnableDebugDrawAnimPose(bool isEnabled);
     void setEnableMeshVisible(bool isEnabled);
@@ -376,7 +369,6 @@ private:
     void maybeUpdateBillboard();
     void initHeadBones();
     void initAnimGraph();
-    void safelyLoadAnimations();
 
     // Avatar Preferences
     QUrl _fullAvatarURLFromPreferences;

@@ -18,117 +18,55 @@
 #include <NumericalConstants.h>
 #include <DebugDraw.h>
 
-#include "AnimationHandle.h"
 #include "AnimationLogging.h"
 #include "AnimSkeleton.h"
 #include "AnimClip.h"
 #include "IKTarget.h"
 
-void insertSorted(QList<AnimationHandlePointer>& handles, const AnimationHandlePointer& handle) {
-    for (QList<AnimationHandlePointer>::iterator it = handles.begin(); it != handles.end(); it++) {
-        if (handle->getPriority() > (*it)->getPriority()) {
-            handles.insert(it, handle);
-            return;
-        }
-    }
-    handles.append(handle);
-}
-
-AnimationHandlePointer Rig::createAnimationHandle() {
-    AnimationHandlePointer handle(new AnimationHandle(getRigPointer()));
-    _animationHandles.append(handle);
-    return handle;
-}
-void Rig::removeAnimationHandle(const AnimationHandlePointer& handle) {
-    handle->stop();
-    // FIXME? Do we need to also animationHandle->clearJoints()? deleteAnimations(), below, was first written to do so, but did not first stop it.
-    _animationHandles.removeOne(handle);
-}
-
 void Rig::overrideAnimation(const QString& url, float fps, bool loop, float firstFrame, float lastFrame) {
-    if (_enableAnimGraph) {
 
-        // find an unused AnimClip clipNode
-        std::shared_ptr<AnimClip> clip;
-        if (_userAnimState == UserAnimState::None || _userAnimState == UserAnimState::B) {
-            _userAnimState = UserAnimState::A;
-            clip = std::dynamic_pointer_cast<AnimClip>(_animNode->getChild((int)_userAnimState));
-        } else if (_userAnimState == UserAnimState::A) {
-            _userAnimState = UserAnimState::B;
-            clip = std::dynamic_pointer_cast<AnimClip>(_animNode->getChild((int)_userAnimState));
-        }
-
-        // set parameters
-        clip->setLoopFlag(loop);
-        clip->setStartFrame(firstFrame);
-        clip->setEndFrame(lastFrame);
-        const float REFERENCE_FRAMES_PER_SECOND = 30.0f;
-        float timeScale = fps / REFERENCE_FRAMES_PER_SECOND;
-        clip->setTimeScale(timeScale);
-        clip->loadURL(url);
-
-        _currentUserAnimURL = url;
-
-        // notify the userAnimStateMachine the desired state.
-        _animVars.set("userAnimNone", false);
-        _animVars.set("userAnimA", _userAnimState == UserAnimState::A);
-        _animVars.set("userAnimB", _userAnimState == UserAnimState::B);
-
-    } else {
-
-        float priority = 1.0f;
-        bool hold = true;
-        QStringList maskedJoints;
-
-        _currentUserAnimURL = url;
-
-        // This is different than startAnimationByRole, in which we use the existing values if the animation already exists.
-        // Here we reuse the animation handle if possible, but in any case, we set the values to those given (or defaulted).
-        AnimationHandlePointer handle = nullptr;
-        foreach (const AnimationHandlePointer& candidate, _animationHandles) {
-            if (candidate->getURL() == url) {
-                handle = candidate;
-            }
-        }
-        if (!handle) {
-            handle = createAnimationHandle();
-            handle->setURL(url);
-        }
-        handle->setFade(1.0f);     // If you want to fade, use the startAnimationByRole system.
-        handle->setFPS(fps);
-        handle->setPriority(priority);
-        handle->setLoop(loop);
-        handle->setHold(hold);
-        handle->setFirstFrame(firstFrame);
-        handle->setLastFrame(lastFrame);
-        handle->setMaskedJoints(maskedJoints);
-        handle->start();
+    // find an unused AnimClip clipNode
+    std::shared_ptr<AnimClip> clip;
+    if (_userAnimState == UserAnimState::None || _userAnimState == UserAnimState::B) {
+        _userAnimState = UserAnimState::A;
+        clip = std::dynamic_pointer_cast<AnimClip>(_animNode->getChild((int)_userAnimState));
+    } else if (_userAnimState == UserAnimState::A) {
+        _userAnimState = UserAnimState::B;
+        clip = std::dynamic_pointer_cast<AnimClip>(_animNode->getChild((int)_userAnimState));
     }
+
+    // set parameters
+    clip->setLoopFlag(loop);
+    clip->setStartFrame(firstFrame);
+    clip->setEndFrame(lastFrame);
+    const float REFERENCE_FRAMES_PER_SECOND = 30.0f;
+    float timeScale = fps / REFERENCE_FRAMES_PER_SECOND;
+    clip->setTimeScale(timeScale);
+    clip->loadURL(url);
+
+    _currentUserAnimURL = url;
+
+    // notify the userAnimStateMachine the desired state.
+    _animVars.set("userAnimNone", false);
+    _animVars.set("userAnimA", _userAnimState == UserAnimState::A);
+    _animVars.set("userAnimB", _userAnimState == UserAnimState::B);
 }
+
 const float FRAMES_PER_SECOND = 30.0f;
 const float FADE_FRAMES = 30.0f;
 
 void Rig::restoreAnimation() {
-    if (_enableAnimGraph) {
-        if (_currentUserAnimURL != "") {
-            _currentUserAnimURL = "";
-            // notify the userAnimStateMachine the desired state.
-            _animVars.set("userAnimNone", true);
-            _animVars.set("userAnimA", false);
-            _animVars.set("userAnimB", false);
-        }
-    } else {
-        foreach (const AnimationHandlePointer& handle, getRunningAnimations()) {
-            if (handle->getURL() == _currentUserAnimURL) {
-                handle->setFade(0.0f); // right away. Will be remove during updateAnimations, without locking
-                handle->setFadePerSecond(-(FRAMES_PER_SECOND / FADE_FRAMES)); // so that the updateAnimation code notices
-            }
-        }
+    if (_currentUserAnimURL != "") {
+        _currentUserAnimURL = "";
+        // notify the userAnimStateMachine the desired state.
+        _animVars.set("userAnimNone", true);
+        _animVars.set("userAnimA", false);
+        _animVars.set("userAnimB", false);
     }
 }
 
 QStringList Rig::getAnimationRoles() const {
-    if (_enableAnimGraph && _animNode) {
+    if (_animNode) {
         QStringList list;
         _animNode->traverse([&](AnimNode::Pointer node) {
             // only report clip nodes as valid roles.
@@ -148,7 +86,7 @@ QStringList Rig::getAnimationRoles() const {
 }
 
 void Rig::overrideRoleAnimation(const QString& role, const QString& url, float fps, bool loop, float firstFrame, float lastFrame) {
-    if (_enableAnimGraph && _animNode) {
+    if (_animNode) {
         AnimNode::Pointer node = _animNode->findByName(role);
         if (node) {
             _origRoleAnimations[role] = node;
@@ -160,11 +98,13 @@ void Rig::overrideRoleAnimation(const QString& role, const QString& url, float f
         } else {
             qCWarning(animation) << "Rig::overrideRoleAnimation could not find role " << role;
         }
+    } else {
+        qCWarning(animation) << "Rig::overrideRoleAnimation avatar not ready yet";
     }
 }
 
 void Rig::restoreRoleAnimation(const QString& role) {
-    if (_enableAnimGraph && _animNode) {
+    if (_animNode) {
         AnimNode::Pointer node = _animNode->findByName(role);
         if (node) {
             auto iter = _origRoleAnimations.find(role);
@@ -175,43 +115,17 @@ void Rig::restoreRoleAnimation(const QString& role) {
                 qCWarning(animation) << "Rig::restoreRoleAnimation could not find role " << role;
             }
         }
+    } else {
+        qCWarning(animation) << "Rig::overrideRoleAnimation avatar not ready yet";
     }
 }
 
 void Rig::prefetchAnimation(const QString& url) {
-    if (_enableAnimGraph) {
-        // This will begin loading the NetworkGeometry for the given URL.
-        // which should speed us up if we request it later via overrideAnimation.
-        auto clipNode = std::make_shared<AnimClip>("prefetch", url, 0, 0, 1.0, false);
-        _prefetchedAnimations.push_back(clipNode);
-    }
-}
 
-bool Rig::removeRunningAnimation(AnimationHandlePointer animationHandle) {
-    return _runningAnimations.removeOne(animationHandle);
-}
-
-void Rig::addRunningAnimation(AnimationHandlePointer animationHandle) {
-    insertSorted(_runningAnimations, animationHandle);
-}
-
-bool Rig::isRunningAnimation(AnimationHandlePointer animationHandle) {
-    return _runningAnimations.contains(animationHandle);
-}
-bool Rig::isRunningRole(const QString& role) {  //obviously, there are more efficient ways to do this
-    for (auto animation : _runningAnimations) {
-        if ((animation->getRole() == role) && (animation->getFadePerSecond() >= 0.0f)) { // Don't count those being faded out
-            return true;
-        }
-    }
-    return false;
-}
-
-void Rig::deleteAnimations() {
-    for (auto animation : _animationHandles) {
-        removeAnimationHandle(animation);
-    }
-    _animationHandles.clear();
+    // This will begin loading the NetworkGeometry for the given URL.
+    // which should speed us up if we request it later via overrideAnimation.
+    auto clipNode = std::make_shared<AnimClip>("prefetch", url, 0, 0, 1.0, false);
+    _prefetchedAnimations.push_back(clipNode);
 }
 
 void Rig::destroyAnimGraph() {
@@ -483,8 +397,7 @@ void Rig::computeMotionAnimationState(float deltaTime, const glm::vec3& worldPos
         _lastVelocity = workingVelocity;
     }
 
-    if (_enableAnimGraph) {
-
+    {
         glm::vec3 localVel = glm::inverse(worldRotation) * workingVelocity;
 
         float forwardSpeed = glm::dot(localVel, IDENTITY_FRONT);
@@ -636,47 +549,6 @@ void Rig::computeMotionAnimationState(float deltaTime, const glm::vec3& worldPos
         t += deltaTime;
     }
 
-    if (_enableRig) {
-        bool isMoving = false;
-
-        glm::vec3 right = worldRotation * IDENTITY_RIGHT;
-        const float PERCEPTIBLE_DELTA = 0.001f;
-        const float PERCEPTIBLE_SPEED = 0.1f;
-
-        // Note: Separately, we've arranged for starting/stopping animations by role (as we've done here) to pick up where they've left off when fading,
-        // so that you wouldn't notice the start/stop if it happens fast enough (e.g., one frame). But the print below would still be noisy.
-
-        float forwardSpeed = glm::dot(workingVelocity, front);
-        float rightLateralSpeed = glm::dot(workingVelocity, right);
-        float rightTurningDelta = glm::orientedAngle(front, _lastFront, IDENTITY_UP);
-        float rightTurningSpeed = rightTurningDelta / deltaTime;
-        bool isTurning = (std::abs(rightTurningDelta) > PERCEPTIBLE_DELTA) && (std::abs(rightTurningSpeed) > PERCEPTIBLE_SPEED);
-        bool isStrafing = std::abs(rightLateralSpeed) > PERCEPTIBLE_SPEED;
-        auto updateRole = [&](const QString& role, bool isOn) {
-            isMoving = isMoving || isOn;
-            if (isOn) {
-                if (!isRunningRole(role)) {
-                    qCDebug(animation) << "Rig STARTING" << role;
-                    //startAnimationByRole(role);
-
-                }
-            } else {
-                if (isRunningRole(role)) {
-                    qCDebug(animation) << "Rig stopping" << role;
-                    //stopAnimationByRole(role);
-                }
-            }
-        };
-        updateRole("walk",   forwardSpeed > PERCEPTIBLE_SPEED);
-        updateRole("backup", forwardSpeed < -PERCEPTIBLE_SPEED);
-        updateRole("rightTurn", isTurning && (rightTurningSpeed > 0.0f));
-        updateRole("leftTurn",  isTurning && (rightTurningSpeed < 0.0f));
-        isStrafing = isStrafing && !isMoving;
-        updateRole("rightStrafe", isStrafing && (rightLateralSpeed > 0.0f));
-        updateRole("leftStrafe",  isStrafing && (rightLateralSpeed < 0.0f));
-        updateRole("idle", !isMoving); // Must be last, as it makes isMoving bogus.
-    }
-
     _lastFront = front;
     _lastPosition = worldPosition;
 }
@@ -748,12 +620,10 @@ void Rig::updateAnimationStateHandlers() { // called on avatar update thread (wh
 
 void Rig::updateAnimations(float deltaTime, glm::mat4 rootTransform) {
 
-    if (_enableAnimGraph) {
-        if (!_animNode) {
-            return;
-        }
+    if (_animNode) {
 
         updateAnimationStateHandlers();
+
         // evaluate the animation
         AnimNode::Triggers triggersOut;
         AnimPoseVec poses = _animNode->evaluate(_animVars, deltaTime, triggersOut);
@@ -769,51 +639,6 @@ void Rig::updateAnimations(float deltaTime, glm::mat4 rootTransform) {
         for (size_t i = 0; i < poses.size(); i++) {
             setJointRotationInConstrainedFrame((int)i, glm::inverse(_animSkeleton->getRelativeBindPose(i).rot) * poses[i].rot, PRIORITY, 1.0f);
             setJointTranslation((int)i, true, poses[i].trans, PRIORITY);
-        }
-
-    } else {
-
-        // First normalize the fades so that they sum to 1.0.
-        // update the fade data in each animation (not normalized as they are an independent propert of animation)
-        foreach (const AnimationHandlePointer& handle, _runningAnimations) {
-            float fadePerSecond = handle->getFadePerSecond();
-            float fade = handle->getFade();
-            if (fadePerSecond != 0.0f) {
-                fade += fadePerSecond * deltaTime;
-                if ((0.0f >= fade) || (fade >= 1.0f)) {
-                    fade = glm::clamp(fade, 0.0f, 1.0f);
-                    handle->setFadePerSecond(0.0f);
-                }
-                handle->setFade(fade);
-                if (fade <= 0.0f) { // stop any finished animations now
-                    handle->setRunning(false, false); // but do not restore joints as it causes a flicker
-                }
-            }
-        }
-        // sum the remaining fade data
-        float fadeTotal = 0.0f;
-        foreach (const AnimationHandlePointer& handle, _runningAnimations) {
-            fadeTotal += handle->getFade();
-        }
-        float fadeSumSoFar = 0.0f;
-        foreach (const AnimationHandlePointer& handle, _runningAnimations) {
-            handle->setPriority(1.0f);
-            // if no fadeTotal, everyone's (typically just one running) is starting at zero. In that case, blend equally.
-            float normalizedFade = (fadeTotal != 0.0f) ? (handle->getFade() / fadeTotal) : (1.0f / _runningAnimations.count());
-            assert(normalizedFade != 0.0f);
-            // simulate() will blend each animation result into the result so far, based on the pairwise mix at at each step.
-            // i.e., slerp the 'mix' distance from the result so far towards this iteration's animation result.
-            // The formula here for mix is based on the idea that, at each step:
-            // fadeSum is to normalizedFade, as (1 - mix) is to mix
-            // i.e., fadeSumSoFar/normalizedFade = (1 - mix)/mix
-            // Then we solve for mix.
-            // Sanity check: For the first animation, fadeSum = 0, and the mix will always be 1.
-            // Sanity check: For equal blending, the formula is equivalent to mix = 1 / nAnimationsSoFar++
-            float mix = 1.0f / ((fadeSumSoFar / normalizedFade) + 1.0f);
-            assert((0.0f <= mix) && (mix <= 1.0f));
-            fadeSumSoFar += normalizedFade;
-            handle->setMix(mix);
-            handle->simulate(deltaTime);
         }
     }
 
@@ -913,11 +738,6 @@ void Rig::inverseKinematics(int endIndex, glm::vec3 targetPosition, const glm::q
     // NOTE: targetRotation is from in model-frame
 
     if (endIndex == -1 || _jointStates.isEmpty()) {
-        return;
-    }
-
-    if (disableHands || (_enableAnimGraph && _animSkeleton)) {
-        // the hand data goes through a different path: Rig::updateFromHandParameters() --> early-exit
         return;
     }
 
@@ -1125,10 +945,8 @@ void Rig::updateFromHeadParameters(const HeadParameters& params, float dt) {
     }
     updateNeckJoint(params.neckJointIndex, params);
 
-    if (_enableAnimGraph) {
-        _animVars.set("isTalking", params.isTalking);
-        _animVars.set("notIsTalking", !params.isTalking);
-    }
+    _animVars.set("isTalking", params.isTalking);
+    _animVars.set("notIsTalking", !params.isTalking);
 }
 
 void Rig::updateFromEyeParameters(const EyeParameters& params) {
@@ -1144,21 +962,11 @@ static const glm::vec3 Z_AXIS(0.0f, 0.0f, 1.0f);
 
 void Rig::updateLeanJoint(int index, float leanSideways, float leanForward, float torsoTwist) {
     if (index >= 0 && _jointStates[index].getParentIndex() >= 0) {
-        if (_enableAnimGraph && _animSkeleton) {
+        if (_animSkeleton) {
             glm::quat absRot = (glm::angleAxis(-RADIANS_PER_DEGREE * leanSideways, Z_AXIS) *
                                 glm::angleAxis(-RADIANS_PER_DEGREE * leanForward, X_AXIS) *
                                 glm::angleAxis(RADIANS_PER_DEGREE * torsoTwist, Y_AXIS));
             _animVars.set("lean", absRot);
-        } else if (!_enableAnimGraph) {
-            auto& parentState = _jointStates[_jointStates[index].getParentIndex()];
-
-            // get the rotation axes in joint space and use them to adjust the rotation
-            glm::quat inverse = glm::inverse(parentState.getRotation() * getJointDefaultRotationInParentFrame(index));
-            setJointRotationInConstrainedFrame(index,
-                                               glm::angleAxis(- RADIANS_PER_DEGREE * leanSideways, inverse * Z_AXIS) *
-                                               glm::angleAxis(- RADIANS_PER_DEGREE * leanForward, inverse * X_AXIS) *
-                                               glm::angleAxis(RADIANS_PER_DEGREE * torsoTwist, inverse * Y_AXIS) *
-                                               getJointState(index).getDefaultRotation(), DEFAULT_PRIORITY);
         }
     }
 }
@@ -1224,7 +1032,7 @@ static void computeHeadNeckAnimVars(AnimSkeleton::ConstPointer skeleton, const A
 
 void Rig::updateNeckJoint(int index, const HeadParameters& params) {
     if (index >= 0 && _jointStates[index].getParentIndex() >= 0) {
-        if (_enableAnimGraph && _animSkeleton) {
+        if (_animSkeleton) {
 
             if (params.isInHMD) {
                 glm::vec3 headPos, neckPos;
@@ -1272,23 +1080,6 @@ void Rig::updateNeckJoint(int index, const HeadParameters& params) {
                 _animVars.unset("neckRotation");
                 _animVars.set("neckType", (int)IKTarget::Type::RotationOnly);
             }
-        } else if (!_enableAnimGraph) {
-
-            auto& state = _jointStates[index];
-            auto& parentState = _jointStates[state.getParentIndex()];
-
-            // get the rotation axes in joint space and use them to adjust the rotation
-            glm::mat3 inverse = glm::mat3(glm::inverse(parentState.getTransform() *
-                                                       glm::translate(getJointDefaultTranslationInConstrainedFrame(index)) *
-                                                       state.getPreTransform() * glm::mat4_cast(state.getPreRotation())));
-            glm::vec3 pitchYawRoll = safeEulerAngles(params.localHeadOrientation);
-            glm::vec3 lean = glm::radians(glm::vec3(params.leanForward, params.torsoTwist, params.leanSideways));
-            pitchYawRoll -= lean;
-            setJointRotationInConstrainedFrame(index,
-                                               glm::angleAxis(-pitchYawRoll.z, glm::normalize(inverse * Z_AXIS)) *
-                                               glm::angleAxis(pitchYawRoll.y, glm::normalize(inverse * Y_AXIS)) *
-                                               glm::angleAxis(-pitchYawRoll.x, glm::normalize(inverse * X_AXIS)) *
-                                               state.getDefaultRotation(), DEFAULT_PRIORITY);
         }
     }
 }
@@ -1314,7 +1105,7 @@ void Rig::updateEyeJoint(int index, const glm::vec3& modelTranslation, const glm
 
 void Rig::updateFromHandParameters(const HandParameters& params, float dt) {
 
-    if (_enableAnimGraph && _animSkeleton && _animNode) {
+    if (_animSkeleton && _animNode) {
 
         // TODO: figure out how to obtain the yFlip from where it is actually stored
         glm::quat yFlipHACK = glm::angleAxis(PI, glm::vec3(0.0f, 1.0f, 0.0f));
@@ -1387,9 +1178,6 @@ void Rig::makeAnimSkeleton(const FBXGeometry& fbxGeometry) {
 }
 
 void Rig::initAnimGraph(const QUrl& url, const FBXGeometry& fbxGeometry) {
-    if (!_enableAnimGraph) {
-        return;
-    }
 
     makeAnimSkeleton(fbxGeometry);
 

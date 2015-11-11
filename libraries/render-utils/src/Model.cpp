@@ -22,7 +22,6 @@
 #include <ViewFrustum.h>
 
 #include "AbstractViewStateInterface.h"
-#include "AnimationHandle.h"
 #include "Model.h"
 #include "MeshPartPayload.h"
 
@@ -1101,7 +1100,6 @@ void Model::deleteGeometry() {
     _blendedVertexBuffers.clear();
     _rig->clearJointStates();
     _meshStates.clear();
-    _rig->deleteAnimations();
     _rig->destroyAnimGraph();
     _blendedBlendshapeCoefficients.clear();
 }

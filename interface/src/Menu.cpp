@@ -440,10 +440,6 @@ Menu::Menu() {
     addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::FixGaze, 0, false);
     addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::EnableAvatarUpdateThreading, 0, false,
                                            qApp, SLOT(setAvatarUpdateThreading(bool)));
-    addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::EnableRigAnimations, 0, false,
-                                           avatar, SLOT(setEnableRigAnimations(bool)));
-    addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::EnableAnimGraph, 0, true,
-                                           avatar, SLOT(setEnableAnimGraph(bool)));
     addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::AnimDebugDrawBindPose, 0, false,
                                            avatar, SLOT(setEnableDebugDrawBindPose(bool)));
     addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::AnimDebugDrawAnimPose, 0, false,
