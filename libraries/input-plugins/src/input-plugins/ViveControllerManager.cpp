@@ -206,16 +206,6 @@ void ViveControllerManager::renderHand(const controller::Pose& pose, gpu::Batch&
     batch.drawIndexed(gpu::TRIANGLES, mesh->getNumIndices(), 0);
 }
 
-#ifdef Q_OS_WIN
-glm::vec3 ViveControllerManager::getPosition(int hand) const {
-	const mat4& mat = _trackedDevicePoseMat4[hand ? 3 : 4];
-	return extractTranslation(mat);
-}
-glm::quat ViveControllerManager::getRotation(int hand) const {
-	const mat4& mat = _trackedDevicePoseMat4[hand ? 3 : 4];
-	return glm::quat_cast(mat);
-}
-#endif
 
 void ViveControllerManager::pluginUpdate(float deltaTime, bool jointsCaptured) { 
     _inputDevice->update(deltaTime, jointsCaptured); 
@@ -263,7 +253,7 @@ void ViveControllerManager::InputDevice::update(float deltaTime, bool jointsCapt
         bool left = numTrackedControllers == 2;
             
         const mat4& mat = _trackedDevicePoseMat4[device];
-		
+                  
         if (!jointsCaptured) {
             handlePoseEvent(mat, numTrackedControllers - 1);
         }
