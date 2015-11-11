@@ -201,30 +201,7 @@ float angleBetween(const glm::vec3& v1, const glm::vec3& v2) {
 
 //  Helper function return the rotation from the first vector onto the second
 glm::quat rotationBetween(const glm::vec3& v1, const glm::vec3& v2) {
-    float angle = angleBetween(v1, v2);
-    if (glm::isnan(angle) || angle < EPSILON) {
-        return glm::quat();
-    }
-    glm::vec3 axis;
-    if (angle > 179.99f * RADIANS_PER_DEGREE) { // 180 degree rotation; must use another axis
-        axis = glm::cross(v1, glm::vec3(1.0f, 0.0f, 0.0f));
-        float axisLength = glm::length(axis);
-        if (axisLength < EPSILON) { // parallel to x; y will work
-            axis = glm::normalize(glm::cross(v1, glm::vec3(0.0f, 1.0f, 0.0f)));
-        } else {
-            axis /= axisLength;
-        }
-    } else {
-        axis = glm::normalize(glm::cross(v1, v2));
-        // It is possible for axis to be nan even when angle is not less than EPSILON.
-        // For example when angle is small but not tiny but v1 and v2 and have very short lengths.
-        if (glm::isnan(glm::dot(axis, axis))) {
-            // set angle and axis to values that will generate an identity rotation
-            angle = 0.0f;
-            axis = glm::vec3(1.0f, 0.0f, 0.0f);
-        }
-    }
-    return glm::angleAxis(angle, axis);
+    return glm::quat(glm::normalize(v1), glm::normalize(v2));
 }
 
 bool isPointBehindTrianglesPlane(glm::vec3 point, glm::vec3 p0, glm::vec3 p1, glm::vec3 p2) {
