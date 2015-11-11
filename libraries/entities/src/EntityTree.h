@@ -147,7 +147,6 @@ public:
     void addNewlyCreatedHook(NewlyCreatedEntityHook* hook);
     void removeNewlyCreatedHook(NewlyCreatedEntityHook* hook);
 
-    static const quint64 DELETED_ENTITIES_EXTRA_USECS_TO_CONSIDER;
     bool hasAnyDeletedEntities() const { return _recentlyDeletedEntityItemIDs.size() > 0; }
     bool hasEntitiesDeletedSince(quint64 sinceTime);
     std::unique_ptr<NLPacket> encodeEntitiesDeletedSince(OCTREE_PACKET_SEQUENCE sequenceNumber, quint64& sinceTime,

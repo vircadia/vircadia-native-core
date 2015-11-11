@@ -25,7 +25,7 @@
 #include "RecurseOctreeToMapOperator.h"
 #include "LogHandler.h"
 
-const quint64 EntityTree::DELETED_ENTITIES_EXTRA_USECS_TO_CONSIDER = USECS_PER_MSEC * 50;
+static const quint64 DELETED_ENTITIES_EXTRA_USECS_TO_CONSIDER = USECS_PER_MSEC * 50;
 
 EntityTree::EntityTree(bool shouldReaverage) :
     Octree(shouldReaverage),
@@ -392,10 +392,8 @@ void EntityTree::processRemovedEntities(const DeleteEntityOperator& theOperator)
 
         if (getIsServer()) {
             // set up the deleted entities ID
-            {
-                QWriteLocker locker(&_recentlyDeletedEntitiesLock);
-                _recentlyDeletedEntityItemIDs.insert(deletedAt, theEntity->getEntityItemID());
-            }
+            QWriteLocker locker(&_recentlyDeletedEntitiesLock);
+            _recentlyDeletedEntityItemIDs.insert(deletedAt, theEntity->getEntityItemID());
         }
 
         if (_simulation) {
