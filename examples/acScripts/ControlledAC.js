@@ -9,10 +9,9 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-HIFI_PUBLIC_BUCKET = "http://s3.amazonaws.com/hifi-public/";
 
 // Set the following variables to the values needed
-var filename = "/Users/clement/Desktop/recording.hfr";
+var clip_url = null;
 var playFromCurrentLocation = true;
 var useDisplayName = true;
 var useAttachments = true;
@@ -21,8 +20,6 @@ var useAvatarModel = true;
 // ID of the agent. Two agents can't have the same ID.
 var id = 0;
 
-// Set avatar model URL
-Avatar.skeletonModelURL = "https://hifi-public.s3.amazonaws.com/marketplace/contents/e21c0b95-e502-4d15-8c41-ea2fc40f1125/3585ddf674869a67d31d5964f7b52de1.fst?1427169998";
 // Set position/orientation/scale here if playFromCurrentLocation is true
 Avatar.position = { x:1, y: 1, z: 1 };
 Avatar.orientation = Quat.fromPitchYawRollDegrees(0, 0, 0);
@@ -30,7 +27,7 @@ Avatar.scale = 1.0;
 
 // Those variables MUST be common to every scripts
 var controlEntitySize = 0.25;
-var controlEntityPosition = { x: 2000, y: 0, z: 0 };
+var controlEntityPosition = { x: 0, y: 0, z: 0 };
 
 // Script. DO NOT MODIFY BEYOND THIS LINE.
 var DO_NOTHING = 0;
@@ -39,6 +36,7 @@ var PLAY_LOOP = 2;
 var STOP = 3;
 var SHOW = 4;
 var HIDE = 5;
+var LOAD = 6;
 
 var COLORS = [];
 COLORS[PLAY] = { red: PLAY, green: 0,  blue: 0 };
@@ -46,10 +44,11 @@ COLORS[PLAY_LOOP] = { red: PLAY_LOOP, green: 0,  blue: 0 };
 COLORS[STOP] = { red: STOP, green: 0,  blue: 0 };
 COLORS[SHOW] = { red: SHOW, green: 0,  blue: 0 };
 COLORS[HIDE] = { red: HIDE, green: 0,  blue: 0 };
+COLORS[LOAD] = { red: LOAD, green: 0,  blue: 0 };
 
 controlEntityPosition.x += id * controlEntitySize;
 
-Avatar.loadRecording(filename);
+Avatar.loadRecording(clip_url);
 
 Avatar.setPlayFromCurrentLocation(playFromCurrentLocation);
 Avatar.setPlayerUseDisplayName(useDisplayName);
@@ -68,7 +67,9 @@ function setupEntityViewer() {
     EntityViewer.queryOctree();
 }
 
-function getAction(controlEntity) {
+function getAction(controlEntity) {    
+    clip_url = controlEntity.userData;
+    
     if (controlEntity === null ||
         controlEntity.position.x !== controlEntityPosition.x ||
         controlEntity.position.y !== controlEntityPosition.y ||
@@ -140,6 +141,12 @@ function update(event) {
                 Avatar.stopPlaying();
             }
             Agent.isAvatar = false;
+            break;
+        case LOAD:
+            print("Load");            
+            if(clip_url !== null) {
+                Avatar.loadRecording(clip_url);
+            }
             break;
         case DO_NOTHING:
             break;
