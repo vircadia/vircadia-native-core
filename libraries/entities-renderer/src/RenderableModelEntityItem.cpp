@@ -23,6 +23,7 @@
 #include "EntityTreeRenderer.h"
 #include "EntitiesRendererLogging.h"
 #include "RenderableModelEntityItem.h"
+#include "RenderableEntityItem.h"
 
 EntityItemPointer RenderableModelEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
     return std::make_shared<RenderableModelEntityItem>(entityID, properties);
@@ -189,7 +190,8 @@ void makeEntityItemStatusGetters(RenderableModelEntityItem* entity, render::Item
         // Color is red if last update is after WAIT_THRESHOLD, green otherwise (120 deg is green)
         return render::Item::Status::Value(1.0f - normalizedDelta, (normalizedDelta > 1.0f ?
                                                                     render::Item::Status::Value::GREEN :
-                                                                    render::Item::Status::Value::RED));
+                                                                    render::Item::Status::Value::RED),
+                                           (unsigned char) RenderItemStatusIcon::PACKET_RECEIVED);
     });
 
     statusGetters.push_back([entity] () -> render::Item::Status::Value {
@@ -200,15 +202,18 @@ void makeEntityItemStatusGetters(RenderableModelEntityItem* entity, render::Item
         // Color is Magenta if last update is after WAIT_THRESHOLD, cyan otherwise (180 deg is green)
         return render::Item::Status::Value(1.0f - normalizedDelta, (normalizedDelta > 1.0f ?
                                                                     render::Item::Status::Value::MAGENTA :
-                                                                    render::Item::Status::Value::CYAN));
+                                                                    render::Item::Status::Value::CYAN),
+                                           (unsigned char)RenderItemStatusIcon::PACKET_SENT);
     });
 
     statusGetters.push_back([entity] () -> render::Item::Status::Value {
         ObjectMotionState* motionState = static_cast<ObjectMotionState*>(entity->getPhysicsInfo());
         if (motionState && motionState->isActive()) {
-            return render::Item::Status::Value(1.0f, render::Item::Status::Value::BLUE);
+            return render::Item::Status::Value(1.0f, render::Item::Status::Value::BLUE,
+                                               (unsigned char)RenderItemStatusIcon::ACTIVE_IN_BULLET);
         }
-        return render::Item::Status::Value(0.0f, render::Item::Status::Value::BLUE);
+        return render::Item::Status::Value(0.0f, render::Item::Status::Value::BLUE,
+                                           (unsigned char)RenderItemStatusIcon::ACTIVE_IN_BULLET);
     });
 }
 
