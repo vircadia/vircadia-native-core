@@ -199,12 +199,11 @@ bool EntityTree::updateEntityWithElement(EntityItemPointer entity, const EntityI
                 properties.setAccelerationChanged(false);
             }
 
-            if (wantTerseEditLogging()) {
-                if (properties.simulationOwnerChanged()) {
-                    QString itemName = entity->getName() != "" ? entity->getName() : entity->getID().toString();
-                    qCDebug(entities) << "sim ownership for" << itemName << "is now" << senderID;
-                }
-            }
+            // if (wantTerseEditLogging()) {
+            //     if (properties.simulationOwnerChanged()) {
+            //         qCDebug(entities) << "sim ownership for" << entity->getDebugName() << "is now" << senderID;
+            //     }
+            // }
         }
         // else client accepts what the server says
 
@@ -764,9 +763,7 @@ int EntityTree::processEditPacketData(NLPacket& packet, const unsigned char* edi
                     if (wantTerseEditLogging()) {
                         QList<QString> changedProperties = properties.listChangedProperties();
                         fixupTerseEditLogging(properties, changedProperties);
-                        QString itemName =
-                            existingEntity->getName() != "" ? existingEntity->getName() : entityItemID.toString();
-                        qCDebug(entities) << "edit" << itemName << changedProperties;
+                        qCDebug(entities) << "edit" << existingEntity->getDebugName() << changedProperties;
                     }
                     endLogging = usecTimestampNow();
 

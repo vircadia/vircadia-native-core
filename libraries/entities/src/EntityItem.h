@@ -307,6 +307,7 @@ public:
 
     QString getName() const { return _name; }
     void setName(const QString& value) { _name = value; }
+    QString getDebugName() { return _name != "" ? _name : getID().toString(); }
 
     bool getVisible() const { return _visible; }
     void setVisible(bool value) { _visible = value; }
@@ -381,6 +382,7 @@ public:
     void setPhysicsInfo(void* data) { _physicsInfo = data; }
     EntityTreeElementPointer getElement() const { return _element; }
     EntityTreePointer getTree() const;
+    bool wantTerseEditLogging();
 
     static void setSendPhysicsUpdates(bool value) { _sendPhysicsUpdates = value; }
     static bool getSendPhysicsUpdates() { return _sendPhysicsUpdates; }

@@ -632,6 +632,9 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
 
             if (_simulationOwner.set(newSimOwner)) {
                 _dirtyFlags |= Simulation::DIRTY_SIMULATOR_ID;
+                if (wantTerseEditLogging()) {
+                    qCDebug(entities) << "sim ownership for" << getDebugName() << "is now" << newSimOwner;
+                }
             }
         }
         {   // When we own the simulation we don't accept updates to the entity's transform/velocities
@@ -994,6 +997,11 @@ EntityTreePointer EntityItem::getTree() const {
     EntityTreeElementPointer containingElement = getElement();
     EntityTreePointer tree = containingElement ? containingElement->getTree() : nullptr;
     return tree;
+}
+
+bool EntityItem::wantTerseEditLogging() {
+    EntityTreePointer tree = getTree();
+    return tree ? tree->wantTerseEditLogging() : false;
 }
 
 glm::mat4 EntityItem::getEntityToWorldMatrix() const {
@@ -1492,21 +1500,33 @@ void EntityItem::updateCreated(uint64_t value) {
 }
 
 void EntityItem::setSimulationOwner(const QUuid& id, quint8 priority) {
-    _simulationOwner.set(id, priority);
+    if (_simulationOwner.set(id, priority)) {
+        if (wantTerseEditLogging()) {
+            qCDebug(entities) << "sim ownership for" << getDebugName() << "is now" << id;
+        }
+    }
 }
 
 void EntityItem::setSimulationOwner(const SimulationOwner& owner) {
-    _simulationOwner.set(owner);
+    if (_simulationOwner.set(owner)) {
+        if (wantTerseEditLogging()) {
+            qCDebug(entities) << "sim ownership for" << getDebugName() << "is now" << owner;
+        }
+    }
 }
 
 void EntityItem::updateSimulatorID(const QUuid& value) {
     if (_simulationOwner.setID(value)) {
         _dirtyFlags |= Simulation::DIRTY_SIMULATOR_ID;
+        if (wantTerseEditLogging()) {
+            qCDebug(entities) << "sim ownership for" << getDebugName() << "is now" << value;
+        }
     }
 }
 
 void EntityItem::clearSimulationOwnership() {
     _simulationOwner.clear();
+    qCDebug(entities) << "sim ownership for" << getDebugName() << "is now null";
     // don't bother setting the DIRTY_SIMULATOR_ID flag because clearSimulationOwnership()
     // is only ever called entity-server-side and the flags are only used client-side
     //_dirtyFlags |= Simulation::DIRTY_SIMULATOR_ID;
