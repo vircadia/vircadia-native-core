@@ -6,6 +6,7 @@ var rat = Entities.addEntity({
     position: center,
     dimensions: {x: 0.4, y: 0.4, z: 0.4},
     color: {red: 200, green: 20, blue: 200},
+    gravity: {x: 0, y: -9.8, z: 0},
     collisionsWillMove: true,
     script: scriptURL
 });

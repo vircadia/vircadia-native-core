@@ -137,6 +137,10 @@ function triggerChanged(side, value) {
                     forceDirection: barrelVectors[side]
                 });
                 Entities.callEntityMethod(intersection.entityID, 'onHit', [forceDirection]);
+            } else {
+                Script.setTimeout(function() {
+                    createWallHit(intersection.intersection);
+                }, 50);
             }
         }
     }
@@ -170,16 +174,21 @@ Script.scriptEnding.connect(scriptEnding);
 Script.update.connect(update);
 
 
-function createMuzzleFlash(position) {
+function createWallHit(position) {
     var flash = Entities.addEntity({
         type: "ParticleEffect",
         position: position,
-        "name": "ParticlesTest Emitter",
-        "color": {},
+        lifetime: 4,
+        "name": "Wall hit emitter",
+        "color": {
+            red: 228,
+            green: 128,
+            blue: 12
+        },
         "maxParticles": 1000,
         "lifespan": 0.1,
-        "emitRate": 200,
-        "emitSpeed": 0.3,
+        "emitRate": 1000,
+        "emitSpeed": 1,
         "speedSpread": 0,
         "emitOrientation": {
             "x": -0.4,
@@ -192,9 +201,8 @@ function createMuzzleFlash(position) {
             "y": 0,
             "z": 0
         },
-        "emitRadiusStart": 1,
         "polarStart": 0,
-        "polarFinish": 2,
+        "polarFinish": Math.PI,
         "azimuthStart": -3.1415927410125732,
         "azimuthFinish": 2,
         "emitAcceleration": {
@@ -207,20 +215,140 @@ function createMuzzleFlash(position) {
             "y": 0,
             "z": 0
         },
-        "particleRadius": 0.006,
-        "radiusSpread": 0,
+        "particleRadius": 0.01,
+        "radiusSpread": 0.005,
         "radiusStart": 0.01,
-        "radiusFinish": 0.02,
-        "colorSpread": {},
-        "colorStart": {},
-        "colorFinish": {},
+        "radiusFinish": 0.01,
+        "colorSpread": {
+            red: 100,
+            green: 100,
+            blue: 20
+        },
         "alpha": 1,
         "alphaSpread": 0,
-        "alphaStart": 1,
-        "alphaFinish": 1,
+        "alphaStart": 0,
+        "alphaFinish": 0,
+        "additiveBlending": true,
+        "textures": "http://ericrius1.github.io/PartiArt/assets/star.png"
+    });
+
+    Script.setTimeout(function() {
+        Entities.editEntity(flash, {
+            isEmitting: false
+        });
+    }, 100);
+
+}
+
+function createMuzzleFlash(position) {
+    var smoke = Entities.addEntity({
+        type: "ParticleEffect",
+        position: position,
+        lifetime: 2,
+        "name": "Smoke Hit Emitter",
+        "maxParticles": 1000,
+        "lifespan": 4,
+        "emitRate": 20,
+        emitSpeed: 0,
+        "speedSpread": 0,
+        "emitDimensions": {
+            "x": 0,
+            "y": 0,
+            "z": 0
+        },
+        "polarStart": 0,
+        "polarFinish": 0,
+        "azimuthStart": -3.1415927410125732,
+        "azimuthFinish": 3.14,
+        "emitAcceleration": {
+            "x": 0,
+            "y": 0.5,
+            "z": 0
+        },
+        "accelerationSpread": {
+            "x": .2,
+            "y": 0,
+            "z": .2
+        },
+        "radiusSpread": .02,
+        "particleRadius": 0.05,
+        "radiusStart": 0.05,
+        "radiusFinish": 0.05,
+        "alpha": 1,
+        "alphaSpread": 0,
+        "alphaStart": 0,
+        "alphaFinish": 0,
         "additiveBlending": 0,
         "textures": "https://hifi-public.s3.amazonaws.com/alan/Particles/Particle-Sprite-Smoke-1.png"
     });
+    Script.setTimeout(function() {
+        Entities.editEntity(smoke, {
+            isEmitting: false
+        })
+    }, 100);
+
+    var flash = Entities.addEntity({
+        type: "ParticleEffect",
+        position: position,
+        lifetime: 4,
+        "name": "Flash Emitter",
+        "color": {
+            red: 228,
+            green: 128,
+            blue: 12
+        },
+        "maxParticles": 1000,
+        "lifespan": 0.1,
+        "emitRate": 1000,
+        "emitSpeed": 1,
+        "speedSpread": 0,
+        "emitOrientation": {
+            "x": -0.4,
+            "y": 1,
+            "z": -0.2,
+            "w": 0.7071068286895752
+        },
+        "emitDimensions": {
+            "x": 0,
+            "y": 0,
+            "z": 0
+        },
+        "polarStart": 0,
+        "polarFinish": Math.PI,
+        "azimuthStart": -3.1415927410125732,
+        "azimuthFinish": 2,
+        "emitAcceleration": {
+            "x": 0,
+            "y": 0,
+            "z": 0
+        },
+        "accelerationSpread": {
+            "x": 0,
+            "y": 0,
+            "z": 0
+        },
+        "particleRadius": 0.01,
+        "radiusSpread": 0.005,
+        "radiusStart": 0.01,
+        "radiusFinish": 0.01,
+        "colorSpread": {
+            red: 100,
+            green: 100,
+            blue: 20
+        },
+        "alpha": 1,
+        "alphaSpread": 0,
+        "alphaStart": 0,
+        "alphaFinish": 0,
+        "additiveBlending": true,
+        "textures": "http://ericrius1.github.io/PartiArt/assets/star.png"
+    });
+
+    Script.setTimeout(function() {
+        Entities.editEntity(flash, {
+            isEmitting: false
+        });
+    }, 100)
 
 
 }
