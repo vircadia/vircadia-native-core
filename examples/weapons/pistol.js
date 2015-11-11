@@ -25,6 +25,7 @@ HIFI_PUBLIC_BUCKET = "http://s3.amazonaws.com/hifi-public/";
 var fireSound = SoundCache.getSound("https://s3.amazonaws.com/hifi-public/sounds/Guns/GUN-SHOT2.raw");
 
 var LASER_WIDTH = 2;
+var GUN_FORCE = 10;
 var POSE_CONTROLS = [Controller.Standard.LeftHand, Controller.Standard.RightHand];
 var TRIGGER_CONTROLS = [Controller.Standard.LT, Controller.Standard.RT];
 var MIN_THROWER_DELAY = 1000;
@@ -60,6 +61,8 @@ var validPoses = [false, false];
 var barrelVectors = [0, 0];
 var barrelTips = [0, 0];
 var pointer = [];
+
+var shootAnything = false;
 
 pointer.push(Overlays.addOverlay("line3d", {
     start: ZERO_VECTOR,
@@ -124,9 +127,11 @@ function triggerChanged(side, value) {
             position: barrelTips[side],
             volume: 1.0
         });
+
+        var shotDirection = Vec3.normalize(barrelVectors[side]);
         var pickRay = {
             origin: barrelTips[side],
-            direction: Vec3.normalize(barrelVectors[side])
+            direction: shotDirection
         };
         createMuzzleFlash(barrelTips[side]);
         var intersection = Entities.findRayIntersection(pickRay, true);
@@ -134,11 +139,16 @@ function triggerChanged(side, value) {
             if (intersection.properties.name === "rat") {
                 print("HOLY SHIT YOU JUST HIT A RAT!");
                 var forceDirection = JSON.stringify({
-                    forceDirection: barrelVectors[side]
+                    forceDirection: shotDirection
                 });
                 Entities.callEntityMethod(intersection.entityID, 'onHit', [forceDirection]);
             } else {
                 Script.setTimeout(function() {
+                    if (shootAnything) {
+                        Entities.editEntity(intersection.entityID, {
+                            velocity: Vec3.multiply(shotDirection, GUN_FORCE)
+                        });
+                    }
                     createWallHit(intersection.intersection);
                 }, 50);
             }
