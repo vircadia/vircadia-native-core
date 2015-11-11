@@ -145,8 +145,6 @@ Menu::Menu() {
 
     addActionToQMenuAndActionHash(editMenu, MenuOption::Attachments, 0,
                                   dialogsManager.data(), SLOT(editAttachments()));
-    addActionToQMenuAndActionHash(editMenu, MenuOption::Animations, 0,
-                                  dialogsManager.data(), SLOT(editAnimations()));
 
     MenuWrapper* toolsMenu = addMenu("Tools");
     addActionToQMenuAndActionHash(toolsMenu, MenuOption::ScriptEditor,  Qt::ALT | Qt::Key_S,
