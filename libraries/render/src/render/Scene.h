@@ -212,7 +212,7 @@ public:
             const static Value INVALID; // Invalid value meanss the status won't show
 
             Value() {}
-            Value(float scale, float hue, unsigned char icon = 0) { setScale(scale); setColor(hue); setIcon(icon); }
+            Value(float scale, float hue, unsigned char icon = 0xFF) { setScale(scale); setColor(hue); setIcon(icon); }
 
             // It can be scaled in the range [0, 1] 
             void setScale(float scale);
