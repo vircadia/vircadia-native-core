@@ -1,3 +1,17 @@
+//
+//  dynamicLoader.js
+//  examples
+//
+//  Created by Eric Levin on 11/10/2015.
+//  Copyright 2013 High Fidelity, Inc.
+//
+//  This is script loads models from a specified directory
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+
+
+
 var BASE_URL = "https://hifi-public.s3.amazonaws.com/";
 var models = [];
 var floorPosition = Vec3.sum(MyAvatar.position, Vec3.multiply(3, Quat.getFront(Camera.getOrientation())));;
