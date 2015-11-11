@@ -179,7 +179,7 @@ function createWallHit(position) {
         type: "ParticleEffect",
         position: position,
         lifetime: 4,
-        "name": "Wall hit emitter",
+        "name": "Flash Emitter",
         "color": {
             red: 228,
             green: 128,
@@ -244,7 +244,7 @@ function createMuzzleFlash(position) {
     var smoke = Entities.addEntity({
         type: "ParticleEffect",
         position: position,
-        lifetime: 2,
+        lifetime: 1,
         "name": "Smoke Hit Emitter",
         "maxParticles": 1000,
         "lifespan": 4,
@@ -270,11 +270,11 @@ function createMuzzleFlash(position) {
             "y": 0,
             "z": .2
         },
-        "radiusSpread": .02,
-        "particleRadius": 0.05,
-        "radiusStart": 0.05,
-        "radiusFinish": 0.05,
-        "alpha": 1,
+        "radiusSpread": .04,
+        "particleRadius": 0.07,
+        "radiusStart": 0.07,
+        "radiusFinish": 0.07,
+        "alpha": 0.7,
         "alphaSpread": 0,
         "alphaStart": 0,
         "alphaFinish": 0,
@@ -291,7 +291,7 @@ function createMuzzleFlash(position) {
         type: "ParticleEffect",
         position: position,
         lifetime: 4,
-        "name": "Flash Emitter",
+        "name": "Wall hit emitter",
         "color": {
             red: 228,
             green: 128,
@@ -300,7 +300,7 @@ function createMuzzleFlash(position) {
         "maxParticles": 1000,
         "lifespan": 0.1,
         "emitRate": 1000,
-        "emitSpeed": 1,
+        "emitSpeed": 0.5,
         "speedSpread": 0,
         "emitOrientation": {
             "x": -0.4,
@@ -327,10 +327,10 @@ function createMuzzleFlash(position) {
             "y": 0,
             "z": 0
         },
-        "particleRadius": 0.01,
-        "radiusSpread": 0.005,
-        "radiusStart": 0.01,
-        "radiusFinish": 0.01,
+        "particleRadius": 0.05,
+        "radiusSpread": 0.01,
+        "radiusStart": 0.05,
+        "radiusFinish": 0.05,
         "colorSpread": {
             red: 100,
             green: 100,
