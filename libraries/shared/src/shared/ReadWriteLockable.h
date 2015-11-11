@@ -21,37 +21,37 @@ class ReadWriteLockable {
 public:
     // Write locks
     template <typename F>
-    bool withWriteLock(F f) const;
+    bool withWriteLock(F&& f) const;
     
     template <typename F>
     bool withWriteLock(F&& f, bool require) const;
 
     template <typename F>
-    bool withTryWriteLock(F f) const;
+    bool withTryWriteLock(F&& f) const;
     
     template <typename F>
-    bool withTryWriteLock(F f, int timeout) const;
+    bool withTryWriteLock(F&& f, int timeout) const;
     
     // Read locks
     template <typename F>
-    bool withReadLock(F f) const;
+    bool withReadLock(F&& f) const;
     
     template <typename F>
     bool withReadLock(F&& f, bool require) const;
     
     template <typename F>
-    bool withTryReadLock(F f) const;
+    bool withTryReadLock(F&& f) const;
     
     template <typename F>
-    bool withTryReadLock(F f, int timeout) const;
+    bool withTryReadLock(F&& f, int timeout) const;
 
 private:
-    mutable QReadWriteLock _lock{ QReadWriteLock::Recursive };
+    mutable QReadWriteLock _lock { QReadWriteLock::Recursive };
 };
 
 // ReadWriteLockable
 template <typename F>
-inline bool ReadWriteLockable::withWriteLock(F f) const {
+inline bool ReadWriteLockable::withWriteLock(F&& f) const {
     QWriteLocker locker(&_lock);
     f();
     return true;
@@ -67,7 +67,7 @@ inline bool ReadWriteLockable::withWriteLock(F&& f, bool require) const {
 }
 
 template <typename F>
-inline bool ReadWriteLockable::withTryWriteLock(F f) const {
+inline bool ReadWriteLockable::withTryWriteLock(F&& f) const {
     QTryWriteLocker locker(&_lock);
     if (locker.isLocked()) {
         f();
@@ -77,7 +77,7 @@ inline bool ReadWriteLockable::withTryWriteLock(F f) const {
 }
 
 template <typename F>
-inline bool ReadWriteLockable::withTryWriteLock(F f, int timeout) const {
+inline bool ReadWriteLockable::withTryWriteLock(F&& f, int timeout) const {
     QTryWriteLocker locker(&_lock, timeout);
     if (locker.isLocked()) {
         f();
@@ -87,7 +87,7 @@ inline bool ReadWriteLockable::withTryWriteLock(F f, int timeout) const {
 }
 
 template <typename F>
-inline bool ReadWriteLockable::withReadLock(F f) const {
+inline bool ReadWriteLockable::withReadLock(F&& f) const {
     QReadLocker locker(&_lock);
     f();
     return true;
@@ -103,7 +103,7 @@ inline bool ReadWriteLockable::withReadLock(F&& f, bool require) const {
 }
 
 template <typename F>
-inline bool ReadWriteLockable::withTryReadLock(F f) const {
+inline bool ReadWriteLockable::withTryReadLock(F&& f) const {
     QTryReadLocker locker(&_lock);
     if (locker.isLocked()) {
         f();
@@ -113,7 +113,7 @@ inline bool ReadWriteLockable::withTryReadLock(F f) const {
 }
 
 template <typename F>
-inline bool ReadWriteLockable::withTryReadLock(F f, int timeout) const {
+inline bool ReadWriteLockable::withTryReadLock(F&& f, int timeout) const {
     QTryReadLocker locker(&_lock, timeout);
     if (locker.isLocked()) {
         f();
