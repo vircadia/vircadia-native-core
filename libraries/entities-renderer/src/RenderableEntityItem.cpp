@@ -75,4 +75,17 @@ void makeEntityItemStatusGetters(EntityItem* entity, render::Item::Status::Gette
         return render::Item::Status::Value(0.0f, render::Item::Status::Value::BLUE,
                                            (unsigned char)RenderItemStatusIcon::ACTIVE_IN_BULLET);
     });
+
+    statusGetters.push_back([entity] () -> render::Item::Status::Value {
+        auto nodeList = DependencyManager::get<NodeList>();
+        const QUuid& myNodeID = nodeList->getSessionUUID();
+        bool weOwnSimulation = entity->getSimulationOwner().matchesValidID(myNodeID);
+
+        if (weOwnSimulation) {
+            return render::Item::Status::Value(1.0f, render::Item::Status::Value::BLUE,
+                                               (unsigned char)RenderItemStatusIcon::SIMULATION_OWNER);
+        }
+        return render::Item::Status::Value(0.0f, render::Item::Status::Value::BLUE,
+                                           (unsigned char)RenderItemStatusIcon::SIMULATION_OWNER);
+    });
 }
