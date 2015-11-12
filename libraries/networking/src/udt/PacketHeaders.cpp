@@ -19,7 +19,8 @@
 const QSet<PacketType> NON_VERIFIED_PACKETS = QSet<PacketType>()
     << PacketType::NodeJsonStats << PacketType::EntityQuery
     << PacketType::OctreeDataNack << PacketType::EntityEditNack
-    << PacketType::DomainListRequest << PacketType::StopNode;
+    << PacketType::DomainListRequest << PacketType::StopNode
+    << PacketType::DomainDisconnect;
 
 const QSet<PacketType> NON_SOURCED_PACKETS = QSet<PacketType>()
     << PacketType::StunResponse << PacketType::CreateAssignment << PacketType::RequestAssignment
@@ -30,7 +31,8 @@ const QSet<PacketType> NON_SOURCED_PACKETS = QSet<PacketType>()
     << PacketType::DomainSettingsRequest << PacketType::DomainSettings
     << PacketType::ICEServerPeerInformation << PacketType::ICEServerQuery << PacketType::ICEServerHeartbeat
     << PacketType::ICEPing << PacketType::ICEPingReply
-    << PacketType::AssignmentClientStatus << PacketType::StopNode;
+    << PacketType::AssignmentClientStatus << PacketType::StopNode
+    << PacketType::DomainServerRemovedNode;
 
 const QSet<PacketType> RELIABLE_PACKETS = QSet<PacketType>();
 
@@ -48,8 +50,8 @@ PacketVersion versionForPacketType(PacketType packetType) {
 }
 
 uint qHash(const PacketType& key, uint seed) {
-    // seems odd that Qt couldn't figure out this cast itself, but this fixes a compile error after switch to
-    // strongly typed enum for PacketType
+    // seems odd that Qt couldn't figure out this cast itself, but this fixes a compile error after switch
+    // to strongly typed enum for PacketType
     return qHash((quint8) key, seed);
 }
 

@@ -86,7 +86,8 @@ public:
         AssetUploadReply,
         AssetGetInfo,
         AssetGetInfoReply,
-        NodeDisconnect
+        DomainDisconnect,
+        DomainServerRemovedNode
     };
 };
 
