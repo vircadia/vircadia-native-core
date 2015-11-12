@@ -9,6 +9,9 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+
+#include "AvatarData.h"
+
 #include <cstdio>
 #include <cstring>
 #include <stdint.h>
@@ -22,6 +25,7 @@
 #include <QtNetwork/QNetworkReply>
 #include <QtNetwork/QNetworkRequest>
 
+#include <Transform.h>
 #include <NetworkAccessManager.h>
 #include <NodeList.h>
 #include <udt/PacketHeaders.h>
@@ -29,12 +33,10 @@
 #include <StreamUtils.h>
 #include <UUID.h>
 #include <shared/JSONHelpers.h>
-#include <shared/UniformTransform.h>
 #include <recording/Deck.h>
 #include <recording/Clip.h>
 
 #include "AvatarLogging.h"
-#include "AvatarData.h"
 
 quint64 DEFAULT_FILTERED_LOG_EXPIRY = 2 * USECS_PER_SECOND;
 
@@ -908,7 +910,7 @@ void AvatarData::play() {
     }
 }
 
-std::shared_ptr<UniformTransform> AvatarData::getRecordingBasis() const {
+std::shared_ptr<Transform> AvatarData::getRecordingBasis() const {
     return _recordingBasis;
 }
 
@@ -1506,18 +1508,26 @@ void registerAvatarTypes(QScriptEngine* engine) {
         new AttachmentDataObject(), QScriptEngine::ScriptOwnership));
 }
 
-void AvatarData::setRecordingBasis(std::shared_ptr<UniformTransform> recordingBasis) {
+void AvatarData::setRecordingBasis(std::shared_ptr<Transform> recordingBasis) {
     if (!recordingBasis) {
-        recordingBasis = std::make_shared<UniformTransform>();
-        recordingBasis->rotation = getOrientation();
-        recordingBasis->translation = getPosition();
-        recordingBasis->scale = getTargetScale();
+        recordingBasis = std::make_shared<Transform>();
+        recordingBasis->setRotation(getOrientation());
+        recordingBasis->setTranslation(getPosition());
+        recordingBasis->setScale(getTargetScale());
     }
     _recordingBasis = recordingBasis;
 }
 
 void AvatarData::clearRecordingBasis() {
     _recordingBasis.reset();
+}
+
+Transform AvatarData::getTransform() const {
+    Transform result;
+    result.setRotation(getOrientation());
+    result.setTranslation(getPosition());
+    result.setScale(getTargetScale());
+    return result;
 }
 
 static const QString JSON_AVATAR_BASIS = QStringLiteral("basisTransform");
@@ -1557,15 +1567,14 @@ QByteArray avatarStateToFrame(const AvatarData* _avatar) {
 
     auto recordingBasis = _avatar->getRecordingBasis();
     if (recordingBasis) {
-        // FIXME if the resulting relative basis is identity, we shouldn't record anything
-        // Record the transformation basis
-        root[JSON_AVATAR_BASIS] = recordingBasis->toJson();
+        // Find the relative transform
+        auto relativeTransform = recordingBasis->relativeTransform(_avatar->getTransform());
 
-        // Record the relative transform
-        auto relativeTransform = recordingBasis->relativeTransform(
-            UniformTransform(_avatar->getPosition(), _avatar->getOrientation(), _avatar->getTargetScale()));
-
-        root[JSON_AVATAR_RELATIVE] = relativeTransform.toJson();
+        // if the resulting relative basis is identity, we shouldn't record anything
+        if (!relativeTransform.isIdentity()) {
+            root[JSON_AVATAR_RELATIVE] = Transform::toJson(relativeTransform);
+            root[JSON_AVATAR_BASIS] = Transform::toJson(*recordingBasis);
+        }
     }
 
     QJsonArray jointRotations;
@@ -1617,22 +1626,25 @@ void avatarStateFromFrame(const QByteArray& frameData, AvatarData* _avatar) {
         }
     } 
 
-    // During playback you can either have the recording basis set to the avatar current state
-    // meaning that all playback is relative to this avatars starting position, or
-    // the basis can be loaded from the recording, meaning the playback is relative to the 
-    // original avatar location
-    // The first is more useful for playing back recordings on your own avatar, while
-    // the latter is more useful for playing back other avatars within your scene.
-    auto currentBasis = _avatar->getRecordingBasis();
-    if (!currentBasis) {
-        currentBasis = UniformTransform::parseJson(root[JSON_AVATAR_BASIS]);
-    }
+    if (root.contains(JSON_AVATAR_RELATIVE)) {
+        // During playback you can either have the recording basis set to the avatar current state
+        // meaning that all playback is relative to this avatars starting position, or
+        // the basis can be loaded from the recording, meaning the playback is relative to the 
+        // original avatar location
+        // The first is more useful for playing back recordings on your own avatar, while
+        // the latter is more useful for playing back other avatars within your scene.
 
-    auto relativeTransform = UniformTransform::parseJson(root[JSON_AVATAR_RELATIVE]);
-    auto worldTransform = currentBasis->worldTransform(*relativeTransform);
-    _avatar->setPosition(worldTransform.translation);
-    _avatar->setOrientation(worldTransform.rotation);
-    _avatar->setTargetScale(worldTransform.scale);
+        auto currentBasis = _avatar->getRecordingBasis();
+        if (!currentBasis) {
+            currentBasis = std::make_shared<Transform>(Transform::fromJson(root[JSON_AVATAR_BASIS]));
+        }
+
+        auto relativeTransform = Transform::fromJson(root[JSON_AVATAR_RELATIVE]);
+        auto worldTransform = currentBasis->worldTransform(relativeTransform);
+        _avatar->setPosition(worldTransform.getTranslation());
+        _avatar->setOrientation(worldTransform.getRotation());
+        _avatar->setTargetScale(worldTransform.getScale().x);
+    }
 
 #if 0
     if (root.contains(JSON_AVATAR_ATTACHEMENTS)) {
