@@ -26,7 +26,7 @@ public:
     static const FrameType TYPE_INVALID = 0xFFFF;
     static const FrameType TYPE_HEADER = 0x0;
     FrameType type { TYPE_INVALID };
-    float timeOffset { 0 };
+    Time timeOffset { 0 };
     QByteArray data;
 
     Frame() {}
@@ -37,6 +37,7 @@ public:
     static QMap<QString, FrameType> getFrameTypes();
     static QMap<FrameType, QString> getFrameTypeNames();
     static Handler registerFrameHandler(FrameType type, Handler handler);
+    static void handleFrame(const Pointer& frame);
 };
 
 }

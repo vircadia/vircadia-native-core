@@ -12,10 +12,17 @@
 
 #include <memory>
 #include <list>
+#include <limits>
 
 namespace recording {
 
+using Time = uint32_t;
+
+static const Time INVALID_TIME = std::numeric_limits<uint32_t>::max();
+
 using FrameType = uint16_t;
+
+using FrameSize = uint16_t;
 
 struct Frame;
 

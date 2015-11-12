@@ -1099,10 +1099,12 @@ void Model::setGeometry(const QSharedPointer<NetworkGeometry>& newGeometry) {
 
 void Model::deleteGeometry() {
     _blendedVertexBuffers.clear();
-    _rig->clearJointStates();
     _meshStates.clear();
-    _rig->deleteAnimations();
-    _rig->destroyAnimGraph();
+    if (_rig) {
+        _rig->clearJointStates();
+        _rig->deleteAnimations();
+        _rig->destroyAnimGraph();
+    }
     _blendedBlendshapeCoefficients.clear();
 }
 
