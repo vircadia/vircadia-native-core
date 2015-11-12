@@ -46,12 +46,14 @@ vec3 paintRainbow(float normalizedHue) {
 }
 
 const int INVALID_STATUS = int(0xFFFFFFFF);
+const int MAX_NUM_ICONS = 8;
+const int ICONS_PER_ROW = 4;
 
 int getIconStatus(int icon) {
-    if (icon < 4) {
+    if (icon < ICONS_PER_ROW) {
         return inStatus0[icon];
-    } else if (icon < 8) {
-        return inStatus1[icon - 4];
+    } else if (icon < MAX_NUM_ICONS) {
+        return inStatus1[icon - ICONS_PER_ROW];
     }
     return INVALID_STATUS;
 }
@@ -63,10 +65,8 @@ vec3 unpackStatus(int v) {
 }
 
 void main(void) {
-    const vec2 ICON_PIXEL_SIZE = vec2(20, 20);
-    const vec2 MARGIN_PIXEL_SIZE = vec2(2, 2);
-    const int NUM_VERTICES = 6;
-    const vec4 UNIT_QUAD[NUM_VERTICES] = vec4[NUM_VERTICES](
+    const int NUM_VERTICES_PER_ICON = 6;
+    const vec4 UNIT_QUAD[NUM_VERTICES_PER_ICON] = vec4[NUM_VERTICES_PER_ICON](
         vec4(-1.0, -1.0, 0.0, 1.0),
         vec4(1.0, -1.0, 0.0, 1.0),
         vec4(-1.0, 1.0, 0.0, 1.0),
@@ -75,6 +75,17 @@ void main(void) {
         vec4(1.0, 1.0, 0.0, 1.0)
     );
 
+    const vec2 ICON_PIXEL_SIZE = vec2(20, 20);
+    const vec2 MARGIN_PIXEL_SIZE = vec2(2, 2);
+    const vec2 ICON_GRID_SLOTS[MAX_NUM_ICONS] = vec2[MAX_NUM_ICONS](vec2(-1.5, 0.5),
+                                                                    vec2(-0.5, 0.5),
+                                                                    vec2(0.5, 0.5),
+                                                                    vec2(1.5, 0.5),
+                                                                    vec2(-1.5,-0.5),
+                                                                    vec2(-0.5,-0.5),
+                                                                    vec2(0.5, -0.5),
+                                                                    vec2(1.5, -0.5));
+
     // anchor point in clip space
     vec4 anchorPoint = vec4(inBoundPos, 1.0) + vec4(inBoundDim, 0.0) * vec4(0.5, 0.5, 0.5, 0.0);
     TransformCamera cam = getTransformCamera();
@@ -82,7 +93,7 @@ void main(void) {
     <$transformModelToClipPos(cam, obj, anchorPoint, anchorPoint)$>
 
     // Which icon are we dealing with ?
-    int iconNum = gl_VertexID / NUM_VERTICES;
+    int iconNum = gl_VertexID / NUM_VERTICES_PER_ICON;
     int packedIconStatus = getIconStatus(iconNum);
 
     // if invalid, just kill
@@ -93,7 +104,7 @@ void main(void) {
     }
 
     // Which quad vertex pos?
-    int twoTriID = gl_VertexID - iconNum * NUM_VERTICES;
+    int twoTriID = gl_VertexID - iconNum * NUM_VERTICES_PER_ICON;
     vec4 quadPos = UNIT_QUAD[twoTriID];
 
     // unpack to get x and y satus
@@ -110,7 +121,8 @@ void main(void) {
     iconScale = max(vec2(0, 0), (iconScale * iconStatus.x));
 
     //Offset icon to the right based on the iconNum
-    vec2 offset = vec2(iconNum * (ICON_PIXEL_SIZE.x + MARGIN_PIXEL_SIZE.x), 0);
+    vec2 gridOffset = ICON_GRID_SLOTS[iconNum];
+    vec2 offset = gridOffset * (ICON_PIXEL_SIZE + MARGIN_PIXEL_SIZE);
 
     // Final position in pixel space
     vec2 quadPixelPos = offset.xy + quadPos.xy * 0.5 * iconScale;

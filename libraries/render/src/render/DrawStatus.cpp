@@ -163,6 +163,7 @@ void DrawStatus::run(const SceneContextPointer& sceneContext, const RenderContex
         Transform viewMat;
         args->_viewFrustum->evalProjectionMatrix(projMat);
         args->_viewFrustum->evalViewTransform(viewMat);
+        batch.setViewportTransform(args->_viewport);
 
         batch.setProjectionTransform(projMat);
         batch.setViewTransform(viewMat);
