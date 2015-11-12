@@ -19,7 +19,10 @@ Script.include("../libraries/utils.js");
 Script.include("../libraries/constants.js");
 
 var animVarName = "rightHandPosition";
+var handlerId;
 var jointName = "RightHand";
+
+var kickBackForce = 0.01;
 
 HIFI_PUBLIC_BUCKET = "http://s3.amazonaws.com/hifi-public/";
 var fireSound = SoundCache.getSound("https://s3.amazonaws.com/hifi-public/sounds/Guns/GUN-SHOT2.raw");
@@ -83,6 +86,34 @@ pointer.push(Overlays.addOverlay("line3d", {
 }));
 
 
+// For transforming between world space and our avatar's model space. 
+var myHipsJointIndex, avatarToModelTranslation, avatarToWorldTranslation, avatarToWorldRotation, worldToAvatarRotation;
+var avatarToModelRotation = Quat.angleAxis(180, {
+    x: 0,
+    y: 1,
+    z: 0
+}); // N.B.: Our C++ angleAxis takes radians, while our javascript angleAxis takes degrees!
+var modelToAvatarRotation = Quat.inverse(avatarToModelRotation); // Flip 180 gives same result without inverse, but being explicit to track the math.
+
+function updateMyCoordinateSystem() {
+    avatarToWorldTranslation = MyAvatar.position;
+    avatarToWorldRotation = MyAvatar.orientation;
+    worldToAvatarRotation = Quat.inverse(avatarToWorldRotation);
+    avatarToModelTranslation = MyAvatar.getJointTranslation(myHipsJointIndex); // Should really be done on the bind pose.
+}
+
+// Just math. 
+
+function modelToWorld(modelPoint) {
+    var avatarPoint = Vec3.subtract(Vec3.multiplyQbyV(modelToAvatarRotation, modelPoint), avatarToModelTranslation);
+    return Vec3.sum(Vec3.multiplyQbyV(avatarToWorldRotation, avatarPoint), avatarToWorldTranslation);
+}
+
+function worldToModel(worldPoint) {
+    var avatarPoint = Vec3.multiplyQbyV(worldToAvatarRotation, Vec3.subtract(worldPoint, avatarToWorldTranslation));
+    return Vec3.multiplyQbyV(avatarToModelRotation, Vec3.sum(avatarPoint, avatarToModelTranslation));
+}
+
 function update(deltaTime) {
     // FIXME we should also expose MyAvatar.handPoses[2], MyAvatar.tipPoses[2]
     var tipPoses = [MyAvatar.leftHandTipPose, MyAvatar.rightHandTipPose];
@@ -120,12 +151,19 @@ function update(deltaTime) {
     }
 }
 
-var kickback = function() {
-    print("TEST PARAM *******");
-    print(JSON.stringify(testParam));
+var kickback = function(animationProperties) {
+    var modelHandPosition = animationProperties[animVarName];
+    var worldHandPosition = modelToWorld(modelHandPosition);
+    var targetHandWorldPosition = Vec3.sum(worldHandPosition, {x: 0, y: .1, z: 0});
+    var targetHandModelPosition = worldToModel(targetHandWorldPosition);
+    var result = {};
+    result[animVarName] = targetHandModelPosition;
+    return result;
+    
 }
 
 function triggerChanged(side, value) {
+
     var pressed = (value != 0);
     if (pressed) {
         Audio.playSound(fireSound, {
@@ -139,7 +177,8 @@ function triggerChanged(side, value) {
             direction: shotDirection
         };
         createMuzzleFlash(barrelTips[side]);
-        var kickbackHandler = MyAvatar.addAnimationStateHandler(kickback, ["yo"]);
+        startKickback();
+
         var intersection = Entities.findRayIntersection(pickRay, true);
         if (intersection.intersects) {
             if (intersection.properties.name === "rat") {
@@ -159,6 +198,16 @@ function triggerChanged(side, value) {
             }
         }
     }
+}
+
+function startKickback() {
+    handlerId = MyAvatar.addAnimationStateHandler(kickback, [animVarName]);
+    Script.setTimeout(function() {
+        kickBackForce *= -1;
+        Script.setTimeout(function() {
+            MyAvatar.removeAnimationStateHandler(handlerId);
+        }, 100)
+    }, 100);
 }
 
 
