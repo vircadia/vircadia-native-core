@@ -272,6 +272,7 @@ void DomainServer::setupNodeListAndAssignments(const QUuid& sessionUUID) {
     packetReceiver.registerListener(PacketType::DomainListRequest, this, "processListRequestPacket");
     packetReceiver.registerListener(PacketType::DomainServerPathQuery, this, "processPathQueryPacket");
     packetReceiver.registerMessageListener(PacketType::NodeJsonStats, this, "processNodeJSONStatsPacket");
+    packetReceiver.registerListener(PacketType::DomainDisconnectRequest, this, "processNodeDisconnectRequestPacket");
     
     // NodeList won't be available to the settings manager when it is created, so call registerListener here
     packetReceiver.registerListener(PacketType::DomainSettingsRequest, &_settingsManager, "processSettingsRequestPacket");
@@ -1825,4 +1826,13 @@ void DomainServer::processPathQueryPacket(QSharedPointer<NLPacket> packet) {
             qDebug() << "No match for path query" << pathQuery << "- refusing to respond.";
         }
     }
+}
+
+void DomainServer::processNodeDisconnectRequestPacket(QSharedPointer<NLPacket> packet) {
+    // This packet has been matched to a source node and they're asking not to be in the domain anymore
+    auto limitedNodeList = DependencyManager::get<LimitedNodeList>();
+    
+    qDebug() << "Received a disconnect request from node with UUID" << packet->getSourceID();
+    
+    limitedNodeList->killNodeWithUUID(packet->getSourceID());
 }

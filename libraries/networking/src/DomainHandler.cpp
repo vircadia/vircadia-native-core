@@ -71,7 +71,7 @@ void DomainHandler::sendDisconnectPacket() {
     // domain-server connection to stop greifing here
     
     // construct the disconnect packet once (an empty packet but sourced with our current session UUID)
-    static auto disconnectPacket = NLPacket::create(PacketType::DomainDisconnect, 0);
+    static auto disconnectPacket = NLPacket::create(PacketType::DomainDisconnectRequest, 0);
     
     // send the disconnect packet to the current domain server
     auto nodeList = DependencyManager::get<NodeList>();
