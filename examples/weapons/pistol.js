@@ -63,27 +63,9 @@ var mapping = Controller.newMapping();
 var validPoses = [false, false];
 var barrelVectors = [0, 0];
 var barrelTips = [0, 0];
-var pointer = [];
 
-var shootAnything = false;
 
-pointer.push(Overlays.addOverlay("line3d", {
-    start: ZERO_VECTOR,
-    end: ZERO_VECTOR,
-    color: COLORS.RED,
-    alpha: 1,
-    visible: true,
-    lineWidth: LASER_WIDTH
-}));
-
-pointer.push(Overlays.addOverlay("line3d", {
-    start: ZERO_VECTOR,
-    end: ZERO_VECTOR,
-    color: COLORS.RED,
-    alpha: 1,
-    visible: true,
-    lineWidth: LASER_WIDTH
-}));
+var shootAnything = true;
 
 
 // For transforming between world space and our avatar's model space. 
@@ -122,13 +104,6 @@ function update(deltaTime) {
         // First check if the controller is valid
         var controllerPose = Controller.getPoseValue(POSE_CONTROLS[side]);
         validPoses[side] = controllerPose.valid;
-        if (!controllerPose.valid) {
-            Overlays.editOverlay(pointer[side], {
-                visible: false
-            });
-            continue;
-        }
-
         // Need to adjust the laser
         var tipPose = tipPoses[side];
         var handRotation = tipPoses[side].rotation;
@@ -140,21 +115,13 @@ function update(deltaTime) {
             z: 0
         });
 
-        var laserTip = Vec3.sum(Vec3.multiply(100.0, barrelVectors[side]), barrelTips[side]);
-        // Update Lasers
-        Overlays.editOverlay(pointer[side], {
-            start: barrelTips[side],
-            end: laserTip,
-            alpha: 1,
-            visible: true
-        });
     }
 }
 
 var kickback = function(animationProperties) {
     var modelHandPosition = animationProperties[animVarName];
     var worldHandPosition = modelToWorld(modelHandPosition);
-    var targetHandWorldPosition = Vec3.sum(worldHandPosition, {x: 0, y: .1, z: 0});
+    var targetHandWorldPosition = Vec3.sum(worldHandPosition, {x: 0, y: .05, z: 0});
     var targetHandModelPosition = worldToModel(targetHandWorldPosition);
     var result = {};
     result[animVarName] = targetHandModelPosition;
@@ -201,22 +168,22 @@ function triggerChanged(side, value) {
 }
 
 function startKickback() {
-    handlerId = MyAvatar.addAnimationStateHandler(kickback, [animVarName]);
-    Script.setTimeout(function() {
-        kickBackForce *= -1;
+    if (!handlerId) {
+        handlerId = MyAvatar.addAnimationStateHandler(kickback, [animVarName]);
         Script.setTimeout(function() {
-            MyAvatar.removeAnimationStateHandler(handlerId);
-        }, 100)
-    }, 100);
+            kickBackForce *= -1;
+            Script.setTimeout(function() {
+                MyAvatar.removeAnimationStateHandler(handlerId);
+                handlerId = null;
+            }, 100)
+        }, 100);
+    }
 }
 
 
 
 function scriptEnding() {
     mapping.disable();
-    for (var i = 0; i < pointer.length; ++i) {
-        Overlays.deleteOverlay(pointer[i]);
-    }
     MyAvatar.detachOne(GUN_MODEL);
     MyAvatar.detachOne(GUN_MODEL);
     clearPose();
@@ -250,7 +217,7 @@ function createWallHit(position) {
             blue: 12
         },
         "maxParticles": 1000,
-        "lifespan": 0.1,
+        "lifespan": 0.15,
         "emitRate": 1000,
         "emitSpeed": 1,
         "speedSpread": 0,
@@ -279,10 +246,10 @@ function createWallHit(position) {
             "y": 0,
             "z": 0
         },
-        "particleRadius": 0.01,
-        "radiusSpread": 0.01,
+        "particleRadius": 0.03,
+        "radiusSpread": 0.02,
         "radiusStart": 0.02,
-        "radiusFinish": 0.02,
+        "radiusFinish": 0.03,
         "colorSpread": {
             red: 100,
             green: 100,
