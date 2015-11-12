@@ -535,7 +535,7 @@ void EntityMotionState::clearIncomingDirtyFlags() {
     }
 }
 
-// virtual 
+// virtual
 quint8 EntityMotionState::getSimulationPriority() const {
     if (_entity) {
         return _entity->getSimulationPriority();
