@@ -1132,14 +1132,6 @@ void MyAvatar::setJointRotations(QVector<glm::quat> jointRotations) {
     }
 }
 
-void MyAvatar::setJointTranslations(QVector<glm::vec3> jointTranslations) {
-    int numStates = glm::min(_skeletonModel.getJointStateCount(), jointTranslations.size());
-    for (int i = 0; i < numStates; ++i) {
-        // HACK: ATM only Recorder calls setJointTranslations() so we hardcode its priority here
-        _skeletonModel.setJointTranslation(i, true, jointTranslations[i], RECORDER_PRIORITY);
-    }
-}
-
 void MyAvatar::setJointData(int index, const glm::quat& rotation, const glm::vec3& translation) {
     if (QThread::currentThread() != thread()) {
         QMetaObject::invokeMethod(this, "setJointData", Q_ARG(int, index), Q_ARG(const glm::quat&, rotation),

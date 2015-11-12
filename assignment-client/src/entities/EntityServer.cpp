@@ -82,9 +82,15 @@ bool EntityServer::hasSpecialPacketsToSend(const SharedNodePointer& node) {
     EntityNodeData* nodeData = static_cast<EntityNodeData*>(node->getLinkedData());
     if (nodeData) {
         quint64 deletedEntitiesSentAt = nodeData->getLastDeletedEntitiesSentAt();
-
         EntityTreePointer tree = std::static_pointer_cast<EntityTree>(_tree);
         shouldSendDeletedEntities = tree->hasEntitiesDeletedSince(deletedEntitiesSentAt);
+
+        #ifdef EXTRA_ERASE_DEBUGGING
+            if (shouldSendDeletedEntities) {
+                int elapsed = usecTimestampNow() - deletedEntitiesSentAt;
+                qDebug() << "shouldSendDeletedEntities to node:" << node->getUUID() << "deletedEntitiesSentAt:" << deletedEntitiesSentAt << "elapsed:" << elapsed;
+            }
+        #endif
     }
 
     return shouldSendDeletedEntities;
@@ -97,7 +103,6 @@ int EntityServer::sendSpecialPackets(const SharedNodePointer& node, OctreeQueryN
     if (nodeData) {
         quint64 deletedEntitiesSentAt = nodeData->getLastDeletedEntitiesSentAt();
         quint64 deletePacketSentAt = usecTimestampNow();
-
         EntityTreePointer tree = std::static_pointer_cast<EntityTree>(_tree);
         bool hasMoreToSend = true;
 
@@ -118,6 +123,13 @@ int EntityServer::sendSpecialPackets(const SharedNodePointer& node, OctreeQueryN
         nodeData->setLastDeletedEntitiesSentAt(deletePacketSentAt);
     }
 
+    #ifdef EXTRA_ERASE_DEBUGGING
+        if (packetsSent > 0) {
+            qDebug() << "EntityServer::sendSpecialPackets() sent " << packetsSent << "special packets of " 
+                        << totalBytes << " total bytes to node:" << node->getUUID();
+        }
+    #endif
+
     // TODO: caller is expecting a packetLength, what if we send more than one packet??
     return totalBytes;
 }
@@ -127,7 +139,6 @@ void EntityServer::pruneDeletedEntities() {
     if (tree->hasAnyDeletedEntities()) {
 
         quint64 earliestLastDeletedEntitiesSent = usecTimestampNow() + 1; // in the future
-
         DependencyManager::get<NodeList>()->eachNode([&earliestLastDeletedEntitiesSent](const SharedNodePointer& node) {
             if (node->getLinkedData()) {
                 EntityNodeData* nodeData = static_cast<EntityNodeData*>(node->getLinkedData());
@@ -137,7 +148,6 @@ void EntityServer::pruneDeletedEntities() {
                 }
             }
         });
-
         tree->forgetEntitiesDeletedBefore(earliestLastDeletedEntitiesSent);
     }
 }

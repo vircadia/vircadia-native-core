@@ -100,12 +100,15 @@ void Recorder::record() {
         const RecordingContext& context = _recording->getContext();
         RecordingFrame frame;
         frame.setBlendshapeCoefficients(_avatar->getHeadData()->getBlendshapeCoefficients());
-        frame.setJointRotations(_avatar->getJointRotations());
+
+        // Capture the full skeleton joint data
+        auto& jointData = _avatar->getRawJointData();
+        frame.setJointArray(jointData);
+
         frame.setTranslation(context.orientationInv * (_avatar->getPosition() - context.position));
         frame.setRotation(context.orientationInv * _avatar->getOrientation());
         frame.setScale(_avatar->getTargetScale() / context.scale);
-        
-        
+
         const HeadData* head = _avatar->getHeadData();
         if (head) {
             glm::vec3 rotationDegrees = glm::vec3(head->getFinalPitch(),
@@ -123,7 +126,7 @@ void Recorder::record() {
         if (wantDebug) {
             qCDebug(avatars) << "Recording frame #" << _recording->getFrameNumber();
             qCDebug(avatars) << "Blendshapes:" << frame.getBlendshapeCoefficients().size();
-            qCDebug(avatars) << "JointRotations:" << frame.getJointRotations().size();
+            qCDebug(avatars) << "JointArray:" << frame.getJointArray().size();
             qCDebug(avatars) << "Translation:" << frame.getTranslation();
             qCDebug(avatars) << "Rotation:" << frame.getRotation();
             qCDebug(avatars) << "Scale:" << frame.getScale();
