@@ -241,7 +241,10 @@ public:
 
         void addGetter(const Getter& getter) { _values.push_back(getter); }
 
-        void getPackedValues(glm::ivec4& values) const;
+        size_t getNumValues() const { return _values.size(); }
+
+        using Values = std::vector <Value>;
+        Values getCurrentValues() const;
     };
     typedef std::shared_ptr<Status> StatusPointer;
 
@@ -305,7 +308,6 @@ public:
 
     // Access the status
     const StatusPointer& getStatus() const { return _payload->getStatus(); }
-    glm::ivec4 getStatusPackedValues() const;
 
 protected:
     PayloadPointer _payload;

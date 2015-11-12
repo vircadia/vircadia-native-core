@@ -22,6 +22,7 @@ enum class RenderItemStatusIcon {
     PACKET_SENT = 1,
     PACKET_RECEIVED = 2,
     SIMULATION_OWNER = 3,
+    HAS_ACTIONS = 4,
     NONE = 255
 };
 

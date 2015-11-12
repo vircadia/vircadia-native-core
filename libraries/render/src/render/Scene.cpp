@@ -78,14 +78,14 @@ void Item::Status::Value::setIcon(unsigned char icon) {
     _icon = icon;
 }
 
-void Item::Status::getPackedValues(glm::ivec4& values) const {
-    for (unsigned int i = 0; i < (unsigned int)values.length(); i++) {
-        if (i < _values.size()) {
-            values[i] = _values[i]().getPackedData();
-        } else {
-            values[i] = Value::INVALID.getPackedData();
-        }
+Item::Status::Values Item::Status::getCurrentValues() const {
+    Values currentValues(_values.size());
+    auto currentValue = currentValues.begin();
+    for (auto& getter : _values) {
+        (*currentValue) = getter();
+        currentValue++;
     }
+    return currentValues;
 }
 
 void Item::PayloadInterface::addStatusGetter(const Status::Getter& getter) {
@@ -111,15 +111,6 @@ void Item::resetPayload(const PayloadPointer& payload) {
         _payload = payload;
         _key = _payload->getKey();
     }
-}
-
-glm::ivec4 Item::getStatusPackedValues() const {
-    glm::ivec4 values(Status::Value::INVALID.getPackedData());
-    auto& status = getStatus();
-    if (status) {
-        status->getPackedValues(values);
-    };
-    return values;
 }
 
 void PendingChanges::resetItem(ItemID id, const PayloadPointer& payload) {

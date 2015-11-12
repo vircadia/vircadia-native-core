@@ -21,7 +21,8 @@ out vec3 varTexcoord;
 
 uniform vec3 inBoundPos;
 uniform vec3 inBoundDim;
-uniform ivec4 inStatus;
+uniform ivec4 inStatus0;
+uniform ivec4 inStatus1;
 
 vec3 paintRainbow(float normalizedHue) {
     float v = normalizedHue * 6.f;
@@ -42,6 +43,17 @@ vec3 paintRainbow(float normalizedHue) {
     } else {
         return vec3(1.f, 0.f, 0.f);
     }
+}
+
+const int INVALID_STATUS = 0xFFFFFFFF;
+
+int getIconStatus(int icon) {
+    if (icon < 4) {
+        return inStatus0[icon];
+    } else if (icon < 8) {
+        return inStatus1[icon - 4];
+    }
+    return INVALID_STATUS;
 }
 
 vec3 unpackStatus(int v) {
@@ -71,9 +83,10 @@ void main(void) {
 
     // Which icon are we dealing with ?
     int iconNum = gl_VertexID / NUM_VERTICES;
+    int packedIconStatus = getIconStatus(iconNum);
 
     // if invalid, just kill
-    if (inStatus[iconNum] == 0xFFFFFFFF) {
+    if (packedIconStatus == INVALID_STATUS) {
         gl_Position = anchorPoint;
         varColor = vec4(1.0);
         return;
@@ -84,7 +97,7 @@ void main(void) {
     vec4 quadPos = UNIT_QUAD[twoTriID];
 
     // unpack to get x and y satus
-    vec3 iconStatus = unpackStatus(inStatus[iconNum]);
+    vec3 iconStatus = unpackStatus(packedIconStatus);
 
     // Use the status for showing a color
     varColor = vec4(paintRainbow(abs(iconStatus.y)), 1.0);

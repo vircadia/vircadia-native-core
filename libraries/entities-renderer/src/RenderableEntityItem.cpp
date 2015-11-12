@@ -88,4 +88,13 @@ void makeEntityItemStatusGetters(EntityItemPointer entity, render::Item::Status:
         return render::Item::Status::Value(0.0f, render::Item::Status::Value::BLUE,
                                            (unsigned char)RenderItemStatusIcon::SIMULATION_OWNER);
     });
+
+    statusGetters.push_back([entity] () -> render::Item::Status::Value {
+        if (entity->hasActions()) {
+            return render::Item::Status::Value(1.0f, render::Item::Status::Value::GREEN,
+                                               (unsigned char)RenderItemStatusIcon::HAS_ACTIONS);
+        }
+        return render::Item::Status::Value(0.0f, render::Item::Status::Value::GREEN,
+                                           (unsigned char)RenderItemStatusIcon::HAS_ACTIONS);
+    });
 }
