@@ -112,12 +112,11 @@ bool OctreeSendThread::process() {
     return isStillRunning();  // keep running till they terminate us
 }
 
-AtomicUIntStat OctreeSendThread::_usleepTime = 0;
-AtomicUIntStat OctreeSendThread::_usleepCalls = 0;
-
-AtomicUIntStat OctreeSendThread::_totalBytes = 0;
-AtomicUIntStat OctreeSendThread::_totalWastedBytes = 0;
-AtomicUIntStat OctreeSendThread::_totalPackets = 0;
+AtomicUIntStat OctreeSendThread::_usleepTime { 0 };
+AtomicUIntStat OctreeSendThread::_usleepCalls { 0 };
+AtomicUIntStat OctreeSendThread::_totalBytes { 0 };
+AtomicUIntStat OctreeSendThread::_totalWastedBytes { 0 };
+AtomicUIntStat OctreeSendThread::_totalPackets { 0 };
 
 int OctreeSendThread::handlePacketSend(OctreeQueryNode* nodeData, int& trueBytesSent, int& truePacketsSent) {
     OctreeServer::didHandlePacketSend(this);

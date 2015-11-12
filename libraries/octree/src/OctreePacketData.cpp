@@ -16,12 +16,12 @@
 #include "OctreePacketData.h"
 
 bool OctreePacketData::_debug = false;
-AtomicUIntStat OctreePacketData::_totalBytesOfOctalCodes = 0;
-AtomicUIntStat OctreePacketData::_totalBytesOfBitMasks = 0;
-AtomicUIntStat OctreePacketData::_totalBytesOfColor = 0;
-AtomicUIntStat OctreePacketData::_totalBytesOfValues = 0;
-AtomicUIntStat OctreePacketData::_totalBytesOfPositions = 0;
-AtomicUIntStat OctreePacketData::_totalBytesOfRawData = 0;
+AtomicUIntStat OctreePacketData::_totalBytesOfOctalCodes { 0 };
+AtomicUIntStat OctreePacketData::_totalBytesOfBitMasks { 0 };
+AtomicUIntStat OctreePacketData::_totalBytesOfColor { 0 };
+AtomicUIntStat OctreePacketData::_totalBytesOfValues { 0 };
+AtomicUIntStat OctreePacketData::_totalBytesOfPositions { 0 };
+AtomicUIntStat OctreePacketData::_totalBytesOfRawData { 0 };
 
 OctreePacketData::OctreePacketData(bool enableCompression, int targetSize) {
     changeSettings(enableCompression, targetSize); // does reset...

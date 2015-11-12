@@ -245,12 +245,11 @@ bool OctreeElement::isParentOf(OctreeElementPointer possibleChild) const {
     return false;
 }
 
-AtomicUIntStat OctreeElement::_getChildAtIndexTime = 0;
-AtomicUIntStat OctreeElement::_getChildAtIndexCalls = 0;
-AtomicUIntStat OctreeElement::_setChildAtIndexTime = 0;
-AtomicUIntStat OctreeElement::_setChildAtIndexCalls = 0;
-
-AtomicUIntStat OctreeElement::_externalChildrenCount = 0;
+AtomicUIntStat OctreeElement::_getChildAtIndexTime { 0 };
+AtomicUIntStat OctreeElement::_getChildAtIndexCalls { 0 };
+AtomicUIntStat OctreeElement::_setChildAtIndexTime { 0 };
+AtomicUIntStat OctreeElement::_setChildAtIndexCalls { 0 };
+AtomicUIntStat OctreeElement::_externalChildrenCount { 0 };
 AtomicUIntStat OctreeElement::_childrenCount[NUMBER_OF_CHILDREN + 1] = { 0, 0, 0, 0, 0, 0, 0, 0, 0 };
 
 OctreeElementPointer OctreeElement::getChildAtIndex(int childIndex) const {
