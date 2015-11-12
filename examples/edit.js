@@ -155,7 +155,6 @@ var toolBar = (function() {
         newWebButton,
         newZoneButton,
         newPolyVoxButton,
-        newAnchorButton,
         browseMarketplaceButton;
 
     function initialize() {
@@ -300,20 +299,6 @@ var toolBar = (function() {
             visible: false
         });
 
-        newAnchorButton = toolBar.addTool({
-            imageURL: toolIconUrl + "add-anchor.svg",
-            subImage: {
-                x: 0,
-                y: Tool.IMAGE_WIDTH,
-                width: Tool.IMAGE_WIDTH,
-                height: Tool.IMAGE_HEIGHT
-            },
-            width: toolWidth,
-            height: toolHeight,
-            alpha: 0.9,
-            visible: false
-        });
-
         that.setActive(false);
     }
 
@@ -360,7 +345,6 @@ var toolBar = (function() {
         toolBar.showTool(newWebButton, doShow);
         toolBar.showTool(newZoneButton, doShow);
         toolBar.showTool(newPolyVoxButton, doShow);
-        toolBar.showTool(newAnchorButton, doShow);
     };
 
     var RESIZE_INTERVAL = 50;
@@ -616,13 +600,6 @@ var toolBar = (function() {
                 }, 255);
             }
 
-
-            return true;
-        }
-        if (newAnchorButton === toolBar.clicked(clickedOverlay)) {
-            createNewEntity({
-                type: "Anchor"
-            });
 
             return true;
         }

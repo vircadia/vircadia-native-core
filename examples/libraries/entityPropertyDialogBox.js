@@ -261,10 +261,8 @@ EntityPropertyDialogBox = (function () {
             index++;
         }
 
-        if (properties.type == "Camera") {
-            array.push({ label: "", type: "inlineButton", buttonLabel: "Preview Camera", name: "previewCamera" });
-            index++;
-        }
+        array.push({ label: "", type: "inlineButton", buttonLabel: "Preview Camera", name: "previewCamera" });
+        index++;
 
         array.push({ button: "Cancel" });
         index++;

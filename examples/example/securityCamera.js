@@ -28,7 +28,8 @@ var cameraLookAt = function(cameraPos, lookAtPos) {
 };
 
 cameraEntity = Entities.addEntity({
-    type: "Anchor",
+    type: "Box",
+    visible: false,
     position: Vec3.sum(MyAvatar.position, CAMERA_OFFSET)
 });
 
