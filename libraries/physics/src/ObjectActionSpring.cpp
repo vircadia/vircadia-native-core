@@ -162,7 +162,7 @@ bool ObjectActionSpring::updateArguments(QVariantMap arguments) {
 
             auto ownerEntity = _ownerEntity.lock();
             if (ownerEntity) {
-                ownerEntity->setActionDataDirty(true);
+                ownerEntity->setActionDataNeedsUpdate(true);
             }
         });
         activateBody();

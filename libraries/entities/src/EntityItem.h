@@ -408,7 +408,8 @@ public:
     QList<QUuid> getActionIDs() { return _objectActions.keys(); }
     QVariantMap getActionArguments(const QUuid& actionID) const;
     void deserializeActions();
-    void setActionDataDirty(bool value) const { _actionDataDirty = value; }
+    void setActionDataNeedsUpdate(bool value) const { _actionDataNeedsUpdate = value; }
+    bool actionDataNeedsUpdate() const { return _actionDataNeedsUpdate; }
     bool shouldSuppressLocationEdits() const;
 
     void setSourceUUID(const QUuid& sourceUUID) { _sourceUUID = sourceUUID; }
@@ -511,7 +512,7 @@ protected:
     // are used to keep track of and work around this situation.
     void checkWaitingToRemove(EntitySimulation* simulation = nullptr);
     mutable QSet<QUuid> _actionsToRemove;
-    mutable bool _actionDataDirty = false;
+    mutable bool _actionDataNeedsUpdate = false;
     // _previouslyDeletedActions is used to avoid an action being re-added due to server round-trip lag
     static quint64 _rememberDeletedActionTime;
     mutable QHash<QUuid, quint64> _previouslyDeletedActions;

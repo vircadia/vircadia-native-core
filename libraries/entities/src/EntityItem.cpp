@@ -1740,8 +1740,6 @@ void EntityItem::deserializeActionsInternal() {
         }
     }
 
-    _actionDataDirty = true;
-
     return;
 }
 
@@ -1802,11 +1800,11 @@ void EntityItem::serializeActions(bool& success, QByteArray& result) const {
 }
 
 const QByteArray EntityItem::getActionDataInternal() const {
-    if (_actionDataDirty) {
+    if (_actionDataNeedsUpdate) {
         bool success;
         serializeActions(success, _allActionsDataCache);
         if (success) {
-            _actionDataDirty = false;
+            _actionDataNeedsUpdate = false;
         }
     }
     return _allActionsDataCache;
@@ -1816,7 +1814,7 @@ const QByteArray EntityItem::getActionData() const {
     QByteArray result;
     assertUnlocked();
 
-    if (_actionDataDirty) {
+    if (_actionDataNeedsUpdate) {
         withWriteLock([&] {
             getActionDataInternal();
             result = _allActionsDataCache;
