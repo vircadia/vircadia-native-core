@@ -64,15 +64,15 @@ glm::quat Quat::inverse(const glm::quat& q) {
 }
 
 glm::vec3 Quat::getFront(const glm::quat& orientation) {
-    return orientation * IDENTITY_FRONT;
+    return orientation * Vectors::FRONT;
 }
 
 glm::vec3 Quat::getRight(const glm::quat& orientation) {
-    return orientation * IDENTITY_RIGHT;
+    return orientation * Vectors::RIGHT;
 }
 
 glm::vec3 Quat::getUp(const glm::quat& orientation) {
-    return orientation * IDENTITY_UP;
+    return orientation * Vectors::UP;
 }
 
 glm::vec3 Quat::safeEulerAngles(const glm::quat& orientation) {

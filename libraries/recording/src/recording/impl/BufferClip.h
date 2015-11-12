@@ -22,11 +22,11 @@ public:
 
     virtual ~BufferClip() {}
 
-    virtual float duration() const override;
+    virtual Time duration() const override;
     virtual size_t frameCount() const override;
 
-    virtual void seek(float offset) override;
-    virtual float position() const override;
+    virtual void seek(Time offset) override;
+    virtual Time position() const override;
 
     virtual FramePointer peekFrame() const override;
     virtual FramePointer nextFrame() override;
