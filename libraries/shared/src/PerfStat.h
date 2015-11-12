@@ -24,19 +24,21 @@
 #include <string>
 #include <map>
 
+using AtomicUIntStat = std::atomic<uintmax_t>;
+
 class PerformanceWarning {
 private:
     quint64 _start;
     const char* _message;
     bool _renderWarningsOn;
     bool _alwaysDisplay;
-    quint64* _runningTotal;
-    quint64* _totalCalls;
+    AtomicUIntStat* _runningTotal;
+    AtomicUIntStat* _totalCalls;
     static bool _suppressShortTimings;
 public:
 
     PerformanceWarning(bool renderWarnings, const char* message, bool alwaysDisplay = false,
-                        quint64* runningTotal = NULL, quint64* totalCalls = NULL) :
+                       AtomicUIntStat* runningTotal = NULL, AtomicUIntStat* totalCalls = NULL) :
         _start(usecTimestampNow()),
         _message(message),
         _renderWarningsOn(renderWarnings),

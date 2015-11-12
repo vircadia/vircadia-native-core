@@ -7,37 +7,29 @@
 //
 
 #pragma once
-#ifndef hifi_Recording_Impl_BufferClip_h
-#define hifi_Recording_Impl_BufferClip_h
+#ifndef hifi_Recording_Impl_OffsetClip_h
+#define hifi_Recording_Impl_OffsetClip_h
 
-#include "../Clip.h"
-
-#include <mutex>
+#include "WrapperClip.h"
 
 namespace recording {
 
-class BufferClip : public Clip {
+class OffsetClip : public WrapperClip {
 public:
-    using Pointer = std::shared_ptr<BufferClip>;
+    using Pointer = std::shared_ptr<OffsetClip>;
 
-    virtual ~BufferClip() {}
+    OffsetClip(const Clip::Pointer& wrappedClip, Time offset);
+    virtual ~OffsetClip();
 
     virtual Time duration() const override;
-    virtual size_t frameCount() const override;
-
     virtual void seek(Time offset) override;
     virtual Time position() const override;
 
     virtual FrameConstPointer peekFrame() const override;
     virtual FrameConstPointer nextFrame() override;
-    virtual void skipFrame() override;
-    virtual void addFrame(FrameConstPointer) override;
 
-private:
-    virtual void reset() override;
-
-    std::vector<FrameConstPointer> _frames;
-    mutable size_t _frameIndex { 0 };
+protected:
+    const Time _offset;
 };
 
 }

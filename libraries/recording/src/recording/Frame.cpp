@@ -104,7 +104,7 @@ Frame::Handler Frame::registerFrameHandler(FrameType type, Handler handler) {
     return result;
 }
 
-void Frame::handleFrame(const Frame::Pointer& frame) {
+void Frame::handleFrame(const Frame::ConstPointer& frame) {
     Handler handler; 
     {
         Locker lock(mutex);
