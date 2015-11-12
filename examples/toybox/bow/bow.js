@@ -106,6 +106,7 @@
 
         preload: function(entityID) {
             this.entityID = entityID;
+            this.bowID = entityID;
         },
 
         setLeftHand: function() {
@@ -440,40 +441,36 @@
 
         updateArrowPositionInNotch: function() {
             //move it backwards
-            var handToNotch = Vec3.subtract(this.stringData.handPosition, this.notchDetectorPosition);
+         
+
+            var handToNotch = Vec3.subtract(this.notchDetectorPosition,this.stringData.handPosition);
+             print('h2n:::'+JSON.stringify(handToNotch))
             var pullBackDistance = Vec3.length(handToNotch);
 
             if (pullBackDistance >= 0.6) {
                 pullBackDistance = 0.6;
             }
 
-            var pullBackOffset = Vec3.multiply(handToNotch, pullBackDistance);
+            var pullBackOffset = Vec3.multiply(handToNotch, -pullBackDistance);
             var arrowPosition = Vec3.sum(this.notchDetectorPosition, pullBackOffset);
 
-            var pushForwardOffset = Vec3.multiply(handToNotch, ARROW_OFFSET);
+            var pushForwardOffset = Vec3.multiply(handToNotch, -ARROW_OFFSET);
             var finalArrowPosition = Vec3.sum(arrowPosition, pushForwardOffset);
 
-            var arrowRotation = this.orientationOf(handToNotch);
-            //  print('ARROW ROTATION:: ' + JSON.stringify(arrowRotation));
+
+
+            var arrowRotation = Quat.rotationBetween(Vec3.FRONT, handToNotch);
+
+             print('ARROW ROTATION:: ' + JSON.stringify(arrowRotation));
             Entities.editEntity(this.arrow, {
-                position: this.notchDetectorPosition,
-                rotation: arrowRotation,
-                velocity: {
-                    x: 0,
-                    y: 0,
-                    z: 0
-                },
-                angularVelocity: {
-                    x: 0,
-                    y: 0,
-                    z: 0
-                }
+                position: finalArrowPosition,
+                rotation: arrowRotation
             })
 
-            var currentRotation = Entities.getEntityProperties(this.arrow, "rotation").rotation
-                //  print('ACTUAL ARROW ROTATION::' +JSON.stringify(currentRotation));
+           var currentRotation = Entities.getEntityProperties(this.arrow, "rotation").rotation
+               //  print('ACTUAL ARROW ROTATION::' +JSON.stringify(currentRotation));
 
-            print('DIFFERENCE::: ' + (1 - Quat.dot(arrowRotation, currentRotation)));
+          // print('DIFFERENCE::: ' + (1 - Quat.dot(arrowRotation, currentRotation)));
             // if (this.arrowIsBurning === true) {
             //     Entities.editEntity(this.fire, {
             //         position: arrowTipPosition
@@ -541,7 +538,7 @@
             var detectorProperties = {
                 name: 'Hifi-NotchDetector',
                 type: 'Box',
-                visible: false,
+                visible: true,
                 collisionsWillMove: false,
                 ignoreForCollisions: true,
                 dimensions: NOTCH_DETECTOR_DIMENSIONS,
@@ -574,7 +571,8 @@
             this.notchDetectorPosition = detectorPosition;
 
             Entities.editEntity(this.notchDetector, {
-                position: this.notchDetectorPosition
+                position: this.notchDetectorPosition,
+                rotation:this.bowProperties.rotation
             });
         },
 

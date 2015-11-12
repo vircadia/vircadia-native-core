@@ -758,7 +758,7 @@ function MyController(hand) {
 
         if (this.actionTimeout - now < ACTION_TTL_REFRESH * MSEC_PER_SEC) {
             // if less than a 5 seconds left, refresh the actions ttl
-            var success = Entities.updateAction(this.grabbedEntity, this.actionID, {
+            Entities.updateAction(this.grabbedEntity, this.actionID, {
                 hand: this.hand === RIGHT_HAND ? "right" : "left",
                 timeScale: NEAR_GRABBING_ACTION_TIMEFRAME,
                 relativePosition: this.offsetPosition,
@@ -767,8 +767,6 @@ function MyController(hand) {
                 kinematic: NEAR_GRABBING_KINEMATIC,
                 kinematicSetVelocity: true
             });
-
-            print('Action update success:::'+success);
             this.actionTimeout = now + (ACTION_TTL * MSEC_PER_SEC);
         }
     };

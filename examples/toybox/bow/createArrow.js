@@ -12,7 +12,7 @@
 
 var ARROW_MODEL_URL = "https://hifi-public.s3.amazonaws.com/models/bow/new/arrow.fbx";
 var ARROW_COLLISION_HULL_URL = "https://hifi-public.s3.amazonaws.com/models/bow/new/arrow_collision_hull.obj";
-var ARROW_SCRIPT_URL = Script.resolvePath('arrow.js');
+var ARROW_SCRIPT_URL = Script.resolvePath('arrow.js?123');
 
 var ARROW_DIMENSIONS = {
     x: 0.02,

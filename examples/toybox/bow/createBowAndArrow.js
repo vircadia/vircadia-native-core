@@ -1,2 +1,2 @@
- Script.include("createBow.js");
- Script.include("createArrow.js");
+ Script.include("createBow.js?123");
+ Script.include("createArrow.js?123");

@@ -108,15 +108,12 @@
             var actionID = this.getActionID();
 
             print('actionID' + actionID)
-            Entities.deleteAction(this.entityID, actionID);
+           var success = Entities.deleteAction(this.entityID, actionID);
+           print('ACTION DELETE SUCCESS:::'+success)
         },
 
         tellBowArrowIsNotched: function(bowID) {
             this.disableGrab();
-            setEntityCustomData('releaseGrabKey', this.entityID, {
-                shouldRelease: true,
-                didRelease: false
-            });
 
             setEntityCustomData('grabbableKey', this.entityID, {
                 grabbable: false,
