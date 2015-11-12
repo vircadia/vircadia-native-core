@@ -250,7 +250,7 @@ AtomicUIntStat OctreeElement::_getChildAtIndexCalls { 0 };
 AtomicUIntStat OctreeElement::_setChildAtIndexTime { 0 };
 AtomicUIntStat OctreeElement::_setChildAtIndexCalls { 0 };
 AtomicUIntStat OctreeElement::_externalChildrenCount { 0 };
-AtomicUIntStat OctreeElement::_childrenCount[NUMBER_OF_CHILDREN + 1] { 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+AtomicUIntStat OctreeElement::_childrenCount[NUMBER_OF_CHILDREN + 1];
 
 OctreeElementPointer OctreeElement::getChildAtIndex(int childIndex) const {
 #ifdef SIMPLE_CHILD_ARRAY
