@@ -28,11 +28,11 @@
 #include "OctreeLogging.h"
 #include "SharedUtil.h"
 
-quint64 OctreeElement::_octreeMemoryUsage = 0;
-quint64 OctreeElement::_octcodeMemoryUsage = 0;
-quint64 OctreeElement::_externalChildrenMemoryUsage = 0;
-quint64 OctreeElement::_voxelNodeCount = 0;
-quint64 OctreeElement::_voxelNodeLeafCount = 0;
+AtomicUIntStat OctreeElement::_octreeMemoryUsage = 0;
+AtomicUIntStat OctreeElement::_octcodeMemoryUsage = 0;
+AtomicUIntStat OctreeElement::_externalChildrenMemoryUsage = 0;
+AtomicUIntStat OctreeElement::_voxelNodeCount = 0;
+AtomicUIntStat OctreeElement::_voxelNodeLeafCount = 0;
 
 void OctreeElement::resetPopulationStatistics() {
     _voxelNodeCount = 0;
@@ -245,13 +245,13 @@ bool OctreeElement::isParentOf(OctreeElementPointer possibleChild) const {
     return false;
 }
 
-quint64 OctreeElement::_getChildAtIndexTime = 0;
-quint64 OctreeElement::_getChildAtIndexCalls = 0;
-quint64 OctreeElement::_setChildAtIndexTime = 0;
-quint64 OctreeElement::_setChildAtIndexCalls = 0;
+AtomicUIntStat OctreeElement::_getChildAtIndexTime = 0;
+AtomicUIntStat OctreeElement::_getChildAtIndexCalls = 0;
+AtomicUIntStat OctreeElement::_setChildAtIndexTime = 0;
+AtomicUIntStat OctreeElement::_setChildAtIndexCalls = 0;
 
-quint64 OctreeElement::_externalChildrenCount = 0;
-quint64 OctreeElement::_childrenCount[NUMBER_OF_CHILDREN + 1] = { 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+AtomicUIntStat OctreeElement::_externalChildrenCount = 0;
+AtomicUIntStat OctreeElement::_childrenCount[NUMBER_OF_CHILDREN + 1] = { 0, 0, 0, 0, 0, 0, 0, 0, 0 };
 
 OctreeElementPointer OctreeElement::getChildAtIndex(int childIndex) const {
 #ifdef SIMPLE_CHILD_ARRAY

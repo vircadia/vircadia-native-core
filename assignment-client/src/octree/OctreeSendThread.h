@@ -14,12 +14,16 @@
 #ifndef hifi_OctreeSendThread_h
 #define hifi_OctreeSendThread_h
 
+#include <atomic>
+
 #include <GenericThread.h>
 #include <OctreeElementBag.h>
 
 #include "OctreeQueryNode.h"
 
 class OctreeServer;
+
+using AtomicUIntStat = std::atomic<uintmax_t>;
 
 /// Threaded processor for sending octree packets to a single client
 class OctreeSendThread : public GenericThread {
@@ -30,12 +34,12 @@ public:
 
     void setIsShuttingDown();
 
-    static quint64 _totalBytes;
-    static quint64 _totalWastedBytes;
-    static quint64 _totalPackets;
+    static AtomicUIntStat _totalBytes;
+    static AtomicUIntStat _totalWastedBytes;
+    static AtomicUIntStat _totalPackets;
 
-    static quint64 _usleepTime;
-    static quint64 _usleepCalls;
+    static AtomicUIntStat _usleepTime;
+    static AtomicUIntStat _usleepCalls;
 
 protected:
     /// Implements generic processing behavior for this thread.
