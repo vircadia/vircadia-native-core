@@ -45,7 +45,7 @@ vec3 paintRainbow(float normalizedHue) {
     }
 }
 
-const int INVALID_STATUS = 0xFFFFFFFF;
+const int INVALID_STATUS = int(0xFFFFFFFF);
 
 int getIconStatus(int icon) {
     if (icon < 4) {
