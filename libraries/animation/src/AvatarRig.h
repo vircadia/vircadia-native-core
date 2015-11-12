@@ -19,9 +19,8 @@
 class AvatarRig : public Rig {
     Q_OBJECT
 
- public:
+public:
     ~AvatarRig() {}
-    virtual void updateJointState(int index, glm::mat4 rootTransform);
     virtual void setHandPosition(int jointIndex, const glm::vec3& position, const glm::quat& rotation,
                                  float scale, float priority);
     virtual void setJointTranslation(int index, bool valid, const glm::vec3& translation, float priority);

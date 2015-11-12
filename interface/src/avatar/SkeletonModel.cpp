@@ -40,9 +40,9 @@ SkeletonModel::SkeletonModel(Avatar* owningAvatar, QObject* parent, RigPointer r
 SkeletonModel::~SkeletonModel() {
 }
 
-void SkeletonModel::initJointStates(QVector<JointState> states) {
+void SkeletonModel::initJointStates() {
     const FBXGeometry& geometry = _geometry->getFBXGeometry();
-    glm::mat4 rootTransform = glm::scale(_scale) * glm::translate(_offset) * geometry.offset;
+    glm::mat4 modelOffset = glm::scale(_scale) * glm::translate(_offset) * geometry.offset;
 
     int rootJointIndex = geometry.rootJointIndex;
     int leftHandJointIndex = geometry.leftHandJointIndex;
@@ -52,7 +52,7 @@ void SkeletonModel::initJointStates(QVector<JointState> states) {
     int rightElbowJointIndex = rightHandJointIndex >= 0 ? geometry.joints.at(rightHandJointIndex).parentIndex : -1;
     int rightShoulderJointIndex = rightElbowJointIndex >= 0 ? geometry.joints.at(rightElbowJointIndex).parentIndex : -1;
 
-    _rig->initJointStates(states, rootTransform,
+    _rig->initJointStates(geometry, modelOffset,
                           rootJointIndex,
                           leftHandJointIndex,
                           leftElbowJointIndex,
@@ -80,12 +80,14 @@ void SkeletonModel::initJointStates(QVector<JointState> states) {
         _defaultEyeModelPosition = _defaultEyeModelPosition / _scale;
     }
 
+    /* AJT: DISABLED, only need this to compute bounding shape!
     // the SkeletonModel override of updateJointState() will clear the translation part
     // of its root joint and we need that done before we try to build shapes hence we
     // recompute all joint transforms at this time.
     for (int i = 0; i < _rig->getJointStateCount(); i++) {
         _rig->updateJointState(i, rootTransform);
     }
+    */
 
     computeBoundingShape();
 
@@ -184,10 +186,11 @@ void SkeletonModel::updateRig(float deltaTime, glm::mat4 parentTransform) {
 
         _rig->updateFromEyeParameters(eyeParams);
 
+        /* AJT: FIXME this will likely break eye tracking...
         // rebuild the jointState transform for the eyes only. Must be after updateRig.
         _rig->updateJointState(eyeParams.leftEyeJointIndex, parentTransform);
         _rig->updateJointState(eyeParams.rightEyeJointIndex, parentTransform);
-
+        */
     } else {
 
         Model::updateRig(deltaTime, parentTransform);
@@ -266,34 +269,6 @@ public:
 
 bool operator<(const IndexValue& firstIndex, const IndexValue& secondIndex) {
     return firstIndex.value < secondIndex.value;
-}
-
-void SkeletonModel::applyHandPosition(int jointIndex, const glm::vec3& position) {
-    if (jointIndex == -1 || jointIndex >= _rig->getJointStateCount()) {
-        return;
-    }
-    // NOTE: 'position' is in model-frame
-    setJointPosition(jointIndex, position, glm::quat(), false, -1, false, glm::vec3(0.0f, -1.0f, 0.0f), PALM_PRIORITY);
-
-    const FBXGeometry& geometry = _geometry->getFBXGeometry();
-    glm::vec3 handPosition, elbowPosition;
-    getJointPosition(jointIndex, handPosition);
-    getJointPosition(geometry.joints.at(jointIndex).parentIndex, elbowPosition);
-    glm::vec3 forearmVector = handPosition - elbowPosition;
-    float forearmLength = glm::length(forearmVector);
-    if (forearmLength < EPSILON) {
-        return;
-    }
-    glm::quat handRotation;
-    if (!_rig->getJointStateRotation(jointIndex, handRotation)) {
-        return;
-    }
-
-    // align hand with forearm
-    float sign = (jointIndex == geometry.rightHandJointIndex) ? 1.0f : -1.0f;
-    _rig->applyJointRotationDelta(jointIndex,
-                                  rotationBetween(handRotation * glm::vec3(-sign, 0.0f, 0.0f), forearmVector),
-                                  PALM_PRIORITY);
 }
 
 void SkeletonModel::applyPalmData(int jointIndex, const PalmData& palm) {
@@ -521,6 +496,9 @@ void SkeletonModel::computeBoundingShape() {
         return;
     }
 
+    /*
+    AJT: HACK DISABLED
+
     // BOUNDING SHAPE HACK: before we measure the bounds of the joints we use IK to put the
     // hands and feet into positions that are more correct than the default pose.
 
@@ -624,6 +602,12 @@ void SkeletonModel::computeBoundingShape() {
         _rig->restoreJointRotation(i, 1.0f, 1.0f);
         _rig->restoreJointTranslation(i, 1.0f, 1.0f);
     }
+    */
+
+    // AJT: REMOVE HARDCODED BOUNDING VOLUME
+    _boundingCapsuleRadius = 0.5f;
+    _boundingCapsuleHeight = 2.0f;
+    _boundingCapsuleLocalOffset = glm::vec3(0.0f, 1.0f, 0.0f);
 }
 
 void SkeletonModel::renderBoundingCollisionShapes(gpu::Batch& batch, float alpha) {

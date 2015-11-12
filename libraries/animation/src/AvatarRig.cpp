@@ -11,26 +11,6 @@
 
 #include "AvatarRig.h"
 
-/// Updates the state of the joint at the specified index.
-void AvatarRig::updateJointState(int index, glm::mat4 rootTransform) {
-    if (index < 0 || index >= _jointStates.size()) {
-        return; // bail
-    }
-    JointState& state = _jointStates[index];
-
-    // compute model transforms
-    if (index == _rootJointIndex) {
-        state.computeTransform(rootTransform);
-    } else {
-        // guard against out-of-bounds access to _jointStates
-        int parentIndex = state.getParentIndex();
-        if (parentIndex >= 0 && parentIndex < _jointStates.size()) {
-            const JointState& parentState = _jointStates.at(parentIndex);
-            state.computeTransform(parentState.getTransform(), parentState.getTransformChanged());
-        }
-    }
-}
-
 void AvatarRig::setHandPosition(int jointIndex,
                                 const glm::vec3& position, const glm::quat& rotation,
                                 float scale, float priority) {

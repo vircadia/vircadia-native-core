@@ -27,7 +27,7 @@ public:
     SkeletonModel(Avatar* owningAvatar, QObject* parent = nullptr, RigPointer rig = nullptr);
     ~SkeletonModel();
 
-    virtual void initJointStates(QVector<JointState> states) override;
+    virtual void initJointStates() override;
 
     virtual void simulate(float deltaTime, bool fullUpdate = true) override;
     virtual void updateRig(float deltaTime, glm::mat4 parentTransform) override;
@@ -113,10 +113,6 @@ signals:
 protected:
 
     void computeBoundingShape();
-
-    /// \param jointIndex index of joint in model
-    /// \param position position of joint in model-frame
-    void applyHandPosition(int jointIndex, const glm::vec3& position);
 
     void applyPalmData(int jointIndex, const PalmData& palm);
 private:

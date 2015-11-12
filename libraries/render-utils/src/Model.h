@@ -271,7 +271,7 @@ protected:
     // returns 'true' if needs fullUpdate after geometry change
     bool updateGeometry();
 
-    virtual void initJointStates(QVector<JointState> states);
+    virtual void initJointStates();
 
     void setScaleInternal(const glm::vec3& scale);
     void scaleToFit();
@@ -279,18 +279,6 @@ protected:
 
     void simulateInternal(float deltaTime);
     virtual void updateRig(float deltaTime, glm::mat4 parentTransform);
-
-    /// \param jointIndex index of joint in model structure
-    /// \param position position of joint in model-frame
-    /// \param rotation rotation of joint in model-frame
-    /// \param useRotation false if rotation should be ignored
-    /// \param lastFreeIndex
-    /// \param allIntermediatesFree
-    /// \param alignment
-    /// \return true if joint exists
-    bool setJointPosition(int jointIndex, const glm::vec3& position, const glm::quat& rotation = glm::quat(),
-        bool useRotation = false, int lastFreeIndex = -1, bool allIntermediatesFree = false,
-        const glm::vec3& alignment = glm::vec3(0.0f, -1.0f, 0.0f), float priority = 1.0f);
 
     /// Restores the indexed joint to its default position.
     /// \param fraction the fraction of the default position to apply (i.e., 0.25f to slerp one fourth of the way to
@@ -315,7 +303,6 @@ protected:
 private:
 
     void deleteGeometry();
-    QVector<JointState> createJointStates(const FBXGeometry& geometry);
     void initJointTransforms();
 
     QSharedPointer<NetworkGeometry> _collisionGeometry;

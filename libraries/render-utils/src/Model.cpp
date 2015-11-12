@@ -106,24 +106,13 @@ void Model::setOffset(const glm::vec3& offset) {
     _snappedToRegistrationPoint = false;
 }
 
-QVector<JointState> Model::createJointStates(const FBXGeometry& geometry) {
-    QVector<JointState> jointStates;
-    for (int i = 0; i < geometry.joints.size(); ++i) {
-        const FBXJoint& joint = geometry.joints[i];
-        // store a pointer to the FBXJoint in the JointState
-        JointState state(joint);
-        jointStates.append(state);
-    }
-    return jointStates;
-};
-
 void Model::initJointTransforms() {
     if (!_geometry || !_geometry->isLoaded()) {
         return;
     }
     const FBXGeometry& geometry = _geometry->getFBXGeometry();
-    glm::mat4 parentTransform = glm::scale(_scale) * glm::translate(_offset) * geometry.offset;
-    _rig->initJointTransforms(parentTransform);
+    glm::mat4 modelOffset = glm::scale(_scale) * glm::translate(_offset) * geometry.offset;
+    _rig->setModelOffset(modelOffset);
 }
 
 void Model::init() {
@@ -139,7 +128,6 @@ void Model::reset() {
 bool Model::updateGeometry() {
     PROFILE_RANGE(__FUNCTION__);
     bool needFullUpdate = false;
-    bool needToRebuild = false;
 
     if (!_geometry || !_geometry->isLoaded()) {
         // geometry is not ready
@@ -148,17 +136,10 @@ bool Model::updateGeometry() {
 
     _needsReload = false;
 
-    QSharedPointer<NetworkGeometry> geometry = _geometry;
-    if (_rig->jointStatesEmpty()) {
-        const FBXGeometry& fbxGeometry = geometry->getFBXGeometry();
-        if (fbxGeometry.joints.size() > 0) {
-            initJointStates(createJointStates(fbxGeometry));
-            needToRebuild = true;
-        }
-    }
+    if (_rig->jointStatesEmpty() && _geometry->getFBXGeometry().joints.size() > 0) {
+        initJointStates();
 
-    if (needToRebuild) {
-        const FBXGeometry& fbxGeometry = geometry->getFBXGeometry();
+        const FBXGeometry& fbxGeometry = _geometry->getFBXGeometry();
         foreach (const FBXMesh& mesh, fbxGeometry.meshes) {
             MeshState state;
             state.clusterMatrices.resize(mesh.clusters.size());
@@ -181,9 +162,9 @@ bool Model::updateGeometry() {
 }
 
 // virtual
-void Model::initJointStates(QVector<JointState> states) {
+void Model::initJointStates() {
     const FBXGeometry& geometry = _geometry->getFBXGeometry();
-    glm::mat4 parentTransform = glm::scale(_scale) * glm::translate(_offset) * geometry.offset;
+    glm::mat4 modelOffset = glm::scale(_scale) * glm::translate(_offset) * geometry.offset;
 
     int rootJointIndex = geometry.rootJointIndex;
     int leftHandJointIndex = geometry.leftHandJointIndex;
@@ -193,7 +174,7 @@ void Model::initJointStates(QVector<JointState> states) {
     int rightElbowJointIndex = rightHandJointIndex >= 0 ? geometry.joints.at(rightHandJointIndex).parentIndex : -1;
     int rightShoulderJointIndex = rightElbowJointIndex >= 0 ? geometry.joints.at(rightElbowJointIndex).parentIndex : -1;
 
-    _rig->initJointStates(states, parentTransform,
+    _rig->initJointStates(geometry, modelOffset,
                           rootJointIndex,
                           leftHandJointIndex,
                           leftElbowJointIndex,
@@ -1025,18 +1006,6 @@ void Model::updateClusterMatrices() {
     }
 }
 
-bool Model::setJointPosition(int jointIndex, const glm::vec3& position, const glm::quat& rotation, bool useRotation,
-                             int lastFreeIndex, bool allIntermediatesFree, const glm::vec3& alignment, float priority) {
-    const FBXGeometry& geometry = _geometry->getFBXGeometry();
-    const QVector<int>& freeLineage = geometry.joints.at(jointIndex).freeLineage;
-    glm::mat4 parentTransform = glm::scale(_scale) * glm::translate(_offset) * geometry.offset;
-    if (_rig->setJointPosition(jointIndex, position, rotation, useRotation,
-                               lastFreeIndex, allIntermediatesFree, alignment, priority, freeLineage, parentTransform)) {
-        return true;
-    }
-    return false;
-}
-
 void Model::inverseKinematics(int endIndex, glm::vec3 targetPosition, const glm::quat& targetRotation, float priority) {
     const FBXGeometry& geometry = _geometry->getFBXGeometry();
     const QVector<int>& freeLineage = geometry.joints.at(endIndex).freeLineage;
@@ -1141,8 +1110,6 @@ AABox Model::getPartBounds(int meshIndex, int partIndex) {
 void Model::segregateMeshGroups() {
     const FBXGeometry& geometry = _geometry->getFBXGeometry();
     const std::vector<std::unique_ptr<NetworkMesh>>& networkMeshes = _geometry->getMeshes();
-
-    _rig->makeAnimSkeleton(geometry);
 
     // all of our mesh vectors must match in size
     if ((int)networkMeshes.size() != geometry.meshes.size() ||

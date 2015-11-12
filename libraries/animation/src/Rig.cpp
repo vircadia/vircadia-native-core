@@ -134,16 +134,40 @@ void Rig::destroyAnimGraph() {
     _animNode = nullptr;
 }
 
-void Rig::initJointStates(QVector<JointState> states, glm::mat4 rootTransform,
-                          int rootJointIndex,
-                          int leftHandJointIndex,
-                          int leftElbowJointIndex,
-                          int leftShoulderJointIndex,
-                          int rightHandJointIndex,
-                          int rightElbowJointIndex,
-                          int rightShoulderJointIndex) {
-    _jointStates = states;
+void Rig::initJointStates(const FBXGeometry& geometry, glm::mat4 modelOffset, int rootJointIndex,
+                          int leftHandJointIndex, int leftElbowJointIndex, int leftShoulderJointIndex,
+                          int rightHandJointIndex, int rightElbowJointIndex, int rightShoulderJointIndex) {
 
+    _animSkeleton = std::make_shared<AnimSkeleton>(geometry);
+    _relativePoses.resize(_animSkeleton->getNumJoints());
+
+    // AJT: LEGACY
+    {
+        // was Model::createJointStates
+        _jointStates.clear();
+        for (int i = 0; i < geometry.joints.size(); ++i) {
+            const FBXJoint& joint = geometry.joints[i];
+            // store a pointer to the FBXJoint in the JointState
+            JointState state(joint);
+            _jointStates.append(state);
+        }
+
+        // was old Rig::initJointStates
+        // compute model transforms
+        int numStates = _animSkeleton->getNumJoints();
+        for (int i = 0; i < numStates; ++i) {
+            JointState& state = _jointStates[i];
+            int parentIndex = state.getParentIndex();
+            if (parentIndex == -1) {
+                state.initTransform(modelOffset);
+            } else {
+                const JointState& parentState = _jointStates.at(parentIndex);
+                state.initTransform(parentState.getTransform());
+            }
+        }
+    }
+
+    // AJT: TODO: we could probaly just look these up by name?
     _rootJointIndex = rootJointIndex;
     _leftHandJointIndex = leftHandJointIndex;
     _leftElbowJointIndex = leftElbowJointIndex;
@@ -152,7 +176,15 @@ void Rig::initJointStates(QVector<JointState> states, glm::mat4 rootTransform,
     _rightElbowJointIndex = rightElbowJointIndex;
     _rightShoulderJointIndex = rightShoulderJointIndex;
 
-    initJointTransforms(rootTransform);
+    setModelOffset(modelOffset);
+}
+
+bool Rig::jointStatesEmpty() {
+    return _relativePoses.empty();
+}
+
+int Rig::getJointStateCount() const {
+    return _relativePoses.size();
 }
 
 // We could build and cache a dictionary, too....
@@ -166,7 +198,12 @@ int Rig::indexOfJoint(const QString& jointName) {
     return -1;
 }
 
+void Rig::setModelOffset(const glm::mat4& modelOffset) {
+    _modelOffset = AnimPose(modelOffset);
+}
 
+// AJT: REMOVE
+/*
 void Rig::initJointTransforms(glm::mat4 rootTransform) {
     // compute model transforms
     int numStates = _jointStates.size();
@@ -181,6 +218,7 @@ void Rig::initJointTransforms(glm::mat4 rootTransform) {
         }
     }
 }
+*/
 
 void Rig::clearJointTransformTranslation(int jointIndex) {
     if (jointIndex == -1 || jointIndex >= _jointStates.size()) {
@@ -642,95 +680,18 @@ void Rig::updateAnimations(float deltaTime, glm::mat4 rootTransform) {
         }
     }
 
+    // AJT: REMOVE
+    /*
     for (int i = 0; i < _jointStates.size(); i++) {
         updateJointState(i, rootTransform);
     }
+    */
+    setModelOffset(rootTransform);
+    buildAbsolutePoses();
+
     for (int i = 0; i < _jointStates.size(); i++) {
         _jointStates[i].resetTransformChanged();
     }
-}
-
-bool Rig::setJointPosition(int jointIndex, const glm::vec3& position, const glm::quat& rotation, bool useRotation,
-                           int lastFreeIndex, bool allIntermediatesFree, const glm::vec3& alignment, float priority,
-                           const QVector<int>& freeLineage, glm::mat4 rootTransform) {
-    if (jointIndex == -1 || _jointStates.isEmpty()) {
-        return false;
-    }
-    if (freeLineage.isEmpty()) {
-        return false;
-    }
-    if (lastFreeIndex == -1) {
-        lastFreeIndex = freeLineage.last();
-    }
-
-    // this is a cyclic coordinate descent algorithm: see
-    // http://www.ryanjuckett.com/programming/animation/21-cyclic-coordinate-descent-in-2d
-    const int ITERATION_COUNT = 1;
-    glm::vec3 worldAlignment = alignment;
-    for (int i = 0; i < ITERATION_COUNT; i++) {
-        // first, try to rotate the end effector as close as possible to the target rotation, if any
-        glm::quat endRotation;
-        if (useRotation) {
-            JointState& state = _jointStates[jointIndex];
-
-            state.setRotationInBindFrame(rotation, priority);
-            endRotation = state.getRotationInBindFrame();
-        }
-
-        // then, we go from the joint upwards, rotating the end as close as possible to the target
-        glm::vec3 endPosition = extractTranslation(_jointStates[jointIndex].getTransform());
-        for (int j = 1; freeLineage.at(j - 1) != lastFreeIndex; j++) {
-            int index = freeLineage.at(j);
-            JointState& state = _jointStates[index];
-            if (!(state.getIsFree() || allIntermediatesFree)) {
-                continue;
-            }
-            glm::vec3 jointPosition = extractTranslation(state.getTransform());
-            glm::vec3 jointVector = endPosition - jointPosition;
-            glm::quat oldCombinedRotation = state.getRotation();
-            glm::quat combinedDelta;
-            float combinedWeight;
-            if (useRotation) {
-                combinedDelta = safeMix(rotation * glm::inverse(endRotation),
-                    rotationBetween(jointVector, position - jointPosition), 0.5f);
-                combinedWeight = 2.0f;
-
-            } else {
-                combinedDelta = rotationBetween(jointVector, position - jointPosition);
-                combinedWeight = 1.0f;
-            }
-            if (alignment != glm::vec3() && j > 1) {
-                jointVector = endPosition - jointPosition;
-                glm::vec3 positionSum;
-                for (int k = j - 1; k > 0; k--) {
-                    int index = freeLineage.at(k);
-                    updateJointState(index, rootTransform);
-                    positionSum += extractTranslation(_jointStates.at(index).getTransform());
-                }
-                glm::vec3 projectedCenterOfMass = glm::cross(jointVector,
-                    glm::cross(positionSum / (j - 1.0f) - jointPosition, jointVector));
-                glm::vec3 projectedAlignment = glm::cross(jointVector, glm::cross(worldAlignment, jointVector));
-                const float LENGTH_EPSILON = 0.001f;
-                if (glm::length(projectedCenterOfMass) > LENGTH_EPSILON && glm::length(projectedAlignment) > LENGTH_EPSILON) {
-                    combinedDelta = safeMix(combinedDelta, rotationBetween(projectedCenterOfMass, projectedAlignment),
-                        1.0f / (combinedWeight + 1.0f));
-                }
-            }
-            state.applyRotationDelta(combinedDelta, priority);
-            glm::quat actualDelta = state.getRotation() * glm::inverse(oldCombinedRotation);
-            endPosition = actualDelta * jointVector + jointPosition;
-            if (useRotation) {
-                endRotation = actualDelta * endRotation;
-            }
-        }
-    }
-
-    // now update the joint states from the top
-    for (int j = freeLineage.size() - 1; j >= 0; j--) {
-        updateJointState(freeLineage.at(j), rootTransform);
-    }
-
-    return true;
 }
 
 void Rig::inverseKinematics(int endIndex, glm::vec3 targetPosition, const glm::quat& targetRotation, float priority,
@@ -1171,15 +1132,7 @@ void Rig::updateFromHandParameters(const HandParameters& params, float dt) {
     }
 }
 
-void Rig::makeAnimSkeleton(const FBXGeometry& fbxGeometry) {
-    if (!_animSkeleton) {
-        _animSkeleton = std::make_shared<AnimSkeleton>(fbxGeometry);
-    }
-}
-
-void Rig::initAnimGraph(const QUrl& url, const FBXGeometry& fbxGeometry) {
-
-    makeAnimSkeleton(fbxGeometry);
+void Rig::initAnimGraph(const QUrl& url) {
 
     // load the anim graph
     _animLoader.reset(new AnimNodeLoader(url));
@@ -1198,5 +1151,43 @@ bool Rig::getModelOffset(glm::vec3& modelOffsetOut) const {
         return true;
     } else {
         return false;
+    }
+}
+
+void Rig::buildAbsolutePoses() {
+    if (!_animSkeleton) {
+        return;
+    }
+
+    assert(_animSkeleton->getNumJoints() == _relativePoses.size());
+    _absolutePoses.resize(_relativePoses.size());
+    for (int i = 0; i < (int)_relativePoses.size(); i++) {
+        int parentIndex = _animSkeleton->getParentIndex(i);
+        if (parentIndex == -1) {
+            _absolutePoses[i] = _modelOffset * _relativePoses[i];
+        } else {
+            _absolutePoses[i] = _modelOffset * _absolutePoses[parentIndex] * _relativePoses[i];
+        }
+    }
+
+    // AJT: LEGACY
+    {
+        // Build the joint states
+        glm::mat4 rootTransform = (glm::mat4)_modelOffset;
+        for (int i = 0; i < (int)_animSkeleton->getNumJoints(); i++) {
+            JointState& state = _jointStates[i];
+
+            // compute model transforms
+            int parentIndex = state.getParentIndex();
+            if (parentIndex == -1) {
+                state.computeTransform(rootTransform);
+            } else {
+                // guard against out-of-bounds access to _jointStates
+                if (parentIndex >= 0 && parentIndex < _jointStates.size()) {
+                    const JointState& parentState = _jointStates.at(parentIndex);
+                    state.computeTransform(parentState.getTransform(), parentState.getTransformChanged());
+                }
+            }
+        }
     }
 }

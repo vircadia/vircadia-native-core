@@ -10,28 +10,6 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
-/*
- Things we want to be able to do, that I think we cannot do now:
- * Stop an animation at a given time so that it can be examined visually or in a test harness. (I think we can already stop animation and set frame to a computed float? But does that move the bones?)
- * Play two animations, blending between them. (Current structure just has one, under script control.)
- * Fade in an animation over another.
- * Apply IK, lean, head pointing or other overrides relative to previous position.
- All of this depends on coordinated state.
-
- TBD:
- - What are responsibilities of Animation/AnimationPointer/AnimationCache/AnimationDetails/AnimationObject/AnimationLoop?
-    Is there common/copied code (e.g., ScriptableAvatar::update)?
- - How do attachments interact with the physics of the attached entity? E.g., do hand joints need to reflect held object
-    physics?
- - Is there any current need (i.e., for initial campatability) to have multiple animations per role (e.g., idle) with the
-    system choosing randomly?
-
- - Distribute some doc from here to the right files if it turns out to be correct:
-    - AnimationDetails is a script-useable copy of animation state, analogous to EntityItemProperties, but without anything
-       equivalent to editEntity.
-      But what's the intended difference vs AnimationObjection? Maybe AnimationDetails is to Animation as AnimationObject
-       is to AnimationPointer?
- */
 
 #ifndef __hifi__Rig__
 #define __hifi__Rig__
@@ -107,19 +85,19 @@ public:
     void restoreRoleAnimation(const QString& role);
     void prefetchAnimation(const QString& url);
 
-    void initJointStates(QVector<JointState> states, glm::mat4 rootTransform,
-                         int rootJointIndex,
-                         int leftHandJointIndex,
-                         int leftElbowJointIndex,
-                         int leftShoulderJointIndex,
-                         int rightHandJointIndex,
-                         int rightElbowJointIndex,
-                         int rightShoulderJointIndex);
-    bool jointStatesEmpty() { return _jointStates.isEmpty(); };
-    int getJointStateCount() const { return _jointStates.size(); }
+    void initJointStates(const FBXGeometry& geometry, glm::mat4 modelOffset, int rootJointIndex,
+                         int leftHandJointIndex, int leftElbowJointIndex, int leftShoulderJointIndex,
+                         int rightHandJointIndex, int rightElbowJointIndex, int rightShoulderJointIndex);
+    bool jointStatesEmpty();
+    int getJointStateCount() const;
     int indexOfJoint(const QString& jointName);
 
+    void setModelOffset(const glm::mat4& modelOffset);
+
+    // AJT: REMOVE
+    /*
     void initJointTransforms(glm::mat4 rootTransform);
+    */
     void clearJointTransformTranslation(int jointIndex);
     void reset(const QVector<FBXJoint>& fbxJoints);
     bool getJointStateRotation(int index, glm::quat& rotation) const;
@@ -154,9 +132,6 @@ public:
     void computeMotionAnimationState(float deltaTime, const glm::vec3& worldPosition, const glm::vec3& worldVelocity, const glm::quat& worldRotation);
     // Regardless of who started the animations or how many, update the joints.
     void updateAnimations(float deltaTime, glm::mat4 rootTransform);
-    bool setJointPosition(int jointIndex, const glm::vec3& position, const glm::quat& rotation, bool useRotation,
-                          int lastFreeIndex, bool allIntermediatesFree, const glm::vec3& alignment, float priority,
-                          const QVector<int>& freeLineage, glm::mat4 rootTransform);
     void inverseKinematics(int endIndex, glm::vec3 targetPosition, const glm::quat& targetRotation, float priority,
                            const QVector<int>& freeLineage, glm::mat4 rootTransform);
     bool restoreJointPosition(int jointIndex, float fraction, float priority, const QVector<int>& freeLineage);
@@ -171,8 +146,6 @@ public:
     glm::quat getJointDefaultRotationInParentFrame(int jointIndex);
     void clearJointStatePriorities();
 
-    virtual void updateJointState(int index, glm::mat4 rootTransform) = 0;
-
     void updateFromHeadParameters(const HeadParameters& params, float dt);
     void updateFromEyeParameters(const EyeParameters& params);
     void updateFromHandParameters(const HandParameters& params, float dt);
@@ -180,8 +153,7 @@ public:
     virtual void setHandPosition(int jointIndex, const glm::vec3& position, const glm::quat& rotation,
                                  float scale, float priority) = 0;
 
-    void makeAnimSkeleton(const FBXGeometry& fbxGeometry);
-    void initAnimGraph(const QUrl& url, const FBXGeometry& fbxGeometry);
+    void initAnimGraph(const QUrl& url);
 
     AnimNode::ConstPointer getAnimNode() const { return _animNode; }
     AnimSkeleton::ConstPointer getAnimSkeleton() const { return _animSkeleton; }
@@ -193,13 +165,20 @@ public:
 
  protected:
     void updateAnimationStateHandlers();
+    void buildAbsolutePoses();
 
     void updateLeanJoint(int index, float leanSideways, float leanForward, float torsoTwist);
     void updateNeckJoint(int index, const HeadParameters& params);
     void updateEyeJoint(int index, const glm::vec3& modelTranslation, const glm::quat& modelRotation, const glm::quat& worldHeadOrientation, const glm::vec3& lookAt, const glm::vec3& saccade);
     void calcAnimAlpha(float speed, const std::vector<float>& referenceSpeeds, float* alphaOut) const;
 
+    // AJT: TODO: LEGACY
     QVector<JointState> _jointStates;
+
+    AnimPose _modelOffset;
+    AnimPoseVec _relativePoses;
+    AnimPoseVec _absolutePoses;
+
     int _rootJointIndex { -1 };
 
     int _leftHandJointIndex { -1 };

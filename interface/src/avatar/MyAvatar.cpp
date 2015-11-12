@@ -1354,7 +1354,7 @@ void MyAvatar::initAnimGraph() {
     auto graphUrl = QUrl(_animGraphUrl.isEmpty() ?
                          QUrl::fromLocalFile(PathUtils::resourcesPath() + "meshes/defaultAvatar_full/avatar-animation.json") :
                          _animGraphUrl);
-    _rig->initAnimGraph(graphUrl, _skeletonModel.getGeometry()->getFBXGeometry());
+    _rig->initAnimGraph(graphUrl);
 }
 
 void MyAvatar::destroyAnimGraph() {
