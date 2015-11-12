@@ -570,13 +570,11 @@ int OctreeSendThread::packetDistributor(OctreeQueryNode* nodeData, bool viewFrus
             OctreeServer::trackInsideTime((float)elapsedInsideUsecs);
         }
 
-
-        if (somethingToSend) {
-            qCDebug(octree) << "Hit PPS Limit, packetsSentThisInterval =" << packetsSentThisInterval
-                            << "  maxPacketsPerInterval = " << maxPacketsPerInterval
-                            << "  clientMaxPacketsPerInterval = " << clientMaxPacketsPerInterval;
+        if (somethingToSend && _myServer->wantsVerboseDebug()) {
+            qCDebug(otree) << "Hit PPS Limit, packetsSentThisInterval =" << packetsSentThisInterval
+                           << "  maxPacketsPerInterval = " << maxPacketsPerInterval
+                           << "  clientMaxPacketsPerInterval = " << clientMaxPacketsPerInterval;
         }
-
 
         // Here's where we can/should allow the server to send other data...
         // send the environment packet
