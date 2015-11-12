@@ -52,6 +52,9 @@ quat quatFromJsonValue(const QJsonValue& q) {
 }
 
 vec3 vec3FromJsonValue(const QJsonValue& v) {
+    if (v.isDouble()) {
+        return vec3((float)v.toDouble());
+    }
     return glmFromJson<vec3>(v);
 }
 

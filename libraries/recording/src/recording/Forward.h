@@ -28,6 +28,8 @@ struct Frame;
 
 using FramePointer = std::shared_ptr<Frame>;
 
+using FrameConstPointer = std::shared_ptr<const Frame>;
+
 // A recording of some set of state from the application, usually avatar
 // data + audio for a single person
 class Clip;

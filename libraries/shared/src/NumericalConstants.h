@@ -23,6 +23,9 @@ const float TWO_PI = 2.0f * PI;
 const float PI_OVER_TWO = 0.5f * PI;
 const float RADIANS_PER_DEGREE = PI / 180.0f;
 const float DEGREES_PER_RADIAN = 180.0f / PI;
+const float ARCMINUTES_PER_DEGREE = 60.0f;
+const float ARCSECONDS_PER_ARCMINUTE = 60.0f;
+const float ARCSECONDS_PER_DEGREE = ARCMINUTES_PER_DEGREE * ARCSECONDS_PER_ARCMINUTE;
 
 const float EPSILON = 0.000001f;    //smallish positive number - used as margin of error for some computations
 const float SQUARE_ROOT_OF_2 = (float)sqrt(2.0f);

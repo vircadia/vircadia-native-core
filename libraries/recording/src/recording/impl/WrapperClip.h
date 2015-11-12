@@ -7,8 +7,8 @@
 //
 
 #pragma once
-#ifndef hifi_Recording_Impl_FileClip_h
-#define hifi_Recording_Impl_FileClip_h
+#ifndef hifi_Recording_Impl_WrapperClip_h
+#define hifi_Recording_Impl_WrapperClip_h
 
 #include "../Clip.h"
 
@@ -19,12 +19,12 @@
 
 namespace recording {
 
-class FileClip : public Clip {
+class WrapperClip : public Clip {
 public:
-    using Pointer = std::shared_ptr<FileClip>;
+    using Pointer = std::shared_ptr<WrapperClip>;
 
-    FileClip(const QString& file);
-    virtual ~FileClip();
+    WrapperClip(const Clip::Pointer& wrappedClip);
+    virtual ~WrapperClip();
 
     virtual Time duration() const override;
     virtual size_t frameCount() const override;
@@ -37,33 +37,10 @@ public:
     virtual void skipFrame() override;
     virtual void addFrame(FrameConstPointer) override;
 
-    const QJsonDocument& getHeader() {
-        return _fileHeader;
-    }
-
-    static bool write(const QString& filePath, Clip::Pointer clip);
-
-    struct FrameHeader {
-        FrameType type;
-        Time timeOffset;
-        uint16_t size;
-        quint64 fileOffset;
-    };
-
-private:
-
+protected:
     virtual void reset() override;
 
-
-    using FrameHeaderVector = std::vector<FrameHeader>;
-
-    FramePointer readFrame(uint32_t frameIndex) const;
-
-    QJsonDocument _fileHeader;
-    QFile _file;
-    uint32_t _frameIndex { 0 };
-    uchar* _map { nullptr };
-    FrameHeaderVector _frameHeaders;
+    const Clip::Pointer _wrappedClip;
 };
 
 }

@@ -18,7 +18,7 @@ using namespace recording;
 void BufferClip::seek(Time offset) {
     Locker lock(_mutex);
     auto itr = std::lower_bound(_frames.begin(), _frames.end(), offset,
-        [](Frame::Pointer a, Time b)->bool {
+        [](Frame::ConstPointer a, Time b)->bool {
             return a->timeOffset < b;
         }
     );
@@ -34,18 +34,18 @@ Time BufferClip::position() const {
     return result;
 }
 
-FramePointer BufferClip::peekFrame() const {
+FrameConstPointer BufferClip::peekFrame() const {
     Locker lock(_mutex);
-    FramePointer result;
+    FrameConstPointer result;
     if (_frameIndex < _frames.size()) {
         result = _frames[_frameIndex];
     }
     return result;
 }
 
-FramePointer BufferClip::nextFrame() {
+FrameConstPointer BufferClip::nextFrame() {
     Locker lock(_mutex);
-    FramePointer result;
+    FrameConstPointer result;
     if (_frameIndex < _frames.size()) {
         result = _frames[_frameIndex];
         ++_frameIndex;
@@ -53,7 +53,7 @@ FramePointer BufferClip::nextFrame() {
     return result;
 }
 
-void BufferClip::addFrame(FramePointer newFrame) {
+void BufferClip::addFrame(FrameConstPointer newFrame) {
     if (newFrame->timeOffset < 0.0f) {
         throw std::runtime_error("Frames may not have negative time offsets");
     }
