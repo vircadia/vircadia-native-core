@@ -211,7 +211,8 @@ bool AvatarActionHold::updateArguments(QVariantMap arguments) {
 
             auto ownerEntity = _ownerEntity.lock();
             if (ownerEntity) {
-                ownerEntity->setActionDataNeedsUpdate(true);
+                ownerEntity->setActionDataDirty(true);
+                ownerEntity->setActionDataNeedsTransmit(true);
             }
         });
         activateBody();

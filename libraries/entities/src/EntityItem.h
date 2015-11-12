@@ -408,8 +408,13 @@ public:
     QList<QUuid> getActionIDs() { return _objectActions.keys(); }
     QVariantMap getActionArguments(const QUuid& actionID) const;
     void deserializeActions();
-    void setActionDataNeedsUpdate(bool value) const { _actionDataNeedsUpdate = value; }
-    bool actionDataNeedsUpdate() const { return _actionDataNeedsUpdate; }
+
+    void setActionDataDirty(bool value) const { _actionDataDirty = value; }
+    bool actionDataDirty() const { return _actionDataDirty; }
+
+    void setActionDataNeedsTransmit(bool value) const { _actionDataNeedsTransmit = value; }
+    bool actionDataNeedsTransmit() const { return _actionDataNeedsTransmit; }
+
     bool shouldSuppressLocationEdits() const;
 
     void setSourceUUID(const QUuid& sourceUUID) { _sourceUUID = sourceUUID; }
@@ -442,7 +447,7 @@ protected:
     mutable bool _recalcAABox = true;
     mutable bool _recalcMinAACube = true;
     mutable bool _recalcMaxAACube = true;
-    
+
     float _glowLevel;
     float _localRenderAlpha;
     float _density = ENTITY_ITEM_DEFAULT_DENSITY; // kg/m^3
@@ -512,7 +517,8 @@ protected:
     // are used to keep track of and work around this situation.
     void checkWaitingToRemove(EntitySimulation* simulation = nullptr);
     mutable QSet<QUuid> _actionsToRemove;
-    mutable bool _actionDataNeedsUpdate = false;
+    mutable bool _actionDataDirty = false;
+    mutable bool _actionDataNeedsTransmit = false;
     // _previouslyDeletedActions is used to avoid an action being re-added due to server round-trip lag
     static quint64 _rememberDeletedActionTime;
     mutable QHash<QUuid, quint64> _previouslyDeletedActions;
