@@ -87,20 +87,22 @@ const gpu::PipelinePointer DrawStatus::getDrawItemStatusPipeline() {
 }
 
 void DrawStatus::setStatusIconMap(const gpu::TexturePointer& map) {
-	_statusIconMap = map;
+    _statusIconMap = map;
 }
 
 const gpu::TexturePointer DrawStatus::getStatusIconMap() const {
-	return _statusIconMap;
+    return _statusIconMap;
 }
 
-void DrawStatus::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const ItemIDsBounds& inItems) {
+void DrawStatus::run(const SceneContextPointer& sceneContext,
+                     const RenderContextPointer& renderContext,
+                     const ItemIDsBounds& inItems) {
     assert(renderContext->args);
     assert(renderContext->args->_viewFrustum);
     RenderArgs* args = renderContext->args;
     auto& scene = sceneContext->_scene;
-	const int NUM_STATUS_VEC4_PER_ITEM = 2;
-	const int VEC4_LENGTH = 4;
+    const int NUM_STATUS_VEC4_PER_ITEM = 2;
+    const int VEC4_LENGTH = 4;
 
     // FIrst thing, we collect the bound and the status for all the items we want to render
     int nbItems = 0;
@@ -112,8 +114,8 @@ void DrawStatus::run(const SceneContextPointer& sceneContext, const RenderContex
             _itemStatus = std::make_shared<gpu::Buffer>();;
         }
 
-        _itemBounds->resize((inItems.size() * sizeof(AABox)));		
-		_itemStatus->resize((inItems.size() * NUM_STATUS_VEC4_PER_ITEM * sizeof(glm::vec4)));
+        _itemBounds->resize((inItems.size() * sizeof(AABox)));
+        _itemStatus->resize((inItems.size() * NUM_STATUS_VEC4_PER_ITEM * sizeof(glm::vec4)));
         AABox* itemAABox = reinterpret_cast<AABox*> (_itemBounds->editData());
         glm::ivec4* itemStatus = reinterpret_cast<glm::ivec4*> (_itemStatus->editData());
         for (auto& item : inItems) {
@@ -148,7 +150,7 @@ void DrawStatus::run(const SceneContextPointer& sceneContext, const RenderContex
                 }
 
                 nbItems++;
-                itemAABox++; 
+                itemAABox++;
             }
         }
     }
