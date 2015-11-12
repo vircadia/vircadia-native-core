@@ -88,7 +88,6 @@
     Bow.prototype = {
         isGrabbed: false,
         stringDrawn: false,
-        hasArrow: false,
         arrowTipPosition: null,
         preNotchString: null,
         hasArrowNotched: false,
@@ -144,7 +143,7 @@
             //check to see if an arrow has notched itself in our notch detector
             var userData = JSON.parse(this.bowProperties.userData);
             if (userData.hasOwnProperty('hifiBowKey')) {
-                if (this.hasArrowNotched === false) {
+                if (this.hasArrowNotched === false && userData.hifiBowKey.arrowID!==null) {
                     //notch the arrow
                     print('NOTCHING IT!')
                     this.hasArrowNotched = userData.hifiBowKey.hasArrowNotched;
@@ -159,32 +158,42 @@
 
             }
 
+            //this.arrow
+            //this.hasArrowNotched
+
 
             //create a string across the bow when we pick it up
             if (this.preNotchString === null) {
+                print('CREATE PRE NOTCH STRING')
                 this.createPreNotchString();
             }
 
             if (this.preNotchString !== null && this.hasArrowNotched === false) {
+                print('DRAW PRE NOTCH STRING')
                 this.drawPreNotchStrings();
             }
 
             // create the notch detector that arrows will look for
             if (this.notchDetector === null) {
+                print('CREATE NOTCH DETECTOR')
                 this.createNotchDetector();
             }
 
             //if we have an arrow notched, then draw some new strings
             if (this.hasArrowNotched === true) {
                 if (this.preNotchString !== null) {
-                    Entities.deleteEntity(this.preNotchString);
+                    print('MAKE PRE NOTCH INVISIBLE')
+                    Entities.editEntity(this.preNotchString, {
+                        visible: false
+                    });
                 }
-
-                //only test for strings now that an arrow is notched
+                print('CHECK STRING HAND')
+                    //only test for strings now that an arrow is notched
                 this.checkStringHand();
 
             } else {
-                //otherwise, don't do much of anything.
+                print('DONT DO ANYTHING')
+                    //otherwise, don't do much of anything.
 
             }
         },
@@ -195,7 +204,7 @@
                 this.stringDrawn = false;
                 this.deleteStrings();
                 this.hasArrow = false;
-                // Entities.deleteEntity(this.arrow);
+                Entities.deleteEntity(this.arrow);
                 setEntityCustomData('grabbableKey', this.entityID, {
                     turnOffOtherHand: false,
                     invertSolidWhileHeld: true
@@ -376,10 +385,9 @@
 
                 // firing the arrow
                 print('HIT RELEASE LOOP IN CHECK')
-                    // this.stringDrawn = false;
-                    // this.deleteStrings();
-                    // this.hasArrow = false;
-                    // this.releaseArrow();
+
+
+                this.releaseArrow();
 
             } else if (this.triggerValue >= DRAW_STRING_THRESHOLD && this.stringDrawn === true) {
                 //  print('HIT CONTINUE LOOP IN CHECK')
@@ -421,7 +429,6 @@
 
 
             var handToNotch = Vec3.subtract(this.notchDetectorPosition, this.stringData.handPosition);
-            print('h2n:::' + JSON.stringify(handToNotch))
             var pullBackDistance = Vec3.length(handToNotch);
 
             if (pullBackDistance >= 0.6) {
@@ -434,20 +441,13 @@
             var pushForwardOffset = Vec3.multiply(handToNotch, -ARROW_OFFSET);
             var finalArrowPosition = Vec3.sum(arrowPosition, pushForwardOffset);
 
-
-
             var arrowRotation = Quat.rotationBetween(Vec3.FRONT, handToNotch);
 
-            print('ARROW ROTATION:: ' + JSON.stringify(arrowRotation));
             Entities.editEntity(this.arrow, {
                 position: finalArrowPosition,
                 rotation: arrowRotation
             })
 
-            var currentRotation = Entities.getEntityProperties(this.arrow, "rotation").rotation
-                //  print('ACTUAL ARROW ROTATION::' +JSON.stringify(currentRotation));
-
-            // print('DIFFERENCE::: ' + (1 - Quat.dot(arrowRotation, currentRotation)));
             // if (this.arrowIsBurning === true) {
             //     Entities.editEntity(this.fire, {
             //         position: arrowTipPosition
@@ -463,38 +463,45 @@
             var handToNotch = Vec3.subtract(this.notchDetectorPosition, this.stringData.handPosition);
             var pullBackDistance = Vec3.length(handToNotch);
 
-            var arrowRotation =  Quat.rotationBetween(Vec3.FRONT, handToNotch);
+            var arrowRotation = Quat.rotationBetween(Vec3.FRONT, handToNotch);
 
             print('HAND DISTANCE:: ' + pullBackDistance);
             var arrowForce = this.scaleArrowShotStrength(pullBackDistance, 0, 2, 20, 50);
             print('ARROW FORCE::' + arrowForce);
             var forwardVec = Vec3.multiply(handToNotch, arrowForce);
 
-            print('FWD VEC:::' + JSON.stringify(forwardVec));
             var arrowProperties = {
-                // rotation:handToHand,
-
+                rotation: arrowRotation,
                 velocity: forwardVec
             };
 
-            Entities.editEntity(this.arrow, arrowProperties);
-            Script.setTimeout(function() {
+            setEntityCustomData('hifiBowKey', this.entityID, {
+                hasArrowNotched: false,
+                arrowID: null
+            });
 
+            Entities.editEntity(this.arrow, arrowProperties);
+
+            this.arrow = null;
+            this.hasArrowNotched = false;
+
+            Entities.editEntity(this.preNotchString, {
+                visible: true
+            });
+
+            this.stringDrawn = false;
+            this.deleteStrings();
+
+            Script.setTimeout(function() {
+                print('making arrow physical')
                 Entities.editEntity(this.arrow, {
                     ignoreForCollisions: false,
                     collisionsWillMove: true,
                     gravity: ARROW_GRAVITY
                 });
+            }, 200)
 
-            }, 100)
 
-            print('ARROW collisions??:::' + Entities.getEntityProperties(this.arrow, "collisionsWillMove").collisionsWillMove);
-
-            print('ARROW velocity:::' + JSON.stringify(Entities.getEntityProperties(this.arrow, "velocity").velocity))
-            this.arrow = null;
-            this.hasArrowNotched = false;
-            this.fire = null;
-            this.arrowIsBurnning = false;
 
         },
 
