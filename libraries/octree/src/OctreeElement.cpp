@@ -28,11 +28,11 @@
 #include "OctreeLogging.h"
 #include "SharedUtil.h"
 
-AtomicUIntStat OctreeElement::_octreeMemoryUsage = 0;
-AtomicUIntStat OctreeElement::_octcodeMemoryUsage = 0;
-AtomicUIntStat OctreeElement::_externalChildrenMemoryUsage = 0;
-AtomicUIntStat OctreeElement::_voxelNodeCount = 0;
-AtomicUIntStat OctreeElement::_voxelNodeLeafCount = 0;
+AtomicUIntStat OctreeElement::_octreeMemoryUsage { 0 };
+AtomicUIntStat OctreeElement::_octcodeMemoryUsage { 0 };
+AtomicUIntStat OctreeElement::_externalChildrenMemoryUsage { 0 };
+AtomicUIntStat OctreeElement::_voxelNodeCount { 0 };
+AtomicUIntStat OctreeElement::_voxelNodeLeafCount { 0 };
 
 void OctreeElement::resetPopulationStatistics() {
     _voxelNodeCount = 0;

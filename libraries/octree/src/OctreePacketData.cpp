@@ -488,8 +488,8 @@ bool OctreePacketData::appendRawData(QByteArray data) {
 }
 
 
-AtomicUIntStat OctreePacketData::_compressContentTime = 0;
-AtomicUIntStat OctreePacketData::_compressContentCalls = 0;
+AtomicUIntStat OctreePacketData::_compressContentTime { 0 };
+AtomicUIntStat OctreePacketData::_compressContentCalls { 0 };
 
 bool OctreePacketData::compressContent() { 
     PerformanceWarning warn(false, "OctreePacketData::compressContent()", false, &_compressContentTime, &_compressContentCalls);
