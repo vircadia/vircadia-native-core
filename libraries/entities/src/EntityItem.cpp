@@ -630,11 +630,11 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
             dataAt += bytes;
             bytesRead += bytes;
 
+            if (wantTerseEditLogging() && _simulationOwner != newSimOwner) {
+                qCDebug(entities) << "sim ownership for" << getDebugName() << "is now" << newSimOwner;
+            }
             if (_simulationOwner.set(newSimOwner)) {
                 _dirtyFlags |= Simulation::DIRTY_SIMULATOR_ID;
-                if (wantTerseEditLogging()) {
-                    qCDebug(entities) << "sim ownership for" << getDebugName() << "is now" << newSimOwner;
-                }
             }
         }
         {   // When we own the simulation we don't accept updates to the entity's transform/velocities
@@ -740,7 +740,7 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
         // this "new" data is actually slightly out of date. We calculate the time we need to skip forward and
         // use our simulation helper routine to get a best estimate of where the entity should be.
         float skipTimeForward = (float)(now - lastSimulatedFromBufferAdjusted) / (float)(USECS_PER_SECOND);
-        
+
         // we want to extrapolate the motion forward to compensate for packet travel time, but
         // we don't want the side effect of flag setting.
         simulateKinematicMotion(skipTimeForward, false);
@@ -748,7 +748,6 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
 
     if (overwriteLocalData) {
         if (!_simulationOwner.matchesValidID(myNodeID)) {
-
             _lastSimulated = now;
         }
     }
@@ -1500,33 +1499,36 @@ void EntityItem::updateCreated(uint64_t value) {
 }
 
 void EntityItem::setSimulationOwner(const QUuid& id, quint8 priority) {
-    if (_simulationOwner.set(id, priority)) {
-        if (wantTerseEditLogging()) {
-            qCDebug(entities) << "sim ownership for" << getDebugName() << "is now" << id;
-        }
+    if (wantTerseEditLogging() && (id != _simulationOwner.getID() || priority != _simulationOwner.getPriority())) {
+        qCDebug(entities) << "sim ownership for" << getDebugName() << "is now" << id << priority;
     }
+    _simulationOwner.set(id, priority);
 }
 
 void EntityItem::setSimulationOwner(const SimulationOwner& owner) {
-    if (_simulationOwner.set(owner)) {
-        if (wantTerseEditLogging()) {
-            qCDebug(entities) << "sim ownership for" << getDebugName() << "is now" << owner;
-        }
+    if (wantTerseEditLogging() && _simulationOwner != owner) {
+        qCDebug(entities) << "sim ownership for" << getDebugName() << "is now" << owner;
     }
+
+    _simulationOwner.set(owner);
 }
 
 void EntityItem::updateSimulatorID(const QUuid& value) {
+    if (wantTerseEditLogging() && _simulationOwner.getID() != value) {
+        qCDebug(entities) << "sim ownership for" << getDebugName() << "is now" << value;
+    }
+
     if (_simulationOwner.setID(value)) {
         _dirtyFlags |= Simulation::DIRTY_SIMULATOR_ID;
-        if (wantTerseEditLogging()) {
-            qCDebug(entities) << "sim ownership for" << getDebugName() << "is now" << value;
-        }
     }
 }
 
 void EntityItem::clearSimulationOwnership() {
+    if (wantTerseEditLogging() && !_simulationOwner.isNull()) {
+        qCDebug(entities) << "sim ownership for" << getDebugName() << "is now null";
+    }
+
     _simulationOwner.clear();
-    qCDebug(entities) << "sim ownership for" << getDebugName() << "is now null";
     // don't bother setting the DIRTY_SIMULATOR_ID flag because clearSimulationOwnership()
     // is only ever called entity-server-side and the flags are only used client-side
     //_dirtyFlags |= Simulation::DIRTY_SIMULATOR_ID;
@@ -1669,7 +1671,7 @@ void EntityItem::deserializeActionsInternal() {
         return;
     }
 
-    EntityTreePointer entityTree = _element ? _element->getTree() : nullptr;
+    EntityTreePointer entityTree = getTree();
     assert(entityTree);
     EntitySimulation* simulation = entityTree ? entityTree->getSimulation() : nullptr;
     assert(simulation);
