@@ -201,7 +201,7 @@ float angleBetween(const glm::vec3& v1, const glm::vec3& v2) {
 
 //  Helper function return the rotation from the first vector onto the second
 glm::quat rotationBetween(const glm::vec3& v1, const glm::vec3& v2) {
-    return glm::quat(glm::normalize(v1), glm::normalize(v2));
+    return glm::rotation(glm::normalize(v1), glm::normalize(v2));
 }
 
 bool isPointBehindTrianglesPlane(glm::vec3 point, glm::vec3 p0, glm::vec3 p1, glm::vec3 p2) {
