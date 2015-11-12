@@ -116,8 +116,8 @@ bool EntityMotionState::handleEasyChanges(uint32_t flags, PhysicsEngine* engine)
             _outgoingPriority = NO_PRORITY;
         } else  {
             _nextOwnershipBid = usecTimestampNow() + USECS_BETWEEN_OWNERSHIP_BIDS;
-            if (engine->getSessionID() == _entity->getSimulatorID() || _entity->getSimulationPriority() > _outgoingPriority) {
-                // we own the simulation or our priority looses to remote
+            if (engine->getSessionID() == _entity->getSimulatorID() || _entity->getSimulationPriority() >= _outgoingPriority) {
+                // we own the simulation or our priority looses to (or ties with) remote
                 _outgoingPriority = NO_PRORITY;
             }
         }
@@ -379,7 +379,7 @@ bool EntityMotionState::shouldSendUpdate(uint32_t simulationStep, const QUuid& s
         // we don't own the simulation, but maybe we should...
         if (_outgoingPriority != NO_PRORITY) {
             if (_outgoingPriority < _entity->getSimulationPriority()) {
-                // our priority looses to remote, so we don't bother to bid
+                // our priority loses to remote, so we don't bother to bid
                 _outgoingPriority = NO_PRORITY;
                 return false;
             }
