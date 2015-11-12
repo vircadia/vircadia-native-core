@@ -197,13 +197,11 @@ bool EntityTree::updateEntityWithElement(EntityItemPointer entity, const EntityI
                 properties.setVelocityChanged(false);
                 properties.setAngularVelocityChanged(false);
                 properties.setAccelerationChanged(false);
-            }
 
-            // if (wantTerseEditLogging()) {
-            //     if (properties.simulationOwnerChanged()) {
-            //         qCDebug(entities) << "sim ownership for" << entity->getDebugName() << "is now" << senderID;
-            //     }
-            // }
+                if (wantTerseEditLogging()) {
+                    qCDebug(entities) << senderNode->getUUID() << "physical edits suppressed";
+                }
+            }
         }
         // else client accepts what the server says
 
@@ -666,10 +664,7 @@ void EntityTree::fixupTerseEditLogging(EntityItemProperties& properties, QList<Q
         int index = changedProperties.indexOf("actionData");
         if (index >= 0) {
             QByteArray value = properties.getActionData();
-            QString changeHint = "0";
-            if (value.size() > 0) {
-                changeHint = "+";
-            }
+            QString changeHint = serializedActionsToDebugString(value);
             changedProperties[index] = QString("actionData:") + changeHint;
         }
     }
@@ -763,7 +758,8 @@ int EntityTree::processEditPacketData(NLPacket& packet, const unsigned char* edi
                     if (wantTerseEditLogging()) {
                         QList<QString> changedProperties = properties.listChangedProperties();
                         fixupTerseEditLogging(properties, changedProperties);
-                        qCDebug(entities) << "edit" << existingEntity->getDebugName() << changedProperties;
+                        qCDebug(entities) << senderNode->getUUID() << "edit" <<
+                            existingEntity->getDebugName() << changedProperties;
                     }
                     endLogging = usecTimestampNow();
 
@@ -793,7 +789,7 @@ int EntityTree::processEditPacketData(NLPacket& packet, const unsigned char* edi
                             if (wantTerseEditLogging()) {
                                 QList<QString> changedProperties = properties.listChangedProperties();
                                 fixupTerseEditLogging(properties, changedProperties);
-                                qCDebug(entities) << "add" << entityItemID << changedProperties;
+                                qCDebug(entities) << senderNode->getUUID() << "add" << entityItemID << changedProperties;
                             }
                             endLogging = usecTimestampNow();
 
