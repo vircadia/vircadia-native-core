@@ -169,7 +169,7 @@
             }
 
             if (this.preNotchString !== null && this.hasArrowNotched === false) {
-                print('DRAW PRE NOTCH STRING')
+               // print('DRAW PRE NOTCH STRING')
                 this.drawPreNotchStrings();
             }
 
@@ -192,7 +192,7 @@
                 this.checkStringHand();
 
             } else {
-                print('DONT DO ANYTHING')
+             //   print('DONT DO ANYTHING')
                     //otherwise, don't do much of anything.
 
             }
@@ -466,7 +466,7 @@
             var arrowRotation = Quat.rotationBetween(Vec3.FRONT, handToNotch);
 
             print('HAND DISTANCE:: ' + pullBackDistance);
-            var arrowForce = this.scaleArrowShotStrength(pullBackDistance, 0, 2, 20, 50);
+            var arrowForce = this.scaleArrowShotStrength(pullBackDistance, 0, 2, 10, 25);
             print('ARROW FORCE::' + arrowForce);
             var forwardVec = Vec3.multiply(handToNotch, arrowForce);
 
@@ -481,7 +481,7 @@
             });
 
             Entities.editEntity(this.arrow, arrowProperties);
-
+            var arrowStore = this.arrow;
             this.arrow = null;
             this.hasArrowNotched = false;
 
@@ -494,12 +494,12 @@
 
             Script.setTimeout(function() {
                 print('making arrow physical')
-                Entities.editEntity(this.arrow, {
+                Entities.editEntity(arrowStore, {
                     ignoreForCollisions: false,
                     collisionsWillMove: true,
                     gravity: ARROW_GRAVITY
                 });
-            }, 200)
+            }, 100)
 
 
 
