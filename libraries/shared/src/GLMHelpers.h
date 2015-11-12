@@ -16,6 +16,7 @@
 
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
+#include <glm/gtx/quaternion.hpp>
 
 // Bring the most commonly used GLM types into the default namespace
 using glm::ivec2;
