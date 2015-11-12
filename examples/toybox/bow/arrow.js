@@ -103,13 +103,8 @@
         },
 
         disableGrab: function() {
-
-
             var actionID = this.getActionID();
-
-            print('actionID' + actionID)
-           var success = Entities.deleteAction(this.entityID, actionID);
-           print('ACTION DELETE SUCCESS:::'+success)
+            var success = Entities.deleteAction(this.entityID, actionID);
         },
 
         tellBowArrowIsNotched: function(bowID) {
@@ -141,10 +136,10 @@
             });
 
         },
-        update:function(){
+        update: function() {
 
-          //  var actions = Entities.getActionIDs(_this.entityID);
-          //  print('ACTIONS ON ME:::'+actions)
+            //  var actions = Entities.getActionIDs(_this.entityID);
+            //  print('ACTIONS ON ME:::'+actions)
         },
 
         checkIfBurning: function() {

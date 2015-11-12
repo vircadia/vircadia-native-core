@@ -87,12 +87,13 @@ var ACTION_TTL_REFRESH = 5;
 var PICKS_PER_SECOND_PER_HAND = 10;
 var MSECS_PER_SEC = 1000.0;
 var GRABBABLE_PROPERTIES = ["position",
-                            "rotation",
-                            "gravity",
-                            "ignoreForCollisions",
-                            "collisionsWillMove",
-                            "locked",
-                            "name"];
+    "rotation",
+    "gravity",
+    "ignoreForCollisions",
+    "collisionsWillMove",
+    "locked",
+    "name"
+];
 
 
 var GRABBABLE_DATA_KEY = "grabbableKey"; // shared with grab.js
@@ -103,7 +104,7 @@ var DEFAULT_GRABBABLE_DATA = {
     invertSolidWhileHeld: false
 };
 
-var disabledHand ='none';
+var disabledHand = 'none';
 
 
 // states for the state machine
@@ -122,28 +123,28 @@ var STATE_RELEASE = 10;
 
 function stateToName(state) {
     switch (state) {
-    case STATE_OFF:
-        return "off";
-    case STATE_SEARCHING:
-        return "searching";
-    case STATE_DISTANCE_HOLDING:
-        return "distance_holding";
-    case STATE_CONTINUE_DISTANCE_HOLDING:
-        return "continue_distance_holding";
-    case STATE_NEAR_GRABBING:
-        return "near_grabbing";
-    case STATE_CONTINUE_NEAR_GRABBING:
-        return "continue_near_grabbing";
-    case STATE_NEAR_TRIGGER:
-        return "near_trigger";
-    case STATE_CONTINUE_NEAR_TRIGGER:
-        return "continue_near_trigger";
-    case STATE_FAR_TRIGGER:
-        return "far_trigger";
-    case STATE_CONTINUE_FAR_TRIGGER:
-        return "continue_far_trigger";
-    case STATE_RELEASE:
-        return "release";
+        case STATE_OFF:
+            return "off";
+        case STATE_SEARCHING:
+            return "searching";
+        case STATE_DISTANCE_HOLDING:
+            return "distance_holding";
+        case STATE_CONTINUE_DISTANCE_HOLDING:
+            return "continue_distance_holding";
+        case STATE_NEAR_GRABBING:
+            return "near_grabbing";
+        case STATE_CONTINUE_NEAR_GRABBING:
+            return "continue_near_grabbing";
+        case STATE_NEAR_TRIGGER:
+            return "near_trigger";
+        case STATE_CONTINUE_NEAR_TRIGGER:
+            return "continue_near_trigger";
+        case STATE_FAR_TRIGGER:
+            return "far_trigger";
+        case STATE_CONTINUE_FAR_TRIGGER:
+            return "continue_far_trigger";
+        case STATE_RELEASE:
+            return "release";
     }
 
     return "unknown";
@@ -195,8 +196,17 @@ function MyController(hand) {
     this.triggerValue = 0; // rolling average of trigger value
     this.rawTriggerValue = 0;
 
-    this.offsetPosition = { x: 0.0, y: 0.0, z: 0.0 };
-    this.offsetRotation = { x: 0.0, y: 0.0, z: 0.0, w: 1.0 };
+    this.offsetPosition = {
+        x: 0.0,
+        y: 0.0,
+        z: 0.0
+    };
+    this.offsetRotation = {
+        x: 0.0,
+        y: 0.0,
+        z: 0.0,
+        w: 1.0
+    };
 
     var _this = this;
 
@@ -293,11 +303,11 @@ function MyController(hand) {
         this.pointer = null;
     };
 
-    this.eitherTrigger = function (value) {
+    this.eitherTrigger = function(value) {
         _this.rawTriggerValue = value;
     };
 
-    this.updateSmoothedTrigger = function () {
+    this.updateSmoothedTrigger = function() {
         var triggerValue = this.rawTriggerValue;
         // smooth out trigger value
         this.triggerValue = (this.triggerValue * TRIGGER_SMOOTH_RATIO) +
@@ -412,10 +422,9 @@ function MyController(hand) {
                         this.setState(STATE_NEAR_GRABBING);
                         return;
                     }
-                } else if (! entityIsGrabbedByOther(intersection.entityID)) {
+                } else if (!entityIsGrabbedByOther(intersection.entityID)) {
                     // don't allow two people to distance grab the same object
-                    if (intersection.properties.collisionsWillMove
-                        && !intersection.properties.locked) {
+                    if (intersection.properties.collisionsWillMove && !intersection.properties.locked) {
                         // the hand is far from the intersected object.  go into distance-holding mode
                         this.grabbedEntity = intersection.entityID;
                         this.setState(STATE_DISTANCE_HOLDING);
@@ -434,10 +443,18 @@ function MyController(hand) {
             Entities.addEntity({
                 type: "Sphere",
                 name: "Grab Debug Entity",
-                dimensions: {x: GRAB_RADIUS, y: GRAB_RADIUS, z: GRAB_RADIUS},
+                dimensions: {
+                    x: GRAB_RADIUS,
+                    y: GRAB_RADIUS,
+                    z: GRAB_RADIUS
+                },
                 visible: true,
                 position: handPosition,
-                color: { red: 0, green: 255, blue: 0},
+                color: {
+                    red: 0,
+                    green: 255,
+                    blue: 0
+                },
                 lifetime: 0.1
             });
         }
@@ -704,7 +721,7 @@ function MyController(hand) {
                 Entities.callEntityMethod(this.grabbedEntity, "setLeftHand");
             }
             Entities.callEntityMethod(this.grabbedEntity, "startNearGrab");
-      
+
             setEntityCustomData('hifiHoldActionKey', this.grabbedEntity, {
                 holdActionID: this.actionID
             })
@@ -758,7 +775,7 @@ function MyController(hand) {
 
         if (this.actionTimeout - now < ACTION_TTL_REFRESH * MSEC_PER_SEC) {
             // if less than a 5 seconds left, refresh the actions ttl
-            Entities.updateAction(this.grabbedEntity, this.actionID, {
+            var success = Entities.updateAction(this.grabbedEntity, this.actionID, {
                 hand: this.hand === RIGHT_HAND ? "right" : "left",
                 timeScale: NEAR_GRABBING_ACTION_TIMEFRAME,
                 relativePosition: this.offsetPosition,
@@ -767,6 +784,8 @@ function MyController(hand) {
                 kinematic: NEAR_GRABBING_KINEMATIC,
                 kinematicSetVelocity: true
             });
+
+            print('Action update success:::' + success);
             this.actionTimeout = now + (ACTION_TTL * MSEC_PER_SEC);
         }
     };
@@ -944,7 +963,13 @@ function MyController(hand) {
             data["gravity"] = grabbedProperties.gravity;
             data["ignoreForCollisions"] = grabbedProperties.ignoreForCollisions;
             data["collisionsWillMove"] = grabbedProperties.collisionsWillMove;
-            var whileHeldProperties = {gravity: {x:0, y:0, z:0}};
+            var whileHeldProperties = {
+                gravity: {
+                    x: 0,
+                    y: 0,
+                    z: 0
+                }
+            };
             if (invertSolidWhileHeld) {
                 whileHeldProperties["ignoreForCollisions"] = !grabbedProperties.ignoreForCollisions;
             }

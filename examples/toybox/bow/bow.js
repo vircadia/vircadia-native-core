@@ -416,35 +416,12 @@
             return arrowPosition;
         },
 
-        orientationOf: function(vector) {
-            var Y_AXIS = {
-                x: 0,
-                y: 1,
-                z: 0
-            };
-            var X_AXIS = {
-                x: 1,
-                y: 0,
-                z: 0
-            };
-
-            var theta = 0.0;
-
-            var RAD_TO_DEG = 180.0 / Math.PI;
-            var direction, yaw, pitch;
-            direction = Vec3.normalize(vector);
-            yaw = Quat.angleAxis(Math.atan2(direction.x, direction.z) * RAD_TO_DEG, Y_AXIS);
-            pitch = Quat.angleAxis(Math.asin(-direction.y) * RAD_TO_DEG, X_AXIS);
-            return Quat.multiply(yaw, pitch);
-        },
-
-
         updateArrowPositionInNotch: function() {
             //move it backwards
-         
 
-            var handToNotch = Vec3.subtract(this.notchDetectorPosition,this.stringData.handPosition);
-             print('h2n:::'+JSON.stringify(handToNotch))
+
+            var handToNotch = Vec3.subtract(this.notchDetectorPosition, this.stringData.handPosition);
+            print('h2n:::' + JSON.stringify(handToNotch))
             var pullBackDistance = Vec3.length(handToNotch);
 
             if (pullBackDistance >= 0.6) {
@@ -461,16 +438,16 @@
 
             var arrowRotation = Quat.rotationBetween(Vec3.FRONT, handToNotch);
 
-             print('ARROW ROTATION:: ' + JSON.stringify(arrowRotation));
+            print('ARROW ROTATION:: ' + JSON.stringify(arrowRotation));
             Entities.editEntity(this.arrow, {
                 position: finalArrowPosition,
                 rotation: arrowRotation
             })
 
-           var currentRotation = Entities.getEntityProperties(this.arrow, "rotation").rotation
-               //  print('ACTUAL ARROW ROTATION::' +JSON.stringify(currentRotation));
+            var currentRotation = Entities.getEntityProperties(this.arrow, "rotation").rotation
+                //  print('ACTUAL ARROW ROTATION::' +JSON.stringify(currentRotation));
 
-          // print('DIFFERENCE::: ' + (1 - Quat.dot(arrowRotation, currentRotation)));
+            // print('DIFFERENCE::: ' + (1 - Quat.dot(arrowRotation, currentRotation)));
             // if (this.arrowIsBurning === true) {
             //     Entities.editEntity(this.fire, {
             //         position: arrowTipPosition
@@ -486,7 +463,7 @@
             var handToNotch = Vec3.subtract(this.notchDetectorPosition, this.stringData.handPosition);
             var pullBackDistance = Vec3.length(handToNotch);
 
-            var arrowRotation = this.orientationOf(handToNotch);
+            var arrowRotation =  Quat.rotationBetween(Vec3.FRONT, handToNotch);
 
             print('HAND DISTANCE:: ' + pullBackDistance);
             var arrowForce = this.scaleArrowShotStrength(pullBackDistance, 0, 2, 20, 50);
@@ -538,7 +515,7 @@
             var detectorProperties = {
                 name: 'Hifi-NotchDetector',
                 type: 'Box',
-                visible: true,
+                visible: false,
                 collisionsWillMove: false,
                 ignoreForCollisions: true,
                 dimensions: NOTCH_DETECTOR_DIMENSIONS,
@@ -572,7 +549,7 @@
 
             Entities.editEntity(this.notchDetector, {
                 position: this.notchDetectorPosition,
-                rotation:this.bowProperties.rotation
+                rotation: this.bowProperties.rotation
             });
         },
 
