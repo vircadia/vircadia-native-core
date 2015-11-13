@@ -21,8 +21,8 @@ namespace render {
         int _drawItemBoundDimLoc = -1;
         int _drawItemStatusPosLoc = -1;
         int _drawItemStatusDimLoc = -1;
-		int _drawItemStatusValue0Loc = -1;
-		int _drawItemStatusValue1Loc = -1;
+        int _drawItemStatusValue0Loc = -1;
+        int _drawItemStatusValue1Loc = -1;
 
         gpu::Stream::FormatPointer _drawItemFormat;
         gpu::PipelinePointer _drawItemBoundsPipeline;
