@@ -119,32 +119,33 @@ function update(deltaTime) {
     }
 }
 
-var kickbackAmount = 0.5;
-var k = 1;
+var kickbackAmount = -0.5;
+var k = 0;
+var decaySpeed = .1;
 var kickback = function(animationProperties) {
-    targetHandWorldPosition= Vec3.mix(finalTargetHandWorldPosition,  targetHandWorldPosition, 0.1);
-    // print("WORLD POS " + JSON.stringify(targetHandWorldPosition));
-    var targetHandModelPosition = worldToModel(targetHandWorldPosition);
-    print("MODEL POS " + JSON.stringify(targetHandModelPosition));
+    var currentTargetHandWorldPosition= Vec3.mix(startingTargetHandWorldPosition, finalTargetHandWorldPosition, k);
+    k += decaySpeed;
+    // print("WORLD POS " + JSON.stringify(startingTargetHandWorldPosition));
+    var targetHandModelPosition = worldToModel(currentTargetHandWorldPosition);
     var result = {};
     result[animVarName] = targetHandModelPosition;
     return result;
 }
 
 
-var finalTargetHandWorldPosition, targetHandWorldPosition;
+var finalTargetHandWorldPosition, startingTargetHandWorldPosition;
 
 function startKickback() {
     if (!handlerId) {
         updateMyCoordinateSystem();
         finalTargetHandWorldPosition = MyAvatar.getJointPosition(rightHandJointIndex);
-        targetHandWorldPosition = Vec3.sum(finalTargetHandWorldPosition, {x: 0, y: kickbackAmount, y: 0});
+        startingTargetHandWorldPosition = Vec3.sum(finalTargetHandWorldPosition, {x: 0, y: 0.5, z: 0});
         handlerId = MyAvatar.addAnimationStateHandler(kickback, [animVarName]);
         Script.setTimeout(function() {
             MyAvatar.removeAnimationStateHandler(handlerId);
             handlerId = null;
             k = 0;
-        }, 1000);
+        }, 200);
     }
 }
 
