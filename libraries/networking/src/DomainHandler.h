@@ -35,6 +35,7 @@ class DomainHandler : public QObject {
 public:
     DomainHandler(QObject* parent = 0);
     
+    void disconnect();
     void clearSettings();
 
     const QUuid& getUUID() const { return _uuid; }
@@ -112,7 +113,6 @@ signals:
     void settingsReceiveFail();
 
 private:
-    void disconnect();
     void sendDisconnectPacket();
     void hardReset();
 

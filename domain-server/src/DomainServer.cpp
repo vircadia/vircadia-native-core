@@ -1832,7 +1832,21 @@ void DomainServer::processNodeDisconnectRequestPacket(QSharedPointer<NLPacket> p
     // This packet has been matched to a source node and they're asking not to be in the domain anymore
     auto limitedNodeList = DependencyManager::get<LimitedNodeList>();
     
-    qDebug() << "Received a disconnect request from node with UUID" << packet->getSourceID();
+    const QUuid& nodeUUID = packet->getSourceID();
     
-    limitedNodeList->killNodeWithUUID(packet->getSourceID());
+    qDebug() << "Received a disconnect request from node with UUID" << nodeUUID;
+    
+    if (limitedNodeList->nodeWithUUID(nodeUUID)) {
+        limitedNodeList->killNodeWithUUID(nodeUUID);
+        
+        static auto removedNodePacket = NLPacket::create(PacketType::DomainServerRemovedNode, NUM_BYTES_RFC4122_UUID);
+        
+        removedNodePacket->reset();
+        removedNodePacket->write(nodeUUID.toRfc4122());
+    
+        // broadcast out the DomainServerRemovedNode message
+        limitedNodeList->eachNode([&limitedNodeList](const SharedNodePointer& otherNode){
+            limitedNodeList->sendUnreliablePacket(*removedNodePacket, *otherNode);
+        });
+    }
 }
