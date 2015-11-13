@@ -24,16 +24,7 @@
     var isJoiningTheEvent = false;
     var _this;
     
-    function update(){
-        var userData = JSON.parse(Entities.getEntityProperties(_this.entityID, ["userData"]).userData);
-        var valueToCheck = userData.myKey.valueToCheck;
-        if(valueToCheck && !isJoiningTheEvent){
-            _this.sendMessage();
-        }else if((!valueToCheck && isJoiningTheEvent) || (isJoiningTheEvent && !insideArea)){
-            _this.stopMessage();
-        }
-        
-    }
+    
 
     function ParamsEntity() {
         _this = this;
@@ -42,10 +33,19 @@
     
     
     ParamsEntity.prototype = {
+        update: function(){
+            var userData = JSON.parse(Entities.getEntityProperties(_this.entityID, ["userData"]).userData);
+            var valueToCheck = userData.myKey.valueToCheck;
+            if(valueToCheck && !isJoiningTheEvent){
+                _this.sendMessage();
+            }else if((!valueToCheck && isJoiningTheEvent) || (isJoiningTheEvent && !insideArea)){
+                _this.stopMessage();
+            }
+        },
         preload: function(entityID) {
             print('entity loaded')
             this.entityID = entityID;
-            Script.update.connect(update);
+            Script.update.connect(_this.update);
         },
         enterEntity: function(entityID) {       
             print("enterEntity("+entityID+")");
@@ -75,6 +75,9 @@
                 print("The event ended");
                 isJoiningTheEvent = false;
             }
+        },
+        clean: function(entityID) {
+            Script.update.disconnect(_this.update);
         }
     }
     
