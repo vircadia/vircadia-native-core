@@ -22,6 +22,8 @@
 #ifndef hifi_OctreePacketData_h
 #define hifi_OctreePacketData_h
 
+#include <atomic>
+
 #include <QByteArray>
 #include <QString>
 #include <QUuid>
@@ -34,6 +36,8 @@
 
 #include "OctreeConstants.h"
 #include "OctreeElement.h"
+
+using AtomicUIntStat = std::atomic<uintmax_t>;
 
 typedef unsigned char OCTREE_PACKET_FLAGS;
 typedef uint16_t OCTREE_PACKET_SEQUENCE;
@@ -286,15 +290,15 @@ private:
 
     static bool _debug;
 
-    static quint64 _compressContentTime;
-    static quint64 _compressContentCalls;
+    static AtomicUIntStat _compressContentTime;
+    static AtomicUIntStat _compressContentCalls;
 
-    static quint64 _totalBytesOfOctalCodes;
-    static quint64 _totalBytesOfBitMasks;
-    static quint64 _totalBytesOfColor;
-    static quint64 _totalBytesOfValues;
-    static quint64 _totalBytesOfPositions;
-    static quint64 _totalBytesOfRawData;
+    static AtomicUIntStat _totalBytesOfOctalCodes;
+    static AtomicUIntStat _totalBytesOfBitMasks;
+    static AtomicUIntStat _totalBytesOfColor;
+    static AtomicUIntStat _totalBytesOfValues;
+    static AtomicUIntStat _totalBytesOfPositions;
+    static AtomicUIntStat _totalBytesOfRawData;
 };
 
 #endif // hifi_OctreePacketData_h
