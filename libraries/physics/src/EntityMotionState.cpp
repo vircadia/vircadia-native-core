@@ -244,7 +244,7 @@ bool EntityMotionState::isCandidateForOwnership(const QUuid& sessionID) const {
         return false;
     }
     assert(entityTreeIsLocked());
-    return _outgoingPriority != NO_PRORITY || sessionID == _entity->getSimulatorID();
+    return _outgoingPriority != NO_PRORITY || sessionID == _entity->getSimulatorID() || _entity->actionDataNeedsTransmit();
 }
 
 bool EntityMotionState::remoteSimulationOutOfSync(uint32_t simulationStep) {
@@ -296,6 +296,10 @@ bool EntityMotionState::remoteSimulationOutOfSync(uint32_t simulationStep) {
         setOutgoingPriority(SCRIPT_EDIT_SIMULATION_PRIORITY);
         _entity->setActionDataNeedsTransmit(false);
         return true;
+    }
+
+    if (_entity->shouldSuppressLocationEdits()) {
+        return false;
     }
 
     // Else we measure the error between current and extrapolated transform (according to expected behavior
