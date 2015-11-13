@@ -17,6 +17,9 @@
 #include <EntityItem.h>
 #include <ObjectActionSpring.h>
 
+#include "avatar/MyAvatar.h"
+
+
 class AvatarActionHold : public ObjectActionSpring {
 public:
     AvatarActionHold(const QUuid& id, EntityItemPointer ownerEntity);
@@ -31,6 +34,8 @@ public:
     virtual void deserialize(QByteArray serializedArguments);
 
     virtual bool shouldSuppressLocationEdits() { return _active && !_ownerEntity.expired(); }
+
+    std::shared_ptr<Avatar> getTarget(glm::quat& rotation, glm::vec3& position);
 
 private:
     static const uint16_t holdVersion;
