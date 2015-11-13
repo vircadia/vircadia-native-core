@@ -158,12 +158,12 @@ function fire(side, value) {
     if (intersection.intersects) {
 
         Script.setTimeout(function() {
+            createEntityHitEffect(intersection.intersection);
             if (shootAnything && intersection.properties.collisionsWillMove === true) {
                 // Any entity with collisions will move can be shot
                 Entities.editEntity(intersection.entityID, {
                     velocity: Vec3.multiply(shotDirection, GUN_FORCE)
                 });
-                createEntityHitEffect(intersection.intersection);
             } else {
                 
             }
@@ -171,8 +171,6 @@ function fire(side, value) {
 
     }
 }
-
-function 
 
 
 function scriptEnding() {
