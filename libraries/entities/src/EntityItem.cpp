@@ -1749,6 +1749,7 @@ void EntityItem::checkWaitingToRemove(EntitySimulation* simulation) {
     assertLocked();
     foreach(QUuid actionID, _actionsToRemove) {
         removeActionInternal(actionID, simulation);
+        setActionDataDirty(true);
         setActionDataNeedsTransmit(true);
     }
     _actionsToRemove.clear();
