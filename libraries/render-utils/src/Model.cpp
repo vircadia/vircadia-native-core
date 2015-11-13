@@ -89,11 +89,7 @@ void Model::setScale(const glm::vec3& scale) {
 }
 
 void Model::setScaleInternal(const glm::vec3& scale) {
-    float scaleLength = glm::length(_scale);
-    float relativeDeltaScale = glm::length(_scale - scale) / scaleLength;
-
-    const float ONE_PERCENT = 0.01f;
-    if (relativeDeltaScale > ONE_PERCENT || scaleLength < EPSILON) {
+    if (glm::distance(_scale, scale) > METERS_PER_MILLIMETER) {
         _scale = scale;
         initJointTransforms();
     }
@@ -1099,10 +1095,12 @@ void Model::setGeometry(const QSharedPointer<NetworkGeometry>& newGeometry) {
 
 void Model::deleteGeometry() {
     _blendedVertexBuffers.clear();
-    _rig->clearJointStates();
     _meshStates.clear();
-    _rig->deleteAnimations();
-    _rig->destroyAnimGraph();
+    if (_rig) {
+        _rig->clearJointStates();
+        _rig->deleteAnimations();
+        _rig->destroyAnimGraph();
+    }
     _blendedBlendshapeCoefficients.clear();
 }
 

@@ -240,6 +240,7 @@ int OctreeInboundPacketProcessor::sendNackPackets() {
 
     auto nodeList = DependencyManager::get<NodeList>();
     int packetsSent = 0;
+    int totalBytesSent = 0;
 
     NodeToSenderStatsMapIterator i = _singleSenderStats.begin();
     while (i != _singleSenderStats.end()) {
@@ -291,11 +292,14 @@ int OctreeInboundPacketProcessor::sendNackPackets() {
             packetsSent += nackPacketList->getNumPackets();
 
             // send the list of nack packets
-            nodeList->sendPacketList(std::move(nackPacketList), *destinationNode);
+            totalBytesSent += nodeList->sendPacketList(std::move(nackPacketList), *destinationNode);
         }
         
         ++i;
     }
+
+    OctreeSendThread::_totalPackets += packetsSent;
+    OctreeSendThread::_totalBytes += totalBytesSent;
 
     return packetsSent;
 }

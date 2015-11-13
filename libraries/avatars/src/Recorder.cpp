@@ -10,6 +10,7 @@
 //
 
 
+#if 0
 #include <GLMHelpers.h>
 #include <NodeList.h>
 #include <StreamUtils.h>
@@ -143,3 +144,4 @@ void Recorder::record() {
 void Recorder::recordAudio(const QByteArray& audioByteArray) {
     _recording->addAudioPacket(audioByteArray);
 }
+#endif
