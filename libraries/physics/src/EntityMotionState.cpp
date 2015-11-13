@@ -294,7 +294,6 @@ bool EntityMotionState::remoteSimulationOutOfSync(uint32_t simulationStep) {
 
     if (_entity->actionDataNeedsTransmit()) {
         setOutgoingPriority(SCRIPT_EDIT_SIMULATION_PRIORITY);
-        _entity->setActionDataNeedsTransmit(false);
         return true;
     }
 
@@ -457,7 +456,10 @@ void EntityMotionState::sendUpdate(OctreeEditPacketSender* packetSender, const Q
     properties.setVelocity(_serverVelocity);
     properties.setAcceleration(_serverAcceleration);
     properties.setAngularVelocity(_serverAngularVelocity);
-    properties.setActionData(_serverActionData);
+    if (_entity->actionDataNeedsTransmit()) {
+        _entity->setActionDataNeedsTransmit(false);
+        properties.setActionData(_serverActionData);
+    }
 
     // set the LastEdited of the properties but NOT the entity itself
     quint64 now = usecTimestampNow();
