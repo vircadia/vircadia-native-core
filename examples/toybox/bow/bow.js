@@ -177,6 +177,7 @@
                     this.hasArrowNotched = userData.hifiBowKey.hasArrowNotched;
 
                     this.arrow = userData.hifiBowKey.arrowID;
+                    this.arrowIsBurning = userData.hifiBowKey.isBurning;
 
                     setEntityCustomData('grabbableKey', this.entityID, {
                         turnOffOtherHand: true,
@@ -432,7 +433,6 @@
                 this.stringDrawn = true;
                 this.createStrings();
                 var arrowTracker = this.createArrowTracker(this.arrow);
-                print('ARROW TRACKER IS:::' + JSON.stringify(arrowTracker));
                 this.arrowTrackers.push(arrowTracker)
                 this.stringData.handPosition = this.getStringHandPosition();
                 this.stringData.handRotation = this.getStringHandRotation();
@@ -456,8 +456,6 @@
 
         updateArrowPositionInNotch: function() {
             //move it backwards
-
-
             var handToNotch = Vec3.subtract(this.notchDetectorPosition, this.stringData.handPosition);
             var pullBackDistance = Vec3.length(handToNotch);
 
@@ -468,6 +466,7 @@
             var pullBackOffset = Vec3.multiply(handToNotch, -pullBackDistance);
             var arrowPosition = Vec3.sum(this.notchDetectorPosition, pullBackOffset);
 
+            //move it forward a bit
             var pushForwardOffset = Vec3.multiply(handToNotch, -ARROW_OFFSET);
             var finalArrowPosition = Vec3.sum(arrowPosition, pushForwardOffset);
 
@@ -481,7 +480,6 @@
         },
 
         releaseArrow: function() {
-
             print('RELEASE ARROW!!!')
 
             var handToNotch = Vec3.subtract(this.notchDetectorPosition, this.stringData.handPosition);
@@ -489,7 +487,6 @@
             if (pullBackDistance >= 0.6) {
                 pullBackDistance = 0.6;
             }
-
 
             var arrowRotation = Quat.rotationBetween(Vec3.FRONT, handToNotch);
 
@@ -502,7 +499,6 @@
                 rotation: arrowRotation,
                 velocity: forwardVec
             };
-
 
             Entities.editEntity(this.arrow, arrowProperties);
 
@@ -637,7 +633,7 @@
                 animationSettings: animationSettings,
                 textures: "https://hifi-public.s3.amazonaws.com/alan/Particles/Particle-Sprite-Smoke-1.png",
                 emitRate: 100,
-                position: MyAvatar.position,
+                position: this.bowProperties.position,
                 colorStart: {
                     red: 70,
                     green: 70,
@@ -656,7 +652,7 @@
                 radiusSpread: 0.01,
                 radiusStart: 0.02,
                 radiusEnd: 0.001,
-                particleRadius: 0.05,
+                particleRadius: 0.5,
                 radiusFinish: 0.0,
                 emitOrientation: myOrientation,
                 emitSpeed: 0.3,
@@ -689,6 +685,9 @@
         createArrowTracker: function(arrow, isBurning) {
             print('in create arrow tracker:::' + arrow)
             var _t = this;
+
+            var isBurning =  this.arrowIsBurning;
+            //delete this line below once debugging is done
             var isBurning = isBurning || true;
             var arrowTracker = {
                 arrowID: arrow,
@@ -728,15 +727,26 @@
                     this.childEntities.push(this.fireParticleSystem);
                 },
                 updateChildEntities: function(arrowID) {
-                    //  print('ARROWID??'+arrowID)
-                    //  print('UPDATING CHILDREN OF TRACKER:::' + this.childEntities.length+" ARROW::"+arrowID);
+
+                    print('UPDATING CHILDREN OF TRACKER:::' + this.childEntities.length);
                     var arrowProperties = Entities.getEntityProperties(this.arrowID, ["position", "rotation"]);
+
+                    //update the positions
+                    this.soundEntities.forEach(function(injector) {
+                        var audioProperties = {
+                            volume: 0.25,
+                            position: arrowProperties.position
+                        };
+                        injector.options = audioProperties;
+                    })
+
                     this.childEntities.forEach(function(child) {
                         Entities.editEntity(child, {
                             position: arrowProperties.position,
                             rotation: arrowProperties.rotation
                         })
                     })
+                    
                 }
             };
             arrowTracker.init();
@@ -746,12 +756,25 @@
             return arrowTracker
         },
         createWhizzingSound: function() {
-            var sound;
-            return sound
+            var audioProperties = {
+                volume: 0.25,
+                position: this.bowProperties.position,
+                loop: true
+            };
+            var injector = Audio.playSound(this.shootArrowSound, audioProperties);
+
+            return injector
         },
-        createFireSound: function() {
-            var sound;
-            return sound
+        createFireBurningSound: function() {
+            var audioProperties = {
+                volume: 0.25,
+                position: this.bowProperties.position,
+                loop: true
+            };
+
+            var injector = Audio.playSound(this.fireBurningSound, audioProperties);
+
+            return injector
         },
         createGlowBoxAsModel: function() {
             var modelURL = 'http://hifi-content.s3.amazonaws.com/james/bow_and_arrow/models/glowBox.fbx';
@@ -810,7 +833,6 @@
                 //     }
                 // })
             }
-
             var glowBox = Entities.addEntity(properties);
             return glowBox
         },
@@ -822,7 +844,22 @@
                 // print('TRACKER ARROW ID'+tracker.arrowID)
                 tracker.updateChildEntities(arrowID);
             })
-        }
+        },
+        playStringPullSound: function() {
+            var audioProperties = {
+                volume: 0.25,
+                position: this.bowProperties.position
+            };
+            this.stringPullInjector = Audio.playSound(this.stringPullSound, audioProperties);
+        },
+        playShootArrowSound: function(sound) {
+            var audioProperties = {
+                volume: 0.25,
+                position: this.bowProperties.position
+            };
+            Audio.playSound(this.shootArrowSound, audioProperties);
+        },
+
 
     };
 

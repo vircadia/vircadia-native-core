@@ -29,7 +29,7 @@ var BOW_GRAVITY = {
 
 var center = Vec3.sum(Vec3.sum(MyAvatar.position, {
     x: 0,
-    y: 0,
+    y: 0.5,
     z: 0
 }), Vec3.multiply(1, Quat.getFront(Camera.getOrientation())));
 
