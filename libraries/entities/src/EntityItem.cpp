@@ -1629,6 +1629,7 @@ bool EntityItem::removeActionInternal(const QUuid& actionID, EntitySimulation* s
         bool success = true;
         serializeActions(success, _allActionsDataCache);
         _dirtyFlags |= Simulation::DIRTY_PHYSICS_ACTIVATION;
+        setActionDataNeedsTransmit(true);
         return success;
     }
     return false;
@@ -1749,8 +1750,6 @@ void EntityItem::checkWaitingToRemove(EntitySimulation* simulation) {
     assertLocked();
     foreach(QUuid actionID, _actionsToRemove) {
         removeActionInternal(actionID, simulation);
-        setActionDataDirty(true);
-        setActionDataNeedsTransmit(true);
     }
     _actionsToRemove.clear();
 }
