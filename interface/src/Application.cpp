@@ -836,8 +836,9 @@ void Application::cleanupBeforeQuit() {
     
     auto nodeList = DependencyManager::get<NodeList>();
     
-    // send the domain a disconnect packet, force a clear of the IP so we can't
+    // send the domain a disconnect packet, force stoppage of domain-server check-ins
     nodeList->getDomainHandler().disconnect();
+    nodeList->setIsShuttingDown(true);
     
     // tell the packet receiver we're shutting down, so it can drop packets
     nodeList->getPacketReceiver().setShouldDropPackets(true);

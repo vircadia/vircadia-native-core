@@ -66,6 +66,8 @@ public:
 
     void setAssignmentServerSocket(const HifiSockAddr& serverSocket) { _assignmentServerSocket = serverSocket; }
     void sendAssignment(Assignment& assignment);
+    
+    void setIsShuttingDown(bool isShuttingDown) { _isShuttingDown = isShuttingDown; }
 
 public slots:
     void reset();
@@ -115,6 +117,7 @@ private:
     DomainHandler _domainHandler;
     int _numNoReplyDomainCheckIns;
     HifiSockAddr _assignmentServerSocket;
+    bool _isShuttingDown { false };
 };
 
 #endif // hifi_NodeList_h
