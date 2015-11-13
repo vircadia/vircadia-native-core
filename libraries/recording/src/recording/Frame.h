@@ -21,7 +21,8 @@ namespace recording {
 struct Frame {
 public:
     using Pointer = std::shared_ptr<Frame>;
-    using Handler = std::function<void(Frame::Pointer frame)>;
+    using ConstPointer = std::shared_ptr<const Frame>;
+    using Handler = std::function<void(Frame::ConstPointer frame)>;
 
     static const FrameType TYPE_INVALID = 0xFFFF;
     static const FrameType TYPE_HEADER = 0x0;
@@ -37,7 +38,7 @@ public:
     static QMap<QString, FrameType> getFrameTypes();
     static QMap<FrameType, QString> getFrameTypeNames();
     static Handler registerFrameHandler(FrameType type, Handler handler);
-    static void handleFrame(const Pointer& frame);
+    static void handleFrame(const ConstPointer& frame);
 };
 
 }

@@ -46,9 +46,6 @@ public:
     Time position() const;
     void seek(Time position);
 
-    void setPlaybackSpeed(float factor) { _playbackSpeed = factor; }
-    float getPlaybackSpeed() { return _playbackSpeed; }
-
 signals:
     void playbackStateChanged();
 
@@ -62,7 +59,6 @@ private:
     Clips _clips;
     quint64 _startEpoch { 0 };
     Time _position { 0 };
-    float _playbackSpeed { 1.0f };
     bool _pause { true };
     bool _loop { false };
     Time _length { 0 };

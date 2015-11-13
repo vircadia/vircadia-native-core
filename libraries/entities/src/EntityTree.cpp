@@ -801,8 +801,13 @@ void EntityTree::update() {
     }
 }
 
+quint64 EntityTree::getAdjustedConsiderSince(quint64 sinceTime) {
+    return (sinceTime - DELETED_ENTITIES_EXTRA_USECS_TO_CONSIDER);
+}
+
+
 bool EntityTree::hasEntitiesDeletedSince(quint64 sinceTime) {
-    quint64 considerEntitiesSince = sinceTime - DELETED_ENTITIES_EXTRA_USECS_TO_CONSIDER;
+    quint64 considerEntitiesSince = getAdjustedConsiderSince(sinceTime);
 
     // we can probably leverage the ordered nature of QMultiMap to do this quickly...
     bool hasSomethingNewer = false;
@@ -828,88 +833,6 @@ bool EntityTree::hasEntitiesDeletedSince(quint64 sinceTime) {
 
     return hasSomethingNewer;
 }
-
-// sinceTime is an in/out parameter - it will be side effected with the last time sent out
-std::unique_ptr<NLPacket> EntityTree::encodeEntitiesDeletedSince(OCTREE_PACKET_SEQUENCE sequenceNumber, quint64& sinceTime,
-                                                                 bool& hasMore) {
-    quint64 considerEntitiesSince = sinceTime - DELETED_ENTITIES_EXTRA_USECS_TO_CONSIDER;
-    auto deletesPacket = NLPacket::create(PacketType::EntityErase);
-
-    // pack in flags
-    OCTREE_PACKET_FLAGS flags = 0;
-    deletesPacket->writePrimitive(flags);
-
-    // pack in sequence number
-    deletesPacket->writePrimitive(sequenceNumber);
-
-    // pack in timestamp
-    OCTREE_PACKET_SENT_TIME now = usecTimestampNow();
-    deletesPacket->writePrimitive(now);
-
-    // figure out where we are now and pack a temporary number of IDs
-    uint16_t numberOfIDs = 0;
-    qint64 numberOfIDsPos = deletesPacket->pos();
-    deletesPacket->writePrimitive(numberOfIDs);
-
-    // we keep a multi map of entity IDs to timestamps, we only want to include the entity IDs that have been
-    // deleted since we last sent to this node
-    {
-        QReadLocker locker(&_recentlyDeletedEntitiesLock);
-
-        bool hasFilledPacket = false;
-
-        auto it = _recentlyDeletedEntityItemIDs.constBegin();
-        while (it != _recentlyDeletedEntityItemIDs.constEnd()) {
-            QList<QUuid> values = _recentlyDeletedEntityItemIDs.values(it.key());
-            for (int valueItem = 0; valueItem < values.size(); ++valueItem) {
-
-                // if the timestamp is more recent then out last sent time, include it
-                if (it.key() > considerEntitiesSince) {
-                    QUuid entityID = values.at(valueItem);
-
-                    // FIXME - we still seem to see cases where incorrect EntityIDs get sent from the server
-                    // to the client. These were causing "lost" entities like flashlights and laser pointers
-                    // now that we keep around some additional history of the erased entities and resend that
-                    // history for a longer time window, these entities are not "lost". But we haven't yet
-                    // found/fixed the underlying issue that caused bad UUIDs to be sent to some users.
-                    deletesPacket->write(entityID.toRfc4122());
-                    ++numberOfIDs;
-
-                    #ifdef EXTRA_ERASE_DEBUGGING
-                        qDebug() << "EntityTree::encodeEntitiesDeletedSince() including:" << entityID;
-                    #endif
-
-                    // check to make sure we have room for one more ID
-                    if (NUM_BYTES_RFC4122_UUID > deletesPacket->bytesAvailableForWrite()) {
-                        hasFilledPacket = true;
-                        break;
-                    }
-                }
-            }
-
-            // check to see if we're about to return
-            if (hasFilledPacket) {
-                // let our caller know how far we got
-                sinceTime = it.key();
-                break;
-            }
-
-            ++it;
-        }
-
-        // if we got to the end, then we're done sending
-        if (it == _recentlyDeletedEntityItemIDs.constEnd()) {
-            hasMore = false;
-        }
-    }
-
-    // replace the count for the number of included IDs
-    deletesPacket->seek(numberOfIDsPos);
-    deletesPacket->writePrimitive(numberOfIDs);
-
-    return deletesPacket;
-}
-
 
 // called by the server when it knows all nodes have been sent deleted packets
 void EntityTree::forgetEntitiesDeletedBefore(quint64 sinceTime) {
