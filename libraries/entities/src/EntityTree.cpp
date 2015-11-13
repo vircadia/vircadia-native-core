@@ -198,6 +198,7 @@ bool EntityTree::updateEntityWithElement(EntityItemPointer entity, const EntityI
                 properties.setVelocityChanged(false);
                 properties.setAngularVelocityChanged(false);
                 properties.setAccelerationChanged(false);
+                properties.setActionDataChanged(false);
 
                 if (wantTerseEditLogging()) {
                     qCDebug(entities) << senderNode->getUUID() << "physical edits suppressed";
