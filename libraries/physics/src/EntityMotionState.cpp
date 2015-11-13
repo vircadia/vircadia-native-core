@@ -370,6 +370,10 @@ bool EntityMotionState::shouldSendUpdate(uint32_t simulationStep, const QUuid& s
     assert(_body);
     assert(entityTreeIsLocked());
 
+    if (_entity->actionDataNeedsTransmit()) {
+        return true;
+    }
+
     if (_entity->getSimulatorID() != sessionID) {
         // we don't own the simulation, but maybe we should...
         if (_outgoingPriority != NO_PRORITY) {
