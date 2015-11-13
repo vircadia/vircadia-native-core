@@ -1,16 +1,13 @@
 //
-//  gun.js
+//  pistol.js
 //  examples
 //
-//  Created by Brad Hefta-Gaub on 12/31/13.
-//  Modified by Philip on 3/3/14
-//  Modified by Thijs Wenker on 3/31/15
+//  Created by Eric Levin on 11/12/2015
 //  Copyright 2013 High Fidelity, Inc.
 //
 //  This is an example script that turns the hydra controllers and mouse into a entity gun.
-//  It reads the controller, watches for trigger pulls, and launches entities.
-//  When entities collide with voxels they blow little holes out of the voxels. 
-//
+//  It reads the controller, watches for trigger pulls, and adds a force to any entity it hits
+
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
@@ -19,8 +16,11 @@ Script.include("../libraries/utils.js");
 Script.include("../libraries/constants.js");
 
 var animVarName = "rightHandPosition";
-var handlerId;
-var jointName = "RightHand";
+var handlerId = null;
+var rightHandJoint = "RightHand";
+var rightHandJointIndex = MyAvatar.getJointIndex(rightHandJoint);
+var hipJoint = 'Hips';
+var myHipsJointIndex = MyAvatar.getJointIndex(hipJoint);
 
 var kickBackForce = 0.01;
 
@@ -69,7 +69,7 @@ var shootAnything = true;
 
 
 // For transforming between world space and our avatar's model space. 
-var myHipsJointIndex, avatarToModelTranslation, avatarToWorldTranslation, avatarToWorldRotation, worldToAvatarRotation;
+var avatarToModelTranslation, avatarToWorldTranslation, avatarToWorldRotation, worldToAvatarRotation;
 var avatarToModelRotation = Quat.angleAxis(180, {
     x: 0,
     y: 1,
@@ -78,6 +78,7 @@ var avatarToModelRotation = Quat.angleAxis(180, {
 var modelToAvatarRotation = Quat.inverse(avatarToModelRotation); // Flip 180 gives same result without inverse, but being explicit to track the math.
 
 function updateMyCoordinateSystem() {
+    print("SJHSJKHSJKHS")
     avatarToWorldTranslation = MyAvatar.position;
     avatarToWorldRotation = MyAvatar.orientation;
     worldToAvatarRotation = Quat.inverse(avatarToWorldRotation);
@@ -118,19 +119,37 @@ function update(deltaTime) {
     }
 }
 
+var kickbackAmount = 0.5;
+var k = 1;
 var kickback = function(animationProperties) {
-    var modelHandPosition = animationProperties[animVarName];
-    var worldHandPosition = modelToWorld(modelHandPosition);
-    var targetHandWorldPosition = Vec3.sum(worldHandPosition, {x: 0, y: .05, z: 0});
+    targetHandWorldPosition= Vec3.mix(finalTargetHandWorldPosition,  targetHandWorldPosition, 0.1);
+    // print("WORLD POS " + JSON.stringify(targetHandWorldPosition));
     var targetHandModelPosition = worldToModel(targetHandWorldPosition);
+    print("MODEL POS " + JSON.stringify(targetHandModelPosition));
     var result = {};
     result[animVarName] = targetHandModelPosition;
     return result;
-    
 }
 
-function triggerChanged(side, value) {
 
+var finalTargetHandWorldPosition, targetHandWorldPosition;
+
+function startKickback() {
+    if (!handlerId) {
+        updateMyCoordinateSystem();
+        finalTargetHandWorldPosition = MyAvatar.getJointPosition(rightHandJointIndex);
+        targetHandWorldPosition = Vec3.sum(finalTargetHandWorldPosition, {x: 0, y: kickbackAmount, y: 0});
+        handlerId = MyAvatar.addAnimationStateHandler(kickback, [animVarName]);
+        Script.setTimeout(function() {
+            MyAvatar.removeAnimationStateHandler(handlerId);
+            handlerId = null;
+            k = 0;
+        }, 1000);
+    }
+}
+
+
+function triggerChanged(side, value) {
     var pressed = (value != 0);
     if (pressed) {
         Audio.playSound(fireSound, {
@@ -164,19 +183,6 @@ function triggerChanged(side, value) {
                 }, 50);
             }
         }
-    }
-}
-
-function startKickback() {
-    if (!handlerId) {
-        handlerId = MyAvatar.addAnimationStateHandler(kickback, [animVarName]);
-        Script.setTimeout(function() {
-            kickBackForce *= -1;
-            Script.setTimeout(function() {
-                MyAvatar.removeAnimationStateHandler(handlerId);
-                handlerId = null;
-            }, 100)
-        }, 100);
     }
 }
 
