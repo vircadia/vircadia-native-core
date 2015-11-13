@@ -224,7 +224,6 @@ protected:
     void updateRadius(quint32 index, float age);
     void updateColor(quint32 index, float age);
     void updateAlpha(quint32 index, float age);
-    void extendBounds(const glm::vec3& point);
     void integrateParticle(quint32 index, float deltaTime);
     quint32 getLivingParticleCount() const;
     // the properties of this entity
@@ -289,9 +288,8 @@ protected:
     quint32 _particleTailIndex = 0;
 
     // bounding volume
-    glm::vec3 _particleMaxBound;
-    glm::vec3 _particleMinBound;
-
+    Extents _particlesBounds;
+    
     bool _additiveBlending;
 };
 

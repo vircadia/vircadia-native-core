@@ -121,8 +121,6 @@ ParticleEffectEntityItem::ParticleEffectEntityItem(const EntityItemID& entityIte
     _alphaStarts(DEFAULT_MAX_PARTICLES, DEFAULT_ALPHA),
     _alphaMiddles(DEFAULT_MAX_PARTICLES, DEFAULT_ALPHA),
     _alphaFinishes(DEFAULT_MAX_PARTICLES, DEFAULT_ALPHA),
-    _particleMaxBound(glm::vec3(1.0f, 1.0f, 1.0f)),
-    _particleMinBound(glm::vec3(-1.0f, -1.0f, -1.0f)) ,
     _additiveBlending(DEFAULT_ADDITIVE_BLENDING)
 {
 
@@ -631,15 +629,6 @@ void ParticleEffectEntityItem::updateAlpha(quint32 index, float age) {
         _alphaFinishes[index], age);
 }
 
-void ParticleEffectEntityItem::extendBounds(const glm::vec3& point) {
-    _particleMinBound.x = glm::min(_particleMinBound.x, point.x);
-    _particleMinBound.y = glm::min(_particleMinBound.y, point.y);
-    _particleMinBound.z = glm::min(_particleMinBound.z, point.z);
-    _particleMaxBound.x = glm::max(_particleMaxBound.x, point.x);
-    _particleMaxBound.y = glm::max(_particleMaxBound.y, point.y);
-    _particleMaxBound.z = glm::max(_particleMaxBound.z, point.z);
-}
-
 void ParticleEffectEntityItem::integrateParticle(quint32 index, float deltaTime) {
     glm::vec3 accel = _particleAccelerations[index];
     glm::vec3 atSquared = (0.5f * deltaTime * deltaTime) * accel;
@@ -649,9 +638,7 @@ void ParticleEffectEntityItem::integrateParticle(quint32 index, float deltaTime)
 }
 
 void ParticleEffectEntityItem::stepSimulation(float deltaTime) {
-
-    _particleMinBound = glm::vec3(-1.0f, -1.0f, -1.0f);
-    _particleMaxBound = glm::vec3(1.0f, 1.0f, 1.0f);
+    _particlesBounds.reset();
 
     // update particles between head and tail
     for (quint32 i = _particleHeadIndex; i != _particleTailIndex; i = (i + 1) % _maxParticles) {
@@ -667,7 +654,7 @@ void ParticleEffectEntityItem::stepSimulation(float deltaTime) {
             updateColor(i, age);
             updateAlpha(i, age);
             integrateParticle(i, deltaTime);
-            extendBounds(_particlePositions[i]);
+            _particlesBounds.addPoint(_particlePositions[i]);
         }
     }
 
@@ -766,7 +753,7 @@ void ParticleEffectEntityItem::stepSimulation(float deltaTime) {
                 _particleAccelerations[i] = _emitAcceleration + randFloatInRange(-1.0f, 1.0f) * _accelerationSpread;
             }
             integrateParticle(i, timeLeftInFrame);
-            extendBounds(_particlePositions[i]);
+            _particlesBounds.addPoint(_particlePositions[i]);
 
             // Color
             if (_colorSpread == xColor{ 0, 0, 0 }) {

@@ -272,37 +272,17 @@ void RenderableParticleEffectEntityItem::updateRenderItem() {
         }
 
         // update transform
-        glm::quat rot = getRotation();
-        glm::vec3 pos = getPosition();
-        Transform t;
-        t.setRotation(rot);
-        payload.setModelTransform(t);
+        glm::vec3 position = getPosition();
+        glm::quat rotation = getRotation();
+        Transform transform;
+        transform.setTranslation(position);
+        transform.setRotation(rotation);
+        payload.setModelTransform(transform);
 
-        // transform _particleMinBound and _particleMaxBound corners into world coords
-        glm::vec3 d = _particleMaxBound - _particleMinBound;
-        const size_t NUM_BOX_CORNERS = 8;
-        glm::vec3 corners[NUM_BOX_CORNERS] = {
-            pos + rot * (_particleMinBound + glm::vec3(0.0f, 0.0f, 0.0f)),
-            pos + rot * (_particleMinBound + glm::vec3(d.x, 0.0f, 0.0f)),
-            pos + rot * (_particleMinBound + glm::vec3(0.0f, d.y, 0.0f)),
-            pos + rot * (_particleMinBound + glm::vec3(d.x, d.y, 0.0f)),
-            pos + rot * (_particleMinBound + glm::vec3(0.0f, 0.0f, d.z)),
-            pos + rot * (_particleMinBound + glm::vec3(d.x, 0.0f, d.z)),
-            pos + rot * (_particleMinBound + glm::vec3(0.0f, d.y, d.z)),
-            pos + rot * (_particleMinBound + glm::vec3(d.x, d.y, d.z))
-        };
-        glm::vec3 min(FLT_MAX, FLT_MAX, FLT_MAX);
-        glm::vec3 max = -min;
-        for (size_t i = 0; i < NUM_BOX_CORNERS; i++) {
-            min.x = std::min(min.x, corners[i].x);
-            min.y = std::min(min.y, corners[i].y);
-            min.z = std::min(min.z, corners[i].z);
-            max.x = std::max(max.x, corners[i].x);
-            max.y = std::max(max.y, corners[i].y);
-            max.z = std::max(max.z, corners[i].z);
-        }
-        AABox bound(min, max - min);
-        payload.setBound(bound);
+        AABox bounds(_particlesBounds);
+        bounds.rotate(rotation);
+        bounds.shiftBy(position);
+        payload.setBound(bounds);
 
         bool textured = _texture && _texture->isLoaded();
         if (textured) {
