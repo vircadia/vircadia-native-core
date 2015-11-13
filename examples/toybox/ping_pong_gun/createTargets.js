@@ -39,6 +39,8 @@ var startPosition = {
     z: 509.74
 };
 
+startPosition=MyAvatar.position;
+
 var rotation = Quat.fromPitchYawRollDegrees(0, -55.25, 0);
 
 var targetIntervalClearer = Entities.addEntity({

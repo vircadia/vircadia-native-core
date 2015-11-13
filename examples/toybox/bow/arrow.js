@@ -25,41 +25,13 @@
 
     Arrow.prototype = {
         stickOnCollision: false,
-        glow: false,
-        glowBox: null,
-        isBurning: false,
         notched: false,
         preload: function(entityID) {
             this.entityID = entityID;
 
-            Script.update.connect(this.update);
-            // this.isBurning = this.checkIfBurning();
-            // if (this.isBurning === true || this.glow === true) {
-            //     Script.update.connect(this.updateArrowProperties);
-            // }
-            // if (this.isBurning === true) {
-            //     Script.update.connect(this.updateFirePosition);
-
-            // }
-            // if (this.glow === true && this.glowBow === null) {
-            //     this.createGlowBox();
-            //     Script.update.connect(this.updateGlowBoxPosition);
-            // }
         },
 
-        unload: function() {
-            Script.update.disconnect(this.update);
-            // Script.update.disconnect(this.updateArrowProperties);
-
-            // if (this.isBurning) {
-            //     Script.update.disconnect(this.updateFirePosition);
-
-            // }
-            // if (this.glowBox !== null) {
-            //     Script.update.disconnect(this.updateGlowBoxPosition);
-            // }
-
-        },
+        unload: function() {},
 
         continueNearGrab: function() {
             this.currentProperties = Entities.getEntityProperties(this.entityID, "position");
@@ -117,17 +89,8 @@
 
             Entities.editEntity(this.entityID, {
                 collisionsWillMove: false,
-                ignoreForCollisions: true,
-                velocity: {
-                    x: 0,
-                    y: 0,
-                    z: 0
-                },
-                angularVelocity: {
-                    x: 0,
-                    y: 0,
-                    z: 0
-                }
+                ignoreForCollisions: true
+
             })
 
             setEntityCustomData('hifiBowKey', bowID, {
@@ -136,84 +99,31 @@
             });
 
         },
-        update: function() {
 
-            //  var actions = Entities.getActionIDs(_this.entityID);
-            //  print('ACTIONS ON ME:::'+actions)
-        },
+        // collisionWithEntity: function(me, otherEntity, collision) {
+        //     print('ARROW HAD COLLISION')
+        //         //     if (this.stickOnCollision === true) {
+        //         //         print('ARROW SHOULD STICK')
+        //         //         Vec3.print('penetration = ', collision.penetration);
+        //         //         Vec3.print('collision contact point = ', collision.contactPoint);
+        //         //         Entities.editEntity(this.entityID, {
+        //         //             velocity: {
+        //         //                 x: 0,
+        //         //                 y: 0,
+        //         //                 z: 0
+        //         //             },
+        //         //             gravity: {
+        //         //                 x: 0,
+        //         //                 y: 0,
+        //         //                 z: 0
+        //         //             },
+        //         //             collisionsWillMove: false
 
-        checkIfBurning: function() {
-            var properties = Entities.getEntityProperties(this.entityID, "userData");
-            var userData = JSON.parse(properties.userData);
-            var fire = false;
+        //     //         })
+        //     //     }
 
-            if (userData.hasOwnProperty('hifiFireArrowKey')) {
-                this.fire = userData.hifiFireArrowKey.fire;
-                return true
-
-            } else {
-                return false;
-            }
-        },
-
-        createGlowBox: function() {
-            var glowBowProperties = {
-                name: 'Arrow Glow Box',
-                type: 'Box',
-                dimensions: {
-                    x: 0.02,
-                    y: 0.02,
-                    z: 0.64
-                },
-                color: {
-                    red: 255,
-                    green: 0,
-                    blue: 255
-                },
-            };
-
-            _this.glowBox = Entities.addEntity(glowBowProperties);
-        },
-
-        updateArrowProperties: function() {
-            _this.arrowProperties = Entities.getEntityProperties(_this.entityID, ["position", "rotation"]);
-        },
-
-        updateGlowBoxPosition: function() {
-            //once parenting is available, just attach the glowbow to the arrow
-            Entities.editEntity(_this.entityID, {
-                position: _this.arrowProperties.position,
-                rotation: _this.arrowProperties.rotation
-            })
-        },
-
-        updateFirePosition: function() {
-            //once parenting is available, just attach the glowbow to the arrow
-            Entities.editEntity(_this.entityID, {
-                position: _this.arrowProperties.position
-            })
-        },
-
-        collisionWithEntity: function(me, otherEntity, collision) {
-            print('ARROW HAD COLLISION')
-            if (this.stickOnCollision === true) {
-                Vec3.print('penetration = ', collision.penetration);
-                Vec3.print('collision contact point = ', collision.contactPoint);
-                Entities.editEntity(this.entityID, {
-                    velocity: {
-                        x: 0,
-                        y: 0,
-                        z: 0
-                    },
-                    gravity: {
-                        x: 0,
-                        y: 0,
-                        z: 0
-                    },
-                    collisionsWillMove: false
-
-                })
-            }
+        // },
+        playCollisionSound: function() {
 
         }
     }

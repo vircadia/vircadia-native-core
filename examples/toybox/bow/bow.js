@@ -25,6 +25,13 @@
 
     Script.include("../../libraries/utils.js");
 
+
+    var ARROW_DIMENSIONS = {
+        x: 0.02,
+        y: 0.02,
+        z: 0.64
+    };
+
     var ZERO_VEC = {
         x: 0,
         y: 0,
@@ -72,6 +79,14 @@
 
     var NOTCH_DETECTOR_DISTANCE = 0.1;
 
+    var SHOT_SCALE = {
+        min1: 0,
+        max1: 0.6,
+        min2: 5,
+        max2: 30
+    }
+
+
     var _this;
 
     function Bow() {
@@ -93,8 +108,6 @@
         hasArrowNotched: false,
         notchDetector: null,
         arrow: null,
-        arrowIsBurning: false,
-        fire: null,
         stringData: {
             currentColor: {
                 red: 255,
@@ -104,8 +117,15 @@
         },
 
         preload: function(entityID) {
+            print('preload bow')
             this.entityID = entityID;
             this.bowID = entityID;
+            Script.update.connect(this.updateArrowTrackers);
+
+        },
+
+        unload: function() {
+            Script.update.disconnect(this.updateArrowTrackers);
         },
 
         setLeftHand: function() {
@@ -137,13 +157,21 @@
         },
 
         continueNearGrab: function() {
+
+            // print('collidable bow' + Entities.getEntityProperties(this.entityID, "collisionsWillMove").collisionsWillMove)
+            // print('collidable arrow' + Entities.getEntityProperties(this.arrow, "collisionsWillMove").collisionsWillMove)
+            // print('collidable notch' + Entities.getEntityProperties(this.notchDetector, "collisionsWillMove").collisionsWillMove)
+            // print('collidable topstring' + Entities.getEntityProperties(this.topString, "collisionsWillMove").collisionsWillMove)
+            // print('collidable bottomstring' + Entities.getEntityProperties(this.bottomString, "collisionsWillMove").collisionsWillMove)
+            // print('collidable prenotchstring' + Entities.getEntityProperties(this.preNotchString, "collisionsWillMove").collisionsWillMove)
+
             this.bowProperties = Entities.getEntityProperties(this.entityID, ["position", "rotation", "userData"]);
             this.updateNotchDetectorPosition();
 
             //check to see if an arrow has notched itself in our notch detector
             var userData = JSON.parse(this.bowProperties.userData);
             if (userData.hasOwnProperty('hifiBowKey')) {
-                if (this.hasArrowNotched === false && userData.hifiBowKey.arrowID!==null) {
+                if (this.hasArrowNotched === false && userData.hifiBowKey.arrowID !== null) {
                     //notch the arrow
                     print('NOTCHING IT!')
                     this.hasArrowNotched = userData.hifiBowKey.hasArrowNotched;
@@ -169,7 +197,7 @@
             }
 
             if (this.preNotchString !== null && this.hasArrowNotched === false) {
-               // print('DRAW PRE NOTCH STRING')
+                // print('DRAW PRE NOTCH STRING')
                 this.drawPreNotchStrings();
             }
 
@@ -182,18 +210,18 @@
             //if we have an arrow notched, then draw some new strings
             if (this.hasArrowNotched === true) {
                 if (this.preNotchString !== null) {
-                    print('MAKE PRE NOTCH INVISIBLE')
+                    //  print('MAKE PRE NOTCH INVISIBLE')
                     Entities.editEntity(this.preNotchString, {
                         visible: false
                     });
                 }
-                print('CHECK STRING HAND')
-                    //only test for strings now that an arrow is notched
+                // print('CHECK STRING HAND')
+                //only test for strings now that an arrow is notched
                 this.checkStringHand();
 
             } else {
-             //   print('DONT DO ANYTHING')
-                    //otherwise, don't do much of anything.
+                //   print('DONT DO ANYTHING')
+                //otherwise, don't do much of anything.
 
             }
         },
@@ -203,15 +231,14 @@
                 this.isGrabbed = false;
                 this.stringDrawn = false;
                 this.deleteStrings();
-                this.hasArrow = false;
-                Entities.deleteEntity(this.arrow);
                 setEntityCustomData('grabbableKey', this.entityID, {
                     turnOffOtherHand: false,
                     invertSolidWhileHeld: true
                 });
                 Entities.deleteEntity(this.notchDetector);
-                this.notchDetector = null;
                 Entities.deleteEntity(this.preNotchString);
+
+                this.notchDetector = null;
                 this.preNotchString = null;
 
             }
@@ -404,6 +431,9 @@
                     //the first time aiming the arrow
                 this.stringDrawn = true;
                 this.createStrings();
+                var arrowTracker = this.createArrowTracker(this.arrow);
+                print('ARROW TRACKER IS:::' + JSON.stringify(arrowTracker));
+                this.arrowTrackers.push(arrowTracker)
                 this.stringData.handPosition = this.getStringHandPosition();
                 this.stringData.handRotation = this.getStringHandRotation();
                 this.stringData.grabHandPosition = this.getGrabHandPosition();
@@ -448,12 +478,6 @@
                 rotation: arrowRotation
             })
 
-            // if (this.arrowIsBurning === true) {
-            //     Entities.editEntity(this.fire, {
-            //         position: arrowTipPosition
-            //     });
-            // }
-
         },
 
         releaseArrow: function() {
@@ -462,11 +486,15 @@
 
             var handToNotch = Vec3.subtract(this.notchDetectorPosition, this.stringData.handPosition);
             var pullBackDistance = Vec3.length(handToNotch);
+            if (pullBackDistance >= 0.6) {
+                pullBackDistance = 0.6;
+            }
+
 
             var arrowRotation = Quat.rotationBetween(Vec3.FRONT, handToNotch);
 
             print('HAND DISTANCE:: ' + pullBackDistance);
-            var arrowForce = this.scaleArrowShotStrength(pullBackDistance, 0, 2, 10, 25);
+            var arrowForce = this.scaleArrowShotStrength(pullBackDistance);
             print('ARROW FORCE::' + arrowForce);
             var forwardVec = Vec3.multiply(handToNotch, arrowForce);
 
@@ -475,12 +503,14 @@
                 velocity: forwardVec
             };
 
+
+            Entities.editEntity(this.arrow, arrowProperties);
+
             setEntityCustomData('hifiBowKey', this.entityID, {
                 hasArrowNotched: false,
                 arrowID: null
             });
 
-            Entities.editEntity(this.arrow, arrowProperties);
             var arrowStore = this.arrow;
             this.arrow = null;
             this.hasArrowNotched = false;
@@ -492,24 +522,52 @@
             this.stringDrawn = false;
             this.deleteStrings();
 
-            Script.setTimeout(function() {
-                print('making arrow physical')
-                Entities.editEntity(arrowStore, {
-                    ignoreForCollisions: false,
-                    collisionsWillMove: true,
-                    gravity: ARROW_GRAVITY
-                });
-            }, 100)
+            //set an itnerval to heck how far the arrow is from the bow before adding gravity, etc.  if we add this too soon, the arrow collides with the bow.  hence, this function
 
+            this.physicalArrowInterval = Script.setInterval(function() {
+                print('in physical interval')
+                var arrowProps = Entities.getEntityProperties(arrowStore, "position");
+                var bowProps = Entities.getEntityProperties(_this.entityID, "position");
+                var arrowPosition = arrowProps.position;
+                var bowPosition = bowProps.position;
 
+                var length = Vec3.distance(arrowPosition, bowPosition);
+                print('LENGTH:::' + length);
+                if (length > 2) {
+                    print('make arrow physical' + arrowStore)
+                    Entities.editEntity(arrowStore, {
+                        ignoreForCollisions: false,
+                        collisionsWillMove: true,
+                        gravity: ARROW_GRAVITY
+                    });
+                    print('after make physical' + arrowStore)
+                    var arrowProps = Entities.getEntityProperties(arrowStore)
+                    print('arrowprops-collisions::' + arrowProps.collisionsWillMove);
+                    print('arrowprops-graviy' + JSON.stringify(arrowProps.gravity));
+                    Script.setTimeout(function() {
+                        print('in timeout :: ' + arrowStore)
+                        var arrowProps = Entities.getEntityProperties(arrowStore)
+                        print('arrowprops-gravity2' + JSON.stringify(arrowProps.gravity));
+                        print('ARROW USER DATA::' + arrowProps.userData)
+
+                    }, 1000)
+
+                    Script.clearInterval(_this.physicalArrowInterval)
+                }
+            }, 10)
 
         },
 
-        scaleArrowShotStrength: function(value, min1, max1, min2, max2) {
+        scaleArrowShotStrength: function(value) {
+            var min1 = SHOT_SCALE.min1;
+            var max1 = SHOT_SCALE.max1;
+            var min2 = SHOT_SCALE.min2;
+            var max2 = SHOT_SCALE.max2;
             return min2 + (max2 - min2) * ((value - min1) / (max1 - min1));
         },
 
         createNotchDetector: function() {
+            print('CREATE NOTCH DETECTOR')
             var detectorPosition;
             var frontVector = Quat.getFront(this.bowProperties.rotation);
             var notchVectorForward = Vec3.multiply(frontVector, NOTCH_DETECTOR_OFFSET_FORWARD);
@@ -560,8 +618,8 @@
             });
         },
 
-        setArrowOnFire: function() {
-
+        createFireParticleSystem: function() {
+            //will probably need to dynamically update the orientation to match the arrow???
             var myOrientation = Quat.fromPitchYawRollDegrees(-90, 0, 0.0);
 
             var animationSettings = JSON.stringify({
@@ -624,13 +682,134 @@
                 lifespan: 1
             });
 
-            setEntityCustomData('hifiFireArrowKey', this.arrow, {
-                fire: this.fire
+            return fire
 
-            });
+        },
+        createArrowTracker: function(arrow, isBurning) {
+            print('in create arrow tracker:::' + arrow)
+            var _t = this;
+            var isBurning = isBurning || false;
+            var arrowTracker = {
+                arrowID: arrow,
+                whizzingSound: _t.createWhizzingSound(),
+                fireSound: _t.createFireSound(),
+                glowBox: _t.createGlowBox(),
+                fireParticleSystem: isBurning === true ? _t.createFireParticleSystem() : null,
+                childEntities: [],
+                childSounds: [],
+                init: function() {
+                    print('init arrow tracker')
+                    this.setChildren();
+
+                },
+                setCollisionCallback: function() {
+                    print('set arrow tracker callback' + this.arrowID)
+
+                    Script.addEventHandler(this.arrowID, "collisionWithEntity", function(entityA, entityB, collision) {
+                        //how to get context here...?  maybe reverse lookup the tracker by entityA (arrow) id, to get the glowbox etc.
+                        print('ARROW COLLIDED WITH SOMETHING!' + this.glowBox)
+                            //this is global
+                        print('THIS IN COLLISION !' + this)
+
+                        Entities.deleteEntity(this.glowBox);
+                        //we don't want to update this arrow tracker anymore
+                        var index = _t.arrowTrackers.indexOf(entityA);
+                        if (index > -1) {
+                            _t.arrowTrackers.splice(index, 1);
+                        }
+                    });
+                },
+                setChildren: function() {
+                    print('set arrow tracker children')
+                        // this.children.push(whizzingSound);
+                        // this.children.push(fireSound);
+                    this.childEntities.push(this.glowBox);
+                    // this.children.push(fireParticleSystem);
+                },
+                updateChildEntities: function(arrowID) {
+                    //  print('ARROWID??'+arrowID)
+                    //  print('UPDATING CHILDREN OF TRACKER:::' + this.childEntities.length+" ARROW::"+arrowID);
+                    var arrowProperties = Entities.getEntityProperties(this.arrowID, ["position", "rotation"])
+                    this.childEntities.forEach(function(child) {
+                        Entities.editEntity(child, {
+                            position: arrowProperties.position,
+                            rotation: arrowProperties.rotation
+                        })
+                    })
+                }
+            };
+            arrowTracker.init();
+            arrowTracker.setCollisionCallback();
+            print('after create arrow tracker')
+
+            return arrowTracker
+        },
+        createWhizzingSound: function() {
+            var sound;
+            return sound
+        },
+        createFireSound: function() {
+            var sound;
+            return sound
+        },
+        createGlowBox: function() {
+            print('creating glow box')
+            var shaderUrl = Script.resolvePath('../../shaders/exampleV2.fs');
+            var properties = {
+                name: 'Hifi-Arrow-Glow',
+                type: 'Box',
+                dimensions: ARROW_DIMENSIONS,
+                collisionsWillMove: false,
+                ignoreForCollisions: true,
+                color: {
+                    red: 255,
+                    green: 0,
+                    blue: 255
+                },
+                //i want to use shader but for some reason its white... need to fix;
 
 
-            this.arrowIsBurning = true;
+                // userData: JSON.stringify({
+                //     "grabbableKey": {
+                //         grabbable: false
+                //     },
+                //     "ProceduralEntity": {
+                //         "shaderUrl": shaderUrl,
+                //         // V2 and onwards, shaders must include a version identifier, or they will default
+                //         // to V1 behavior
+                //         "version": 2,
+                //         // Any values specified here will be passed on to uniforms with matching names in
+                //         // the shader. Only numbers and arrays of length 1-4 of numbers are supported.
+                //         //
+                //         // The size of the data must match the size of the uniform:
+                //         //      a number or 1 value array = 'uniform float'
+                //         //      2 value array = 'uniform vec2'
+                //         //      3 value array = 'uniform vec3'
+                //         //      4 value array = 'uniform vec4'
+                //         //
+                //         // Uniforms should always be declared in the shader with a default value
+                //         // or failure to specify the value here will result in undefined behavior.
+                //         "uniforms": {
+                //             // uniform float iSpeed = 1.0;
+                //             "iSpeed": 2.0,
+                //             // uniform vec3 iSize = vec3(1.0);
+                //             "iSize": [1.0, 2.0, 4.0]
+                //         }
+                //     }
+                // })
+            }
+
+            var glowBox = Entities.addEntity(properties);
+            return glowBox
+        },
+        arrowTrackers: [],
+        updateArrowTrackers: function() {
+            // print('updating arrow trackers:::' + _this.arrowTrackers.length);
+            _this.arrowTrackers.forEach(function(tracker) {
+                var arrowID = tracker.arrowID;
+                // print('TRACKER ARROW ID'+tracker.arrowID)
+                tracker.updateChildEntities(arrowID);
+            })
         }
 
     };

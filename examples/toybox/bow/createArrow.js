@@ -26,11 +26,6 @@ var ARROW_GRAVITY = {
     z: 0
 };
 
-var center = Vec3.sum(Vec3.sum(MyAvatar.position, {
-    x: 0,
-    y: 1,
-    z: 0
-}), Vec3.multiply(1.25, Quat.getFront(Camera.getOrientation())));
 
 function cleanup() {
     Entities.deleteEntity(arrow);
@@ -38,7 +33,13 @@ function cleanup() {
 
 var arrow;
 
-function createArrow() {
+function createArrow(i) {
+    var center = Vec3.sum(Vec3.sum(MyAvatar.position, {
+    x: 0,
+    y: 1,
+    z: 0
+}), Vec3.multiply(1.25*i, Quat.getFront(Camera.getOrientation())));
+
     arrow = Entities.addEntity({
         name: 'Hifi-Arrow',
         type: 'Model',
@@ -51,6 +52,7 @@ function createArrow() {
         collisionsWillMove: true,
         ignoreForCollisions: false,
         gravity: ARROW_GRAVITY,
+        // linearDamping:0.1,
         userData: JSON.stringify({
             grabbableKey: {
                 invertSolidWhileHeld: true
@@ -60,6 +62,12 @@ function createArrow() {
 
 }
 
-createArrow();
+var i;
+for(i=1;i<4;i++){
+ createArrow(i);
+
+}
+
+
 
 Script.scriptEnding.connect(cleanup);
