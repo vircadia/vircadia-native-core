@@ -87,15 +87,11 @@ void EntityMotionState::updateServerPhysicsVariables(const QUuid& sessionID) {
     }
 
     _serverActionData = _entity->getActionData();
-    if (!_serverShouldSuppressLocationEdits) {
-        _serverPosition = _entity->getPosition();
-        _serverRotation = _entity->getRotation();
-        _serverVelocity = _entity->getVelocity();
-        _serverAngularVelocity = _entity->getAngularVelocity();
-        _serverAcceleration = _entity->getAcceleration();
-    }
-
-    _serverShouldSuppressLocationEdits = _entity->shouldSuppressLocationEdits();
+    _serverPosition = _entity->getPosition();
+    _serverRotation = _entity->getRotation();
+    _serverVelocity = _entity->getVelocity();
+    _serverAngularVelocity = _entity->getAngularVelocity();
+    _serverAcceleration = _entity->getAcceleration();
 }
 
 // virtual
@@ -262,7 +258,6 @@ bool EntityMotionState::remoteSimulationOutOfSync(uint32_t simulationStep) {
         _serverAngularVelocity = bulletToGLM(_body->getAngularVelocity());
         _lastStep = simulationStep;
         _serverActionData = _entity->getActionData();
-        _serverShouldSuppressLocationEdits = _entity->shouldSuppressLocationEdits();
         _sentInactive = true;
         return false;
     }
@@ -448,24 +443,20 @@ void EntityMotionState::sendUpdate(OctreeEditPacketSender* packetSender, const Q
 
     EntityItemProperties properties;
 
+    // remember properties for local server prediction
+    _serverPosition = _entity->getPosition();
+    _serverRotation = _entity->getRotation();
+    _serverVelocity = _entity->getVelocity();
+    _serverAcceleration = _entity->getAcceleration();
+    _serverAngularVelocity = _entity->getAngularVelocity();
+    _serverActionData = _entity->getActionData();
 
     // explicitly set the properties that changed so that they will be packed
-    if (!_serverShouldSuppressLocationEdits) {
-        // remember properties for local server prediction
-        _serverPosition = _entity->getPosition();
-        _serverRotation = _entity->getRotation();
-        _serverVelocity = _entity->getVelocity();
-        _serverAcceleration = _entity->getAcceleration();
-        _serverAngularVelocity = _entity->getAngularVelocity();
-
-        properties.setPosition(_serverPosition);
-        properties.setRotation(_serverRotation);
-        properties.setVelocity(_serverVelocity);
-        properties.setAcceleration(_serverAcceleration);
-        properties.setAngularVelocity(_serverAngularVelocity);
-    }
-    _serverShouldSuppressLocationEdits = _entity->shouldSuppressLocationEdits();
-    _serverActionData = _entity->getActionData();
+    properties.setPosition(_serverPosition);
+    properties.setRotation(_serverRotation);
+    properties.setVelocity(_serverVelocity);
+    properties.setAcceleration(_serverAcceleration);
+    properties.setAngularVelocity(_serverAngularVelocity);
     properties.setActionData(_serverActionData);
 
     // set the LastEdited of the properties but NOT the entity itself
