@@ -13,6 +13,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+var WALK_SETTINGS_HTML_URL = Script.resolvePath('../html/walkSettings.html');
+
 WalkSettings = function() {
     var _visible = false;
     var _innerWidth = Window.innerWidth;
@@ -69,7 +71,7 @@ WalkSettings = function() {
     // web window
     const PANEL_WIDTH = 200;
     const PANEL_HEIGHT = 180;
-    var _url = Script.resolvePath('html/walkSettings.html');
+    var _url = WALK_SETTINGS_HTML_URL;
     var _webWindow = new WebWindow('Walk Settings', _url, PANEL_WIDTH, PANEL_HEIGHT, false);
     _webWindow.setVisible(false);
     _webWindow.eventBridge.webEventReceived.connect(function(data) {

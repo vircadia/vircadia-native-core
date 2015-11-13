@@ -10,26 +10,58 @@
 #ifndef hifi_Recording_Deck_h
 #define hifi_Recording_Deck_h
 
-#include "Forward.h"
+#include <utility>
+#include <list>
 
 #include <QtCore/QObject>
+#include <QtCore/QTimer>
 
-class QIODevice;
+#include "Forward.h"
+
 
 namespace recording {
 
 class Deck : public QObject {
+    Q_OBJECT
 public:
     using Pointer = std::shared_ptr<Deck>;
-
     Deck(QObject* parent = nullptr) : QObject(parent) {}
-    virtual ~Deck();
 
     // Place a clip on the deck for recording or playback
-    void queueClip(ClipPointer clip, float timeOffset = 0.0f);
-    void play(float timeOffset = 0.0f);
-    void reposition(float timeOffsetDelta);
-    void setPlaybackSpeed(float rate);
+    void queueClip(ClipPointer clip, Time timeOffset = 0.0f);
+
+    void play();
+    bool isPlaying() { return !_pause; }
+
+    void pause();
+    bool isPaused() const { return _pause; }
+
+    void stop() { pause(); seek(0.0f); }
+
+    Time length() const { return _length; }
+
+    void loop(bool enable = true) { _loop = enable; }
+    bool isLooping() const { return _loop; }
+
+    Time position() const;
+    void seek(Time position);
+
+signals:
+    void playbackStateChanged();
+
+private:
+    using Clips = std::list<ClipPointer>;
+
+    ClipPointer getNextClip();
+    void processFrames();
+
+    QTimer _timer;
+    Clips _clips;
+    quint64 _startEpoch { 0 };
+    Time _position { 0 };
+    bool _pause { true };
+    bool _loop { false };
+    Time _length { 0 };
 };
 
 }

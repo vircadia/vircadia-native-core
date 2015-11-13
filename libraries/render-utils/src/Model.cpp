@@ -135,9 +135,6 @@ void Model::reset() {
         const FBXGeometry& geometry = _geometry->getFBXGeometry();
         _rig->reset(geometry.joints);
     }
-    _meshGroupsKnown = false;
-    _readyWhenAdded = false; // in case any of our users are using scenes
-    invalidCalculatedMeshBoxes(); // if we have to reload, we need to assume our mesh boxes are all invalid
 }
 
 bool Model::updateGeometry() {
@@ -1102,10 +1099,12 @@ void Model::setGeometry(const QSharedPointer<NetworkGeometry>& newGeometry) {
 
 void Model::deleteGeometry() {
     _blendedVertexBuffers.clear();
-    _rig->clearJointStates();
     _meshStates.clear();
-    _rig->deleteAnimations();
-    _rig->destroyAnimGraph();
+    if (_rig) {
+        _rig->clearJointStates();
+        _rig->deleteAnimations();
+        _rig->destroyAnimGraph();
+    }
     _blendedBlendshapeCoefficients.clear();
 }
 
@@ -1155,6 +1154,9 @@ void Model::segregateMeshGroups() {
         qDebug() << "WARNING!!!! Mesh Sizes don't match! We will not segregate mesh groups yet.";
         return;
     }
+
+    Q_ASSERT(_renderItems.isEmpty()); // We should not have any existing renderItems if we enter this section of code
+    Q_ASSERT(_renderItemsSet.isEmpty()); // We should not have any existing renderItemsSet if we enter this section of code
 
     _renderItemsSet.clear();
 

@@ -12,14 +12,23 @@
 
 #include <memory>
 #include <list>
+#include <limits>
 
 namespace recording {
 
+using Time = uint32_t;
+
+static const Time INVALID_TIME = std::numeric_limits<uint32_t>::max();
+
 using FrameType = uint16_t;
+
+using FrameSize = uint16_t;
 
 struct Frame;
 
 using FramePointer = std::shared_ptr<Frame>;
+
+using FrameConstPointer = std::shared_ptr<const Frame>;
 
 // A recording of some set of state from the application, usually avatar
 // data + audio for a single person

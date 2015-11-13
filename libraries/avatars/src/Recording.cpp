@@ -9,6 +9,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#if 0
 #include <AudioConstants.h>
 #include <GLMHelpers.h>
 #include <NetworkAccessManager.h>
@@ -229,22 +230,27 @@ void writeRecordingToFile(RecordingPointer recording, const QString& filename) {
             ++maskIndex;
         }
         
-        // Joint Rotations
+        const auto& jointArray = frame.getJointArray();
         if (i == 0) {
-            numJoints = frame.getJointRotations().size();
+            numJoints = jointArray.size();
             stream << numJoints;
-            mask.resize(mask.size() + numJoints);
+            // 2 fields per joints
+            mask.resize(mask.size() + numJoints * 2);
         }
-        for (quint32 j = 0; j < numJoints; ++j) {
-            if (i == 0 ||
-                frame._jointRotations[j] != previousFrame._jointRotations[j]) {
-                writeQuat(stream, frame._jointRotations[j]);
-                // TODO -- handle translations
+        for (quint32 j = 0; j < numJoints; j++) {
+            const auto& joint = jointArray[j];
+            if (true) { //(joint.rotationSet) {
+                writeQuat(stream, joint.rotation);
+                mask.setBit(maskIndex);
+            }
+            maskIndex++;
+            if (joint.translationSet) {
+                writeVec3(stream, joint.translation);
                 mask.setBit(maskIndex);
             }
             maskIndex++;
         }
-        
+
         // Translation
         if (i == 0) {
             mask.resize(mask.size() + 1);
@@ -408,11 +414,7 @@ RecordingPointer readRecordingFromFile(RecordingPointer recording, const QString
         file.close();
     }
     
-    if (filename.endsWith(".rec") || filename.endsWith(".REC")) {
-        qCDebug(avatars) << "Old .rec format";
-        readRecordingFromRecFile(recording, filename, byteArray);
-        return recording;
-    } else if (!filename.endsWith(".hfr") && !filename.endsWith(".HFR")) {
+    if (!filename.endsWith(".hfr") && !filename.endsWith(".HFR")) {
         qCDebug(avatars) << "File extension not recognized";
     }
     
@@ -552,18 +554,27 @@ RecordingPointer readRecordingFromFile(RecordingPointer recording, const QString
                 stream >> frame._blendshapeCoefficients[j];
             }
         }
-        // Joint Rotations
+        // Joint Array
         if (i == 0) {
             stream >> numJoints;
         }
-        frame._jointRotations.resize(numJoints);
+
+        frame._jointArray.resize(numJoints);
         for (quint32 j = 0; j < numJoints; ++j) {
-            if (!mask[maskIndex++] || !readQuat(stream, frame._jointRotations[j])) {
-                frame._jointRotations[j] = previousFrame._jointRotations[j];
+            auto& joint = frame._jointArray[2];
+
+            if (mask[maskIndex++] && readQuat(stream, joint.rotation)) {
+                joint.rotationSet = true;
+            } else {
+                joint.rotationSet = false;
+            }
+
+            if (mask[maskIndex++] || readVec3(stream, joint.translation)) {
+                joint.translationSet = true;
+            } else {
+                joint.translationSet = false;
             }
         }
-
-        // TODO -- handle translations
 
         if (!mask[maskIndex++] || !readVec3(stream, frame._translation)) {
             frame._translation = previousFrame._translation;
@@ -649,167 +660,4 @@ RecordingPointer readRecordingFromFile(RecordingPointer recording, const QString
     return recording;
 }
 
-
-RecordingPointer readRecordingFromRecFile(RecordingPointer recording, const QString& filename, const QByteArray& byteArray) {
-    QElapsedTimer timer;
-    timer.start();
-    
-    if (!recording) {
-        recording = QSharedPointer<Recording>::create();
-    }
-    
-    QDataStream fileStream(byteArray);
-    
-    fileStream >> recording->_timestamps;
-    RecordingFrame baseFrame;
-    
-    // Blendshape coefficients
-    fileStream >> baseFrame._blendshapeCoefficients;
-    
-    // Joint Rotations
-    int jointRotationSize;
-    fileStream >> jointRotationSize;
-    baseFrame._jointRotations.resize(jointRotationSize);
-    for (int i = 0; i < jointRotationSize; ++i) {
-        fileStream >> baseFrame._jointRotations[i].x >> baseFrame._jointRotations[i].y >> baseFrame._jointRotations[i].z >> baseFrame._jointRotations[i].w;
-    }
-
-    // TODO -- handle translations
-
-    fileStream >> baseFrame._translation.x >> baseFrame._translation.y >> baseFrame._translation.z;
-    fileStream >> baseFrame._rotation.x >> baseFrame._rotation.y >> baseFrame._rotation.z >> baseFrame._rotation.w;
-    fileStream >> baseFrame._scale;
-    fileStream >> baseFrame._headRotation.x >> baseFrame._headRotation.y >> baseFrame._headRotation.z >> baseFrame._headRotation.w;
-    fileStream >> baseFrame._leanSideways;
-    fileStream >> baseFrame._leanForward;
-    
-    
-    // Fake context
-    RecordingContext& context = recording->getContext();
-    context.globalTimestamp = usecTimestampNow();
-    context.domain = DependencyManager::get<NodeList>()->getDomainHandler().getHostname();
-    context.position = glm::vec3(144.5f, 3.3f, 181.3f);
-    context.orientation = glm::angleAxis(glm::radians(-92.5f), glm::vec3(0, 1, 0));;
-    context.scale = baseFrame._scale;
-    context.headModel = "http://public.highfidelity.io/models/heads/Emily_v4.fst";
-    context.skeletonModel = "http://public.highfidelity.io/models/skeletons/EmilyCutMesh_A.fst";
-    context.displayName = "Leslie";
-    context.attachments.clear();
-    AttachmentData data;
-    data.modelURL = "http://public.highfidelity.io/models/attachments/fbx.fst";
-    data.jointName = "RightHand" ;
-    data.translation = glm::vec3(0.04f, 0.07f, 0.0f);
-    data.rotation = glm::angleAxis(glm::radians(102.0f), glm::vec3(0, 1, 0));
-    data.scale = 0.20f;
-    context.attachments << data;
-    
-    context.orientationInv = glm::inverse(context.orientation);
-    
-    baseFrame._translation = glm::vec3();
-    baseFrame._rotation = glm::quat();
-    baseFrame._scale = 1.0f;
-    
-    recording->_frames << baseFrame;
-    
-    for (int i = 1; i < recording->_timestamps.size(); ++i) {
-        QBitArray mask;
-        QByteArray buffer;
-        QDataStream stream(&buffer, QIODevice::ReadOnly);
-        RecordingFrame frame;
-        RecordingFrame& previousFrame = recording->_frames.last();
-        
-        fileStream >> mask;
-        fileStream >> buffer;
-        int maskIndex = 0;
-        
-        // Blendshape Coefficients
-        frame._blendshapeCoefficients.resize(baseFrame._blendshapeCoefficients.size());
-        for (int i = 0; i < baseFrame._blendshapeCoefficients.size(); ++i) {
-            if (mask[maskIndex++]) {
-                stream >> frame._blendshapeCoefficients[i];
-            } else {
-                frame._blendshapeCoefficients[i] = previousFrame._blendshapeCoefficients[i];
-            }
-        }
-        
-        // Joint Rotations
-        frame._jointRotations.resize(baseFrame._jointRotations.size());
-        for (int i = 0; i < baseFrame._jointRotations.size(); ++i) {
-            if (mask[maskIndex++]) {
-                stream >> frame._jointRotations[i].x >> frame._jointRotations[i].y >> frame._jointRotations[i].z >> frame._jointRotations[i].w;
-            } else {
-                frame._jointRotations[i] = previousFrame._jointRotations[i];
-            }
-        }
-
-        // TODO -- handle translations
-
-        if (mask[maskIndex++]) {
-            stream >> frame._translation.x >> frame._translation.y >> frame._translation.z;
-            frame._translation = context.orientationInv * frame._translation;
-        } else {
-            frame._translation = previousFrame._translation;
-        }
-        
-        if (mask[maskIndex++]) {
-            stream >> frame._rotation.x >> frame._rotation.y >> frame._rotation.z >> frame._rotation.w;
-        } else {
-            frame._rotation = previousFrame._rotation;
-        }
-        
-        if (mask[maskIndex++]) {
-            stream >> frame._scale;
-        } else {
-            frame._scale = previousFrame._scale;
-        }
-        
-        if (mask[maskIndex++]) {
-            stream >> frame._headRotation.x >> frame._headRotation.y >> frame._headRotation.z >> frame._headRotation.w;
-        } else {
-            frame._headRotation = previousFrame._headRotation;
-        }
-        
-        if (mask[maskIndex++]) {
-            stream >> frame._leanSideways;
-        } else {
-            frame._leanSideways = previousFrame._leanSideways;
-        }
-        
-        if (mask[maskIndex++]) {
-            stream >> frame._leanForward;
-        } else {
-            frame._leanForward = previousFrame._leanForward;
-        }
-        
-        recording->_frames << frame;
-    }
-    
-    QByteArray audioArray;
-    fileStream >> audioArray;
-    
-    // Cut down audio if necessary
-    int SAMPLE_SIZE = 2; // 16 bits
-    int MSEC_PER_SEC = 1000;
-    int audioLength = recording->getLength() * SAMPLE_SIZE * (AudioConstants::SAMPLE_RATE / MSEC_PER_SEC);
-    audioArray.chop(audioArray.size() - audioLength);
-    
-    recording->addAudioPacket(audioArray);
-    
-    qCDebug(avatars) << "Read " << byteArray.size()  << " bytes in " << timer.elapsed() << " ms.";
-    
-    // Set new filename
-    QString newFilename = filename;
-    if (newFilename.startsWith("http") || newFilename.startsWith("https") || newFilename.startsWith("ftp")) {
-        newFilename = QUrl(newFilename).fileName();
-    }
-    if (newFilename.endsWith(".rec") || newFilename.endsWith(".REC")) {
-        newFilename.chop(qstrlen(".rec"));
-    }
-    newFilename.append(".hfr");
-    newFilename = QFileInfo(newFilename).absoluteFilePath();
-    
-    // Set recording to new format
-    writeRecordingToFile(recording, newFilename);
-    qCDebug(avatars) << "Recording has been successfully converted at" << newFilename;
-    return recording;
-}
+#endif

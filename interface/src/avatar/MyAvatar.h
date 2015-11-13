@@ -192,7 +192,6 @@ public:
     void clearLookAtTargetAvatar();
 
     virtual void setJointRotations(QVector<glm::quat> jointRotations) override;
-    virtual void setJointTranslations(QVector<glm::vec3> jointTranslations) override;
     virtual void setJointData(int index, const glm::quat& rotation, const glm::vec3& translation) override;
     virtual void setJointRotation(int index, const glm::quat& rotation) override;
     virtual void setJointTranslation(int index, const glm::vec3& translation) override;
@@ -258,10 +257,10 @@ public slots:
     bool setJointReferential(const QUuid& id, int jointIndex);
 
     bool isRecording();
-    qint64 recorderElapsed();
+    float recorderElapsed();
     void startRecording();
     void stopRecording();
-    void saveRecording(QString filename);
+    void saveRecording(const QString& filename);
     void loadLastRecording();
 
     virtual void rebuildSkeletonBody() override;
@@ -312,8 +311,8 @@ private:
                         const glm::vec3& translation = glm::vec3(), const glm::quat& rotation = glm::quat(), float scale = 1.0f,
                         bool allowDuplicates = false, bool useSaved = true) override;
 
-    const RecorderPointer getRecorder() const { return _recorder; }
-    const PlayerPointer getPlayer() const { return _player; }
+    const recording::RecorderPointer getRecorder() const { return _recorder; }
+    const recording::DeckPointer getPlayer() const { return _player; }
 
     //void beginFollowingHMD();
     //bool shouldFollowHMD() const;
@@ -361,7 +360,7 @@ private:
 
     eyeContactTarget _eyeContactTarget;
 
-    RecorderPointer _recorder;
+    recording::RecorderPointer _recorder;
 
     glm::vec3 _trackedHeadPosition;
 

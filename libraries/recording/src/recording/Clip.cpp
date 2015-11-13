@@ -35,10 +35,10 @@ Clip::Pointer Clip::duplicate() {
     Clip::Pointer result = std::make_shared<BufferClip>();
 
     Locker lock(_mutex);
-    float currentPosition = position();
+    Time currentPosition = position();
     seek(0);
 
-    Frame::Pointer frame = nextFrame();
+    auto frame = nextFrame();
     while (frame) {
         result->addFrame(frame);
         frame = nextFrame();
