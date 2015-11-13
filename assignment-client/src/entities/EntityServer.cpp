@@ -96,6 +96,10 @@ bool EntityServer::hasSpecialPacketsToSend(const SharedNodePointer& node) {
     return shouldSendDeletedEntities;
 }
 
+// FIXME - most of the old code for this was encapsulated in EntityTree, I liked that design from a data
+// hiding and object oriented perspective. But that didn't really allow us to handle the case of lots
+// of entities being deleted at the same time. I'd like to look to move this back into EntityTree but
+// for now this works and addresses the bug.
 int EntityServer::sendSpecialPackets(const SharedNodePointer& node, OctreeQueryNode* queryNode, int& packetsSent) {
     int totalBytes = 0;
 
