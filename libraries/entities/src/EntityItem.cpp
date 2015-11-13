@@ -707,17 +707,7 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
     READ_ENTITY_PROPERTY(PROP_COLLISION_SOUND_URL, QString, setCollisionSoundURL);
     READ_ENTITY_PROPERTY(PROP_HREF, QString, setHref);
     READ_ENTITY_PROPERTY(PROP_DESCRIPTION, QString, setDescription);
-
-    {   // When we own the simulation we don't accept updates to the entity's actions
-        // but since we're using macros below we have to temporarily modify overwriteLocalData.
-        // NOTE: this prevents userB from adding an action to an object1 when UserA 
-        // has simulation ownership of it.
-        // TODO: figure out how to allow multiple users to update actions simultaneously
-        bool oldOverwrite = overwriteLocalData;
-        overwriteLocalData = overwriteLocalData && !weOwnSimulation;
-        READ_ENTITY_PROPERTY(PROP_ACTION_DATA, QByteArray, setActionData);
-        overwriteLocalData = oldOverwrite;
-    }
+    READ_ENTITY_PROPERTY(PROP_ACTION_DATA, QByteArray, setActionData);
 
     bytesRead += readEntitySubclassDataFromBuffer(dataAt, (bytesLeftToRead - bytesRead), args,
                                                   propertyFlags, overwriteLocalData, somethingChanged);
