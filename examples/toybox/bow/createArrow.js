@@ -36,7 +36,7 @@ var arrow;
 function createArrow(i) {
     var center = Vec3.sum(Vec3.sum(MyAvatar.position, {
     x: 0,
-    y: 1,
+    y: 0,
     z: 0
 }), Vec3.multiply(1.25*i, Quat.getFront(Camera.getOrientation())));
 

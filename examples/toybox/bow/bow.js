@@ -619,7 +619,8 @@
         },
 
         createFireParticleSystem: function() {
-            //will probably need to dynamically update the orientation to match the arrow???
+            print('MAKING A  FIRE')
+                //will probably need to dynamically update the orientation to match the arrow???
             var myOrientation = Quat.fromPitchYawRollDegrees(-90, 0, 0.0);
 
             var animationSettings = JSON.stringify({
@@ -635,8 +636,8 @@
                 name: "Hifi-Arrow-Fire",
                 animationSettings: animationSettings,
                 textures: "https://hifi-public.s3.amazonaws.com/alan/Particles/Particle-Sprite-Smoke-1.png",
-                position: this.arrowTipPosition,
                 emitRate: 100,
+                position: MyAvatar.position,
                 colorStart: {
                     red: 70,
                     green: 70,
@@ -688,13 +689,13 @@
         createArrowTracker: function(arrow, isBurning) {
             print('in create arrow tracker:::' + arrow)
             var _t = this;
-            var isBurning = isBurning || false;
+            var isBurning = isBurning || true;
             var arrowTracker = {
                 arrowID: arrow,
                 whizzingSound: _t.createWhizzingSound(),
                 fireSound: _t.createFireSound(),
                 glowBox: _t.createGlowBox(),
-                fireParticleSystem: isBurning === true ? _t.createFireParticleSystem() : null,
+                fireParticleSystem: _t.createFireParticleSystem(),
                 childEntities: [],
                 childSounds: [],
                 init: function() {
@@ -706,12 +707,12 @@
                     print('set arrow tracker callback' + this.arrowID)
 
                     Script.addEventHandler(this.arrowID, "collisionWithEntity", function(entityA, entityB, collision) {
-                        //how to get context here...?  maybe reverse lookup the tracker by entityA (arrow) id, to get the glowbox etc.
-                        print('ARROW COLLIDED WITH SOMETHING!' + this.glowBox)
-                            //this is global
-                        print('THIS IN COLLISION !' + this)
+                        //have to reverse lookup the tracker by the arrow id to get access to the children
+                        var tracker = getArrowTrackerByArrowID(entityA);
+                        print('ARROW COLLIDED WITH SOMETHING!' + tracker.glowBox)
+                        print('TRACKER IN COLLISION !' + tracker)
 
-                        Entities.deleteEntity(this.glowBox);
+                        Entities.deleteEntity(tracker.glowBox);
                         //we don't want to update this arrow tracker anymore
                         var index = _t.arrowTrackers.indexOf(entityA);
                         if (index > -1) {
@@ -721,15 +722,15 @@
                 },
                 setChildren: function() {
                     print('set arrow tracker children')
-                        // this.children.push(whizzingSound);
-                        // this.children.push(fireSound);
+                        // this.childSounds.push(this.whizzingSound);
+                        // this.childSounds.push(this.fireSound);
                     this.childEntities.push(this.glowBox);
-                    // this.children.push(fireParticleSystem);
+                    this.childEntities.push(this.fireParticleSystem);
                 },
                 updateChildEntities: function(arrowID) {
                     //  print('ARROWID??'+arrowID)
                     //  print('UPDATING CHILDREN OF TRACKER:::' + this.childEntities.length+" ARROW::"+arrowID);
-                    var arrowProperties = Entities.getEntityProperties(this.arrowID, ["position", "rotation"])
+                    var arrowProperties = Entities.getEntityProperties(this.arrowID, ["position", "rotation"]);
                     this.childEntities.forEach(function(child) {
                         Entities.editEntity(child, {
                             position: arrowProperties.position,
@@ -751,6 +752,17 @@
         createFireSound: function() {
             var sound;
             return sound
+        },
+        createGlowBoxAsModel: function() {
+            var modelURL = 'http://hifi-content.s3.amazonaws.com/james/bow_and_arrow/models/glowBox.fbx';
+            var properties = {
+                name: 'Hifi-Arrow-Glow',
+                type: 'Model',
+                modelURL: modelURL,
+                dimensions: ARROW_DIMENSIONS,
+                collisionsWillMove: false,
+                ignoreForCollisions: true,
+            }
         },
         createGlowBox: function() {
             print('creating glow box')
@@ -814,5 +826,13 @@
 
     };
 
+    getArrowTrackerByArrowID = function(arrowID) {
+        var result = _this.arrowTrackers.filter(function(tracker) {
+            return tracker.arrowID === arrowID;
+        });
+
+        var tracker = result[0]
+        return tracker
+    }
     return new Bow();
 });

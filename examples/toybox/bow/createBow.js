@@ -29,9 +29,9 @@ var BOW_GRAVITY = {
 
 var center = Vec3.sum(Vec3.sum(MyAvatar.position, {
     x: 0,
-    y: 1,
+    y: 0,
     z: 0
-}), Vec3.multiply(1.5, Quat.getFront(Camera.getOrientation())));
+}), Vec3.multiply(1, Quat.getFront(Camera.getOrientation())));
 
 var bow = Entities.addEntity({
     name: 'Hifi-Bow',
