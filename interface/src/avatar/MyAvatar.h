@@ -162,8 +162,6 @@ public:
 
     eyeContactTarget getEyeContactTarget();
 
-    static void sendKillAvatar();
-
     Q_INVOKABLE glm::vec3 getTrackedHeadPosition() const { return _trackedHeadPosition; }
     Q_INVOKABLE glm::vec3 getHeadPosition() const { return getHead()->getPosition(); }
     Q_INVOKABLE float getHeadFinalYaw() const { return getHead()->getFinalYaw(); }

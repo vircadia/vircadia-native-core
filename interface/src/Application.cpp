@@ -836,7 +836,7 @@ void Application::cleanupBeforeQuit() {
     
     auto nodeList = DependencyManager::get<NodeList>();
     
-    // send the domain a disconnect packet
+    // send the domain a disconnect packet, force a clear of the IP so we can't
     nodeList->getDomainHandler().disconnect();
     
     // tell the packet receiver we're shutting down, so it can drop packets
@@ -859,9 +859,6 @@ void Application::cleanupBeforeQuit() {
     _settingsThread.quit();
     saveSettings();
     _window->saveGeometry();
-
-    // let the avatar mixer know we're out
-    MyAvatar::sendKillAvatar();
 
     // stop the AudioClient
     QMetaObject::invokeMethod(DependencyManager::get<AudioClient>().data(),
