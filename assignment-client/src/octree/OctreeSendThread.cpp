@@ -118,6 +118,10 @@ AtomicUIntStat OctreeSendThread::_totalBytes { 0 };
 AtomicUIntStat OctreeSendThread::_totalWastedBytes { 0 };
 AtomicUIntStat OctreeSendThread::_totalPackets { 0 };
 
+AtomicUIntStat OctreeSendThread::_totalSpecialBytes { 0 };
+AtomicUIntStat OctreeSendThread::_totalSpecialPackets { 0 };
+
+
 int OctreeSendThread::handlePacketSend(OctreeQueryNode* nodeData, int& trueBytesSent, int& truePacketsSent) {
     OctreeServer::didHandlePacketSend(this);
 
@@ -580,11 +584,17 @@ int OctreeSendThread::packetDistributor(OctreeQueryNode* nodeData, bool viewFrus
         // send the environment packet
         // TODO: should we turn this into a while loop to better handle sending multiple special packets
         if (_myServer->hasSpecialPacketsToSend(_node) && !nodeData->isShuttingDown()) {
-            int specialPacketsSent;
+            int specialPacketsSent = 0;
             trueBytesSent += _myServer->sendSpecialPackets(_node, nodeData, specialPacketsSent);
             nodeData->resetOctreePacket();   // because nodeData's _sequenceNumber has changed
             truePacketsSent += specialPacketsSent;
             packetsSentThisInterval += specialPacketsSent;
+
+            _totalPackets += specialPacketsSent;
+            _totalBytes += trueBytesSent;
+
+            _totalSpecialPackets += specialPacketsSent;
+            _totalSpecialBytes += trueBytesSent;
         }
 
         // Re-send packets that were nacked by the client
