@@ -15,18 +15,9 @@
 Script.include("../libraries/utils.js");
 Script.include("../libraries/constants.js");
 
-var animVarName = "rightHandPosition";
-var handlerId = null;
-var rightHandJoint = "RightHand";
-var rightHandJointIndex = MyAvatar.getJointIndex(rightHandJoint);
-var hipJoint = 'Hips';
-var myHipsJointIndex = MyAvatar.getJointIndex(hipJoint);
-
-var kickBackForce = 0.01;
-
 HIFI_PUBLIC_BUCKET = "http://s3.amazonaws.com/hifi-public/";
 var fireSound = SoundCache.getSound("https://s3.amazonaws.com/hifi-public/sounds/Guns/GUN-SHOT2.raw");
-
+var LASER_LENGTH = 10;
 var LASER_WIDTH = 2;
 var GUN_FORCE = 10;
 var POSE_CONTROLS = [Controller.Standard.LeftHand, Controller.Standard.RightHand];
@@ -59,6 +50,26 @@ var BARREL_OFFSETS = [{
 }];
 
 
+var pointers = [];
+
+pointers.push(Overlays.addOverlay("line3d", {
+    start: ZERO_VECTOR,
+    end: ZERO_VECTOR,
+    color: COLORS.RED,
+    alpha: 1,
+    visible: true,
+    lineWidth: LASER_WIDTH
+}));
+
+pointers.push(Overlays.addOverlay("line3d", {
+    start: ZERO_VECTOR,
+    end: ZERO_VECTOR,
+    color: COLORS.RED,
+    alpha: 1,
+    visible: true,
+    lineWidth: LASER_WIDTH
+}));
+
 var mapping = Controller.newMapping();
 var validPoses = [false, false];
 var barrelVectors = [0, 0];
@@ -67,35 +78,6 @@ var barrelTips = [0, 0];
 
 var shootAnything = true;
 
-
-// For transforming between world space and our avatar's model space. 
-var avatarToModelTranslation, avatarToWorldTranslation, avatarToWorldRotation, worldToAvatarRotation;
-var avatarToModelRotation = Quat.angleAxis(180, {
-    x: 0,
-    y: 1,
-    z: 0
-}); // N.B.: Our C++ angleAxis takes radians, while our javascript angleAxis takes degrees!
-var modelToAvatarRotation = Quat.inverse(avatarToModelRotation); // Flip 180 gives same result without inverse, but being explicit to track the math.
-
-function updateMyCoordinateSystem() {
-    print("SJHSJKHSJKHS")
-    avatarToWorldTranslation = MyAvatar.position;
-    avatarToWorldRotation = MyAvatar.orientation;
-    worldToAvatarRotation = Quat.inverse(avatarToWorldRotation);
-    avatarToModelTranslation = MyAvatar.getJointTranslation(myHipsJointIndex); // Should really be done on the bind pose.
-}
-
-// Just math. 
-
-function modelToWorld(modelPoint) {
-    var avatarPoint = Vec3.subtract(Vec3.multiplyQbyV(modelToAvatarRotation, modelPoint), avatarToModelTranslation);
-    return Vec3.sum(Vec3.multiplyQbyV(avatarToWorldRotation, avatarPoint), avatarToWorldTranslation);
-}
-
-function worldToModel(worldPoint) {
-    var avatarPoint = Vec3.multiplyQbyV(worldToAvatarRotation, Vec3.subtract(worldPoint, avatarToWorldTranslation));
-    return Vec3.multiplyQbyV(avatarToModelRotation, Vec3.sum(avatarPoint, avatarToModelTranslation));
-}
 
 function update(deltaTime) {
     // FIXME we should also expose MyAvatar.handPoses[2], MyAvatar.tipPoses[2]
@@ -116,14 +98,37 @@ function update(deltaTime) {
             z: 0
         });
 
+        var laserTip = Vec3.sum(Vec3.multiply(LASER_LENGTH, barrelVectors[side]), barrelTips[side]);
+        // Update Lasers
+        Overlays.editOverlay(pointers[side], {
+            start: barrelTips[side],
+            end: laserTip,
+            alpha: 1,
+        });
+
+
     }
 }
 
-var kickbackAmount = -0.5;
+
+
+function displayPointer(side) {
+    Overlays.editOverlay(pointers[side], {
+        visible: true
+    });
+}
+
+function hidePointer(side) {
+    Overlays.editOverlay(pointers[side], {
+        visible: false
+    });
+}
+
+var kickbackAmount = -0.1;
 var k = 0;
-var decaySpeed = .1;
+var decaySpeed = .02;
 var kickback = function(animationProperties) {
-    var currentTargetHandWorldPosition= Vec3.mix(startingTargetHandWorldPosition, finalTargetHandWorldPosition, k);
+    var currentTargetHandWorldPosition = Vec3.mix(startingTargetHandWorldPosition, finalTargetHandWorldPosition, k);
     k += decaySpeed;
     // print("WORLD POS " + JSON.stringify(startingTargetHandWorldPosition));
     var targetHandModelPosition = worldToModel(currentTargetHandWorldPosition);
@@ -133,56 +138,38 @@ var kickback = function(animationProperties) {
 }
 
 
-var finalTargetHandWorldPosition, startingTargetHandWorldPosition;
-
-function startKickback() {
-    if (!handlerId) {
-        updateMyCoordinateSystem();
-        finalTargetHandWorldPosition = MyAvatar.getJointPosition(rightHandJointIndex);
-        startingTargetHandWorldPosition = Vec3.sum(finalTargetHandWorldPosition, {x: 0, y: 0.5, z: 0});
-        handlerId = MyAvatar.addAnimationStateHandler(kickback, [animVarName]);
-        Script.setTimeout(function() {
-            MyAvatar.removeAnimationStateHandler(handlerId);
-            handlerId = null;
-            k = 0;
-        }, 200);
+function fire(side, value) {
+    if(value == 0) {
+        return;
     }
-}
+    Audio.playSound(fireSound, {
+        position: barrelTips[side],
+        volume: 1.0
+    });
 
+    var shotDirection = Vec3.normalize(barrelVectors[side]);
+    var pickRay = {
+        origin: barrelTips[side],
+        direction: shotDirection
+    };
+    createMuzzleFlash(barrelTips[side]);
 
-function triggerChanged(side, value) {
-    var pressed = (value != 0);
-    if (pressed) {
-        Audio.playSound(fireSound, {
-            position: barrelTips[side],
-            volume: 1.0
-        });
-
-        var shotDirection = Vec3.normalize(barrelVectors[side]);
-        var pickRay = {
-            origin: barrelTips[side],
-            direction: shotDirection
-        };
-        createMuzzleFlash(barrelTips[side]);
-        startKickback();
-
-        var intersection = Entities.findRayIntersection(pickRay, true);
-        if (intersection.intersects) {
-            if (intersection.properties.name === "rat") {
-                var forceDirection = JSON.stringify({
-                    forceDirection: shotDirection
-                });
-                Entities.callEntityMethod(intersection.entityID, 'onHit', [forceDirection]);
-            } else {
-                Script.setTimeout(function() {
-                    if (shootAnything) {
-                        Entities.editEntity(intersection.entityID, {
-                            velocity: Vec3.multiply(shotDirection, GUN_FORCE)
-                        });
-                    }
-                    createWallHit(intersection.intersection);
-                }, 50);
-            }
+    var intersection = Entities.findRayIntersection(pickRay, true);
+    if (intersection.intersects) {
+        if (intersection.properties.name === "rat") {
+            var forceDirection = JSON.stringify({
+                forceDirection: shotDirection
+            });
+            Entities.callEntityMethod(intersection.entityID, 'onHit', [forceDirection]);
+        } else {
+            Script.setTimeout(function() {
+                if (shootAnything) {
+                    Entities.editEntity(intersection.entityID, {
+                        velocity: Vec3.multiply(shotDirection, GUN_FORCE)
+                    });
+                }
+                createWallHit(intersection.intersection);
+            }, 50);
         }
     }
 }
@@ -191,6 +178,9 @@ function triggerChanged(side, value) {
 
 function scriptEnding() {
     mapping.disable();
+    for (var i = 0; i < pointers.length; ++i) {
+        Overlays.deleteOverlay(pointers[i]);
+    }
     MyAvatar.detachOne(GUN_MODEL);
     MyAvatar.detachOne(GUN_MODEL);
     clearPose();
@@ -199,12 +189,19 @@ function scriptEnding() {
 MyAvatar.attach(GUN_MODEL, "LeftHand", GUN_OFFSETS[0], GUN_ORIENTATIONS[0], 0.40);
 MyAvatar.attach(GUN_MODEL, "RightHand", GUN_OFFSETS[1], GUN_ORIENTATIONS[1], 0.40);
 
-mapping.from(Controller.Standard.LT).hysteresis(0.1, 0.5).to(function(value) {
-    triggerChanged(0, value);
+function showPointer(side) {
+    Overlays.editOverlay(pointers[side], {
+        visible: true
+    });
+}
+
+mapping.from(Controller.Standard.LT).hysteresis(0.0, 0.5).to(function(value) {
+    fire(0, value);
 });
 
-mapping.from(Controller.Standard.RT).hysteresis(0.1, 0.5).to(function(value) {
-    triggerChanged(1, value);
+
+mapping.from(Controller.Standard.RT).hysteresis(0.0, 0.5).to(function(value) {
+    fire(1, value);
 });
 mapping.enable();
 
