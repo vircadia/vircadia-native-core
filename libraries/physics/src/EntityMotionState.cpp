@@ -86,12 +86,12 @@ void EntityMotionState::updateServerPhysicsVariables(const QUuid& sessionID) {
         return;
     }
 
-    _serverActionData = _entity->getActionData();
     _serverPosition = _entity->getPosition();
     _serverRotation = _entity->getRotation();
     _serverVelocity = _entity->getVelocity();
     _serverAngularVelocity = _entity->getAngularVelocity();
     _serverAcceleration = _entity->getAcceleration();
+    _serverActionData = _entity->getActionData();
 }
 
 // virtual
@@ -298,10 +298,6 @@ bool EntityMotionState::remoteSimulationOutOfSync(uint32_t simulationStep) {
         return true;
     }
 
-    if (_entity->shouldSuppressLocationEdits()) {
-        return false;
-    }
-
     // Else we measure the error between current and extrapolated transform (according to expected behavior
     // of remote EntitySimulation) and return true if the error is significant.
 
@@ -441,8 +437,6 @@ void EntityMotionState::sendUpdate(OctreeEditPacketSender* packetSender, const Q
         _sentInactive = false;
     }
 
-    EntityItemProperties properties;
-
     // remember properties for local server prediction
     _serverPosition = _entity->getPosition();
     _serverRotation = _entity->getRotation();
@@ -450,6 +444,8 @@ void EntityMotionState::sendUpdate(OctreeEditPacketSender* packetSender, const Q
     _serverAcceleration = _entity->getAcceleration();
     _serverAngularVelocity = _entity->getAngularVelocity();
     _serverActionData = _entity->getActionData();
+
+    EntityItemProperties properties;
 
     // explicitly set the properties that changed so that they will be packed
     properties.setPosition(_serverPosition);
