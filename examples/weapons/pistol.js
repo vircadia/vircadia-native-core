@@ -17,7 +17,7 @@ Script.include("../libraries/constants.js");
 
 HIFI_PUBLIC_BUCKET = "http://s3.amazonaws.com/hifi-public/";
 var fireSound = SoundCache.getSound("https://s3.amazonaws.com/hifi-public/sounds/Guns/GUN-SHOT2.raw");
-var LASER_LENGTH = 10;
+var LASER_LENGTH = 100;
 var LASER_WIDTH = 2;
 var GUN_FORCE = 10;
 var POSE_CONTROLS = [Controller.Standard.LeftHand, Controller.Standard.RightHand];
@@ -139,6 +139,7 @@ var kickback = function(animationProperties) {
 
 
 function fire(side, value) {
+    print("FIRE")
     if (value == 0) {
         return;
     }
@@ -156,21 +157,26 @@ function fire(side, value) {
 
     var intersection = Entities.findRayIntersection(pickRay, true);
     if (intersection.intersects) {
-
+        print("INTERSECTION")
         Script.setTimeout(function() {
             createEntityHitEffect(intersection.intersection);
-            if (shootAnything && intersection.properties.collisionsWillMove === true) {
+            if (shootAnything && intersection.properties.collisionsWillMove === 1) {
                 // Any entity with collisions will move can be shot
                 Entities.editEntity(intersection.entityID, {
                     velocity: Vec3.multiply(shotDirection, GUN_FORCE)
                 });
-            } else {
-                
             }
+            //Attempt to call entity method's shot method
+            var forceDirection = JSON.stringify({
+                forceDirection: shotDirection
+            });
+            Entities.callEntityMethod(intersection.entityID, 'onShot', [forceDirection]);
+
         }, 50);
 
     }
 }
+
 
 
 function scriptEnding() {
@@ -316,7 +322,7 @@ function createMuzzleFlash(position) {
     Script.setTimeout(function() {
         Entities.editEntity(smoke, {
             isEmitting: false
-        })
+        });
     }, 100);
 
     var flash = Entities.addEntity({

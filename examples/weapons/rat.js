@@ -16,17 +16,22 @@
     var _this;
     Rat = function() {
         _this = this;
-        this.forceMultiplier = 10.0
+        this.forceMultiplier = 10;
     };
 
     Rat.prototype = {
 
-        onHit: function(myId, params) {
+        onShot: function(myId, params) {
             var data = JSON.parse(params[0]);
             var force = Vec3.multiply(data.forceDirection, this.forceMultiplier);
             Entities.editEntity(this.entityID, {
                 velocity: force
             });
+
+            Script.setTimeout(function() {
+                var vel = Entities.getEntityProperties(_this.entityID, 'velocity').velocity;
+                print("velocity length " + Vec3.length(vel));
+            }, 1000);
         },
 
         preload: function(entityID) {
