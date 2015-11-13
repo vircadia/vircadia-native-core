@@ -31,7 +31,6 @@ namespace vr {
 class ViveControllerManager : public InputPlugin {
     Q_OBJECT
 public:
-    static const QString NAME;
 
     // Plugin functions
     virtual bool isSupported() const override;
@@ -47,12 +46,6 @@ public:
     void updateRendering(RenderArgs* args, render::ScenePointer scene, render::PendingChanges pendingChanges);
 
     void setRenderControllers(bool renderControllers) { _renderControllers = renderControllers; }
-
-
-#ifdef Q_OS_WIN
-	glm::vec3 getPosition(int device) const;
-	glm::quat getRotation(int device) const;
-#endif
     
 private:
     class InputDevice : public controller::InputDevice {
@@ -89,6 +82,10 @@ private:
     bool _renderControllers { false };
     vr::IVRSystem* _hmd { nullptr };
     std::shared_ptr<InputDevice> _inputDevice { std::make_shared<InputDevice>(_hmd) };
+
+    static const QString NAME;
+
+
 };
 
 #endif // hifi__ViveControllerManager
