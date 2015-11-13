@@ -194,6 +194,7 @@ void GLBackend::resetOutputStage() {
         _output._drawFBO = 0;
         glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
     }
+   // glEnable(GL_FRAMEBUFFER_SRGB);
 }
 
 void GLBackend::do_setFramebuffer(Batch& batch, uint32 paramOffset) {
