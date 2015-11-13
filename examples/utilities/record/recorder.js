@@ -176,7 +176,7 @@ function formatTime(time) {
     var SEC_PER_MIN = 60;
     var MSEC_PER_SEC = 1000;
 
-    time = time * (MSEC_PER_SEC * SEC_PER_MIN * MIN_PER_HOUR);
+    time = time * (MSEC_PER_SEC);
 
     var hours = Math.floor(time / (MSEC_PER_SEC * SEC_PER_MIN * MIN_PER_HOUR));
     time -= hours * (MSEC_PER_SEC * SEC_PER_MIN * MIN_PER_HOUR);

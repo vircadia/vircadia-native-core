@@ -27,7 +27,7 @@ public:
     static const FrameType TYPE_INVALID = 0xFFFF;
     static const FrameType TYPE_HEADER = 0x0;
     FrameType type { TYPE_INVALID };
-    Time timeOffset { 0 };
+    Time timeOffset { 0 }; // milliseconds
     QByteArray data;
 
     Frame() {}

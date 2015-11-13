@@ -809,7 +809,7 @@ float AvatarData::playerElapsed() {
             Q_RETURN_ARG(float, result));
         return result;
     }
-    return (float)_player->position();
+    return (float)_player->position() / (float) MSECS_PER_SECOND;
 }
 
 float AvatarData::playerLength() {
@@ -822,7 +822,7 @@ float AvatarData::playerLength() {
                                   Q_RETURN_ARG(float, result));
         return result;
     }
-    return _player->length();
+    return (float)_player->length() / (float) MSECS_PER_SECOND;
 }
 
 void AvatarData::loadRecording(const QString& filename) {
@@ -870,7 +870,7 @@ void AvatarData::setPlayerTime(float time) {
         return;
     } 
 
-    _player->seek(time);
+    _player->seek(time * MSECS_PER_SECOND);
 }
 
 void AvatarData::setPlayFromCurrentLocation(bool playFromCurrentLocation) {
