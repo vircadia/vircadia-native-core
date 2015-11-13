@@ -40,7 +40,12 @@ public:
     void setBox(const glm::vec3& corner, float scale);
     glm::vec3 getVertexP(const glm::vec3& normal) const;
     glm::vec3 getVertexN(const glm::vec3& normal) const;
-    void scale(float scale);
+    
+    void shiftBy(const glm::vec3& delta) { _corner += delta; }
+    void rotate(const glm::quat& rotation);
+    void scale(float scale) { _corner *= scale; _scale *= scale; }
+    void scale(const glm::vec3& scale) { _corner *= scale; _scale *= scale; }
+    
     const glm::vec3& getCorner() const { return _corner; }
     const glm::vec3& getScale() const { return _scale; }
     const glm::vec3& getDimensions() const { return _scale; }
