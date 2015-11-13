@@ -76,6 +76,7 @@ var barrelVectors = [0, 0];
 var barrelTips = [0, 0];
 
 
+// If enabled, anything can be shot, otherwise, an entity needs to have "isShootable" set in its userData
 var shootAnything = true;
 
 
@@ -105,7 +106,6 @@ function update(deltaTime) {
             end: laserTip,
             alpha: 1,
         });
-
 
     }
 }
@@ -139,7 +139,7 @@ var kickback = function(animationProperties) {
 
 
 function fire(side, value) {
-    if(value == 0) {
+    if (value == 0) {
         return;
     }
     Audio.playSound(fireSound, {
@@ -156,24 +156,23 @@ function fire(side, value) {
 
     var intersection = Entities.findRayIntersection(pickRay, true);
     if (intersection.intersects) {
-        if (intersection.properties.name === "rat") {
-            var forceDirection = JSON.stringify({
-                forceDirection: shotDirection
-            });
-            Entities.callEntityMethod(intersection.entityID, 'onHit', [forceDirection]);
-        } else {
-            Script.setTimeout(function() {
-                if (shootAnything) {
-                    Entities.editEntity(intersection.entityID, {
-                        velocity: Vec3.multiply(shotDirection, GUN_FORCE)
-                    });
-                }
-                createWallHit(intersection.intersection);
-            }, 50);
-        }
+
+        Script.setTimeout(function() {
+            if (shootAnything && intersection.properties.collisionsWillMove === true) {
+                // Any entity with collisions will move can be shot
+                Entities.editEntity(intersection.entityID, {
+                    velocity: Vec3.multiply(shotDirection, GUN_FORCE)
+                });
+                createEntityHitEffect(intersection.intersection);
+            } else {
+                
+            }
+        }, 50);
+
     }
 }
 
+function 
 
 
 function scriptEnding() {
@@ -209,7 +208,7 @@ Script.scriptEnding.connect(scriptEnding);
 Script.update.connect(update);
 
 
-function createWallHit(position) {
+function createEntityHitEffect(position) {
     var flash = Entities.addEntity({
         type: "ParticleEffect",
         position: position,

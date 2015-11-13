@@ -13,7 +13,8 @@ var rat = Entities.addEntity({
     color: {red: 200, green: 20, blue: 200},
     gravity: {x: 0, y: -9.8, z: 0},
     collisionsWillMove: true,
-    script: scriptURL
+    script: scriptURL,
+    userData: JSON.stringify({isShootable: true});
 });
 
 function cleanup() {
