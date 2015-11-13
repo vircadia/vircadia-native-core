@@ -66,12 +66,10 @@ function getAction(controlEntity) {
     var uD_action = userData.actionKey.uD_action;
     var uD_url = userData.clipKey.uD_url;
     
-    print("Sono " + id + " e ho ricevuto un comando da " + uD_id);
-    
     Entities.deleteEntity((Entities.getEntityProperties(controlEntity)).id);
 
-    if(uD_id === id || uD_id === -1) {
-        if(uD_action === 6)
+    if (uD_id === id || uD_id === -1) {
+        if (uD_action === 6)
             clip_url = uD_url;
         
         return uD_action;

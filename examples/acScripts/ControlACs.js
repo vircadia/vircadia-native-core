@@ -190,7 +190,7 @@ function mousePressEvent(event) {
         sendCommand(i, STOP);
     } else if (loadIcon[i] === toolBars[i].clicked(clickedOverlay, false)) {
         input_text = Window.prompt("Insert the url of the clip: ","");
-        if(!(input_text === "" || input_text === null)) {
+        if (!(input_text === "" || input_text === null)) {
             clip_url = input_text;
             sendCommand(i, LOAD);
         }
@@ -211,7 +211,7 @@ function mousePressEvent(event) {
                 sendCommand(i, STOP);
             } else if (loadIcon[i] === toolBars[i].clicked(clickedOverlay, false)) {                
                 input_text = Window.prompt("Insert the url of the clip: ","");
-                if(!(input_text === "" || input_text === null)) {
+                if (!(input_text === "" || input_text === null)) {
                     clip_url = input_text;
                     sendCommand(i, LOAD);
                 }                
