@@ -804,8 +804,11 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
 
 void Application::aboutToQuit() {
     emit beforeAboutToQuit();
+    
     getActiveDisplayPlugin()->deactivate();
+    
     _aboutToQuit = true;
+    
     cleanupBeforeQuit();
 }
 
@@ -831,8 +834,13 @@ void Application::cleanupBeforeQuit() {
 
     _entities.clear(); // this will allow entity scripts to properly shutdown
     
+    auto nodeList = DependencyManager::get<NodeList>();
+    
+    // send the domain a disconnect packet
+    nodeList->getDomainHandler().disconnect();
+    
     // tell the packet receiver we're shutting down, so it can drop packets
-    DependencyManager::get<NodeList>()->getPacketReceiver().setShouldDropPackets(true);
+    nodeList->getPacketReceiver().setShouldDropPackets(true);
     
     _entities.shutdown(); // tell the entities system we're shutting down, so it will stop running scripts
     ScriptEngine::stopAllScripts(this); // stop all currently running global scripts

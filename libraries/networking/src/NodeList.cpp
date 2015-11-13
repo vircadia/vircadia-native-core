@@ -103,6 +103,7 @@ NodeList::NodeList(char newOwnerType, unsigned short socketListenPort, unsigned 
     packetReceiver.registerListener(PacketType::DomainServerRequireDTLS, &_domainHandler, "processDTLSRequirementPacket");
     packetReceiver.registerListener(PacketType::ICEPingReply, &_domainHandler, "processICEPingReplyPacket");
     packetReceiver.registerListener(PacketType::DomainServerPathResponse, this, "processDomainServerPathResponse");
+    packetReceiver.registerListener(PacketType::DomainServerRemovedNode, this, "processDomainServerRemovedNode");
 }
 
 qint64 NodeList::sendStats(const QJsonObject& statsObject, const HifiSockAddr& destination) {
@@ -511,6 +512,13 @@ void NodeList::processDomainServerAddedNode(QSharedPointer<NLPacket> packet) {
 
     // use our shared method to pull out the new node
     parseNodeFromPacketStream(packetStream);
+}
+
+void NodeList::processDomainServerRemovedNode(QSharedPointer<NLPacket> packet) {
+    // read the UUID from the packet, remove it if it exists
+    QUuid nodeUUID = QUuid::fromRfc4122(packet->readWithoutCopy(NUM_BYTES_RFC4122_UUID));
+    qDebug() << "Received packet from domain-server to remove node with UUID" << uuidStringWithoutCurlyBraces(nodeUUID);
+    killNodeWithUUID(nodeUUID);
 }
 
 void NodeList::parseNodeFromPacketStream(QDataStream& packetStream) {
