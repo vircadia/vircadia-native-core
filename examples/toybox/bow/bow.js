@@ -10,22 +10,24 @@
 //
 
 // to do: 
-// make arrows more visible
+// create field with haybales and targets
+// create torches to start arrow on fire 
+// play start fire sound
+// parent the arrow fire to the arrow
+// delete the arrow fire when the arrow is notched (the bow will now create and track fire)
 // make arrow rotate toward ground as it flies
-// add noise when you release arrow -> add the sound to the arrow and keep it with position so you hear it whizz by 
-// add noise when you draw string
-// re-enable arrows sticking when they hit
-// prepare for haptics 
+// working shader or transparent model for glow box
 
-// from chat w/ ryan
-// 5 arrows on table
-// pick up arrow entity
-// notch it
 (function() {
 
     Script.include("../../libraries/utils.js");
 
-
+    var NOTCH_ARROW_SOUND_URL = 'http://hifi-content.s3.amazonaws.com/james/bow_and_arrow/sounds/notch.wav?123';
+    var SHOOT_ARROW_SOUND_URL = 'http://hifi-content.s3.amazonaws.com/james/bow_and_arrow/sounds/String_release2.L.wav';
+    var STRING_PULL_SOUND_URL = 'http://hifi-content.s3.amazonaws.com/james/bow_and_arrow/sounds/Bow_draw.1.L.wav';
+    var ARROW_WHIZZ_SOUND_URL = 'http://hifi-content.s3.amazonaws.com/james/bow_and_arrow/sounds/whizz.wav';
+    //todo : multiple impact sounds
+    var ARROW_HIT_SOUND_URL = 'http://hifi-content.s3.amazonaws.com/bow_and_arrow/sounds/Arrow_impact1.L.wav'
     var ARROW_DIMENSIONS = {
         x: 0.02,
         y: 0.02,
@@ -45,10 +47,10 @@
     };
 
     var ARROW_OFFSET = -0.36;
-
+    var ARROW_TIP_OFFSET = 0.32;
     var ARROW_GRAVITY = {
         x: 0,
-        y: -9.8,
+        y: -5.8,
         z: 0
     };
 
@@ -83,7 +85,7 @@
         min1: 0,
         max1: 0.6,
         min2: 5,
-        max2: 30
+        max2: 20
     }
 
 
@@ -120,6 +122,11 @@
             print('preload bow')
             this.entityID = entityID;
             this.bowID = entityID;
+            this.stringPullSound = SoundCache.getSound(STRING_PULL_SOUND_URL);
+            this.shootArrowSound = SoundCache.getSound(SHOOT_ARROW_SOUND_URL);
+            this.arrowHitSound = SoundCache.getSound(ARROW_HIT_SOUND_URL);
+            this.arrowNotchSound = SoundCache.getSound(NOTCH_ARROW_SOUND_URL);
+            this.arrowWhizzSound = SoundCache.getSound(ARROW_WHIZZ_SOUND_URL);
             Script.update.connect(this.updateArrowTrackers);
 
         },
@@ -166,6 +173,7 @@
             // print('collidable prenotchstring' + Entities.getEntityProperties(this.preNotchString, "collisionsWillMove").collisionsWillMove)
 
             this.bowProperties = Entities.getEntityProperties(this.entityID, ["position", "rotation", "userData"]);
+
             this.updateNotchDetectorPosition();
 
             //check to see if an arrow has notched itself in our notch detector
@@ -174,6 +182,8 @@
                 if (this.hasArrowNotched === false && userData.hifiBowKey.arrowID !== null) {
                     //notch the arrow
                     print('NOTCHING IT!')
+                    this.playArrowNotchSound();
+                    this.playStringPullSound();
                     this.hasArrowNotched = userData.hifiBowKey.hasArrowNotched;
 
                     this.arrow = userData.hifiBowKey.arrowID;
@@ -218,6 +228,8 @@
                 }
                 // print('CHECK STRING HAND')
                 //only test for strings now that an arrow is notched
+
+
                 this.checkStringHand();
 
             } else {
@@ -446,6 +458,14 @@
             }
         },
 
+        setArrowTipPosition: function(arrowPosition, arrowRotation) {
+            var frontVector = Quat.getFront(arrowRotation);
+            var frontOffset = Vec3.multiply(frontVector, ARROW_TIP_OFFSET);
+            var arrowTipPosition = Vec3.sum(arrowPosition, frontOffset);
+            this.arrowTipPosition = arrowTipPosition;
+            return arrowTipPosition;
+
+        },
         getArrowPosition: function() {
             var arrowVector = Vec3.subtract(this.stringData.handPosition, this.stringData.grabHandPosition);
             arrowVector = Vec3.normalize(arrowVector);
@@ -465,13 +485,13 @@
 
             var pullBackOffset = Vec3.multiply(handToNotch, -pullBackDistance);
             var arrowPosition = Vec3.sum(this.notchDetectorPosition, pullBackOffset);
-
+            this.changeStringPullSoundVolume(pullBackDistance);
             //move it forward a bit
             var pushForwardOffset = Vec3.multiply(handToNotch, -ARROW_OFFSET);
             var finalArrowPosition = Vec3.sum(arrowPosition, pushForwardOffset);
 
             var arrowRotation = Quat.rotationBetween(Vec3.FRONT, handToNotch);
-
+            // this.setArrowTipPosition(finalArrowPosition, arrowRotation);
             Entities.editEntity(this.arrow, {
                 position: finalArrowPosition,
                 rotation: arrowRotation
@@ -500,6 +520,7 @@
                 velocity: forwardVec
             };
 
+            this.playShootArrowSound();
             Entities.editEntity(this.arrow, arrowProperties);
 
             setEntityCustomData('hifiBowKey', this.entityID, {
@@ -633,7 +654,7 @@
                 animationSettings: animationSettings,
                 textures: "https://hifi-public.s3.amazonaws.com/alan/Particles/Particle-Sprite-Smoke-1.png",
                 emitRate: 100,
-                position: this.bowProperties.position,
+                position: MyAvatar.position,
                 colorStart: {
                     red: 70,
                     green: 70,
@@ -652,7 +673,7 @@
                 radiusSpread: 0.01,
                 radiusStart: 0.02,
                 radiusEnd: 0.001,
-                particleRadius: 0.5,
+                particleRadius: 0.15,
                 radiusFinish: 0.0,
                 emitOrientation: myOrientation,
                 emitSpeed: 0.3,
@@ -661,8 +682,8 @@
                 alpha: 0.1,
                 alphaFinish: 0.05,
                 emitDimensions: {
-                    x: 1,
-                    y: 1,
+                    x: 0.5,
+                    y: 0.5,
                     z: 0.1
                 },
                 polarFinish: 0.1,
@@ -676,27 +697,29 @@
                     y: 0.01,
                     z: 0.1
                 },
-                lifespan: 1
+                lifespan: 0.5
             });
 
-            return fire
+            return fire;
 
         },
         createArrowTracker: function(arrow, isBurning) {
             print('in create arrow tracker:::' + arrow)
             var _t = this;
 
-            var isBurning =  this.arrowIsBurning;
+            // var isBurning =  this.arrowIsBurning;
             //delete this line below once debugging is done
             var isBurning = isBurning || true;
             var arrowTracker = {
                 arrowID: arrow,
-                whizzingSound: _t.createWhizzingSound(),
-                fireSound: _t.createFireSound(),
+                // whizzingSound: _t.playWhizzSound(),
+                //fireSound: _t.createFireSound(),
+                hasPlayedCollisionSound: false,
                 glowBox: _t.createGlowBox(),
                 fireParticleSystem: _t.createFireParticleSystem(),
                 childEntities: [],
                 childSounds: [],
+                childParticleSystems: [],
                 init: function() {
                     print('init arrow tracker')
                     this.setChildren();
@@ -708,14 +731,18 @@
                     Script.addEventHandler(this.arrowID, "collisionWithEntity", function(entityA, entityB, collision) {
                         //have to reverse lookup the tracker by the arrow id to get access to the children
                         var tracker = getArrowTrackerByArrowID(entityA);
+
                         print('ARROW COLLIDED WITH SOMETHING!' + tracker.glowBox)
                         print('TRACKER IN COLLISION !' + tracker)
-
+                            // _t.playArrowHitSound(collision.contactPoint);
+                            //Vec3.print('penetration = ', collision.penetration);
+                            //Vec3.print('collision contact point = ', collision.contactPoint);
+                            //   var orientationChange = orientationOf(collision.velocityChange);
                         Entities.deleteEntity(tracker.glowBox);
                         //we don't want to update this arrow tracker anymore
                         var index = _t.arrowTrackers.indexOf(entityA);
                         if (index > -1) {
-                            _t.arrowTrackers.splice(index, 1);
+                            //    _t.arrowTrackers.splice(index, 1);
                         }
                     });
                 },
@@ -724,21 +751,21 @@
                         // this.childSounds.push(this.whizzingSound);
                         // this.childSounds.push(this.fireSound);
                     this.childEntities.push(this.glowBox);
-                    this.childEntities.push(this.fireParticleSystem);
+                    this.childParticleSystems.push(this.fireParticleSystem);
                 },
                 updateChildEntities: function(arrowID) {
 
-                    print('UPDATING CHILDREN OF TRACKER:::' + this.childEntities.length);
+                    // print('UPDATING CHILDREN OF TRACKER:::' + this.childEntities.length);
                     var arrowProperties = Entities.getEntityProperties(this.arrowID, ["position", "rotation"]);
 
                     //update the positions
-                    this.soundEntities.forEach(function(injector) {
-                        var audioProperties = {
-                            volume: 0.25,
-                            position: arrowProperties.position
-                        };
-                        injector.options = audioProperties;
-                    })
+                    // this.soundEntities.forEach(function(injector) {
+                    //     var audioProperties = {
+                    //         volume: 0.25,
+                    //         position: arrowProperties.position
+                    //     };
+                    //     injector.options = audioProperties;
+                    // })
 
                     this.childEntities.forEach(function(child) {
                         Entities.editEntity(child, {
@@ -746,7 +773,13 @@
                             rotation: arrowProperties.rotation
                         })
                     })
-                    
+
+                    this.childParticleSystems.forEach(function(child) {
+                        Entities.editEntity(child, {
+                            position: arrowProperties.position
+                        })
+                    })
+
                 }
             };
             arrowTracker.init();
@@ -754,16 +787,6 @@
             print('after create arrow tracker')
 
             return arrowTracker
-        },
-        createWhizzingSound: function() {
-            var audioProperties = {
-                volume: 0.25,
-                position: this.bowProperties.position,
-                loop: true
-            };
-            var injector = Audio.playSound(this.shootArrowSound, audioProperties);
-
-            return injector
         },
         createFireBurningSound: function() {
             var audioProperties = {
@@ -859,6 +882,39 @@
             };
             Audio.playSound(this.shootArrowSound, audioProperties);
         },
+        playArrowHitSound: function(position) {
+            var audioProperties = {
+                volume: 0.25,
+                position: position
+            };
+            Audio.playSound(this.arrowHitSound, audioProperties);
+        },
+        playArrowNotchSound: function() {
+            print('play arrow notch sound')
+            var audioProperties = {
+                volume: 0.25,
+                position: this.bowProperties.position
+            };
+            Audio.playSound(this.arrowNotchSound, audioProperties);
+        },
+        playArrowWhizzSound: function() {
+
+            var audioProperties = {
+                volume: 0.0,
+                position: this.bowProperties.position
+            };
+            var injector = Audio.playSound(this.arrowWhizzSound, audioProperties);
+
+            return injector
+        },
+        changeStringPullSoundVolume: function(pullBackDistance) {
+            var audioProperties = {
+                volume: 0.25,
+                position: this.bowProperties.position
+            }
+
+            this.stringPullInjector.options = audioProperties
+        }
 
 
     };

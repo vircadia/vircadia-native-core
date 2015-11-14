@@ -51,8 +51,9 @@ function createArrow(i) {
         script: ARROW_SCRIPT_URL,
         collisionsWillMove: true,
         ignoreForCollisions: false,
+        collisionSoundURL:'http://hifi-content.s3.amazonaws.com/bow_and_arrow/sounds/Arrow_impact1.L.wav',
         gravity: ARROW_GRAVITY,
-        // linearDamping:0.1,
+        linearDamping:0.01,
         userData: JSON.stringify({
             grabbableKey: {
                 invertSolidWhileHeld: true

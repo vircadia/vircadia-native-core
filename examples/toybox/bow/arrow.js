@@ -196,25 +196,25 @@
 
         // collisionWithEntity: function(me, otherEntity, collision) {
         //     print('ARROW HAD COLLISION')
-        //         //     if (this.stickOnCollision === true) {
-        //         //         print('ARROW SHOULD STICK')
-        //         //         Vec3.print('penetration = ', collision.penetration);
-        //         //         Vec3.print('collision contact point = ', collision.contactPoint);
-        //         //         Entities.editEntity(this.entityID, {
-        //         //             velocity: {
-        //         //                 x: 0,
-        //         //                 y: 0,
-        //         //                 z: 0
-        //         //             },
-        //         //             gravity: {
-        //         //                 x: 0,
-        //         //                 y: 0,
-        //         //                 z: 0
-        //         //             },
-        //         //             collisionsWillMove: false
+        //             if (this.stickOnCollision === true) {
+        //                 print('ARROW SHOULD STICK')
+        //                 Vec3.print('penetration = ', collision.penetration);
+        //                 Vec3.print('collision contact point = ', collision.contactPoint);
+        //                 Entities.editEntity(this.entityID, {
+        //                     velocity: {
+        //                         x: 0,
+        //                         y: 0,
+        //                         z: 0
+        //                     },
+        //                     gravity: {
+        //                         x: 0,
+        //                         y: 0,
+        //                         z: 0
+        //                     },
+        //                     collisionsWillMove: false
 
-        //     //         })
-        //     //     }
+        //             })
+        //         }
 
         // }
     }
