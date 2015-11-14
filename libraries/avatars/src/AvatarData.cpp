@@ -1664,7 +1664,7 @@ void avatarStateFromFrame(const QByteArray& frameData, AvatarData* _avatar) {
         auto worldTransform = currentBasis->worldTransform(relativeTransform);
         _avatar->setPosition(worldTransform.getTranslation());
         _avatar->setOrientation(worldTransform.getRotation());
-        _avatar->setTargetScale(worldTransform.getScale().x);
+    //    _avatar->setTargetScale(worldTransform.getScale().x);
     }
 
 
