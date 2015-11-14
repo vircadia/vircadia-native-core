@@ -165,14 +165,14 @@ function fire(side, value) {
                 });
                 createEntityHitEffect(intersection.intersection);
             } else {
-                
+
             }
         }, 50);
 
     }
 }
 
-function 
+function
 
 
 function scriptEnding() {

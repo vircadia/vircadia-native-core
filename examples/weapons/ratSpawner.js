@@ -14,7 +14,6 @@ var rat = Entities.addEntity({
     gravity: {x: 0, y: -9.8, z: 0},
     collisionsWillMove: true,
     script: scriptURL,
-    userData: JSON.stringify({isShootable: true});
 });
 
 function cleanup() {
