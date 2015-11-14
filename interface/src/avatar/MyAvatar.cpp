@@ -125,7 +125,7 @@ MyAvatar::MyAvatar(RigPointer rig) :
         AVATAR_FRAME_TYPE = recording::Frame::registerFrameType(HEADER_NAME);
     });
 
-    // FIXME how to deal with driving multiple avatars locally?  
+    // FIXME how to deal with driving multiple avatars locally?
     Frame::registerFrameHandler(AVATAR_FRAME_TYPE, [this](Frame::ConstPointer frame) {
         qDebug() << "Playback of avatar frame length: " << frame->data.size();
         avatarStateFromFrame(frame->data, this);
@@ -363,7 +363,6 @@ void MyAvatar::updateHMDFollowVelocity() {
     bool avatarIsMoving = glm::length(_velocity - _followVelocity) > FOLLOW_THRESHOLD_SPEED;
     bool shouldFollow = hmdIsAtRest || avatarIsMoving;
 
-    // linear part
     _followOffsetDistance = glm::length(offset);
     if (_followOffsetDistance < FOLLOW_MIN_DISTANCE) {
         // close enough
