@@ -1975,53 +1975,19 @@ glm::quat MyAvatar::getWorldBodyOrientation() const {
 // derive avatar body position and orientation from the current HMD Sensor location.
 // results are in sensor space
 glm::mat4 MyAvatar::deriveBodyFromHMDSensor() const {
-
-    // HMD is in sensor space.
-    const glm::vec3 hmdPosition = getHMDSensorPosition();
-    const glm::quat hmdOrientation = getHMDSensorOrientation();
-    const glm::quat hmdOrientationYawOnly = cancelOutRollAndPitch(hmdOrientation);
-
-    const glm::vec3 DEFAULT_RIGHT_EYE_POS(-0.3f, 1.6f, 0.0f);
-    const glm::vec3 DEFAULT_LEFT_EYE_POS(0.3f, 1.6f, 0.0f);
-    const glm::vec3 DEFAULT_NECK_POS(0.0f, 1.5f, 0.0f);
-    const glm::vec3 DEFAULT_HIPS_POS(0.0f, 1.0f, 0.0f);
-
-    vec3 localEyes, localNeck;
-    if (!_debugDrawSkeleton) {
-        const glm::quat rotY180 = glm::angleAxis((float)PI, glm::vec3(0.0f, 1.0f, 0.0f));
-        localEyes = rotY180 * (((DEFAULT_RIGHT_EYE_POS + DEFAULT_LEFT_EYE_POS) / 2.0f) - DEFAULT_HIPS_POS);
-        localNeck = rotY180 * (DEFAULT_NECK_POS - DEFAULT_HIPS_POS);
-    } else {
-        // TODO: At the moment MyAvatar does not have access to the rig, which has the skeleton, which has the bind poses.
-        // for now use the _debugDrawSkeleton, which is initialized with the same FBX model as the rig.
-
-        // TODO: cache these indices.
-        int rightEyeIndex = _debugDrawSkeleton->nameToJointIndex("RightEye");
-        int leftEyeIndex = _debugDrawSkeleton->nameToJointIndex("LeftEye");
-        int neckIndex = _debugDrawSkeleton->nameToJointIndex("Neck");
-        int hipsIndex = _debugDrawSkeleton->nameToJointIndex("Hips");
-
-        glm::vec3 absRightEyePos = rightEyeIndex != -1 ? _debugDrawSkeleton->getAbsoluteBindPose(rightEyeIndex).trans : DEFAULT_RIGHT_EYE_POS;
-        glm::vec3 absLeftEyePos = leftEyeIndex != -1 ? _debugDrawSkeleton->getAbsoluteBindPose(leftEyeIndex).trans : DEFAULT_LEFT_EYE_POS;
-        glm::vec3 absNeckPos = neckIndex != -1 ? _debugDrawSkeleton->getAbsoluteBindPose(neckIndex).trans : DEFAULT_NECK_POS;
-        glm::vec3 absHipsPos = neckIndex != -1 ? _debugDrawSkeleton->getAbsoluteBindPose(hipsIndex).trans : DEFAULT_HIPS_POS;
-
-        const glm::quat rotY180 = glm::angleAxis((float)PI, glm::vec3(0.0f, 1.0f, 0.0f));
-        localEyes = rotY180 * (((absRightEyePos + absLeftEyePos) / 2.0f) - absHipsPos);
-        localNeck = rotY180 * (absNeckPos - absHipsPos);
+    if (_rig) {
+        // orientation
+        const glm::quat hmdOrientation = getHMDSensorOrientation();
+        const glm::quat yaw = cancelOutRollAndPitch(hmdOrientation);
+        // position
+        // we flip about yAxis when going from "root" to "avatar" frame
+        // and we must also apply "yaw" to get into HMD frame
+        glm::quat rotY180 = glm::angleAxis((float)M_PI, glm::vec3(0.0f, 1.0f, 0.0f));
+        glm::vec3 eyesInAvatarFrame = rotY180 * yaw * _rig->getEyesInRootFrame();
+        glm::vec3 bodyPos = getHMDSensorPosition() - eyesInAvatarFrame;
+        return createMatFromQuatAndPos(yaw, bodyPos);
     }
-
-    // apply simplistic head/neck model
-    // figure out where the avatar body should be by applying offsets from the avatar's neck & head joints.
-
-    // eyeToNeck offset is relative full HMD orientation.
-    // while neckToRoot offset is only relative to HMDs yaw.
-    glm::vec3 eyeToNeck = hmdOrientation * (localNeck - localEyes);
-    glm::vec3 neckToRoot = hmdOrientationYawOnly * -localNeck;
-    glm::vec3 bodyPos = hmdPosition + eyeToNeck + neckToRoot;
-
-    // avatar facing is determined solely by hmd orientation.
-    return createMatFromQuatAndPos(hmdOrientationYawOnly, bodyPos);
+    return glm::mat4();
 }
 
 glm::vec3 MyAvatar::getPositionForAudio() {

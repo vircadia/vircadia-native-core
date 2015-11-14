@@ -330,7 +330,7 @@ private:
     PalmData getActivePalmData(int palmIndex) const;
 
     // derive avatar body position and orientation from the current HMD Sensor location.
-    // results are in sensor space
+    // results are in HMD frame
     glm::mat4 deriveBodyFromHMDSensor() const;
 
     float _driveKeys[MAX_DRIVE_KEYS];
