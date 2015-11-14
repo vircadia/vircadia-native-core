@@ -1513,7 +1513,8 @@ void AvatarData::setRecordingBasis(std::shared_ptr<Transform> recordingBasis) {
         recordingBasis = std::make_shared<Transform>();
         recordingBasis->setRotation(getOrientation());
         recordingBasis->setTranslation(getPosition());
-        recordingBasis->setScale(getTargetScale());
+        // TODO: find a  different way to record/playback the Scale of the avatar
+        //recordingBasis->setScale(getTargetScale());
     }
     _recordingBasis = recordingBasis;
 }
@@ -1664,7 +1665,9 @@ void avatarStateFromFrame(const QByteArray& frameData, AvatarData* _avatar) {
         auto worldTransform = currentBasis->worldTransform(relativeTransform);
         _avatar->setPosition(worldTransform.getTranslation());
         _avatar->setOrientation(worldTransform.getRotation());
-    //    _avatar->setTargetScale(worldTransform.getScale().x);
+
+        // TODO: find a way to record/playback the Scale of the avatar
+        //_avatar->setTargetScale(worldTransform.getScale().x);
     }
 
 
