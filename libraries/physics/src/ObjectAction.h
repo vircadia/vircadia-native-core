@@ -67,7 +67,6 @@ protected:
     EntityItemWeakPointer _ownerEntity;
     QString _tag;
     quint64 _expires { 0 }; // in seconds since epoch
-    bool _active { false };
 
 private:
     int getEntityServerClockSkew() const;

@@ -12,11 +12,14 @@
 #ifndef hifi_EntityActionInterface_h
 #define hifi_EntityActionInterface_h
 
+#include <memory>
 #include <QUuid>
+#include <glm/glm.hpp>
 
-#include "EntityItem.h"
-
+class EntityItem;
 class EntitySimulation;
+using EntityItemPointer = std::shared_ptr<EntityItem>;
+using EntityItemWeakPointer = std::weak_ptr<EntityItem>;
 
 enum EntityActionType {
     // keep these synchronized with actionTypeFromString and actionTypeToString
@@ -33,6 +36,8 @@ public:
     virtual ~EntityActionInterface() { }
     const QUuid& getID() const { return _id; }
     EntityActionType getType() const { return _type; }
+
+    bool isActive() { return _active; }
 
     virtual void removeFromSimulation(EntitySimulation* simulation) const = 0;
     virtual EntityItemWeakPointer getOwnerEntity() const = 0;
@@ -81,6 +86,7 @@ protected:
 
     QUuid _id;
     EntityActionType _type;
+    bool _active { false };
 };
 
 

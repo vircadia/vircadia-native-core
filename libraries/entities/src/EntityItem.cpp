@@ -1844,3 +1844,18 @@ bool EntityItem::shouldSuppressLocationEdits() const {
 
     return false;
 }
+
+QList<EntityActionPointer> EntityItem::getActionsOfType(EntityActionType typeToGet) {
+    QList<EntityActionPointer> result;
+
+    QHash<QUuid, EntityActionPointer>::const_iterator i = _objectActions.begin();
+    while (i != _objectActions.end()) {
+        EntityActionPointer action = i.value();
+        if (action->getType() == typeToGet && action->isActive()) {
+            result += action;
+        }
+        i++;
+    }
+
+    return result;
+}

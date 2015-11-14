@@ -66,9 +66,34 @@ std::shared_ptr<Avatar> AvatarActionHold::getTarget(glm::quat& rotation, glm::ve
 void AvatarActionHold::updateActionWorker(float deltaTimeStep) {
     glm::quat rotation;
     glm::vec3 position;
-    std::shared_ptr<Avatar> holdingAvatar = getTarget(rotation, position);
+    bool valid = false;
+    int holdCount = 0;
 
-    if (holdingAvatar) {
+    auto ownerEntity = _ownerEntity.lock();
+    if (!ownerEntity) {
+        return;
+    }
+    QList<EntityActionPointer> holdActions = ownerEntity->getActionsOfType(ACTION_TYPE_HOLD);
+    foreach (EntityActionPointer action, holdActions) {
+        std::shared_ptr<AvatarActionHold> holdAction = std::static_pointer_cast<AvatarActionHold>(action);
+        glm::quat rotationForAction;
+        glm::vec3 positionForAction;
+        std::shared_ptr<Avatar> holdingAvatar = holdAction->getTarget(rotationForAction, positionForAction);
+        if (holdingAvatar) {
+            holdCount ++;
+            if (holdAction.get() == this) {
+                // only use the rotation for this action
+                valid = true;
+                rotation = rotationForAction;
+            }
+
+            position += positionForAction;
+        }
+    }
+
+    if (valid && holdCount > 0) {
+        position /= holdCount;
+
         bool gotLock = withTryWriteLock([&]{
             _positionalTarget = position;
             _rotationalTarget = rotation;
