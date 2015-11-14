@@ -362,7 +362,7 @@ function updateBillboard(distanceOrMessage) {
         });
     }
 
-    var highScoreBillboardEntityID = getHighScoreBillboardEntityID;
+    var highScoreBillboardEntityID = getHighScoreBillboardEntityID();
     // If a number was passed in, let's see if it is larger than the current high score
     // and update it if so.
     if (!isNaN(distanceOrMessage) && highScoreBillboardEntityID) {
