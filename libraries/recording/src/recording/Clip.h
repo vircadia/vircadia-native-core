@@ -34,16 +34,17 @@ public:
     virtual void seek(Time offset) = 0;
     virtual Time position() const = 0;
 
-    virtual FramePointer peekFrame() const = 0;
-    virtual FramePointer nextFrame() = 0;
+    virtual FrameConstPointer peekFrame() const = 0;
+    virtual FrameConstPointer nextFrame() = 0;
     virtual void skipFrame() = 0;
-    virtual void addFrame(FramePointer) = 0;
+    virtual void addFrame(FrameConstPointer) = 0;
 
     static Pointer fromFile(const QString& filePath);
     static void toFile(const QString& filePath, Pointer clip);
     static Pointer newClip();
     
 protected:
+    friend class WrapperClip;
     using Mutex = std::recursive_mutex;
     using Locker = std::unique_lock<Mutex>;
 

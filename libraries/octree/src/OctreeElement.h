@@ -15,6 +15,8 @@
 //#define SIMPLE_CHILD_ARRAY
 #define SIMPLE_EXTERNAL_CHILDREN
 
+#include <atomic>
+
 #include <QReadWriteLock>
 
 #include <OctalCode.h>
@@ -23,6 +25,9 @@
 #include "AACube.h"
 #include "ViewFrustum.h"
 #include "OctreeConstants.h"
+
+using AtomicUIntStat = std::atomic<uintmax_t>;
+
 
 class EncodeBitstreamParams;
 class Octree;
@@ -290,20 +295,20 @@ protected:
     //static QReadWriteLock _updateHooksLock;
     static std::vector<OctreeElementUpdateHook*> _updateHooks;
 
-    static quint64 _voxelNodeCount;
-    static quint64 _voxelNodeLeafCount;
+    static AtomicUIntStat _voxelNodeCount;
+    static AtomicUIntStat _voxelNodeLeafCount;
 
-    static quint64 _octreeMemoryUsage;
-    static quint64 _octcodeMemoryUsage;
-    static quint64 _externalChildrenMemoryUsage;
+    static AtomicUIntStat _octreeMemoryUsage;
+    static AtomicUIntStat _octcodeMemoryUsage;
+    static AtomicUIntStat _externalChildrenMemoryUsage;
 
-    static quint64 _getChildAtIndexTime;
-    static quint64 _getChildAtIndexCalls;
-    static quint64 _setChildAtIndexTime;
-    static quint64 _setChildAtIndexCalls;
+    static AtomicUIntStat _getChildAtIndexTime;
+    static AtomicUIntStat _getChildAtIndexCalls;
+    static AtomicUIntStat _setChildAtIndexTime;
+    static AtomicUIntStat _setChildAtIndexCalls;
 
-    static quint64 _externalChildrenCount;
-    static quint64 _childrenCount[NUMBER_OF_CHILDREN + 1];
+    static AtomicUIntStat _externalChildrenCount;
+    static AtomicUIntStat _childrenCount[NUMBER_OF_CHILDREN + 1];
 };
 
 #endif // hifi_OctreeElement_h

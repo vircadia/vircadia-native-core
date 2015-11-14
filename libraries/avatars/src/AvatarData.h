@@ -134,7 +134,8 @@ class QDataStream;
 
 class AttachmentData;
 class JointData;
-struct UniformTransform;
+class Transform;
+using TransformPointer = std::shared_ptr<Transform>;
 
 class AvatarData : public QObject {
     Q_OBJECT
@@ -333,10 +334,10 @@ public:
 
     bool shouldDie() const { return _owningAvatarMixer.isNull() || getUsecsSinceLastUpdate() > AVATAR_SILENCE_THRESHOLD_USECS; }
 
+    Transform getTransform() const;
     void clearRecordingBasis();
-    std::shared_ptr<UniformTransform> getRecordingBasis() const;
-    void setRecordingBasis(std::shared_ptr<UniformTransform> recordingBasis = std::shared_ptr<UniformTransform>());
-
+    TransformPointer getRecordingBasis() const;
+    void setRecordingBasis(TransformPointer recordingBasis = TransformPointer());
 
 public slots:
     void sendAvatarDataPacket();
@@ -437,7 +438,7 @@ protected:
     
     // During recording, this holds the starting position, orientation & scale of the recorded avatar
     // During playback, it holds the 
-    std::shared_ptr<UniformTransform> _recordingBasis;
+    TransformPointer _recordingBasis;
 
 private:
     friend void avatarStateFromFrame(const QByteArray& frameData, AvatarData* _avatar);
@@ -455,6 +456,9 @@ public:
     glm::vec3 translation;
     bool translationSet = false;
 };
+
+QJsonValue toJsonValue(const JointData& joint);
+JointData jointDataFromJsonValue(const QJsonValue& q);
 
 class AttachmentData {
 public:
