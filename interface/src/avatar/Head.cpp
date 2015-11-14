@@ -14,6 +14,7 @@
 #include <DependencyManager.h>
 #include <DeferredLightingEffect.h>
 #include <NodeList.h>
+#include <recording/Deck.h>
 
 #include "Application.h"
 #include "Avatar.h"
@@ -91,9 +92,9 @@ void Head::simulate(float deltaTime, bool isMine, bool billboard) {
 
     if (isMine) {
         MyAvatar* myAvatar = static_cast<MyAvatar*>(_owningAvatar);
-        
+        auto player = DependencyManager::get<recording::Deck>();
         // Only use face trackers when not playing back a recording.
-        if (!myAvatar->isPlaying()) {
+        if (!player->isPlaying()) {
             FaceTracker* faceTracker = qApp->getActiveFaceTracker();
             _isFaceTrackerConnected = faceTracker != NULL && !faceTracker->isMuted();
             if (_isFaceTrackerConnected) {

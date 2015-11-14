@@ -22,15 +22,15 @@
 
 using namespace recording;
 
-OffsetClip::OffsetClip(const Clip::Pointer& wrappedClip, Time offset) 
-    : WrapperClip(wrappedClip), _offset(offset) { }
+OffsetClip::OffsetClip(const Clip::Pointer& wrappedClip, float offset)
+    : WrapperClip(wrappedClip), _offset(Frame::secondsToFrameTime(offset)) { }
 
-void OffsetClip::seek(Time offset) {
-    _wrappedClip->seek(offset - _offset);
+void OffsetClip::seekFrameTime(Frame::Time offset) {
+    _wrappedClip->seekFrameTime(offset - _offset);
 }
 
-Time OffsetClip::position() const {
-    return _wrappedClip->position() + _offset;
+Frame::Time OffsetClip::positionFrameTime() const {
+    return _wrappedClip->positionFrameTime() + _offset;
 }
 
 FrameConstPointer OffsetClip::peekFrame() const {
@@ -45,7 +45,18 @@ FrameConstPointer OffsetClip::nextFrame() {
     return result;
 }
 
-Time OffsetClip::duration() const {
+float OffsetClip::duration() const {
     return _wrappedClip->duration() + _offset;
 }
+
+QString OffsetClip::getName() const {
+    return _wrappedClip->getName();
+}
+
+Clip::Pointer OffsetClip::duplicate() const {
+    return std::make_shared<OffsetClip>(
+        _wrappedClip->duplicate(), Frame::frameTimeToSeconds(_offset));
+}
+
+
 

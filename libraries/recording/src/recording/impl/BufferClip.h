@@ -10,33 +10,22 @@
 #ifndef hifi_Recording_Impl_BufferClip_h
 #define hifi_Recording_Impl_BufferClip_h
 
-#include "../Clip.h"
+#include "ArrayClip.h"
 
-#include <mutex>
+#include <QtCore/QUuid>
 
 namespace recording {
 
-class BufferClip : public Clip {
+class BufferClip : public ArrayClip<Frame> {
 public:
     using Pointer = std::shared_ptr<BufferClip>;
 
-    virtual ~BufferClip() {}
-
-    virtual Time duration() const override;
-    virtual size_t frameCount() const override;
-
-    virtual void seek(Time offset) override;
-    virtual Time position() const override;
-
-    virtual FrameConstPointer peekFrame() const override;
-    virtual FrameConstPointer nextFrame() override;
-    virtual void skipFrame() override;
+    virtual QString getName() const override;
     virtual void addFrame(FrameConstPointer) override;
 
 private:
-    virtual void reset() override;
-
-    std::vector<FrameConstPointer> _frames;
+    virtual FrameConstPointer readFrame(size_t index) const override;
+    QString _name { QUuid().toString() };
     mutable size_t _frameIndex { 0 };
 };
 

@@ -10,31 +10,34 @@
 #ifndef hifi_Recording_Impl_FileClip_h
 #define hifi_Recording_Impl_FileClip_h
 
-#include "../Clip.h"
+#include "ArrayClip.h"
+
+#include <mutex>
 
 #include <QtCore/QFile>
 #include <QtCore/QJsonDocument>
 
-#include <mutex>
+#include "../Frame.h"
 
 namespace recording {
 
-class FileClip : public Clip {
+struct FileFrameHeader : public FrameHeader {
+    FrameType type;
+    Frame::Time timeOffset;
+    uint16_t size;
+    quint64 fileOffset;
+};
+
+using FileFrameHeaderList = std::list<FileFrameHeader>;
+
+class FileClip : public ArrayClip<FileFrameHeader> {
 public:
     using Pointer = std::shared_ptr<FileClip>;
 
     FileClip(const QString& file);
     virtual ~FileClip();
 
-    virtual Time duration() const override;
-    virtual size_t frameCount() const override;
-
-    virtual void seek(Time offset) override;
-    virtual Time position() const override;
-
-    virtual FrameConstPointer peekFrame() const override;
-    virtual FrameConstPointer nextFrame() override;
-    virtual void skipFrame() override;
+    virtual QString getName() const override;
     virtual void addFrame(FrameConstPointer) override;
 
     const QJsonDocument& getHeader() {
@@ -43,27 +46,12 @@ public:
 
     static bool write(const QString& filePath, Clip::Pointer clip);
 
-    struct FrameHeader {
-        FrameType type;
-        Time timeOffset;
-        uint16_t size;
-        quint64 fileOffset;
-    };
-
 private:
-
-    virtual void reset() override;
-
-
-    using FrameHeaderVector = std::vector<FrameHeader>;
-
-    FramePointer readFrame(uint32_t frameIndex) const;
-
+    virtual FrameConstPointer readFrame(size_t index) const override;
     QJsonDocument _fileHeader;
     QFile _file;
-    uint32_t _frameIndex { 0 };
     uchar* _map { nullptr };
-    FrameHeaderVector _frameHeaders;
+    bool _compressed { true };
 };
 
 }
