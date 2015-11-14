@@ -16,7 +16,7 @@
 int AvatarMixerClientData::parseData(NLPacket& packet) {
     // pull the sequence number from the data first
     packet.readPrimitive(&_lastReceivedSequenceNumber);
-    
+
     // compute the offset to the data payload
     return _avatar.parseDataFromBuffer(packet.readWithoutCopy(packet.bytesLeftToRead()));
 }
@@ -25,6 +25,14 @@ bool AvatarMixerClientData::checkAndSetHasReceivedFirstPackets() {
     bool oldValue = _hasReceivedFirstPackets;
     _hasReceivedFirstPackets = true;
     return oldValue;
+}
+
+bool AvatarMixerClientData::checkAndSetHasReceivedFirstPacketsFrom(const QUuid& uuid) {
+    if (_hasReceivedFirstPacketsFrom.find(uuid) == _hasReceivedFirstPacketsFrom.end()) {
+        _hasReceivedFirstPacketsFrom.insert(uuid);
+        return false;
+    }
+    return true;
 }
 
 uint16_t AvatarMixerClientData::getLastBroadcastSequenceNumber(const QUuid& nodeUUID) const {
@@ -45,9 +53,9 @@ void AvatarMixerClientData::loadJSONStats(QJsonObject& jsonObject) const {
     jsonObject["avg_other_av_starves_per_second"] = getAvgNumOtherAvatarStarvesPerSecond();
     jsonObject["avg_other_av_skips_per_second"] = getAvgNumOtherAvatarSkipsPerSecond();
     jsonObject["total_num_out_of_order_sends"] = _numOutOfOrderSends;
-    
+
     jsonObject[OUTBOUND_AVATAR_DATA_STATS_KEY] = getOutboundAvatarDataKbps();
     jsonObject[INBOUND_AVATAR_DATA_STATS_KEY] = _avatar.getAverageBytesReceivedPerSecond() / (float) BYTES_PER_KILOBIT;
-    
+
     jsonObject["av_data_receive_rate"] = _avatar.getReceiveRate();
 }

@@ -15,6 +15,7 @@
 #include <algorithm>
 #include <cfloat>
 #include <unordered_map>
+#include <unordered_set>
 
 #include <QtCore/QJsonObject>
 #include <QtCore/QUrl>
@@ -34,25 +35,26 @@ class AvatarMixerClientData : public NodeData {
 public:
     int parseData(NLPacket& packet);
     AvatarData& getAvatar() { return _avatar; }
-    
+
     bool checkAndSetHasReceivedFirstPackets();
+    bool checkAndSetHasReceivedFirstPacketsFrom(const QUuid& uuid);
 
     uint16_t getLastBroadcastSequenceNumber(const QUuid& nodeUUID) const;
     void setLastBroadcastSequenceNumber(const QUuid& nodeUUID, uint16_t sequenceNumber)
         { _lastBroadcastSequenceNumbers[nodeUUID] = sequenceNumber; }
     Q_INVOKABLE void removeLastBroadcastSequenceNumber(const QUuid& nodeUUID) { _lastBroadcastSequenceNumbers.erase(nodeUUID); }
-    
+
     uint16_t getLastReceivedSequenceNumber() const { return _lastReceivedSequenceNumber; }
 
     quint64 getBillboardChangeTimestamp() const { return _billboardChangeTimestamp; }
     void setBillboardChangeTimestamp(quint64 billboardChangeTimestamp) { _billboardChangeTimestamp = billboardChangeTimestamp; }
-    
+
     quint64 getIdentityChangeTimestamp() const { return _identityChangeTimestamp; }
     void setIdentityChangeTimestamp(quint64 identityChangeTimestamp) { _identityChangeTimestamp = identityChangeTimestamp; }
-   
+
     void setFullRateDistance(float fullRateDistance) { _fullRateDistance = fullRateDistance; }
     float getFullRateDistance() const { return _fullRateDistance; }
-    
+
     void setMaxAvatarDistance(float maxAvatarDistance) { _maxAvatarDistance = maxAvatarDistance; }
     float getMaxAvatarDistance() const { return _maxAvatarDistance; }
 
@@ -73,31 +75,32 @@ public:
     void resetNumFramesSinceFRDAdjustment() { _numFramesSinceAdjustment = 0; }
 
     void recordSentAvatarData(int numBytes) { _avgOtherAvatarDataRate.updateAverage((float) numBytes); }
-   
+
     float getOutboundAvatarDataKbps() const
         { return _avgOtherAvatarDataRate.getAverageSampleValuePerSecond() / (float) BYTES_PER_KILOBIT; }
-    
+
     void loadJSONStats(QJsonObject& jsonObject) const;
 private:
     AvatarData _avatar;
-    
+
     uint16_t _lastReceivedSequenceNumber { 0 };
     std::unordered_map<QUuid, uint16_t> _lastBroadcastSequenceNumbers;
+    std::unordered_set<QUuid> _hasReceivedFirstPacketsFrom;
 
     bool _hasReceivedFirstPackets = false;
     quint64 _billboardChangeTimestamp = 0;
     quint64 _identityChangeTimestamp = 0;
-    
+
     float _fullRateDistance = FLT_MAX;
     float _maxAvatarDistance = FLT_MAX;
-    
+
     int _numAvatarsSentLastFrame = 0;
     int _numFramesSinceAdjustment = 0;
 
     SimpleMovingAverage _otherAvatarStarves;
     SimpleMovingAverage _otherAvatarSkips;
     int _numOutOfOrderSends = 0;
-    
+
     SimpleMovingAverage _avgOtherAvatarDataRate;
 };
 
