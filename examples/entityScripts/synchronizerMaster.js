@@ -10,7 +10,7 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 
-var PARAMS_SCRIPT_URL = 'https://raw.githubusercontent.com/AlessandroSigna/hifi/05aa1d4ce49c719353007c245ae77ef2d2a8fc36/examples/entityScripts/synchronizerEntityScript.js';
+var PARAMS_SCRIPT_URL = Script.resolvePath('synchronizerEntityScript.js');
 
 
 HIFI_PUBLIC_BUCKET = "http://s3.amazonaws.com/hifi-public/";
