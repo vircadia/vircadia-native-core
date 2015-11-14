@@ -38,6 +38,9 @@ public:
     static AtomicUIntStat _totalWastedBytes;
     static AtomicUIntStat _totalPackets;
 
+    static AtomicUIntStat _totalSpecialBytes;
+    static AtomicUIntStat _totalSpecialPackets;
+
     static AtomicUIntStat _usleepTime;
     static AtomicUIntStat _usleepCalls;
 
