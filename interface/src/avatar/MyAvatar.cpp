@@ -608,7 +608,7 @@ float MyAvatar::recorderElapsed() {
     if (!_recorder) {
         return 0;
     }
-    return (float)_recorder->position() / MSECS_PER_SECOND;
+    return (float)_recorder->position() / (float) MSECS_PER_SECOND;
 }
 
 QMetaObject::Connection _audioClientRecorderConnection;
