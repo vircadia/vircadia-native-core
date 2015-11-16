@@ -1,18 +1,22 @@
-var HOST = "localhost:5000"
-    // var HOST = "https://thawing-hamlet-8433.herokuapp.com/";
+// var HOST = "localhost:5000"
+var HOST = "desolate-bastion-1742.herokuapp.com";
 var client = new WebSocket("ws://" + HOST);
-client.onerror - function() {
-    console.log("CONNECTION ERROR");
+var score = 1;
+var username = GlobalServices.username;
+client.onerror = function() {
+    print("CONNECTION ERROR");
 }
 print("TESSST");
 client.onopen = function() {
     print("Web Socket client connected");
 
     function sendMessage() {
-        // if(client.readyState === client.OPEN) {
-            client.send("HEY");
-            Script.setTimeout(sendMessage, 1000);
-        // }
+        if(client.readyState === client.OPEN) {
+            
+            Script.setTimeout(sendMessage, 3000);
+            client.send(JSON.stringify({id: score, username: username, score: score}))
+            score++;
+        }
     }
     sendMessage();
 }

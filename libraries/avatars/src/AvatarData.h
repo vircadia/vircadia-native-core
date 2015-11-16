@@ -167,7 +167,7 @@ public:
     AvatarData();
     virtual ~AvatarData();
     
-    static const QUrl& defaultFullAvatarModelUrl();
+    static const QUrl& defaultFullAvatarcodelUrl();
 
     virtual bool isMyAvatar() const { return false; }
 
