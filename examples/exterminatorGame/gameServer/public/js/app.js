@@ -52,7 +52,12 @@ var GameBoard = React.createClass({
 
 		return React.createElement(
 			'div',
-			{ className: 'commentBox' },
+			null,
+			React.createElement(
+				'div',
+				{ className: 'gameTitle' },
+				'Kill All The Rats!'
+			),
 			React.createElement(UserList, { data: this.state.data })
 		);
 	}

@@ -46,7 +46,8 @@ var GameBoard = React.createClass({
   render: function() {
 
     return (
-      <div className="commentBox">
+      <div>
+        <div className = "gameTitle">Kill All The Rats!</div> 
         <UserList data ={this.state.data}/>
       </div>
     );

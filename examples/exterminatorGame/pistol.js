@@ -16,6 +16,7 @@
 Script.include("../libraries/utils.js");
 Script.include("../libraries/constants.js");
 
+var gameName = "Kill All The Rats!"
 var HOST = "localhost:5000"
 var socketClient = new WebSocket("ws://" + HOST);
 var username = GlobalServices.username;
@@ -27,7 +28,8 @@ function score() {
     currentScore++;
     socketClient.send(JSON.stringify({
         username: username,
-        score: currentScore
+        score: currentScore,
+        gameName: gameName
     }))
 }
 
