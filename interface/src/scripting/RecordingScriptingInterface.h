@@ -65,7 +65,6 @@ private:
     void processAudioInput(const QByteArray& audioData);
     QSharedPointer<recording::Deck> _player;
     QSharedPointer<recording::Recorder> _recorder;
-    QList<QPair<recording::Frame::Time, QByteArray>> _audioRecordingBuffer;
     quint64 _recordingEpoch { 0 };
     
     Flag _playFromCurrentLocation { true };

@@ -147,6 +147,7 @@ public slots:
 
     void sendDownstreamAudioStatsPacket() { _stats.sendDownstreamAudioStatsPacket(); }
     void handleAudioInput();
+    void handleRecordedAudioInput(const QByteArray& audio);
     void reset();
     void audioMixerKilled();
     void toggleMute();

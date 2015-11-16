@@ -156,7 +156,6 @@ void RecordingScriptingInterface::startRecording() {
         return;
     }
 
-
     if (QThread::currentThread() != thread()) {
         QMetaObject::invokeMethod(this, "startRecording", Qt::BlockingQueuedConnection);
         return;
@@ -164,78 +163,16 @@ void RecordingScriptingInterface::startRecording() {
 
     _recordingEpoch = Frame::epochForFrameTime(0);
 
-    _audioRecordingBuffer.clear();
     auto myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
     myAvatar->setRecordingBasis();
     _recorder->start();
 }
-
-float calculateAudioTime(const QByteArray& audio) {
-    static const float AUDIO_BYTES_PER_SECOND = AudioConstants::SAMPLE_RATE * sizeof(AudioConstants::AudioSample);
-    return (float)audio.size() / AUDIO_BYTES_PER_SECOND;
-}
-
-void injectAudioFrame(Clip::Pointer& clip, Frame::Time time, const QByteArray& audio) {
-    static const recording::FrameType AUDIO_FRAME_TYPE = recording::Frame::registerFrameType(AUDIO_FRAME_NAME);
-    clip->addFrame(std::make_shared<Frame>(AUDIO_FRAME_TYPE, time, audio));
-}
-
-// Detect too much audio in a single frame, or too much deviation between 
-// the expected audio length and the computed audio length
-bool shouldStartNewAudioFrame(const QByteArray& currentAudioFrame, float expectedAudioLength) {
-    if (currentAudioFrame.isEmpty()) {
-        return true;
-    }
-
-    // 100 milliseconds
-    float actualAudioLength = calculateAudioTime(currentAudioFrame);
-    static const float MAX_AUDIO_PACKET_DURATION = 1.0f;
-    if (actualAudioLength >= MAX_AUDIO_PACKET_DURATION) {
-        return true;
-    }
-
-
-    float deviation = std::abs(actualAudioLength - expectedAudioLength);
-
-    qDebug() << "Checking buffer deviation current length ";
-    qDebug() << "Actual:    " << actualAudioLength;
-    qDebug() << "Expected:  " << expectedAudioLength;
-    qDebug() << "Deviation: " << deviation;
-
-    static const float MAX_AUDIO_DEVIATION = 0.1f;
-    if (deviation >= MAX_AUDIO_PACKET_DURATION) {
-        return true;
-    }
-
-    return false;
-}
-
-
-void injectAudioFrames(Clip::Pointer& clip, const QList<QPair<recording::Frame::Time, QByteArray>>& audioBuffer) {
-    Frame::Time lastAudioStartTime = 0;
-    QByteArray audioFrameBuffer;
-    for (const auto& audioPacket : audioBuffer) {
-        float expectedAudioLength = Frame::frameTimeToSeconds(audioPacket.first - lastAudioStartTime);
-        if (shouldStartNewAudioFrame(audioFrameBuffer, expectedAudioLength)) {
-            // Time to start a new frame, inject the old one if it exists
-            if (audioFrameBuffer.size()) {
-                injectAudioFrame(clip, lastAudioStartTime, audioFrameBuffer);
-                audioFrameBuffer.clear();
-            }
-            lastAudioStartTime = audioPacket.first;
-        }
-        audioFrameBuffer.append(audioPacket.second);
-    }
-}
-
 
 void RecordingScriptingInterface::stopRecording() {
     _recorder->stop();
 
     _lastClip = _recorder->getClip();
     // post-process the audio into discreet chunks based on times of received samples
-    injectAudioFrames(_lastClip, _audioRecordingBuffer);
-    _audioRecordingBuffer.clear();
     _lastClip->seek(0);
     Frame::ConstPointer frame;
     while (frame = _lastClip->nextFrame()) {
@@ -310,19 +247,12 @@ void RecordingScriptingInterface::processAvatarFrame(const Frame::ConstPointer& 
 
 void RecordingScriptingInterface::processAudioInput(const QByteArray& audio) {
     if (_recorder->isRecording()) {
-        auto audioFrameTime = Frame::frameTimeFromEpoch(_recordingEpoch);
-        _audioRecordingBuffer.push_back({ audioFrameTime, audio });
-        qDebug() << "Got sound packet of size " << audio.size() << " At time " << audioFrameTime;
+        static const recording::FrameType AUDIO_FRAME_TYPE = recording::Frame::registerFrameType(AUDIO_FRAME_NAME);
+        _recorder->recordFrame(AUDIO_FRAME_TYPE, audio);
     }
 }
 
 void RecordingScriptingInterface::processAudioFrame(const recording::FrameConstPointer& frame) {
-    AudioInjectorOptions options;
-    auto myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
-    options.position = myAvatar->getPosition();
-    options.orientation = myAvatar->getOrientation();
-    // FIXME store the audio format (sample rate, bits, stereo) in the frame
-    options.stereo = false;
-    // FIXME move audio injector to a thread pool model?
-    AudioInjector::playSoundAndDelete(frame->data, options, nullptr);
+    auto audioClient = DependencyManager::get<AudioClient>();
+    audioClient->handleRecordedAudioInput(frame->data);
 }
