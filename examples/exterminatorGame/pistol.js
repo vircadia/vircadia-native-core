@@ -16,6 +16,22 @@
 Script.include("../libraries/utils.js");
 Script.include("../libraries/constants.js");
 
+var HOST = "localhost:5000"
+var socketClient = new WebSocket("ws://" + HOST);
+var username = GlobalServices.username;
+var username = "rand " + Math.floor(Math.random() * 100);
+var currentScore = 0;
+// var HOST = "desolate-bastion-1742.herokuapp.com";
+
+function score() {
+    currentScore++;
+    socketClient.send(JSON.stringify({
+        username: username,
+        score: currentScore
+    }))
+}
+
+
 HIFI_PUBLIC_BUCKET = "http://s3.amazonaws.com/hifi-public/";
 var fireSound = SoundCache.getSound("https://s3.amazonaws.com/hifi-public/sounds/Guns/GUN-SHOT2.raw");
 var LASER_LENGTH = 100;
@@ -131,7 +147,6 @@ var decaySpeed = .02;
 var kickback = function(animationProperties) {
     var currentTargetHandWorldPosition = Vec3.mix(startingTargetHandWorldPosition, finalTargetHandWorldPosition, k);
     k += decaySpeed;
-    // print("WORLD POS " + JSON.stringify(startingTargetHandWorldPosition));
     var targetHandModelPosition = worldToModel(currentTargetHandWorldPosition);
     var result = {};
     result[animVarName] = targetHandModelPosition;
@@ -140,7 +155,6 @@ var kickback = function(animationProperties) {
 
 
 function fire(side, value) {
-    print("FIRE")
     if (value == 0) {
         return;
     }
@@ -158,18 +172,18 @@ function fire(side, value) {
 
     var intersection = Entities.findRayIntersection(pickRay, true);
     if (intersection.intersects) {
-        print("INTERSECTION")
         Script.setTimeout(function() {
-            createEntityHitEffect(intersection.intersection);
             if (shootAnything && intersection.properties.collisionsWillMove === 1) {
                 // Any entity with collisions will move can be shot
                 Entities.editEntity(intersection.entityID, {
                     velocity: Vec3.multiply(shotDirection, GUN_FORCE)
                 });
-                createEntityHitEffect(intersection.intersection);
-            } 
+                //createEntityHitEffect(intersection.intersection);
+            }
 
             if (intersection.properties.name === "rat") {
+                score();
+                createBloodSplatter(intersection.intersection);
 
             }
             //Attempt to call entity method's shot method
@@ -283,6 +297,73 @@ function createEntityHitEffect(position) {
 
 }
 
+
+function createBloodSplatter(position) {
+        var splatter = Entities.addEntity({
+        type: "ParticleEffect",
+        position: position,
+        lifetime: 4,
+        "name": "Blood SPlatter",
+        "color": {
+            red: 230,
+            green: 2,
+            blue: 30
+        },
+        "maxParticles": 1000,
+        "lifespan": 0.3,
+        "emitRate": 1000,
+        "emitSpeed": 0.5,
+        "speedSpread": 0,
+        "emitOrientation": {
+            "x": -0.4,
+            "y": 1,
+            "z": -0.2,
+            "w": 0.7071068286895752
+        },
+        "emitDimensions": {
+            "x": 0,
+            "y": 0,
+            "z": 0
+        },
+        "polarStart": 0,
+        "polarFinish": Math.PI,
+        "azimuthStart": -3.1415927410125732,
+        "azimuthFinish": 2,
+        "emitAcceleration": {
+            "x": 0,
+            "y": -5,
+            "z": 0
+        },
+        "accelerationSpread": {
+            "x": 0,
+            "y": 0,
+            "z": 0
+        },
+        "particleRadius": 0.05,
+        "radiusSpread": 0.03,
+        "radiusStart": 0.05,
+        "radiusFinish": 0.05,
+        "colorSpread": {
+            red: 40,
+            green: 0,
+            blue: 30
+        },
+        "alpha": 1,
+        "alphaSpread": 0,
+        "alphaStart": 0,
+        "alphaFinish": 0,
+        "textures": "http://ericrius1.github.io/PartiArt/assets/star.png"
+    });
+
+    Script.setTimeout(function() {
+        Entities.editEntity(splatter, {
+            isEmitting: false
+        });
+    }, 100)
+
+}
+
+
 function createMuzzleFlash(position) {
     var smoke = Entities.addEntity({
         type: "ParticleEffect",
@@ -334,7 +415,7 @@ function createMuzzleFlash(position) {
         type: "ParticleEffect",
         position: position,
         lifetime: 4,
-        "name": "Wall hit emitter",
+        "name": "Muzzle Flash",
         "color": {
             red: 228,
             green: 128,

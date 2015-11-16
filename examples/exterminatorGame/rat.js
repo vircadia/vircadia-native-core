@@ -16,7 +16,7 @@
     var _this;
     Rat = function() {
         _this = this;
-        this.forceMultiplier = 10;
+        this.forceMultiplier = 1;
     };
 
     Rat.prototype = {
@@ -30,7 +30,6 @@
 
             Script.setTimeout(function() {
                 var vel = Entities.getEntityProperties(_this.entityID, 'velocity').velocity;
-                print("velocity length " + Vec3.length(vel));
             }, 1000);
         },
 
