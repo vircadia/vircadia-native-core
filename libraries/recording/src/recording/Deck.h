@@ -12,56 +12,70 @@
 
 #include <utility>
 #include <list>
+#include <mutex>
 
 #include <QtCore/QObject>
 #include <QtCore/QTimer>
+#include <QtCore/QList>
+
+#include <DependencyManager.h>
 
 #include "Forward.h"
+#include "Frame.h"
 
 
 namespace recording {
 
-class Deck : public QObject {
+class Deck : public QObject, public ::Dependency {
     Q_OBJECT
 public:
+    using ClipList = std::list<ClipPointer>;
     using Pointer = std::shared_ptr<Deck>;
-    Deck(QObject* parent = nullptr) : QObject(parent) {}
+
+    Deck(QObject* parent = nullptr);
 
     // Place a clip on the deck for recording or playback
-    void queueClip(ClipPointer clip, Time timeOffset = 0.0f);
+    void queueClip(ClipPointer clip, float timeOffset = 0.0f);
+    void removeClip(const ClipConstPointer& clip);
+    void removeClip(const QString& clipName);
+    void removeAllClips();
+    ClipList getClips(const QString& clipName) const;
 
     void play();
-    bool isPlaying() { return !_pause; }
+    bool isPlaying();
 
     void pause();
-    bool isPaused() const { return _pause; }
+    bool isPaused() const;
 
-    void stop() { pause(); seek(0.0f); }
+    void stop();
 
-    Time length() const { return _length; }
+    float length() const;
 
-    void loop(bool enable = true) { _loop = enable; }
-    bool isLooping() const { return _loop; }
+    void loop(bool enable = true);
+    bool isLooping() const;
 
-    Time position() const;
-    void seek(Time position);
+    float position() const;
+    void seek(float position);
 
 signals:
     void playbackStateChanged();
+    void looped();
 
 private:
-    using Clips = std::list<ClipPointer>;
+    using Mutex = std::recursive_mutex;
+    using Locker = std::unique_lock<Mutex>;
 
     ClipPointer getNextClip();
     void processFrames();
 
+    mutable Mutex _mutex;
     QTimer _timer;
-    Clips _clips;
+    ClipList _clips;
     quint64 _startEpoch { 0 };
-    Time _position { 0 };
+    Frame::Time _position { 0 };
     bool _pause { true };
     bool _loop { false };
-    Time _length { 0 };
+    float _length { 0 };
 };
 
 }

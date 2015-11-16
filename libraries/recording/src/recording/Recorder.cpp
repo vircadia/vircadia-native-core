@@ -16,20 +16,23 @@
 
 using namespace recording;
 
-Recorder::~Recorder() {
+Recorder::Recorder(QObject* parent) 
+    : QObject(parent) {}
 
-}
-
-Time Recorder::position() {
+float Recorder::position() {
+    Locker lock(_mutex);
+    if (_clip) {
+        return _clip->duration();
+    }
     return 0.0f;
 }
 
 void Recorder::start() {
+    Locker lock(_mutex);
     if (!_recording) {
         _recording = true;
-        if (!_clip) {
-            _clip = std::make_shared<BufferClip>();
-        }
+        // FIXME for now just record a new clip every time
+        _clip = std::make_shared<BufferClip>();
         _startEpoch = usecTimestampNow();
         _timer.start();
         emit recordingStateChanged();
@@ -37,6 +40,7 @@ void Recorder::start() {
 }
 
 void Recorder::stop() {
+    Locker lock(_mutex);
     if (_recording) {
         _recording = false;
         _elapsed = _timer.elapsed();
@@ -45,14 +49,17 @@ void Recorder::stop() {
 }
 
 bool Recorder::isRecording() {
+    Locker lock(_mutex);
     return _recording;
 }
 
 void Recorder::clear() {
+    Locker lock(_mutex);
     _clip.reset();
 }
 
 void Recorder::recordFrame(FrameType type, QByteArray frameData) {
+    Locker lock(_mutex);
     if (!_recording || !_clip) {
         return;
     }
@@ -65,6 +72,7 @@ void Recorder::recordFrame(FrameType type, QByteArray frameData) {
 }
 
 ClipPointer Recorder::getClip() {
+    Locker lock(_mutex);
     return _clip;
 }
 

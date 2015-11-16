@@ -16,6 +16,8 @@
 
 #include <QtCore/QObject>
 
+#include "Frame.h"
+
 class QIODevice;
 
 namespace recording {
@@ -23,16 +25,22 @@ namespace recording {
 class Clip {
 public:
     using Pointer = std::shared_ptr<Clip>;
+    using ConstPointer = std::shared_ptr<const Clip>;
 
     virtual ~Clip() {}
 
-    Pointer duplicate();
+    virtual Pointer duplicate() const = 0;
 
-    virtual Time duration() const = 0;
+    virtual QString getName() const = 0;
+
+    virtual float duration() const = 0;
     virtual size_t frameCount() const = 0;
 
-    virtual void seek(Time offset) = 0;
-    virtual Time position() const = 0;
+    virtual void seek(float offset) final;
+    virtual float position() const final;
+
+    virtual void seekFrameTime(Frame::Time offset) = 0;
+    virtual Frame::Time positionFrameTime() const = 0;
 
     virtual FrameConstPointer peekFrame() const = 0;
     virtual FrameConstPointer nextFrame() = 0;
@@ -40,7 +48,7 @@ public:
     virtual void addFrame(FrameConstPointer) = 0;
 
     static Pointer fromFile(const QString& filePath);
-    static void toFile(const QString& filePath, Pointer clip);
+    static void toFile(const QString& filePath, const ConstPointer& clip);
     static Pointer newClip();
     
 protected:

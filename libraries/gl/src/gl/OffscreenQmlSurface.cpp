@@ -26,7 +26,7 @@
 #include "OffscreenGlCanvas.h"
 
 // FIXME move to threaded rendering with Qt 5.5
-// #define QML_THREADED 
+//#define QML_THREADED
 
 // Time between receiving a request to render the offscreen UI actually triggering
 // the render.  Could possibly be increased depending on the framerate we expect to
@@ -72,7 +72,7 @@ public:
         OffscreenGlCanvas::create(shareContext);
 #ifdef QML_THREADED
         // Qt 5.5
-        // _renderControl->prepareThread(_renderThread);
+        _renderControl->prepareThread(_renderThread);
         _context->moveToThread(&_thread);
         moveToThread(&_thread);
         _thread.setObjectName("QML Thread");

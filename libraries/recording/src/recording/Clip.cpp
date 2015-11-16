@@ -23,7 +23,7 @@ Clip::Pointer Clip::fromFile(const QString& filePath) {
     return result;
 }
 
-void Clip::toFile(const QString& filePath, Clip::Pointer clip) {
+void Clip::toFile(const QString& filePath, const Clip::ConstPointer& clip) {
     FileClip::write(filePath, clip->duplicate());
 }
 
@@ -31,19 +31,10 @@ Clip::Pointer Clip::newClip() {
     return std::make_shared<BufferClip>();
 }
 
-Clip::Pointer Clip::duplicate() {
-    Clip::Pointer result = std::make_shared<BufferClip>();
-
-    Locker lock(_mutex);
-    Time currentPosition = position();
-    seek(0);
-
-    auto frame = nextFrame();
-    while (frame) {
-        result->addFrame(frame);
-        frame = nextFrame();
-    }
-
-    seek(currentPosition);
-    return result;
+void Clip::seek(float offset) {
+    seekFrameTime(Frame::secondsToFrameTime(offset));
 }
+
+float Clip::position() const {
+    return Frame::frameTimeToSeconds(positionFrameTime());
+};

@@ -94,6 +94,8 @@
 #include <UserActivityLogger.h>
 #include <UUID.h>
 #include <VrMenu.h>
+#include <recording/Deck.h>
+#include <recording/Recorder.h>
 
 #include "AnimDebugDraw.h"
 #include "AudioClient.h"
@@ -124,6 +126,7 @@
 #include "scripting/LocationScriptingInterface.h"
 #include "scripting/MenuScriptingInterface.h"
 #include "scripting/SettingsScriptingInterface.h"
+#include "scripting/RecordingScriptingInterface.h"
 #include "scripting/WebWindowClass.h"
 #include "scripting/WindowScriptingInterface.h"
 #include "scripting/ControllerScriptingInterface.h"
@@ -132,6 +135,7 @@
 #endif
 #include "Stars.h"
 #include "ui/AddressBarDialog.h"
+#include "ui/RecorderDialog.h"
 #include "ui/AvatarInputs.h"
 #include "ui/AssetUploadDialogFactory.h"
 #include "ui/DataWebDialog.h"
@@ -295,6 +299,8 @@ bool setupEssentials(int& argc, char** argv) {
     Setting::init();
 
     // Set dependencies
+    DependencyManager::set<recording::Deck>();
+    DependencyManager::set<recording::Recorder>();
     DependencyManager::set<AddressManager>();
     DependencyManager::set<NodeList>(NodeType::Agent, listenPort);
     DependencyManager::set<GeometryCache>();
@@ -319,6 +325,7 @@ bool setupEssentials(int& argc, char** argv) {
     DependencyManager::set<ResourceCacheSharedItems>();
     DependencyManager::set<DesktopScriptingInterface>();
     DependencyManager::set<EntityScriptingInterface>();
+    DependencyManager::set<RecordingScriptingInterface>();
     DependencyManager::set<WindowScriptingInterface>();
     DependencyManager::set<HMDScriptingInterface>();
 
@@ -804,8 +811,11 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
 
 void Application::aboutToQuit() {
     emit beforeAboutToQuit();
+    
     getActiveDisplayPlugin()->deactivate();
+    
     _aboutToQuit = true;
+    
     cleanupBeforeQuit();
 }
 
@@ -831,8 +841,14 @@ void Application::cleanupBeforeQuit() {
 
     _entities.clear(); // this will allow entity scripts to properly shutdown
     
+    auto nodeList = DependencyManager::get<NodeList>();
+    
+    // send the domain a disconnect packet, force stoppage of domain-server check-ins
+    nodeList->getDomainHandler().disconnect();
+    nodeList->setIsShuttingDown(true);
+    
     // tell the packet receiver we're shutting down, so it can drop packets
-    DependencyManager::get<NodeList>()->getPacketReceiver().setShouldDropPackets(true);
+    nodeList->getPacketReceiver().setShouldDropPackets(true);
     
     _entities.shutdown(); // tell the entities system we're shutting down, so it will stop running scripts
     ScriptEngine::stopAllScripts(this); // stop all currently running global scripts
@@ -851,9 +867,6 @@ void Application::cleanupBeforeQuit() {
     _settingsThread.quit();
     saveSettings();
     _window->saveGeometry();
-
-    // let the avatar mixer know we're out
-    MyAvatar::sendKillAvatar();
 
     // stop the AudioClient
     QMetaObject::invokeMethod(DependencyManager::get<AudioClient>().data(),
@@ -990,6 +1003,7 @@ void Application::initializeGL() {
 
 void Application::initializeUi() {
     AddressBarDialog::registerType();
+    RecorderDialog::registerType();
     ErrorDialog::registerType();
     LoginDialog::registerType();
     MessageDialog::registerType();
@@ -1005,6 +1019,7 @@ void Application::initializeUi() {
     offscreenUi->load("RootMenu.qml");
     auto scriptingInterface = DependencyManager::get<controller::ScriptingInterface>();
     offscreenUi->getRootContext()->setContextProperty("Controller", scriptingInterface.data());
+    offscreenUi->getRootContext()->setContextProperty("MyAvatar", getMyAvatar());
     _glWidget->installEventFilter(offscreenUi.data());
     VrMenu::load();
     VrMenu::executeQueuedLambdas();
@@ -1574,8 +1589,9 @@ void Application::keyPressEvent(QKeyEvent* event) {
 
             case Qt::Key_X:
                 if (isMeta && isShifted) {
-                    auto offscreenUi = DependencyManager::get<OffscreenUi>();
-                    offscreenUi->load("TestControllers.qml");
+//                    auto offscreenUi = DependencyManager::get<OffscreenUi>();
+//                    offscreenUi->load("TestControllers.qml");
+                    RecorderDialog::toggle();
                 }
                 break;
 
@@ -3963,6 +3979,7 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEngine* scri
                             RayToOverlayIntersectionResultFromScriptValue);
 
     scriptEngine->registerGlobalObject("Desktop", DependencyManager::get<DesktopScriptingInterface>().data());
+    scriptEngine->registerGlobalObject("Recording", DependencyManager::get<RecordingScriptingInterface>().data());
 
     scriptEngine->registerGlobalObject("Window", DependencyManager::get<WindowScriptingInterface>().data());
     scriptEngine->registerGetterSetter("location", LocationScriptingInterface::locationGetter,

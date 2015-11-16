@@ -904,6 +904,39 @@ void AudioClient::handleAudioInput() {
     }
 }
 
+void AudioClient::handleRecordedAudioInput(const QByteArray& audio) {
+    if (!_audioPacket) {
+        // we don't have an audioPacket yet - set that up now
+        _audioPacket = NLPacket::create(PacketType::MicrophoneAudioWithEcho);
+    }
+    // FIXME either discard stereo in the recording or record a stereo flag
+    const int numNetworkBytes = _isStereoInput
+        ? AudioConstants::NETWORK_FRAME_BYTES_STEREO
+        : AudioConstants::NETWORK_FRAME_BYTES_PER_CHANNEL;
+    const int numNetworkSamples = _isStereoInput
+        ? AudioConstants::NETWORK_FRAME_SAMPLES_STEREO
+        : AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL;
+
+    auto nodeList = DependencyManager::get<NodeList>();
+    SharedNodePointer audioMixer = nodeList->soloNodeOfType(NodeType::AudioMixer);
+    if (audioMixer && audioMixer->getActiveSocket()) {
+        glm::vec3 headPosition = _positionGetter();
+        glm::quat headOrientation = _orientationGetter();
+        quint8 isStereo = _isStereoInput ? 1 : 0;
+        _audioPacket->reset();
+        _audioPacket->setType(PacketType::MicrophoneAudioWithEcho);
+        _audioPacket->writePrimitive(_outgoingAvatarAudioSequenceNumber);
+        _audioPacket->writePrimitive(isStereo);
+        _audioPacket->writePrimitive(headPosition);
+        _audioPacket->writePrimitive(headOrientation);
+        _audioPacket->write(audio);
+        _stats.sentPacket();
+        nodeList->flagTimeForConnectionStep(LimitedNodeList::ConnectionStep::SendAudioPacket);
+        nodeList->sendUnreliablePacket(*_audioPacket, *audioMixer);
+        _outgoingAvatarAudioSequenceNumber++;
+    }
+}
+
 void AudioClient::processReceivedSamples(const QByteArray& inputBuffer, QByteArray& outputBuffer) {
     const int numNetworkOutputSamples = inputBuffer.size() / sizeof(int16_t);
     const int numDeviceOutputSamples = numNetworkOutputSamples * (_outputFormat.sampleRate() * _outputFormat.channelCount())
