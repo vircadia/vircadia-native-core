@@ -1024,11 +1024,6 @@ int MyAvatar::parseDataFromBuffer(const QByteArray& buffer) {
     return buffer.size();
 }
 
-void MyAvatar::sendKillAvatar() {
-    auto killPacket = NLPacket::create(PacketType::KillAvatar, 0);
-    DependencyManager::get<NodeList>()->broadcastToNodes(std::move(killPacket), NodeSet() << NodeType::AvatarMixer);
-}
-
 void MyAvatar::updateLookAtTargetAvatar() {
     //
     //  Look at the avatar whose eyes are closest to the ray in direction of my avatar's head

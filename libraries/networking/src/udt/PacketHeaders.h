@@ -18,69 +18,80 @@
 #include <map>
 
 #include <QtCore/QCryptographicHash>
+#include <QtCore/QObject>
 #include <QtCore/QSet>
 #include <QtCore/QUuid>
 
-// If adding a new packet packetType, you can replace one marked usable or add at the end.
-// If you want the name of the packet packetType to be available for debugging or logging, update nameForPacketType() as well
-// This enum must hold 256 or fewer packet types (so the value is <= 255) since it is statically typed as a uint8_t
-enum class PacketType : uint8_t {
-    Unknown,
-    StunResponse,
-    DomainList,
-    Ping,
-    PingReply,
-    KillAvatar,
-    AvatarData,
-    InjectAudio,
-    MixedAudio,
-    MicrophoneAudioNoEcho,
-    MicrophoneAudioWithEcho,
-    BulkAvatarData,
-    SilentAudioFrame,
-    DomainListRequest,
-    RequestAssignment,
-    CreateAssignment,
-    DomainConnectionDenied,
-    MuteEnvironment,
-    AudioStreamStats,
-    DomainServerPathQuery,
-    DomainServerPathResponse,
-    DomainServerAddedNode,
-    ICEServerPeerInformation,
-    ICEServerQuery,
-    OctreeStats,
-    Jurisdiction,
-    JurisdictionRequest,
-    AssignmentClientStatus,
-    NoisyMute,
-    AvatarIdentity,
-    AvatarBillboard,
-    DomainConnectRequest,
-    DomainServerRequireDTLS,
-    NodeJsonStats,
-    OctreeDataNack,
-    StopNode,
-    AudioEnvironment,
-    EntityEditNack,
-    ICEServerHeartbeat,
-    ICEPing,
-    ICEPingReply,
-    EntityData,
-    EntityQuery,
-    EntityAdd,
-    EntityErase,
-    EntityEdit,
-    DomainServerConnectionToken,
-    DomainSettingsRequest,
-    DomainSettings,
-    AssetGet,
-    AssetGetReply,
-    AssetUpload,
-    AssetUploadReply,
-    AssetGetInfo,
-    AssetGetInfoReply
+// The enums are inside this PacketTypeEnum for run-time conversion of enum value to string via
+// Q_ENUMS, without requiring a macro that is called for each enum value.
+class PacketTypeEnum {
+    Q_GADGET
+    Q_ENUMS(Value)
+public:
+    // If adding a new packet packetType, you can replace one marked usable or add at the end.
+    // This enum must hold 256 or fewer packet types (so the value is <= 255) since it is statically typed as a uint8_t
+    enum class Value : uint8_t {
+        Unknown,
+        StunResponse,
+        DomainList,
+        Ping,
+        PingReply,
+        KillAvatar,
+        AvatarData,
+        InjectAudio,
+        MixedAudio,
+        MicrophoneAudioNoEcho,
+        MicrophoneAudioWithEcho,
+        BulkAvatarData,
+        SilentAudioFrame,
+        DomainListRequest,
+        RequestAssignment,
+        CreateAssignment,
+        DomainConnectionDenied,
+        MuteEnvironment,
+        AudioStreamStats,
+        DomainServerPathQuery,
+        DomainServerPathResponse,
+        DomainServerAddedNode,
+        ICEServerPeerInformation,
+        ICEServerQuery,
+        OctreeStats,
+        Jurisdiction,
+        JurisdictionRequest,
+        AssignmentClientStatus,
+        NoisyMute,
+        AvatarIdentity,
+        AvatarBillboard,
+        DomainConnectRequest,
+        DomainServerRequireDTLS,
+        NodeJsonStats,
+        OctreeDataNack,
+        StopNode,
+        AudioEnvironment,
+        EntityEditNack,
+        ICEServerHeartbeat,
+        ICEPing,
+        ICEPingReply,
+        EntityData,
+        EntityQuery,
+        EntityAdd,
+        EntityErase,
+        EntityEdit,
+        DomainServerConnectionToken,
+        DomainSettingsRequest,
+        DomainSettings,
+        AssetGet,
+        AssetGetReply,
+        AssetUpload,
+        AssetUploadReply,
+        AssetGetInfo,
+        AssetGetInfoReply,
+        DomainDisconnectRequest,
+        DomainServerRemovedNode
+    };
 };
+
+using PacketType = PacketTypeEnum::Value;
 
 const int NUM_BYTES_MD5_HASH = 16;
 
@@ -90,7 +101,6 @@ extern const QSet<PacketType> NON_VERIFIED_PACKETS;
 extern const QSet<PacketType> NON_SOURCED_PACKETS;
 extern const QSet<PacketType> RELIABLE_PACKETS;
 
-QString nameForPacketType(PacketType packetType);
 PacketVersion versionForPacketType(PacketType packetType);
 
 uint qHash(const PacketType& key, uint seed);

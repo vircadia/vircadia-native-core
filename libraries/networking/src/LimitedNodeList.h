@@ -230,7 +230,7 @@ public slots:
     virtual void sendSTUNRequest();
     void sendPingPackets();
 
-    void killNodeWithUUID(const QUuid& nodeUUID);
+    bool killNodeWithUUID(const QUuid& nodeUUID);
 
 signals:
     void dataSent(quint8 channelType, int bytes);

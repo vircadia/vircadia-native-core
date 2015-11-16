@@ -1890,8 +1890,8 @@ bool Octree::readSVOFromStream(unsigned long streamLength, QDataStream& inputStr
                             versionForPacketType(expectedDataPacketType()), gotVersion);
             }
         } else {
-            qCDebug(octree) << "SVO file type mismatch. Expected: " << nameForPacketType(expectedType)
-                        << " Got: " << nameForPacketType(gotType);
+            qCDebug(octree) << "SVO file type mismatch. Expected: " << expectedType
+                        << " Got: " << gotType;
         }
 
     } else {
