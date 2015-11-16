@@ -1836,9 +1836,7 @@ void DomainServer::processNodeDisconnectRequestPacket(QSharedPointer<NLPacket> p
     
     qDebug() << "Received a disconnect request from node with UUID" << nodeUUID;
     
-    if (limitedNodeList->nodeWithUUID(nodeUUID)) {
-        limitedNodeList->killNodeWithUUID(nodeUUID);
-        
+    if (limitedNodeList->killNodeWithUUID(nodeUUID)) {        
         static auto removedNodePacket = NLPacket::create(PacketType::DomainServerRemovedNode, NUM_BYTES_RFC4122_UUID);
         
         removedNodePacket->reset();
