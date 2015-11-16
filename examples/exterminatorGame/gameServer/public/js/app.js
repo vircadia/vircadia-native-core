@@ -58,6 +58,20 @@ var GameBoard = React.createClass({
 				{ className: 'gameTitle' },
 				'Kill All The Rats!'
 			),
+			React.createElement(
+				'div',
+				{ className: 'boardHeader' },
+				React.createElement(
+					'div',
+					{ className: 'username' },
+					'PLAYER'
+				),
+				React.createElement(
+					'div',
+					{ className: 'score' },
+					' SCORE '
+				)
+			),
 			React.createElement(UserList, { data: this.state.data })
 		);
 	}

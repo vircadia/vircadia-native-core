@@ -48,6 +48,10 @@ var GameBoard = React.createClass({
     return (
       <div>
         <div className = "gameTitle">Kill All The Rats!</div> 
+        <div className = "boardHeader">
+            <div className="username">PLAYER</div>
+            <div className="score" > SCORE </div>
+        </div>
         <UserList data ={this.state.data}/>
       </div>
     );
