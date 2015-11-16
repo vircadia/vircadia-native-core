@@ -79,7 +79,8 @@ enum class PacketType : uint8_t {
     AssetUpload,
     AssetUploadReply,
     AssetGetInfo,
-    AssetGetInfoReply
+    AssetGetInfoReply,
+    MessagesData
 };
 
 const int NUM_BYTES_MD5_HASH = 16;

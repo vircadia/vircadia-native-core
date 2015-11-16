@@ -119,9 +119,12 @@ void ThreadedAssignment::stopSendingStats() {
 }
 
 void ThreadedAssignment::checkInWithDomainServerOrExit() {
+    qDebug() << "ThreadedAssignment::checkInWithDomainServerOrExit()....";
     if (DependencyManager::get<NodeList>()->getNumNoReplyDomainCheckIns() == MAX_SILENT_DOMAIN_SERVER_CHECK_INS) {
+        qDebug() << "ThreadedAssignment::checkInWithDomainServerOrExit().... getNumNoReplyDomainCheckIns() == MAX_SILENT_DOMAIN_SERVER_CHECK_INS";
         setFinished(true);
     } else {
+        qDebug() << "ThreadedAssignment::checkInWithDomainServerOrExit().... calling DependencyManager::get<NodeList>()->sendDomainServerCheckIn()";
         DependencyManager::get<NodeList>()->sendDomainServerCheckIn();
     }
 }

@@ -55,6 +55,7 @@ Agent::Agent(NLPacket& packet) :
         { PacketType::OctreeStats, PacketType::EntityData, PacketType::EntityErase },
         this, "handleOctreePacket");
     packetReceiver.registerListener(PacketType::Jurisdiction, this, "handleJurisdictionPacket");
+    packetReceiver.registerListener(PacketType::MessagesData, this, "handleMessagePacket");
 }
 
 void Agent::handleOctreePacket(QSharedPointer<NLPacket> packet, SharedNodePointer senderNode) {
@@ -93,7 +94,15 @@ void Agent::handleJurisdictionPacket(QSharedPointer<NLPacket> packet, SharedNode
         DependencyManager::get<EntityScriptingInterface>()->getJurisdictionListener()->
             queueReceivedPacket(packet, senderNode);
     }
-} 
+}
+
+void Agent::handleMessagesPacket(QSharedPointer<NLPacket> packet, SharedNodePointer senderNode) {
+    auto packetType = packet->getType();
+
+    if (packetType == PacketType::MessagesData) {
+        qDebug() << "got a messages packet";
+    }
+}
 
 void Agent::handleAudioPacket(QSharedPointer<NLPacket> packet) {
     _receivedAudioStream.parseData(*packet);

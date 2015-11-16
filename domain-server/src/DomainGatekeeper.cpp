@@ -48,7 +48,8 @@ QUuid DomainGatekeeper::assignmentUUIDForPendingAssignment(const QUuid& tempUUID
 
 const NodeSet STATICALLY_ASSIGNED_NODES = NodeSet() << NodeType::AudioMixer
     << NodeType::AvatarMixer << NodeType::EntityServer
-    << NodeType::AssetServer;
+    << NodeType::AssetServer
+    << NodeType::MessagesMixer;
 
 void DomainGatekeeper::processConnectRequestPacket(QSharedPointer<NLPacket> packet) {
     if (packet->getPayloadSize() == 0) {
@@ -66,7 +67,7 @@ void DomainGatekeeper::processConnectRequestPacket(QSharedPointer<NLPacket> pack
     }
     
     static const NodeSet VALID_NODE_TYPES {
-        NodeType::AudioMixer, NodeType::AvatarMixer, NodeType::AssetServer, NodeType::EntityServer, NodeType::Agent
+        NodeType::AudioMixer, NodeType::AvatarMixer, NodeType::AssetServer, NodeType::EntityServer, NodeType::Agent, NodeType::MessagesMixer
     };
     
     if (!VALID_NODE_TYPES.contains(nodeConnection.nodeType)) {

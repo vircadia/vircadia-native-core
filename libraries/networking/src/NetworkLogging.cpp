@@ -13,3 +13,4 @@
 
 Q_LOGGING_CATEGORY(networking, "hifi.networking")
 Q_LOGGING_CATEGORY(asset_client, "hifi.networking.asset_client")
+Q_LOGGING_CATEGORY(messages_client, "hifi.networking.messages_client")

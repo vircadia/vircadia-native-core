@@ -131,7 +131,8 @@ void DomainServerSettingsManager::setupConfigMap(const QStringList& argumentList
     appSettings.setValue(JSON_SETTINGS_VERSION_KEY, _descriptionVersion);
 }
 
-QVariant DomainServerSettingsManager::valueOrDefaultValueForKeyPath(const QString &keyPath) {
+QVariant DomainServerSettingsManager::valueOrDefaultValueForKeyPath(const QString& keyPath) {
+    qDebug() << "DomainServerSettingsManager::valueOrDefaultValueForKeyPath() keyPath:" << keyPath;
     const QVariant* foundValue = valueForKeyPath(_configMap.getMergedConfig(), keyPath);
 
     if (foundValue) {
@@ -226,6 +227,8 @@ bool DomainServerSettingsManager::handleAuthenticatedHTTPRequest(HTTPConnection 
 }
 
 QJsonObject DomainServerSettingsManager::responseObjectForType(const QString& typeValue, bool isAuthenticated) {
+    qDebug() << "DomainServerSettingsManager::responseObjectForType() typeValue:" << typeValue;
+
     QJsonObject responseObject;
 
     if (!typeValue.isEmpty() || isAuthenticated) {

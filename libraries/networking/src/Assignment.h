@@ -30,7 +30,7 @@ public:
         AvatarMixerType = 1,
         AgentType = 2,
         AssetServerType = 3,
-        UNUSED_0 = 4,
+        MessagesMixerType = 4,
         UNUSED_1 = 5,
         EntityServerType = 6,
         AllTypes = 7

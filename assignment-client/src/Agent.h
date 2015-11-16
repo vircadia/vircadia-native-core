@@ -58,6 +58,7 @@ private slots:
     void handleAudioPacket(QSharedPointer<NLPacket> packet);
     void handleOctreePacket(QSharedPointer<NLPacket> packet, SharedNodePointer senderNode);
     void handleJurisdictionPacket(QSharedPointer<NLPacket> packet, SharedNodePointer senderNode);
+    void handleMessagesPacket(QSharedPointer<NLPacket> packet, SharedNodePointer senderNode);
     void sendPingRequests();
     void processAgentAvatarAndAudio(float deltaTime);
 

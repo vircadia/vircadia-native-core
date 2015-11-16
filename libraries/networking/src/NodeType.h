@@ -23,6 +23,7 @@ namespace NodeType {
     const NodeType_t AudioMixer = 'M';
     const NodeType_t AvatarMixer = 'W';
     const NodeType_t AssetServer = 'A';
+    const NodeType_t MessagesMixer = 'm';
     const NodeType_t Unassigned = 1;
 
     void init();

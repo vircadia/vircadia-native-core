@@ -242,6 +242,8 @@ void DomainHandler::requestDomainSettings() {
 
             Assignment::Type assignmentType = Assignment::typeForNodeType(DependencyManager::get<NodeList>()->getOwnerType());
 
+            qCDebug(networking) << "Requesting settings from domain server for assignmentType:" << assignmentType;
+
             auto packet = NLPacket::create(PacketType::DomainSettingsRequest, sizeof(assignmentType), true, false);
             packet->writePrimitive(assignmentType);
 

@@ -549,6 +549,22 @@
           "advanced": true
         }
       ]
+    },
+    {
+      "name": "messages_mixer",
+      "label": "Messages Mixer",
+      "assignment-types": [4],
+      "settings": [
+        {
+          "name": "max_node_send_bandwidth",
+          "type": "double",
+          "label": "Per-Node Bandwidth",
+          "help": "Desired maximum send bandwidth (in Megabits per second) to each node",
+          "placeholder": 1.0,
+          "default": 1.0,
+          "advanced": true
+        }
+      ]
     }
   ]
 }
