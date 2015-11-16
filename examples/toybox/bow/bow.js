@@ -84,8 +84,8 @@
     var SHOT_SCALE = {
         min1: 0,
         max1: 0.6,
-        min2: 5,
-        max2: 20
+        min2: 3,
+        max2: 15
     }
 
 
@@ -110,6 +110,7 @@
         hasArrowNotched: false,
         notchDetector: null,
         arrow: null,
+        arrowIsBurning:false,
         stringData: {
             currentColor: {
                 red: 255,
@@ -187,7 +188,7 @@
                     this.hasArrowNotched = userData.hifiBowKey.hasArrowNotched;
 
                     this.arrow = userData.hifiBowKey.arrowID;
-                    this.arrowIsBurning = userData.hifiBowKey.isBurning;
+                    this.arrowIsBurning = userData.hifiBowKey.arrowIsBurning;
 
                     setEntityCustomData('grabbableKey', this.entityID, {
                         turnOffOtherHand: true,

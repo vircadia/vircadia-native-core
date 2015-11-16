@@ -27,21 +27,29 @@
     Arrow.prototype = {
         stickOnCollision: false,
         notched: false,
-        burning: false,
+        isBurning: false,
+        fire: null,
         preload: function(entityID) {
             this.entityID = entityID;
-
         },
 
-        unload: function() {
-
+        releaseGrab: function() {
+            if (this.fire !== null) {
+                this.fire = null;
+                this.isBurning = false;
+                Entities.deleteEntity(this.fire);
+            }
         },
 
         continueNearGrab: function() {
             this.currentProperties = Entities.getEntityProperties(this.entityID, "position");
-            if (this.isBurning === true) {
-                updateFirePosition();
+
+            if (this.isBurning !== true) {
+                this.searchForFires();
+            } else {
+                this.updateFirePosition();
             }
+
             if (this.notched !== true) {
                 this.searchForNotchDetectors();
             }
@@ -57,7 +65,7 @@
             for (i = 0; i < ids.length; i++) {
                 id = ids[i];
                 properties = Entities.getEntityProperties(id, 'name');
-                if (properties.name == "Hifi-NotchDetector") {
+                if (properties.name === "Hifi-NotchDetector") {
                     print('NEAR THE NOTCH!!!')
                     this.notched = true;
                     this.tellBowArrowIsNotched(this.getBowID(id));
@@ -65,8 +73,13 @@
             }
 
         },
+
         searchForFires: function() {
+            print('SEARCHING FOR FIRES!')
             if (this.notched === true) {
+                return
+            };
+            if (this.isBurning === true) {
                 return
             };
 
@@ -75,20 +88,25 @@
             for (i = 0; i < ids.length; i++) {
                 id = ids[i];
                 properties = Entities.getEntityProperties(id, 'name');
-                if (properties.name == "Hifi-Arrow-Fire-Source") {
-                    print('NEAR A FIRE SOURCE!!!')
-                    this.burning = true;
-                    this.fire = this.createFireParticleSystem();
+                if (properties.name === "Hifi-Arrow-Fire-Source") {
+                    print('NEAR A FIRE SOURCE!!!');
+                    this.isBurning = true;
+                    this.createFireParticleSystem();
+
+
                 }
             }
 
         },
         updateFirePosition: function() {
+            print('updating fire position' + this.fire)
             Entities.editEntity(this.fire, {
                 position: this.currentProperties.position
             })
         },
         createFireParticleSystem: function() {
+            print('CREATING FIRE PARTICLE SYSTEM')
+
             var myOrientation = Quat.fromPitchYawRollDegrees(-90, 0, 0.0);
 
             var animationSettings = JSON.stringify({
@@ -99,13 +117,13 @@
                 lastFrame: 10000
             });
 
-            var fire = Entities.addEntity({
+            this.fire = Entities.addEntity({
                 type: "ParticleEffect",
                 name: "Hifi-Arrow-Fire-Source",
                 animationSettings: animationSettings,
                 textures: "https://hifi-public.s3.amazonaws.com/alan/Particles/Particle-Sprite-Smoke-1.png",
                 emitRate: 100,
-                position: this.bowProperties.position,
+                position: this.currentProperties.position,
                 colorStart: {
                     red: 70,
                     green: 70,
@@ -124,7 +142,7 @@
                 radiusSpread: 0.01,
                 radiusStart: 0.02,
                 radiusEnd: 0.001,
-                particleRadius: 0.5,
+                particleRadius: 0.15,
                 radiusFinish: 0.0,
                 emitOrientation: myOrientation,
                 emitSpeed: 0.3,
@@ -150,7 +168,6 @@
                 },
                 lifespan: 1
             });
-            return fire
         },
         getBowID: function(notchDetectorID) {
             var properties = Entities.getEntityProperties(notchDetectorID, "userData");
@@ -192,31 +209,14 @@
                 arrowID: this.entityID
             });
 
+            if (this.isBurning === true) {
+                this.isBurning = false;
+                this.fire = null;
+                Entities.deleteEntity(this.fire);
+            }
+
         },
 
-        // collisionWithEntity: function(me, otherEntity, collision) {
-        //     print('ARROW HAD COLLISION')
-        //             if (this.stickOnCollision === true) {
-        //                 print('ARROW SHOULD STICK')
-        //                 Vec3.print('penetration = ', collision.penetration);
-        //                 Vec3.print('collision contact point = ', collision.contactPoint);
-        //                 Entities.editEntity(this.entityID, {
-        //                     velocity: {
-        //                         x: 0,
-        //                         y: 0,
-        //                         z: 0
-        //                     },
-        //                     gravity: {
-        //                         x: 0,
-        //                         y: 0,
-        //                         z: 0
-        //                     },
-        //                     collisionsWillMove: false
-
-        //             })
-        //         }
-
-        // }
     }
 
     function deleteEntity(entityID) {

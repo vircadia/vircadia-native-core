@@ -10,7 +10,35 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-function createFireSource() {
+var TORCH_MODEL_URL = 'http://hifi-content.s3.amazonaws.com/james/bow_and_arrow/models/torch.fbx';
+var TORCH_DIMENSIONS = {
+    x: 0.07,
+    y: 1.6,
+    z: 0.08
+};
+
+var FIRE_VERTICAL_OFFSET = 0.9;
+
+function createFireSource(position) {
+
+    var torchProperties = {
+        type: 'Model',
+        name: 'Hifi-Fire-Torch',
+        modelURL: TORCH_MODEL_URL,
+        shapeType: 'box',
+        collisionsWillMove: false,
+        ignoreForCollisions: true,
+        dimensions: TORCH_DIMENSIONS,
+        position: position
+    };
+
+    var torch = Entities.addEntity(torchProperties);
+    torches.push(torch);
+    var torchProperties = Entities.getEntityProperties(torch);
+
+    var upVector = Quat.getUp(torchProperties.rotation);
+    var upOffset = Vec3.multiply(upVector, FIRE_VERTICAL_OFFSET);
+    var fireTipPosition = Vec3.sum(torchProperties.position, upOffset);
 
     var myOrientation = Quat.fromPitchYawRollDegrees(-90, 0, 0.0);
 
@@ -28,7 +56,7 @@ function createFireSource() {
         animationSettings: animationSettings,
         textures: "https://hifi-public.s3.amazonaws.com/alan/Particles/Particle-Sprite-Smoke-1.png",
         emitRate: 100,
-        position: this.bowProperties.position,
+        position: fireTipPosition,
         colorStart: {
             red: 70,
             green: 70,
@@ -74,6 +102,39 @@ function createFireSource() {
         lifespan: 1
     });
 
+    fires.push(fire)
 }
 
-createFireSource();
+var fireSourcePositions = [{
+        x: 100,
+        y: -1,
+        z: 100
+    }, {
+        x: 100,
+        y: -1,
+        z: 102
+    }, {
+        x: 100,
+        y: -1,
+        z: 104
+    }
+
+];
+
+var fires = [];
+var torches = [];
+
+fireSourcePositions.forEach(function(position) {
+    createFireSource(position);
+})
+
+function cleanup() {
+    while (fires.length > 0) {
+        Entities.deleteEntity(fires.pop());
+    }
+     while (torches.length > 0) {
+        Entities.deleteEntity(torches.pop());
+    }
+}
+
+Script.scriptEnding.connect(cleanup);

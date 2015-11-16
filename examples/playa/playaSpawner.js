@@ -41,21 +41,33 @@ orientationOf = function(vector) {
 var ground, wall;
 var boxes = [];
 var dustSystems = [];
-var ZERO_VEC = {x: 0, y: 0, z: 0};
+var ZERO_VEC = {
+    x: 0,
+    y: 0,
+    z: 0
+};
 
 Script.include("../libraries/utils.js");
 
 function spawnGround() {
     var groundModelURL = "https://hifi-public.s3.amazonaws.com/alan/Playa/Ground.fbx";
-    var groundPosition = Vec3.sum(MyAvatar.position, {x: 0, y: -2, z: 0});
+    var groundPosition = Vec3.sum(MyAvatar.position, {
+        x: 0,
+        y: -2,
+        z: 0
+    });
     ground = Entities.addEntity({
         type: "Model",
         modelURL: groundModelURL,
         shapeType: "box",
         position: groundPosition,
-        dimensions: {x: 900, y: 0.82, z: 900},
+        dimensions: {
+            x: 900,
+            y: 0.82,
+            z: 900
+        },
     });
-   // Script.addEventHandler(ground, "collisionWithEntity", entityCollisionWithGround);
+    // Script.addEventHandler(ground, "collisionWithEntity", entityCollisionWithGround);
 
 }
 
@@ -80,7 +92,7 @@ function spawnGround() {
         isEmitting: true,
         polarStart: Math.PI/2,
         polarFinish: Math.PI/2,
-	     emitOrientation: orientationChange,
+         emitOrientation: orientationChange,
         radiusSpread: 0.1,
         radiusStart: particleRadius,
         radiusFinish: particleRadius + particleRadius/2,
@@ -106,7 +118,11 @@ function spawnBoxes() {
     var numBoxes = 200;
     var center = Vec3.sum(MyAvatar.position, Vec3.multiply(3, Quat.getFront(Camera.getOrientation())));
     for (var i = 0; i < numBoxes; i++) {
-        var position = Vec3.sum(center, {x: Math.random() * numBoxes, y: Math.random() * 3, z: Math.random() * numBoxes })
+        var position = Vec3.sum(center, {
+            x: Math.random() * numBoxes,
+            y: Math.random() * 3,
+            z: Math.random() * numBoxes
+        })
         var box = Entities.addEntity({
             type: "Model",
             modelURL: boxModelURL,
@@ -114,9 +130,21 @@ function spawnBoxes() {
             shapeType: "box",
             position: position,
             collisionsWillMove: true,
-            dimensions: {x: 1, y: 2, z: 3},
-            velocity: {x: 0, y: -.01, z: 0},
-            gravity: {x: 0, y: -2.5 - Math.random() * 6, z: 0}
+            dimensions: {
+                x: 1,
+                y: 2,
+                z: 3
+            },
+            velocity: {
+                x: 0,
+                y: -.01,
+                z: 0
+            },
+            gravity: {
+                x: 0,
+                y: -2.5 - Math.random() * 6,
+                z: 0
+            }
         });
 
         boxes.push(box);
@@ -129,7 +157,7 @@ spawnBoxes();
 
 function cleanup() {
     Entities.deleteEntity(ground);
-    boxes.forEach(function(box){
+    boxes.forEach(function(box) {
         Entities.deleteEntity(box);
     });
     dustSystems.forEach(function(dustEffect) {
@@ -138,5 +166,3 @@ function cleanup() {
 }
 
 Script.scriptEnding.connect(cleanup);
-
-
