@@ -356,18 +356,20 @@ void MyAvatar::updateHMDFollowVelocity() {
 
     const float FOLLOW_TIMESCALE = 0.5f;
     const float FOLLOW_THRESHOLD_SPEED = 0.2f;
-    const float FOLLOW_MIN_DISTANCE = 0.02f;
+    const float FOLLOW_MIN_DISTANCE = 0.01f;
     const float FOLLOW_THRESHOLD_DISTANCE = 0.2f;
+    const float FOLLOW_MAX_IDLE_DISTANCE = 0.1f;
 
     bool hmdIsAtRest = _hmdAtRestDetector.update(_hmdSensorPosition, _hmdSensorOrientation);
-    bool avatarIsMoving = glm::length(_velocity - _followVelocity) > FOLLOW_THRESHOLD_SPEED;
-    bool shouldFollow = hmdIsAtRest || avatarIsMoving;
 
     _followOffsetDistance = glm::length(offset);
     if (_followOffsetDistance < FOLLOW_MIN_DISTANCE) {
         // close enough
         _followOffsetDistance = 0.0f;
     } else {
+        bool avatarIsMoving = glm::length(_velocity - _followVelocity) > FOLLOW_THRESHOLD_SPEED;
+        bool shouldFollow = (hmdIsAtRest || avatarIsMoving) && _followOffsetDistance > FOLLOW_MAX_IDLE_DISTANCE;
+
         glm::vec3 truncatedOffset = offset;
         if (truncatedOffset.y < 0.0f) {
             truncatedOffset.y = 0.0f;
