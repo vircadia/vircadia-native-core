@@ -21,12 +21,6 @@ int AvatarMixerClientData::parseData(NLPacket& packet) {
     return _avatar.parseDataFromBuffer(packet.readWithoutCopy(packet.bytesLeftToRead()));
 }
 
-bool AvatarMixerClientData::checkAndSetHasReceivedFirstPackets() {
-    bool oldValue = _hasReceivedFirstPackets;
-    _hasReceivedFirstPackets = true;
-    return oldValue;
-}
-
 bool AvatarMixerClientData::checkAndSetHasReceivedFirstPacketsFrom(const QUuid& uuid) {
     if (_hasReceivedFirstPacketsFrom.find(uuid) == _hasReceivedFirstPacketsFrom.end()) {
         _hasReceivedFirstPacketsFrom.insert(uuid);

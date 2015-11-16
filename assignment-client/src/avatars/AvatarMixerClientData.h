@@ -36,7 +36,6 @@ public:
     int parseData(NLPacket& packet);
     AvatarData& getAvatar() { return _avatar; }
 
-    bool checkAndSetHasReceivedFirstPackets();
     bool checkAndSetHasReceivedFirstPacketsFrom(const QUuid& uuid);
 
     uint16_t getLastBroadcastSequenceNumber(const QUuid& nodeUUID) const;
@@ -87,7 +86,6 @@ private:
     std::unordered_map<QUuid, uint16_t> _lastBroadcastSequenceNumbers;
     std::unordered_set<QUuid> _hasReceivedFirstPacketsFrom;
 
-    bool _hasReceivedFirstPackets = false;
     quint64 _billboardChangeTimestamp = 0;
     quint64 _identityChangeTimestamp = 0;
 
