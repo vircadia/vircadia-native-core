@@ -57,6 +57,8 @@ function kneelDown() {
     var startFrame = 0;
     var endFrame = 82;
 
+    // This will completly override all motion from the default animation system
+    // including inverse kinematics for hand and head controllers.
     MyAvatar.overrideAnimation(KNEEL_ANIM_URL, playbackRate, loopFlag, startFrame, endFrame);
 
     Overlays.editOverlay(kneelDownButton, { visible: false });
@@ -66,6 +68,8 @@ function kneelDown() {
 function standUp() {
     kneeling = false;
 
+    // this will restore all motion from the default animation system.
+    // inverse kinematics will work again normally.
     MyAvatar.restoreAnimation();
 
     Overlays.editOverlay(standUpButton, { visible: false });
