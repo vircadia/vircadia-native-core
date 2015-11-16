@@ -8,6 +8,7 @@
   "dependencies": {
     "express": "^4.13.1",
     "gulp": "^3.9.0",
+    "jquery": "^2.1.4",
     "react": "^0.13.3",
     "react-websocket": "^1.0.0",
     "shortid": "^2.2.4",

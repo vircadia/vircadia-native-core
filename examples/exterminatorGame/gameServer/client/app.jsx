@@ -2,6 +2,7 @@
 
 var React = require('react');
 var _ = require('underscore')
+var $ = require('jquery');
 
 var UserList = React.createClass({
 render: function(){
@@ -11,7 +12,6 @@ render: function(){
 	});
 	var users = sortedUsers.map(function(user) {
 
-		console.log('user', user)
 		return (
 			<User username = {user.username} score = {user.score} key = {user.id}></User>
 		)
