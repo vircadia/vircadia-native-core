@@ -14,7 +14,7 @@ You will need the following tools to build our Android targets.
   * Install the latest Platform-tools
   * Install the latest Build-tools
   * Install the SDK Platform for API Level 19
-  * Install Sources for Android SDK for API Level 19 
+  * Install Sources for Android SDK for API Level 19
   * Install the ARM EABI v7a System Image if you want to run an emulator.
 
 You will also need to cross-compile the dependencies required for all platforms for Android, and help CMake find these compiled libraries on your machine.
@@ -25,7 +25,7 @@ You will also need to cross-compile the dependencies required for all platforms 
 
 ####ANDROID_LIB_DIR
 
-Since you won't be installing Android dependencies to system paths on your development machine, CMake will need a little help tracking down your Android dependencies. 
+Since you won't be installing Android dependencies to system paths on your development machine, CMake will need a little help tracking down your Android dependencies.
 
 This is most easily accomplished by installing all Android dependencies in the same folder. You can place this folder wherever you like on your machine. In this build guide and across our CMakeLists files this folder is referred to as `ANDROID_LIB_DIR`. You can set `ANDROID_LIB_DIR` in your environment or by passing when you run CMake.
 
@@ -45,7 +45,7 @@ The original instructions to compile OpenSSL for Android from your host environm
 
 Download the [OpenSSL source](https://www.openssl.org/source/) and extract the tarball inside your `ANDROID_LIB_DIR`. Rename the extracted folder to `openssl`.
 
-You will need the [setenv-android.sh script](http://wiki.openssl.org/index.php/File:Setenv-android.sh) from the OpenSSL wiki. 
+You will need the [setenv-android.sh script](http://wiki.openssl.org/index.php/File:Setenv-android.sh) from the OpenSSL wiki.
 
 You must change three values at the top of the `setenv-android.sh` script - `_ANDROID_NDK`, `_ANDROID_EABI` and `_ANDROID_API`.
 `_ANDROID_NDK` should be `android-ndk-r10`, `_ANDROID_EABI` should be `arm-linux-androidebi-4.9` and `_ANDROID_API` should be `19`.
@@ -62,8 +62,8 @@ source setenv-android.sh
 Then, from the OpenSSL directory, run the following commands.
 
 ```
-perl -pi -e 's/install: all install_docs install_sw/install: install_docs install_sw/g' Makefile.org 
-./config shared -no-ssl2 -no-ssl3 -no-comp -no-hw -no-engine --openssldir=/usr/local/ssl/$ANDROID_API 
+perl -pi -e 's/install: all install_docs install_sw/install: install_docs install_sw/g' Makefile.org
+./config shared -no-ssl2 -no-ssl3 -no-comp -no-hw -no-engine --openssldir=/usr/local/ssl/$ANDROID_API
 make depend
 make all
 ```
@@ -78,7 +78,7 @@ The Oculus Mobile SDK is optional, for Gear VR support. It is not required to co
 
 Download the [Oculus Mobile SDK](https://developer.oculus.com/downloads/#sdk=mobile) and extract the archive inside your `ANDROID_LIB_DIR` folder. Rename the extracted folder to `libovr`.
 
-From the VRLib directory, use ndk-build to build VrLib. 
+From the VRLib directory, use ndk-build to build VrLib.
 
 ```
 cd VRLib
