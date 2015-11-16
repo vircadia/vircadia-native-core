@@ -21,7 +21,6 @@
 #include <TextureCache.h>
 
 #include "PolyVoxEntityItem.h"
-#include "RenderableDebugableEntityItem.h"
 #include "RenderableEntityItem.h"
 #include "gpu/Context.h"
 

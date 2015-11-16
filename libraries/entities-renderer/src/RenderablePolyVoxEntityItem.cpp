@@ -538,8 +538,6 @@ void RenderablePolyVoxEntityItem::render(RenderArgs* args) {
     batch._glUniform3f(voxelVolumeSizeLocation, _voxelVolumeSize.x, _voxelVolumeSize.y, _voxelVolumeSize.z);
 
     batch.drawIndexed(gpu::TRIANGLES, mesh->getNumIndices(), 0);
-
-    RenderableDebugableEntityItem::render(this, args);
 }
 
 bool RenderablePolyVoxEntityItem::addToScene(EntityItemPointer self,
@@ -550,6 +548,10 @@ bool RenderablePolyVoxEntityItem::addToScene(EntityItemPointer self,
     auto renderItem = std::make_shared<PolyVoxPayload>(shared_from_this());
     auto renderData = PolyVoxPayload::Pointer(renderItem);
     auto renderPayload = std::make_shared<PolyVoxPayload::Payload>(renderData);
+
+    render::Item::Status::Getters statusGetters;
+    makeEntityItemStatusGetters(shared_from_this(), statusGetters);
+    renderPayload->addStatusGetters(statusGetters);
 
     pendingChanges.resetItem(_myItem, renderPayload);
 

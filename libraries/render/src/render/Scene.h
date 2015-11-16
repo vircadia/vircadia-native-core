@@ -206,17 +206,21 @@ public:
         // It can be scaled in the range [0, 1] and the color hue  in the range [0, 360] representing the color wheel hue
         class Value {
             unsigned short _scale = 0xFFFF;
-            unsigned short _color = 0xFFFF;
+            unsigned char _color = 0xFF;
+            unsigned char _icon = 0xFF;
         public:
             const static Value INVALID; // Invalid value meanss the status won't show
 
             Value() {}
-            Value(float scale, float hue) { setScale(scale); setColor(hue); }
+            Value(float scale, float hue, unsigned char icon = 0xFF) { setScale(scale); setColor(hue); setIcon(icon); }
 
             // It can be scaled in the range [0, 1] 
             void setScale(float scale);
             // the color hue  in the range [0, 360] representing the color wheel hue
             void setColor(float hue);
+            // the icon to display in the range [0, 255], where 0 means no icon, just filled quad and anything else would
+            // hopefully have an icon available to display (see DrawStatusJob)
+            void setIcon(unsigned char icon);
 
             // Standard color Hue
             static const float RED; // 0.0f;
@@ -237,7 +241,10 @@ public:
 
         void addGetter(const Getter& getter) { _values.push_back(getter); }
 
-        void getPackedValues(glm::ivec4& values) const;
+        size_t getNumValues() const { return _values.size(); }
+
+        using Values = std::vector <Value>;
+        Values getCurrentValues() const;
     };
     typedef std::shared_ptr<Status> StatusPointer;
 
@@ -301,7 +308,6 @@ public:
 
     // Access the status
     const StatusPointer& getStatus() const { return _payload->getStatus(); }
-    glm::ivec4 getStatusPackedValues() const;
 
 protected:
     PayloadPointer _payload;

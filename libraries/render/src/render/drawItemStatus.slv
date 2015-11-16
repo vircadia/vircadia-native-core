@@ -17,10 +17,12 @@
 <$declareStandardTransform()$>
 
 out vec4 varColor;
+out vec3 varTexcoord;
 
 uniform vec3 inBoundPos;
 uniform vec3 inBoundDim;
-uniform ivec4 inStatus;
+uniform ivec4 inStatus0;
+uniform ivec4 inStatus1;
 
 vec3 paintRainbow(float normalizedHue) {
     float v = normalizedHue * 6.f;
@@ -43,16 +45,28 @@ vec3 paintRainbow(float normalizedHue) {
     }
 }
 
-vec2 unpackStatus(int v) {
-    return vec2(clamp(float(int((v >> 0) & 0xFFFF) - 32727) / 32727.0, -1.0, 1.0),
-                clamp(float(int((v >> 16) & 0xFFFF) - 32727) / 32727.0, -1.0, 1.0));
+const int INVALID_STATUS = int(0xFFFFFFFF);
+const int MAX_NUM_ICONS = 8;
+const int ICONS_PER_ROW = 4;
+
+int getIconStatus(int icon) {
+    if (icon < ICONS_PER_ROW) {
+        return inStatus0[icon];
+    } else if (icon < MAX_NUM_ICONS) {
+        return inStatus1[icon - ICONS_PER_ROW];
+    }
+    return INVALID_STATUS;
+}
+
+vec3 unpackStatus(int v) {
+    return vec3(clamp(float(int((v >> 0) & 0xFFFF) - 32727) / 32727.0, -1.0, 1.0),
+                clamp(float(uint((v >> 16) & 0xFF)) / 255.0, 0.0, 1.0),
+                clamp(float(int((v >> 24) & 0xFF)), 0.0, 255.0));
 }
 
 void main(void) {
-    const vec2 ICON_PIXEL_SIZE = vec2(10, 10);
-    const vec2 MARGIN_PIXEL_SIZE = vec2(2, 2);
-    const int NUM_VERTICES = 6;
-    const vec4 UNIT_QUAD[NUM_VERTICES] = vec4[NUM_VERTICES](
+    const int NUM_VERTICES_PER_ICON = 6;
+    const vec4 UNIT_QUAD[NUM_VERTICES_PER_ICON] = vec4[NUM_VERTICES_PER_ICON](
         vec4(-1.0, -1.0, 0.0, 1.0),
         vec4(1.0, -1.0, 0.0, 1.0),
         vec4(-1.0, 1.0, 0.0, 1.0),
@@ -61,6 +75,17 @@ void main(void) {
         vec4(1.0, 1.0, 0.0, 1.0)
     );
 
+    const vec2 ICON_PIXEL_SIZE = vec2(20, 20);
+    const vec2 MARGIN_PIXEL_SIZE = vec2(2, 2);
+    const vec2 ICON_GRID_SLOTS[MAX_NUM_ICONS] = vec2[MAX_NUM_ICONS](vec2(-1.5, 0.5),
+                                                                    vec2(-0.5, 0.5),
+                                                                    vec2(0.5, 0.5),
+                                                                    vec2(1.5, 0.5),
+                                                                    vec2(-1.5,-0.5),
+                                                                    vec2(-0.5,-0.5),
+                                                                    vec2(0.5, -0.5),
+                                                                    vec2(1.5, -0.5));
+
     // anchor point in clip space
     vec4 anchorPoint = vec4(inBoundPos, 1.0) + vec4(inBoundDim, 0.0) * vec4(0.5, 0.5, 0.5, 0.0);
     TransformCamera cam = getTransformCamera();
@@ -68,32 +93,39 @@ void main(void) {
     <$transformModelToClipPos(cam, obj, anchorPoint, anchorPoint)$>
 
     // Which icon are we dealing with ?
-    int iconNum = gl_VertexID / NUM_VERTICES;
+    int iconNum = gl_VertexID / NUM_VERTICES_PER_ICON;
+    int packedIconStatus = getIconStatus(iconNum);
 
     // if invalid, just kill
-    if (inStatus[iconNum] == 0xFFFFFFFF) {
+    if (packedIconStatus == INVALID_STATUS) {
         gl_Position = anchorPoint;
         varColor = vec4(1.0);
         return;
     }
 
+    // Which quad vertex pos?
+    int twoTriID = gl_VertexID - iconNum * NUM_VERTICES_PER_ICON;
+    vec4 quadPos = UNIT_QUAD[twoTriID];
+
     // unpack to get x and y satus
-    vec2 iconStatus = unpackStatus(inStatus[iconNum]);
+    vec3 iconStatus = unpackStatus(packedIconStatus);
 
     // Use the status for showing a color
     varColor = vec4(paintRainbow(abs(iconStatus.y)), 1.0);
 
+    // Pass the texcoord and the z texcoord is representing the texture icon
+    varTexcoord = vec3((quadPos.xy + 1.0) * 0.5, iconStatus.z);
+
     // Also changes the size of the notification
     vec2 iconScale = ICON_PIXEL_SIZE;
-    iconScale = max(vec2(1, 1), (iconScale * iconStatus.x));
+    iconScale = max(vec2(0, 0), (iconScale * iconStatus.x));
 
     //Offset icon to the right based on the iconNum
-    vec2 offset = vec2(iconNum * (ICON_PIXEL_SIZE.x + MARGIN_PIXEL_SIZE.x), 0);
+    vec2 gridOffset = ICON_GRID_SLOTS[iconNum];
+    vec2 offset = gridOffset * (ICON_PIXEL_SIZE + MARGIN_PIXEL_SIZE);
 
     // Final position in pixel space
-    int twoTriID = gl_VertexID - iconNum * NUM_VERTICES;
-    vec4 pos = UNIT_QUAD[twoTriID];
-    vec2 quadPixelPos = offset.xy + pos.xy * 0.5 * iconScale;
+    vec2 quadPixelPos = offset.xy + quadPos.xy * 0.5 * iconScale;
 
     vec4 viewport;
     <$transformCameraViewport(cam, viewport)$>;

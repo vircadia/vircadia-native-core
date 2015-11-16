@@ -3499,10 +3499,6 @@ void Application::displaySide(RenderArgs* renderArgs, Camera& theCamera, bool se
             if (Menu::getInstance()->isOptionChecked(MenuOption::PhysicsShowHulls)) {
                 renderDebugFlags = (RenderArgs::DebugFlags) (renderDebugFlags | (int)RenderArgs::RENDER_DEBUG_HULLS);
             }
-            if (Menu::getInstance()->isOptionChecked(MenuOption::PhysicsShowOwned)) {
-                renderDebugFlags =
-                    (RenderArgs::DebugFlags) (renderDebugFlags | (int)RenderArgs::RENDER_DEBUG_SIMULATION_OWNERSHIP);
-            }
             renderArgs->_debugFlags = renderDebugFlags;
             //ViveControllerManager::getInstance().updateRendering(renderArgs, _main3DScene, pendingChanges);
         }
@@ -3562,6 +3558,9 @@ void Application::displaySide(RenderArgs* renderArgs, Camera& theCamera, bool se
         renderContext._maxDrawnOverlay3DItems = sceneInterface->getEngineMaxDrawnOverlay3DItems();
 
         renderContext._drawItemStatus = sceneInterface->doEngineDisplayItemStatus();
+        if (Menu::getInstance()->isOptionChecked(MenuOption::PhysicsShowOwned)) {
+            renderContext._drawItemStatus |= render::showNetworkStatusFlag;
+        }
         renderContext._drawHitEffect = sceneInterface->doEngineDisplayHitEffect();
 
         renderContext._occlusionStatus = Menu::getInstance()->isOptionChecked(MenuOption::DebugAmbientOcclusion);

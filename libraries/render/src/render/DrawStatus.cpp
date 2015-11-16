@@ -29,7 +29,7 @@ using namespace render;
 
 
 
-const gpu::PipelinePointer& DrawStatus::getDrawItemBoundsPipeline() {
+const gpu::PipelinePointer DrawStatus::getDrawItemBoundsPipeline() {
     if (!_drawItemBoundsPipeline) {
         auto vs = gpu::ShaderPointer(gpu::Shader::createVertex(std::string(drawItemBounds_vert)));
         auto ps = gpu::ShaderPointer(gpu::Shader::createPixel(std::string(drawItemBounds_frag)));
@@ -56,18 +56,20 @@ const gpu::PipelinePointer& DrawStatus::getDrawItemBoundsPipeline() {
     return _drawItemBoundsPipeline;
 }
 
-const gpu::PipelinePointer& DrawStatus::getDrawItemStatusPipeline() {
+const gpu::PipelinePointer DrawStatus::getDrawItemStatusPipeline() {
     if (!_drawItemStatusPipeline) {
         auto vs = gpu::ShaderPointer(gpu::Shader::createVertex(std::string(drawItemStatus_vert)));
         auto ps = gpu::ShaderPointer(gpu::Shader::createPixel(std::string(drawItemStatus_frag)));
         gpu::ShaderPointer program = gpu::ShaderPointer(gpu::Shader::createProgram(vs, ps));
 
         gpu::Shader::BindingSet slotBindings;
+        slotBindings.insert(gpu::Shader::Binding(std::string("iconStatusMap"), 0));
         gpu::Shader::makeProgram(*program, slotBindings);
 
         _drawItemStatusPosLoc = program->getUniforms().findLocation("inBoundPos");
         _drawItemStatusDimLoc = program->getUniforms().findLocation("inBoundDim");
-        _drawItemStatusValueLoc = program->getUniforms().findLocation("inStatus");
+        _drawItemStatusValue0Loc = program->getUniforms().findLocation("inStatus0");
+        _drawItemStatusValue1Loc = program->getUniforms().findLocation("inStatus1");
 
         auto state = std::make_shared<gpu::State>();
 
@@ -84,11 +86,23 @@ const gpu::PipelinePointer& DrawStatus::getDrawItemStatusPipeline() {
     return _drawItemStatusPipeline;
 }
 
-void DrawStatus::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const ItemIDsBounds& inItems) {
+void DrawStatus::setStatusIconMap(const gpu::TexturePointer& map) {
+    _statusIconMap = map;
+}
+
+const gpu::TexturePointer DrawStatus::getStatusIconMap() const {
+    return _statusIconMap;
+}
+
+void DrawStatus::run(const SceneContextPointer& sceneContext,
+                     const RenderContextPointer& renderContext,
+                     const ItemIDsBounds& inItems) {
     assert(renderContext->args);
     assert(renderContext->args->_viewFrustum);
     RenderArgs* args = renderContext->args;
     auto& scene = sceneContext->_scene;
+    const int NUM_STATUS_VEC4_PER_ITEM = 2;
+    const int VEC4_LENGTH = 4;
 
     // FIrst thing, we collect the bound and the status for all the items we want to render
     int nbItems = 0;
@@ -101,7 +115,7 @@ void DrawStatus::run(const SceneContextPointer& sceneContext, const RenderContex
         }
 
         _itemBounds->resize((inItems.size() * sizeof(AABox)));
-        _itemStatus->resize((inItems.size() * sizeof(glm::vec4)));
+        _itemStatus->resize((inItems.size() * NUM_STATUS_VEC4_PER_ITEM * sizeof(glm::vec4)));
         AABox* itemAABox = reinterpret_cast<AABox*> (_itemBounds->editData());
         glm::ivec4* itemStatus = reinterpret_cast<glm::ivec4*> (_itemStatus->editData());
         for (auto& item : inItems) {
@@ -112,11 +126,31 @@ void DrawStatus::run(const SceneContextPointer& sceneContext, const RenderContex
                     (*itemAABox).setBox(item.bounds.getCorner(), 0.1f);
                 }
                 auto& itemScene = scene->getItem(item.id);
-                (*itemStatus) = itemScene.getStatusPackedValues();
+
+                auto itemStatusPointer = itemScene.getStatus();
+                if (itemStatusPointer) {
+                    // Query the current status values, this is where the statusGetter lambda get called
+                    auto&& currentStatusValues = itemStatusPointer->getCurrentValues();
+                    int valueNum = 0;
+                    for (int vec4Num = 0; vec4Num < NUM_STATUS_VEC4_PER_ITEM; vec4Num++) {
+                        (*itemStatus) = glm::ivec4(Item::Status::Value::INVALID.getPackedData());
+                        for (int component = 0; component < VEC4_LENGTH; component++) {
+                            valueNum = vec4Num * VEC4_LENGTH + component;
+                            if (valueNum < (int)currentStatusValues.size()) {
+                                (*itemStatus)[component] = currentStatusValues[valueNum].getPackedData();
+                            }
+                        }
+                        itemStatus++;
+                    }
+                } else {
+                    (*itemStatus) = glm::ivec4(Item::Status::Value::INVALID.getPackedData());
+                    itemStatus++;
+                    (*itemStatus) = glm::ivec4(Item::Status::Value::INVALID.getPackedData());
+                    itemStatus++;
+                }
 
                 nbItems++;
                 itemAABox++;
-                itemStatus++;
             }
         }
     }
@@ -131,6 +165,7 @@ void DrawStatus::run(const SceneContextPointer& sceneContext, const RenderContex
         Transform viewMat;
         args->_viewFrustum->evalProjectionMatrix(projMat);
         args->_viewFrustum->evalViewTransform(viewMat);
+        batch.setViewportTransform(args->_viewport);
 
         batch.setProjectionTransform(projMat);
         batch.setViewTransform(viewMat);
@@ -144,20 +179,28 @@ void DrawStatus::run(const SceneContextPointer& sceneContext, const RenderContex
 
         const unsigned int VEC3_ADRESS_OFFSET = 3;
 
-        for (int i = 0; i < nbItems; i++) {
-            batch._glUniform3fv(_drawItemBoundPosLoc, 1, (const float*) (itemAABox + i));
-            batch._glUniform3fv(_drawItemBoundDimLoc, 1, ((const float*) (itemAABox + i)) + VEC3_ADRESS_OFFSET);
+        if ((renderContext->_drawItemStatus & showDisplayStatusFlag) > 0) {
+            for (int i = 0; i < nbItems; i++) {
+                batch._glUniform3fv(_drawItemBoundPosLoc, 1, (const float*) (itemAABox + i));
+                batch._glUniform3fv(_drawItemBoundDimLoc, 1, ((const float*) (itemAABox + i)) + VEC3_ADRESS_OFFSET);
 
-            batch.draw(gpu::LINES, 24, 0);
+                batch.draw(gpu::LINES, 24, 0);
+            }
         }
+
+        batch.setResourceTexture(0, gpu::TextureView(getStatusIconMap(), 0));
 
         batch.setPipeline(getDrawItemStatusPipeline());
-        for (int i = 0; i < nbItems; i++) {
-            batch._glUniform3fv(_drawItemStatusPosLoc, 1, (const float*) (itemAABox + i));
-            batch._glUniform3fv(_drawItemStatusDimLoc, 1, ((const float*) (itemAABox + i)) + VEC3_ADRESS_OFFSET);
-            batch._glUniform4iv(_drawItemStatusValueLoc, 1, (const int*) (itemStatus + i));
 
-            batch.draw(gpu::TRIANGLES, 24, 0);
+        if ((renderContext->_drawItemStatus & showNetworkStatusFlag) > 0) {
+            for (int i = 0; i < nbItems; i++) {
+                batch._glUniform3fv(_drawItemStatusPosLoc, 1, (const float*) (itemAABox + i));
+                batch._glUniform3fv(_drawItemStatusDimLoc, 1, ((const float*) (itemAABox + i)) + VEC3_ADRESS_OFFSET);
+                batch._glUniform4iv(_drawItemStatusValue0Loc, 1, (const int*)(itemStatus + NUM_STATUS_VEC4_PER_ITEM * i));
+                batch._glUniform4iv(_drawItemStatusValue1Loc, 1, (const int*)(itemStatus + NUM_STATUS_VEC4_PER_ITEM * i + 1));
+                batch.draw(gpu::TRIANGLES, 24 * NUM_STATUS_VEC4_PER_ITEM, 0);
+            }
         }
+        batch.setResourceTexture(0, 0);
     });
 }

@@ -17,6 +17,7 @@
 #include "OctreeSendThread.h"
 #include "OctreeServer.h"
 #include "OctreeServerConsts.h"
+#include "OctreeLogging.h"
 
 quint64 startSceneSleepTime = 0;
 quint64 endSceneSleepTime = 0;
@@ -572,13 +573,11 @@ int OctreeSendThread::packetDistributor(OctreeQueryNode* nodeData, bool viewFrus
             OctreeServer::trackInsideTime((float)elapsedInsideUsecs);
         }
 
-
         if (somethingToSend && _myServer->wantsVerboseDebug()) {
-            qDebug() << "Hit PPS Limit, packetsSentThisInterval =" << packetsSentThisInterval
-                     << "  maxPacketsPerInterval = " << maxPacketsPerInterval
-                     << "  clientMaxPacketsPerInterval = " << clientMaxPacketsPerInterval;
+            qCDebug(octree) << "Hit PPS Limit, packetsSentThisInterval =" << packetsSentThisInterval
+                            << "  maxPacketsPerInterval = " << maxPacketsPerInterval
+                            << "  clientMaxPacketsPerInterval = " << clientMaxPacketsPerInterval;
         }
-
 
         // Here's where we can/should allow the server to send other data...
         // send the environment packet

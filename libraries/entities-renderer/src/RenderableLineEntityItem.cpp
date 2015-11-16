@@ -54,6 +54,4 @@ void RenderableLineEntityItem::render(RenderArgs* args) {
         DependencyManager::get<DeferredLightingEffect>()->bindSimpleProgram(batch);
         DependencyManager::get<GeometryCache>()->renderVertices(batch, gpu::LINE_STRIP, _lineVerticesID);
     }
-
-    RenderableDebugableEntityItem::render(this, args);
 };
