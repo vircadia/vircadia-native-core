@@ -12,9 +12,20 @@
 //
 
 in vec4 varColor;
+in vec3 varTexcoord;
 out vec4 outFragColor;
 
+uniform sampler2D _icons;
+vec2 getIconTexcoord(float icon, vec2 uv) {
+    const vec2 ICON_COORD_SIZE = vec2(0.0625, 1.0);
+	return vec2((uv.x + icon) * ICON_COORD_SIZE.x, uv.y * ICON_COORD_SIZE.y);
+}
 
 void main(void) {
-    outFragColor = varColor;
+    if (varTexcoord.z < 254.5) {
+        outFragColor = texture(_icons, getIconTexcoord(varTexcoord.z, varTexcoord.xy)) * varColor;
+    } else {
+        vec2 centerDir = varTexcoord.xy * 2.0f - 1.0f;
+        outFragColor = vec4(varColor.xyz, 1.0 - step(1.0f, dot(centerDir.xy, centerDir.xy)));
+    }
 }

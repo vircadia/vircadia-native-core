@@ -16,7 +16,6 @@
 #include <QStringList>
 
 #include <ModelEntityItem.h>
-#include "RenderableDebugableEntityItem.h"
 
 class Model;
 class EntityTreeRenderer;
@@ -85,6 +84,8 @@ private:
     bool _dimensionsInitialized = true;
     
     render::ItemID _myMetaItem;
+
+    bool _showCollisionHull = false;
 };
 
 #endif // hifi_RenderableModelEntityItem_h

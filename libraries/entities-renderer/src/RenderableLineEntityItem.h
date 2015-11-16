@@ -13,7 +13,6 @@
 #define hifi_RenderableLineEntityItem_h
 
 #include <LineEntityItem.h>
-#include "RenderableDebugableEntityItem.h"
 #include "RenderableEntityItem.h"
 #include <GeometryCache.h>
 

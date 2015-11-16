@@ -176,14 +176,13 @@ function formatTime(time) {
     var SEC_PER_MIN = 60;
     var MSEC_PER_SEC = 1000;
 
-    var hours = Math.floor(time / (MSEC_PER_SEC * SEC_PER_MIN * MIN_PER_HOUR));
-    time -= hours * (MSEC_PER_SEC * SEC_PER_MIN * MIN_PER_HOUR);
+    var hours = Math.floor(time / (SEC_PER_MIN * MIN_PER_HOUR));
+    time -= hours * (SEC_PER_MIN * MIN_PER_HOUR);
 
-    var minutes = Math.floor(time / (MSEC_PER_SEC * SEC_PER_MIN));
-    time -= minutes * (MSEC_PER_SEC * SEC_PER_MIN);
+    var minutes = Math.floor(time / (SEC_PER_MIN));
+    time -= minutes * (SEC_PER_MIN);
 
-    var seconds = Math.floor(time / MSEC_PER_SEC);
-    seconds = time / MSEC_PER_SEC;
+    var seconds = time;
 
     var text = "";
     text += (hours > 0) ? hours + ":" :

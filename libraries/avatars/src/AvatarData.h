@@ -457,6 +457,9 @@ public:
     bool translationSet = false;
 };
 
+QJsonValue toJsonValue(const JointData& joint);
+JointData jointDataFromJsonValue(const QJsonValue& q);
+
 class AttachmentData {
 public:
     QUrl modelURL;

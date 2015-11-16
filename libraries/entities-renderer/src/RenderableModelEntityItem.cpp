@@ -21,7 +21,9 @@
 
 #include "EntityTreeRenderer.h"
 #include "EntitiesRendererLogging.h"
+#include "RenderableEntityItem.h"
 #include "RenderableModelEntityItem.h"
+#include "RenderableEntityItem.h"
 
 EntityItemPointer RenderableModelEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
     return std::make_shared<RenderableModelEntityItem>(entityID, properties);
@@ -179,25 +181,6 @@ namespace render {
     }
 }
 
-void makeEntityItemStatusGetters(RenderableModelEntityItem* entity, render::Item::Status::Getters& statusGetters) {
-    statusGetters.push_back([entity] () -> render::Item::Status::Value {
-        quint64 delta = usecTimestampNow() - entity->getLastEditedFromRemote();
-        const float WAIT_THRESHOLD_INV = 1.0f / (0.2f * USECS_PER_SECOND);
-        float normalizedDelta = delta * WAIT_THRESHOLD_INV;
-        // Status icon will scale from 1.0f down to 0.0f after WAIT_THRESHOLD
-        // Color is red if last update is after WAIT_THRESHOLD, green otherwise (120 deg is green)
-        return render::Item::Status::Value(1.0f - normalizedDelta, (normalizedDelta > 1.0f ? render::Item::Status::Value::GREEN : render::Item::Status::Value::RED));
-    });
-    statusGetters.push_back([entity] () -> render::Item::Status::Value {
-        quint64 delta = usecTimestampNow() - entity->getLastBroadcast();
-        const float WAIT_THRESHOLD_INV = 1.0f / (0.4f * USECS_PER_SECOND);
-        float normalizedDelta = delta * WAIT_THRESHOLD_INV;
-        // Status icon will scale from 1.0f down to 0.0f after WAIT_THRESHOLD
-        // Color is Magenta if last update is after WAIT_THRESHOLD, cyan otherwise (180 deg is green)
-        return render::Item::Status::Value(1.0f - normalizedDelta, (normalizedDelta > 1.0f ? render::Item::Status::Value::MAGENTA : render::Item::Status::Value::CYAN));
-    });
-}
-
 bool RenderableModelEntityItem::addToScene(EntityItemPointer self, std::shared_ptr<render::Scene> scene, 
                                             render::PendingChanges& pendingChanges) {
     _myMetaItem = scene->allocateID();
@@ -209,11 +192,11 @@ bool RenderableModelEntityItem::addToScene(EntityItemPointer self, std::shared_p
     
     if (_model) {
         render::Item::Status::Getters statusGetters;
-        makeEntityItemStatusGetters(this, statusGetters);
+        makeEntityItemStatusGetters(shared_from_this(), statusGetters);
         
         // note: we don't care if the model fails to add items, we always added our meta item and therefore we return
         // true so that the system knows our meta item is in the scene!
-        _model->addToScene(scene, pendingChanges, statusGetters);
+        _model->addToScene(scene, pendingChanges, statusGetters, _showCollisionHull);
     }
 
     return true;
@@ -245,14 +228,16 @@ void RenderableModelEntityItem::render(RenderArgs* args) {
 
             // check to see if when we added our models to the scene they were ready, if they were not ready, then
             // fix them up in the scene
-            if (_model->needsFixupInScene()) {
+            bool shouldShowCollisionHull = (args->_debugFlags & (int)RenderArgs::RENDER_DEBUG_HULLS) > 0;
+            if (_model->needsFixupInScene() || _showCollisionHull != shouldShowCollisionHull) {
+                _showCollisionHull = shouldShowCollisionHull;
                 render::PendingChanges pendingChanges;
 
                 _model->removeFromScene(scene, pendingChanges);
 
                 render::Item::Status::Getters statusGetters;
-                makeEntityItemStatusGetters(this, statusGetters);
-                _model->addToScene(scene, pendingChanges, statusGetters);
+                makeEntityItemStatusGetters(shared_from_this(), statusGetters);
+                _model->addToScene(scene, pendingChanges, statusGetters, _showCollisionHull);
 
                 scene->enqueuePendingChanges(pendingChanges);
             }
@@ -274,7 +259,7 @@ void RenderableModelEntityItem::render(RenderArgs* args) {
                 EntityTreeRenderer* renderer = static_cast<EntityTreeRenderer*>(args->_renderer);
                 getModel(renderer);
             }
-            
+
             if (_model) {
                 // handle animations..
                 if (hasAnimation()) {
@@ -320,11 +305,12 @@ void RenderableModelEntityItem::render(RenderArgs* args) {
             }
         }
     } else {
-        glm::vec4 greenColor(0.0f, 1.0f, 0.0f, 1.0f);
-        RenderableDebugableEntityItem::renderBoundingBox(this, args, 0.0f, greenColor);
+        static glm::vec4 greenColor(0.0f, 1.0f, 0.0f, 1.0f);
+        gpu::Batch& batch = *args->_batch;
+        auto shapeTransform = getTransformToCenter();
+        batch.setModelTransform(Transform()); // we want to include the scale as well
+        DependencyManager::get<DeferredLightingEffect>()->renderWireCubeInstance(batch, shapeTransform, greenColor);
     }
-
-    RenderableDebugableEntityItem::render(this, args);
 }
 
 Model* RenderableModelEntityItem::getModel(EntityTreeRenderer* renderer) {

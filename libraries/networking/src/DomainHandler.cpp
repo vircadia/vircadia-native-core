@@ -46,7 +46,13 @@ DomainHandler::DomainHandler(QObject* parent) :
     connect(this, &DomainHandler::completedSocketDiscovery, &_icePeer, &NetworkPeer::stopPingTimer);
 }
 
-void DomainHandler::clearConnectionInfo() {
+void DomainHandler::disconnect() {
+    // if we're currently connected to a domain, send a disconnect packet on our way out
+    if (_isConnected) {
+        sendDisconnectPacket();
+    }
+    
+    // clear member variables that hold the connection state to a domain
     _uuid = QUuid();
     _connectionToken = QUuid();
     
@@ -60,6 +66,18 @@ void DomainHandler::clearConnectionInfo() {
     setIsConnected(false);
 }
 
+void DomainHandler::sendDisconnectPacket() {
+    // The DomainDisconnect packet is not verified - we're relying on the eventual addition of DTLS to the
+    // domain-server connection to stop greifing here
+    
+    // construct the disconnect packet once (an empty packet but sourced with our current session UUID)
+    static auto disconnectPacket = NLPacket::create(PacketType::DomainDisconnectRequest, 0);
+    
+    // send the disconnect packet to the current domain server
+    auto nodeList = DependencyManager::get<NodeList>();
+    nodeList->sendUnreliablePacket(*disconnectPacket, _sockAddr);
+}
+
 void DomainHandler::clearSettings() {
     _settingsObject = QJsonObject();
     _failedSettingsRequests = 0;
@@ -67,7 +85,7 @@ void DomainHandler::clearSettings() {
 
 void DomainHandler::softReset() {
     qCDebug(networking) << "Resetting current domain connection information.";
-    clearConnectionInfo();
+    disconnect();
     clearSettings();
 }
 

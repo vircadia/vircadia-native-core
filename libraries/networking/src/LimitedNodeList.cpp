@@ -441,7 +441,7 @@ void LimitedNodeList::reset() {
     _nodeSocket.clearConnections();
 }
 
-void LimitedNodeList::killNodeWithUUID(const QUuid& nodeUUID) {
+bool LimitedNodeList::killNodeWithUUID(const QUuid& nodeUUID) {
     QReadLocker readLocker(&_nodeMutex);
 
     NodeHash::iterator it = _nodeHash.find(nodeUUID);
@@ -456,7 +456,10 @@ void LimitedNodeList::killNodeWithUUID(const QUuid& nodeUUID) {
         }
         
         handleNodeKill(matchingNode);
+        return true;
     }
+    
+    return false;
 }
 
 void LimitedNodeList::processKillNode(NLPacket& packet) {
