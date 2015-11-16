@@ -245,9 +245,8 @@ void AvatarMixer::broadcastAvatarData() {
                         return;
                     }
 
-                    // if an avatar has just connected make sure we send out the mesh and billboard
-                    bool forceSend = !nodeData->checkAndSetHasReceivedFirstPackets()
-                        || !otherNodeData->checkAndSetHasReceivedFirstPacketsFrom(node->getUUID());
+                    // make sure we send out identity and billboard packets to and from new arrivals.
+                    bool forceSend = !otherNodeData->checkAndSetHasReceivedFirstPacketsFrom(node->getUUID());
 
                     // we will also force a send of billboard or identity packet
                     // if either has changed in the last frame
