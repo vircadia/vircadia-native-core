@@ -38,18 +38,6 @@ var SHOW = 4;
 var HIDE = 5;
 var LOAD = 6;
 
-var COLORS = [];
-COLORS[PLAY] = { red: PLAY, green: 0,  blue: 0 };
-COLORS[PLAY_LOOP] = { red: PLAY_LOOP, green: 0,  blue: 0 };
-COLORS[STOP] = { red: STOP, green: 0,  blue: 0 };
-COLORS[SHOW] = { red: SHOW, green: 0,  blue: 0 };
-COLORS[HIDE] = { red: HIDE, green: 0,  blue: 0 };
-COLORS[LOAD] = { red: LOAD, green: 0,  blue: 0 };
-
-controlEntityPosition.x += id * controlEntitySize;
-
-Avatar.loadRecording(clip_url);
-
 Avatar.setPlayFromCurrentLocation(playFromCurrentLocation);
 Avatar.setPlayerUseDisplayName(useDisplayName);
 Avatar.setPlayerUseAttachments(useAttachments);
@@ -67,27 +55,27 @@ function setupEntityViewer() {
     EntityViewer.queryOctree();
 }
 
-function getAction(controlEntity) {    
-    clip_url = controlEntity.userData;
+function getAction(controlEntity) {
+     if (controlEntity === null) {
+         return DO_NOTHING;
+     }
+        
+    var userData = JSON.parse(Entities.getEntityProperties(controlEntity, ["userData"]).userData);
     
-    if (controlEntity === null ||
-        controlEntity.position.x !== controlEntityPosition.x ||
-        controlEntity.position.y !== controlEntityPosition.y ||
-        controlEntity.position.z !== controlEntityPosition.z ||
-        controlEntity.dimensions.x !== controlEntitySize) {
+    var uD_id = userData.idKey.uD_id;
+    var uD_action = userData.actionKey.uD_action;
+    var uD_url = userData.clipKey.uD_url;
+    
+    Entities.deleteEntity((Entities.getEntityProperties(controlEntity)).id);
+
+    if (uD_id === id || uD_id === -1) {
+        if (uD_action === 6)
+            clip_url = uD_url;
+        
+        return uD_action;
+    } else {
         return DO_NOTHING;
-    }
-    
-    for (i in COLORS) {
-        if (controlEntity.color.red === COLORS[i].red &&
-            controlEntity.color.green === COLORS[i].green &&
-            controlEntity.color.blue === COLORS[i].blue) {
-            Entities.deleteEntity(controlEntity.id);
-            return parseInt(i);
-        }
-    }
-    
-    return DO_NOTHING;
+    } 
 }
 
 count = 100; // This is necessary to wait for the audio mixer to connect
@@ -100,7 +88,7 @@ function update(event) {
     
     
     var controlEntity = Entities.findClosestEntity(controlEntityPosition, controlEntitySize);
-    var action = getAction(Entities.getEntityProperties(controlEntity));
+    var action = getAction(controlEntity);
     
     switch(action) {
         case PLAY:

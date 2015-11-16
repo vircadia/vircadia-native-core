@@ -804,12 +804,12 @@ float AvatarData::playerElapsed() {
         return 0;
     }
     if (QThread::currentThread() != thread()) {
-        qint64 result;
+        float result;
         QMetaObject::invokeMethod(this, "playerElapsed", Qt::BlockingQueuedConnection,
-                                  Q_RETURN_ARG(qint64, result));
+            Q_RETURN_ARG(float, result));
         return result;
     }
-    return (float)_player->position() / MSECS_PER_SECOND;
+    return (float)_player->position() / (float) MSECS_PER_SECOND;
 }
 
 float AvatarData::playerLength() {
@@ -817,12 +817,12 @@ float AvatarData::playerLength() {
         return 0;
     }
     if (QThread::currentThread() != thread()) {
-        qint64 result;
+        float result;
         QMetaObject::invokeMethod(this, "playerLength", Qt::BlockingQueuedConnection,
-                                  Q_RETURN_ARG(qint64, result));
+                                  Q_RETURN_ARG(float, result));
         return result;
     }
-    return _player->length() / MSECS_PER_SECOND;
+    return (float)_player->length() / (float) MSECS_PER_SECOND;
 }
 
 void AvatarData::loadRecording(const QString& filename) {
@@ -1513,7 +1513,8 @@ void AvatarData::setRecordingBasis(std::shared_ptr<Transform> recordingBasis) {
         recordingBasis = std::make_shared<Transform>();
         recordingBasis->setRotation(getOrientation());
         recordingBasis->setTranslation(getPosition());
-        recordingBasis->setScale(getTargetScale());
+        // TODO: find a  different way to record/playback the Scale of the avatar
+        //recordingBasis->setScale(getTargetScale());
     }
     _recordingBasis = recordingBasis;
 }
@@ -1532,7 +1533,7 @@ Transform AvatarData::getTransform() const {
 
 static const QString JSON_AVATAR_BASIS = QStringLiteral("basisTransform");
 static const QString JSON_AVATAR_RELATIVE = QStringLiteral("relativeTransform");
-static const QString JSON_AVATAR_JOINT_ROTATIONS = QStringLiteral("jointRotations");
+static const QString JSON_AVATAR_JOINT_ARRAY = QStringLiteral("jointArray");
 static const QString JSON_AVATAR_HEAD = QStringLiteral("head");
 static const QString JSON_AVATAR_HEAD_ROTATION = QStringLiteral("rotation");
 static const QString JSON_AVATAR_HEAD_BLENDSHAPE_COEFFICIENTS = QStringLiteral("blendShapes");
@@ -1544,6 +1545,24 @@ static const QString JSON_AVATAR_BODY_MODEL = QStringLiteral("bodyModel");
 static const QString JSON_AVATAR_DISPLAY_NAME = QStringLiteral("displayName");
 static const QString JSON_AVATAR_ATTACHEMENTS = QStringLiteral("attachments");
 
+QJsonValue toJsonValue(const JointData& joint) {
+    QJsonArray result;
+    result.push_back(toJsonValue(joint.rotation));
+    result.push_back(toJsonValue(joint.translation));
+    return result;
+}
+
+JointData jointDataFromJsonValue(const QJsonValue& json) {
+    JointData result;
+    if (json.isArray()) {
+        QJsonArray array = json.toArray();
+        result.rotation = quatFromJsonValue(array[0]);
+        result.rotationSet = true;
+        result.translation = vec3FromJsonValue(array[1]);
+        result.translationSet = false;
+    }
+    return result;
+}
 
 // Every frame will store both a basis for the recording and a relative transform
 // This allows the application to decide whether playback should be relative to an avatar's 
@@ -1575,13 +1594,16 @@ QByteArray avatarStateToFrame(const AvatarData* _avatar) {
             root[JSON_AVATAR_RELATIVE] = Transform::toJson(relativeTransform);
             root[JSON_AVATAR_BASIS] = Transform::toJson(*recordingBasis);
         }
+    } else {
+        root[JSON_AVATAR_RELATIVE] = Transform::toJson(_avatar->getTransform());
     }
 
-    QJsonArray jointRotations;
-    for (const auto& jointRotation : _avatar->getJointRotations()) {
-        jointRotations.push_back(toJsonValue(jointRotation));
+    // Skeleton pose
+    QJsonArray jointArray;
+    for (const auto& joint : _avatar->getRawJointData()) {
+        jointArray.push_back(toJsonValue(joint));
     }
-    root[JSON_AVATAR_JOINT_ROTATIONS] = jointRotations;
+    root[JSON_AVATAR_JOINT_ARRAY] = jointArray;
 
     const HeadData* head = _avatar->getHeadData();
     if (head) {
@@ -1643,24 +1665,34 @@ void avatarStateFromFrame(const QByteArray& frameData, AvatarData* _avatar) {
         auto worldTransform = currentBasis->worldTransform(relativeTransform);
         _avatar->setPosition(worldTransform.getTranslation());
         _avatar->setOrientation(worldTransform.getRotation());
-        _avatar->setTargetScale(worldTransform.getScale().x);
+
+        // TODO: find a way to record/playback the Scale of the avatar
+        //_avatar->setTargetScale(worldTransform.getScale().x);
     }
 
-#if 0
+
     if (root.contains(JSON_AVATAR_ATTACHEMENTS)) {
         // FIXME de-serialize attachment data
     }
 
     // Joint rotations are relative to the avatar, so they require no basis correction
-    if (root.contains(JSON_AVATAR_JOINT_ROTATIONS)) {
-        QVector<quat> jointRotations;
-        QJsonArray jointRotationsJson = root[JSON_AVATAR_JOINT_ROTATIONS].toArray();
-        jointRotations.reserve(jointRotationsJson.size());
-        for (const auto& jointRotationJson : jointRotationsJson) {
-            jointRotations.push_back(quatFromJsonValue(jointRotationJson));
+    if (root.contains(JSON_AVATAR_JOINT_ARRAY)) {
+        QVector<JointData> jointArray;
+        QJsonArray jointArrayJson = root[JSON_AVATAR_JOINT_ARRAY].toArray();
+        jointArray.reserve(jointArrayJson.size());
+        for (const auto& jointJson : jointArrayJson) {
+            jointArray.push_back(jointDataFromJsonValue(jointJson));
         }
+
+        QVector<glm::quat> jointRotations;
+        jointRotations.reserve(jointArray.size());
+        for (const auto& joint : jointArray) {
+            jointRotations.push_back(joint.rotation);
+        }
+        _avatar->setJointRotations(jointRotations);
     }
 
+#if 0
     // Most head data is relative to the avatar, and needs no basis correction,
     // but the lookat vector does need correction
     HeadData* head = _avatar->_headData;

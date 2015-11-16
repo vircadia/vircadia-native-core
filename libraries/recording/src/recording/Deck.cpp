@@ -25,6 +25,8 @@ void Deck::queueClip(ClipPointer clip, Time timeOffset) {
 
     // FIXME if the time offset is not zero, wrap the clip in a OffsetClip wrapper
     _clips.push_back(clip);
+
+    _length = std::max(_length, clip->duration());
 }
 
 void Deck::play() { 

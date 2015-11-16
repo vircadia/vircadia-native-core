@@ -96,29 +96,130 @@ bool EntityServer::hasSpecialPacketsToSend(const SharedNodePointer& node) {
     return shouldSendDeletedEntities;
 }
 
+// FIXME - most of the old code for this was encapsulated in EntityTree, I liked that design from a data
+// hiding and object oriented perspective. But that didn't really allow us to handle the case of lots
+// of entities being deleted at the same time. I'd like to look to move this back into EntityTree but
+// for now this works and addresses the bug.
 int EntityServer::sendSpecialPackets(const SharedNodePointer& node, OctreeQueryNode* queryNode, int& packetsSent) {
     int totalBytes = 0;
 
     EntityNodeData* nodeData = static_cast<EntityNodeData*>(node->getLinkedData());
     if (nodeData) {
+
         quint64 deletedEntitiesSentAt = nodeData->getLastDeletedEntitiesSentAt();
+        quint64 considerEntitiesSince = EntityTree::getAdjustedConsiderSince(deletedEntitiesSentAt);
+
         quint64 deletePacketSentAt = usecTimestampNow();
         EntityTreePointer tree = std::static_pointer_cast<EntityTree>(_tree);
+        auto recentlyDeleted = tree->getRecentlyDeletedEntityIDs();
         bool hasMoreToSend = true;
 
         packetsSent = 0;
 
-        while (hasMoreToSend) {
-            auto specialPacket = tree->encodeEntitiesDeletedSince(queryNode->getSequenceNumber(), deletedEntitiesSentAt,
-                                                                  hasMoreToSend);
+        // create a new special packet
+        std::unique_ptr<NLPacket> deletesPacket = NLPacket::create(PacketType::EntityErase);
 
-            queryNode->packetSent(*specialPacket);
+        // pack in flags
+        OCTREE_PACKET_FLAGS flags = 0;
+        deletesPacket->writePrimitive(flags);
 
-            totalBytes += specialPacket->getDataSize();
-            packetsSent++;
+        // pack in sequence number
+        auto sequenceNumber = queryNode->getSequenceNumber();
+        deletesPacket->writePrimitive(sequenceNumber);
 
-            DependencyManager::get<NodeList>()->sendPacket(std::move(specialPacket), *node);
-        }
+        // pack in timestamp
+        OCTREE_PACKET_SENT_TIME now = usecTimestampNow();
+        deletesPacket->writePrimitive(now);
+
+        // figure out where we are now and pack a temporary number of IDs
+        uint16_t numberOfIDs = 0;
+        qint64 numberOfIDsPos = deletesPacket->pos();
+        deletesPacket->writePrimitive(numberOfIDs);
+
+        // we keep a multi map of entity IDs to timestamps, we only want to include the entity IDs that have been
+        // deleted since we last sent to this node
+        auto it = recentlyDeleted.constBegin();
+        while (it != recentlyDeleted.constEnd()) {
+
+            // if the timestamp is more recent then out last sent time, include it
+            if (it.key() > considerEntitiesSince) {
+
+                // get all the IDs for this timestamp
+                const auto& entityIDsFromTime = recentlyDeleted.values(it.key());
+
+                for (const auto& entityID : entityIDsFromTime) {
+
+                    // check to make sure we have room for one more ID, if we don't have more
+                    // room, then send out this packet and create another one
+                    if (NUM_BYTES_RFC4122_UUID > deletesPacket->bytesAvailableForWrite()) {
+
+                        // replace the count for the number of included IDs
+                        deletesPacket->seek(numberOfIDsPos);
+                        deletesPacket->writePrimitive(numberOfIDs);
+
+                        // Send the current packet
+                        queryNode->packetSent(*deletesPacket);
+                        auto thisPacketSize = deletesPacket->getDataSize();
+                        totalBytes += thisPacketSize;
+                        packetsSent++;
+                        DependencyManager::get<NodeList>()->sendPacket(std::move(deletesPacket), *node);
+
+                        #ifdef EXTRA_ERASE_DEBUGGING
+                            qDebug() << "EntityServer::sendSpecialPackets() sending packet packetsSent[" << packetsSent << "] size:" << thisPacketSize;
+                        #endif
+
+
+                        // create another packet
+                        deletesPacket = NLPacket::create(PacketType::EntityErase);
+
+                        // pack in flags
+                        deletesPacket->writePrimitive(flags);
+
+                        // pack in sequence number
+                        sequenceNumber = queryNode->getSequenceNumber();
+                        deletesPacket->writePrimitive(sequenceNumber);
+
+                        // pack in timestamp
+                        deletesPacket->writePrimitive(now);
+
+                        // figure out where we are now and pack a temporary number of IDs
+                        numberOfIDs = 0;
+                        numberOfIDsPos = deletesPacket->pos();
+                        deletesPacket->writePrimitive(numberOfIDs);
+                    }
+
+                    // FIXME - we still seem to see cases where incorrect EntityIDs get sent from the server
+                    // to the client. These were causing "lost" entities like flashlights and laser pointers
+                    // now that we keep around some additional history of the erased entities and resend that
+                    // history for a longer time window, these entities are not "lost". But we haven't yet
+                    // found/fixed the underlying issue that caused bad UUIDs to be sent to some users.
+                    deletesPacket->write(entityID.toRfc4122());
+                    ++numberOfIDs;
+
+                    #ifdef EXTRA_ERASE_DEBUGGING
+                        qDebug() << "EntityTree::encodeEntitiesDeletedSince() including:" << entityID;
+                    #endif
+                } // end for (ids)
+
+            } // end if (it.val > sinceLast)
+
+
+            ++it;
+        } // end while
+
+        // replace the count for the number of included IDs
+        deletesPacket->seek(numberOfIDsPos);
+        deletesPacket->writePrimitive(numberOfIDs);
+
+        // Send the current packet
+        queryNode->packetSent(*deletesPacket);
+        auto thisPacketSize = deletesPacket->getDataSize();
+        totalBytes += thisPacketSize;
+        packetsSent++;
+        DependencyManager::get<NodeList>()->sendPacket(std::move(deletesPacket), *node);
+        #ifdef EXTRA_ERASE_DEBUGGING
+            qDebug() << "EntityServer::sendSpecialPackets() sending packet packetsSent[" << packetsSent << "] size:" << thisPacketSize;
+        #endif
 
         nodeData->setLastDeletedEntitiesSentAt(deletePacketSentAt);
     }
@@ -133,6 +234,7 @@ int EntityServer::sendSpecialPackets(const SharedNodePointer& node, OctreeQueryN
     // TODO: caller is expecting a packetLength, what if we send more than one packet??
     return totalBytes;
 }
+
 
 void EntityServer::pruneDeletedEntities() {
     EntityTreePointer tree = std::static_pointer_cast<EntityTree>(_tree);
