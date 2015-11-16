@@ -215,7 +215,6 @@
 
             // create the notch detector that arrows will look for
             if (this.notchDetector === null) {
-                print('CREATE NOTCH DETECTOR')
                 this.createNotchDetector();
             }
 
@@ -431,7 +430,7 @@
                 this.releaseArrow();
 
             } else if (this.triggerValue >= DRAW_STRING_THRESHOLD && this.stringDrawn === true) {
-                //  print('HIT CONTINUE LOOP IN CHECK')
+              print('HIT CONTINUE LOOP IN CHECK')
                 //continuing to aim the arrow
                 this.stringData.handPosition = this.getStringHandPosition();
                 this.stringData.handRotation = this.getStringHandRotation();
@@ -514,10 +513,12 @@
             print('HAND DISTANCE:: ' + pullBackDistance);
             var arrowForce = this.scaleArrowShotStrength(pullBackDistance);
             print('ARROW FORCE::' + arrowForce);
-            var forwardVec = Vec3.multiply(handToNotch, arrowForce);
+            handToNotch = Vec3.normalize(handToNotch)
+            var forwardVec=handToNotch;
+          //  var forwardVec = Vec3.multiply(handToNotch, arrowForce);
 
             var arrowProperties = {
-                rotation: arrowRotation,
+              //  rotation: arrowRotation,
                 velocity: forwardVec
             };
 
@@ -542,37 +543,37 @@
 
             //set an itnerval to heck how far the arrow is from the bow before adding gravity, etc.  if we add this too soon, the arrow collides with the bow.  hence, this function
 
-            this.physicalArrowInterval = Script.setInterval(function() {
-                print('in physical interval')
-                var arrowProps = Entities.getEntityProperties(arrowStore, "position");
-                var bowProps = Entities.getEntityProperties(_this.entityID, "position");
-                var arrowPosition = arrowProps.position;
-                var bowPosition = bowProps.position;
+            // this.physicalArrowInterval = Script.setInterval(function() {
+            //     print('in physical interval')
+            //     var arrowProps = Entities.getEntityProperties(arrowStore, "position");
+            //     var bowProps = Entities.getEntityProperties(_this.entityID, "position");
+            //     var arrowPosition = arrowProps.position;
+            //     var bowPosition = bowProps.position;
 
-                var length = Vec3.distance(arrowPosition, bowPosition);
-                print('LENGTH:::' + length);
-                if (length > 2) {
-                    print('make arrow physical' + arrowStore)
-                    Entities.editEntity(arrowStore, {
-                        ignoreForCollisions: false,
-                        collisionsWillMove: true,
-                        gravity: ARROW_GRAVITY
-                    });
-                    print('after make physical' + arrowStore)
-                    var arrowProps = Entities.getEntityProperties(arrowStore)
-                    print('arrowprops-collisions::' + arrowProps.collisionsWillMove);
-                    print('arrowprops-graviy' + JSON.stringify(arrowProps.gravity));
-                    Script.setTimeout(function() {
-                        print('in timeout :: ' + arrowStore)
-                        var arrowProps = Entities.getEntityProperties(arrowStore)
-                        print('arrowprops-gravity2' + JSON.stringify(arrowProps.gravity));
-                        print('ARROW USER DATA::' + arrowProps.userData)
+            //     var length = Vec3.distance(arrowPosition, bowPosition);
+            //     print('LENGTH:::' + length);
+            //     if (length > 2) {
+            //         print('make arrow physical' + arrowStore)
+            //         Entities.editEntity(arrowStore, {
+            //             ignoreForCollisions: false,
+            //             collisionsWillMove: true,
+            //             gravity: ARROW_GRAVITY
+            //         });
+            //         print('after make physical' + arrowStore)
+            //         var arrowProps = Entities.getEntityProperties(arrowStore)
+            //         print('arrowprops-collisions::' + arrowProps.collisionsWillMove);
+            //         print('arrowprops-graviy' + JSON.stringify(arrowProps.gravity));
+            //         Script.setTimeout(function() {
+            //             print('in timeout :: ' + arrowStore)
+            //             var arrowProps = Entities.getEntityProperties(arrowStore)
+            //             print('arrowprops-gravity2' + JSON.stringify(arrowProps.gravity));
+            //             print('ARROW USER DATA::' + arrowProps.userData)
 
-                    }, 1000)
+            //         }, 1000)
 
-                    Script.clearInterval(_this.physicalArrowInterval)
-                }
-            }, 10)
+            //         Script.clearInterval(_this.physicalArrowInterval)
+            //     }
+            // }, 10)
 
         },
 
@@ -733,7 +734,8 @@
                         //have to reverse lookup the tracker by the arrow id to get access to the children
                         var tracker = getArrowTrackerByArrowID(entityA);
 
-                        print('ARROW COLLIDED WITH SOMETHING!' + tracker.glowBox)
+                        var bProps = Entities.getEntityProperties(entityB,"name")
+                        print('ARROW COLLIDED WITH SOMETHING!'+bProps.name)
                         print('TRACKER IN COLLISION !' + tracker)
                             // _t.playArrowHitSound(collision.contactPoint);
                             //Vec3.print('penetration = ', collision.penetration);

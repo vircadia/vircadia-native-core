@@ -44,6 +44,9 @@
         continueNearGrab: function() {
             this.currentProperties = Entities.getEntityProperties(this.entityID, "position");
 
+            if(this.notched===true){
+                return;
+            }
             if (this.isBurning !== true) {
                 this.searchForFires();
             } else {
@@ -198,8 +201,13 @@
             });
 
             Entities.editEntity(this.entityID, {
-                collisionsWillMove: false,
-                ignoreForCollisions: true
+                collisionsWillMove: true,
+                ignoreForCollisions: false,
+                gravity:{
+                    x:0,
+                    y:-5.8,
+                    z:0
+                }
 
             })
 
