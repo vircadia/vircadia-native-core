@@ -33,8 +33,7 @@
 #include <StreamUtils.h>
 #include <UUID.h>
 #include <shared/JSONHelpers.h>
-#include <recording/Deck.h>
-#include <recording/Clip.h>
+#include <recording/Frame.h>
 
 #include "AvatarLogging.h"
 
@@ -44,6 +43,9 @@ using namespace std;
 
 const glm::vec3 DEFAULT_LOCAL_AABOX_CORNER(-0.5f);
 const glm::vec3 DEFAULT_LOCAL_AABOX_SCALE(1.0f);
+
+const QString AvatarData::FRAME_NAME = "com.highfidelity.recording.AvatarData";
+static std::once_flag frameTypeRegistration;
 
 AvatarData::AvatarData() :
     _sessionUUID(),
@@ -791,153 +793,8 @@ bool AvatarData::hasReferential() {
     return _referential != NULL;
 }
 
-bool AvatarData::isPlaying() {
-    return _player && _player->isPlaying();
-}
-
-bool AvatarData::isPaused() {
-    return _player && _player->isPaused();
-}
-
-float AvatarData::playerElapsed() {
-    if (!_player) {
-        return 0;
-    }
-    if (QThread::currentThread() != thread()) {
-        float result;
-        QMetaObject::invokeMethod(this, "playerElapsed", Qt::BlockingQueuedConnection,
-            Q_RETURN_ARG(float, result));
-        return result;
-    }
-    return (float)_player->position() / (float) MSECS_PER_SECOND;
-}
-
-float AvatarData::playerLength() {
-    if (!_player) {
-        return 0;
-    }
-    if (QThread::currentThread() != thread()) {
-        float result;
-        QMetaObject::invokeMethod(this, "playerLength", Qt::BlockingQueuedConnection,
-                                  Q_RETURN_ARG(float, result));
-        return result;
-    }
-    return (float)_player->length() / (float) MSECS_PER_SECOND;
-}
-
-void AvatarData::loadRecording(const QString& filename) {
-    if (QThread::currentThread() != thread()) {
-        QMetaObject::invokeMethod(this, "loadRecording", Qt::BlockingQueuedConnection,
-                                  Q_ARG(QString, filename));
-        return;
-    }
-    using namespace recording;
-
-    ClipPointer clip = Clip::fromFile(filename);
-    if (!clip) {
-        qWarning() << "Unable to load clip data from " << filename;
-    }
-
-    _player = std::make_shared<Deck>();
-    _player->queueClip(clip);
-}
-
-void AvatarData::startPlaying() {
-    if (QThread::currentThread() != thread()) {
-        QMetaObject::invokeMethod(this, "startPlaying", Qt::BlockingQueuedConnection);
-        return;
-    }
-
-    if (!_player) {
-        qWarning() << "No clip loaded for playback";
-        return;
-    }
-    setRecordingBasis();
-    _player->play();
-}
-
-void AvatarData::setPlayerVolume(float volume) {
-    // FIXME 
-}
-
-void AvatarData::setPlayerAudioOffset(float audioOffset) {
-    // FIXME 
-}
-
-void AvatarData::setPlayerTime(float time) {
-    if (!_player) {
-        qWarning() << "No player active";
-        return;
-    } 
-
-    _player->seek(time * MSECS_PER_SECOND);
-}
-
-void AvatarData::setPlayFromCurrentLocation(bool playFromCurrentLocation) {
-    // FIXME 
-}
-
-void AvatarData::setPlayerLoop(bool loop) {
-    if (_player) {
-        _player->loop(loop);
-    }
-}
-
-void AvatarData::setPlayerUseDisplayName(bool useDisplayName) {
-    // FIXME
-}
-
-void AvatarData::setPlayerUseAttachments(bool useAttachments) {
-    // FIXME
-}
-
-void AvatarData::setPlayerUseHeadModel(bool useHeadModel) {
-    // FIXME
-}
-
-void AvatarData::setPlayerUseSkeletonModel(bool useSkeletonModel) {
-    // FIXME
-}
-
-void AvatarData::play() {
-    if (isPlaying()) {
-        if (QThread::currentThread() != thread()) {
-            QMetaObject::invokeMethod(this, "play", Qt::BlockingQueuedConnection);
-            return;
-        }
-
-        _player->play();
-    }
-}
-
 std::shared_ptr<Transform> AvatarData::getRecordingBasis() const {
     return _recordingBasis;
-}
-
-void AvatarData::pausePlayer() {
-    if (!_player) {
-        return;
-    }
-    if (QThread::currentThread() != thread()) {
-        QMetaObject::invokeMethod(this, "pausePlayer", Qt::BlockingQueuedConnection);
-        return;
-    }
-    if (_player) {
-        _player->pause();
-    }
-}
-
-void AvatarData::stopPlaying() {
-    if (!_player) {
-        return;
-    }
-    if (QThread::currentThread() != thread()) {
-        QMetaObject::invokeMethod(this, "stopPlaying", Qt::BlockingQueuedConnection);
-        return;
-    }
-    if (_player) {
-        _player->stop();
-    }
 }
 
 void AvatarData::changeReferential(Referential* ref) {
@@ -1568,26 +1425,26 @@ JointData jointDataFromJsonValue(const QJsonValue& json) {
 // This allows the application to decide whether playback should be relative to an avatar's 
 // transform at the start of playback, or relative to the transform of the recorded 
 // avatar
-QByteArray avatarStateToFrame(const AvatarData* _avatar) {
+QByteArray AvatarData::toFrame(const AvatarData& avatar) {
     QJsonObject root;
 
-    if (!_avatar->getFaceModelURL().isEmpty()) {
-        root[JSON_AVATAR_HEAD_MODEL] = _avatar->getFaceModelURL().toString();
+    if (!avatar.getFaceModelURL().isEmpty()) {
+        root[JSON_AVATAR_HEAD_MODEL] = avatar.getFaceModelURL().toString();
     }
-    if (!_avatar->getSkeletonModelURL().isEmpty()) {
-        root[JSON_AVATAR_BODY_MODEL] = _avatar->getSkeletonModelURL().toString();
+    if (!avatar.getSkeletonModelURL().isEmpty()) {
+        root[JSON_AVATAR_BODY_MODEL] = avatar.getSkeletonModelURL().toString();
     }
-    if (!_avatar->getDisplayName().isEmpty()) {
-        root[JSON_AVATAR_DISPLAY_NAME] = _avatar->getDisplayName();
+    if (!avatar.getDisplayName().isEmpty()) {
+        root[JSON_AVATAR_DISPLAY_NAME] = avatar.getDisplayName();
     }
-    if (!_avatar->getAttachmentData().isEmpty()) {
+    if (!avatar.getAttachmentData().isEmpty()) {
         // FIXME serialize attachment data
     }
 
-    auto recordingBasis = _avatar->getRecordingBasis();
+    auto recordingBasis = avatar.getRecordingBasis();
     if (recordingBasis) {
         // Find the relative transform
-        auto relativeTransform = recordingBasis->relativeTransform(_avatar->getTransform());
+        auto relativeTransform = recordingBasis->relativeTransform(avatar.getTransform());
 
         // if the resulting relative basis is identity, we shouldn't record anything
         if (!relativeTransform.isIdentity()) {
@@ -1595,17 +1452,17 @@ QByteArray avatarStateToFrame(const AvatarData* _avatar) {
             root[JSON_AVATAR_BASIS] = Transform::toJson(*recordingBasis);
         }
     } else {
-        root[JSON_AVATAR_RELATIVE] = Transform::toJson(_avatar->getTransform());
+        root[JSON_AVATAR_RELATIVE] = Transform::toJson(avatar.getTransform());
     }
 
     // Skeleton pose
     QJsonArray jointArray;
-    for (const auto& joint : _avatar->getRawJointData()) {
+    for (const auto& joint : avatar.getRawJointData()) {
         jointArray.push_back(toJsonValue(joint));
     }
     root[JSON_AVATAR_JOINT_ARRAY] = jointArray;
 
-    const HeadData* head = _avatar->getHeadData();
+    const HeadData* head = avatar.getHeadData();
     if (head) {
         QJsonObject headJson;
         QJsonArray blendshapeCoefficients;
@@ -1616,8 +1473,8 @@ QByteArray avatarStateToFrame(const AvatarData* _avatar) {
         headJson[JSON_AVATAR_HEAD_ROTATION] = toJsonValue(head->getRawOrientation());
         headJson[JSON_AVATAR_HEAD_LEAN_FORWARD] = QJsonValue(head->getLeanForward());
         headJson[JSON_AVATAR_HEAD_LEAN_SIDEWAYS] = QJsonValue(head->getLeanSideways());
-        vec3 relativeLookAt = glm::inverse(_avatar->getOrientation()) * 
-            (head->getLookAtPosition() - _avatar->getPosition());
+        vec3 relativeLookAt = glm::inverse(avatar.getOrientation()) * 
+            (head->getLookAtPosition() - avatar.getPosition());
         headJson[JSON_AVATAR_HEAD_LOOKAT] = toJsonValue(relativeLookAt);
         root[JSON_AVATAR_HEAD] = headJson;
     }
@@ -1625,26 +1482,29 @@ QByteArray avatarStateToFrame(const AvatarData* _avatar) {
     return QJsonDocument(root).toBinaryData();
 }
 
-void avatarStateFromFrame(const QByteArray& frameData, AvatarData* _avatar) {
+void AvatarData::fromFrame(const QByteArray& frameData, AvatarData& result) {
     QJsonDocument doc = QJsonDocument::fromBinaryData(frameData);
     QJsonObject root = doc.object();
 
     if (root.contains(JSON_AVATAR_HEAD_MODEL)) {
         auto faceModelURL = root[JSON_AVATAR_HEAD_MODEL].toString();
-        if (faceModelURL != _avatar->getFaceModelURL().toString()) {
-            _avatar->setFaceModelURL(faceModelURL);
+        if (faceModelURL != result.getFaceModelURL().toString()) {
+            QUrl faceModel(faceModelURL);
+            if (faceModel.isValid()) {
+                result.setFaceModelURL(faceModel);
+            }
         }
     }
     if (root.contains(JSON_AVATAR_BODY_MODEL)) {
         auto bodyModelURL = root[JSON_AVATAR_BODY_MODEL].toString();
-        if (bodyModelURL != _avatar->getSkeletonModelURL().toString()) {
-            _avatar->setSkeletonModelURL(bodyModelURL);
+        if (bodyModelURL != result.getSkeletonModelURL().toString()) {
+            result.setSkeletonModelURL(bodyModelURL);
         }
     }
     if (root.contains(JSON_AVATAR_DISPLAY_NAME)) {
         auto newDisplayName = root[JSON_AVATAR_DISPLAY_NAME].toString();
-        if (newDisplayName != _avatar->getDisplayName()) {
-            _avatar->setDisplayName(newDisplayName);
+        if (newDisplayName != result.getDisplayName()) {
+            result.setDisplayName(newDisplayName);
         }
     } 
 
@@ -1656,18 +1516,18 @@ void avatarStateFromFrame(const QByteArray& frameData, AvatarData* _avatar) {
         // The first is more useful for playing back recordings on your own avatar, while
         // the latter is more useful for playing back other avatars within your scene.
 
-        auto currentBasis = _avatar->getRecordingBasis();
+        auto currentBasis = result.getRecordingBasis();
         if (!currentBasis) {
             currentBasis = std::make_shared<Transform>(Transform::fromJson(root[JSON_AVATAR_BASIS]));
         }
 
         auto relativeTransform = Transform::fromJson(root[JSON_AVATAR_RELATIVE]);
         auto worldTransform = currentBasis->worldTransform(relativeTransform);
-        _avatar->setPosition(worldTransform.getTranslation());
-        _avatar->setOrientation(worldTransform.getRotation());
+        result.setPosition(worldTransform.getTranslation());
+        result.setOrientation(worldTransform.getRotation());
 
         // TODO: find a way to record/playback the Scale of the avatar
-        //_avatar->setTargetScale(worldTransform.getScale().x);
+        //result.setTargetScale(worldTransform.getScale().x);
     }
 
 
@@ -1689,13 +1549,13 @@ void avatarStateFromFrame(const QByteArray& frameData, AvatarData* _avatar) {
         for (const auto& joint : jointArray) {
             jointRotations.push_back(joint.rotation);
         }
-        _avatar->setJointRotations(jointRotations);
+        result.setJointRotations(jointRotations);
     }
 
 #if 0
     // Most head data is relative to the avatar, and needs no basis correction,
     // but the lookat vector does need correction
-    HeadData* head = _avatar->_headData;
+    HeadData* head = result._headData;
     if (head && root.contains(JSON_AVATAR_HEAD)) {
         QJsonObject headJson = root[JSON_AVATAR_HEAD].toObject();
         if (headJson.contains(JSON_AVATAR_HEAD_BLENDSHAPE_COEFFICIENTS)) {
@@ -1718,7 +1578,7 @@ void avatarStateFromFrame(const QByteArray& frameData, AvatarData* _avatar) {
         if (headJson.contains(JSON_AVATAR_HEAD_LOOKAT)) {
             auto relativeLookAt = vec3FromJsonValue(headJson[JSON_AVATAR_HEAD_LOOKAT]);
             if (glm::length2(relativeLookAt) > 0.01) {
-                head->setLookAtPosition((_avatar->getOrientation() * relativeLookAt) + _avatar->getPosition());
+                head->setLookAtPosition((result.getOrientation() * relativeLookAt) + result.getPosition());
             }
         }
     }

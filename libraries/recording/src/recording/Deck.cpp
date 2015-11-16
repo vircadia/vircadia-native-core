@@ -14,31 +14,46 @@
 #include "Clip.h"
 #include "Frame.h"
 #include "Logging.h"
+#include "impl/OffsetClip.h"
 
 using namespace recording;
 
-void Deck::queueClip(ClipPointer clip, Time timeOffset) {
+Deck::Deck(QObject* parent) 
+    : QObject(parent) {}
+
+void Deck::queueClip(ClipPointer clip, float timeOffset) {
+    Locker lock(_mutex);
+
     if (!clip) {
         qCWarning(recordingLog) << "Clip invalid, ignoring";
         return;
     }
 
-    // FIXME if the time offset is not zero, wrap the clip in a OffsetClip wrapper
+    // FIXME disabling multiple clips for now
+    _clips.clear();
+
+    // if the time offset is not zero, wrap in an OffsetClip
+    if (timeOffset != 0.0f) {
+        clip = std::make_shared<OffsetClip>(clip, timeOffset);
+    }
+
     _clips.push_back(clip);
 
     _length = std::max(_length, clip->duration());
 }
 
 void Deck::play() { 
+    Locker lock(_mutex);
     if (_pause) {
         _pause = false;
-        _startEpoch = usecTimestampNow() - (_position * USECS_PER_MSEC);
+        _startEpoch = Frame::epochForFrameTime(_position);
         emit playbackStateChanged();
         processFrames();
     }
 }
 
 void Deck::pause() { 
+    Locker lock(_mutex);
     if (!_pause) {
         _pause = true;
         emit playbackStateChanged();
@@ -47,9 +62,9 @@ void Deck::pause() {
 
 Clip::Pointer Deck::getNextClip() {
     Clip::Pointer result;
-    Time soonestFramePosition = INVALID_TIME;
+    auto soonestFramePosition = Frame::INVALID_TIME;
     for (const auto& clip : _clips) {
-        Time nextFramePosition = clip->position();
+        auto nextFramePosition = clip->positionFrameTime();
         if (nextFramePosition < soonestFramePosition) {
             result = clip;
             soonestFramePosition = nextFramePosition;
@@ -58,11 +73,16 @@ Clip::Pointer Deck::getNextClip() {
     return result;
 }
 
-void Deck::seek(Time position) {
-    _position = position;
-    // FIXME reset the frames to the appropriate spot
+void Deck::seek(float position) {
+    Locker lock(_mutex);
+    _position = Frame::secondsToFrameTime(position);
+
+    // Recompute the start epoch
+    _startEpoch = Frame::epochForFrameTime(_position);
+
+    // reset the clips to the appropriate spot
     for (auto& clip : _clips) {
-        clip->seek(position);
+        clip->seekFrameTime(_position);
     }
 
     if (!_pause) {
@@ -71,34 +91,45 @@ void Deck::seek(Time position) {
     }
 }
 
-Time Deck::position() const {
-    if (_pause) {
-        return _position;
+float Deck::position() const {
+    Locker lock(_mutex);
+    auto currentPosition = _position;
+    if (!_pause) {
+        currentPosition = Frame::frameTimeFromEpoch(_startEpoch);
     }
-    return (usecTimestampNow() - _startEpoch) / USECS_PER_MSEC;
+    return Frame::frameTimeToSeconds(currentPosition);
 }
 
-static const Time MIN_FRAME_WAIT_INTERVAL_MS = 1;
+static const Frame::Time MIN_FRAME_WAIT_INTERVAL = Frame::secondsToFrameTime(0.001f);
+static const Frame::Time MAX_FRAME_PROCESSING_TIME = Frame::secondsToFrameTime(0.002f);
 
 void Deck::processFrames() {
+    Locker lock(_mutex);
     if (_pause) {
         return;
     }
 
-    _position = position();
-    auto triggerPosition = _position + MIN_FRAME_WAIT_INTERVAL_MS;
+    auto startingPosition = Frame::frameTimeFromEpoch(_startEpoch);
+    auto triggerPosition = startingPosition + MIN_FRAME_WAIT_INTERVAL;
     Clip::Pointer nextClip;
+    // FIXME add code to start dropping frames if we fall behind.
+    // Alternatively, add code to cache frames here and then process only the last frame of a given type
+    // ... the latter will work for Avatar, but not well for audio I suspect.
     for (nextClip = getNextClip(); nextClip; nextClip = getNextClip()) {
-        // If the clip is too far in the future, just break out of the handling loop
-        Time framePosition = nextClip->position();
-        if (framePosition > triggerPosition) {
+        auto currentPosition = Frame::frameTimeFromEpoch(_startEpoch);
+        if ((currentPosition - startingPosition) >= MAX_FRAME_PROCESSING_TIME) {
+            qCWarning(recordingLog) << "Exceeded maximum frame processing time, breaking early";
             break;
         }
 
+        // If the clip is too far in the future, just break out of the handling loop
+        Frame::Time framePosition = nextClip->positionFrameTime();
+        if (framePosition > triggerPosition) {
+            break;
+        }
         // Handle the frame and advance the clip
         Frame::handleFrame(nextClip->nextFrame());
     }
-
 
     if (!nextClip) {
         qCDebug(recordingLog) << "No more frames available";
@@ -107,6 +138,9 @@ void Deck::processFrames() {
             qCDebug(recordingLog) << "Looping enabled, seeking back to beginning";
             // If we have looping enabled, start the playback over
             seek(0);
+            // FIXME configure the recording scripting interface to reset the avatar basis on a loop 
+            // if doing relative movement
+            emit looped();
         } else {
             // otherwise pause playback
             pause();
@@ -115,9 +149,67 @@ void Deck::processFrames() {
     } 
 
     // If we have more clip frames available, set the timer for the next one
-    Time nextClipPosition = nextClip->position();
-    Time interval = nextClipPosition - _position;
+    _position = Frame::frameTimeFromEpoch(_startEpoch);
+    auto nextFrameTime = nextClip->positionFrameTime();
+    auto interval = Frame::frameTimeToMilliseconds(nextFrameTime - _position);
     _timer.singleShot(interval, [this] {
         processFrames();
     });
+}
+
+void Deck::removeClip(const ClipConstPointer& clip) {
+    Locker lock(_mutex);
+    std::remove_if(_clips.begin(), _clips.end(), [&](const Clip::ConstPointer& testClip)->bool {
+        return (clip == testClip);
+    });
+}
+
+void Deck::removeClip(const QString& clipName) {
+    Locker lock(_mutex);
+    std::remove_if(_clips.begin(), _clips.end(), [&](const Clip::ConstPointer& clip)->bool {
+        return (clip->getName() == clipName);
+    });
+}
+
+void Deck::removeAllClips() {
+    Locker lock(_mutex);
+    _clips.clear();
+}
+
+Deck::ClipList Deck::getClips(const QString& clipName) const {
+    Locker lock(_mutex);
+    ClipList result = _clips;
+    return result;
+}
+
+
+bool Deck::isPlaying() { 
+    Locker lock(_mutex);
+    return !_pause; 
+}
+
+bool Deck::isPaused() const { 
+    Locker lock(_mutex);
+    return _pause;
+}
+
+void Deck::stop() { 
+    Locker lock(_mutex);
+    pause();
+    seek(0.0f); 
+}
+
+float Deck::length() const { 
+    Locker lock(_mutex);
+    return _length;
+}
+
+void Deck::loop(bool enable) { 
+    Locker lock(_mutex);
+    _loop = enable;
+}
+
+bool Deck::isLooping() const { 
+    Locker lock(_mutex);
+    return _loop;
 }

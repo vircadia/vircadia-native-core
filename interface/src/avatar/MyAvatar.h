@@ -254,13 +254,6 @@ public slots:
     bool setModelReferential(const QUuid& id);
     bool setJointReferential(const QUuid& id, int jointIndex);
 
-    bool isRecording();
-    float recorderElapsed();
-    void startRecording();
-    void stopRecording();
-    void saveRecording(const QString& filename);
-    void loadLastRecording();
-
     virtual void rebuildSkeletonBody() override;
 
     bool getEnableRigAnimations() const { return _rig->getEnableRig(); }
@@ -309,9 +302,6 @@ private:
                         const glm::vec3& translation = glm::vec3(), const glm::quat& rotation = glm::quat(), float scale = 1.0f,
                         bool allowDuplicates = false, bool useSaved = true) override;
 
-    const recording::RecorderPointer getRecorder() const { return _recorder; }
-    const recording::DeckPointer getPlayer() const { return _player; }
-
     //void beginFollowingHMD();
     //bool shouldFollowHMD() const;
     //void followHMD(float deltaTime);
@@ -357,8 +347,6 @@ private:
     float _oculusYawOffset;
 
     eyeContactTarget _eyeContactTarget;
-
-    recording::RecorderPointer _recorder;
 
     glm::vec3 _trackedHeadPosition;
 

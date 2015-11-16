@@ -80,10 +80,6 @@ const QString& DEFAULT_AVATAR_COLLISION_SOUND_URL = "https://hifi-public.s3.amaz
 const float MyAvatar::ZOOM_MIN = 0.5f;
 const float MyAvatar::ZOOM_MAX = 25.0f;
 const float MyAvatar::ZOOM_DEFAULT = 1.5f;
-static const QString HEADER_NAME = "com.highfidelity.recording.AvatarData";
-static recording::FrameType AVATAR_FRAME_TYPE = recording::Frame::TYPE_INVALID;
-static std::once_flag frameTypeRegistration;
-
 
 MyAvatar::MyAvatar(RigPointer rig) :
     Avatar(rig),
@@ -120,17 +116,6 @@ MyAvatar::MyAvatar(RigPointer rig) :
     _hmdAtRestDetector(glm::vec3(0), glm::quat())
 {
     using namespace recording;
-
-    std::call_once(frameTypeRegistration, [] {
-        AVATAR_FRAME_TYPE = recording::Frame::registerFrameType(HEADER_NAME);
-    });
-
-    // FIXME how to deal with driving multiple avatars locally?
-    Frame::registerFrameHandler(AVATAR_FRAME_TYPE, [this](Frame::ConstPointer frame) {
-        qDebug() << "Playback of avatar frame length: " << frame->data.size();
-        avatarStateFromFrame(frame->data, this);
-    });
-
 
     for (int i = 0; i < MAX_DRIVE_KEYS; i++) {
         _driveKeys[i] = 0.0f;
@@ -326,8 +311,10 @@ void MyAvatar::simulate(float deltaTime) {
     }
 
     // Record avatars movements.
-    if (_recorder && _recorder->isRecording()) {
-        _recorder->recordFrame(AVATAR_FRAME_TYPE, avatarStateToFrame(this));
+    auto recorder = DependencyManager::get<recording::Recorder>();
+    if (recorder->isRecording()) {
+        static const recording::FrameType FRAME_TYPE = recording::Frame::registerFrameType(AvatarData::FRAME_NAME);
+        recorder->recordFrame(FRAME_TYPE, toFrame(*this));
     }
 
     // consider updating our billboard
@@ -403,8 +390,8 @@ void MyAvatar::updateFromTrackers(float deltaTime) {
     glm::vec3 estimatedPosition, estimatedRotation;
 
     bool inHmd = qApp->getAvatarUpdater()->isHMDMode();
-
-    if (isPlaying() && inHmd) {
+    bool playing = DependencyManager::get<recording::Deck>()->isPlaying();
+    if (inHmd && playing) {
         return;
     }
 
@@ -455,7 +442,7 @@ void MyAvatar::updateFromTrackers(float deltaTime) {
 
 
     Head* head = getHead();
-    if (inHmd || isPlaying()) {
+    if (inHmd || playing) {
         head->setDeltaPitch(estimatedRotation.x);
         head->setDeltaYaw(estimatedRotation.y);
         head->setDeltaRoll(estimatedRotation.z);
@@ -570,102 +557,6 @@ bool MyAvatar::setJointReferential(const QUuid& id, int jointIndex) {
         changeReferential(NULL);
         return false;
     }
-}
-
-bool MyAvatar::isRecording() {
-    if (!_recorder) {
-        return false;
-    }
-    if (QThread::currentThread() != thread()) {
-        bool result;
-        QMetaObject::invokeMethod(this, "isRecording", Qt::BlockingQueuedConnection,
-                                  Q_RETURN_ARG(bool, result));
-        return result;
-    }
-    return _recorder && _recorder->isRecording();
-}
-
-float MyAvatar::recorderElapsed() {
-    if (QThread::currentThread() != thread()) {
-        float result;
-        QMetaObject::invokeMethod(this, "recorderElapsed", Qt::BlockingQueuedConnection,
-                                  Q_RETURN_ARG(float, result));
-        return result;
-    }
-    if (!_recorder) {
-        return 0;
-    }
-    return (float)_recorder->position() / (float) MSECS_PER_SECOND;
-}
-
-QMetaObject::Connection _audioClientRecorderConnection;
-
-void MyAvatar::startRecording() {
-    if (QThread::currentThread() != thread()) {
-        QMetaObject::invokeMethod(this, "startRecording", Qt::BlockingQueuedConnection);
-        return;
-    }
-
-    _recorder = std::make_shared<recording::Recorder>();
-    // connect to AudioClient's signal so we get input audio
-    auto audioClient = DependencyManager::get<AudioClient>();
-    _audioClientRecorderConnection = connect(audioClient.data(), &AudioClient::inputReceived, [] {
-        // FIXME, missing audio data handling
-    });
-    setRecordingBasis();
-    _recorder->start();
-}
-
-void MyAvatar::stopRecording() {
-    if (!_recorder) {
-        return;
-    }
-    if (QThread::currentThread() != thread()) {
-        QMetaObject::invokeMethod(this, "stopRecording", Qt::BlockingQueuedConnection);
-        return;
-    }
-    if (_recorder) {
-        QObject::disconnect(_audioClientRecorderConnection);
-        _audioClientRecorderConnection = QMetaObject::Connection();
-        _recorder->stop();
-        clearRecordingBasis();
-    }
-}
-
-void MyAvatar::saveRecording(const QString& filename) {
-    if (!_recorder) {
-        qCDebug(interfaceapp) << "There is no recording to save";
-        return;
-    }
-    if (QThread::currentThread() != thread()) {
-        QMetaObject::invokeMethod(this, "saveRecording", Qt::BlockingQueuedConnection,
-                                  Q_ARG(QString, filename));
-        return;
-    }
-
-    if (_recorder) {
-        auto clip = _recorder->getClip();
-        recording::Clip::toFile(filename, clip);
-    }
-}
-
-void MyAvatar::loadLastRecording() {
-    if (QThread::currentThread() != thread()) {
-        QMetaObject::invokeMethod(this, "loadLastRecording", Qt::BlockingQueuedConnection);
-        return;
-    }
-
-    if (!_recorder || !_recorder->getClip()) {
-        qCDebug(interfaceapp) << "There is no recording to load";
-        return;
-    }
-
-    if (!_player) {
-        _player = std::make_shared<recording::Deck>();
-    }
-
-    _player->queueClip(_recorder->getClip());
-    _player->play();
 }
 
 void MyAvatar::startAnimation(const QString& url, float fps, float priority,

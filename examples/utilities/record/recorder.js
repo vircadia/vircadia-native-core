@@ -15,11 +15,11 @@ Script.include("../../libraries/toolBars.js");
 var recordingFile = "recording.rec";
 
 function setPlayerOptions() {
-    MyAvatar.setPlayFromCurrentLocation(true);
-    MyAvatar.setPlayerUseDisplayName(false);
-    MyAvatar.setPlayerUseAttachments(false);
-    MyAvatar.setPlayerUseHeadModel(false);
-    MyAvatar.setPlayerUseSkeletonModel(false);
+    Recording.setPlayFromCurrentLocation(true);
+    Recording.setPlayerUseDisplayName(false);
+    Recording.setPlayerUseAttachments(false);
+    Recording.setPlayerUseHeadModel(false);
+    Recording.setPlayerUseSkeletonModel(false);
 }
 
 var windowDimensions = Controller.getViewportDimensions();
@@ -64,16 +64,16 @@ function setupToolBar() {
         x: 0, y: 0,
         width: Tool.IMAGE_WIDTH,
         height: Tool.IMAGE_HEIGHT,
-        alpha: MyAvatar.isPlaying() ? ALPHA_OFF : ALPHA_ON,
+        alpha: Recording.isPlaying() ? ALPHA_OFF : ALPHA_ON,
         visible: true
-    }, true, !MyAvatar.isRecording());
+    }, true, !Recording.isRecording());
     
     var playLoopWidthFactor = 1.65;
     playIcon = toolBar.addTool({
         imageURL: TOOL_ICON_URL + "play-pause.svg",
         width: playLoopWidthFactor * Tool.IMAGE_WIDTH,
         height: Tool.IMAGE_HEIGHT,
-        alpha: (MyAvatar.isRecording() || MyAvatar.playerLength() === 0) ? ALPHA_OFF : ALPHA_ON,
+        alpha: (Recording.isRecording() || Recording.playerLength() === 0) ? ALPHA_OFF : ALPHA_ON,
         visible: true
     }, false);
     
@@ -82,7 +82,7 @@ function setupToolBar() {
         subImage: { x: 0, y: 0, width: playLoopWidthFactor * Tool.IMAGE_WIDTH, height: Tool.IMAGE_HEIGHT },
         width: playLoopWidthFactor * Tool.IMAGE_WIDTH,
         height: Tool.IMAGE_HEIGHT,
-        alpha: (MyAvatar.isRecording() || MyAvatar.playerLength() === 0) ? ALPHA_OFF : ALPHA_ON,
+        alpha: (Recording.isRecording() || Recording.playerLength() === 0) ? ALPHA_OFF : ALPHA_ON,
         visible: true
     }, false);
     
@@ -93,7 +93,7 @@ function setupToolBar() {
         imageURL: TOOL_ICON_URL + "recording-save.svg",
         width: Tool.IMAGE_WIDTH,
         height: Tool.IMAGE_HEIGHT,
-        alpha: (MyAvatar.isRecording() || MyAvatar.isPlaying() || MyAvatar.playerLength() === 0) ? ALPHA_OFF : ALPHA_ON,
+        alpha: (Recording.isRecording() || Recording.isPlaying() || Recording.playerLength() === 0) ? ALPHA_OFF : ALPHA_ON,
         visible: true
     }, false);
     
@@ -101,7 +101,7 @@ function setupToolBar() {
         imageURL: TOOL_ICON_URL + "recording-upload.svg",
         width: Tool.IMAGE_WIDTH,
         height: Tool.IMAGE_HEIGHT,
-        alpha: (MyAvatar.isRecording() || MyAvatar.isPlaying()) ? ALPHA_OFF : ALPHA_ON,
+        alpha: (Recording.isRecording() || Recording.isPlaying()) ? ALPHA_OFF : ALPHA_ON,
         visible: true
     }, false);
 }
@@ -147,23 +147,23 @@ function setupTimer() {
 
 function updateTimer() {
     var text = "";
-    if (MyAvatar.isRecording()) {
-        text = formatTime(MyAvatar.recorderElapsed());
+    if (Recording.isRecording()) {
+        text = formatTime(Recording.recorderElapsed());
         
     } else {
-        text = formatTime(MyAvatar.playerElapsed()) + " / " +
-        formatTime(MyAvatar.playerLength());
+        text = formatTime(Recording.playerElapsed()) + " / " +
+        formatTime(Recording.playerLength());
     }
 
     Overlays.editOverlay(timer, {
         text: text
     })
-    toolBar.changeSpacing(text.length * 8 + ((MyAvatar.isRecording()) ? 15 : 0), spacing);
+    toolBar.changeSpacing(text.length * 8 + ((Recording.isRecording()) ? 15 : 0), spacing);
     
-    if (MyAvatar.isRecording()) {
+    if (Recording.isRecording()) {
         slider.pos = 1.0;
-    } else if (MyAvatar.playerLength() > 0) {
-        slider.pos = MyAvatar.playerElapsed() / MyAvatar.playerLength();
+    } else if (Recording.playerLength() > 0) {
+        slider.pos = Recording.playerElapsed() / Recording.playerLength();
     }
     
     Overlays.editOverlay(slider.foreground, {
@@ -217,77 +217,77 @@ function moveUI() {
 function mousePressEvent(event) {
     clickedOverlay = Overlays.getOverlayAtPoint({ x: event.x, y: event.y });
     
-    if (recordIcon === toolBar.clicked(clickedOverlay, false) && !MyAvatar.isPlaying()) {
-        if (!MyAvatar.isRecording()) {
-            MyAvatar.startRecording();
+    if (recordIcon === toolBar.clicked(clickedOverlay, false) && !Recording.isPlaying()) {
+        if (!Recording.isRecording()) {
+            Recording.startRecording();
             toolBar.selectTool(recordIcon, false);
             toolBar.setAlpha(ALPHA_OFF, playIcon);
             toolBar.setAlpha(ALPHA_OFF, playLoopIcon);
             toolBar.setAlpha(ALPHA_OFF, saveIcon);
             toolBar.setAlpha(ALPHA_OFF, loadIcon);
         } else {
-            MyAvatar.stopRecording();
+            Recording.stopRecording();
             toolBar.selectTool(recordIcon, true );
-            MyAvatar.loadLastRecording();
+            Recording.loadLastRecording();
             toolBar.setAlpha(ALPHA_ON, playIcon);
             toolBar.setAlpha(ALPHA_ON, playLoopIcon);
             toolBar.setAlpha(ALPHA_ON, saveIcon);
             toolBar.setAlpha(ALPHA_ON, loadIcon);
         }
-    } else if (playIcon === toolBar.clicked(clickedOverlay) && !MyAvatar.isRecording()) {
-        if (MyAvatar.isPlaying()) {
-            MyAvatar.pausePlayer();
+    } else if (playIcon === toolBar.clicked(clickedOverlay) && !Recording.isRecording()) {
+        if (Recording.isPlaying()) {
+            Recording.pausePlayer();
             toolBar.setAlpha(ALPHA_ON, recordIcon);
             toolBar.setAlpha(ALPHA_ON, saveIcon);
             toolBar.setAlpha(ALPHA_ON, loadIcon);
-        } else if (MyAvatar.playerLength() > 0) {
+        } else if (Recording.playerLength() > 0) {
             setPlayerOptions();
-            MyAvatar.setPlayerLoop(false);
-            MyAvatar.startPlaying();
+            Recording.setPlayerLoop(false);
+            Recording.startPlaying();
             toolBar.setAlpha(ALPHA_OFF, recordIcon);
             toolBar.setAlpha(ALPHA_OFF, saveIcon);
             toolBar.setAlpha(ALPHA_OFF, loadIcon);
             watchStop = true;
         }
-    } else if (playLoopIcon === toolBar.clicked(clickedOverlay) && !MyAvatar.isRecording()) {
-        if (MyAvatar.isPlaying()) {
-            MyAvatar.pausePlayer();
+    } else if (playLoopIcon === toolBar.clicked(clickedOverlay) && !Recording.isRecording()) {
+        if (Recording.isPlaying()) {
+            Recording.pausePlayer();
             toolBar.setAlpha(ALPHA_ON, recordIcon);
             toolBar.setAlpha(ALPHA_ON, saveIcon);
             toolBar.setAlpha(ALPHA_ON, loadIcon);
-        } else if (MyAvatar.playerLength() > 0) {
+        } else if (Recording.playerLength() > 0) {
             setPlayerOptions();
-            MyAvatar.setPlayerLoop(true);
-            MyAvatar.startPlaying();
+            Recording.setPlayerLoop(true);
+            Recording.startPlaying();
             toolBar.setAlpha(ALPHA_OFF, recordIcon);
             toolBar.setAlpha(ALPHA_OFF, saveIcon);
             toolBar.setAlpha(ALPHA_OFF, loadIcon);
         }
     } else if (saveIcon === toolBar.clicked(clickedOverlay)) {
-        if (!MyAvatar.isRecording() && !MyAvatar.isPlaying() && MyAvatar.playerLength() != 0) {
+        if (!Recording.isRecording() && !Recording.isPlaying() && Recording.playerLength() != 0) {
             recordingFile = Window.save("Save recording to file", ".", "Recordings (*.hfr)");
             if (!(recordingFile === "null" || recordingFile === null || recordingFile === "")) {
-                MyAvatar.saveRecording(recordingFile);
+                Recording.saveRecording(recordingFile);
             }
         }
     } else if (loadIcon === toolBar.clicked(clickedOverlay)) {
-        if (!MyAvatar.isRecording() && !MyAvatar.isPlaying()) {
+        if (!Recording.isRecording() && !Recording.isPlaying()) {
             recordingFile = Window.browse("Load recorcding from file", ".", "Recordings (*.hfr *.rec *.HFR *.REC)");
             if (!(recordingFile === "null" || recordingFile === null || recordingFile === "")) {
-                MyAvatar.loadRecording(recordingFile);
+                Recording.loadRecording(recordingFile);
             }
-            if (MyAvatar.playerLength() > 0) {
+            if (Recording.playerLength() > 0) {
                 toolBar.setAlpha(ALPHA_ON, playIcon);
                 toolBar.setAlpha(ALPHA_ON, playLoopIcon);
                 toolBar.setAlpha(ALPHA_ON, saveIcon);
             }
         }
-    } else if (MyAvatar.playerLength() > 0 &&
+    } else if (Recording.playerLength() > 0 &&
     slider.x < event.x && event.x < slider.x + slider.w &&
     slider.y < event.y && event.y < slider.y + slider.h) {
         isSliding = true;
         slider.pos = (event.x - slider.x) / slider.w;
-        MyAvatar.setPlayerTime(slider.pos * MyAvatar.playerLength());
+        Recording.setPlayerTime(slider.pos * Recording.playerLength());
     }
 }
 var isSliding = false;
@@ -296,10 +296,10 @@ function mouseMoveEvent(event) {
     if (isSliding) {
         slider.pos = (event.x - slider.x) / slider.w;
         if (slider.pos < 0.0 || slider.pos > 1.0) {
-            MyAvatar.stopPlaying();
+            Recording.stopPlaying();
             slider.pos = 0.0;
         }
-        MyAvatar.setPlayerTime(slider.pos * MyAvatar.playerLength());
+        Recording.setPlayerTime(slider.pos * Recording.playerLength());
     }
 }
 
@@ -316,7 +316,7 @@ function update() {
 
     updateTimer();
     
-    if (watchStop && !MyAvatar.isPlaying()) {
+    if (watchStop && !Recording.isPlaying()) {
         watchStop = false;
         toolBar.setAlpha(ALPHA_ON, recordIcon);
         toolBar.setAlpha(ALPHA_ON, saveIcon);
@@ -325,11 +325,11 @@ function update() {
 }
 
 function scriptEnding() {
-    if (MyAvatar.isRecording()) {
-        MyAvatar.stopRecording();
+    if (Recording.isRecording()) {
+        Recording.stopRecording();
     }
-    if (MyAvatar.isPlaying()) {
-        MyAvatar.stopPlaying();
+    if (Recording.isPlaying()) {
+        Recording.stopPlaying();
     }
     toolBar.cleanup();
     Overlays.deleteOverlay(timer);

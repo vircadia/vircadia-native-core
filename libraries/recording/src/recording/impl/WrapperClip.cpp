@@ -22,11 +22,11 @@ using namespace recording;
 WrapperClip::WrapperClip(const Clip::Pointer& wrappedClip)
     : _wrappedClip(wrappedClip) { }
 
-void WrapperClip::seek(Time offset) {
-    _wrappedClip->seek(offset);
+void WrapperClip::seekFrameTime(Frame::Time offset) {
+    _wrappedClip->seekFrameTime(offset);
 }
 
-Time WrapperClip::position() const {
+Frame::Time WrapperClip::positionFrameTime() const {
     return _wrappedClip->position();
 }
 
@@ -50,7 +50,7 @@ void WrapperClip::addFrame(FrameConstPointer) {
     throw std::runtime_error("Wrapper clips are read only");
 }
 
-Time WrapperClip::duration() const {
+float WrapperClip::duration() const {
     return _wrappedClip->duration();
 }
 

@@ -12,6 +12,9 @@
 
 #include <QtCore/QMap>
 
+#include <NumericalConstants.h>
+#include <SharedUtil.h>
+
 using namespace recording;
 
 // FIXME move to shared
@@ -73,7 +76,31 @@ using Locker = std::unique_lock<Mutex>;
 static Mutex mutex;
 static std::once_flag once;
 
+float FrameHeader::frameTimeToSeconds(Frame::Time frameTime) {
+    float result = frameTime;
+    result /= MSECS_PER_SECOND;
+    return result;
+}
 
+uint32_t FrameHeader::frameTimeToMilliseconds(Frame::Time frameTime) {
+    return frameTime;
+}
+
+Frame::Time FrameHeader::frameTimeFromEpoch(quint64 epoch) {
+    auto intervalMicros = (usecTimestampNow() - epoch);
+    intervalMicros /= USECS_PER_MSEC;
+    return (Frame::Time)(intervalMicros);
+}
+
+quint64 FrameHeader::epochForFrameTime(Time frameTime) {
+    auto epoch = usecTimestampNow();
+    epoch -= (frameTime * USECS_PER_MSEC);
+    return epoch;
+}
+
+Frame::Time FrameHeader::secondsToFrameTime(float seconds) {
+    return (Time)(seconds * MSECS_PER_SECOND);
+}
 
 FrameType Frame::registerFrameType(const QString& frameTypeName) {
     Locker lock(mutex);
