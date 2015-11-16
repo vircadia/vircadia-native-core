@@ -9,11 +9,20 @@
 #include "Recorder.h"
 
 #include <NumericalConstants.h>
+#include <SharedUtil.h>
 
 #include "impl/BufferClip.h"
 #include "Frame.h"
 
 using namespace recording;
+
+Recorder::~Recorder() {
+
+}
+
+Time Recorder::position() {
+    return 0.0f;
+}
 
 void Recorder::start() {
     if (!_recording) {
@@ -21,13 +30,14 @@ void Recorder::start() {
         if (!_clip) {
             _clip = std::make_shared<BufferClip>();
         }
+        _startEpoch = usecTimestampNow();
         _timer.start();
         emit recordingStateChanged();
     }
 }
 
 void Recorder::stop() {
-    if (!_recording) {
+    if (_recording) {
         _recording = false;
         _elapsed = _timer.elapsed();
         emit recordingStateChanged();
@@ -50,13 +60,11 @@ void Recorder::recordFrame(FrameType type, QByteArray frameData) {
     Frame::Pointer frame = std::make_shared<Frame>();
     frame->type = type;
     frame->data = frameData;
-    frame->timeOffset = (float)(_elapsed + _timer.elapsed()) / MSECS_PER_SECOND;
+    frame->timeOffset = (usecTimestampNow() - _startEpoch) / USECS_PER_MSEC;
     _clip->addFrame(frame);
 }
 
 ClipPointer Recorder::getClip() {
-    auto result = _clip;
-    _clip.reset();
-    return result;
+    return _clip;
 }
 

@@ -82,7 +82,8 @@ FrameType Frame::registerFrameType(const QString& frameTypeName) {
         Q_ASSERT(headerType == Frame::TYPE_HEADER);
         Q_UNUSED(headerType); // FIXME - build system on unix still not upgraded to Qt 5.5.1 so Q_ASSERT still produces warnings
     });
-    return frameTypes.registerValue(frameTypeName);
+    auto result = frameTypes.registerValue(frameTypeName);
+    return result;
 }
 
 QMap<QString, FrameType> Frame::getFrameTypes() {
@@ -101,4 +102,17 @@ Frame::Handler Frame::registerFrameHandler(FrameType type, Handler handler) {
     }
     handlerMap[type] = handler;
     return result;
+}
+
+void Frame::handleFrame(const Frame::ConstPointer& frame) {
+    Handler handler; 
+    {
+        Locker lock(mutex);
+        auto iterator = handlerMap.find(frame->type);
+        if (iterator == handlerMap.end()) {
+            return;
+        }
+        handler = *iterator;
+    }
+    handler(frame);
 }

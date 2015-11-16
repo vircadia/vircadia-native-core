@@ -8,42 +8,44 @@
 
 #include "BufferClip.h"
 
+#include <NumericalConstants.h>
+
 #include "../Frame.h"
 
 using namespace recording;
 
 
-void BufferClip::seek(float offset) {
+void BufferClip::seek(Time offset) {
     Locker lock(_mutex);
-    auto itr = std::lower_bound(_frames.begin(), _frames.end(), offset, 
-        [](Frame::Pointer a, float b)->bool{
+    auto itr = std::lower_bound(_frames.begin(), _frames.end(), offset,
+        [](Frame::ConstPointer a, Time b)->bool {
             return a->timeOffset < b;
         }
     );
     _frameIndex = itr - _frames.begin();
 }
 
-float BufferClip::position() const {
+Time BufferClip::position() const {
     Locker lock(_mutex);
-    float result = std::numeric_limits<float>::max();
+    Time result = INVALID_TIME;
     if (_frameIndex < _frames.size()) {
         result = _frames[_frameIndex]->timeOffset;
     }
     return result;
 }
 
-FramePointer BufferClip::peekFrame() const {
+FrameConstPointer BufferClip::peekFrame() const {
     Locker lock(_mutex);
-    FramePointer result;
+    FrameConstPointer result;
     if (_frameIndex < _frames.size()) {
         result = _frames[_frameIndex];
     }
     return result;
 }
 
-FramePointer BufferClip::nextFrame() {
+FrameConstPointer BufferClip::nextFrame() {
     Locker lock(_mutex);
-    FramePointer result;
+    FrameConstPointer result;
     if (_frameIndex < _frames.size()) {
         result = _frames[_frameIndex];
         ++_frameIndex;
@@ -51,7 +53,7 @@ FramePointer BufferClip::nextFrame() {
     return result;
 }
 
-void BufferClip::addFrame(FramePointer newFrame) {
+void BufferClip::addFrame(FrameConstPointer newFrame) {
     if (newFrame->timeOffset < 0.0f) {
         throw std::runtime_error("Frames may not have negative time offsets");
     }
@@ -77,7 +79,7 @@ void BufferClip::reset() {
     _frameIndex = 0;
 }
 
-float BufferClip::duration() const {
+Time BufferClip::duration() const {
     if (_frames.empty()) {
         return 0;
     }

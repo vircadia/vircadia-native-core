@@ -22,7 +22,7 @@
 
 using namespace recording;
 
-static const qint64 MINIMUM_FRAME_SIZE = sizeof(FrameType) + sizeof(float) + sizeof(uint16_t);
+static const qint64 MINIMUM_FRAME_SIZE = sizeof(FrameType) + sizeof(Time) + sizeof(FrameSize);
 
 static const QString FRAME_TYPE_MAP = QStringLiteral("frameTypes");
 
@@ -60,10 +60,10 @@ FrameHeaderList parseFrameHeaders(uchar* const start, const qint64& size) {
         FrameHeader header;
         memcpy(&(header.type), current, sizeof(FrameType));
         current += sizeof(FrameType);
-        memcpy(&(header.timeOffset), current, sizeof(float));
-        current += sizeof(float);
-        memcpy(&(header.size), current, sizeof(uint16_t));
-        current += sizeof(uint16_t);
+        memcpy(&(header.timeOffset), current, sizeof(Time));
+        current += sizeof(Time);
+        memcpy(&(header.size), current, sizeof(FrameSize));
+        current += sizeof(FrameSize);
         header.fileOffset = current - start;
         if (end - current < header.size) {
             current = end;
@@ -117,6 +117,7 @@ FileClip::FileClip(const QString& fileName) : _file(fileName) {
             qWarning() << "Header missing frame type map, invalid file";
             return;
         }
+        qDebug() << translationMap;
 
         // Update the loaded headers with the frame data
         _frameHeaders.reserve(parsedFrameHeaders.size());
@@ -132,16 +133,21 @@ FileClip::FileClip(const QString& fileName) : _file(fileName) {
 
 // FIXME move to frame?
 bool writeFrame(QIODevice& output, const Frame& frame) {
+    if (frame.type == Frame::TYPE_INVALID) {
+        qWarning() << "Attempting to write invalid frame";
+        return true;
+    }
+
     auto written = output.write((char*)&(frame.type), sizeof(FrameType));
     if (written != sizeof(FrameType)) {
         return false;
     }
-    written = output.write((char*)&(frame.timeOffset), sizeof(float));
-    if (written != sizeof(float)) {
+    written = output.write((char*)&(frame.timeOffset), sizeof(Time));
+    if (written != sizeof(Time)) {
         return false;
     }
     uint16_t dataSize = frame.data.size();
-    written = output.write((char*)&dataSize, sizeof(uint16_t));
+    written = output.write((char*)&dataSize, sizeof(FrameSize));
     if (written != sizeof(uint16_t)) {
         return false;
     }
@@ -201,19 +207,19 @@ FileClip::~FileClip() {
     }
 }
 
-void FileClip::seek(float offset) {
+void FileClip::seek(Time offset) {
     Locker lock(_mutex);
     auto itr = std::lower_bound(_frameHeaders.begin(), _frameHeaders.end(), offset,
-        [](const FrameHeader& a, float b)->bool {
+        [](const FrameHeader& a, Time b)->bool {
             return a.timeOffset < b;
         }
     );
     _frameIndex = itr - _frameHeaders.begin();
 }
 
-float FileClip::position() const {
+Time FileClip::position() const {
     Locker lock(_mutex);
-    float result = std::numeric_limits<float>::max();
+    Time result = INVALID_TIME;
     if (_frameIndex < _frameHeaders.size()) {
         result = _frameHeaders[_frameIndex].timeOffset;
     }
@@ -234,12 +240,12 @@ FramePointer FileClip::readFrame(uint32_t frameIndex) const {
     return result;
 }
 
-FramePointer FileClip::peekFrame() const {
+FrameConstPointer FileClip::peekFrame() const {
     Locker lock(_mutex);
     return readFrame(_frameIndex);
 }
 
-FramePointer FileClip::nextFrame() {
+FrameConstPointer FileClip::nextFrame() {
     Locker lock(_mutex);
     auto result = readFrame(_frameIndex);
     if (_frameIndex < _frameHeaders.size()) {
@@ -256,11 +262,11 @@ void FileClip::reset() {
     _frameIndex = 0;
 }
 
-void FileClip::addFrame(FramePointer) {
+void FileClip::addFrame(FrameConstPointer) {
     throw std::runtime_error("File clips are read only");
 }
 
-float FileClip::duration() const {
+Time FileClip::duration() const {
     if (_frameHeaders.empty()) {
         return 0;
     }

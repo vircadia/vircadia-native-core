@@ -62,10 +62,24 @@ var overlaysCounter = new CounterWidget(panel, "Overlays",
 );
 
 
-panel.newCheckbox("Display status",  
-    function(value) { Scene.setEngineDisplayItemStatus(value); },
-    function() { return Scene.doEngineDisplayItemStatus(); },
-    function(value) { return (value); }
+// see libraries/render/src/render/Engine.h
+var showDisplayStatusFlag = 1;
+var showNetworkStatusFlag = 2;
+
+panel.newCheckbox("Display status",
+    function(value) { Scene.setEngineDisplayItemStatus(value ?
+                                                       Scene.doEngineDisplayItemStatus() | showDisplayStatusFlag :
+                                                       Scene.doEngineDisplayItemStatus() & ~showDisplayStatusFlag); },
+    function() { return (Scene.doEngineDisplayItemStatus() & showDisplayStatusFlag) > 0; },
+    function(value) { return (value & showDisplayStatusFlag) > 0; }
+);
+
+panel.newCheckbox("Network/Physics status",
+    function(value) { Scene.setEngineDisplayItemStatus(value ?
+                                                       Scene.doEngineDisplayItemStatus() | showNetworkStatusFlag :
+                                                       Scene.doEngineDisplayItemStatus() & ~showNetworkStatusFlag); },
+    function() { return (Scene.doEngineDisplayItemStatus() & showNetworkStatusFlag) > 0; },
+    function(value) { return (value & showNetworkStatusFlag) > 0; }
 );
 
 var tickTackPeriod = 500;

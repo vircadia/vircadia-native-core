@@ -88,11 +88,7 @@ void Model::setScale(const glm::vec3& scale) {
 }
 
 void Model::setScaleInternal(const glm::vec3& scale) {
-    float scaleLength = glm::length(_scale);
-    float relativeDeltaScale = glm::length(_scale - scale) / scaleLength;
-
-    const float ONE_PERCENT = 0.01f;
-    if (relativeDeltaScale > ONE_PERCENT || scaleLength < EPSILON) {
+    if (glm::distance(_scale, scale) > METERS_PER_MILLIMETER) {
         _scale = scale;
         initJointTransforms();
     }
@@ -485,8 +481,10 @@ void Model::setVisibleInScene(bool newValue, std::shared_ptr<render::Scene> scen
 }
 
 
-bool Model::addToScene(std::shared_ptr<render::Scene> scene, render::PendingChanges& pendingChanges) {
-    if (!_meshGroupsKnown && isLoaded()) {
+bool Model::addToScene(std::shared_ptr<render::Scene> scene, render::PendingChanges& pendingChanges, bool showCollisionHull) {
+
+    if ((!_meshGroupsKnown || showCollisionHull != _showCollisionHull) && isLoaded()) {
+        _showCollisionHull = showCollisionHull;
         segregateMeshGroups();
     }
 
@@ -509,8 +507,12 @@ bool Model::addToScene(std::shared_ptr<render::Scene> scene, render::PendingChan
     return somethingAdded;
 }
 
-bool Model::addToScene(std::shared_ptr<render::Scene> scene, render::PendingChanges& pendingChanges, render::Item::Status::Getters& statusGetters) {
-    if (!_meshGroupsKnown && isLoaded()) {
+bool Model::addToScene(std::shared_ptr<render::Scene> scene,
+                       render::PendingChanges& pendingChanges,
+                       render::Item::Status::Getters& statusGetters,
+                       bool showCollisionHull) {
+    if ((!_meshGroupsKnown || showCollisionHull != _showCollisionHull) && isLoaded()) {
+        _showCollisionHull = showCollisionHull;
         segregateMeshGroups();
     }
 
@@ -1067,7 +1069,6 @@ void Model::setGeometry(const QSharedPointer<NetworkGeometry>& newGeometry) {
 
 void Model::deleteGeometry() {
     _blendedVertexBuffers.clear();
-    _rig->clearJointStates();
     _meshStates.clear();
     _rig->destroyAnimGraph();
     _blendedBlendshapeCoefficients.clear();
@@ -1108,8 +1109,14 @@ AABox Model::getPartBounds(int meshIndex, int partIndex) {
 }
 
 void Model::segregateMeshGroups() {
-    const FBXGeometry& geometry = _geometry->getFBXGeometry();
-    const std::vector<std::unique_ptr<NetworkMesh>>& networkMeshes = _geometry->getMeshes();
+    QSharedPointer<NetworkGeometry> networkGeometry;
+    if (_showCollisionHull && _collisionGeometry && _collisionGeometry->isLoaded()) {
+        networkGeometry = _collisionGeometry;
+    } else {
+        networkGeometry = _geometry;
+    }
+    const FBXGeometry& geometry = networkGeometry->getFBXGeometry();
+    const std::vector<std::unique_ptr<NetworkMesh>>& networkMeshes = networkGeometry->getMeshes();
 
     // all of our mesh vectors must match in size
     if ((int)networkMeshes.size() != geometry.meshes.size() ||

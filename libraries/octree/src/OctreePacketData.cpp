@@ -16,14 +16,12 @@
 #include "OctreePacketData.h"
 
 bool OctreePacketData::_debug = false;
-quint64 OctreePacketData::_totalBytesOfOctalCodes = 0;
-quint64 OctreePacketData::_totalBytesOfBitMasks = 0;
-quint64 OctreePacketData::_totalBytesOfColor = 0;
-quint64 OctreePacketData::_totalBytesOfValues = 0;
-quint64 OctreePacketData::_totalBytesOfPositions = 0;
-quint64 OctreePacketData::_totalBytesOfRawData = 0;
-
-
+AtomicUIntStat OctreePacketData::_totalBytesOfOctalCodes { 0 };
+AtomicUIntStat OctreePacketData::_totalBytesOfBitMasks { 0 };
+AtomicUIntStat OctreePacketData::_totalBytesOfColor { 0 };
+AtomicUIntStat OctreePacketData::_totalBytesOfValues { 0 };
+AtomicUIntStat OctreePacketData::_totalBytesOfPositions { 0 };
+AtomicUIntStat OctreePacketData::_totalBytesOfRawData { 0 };
 
 OctreePacketData::OctreePacketData(bool enableCompression, int targetSize) {
     changeSettings(enableCompression, targetSize); // does reset...
@@ -490,8 +488,8 @@ bool OctreePacketData::appendRawData(QByteArray data) {
 }
 
 
-quint64 OctreePacketData::_compressContentTime = 0;
-quint64 OctreePacketData::_compressContentCalls = 0;
+AtomicUIntStat OctreePacketData::_compressContentTime { 0 };
+AtomicUIntStat OctreePacketData::_compressContentCalls { 0 };
 
 bool OctreePacketData::compressContent() { 
     PerformanceWarning warn(false, "OctreePacketData::compressContent()", false, &_compressContentTime, &_compressContentCalls);

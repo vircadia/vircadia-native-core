@@ -17,6 +17,7 @@
 #include "OctreeSendThread.h"
 #include "OctreeServer.h"
 #include "OctreeServerConsts.h"
+#include "OctreeLogging.h"
 
 quint64 startSceneSleepTime = 0;
 quint64 endSceneSleepTime = 0;
@@ -112,12 +113,15 @@ bool OctreeSendThread::process() {
     return isStillRunning();  // keep running till they terminate us
 }
 
-quint64 OctreeSendThread::_usleepTime = 0;
-quint64 OctreeSendThread::_usleepCalls = 0;
+AtomicUIntStat OctreeSendThread::_usleepTime { 0 };
+AtomicUIntStat OctreeSendThread::_usleepCalls { 0 };
+AtomicUIntStat OctreeSendThread::_totalBytes { 0 };
+AtomicUIntStat OctreeSendThread::_totalWastedBytes { 0 };
+AtomicUIntStat OctreeSendThread::_totalPackets { 0 };
 
-quint64 OctreeSendThread::_totalBytes = 0;
-quint64 OctreeSendThread::_totalWastedBytes = 0;
-quint64 OctreeSendThread::_totalPackets = 0;
+AtomicUIntStat OctreeSendThread::_totalSpecialBytes { 0 };
+AtomicUIntStat OctreeSendThread::_totalSpecialPackets { 0 };
+
 
 int OctreeSendThread::handlePacketSend(OctreeQueryNode* nodeData, int& trueBytesSent, int& truePacketsSent) {
     OctreeServer::didHandlePacketSend(this);
@@ -569,23 +573,27 @@ int OctreeSendThread::packetDistributor(OctreeQueryNode* nodeData, bool viewFrus
             OctreeServer::trackInsideTime((float)elapsedInsideUsecs);
         }
 
-
-        if (somethingToSend) {
-            qDebug() << "Hit PPS Limit, packetsSentThisInterval =" << packetsSentThisInterval
-                     << "  maxPacketsPerInterval = " << maxPacketsPerInterval
-                     << "  clientMaxPacketsPerInterval = " << clientMaxPacketsPerInterval;
+        if (somethingToSend && _myServer->wantsVerboseDebug()) {
+            qCDebug(octree) << "Hit PPS Limit, packetsSentThisInterval =" << packetsSentThisInterval
+                            << "  maxPacketsPerInterval = " << maxPacketsPerInterval
+                            << "  clientMaxPacketsPerInterval = " << clientMaxPacketsPerInterval;
         }
-
 
         // Here's where we can/should allow the server to send other data...
         // send the environment packet
         // TODO: should we turn this into a while loop to better handle sending multiple special packets
         if (_myServer->hasSpecialPacketsToSend(_node) && !nodeData->isShuttingDown()) {
-            int specialPacketsSent;
+            int specialPacketsSent = 0;
             trueBytesSent += _myServer->sendSpecialPackets(_node, nodeData, specialPacketsSent);
             nodeData->resetOctreePacket();   // because nodeData's _sequenceNumber has changed
             truePacketsSent += specialPacketsSent;
             packetsSentThisInterval += specialPacketsSent;
+
+            _totalPackets += specialPacketsSent;
+            _totalBytes += trueBytesSent;
+
+            _totalSpecialPackets += specialPacketsSent;
+            _totalSpecialBytes += trueBytesSent;
         }
 
         // Re-send packets that were nacked by the client
