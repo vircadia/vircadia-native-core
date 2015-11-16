@@ -153,6 +153,4 @@ void RenderablePolyLineEntityItem::render(RenderArgs* args) {
     batch.setInputBuffer(0, _verticesBuffer, 0, _format->getChannels().at(0)._stride);
 
     batch.draw(gpu::TRIANGLE_STRIP, _numVertices, 0);
-
-    RenderableDebugableEntityItem::render(this, args);
 };

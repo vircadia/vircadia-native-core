@@ -240,12 +240,12 @@ FramePointer FileClip::readFrame(uint32_t frameIndex) const {
     return result;
 }
 
-FramePointer FileClip::peekFrame() const {
+FrameConstPointer FileClip::peekFrame() const {
     Locker lock(_mutex);
     return readFrame(_frameIndex);
 }
 
-FramePointer FileClip::nextFrame() {
+FrameConstPointer FileClip::nextFrame() {
     Locker lock(_mutex);
     auto result = readFrame(_frameIndex);
     if (_frameIndex < _frameHeaders.size()) {
@@ -262,7 +262,7 @@ void FileClip::reset() {
     _frameIndex = 0;
 }
 
-void FileClip::addFrame(FramePointer) {
+void FileClip::addFrame(FrameConstPointer) {
     throw std::runtime_error("File clips are read only");
 }
 

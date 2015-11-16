@@ -126,7 +126,7 @@ MyAvatar::MyAvatar(RigPointer rig) :
     });
 
     // FIXME how to deal with driving multiple avatars locally?  
-    Frame::registerFrameHandler(AVATAR_FRAME_TYPE, [this](Frame::Pointer frame) {
+    Frame::registerFrameHandler(AVATAR_FRAME_TYPE, [this](Frame::ConstPointer frame) {
         qDebug() << "Playback of avatar frame length: " << frame->data.size();
         avatarStateFromFrame(frame->data, this);
     });
@@ -608,7 +608,7 @@ float MyAvatar::recorderElapsed() {
     if (!_recorder) {
         return 0;
     }
-    return (float)_recorder->position() / MSECS_PER_SECOND;
+    return (float)_recorder->position() / (float) MSECS_PER_SECOND;
 }
 
 QMetaObject::Connection _audioClientRecorderConnection;
@@ -1022,11 +1022,6 @@ int MyAvatar::parseDataFromBuffer(const QByteArray& buffer) {
         << " packetLength = " << buffer.size();
     // this packet is just bad, so we pretend that we unpacked it ALL
     return buffer.size();
-}
-
-void MyAvatar::sendKillAvatar() {
-    auto killPacket = NLPacket::create(PacketType::KillAvatar, 0);
-    DependencyManager::get<NodeList>()->broadcastToNodes(std::move(killPacket), NodeSet() << NodeType::AvatarMixer);
 }
 
 void MyAvatar::updateLookAtTargetAvatar() {

@@ -139,6 +139,9 @@ bool RenderableParticleEffectEntityItem::addToScene(EntityItemPointer self,
     _renderItemId = scene->allocateID();
     auto renderData = ParticlePayload::Pointer(particlePayload);
     auto renderPayload = render::PayloadPointer(new ParticlePayload::Payload(renderData));
+    render::Item::Status::Getters statusGetters;
+    makeEntityItemStatusGetters(shared_from_this(), statusGetters);
+    renderPayload->addStatusGetters(statusGetters);
     pendingChanges.resetItem(_renderItemId, renderPayload);
     _scene = scene;
     return true;

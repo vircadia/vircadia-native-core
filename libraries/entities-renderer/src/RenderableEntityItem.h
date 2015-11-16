@@ -15,13 +15,26 @@
 #include <render/Scene.h>
 #include <EntityItem.h>
 
+// These or the icon "name" used by the render item status value, they correspond to the atlas texture used by the DrawItemStatus
+// job in the current rendering pipeline defined as of now  (11/2015) in render-utils/RenderDeferredTask.cpp.
+enum class RenderItemStatusIcon {
+    ACTIVE_IN_BULLET = 0,
+    PACKET_SENT = 1,
+    PACKET_RECEIVED = 2,
+    SIMULATION_OWNER = 3,
+    HAS_ACTIONS = 4,
+    NONE = 255
+};
+
+void makeEntityItemStatusGetters(EntityItemPointer entity, render::Item::Status::Getters& statusGetters);
+
 
 class RenderableEntityItemProxy {
 public:
     RenderableEntityItemProxy(EntityItemPointer entity) : entity(entity) { }
     typedef render::Payload<RenderableEntityItemProxy> Payload;
     typedef Payload::DataPointer Pointer;
-    
+
     EntityItemPointer entity;
 };
 
@@ -36,19 +49,23 @@ class SimpleRenderableEntityItem {
 public:
     bool addToScene(EntityItemPointer self, std::shared_ptr<render::Scene> scene, render::PendingChanges& pendingChanges) {
         _myItem = scene->allocateID();
-        
+
         auto renderData = std::make_shared<RenderableEntityItemProxy>(self);
         auto renderPayload = std::make_shared<RenderableEntityItemProxy::Payload>(renderData);
-        
+
+        render::Item::Status::Getters statusGetters;
+        makeEntityItemStatusGetters(self, statusGetters);
+        renderPayload->addStatusGetters(statusGetters);
+
         pendingChanges.resetItem(_myItem, renderPayload);
-        
+
         return true;
     }
 
     void removeFromScene(EntityItemPointer self, std::shared_ptr<render::Scene> scene, render::PendingChanges& pendingChanges) {
         pendingChanges.removeItem(_myItem);
     }
-    
+
 private:
     render::ItemID _myItem;
 };
@@ -60,7 +77,6 @@ public: \
     virtual void removeFromScene(EntityItemPointer self, std::shared_ptr<render::Scene> scene, render::PendingChanges& pendingChanges) { _renderHelper.removeFromScene(self, scene, pendingChanges); } \
 private: \
     SimpleRenderableEntityItem _renderHelper;
-
 
 
 #endif // hifi_RenderableEntityItem_h

@@ -415,6 +415,9 @@ bool OctreeServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
         quint64 totalBytesOfBitMasks = OctreePacketData::getTotalBytesOfBitMasks();
         quint64 totalBytesOfColor = OctreePacketData::getTotalBytesOfColor();
 
+        quint64 totalOutboundSpecialPackets = OctreeSendThread::_totalSpecialPackets;
+        quint64 totalOutboundSpecialBytes = OctreeSendThread::_totalSpecialBytes;
+
         statsString += QString("          Total Clients Connected: %1 clients\r\n")
             .arg(locale.toString((uint)getCurrentClientCount()).rightJustified(COLUMN_WIDTH, ' '));
 
@@ -606,6 +609,13 @@ bool OctreeServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
             .arg(locale.toString((uint)totalOutboundPackets).rightJustified(COLUMN_WIDTH, ' '));
         statsString += QString("             Total Outbound Bytes: %1 bytes\r\n")
             .arg(locale.toString((uint)totalOutboundBytes).rightJustified(COLUMN_WIDTH, ' '));
+
+        statsString += QString("   Total Outbound Special Packets: %1 packets\r\n")
+            .arg(locale.toString((uint)totalOutboundSpecialPackets).rightJustified(COLUMN_WIDTH, ' '));
+        statsString += QString("     Total Outbound Special Bytes: %1 bytes\r\n")
+            .arg(locale.toString((uint)totalOutboundSpecialBytes).rightJustified(COLUMN_WIDTH, ' '));
+
+
         statsString += QString("               Total Wasted Bytes: %1 bytes\r\n")
             .arg(locale.toString((uint)totalWastedBytes).rightJustified(COLUMN_WIDTH, ' '));
         statsString += QString().sprintf("            Total OctalCode Bytes: %s bytes (%5.2f%%)\r\n",

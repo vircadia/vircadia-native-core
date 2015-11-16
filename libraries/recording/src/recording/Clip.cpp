@@ -38,7 +38,7 @@ Clip::Pointer Clip::duplicate() {
     Time currentPosition = position();
     seek(0);
 
-    Frame::Pointer frame = nextFrame();
+    auto frame = nextFrame();
     while (frame) {
         result->addFrame(frame);
         frame = nextFrame();
