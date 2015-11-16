@@ -1,6 +1,6 @@
 ###Dependencies
 
-* [cmake](http://www.cmake.org/cmake/resources/software.html) ~> 2.8.12.2
+* [cmake](http://www.cmake.org/cmake/resources/software.html) ~> 3.3.2
 * [Qt](http://www.qt.io/download-open-source) ~> 5.4.1
 * [OpenSSL](https://www.openssl.org/community/binaries.html) ~> 1.0.1m
   * IMPORTANT: Using the recommended version of OpenSSL is critical to avoid security vulnerabilities.
