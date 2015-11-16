@@ -206,7 +206,7 @@ public:
 
     void prepareForPhysicsSimulation();
     void harvestResultsFromPhysicsSimulation();
-    void adjustSensorTransform(glm::vec3 hmdShift);
+    void adjustSensorTransform();
 
     const QString& getCollisionSoundURL() { return _collisionSoundURL; }
     void setCollisionSoundURL(const QString& url);
@@ -329,7 +329,7 @@ private:
     PalmData getActivePalmData(int palmIndex) const;
 
     // derive avatar body position and orientation from the current HMD Sensor location.
-    // results are in sensor space
+    // results are in HMD frame
     glm::mat4 deriveBodyFromHMDSensor() const;
 
     float _driveKeys[MAX_DRIVE_KEYS];
@@ -393,9 +393,10 @@ private:
 
     // used to transform any sensor into world space, including the _hmdSensorMat, or hand controllers.
     glm::mat4 _sensorToWorldMatrix;
-    glm::vec3 _hmdFollowOffset { Vectors::ZERO };
-    glm::vec3 _hmdFollowVelocity { Vectors::ZERO };
-    float _hmdFollowSpeed { 0.0f };
+
+    glm::vec3 _followVelocity { Vectors::ZERO };
+    float _followSpeed { 0.0f };
+    float _followOffsetDistance { 0.0f };
 
     bool _goToPending;
     glm::vec3 _goToPosition;
@@ -412,9 +413,6 @@ private:
     AudioListenerMode _audioListenerMode;
     glm::vec3 _customListenPosition;
     glm::quat _customListenOrientation;
-
-    bool _isFollowingHMD { false };
-    float _followHMDAlpha { 0.0f };
 
     AtRestDetector _hmdAtRestDetector;
     bool _lastIsMoving { false };
