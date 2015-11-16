@@ -60,7 +60,7 @@ MyCharacterController::MyCharacterController(MyAvatar* avatar) {
     _floorDistance = MAX_FALL_HEIGHT;
 
     _walkVelocity.setValue(0.0f, 0.0f, 0.0f);
-    _hmdVelocity.setValue(0.0f, 0.0f, 0.0f);
+    _followVelocity.setValue(0.0f, 0.0f, 0.0f);
     _jumpSpeed = JUMP_SPEED;
     _isOnGround = false;
     _isJumping = false;
@@ -68,7 +68,7 @@ MyCharacterController::MyCharacterController(MyAvatar* avatar) {
     _isHovering = true;
     _isPushingUp = false;
     _jumpToHoverStart = 0;
-    _lastStepDuration = 0.0f;
+    _followTime = 0.0f;
 
     _pendingFlags = PENDING_FLAG_UPDATE_SHAPE;
     updateShapeIfNecessary();
@@ -161,16 +161,14 @@ void MyCharacterController::playerStep(btCollisionWorld* dynaWorld, btScalar dt)
         }
     }
 
-    // Rather than add _hmdVelocity to the velocity of the RigidBody, we explicitly teleport 
+    // Rather than add _followVelocity to the velocity of the RigidBody, we explicitly teleport 
     // the RigidBody forward according to the formula: distance = rate * time
-    if (_hmdVelocity.length2() > 0.0f) {
+    if (_followVelocity.length2() > 0.0f) {
         btTransform bodyTransform = _rigidBody->getWorldTransform();
-        bodyTransform.setOrigin(bodyTransform.getOrigin() + dt * _hmdVelocity);
+        bodyTransform.setOrigin(bodyTransform.getOrigin() + dt * _followVelocity);
         _rigidBody->setWorldTransform(bodyTransform);
     }
-    // MyAvatar will ask us how far we stepped for HMD motion, which will depend on how 
-    // much time has accumulated in _lastStepDuration.
-    _lastStepDuration += dt;
+    _followTime += dt;
 }
 
 void MyCharacterController::jump() {
@@ -346,8 +344,8 @@ void MyCharacterController::setTargetVelocity(const glm::vec3& velocity) {
     _walkVelocity = glmToBullet(velocity);
 }
 
-void MyCharacterController::setHMDVelocity(const glm::vec3& velocity) {
-    _hmdVelocity = glmToBullet(velocity);
+void MyCharacterController::setFollowVelocity(const glm::vec3& velocity) {
+    _followVelocity = glmToBullet(velocity);
 }
 
 glm::vec3 MyCharacterController::getLinearVelocity() const {
@@ -400,7 +398,7 @@ void MyCharacterController::preSimulation() {
             }
         }
     }
-    _lastStepDuration = 0.0f;
+    _followTime = 0.0f;
 }
 
 void MyCharacterController::postSimulation() {

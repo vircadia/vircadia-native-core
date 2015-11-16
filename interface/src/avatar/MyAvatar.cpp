@@ -125,7 +125,7 @@ MyAvatar::MyAvatar(RigPointer rig) :
         AVATAR_FRAME_TYPE = recording::Frame::registerFrameType(HEADER_NAME);
     });
 
-    // FIXME how to deal with driving multiple avatars locally?  
+    // FIXME how to deal with driving multiple avatars locally?
     Frame::registerFrameHandler(AVATAR_FRAME_TYPE, [this](Frame::ConstPointer frame) {
         qDebug() << "Playback of avatar frame length: " << frame->data.size();
         avatarStateFromFrame(frame->data, this);
@@ -177,9 +177,8 @@ void MyAvatar::reset(bool andReload) {
 
     // Reset dynamic state.
     _wasPushing = _isPushing = _isBraking = _billboardValid = false;
-    _isFollowingHMD = false;
-    _hmdFollowVelocity = Vectors::ZERO;
-    _hmdFollowSpeed = 0.0f;
+    _followVelocity = Vectors::ZERO;
+    _followSpeed = 0.0f;
     _skeletonModel.reset();
     getHead()->reset();
     _targetVelocity = glm::vec3(0.0f);
@@ -352,52 +351,40 @@ void MyAvatar::updateFromHMDSensorMatrix(const glm::mat4& hmdSensorMatrix) {
 void MyAvatar::updateHMDFollowVelocity() {
     // compute offset to body's target position (in sensor-frame)
     auto sensorBodyMatrix = deriveBodyFromHMDSensor();
-    _hmdFollowOffset = extractTranslation(sensorBodyMatrix) - extractTranslation(_bodySensorMatrix);
-    glm::vec3 truncatedOffset = _hmdFollowOffset;
-    if (truncatedOffset.y < 0.0f) {
-        // don't pull the body DOWN to match the target (allow animation system to squat)
-        truncatedOffset.y = 0.0f;
-    }
-    float truncatedOffsetDistance = glm::length(truncatedOffset);
+    glm::vec3 offset = extractTranslation(sensorBodyMatrix) - extractTranslation(_bodySensorMatrix);
+    _followOffsetDistance = glm::length(offset);
 
-    bool isMoving;
-    if (_lastIsMoving) {
-        const float MOVE_EXIT_SPEED_THRESHOLD = 0.07f;  // m/sec
-        isMoving = glm::length(_velocity) >= MOVE_EXIT_SPEED_THRESHOLD;
-    } else {
-        const float MOVE_ENTER_SPEED_THRESHOLD = 0.2f; // m/sec
-        isMoving = glm::length(_velocity) > MOVE_ENTER_SPEED_THRESHOLD;
-    }
-    bool justStartedMoving = (_lastIsMoving != isMoving) && isMoving;
-    _lastIsMoving = isMoving;
+    const float FOLLOW_TIMESCALE = 0.5f;
+    const float FOLLOW_THRESHOLD_SPEED = 0.2f;
+    const float FOLLOW_MIN_DISTANCE = 0.01f;
+    const float FOLLOW_THRESHOLD_DISTANCE = 0.2f;
+    const float FOLLOW_MAX_IDLE_DISTANCE = 0.1f;
+
     bool hmdIsAtRest = _hmdAtRestDetector.update(_hmdSensorPosition, _hmdSensorOrientation);
-    const float MIN_HMD_HIP_SHIFT = 0.05f;
-    if (justStartedMoving || (hmdIsAtRest && truncatedOffsetDistance > MIN_HMD_HIP_SHIFT)) {
-        _isFollowingHMD = true;
-    }
 
-    bool needNewFollowSpeed = (_isFollowingHMD && _hmdFollowSpeed == 0.0f);
-    if (!needNewFollowSpeed) {
-        // check to see if offset has exceeded its threshold
-        const float MAX_HMD_HIP_SHIFT = 0.2f;
-        if (truncatedOffsetDistance > MAX_HMD_HIP_SHIFT) {
-            _isFollowingHMD = true;
-            needNewFollowSpeed = true;
+    _followOffsetDistance = glm::length(offset);
+    if (_followOffsetDistance < FOLLOW_MIN_DISTANCE) {
+        // close enough
+        _followOffsetDistance = 0.0f;
+    } else {
+        bool avatarIsMoving = glm::length(_velocity - _followVelocity) > FOLLOW_THRESHOLD_SPEED;
+        bool shouldFollow = (hmdIsAtRest || avatarIsMoving) && _followOffsetDistance > FOLLOW_MAX_IDLE_DISTANCE;
+
+        glm::vec3 truncatedOffset = offset;
+        if (truncatedOffset.y < 0.0f) {
+            truncatedOffset.y = 0.0f;
         }
-    }
-    if (_isFollowingHMD) {
-        // only bother to rotate into world frame if we're following
-        glm::quat sensorToWorldRotation = extractRotation(_sensorToWorldMatrix);
-        _hmdFollowOffset = sensorToWorldRotation * _hmdFollowOffset;
-    }
-    if (needNewFollowSpeed) {
-        // compute new velocity that will be used to resolve offset of hips from body
-        const float FOLLOW_HMD_DURATION = 0.5f;  // seconds
-        _hmdFollowVelocity = (_hmdFollowOffset / FOLLOW_HMD_DURATION);
-        _hmdFollowSpeed = glm::length(_hmdFollowVelocity);
-    } else if (_isFollowingHMD) {
-        // compute new velocity (but not new speed)
-        _hmdFollowVelocity = _hmdFollowSpeed * glm::normalize(_hmdFollowOffset);
+        float truncatedDistance = glm::length(truncatedOffset);
+        bool needsNewSpeed = truncatedDistance > FOLLOW_THRESHOLD_DISTANCE;
+        if (needsNewSpeed || (shouldFollow && _followSpeed == 0.0f)) {
+            // compute new speed
+            _followSpeed = _followOffsetDistance / FOLLOW_TIMESCALE;
+        }
+        if (_followSpeed > 0.0f) {
+            // to compute new velocity we must rotate offset into the world-frame
+            glm::quat sensorToWorldRotation = extractRotation(_sensorToWorldMatrix);
+            _followVelocity = _followSpeed * glm::normalize(sensorToWorldRotation * offset);
+        }
     }
 }
 
@@ -1295,11 +1282,11 @@ void MyAvatar::prepareForPhysicsSimulation() {
     _characterController.setAvatarPositionAndOrientation(getPosition(), getOrientation());
     if (qApp->isHMDMode()) {
         updateHMDFollowVelocity();
-    } else if (_isFollowingHMD) {
-        _isFollowingHMD = false;
-        _hmdFollowVelocity = Vectors::ZERO;
+    } else if (_followSpeed > 0.0f) {
+        _followVelocity = Vectors::ZERO;
+        _followSpeed = 0.0f;
     }
-    _characterController.setHMDVelocity(_hmdFollowVelocity);
+    _characterController.setFollowVelocity(_followVelocity);
 }
 
 void MyAvatar::harvestResultsFromPhysicsSimulation() {
@@ -1307,35 +1294,27 @@ void MyAvatar::harvestResultsFromPhysicsSimulation() {
     glm::quat orientation = getOrientation();
     _characterController.getAvatarPositionAndOrientation(position, orientation);
     nextAttitude(position, orientation);
-    if (_isFollowingHMD) {
-        setVelocity(_characterController.getLinearVelocity() + _hmdFollowVelocity);
-        glm::vec3 hmdShift = _characterController.getHMDShift();
-        adjustSensorTransform(hmdShift);
+    if (_followSpeed > 0.0f) {
+        adjustSensorTransform();
+        setVelocity(_characterController.getLinearVelocity() + _followVelocity);
     } else {
         setVelocity(_characterController.getLinearVelocity());
     }
 }
 
-void MyAvatar::adjustSensorTransform(glm::vec3 hmdShift) {
+void MyAvatar::adjustSensorTransform() {
     // compute blendFactor of latest hmdShift
     // which we'll use to blend the rotation part
-    float blendFactor = 1.0f;
-    float shiftLength = glm::length(hmdShift);
-    if (shiftLength > 1.0e-5f) {
-        float offsetLength = glm::length(_hmdFollowOffset);
-        if (offsetLength > shiftLength) {
-            blendFactor = shiftLength / offsetLength;
-        }
-    }
+    float linearDistance = _characterController.getFollowTime() * _followSpeed;
+    float blendFactor = linearDistance < _followOffsetDistance ? linearDistance / _followOffsetDistance : 1.0f;
 
     auto newBodySensorMatrix = deriveBodyFromHMDSensor();
     auto worldBodyMatrix = _sensorToWorldMatrix * newBodySensorMatrix;
     glm::quat finalBodyRotation = glm::normalize(glm::quat_cast(worldBodyMatrix));
     if (blendFactor >= 0.99f) {
         // the "adjustment" is more or less complete so stop following
-        _isFollowingHMD = false;
-        _hmdFollowSpeed = 0.0f;
-        _hmdFollowVelocity = Vectors::ZERO;
+        _followVelocity = Vectors::ZERO;
+        _followSpeed = 0.0f;
         // and slam the body's transform anyway to eliminate any slight errors
         glm::vec3 finalBodyPosition = extractTranslation(worldBodyMatrix);
         nextAttitude(finalBodyPosition, finalBodyRotation);
@@ -1515,6 +1494,9 @@ void MyAvatar::initAnimGraph() {
                          QUrl::fromLocalFile(PathUtils::resourcesPath() + "meshes/defaultAvatar_full/avatar-animation.json") :
                          _animGraphUrl);
     _rig->initAnimGraph(graphUrl, _skeletonModel.getGeometry()->getFBXGeometry());
+
+    _bodySensorMatrix = deriveBodyFromHMDSensor(); // Based on current cached HMD position/rotation..
+    updateSensorToWorldMatrix(); // Uses updated position/orientation and _bodySensorMatrix changes
 }
 
 void MyAvatar::destroyAnimGraph() {
@@ -1989,53 +1971,19 @@ glm::quat MyAvatar::getWorldBodyOrientation() const {
 // derive avatar body position and orientation from the current HMD Sensor location.
 // results are in sensor space
 glm::mat4 MyAvatar::deriveBodyFromHMDSensor() const {
-
-    // HMD is in sensor space.
-    const glm::vec3 hmdPosition = getHMDSensorPosition();
-    const glm::quat hmdOrientation = getHMDSensorOrientation();
-    const glm::quat hmdOrientationYawOnly = cancelOutRollAndPitch(hmdOrientation);
-
-    const glm::vec3 DEFAULT_RIGHT_EYE_POS(-0.3f, 1.6f, 0.0f);
-    const glm::vec3 DEFAULT_LEFT_EYE_POS(0.3f, 1.6f, 0.0f);
-    const glm::vec3 DEFAULT_NECK_POS(0.0f, 1.5f, 0.0f);
-    const glm::vec3 DEFAULT_HIPS_POS(0.0f, 1.0f, 0.0f);
-
-    vec3 localEyes, localNeck;
-    if (!_debugDrawSkeleton) {
-        const glm::quat rotY180 = glm::angleAxis((float)PI, glm::vec3(0.0f, 1.0f, 0.0f));
-        localEyes = rotY180 * (((DEFAULT_RIGHT_EYE_POS + DEFAULT_LEFT_EYE_POS) / 2.0f) - DEFAULT_HIPS_POS);
-        localNeck = rotY180 * (DEFAULT_NECK_POS - DEFAULT_HIPS_POS);
-    } else {
-        // TODO: At the moment MyAvatar does not have access to the rig, which has the skeleton, which has the bind poses.
-        // for now use the _debugDrawSkeleton, which is initialized with the same FBX model as the rig.
-
-        // TODO: cache these indices.
-        int rightEyeIndex = _debugDrawSkeleton->nameToJointIndex("RightEye");
-        int leftEyeIndex = _debugDrawSkeleton->nameToJointIndex("LeftEye");
-        int neckIndex = _debugDrawSkeleton->nameToJointIndex("Neck");
-        int hipsIndex = _debugDrawSkeleton->nameToJointIndex("Hips");
-
-        glm::vec3 absRightEyePos = rightEyeIndex != -1 ? _debugDrawSkeleton->getAbsoluteBindPose(rightEyeIndex).trans : DEFAULT_RIGHT_EYE_POS;
-        glm::vec3 absLeftEyePos = leftEyeIndex != -1 ? _debugDrawSkeleton->getAbsoluteBindPose(leftEyeIndex).trans : DEFAULT_LEFT_EYE_POS;
-        glm::vec3 absNeckPos = neckIndex != -1 ? _debugDrawSkeleton->getAbsoluteBindPose(neckIndex).trans : DEFAULT_NECK_POS;
-        glm::vec3 absHipsPos = neckIndex != -1 ? _debugDrawSkeleton->getAbsoluteBindPose(hipsIndex).trans : DEFAULT_HIPS_POS;
-
-        const glm::quat rotY180 = glm::angleAxis((float)PI, glm::vec3(0.0f, 1.0f, 0.0f));
-        localEyes = rotY180 * (((absRightEyePos + absLeftEyePos) / 2.0f) - absHipsPos);
-        localNeck = rotY180 * (absNeckPos - absHipsPos);
+    if (_rig) {
+        // orientation
+        const glm::quat hmdOrientation = getHMDSensorOrientation();
+        const glm::quat yaw = cancelOutRollAndPitch(hmdOrientation);
+        // position
+        // we flip about yAxis when going from "root" to "avatar" frame
+        // and we must also apply "yaw" to get into HMD frame
+        glm::quat rotY180 = glm::angleAxis((float)M_PI, glm::vec3(0.0f, 1.0f, 0.0f));
+        glm::vec3 eyesInAvatarFrame = rotY180 * yaw * _rig->getEyesInRootFrame();
+        glm::vec3 bodyPos = getHMDSensorPosition() - eyesInAvatarFrame;
+        return createMatFromQuatAndPos(yaw, bodyPos);
     }
-
-    // apply simplistic head/neck model
-    // figure out where the avatar body should be by applying offsets from the avatar's neck & head joints.
-
-    // eyeToNeck offset is relative full HMD orientation.
-    // while neckToRoot offset is only relative to HMDs yaw.
-    glm::vec3 eyeToNeck = hmdOrientation * (localNeck - localEyes);
-    glm::vec3 neckToRoot = hmdOrientationYawOnly * -localNeck;
-    glm::vec3 bodyPos = hmdPosition + eyeToNeck + neckToRoot;
-
-    // avatar facing is determined solely by hmd orientation.
-    return createMatFromQuatAndPos(hmdOrientationYawOnly, bodyPos);
+    return glm::mat4();
 }
 
 glm::vec3 MyAvatar::getPositionForAudio() {
