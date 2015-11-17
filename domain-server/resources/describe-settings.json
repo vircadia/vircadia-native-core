@@ -549,22 +549,6 @@
           "advanced": true
         }
       ]
-    },
-    {
-      "name": "messages_mixer",
-      "label": "Messages Mixer",
-      "assignment-types": [4],
-      "settings": [
-        {
-          "name": "unused",
-          "type": "double",
-          "label": "Unused setting",
-          "help": "an asofyet unused setting",
-          "placeholder": 1.0,
-          "default": 1.0,
-          "advanced": true
-        }
-      ]
     }
   ]
 }
