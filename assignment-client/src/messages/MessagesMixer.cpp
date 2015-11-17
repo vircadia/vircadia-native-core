@@ -49,7 +49,7 @@ MessagesMixer::MessagesMixer(NLPacket& packet) :
 
     auto& packetReceiver = DependencyManager::get<NodeList>()->getPacketReceiver();
     packetReceiver.registerListener(PacketType::MessagesData, this, "handleMessagesPacket");
-    packetReceiver.registerListener(PacketType::MessagesData, this, "handleMessagesPacketList");
+    packetReceiver.registerMessageListener(PacketType::MessagesData, this, "handleMessagesPacketList");
 }
 
 MessagesMixer::~MessagesMixer() {
