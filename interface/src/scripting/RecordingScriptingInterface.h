@@ -25,12 +25,17 @@ public:
     RecordingScriptingInterface();
 
 public slots:
-    bool isPlaying();
-    bool isPaused();
-    float playerElapsed();
-    float playerLength();
     void loadRecording(const QString& filename);
+
     void startPlaying();
+    void pausePlayer();
+    void stopPlaying();
+    bool isPlaying() const;
+    bool isPaused() const;
+
+    float playerElapsed() const;
+    float playerLength() const;
+
     void setPlayerVolume(float volume);
     void setPlayerAudioOffset(float audioOffset);
     void setPlayerTime(float time);
@@ -40,13 +45,13 @@ public slots:
     void setPlayerUseAttachments(bool useAttachments);
     void setPlayerUseHeadModel(bool useHeadModel);
     void setPlayerUseSkeletonModel(bool useSkeletonModel);
-    void play();
-    void pausePlayer();
-    void stopPlaying();
-    bool isRecording();
-    float recorderElapsed();
+
     void startRecording();
     void stopRecording();
+    bool isRecording() const;
+
+    float recorderElapsed() const;
+
     void saveRecording(const QString& filename);
     void loadLastRecording();
 
