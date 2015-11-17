@@ -162,26 +162,15 @@ void RecordingScriptingInterface::startRecording() {
     }
 
     _recordingEpoch = Frame::epochForFrameTime(0);
-
-    auto myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
-    myAvatar->setRecordingBasis();
+    DependencyManager::get<AvatarManager>()->getMyAvatar()->setRecordingBasis();
     _recorder->start();
 }
 
 void RecordingScriptingInterface::stopRecording() {
     _recorder->stop();
-
     _lastClip = _recorder->getClip();
-    // post-process the audio into discreet chunks based on times of received samples
     _lastClip->seek(0);
-    Frame::ConstPointer frame;
-    while (frame = _lastClip->nextFrame()) {
-        qDebug() << "Frame time " << frame->timeOffset << " size " << frame->data.size();
-    }
-    _lastClip->seek(0);
-
-    auto myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
-    myAvatar->clearRecordingBasis();
+    DependencyManager::get<AvatarManager>()->getMyAvatar()->clearRecordingBasis();
 }
 
 void RecordingScriptingInterface::saveRecording(const QString& filename) {

@@ -1443,14 +1443,10 @@ QByteArray AvatarData::toFrame(const AvatarData& avatar) {
 
     auto recordingBasis = avatar.getRecordingBasis();
     if (recordingBasis) {
+        root[JSON_AVATAR_BASIS] = Transform::toJson(*recordingBasis);
         // Find the relative transform
         auto relativeTransform = recordingBasis->relativeTransform(avatar.getTransform());
-
-        // if the resulting relative basis is identity, we shouldn't record anything
-        if (!relativeTransform.isIdentity()) {
-            root[JSON_AVATAR_RELATIVE] = Transform::toJson(relativeTransform);
-            root[JSON_AVATAR_BASIS] = Transform::toJson(*recordingBasis);
-        }
+        root[JSON_AVATAR_RELATIVE] = Transform::toJson(relativeTransform);
     } else {
         root[JSON_AVATAR_RELATIVE] = Transform::toJson(avatar.getTransform());
     }
@@ -1484,6 +1480,9 @@ QByteArray AvatarData::toFrame(const AvatarData& avatar) {
 
 void AvatarData::fromFrame(const QByteArray& frameData, AvatarData& result) {
     QJsonDocument doc = QJsonDocument::fromBinaryData(frameData);
+#ifdef WANT_JSON_DEBUG
+    qDebug() << doc.toJson(QJsonDocument::JsonFormat::Indented);
+#endif
     QJsonObject root = doc.object();
 
     if (root.contains(JSON_AVATAR_HEAD_MODEL)) {
