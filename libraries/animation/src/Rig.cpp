@@ -23,6 +23,19 @@
 #include "AnimSkeleton.h"
 #include "IKTarget.h"
 
+/*
+const glm::vec3 DEFAULT_RIGHT_EYE_POS(-0.3f, 1.6f, 0.0f);
+const glm::vec3 DEFAULT_LEFT_EYE_POS(0.3f, 1.6f, 0.0f);
+const glm::vec3 DEFAULT_HEAD_POS(0.0f, 1.55f, 0.0f);
+const glm::vec3 DEFAULT_NECK_POS(0.0f, 1.5f, 0.0f);
+*/
+
+// 2 meter tall dude
+const glm::vec3 DEFAULT_RIGHT_EYE_POS(-0.3f, 1.9f, 0.0f);
+const glm::vec3 DEFAULT_LEFT_EYE_POS(0.3f, 1.9f, 0.0f);
+const glm::vec3 DEFAULT_HEAD_POS(0.0f, 1.75f, 0.0f);
+const glm::vec3 DEFAULT_NECK_POS(0.0f, 1.70f, 0.0f);
+
 void insertSorted(QList<AnimationHandlePointer>& handles, const AnimationHandlePointer& handle) {
     for (QList<AnimationHandlePointer>::iterator it = handles.begin(); it != handles.end(); it++) {
         if (handle->getPriority() > (*it)->getPriority()) {
@@ -410,17 +423,19 @@ void Rig::calcAnimAlpha(float speed, const std::vector<float>& referenceSpeeds, 
 void Rig::computeEyesInRootFrame(const AnimPoseVec& poses) {
     // TODO: use cached eye/hips indices for these calculations
     int numPoses = poses.size();
-    int rightEyeIndex = _animSkeleton->nameToJointIndex(QString("RightEye"));
-    int leftEyeIndex = _animSkeleton->nameToJointIndex(QString("LeftEye"));
-    if (numPoses > rightEyeIndex && numPoses > leftEyeIndex
-            && rightEyeIndex > 0 && leftEyeIndex > 0) {
-        int hipsIndex = _animSkeleton->nameToJointIndex(QString("Hips"));
-        int headIndex = _animSkeleton->nameToJointIndex(QString("Head"));
-        if (hipsIndex >= 0 && headIndex > 0) {
+    int hipsIndex = _animSkeleton->nameToJointIndex(QString("Hips"));
+    int headIndex = _animSkeleton->nameToJointIndex(QString("Head"));
+    if (hipsIndex > 0 && headIndex > 0) {
+        int rightEyeIndex = _animSkeleton->nameToJointIndex(QString("RightEye"));
+        int leftEyeIndex = _animSkeleton->nameToJointIndex(QString("LeftEye"));
+        if (numPoses > rightEyeIndex && numPoses > leftEyeIndex && rightEyeIndex > 0 && leftEyeIndex > 0) {
             glm::vec3 rightEye = _animSkeleton->getAbsolutePose(rightEyeIndex, poses).trans;
             glm::vec3 leftEye = _animSkeleton->getAbsolutePose(leftEyeIndex, poses).trans;
             glm::vec3 hips = _animSkeleton->getAbsolutePose(hipsIndex, poses).trans;
             _eyesInRootFrame = 0.5f * (rightEye + leftEye) - hips;
+        } else {
+            glm::vec3 hips = _animSkeleton->getAbsolutePose(hipsIndex, poses).trans;
+            _eyesInRootFrame = 0.5f * (DEFAULT_RIGHT_EYE_POS + DEFAULT_LEFT_EYE_POS) - hips;
         }
     }
 }
@@ -1171,11 +1186,6 @@ static void computeHeadNeckAnimVars(AnimSkeleton::ConstPointer skeleton, const A
     int leftEyeIndex = skeleton->nameToJointIndex("LeftEye");
     int headIndex = skeleton->nameToJointIndex("Head");
     int neckIndex = skeleton->nameToJointIndex("Neck");
-
-    const glm::vec3 DEFAULT_RIGHT_EYE_POS(-0.3f, 1.6f, 0.0f);
-    const glm::vec3 DEFAULT_LEFT_EYE_POS(0.3f, 1.6f, 0.0f);
-    const glm::vec3 DEFAULT_HEAD_POS(0.0f, 1.55f, 0.0f);
-    const glm::vec3 DEFAULT_NECK_POS(0.0f, 1.5f, 0.0f);
 
     // Use absolute bindPose positions just in case the relBindPose have rotations we don't expect.
     glm::vec3 absRightEyePos = rightEyeIndex != -1 ? skeleton->getAbsoluteBindPose(rightEyeIndex).trans : DEFAULT_RIGHT_EYE_POS;
