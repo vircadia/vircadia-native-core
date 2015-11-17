@@ -378,7 +378,7 @@ qint64 LimitedNodeList::sendPacketList(std::unique_ptr<NLPacketList> packetList,
 
 qint64 LimitedNodeList::sendPacketList(std::unique_ptr<NLPacketList> packetList, const Node& destinationNode) {
     auto activeSocket = destinationNode.getActiveSocket();
-    if (!activeSocket) {
+    if (activeSocket) {
         // close the last packet in the list
         packetList->closeCurrentPacket();
         
@@ -397,7 +397,7 @@ qint64 LimitedNodeList::sendPacketList(std::unique_ptr<NLPacketList> packetList,
 
 qint64 LimitedNodeList::sendPacket(std::unique_ptr<NLPacket> packet, const Node& destinationNode,
                                    const HifiSockAddr& overridenSockAddr) {
-    if (!overridenSockAddr.isNull() && !destinationNode.getActiveSocket()) {
+    if (overridenSockAddr.isNull() && !destinationNode.getActiveSocket()) {
         qCDebug(networking) << "LimitedNodeList::sendPacket called without active socket for node. Not sending.";
         return 0;
     }
