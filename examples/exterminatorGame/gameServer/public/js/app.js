@@ -51,10 +51,13 @@ var GameBoard = React.createClass({
     var path = window.location.hostname + ":" + window.location.port;
     console.log("LOCATION ", path);
     var socketClient = new WebSocket("ws://" + path);
+    var self = this;
     socketClient.onopen = function () {
       console.log("CONNECTED");
-      socketClient.onmessage = function () {
+      socketClient.onmessage = function (data) {
         console.log("ON MESSAGE");
+        // debugger
+        self.setState({ data: JSON.parse(data.data) });
       };
     };
   },
