@@ -37,7 +37,10 @@ signals:
 
 private slots:
     void handleMessagesPacket(QSharedPointer<NLPacketList> packetList, SharedNodePointer senderNode);
-    void handleNodeKilled(SharedNodePointer node);
+    void handleNodeAdded(SharedNodePointer node);
+
+protected:
+    QSet<QString> _subscribedChannels;
 };
 
 #endif

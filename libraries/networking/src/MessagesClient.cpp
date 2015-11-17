@@ -27,7 +27,7 @@ MessagesClient::MessagesClient() {
     auto nodeList = DependencyManager::get<NodeList>();
     auto& packetReceiver = nodeList->getPacketReceiver();
     packetReceiver.registerMessageListener(PacketType::MessagesData, this, "handleMessagesPacket");
-    connect(nodeList.data(), &LimitedNodeList::nodeKilled, this, &MessagesClient::handleNodeKilled);
+    connect(nodeList.data(), &LimitedNodeList::nodeAdded, this, &MessagesClient::handleNodeAdded);
 }
 
 void MessagesClient::init() {
@@ -75,10 +75,8 @@ void MessagesClient::sendMessage(const QString& channel, const QString& message)
     }
 }
 
-// FIXME - we should keep track of the channels we are subscribed to locally, and
-// in the event that they mixer goes away and/or comes back we should automatically
-// resubscribe to those channels
 void MessagesClient::subscribe(const QString& channel) {
+    _subscribedChannels << channel;
     auto nodeList = DependencyManager::get<NodeList>();
     SharedNodePointer messagesMixer = nodeList->soloNodeOfType(NodeType::MessagesMixer);
 
@@ -90,6 +88,7 @@ void MessagesClient::subscribe(const QString& channel) {
 }
 
 void MessagesClient::unsubscribe(const QString& channel) {
+    _subscribedChannels.remove(channel);
     auto nodeList = DependencyManager::get<NodeList>();
     SharedNodePointer messagesMixer = nodeList->soloNodeOfType(NodeType::MessagesMixer);
 
@@ -100,9 +99,10 @@ void MessagesClient::unsubscribe(const QString& channel) {
     }
 }
 
-void MessagesClient::handleNodeKilled(SharedNodePointer node) {
-    if (node->getType() != NodeType::MessagesMixer) {
-        return;
+void MessagesClient::handleNodeAdded(SharedNodePointer node) {
+    if (node->getType() == NodeType::MessagesMixer) {
+        for (const auto& channel : _subscribedChannels) {
+            subscribe(channel);
+        }
     }
-    // FIXME - do we need to do any special bookkeeping for when the messages mixer is no longer available
 }
