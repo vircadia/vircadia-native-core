@@ -14,6 +14,7 @@
 
 #include <atomic>
 
+#include <QtCore/QElapsedTimer>
 #include <QtCore/QObject>
 #include <QtCore/QSharedPointer>
 #include <QtCore/QThread>
@@ -94,6 +95,10 @@ private:
     std::unique_ptr<NLPacket> _currentPacket { nullptr };
     AbstractAudioInterface* _localAudioInterface { nullptr };
     AudioInjectorLocalBuffer* _localBuffer { nullptr };
+    
+    int _nextFrame { 0 };
+    std::unique_ptr<QElapsedTimer> _frameTimer { nullptr };
+    quint16 _outgoingSequenceNumber { 0 };
     
     friend class AudioInjectorManager;
 };

@@ -94,6 +94,9 @@ void AudioInjectorManager::run() {
             _injectorReady.wait(lock);
         }
         
+        // unlock the lock in case something in process events needs to modify the queue
+        lock.unlock();
+        
         QCoreApplication::processEvents();
     }
 }

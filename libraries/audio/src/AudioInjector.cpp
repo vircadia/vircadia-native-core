@@ -165,9 +165,6 @@ uint64_t AudioInjector::injectNextFrame() {
     static int positionOptionOffset = -1;
     static int volumeOptionOffset = -1;
     static int audioDataOffset = -1;
-    static quint16 outgoingInjectedAudioSequenceNumber = 0;
-    static int nextFrame = 0;
-    static QElapsedTimer frameTimer;
     
     if (!_currentPacket) {
         if (_currentSendOffset < 0 ||
@@ -178,8 +175,14 @@ uint64_t AudioInjector::injectNextFrame() {
         // make sure we actually have samples downloaded to inject
         if (_audioData.size()) {
             
-            nextFrame = 0;
-            frameTimer.restart();
+            _outgoingSequenceNumber = 0;
+            _nextFrame = 0;
+            
+            if (!_frameTimer) {
+                _frameTimer = std::unique_ptr<QElapsedTimer>(new QElapsedTimer);
+            }
+            
+            _frameTimer->restart();
             
             _currentPacket = NLPacket::create(PacketType::InjectAudio);
             
@@ -242,7 +245,7 @@ uint64_t AudioInjector::injectNextFrame() {
     _currentPacket->seek(0);
     
     // pack the sequence number
-    _currentPacket->writePrimitive(outgoingInjectedAudioSequenceNumber);
+    _currentPacket->writePrimitive(_outgoingSequenceNumber);
     
     _currentPacket->seek(positionOptionOffset);
     _currentPacket->writePrimitive(_options.position);
@@ -267,7 +270,7 @@ uint64_t AudioInjector::injectNextFrame() {
     if (audioMixer) {
         // send off this audio packet
         nodeList->sendUnreliablePacket(*_currentPacket, *audioMixer);
-        outgoingInjectedAudioSequenceNumber++;
+        _outgoingSequenceNumber++;
     }
     
     _currentSendOffset += bytesToCopy;
@@ -290,7 +293,7 @@ uint64_t AudioInjector::injectNextFrame() {
         // immediately send the first two frames so the mixer can start using the audio right away
         return NEXT_FRAME_DELTA_IMMEDIATELY;
     } else {
-        return (++nextFrame * AudioConstants::NETWORK_FRAME_USECS) - frameTimer.nsecsElapsed() / 1000;
+        return (++_nextFrame * AudioConstants::NETWORK_FRAME_USECS) - _frameTimer->nsecsElapsed() / 1000;
     }
     
 }
