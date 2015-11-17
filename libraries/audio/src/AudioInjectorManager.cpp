@@ -46,7 +46,7 @@ void AudioInjectorManager::createThread() {
     _thread->setObjectName("Audio Injector Thread");
     
     // when the thread is started, have it call our run to handle injection of audio
-    connect(_thread, &QThread::started, this, &AudioInjectorManager::run);
+    connect(_thread, &QThread::started, this, &AudioInjectorManager::run, Qt::DirectConnection);
     
     // start the thread
     _thread->start();
