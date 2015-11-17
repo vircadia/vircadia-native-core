@@ -50,7 +50,6 @@ var GameBoard = React.createClass({
         console.log("CONNECTED");
         socketClient.onmessage = function(data) {
             console.log("ON MESSAGE");
-            // debugger
             self.setState({data: JSON.parse(data.data)});
         };
     };
