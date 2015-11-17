@@ -48,8 +48,8 @@ MessagesMixer::MessagesMixer(NLPacket& packet) :
     connect(DependencyManager::get<NodeList>().data(), &NodeList::nodeKilled, this, &MessagesMixer::nodeKilled);
 
     auto& packetReceiver = DependencyManager::get<NodeList>()->getPacketReceiver();
-    packetReceiver.registerListener(PacketType::MessagesData, this, "handleMessagesPacket");
-    packetReceiver.registerListener(PacketType::MessagesData, this, "handleMessagesPacketList");
+    //packetReceiver.registerListener(PacketType::MessagesData, this, "handleMessagesPacket");
+    packetReceiver.registerMessageListener(PacketType::MessagesData, this, "handleMessagesPacketList");
 }
 
 MessagesMixer::~MessagesMixer() {
