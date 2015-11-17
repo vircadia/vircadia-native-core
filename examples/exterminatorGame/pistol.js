@@ -17,12 +17,11 @@ Script.include("../libraries/utils.js");
 Script.include("../libraries/constants.js");
 
 var gameName = "Kill All The Rats!"
-var HOST = "localhost:5000"
+// var HOST = "localhost:5000"
+var HOST = "desolate-bastion-1742.herokuapp.com";
 var socketClient = new WebSocket("ws://" + HOST);
 var username = GlobalServices.username;
-var username = "rand " + Math.floor(Math.random() * 100);
 var currentScore = 0;
-// var HOST = "desolate-bastion-1742.herokuapp.com";
 
 function score() {
     currentScore++;
