@@ -106,6 +106,33 @@ void MessagesClient::sendMessage(const QString& channel, const QString& message)
     }
 }
 
+// FIXME - we should keep track of the channels we are subscribed to locally, and
+// in the event that they mixer goes away and/or comes back we should automatically
+// resubscribe to those channels
+void MessagesClient::subscribe(const QString& channel) {
+    qDebug() << "MessagesClient::subscribe() channel:" << channel;
+    auto nodeList = DependencyManager::get<NodeList>();
+    SharedNodePointer messagesMixer = nodeList->soloNodeOfType(NodeType::MessagesMixer);
+
+    if (messagesMixer) {
+        auto packetList = NLPacketList::create(PacketType::MessagesSubscribe, QByteArray(), true, true);
+        packetList->write(channel.toUtf8());
+        nodeList->sendPacketList(std::move(packetList), *messagesMixer);
+    }
+}
+
+void MessagesClient::unsubscribe(const QString& channel) {
+    qDebug() << "MessagesClient::unsubscribe() channel:" << channel;
+    auto nodeList = DependencyManager::get<NodeList>();
+    SharedNodePointer messagesMixer = nodeList->soloNodeOfType(NodeType::MessagesMixer);
+
+    if (messagesMixer) {
+        auto packetList = NLPacketList::create(PacketType::MessagesUnsubscribe, QByteArray(), true, true);
+        packetList->write(channel.toUtf8());
+        nodeList->sendPacketList(std::move(packetList), *messagesMixer);
+    }
+}
+
 void MessagesClient::handleNodeKilled(SharedNodePointer node) {
     if (node->getType() != NodeType::MessagesMixer) {
         return;

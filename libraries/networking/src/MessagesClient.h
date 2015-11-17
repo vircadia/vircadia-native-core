@@ -29,6 +29,8 @@ public:
     Q_INVOKABLE void init();
 
     Q_INVOKABLE void sendMessage(const QString& channel, const QString& message);
+    Q_INVOKABLE void subscribe(const QString& channel);
+    Q_INVOKABLE void unsubscribe(const QString& channel);
 
 private slots:
     void handleMessagesPacket(QSharedPointer<NLPacketList> packetList, SharedNodePointer senderNode);
