@@ -135,8 +135,6 @@ void MessagesMixer::sendStatsPacket() {
 void MessagesMixer::run() {
     ThreadedAssignment::commonInit(MESSAGES_MIXER_LOGGING_NAME, NodeType::MessagesMixer);
 
-    NodeType_t owningNodeType = DependencyManager::get<NodeList>()->getOwnerType();
-
     auto nodeList = DependencyManager::get<NodeList>();
     nodeList->addNodeTypeToInterestSet(NodeType::Agent);
 

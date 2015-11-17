@@ -112,7 +112,6 @@ int EntityServer::sendSpecialPackets(const SharedNodePointer& node, OctreeQueryN
         quint64 deletePacketSentAt = usecTimestampNow();
         EntityTreePointer tree = std::static_pointer_cast<EntityTree>(_tree);
         auto recentlyDeleted = tree->getRecentlyDeletedEntityIDs();
-        bool hasMoreToSend = true;
 
         packetsSent = 0;
 
