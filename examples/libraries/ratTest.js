@@ -1,7 +1,25 @@
-Script.include('steer.js')
+Script.include('steer.js');
 var steer = loadSteer();
 Script.include('tween.js');
 var TWEEN = loadTween();
+
+var RAT_NEST_LOCATION = {
+    x: 0,
+    y: 0,
+    z: 0
+};
+
+var RAT_SPAWNER_LOCATION = {
+    x: 0,
+    y: 0,
+    z: 0
+};
+
+var AVOIDER_BLOCK_START_LOCATION = {
+    x: 0,
+    y: 0,
+    z: 0
+};
 
 var ratProperties = {
     name: 'Hifi-Rat-Nest',
@@ -16,11 +34,7 @@ var ratProperties = {
         y: 1,
         z: 1
     },
-    position: {
-        x: 0,
-        y: 0,
-        z: 0
-    }
+    position: RAT_SPAWNER_LOCATION
 };
 
 var targetProperties = {
@@ -36,11 +50,7 @@ var targetProperties = {
         y: 1,
         z: 1
     },
-    position: {
-        x: 5,
-        y: 0,
-        z: 0
-    }
+    position: RAT_NEST_LOCATION
     // script: Script.resolvePath('rat.js')
 };
 
@@ -75,12 +85,16 @@ function addAvoiderBlock() {
             x: 1,
             y: 1,
             z: 1
-        }
+        },
+        collisionsWillMove:false,
+        ignoreForCollisions:true,
+        visible: true
     }
 
     var avoider = Entities.addEntity(avoiderProperties);
     avoiders.push(avoider)
 }
+
 addAvoiderBlock();
 tweenAvoider(avoiders[0]);
 
