@@ -91,7 +91,17 @@ void MessagesClient::sendMessage(const QString& channel, const QString& message)
     
     if (messagesMixer) {
         auto packetList = NLPacketList::create(PacketType::MessagesData, QByteArray(), true, true);
-        packetList->write(message.toUtf8());
+
+        auto channelUtf8 = channel.toUtf8();
+        quint16 channelLength = channelUtf8.length();
+        packetList->writePrimitive(channelLength);
+        packetList->write(channelUtf8);
+
+        auto messageUtf8 = message.toUtf8();
+        quint16 messageLength = messageUtf8.length();
+        packetList->writePrimitive(messageLength);
+        packetList->write(messageUtf8);
+
         nodeList->sendPacketList(std::move(packetList), *messagesMixer);
     }
 }

@@ -23,23 +23,22 @@ class MessagesMixer : public ThreadedAssignment {
 public:
     MessagesMixer(NLPacket& packet);
     ~MessagesMixer();
-public slots:
-    /// runs the avatar mixer
-    void run();
 
+public slots:
+    void run();
     void nodeKilled(SharedNodePointer killedNode);
-    
     void sendStatsPacket();
 
 private slots:
-    void handleMessagesPacketList(QSharedPointer<NLPacketList> packetList, SharedNodePointer senderNode);
-    void handleMessagesPacket(QSharedPointer<NLPacket> packet, SharedNodePointer sendingNode);
+    void handleMessages(QSharedPointer<NLPacketList> packetList, SharedNodePointer senderNode);
+    void handleMessagesSubscribe(QSharedPointer<NLPacketList> packetList, SharedNodePointer senderNode);
+    void handleMessagesUnsubscribe(QSharedPointer<NLPacketList> packetList, SharedNodePointer senderNode);
 
 private:
-    void broadcastMessagesData();
     void parseDomainServerSettings(const QJsonObject& domainSettings);
-    
-    QThread _broadcastThread;
+
+
+    QHash<QString,QSet<QUuid>> _channelSubscribers;
     
     quint64 _lastFrameTimestamp;
     
@@ -50,10 +49,6 @@ private:
     int _numStatFrames;
     int _sumBillboardPackets;
     int _sumIdentityPackets;
-
-    float _maxKbpsPerNode = 0.0f;
-
-    QTimer* _broadcastTimer = nullptr;
 };
 
 #endif // hifi_MessagesMixer_h

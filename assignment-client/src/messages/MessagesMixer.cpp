@@ -17,6 +17,7 @@
 #include <QtCore/QJsonObject>
 #include <QtCore/QTimer>
 #include <QtCore/QThread>
+#include <QBuffer>
 
 #include <LogHandler.h>
 #include <NodeList.h>
@@ -25,7 +26,6 @@
 #include <UUID.h>
 #include <TryLocker.h>
 
-#include "MessagesMixerClientData.h"
 #include "MessagesMixer.h"
 
 const QString MESSAGES_MIXER_LOGGING_NAME = "messages-mixer";
@@ -35,7 +35,6 @@ const unsigned int MESSAGES_DATA_SEND_INTERVAL_MSECS = (1.0f / (float) MESSAGES_
 
 MessagesMixer::MessagesMixer(NLPacket& packet) :
     ThreadedAssignment(packet),
-    _broadcastThread(),
     _lastFrameTimestamp(QDateTime::currentMSecsSinceEpoch()),
     _trailingSleepRatio(1.0f),
     _performanceThrottlingRatio(0.0f),
@@ -48,17 +47,12 @@ MessagesMixer::MessagesMixer(NLPacket& packet) :
     connect(DependencyManager::get<NodeList>().data(), &NodeList::nodeKilled, this, &MessagesMixer::nodeKilled);
 
     auto& packetReceiver = DependencyManager::get<NodeList>()->getPacketReceiver();
-    //packetReceiver.registerListener(PacketType::MessagesData, this, "handleMessagesPacket");
-    packetReceiver.registerMessageListener(PacketType::MessagesData, this, "handleMessagesPacketList");
+    packetReceiver.registerMessageListener(PacketType::MessagesData, this, "handleMessages");
+    packetReceiver.registerMessageListener(PacketType::MessagesSubscribe, this, "handleMessagesSubscribe");
+    packetReceiver.registerMessageListener(PacketType::MessagesUnsubscribe, this, "handleMessagesUnsubscribe");
 }
 
 MessagesMixer::~MessagesMixer() {
-    if (_broadcastTimer) {
-        _broadcastTimer->deleteLater();
-    }
-
-    _broadcastThread.quit();
-    _broadcastThread.wait();
 }
 
 // An 80% chance of sending a identity packet within a 5 second interval.
@@ -93,52 +87,55 @@ void MessagesMixer::nodeKilled(SharedNodePointer killedNode) {
     }
 }
 
-void MessagesMixer::handleMessagesPacketList(QSharedPointer<NLPacketList> packetList, SharedNodePointer senderNode) {
-    qDebug() << "MessagesMixer::handleMessagesPacketList()... senderNode:" << senderNode->getUUID();
+void MessagesMixer::handleMessages(QSharedPointer<NLPacketList> packetList, SharedNodePointer senderNode) {
+    Q_ASSERT(packetList->getType() == PacketType::MessagesData);
 
+    qDebug() << "MessagesMixer::handleMessages()... senderNode:" << senderNode->getUUID();
+
+    QByteArray packetData = packetList->getMessage();
+    QBuffer packet{ &packetData };
+    packet.open(QIODevice::ReadOnly);
+
+    quint16 channelLength;
+    packet.read(reinterpret_cast<char*>(&channelLength), sizeof(channelLength));
+    auto channelData = packet.read(channelLength);
+    QString channel = QString::fromUtf8(channelData);
+
+    quint16 messageLength;
+    packet.read(reinterpret_cast<char*>(&messageLength), sizeof(messageLength));
+    auto messageData = packet.read(messageLength);
+    QString message = QString::fromUtf8(messageData);
+    
+    
     auto nodeList = DependencyManager::get<NodeList>();
-    //nodeList->updateNodeWithDataFromPacket(packet, senderNode);
 
-    QByteArray data = packetList->getMessage();
-    auto packetType = packetList->getType();
+    qDebug() << "got a messages:" << message << "on channel:" << channel << "from node:" << senderNode->getUUID();
 
-    if (packetType == PacketType::MessagesData) {
-        QString message = QString::fromUtf8(data);
-        qDebug() << "got a messages packet:" << message;
+    // this was an avatar we were sending to other people
+    // send a kill packet for it to our other nodes
+    //auto killPacket = NLPacket::create(PacketType::KillAvatar, NUM_BYTES_RFC4122_UUID);
+    //killPacket->write(killedNode->getUUID().toRfc4122());
+    //nodeList->broadcastToNodes(std::move(killPacket), NodeSet() << NodeType::Agent);
+}
 
-        // this was an avatar we were sending to other people
-        // send a kill packet for it to our other nodes
-        //auto killPacket = NLPacket::create(PacketType::KillAvatar, NUM_BYTES_RFC4122_UUID);
-        //killPacket->write(killedNode->getUUID().toRfc4122());
-        //nodeList->broadcastToNodes(std::move(killPacket), NodeSet() << NodeType::Agent);
+void MessagesMixer::handleMessagesSubscribe(QSharedPointer<NLPacketList> packetList, SharedNodePointer senderNode) {
+    Q_ASSERT(packetList->getType() == PacketType::MessagesSubscribe);
+    QString channel = QString::fromUtf8(packetList->getMessage());
+    qDebug() << "Node [" << senderNode->getUUID() << "] subscribed to channel:" << channel;
+    _channelSubscribers[channel] << senderNode->getUUID();
+}
 
+void MessagesMixer::handleMessagesUnsubscribe(QSharedPointer<NLPacketList> packetList, SharedNodePointer senderNode) {
+    Q_ASSERT(packetList->getType() == PacketType::MessagesUnsubscribe);
+    QString channel = QString::fromUtf8(packetList->getMessage());
+    qDebug() << "Node [" << senderNode->getUUID() << "] unsubscribed from channel:" << channel;
+
+    if (_channelSubscribers.contains(channel)) {
+        _channelSubscribers[channel].remove(senderNode->getUUID());
     }
 }
 
-void MessagesMixer::handleMessagesPacket(QSharedPointer<NLPacket> packet, SharedNodePointer sendingNode) {
-    qDebug() << "MessagesMixer::handleMessagesPacket()... senderNode:" << sendingNode->getUUID();
-
-    /*
-    auto nodeList = DependencyManager::get<NodeList>();
-    //nodeList->updateNodeWithDataFromPacket(packet, senderNode);
-
-    QByteArray data = packetList->getMessage();
-    auto packetType = packetList->getType();
-
-    if (packetType == PacketType::MessagesData) {
-        QString message = QString::fromUtf8(data);
-        qDebug() << "got a messages packet:" << message;
-
-        // this was an avatar we were sending to other people
-        // send a kill packet for it to our other nodes
-        //auto killPacket = NLPacket::create(PacketType::KillAvatar, NUM_BYTES_RFC4122_UUID);
-        //killPacket->write(killedNode->getUUID().toRfc4122());
-        //nodeList->broadcastToNodes(std::move(killPacket), NodeSet() << NodeType::Agent);
-
-    }
-    */
-}
-
+// FIXME - make these stats relevant
 void MessagesMixer::sendStatsPacket() {
     QJsonObject statsObject;
     statsObject["average_listeners_last_second"] = (float) _sumListeners / (float) _numStatFrames;
@@ -160,18 +157,6 @@ void MessagesMixer::sendStatsPacket() {
         messagesStats[NODE_OUTBOUND_KBPS_STAT_KEY] = node->getOutboundBandwidth();
         messagesStats[NODE_INBOUND_KBPS_STAT_KEY] = node->getInboundBandwidth();
 
-        MessagesMixerClientData* clientData = static_cast<MessagesMixerClientData*>(node->getLinkedData());
-        if (clientData) {
-            MutexTryLocker lock(clientData->getMutex());
-            if (lock.isLocked()) {
-                clientData->loadJSONStats(messagesStats);
-
-                // add the diff between the full outbound bandwidth and the measured bandwidth for AvatarData send only
-                messagesStats["delta_full_vs_avatar_data_kbps"] =
-                    messagesStats[NODE_OUTBOUND_KBPS_STAT_KEY].toDouble() - messagesStats[OUTBOUND_MESSAGES_DATA_STATS_KEY].toDouble();
-            }
-        }
-
         messagesObject[uuidStringWithoutCurlyBraces(node->getUUID())] = messagesStats;
     });
 
@@ -192,19 +177,8 @@ void MessagesMixer::run() {
     nodeList->addNodeTypeToInterestSet(NodeType::Agent);
 
     nodeList->linkedDataCreateCallback = [] (Node* node) {
-        node->setLinkedData(new MessagesMixerClientData());
+        // no need to link data
     };
-
-    /*
-    // setup the timer that will be fired on the broadcast thread
-    _broadcastTimer = new QTimer;
-    _broadcastTimer->setInterval(MESSAGES_DATA_SEND_INTERVAL_MSECS);
-    _broadcastTimer->moveToThread(&_broadcastThread);
-
-    // connect appropriate signals and slots
-    connect(_broadcastTimer, &QTimer::timeout, this, &MessagesMixer::broadcastMessagesData, Qt::DirectConnection);
-    connect(&_broadcastThread, SIGNAL(started()), _broadcastTimer, SLOT(start()));
-    */
 
     // wait until we have the domain-server settings, otherwise we bail
     DomainHandler& domainHandler = nodeList->getDomainHandler();
@@ -212,7 +186,6 @@ void MessagesMixer::run() {
     qDebug() << "Waiting for domain settings from domain-server.";
 
     // block until we get the settingsRequestComplete signal
-
     QEventLoop loop;
     connect(&domainHandler, &DomainHandler::settingsReceived, &loop, &QEventLoop::quit);
     connect(&domainHandler, &DomainHandler::settingsReceiveFail, &loop, &QEventLoop::quit);
@@ -227,22 +200,16 @@ void MessagesMixer::run() {
 
     // parse the settings to pull out the values we need
     parseDomainServerSettings(domainHandler.getSettingsObject());
-
-    // start the broadcastThread
-    //_broadcastThread.start();
 }
 
 void MessagesMixer::parseDomainServerSettings(const QJsonObject& domainSettings) {
     qDebug() << "MessagesMixer::parseDomainServerSettings() domainSettings:" << domainSettings;
     const QString MESSAGES_MIXER_SETTINGS_KEY = "messages_mixer";
-    const QString NODE_SEND_BANDWIDTH_KEY = "max_node_send_bandwidth";
 
-    const float DEFAULT_NODE_SEND_BANDWIDTH = 1.0f;
-    QJsonValue nodeBandwidthValue = domainSettings[MESSAGES_MIXER_SETTINGS_KEY].toObject()[NODE_SEND_BANDWIDTH_KEY];
-    if (!nodeBandwidthValue.isDouble()) {
-        qDebug() << NODE_SEND_BANDWIDTH_KEY << "is not a double - will continue with default value";
-    }
-
-    _maxKbpsPerNode = nodeBandwidthValue.toDouble(DEFAULT_NODE_SEND_BANDWIDTH) * KILO_PER_MEGA;
-    qDebug() << "The maximum send bandwidth per node is" << _maxKbpsPerNode << "kbps.";
+    // TODO - if we want options, parse them here...
+    //
+    // QJsonValue nodeBandwidthValue = domainSettings[MESSAGES_MIXER_SETTINGS_KEY].toObject()[NODE_SEND_BANDWIDTH_KEY];
+    // if (!nodeBandwidthValue.isDouble()) {
+    //     qDebug() << NODE_SEND_BANDWIDTH_KEY << "is not a double - will continue with default value";
+    // }
 }

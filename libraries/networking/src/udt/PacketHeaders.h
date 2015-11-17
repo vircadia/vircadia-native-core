@@ -88,7 +88,9 @@ public:
         AssetGetInfoReply,
         DomainDisconnectRequest,
         DomainServerRemovedNode,
-        MessagesData
+        MessagesData,
+        MessagesSubscribe,
+        MessagesUnsubscribe
     };
 };
 
