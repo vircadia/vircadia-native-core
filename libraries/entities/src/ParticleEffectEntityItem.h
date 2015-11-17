@@ -226,6 +226,7 @@ protected:
     void updateAlpha(quint32 index, float age);
     void integrateParticle(quint32 index, float deltaTime);
     quint32 getLivingParticleCount() const;
+    
     // the properties of this entity
     rgbColor _color;
     xColor _colorStart = DEFAULT_COLOR;

@@ -37,8 +37,8 @@ public:
         _vertexBuffer(std::make_shared<gpu::Buffer>()),
         _indexBuffer(std::make_shared<gpu::Buffer>()) {
 
-        _vertexFormat->setAttribute(gpu::Stream::POSITION, 0, gpu::Element::VEC3F_XYZ, 0);
-        _vertexFormat->setAttribute(gpu::Stream::TEXCOORD, 0, gpu::Element(gpu::VEC2, gpu::FLOAT, gpu::UV), offsetof(Vertex, uv));
+        _vertexFormat->setAttribute(gpu::Stream::POSITION, 0, gpu::Element::VEC3F_XYZ, offsetof(Vertex, xyz));
+        _vertexFormat->setAttribute(gpu::Stream::TEXCOORD, 0, gpu::Element::VEC2F_UV, offsetof(Vertex, uv));
         _vertexFormat->setAttribute(gpu::Stream::COLOR, 0, gpu::Element::COLOR_RGBA_32, offsetof(Vertex, rgba));
     }
 
@@ -134,16 +134,15 @@ bool RenderableParticleEffectEntityItem::addToScene(EntityItemPointer self,
                                                     render::ScenePointer scene,
                                                     render::PendingChanges& pendingChanges) {
 
+    _scene = scene;
+    _renderItemId = _scene->allocateID();
     auto particlePayload = std::make_shared<ParticlePayload>(shared_from_this());
     particlePayload->setPipeline(_untexturedPipeline);
-    _renderItemId = scene->allocateID();
-    auto renderData = ParticlePayload::Pointer(particlePayload);
-    auto renderPayload = std::make_shared<ParticlePayload::Payload>(renderData);
+    auto renderPayload = std::make_shared<ParticlePayload::Payload>(particlePayload);
     render::Item::Status::Getters statusGetters;
     makeEntityItemStatusGetters(shared_from_this(), statusGetters);
     renderPayload->addStatusGetters(statusGetters);
     pendingChanges.resetItem(_renderItemId, renderPayload);
-    _scene = scene;
     return true;
 }
 
@@ -175,8 +174,7 @@ uint32_t toRGBA(uint8_t r, uint8_t g, uint8_t b, uint8_t a) {
     return ((uint32_t)r | (uint32_t)g << 8 | (uint32_t)b << 16 | (uint32_t)a << 24);
 }
 
-class ParticleDetails {
-public:
+struct ParticleDetails {
     ParticleDetails(glm::vec3 position, float radius, uint32_t rgba) : position(position), radius(radius), rgba(rgba) { }
 
     glm::vec3 position;
@@ -201,15 +199,13 @@ void RenderableParticleEffectEntityItem::updateRenderItem() {
 
     // sort particles back to front
     // NOTE: this is view frustum might be one frame out of date.
-    
-    auto frustum = AbstractViewStateInterface::instance()->getCurrentViewFrustum();
+    auto direction = AbstractViewStateInterface::instance()->getCurrentViewFrustum()->getDirection();
 
     // No need to sort if we're doing additive blending
     if (!_additiveBlending) {
-        glm::vec3 zSortAxis = frustum->getDirection();
         std::sort(particleDetails.begin(), particleDetails.end(),
                   [&](const ParticleDetails& lhs, const ParticleDetails& rhs) {
-            return glm::dot(lhs.position, zSortAxis) > glm::dot(rhs.position, zSortAxis);
+            return glm::dot(lhs.position, direction) > glm::dot(rhs.position, direction);
         });
     }
 
@@ -219,11 +215,9 @@ void RenderableParticleEffectEntityItem::updateRenderItem() {
     _vertices.clear();
 
     // build vertices from particle positions and radiuses
-    glm::vec3 dir = frustum->getDirection();
-    for (auto&& particle : particleDetails) {
-        glm::vec3 right = glm::normalize(glm::cross(glm::vec3(0.0f, 1.0f, 0.0f), dir));
-        glm::vec3 up = glm::normalize(glm::cross(right, dir));
-
+    glm::vec3 right = glm::normalize(glm::cross(direction, Vectors::UNIT_Y));
+    glm::vec3 up = glm::normalize(glm::cross(right, direction));
+    for (const auto& particle : particleDetails) {
         glm::vec3 upOffset = up * particle.radius;
         glm::vec3 rightOffset = right * particle.radius;
         // generate corners of quad aligned to face the camera.
@@ -237,28 +231,26 @@ void RenderableParticleEffectEntityItem::updateRenderItem() {
     pendingChanges.updateItem<ParticlePayload>(_renderItemId, [this](ParticlePayload& payload) {
         // update vertex buffer
         auto vertexBuffer = payload.getVertexBuffer();
+        auto indexBuffer = payload.getIndexBuffer();
         size_t numBytes = sizeof(Vertex) * _vertices.size();
 
         if (numBytes == 0) {
             vertexBuffer->resize(0);
-            auto indexBuffer = payload.getIndexBuffer();
             indexBuffer->resize(0);
             return;
         }
-
+        
         vertexBuffer->resize(numBytes);
-        gpu::Byte* data = vertexBuffer->editData();
-        memcpy(data, &(_vertices[0]), numBytes);
+        memcpy(vertexBuffer->editData(), _vertices.data(), numBytes);
 
         // FIXME, don't update index buffer if num particles has not changed.
         // update index buffer
-        auto indexBuffer = payload.getIndexBuffer();
         const size_t NUM_VERTS_PER_PARTICLE = 4;
         const size_t NUM_INDICES_PER_PARTICLE = 6;
         auto numQuads = (_vertices.size() / NUM_VERTS_PER_PARTICLE);
         numBytes = sizeof(uint16_t) * numQuads * NUM_INDICES_PER_PARTICLE;
         indexBuffer->resize(numBytes);
-        data = indexBuffer->editData();
+        gpu::Byte* data = indexBuffer->editData();
         auto indexPtr = reinterpret_cast<uint16_t*>(data);
         for (size_t i = 0; i < numQuads; ++i) {
             indexPtr[i * NUM_INDICES_PER_PARTICLE + 0] = i * NUM_VERTS_PER_PARTICLE + 0;
