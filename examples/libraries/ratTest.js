@@ -140,15 +140,15 @@ function updateTweens() {
 
 function moveRats() {
     rats.forEach(function(rat) {
-      //   print('debug1')
+        //   print('debug1')
 
         var avatarFlightVectors = steer.fleeAllAvatars(rat);
-        print('avatarFlightVectors'+avatarFlightVectors)
+        print('avatarFlightVectors' + avatarFlightVectors)
         var i;
         var averageAvatarFlight;
 
         for (i = 0; i < avatarFlightVectors.length; i++) {
-                    print('debug2')
+            print('debug2')
 
             if (i === 0) {
                 averageAvatarFlight = avatarFlightVectors[0];
@@ -174,7 +174,7 @@ function moveRats() {
 
         // averageAvoiderFlight = Vec3.multiply(averageAvoiderFlight, 1 / avoidBlockVectors.length);
 
-    
+
 
         var averageVector;
         var seek = steer.arrive(rat, target);
@@ -190,8 +190,8 @@ function moveRats() {
         // }
 
         averageVector = Vec3.multiply(averageVector, 1 / divisorCount);
-        print('AVERAGE VECTOR:::'+JSON.stringify(averageVector))
-        //  castRay(rat);
+        print('AVERAGE VECTOR:::' + JSON.stringify(averageVector))
+            //  castRay(rat);
         Entities.editEntity(rat, {
             velocity: averageVector
         })
