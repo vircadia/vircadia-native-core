@@ -16,6 +16,9 @@
 Script.include("../../libraries/utils.js");
 Script.include("../../libraries/constants.js");
 
+var GUN_FORCE = 10;
+
+
 var gameName = "Kill All The Rats!"
 // var HOST = "localhost:5000"
 var HOST = "desolate-bastion-1742.herokuapp.com";
@@ -37,7 +40,6 @@ HIFI_PUBLIC_BUCKET = "http://s3.amazonaws.com/hifi-public/";
 var fireSound = SoundCache.getSound("https://s3.amazonaws.com/hifi-public/sounds/Guns/GUN-SHOT2.raw");
 var LASER_LENGTH = 100;
 var LASER_WIDTH = 2;
-var GUN_FORCE = 10;
 var POSE_CONTROLS = [Controller.Standard.LeftHand, Controller.Standard.RightHand];
 var TRIGGER_CONTROLS = [Controller.Standard.LT, Controller.Standard.RT];
 var MIN_THROWER_DELAY = 1000;
@@ -57,12 +59,15 @@ var GUN_OFFSETS = [{
 
 var GUN_ORIENTATIONS = [Quat.fromPitchYawRollDegrees(0, 90, 90), Quat.fromPitchYawRollDegrees(0, -90, 270)];
 
+//x -> y
+//y -> z
+// z -> x
 var BARREL_OFFSETS = [{
-    x: -0.12,
+    x: 0,
     y: 0.12,
     z: 0.04
 }, {
-    x: 0.12,
+    x: 0.0,
     y: 0.12,
     z: 0.04
 }];
@@ -185,6 +190,7 @@ function fire(side, value) {
             if (intersection.properties.name === "rat") {
                 score();
                 createBloodSplatter(intersection.intersection);
+                Entities.deleteEntity(intersection.entityID);
 
             }
             //Attempt to call entity method's shot method
@@ -193,7 +199,7 @@ function fire(side, value) {
             });
             Entities.callEntityMethod(intersection.entityID, 'onShot', [forceDirection]);
 
-        }, 50);
+        }, 0);
 
     }
 }
