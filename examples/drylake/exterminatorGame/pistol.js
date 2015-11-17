@@ -171,7 +171,7 @@ function fire(side, value) {
     };
     createMuzzleFlash(barrelTips[side]);
 
-    var intersection = Entities.findRayIntersection(pickRay, true);
+    var intersection = Entities.findRayIntersectionBlocking(pickRay, true);
     if (intersection.intersects) {
         Script.setTimeout(function() {
             createEntityHitEffect(intersection.intersection);
