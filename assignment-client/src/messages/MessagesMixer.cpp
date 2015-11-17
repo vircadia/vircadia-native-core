@@ -92,8 +92,8 @@ void MessagesMixer::nodeKilled(SharedNodePointer killedNode) {
     }
 }
 
-void MessagesMixer::handleMessagesPacket(QSharedPointer<NLPacketList> packetList, SharedNodePointer senderNode) {
-    qDebug() << "MessagesMixer::handleMessagesPacket()... senderNode:" << senderNode->getUUID();
+void MessagesMixer::handleMessagesPacketList(QSharedPointer<NLPacketList> packetList, SharedNodePointer senderNode) {
+    qDebug() << "MessagesMixer::handleMessagesPacketList()... senderNode:" << senderNode->getUUID();
 
     auto nodeList = DependencyManager::get<NodeList>();
     //nodeList->updateNodeWithDataFromPacket(packet, senderNode);
@@ -112,6 +112,30 @@ void MessagesMixer::handleMessagesPacket(QSharedPointer<NLPacketList> packetList
         //nodeList->broadcastToNodes(std::move(killPacket), NodeSet() << NodeType::Agent);
 
     }
+}
+
+void MessagesMixer::handleMessagesPacket(QSharedPointer<NLPacket> packet, SharedNodePointer sendingNode) {
+    qDebug() << "MessagesMixer::handleMessagesPacket()... senderNode:" << sendingNode->getUUID();
+
+    /*
+    auto nodeList = DependencyManager::get<NodeList>();
+    //nodeList->updateNodeWithDataFromPacket(packet, senderNode);
+
+    QByteArray data = packetList->getMessage();
+    auto packetType = packetList->getType();
+
+    if (packetType == PacketType::MessagesData) {
+        QString message = QString::fromUtf8(data);
+        qDebug() << "got a messages packet:" << message;
+
+        // this was an avatar we were sending to other people
+        // send a kill packet for it to our other nodes
+        //auto killPacket = NLPacket::create(PacketType::KillAvatar, NUM_BYTES_RFC4122_UUID);
+        //killPacket->write(killedNode->getUUID().toRfc4122());
+        //nodeList->broadcastToNodes(std::move(killPacket), NodeSet() << NodeType::Agent);
+
+    }
+    */
 }
 
 void MessagesMixer::sendStatsPacket() {

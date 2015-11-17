@@ -32,8 +32,9 @@ public slots:
     void sendStatsPacket();
 
 private slots:
-    void handleMessagesPacket(QSharedPointer<NLPacketList> packetList, SharedNodePointer senderNode);
-    
+    void handleMessagesPacketList(QSharedPointer<NLPacketList> packetList, SharedNodePointer senderNode);
+    void handleMessagesPacket(QSharedPointer<NLPacket> packet, SharedNodePointer sendingNode);
+
 private:
     void broadcastMessagesData();
     void parseDomainServerSettings(const QJsonObject& domainSettings);
