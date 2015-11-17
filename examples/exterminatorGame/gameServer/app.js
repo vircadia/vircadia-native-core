@@ -20,7 +20,6 @@ var wsServer = new WebSocketServer({
 
 var users = [];
 var connections = [];
-
 wsServer.on('request', function(request) {
     console.log("SOMEONE JOINED");
     var connection = request.accept(null, request.origin);

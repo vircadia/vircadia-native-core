@@ -49,7 +49,7 @@ var GameBoard = React.createClass({
     //set up web socket
     var path = window.location.hostname + ":" + window.location.port;
     console.log("LOCATION ", path);
-    var socketClient = new WebSocket("ws://" + path);
+    var socketClient = new WebSocket("wss://" + path);
     var self = this;
     socketClient.onopen = function () {
       console.log("CONNECTED");
