@@ -84,7 +84,6 @@ void MessagesClient::subscribe(const QString& channel) {
         auto packetList = NLPacketList::create(PacketType::MessagesSubscribe, QByteArray(), true, true);
         packetList->write(channel.toUtf8());
         nodeList->sendPacketList(std::move(packetList), *messagesMixer);
-        qDebug() << "sending MessagesSubscribe for channel:" << channel;
     }
 }
 
@@ -102,10 +101,20 @@ void MessagesClient::unsubscribe(const QString& channel) {
 
 void MessagesClient::handleNodeAdded(SharedNodePointer node) {
     if (node->getType() == NodeType::MessagesMixer) {
-        qDebug() << "messages-mixer node type added...";
-        for (const auto& channel : _subscribedChannels) {
-            qDebug() << "subscribing to channel:" << channel;
-            subscribe(channel);
+        if (!node->getActiveSocket()) {
+            connect(node.data(), &NetworkPeer::socketActivated, this, &MessagesClient::socketActivated);
+        } else {
+            resubscribeToAll();
         }
+    }
+}
+
+void MessagesClient::socketActivated(const HifiSockAddr& sockAddr) {
+    resubscribeToAll();
+}
+
+void MessagesClient::resubscribeToAll() {
+    for (const auto& channel : _subscribedChannels) {
+        subscribe(channel);
     }
 }

@@ -38,8 +38,10 @@ signals:
 private slots:
     void handleMessagesPacket(QSharedPointer<NLPacketList> packetList, SharedNodePointer senderNode);
     void handleNodeAdded(SharedNodePointer node);
+    void socketActivated(const HifiSockAddr& sockAddr);
 
 protected:
+    void resubscribeToAll();
     QSet<QString> _subscribedChannels;
 };
 
