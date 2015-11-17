@@ -12,6 +12,8 @@
 #ifndef hifi_AudioInjector_h
 #define hifi_AudioInjector_h
 
+#include <atomic>
+
 #include <QtCore/QObject>
 #include <QtCore/QSharedPointer>
 #include <QtCore/QThread>
@@ -32,11 +34,17 @@ class AudioInjector : public QObject {
     Q_OBJECT
     
 public:
+    enum class State : uint8_t {
+        NotFinished,
+        NotFinishedWithPendingDelete,
+        Finished
+    };
+    
     AudioInjector(QObject* parent);
     AudioInjector(Sound* sound, const AudioInjectorOptions& injectorOptions);
     AudioInjector(const QByteArray& audioData, const AudioInjectorOptions& injectorOptions);
     
-    bool isFinished() const { return _isFinished; }
+    bool isFinished() const { return _state == State::Finished; }
     
     int getCurrentSendOffset() const { return _currentSendOffset; }
     void setCurrentSendOffset(int currentSendOffset) { _currentSendOffset = currentSendOffset; }
@@ -55,15 +63,14 @@ public slots:
     void restart();
     
     void stop();
-    void triggerDeleteAfterFinish() { _shouldDeleteAfterFinish = true; }
+    void triggerDeleteAfterFinish();
     void stopAndDeleteLater();
     
     const AudioInjectorOptions& getOptions() const { return _options; }
     void setOptions(const AudioInjectorOptions& options) { _options = options;  }
     
     float getLoudness() const { return _loudness; }
-    bool isPlaying() const { return _isPlaying; }
-    void restartPortionAfterFinished();
+    bool isPlaying() const { return _state == State::NotFinished || _state == State::NotFinishedWithPendingDelete; }
     
 signals:
     void finished();
@@ -72,16 +79,14 @@ private:
     void injectToMixer();
     void injectLocally();
     
-    void setIsFinished(bool isFinished);
+    void finish();
     
     QByteArray _audioData;
     AudioInjectorOptions _options;
+    std::atomic<State> _state { State::NotFinished };
+    bool _hasStarted = false;
     bool _shouldStop = false;
     float _loudness = 0.0f;
-    bool _isPlaying = false;
-    bool _isStarted = false;
-    bool _isFinished = false;
-    bool _shouldDeleteAfterFinish = false;
     int _currentSendOffset = 0;
     AbstractAudioInterface* _localAudioInterface = NULL;
     AudioInjectorLocalBuffer* _localBuffer = NULL;

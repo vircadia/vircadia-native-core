@@ -50,6 +50,7 @@
 #include <AssetClient.h>
 #include <AssetUpload.h>
 #include <AutoUpdater.h>
+#include <AudioInjectorManager.h>
 #include <CursorManager.h>
 #include <DeferredLightingEffect.h>
 #include <display-plugins/DisplayPlugin.h>
@@ -332,6 +333,7 @@ bool setupEssentials(int& argc, char** argv) {
     DependencyManager::set<PathUtils>();
     DependencyManager::set<InterfaceActionFactory>();
     DependencyManager::set<AssetClient>();
+    DependencyManager::set<AudioInjectorManager>();
     DependencyManager::set<UserInputMapper>();
     DependencyManager::set<controller::ScriptingInterface, ControllerScriptingInterface>();
     return true;
