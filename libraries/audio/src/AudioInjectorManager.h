@@ -14,7 +14,7 @@
 #ifndef hifi_AudioInjectorManager_h
 #define hifi_AudioInjectorManager_h
 
-#include <list>
+#include <queue>
 #include <mutex>
 
 #include <QtCore/QPointer>
@@ -23,7 +23,9 @@
 #include <DependencyManager.h>
 
 class AudioInjector;
-using AudioInjectorVector = std::vector<QPointer<AudioInjector>>;
+using InjectorQPointer = QPointer<AudioInjector>;
+using TimeInjectorPointerPair = std::pair<uint64_t, InjectorQPointer>;
+using InjectorQueue = std::queue<TimeInjectorPointerPair>;
 
 class AudioInjectorManager : public QObject, public Dependency {
     Q_OBJECT
@@ -34,18 +36,20 @@ private slots:
     void run();
 private:
     bool threadInjector(AudioInjector* injector);
+    void restartFinishedInjector();
+    void addInjectorToQueue(AudioInjector* injector);
     
     AudioInjectorManager() {};
     AudioInjectorManager(const AudioInjectorManager&) = delete;
     AudioInjectorManager& operator=(const AudioInjectorManager&) = delete;
     
     void createThread();
-    AudioInjectorVector::iterator nextInjectorIterator();
     
     QThread* _thread { nullptr };
     bool _shouldStop { false };
-    AudioInjectorVector _injectors;
+    InjectorQueue _injectors;
     std::mutex _injectorsMutex;
+    std::condition_variable _injectorReady;
     
     friend class AudioInjector;
 };

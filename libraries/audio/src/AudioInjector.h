@@ -26,6 +26,8 @@
 #include "Sound.h"
 
 class AbstractAudioInterface;
+class AudioInjectorManager;
+class NLPacket;
 
 // In order to make scripting cleaner for the AudioInjector, the script now holds on to the AudioInjector object
 // until it dies. 
@@ -59,7 +61,6 @@ public:
     static AudioInjector* playSound(const QString& soundUrl, const float volume, const float stretchFactor, const glm::vec3 position);
 
 public slots:
-    void injectAudio();
     void restart();
     
     void stop();
@@ -74,9 +75,11 @@ public slots:
     
 signals:
     void finished();
+    void restartedWhileFinished();
 
 private:
-    void injectToMixer();
+    void setupInjection();
+    uint64_t injectNextFrame();
     void injectLocally();
     
     void finish();
@@ -88,8 +91,11 @@ private:
     bool _shouldStop = false;
     float _loudness = 0.0f;
     int _currentSendOffset = 0;
-    AbstractAudioInterface* _localAudioInterface = NULL;
-    AudioInjectorLocalBuffer* _localBuffer = NULL;
+    std::unique_ptr<NLPacket> _currentPacket { nullptr };
+    AbstractAudioInterface* _localAudioInterface { nullptr };
+    AudioInjectorLocalBuffer* _localBuffer { nullptr };
+    
+    friend class AudioInjectorManager;
 };
 
 

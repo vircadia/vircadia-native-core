@@ -13,17 +13,28 @@
 
 #include <QtCore/QCoreApplication>
 
+#include <SharedUtil.h>
+
+#include "AudioConstants.h"
 #include "AudioInjector.h"
 
 AudioInjectorManager::~AudioInjectorManager() {
     _shouldStop = true;
     
+    std::unique_lock<std::mutex> lock(_injectorsMutex);
+    
     // make sure any still living injectors are stopped and deleted
-    for (auto injector : _injectors) {
-        injector->stopAndDeleteLater();
+    while (!_injectors.empty()) {
+        // grab the injector at the front
+        auto& timePointerPair = _injectors.front();
+        
+        // ask it to stop and be deleted
+        timePointerPair.second->stopAndDeleteLater();
+        
+        _injectors.pop();
     }
     
-    // quit and wait on the injector thread, if we ever created it
+    // quit and wait on the manager thread, if we ever created it
     if (_thread) {
         _thread->quit();
         _thread->wait();
@@ -43,7 +54,46 @@ void AudioInjectorManager::createThread() {
 
 void AudioInjectorManager::run() {
     while (!_shouldStop) {
-        // process events in case we have been told to stop or our injectors have been told to stop
+        // wait until the next injector is ready, or until we get a new injector given to us
+        std::unique_lock<std::mutex> lock(_injectorsMutex);
+        
+        if (_injectors.size() > 0) {
+            // when does the next injector need to send a frame?
+            // do we get to wait or should we just go for it now?
+            
+            auto timeInjectorPair = _injectors.front();
+            
+            auto nextTimestamp = timeInjectorPair.first;
+            int64_t difference = int64_t(nextTimestamp - usecTimestampNow());
+            
+            if (difference > 0) {
+                _injectorReady.wait_for(lock, std::chrono::microseconds(difference));
+            }
+            
+            // loop through the injectors in the map and send whatever frames need to go out
+            auto front = _injectors.front();
+            while (_injectors.size() > 0 && front.first <= usecTimestampNow()) {
+                // either way we're popping this injector off - get a copy first
+                auto injector = front.second;
+                _injectors.pop();
+                
+                if (!injector.isNull()) {
+                    // this is an injector that's ready to go, have it send a frame now
+                    auto nextCallDelta = injector->injectNextFrame();
+                    
+                    if (nextCallDelta > 0 && !injector->isFinished()) {
+                        // re-enqueue the injector with the correct timing
+                        _injectors.push({ usecTimestampNow() + nextCallDelta, injector });
+                    }
+                }
+                
+                front = _injectors.front();
+            }
+        } else {
+            // we have no current injectors, wait until we get at least one before we do anything
+            _injectorReady.wait(lock);
+        }
+        
         QCoreApplication::processEvents();
     }
 }
@@ -54,22 +104,20 @@ bool AudioInjectorManager::threadInjector(AudioInjector* injector) {
     // guard the injectors vector with a mutex
     std::unique_lock<std::mutex> lock(_injectorsMutex);
     
-    // check if we'll be able to thread this injector (do we have < MAX concurrent injectors)
+    // check if we'll be able to thread this injector (do we have < max concurrent injectors)
     if (_injectors.size() < MAX_INJECTORS_PER_THREAD) {
         if (!_thread) {
             createThread();
         }
         
-        auto it = nextInjectorIterator();
-        qDebug() << "Inserting injector at" << it - _injectors.begin();
-        
-        // store a QPointer to this injector
-        _injectors.insert(it, QPointer<AudioInjector>(injector));
-        
-        qDebug() << "Moving injector to thread" << _thread;
-        
         // move the injector to the QThread
         injector->moveToThread(_thread);
+        
+        // handle a restart once the injector has finished
+        connect(injector, &AudioInjector::restartedWhileFinished, this, &AudioInjectorManager::restartFinishedInjector);
+        
+        // store a QPointer to this injector
+        addInjectorToQueue(injector);
         
         return true;
     } else {
@@ -80,17 +128,15 @@ bool AudioInjectorManager::threadInjector(AudioInjector* injector) {
     }
 }
 
-AudioInjectorVector::iterator AudioInjectorManager::nextInjectorIterator() {
-    // find the next usable iterator for an injector
-    auto it = _injectors.begin();
+void AudioInjectorManager::restartFinishedInjector() {
+    auto injector = qobject_cast<AudioInjector*>(sender());
+    addInjectorToQueue(injector);
+}
+
+void AudioInjectorManager::addInjectorToQueue(AudioInjector* injector) {
+    // add the injector to the queue with a send timestamp of now
+    _injectors.emplace(usecTimestampNow(), InjectorQPointer { injector });
     
-    while (it != _injectors.end()) {
-        if (it->isNull()) {
-            return it;
-        } else {
-            ++it;
-        }
-    }
-    
-    return it;
+    // notify our wait condition so we can inject two frames for this injector immediately
+    _injectorReady.notify_one();
 }
