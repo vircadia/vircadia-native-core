@@ -407,6 +407,24 @@ void Rig::calcAnimAlpha(float speed, const std::vector<float>& referenceSpeeds, 
     *alphaOut = alpha;
 }
 
+void Rig::computeEyesInRootFrame(const AnimPoseVec& poses) {
+    // TODO: use cached eye/hips indices for these calculations
+    int numPoses = poses.size();
+    int rightEyeIndex = _animSkeleton->nameToJointIndex(QString("RightEye"));
+    int leftEyeIndex = _animSkeleton->nameToJointIndex(QString("LeftEye"));
+    if (numPoses > rightEyeIndex && numPoses > leftEyeIndex
+            && rightEyeIndex > 0 && leftEyeIndex > 0) {
+        int hipsIndex = _animSkeleton->nameToJointIndex(QString("Hips"));
+        int headIndex = _animSkeleton->nameToJointIndex(QString("Head"));
+        if (hipsIndex >= 0 && headIndex > 0) {
+            glm::vec3 rightEye = _animSkeleton->getAbsolutePose(rightEyeIndex, poses).trans;
+            glm::vec3 leftEye = _animSkeleton->getAbsolutePose(leftEyeIndex, poses).trans;
+            glm::vec3 hips = _animSkeleton->getAbsolutePose(hipsIndex, poses).trans;
+            _eyesInRootFrame = 0.5f * (rightEye + leftEye) - hips;
+        }
+    }
+}
+
 // animation reference speeds.
 static const std::vector<float> FORWARD_SPEEDS = { 0.4f, 1.4f, 4.5f }; // m/s
 static const std::vector<float> BACKWARD_SPEEDS = { 0.6f, 1.45f }; // m/s
@@ -730,6 +748,7 @@ void Rig::updateAnimations(float deltaTime, glm::mat4 rootTransform) {
             setJointTranslation((int)i, true, poses[i].trans, PRIORITY);
         }
 
+        computeEyesInRootFrame(poses);
     } else {
 
         // First normalize the fades so that they sum to 1.0.
@@ -1124,14 +1143,14 @@ void Rig::updateLeanJoint(int index, float leanSideways, float leanForward, floa
 
 static AnimPose avatarToBonePose(AnimPose pose, AnimSkeleton::ConstPointer skeleton) {
     AnimPose rootPose = skeleton->getAbsoluteBindPose(skeleton->nameToJointIndex("Hips"));
-    AnimPose rotY180(glm::vec3(1), glm::angleAxis((float)PI, glm::vec3(0.0f, 1.0f, 0.0f)), glm::vec3(0));
+    AnimPose rotY180(glm::vec3(1.0f), glm::angleAxis(PI, glm::vec3(0.0f, 1.0f, 0.0f)), glm::vec3(0));
     return rootPose * rotY180 * pose;
 }
 
 #ifdef DEBUG_RENDERING
 static AnimPose boneToAvatarPose(AnimPose pose, AnimSkeleton::ConstPointer skeleton) {
     AnimPose rootPose = skeleton->getAbsoluteBindPose(skeleton->nameToJointIndex("Hips"));
-    AnimPose rotY180(glm::vec3(1), glm::angleAxis((float)PI, glm::vec3(0.0f, 1.0f, 0.0f)), glm::vec3(0));
+    AnimPose rotY180(glm::vec3(1.0f), glm::angleAxis(PI, glm::vec3(0.0f, 1.0f, 0.0f)), glm::vec3(0));
     return (rootPose * rotY180).inverse() * pose;
 }
 #endif
@@ -1342,6 +1361,7 @@ void Rig::updateFromHandParameters(const HandParameters& params, float dt) {
 void Rig::makeAnimSkeleton(const FBXGeometry& fbxGeometry) {
     if (!_animSkeleton) {
         _animSkeleton = std::make_shared<AnimSkeleton>(fbxGeometry);
+        computeEyesInRootFrame(_animSkeleton->getRelativeBindPoses());
     }
 }
 

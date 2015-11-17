@@ -16,10 +16,6 @@
 
 namespace recording {
 
-using Time = uint32_t;
-
-static const Time INVALID_TIME = std::numeric_limits<uint32_t>::max();
-
 using FrameType = uint16_t;
 
 using FrameSize = uint16_t;
@@ -36,15 +32,13 @@ class Clip;
 
 using ClipPointer = std::shared_ptr<Clip>;
 
+using ClipConstPointer = std::shared_ptr<const Clip>;
+
 // An interface for playing back clips
 class Deck;
 
-using DeckPointer = std::shared_ptr<Deck>;
-
 // An interface for recording a single clip
 class Recorder;
-
-using RecorderPointer = std::shared_ptr<Recorder>;
 
 }
 

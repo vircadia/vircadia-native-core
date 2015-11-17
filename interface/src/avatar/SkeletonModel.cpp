@@ -13,6 +13,7 @@
 #include <QMultiMap>
 
 #include <DeferredLightingEffect.h>
+#include <recording/Deck.h>
 
 #include "Application.h"
 #include "Avatar.h"
@@ -247,8 +248,8 @@ void SkeletonModel::simulate(float deltaTime, bool fullUpdate) {
     }
 
     MyAvatar* myAvatar = static_cast<MyAvatar*>(_owningAvatar);
-    if (myAvatar->isPlaying()) {
-        // Don't take inputs if playing back a recording.
+    auto player = DependencyManager::get<recording::Deck>();
+    if (player->isPlaying()) {
         return;
     }
 

@@ -50,13 +50,12 @@ typedef unsigned long long quint64;
 #include <Node.h>
 #include <RegisteredMetaTypes.h>
 #include <SimpleMovingAverage.h>
+#include <recording/Forward.h>
 
 #include "AABox.h"
 #include "HandData.h"
 #include "HeadData.h"
 #include "PathUtils.h"
-#include "Player.h"
-#include "Recorder.h"
 #include "Referential.h"
 
 using AvatarSharedPointer = std::shared_ptr<AvatarData>;
@@ -165,7 +164,13 @@ class AvatarData : public QObject {
     Q_PROPERTY(QStringList jointNames READ getJointNames)
 
     Q_PROPERTY(QUuid sessionUUID READ getSessionUUID)
+
 public:
+    static const QString FRAME_NAME;
+
+    static void fromFrame(const QByteArray& frameData, AvatarData& avatar);
+    static QByteArray toFrame(const AvatarData& avatar);
+
     AvatarData();
     virtual ~AvatarData();
     
@@ -348,25 +353,6 @@ public slots:
     void setJointMappingsFromNetworkReply();
     void setSessionUUID(const QUuid& sessionUUID) { _sessionUUID = sessionUUID; }
     bool hasReferential();
-    
-    bool isPlaying();
-    bool isPaused();
-    float playerElapsed();
-    float playerLength();
-    void loadRecording(const QString& filename);
-    void startPlaying();
-    void setPlayerVolume(float volume);
-    void setPlayerAudioOffset(float audioOffset);
-    void setPlayerTime(float time);
-    void setPlayFromCurrentLocation(bool playFromCurrentLocation);
-    void setPlayerLoop(bool loop);
-    void setPlayerUseDisplayName(bool useDisplayName);
-    void setPlayerUseAttachments(bool useAttachments);
-    void setPlayerUseHeadModel(bool useHeadModel);
-    void setPlayerUseSkeletonModel(bool useSkeletonModel);
-    void play();
-    void pausePlayer();
-    void stopPlaying();
 
 protected:
     QUuid _sessionUUID;
@@ -421,8 +407,6 @@ protected:
     
     QWeakPointer<Node> _owningAvatarMixer;
     
-    recording::DeckPointer _player;
-    
     /// Loads the joint indices, names from the FST file (if any)
     virtual void updateJointMappings();
     void changeReferential(Referential* ref);
@@ -437,7 +421,7 @@ protected:
     QMutex avatarLock; // Name is redundant, but it aids searches.
     
     // During recording, this holds the starting position, orientation & scale of the recorded avatar
-    // During playback, it holds the 
+    // During playback, it holds the origin from which to play the relative positions in the clip
     TransformPointer _recordingBasis;
 
 private:
