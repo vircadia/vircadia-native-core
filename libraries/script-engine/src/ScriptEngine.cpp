@@ -24,6 +24,7 @@
 #include <AudioEffectOptions.h>
 #include <AvatarData.h>
 #include <EntityScriptingInterface.h>
+#include <MessagesClient.h>
 #include <NetworkAccessManager.h>
 #include <NodeList.h>
 #include <udt/PacketHeaders.h>
@@ -375,6 +376,10 @@ void ScriptEngine::init() {
     auto scriptingInterface = DependencyManager::get<controller::ScriptingInterface>();
     registerGlobalObject("Controller", scriptingInterface.data());
     UserInputMapper::registerControllerTypes(this);
+
+
+    registerGlobalObject("Messages", DependencyManager::get<MessagesClient>().data());
+
 }
 
 void ScriptEngine::registerValue(const QString& valueName, QScriptValue value) {

@@ -4029,7 +4029,6 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEngine* scri
     scriptEngine->registerFunction("HMD", "getHUDLookAtPosition3D", HMDScriptingInterface::getHUDLookAtPosition3D, 0);
 
     scriptEngine->registerGlobalObject("Scene", DependencyManager::get<SceneScriptingInterface>().data());
-    scriptEngine->registerGlobalObject("Messages", DependencyManager::get<MessagesClient>().data());
 
     scriptEngine->registerGlobalObject("ScriptDiscoveryService", this->getRunningScriptsWidget());
 
