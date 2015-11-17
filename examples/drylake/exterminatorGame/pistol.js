@@ -13,8 +13,8 @@
 //
 
 
-Script.include("../libraries/utils.js");
-Script.include("../libraries/constants.js");
+Script.include("../../libraries/utils.js");
+Script.include("../../libraries/constants.js");
 
 var gameName = "Kill All The Rats!"
 // var HOST = "localhost:5000"
