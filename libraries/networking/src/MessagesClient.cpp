@@ -21,16 +21,12 @@
 #include "PacketReceiver.h"
 
 MessagesClient::MessagesClient() {
-    
     setCustomDeleter([](Dependency* dependency){
         static_cast<MessagesClient*>(dependency)->deleteLater();
     });
-    
     auto nodeList = DependencyManager::get<NodeList>();
     auto& packetReceiver = nodeList->getPacketReceiver();
-
-    packetReceiver.registerListener(PacketType::MessagesData, this, "handleMessagePacket");
-
+    packetReceiver.registerMessageListener(PacketType::MessagesData, this, "handleMessagesPacket");
     connect(nodeList.data(), &LimitedNodeList::nodeKilled, this, &MessagesClient::handleNodeKilled);
 }
 

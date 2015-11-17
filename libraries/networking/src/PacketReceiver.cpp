@@ -97,7 +97,7 @@ void PacketReceiver::registerDirectListenerForTypes(PacketTypeList types,
 bool PacketReceiver::registerMessageListener(PacketType type, QObject* listener, const char* slot) {
     Q_ASSERT_X(listener, "PacketReceiver::registerMessageListener", "No object to register");
     Q_ASSERT_X(slot, "PacketReceiver::registerMessageListener", "No slot to register");
-    
+
     QMetaMethod matchingMethod = matchingMethodForListener(type, listener, slot);
 
     if (matchingMethod.isValid()) {
