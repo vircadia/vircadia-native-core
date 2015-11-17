@@ -101,7 +101,9 @@ void MessagesClient::unsubscribe(const QString& channel) {
 
 void MessagesClient::handleNodeAdded(SharedNodePointer node) {
     if (node->getType() == NodeType::MessagesMixer) {
+        qDebug() << "messages-mixer node type added...";
         for (const auto& channel : _subscribedChannels) {
+            qDebug() << "subscribing to channel:" << channel;
             subscribe(channel);
         }
     }
