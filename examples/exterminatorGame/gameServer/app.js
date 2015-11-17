@@ -25,24 +25,32 @@ wsServer.on('request', function(request) {
     var connection = request.accept(null, request.origin);
     connections.push(connection);
     connection.on('message', function(data) {
-        var userData= JSON.parse(data.utf8Data);
-        var user = _.find(users, function(user){
+        var userData = JSON.parse(data.utf8Data);
+        var user = _.find(users, function(user) {
             return user.username === userData.username;
         });
-        if(user) {
+        if (user) {
             // This user already exists, so just update score
             users[users.indexOf(user)].score = userData.score;
         } else {
-          users.push({id: shortid.generate(),  username: userData.username, score: userData.score});
+            users.push({
+                id: shortid.generate(),
+                username: userData.username,
+                score: userData.score
+            });
         }
         connections.forEach(function(aConnection) {
-          aConnection.sendUTF(JSON.stringify({users: users}));  
+            aConnection.sendUTF(JSON.stringify({
+                users: users
+            }));
         })
     });
 });
 
 app.get('/users', function(req, res) {
-    res.send({users: users});
+    res.send({
+        users: users
+    });
 });
 
 
