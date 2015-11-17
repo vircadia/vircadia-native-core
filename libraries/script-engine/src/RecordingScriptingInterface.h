@@ -24,6 +24,8 @@ class RecordingScriptingInterface : public QObject, public Dependency {
 public:
     RecordingScriptingInterface();
 
+    void setControlledAvatar(AvatarData* avatar);
+
 public slots:
     bool isPlaying();
     bool isPaused();
@@ -74,6 +76,7 @@ private:
     Flag _useSkeletonModel { false };
     recording::ClipPointer _lastClip;
     AvatarData _dummyAvatar;
+    AvatarData* _controlledAvatar;
 };
 
 #endif // hifi_RecordingScriptingInterface_h

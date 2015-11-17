@@ -15,12 +15,12 @@
 #include <recording/Clip.h>
 #include <recording/Frame.h>
 #include <NumericalConstants.h>
-#include <AudioClient.h>
+//#include <AudioClient.h>
 #include <AudioConstants.h>
-
+#include <Transform.h>
 //#include "avatar/AvatarManager.h"
 //#include "Application.h"
-#include "InterfaceLogging.h"
+#include "ScriptEngineLogging.h"
 
 typedef int16_t AudioSample;
 
@@ -45,8 +45,12 @@ RecordingScriptingInterface::RecordingScriptingInterface() {
     _player = DependencyManager::get<Deck>();
     _recorder = DependencyManager::get<Recorder>();
 
-    auto audioClient = DependencyManager::get<AudioClient>();
-    connect(audioClient.data(), &AudioClient::inputReceived, this, &RecordingScriptingInterface::processAudioInput);
+//    auto audioClient = DependencyManager::get<AudioClient>();
+ //   connect(audioClient.data(), &AudioClient::inputReceived, this, &RecordingScriptingInterface::processAudioInput);
+}
+
+void RecordingScriptingInterface::setControlledAvatar(AvatarData* avatar) {
+    _controlledAvatar = avatar;
 }
 
 bool RecordingScriptingInterface::isPlaying() {
@@ -86,7 +90,8 @@ void RecordingScriptingInterface::startPlaying() {
         QMetaObject::invokeMethod(this, "startPlaying", Qt::BlockingQueuedConnection);
         return;
     }
-    auto myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
+    //auto myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
+    auto myAvatar = _controlledAvatar;
     // Playback from the current position
     if (_playFromCurrentLocation) {
         _dummyAvatar.setRecordingBasis(std::make_shared<Transform>(myAvatar->getTransform()));
@@ -154,7 +159,7 @@ float RecordingScriptingInterface::recorderElapsed() {
 
 void RecordingScriptingInterface::startRecording() {
     if (_recorder->isRecording()) {
-        qCWarning(interfaceapp) << "Recorder is already running";
+        qCWarning(scriptengine) << "Recorder is already running";
         return;
     }
 
@@ -165,7 +170,9 @@ void RecordingScriptingInterface::startRecording() {
 
     _recordingEpoch = Frame::epochForFrameTime(0);
 
-    auto myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
+    //auto myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
+    //auto myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
+    auto myAvatar = _controlledAvatar;
     myAvatar->setRecordingBasis();
     _recorder->start();
 }
@@ -182,7 +189,9 @@ void RecordingScriptingInterface::stopRecording() {
     }
     _lastClip->seek(0);
 
-    auto myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
+    //auto myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
+   //auto myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
+    auto myAvatar = _controlledAvatar;
     myAvatar->clearRecordingBasis();
 }
 
@@ -208,7 +217,7 @@ void RecordingScriptingInterface::loadLastRecording() {
     }
 
     if (!_lastClip) {
-        qCDebug(interfaceapp) << "There is no recording to load";
+        qCDebug(scriptengine) << "There is no recording to load";
         return;
     }
 
@@ -221,7 +230,8 @@ void RecordingScriptingInterface::processAvatarFrame(const Frame::ConstPointer& 
 
     AvatarData::fromFrame(frame->data, _dummyAvatar);
 
-    auto myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
+   //auto myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
+    auto myAvatar = _controlledAvatar;
     if (_useHeadModel && _dummyAvatar.getFaceModelURL().isValid() && 
         (_dummyAvatar.getFaceModelURL() != myAvatar->getFaceModelURL())) {
         // FIXME
@@ -255,6 +265,6 @@ void RecordingScriptingInterface::processAudioInput(const QByteArray& audio) {
 }
 
 void RecordingScriptingInterface::processAudioFrame(const recording::FrameConstPointer& frame) {
-    auto audioClient = DependencyManager::get<AudioClient>();
-    audioClient->handleRecordedAudioInput(frame->data);
+   // auto audioClient = DependencyManager::get<AudioClient>();
+   // audioClient->handleRecordedAudioInput(frame->data);
 }

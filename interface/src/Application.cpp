@@ -86,6 +86,7 @@
 #include <RenderDeferredTask.h>
 #include <ResourceCache.h>
 #include <SceneScriptingInterface.h>
+#include <RecordingScriptingInterface.h>
 #include <ScriptCache.h>
 #include <SoundCache.h>
 #include <TextureCache.h>
@@ -126,7 +127,6 @@
 #include "scripting/LocationScriptingInterface.h"
 #include "scripting/MenuScriptingInterface.h"
 #include "scripting/SettingsScriptingInterface.h"
-#include "scripting/RecordingScriptingInterface.h"
 #include "scripting/WebWindowClass.h"
 #include "scripting/WindowScriptingInterface.h"
 #include "scripting/ControllerScriptingInterface.h"
@@ -732,6 +732,10 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
     auto applicationUpdater = DependencyManager::get<AutoUpdater>();
     connect(applicationUpdater.data(), &AutoUpdater::newVersionIsAvailable, dialogsManager.data(), &DialogsManager::showUpdateDialog);
     applicationUpdater->checkForUpdate();
+
+    // Assign MyAvatar to th eRecording Singleton
+    DependencyManager::get<RecordingScriptingInterface>()->setControlledAvatar(getMyAvatar());
+
 
     // Now that menu is initalized we can sync myAvatar with it's state.
     getMyAvatar()->updateMotionBehaviorFromMenu();
@@ -3979,7 +3983,6 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEngine* scri
                             RayToOverlayIntersectionResultFromScriptValue);
 
     scriptEngine->registerGlobalObject("Desktop", DependencyManager::get<DesktopScriptingInterface>().data());
-    scriptEngine->registerGlobalObject("Recording", DependencyManager::get<RecordingScriptingInterface>().data());
 
     scriptEngine->registerGlobalObject("Window", DependencyManager::get<WindowScriptingInterface>().data());
     scriptEngine->registerGetterSetter("location", LocationScriptingInterface::locationGetter,

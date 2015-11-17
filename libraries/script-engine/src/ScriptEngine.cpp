@@ -46,6 +46,7 @@
 #include "WebSocketClass.h"
 
 #include "SceneScriptingInterface.h"
+#include "RecordingScriptingInterface.h"
 
 #include "MIDIEvent.h"
 
@@ -375,6 +376,9 @@ void ScriptEngine::init() {
     auto scriptingInterface = DependencyManager::get<controller::ScriptingInterface>();
     registerGlobalObject("Controller", scriptingInterface.data());
     UserInputMapper::registerControllerTypes(this);
+
+    auto recordingInterface = DependencyManager::get<RecordingScriptingInterface>();
+    registerGlobalObject("Recording", recordingInterface.data());
 }
 
 void ScriptEngine::registerValue(const QString& valueName, QScriptValue value) {
