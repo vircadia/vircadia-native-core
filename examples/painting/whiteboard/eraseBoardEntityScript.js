@@ -29,7 +29,6 @@
         },
 
         eraseBoard: function() {
-            print("SHNUUR")
             Entities.callEntityMethod(this.whiteboard, "eraseBoard");
         },
 
