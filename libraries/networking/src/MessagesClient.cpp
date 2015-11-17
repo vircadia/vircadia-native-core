@@ -74,34 +74,25 @@ bool haveMessagesMixer() {
     return true;
 }
 
-void MessagesClient::handleMessagesPacket(QSharedPointer<NLPacket> packet, SharedNodePointer senderNode) {
-    auto packetType = packet->getType();
+void MessagesClient::handleMessagesPacket(QSharedPointer<NLPacketList> packetList, SharedNodePointer senderNode) {
+    QByteArray data = packetList->getMessage();
+    auto packetType = packetList->getType();
 
     if (packetType == PacketType::MessagesData) {
-        qDebug() << "got a messages packet";
+        QString message = QString::fromUtf8(data);
+        qDebug() << "got a messages packet:" << message;
     }
 }
 
 void MessagesClient::sendMessage(const QString& channel, const QString& message) {
+    qDebug() << "MessagesClient::sendMessage() channel:" << channel << "message:" << message;
     auto nodeList = DependencyManager::get<NodeList>();
     SharedNodePointer messagesMixer = nodeList->soloNodeOfType(NodeType::MessagesMixer);
     
     if (messagesMixer) {
         auto packetList = NLPacketList::create(PacketType::MessagesData, QByteArray(), true, true);
-
-        #if 0
-        auto messageID = ++_currentID;
-        packetList->writePrimitive(messageID);
-
-        packetList->writePrimitive(static_cast<uint8_t>(extension.length()));
-        packetList->write(extension.toLatin1().constData(), extension.length());
-
-        uint64_t size = data.length();
-        packetList->writePrimitive(size);
-        packetList->write(data.constData(), size);
-
-        nodeList->sendPacketList(std::move(packetList), *assetServer);
-        #endif
+        packetList->write(message.toUtf8());
+        nodeList->sendPacketList(std::move(packetList), *messagesMixer);
     }
 }
 

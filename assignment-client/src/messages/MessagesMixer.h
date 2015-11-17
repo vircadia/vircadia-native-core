@@ -32,7 +32,7 @@ public slots:
     void sendStatsPacket();
 
 private slots:
-    void handleMessagesDataPacket(QSharedPointer<NLPacket> packet, SharedNodePointer senderNode);
+    void handleMessagesPacket(QSharedPointer<NLPacketList> packetList, SharedNodePointer senderNode);
     
 private:
     void broadcastMessagesData();

@@ -31,7 +31,7 @@ public:
     Q_INVOKABLE void sendMessage(const QString& channel, const QString& message);
 
 private slots:
-    void handleMessagesPacket(QSharedPointer<NLPacket> packet, SharedNodePointer senderNode);
+    void handleMessagesPacket(QSharedPointer<NLPacketList> packetList, SharedNodePointer senderNode);
     void handleNodeKilled(SharedNodePointer node);
 
 private:
