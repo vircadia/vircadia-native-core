@@ -51,7 +51,7 @@ void MessagesClient::handleMessagesPacket(QSharedPointer<NLPacketList> packetLis
     auto messageData = packet.read(messageLength);
     QString message = QString::fromUtf8(messageData);
 
-    emit messageReceived(channel, message);
+    emit messageReceived(channel, message, senderNode->getUUID());
 }
 
 void MessagesClient::sendMessage(const QString& channel, const QString& message) {

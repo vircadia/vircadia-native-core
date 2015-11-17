@@ -16,7 +16,6 @@ function myUpdate(deltaTime) {
 
 Script.update.connect(myUpdate);
 
-Messages.messageReceived.connect(function (channel, message) {
-    print("message received on channel:" + channel + ", message:" + message);
+Messages.messageReceived.connect(function (channel, message, senderID) {
+    print("message received on channel:" + channel + ", message:" + message + ", senderID:" + senderID);
 });
-
