@@ -38,11 +38,11 @@ var SHOW = 4;
 var HIDE = 5;
 var LOAD = 6;
 
-Avatar.setPlayFromCurrentLocation(playFromCurrentLocation);
-Avatar.setPlayerUseDisplayName(useDisplayName);
-Avatar.setPlayerUseAttachments(useAttachments);
-Avatar.setPlayerUseHeadModel(false);
-Avatar.setPlayerUseSkeletonModel(useAvatarModel);
+Recording.setPlayFromCurrentLocation(playFromCurrentLocation);
+Recording.setPlayerUseDisplayName(useDisplayName);
+Recording.setPlayerUseAttachments(useAttachments);
+Recording.setPlayerUseHeadModel(false);
+Recording.setPlayerUseSkeletonModel(useAvatarModel);
 
 function setupEntityViewer() {
     var entityViewerOffset = 10;
@@ -96,25 +96,25 @@ function update(event) {
             if (!Agent.isAvatar) {
                 Agent.isAvatar = true;
             }
-            if (!Avatar.isPlaying()) {
-                Avatar.startPlaying();
+            if (!Recording.isPlaying()) {
+                Recording.startPlaying();
             }
-            Avatar.setPlayerLoop(false);
+            Recording.setPlayerLoop(false);
             break;
         case PLAY_LOOP:
             print("Play loop");
             if (!Agent.isAvatar) {
                 Agent.isAvatar = true;
             }
-            if (!Avatar.isPlaying()) {
-                Avatar.startPlaying();
+            if (!Recording.isPlaying()) {
+                Recording.startPlaying();
             }
-            Avatar.setPlayerLoop(true);
+            Recording.setPlayerLoop(true);
             break;
         case STOP:
             print("Stop");
-            if (Avatar.isPlaying()) {
-                Avatar.stopPlaying();
+            if (Recording.isPlaying()) {
+                Recording.stopPlaying();
             }
             break;
         case SHOW:
@@ -125,15 +125,15 @@ function update(event) {
             break;
         case HIDE:
             print("Hide");
-            if (Avatar.isPlaying()) {
-                Avatar.stopPlaying();
+            if (Recording.isPlaying()) {
+                Recording.stopPlaying();
             }
             Agent.isAvatar = false;
             break;
         case LOAD:
             print("Load");            
             if(clip_url !== null) {
-                Avatar.loadRecording(clip_url);
+                Recording.loadRecording(clip_url);
             }
             break;
         case DO_NOTHING:
@@ -143,8 +143,8 @@ function update(event) {
             break;
     }
     
-    if (Avatar.isPlaying()) {
-        Avatar.play();
+    if (Recording.isPlaying()) {
+        Recording.play();
     }
 }
 
