@@ -146,8 +146,8 @@ function arrive(thisEntity, target) {
   var properties = Entities.getEntityProperties(thisEntity, ["position", "velocity"]);
   var location = properties.position;
   var velocity = properties.velocity;
-  var MAX_SPEED = 16;
-  var MAX_FORCE = 12;
+  var MAX_SPEED = 12;
+  var MAX_FORCE = 8;
   var ARRIVAL_DISTANCE = 3;
 
   var desired = Vec3.subtract(targetPosition, location);

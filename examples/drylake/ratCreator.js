@@ -23,7 +23,6 @@ var RAT_DIMENSIONS = {
     z: 1.14
 };
 
-
 var RAT_MODEL_URL = 'http://hifi-content.s3.amazonaws.com/james/rat/ratrotated.fbx';
 var RAT_RUNNING_ANIMATION_URL = 'http://hifi-content.s3.amazonaws.com/james/rat/walk.fbx';
 var RAT_DEATH_ANIMATION_URL = 'http://hifi-content.s3.amazonaws.com/james/rat/death.fbx';
@@ -120,7 +119,7 @@ var targetProperties = {
         y: 1,
         z: 1
     },
-    visible:false,
+    visible: false,
     position: RAT_NEST_LOCATION
         //  script: Script.resolvePath('rat.js')
 };
@@ -189,7 +188,7 @@ function addAvoiderBlock(position) {
         position: position,
         collisionsWillMove: false,
         ignoreForCollisions: true,
-        visible:false
+        visible: false
     };
 
     var avoider = Entities.addEntity(avoiderProperties);
@@ -342,6 +341,15 @@ function removeRatFromScene(rat) {
     Entities.deleteEntity(rat);
 }
 
+function popRatFromStack(entityID) {
+    var index = rats.indexOf(entityID);
+    if (index > -1) {
+        rats.splice(index, 1);
+    }
+}
+
+Entities.deletingEntity.connect(popRatFromStack);
+
 function cleanup() {
     while (rats.length > 0) {
         Entities.deleteEntity(rats.pop());
@@ -354,6 +362,7 @@ function cleanup() {
     Entities.deleteEntity(target);
     Script.update.disconnect(moveRats);
     Script.update.disconnect(updateTweens);
+    Entities.deletingEntity.disconnect(popRatFromStack);
     Script.clearInterval(ratSpawnerInterval);
 }
 
@@ -364,7 +373,7 @@ var ratSpawnerInterval;
 if (USE_CONSTANT_SPAWNER === true) {
     ratSpawnerInterval = Script.setInterval(function() {
         addRat();
-     //   playRatRunningAnimation(rat);
+        playRatRunningAnimation(rat);
         rats.push(rat);
     }, RAT_SPAWN_RATE);
 }
