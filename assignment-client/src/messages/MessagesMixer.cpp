@@ -9,22 +9,13 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include <cfloat>
-#include <random>
-
 #include <QtCore/QCoreApplication>
-#include <QtCore/QDateTime>
 #include <QtCore/QJsonObject>
-#include <QtCore/QTimer>
-#include <QtCore/QThread>
 #include <QBuffer>
 
 #include <LogHandler.h>
 #include <NodeList.h>
 #include <udt/PacketHeaders.h>
-#include <SharedUtil.h>
-#include <UUID.h>
-#include <TryLocker.h>
 
 #include "MessagesMixer.h"
 
@@ -46,7 +37,6 @@ MessagesMixer::~MessagesMixer() {
 }
 
 void MessagesMixer::nodeKilled(SharedNodePointer killedNode) {
-    qDebug() << "MessagesMixer::nodeKilled()... node:" << killedNode->getUUID();
     // FIXME - remove the node from the subscription maps
 }
 
@@ -66,7 +56,6 @@ void MessagesMixer::handleMessages(QSharedPointer<NLPacketList> packetList, Shar
     packet.read(reinterpret_cast<char*>(&messageLength), sizeof(messageLength));
     auto messageData = packet.read(messageLength);
     QString message = QString::fromUtf8(messageData);
-    
     
     auto nodeList = DependencyManager::get<NodeList>();
 

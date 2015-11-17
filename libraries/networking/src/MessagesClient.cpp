@@ -40,31 +40,25 @@ void MessagesClient::init() {
     }
 }
 
-bool haveMessagesMixer() {
-    auto nodeList = DependencyManager::get<NodeList>();
-    SharedNodePointer messagesMixer = nodeList->soloNodeOfType(NodeType::MessagesMixer);
-    
-    if (!messagesMixer) {
-        qCWarning(messages_client) << "Could not complete MessagesClient operation "
-            << "since you are not currently connected to a messages-mixer.";
-        return false;
-    }
-    
-    return true;
-}
-
 void MessagesClient::handleMessagesPacket(QSharedPointer<NLPacketList> packetList, SharedNodePointer senderNode) {
-    QByteArray data = packetList->getMessage();
-    auto packetType = packetList->getType();
+    QByteArray packetData = packetList->getMessage();
+    QBuffer packet{ &packetData };
+    packet.open(QIODevice::ReadOnly);
 
-    if (packetType == PacketType::MessagesData) {
-        QString message = QString::fromUtf8(data);
-        qDebug() << "got a messages packet:" << message;
-    }
+    quint16 channelLength;
+    packet.read(reinterpret_cast<char*>(&channelLength), sizeof(channelLength));
+    auto channelData = packet.read(channelLength);
+    QString channel = QString::fromUtf8(channelData);
+
+    quint16 messageLength;
+    packet.read(reinterpret_cast<char*>(&messageLength), sizeof(messageLength));
+    auto messageData = packet.read(messageLength);
+    QString message = QString::fromUtf8(messageData);
+
+    emit messageReceived(channel, message);
 }
 
 void MessagesClient::sendMessage(const QString& channel, const QString& message) {
-    qDebug() << "MessagesClient::sendMessage() channel:" << channel << "message:" << message;
     auto nodeList = DependencyManager::get<NodeList>();
     SharedNodePointer messagesMixer = nodeList->soloNodeOfType(NodeType::MessagesMixer);
     
@@ -89,7 +83,6 @@ void MessagesClient::sendMessage(const QString& channel, const QString& message)
 // in the event that they mixer goes away and/or comes back we should automatically
 // resubscribe to those channels
 void MessagesClient::subscribe(const QString& channel) {
-    qDebug() << "MessagesClient::subscribe() channel:" << channel;
     auto nodeList = DependencyManager::get<NodeList>();
     SharedNodePointer messagesMixer = nodeList->soloNodeOfType(NodeType::MessagesMixer);
 
@@ -101,7 +94,6 @@ void MessagesClient::subscribe(const QString& channel) {
 }
 
 void MessagesClient::unsubscribe(const QString& channel) {
-    qDebug() << "MessagesClient::unsubscribe() channel:" << channel;
     auto nodeList = DependencyManager::get<NodeList>();
     SharedNodePointer messagesMixer = nodeList->soloNodeOfType(NodeType::MessagesMixer);
 

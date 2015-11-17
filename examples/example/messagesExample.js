@@ -36,3 +36,8 @@ Script.update.connect(function (deltaTime) {
         Messages.sendMessage(channel, message);
     }
 });
+
+
+Messages.messageReceived.connect(function (channel, message) {
+    print("message received on channel:" + channel + ", message:" + message);
+});

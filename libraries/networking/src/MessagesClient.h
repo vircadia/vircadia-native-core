@@ -32,6 +32,9 @@ public:
     Q_INVOKABLE void subscribe(const QString& channel);
     Q_INVOKABLE void unsubscribe(const QString& channel);
 
+signals:
+    void messageReceived(const QString& channel, const QString& message);
+
 private slots:
     void handleMessagesPacket(QSharedPointer<NLPacketList> packetList, SharedNodePointer senderNode);
     void handleNodeKilled(SharedNodePointer node);
