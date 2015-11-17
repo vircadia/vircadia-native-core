@@ -120,6 +120,7 @@ var targetProperties = {
         y: 1,
         z: 1
     },
+    visible:false,
     position: RAT_NEST_LOCATION
         //  script: Script.resolvePath('rat.js')
 };
