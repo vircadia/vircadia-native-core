@@ -34,7 +34,7 @@ public:
     AABox(const glm::vec3& corner, const glm::vec3& dimensions);
     AABox();
     ~AABox() {};
-
+    
     void setBox(const glm::vec3& corner, const glm::vec3& scale);
 
     void setBox(const glm::vec3& corner, float scale);

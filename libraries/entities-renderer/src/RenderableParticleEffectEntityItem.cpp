@@ -184,11 +184,6 @@ public:
     uint32_t rgba;
 };
 
-static glm::vec3 zSortAxis;
-static bool zSort(const ParticleDetails& rhs, const ParticleDetails& lhs) {
-    return glm::dot(rhs.position, ::zSortAxis) > glm::dot(lhs.position, ::zSortAxis);
-}
-
 void RenderableParticleEffectEntityItem::updateRenderItem() {
     if (!_scene) {
         return;
@@ -201,7 +196,7 @@ void RenderableParticleEffectEntityItem::updateRenderItem() {
         auto xcolor = _particleColors[i];
         auto alpha = (uint8_t)(glm::clamp(_particleAlphas[i] * getLocalRenderAlpha(), 0.0f, 1.0f) * 255.0f);
         auto rgba = toRGBA(xcolor.red, xcolor.green, xcolor.blue, alpha);
-        particleDetails.push_back(ParticleDetails(_particlePositions[i], _particleRadiuses[i], rgba));
+        particleDetails.emplace_back(_particlePositions[i], _particleRadiuses[i], rgba);
     }
 
     // sort particles back to front
@@ -210,9 +205,12 @@ void RenderableParticleEffectEntityItem::updateRenderItem() {
     auto frustum = AbstractViewStateInterface::instance()->getCurrentViewFrustum();
 
     // No need to sort if we're doing additive blending
-    if (_additiveBlending != true) {
-        ::zSortAxis = frustum->getDirection();
-        qSort(particleDetails.begin(), particleDetails.end(), zSort);
+    if (!_additiveBlending) {
+        glm::vec3 zSortAxis = frustum->getDirection();
+        std::sort(particleDetails.begin(), particleDetails.end(),
+                  [&](const ParticleDetails& lhs, const ParticleDetails& rhs) {
+            return glm::dot(lhs.position, zSortAxis) > glm::dot(rhs.position, zSortAxis);
+        });
     }
 
 
