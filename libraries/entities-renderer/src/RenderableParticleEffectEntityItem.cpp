@@ -134,11 +134,11 @@ bool RenderableParticleEffectEntityItem::addToScene(EntityItemPointer self,
                                                     render::ScenePointer scene,
                                                     render::PendingChanges& pendingChanges) {
 
-    auto particlePayload = std::shared_ptr<ParticlePayload>(new ParticlePayload(shared_from_this()));
+    auto particlePayload = std::make_shared<ParticlePayload>(shared_from_this());
     particlePayload->setPipeline(_untexturedPipeline);
     _renderItemId = scene->allocateID();
     auto renderData = ParticlePayload::Pointer(particlePayload);
-    auto renderPayload = render::PayloadPointer(new ParticlePayload::Payload(renderData));
+    auto renderPayload = std::make_shared<ParticlePayload::Payload>(renderData);
     render::Item::Status::Getters statusGetters;
     makeEntityItemStatusGetters(shared_from_this(), statusGetters);
     renderPayload->addStatusGetters(statusGetters);
