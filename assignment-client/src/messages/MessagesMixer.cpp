@@ -30,9 +30,6 @@
 
 const QString MESSAGES_MIXER_LOGGING_NAME = "messages-mixer";
 
-const int MESSAGES_MIXER_BROADCAST_FRAMES_PER_SECOND = 60;
-const unsigned int MESSAGES_DATA_SEND_INTERVAL_MSECS = (1.0f / (float) MESSAGES_MIXER_BROADCAST_FRAMES_PER_SECOND) * 1000;
-
 MessagesMixer::MessagesMixer(NLPacket& packet) :
     ThreadedAssignment(packet)
 {
@@ -142,12 +139,6 @@ void MessagesMixer::run() {
 
     auto nodeList = DependencyManager::get<NodeList>();
     nodeList->addNodeTypeToInterestSet(NodeType::Agent);
-
-    /*
-    nodeList->linkedDataCreateCallback = [] (Node* node) {
-        // no need to link data
-    };
-    */
 
     // wait until we have the domain-server settings, otherwise we bail
     DomainHandler& domainHandler = nodeList->getDomainHandler();
