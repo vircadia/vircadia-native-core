@@ -1,5 +1,5 @@
 {
-  "name": "WinterIsComing",
+  "name": "KillAllTheRats",
   "version": "0.6.9",
   "scripts": {
     "build": "browserify ./client/app.jsx -t babelify --outfile ./public/js/app.js",
