@@ -37,7 +37,9 @@ MessagesMixer::~MessagesMixer() {
 }
 
 void MessagesMixer::nodeKilled(SharedNodePointer killedNode) {
-    // FIXME - remove the node from the subscription maps
+    for (auto& channel : _channelSubscribers) {
+        channel.remove(killedNode->getUUID());
+    }
 }
 
 void MessagesMixer::handleMessages(QSharedPointer<NLPacketList> packetList, SharedNodePointer senderNode) {
