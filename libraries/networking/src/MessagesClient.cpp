@@ -137,5 +137,5 @@ void MessagesClient::handleNodeKilled(SharedNodePointer node) {
     if (node->getType() != NodeType::MessagesMixer) {
         return;
     }
-
+    // FIXME - do we need to do any special bookkeeping for when the messages mixer is no longer available
 }

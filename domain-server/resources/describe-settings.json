@@ -556,10 +556,10 @@
       "assignment-types": [4],
       "settings": [
         {
-          "name": "max_node_send_bandwidth",
+          "name": "unused",
           "type": "double",
-          "label": "Per-Node Bandwidth",
-          "help": "Desired maximum send bandwidth (in Megabits per second) to each node",
+          "label": "Unused setting",
+          "help": "an asofyet unused setting",
           "placeholder": 1.0,
           "default": 1.0,
           "advanced": true

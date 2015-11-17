@@ -37,18 +37,7 @@ private slots:
 private:
     void parseDomainServerSettings(const QJsonObject& domainSettings);
 
-
     QHash<QString,QSet<QUuid>> _channelSubscribers;
-    
-    quint64 _lastFrameTimestamp;
-    
-    float _trailingSleepRatio;
-    float _performanceThrottlingRatio;
-    
-    int _sumListeners;
-    int _numStatFrames;
-    int _sumBillboardPackets;
-    int _sumIdentityPackets;
 };
 
 #endif // hifi_MessagesMixer_h
