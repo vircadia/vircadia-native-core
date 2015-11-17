@@ -3,8 +3,8 @@ function seek(thisEntity, target) {
   var properties = Entities.getEntityProperties(thisEntity, ["position", "velocity"]);
   var location = properties.position;
   var velocity = properties.velocity;
-  var MAX_SPEED = 1;
-  var MAX_FORCE = 1;
+  var MAX_SPEED = 30;
+  var MAX_FORCE = 20;
 
   var desired = Vec3.subtract(targetPosition, location);
   desired = Vec3.normalize(desired);
@@ -48,8 +48,8 @@ function fleeAvatar(thisEntity, avatarPosition) {
   var properties = Entities.getEntityProperties(thisEntity, ["position", "velocity"]);
   var location = properties.position;
   var velocity = properties.velocity;
-  var MAX_SPEED = 2;
-  var MAX_FORCE = 2;
+  var MAX_SPEED = 3;
+  var MAX_FORCE = 10;
 
   var desired = Vec3.subtract(location, avatarPosition);
   var d = Vec3.length(desired);
@@ -69,7 +69,7 @@ function fleeAvatar(thisEntity, avatarPosition) {
 }
 
 function fleeAllAvatars(thisEntity) {
-  print('FLEE AVATARS');
+  //print('FLEE AVATARS');
   var properties = Entities.getEntityProperties(thisEntity, ["position", "velocity"]);
   var location = properties.position;
   var velocity = properties.velocity;
@@ -80,10 +80,10 @@ function fleeAllAvatars(thisEntity) {
     var entityID = nearbyEntities[entityIndex];
     var entityProps = Entities.getEntityProperties(entityID);
     if (entityProps.name === 'Hifi-Avatar-Detector') {
-      print('found an avatar to flee')
+      //print('found an avatar to flee')
 
-      var MAX_SPEED = 2;
-      var MAX_FORCE = 2;
+      var MAX_SPEED = 8;
+      var MAX_FORCE = 8;
 
       var desired = Vec3.subtract(location, entityProps.position);
       var d = Vec3.length(desired);
@@ -95,7 +95,7 @@ function fleeAllAvatars(thisEntity) {
         steer = steerVector.limit(MAX_FORCE)
         flightVectors.push(steer)
       } else {
-         print('target too far away from this avatar to flee' + d);
+       //  print('target too far away from this avatar to flee' + d);
       }
     }
 
@@ -105,33 +105,33 @@ function fleeAllAvatars(thisEntity) {
 }
 
 function fleeAvoiderBlocks(thisEntity) {
-  print('FLEE AVOIDER BLOCKS');
+ // print('FLEE AVOIDER BLOCKS');
   var properties = Entities.getEntityProperties(thisEntity, ["position", "velocity"]);
   var location = properties.position;
   var velocity = properties.velocity;
 
-  var nearbyEntities = Entities.findEntities(location, 3);
+  var nearbyEntities = Entities.findEntities(location, 4);
   var flightVectors = [];
   for (var entityIndex = 0; entityIndex < nearbyEntities.length; entityIndex++) {
     var entityID = nearbyEntities[entityIndex];
     var entityProps = Entities.getEntityProperties(entityID);
     if (entityProps.name === 'Hifi-Rat-Avoider') {
-      print('found an avoiderblock to flee');
+    //  print('found an avoiderblock to flee');
 
-      var MAX_SPEED = 2;
-      var MAX_FORCE = 0.8;
+      var MAX_SPEED = 8;
+      var MAX_FORCE = 6;
 
       var desired = Vec3.subtract(location, entityProps.position);
       var d = Vec3.length(desired);
       desired = Vec3.normalize(desired);
       desired = Vec3.multiply(MAX_SPEED, desired);
-      if (d < 3) {
+      if (d < 5) {
         var steer = Vec3.subtract(desired, velocity);
         var steerVector = new V3(desired.x, desired.y, desired.z);
         steer = steerVector.limit(MAX_FORCE)
-        flightVectors.push(steer)
+        flightVectors.push(steer);
       } else {
-         print('target too far away from this avoider to flee' + d);
+         //print('target too far away from this avoider to flee' + d);
       }
     }
 
@@ -146,8 +146,8 @@ function arrive(thisEntity, target) {
   var properties = Entities.getEntityProperties(thisEntity, ["position", "velocity"]);
   var location = properties.position;
   var velocity = properties.velocity;
-  var MAX_SPEED = 3;
-  var MAX_FORCE = 2;
+  var MAX_SPEED = 16;
+  var MAX_FORCE = 12;
   var ARRIVAL_DISTANCE = 3;
 
   var desired = Vec3.subtract(targetPosition, location);

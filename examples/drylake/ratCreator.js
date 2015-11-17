@@ -1,65 +1,70 @@
-Script.include('steer.js')
+Script.include('steer.js');
 var steer = loadSteer();
-Script.include('tween.js');
+Script.include('../libraries/tween.js');
 var TWEEN = loadTween();
 
-var USE_CONSTANT_SPAWNER = false;
+var USE_CONSTANT_SPAWNER = true;
 
 var RAT_SPAWNER_LOCATION = {
-    x: 0,
-    y: 0,
-    z: 0
+    x: 1001,
+    y: 98.5,
+    z: 1039
 };
 
 var RAT_NEST_LOCATION = {
-    x: 0,
-    y: 0,
-    z: 0
+    x: 1003.5,
+    y: 99,
+    z: 964.2
 };
 
-var RAT_MODEL_URL = '';
-var RAT_RUNNING_ANIMATION_URL = '';
-var RAT_DEATH_ANIMATION_URL = '';
+var RAT_DIMENSIONS = {
+    x: 0.22,
+    y: 0.32,
+    z: 1.14
+};
 
-var RAT_IN_NEST_DISTANCE = 0.25;
+
+var RAT_MODEL_URL = 'http://hifi-content.s3.amazonaws.com/james/rat/ratrotated.fbx';
+var RAT_RUNNING_ANIMATION_URL = 'http://hifi-content.s3.amazonaws.com/james/rat/walk.fbx';
+var RAT_DEATH_ANIMATION_URL = 'http://hifi-content.s3.amazonaws.com/james/rat/death.fbx';
+
+var RAT_IN_NEST_DISTANCE = 3;
 
 //how many milliseconds between rats
-var RAT_SPAWN_RATE = 1000;
+var RAT_SPAWN_RATE = 2500;
 
-
-function playRatRunningAnimation() {
+function playRatRunningAnimation(rat) {
     var animationSettings = JSON.stringify({
         running: true
     });
     Entities.editEntity(rat, {
         animationURL: RAT_RUNNING_ANIMATION_URL,
-        animationSettings: animationSettings,
-        // animation: {
-        //     url: RAT_RUNNING_ANIMATION_URL,
-        //     running: true,
-        //     fps: 180
-        // },
+        animationSettings: animationSettings
+            // animation: {
+            //     url: RAT_RUNNING_ANIMATION_URL,
+            //     running: true,
+            //     fps: 180
+            // },
     });
 }
 
-function playRatDeathAnimation() {
+function playRatDeathAnimation(rat) {
     var animationSettings = JSON.stringify({
         running: true
     });
 
     Entities.editEntity(rat, {
         animationURL: RAT_DEATH_ANIMATION_URL,
-        animationSettings: animationSettings,
-        // animation: {
-        //     url: RAT_DEATH_ANIMATION_URL,
-        //     running: true,
-        //     fps: 180
-        // },
+        animationSettings: animationSettings
+            // animation: {
+            //     url: RAT_DEATH_ANIMATION_URL,
+            //     running: true
+            // },
     });
 }
 
 var ratProperties = {
-    name: 'Hifi-Rat',
+    name: 'Rat',
     type: 'Box',
     color: {
         red: 0,
@@ -71,21 +76,28 @@ var ratProperties = {
         y: 1,
         z: 1
     },
+    collisionsWillMove: true,
+    gravity: {
+        x: 0,
+        y: -9.8,
+        z: 0
+    },
     position: RAT_SPAWNER_LOCATION
 };
 
 var modelRatProperties = {
-    name: 'Hifi-Rat',
+    name: 'rat',
     type: 'Model',
+    modelURL: RAT_MODEL_URL,
     dimensions: RAT_DIMENSIONS,
     position: RAT_SPAWNER_LOCATION,
     shapeType: 'Box',
     collisionsWillMove: true,
     gravity: {
         x: 0,
-        y: -9.8
+        y: -9.8,
         z: 0
-    },
+    }
     //enable this if for some reason we want grabbable rats
     // userData:JSON.stringify({
     //     grabbableKey:{
@@ -112,56 +124,54 @@ var targetProperties = {
         //  script: Script.resolvePath('rat.js')
 };
 
-var target = Entities.addEntity(targetProperties)
+var target = Entities.addEntity(targetProperties);
 
 function addRat() {
-    var rat = Entities.addEntity(ratProperties);
+    var rat = Entities.addEntity(modelRatProperties);
     rats.push(rat);
 }
 
 var rats = [];
 addRat();
 
-
+var AVOIDER_Y_HEIGHT = 99;
 var FIRST_AVOIDER_START_POSITION = {
-    x: 0,
-    y: 0,
-    z: 0
+    x: 1004,
+    y: AVOIDER_Y_HEIGHT,
+    z: 1019
 };
 var FIRST_AVOIDER_FINISH_POSITION = {
-    x: 0,
-    y: 0,
-    z: 0
+    x: 997,
+    y: AVOIDER_Y_HEIGHT,
+    z: 1019
 };
 var SECOND_AVOIDER_START_POSITION = {
-    x: 0,
-    y: 0,
-    z: 0
+    x: 998,
+    y: AVOIDER_Y_HEIGHT,
+    z: 998
 };
 var SECOND_AVOIDER_FINISH_POSITION = {
-    x: 0,
-    y: 0,
-    z: 0
+    x: 1005,
+    y: AVOIDER_Y_HEIGHT,
+    z: 999
 };
 var THIRD_AVOIDER_START_POSITION = {
-    x: 0,
-    y: 0,
-    z: 0
+    x: 1001.5,
+    y: 100,
+    z: 978
 };
 var THIRD_AVOIDER_FINISH_POSITION = {
-    x: 0,
-    y: 0,
-    z: 0
+    x: 1005,
+    y: 100,
+    z: 974
 };
 
-var avoiders = [
-    addAvoiderBlock(FIRST_AVOIDER_START_POSITION),
-    addAvoiderBlock(SECOND_AVOIDER_START_POSITION),
-    addAvoiderBlock(THIRD_AVOIDER_START_POSITION)
-];
+var avoiders = [];
+addAvoiderBlock(FIRST_AVOIDER_START_POSITION);
+addAvoiderBlock(SECOND_AVOIDER_START_POSITION);
+addAvoiderBlock(THIRD_AVOIDER_START_POSITION);
 
 function addAvoiderBlock(position) {
-
     var avoiderProperties = {
         name: 'Hifi-Rat-Avoider',
         type: 'Box',
@@ -175,24 +185,23 @@ function addAvoiderBlock(position) {
             y: 1,
             z: 1
         },
-        position: {
-            x: 1,
-            y: 1,
-            z: 1
-        },
+        position: position,
         collisionsWillMove: false,
-        ignoreForCollisions: true
-    }
+        ignoreForCollisions: true,
+        visible:false
+    };
 
     var avoider = Entities.addEntity(avoiderProperties);
     avoiders.push(avoider);
-};
+}
 
-addAvoiderBlock();
-tweenAvoider(avoiders[0]);
+
+tweenAvoider(avoiders[0], FIRST_AVOIDER_START_POSITION, FIRST_AVOIDER_FINISH_POSITION);
+tweenAvoider(avoiders[1], SECOND_AVOIDER_START_POSITION, SECOND_AVOIDER_FINISH_POSITION);
+tweenAvoider(avoiders[2], THIRD_AVOIDER_START_POSITION, THIRD_AVOIDER_FINISH_POSITION);
 
 function tweenAvoider(entityID, startPosition, endPosition) {
-    var ANIMATION_DURATION = 500;
+    var ANIMATION_DURATION = 4200;
 
     var begin = {
         x: startPosition.x,
@@ -200,11 +209,11 @@ function tweenAvoider(entityID, startPosition, endPosition) {
         z: startPosition.z
     };
 
-    var target = endPosition;
+    var end = endPosition;
 
     var original = startPosition;
 
-    var tweenHead = new TWEEN.Tween(begin).to(target, ANIMATION_DURATION);
+    var tweenHead = new TWEEN.Tween(begin).to(end, ANIMATION_DURATION);
 
     function updateTo() {
         Entities.editEntity(entityID, {
@@ -213,8 +222,8 @@ function tweenAvoider(entityID, startPosition, endPosition) {
                 y: begin.y,
                 z: begin.z
             }
-        })
-    };
+        });
+    }
 
     function updateBack() {
         Entities.editEntity(entityID, {
@@ -224,7 +233,7 @@ function tweenAvoider(entityID, startPosition, endPosition) {
                 z: begin.z
             }
         })
-    };
+    }
 
     var tweenBack = new TWEEN.Tween(begin).to(original, ANIMATION_DURATION).onUpdate(updateBack);
 
@@ -244,10 +253,10 @@ function updateTweens() {
 
 function moveRats() {
     rats.forEach(function(rat) {
+        checkDistanceFromNest(rat);
         //   print('debug1')
-
         var avatarFlightVectors = steer.fleeAllAvatars(rat);
-        print('avatarFlightVectors' + avatarFlightVectors)
+        // print('avatarFlightVectors' + avatarFlightVectors)
         var i, j;
         var averageAvatarFlight;
 
@@ -259,7 +268,7 @@ function moveRats() {
             }
         }
 
-        averageAvatarFlight = Vec3.normalize(averageAvatarFlight);
+        // averageAvatarFlight = Vec3.normalize(averageAvatarFlight);
 
         averageAvatarFlight = Vec3.multiply(averageAvatarFlight, 1 / avatarFlightVectors.length);
 
@@ -276,7 +285,7 @@ function moveRats() {
             }
         };
 
-        avarageAvoiderFlight = Vec3.normalize(averageAvoiderFlight);
+        // avarageAvoiderFlight = Vec3.normalize(averageAvoiderFlight);
 
         averageAvoiderFlight = Vec3.multiply(averageAvoiderFlight, 1 / avoidBlockVectors.length);
 
@@ -288,19 +297,24 @@ function moveRats() {
             divisorCount++;
             averageVector = Vec3.sum(averageVector, averageAvatarFlight);
         }
-        if (avoidBlockVectors > 0) {
+        if (avoidBlockVectors.length > 0) {
             divisorCount++;
             averageVector = Vec3.sum(averageVector, averageAvoiderFlight);
         }
 
         averageVector = Vec3.multiply(averageVector, 1 / divisorCount);
+        var thisRatProps = Entities.getEntityProperties(rat, ["position", "rotation"]);
+        var ratPosition = thisRatProps.position;
+        var ratToNest = Vec3.subtract(RAT_NEST_LOCATION, ratPosition);
+        var ratRotation = Quat.rotationBetween(Vec3.FRONT, ratToNest);
 
         Entities.editEntity(rat, {
-            velocity: averageVector
+            velocity: averageVector,
+            rotation: ratRotation,
+            //rotation: Quat.fromPitchYawRollDegrees(0,0,0)
         })
 
         //  castRay(rat);
-
     })
 }
 
@@ -308,10 +322,14 @@ Script.update.connect(moveRats)
 Script.update.connect(updateTweens);
 
 function checkDistanceFromNest(rat) {
-    var ratProps = Entitis.getEntityProperties(rat, "position");
+    var ratProps = Entities.getEntityProperties(rat, "position");
     var distance = Vec3.distance(ratProps.position, RAT_NEST_LOCATION);
     if (distance < RAT_IN_NEST_DISTANCE) {
-        removeRatFromScene();
+        //print('at nest')
+        removeRatFromScene(rat);
+    } else {
+        // print('not yet at nest:::' + distance)
+
     }
 }
 
@@ -322,8 +340,6 @@ function removeRatFromScene(rat) {
     }
     Entities.deleteEntity(rat);
 }
-
-
 
 function cleanup() {
     while (rats.length > 0) {
@@ -340,14 +356,16 @@ function cleanup() {
     Script.clearInterval(ratSpawnerInterval);
 }
 
-Script.scriptEnding.connect(cleanup)
+Script.scriptEnding.connect(cleanup);
 
 var ratSpawnerInterval;
 
 if (USE_CONSTANT_SPAWNER === true) {
     ratSpawnerInterval = Script.setInterval(function() {
         addRat();
-    }, RAT_SPAWN_RATE)
+     //   playRatRunningAnimation(rat);
+        rats.push(rat);
+    }, RAT_SPAWN_RATE);
 }
 
 //unused for now, to be used for some collision avoidance on walls and stuff?
