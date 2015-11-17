@@ -116,6 +116,31 @@ void MessagesMixer::handleMessages(QSharedPointer<NLPacketList> packetList, Shar
     //auto killPacket = NLPacket::create(PacketType::KillAvatar, NUM_BYTES_RFC4122_UUID);
     //killPacket->write(killedNode->getUUID().toRfc4122());
     //nodeList->broadcastToNodes(std::move(killPacket), NodeSet() << NodeType::Agent);
+
+    nodeList->eachMatchingNode(
+        [&](const SharedNodePointer& node)->bool {
+
+        return node->getType() == NodeType::Agent && node->getActiveSocket() &&
+                _channelSubscribers[channel].contains(node->getUUID());
+    },
+        [&](const SharedNodePointer& node) {
+
+        qDebug() << "sending a messages:" << message << "on channel:" << channel << "to node:" << node->getUUID();
+
+        auto packetList = NLPacketList::create(PacketType::MessagesData, QByteArray(), true, true);
+
+        auto channelUtf8 = channel.toUtf8();
+        quint16 channelLength = channelUtf8.length();
+        packetList->writePrimitive(channelLength);
+        packetList->write(channelUtf8);
+
+        auto messageUtf8 = message.toUtf8();
+        quint16 messageLength = messageUtf8.length();
+        packetList->writePrimitive(messageLength);
+        packetList->write(messageUtf8);
+
+        nodeList->sendPacketList(std::move(packetList), *node);
+    });
 }
 
 void MessagesMixer::handleMessagesSubscribe(QSharedPointer<NLPacketList> packetList, SharedNodePointer senderNode) {
