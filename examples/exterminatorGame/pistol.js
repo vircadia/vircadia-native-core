@@ -179,7 +179,7 @@ function fire(side, value) {
                 Entities.editEntity(intersection.entityID, {
                     velocity: Vec3.multiply(shotDirection, GUN_FORCE)
                 });
-                //createEntityHitEffect(intersection.intersection);
+                createEntityHitEffect(intersection.intersection);
             }
 
             if (intersection.properties.name === "rat") {
