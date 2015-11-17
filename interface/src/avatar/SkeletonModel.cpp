@@ -247,7 +247,6 @@ void SkeletonModel::simulate(float deltaTime, bool fullUpdate) {
         return; // only simulate for own avatar
     }
 
-    MyAvatar* myAvatar = static_cast<MyAvatar*>(_owningAvatar);
     auto player = DependencyManager::get<recording::Deck>();
     if (player->isPlaying()) {
         return;
