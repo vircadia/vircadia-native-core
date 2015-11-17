@@ -56,11 +56,11 @@ bool RecordingScriptingInterface::isPaused() {
 }
 
 float RecordingScriptingInterface::playerElapsed() {
-    return (float)_player->position() / MSECS_PER_SECOND;
+    return _player->position();
 }
 
 float RecordingScriptingInterface::playerLength() {
-    return _player->length() / MSECS_PER_SECOND;
+    return _player->length();
 }
 
 void RecordingScriptingInterface::loadRecording(const QString& filename) {
@@ -103,7 +103,7 @@ void RecordingScriptingInterface::setPlayerAudioOffset(float audioOffset) {
 }
 
 void RecordingScriptingInterface::setPlayerTime(float time) {
-    _player->seek(time * MSECS_PER_SECOND);
+    _player->seek(time);
 }
 
 void RecordingScriptingInterface::setPlayFromCurrentLocation(bool playFromCurrentLocation) {
