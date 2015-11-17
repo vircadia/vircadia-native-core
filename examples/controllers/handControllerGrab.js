@@ -606,6 +606,16 @@ function MyController(hand) {
         var controllerHandInput = (this.hand === RIGHT_HAND) ? Controller.Standard.RightHand : Controller.Standard.LeftHand;
         var handRotation = Quat.multiply(MyAvatar.orientation, Controller.getPoseValue(controllerHandInput).rotation);
         var grabbedProperties = Entities.getEntityProperties(this.grabbedEntity, GRABBABLE_PROPERTIES);
+        var grabbableData = getEntityCustomData(GRABBABLE_DATA_KEY, this.grabbedEntity, DEFAULT_GRABBABLE_DATA);
+
+        if (this.state == STATE_CONTINUE_DISTANCE_HOLDING && this.bumperSqueezed() &&
+            typeof grabbableData.spatialKey !== 'undefined') {
+            var saveGrabbedID = this.grabbedEntity;
+            this.release();
+            this.setState(STATE_EQUIP);
+            this.grabbedEntity = saveGrabbedID;
+            return;
+        }
 
         this.lineOn(handPosition, Vec3.subtract(grabbedProperties.position, handPosition), INTERSECT_COLOR);
 
@@ -710,7 +720,8 @@ function MyController(hand) {
 
         var grabbableData = getEntityCustomData(GRABBABLE_DATA_KEY, this.grabbedEntity, DEFAULT_GRABBABLE_DATA);
 
-        if (grabbableData.spatialKey) {
+        if (this.state != STATE_NEAR_GRABBING && grabbableData.spatialKey) {
+            // if an object is "equipped" and has a spatialKey, use it.
             if (grabbableData.spatialKey.relativePosition) {
                 this.offsetPosition = grabbableData.spatialKey.relativePosition;
             }
@@ -768,6 +779,10 @@ function MyController(hand) {
         }
         if (this.state == STATE_CONTINUE_EQUIP && this.bumperSqueezed()) {
             this.setState(STATE_WAITING_FOR_BUMPER_RELEASE);
+            return;
+        }
+        if (this.state == STATE_CONTINUE_NEAR_GRABBING && this.bumperSqueezed()) {
+            this.setState(STATE_CONTINUE_EQUIP_BD);
             return;
         }
 
