@@ -47,7 +47,7 @@ var PICK_MAX_DISTANCE = 500; // max length of pick-ray
 // near grabbing
 //
 
-var GRAB_RADIUS = 0.3; // if the ray misses but an object is this close, it will still be selected
+var GRAB_RADIUS = 0.01; // if the ray misses but an object is this close, it will still be selected
 var NEAR_GRABBING_ACTION_TIMEFRAME = 0.05; // how quickly objects move to their new position
 var NEAR_GRABBING_VELOCITY_SMOOTH_RATIO = 1.0; // adjust time-averaging of held object's velocity.  1.0 to disable.
 var NEAR_PICK_MAX_DISTANCE = 0.3; // max length of pick-ray for close grabbing to be selected
@@ -382,8 +382,6 @@ function MyController(hand) {
             length: PICK_MAX_DISTANCE
         };
 
-        this.lineOn(distantPickRay.origin, Vec3.multiply(distantPickRay.direction, LINE_LENGTH), NO_INTERSECT_COLOR);
-
         // don't pick 60x per second.
         var pickRays = [];
         var now = Date.now();
@@ -538,16 +536,17 @@ function MyController(hand) {
                 grabbableData = grabbableDataForCandidate;
             }
         }
-        if (this.grabbedEntity === null) {
-            return;
+        if (this.grabbedEntity !== null) {
+            if (grabbableData.wantsTrigger) {
+                this.setState(STATE_NEAR_TRIGGER);
+                return;
+            } else if (!props.locked && props.collisionsWillMove) {
+                this.setState(this.state == STATE_SEARCHING ? STATE_NEAR_GRABBING : STATE_EQUIP)
+                return;
+            }
         }
-        if (grabbableData.wantsTrigger) {
-            this.setState(STATE_NEAR_TRIGGER);
-            return;
-        } else if (!props.locked && props.collisionsWillMove) {
-            this.setState(this.state == STATE_SEARCHING ? STATE_NEAR_GRABBING : STATE_EQUIP)
-            return;
-        }
+
+        this.lineOn(distantPickRay.origin, Vec3.multiply(distantPickRay.direction, LINE_LENGTH), NO_INTERSECT_COLOR);
     };
 
     this.distanceHolding = function() {
