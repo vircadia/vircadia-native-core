@@ -6,100 +6,110 @@ var _ = require('underscore');
 var $ = require('jquery');
 
 var UserList = React.createClass({
-	displayName: 'UserList',
+  displayName: 'UserList',
 
-	render: function render() {
-		var sortedUsers = _.sortBy(this.props.data.users, function (users) {
-			//Show higher scorers at top of board
-			return 1 - users.score;
-		});
-		var users = sortedUsers.map(function (user) {
+  render: function render() {
+    var sortedUsers = _.sortBy(this.props.data.users, function (users) {
+      //Show higher scorers at top of board
+      return 1 - users.score;
+    });
+    var users = sortedUsers.map(function (user) {
 
-			return React.createElement(User, { username: user.username, score: user.score, key: user.id });
-		});
-		return React.createElement(
-			'div',
-			null,
-			users
-		);
-	}
+      return React.createElement(User, { username: user.username, score: user.score, key: user.id });
+    });
+    return React.createElement(
+      'div',
+      null,
+      users
+    );
+  }
 });
 
 var GameBoard = React.createClass({
-	displayName: 'GameBoard',
+  displayName: 'GameBoard',
 
-	loadDataFromServer: function loadDataFromServer(data) {
-		$.ajax({
-			url: this.props.url,
-			dataType: 'json',
-			cache: false,
-			success: (function (data) {
-				this.setState({ data: data });
-			}).bind(this),
-			error: (function (xhr, status, err) {
-				console.error(this.props.url, status, err.toString());
-			}).bind(this)
-		});
-	},
-	getInitialState: function getInitialState() {
-		return { data: { users: [] } };
-	},
-	componentDidMount: function componentDidMount() {
-		this.loadDataFromServer();
-		setInterval(this.loadDataFromServer, 1000);
-	},
-	render: function render() {
+  loadDataFromServer: function loadDataFromServer(data) {
+    $.ajax({
+      url: this.props.url,
+      dataType: 'json',
+      cache: false,
+      success: (function (data) {
+        this.setState({ data: data });
+      }).bind(this),
+      error: (function (xhr, status, err) {
+        console.error(this.props.url, status, err.toString());
+      }).bind(this)
+    });
+  },
+  getInitialState: function getInitialState() {
+    return { data: { users: [] } };
+  },
+  componentDidMount: function componentDidMount() {
+    // this.loadDataFromServer();
+    // setInterval(this.loadDataFromServer, 1000);
+    //set up web socket
+    var path = window.location.hostname + ":" + window.location.port;
+    console.log("LOCATION ", path);
+    var socketClient = new WebSocket("ws://" + path);
+    socketClient.onopen = function () {
+      console.log("CONNECTED");
+      socketClient.onmessage = function () {
+        console.log("ON MESSAGE");
+      };
+    };
+  },
+  render: function render() {
 
-		return React.createElement(
-			'div',
-			null,
-			React.createElement(
-				'div',
-				{ className: 'gameTitle' },
-				'Kill All The Rats!'
-			),
-			React.createElement(
-				'div',
-				{ className: 'boardHeader' },
-				React.createElement(
-					'div',
-					{ className: 'username' },
-					'PLAYER'
-				),
-				React.createElement(
-					'div',
-					{ className: 'score' },
-					' SCORE '
-				)
-			),
-			React.createElement(UserList, { data: this.state.data })
-		);
-	}
+    return React.createElement(
+      'div',
+      null,
+      React.createElement(
+        'div',
+        { className: 'gameTitle' },
+        'Kill All The Rats!'
+      ),
+      React.createElement(
+        'div',
+        { className: 'boardHeader' },
+        React.createElement(
+          'div',
+          { className: 'username' },
+          'PLAYER'
+        ),
+        React.createElement(
+          'div',
+          { className: 'score' },
+          ' SCORE '
+        )
+      ),
+      React.createElement(UserList, { data: this.state.data })
+    );
+  }
 });
 
 var User = React.createClass({
-	displayName: 'User',
+  displayName: 'User',
 
-	render: function render() {
-		return React.createElement(
-			'div',
-			{ className: 'entry' },
-			React.createElement(
-				'div',
-				{ className: 'username' },
-				' ',
-				this.props.username,
-				' '
-			),
-			React.createElement(
-				'div',
-				{ className: 'score' },
-				' ',
-				this.props.score,
-				' '
-			)
-		);
-	}
+  render: function render() {
+    return React.createElement(
+      'div',
+      { className: 'entry' },
+      React.createElement(
+        'div',
+        { className: 'username' },
+        ' ',
+        this.props.username,
+        ' '
+      ),
+      React.createElement(
+        'div',
+        { className: 'score' },
+        ' ',
+        this.props.score,
+        ' '
+      )
+    );
+  }
 });
 
 React.render(React.createElement(GameBoard, { url: '/users' }), document.getElementById('app'));

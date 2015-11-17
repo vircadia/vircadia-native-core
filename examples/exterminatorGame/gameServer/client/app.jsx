@@ -40,8 +40,19 @@ var GameBoard = React.createClass({
   	return {data: {users: []}};
   },
   componentDidMount: function() {
-  	this.loadDataFromServer();
-  	setInterval(this.loadDataFromServer, 1000);
+  	// this.loadDataFromServer();
+  	// setInterval(this.loadDataFromServer, 1000);
+    //set up web socket
+    var path =  window.location.hostname + ":" + window.location.port;
+    console.log("LOCATION ", path)
+    var socketClient = new WebSocket("ws://" + path);
+    socketClient.onopen = function() {
+        console.log("CONNECTED");
+        socketClient.onmessage = function() {
+            console.log("ON MESSAGE");
+        }
+    }
+
   },
   render: function() {
 

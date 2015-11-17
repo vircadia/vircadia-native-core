@@ -19,10 +19,12 @@ var wsServer = new WebSocketServer({
 });
 
 var users = [];
+var connections = [];
 
 wsServer.on('request', function(request) {
     console.log("SOMEONE JOINED");
     var connection = request.accept(null, request.origin);
+    connections.push(connection);
     connection.on('message', function(data) {
         var userData= JSON.parse(data.utf8Data);
         var user = _.find(users, function(user){
@@ -34,6 +36,9 @@ wsServer.on('request', function(request) {
         } else {
           users.push({id: shortid.generate(),  username: userData.username, score: userData.score});
         }
+        connections.forEach(function(aConnection) {
+          aConnection.sendUTF(JSON.stringify({users: users}));  
+        })
     });
 });
 
