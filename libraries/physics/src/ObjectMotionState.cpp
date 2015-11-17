@@ -121,7 +121,7 @@ void ObjectMotionState::updateCCDConfiguration() {
             btVector3 center;
             btScalar radius;
             _shape->getBoundingSphere(center, radius);
-            _body->setCcdMotionThreshold(radius * 2.0f);
+            _body->setCcdMotionThreshold(radius / 4.0f);
             _body->setCcdSweptSphereRadius(radius);
         } else {
             // Disable CCD
