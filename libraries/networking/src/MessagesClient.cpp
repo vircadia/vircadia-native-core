@@ -84,6 +84,7 @@ void MessagesClient::subscribe(const QString& channel) {
         auto packetList = NLPacketList::create(PacketType::MessagesSubscribe, QByteArray(), true, true);
         packetList->write(channel.toUtf8());
         nodeList->sendPacketList(std::move(packetList), *messagesMixer);
+        qDebug() << "sending MessagesSubscribe for channel:" << channel;
     }
 }
 
