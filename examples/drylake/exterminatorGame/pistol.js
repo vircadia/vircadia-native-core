@@ -48,7 +48,7 @@ var RELOAD_INTERVAL = 5;
 var GUN_MODEL = HIFI_PUBLIC_BUCKET + "cozza13/gun/m1911-handgun+1.fbx?v=4";
 var BULLET_VELOCITY = 10.0;
 var GUN_OFFSETS = [{
-    x: -0.04,
+    x: 0.04,
     y: 0.26,
     z: 0.04
 }, {
@@ -62,15 +62,16 @@ var GUN_ORIENTATIONS = [Quat.fromPitchYawRollDegrees(0, 90, 90), Quat.fromPitchY
 //x -> y
 //y -> z
 // z -> x
-var BARREL_OFFSETS = [{
-    x: 0,
+var BARREL_OFFSETS = [ {
+    x: -0.12,
     y: 0.12,
     z: 0.04
 }, {
-    x: 0.0,
+    x: 0.12,
     y: 0.12,
     z: 0.04
-}];
+} ];
+
 
 
 var pointers = [];
@@ -147,19 +148,6 @@ function hidePointer(side) {
     });
 }
 
-var kickbackAmount = -0.1;
-var k = 0;
-var decaySpeed = .02;
-var kickback = function(animationProperties) {
-    var currentTargetHandWorldPosition = Vec3.mix(startingTargetHandWorldPosition, finalTargetHandWorldPosition, k);
-    k += decaySpeed;
-    var targetHandModelPosition = worldToModel(currentTargetHandWorldPosition);
-    var result = {};
-    result[animVarName] = targetHandModelPosition;
-    return result;
-}
-
-
 function fire(side, value) {
     if (value == 0) {
         return;
@@ -223,6 +211,8 @@ function showPointer(side) {
         visible: true
     });
 }
+
+
 
 mapping.from(Controller.Standard.LT).hysteresis(0.0, 0.5).to(function(value) {
     fire(0, value);
