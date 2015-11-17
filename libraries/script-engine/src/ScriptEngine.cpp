@@ -367,6 +367,7 @@ void ScriptEngine::init() {
     registerGlobalObject("Vec3", &_vec3Library);
     registerGlobalObject("Uuid", &_uuidLibrary);
     registerGlobalObject("AnimationCache", DependencyManager::get<AnimationCache>().data());
+    registerGlobalObject("Messages", DependencyManager::get<MessagesClient>().data());
     qScriptRegisterMetaType(this, animVarMapToScriptValue, animVarMapFromScriptValue);
     qScriptRegisterMetaType(this, resultHandlerToScriptValue, resultHandlerFromScriptValue);
 
@@ -376,10 +377,6 @@ void ScriptEngine::init() {
     auto scriptingInterface = DependencyManager::get<controller::ScriptingInterface>();
     registerGlobalObject("Controller", scriptingInterface.data());
     UserInputMapper::registerControllerTypes(this);
-
-
-    registerGlobalObject("Messages", DependencyManager::get<MessagesClient>().data());
-
 }
 
 void ScriptEngine::registerValue(const QString& valueName, QScriptValue value) {
