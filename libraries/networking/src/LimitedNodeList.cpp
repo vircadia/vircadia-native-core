@@ -300,15 +300,16 @@ qint64 LimitedNodeList::sendUnreliablePacket(const NLPacket& packet, const HifiS
 qint64 LimitedNodeList::sendPacket(std::unique_ptr<NLPacket> packet, const Node& destinationNode) {
     Q_ASSERT(!packet->isPartOfMessage());
     auto activeSocket = destinationNode.getActiveSocket();
-    if (!activeSocket) {
+    
+    if (activeSocket) {
+        emit dataSent(destinationNode.getType(), packet->getDataSize());
+        destinationNode.recordBytesSent(packet->getDataSize());
+        
+        return sendPacket(std::move(packet), *activeSocket, destinationNode.getConnectionSecret());
+    } else {
         qDebug() << "LimitedNodeList::sendPacket called without active socket for node" << destinationNode << "- not sending";
         return 0;
     }
-    
-    emit dataSent(destinationNode.getType(), packet->getDataSize());
-    destinationNode.recordBytesSent(packet->getDataSize());
-    
-    return sendPacket(std::move(packet), *activeSocket, destinationNode.getConnectionSecret());
 }
 
 qint64 LimitedNodeList::sendPacket(std::unique_ptr<NLPacket> packet, const HifiSockAddr& sockAddr,
@@ -329,24 +330,25 @@ qint64 LimitedNodeList::sendPacket(std::unique_ptr<NLPacket> packet, const HifiS
 
 qint64 LimitedNodeList::sendPacketList(NLPacketList& packetList, const Node& destinationNode) {
     auto activeSocket = destinationNode.getActiveSocket();
-    if (!activeSocket) {
+    
+    if (activeSocket) {
+        qint64 bytesSent = 0;
+        auto connectionSecret = destinationNode.getConnectionSecret();
+        
+        // close the last packet in the list
+        packetList.closeCurrentPacket();
+        
+        while (!packetList._packets.empty()) {
+            bytesSent += sendPacket(packetList.takeFront<NLPacket>(), *activeSocket, connectionSecret);
+        }
+        
+        emit dataSent(destinationNode.getType(), bytesSent);
+        return bytesSent;
+    } else {
         qDebug() << "LimitedNodeList::sendPacketList called without active socket for node" << destinationNode
             << " - not sending.";
         return 0;
     }
-    
-    qint64 bytesSent = 0;
-    auto connectionSecret = destinationNode.getConnectionSecret();
-    
-    // close the last packet in the list
-    packetList.closeCurrentPacket();
-    
-    while (!packetList._packets.empty()) {
-        bytesSent += sendPacket(packetList.takeFront<NLPacket>(), *activeSocket, connectionSecret);
-    }
-    
-    emit dataSent(destinationNode.getType(), bytesSent);
-    return bytesSent;
 }
 
 qint64 LimitedNodeList::sendPacketList(NLPacketList& packetList, const HifiSockAddr& sockAddr,
