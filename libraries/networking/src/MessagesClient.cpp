@@ -14,18 +14,11 @@
 #include <cstdint>
 
 #include <QtCore/QBuffer>
-#include <QtCore/QStandardPaths>
 #include <QtCore/QThread>
-#include <QtNetwork/QNetworkDiskCache>
 
-#include "AssetRequest.h"
-#include "AssetUpload.h"
-#include "AssetUtils.h"
-#include "NetworkAccessManager.h"
 #include "NetworkLogging.h"
 #include "NodeList.h"
 #include "PacketReceiver.h"
-#include "ResourceCache.h"
 
 MessagesClient::MessagesClient() {
     
@@ -44,20 +37,6 @@ MessagesClient::MessagesClient() {
 void MessagesClient::init() {
     if (QThread::currentThread() != thread()) {
         QMetaObject::invokeMethod(this, "init", Qt::BlockingQueuedConnection);
-    }
-    
-    // Setup disk cache if not already
-    QNetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
-    if (!networkAccessManager.cache()) {
-        QString cachePath = QStandardPaths::writableLocation(QStandardPaths::DataLocation);
-        cachePath = !cachePath.isEmpty() ? cachePath : "interfaceCache";
-        
-        QNetworkDiskCache* cache = new QNetworkDiskCache();
-        cache->setMaximumCacheSize(MAXIMUM_CACHE_SIZE);
-        cache->setCacheDirectory(cachePath);
-        networkAccessManager.setCache(cache);
-        qCDebug(asset_client) << "MessagesClient disk cache setup at" << cachePath
-                                << "(size:" << MAXIMUM_CACHE_SIZE / BYTES_PER_GIGABYTES << "GB)";
     }
 }
 

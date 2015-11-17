@@ -35,8 +35,6 @@ public:
 private slots:
     void handleMessagesPacket(QSharedPointer<NLPacketList> packetList, SharedNodePointer senderNode);
     void handleNodeKilled(SharedNodePointer node);
-
-private:
 };
 
 #endif

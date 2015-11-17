@@ -95,8 +95,6 @@ void PacketReceiver::registerDirectListenerForTypes(PacketTypeList types,
 }
 
 bool PacketReceiver::registerMessageListener(PacketType type, QObject* listener, const char* slot) {
-    qCDebug(networking) << "PacketReceiver::registerMessageListener() packet list type" << type;
-
     Q_ASSERT_X(listener, "PacketReceiver::registerMessageListener", "No object to register");
     Q_ASSERT_X(slot, "PacketReceiver::registerMessageListener", "No slot to register");
     
@@ -117,7 +115,7 @@ bool PacketReceiver::registerMessageListener(PacketType type, QObject* listener,
 
         return true;
     } else {
-        qCDebug(networking) << "NOT Registering a packet listener for packet list type" << type;
+        qCWarning(networking) << "FAILED to Register a packet listener for packet list type" << type;
         return false;
     }
 }
