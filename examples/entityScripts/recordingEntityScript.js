@@ -80,7 +80,7 @@
                 }
             }
         },
-        clean: function(entityID) {
+        unload: function(entityID) {
             Script.update.disconnect(_this.update);
         }
     }

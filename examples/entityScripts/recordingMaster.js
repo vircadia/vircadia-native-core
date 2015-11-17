@@ -106,7 +106,7 @@ function mousePressEvent(event) {
 
 function cleanup() {
     toolBar.cleanup();
-    Entities.callEntityMethod(recordAreaEntity, 'clean');      //have to call this before deleting to avoid the JSON warnings
+    //Entities.callEntityMethod(recordAreaEntity, 'clean');      //have to call this before deleting to avoid the JSON warnings
     Entities.deleteEntity(recordAreaEntity);
 }
 
