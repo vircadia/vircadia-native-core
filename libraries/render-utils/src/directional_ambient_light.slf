@@ -47,4 +47,8 @@ void main(void) {
                         frag.gloss);
         _fragColor = vec4(color, frag.normalVal.a);
     }
+
+    if (gl_FragCoord.y > 500) {
+        _fragColor.xyz = pow(_fragColor.xyz, vec3(2.2));
+    }
 }
