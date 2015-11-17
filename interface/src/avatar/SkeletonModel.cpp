@@ -605,9 +605,9 @@ void SkeletonModel::computeBoundingShape() {
     */
 
     // AJT: REMOVE HARDCODED BOUNDING VOLUME
-    _boundingCapsuleRadius = 0.5f;
-    _boundingCapsuleHeight = 2.0f;
-    _boundingCapsuleLocalOffset = glm::vec3(0.0f, 1.0f, 0.0f);
+    _boundingCapsuleRadius = 0.3f;
+    _boundingCapsuleHeight = 1.3f;
+    _boundingCapsuleLocalOffset = glm::vec3(0.0f, -0.25f, 0.0f);
 }
 
 void SkeletonModel::renderBoundingCollisionShapes(gpu::Batch& batch, float alpha) {

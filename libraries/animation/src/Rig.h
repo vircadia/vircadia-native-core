@@ -17,6 +17,7 @@
 #include <QObject>
 #include <QMutex>
 #include <QScriptValue>
+#include <vector>
 
 #include "JointState.h"  // We might want to change this (later) to something that doesn't depend on gpu, fbx and model. -HRS
 
@@ -165,6 +166,7 @@ public:
 
  protected:
     void updateAnimationStateHandlers();
+    void applyOverridePoses();
     void buildAbsolutePoses();
 
     void updateLeanJoint(int index, float leanSideways, float leanForward, float torsoTwist);
@@ -178,6 +180,8 @@ public:
     AnimPose _modelOffset;
     AnimPoseVec _relativePoses;
     AnimPoseVec _absolutePoses;
+    AnimPoseVec _overridePoses;
+    std::vector<bool> _overrideFlags;
 
     int _rootJointIndex { -1 };
 

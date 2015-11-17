@@ -78,25 +78,40 @@ void AvatarRig::setHandPosition(int jointIndex,
 
 void AvatarRig::setJointTranslation(int index, bool valid, const glm::vec3& translation, float priority) {
     if (index != -1 && index < _jointStates.size()) {
-        JointState& state = _jointStates[index];
-        if (valid) {
-            state.setTranslation(translation, priority);
-        } else {
-            state.restoreTranslation(1.0f, priority);
+
+        // AJT: LEGACY
+        {
+            JointState& state = _jointStates[index];
+            if (valid) {
+                state.setTranslation(translation, priority);
+            } else {
+                state.restoreTranslation(1.0f, priority);
+            }
         }
+
+        _overrideFlags[index] = true;
+        _overridePoses[index].trans = translation;
     }
 }
 
 
 void AvatarRig::setJointState(int index, bool valid, const glm::quat& rotation, const glm::vec3& translation, float priority) {
     if (index != -1 && index < _jointStates.size()) {
-        JointState& state = _jointStates[index];
-        if (valid) {
-            state.setRotationInConstrainedFrame(rotation, priority);
-            state.setTranslation(translation, priority);
-        } else {
-            state.restoreRotation(1.0f, priority);
-            state.restoreTranslation(1.0f, priority);
+
+        // AJT: LEGACY
+        {
+            JointState& state = _jointStates[index];
+            if (valid) {
+                state.setRotationInConstrainedFrame(rotation, priority);
+                state.setTranslation(translation, priority);
+            } else {
+                state.restoreRotation(1.0f, priority);
+                state.restoreTranslation(1.0f, priority);
+            }
         }
+
+        _overrideFlags[index] = true;
+        _overridePoses[index].rot = rotation;
+        _overridePoses[index].trans = translation;
     }
 }

@@ -23,16 +23,28 @@
 #include "AnimClip.h"
 #include "IKTarget.h"
 
+#ifdef NDEBUG
+#define ASSERT()
+#else
+#define ASSERT(cond)                            \
+    do {                                        \
+        if (!(cond)) {                          \
+            int* ptr = nullptr;                 \
+            *ptr = 10;                          \
+        }                                       \
+    } while (0)
+#endif
+
 void Rig::overrideAnimation(const QString& url, float fps, bool loop, float firstFrame, float lastFrame) {
 
     // find an unused AnimClip clipNode
     std::shared_ptr<AnimClip> clip;
     if (_userAnimState == UserAnimState::None || _userAnimState == UserAnimState::B) {
         _userAnimState = UserAnimState::A;
-        clip = std::dynamic_pointer_cast<AnimClip>(_animNode->getChild((int)_userAnimState));
+        clip = std::dynamic_pointer_cast<AnimClip>(_animNode->findByName("userAnimA"));
     } else if (_userAnimState == UserAnimState::A) {
         _userAnimState = UserAnimState::B;
-        clip = std::dynamic_pointer_cast<AnimClip>(_animNode->getChild((int)_userAnimState));
+        clip = std::dynamic_pointer_cast<AnimClip>(_animNode->findByName("userAnimB"));
     }
 
     // set parameters
@@ -132,6 +144,10 @@ void Rig::destroyAnimGraph() {
     _animSkeleton = nullptr;
     _animLoader = nullptr;
     _animNode = nullptr;
+    _relativePoses.clear();
+    _absolutePoses.clear();
+    _overridePoses.clear();
+    _overrideFlags.clear();
 }
 
 void Rig::initJointStates(const FBXGeometry& geometry, glm::mat4 modelOffset, int rootJointIndex,
@@ -139,7 +155,18 @@ void Rig::initJointStates(const FBXGeometry& geometry, glm::mat4 modelOffset, in
                           int rightHandJointIndex, int rightElbowJointIndex, int rightShoulderJointIndex) {
 
     _animSkeleton = std::make_shared<AnimSkeleton>(geometry);
-    _relativePoses.resize(_animSkeleton->getNumJoints());
+
+    _relativePoses.clear();
+    _relativePoses.resize(_animSkeleton->getNumJoints(), AnimPose::identity);
+
+    _absolutePoses.clear();
+    _absolutePoses.resize(_animSkeleton->getNumJoints(), AnimPose::identity);
+
+    _overridePoses.clear();
+    _overridePoses.resize(_animSkeleton->getNumJoints(), AnimPose::identity);
+
+    _overrideFlags.clear();
+    _overrideFlags.resize(_animSkeleton->getNumJoints(), true);
 
     // AJT: LEGACY
     {
@@ -264,14 +291,25 @@ bool Rig::getJointStateTranslation(int index, glm::vec3& translation) const {
 
 void Rig::clearJointState(int index) {
     if (index != -1 && index < _jointStates.size()) {
+        // AJT: REMOVE
+        /*
         JointState& state = _jointStates[index];
         state.setRotationInConstrainedFrame(glm::quat(), 0.0f);
         state.setTranslation(state.getDefaultTranslationInConstrainedFrame(), 0.0f);
+        */
+        _overrideFlags[index] = false;
     }
 }
 
 void Rig::clearJointStates() {
-    _jointStates.clear();
+    // AJT: LEGACY
+    /*
+    {
+        _jointStates.clear();
+    }
+    */
+    _overrideFlags.clear();
+    _overrideFlags.resize(_animSkeleton->getNumJoints());
 }
 
 void Rig::clearJointAnimationPriority(int index) {
@@ -375,12 +413,33 @@ glm::mat4 Rig::getJointTransform(int jointIndex) const {
     if (jointIndex == -1 || jointIndex >= _jointStates.size()) {
         return glm::mat4();
     }
+
+    /*
+    // AJT: test if _absolutePoses are the same as jointTransforms
+    glm::mat4 newMat = _absolutePoses[jointIndex];
+    glm::mat4 oldMat = _jointStates[jointIndex].getTransform();
+
+    const float EPSILON = 0.0001f;
+    if (glm::length(newMat[0] - oldMat[0]) > EPSILON ||
+        glm::length(newMat[1] - oldMat[1]) > EPSILON ||
+        glm::length(newMat[2] - oldMat[2]) > EPSILON ||
+        glm::length(newMat[3] - oldMat[3]) > EPSILON) {
+
+        // error?
+        qCDebug(animation) << "AJT: mismatch for joint[" << jointIndex;
+        qCDebug(animation) << "AJT: oldMat = " << AnimPose(oldMat);
+        qCDebug(animation) << "AJT: newMat = " << AnimPose(newMat);
+
+    }
+    */
+
+    // AJT: LEGACY
     return _jointStates[jointIndex].getTransform();
 }
 
 void Rig::calcAnimAlpha(float speed, const std::vector<float>& referenceSpeeds, float* alphaOut) const {
 
-    assert(referenceSpeeds.size() > 0);
+    ASSERT(referenceSpeeds.size() > 0);
 
     // calculate alpha from linear combination of referenceSpeeds.
     float alpha = 0.0f;
@@ -664,33 +723,38 @@ void Rig::updateAnimations(float deltaTime, glm::mat4 rootTransform) {
 
         // evaluate the animation
         AnimNode::Triggers triggersOut;
-        AnimPoseVec poses = _animNode->evaluate(_animVars, deltaTime, triggersOut);
+        _relativePoses = _animNode->evaluate(_animVars, deltaTime, triggersOut);
+        if (_relativePoses.size() != _animSkeleton->getNumJoints()) {
+            // animations haven't been loaded yet.
+            _relativePoses.resize(_animSkeleton->getNumJoints(), AnimPose::identity);
+        }
         _animVars.clearTriggers();
         for (auto& trigger : triggersOut) {
             _animVars.setTrigger(trigger);
         }
 
-        clearJointStatePriorities();
+        // AJT: LEGACY
+        {
+            clearJointStatePriorities();
 
-        // copy poses into jointStates
-        const float PRIORITY = 1.0f;
-        for (size_t i = 0; i < poses.size(); i++) {
-            setJointRotationInConstrainedFrame((int)i, glm::inverse(_animSkeleton->getRelativeBindPose(i).rot) * poses[i].rot, PRIORITY, 1.0f);
-            setJointTranslation((int)i, true, poses[i].trans, PRIORITY);
+            // copy poses into jointStates
+            const float PRIORITY = 1.0f;
+            for (size_t i = 0; i < _relativePoses.size(); i++) {
+                setJointRotationInConstrainedFrame((int)i, glm::inverse(_animSkeleton->getRelativeBindPose(i).rot) * _relativePoses[i].rot, PRIORITY, 1.0f);
+                setJointTranslation((int)i, true, _relativePoses[i].trans, PRIORITY);
+            }
         }
     }
 
-    // AJT: REMOVE
-    /*
-    for (int i = 0; i < _jointStates.size(); i++) {
-        updateJointState(i, rootTransform);
-    }
-    */
     setModelOffset(rootTransform);
+    //applyOverridePoses();
     buildAbsolutePoses();
 
-    for (int i = 0; i < _jointStates.size(); i++) {
-        _jointStates[i].resetTransformChanged();
+    // AJT: LEGACY
+    {
+        for (int i = 0; i < _jointStates.size(); i++) {
+            _jointStates[i].resetTransformChanged();
+        }
     }
 }
 
@@ -1154,12 +1218,29 @@ bool Rig::getModelOffset(glm::vec3& modelOffsetOut) const {
     }
 }
 
+void Rig::applyOverridePoses() {
+    if (!_animSkeleton) {
+        return;
+    }
+
+    ASSERT(_animSkeleton->getNumJoints() == _relativePoses.size());
+    ASSERT(_animSkeleton->getNumJoints() == _overrideFlags.size());
+    ASSERT(_animSkeleton->getNumJoints() == _overridePoses.size());
+
+    for (size_t i = 0; i < _overrideFlags.size(); i++) {
+        if (_overrideFlags[i]) {
+            _relativePoses[i] = _overridePoses[i];
+        }
+    }
+}
+
 void Rig::buildAbsolutePoses() {
     if (!_animSkeleton) {
         return;
     }
 
-    assert(_animSkeleton->getNumJoints() == _relativePoses.size());
+    ASSERT(_animSkeleton->getNumJoints() == _relativePoses.size());
+
     _absolutePoses.resize(_relativePoses.size());
     for (int i = 0; i < (int)_relativePoses.size(); i++) {
         int parentIndex = _animSkeleton->getParentIndex(i);
