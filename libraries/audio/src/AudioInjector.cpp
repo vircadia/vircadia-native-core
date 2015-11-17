@@ -65,8 +65,8 @@ void AudioInjector::finish() {
 }
 
 void AudioInjector::setupInjection() {
-    if (!_hasStarted) {
-        _hasStarted = true;
+    if (!_hasSetup) {
+        _hasSetup = true;
         
         // check if we need to offset the sound by some number of seconds
         if (_options.secondOffset > 0.0f) {
@@ -79,18 +79,14 @@ void AudioInjector::setupInjection() {
         } else {
             _currentSendOffset = 0;
         }
-
-        if (_options.localOnly) {
-            injectLocally();
-        }
     } else {
-        qCDebug(audio) << "AudioInjector::setupInjection called but already started.";
+        qCDebug(audio) << "AudioInjector::setupInjection called but already setup.";
     }
 }
 
 void AudioInjector::restart() {
     if (thread() != QThread::currentThread()) {
-        QMetaObject::invokeMethod(this, "restart");
+        QMetaObject::invokeMethod(this, "restart");        
         return;
     }
     
@@ -98,23 +94,28 @@ void AudioInjector::restart() {
     _currentSendOffset = 0;
     
     // check our state to decide if we need extra handling for the restart request
-    if (!isPlaying()) {
+    if (_state == State::Finished) {
         // we finished playing, need to reset state so we can get going again
-        _hasStarted = false;
+        _hasSetup = false;
         _shouldStop = false;
         _state = State::NotFinished;
         
-        qDebug() << "Calling inject audio again to restart an injector";
+        qDebug() << "Emitting restartedWhileFinished to inject audio again to restart an injector";
         
         // call inject audio to start injection over again
         setupInjection();
         
-        // emit our restarted signal, this allows the AudioInjectorManager to start considering us again
+        // if we're a local injector call inject locally to start injecting again
+        if (_options.localOnly) {
+            injectLocally();
+        }
+        
+        // emit our restarted signal, for network injectors this allows the AudioInjectorManager to start considering us again
         emit restartedWhileFinished();
     }
 }
 
-void AudioInjector::injectLocally() {
+bool AudioInjector::injectLocally() {
     bool success = false;
     if (_localAudioInterface) {
         if (_audioData.size() > 0) {
@@ -145,7 +146,8 @@ void AudioInjector::injectLocally() {
         // we never started so we are finished, call our stop method
         stop();
     }
-
+    
+    return success;
 }
 
 const uchar MAX_INJECTOR_VOLUME = 0xFF;
@@ -294,18 +296,21 @@ uint64_t AudioInjector::injectNextFrame() {
 }
 
 void AudioInjector::stop() {
-    _shouldStop = true;
-
-    if (_options.localOnly) {
-        // we're only a local injector, so we can say we are finished right away too
-        finish();
-    }
+    // trigger a call on the injector's thread to change state to finished
+    QMetaObject::invokeMethod(this, "finish");
 }
 
 void AudioInjector::triggerDeleteAfterFinish() {
-    auto expectedState = State::NotFinished;
-    if (!_state.compare_exchange_strong(expectedState, State::NotFinishedWithPendingDelete)) {
+    // make sure this fires on the AudioInjector thread
+    if (thread() != QThread::currentThread()) {
+        QMetaObject::invokeMethod(this, "triggerDeleteAfterFinish", Qt::QueuedConnection);
+        return;
+    }
+    
+    if (_state == State::Finished) {
         stopAndDeleteLater();
+    } else {
+        _state = State::NotFinishedWithPendingDelete;
     }
 }
 
@@ -357,7 +362,11 @@ AudioInjector* AudioInjector::playSound(const QString& soundUrl, const float vol
 
 AudioInjector* AudioInjector::playSoundAndDelete(const QByteArray& buffer, const AudioInjectorOptions options, AbstractAudioInterface* localInterface) {
     AudioInjector* sound = playSound(buffer, options, localInterface);
-    sound->_state = AudioInjector::State::NotFinishedWithPendingDelete;
+    
+    if (sound) {
+        sound->_state = AudioInjector::State::NotFinishedWithPendingDelete;
+    }
+    
     return sound;
 }
 
@@ -372,11 +381,21 @@ AudioInjector* AudioInjector::playSound(const QByteArray& buffer, const AudioInj
     // setup parameters required for injection
     injector->setupInjection();
     
-    // attempt to thread the new injector
-    if (injectorManager->threadInjector(injector)) {
-        return injector;
+    if (options.localOnly) {
+        if (injector->injectLocally()) {
+            // local injection succeeded, return the pointer to injector
+            return injector;
+        } else {
+            // unable to inject locally, return a nullptr
+            return nullptr;
+        }
     } else {
-        // we failed to thread the new injector (we are at the max number of injector threads)
-        return nullptr;
+        // attempt to thread the new injector
+        if (injectorManager->threadInjector(injector)) {
+            return injector;
+        } else {
+            // we failed to thread the new injector (we are at the max number of injector threads)
+            return nullptr;
+        }
     }
 }

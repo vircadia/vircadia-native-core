@@ -116,8 +116,11 @@ bool AudioInjectorManager::threadInjector(AudioInjector* injector) {
         // handle a restart once the injector has finished
         connect(injector, &AudioInjector::restartedWhileFinished, this, &AudioInjectorManager::restartFinishedInjector);
         
-        // store a QPointer to this injector
-        addInjectorToQueue(injector);
+        // add the injector to the queue with a send timestamp of now
+        _injectors.emplace(usecTimestampNow(), InjectorQPointer { injector });
+        
+        // notify our wait condition so we can inject two frames for this injector immediately
+        _injectorReady.notify_one();
         
         return true;
     } else {
@@ -130,10 +133,10 @@ bool AudioInjectorManager::threadInjector(AudioInjector* injector) {
 
 void AudioInjectorManager::restartFinishedInjector() {
     auto injector = qobject_cast<AudioInjector*>(sender());
-    addInjectorToQueue(injector);
-}
-
-void AudioInjectorManager::addInjectorToQueue(AudioInjector* injector) {
+    
+    // guard the injectors vector with a mutex
+    std::unique_lock<std::mutex> lock(_injectorsMutex);
+    
     // add the injector to the queue with a send timestamp of now
     _injectors.emplace(usecTimestampNow(), InjectorQPointer { injector });
     

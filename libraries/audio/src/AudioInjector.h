@@ -80,14 +80,14 @@ signals:
 private:
     void setupInjection();
     uint64_t injectNextFrame();
-    void injectLocally();
+    bool injectLocally();
     
     void finish();
     
     QByteArray _audioData;
     AudioInjectorOptions _options;
     std::atomic<State> _state { State::NotFinished };
-    bool _hasStarted = false;
+    bool _hasSetup = false;
     bool _shouldStop = false;
     float _loudness = 0.0f;
     int _currentSendOffset = 0;
