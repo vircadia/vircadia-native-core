@@ -8,6 +8,8 @@
 
 #include "RecordingScriptingInterface.h"
 
+#include <QThread>
+
 #include <recording/Deck.h>
 #include <recording/Recorder.h>
 #include <recording/Clip.h>
@@ -16,8 +18,8 @@
 #include <AudioClient.h>
 #include <AudioConstants.h>
 
-#include "avatar/AvatarManager.h"
-#include "Application.h"
+//#include "avatar/AvatarManager.h"
+//#include "Application.h"
 #include "InterfaceLogging.h"
 
 typedef int16_t AudioSample;

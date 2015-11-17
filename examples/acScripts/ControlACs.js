@@ -156,7 +156,7 @@ function sendCommand(id, action) {
         position: controlEntityPosition, 
         dimensions: { x: controlEntitySize, y: controlEntitySize, z: controlEntitySize },
         visible: false,
-        lifetime: 10,
+        lifetime: 10000,
         userData: JSON.stringify({
             idKey: {
                 uD_id: id
