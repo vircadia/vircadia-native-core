@@ -14,6 +14,7 @@
 #ifndef hifi_AudioInjectorManager_h
 #define hifi_AudioInjectorManager_h
 
+#include <condition_variable>
 #include <queue>
 #include <mutex>
 
