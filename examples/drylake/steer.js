@@ -1,23 +1,3 @@
-function seek(thisEntity, target) {
-  var targetPosition = Entities.getEntityProperties(target, "position").position;
-  var properties = Entities.getEntityProperties(thisEntity, ["position", "velocity"]);
-  var location = properties.position;
-  var velocity = properties.velocity;
-  var MAX_SPEED = 30;
-  var MAX_FORCE = 20;
-
-  var desired = Vec3.subtract(targetPosition, location);
-  desired = Vec3.normalize(desired);
-  desired = Vec3.multiply(MAX_SPEED, desired);
-
-  var steer = Vec3.subtract(desired, velocity);
-  var steerVector = new V3(desired.x, desired.y, desired.z);
-  steer = steerVector.limit(MAX_FORCE)
-
-  return steer;
-
-}
-
 function flee(thisEntity, target) {
   var targetPosition = Entities.getEntityProperties(target, "position").position;
   var properties = Entities.getEntityProperties(thisEntity, ["position", "velocity"]);
@@ -42,30 +22,6 @@ function flee(thisEntity, target) {
     //   print('target too far away to flee' + d);
     return
   }
-}
-
-function fleeAvatar(thisEntity, avatarPosition) {
-  var properties = Entities.getEntityProperties(thisEntity, ["position", "velocity"]);
-  var location = properties.position;
-  var velocity = properties.velocity;
-  var MAX_SPEED = 3;
-  var MAX_FORCE = 10;
-
-  var desired = Vec3.subtract(location, avatarPosition);
-  var d = Vec3.length(desired);
-  desired = Vec3.normalize(desired);
-  desired = Vec3.multiply(MAX_SPEED, desired);
-  if (d < 3) {
-    var steer = Vec3.subtract(desired, velocity);
-
-    var steerVector = new V3(desired.x, desired.y, desired.z);
-    steer = steerVector.limit(MAX_FORCE);
-    return steer
-  } else {
-    //   print('target too far away to flee' + d);
-    return
-  }
-
 }
 
 function fleeAllAvatars(thisEntity) {
@@ -203,9 +159,7 @@ var scale = function(value, min1, max1, min2, max2) {
 
 loadSteer = function() {
   return {
-    seek: seek,
     flee: flee,
-    fleeAvatar: fleeAvatar,
     fleeAllAvatars: fleeAllAvatars,
     fleeAvoiderBlocks:fleeAvoiderBlocks,
     arrive: arrive
