@@ -8,17 +8,19 @@
 
 #include "RecordingScriptingInterface.h"
 
+#include <QThread>
+
 #include <recording/Deck.h>
 #include <recording/Recorder.h>
 #include <recording/Clip.h>
 #include <recording/Frame.h>
 #include <NumericalConstants.h>
-#include <AudioClient.h>
+// FiXME
+//#include <AudioClient.h>
 #include <AudioConstants.h>
+#include <Transform.h>
 
-#include "avatar/AvatarManager.h"
-#include "Application.h"
-#include "InterfaceLogging.h"
+#include "ScriptEngineLogging.h"
 
 typedef int16_t AudioSample;
 
@@ -43,8 +45,13 @@ RecordingScriptingInterface::RecordingScriptingInterface() {
     _player = DependencyManager::get<Deck>();
     _recorder = DependencyManager::get<Recorder>();
 
-    auto audioClient = DependencyManager::get<AudioClient>();
-    connect(audioClient.data(), &AudioClient::inputReceived, this, &RecordingScriptingInterface::processAudioInput);
+    // FIXME : Disabling Sound
+//    auto audioClient = DependencyManager::get<AudioClient>();
+ //   connect(audioClient.data(), &AudioClient::inputReceived, this, &RecordingScriptingInterface::processAudioInput);
+}
+
+void RecordingScriptingInterface::setControlledAvatar(AvatarData* avatar) {
+    _controlledAvatar = avatar;
 }
 
 bool RecordingScriptingInterface::isPlaying() const {
@@ -84,10 +91,10 @@ void RecordingScriptingInterface::startPlaying() {
         QMetaObject::invokeMethod(this, "startPlaying", Qt::BlockingQueuedConnection);
         return;
     }
-    auto myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
+
     // Playback from the current position
-    if (_playFromCurrentLocation) {
-        _dummyAvatar.setRecordingBasis(std::make_shared<Transform>(myAvatar->getTransform()));
+    if (_playFromCurrentLocation && _controlledAvatar) {
+        _dummyAvatar.setRecordingBasis(std::make_shared<Transform>(_controlledAvatar->getTransform()));
     } else {
         _dummyAvatar.clearRecordingBasis();
     }
@@ -160,7 +167,7 @@ float RecordingScriptingInterface::recorderElapsed() const {
 
 void RecordingScriptingInterface::startRecording() {
     if (_recorder->isRecording()) {
-        qCWarning(interfaceapp) << "Recorder is already running";
+        qCWarning(scriptengine) << "Recorder is already running";
         return;
     }
 
@@ -170,7 +177,11 @@ void RecordingScriptingInterface::startRecording() {
     }
 
     _recordingEpoch = Frame::epochForFrameTime(0);
-    DependencyManager::get<AvatarManager>()->getMyAvatar()->setRecordingBasis();
+
+    if (_controlledAvatar) {
+        _controlledAvatar->setRecordingBasis();
+    }
+
     _recorder->start();
 }
 
@@ -178,7 +189,10 @@ void RecordingScriptingInterface::stopRecording() {
     _recorder->stop();
     _lastClip = _recorder->getClip();
     _lastClip->seek(0);
-    DependencyManager::get<AvatarManager>()->getMyAvatar()->clearRecordingBasis();
+
+    if (_controlledAvatar) {
+        _controlledAvatar->clearRecordingBasis();
+    }
 }
 
 void RecordingScriptingInterface::saveRecording(const QString& filename) {
@@ -203,7 +217,7 @@ void RecordingScriptingInterface::loadLastRecording() {
     }
 
     if (!_lastClip) {
-        qCDebug(interfaceapp) << "There is no recording to load";
+        qCDebug(scriptengine) << "There is no recording to load";
         return;
     }
 
@@ -214,27 +228,32 @@ void RecordingScriptingInterface::loadLastRecording() {
 void RecordingScriptingInterface::processAvatarFrame(const Frame::ConstPointer& frame) {
     Q_ASSERT(QThread::currentThread() == thread());
 
+    if (!_controlledAvatar) {
+        return;
+    }
+
     AvatarData::fromFrame(frame->data, _dummyAvatar);
 
-    auto myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
+
+
     if (_useHeadModel && _dummyAvatar.getFaceModelURL().isValid() && 
-        (_dummyAvatar.getFaceModelURL() != myAvatar->getFaceModelURL())) {
+        (_dummyAvatar.getFaceModelURL() != _controlledAvatar->getFaceModelURL())) {
         // FIXME
         //myAvatar->setFaceModelURL(_dummyAvatar.getFaceModelURL());
     }
 
     if (_useSkeletonModel && _dummyAvatar.getSkeletonModelURL().isValid() &&
-        (_dummyAvatar.getSkeletonModelURL() != myAvatar->getSkeletonModelURL())) {
+        (_dummyAvatar.getSkeletonModelURL() != _controlledAvatar->getSkeletonModelURL())) {
         // FIXME
         //myAvatar->useFullAvatarURL()
     }
 
-    if (_useDisplayName && _dummyAvatar.getDisplayName() != myAvatar->getDisplayName()) {
-        myAvatar->setDisplayName(_dummyAvatar.getDisplayName());
+    if (_useDisplayName && _dummyAvatar.getDisplayName() != _controlledAvatar->getDisplayName()) {
+        _controlledAvatar->setDisplayName(_dummyAvatar.getDisplayName());
     }
 
-    myAvatar->setPosition(_dummyAvatar.getPosition());
-    myAvatar->setOrientation(_dummyAvatar.getOrientation());
+    _controlledAvatar->setPosition(_dummyAvatar.getPosition());
+    _controlledAvatar->setOrientation(_dummyAvatar.getOrientation());
 
     // FIXME attachments
     // FIXME joints
@@ -250,6 +269,6 @@ void RecordingScriptingInterface::processAudioInput(const QByteArray& audio) {
 }
 
 void RecordingScriptingInterface::processAudioFrame(const recording::FrameConstPointer& frame) {
-    auto audioClient = DependencyManager::get<AudioClient>();
-    audioClient->handleRecordedAudioInput(frame->data);
+   // auto audioClient = DependencyManager::get<AudioClient>();
+   // audioClient->handleRecordedAudioInput(frame->data);
 }

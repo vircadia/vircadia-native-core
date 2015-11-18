@@ -939,6 +939,7 @@ void OctreeServer::readConfiguration() {
     }
     
     const QJsonObject& settingsObject = DependencyManager::get<NodeList>()->getDomainHandler().getSettingsObject();
+
     QString settingsKey = getMyDomainSettingsKey();
     QJsonObject settingsSectionObject = settingsObject[settingsKey].toObject();
     _settings = settingsSectionObject; // keep this for later
@@ -1086,7 +1087,7 @@ void OctreeServer::domainSettingsRequestComplete() {
     
     connect(nodeList.data(), SIGNAL(nodeAdded(SharedNodePointer)), SLOT(nodeAdded(SharedNodePointer)));
     connect(nodeList.data(), SIGNAL(nodeKilled(SharedNodePointer)), SLOT(nodeKilled(SharedNodePointer)));
-    
+
 #ifndef WIN32
     setvbuf(stdout, NULL, _IOLBF, 0);
 #endif

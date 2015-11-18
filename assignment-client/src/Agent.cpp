@@ -25,10 +25,14 @@
 #include <SoundCache.h>
 #include <UUID.h>
 
+#include <recording/Deck.h>
+#include <recording/Recorder.h>
+
 #include <WebSocketServerClass.h>
 #include <EntityScriptingInterface.h> // TODO: consider moving to scriptengine.h
 
 #include "avatars/ScriptableAvatar.h"
+#include "RecordingScriptingInterface.h"
 
 #include "Agent.h"
 
@@ -46,6 +50,9 @@ Agent::Agent(NLPacket& packet) :
 
     DependencyManager::set<ResourceCacheSharedItems>();
     DependencyManager::set<SoundCache>();
+    DependencyManager::set<recording::Deck>();
+    DependencyManager::set<recording::Recorder>();
+    DependencyManager::set<RecordingScriptingInterface>();
 
     auto& packetReceiver = DependencyManager::get<NodeList>()->getPacketReceiver();
     
@@ -172,7 +179,7 @@ void Agent::run() {
 
     // give this AvatarData object to the script engine
     setAvatarData(&scriptedAvatar, "Avatar");
-    
+
     auto avatarHashMap = DependencyManager::set<AvatarHashMap>();
     _scriptEngine->registerGlobalObject("AvatarList", avatarHashMap.data());
 
@@ -232,6 +239,8 @@ void Agent::setIsAvatar(bool isAvatar) {
     }
 
     if (!_isAvatar) {
+        DependencyManager::get<RecordingScriptingInterface>()->setControlledAvatar(nullptr);
+
         if (_avatarIdentityTimer) {
             _avatarIdentityTimer->stop();
             delete _avatarIdentityTimer;
@@ -249,6 +258,7 @@ void Agent::setIsAvatar(bool isAvatar) {
 void Agent::setAvatarData(AvatarData* avatarData, const QString& objectName) {
     _avatarData = avatarData;
     _scriptEngine->registerGlobalObject(objectName, avatarData);
+    DependencyManager::get<RecordingScriptingInterface>()->setControlledAvatar(avatarData);
 }
 
 void Agent::sendAvatarIdentityPacket() {
