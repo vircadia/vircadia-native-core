@@ -56,6 +56,13 @@ var PICK_BACKOFF_DISTANCE = 0.2; // helps when hand is intersecting the grabble 
 var NEAR_GRABBING_KINEMATIC = true; // force objects to be kinematic when near-grabbed
 
 //
+// equip
+//
+
+var EQUIP_SPRING_SHUTOFF_DISTANCE = 0.05;
+var EQUIP_SPRING_TIMEFRAME = 0.4; // how quickly objects move to their new position
+
+//
 // other constants
 //
 
@@ -70,7 +77,7 @@ var ZERO_VEC = {
 var NULL_ACTION_ID = "{00000000-0000-0000-000000000000}";
 var MSEC_PER_SEC = 1000.0;
 
-// these control how long an abandoned pointer line will hang around
+// these control how long an abandoned pointer line or action will hang around
 var LIFETIME = 10;
 var ACTION_TTL = 15; // seconds
 var ACTION_TTL_REFRESH = 5;
@@ -113,6 +120,7 @@ var STATE_EQUIP = 12
 var STATE_CONTINUE_EQUIP_BD = 13; // equip while bumper is still held down
 var STATE_CONTINUE_EQUIP = 14;
 var STATE_WAITING_FOR_BUMPER_RELEASE = 15;
+var STATE_EQUIP_SPRING = 16;
 
 
 function stateToName(state) {
@@ -149,6 +157,8 @@ function stateToName(state) {
         return "continue_equip";
     case STATE_WAITING_FOR_BUMPER_RELEASE:
         return "waiting_for_bumper_release";
+    case STATE_EQUIP_SPRING:
+        return "state_equip_spring";
     }
 
     return "unknown";
@@ -228,13 +238,14 @@ function MyController(hand) {
                 this.continueDistanceHolding();
                 break;
             case STATE_NEAR_GRABBING:
-                this.nearGrabbing();
-                break;
             case STATE_EQUIP:
                 this.nearGrabbing();
                 break;
             case STATE_WAITING_FOR_BUMPER_RELEASE:
                 this.waitingForBumperRelease();
+                break;
+            case STATE_EQUIP_SPRING:
+                this.pullTowardEquipPosition()
                 break;
             case STATE_CONTINUE_NEAR_GRABBING:
             case STATE_CONTINUE_EQUIP_BD:
@@ -444,7 +455,15 @@ function MyController(hand) {
                         return;
                     } else if (!intersection.properties.locked) {
                         this.grabbedEntity = intersection.entityID;
-                        this.setState(this.state == STATE_SEARCHING ? STATE_NEAR_GRABBING : STATE_EQUIP)
+                        if (this.state == STATE_SEARCHING) {
+                            this.setState(STATE_NEAR_GRABBING);
+                        } else { // equipping
+                            if (typeof grabbableData.spatialKey !== 'undefined') {
+                                this.setState(STATE_EQUIP_SPRING);
+                            } else {
+                                this.setState(STATE_EQUIP);
+                            }
+                        }
                         return;
                     }
                 } else if (! entityIsGrabbedByOther(intersection.entityID)) {
@@ -455,7 +474,7 @@ function MyController(hand) {
                         this.grabbedEntity = intersection.entityID;
                         if (typeof grabbableData.spatialKey !== 'undefined' && this.state == STATE_EQUIP_SEARCHING) {
                             // if a distance pick in equip mode hits something with a spatialKey, equip it
-                            this.setState(STATE_EQUIP);
+                            this.setState(STATE_EQUIP_SPRING);
                             return;
                         } else if (this.state == STATE_SEARCHING) {
                             this.setState(STATE_DISTANCE_HOLDING);
@@ -750,7 +769,13 @@ function MyController(hand) {
             this.actionID = null;
         } else {
             this.actionTimeout = now + (ACTION_TTL * MSEC_PER_SEC);
-            this.setState(this.state == STATE_NEAR_GRABBING ? STATE_CONTINUE_NEAR_GRABBING : STATE_CONTINUE_EQUIP_BD)
+            if (this.state == STATE_NEAR_GRABBING) {
+                this.setState(STATE_CONTINUE_NEAR_GRABBING);
+            } else {
+                // equipping
+                this.setState(STATE_CONTINUE_EQUIP_BD);
+            }
+
             if (this.hand === RIGHT_HAND) {
                 Entities.callEntityMethod(this.grabbedEntity, "setRightHand");
             } else {
@@ -822,7 +847,60 @@ function MyController(hand) {
             this.setState(STATE_RELEASE);
             Entities.callEntityMethod(this.grabbedEntity, "releaseGrab");
         }
-    }
+    };
+
+    this.pullTowardEquipPosition = function() {
+        this.lineOff();
+
+        var grabbedProperties = Entities.getEntityProperties(this.grabbedEntity, GRABBABLE_PROPERTIES);
+        var grabbableData = getEntityCustomData(GRABBABLE_DATA_KEY, this.grabbedEntity, DEFAULT_GRABBABLE_DATA);
+
+        // use a spring to pull the object to where it will be when equipped
+        var relativeRotation = { x: 0.0, y: 0.0, z: 0.0, w: 1.0 };
+        var relativePosition = { x: 0.0, y: 0.0, z: 0.0 };
+        if (grabbableData.spatialKey.relativePosition) {
+            relativePosition = grabbableData.spatialKey.relativePosition;
+        }
+        if (grabbableData.spatialKey.relativeRotation) {
+            relativeRotation = grabbableData.spatialKey.relativeRotation;
+        }
+        var handRotation = this.getHandRotation();
+        var handPosition = this.getHandPosition();
+        var targetRotation = Quat.multiply(handRotation, relativeRotation);
+        var offset = Vec3.multiplyQbyV(targetRotation, relativePosition);
+        var targetPosition = Vec3.sum(handPosition, offset);
+
+        if (typeof this.equipSpringID === 'undefined' ||
+            this.equipSpringID === null ||
+            this.equipSpringID === NULL_ACTION_ID) {
+            this.equipSpringID = Entities.addAction("spring", this.grabbedEntity, {
+                targetPosition: targetPosition,
+                linearTimeScale: EQUIP_SPRING_TIMEFRAME,
+                targetRotation: targetRotation,
+                angularTimeScale: EQUIP_SPRING_TIMEFRAME,
+                ttl: ACTION_TTL
+            });
+            if (this.equipSpringID === NULL_ACTION_ID) {
+                this.equipSpringID = null;
+                this.setState(STATE_OFF);
+                return;
+            }
+        } else {
+            Entities.updateAction(this.grabbedEntity, this.equipSpringID, {
+                targetPosition: targetPosition,
+                linearTimeScale: EQUIP_SPRING_TIMEFRAME,
+                targetRotation: targetRotation,
+                angularTimeScale: EQUIP_SPRING_TIMEFRAME,
+                ttl: ACTION_TTL
+            });
+        }
+
+        if (Vec3.distance(grabbedProperties.position, targetPosition) < EQUIP_SPRING_SHUTOFF_DISTANCE) {
+            Entities.deleteAction(this.grabbedEntity, this.equipSpringID);
+            this.equipSpringID = null;
+            this.setState(STATE_EQUIP);
+        }
+    };
 
     this.nearTrigger = function() {
         if (this.triggerSmoothedReleased()) {
