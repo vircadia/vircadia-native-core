@@ -16,7 +16,7 @@
 
     Script.include("../../libraries/utils.js");
 
-    var BUBBLE_MODEL = "http://hifi-public.s3.amazonaws.com/models/bubblewand/bubble.fbx";
+    var BUBBLE_MODEL = "http://hifi-content.s3.amazonaws.com/james/bubblewand/bubble.fbx";
 
     var BUBBLE_INITIAL_DIMENSIONS = {
         x: 0.01,
