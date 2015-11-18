@@ -863,6 +863,10 @@ void Application::cleanupBeforeQuit() {
 
     // destroy the AudioClient so it and its thread have a chance to go down safely
     DependencyManager::destroy<AudioClient>();
+    
+    // destroy the AudioInjectorManager so it and its thread have a chance to go down safely
+    // this will also stop any ongoing network injectors
+    DependencyManager::destroy<AudioInjectorManager>();
 
     // Destroy third party processes after scripts have finished using them.
 #ifdef HAVE_DDE

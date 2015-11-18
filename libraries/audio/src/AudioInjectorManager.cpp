@@ -34,6 +34,12 @@ AudioInjectorManager::~AudioInjectorManager() {
         _injectors.pop();
     }
     
+    // get rid of the lock now that we've stopped all living injectors
+    lock.unlock();
+    
+    // in case the thread is waiting for injectors wake it up now
+    _injectorReady.notify_one();
+    
     // quit and wait on the manager thread, if we ever created it
     if (_thread) {
         _thread->quit();
