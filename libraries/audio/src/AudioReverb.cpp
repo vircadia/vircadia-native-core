@@ -244,7 +244,7 @@ static void BQPeakBelowPi(double coef[5], double w0, double dbgain, double Q) {
     temp += Gratio * w0sq * w0sq / (G * whsq);
     A = sqrt(temp);
 
-    // design digital filter via bilinear tranform
+    // design digital filter via bilinear transform
     b0 = G1 + B + Wsq;
     b1 = 2.0 * (Wsq - G1);
     b2 = G1 - B + Wsq;
@@ -347,7 +347,7 @@ static void BQPeakAbovePi(double coef[5], double w0, double dbgain, double Q) {
     num = (Wnsq - Wdsq) * (Wnsq - Wdsq) * (Wnsq + gnsq * Wdsq);
     A = temp * sqrt(num / den);
 
-    // design digital filter via bilinear tranform
+    // design digital filter via bilinear transform
     b0 = G1 * (1.0 + B + Wnsq);
     b1 = G1 * 2.0 * (Wnsq - 1.0);
     b2 = G1 * (1.0 - B + Wnsq);
@@ -463,7 +463,7 @@ static void BQShelf(double coef[5], double w0, double dbgain, double resonance, 
     num = (Wnsq - Wdsq) * (Wnsq - Wdsq) * (Wnsq + gnsq * Wdsq);
     A = temp * sqrt(num / den);
 
-    // design digital filter via bilinear tranform
+    // design digital filter via bilinear transform
     b0 = G1 * (1.0 + B + Wnsq);
     b1 = G1 * 2.0 * (Wnsq - 1.0);
     b2 = G1 * (1.0 - B + Wnsq);
@@ -566,7 +566,7 @@ static void BQFilter(double coef[5], double w0, int isHigh) {
         A = temp * sqrt(num / den);
     }
 
-    // design digital filter via bilinear tranform
+    // design digital filter via bilinear transform
     b0 = G1 * (1.0 + B + Wnsq);
     b1 = G1 * 2.0 * (Wnsq - 1.0);
     b2 = G1 * (1.0 - B + Wnsq);

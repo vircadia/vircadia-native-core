@@ -50,14 +50,6 @@ typedef struct ReverbParameters {
 class ReverbImpl;
 
 class AudioReverb {
-
-    ReverbImpl *_impl;
-    ReverbParameters _params;
-
-    float* _inout[2];
-    void convertInputFromInt16(const int16_t* input, float** outputs, int numFrames);
-    void convertOutputToInt16(float** inputs, int16_t* output, int numFrames);
-
 public:
     AudioReverb(float sampleRate);
     ~AudioReverb();
@@ -71,6 +63,14 @@ public:
 
     // interleaved int16_t input/output
     void render(const int16_t* input, int16_t* output, int numFrames);
+
+private:
+    ReverbImpl *_impl;
+    ReverbParameters _params;
+
+    float* _inout[2];
+    void convertInputFromInt16(const int16_t* input, float** outputs, int numFrames);
+    void convertOutputToInt16(float** inputs, int16_t* output, int numFrames);
 };
 
 #endif // hifi_AudioReverb_h
