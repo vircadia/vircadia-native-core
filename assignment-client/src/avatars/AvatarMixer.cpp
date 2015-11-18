@@ -537,7 +537,6 @@ void AvatarMixer::run() {
     qDebug() << "Waiting for domain settings from domain-server.";
 
     // block until we get the settingsRequestComplete signal
-
     QEventLoop loop;
     connect(&domainHandler, &DomainHandler::settingsReceived, &loop, &QEventLoop::quit);
     connect(&domainHandler, &DomainHandler::settingsReceiveFail, &loop, &QEventLoop::quit);

@@ -77,6 +77,9 @@ void ThreadedAssignment::commonInit(const QString& targetName, NodeType_t nodeTy
     connect(_domainServerTimer, SIGNAL(timeout()), this, SLOT(checkInWithDomainServerOrExit()));
     _domainServerTimer->start(DOMAIN_SERVER_CHECK_IN_MSECS);
     
+    // send a domain-server check in immediately
+    checkInWithDomainServerOrExit();
+    
     // move the domain server time to the NL so check-ins fire from there
     _domainServerTimer->moveToThread(nodeList->thread());
 
@@ -129,4 +132,9 @@ void ThreadedAssignment::checkInWithDomainServerOrExit() {
     } else {
         DependencyManager::get<NodeList>()->sendDomainServerCheckIn();
     }
+}
+
+void ThreadedAssignment::domainSettingsRequestFailed() {
+    qDebug() << "Failed to retreive settings object from domain-server. Bailing on assignment.";
+    setFinished(true);
 }
