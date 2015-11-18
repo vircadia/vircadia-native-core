@@ -113,6 +113,7 @@
                     Entities.editEntity(this.currentBubble, {
                         velocity: velocity,
                         lifetime: lifetime,
+                        ignoreForCollisions:false,
                         gravity: this.randomizeBubbleGravity()
                     });
 
@@ -162,7 +163,7 @@
                 position: this.getWandTipPosition(properties),
                 dimensions: BUBBLE_INITIAL_DIMENSIONS,
                 collisionsWillMove: false,
-                ignoreForCollisions: false,
+                ignoreForCollisions: true,
                 linearDamping: BUBBLE_LINEAR_DAMPING,
                 shapeType: "sphere"
             });
