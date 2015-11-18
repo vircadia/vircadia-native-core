@@ -177,7 +177,7 @@ float AvatarData::getTargetScale() const {
 
 void AvatarData::setTargetScale(float targetScale, bool overideReferential) {
     if (!_referential || overideReferential) {
-        _targetScale = targetScale;
+        _targetScale = std::max(MIN_AVATAR_SCALE, std::min(MAX_AVATAR_SCALE, targetScale));
     }
 }
 
@@ -531,7 +531,7 @@ int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
             }
             return maxAvailableSize;
         }
-        _targetScale = scale;
+        _targetScale = std::max(MIN_AVATAR_SCALE, std::min(MAX_AVATAR_SCALE, scale));
     } // 20 bytes
 
     { // Lookat Position
