@@ -212,6 +212,7 @@ protected:
     }
 
 private:
+    void emitAudioPacket(const int16_t* audioData, PacketType packetType = PacketType::Unknown);
     void outputFormatChanged();
 
     QByteArray firstInputFrame;

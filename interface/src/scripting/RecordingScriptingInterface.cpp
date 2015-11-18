@@ -47,19 +47,19 @@ RecordingScriptingInterface::RecordingScriptingInterface() {
     connect(audioClient.data(), &AudioClient::inputReceived, this, &RecordingScriptingInterface::processAudioInput);
 }
 
-bool RecordingScriptingInterface::isPlaying() {
+bool RecordingScriptingInterface::isPlaying() const {
     return _player->isPlaying();
 }
 
-bool RecordingScriptingInterface::isPaused() {
+bool RecordingScriptingInterface::isPaused() const {
     return _player->isPaused();
 }
 
-float RecordingScriptingInterface::playerElapsed() {
+float RecordingScriptingInterface::playerElapsed() const {
     return _player->position();
 }
 
-float RecordingScriptingInterface::playerLength() {
+float RecordingScriptingInterface::playerLength() const {
     return _player->length();
 }
 
@@ -103,6 +103,10 @@ void RecordingScriptingInterface::setPlayerAudioOffset(float audioOffset) {
 }
 
 void RecordingScriptingInterface::setPlayerTime(float time) {
+    if (QThread::currentThread() != thread()) {
+        QMetaObject::invokeMethod(this, "setPlayerTime", Qt::BlockingQueuedConnection, Q_ARG(float, time));
+        return;
+    }
     _player->seek(time);
 }
 
@@ -130,23 +134,27 @@ void RecordingScriptingInterface::setPlayerUseSkeletonModel(bool useSkeletonMode
     _useSkeletonModel = useSkeletonModel;
 }
 
-void RecordingScriptingInterface::play() {
-    _player->play();
-}
-
 void RecordingScriptingInterface::pausePlayer() {
+    if (QThread::currentThread() != thread()) {
+        QMetaObject::invokeMethod(this, "pausePlayer", Qt::BlockingQueuedConnection);
+        return;
+    }
     _player->pause();
 }
 
 void RecordingScriptingInterface::stopPlaying() {
+    if (QThread::currentThread() != thread()) {
+        QMetaObject::invokeMethod(this, "stopPlaying", Qt::BlockingQueuedConnection);
+        return;
+    }
     _player->stop();
 }
 
-bool RecordingScriptingInterface::isRecording() {
+bool RecordingScriptingInterface::isRecording() const {
     return _recorder->isRecording();
 }
 
-float RecordingScriptingInterface::recorderElapsed() {
+float RecordingScriptingInterface::recorderElapsed() const {
     return _recorder->position();
 }
 
@@ -162,26 +170,15 @@ void RecordingScriptingInterface::startRecording() {
     }
 
     _recordingEpoch = Frame::epochForFrameTime(0);
-
-    auto myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
-    myAvatar->setRecordingBasis();
+    DependencyManager::get<AvatarManager>()->getMyAvatar()->setRecordingBasis();
     _recorder->start();
 }
 
 void RecordingScriptingInterface::stopRecording() {
     _recorder->stop();
-
     _lastClip = _recorder->getClip();
-    // post-process the audio into discreet chunks based on times of received samples
     _lastClip->seek(0);
-    Frame::ConstPointer frame;
-    while (frame = _lastClip->nextFrame()) {
-        qDebug() << "Frame time " << frame->timeOffset << " size " << frame->data.size();
-    }
-    _lastClip->seek(0);
-
-    auto myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
-    myAvatar->clearRecordingBasis();
+    DependencyManager::get<AvatarManager>()->getMyAvatar()->clearRecordingBasis();
 }
 
 void RecordingScriptingInterface::saveRecording(const QString& filename) {

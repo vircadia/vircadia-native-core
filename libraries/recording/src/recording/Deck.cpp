@@ -8,6 +8,8 @@
 
 #include "Deck.h"
  
+#include <QtCore/QThread>
+
 #include <NumericalConstants.h>
 #include <SharedUtil.h>
 
@@ -101,9 +103,13 @@ float Deck::position() const {
 }
 
 static const Frame::Time MIN_FRAME_WAIT_INTERVAL = Frame::secondsToFrameTime(0.001f);
-static const Frame::Time MAX_FRAME_PROCESSING_TIME = Frame::secondsToFrameTime(0.002f);
+static const Frame::Time MAX_FRAME_PROCESSING_TIME = Frame::secondsToFrameTime(0.004f);
 
 void Deck::processFrames() {
+    if (qApp->thread() != QThread::currentThread()) {
+        qWarning() << "Processing frames must only happen on the main thread.";
+        return;
+    }
     Locker lock(_mutex);
     if (_pause) {
         return;
@@ -115,10 +121,17 @@ void Deck::processFrames() {
     // FIXME add code to start dropping frames if we fall behind.
     // Alternatively, add code to cache frames here and then process only the last frame of a given type
     // ... the latter will work for Avatar, but not well for audio I suspect.
+    bool overLimit = false;
     for (nextClip = getNextClip(); nextClip; nextClip = getNextClip()) {
         auto currentPosition = Frame::frameTimeFromEpoch(_startEpoch);
         if ((currentPosition - startingPosition) >= MAX_FRAME_PROCESSING_TIME) {
             qCWarning(recordingLog) << "Exceeded maximum frame processing time, breaking early";
+#ifdef WANT_RECORDING_DEBUG            
+            qCDebug(recordingLog) << "Starting: " << currentPosition;
+            qCDebug(recordingLog) << "Current:  " << startingPosition;
+            qCDebug(recordingLog) << "Trigger:  " << triggerPosition;
+#endif
+            overLimit = true;
             break;
         }
 
@@ -150,9 +163,19 @@ void Deck::processFrames() {
 
     // If we have more clip frames available, set the timer for the next one
     _position = Frame::frameTimeFromEpoch(_startEpoch);
-    auto nextFrameTime = nextClip->positionFrameTime();
-    auto interval = Frame::frameTimeToMilliseconds(nextFrameTime - _position);
-    _timer.singleShot(interval, [this] {
+    int nextInterval = 1;
+    if (!overLimit) {
+        auto nextFrameTime = nextClip->positionFrameTime();
+        nextInterval = (int)Frame::frameTimeToMilliseconds(nextFrameTime - _position);
+#ifdef WANT_RECORDING_DEBUG
+        qCDebug(recordingLog) << "Now " << _position;
+        qCDebug(recordingLog) << "Next frame time " << nextInterval;
+#endif
+    }
+#ifdef WANT_RECORDING_DEBUG
+    qCDebug(recordingLog) << "Setting timer for next processing " << nextInterval;
+#endif
+    _timer.singleShot(nextInterval, [this] {
         processFrames();
     });
 }
