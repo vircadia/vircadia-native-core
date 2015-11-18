@@ -1061,8 +1061,10 @@ void Application::paintGL() {
     uint64_t now = usecTimestampNow();
     static uint64_t lastPaintBegin{ now };
     uint64_t diff = now - lastPaintBegin;
+    float instantaneousFps = 0.0f;
     if (diff != 0) {
-        _framesPerSecond.updateAverage((float)USECS_PER_SECOND / (float)diff);
+        instantaneousFps = (float)USECS_PER_SECOND / (float)diff;
+        _framesPerSecond.updateAverage(_lastInstantaneousFps);
     }
 
     lastPaintBegin = now;
@@ -1326,6 +1328,7 @@ void Application::paintGL() {
         // Ensure all operations from the previous context are complete before we try to read the fbo
         glWaitSync(sync, 0, GL_TIMEOUT_IGNORED);
         glDeleteSync(sync);
+        uint64_t displayStart = usecTimestampNow();
 
         {
             PROFILE_RANGE(__FUNCTION__ "/pluginDisplay");
@@ -1338,6 +1341,20 @@ void Application::paintGL() {
             PerformanceTimer perfTimer("bufferSwap");
             displayPlugin->finishFrame();
         }
+        uint64_t displayEnd = usecTimestampNow();
+        // Store together, without Application::idle happening in between setting fps and period.
+        _lastInstantaneousFps = instantaneousFps;
+        const float displayPeriodUsec = (float)(displayEnd - displayStart); // usecs
+        _lastPaintWait = displayPeriodUsec / (float)USECS_PER_SECOND;
+        const float targetPeriod = isHMDMode() ? 1.0f/75.0f : 1.0f/60.0f;
+        const float actualPeriod = 1.0f / instantaneousFps;
+        const float nSyncsByFrameRate = round(actualPeriod / targetPeriod);
+        const float accuracyAllowance = 0.0005;
+        const float nSyncsByPaintWait = floor((_lastPaintWait + accuracyAllowance) / targetPeriod); // sometimes paint goes over and it isn't reflected in actualPeriod
+        const float modularPeriod = (nSyncsByFrameRate + nSyncsByPaintWait) * targetPeriod;
+        const float deducedNonVSyncPeriod = modularPeriod - _lastPaintWait;
+        _lastDeducedNonVSyncFps = 1.0f / deducedNonVSyncPeriod;
+
     }
 
     {

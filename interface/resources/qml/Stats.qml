@@ -40,7 +40,7 @@ Item {
                     Text {
                         color: root.fontColor;
                         font.pixelSize: root.fontSize
-                        text: "Avatars: " + root.avatarCount
+                        text: "Avatars: " + root.avatarCount + ", " + root.avatarRenderedCount + " w/in " + root.avatarRenderDistance + "m"
                     }
                     Text {
                         color: root.fontColor;

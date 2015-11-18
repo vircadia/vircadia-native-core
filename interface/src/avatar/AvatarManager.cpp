@@ -61,12 +61,34 @@ void AvatarManager::registerMetaTypes(QScriptEngine* engine) {
     qScriptRegisterSequenceMetaType<QVector<AvatarManager::LocalLight> >(engine);
 }
 
+#define TARGET_FPS 60.0f
+#define TARGET_PERIOD_MS (1000.0f / TARGET_FPS)
 AvatarManager::AvatarManager(QObject* parent) :
     _avatarFades()
 {
     // register a meta type for the weak pointer we'll use for the owning avatar mixer for each avatar
     qRegisterMetaType<QWeakPointer<Node> >("NodeWeakPointer");
     _myAvatar = std::make_shared<MyAvatar>(std::make_shared<AvatarRig>());
+    _renderDistanceController.setMeasuredValueSetpoint(TARGET_FPS); //FIXME
+    const float TREE_SCALE = 32768.0f; // Not in shared library, alas.
+    const float SMALLEST_REASONABLE_HORIZON = 0.5f; // FIXME 5
+    _renderDistanceController.setControlledValueHighLimit(1.0f/SMALLEST_REASONABLE_HORIZON);
+    _renderDistanceController.setControlledValueLowLimit(1.0f/TREE_SCALE);
+
+    // Advice for tuning parameters:
+    // See PIDController.h. There's a sectionon tuning in the reference.
+    // Turn off HYSTERESIS_PROPORTION and extra logging by defining PID_TUNING in Avatar.cpp.
+    // Turn on logging with the following:
+    _renderDistanceController.setHistorySize("avatar render", TARGET_FPS * 4); // FIXME
+    // KP is usually tuned by setting the other constants to zero, finding the maximum value that doesn't oscillate,
+    // and taking about 0.6 of that. A typical osciallation would be with error=37fps with avatars 10m away, so
+    // KP*37=1/10 => KP(oscillating)=0.1/37 = 0.0027
+    _renderDistanceController.setKP(0.0012f);
+    // alt: 
+    // Our anti-windup limits accumulated error to 10*targetFrameRate, so the sanity check on KI is
+    // KI*750=controlledValueHighLimit=1 => KI=1/750.
+    _renderDistanceController.setKI(0.001);
+    _renderDistanceController.setKD(0.0001); // a touch of kd increases the speed by which we get there
 
     auto& packetReceiver = DependencyManager::get<NodeList>()->getPacketReceiver();
     packetReceiver.registerListener(PacketType::BulkAvatarData, this, "processAvatarDataPacket");
@@ -117,9 +139,26 @@ void AvatarManager::updateOtherAvatars(float deltaTime) {
     PerformanceWarning warn(showWarnings, "Application::updateAvatars()");
 
     PerformanceTimer perfTimer("otherAvatars");
+    const float FEED_FORWARD_RANGE = 2;
+    const float fps = qApp->getLastInstanteousFps();
+    const float paintWait = qApp->getLastPaintWait();
+    //const float modularizedPeriod = floor((1000.0f / std::min(fps, TARGET_FPS)) / TARGET_PERIOD_MS) * TARGET_PERIOD_MS;
+    // measured value: 1) bigger => more desirable plant activity (i.e., more rendering), 2) setpoint=TARGET_PERIOD_MS=13.333
+    // single vsync: no load=>1or2. high load=>12or13
+    // over vsync: just over: 13. way over: 14...15...16
+    //const float effective = ((1000.0f / fps) < TARGET_PERIOD_MS) ? (TARGET_PERIOD_MS - paintWait) : ((2.0f * TARGET_PERIOD_MS) - paintWait);
+    const float deduced = qApp->getLastDeducedNonVSyncFps();
+    const bool isAtSetpoint = false; //FIXME fabsf(effectiveFps - _renderDistanceController.getMeasuredValueSetpoint()) < FEED_FORWARD_RANGE;
+    const float distance = 1.0f / _renderDistanceController.update(deduced + (isAtSetpoint ? _renderFeedForward : 0.0f), deltaTime, isAtSetpoint, fps, paintWait);
+
+    const float RENDER_DISTANCE_DEADBAND = 0.0f; //FIXME 0.3f; // meters
+    if (fabsf(distance - _renderDistance) > RENDER_DISTANCE_DEADBAND) {
+        _renderDistance = distance;
+    }
 
     // simulate avatars
     AvatarHash::iterator avatarIterator = _avatarHash.begin();
+    int renderableCount = 0;
     while (avatarIterator != _avatarHash.end()) {
         auto avatar = std::dynamic_pointer_cast<Avatar>(avatarIterator.value());
 
@@ -135,10 +174,14 @@ void AvatarManager::updateOtherAvatars(float deltaTime) {
         } else {
             avatar->startUpdate();
             avatar->simulate(deltaTime);
+            if (!avatar->getShouldSkipRendering()) {
+                renderableCount++;
+            }
             avatar->endUpdate();
             ++avatarIterator;
         }
     }
+    _renderedAvatarCount = renderableCount;
 
     // simulate avatar fades
     simulateAvatarFades(deltaTime);

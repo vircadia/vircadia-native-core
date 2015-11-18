@@ -18,6 +18,7 @@
 
 #include <AvatarHashMap.h>
 #include <PhysicsEngine.h>
+#include <PIDController.h>
 
 #include "Avatar.h"
 #include "AvatarMotionState.h"
@@ -43,6 +44,7 @@ public:
     void clearOtherAvatars();
    
     bool shouldShowReceiveStats() const { return _shouldShowReceiveStats; }
+    PIDController& getRenderDistanceController()  { return _renderDistanceController; }
 
     class LocalLight {
     public:
@@ -64,6 +66,17 @@ public:
     void handleCollisionEvents(const CollisionEvents& collisionEvents);
 
     void updateAvatarPhysicsShape(const QUuid& id);
+    Q_INVOKABLE int getNumberRendered() { return _renderedAvatarCount; }
+    Q_INVOKABLE float getRenderDistance() { return _renderDistance; }
+    Q_INVOKABLE float getFIXMEupdate() { return _fixmeUpdate; }
+    Q_INVOKABLE void setFIXMEupdate(float f) { _fixmeUpdate = f; }
+    Q_INVOKABLE void setFIXMEkp(float f) { _renderDistanceController.setKP(f); }
+    Q_INVOKABLE void setFIXMEki(float f) { _renderDistanceController.setKI(f); }
+    Q_INVOKABLE void setFIXMEkd(float f) { _renderDistanceController.setKD(f); }
+    Q_INVOKABLE void setFIXMEbias(float f) { _renderDistanceController.setBias(f); }
+    Q_INVOKABLE void setFIXMElow(float f) { _renderDistanceController.setControlledValueLowLimit(f); }
+    Q_INVOKABLE void setFIXMEhigh(float f) { _renderDistanceController.setControlledValueHighLimit(f); }
+    Q_INVOKABLE void setFIXMEfeedForward(float f) { _renderFeedForward = f; }
    
 public slots:
     void setShouldShowReceiveStats(bool shouldShowReceiveStats) { _shouldShowReceiveStats = shouldShowReceiveStats; }
@@ -88,6 +101,12 @@ private:
     QVector<AvatarManager::LocalLight> _localLights;
 
     bool _shouldShowReceiveStats = false;
+    float _fixmeUpdate = 40.0f;
+    float _renderDistance { 40.0f };
+    float _renderFeedForward { 5.0f };
+    int _renderedAvatarCount {0};
+    PIDController _renderDistanceController {};
+
 
     SetOfAvatarMotionStates _avatarMotionStates;
     SetOfMotionStates _motionStatesToAdd;
