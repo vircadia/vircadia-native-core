@@ -12,14 +12,19 @@
 
 #include <memory>
 #include <list>
+#include <limits>
 
 namespace recording {
 
 using FrameType = uint16_t;
 
+using FrameSize = uint16_t;
+
 struct Frame;
 
 using FramePointer = std::shared_ptr<Frame>;
+
+using FrameConstPointer = std::shared_ptr<const Frame>;
 
 // A recording of some set of state from the application, usually avatar
 // data + audio for a single person
@@ -27,15 +32,13 @@ class Clip;
 
 using ClipPointer = std::shared_ptr<Clip>;
 
+using ClipConstPointer = std::shared_ptr<const Clip>;
+
 // An interface for playing back clips
 class Deck;
 
-using DeckPointer = std::shared_ptr<Deck>;
-
 // An interface for recording a single clip
 class Recorder;
-
-using RecorderPointer = std::shared_ptr<Recorder>;
 
 }
 

@@ -9,10 +9,9 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-HIFI_PUBLIC_BUCKET = "http://s3.amazonaws.com/hifi-public/";
 
 // Set the following variables to the values needed
-var filename = "/Users/clement/Desktop/recording.hfr";
+var clip_url = null;
 var playFromCurrentLocation = true;
 var useDisplayName = true;
 var useAttachments = true;
@@ -21,8 +20,6 @@ var useAvatarModel = true;
 // ID of the agent. Two agents can't have the same ID.
 var id = 0;
 
-// Set avatar model URL
-Avatar.skeletonModelURL = "https://hifi-public.s3.amazonaws.com/marketplace/contents/e21c0b95-e502-4d15-8c41-ea2fc40f1125/3585ddf674869a67d31d5964f7b52de1.fst?1427169998";
 // Set position/orientation/scale here if playFromCurrentLocation is true
 Avatar.position = { x:1, y: 1, z: 1 };
 Avatar.orientation = Quat.fromPitchYawRollDegrees(0, 0, 0);
@@ -30,7 +27,7 @@ Avatar.scale = 1.0;
 
 // Those variables MUST be common to every scripts
 var controlEntitySize = 0.25;
-var controlEntityPosition = { x: 2000, y: 0, z: 0 };
+var controlEntityPosition = { x: 0, y: 0, z: 0 };
 
 // Script. DO NOT MODIFY BEYOND THIS LINE.
 var DO_NOTHING = 0;
@@ -39,23 +36,13 @@ var PLAY_LOOP = 2;
 var STOP = 3;
 var SHOW = 4;
 var HIDE = 5;
+var LOAD = 6;
 
-var COLORS = [];
-COLORS[PLAY] = { red: PLAY, green: 0,  blue: 0 };
-COLORS[PLAY_LOOP] = { red: PLAY_LOOP, green: 0,  blue: 0 };
-COLORS[STOP] = { red: STOP, green: 0,  blue: 0 };
-COLORS[SHOW] = { red: SHOW, green: 0,  blue: 0 };
-COLORS[HIDE] = { red: HIDE, green: 0,  blue: 0 };
-
-controlEntityPosition.x += id * controlEntitySize;
-
-Avatar.loadRecording(filename);
-
-Avatar.setPlayFromCurrentLocation(playFromCurrentLocation);
-Avatar.setPlayerUseDisplayName(useDisplayName);
-Avatar.setPlayerUseAttachments(useAttachments);
-Avatar.setPlayerUseHeadModel(false);
-Avatar.setPlayerUseSkeletonModel(useAvatarModel);
+Recording.setPlayFromCurrentLocation(playFromCurrentLocation);
+Recording.setPlayerUseDisplayName(useDisplayName);
+Recording.setPlayerUseAttachments(useAttachments);
+Recording.setPlayerUseHeadModel(false);
+Recording.setPlayerUseSkeletonModel(useAvatarModel);
 
 function setupEntityViewer() {
     var entityViewerOffset = 10;
@@ -69,24 +56,26 @@ function setupEntityViewer() {
 }
 
 function getAction(controlEntity) {
-    if (controlEntity === null ||
-        controlEntity.position.x !== controlEntityPosition.x ||
-        controlEntity.position.y !== controlEntityPosition.y ||
-        controlEntity.position.z !== controlEntityPosition.z ||
-        controlEntity.dimensions.x !== controlEntitySize) {
+     if (controlEntity === null) {
+         return DO_NOTHING;
+     }
+        
+    var userData = JSON.parse(Entities.getEntityProperties(controlEntity, ["userData"]).userData);
+    
+    var uD_id = userData.idKey.uD_id;
+    var uD_action = userData.actionKey.uD_action;
+    var uD_url = userData.clipKey.uD_url;
+    
+    Entities.deleteEntity((Entities.getEntityProperties(controlEntity)).id);
+
+    if (uD_id === id || uD_id === -1) {
+        if (uD_action === 6)
+            clip_url = uD_url;
+        
+        return uD_action;
+    } else {
         return DO_NOTHING;
-    }
-    
-    for (i in COLORS) {
-        if (controlEntity.color.red === COLORS[i].red &&
-            controlEntity.color.green === COLORS[i].green &&
-            controlEntity.color.blue === COLORS[i].blue) {
-            Entities.deleteEntity(controlEntity.id);
-            return parseInt(i);
-        }
-    }
-    
-    return DO_NOTHING;
+    } 
 }
 
 count = 100; // This is necessary to wait for the audio mixer to connect
@@ -99,7 +88,7 @@ function update(event) {
     
     
     var controlEntity = Entities.findClosestEntity(controlEntityPosition, controlEntitySize);
-    var action = getAction(Entities.getEntityProperties(controlEntity));
+    var action = getAction(controlEntity);
     
     switch(action) {
         case PLAY:
@@ -107,25 +96,25 @@ function update(event) {
             if (!Agent.isAvatar) {
                 Agent.isAvatar = true;
             }
-            if (!Avatar.isPlaying()) {
-                Avatar.startPlaying();
+            if (!Recording.isPlaying()) {
+                Recording.startPlaying();
             }
-            Avatar.setPlayerLoop(false);
+            Recording.setPlayerLoop(false);
             break;
         case PLAY_LOOP:
             print("Play loop");
             if (!Agent.isAvatar) {
                 Agent.isAvatar = true;
             }
-            if (!Avatar.isPlaying()) {
-                Avatar.startPlaying();
+            if (!Recording.isPlaying()) {
+                Recording.startPlaying();
             }
-            Avatar.setPlayerLoop(true);
+            Recording.setPlayerLoop(true);
             break;
         case STOP:
             print("Stop");
-            if (Avatar.isPlaying()) {
-                Avatar.stopPlaying();
+            if (Recording.isPlaying()) {
+                Recording.stopPlaying();
             }
             break;
         case SHOW:
@@ -136,10 +125,16 @@ function update(event) {
             break;
         case HIDE:
             print("Hide");
-            if (Avatar.isPlaying()) {
-                Avatar.stopPlaying();
+            if (Recording.isPlaying()) {
+                Recording.stopPlaying();
             }
             Agent.isAvatar = false;
+            break;
+        case LOAD:
+            print("Load");            
+            if(clip_url !== null) {
+                Recording.loadRecording(clip_url);
+            }
             break;
         case DO_NOTHING:
             break;
@@ -148,8 +143,8 @@ function update(event) {
             break;
     }
     
-    if (Avatar.isPlaying()) {
-        Avatar.play();
+    if (Recording.isPlaying()) {
+        Recording.play();
     }
 }
 

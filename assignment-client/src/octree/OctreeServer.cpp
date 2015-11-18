@@ -415,6 +415,9 @@ bool OctreeServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
         quint64 totalBytesOfBitMasks = OctreePacketData::getTotalBytesOfBitMasks();
         quint64 totalBytesOfColor = OctreePacketData::getTotalBytesOfColor();
 
+        quint64 totalOutboundSpecialPackets = OctreeSendThread::_totalSpecialPackets;
+        quint64 totalOutboundSpecialBytes = OctreeSendThread::_totalSpecialBytes;
+
         statsString += QString("          Total Clients Connected: %1 clients\r\n")
             .arg(locale.toString((uint)getCurrentClientCount()).rightJustified(COLUMN_WIDTH, ' '));
 
@@ -606,6 +609,13 @@ bool OctreeServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
             .arg(locale.toString((uint)totalOutboundPackets).rightJustified(COLUMN_WIDTH, ' '));
         statsString += QString("             Total Outbound Bytes: %1 bytes\r\n")
             .arg(locale.toString((uint)totalOutboundBytes).rightJustified(COLUMN_WIDTH, ' '));
+
+        statsString += QString("   Total Outbound Special Packets: %1 packets\r\n")
+            .arg(locale.toString((uint)totalOutboundSpecialPackets).rightJustified(COLUMN_WIDTH, ' '));
+        statsString += QString("     Total Outbound Special Bytes: %1 bytes\r\n")
+            .arg(locale.toString((uint)totalOutboundSpecialBytes).rightJustified(COLUMN_WIDTH, ' '));
+
+
         statsString += QString("               Total Wasted Bytes: %1 bytes\r\n")
             .arg(locale.toString((uint)totalWastedBytes).rightJustified(COLUMN_WIDTH, ' '));
         statsString += QString().sprintf("            Total OctalCode Bytes: %s bytes (%5.2f%%)\r\n",
@@ -943,7 +953,6 @@ bool OctreeServer::readConfiguration() {
 
     if (domainHandler.getSettingsObject().isEmpty()) {
         qDebug() << "Failed to retreive settings object from domain-server. Bailing on assignment.";
-        setFinished(true);
         return false;
     }
 
@@ -1076,12 +1085,16 @@ void OctreeServer::run() {
     auto nodeList = DependencyManager::get<NodeList>();
     nodeList->setOwnerType(getMyNodeType());
 
-
     // use common init to setup common timers and logging
     commonInit(getMyLoggingServerTargetName(), getMyNodeType());
+    
+    // we need to ask the DS about agents so we can ping/reply with them
+    nodeList->addNodeTypeToInterestSet(NodeType::Agent);
 
     // read the configuration from either the payload or the domain server configuration
     if (!readConfiguration()) {
+        qDebug() << "OctreeServer bailing on run since readConfiguration has failed.";
+        setFinished(true);
         return; // bailing on run, because readConfiguration failed
     }
 
@@ -1089,10 +1102,6 @@ void OctreeServer::run() {
 
     connect(nodeList.data(), SIGNAL(nodeAdded(SharedNodePointer)), SLOT(nodeAdded(SharedNodePointer)));
     connect(nodeList.data(), SIGNAL(nodeKilled(SharedNodePointer)), SLOT(nodeKilled(SharedNodePointer)));
-
-
-    // we need to ask the DS about agents so we can ping/reply with them
-    nodeList->addNodeTypeToInterestSet(NodeType::Agent);
 
 #ifndef WIN32
     setvbuf(stdout, NULL, _IOLBF, 0);

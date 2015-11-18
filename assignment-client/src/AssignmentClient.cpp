@@ -198,7 +198,7 @@ void AssignmentClient::sendStatusPacketToACM() {
 }
 
 void AssignmentClient::sendAssignmentRequest() {
-    if (!_currentAssignment) {
+    if (!_currentAssignment && !_isAssigned) {
 
         auto nodeList = DependencyManager::get<NodeList>();
 
@@ -229,8 +229,9 @@ void AssignmentClient::handleCreateAssignmentPacket(QSharedPointer<NLPacket> pac
     // construct the deployed assignment from the packet data
     _currentAssignment = AssignmentFactory::unpackAssignment(*packet);
 
-    if (_currentAssignment) {
+    if (_currentAssignment && !_isAssigned) {
         qDebug() << "Received an assignment -" << *_currentAssignment;
+        _isAssigned = true;
 
         auto nodeList = DependencyManager::get<NodeList>();
 
@@ -309,12 +310,11 @@ void AssignmentClient::handleAuthenticationRequest() {
 }
 
 void AssignmentClient::assignmentCompleted() {
-
     // we expect that to be here the previous assignment has completely cleaned up
     assert(_currentAssignment.isNull());
 
-    // reset our current assignment pointer to NULL now that it has been deleted
-    _currentAssignment = NULL;
+    // reset our current assignment pointer to null now that it has been deleted
+    _currentAssignment = nullptr;
 
     // reset the logging target to the the CHILD_TARGET_NAME
     LogHandler::getInstance().setTargetName(ASSIGNMENT_CLIENT_TARGET_NAME);
@@ -330,4 +330,6 @@ void AssignmentClient::assignmentCompleted() {
     nodeList->setOwnerType(NodeType::Unassigned);
     nodeList->reset();
     nodeList->resetNodeInterestSet();
+    
+    _isAssigned = false;
 }

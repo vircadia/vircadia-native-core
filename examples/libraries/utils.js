@@ -11,6 +11,12 @@ vec3toStr = function(v, digits) {
     return "{ " + v.x.toFixed(digits) + ", " + v.y.toFixed(digits) + ", " + v.z.toFixed(digits)+ " }";
 }
 
+quatToStr = function(q, digits) {
+    if (!digits) { digits = 3; }
+    return "{ " + q.w.toFixed(digits) + ", " + q.x.toFixed(digits) + ", " +
+        q.y.toFixed(digits) + ", " + q.z.toFixed(digits)+ " }";
+}
+
 vec3equal = function(v0, v1) {
     return (v0.x == v1.x) && (v0.y == v1.y) && (v0.z == v1.z);
 }
@@ -51,7 +57,7 @@ addLine = function(origin, vector, color) {
 // FIXME fetch from a subkey of user data to support non-destructive modifications
 setEntityUserData = function(id, data) {
     var json = JSON.stringify(data)
-    Entities.editEntity(id, { userData: json });    
+    Entities.editEntity(id, { userData: json });
 }
 
 // FIXME do non-destructive modification of the existing user data
@@ -60,7 +66,7 @@ getEntityUserData = function(id) {
     var properties = Entities.getEntityProperties(id, "userData");
     if (properties.userData) {
         try {
-            results = JSON.parse(properties.userData);    
+            results = JSON.parse(properties.userData);
         } catch(err) {
             logDebug(err);
             logDebug(properties.userData);

@@ -12,6 +12,8 @@
 #ifndef hifi_Recording_h
 #define hifi_Recording_h
 
+#if 0
+
 #include <QString>
 #include <QVector>
 
@@ -124,5 +126,6 @@ private:
 
 void writeRecordingToFile(RecordingPointer recording, const QString& filename);
 RecordingPointer readRecordingFromFile(RecordingPointer recording, const QString& filename);
-
+RecordingPointer readRecordingFromRecFile(RecordingPointer recording, const QString& filename, const QByteArray& byteArray);
+#endif
 #endif // hifi_Recording_h

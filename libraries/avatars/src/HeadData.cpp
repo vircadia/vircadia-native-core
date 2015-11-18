@@ -42,8 +42,20 @@ HeadData::HeadData(AvatarData* owningAvatar) :
     
 }
 
+glm::quat HeadData::getRawOrientation() const {
+    return glm::quat(glm::radians(glm::vec3(_basePitch, _baseYaw, _baseRoll)));
+}
+
+void HeadData::setRawOrientation(const glm::quat& q) {
+    auto euler = glm::eulerAngles(q);
+    _basePitch = euler.x;
+    _baseYaw = euler.y;
+    _baseRoll = euler.z;
+}
+
+
 glm::quat HeadData::getOrientation() const {
-    return _owningAvatar->getOrientation() * glm::quat(glm::radians(glm::vec3(_basePitch, _baseYaw, _baseRoll)));
+    return _owningAvatar->getOrientation() * getRawOrientation();
 }
 
 void HeadData::setOrientation(const glm::quat& orientation) {

@@ -8,83 +8,40 @@
 
 #include "BufferClip.h"
 
+#include <QtCore/QDebug>
+
+#include <NumericalConstants.h>
 #include "../Frame.h"
 
 using namespace recording;
 
-
-void BufferClip::seek(float offset) {
-    Locker lock(_mutex);
-    auto itr = std::lower_bound(_frames.begin(), _frames.end(), offset, 
-        [](Frame::Pointer a, float b)->bool{
-            return a->timeOffset < b;
-        }
-    );
-    _frameIndex = itr - _frames.begin();
+QString BufferClip::getName() const {
+    return _name;
 }
 
-float BufferClip::position() const {
-    Locker lock(_mutex);
-    float result = std::numeric_limits<float>::max();
-    if (_frameIndex < _frames.size()) {
-        result = _frames[_frameIndex]->timeOffset;
-    }
-    return result;
-}
 
-FramePointer BufferClip::peekFrame() const {
-    Locker lock(_mutex);
-    FramePointer result;
-    if (_frameIndex < _frames.size()) {
-        result = _frames[_frameIndex];
-    }
-    return result;
-}
-
-FramePointer BufferClip::nextFrame() {
-    Locker lock(_mutex);
-    FramePointer result;
-    if (_frameIndex < _frames.size()) {
-        result = _frames[_frameIndex];
-        ++_frameIndex;
-    }
-    return result;
-}
-
-void BufferClip::addFrame(FramePointer newFrame) {
+void BufferClip::addFrame(FrameConstPointer newFrame) {
     if (newFrame->timeOffset < 0.0f) {
         throw std::runtime_error("Frames may not have negative time offsets");
     }
-    auto currentPosition = position();
-    seek(newFrame->timeOffset);
-    {
-        Locker lock(_mutex);
 
-        _frames.insert(_frames.begin() + _frameIndex, newFrame);
-    }
-    seek(currentPosition);
-}
-
-void BufferClip::skipFrame() {
     Locker lock(_mutex);
-    if (_frameIndex < _frames.size()) {
-        ++_frameIndex;
+    auto itr = std::lower_bound(_frames.begin(), _frames.end(), newFrame->timeOffset,
+        [](const Frame& a, Frame::Time b)->bool {
+            return a.timeOffset < b;
+        }
+    );
+
+    auto newFrameIndex = itr - _frames.begin();
+    //qDebug() << "Adding frame with time offset " << newFrame->timeOffset << " @ index " << newFrameIndex;
+    _frames.insert(_frames.begin() + newFrameIndex, Frame(*newFrame));
+}
+
+// Internal only function, needs no locking
+FrameConstPointer BufferClip::readFrame(size_t frameIndex) const {
+    FramePointer result;
+    if (frameIndex < _frames.size()) {
+        result = std::make_shared<Frame>(_frames[frameIndex]);
     }
+    return result;
 }
-
-void BufferClip::reset() {
-    Locker lock(_mutex);
-    _frameIndex = 0;
-}
-
-float BufferClip::duration() const {
-    if (_frames.empty()) {
-        return 0;
-    }
-    return (*_frames.rbegin())->timeOffset;
-}
-
-size_t BufferClip::frameCount() const {
-    return _frames.size();
-}
-

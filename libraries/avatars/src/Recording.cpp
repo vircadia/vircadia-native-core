@@ -9,6 +9,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#if 0
 #include <AudioConstants.h>
 #include <GLMHelpers.h>
 #include <NetworkAccessManager.h>
@@ -659,3 +660,4 @@ RecordingPointer readRecordingFromFile(RecordingPointer recording, const QString
     return recording;
 }
 
+#endif

@@ -12,6 +12,9 @@
 #ifndef hifi_Recorder_h
 #define hifi_Recorder_h
 
+#include <recording/Forward.h>
+
+#if 0
 #include "Recording.h"
 
 template<class C>
@@ -49,6 +52,6 @@ private:
 
     AvatarData* _avatar;
 };
-
+#endif
 
 #endif // hifi_Recorder_h

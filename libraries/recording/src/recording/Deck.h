@@ -10,26 +10,72 @@
 #ifndef hifi_Recording_Deck_h
 #define hifi_Recording_Deck_h
 
-#include "Forward.h"
+#include <utility>
+#include <list>
+#include <mutex>
 
 #include <QtCore/QObject>
+#include <QtCore/QTimer>
+#include <QtCore/QList>
 
-class QIODevice;
+#include <DependencyManager.h>
+
+#include "Forward.h"
+#include "Frame.h"
+
 
 namespace recording {
 
-class Deck : public QObject {
+class Deck : public QObject, public ::Dependency {
+    Q_OBJECT
 public:
+    using ClipList = std::list<ClipPointer>;
     using Pointer = std::shared_ptr<Deck>;
 
-    Deck(QObject* parent = nullptr) : QObject(parent) {}
-    virtual ~Deck();
+    Deck(QObject* parent = nullptr);
 
     // Place a clip on the deck for recording or playback
     void queueClip(ClipPointer clip, float timeOffset = 0.0f);
-    void play(float timeOffset = 0.0f);
-    void reposition(float timeOffsetDelta);
-    void setPlaybackSpeed(float rate);
+    void removeClip(const ClipConstPointer& clip);
+    void removeClip(const QString& clipName);
+    void removeAllClips();
+    ClipList getClips(const QString& clipName) const;
+
+    void play();
+    bool isPlaying();
+
+    void pause();
+    bool isPaused() const;
+
+    void stop();
+
+    float length() const;
+
+    void loop(bool enable = true);
+    bool isLooping() const;
+
+    float position() const;
+    void seek(float position);
+
+signals:
+    void playbackStateChanged();
+    void looped();
+
+private:
+    using Mutex = std::recursive_mutex;
+    using Locker = std::unique_lock<Mutex>;
+
+    ClipPointer getNextClip();
+    void processFrames();
+
+    mutable Mutex _mutex;
+    QTimer _timer;
+    ClipList _clips;
+    quint64 _startEpoch { 0 };
+    Frame::Time _position { 0 };
+    bool _pause { true };
+    bool _loop { false };
+    float _length { 0 };
 };
 
 }

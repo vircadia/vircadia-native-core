@@ -9,25 +9,39 @@
 #include "Recorder.h"
 
 #include <NumericalConstants.h>
+#include <SharedUtil.h>
 
 #include "impl/BufferClip.h"
 #include "Frame.h"
 
 using namespace recording;
 
+Recorder::Recorder(QObject* parent) 
+    : QObject(parent) {}
+
+float Recorder::position() {
+    Locker lock(_mutex);
+    if (_clip) {
+        return _clip->duration();
+    }
+    return 0.0f;
+}
+
 void Recorder::start() {
+    Locker lock(_mutex);
     if (!_recording) {
         _recording = true;
-        if (!_clip) {
-            _clip = std::make_shared<BufferClip>();
-        }
+        // FIXME for now just record a new clip every time
+        _clip = std::make_shared<BufferClip>();
+        _startEpoch = usecTimestampNow();
         _timer.start();
         emit recordingStateChanged();
     }
 }
 
 void Recorder::stop() {
-    if (!_recording) {
+    Locker lock(_mutex);
+    if (_recording) {
         _recording = false;
         _elapsed = _timer.elapsed();
         emit recordingStateChanged();
@@ -35,14 +49,17 @@ void Recorder::stop() {
 }
 
 bool Recorder::isRecording() {
+    Locker lock(_mutex);
     return _recording;
 }
 
 void Recorder::clear() {
+    Locker lock(_mutex);
     _clip.reset();
 }
 
 void Recorder::recordFrame(FrameType type, QByteArray frameData) {
+    Locker lock(_mutex);
     if (!_recording || !_clip) {
         return;
     }
@@ -50,13 +67,12 @@ void Recorder::recordFrame(FrameType type, QByteArray frameData) {
     Frame::Pointer frame = std::make_shared<Frame>();
     frame->type = type;
     frame->data = frameData;
-    frame->timeOffset = (float)(_elapsed + _timer.elapsed()) / MSECS_PER_SECOND;
+    frame->timeOffset = (usecTimestampNow() - _startEpoch) / USECS_PER_MSEC;
     _clip->addFrame(frame);
 }
 
 ClipPointer Recorder::getClip() {
-    auto result = _clip;
-    _clip.reset();
-    return result;
+    Locker lock(_mutex);
+    return _clip;
 }
 
