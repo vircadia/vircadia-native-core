@@ -46,6 +46,7 @@
 #include "AudioIOStats.h"
 #include "AudioNoiseGate.h"
 #include "AudioSRC.h"
+#include "AudioReverb.h"
 
 #ifdef _WIN32
 #pragma warning( push )
@@ -262,7 +263,8 @@ private:
     AudioEffectOptions _scriptReverbOptions;
     AudioEffectOptions _zoneReverbOptions;
     AudioEffectOptions* _reverbOptions;
-    ty_gverb* _gverb;
+    //ty_gverb* _gverb;
+    AudioReverb _stereoReverb { AudioConstants::SAMPLE_RATE };
 
     // possible streams needed for resample
     AudioSRC* _inputToNetworkResampler;
@@ -270,10 +272,10 @@ private:
     AudioSRC* _loopbackResampler;
 
     // Adds Reverb
-    ty_gverb* createGverbFilter();
-    void configureGverbFilter(ty_gverb* filter);
-    void updateGverbOptions();
-    void addReverb(ty_gverb* gverb, int16_t* samples, int16_t* reverbAlone, int numSamples, QAudioFormat& format, bool noEcho = false);
+    //ty_gverb* createGverbFilter();
+    void configureReverb();
+    void updateReverbOptions();
+    //void addReverb(ty_gverb* gverb, int16_t* samples, int16_t* reverbAlone, int numSamples, QAudioFormat& format, bool noEcho = false);
 
     void handleLocalEchoAndReverb(QByteArray& inputByteArray);
 
