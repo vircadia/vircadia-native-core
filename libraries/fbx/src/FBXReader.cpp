@@ -1559,7 +1559,7 @@ FBXGeometry* FBXReader::extractFBXGeometry(const QVariantHash& mapping, const QS
                 avgPoint += points[j];
             }
             avgPoint /= (float)points.size();
-    
+
             // compute a k-Dop bounding volume
             for (uint32_t j = 0; j < cardinalDirections.size(); ++j) {
                 float maxDot = -FLT_MAX;
@@ -1568,7 +1568,7 @@ FBXGeometry* FBXReader::extractFBXGeometry(const QVariantHash& mapping, const QS
                     float kDot = glm::dot(cardinalDirections[j], points[k] - avgPoint);
                     if (kDot > maxDot) {
                         maxDot = kDot;
-                    } 
+                    }
                     if (kDot < minDot) {
                         minDot = kDot;
                     }
