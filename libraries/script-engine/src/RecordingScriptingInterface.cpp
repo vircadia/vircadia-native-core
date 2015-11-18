@@ -15,11 +15,11 @@
 #include <recording/Clip.h>
 #include <recording/Frame.h>
 #include <NumericalConstants.h>
+// FiXME
 //#include <AudioClient.h>
 #include <AudioConstants.h>
 #include <Transform.h>
-//#include "avatar/AvatarManager.h"
-//#include "Application.h"
+
 #include "ScriptEngineLogging.h"
 
 typedef int16_t AudioSample;
@@ -45,6 +45,7 @@ RecordingScriptingInterface::RecordingScriptingInterface() {
     _player = DependencyManager::get<Deck>();
     _recorder = DependencyManager::get<Recorder>();
 
+    // FIXME : Disabling Sound
 //    auto audioClient = DependencyManager::get<AudioClient>();
  //   connect(audioClient.data(), &AudioClient::inputReceived, this, &RecordingScriptingInterface::processAudioInput);
 }
@@ -53,19 +54,19 @@ void RecordingScriptingInterface::setControlledAvatar(AvatarData* avatar) {
     _controlledAvatar = avatar;
 }
 
-bool RecordingScriptingInterface::isPlaying() {
+bool RecordingScriptingInterface::isPlaying() const {
     return _player->isPlaying();
 }
 
-bool RecordingScriptingInterface::isPaused() {
+bool RecordingScriptingInterface::isPaused() const {
     return _player->isPaused();
 }
 
-float RecordingScriptingInterface::playerElapsed() {
+float RecordingScriptingInterface::playerElapsed() const {
     return _player->position();
 }
 
-float RecordingScriptingInterface::playerLength() {
+float RecordingScriptingInterface::playerLength() const {
     return _player->length();
 }
 
@@ -90,11 +91,10 @@ void RecordingScriptingInterface::startPlaying() {
         QMetaObject::invokeMethod(this, "startPlaying", Qt::BlockingQueuedConnection);
         return;
     }
-    //auto myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
-    auto myAvatar = _controlledAvatar;
+
     // Playback from the current position
-    if (_playFromCurrentLocation) {
-        _dummyAvatar.setRecordingBasis(std::make_shared<Transform>(myAvatar->getTransform()));
+    if (_playFromCurrentLocation && _controlledAvatar) {
+        _dummyAvatar.setRecordingBasis(std::make_shared<Transform>(_controlledAvatar->getTransform()));
     } else {
         _dummyAvatar.clearRecordingBasis();
     }
@@ -110,6 +110,10 @@ void RecordingScriptingInterface::setPlayerAudioOffset(float audioOffset) {
 }
 
 void RecordingScriptingInterface::setPlayerTime(float time) {
+    if (QThread::currentThread() != thread()) {
+        QMetaObject::invokeMethod(this, "setPlayerTime", Qt::BlockingQueuedConnection, Q_ARG(float, time));
+        return;
+    }
     _player->seek(time);
 }
 
@@ -137,23 +141,27 @@ void RecordingScriptingInterface::setPlayerUseSkeletonModel(bool useSkeletonMode
     _useSkeletonModel = useSkeletonModel;
 }
 
-void RecordingScriptingInterface::play() {
-    _player->play();
-}
-
 void RecordingScriptingInterface::pausePlayer() {
+    if (QThread::currentThread() != thread()) {
+        QMetaObject::invokeMethod(this, "pausePlayer", Qt::BlockingQueuedConnection);
+        return;
+    }
     _player->pause();
 }
 
 void RecordingScriptingInterface::stopPlaying() {
+    if (QThread::currentThread() != thread()) {
+        QMetaObject::invokeMethod(this, "stopPlaying", Qt::BlockingQueuedConnection);
+        return;
+    }
     _player->stop();
 }
 
-bool RecordingScriptingInterface::isRecording() {
+bool RecordingScriptingInterface::isRecording() const {
     return _recorder->isRecording();
 }
 
-float RecordingScriptingInterface::recorderElapsed() {
+float RecordingScriptingInterface::recorderElapsed() const {
     return _recorder->position();
 }
 
@@ -170,29 +178,21 @@ void RecordingScriptingInterface::startRecording() {
 
     _recordingEpoch = Frame::epochForFrameTime(0);
 
-    //auto myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
-    //auto myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
-    auto myAvatar = _controlledAvatar;
-    myAvatar->setRecordingBasis();
+    if (_controlledAvatar) {
+        _controlledAvatar->setRecordingBasis();
+    }
+
     _recorder->start();
 }
 
 void RecordingScriptingInterface::stopRecording() {
     _recorder->stop();
-
     _lastClip = _recorder->getClip();
-    // post-process the audio into discreet chunks based on times of received samples
-    _lastClip->seek(0);
-    Frame::ConstPointer frame;
-    while (frame = _lastClip->nextFrame()) {
-        qDebug() << "Frame time " << frame->timeOffset << " size " << frame->data.size();
-    }
     _lastClip->seek(0);
 
-    //auto myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
-   //auto myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
-    auto myAvatar = _controlledAvatar;
-    myAvatar->clearRecordingBasis();
+    if (_controlledAvatar) {
+        _controlledAvatar->clearRecordingBasis();
+    }
 }
 
 void RecordingScriptingInterface::saveRecording(const QString& filename) {
@@ -228,28 +228,32 @@ void RecordingScriptingInterface::loadLastRecording() {
 void RecordingScriptingInterface::processAvatarFrame(const Frame::ConstPointer& frame) {
     Q_ASSERT(QThread::currentThread() == thread());
 
+    if (!_controlledAvatar) {
+        return;
+    }
+
     AvatarData::fromFrame(frame->data, _dummyAvatar);
 
-   //auto myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
-    auto myAvatar = _controlledAvatar;
+
+
     if (_useHeadModel && _dummyAvatar.getFaceModelURL().isValid() && 
-        (_dummyAvatar.getFaceModelURL() != myAvatar->getFaceModelURL())) {
+        (_dummyAvatar.getFaceModelURL() != _controlledAvatar->getFaceModelURL())) {
         // FIXME
         //myAvatar->setFaceModelURL(_dummyAvatar.getFaceModelURL());
     }
 
     if (_useSkeletonModel && _dummyAvatar.getSkeletonModelURL().isValid() &&
-        (_dummyAvatar.getSkeletonModelURL() != myAvatar->getSkeletonModelURL())) {
+        (_dummyAvatar.getSkeletonModelURL() != _controlledAvatar->getSkeletonModelURL())) {
         // FIXME
         //myAvatar->useFullAvatarURL()
     }
 
-    if (_useDisplayName && _dummyAvatar.getDisplayName() != myAvatar->getDisplayName()) {
-        myAvatar->setDisplayName(_dummyAvatar.getDisplayName());
+    if (_useDisplayName && _dummyAvatar.getDisplayName() != _controlledAvatar->getDisplayName()) {
+        _controlledAvatar->setDisplayName(_dummyAvatar.getDisplayName());
     }
 
-    myAvatar->setPosition(_dummyAvatar.getPosition());
-    myAvatar->setOrientation(_dummyAvatar.getOrientation());
+    _controlledAvatar->setPosition(_dummyAvatar.getPosition());
+    _controlledAvatar->setOrientation(_dummyAvatar.getOrientation());
 
     // FIXME attachments
     // FIXME joints

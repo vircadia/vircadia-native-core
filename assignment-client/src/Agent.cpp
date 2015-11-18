@@ -244,6 +244,8 @@ void Agent::setIsAvatar(bool isAvatar) {
     }
 
     if (!_isAvatar) {
+        DependencyManager::get<RecordingScriptingInterface>()->setControlledAvatar(nullptr);
+
         if (_avatarIdentityTimer) {
             _avatarIdentityTimer->stop();
             delete _avatarIdentityTimer;

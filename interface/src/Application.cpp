@@ -841,6 +841,7 @@ void Application::cleanupBeforeQuit() {
 #ifdef HAVE_IVIEWHMD
     DependencyManager::get<EyeTracker>()->setEnabled(false, true);
 #endif
+    DependencyManager::get<RecordingScriptingInterface>()->setControlledAvatar(nullptr);
 
     AnimDebugDraw::getInstance().shutdown();
 
