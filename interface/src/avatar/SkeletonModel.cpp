@@ -625,19 +625,15 @@ void SkeletonModel::computeBoundingShape() {
     totalExtents.addPoint(glm::vec3(0.0f));
     int numStates = _rig->getJointStateCount();
     for (int i = 0; i < numStates; i++) {
-        const JointState& state = _rig->getJointState(i);
-
-        const glm::mat4& jointTransform = state.getTransform();
-        float scale = extractUniformScale(jointTransform);
-
         // Each joint contributes a capsule defined by FBXJoint.shapeInfo.
         // For totalExtents we use the capsule endpoints expanded by the radius.
+        const JointState& state = _rig->getJointState(i);
+        const glm::mat4& jointTransform = state.getTransform();
         const FBXJointShapeInfo& shapeInfo = geometry.joints.at(i).shapeInfo;
-        for (int j = 0; j < shapeInfo.points.size(); ++j) {
-            glm::vec3 transformedPoint = extractTranslation(jointTransform * glm::translate(shapeInfo.points[j]));
-            vec3 radius(scale * shapeInfo.radius);
-            totalExtents.addPoint(transformedPoint + radius);
-            totalExtents.addPoint(transformedPoint - radius);
+        if (shapeInfo.points.size() > 0) {
+            for (int j = 0; j < shapeInfo.points.size(); ++j) {
+                totalExtents.addPoint(extractTranslation(jointTransform * glm::translate(shapeInfo.points[j])));
+            }
         }
         // HACK so that default legless robot doesn't knuckle-drag
         if (shapeInfo.points.size() == 0 && (state.getName() == "LeftFoot" || state.getName() == "RightFoot")) {
