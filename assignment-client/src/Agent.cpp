@@ -17,6 +17,7 @@
 #include <QtNetwork/QNetworkReply>
 
 #include <AvatarHashMap.h>
+#include <MessagesClient.h>
 #include <NetworkAccessManager.h>
 #include <NodeList.h>
 #include <udt/PacketHeaders.h>
@@ -24,10 +25,14 @@
 #include <SoundCache.h>
 #include <UUID.h>
 
+#include <recording/Deck.h>
+#include <recording/Recorder.h>
+
 #include <WebSocketServerClass.h>
 #include <EntityScriptingInterface.h> // TODO: consider moving to scriptengine.h
 
 #include "avatars/ScriptableAvatar.h"
+#include "RecordingScriptingInterface.h"
 
 #include "Agent.h"
 
@@ -45,6 +50,9 @@ Agent::Agent(NLPacket& packet) :
 
     DependencyManager::set<ResourceCacheSharedItems>();
     DependencyManager::set<SoundCache>();
+    DependencyManager::set<recording::Deck>();
+    DependencyManager::set<recording::Recorder>();
+    DependencyManager::set<RecordingScriptingInterface>();
 
     auto& packetReceiver = DependencyManager::get<NodeList>()->getPacketReceiver();
     
@@ -93,7 +101,7 @@ void Agent::handleJurisdictionPacket(QSharedPointer<NLPacket> packet, SharedNode
         DependencyManager::get<EntityScriptingInterface>()->getJurisdictionListener()->
             queueReceivedPacket(packet, senderNode);
     }
-} 
+}
 
 void Agent::handleAudioPacket(QSharedPointer<NLPacket> packet) {
     _receivedAudioStream.parseData(*packet);
@@ -109,11 +117,21 @@ const int PING_INTERVAL = 1000;
 void Agent::run() {
     ThreadedAssignment::commonInit(AGENT_LOGGING_NAME, NodeType::Agent);
 
+    // Setup MessagesClient
+    auto messagesClient = DependencyManager::set<MessagesClient>();
+    QThread* messagesThread = new QThread;
+    messagesThread->setObjectName("Messages Client Thread");
+    messagesClient->moveToThread(messagesThread);
+    connect(messagesThread, &QThread::started, messagesClient.data(), &MessagesClient::init);
+    messagesThread->start();
+
+
     auto nodeList = DependencyManager::get<NodeList>();
     nodeList->addSetOfNodeTypesToNodeInterestSet(NodeSet()
                                                  << NodeType::AudioMixer
                                                  << NodeType::AvatarMixer
                                                  << NodeType::EntityServer
+                                                 << NodeType::MessagesMixer
                                                 );
 
     _pingTimer = new QTimer(this);
@@ -166,7 +184,7 @@ void Agent::run() {
 
     // give this AvatarData object to the script engine
     setAvatarData(&scriptedAvatar, "Avatar");
-    
+
     auto avatarHashMap = DependencyManager::set<AvatarHashMap>();
     _scriptEngine->registerGlobalObject("AvatarList", avatarHashMap.data());
 
@@ -226,6 +244,8 @@ void Agent::setIsAvatar(bool isAvatar) {
     }
 
     if (!_isAvatar) {
+        DependencyManager::get<RecordingScriptingInterface>()->setControlledAvatar(nullptr);
+
         if (_avatarIdentityTimer) {
             _avatarIdentityTimer->stop();
             delete _avatarIdentityTimer;
@@ -243,6 +263,7 @@ void Agent::setIsAvatar(bool isAvatar) {
 void Agent::setAvatarData(AvatarData* avatarData, const QString& objectName) {
     _avatarData = avatarData;
     _scriptEngine->registerGlobalObject(objectName, avatarData);
+    DependencyManager::get<RecordingScriptingInterface>()->setControlledAvatar(avatarData);
 }
 
 void Agent::sendAvatarIdentityPacket() {

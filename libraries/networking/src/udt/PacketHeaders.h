@@ -87,7 +87,10 @@ public:
         AssetGetInfo,
         AssetGetInfoReply,
         DomainDisconnectRequest,
-        DomainServerRemovedNode
+        DomainServerRemovedNode,
+        MessagesData,
+        MessagesSubscribe,
+        MessagesUnsubscribe
     };
 };
 

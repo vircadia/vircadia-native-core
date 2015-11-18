@@ -704,6 +704,14 @@ void EntityTree::fixupTerseEditLogging(EntityItemProperties& properties, QList<Q
             changedProperties[index] = QString("locked:") + changeHint;
         }
     }
+
+    if (properties.userDataChanged()) {
+        int index = changedProperties.indexOf("userData");
+        if (index >= 0) {
+            QString changeHint = properties.getUserData();
+            changedProperties[index] = QString("userData:") + changeHint;
+        }
+    }
 }
 
 int EntityTree::processEditPacketData(NLPacket& packet, const unsigned char* editData, int maxLength,
