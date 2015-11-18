@@ -1,4 +1,4 @@
-//  arrowFieldSpawner.js
+//  fieldSpawner.js
 //  examples
 //
 //  Created by James B. Pollack @imgntn on 11/16/2015
@@ -95,12 +95,12 @@ spawnGround();
 spawnBoxes();
 
 
-function cleanup() {
-    Entities.deleteEntity(ground);
-    boxes.forEach(function(box) {
-        Entities.deleteEntity(box);
-    });
+// function cleanup() {
+//     Entities.deleteEntity(ground);
+//     boxes.forEach(function(box) {
+//         Entities.deleteEntity(box);
+//     });
 
-}
+// }
 
-Script.scriptEnding.connect(cleanup);
+// Script.scriptEnding.connect(cleanup);

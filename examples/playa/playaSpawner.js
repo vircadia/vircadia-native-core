@@ -155,14 +155,14 @@ spawnGround();
 spawnBoxes();
 
 
-function cleanup() {
-    Entities.deleteEntity(ground);
-    boxes.forEach(function(box) {
-        Entities.deleteEntity(box);
-    });
-    dustSystems.forEach(function(dustEffect) {
-        Entities.deleteEntity(dustEffect);
-    })
-}
+// function cleanup() {
+//     Entities.deleteEntity(ground);
+//     boxes.forEach(function(box) {
+//         Entities.deleteEntity(box);
+//     });
+//     dustSystems.forEach(function(dustEffect) {
+//         Entities.deleteEntity(dustEffect);
+//     })
+// }
 
-Script.scriptEnding.connect(cleanup);
+// Script.scriptEnding.connect(cleanup);
