@@ -131,7 +131,7 @@ void DomainServerSettingsManager::setupConfigMap(const QStringList& argumentList
     appSettings.setValue(JSON_SETTINGS_VERSION_KEY, _descriptionVersion);
 }
 
-QVariant DomainServerSettingsManager::valueOrDefaultValueForKeyPath(const QString &keyPath) {
+QVariant DomainServerSettingsManager::valueOrDefaultValueForKeyPath(const QString& keyPath) {
     const QVariant* foundValue = valueForKeyPath(_configMap.getMergedConfig(), keyPath);
 
     if (foundValue) {

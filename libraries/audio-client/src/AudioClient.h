@@ -147,6 +147,7 @@ public slots:
 
     void sendDownstreamAudioStatsPacket() { _stats.sendDownstreamAudioStatsPacket(); }
     void handleAudioInput();
+    void handleRecordedAudioInput(const QByteArray& audio);
     void reset();
     void audioMixerKilled();
     void toggleMute();
@@ -211,6 +212,7 @@ protected:
     }
 
 private:
+    void emitAudioPacket(const int16_t* audioData, PacketType packetType = PacketType::Unknown);
     void outputFormatChanged();
 
     QByteArray firstInputFrame;

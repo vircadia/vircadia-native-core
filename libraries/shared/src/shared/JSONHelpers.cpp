@@ -27,7 +27,6 @@ QJsonValue glmToJson(const T& t) {
 
 template <typename T> 
 T glmFromJson(const QJsonValue& json) {
-    static const T DEFAULT_VALUE = T();
     T result;
     if (json.isArray()) {
         QJsonArray array = json.toArray();

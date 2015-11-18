@@ -20,7 +20,6 @@
 #include <ObjectMotionState.h>
 #include <PerfStat.h>
 
-#include "RenderableDebugableEntityItem.h"
 #include "../render-utils/simple_vert.h"
 #include "../render-utils/simple_frag.h"
 
@@ -63,6 +62,4 @@ void RenderableBoxEntityItem::render(RenderArgs* args) {
     } else {
         DependencyManager::get<DeferredLightingEffect>()->renderSolidCubeInstance(batch, getTransformToCenter(), cubeColor);
     }
-
-    RenderableDebugableEntityItem::render(this, args);
 };
