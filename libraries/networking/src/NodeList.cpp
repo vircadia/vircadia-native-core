@@ -92,7 +92,7 @@ NodeList::NodeList(char newOwnerType, unsigned short socketListenPort, unsigned 
     // setup our timer to send keepalive pings (it's started and stopped on domain connect/disconnect)
     _keepAlivePingTimer.setInterval(KEEPALIVE_PING_INTERVAL_MS);
     connect(&_keepAlivePingTimer, &QTimer::timeout, this, &NodeList::sendKeepAlivePings);
-    connect(&_domainHandler, SIGNAL(connectedToDomain()), &_keepAlivePingTimer, SLOT(start()));
+    connect(&_domainHandler, SIGNAL(connectedToDomain(QString)), &_keepAlivePingTimer, SLOT(start()));
     connect(&_domainHandler, &DomainHandler::disconnectedFromDomain, &_keepAlivePingTimer, &QTimer::stop);
 
     // we definitely want STUN to update our public socket, so call the LNL to kick that off
@@ -641,7 +641,6 @@ void NodeList::activateSocketFromNodeCommunication(QSharedPointer<NLPacket> pack
 }
 
 void NodeList::sendKeepAlivePings() {
-    qDebug() << "Sending keepalive pings!";
     eachMatchingNode([this](const SharedNodePointer& node)->bool {
         return _nodeTypesOfInterest.contains(node->getType());
     }, [&](const SharedNodePointer& node) {

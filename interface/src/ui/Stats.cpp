@@ -148,6 +148,9 @@ void Stats::updateStats(bool force) {
             }
         }
     });
+    
+    // update the entities ping with the average for all connected entity servers
+    STAT_UPDATE(entitiesPing, octreeServerCount ? totalPingOctree / octreeServerCount : -1);
 
     // Third column, avatar stats
     MyAvatar* myAvatar = avatarManager->getMyAvatar();
