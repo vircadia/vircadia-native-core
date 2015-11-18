@@ -110,7 +110,7 @@ void AudioInjectorManager::run() {
     }
 }
 
-static const int MAX_INJECTORS_PER_THREAD = 50; // calculated based on AudioInjector while loop time, with sufficient padding
+static const int MAX_INJECTORS_PER_THREAD = 40; // calculated based on AudioInjector time to send frame, with sufficient padding
 
 bool AudioInjectorManager::threadInjector(AudioInjector* injector) {
     if (_shouldStop) {
