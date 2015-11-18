@@ -11,15 +11,15 @@ var pistol = Entities.addEntity({
     script: scriptURL,
     color: {red: 200, green: 0, blue: 20},
     shapeType: 'box',
-    collisionsWillMove: true,
-    userData: JSON.stringify({
-        grabbableKey: {
-            spatialKey: {
-                relativePosition: {x: 0, y: 0, z: 0},
-                relativeRotation: {x: 0, y: 0, z: 0, w: 1}
-            }
-        }
-    })
+    collisionsWillMove: true
+    // userData: JSON.stringify({
+    //     grabbableKey: {
+    //         spatialKey: {
+    //             relativePosition: {x: 0, y: 0, z: 0},
+    //             relativeRotation: {x: 0, y: 0, z: 0, w: 1}
+    //         }
+    //     }
+    // })
 });
 
 
