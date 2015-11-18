@@ -1535,15 +1535,16 @@ FBXGeometry* FBXReader::extractFBXGeometry(const QVariantHash& mapping, const QS
         meshIDsToMeshIndices.insert(it.key(), meshIndex);
     }
 
-    ShapeVertices cardinalDirections;
-    cardinalDirections.push_back(Vectors::UNIT_X);
-    cardinalDirections.push_back(Vectors::UNIT_Y);
-    cardinalDirections.push_back(Vectors::UNIT_Z);
     const float INV_SQRT_3 = 0.57735026918f;
-    cardinalDirections.push_back(glm::vec3(INV_SQRT_3,  INV_SQRT_3,  INV_SQRT_3));
-    cardinalDirections.push_back(glm::vec3(INV_SQRT_3, -INV_SQRT_3,  INV_SQRT_3));
-    cardinalDirections.push_back(glm::vec3(INV_SQRT_3,  INV_SQRT_3, -INV_SQRT_3));
-    cardinalDirections.push_back(glm::vec3(INV_SQRT_3, -INV_SQRT_3, -INV_SQRT_3));
+    ShapeVertices cardinalDirections = {
+        Vectors::UNIT_X,
+        Vectors::UNIT_Y,
+        Vectors::UNIT_Z,
+        glm::vec3(INV_SQRT_3,  INV_SQRT_3,  INV_SQRT_3),
+        glm::vec3(INV_SQRT_3, -INV_SQRT_3,  INV_SQRT_3),
+        glm::vec3(INV_SQRT_3,  INV_SQRT_3, -INV_SQRT_3),
+        glm::vec3(INV_SQRT_3, -INV_SQRT_3, -INV_SQRT_3)
+    };
 
     // now that all joints have been scanned compute a k-Dop bounding volume of mesh
     glm::vec3 defaultCapsuleAxis(0.0f, 1.0f, 0.0f);
