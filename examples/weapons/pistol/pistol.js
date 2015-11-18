@@ -22,8 +22,11 @@
             this.equipped = false;
             this.forceMultiplier = 1;
             this.laserOffsets = {
-                y: .15
+                y: .15,
             };
+            this.firingOffsets = {
+                z: 0.3
+            }
         };
 
         Pistol.prototype = {
@@ -48,13 +51,14 @@
                     var gunProps = Entities.getEntityProperties(this.entityID, ['position', 'rotation']);
                     var position = gunProps.position;
                     var rotation = gunProps.rotation;
-                    var direction = Quat.getFront(rotation);
+                    this.firingDirection = Quat.getFront(rotation);
                     var upVec = Quat.getUp(rotation);
-                    position = Vec3.sum(position, Vec3.multiply(upVec, this.laserOffsets.y));
-                    var tip = Vec3.sum(position, Vec3.multiply(direction, 10));
+                    this.barrelPoint = Vec3.sum(position, Vec3.multiply(upVec, this.laserOffsets.y));
+                    var laserTip = Vec3.sum(this.barrelPoint, Vec3.multiply(this.firingDirection, 10));
+                    this.barrelPoint = Vec3.sum(this.barrelPoint, Vec3.multiply(this.firingDirection, this.firingOffsets.z))
                     Overlays.editOverlay(this.laser, {
-                        start: position,
-                        end: tip,
+                        start: this.barrelPoint,
+                        end: laserTip,
                         alpha: 1
                     });
                 },
@@ -89,7 +93,11 @@
             },
 
             fire: function() {
-                print("FIRE!");
+                var pickRay = {origin: this.barrelPoint, direction: this.firingDirection};
+                var intersection = Entities.findRayIntersectionBlocking(pickRay, true);
+                if(intersection.intersects) {
+                    print('intersection!');
+                }
             },
 
             initControllerMapping: function() {
