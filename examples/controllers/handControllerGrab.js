@@ -773,6 +773,7 @@ function MyController(hand) {
                 this.setState(STATE_CONTINUE_NEAR_GRABBING);
             } else {
                 // equipping
+                Entities.callEntityMethod(this.grabbedEntity, "startEquip");
                 this.setState(STATE_CONTINUE_EQUIP_BD);
             }
 
@@ -846,6 +847,7 @@ function MyController(hand) {
         if (this.bumperReleased()) {
             this.setState(STATE_RELEASE);
             Entities.callEntityMethod(this.grabbedEntity, "releaseGrab");
+            Entities.callEntityMethod(this.grabbedEntity, "unequip");
         }
     };
 
