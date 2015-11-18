@@ -1095,6 +1095,21 @@ void Application::paintGL() {
     _inPaint = true;
     Finally clearFlagLambda([this] { _inPaint = false; });
 
+    _lastInstantaneousFps = instantaneousFps;
+    // Time between previous paintGL call and this one, which can vary not only with vSync misses, but also with QT timing.
+    // This is not the same as update(deltaTime), because the latter attempts to throttle to 60hz and also clamps to 1/4 second.
+    // Note that _lastPaintWait (stored at end of last call) is for the same paint cycle.
+    const float actualPeriod = diff / (float)USECS_PER_SECOND; // same as 1/instantaneousFps but easier for compiler to optimize
+    const float targetPeriod = isHMDMode() ? 1.0f / 75.0f : 1.0f / 60.0f;
+    const float nSyncsByFrameRate = round(actualPeriod / targetPeriod);
+    const float accuracyAllowance = 0.0005f; // sometimes paint goes over and it isn't reflected in actualPeriod
+    const float nSyncsByPaintWait = floor((_lastPaintWait + accuracyAllowance) / targetPeriod);
+    const float nSyncs = nSyncsByFrameRate + nSyncsByPaintWait;
+    const float modularPeriod = ((nSyncs - 1) * targetPeriod) + actualPeriod;
+    const float deducedNonVSyncPeriod = modularPeriod - _lastPaintWait;
+    _lastDeducedNonVSyncFps = 1.0f / deducedNonVSyncPeriod;
+
+
     auto displayPlugin = getActiveDisplayPlugin();
     displayPlugin->preRender();
     _offscreenContext->makeCurrent();
@@ -1342,18 +1357,8 @@ void Application::paintGL() {
             displayPlugin->finishFrame();
         }
         uint64_t displayEnd = usecTimestampNow();
-        // Store together, without Application::idle happening in between setting fps and period.
-        _lastInstantaneousFps = instantaneousFps;
         const float displayPeriodUsec = (float)(displayEnd - displayStart); // usecs
         _lastPaintWait = displayPeriodUsec / (float)USECS_PER_SECOND;
-        const float targetPeriod = isHMDMode() ? 1.0f/75.0f : 1.0f/60.0f;
-        const float actualPeriod = 1.0f / instantaneousFps;
-        const float nSyncsByFrameRate = round(actualPeriod / targetPeriod);
-        const float accuracyAllowance = 0.0005;
-        const float nSyncsByPaintWait = floor((_lastPaintWait + accuracyAllowance) / targetPeriod); // sometimes paint goes over and it isn't reflected in actualPeriod
-        const float modularPeriod = (nSyncsByFrameRate + nSyncsByPaintWait) * targetPeriod;
-        const float deducedNonVSyncPeriod = modularPeriod - _lastPaintWait;
-        _lastDeducedNonVSyncFps = 1.0f / deducedNonVSyncPeriod;
 
     }
 

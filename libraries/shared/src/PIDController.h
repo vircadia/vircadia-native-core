@@ -70,6 +70,8 @@ public:
         float computed;
     };
 protected:
+    void reportHistory();
+    void updateHistory(float measured, float dt, float error, float accumulatedError, float changeInErro, float p, float i, float d, float computedValue, float FIXME1, float FIXME2);
     float _measuredValueSetpoint { 0.0f };
     float _controlledValueLowLimit { 0.0f };
     float _controlledValueHighLimit { std::numeric_limits<float>::max() };

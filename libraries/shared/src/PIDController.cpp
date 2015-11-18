@@ -31,41 +31,49 @@ float PIDController::update(float measuredValue, float dt, bool resetAccumulator
         getControlledValueLowLimit(),
         getControlledValueHighLimit());
 
-    if (_history.capacity()) {  // THIS SECTION ONLY FOR LOGGING
-        // Don't report each update(), as the I/O messes with the results a lot.
-        // Instead, add to history, and then dump out at once when full.
-        // Typically, the first few values reported in each batch should be ignored.
-        const int n = _history.size();
-        _history.resize(n + 1);
-        Row& next = _history[n];
-        next.measured = measuredValue;
-        next.FIXME1 = FIXME1;
-        next.FIXME2 = FIXME2;
-        next.dt = dt;
-        next.error = error;
-        next.accumulated = accumulatedError;
-        next.changed = changeInError;
-        next.p = p;
-        next.i = i;
-        next.d = d;
-        next.computed = computedValue;
-        if (_history.size() == _history.capacity()) { // report when buffer is full
-            qCDebug(shared) << _label << "measured dt FIXME || error accumulated changed || p i d controlled";
-            for (int i = 0; i < _history.size(); i++) {
-                Row& row = _history[i];
-                qCDebug(shared) << row.measured << row.dt << row.FIXME1 << row.FIXME2 <<
-                    "||" << row.error << row.accumulated << row.changed <<
-                    "||" << row.p << row.i << row.d << row.computed;
-            }
-            qCDebug(shared) << "Limits: accumulate" << getAccumulatedValueLowLimit() << getAccumulatedValueHighLimit() <<
-                "controlled" << getControlledValueLowLimit() << getControlledValueHighLimit() <<
-                "kp/ki/kd/bias" << getKP() << getKI() << getKD() << getBias();
-            _history.resize(0);
-        }
-    }
+    if (_history.capacity()) {  // if logging/reporting
+        updateHistory(measuredValue, dt, error, accumulatedError, changeInError, p, i, d, computedValue, FIXME1, FIXME2);
+     }
 
     // update state for next time
     _lastError = error;
     _lastAccumulation = accumulatedError;
     return computedValue;
+}
+
+// Just for logging/reporting. Used when picking/verifying the operational parameters.
+void PIDController::updateHistory(float measuredValue, float dt, float error, float accumulatedError, float changeInError, float p, float i, float d, float computedValue, float FIXME1, float FIXME2) {
+    // Don't report each update(), as the I/O messes with the results a lot.
+    // Instead, add to history, and then dump out at once when full.
+    // Typically, the first few values reported in each batch should be ignored.
+    const int n = _history.size();
+    _history.resize(n + 1);
+    Row& next = _history[n];
+    next.measured = measuredValue;
+    next.FIXME1 = FIXME1;
+    next.FIXME2 = FIXME2;
+    next.dt = dt;
+    next.error = error;
+    next.accumulated = accumulatedError;
+    next.changed = changeInError;
+    next.p = p;
+    next.i = i;
+    next.d = d;
+    next.computed = computedValue;
+    if (_history.size() == _history.capacity()) { // report when buffer is full
+        reportHistory();
+        _history.resize(0);
+    }
+}
+void PIDController::reportHistory() {
+    qCDebug(shared) << _label << "measured dt FIXME || error accumulated changed || p i d controlled";
+    for (int i = 0; i < _history.size(); i++) {
+        Row& row = _history[i];
+        qCDebug(shared) << row.measured << (row.dt * 1000)  << row.FIXME1 << (row.FIXME2 * 1000) <<
+            "||" << row.error << row.accumulated << row.changed <<
+            "||" << row.p << row.i << row.d << row.computed;
+    }
+    qCDebug(shared) << "Limits: setpoint" << getMeasuredValueSetpoint() << "accumulate" << getAccumulatedValueLowLimit() << getAccumulatedValueHighLimit() <<
+        "controlled" << getControlledValueLowLimit() << getControlledValueHighLimit() <<
+        "kp/ki/kd/bias" << getKP() << getKI() << getKD() << getBias();
 }
