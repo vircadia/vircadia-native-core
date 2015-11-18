@@ -47,8 +47,8 @@ AudioInjector::AudioInjector(const QByteArray& audioData, const AudioInjectorOpt
 }
 
 void AudioInjector::finish() {
-    State oldState = std::atomic_exchange(&_state, State::Finished);
-    bool shouldDelete = (oldState == State::NotFinishedWithPendingDelete);
+    bool shouldDelete = (_state == State::NotFinishedWithPendingDelete);
+    _state = State::Finished;
     
     emit finished();
     

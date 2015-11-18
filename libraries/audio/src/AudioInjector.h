@@ -88,7 +88,7 @@ private:
     
     QByteArray _audioData;
     AudioInjectorOptions _options;
-    std::atomic<State> _state { State::NotFinished };
+    State _state { State::NotFinished };
     bool _hasSetup = false;
     bool _shouldStop = false;
     float _loudness = 0.0f;
