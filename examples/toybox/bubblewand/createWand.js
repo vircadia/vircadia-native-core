@@ -43,5 +43,14 @@ var wand = Entities.addEntity({
     //must be enabled to be grabbable in the physics engine
     collisionsWillMove: true,
     compoundShapeURL: WAND_COLLISION_SHAPE,
-    script: WAND_SCRIPT_URL
+    script: WAND_SCRIPT_URL,
+    userData:JSON.stringify({
+        grabbableKey:{
+            invertSolidWhileHeld:true,
+            spatialKey:{
+               relativePosition:{x:0,y:1,z:0},
+               relativeRotation:Quat.fromPitchYawRollDegrees(0,90,0)
+            }
+        }
+    })
 });
