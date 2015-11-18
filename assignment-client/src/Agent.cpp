@@ -17,6 +17,7 @@
 #include <QtNetwork/QNetworkReply>
 
 #include <AvatarHashMap.h>
+#include <MessagesClient.h>
 #include <NetworkAccessManager.h>
 #include <NodeList.h>
 #include <udt/PacketHeaders.h>
@@ -100,7 +101,7 @@ void Agent::handleJurisdictionPacket(QSharedPointer<NLPacket> packet, SharedNode
         DependencyManager::get<EntityScriptingInterface>()->getJurisdictionListener()->
             queueReceivedPacket(packet, senderNode);
     }
-} 
+}
 
 void Agent::handleAudioPacket(QSharedPointer<NLPacket> packet) {
     _receivedAudioStream.parseData(*packet);
@@ -116,11 +117,21 @@ const int PING_INTERVAL = 1000;
 void Agent::run() {
     ThreadedAssignment::commonInit(AGENT_LOGGING_NAME, NodeType::Agent);
 
+    // Setup MessagesClient
+    auto messagesClient = DependencyManager::set<MessagesClient>();
+    QThread* messagesThread = new QThread;
+    messagesThread->setObjectName("Messages Client Thread");
+    messagesClient->moveToThread(messagesThread);
+    connect(messagesThread, &QThread::started, messagesClient.data(), &MessagesClient::init);
+    messagesThread->start();
+
+
     auto nodeList = DependencyManager::get<NodeList>();
     nodeList->addSetOfNodeTypesToNodeInterestSet(NodeSet()
                                                  << NodeType::AudioMixer
                                                  << NodeType::AvatarMixer
                                                  << NodeType::EntityServer
+                                                 << NodeType::MessagesMixer
                                                 );
 
     _pingTimer = new QTimer(this);

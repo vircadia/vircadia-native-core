@@ -909,13 +909,8 @@ void AudioClient::handleRecordedAudioInput(const QByteArray& audio) {
         // we don't have an audioPacket yet - set that up now
         _audioPacket = NLPacket::create(PacketType::MicrophoneAudioWithEcho);
     }
+
     // FIXME either discard stereo in the recording or record a stereo flag
-    const int numNetworkBytes = _isStereoInput
-        ? AudioConstants::NETWORK_FRAME_BYTES_STEREO
-        : AudioConstants::NETWORK_FRAME_BYTES_PER_CHANNEL;
-    const int numNetworkSamples = _isStereoInput
-        ? AudioConstants::NETWORK_FRAME_SAMPLES_STEREO
-        : AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL;
 
     auto nodeList = DependencyManager::get<NodeList>();
     SharedNodePointer audioMixer = nodeList->soloNodeOfType(NodeType::AudioMixer);
