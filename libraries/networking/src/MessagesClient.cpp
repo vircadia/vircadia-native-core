@@ -27,7 +27,7 @@ MessagesClient::MessagesClient() {
     auto nodeList = DependencyManager::get<NodeList>();
     auto& packetReceiver = nodeList->getPacketReceiver();
     packetReceiver.registerMessageListener(PacketType::MessagesData, this, "handleMessagesPacket");
-    connect(nodeList.data(), &LimitedNodeList::nodeAdded, this, &MessagesClient::handleNodeAdded);
+    connect(nodeList.data(), &LimitedNodeList::nodeActivated, this, &MessagesClient::handleNodeActivated);
 }
 
 void MessagesClient::init() {
@@ -99,22 +99,10 @@ void MessagesClient::unsubscribe(const QString& channel) {
     }
 }
 
-void MessagesClient::handleNodeAdded(SharedNodePointer node) {
+void MessagesClient::handleNodeActivated(SharedNodePointer node) {
     if (node->getType() == NodeType::MessagesMixer) {
-        if (!node->getActiveSocket()) {
-            connect(node.data(), &NetworkPeer::socketActivated, this, &MessagesClient::socketActivated);
-        } else {
-            resubscribeToAll();
+        for (const auto& channel : _subscribedChannels) {
+            subscribe(channel);
         }
-    }
-}
-
-void MessagesClient::socketActivated(const HifiSockAddr& sockAddr) {
-    resubscribeToAll();
-}
-
-void MessagesClient::resubscribeToAll() {
-    for (const auto& channel : _subscribedChannels) {
-        subscribe(channel);
     }
 }
