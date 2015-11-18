@@ -647,14 +647,12 @@ void AudioMixer::run() {
     
     qDebug() << "Waiting for connection to domain to request settings from domain-server.";
     
-    ThreadedAssignment::commonInit(AUDIO_MIXER_LOGGING_TARGET_NAME, NodeType::AudioMixer);
-
-    auto nodeList = DependencyManager::get<NodeList>();
-
     // wait until we have the domain-server settings, otherwise we bail
     DomainHandler& domainHandler = DependencyManager::get<NodeList>()->getDomainHandler();
     connect(&domainHandler, &DomainHandler::settingsReceived, this, &AudioMixer::domainSettingsRequestComplete);
     connect(&domainHandler, &DomainHandler::settingsReceiveFail, this, &AudioMixer::domainSettingsRequestFailed);
+    
+    ThreadedAssignment::commonInit(AUDIO_MIXER_LOGGING_TARGET_NAME, NodeType::AudioMixer);
 }
 
 void AudioMixer::domainSettingsRequestComplete() {

@@ -514,6 +514,11 @@ void AvatarMixer::sendStatsPacket() {
 void AvatarMixer::run() {
     qDebug() << "Waiting for connection to domain to request settings from domain-server.";
     
+    // wait until we have the domain-server settings, otherwise we bail
+    DomainHandler& domainHandler = DependencyManager::get<NodeList>()->getDomainHandler();
+    connect(&domainHandler, &DomainHandler::settingsReceived, this, &AvatarMixer::domainSettingsRequestComplete);
+    connect(&domainHandler, &DomainHandler::settingsReceiveFail, this, &AvatarMixer::domainSettingsRequestFailed);
+    
     ThreadedAssignment::commonInit(AVATAR_MIXER_LOGGING_NAME, NodeType::AvatarMixer);
 
     // setup the timer that will be fired on the broadcast thread
@@ -524,11 +529,6 @@ void AvatarMixer::run() {
     // connect appropriate signals and slots
     connect(_broadcastTimer, &QTimer::timeout, this, &AvatarMixer::broadcastAvatarData, Qt::DirectConnection);
     connect(&_broadcastThread, SIGNAL(started()), _broadcastTimer, SLOT(start()));
-
-    // wait until we have the domain-server settings, otherwise we bail
-    DomainHandler& domainHandler = DependencyManager::get<NodeList>()->getDomainHandler();
-    connect(&domainHandler, &DomainHandler::settingsReceived, this, &AvatarMixer::domainSettingsRequestComplete);
-    connect(&domainHandler, &DomainHandler::settingsReceiveFail, this, &AvatarMixer::domainSettingsRequestFailed);
 }
 
 void AvatarMixer::domainSettingsRequestComplete() {

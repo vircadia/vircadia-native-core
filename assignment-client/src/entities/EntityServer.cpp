@@ -253,7 +253,7 @@ void EntityServer::pruneDeletedEntities() {
     }
 }
 
-bool EntityServer::readAdditionalConfiguration(const QJsonObject& settingsSectionObject) {
+void EntityServer::readAdditionalConfiguration(const QJsonObject& settingsSectionObject) {
     bool wantEditLogging = false;
     readOptionBool(QString("wantEditLogging"), settingsSectionObject, wantEditLogging);
     qDebug("wantEditLogging=%s", debug::valueOf(wantEditLogging));
