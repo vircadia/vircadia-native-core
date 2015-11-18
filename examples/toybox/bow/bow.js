@@ -108,6 +108,8 @@
         relativeRotation: Quat.fromPitchYawRollDegrees(0, -90, 90)
     }
 
+    var arrowTrackers = [];
+
     var _this;
 
     function Bow() {
@@ -155,8 +157,8 @@
         unload: function() {
             Script.update.disconnect(this.updateArrowTrackers);
 
-            while (this.arrowTrackers.length > 0) {
-                var tracker = this.arrowTrackers.pop();
+            while (arrowTrackers.length > 0) {
+                var tracker = arrowTrackers.pop();
                 tracker.childEntities.forEach(function(child) {
                     Entities.deleteEntity(child);
                 })
@@ -494,7 +496,8 @@
                 this.stringDrawn = true;
                 this.createStrings();
                 var arrowTracker = this.createArrowTracker(this.arrow);
-                this.arrowTrackers.push(arrowTracker)
+                arrowTrackers.push(arrowTracker)
+                
                 this.stringData.handPosition = this.getStringHandPosition();
                 this.stringData.handRotation = this.getStringHandRotation();
                 this.stringData.grabHandPosition = this.getGrabHandPosition();
@@ -781,20 +784,8 @@
                     Script.addEventHandler(this.arrowID, "collisionWithEntity", function(entityA, entityB, collision) {
                         //have to reverse lookup the tracker by the arrow id to get access to the children
                         var tracker = getArrowTrackerByArrowID(entityA);
-
-                        var bProps = Entities.getEntityProperties(entityB, "name")
-                        print('ARROW COLLIDED WITH SOMETHING!' + bProps.name)
-                        print('TRACKER IN COLLISION !' + tracker)
-                            // _t.playArrowHitSound(collision.contactPoint);
-                            //Vec3.print('penetration = ', collision.penetration);
-                            //Vec3.print('collision contact point = ', collision.contactPoint);
-                            //   var orientationChange = orientationOf(collision.velocityChange);
                         Entities.deleteEntity(tracker.glowBox);
-                        //we don't want to update this arrow tracker anymore
-                        var index = _t.arrowTrackers.indexOf(entityA);
-                        if (index > -1) {
-                            //    _t.arrowTrackers.splice(index, 1);
-                        }
+
                     });
                 },
                 setChildren: function() {
@@ -805,8 +796,6 @@
                     this.childParticleSystems.push(this.fireParticleSystem);
                 },
                 updateChildEntities: function(arrowID) {
-
-                    // print('UPDATING CHILDREN OF TRACKER:::' + this.childEntities.length);
                     var arrowProperties = Entities.getEntityProperties(this.arrowID, ["position", "rotation"]);
                     _t.setArrowTipPosition(arrowProperties.position, arrowProperties.rotation);
                     _t.setArrowRearPosition(arrowProperties.position, arrowProperties.rotation);
@@ -836,7 +825,6 @@
             };
             arrowTracker.init();
             arrowTracker.setCollisionCallback();
-            print('after create arrow tracker')
 
             return arrowTracker
         },
@@ -918,12 +906,10 @@
             var glowBox = Entities.addEntity(properties);
             return glowBox
         },
-        arrowTrackers: [],
         updateArrowTrackers: function() {
-            // print('updating arrow trackers:::' + _this.arrowTrackers.length);
-            _this.arrowTrackers.forEach(function(tracker) {
+            //      print('updating arrow trackers:::' + arrowTrackers.length);
+            arrowTrackers.forEach(function(tracker) {
                 var arrowID = tracker.arrowID;
-                // print('TRACKER ARROW ID'+tracker.arrowID)
                 tracker.updateChildEntities(arrowID);
             })
         },
@@ -979,10 +965,9 @@
     };
 
     getArrowTrackerByArrowID = function(arrowID) {
-        var result = _this.arrowTrackers.filter(function(tracker) {
+        var result = arrowTrackers.filter(function(tracker) {
             return tracker.arrowID === arrowID;
         });
-
         var tracker = result[0]
         return tracker
     }
