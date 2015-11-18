@@ -11,7 +11,7 @@
 
 var soundURL = "http://hifi-public.s3.amazonaws.com/birarda/medium-crowd.wav";
 var audioOptions = {
-    position: MyAvatar.position,
+    position: { x: 0.0, y: 0.0, z: 0.0 },
     volume: 0.5
 };
 

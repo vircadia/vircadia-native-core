@@ -16,8 +16,9 @@
 #include <QtNetwork/QNetworkRequest>
 #include <QtNetwork/QNetworkReply>
 
-#include <AssetClient.h>
 #include <AvatarHashMap.h>
+#include <AudioInjectorManager.h>
+#include <AssetClient.h>
 #include <NetworkAccessManager.h>
 #include <NodeList.h>
 #include <udt/PacketHeaders.h>
@@ -43,7 +44,7 @@ Agent::Agent(NLPacket& packet) :
         DEFAULT_WINDOW_SECONDS_FOR_DESIRED_REDUCTION, false))
 {
     DependencyManager::get<EntityScriptingInterface>()->setPacketSender(&_entityEditSender);
-
+    
     auto assetClient = DependencyManager::set<AssetClient>();
 
     QThread* assetThread = new QThread;
@@ -54,6 +55,8 @@ Agent::Agent(NLPacket& packet) :
 
     DependencyManager::set<ResourceCacheSharedItems>();
     DependencyManager::set<SoundCache>();
+    
+    DependencyManager::set<AudioInjectorManager>();
 
     auto& packetReceiver = DependencyManager::get<NodeList>()->getPacketReceiver();
 
@@ -396,6 +399,9 @@ void Agent::aboutToFinish() {
     DependencyManager::destroy<AssetClient>();
     assetThread->quit();
     assetThread->wait();
+    
+    // cleanup the AudioInjectorManager (and any still running injectors)
+    DependencyManager::set<AudioInjectorManager>();
 }
 
 void Agent::sendPingRequests() {

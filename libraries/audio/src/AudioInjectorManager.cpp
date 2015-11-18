@@ -76,25 +76,28 @@ void AudioInjectorManager::run() {
                 _injectorReady.wait_for(lock, std::chrono::microseconds(difference));
             }
             
-            // loop through the injectors in the map and send whatever frames need to go out
-            auto front = _injectors.front();
-            while (_injectors.size() > 0 && front.first <= usecTimestampNow()) {
-                // either way we're popping this injector off - get a copy first
-                auto injector = front.second;
-                _injectors.pop();
-                
-                if (!injector.isNull()) {
-                    // this is an injector that's ready to go, have it send a frame now
-                    auto nextCallDelta = injector->injectNextFrame();
+            if (_injectors.size() > 0) {
+                // loop through the injectors in the map and send whatever frames need to go out
+                auto front = _injectors.front();
+                while (_injectors.size() > 0 && front.first <= usecTimestampNow()) {
+                    // either way we're popping this injector off - get a copy first
+                    auto injector = front.second;
+                    _injectors.pop();
                     
-                    if (nextCallDelta > 0 && !injector->isFinished()) {
-                        // re-enqueue the injector with the correct timing
-                        _injectors.push({ usecTimestampNow() + nextCallDelta, injector });
+                    if (!injector.isNull()) {
+                        // this is an injector that's ready to go, have it send a frame now
+                        auto nextCallDelta = injector->injectNextFrame();
+                        
+                        if (nextCallDelta > 0 && !injector->isFinished()) {
+                            // re-enqueue the injector with the correct timing
+                            _injectors.push({ usecTimestampNow() + nextCallDelta, injector });
+                        }
                     }
+                    
+                    front = _injectors.front();
                 }
-                
-                front = _injectors.front();
             }
+
         } else {
             // we have no current injectors, wait until we get at least one before we do anything
             _injectorReady.wait(lock);
@@ -110,6 +113,11 @@ void AudioInjectorManager::run() {
 static const int MAX_INJECTORS_PER_THREAD = 50; // calculated based on AudioInjector while loop time, with sufficient padding
 
 bool AudioInjectorManager::threadInjector(AudioInjector* injector) {
+    if (_shouldStop) {
+        qDebug() << "AudioInjectorManager::threadInjector asked to thread injector but is shutting down.";
+        return false;
+    }
+    
     // guard the injectors vector with a mutex
     std::unique_lock<std::mutex> lock(_injectorsMutex);
     
@@ -140,12 +148,14 @@ bool AudioInjectorManager::threadInjector(AudioInjector* injector) {
 }
 
 void AudioInjectorManager::restartFinishedInjector(AudioInjector* injector) {
-    // guard the injectors vector with a mutex
-    std::unique_lock<std::mutex> lock(_injectorsMutex);
-    
-    // add the injector to the queue with a send timestamp of now
-    _injectors.emplace(usecTimestampNow(), InjectorQPointer { injector });
-    
-    // notify our wait condition so we can inject two frames for this injector immediately
-    _injectorReady.notify_one();
+    if (!_shouldStop) {
+        // guard the injectors vector with a mutex
+        std::unique_lock<std::mutex> lock(_injectorsMutex);
+        
+        // add the injector to the queue with a send timestamp of now
+        _injectors.emplace(usecTimestampNow(), InjectorQPointer { injector });
+        
+        // notify our wait condition so we can inject two frames for this injector immediately
+        _injectorReady.notify_one();
+    }
 }
