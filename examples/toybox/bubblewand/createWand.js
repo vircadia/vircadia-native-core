@@ -44,12 +44,16 @@ var wand = Entities.addEntity({
     collisionsWillMove: true,
     compoundShapeURL: WAND_COLLISION_SHAPE,
     script: WAND_SCRIPT_URL,
-    userData:JSON.stringify({
-        grabbableKey:{
-            invertSolidWhileHeld:true,
-            spatialKey:{
-               relativePosition:{x:0,y:0.1,z:0},
-               relativeRotation:Quat.fromPitchYawRollDegrees(0,0,90)
+    userData: JSON.stringify({
+        grabbableKey: {
+            invertSolidWhileHeld: true,
+            spatialKey: {
+                relativePosition: {
+                    x: 0,
+                    y: 0.1,
+                    z: 0
+                },
+                relativeRotation: Quat.fromPitchYawRollDegrees(0, 0, 90)
             }
         }
     })
