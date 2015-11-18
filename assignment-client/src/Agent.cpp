@@ -27,12 +27,14 @@
 
 #include <recording/Deck.h>
 #include <recording/Recorder.h>
+#include <recording/Frame.h>
 
 #include <WebSocketServerClass.h>
 #include <EntityScriptingInterface.h> // TODO: consider moving to scriptengine.h
 
 #include "avatars/ScriptableAvatar.h"
 #include "RecordingScriptingInterface.h"
+#include "AbstractAudioInterface.h"
 
 #include "Agent.h"
 
@@ -183,7 +185,21 @@ void Agent::run() {
     scriptedAvatar.setSkeletonModelURL(QUrl());
 
     // give this AvatarData object to the script engine
+    auto scriptedAvatarPtr = &scriptedAvatar;
     setAvatarData(&scriptedAvatar, "Avatar");
+
+    using namespace recording;
+    static const FrameType AUDIO_FRAME_TYPE = Frame::registerFrameType(AudioConstants::AUDIO_FRAME_NAME);
+    Frame::registerFrameHandler(AUDIO_FRAME_TYPE, [this, &scriptedAvatar](Frame::ConstPointer frame) {
+        const QByteArray& audio = frame->data;
+        static quint16 audioSequenceNumber{ 0 };
+        Transform audioTransform;
+        audioTransform.setTranslation(scriptedAvatar.getPosition());
+        audioTransform.setRotation(scriptedAvatar.getOrientation());
+        AbstractAudioInterface::emitAudioPacket(audio.data(), audio.size(), audioSequenceNumber, audioTransform, PacketType::MicrophoneAudioNoEcho);
+    });
+
+
 
     auto avatarHashMap = DependencyManager::set<AvatarHashMap>();
     _scriptEngine->registerGlobalObject("AvatarList", avatarHashMap.data());
@@ -223,6 +239,9 @@ void Agent::run() {
     QObject::connect(_scriptEngine.get(), &ScriptEngine::update, this, &Agent::processAgentAvatarAndAudio);
 
     _scriptEngine->run();
+
+    Frame::registerFrameHandler(AUDIO_FRAME_TYPE, [](Frame::ConstPointer frame) {});
+
     setFinished(true);
 }
 
@@ -244,7 +263,6 @@ void Agent::setIsAvatar(bool isAvatar) {
     }
 
     if (!_isAvatar) {
-        DependencyManager::get<RecordingScriptingInterface>()->setControlledAvatar(nullptr);
 
         if (_avatarIdentityTimer) {
             _avatarIdentityTimer->stop();
@@ -263,7 +281,13 @@ void Agent::setIsAvatar(bool isAvatar) {
 void Agent::setAvatarData(AvatarData* avatarData, const QString& objectName) {
     _avatarData = avatarData;
     _scriptEngine->registerGlobalObject(objectName, avatarData);
-    DependencyManager::get<RecordingScriptingInterface>()->setControlledAvatar(avatarData);
+
+    using namespace recording;
+    static const FrameType AVATAR_FRAME_TYPE = Frame::registerFrameType(AvatarData::FRAME_NAME);
+    // FIXME how to deal with driving multiple avatars locally?  
+    Frame::registerFrameHandler(AVATAR_FRAME_TYPE, [this](Frame::ConstPointer frame) {
+        AvatarData::fromFrame(frame->data, *_avatarData);
+    });
 }
 
 void Agent::sendAvatarIdentityPacket() {

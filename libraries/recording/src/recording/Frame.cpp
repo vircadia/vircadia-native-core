@@ -131,6 +131,11 @@ Frame::Handler Frame::registerFrameHandler(FrameType type, Handler handler) {
     return result;
 }
 
+Frame::Handler Frame::registerFrameHandler(const QString& frameTypeName, Handler handler) {
+    auto frameType = registerFrameType(frameTypeName);
+    return registerFrameHandler(frameType, handler);
+}
+
 void Frame::handleFrame(const Frame::ConstPointer& frame) {
     Handler handler; 
     {
