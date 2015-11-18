@@ -11,19 +11,18 @@
 #ifndef hifi_ParticleEffectEntityItem_h
 #define hifi_ParticleEffectEntityItem_h
 
-#include <AnimationLoop.h>
+#include <deque>
 
 #include "EntityItem.h"
 
 class ParticleEffectEntityItem : public EntityItem {
 public:
+    ALLOW_INSTANTIATION // This class can be instantiated
 
     static EntityItemPointer factory(const EntityItemID& entityID, const EntityItemProperties& properties);
 
     ParticleEffectEntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties);
-    virtual ~ParticleEffectEntityItem();
 
-    ALLOW_INSTANTIATION // This class can be instantiated
 
     // methods for getting/setting all properties of this entity
     virtual EntityItemProperties getProperties(EntityPropertyFlags desiredProperties = EntityPropertyFlags()) const;
@@ -218,14 +217,42 @@ public:
     virtual bool supportsDetailedRayIntersection() const { return false; }
 
 protected:
+    struct Particle;
+    using Particles = std::deque<Particle>;
 
     bool isAnimatingSomething() const;
     void stepSimulation(float deltaTime);
-    void updateRadius(quint32 index, float age);
-    void updateColor(quint32 index, float age);
-    void updateAlpha(quint32 index, float age);
-    void integrateParticle(quint32 index, float deltaTime);
+    void updateRadius(Particle& particle, float age);
+    void updateColor(Particle& particle, float age);
+    void updateAlpha(Particle& particle, float age);
+    void integrateParticle(Particle& particle, float deltaTime);
     quint32 getLivingParticleCount() const;
+    
+    struct Particle {
+        float lifetime { 0.0f };
+        glm::vec3 position { Vectors::ZERO};
+        glm::vec3 velocity { Vectors::ZERO};
+        glm::vec3 acceleration { Vectors::ZERO};
+        float radius { DEFAULT_PARTICLE_RADIUS };
+        xColor color = DEFAULT_COLOR;
+        float alpha { DEFAULT_ALPHA };
+        
+        float radiusStart { DEFAULT_PARTICLE_RADIUS };
+        float radiusMiddle { DEFAULT_PARTICLE_RADIUS };
+        float radiusFinish { DEFAULT_PARTICLE_RADIUS };
+        xColor colorStart = DEFAULT_COLOR;
+        xColor colorMiddle = DEFAULT_COLOR;
+        xColor colorFinish = DEFAULT_COLOR;
+        float alphaStart { DEFAULT_ALPHA };
+        float alphaMiddle { DEFAULT_ALPHA };
+        float alphaFinish { DEFAULT_ALPHA };
+    };
+    
+    // Particles container
+    Particles _particles;
+    
+    // bounding volume
+    Extents _particlesBounds;
     
     // the properties of this entity
     rgbColor _color;
@@ -256,42 +283,17 @@ protected:
     float _radiusSpread = DEFAULT_RADIUS_SPREAD;
 
 
-    quint64 _lastSimulated;
-    bool _isEmitting = true;
+    quint64 _lastSimulated { 0 };
+    bool _isEmitting { true };
 
-    QString _textures = DEFAULT_TEXTURES;
-    bool _texturesChangedFlag = false;
-    ShapeType _shapeType = SHAPE_TYPE_NONE;
-
-    // all the internals of running the particle sim
-    QVector<float> _particleLifetimes;
-    QVector<glm::vec3> _particlePositions;
-    QVector<glm::vec3> _particleVelocities;
-    QVector<glm::vec3> _particleAccelerations;
-    QVector<float> _particleRadiuses;
-    QVector<float> _radiusStarts;
-    QVector<float> _radiusMiddles;
-    QVector<float> _radiusFinishes;
-    QVector<xColor> _particleColors;
-    QVector<xColor> _colorStarts;
-    QVector<xColor> _colorMiddles;
-    QVector<xColor> _colorFinishes;
-    QVector<float> _particleAlphas;
-    QVector<float> _alphaStarts;
-    QVector<float> _alphaMiddles;
-    QVector<float> _alphaFinishes;
-
-    float _timeUntilNextEmit = 0.0f;
-
-    // particle arrays are a ring buffer, use these indices
-    // to keep track of the living particles.
-    quint32 _particleHeadIndex = 0;
-    quint32 _particleTailIndex = 0;
-
-    // bounding volume
-    Extents _particlesBounds;
+    QString _textures { DEFAULT_TEXTURES };
+    bool _texturesChangedFlag { false };
+    ShapeType _shapeType { SHAPE_TYPE_NONE };
     
-    bool _additiveBlending;
+    float _timeUntilNextEmit { 0.0f };
+
+    
+    bool _additiveBlending { DEFAULT_ADDITIVE_BLENDING };
 };
 
 #endif // hifi_ParticleEffectEntityItem_h

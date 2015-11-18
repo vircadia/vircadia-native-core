@@ -40,9 +40,6 @@
 #include "EntityScriptingInterface.h"
 #include "ParticleEffectEntityItem.h"
 
-const glm::vec3 X_AXIS = glm::vec3(1.0f, 0.0f, 0.0f);
-const glm::vec3 Z_AXIS = glm::vec3(0.0f, 0.0f, 1.0f);
-
 const float SCRIPT_MAXIMUM_PI = 3.1416f;  // Round up so that reasonable property values work
 
 const xColor ParticleEffectEntityItem::DEFAULT_COLOR = { 255, 255, 255 };
@@ -66,8 +63,8 @@ const float ParticleEffectEntityItem::DEFAULT_EMIT_SPEED = 5.0f;
 const float ParticleEffectEntityItem::MINIMUM_EMIT_SPEED = 0.0f;
 const float ParticleEffectEntityItem::MAXIMUM_EMIT_SPEED = 1000.0f;  // Approx mach 3
 const float ParticleEffectEntityItem::DEFAULT_SPEED_SPREAD = 1.0f;
-const glm::quat ParticleEffectEntityItem::DEFAULT_EMIT_ORIENTATION = glm::angleAxis(-PI_OVER_TWO, X_AXIS);  // Vertical
-const glm::vec3 ParticleEffectEntityItem::DEFAULT_EMIT_DIMENSIONS = glm::vec3(0.0f, 0.0f, 0.0f);  // Emit from point
+const glm::quat ParticleEffectEntityItem::DEFAULT_EMIT_ORIENTATION = glm::angleAxis(-PI_OVER_TWO, Vectors::UNIT_X);  // Vertical
+const glm::vec3 ParticleEffectEntityItem::DEFAULT_EMIT_DIMENSIONS = Vectors::ZERO;  // Emit from point
 const float ParticleEffectEntityItem::MINIMUM_EMIT_DIMENSION = 0.0f;
 const float ParticleEffectEntityItem::MAXIMUM_EMIT_DIMENSION = (float)TREE_SCALE;
 const float ParticleEffectEntityItem::DEFAULT_EMIT_RADIUS_START = 1.0f;  // Emit from surface (when emitDimensions > 0)
@@ -104,34 +101,11 @@ EntityItemPointer ParticleEffectEntityItem::factory(const EntityItemID& entityID
 // our non-pure virtual subclass for now...
 ParticleEffectEntityItem::ParticleEffectEntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties) :
     EntityItem(entityItemID),
-    _lastSimulated(usecTimestampNow()),
-    _particleLifetimes(DEFAULT_MAX_PARTICLES, 0.0f),
-    _particlePositions(DEFAULT_MAX_PARTICLES, Vectors::ZERO),
-    _particleVelocities(DEFAULT_MAX_PARTICLES, Vectors::ZERO),
-    _particleAccelerations(DEFAULT_MAX_PARTICLES, Vectors::ZERO),
-    _particleRadiuses(DEFAULT_MAX_PARTICLES, DEFAULT_PARTICLE_RADIUS),
-    _radiusStarts(DEFAULT_MAX_PARTICLES, DEFAULT_PARTICLE_RADIUS),
-    _radiusMiddles(DEFAULT_MAX_PARTICLES, DEFAULT_PARTICLE_RADIUS),
-    _radiusFinishes(DEFAULT_MAX_PARTICLES, DEFAULT_PARTICLE_RADIUS),
-    _particleColors(DEFAULT_MAX_PARTICLES, DEFAULT_COLOR),
-    _colorStarts(DEFAULT_MAX_PARTICLES, DEFAULT_COLOR),
-    _colorMiddles(DEFAULT_MAX_PARTICLES, DEFAULT_COLOR),
-    _colorFinishes(DEFAULT_MAX_PARTICLES, DEFAULT_COLOR),
-    _particleAlphas(DEFAULT_MAX_PARTICLES, DEFAULT_ALPHA),
-    _alphaStarts(DEFAULT_MAX_PARTICLES, DEFAULT_ALPHA),
-    _alphaMiddles(DEFAULT_MAX_PARTICLES, DEFAULT_ALPHA),
-    _alphaFinishes(DEFAULT_MAX_PARTICLES, DEFAULT_ALPHA),
-    _additiveBlending(DEFAULT_ADDITIVE_BLENDING)
+    _lastSimulated(usecTimestampNow())
 {
-
     _type = EntityTypes::ParticleEffect;
-    setColor(DEFAULT_COLOR);
     setProperties(properties);
 }
-
-ParticleEffectEntityItem::~ParticleEffectEntityItem() {
-}
-
 
 void ParticleEffectEntityItem::setAlpha(float alpha) {
     if (MINIMUM_ALPHA <= alpha && alpha <= MAXIMUM_ALPHA) {
@@ -307,8 +281,8 @@ void ParticleEffectEntityItem::setRadiusSpread(float radiusSpread) {
 void ParticleEffectEntityItem::computeAndUpdateDimensions() {
     const float time = _lifespan * 1.1f; // add 10% extra time to account for incremental timer accumulation error
 
-    glm::vec3 velocity = _emitSpeed * (_emitOrientation * Z_AXIS);
-    glm::vec3 velocitySpread = _speedSpread * (_emitOrientation * Z_AXIS);
+    glm::vec3 velocity = _emitSpeed * (_emitOrientation * Vectors::UNIT_Z);
+    glm::vec3 velocitySpread = _speedSpread * (_emitOrientation * Vectors::UNIT_Z);
 
     glm::vec3 maxVelocity = glm::abs(velocity) + velocitySpread;
     glm::vec3 maxAccleration = glm::abs(_acceleration) + _accelerationSpread;
@@ -610,51 +584,50 @@ void ParticleEffectEntityItem::updateShapeType(ShapeType type) {
     }
 }
 
-void ParticleEffectEntityItem::updateRadius(quint32 index, float age) {
-    _particleRadiuses[index] = Interpolate::interpolate3Points(_radiusStarts[index], _radiusMiddles[index],
-        _radiusFinishes[index], age);
+void ParticleEffectEntityItem::updateRadius(Particle& particle, float age) {
+    particle.radius = Interpolate::interpolate3Points(particle.radiusStart, particle.radiusMiddle,
+                                                      particle.radiusFinish, age);
 }
 
-void ParticleEffectEntityItem::updateColor(quint32 index, float age) {
-    _particleColors[index].red = (int)Interpolate::interpolate3Points(_colorStarts[index].red, _colorMiddles[index].red,
-        _colorFinishes[index].red, age);
-    _particleColors[index].green = (int)Interpolate::interpolate3Points(_colorStarts[index].green, _colorMiddles[index].green,
-        _colorFinishes[index].green, age);
-    _particleColors[index].blue = (int)Interpolate::interpolate3Points(_colorStarts[index].blue, _colorMiddles[index].blue,
-        _colorFinishes[index].blue, age);
+void ParticleEffectEntityItem::updateColor(Particle& particle, float age) {
+    particle.color.red = (int)Interpolate::interpolate3Points(particle.colorStart.red, particle.colorMiddle.red,
+                                                              particle.colorFinish.red, age);
+    particle.color.green = (int)Interpolate::interpolate3Points(particle.colorStart.green, particle.colorMiddle.green,
+                                                                particle.colorFinish.green, age);
+    particle.color.blue = (int)Interpolate::interpolate3Points(particle.colorStart.blue, particle.colorMiddle.blue,
+                                                               particle.colorFinish.blue, age);
 }
 
-void ParticleEffectEntityItem::updateAlpha(quint32 index, float age) {
-    _particleAlphas[index] = Interpolate::interpolate3Points(_alphaStarts[index], _alphaMiddles[index], 
-        _alphaFinishes[index], age);
+void ParticleEffectEntityItem::updateAlpha(Particle& particle, float age) {
+    particle.alpha = Interpolate::interpolate3Points(particle.alphaStart, particle.alphaMiddle,
+                                                     particle.alphaFinish, age);
 }
 
-void ParticleEffectEntityItem::integrateParticle(quint32 index, float deltaTime) {
-    glm::vec3 accel = _particleAccelerations[index];
-    glm::vec3 atSquared = (0.5f * deltaTime * deltaTime) * accel;
-    glm::vec3 at = accel * deltaTime;
-    _particlePositions[index] += _particleVelocities[index] * deltaTime + atSquared;
-    _particleVelocities[index] += at;
+void ParticleEffectEntityItem::integrateParticle(Particle& particle, float deltaTime) {
+    glm::vec3 atSquared = (0.5f * deltaTime * deltaTime) * particle.acceleration;
+    glm::vec3 at = particle.acceleration * deltaTime;
+    particle.position += particle.velocity * deltaTime + atSquared;
+    particle.velocity += at;
 }
 
 void ParticleEffectEntityItem::stepSimulation(float deltaTime) {
     _particlesBounds.reset();
 
     // update particles between head and tail
-    for (quint32 i = _particleHeadIndex; i != _particleTailIndex; i = (i + 1) % _maxParticles) {
-        _particleLifetimes[i] += deltaTime;
+    for (Particle& particle : _particles) {
+        particle.lifetime += deltaTime;
 
         // if particle has died.
-        if (_particleLifetimes[i] >= _lifespan || _lifespan < EPSILON) {
+        if (particle.lifetime >= _lifespan || _lifespan < EPSILON) {
             // move head forward
-            _particleHeadIndex = (_particleHeadIndex + 1) % _maxParticles;
+            _particles.pop_front();
         } else {
-            float age = _particleLifetimes[i] / _lifespan;  // 0.0 .. 1.0
-            updateRadius(i, age);
-            updateColor(i, age);
-            updateAlpha(i, age);
-            integrateParticle(i, deltaTime);
-            _particlesBounds.addPoint(_particlePositions[i]);
+            float age = particle.lifetime / _lifespan;  // 0.0 .. 1.0
+            updateRadius(particle, age);
+            updateColor(particle, age);
+            updateAlpha(particle, age);
+            integrateParticle(particle, deltaTime);
+            _particlesBounds.addPoint(particle.position);
         }
     }
 
@@ -667,15 +640,22 @@ void ParticleEffectEntityItem::stepSimulation(float deltaTime) {
             timeLeftInFrame -= _timeUntilNextEmit;
             _timeUntilNextEmit = 1.0f / _emitRate;
 
+            // overflow! move head forward by one.
+            // because the case of head == tail indicates an empty array, not a full one.
+            // This can drop an existing older particle, but this is by design, newer particles are a higher priority.
+            if (_particles.size() >= _maxParticles) {
+                _particles.pop_front();
+            }
+            
             // emit a new particle at tail index.
-            quint32 i = _particleTailIndex;
-            _particleLifetimes[i] = 0.0f;
+            _particles.push_back(Particle());
+            auto particle = _particles.back();
 
             // Radius
             if (_radiusSpread == 0.0f) {
-                _radiusStarts[i] = getRadiusStart();
-                _radiusMiddles[i] =_particleRadius;
-                _radiusFinishes[i] = getRadiusFinish();
+                particle.radiusStart = getRadiusStart();
+                particle.radiusMiddle = _particleRadius;
+                particle.radiusFinish = getRadiusFinish();
             } else {
                 float spreadMultiplier;
                 if (_particleRadius > 0.0f) {
@@ -683,23 +663,21 @@ void ParticleEffectEntityItem::stepSimulation(float deltaTime) {
                 } else {
                     spreadMultiplier = 1.0f;
                 }
-                _radiusStarts[i] = 
-                    glm::clamp(spreadMultiplier * getRadiusStart(), MINIMUM_PARTICLE_RADIUS, MAXIMUM_PARTICLE_RADIUS);
-                _radiusMiddles[i] = 
-                    glm::clamp(spreadMultiplier * _particleRadius, MINIMUM_PARTICLE_RADIUS, MAXIMUM_PARTICLE_RADIUS);
-                _radiusFinishes[i] = 
-                    glm::clamp(spreadMultiplier * getRadiusFinish(), MINIMUM_PARTICLE_RADIUS, MAXIMUM_PARTICLE_RADIUS);
+                particle.radiusStart = glm::clamp(spreadMultiplier * getRadiusStart(),
+                                                  MINIMUM_PARTICLE_RADIUS, MAXIMUM_PARTICLE_RADIUS);
+                particle.radiusMiddle = glm::clamp(spreadMultiplier * _particleRadius,
+                                                   MINIMUM_PARTICLE_RADIUS, MAXIMUM_PARTICLE_RADIUS);
+                particle.radiusFinish = glm::clamp(spreadMultiplier * getRadiusFinish(),
+                                                   MINIMUM_PARTICLE_RADIUS, MAXIMUM_PARTICLE_RADIUS);
             }
-            updateRadius(i, 0.0f);
+            updateRadius(particle, 0.0f);
 
             // Position, velocity, and acceleration
             if (_polarStart == 0.0f && _polarFinish == 0.0f && _emitDimensions.z == 0.0f) {
                 // Emit along z-axis from position
-                _particlePositions[i] = getPosition();
-                _particleVelocities[i] = 
-                    (_emitSpeed + randFloatInRange(-1.0f, 1.0f) * _speedSpread) * (_emitOrientation * Z_AXIS);
-                _particleAccelerations[i] = _emitAcceleration + randFloatInRange(-1.0f, 1.0f) * _accelerationSpread;
-
+                particle.velocity = (_emitSpeed + randFloatInRange(-1.0f, 1.0f) * _speedSpread) * (_emitOrientation * Vectors::UNIT_Z);
+                particle.acceleration = _emitAcceleration + randFloatInRange(-1.0f, 1.0f) * _accelerationSpread;
+                
             } else {
                 // Emit around point or from ellipsoid
                 // - Distribute directions evenly around point
@@ -719,11 +697,9 @@ void ParticleEffectEntityItem::stepSimulation(float deltaTime) {
 
                 glm::vec3 emitDirection;
 
-                if (_emitDimensions == glm::vec3()) {
+                if (_emitDimensions == Vectors::ZERO) {
                     // Point
-                    emitDirection = glm::quat(glm::vec3(PI_OVER_TWO - elevation, 0.0f, azimuth)) * Z_AXIS;
-
-                    _particlePositions[i] = getPosition();
+                    emitDirection = glm::quat(glm::vec3(PI_OVER_TWO - elevation, 0.0f, azimuth)) * Vectors::UNIT_Z;
                 } else {
                     // Ellipsoid
                     float radiusScale = 1.0f;
@@ -745,69 +721,59 @@ void ParticleEffectEntityItem::stepSimulation(float deltaTime) {
                         radiuses.z > 0.0f ? z / (radiuses.z * radiuses.z) : 0.0f
                         ));
 
-                    _particlePositions[i] = getPosition() + _emitOrientation * emitPosition;
+                    particle.position = _emitOrientation * emitPosition;
                 }
 
-                _particleVelocities[i] =
-                    (_emitSpeed + randFloatInRange(-1.0f, 1.0f) * _speedSpread) * (_emitOrientation * emitDirection);
-                _particleAccelerations[i] = _emitAcceleration + randFloatInRange(-1.0f, 1.0f) * _accelerationSpread;
+                particle.velocity = (_emitSpeed + randFloatInRange(-1.0f, 1.0f) * _speedSpread) * (_emitOrientation * emitDirection);
+                particle.acceleration = _emitAcceleration + randFloatInRange(-1.0f, 1.0f) * _accelerationSpread;
             }
-            integrateParticle(i, timeLeftInFrame);
-            _particlesBounds.addPoint(_particlePositions[i]);
+            integrateParticle(particle, timeLeftInFrame);
+            _particlesBounds.addPoint(particle.position);
 
             // Color
             if (_colorSpread == xColor{ 0, 0, 0 }) {
-                _colorStarts[i] = getColorStart();
-                _colorMiddles[i] = getXColor();
-                _colorFinishes[i] = getColorFinish();
+                particle.colorStart = getColorStart();
+                particle.colorMiddle = getXColor();
+                particle.colorFinish = getColorFinish();
             } else {
                 xColor startColor = getColorStart();
                 xColor middleColor = getXColor();
                 xColor finishColor = getColorFinish();
 
                 float spread = randFloatInRange(-1.0f, 1.0f);
-                float spreadMultiplierRed = 
+                float spreadMultiplierRed =
                     middleColor.red > 0 ? 1.0f + spread * (float)_colorSpread.red / (float)middleColor.red : 1.0f;
                 float spreadMultiplierGreen = 
                     middleColor.green > 0 ? 1.0f + spread * (float)_colorSpread.green / (float)middleColor.green : 1.0f;
                 float spreadMultiplierBlue = 
                     middleColor.blue > 0 ? 1.0f + spread * (float)_colorSpread.blue / (float)middleColor.blue : 1.0f;
 
-                _colorStarts[i].red = (int)glm::clamp(spreadMultiplierRed * (float)startColor.red, 0.0f, 255.0f);
-                _colorStarts[i].green = (int)glm::clamp(spreadMultiplierGreen * (float)startColor.green, 0.0f, 255.0f);
-                _colorStarts[i].blue = (int)glm::clamp(spreadMultiplierBlue * (float)startColor.blue, 0.0f, 255.0f);
+                particle.colorStart.red = (int)glm::clamp(spreadMultiplierRed * (float)startColor.red, 0.0f, 255.0f);
+                particle.colorStart.green = (int)glm::clamp(spreadMultiplierGreen * (float)startColor.green, 0.0f, 255.0f);
+                particle.colorStart.blue = (int)glm::clamp(spreadMultiplierBlue * (float)startColor.blue, 0.0f, 255.0f);
 
-                _colorMiddles[i].red = (int)glm::clamp(spreadMultiplierRed * (float)middleColor.red, 0.0f, 255.0f);
-                _colorMiddles[i].green = (int)glm::clamp(spreadMultiplierGreen * (float)middleColor.green, 0.0f, 255.0f);
-                _colorMiddles[i].blue = (int)glm::clamp(spreadMultiplierBlue * (float)middleColor.blue, 0.0f, 255.0f);
+                particle.colorMiddle.red = (int)glm::clamp(spreadMultiplierRed * (float)middleColor.red, 0.0f, 255.0f);
+                particle.colorMiddle.green = (int)glm::clamp(spreadMultiplierGreen * (float)middleColor.green, 0.0f, 255.0f);
+                particle.colorMiddle.blue = (int)glm::clamp(spreadMultiplierBlue * (float)middleColor.blue, 0.0f, 255.0f);
 
-                _colorFinishes[i].red = (int)glm::clamp(spreadMultiplierRed * (float)finishColor.red, 0.0f, 255.0f);
-                _colorFinishes[i].green = (int)glm::clamp(spreadMultiplierGreen * (float)finishColor.green, 0.0f, 255.0f);
-                _colorFinishes[i].blue = (int)glm::clamp(spreadMultiplierBlue * (float)finishColor.blue, 0.0f, 255.0f);
+                particle.colorFinish.red = (int)glm::clamp(spreadMultiplierRed * (float)finishColor.red, 0.0f, 255.0f);
+                particle.colorFinish.green = (int)glm::clamp(spreadMultiplierGreen * (float)finishColor.green, 0.0f, 255.0f);
+                particle.colorFinish.blue = (int)glm::clamp(spreadMultiplierBlue * (float)finishColor.blue, 0.0f, 255.0f);
             }
-            updateColor(i, 0.0f);
+            updateColor(particle, 0.0f);
 
             // Alpha
             if (_alphaSpread == 0.0f) {
-                _alphaStarts[i] = getAlphaStart();
-                _alphaMiddles[i] = _alpha;
-                _alphaFinishes[i] = getAlphaFinish();
+                particle.alphaStart = getAlphaStart();
+                particle.alphaMiddle = _alpha;
+                particle.alphaFinish = getAlphaFinish();
             } else {
                 float spreadMultiplier = 1.0f + randFloatInRange(-1.0f, 1.0f) * _alphaSpread / _alpha;
-                _alphaStarts[i] = spreadMultiplier * getAlphaStart();
-                _alphaMiddles[i] = spreadMultiplier * _alpha;
-                _alphaFinishes[i] = spreadMultiplier * getAlphaFinish();
+                particle.alphaStart = spreadMultiplier * getAlphaStart();
+                particle.alphaMiddle = spreadMultiplier * _alpha;
+                particle.alphaFinish = spreadMultiplier * getAlphaFinish();
             }
-            updateAlpha(i, 0.0f);
-
-            _particleTailIndex = (_particleTailIndex + 1) % _maxParticles;
-
-            // overflow! move head forward by one.
-            // because the case of head == tail indicates an empty array, not a full one.
-            // This can drop an existing older particle, but this is by design, newer particles are a higher priority.
-            if (_particleTailIndex == _particleHeadIndex) {
-                _particleHeadIndex = (_particleHeadIndex + 1) % _maxParticles;
-            }
+            updateAlpha(particle, 0.0f);
         }
 
         _timeUntilNextEmit -= timeLeftInFrame;
@@ -818,37 +784,17 @@ void ParticleEffectEntityItem::setMaxParticles(quint32 maxParticles) {
     if (_maxParticles != maxParticles && MINIMUM_MAX_PARTICLES <= maxParticles && maxParticles <= MAXIMUM_MAX_PARTICLES) {
         _maxParticles = maxParticles;
 
-        // TODO: try to do something smart here and preserve the state of existing particles.
-
-        // resize vectors
-        _particleLifetimes.resize(_maxParticles);
-        _particlePositions.resize(_maxParticles);
-        _particleVelocities.resize(_maxParticles);
-        _particleRadiuses.resize(_maxParticles);
-        _radiusStarts.resize(_maxParticles);
-        _radiusMiddles.resize(_maxParticles);
-        _radiusFinishes.resize(_maxParticles);
-        _particleColors.resize(_maxParticles);
-        _colorStarts.resize(_maxParticles);
-        _colorMiddles.resize(_maxParticles);
-        _colorFinishes.resize(_maxParticles);
-        _particleAlphas.resize(_maxParticles);
-        _alphaStarts.resize(_maxParticles);
-        _alphaMiddles.resize(_maxParticles);
-        _alphaFinishes.resize(_maxParticles);
+        // Pop all the overflowing oldest particles
+        while (_particles.size() > _maxParticles) {
+            _particles.pop_front();
+        }
 
         // effectively clear all particles and start emitting new ones from scratch.
-        _particleHeadIndex = 0;
-        _particleTailIndex = 0;
         _timeUntilNextEmit = 0.0f;
     }
 }
 
 // because particles are in a ring buffer, this isn't trivial
 quint32 ParticleEffectEntityItem::getLivingParticleCount() const {
-    if (_particleTailIndex >= _particleHeadIndex) {
-        return _particleTailIndex - _particleHeadIndex;
-    } else {
-        return (_maxParticles - _particleHeadIndex) + _particleTailIndex;
-    }
+    return _particles.size();
 }
