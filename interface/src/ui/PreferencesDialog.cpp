@@ -16,7 +16,6 @@
 #include <avatar/AvatarManager.h>
 #include <devices/DdeFaceTracker.h>
 #include <devices/Faceshift.h>
-#include <input-plugins/SixenseManager.h> // TODO: This should be replaced with InputDevice/InputPlugin, or something similar
 #include <NetworkingConstants.h>
 
 #include "Application.h"
