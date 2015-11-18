@@ -46,7 +46,15 @@ var bow = Entities.addEntity({
     script: SCRIPT_URL,
     userData: JSON.stringify({
         grabbableKey: {
-            invertSolidWhileHeld: true
+            invertSolidWhileHeld: true,
+            spatialKey: {
+                relativePosition: {
+                    x: 0,
+                    y: 0.1,
+                    z: 0
+                },
+                relativeRotation: Quat.fromPitchYawRollDegrees(0, -90, 90)
+            }
         }
     })
 });
