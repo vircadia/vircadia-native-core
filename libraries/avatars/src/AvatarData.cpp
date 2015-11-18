@@ -33,7 +33,6 @@
 #include <StreamUtils.h>
 #include <UUID.h>
 #include <shared/JSONHelpers.h>
-#include <recording/Frame.h>
 
 #include "AvatarLogging.h"
 
