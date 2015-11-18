@@ -164,6 +164,8 @@ public:
 
     bool getModelOffset(glm::vec3& modelOffsetOut) const;
 
+    const glm::vec3& getEyesInRootFrame() const { return _eyesInRootFrame; }
+
  protected:
     void updateAnimationStateHandlers();
     void applyOverridePoses();
@@ -173,6 +175,8 @@ public:
     void updateNeckJoint(int index, const HeadParameters& params);
     void updateEyeJoint(int index, const glm::vec3& modelTranslation, const glm::quat& modelRotation, const glm::quat& worldHeadOrientation, const glm::vec3& lookAt, const glm::vec3& saccade);
     void calcAnimAlpha(float speed, const std::vector<float>& referenceSpeeds, float* alphaOut) const;
+
+    void computeEyesInRootFrame(const AnimPoseVec& poses);
 
     // AJT: TODO: LEGACY
     QVector<JointState> _jointStates;
@@ -198,6 +202,7 @@ public:
     glm::vec3 _lastFront;
     glm::vec3 _lastPosition;
     glm::vec3 _lastVelocity;
+    glm::vec3 _eyesInRootFrame { Vectors::ZERO };
 
     std::shared_ptr<AnimNode> _animNode;
     std::shared_ptr<AnimSkeleton> _animSkeleton;

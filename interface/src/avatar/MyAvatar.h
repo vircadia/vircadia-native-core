@@ -159,8 +159,6 @@ public:
 
     eyeContactTarget getEyeContactTarget();
 
-    static void sendKillAvatar();
-
     Q_INVOKABLE glm::vec3 getTrackedHeadPosition() const { return _trackedHeadPosition; }
     Q_INVOKABLE glm::vec3 getHeadPosition() const { return getHead()->getPosition(); }
     Q_INVOKABLE float getHeadFinalYaw() const { return getHead()->getFinalYaw(); }
@@ -205,7 +203,7 @@ public:
 
     void prepareForPhysicsSimulation();
     void harvestResultsFromPhysicsSimulation();
-    void adjustSensorTransform(glm::vec3 hmdShift);
+    void adjustSensorTransform();
 
     const QString& getCollisionSoundURL() { return _collisionSoundURL; }
     void setCollisionSoundURL(const QString& url);
@@ -253,13 +251,6 @@ public slots:
     bool setModelReferential(const QUuid& id);
     bool setJointReferential(const QUuid& id, int jointIndex);
 
-    bool isRecording();
-    float recorderElapsed();
-    void startRecording();
-    void stopRecording();
-    void saveRecording(const QString& filename);
-    void loadLastRecording();
-
     virtual void rebuildSkeletonBody() override;
 
     const QString& getAnimGraphUrl() const { return _animGraphUrl; }
@@ -305,9 +296,6 @@ private:
                         const glm::vec3& translation = glm::vec3(), const glm::quat& rotation = glm::quat(), float scale = 1.0f,
                         bool allowDuplicates = false, bool useSaved = true) override;
 
-    const recording::RecorderPointer getRecorder() const { return _recorder; }
-    const recording::DeckPointer getPlayer() const { return _player; }
-
     //void beginFollowingHMD();
     //bool shouldFollowHMD() const;
     //void followHMD(float deltaTime);
@@ -324,7 +312,7 @@ private:
     PalmData getActivePalmData(int palmIndex) const;
 
     // derive avatar body position and orientation from the current HMD Sensor location.
-    // results are in sensor space
+    // results are in HMD frame
     glm::mat4 deriveBodyFromHMDSensor() const;
 
     float _driveKeys[MAX_DRIVE_KEYS];
@@ -353,8 +341,6 @@ private:
     float _oculusYawOffset;
 
     eyeContactTarget _eyeContactTarget;
-
-    recording::RecorderPointer _recorder;
 
     glm::vec3 _trackedHeadPosition;
 
@@ -387,9 +373,10 @@ private:
 
     // used to transform any sensor into world space, including the _hmdSensorMat, or hand controllers.
     glm::mat4 _sensorToWorldMatrix;
-    glm::vec3 _hmdFollowOffset { Vectors::ZERO };
-    glm::vec3 _hmdFollowVelocity { Vectors::ZERO };
-    float _hmdFollowSpeed { 0.0f };
+
+    glm::vec3 _followVelocity { Vectors::ZERO };
+    float _followSpeed { 0.0f };
+    float _followOffsetDistance { 0.0f };
 
     bool _goToPending;
     glm::vec3 _goToPosition;
@@ -406,9 +393,6 @@ private:
     AudioListenerMode _audioListenerMode;
     glm::vec3 _customListenPosition;
     glm::quat _customListenOrientation;
-
-    bool _isFollowingHMD { false };
-    float _followHMDAlpha { 0.0f };
 
     AtRestDetector _hmdAtRestDetector;
     bool _lastIsMoving { false };

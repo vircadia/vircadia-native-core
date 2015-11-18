@@ -25,9 +25,14 @@ set(${EXTERNAL_NAME_UPPER}_INCLUDE_DIRS ${SOURCE_DIR}/headers CACHE TYPE INTERNA
 
 if (WIN32)
 
-  # FIXME need to account for different architectures 
-  set(${EXTERNAL_NAME_UPPER}_LIBRARIES ${SOURCE_DIR}/lib/win32/openvr_api.lib CACHE TYPE INTERNAL)
-  add_paths_to_fixup_libs(${SOURCE_DIR}/bin/win32)
+  # FIXME need to account for different architectures
+  if ("${CMAKE_SIZEOF_VOID_P}" EQUAL "8")
+    set(${EXTERNAL_NAME_UPPER}_LIBRARIES ${SOURCE_DIR}/lib/win64/openvr_api.lib CACHE TYPE INTERNAL)
+    add_paths_to_fixup_libs(${SOURCE_DIR}/bin/win64)
+  else()
+    set(${EXTERNAL_NAME_UPPER}_LIBRARIES ${SOURCE_DIR}/lib/win32/openvr_api.lib CACHE TYPE INTERNAL)
+    add_paths_to_fixup_libs(${SOURCE_DIR}/bin/win32)
+  endif()
 
 elseif(APPLE)
 
