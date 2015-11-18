@@ -953,7 +953,6 @@ bool OctreeServer::readConfiguration() {
 
     if (domainHandler.getSettingsObject().isEmpty()) {
         qDebug() << "Failed to retreive settings object from domain-server. Bailing on assignment.";
-        setFinished(true);
         return false;
     }
 
@@ -1086,12 +1085,16 @@ void OctreeServer::run() {
     auto nodeList = DependencyManager::get<NodeList>();
     nodeList->setOwnerType(getMyNodeType());
 
-
     // use common init to setup common timers and logging
     commonInit(getMyLoggingServerTargetName(), getMyNodeType());
+    
+    // we need to ask the DS about agents so we can ping/reply with them
+    nodeList->addNodeTypeToInterestSet(NodeType::Agent);
 
     // read the configuration from either the payload or the domain server configuration
     if (!readConfiguration()) {
+        qDebug() << "OctreeServer bailing on run since readConfiguration has failed.";
+        setFinished(true);
         return; // bailing on run, because readConfiguration failed
     }
 
@@ -1099,10 +1102,6 @@ void OctreeServer::run() {
 
     connect(nodeList.data(), SIGNAL(nodeAdded(SharedNodePointer)), SLOT(nodeAdded(SharedNodePointer)));
     connect(nodeList.data(), SIGNAL(nodeKilled(SharedNodePointer)), SLOT(nodeKilled(SharedNodePointer)));
-
-
-    // we need to ask the DS about agents so we can ping/reply with them
-    nodeList->addNodeTypeToInterestSet(NodeType::Agent);
 
 #ifndef WIN32
     setvbuf(stdout, NULL, _IOLBF, 0);
