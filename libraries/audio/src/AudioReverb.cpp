@@ -17,8 +17,8 @@
 
 #include <intrin.h>
 inline static int MULHI(int a, int b) {
-	long long c = __emul(a, b);
-	return ((int*)&c)[1];
+    long long c = __emul(a, b);
+    return ((int*)&c)[1];
 }
 #else
 
@@ -33,10 +33,10 @@ inline static int MULHI(int a, int b) {
 #define MIN(a,b)    (((a) < (b)) ? (a) : (b))
 #endif
 
-static const float M_PHI = 0.6180339887f;   // maximum allpass diffusion
+static const float PHI = 0.6180339887f; // maximum allpass diffusion
 
-static const double M_PI = 3.14159265358979323846;
-static const double M_SQRT2 = 1.41421356237309504880;
+static const double PI = 3.14159265358979323846;
+static const double SQRT2 = 1.41421356237309504880;
 
 static const double FIXQ31 = 2147483648.0;
 static const double FIXQ32 = 4294967296.0;
@@ -208,8 +208,8 @@ static void BQPeakBelowPi(double coef[5], double w0, double dbgain, double Q) {
     G = MAX(G, 1.001);
 
     // compute the Nyquist gain
-    wpi = w0 + 2.8 * (1.0 - w0/M_PI);   // minimax-like error
-    wpi = MIN(wpi, M_PI);
+    wpi = w0 + 2.8 * (1.0 - w0/PI); // minimax-like error
+    wpi = MIN(wpi, PI);
     G1 = analogPeak(w0, G, Q, wpi);
 
     G1sq = G1 * G1;
@@ -218,7 +218,7 @@ static void BQPeakBelowPi(double coef[5], double w0, double dbgain, double Q) {
 
     // compute the analog half-gain frequency
     temp = G + 2.0 * Qsq - sqrt(Gsq + 4.0 * Qsq * G);
-    wh = sqrt(temp) * w0 / (Q * M_SQRT2);
+    wh = sqrt(temp) * w0 / (Q * SQRT2);
 
     // prewarp freqs of w0 and wh
     w0 = tan(0.5 * w0);
@@ -305,8 +305,8 @@ static void BQPeakAbovePi(double coef[5], double w0, double dbgain, double Q) {
     G = MAX(G, 1.001);
 
     // compute the Nyquist gain
-    wpi = M_PI;
-    if (w0 < M_PI) {
+    wpi = PI;
+    if (w0 < PI) {
         G1 = G;                         // use the peak gain
     } else {
         G1 = analogPeak(w0, G, Q, wpi); // use Nyquist gain of analog response
@@ -317,7 +317,7 @@ static void BQPeakAbovePi(double coef[5], double w0, double dbgain, double Q) {
 
     // compute the analog half-gain frequency
     temp = G + 2.0 * Qsq - sqrt(Gsq + 4.0 * Qsq * G);
-    wh = sqrt(temp) * w0 / (Q * M_SQRT2);
+    wh = sqrt(temp) * w0 / (Q * SQRT2);
 
     // approximate wn and wd
     // use half-gain frequency as mapping
@@ -425,8 +425,8 @@ static void BQShelf(double coef[5], double w0, double dbgain, double resonance, 
     G = MAX(G, 1.001);
 
     // compute the Nyquist gain
-    wpi = w0 + 2.8 * (1.0 - w0/M_PI);   // minimax-like error
-    wpi = MIN(wpi, M_PI);
+    wpi = w0 + 2.8 * (1.0 - w0/PI); // minimax-like error
+    wpi = MIN(wpi, PI);
     G1 = analogShelf(w0, G, resonance, isHigh, wpi);
 
     // approximate wn and wd
@@ -513,10 +513,10 @@ static void BQFilter(double coef[5], double w0, int isHigh) {
 
     if (isHigh) {
 
-        w0 = MIN(w0, M_PI); // disallow w0 > pi for highpass
+        w0 = MIN(w0, PI);   // disallow w0 > pi for highpass
 
         // compute the Nyquist gain
-        wpi = M_PI;
+        wpi = PI;
         G1 = analogFilter(w0, isHigh, wpi);
 
         // approximate wn and wd
@@ -528,13 +528,13 @@ static void BQFilter(double coef[5], double w0, int isHigh) {
 
         // compute B and A
         B = 0.0;
-        A = M_SQRT2 * Wdsq / atan(wd);  // Qd = sqrt(0.5) * atan(wd)/wd;
+        A = SQRT2 * Wdsq / atan(wd);    // Qd = sqrt(0.5) * atan(wd)/wd;
 
     } else {
 
         // compute the Nyquist gain
-        wpi = w0 + 2.8 * (1.0 - w0/M_PI);   // minimax-like error
-        wpi = MIN(wpi, M_PI);
+        wpi = w0 + 2.8 * (1.0 - w0/PI); // minimax-like error
+        wpi = MIN(wpi, PI);
         G1 = analogFilter(w0, isHigh, wpi);
 
         // approximate wn and wd
@@ -653,7 +653,7 @@ public:
 
         // lowpass filter, -3dB @ freq
         double coef[5];
-        BQFilter(coef, M_PI * freq / (0.5 * sampleRate), 0);
+        BQFilter(coef, PI * freq / (0.5 * sampleRate), 0);
         _b0 = (float)coef[0];
         _b1 = (float)coef[1];
         _b2 = (float)coef[2];
@@ -661,7 +661,7 @@ public:
         _a2 = (float)coef[4];
 
         // DC-blocking filter, -3dB @ 10Hz
-        _alpha = (float)(1.0 - exp(-M_PI * 10.0 / (0.5 * sampleRate)));
+        _alpha = (float)(1.0 - exp(-PI * 10.0 / (0.5 * sampleRate)));
     }
 
     void process(float input0, float input1, float& output0, float& output1) {
@@ -809,9 +809,9 @@ public:
 
         // amplitude slightly less than 1.0
         _y0 = (int32_t)(0.000 * FIXQ31);
-        _y1 = (int32_t)(0.999 * cos(M_PI * freq / sampleRate) * FIXQ31);
+        _y1 = (int32_t)(0.999 * cos(PI * freq / sampleRate) * FIXQ31);
 
-        _k = (int32_t)(2.0 * sin(M_PI * freq / sampleRate) * FIXQ32);
+        _k = (int32_t)(2.0 * sin(PI * freq / sampleRate) * FIXQ32);
     }
 
     void setGain(int32_t gain) {
@@ -895,7 +895,7 @@ public:
         output = _output;
 
         // add modulation to delay
-        uint32_t offset = _delay + (mod >> MOD_FRACBITS);
+        int32_t offset = _delay + (mod >> MOD_FRACBITS);
         float frac = (mod & MOD_FRACMASK) * QMOD_TO_FLOAT;
 
         // 3rd-order Lagrange interpolation
@@ -985,8 +985,8 @@ public:
         freq1 = MIN(MAX(freq1, 1.0f), 24000.0f);
 
         double coefLo[3], coefHi[3];
-        PZShelf(coefLo, M_PI * freq0 / (0.5 * sampleRate), dBgain0, 0); // low shelf
-        PZShelf(coefHi, M_PI * freq1 / (0.5 * sampleRate), dBgain1, 1); // high shelf
+        PZShelf(coefLo, PI * freq0 / (0.5 * sampleRate), dBgain0, 0);   // low shelf
+        PZShelf(coefHi, PI * freq1 / (0.5 * sampleRate), dBgain1, 1);   // high shelf
 
         // convolve into a single biquad
         _b0 = (float)(coefLo[0] * coefHi[0]);
@@ -1374,7 +1374,7 @@ static const float diffusionCoefTable[][2] = {
    60.0000f, 0.2344f,
    73.3333f, 0.3125f,
    93.3333f, 0.5000f,
-  100.0000f, M_PHI,
+  100.0000f, PHI,
 };
 
 static const float roomSizeTable[][2] = {
@@ -1552,13 +1552,13 @@ void ReverbImpl::setParameters(ReverbParameters *p) {
     _ap8.setCoef(lateDiffusionCoef);
     _ap9.setCoef(lateDiffusionCoef);
 
-    _ap10.setCoef(M_PHI);
-    _ap11.setCoef(M_PHI);
+    _ap10.setCoef(PHI);
+    _ap11.setCoef(PHI);
     _ap12.setCoef(lateDiffusionCoef);
     _ap13.setCoef(lateDiffusionCoef);
 
-    _ap14.setCoef(M_PHI);
-    _ap15.setCoef(M_PHI);
+    _ap14.setCoef(PHI);
+    _ap15.setCoef(PHI);
     _ap16.setCoef(lateDiffusionCoef);
     _ap17.setCoef(lateDiffusionCoef);
 
