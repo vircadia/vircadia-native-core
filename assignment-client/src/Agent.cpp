@@ -105,7 +105,6 @@ void Agent::handleAudioPacket(QSharedPointer<NLPacket> packet) {
 }
 
 const QString AGENT_LOGGING_NAME = "agent";
-const int PING_INTERVAL = 1000;
 
 void Agent::run() {
     ThreadedAssignment::commonInit(AGENT_LOGGING_NAME, NodeType::Agent);
@@ -126,10 +125,6 @@ void Agent::run() {
                                                  << NodeType::EntityServer
                                                  << NodeType::MessagesMixer
                                                 );
-
-    _pingTimer = new QTimer(this);
-    connect(_pingTimer, SIGNAL(timeout()), SLOT(sendPingRequests()));
-    _pingTimer->start(PING_INTERVAL);
 
     // figure out the URL for the script for this agent assignment
     QUrl scriptURL;
@@ -383,28 +378,6 @@ void Agent::aboutToFinish() {
         _scriptEngine->stop();
     }
 
-    if (_pingTimer) {
-        _pingTimer->stop();
-        delete _pingTimer;
-    }
-
     // our entity tree is going to go away so tell that to the EntityScriptingInterface
     DependencyManager::get<EntityScriptingInterface>()->setEntityTree(NULL);
-}
-
-void Agent::sendPingRequests() {
-    auto nodeList = DependencyManager::get<NodeList>();
-
-    nodeList->eachMatchingNode([](const SharedNodePointer& node)->bool {
-        switch (node->getType()) {
-        case NodeType::AvatarMixer:
-        case NodeType::AudioMixer:
-        case NodeType::EntityServer:
-            return true;
-        default:
-            return false;
-        }
-    }, [nodeList](const SharedNodePointer& node) {
-        nodeList->sendPacket(nodeList->constructPingPacket(), *node);
-    });
 }
