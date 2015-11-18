@@ -163,6 +163,7 @@ function sendCommand(id, action) {
     if(subscribed){
         Messages.sendMessage(channel, JSON.stringify(message));
         print("Message sent!");
+        clip_url = null;
     }
 }
 

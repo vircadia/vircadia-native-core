@@ -60,6 +60,8 @@ function getAction(channel, message, senderID) {
             // Checking the id we can assign the correct url to the correct agent.
             
             action = command.action_key;
+            print("That command was for me!");
+            print("My clip is: " + clip_url);
         } else {
             action = DO_NOTHING;
         } 
