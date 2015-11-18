@@ -24,6 +24,8 @@
 
         equip: function() {
             this.equipped = true;
+            print("EQUIP")
+
         },
         unequip: function() {
             this.equipped = true;
@@ -36,5 +38,6 @@
     };
 
     // entity scripts always need to return a newly constructed object of our type
+    print("TOOOss")
     return new Pistol();
 });
