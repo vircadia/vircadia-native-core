@@ -12,6 +12,8 @@
 #ifndef hifi_AudioInjector_h
 #define hifi_AudioInjector_h
 
+#include <memory>
+
 #include <QtCore/QElapsedTimer>
 #include <QtCore/QObject>
 #include <QtCore/QSharedPointer>
