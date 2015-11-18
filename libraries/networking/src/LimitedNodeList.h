@@ -228,7 +228,6 @@ public slots:
 
     void startSTUNPublicSocketUpdate();
     virtual void sendSTUNRequest();
-    void sendPingPackets();
 
     bool killNodeWithUUID(const QUuid& nodeUUID);
 

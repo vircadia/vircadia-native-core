@@ -128,30 +128,7 @@ void MessagesMixer::run() {
 
     auto nodeList = DependencyManager::get<NodeList>();
     nodeList->addNodeTypeToInterestSet(NodeType::Agent);
-
-    // wait until we have the domain-server settings, otherwise we bail
-    DomainHandler& domainHandler = nodeList->getDomainHandler();
-
-    qDebug() << "Waiting for domain settings from domain-server.";
-
-    // block until we get the settingsRequestComplete signal
-    QEventLoop loop;
-    connect(&domainHandler, &DomainHandler::settingsReceived, &loop, &QEventLoop::quit);
-    connect(&domainHandler, &DomainHandler::settingsReceiveFail, &loop, &QEventLoop::quit);
-    domainHandler.requestDomainSettings();
-    loop.exec();
-
-    if (domainHandler.getSettingsObject().isEmpty()) {
-        qDebug() << "Failed to retreive settings object from domain-server. Bailing on assignment.";
-        setFinished(true);
-        return;
-    }
-
-    // parse the settings to pull out the values we need
-    parseDomainServerSettings(domainHandler.getSettingsObject());
-}
-
-void MessagesMixer::parseDomainServerSettings(const QJsonObject& domainSettings) {
-    // TODO - if we want options, parse them here...
-    const QString MESSAGES_MIXER_SETTINGS_KEY = "messages_mixer";
+    
+    // The messages-mixer currently does currently have any domain settings. If it did, they would be
+    // synchronously grabbed here.
 }

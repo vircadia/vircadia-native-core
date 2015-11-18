@@ -34,17 +34,26 @@ if (UNIX)
 endif ()
 
 if (WIN32)
-  # http://www.slproweb.com/products/Win32OpenSSL.html
-  set(_OPENSSL_ROOT_HINTS ${OPENSSL_ROOT_DIR} $ENV{OPENSSL_ROOT_DIR} $ENV{HIFI_LIB_DIR}/openssl
-    "[HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\OpenSSL (32-bit)_is1;Inno Setup: App Path]"
-    "[HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\OpenSSL (64-bit)_is1;Inno Setup: App Path]"
-  )
+
   file(TO_CMAKE_PATH "$ENV{PROGRAMFILES}" _programfiles)
-  set(_OPENSSL_ROOT_PATHS "${_programfiles}/OpenSSL" "${_programfiles}/OpenSSL-Win32" "${_programfiles}/OpenSSL-Win64"
-    "C:/OpenSSL/" "C:/OpenSSL-Win32/" "C:/OpenSSL-Win64/"
-  )
+
+  if ("${CMAKE_SIZEOF_VOID_P}" EQUAL "8")
+    # http://www.slproweb.com/products/Win32OpenSSL.html
+    set(_OPENSSL_ROOT_HINTS ${OPENSSL_ROOT_DIR} $ENV{OPENSSL_ROOT_DIR} $ENV{HIFI_LIB_DIR}/openssl
+      "[HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\OpenSSL (64-bit)_is1;Inno Setup: App Path]"
+    )
+    set(_OPENSSL_ROOT_PATHS "${_programfiles}/OpenSSL" "${_programfiles}/OpenSSL-Win64" "C:/OpenSSL/" "C:/OpenSSL-Win64/")
+  else()
+    # http://www.slproweb.com/products/Win32OpenSSL.html
+    set(_OPENSSL_ROOT_HINTS ${OPENSSL_ROOT_DIR} $ENV{OPENSSL_ROOT_DIR} $ENV{HIFI_LIB_DIR}/openssl
+      "[HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\OpenSSL (32-bit)_is1;Inno Setup: App Path]"
+    )
+    set(_OPENSSL_ROOT_PATHS "${_programfiles}/OpenSSL" "${_programfiles}/OpenSSL-Win32" "C:/OpenSSL/" "C:/OpenSSL-Win32/")
+  endif()
+  
   unset(_programfiles)
   set(_OPENSSL_ROOT_HINTS_AND_PATHS HINTS ${_OPENSSL_ROOT_HINTS} PATHS ${_OPENSSL_ROOT_PATHS})
+  
 else ()
   include("${MACRO_DIR}/HifiLibrarySearchHints.cmake")
   hifi_library_search_hints("openssl")
