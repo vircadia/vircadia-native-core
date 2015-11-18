@@ -89,4 +89,6 @@ typedef std::shared_ptr<EntityActionInterface> EntityActionPointer;
 QDataStream& operator<<(QDataStream& stream, const EntityActionType& entityActionType);
 QDataStream& operator>>(QDataStream& stream, EntityActionType& entityActionType);
 
+QString serializedActionsToDebugString(QByteArray data);
+
 #endif // hifi_EntityActionInterface_h

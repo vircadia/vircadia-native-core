@@ -307,6 +307,7 @@ public:
 
     QString getName() const { return _name; }
     void setName(const QString& value) { _name = value; }
+    QString getDebugName() { return _name != "" ? _name : getID().toString(); }
 
     bool getVisible() const { return _visible; }
     void setVisible(bool value) { _visible = value; }
@@ -381,6 +382,7 @@ public:
     void setPhysicsInfo(void* data) { _physicsInfo = data; }
     EntityTreeElementPointer getElement() const { return _element; }
     EntityTreePointer getTree() const;
+    bool wantTerseEditLogging();
 
     static void setSendPhysicsUpdates(bool value) { _sendPhysicsUpdates = value; }
     static bool getSendPhysicsUpdates() { return _sendPhysicsUpdates; }
@@ -406,7 +408,13 @@ public:
     QList<QUuid> getActionIDs() { return _objectActions.keys(); }
     QVariantMap getActionArguments(const QUuid& actionID) const;
     void deserializeActions();
+
     void setActionDataDirty(bool value) const { _actionDataDirty = value; }
+    bool actionDataDirty() const { return _actionDataDirty; }
+
+    void setActionDataNeedsTransmit(bool value) const { _actionDataNeedsTransmit = value; }
+    bool actionDataNeedsTransmit() const { return _actionDataNeedsTransmit; }
+
     bool shouldSuppressLocationEdits() const;
 
     void setSourceUUID(const QUuid& sourceUUID) { _sourceUUID = sourceUUID; }
@@ -439,7 +447,7 @@ protected:
     mutable bool _recalcAABox = true;
     mutable bool _recalcMinAACube = true;
     mutable bool _recalcMaxAACube = true;
-    
+
     float _glowLevel;
     float _localRenderAlpha;
     float _density = ENTITY_ITEM_DEFAULT_DENSITY; // kg/m^3
@@ -510,6 +518,7 @@ protected:
     void checkWaitingToRemove(EntitySimulation* simulation = nullptr);
     mutable QSet<QUuid> _actionsToRemove;
     mutable bool _actionDataDirty = false;
+    mutable bool _actionDataNeedsTransmit = false;
     // _previouslyDeletedActions is used to avoid an action being re-added due to server round-trip lag
     static quint64 _rememberDeletedActionTime;
     mutable QHash<QUuid, quint64> _previouslyDeletedActions;

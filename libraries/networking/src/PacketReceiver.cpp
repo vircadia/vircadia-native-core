@@ -97,7 +97,7 @@ void PacketReceiver::registerDirectListenerForTypes(PacketTypeList types,
 bool PacketReceiver::registerMessageListener(PacketType type, QObject* listener, const char* slot) {
     Q_ASSERT_X(listener, "PacketReceiver::registerMessageListener", "No object to register");
     Q_ASSERT_X(slot, "PacketReceiver::registerMessageListener", "No slot to register");
-    
+
     QMetaMethod matchingMethod = matchingMethodForListener(type, listener, slot);
 
     if (matchingMethod.isValid()) {
@@ -110,8 +110,12 @@ bool PacketReceiver::registerMessageListener(PacketType type, QObject* listener,
 
         // add the mapping
         _packetListListenerMap[type] = ObjectMethodPair(QPointer<QObject>(listener), matchingMethod);
+
+        qCDebug(networking) << "Registering a packet listener for packet list type" << type;
+
         return true;
     } else {
+        qCWarning(networking) << "FAILED to Register a packet listener for packet list type" << type;
         return false;
     }
 }
@@ -352,7 +356,7 @@ void PacketReceiver::handleVerifiedPacketList(std::unique_ptr<udt::PacketList> p
         }
         
     } else if (it == _packetListListenerMap.end()) {
-        qCWarning(networking) << "No listener found for packet type" << nlPacketList->getType();
+        qCWarning(networking) << "No listener found for packet list type" << nlPacketList->getType();
         
         // insert a dummy listener so we don't print this again
         _packetListListenerMap.insert(nlPacketList->getType(), { nullptr, QMetaMethod() });

@@ -24,13 +24,12 @@ public:
     using Pointer = std::shared_ptr<WrapperClip>;
 
     WrapperClip(const Clip::Pointer& wrappedClip);
-    virtual ~WrapperClip();
 
-    virtual Time duration() const override;
+    virtual float duration() const override;
     virtual size_t frameCount() const override;
 
-    virtual void seek(Time offset) override;
-    virtual Time position() const override;
+    virtual void seekFrameTime(Frame::Time offset) override;
+    virtual Frame::Time positionFrameTime() const override;
 
     virtual FrameConstPointer peekFrame() const override;
     virtual FrameConstPointer nextFrame() override;

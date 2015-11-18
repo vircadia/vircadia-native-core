@@ -304,3 +304,24 @@ QDataStream& operator>>(QDataStream& stream, EntityActionType& entityActionType)
     entityActionType = (EntityActionType)actionTypeAsInt;
     return stream;
 }
+
+QString serializedActionsToDebugString(QByteArray data) {
+    if (data.size() == 0) {
+        return QString();
+    }
+    QVector<QByteArray> serializedActions;
+    QDataStream serializedActionsStream(data);
+    serializedActionsStream >> serializedActions;
+
+    QString result;
+    foreach(QByteArray serializedAction, serializedActions) {
+        QDataStream serializedActionStream(serializedAction);
+        EntityActionType actionType;
+        QUuid actionID;
+        serializedActionStream >> actionType;
+        serializedActionStream >> actionID;
+        result += EntityActionInterface::actionTypeToString(actionType) + "-" + actionID.toString() + " ";
+    }
+
+    return result;
+}
