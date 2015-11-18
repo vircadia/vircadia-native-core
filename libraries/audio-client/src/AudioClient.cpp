@@ -33,29 +33,6 @@
 #include <QtMultimedia/QAudioInput>
 #include <QtMultimedia/QAudioOutput>
 
-#if defined(__GNUC__) && !defined(__clang__)
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wdouble-promotion"
-#endif
-
-#ifdef WIN32
-#pragma warning (push)
-#pragma warning (disable: 4273 4305)
-#endif
-
-extern "C" {
-    #include <gverb/gverb.h>
-    #include <gverb/gverbdsp.h>
-}
-
-#ifdef WIN32
-#pragma warning (pop)
-#endif
-
-#if defined(__GNUC__) && !defined(__clang__)
-#pragma GCC diagnostic pop
-#endif
-
 #include <NodeList.h>
 #include <udt/PacketHeaders.h>
 #include <PositionalAudioStream.h>
@@ -119,7 +96,6 @@ AudioClient::AudioClient() :
     _audioSourceInjectEnabled(false),
     _reverb(false),
     _reverbOptions(&_scriptReverbOptions),
-    //_gverb(NULL),
     _inputToNetworkResampler(NULL),
     _networkToOutputResampler(NULL),
     _loopbackResampler(NULL),
@@ -144,8 +120,6 @@ AudioClient::AudioClient() :
     connect(updateTimer, &QTimer::timeout, this, &AudioClient::checkDevices);
     updateTimer->start(DEVICE_CHECK_INTERVAL_MSECS);
 
-    // create GVerb filter
-    //_gverb = createGverbFilter();
     configureReverb();
 
     auto& packetReceiver = DependencyManager::get<NodeList>()->getPacketReceiver();
@@ -159,10 +133,6 @@ AudioClient::AudioClient() :
 
 AudioClient::~AudioClient() {
     stop();
-
-    //if (_gverb) {
-    //    gverb_free(_gverb);
-    //}
 }
 
 void AudioClient::reset() {
@@ -172,8 +142,6 @@ void AudioClient::reset() {
     _toneSource.reset();
     _sourceGain.reset();
     _inputGain.reset();
-
-    //gverb_flush(_gverb);
     _stereoReverb.reset();
 }
 
@@ -569,29 +537,11 @@ bool AudioClient::switchOutputToAudioDevice(const QString& outputDeviceName) {
     return switchOutputToAudioDevice(getNamedAudioDeviceForMode(QAudio::AudioOutput, outputDeviceName));
 }
 
-//ty_gverb* AudioClient::createGverbFilter() {
-//    // Initialize a new gverb instance
-//    ty_gverb* filter = gverb_new(_outputFormat.sampleRate(), _reverbOptions->getMaxRoomSize(), _reverbOptions->getRoomSize(),
-//                                 _reverbOptions->getReverbTime(), _reverbOptions->getDamping(), _reverbOptions->getSpread(),
-//                                 _reverbOptions->getInputBandwidth(), _reverbOptions->getEarlyLevel(),
-//                                 _reverbOptions->getTailLevel());
-//
-//    return filter;
-//}
-
 void AudioClient::configureReverb() {
-    // Configure the instance (these functions are not super well named - they actually set several internal variables)
-    //gverb_set_roomsize(filter, _reverbOptions->getRoomSize());
-    //gverb_set_revtime(filter, _reverbOptions->getReverbTime());
-    //gverb_set_damping(filter, _reverbOptions->getDamping());
-    //gverb_set_inputbandwidth(filter, _reverbOptions->getInputBandwidth());
-    //gverb_set_earlylevel(filter, DB_CO(_reverbOptions->getEarlyLevel()));
-    //gverb_set_taillevel(filter, DB_CO(_reverbOptions->getTailLevel()));
-
     ReverbParameters p;
     _stereoReverb.getParameters(&p);
 
-    // for now, use the gverb settings
+    // for now, reuse the gverb parameters
     p.sampleRate = _outputFormat.sampleRate();
     p.roomSize = _reverbOptions->getRoomSize();
     p.reverbTime = _reverbOptions->getReverbTime();
@@ -599,7 +549,7 @@ void AudioClient::configureReverb() {
     p.bandwidth = 12000.0f * _reverbOptions->getInputBandwidth();
     //p.earlyGain = _reverbOptions->getEarlyLevel();
     //p.lateGain = _reverbOptions->getTailLevel();
-    p.wetDryMix = _shouldEchoLocally ? DB_CO(_reverbOptions->getWetLevel()) : 100.0f;  // !_shouldEchoLocally apparently means 100% wet?
+    p.wetDryMix = _shouldEchoLocally ? powf(10.0f, _reverbOptions->getWetLevel() * (1/20.0f)) : 100.0f;
 
     _stereoReverb.setParameters(&p);
 }
@@ -614,7 +564,6 @@ void AudioClient::updateReverbOptions() {
         }
         if (_zoneReverbOptions.getWetLevel() != _receivedAudioStream.getWetLevel()) {
             _zoneReverbOptions.setWetLevel(_receivedAudioStream.getWetLevel());
-            // Not part of actual filter config, no need to set reverbChanged to true
             reverbChanged = true;
         }
 
@@ -628,8 +577,6 @@ void AudioClient::updateReverbOptions() {
     }
 
     if (reverbChanged) {
-        //gverb_free(_gverb);
-        //_gverb = createGverbFilter();
         configureReverb();
     }
 }
@@ -638,7 +585,6 @@ void AudioClient::setReverb(bool reverb) {
     _reverb = reverb;
 
     if (!_reverb) {
-        //gverb_flush(_gverb);
         _stereoReverb.reset();
     }
 }
@@ -659,49 +605,9 @@ void AudioClient::setReverbOptions(const AudioEffectOptions* options) {
 
     if (_reverbOptions == &_scriptReverbOptions) {
         // Apply them to the reverb instances
-        //gverb_free(_gverb);
-        //_gverb = createGverbFilter();
         configureReverb();
     }
 }
-
-//void AudioClient::addReverb(ty_gverb* gverb, int16_t* samplesData, int16_t* reverbAlone, int numSamples,
-//                            QAudioFormat& audioFormat, bool noEcho) {
-//    float wetFraction = DB_CO(_reverbOptions->getWetLevel());
-//    float dryFraction = 1.0f - wetFraction;
-//
-//    float lValue,rValue;
-//    for (int sample = 0; sample < numSamples; sample += audioFormat.channelCount()) {
-//        // Run GVerb
-//        float value = (float)samplesData[sample];
-//        gverb_do(gverb, value, &lValue, &rValue);
-//
-//        // Mix, accounting for clipping, the left and right channels. Ignore the rest.
-//        for (int j = sample; j < sample + audioFormat.channelCount(); j++) {
-//            if (j == sample) {
-//                // left channel
-//                int lResult = glm::clamp((int)(samplesData[j] * dryFraction + lValue * wetFraction),
-//                                         AudioConstants::MIN_SAMPLE_VALUE, AudioConstants::MAX_SAMPLE_VALUE);
-//                samplesData[j] = (int16_t)lResult;
-//
-//                if (noEcho) {
-//                    reverbAlone[j] = (int16_t)lValue * wetFraction;
-//                }
-//            } else if (j == (sample + 1)) {
-//                // right channel
-//                int rResult = glm::clamp((int)(samplesData[j] * dryFraction + rValue * wetFraction),
-//                                         AudioConstants::MIN_SAMPLE_VALUE, AudioConstants::MAX_SAMPLE_VALUE);
-//                samplesData[j] = (int16_t)rResult;
-//
-//                if (noEcho) {
-//                    reverbAlone[j] = (int16_t)rValue * wetFraction;
-//                }
-//            } else {
-//                // ignore channels above 2
-//            }
-//        }
-//    }
-//}
 
 void AudioClient::handleLocalEchoAndReverb(QByteArray& inputByteArray) {
     // If there is server echo, reverb will be applied to the recieved audio stream so no need to have it here.
@@ -733,29 +639,15 @@ void AudioClient::handleLocalEchoAndReverb(QByteArray& inputByteArray) {
         _loopbackResampler = new AudioSRC(_inputFormat.sampleRate(), _outputFormat.sampleRate(), channelCount);
     }
 
-    //static QByteArray reverbAlone;  // Intermediary for local reverb with no echo
     static QByteArray loopBackByteArray;
 
     int numInputSamples = inputByteArray.size() / sizeof(int16_t);
     int numLoopbackSamples = numDestinationSamplesRequired(_inputFormat, _outputFormat, numInputSamples);
 
-    //reverbAlone.resize(numInputSamples * sizeof(int16_t));
     loopBackByteArray.resize(numLoopbackSamples * sizeof(int16_t));
 
     int16_t* inputSamples = reinterpret_cast<int16_t*>(inputByteArray.data());
-    //int16_t* reverbAloneSamples = reinterpret_cast<int16_t*>(reverbAlone.data());
     int16_t* loopbackSamples = reinterpret_cast<int16_t*>(loopBackByteArray.data());
-
-    //if (hasReverb) {
-    //    updateGverbOptions();
-    //    addReverb(_gverb, inputSamples, reverbAloneSamples, numInputSamples,
-    //              _inputFormat, !_shouldEchoLocally);
-    //}
-
-    //possibleResampling(_loopbackResampler,
-    //                   (_shouldEchoLocally) ? inputSamples : reverbAloneSamples, loopbackSamples,
-    //                   numInputSamples, numLoopbackSamples,
-    //                   _inputFormat, _outputFormat);
 
     possibleResampling(_loopbackResampler,
                        inputSamples, loopbackSamples,

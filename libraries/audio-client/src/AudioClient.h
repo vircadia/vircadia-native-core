@@ -75,8 +75,6 @@ class QAudioInput;
 class QAudioOutput;
 class QIODevice;
 
-typedef struct ty_gverb ty_gverb;
-
 
 class NLPacket;
 
@@ -263,7 +261,6 @@ private:
     AudioEffectOptions _scriptReverbOptions;
     AudioEffectOptions _zoneReverbOptions;
     AudioEffectOptions* _reverbOptions;
-    //ty_gverb* _gverb;
     AudioReverb _stereoReverb { AudioConstants::SAMPLE_RATE };
 
     // possible streams needed for resample
@@ -272,10 +269,8 @@ private:
     AudioSRC* _loopbackResampler;
 
     // Adds Reverb
-    //ty_gverb* createGverbFilter();
     void configureReverb();
     void updateReverbOptions();
-    //void addReverb(ty_gverb* gverb, int16_t* samples, int16_t* reverbAlone, int numSamples, QAudioFormat& format, bool noEcho = false);
 
     void handleLocalEchoAndReverb(QByteArray& inputByteArray);
 
