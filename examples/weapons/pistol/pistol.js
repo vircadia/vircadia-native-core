@@ -12,6 +12,7 @@
 
 
 (function() {
+
     var scriptURL = Script.resolvePath('pistol.js');
     var _this;
     Pistol = function() {
@@ -22,18 +23,52 @@
 
     Pistol.prototype = {
 
-        equip: function() {
+        startEquip: function(id, params) {
+            print("HAND ", params[0]);
             this.equipped = true;
-            print("EQUIP")
+            this.hand = JSON.parse(params[0]);
 
         },
         unequip: function() {
-            this.equipped = true;
+            print("UNEQUIP")
+            this.equipped = false;
         },
 
         preload: function(entityID) {
             this.entityID = entityID;
+            print("INIT CONTROLLER MAPIING")
+            this.initControllerMapping();
         },
+
+        triggerPress: function(hand, value) {
+            print("TRIGGER PRESS");
+            if (this.hand === hand && value === 1) {
+                //We are pulling trigger on the hand we have the gun in, so fire
+                this.fire();
+            }
+        },
+
+        fire: function() {
+            print("FIRE!");
+        },
+
+        initControllerMapping: function() {
+            this.mapping = Controller.newMapping();
+            this.mapping.from(Controller.Standard.LT).hysteresis(0.0, 0.5).to(function(value) {
+                _this.triggerPress(0, value);
+            });
+
+
+            this.mapping.from(Controller.Standard.RT).hysteresis(0.0, 0.5).to(function(value) {
+                _this.triggerPress(1, value);
+            });
+            this.mapping.enable();
+
+        },
+
+        unload: function() {
+            this.mapping.disable();
+        }
 
     };
 

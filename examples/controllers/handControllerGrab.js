@@ -773,7 +773,7 @@ function MyController(hand) {
                 this.setState(STATE_CONTINUE_NEAR_GRABBING);
             } else {
                 // equipping
-                Entities.callEntityMethod(this.grabbedEntity, "equip", [JSON.stringify(this.hand)]);
+                Entities.callEntityMethod(this.grabbedEntity, "startEquip", [JSON.stringify(this.hand)]);
                 this.setState(STATE_CONTINUE_EQUIP_BD);
             }
 
@@ -808,7 +808,7 @@ function MyController(hand) {
         }
         if (this.state == STATE_CONTINUE_NEAR_GRABBING && this.bumperSqueezed()) {
             this.setState(STATE_CONTINUE_EQUIP_BD);
-            Entities.callEntityMethod(this.grabbedEntity, "equip", [JSON.stringify(this.hand)]);
+            Entities.callEntityMethod(this.grabbedEntity, "startEquip", [JSON.stringify(this.hand)]);
             return;
         }
 
