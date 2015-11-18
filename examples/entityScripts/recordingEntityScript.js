@@ -13,9 +13,11 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 
 
+(function () {
 
+    HIFI_PUBLIC_BUCKET = "http://s3.amazonaws.com/hifi-public/";
+    Script.include(HIFI_PUBLIC_BUCKET + "scripts/libraries/utils.js");
 
-(function() {
     var insideRecorderArea = false;
     var enteredInTime = false;
     var isAvatarRecording = false;
@@ -25,51 +27,63 @@
         _this = this;
         return;
     }
-    
+
+    function update() {
+        var isRecordingStarted = getEntityCustomData("recordingKey", _this.entityID, { isRecordingStarted: false }).isRecordingStarted;
+        if (isRecordingStarted && !isAvatarRecording) {
+            _this.startRecording();
+        } else if ((!isRecordingStarted && isAvatarRecording) || (isAvatarRecording && !insideRecorderArea)) {
+            _this.stopRecording();
+        } else if (!isRecordingStarted && insideRecorderArea && !enteredInTime) {
+            //if an avatar enters the zone while a recording is started he will be able to participate to the next group recording
+            enteredInTime = true;
+        }
+    };
+
     recordingEntity.prototype = {
-        update: function(){
-            var userData = JSON.parse(Entities.getEntityProperties(_this.entityID, ["userData"]).userData);
-            var isRecordingStarted = userData.recordingKey.isRecordingStarted;
-            if(isRecordingStarted && !isAvatarRecording){
-                _this.startRecording();
-            }else if((!isRecordingStarted && isAvatarRecording) || (isAvatarRecording && !insideRecorderArea)){
-                _this.stopRecording();
-            }else if(!isRecordingStarted && insideRecorderArea && !enteredInTime){
-                //if an avatar enters the zone while a recording is started he will be able to participate to the next group recording
-                enteredInTime = true;
-            }
-            
-        },
-        preload: function(entityID) {
+
+        preload: function (entityID) {
+            print("RECORDING ENTITY PRELOAD");
             this.entityID = entityID;
-            Script.update.connect(_this.update);
+
+            var entityProperties = Entities.getEntityProperties(_this.entityID);
+            if (!entityProperties.ignoreForCollisions) {
+                Entities.editEntity(_this.entityID, { ignoreForCollisions: true });
+            }
+
+            //print(JSON.stringify(entityProperties));
+            var recordingKey = getEntityCustomData("recordingKey", _this.entityID, undefined);
+            if (recordingKey === undefined) {
+                setEntityCustomData("recordingKey", _this.entityID, { isRecordingStarted: false });
+            }
+
+            Script.update.connect(update);
         },
-        enterEntity: function(entityID) {       
+        enterEntity: function (entityID) {
             print("entering in the recording area");
             insideRecorderArea = true;
-            var userData = JSON.parse(Entities.getEntityProperties(_this.entityID, ["userData"]).userData);
-            var isRecordingStarted = userData.recordingKey.isRecordingStarted;
-            if(!isRecordingStarted){
+            var isRecordingStarted = getEntityCustomData("recordingKey", _this.entityID, { isRecordingStarted: false }).isRecordingStarted;
+            if (!isRecordingStarted) {
                 //i'm in the recording area in time (before the event starts)
                 enteredInTime = true;
             }
         },
-        leaveEntity: function(entityID) {      
+        leaveEntity: function (entityID) {
             print("leaving the recording area");
             insideRecorderArea = false;
             enteredInTime = false;
         },
-        
-        startRecording: function(entityID){
-            if(enteredInTime && !isAvatarRecording){
+
+        startRecording: function (entityID) {
+            if (enteredInTime && !isAvatarRecording) {
                 print("RECORDING STARTED");
                 Recording.startRecording();
                 isAvatarRecording = true;
             }
         },
-        
-        stopRecording: function(entityID){
-            if(isAvatarRecording){
+
+        stopRecording: function (entityID) {
+            if (isAvatarRecording) {
                 print("RECORDING ENDED");
                 Recording.stopRecording();
                 Recording.loadLastRecording();
@@ -80,12 +94,13 @@
                 }
             }
         },
-        clean: function(entityID) {
-            Script.update.disconnect(_this.update);
+        unload: function (entityID) {
+            print("RECORDING ENTITY UNLOAD");
+            Script.update.disconnect(update);
         }
     }
-    
-    
+
+
 
     return new recordingEntity();
 });
