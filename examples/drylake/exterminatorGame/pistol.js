@@ -154,7 +154,7 @@ function fire(side, value) {
     }
     Audio.playSound(fireSound, {
         position: barrelTips[side],
-        volume: 1.0
+        volume: 0.5
     });
 
     var shotDirection = Vec3.normalize(barrelVectors[side]);
