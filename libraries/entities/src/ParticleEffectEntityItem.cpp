@@ -610,6 +610,14 @@ void ParticleEffectEntityItem::integrateParticle(Particle& particle, float delta
     particle.velocity += at;
 }
 
+void ParticleEffectEntityItem::updateParticle(Particle& particle, float deltaTime) {
+    float age = particle.lifetime / _lifespan;  // 0.0 .. 1.0
+    updateRadius(particle, age);
+    updateColor(particle, age);
+    updateAlpha(particle, age);
+    integrateParticle(particle, deltaTime);
+}
+
 void ParticleEffectEntityItem::stepSimulation(float deltaTime) {
     _particlesBounds.reset();
 
@@ -622,11 +630,8 @@ void ParticleEffectEntityItem::stepSimulation(float deltaTime) {
             // move head forward
             _particles.pop_front();
         } else {
-            float age = particle.lifetime / _lifespan;  // 0.0 .. 1.0
-            updateRadius(particle, age);
-            updateColor(particle, age);
-            updateAlpha(particle, age);
-            integrateParticle(particle, deltaTime);
+            // Otherwise update it
+            updateParticle(particle, deltaTime);
             _particlesBounds.addPoint(particle.position);
         }
     }
@@ -636,10 +641,6 @@ void ParticleEffectEntityItem::stepSimulation(float deltaTime) {
 
         float timeLeftInFrame = deltaTime;
         while (_timeUntilNextEmit < timeLeftInFrame) {
-
-            timeLeftInFrame -= _timeUntilNextEmit;
-            _timeUntilNextEmit = 1.0f / _emitRate;
-
             // overflow! move head forward by one.
             // because the case of head == tail indicates an empty array, not a full one.
             // This can drop an existing older particle, but this is by design, newer particles are a higher priority.
@@ -648,136 +649,146 @@ void ParticleEffectEntityItem::stepSimulation(float deltaTime) {
             }
             
             // emit a new particle at tail index.
-            _particles.push_back(Particle());
+            _particles.push_back(createParticle());
             auto particle = _particles.back();
-
-            // Radius
-            if (_radiusSpread == 0.0f) {
-                particle.radiusStart = getRadiusStart();
-                particle.radiusMiddle = _particleRadius;
-                particle.radiusFinish = getRadiusFinish();
-            } else {
-                float spreadMultiplier;
-                if (_particleRadius > 0.0f) {
-                    spreadMultiplier = 1.0f + randFloatInRange(-1.0f, 1.0f) * _radiusSpread / _particleRadius;
-                } else {
-                    spreadMultiplier = 1.0f;
-                }
-                particle.radiusStart = glm::clamp(spreadMultiplier * getRadiusStart(),
-                                                  MINIMUM_PARTICLE_RADIUS, MAXIMUM_PARTICLE_RADIUS);
-                particle.radiusMiddle = glm::clamp(spreadMultiplier * _particleRadius,
-                                                   MINIMUM_PARTICLE_RADIUS, MAXIMUM_PARTICLE_RADIUS);
-                particle.radiusFinish = glm::clamp(spreadMultiplier * getRadiusFinish(),
-                                                   MINIMUM_PARTICLE_RADIUS, MAXIMUM_PARTICLE_RADIUS);
-            }
-            updateRadius(particle, 0.0f);
-
-            // Position, velocity, and acceleration
-            if (_polarStart == 0.0f && _polarFinish == 0.0f && _emitDimensions.z == 0.0f) {
-                // Emit along z-axis from position
-                particle.velocity = (_emitSpeed + randFloatInRange(-1.0f, 1.0f) * _speedSpread) * (_emitOrientation * Vectors::UNIT_Z);
-                particle.acceleration = _emitAcceleration + randFloatInRange(-1.0f, 1.0f) * _accelerationSpread;
-                
-            } else {
-                // Emit around point or from ellipsoid
-                // - Distribute directions evenly around point
-                // - Distribute points relatively evenly over ellipsoid surface
-                // - Distribute points relatively evenly within ellipsoid volume
-
-                float elevationMinZ = sin(PI_OVER_TWO - _polarFinish);
-                float elevationMaxZ = sin(PI_OVER_TWO - _polarStart);
-                float elevation = asin(elevationMinZ + (elevationMaxZ - elevationMinZ) * randFloat());
-
-                float azimuth;
-                if (_azimuthFinish >= _azimuthStart) {
-                    azimuth = _azimuthStart + (_azimuthFinish - _azimuthStart) * randFloat();
-                } else {
-                    azimuth = _azimuthStart + (TWO_PI + _azimuthFinish - _azimuthStart) * randFloat();
-                }
-
-                glm::vec3 emitDirection;
-
-                if (_emitDimensions == Vectors::ZERO) {
-                    // Point
-                    emitDirection = glm::quat(glm::vec3(PI_OVER_TWO - elevation, 0.0f, azimuth)) * Vectors::UNIT_Z;
-                } else {
-                    // Ellipsoid
-                    float radiusScale = 1.0f;
-                    if (_emitRadiusStart < 1.0f) {
-                        float emitRadiusStart = glm::max(_emitRadiusStart, EPSILON);  // Avoid math complications at center
-                        float randRadius = 
-                            emitRadiusStart + randFloatInRange(0.0f, MAXIMUM_EMIT_RADIUS_START - emitRadiusStart);
-                        radiusScale = 1.0f - std::pow(1.0f - randRadius, 3.0f);
-                    }
-
-                    glm::vec3 radiuses = radiusScale * 0.5f * _emitDimensions;
-                    float x = radiuses.x * glm::cos(elevation) * glm::cos(azimuth);
-                    float y = radiuses.y * glm::cos(elevation) * glm::sin(azimuth);
-                    float z = radiuses.z * glm::sin(elevation);
-                    glm::vec3 emitPosition = glm::vec3(x, y, z);
-                    emitDirection = glm::normalize(glm::vec3(
-                        radiuses.x > 0.0f ? x / (radiuses.x * radiuses.x) : 0.0f,
-                        radiuses.y > 0.0f ? y / (radiuses.y * radiuses.y) : 0.0f,
-                        radiuses.z > 0.0f ? z / (radiuses.z * radiuses.z) : 0.0f
-                        ));
-
-                    particle.position = _emitOrientation * emitPosition;
-                }
-
-                particle.velocity = (_emitSpeed + randFloatInRange(-1.0f, 1.0f) * _speedSpread) * (_emitOrientation * emitDirection);
-                particle.acceleration = _emitAcceleration + randFloatInRange(-1.0f, 1.0f) * _accelerationSpread;
-            }
-            integrateParticle(particle, timeLeftInFrame);
+            particle.lifetime += timeLeftInFrame;
+            
+            // Initialize it
+            updateParticle(particle, timeLeftInFrame);
             _particlesBounds.addPoint(particle.position);
-
-            // Color
-            if (_colorSpread == xColor{ 0, 0, 0 }) {
-                particle.colorStart = getColorStart();
-                particle.colorMiddle = getXColor();
-                particle.colorFinish = getColorFinish();
-            } else {
-                xColor startColor = getColorStart();
-                xColor middleColor = getXColor();
-                xColor finishColor = getColorFinish();
-
-                float spread = randFloatInRange(-1.0f, 1.0f);
-                float spreadMultiplierRed =
-                    middleColor.red > 0 ? 1.0f + spread * (float)_colorSpread.red / (float)middleColor.red : 1.0f;
-                float spreadMultiplierGreen = 
-                    middleColor.green > 0 ? 1.0f + spread * (float)_colorSpread.green / (float)middleColor.green : 1.0f;
-                float spreadMultiplierBlue = 
-                    middleColor.blue > 0 ? 1.0f + spread * (float)_colorSpread.blue / (float)middleColor.blue : 1.0f;
-
-                particle.colorStart.red = (int)glm::clamp(spreadMultiplierRed * (float)startColor.red, 0.0f, 255.0f);
-                particle.colorStart.green = (int)glm::clamp(spreadMultiplierGreen * (float)startColor.green, 0.0f, 255.0f);
-                particle.colorStart.blue = (int)glm::clamp(spreadMultiplierBlue * (float)startColor.blue, 0.0f, 255.0f);
-
-                particle.colorMiddle.red = (int)glm::clamp(spreadMultiplierRed * (float)middleColor.red, 0.0f, 255.0f);
-                particle.colorMiddle.green = (int)glm::clamp(spreadMultiplierGreen * (float)middleColor.green, 0.0f, 255.0f);
-                particle.colorMiddle.blue = (int)glm::clamp(spreadMultiplierBlue * (float)middleColor.blue, 0.0f, 255.0f);
-
-                particle.colorFinish.red = (int)glm::clamp(spreadMultiplierRed * (float)finishColor.red, 0.0f, 255.0f);
-                particle.colorFinish.green = (int)glm::clamp(spreadMultiplierGreen * (float)finishColor.green, 0.0f, 255.0f);
-                particle.colorFinish.blue = (int)glm::clamp(spreadMultiplierBlue * (float)finishColor.blue, 0.0f, 255.0f);
-            }
-            updateColor(particle, 0.0f);
-
-            // Alpha
-            if (_alphaSpread == 0.0f) {
-                particle.alphaStart = getAlphaStart();
-                particle.alphaMiddle = _alpha;
-                particle.alphaFinish = getAlphaFinish();
-            } else {
-                float spreadMultiplier = 1.0f + randFloatInRange(-1.0f, 1.0f) * _alphaSpread / _alpha;
-                particle.alphaStart = spreadMultiplier * getAlphaStart();
-                particle.alphaMiddle = spreadMultiplier * _alpha;
-                particle.alphaFinish = spreadMultiplier * getAlphaFinish();
-            }
-            updateAlpha(particle, 0.0f);
+            
+            // Advance in frame
+            timeLeftInFrame -= _timeUntilNextEmit;
+            _timeUntilNextEmit = 1.0f / _emitRate;
         }
 
         _timeUntilNextEmit -= timeLeftInFrame;
     }
+}
+
+ParticleEffectEntityItem::Particle ParticleEffectEntityItem::createParticle() {
+    Particle particle;
+    
+    // Radius
+    if (_radiusSpread == 0.0f) {
+        particle.radiusStart = getRadiusStart();
+        particle.radiusMiddle = _particleRadius;
+        particle.radiusFinish = getRadiusFinish();
+    } else {
+        float spreadMultiplier;
+        if (_particleRadius > 0.0f) {
+            spreadMultiplier = 1.0f + randFloatInRange(-1.0f, 1.0f) * _radiusSpread / _particleRadius;
+        } else {
+            spreadMultiplier = 1.0f;
+        }
+        particle.radiusStart = glm::clamp(spreadMultiplier * getRadiusStart(),
+                                          MINIMUM_PARTICLE_RADIUS, MAXIMUM_PARTICLE_RADIUS);
+        particle.radiusMiddle = glm::clamp(spreadMultiplier * _particleRadius,
+                                           MINIMUM_PARTICLE_RADIUS, MAXIMUM_PARTICLE_RADIUS);
+        particle.radiusFinish = glm::clamp(spreadMultiplier * getRadiusFinish(),
+                                           MINIMUM_PARTICLE_RADIUS, MAXIMUM_PARTICLE_RADIUS);
+    }
+    
+    // Position, velocity, and acceleration
+    if (_polarStart == 0.0f && _polarFinish == 0.0f && _emitDimensions.z == 0.0f) {
+        // Emit along z-axis from position
+        particle.velocity = (_emitSpeed + randFloatInRange(-1.0f, 1.0f) * _speedSpread) * (_emitOrientation * Vectors::UNIT_Z);
+        particle.acceleration = _emitAcceleration + randFloatInRange(-1.0f, 1.0f) * _accelerationSpread;
+        
+    } else {
+        // Emit around point or from ellipsoid
+        // - Distribute directions evenly around point
+        // - Distribute points relatively evenly over ellipsoid surface
+        // - Distribute points relatively evenly within ellipsoid volume
+        
+        float elevationMinZ = sin(PI_OVER_TWO - _polarFinish);
+        float elevationMaxZ = sin(PI_OVER_TWO - _polarStart);
+        float elevation = asin(elevationMinZ + (elevationMaxZ - elevationMinZ) * randFloat());
+        
+        float azimuth;
+        if (_azimuthFinish >= _azimuthStart) {
+            azimuth = _azimuthStart + (_azimuthFinish - _azimuthStart) * randFloat();
+        } else {
+            azimuth = _azimuthStart + (TWO_PI + _azimuthFinish - _azimuthStart) * randFloat();
+        }
+        
+        glm::vec3 emitDirection;
+        
+        if (_emitDimensions == Vectors::ZERO) {
+            // Point
+            emitDirection = glm::quat(glm::vec3(PI_OVER_TWO - elevation, 0.0f, azimuth)) * Vectors::UNIT_Z;
+        } else {
+            // Ellipsoid
+            float radiusScale = 1.0f;
+            if (_emitRadiusStart < 1.0f) {
+                float emitRadiusStart = glm::max(_emitRadiusStart, EPSILON);  // Avoid math complications at center
+                float randRadius =
+                emitRadiusStart + randFloatInRange(0.0f, MAXIMUM_EMIT_RADIUS_START - emitRadiusStart);
+                radiusScale = 1.0f - std::pow(1.0f - randRadius, 3.0f);
+            }
+            
+            glm::vec3 radiuses = radiusScale * 0.5f * _emitDimensions;
+            float x = radiuses.x * glm::cos(elevation) * glm::cos(azimuth);
+            float y = radiuses.y * glm::cos(elevation) * glm::sin(azimuth);
+            float z = radiuses.z * glm::sin(elevation);
+            glm::vec3 emitPosition = glm::vec3(x, y, z);
+            emitDirection = glm::normalize(glm::vec3(
+                                                     radiuses.x > 0.0f ? x / (radiuses.x * radiuses.x) : 0.0f,
+                                                     radiuses.y > 0.0f ? y / (radiuses.y * radiuses.y) : 0.0f,
+                                                     radiuses.z > 0.0f ? z / (radiuses.z * radiuses.z) : 0.0f
+                                                     ));
+            
+            particle.position = _emitOrientation * emitPosition;
+        }
+        
+        particle.velocity = (_emitSpeed + randFloatInRange(-1.0f, 1.0f) * _speedSpread) * (_emitOrientation * emitDirection);
+        particle.acceleration = _emitAcceleration + randFloatInRange(-1.0f, 1.0f) * _accelerationSpread;
+    }
+    
+    // Color
+    if (_colorSpread == xColor{ 0, 0, 0 }) {
+        particle.colorStart = getColorStart();
+        particle.colorMiddle = getXColor();
+        particle.colorFinish = getColorFinish();
+    } else {
+        xColor startColor = getColorStart();
+        xColor middleColor = getXColor();
+        xColor finishColor = getColorFinish();
+        
+        float spread = randFloatInRange(-1.0f, 1.0f);
+        float spreadMultiplierRed =
+        middleColor.red > 0 ? 1.0f + spread * (float)_colorSpread.red / (float)middleColor.red : 1.0f;
+        float spreadMultiplierGreen =
+        middleColor.green > 0 ? 1.0f + spread * (float)_colorSpread.green / (float)middleColor.green : 1.0f;
+        float spreadMultiplierBlue =
+        middleColor.blue > 0 ? 1.0f + spread * (float)_colorSpread.blue / (float)middleColor.blue : 1.0f;
+        
+        particle.colorStart.red = (int)glm::clamp(spreadMultiplierRed * (float)startColor.red, 0.0f, 255.0f);
+        particle.colorStart.green = (int)glm::clamp(spreadMultiplierGreen * (float)startColor.green, 0.0f, 255.0f);
+        particle.colorStart.blue = (int)glm::clamp(spreadMultiplierBlue * (float)startColor.blue, 0.0f, 255.0f);
+        
+        particle.colorMiddle.red = (int)glm::clamp(spreadMultiplierRed * (float)middleColor.red, 0.0f, 255.0f);
+        particle.colorMiddle.green = (int)glm::clamp(spreadMultiplierGreen * (float)middleColor.green, 0.0f, 255.0f);
+        particle.colorMiddle.blue = (int)glm::clamp(spreadMultiplierBlue * (float)middleColor.blue, 0.0f, 255.0f);
+        
+        particle.colorFinish.red = (int)glm::clamp(spreadMultiplierRed * (float)finishColor.red, 0.0f, 255.0f);
+        particle.colorFinish.green = (int)glm::clamp(spreadMultiplierGreen * (float)finishColor.green, 0.0f, 255.0f);
+        particle.colorFinish.blue = (int)glm::clamp(spreadMultiplierBlue * (float)finishColor.blue, 0.0f, 255.0f);
+    }
+    
+    // Alpha
+    if (_alphaSpread == 0.0f) {
+        particle.alphaStart = getAlphaStart();
+        particle.alphaMiddle = _alpha;
+        particle.alphaFinish = getAlphaFinish();
+    } else {
+        float spreadMultiplier = 1.0f + randFloatInRange(-1.0f, 1.0f) * _alphaSpread / _alpha;
+        particle.alphaStart = spreadMultiplier * getAlphaStart();
+        particle.alphaMiddle = spreadMultiplier * _alpha;
+        particle.alphaFinish = spreadMultiplier * getAlphaFinish();
+    }
+    
+    return particle;
 }
 
 void ParticleEffectEntityItem::setMaxParticles(quint32 maxParticles) {

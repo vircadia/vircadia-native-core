@@ -221,12 +221,16 @@ protected:
     using Particles = std::deque<Particle>;
 
     bool isAnimatingSomething() const;
+    quint32 getLivingParticleCount() const;
+    
+    Particle createParticle();
     void stepSimulation(float deltaTime);
+    void updateParticle(Particle& particle, float deltaTime);
+    
     void updateRadius(Particle& particle, float age);
     void updateColor(Particle& particle, float age);
     void updateAlpha(Particle& particle, float age);
     void integrateParticle(Particle& particle, float deltaTime);
-    quint32 getLivingParticleCount() const;
     
     struct Particle {
         float lifetime { 0.0f };
