@@ -530,10 +530,20 @@ SharedNodePointer LimitedNodeList::addOrUpdateNode(const QUuid& uuid, NodeType_t
         qCDebug(networking) << "Added" << *newNode;
 
         emit nodeAdded(newNodePointer);
+        if (newNodePointer->getActiveSocket()) {
+            emit nodeActivated(newNodePointer);
+        } else {
+            connect(newNodePointer.data(), &NetworkPeer::socketActivated, this, [=] {
+                emit nodeActivated(newNodePointer);
+                disconnect(newNodePointer.data(), &NetworkPeer::socketActivated, this, 0);
+            });
+        }
 
         return newNodePointer;
     }
 }
+
+
 
 std::unique_ptr<NLPacket> LimitedNodeList::constructPingPacket(PingType_t pingType) {
     int packetSize = sizeof(PingType_t) + sizeof(quint64);
