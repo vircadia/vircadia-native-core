@@ -127,36 +127,27 @@ void Stats::updateStats(bool force) {
     STAT_UPDATE_FLOAT(mbpsOut, (float)bandwidthRecorder->getCachedTotalAverageOutputKilobitsPerSecond() / 1000.0f, 0.01f);
 
     // Second column: ping
-    if (Menu::getInstance()->isOptionChecked(MenuOption::TestPing)) {
-        SharedNodePointer audioMixerNode = nodeList->soloNodeOfType(NodeType::AudioMixer);
-        SharedNodePointer avatarMixerNode = nodeList->soloNodeOfType(NodeType::AvatarMixer);
-        SharedNodePointer assetServerNode = nodeList->soloNodeOfType(NodeType::AssetServer);
-        STAT_UPDATE(audioPing, audioMixerNode ? audioMixerNode->getPingMs() : -1);
-        STAT_UPDATE(avatarPing, avatarMixerNode ? avatarMixerNode->getPingMs() : -1);
-        STAT_UPDATE(assetPing, assetServerNode ? assetServerNode->getPingMs() : -1);
-
-        //// Now handle entity servers, since there could be more than one, we average their ping times
-        int totalPingOctree = 0;
-        int octreeServerCount = 0;
-        int pingOctreeMax = 0;
-        nodeList->eachNode([&](const SharedNodePointer& node) {
-            // TODO: this should also support entities
-            if (node->getType() == NodeType::EntityServer) {
-                totalPingOctree += node->getPingMs();
-                octreeServerCount++;
-                if (pingOctreeMax < node->getPingMs()) {
-                    pingOctreeMax = node->getPingMs();
-                }
-            }
-        });
-        
-        // update the entities ping with the average for all connected entity servers
-        STAT_UPDATE(entitiesPing, octreeServerCount ? totalPingOctree / octreeServerCount : -1);
-    } else {
-        // -2 causes the QML to hide the ping column
-        STAT_UPDATE(audioPing, -2);
-    }
+    SharedNodePointer audioMixerNode = nodeList->soloNodeOfType(NodeType::AudioMixer);
+    SharedNodePointer avatarMixerNode = nodeList->soloNodeOfType(NodeType::AvatarMixer);
+    SharedNodePointer assetServerNode = nodeList->soloNodeOfType(NodeType::AssetServer);
+    STAT_UPDATE(audioPing, audioMixerNode ? audioMixerNode->getPingMs() : -1);
+    STAT_UPDATE(avatarPing, avatarMixerNode ? avatarMixerNode->getPingMs() : -1);
+    STAT_UPDATE(assetPing, assetServerNode ? assetServerNode->getPingMs() : -1);
     
+    //// Now handle entity servers, since there could be more than one, we average their ping times
+    int totalPingOctree = 0;
+    int octreeServerCount = 0;
+    int pingOctreeMax = 0;
+    nodeList->eachNode([&](const SharedNodePointer& node) {
+        // TODO: this should also support entities
+        if (node->getType() == NodeType::EntityServer) {
+            totalPingOctree += node->getPingMs();
+            octreeServerCount++;
+            if (pingOctreeMax < node->getPingMs()) {
+                pingOctreeMax = node->getPingMs();
+            }
+        }
+    });
 
     // Third column, avatar stats
     MyAvatar* myAvatar = avatarManager->getMyAvatar();
