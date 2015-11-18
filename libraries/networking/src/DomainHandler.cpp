@@ -250,8 +250,7 @@ void DomainHandler::requestDomainSettings() {
     
     NodeType_t owningNodeType = DependencyManager::get<NodeList>()->getOwnerType();
     if (owningNodeType == NodeType::Agent) {
-        // for now the agent nodes don't need any settings - this allows local assignment-clients
-        // to connect to a domain that is using automatic networking (since we don't have TCP hole punch yet)
+        // for now the agent nodes don't need any domain settings
         _settingsObject = QJsonObject();
         emit settingsReceived(_settingsObject);
     } else {
