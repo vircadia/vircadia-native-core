@@ -35,8 +35,6 @@ private slots:
     void handleMessagesUnsubscribe(QSharedPointer<NLPacketList> packetList, SharedNodePointer senderNode);
 
 private:
-    void parseDomainServerSettings(const QJsonObject& domainSettings);
-
     QHash<QString,QSet<QUuid>> _channelSubscribers;
 };
 
