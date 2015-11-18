@@ -283,8 +283,10 @@ void DomainHandler::processSettingsPacketList(QSharedPointer<NLPacketList> packe
     auto data = packetList->getMessage();
 
     _settingsObject = QJsonDocument::fromJson(data).object();
-
-    qCDebug(networking) << "Received domain settings: \n" << qPrintable(data);
+    
+    if (!_settingsObject.isEmpty()) {
+        qCDebug(networking) << "Received domain settings: \n" << _settingsObject;
+    }
 
     emit settingsReceived(_settingsObject);
 }
