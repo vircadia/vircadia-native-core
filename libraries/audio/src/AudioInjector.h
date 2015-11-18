@@ -20,13 +20,14 @@
 #include <glm/glm.hpp>
 #include <glm/gtx/quaternion.hpp>
 
+#include <NLPacket.h>
+
 #include "AudioInjectorLocalBuffer.h"
 #include "AudioInjectorOptions.h"
 #include "Sound.h"
 
 class AbstractAudioInterface;
 class AudioInjectorManager;
-class NLPacket;
 
 // In order to make scripting cleaner for the AudioInjector, the script now holds on to the AudioInjector object
 // until it dies. 
