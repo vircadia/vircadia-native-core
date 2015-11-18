@@ -17,9 +17,5 @@ out vec4 outFragColor;
 uniform sampler2D tex;
 
 void main(void) {
-    outFragColor = varColor;//texture(tex, varTexcoord.xy) * varColor;
-    
-    if (varColor == vec4(0,0,0,1)) {
-        discard;
-    }
+    outFragColor = texture(tex, varTexcoord.xy) * varColor;
 }

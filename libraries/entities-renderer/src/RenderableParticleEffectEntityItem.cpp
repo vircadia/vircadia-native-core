@@ -25,23 +25,23 @@
 #include "textured_particle_frag.h"
 #include "textured_particle_alpha_discard_frag.h"
 
-static const uint32_t VERTEX_PER_QUAD = 6;
+static const size_t VERTEX_PER_PARTICLE = 4;
 
 class ParticlePayload {
 public:
     using Payload = render::Payload<ParticlePayload>;
     using Pointer = Payload::DataPointer;
-    using Vertex = RenderableParticleEffectEntityItem::Vertex;
+    using ParticlePrimitive = RenderableParticleEffectEntityItem::ParticlePrimitive;
 
     ParticlePayload(EntityItemPointer entity) :
         _entity(entity),
         _vertexFormat(std::make_shared<gpu::Stream::Format>()),
-        _vertexBuffer(std::make_shared<gpu::Buffer>()) {
+        _particleBuffer(std::make_shared<gpu::Buffer>()) {
 
         _vertexFormat->setAttribute(gpu::Stream::POSITION, 0, gpu::Element::VEC4F_XYZW,
-                                    offsetof(Vertex, xyzw), VERTEX_PER_QUAD);
+                                    offsetof(ParticlePrimitive, xyzw), gpu::Stream::PER_INSTANCE);
         _vertexFormat->setAttribute(gpu::Stream::COLOR, 0, gpu::Element::COLOR_RGBA_32,
-                                    offsetof(Vertex, rgba), VERTEX_PER_QUAD);
+                                    offsetof(ParticlePrimitive, rgba), gpu::Stream::PER_INSTANCE);
     }
 
     void setPipeline(gpu::PipelinePointer pipeline) { _pipeline = pipeline; }
@@ -53,8 +53,8 @@ public:
     const AABox& getBound() const { return _bound; }
     void setBound(AABox& bound) { _bound = bound; }
 
-    gpu::BufferPointer getVertexBuffer() { return _vertexBuffer; }
-    const gpu::BufferPointer& getVertexBuffer() const { return _vertexBuffer; }
+    gpu::BufferPointer getParticleBuffer() { return _particleBuffer; }
+    const gpu::BufferPointer& getParticleBuffer() const { return _particleBuffer; }
 
     void setTexture(gpu::TexturePointer texture) { _texture = texture; }
     const gpu::TexturePointer& getTexture() const { return _texture; }
@@ -74,10 +74,10 @@ public:
 
         batch.setModelTransform(_modelTransform);
         batch.setInputFormat(_vertexFormat);
-        batch.setInputBuffer(0, _vertexBuffer, 0, sizeof(Vertex));
+        batch.setInputBuffer(0, _particleBuffer, 0, sizeof(ParticlePrimitive));
 
-        auto numVertices = _vertexBuffer->getSize() / sizeof(Vertex);
-        batch.draw(gpu::TRIANGLES, numVertices * VERTEX_PER_QUAD);
+        auto numParticles = _particleBuffer->getSize() / sizeof(ParticlePrimitive);
+        batch.drawInstanced(numParticles, gpu::TRIANGLE_STRIP, VERTEX_PER_PARTICLE);
     }
 
 protected:
@@ -86,7 +86,7 @@ protected:
     AABox _bound;
     gpu::PipelinePointer _pipeline;
     gpu::Stream::FormatPointer _vertexFormat;
-    gpu::BufferPointer _vertexBuffer;
+    gpu::BufferPointer _particleBuffer;
     gpu::TexturePointer _texture;
     bool _visibleFlag = true;
 };
@@ -208,23 +208,23 @@ void RenderableParticleEffectEntityItem::updateRenderItem() {
         });
     }
 
-    // build vertices from particle positions and radiuses
-    _vertices.clear(); // clear vertices
-    _vertices.reserve(particleDetails.size()); // Reserve space
+    // build primitives from particle positions and radiuses
+    _particlePrimitives.clear(); // clear primitives
+    _particlePrimitives.reserve(particleDetails.size()); // Reserve space
     for (const auto& particle : particleDetails) {
-        _vertices.emplace_back(glm::vec4(particle.position, particle.radius), particle.rgba);
+        _particlePrimitives.emplace_back(glm::vec4(particle.position, particle.radius), particle.rgba);
     }
 
     render::PendingChanges pendingChanges;
     pendingChanges.updateItem<ParticlePayload>(_renderItemId, [this](ParticlePayload& payload) {
-        // update vertex buffer
-        auto vertexBuffer = payload.getVertexBuffer();
-        size_t numBytes = sizeof(Vertex) * _vertices.size();
-        vertexBuffer->resize(numBytes);
+        // update particle buffer
+        auto particleBuffer = payload.getParticleBuffer();
+        size_t numBytes = sizeof(ParticlePrimitive) * _particlePrimitives.size();
+        particleBuffer->resize(numBytes);
         if (numBytes == 0) {
             return;
         }
-        memcpy(vertexBuffer->editData(), _vertices.data(), numBytes);
+        memcpy(particleBuffer->editData(), _particlePrimitives.data(), numBytes);
 
         // update transform
         glm::vec3 position = getPosition();

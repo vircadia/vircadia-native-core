@@ -16,7 +16,7 @@
 #include "RenderableEntityItem.h"
 
 class RenderableParticleEffectEntityItem : public ParticleEffectEntityItem  {
-friend class ParticlePayload;
+    friend class ParticlePayload;
 public:
     static EntityItemPointer factory(const EntityItemID& entityID, const EntityItemProperties& properties);
     RenderableParticleEffectEntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties);
@@ -31,15 +31,16 @@ public:
 protected:
     render::ItemID _renderItemId;
 
-    struct Vertex {
-        Vertex(glm::vec4 xyzwIn, uint32_t rgbaIn) : xyzw(xyzwIn), rgba(rgbaIn) {}
+    struct ParticlePrimitive {
+        ParticlePrimitive(glm::vec4 xyzwIn, uint32_t rgbaIn) : xyzw(xyzwIn), rgba(rgbaIn) {}
         glm::vec4 xyzw; // Position + radius
         uint32_t rgba; // Color
     };
+    using Particles = std::vector<ParticlePrimitive>;
 
     void createPipelines();
 
-    std::vector<Vertex> _vertices;
+    Particles _particlePrimitives;
     gpu::PipelinePointer _untexturedPipeline;
     gpu::PipelinePointer _texturedPipeline;
 

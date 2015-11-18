@@ -59,7 +59,7 @@ void Stream::Format::evaluateCache() {
     }
 }
 
-bool Stream::Format::setAttribute(Slot slot, Slot channel, Element element, Offset offset, uint32 frequency) {
+bool Stream::Format::setAttribute(Slot slot, Slot channel, Element element, Offset offset, Frequency frequency) {
     _attributes[slot] = Attribute((InputSlot) slot, channel, element, offset, frequency);
     evaluateCache();
     return true;
@@ -75,16 +75,6 @@ bool Stream::Format::setAttribute(Slot slot, Slot channel, Frequency frequency) 
     _attributes[slot] = Attribute((InputSlot)slot, channel, getDefaultElements()[slot], 0, frequency);
     evaluateCache();
     return true;
-}
-
-
-BufferStream::BufferStream() :
-    _buffers(),
-    _offsets(),
-    _strides()
-{}
-
-BufferStream::~BufferStream() {
 }
 
 void BufferStream::addBuffer(const BufferPointer& buffer, Offset offset, Offset stride) {
