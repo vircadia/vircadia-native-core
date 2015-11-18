@@ -176,11 +176,13 @@ public:
 
     // AJT: TODO: LEGACY
     QVector<JointState> _jointStates;
+    glm::mat4 _legacyModelOffset;
 
     AnimPose _modelOffset;
-    AnimPoseVec _relativePoses;
-    AnimPoseVec _absolutePoses;
-    AnimPoseVec _overridePoses;
+    float _modelScale;
+    AnimPoseVec _relativePoses; // in fbx model space relative to parent.
+    AnimPoseVec _absolutePoses; // in fbx model space after _modelOffset is applied.
+    AnimPoseVec _overridePoses; // in fbx model space relative to parent.
     std::vector<bool> _overrideFlags;
 
     int _rootJointIndex { -1 };

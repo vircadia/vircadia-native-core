@@ -24,7 +24,7 @@
 #include "IKTarget.h"
 
 #ifdef NDEBUG
-#define ASSERT()
+#define ASSERT(cond)
 #else
 #define ASSERT(cond)                            \
     do {                                        \
@@ -157,16 +157,16 @@ void Rig::initJointStates(const FBXGeometry& geometry, glm::mat4 modelOffset, in
     _animSkeleton = std::make_shared<AnimSkeleton>(geometry);
 
     _relativePoses.clear();
-    _relativePoses.resize(_animSkeleton->getNumJoints(), AnimPose::identity);
+    _relativePoses = _animSkeleton->getRelativeBindPoses();
 
     _absolutePoses.clear();
-    _absolutePoses.resize(_animSkeleton->getNumJoints(), AnimPose::identity);
+    _absolutePoses = _animSkeleton->getAbsoluteBindPoses();
 
     _overridePoses.clear();
-    _overridePoses.resize(_animSkeleton->getNumJoints(), AnimPose::identity);
+    _overridePoses = _animSkeleton->getRelativeBindPoses();
 
     _overrideFlags.clear();
-    _overrideFlags.resize(_animSkeleton->getNumJoints(), true);
+    _overrideFlags.resize(_animSkeleton->getNumJoints(), false);
 
     // AJT: LEGACY
     {
@@ -226,7 +226,12 @@ int Rig::indexOfJoint(const QString& jointName) {
 }
 
 void Rig::setModelOffset(const glm::mat4& modelOffset) {
+    // AJT: LEGACY
+    {
+        _legacyModelOffset = modelOffset;
+    }
     _modelOffset = AnimPose(modelOffset);
+    _modelScale = _modelOffset.scale.x;
 }
 
 // AJT: REMOVE
@@ -407,34 +412,6 @@ bool Rig::getJointCombinedRotation(int jointIndex, glm::quat& result, const glm:
     }
     result = rotation * _jointStates[jointIndex].getRotation();
     return true;
-}
-
-glm::mat4 Rig::getJointTransform(int jointIndex) const {
-    if (jointIndex == -1 || jointIndex >= _jointStates.size()) {
-        return glm::mat4();
-    }
-
-    /*
-    // AJT: test if _absolutePoses are the same as jointTransforms
-    glm::mat4 newMat = _absolutePoses[jointIndex];
-    glm::mat4 oldMat = _jointStates[jointIndex].getTransform();
-
-    const float EPSILON = 0.0001f;
-    if (glm::length(newMat[0] - oldMat[0]) > EPSILON ||
-        glm::length(newMat[1] - oldMat[1]) > EPSILON ||
-        glm::length(newMat[2] - oldMat[2]) > EPSILON ||
-        glm::length(newMat[3] - oldMat[3]) > EPSILON) {
-
-        // error?
-        qCDebug(animation) << "AJT: mismatch for joint[" << jointIndex;
-        qCDebug(animation) << "AJT: oldMat = " << AnimPose(oldMat);
-        qCDebug(animation) << "AJT: newMat = " << AnimPose(newMat);
-
-    }
-    */
-
-    // AJT: LEGACY
-    return _jointStates[jointIndex].getTransform();
 }
 
 void Rig::calcAnimAlpha(float speed, const std::vector<float>& referenceSpeeds, float* alphaOut) const {
@@ -725,8 +702,8 @@ void Rig::updateAnimations(float deltaTime, glm::mat4 rootTransform) {
         AnimNode::Triggers triggersOut;
         _relativePoses = _animNode->evaluate(_animVars, deltaTime, triggersOut);
         if (_relativePoses.size() != _animSkeleton->getNumJoints()) {
-            // animations haven't been loaded yet.
-            _relativePoses.resize(_animSkeleton->getNumJoints(), AnimPose::identity);
+            // animations haven't fully loaded yet.
+            _relativePoses = _animSkeleton->getRelativeBindPoses();
         }
         _animVars.clearTriggers();
         for (auto& trigger : triggersOut) {
@@ -1245,16 +1222,22 @@ void Rig::buildAbsolutePoses() {
     for (int i = 0; i < (int)_relativePoses.size(); i++) {
         int parentIndex = _animSkeleton->getParentIndex(i);
         if (parentIndex == -1) {
-            _absolutePoses[i] = _modelOffset * _relativePoses[i];
+            _absolutePoses[i] = _relativePoses[i];
         } else {
-            _absolutePoses[i] = _modelOffset * _absolutePoses[parentIndex] * _relativePoses[i];
+            _absolutePoses[i] = _absolutePoses[parentIndex] * _relativePoses[i];
         }
+    }
+
+    for (int i = 0; i < (int)_absolutePoses.size(); i++) {
+        _absolutePoses[i].trans = _modelOffset.trans + _absolutePoses[i].trans;
+        _absolutePoses[i].rot = _modelOffset.rot * _absolutePoses[i].rot;
+        _absolutePoses[i].scale = glm::vec3(_modelScale);
     }
 
     // AJT: LEGACY
     {
         // Build the joint states
-        glm::mat4 rootTransform = (glm::mat4)_modelOffset;
+        glm::mat4 rootTransform = _legacyModelOffset;
         for (int i = 0; i < (int)_animSkeleton->getNumJoints(); i++) {
             JointState& state = _jointStates[i];
 
@@ -1272,3 +1255,44 @@ void Rig::buildAbsolutePoses() {
         }
     }
 }
+
+glm::mat4 Rig::getJointTransform(int jointIndex) const {
+    if (jointIndex == -1 || jointIndex >= _jointStates.size()) {
+        return glm::mat4();
+    }
+
+    // AJT: test if _absolutePoses are the same as jointTransforms
+    // only test once we have a full skeleton (ryan avatar)
+    //if (_jointStates.size() == 73) {
+    /*
+    if (!_animNode && _jointStates.size() != 73) {
+        // should display for model entities
+        glm::mat4 newMat = _absolutePoses[jointIndex];
+        glm::mat4 oldMat = _jointStates[jointIndex].getTransform();
+
+        const float EPSILON = 0.005f;
+        if (glm::length(newMat[0] - oldMat[0]) > EPSILON ||
+            glm::length(newMat[1] - oldMat[1]) > EPSILON ||
+            glm::length(newMat[2] - oldMat[2]) > EPSILON ||
+            glm::length(newMat[3] - oldMat[3]) > EPSILON) {
+
+            // error?
+            qCDebug(animation).nospace() << "AJT: mismatch for joint[" << jointIndex << "]";
+            qCDebug(animation) << "AJT: oldMat = " << AnimPose(oldMat);
+            qCDebug(animation) << "AJT: newMat = " << AnimPose(newMat);
+
+        }
+    }
+    */
+
+    // AJT: LEGACY
+    {
+        return _jointStates[jointIndex].getTransform();
+    }
+
+    // AJT: TODO this works for MyAvatar but not model entities.  WTF
+    {
+        //return _absolutePoses[jointIndex];
+    }
+}
+
