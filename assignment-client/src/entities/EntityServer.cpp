@@ -265,6 +265,4 @@ void EntityServer::readAdditionalConfiguration(const QJsonObject& settingsSectio
     EntityTreePointer tree = std::static_pointer_cast<EntityTree>(_tree);
     tree->setWantEditLogging(wantEditLogging);
     tree->setWantTerseEditLogging(wantTerseEditLogging);
-
-    return true;
 }
