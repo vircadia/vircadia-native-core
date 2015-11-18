@@ -10,21 +10,58 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-<@include gpu/Inputs.slh@>
-
 <@include gpu/Transform.slh@>
 
 <$declareStandardTransform()$>
 
-out vec4 _color;
-out vec2 _texCoord0;
+in vec4 inPosition;
+in vec4 inColor;
+
+out vec4 varColor;
+out vec2 varTexcoord;
 
 void main(void) {
-    // pass along the color & uvs to fragment shader
-    _color = inColor;
-    _texCoord0 = inTexCoord0.xy;
-
+    const int NUM_VERTICES_PER_PARTICLE = 6;
+    const vec4 UNIT_QUAD[NUM_VERTICES_PER_PARTICLE] = vec4[NUM_VERTICES_PER_PARTICLE](
+        vec4(-1.0, -1.0, 0.0, 1.0),
+        vec4(1.0, -1.0, 0.0, 1.0),
+        vec4(-1.0, 1.0, 0.0, 1.0),
+        vec4(-1.0, 1.0, 0.0, 1.0),
+        vec4(1.0, -1.0, 0.0, 1.0),
+        vec4(1.0, 1.0, 0.0, 1.0)
+    );
+    
+    // anchor point in eye space
+    vec4 anchorPoint = vec4(inPosition.xyz, 1.0);
+    float radius = inPosition.w;
+    
     TransformCamera cam = getTransformCamera();
     TransformObject obj = getTransformObject();
-    <$transformModelToClipPos(cam, obj, inPosition, gl_Position)$>
+    <$transformModelToEyePos(cam, obj, anchorPoint, anchorPoint)$>
+    
+    // Which icon are we dealing with ?
+    int particleID = gl_VertexID / NUM_VERTICES_PER_PARTICLE;
+    
+    // Which quad vertex pos?
+    int twoTriID = gl_VertexID - particleID * NUM_VERTICES_PER_PARTICLE;
+    vec4 quadPos = radius * UNIT_QUAD[twoTriID];
+    
+    // Pass the texcoord and the z texcoord is representing the texture icon
+    varTexcoord = vec2((quadPos.xy + 1.0) * 0.5);
+    varColor = inColor;
+    
+    if (particleID == 0) {
+        varColor = vec4(1,0,0,1);
+    } else if (particleID == 5) {
+        varColor = vec4(0,1,0,1);
+    } else if (particleID == 10) {
+        varColor = vec4(0,0,1,1);
+    } else {
+        varColor = vec4(0,0,0,1);
+    }
+    
+    vec4 clipPos;
+    vec4 eyePos = vec4(anchorPoint.xyz + quadPos.xyz, 1.0);
+    <$transformEyeToClip(cam, eyePos, clipPos)$>
+    gl_Position = clipPos;
 }

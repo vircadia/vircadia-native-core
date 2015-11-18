@@ -211,7 +211,7 @@ public:
     static const bool DEFAULT_ADDITIVE_BLENDING;
     bool getAdditiveBlending() const { return _additiveBlending; }
     void setAdditiveBlending(bool additiveBlending) {
-        _additiveBlending = additiveBlending;
+        _additiveBlending = true;
     }
 
     virtual bool supportsDetailedRayIntersection() const { return false; }

@@ -49,8 +49,8 @@ public:
 
     // Frequency describer
     enum Frequency {
+        PER_INSTANCE = -1,
         PER_VERTEX = 0,
-        PER_INSTANCE,
     };
 
     // The attribute description
@@ -59,7 +59,7 @@ public:
     public:
         Attribute() {}
 
-        Attribute(Slot slot, Slot channel, Element element, Offset offset = 0, Frequency frequency = PER_VERTEX) :
+        Attribute(Slot slot, Slot channel, Element element, Offset offset = 0, uint32 frequency = PER_VERTEX) :
             _slot(slot),
             _channel(channel),
             _element(element),
@@ -107,7 +107,7 @@ public:
 
         uint32 getElementTotalSize() const { return _elementTotalSize; }
 
-        bool setAttribute(Slot slot, Slot channel, Element element, Offset offset = 0, Frequency frequency = PER_VERTEX);
+        bool setAttribute(Slot slot, Slot channel, Element element, Offset offset = 0, uint32 frequency = PER_VERTEX);
         bool setAttribute(Slot slot, Frequency frequency = PER_VERTEX);
         bool setAttribute(Slot slot, Slot channel, Frequency frequency = PER_VERTEX);
 

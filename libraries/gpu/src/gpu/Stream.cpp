@@ -59,7 +59,7 @@ void Stream::Format::evaluateCache() {
     }
 }
 
-bool Stream::Format::setAttribute(Slot slot, Slot channel, Element element, Offset offset, Frequency frequency) {
+bool Stream::Format::setAttribute(Slot slot, Slot channel, Element element, Offset offset, uint32 frequency) {
     _attributes[slot] = Attribute((InputSlot) slot, channel, element, offset, frequency);
     evaluateCache();
     return true;

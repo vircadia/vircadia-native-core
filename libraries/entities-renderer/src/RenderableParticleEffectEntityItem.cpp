@@ -25,21 +25,23 @@
 #include "textured_particle_frag.h"
 #include "textured_particle_alpha_discard_frag.h"
 
+static const uint32_t VERTEX_PER_QUAD = 6;
+
 class ParticlePayload {
 public:
-    typedef render::Payload<ParticlePayload> Payload;
-    typedef Payload::DataPointer Pointer;
-    typedef RenderableParticleEffectEntityItem::Vertex Vertex;
+    using Payload = render::Payload<ParticlePayload>;
+    using Pointer = Payload::DataPointer;
+    using Vertex = RenderableParticleEffectEntityItem::Vertex;
 
     ParticlePayload(EntityItemPointer entity) :
         _entity(entity),
         _vertexFormat(std::make_shared<gpu::Stream::Format>()),
-        _vertexBuffer(std::make_shared<gpu::Buffer>()),
-        _indexBuffer(std::make_shared<gpu::Buffer>()) {
+        _vertexBuffer(std::make_shared<gpu::Buffer>()) {
 
-        _vertexFormat->setAttribute(gpu::Stream::POSITION, 0, gpu::Element::VEC3F_XYZ, offsetof(Vertex, xyz));
-        _vertexFormat->setAttribute(gpu::Stream::TEXCOORD, 0, gpu::Element::VEC2F_UV, offsetof(Vertex, uv));
-        _vertexFormat->setAttribute(gpu::Stream::COLOR, 0, gpu::Element::COLOR_RGBA_32, offsetof(Vertex, rgba));
+        _vertexFormat->setAttribute(gpu::Stream::POSITION, 0, gpu::Element::VEC4F_XYZW,
+                                    offsetof(Vertex, xyzw), VERTEX_PER_QUAD);
+        _vertexFormat->setAttribute(gpu::Stream::COLOR, 0, gpu::Element::COLOR_RGBA_32,
+                                    offsetof(Vertex, rgba), VERTEX_PER_QUAD);
     }
 
     void setPipeline(gpu::PipelinePointer pipeline) { _pipeline = pipeline; }
@@ -53,9 +55,6 @@ public:
 
     gpu::BufferPointer getVertexBuffer() { return _vertexBuffer; }
     const gpu::BufferPointer& getVertexBuffer() const { return _vertexBuffer; }
-
-    gpu::BufferPointer getIndexBuffer() { return _indexBuffer; }
-    const gpu::BufferPointer& getIndexBuffer() const { return _indexBuffer; }
 
     void setTexture(gpu::TexturePointer texture) { _texture = texture; }
     const gpu::TexturePointer& getTexture() const { return _texture; }
@@ -76,10 +75,9 @@ public:
         batch.setModelTransform(_modelTransform);
         batch.setInputFormat(_vertexFormat);
         batch.setInputBuffer(0, _vertexBuffer, 0, sizeof(Vertex));
-        batch.setIndexBuffer(gpu::UINT16, _indexBuffer, 0);
 
-        auto numIndices = _indexBuffer->getSize() / sizeof(uint16_t);
-        batch.drawIndexed(gpu::TRIANGLES, numIndices);
+        auto numVertices = _vertexBuffer->getSize() / sizeof(Vertex);
+        batch.draw(gpu::TRIANGLES, numVertices * VERTEX_PER_QUAD);
     }
 
 protected:
@@ -89,7 +87,6 @@ protected:
     gpu::PipelinePointer _pipeline;
     gpu::Stream::FormatPointer _vertexFormat;
     gpu::BufferPointer _vertexBuffer;
-    gpu::BufferPointer _indexBuffer;
     gpu::TexturePointer _texture;
     bool _visibleFlag = true;
 };
@@ -197,69 +194,37 @@ void RenderableParticleEffectEntityItem::updateRenderItem() {
         particleDetails.emplace_back(particle.position, particle.radius, rgba);
     }
 
-    // sort particles back to front
-    // NOTE: this is view frustum might be one frame out of date.
-    auto direction = AbstractViewStateInterface::instance()->getCurrentViewFrustum()->getDirection();
-
     // No need to sort if we're doing additive blending
     if (!_additiveBlending) {
+        // sort particles back to front
+        // NOTE: this is view frustum might be one frame out of date.
+        auto direction = AbstractViewStateInterface::instance()->getCurrentViewFrustum()->getDirection();
+        // Get direction in the entity space
+        direction = glm::inverse(getRotation()) * direction;
+        
         std::sort(particleDetails.begin(), particleDetails.end(),
                   [&](const ParticleDetails& lhs, const ParticleDetails& rhs) {
             return glm::dot(lhs.position, direction) > glm::dot(rhs.position, direction);
         });
     }
 
-
-
-    // allocate vertices
-    _vertices.clear();
-
     // build vertices from particle positions and radiuses
-    glm::vec3 right = glm::normalize(glm::cross(direction, Vectors::UNIT_Y));
-    glm::vec3 up = glm::normalize(glm::cross(right, direction));
+    _vertices.clear(); // clear vertices
+    _vertices.reserve(particleDetails.size()); // Reserve space
     for (const auto& particle : particleDetails) {
-        glm::vec3 upOffset = up * particle.radius;
-        glm::vec3 rightOffset = right * particle.radius;
-        // generate corners of quad aligned to face the camera.
-        _vertices.emplace_back(particle.position + rightOffset + upOffset, glm::vec2(1.0f, 1.0f), particle.rgba);
-        _vertices.emplace_back(particle.position - rightOffset + upOffset, glm::vec2(0.0f, 1.0f), particle.rgba);
-        _vertices.emplace_back(particle.position - rightOffset - upOffset, glm::vec2(0.0f, 0.0f), particle.rgba);
-        _vertices.emplace_back(particle.position + rightOffset - upOffset, glm::vec2(1.0f, 0.0f), particle.rgba);
+        _vertices.emplace_back(glm::vec4(particle.position, particle.radius), particle.rgba);
     }
 
     render::PendingChanges pendingChanges;
     pendingChanges.updateItem<ParticlePayload>(_renderItemId, [this](ParticlePayload& payload) {
         // update vertex buffer
         auto vertexBuffer = payload.getVertexBuffer();
-        auto indexBuffer = payload.getIndexBuffer();
         size_t numBytes = sizeof(Vertex) * _vertices.size();
-
+        vertexBuffer->resize(numBytes);
         if (numBytes == 0) {
-            vertexBuffer->resize(0);
-            indexBuffer->resize(0);
             return;
         }
-        
-        vertexBuffer->resize(numBytes);
         memcpy(vertexBuffer->editData(), _vertices.data(), numBytes);
-
-        // FIXME, don't update index buffer if num particles has not changed.
-        // update index buffer
-        const size_t NUM_VERTS_PER_PARTICLE = 4;
-        const size_t NUM_INDICES_PER_PARTICLE = 6;
-        auto numQuads = (_vertices.size() / NUM_VERTS_PER_PARTICLE);
-        numBytes = sizeof(uint16_t) * numQuads * NUM_INDICES_PER_PARTICLE;
-        indexBuffer->resize(numBytes);
-        gpu::Byte* data = indexBuffer->editData();
-        auto indexPtr = reinterpret_cast<uint16_t*>(data);
-        for (size_t i = 0; i < numQuads; ++i) {
-            indexPtr[i * NUM_INDICES_PER_PARTICLE + 0] = i * NUM_VERTS_PER_PARTICLE + 0;
-            indexPtr[i * NUM_INDICES_PER_PARTICLE + 1] = i * NUM_VERTS_PER_PARTICLE + 1;
-            indexPtr[i * NUM_INDICES_PER_PARTICLE + 2] = i * NUM_VERTS_PER_PARTICLE + 3;
-            indexPtr[i * NUM_INDICES_PER_PARTICLE + 3] = i * NUM_VERTS_PER_PARTICLE + 1;
-            indexPtr[i * NUM_INDICES_PER_PARTICLE + 4] = i * NUM_VERTS_PER_PARTICLE + 2;
-            indexPtr[i * NUM_INDICES_PER_PARTICLE + 5] = i * NUM_VERTS_PER_PARTICLE + 3;
-        }
 
         // update transform
         glm::vec3 position = getPosition();
@@ -323,8 +288,7 @@ void RenderableParticleEffectEntityItem::createPipelines() {
         gpu::ShaderPointer fragShader;
         if (_additiveBlending) {
            fragShader = gpu::ShaderPointer(gpu::Shader::createPixel(std::string(textured_particle_frag)));
-        }
-        else {
+        } else {
             //If we are sorting and have no additive blending, we want to discard pixels with low alpha to avoid inter-particle entity artifacts
             fragShader = gpu::ShaderPointer(gpu::Shader::createPixel(std::string(textured_particle_alpha_discard_frag)));
         }

@@ -32,10 +32,9 @@ protected:
     render::ItemID _renderItemId;
 
     struct Vertex {
-        Vertex(glm::vec3 xyzIn, glm::vec2 uvIn, uint32_t rgbaIn) : xyz(xyzIn), uv(uvIn), rgba(rgbaIn) {}
-        glm::vec3 xyz;
-        glm::vec2 uv;
-        uint32_t rgba;
+        Vertex(glm::vec4 xyzwIn, uint32_t rgbaIn) : xyzw(xyzwIn), rgba(rgbaIn) {}
+        glm::vec4 xyzw; // Position + radius
+        uint32_t rgba; // Color
     };
 
     void createPipelines();
