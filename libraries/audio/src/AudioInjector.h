@@ -76,14 +76,15 @@ public slots:
     
 signals:
     void finished();
-    void restartedWhileFinished();
-
+    void restarting();
+    
+private slots:
+    void finish();
+    
 private:
     void setupInjection();
     uint64_t injectNextFrame();
     bool injectLocally();
-    
-    void finish();
     
     QByteArray _audioData;
     AudioInjectorOptions _options;

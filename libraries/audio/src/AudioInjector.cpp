@@ -85,8 +85,17 @@ void AudioInjector::setupInjection() {
 }
 
 void AudioInjector::restart() {
+    // grab the AudioInjectorManager
+    auto injectorManager = DependencyManager::get<AudioInjectorManager>();
+    
     if (thread() != QThread::currentThread()) {
-        QMetaObject::invokeMethod(this, "restart");        
+        QMetaObject::invokeMethod(this, "restart");
+        
+        if (!_options.localOnly) {
+            // notify the AudioInjectorManager to wake up in case it's waiting for new injectors
+            injectorManager->notifyInjectorReadyCondition();
+        }
+        
         return;
     }
     
@@ -100,18 +109,16 @@ void AudioInjector::restart() {
         _shouldStop = false;
         _state = State::NotFinished;
         
-        qDebug() << "Emitting restartedWhileFinished to inject audio again to restart an injector";
-        
         // call inject audio to start injection over again
         setupInjection();
         
         // if we're a local injector call inject locally to start injecting again
         if (_options.localOnly) {
             injectLocally();
+        } else {
+            // wake the AudioInjectorManager back up if it's stuck waiting
+            injectorManager->restartFinishedInjector(this);
         }
-        
-        // emit our restarted signal, for network injectors this allows the AudioInjectorManager to start considering us again
-        emit restartedWhileFinished();
     }
 }
 

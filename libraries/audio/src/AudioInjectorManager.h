@@ -36,7 +36,8 @@ private slots:
     void run();
 private:
     bool threadInjector(AudioInjector* injector);
-    void restartFinishedInjector();
+    void restartFinishedInjector(AudioInjector* injector);
+    void notifyInjectorReadyCondition() { _injectorReady.notify_one(); }
     
     AudioInjectorManager() {};
     AudioInjectorManager(const AudioInjectorManager&) = delete;

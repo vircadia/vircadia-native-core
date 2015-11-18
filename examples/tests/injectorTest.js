@@ -9,7 +9,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-var soundURL = "atp:44a83a788ccfd2924e35c902c34808b24dbd0309d000299ce01a355f91cf8115.wav";
+var soundURL = "http://hifi-public.s3.amazonaws.com/birarda/medium-crowd.wav";
 var audioOptions = {
     position: MyAvatar.position,
     volume: 0.5
