@@ -1095,20 +1095,24 @@ void Application::paintGL() {
     _inPaint = true;
     Finally clearFlagLambda([this] { _inPaint = false; });
 
-    _lastInstantaneousFps = instantaneousFps;
+    // Some LOD-like controls need to know a smoothly varying "potential" frame rate that doesn't
+    // include time waiting for vsync, and which can report a number above target if we've got the headroom.
+    // For example, if we're shooting for 75fps and paintWait is 3.3333ms (= 75% * 13.33ms), our deducedNonVSyncFps
+    // would be 100fps. In principle, a paintWait of zero would have deducedNonVSyncFps=75.
+    // Here we make a guess for deducedNonVSyncFps = 1 / deducedNonVSyncPeriod.
+    //
     // Time between previous paintGL call and this one, which can vary not only with vSync misses, but also with QT timing.
     // This is not the same as update(deltaTime), because the latter attempts to throttle to 60hz and also clamps to 1/4 second.
-    // Note that _lastPaintWait (stored at end of last call) is for the same paint cycle.
     const float actualPeriod = diff / (float)USECS_PER_SECOND; // same as 1/instantaneousFps but easier for compiler to optimize
+    // Note that _lastPaintWait (stored at end of last call) is for the same paint cycle.
+    float deducedNonVSyncPeriod = actualPeriod - _lastPaintWait; // plus a some non-zero time for machinery we can't measure
+    // We don't know how much time to allow for that, but if we went over the target period, we know it's at least the portion
+    // of paintWait up to the next vSync.
     const float targetPeriod = isHMDMode() ? 1.0f / 75.0f : 1.0f / 60.0f;
-    const float nSyncsByFrameRate = round(actualPeriod / targetPeriod);
-    const float accuracyAllowance = 0.0005f; // sometimes paint goes over and it isn't reflected in actualPeriod
-    const float nSyncsByPaintWait = floor((_lastPaintWait + accuracyAllowance) / targetPeriod);
-    const float nSyncs = nSyncsByFrameRate + nSyncsByPaintWait;
-    const float modularPeriod = ((nSyncs - 1) * targetPeriod) + actualPeriod;
-    const float deducedNonVSyncPeriod = modularPeriod - _lastPaintWait;
+    const float minumumMachinery = glm::max(0.0f, (floorf(_lastPaintWait / targetPeriod) * targetPeriod) - _lastPaintWait);
+    deducedNonVSyncPeriod += minumumMachinery;
     _lastDeducedNonVSyncFps = 1.0f / deducedNonVSyncPeriod;
-
+    _lastInstantaneousFps = instantaneousFps;
 
     auto displayPlugin = getActiveDisplayPlugin();
     displayPlugin->preRender();

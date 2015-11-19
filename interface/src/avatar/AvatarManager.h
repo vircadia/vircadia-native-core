@@ -19,6 +19,7 @@
 #include <AvatarHashMap.h>
 #include <PhysicsEngine.h>
 #include <PIDController.h>
+#include <SimpleMovingAverage.h>
 
 #include "Avatar.h"
 #include "AvatarMotionState.h"
@@ -106,6 +107,8 @@ private:
     float _renderFeedForward { 5.0f };
     int _renderedAvatarCount {0};
     PIDController _renderDistanceController {};
+    SimpleMovingAverage _renderDistanceAverage {10};
+
 
 
     SetOfAvatarMotionStates _avatarMotionStates;

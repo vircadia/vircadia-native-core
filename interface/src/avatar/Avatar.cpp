@@ -192,7 +192,7 @@ void Avatar::simulate(float deltaTime) {
         _shouldRenderBillboard = true;
         qCDebug(interfaceapp) << "Billboarding" << (isMyAvatar() ? "myself" : getSessionUUID()) << "for LOD" << getLODDistance();
     }
-#define PID_TUNING 1
+//#define PID_TUNING 1
 #ifdef PID_TUNING
     const float SKIP_HYSTERESIS_PROPORTION = 0.0f;
 #else

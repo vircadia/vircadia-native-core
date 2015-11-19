@@ -102,16 +102,10 @@ void AvatarManager::init() {
     // See PIDController.h. There's a sectionon tuning in the reference.
     // Turn off HYSTERESIS_PROPORTION and extra logging by defining PID_TUNING in Avatar.cpp.
     // Turn on logging with the following:
-    _renderDistanceController.setHistorySize("avatar render", target_fps * 4); // FIXME
-    // KP is usually tuned by setting the other constants to zero, finding the maximum value that doesn't oscillate,
-    // and taking about 0.6 of that. A typical osciallation would be with error=37fps with avatars 10m away, so
-    // KP*37=1/10 => KP(oscillating)=0.1/37 = 0.0027
-    _renderDistanceController.setKP(0.0015f);
-    // alt: 
-    // Our anti-windup limits accumulated error to 10*targetFrameRate, so the sanity check on KI is
-    // KI*750=controlledValueHighLimit=1 => KI=1/750.
-    _renderDistanceController.setKI(0.001f);
-    _renderDistanceController.setKD(0.0001f); // a touch of kd increases the speed by which we get there
+    //_renderDistanceController.setHistorySize("avatar render", target_fps * 4); // FIXME
+    _renderDistanceController.setKP(0.0003f); //Usually about 0.6 of largest that doesn't oscillate, with other constants 0.
+    _renderDistanceController.setKI(0.001f); // Big enough to bring us to target with the above KP.
+    _renderDistanceController.setKD(0.00001f); // a touch of kd increases the speed by which we get there
 
 }
 
@@ -140,18 +134,12 @@ void AvatarManager::updateOtherAvatars(float deltaTime) {
     PerformanceWarning warn(showWarnings, "Application::updateAvatars()");
 
     PerformanceTimer perfTimer("otherAvatars");
-    const float FEED_FORWARD_RANGE = 2;
     const float fps = qApp->getLastInstanteousFps();
     const float paintWait = qApp->getLastPaintWait();
     const float deduced = qApp->getLastDeducedNonVSyncFps();
-    const bool isAtSetpoint = false; //FIXME fabsf(effectiveFps - _renderDistanceController.getMeasuredValueSetpoint()) < FEED_FORWARD_RANGE;
-    //const float distance = 1.0f / _renderDistanceController.update(deduced + (isAtSetpoint ? _renderFeedForward : 0.0f), deltaTime, isAtSetpoint, fps, paintWait);
-    const float distance = 1.0f / _renderDistanceController.update(deduced, deltaTime, isAtSetpoint, fps, paintWait);
-
-    const float RENDER_DISTANCE_DEADBAND = 0.0f; //FIXME 0.3f; // meters
-    if (fabsf(distance - _renderDistance) > RENDER_DISTANCE_DEADBAND) {
-        _renderDistance = distance;
-    }
+    const float distance = 1.0f / _renderDistanceController.update(deduced, deltaTime, false, fps, paintWait);
+    _renderDistanceAverage.updateAverage(distance);
+    _renderDistance = _renderDistanceAverage.getAverage();
 
     // simulate avatars
     AvatarHash::iterator avatarIterator = _avatarHash.begin();

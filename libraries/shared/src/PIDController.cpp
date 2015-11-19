@@ -71,7 +71,7 @@ void PIDController::reportHistory() {
         Row& row = _history[i];
         qCDebug(shared) << row.measured << (row.dt * 1000)  << row.FIXME1 << (row.FIXME2 * 1000) <<
             "||" << row.error << row.accumulated << row.changed <<
-            "||" << row.p << row.i << row.d << row.computed;
+            "||" << row.p << row.i << row.d << row.computed << 1.0f/row.computed;
     }
     qCDebug(shared) << "Limits: setpoint" << getMeasuredValueSetpoint() << "accumulate" << getAccumulatedValueLowLimit() << getAccumulatedValueHighLimit() <<
         "controlled" << getControlledValueLowLimit() << getControlledValueHighLimit() <<
