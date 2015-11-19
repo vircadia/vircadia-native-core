@@ -39,10 +39,10 @@
 #include <recording/Recorder.h>
 #include <recording/Clip.h>
 #include <recording/Frame.h>
-#include "devices/Faceshift.h"
-
+#include <RecordingScriptingInterface.h>
 
 #include "Application.h"
+#include "devices/Faceshift.h"
 #include "AvatarManager.h"
 #include "Environment.h"
 #include "Menu.h"
@@ -127,6 +127,65 @@ MyAvatar::MyAvatar(RigPointer rig) :
     _characterController.setEnabled(true);
 
     _bodySensorMatrix = deriveBodyFromHMDSensor();
+
+    using namespace recording;
+
+    auto player = DependencyManager::get<Deck>();
+    auto recorder = DependencyManager::get<Recorder>();
+    connect(player.data(), &Deck::playbackStateChanged, [=] {
+        if (player->isPlaying()) {
+            auto recordingInterface = DependencyManager::get<RecordingScriptingInterface>();
+            if (recordingInterface->getPlayFromCurrentLocation()) {
+                setRecordingBasis();
+            }
+        } else {
+            clearRecordingBasis();
+        }
+    });
+
+    connect(recorder.data(), &Recorder::recordingStateChanged, [=] {
+        if (recorder->isRecording()) {
+            setRecordingBasis();
+        } else {
+            clearRecordingBasis();
+        }
+    });
+
+    static const recording::FrameType AVATAR_FRAME_TYPE = recording::Frame::registerFrameType(AvatarData::FRAME_NAME);
+    Frame::registerFrameHandler(AVATAR_FRAME_TYPE, [=](Frame::ConstPointer frame) {
+        static AvatarData dummyAvatar;
+        AvatarData::fromFrame(frame->data, dummyAvatar);
+        if (getRecordingBasis()) {
+            dummyAvatar.setRecordingBasis(getRecordingBasis());
+        } else {
+            dummyAvatar.clearRecordingBasis();
+        }
+
+        auto recordingInterface = DependencyManager::get<RecordingScriptingInterface>();
+        if (recordingInterface->getPlayerUseHeadModel() && dummyAvatar.getFaceModelURL().isValid() &&
+            (dummyAvatar.getFaceModelURL() != getFaceModelURL())) {
+            // FIXME
+            //myAvatar->setFaceModelURL(_dummyAvatar.getFaceModelURL());
+        }
+
+        if (recordingInterface->getPlayerUseSkeletonModel() && dummyAvatar.getSkeletonModelURL().isValid() &&
+            (dummyAvatar.getSkeletonModelURL() != getSkeletonModelURL())) {
+            // FIXME
+            //myAvatar->useFullAvatarURL()
+        }
+
+        if (recordingInterface->getPlayerUseDisplayName() && dummyAvatar.getDisplayName() != getDisplayName()) {
+            setDisplayName(dummyAvatar.getDisplayName());
+        }
+
+        setPosition(dummyAvatar.getPosition());
+        setOrientation(dummyAvatar.getOrientation());
+
+        // FIXME attachments
+        // FIXME joints
+        // FIXME head lean
+        // FIXME head orientation
+    });
 }
 
 MyAvatar::~MyAvatar() {
@@ -379,6 +438,13 @@ void MyAvatar::updateHMDFollowVelocity() {
 // update sensor to world matrix from current body position and hmd sensor.
 // This is so the correct camera can be used for rendering.
 void MyAvatar::updateSensorToWorldMatrix() {
+
+#ifdef DEBUG_RENDERING
+    // draw marker about avatar's position
+    const glm::vec4 red(1.0f, 0.0f, 0.0f, 1.0f);
+    DebugDraw::getInstance().addMyAvatarMarker("pos", glm::quat(), glm::vec3(), red);
+#endif
+
     // update the sensor mat so that the body position will end up in the desired
     // position when driven from the head.
     glm::mat4 desiredMat = createMatFromQuatAndPos(getOrientation(), getPosition());
@@ -1859,6 +1925,7 @@ glm::quat MyAvatar::getWorldBodyOrientation() const {
     return glm::quat_cast(_sensorToWorldMatrix * _bodySensorMatrix);
 }
 
+#if 0
 // derive avatar body position and orientation from the current HMD Sensor location.
 // results are in sensor space
 glm::mat4 MyAvatar::deriveBodyFromHMDSensor() const {
@@ -1876,6 +1943,66 @@ glm::mat4 MyAvatar::deriveBodyFromHMDSensor() const {
     }
     return glm::mat4();
 }
+#else
+// old school meat hook style
+glm::mat4 MyAvatar::deriveBodyFromHMDSensor() const {
+
+    // HMD is in sensor space.
+    const glm::vec3 hmdPosition = getHMDSensorPosition();
+    const glm::quat hmdOrientation = getHMDSensorOrientation();
+    const glm::quat hmdOrientationYawOnly = cancelOutRollAndPitch(hmdOrientation);
+
+    /*
+    const glm::vec3 DEFAULT_RIGHT_EYE_POS(-0.3f, 1.6f, 0.0f);
+    const glm::vec3 DEFAULT_LEFT_EYE_POS(0.3f, 1.6f, 0.0f);
+    const glm::vec3 DEFAULT_NECK_POS(0.0f, 1.5f, 0.0f);
+    const glm::vec3 DEFAULT_HIPS_POS(0.0f, 1.0f, 0.0f);
+    */
+
+    // 2 meter tall dude
+    const glm::vec3 DEFAULT_RIGHT_EYE_POS(-0.3f, 1.9f, 0.0f);
+    const glm::vec3 DEFAULT_LEFT_EYE_POS(0.3f, 1.9f, 0.0f);
+    const glm::vec3 DEFAULT_NECK_POS(0.0f, 1.70f, 0.0f);
+    const glm::vec3 DEFAULT_HIPS_POS(0.0f, 1.05f, 0.0f);
+
+    vec3 localEyes, localNeck;
+    if (!_debugDrawSkeleton) {
+        const glm::quat rotY180 = glm::angleAxis((float)PI, glm::vec3(0.0f, 1.0f, 0.0f));
+        localEyes = rotY180 * (((DEFAULT_RIGHT_EYE_POS + DEFAULT_LEFT_EYE_POS) / 2.0f) - DEFAULT_HIPS_POS);
+        localNeck = rotY180 * (DEFAULT_NECK_POS - DEFAULT_HIPS_POS);
+    } else {
+        // TODO: At the moment MyAvatar does not have access to the rig, which has the skeleton, which has the bind poses.
+        // for now use the _debugDrawSkeleton, which is initialized with the same FBX model as the rig.
+
+        // TODO: cache these indices.
+        int rightEyeIndex = _debugDrawSkeleton->nameToJointIndex("RightEye");
+        int leftEyeIndex = _debugDrawSkeleton->nameToJointIndex("LeftEye");
+        int neckIndex = _debugDrawSkeleton->nameToJointIndex("Neck");
+        int hipsIndex = _debugDrawSkeleton->nameToJointIndex("Hips");
+
+        glm::vec3 absRightEyePos = rightEyeIndex != -1 ? _debugDrawSkeleton->getAbsoluteBindPose(rightEyeIndex).trans : DEFAULT_RIGHT_EYE_POS;
+        glm::vec3 absLeftEyePos = leftEyeIndex != -1 ? _debugDrawSkeleton->getAbsoluteBindPose(leftEyeIndex).trans : DEFAULT_LEFT_EYE_POS;
+        glm::vec3 absNeckPos = neckIndex != -1 ? _debugDrawSkeleton->getAbsoluteBindPose(neckIndex).trans : DEFAULT_NECK_POS;
+        glm::vec3 absHipsPos = neckIndex != -1 ? _debugDrawSkeleton->getAbsoluteBindPose(hipsIndex).trans : DEFAULT_HIPS_POS;
+
+        const glm::quat rotY180 = glm::angleAxis((float)PI, glm::vec3(0.0f, 1.0f, 0.0f));
+        localEyes = rotY180 * (((absRightEyePos + absLeftEyePos) / 2.0f) - absHipsPos);
+        localNeck = rotY180 * (absNeckPos - absHipsPos);
+    }
+
+    // apply simplistic head/neck model
+    // figure out where the avatar body should be by applying offsets from the avatar's neck & head joints.
+
+    // eyeToNeck offset is relative full HMD orientation.
+    // while neckToRoot offset is only relative to HMDs yaw.
+    glm::vec3 eyeToNeck = hmdOrientation * (localNeck - localEyes);
+    glm::vec3 neckToRoot = hmdOrientationYawOnly * -localNeck;
+    glm::vec3 bodyPos = hmdPosition + eyeToNeck + neckToRoot;
+
+    // avatar facing is determined solely by hmd orientation.
+    return createMatFromQuatAndPos(hmdOrientationYawOnly, bodyPos);
+}
+#endif
 
 glm::vec3 MyAvatar::getPositionForAudio() {
     switch (_audioListenerMode) {

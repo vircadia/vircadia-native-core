@@ -91,7 +91,6 @@ void Head::simulate(float deltaTime, bool isMine, bool billboard) {
     }
 
     if (isMine) {
-        MyAvatar* myAvatar = static_cast<MyAvatar*>(_owningAvatar);
         auto player = DependencyManager::get<recording::Deck>();
         // Only use face trackers when not playing back a recording.
         if (!player->isPlaying()) {

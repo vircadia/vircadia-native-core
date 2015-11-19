@@ -131,6 +131,25 @@ Frame::Handler Frame::registerFrameHandler(FrameType type, Handler handler) {
     return result;
 }
 
+Frame::Handler Frame::registerFrameHandler(const QString& frameTypeName, Handler handler) {
+    auto frameType = registerFrameType(frameTypeName);
+    return registerFrameHandler(frameType, handler);
+}
+
+void Frame::clearFrameHandler(FrameType type) {
+    Locker lock(mutex);
+    auto iterator = handlerMap.find(type);
+    if (iterator != handlerMap.end()) {
+        handlerMap.erase(iterator);
+    }
+}
+
+void Frame::clearFrameHandler(const QString& frameTypeName) {
+    auto frameType = registerFrameType(frameTypeName);
+    clearFrameHandler(frameType); 
+}
+
+
 void Frame::handleFrame(const Frame::ConstPointer& frame) {
     Handler handler; 
     {

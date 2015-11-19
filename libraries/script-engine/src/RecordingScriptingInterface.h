@@ -10,13 +10,13 @@
 #define hifi_RecordingScriptingInterface_h
 
 #include <atomic>
+#include <mutex>
 
 #include <QObject>
 
 #include <DependencyManager.h>
 #include <recording/Forward.h>
 #include <recording/Frame.h>
-#include <AvatarData.h>
 
 class RecordingScriptingInterface : public QObject, public Dependency {
     Q_OBJECT
@@ -25,47 +25,50 @@ public:
     RecordingScriptingInterface();
 
 public slots:
-    bool isPlaying();
-    bool isPaused();
-    float playerElapsed();
-    float playerLength();
     void loadRecording(const QString& filename);
+
     void startPlaying();
+    void pausePlayer();
+    void stopPlaying();
+    bool isPlaying() const;
+    bool isPaused() const;
+
+    float playerElapsed() const;
+    float playerLength() const;
+
     void setPlayerVolume(float volume);
     void setPlayerAudioOffset(float audioOffset);
     void setPlayerTime(float time);
-    void setPlayFromCurrentLocation(bool playFromCurrentLocation);
     void setPlayerLoop(bool loop);
+
     void setPlayerUseDisplayName(bool useDisplayName);
     void setPlayerUseAttachments(bool useAttachments);
     void setPlayerUseHeadModel(bool useHeadModel);
     void setPlayerUseSkeletonModel(bool useSkeletonModel);
-    void play();
-    void pausePlayer();
-    void stopPlaying();
-    bool isRecording();
-    float recorderElapsed();
+    void setPlayFromCurrentLocation(bool playFromCurrentLocation);
+
+    bool getPlayerUseDisplayName() { return _useDisplayName; }
+    bool getPlayerUseAttachments() { return _useAttachments; }
+    bool getPlayerUseHeadModel() { return _useHeadModel; }
+    bool getPlayerUseSkeletonModel() { return _useSkeletonModel; }
+    bool getPlayFromCurrentLocation() { return _playFromCurrentLocation; }
+
     void startRecording();
     void stopRecording();
+    bool isRecording() const;
+
+    float recorderElapsed() const;
+
     void saveRecording(const QString& filename);
     void loadLastRecording();
 
-signals:
-    void playbackStateChanged();
-    // Should this occur for any frame or just for seek calls?
-    void playbackPositionChanged();
-    void looped();
-
-private:
+protected:
     using Mutex = std::recursive_mutex;
     using Locker = std::unique_lock<Mutex>;
     using Flag = std::atomic<bool>;
-    void processAvatarFrame(const recording::FrameConstPointer& frame);
-    void processAudioFrame(const recording::FrameConstPointer& frame);
-    void processAudioInput(const QByteArray& audioData);
+
     QSharedPointer<recording::Deck> _player;
     QSharedPointer<recording::Recorder> _recorder;
-    quint64 _recordingEpoch { 0 };
     
     Flag _playFromCurrentLocation { true };
     Flag _useDisplayName { false };
@@ -73,7 +76,6 @@ private:
     Flag _useAttachments { false };
     Flag _useSkeletonModel { false };
     recording::ClipPointer _lastClip;
-    AvatarData _dummyAvatar;
 };
 
 #endif // hifi_RecordingScriptingInterface_h

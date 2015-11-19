@@ -306,7 +306,6 @@ public slots:
     
 private slots:
     void clearDomainOctreeDetails();
-    void ping();
     void idle(uint64_t now);
     void aboutToQuit();
 

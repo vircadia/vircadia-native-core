@@ -26,7 +26,8 @@ public:
 private:
     virtual FrameConstPointer readFrame(size_t index) const override;
     QString _name { QUuid().toString() };
-    mutable size_t _frameIndex { 0 };
+    
+    //mutable size_t _frameIndex { 0 }; // FIXME - not in use
 };
 
 }

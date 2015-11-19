@@ -1617,6 +1617,11 @@ PropertiesTool = function(opts) {
                     pushCommandForSelections();
                     selectionManager._update();
                 }
+            } else if (data.action == "previewCamera") {
+                if (selectionManager.hasSelection()) {
+                    Camera.mode = "entity";
+                    Camera.cameraEntity = selectionManager.selections[0];
+                }
             } else if (data.action == "rescaleDimensions") {
                 var multiplier = data.percentage / 100;
                 if (selectionManager.hasSelection()) {

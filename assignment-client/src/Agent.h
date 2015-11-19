@@ -58,25 +58,21 @@ private slots:
     void handleAudioPacket(QSharedPointer<NLPacket> packet);
     void handleOctreePacket(QSharedPointer<NLPacket> packet, SharedNodePointer senderNode);
     void handleJurisdictionPacket(QSharedPointer<NLPacket> packet, SharedNodePointer senderNode);
-    void sendPingRequests();
     void processAgentAvatarAndAudio(float deltaTime);
 
 private:
     std::unique_ptr<ScriptEngine> _scriptEngine;
     EntityEditPacketSender _entityEditSender;
     EntityTreeHeadlessViewer _entityViewer;
-    QTimer* _pingTimer;
     
     MixedAudioStream _receivedAudioStream;
     float _lastReceivedAudioLoudness;
 
-    void setAvatarData(AvatarData* avatarData, const QString& objectName);
     void setAvatarSound(Sound* avatarSound) { _avatarSound = avatarSound; }
 
     void sendAvatarIdentityPacket();
     void sendAvatarBillboardPacket();
 
-    AvatarData* _avatarData = nullptr;
     bool _isListeningToAudioStream = false;
     Sound* _avatarSound = nullptr;
     int _numAvatarSoundSentBytes = 0;
