@@ -300,7 +300,7 @@ function createBloodSplatter(position) {
         type: "ParticleEffect",
         position: position,
         lifetime: 4,
-        "name": "Blood SPlatter",
+        "name": "Blood Splatter",
         "color": {
             red: 230,
             green: 2,
