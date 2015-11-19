@@ -1835,14 +1835,25 @@ void DomainServer::processNodeDisconnectRequestPacket(QSharedPointer<NLPacket> p
     
     qDebug() << "Received a disconnect request from node with UUID" << nodeUUID;
     
-    if (limitedNodeList->killNodeWithUUID(nodeUUID)) {        
+    // we want to check what type this node was before going to kill it so that we can avoid sending the RemovedNode
+    // packet to nodes that don't care about this type
+    auto node = limitedNodeList->nodeWithUUID(nodeUUID);
+    
+    if (node) {
+        auto nodeType = node->getType();
+        limitedNodeList->killNodeWithUUID(nodeUUID);
+        
         static auto removedNodePacket = NLPacket::create(PacketType::DomainServerRemovedNode, NUM_BYTES_RFC4122_UUID);
         
         removedNodePacket->reset();
         removedNodePacket->write(nodeUUID.toRfc4122());
     
         // broadcast out the DomainServerRemovedNode message
-        limitedNodeList->eachNode([&limitedNodeList](const SharedNodePointer& otherNode){
+        limitedNodeList->eachMatchingNode([&nodeType](const SharedNodePointer& otherNode) -> bool {
+            // only send the removed node packet to nodes that care about the type of node this was
+            auto nodeLinkedData = dynamic_cast<DomainServerNodeData*>(otherNode->getLinkedData());
+            return (nodeLinkedData != nullptr) && nodeLinkedData->getNodeInterestSet().contains(nodeType);
+        }, [&limitedNodeList](const SharedNodePointer& otherNode){
             limitedNodeList->sendUnreliablePacket(*removedNodePacket, *otherNode);
         });
     }
