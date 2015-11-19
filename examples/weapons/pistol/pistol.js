@@ -16,6 +16,12 @@
     Script.include("../../libraries/constants.js");
 
     var _this;
+    // if the trigger value goes below this while held, the can will stop spraying.  if it goes above, it will spray
+    var DISABLE_LASER_THRESHOLD = 0.2;
+    var TRIGGER_CONTROLS = [
+        Controller.Standard.LT,
+        Controller.Standard.RT,
+    ];
     Pistol = function() {
         _this = this;
         this.equipped = false;
@@ -29,6 +35,10 @@
         this.fireSound = SoundCache.getSound("https://s3.amazonaws.com/hifi-public/sounds/Guns/GUN-SHOT2.raw");
         this.fireVolume = 0.5;
         this.bulletForce = 10;
+
+
+
+        this.showLaser = false;
     };
 
     Pistol.prototype = {
@@ -36,18 +46,32 @@
         startEquip: function(id, params) {
             this.equipped = true;
             this.hand = JSON.parse(params[0]);
-            Overlays.editOverlay(this.laser, {
-                visible: true
-            });
         },
 
         continueNearGrab: function() {
             if (!this.equipped) {
                 return;
             }
-            this.updateLaser();
+            this.toggleWithTriggerPressure();
+            if (this.showLaser) {
+                this.updateLaser();
+            }
         },
+        toggleWithTriggerPressure: function() {
+            this.triggerValue = Controller.getValue(TRIGGER_CONTROLS[this.hand]);
+            if (this.triggerValue < DISABLE_LASER_THRESHOLD && this.showLaser === true) {
+                this.showLaser = false;
+                Overlays.editOverlay(this.laser, {
+                    visible: false
+                });
+            } else if (this.triggerValue >= DISABLE_LASER_THRESHOLD && this.showLaser === false) {
+                this.showLaser = true
+                  Overlays.editOverlay(this.laser, {
+                    visible: true
+                });
+            }
 
+        },
         updateLaser: function() {
             var gunProps = Entities.getEntityProperties(this.entityID, ['position', 'rotation']);
             var position = gunProps.position;
