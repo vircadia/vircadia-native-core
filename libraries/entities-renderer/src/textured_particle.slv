@@ -37,21 +37,67 @@ uniform particleBuffer {
 };
 
 in vec3 inPosition;
-in vec2 inExtra;
+in vec2 inColor; // This is actual Lifetime + Seed
 
 out vec4 varColor;
 out vec2 varTexcoord;
 
-float mix(float start, float finish, float age) {
-    return start + (finish - start) * age;
+float bezierInterpolate(float y1, float y2, float y3, float u) {
+    // https://en.wikipedia.org/wiki/Bezier_curve
+    return (1.0 - u) * (1.0 - u) * y1 + 2.0 * (1.0 - u) * u * y2 + u * u * y3;
 }
 
-vec4 mixV(vec4 start, vec4 finish, float age) {
-    return vec4(mix(start.x, finish.x, age),
-                mix(start.y, finish.y, age),
-                mix(start.z, finish.z, age),
-                mix(start.w, finish.w, age));
+float interpolate3Floats(float y1, float y2, float y3, float u) {
+    if ((u <= 0.5 && y1 == y2) || (u >= 0.5 && y2 == y3)) {
+        // Flat line.
+        return y2;
+    }
+    
+    if ((y2 >= y1 && y2 >= y3) || (y2 <= y1 && y2 <= y3)) {
+        // U or inverted-U shape.
+        // Make the slope at y2 = 0, which means that the control points half way between the value points have the value y2.
+        if (u <= 0.5) {
+            return bezierInterpolate(y1, y2, y2, 2.0 * u);
+        } else {
+            return bezierInterpolate(y2, y2, y3, 2.0 * u - 1.0);
+        }
+        
+    } else {
+        // L or inverted and/or mirrored L shape.
+        // Make the slope at y2 be the slope between y1 and y3, up to a maximum of double the minimum of the slopes between y1
+        // and y2, and y2 and y3. Use this slope to calculate the control points half way between the value points.
+        // Note: The maximum ensures that the control points and therefore the interpolated values stay between y1 and y3.
+        float slope = y3 - y1;
+        float slope12 = y2 - y1;
+        float slope23 = y3 - y2;
+        if (abs(slope) > abs(2.0 * slope12)) {
+            slope = 2.0 * slope12;
+        } else if (abs(slope) > abs(2.0 * slope23)) {
+            slope = 2.0 * slope23;
+        }
+        
+        if (u <= 0.5) {
+            return bezierInterpolate(y1, y2 - slope / 2.0, y2, 2.0 * u);
+        } else {
+            return bezierInterpolate(y2, y2 + slope / 2.0, y3, 2.0 * u - 1.0);
+        }
+
+//        float uGreaterHalf = step(0.5, u);
+//        float uSign = sign(uGreaterHalf - 0.5);
+//        vec4 y12 = mix(y1, y2, uGreaterHalf)
+//        vec4 y23 = mix(y2, y3, uGreaterHalf)
+//        
+//        return bezierInterpolate(y12, y2 + uSign * slope / 2.0, y23, 2.0 * u - uGreaterHalf);
+    }
 }
+
+vec4 interpolate3Vec4(vec4 y1, vec4 y2, vec4 y3, float u) {
+    return vec4(interpolate3Floats(y1.x, y2.x, y3.x, u),
+                interpolate3Floats(y1.y, y2.y, y3.y, u),
+                interpolate3Floats(y1.z, y2.z, y3.z, u),
+                interpolate3Floats(y1.w, y2.w, y3.w, u));
+}
+
 
 void main(void) {
     const int NUM_VERTICES_PER_PARTICLE = 4;
@@ -62,12 +108,12 @@ void main(void) {
         vec4(1.0, 1.0, 0.0, 1.0)
     );
     
-    float age = inExtra.x / particle.lifespan;
-    float seed = inExtra.y;
+    float age = inColor.x / particle.lifespan;
+    float seed = inColor.y;
     
     // anchor point in eye space
     vec4 anchorPoint = vec4(inPosition.xyz, 1.0);
-    float radius = mix(particle.radius.start, particle.radius.finish , age);
+    float radius = interpolate3Floats(particle.radius.start, particle.radius.middle, particle.radius.finish , age);
     
     TransformCamera cam = getTransformCamera();
     TransformObject obj = getTransformObject();
@@ -80,13 +126,19 @@ void main(void) {
     int twoTriID = gl_VertexID - particleID * NUM_VERTICES_PER_PARTICLE;
     vec4 quadPos = radius * UNIT_QUAD[twoTriID];
     
-    // Pass the texcoord and the z texcoord is representing the texture icon
-    varTexcoord = vec2((UNIT_QUAD[twoTriID].xy + 1.0) * 0.5);
-    varColor = mixV(particle.color.start, particle.color.finish , age);
-    varColor.w = particle.color.middle.w;
-    
     vec4 clipPos;
     vec4 eyePos = vec4(anchorPoint.xyz + quadPos.xyz, 1.0);
     <$transformEyeToClip(cam, eyePos, clipPos)$>
     gl_Position = clipPos;
+    
+    
+    // Pass the texcoord and the z texcoord is representing the texture icon
+    varTexcoord = vec2((UNIT_QUAD[twoTriID].xy + 1.0) * 0.5);
+    varColor = interpolate3Vec4(particle.color.start, particle.color.middle, particle.color.finish, age);
+    
+    //    if (inColor.x == 0.0) {
+    //        varColor = vec4(0, 1, 0, 1);
+    //    } else {
+    //        varColor = vec4(1, 0, 0, 1);
+    //    }
 }

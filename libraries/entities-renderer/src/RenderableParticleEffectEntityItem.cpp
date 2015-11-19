@@ -179,8 +179,8 @@ void RenderableParticleEffectEntityItem::update(const quint64& now) {
     updateRenderItem();
 }
 
-glm::vec3 toGlm(const rgbColor& color) {
-    return glm::vec3(color[RED_INDEX], color[GREEN_INDEX], color[BLUE_INDEX]);
+static glm::vec4 toGlm(const xColor& color, float alpha) {
+    return glm::vec4((float)color.red / 255.0f, (float)color.green / 255.0f, (float)color.blue / 255.0f, alpha);
 }
 
 void RenderableParticleEffectEntityItem::updateRenderItem() {
@@ -194,10 +194,10 @@ void RenderableParticleEffectEntityItem::updateRenderItem() {
     _particleUniforms.radius.finish = getRadiusFinish();
     _particleUniforms.radius.spread = getRadiusSpread();
     
-    _particleUniforms.color.start = glm::vec4(toGlm(getColorStart()), getAlphaStart());
-    _particleUniforms.color.middle = glm::vec4(toGlm(getColor()), getAlpha());
-    _particleUniforms.color.finish = glm::vec4(toGlm(getColorFinish()), getAlphaFinish());
-    _particleUniforms.color.spread = glm::vec4(toGlm(getColorSpread()), getAlphaSpread());
+    _particleUniforms.color.start = toGlm(getColorStart(), getAlphaStart());
+    _particleUniforms.color.middle = toGlm(getXColor(), getAlpha());
+    _particleUniforms.color.finish = toGlm(getColorFinish(), getAlphaFinish());
+    _particleUniforms.color.spread = toGlm(getColorSpread(), getAlphaSpread());
     
     _particleUniforms.lifespan = getLifespan();
     
