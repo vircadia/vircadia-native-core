@@ -74,9 +74,10 @@ class QAudioInput;
 class QAudioOutput;
 class QIODevice;
 
+
 typedef struct ty_gverb ty_gverb;
 
-
+class Transform;
 class NLPacket;
 
 class AudioClient : public AbstractAudioInterface, public Dependency {
@@ -212,7 +213,6 @@ protected:
     }
 
 private:
-    void emitAudioPacket(const int16_t* audioData, PacketType packetType = PacketType::Unknown);
     void outputFormatChanged();
 
     QByteArray firstInputFrame;
@@ -319,8 +319,6 @@ private:
     void checkDevices();
 
     bool _hasReceivedFirstPacket = false;
-
-    std::unique_ptr<NLPacket> _audioPacket;
 };
 
 
