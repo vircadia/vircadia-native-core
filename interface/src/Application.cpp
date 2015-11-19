@@ -1004,10 +1004,6 @@ void Application::initializeGL() {
     connect(&_octreeProcessor, &OctreePacketProcessor::packetVersionMismatch, this, &Application::notifyPacketVersionMismatch);
     _entityEditSender.initialize(_enableProcessOctreeThread);
 
-    // call our timer function every second
-    connect(&pingTimer, &QTimer::timeout, this, &Application::ping);
-    pingTimer.start(1000);
-
     _idleLoopStdev.reset();
 
     // update before the first render
@@ -2146,13 +2142,6 @@ bool Application::acceptSnapshot(const QString& urlString) {
         msgBox.exec();
     }
     return true;
-}
-
-//  Every second, send a ping, if menu item is checked.
-void Application::ping() {
-    if (Menu::getInstance()->isOptionChecked(MenuOption::TestPing)) {
-        DependencyManager::get<NodeList>()->sendPingPackets();
-    }
 }
 
 void Application::idle(uint64_t now) {

@@ -56,7 +56,6 @@ public:
 struct FBXJointShapeInfo {
     // same units and frame as FBXJoint.translation
     QVector<glm::vec3> points;
-    float radius;
 };
 
 /// A single joint (transformation node) extracted from an FBX document.
