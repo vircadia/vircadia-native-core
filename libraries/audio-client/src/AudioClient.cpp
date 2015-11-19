@@ -555,7 +555,7 @@ void AudioClient::configureReverb() {
     _listenerReverb.setParameters(&p);
 
     // used for adding self-reverb to loopback audio
-    p.wetDryMix = _shouldEchoLocally ? 0.0f : 100.0f;   // local echo is 100% dry
+    p.wetDryMix = 100.0f;
     p.preDelay = 0.0f;
     p.earlyGain = -96.0f;   // disable ER
     p.lateGain -= 6.0f;     // quieter than listener reverb
@@ -666,7 +666,7 @@ void AudioClient::handleLocalEchoAndReverb(QByteArray& inputByteArray) {
                        _inputFormat, _outputFormat);
 
     // apply stereo reverb at the source, to the loopback audio
-    if (hasReverb) {
+    if (!_shouldEchoLocally && hasReverb) {
         assert(_outputFormat.channelCount() == 2);
         updateReverbOptions();
         _sourceReverb.render(loopbackSamples, loopbackSamples, numLoopbackSamples/2);
