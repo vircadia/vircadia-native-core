@@ -328,25 +328,19 @@ void AvatarManager::handleCollisionEvents(const CollisionEvents& collisionEvents
     }
 }
 
-void AvatarManager::updateAvatarPhysicsShape(const QUuid& id) {
-    auto avatarData = findAvatar(id);
-    
-    if (avatarData) {
-        auto avatar = std::dynamic_pointer_cast<Avatar>(avatarData);
-        
-        AvatarMotionState* motionState = avatar->getMotionState();
-        if (motionState) {
-            motionState->addDirtyFlags(Simulation::DIRTY_SHAPE);
-        } else {
-            ShapeInfo shapeInfo;
-            avatar->computeShapeInfo(shapeInfo);
-            btCollisionShape* shape = ObjectMotionState::getShapeManager()->getShape(shapeInfo);
-            if (shape) {
-                AvatarMotionState* motionState = new AvatarMotionState(avatar.get(), shape);
-                avatar->setMotionState(motionState);
-                _motionStatesToAdd.insert(motionState);
-                _avatarMotionStates.insert(motionState);
-            }
+void AvatarManager::updateAvatarPhysicsShape(Avatar* avatar) {
+    AvatarMotionState* motionState = avatar->getMotionState();
+    if (motionState) {
+        motionState->addDirtyFlags(Simulation::DIRTY_SHAPE);
+    } else {
+        ShapeInfo shapeInfo;
+        avatar->computeShapeInfo(shapeInfo);
+        btCollisionShape* shape = ObjectMotionState::getShapeManager()->getShape(shapeInfo);
+        if (shape) {
+            AvatarMotionState* motionState = new AvatarMotionState(avatar, shape);
+            avatar->setMotionState(motionState);
+            _motionStatesToAdd.insert(motionState);
+            _avatarMotionStates.insert(motionState);
         }
     }
 }

@@ -63,7 +63,7 @@ public:
     void handleOutgoingChanges(const VectorOfMotionStates& motionStates);
     void handleCollisionEvents(const CollisionEvents& collisionEvents);
 
-    void updateAvatarPhysicsShape(const QUuid& id);
+    void updateAvatarPhysicsShape(Avatar* avatar);
    
 public slots:
     void setShouldShowReceiveStats(bool shouldShowReceiveStats) { _shouldShowReceiveStats = shouldShowReceiveStats; }
