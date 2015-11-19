@@ -168,16 +168,19 @@ void Rig::initJointStates(const FBXGeometry& geometry, glm::mat4 modelOffset, in
                           int rightHandJointIndex, int rightElbowJointIndex, int rightShoulderJointIndex) {
 
     _animSkeleton = std::make_shared<AnimSkeleton>(geometry);
-    computeEyesInRootFrame(_animSkeleton->getRelativeBindPoses());
+
+    _animSkeleton->dump();
+
+    computeEyesInRootFrame(_animSkeleton->getRelativeDefaultPoses());
 
     _relativePoses.clear();
-    _relativePoses = _animSkeleton->getRelativeBindPoses();
+    _relativePoses = _animSkeleton->getRelativeDefaultPoses();
 
     _absolutePoses.clear();
-    _absolutePoses = _animSkeleton->getAbsoluteBindPoses();
+    _absolutePoses = _animSkeleton->getAbsoluteDefaultPoses();
 
     _overridePoses.clear();
-    _overridePoses = _animSkeleton->getRelativeBindPoses();
+    _overridePoses = _animSkeleton->getRelativeDefaultPoses();
 
     _overrideFlags.clear();
     _overrideFlags.resize(_animSkeleton->getNumJoints(), false);
@@ -245,7 +248,7 @@ void Rig::setModelOffset(const glm::mat4& modelOffset) {
         _legacyModelOffset = modelOffset;
     }
     _modelOffset = AnimPose(modelOffset);
-    _modelScale = _modelOffset.scale.x;
+    _modelScale = _modelOffset.scale;
 }
 
 // AJT: REMOVE
@@ -1262,7 +1265,7 @@ void Rig::buildAbsolutePoses() {
     for (int i = 0; i < (int)_absolutePoses.size(); i++) {
         _absolutePoses[i].trans = _modelOffset.trans + _absolutePoses[i].trans;
         _absolutePoses[i].rot = _modelOffset.rot * _absolutePoses[i].rot;
-        _absolutePoses[i].scale = glm::vec3(_modelScale);
+        _absolutePoses[i].scale = _absolutePoses[i].scale * _modelScale;
     }
 
     // AJT: LEGACY
@@ -1295,8 +1298,9 @@ glm::mat4 Rig::getJointTransform(int jointIndex) const {
     // AJT: test if _absolutePoses are the same as jointTransforms
     // only test once we have a full skeleton (ryan avatar)
     //if (_jointStates.size() == 73) {
-    /*
-    if (!_animNode && _jointStates.size() != 73) {
+
+    // check for differences between jointStates and _absolutePoses!
+    {
         // should display for model entities
         glm::mat4 newMat = _absolutePoses[jointIndex];
         glm::mat4 oldMat = _jointStates[jointIndex].getTransform();
@@ -1308,22 +1312,18 @@ glm::mat4 Rig::getJointTransform(int jointIndex) const {
             glm::length(newMat[3] - oldMat[3]) > EPSILON) {
 
             // error?
-            qCDebug(animation).nospace() << "AJT: mismatch for joint[" << jointIndex << "]";
+            qCDebug(animation).nospace() << "AJT: mismatch for " << _animSkeleton->getJointName(jointIndex) << ", joint[" << jointIndex << "]";
             qCDebug(animation) << "AJT: oldMat = " << AnimPose(oldMat);
             qCDebug(animation) << "AJT: newMat = " << AnimPose(newMat);
 
         }
     }
-    */
 
     // AJT: LEGACY
     {
-        return _jointStates[jointIndex].getTransform();
+        //return _jointStates[jointIndex].getTransform();
     }
 
-    // AJT: TODO this works for MyAvatar but not model entities.  WTF
-    {
-        //return _absolutePoses[jointIndex];
-    }
+    return _absolutePoses[jointIndex];
 }
 
