@@ -59,6 +59,9 @@ public:
     bool isInitialLoadComplete() const { return (_persistThread) ? _persistThread->isInitialLoadComplete() : true; }
     bool isPersistEnabled() const { return (_persistThread) ? true : false; }
     quint64 getLoadElapsedTime() const { return (_persistThread) ? _persistThread->getLoadElapsedTime() : 0; }
+    QString getPersistFilename() const { return (_persistThread) ? _persistThread->getPersistFilename() : ""; }
+    QString getPersistFileMimeType() const { return (_persistThread) ? _persistThread->getPersistFileMimeType() : "text/plain"; }
+    QByteArray getPersistFileContents() const { return (_persistThread) ? _persistThread->getPersistFileContents() : QByteArray(); }
 
     // Subclasses must implement these methods
     virtual OctreeQueryNode* createOctreeQueryNode() = 0;
@@ -173,6 +176,7 @@ protected:
 
     int _persistInterval;
     bool _wantBackup;
+    bool _persistFileDownload;
     QString _backupExtensionFormat;
     int _backupInterval;
     int _maxBackupVersions;
