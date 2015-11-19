@@ -75,6 +75,7 @@ body {
     height: 22.5pt;
 }
 
+
 .property-section label {
     font-weight: bold;
 }
@@ -341,4 +342,22 @@ input#property-name {
 	height: 10px;
 	margin: 5px;
 	border: 1px solid white;
+}
+
+.prop-x {
+    color:red !important;
+    background: rgba(255, 0, 0, .9);
+    height:2px !important;
+}
+
+.prop-y {
+    color:green !important;
+    background: rgba(0, 255, 0, .9);
+    height:2px !important;
+}
+
+.prop-z{
+    color:blue !important;
+    background: rgba(0, 0, 255, .9);
+    height:2px !important;
 }

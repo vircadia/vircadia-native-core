@@ -9,52 +9,37 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include <vector>
+#include "SixenseManager.h"
+
+#ifdef HAVE_SIXENSE
+#include <sixense.h>
+#endif
 
 #include <QCoreApplication>
+#include <QtCore/QSysInfo>
+#include <QtGlobal>
 
+#include <controllers/UserInputMapper.h>
 #include <GLMHelpers.h>
 #include <NumericalConstants.h>
+#include <PathUtils.h>
 #include <PerfStat.h>
-#include <SettingHandle.h>
 #include <plugins/PluginContainer.h>
+#include <SettingHandle.h>
+#include <UserActivityLogger.h>
 
-#include "NumericalConstants.h"
-#include "SixenseManager.h"
-#include "UserActivityLogger.h"
+#include "InputPluginsLogging.h"
 
-#ifdef HAVE_SIXENSE
-    #include "sixense.h"
-#endif
+static const unsigned int BUTTON_0 = 1U << 0; // the skinny button between 1 and 2
+static const unsigned int BUTTON_1 = 1U << 5;
+static const unsigned int BUTTON_2 = 1U << 6;
+static const unsigned int BUTTON_3 = 1U << 3;
+static const unsigned int BUTTON_4 = 1U << 4;
+static const unsigned int BUTTON_FWD = 1U << 7;
+static const unsigned int BUTTON_TRIGGER = 1U << 8;
 
-// TODO: This should not be here
-#include <QLoggingCategory>
-Q_DECLARE_LOGGING_CATEGORY(inputplugins)
-Q_LOGGING_CATEGORY(inputplugins, "hifi.inputplugins")
-
-// These bits aren't used for buttons, so they can be used as masks:
-const unsigned int LEFT_MASK = 0;
-const unsigned int RIGHT_MASK = 1U << 1;
-
-#ifdef HAVE_SIXENSE
-
-const int CALIBRATION_STATE_IDLE = 0;
-const int CALIBRATION_STATE_IN_PROGRESS = 1;
-const int CALIBRATION_STATE_COMPLETE = 2;
-
-const glm::vec3 DEFAULT_AVATAR_POSITION(-0.25f, -0.35f, -0.3f); // in hydra frame
-
-const float CONTROLLER_THRESHOLD = 0.35f;
-
-#endif
-
-#ifdef __APPLE__
-typedef int (*SixenseBaseFunction)();
-typedef int (*SixenseTakeIntFunction)(int);
-#ifdef HAVE_SIXENSE
-typedef int (*SixenseTakeIntAndSixenseControllerData)(int, sixenseControllerData*);
-#endif
-#endif
+const glm::vec3 SixenseManager::DEFAULT_AVATAR_POSITION { -0.25f, -0.35f, -0.3f }; // in hydra frame
+const float SixenseManager::CONTROLLER_THRESHOLD { 0.35f };
 
 const QString SixenseManager::NAME = "Sixense";
 const QString SixenseManager::HYDRA_ID_STRING = "Razer Hydra";
@@ -63,181 +48,144 @@ const QString MENU_PARENT = "Avatar";
 const QString MENU_NAME = "Sixense";
 const QString MENU_PATH = MENU_PARENT + ">" + MENU_NAME;
 const QString TOGGLE_SMOOTH = "Smooth Sixense Movement";
-const float DEFAULT_REACH_LENGTH = 1.5f;
-
-
-SixenseManager::SixenseManager() :
-    InputDevice("Hydra"),
-    _reachLength(DEFAULT_REACH_LENGTH),
-#ifdef __APPLE__
-    _sixenseLibrary(nullptr),
-#endif
-    _hydrasConnected(false)
-{
-}
 
 bool SixenseManager::isSupported() const {
 #ifdef HAVE_SIXENSE
+
+#if defined(Q_OS_OSX)
+    return QSysInfo::macVersion() <= QSysInfo::MV_MAVERICKS;
+#else
     return true;
+#endif
+    
 #else
     return false;
 #endif
 }
 
 void SixenseManager::activate() {
+    InputPlugin::activate();
+    
 #ifdef HAVE_SIXENSE
-    _calibrationState = CALIBRATION_STATE_IDLE;
-    _avatarPosition = DEFAULT_AVATAR_POSITION;
-
-    CONTAINER->addMenu(MENU_PATH);
-    CONTAINER->addMenuItem(MENU_PATH, TOGGLE_SMOOTH,
-                           [this] (bool clicked) { this->setSixenseFilter(clicked); },
+    _container->addMenu(MENU_PATH);
+    _container->addMenuItem(MENU_PATH, TOGGLE_SMOOTH,
+                           [this] (bool clicked) { setSixenseFilter(clicked); },
                            true, true);
 
-#ifdef __APPLE__
+    auto userInputMapper = DependencyManager::get<controller::UserInputMapper>();
+    userInputMapper->registerDevice(_inputDevice);
 
-    if (!_sixenseLibrary) {
-
-#ifdef SIXENSE_LIB_FILENAME
-        _sixenseLibrary = new QLibrary(SIXENSE_LIB_FILENAME);
-#else
-        const QString SIXENSE_LIBRARY_NAME = "libsixense_x64";
-        QString frameworkSixenseLibrary = QCoreApplication::applicationDirPath() + "/../Frameworks/"
-            + SIXENSE_LIBRARY_NAME;
-
-        _sixenseLibrary = new QLibrary(frameworkSixenseLibrary);
-#endif
-    }
-
-    if (_sixenseLibrary->load()){
-        qCDebug(inputplugins) << "Loaded sixense library for hydra support -" << _sixenseLibrary->fileName();
-    } else {
-        qCDebug(inputplugins) << "Sixense library at" << _sixenseLibrary->fileName() << "failed to load."
-            << "Continuing without hydra support.";
-        return;
-    }
-
-    SixenseBaseFunction sixenseInit = (SixenseBaseFunction) _sixenseLibrary->resolve("sixenseInit");
-#endif
     loadSettings();
     sixenseInit();
 #endif
 }
 
 void SixenseManager::deactivate() {
+    InputPlugin::deactivate();
+
 #ifdef HAVE_SIXENSE
-    CONTAINER->removeMenuItem(MENU_NAME, TOGGLE_SMOOTH);
-    CONTAINER->removeMenu(MENU_PATH);
+    _container->removeMenuItem(MENU_NAME, TOGGLE_SMOOTH);
+    _container->removeMenu(MENU_PATH);
 
-    _poseStateMap.clear();
+    _inputDevice->_poseStateMap.clear();
+    _inputDevice->_collectedSamples.clear();
 
-#ifdef __APPLE__
-    SixenseBaseFunction sixenseExit = (SixenseBaseFunction)_sixenseLibrary->resolve("sixenseExit");
-#endif
+    if (_inputDevice->_deviceID != controller::Input::INVALID_DEVICE) {
+        auto userInputMapper = DependencyManager::get<controller::UserInputMapper>();
+        userInputMapper->removeDevice(_inputDevice->_deviceID);
+    }
 
     sixenseExit();
-
-#ifdef __APPLE__
-    delete _sixenseLibrary;
-#endif
-
+    saveSettings();
 #endif
 }
 
 void SixenseManager::setSixenseFilter(bool filter) {
 #ifdef HAVE_SIXENSE
-#ifdef __APPLE__
-    SixenseTakeIntFunction sixenseSetFilterEnabled = (SixenseTakeIntFunction) _sixenseLibrary->resolve("sixenseSetFilterEnabled");
-#endif
-    int newFilter = filter ? 1 : 0;
-    sixenseSetFilterEnabled(newFilter);
+    sixenseSetFilterEnabled(filter ? 1 : 0);
 #endif
 }
 
-void SixenseManager::update(float deltaTime, bool jointsCaptured) {
+void SixenseManager::pluginUpdate(float deltaTime, bool jointsCaptured) {
+    _inputDevice->update(deltaTime, jointsCaptured);
+    if (_inputDevice->_requestReset) {
+        _container->requestReset();
+        _inputDevice->_requestReset = false;
+    }
+}
+
+void SixenseManager::InputDevice::update(float deltaTime, bool jointsCaptured) {
 #ifdef HAVE_SIXENSE
     _buttonPressedMap.clear();
 
-#ifdef __APPLE__
-    SixenseBaseFunction sixenseGetNumActiveControllers =
-    (SixenseBaseFunction) _sixenseLibrary->resolve("sixenseGetNumActiveControllers");
-#endif
-
-    auto userInputMapper = DependencyManager::get<UserInputMapper>();
-
+    static const float MAX_DISCONNECTED_TIME = 2.0f;
+    static bool disconnected { false };
+    static float disconnectedInterval { 0.0f };
     if (sixenseGetNumActiveControllers() == 0) {
-        if (_hydrasConnected) {
-            qCDebug(inputplugins, "hydra disconnected");
+        if (!disconnected) {
+            disconnectedInterval += deltaTime;
         }
-        _hydrasConnected = false;
-        if (_deviceID != 0) {
-            userInputMapper->removeDevice(_deviceID);
-            _deviceID = 0;
+        if (disconnectedInterval > MAX_DISCONNECTED_TIME) {
+            disconnected = true;
+            _axisStateMap.clear();
+            _buttonPressedMap.clear();
             _poseStateMap.clear();
+            _collectedSamples.clear();
         }
         return;
     }
 
-    PerformanceTimer perfTimer("sixense");
-    if (!_hydrasConnected) {
-        _hydrasConnected = true;
-        registerToUserInputMapper(*userInputMapper);
-        assignDefaultInputMapping(*userInputMapper);
-        UserActivityLogger::getInstance().connectedDevice("spatial_controller", "hydra");
+    if (disconnected) {
+        disconnected = 0;
+        disconnectedInterval = 0.0f;
     }
 
-#ifdef __APPLE__
-    SixenseBaseFunction sixenseGetMaxControllers =
-    (SixenseBaseFunction) _sixenseLibrary->resolve("sixenseGetMaxControllers");
-#endif
+    PerformanceTimer perfTimer("sixense");
+    // FIXME send this message once when we've positively identified hydra hardware
+    //UserActivityLogger::getInstance().connectedDevice("spatial_controller", "hydra");
 
     int maxControllers = sixenseGetMaxControllers();
 
     // we only support two controllers
-    sixenseControllerData controllers[2];
-
-#ifdef __APPLE__
-    SixenseTakeIntFunction sixenseIsControllerEnabled =
-    (SixenseTakeIntFunction) _sixenseLibrary->resolve("sixenseIsControllerEnabled");
-
-    SixenseTakeIntAndSixenseControllerData sixenseGetNewestData =
-    (SixenseTakeIntAndSixenseControllerData) _sixenseLibrary->resolve("sixenseGetNewestData");
-#endif
+    SixenseControllerData controllers[2];
 
     int numActiveControllers = 0;
     for (int i = 0; i < maxControllers && numActiveControllers < 2; i++) {
         if (!sixenseIsControllerEnabled(i)) {
             continue;
         }
-        sixenseControllerData* data = controllers + numActiveControllers;
+        SixenseControllerData* data = controllers + numActiveControllers;
         ++numActiveControllers;
         sixenseGetNewestData(i, data);
 
         // NOTE: Sixense API returns pos data in millimeters but we IMMEDIATELY convert to meters.
         glm::vec3 position(data->pos[0], data->pos[1], data->pos[2]);
         position *= METERS_PER_MILLIMETER;
-
+        bool left = i == 0;
+        using namespace controller;
         // Check to see if this hand/controller is on the base
         const float CONTROLLER_AT_BASE_DISTANCE = 0.075f;
         if (glm::length(position) >= CONTROLLER_AT_BASE_DISTANCE) {
-            handleButtonEvent(data->buttons, numActiveControllers - 1);
-            handleAxisEvent(data->joystick_x, data->joystick_y, data->trigger, numActiveControllers - 1);
+            handleButtonEvent(data->buttons, left);
+            _axisStateMap[left ? LX : RX] = data->joystick_x;
+            _axisStateMap[left ? LY : RY] = data->joystick_y;
+            _axisStateMap[left ? LT : RT] = data->trigger;
 
             if (!jointsCaptured) {
                 //  Rotation of Palm
                 glm::quat rotation(data->rot_quat[3], data->rot_quat[0], data->rot_quat[1], data->rot_quat[2]);
-                handlePoseEvent(position, rotation, numActiveControllers - 1);
+                handlePoseEvent(deltaTime, position, rotation, left);
+                
             } else {
                 _poseStateMap.clear();
+                _collectedSamples.clear();
             }
         } else {
-            _poseStateMap[(numActiveControllers - 1) == 0 ? LEFT_HAND : RIGHT_HAND] = UserInputMapper::PoseValue();
+            auto hand = left ? controller::StandardPoseChannel::LEFT_HAND : controller::StandardPoseChannel::RIGHT_HAND;
+            _poseStateMap[hand] = controller::Pose();
+            _collectedSamples[hand].first.clear();
+            _collectedSamples[hand].second.clear();
         }
-
-//            //  Read controller buttons and joystick into the hand
-//            palm->setControllerButtons(data->buttons);
-//            palm->setTrigger(data->trigger);
-//            palm->setJoystick(data->joystick_x, data->joystick_y);
     }
 
     if (numActiveControllers == 2) {
@@ -263,36 +211,37 @@ void SixenseManager::update(float deltaTime, bool jointsCaptured) {
 // (4) assume that the orb is on a flat surface (yAxis is UP)
 // (5) compute the forward direction (zAxis = xAxis cross yAxis)
 
-const float MINIMUM_ARM_REACH = 0.3f; // meters
-const float MAXIMUM_NOISE_LEVEL = 0.05f; // meters
-const quint64 LOCK_DURATION = USECS_PER_SECOND / 4;     // time for lock to be acquired
+static const float MINIMUM_ARM_REACH = 0.3f; // meters
+static const float MAXIMUM_NOISE_LEVEL = 0.05f; // meters
+static const quint64 LOCK_DURATION = USECS_PER_SECOND / 4; // time for lock to be acquired
 
-void SixenseManager::updateCalibration(void* controllersX) {
-    auto controllers = reinterpret_cast<sixenseControllerData*>(controllersX);
-    const sixenseControllerData* dataLeft = controllers;
-    const sixenseControllerData* dataRight = controllers + 1;
+static bool calibrationRequested(SixenseControllerData* controllers) {
+    return (controllers[0].buttons == BUTTON_FWD && controllers[1].buttons == BUTTON_FWD);
+}
 
-    // calibration only happpens while both hands are holding BUTTON_FORWARD
-    if (dataLeft->buttons != BUTTON_FWD || dataRight->buttons != BUTTON_FWD) {
-        if (_calibrationState == CALIBRATION_STATE_IDLE) {
-            return;
-        }
+void SixenseManager::InputDevice::updateCalibration(SixenseControllerData* controllers) {
+    const SixenseControllerData* dataLeft = controllers;
+    const SixenseControllerData* dataRight = controllers + 1;
+
+    // Calibration buttons aren't set, so check the state, and request a reset if necessary.
+    if (!calibrationRequested(controllers)) {
         switch (_calibrationState) {
-            case CALIBRATION_STATE_COMPLETE:
-            {
-                // compute calibration results
-                _avatarPosition = - 0.5f * (_reachLeft + _reachRight); // neck is midway between right and left hands
-                glm::vec3 xAxis = glm::normalize(_reachRight - _reachLeft);
-                glm::vec3 zAxis = glm::normalize(glm::cross(xAxis, Vectors::UNIT_Y));
-                xAxis = glm::normalize(glm::cross(Vectors::UNIT_Y, zAxis));
-                _reachLength = glm::dot(xAxis, _reachRight - _reachLeft);
-                _avatarRotation = glm::inverse(glm::quat_cast(glm::mat3(xAxis, Vectors::UNIT_Y, zAxis)));
-                const float Y_OFFSET_CALIBRATED_HANDS_TO_AVATAR = -0.3f;
-                _avatarPosition.y += Y_OFFSET_CALIBRATED_HANDS_TO_AVATAR;
-                CONTAINER->requestReset();
-                qCDebug(inputplugins, "succeess: sixense calibration");
-            }
-            break;
+            case CALIBRATION_STATE_IDLE:
+                return;
+                
+            case CALIBRATION_STATE_COMPLETE: {
+                    // compute calibration results
+                    _avatarPosition = -0.5f * (_reachLeft + _reachRight); // neck is midway between right and left hands
+                    glm::vec3 xAxis = glm::normalize(_reachRight - _reachLeft);
+                    glm::vec3 zAxis = glm::normalize(glm::cross(xAxis, Vectors::UNIT_Y));
+                    xAxis = glm::normalize(glm::cross(Vectors::UNIT_Y, zAxis));
+                    _avatarRotation = glm::inverse(glm::quat_cast(glm::mat3(xAxis, Vectors::UNIT_Y, zAxis)));
+                    const float Y_OFFSET_CALIBRATED_HANDS_TO_AVATAR = -0.3f;
+                    _avatarPosition.y += Y_OFFSET_CALIBRATED_HANDS_TO_AVATAR;
+                    qCDebug(inputplugins, "succeess: sixense calibration");
+                    _requestReset = true;
+                }
+                break;
             default:
                 qCDebug(inputplugins, "failed: sixense calibration");
                 break;
@@ -302,6 +251,7 @@ void SixenseManager::updateCalibration(void* controllersX) {
         return;
     }
 
+    // Calibration buttons are set, continue calibration work
     // NOTE: Sixense API returns pos data in millimeters but we IMMEDIATELY convert to meters.
     const float* pos = dataLeft->pos;
     glm::vec3 positionLeft(pos[0], pos[1], pos[2]);
@@ -310,6 +260,7 @@ void SixenseManager::updateCalibration(void* controllersX) {
     glm::vec3 positionRight(pos[0], pos[1], pos[2]);
     positionRight *= METERS_PER_MILLIMETER;
 
+    // Gather initial calibration data
     if (_calibrationState == CALIBRATION_STATE_IDLE) {
         float reach = glm::distance(positionLeft, positionRight);
         if (reach > 2.0f * MINIMUM_ARM_REACH) {
@@ -352,45 +303,40 @@ void SixenseManager::updateCalibration(void* controllersX) {
 
 #endif  // HAVE_SIXENSE
 
-void SixenseManager::focusOutEvent() {
+void SixenseManager::InputDevice::focusOutEvent() {
     _axisStateMap.clear();
     _buttonPressedMap.clear();
 };
 
-void SixenseManager::handleAxisEvent(float stickX, float stickY, float trigger, int index) {
-    _axisStateMap[makeInput(AXIS_Y_POS, index).getChannel()] = (stickY > 0.0f) ? stickY : 0.0f;
-    _axisStateMap[makeInput(AXIS_Y_NEG, index).getChannel()] = (stickY < 0.0f) ? -stickY : 0.0f;
-    _axisStateMap[makeInput(AXIS_X_POS, index).getChannel()] = (stickX > 0.0f) ? stickX : 0.0f;
-    _axisStateMap[makeInput(AXIS_X_NEG, index).getChannel()] = (stickX < 0.0f) ? -stickX : 0.0f;
-    _axisStateMap[makeInput(BACK_TRIGGER, index).getChannel()] = trigger;
-}
-
-void SixenseManager::handleButtonEvent(unsigned int buttons, int index) {
+void SixenseManager::InputDevice::handleButtonEvent(unsigned int buttons, bool left) {
+    using namespace controller;
     if (buttons & BUTTON_0) {
-        _buttonPressedMap.insert(makeInput(BUTTON_0, index).getChannel());
+        _buttonPressedMap.insert(left ? BACK : START);
     }
     if (buttons & BUTTON_1) {
-        _buttonPressedMap.insert(makeInput(BUTTON_1, index).getChannel());
+        _buttonPressedMap.insert(left ? DL : X);
     }
     if (buttons & BUTTON_2) {
-        _buttonPressedMap.insert(makeInput(BUTTON_2, index).getChannel());
+        _buttonPressedMap.insert(left ? DD : A);
     }
     if (buttons & BUTTON_3) {
-        _buttonPressedMap.insert(makeInput(BUTTON_3, index).getChannel());
+        _buttonPressedMap.insert(left ? DR : B);
     }
     if (buttons & BUTTON_4) {
-        _buttonPressedMap.insert(makeInput(BUTTON_4, index).getChannel());
+        _buttonPressedMap.insert(left ? DU : Y);
     }
     if (buttons & BUTTON_FWD) {
-        _buttonPressedMap.insert(makeInput(BUTTON_FWD, index).getChannel());
+        _buttonPressedMap.insert(left ? LB : RB);
     }
     if (buttons & BUTTON_TRIGGER) {
-        _buttonPressedMap.insert(makeInput(BUTTON_TRIGGER, index).getChannel());
+        _buttonPressedMap.insert(left ? LS : RS);
     }
 }
 
-void SixenseManager::handlePoseEvent(glm::vec3 position, glm::quat rotation, int index) {
+void SixenseManager::InputDevice::handlePoseEvent(float deltaTime, glm::vec3 position, glm::quat rotation, bool left) {
 #ifdef HAVE_SIXENSE
+    auto hand = left ? controller::StandardPoseChannel::LEFT_HAND : controller::StandardPoseChannel::RIGHT_HAND;
+
     // From ABOVE the sixense coordinate frame looks like this:
     //
     //       |
@@ -405,6 +351,7 @@ void SixenseManager::handlePoseEvent(glm::vec3 position, glm::quat rotation, int
     //                      |
     //                      |
     //                      z
+    auto prevPose = _poseStateMap[hand];
 
     // Transform the measured position into body frame.
     position = _avatarRotation * (position + _avatarPosition);
@@ -433,7 +380,7 @@ void SixenseManager::handlePoseEvent(glm::vec3 position, glm::quat rotation, int
     // In addition to Qsh each hand has pre-offset introduced by the shape of the sixense controllers
     // and how they fit into the hand in their relaxed state.  This offset is a quarter turn about
     // the sixense's z-axis, with its direction different for the two hands:
-    float sign = (index == 0) ? 1.0f : -1.0f;
+    float sign = left ? 1.0f : -1.0f;
     const glm::quat preOffset = glm::angleAxis(sign * PI / 2.0f, Vectors::UNIT_Z);
 
     // Finally, there is a post-offset (same for both hands) to get the hand's rest orientation
@@ -448,102 +395,79 @@ void SixenseManager::handlePoseEvent(glm::vec3 position, glm::quat rotation, int
     // TODO: find a shortcut with fewer rotations.
     rotation = _avatarRotation * postOffset * glm::inverse(sixenseToHand) * rotation * preOffset * sixenseToHand;
 
-    _poseStateMap[makeInput(JointChannel(index)).getChannel()] = UserInputMapper::PoseValue(position, rotation);
+    glm::vec3 velocity(0.0f);
+    glm::quat angularVelocity;
+
+    if (prevPose.isValid() && deltaTime > std::numeric_limits<float>::epsilon()) {
+
+        velocity = (position - prevPose.getTranslation()) / deltaTime;
+
+        auto deltaRot = rotation * glm::conjugate(prevPose.getRotation());
+        auto axis = glm::axis(deltaRot);
+        auto angle = glm::angle(deltaRot);
+        angularVelocity = glm::angleAxis(angle / deltaTime, axis);
+
+        // Average
+        auto& samples = _collectedSamples[hand];
+        samples.first.addSample(velocity);
+        velocity = samples.first.average;
+     
+        // FIXME: // Not using quaternion average yet for angular velocity because it s probably wrong but keep the MovingAverage in place
+        //samples.second.addSample(glm::vec4(angularVelocity.x, angularVelocity.y, angularVelocity.z, angularVelocity.w));
+        //angularVelocity = glm::quat(samples.second.average.w, samples.second.average.x, samples.second.average.y, samples.second.average.z);
+    } else if (!prevPose.isValid()) {
+        _collectedSamples[hand].first.clear();
+        _collectedSamples[hand].second.clear();
+    }
+
+    _poseStateMap[hand] = controller::Pose(position, rotation, velocity, angularVelocity);
 #endif // HAVE_SIXENSE
 }
 
-void SixenseManager::registerToUserInputMapper(UserInputMapper& mapper) {
-    // Grab the current free device ID
-    _deviceID = mapper.getFreeDeviceID();
+static const auto L0 = controller::BACK;
+static const auto L1 = controller::DL;
+static const auto L2 = controller::DD;
+static const auto L3 = controller::DR;
+static const auto L4 = controller::DU;
+static const auto R0 = controller::START;
+static const auto R1 = controller::X;
+static const auto R2 = controller::A;
+static const auto R3 = controller::B;
+static const auto R4 = controller::Y;
 
-    auto proxy = std::make_shared<UserInputMapper::DeviceProxy>(_name);
-    proxy->getButton = [this] (const UserInputMapper::Input& input, int timestamp) -> bool { return this->getButton(input.getChannel()); };
-    proxy->getAxis = [this] (const UserInputMapper::Input& input, int timestamp) -> float { return this->getAxis(input.getChannel()); };
-    proxy->getPose = [this](const UserInputMapper::Input& input, int timestamp) -> UserInputMapper::PoseValue { return this->getPose(input.getChannel()); };
-    proxy->getAvailabeInputs = [this] () -> QVector<UserInputMapper::InputPair> {
-        QVector<UserInputMapper::InputPair> availableInputs;
-        availableInputs.append(UserInputMapper::InputPair(makeInput(BUTTON_0, 0), "Left Start"));
-        availableInputs.append(UserInputMapper::InputPair(makeInput(BUTTON_1, 0), "Left Button 1"));
-        availableInputs.append(UserInputMapper::InputPair(makeInput(BUTTON_2, 0), "Left Button 2"));
-        availableInputs.append(UserInputMapper::InputPair(makeInput(BUTTON_3, 0), "Left Button 3"));
-        availableInputs.append(UserInputMapper::InputPair(makeInput(BUTTON_4, 0), "Left Button 4"));
-
-        availableInputs.append(UserInputMapper::InputPair(makeInput(BUTTON_FWD, 0), "L1"));
-        availableInputs.append(UserInputMapper::InputPair(makeInput(BACK_TRIGGER, 0), "L2"));
-
-        availableInputs.append(UserInputMapper::InputPair(makeInput(AXIS_Y_POS, 0), "Left Stick Up"));
-        availableInputs.append(UserInputMapper::InputPair(makeInput(AXIS_Y_NEG, 0), "Left Stick Down"));
-        availableInputs.append(UserInputMapper::InputPair(makeInput(AXIS_X_POS, 0), "Left Stick Right"));
-        availableInputs.append(UserInputMapper::InputPair(makeInput(AXIS_X_NEG, 0), "Left Stick Left"));
-        availableInputs.append(UserInputMapper::InputPair(makeInput(BUTTON_TRIGGER, 0), "Left Trigger Press"));
-
-        availableInputs.append(UserInputMapper::InputPair(makeInput(BUTTON_0, 1), "Right Start"));
-        availableInputs.append(UserInputMapper::InputPair(makeInput(BUTTON_1, 1), "Right Button 1"));
-        availableInputs.append(UserInputMapper::InputPair(makeInput(BUTTON_2, 1), "Right Button 2"));
-        availableInputs.append(UserInputMapper::InputPair(makeInput(BUTTON_3, 1), "Right Button 3"));
-        availableInputs.append(UserInputMapper::InputPair(makeInput(BUTTON_4, 1), "Right Button 4"));
-
-        availableInputs.append(UserInputMapper::InputPair(makeInput(BUTTON_FWD, 1), "R1"));
-        availableInputs.append(UserInputMapper::InputPair(makeInput(BACK_TRIGGER, 1), "R2"));
-
-        availableInputs.append(UserInputMapper::InputPair(makeInput(AXIS_Y_POS, 1), "Right Stick Up"));
-        availableInputs.append(UserInputMapper::InputPair(makeInput(AXIS_Y_NEG, 1), "Right Stick Down"));
-        availableInputs.append(UserInputMapper::InputPair(makeInput(AXIS_X_POS, 1), "Right Stick Right"));
-        availableInputs.append(UserInputMapper::InputPair(makeInput(AXIS_X_NEG, 1), "Right Stick Left"));
-        availableInputs.append(UserInputMapper::InputPair(makeInput(BUTTON_TRIGGER, 1), "Right Trigger Press"));
-
-        return availableInputs;
+controller::Input::NamedVector SixenseManager::InputDevice::getAvailableInputs() const {
+    using namespace controller;
+    static const Input::NamedVector availableInputs {
+        makePair(L0, "L0"),
+        makePair(L1, "L1"),
+        makePair(L2, "L2"),
+        makePair(L3, "L3"),
+        makePair(L4, "L4"),
+        makePair(LB, "LB"),
+        makePair(LS, "LS"),
+        makePair(LX, "LX"),
+        makePair(LY, "LY"),
+        makePair(LT, "LT"),
+        makePair(R0, "R0"),
+        makePair(R1, "R1"),
+        makePair(R2, "R2"),
+        makePair(R3, "R3"),
+        makePair(R4, "R4"),
+        makePair(RB, "RB"),
+        makePair(RS, "RS"),
+        makePair(RX, "RX"),
+        makePair(RY, "RY"),
+        makePair(RT, "RT"),
+        makePair(LEFT_HAND, "LeftHand"),
+        makePair(RIGHT_HAND, "RightHand"),
     };
-    proxy->resetDeviceBindings = [this, &mapper] () -> bool {
-        mapper.removeAllInputChannelsForDevice(_deviceID);
-        this->assignDefaultInputMapping(mapper);
-        return true;
-    };
-    mapper.registerDevice(_deviceID, proxy);
-}
+    return availableInputs;
+};
 
-void SixenseManager::assignDefaultInputMapping(UserInputMapper& mapper) {
-    const float JOYSTICK_MOVE_SPEED = 1.0f;
-    const float JOYSTICK_YAW_SPEED = 0.5f;
-    const float JOYSTICK_PITCH_SPEED = 0.25f;
-    const float BUTTON_MOVE_SPEED = 1.0f;
-    const float BOOM_SPEED = 0.1f;
 
-    // Left Joystick: Movement, strafing
-    mapper.addInputChannel(UserInputMapper::LONGITUDINAL_FORWARD, makeInput(AXIS_Y_POS, 0), JOYSTICK_MOVE_SPEED);
-    mapper.addInputChannel(UserInputMapper::LONGITUDINAL_BACKWARD, makeInput(AXIS_Y_NEG, 0), JOYSTICK_MOVE_SPEED);
-    mapper.addInputChannel(UserInputMapper::LATERAL_RIGHT, makeInput(AXIS_X_POS, 0), JOYSTICK_MOVE_SPEED);
-    mapper.addInputChannel(UserInputMapper::LATERAL_LEFT, makeInput(AXIS_X_NEG, 0), JOYSTICK_MOVE_SPEED);
-
-    // Right Joystick: Camera orientation
-    mapper.addInputChannel(UserInputMapper::YAW_RIGHT, makeInput(AXIS_X_POS, 1), JOYSTICK_YAW_SPEED);
-    mapper.addInputChannel(UserInputMapper::YAW_LEFT, makeInput(AXIS_X_NEG, 1), JOYSTICK_YAW_SPEED);
-    mapper.addInputChannel(UserInputMapper::PITCH_UP, makeInput(AXIS_Y_POS, 1), JOYSTICK_PITCH_SPEED);
-    mapper.addInputChannel(UserInputMapper::PITCH_DOWN, makeInput(AXIS_Y_NEG, 1), JOYSTICK_PITCH_SPEED);
-
-    // Buttons
-    mapper.addInputChannel(UserInputMapper::BOOM_IN, makeInput(BUTTON_3, 0), BOOM_SPEED);
-    mapper.addInputChannel(UserInputMapper::BOOM_OUT, makeInput(BUTTON_1, 0), BOOM_SPEED);
-
-    mapper.addInputChannel(UserInputMapper::VERTICAL_UP, makeInput(BUTTON_3, 1), BUTTON_MOVE_SPEED);
-    mapper.addInputChannel(UserInputMapper::VERTICAL_DOWN, makeInput(BUTTON_1, 1), BUTTON_MOVE_SPEED);
-
-    mapper.addInputChannel(UserInputMapper::SHIFT, makeInput(BUTTON_2, 0));
-    mapper.addInputChannel(UserInputMapper::SHIFT, makeInput(BUTTON_2, 1));
-
-    mapper.addInputChannel(UserInputMapper::ACTION1, makeInput(BUTTON_4, 0));
-    mapper.addInputChannel(UserInputMapper::ACTION2, makeInput(BUTTON_4, 1));
-
-    mapper.addInputChannel(UserInputMapper::LEFT_HAND, makeInput(LEFT_HAND));
-    mapper.addInputChannel(UserInputMapper::RIGHT_HAND, makeInput(RIGHT_HAND));
-
-    mapper.addInputChannel(UserInputMapper::LEFT_HAND_CLICK, makeInput(BACK_TRIGGER, 0));
-    mapper.addInputChannel(UserInputMapper::RIGHT_HAND_CLICK, makeInput(BACK_TRIGGER, 1));
-
-    // TODO find a mechanism to allow users to navigate the context menu via
-    mapper.addInputChannel(UserInputMapper::CONTEXT_MENU, makeInput(BUTTON_0, 0));
-    mapper.addInputChannel(UserInputMapper::TOGGLE_MUTE, makeInput(BUTTON_0, 1));
-
+QString SixenseManager::InputDevice::getDefaultMappingConfig() const {
+    static const QString MAPPING_JSON = PathUtils::resourcesPath() + "/controllers/hydra.json";
+    return MAPPING_JSON;
 }
 
 // virtual
@@ -552,9 +476,8 @@ void SixenseManager::saveSettings() const {
     QString idString = getID();
     settings.beginGroup(idString);
     {
-        settings.setVec3Value(QString("avatarPosition"), _avatarPosition);
-        settings.setQuatValue(QString("avatarRotation"), _avatarRotation);
-        settings.setValue(QString("reachLength"), QVariant(_reachLength));
+        settings.setVec3Value(QString("avatarPosition"), _inputDevice->_avatarPosition);
+        settings.setQuatValue(QString("avatarRotation"), _inputDevice->_avatarRotation);
     }
     settings.endGroup();
 }
@@ -564,21 +487,8 @@ void SixenseManager::loadSettings() {
     QString idString = getID();
     settings.beginGroup(idString);
     {
-        settings.getVec3ValueIfValid(QString("avatarPosition"), _avatarPosition);
-        settings.getQuatValueIfValid(QString("avatarRotation"), _avatarRotation);
-        settings.getFloatValueIfValid(QString("reachLength"), _reachLength);
+        settings.getVec3ValueIfValid(QString("avatarPosition"), _inputDevice->_avatarPosition);
+        settings.getQuatValueIfValid(QString("avatarRotation"), _inputDevice->_avatarRotation);
     }
     settings.endGroup();
-}
-
-UserInputMapper::Input SixenseManager::makeInput(unsigned int button, int index) {
-    return UserInputMapper::Input(_deviceID, button | (index == 0 ? LEFT_MASK : RIGHT_MASK), UserInputMapper::ChannelType::BUTTON);
-}
-
-UserInputMapper::Input SixenseManager::makeInput(SixenseManager::JoystickAxisChannel axis, int index) {
-    return UserInputMapper::Input(_deviceID, axis | (index == 0 ? LEFT_MASK : RIGHT_MASK), UserInputMapper::ChannelType::AXIS);
-}
-
-UserInputMapper::Input SixenseManager::makeInput(JointChannel joint) {
-    return UserInputMapper::Input(_deviceID, joint, UserInputMapper::ChannelType::POSE);
 }

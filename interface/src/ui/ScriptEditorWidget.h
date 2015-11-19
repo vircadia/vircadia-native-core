@@ -14,6 +14,7 @@
 
 #include <QDockWidget>
 
+#include "JSConsole.h"
 #include "ScriptEngine.h"
 
 namespace Ui {
@@ -47,12 +48,11 @@ public slots:
     void onWindowActivated();
 
 private slots:
-    void onScriptError(const QString& message);
-    void onScriptPrint(const QString& message);
     void onScriptModified();
     void onScriptFinished(const QString& scriptName);
 
 private:
+    JSConsole* _console;
     Ui::ScriptEditorWidget* _scriptEditorWidgetUI;
     ScriptEngine* _scriptEngine;
     QString _currentScript;

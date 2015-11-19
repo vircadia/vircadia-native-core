@@ -11,6 +11,12 @@ vec3toStr = function(v, digits) {
     return "{ " + v.x.toFixed(digits) + ", " + v.y.toFixed(digits) + ", " + v.z.toFixed(digits)+ " }";
 }
 
+quatToStr = function(q, digits) {
+    if (!digits) { digits = 3; }
+    return "{ " + q.w.toFixed(digits) + ", " + q.x.toFixed(digits) + ", " +
+        q.y.toFixed(digits) + ", " + q.z.toFixed(digits)+ " }";
+}
+
 vec3equal = function(v0, v1) {
     return (v0.x == v1.x) && (v0.y == v1.y) && (v0.z == v1.z);
 }
@@ -31,13 +37,7 @@ scaleLine = function (start, end, scale) {
 }
 
 findAction = function(name) {
-    var actions = Controller.getAllActions();
-    for (var i = 0; i < actions.length; i++) {
-        if (actions[i].actionName == name) {
-            return i;
-        }
-    }
-    return 0;
+    return Controller.findAction(name);
 }
 
 addLine = function(origin, vector, color) {
@@ -57,7 +57,7 @@ addLine = function(origin, vector, color) {
 // FIXME fetch from a subkey of user data to support non-destructive modifications
 setEntityUserData = function(id, data) {
     var json = JSON.stringify(data)
-    Entities.editEntity(id, { userData: json });    
+    Entities.editEntity(id, { userData: json });
 }
 
 // FIXME do non-destructive modification of the existing user data
@@ -66,7 +66,7 @@ getEntityUserData = function(id) {
     var properties = Entities.getEntityProperties(id, "userData");
     if (properties.userData) {
         try {
-            results = JSON.parse(properties.userData);    
+            results = JSON.parse(properties.userData);
         } catch(err) {
             logDebug(err);
             logDebug(properties.userData);
@@ -251,5 +251,23 @@ orientationOf = function(vector) {
     yaw = Quat.angleAxis(Math.atan2(direction.x, direction.z) * RAD_TO_DEG, Y_AXIS);
     pitch = Quat.angleAxis(Math.asin(-direction.y) * RAD_TO_DEG, X_AXIS);
     return Quat.multiply(yaw, pitch);
+}
+
+randFloat = function(low, high) {
+    return low + Math.random() * (high - low);
+}
+
+
+randInt = function(low, high) {
+    return Math.floor(randFloat(low, high));
+}
+
+hexToRgb = function(hex) {
+    var result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+    return result ? {
+        red: parseInt(result[1], 16),
+        green: parseInt(result[2], 16),
+        blue: parseInt(result[3], 16)
+    } : null;
 }
 

@@ -1,5 +1,5 @@
 
-Script.include("avatarRelativeOverlays.js");
+Script.include("../../avatarRelativeOverlays.js");
 
 OmniToolModules.Test = function(omniTool, activeEntityId) {
     this.omniTool = omniTool;

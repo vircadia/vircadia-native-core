@@ -62,12 +62,11 @@ QScriptValue variantMapToScriptValue(QVariantMap& variantMap, QScriptEngine& scr
 
 
 QScriptValue variantListToScriptValue(QVariantList& variantList, QScriptEngine& scriptEngine) {
-    QScriptValue scriptValue = scriptEngine.newObject();
 
-    scriptValue.setProperty("length", variantList.size());
-    int i = 0;
-    foreach (QVariant v, variantList) {
-        scriptValue.setProperty(i++, variantToScriptValue(v, scriptEngine));
+    QScriptValue scriptValue = scriptEngine.newArray();
+
+    for (int i = 0; i < variantList.size(); i++) {
+        scriptValue.setProperty(i, variantToScriptValue(variantList[i], scriptEngine));
     }
 
     return scriptValue;

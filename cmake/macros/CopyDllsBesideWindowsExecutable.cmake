@@ -18,12 +18,19 @@ macro(COPY_DLLS_BESIDE_WINDOWS_EXECUTABLE)
       @ONLY
     )
     
+    if (APPLE) 
+        set(PLUGIN_PATH "interface.app/Contents/MacOS/plugins")
+    else()
+        set(PLUGIN_PATH "plugins")
+    endif()
+    
     # add a post-build command to copy DLLs beside the executable
     add_custom_command(
       TARGET ${TARGET_NAME}
       POST_BUILD
       COMMAND ${CMAKE_COMMAND}
         -DBUNDLE_EXECUTABLE=$<TARGET_FILE:${TARGET_NAME}>
+        -DBUNDLE_PLUGIN_DIR=$<TARGET_FILE_DIR:${TARGET_NAME}>/${PLUGIN_PATH}
         -P ${CMAKE_CURRENT_BINARY_DIR}/FixupBundlePostBuild.cmake
     )
     

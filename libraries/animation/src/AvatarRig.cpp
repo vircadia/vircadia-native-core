@@ -13,7 +13,7 @@
 
 /// Updates the state of the joint at the specified index.
 void AvatarRig::updateJointState(int index, glm::mat4 rootTransform) {
-    if (index < 0 && index >= _jointStates.size()) {
+    if (index < 0 || index >= _jointStates.size()) {
         return; // bail
     }
     JointState& state = _jointStates[index];

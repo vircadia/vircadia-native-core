@@ -46,6 +46,7 @@ private:
 
     Assignment _requestAssignment;
     QPointer<ThreadedAssignment> _currentAssignment;
+    bool _isAssigned { false };
     QString _assignmentServerHostname;
     HifiSockAddr _assignmentServerSocket;
     QTimer _requestTimer; // timer for requesting and assignment

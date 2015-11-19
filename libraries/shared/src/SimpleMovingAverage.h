@@ -40,4 +40,28 @@ private:
     float ONE_MINUS_WEIGHTING;
 };
 
+
+template <class T, int MAX_NUM_SAMPLES> class MovingAverage {
+public:
+    const float WEIGHTING = 1.0f / (float)MAX_NUM_SAMPLES;
+    const float ONE_MINUS_WEIGHTING = 1.0f - WEIGHTING;
+    int numSamples{ 0 };
+    T average;
+
+    void clear() {
+        numSamples = 0;
+    }
+
+    bool isAverageValid() const { return (numSamples > 0); }
+
+    void addSample(T sample) {
+        if (numSamples > 0) {
+            average = (sample * WEIGHTING) + (average * ONE_MINUS_WEIGHTING);
+        } else {
+            average = sample;
+        }
+        numSamples++;
+    }
+};
+
 #endif // hifi_SimpleMovingAverage_h

@@ -89,11 +89,9 @@ render::ItemKey MeshPartPayload::getKey() const {
 }
 
 render::Item::Bound MeshPartPayload::getBound() const {
-    if (_isBoundInvalid) {
-        model->getPartBounds(meshIndex, partIndex);
-        _isBoundInvalid = false;
-    }
-    return _bound;
+    // NOTE: we can't cache this bounds because we need to handle the case of a moving
+    // entity or mesh part.
+    return model->getPartBounds(meshIndex, partIndex);
 }
 
 void MeshPartPayload::drawCall(gpu::Batch& batch) const {
@@ -149,7 +147,7 @@ void MeshPartPayload::bindMaterial(gpu::Batch& batch, const ModelRender::Locatio
             batch.setResourceTexture(ModelRender::DIFFUSE_MAP_SLOT, textureCache->getGrayTexture());
         }
     } else {
-        batch.setResourceTexture(ModelRender::DIFFUSE_MAP_SLOT, textureCache->getGrayTexture());
+        batch.setResourceTexture(ModelRender::DIFFUSE_MAP_SLOT, textureCache->getWhiteTexture());
     }
 
     // Normal map
@@ -231,7 +229,7 @@ void MeshPartPayload::bindTransform(gpu::Batch& batch, const ModelRender::Locati
 
 void MeshPartPayload::render(RenderArgs* args) const {
     PerformanceTimer perfTimer("MeshPartPayload::render");
-    if (!model->_readyWhenAdded) {
+    if (!model->_readyWhenAdded || !model->_isVisible) {
         return; // bail asap
     }
 

@@ -1,7 +1,9 @@
+var ENTITY_LIST_HTML_URL = Script.resolvePath('../html/entityList.html');
+
 EntityListTool = function(opts) {
     var that = {};
 
-    var url = Script.resolvePath('html/entityList.html');
+    var url = ENTITY_LIST_HTML_URL;
     var webView = new WebWindow('Entities', url, 200, 280, true);
 
     var searchRadius = 100;

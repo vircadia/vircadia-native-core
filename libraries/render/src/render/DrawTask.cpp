@@ -115,6 +115,26 @@ void CullItems::run(const SceneContextPointer& sceneContext, const RenderContext
 
     outItems.clear();
     outItems.reserve(inItems.size());
+    RenderArgs* args = renderContext->args;
+    args->_details.pointTo(RenderDetails::OTHER_ITEM);
+    cullItems(sceneContext, renderContext, inItems, outItems);
+}
+
+void CullItemsOpaque::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const ItemIDsBounds& inItems, ItemIDsBounds& outItems) {
+
+    outItems.clear();
+    outItems.reserve(inItems.size());
+    RenderArgs* args = renderContext->args;
+    args->_details.pointTo(RenderDetails::OPAQUE_ITEM);
+    cullItems(sceneContext, renderContext, inItems, outItems);
+}
+
+void CullItemsTransparent::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const ItemIDsBounds& inItems, ItemIDsBounds& outItems) {
+
+    outItems.clear();
+    outItems.reserve(inItems.size());
+    RenderArgs* args = renderContext->args;
+    args->_details.pointTo(RenderDetails::TRANSLUCENT_ITEM);
     cullItems(sceneContext, renderContext, inItems, outItems);
 }
 
@@ -233,9 +253,10 @@ void DrawLight::run(const SceneContextPointer& sceneContext, const RenderContext
 
     ItemIDsBounds culledItems;
     culledItems.reserve(inItems.size());
+    RenderArgs* args = renderContext->args;
+    args->_details.pointTo(RenderDetails::OTHER_ITEM);
     cullItems(sceneContext, renderContext, inItems, culledItems);
 
-    RenderArgs* args = renderContext->args;
     gpu::doInBatch(args->_context, [=](gpu::Batch& batch) {
         args->_batch = &batch;
         renderItems(sceneContext, renderContext, culledItems);

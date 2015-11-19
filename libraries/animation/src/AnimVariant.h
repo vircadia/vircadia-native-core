@@ -12,11 +12,14 @@
 #define hifi_AnimVariant_h
 
 #include <cassert>
+#include <functional>
 #include <glm/glm.hpp>
 #include <glm/gtx/quaternion.hpp>
 #include <map>
 #include <set>
+#include <QScriptValue>
 #include "AnimationLogging.h"
+#include "StreamUtils.h"
 
 class AnimVariant {
 public:
@@ -58,8 +61,9 @@ public:
     void setString(const QString& value) { assert(_type == Type::String); _stringVal = value; }
 
     bool getBool() const { assert(_type == Type::Bool); return _val.boolVal; }
-    int getInt() const { assert(_type == Type::Int); return _val.intVal; }
-    float getFloat() const { assert(_type == Type::Float); return _val.floats[0]; }
+    int getInt() const { assert(_type == Type::Int || _type == Type::Float); return _type == Type::Float ? (int)_val.floats[0] : _val.intVal; }
+    float getFloat() const { assert(_type == Type::Float || _type == Type::Int); return _type == Type::Int ? (float)_val.intVal : _val.floats[0]; }
+
     const glm::vec3& getVec3() const { assert(_type == Type::Vec3); return *reinterpret_cast<const glm::vec3*>(&_val); }
     const glm::quat& getQuat() const { assert(_type == Type::Quat); return *reinterpret_cast<const glm::quat*>(&_val); }
     const glm::mat4& getMat4() const { assert(_type == Type::Mat4); return *reinterpret_cast<const glm::mat4*>(&_val); }
@@ -156,7 +160,14 @@ public:
     void setTrigger(const QString& key) { _triggers.insert(key); }
     void clearTriggers() { _triggers.clear(); }
 
+    void clearMap() { _map.clear(); }
     bool hasKey(const QString& key) const { return _map.find(key) != _map.end(); }
+
+    // Answer a Plain Old Javascript Object (for the given engine) all of our values set as properties.
+    QScriptValue animVariantMapToScriptValue(QScriptEngine* engine, const QStringList& names, bool useNames) const;
+    // Side-effect us with the value of object's own properties. (No inherited properties.)
+    void animVariantMapFromScriptValue(const QScriptValue& object);
+    void copyVariantsFrom(const AnimVariantMap& other);
 
 #ifdef NDEBUG
     void dump() const {
@@ -195,5 +206,9 @@ protected:
     std::map<QString, AnimVariant> _map;
     std::set<QString> _triggers;
 };
+
+typedef std::function<void(QScriptValue)> AnimVariantResultHandler;
+Q_DECLARE_METATYPE(AnimVariantResultHandler);
+Q_DECLARE_METATYPE(AnimVariantMap)
 
 #endif // hifi_AnimVariant_h

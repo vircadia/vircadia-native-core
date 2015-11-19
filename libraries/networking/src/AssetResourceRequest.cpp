@@ -24,7 +24,7 @@ void AssetResourceRequest::doSend() {
     // Make request to atp
     auto assetClient = DependencyManager::get<AssetClient>();
     auto parts = _url.path().split(".", QString::SkipEmptyParts);
-    auto hash = parts[0];
+    auto hash = parts.length() > 0 ? parts[0] : "";
     auto extension = parts.length() > 1 ? parts[1] : "";
 
     if (hash.length() != SHA256_HASH_HEX_LENGTH) {

@@ -32,7 +32,7 @@ enum AssetServerError : uint8_t {
     PermissionDenied
 };
 
-QUrl getUrl(const QString& hash, const QString& extension = QString());
+QUrl getATPUrl(const QString& hash, const QString& extension = QString());
 
 QByteArray hashData(const QByteArray& data);
 

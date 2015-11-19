@@ -12,19 +12,21 @@
 #ifndef hifi_EntityActionInterface_h
 #define hifi_EntityActionInterface_h
 
+#include <memory>
 #include <QUuid>
+#include <glm/glm.hpp>
 
-#include "EntityItem.h"
-
+class EntityItem;
 class EntitySimulation;
+using EntityItemPointer = std::shared_ptr<EntityItem>;
+using EntityItemWeakPointer = std::weak_ptr<EntityItem>;
 
 enum EntityActionType {
     // keep these synchronized with actionTypeFromString and actionTypeToString
     ACTION_TYPE_NONE = 0,
     ACTION_TYPE_OFFSET = 1000,
     ACTION_TYPE_SPRING = 2000,
-    ACTION_TYPE_HOLD = 3000,
-    ACTION_TYPE_KINEMATIC_HOLD = 4000
+    ACTION_TYPE_HOLD = 3000
 };
 
 
@@ -34,6 +36,8 @@ public:
     virtual ~EntityActionInterface() { }
     const QUuid& getID() const { return _id; }
     EntityActionType getType() const { return _type; }
+
+    bool isActive() { return _active; }
 
     virtual void removeFromSimulation(EntitySimulation* simulation) const = 0;
     virtual EntityItemWeakPointer getOwnerEntity() const = 0;
@@ -48,18 +52,11 @@ public:
     static QString actionTypeToString(EntityActionType actionType);
 
     virtual bool lifetimeIsOver() { return false; }
+    virtual quint64 getExpires() { return 0; }
 
     bool locallyAddedButNotYetReceived = false;
 
-protected:
-    virtual glm::vec3 getPosition() = 0;
-    virtual void setPosition(glm::vec3 position) = 0;
-    virtual glm::quat getRotation() = 0;
-    virtual void setRotation(glm::quat rotation) = 0;
-    virtual glm::vec3 getLinearVelocity() = 0;
-    virtual void setLinearVelocity(glm::vec3 linearVelocity) = 0;
-    virtual glm::vec3 getAngularVelocity() = 0;
-    virtual void setAngularVelocity(glm::vec3 angularVelocity) = 0;
+    virtual bool shouldSuppressLocationEdits() { return false; }
 
     // these look in the arguments map for a named argument.  if it's not found or isn't well formed,
     // ok will be set to false (note that it's never set to true -- set it to true before calling these).
@@ -74,9 +71,22 @@ protected:
                                       QString argumentName, bool& ok, bool required = true);
     static QString extractStringArgument(QString objectName, QVariantMap arguments,
                                          QString argumentName, bool& ok, bool required = true);
+    static bool extractBooleanArgument(QString objectName, QVariantMap arguments,
+                                       QString argumentName, bool& ok, bool required = true);
+
+protected:
+    virtual glm::vec3 getPosition() = 0;
+    virtual void setPosition(glm::vec3 position) = 0;
+    virtual glm::quat getRotation() = 0;
+    virtual void setRotation(glm::quat rotation) = 0;
+    virtual glm::vec3 getLinearVelocity() = 0;
+    virtual void setLinearVelocity(glm::vec3 linearVelocity) = 0;
+    virtual glm::vec3 getAngularVelocity() = 0;
+    virtual void setAngularVelocity(glm::vec3 angularVelocity) = 0;
 
     QUuid _id;
     EntityActionType _type;
+    bool _active { false };
 };
 
 
@@ -84,5 +94,7 @@ typedef std::shared_ptr<EntityActionInterface> EntityActionPointer;
 
 QDataStream& operator<<(QDataStream& stream, const EntityActionType& entityActionType);
 QDataStream& operator>>(QDataStream& stream, EntityActionType& entityActionType);
+
+QString serializedActionsToDebugString(QByteArray data);
 
 #endif // hifi_EntityActionInterface_h

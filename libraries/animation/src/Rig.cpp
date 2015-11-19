@@ -13,6 +13,7 @@
 
 #include <glm/gtx/vector_angle.hpp>
 #include <queue>
+#include <QScriptValueIterator>
 
 #include <NumericalConstants.h>
 #include <DebugDraw.h>
@@ -22,33 +23,18 @@
 #include "AnimSkeleton.h"
 #include "IKTarget.h"
 
+/*
+const glm::vec3 DEFAULT_RIGHT_EYE_POS(-0.3f, 1.6f, 0.0f);
+const glm::vec3 DEFAULT_LEFT_EYE_POS(0.3f, 1.6f, 0.0f);
+const glm::vec3 DEFAULT_HEAD_POS(0.0f, 1.55f, 0.0f);
+const glm::vec3 DEFAULT_NECK_POS(0.0f, 1.5f, 0.0f);
+*/
 
-void Rig::HeadParameters::dump() const {
-    qCDebug(animation, "HeadParameters =");
-    qCDebug(animation, "    leanSideways = %0.5f", (double)leanSideways);
-    qCDebug(animation, "    leanForward = %0.5f", (double)leanForward);
-    qCDebug(animation, "    torsoTwist = %0.5f", (double)torsoTwist);
-    glm::vec3 axis = glm::axis(localHeadOrientation);
-    float theta = glm::angle(localHeadOrientation);
-    qCDebug(animation, "    localHeadOrientation axis = (%.5f, %.5f, %.5f), theta = %0.5f", (double)axis.x, (double)axis.y, (double)axis.z, (double)theta);
-    axis = glm::axis(worldHeadOrientation);
-    theta = glm::angle(worldHeadOrientation);
-    qCDebug(animation, "    localHead pitch = %.5f, yaw = %.5f, roll = %.5f", (double)localHeadPitch, (double)localHeadYaw, (double)localHeadRoll);
-    qCDebug(animation, "    localHeadPosition = (%.5f, %.5f, %.5f)", (double)localHeadPosition.x, (double)localHeadPosition.y, (double)localHeadPosition.z);
-    qCDebug(animation, "    isInHMD = %s", isInHMD ? "true" : "false");
-    qCDebug(animation, "    worldHeadOrientation axis = (%.5f, %.5f, %.5f), theta = %0.5f", (double)axis.x, (double)axis.y, (double)axis.z, (double)theta);
-    axis = glm::axis(modelRotation);
-    theta = glm::angle(modelRotation);
-    qCDebug(animation, "    modelRotation axis = (%.5f, %.5f, %.5f), theta = %0.5f", (double)axis.x, (double)axis.y, (double)axis.z, (double)theta);
-    qCDebug(animation, "    modelTranslation = (%.5f, %.5f, %.5f)", (double)modelTranslation.x, (double)modelTranslation.y, (double)modelTranslation.z);
-    qCDebug(animation, "    eyeLookAt = (%.5f, %.5f, %.5f)", (double)eyeLookAt.x, (double)eyeLookAt.y, (double)eyeLookAt.z);
-    qCDebug(animation, "    eyeSaccade = (%.5f, %.5f, %.5f)", (double)eyeSaccade.x, (double)eyeSaccade.y, (double)eyeSaccade.z);
-    qCDebug(animation, "    leanJointIndex = %.d", leanJointIndex);
-    qCDebug(animation, "    neckJointIndex = %.d", neckJointIndex);
-    qCDebug(animation, "    leftEyeJointIndex = %.d", leftEyeJointIndex);
-    qCDebug(animation, "    rightEyeJointIndex = %.d", rightEyeJointIndex);
-    qCDebug(animation, "    isTalking = %s", isTalking ? "true" : "false");
-}
+// 2 meter tall dude
+const glm::vec3 DEFAULT_RIGHT_EYE_POS(-0.3f, 1.9f, 0.0f);
+const glm::vec3 DEFAULT_LEFT_EYE_POS(0.3f, 1.9f, 0.0f);
+const glm::vec3 DEFAULT_HEAD_POS(0.0f, 1.75f, 0.0f);
+const glm::vec3 DEFAULT_NECK_POS(0.0f, 1.70f, 0.0f);
 
 void insertSorted(QList<AnimationHandlePointer>& handles, const AnimationHandlePointer& handle) {
     for (QList<AnimationHandlePointer>::iterator it = handles.begin(); it != handles.end(); it++) {
@@ -327,6 +313,8 @@ void Rig::setJointAnimatinoPriority(int index, float newPriority) {
     }
 }
 
+// Deprecated.
+// WARNING: this is not symmetric with getJointRotation. It's historical. Use the appropriate specific variation.
 void Rig::setJointRotation(int index, bool valid, const glm::quat& rotation, float priority) {
     if (index != -1 && index < _jointStates.size()) {
         JointState& state = _jointStates[index];
@@ -377,6 +365,8 @@ bool Rig::getJointRotationInWorldFrame(int jointIndex, glm::quat& result, const 
     return true;
 }
 
+// Deprecated.
+// WARNING: this is not symmetric with setJointRotation. It's historical. Use the appropriate specific variation.
 bool Rig::getJointRotation(int jointIndex, glm::quat& rotation) const {
     if (jointIndex == -1 || jointIndex >= _jointStates.size()) {
         return false;
@@ -408,6 +398,53 @@ glm::mat4 Rig::getJointTransform(int jointIndex) const {
     return _jointStates[jointIndex].getTransform();
 }
 
+void Rig::calcAnimAlpha(float speed, const std::vector<float>& referenceSpeeds, float* alphaOut) const {
+
+    assert(referenceSpeeds.size() > 0);
+
+    // calculate alpha from linear combination of referenceSpeeds.
+    float alpha = 0.0f;
+    if (speed <= referenceSpeeds.front()) {
+        alpha = 0.0f;
+    } else if (speed > referenceSpeeds.back()) {
+        alpha = (float)(referenceSpeeds.size() - 1);
+    } else {
+        for (size_t i = 0; i < referenceSpeeds.size() - 1; i++) {
+            if (referenceSpeeds[i] < speed && speed < referenceSpeeds[i + 1]) {
+                alpha = (float)i + ((speed - referenceSpeeds[i]) / (referenceSpeeds[i + 1] - referenceSpeeds[i]));
+                break;
+            }
+        }
+    }
+
+    *alphaOut = alpha;
+}
+
+void Rig::computeEyesInRootFrame(const AnimPoseVec& poses) {
+    // TODO: use cached eye/hips indices for these calculations
+    int numPoses = poses.size();
+    int hipsIndex = _animSkeleton->nameToJointIndex(QString("Hips"));
+    int headIndex = _animSkeleton->nameToJointIndex(QString("Head"));
+    if (hipsIndex > 0 && headIndex > 0) {
+        int rightEyeIndex = _animSkeleton->nameToJointIndex(QString("RightEye"));
+        int leftEyeIndex = _animSkeleton->nameToJointIndex(QString("LeftEye"));
+        if (numPoses > rightEyeIndex && numPoses > leftEyeIndex && rightEyeIndex > 0 && leftEyeIndex > 0) {
+            glm::vec3 rightEye = _animSkeleton->getAbsolutePose(rightEyeIndex, poses).trans;
+            glm::vec3 leftEye = _animSkeleton->getAbsolutePose(leftEyeIndex, poses).trans;
+            glm::vec3 hips = _animSkeleton->getAbsolutePose(hipsIndex, poses).trans;
+            _eyesInRootFrame = 0.5f * (rightEye + leftEye) - hips;
+        } else {
+            glm::vec3 hips = _animSkeleton->getAbsolutePose(hipsIndex, poses).trans;
+            _eyesInRootFrame = 0.5f * (DEFAULT_RIGHT_EYE_POS + DEFAULT_LEFT_EYE_POS) - hips;
+        }
+    }
+}
+
+// animation reference speeds.
+static const std::vector<float> FORWARD_SPEEDS = { 0.4f, 1.4f, 4.5f }; // m/s
+static const std::vector<float> BACKWARD_SPEEDS = { 0.6f, 1.45f }; // m/s
+static const std::vector<float> LATERAL_SPEEDS = { 0.2f, 0.65f }; // m/s
+
 void Rig::computeMotionAnimationState(float deltaTime, const glm::vec3& worldPosition, const glm::vec3& worldVelocity, const glm::quat& worldRotation) {
 
     glm::vec3 front = worldRotation * IDENTITY_FRONT;
@@ -416,8 +453,16 @@ void Rig::computeMotionAnimationState(float deltaTime, const glm::vec3& worldPos
     // but some modes (e.g., hmd standing) update position without updating velocity.
     // It's very hard to debug hmd standing. (Look down at yourself, or have a second person observe. HMD third person is a bit undefined...)
     // So, let's create our own workingVelocity from the worldPosition...
+    glm::vec3 workingVelocity = _lastVelocity;
     glm::vec3 positionDelta = worldPosition - _lastPosition;
-    glm::vec3 workingVelocity = positionDelta / deltaTime;
+
+    // Don't trust position delta if deltaTime is 'small'.
+    // NOTE: This is mostly just a work around for an issue in oculus 0.7 runtime, where
+    // Application::idle() is being called more frequently and with smaller dt's then expected.
+    const float SMALL_DELTA_TIME = 0.006f;  // 6 ms
+    if (deltaTime > SMALL_DELTA_TIME) {
+        workingVelocity = positionDelta / deltaTime;
+    }
 
 #if !WANT_DEBUG
     // But for smoothest (non-hmd standing) results, go ahead and use velocity:
@@ -426,29 +471,43 @@ void Rig::computeMotionAnimationState(float deltaTime, const glm::vec3& worldPos
     }
 #endif
 
+    if (deltaTime > SMALL_DELTA_TIME) {
+        _lastVelocity = workingVelocity;
+    }
+
     if (_enableAnimGraph) {
 
         glm::vec3 localVel = glm::inverse(worldRotation) * workingVelocity;
+
         float forwardSpeed = glm::dot(localVel, IDENTITY_FRONT);
         float lateralSpeed = glm::dot(localVel, IDENTITY_RIGHT);
         float turningSpeed = glm::orientedAngle(front, _lastFront, IDENTITY_UP) / deltaTime;
 
+        // filter speeds using a simple moving average.
+        _averageForwardSpeed.updateAverage(forwardSpeed);
+        _averageLateralSpeed.updateAverage(lateralSpeed);
+
         // sine wave LFO var for testing.
         static float t = 0.0f;
-        _animVars.set("sine", static_cast<float>(0.5 * sin(t) + 0.5));
+        _animVars.set("sine", 2.0f * static_cast<float>(0.5 * sin(t) + 0.5));
 
-        // default anim vars to notMoving and notTurning
-        _animVars.set("isMovingForward", false);
-        _animVars.set("isMovingBackward", false);
-        _animVars.set("isMovingLeft", false);
-        _animVars.set("isMovingRight", false);
-        _animVars.set("isNotMoving", true);
-        _animVars.set("isTurningLeft", false);
-        _animVars.set("isTurningRight", false);
-        _animVars.set("isNotTurning", true);
+        float moveForwardAlpha = 0.0f;
+        float moveBackwardAlpha = 0.0f;
+        float moveLateralAlpha = 0.0f;
 
-        const float ANIM_WALK_SPEED = 1.4f; // m/s
-        _animVars.set("walkTimeScale", glm::clamp(0.5f, 2.0f, glm::length(localVel) / ANIM_WALK_SPEED));
+        // calcuate the animation alpha and timeScale values based on current speeds and animation reference speeds.
+        calcAnimAlpha(_averageForwardSpeed.getAverage(), FORWARD_SPEEDS, &moveForwardAlpha);
+        calcAnimAlpha(-_averageForwardSpeed.getAverage(), BACKWARD_SPEEDS, &moveBackwardAlpha);
+        calcAnimAlpha(fabsf(_averageLateralSpeed.getAverage()), LATERAL_SPEEDS, &moveLateralAlpha);
+
+        _animVars.set("moveForwardSpeed", _averageForwardSpeed.getAverage());
+        _animVars.set("moveForwardAlpha", moveForwardAlpha);
+
+        _animVars.set("moveBackwardSpeed", -_averageForwardSpeed.getAverage());
+        _animVars.set("moveBackwardAlpha", moveBackwardAlpha);
+
+        _animVars.set("moveLateralSpeed", fabsf(_averageLateralSpeed.getAverage()));
+        _animVars.set("moveLateralAlpha", moveLateralAlpha);
 
         const float MOVE_ENTER_SPEED_THRESHOLD = 0.2f; // m/sec
         const float MOVE_EXIT_SPEED_THRESHOLD = 0.07f;  // m/sec
@@ -470,45 +529,100 @@ void Rig::computeMotionAnimationState(float deltaTime, const glm::vec3& worldPos
         }
 
         if (glm::length(localVel) > moveThresh) {
-            if (fabsf(forwardSpeed) > 0.5f * fabsf(lateralSpeed)) {
-                if (forwardSpeed > 0.0f) {
-                    // forward
-                    _animVars.set("isMovingForward", true);
-                    _animVars.set("isNotMoving", false);
-
-                } else {
-                    // backward
-                    _animVars.set("isMovingBackward", true);
-                    _animVars.set("isNotMoving", false);
-                }
-            } else {
-                if (lateralSpeed > 0.0f) {
-                    // right
-                    _animVars.set("isMovingRight", true);
-                    _animVars.set("isNotMoving", false);
-                } else {
-                    // left
-                    _animVars.set("isMovingLeft", true);
-                    _animVars.set("isNotMoving", false);
-                }
+            if (_desiredState != RigRole::Move) {
+                _desiredStateAge = 0.0f;
             }
-            _state = RigRole::Move;
+            _desiredState = RigRole::Move;
         } else {
             if (fabsf(turningSpeed) > turnThresh) {
-                if (turningSpeed > 0.0f) {
-                    // turning right
-                    _animVars.set("isTurningRight", true);
-                    _animVars.set("isNotTurning", false);
-                } else {
-                    // turning left
-                    _animVars.set("isTurningLeft", true);
-                    _animVars.set("isNotTurning", false);
+                if (_desiredState != RigRole::Turn) {
+                    _desiredStateAge = 0.0f;
                 }
-                _state = RigRole::Turn;
-            } else {
-                // idle
-                _state = RigRole::Idle;
+                _desiredState = RigRole::Turn;
+            } else { // idle
+                if (_desiredState != RigRole::Idle) {
+                    _desiredStateAge = 0.0f;
+                }
+                _desiredState = RigRole::Idle;
             }
+        }
+
+        const float STATE_CHANGE_HYSTERESIS_TIMER = 0.1f;
+
+        if ((_desiredStateAge >= STATE_CHANGE_HYSTERESIS_TIMER) && _desiredState != _state) {
+            _state = _desiredState;
+            _desiredStateAge = 0.0f;
+        }
+
+        _desiredStateAge += deltaTime;
+
+        if (_state == RigRole::Move) {
+            if (glm::length(localVel) > MOVE_ENTER_SPEED_THRESHOLD) {
+                if (fabsf(forwardSpeed) > 0.5f * fabsf(lateralSpeed)) {
+                    if (forwardSpeed > 0.0f) {
+                        // forward
+                        _animVars.set("isMovingForward", true);
+                        _animVars.set("isMovingBackward", false);
+                        _animVars.set("isMovingRight", false);
+                        _animVars.set("isMovingLeft", false);
+                        _animVars.set("isNotMoving", false);
+
+                    } else {
+                        // backward
+                        _animVars.set("isMovingBackward", true);
+                        _animVars.set("isMovingForward", false);
+                        _animVars.set("isMovingRight", false);
+                        _animVars.set("isMovingLeft", false);
+                        _animVars.set("isNotMoving", false);
+                    }
+                } else {
+                    if (lateralSpeed > 0.0f) {
+                        // right
+                        _animVars.set("isMovingRight", true);
+                        _animVars.set("isMovingLeft", false);
+                        _animVars.set("isMovingForward", false);
+                        _animVars.set("isMovingBackward", false);
+                        _animVars.set("isNotMoving", false);
+                    } else {
+                        // left
+                        _animVars.set("isMovingLeft", true);
+                        _animVars.set("isMovingRight", false);
+                        _animVars.set("isMovingForward", false);
+                        _animVars.set("isMovingBackward", false);
+                        _animVars.set("isNotMoving", false);
+                    }
+                }
+                _animVars.set("isTurningLeft", false);
+                _animVars.set("isTurningRight", false);
+                _animVars.set("isNotTurning", true);
+            }
+        } else if (_state == RigRole::Turn) {
+            if (turningSpeed > 0.0f) {
+                // turning right
+                _animVars.set("isTurningRight", true);
+                _animVars.set("isTurningLeft", false);
+                _animVars.set("isNotTurning", false);
+            } else {
+                // turning left
+                _animVars.set("isTurningLeft", true);
+                _animVars.set("isTurningRight", false);
+                _animVars.set("isNotTurning", false);
+            }
+            _animVars.set("isMovingForward", false);
+            _animVars.set("isMovingBackward", false);
+            _animVars.set("isMovingRight", false);
+            _animVars.set("isMovingLeft", false);
+            _animVars.set("isNotMoving", true);
+        } else {
+            // default anim vars to notMoving and notTurning
+            _animVars.set("isMovingForward", false);
+            _animVars.set("isMovingBackward", false);
+            _animVars.set("isMovingLeft", false);
+            _animVars.set("isMovingRight", false);
+            _animVars.set("isNotMoving", true);
+            _animVars.set("isTurningLeft", false);
+            _animVars.set("isTurningRight", false);
+            _animVars.set("isNotTurning", true);
         }
 
         t += deltaTime;
@@ -559,6 +673,71 @@ void Rig::computeMotionAnimationState(float deltaTime, const glm::vec3& worldPos
     _lastPosition = worldPosition;
 }
 
+// Allow script to add/remove handlers and report results, from within their thread.
+QScriptValue Rig::addAnimationStateHandler(QScriptValue handler, QScriptValue propertiesList) { // called in script thread
+    QMutexLocker locker(&_stateMutex);
+    // Find a safe id, even if there are lots of many scripts add and remove handlers repeatedly.
+    while (!_nextStateHandlerId || _stateHandlers.contains(_nextStateHandlerId)) { // 0 is unused, and don't reuse existing after wrap.
+      _nextStateHandlerId++;
+    }
+    StateHandler& data = _stateHandlers[_nextStateHandlerId];
+    data.function = handler;
+    data.useNames = propertiesList.isArray();
+    if (data.useNames) {
+        data.propertyNames = propertiesList.toVariant().toStringList();
+    }
+    return QScriptValue(_nextStateHandlerId); // suitable for giving to removeAnimationStateHandler
+}
+void Rig::removeAnimationStateHandler(QScriptValue identifier) { // called in script thread
+    QMutexLocker locker(&_stateMutex);
+    _stateHandlers.remove(identifier.isNumber() ? identifier.toInt32() : 0); // silently continues if handler not present. 0 is unused
+}
+void Rig::animationStateHandlerResult(int identifier, QScriptValue result) { // called synchronously from script
+    QMutexLocker locker(&_stateMutex);
+    auto found = _stateHandlers.find(identifier);
+    if (found == _stateHandlers.end()) {
+        return; // Don't use late-breaking results that got reported after the handler was removed.
+    }
+    found.value().results.animVariantMapFromScriptValue(result); // Into our own copy.
+}
+
+void Rig::updateAnimationStateHandlers() { // called on avatar update thread (which may be main thread)
+    QMutexLocker locker(&_stateMutex);
+    // It might pay to produce just one AnimVariantMap copy here, with a union of all the requested propertyNames,
+    // rather than having each callAnimationStateHandler invocation make its own copy.
+    // However, that copying is done on the script's own time rather than ours, so even if it's less cpu, it would be more
+    // work on the avatar update thread (which is possibly the main thread).
+    for (auto data = _stateHandlers.begin(); data != _stateHandlers.end(); data++) {
+        // call out:
+        int identifier = data.key();
+        StateHandler& value = data.value();
+        QScriptValue& function = value.function;
+        auto handleResult = [this, identifier](QScriptValue result) { // called in script thread to get the result back to us.
+            animationStateHandlerResult(identifier, result);
+        };
+        // invokeMethod makes a copy of the args, and copies of AnimVariantMap do copy the underlying map, so this will correctly capture
+        // the state of _animVars and allow continued changes to _animVars in this thread without conflict.
+        QMetaObject::invokeMethod(function.engine(), "callAnimationStateHandler",  Qt::QueuedConnection,
+                                  Q_ARG(QScriptValue, function),
+                                  Q_ARG(AnimVariantMap, _animVars),
+                                  Q_ARG(QStringList, value.propertyNames),
+                                  Q_ARG(bool, value.useNames),
+                                  Q_ARG(AnimVariantResultHandler, handleResult));
+        // It turns out that, for thread-safety reasons, ScriptEngine::callAnimationStateHandler will invoke itself if called from other
+        // than the script thread. Thus the above _could_ be replaced with an ordinary call, which will then trigger the same
+        // invokeMethod as is done explicitly above. However, the script-engine library depends on this animation library, not vice versa.
+        // We could create an AnimVariantCallingMixin class in shared, with an abstract virtual slot
+        // AnimVariantCallingMixin::callAnimationStateHandler (and move AnimVariantMap/AnimVaraintResultHandler to shared), but the
+        // call site here would look like this instead of the above:
+        //   dynamic_cast<AnimVariantCallingMixin*>(function.engine())->callAnimationStateHandler(function, ..., handleResult);
+        // This works (I tried it), but the result would be that we would still have same runtime type checks as the invokeMethod above
+        // (occuring within the ScriptEngine::callAnimationStateHandler invokeMethod trampoline), _plus_ another runtime check for the dynamic_cast.
+
+        // gather results in (likely from an earlier update):
+        _animVars.copyVariantsFrom(value.results); // If multiple handlers write the same anim var, the last registgered wins. (_map preserves order).
+    }
+}
+
 void Rig::updateAnimations(float deltaTime, glm::mat4 rootTransform) {
 
     if (_enableAnimGraph) {
@@ -566,6 +745,7 @@ void Rig::updateAnimations(float deltaTime, glm::mat4 rootTransform) {
             return;
         }
 
+        updateAnimationStateHandlers();
         // evaluate the animation
         AnimNode::Triggers triggersOut;
         AnimPoseVec poses = _animNode->evaluate(_animVars, deltaTime, triggersOut);
@@ -583,6 +763,7 @@ void Rig::updateAnimations(float deltaTime, glm::mat4 rootTransform) {
             setJointTranslation((int)i, true, poses[i].trans, PRIORITY);
         }
 
+        computeEyesInRootFrame(poses);
     } else {
 
         // First normalize the fades so that they sum to 1.0.
@@ -936,13 +1117,18 @@ void Rig::updateFromHeadParameters(const HeadParameters& params, float dt) {
         _animVars.unset("lean");
     }
     updateNeckJoint(params.neckJointIndex, params);
-    updateEyeJoints(params.leftEyeJointIndex, params.rightEyeJointIndex, params.modelTranslation, params.modelRotation,
-                    params.worldHeadOrientation, params.eyeLookAt, params.eyeSaccade);
 
     if (_enableAnimGraph) {
         _animVars.set("isTalking", params.isTalking);
         _animVars.set("notIsTalking", !params.isTalking);
     }
+}
+
+void Rig::updateFromEyeParameters(const EyeParameters& params) {
+    updateEyeJoint(params.leftEyeJointIndex, params.modelTranslation, params.modelRotation,
+                   params.worldHeadOrientation, params.eyeLookAt, params.eyeSaccade);
+    updateEyeJoint(params.rightEyeJointIndex, params.modelTranslation, params.modelRotation,
+                   params.worldHeadOrientation, params.eyeLookAt, params.eyeSaccade);
 }
 
 static const glm::vec3 X_AXIS(1.0f, 0.0f, 0.0f);
@@ -972,14 +1158,14 @@ void Rig::updateLeanJoint(int index, float leanSideways, float leanForward, floa
 
 static AnimPose avatarToBonePose(AnimPose pose, AnimSkeleton::ConstPointer skeleton) {
     AnimPose rootPose = skeleton->getAbsoluteBindPose(skeleton->nameToJointIndex("Hips"));
-    AnimPose rotY180(glm::vec3(1), glm::angleAxis((float)PI, glm::vec3(0.0f, 1.0f, 0.0f)), glm::vec3(0));
+    AnimPose rotY180(glm::vec3(1.0f), glm::angleAxis(PI, glm::vec3(0.0f, 1.0f, 0.0f)), glm::vec3(0));
     return rootPose * rotY180 * pose;
 }
 
 #ifdef DEBUG_RENDERING
 static AnimPose boneToAvatarPose(AnimPose pose, AnimSkeleton::ConstPointer skeleton) {
     AnimPose rootPose = skeleton->getAbsoluteBindPose(skeleton->nameToJointIndex("Hips"));
-    AnimPose rotY180(glm::vec3(1), glm::angleAxis((float)PI, glm::vec3(0.0f, 1.0f, 0.0f)), glm::vec3(0));
+    AnimPose rotY180(glm::vec3(1.0f), glm::angleAxis(PI, glm::vec3(0.0f, 1.0f, 0.0f)), glm::vec3(0));
     return (rootPose * rotY180).inverse() * pose;
 }
 #endif
@@ -1000,11 +1186,6 @@ static void computeHeadNeckAnimVars(AnimSkeleton::ConstPointer skeleton, const A
     int leftEyeIndex = skeleton->nameToJointIndex("LeftEye");
     int headIndex = skeleton->nameToJointIndex("Head");
     int neckIndex = skeleton->nameToJointIndex("Neck");
-
-    const glm::vec3 DEFAULT_RIGHT_EYE_POS(-0.3f, 1.6f, 0.0f);
-    const glm::vec3 DEFAULT_LEFT_EYE_POS(0.3f, 1.6f, 0.0f);
-    const glm::vec3 DEFAULT_HEAD_POS(0.0f, 1.55f, 0.0f);
-    const glm::vec3 DEFAULT_NECK_POS(0.0f, 1.5f, 0.0f);
 
     // Use absolute bindPose positions just in case the relBindPose have rotations we don't expect.
     glm::vec3 absRightEyePos = rightEyeIndex != -1 ? skeleton->getAbsoluteBindPose(rightEyeIndex).trans : DEFAULT_RIGHT_EYE_POS;
@@ -1100,12 +1281,6 @@ void Rig::updateNeckJoint(int index, const HeadParameters& params) {
     }
 }
 
-void Rig::updateEyeJoints(int leftEyeIndex, int rightEyeIndex, const glm::vec3& modelTranslation, const glm::quat& modelRotation,
-                          const glm::quat& worldHeadOrientation, const glm::vec3& lookAtSpot, const glm::vec3& saccade) {
-    updateEyeJoint(leftEyeIndex, modelTranslation, modelRotation, worldHeadOrientation, lookAtSpot, saccade);
-    updateEyeJoint(rightEyeIndex, modelTranslation, modelRotation, worldHeadOrientation, lookAtSpot, saccade);
-}
-
 void Rig::updateEyeJoint(int index, const glm::vec3& modelTranslation, const glm::quat& modelRotation, const glm::quat& worldHeadOrientation, const glm::vec3& lookAtSpot, const glm::vec3& saccade) {
     if (index >= 0 && _jointStates[index].getParentIndex() >= 0) {
         auto& state = _jointStates[index];
@@ -1193,12 +1368,19 @@ void Rig::updateFromHandParameters(const HandParameters& params, float dt) {
     }
 }
 
+void Rig::makeAnimSkeleton(const FBXGeometry& fbxGeometry) {
+    if (!_animSkeleton) {
+        _animSkeleton = std::make_shared<AnimSkeleton>(fbxGeometry);
+        computeEyesInRootFrame(_animSkeleton->getRelativeBindPoses());
+    }
+}
+
 void Rig::initAnimGraph(const QUrl& url, const FBXGeometry& fbxGeometry) {
     if (!_enableAnimGraph) {
         return;
     }
 
-    _animSkeleton = std::make_shared<AnimSkeleton>(fbxGeometry);
+    makeAnimSkeleton(fbxGeometry);
 
     // load the anim graph
     _animLoader.reset(new AnimNodeLoader(url));

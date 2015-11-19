@@ -21,12 +21,13 @@
 
 #include "BulletUtil.h"
 #include "ContactInfo.h"
-#include "DynamicCharacterController.h"
 #include "ObjectMotionState.h"
 #include "ThreadSafeDynamicsWorld.h"
 #include "ObjectAction.h"
 
 const float HALF_SIMULATION_EXTENT = 512.0f; // meters
+
+class CharacterController;
 
 // simple class for keeping track of contacts
 class ContactKey {
@@ -87,7 +88,7 @@ public:
 
     void removeRigidBody(btRigidBody* body);
 
-    void setCharacterController(DynamicCharacterController* character);
+    void setCharacterController(CharacterController* character);
 
     void dumpNextStats() { _dumpNextStats = true; }
 
@@ -117,7 +118,7 @@ private:
     uint32_t _lastNumSubstepsAtUpdateInternal = 0;
 
     /// character collisions
-    DynamicCharacterController* _characterController = NULL;
+    CharacterController* _myAvatarController;
 
     bool _dumpNextStats = false;
     bool _hasOutgoingChanges = false;

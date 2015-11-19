@@ -11,7 +11,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-Script.include("../toys/breakdanceCore.js");
+Script.include("../../../breakdanceCore.js");
 
 OmniToolModules.Breakdance = function() {
     print("OmniToolModules.Breakdance...");

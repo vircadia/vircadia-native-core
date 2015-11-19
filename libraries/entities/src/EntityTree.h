@@ -77,8 +77,17 @@ public:
     virtual bool canProcessVersion(PacketVersion thisVersion) const
                     { return thisVersion >= VERSION_ENTITIES_USE_METERS_AND_RADIANS; }
     virtual bool handlesEditPacketType(PacketType packetType) const;
+    void fixupTerseEditLogging(EntityItemProperties& properties, QList<QString>& changedProperties);
     virtual int processEditPacketData(ReceivedMessage& message, const unsigned char* editData, int maxLength,
                                       const SharedNodePointer& senderNode) override;
+
+    virtual bool findRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
+        OctreeElementPointer& node, float& distance, BoxFace& face, glm::vec3& surfaceNormal,
+        const QVector<EntityItemID>& entityIdsToInclude = QVector<EntityItemID>(),
+        void** intersectedObject = NULL,
+        Octree::lockType lockType = Octree::TryLock,
+        bool* accurateResult = NULL,
+        bool precisionPicking = false);
 
     virtual bool rootElementHasData() const { return true; }
 
@@ -138,10 +147,19 @@ public:
     void addNewlyCreatedHook(NewlyCreatedEntityHook* hook);
     void removeNewlyCreatedHook(NewlyCreatedEntityHook* hook);
 
-    bool hasAnyDeletedEntities() const { return _recentlyDeletedEntityItemIDs.size() > 0; }
+    bool hasAnyDeletedEntities() const { 
+        QReadLocker locker(&_recentlyDeletedEntitiesLock);
+        return _recentlyDeletedEntityItemIDs.size() > 0;
+    }
+
     bool hasEntitiesDeletedSince(quint64 sinceTime);
-    std::unique_ptr<NLPacket> encodeEntitiesDeletedSince(OCTREE_PACKET_SEQUENCE sequenceNumber, quint64& sinceTime,
-                                                         bool& hasMore);
+    static quint64 getAdjustedConsiderSince(quint64 sinceTime);
+
+    QMultiMap<quint64, QUuid> getRecentlyDeletedEntityIDs() const { 
+        QReadLocker locker(&_recentlyDeletedEntitiesLock);
+        return _recentlyDeletedEntityItemIDs;
+    }
+
     void forgetEntitiesDeletedBefore(quint64 sinceTime);
 
     int processEraseMessage(ReceivedMessage& message, const SharedNodePointer& sourceNode);
@@ -174,6 +192,9 @@ public:
 
     bool wantEditLogging() const { return _wantEditLogging; }
     void setWantEditLogging(bool value) { _wantEditLogging = value; }
+
+    bool wantTerseEditLogging() const { return _wantTerseEditLogging; }
+    void setWantTerseEditLogging(bool value) { _wantTerseEditLogging = value; }
 
     bool writeToMap(QVariantMap& entityDescription, OctreeElementPointer element, bool skipDefaultValues);
     bool readFromMap(QVariantMap& entityDescription);
@@ -231,7 +252,7 @@ private:
     QReadWriteLock _newlyCreatedHooksLock;
     QVector<NewlyCreatedEntityHook*> _newlyCreatedHooks;
 
-    QReadWriteLock _recentlyDeletedEntitiesLock;
+    mutable QReadWriteLock _recentlyDeletedEntitiesLock;
     QMultiMap<quint64, QUuid> _recentlyDeletedEntityItemIDs;
     EntityItemFBXService* _fbxService;
 
@@ -240,6 +261,7 @@ private:
     EntitySimulation* _simulation;
 
     bool _wantEditLogging = false;
+    bool _wantTerseEditLogging = false;
     void maybeNotifyNewCollisionSoundURL(const QString& oldCollisionSoundURL, const QString& newCollisionSoundURL);
 
 

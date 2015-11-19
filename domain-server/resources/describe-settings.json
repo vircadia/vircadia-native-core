@@ -485,6 +485,14 @@
           "advanced": true
         },
         {
+          "name": "wantTerseEditLogging",
+          "type": "checkbox",
+          "label": "Edit Logging (Terse)",
+          "help": "Logging of all edits to entities",
+          "default": false,
+          "advanced": true
+        },
+        {
           "name": "verboseDebug",
           "type": "checkbox",
           "label": "Verbose Debug",

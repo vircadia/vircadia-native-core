@@ -19,15 +19,17 @@
 #include <QtCore/QSet>
 #include <QtCore/QWaitCondition>
 #include <QtScript/QScriptEngine>
+#include <QtCore/QStringList>
 
 #include <AnimationCache.h>
+#include <AnimVariant.h>
 #include <AvatarData.h>
 #include <AvatarHashMap.h>
 #include <LimitedNodeList.h>
 #include <EntityItemID.h>
 #include <EntitiesScriptEngineProvider.h>
 
-#include "AbstractControllerScriptingInterface.h"
+#include "MouseEvent.h"
 #include "ArrayBufferClass.h"
 #include "AudioScriptingInterface.h"
 #include "Quat.h"
@@ -53,7 +55,6 @@ class ScriptEngine : public QScriptEngine, public ScriptUser, public EntitiesScr
 public:
     ScriptEngine(const QString& scriptContents = NO_SCRIPT,
                  const QString& fileNameString = QString(""),
-                 AbstractControllerScriptingInterface* controllerScriptingInterface = NULL,
                  bool wantSignals = true);
 
     ~ScriptEngine();
@@ -88,7 +89,7 @@ public:
     Q_INVOKABLE void registerValue(const QString& valueName, QScriptValue value);
 
     /// evaluate some code in the context of the ScriptEngine and return the result
-    Q_INVOKABLE QScriptValue evaluate(const QString& program, const QString& fileName = QString(), int lineNumber = 1); // this is also used by the script tool widget
+    Q_INVOKABLE QScriptValue evaluate(const QString& program, const QString& fileName, int lineNumber = 1); // this is also used by the script tool widget
 
     /// if the script engine is not already running, this will download the URL and start the process of seting it up
     /// to run... NOTE - this is used by Application currently to load the url. We don't really want it to be exposed 
@@ -115,7 +116,7 @@ public:
     Q_INVOKABLE void loadEntityScript(const EntityItemID& entityID, const QString& entityScript, bool forceRedownload = false); // will call the preload method once loaded
     Q_INVOKABLE void unloadEntityScript(const EntityItemID& entityID); // will call unload method
     Q_INVOKABLE void unloadAllEntityScripts();
-    Q_INVOKABLE void callEntityScriptMethod(const EntityItemID& entityID, const QString& methodName);
+    Q_INVOKABLE void callEntityScriptMethod(const EntityItemID& entityID, const QString& methodName, const QStringList& params = QStringList());
     Q_INVOKABLE void callEntityScriptMethod(const EntityItemID& entityID, const QString& methodName, const MouseEvent& event);
     Q_INVOKABLE void callEntityScriptMethod(const EntityItemID& entityID, const QString& methodName, const EntityItemID& otherID, const Collision& collision);
 
@@ -141,6 +142,9 @@ public:
 
     // NOTE - this is used by the TypedArray implemetation. we need to review this for thread safety
     ArrayBufferClass* getArrayBufferClass() { return _arrayBufferClass; }
+
+public slots:
+    void callAnimationStateHandler(QScriptValue callback, AnimVariantMap parameters, QStringList names, bool useNames, AnimVariantResultHandler resultHandler);
 
 signals:
     void scriptLoaded(const QString& scriptFilename);
@@ -182,7 +186,6 @@ private:
     QObject* setupTimerWithInterval(const QScriptValue& function, int intervalMS, bool isSingleShot);
     void stopTimer(QTimer* timer);
 
-    AbstractControllerScriptingInterface* _controllerScriptingInterface;
     QString _fileNameString;
     Quat _quatLibrary;
     Vec3 _vec3Library;
@@ -193,7 +196,7 @@ private:
     ArrayBufferClass* _arrayBufferClass;
 
     QHash<EntityItemID, RegisteredEventHandlers> _registeredHandlers;
-    void generalHandler(const EntityItemID& entityID, const QString& eventName, std::function<QScriptValueList()> argGenerator);
+    void forwardHandlerCall(const EntityItemID& entityID, const QString& eventName, QScriptValueList eventHanderArgs);
     Q_INVOKABLE void entityScriptContentAvailable(const EntityItemID& entityID, const QString& scriptOrURL, const QString& contents, bool isURL, bool success);
 
     static QSet<ScriptEngine*> _allKnownScriptEngines;

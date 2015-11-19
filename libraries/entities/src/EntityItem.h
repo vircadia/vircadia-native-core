@@ -29,6 +29,8 @@
 #include "EntityPropertyFlags.h"
 #include "EntityTypes.h"
 #include "SimulationOwner.h"
+#include "SimulationFlags.h"
+#include "EntityActionInterface.h"
 
 class EntitySimulation;
 class EntityTreeElement;
@@ -102,24 +104,6 @@ class EntityItem : public std::enable_shared_from_this<EntityItem>, public ReadW
     friend class EntityTreeElement;
     friend class EntitySimulation;
 public:
-    enum EntityDirtyFlags {
-        DIRTY_POSITION = 0x0001,
-        DIRTY_ROTATION = 0x0002,
-        DIRTY_LINEAR_VELOCITY = 0x0004,
-        DIRTY_ANGULAR_VELOCITY = 0x0008,
-        DIRTY_MASS = 0x0010,
-        DIRTY_COLLISION_GROUP = 0x0020,
-        DIRTY_MOTION_TYPE = 0x0040,
-        DIRTY_SHAPE = 0x0080,
-        DIRTY_LIFETIME = 0x0100,
-        DIRTY_UPDATEABLE = 0x0200,
-        DIRTY_MATERIAL = 0x00400,
-        DIRTY_PHYSICS_ACTIVATION = 0x0800, // should activate object in physics engine
-        DIRTY_SIMULATOR_OWNERSHIP = 0x1000, // should claim simulator ownership
-        DIRTY_SIMULATOR_ID = 0x2000, // the simulatorID has changed
-        DIRTY_TRANSFORM = DIRTY_POSITION | DIRTY_ROTATION,
-        DIRTY_VELOCITIES = DIRTY_LINEAR_VELOCITY | DIRTY_ANGULAR_VELOCITY
-    };
 
     DONT_ALLOW_INSTANTIATION // This class can not be instantiated directly
 
@@ -324,6 +308,7 @@ public:
 
     QString getName() const { return _name; }
     void setName(const QString& value) { _name = value; }
+    QString getDebugName() { return _name != "" ? _name : getID().toString(); }
 
     bool getVisible() const { return _visible; }
     void setVisible(bool value) { _visible = value; }
@@ -398,6 +383,7 @@ public:
     void setPhysicsInfo(void* data) { _physicsInfo = data; }
     EntityTreeElementPointer getElement() const { return _element; }
     EntityTreePointer getTree() const;
+    bool wantTerseEditLogging();
 
     static void setSendPhysicsUpdates(bool value) { _sendPhysicsUpdates = value; }
     static bool getSendPhysicsUpdates() { return _sendPhysicsUpdates; }
@@ -411,7 +397,7 @@ public:
 
     void getAllTerseUpdateProperties(EntityItemProperties& properties) const;
 
-    void flagForOwnership() { _dirtyFlags |= DIRTY_SIMULATOR_OWNERSHIP; }
+    void flagForOwnership() { _dirtyFlags |= Simulation::DIRTY_SIMULATOR_OWNERSHIP; }
 
     bool addAction(EntitySimulation* simulation, EntityActionPointer action);
     bool updateAction(EntitySimulation* simulation, const QUuid& actionID, const QVariantMap& arguments);
@@ -423,7 +409,20 @@ public:
     QList<QUuid> getActionIDs() { return _objectActions.keys(); }
     QVariantMap getActionArguments(const QUuid& actionID) const;
     void deserializeActions();
+
     void setActionDataDirty(bool value) const { _actionDataDirty = value; }
+    bool actionDataDirty() const { return _actionDataDirty; }
+
+    void setActionDataNeedsTransmit(bool value) const { _actionDataNeedsTransmit = value; }
+    bool actionDataNeedsTransmit() const { return _actionDataNeedsTransmit; }
+
+    bool shouldSuppressLocationEdits() const;
+
+    void setSourceUUID(const QUuid& sourceUUID) { _sourceUUID = sourceUUID; }
+    const QUuid& getSourceUUID() const { return _sourceUUID; }
+    bool matchesSourceUUID(const QUuid& sourceUUID) const { return _sourceUUID == sourceUUID; }
+
+    QList<EntityActionPointer> getActionsOfType(EntityActionType typeToGet);
 
 protected:
 
@@ -451,7 +450,7 @@ protected:
     mutable bool _recalcAABox = true;
     mutable bool _recalcMinAACube = true;
     mutable bool _recalcMaxAACube = true;
-    
+
     float _glowLevel;
     float _localRenderAlpha;
     float _density = ENTITY_ITEM_DEFAULT_DENSITY; // kg/m^3
@@ -522,9 +521,12 @@ protected:
     void checkWaitingToRemove(EntitySimulation* simulation = nullptr);
     mutable QSet<QUuid> _actionsToRemove;
     mutable bool _actionDataDirty = false;
+    mutable bool _actionDataNeedsTransmit = false;
     // _previouslyDeletedActions is used to avoid an action being re-added due to server round-trip lag
     static quint64 _rememberDeletedActionTime;
     mutable QHash<QUuid, quint64> _previouslyDeletedActions;
+
+    QUuid _sourceUUID; /// the server node UUID we came from
 };
 
 #endif // hifi_EntityItem_h

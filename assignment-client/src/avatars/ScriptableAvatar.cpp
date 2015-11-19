@@ -73,24 +73,20 @@ void ScriptableAvatar::update(float deltatime) {
             const FBXAnimationFrame& ceilFrame = _animation->getFrames().at((int)glm::ceil(currentFrame) % frameCount);
             const float frameFraction = glm::fract(currentFrame);
             
-            for (int i = 0; i < modelJoints.size(); i++) {
-                int mapping = animationJoints.indexOf(modelJoints[i]);
-                if (mapping != -1 && !_maskedJoints.contains(modelJoints[i])) {
-                    JointData& data = _jointData[i];
+            for (int i = 0; i < animationJoints.size(); i++) {
+                const QString& name = animationJoints[i];
+                int mapping = getJointIndex(name);
+                if (mapping != -1 && !_maskedJoints.contains(name)) {
+                    JointData& data = _jointData[mapping];
 
                     auto newRotation = safeMix(floorFrame.rotations.at(i), ceilFrame.rotations.at(i), frameFraction);
-                    auto newTranslation = floorFrame.translations.at(i) * (1.0f - frameFraction) +
-                        ceilFrame.translations.at(i) * frameFraction;
-
+                    // We could probably do translations as in interpolation in model space (rather than the parent space that each frame is in),
+                    // but we don't do so for MyAvatar yet, so let's not be different here.
                     if (data.rotation != newRotation) {
                         data.rotation = newRotation;
                         data.rotationSet = true;
                     }
-                    if (data.translation != newTranslation) {
-                        data.translation = newTranslation;
-                        data.translationSet = true;
-                    }
-                }
+                 }
             }
         } else {
             _animation.clear();

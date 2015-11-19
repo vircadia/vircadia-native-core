@@ -159,11 +159,9 @@ public:
     DEFINE_PROPERTY(PROP_RADIUS_SPREAD, RadiusSpread, radiusSpread, float, ParticleEffectEntityItem::DEFAULT_RADIUS_SPREAD);
     DEFINE_PROPERTY(PROP_RADIUS_START, RadiusStart, radiusStart, float, ParticleEffectEntityItem::DEFAULT_RADIUS_START);
     DEFINE_PROPERTY(PROP_RADIUS_FINISH, RadiusFinish, radiusFinish, float, ParticleEffectEntityItem::DEFAULT_RADIUS_FINISH);
+    DEFINE_PROPERTY(PROP_ADDITIVE_BLENDING, AdditiveBlending, additiveBlending, bool, ParticleEffectEntityItem::DEFAULT_ADDITIVE_BLENDING);
     DEFINE_PROPERTY_REF(PROP_MARKETPLACE_ID, MarketplaceID, marketplaceID, QString, ENTITY_ITEM_DEFAULT_MARKETPLACE_ID);
-    DEFINE_PROPERTY_REF(PROP_KEYLIGHT_COLOR, KeyLightColor, keyLightColor, xColor, ZoneEntityItem::DEFAULT_KEYLIGHT_COLOR);
-    DEFINE_PROPERTY(PROP_KEYLIGHT_INTENSITY, KeyLightIntensity, keyLightIntensity, float, ZoneEntityItem::DEFAULT_KEYLIGHT_INTENSITY);
-    DEFINE_PROPERTY(PROP_KEYLIGHT_AMBIENT_INTENSITY, KeyLightAmbientIntensity, keyLightAmbientIntensity, float, ZoneEntityItem::DEFAULT_KEYLIGHT_AMBIENT_INTENSITY);
-    DEFINE_PROPERTY_REF(PROP_KEYLIGHT_DIRECTION, KeyLightDirection, keyLightDirection, glm::vec3, ZoneEntityItem::DEFAULT_KEYLIGHT_DIRECTION);
+    DEFINE_PROPERTY_GROUP(KeyLight, keyLight, KeyLightPropertyGroup);
     DEFINE_PROPERTY_REF(PROP_VOXEL_VOLUME_SIZE, VoxelVolumeSize, voxelVolumeSize, glm::vec3, PolyVoxEntityItem::DEFAULT_VOXEL_VOLUME_SIZE);
     DEFINE_PROPERTY_REF(PROP_VOXEL_DATA, VoxelData, voxelData, QByteArray, PolyVoxEntityItem::DEFAULT_VOXEL_DATA);
     DEFINE_PROPERTY_REF(PROP_VOXEL_SURFACE_STYLE, VoxelSurfaceStyle, voxelSurfaceStyle, uint16_t, PolyVoxEntityItem::DEFAULT_VOXEL_SURFACE_STYLE);
@@ -253,6 +251,11 @@ public:
 
     void setActionDataDirty() { _actionDataChanged = true; }
 
+    QList<QString> listChangedProperties();
+    
+    bool getDimensionsInitialized() const { return _dimensionsInitialized; }
+    void setDimensionsInitialized(bool dimensionsInitialized) { _dimensionsInitialized = dimensionsInitialized; }
+    
 private:
     QUuid _id;
     bool _idSet;
@@ -265,6 +268,7 @@ private:
     bool _glowLevelChanged;
     bool _localRenderAlphaChanged;
     bool _defaultSettings;
+    bool _dimensionsInitialized = true; // Only false if creating an entity localy with no dimensions properties
 
     // NOTE: The following are pseudo client only properties. They are only used in clients which can access
     // properties of model geometry. But these properties are not serialized like other properties.
@@ -370,7 +374,9 @@ inline QDebug operator<<(QDebug debug, const EntityItemProperties& properties) {
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, VoxelSurfaceStyle, voxelSurfaceStyle, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, Href, href, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, Description, description, "");
-    DEBUG_PROPERTY_IF_CHANGED(debug, properties, ActionData, actionData, "");
+    if (properties.actionDataChanged()) {
+        debug << " " << "actionData" << ":" << properties.getActionData().toHex() << "" << "\n";
+    }
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, XTextureURL, xTextureURL, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, YTextureURL, yTextureURL, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, ZTextureURL, zTextureURL, "");

@@ -57,6 +57,7 @@ private:
 class Menu : public QMenuBar {
     Q_OBJECT
 public:
+    Menu();
     static Menu* getInstance();
 
     void loadSettings();
@@ -103,9 +104,6 @@ public slots:
     void setIsOptionChecked(const QString& menuOption, bool isChecked);
 
 private:
-    static Menu* _instance;
-    Menu();
-
     typedef void(*settingsAction)(Settings&, QAction&);
     static void loadAction(Settings& settings, QAction& action);
     static void saveAction(Settings& settings, QAction& action);
@@ -135,6 +133,7 @@ namespace MenuOption {
     const QString AnimDebugDrawAnimPose = "Debug Draw Animation";
     const QString AnimDebugDrawBindPose = "Debug Draw Bind Pose";
     const QString Antialiasing = "Antialiasing";
+    const QString AssetMigration = "ATP Asset Migration";
     const QString Atmosphere = "Atmosphere";
     const QString Attachments = "Attachments...";
     const QString AudioNoiseReduction = "Audio Noise Reduction";
@@ -156,9 +155,11 @@ namespace MenuOption {
     const QString Bookmarks = "Bookmarks";
     const QString CachesSize = "RAM Caches Size";
     const QString CalibrateCamera = "Calibrate Camera";
+    const QString CameraEntityMode = "Entity Mode";
     const QString CenterPlayerInView = "Center Player In View";
     const QString Chat = "Chat...";
     const QString Collisions = "Collisions";
+    const QString ComfortMode = "Comfort Mode";
     const QString Connexion = "Activate 3D Connexion Devices";
     const QString Console = "Console...";
     const QString ControlWithSpeech = "Control With Speech";
@@ -280,7 +281,6 @@ namespace MenuOption {
     const QString Stats = "Stats";
     const QString StopAllScripts = "Stop All Scripts";
     const QString SuppressShortTimings = "Suppress Timings Less than 10ms";
-    const QString TestPing = "Test Ping";
     const QString ThirdPerson = "Third Person";
     const QString ThreePointCalibration = "3 Point Calibration";
     const QString ThrottleFPSIfNotFocus = "Throttle FPS If Not Focus"; // FIXME - this value duplicated in Basic2DWindowOpenGLDisplayPlugin.cpp

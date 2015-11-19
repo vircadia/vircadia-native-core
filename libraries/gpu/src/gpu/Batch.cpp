@@ -22,6 +22,14 @@ ProfileRange::ProfileRange(const char *name) {
 ProfileRange::~ProfileRange() {
     nvtxRangePop();
 }
+
+ProfileRangeBatch::ProfileRangeBatch(gpu::Batch& batch, const char *name) : _batch(batch) {
+    _batch.pushProfileRange(name);
+}
+
+ProfileRangeBatch::~ProfileRangeBatch() {
+    _batch.popProfileRange();
+}
 #endif
 
 #define ADD_COMMAND(call) _commands.push_back(COMMAND_##call); _commandOffsets.push_back(_params.size());
@@ -390,4 +398,18 @@ QDebug& operator<<(QDebug& debug, const Batch::CacheState& cacheState) {
         << "]";
 
     return debug;
+}
+
+// Debugging
+void Batch::pushProfileRange(const char* name) {
+#if defined(NSIGHT_FOUND)
+    ADD_COMMAND(pushProfileRange);
+    _params.push_back(_profileRanges.cache(name));
+#endif
+}
+
+void Batch::popProfileRange() {
+#if defined(NSIGHT_FOUND)
+    ADD_COMMAND(popProfileRange);
+#endif
 }

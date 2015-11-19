@@ -31,5 +31,3 @@ select_library_configurations(GLEW)
 
 include(FindPackageHandleStandardArgs)
 find_package_handle_standard_args(GLEW DEFAULT_MSG GLEW_INCLUDE_DIRS GLEW_LIBRARIES)
-
-message(STATUS "Found GLEW - Assuming that GLEW is static and defining GLEW_STATIC")

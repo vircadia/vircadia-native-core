@@ -19,7 +19,7 @@
 
 #include "ResourceManager.h"
 
-QUrl getUrl(const QString& hash, const QString& extension) {
+QUrl getATPUrl(const QString& hash, const QString& extension) {
     if (!extension.isEmpty()) {
         return QUrl(QString("%1:%2.%3").arg(URL_SCHEME_ATP, hash, extension));
     } else {

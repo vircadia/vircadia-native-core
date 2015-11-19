@@ -16,6 +16,7 @@
 
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
+#include <glm/gtx/quaternion.hpp>
 
 // Bring the most commonly used GLM types into the default namespace
 using glm::ivec2;
@@ -182,6 +183,11 @@ T toNormalizedDeviceScale(const T& value, const T& size) {
 #define YAW(euler) euler.y
 #define PITCH(euler) euler.x
 #define ROLL(euler) euler.z
+
+// float - linear interpolate
+inline float lerp(float x, float y, float a) {
+    return x * (1.0f - a) + (y * a);
+}
 
 // vec2 lerp - linear interpolate
 template<typename T, glm::precision P>

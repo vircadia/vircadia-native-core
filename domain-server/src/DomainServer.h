@@ -60,7 +60,8 @@ public slots:
     void processListRequestPacket(QSharedPointer<ReceivedMessage> packet, SharedNodePointer sendingNode);
     void processNodeJSONStatsPacket(QSharedPointer<ReceivedMessage> packetList, SharedNodePointer sendingNode);
     void processPathQueryPacket(QSharedPointer<ReceivedMessage> packet);
-
+    void processNodeDisconnectRequestPacket(QSharedPointer<ReceivedMessage> message);
+    
 private slots:
     void aboutToQuit();
 

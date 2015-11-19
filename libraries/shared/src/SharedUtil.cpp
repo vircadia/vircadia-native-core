@@ -15,6 +15,7 @@
 #include <cstring>
 #include <cctype>
 #include <time.h>
+#include <mutex>
 
 #ifdef _WIN32
 #include <windows.h>
@@ -39,30 +40,29 @@ void usecTimestampNowForceClockSkew(int clockSkew) {
     ::usecTimestampNowAdjust = clockSkew;
 }
 
+static qint64 TIME_REFERENCE = 0; // in usec
+static std::once_flag usecTimestampNowIsInitialized;
+static QElapsedTimer timestampTimer;
+
 quint64 usecTimestampNow(bool wantDebug) {
-    static bool usecTimestampNowIsInitialized = false;
-    static qint64 TIME_REFERENCE = 0; // in usec
-    static QElapsedTimer timestampTimer;
-    
-    if (!usecTimestampNowIsInitialized) {
-        TIME_REFERENCE = QDateTime::currentMSecsSinceEpoch() * 1000; // ms to usec
+    std::call_once(usecTimestampNowIsInitialized, [&] {
+        TIME_REFERENCE = QDateTime::currentMSecsSinceEpoch() * USECS_PER_MSEC; // ms to usec
         timestampTimer.start();
-        usecTimestampNowIsInitialized = true;
-    }
+    });
     
     quint64 now;
     quint64 nsecsElapsed = timestampTimer.nsecsElapsed();
-    quint64 usecsElapsed = nsecsElapsed / 1000;  // nsec to usec
+    quint64 usecsElapsed = nsecsElapsed / NSECS_PER_USEC;  // nsec to usec
     
     // QElapsedTimer may not advance if the CPU has gone to sleep. In which case it
     // will begin to deviate from real time. We detect that here, and reset if necessary
     quint64 msecsCurrentTime = QDateTime::currentMSecsSinceEpoch();
-    quint64 msecsEstimate = (TIME_REFERENCE + usecsElapsed) / 1000; // usecs to msecs
+    quint64 msecsEstimate = (TIME_REFERENCE + usecsElapsed) / USECS_PER_MSEC; // usecs to msecs
     int possibleSkew = msecsEstimate - msecsCurrentTime;
-    const int TOLERANCE = 10000; // up to 10 seconds of skew is tolerated
+    const int TOLERANCE = 10 * MSECS_PER_SECOND; // up to 10 seconds of skew is tolerated
     if (abs(possibleSkew) > TOLERANCE) {
         // reset our TIME_REFERENCE and timer
-        TIME_REFERENCE = QDateTime::currentMSecsSinceEpoch() * 1000; // ms to usec
+        TIME_REFERENCE = QDateTime::currentMSecsSinceEpoch() * USECS_PER_MSEC; // ms to usec
         timestampTimer.restart();
         now = TIME_REFERENCE + ::usecTimestampNowAdjust;
 
@@ -116,6 +116,13 @@ quint64 usecTimestampNow(bool wantDebug) {
     }
     
     return now;
+}
+
+float secTimestampNow() {
+    static const auto START_TIME = usecTimestampNow();
+    const auto nowUsecs = usecTimestampNow() - START_TIME;
+    const auto nowMsecs = nowUsecs / USECS_PER_MSEC;
+    return (float)nowMsecs / MSECS_PER_SECOND;
 }
 
 float randFloat() {

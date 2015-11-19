@@ -15,15 +15,13 @@ public:
     virtual ~NullDisplayPlugin() final {}
     virtual const QString & getName() const override;
 
-    void activate() override;
-    void deactivate() override;
     void stop() override;
 
     virtual glm::uvec2 getRecommendedRenderSize() const override;
     virtual bool hasFocus() const override;
     virtual void preRender() override;
     virtual void preDisplay() override;
-    virtual void display(GLuint sceneTexture, const glm::uvec2& sceneSize) override;
+    virtual void display(uint32_t sceneTexture, const glm::uvec2& sceneSize) override;
     virtual void finishFrame() override;
 
 private:

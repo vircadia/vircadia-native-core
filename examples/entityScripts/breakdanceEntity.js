@@ -12,7 +12,7 @@
 //
 
 (function() {
-    Script.include("../toys/breakdanceCore.js");
+    Script.include("../breakdanceCore.js");
     Script.include("../libraries/utils.js");
 
     var _this;

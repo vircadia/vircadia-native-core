@@ -13,6 +13,7 @@
 #include "AnimBlendLinear.h"
 #include "AnimationLogging.h"
 #include "AnimVariant.h"
+#include "AnimUtil.h"
 
 #include <../QTestExtensions.h>
 
@@ -30,8 +31,8 @@ void AnimTests::cleanupTestCase() {
 }
 
 void AnimTests::testClipInternalState() {
-    std::string id = "my anim clip";
-    std::string url = "https://hifi-public.s3.amazonaws.com/ozan/support/FightClubBotTest1/Animations/standard_idle.fbx";
+    QString id = "my anim clip";
+    QString url = "https://hifi-public.s3.amazonaws.com/ozan/support/FightClubBotTest1/Animations/standard_idle.fbx";
     float startFrame = 2.0f;
     float endFrame = 20.0f;
     float timeScale = 1.1f;
@@ -55,8 +56,8 @@ static float framesToSec(float secs) {
 }
 
 void AnimTests::testClipEvaulate() {
-    std::string id = "myClipNode";
-    std::string url = "https://hifi-public.s3.amazonaws.com/ozan/support/FightClubBotTest1/Animations/standard_idle.fbx";
+    QString id = "myClipNode";
+    QString url = "https://hifi-public.s3.amazonaws.com/ozan/support/FightClubBotTest1/Animations/standard_idle.fbx";
     float startFrame = 2.0f;
     float endFrame = 22.0f;
     float timeScale = 1.0f;
@@ -73,8 +74,8 @@ void AnimTests::testClipEvaulate() {
 
     // does it loop?
     triggers.clear();
-    clip.evaluate(vars, framesToSec(11.0f), triggers);
-    QCOMPARE_WITH_ABS_ERROR(clip._frame, 3.0f, EPSILON);
+    clip.evaluate(vars, framesToSec(12.0f), triggers);
+    QCOMPARE_WITH_ABS_ERROR(clip._frame, 3.0f, EPSILON);  // Note: frame 3 and not 4, because extra frame between start and end.
 
     // did we receive a loop trigger?
     QVERIFY(std::find(triggers.begin(), triggers.end(), "myClipNodeOnLoop") != triggers.end());
@@ -90,8 +91,8 @@ void AnimTests::testClipEvaulate() {
 }
 
 void AnimTests::testClipEvaulateWithVars() {
-    std::string id = "myClipNode";
-    std::string url = "https://hifi-public.s3.amazonaws.com/ozan/support/FightClubBotTest1/Animations/standard_idle.fbx";
+    QString id = "myClipNode";
+    QString url = "https://hifi-public.s3.amazonaws.com/ozan/support/FightClubBotTest1/Animations/standard_idle.fbx";
     float startFrame = 2.0f;
     float endFrame = 22.0f;
     float timeScale = 1.0f;
@@ -126,9 +127,9 @@ void AnimTests::testClipEvaulateWithVars() {
 }
 
 void AnimTests::testLoader() {
-    auto url = QUrl("https://gist.githubusercontent.com/hyperlogic/857129fe04567cbe670f/raw/8ba57a8f0a76f88b39a11f77f8d9df04af9cec95/test.json");
+    auto url = QUrl("https://gist.githubusercontent.com/hyperlogic/857129fe04567cbe670f/raw/0c54500f480fd7314a5aeb147c45a8a707edcc2e/test.json");
     // NOTE: This will warn about missing "test01.fbx", "test02.fbx", etc. if the resource loading code doesn't handle relative pathnames!
-    // However, the test will proceed.
+    // However, the test will proceed.
     AnimNodeLoader loader(url);
 
     const int timeout = 1000;
@@ -237,4 +238,88 @@ void AnimTests::testVariant() {
     QVERIFY(m[0].x == 1.0f);
     QVERIFY(m[1].z == -7.0f);
     QVERIFY(m[3].w == 16.0f);
+}
+
+void AnimTests::testAccumulateTime() {
+
+    float startFrame = 0.0f;
+    float endFrame = 10.0f;
+    float timeScale = 1.0f;
+    testAccumulateTimeWithParameters(startFrame, endFrame, timeScale);
+
+    startFrame = 5.0f;
+    endFrame = 15.0f;
+    timeScale = 1.0f;
+    testAccumulateTimeWithParameters(startFrame, endFrame, timeScale);
+
+    startFrame = 0.0f;
+    endFrame = 10.0f;
+    timeScale = 0.5f;
+    testAccumulateTimeWithParameters(startFrame, endFrame, timeScale);
+
+    startFrame = 5.0f;
+    endFrame = 15.0f;
+    timeScale = 2.0f;
+    testAccumulateTimeWithParameters(startFrame, endFrame, timeScale);
+}
+
+void AnimTests::testAccumulateTimeWithParameters(float startFrame, float endFrame, float timeScale) const {
+
+    float dt = (1.0f / 30.0f) / timeScale;  // sec
+    QString id = "testNode";
+    AnimNode::Triggers triggers;
+    bool loopFlag = false;
+
+    float resultFrame = accumulateTime(startFrame, endFrame, timeScale, startFrame, dt, loopFlag, id, triggers);
+    QVERIFY(resultFrame == startFrame + 1.0f);
+    QVERIFY(triggers.empty());
+    triggers.clear();
+
+    resultFrame = accumulateTime(startFrame, endFrame, timeScale, resultFrame, dt, loopFlag, id, triggers);
+    QVERIFY(resultFrame == startFrame + 2.0f);
+    QVERIFY(triggers.empty());
+    triggers.clear();
+
+    resultFrame = accumulateTime(startFrame, endFrame, timeScale, resultFrame, dt, loopFlag, id, triggers);
+    QVERIFY(resultFrame == startFrame + 3.0f);
+    QVERIFY(triggers.empty());
+    triggers.clear();
+
+    // test onDone trigger and frame clamping.
+    resultFrame = accumulateTime(startFrame, endFrame, timeScale, endFrame - 1.0f, dt, loopFlag, id, triggers);
+    QVERIFY(resultFrame == endFrame);
+    QVERIFY(!triggers.empty() && triggers[0] == "testNodeOnDone");
+    triggers.clear();
+
+    resultFrame = accumulateTime(startFrame, endFrame, timeScale, endFrame - 0.5f, dt, loopFlag, id, triggers);
+    QVERIFY(resultFrame == endFrame);
+    QVERIFY(!triggers.empty() && triggers[0] == "testNodeOnDone");
+    triggers.clear();
+
+    // test onLoop trigger and looping frame logic
+    loopFlag = true;
+
+    // should NOT trigger loop even though we stop at last frame, because there is an extra frame between end and start frames.
+    resultFrame = accumulateTime(startFrame, endFrame, timeScale, endFrame - 1.0f, dt, loopFlag, id, triggers);
+    QVERIFY(resultFrame == endFrame);
+    QVERIFY(triggers.empty());
+    triggers.clear();
+
+    // now we should hit loop trigger
+    resultFrame = accumulateTime(startFrame, endFrame, timeScale, resultFrame, dt, loopFlag, id, triggers);
+    QVERIFY(resultFrame == startFrame);
+    QVERIFY(!triggers.empty() && triggers[0] == "testNodeOnLoop");
+    triggers.clear();
+
+    // should NOT trigger loop, even though we move past the end frame, because of extra frame between end and start.
+    resultFrame = accumulateTime(startFrame, endFrame, timeScale, endFrame - 0.5f, dt, loopFlag, id, triggers);
+    QVERIFY(resultFrame == endFrame + 0.5f);
+    QVERIFY(triggers.empty());
+    triggers.clear();
+
+    // now we should hit loop trigger
+    resultFrame = accumulateTime(startFrame, endFrame, timeScale, resultFrame, dt, loopFlag, id, triggers);
+    QVERIFY(resultFrame == startFrame + 0.5f);
+    QVERIFY(!triggers.empty() && triggers[0] == "testNodeOnLoop");
+    triggers.clear();
 }

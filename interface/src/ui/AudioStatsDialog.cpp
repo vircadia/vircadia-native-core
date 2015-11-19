@@ -65,11 +65,12 @@ AudioStatsDialog::AudioStatsDialog(QWidget* parent) :
     // Get statistics from the Audio Client
     _stats = &DependencyManager::get<AudioClient>()->getStats();
         
-    // Create layouter
+    // Create layout
     _form = new QFormLayout();
+    _form->setSizeConstraint(QLayout::SetFixedSize);
     QDialog::setLayout(_form);
         
-    // Load and initilize all channels
+    // Load and initialize all channels
     renderStats();
 
     _audioDisplayChannels = QVector<QVector<AudioStatsDisplay*>>(1);
@@ -80,10 +81,8 @@ AudioStatsDialog::AudioStatsDialog(QWidget* parent) :
     _downstreamID = addChannel(_form, _downstreamStats, COLOR3);
     _upstreamInjectedID = addChannel(_form, _upstreamInjectedStats, COLOR0);
         
-        
     connect(averageUpdateTimer, SIGNAL(timeout()), this, SLOT(updateTimerTimeout()));
     averageUpdateTimer->start(1000);
-
 }
 
 int AudioStatsDialog::addChannel(QFormLayout* form, QVector<QString>& stats, const unsigned color) {
@@ -243,7 +242,6 @@ void AudioStatsDialog::paintEvent(QPaintEvent* event) {
     }
     
     QDialog::paintEvent(event);
-    setFixedSize(width(), height());
 }
 
 void AudioStatsDialog::reject() {

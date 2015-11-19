@@ -54,6 +54,30 @@ void AtmospherePropertyGroup::debugDump() const {
     qDebug() << "       Has Stars:" << getHasStars() << " has changed:" << hasStarsChanged();
 }
 
+void AtmospherePropertyGroup::listChangedProperties(QList<QString>& out) {
+    if (centerChanged()) {
+        out << "center";
+    }
+    if (innerRadiusChanged()) {
+        out << "innerRadius";
+    }
+    if (outerRadiusChanged()) {
+        out << "outerRadius";
+    }
+    if (mieScatteringChanged()) {
+        out << "mieScattering";
+    }
+    if (rayleighScatteringChanged()) {
+        out << "rayleighScattering";
+    }
+    if (scatteringWavelengthsChanged()) {
+        out << "scatteringWavelengths";
+    }
+    if (hasStarsChanged()) {
+        out << "hasStars";
+    }
+}
+
 bool AtmospherePropertyGroup::appendToEditPacket(OctreePacketData* packetData,
                                     EntityPropertyFlags& requestedProperties,
                                     EntityPropertyFlags& propertyFlags,

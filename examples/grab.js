@@ -47,7 +47,7 @@ var IDENTITY_QUAT = {
     z: 0,
     w: 0
 };
-var ACTION_LIFETIME = 10; // seconds
+var ACTION_TTL = 10; // seconds
 
 function getTag() {
     return "grab-" + MyAvatar.sessionUUID;
@@ -403,7 +403,7 @@ Grabber.prototype.moveEvent = function(event) {
 
     var actionArgs = {
         tag: getTag(),
-        lifetime: ACTION_LIFETIME
+        ttl: ACTION_TTL
     };
 
     if (this.mode === "rotate") {
@@ -424,7 +424,7 @@ Grabber.prototype.moveEvent = function(event) {
             targetRotation: this.lastRotation,
             angularTimeScale: 0.1,
             tag: getTag(),
-            lifetime: ACTION_LIFETIME
+            ttl: ACTION_TTL
         };
 
     } else {
@@ -459,7 +459,7 @@ Grabber.prototype.moveEvent = function(event) {
             targetPosition: this.targetPosition,
             linearTimeScale: 0.1,
             tag: getTag(),
-            lifetime: ACTION_LIFETIME
+            ttl: ACTION_TTL
         };
 
 
@@ -506,6 +506,7 @@ Grabber.prototype.activateEntity = function(entityID, grabbedProperties) {
     if (data["refCount"] == 1) {
         data["gravity"] = grabbedProperties.gravity;
         data["ignoreForCollisions"] = grabbedProperties.ignoreForCollisions;
+        data["collisionsWillMove"] = grabbedProperties.collisionsWillMove;
         var whileHeldProperties = {gravity: {x:0, y:0, z:0}};
         if (invertSolidWhileHeld) {
             whileHeldProperties["ignoreForCollisions"] = ! grabbedProperties.ignoreForCollisions;
@@ -522,7 +523,8 @@ Grabber.prototype.deactivateEntity = function(entityID) {
         if (data["refCount"] < 1) {
             Entities.editEntity(entityID, {
                 gravity: data["gravity"],
-                ignoreForCollisions: data["ignoreForCollisions"]
+                ignoreForCollisions: data["ignoreForCollisions"],
+                collisionsWillMove: data["collisionsWillMove"]
             });
             data = null;
         }

@@ -96,16 +96,17 @@ void PacketReceiver::registerDirectListenerForTypes(PacketTypeList types,
 
 bool PacketReceiver::registerListener(PacketType type, QObject* listener, const char* slot,
                                              bool deliverPending) {
-    Q_ASSERT_X(listener, "PacketReceiver::registerMessageListener", "No object to register");
-    Q_ASSERT_X(slot, "PacketReceiver::registerMessageListener", "No slot to register");
+    Q_ASSERT_X(listener, "PacketReceiver::registerListener", "No object to register");
+    Q_ASSERT_X(slot, "PacketReceiver::registerListener", "No slot to register");
 
     QMetaMethod matchingMethod = matchingMethodForListener(type, listener, slot);
 
     if (matchingMethod.isValid()) {
-        qDebug() << "Found: " << matchingMethod.methodSignature();
+        qCDebug(networking) << "Registering a packet listener for packet list type" << type;
         registerVerifiedListener(type, listener, matchingMethod, deliverPending);
         return true;
     } else {
+        qCWarning(networking) << "FAILED to Register a packet listener for packet list type" << type;
         return false;
     }
 }
@@ -359,7 +360,6 @@ void PacketReceiver::handleVerifiedMessage(QSharedPointer<ReceivedMessage> recei
                 _directlyConnectedObjects.remove(listener.object);
             }
         }
-        
     } else if (it == _messageListenerMap.end()) {
         qCWarning(networking) << "No listener found for packet type" << receivedMessage->getType();
         

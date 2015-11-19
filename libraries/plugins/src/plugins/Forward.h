@@ -7,9 +7,8 @@
 //
 #pragma once
 
-#include <QList>
-#include <QVector>
-#include <QSharedPointer>
+#include <vector>
+#include <memory>
 
 class DisplayPlugin;
 class InputPlugin;
@@ -17,7 +16,8 @@ class Plugin;
 class PluginContainer;
 class PluginManager;
 
-using DisplayPluginPointer = QSharedPointer<DisplayPlugin>;
-using DisplayPluginList = QVector<DisplayPluginPointer>;
-using InputPluginPointer = QSharedPointer<InputPlugin>;
-using InputPluginList = QVector<InputPluginPointer>;
+using DisplayPluginPointer = std::shared_ptr<DisplayPlugin>;
+using DisplayPluginList = std::vector<DisplayPluginPointer>;
+using InputPluginPointer = std::shared_ptr<InputPlugin>;
+using InputPluginList = std::vector<InputPluginPointer>;
+

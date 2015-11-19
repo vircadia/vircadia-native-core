@@ -28,6 +28,7 @@ AnimationPropertyGroup EntityItemProperties::_staticAnimation;
 AtmospherePropertyGroup EntityItemProperties::_staticAtmosphere;
 SkyboxPropertyGroup EntityItemProperties::_staticSkybox;
 StagePropertyGroup EntityItemProperties::_staticStage;
+KeyLightPropertyGroup EntityItemProperties::_staticKeyLight;
 
 EntityPropertyList PROP_LAST_ITEM = (EntityPropertyList)(PROP_AFTER_LAST_ITEM - 1);
 
@@ -80,7 +81,8 @@ void EntityItemProperties::debugDump() const {
     getAnimation().debugDump();
     getAtmosphere().debugDump();
     getSkybox().debugDump();
-
+    getKeyLight().debugDump();
+    
     qCDebug(entities) << "   changed properties...";
     EntityPropertyFlags props = getChangedProperties();
     props.debugDumpBits();
@@ -193,6 +195,7 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
     CHECK_PROPERTY_CHANGE(PROP_ALPHA_SPREAD, alphaSpread);
     CHECK_PROPERTY_CHANGE(PROP_ALPHA_START, alphaStart);
     CHECK_PROPERTY_CHANGE(PROP_ALPHA_FINISH, alphaFinish);
+    CHECK_PROPERTY_CHANGE(PROP_ADDITIVE_BLENDING, additiveBlending);
     CHECK_PROPERTY_CHANGE(PROP_MODEL_URL, modelURL);
     CHECK_PROPERTY_CHANGE(PROP_COMPOUND_SHAPE_URL, compoundShapeURL);
     CHECK_PROPERTY_CHANGE(PROP_VISIBLE, visible);
@@ -235,10 +238,6 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
     CHECK_PROPERTY_CHANGE(PROP_RADIUS_FINISH, radiusFinish);
     CHECK_PROPERTY_CHANGE(PROP_MARKETPLACE_ID, marketplaceID);
     CHECK_PROPERTY_CHANGE(PROP_NAME, name);
-    CHECK_PROPERTY_CHANGE(PROP_KEYLIGHT_COLOR, keyLightColor);
-    CHECK_PROPERTY_CHANGE(PROP_KEYLIGHT_INTENSITY, keyLightIntensity);
-    CHECK_PROPERTY_CHANGE(PROP_KEYLIGHT_AMBIENT_INTENSITY, keyLightAmbientIntensity);
-    CHECK_PROPERTY_CHANGE(PROP_KEYLIGHT_DIRECTION, keyLightDirection);
     CHECK_PROPERTY_CHANGE(PROP_BACKGROUND_MODE, backgroundMode);
     CHECK_PROPERTY_CHANGE(PROP_SOURCE_URL, sourceUrl);
     CHECK_PROPERTY_CHANGE(PROP_VOXEL_VOLUME_SIZE, voxelVolumeSize);
@@ -263,6 +262,7 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
     CHECK_PROPERTY_CHANGE(PROP_Z_P_NEIGHBOR_ID, zPNeighborID);
 
     changedProperties += _animation.getChangedProperties();
+    changedProperties += _keyLight.getChangedProperties();
     changedProperties += _atmosphere.getChangedProperties();
     changedProperties += _skybox.getChangedProperties();
     changedProperties += _stage.getChangedProperties();
@@ -352,6 +352,8 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine, bool
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_ALPHA_SPREAD, alphaSpread);
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_ALPHA_START, alphaStart);
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_ALPHA_FINISH, alphaFinish);
+        COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_ADDITIVE_BLENDING, additiveBlending);
+        
     }
 
     // Models only
@@ -392,10 +394,8 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine, bool
 
     // Zones only
     if (_type == EntityTypes::Zone) {
-        COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_KEYLIGHT_COLOR, keyLightColor);
-        COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_KEYLIGHT_INTENSITY, keyLightIntensity);
-        COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_KEYLIGHT_AMBIENT_INTENSITY, keyLightAmbientIntensity);
-        COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_KEYLIGHT_DIRECTION, keyLightDirection);
+        _keyLight.copyToScriptValue(_desiredProperties, properties, engine, skipDefaults, defaultEntityProperties);
+        
         COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER(PROP_BACKGROUND_MODE, backgroundMode, getBackgroundModeAsString());
 
         _stage.copyToScriptValue(_desiredProperties, properties, engine, skipDefaults, defaultEntityProperties);
@@ -505,6 +505,7 @@ void EntityItemProperties::copyFromScriptValue(const QScriptValue& object, bool 
     COPY_PROPERTY_FROM_QSCRIPTVALUE(alphaSpread, float, setAlphaSpread);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(alphaStart, float, setAlphaStart);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(alphaFinish, float, setAlphaFinish);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(additiveBlending, bool, setAdditiveBlending);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(modelURL, QString, setModelURL);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(compoundShapeURL, QString, setCompoundShapeURL);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(glowLevel, float, setGlowLevel);
@@ -546,10 +547,6 @@ void EntityItemProperties::copyFromScriptValue(const QScriptValue& object, bool 
     COPY_PROPERTY_FROM_QSCRIPTVALUE(name, QString, setName);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(collisionSoundURL, QString, setCollisionSoundURL);
 
-    COPY_PROPERTY_FROM_QSCRIPTVALUE(keyLightColor, xColor, setKeyLightColor);
-    COPY_PROPERTY_FROM_QSCRIPTVALUE(keyLightIntensity, float, setKeyLightIntensity);
-    COPY_PROPERTY_FROM_QSCRIPTVALUE(keyLightAmbientIntensity, float, setKeyLightAmbientIntensity);
-    COPY_PROPERTY_FROM_QSCRIPTVALUE(keyLightDirection, glmVec3, setKeyLightDirection);
     COPY_PROPERTY_FROM_QSCRITPTVALUE_ENUM(backgroundMode, BackgroundMode);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(sourceUrl, QString, setSourceUrl);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(voxelVolumeSize, glmVec3, setVoxelVolumeSize);
@@ -575,6 +572,7 @@ void EntityItemProperties::copyFromScriptValue(const QScriptValue& object, bool 
     }
 
     _animation.copyFromScriptValue(object, _defaultSettings);
+    _keyLight.copyFromScriptValue(object, _defaultSettings);
     _atmosphere.copyFromScriptValue(object, _defaultSettings);
     _skybox.copyFromScriptValue(object, _defaultSettings);
     _stage.copyFromScriptValue(object, _defaultSettings);
@@ -656,6 +654,7 @@ void EntityItemProperties::entityPropertyFlagsFromScriptValue(const QScriptValue
         ADD_PROPERTY_TO_MAP(PROP_ALPHA_SPREAD, AlphaSpread, alphaSpread, float);
         ADD_PROPERTY_TO_MAP(PROP_ALPHA_START, AlphaStart, alphaStart, float);
         ADD_PROPERTY_TO_MAP(PROP_ALPHA_FINISH, AlphaFinish, alphaFinish, float);
+        ADD_PROPERTY_TO_MAP(PROP_ADDITIVE_BLENDING, AdditiveBlending, additiveBlending, bool);
         ADD_PROPERTY_TO_MAP(PROP_MODEL_URL, ModelURL, modelURL, QString);
         ADD_PROPERTY_TO_MAP(PROP_COMPOUND_SHAPE_URL, CompoundShapeURL, compoundShapeURL, QString);
         ADD_PROPERTY_TO_MAP(PROP_REGISTRATION_POINT, RegistrationPoint, registrationPoint, glm::vec3);
@@ -965,14 +964,13 @@ bool EntityItemProperties::encodeEntityEditPacket(PacketType command, EntityItem
                 APPEND_ENTITY_PROPERTY(PROP_ALPHA_SPREAD, properties.getAlphaSpread());
                 APPEND_ENTITY_PROPERTY(PROP_ALPHA_START, properties.getAlphaStart());
                 APPEND_ENTITY_PROPERTY(PROP_ALPHA_FINISH, properties.getAlphaFinish());
+                APPEND_ENTITY_PROPERTY(PROP_ADDITIVE_BLENDING, properties.getAdditiveBlending());
             }
 
             if (properties.getType() == EntityTypes::Zone) {
-                APPEND_ENTITY_PROPERTY(PROP_KEYLIGHT_COLOR, properties.getKeyLightColor());
-                APPEND_ENTITY_PROPERTY(PROP_KEYLIGHT_INTENSITY,  properties.getKeyLightIntensity());
-                APPEND_ENTITY_PROPERTY(PROP_KEYLIGHT_AMBIENT_INTENSITY, properties.getKeyLightAmbientIntensity());
-                APPEND_ENTITY_PROPERTY(PROP_KEYLIGHT_DIRECTION, properties.getKeyLightDirection());
-
+                _staticKeyLight.setProperties(properties);
+                _staticKeyLight.appendToEditPacket(packetData, requestedProperties, propertyFlags, propertiesDidntFit, propertyCount, appendState);
+                                                   
                 _staticStage.setProperties(properties);
                 _staticStage.appendToEditPacket(packetData, requestedProperties, propertyFlags, propertiesDidntFit, propertyCount, appendState);
 
@@ -1249,14 +1247,11 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_ALPHA_SPREAD, float, setAlphaSpread);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_ALPHA_START, float, setAlphaStart);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_ALPHA_FINISH, float, setAlphaFinish);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_ADDITIVE_BLENDING, bool, setAdditiveBlending);
     }
 
     if (properties.getType() == EntityTypes::Zone) {
-        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_KEYLIGHT_COLOR, xColor, setKeyLightColor);
-        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_KEYLIGHT_INTENSITY,  float, setKeyLightIntensity);
-        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_KEYLIGHT_AMBIENT_INTENSITY, float, setKeyLightAmbientIntensity);
-        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_KEYLIGHT_DIRECTION, glm::vec3, setKeyLightDirection);
-
+        properties.getKeyLight().decodeFromEditPacket(propertyFlags, dataAt , processedBytes);
         properties.getStage().decodeFromEditPacket(propertyFlags, dataAt , processedBytes);
 
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_SHAPE_TYPE, ShapeType, setShapeType);
@@ -1407,10 +1402,7 @@ void EntityItemProperties::markAllChanged() {
 
     _marketplaceIDChanged = true;
 
-    _keyLightColorChanged = true;
-    _keyLightIntensityChanged = true;
-    _keyLightAmbientIntensityChanged = true;
-    _keyLightDirectionChanged = true;
+    _keyLight.markAllChanged();
 
     _backgroundModeChanged = true;
 
@@ -1518,4 +1510,259 @@ void EntityItemProperties::setSimulationOwner(const QByteArray& data) {
     if (_simulationOwner.fromByteArray(data)) {
         _simulationOwnerChanged = true;
     }
+}
+
+QList<QString> EntityItemProperties::listChangedProperties() {
+    QList<QString> out;
+    if (containsPositionChange()) {
+        out += "posistion";
+    }
+    if (dimensionsChanged()) {
+        out += "dimensions";
+    }
+    if (velocityChanged()) {
+        out += "velocity";
+    }
+    if (nameChanged()) {
+        out += "name";
+    }
+    if (visibleChanged()) {
+        out += "visible";
+    }
+    if (rotationChanged()) {
+        out += "rotation";
+    }
+    if (densityChanged()) {
+        out += "density";
+    }
+    if (gravityChanged()) {
+        out += "gravity";
+    }
+    if (accelerationChanged()) {
+        out += "acceleration";
+    }
+    if (dampingChanged()) {
+        out += "damping";
+    }
+    if (restitutionChanged()) {
+        out += "restitution";
+    }
+    if (frictionChanged()) {
+        out += "friction";
+    }
+    if (lifetimeChanged()) {
+        out += "lifetime";
+    }
+    if (scriptChanged()) {
+        out += "script";
+    }
+    if (scriptTimestampChanged()) {
+        out += "scriptTimestamp";
+    }
+    if (collisionSoundURLChanged()) {
+        out += "collisionSoundURL";
+    }
+    if (colorChanged()) {
+        out += "color";
+    }
+    if (colorSpreadChanged()) {
+        out += "colorSpread";
+    }
+    if (colorStartChanged()) {
+        out += "colorStart";
+    }
+    if (colorFinishChanged()) {
+        out += "colorFinish";
+    }
+    if (alphaChanged()) {
+        out += "alpha";
+    }
+    if (alphaSpreadChanged()) {
+        out += "alphaSpread";
+    }
+    if (alphaStartChanged()) {
+        out += "alphaStart";
+    }
+    if (alphaFinishChanged()) {
+        out += "alphaFinish";
+    }
+    if (additiveBlendingChanged()) {
+        out += "additiveBlending";
+    }
+    if (modelURLChanged()) {
+        out += "modelURL";
+    }
+    if (compoundShapeURLChanged()) {
+        out += "compoundShapeURL";
+    }
+    if (registrationPointChanged()) {
+        out += "registrationPoint";
+    }
+    if (angularVelocityChanged()) {
+        out += "angularVelocity";
+    }
+    if (angularDampingChanged()) {
+        out += "angularDamping";
+    }
+    if (ignoreForCollisionsChanged()) {
+        out += "ignoreForCollisions";
+    }
+    if (collisionsWillMoveChanged()) {
+        out += "collisionsWillMove";
+    }
+    if (isSpotlightChanged()) {
+        out += "isSpotlight";
+    }
+    if (intensityChanged()) {
+        out += "intensity";
+    }
+    if (exponentChanged()) {
+        out += "exponent";
+    }
+    if (cutoffChanged()) {
+        out += "cutoff";
+    }
+    if (lockedChanged()) {
+        out += "locked";
+    }
+    if (texturesChanged()) {
+        out += "textures";
+    }
+    if (userDataChanged()) {
+        out += "userData";
+    }
+    if (simulationOwnerChanged()) {
+        out += "simulationOwner";
+    }
+    if (textChanged()) {
+        out += "text";
+    }
+    if (lineHeightChanged()) {
+        out += "lineHeight";
+    }
+    if (textColorChanged()) {
+        out += "textColor";
+    }
+    if (backgroundColorChanged()) {
+        out += "backgroundColor";
+    }
+    if (shapeTypeChanged()) {
+        out += "shapeType";
+    }
+    if (maxParticlesChanged()) {
+        out += "maxParticles";
+    }
+    if (lifespanChanged()) {
+        out += "lifespan";
+    }
+    if (isEmittingChanged()) {
+        out += "isEmitting";
+    }
+    if (emitRateChanged()) {
+        out += "emitRate";
+    }
+    if (emitSpeedChanged()) {
+        out += "emitSpeed";
+    }
+    if (speedSpreadChanged()) {
+        out += "speedSpread";
+    }
+    if (emitOrientationChanged()) {
+        out += "emitOrientation";
+    }
+    if (emitDimensionsChanged()) {
+        out += "emitDimensions";
+    }
+    if (emitRadiusStartChanged()) {
+        out += "emitRadiusStart";
+    }
+    if (polarStartChanged()) {
+        out += "polarStart";
+    }
+    if (polarFinishChanged()) {
+        out += "polarFinish";
+    }
+    if (azimuthStartChanged()) {
+        out += "azimuthStart";
+    }
+    if (azimuthFinishChanged()) {
+        out += "azimuthFinish";
+    }
+    if (emitAccelerationChanged()) {
+        out += "emitAcceleration";
+    }
+    if (accelerationSpreadChanged()) {
+        out += "accelerationSpread";
+    }
+    if (particleRadiusChanged()) {
+        out += "particleRadius";
+    }
+    if (radiusSpreadChanged()) {
+        out += "radiusSpread";
+    }
+    if (radiusStartChanged()) {
+        out += "radiusStart";
+    }
+    if (radiusFinishChanged()) {
+        out += "radiusFinish";
+    }
+    if (marketplaceIDChanged()) {
+        out += "marketplaceID";
+    }
+    if (backgroundModeChanged()) {
+        out += "backgroundMode";
+    }
+    if (voxelVolumeSizeChanged()) {
+        out += "voxelVolumeSize";
+    }
+    if (voxelDataChanged()) {
+        out += "voxelData";
+    }
+    if (voxelSurfaceStyleChanged()) {
+        out += "voxelSurfaceStyle";
+    }
+    if (hrefChanged()) {
+        out += "href";
+    }
+    if (descriptionChanged()) {
+        out += "description";
+    }
+    if (actionDataChanged()) {
+        out += "actionData";
+    }
+    if (xTextureURLChanged()) {
+        out += "xTextureURL";
+    }
+    if (yTextureURLChanged()) {
+        out += "yTextureURL";
+    }
+    if (zTextureURLChanged()) {
+        out += "zTextureURL";
+    }
+    if (xNNeighborIDChanged()) {
+        out += "xNNeighborID";
+    }
+    if (yNNeighborIDChanged()) {
+        out += "yNNeighborID";
+    }
+    if (zNNeighborIDChanged()) {
+        out += "zNNeighborID";
+    }
+    if (xPNeighborIDChanged()) {
+        out += "xPNeighborID";
+    }
+    if (yPNeighborIDChanged()) {
+        out += "yPNeighborID";
+    }
+    if (zPNeighborIDChanged()) {
+        out += "zPNeighborID";
+    }
+
+    getAnimation().listChangedProperties(out);
+    getKeyLight().listChangedProperties(out);
+    getAtmosphere().listChangedProperties(out);
+    getSkybox().listChangedProperties(out);
+    getStage().listChangedProperties(out);
+
+    return out;
 }

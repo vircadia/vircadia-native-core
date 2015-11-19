@@ -33,6 +33,15 @@ void SkyboxPropertyGroup::debugDump() const {
     qDebug() << "       URL:" << getURL() << " has changed:" << urlChanged();
 }
 
+void SkyboxPropertyGroup::listChangedProperties(QList<QString>& out) {
+    if (colorChanged()) {
+        out << "skybox-color";
+    }
+    if (urlChanged()) {
+        out << "skybox-url";
+    }
+}
+
 bool SkyboxPropertyGroup::appendToEditPacket(OctreePacketData* packetData,
                                     EntityPropertyFlags& requestedProperties,
                                     EntityPropertyFlags& propertyFlags,

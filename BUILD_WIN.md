@@ -16,7 +16,7 @@ If using Visual Studio 2013 and building as a Visual Studio 2013 project you nee
 
 ####nmake
 
-Some of the external projects may require nmake to compile and install. If it is not installed at the location listed below, please ensure that it is in your PATH so CMake can find it when required. 
+Some of the external projects may require nmake to compile and install. If it is not installed at the location listed below, please ensure that it is in your PATH so CMake can find it when required.
 
 We expect nmake.exe to be located at the following path.
 
@@ -29,19 +29,19 @@ NOTE: Qt does not support 64-bit builds on Windows 7, so you must use the 32-bit
 
 * [Download the online installer](http://qt-project.org/downloads)
     * When it asks you to select components, ONLY select the following:
-        * Qt > Qt 5.4.1 > **msvc2013 32-bit OpenGL**
+        * Qt > Qt 5.5.1 > **msvc2013 32-bit**
 
-* [Download the offline installer](http://download.qt.io/official_releases/qt/5.4/5.4.1/qt-opensource-windows-x86-msvc2013_opengl-5.4.1.exe)
+* [Download the offline installer](http://download.qt.io/official_releases/qt/5.5/5.5.1/qt-opensource-windows-x86-msvc2013-5.5.1.exe)
 
 Once Qt is installed, you need to manually configure the following:
-* Set the QT_CMAKE_PREFIX_PATH environment variable to your `Qt\5.4.1\msvc2013_opengl\lib\cmake` directory.
+* Set the QT_CMAKE_PREFIX_PATH environment variable to your `Qt\5.5.1\msvc2013\lib\cmake` directory.
   * You can set an environment variable from Control Panel > System > Advanced System Settings > Environment Variables > New
 
 ###External Libraries
 
 As it stands, Hifi/Interface is a 32-bit application, so all libraries should also be 32-bit.
 
-CMake will need to know where the headers and libraries for required external dependencies are. 
+CMake will need to know where the headers and libraries for required external dependencies are.
 
 We use CMake's `fixup_bundle` to find the DLLs all of our exectuable targets require, and then copy them beside the executable in a post-build step. If `fixup_bundle` is having problems finding a DLL, you can fix it manually on your end by adding the folder containing that DLL to your path. Let us know which DLL CMake had trouble finding, as it is possible a tweak to our CMake files is required.
 
@@ -74,16 +74,6 @@ To prevent these problems, install OpenSSL yourself. Download the following bina
 * Win32 OpenSSL v1.0.1p
 
 Install OpenSSL into the Windows system directory, to make sure that Qt uses the version that you've just installed, and not some other version.
-
-####zlib
-
-Install zlib from
-
-  [Zlib for Windows](http://gnuwin32.sourceforge.net/packages/zlib.htm)
-
-and fix a header file, as described here:
-
-  [zlib zconf.h bug](http://sourceforge.net/p/gnuwin32/bugs/169/)
 
 ###Build High Fidelity using Visual Studio
 Follow the same build steps from the CMake section of [BUILD.md](BUILD.md), but pass a different generator to CMake.

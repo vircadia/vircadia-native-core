@@ -48,6 +48,8 @@ public:
     virtual float getFinalYaw() const { return _baseYaw; }
     virtual float getFinalPitch() const { return _basePitch; }
     virtual float getFinalRoll() const { return _baseRoll; }
+    virtual glm::quat getRawOrientation() const;
+    virtual void setRawOrientation(const glm::quat& orientation);
 
     glm::quat getOrientation() const;
     void setOrientation(const glm::quat& orientation);

@@ -12,6 +12,9 @@
 #ifndef hifi_Player_h
 #define hifi_Player_h
 
+#include <recording/Forward.h>
+
+#if 0
 #include <AudioInjector.h>
 
 #include <QElapsedTimer>
@@ -86,5 +89,6 @@ private:
     bool _useHeadURL;
     bool _useSkeletonURL;
 };
+#endif
 
 #endif // hifi_Player_h

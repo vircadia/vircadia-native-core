@@ -130,29 +130,38 @@ function Hand(name, palm, tip, forwardButton, button3, trigger) {
     this.trigger = trigger;
     this.holdingFrisbee = false;
     this.entity = false;
-    this.palmPosition = function() { return Controller.getSpatialControlPosition(this.palm); }
+    this.palmPosition = function () {
+        return this.palm == LEFT_PALM ? MyAvatar.leftHandPose.translation : MyAvatar.rightHandPose.translation;
+    };
+
     this.grabButtonPressed = function() { 
                                     return (
-                                            Controller.isButtonPressed(this.forwardButton)  ||
-                                            Controller.isButtonPressed(this.button3)        ||
-                                            Controller.getTriggerValue(this.trigger) > 0.5
+                                            Controller.getValue(this.forwardButton)  ||
+                                            Controller.getValue(this.button3) ||
+                                            Controller.getValue(this.trigger) > 0.5
                                             )
                                         };
-    this.holdPosition = function() { return this.palm == LEFT_PALM ? MyAvatar.getLeftPalmPosition() : MyAvatar.getRightPalmPosition(); };
+    this.holdPosition = function () {
+        return this.palm == LEFT_PALM ? MyAvatar.leftHandPose.translation : MyAvatar.rightHandPose.translation;
+    };
+
     this.holdRotation = function() {
-        var q = Controller.getSpatialControlRawRotation(this.palm);
+        var q = (this.palm == LEFT_PALM) ? Controller.getPoseValue(Controller.Standard.leftHand).rotation
+                                         : Controller.getPoseValue(Controller.Standard.rightHand).rotation;
         q = Quat.multiply(MyAvatar.orientation, q);
         return {x: q.x, y: q.y, z: q.z, w: q.w};
     };
-    this.tipVelocity = function() { return Controller.getSpatialControlVelocity(this.tip); };
+    this.tipVelocity = function () {
+        return this.tip == LEFT_TIP ? MyAvatar.leftHandTipPose.velocity : MyAvatar.rightHandTipPose.velocity;
+    };
 }
 
 function MouseControl(button) {
     this.button = button;
 }
 
-var leftHand = new Hand("LEFT", LEFT_PALM, LEFT_TIP, LEFT_BUTTON_FWD, LEFT_BUTTON_3, 0);
-var rightHand = new Hand("RIGHT", RIGHT_PALM, RIGHT_TIP, RIGHT_BUTTON_FWD, RIGHT_BUTTON_3, 1);
+var leftHand = new Hand("LEFT", LEFT_PALM, LEFT_TIP, Controller.Standard.LB, Controller.Standard.LeftPrimaryThumb, Controller.Standard.LT);
+var rightHand = new Hand("RIGHT", RIGHT_PALM, RIGHT_TIP, Controller.Standard.RB, Controller.Standard.RightPrimaryThumb, Controller.Standard.RT);
 
 var leftMouseControl = new MouseControl("LEFT");
 var middleMouseControl = new MouseControl("MIDDLE");
@@ -302,12 +311,7 @@ function initToolBar() {
 }
 
 function hydraCheck() {
-    var numberOfButtons = Controller.getNumberOfButtons();
-    var numberOfTriggers = Controller.getNumberOfTriggers();
-    var numberOfSpatialControls = Controller.getNumberOfSpatialControls();
-    var controllersPerTrigger = numberOfSpatialControls / numberOfTriggers;
-    hydrasConnected = (numberOfButtons == 12 && numberOfTriggers == 2 && controllersPerTrigger == 2);
-    return true;//hydrasConnected;
+    return Controller.Hardware.Hydra !== undefined;
 }
 
 function checkController(deltaTime) {

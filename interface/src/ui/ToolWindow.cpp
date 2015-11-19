@@ -22,6 +22,8 @@ ToolWindow::ToolWindow(QWidget* parent) :
     _hasShown(false),
     _lastGeometry() {
 
+    setTabPosition(Qt::TopDockWidgetArea, QTabWidget::TabPosition::North);
+
 #   ifndef Q_OS_LINUX
     setDockOptions(QMainWindow::ForceTabbedDocks);
 #   endif
@@ -31,6 +33,7 @@ ToolWindow::ToolWindow(QWidget* parent) :
 bool ToolWindow::event(QEvent* event) {
     QEvent::Type type = event->type();
     if (type == QEvent::Show) {
+
         if (!_hasShown) {
             _hasShown = true;
 
@@ -40,10 +43,12 @@ bool ToolWindow::event(QEvent* event) {
             int titleBarHeight = UIUtil::getWindowTitleBarHeight(this);
             int topMargin = titleBarHeight;
 
-            _lastGeometry = QRect(mainGeometry.topLeft().x(),  mainGeometry.topLeft().y() + topMargin,
-                                  DEFAULT_WIDTH, mainGeometry.height() - topMargin);
+            _lastGeometry = QRect(mainGeometry.topLeft().x(), mainGeometry.topLeft().y() + topMargin,
+                DEFAULT_WIDTH, mainGeometry.height() - topMargin);
         }
+
         setGeometry(_lastGeometry);
+
         return true;
     } else if (type == QEvent::Hide) {
         _lastGeometry = geometry();
@@ -109,6 +114,7 @@ void ToolWindow::addDockWidget(Qt::DockWidgetArea area, QDockWidget* dockWidget)
 
     // We want to force tabbing, so retabify all of our widgets.
     QDockWidget* lastDockWidget = dockWidget;
+
     foreach (QDockWidget* nextDockWidget, dockWidgets) {
         tabifyDockWidget(lastDockWidget, nextDockWidget);
         lastDockWidget = nextDockWidget;
@@ -118,7 +124,16 @@ void ToolWindow::addDockWidget(Qt::DockWidgetArea area, QDockWidget* dockWidget)
 }
 
 void ToolWindow::addDockWidget(Qt::DockWidgetArea area, QDockWidget* dockWidget, Qt::Orientation orientation) {
+    QList<QDockWidget*> dockWidgets = findChildren<QDockWidget*>();
+
     QMainWindow::addDockWidget(area, dockWidget, orientation);
+
+    QDockWidget* lastDockWidget = dockWidget;
+
+    foreach(QDockWidget* nextDockWidget, dockWidgets) {
+        tabifyDockWidget(lastDockWidget, nextDockWidget);
+        lastDockWidget = nextDockWidget;
+    }
 
     connect(dockWidget, &QDockWidget::visibilityChanged, this, &ToolWindow::onChildVisibilityUpdated);
 }

@@ -118,18 +118,6 @@ void EyeTracker::init() {
         qCWarning(interfaceapp) << "Eye Tracker: Already initialized";
         return;
     }
-
-#ifdef HAVE_IVIEWHMD
-    int result = smi_setCallback(eyeTrackerCallback);
-    if (result != SMI_RET_SUCCESS) {
-        qCWarning(interfaceapp) << "Eye Tracker: Error setting callback:" << smiReturnValueToString(result);
-        QMessageBox::warning(nullptr, "Eye Tracker Error", smiReturnValueToString(result));
-    } else {
-        _isInitialized = true;
-    }
-
-    connect(&_startStreamingWatcher, SIGNAL(finished()), this, SLOT(onStreamStarted()));
-#endif
 }
 
 #ifdef HAVE_IVIEWHMD
@@ -140,6 +128,10 @@ int EyeTracker::startStreaming(bool simulate) {
 
 #ifdef HAVE_IVIEWHMD
 void EyeTracker::onStreamStarted() {
+    if (!_isInitialized) {
+        return;
+    }
+
     int result = _startStreamingWatcher.result();
     _isStreaming = (result == SMI_RET_SUCCESS);
 
@@ -171,6 +163,20 @@ void EyeTracker::onStreamStarted() {
 #endif
 
 void EyeTracker::setEnabled(bool enabled, bool simulate) {
+    if (enabled && !_isInitialized) {
+#ifdef HAVE_IVIEWHMD
+        int result = smi_setCallback(eyeTrackerCallback);
+        if (result != SMI_RET_SUCCESS) {
+            qCWarning(interfaceapp) << "Eye Tracker: Error setting callback:" << smiReturnValueToString(result);
+            QMessageBox::warning(nullptr, "Eye Tracker Error", smiReturnValueToString(result));
+        } else {
+            _isInitialized = true;
+        }
+
+        connect(&_startStreamingWatcher, SIGNAL(finished()), this, SLOT(onStreamStarted()));
+#endif
+    }
+
     if (!_isInitialized) {
         return;
     }

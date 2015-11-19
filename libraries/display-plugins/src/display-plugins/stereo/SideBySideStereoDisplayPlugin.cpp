@@ -12,7 +12,7 @@
 #include <QDesktopWidget>
 #include <QScreen>
 
-#include <GlWindow.h>
+#include <gl/GlWindow.h>
 #include <ViewFrustum.h>
 #include <MatrixStack.h>
 

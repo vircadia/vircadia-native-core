@@ -229,6 +229,10 @@ public:
     // Reset the stage caches and states
     void resetStages();
 
+    // Debugging
+    void pushProfileRange(const char* name);
+    void popProfileRange();
+
     // TODO: As long as we have gl calls explicitely issued from interface
     // code, we need to be able to record and batch these calls. THe long 
     // term strategy is to get rid of any GL calls in favor of the HIFI GPU API
@@ -324,6 +328,9 @@ public:
 
         COMMAND_glColor4f,
 
+        COMMAND_pushProfileRange,
+        COMMAND_popProfileRange,
+
         NUM_COMMANDS,
     };
     typedef std::vector<Command> Commands;
@@ -389,6 +396,7 @@ public:
     typedef Cache<PipelinePointer>::Vector PipelineCaches;
     typedef Cache<FramebufferPointer>::Vector FramebufferCaches;
     typedef Cache<QueryPointer>::Vector QueryCaches;
+    typedef Cache<std::string>::Vector ProfileRangeCaches;
     typedef Cache<std::function<void()>>::Vector LambdaCache;
 
     // Cache Data in a byte array if too big to fit in Param
@@ -416,6 +424,7 @@ public:
     FramebufferCaches _framebuffers;
     QueryCaches _queries;
     LambdaCache _lambdas;
+    ProfileRangeCaches _profileRanges;
 
     NamedBatchDataMap _namedData;
 
@@ -428,6 +437,25 @@ protected:
 };
 
 }
+
+#if defined(NSIGHT_FOUND)
+
+class ProfileRangeBatch {
+public:
+    ProfileRangeBatch(gpu::Batch& batch, const char *name);
+    ~ProfileRangeBatch();
+
+private:
+    gpu::Batch& _batch;
+};
+
+#define PROFILE_RANGE_BATCH(batch, name) ProfileRangeBatch profileRangeThis(batch, name);
+
+#else
+
+#define PROFILE_RANGE_BATCH(batch, name) 
+
+#endif
 
 QDebug& operator<<(QDebug& debug, const gpu::Batch::CacheState& cacheState);
 

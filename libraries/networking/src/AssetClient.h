@@ -46,6 +46,7 @@ public:
 
     Q_INVOKABLE AssetRequest* createRequest(const QString& hash, const QString& extension);
     Q_INVOKABLE AssetUpload* createUpload(const QString& filename);
+    Q_INVOKABLE AssetUpload* createUpload(const QByteArray& data, const QString& extension);
 
 private slots:
     void handleAssetGetInfoReply(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode);

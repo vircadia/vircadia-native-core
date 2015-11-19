@@ -53,6 +53,7 @@ public:
     virtual void copyToScriptValue(const EntityPropertyFlags& desiredProperties, QScriptValue& properties, QScriptEngine* engine, bool skipDefaults, EntityItemProperties& defaultEntityProperties) const;
     virtual void copyFromScriptValue(const QScriptValue& object, bool& _defaultSettings);
     virtual void debugDump() const;
+    virtual void listChangedProperties(QList<QString>& out);
 
     virtual bool appendToEditPacket(OctreePacketData* packetData,
                                     EntityPropertyFlags& requestedProperties,
@@ -87,7 +88,7 @@ public:
                                                 EntityPropertyFlags& propertyFlags, bool overwriteLocalData, 
                                                 bool& somethingChanged);
 
-    
+
     static const glm::vec3 DEFAULT_CENTER;
     static const float DEFAULT_INNER_RADIUS;
     static const float DEFAULT_OUTER_RADIUS;

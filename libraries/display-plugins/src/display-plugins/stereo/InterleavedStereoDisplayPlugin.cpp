@@ -11,7 +11,7 @@
 #include <QApplication>
 #include <QDesktopWidget>
 
-#include <GlWindow.h>
+#include <gl/GlWindow.h>
 #include <ViewFrustum.h>
 #include <MatrixStack.h>
 

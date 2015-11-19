@@ -82,7 +82,7 @@ public:
     bool getNeckPosition(glm::vec3& neckPosition) const;
 
     bool getLocalNeckPosition(glm::vec3& neckPosition) const;
-    
+
     /// Returns the rotation of the neck joint's parent from default orientation
     /// \return whether or not the neck was found
     bool getNeckParentRotationFromDefaultOrientation(glm::quat& neckParentRotation) const;
@@ -118,7 +118,7 @@ protected:
     /// \param position position of joint in model-frame
     void applyHandPosition(int jointIndex, const glm::vec3& position);
 
-    void applyPalmData(int jointIndex, PalmData& palm);
+    void applyPalmData(int jointIndex, const PalmData& palm);
 private:
 
     void renderJointConstraints(gpu::Batch& batch, int jointIndex);

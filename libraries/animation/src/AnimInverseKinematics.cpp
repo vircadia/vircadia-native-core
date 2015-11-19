@@ -156,7 +156,7 @@ void AnimInverseKinematics::solveWithCyclicCoordinateDescent(const std::vector<I
             // cache tip absolute transform
             int tipIndex = target.getIndex();
             int pivotIndex = _skeleton->getParentIndex(tipIndex);
-            if (pivotIndex == -1) {
+            if (pivotIndex == -1 || pivotIndex == _hipsIndex) {
                 continue;
             }
             int pivotsParentIndex = _skeleton->getParentIndex(pivotIndex);
@@ -173,7 +173,7 @@ void AnimInverseKinematics::solveWithCyclicCoordinateDescent(const std::vector<I
             glm::quat tipParentRotation = absolutePoses[pivotIndex].rot;
 
             // descend toward root, pivoting each joint to get tip closer to target
-            while (pivotsParentIndex != -1) {
+            while (pivotIndex != _hipsIndex && pivotsParentIndex != -1) {
                 // compute the two lines that should be aligned
                 glm::vec3 jointPosition = absolutePoses[pivotIndex].trans;
                 glm::vec3 leverArm = tipPosition - jointPosition;
@@ -255,7 +255,7 @@ void AnimInverseKinematics::solveWithCyclicCoordinateDescent(const std::vector<I
                 }
 
                 // store the rotation change in the accumulator
-                _accumulators[pivotIndex].add(newRot);
+                _accumulators[pivotIndex].add(newRot, target.getWeight());
 
                 // this joint has been changed so we check to see if it has the lowest index
                 if (pivotIndex < lowestMovedIndex) {
@@ -366,7 +366,7 @@ const AnimPoseVec& AnimInverseKinematics::overlay(const AnimVariantMap& animVars
             if (offsetLength > MIN_HIPS_OFFSET_LENGTH) {
                 // but only if offset is long enough
                 float scaleFactor = ((offsetLength - MIN_HIPS_OFFSET_LENGTH) / offsetLength);
-                _relativePoses[0].trans = underPoses[0].trans + scaleFactor * _hipsOffset;
+                _relativePoses[_hipsIndex].trans = underPoses[_hipsIndex].trans + scaleFactor * _hipsOffset;
             }
 
             solveWithCyclicCoordinateDescent(targets);
@@ -758,8 +758,10 @@ void AnimInverseKinematics::setSkeletonInternal(AnimSkeleton::ConstPointer skele
     if (skeleton) {
         initConstraints();
         _headIndex = _skeleton->nameToJointIndex("Head");
+        _hipsIndex = _skeleton->nameToJointIndex("Hips");
     } else {
         clearConstraints();
         _headIndex = -1;
+        _hipsIndex = -1;
     }
 }

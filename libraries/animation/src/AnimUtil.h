@@ -13,11 +13,11 @@
 
 #include "AnimNode.h"
 
-// TODO: use restrict keyword
-// TODO: excellent candidate for simd vectorization.
-
 // this is where the magic happens
 void blend(size_t numPoses, const AnimPose* a, const AnimPose* b, float alpha, AnimPose* result);
+
+float accumulateTime(float startFrame, float endFrame, float timeScale, float currentFrame, float dt, bool loopFlag,
+                     const QString& id, AnimNode::Triggers& triggersOut);
 
 #endif
 

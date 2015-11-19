@@ -55,9 +55,6 @@ public:
     bool _hasColorAttrib = false;
     bool _isSkinned = false;
     bool _isBlendShaped = false;
-
-    mutable render::Item::Bound _bound;
-    mutable bool _isBoundInvalid = true;
 };
 
 namespace render {

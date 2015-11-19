@@ -16,7 +16,6 @@
 #include <QStringList>
 
 #include <ModelEntityItem.h>
-#include "RenderableDebugableEntityItem.h"
 
 class Model;
 class EntityTreeRenderer;
@@ -79,9 +78,11 @@ private:
     QStringList _originalTextures;
     bool _originalTexturesRead = false;
     QVector<QVector<glm::vec3>> _points;
-    bool _dimensionsInitialized = false;
+    bool _dimensionsInitialized = true;
     
     render::ItemID _myMetaItem;
+
+    bool _showCollisionHull = false;
 };
 
 #endif // hifi_RenderableModelEntityItem_h

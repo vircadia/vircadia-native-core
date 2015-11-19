@@ -17,6 +17,7 @@
 #include "avatars/AvatarMixer.h"
 #include "entities/EntityServer.h"
 #include "assets/AssetServer.h"
+#include "messages/MessagesMixer.h"
 
 ThreadedAssignment* AssignmentFactory::unpackAssignment(ReceivedMessage& message) {
 
@@ -36,6 +37,8 @@ ThreadedAssignment* AssignmentFactory::unpackAssignment(ReceivedMessage& message
             return new EntityServer(message);
         case Assignment::AssetServerType:
             return new AssetServer(message);
+        case Assignment::MessagesMixerType:
+            return new MessagesMixer(message);
         default:
             return NULL;
     }

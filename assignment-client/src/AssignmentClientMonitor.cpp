@@ -44,7 +44,7 @@ AssignmentClientMonitor::AssignmentClientMonitor(const unsigned int numAssignmen
     LogHandler::getInstance().setTargetName(ASSIGNMENT_CLIENT_MONITOR_TARGET_NAME);
 
     // make sure we output process IDs for a monitor otherwise it's insane to parse
-    LogHandler::getInstance().setShouldOutputPID(true);
+    LogHandler::getInstance().setShouldOutputProcessID(true);
 
     // create a NodeList so we can receive stats from children
     DependencyManager::registerInheritance<LimitedNodeList, NodeList>();

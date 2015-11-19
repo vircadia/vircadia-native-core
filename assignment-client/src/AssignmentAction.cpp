@@ -24,15 +24,24 @@ AssignmentAction::~AssignmentAction() {
 }
 
 void AssignmentAction::removeFromSimulation(EntitySimulation* simulation) const {
-    simulation->removeAction(_id);
+    withReadLock([&]{
+        simulation->removeAction(_id);
+        simulation->applyActionChanges();
+    });
 }
 
 QByteArray AssignmentAction::serialize() const {
-    return _data;
+    QByteArray result;
+    withReadLock([&]{
+        result = _data;
+    });
+    return result;
 }
 
 void AssignmentAction::deserialize(QByteArray serializedArguments) {
-    _data = serializedArguments;
+    withWriteLock([&]{
+        _data = serializedArguments;
+    });
 }
 
 bool AssignmentAction::updateArguments(QVariantMap arguments) {

@@ -100,9 +100,6 @@ EntityActionType EntityActionInterface::actionTypeFromString(QString actionTypeS
     if (normalizedActionTypeString == "hold") {
         return ACTION_TYPE_HOLD;
     }
-    if (normalizedActionTypeString == "kinematichold") {
-        return ACTION_TYPE_KINEMATIC_HOLD;
-    }
 
     qDebug() << "Warning -- EntityActionInterface::actionTypeFromString got unknown action-type name" << actionTypeString;
     return ACTION_TYPE_NONE;
@@ -118,8 +115,6 @@ QString EntityActionInterface::actionTypeToString(EntityActionType actionType) {
             return "spring";
         case ACTION_TYPE_HOLD:
             return "hold";
-        case ACTION_TYPE_KINEMATIC_HOLD:
-            return "kinematic-hold";
     }
     assert(false);
     return "none";
@@ -280,11 +275,22 @@ QString EntityActionInterface::extractStringArgument(QString objectName, QVarian
         ok = false;
         return "";
     }
-
-    QVariant vV = arguments[argumentName];
-    QString v = vV.toString();
-    return v;
+    return arguments[argumentName].toString();
 }
+
+bool EntityActionInterface::extractBooleanArgument(QString objectName, QVariantMap arguments,
+                                                   QString argumentName, bool& ok, bool required) {
+    if (!arguments.contains(argumentName)) {
+        if (required) {
+            qDebug() << objectName << "requires argument:" << argumentName;
+        }
+        ok = false;
+        return false;
+    }
+    return arguments[argumentName].toBool();
+}
+
+
 
 QDataStream& operator<<(QDataStream& stream, const EntityActionType& entityActionType)
 {
@@ -297,4 +303,25 @@ QDataStream& operator>>(QDataStream& stream, EntityActionType& entityActionType)
     stream >> actionTypeAsInt;
     entityActionType = (EntityActionType)actionTypeAsInt;
     return stream;
+}
+
+QString serializedActionsToDebugString(QByteArray data) {
+    if (data.size() == 0) {
+        return QString();
+    }
+    QVector<QByteArray> serializedActions;
+    QDataStream serializedActionsStream(data);
+    serializedActionsStream >> serializedActions;
+
+    QString result;
+    foreach(QByteArray serializedAction, serializedActions) {
+        QDataStream serializedActionStream(serializedAction);
+        EntityActionType actionType;
+        QUuid actionID;
+        serializedActionStream >> actionType;
+        serializedActionStream >> actionID;
+        result += EntityActionInterface::actionTypeToString(actionType) + "-" + actionID.toString() + " ";
+    }
+
+    return result;
 }

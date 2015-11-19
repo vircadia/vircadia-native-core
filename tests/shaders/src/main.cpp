@@ -20,7 +20,7 @@
 #include <QDir>
 #include <QGuiApplication>
 
-#include <GLHelpers.h>
+#include <gl/GLHelpers.h>
 
 #include "../model/Skybox_vert.h"
 #include "../model/Skybox_frag.h"

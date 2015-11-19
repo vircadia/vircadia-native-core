@@ -1,0 +1,26 @@
+{
+    "name": "Hydra to Standard",
+    "channels": [
+        { "from": "Hydra.LY", "filters": "invert", "to": "Standard.LY" }, 
+        { "from": "Hydra.LX", "to": "Standard.LX" },
+        { "from": "Hydra.LT", "to": "Standard.LT" }, 
+        { "from": "Hydra.RY", "filters": "invert", "to": "Standard.RY" }, 
+        { "from": "Hydra.RX", "to": "Standard.RX" },
+        { "from": "Hydra.RT", "to": "Standard.RT" }, 
+
+        { "from": "Hydra.LB", "to": "Standard.LB" }, 
+        { "from": "Hydra.LS", "to": "Standard.LS" },
+        { "from": "Hydra.RB", "to": "Standard.RB" }, 
+        { "from": "Hydra.RS", "to": "Standard.RS" },
+
+        { "from": [ "Hydra.L3", "Hydra.L4" ], "to": "Standard.LeftPrimaryThumb" },
+        { "from": [ "Hydra.L1", "Hydra.L2" ], "to": "Standard.LeftSecondaryThumb" },
+
+        { "from": [ "Hydra.R3", "Hydra.R4" ], "to": "Standard.RightPrimaryThumb" },
+        { "from": [ "Hydra.R1", "Hydra.R2" ], "to": "Standard.RightSecondaryThumb" },
+
+
+        { "from": "Hydra.LeftHand", "to": "Standard.LeftHand" }, 
+        { "from": "Hydra.RightHand", "to": "Standard.RightHand" }
+  ]
+}

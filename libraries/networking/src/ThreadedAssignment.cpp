@@ -33,14 +33,19 @@ void ThreadedAssignment::setFinished(bool isFinished) {
         if (_isFinished) {
 
             qDebug() << "ThreadedAssignment::setFinished(true) called - finishing up.";
-
-            auto& packetReceiver = DependencyManager::get<NodeList>()->getPacketReceiver();
+            
+            auto nodeList = DependencyManager::get<NodeList>();
+            
+            auto& packetReceiver = nodeList->getPacketReceiver();
 
             // we should de-register immediately for any of our packets
             packetReceiver.unregisterListener(this);
 
             // we should also tell the packet receiver to drop packets while we're cleaning up
             packetReceiver.setShouldDropPackets(true);
+            
+            // send a disconnect packet to the domain
+            nodeList->getDomainHandler().disconnect();
 
             if (_domainServerTimer) {
                 // stop the domain-server check in timer by calling deleteLater so it gets cleaned up on NL thread

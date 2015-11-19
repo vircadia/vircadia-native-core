@@ -12,14 +12,33 @@
 #ifndef hifi_MyAvatar_h
 #define hifi_MyAvatar_h
 
+#include <glm/glm.hpp>
+
 #include <SettingHandle.h>
-#include <DynamicCharacterController.h>
 #include <Rig.h>
+
+#include <controllers/Pose.h>
 
 #include "Avatar.h"
 #include "AtRestDetector.h"
+#include "MyCharacterController.h"
+
 
 class ModelItemID;
+
+enum DriveKeys {
+    TRANSLATE_X = 0,
+    TRANSLATE_Y,
+    TRANSLATE_Z,
+    YAW,
+    STEP_TRANSLATE_X,
+    STEP_TRANSLATE_Y,
+    STEP_TRANSLATE_Z,
+    STEP_YAW,
+    PITCH,
+    ZOOM,
+    MAX_DRIVE_KEYS
+};
 
 enum eyeContactTarget {
     LEFT_EYE,
@@ -33,7 +52,6 @@ enum AudioListenerMode {
     CUSTOM
 };
 Q_DECLARE_METATYPE(AudioListenerMode);
-
 
 class MyAvatar : public Avatar {
     Q_OBJECT
@@ -50,6 +68,17 @@ class MyAvatar : public Avatar {
     Q_PROPERTY(AudioListenerMode CUSTOM READ getAudioListenerModeCustom)
     //TODO: make gravity feature work Q_PROPERTY(glm::vec3 gravity READ getGravity WRITE setGravity)
 
+
+    Q_PROPERTY(glm::vec3 leftHandPosition READ getLeftHandPosition)
+    Q_PROPERTY(glm::vec3 rightHandPosition READ getRightHandPosition)
+    Q_PROPERTY(glm::vec3 leftHandTipPosition READ getLeftHandTipPosition)
+    Q_PROPERTY(glm::vec3 rightHandTipPosition READ getRightHandTipPosition)
+
+    Q_PROPERTY(controller::Pose leftHandPose READ getLeftHandPose)
+    Q_PROPERTY(controller::Pose rightHandPose READ getRightHandPose)
+    Q_PROPERTY(controller::Pose leftHandTipPose READ getLeftHandTipPose)
+    Q_PROPERTY(controller::Pose rightHandTipPose READ getRightHandTipPose)
+
 public:
     MyAvatar(RigPointer rig);
     ~MyAvatar();
@@ -58,7 +87,7 @@ public:
     AudioListenerMode getAudioListenerModeCamera() const { return FROM_CAMERA; }
     AudioListenerMode getAudioListenerModeCustom() const { return CUSTOM; }
 
-    void reset();
+    void reset(bool andReload = false);
     void update(float deltaTime);
     void preRender(RenderArgs* renderArgs);
 
@@ -106,6 +135,18 @@ public:
     Q_INVOKABLE AnimationDetails getAnimationDetailsByRole(const QString& role);
     Q_INVOKABLE AnimationDetails getAnimationDetails(const QString& url);
     void clearJointAnimationPriorities();
+    // Adds handler(animStateDictionaryIn) => animStateDictionaryOut, which will be invoked just before each animGraph state update.
+    // The handler will be called with an animStateDictionaryIn that has all those properties specified by the (possibly empty)
+    // propertiesList argument. However for debugging, if the properties argument is null, all internal animGraph state is provided.
+    // The animStateDictionaryOut can be a different object than animStateDictionaryIn. Any properties set in animStateDictionaryOut
+    // will override those of the internal animation machinery.
+    // The animStateDictionaryIn may be shared among multiple handlers, and thus may contain additional properties specified when
+    // adding one of the other handlers. While any handler may change a value in animStateDictionaryIn (or supply different values in animStateDictionaryOut)
+    // a handler must not remove properties from animStateDictionaryIn, nor change property values that it does not intend to change.
+    // It is not specified in what order multiple handlers are called.
+    Q_INVOKABLE QScriptValue addAnimationStateHandler(QScriptValue handler, QScriptValue propertiesList) { return _rig->addAnimationStateHandler(handler, propertiesList); }
+    // Removes a handler previously added by addAnimationStateHandler.
+    Q_INVOKABLE void removeAnimationStateHandler(QScriptValue handler) { _rig->removeAnimationStateHandler(handler); }
 
     // get/set avatar data
     void saveData();
@@ -121,8 +162,6 @@ public:
 
     eyeContactTarget getEyeContactTarget();
 
-    static void sendKillAvatar();
-
     Q_INVOKABLE glm::vec3 getTrackedHeadPosition() const { return _trackedHeadPosition; }
     Q_INVOKABLE glm::vec3 getHeadPosition() const { return getHead()->getPosition(); }
     Q_INVOKABLE float getHeadFinalYaw() const { return getHead()->getFinalYaw(); }
@@ -136,12 +175,21 @@ public:
 
     Q_INVOKABLE glm::vec3 getTargetAvatarPosition() const { return _targetAvatarPosition; }
 
+    Q_INVOKABLE glm::vec3 getLeftHandPosition() const;
+    Q_INVOKABLE glm::vec3 getRightHandPosition() const;
+    Q_INVOKABLE glm::vec3 getLeftHandTipPosition() const;
+    Q_INVOKABLE glm::vec3 getRightHandTipPosition() const;
+
+    Q_INVOKABLE controller::Pose getLeftHandPose() const;
+    Q_INVOKABLE controller::Pose getRightHandPose() const;
+    Q_INVOKABLE controller::Pose getLeftHandTipPose() const;
+    Q_INVOKABLE controller::Pose getRightHandTipPose() const;
+
     AvatarWeakPointer getLookAtTargetAvatar() const { return _lookAtTargetAvatar; }
     void updateLookAtTargetAvatar();
     void clearLookAtTargetAvatar();
 
     virtual void setJointRotations(QVector<glm::quat> jointRotations) override;
-    virtual void setJointTranslations(QVector<glm::vec3> jointTranslations) override;
     virtual void setJointData(int index, const glm::quat& rotation, const glm::vec3& translation) override;
     virtual void setJointRotation(int index, const glm::quat& rotation) override;
     virtual void setJointTranslation(int index, const glm::vec3& translation) override;
@@ -154,10 +202,13 @@ public:
 
     virtual void setAttachmentData(const QVector<AttachmentData>& attachmentData) override;
 
-    DynamicCharacterController* getCharacterController() { return &_characterController; }
+    MyCharacterController* getCharacterController() { return &_characterController; }
 
+    void prepareForPhysicsSimulation();
+    void harvestResultsFromPhysicsSimulation();
+    void adjustSensorTransform();
 
-    const QString& getCollisionSoundURL() {return _collisionSoundURL; }
+    const QString& getCollisionSoundURL() { return _collisionSoundURL; }
     void setCollisionSoundURL(const QString& url);
 
     void clearScriptableSettings();
@@ -199,25 +250,9 @@ public slots:
 
     Q_INVOKABLE void updateMotionBehaviorFromMenu();
 
-    glm::vec3 getLeftPalmPosition();
-    glm::vec3 getLeftPalmVelocity();
-    glm::vec3 getLeftPalmAngularVelocity();
-    glm::quat getLeftPalmRotation();
-    glm::vec3 getRightPalmPosition();
-    glm::vec3 getRightPalmVelocity();
-    glm::vec3 getRightPalmAngularVelocity();
-    glm::quat getRightPalmRotation();
-
     void clearReferential();
     bool setModelReferential(const QUuid& id);
     bool setJointReferential(const QUuid& id, int jointIndex);
-
-    bool isRecording();
-    qint64 recorderElapsed();
-    void startRecording();
-    void stopRecording();
-    void saveRecording(QString filename);
-    void loadLastRecording();
 
     virtual void rebuildSkeletonBody() override;
 
@@ -267,9 +302,10 @@ private:
                         const glm::vec3& translation = glm::vec3(), const glm::quat& rotation = glm::quat(), float scale = 1.0f,
                         bool allowDuplicates = false, bool useSaved = true) override;
 
-    void renderLaserPointers(gpu::Batch& batch);
-    const RecorderPointer getRecorder() const { return _recorder; }
-    const PlayerPointer getPlayer() const { return _player; }
+    //void beginFollowingHMD();
+    //bool shouldFollowHMD() const;
+    //void followHMD(float deltaTime);
+    void updateHMDFollowVelocity();
 
     bool cameraInsideHead() const;
 
@@ -279,8 +315,10 @@ private:
 
     void setVisibleInSceneIfReady(Model* model, render::ScenePointer scene, bool visiblity);
 
+    PalmData getActivePalmData(int palmIndex) const;
+
     // derive avatar body position and orientation from the current HMD Sensor location.
-    // results are in sensor space
+    // results are in HMD frame
     glm::mat4 deriveBodyFromHMDSensor() const;
 
     float _driveKeys[MAX_DRIVE_KEYS];
@@ -300,7 +338,7 @@ private:
     quint32 _motionBehaviors;
     QString _collisionSoundURL;
 
-    DynamicCharacterController _characterController;
+    MyCharacterController _characterController;
 
     AvatarWeakPointer _lookAtTargetAvatar;
     glm::vec3 _targetAvatarPosition;
@@ -309,8 +347,6 @@ private:
     float _oculusYawOffset;
 
     eyeContactTarget _eyeContactTarget;
-
-    RecorderPointer _recorder;
 
     glm::vec3 _trackedHeadPosition;
 
@@ -345,6 +381,10 @@ private:
     // used to transform any sensor into world space, including the _hmdSensorMat, or hand controllers.
     glm::mat4 _sensorToWorldMatrix;
 
+    glm::vec3 _followVelocity { Vectors::ZERO };
+    float _followSpeed { 0.0f };
+    float _followOffsetDistance { 0.0f };
+
     bool _goToPending;
     glm::vec3 _goToPosition;
     glm::quat _goToOrientation;
@@ -353,19 +393,16 @@ private:
     RigPointer _rig;
     bool _prevShouldDrawHead;
 
-    bool _enableDebugDrawBindPose = false;
-    bool _enableDebugDrawAnimPose = false;
-    AnimSkeleton::ConstPointer _debugDrawSkeleton = nullptr;
+    bool _enableDebugDrawBindPose { false };
+    bool _enableDebugDrawAnimPose { false };
+    AnimSkeleton::ConstPointer _debugDrawSkeleton { nullptr };
 
     AudioListenerMode _audioListenerMode;
     glm::vec3 _customListenPosition;
     glm::quat _customListenOrientation;
 
-    bool _straighteningLean = false;
-    float _straighteningLeanAlpha = 0.0f;
-
-    quint64 _lastUpdateFromHMDTime = usecTimestampNow();
     AtRestDetector _hmdAtRestDetector;
+    bool _lastIsMoving { false };
 };
 
 QScriptValue audioListenModeToScriptValue(QScriptEngine* engine, const AudioListenerMode& audioListenerMode);

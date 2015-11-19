@@ -11,9 +11,9 @@
 
 #include <glm/gtx/quaternion.hpp>
 
-void RotationAccumulator::add(const glm::quat& rotation) {
+void RotationAccumulator::add(const glm::quat& rotation, float weight) {
     // make sure both quaternions are on the same hyper-hemisphere before we add them linearly (lerp)
-    _rotationSum += copysignf(1.0f, glm::dot(_rotationSum, rotation)) * rotation;
+    _rotationSum += copysignf(weight, glm::dot(_rotationSum, rotation)) * rotation;
     ++_numRotations;
     _isDirty = true;
 }

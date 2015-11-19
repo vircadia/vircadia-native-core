@@ -108,14 +108,12 @@ void VrMenu::addMenu(QMenu* menu) {
         Q_ASSERT(false);
     }
     QVariant returnedValue;
-    #ifndef QT_NO_DEBUG
-    bool invokeResult =
-    #endif
-    QMetaObject::invokeMethod(this, "addMenu", Qt::DirectConnection,
-        Q_RETURN_ARG(QVariant, returnedValue),
-        Q_ARG(QVariant, QVariant::fromValue(qmlParent)),
-        Q_ARG(QVariant, QVariant::fromValue(menu->title())));
+    bool invokeResult = QMetaObject::invokeMethod(this, "addMenu", Qt::DirectConnection,
+                                                  Q_RETURN_ARG(QVariant, returnedValue),
+                                                  Q_ARG(QVariant, QVariant::fromValue(qmlParent)),
+                                                  Q_ARG(QVariant, QVariant::fromValue(menu->title())));
     Q_ASSERT(invokeResult);
+    Q_UNUSED(invokeResult); // FIXME - apparently we haven't upgraded the Qt on our unix Jenkins environments to 5.5.x
     QObject* result = returnedValue.value<QObject*>();
     Q_ASSERT(result);
 
@@ -150,14 +148,13 @@ void VrMenu::addAction(QMenu* menu, QAction* action) {
     QObject* menuQml = findMenuObject(userData->uuid.toString());
     Q_ASSERT(menuQml);
     QVariant returnedValue;
-    #ifndef QT_NO_DEBUG
-    bool invokeResult =
-    #endif
-    QMetaObject::invokeMethod(this, "addItem", Qt::DirectConnection,
-        Q_RETURN_ARG(QVariant, returnedValue),
-        Q_ARG(QVariant, QVariant::fromValue(menuQml)),
-        Q_ARG(QVariant, QVariant::fromValue(action->text())));
+    
+    bool invokeResult = QMetaObject::invokeMethod(this, "addItem", Qt::DirectConnection,
+                                                  Q_RETURN_ARG(QVariant, returnedValue),
+                                                  Q_ARG(QVariant, QVariant::fromValue(menuQml)),
+                                                  Q_ARG(QVariant, QVariant::fromValue(action->text())));
     Q_ASSERT(invokeResult);
+    Q_UNUSED(invokeResult); // FIXME - apparently we haven't upgraded the Qt on our unix Jenkins environments to 5.5.x
     QObject* result = returnedValue.value<QObject*>();
     Q_ASSERT(result);
     // Bind the QML and Widget together
@@ -173,15 +170,13 @@ void VrMenu::insertAction(QAction* before, QAction* action) {
     }
     QObject* menu = beforeQml->parent();
     QVariant returnedValue;
-    #ifndef QT_NO_DEBUG
-    bool invokeResult =
-    #endif
-    QMetaObject::invokeMethod(this, "insertItem", Qt::DirectConnection,
-        Q_RETURN_ARG(QVariant, returnedValue),
-        Q_ARG(QVariant, QVariant::fromValue(menu)),
-        Q_ARG(QVariant, QVariant::fromValue(beforeQml)),
-        Q_ARG(QVariant, QVariant::fromValue(action->text())));
+    bool invokeResult = QMetaObject::invokeMethod(this, "insertItem", Qt::DirectConnection,
+                                                  Q_RETURN_ARG(QVariant, returnedValue),
+                                                  Q_ARG(QVariant, QVariant::fromValue(menu)),
+                                                  Q_ARG(QVariant, QVariant::fromValue(beforeQml)),
+                                                  Q_ARG(QVariant, QVariant::fromValue(action->text())));
     Q_ASSERT(invokeResult);
+    Q_UNUSED(invokeResult); // FIXME - apparently we haven't upgraded the Qt on our unix Jenkins environments to 5.5.x
     QObject* result = returnedValue.value<QObject*>();
     Q_ASSERT(result);
     bindActionToQmlAction(result, action);
@@ -199,9 +194,6 @@ void VrMenu::removeAction(QAction* action) {
     bool invokeResult = QMetaObject::invokeMethod(this, "removeItem", Qt::DirectConnection,
         Q_ARG(QVariant, QVariant::fromValue(menu)),
         Q_ARG(QVariant, QVariant::fromValue(item)));
-#ifndef QT_NO_DEBUG
     Q_ASSERT(invokeResult);
-#else
-    Q_UNUSED(invokeResult);
-#endif
+    Q_UNUSED(invokeResult); // FIXME - apparently we haven't upgraded the Qt on our unix Jenkins environments to 5.5.x
 }

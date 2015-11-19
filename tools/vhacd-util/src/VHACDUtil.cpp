@@ -156,29 +156,18 @@ void vhacd::VHACDUtil::fattenMeshes(const FBXMesh& mesh, FBXMesh& result,
 AABox getAABoxForMeshPart(const FBXMesh& mesh, const FBXMeshPart &meshPart) {
     AABox aaBox;
     unsigned int triangleCount = meshPart.triangleIndices.size() / 3;
-    for (unsigned int i = 0; i < triangleCount; i++) {
-        glm::vec3 p0 = mesh.vertices[meshPart.triangleIndices[i * 3]];
-        glm::vec3 p1 = mesh.vertices[meshPart.triangleIndices[i * 3 + 1]];
-        glm::vec3 p2 = mesh.vertices[meshPart.triangleIndices[i * 3 + 2]];
-        aaBox += p0;
-        aaBox += p1;
-        aaBox += p2;
+    for (unsigned int i = 0; i < triangleCount; ++i) {
+        aaBox += mesh.vertices[meshPart.triangleIndices[i * 3]];
+        aaBox += mesh.vertices[meshPart.triangleIndices[i * 3 + 1]];
+        aaBox += mesh.vertices[meshPart.triangleIndices[i * 3 + 2]];
     }
 
     unsigned int quadCount = meshPart.quadIndices.size() / 4;
-    for (unsigned int i = 0; i < quadCount; i++) {
-        unsigned int p0Index = meshPart.quadIndices[i * 4];
-        unsigned int p1Index = meshPart.quadIndices[i * 4 + 1];
-        unsigned int p2Index = meshPart.quadIndices[i * 4 + 2];
-        unsigned int p3Index = meshPart.quadIndices[i * 4 + 3];
-        glm::vec3 p0 = mesh.vertices[p0Index];
-        glm::vec3 p1 = mesh.vertices[p1Index + 1];
-        glm::vec3 p2 = mesh.vertices[p2Index + 2];
-        glm::vec3 p3 = mesh.vertices[p3Index + 3];
-        aaBox += p0;
-        aaBox += p1;
-        aaBox += p2;
-        aaBox += p3;
+    for (unsigned int i = 0; i < quadCount; ++i) {
+        aaBox += mesh.vertices[meshPart.quadIndices[i * 4]];
+        aaBox += mesh.vertices[meshPart.quadIndices[i * 4 + 1]];
+        aaBox += mesh.vertices[meshPart.quadIndices[i * 4 + 2]];
+        aaBox += mesh.vertices[meshPart.quadIndices[i * 4 + 3]];
     }
 
     return aaBox;

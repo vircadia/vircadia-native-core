@@ -36,12 +36,17 @@ public:
     void setLoopFlagVar(const QString& loopFlagVar) { _loopFlagVar = loopFlagVar; }
     void setFrameVar(const QString& frameVar) { _frameVar = frameVar; }
 
+    float getStartFrame() const { return _startFrame; }
+    float getEndFrame() const { return _endFrame; }
+
+    void setTimeScale(float timeScale) { _timeScale = timeScale; }
+    float getTimeScale() const { return _timeScale; }
+
 protected:
     void loadURL(const QString& url);
 
     virtual void setCurrentFrameInternal(float frame) override;
 
-    float accumulateTime(float frame, float dt, Triggers& triggersOut) const;
     void copyFromNetworkAnim();
 
     // for AnimDebugDraw rendering

@@ -415,6 +415,9 @@ bool OctreeServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
         quint64 totalBytesOfBitMasks = OctreePacketData::getTotalBytesOfBitMasks();
         quint64 totalBytesOfColor = OctreePacketData::getTotalBytesOfColor();
 
+        quint64 totalOutboundSpecialPackets = OctreeSendThread::_totalSpecialPackets;
+        quint64 totalOutboundSpecialBytes = OctreeSendThread::_totalSpecialBytes;
+
         statsString += QString("          Total Clients Connected: %1 clients\r\n")
             .arg(locale.toString((uint)getCurrentClientCount()).rightJustified(COLUMN_WIDTH, ' '));
 
@@ -606,6 +609,13 @@ bool OctreeServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
             .arg(locale.toString((uint)totalOutboundPackets).rightJustified(COLUMN_WIDTH, ' '));
         statsString += QString("             Total Outbound Bytes: %1 bytes\r\n")
             .arg(locale.toString((uint)totalOutboundBytes).rightJustified(COLUMN_WIDTH, ' '));
+
+        statsString += QString("   Total Outbound Special Packets: %1 packets\r\n")
+            .arg(locale.toString((uint)totalOutboundSpecialPackets).rightJustified(COLUMN_WIDTH, ' '));
+        statsString += QString("     Total Outbound Special Bytes: %1 bytes\r\n")
+            .arg(locale.toString((uint)totalOutboundSpecialBytes).rightJustified(COLUMN_WIDTH, ' '));
+
+
         statsString += QString("               Total Wasted Bytes: %1 bytes\r\n")
             .arg(locale.toString((uint)totalWastedBytes).rightJustified(COLUMN_WIDTH, ' '));
         statsString += QString().sprintf("            Total OctalCode Bytes: %s bytes (%5.2f%%)\r\n",
@@ -625,6 +635,8 @@ bool OctreeServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
         statsString += QString().sprintf("<b>%s Edit Statistics... <a href='/resetStats'>[RESET]</a></b>\r\n",
                                          getMyServerName());
         quint64 currentPacketsInQueue = _octreeInboundPacketProcessor->packetsToProcessCount();
+        float incomingPPS = _octreeInboundPacketProcessor->getIncomingPPS();
+        float processedPPS = _octreeInboundPacketProcessor->getProcessedPPS();
         quint64 averageTransitTimePerPacket = _octreeInboundPacketProcessor->getAverageTransitTimePerPacket();
         quint64 averageProcessTimePerPacket = _octreeInboundPacketProcessor->getAverageProcessTimePerPacket();
         quint64 averageLockWaitTimePerPacket = _octreeInboundPacketProcessor->getAverageLockWaitTimePerPacket();
@@ -639,11 +651,16 @@ bool OctreeServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
         quint64 averageCreateTime = _tree->getAverageCreateTime();
         quint64 averageLoggingTime = _tree->getAverageLoggingTime();
 
+        int FLOAT_PRECISION = 3;
 
         float averageElementsPerPacket = totalPacketsProcessed == 0 ? 0 : (float)totalElementsProcessed / totalPacketsProcessed;
 
-        statsString += QString("   Current Inbound Packets Queue: %1 packets\r\n")
+        statsString += QString("   Current Inbound Packets Queue: %1 packets \r\n")
             .arg(locale.toString((uint)currentPacketsInQueue).rightJustified(COLUMN_WIDTH, ' '));
+        statsString += QString("        Packets Queue Network IN: %1 PPS \r\n")
+            .arg(locale.toString(incomingPPS, 'f', FLOAT_PRECISION).rightJustified(COLUMN_WIDTH, ' '));
+        statsString += QString("    Packets Queue Processing OUT: %1 PPS \r\n")
+            .arg(locale.toString(processedPPS, 'f', FLOAT_PRECISION).rightJustified(COLUMN_WIDTH, ' '));
 
         statsString += QString("           Total Inbound Packets: %1 packets\r\n")
             .arg(locale.toString((uint)totalPacketsProcessed).rightJustified(COLUMN_WIDTH, ' '));
@@ -692,6 +709,16 @@ bool OctreeServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
             totalElementsProcessed = senderStats.getTotalElementsProcessed();
             totalPacketsProcessed = senderStats.getTotalPacketsProcessed();
 
+
+            auto received = senderStats._incomingEditSequenceNumberStats.getReceived();
+            auto expected = senderStats._incomingEditSequenceNumberStats.getExpectedReceived();
+            auto unreasonable = senderStats._incomingEditSequenceNumberStats.getUnreasonable();
+            auto outOfOrder = senderStats._incomingEditSequenceNumberStats.getOutOfOrder();
+            auto early = senderStats._incomingEditSequenceNumberStats.getEarly();
+            auto late = senderStats._incomingEditSequenceNumberStats.getLate();
+            auto lost = senderStats._incomingEditSequenceNumberStats.getLost();
+            auto recovered = senderStats._incomingEditSequenceNumberStats.getRecovered();
+
             averageElementsPerPacket = totalPacketsProcessed == 0 ? 0 : (float)totalElementsProcessed / totalPacketsProcessed;
 
             statsString += QString("               Total Inbound Packets: %1 packets\r\n")
@@ -702,7 +729,7 @@ bool OctreeServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
                                              (double)averageElementsPerPacket);
             statsString += QString("         Average Transit Time/Packet: %1 usecs\r\n")
                 .arg(locale.toString((uint)averageTransitTimePerPacket).rightJustified(COLUMN_WIDTH, ' '));
-            statsString += QString("        Average Process Time/Packet: %1 usecs\r\n")
+            statsString += QString("         Average Process Time/Packet: %1 usecs\r\n")
                 .arg(locale.toString((uint)averageProcessTimePerPacket).rightJustified(COLUMN_WIDTH, ' '));
             statsString += QString("       Average Wait Lock Time/Packet: %1 usecs\r\n")
                 .arg(locale.toString((uint)averageLockWaitTimePerPacket).rightJustified(COLUMN_WIDTH, ' '));
@@ -710,6 +737,24 @@ bool OctreeServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
                 .arg(locale.toString((uint)averageProcessTimePerElement).rightJustified(COLUMN_WIDTH, ' '));
             statsString += QString("      Average Wait Lock Time/Element: %1 usecs\r\n")
                 .arg(locale.toString((uint)averageLockWaitTimePerElement).rightJustified(COLUMN_WIDTH, ' '));
+
+            statsString += QString("\r\n       Inbound Edit Packets --------------------------------\r\n");
+            statsString += QString("                            Received: %1\r\n")
+                .arg(locale.toString(received).rightJustified(COLUMN_WIDTH, ' '));
+            statsString += QString("                            Expected: %1\r\n")
+                .arg(locale.toString(expected).rightJustified(COLUMN_WIDTH, ' '));
+            statsString += QString("                        Unreasonable: %1\r\n")
+                .arg(locale.toString(unreasonable).rightJustified(COLUMN_WIDTH, ' '));
+            statsString += QString("                        Out of Order: %1\r\n")
+                .arg(locale.toString(outOfOrder).rightJustified(COLUMN_WIDTH, ' '));
+            statsString += QString("                               Early: %1\r\n")
+                .arg(locale.toString(early).rightJustified(COLUMN_WIDTH, ' '));
+            statsString += QString("                                Late: %1\r\n")
+                .arg(locale.toString(late).rightJustified(COLUMN_WIDTH, ' '));
+            statsString += QString("                                Lost: %1\r\n")
+                .arg(locale.toString(lost).rightJustified(COLUMN_WIDTH, ' '));
+            statsString += QString("                           Recovered: %1\r\n")
+                .arg(locale.toString(recovered).rightJustified(COLUMN_WIDTH, ' '));
 
         }
 
@@ -908,7 +953,6 @@ bool OctreeServer::readConfiguration() {
 
     if (domainHandler.getSettingsObject().isEmpty()) {
         qDebug() << "Failed to retreive settings object from domain-server. Bailing on assignment.";
-        setFinished(true);
         return false;
     }
 
@@ -1041,12 +1085,16 @@ void OctreeServer::run() {
     auto nodeList = DependencyManager::get<NodeList>();
     nodeList->setOwnerType(getMyNodeType());
 
-
     // use common init to setup common timers and logging
     commonInit(getMyLoggingServerTargetName(), getMyNodeType());
+    
+    // we need to ask the DS about agents so we can ping/reply with them
+    nodeList->addNodeTypeToInterestSet(NodeType::Agent);
 
     // read the configuration from either the payload or the domain server configuration
     if (!readConfiguration()) {
+        qDebug() << "OctreeServer bailing on run since readConfiguration has failed.";
+        setFinished(true);
         return; // bailing on run, because readConfiguration failed
     }
 
@@ -1054,10 +1102,6 @@ void OctreeServer::run() {
 
     connect(nodeList.data(), SIGNAL(nodeAdded(SharedNodePointer)), SLOT(nodeAdded(SharedNodePointer)));
     connect(nodeList.data(), SIGNAL(nodeKilled(SharedNodePointer)), SLOT(nodeKilled(SharedNodePointer)));
-
-
-    // we need to ask the DS about agents so we can ping/reply with them
-    nodeList->addNodeTypeToInterestSet(NodeType::Agent);
 
 #ifndef WIN32
     setvbuf(stdout, NULL, _IOLBF, 0);

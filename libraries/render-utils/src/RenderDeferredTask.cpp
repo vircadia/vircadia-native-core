@@ -12,6 +12,7 @@
 #include "RenderDeferredTask.h"
 
 #include <PerfStat.h>
+#include <PathUtils.h>
 #include <RenderArgs.h>
 #include <ViewFrustum.h>
 #include <gpu/Context.h>
@@ -76,7 +77,7 @@ RenderDeferredTask::RenderDeferredTask() : Task() {
             }
         )
     )));
-    _jobs.push_back(Job(new CullItems::JobModel("CullOpaque", _jobs.back().getOutput())));
+    _jobs.push_back(Job(new CullItemsOpaque::JobModel("CullOpaque", _jobs.back().getOutput())));
     _jobs.push_back(Job(new DepthSortItems::JobModel("DepthSortOpaque", _jobs.back().getOutput())));
     auto& renderedOpaques = _jobs.back().getOutput();
     _jobs.push_back(Job(new DrawOpaqueDeferred::JobModel("DrawOpaqueDeferred", _jobs.back().getOutput())));
@@ -105,12 +106,17 @@ RenderDeferredTask::RenderDeferredTask() : Task() {
             }
          )
      )));
-    _jobs.push_back(Job(new CullItems::JobModel("CullTransparent", _jobs.back().getOutput())));
+    _jobs.push_back(Job(new CullItemsTransparent::JobModel("CullTransparent", _jobs.back().getOutput())));
+
+
     _jobs.push_back(Job(new DepthSortItems::JobModel("DepthSortTransparent", _jobs.back().getOutput(), DepthSortItems(false))));
     _jobs.push_back(Job(new DrawTransparentDeferred::JobModel("TransparentDeferred", _jobs.back().getOutput())));
     
-    _jobs.push_back(Job(new render::DrawStatus::JobModel("DrawStatus", renderedOpaques)));
+    // Grab a texture map representing the different status icons and assign that to the drawStatsuJob
+    auto iconMapPath = PathUtils::resourcesPath() + "icons/statusIconAtlas.svg";
 
+    auto statusIconMap = DependencyManager::get<TextureCache>()->getImageTexture(iconMapPath);
+    _jobs.push_back(Job(new render::DrawStatus::JobModel("DrawStatus", renderedOpaques, DrawStatus(statusIconMap))));
 
     _jobs.back().setEnabled(false);
     _drawStatusJobIndex = _jobs.size() - 1;

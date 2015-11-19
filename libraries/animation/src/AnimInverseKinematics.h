@@ -80,6 +80,7 @@ protected:
 
     // experimental data for moving hips during IK
     int _headIndex = -1;
+    int _hipsIndex = -1;
     glm::vec3 _hipsOffset = Vectors::ZERO;
 
     // _maxTargetIndex is tracked to help optimize the recalculation of absolute poses

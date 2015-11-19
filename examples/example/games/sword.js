@@ -238,7 +238,7 @@ var inHand = false;
 
 function isControllerActive() {
     // I don't think the hydra API provides any reliable way to know whether a particular controller is active. Ask for both.
-    controllerActive = (Vec3.length(Controller.getSpatialControlPosition(3)) > 0) || Vec3.length(Controller.getSpatialControlPosition(4)) > 0;
+    controllerActive = (Vec3.length(MyAvatar.leftHandPose.translation) > 0) || Vec3.length(MyAvatar.rightHandPose.translation) > 0;
     return controllerActive;
 }
 
@@ -312,10 +312,10 @@ function grabSword(hand) {
     }
     var handRotation;
     if (hand === "right") {
-        handRotation = MyAvatar.getRightPalmRotation();
+        handRotation = MyAvatar.rightHandPose.rotation;
 
     } else if (hand === "left") {
-        handRotation = MyAvatar.getLeftPalmRotation();
+        handRotation = MyAvatar.leftHandPose.rotation;
     }
     var swordRotation = Entities.getEntityProperties(swordID).rotation;
     var offsetRotation = Quat.multiply(Quat.inverse(handRotation), swordRotation);

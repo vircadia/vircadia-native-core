@@ -12,6 +12,9 @@
 #ifndef hifi_Recorder_h
 #define hifi_Recorder_h
 
+#include <recording/Forward.h>
+
+#if 0
 #include "Recording.h"
 
 template<class C>
@@ -43,13 +46,12 @@ public slots:
     void record();
     void recordAudio(const QByteArray& audioArray);
     
-    
 private:
     QElapsedTimer _timer;
     RecordingPointer _recording;
 
     AvatarData* _avatar;
 };
-
+#endif
 
 #endif // hifi_Recorder_h

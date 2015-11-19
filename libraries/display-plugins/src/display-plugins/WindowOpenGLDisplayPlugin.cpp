@@ -42,7 +42,7 @@ bool WindowOpenGLDisplayPlugin::hasFocus() const {
 
 void WindowOpenGLDisplayPlugin::activate() {
     OpenGLDisplayPlugin::activate();
-    _window = CONTAINER->getPrimarySurface();
+    _window = _container->getPrimarySurface();
     _window->makeCurrent();
     customizeContext();
     _window->doneCurrent();

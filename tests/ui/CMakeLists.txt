@@ -11,6 +11,6 @@ if (WIN32)
 endif()
 
 # link in the shared libraries
-link_hifi_libraries(ui render-utils gpu shared)
+link_hifi_libraries(shared networking gl gpu ui)
 
 copy_dlls_beside_windows_executable()

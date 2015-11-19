@@ -24,12 +24,13 @@
 
 #include "Application.h"
 #include "AccountManager.h"
+#include "assets/ATPAssetMigrator.h"
 #include "audio/AudioScope.h"
 #include "avatar/AvatarManager.h"
 #include "devices/DdeFaceTracker.h"
 #include "devices/Faceshift.h"
 #include "devices/RealSense.h"
-#include "devices/3DConnexionClient.h"
+#include "input-plugins/SpacemouseManager.h"
 #include "MainWindow.h"
 #include "scripting/MenuScriptingInterface.h"
 #include "ui/AssetUploadDialogFactory.h"
@@ -43,22 +44,11 @@
 
 #include "Menu.h"
 
-Menu* Menu::_instance = NULL;
+static const char* const MENU_PROPERTY_NAME = "com.highfidelity.Menu";
 
 Menu* Menu::getInstance() {
-    static QMutex menuInstanceMutex;
-
-    // lock the menu instance mutex to make sure we don't race and create two menus and crash
-    menuInstanceMutex.lock();
-
-    if (!_instance) {
-        qCDebug(interfaceapp, "First call to Menu::getInstance() - initing menu.");
-        _instance = new Menu();
-    }
-
-    menuInstanceMutex.unlock();
-
-    return _instance;
+    static Menu* instance = globalInstance<Menu>(MENU_PROPERTY_NAME);
+    return instance;
 }
 
 Menu::Menu() {
@@ -279,6 +269,9 @@ Menu::Menu() {
                                                                       MenuOption::IndependentMode, 0,
                                                                       false, qApp, SLOT(cameraMenuChanged())));
     cameraModeGroup->addAction(addCheckableActionToQMenuAndActionHash(cameraModeMenu,
+                                                                      MenuOption::CameraEntityMode, 0,
+                                                                      false, qApp, SLOT(cameraMenuChanged())));
+    cameraModeGroup->addAction(addCheckableActionToQMenuAndActionHash(cameraModeMenu,
                                                                       MenuOption::FullscreenMirror, 0, // QML Qt::Key_H,
                                                                       false, qApp, SLOT(cameraMenuChanged())));
 
@@ -354,7 +347,7 @@ Menu::Menu() {
     MenuWrapper* assetDeveloperMenu = developerMenu->addMenu("Assets");
     
     auto& assetDialogFactory = AssetUploadDialogFactory::getInstance();
-    assetDialogFactory.setParent(this);
+    assetDialogFactory.setDialogParent(this);
     
     QAction* assetUpload = addActionToQMenuAndActionHash(assetDeveloperMenu,
                                                          MenuOption::UploadAsset,
@@ -364,6 +357,13 @@ Menu::Menu() {
     
     // disable the asset upload action by default - it gets enabled only if asset server becomes present
     assetUpload->setEnabled(false);
+    
+    auto& atpMigrator = ATPAssetMigrator::getInstance();
+    atpMigrator.setDialogParent(this);
+    
+    addActionToQMenuAndActionHash(assetDeveloperMenu, MenuOption::AssetMigration,
+                                                            0, &atpMigrator,
+                                                            SLOT(loadEntityServerFile()));
     
     MenuWrapper* avatarDebugMenu = developerMenu->addMenu("Avatar");
 
@@ -456,11 +456,8 @@ Menu::Menu() {
     addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::MeshVisible, 0, true,
                                            avatar, SLOT(setEnableMeshVisible(bool)));
     addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::DisableEyelidAdjustment, 0, false);
-    addCheckableActionToQMenuAndActionHash(avatarDebugMenu,
-                                           MenuOption::Connexion,
-                                           0, false,
-                                           &ConnexionClient::getInstance(),
-                                           SLOT(toggleConnexion(bool)));
+
+    addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::ComfortMode, 0, true);
 
     MenuWrapper* handOptionsMenu = developerMenu->addMenu("Hands");
     addCheckableActionToQMenuAndActionHash(handOptionsMenu, MenuOption::DisplayHandTargets, 0, false);
@@ -508,7 +505,6 @@ Menu::Menu() {
     addCheckableActionToQMenuAndActionHash(perfTimerMenu, MenuOption::ExpandOtherAvatarTiming, 0, false);
     addCheckableActionToQMenuAndActionHash(perfTimerMenu, MenuOption::ExpandPaintGLTiming, 0, false);
 
-    addCheckableActionToQMenuAndActionHash(timingMenu, MenuOption::TestPing, 0, true);
     addCheckableActionToQMenuAndActionHash(timingMenu, MenuOption::FrameTimer);
     addActionToQMenuAndActionHash(timingMenu, MenuOption::RunTimingTests, 0, qApp, SLOT(runTests()));
     addCheckableActionToQMenuAndActionHash(timingMenu, MenuOption::PipelineWarnings);

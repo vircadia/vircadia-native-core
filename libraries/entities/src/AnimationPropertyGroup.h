@@ -37,6 +37,7 @@ public:
     virtual void copyToScriptValue(const EntityPropertyFlags& desiredProperties, QScriptValue& properties, QScriptEngine* engine, bool skipDefaults, EntityItemProperties& defaultEntityProperties) const;
     virtual void copyFromScriptValue(const QScriptValue& object, bool& _defaultSettings);
     virtual void debugDump() const;
+    virtual void listChangedProperties(QList<QString>& out);
 
     virtual bool appendToEditPacket(OctreePacketData* packetData,                                     
                                     EntityPropertyFlags& requestedProperties,

@@ -70,10 +70,11 @@ private:
     int _processedPacketsElements;
     int _processedPacketsEntities;
     int _processedPacketsTiming;
+    int _outboundEditPackets;
     
     const int SAMPLES_PER_SECOND = 10;
     SimpleMovingAverage _averageUpdatesPerSecond;
-    quint64 _lastWindowAt = 0;
+    quint64 _lastWindowAt = usecTimestampNow();
     quint64 _lastKnownTrackedEdits = 0;
 
     quint64 _lastRefresh = 0;

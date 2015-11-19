@@ -66,7 +66,7 @@ bool ModelEntityItem::setProperties(const EntityItemProperties& properties) {
     bool somethingChangedInAnimations = _animationProperties.setProperties(properties);
 
     if (somethingChangedInAnimations) {
-        _dirtyFlags |= EntityItem::DIRTY_UPDATEABLE;
+        _dirtyFlags |= Simulation::DIRTY_UPDATEABLE;
     }
     somethingChanged = somethingChanged || somethingChangedInAnimations;
 
@@ -128,7 +128,7 @@ int ModelEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data,
     READ_ENTITY_PROPERTY(PROP_SHAPE_TYPE, ShapeType, updateShapeType);
 
     if (animationPropertiesChanged) {
-        _dirtyFlags |= EntityItem::DIRTY_UPDATEABLE;
+        _dirtyFlags |= Simulation::DIRTY_UPDATEABLE;
         somethingChanged = true;
     }
 
@@ -300,7 +300,7 @@ void ModelEntityItem::updateShapeType(ShapeType type) {
 
     if (type != _shapeType) {
         _shapeType = type;
-        _dirtyFlags |= EntityItem::DIRTY_SHAPE | EntityItem::DIRTY_MASS;
+        _dirtyFlags |= Simulation::DIRTY_SHAPE | Simulation::DIRTY_MASS;
     }
 }
 
@@ -316,13 +316,13 @@ ShapeType ModelEntityItem::getShapeType() const {
 void ModelEntityItem::setCompoundShapeURL(const QString& url) {
     if (_compoundShapeURL != url) {
         _compoundShapeURL = url;
-        _dirtyFlags |= EntityItem::DIRTY_SHAPE | EntityItem::DIRTY_MASS;
+        _dirtyFlags |= Simulation::DIRTY_SHAPE | Simulation::DIRTY_MASS;
         _shapeType = _compoundShapeURL.isEmpty() ? SHAPE_TYPE_NONE : SHAPE_TYPE_COMPOUND;
     }
 }
 
 void ModelEntityItem::setAnimationURL(const QString& url) {
-    _dirtyFlags |= EntityItem::DIRTY_UPDATEABLE;
+    _dirtyFlags |= Simulation::DIRTY_UPDATEABLE;
     _animationProperties.setURL(url);
 }
 
@@ -388,16 +388,16 @@ void ModelEntityItem::setAnimationSettings(const QString& value) {
         setAnimationStartAutomatically(startAutomatically);
     }
 
-    _dirtyFlags |= EntityItem::DIRTY_UPDATEABLE;
+    _dirtyFlags |= Simulation::DIRTY_UPDATEABLE;
 }
 
 void ModelEntityItem::setAnimationIsPlaying(bool value) {
-    _dirtyFlags |= EntityItem::DIRTY_UPDATEABLE;
+    _dirtyFlags |= Simulation::DIRTY_UPDATEABLE;
     _animationLoop.setRunning(value);
 }
 
 void ModelEntityItem::setAnimationFPS(float value) {
-    _dirtyFlags |= EntityItem::DIRTY_UPDATEABLE;
+    _dirtyFlags |= Simulation::DIRTY_UPDATEABLE;
     _animationLoop.setFPS(value);
 }
 

@@ -198,7 +198,7 @@ void PreferencesDialog::loadPreferences() {
     ui.oculusUIAngularSizeSpin->setValue(qApp->getApplicationCompositor().getHmdUIAngularSize());
 #endif
 
-    ui.sixenseReticleMoveSpeedSpin->setValue(InputDevice::getReticleMoveSpeed());
+    ui.sixenseReticleMoveSpeedSpin->setValue(controller::InputDevice::getReticleMoveSpeed());
 
     // LOD items
     auto lodManager = DependencyManager::get<LODManager>();
@@ -273,7 +273,7 @@ void PreferencesDialog::savePreferences() {
 
     qApp->getApplicationCompositor().setHmdUIAngularSize(ui.oculusUIAngularSizeSpin->value());
     
-    InputDevice::setReticleMoveSpeed(ui.sixenseReticleMoveSpeedSpin->value());
+    controller::InputDevice::setReticleMoveSpeed(ui.sixenseReticleMoveSpeedSpin->value());
 
     auto audio = DependencyManager::get<AudioClient>();
     MixedProcessedAudioStream& stream = audio->getReceivedAudioStream();
