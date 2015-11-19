@@ -221,7 +221,6 @@ protected:
     using Particles = std::deque<Particle>;
 
     bool isAnimatingSomething() const;
-    quint32 getLivingParticleCount() const;
     
     Particle createParticle();
     void stepSimulation(float deltaTime);

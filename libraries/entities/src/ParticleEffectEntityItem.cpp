@@ -549,7 +549,7 @@ void ParticleEffectEntityItem::appendSubclassData(OctreePacketData* packetData, 
 
 bool ParticleEffectEntityItem::isEmittingParticles() const {
     // keep emitting if there are particles still alive.
-    return (getIsEmitting() || getLivingParticleCount() > 0);
+    return (getIsEmitting() || !_particles.empty());
 }
 
 bool ParticleEffectEntityItem::needsToCallUpdate() const {
@@ -803,9 +803,4 @@ void ParticleEffectEntityItem::setMaxParticles(quint32 maxParticles) {
         // effectively clear all particles and start emitting new ones from scratch.
         _timeUntilNextEmit = 0.0f;
     }
-}
-
-// because particles are in a ring buffer, this isn't trivial
-quint32 ParticleEffectEntityItem::getLivingParticleCount() const {
-    return _particles.size();
 }

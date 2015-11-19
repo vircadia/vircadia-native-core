@@ -171,27 +171,18 @@ uint32_t toRGBA(uint8_t r, uint8_t g, uint8_t b, uint8_t a) {
     return ((uint32_t)r | (uint32_t)g << 8 | (uint32_t)b << 16 | (uint32_t)a << 24);
 }
 
-struct ParticleDetails {
-    ParticleDetails(glm::vec3 position, float radius, uint32_t rgba) : position(position), radius(radius), rgba(rgba) { }
-
-    glm::vec3 position;
-    float radius;
-    uint32_t rgba;
-};
-
 void RenderableParticleEffectEntityItem::updateRenderItem() {
     if (!_scene) {
         return;
     }
 
-    // make a copy of each particle's details
-    std::vector<ParticleDetails> particleDetails;
-    particleDetails.reserve(getLivingParticleCount());
+    // build primitives from particle positions and radiuses
+    _particlePrimitives.clear(); // clear primitives
+    _particlePrimitives.reserve(_particles.size()); // Reserve space
     for (auto& particle : _particles) {
-        auto xcolor = particle.color;
-        auto alpha = (uint8_t)(glm::clamp(particle.alpha * getLocalRenderAlpha(), 0.0f, 1.0f) * 255.0f);
-        auto rgba = toRGBA(xcolor.red, xcolor.green, xcolor.blue, alpha);
-        particleDetails.emplace_back(particle.position, particle.radius, rgba);
+        auto alpha = glm::clamp(particle.alpha * getLocalRenderAlpha(), 0.0f, 1.0f) * 255;
+        auto rgba = toRGBA(particle.color.red, particle.color.green, particle.color.blue, alpha);
+        _particlePrimitives.emplace_back(glm::vec4(particle.position, particle.radius), rgba);
     }
 
     // No need to sort if we're doing additive blending
@@ -202,17 +193,10 @@ void RenderableParticleEffectEntityItem::updateRenderItem() {
         // Get direction in the entity space
         direction = glm::inverse(getRotation()) * direction;
         
-        std::sort(particleDetails.begin(), particleDetails.end(),
-                  [&](const ParticleDetails& lhs, const ParticleDetails& rhs) {
-            return glm::dot(lhs.position, direction) > glm::dot(rhs.position, direction);
+        std::sort(_particlePrimitives.begin(), _particlePrimitives.end(),
+                  [&](const ParticlePrimitive& lhs, const ParticlePrimitive& rhs) {
+            return glm::dot(glm::vec3(lhs.xyzw), direction) > glm::dot(glm::vec3(rhs.xyzw), direction);
         });
-    }
-
-    // build primitives from particle positions and radiuses
-    _particlePrimitives.clear(); // clear primitives
-    _particlePrimitives.reserve(particleDetails.size()); // Reserve space
-    for (const auto& particle : particleDetails) {
-        _particlePrimitives.emplace_back(glm::vec4(particle.position, particle.radius), particle.rgba);
     }
 
     render::PendingChanges pendingChanges;
