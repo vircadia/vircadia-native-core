@@ -38,8 +38,11 @@ public:
     void removeAnimNode(const std::string& key);
 
     // draw a set of poses with a skeleton
-    void addPoses(const std::string& key, AnimSkeleton::ConstPointer skeleton, const AnimPoseVec& poses, const AnimPose& rootPose, const glm::vec4& color);
-    void removePoses(const std::string& key);
+    void addRelativePoses(const std::string& key, AnimSkeleton::ConstPointer skeleton, const AnimPoseVec& poses, const AnimPose& rootPose, const glm::vec4& color);
+    void removeRelativePoses(const std::string& key);
+
+    void addAbsolutePoses(const std::string& key, AnimSkeleton::ConstPointer skeleton, const AnimPoseVec& poses, const AnimPose& rootPose, const glm::vec4& color);
+    void removeAbsolutePoses(const std::string& key);
 
     void update();
 
@@ -56,7 +59,8 @@ protected:
 
     std::unordered_map<std::string, SkeletonInfo> _skeletons;
     std::unordered_map<std::string, AnimNodeInfo> _animNodes;
-    std::unordered_map<std::string, PosesInfo> _poses;
+    std::unordered_map<std::string, PosesInfo> _relativePoses;
+    std::unordered_map<std::string, PosesInfo> _absolutePoses;
 
     // no copies
     AnimDebugDraw(const AnimDebugDraw&) = delete;

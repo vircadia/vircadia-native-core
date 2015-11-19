@@ -660,7 +660,7 @@ void MyAvatar::setEnableDebugDrawAnimPose(bool isEnabled) {
     _enableDebugDrawAnimPose = isEnabled;
 
     if (!isEnabled) {
-        AnimDebugDraw::getInstance().removePoses("myAvatar");
+        AnimDebugDraw::getInstance().removeAbsolutePoses("myAvatar");
     }
 }
 
@@ -1278,37 +1278,25 @@ void MyAvatar::preRender(RenderArgs* renderArgs) {
         glm::quat rotY180 = glm::angleAxis((float)M_PI, glm::vec3(0.0f, 1.0f, 0.0f));
         AnimPose xform(glm::vec3(1), getOrientation() * rotY180, getPosition());
 
+        /*
         if (_enableDebugDrawBindPose && _debugDrawSkeleton) {
             glm::vec4 gray(0.2f, 0.2f, 0.2f, 0.2f);
             AnimDebugDraw::getInstance().addSkeleton("myAvatar", _debugDrawSkeleton, xform, gray);
         }
+        */
 
         if (_enableDebugDrawAnimPose && _debugDrawSkeleton) {
             glm::vec4 cyan(0.1f, 0.6f, 0.6f, 1.0f);
 
             auto rig = _skeletonModel.getRig();
-            // AJT: TODO move this into rig!
-            // build AnimPoseVec from JointStates.
-            // AJT: TODO THIS SHIT IS ALL BROKEN
-            AnimPoseVec poses;
-            poses.reserve(_debugDrawSkeleton->getNumJoints());
-            for (int i = 0; i < _debugDrawSkeleton->getNumJoints(); i++) {
-                AnimPose pose = _debugDrawSkeleton->getRelativeBindPose(i);
-                glm::quat jointRot;
-                _rig->getJointRotationInConstrainedFrame(i, jointRot);
-                glm::vec3 jointTrans;
-                _rig->getJointTranslation(i, jointTrans);
-                pose.rot = pose.rot * jointRot;
-                pose.trans = jointTrans;
-                /*
-                if (_debugDrawSkeleton->getParentIndex(i) < 0) {
-                    pose = _rig->getGeometryOffset() * pose;
-                }
-                */
-                poses.push_back(pose);
-            }
 
-            AnimDebugDraw::getInstance().addPoses("myAvatar", _debugDrawSkeleton, poses, xform, cyan);
+            // build AnimPoseVec from JointStates.
+            AnimPoseVec absPoses;
+            absPoses.reserve(_debugDrawSkeleton->getNumJoints());
+            for (int i = 0; i < _rig->getJointStateCount(); i++) {
+                absPoses.push_back(AnimPose(_rig->getJointTransform(i)));
+            }
+            AnimDebugDraw::getInstance().addAbsolutePoses("myAvatar", _debugDrawSkeleton, absPoses, xform, cyan);
         }
     }
 
@@ -1788,6 +1776,9 @@ glm::mat4 MyAvatar::deriveBodyFromHMDSensor() const {
         int leftEyeIndex = _debugDrawSkeleton->nameToJointIndex("LeftEye");
         int neckIndex = _debugDrawSkeleton->nameToJointIndex("Neck");
         int hipsIndex = _debugDrawSkeleton->nameToJointIndex("Hips");
+
+        // AJT: TODO: perhaps expose default gets from rig?
+        // so this can become _rig->getAbsoluteDefaultPose(rightEyeIndex)...
 
         glm::vec3 absRightEyePos = rightEyeIndex != -1 ? geometryOffset * _debugDrawSkeleton->getAbsoluteBindPose(rightEyeIndex).trans : DEFAULT_RIGHT_EYE_POS;
         glm::vec3 absLeftEyePos = leftEyeIndex != -1 ? geometryOffset * _debugDrawSkeleton->getAbsoluteBindPose(leftEyeIndex).trans : DEFAULT_LEFT_EYE_POS;

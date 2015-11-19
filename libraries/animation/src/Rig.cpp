@@ -167,6 +167,7 @@ void Rig::initJointStates(const FBXGeometry& geometry, glm::mat4 modelOffset, in
                           int leftHandJointIndex, int leftElbowJointIndex, int leftShoulderJointIndex,
                           int rightHandJointIndex, int rightElbowJointIndex, int rightShoulderJointIndex) {
 
+    setModelOffset(modelOffset);
     _geometryOffset = AnimPose(geometry.offset);
     _animSkeleton = std::make_shared<AnimSkeleton>(geometry);
 
@@ -221,8 +222,6 @@ void Rig::initJointStates(const FBXGeometry& geometry, glm::mat4 modelOffset, in
     _rightHandJointIndex = rightHandJointIndex;
     _rightElbowJointIndex = rightElbowJointIndex;
     _rightShoulderJointIndex = rightShoulderJointIndex;
-
-    setModelOffset(modelOffset);
 }
 
 bool Rig::jointStatesEmpty() {
@@ -732,6 +731,8 @@ void Rig::updateAnimationStateHandlers() { // called on avatar update thread (wh
 
 void Rig::updateAnimations(float deltaTime, glm::mat4 rootTransform) {
 
+    setModelOffset(rootTransform);
+
     if (_animNode) {
 
         updateAnimationStateHandlers();
@@ -763,7 +764,7 @@ void Rig::updateAnimations(float deltaTime, glm::mat4 rootTransform) {
         computeEyesInRootFrame(_relativePoses);
     }
 
-    setModelOffset(rootTransform);
+    // AJT: enable this for script
     //applyOverridePoses();
     buildAbsolutePoses();
 
@@ -1263,8 +1264,9 @@ void Rig::buildAbsolutePoses() {
         }
     }
 
+    AnimPose rootTransform(_modelOffset * _geometryOffset);
     for (int i = 0; i < (int)_absolutePoses.size(); i++) {
-        _absolutePoses[i] = _modelOffset * _geometryOffset * _absolutePoses[i];
+        _absolutePoses[i] = rootTransform * _absolutePoses[i];
         // AJT: REMOVE
         /*
         _absolutePoses[i].trans = _modelOffset.trans + _absolutePoses[i].trans;
@@ -1306,29 +1308,57 @@ glm::mat4 Rig::getJointTransform(int jointIndex) const {
 
     // check for differences between jointStates and _absolutePoses!
     if (false) {
-        // should display for model entities
-        glm::mat4 newMat = _absolutePoses[jointIndex];
+
         glm::mat4 oldMat = _jointStates[jointIndex].getTransform();
+        AnimPose oldPose(oldMat);
 
-        const float EPSILON = 0.01f;
-        if (glm::length(newMat[0] - oldMat[0]) > EPSILON ||
-            glm::length(newMat[1] - oldMat[1]) > EPSILON ||
-            glm::length(newMat[2] - oldMat[2]) > EPSILON ||
-            glm::length(newMat[3] - oldMat[3]) > EPSILON) {
+        glm::mat4 newMat = _absolutePoses[jointIndex];
+        AnimPose newPose(newMat);
 
-            // error?
+        bool badTrans = false;
+        const float TRANS_EPSILON = 0.01f;
+        if (glm::length(newPose.trans - oldPose.trans) > TRANS_EPSILON) {
+            badTrans = true;
+        }
+
+        bool badScale = false;
+        const float SCALE_EPSILON = 0.00001f;
+        if (glm::length(newPose.scale - oldPose.scale) > SCALE_EPSILON) {
+            badScale = true;
+        }
+
+        bool badRot = false;
+        const float ROT_EPSILON = 0.0001f;
+        glm::quat oldLog = glm::log(newPose.rot);
+        glm::quat newLog = glm::log(oldPose.rot);
+        glm::vec3 oldLogVec(oldLog.x, oldLog.y, oldLog.z);
+        glm::vec3 newLogVec(newLog.x, newLog.y, newLog.z);
+        if (glm::length(oldLogVec - newLogVec) > ROT_EPSILON) {
+            badRot = true;
+        }
+
+        if (badTrans || badScale || badRot) {
             qCDebug(animation).nospace() << "AJT: mismatch for " << _animSkeleton->getJointName(jointIndex) << ", joint[" << jointIndex << "]";
-            qCDebug(animation) << "AJT: oldMat = " << AnimPose(oldMat);
-            qCDebug(animation) << "AJT: newMat = " << AnimPose(newMat);
-
+            if (badTrans) {
+                qCDebug(animation) << "AJT: oldTrans = " << oldPose.trans;
+                qCDebug(animation) << "AJT: newTrans = " << newPose.trans;
+            }
+            if (badRot) {
+                qCDebug(animation) << "AJT: oldRot = " << oldPose.rot << "log =" << glm::log(oldPose.rot);
+                qCDebug(animation) << "AJT: newRot = " << newPose.rot << "log =" << glm::log(newPose.rot);
+            }
+            if (badScale) {
+                qCDebug(animation) << "AJT: oldScale = " << oldPose.scale;
+                qCDebug(animation) << "AJT: newScale = " << newPose.scale;
+            }
         }
     }
 
     // AJT: LEGACY
     {
-        return _jointStates[jointIndex].getTransform();
+        //return _jointStates[jointIndex].getTransform();
     }
 
-    //return _absolutePoses[jointIndex];
+    return _absolutePoses[jointIndex];
 }
 

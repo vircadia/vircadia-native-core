@@ -444,7 +444,7 @@ bool SkeletonModel::getNeckParentRotationFromDefaultOrientation(glm::quat& neckP
 bool SkeletonModel::getEyeModelPositions(glm::vec3& firstEyePosition, glm::vec3& secondEyePosition) const {
     if (!isActive()) {
         return false;
-        }
+    }
     const FBXGeometry& geometry = _geometry->getFBXGeometry();
     if (getJointPosition(geometry.leftEyeJointIndex, firstEyePosition) &&
         getJointPosition(geometry.rightEyeJointIndex, secondEyePosition)) {
