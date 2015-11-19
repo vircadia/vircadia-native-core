@@ -9,13 +9,13 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+uniform sampler2D colorMap;
+
 in vec4 varColor;
 in vec2 varTexcoord;
 
 out vec4 outFragColor;
 
-uniform sampler2D tex;
-
 void main(void) {
-    outFragColor = texture(tex, varTexcoord.xy) * varColor;
+    outFragColor = texture(colorMap, varTexcoord.xy) * varColor;
 }

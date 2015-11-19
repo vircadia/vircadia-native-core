@@ -32,18 +32,23 @@ public:
     using Payload = render::Payload<ParticlePayload>;
     using Pointer = Payload::DataPointer;
     using ParticlePrimitive = RenderableParticleEffectEntityItem::ParticlePrimitive;
+    using ParticleUniforms = RenderableParticleEffectEntityItem::ParticleUniforms;
     using PipelinePointer = gpu::PipelinePointer;
     using FormatPointer = gpu::Stream::FormatPointer;
     using BufferPointer = gpu::BufferPointer;
     using TexturePointer = gpu::TexturePointer;
     using Format = gpu::Stream::Format;
     using Buffer = gpu::Buffer;
+    using BufferView = gpu::BufferView;
 
     ParticlePayload(EntityItemPointer entity) : _entity(entity) {
-        _vertexFormat->setAttribute(gpu::Stream::POSITION, 0, gpu::Element::VEC4F_XYZW,
-                                    offsetof(ParticlePrimitive, xyzw), gpu::Stream::PER_INSTANCE);
-        _vertexFormat->setAttribute(gpu::Stream::COLOR, 0, gpu::Element::COLOR_RGBA_32,
-                                    offsetof(ParticlePrimitive, rgba), gpu::Stream::PER_INSTANCE);
+        ParticleUniforms uniforms;
+        _uniformBuffer = std::make_shared<Buffer>(sizeof(ParticleUniforms), (const gpu::Byte*) &uniforms);
+        
+        _vertexFormat->setAttribute(gpu::Stream::POSITION, 0, gpu::Element::VEC3F_XYZ,
+                                    offsetof(ParticlePrimitive, xyz), gpu::Stream::PER_INSTANCE);
+        _vertexFormat->setAttribute(gpu::Stream::COLOR, 0, gpu::Element::VEC2F_UV,
+                                    offsetof(ParticlePrimitive, uv), gpu::Stream::PER_INSTANCE);
     }
 
     void setPipeline(PipelinePointer pipeline) { _pipeline = pipeline; }
@@ -57,6 +62,9 @@ public:
 
     BufferPointer getParticleBuffer() { return _particleBuffer; }
     const BufferPointer& getParticleBuffer() const { return _particleBuffer; }
+    
+    const ParticleUniforms& getParticleUniforms() const { return _uniformBuffer.get<ParticleUniforms>(); }
+    ParticleUniforms& editParticleUniforms() { return _uniformBuffer.edit<ParticleUniforms>(); }
 
     void setTexture(TexturePointer texture) { _texture = texture; }
     const TexturePointer& getTexture() const { return _texture; }
@@ -75,6 +83,7 @@ public:
         }
 
         batch.setModelTransform(_modelTransform);
+        batch.setUniformBuffer(0, _uniformBuffer);
         batch.setInputFormat(_vertexFormat);
         batch.setInputBuffer(0, _particleBuffer, 0, sizeof(ParticlePrimitive));
 
@@ -89,6 +98,7 @@ protected:
     PipelinePointer _pipeline;
     FormatPointer _vertexFormat { std::make_shared<Format>() };
     BufferPointer _particleBuffer { std::make_shared<Buffer>() };
+    BufferView _uniformBuffer;
     TexturePointer _texture;
     bool _visibleFlag = true;
 };
@@ -169,22 +179,33 @@ void RenderableParticleEffectEntityItem::update(const quint64& now) {
     updateRenderItem();
 }
 
-uint32_t toRGBA(uint8_t r, uint8_t g, uint8_t b, uint8_t a) {
-    return ((uint32_t)r | (uint32_t)g << 8 | (uint32_t)b << 16 | (uint32_t)a << 24);
+glm::vec3 toGlm(const rgbColor& color) {
+    return glm::vec3(color[RED_INDEX], color[GREEN_INDEX], color[BLUE_INDEX]);
 }
 
 void RenderableParticleEffectEntityItem::updateRenderItem() {
     if (!_scene) {
         return;
     }
-
-    // build primitives from particle positions and radiuses
+    
+    // Fill in Uniforms structure
+    _particleUniforms.radius.start = getRadiusStart();
+    _particleUniforms.radius.middle = getParticleRadius();
+    _particleUniforms.radius.finish = getRadiusFinish();
+    _particleUniforms.radius.spread = getRadiusSpread();
+    
+    _particleUniforms.color.start = glm::vec4(toGlm(getColorStart()), getAlphaStart());
+    _particleUniforms.color.middle = glm::vec4(toGlm(getColor()), getAlpha());
+    _particleUniforms.color.finish = glm::vec4(toGlm(getColorFinish()), getAlphaFinish());
+    _particleUniforms.color.spread = glm::vec4(toGlm(getColorSpread()), getAlphaSpread());
+    
+    _particleUniforms.lifespan = getLifespan();
+    
+    // Build particle primitives
     _particlePrimitives.clear(); // clear primitives
     _particlePrimitives.reserve(_particles.size()); // Reserve space
     for (auto& particle : _particles) {
-        auto alpha = glm::clamp(particle.alpha * getLocalRenderAlpha(), 0.0f, 1.0f) * 255;
-        auto rgba = toRGBA(particle.color.red, particle.color.green, particle.color.blue, alpha);
-        _particlePrimitives.emplace_back(glm::vec4(particle.position, particle.radius), rgba);
+        _particlePrimitives.emplace_back(particle.position, glm::vec2(particle.lifetime, particle.seed));
     }
 
     // No need to sort if we're doing additive blending
@@ -197,13 +218,16 @@ void RenderableParticleEffectEntityItem::updateRenderItem() {
         
         std::sort(_particlePrimitives.begin(), _particlePrimitives.end(),
                   [&](const ParticlePrimitive& lhs, const ParticlePrimitive& rhs) {
-            return glm::dot(glm::vec3(lhs.xyzw), direction) > glm::dot(glm::vec3(rhs.xyzw), direction);
+            return glm::dot(lhs.xyz, direction) > glm::dot(rhs.xyz, direction);
         });
     }
 
     render::PendingChanges pendingChanges;
     pendingChanges.updateItem<ParticlePayload>(_renderItemId, [this](ParticlePayload& payload) {
-        // update particle buffer
+        // Update particle uniforms
+        memcpy(&payload.editParticleUniforms(), &_particleUniforms, sizeof(ParticleUniforms));
+        
+        // Update particle buffer
         auto particleBuffer = payload.getParticleBuffer();
         size_t numBytes = sizeof(ParticlePrimitive) * _particlePrimitives.size();
         particleBuffer->resize(numBytes);
@@ -243,8 +267,7 @@ void RenderableParticleEffectEntityItem::createPipelines() {
     gpu::State::BlendArg destinationColorBlendArg;
     if (_additiveBlending) {
         destinationColorBlendArg = gpu::State::ONE;
-    }
-    else {
+    } else {
         destinationColorBlendArg = gpu::State::INV_SRC_ALPHA;
         writeToDepthBuffer = true;
     }

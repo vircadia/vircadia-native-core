@@ -11,15 +11,15 @@
 
 uniform sampler2D colorMap;
 
-in vec4 _color;
-in vec2 _texCoord0;
+in vec4 varColor;
+in vec2 varTexcoord;
 
 out vec4 outFragColor;
 
 void main(void) {
-    vec4 color = texture(colorMap, _texCoord0);
+    vec4 color = texture(colorMap, varTexcoord);
     if (color.a < 0.1) {
         discard;
     }
-    outFragColor = color * _color;
+    outFragColor = color * varColor;
 }

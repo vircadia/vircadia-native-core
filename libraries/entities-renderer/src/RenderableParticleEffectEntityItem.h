@@ -29,18 +29,37 @@ public:
     virtual void removeFromScene(EntityItemPointer self, render::ScenePointer scene, render::PendingChanges& pendingChanges) override;
 
 protected:
-    render::ItemID _renderItemId;
-
+    struct ParticleUniforms {
+        struct {
+            float start;
+            float middle;
+            float finish;
+            float spread;
+        } radius;
+        
+        struct {
+            glm::vec4 start;
+            glm::vec4 middle;
+            glm::vec4 finish;
+            glm::vec4 spread;
+        } color;
+        
+        float lifespan;
+    };
+    
     struct ParticlePrimitive {
-        ParticlePrimitive(glm::vec4 xyzwIn, uint32_t rgbaIn) : xyzw(xyzwIn), rgba(rgbaIn) {}
-        glm::vec4 xyzw; // Position + radius
-        uint32_t rgba; // Color
+        ParticlePrimitive(glm::vec3 xyzIn, glm::vec2 uvIn) : xyz(xyzIn), uv(uvIn) {}
+        glm::vec3 xyz; // Position
+        glm::vec2 uv; // Lifetime + seed
     };
     using ParticlePrimitives = std::vector<ParticlePrimitive>;
-
+    
     void createPipelines();
-
+    
+    render::ItemID _renderItemId;
     ParticlePrimitives _particlePrimitives;
+    ParticleUniforms _particleUniforms;
+    
     gpu::PipelinePointer _untexturedPipeline;
     gpu::PipelinePointer _texturedPipeline;
 

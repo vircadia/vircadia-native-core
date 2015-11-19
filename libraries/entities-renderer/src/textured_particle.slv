@@ -14,11 +14,44 @@
 
 <$declareStandardTransform()$>
 
-in vec4 inPosition;
-in vec4 inColor;
+struct ParticleUniforms {
+    struct {
+        float start;
+        float middle;
+        float finish;
+        float spread;
+    } radius;
+    
+    struct {
+        vec4 start;
+        vec4 middle;
+        vec4 finish;
+        vec4 spread;
+    } color;
+    
+    float lifespan;
+};
+
+uniform particleBuffer {
+    ParticleUniforms particle;
+};
+
+in vec3 inPosition;
+in vec2 inExtra;
 
 out vec4 varColor;
 out vec2 varTexcoord;
+
+float mix(float start, float finish, float age) {
+    return start + (finish - start) * age;
+}
+
+vec4 mixV(vec4 start, vec4 finish, float age) {
+    return vec4(mix(start.x, finish.x, age),
+                mix(start.y, finish.y, age),
+                mix(start.z, finish.z, age),
+                mix(start.w, finish.w, age));
+}
 
 void main(void) {
     const int NUM_VERTICES_PER_PARTICLE = 4;
@@ -29,9 +62,12 @@ void main(void) {
         vec4(1.0, 1.0, 0.0, 1.0)
     );
     
+    float age = inExtra.x / particle.lifespan;
+    float seed = inExtra.y;
+    
     // anchor point in eye space
     vec4 anchorPoint = vec4(inPosition.xyz, 1.0);
-    float radius = inPosition.w;
+    float radius = mix(particle.radius.start, particle.radius.finish , age);
     
     TransformCamera cam = getTransformCamera();
     TransformObject obj = getTransformObject();
@@ -46,7 +82,8 @@ void main(void) {
     
     // Pass the texcoord and the z texcoord is representing the texture icon
     varTexcoord = vec2((quadPos.xy + 1.0) * 0.5);
-    varColor = inColor;
+    varColor = mixV(particle.color.start, particle.color.finish , age);
+    varColor.w = particle.color.middle.w;
     
     vec4 clipPos;
     vec4 eyePos = vec4(anchorPoint.xyz + quadPos.xyz, 1.0);

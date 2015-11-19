@@ -91,7 +91,7 @@ const float ParticleEffectEntityItem::DEFAULT_RADIUS_SPREAD = 0.0f;
 const float ParticleEffectEntityItem::DEFAULT_RADIUS_START = DEFAULT_PARTICLE_RADIUS;
 const float ParticleEffectEntityItem::DEFAULT_RADIUS_FINISH = DEFAULT_PARTICLE_RADIUS;
 const QString ParticleEffectEntityItem::DEFAULT_TEXTURES = "";
-const bool ParticleEffectEntityItem::DEFAULT_ADDITIVE_BLENDING = true;
+const bool ParticleEffectEntityItem::DEFAULT_ADDITIVE_BLENDING = false;
 
 
 EntityItemPointer ParticleEffectEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
@@ -584,38 +584,11 @@ void ParticleEffectEntityItem::updateShapeType(ShapeType type) {
     }
 }
 
-void ParticleEffectEntityItem::updateRadius(Particle& particle, float age) {
-    particle.radius = Interpolate::interpolate3Points(particle.radiusStart, particle.radiusMiddle,
-                                                      particle.radiusFinish, age);
-}
-
-void ParticleEffectEntityItem::updateColor(Particle& particle, float age) {
-    particle.color.red = (int)Interpolate::interpolate3Points(particle.colorStart.red, particle.colorMiddle.red,
-                                                              particle.colorFinish.red, age);
-    particle.color.green = (int)Interpolate::interpolate3Points(particle.colorStart.green, particle.colorMiddle.green,
-                                                                particle.colorFinish.green, age);
-    particle.color.blue = (int)Interpolate::interpolate3Points(particle.colorStart.blue, particle.colorMiddle.blue,
-                                                               particle.colorFinish.blue, age);
-}
-
-void ParticleEffectEntityItem::updateAlpha(Particle& particle, float age) {
-    particle.alpha = Interpolate::interpolate3Points(particle.alphaStart, particle.alphaMiddle,
-                                                     particle.alphaFinish, age);
-}
-
 void ParticleEffectEntityItem::integrateParticle(Particle& particle, float deltaTime) {
     glm::vec3 atSquared = (0.5f * deltaTime * deltaTime) * particle.acceleration;
     glm::vec3 at = particle.acceleration * deltaTime;
     particle.position += particle.velocity * deltaTime + atSquared;
     particle.velocity += at;
-}
-
-void ParticleEffectEntityItem::updateParticle(Particle& particle, float deltaTime) {
-    float age = particle.lifetime / _lifespan;  // 0.0 .. 1.0
-    updateRadius(particle, age);
-    updateColor(particle, age);
-    updateAlpha(particle, age);
-    integrateParticle(particle, deltaTime);
 }
 
 void ParticleEffectEntityItem::stepSimulation(float deltaTime) {
@@ -631,7 +604,7 @@ void ParticleEffectEntityItem::stepSimulation(float deltaTime) {
             _particles.pop_front();
         } else {
             // Otherwise update it
-            updateParticle(particle, deltaTime);
+            integrateParticle(particle, deltaTime);
             _particlesBounds.addPoint(particle.position);
         }
     }
@@ -654,7 +627,7 @@ void ParticleEffectEntityItem::stepSimulation(float deltaTime) {
             particle.lifetime += timeLeftInFrame;
             
             // Initialize it
-            updateParticle(particle, timeLeftInFrame);
+            integrateParticle(particle, deltaTime);
             _particlesBounds.addPoint(particle.position);
             
             // Advance in frame
@@ -669,25 +642,7 @@ void ParticleEffectEntityItem::stepSimulation(float deltaTime) {
 ParticleEffectEntityItem::Particle ParticleEffectEntityItem::createParticle() {
     Particle particle;
     
-    // Radius
-    if (_radiusSpread == 0.0f) {
-        particle.radiusStart = getRadiusStart();
-        particle.radiusMiddle = _particleRadius;
-        particle.radiusFinish = getRadiusFinish();
-    } else {
-        float spreadMultiplier;
-        if (_particleRadius > 0.0f) {
-            spreadMultiplier = 1.0f + randFloatInRange(-1.0f, 1.0f) * _radiusSpread / _particleRadius;
-        } else {
-            spreadMultiplier = 1.0f;
-        }
-        particle.radiusStart = glm::clamp(spreadMultiplier * getRadiusStart(),
-                                          MINIMUM_PARTICLE_RADIUS, MAXIMUM_PARTICLE_RADIUS);
-        particle.radiusMiddle = glm::clamp(spreadMultiplier * _particleRadius,
-                                           MINIMUM_PARTICLE_RADIUS, MAXIMUM_PARTICLE_RADIUS);
-        particle.radiusFinish = glm::clamp(spreadMultiplier * getRadiusFinish(),
-                                           MINIMUM_PARTICLE_RADIUS, MAXIMUM_PARTICLE_RADIUS);
-    }
+    particle.seed = randFloatInRange(0.0f, 1.0f);
     
     // Position, velocity, and acceleration
     if (_polarStart == 0.0f && _polarFinish == 0.0f && _emitDimensions.z == 0.0f) {
@@ -743,49 +698,6 @@ ParticleEffectEntityItem::Particle ParticleEffectEntityItem::createParticle() {
         
         particle.velocity = (_emitSpeed + randFloatInRange(-1.0f, 1.0f) * _speedSpread) * (_emitOrientation * emitDirection);
         particle.acceleration = _emitAcceleration + randFloatInRange(-1.0f, 1.0f) * _accelerationSpread;
-    }
-    
-    // Color
-    if (_colorSpread == xColor{ 0, 0, 0 }) {
-        particle.colorStart = getColorStart();
-        particle.colorMiddle = getXColor();
-        particle.colorFinish = getColorFinish();
-    } else {
-        xColor startColor = getColorStart();
-        xColor middleColor = getXColor();
-        xColor finishColor = getColorFinish();
-        
-        float spread = randFloatInRange(-1.0f, 1.0f);
-        float spreadMultiplierRed =
-        middleColor.red > 0 ? 1.0f + spread * (float)_colorSpread.red / (float)middleColor.red : 1.0f;
-        float spreadMultiplierGreen =
-        middleColor.green > 0 ? 1.0f + spread * (float)_colorSpread.green / (float)middleColor.green : 1.0f;
-        float spreadMultiplierBlue =
-        middleColor.blue > 0 ? 1.0f + spread * (float)_colorSpread.blue / (float)middleColor.blue : 1.0f;
-        
-        particle.colorStart.red = (int)glm::clamp(spreadMultiplierRed * (float)startColor.red, 0.0f, 255.0f);
-        particle.colorStart.green = (int)glm::clamp(spreadMultiplierGreen * (float)startColor.green, 0.0f, 255.0f);
-        particle.colorStart.blue = (int)glm::clamp(spreadMultiplierBlue * (float)startColor.blue, 0.0f, 255.0f);
-        
-        particle.colorMiddle.red = (int)glm::clamp(spreadMultiplierRed * (float)middleColor.red, 0.0f, 255.0f);
-        particle.colorMiddle.green = (int)glm::clamp(spreadMultiplierGreen * (float)middleColor.green, 0.0f, 255.0f);
-        particle.colorMiddle.blue = (int)glm::clamp(spreadMultiplierBlue * (float)middleColor.blue, 0.0f, 255.0f);
-        
-        particle.colorFinish.red = (int)glm::clamp(spreadMultiplierRed * (float)finishColor.red, 0.0f, 255.0f);
-        particle.colorFinish.green = (int)glm::clamp(spreadMultiplierGreen * (float)finishColor.green, 0.0f, 255.0f);
-        particle.colorFinish.blue = (int)glm::clamp(spreadMultiplierBlue * (float)finishColor.blue, 0.0f, 255.0f);
-    }
-    
-    // Alpha
-    if (_alphaSpread == 0.0f) {
-        particle.alphaStart = getAlphaStart();
-        particle.alphaMiddle = _alpha;
-        particle.alphaFinish = getAlphaFinish();
-    } else {
-        float spreadMultiplier = 1.0f + randFloatInRange(-1.0f, 1.0f) * _alphaSpread / _alpha;
-        particle.alphaStart = spreadMultiplier * getAlphaStart();
-        particle.alphaMiddle = spreadMultiplier * _alpha;
-        particle.alphaFinish = spreadMultiplier * getAlphaFinish();
     }
     
     return particle;

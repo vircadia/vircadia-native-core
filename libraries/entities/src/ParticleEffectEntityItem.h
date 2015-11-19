@@ -211,7 +211,7 @@ public:
     static const bool DEFAULT_ADDITIVE_BLENDING;
     bool getAdditiveBlending() const { return _additiveBlending; }
     void setAdditiveBlending(bool additiveBlending) {
-        _additiveBlending = true;
+        _additiveBlending = additiveBlending;
     }
 
     virtual bool supportsDetailedRayIntersection() const { return false; }
@@ -224,31 +224,14 @@ protected:
     
     Particle createParticle();
     void stepSimulation(float deltaTime);
-    void updateParticle(Particle& particle, float deltaTime);
-    
-    void updateRadius(Particle& particle, float age);
-    void updateColor(Particle& particle, float age);
-    void updateAlpha(Particle& particle, float age);
     void integrateParticle(Particle& particle, float deltaTime);
     
     struct Particle {
+        float seed { 0.0f };
         float lifetime { 0.0f };
         glm::vec3 position { Vectors::ZERO};
         glm::vec3 velocity { Vectors::ZERO};
         glm::vec3 acceleration { Vectors::ZERO};
-        float radius { DEFAULT_PARTICLE_RADIUS };
-        xColor color = DEFAULT_COLOR;
-        float alpha { DEFAULT_ALPHA };
-        
-        float radiusStart { DEFAULT_PARTICLE_RADIUS };
-        float radiusMiddle { DEFAULT_PARTICLE_RADIUS };
-        float radiusFinish { DEFAULT_PARTICLE_RADIUS };
-        xColor colorStart = DEFAULT_COLOR;
-        xColor colorMiddle = DEFAULT_COLOR;
-        xColor colorFinish = DEFAULT_COLOR;
-        float alphaStart { DEFAULT_ALPHA };
-        float alphaMiddle { DEFAULT_ALPHA };
-        float alphaFinish { DEFAULT_ALPHA };
     };
     
     // Particles container
