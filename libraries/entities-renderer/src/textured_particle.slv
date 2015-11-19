@@ -81,7 +81,7 @@ void main(void) {
     vec4 quadPos = radius * UNIT_QUAD[twoTriID];
     
     // Pass the texcoord and the z texcoord is representing the texture icon
-    varTexcoord = vec2((quadPos.xy + 1.0) * 0.5);
+    varTexcoord = vec2((UNIT_QUAD[twoTriID].xy + 1.0) * 0.5);
     varColor = mixV(particle.color.start, particle.color.finish , age);
     varColor.w = particle.color.middle.w;
     
