@@ -14,6 +14,7 @@
 var utilitiesScript = Script.resolvePath("../examples/libraries/utils.js");
 Script.include(utilitiesScript);
 
+var gunScriptURL = Script.resolvePath("../examples/weapons/pistol/pistol.js");
 var sprayPaintScriptURL = Script.resolvePath("../examples/toybox/spray_paint/sprayPaintCan.js");
 var catScriptURL = Script.resolvePath("../examples/toybox/cat/cat.js");
 var flashlightScriptURL = Script.resolvePath('../examples/toybox/flashlight/flashlight.js');
@@ -54,6 +55,13 @@ MasterReset = function() {
             y: 495.41,
             z: 505.09
         });
+
+        createGun({
+            x: 546.2,
+            y: 495.5,
+            z: 505.2
+        });
+
 
         createWand({
             x: 546.71,
@@ -104,13 +112,11 @@ MasterReset = function() {
             z: 503.49
         });
 
-
         createSprayCan({
             x: 549.7,
             y: 495.6,
             z: 503.91
         });
-
 
 
     }
@@ -124,6 +130,47 @@ MasterReset = function() {
             if (shouldReset === true) {
                 Entities.deleteEntity(entity);
             }
+        });
+    }
+
+    function createGun(position) {
+        var modelURL = "https://s3.amazonaws.com/hifi-public/eric/models/gun.fbx";
+
+        var pistol = Entities.addEntity({
+            type: 'Model',
+            name: "pistol",
+            modelURL: modelURL,
+            position: position,
+            dimensions: {
+                x: 0.05,
+                y: .23,
+                z: .36
+            },
+            script: gunScriptURL,
+            color: {
+                red: 200,
+                green: 0,
+                blue: 20
+            },
+            shapeType: 'box',
+            gravity: {x: 0, y: -3.0, z: 0},
+            collisionsWillMove: true,
+            userData: JSON.stringify({
+                grabbableKey: {
+                    spatialKey: {
+                        relativePosition: {
+                            x: 0,
+                            y: 0,
+                            z: 0
+                        },
+                        relativeRotation: Quat.fromPitchYawRollDegrees(45, 90, 0)
+                    },
+                    invertSolidWhileHeld: true
+                },
+                resetMe: {
+                    resetMe: true
+                }
+            })
         });
     }
 
@@ -883,7 +930,7 @@ MasterReset = function() {
             type: "Model",
             modelURL: MODEL_URL,
             shapeType: 'compound',
-            compoundShapeURL:COLLISION_HULL_URL,
+            compoundShapeURL: COLLISION_HULL_URL,
             script: pingPongScriptURL,
             position: position,
             rotation: rotation,

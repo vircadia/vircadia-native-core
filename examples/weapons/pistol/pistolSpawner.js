@@ -17,7 +17,8 @@ var pistol = Entities.addEntity({
             spatialKey: {
                 relativePosition: {x: 0, y: 0, z: 0},
                 relativeRotation: Quat.fromPitchYawRollDegrees(45, 90 , 0)
-            }
+            },
+            invertSolidWhileHeld: true
         }
     })
 });

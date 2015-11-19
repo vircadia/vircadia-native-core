@@ -15,7 +15,6 @@
     Script.include("../../libraries/utils.js");
     Script.include("../../libraries/constants.js");
 
-    var scriptURL = Script.resolvePath('pistol.js');
     var _this;
     Pistol = function() {
         _this = this;
