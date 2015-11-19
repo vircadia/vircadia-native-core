@@ -119,10 +119,10 @@ void AvatarManager::updateOtherAvatars(float deltaTime) {
     PerformanceTimer perfTimer("otherAvatars");
 
     // simulate avatars
-    QWriteLocker writeLock(&_hashLock);
+    auto hashCopy = _avatarHash;
     
-    AvatarHash::iterator avatarIterator = _avatarHash.begin();
-    while (avatarIterator != _avatarHash.end()) {
+    AvatarHash::iterator avatarIterator = hashCopy.begin();
+    while (avatarIterator != hashCopy.end()) {
         auto avatar = std::dynamic_pointer_cast<Avatar>(avatarIterator.value());
 
         if (avatar == _myAvatar || !avatar->isInitialized()) {
@@ -130,9 +130,8 @@ void AvatarManager::updateOtherAvatars(float deltaTime) {
             // DO NOT update or fade out uninitialized Avatars
             ++avatarIterator;
         } else if (avatar->shouldDie()) {
-            auto removedAvatar = avatarIterator.value();
-            avatarIterator = _avatarHash.erase(avatarIterator);
-            handleRemovedAvatar(removedAvatar);
+            removeAvatar(avatarIterator.key());
+            ++avatarIterator;
         } else {
             avatar->startUpdate();
             avatar->simulate(deltaTime);
@@ -140,8 +139,6 @@ void AvatarManager::updateOtherAvatars(float deltaTime) {
             ++avatarIterator;
         }
     }
-    
-    writeLock.unlock();
 
     // simulate avatar fades
     simulateAvatarFades(deltaTime);
@@ -329,6 +326,7 @@ void AvatarManager::handleCollisionEvents(const CollisionEvents& collisionEvents
 }
 
 void AvatarManager::updateAvatarPhysicsShape(Avatar* avatar) {
+    qDebug() << "Update physics state called for" << avatar;
     AvatarMotionState* motionState = avatar->getMotionState();
     if (motionState) {
         motionState->addDirtyFlags(Simulation::DIRTY_SHAPE);

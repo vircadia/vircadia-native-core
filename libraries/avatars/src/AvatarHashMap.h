@@ -31,7 +31,7 @@ class AvatarHashMap : public QObject, public Dependency {
     SINGLETON_DEPENDENCY
 
 public:
-    void withAvatarHash(std::function<void(const AvatarHash& hash)>);
+    AvatarHash getCopy() { return _avatarHash; }
     int size() { return _avatarHash.size(); }
 
 signals:
