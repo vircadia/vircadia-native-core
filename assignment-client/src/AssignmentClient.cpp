@@ -35,6 +35,7 @@
 #include "AssignmentActionFactory.h"
 
 #include "AssignmentClient.h"
+#include "avatars/ScriptableAvatar.h"
 
 const QString ASSIGNMENT_CLIENT_TARGET_NAME = "assignment-client";
 const long long ASSIGNMENT_REQUEST_INTERVAL_MSECS = 1 * 1000;
@@ -48,6 +49,7 @@ AssignmentClient::AssignmentClient(Assignment::Type requestAssignmentType, QStri
 
     QSettings::setDefaultFormat(QSettings::IniFormat);
  
+    auto scriptableAvatar = DependencyManager::set<ScriptableAvatar>();
     auto addressManager = DependencyManager::set<AddressManager>();
 
     // create a NodeList as an unassigned client, must be after addressManager
