@@ -177,16 +177,24 @@ void Agent::run() {
     _scriptEngine->setParent(this); // be the parent of the script engine so it gets moved when we do
 
     // setup an Avatar for the script to use
-    ScriptableAvatar scriptedAvatar(_scriptEngine.get());
-    scriptedAvatar.setForceFaceTrackerConnected(true);
+    auto scriptedAvatar = DependencyManager::get<ScriptableAvatar>();
+    connect(_scriptEngine.get(), SIGNAL(update(float)), scriptedAvatar.data(), SLOT(update(float)), Qt::ConnectionType::QueuedConnection);
+    scriptedAvatar->setForceFaceTrackerConnected(true);
 
     // call model URL setters with empty URLs so our avatar, if user, will have the default models
-    scriptedAvatar.setFaceModelURL(QUrl());
-    scriptedAvatar.setSkeletonModelURL(QUrl());
-
+    scriptedAvatar->setFaceModelURL(QUrl());
+    scriptedAvatar->setSkeletonModelURL(QUrl());
     // give this AvatarData object to the script engine
-    auto scriptedAvatarPtr = &scriptedAvatar;
-    setAvatarData(&scriptedAvatar, "Avatar");
+    _scriptEngine->registerGlobalObject("Avatar", scriptedAvatar.data());
+
+
+    using namespace recording;
+    static const FrameType AVATAR_FRAME_TYPE = Frame::registerFrameType(AvatarData::FRAME_NAME);
+    // FIXME how to deal with driving multiple avatars locally?  
+    Frame::registerFrameHandler(AVATAR_FRAME_TYPE, [this, scriptedAvatar](Frame::ConstPointer frame) {
+        AvatarData::fromFrame(frame->data, *scriptedAvatar);
+    });
+
 
     using namespace recording;
     static const FrameType AUDIO_FRAME_TYPE = Frame::registerFrameType(AudioConstants::AUDIO_FRAME_NAME);
@@ -194,8 +202,8 @@ void Agent::run() {
         const QByteArray& audio = frame->data;
         static quint16 audioSequenceNumber{ 0 };
         Transform audioTransform;
-        audioTransform.setTranslation(scriptedAvatar.getPosition());
-        audioTransform.setRotation(scriptedAvatar.getOrientation());
+        audioTransform.setTranslation(scriptedAvatar->getPosition());
+        audioTransform.setRotation(scriptedAvatar->getOrientation());
         AbstractAudioInterface::emitAudioPacket(audio.data(), audio.size(), audioSequenceNumber, audioTransform, PacketType::MicrophoneAudioNoEcho);
     });
 
@@ -240,7 +248,8 @@ void Agent::run() {
 
     _scriptEngine->run();
 
-    Frame::registerFrameHandler(AUDIO_FRAME_TYPE, [](Frame::ConstPointer frame) {});
+    Frame::clearFrameHandler(AUDIO_FRAME_TYPE);
+    Frame::clearFrameHandler(AVATAR_FRAME_TYPE);
 
     setFinished(true);
 }
@@ -278,40 +287,30 @@ void Agent::setIsAvatar(bool isAvatar) {
     }
 }
 
-void Agent::setAvatarData(AvatarData* avatarData, const QString& objectName) {
-    _avatarData = avatarData;
-    _scriptEngine->registerGlobalObject(objectName, avatarData);
-
-    using namespace recording;
-    static const FrameType AVATAR_FRAME_TYPE = Frame::registerFrameType(AvatarData::FRAME_NAME);
-    // FIXME how to deal with driving multiple avatars locally?  
-    Frame::registerFrameHandler(AVATAR_FRAME_TYPE, [this](Frame::ConstPointer frame) {
-        AvatarData::fromFrame(frame->data, *_avatarData);
-    });
-}
-
 void Agent::sendAvatarIdentityPacket() {
-    if (_isAvatar && _avatarData) {
-        _avatarData->sendIdentityPacket();
+    if (_isAvatar) {
+        auto scriptedAvatar = DependencyManager::get<ScriptableAvatar>();
+        scriptedAvatar->sendIdentityPacket();
     }
 }
 
 void Agent::sendAvatarBillboardPacket() {
-    if (_isAvatar && _avatarData) {
-        _avatarData->sendBillboardPacket();
+    if (_isAvatar) {
+        auto scriptedAvatar = DependencyManager::get<ScriptableAvatar>();
+        scriptedAvatar->sendBillboardPacket();
     }
 }
 
 
 void Agent::processAgentAvatarAndAudio(float deltaTime) {
-    if (!_scriptEngine->isFinished() && _isAvatar && _avatarData) {
-
+    if (!_scriptEngine->isFinished() && _isAvatar) {
+        auto scriptedAvatar = DependencyManager::get<ScriptableAvatar>();
         const int SCRIPT_AUDIO_BUFFER_SAMPLES = floor(((SCRIPT_DATA_CALLBACK_USECS * AudioConstants::SAMPLE_RATE)
             / (1000 * 1000)) + 0.5);
         const int SCRIPT_AUDIO_BUFFER_BYTES = SCRIPT_AUDIO_BUFFER_SAMPLES * sizeof(int16_t);
 
-        QByteArray avatarByteArray = _avatarData->toByteArray(true, randFloat() < AVATAR_SEND_FULL_UPDATE_RATIO);
-        _avatarData->doneEncoding(true);
+        QByteArray avatarByteArray = scriptedAvatar->toByteArray(true, randFloat() < AVATAR_SEND_FULL_UPDATE_RATIO);
+        scriptedAvatar->doneEncoding(true);
 
         static AvatarDataSequenceNumber sequenceNumber = 0;
         auto avatarPacket = NLPacket::create(PacketType::AvatarData, avatarByteArray.size() + sizeof(sequenceNumber));
@@ -376,8 +375,8 @@ void Agent::processAgentAvatarAndAudio(float deltaTime) {
                 audioPacket->writePrimitive(SCRIPT_AUDIO_BUFFER_SAMPLES);
 
                 // use the orientation and position of this avatar for the source of this audio
-                audioPacket->writePrimitive(_avatarData->getPosition());
-                glm::quat headOrientation = _avatarData->getHeadOrientation();
+                audioPacket->writePrimitive(scriptedAvatar->getPosition());
+                glm::quat headOrientation = scriptedAvatar->getHeadOrientation();
                 audioPacket->writePrimitive(headOrientation);
 
             }else if (nextSoundOutput) {
@@ -385,8 +384,8 @@ void Agent::processAgentAvatarAndAudio(float deltaTime) {
                 audioPacket->writePrimitive((quint8)0);
 
                 // use the orientation and position of this avatar for the source of this audio
-                audioPacket->writePrimitive(_avatarData->getPosition());
-                glm::quat headOrientation = _avatarData->getHeadOrientation();
+                audioPacket->writePrimitive(scriptedAvatar->getPosition());
+                glm::quat headOrientation = scriptedAvatar->getHeadOrientation();
                 audioPacket->writePrimitive(headOrientation);
 
                 // write the raw audio data

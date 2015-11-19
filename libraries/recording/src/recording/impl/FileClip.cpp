@@ -72,16 +72,17 @@ FileFrameHeaderList parseFrameHeaders(uchar* const start, const qint64& size) {
         results.push_back(header);
     }
     qDebug() << "Parsed source data into " << results.size() << " frames";
-    int i = 0;
-    for (const auto& frameHeader : results) {
-        qDebug() << "Frame " << i++ << " time " << frameHeader.timeOffset;
-    }
+//    int i = 0;
+//    for (const auto& frameHeader : results) {
+//        qDebug() << "Frame " << i++ << " time " << frameHeader.timeOffset << " Type " << frameHeader.type;
+//    }
     return results;
 }
 
 
 FileClip::FileClip(const QString& fileName) : _file(fileName) {
     auto size = _file.size();
+    qDebug() << "Opening file of size: " << size;
     bool opened = _file.open(QIODevice::ReadOnly);
     if (!opened) {
         qCWarning(recordingLog) << "Unable to open file " << fileName;

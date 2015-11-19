@@ -70,13 +70,11 @@ private:
     MixedAudioStream _receivedAudioStream;
     float _lastReceivedAudioLoudness;
 
-    void setAvatarData(AvatarData* avatarData, const QString& objectName);
     void setAvatarSound(Sound* avatarSound) { _avatarSound = avatarSound; }
 
     void sendAvatarIdentityPacket();
     void sendAvatarBillboardPacket();
 
-    AvatarData* _avatarData = nullptr;
     bool _isListeningToAudioStream = false;
     Sound* _avatarSound = nullptr;
     int _numAvatarSoundSentBytes = 0;
