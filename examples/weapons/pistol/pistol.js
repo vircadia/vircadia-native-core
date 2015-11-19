@@ -29,6 +29,7 @@
         }
         this.fireSound = SoundCache.getSound("https://s3.amazonaws.com/hifi-public/sounds/Guns/GUN-SHOT2.raw");
         this.fireVolume = 0.5;
+        this.bulletForce = 10;
     };
 
     Pistol.prototype = {
@@ -109,6 +110,12 @@
             var intersection = Entities.findRayIntersectionBlocking(pickRay, true);
             if (intersection.intersects) {
                 this.createEntityHitEffect(intersection.intersection);
+                if (intersection.properties.collisionsWillMove === 1) {
+                    // Any entity with collisions will move can be shot
+                    Entities.editEntity(intersection.entityID, {
+                        velocity: Vec3.multiply(this.firingDirection, this.bulletForce)
+                    });
+                }
             }
         },
 
