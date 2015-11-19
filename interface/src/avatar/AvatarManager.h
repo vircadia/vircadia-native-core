@@ -67,17 +67,17 @@ public:
     void handleCollisionEvents(const CollisionEvents& collisionEvents);
 
     void updateAvatarPhysicsShape(const QUuid& id);
-    Q_INVOKABLE int getNumberRendered() { return _renderedAvatarCount; }
+    
+    // Expose results and parameter-tuning operations to other systems, such as stats and javascript.
     Q_INVOKABLE float getRenderDistance() { return _renderDistance; }
-    Q_INVOKABLE float getFIXMEupdate() { return _fixmeUpdate; }
-    Q_INVOKABLE void setFIXMEupdate(float f) { _fixmeUpdate = f; }
-    Q_INVOKABLE void setFIXMEkp(float f) { _renderDistanceController.setKP(f); }
-    Q_INVOKABLE void setFIXMEki(float f) { _renderDistanceController.setKI(f); }
-    Q_INVOKABLE void setFIXMEkd(float f) { _renderDistanceController.setKD(f); }
-    Q_INVOKABLE void setFIXMEbias(float f) { _renderDistanceController.setBias(f); }
-    Q_INVOKABLE void setFIXMElow(float f) { _renderDistanceController.setControlledValueLowLimit(f); }
-    Q_INVOKABLE void setFIXMEhigh(float f) { _renderDistanceController.setControlledValueHighLimit(f); }
-    Q_INVOKABLE void setFIXMEfeedForward(float f) { _renderFeedForward = f; }
+    Q_INVOKABLE int getNumberInRenderRange() { return _renderedAvatarCount; }
+    Q_INVOKABLE bool getRenderDistanceControllerIsLogging() { return _renderDistanceController.getIsLogging(); }
+    Q_INVOKABLE void setRenderDistanceControllerHistory(QString label, int size) { return _renderDistanceController.setHistorySize(label, size); }
+    Q_INVOKABLE void setRenderDistanceKP(float f) { _renderDistanceController.setKP(f); }
+    Q_INVOKABLE void setRenderDistanceKI(float f) { _renderDistanceController.setKI(f); }
+    Q_INVOKABLE void setRenderDistanceKD(float f) { _renderDistanceController.setKD(f); }
+    Q_INVOKABLE void setRenderDistanceLowLimit(float f) { _renderDistanceController.setControlledValueLowLimit(f); }
+    Q_INVOKABLE void setRenderDistanceHighLimit(float f) { _renderDistanceController.setControlledValueHighLimit(f); }
    
 public slots:
     void setShouldShowReceiveStats(bool shouldShowReceiveStats) { _shouldShowReceiveStats = shouldShowReceiveStats; }
@@ -102,9 +102,7 @@ private:
     QVector<AvatarManager::LocalLight> _localLights;
 
     bool _shouldShowReceiveStats = false;
-    float _fixmeUpdate = 40.0f;
     float _renderDistance { 40.0f };
-    float _renderFeedForward { 5.0f };
     int _renderedAvatarCount {0};
     PIDController _renderDistanceController {};
     SimpleMovingAverage _renderDistanceAverage {10};

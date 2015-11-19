@@ -91,18 +91,17 @@ void AvatarManager::init() {
     }
     scene->enqueuePendingChanges(pendingChanges);
 
-    const float target_fps = 75.0f; // qApp->isHMDMode() ? 75.0f : 60.0f;
+    const float target_fps = 75.0f; // qApp->isHMDMode() ? 75.0f : 60.0f; FIXME
     _renderDistanceController.setMeasuredValueSetpoint(target_fps);
     const float TREE_SCALE = 32768.0f; // Not in shared library, alas.
-    const float SMALLEST_REASONABLE_HORIZON = 0.5f; // FIXME 5
+    const float SMALLEST_REASONABLE_HORIZON = 5.0f; // meters
     _renderDistanceController.setControlledValueHighLimit(1.0f / SMALLEST_REASONABLE_HORIZON);
     _renderDistanceController.setControlledValueLowLimit(1.0f / TREE_SCALE);
-
     // Advice for tuning parameters:
     // See PIDController.h. There's a sectionon tuning in the reference.
-    // Turn off HYSTERESIS_PROPORTION and extra logging by defining PID_TUNING in Avatar.cpp.
-    // Turn on logging with the following:
-    //_renderDistanceController.setHistorySize("avatar render", target_fps * 4); // FIXME
+    // Turn on logging with the following (or from js with AvatarList.setRenderDistanceControllerHistory("avatar render", 300))
+    //_renderDistanceController.setHistorySize("avatar render", target_fps * 4);
+    // Note that extra logging/hysteresis is turned off in Avatar.cpp when the above logging is on.
     _renderDistanceController.setKP(0.0003f); //Usually about 0.6 of largest that doesn't oscillate, with other constants 0.
     _renderDistanceController.setKI(0.001f); // Big enough to bring us to target with the above KP.
     _renderDistanceController.setKD(0.00001f); // a touch of kd increases the speed by which we get there
@@ -134,6 +133,7 @@ void AvatarManager::updateOtherAvatars(float deltaTime) {
     PerformanceWarning warn(showWarnings, "Application::updateAvatars()");
 
     PerformanceTimer perfTimer("otherAvatars");
+    
     const float fps = qApp->getLastInstanteousFps();
     const float paintWait = qApp->getLastPaintWait();
     const float deduced = qApp->getLastDeducedNonVSyncFps();

@@ -115,7 +115,7 @@ Avatar::~Avatar() {
     }
 }
 
-/*const fixme*/ float BILLBOARD_LOD_DISTANCE = 40.0f;
+const float BILLBOARD_LOD_DISTANCE = 40.0f;
 
 void Avatar::init() {
     getHead()->init();
@@ -182,7 +182,6 @@ void Avatar::simulate(float deltaTime) {
 
     // update the billboard render flag
     const float BILLBOARD_HYSTERESIS_PROPORTION = 0.1f;
-    BILLBOARD_LOD_DISTANCE = DependencyManager::get<AvatarManager>()->getFIXMEupdate();
     if (_shouldRenderBillboard) {
         if (getLODDistance() < BILLBOARD_LOD_DISTANCE * (1.0f - BILLBOARD_HYSTERESIS_PROPORTION)) {
             _shouldRenderBillboard = false;
@@ -192,26 +191,23 @@ void Avatar::simulate(float deltaTime) {
         _shouldRenderBillboard = true;
         qCDebug(interfaceapp) << "Billboarding" << (isMyAvatar() ? "myself" : getSessionUUID()) << "for LOD" << getLODDistance();
     }
-//#define PID_TUNING 1
-#ifdef PID_TUNING
-    const float SKIP_HYSTERESIS_PROPORTION = 0.0f;
-#else
-    const float SKIP_HYSTERESIS_PROPORTION = BILLBOARD_HYSTERESIS_PROPORTION;
-#endif
+    
+    const bool isControllerLogging = DependencyManager::get<AvatarManager>()->getRenderDistanceControllerIsLogging();
     float renderDistance = DependencyManager::get<AvatarManager>()->getRenderDistance();
+    const float SKIP_HYSTERESIS_PROPORTION = isControllerLogging ? 0.0f : BILLBOARD_HYSTERESIS_PROPORTION;
     float distance = glm::distance(qApp->getCamera()->getPosition(), _position);
     if (_shouldSkipRender) {
         if (distance < renderDistance * (1.0f - SKIP_HYSTERESIS_PROPORTION)) {
             _shouldSkipRender = false;
-#ifndef PID_TUNING
-            qCDebug(interfaceapp) << "Rerendering" << (isMyAvatar() ? "myself" : getSessionUUID()) << "for LOD" << getLODDistance();
-#endif
+            if (!isControllerLogging) {  // Test for isMyAvatar is prophylactic. Never occurs in current code.
+                qCDebug(interfaceapp) << "Rerendering" << (isMyAvatar() ? "myself" : getSessionUUID()) << "for distance" << renderDistance;
+            }
         }
     } else if (distance > renderDistance * (1.0f + SKIP_HYSTERESIS_PROPORTION)) {
         _shouldSkipRender = true;
-#ifndef PID_TUNING
-        qCDebug(interfaceapp) << "Unrendering" << (isMyAvatar() ? "myself" : getSessionUUID()) << "for LOD" << getLODDistance();
-#endif
+        if (!isControllerLogging) {
+            qCDebug(interfaceapp) << "Unrendering" << (isMyAvatar() ? "myself" : getSessionUUID()) << "for distance" << renderDistance;
+        }
     }
 
     // simple frustum check

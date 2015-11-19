@@ -26,13 +26,12 @@
 class PIDController {
 
 public:
-    // These three are the main interface:
+    // These four the main interface:
     void setMeasuredValueSetpoint(float newValue) { _measuredValueSetpoint = newValue; }
     float update(float measuredValue, float dt, bool resetAccumulator = false, float FIXME1 = 0.0f, float FIXME2 = 0.0f); // returns the new computedValue
     void setHistorySize(QString label = QString(""), int size = 0) { _history.reserve(size); _history.resize(0); _label = label; } // non-empty does logging
 
-    // There are several values that rarely change and might be thought of as "constants", but which do change during tuning, debugging, or other 
-    // special-but-expected circumstances. Thus the instance vars are not const.
+    bool getIsLogging() { return _history.capacity(); }
     float getMeasuredValueSetpoint() const { return _measuredValueSetpoint; }
     // In normal operation (where we can easily reach setpoint), controlledValue is typcially pinned at max.
     // Defaults to [0, max float], but for 1/LODdistance, it might be, say, [0, 0.2 or 0.1]
@@ -42,17 +41,17 @@ public:
     float getKP() const { return _kp; }
     float getKI() const { return _ki; }
     float getKD() const { return _kd; }
-    float getBias() const { return _bias; }
     float getAccumulatedValueHighLimit() const { return getAntiWindupFactor() * getMeasuredValueSetpoint(); }
     float getAccumulatedValueLowLimit() const { return -getAntiWindupFactor() * getMeasuredValueSetpoint(); }
 
+    // There are several values that rarely change and might be thought of as "constants", but which do change during tuning, debugging, or other
+    // special-but-expected circumstances. Thus the instance vars are not const.
     void setControlledValueLowLimit(float newValue) { _controlledValueLowLimit = newValue; }
     void setControlledValueHighLimit(float newValue) { _controlledValueHighLimit = newValue; }
     void setAntiWindupFactor(float newValue) { _antiWindupFactor = newValue; }
     void setKP(float newValue) { _kp = newValue; }
     void setKI(float newValue) { _ki = newValue; }
     void setKD(float newValue) { _kd = newValue; }
-    void setBias(float newValue) { _bias = newValue; }
 
     class Row { // one row of accumulated history, used only for logging (if at all)
     public:
@@ -66,7 +65,6 @@ public:
         float p;
         float i;
         float d;
-        float bias;
         float computed;
     };
 protected:
@@ -79,7 +77,6 @@ protected:
     float _kp { 0.0f };
     float _ki { 0.0f };
     float _kd { 0.0f };
-    float _bias { 0.0f };
 
     // Controller state
     float _lastError{ 0.0f };

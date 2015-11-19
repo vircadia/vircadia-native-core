@@ -115,7 +115,7 @@ void Stats::updateStats(bool force) {
     auto avatarManager = DependencyManager::get<AvatarManager>();
     // we need to take one avatar out so we don't include ourselves
     STAT_UPDATE(avatarCount, avatarManager->size() - 1);
-    STAT_UPDATE(avatarRenderedCount, avatarManager->getNumberRendered());
+    STAT_UPDATE(avatarRenderableCount, avatarManager->getNumberInRenderRange());
     STAT_UPDATE(avatarRenderDistance, (int) round(avatarManager->getRenderDistance())); // deliberately truncating
     STAT_UPDATE(serverCount, nodeList->size());
     STAT_UPDATE(framerate, (int)qApp->getFps());

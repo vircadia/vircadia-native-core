@@ -27,11 +27,11 @@ float PIDController::update(float measuredValue, float dt, bool resetAccumulator
     const float changeInError = (error - _lastError) / dt;  // positive value denotes increasing deficit
     const float d = getKD() * changeInError; // term is Derivative of Error
 
-    const float computedValue = glm::clamp(p + i + d + getBias(),
+    const float computedValue = glm::clamp(p + i + d,
         getControlledValueLowLimit(),
         getControlledValueHighLimit());
 
-    if (_history.capacity()) {  // if logging/reporting
+    if (getIsLogging()) {  // if logging/reporting
         updateHistory(measuredValue, dt, error, accumulatedError, changeInError, p, i, d, computedValue, FIXME1, FIXME2);
      }
 
@@ -75,5 +75,5 @@ void PIDController::reportHistory() {
     }
     qCDebug(shared) << "Limits: setpoint" << getMeasuredValueSetpoint() << "accumulate" << getAccumulatedValueLowLimit() << getAccumulatedValueHighLimit() <<
         "controlled" << getControlledValueLowLimit() << getControlledValueHighLimit() <<
-        "kp/ki/kd/bias" << getKP() << getKI() << getKD() << getBias();
+        "kp/ki/kd" << getKP() << getKI() << getKD();
 }

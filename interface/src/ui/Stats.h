@@ -36,7 +36,7 @@ class Stats : public QQuickItem {
     STATS_PROPERTY(int, simrate, 0)
     STATS_PROPERTY(int, avatarSimrate, 0)
     STATS_PROPERTY(int, avatarCount, 0)
-    STATS_PROPERTY(int, avatarRenderedCount, 0)
+    STATS_PROPERTY(int, avatarRenderableCount, 0)
     STATS_PROPERTY(int, avatarRenderDistance, 0)
     STATS_PROPERTY(int, packetInCount, 0)
     STATS_PROPERTY(int, packetOutCount, 0)
@@ -119,7 +119,7 @@ signals:
     void simrateChanged();
     void avatarSimrateChanged();
     void avatarCountChanged();
-    void avatarRenderedCountChanged();
+    void avatarRenderableCountChanged();
     void avatarRenderDistanceChanged();
     void packetInCountChanged();
     void packetOutCountChanged();
