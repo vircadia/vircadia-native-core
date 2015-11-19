@@ -42,7 +42,10 @@ protected:
     bool _isFinished;
     QTimer* _domainServerTimer = nullptr;
     QTimer* _statsTimer = nullptr;
-
+    
+protected slots:
+    void domainSettingsRequestFailed();
+    
 private slots:
     void startSendingStats();
     void stopSendingStats();

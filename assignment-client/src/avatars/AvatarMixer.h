@@ -36,6 +36,7 @@ private slots:
     void handleAvatarIdentityPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode);
     void handleAvatarBillboardPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode);
     void handleKillAvatarPacket(QSharedPointer<ReceivedMessage> message);
+    void domainSettingsRequestComplete();
     
 private:
     void broadcastAvatarData();
