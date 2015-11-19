@@ -129,6 +129,7 @@ public slots:
     void sendStatsPacket();
 
 private slots:
+    void domainSettingsRequestComplete();
     void handleOctreeQueryPacket(QSharedPointer<NLPacket> packet, SharedNodePointer senderNode);
     void handleOctreeDataNackPacket(QSharedPointer<NLPacket> packet, SharedNodePointer senderNode);
     void handleJurisdictionRequestPacket(QSharedPointer<NLPacket> packet, SharedNodePointer senderNode);
@@ -138,8 +139,8 @@ protected:
     bool readOptionBool(const QString& optionName, const QJsonObject& settingsSectionObject, bool& result);
     bool readOptionInt(const QString& optionName, const QJsonObject& settingsSectionObject, int& result);
     bool readOptionString(const QString& optionName, const QJsonObject& settingsSectionObject, QString& result);
-    bool readConfiguration();
-    virtual bool readAdditionalConfiguration(const QJsonObject& settingsSectionObject) { return true;  };
+    void readConfiguration();
+    virtual void readAdditionalConfiguration(const QJsonObject& settingsSectionObject) { };
     void parsePayload();
     void initHTTPManager(int port);
     void resetSendingStats();
