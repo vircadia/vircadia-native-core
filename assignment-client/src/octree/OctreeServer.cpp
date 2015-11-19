@@ -317,6 +317,7 @@ bool OctreeServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
 #endif
 
     bool showStats = false;
+    QString persistFile = "/" + getPersistFilename();
 
     if (connection->requestOperation() == QNetworkAccessManager::GetOperation) {
         if (url.path() == "/") {
@@ -326,6 +327,18 @@ bool OctreeServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
             _tree->resetEditStats();
             resetSendingStats();
             showStats = true;
+        } else if ((url.path() == persistFile) || (url.path() == persistFile + "/")) {
+            if (_persistFileDownload) {
+                QByteArray persistFileContents = getPersistFileContents();
+                if (persistFileContents.length() > 0) {
+                    connection->respond(HTTPConnection::StatusCode200, persistFileContents, qPrintable(getPersistFileMimeType()));
+                } else {
+                    connection->respond(HTTPConnection::StatusCode500, HTTPConnection::StatusCode500);
+                }
+            } else {
+                connection->respond(HTTPConnection::StatusCode403, HTTPConnection::StatusCode403); // not allowed
+            }
+            return true;
         }
     }
 
@@ -366,6 +379,12 @@ bool OctreeServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
             statsString += QString("%1 File Load Took ").arg(getMyServerName());
             statsString += getFileLoadTime();
             statsString += "\r\n";
+
+            if (_persistFileDownload) {
+                statsString += QString("Persist file: <a href='%1'>%1</a>\r\n").arg(persistFile);
+            } else {
+                statsString += QString("Persist file: %1\r\n").arg(persistFile);
+            }
 
         } else {
             statsString += "Octree file not yet loaded...\r\n";
@@ -932,31 +951,14 @@ bool OctreeServer::readOptionString(const QString& optionName, const QJsonObject
     return optionAvailable;
 }
 
-bool OctreeServer::readConfiguration() {
+void OctreeServer::readConfiguration() {
     // if the assignment had a payload, read and parse that
     if (getPayload().size() > 0) {
         parsePayload();
     }
+    
+    const QJsonObject& settingsObject = DependencyManager::get<NodeList>()->getDomainHandler().getSettingsObject();
 
-    // wait until we have the domain-server settings, otherwise we bail
-    auto nodeList = DependencyManager::get<NodeList>();
-    DomainHandler& domainHandler = nodeList->getDomainHandler();
-
-    qDebug() << "Waiting for domain settings from domain-server.";
-
-    // block until we get the settingsRequestComplete signal
-    QEventLoop loop;
-    connect(&domainHandler, &DomainHandler::settingsReceived, &loop, &QEventLoop::quit);
-    connect(&domainHandler, &DomainHandler::settingsReceiveFail, &loop, &QEventLoop::quit);
-    domainHandler.requestDomainSettings();
-    loop.exec();
-
-    if (domainHandler.getSettingsObject().isEmpty()) {
-        qDebug() << "Failed to retreive settings object from domain-server. Bailing on assignment.";
-        return false;
-    }
-
-    const QJsonObject& settingsObject = domainHandler.getSettingsObject();
     QString settingsKey = getMyDomainSettingsKey();
     QJsonObject settingsSectionObject = settingsObject[settingsKey].toObject();
     _settings = settingsSectionObject; // keep this for later
@@ -1026,7 +1028,8 @@ bool OctreeServer::readConfiguration() {
         _wantBackup = !noBackup;
         qDebug() << "wantBackup=" << _wantBackup;
 
-        //qDebug() << "settingsSectionObject:" << settingsSectionObject;
+        readOptionBool(QString("persistFileDownload"), settingsSectionObject, _persistFileDownload);
+        qDebug() << "persistFileDownload=" << _persistFileDownload;
 
     } else {
         qDebug("persistFilename= DISABLED");
@@ -1064,79 +1067,79 @@ bool OctreeServer::readConfiguration() {
                     packetsPerSecondTotalMax, _packetsTotalPerInterval);
 
 
-    return readAdditionalConfiguration(settingsSectionObject);
+    readAdditionalConfiguration(settingsSectionObject);
 }
 
 void OctreeServer::run() {
-
-    auto& packetReceiver = DependencyManager::get<NodeList>()->getPacketReceiver();
-    packetReceiver.registerListener(getMyQueryMessageType(), this, "handleOctreeQueryPacket");
-    packetReceiver.registerListener(PacketType::OctreeDataNack, this, "handleOctreeDataNackPacket");
-    packetReceiver.registerListener(PacketType::JurisdictionRequest, this, "handleJurisdictionRequestPacket");
-    
     _safeServerName = getMyServerName();
 
     // Before we do anything else, create our tree...
     OctreeElement::resetPopulationStatistics();
     _tree = createTree();
     _tree->setIsServer(true);
-
-    // make sure our NodeList knows what type we are
-    auto nodeList = DependencyManager::get<NodeList>();
-    nodeList->setOwnerType(getMyNodeType());
+    
+    qDebug() << "Waiting for connection to domain to request settings from domain-server.";
+    
+    // wait until we have the domain-server settings, otherwise we bail
+    DomainHandler& domainHandler = DependencyManager::get<NodeList>()->getDomainHandler();
+    connect(&domainHandler, &DomainHandler::settingsReceived, this, &OctreeServer::domainSettingsRequestComplete);
+    connect(&domainHandler, &DomainHandler::settingsReceiveFail, this, &OctreeServer::domainSettingsRequestFailed);
 
     // use common init to setup common timers and logging
     commonInit(getMyLoggingServerTargetName(), getMyNodeType());
+}
+
+void OctreeServer::domainSettingsRequestComplete() {
+    
+    auto nodeList = DependencyManager::get<NodeList>();
     
     // we need to ask the DS about agents so we can ping/reply with them
     nodeList->addNodeTypeToInterestSet(NodeType::Agent);
-
-    // read the configuration from either the payload or the domain server configuration
-    if (!readConfiguration()) {
-        qDebug() << "OctreeServer bailing on run since readConfiguration has failed.";
-        setFinished(true);
-        return; // bailing on run, because readConfiguration failed
-    }
-
+    
+    auto& packetReceiver = DependencyManager::get<NodeList>()->getPacketReceiver();
+    packetReceiver.registerListener(getMyQueryMessageType(), this, "handleOctreeQueryPacket");
+    packetReceiver.registerListener(PacketType::OctreeDataNack, this, "handleOctreeDataNackPacket");
+    packetReceiver.registerListener(PacketType::JurisdictionRequest, this, "handleJurisdictionRequestPacket");
+    
+    readConfiguration();
+    
     beforeRun(); // after payload has been processed
-
+    
     connect(nodeList.data(), SIGNAL(nodeAdded(SharedNodePointer)), SLOT(nodeAdded(SharedNodePointer)));
     connect(nodeList.data(), SIGNAL(nodeKilled(SharedNodePointer)), SLOT(nodeKilled(SharedNodePointer)));
 
 #ifndef WIN32
     setvbuf(stdout, NULL, _IOLBF, 0);
 #endif
-
+    
     nodeList->linkedDataCreateCallback = [] (Node* node) {
         OctreeQueryNode* newQueryNodeData = _instance->createOctreeQueryNode();
         newQueryNodeData->init();
         node->setLinkedData(newQueryNodeData);
     };
-
+    
     srand((unsigned)time(0));
-
+    
     // if we want Persistence, set up the local file and persist thread
     if (_wantPersist) {
-
+        
         // now set up PersistThread
         _persistThread = new OctreePersistThread(_tree, _persistFilename, _persistInterval,
                                                  _wantBackup, _settings, _debugTimestampNow, _persistAsFileType);
         _persistThread->initialize(true);
     }
-
-    HifiSockAddr senderSockAddr;
-
+    
     // set up our jurisdiction broadcaster...
     if (_jurisdiction) {
         _jurisdiction->setNodeType(getMyNodeType());
     }
     _jurisdictionSender = new JurisdictionSender(_jurisdiction, getMyNodeType());
     _jurisdictionSender->initialize(true);
-
+    
     // set up our OctreeServerPacketProcessor
     _octreeInboundPacketProcessor = new OctreeInboundPacketProcessor(this);
     _octreeInboundPacketProcessor->initialize(true);
-
+    
     // Convert now to tm struct for local timezone
     tm* localtm = localtime(&_started);
     const int MAX_TIME_LENGTH = 128;
@@ -1148,6 +1151,7 @@ void OctreeServer::run() {
     if (gmtm) {
         strftime(utcBuffer, MAX_TIME_LENGTH, " [%m/%d/%Y %X UTC]", gmtm);
     }
+    
     qDebug() << "Now running... started at: " << localBuffer << utcBuffer;
 }
 

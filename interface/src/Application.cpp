@@ -454,6 +454,17 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
     audioIO->setOrientationGetter([this]{ return getMyAvatar()->getOrientationForAudio(); });
 
     audioIO->moveToThread(audioThread);
+    recording::Frame::registerFrameHandler(AudioConstants::AUDIO_FRAME_NAME, [=](recording::Frame::ConstPointer frame) {
+        audioIO->handleRecordedAudioInput(frame->data);
+    });
+
+    connect(audioIO.data(), &AudioClient::inputReceived, [](const QByteArray& audio){
+        static auto recorder = DependencyManager::get<recording::Recorder>();
+        if (recorder->isRecording()) {
+            static const recording::FrameType AUDIO_FRAME_TYPE = recording::Frame::registerFrameType(AudioConstants::AUDIO_FRAME_NAME);
+            recorder->recordFrame(AUDIO_FRAME_TYPE, audio);
+        }
+    });
 
     auto& audioScriptingInterface = AudioScriptingInterface::getInstance();
 
@@ -743,10 +754,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
     connect(applicationUpdater.data(), &AutoUpdater::newVersionIsAvailable, dialogsManager.data(), &DialogsManager::showUpdateDialog);
     applicationUpdater->checkForUpdate();
 
-    // Assign MyAvatar to th eRecording Singleton
-    DependencyManager::get<RecordingScriptingInterface>()->setControlledAvatar(getMyAvatar());
-
-
     // Now that menu is initalized we can sync myAvatar with it's state.
     getMyAvatar()->updateMotionBehaviorFromMenu();
 
@@ -841,8 +848,6 @@ void Application::cleanupBeforeQuit() {
 #ifdef HAVE_IVIEWHMD
     DependencyManager::get<EyeTracker>()->setEnabled(false, true);
 #endif
-    DependencyManager::get<RecordingScriptingInterface>()->setControlledAvatar(nullptr);
-
     AnimDebugDraw::getInstance().shutdown();
 
     // FIXME: once we move to shared pointer for the INputDevice we shoud remove this naked delete:
@@ -1003,10 +1008,6 @@ void Application::initializeGL() {
     _octreeProcessor.initialize(_enableProcessOctreeThread);
     connect(&_octreeProcessor, &OctreePacketProcessor::packetVersionMismatch, this, &Application::notifyPacketVersionMismatch);
     _entityEditSender.initialize(_enableProcessOctreeThread);
-
-    // call our timer function every second
-    connect(&pingTimer, &QTimer::timeout, this, &Application::ping);
-    pingTimer.start(1000);
 
     _idleLoopStdev.reset();
 
@@ -2146,13 +2147,6 @@ bool Application::acceptSnapshot(const QString& urlString) {
         msgBox.exec();
     }
     return true;
-}
-
-//  Every second, send a ping, if menu item is checked.
-void Application::ping() {
-    if (Menu::getInstance()->isOptionChecked(MenuOption::TestPing)) {
-        DependencyManager::get<NodeList>()->sendPingPackets();
-    }
 }
 
 void Application::idle(uint64_t now) {
