@@ -107,7 +107,7 @@ void Model::initJointTransforms() {
         return;
     }
     const FBXGeometry& geometry = _geometry->getFBXGeometry();
-    glm::mat4 modelOffset = glm::scale(_scale) * glm::translate(_offset) * geometry.offset;
+    glm::mat4 modelOffset = glm::scale(_scale) * glm::translate(_offset);
     _rig->setModelOffset(modelOffset);
 }
 
@@ -160,7 +160,7 @@ bool Model::updateGeometry() {
 // virtual
 void Model::initJointStates() {
     const FBXGeometry& geometry = _geometry->getFBXGeometry();
-    glm::mat4 modelOffset = glm::scale(_scale) * glm::translate(_offset) * geometry.offset;
+    glm::mat4 modelOffset = glm::scale(_scale) * glm::translate(_offset);
 
     int rootJointIndex = geometry.rootJointIndex;
     int leftHandJointIndex = geometry.leftHandJointIndex;
@@ -947,7 +947,7 @@ void Model::simulateInternal(float deltaTime) {
     // update the world space transforms for all joints
 
     const FBXGeometry& geometry = _geometry->getFBXGeometry();
-    glm::mat4 parentTransform = glm::scale(_scale) * glm::translate(_offset) * geometry.offset;
+    glm::mat4 parentTransform = glm::scale(_scale) * glm::translate(_offset);
     updateRig(deltaTime, parentTransform);
 }
 void Model::updateClusterMatrices() {
@@ -1011,7 +1011,7 @@ void Model::updateClusterMatrices() {
 void Model::inverseKinematics(int endIndex, glm::vec3 targetPosition, const glm::quat& targetRotation, float priority) {
     const FBXGeometry& geometry = _geometry->getFBXGeometry();
     const QVector<int>& freeLineage = geometry.joints.at(endIndex).freeLineage;
-    glm::mat4 parentTransform = glm::scale(_scale) * glm::translate(_offset) * geometry.offset;
+    glm::mat4 parentTransform = glm::scale(_scale) * glm::translate(_offset);
     _rig->inverseKinematics(endIndex, targetPosition, targetRotation, priority, freeLineage, parentTransform);
 }
 

@@ -94,6 +94,7 @@ public:
     int indexOfJoint(const QString& jointName);
 
     void setModelOffset(const glm::mat4& modelOffset);
+    const AnimPose& getGeometryOffset() const { return _geometryOffset; }
 
     // AJT: REMOVE
     /*
@@ -162,7 +163,7 @@ public:
     void removeAnimationStateHandler(QScriptValue handler);
     void animationStateHandlerResult(int identifier, QScriptValue result);
 
-    bool getModelOffset(glm::vec3& modelOffsetOut) const;
+    bool getModelRegistrationPoint(glm::vec3& modelRegistrationPointOut) const;
 
     const glm::vec3& getEyesInRootFrame() const { return _eyesInRootFrame; }
 
@@ -182,8 +183,9 @@ public:
     QVector<JointState> _jointStates;
     glm::mat4 _legacyModelOffset;
 
-    AnimPose _modelOffset;
-    glm::vec3 _modelScale;
+    // AJT: TODO document these better
+    AnimPose _modelOffset;  // model to avatar space (without 180 flip)
+    AnimPose _geometryOffset; // geometry to model space (includes unit offset & fst offsets)
     AnimPoseVec _relativePoses; // in fbx model space relative to parent.
     AnimPoseVec _absolutePoses; // in fbx model space after _modelOffset is applied.
     AnimPoseVec _overridePoses; // in fbx model space relative to parent.

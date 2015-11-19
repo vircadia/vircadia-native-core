@@ -359,11 +359,11 @@ void MyAvatar::updateHMDFollowVelocity() {
 // This is so the correct camera can be used for rendering.
 void MyAvatar::updateSensorToWorldMatrix() {
 
-#ifdef DEBUG_RENDERING
+//#ifdef DEBUG_RENDERING
     // draw marker about avatar's position
     const glm::vec4 red(1.0f, 0.0f, 0.0f, 1.0f);
     DebugDraw::getInstance().addMyAvatarMarker("pos", glm::quat(), glm::vec3(), red);
-#endif
+//#endif
 
     // update the sensor mat so that the body position will end up in the desired
     // position when driven from the head.
@@ -1286,7 +1286,10 @@ void MyAvatar::preRender(RenderArgs* renderArgs) {
         if (_enableDebugDrawAnimPose && _debugDrawSkeleton) {
             glm::vec4 cyan(0.1f, 0.6f, 0.6f, 1.0f);
 
+            auto rig = _skeletonModel.getRig();
+            // AJT: TODO move this into rig!
             // build AnimPoseVec from JointStates.
+            // AJT: TODO THIS SHIT IS ALL BROKEN
             AnimPoseVec poses;
             poses.reserve(_debugDrawSkeleton->getNumJoints());
             for (int i = 0; i < _debugDrawSkeleton->getNumJoints(); i++) {
@@ -1297,6 +1300,11 @@ void MyAvatar::preRender(RenderArgs* renderArgs) {
                 _rig->getJointTranslation(i, jointTrans);
                 pose.rot = pose.rot * jointRot;
                 pose.trans = jointTrans;
+                /*
+                if (_debugDrawSkeleton->getParentIndex(i) < 0) {
+                    pose = _rig->getGeometryOffset() * pose;
+                }
+                */
                 poses.push_back(pose);
             }
 
@@ -1765,6 +1773,7 @@ glm::mat4 MyAvatar::deriveBodyFromHMDSensor() const {
     const glm::vec3 DEFAULT_NECK_POS(0.0f, 1.70f, 0.0f);
     const glm::vec3 DEFAULT_HIPS_POS(0.0f, 1.05f, 0.0f);
 
+    AnimPose geometryOffset = _rig->getGeometryOffset();
     vec3 localEyes, localNeck;
     if (!_debugDrawSkeleton) {
         const glm::quat rotY180 = glm::angleAxis((float)PI, glm::vec3(0.0f, 1.0f, 0.0f));
@@ -1780,10 +1789,10 @@ glm::mat4 MyAvatar::deriveBodyFromHMDSensor() const {
         int neckIndex = _debugDrawSkeleton->nameToJointIndex("Neck");
         int hipsIndex = _debugDrawSkeleton->nameToJointIndex("Hips");
 
-        glm::vec3 absRightEyePos = rightEyeIndex != -1 ? _debugDrawSkeleton->getAbsoluteBindPose(rightEyeIndex).trans : DEFAULT_RIGHT_EYE_POS;
-        glm::vec3 absLeftEyePos = leftEyeIndex != -1 ? _debugDrawSkeleton->getAbsoluteBindPose(leftEyeIndex).trans : DEFAULT_LEFT_EYE_POS;
-        glm::vec3 absNeckPos = neckIndex != -1 ? _debugDrawSkeleton->getAbsoluteBindPose(neckIndex).trans : DEFAULT_NECK_POS;
-        glm::vec3 absHipsPos = neckIndex != -1 ? _debugDrawSkeleton->getAbsoluteBindPose(hipsIndex).trans : DEFAULT_HIPS_POS;
+        glm::vec3 absRightEyePos = rightEyeIndex != -1 ? geometryOffset * _debugDrawSkeleton->getAbsoluteBindPose(rightEyeIndex).trans : DEFAULT_RIGHT_EYE_POS;
+        glm::vec3 absLeftEyePos = leftEyeIndex != -1 ? geometryOffset * _debugDrawSkeleton->getAbsoluteBindPose(leftEyeIndex).trans : DEFAULT_LEFT_EYE_POS;
+        glm::vec3 absNeckPos = neckIndex != -1 ? geometryOffset * _debugDrawSkeleton->getAbsoluteBindPose(neckIndex).trans : DEFAULT_NECK_POS;
+        glm::vec3 absHipsPos = neckIndex != -1 ? geometryOffset * _debugDrawSkeleton->getAbsoluteBindPose(hipsIndex).trans : DEFAULT_HIPS_POS;
 
         const glm::quat rotY180 = glm::angleAxis((float)PI, glm::vec3(0.0f, 1.0f, 0.0f));
         localEyes = rotY180 * (((absRightEyePos + absLeftEyePos) / 2.0f) - absHipsPos);

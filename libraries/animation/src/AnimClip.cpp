@@ -107,8 +107,6 @@ void AnimClip::copyFromNetworkAnim() {
     const int skeletonJointCount = _skeleton->getNumJoints();
     _anim.resize(frameCount);
 
-    const glm::vec3 offsetScale = extractScale(geom.offset);
-
     for (int frame = 0; frame < frameCount; frame++) {
 
         // init all joints in animation to bind pose
@@ -125,23 +123,25 @@ void AnimClip::copyFromNetworkAnim() {
             // skip joints that are in the animation but not in the skeleton.
             if (skeletonJoint >= 0 && skeletonJoint < skeletonJointCount) {
 
-                const glm::vec3& fbxZeroTrans = geom.animationFrames[0].translations[animJoint] * offsetScale;
-                const AnimPose& relBindPose = _skeleton->getRelativeBindPose(skeletonJoint);
+                const glm::vec3& fbxZeroTrans = geom.animationFrames[0].translations[animJoint];
+                // AJT: TODO: use the actual preRotation not the bind pose here.
+                const AnimPose& jointOrientPose = _skeleton->getRelativeBindPose(skeletonJoint);
+                const AnimPose& relDefaultPose = _skeleton->getRelativeDefaultPose(skeletonJoint);
 
                 // used to adjust translation offsets, so large translation animatons on the reference skeleton
                 // will be adjusted when played on a skeleton with short limbs.
-                float limbLengthScale = fabsf(glm::length(fbxZeroTrans)) <= 0.0001f ? 1.0f : (glm::length(relBindPose.trans) / glm::length(fbxZeroTrans));
+                float limbLengthScale = fabsf(glm::length(fbxZeroTrans)) <= 0.0001f ? 1.0f : (glm::length(relDefaultPose.trans) / glm::length(fbxZeroTrans));
 
                 AnimPose& pose = _anim[frame][skeletonJoint];
                 const FBXAnimationFrame& fbxAnimFrame = geom.animationFrames[frame];
 
-                // rotation in fbxAnimationFrame is a delta from a reference skeleton bind pose.
-                pose.rot = relBindPose.rot * fbxAnimFrame.rotations[animJoint];
+                // rotation in fbxAnimationFrame is a delta from its jointOrientPose (aka preRotation)
+                pose.rot = jointOrientPose.rot * fbxAnimFrame.rotations[animJoint];
 
                 // translation in fbxAnimationFrame is not a delta.
                 // convert it into a delta by subtracting from the first frame.
-                const glm::vec3& fbxTrans = fbxAnimFrame.translations[animJoint] * offsetScale;
-                pose.trans = relBindPose.trans + limbLengthScale * (fbxTrans - fbxZeroTrans);
+                const glm::vec3& fbxTrans = fbxAnimFrame.translations[animJoint];
+                pose.trans = relDefaultPose.trans + limbLengthScale * (fbxTrans - fbxZeroTrans);
             }
         }
     }

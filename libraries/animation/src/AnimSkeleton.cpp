@@ -24,12 +24,17 @@ AnimSkeleton::AnimSkeleton(const FBXGeometry& fbxGeometry) {
         joints.push_back(joint);
     }
 
+    // AJT: REMOVE
+    /*
     AnimPose geometryOffset(fbxGeometry.offset);
     buildSkeletonFromJoints(joints, geometryOffset);
+    */
+
+    buildSkeletonFromJoints(joints);
 }
 
-AnimSkeleton::AnimSkeleton(const std::vector<FBXJoint>& joints, const AnimPose& geometryOffset) {
-    buildSkeletonFromJoints(joints, geometryOffset);
+AnimSkeleton::AnimSkeleton(const std::vector<FBXJoint>& joints) {
+    buildSkeletonFromJoints(joints);
 }
 
 int AnimSkeleton::nameToJointIndex(const QString& jointName) const {
@@ -94,7 +99,7 @@ AnimPose AnimSkeleton::getAbsolutePose(int jointIndex, const AnimPoseVec& poses)
     }
 }
 
-void AnimSkeleton::buildSkeletonFromJoints(const std::vector<FBXJoint>& joints, const AnimPose& geometryOffset) {
+void AnimSkeleton::buildSkeletonFromJoints(const std::vector<FBXJoint>& joints) {
     _joints = joints;
 
     // build a cache of bind poses
@@ -143,12 +148,17 @@ void AnimSkeleton::buildSkeletonFromJoints(const std::vector<FBXJoint>& joints, 
         }
     }
 
+    // AJT: REMOVE
+    /*
     // now we want to normalize scale from geometryOffset to all poses.
     // This will ensure our bone translations will be in meters, even if the model was authored with some other unit of mesure.
     normalizeScale(geometryOffset, _relativeBindPoses, _absoluteBindPoses);
     normalizeScale(geometryOffset, _relativeDefaultPoses, _absoluteDefaultPoses);
+    */
 }
 
+/*
+// AJT: REMOVE
 void AnimSkeleton::normalizeScale(const AnimPose& geometryOffset, AnimPoseVec& relPoses, AnimPoseVec& absPoses) const {
     for (auto& absPose : absPoses) {
         absPose.trans = (geometryOffset * absPose).trans;
@@ -164,6 +174,7 @@ void AnimSkeleton::normalizeScale(const AnimPose& geometryOffset, AnimPoseVec& r
         }
     }
 }
+*/
 
 #define DUMP_FBX_JOINTS
 

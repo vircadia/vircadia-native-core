@@ -167,9 +167,10 @@ void Rig::initJointStates(const FBXGeometry& geometry, glm::mat4 modelOffset, in
                           int leftHandJointIndex, int leftElbowJointIndex, int leftShoulderJointIndex,
                           int rightHandJointIndex, int rightElbowJointIndex, int rightShoulderJointIndex) {
 
+    _geometryOffset = AnimPose(geometry.offset);
     _animSkeleton = std::make_shared<AnimSkeleton>(geometry);
 
-    _animSkeleton->dump();
+    //_animSkeleton->dump();
 
     computeEyesInRootFrame(_animSkeleton->getRelativeDefaultPoses());
 
@@ -198,12 +199,13 @@ void Rig::initJointStates(const FBXGeometry& geometry, glm::mat4 modelOffset, in
 
         // was old Rig::initJointStates
         // compute model transforms
+        glm::mat4 rootTransform = (glm::mat4)(_modelOffset * _geometryOffset);
         int numStates = _animSkeleton->getNumJoints();
         for (int i = 0; i < numStates; ++i) {
             JointState& state = _jointStates[i];
             int parentIndex = state.getParentIndex();
             if (parentIndex == -1) {
-                state.initTransform(modelOffset);
+                state.initTransform(rootTransform);
             } else {
                 const JointState& parentState = _jointStates.at(parentIndex);
                 state.initTransform(parentState.getTransform());
@@ -248,7 +250,6 @@ void Rig::setModelOffset(const glm::mat4& modelOffset) {
         _legacyModelOffset = modelOffset;
     }
     _modelOffset = AnimPose(modelOffset);
-    _modelScale = _modelOffset.scale;
 }
 
 // AJT: REMOVE
@@ -1220,9 +1221,9 @@ void Rig::initAnimGraph(const QUrl& url) {
     });
 }
 
-bool Rig::getModelOffset(glm::vec3& modelOffsetOut) const {
+bool Rig::getModelRegistrationPoint(glm::vec3& modelRegistrationPointOut) const {
     if (_animSkeleton && _rootJointIndex >= 0) {
-        modelOffsetOut = -_animSkeleton->getAbsoluteBindPose(_rootJointIndex).trans;
+        modelRegistrationPointOut = _geometryOffset * -_animSkeleton->getAbsoluteBindPose(_rootJointIndex).trans;
         return true;
     } else {
         return false;
@@ -1263,15 +1264,19 @@ void Rig::buildAbsolutePoses() {
     }
 
     for (int i = 0; i < (int)_absolutePoses.size(); i++) {
+        _absolutePoses[i] = _modelOffset * _geometryOffset * _absolutePoses[i];
+        // AJT: REMOVE
+        /*
         _absolutePoses[i].trans = _modelOffset.trans + _absolutePoses[i].trans;
         _absolutePoses[i].rot = _modelOffset.rot * _absolutePoses[i].rot;
         _absolutePoses[i].scale = _absolutePoses[i].scale * _modelScale;
+        */
     }
 
     // AJT: LEGACY
     {
         // Build the joint states
-        glm::mat4 rootTransform = _legacyModelOffset;
+        glm::mat4 rootTransform = (glm::mat4)(_modelOffset * _geometryOffset);
         for (int i = 0; i < (int)_animSkeleton->getNumJoints(); i++) {
             JointState& state = _jointStates[i];
 
@@ -1300,12 +1305,12 @@ glm::mat4 Rig::getJointTransform(int jointIndex) const {
     //if (_jointStates.size() == 73) {
 
     // check for differences between jointStates and _absolutePoses!
-    {
+    if (false) {
         // should display for model entities
         glm::mat4 newMat = _absolutePoses[jointIndex];
         glm::mat4 oldMat = _jointStates[jointIndex].getTransform();
 
-        const float EPSILON = 0.005f;
+        const float EPSILON = 0.01f;
         if (glm::length(newMat[0] - oldMat[0]) > EPSILON ||
             glm::length(newMat[1] - oldMat[1]) > EPSILON ||
             glm::length(newMat[2] - oldMat[2]) > EPSILON ||
@@ -1321,9 +1326,9 @@ glm::mat4 Rig::getJointTransform(int jointIndex) const {
 
     // AJT: LEGACY
     {
-        //return _jointStates[jointIndex].getTransform();
+        return _jointStates[jointIndex].getTransform();
     }
 
-    return _absolutePoses[jointIndex];
+    //return _absolutePoses[jointIndex];
 }
 

@@ -43,7 +43,8 @@ SkeletonModel::~SkeletonModel() {
 
 void SkeletonModel::initJointStates() {
     const FBXGeometry& geometry = _geometry->getFBXGeometry();
-    glm::mat4 modelOffset = glm::scale(_scale) * glm::translate(_offset) * geometry.offset;
+    glm::mat4 geometryOffset = geometry.offset;
+    glm::mat4 modelOffset = glm::scale(_scale) * glm::translate(_offset);
 
     int rootJointIndex = geometry.rootJointIndex;
     int leftHandJointIndex = geometry.leftHandJointIndex;
@@ -241,9 +242,9 @@ void SkeletonModel::simulate(float deltaTime, bool fullUpdate) {
     Model::simulate(deltaTime, fullUpdate);
 
     // let rig compute the model offset
-    glm::vec3 modelOffset;
-    if (_rig->getModelOffset(modelOffset)) {
-        setOffset(modelOffset);
+    glm::vec3 registrationPoint;
+    if (_rig->getModelRegistrationPoint(registrationPoint)) {
+        setOffset(registrationPoint);
     }
 
     if (!isActive() || !_owningAvatar->isMyAvatar()) {

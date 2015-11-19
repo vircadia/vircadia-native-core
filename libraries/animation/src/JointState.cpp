@@ -73,7 +73,7 @@ glm::quat JointState::getRotation() const {
 
 void JointState::initTransform(const glm::mat4& parentTransform) {
 
-    _unitsScale = extractScale(parentTransform);
+    //_unitsScale = extractScale(parentTransform);
 
     computeTransform(parentTransform);
     _positionInParentFrame = glm::inverse(extractRotation(parentTransform)) * (extractTranslation(_transform) - extractTranslation(parentTransform));
