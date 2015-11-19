@@ -218,7 +218,6 @@
 
             if (this.hasArrowNotched === false) {
                 this.playArrowNotchSound();
-                this.playStringPullSound();
                 this.hasArrowNotched = true
                 this.arrow = this.createArrow();
                 print('NOTCH ARROW' + this.arrow);
@@ -492,6 +491,8 @@
 
             } else if (this.triggerValue >= DRAW_STRING_THRESHOLD && this.stringDrawn === false) {
                 //   print('HIT START LOOP IN CHECK')
+                                this.playStringPullSound();
+
                 //the first time aiming the arrow
                 this.stringDrawn = true;
                 this.createStrings();
