@@ -477,6 +477,14 @@
           "advanced": true
         },
         {
+          "name": "persistFileDownload",
+          "type": "checkbox",
+          "label": "Persist File Download",
+          "help": "Includes a download link to the persist file in the server status page.",
+          "default": false,
+          "advanced": true
+        },
+        {
           "name": "wantEditLogging",
           "type": "checkbox",
           "label": "Edit Logging",

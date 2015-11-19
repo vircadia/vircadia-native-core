@@ -317,6 +317,7 @@ bool OctreeServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
 #endif
 
     bool showStats = false;
+    QString persistFile = "/" + getPersistFilename();
 
     if (connection->requestOperation() == QNetworkAccessManager::GetOperation) {
         if (url.path() == "/") {
@@ -326,6 +327,18 @@ bool OctreeServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
             _tree->resetEditStats();
             resetSendingStats();
             showStats = true;
+        } else if ((url.path() == persistFile) || (url.path() == persistFile + "/")) {
+            if (_persistFileDownload) {
+                QByteArray persistFileContents = getPersistFileContents();
+                if (persistFileContents.length() > 0) {
+                    connection->respond(HTTPConnection::StatusCode200, persistFileContents, qPrintable(getPersistFileMimeType()));
+                } else {
+                    connection->respond(HTTPConnection::StatusCode500, HTTPConnection::StatusCode500);
+                }
+            } else {
+                connection->respond(HTTPConnection::StatusCode403, HTTPConnection::StatusCode403); // not allowed
+            }
+            return true;
         }
     }
 
@@ -366,6 +379,12 @@ bool OctreeServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
             statsString += QString("%1 File Load Took ").arg(getMyServerName());
             statsString += getFileLoadTime();
             statsString += "\r\n";
+
+            if (_persistFileDownload) {
+                statsString += QString("Persist file: <a href='%1'>%1</a>\r\n").arg(persistFile);
+            } else {
+                statsString += QString("Persist file: %1\r\n").arg(persistFile);
+            }
 
         } else {
             statsString += "Octree file not yet loaded...\r\n";
@@ -1026,7 +1045,8 @@ bool OctreeServer::readConfiguration() {
         _wantBackup = !noBackup;
         qDebug() << "wantBackup=" << _wantBackup;
 
-        //qDebug() << "settingsSectionObject:" << settingsSectionObject;
+        readOptionBool(QString("persistFileDownload"), settingsSectionObject, _persistFileDownload);
+        qDebug() << "persistFileDownload=" << _persistFileDownload;
 
     } else {
         qDebug("persistFilename= DISABLED");
