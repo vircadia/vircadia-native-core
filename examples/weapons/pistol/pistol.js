@@ -140,12 +140,12 @@
 
         initControllerMapping: function() {
             this.mapping = Controller.newMapping();
-            this.mapping.from(Controller.Standard.LT).hysteresis(0.0, 0.5).to(function(value) {
+            this.mapping.from(Controller.Standard.LT).hysteresis(0.0, 0.9).to(function(value) {
                 _this.triggerPress(0, value);
             });
 
 
-            this.mapping.from(Controller.Standard.RT).hysteresis(0.0, 0.5).to(function(value) {
+            this.mapping.from(Controller.Standard.RT).hysteresis(0.0, 0.9).to(function(value) {
                 _this.triggerPress(1, value);
             });
             this.mapping.enable();
