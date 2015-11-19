@@ -150,23 +150,23 @@
             this.arrowHitSound = SoundCache.getSound(ARROW_HIT_SOUND_URL);
             this.arrowNotchSound = SoundCache.getSound(NOTCH_ARROW_SOUND_URL);
             this.arrowWhizzSound = SoundCache.getSound(ARROW_WHIZZ_SOUND_URL);
-            Script.update.connect(this.updateArrowTrackers);
+            //Script.update.connect(this.updateArrowTrackers);
 
         },
 
         unload: function() {
-            Script.update.disconnect(this.updateArrowTrackers);
+            // Script.update.disconnect(this.updateArrowTrackers);
 
-            while (arrowTrackers.length > 0) {
-                var tracker = arrowTrackers.pop();
-                tracker.childEntities.forEach(function(child) {
-                    Entities.deleteEntity(child);
-                })
-                tracker.childParticleSystems.forEach(function(child) {
-                    Entities.deleteEntity(child);
-                })
-                Entities.deleteEntity(tracker.arrowID);
-            }
+            // while (arrowTrackers.length > 0) {
+            //     var tracker = arrowTrackers.pop();
+            //     tracker.childEntities.forEach(function(child) {
+            //         Entities.deleteEntity(child);
+            //     })
+            //     tracker.childParticleSystems.forEach(function(child) {
+            //         Entities.deleteEntity(child);
+            //     })
+            //     Entities.deleteEntity(tracker.arrowID);
+            // }
             this.deleteStrings();
             Entities.deleteEntity(this.notchDetector);
             Entities.deleteEntity(this.preNotchString);
@@ -495,8 +495,8 @@
                 //the first time aiming the arrow
                 this.stringDrawn = true;
                 this.createStrings();
-                var arrowTracker = this.createArrowTracker(this.arrow);
-                arrowTrackers.push(arrowTracker)
+                // var arrowTracker = this.createArrowTracker(this.arrow);
+                // arrowTrackers.push(arrowTracker)
                 
                 this.stringData.handPosition = this.getStringHandPosition();
                 this.stringData.handRotation = this.getStringHandRotation();
@@ -588,6 +588,7 @@
             var arrowProperties = {
                 //  rotation: arrowRotation,
                 velocity: forwardVec,
+                lifetime:10
             };
 
             this.playShootArrowSound();
