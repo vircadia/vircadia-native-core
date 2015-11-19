@@ -12,6 +12,8 @@
 #ifndef hifi_OctreeServer_h
 #define hifi_OctreeServer_h
 
+#include <memory>
+
 #include <QStringList>
 #include <QDateTime>
 #include <QtCore/QCoreApplication>
@@ -61,7 +63,7 @@ public:
     quint64 getLoadElapsedTime() const { return (_persistThread) ? _persistThread->getLoadElapsedTime() : 0; }
 
     // Subclasses must implement these methods
-    virtual OctreeQueryNode* createOctreeQueryNode() = 0;
+    virtual std::unique_ptr<OctreeQueryNode> createOctreeQueryNode() = 0;
     virtual char getMyNodeType() const = 0;
     virtual PacketType getMyQueryMessageType() const = 0;
     virtual const char* getMyServerName() const = 0;

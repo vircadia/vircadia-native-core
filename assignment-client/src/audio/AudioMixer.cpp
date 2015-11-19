@@ -14,6 +14,7 @@
 #include <fstream>
 #include <iostream>
 #include <math.h>
+#include <memory>
 #include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -652,7 +653,7 @@ void AudioMixer::run() {
     nodeList->addNodeTypeToInterestSet(NodeType::Agent);
 
     nodeList->linkedDataCreateCallback = [](Node* node) {
-        node->setLinkedData(new AudioMixerClientData());
+        node->setLinkedData(std::unique_ptr<AudioMixerClientData> { new AudioMixerClientData });
     };
 
     // wait until we have the domain-server settings, otherwise we bail

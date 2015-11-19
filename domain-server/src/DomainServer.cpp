@@ -11,6 +11,8 @@
 
 #include "DomainServer.h"
 
+#include <memory>
+
 #include <QDir>
 #include <QJsonDocument>
 #include <QJsonObject>
@@ -1640,7 +1642,7 @@ void DomainServer::refreshStaticAssignmentAndAddToQueue(SharedAssignmentPointer&
 
 void DomainServer::nodeAdded(SharedNodePointer node) {
     // we don't use updateNodeWithData, so add the DomainServerNodeData to the node here
-    node->setLinkedData(new DomainServerNodeData());
+    node->setLinkedData(std::unique_ptr<DomainServerNodeData> { new DomainServerNodeData() });
 }
 
 void DomainServer::nodeKilled(SharedNodePointer node) {

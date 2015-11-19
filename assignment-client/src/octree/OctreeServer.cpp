@@ -1108,9 +1108,9 @@ void OctreeServer::run() {
 #endif
 
     nodeList->linkedDataCreateCallback = [] (Node* node) {
-        OctreeQueryNode* newQueryNodeData = _instance->createOctreeQueryNode();
-        newQueryNodeData->init();
-        node->setLinkedData(newQueryNodeData);
+        auto queryNodeData = _instance->createOctreeQueryNode();
+        queryNodeData->init();
+        node->setLinkedData(std::move(queryNodeData));
     };
 
     srand((unsigned)time(0));

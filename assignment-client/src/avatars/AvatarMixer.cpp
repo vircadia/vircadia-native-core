@@ -11,6 +11,7 @@
 
 #include <cfloat>
 #include <random>
+#include <memory>
 
 #include <QtCore/QCoreApplication>
 #include <QtCore/QDateTime>
@@ -519,7 +520,7 @@ void AvatarMixer::run() {
     nodeList->addNodeTypeToInterestSet(NodeType::Agent);
 
     nodeList->linkedDataCreateCallback = [] (Node* node) {
-        node->setLinkedData(new AvatarMixerClientData());
+        node->setLinkedData(std::unique_ptr<AvatarMixerClientData> { new AvatarMixerClientData });
     };
 
     // setup the timer that will be fired on the broadcast thread
