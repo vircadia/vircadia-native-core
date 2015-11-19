@@ -592,20 +592,17 @@ void ParticleEffectEntityItem::integrateParticle(Particle& particle, float delta
 }
 
 void ParticleEffectEntityItem::stepSimulation(float deltaTime) {
-    _particlesBounds.reset();
-
     // update particles between head and tail
     for (Particle& particle : _particles) {
         particle.lifetime += deltaTime;
 
         // if particle has died.
-        if (particle.lifetime >= _lifespan || _lifespan < EPSILON) {
+        if (particle.lifetime >= _lifespan) {
             // move head forward
             _particles.pop_front();
         } else {
             // Otherwise update it
             integrateParticle(particle, deltaTime);
-            _particlesBounds.addPoint(particle.position);
         }
     }
 
@@ -628,7 +625,6 @@ void ParticleEffectEntityItem::stepSimulation(float deltaTime) {
             
             // Initialize it
             integrateParticle(particle, deltaTime);
-            _particlesBounds.addPoint(particle.position);
             
             // Advance in frame
             timeLeftInFrame -= _timeUntilNextEmit;

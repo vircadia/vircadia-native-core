@@ -58,7 +58,7 @@ public:
     void setModelTransform(const Transform& modelTransform) { _modelTransform = modelTransform; }
 
     const AABox& getBound() const { return _bound; }
-    void setBound(AABox& bound) { _bound = bound; }
+    void setBound(const AABox& bound) { _bound = bound; }
 
     BufferPointer getParticleBuffer() { return _particleBuffer; }
     const BufferPointer& getParticleBuffer() const { return _particleBuffer; }
@@ -242,12 +242,9 @@ void RenderableParticleEffectEntityItem::updateRenderItem() {
         Transform transform;
         transform.setTranslation(position);
         transform.setRotation(rotation);
+        
         payload.setModelTransform(transform);
-
-        AABox bounds(_particlesBounds);
-        bounds.rotate(rotation);
-        bounds.shiftBy(position);
-        payload.setBound(bounds);
+        payload.setBound(getAABox());
 
         bool textured = _texture && _texture->isLoaded();
         if (textured) {

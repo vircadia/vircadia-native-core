@@ -237,10 +237,7 @@ protected:
     // Particles container
     Particles _particles;
     
-    // bounding volume
-    Extents _particlesBounds;
-    
-    // the properties of this entity
+    // Particles properties
     rgbColor _color;
     xColor _colorStart = DEFAULT_COLOR;
     xColor _colorFinish = DEFAULT_COLOR;
@@ -249,25 +246,30 @@ protected:
     float _alphaStart = DEFAULT_ALPHA_START;
     float _alphaFinish = DEFAULT_ALPHA_FINISH;
     float _alphaSpread = DEFAULT_ALPHA_SPREAD;
-    quint32 _maxParticles = DEFAULT_MAX_PARTICLES;
-    float _lifespan = DEFAULT_LIFESPAN;
-    float _emitRate = DEFAULT_EMIT_RATE;
-    float _emitSpeed = DEFAULT_EMIT_SPEED;
-    float _speedSpread = DEFAULT_SPEED_SPREAD;
-    glm::quat _emitOrientation = DEFAULT_EMIT_ORIENTATION;
-    glm::vec3 _emitDimensions = DEFAULT_EMIT_DIMENSIONS;
-    float _emitRadiusStart = DEFAULT_EMIT_RADIUS_START;
-    float _polarStart = DEFAULT_POLAR_START;
-    float _polarFinish = DEFAULT_POLAR_FINISH;
-    float _azimuthStart = DEFAULT_AZIMUTH_START;
-    float _azimuthFinish = DEFAULT_AZIMUTH_FINISH;
-    glm::vec3 _emitAcceleration = DEFAULT_EMIT_ACCELERATION;
-    glm::vec3 _accelerationSpread = DEFAULT_ACCELERATION_SPREAD;
     float _particleRadius = DEFAULT_PARTICLE_RADIUS;
     float _radiusStart = DEFAULT_RADIUS_START;
     float _radiusFinish = DEFAULT_RADIUS_FINISH;
     float _radiusSpread = DEFAULT_RADIUS_SPREAD;
-
+    float _lifespan = DEFAULT_LIFESPAN;
+    
+    // Emiter properties
+    quint32 _maxParticles = DEFAULT_MAX_PARTICLES;
+    
+    float _emitRate = DEFAULT_EMIT_RATE;
+    float _emitSpeed = DEFAULT_EMIT_SPEED;
+    float _speedSpread = DEFAULT_SPEED_SPREAD;
+    
+    glm::quat _emitOrientation = DEFAULT_EMIT_ORIENTATION;
+    glm::vec3 _emitDimensions = DEFAULT_EMIT_DIMENSIONS;
+    float _emitRadiusStart = DEFAULT_EMIT_RADIUS_START;
+    glm::vec3 _emitAcceleration = DEFAULT_EMIT_ACCELERATION;
+    glm::vec3 _accelerationSpread = DEFAULT_ACCELERATION_SPREAD;
+    
+    float _polarStart = DEFAULT_POLAR_START;
+    float _polarFinish = DEFAULT_POLAR_FINISH;
+    float _azimuthStart = DEFAULT_AZIMUTH_START;
+    float _azimuthFinish = DEFAULT_AZIMUTH_FINISH;
+    
 
     quint64 _lastSimulated { 0 };
     bool _isEmitting { true };
