@@ -36,11 +36,11 @@ protected:
         glm::vec4 xyzw; // Position + radius
         uint32_t rgba; // Color
     };
-    using Particles = std::vector<ParticlePrimitive>;
+    using ParticlePrimitives = std::vector<ParticlePrimitive>;
 
     void createPipelines();
 
-    Particles _particlePrimitives;
+    ParticlePrimitives _particlePrimitives;
     gpu::PipelinePointer _untexturedPipeline;
     gpu::PipelinePointer _texturedPipeline;
 

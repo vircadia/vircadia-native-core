@@ -32,20 +32,22 @@ public:
     using Payload = render::Payload<ParticlePayload>;
     using Pointer = Payload::DataPointer;
     using ParticlePrimitive = RenderableParticleEffectEntityItem::ParticlePrimitive;
+    using PipelinePointer = gpu::PipelinePointer;
+    using FormatPointer = gpu::Stream::FormatPointer;
+    using BufferPointer = gpu::BufferPointer;
+    using TexturePointer = gpu::TexturePointer;
+    using Format = gpu::Stream::Format;
+    using Buffer = gpu::Buffer;
 
-    ParticlePayload(EntityItemPointer entity) :
-        _entity(entity),
-        _vertexFormat(std::make_shared<gpu::Stream::Format>()),
-        _particleBuffer(std::make_shared<gpu::Buffer>()) {
-
+    ParticlePayload(EntityItemPointer entity) : _entity(entity) {
         _vertexFormat->setAttribute(gpu::Stream::POSITION, 0, gpu::Element::VEC4F_XYZW,
                                     offsetof(ParticlePrimitive, xyzw), gpu::Stream::PER_INSTANCE);
         _vertexFormat->setAttribute(gpu::Stream::COLOR, 0, gpu::Element::COLOR_RGBA_32,
                                     offsetof(ParticlePrimitive, rgba), gpu::Stream::PER_INSTANCE);
     }
 
-    void setPipeline(gpu::PipelinePointer pipeline) { _pipeline = pipeline; }
-    const gpu::PipelinePointer& getPipeline() const { return _pipeline; }
+    void setPipeline(PipelinePointer pipeline) { _pipeline = pipeline; }
+    const PipelinePointer& getPipeline() const { return _pipeline; }
 
     const Transform& getModelTransform() const { return _modelTransform; }
     void setModelTransform(const Transform& modelTransform) { _modelTransform = modelTransform; }
@@ -53,11 +55,11 @@ public:
     const AABox& getBound() const { return _bound; }
     void setBound(AABox& bound) { _bound = bound; }
 
-    gpu::BufferPointer getParticleBuffer() { return _particleBuffer; }
-    const gpu::BufferPointer& getParticleBuffer() const { return _particleBuffer; }
+    BufferPointer getParticleBuffer() { return _particleBuffer; }
+    const BufferPointer& getParticleBuffer() const { return _particleBuffer; }
 
-    void setTexture(gpu::TexturePointer texture) { _texture = texture; }
-    const gpu::TexturePointer& getTexture() const { return _texture; }
+    void setTexture(TexturePointer texture) { _texture = texture; }
+    const TexturePointer& getTexture() const { return _texture; }
 
     bool getVisibleFlag() const { return _visibleFlag; }
     void setVisibleFlag(bool visibleFlag) { _visibleFlag = visibleFlag; }
@@ -84,10 +86,10 @@ protected:
     EntityItemPointer _entity;
     Transform _modelTransform;
     AABox _bound;
-    gpu::PipelinePointer _pipeline;
-    gpu::Stream::FormatPointer _vertexFormat;
-    gpu::BufferPointer _particleBuffer;
-    gpu::TexturePointer _texture;
+    PipelinePointer _pipeline;
+    FormatPointer _vertexFormat { std::make_shared<Format>() };
+    BufferPointer _particleBuffer { std::make_shared<Buffer>() };
+    TexturePointer _texture;
     bool _visibleFlag = true;
 };
 
