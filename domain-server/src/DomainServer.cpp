@@ -1837,10 +1837,10 @@ void DomainServer::processNodeDisconnectRequestPacket(QSharedPointer<NLPacket> p
     
     // we want to check what type this node was before going to kill it so that we can avoid sending the RemovedNode
     // packet to nodes that don't care about this type
-    auto node = limitedNodeList->nodeWithUUID(nodeUUID);
+    auto nodeToKill = limitedNodeList->nodeWithUUID(nodeUUID);
     
-    if (node) {
-        auto nodeType = node->getType();
+    if (nodeToKill) {
+        auto nodeType = nodeToKill->getType();
         limitedNodeList->killNodeWithUUID(nodeUUID);
         
         static auto removedNodePacket = NLPacket::create(PacketType::DomainServerRemovedNode, NUM_BYTES_RFC4122_UUID);
