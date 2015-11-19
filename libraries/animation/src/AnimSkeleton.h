@@ -38,6 +38,12 @@ public:
     const AnimPose& getRelativeBindPose(int jointIndex) const;
     const AnimPoseVec& getRelativeBindPoses() const { return _relativeBindPoses; }
 
+    // the default poses are the orientations of the joints on frame 0.
+    const AnimPose& getRelativeDefaultPose(int jointIndex) const;
+    const AnimPoseVec& getRelativeDefaultPoses() const { return _relativeDefaultPoses; }
+    const AnimPose& getAbsoluteDefaultPose(int jointIndex) const;
+    const AnimPoseVec& getAbsoluteDefaultPoses() const { return _absoluteDefaultPoses; }
+
     int getParentIndex(int jointIndex) const;
 
     AnimPose getAbsolutePose(int jointIndex, const AnimPoseVec& poses) const;
@@ -49,10 +55,13 @@ public:
 
 protected:
     void buildSkeletonFromJoints(const std::vector<FBXJoint>& joints, const AnimPose& geometryOffset);
+    void normalizeScale(const AnimPose& geometryOffset, AnimPoseVec& relPoses, AnimPoseVec& absPoses) const;
 
     std::vector<FBXJoint> _joints;
     AnimPoseVec _absoluteBindPoses;
     AnimPoseVec _relativeBindPoses;
+    AnimPoseVec _relativeDefaultPoses;
+    AnimPoseVec _absoluteDefaultPoses;
 
     // no copies
     AnimSkeleton(const AnimSkeleton&) = delete;
