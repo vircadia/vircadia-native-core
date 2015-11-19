@@ -428,7 +428,7 @@ void MyAvatar::updateHMDFollowVelocity() {
         }
         if (_followSpeed > 0.0f) {
             // to compute new velocity we must rotate offset into the world-frame
-            glm::quat sensorToWorldRotation = extractRotation(_sensorToWorldMatrix);
+            glm::quat sensorToWorldRotation = glm::normalize(glm::quat_cast(_sensorToWorldMatrix));
             _followVelocity = _followSpeed * glm::normalize(sensorToWorldRotation * offset);
         }
     }
