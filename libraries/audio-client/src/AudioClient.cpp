@@ -142,7 +142,8 @@ void AudioClient::reset() {
     _toneSource.reset();
     _sourceGain.reset();
     _inputGain.reset();
-    _stereoReverb.reset();
+    _sourceReverb.reset();
+    _listenerReverb.reset();
 }
 
 void AudioClient::audioMixerKilled() {
@@ -539,7 +540,7 @@ bool AudioClient::switchOutputToAudioDevice(const QString& outputDeviceName) {
 
 void AudioClient::configureReverb() {
     ReverbParameters p;
-    _stereoReverb.getParameters(&p);
+    _listenerReverb.getParameters(&p);
 
     // for now, reuse the gverb parameters
     p.sampleRate = _outputFormat.sampleRate();
@@ -547,11 +548,19 @@ void AudioClient::configureReverb() {
     p.reverbTime = _reverbOptions->getReverbTime();
     p.highGain = -24.0f * _reverbOptions->getDamping();
     p.bandwidth = 12000.0f * _reverbOptions->getInputBandwidth();
-    //p.earlyGain = _reverbOptions->getEarlyLevel();
-    //p.lateGain = _reverbOptions->getTailLevel();
-    p.wetDryMix = _shouldEchoLocally ? powf(10.0f, _reverbOptions->getWetLevel() * (1/20.0f)) : 100.0f;
+    p.earlyGain = _reverbOptions->getEarlyLevel();
+    p.lateGain = _reverbOptions->getTailLevel();
+    p.wetDryMix = 100.0f * powf(10.0f, _reverbOptions->getWetLevel() * (1/20.0f));
+    _listenerReverb.setParameters(&p);
 
-    _stereoReverb.setParameters(&p);
+    // used for adding self-reverb to loopback audio
+    p.wetDryMix = _shouldEchoLocally ? 0.0f : 100.0f;   // local echo is 100% dry
+    p.preDelay = 0.0f;
+    p.earlyGain = -96.0f;   // disable ER
+    p.lateGain -= 6.0f;     // quieter than listener reverb
+    p.lateMixLeft = 0.0f;
+    p.lateMixRight = 0.0f;
+    _sourceReverb.setParameters(&p);
 }
 
 void AudioClient::updateReverbOptions() {
@@ -585,7 +594,8 @@ void AudioClient::setReverb(bool reverb) {
     _reverb = reverb;
 
     if (!_reverb) {
-        _stereoReverb.reset();
+        _sourceReverb.reset();
+        _listenerReverb.reset();
     }
 }
 
@@ -654,11 +664,11 @@ void AudioClient::handleLocalEchoAndReverb(QByteArray& inputByteArray) {
                        numInputSamples, numLoopbackSamples,
                        _inputFormat, _outputFormat);
 
+    // apply stereo reverb at the source, to the loopback audio
     if (hasReverb) {
-        // always use the stereo reverb output
         assert(_outputFormat.channelCount() == 2);
         updateReverbOptions();
-        _stereoReverb.render(loopbackSamples, loopbackSamples, numLoopbackSamples/2);
+        _sourceReverb.render(loopbackSamples, loopbackSamples, numLoopbackSamples/2);
     }
 
     _loopbackOutputDevice->write(loopBackByteArray);
@@ -867,12 +877,20 @@ void AudioClient::processReceivedSamples(const QByteArray& inputBuffer, QByteArr
     outputBuffer.resize(numDeviceOutputSamples * sizeof(int16_t));
 
     const int16_t* receivedSamples = reinterpret_cast<const int16_t*>(inputBuffer.data());
+    int16_t* outputSamples = reinterpret_cast<int16_t*>(outputBuffer.data());
 
     // copy the packet from the RB to the output
-    possibleResampling(_networkToOutputResampler, receivedSamples,
-                       reinterpret_cast<int16_t*>(outputBuffer.data()),
+    possibleResampling(_networkToOutputResampler, receivedSamples, outputSamples,
                        numNetworkOutputSamples, numDeviceOutputSamples,
                        _desiredOutputFormat, _outputFormat);
+
+    // apply stereo reverb at the listener, to the received audio
+    bool hasReverb = _receivedAudioStream.hasReverb();
+    if (hasReverb) {
+        assert(_outputFormat.channelCount() == 2);
+        updateReverbOptions();
+        _listenerReverb.render(outputSamples, outputSamples, numDeviceOutputSamples/2);
+    }
 }
 
 void AudioClient::sendMuteEnvironmentPacket() {

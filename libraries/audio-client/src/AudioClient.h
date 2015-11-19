@@ -261,7 +261,8 @@ private:
     AudioEffectOptions _scriptReverbOptions;
     AudioEffectOptions _zoneReverbOptions;
     AudioEffectOptions* _reverbOptions;
-    AudioReverb _stereoReverb { AudioConstants::SAMPLE_RATE };
+    AudioReverb _sourceReverb { AudioConstants::SAMPLE_RATE };
+    AudioReverb _listenerReverb { AudioConstants::SAMPLE_RATE };
 
     // possible streams needed for resample
     AudioSRC* _inputToNetworkResampler;
