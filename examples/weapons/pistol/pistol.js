@@ -40,7 +40,6 @@
             Overlays.editOverlay(this.laser, {
                 visible: true
             });
-            print("EQUIP")
         },
 
         continueNearGrab: function() {
@@ -67,7 +66,6 @@
         },
 
         unequip: function() {
-            print("UNEQUIP")
             this.hand = null;
             this.equipped = false;
             Overlays.editOverlay(this.laser, {
@@ -77,7 +75,6 @@
 
         preload: function(entityID) {
             this.entityID = entityID;
-            print("INIT CONTROLLER MAPIING")
             this.initControllerMapping();
             this.laser = Overlays.addOverlay("line3d", {
                 start: ZERO_VECTOR,
@@ -90,7 +87,6 @@
         },
 
         triggerPress: function(hand, value) {
-            print("TRIGGER PRESS");
             if (this.hand === hand && value === 1) {
                 //We are pulling trigger on the hand we have the gun in, so fire
                 this.fire();
