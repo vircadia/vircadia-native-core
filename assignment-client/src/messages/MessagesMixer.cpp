@@ -47,7 +47,6 @@ void MessagesMixer::handleMessages(QSharedPointer<NLPacketList> packetList, Shar
     QString channel, message;
     QUuid senderID;
     MessagesClient::decodeMessagesPacket(packetList, channel, message, senderID);
-    Q_ASSERT(senderNode->getUUID() == senderID); // NOTE: do we want to reject messages that come from bogus senders
 
     auto nodeList = DependencyManager::get<NodeList>();
 
