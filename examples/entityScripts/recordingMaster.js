@@ -32,12 +32,13 @@ var TIMEOUT = 20;
 var toolBar = null;
 var recordIcon;
 var isRecording = false;
-var results = [];
-var performanceJSON = null;
+var avatarClips = [];
+var performanceJSON = { "avatarClips" : [] };
 var responsesExpected = 0;
 var waitingForPerformanceFile = true;
 var totalWaitingTime = 0;
 var extension = "txt";
+
 
 Messages.subscribe(CLIENTS_TO_MASTER_CHANNEL);
 setupToolBar();
@@ -81,35 +82,26 @@ function mousePressEvent(event) {
 }
 
 function masterReceivingMessage(channel, message, senderID) {
-        if(channel === CLIENTS_TO_MASTER_CHANNEL) {
+        if (channel === CLIENTS_TO_MASTER_CHANNEL) {
             print("MASTER received message:" + message );
-            if(message === PARTICIPATING_MESSAGE){
+            if (message === PARTICIPATING_MESSAGE) {
                 //increment the counter of all the participants
                 responsesExpected++;
-            } else if(waitingForPerformanceFile) {
-                //I get a atp url from one participant
-                results[results.length] = message;
-                var textJSON = '{ "results" : [';
-                for (var index = 0; index < results.length; index++) {
-                    var newRecord = index === (results.length - 1) ? '{ "hashATP":"' + results[index] + '" }' : '{ "hashATP":"' + results[index] + '" },';
-                    textJSON += newRecord;
-                }
-                textJSON += ']}';
-                performanceJSON = JSON.parse(textJSON);
+            } else if (waitingForPerformanceFile) {
+                //I get an atp url from one participant
+                performanceJSON.avatarClips[performanceJSON.avatarClips.length] = message;
             }
             
         }
     }
 
 function update(deltaTime) {
-    if(waitingForPerformanceFile) {
+    if (waitingForPerformanceFile) {
         totalWaitingTime += deltaTime;
-        if(totalWaitingTime > TIMEOUT || results.length === responsesExpected) {
-            //I can upload the performance file on the asset
+        if (totalWaitingTime > TIMEOUT || performanceJSON.avatarClips.length === responsesExpected) {
             print("UPLOADING PERFORMANCE FILE");
-            print(JSON.stringify(performanceJSON));
-            if(performanceJSON !== null) {
-                //upload
+            if (performanceJSON.avatarClips.length !== 0) {
+                //I can upload the performance file on the asset
                 Assets.uploadData(JSON.stringify(performanceJSON), extension, uploadFinished);
             }
             //clean things after upload performance file to asset
@@ -117,26 +109,28 @@ function update(deltaTime) {
             responsesExpected = 0;
             totalWaitingTime = 0;
             Script.update.disconnect(update);
-            results = [];
-            performanceJSON = null;
+            avatarClips = [];
+            performanceJSON = { "avatarClips" : [] };
         }
     }
 }
 
 function uploadFinished(url){
-    print("data uploaded to:" + url);
+    print("some info:");
+    print("performance file uploaded to: " + url);
     uploadedFile = url;
     Assets.downloadData(url, function (data) {
-        print("data downloaded from:" + url + " the data is: ");
         printPerformanceJSON(JSON.parse(data));
     });
+    //need to print somehow the url here //this way the master can copy the url
+    //Window.prompt(url);     
 }
 
 function printPerformanceJSON(obj) {
-    var results = obj.results;
-    results.forEach(function(param) {
-        var hash = param.hashATP;
-        print("url obtained: " + hash);
+    print("downloaded performance file from asset and examinating its content...");
+    var avatarClips = obj.avatarClips;
+    avatarClips.forEach(function(param) {
+        print("clip url obtained: " + param);
     });
 }
 
