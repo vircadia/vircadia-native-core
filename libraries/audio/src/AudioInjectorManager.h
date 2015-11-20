@@ -33,9 +33,19 @@ public:
 private slots:
     void run();
 private:
+    
     using InjectorQPointer = QPointer<AudioInjector>;
     using TimeInjectorPointerPair = std::pair<uint64_t, InjectorQPointer>;
-    using InjectorQueue = std::queue<TimeInjectorPointerPair>;
+    
+    struct greaterTime {
+        bool operator() (const TimeInjectorPointerPair& x, const TimeInjectorPointerPair& y) const {
+            return x.first > y.first;
+        }
+    };
+    
+    using InjectorQueue = std::priority_queue<TimeInjectorPointerPair,
+                                              std::deque<TimeInjectorPointerPair>,
+                                              greaterTime>;
     using Mutex = std::mutex;
     using Lock = std::unique_lock<Mutex>;
     
@@ -57,5 +67,7 @@ private:
     
     friend class AudioInjector;
 };
+
+
 
 #endif // hifi_AudioInjectorManager_h

@@ -26,7 +26,7 @@ AudioInjectorManager::~AudioInjectorManager() {
     // make sure any still living injectors are stopped and deleted
     while (!_injectors.empty()) {
         // grab the injector at the front
-        auto& timePointerPair = _injectors.front();
+        auto& timePointerPair = _injectors.top();
         
         // ask it to stop and be deleted
         timePointerPair.second->stopAndDeleteLater();
@@ -67,7 +67,7 @@ void AudioInjectorManager::run() {
             // when does the next injector need to send a frame?
             // do we get to wait or should we just go for it now?
             
-            auto timeInjectorPair = _injectors.front();
+            auto timeInjectorPair = _injectors.top();
             
             auto nextTimestamp = timeInjectorPair.first;
             int64_t difference = int64_t(nextTimestamp - usecTimestampNow());
@@ -78,7 +78,7 @@ void AudioInjectorManager::run() {
             
             if (_injectors.size() > 0) {
                 // loop through the injectors in the map and send whatever frames need to go out
-                auto front = _injectors.front();
+                auto front = _injectors.top();
                 while (_injectors.size() > 0 && front.first <= usecTimestampNow()) {
                     // either way we're popping this injector off - get a copy first
                     auto injector = front.second;
@@ -90,11 +90,11 @@ void AudioInjectorManager::run() {
                         
                         if (nextCallDelta > 0 && !injector->isFinished()) {
                             // re-enqueue the injector with the correct timing
-                            _injectors.push({ usecTimestampNow() + nextCallDelta, injector });
+                            _injectors.emplace(usecTimestampNow() + nextCallDelta, injector);
                         }
                     }
                     
-                    front = _injectors.front();
+                    front = _injectors.top();
                 }
             }
 
