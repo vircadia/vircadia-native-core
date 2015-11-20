@@ -23,7 +23,6 @@
 #include "AnimClip.h"
 #include "IKTarget.h"
 
-// TODO: maybe move into GLMHelpers?
 static bool isEqual(const glm::vec3& u, const glm::vec3& v) {
     const float EPSILON = 0.0001f;
     return glm::length(u - v) / glm::length(u) <= EPSILON;
@@ -378,7 +377,7 @@ bool Rig::getJointTranslation(int jointIndex, glm::vec3& translation) const {
 }
 
 bool Rig::getJointCombinedRotation(int jointIndex, glm::quat& result, const glm::quat& rotation) const {
-    // AJT: WTF IS THIS?
+    // AJT: TODO: used by attachments
     ASSERT(false);
     return false;
 }
@@ -893,7 +892,6 @@ void Rig::updateEyeJoint(int index, const glm::vec3& modelTranslation, const glm
 }
 
 glm::vec3 Rig::avatarToGeometry(const glm::vec3& pos) const {
-    // AJT: TODO cache transform
     glm::quat yFlip = glm::angleAxis(PI, glm::vec3(0.0f, 1.0f, 0.0f));
     AnimPose geometryToAvatarTransform = AnimPose(glm::vec3(1), yFlip, glm::vec3()) * _modelOffset * _geometryOffset;
     glm::vec3 result = geometryToAvatarTransform.inverse() * pos;
@@ -901,14 +899,12 @@ glm::vec3 Rig::avatarToGeometry(const glm::vec3& pos) const {
 }
 
 glm::quat Rig::avatarToGeometryNegZForward(const glm::quat& quat) const {
-    // AJT: TODO cache transform
     AnimPose yFlip(glm::vec3(1), glm::angleAxis(PI, glm::vec3(0.0f, 1.0f, 0.0f)), glm::vec3());
     AnimPose geometryToAvatarTransform = yFlip * _modelOffset * _geometryOffset;
     return (geometryToAvatarTransform.inverse() * AnimPose(glm::vec3(1), quat, glm::vec3()) * yFlip).rot;
 }
 
 glm::quat Rig::avatarToGeometryZForward(const glm::quat& quat) const {
-    // AJT: TODO cache transform
     AnimPose yFlip(glm::vec3(1), glm::angleAxis(PI, glm::vec3(0.0f, 1.0f, 0.0f)), glm::vec3());
     AnimPose geometryToAvatarTransform = yFlip * _modelOffset * _geometryOffset;
     return (geometryToAvatarTransform.inverse() * AnimPose(glm::vec3(1), quat, glm::vec3())).rot;

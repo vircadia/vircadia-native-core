@@ -33,11 +33,6 @@ public:
     virtual void updateRig(float deltaTime, glm::mat4 parentTransform) override;
     void updateAttitude();
 
-    // AJT: REMOVE
-    /*
-    void renderIKConstraints(gpu::Batch& batch);
-    */
-
     /// Returns the index of the left hand joint, or -1 if not found.
     int getLeftHandJointIndex() const { return isActive() ? _geometry->getFBXGeometry().leftHandJointIndex : -1; }
 
@@ -85,13 +80,6 @@ public:
     bool getNeckPosition(glm::vec3& neckPosition) const;
 
     bool getLocalNeckPosition(glm::vec3& neckPosition) const;
-
-    // AJT: REMOVE
-    /*
-    /// Returns the rotation of the neck joint's parent from default orientation
-    /// \return whether or not the neck was found
-    bool getNeckParentRotationFromDefaultOrientation(glm::quat& neckParentRotation) const;
-    */
 
     /// Retrieve the positions of up to two eye meshes.
     /// \return whether or not both eye meshes were found

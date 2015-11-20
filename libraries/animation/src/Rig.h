@@ -112,8 +112,6 @@ public:
     bool getJointTranslation(int jointIndex, glm::vec3& translation) const;
     bool getJointCombinedRotation(int jointIndex, glm::quat& result, const glm::quat& rotation) const;
     glm::mat4 getJointTransform(int jointIndex) const;
-    glm::mat4 getJointVisibleTransform(int jointIndex) const;
-    void setJointVisibleTransform(int jointIndex, glm::mat4 newTransform);
     // Start or stop animations as needed.
     void computeMotionAnimationState(float deltaTime, const glm::vec3& worldPosition, const glm::vec3& worldVelocity, const glm::quat& worldRotation);
     // Regardless of who started the animations or how many, update the joints.

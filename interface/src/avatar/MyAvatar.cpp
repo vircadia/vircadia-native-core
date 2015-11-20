@@ -505,15 +505,6 @@ void MyAvatar::render(RenderArgs* renderArgs, const glm::vec3& cameraPosition) {
     }
 
     Avatar::render(renderArgs, cameraPosition);
-
-    // AJT: REMOVE
-    /*
-    // don't display IK constraints in shadow mode
-    if (Menu::getInstance()->isOptionChecked(MenuOption::ShowIKConstraints) &&
-        renderArgs && renderArgs->_batch) {
-        _skeletonModel.renderIKConstraints(*renderArgs->_batch);
-    }
-    */
 }
 
 void MyAvatar::clearReferential() {

@@ -65,15 +65,6 @@ void SkeletonModel::initJointStates() {
         _defaultEyeModelPosition = _defaultEyeModelPosition / _scale;
     }
 
-    /* AJT: DISABLED, only need this to compute bounding shape!
-    // the SkeletonModel override of updateJointState() will clear the translation part
-    // of its root joint and we need that done before we try to build shapes hence we
-    // recompute all joint transforms at this time.
-    for (int i = 0; i < _rig->getJointStateCount(); i++) {
-        _rig->updateJointState(i, rootTransform);
-    }
-    */
-
     computeBoundingShape();
 
     Extents meshExtents = getMeshExtents();
@@ -306,26 +297,6 @@ bool SkeletonModel::getLocalNeckPosition(glm::vec3& neckPosition) const {
     return isActive() && getJointPosition(_geometry->getFBXGeometry().neckJointIndex, neckPosition);
 }
 
-// AJT: REMOVE
-/*
-bool SkeletonModel::getNeckParentRotationFromDefaultOrientation(glm::quat& neckParentRotation) const {
-    if (!isActive()) {
-        return false;
-    }
-    const FBXGeometry& geometry = _geometry->getFBXGeometry();
-    if (geometry.neckJointIndex == -1) {
-        return false;
-    }
-    int parentIndex = geometry.joints.at(geometry.neckJointIndex).parentIndex;
-    glm::quat worldFrameRotation;
-    bool success = getJointRotationInWorldFrame(parentIndex, worldFrameRotation);
-    if (success) {
-        neckParentRotation = worldFrameRotation * _rig->getJointState(parentIndex).getInverseDefaultRotation();
-    }
-    return success;
-}
-*/
-
 bool SkeletonModel::getEyeModelPositions(glm::vec3& firstEyePosition, glm::vec3& secondEyePosition) const {
     if (!isActive()) {
         return false;
@@ -383,7 +354,7 @@ void SkeletonModel::computeBoundingShape() {
     }
 
     /*
-    AJT: HACK DISABLED
+    AJT: TODO HACK DISABLED FIXME
 
     // BOUNDING SHAPE HACK: before we measure the bounds of the joints we use IK to put the
     // hands and feet into positions that are more correct than the default pose.
