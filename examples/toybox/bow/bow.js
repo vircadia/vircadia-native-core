@@ -216,7 +216,6 @@
             this.updateNotchDetectorPosition();
 
             if (this.hasArrowNotched === false) {
-                this.playArrowNotchSound();
                 this.hasArrowNotched = true
 
                 this.arrowIsBurning = false
@@ -289,6 +288,7 @@
         },
 
         createArrow: function() {
+            this.playArrowNotchSound();
 
             var arrow = Entities.addEntity({
                 name: 'Hifi-Arrow',
@@ -582,10 +582,10 @@
             print('HAND DISTANCE:: ' + pullBackDistance);
             var arrowForce = this.scaleArrowShotStrength(pullBackDistance);
             print('ARROW FORCE::' + arrowForce);
-           // handToNotch = Vec3.normalize(handToNotch)
-              var forwardVec = handToNotch;
-                // var forwardVec = Vec3.multiply(handToNotch, arrowForce);
-           var forwardVec = Vec3.multiply(handToNotch, 2);
+            // handToNotch = Vec3.normalize(handToNotch)
+            var forwardVec = handToNotch;
+            // var forwardVec = Vec3.multiply(handToNotch, arrowForce);
+            var forwardVec = Vec3.multiply(handToNotch, 2);
             var arrowProperties = {
                 //  rotation: arrowRotation,
                 velocity: forwardVec,
@@ -612,16 +612,16 @@
             //set an itnerval to heck how far the arrow is from the bow before adding gravity, etc.  if we add this too soon, the arrow collides with the bow.  hence, this function
 
             var physicalArrowInterval = Script.setInterval(function() {
-              //  print('in physical interval')
+                //  print('in physical interval')
                 var arrowProps = Entities.getEntityProperties(arrowStore, "position");
                 var bowProps = Entities.getEntityProperties(_this.entityID, "position");
                 var arrowPosition = arrowProps.position;
                 var bowPosition = bowProps.position;
 
                 var length = Vec3.distance(arrowPosition, bowPosition);
-               // print('LENGTH:::' + length);
+                // print('LENGTH:::' + length);
                 if (length > 2) {
-                  print('make arrow physical' + arrowStore)
+                    print('make arrow physical' + arrowStore)
                     Entities.editEntity(arrowStore, {
                         ignoreForCollisions: false,
                         collisionsWillMove: true
