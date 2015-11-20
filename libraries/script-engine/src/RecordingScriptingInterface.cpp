@@ -190,14 +190,7 @@ bool RecordingScriptingInterface::saveRecordingToAsset(QScriptValue getClipAtpUr
         return false;
     }
 
-    //QString filename = "./temp.hfr";
-    //recording::Clip::toFile(filename, _lastClip);
-
-    //QUrl url{ filename };
-
-    //if (auto upload = DependencyManager::get<AssetClient>()->createUpload(url.toLocalFile())) { 
-	
-	if (auto upload = DependencyManager::get<AssetClient>()->createUpload(recording::Clip::toBuffer(_lastClip), HFR_EXTENSION)) {
+    if (auto upload = DependencyManager::get<AssetClient>()->createUpload(recording::Clip::toBuffer(_lastClip), HFR_EXTENSION)) {
         QObject::connect(upload, &AssetUpload::finished, this, [=](AssetUpload* upload, const QString& hash) mutable {
             auto filename = QFileInfo(upload->getFilename()).fileName();
             QString clip_atp_url = "";
