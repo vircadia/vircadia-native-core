@@ -12,10 +12,13 @@
 #ifndef hifi_RenderablePolyLineEntityItem_h
 #define hifi_RenderablePolyLineEntityItem_h
 
+
 #include <gpu/Batch.h>
+#include <GeometryCache.h>
 #include <PolyLineEntityItem.h>
 #include "RenderableEntityItem.h"
-#include <GeometryCache.h>
+#include <TextureCache.h>
+
 #include <QReadWriteLock>
 
 
@@ -29,9 +32,10 @@ public:
     
     SIMPLE_RENDERABLE();
     
+    NetworkTexturePointer _texture;
+
     static gpu::PipelinePointer _pipeline;
     static gpu::Stream::FormatPointer _format;
-    static gpu::TexturePointer _texture;
     static int32_t PAINTSTROKE_GPU_SLOT;
     
 protected:

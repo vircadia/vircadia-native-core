@@ -8,14 +8,15 @@
 
 #include "RecordingScriptingInterface.h"
 
-#include <QThread>
+#include <QtCore/QThread>
 
+#include <NumericalConstants.h>
+#include <Transform.h>
 #include <recording/Deck.h>
 #include <recording/Recorder.h>
 #include <recording/Clip.h>
 #include <recording/Frame.h>
-#include <NumericalConstants.h>
-#include <Transform.h>
+#include <recording/ClipCache.h>
 
 #include "ScriptEngineLogging.h"
 
@@ -43,21 +44,24 @@ float RecordingScriptingInterface::playerLength() const {
     return _player->length();
 }
 
-void RecordingScriptingInterface::loadRecording(const QString& filename) {
+bool RecordingScriptingInterface::loadRecording(const QString& url) {
     using namespace recording;
 
-    if (QThread::currentThread() != thread()) {
-        QMetaObject::invokeMethod(this, "loadRecording", Qt::BlockingQueuedConnection,
-            Q_ARG(QString, filename));
-        return;
+    auto loader = ClipCache::instance().getClipLoader(url);
+    QEventLoop loop;
+    QObject::connect(loader.data(), &Resource::loaded, &loop, &QEventLoop::quit);
+    QObject::connect(loader.data(), &Resource::failed, &loop, &QEventLoop::quit);
+    loop.exec();
+
+    if (!loader->isLoaded()) {
+        qWarning() << "Clip failed to load from " << url;
+        return false;
     }
 
-    ClipPointer clip = Clip::fromFile(filename);
-    if (!clip) {
-        qWarning() << "Unable to load clip data from " << filename;
-    }
-    _player->queueClip(clip);
+    _player->queueClip(loader->getClip());
+    return true;
 }
+
 
 void RecordingScriptingInterface::startPlaying() {
     if (QThread::currentThread() != thread()) {

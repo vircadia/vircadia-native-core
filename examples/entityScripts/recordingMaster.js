@@ -27,7 +27,6 @@ var toolBar = null;
 var recordIcon;
 var isRecording = false;
 var channel = "groupRecordingChannel";
-Messages.subscribe(channel);
 setupToolBar();
 
 function setupToolBar() {

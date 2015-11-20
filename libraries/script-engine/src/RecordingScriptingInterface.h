@@ -12,7 +12,7 @@
 #include <atomic>
 #include <mutex>
 
-#include <QObject>
+#include <QtCore/QObject>
 
 #include <DependencyManager.h>
 #include <recording/Forward.h>
@@ -25,7 +25,7 @@ public:
     RecordingScriptingInterface();
 
 public slots:
-    void loadRecording(const QString& filename);
+    bool loadRecording(const QString& url);
 
     void startPlaying();
     void pausePlayer();
