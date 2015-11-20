@@ -458,7 +458,6 @@ Menu::Menu() {
     addCheckableActionToQMenuAndActionHash(handOptionsMenu, MenuOption::EnableHandMouseInput, 0, false);
     addCheckableActionToQMenuAndActionHash(handOptionsMenu, MenuOption::LowVelocityFilter, 0, true,
                                            qApp, SLOT(setLowVelocityFilter(bool)));
-    addCheckableActionToQMenuAndActionHash(handOptionsMenu, MenuOption::ShowIKConstraints, 0, false);
 
     MenuWrapper* leapOptionsMenu = handOptionsMenu->addMenu("Leap Motion");
     addCheckableActionToQMenuAndActionHash(leapOptionsMenu, MenuOption::LeapMotionOnHMD, 0, false);

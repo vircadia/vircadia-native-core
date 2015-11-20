@@ -102,8 +102,11 @@ public:
     void reset(const QVector<FBXJoint>& fbxJoints);
     bool getJointStateRotation(int index, glm::quat& rotation) const;
     bool getJointStateTranslation(int index, glm::vec3& translation) const;
+    // AJT: REMOVE
+    /*
     void applyJointRotationDelta(int jointIndex, const glm::quat& delta, float priority);
     JointState getJointState(int jointIndex) const; // XXX
+    */
     void clearJointState(int index);
     void clearJointStates();
     void clearJointAnimationPriority(int index);

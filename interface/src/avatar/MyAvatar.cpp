@@ -268,7 +268,6 @@ void MyAvatar::simulate(float deltaTime) {
     {
         PerformanceTimer perfTimer("joints");
         // copy out the skeleton joints from the model
-        _jointData.resize(_rig->getJointStateCount());
         _rig->copyJointsIntoJointData(_jointData);
     }
 
@@ -507,11 +506,14 @@ void MyAvatar::render(RenderArgs* renderArgs, const glm::vec3& cameraPosition) {
 
     Avatar::render(renderArgs, cameraPosition);
 
+    // AJT: REMOVE
+    /*
     // don't display IK constraints in shadow mode
     if (Menu::getInstance()->isOptionChecked(MenuOption::ShowIKConstraints) &&
         renderArgs && renderArgs->_batch) {
         _skeletonModel.renderIKConstraints(*renderArgs->_batch);
     }
+    */
 }
 
 void MyAvatar::clearReferential() {
@@ -1285,7 +1287,7 @@ void MyAvatar::preRender(RenderArgs* renderArgs) {
 
             auto rig = _skeletonModel.getRig();
 
-            // build AnimPoseVec from JointStates.
+            // build absolute AnimPoseVec from rig
             AnimPoseVec absPoses;
             absPoses.reserve(_debugDrawSkeleton->getNumJoints());
             for (int i = 0; i < _rig->getJointStateCount(); i++) {

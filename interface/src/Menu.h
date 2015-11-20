@@ -271,7 +271,6 @@ namespace MenuOption {
     const QString ScriptedMotorControl = "Enable Scripted Motor Control";
     const QString ShowDSConnectTable = "Show Domain Connection Timing";
     const QString ShowBordersEntityNodes = "Show Entity Nodes";
-    const QString ShowIKConstraints = "Show IK Constraints";
     const QString ShowRealtimeEntityStats = "Show Realtime Entity Stats";
     const QString ShowWhosLookingAtMe = "Show Who's Looking at Me";
     const QString StandingHMDSensorMode = "Standing HMD Sensor Mode";

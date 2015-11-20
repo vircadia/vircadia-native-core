@@ -299,12 +299,15 @@ void Rig::reset(const QVector<FBXJoint>& fbxJoints) {
     }
 }
 
+// AJT: REMOVE
+/*
 JointState Rig::getJointState(int jointIndex) const {
     if (jointIndex == -1 || jointIndex >= _jointStates.size()) {
         return JointState();
     }
     return _jointStates[jointIndex];
 }
+*/
 
 bool Rig::getJointStateRotation(int index, glm::quat& rotation) const {
     if (AJT_HACK_USE_JOINT_STATES) { // AJT: LEGACY
@@ -453,7 +456,7 @@ bool Rig::getJointRotation(int jointIndex, glm::quat& rotation) const {
         rotation = _jointStates[jointIndex].getRotation();
     }
 
-    if (jointIndex >= 0 && jointIndex < _relativePoses.size()) {
+    if (jointIndex >= 0 && jointIndex < (int)_relativePoses.size()) {
         rotation = _relativePoses[jointIndex].rot;
         return true;
     } else {
@@ -470,7 +473,7 @@ bool Rig::getJointTranslation(int jointIndex, glm::vec3& translation) const {
         translation = _jointStates[jointIndex].getTranslation();
     }
 
-    if (jointIndex >= 0 && jointIndex < _relativePoses.size()) {
+    if (jointIndex >= 0 && jointIndex < (int)_relativePoses.size()) {
         translation = _relativePoses[jointIndex].trans;
         return true;
     } else {
@@ -1020,12 +1023,14 @@ void Rig::clearJointStatePriorities() {
     }
 }
 
+/*
 void Rig::applyJointRotationDelta(int jointIndex, const glm::quat& delta, float priority) {
     if (jointIndex == -1 || _jointStates.isEmpty()) {
         return;
     }
     _jointStates[jointIndex].applyRotationDelta(delta, priority);
 }
+*/
 
 glm::quat Rig::getJointDefaultRotationInParentFrame(int jointIndex) {
     if (jointIndex == -1 || _jointStates.isEmpty()) {
@@ -1400,6 +1405,7 @@ glm::mat4 Rig::getJointTransform(int jointIndex) const {
 }
 
 void Rig::copyJointsIntoJointData(QVector<JointData>& jointDataVec) const {
+    jointDataVec.resize(getJointStateCount());
     for (int i = 0; i < jointDataVec.size(); i++) {
         JointData& data = jointDataVec[i];
         data.rotationSet |= getJointStateRotation(i, data.rotation);
