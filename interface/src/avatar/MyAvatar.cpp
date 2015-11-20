@@ -269,12 +269,7 @@ void MyAvatar::simulate(float deltaTime) {
         PerformanceTimer perfTimer("joints");
         // copy out the skeleton joints from the model
         _jointData.resize(_rig->getJointStateCount());
-
-        for (int i = 0; i < _jointData.size(); i++) {
-            JointData& data = _jointData[i];
-            data.rotationSet |= _rig->getJointStateRotation(i, data.rotation);
-            data.translationSet |= _rig->getJointStateTranslation(i, data.translation);
-        }
+        _rig->copyJointsIntoJointData(_jointData);
     }
 
     {

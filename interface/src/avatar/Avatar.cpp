@@ -202,12 +202,7 @@ void Avatar::simulate(float deltaTime) {
     if (!_shouldRenderBillboard && inViewFrustum) {
         {
             PerformanceTimer perfTimer("skeleton");
-            for (int i = 0; i < _jointData.size(); i++) {
-                const JointData& data = _jointData.at(i);
-                _skeletonModel.setJointRotation(i, data.rotationSet, data.rotation, 1.0f);
-                _skeletonModel.setJointTranslation(i, data.translationSet, data.translation, 1.0f);
-            }
-
+            _skeletonModel.getRig()->copyJointsFromJointData(_jointData);
             _skeletonModel.simulate(deltaTime, _hasNewJointRotations || _hasNewJointTranslations);
             simulateAttachments(deltaTime);
             _hasNewJointRotations = false;

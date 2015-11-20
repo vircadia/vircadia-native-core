@@ -1380,3 +1380,22 @@ glm::mat4 Rig::getJointTransform(int jointIndex) const {
     }
 }
 
+void Rig::copyJointsIntoJointData(QVector<JointData>& jointDataVec) const {
+    for (int i = 0; i < jointDataVec.size(); i++) {
+        JointData& data = jointDataVec[i];
+        data.rotationSet |= getJointStateRotation(i, data.rotation);
+        // geometry offset is used here so that translations are in meters.
+        // this is what the avatar mixer expects
+        data.translationSet |= getJointStateTranslation(i, _geometryOffset * data.translation);
+    }
+}
+
+void Rig::copyJointsFromJointData(const QVector<JointData>& jointDataVec) {
+    AnimPose invGeometryOffset = _geometryOffset.inverse();
+    for (int i = 0; i < jointDataVec.size(); i++) {
+        const JointData& data = jointDataVec.at(i);
+        setJointRotation(i, data.rotationSet, data.rotation, 1.0f);
+        // geometry offset is used here to undo the fact that avatar mixer translations are in meters.
+        setJointTranslation(i, data.translationSet, invGeometryOffset * data.translation, 1.0f);
+    }
+}

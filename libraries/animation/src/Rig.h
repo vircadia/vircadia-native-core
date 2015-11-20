@@ -18,6 +18,7 @@
 #include <QMutex>
 #include <QScriptValue>
 #include <vector>
+#include <JointData.h>
 
 #include "JointState.h"  // We might want to change this (later) to something that doesn't depend on gpu, fbx and model. -HRS
 
@@ -162,6 +163,8 @@ public:
 
     const glm::vec3& getEyesInRootFrame() const { return _eyesInRootFrame; }
 
+    void copyJointsIntoJointData(QVector<JointData>& jointDataVec) const;
+    void copyJointsFromJointData(const QVector<JointData>& jointDataVec);
 
  protected:
     void updateAnimationStateHandlers();
