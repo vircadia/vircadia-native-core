@@ -163,6 +163,12 @@ void Agent::requestScript() {
     QNetworkRequest networkRequest = QNetworkRequest(scriptURL);
     networkRequest.setHeader(QNetworkRequest::UserAgentHeader, HIGH_FIDELITY_USER_AGENT);
     
+    // setup a timeout for script request
+    static const int SCRIPT_TIMEOUT_MS = 10000;
+    _scriptRequestTimeout = new QTimer(this);
+    connect(_scriptRequestTimeout, &QTimer::timeout, this, &Agent::scriptRequestFinished);
+    _scriptRequestTimeout->start(SCRIPT_TIMEOUT_MS);
+    
     qDebug() << "Downloading script at" << scriptURL.toString();
     QNetworkReply* reply = networkAccessManager.get(networkRequest);
     connect(reply, &QNetworkReply::finished, this, &Agent::scriptRequestFinished);
@@ -170,8 +176,10 @@ void Agent::requestScript() {
 
 void Agent::scriptRequestFinished() {
     auto reply = qobject_cast<QNetworkReply*>(sender());
+
+    _scriptRequestTimeout->stop();
     
-    if (reply->error() != QNetworkReply::NoError) {
+    if (reply && reply->error() == QNetworkReply::NoError) {
         _scriptContents = reply->readAll();
         qDebug() << "Downloaded script:" << _scriptContents;
         
@@ -179,8 +187,13 @@ void Agent::scriptRequestFinished() {
         // to return before calling executeScript
         QMetaObject::invokeMethod(this, "executeScript", Qt::QueuedConnection);
     } else {
-        qDebug() << "Failed to download script at" << reply->url().toString() << " - bailing on assignment.";
-        qDebug() << "QNetworkReply error was" << reply->errorString();
+        if (reply) {
+            qDebug() << "Failed to download script at" << reply->url().toString() << " - bailing on assignment.";
+            qDebug() << "QNetworkReply error was" << reply->errorString();
+        } else {
+            qDebug() << "Failed to download script - request timed out. Bailing on assignment.";
+        }
+        
         setFinished(true);
     }
     

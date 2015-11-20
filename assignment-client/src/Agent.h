@@ -78,6 +78,7 @@ private:
     void sendAvatarBillboardPacket();
 
     QString _scriptContents;
+    QTimer* _scriptRequestTimeout { nullptr };
     bool _isListeningToAudioStream = false;
     Sound* _avatarSound = nullptr;
     int _numAvatarSoundSentBytes = 0;
