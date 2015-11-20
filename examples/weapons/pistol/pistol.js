@@ -26,11 +26,12 @@
         _this = this;
         this.equipped = false;
         this.forceMultiplier = 1;
+        this.laserLength = 100;
         this.laserOffsets = {
-            y: .15,
+            y: .095
         };
         this.firingOffsets = {
-            z: 0.3
+            z: 0.16
         }
         this.fireSound = SoundCache.getSound("https://s3.amazonaws.com/hifi-public/sounds/Guns/GUN-SHOT2.raw");
         this.fireVolume = 0.5;
@@ -79,7 +80,7 @@
             this.firingDirection = Quat.getFront(rotation);
             var upVec = Quat.getUp(rotation);
             this.barrelPoint = Vec3.sum(position, Vec3.multiply(upVec, this.laserOffsets.y));
-            var laserTip = Vec3.sum(this.barrelPoint, Vec3.multiply(this.firingDirection, 10));
+            var laserTip = Vec3.sum(this.barrelPoint, Vec3.multiply(this.firingDirection, this.laserLength));
             this.barrelPoint = Vec3.sum(this.barrelPoint, Vec3.multiply(this.firingDirection, this.firingOffsets.z))
             Overlays.editOverlay(this.laser, {
                 start: this.barrelPoint,

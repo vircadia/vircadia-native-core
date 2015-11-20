@@ -22,7 +22,7 @@ var shootingRangeFloor = Entities.addEntity({
 })
 
 var monsterPosition = Vec3.sum(MyAvatar.position, Vec3.multiply(3, Quat.getFront(Camera.getOrientation())));
-var monsterURL = "file:///C:/Users/Eric/Desktop/shootingRange/monster1.fbx?v3"
+var monsterURL = "file:///C:/Users/Eric/Desktop/shootingRange/monster2.fbx?v5"
 var monster = Entities.addEntity({
     type: "Model",
     modelURL: monsterURL,
