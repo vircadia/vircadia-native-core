@@ -23,6 +23,17 @@
 #include "AnimClip.h"
 #include "IKTarget.h"
 
+// TODO: maybe move into GLMHelpers?
+static bool isEqual(const glm::vec3& u, const glm::vec3& v) {
+    const float EPSILON = 0.0001f;
+    return glm::length(u - v) / glm::length(u) <= EPSILON;
+}
+
+static bool isEqual(const glm::quat& p, const glm::quat& q) {
+    const float EPSILON = 0.00001f;
+    return 1.0f - fabsf(glm::dot(p, q)) <= EPSILON;
+}
+
 #ifdef NDEBUG
 #define ASSERT(cond)
 #else
@@ -34,6 +45,8 @@
         }                                       \
     } while (0)
 #endif
+
+static bool AJT_HACK_USE_JOINT_STATES = false;
 
 /*
 const glm::vec3 DEFAULT_RIGHT_EYE_POS(-0.3f, 1.6f, 0.0f);
@@ -294,21 +307,39 @@ JointState Rig::getJointState(int jointIndex) const {
 }
 
 bool Rig::getJointStateRotation(int index, glm::quat& rotation) const {
-    if (index == -1 || index >= _jointStates.size()) {
+    if (AJT_HACK_USE_JOINT_STATES) { // AJT: LEGACY
+        if (index == -1 || index >= _jointStates.size()) {
+            return false;
+        }
+        const JointState& state = _jointStates.at(index);
+        rotation = state.getRotationInConstrainedFrame();
+        return !state.rotationIsDefault(rotation);
+    }
+
+    if (index >= 0 && index < (int)_relativePoses.size()) {
+        rotation = _relativePoses[index].rot;
+        return isEqual(rotation, _animSkeleton->getRelativeDefaultPose(index).rot);
+    } else {
         return false;
     }
-    const JointState& state = _jointStates.at(index);
-    rotation = state.getRotationInConstrainedFrame();
-    return !state.rotationIsDefault(rotation);
 }
 
 bool Rig::getJointStateTranslation(int index, glm::vec3& translation) const {
-    if (index == -1 || index >= _jointStates.size()) {
+    if (AJT_HACK_USE_JOINT_STATES) {  // AJT: LEGACY
+        if (index == -1 || index >= _jointStates.size()) {
+            return false;
+        }
+        const JointState& state = _jointStates.at(index);
+        translation = state.getTranslation();
+        return !state.translationIsDefault(translation);
+    }
+
+    if (index >= 0 && index < (int)_relativePoses.size()) {
+        translation = _relativePoses[index].trans;
+        return isEqual(translation, _animSkeleton->getRelativeDefaultPose(index).trans);
+    } else {
         return false;
     }
-    const JointState& state = _jointStates.at(index);
-    translation = state.getTranslation();
-    return !state.translationIsDefault(translation);
 }
 
 void Rig::clearJointState(int index) {
@@ -363,9 +394,11 @@ void Rig::setJointRotation(int index, bool valid, const glm::quat& rotation, flo
     }
 
     if (index >= 0 && index < (int)_overrideFlags.size()) {
-        assert(_overrideFlags.size() == _overridePoses.size());
-        _overrideFlags[index] = true;
-        _overridePoses[index].rot = rotation;
+        if (valid) {
+            assert(_overrideFlags.size() == _overridePoses.size());
+            _overrideFlags[index] = true;
+            _overridePoses[index].rot = rotation;
+        }
     }
 }
 
@@ -753,7 +786,7 @@ void Rig::updateAnimations(float deltaTime, glm::mat4 rootTransform) {
         }
 
         // AJT: LEGACY
-        if (false) {
+        if (AJT_HACK_USE_JOINT_STATES) {
             clearJointStatePriorities();
 
             // copy poses into jointStates
@@ -1309,6 +1342,7 @@ glm::mat4 Rig::getJointTransform(int jointIndex) const {
     }
 
     // check for differences between jointStates and _absolutePoses!
+    // AJT: TODO REMOVE
     if (false) {
 
         glm::mat4 oldMat = _jointStates[jointIndex].getTransform();
@@ -1317,23 +1351,9 @@ glm::mat4 Rig::getJointTransform(int jointIndex) const {
         glm::mat4 newMat = _absolutePoses[jointIndex];
         AnimPose newPose(newMat);
 
-        bool badTrans = false;
-        const float TRANS_EPSILON = 0.001f;
-        if (glm::length(newPose.trans - oldPose.trans) / glm::length(oldPose.trans) > TRANS_EPSILON) {
-            badTrans = true;
-        }
-
-        bool badScale = false;
-        const float SCALE_EPSILON = 0.0001f;
-        if (glm::length(newPose.scale - oldPose.scale) / glm::length(oldPose.scale) > SCALE_EPSILON) {
-            badScale = true;
-        }
-
-        bool badRot = false;
-        const float ROT_EPSILON = 0.00001f;
-        if (1.0f - fabsf(glm::dot(newPose.rot, oldPose.rot)) > ROT_EPSILON) {
-            badRot = true;
-        }
+        bool badTrans = !isEqual(newPose.trans, oldPose.trans);
+        bool badScale = !isEqual(newPose.scale, oldPose.scale);
+        bool badRot = !isEqual(newPose.rot, oldPose.rot);
 
         if (badTrans || badScale || badRot) {
             qCDebug(animation).nospace() << "AJT: mismatch for " << _animSkeleton->getJointName(jointIndex) << ", joint[" << jointIndex << "]";
@@ -1353,10 +1373,10 @@ glm::mat4 Rig::getJointTransform(int jointIndex) const {
     }
 
     // AJT: LEGACY
-    {
-        //return _jointStates[jointIndex].getTransform();
+    if (AJT_HACK_USE_JOINT_STATES) {
+        return _jointStates[jointIndex].getTransform();
+    } else {
+        return _absolutePoses[jointIndex];
     }
-
-    return _absolutePoses[jointIndex];
 }
 
