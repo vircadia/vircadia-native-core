@@ -52,7 +52,11 @@ void MessagesClient::decodeMessagesPacket(QSharedPointer<NLPacketList> packetLis
     message = QString::fromUtf8(messageData);
 
     QByteArray bytesSenderID = packet.read(NUM_BYTES_RFC4122_UUID);
-    senderID = QUuid::fromRfc4122(bytesSenderID);
+    if (bytesSenderID.length() == NUM_BYTES_RFC4122_UUID) {
+        senderID = QUuid::fromRfc4122(bytesSenderID);
+    } else {
+        senderID = QUuid::QUuid(); // packet was missing UUID use default instead
+    }
 }
 
 std::unique_ptr<NLPacketList> MessagesClient::encodeMessagesPacket(QString channel, QString message, QUuid senderID) {
