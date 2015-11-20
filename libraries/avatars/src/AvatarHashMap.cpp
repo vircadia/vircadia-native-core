@@ -23,8 +23,8 @@ AvatarHashMap::AvatarHashMap() {
 }
 
 bool AvatarHashMap::isAvatarInRange(const glm::vec3& position, const float range) {
-    QReadLocker locker(&_hashLock);
-    foreach(const AvatarSharedPointer& sharedAvatar, _avatarHash) {
+    auto hashCopy = _avatarHash;
+    foreach(const AvatarSharedPointer& sharedAvatar, hashCopy) {
         glm::vec3 avatarPosition = sharedAvatar->getPosition();
         float distance = glm::distance(avatarPosition, position);
         if (distance < range) {

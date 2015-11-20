@@ -256,7 +256,6 @@ QVector<AvatarManager::LocalLight> AvatarManager::getLocalLights() const {
 }
 
 QVector<QUuid> AvatarManager::getAvatarIdentifiers() {
-    QReadLocker locker(&_hashLock);
     return _avatarHash.keys().toVector();
 }
 AvatarData* AvatarManager::getAvatar(QUuid avatarID) {
