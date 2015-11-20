@@ -18,8 +18,8 @@ if (WIN32)
   ExternalProject_Add(
     ${EXTERNAL_NAME}
     # URL https://bullet.googlecode.com/files/bullet-2.82-r2704.zip
-    URL http://hifi-public.s3.amazonaws.com/dependencies/bullet-2.82-r2704.zip
-    URL_MD5 f5e8914fc9064ad32e0d62d19d33d977
+    URL http://hifi-public.s3.amazonaws.com/dependencies/bullet-2.82-ccd-fix.zip
+    URL_MD5 d95b07eb120de7dd7786361c0b5a8d9f
     CMAKE_ARGS ${PLATFORM_CMAKE_ARGS} -DCMAKE_INSTALL_PREFIX:PATH=<INSTALL_DIR> -DBUILD_EXTRAS=0 -DINSTALL_LIBS=1 -DBUILD_DEMOS=0 -DUSE_GLUT=0 -DUSE_DX11=0
     LOG_DOWNLOAD 1
     LOG_CONFIGURE 1
@@ -30,8 +30,8 @@ else ()
   ExternalProject_Add(
     ${EXTERNAL_NAME}
     #URL http://bullet.googlecode.com/files/bullet-2.82-r2704.tgz
-    URL http://hifi-public.s3.amazonaws.com/dependencies/bullet-2.82-r2704.tgz
-    URL_MD5 70b3c8d202dee91a0854b4cbc88173e8
+    URL http://hifi-public.s3.amazonaws.com/dependencies/bullet-2.82-ccd-fix.tgz
+    URL_MD5 eae10a936e100ddf9fe7b1645018f561
     CMAKE_ARGS ${PLATFORM_CMAKE_ARGS} -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_INSTALL_PREFIX:PATH=<INSTALL_DIR> -DBUILD_EXTRAS=0 -DINSTALL_LIBS=1 -DBUILD_DEMOS=0 -DUSE_GLUT=0
     LOG_DOWNLOAD 1
     LOG_CONFIGURE 1
