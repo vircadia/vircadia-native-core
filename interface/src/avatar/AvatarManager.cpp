@@ -110,16 +110,22 @@ void AvatarManager::updateMyAvatar(float deltaTime) {
 }
 
 void AvatarManager::updateOtherAvatars(float deltaTime) {
+    // lock the hash for read to check the size
+    QReadLocker lock(&_hashLock);
+    
     if (_avatarHash.size() < 2 && _avatarFades.isEmpty()) {
         return;
     }
+    
+    lock.unlock();
+    
     bool showWarnings = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
     PerformanceWarning warn(showWarnings, "Application::updateAvatars()");
 
     PerformanceTimer perfTimer("otherAvatars");
 
     // simulate avatars
-    auto hashCopy = _avatarHash;
+    auto hashCopy = getHashCopy();
     
     AvatarHash::iterator avatarIterator = hashCopy.begin();
     while (avatarIterator != hashCopy.end()) {
@@ -256,8 +262,10 @@ QVector<AvatarManager::LocalLight> AvatarManager::getLocalLights() const {
 }
 
 QVector<QUuid> AvatarManager::getAvatarIdentifiers() {
+    QReadLocker lock(&_hashLock);
     return _avatarHash.keys().toVector();
 }
+
 AvatarData* AvatarManager::getAvatar(QUuid avatarID) {
     QReadLocker locker(&_hashLock);
     return _avatarHash[avatarID].get();  // Non-obvious: A bogus avatarID answers your own avatar.
