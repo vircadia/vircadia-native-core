@@ -54,8 +54,8 @@
         z: 0
     };
 
-    var ARROW_MODEL_URL = "https://hifi-public.s3.amazonaws.com/models/bow/new/arrow.fbx";
-    var ARROW_COLLISION_HULL_URL = "https://hifi-public.s3.amazonaws.com/models/bow/new/arrow_collision_hull.obj";
+    var ARROW_MODEL_URL = "http://hifi-content.s3.amazonaws.com/james/bow_and_arrow/models/newarrow_textured.fbx";
+    var ARROW_COLLISION_HULL_URL = "http://hifi-content.s3.amazonaws.com/james/bow_and_arrow/models/newarrow_collision_hull.obj";
     var ARROW_SCRIPT_URL = Script.resolvePath('arrow.js');
 
     var ARROW_DIMENSIONS = {
@@ -140,7 +140,6 @@
                 blue: 255
             }
         },
-
         preload: function(entityID) {
             print('preload bow')
             this.entityID = entityID;
@@ -171,7 +170,7 @@
             Entities.deleteEntity(this.notchDetector);
             Entities.deleteEntity(this.preNotchString);
             Entities.deleteEntity(this.arrow);
-            Script.clearInterval(physicalArrowInterval);
+
         },
 
         setLeftHand: function() {
@@ -219,8 +218,7 @@
             if (this.hasArrowNotched === false) {
                 this.playArrowNotchSound();
                 this.hasArrowNotched = true
-                this.arrow = this.createArrow();
-                print('NOTCH ARROW' + this.arrow);
+
                 this.arrowIsBurning = false
                 setEntityCustomData('grabbableKey', this.entityID, {
                     turnOffOtherHand: true,
@@ -303,7 +301,7 @@
                 script: ARROW_SCRIPT_URL,
                 collisionsWillMove: false,
                 ignoreForCollisions: true,
-                collisionSoundURL: 'http://hifi-content.s3.amazonaws.com/bow_and_arrow/sounds/Arrow_impact1.L.wav',
+                collisionSoundURL: 'http://hifi-content.s3.amazonaws.com/james/bow_and_arrow/sounds/Arrow_impact1.L.wav',
                 gravity: ARROW_GRAVITY,
                 linearDamping: 0.01
 
@@ -490,15 +488,17 @@
                 this.updateArrowPositionInNotch();
 
             } else if (this.triggerValue >= DRAW_STRING_THRESHOLD && this.stringDrawn === false) {
+                this.arrow = this.createArrow();
+                print('CREATE ARROW' + this.arrow);
                 //   print('HIT START LOOP IN CHECK')
-                                this.playStringPullSound();
+                this.playStringPullSound();
 
                 //the first time aiming the arrow
                 this.stringDrawn = true;
                 this.createStrings();
                 // var arrowTracker = this.createArrowTracker(this.arrow);
                 // arrowTrackers.push(arrowTracker)
-                
+
                 this.stringData.handPosition = this.getStringHandPosition();
                 this.stringData.handRotation = this.getStringHandRotation();
                 this.stringData.grabHandPosition = this.getGrabHandPosition();
@@ -573,23 +573,23 @@
 
             var handToNotch = Vec3.subtract(this.notchDetectorPosition, this.stringData.handPosition);
             var pullBackDistance = Vec3.length(handToNotch);
-            if (pullBackDistance >= 0.6) {
-                pullBackDistance = 0.6;
-            }
+            // if (pullBackDistance >= 0.6) {
+            //     pullBackDistance = 0.6;
+            // }
 
             var arrowRotation = Quat.rotationBetween(Vec3.FRONT, handToNotch);
 
             print('HAND DISTANCE:: ' + pullBackDistance);
             var arrowForce = this.scaleArrowShotStrength(pullBackDistance);
             print('ARROW FORCE::' + arrowForce);
-            handToNotch = Vec3.normalize(handToNotch)
-                // var forwardVec = handToNotch;
-            var forwardVec = Vec3.multiply(handToNotch, arrowForce);
-
+           // handToNotch = Vec3.normalize(handToNotch)
+              var forwardVec = handToNotch;
+                // var forwardVec = Vec3.multiply(handToNotch, arrowForce);
+           var forwardVec = Vec3.multiply(handToNotch, 2);
             var arrowProperties = {
                 //  rotation: arrowRotation,
                 velocity: forwardVec,
-                lifetime:10
+                lifetime: 10
             };
 
             this.playShootArrowSound();
@@ -612,21 +612,20 @@
             //set an itnerval to heck how far the arrow is from the bow before adding gravity, etc.  if we add this too soon, the arrow collides with the bow.  hence, this function
 
             var physicalArrowInterval = Script.setInterval(function() {
-                print('in physical interval')
+              //  print('in physical interval')
                 var arrowProps = Entities.getEntityProperties(arrowStore, "position");
                 var bowProps = Entities.getEntityProperties(_this.entityID, "position");
                 var arrowPosition = arrowProps.position;
                 var bowPosition = bowProps.position;
 
                 var length = Vec3.distance(arrowPosition, bowPosition);
-                print('LENGTH:::' + length);
+               // print('LENGTH:::' + length);
                 if (length > 2) {
-                    print('make arrow physical' + arrowStore)
+                  print('make arrow physical' + arrowStore)
                     Entities.editEntity(arrowStore, {
                         ignoreForCollisions: false,
                         collisionsWillMove: true
                     });
-                    var arrowProps = Entities.getEntityProperties(arrowStore)
                     Script.clearInterval(physicalArrowInterval);
                 }
             }, 5)
