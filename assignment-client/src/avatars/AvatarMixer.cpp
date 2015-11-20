@@ -72,7 +72,6 @@ const float BILLBOARD_AND_IDENTITY_SEND_PROBABILITY = 1.0f / 187.0f;
 //    1) use the view frustum to cull those avatars that are out of view. Since avatar data doesn't need to be present
 //       if the avatar is not in view or in the keyhole.
 void AvatarMixer::broadcastAvatarData() {
-
     int idleTime = QDateTime::currentMSecsSinceEpoch() - _lastFrameTimestamp;
 
     ++_numStatFrames;
@@ -514,14 +513,14 @@ void AvatarMixer::sendStatsPacket() {
 }
 
 void AvatarMixer::run() {
+    qDebug() << "Waiting for connection to domain to request settings from domain-server.";
+    
+    // wait until we have the domain-server settings, otherwise we bail
+    DomainHandler& domainHandler = DependencyManager::get<NodeList>()->getDomainHandler();
+    connect(&domainHandler, &DomainHandler::settingsReceived, this, &AvatarMixer::domainSettingsRequestComplete);
+    connect(&domainHandler, &DomainHandler::settingsReceiveFail, this, &AvatarMixer::domainSettingsRequestFailed);
+    
     ThreadedAssignment::commonInit(AVATAR_MIXER_LOGGING_NAME, NodeType::AvatarMixer);
-
-    auto nodeList = DependencyManager::get<NodeList>();
-    nodeList->addNodeTypeToInterestSet(NodeType::Agent);
-
-    nodeList->linkedDataCreateCallback = [] (Node* node) {
-        node->setLinkedData(std::unique_ptr<AvatarMixerClientData> { new AvatarMixerClientData });
-    };
 
     // setup the timer that will be fired on the broadcast thread
     _broadcastTimer = new QTimer;
@@ -531,32 +530,23 @@ void AvatarMixer::run() {
     // connect appropriate signals and slots
     connect(_broadcastTimer, &QTimer::timeout, this, &AvatarMixer::broadcastAvatarData, Qt::DirectConnection);
     connect(&_broadcastThread, SIGNAL(started()), _broadcastTimer, SLOT(start()));
+}
 
-    // wait until we have the domain-server settings, otherwise we bail
-    DomainHandler& domainHandler = nodeList->getDomainHandler();
-
-    qDebug() << "Waiting for domain settings from domain-server.";
-
-    // block until we get the settingsRequestComplete signal
-
-    QEventLoop loop;
-    connect(&domainHandler, &DomainHandler::settingsReceived, &loop, &QEventLoop::quit);
-    connect(&domainHandler, &DomainHandler::settingsReceiveFail, &loop, &QEventLoop::quit);
-    domainHandler.requestDomainSettings();
-    loop.exec();
-
-    if (domainHandler.getSettingsObject().isEmpty()) {
-        qDebug() << "Failed to retreive settings object from domain-server. Bailing on assignment.";
-        setFinished(true);
-        return;
-    }
-
+void AvatarMixer::domainSettingsRequestComplete() {
+    auto nodeList = DependencyManager::get<NodeList>();
+    nodeList->addNodeTypeToInterestSet(NodeType::Agent);
+    
+    nodeList->linkedDataCreateCallback = [] (Node* node) {
+        node->setLinkedData(std::unique_ptr<AvatarMixerClientData> { new AvatarMixerClientData });
+    };
+    
     // parse the settings to pull out the values we need
-    parseDomainServerSettings(domainHandler.getSettingsObject());
-
+    parseDomainServerSettings(nodeList->getDomainHandler().getSettingsObject());
+    
     // start the broadcastThread
     _broadcastThread.start();
 }
+
 
 void AvatarMixer::parseDomainServerSettings(const QJsonObject& domainSettings) {
     const QString AVATAR_MIXER_SETTINGS_KEY = "avatar_mixer";

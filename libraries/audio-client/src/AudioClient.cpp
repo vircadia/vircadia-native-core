@@ -62,6 +62,7 @@ extern "C" {
 #include <SettingHandle.h>
 #include <SharedUtil.h>
 #include <UUID.h>
+#include <Transform.h>
 
 #include "AudioInjector.h"
 #include "AudioConstants.h"
@@ -839,93 +840,27 @@ void AudioClient::handleAudioInput() {
             _inputRingBuffer.shiftReadPosition(inputSamplesRequired);
         }
 
-        emitAudioPacket(networkAudioSamples);
-    }
-}
+        auto packetType = _shouldEchoToServer ?
+            PacketType::MicrophoneAudioWithEcho : PacketType::MicrophoneAudioNoEcho;
 
-void AudioClient::emitAudioPacket(const int16_t* audioData, PacketType packetType) {
-    static std::mutex _mutex;
-    using Locker = std::unique_lock<std::mutex>;
-
-    // FIXME recorded audio isn't guaranteed to have the same stereo state
-    // as the current system
-    const int numNetworkBytes = _isStereoInput
-        ? AudioConstants::NETWORK_FRAME_BYTES_STEREO
-        : AudioConstants::NETWORK_FRAME_BYTES_PER_CHANNEL;
-    const int numNetworkSamples = _isStereoInput
-        ? AudioConstants::NETWORK_FRAME_SAMPLES_STEREO
-        : AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL;
-
-    auto nodeList = DependencyManager::get<NodeList>();
-    SharedNodePointer audioMixer = nodeList->soloNodeOfType(NodeType::AudioMixer);
-
-    if (audioMixer && audioMixer->getActiveSocket()) {
-        Locker lock(_mutex);
-        if (!_audioPacket) {
-            // we don't have an audioPacket yet - set that up now
-            _audioPacket = NLPacket::create(PacketType::MicrophoneAudioWithEcho);
+        if (_lastInputLoudness == 0) {
+            packetType = PacketType::SilentAudioFrame;
         }
-
-        glm::vec3 headPosition = _positionGetter();
-        glm::quat headOrientation = _orientationGetter();
-        quint8 isStereo = _isStereoInput ? 1 : 0;
-
-        if (packetType == PacketType::Unknown) {
-            if (_lastInputLoudness == 0) {
-                _audioPacket->setType(PacketType::SilentAudioFrame);
-            } else {
-                if (_shouldEchoToServer) {
-                    _audioPacket->setType(PacketType::MicrophoneAudioWithEcho);
-                } else {
-                    _audioPacket->setType(PacketType::MicrophoneAudioNoEcho);
-                }
-            }
-        } else {
-            _audioPacket->setType(packetType);
-        }
-
-        // reset the audio packet so we can start writing
-        _audioPacket->reset();
-
-        // write sequence number
-        _audioPacket->writePrimitive(_outgoingAvatarAudioSequenceNumber);
-
-        if (_audioPacket->getType() == PacketType::SilentAudioFrame) {
-            // pack num silent samples
-            quint16 numSilentSamples = numNetworkSamples;
-            _audioPacket->writePrimitive(numSilentSamples);
-        } else {
-            // set the mono/stereo byte
-            _audioPacket->writePrimitive(isStereo);
-        }
-
-        // pack the three float positions
-        _audioPacket->writePrimitive(headPosition);
-
-        // pack the orientation
-        _audioPacket->writePrimitive(headOrientation);
-
-        if (_audioPacket->getType() != PacketType::SilentAudioFrame) {
-            // audio samples have already been packed (written to networkAudioSamples)
-            _audioPacket->setPayloadSize(_audioPacket->getPayloadSize() + numNetworkBytes);
-        }
-
-        static const int leadingBytes = sizeof(quint16) + sizeof(glm::vec3) + sizeof(glm::quat) + sizeof(quint8);
-        int16_t* const networkAudioSamples = (int16_t*)(_audioPacket->getPayload() + leadingBytes);
-        memcpy(networkAudioSamples, audioData, numNetworkBytes);
-
+        Transform audioTransform;
+        audioTransform.setTranslation(_positionGetter());
+        audioTransform.setRotation(_orientationGetter());
+        // FIXME find a way to properly handle both playback audio and user audio concurrently
+        emitAudioPacket(networkAudioSamples, numNetworkBytes, _outgoingAvatarAudioSequenceNumber, audioTransform, packetType);
         _stats.sentPacket();
-
-        nodeList->flagTimeForConnectionStep(LimitedNodeList::ConnectionStep::SendAudioPacket);
-
-        nodeList->sendUnreliablePacket(*_audioPacket, *audioMixer);
-
-        _outgoingAvatarAudioSequenceNumber++;
     }
 }
 
 void AudioClient::handleRecordedAudioInput(const QByteArray& audio) {
-    emitAudioPacket((int16_t*)audio.data(), PacketType::MicrophoneAudioWithEcho);
+    Transform audioTransform;
+    audioTransform.setTranslation(_positionGetter());
+    audioTransform.setRotation(_orientationGetter());
+    // FIXME check a flag to see if we should echo audio?
+    emitAudioPacket(audio.data(), audio.size(), _outgoingAvatarAudioSequenceNumber, audioTransform, PacketType::MicrophoneAudioWithEcho);
 }
 
 void AudioClient::processReceivedSamples(const QByteArray& inputBuffer, QByteArray& outputBuffer) {

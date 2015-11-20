@@ -31,7 +31,7 @@ class AvatarHashMap : public QObject, public Dependency {
     SINGLETON_DEPENDENCY
 
 public:
-    void withAvatarHash(std::function<void(const AvatarHash& hash)>);
+    AvatarHash getHashCopy() { QReadLocker lock(&_hashLock); return _avatarHash; }
     int size() { return _avatarHash.size(); }
 
 signals:
@@ -55,7 +55,11 @@ protected:
 
     virtual AvatarSharedPointer newSharedAvatar();
     virtual AvatarSharedPointer addAvatar(const QUuid& sessionUUID, const QWeakPointer<Node>& mixerWeakPointer);
+    AvatarSharedPointer newOrExistingAvatar(const QUuid& sessionUUID, const QWeakPointer<Node>& mixerWeakPointer);
+    virtual AvatarSharedPointer findAvatar(const QUuid& sessionUUID); // uses a QReadLocker on the hashLock
     virtual void removeAvatar(const QUuid& sessionUUID);
+    
+    virtual void handleRemovedAvatar(const AvatarSharedPointer& removedAvatar);
 
     AvatarHash _avatarHash;
     // "Case-based safety": Most access to the _avatarHash is on the same thread. Write access is protected by a write-lock.

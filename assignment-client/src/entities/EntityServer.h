@@ -43,7 +43,7 @@ public:
     virtual int sendSpecialPackets(const SharedNodePointer& node, OctreeQueryNode* queryNode, int& packetsSent) override;
 
     virtual void entityCreated(const EntityItem& newEntity, const SharedNodePointer& senderNode) override;
-    virtual bool readAdditionalConfiguration(const QJsonObject& settingsSectionObject) override;
+    virtual void readAdditionalConfiguration(const QJsonObject& settingsSectionObject) override;
 
 public slots:
     void pruneDeletedEntities();
