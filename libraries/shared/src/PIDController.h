@@ -21,12 +21,12 @@
 #include <limits>
 #include <QVector>
 
-// Although our coding standard shuns abbreviations, the control systems literature pretty uniformly uses p, i, d, and dt rather than
+// Although our coding standard shuns abbreviations, the control systems literature uniformly uses p, i, d, and dt rather than
 // proportionalTerm, integralTerm, derivativeTerm, and deltaTime. Here we will be consistent with the literature.
 class PIDController {
 
 public:
-    // These four the main interface:
+    // These are the main interfaces:
     void setMeasuredValueSetpoint(float newValue) { _measuredValueSetpoint = newValue; }
     float update(float measuredValue, float dt, bool resetAccumulator = false, float FIXME1 = 0.0f, float FIXME2 = 0.0f); // returns the new computedValue
     void setHistorySize(QString label = QString(""), int size = 0) { _history.reserve(size); _history.resize(0); _label = label; } // non-empty does logging
@@ -78,9 +78,10 @@ protected:
     float _ki { 0.0f };
     float _kd { 0.0f };
 
-    // Controller state
+    // Controller operating state
     float _lastError{ 0.0f };
     float _lastAccumulation{ 0.0f };
+
     // reporting
     QVector<Row> _history{};
     QString _label{ "" };

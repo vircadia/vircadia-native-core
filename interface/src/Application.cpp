@@ -1112,7 +1112,8 @@ void Application::paintGL() {
     // the key part (and not an exagerated part) of _lastPaintWait is accounted for.
     const float targetPeriod = getTargetFramePeriod();
     if (_lastPaintWait > EPSILON && actualPeriod > targetPeriod) {
-        deducedNonVSyncPeriod += remainder(actualPeriod, _lastPaintWait);
+        // Don't use C++ remainder(). It's authors are mathematically insane.
+        deducedNonVSyncPeriod += fmod(actualPeriod, _lastPaintWait);
     }
     _lastDeducedNonVSyncFps = 1.0f / deducedNonVSyncPeriod;
     _lastInstantaneousFps = instantaneousFps;

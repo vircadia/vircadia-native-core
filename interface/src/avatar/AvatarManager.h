@@ -102,7 +102,7 @@ private:
     QVector<AvatarManager::LocalLight> _localLights;
 
     bool _shouldShowReceiveStats = false;
-    float _renderDistance { 40.0f };
+    float _renderDistance { (float) TREE_SCALE };
     int _renderedAvatarCount {0};
     PIDController _renderDistanceController {};
     SimpleMovingAverage _renderDistanceAverage {10};

@@ -93,16 +93,15 @@ void AvatarManager::init() {
 
     const float target_fps = 1.0f / qApp->getTargetFramePeriod();
     _renderDistanceController.setMeasuredValueSetpoint(target_fps);
-    const float TREE_SCALE = 32768.0f; // Not in shared library, alas.
     const float SMALLEST_REASONABLE_HORIZON = 5.0f; // meters
     _renderDistanceController.setControlledValueHighLimit(1.0f / SMALLEST_REASONABLE_HORIZON);
-    _renderDistanceController.setControlledValueLowLimit(1.0f / TREE_SCALE);
+    _renderDistanceController.setControlledValueLowLimit(1.0f / (float) TREE_SCALE);
     // Advice for tuning parameters:
-    // See PIDController.h. There's a sectionon tuning in the reference.
+    // See PIDController.h. There's a section on tuning in the reference.
     // Turn on logging with the following (or from js with AvatarList.setRenderDistanceControllerHistory("avatar render", 300))
     //_renderDistanceController.setHistorySize("avatar render", target_fps * 4);
     // Note that extra logging/hysteresis is turned off in Avatar.cpp when the above logging is on.
-    _renderDistanceController.setKP(0.0005f); // Usually about 0.6 of largest that doesn't oscillate when other constants 0.
+    _renderDistanceController.setKP(0.0005f); // Usually about 0.6 of largest that doesn't oscillate when other parameters 0.
     _renderDistanceController.setKI(0.0004f); // Big enough to bring us to target with the above KP.
     _renderDistanceController.setKD(0.00001f); // A touch of kd increases the speed by which we get there.
 
@@ -136,6 +135,10 @@ void AvatarManager::updateOtherAvatars(float deltaTime) {
     
     const float fps = qApp->getLastInstanteousFps();
     const float paintWait = qApp->getLastPaintWait();
+    // The PID controller raises the controlled value when the measured value goes up.
+    // The measured value is frame rate. When the controlled value (1 / render cutoff distance)
+    // goes up, the render cutoff distance gets closer, the number of rendered avatars is less, and frame rate
+    // goes up.
     const float deduced = qApp->getLastDeducedNonVSyncFps();
     const float distance = 1.0f / _renderDistanceController.update(deduced, deltaTime, false, fps, paintWait);
     _renderDistanceAverage.updateAverage(distance);
