@@ -18,6 +18,11 @@
 #include <recording/Forward.h>
 #include <recording/Frame.h>
 
+#include <QtScript/QScriptValue>
+#include <AssetClient.h>
+#include <AssetUpload.h>
+#include "../../../interface/src/ui/AssetUploadDialogFactory.h"
+
 class RecordingScriptingInterface : public QObject, public Dependency {
     Q_OBJECT
 
@@ -60,6 +65,7 @@ public slots:
     float recorderElapsed() const;
 
     void saveRecording(const QString& filename);
+    bool saveRecordingToAsset(QScriptValue getClipAtpUrl);
     void loadLastRecording();
 
 protected:
@@ -76,6 +82,9 @@ protected:
     Flag _useAttachments { false };
     Flag _useSkeletonModel { false };
     recording::ClipPointer _lastClip;
+
+private:
+    void clipUploadFinished(AssetUpload* upload, const QString& hash);
 };
 
 #endif // hifi_RecordingScriptingInterface_h

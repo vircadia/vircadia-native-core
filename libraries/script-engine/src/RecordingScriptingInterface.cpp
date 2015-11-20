@@ -18,10 +18,15 @@
 #include <recording/Frame.h>
 #include <recording/ClipCache.h>
 
+#include <QtCore/QUrl>
+#include <QtWidgets/QFileDialog>
+
 #include "ScriptEngineLogging.h"
 
 using namespace recording;
 
+static const QString HFR_EXTENSION = ".hfr";
+const QString URL_SCHEME_ATP = "atp";
 
 RecordingScriptingInterface::RecordingScriptingInterface() {
     _player = DependencyManager::get<Deck>();
@@ -170,6 +175,57 @@ void RecordingScriptingInterface::saveRecording(const QString& filename) {
 
     recording::Clip::toFile(filename, _lastClip);
 }
+
+bool RecordingScriptingInterface::saveRecordingToAsset(QScriptValue getClipAtpUrl) {
+
+    if (!getClipAtpUrl.isFunction())
+        return false;
+
+    if (QThread::currentThread() != thread()) {
+        QMetaObject::invokeMethod(this, "saveRecordingToAsset", Qt::BlockingQueuedConnection,
+            Q_ARG(QScriptValue, getClipAtpUrl));
+        return false;
+    }
+
+    if (!_lastClip) {
+        qWarning() << "There is no recording to save";
+        return false;
+    }
+
+    QString filename = "./temp.hfr";
+    recording::Clip::toFile(filename, _lastClip);
+
+    QUrl url{ filename };
+
+    if (auto upload = DependencyManager::get<AssetClient>()->createUpload(url.toLocalFile())) { // Here we should use the other implementation of createUpload, but we need the QByteArray of the _lastClip
+
+        QObject::connect(upload, &AssetUpload::finished, this, [=](AssetUpload* upload, const QString& hash) mutable {
+            auto filename = QFileInfo(upload->getFilename()).fileName();
+            QString clip_atp_url = "";
+
+            if (upload->getError() == AssetUpload::NoError) {
+
+                clip_atp_url = QString("%1:%2.%3").arg(URL_SCHEME_ATP, hash, upload->getExtension());
+                upload->deleteLater();
+            } else {
+                AssetUploadDialogFactory::getInstance().handleUploadFinished(upload, hash);
+            }
+
+            QScriptValueList args;
+            args << clip_atp_url;
+            getClipAtpUrl.call(QScriptValue(), args);
+        });
+
+        // start the upload now
+        upload->start();
+        return true;
+
+    } 
+
+    return false;
+
+}
+
 
 void RecordingScriptingInterface::loadLastRecording() {
     if (QThread::currentThread() != thread()) {
