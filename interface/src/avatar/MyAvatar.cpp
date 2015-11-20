@@ -39,10 +39,10 @@
 #include <recording/Recorder.h>
 #include <recording/Clip.h>
 #include <recording/Frame.h>
-#include "devices/Faceshift.h"
-
+#include <RecordingScriptingInterface.h>
 
 #include "Application.h"
+#include "devices/Faceshift.h"
 #include "AvatarManager.h"
 #include "Environment.h"
 #include "Menu.h"
@@ -127,6 +127,65 @@ MyAvatar::MyAvatar(RigPointer rig) :
     _characterController.setEnabled(true);
 
     _bodySensorMatrix = deriveBodyFromHMDSensor();
+
+    using namespace recording;
+
+    auto player = DependencyManager::get<Deck>();
+    auto recorder = DependencyManager::get<Recorder>();
+    connect(player.data(), &Deck::playbackStateChanged, [=] {
+        if (player->isPlaying()) {
+            auto recordingInterface = DependencyManager::get<RecordingScriptingInterface>();
+            if (recordingInterface->getPlayFromCurrentLocation()) {
+                setRecordingBasis();
+            }
+        } else {
+            clearRecordingBasis();
+        }
+    });
+
+    connect(recorder.data(), &Recorder::recordingStateChanged, [=] {
+        if (recorder->isRecording()) {
+            setRecordingBasis();
+        } else {
+            clearRecordingBasis();
+        }
+    });
+
+    static const recording::FrameType AVATAR_FRAME_TYPE = recording::Frame::registerFrameType(AvatarData::FRAME_NAME);
+    Frame::registerFrameHandler(AVATAR_FRAME_TYPE, [=](Frame::ConstPointer frame) {
+        static AvatarData dummyAvatar;
+        AvatarData::fromFrame(frame->data, dummyAvatar);
+        if (getRecordingBasis()) {
+            dummyAvatar.setRecordingBasis(getRecordingBasis());
+        } else {
+            dummyAvatar.clearRecordingBasis();
+        }
+
+        auto recordingInterface = DependencyManager::get<RecordingScriptingInterface>();
+        if (recordingInterface->getPlayerUseHeadModel() && dummyAvatar.getFaceModelURL().isValid() &&
+            (dummyAvatar.getFaceModelURL() != getFaceModelURL())) {
+            // FIXME
+            //myAvatar->setFaceModelURL(_dummyAvatar.getFaceModelURL());
+        }
+
+        if (recordingInterface->getPlayerUseSkeletonModel() && dummyAvatar.getSkeletonModelURL().isValid() &&
+            (dummyAvatar.getSkeletonModelURL() != getSkeletonModelURL())) {
+            // FIXME
+            //myAvatar->useFullAvatarURL()
+        }
+
+        if (recordingInterface->getPlayerUseDisplayName() && dummyAvatar.getDisplayName() != getDisplayName()) {
+            setDisplayName(dummyAvatar.getDisplayName());
+        }
+
+        setPosition(dummyAvatar.getPosition());
+        setOrientation(dummyAvatar.getOrientation());
+
+        // FIXME attachments
+        // FIXME joints
+        // FIXME head lean
+        // FIXME head orientation
+    });
 }
 
 MyAvatar::~MyAvatar() {
@@ -369,7 +428,7 @@ void MyAvatar::updateHMDFollowVelocity() {
         }
         if (_followSpeed > 0.0f) {
             // to compute new velocity we must rotate offset into the world-frame
-            glm::quat sensorToWorldRotation = extractRotation(_sensorToWorldMatrix);
+            glm::quat sensorToWorldRotation = glm::normalize(glm::quat_cast(_sensorToWorldMatrix));
             _followVelocity = _followSpeed * glm::normalize(sensorToWorldRotation * offset);
         }
     }

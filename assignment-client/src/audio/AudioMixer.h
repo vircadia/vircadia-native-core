@@ -40,10 +40,13 @@ public slots:
     static const InboundAudioStream::Settings& getStreamSettings() { return _streamSettings; }
 
 private slots:
+    void broadcastMixes();
     void handleNodeAudioPacket(QSharedPointer<NLPacket> packet, SharedNodePointer sendingNode);
     void handleMuteEnvironmentPacket(QSharedPointer<NLPacket> packet, SharedNodePointer sendingNode);
 
-private:
+private:    
+    void domainSettingsRequestComplete();
+    
     /// adds one stream to the mix for a listening node
     int addStreamToMixForListeningNodeWithStream(AudioMixerClientData* listenerNodeData,
                                                     const QUuid& streamUUID,
