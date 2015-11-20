@@ -36,7 +36,6 @@ PolyLineEntityItem(entityItemID, properties) {
 
 gpu::PipelinePointer RenderablePolyLineEntityItem::_pipeline;
 gpu::Stream::FormatPointer RenderablePolyLineEntityItem::_format;
-gpu::TexturePointer RenderablePolyLineEntityItem::_texture;
 int32_t RenderablePolyLineEntityItem::PAINTSTROKE_GPU_SLOT;
 
 void RenderablePolyLineEntityItem::createPipeline() {
@@ -44,9 +43,6 @@ void RenderablePolyLineEntityItem::createPipeline() {
     static const int COLOR_OFFSET = 24;
     static const int TEXTURE_OFFSET = 28;
 
-    auto textureCache = DependencyManager::get<TextureCache>();
-    QString path = PathUtils::resourcesPath() + "images/paintStroke.png";
-    _texture = textureCache->getImageTexture(path);
     _format.reset(new gpu::Stream::Format());
     _format->setAttribute(gpu::Stream::POSITION, 0, gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::XYZ), 0);
     _format->setAttribute(gpu::Stream::NORMAL, 0, gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::XYZ), NORMAL_OFFSET);
@@ -132,6 +128,13 @@ void RenderablePolyLineEntityItem::render(RenderArgs* args) {
         createPipeline();
     }
 
+    if (!_texture || _texturesChangedFlag) {
+        auto textureCache = DependencyManager::get<TextureCache>();
+        QString path = _textures.isEmpty() ? PathUtils::resourcesPath() + "images/paintStroke.png" : _textures;
+        _texture = textureCache->getTexture(QUrl(path));
+        _texturesChangedFlag = false;
+    }
+
     PerformanceTimer perfTimer("RenderablePolyLineEntityItem::render");
     Q_ASSERT(getType() == EntityTypes::PolyLine);
 
@@ -147,7 +150,11 @@ void RenderablePolyLineEntityItem::render(RenderArgs* args) {
     batch.setModelTransform(transform);
 
     batch.setPipeline(_pipeline);
-    batch.setResourceTexture(PAINTSTROKE_GPU_SLOT, _texture);
+    if (_texture->isLoaded()) {
+        batch.setResourceTexture(PAINTSTROKE_GPU_SLOT, _texture->getGPUTexture());
+    } else {
+        batch.setResourceTexture(PAINTSTROKE_GPU_SLOT, args->_whiteTexture);
+    }
 
     batch.setInputFormat(_format);
     batch.setInputBuffer(0, _verticesBuffer, 0, _format->getChannels().at(0)._stride);

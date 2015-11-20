@@ -11,6 +11,8 @@
 
 #include "DomainServer.h"
 
+#include <memory>
+
 #include <QDir>
 #include <QJsonDocument>
 #include <QJsonObject>
@@ -1097,29 +1099,37 @@ bool DomainServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
 
     if (connection->requestOperation() == QNetworkAccessManager::GetOperation
         && assignmentRegex.indexIn(url.path()) != -1) {
-        QUuid matchingUUID = QUuid(assignmentRegex.cap(1));
-
-        SharedAssignmentPointer matchingAssignment = _allAssignments.value(matchingUUID);
-        if (!matchingAssignment) {
-            // check if we have a pending assignment that matches this temp UUID, and it is a scripted assignment
-            QUuid assignmentUUID = _gatekeeper.assignmentUUIDForPendingAssignment(matchingUUID);
-            if (!assignmentUUID.isNull()) {
-                matchingAssignment = _allAssignments.value(assignmentUUID);
-
-                if (matchingAssignment && matchingAssignment->getType() == Assignment::AgentType) {
-                    // we have a matching assignment and it is for the right type, have the HTTP manager handle it
-                    // via correct URL for the script so the client can download
-
-                    QUrl scriptURL = url;
-                    scriptURL.setPath(URI_ASSIGNMENT + "/scripts/"
-                                      + uuidStringWithoutCurlyBraces(assignmentUUID));
-
-                    // have the HTTPManager serve the appropriate script file
-                    return _httpManager.handleHTTPRequest(connection, scriptURL, true);
-                }
-            }
+        QUuid nodeUUID = QUuid(assignmentRegex.cap(1));
+        
+        auto matchingNode = nodeList->nodeWithUUID(nodeUUID);
+        
+        // don't handle if we don't have a matching node
+        if (!matchingNode) {
+            return false;
         }
-
+        
+        auto nodeData = dynamic_cast<DomainServerNodeData*>(matchingNode->getLinkedData());
+        
+        // don't handle if we don't have node data for this node
+        if (!nodeData) {
+            return false;
+        }
+        
+        SharedAssignmentPointer matchingAssignment = _allAssignments.value(nodeData->getAssignmentUUID());
+        
+        // check if we have an assignment that matches this temp UUID, and it is a scripted assignment
+        if (matchingAssignment && matchingAssignment->getType() == Assignment::AgentType) {
+            // we have a matching assignment and it is for the right type, have the HTTP manager handle it
+            // via correct URL for the script so the client can download
+            
+            QUrl scriptURL = url;
+            scriptURL.setPath(URI_ASSIGNMENT + "/scripts/"
+                              + uuidStringWithoutCurlyBraces(matchingAssignment->getUUID()));
+            
+            // have the HTTPManager serve the appropriate script file
+            return _httpManager.handleHTTPRequest(connection, scriptURL, true);
+        }
+        
         // request not handled
         return false;
     }
@@ -1640,7 +1650,7 @@ void DomainServer::refreshStaticAssignmentAndAddToQueue(SharedAssignmentPointer&
 
 void DomainServer::nodeAdded(SharedNodePointer node) {
     // we don't use updateNodeWithData, so add the DomainServerNodeData to the node here
-    node->setLinkedData(new DomainServerNodeData());
+    node->setLinkedData(std::unique_ptr<DomainServerNodeData> { new DomainServerNodeData() });
 }
 
 void DomainServer::nodeKilled(SharedNodePointer node) {
