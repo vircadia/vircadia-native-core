@@ -65,6 +65,7 @@ public:
     void getObjectsToChange(VectorOfMotionStates& motionStates);
     void handleOutgoingChanges(const VectorOfMotionStates& motionStates);
     void handleCollisionEvents(const CollisionEvents& collisionEvents);
+
     void updateAvatarPhysicsShape(Avatar* avatar);
     
     // Expose results and parameter-tuning operations to other systems, such as stats and javascript.
@@ -107,8 +108,6 @@ private:
     int _renderedAvatarCount { 0 };
     PIDController _renderDistanceController { };
     SimpleMovingAverage _renderDistanceAverage { 10 };
-
-
 
     SetOfAvatarMotionStates _avatarMotionStates;
     SetOfMotionStates _motionStatesToAdd;
