@@ -55,8 +55,6 @@ public:
 
 protected:
     void buildSkeletonFromJoints(const std::vector<FBXJoint>& joints);
-    // AJT: REMOVE
-    //void normalizeScale(const AnimPose& geometryOffset, AnimPoseVec& relPoses, AnimPoseVec& absPoses) const;
 
     std::vector<FBXJoint> _joints;
     AnimPoseVec _absoluteBindPoses;

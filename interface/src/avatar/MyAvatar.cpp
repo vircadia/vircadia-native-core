@@ -897,8 +897,8 @@ glm::vec3 MyAvatar::getDefaultEyePosition() const {
     return getPosition() + getWorldAlignedOrientation() * _skeletonModel.getDefaultEyeModelPosition();
 }
 
-const float SCRIPT_PRIORITY = DEFAULT_PRIORITY + 1.0f;
-const float RECORDER_PRIORITY = SCRIPT_PRIORITY + 1.0f;
+const float SCRIPT_PRIORITY = 1.0f + 1.0f;
+const float RECORDER_PRIORITY = 1.0f + 1.0f;
 
 void MyAvatar::setJointRotations(QVector<glm::quat> jointRotations) {
     int numStates = glm::min(_skeletonModel.getJointStateCount(), jointRotations.size());

@@ -23,13 +23,6 @@ AnimSkeleton::AnimSkeleton(const FBXGeometry& fbxGeometry) {
     for (auto& joint : fbxGeometry.joints) {
         joints.push_back(joint);
     }
-
-    // AJT: REMOVE
-    /*
-    AnimPose geometryOffset(fbxGeometry.offset);
-    buildSkeletonFromJoints(joints, geometryOffset);
-    */
-
     buildSkeletonFromJoints(joints);
 }
 
@@ -147,36 +140,7 @@ void AnimSkeleton::buildSkeletonFromJoints(const std::vector<FBXJoint>& joints) 
             }
         }
     }
-
-    // AJT: REMOVE
-    /*
-    // now we want to normalize scale from geometryOffset to all poses.
-    // This will ensure our bone translations will be in meters, even if the model was authored with some other unit of mesure.
-    normalizeScale(geometryOffset, _relativeBindPoses, _absoluteBindPoses);
-    normalizeScale(geometryOffset, _relativeDefaultPoses, _absoluteDefaultPoses);
-    */
 }
-
-/*
-// AJT: REMOVE
-void AnimSkeleton::normalizeScale(const AnimPose& geometryOffset, AnimPoseVec& relPoses, AnimPoseVec& absPoses) const {
-    for (auto& absPose : absPoses) {
-        absPose.trans = (geometryOffset * absPose).trans;
-    }
-
-    // re-compute relative poses based on the modified absolute poses.
-    for (size_t i = 0; i < relPoses.size(); i++) {
-        int parentIndex = getParentIndex(i);
-        if (parentIndex >= 0) {
-            relPoses[i] = absPoses[parentIndex].inverse() * absPoses[i];
-        } else {
-            relPoses[i] = absPoses[i];
-        }
-    }
-}
-*/
-
-#define DUMP_FBX_JOINTS
 
 #ifndef NDEBUG
 void AnimSkeleton::dump() const {

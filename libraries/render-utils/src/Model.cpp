@@ -87,6 +87,8 @@ void Model::setScale(const glm::vec3& scale) {
     _scaledToFit = false;
 }
 
+const float METERS_PER_MILLIMETER = 0.01f;
+
 void Model::setScaleInternal(const glm::vec3& scale) {
     if (glm::distance(_scale, scale) > METERS_PER_MILLIMETER) {
         _scale = scale;
@@ -117,7 +119,7 @@ void Model::init() {
 void Model::reset() {
     if (_geometry && _geometry->isLoaded()) {
         const FBXGeometry& geometry = _geometry->getFBXGeometry();
-        _rig->reset(geometry.joints);
+        _rig->reset(geometry);
     }
 }
 
@@ -162,22 +164,7 @@ void Model::initJointStates() {
     const FBXGeometry& geometry = _geometry->getFBXGeometry();
     glm::mat4 modelOffset = glm::scale(_scale) * glm::translate(_offset);
 
-    int rootJointIndex = geometry.rootJointIndex;
-    int leftHandJointIndex = geometry.leftHandJointIndex;
-    int leftElbowJointIndex = leftHandJointIndex >= 0 ? geometry.joints.at(leftHandJointIndex).parentIndex : -1;
-    int leftShoulderJointIndex = leftElbowJointIndex >= 0 ? geometry.joints.at(leftElbowJointIndex).parentIndex : -1;
-    int rightHandJointIndex = geometry.rightHandJointIndex;
-    int rightElbowJointIndex = rightHandJointIndex >= 0 ? geometry.joints.at(rightHandJointIndex).parentIndex : -1;
-    int rightShoulderJointIndex = rightElbowJointIndex >= 0 ? geometry.joints.at(rightElbowJointIndex).parentIndex : -1;
-
-    _rig->initJointStates(geometry, modelOffset,
-                          rootJointIndex,
-                          leftHandJointIndex,
-                          leftElbowJointIndex,
-                          leftShoulderJointIndex,
-                          rightHandJointIndex,
-                          rightElbowJointIndex,
-                          rightShoulderJointIndex);
+    _rig->initJointStates(geometry, modelOffset);
 }
 
 bool Model::findRayIntersectionAgainstSubMeshes(const glm::vec3& origin, const glm::vec3& direction, float& distance,
@@ -818,6 +805,7 @@ void Blender::run() {
             const float NORMAL_COEFFICIENT_SCALE = 0.01f;
             for (int i = 0, n = qMin(_blendshapeCoefficients.size(), mesh.blendshapes.size()); i < n; i++) {
                 float vertexCoefficient = _blendshapeCoefficients.at(i);
+                const float EPSILON = 0.0001f;
                 if (vertexCoefficient < EPSILON) {
                     continue;
                 }

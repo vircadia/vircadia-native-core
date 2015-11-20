@@ -29,7 +29,6 @@
 #include <Transform.h>
 
 #include "GeometryCache.h"
-#include "JointState.h"
 #include "TextureCache.h"
 #include "Rig.h"
 

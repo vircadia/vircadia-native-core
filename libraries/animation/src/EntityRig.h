@@ -21,8 +21,6 @@ class EntityRig : public Rig {
 
 public:
     ~EntityRig() {}
-    virtual void setHandPosition(int jointIndex, const glm::vec3& position, const glm::quat& rotation,
-                                 float scale, float priority) {}
     virtual void setJointState(int index, bool valid, const glm::quat& rotation, const glm::vec3& translation, float priority);
 };
 

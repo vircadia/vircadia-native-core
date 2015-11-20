@@ -20,8 +20,6 @@
 #include <vector>
 #include <JointData.h>
 
-#include "JointState.h"  // We might want to change this (later) to something that doesn't depend on gpu, fbx and model. -HRS
-
 #include "AnimNode.h"
 #include "AnimNodeLoader.h"
 #include "SimpleMovingAverage.h"
@@ -76,7 +74,6 @@ public:
     virtual ~Rig() {}
 
     void destroyAnimGraph();
-
     void overrideAnimation(const QString& url, float fps, bool loop, float firstFrame, float lastFrame);
     void restoreAnimation();
     QStringList getAnimationRoles() const;
@@ -84,9 +81,8 @@ public:
     void restoreRoleAnimation(const QString& role);
     void prefetchAnimation(const QString& url);
 
-    void initJointStates(const FBXGeometry& geometry, glm::mat4 modelOffset, int rootJointIndex,
-                         int leftHandJointIndex, int leftElbowJointIndex, int leftShoulderJointIndex,
-                         int rightHandJointIndex, int rightElbowJointIndex, int rightShoulderJointIndex);
+    void initJointStates(const FBXGeometry& geometry, const glm::mat4& modelOffset);
+    void reset(const FBXGeometry& geometry);
     bool jointStatesEmpty();
     int getJointStateCount() const;
     int indexOfJoint(const QString& jointName);
@@ -94,19 +90,9 @@ public:
     void setModelOffset(const glm::mat4& modelOffset);
     const AnimPose& getGeometryOffset() const { return _geometryOffset; }
 
-    // AJT: REMOVE
-    /*
-    void initJointTransforms(glm::mat4 rootTransform);
-    */
-    void clearJointTransformTranslation(int jointIndex);
-    void reset(const QVector<FBXJoint>& fbxJoints);
     bool getJointStateRotation(int index, glm::quat& rotation) const;
     bool getJointStateTranslation(int index, glm::vec3& translation) const;
-    // AJT: REMOVE
-    /*
-    void applyJointRotationDelta(int jointIndex, const glm::quat& delta, float priority);
-    JointState getJointState(int jointIndex) const; // XXX
-    */
+
     void clearJointState(int index);
     void clearJointStates();
     void clearJointAnimationPriority(int index);
@@ -151,9 +137,6 @@ public:
     void updateFromEyeParameters(const EyeParameters& params);
     void updateFromHandParameters(const HandParameters& params, float dt);
 
-    virtual void setHandPosition(int jointIndex, const glm::vec3& position, const glm::quat& rotation,
-                                 float scale, float priority) = 0;
-
     void initAnimGraph(const QUrl& url);
 
     AnimNode::ConstPointer getAnimNode() const { return _animNode; }
@@ -185,16 +168,11 @@ public:
     glm::quat avatarToGeometryZForward(const glm::quat& quat) const;
     glm::quat avatarToGeometryNegZForward(const glm::quat& quat) const;
 
-    // AJT: TODO: LEGACY
-    QVector<JointState> _jointStates;
-    glm::mat4 _legacyModelOffset;
-
-    // AJT: TODO document these better
     AnimPose _modelOffset;  // model to avatar space (without 180 flip)
     AnimPose _geometryOffset; // geometry to model space (includes unit offset & fst offsets)
-    AnimPoseVec _relativePoses; // in fbx model space relative to parent.
-    AnimPoseVec _absolutePoses; // in fbx model space after _modelOffset is applied.
-    AnimPoseVec _overridePoses; // in fbx model space relative to parent.
+    AnimPoseVec _relativePoses; // geometry space relative to parent.
+    AnimPoseVec _absolutePoses; // avatar space, not relative to parent.
+    AnimPoseVec _overridePoses; // geometry space relative to parent.
     std::vector<bool> _overrideFlags;
 
     int _rootJointIndex { -1 };
@@ -212,6 +190,7 @@ public:
     glm::vec3 _lastVelocity;
     glm::vec3 _eyesInRootFrame { Vectors::ZERO };
 
+    QUrl _animGraphURL;
     std::shared_ptr<AnimNode> _animNode;
     std::shared_ptr<AnimSkeleton> _animSkeleton;
     std::unique_ptr<AnimNodeLoader> _animLoader;
