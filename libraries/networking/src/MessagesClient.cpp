@@ -55,7 +55,8 @@ void MessagesClient::decodeMessagesPacket(QSharedPointer<NLPacketList> packetLis
     if (bytesSenderID.length() == NUM_BYTES_RFC4122_UUID) {
         senderID = QUuid::fromRfc4122(bytesSenderID);
     } else {
-        senderID = QUuid::QUuid(); // packet was missing UUID use default instead
+        QUuid emptyUUID;
+        senderID = emptyUUID; // packet was missing UUID use default instead
     }
 }
 
