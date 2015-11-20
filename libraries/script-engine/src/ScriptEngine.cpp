@@ -381,6 +381,9 @@ void ScriptEngine::init() {
 
     auto recordingInterface = DependencyManager::get<RecordingScriptingInterface>();
     registerGlobalObject("Recording", recordingInterface.data());
+
+    registerGlobalObject("Assets", &_assetScriptingInterface);
+    
 }
 
 void ScriptEngine::registerValue(const QString& valueName, QScriptValue value) {

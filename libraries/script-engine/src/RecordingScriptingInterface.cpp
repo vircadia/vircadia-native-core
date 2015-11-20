@@ -8,14 +8,15 @@
 
 #include "RecordingScriptingInterface.h"
 
-#include <QThread>
+#include <QtCore/QThread>
 
+#include <NumericalConstants.h>
+#include <Transform.h>
 #include <recording/Deck.h>
 #include <recording/Recorder.h>
 #include <recording/Clip.h>
 #include <recording/Frame.h>
-#include <NumericalConstants.h>
-#include <Transform.h>
+#include <recording/ClipCache.h>
 
 #include "ScriptEngineLogging.h"
 
@@ -43,20 +44,17 @@ float RecordingScriptingInterface::playerLength() const {
     return _player->length();
 }
 
-void RecordingScriptingInterface::loadRecording(const QString& filename) {
+void RecordingScriptingInterface::loadRecording(const QString& url) {
     using namespace recording;
 
     if (QThread::currentThread() != thread()) {
         QMetaObject::invokeMethod(this, "loadRecording", Qt::BlockingQueuedConnection,
-            Q_ARG(QString, filename));
+            Q_ARG(QString, url));
         return;
     }
 
-    ClipPointer clip = Clip::fromFile(filename);
-    if (!clip) {
-        qWarning() << "Unable to load clip data from " << filename;
-    }
-    _player->queueClip(clip);
+    // FIXME make blocking and force off main thread?
+    _player->queueClip(ClipCache::instance().getClipLoader(url)->getClip());
 }
 
 void RecordingScriptingInterface::startPlaying() {

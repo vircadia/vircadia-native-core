@@ -23,6 +23,7 @@
 
 #include <AnimationCache.h>
 #include <AnimVariant.h>
+#include <AssetClient.h>
 #include <AvatarData.h>
 #include <AvatarHashMap.h>
 #include <LimitedNodeList.h>
@@ -194,6 +195,8 @@ private:
     bool _isReloading;
 
     ArrayBufferClass* _arrayBufferClass;
+
+    AssetScriptingInterface _assetScriptingInterface;
 
     QHash<EntityItemID, RegisteredEventHandlers> _registeredHandlers;
     void forwardHandlerCall(const EntityItemID& entityID, const QString& eventName, QScriptValueList eventHanderArgs);
