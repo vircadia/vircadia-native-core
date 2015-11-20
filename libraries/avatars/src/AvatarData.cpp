@@ -801,6 +801,14 @@ void AvatarData::changeReferential(Referential* ref) {
     _referential = ref;
 }
 
+void AvatarData::setRawJointData(QVector<JointData> data) {
+    if (QThread::currentThread() != thread()) {
+        QMetaObject::invokeMethod(this, "setRawJointData", Q_ARG(QVector<JointData>, data));
+        return;
+    }
+    _jointData = data;
+}
+
 void AvatarData::setJointData(int index, const glm::quat& rotation, const glm::vec3& translation) {
     if (index == -1) {
         return;
@@ -1538,16 +1546,15 @@ void AvatarData::fromFrame(const QByteArray& frameData, AvatarData& result) {
         QVector<JointData> jointArray;
         QJsonArray jointArrayJson = root[JSON_AVATAR_JOINT_ARRAY].toArray();
         jointArray.reserve(jointArrayJson.size());
+        int i = 0;
         for (const auto& jointJson : jointArrayJson) {
-            jointArray.push_back(jointDataFromJsonValue(jointJson));
+            auto joint = jointDataFromJsonValue(jointJson);
+            jointArray.push_back(joint);
+            result.setJointData(i, joint.rotation, joint.translation);
+            result._jointData[i].rotationSet = true; // Have to do that yep
+            i++;
         }
-
-        QVector<glm::quat> jointRotations;
-        jointRotations.reserve(jointArray.size());
-        for (const auto& joint : jointArray) {
-            jointRotations.push_back(joint.rotation);
-        }
-        result.setJointRotations(jointRotations);
+        result.setRawJointData(jointArray);
     }
 
 #if 0
