@@ -24,9 +24,6 @@
 #include <DependencyManager.h>
 
 class AudioInjector;
-using InjectorQPointer = QPointer<AudioInjector>;
-using TimeInjectorPointerPair = std::pair<uint64_t, InjectorQPointer>;
-using InjectorQueue = std::queue<TimeInjectorPointerPair>;
 
 class AudioInjectorManager : public QObject, public Dependency {
     Q_OBJECT
@@ -36,6 +33,12 @@ public:
 private slots:
     void run();
 private:
+    using InjectorQPointer = QPointer<AudioInjector>;
+    using TimeInjectorPointerPair = std::pair<uint64_t, InjectorQPointer>;
+    using InjectorQueue = std::queue<TimeInjectorPointerPair>;
+    using Mutex = std::mutex;
+    using Lock = std::unique_lock<Mutex>;
+    
     bool threadInjector(AudioInjector* injector);
     void restartFinishedInjector(AudioInjector* injector);
     void notifyInjectorReadyCondition() { _injectorReady.notify_one(); }
@@ -49,7 +52,7 @@ private:
     QThread* _thread { nullptr };
     bool _shouldStop { false };
     InjectorQueue _injectors;
-    std::mutex _injectorsMutex;
+    Mutex _injectorsMutex;
     std::condition_variable _injectorReady;
     
     friend class AudioInjector;

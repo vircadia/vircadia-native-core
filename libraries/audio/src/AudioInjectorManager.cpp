@@ -21,7 +21,7 @@
 AudioInjectorManager::~AudioInjectorManager() {
     _shouldStop = true;
     
-    std::unique_lock<std::mutex> lock(_injectorsMutex);
+    Lock lock(_injectorsMutex);
     
     // make sure any still living injectors are stopped and deleted
     while (!_injectors.empty()) {
@@ -61,7 +61,7 @@ void AudioInjectorManager::createThread() {
 void AudioInjectorManager::run() {
     while (!_shouldStop) {
         // wait until the next injector is ready, or until we get a new injector given to us
-        std::unique_lock<std::mutex> lock(_injectorsMutex);
+        Lock lock(_injectorsMutex);
         
         if (_injectors.size() > 0) {
             // when does the next injector need to send a frame?
@@ -119,7 +119,7 @@ bool AudioInjectorManager::threadInjector(AudioInjector* injector) {
     }
     
     // guard the injectors vector with a mutex
-    std::unique_lock<std::mutex> lock(_injectorsMutex);
+    Lock lock(_injectorsMutex);
     
     // check if we'll be able to thread this injector (do we have < max concurrent injectors)
     if (_injectors.size() < MAX_INJECTORS_PER_THREAD) {
@@ -150,7 +150,7 @@ bool AudioInjectorManager::threadInjector(AudioInjector* injector) {
 void AudioInjectorManager::restartFinishedInjector(AudioInjector* injector) {
     if (!_shouldStop) {
         // guard the injectors vector with a mutex
-        std::unique_lock<std::mutex> lock(_injectorsMutex);
+        Lock lock(_injectorsMutex);
         
         // add the injector to the queue with a send timestamp of now
         _injectors.emplace(usecTimestampNow(), InjectorQPointer { injector });
