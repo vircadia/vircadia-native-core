@@ -369,6 +369,11 @@ void AssetClient::handleNodeKilled(SharedNodePointer node) {
 void AssetScriptingInterface::uploadData(QString data, QString extension, QScriptValue callback) {
     QByteArray dataByteArray = data.toUtf8();
     auto upload = DependencyManager::get<AssetClient>()->createUpload(dataByteArray, extension);
+    if (!upload) {
+        qCWarning(asset_client) << "Error uploading file to asset server";
+        return;
+    }
+
     QObject::connect(upload, &AssetUpload::finished, this, [callback, extension](AssetUpload* upload, const QString& hash) mutable {
         if (callback.isFunction()) {
             QString url = "atp://" + hash + "." + extension;
@@ -376,8 +381,6 @@ void AssetScriptingInterface::uploadData(QString data, QString extension, QScrip
             callback.call(QScriptValue(), args);
         }
     });
-
-    // start the upload now
     upload->start();
 }
 
@@ -424,6 +427,3 @@ void AssetScriptingInterface::downloadData(QString urlString, QScriptValue callb
 
     assetRequest->start();
 }
-
-
-
