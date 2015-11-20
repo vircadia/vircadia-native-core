@@ -25,8 +25,7 @@
 
 using namespace recording;
 
-static const QString HFR_EXTENSION = ".hfr";
-const QString URL_SCHEME_ATP = "atp";
+static const QString HFR_EXTENSION = "hfr";
 
 RecordingScriptingInterface::RecordingScriptingInterface() {
     _player = DependencyManager::get<Deck>();
@@ -208,7 +207,7 @@ bool RecordingScriptingInterface::saveRecordingToAsset(QScriptValue getClipAtpUr
                 clip_atp_url = QString("%1:%2.%3").arg(URL_SCHEME_ATP, hash, upload->getExtension());
                 upload->deleteLater();
             } else {
-                AssetUploadDialogFactory::getInstance().handleUploadFinished(upload, hash);
+                qDebug() << "Error during the Asset upload.";
             }
 
             QScriptValueList args;

@@ -21,7 +21,6 @@
 #include <QtScript/QScriptValue>
 #include <AssetClient.h>
 #include <AssetUpload.h>
-#include "../../../interface/src/ui/AssetUploadDialogFactory.h"
 
 class RecordingScriptingInterface : public QObject, public Dependency {
     Q_OBJECT
