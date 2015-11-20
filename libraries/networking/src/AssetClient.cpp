@@ -369,18 +369,19 @@ void AssetClient::handleNodeKilled(SharedNodePointer node) {
 void AssetScriptingInterface::uploadData(QString data, QString extension, QScriptValue callback) {
     QByteArray dataByteArray = data.toUtf8();
     auto upload = DependencyManager::get<AssetClient>()->createUpload(dataByteArray, extension);
-    if (upload) {
-        QObject::connect(upload, &AssetUpload::finished, this, [callback, extension](AssetUpload* upload, const QString& hash) mutable {
-            if (callback.isFunction()) {
-                QString url = "atp://" + hash + "." + extension;
-                QScriptValueList args { url };
-                callback.call(QScriptValue(), args);
-            }
-        });
-
-        // start the upload now
-        upload->start();
+    if (!upload) {
+        qCWarning(asset_client) << "Error uploading file to asset server";
+        return;
     }
+
+    QObject::connect(upload, &AssetUpload::finished, this, [callback, extension](AssetUpload* upload, const QString& hash) mutable {
+        if (callback.isFunction()) {
+            QString url = "atp://" + hash + "." + extension;
+            QScriptValueList args { url };
+            callback.call(QScriptValue(), args);
+        }
+    });
+    upload->start();
 }
 
 void AssetScriptingInterface::downloadData(QString urlString, QScriptValue callback) {
@@ -407,10 +408,7 @@ void AssetScriptingInterface::downloadData(QString urlString, QScriptValue callb
         return;
     }
 
-    {
-        QWriteLocker locker(&_lock);
-        _pendingRequests << assetRequest;
-    }
+    _pendingRequests << assetRequest;
 
     connect(assetRequest, &AssetRequest::finished, [this, callback](AssetRequest* request) mutable {
         Q_ASSERT(request->getState() == AssetRequest::Finished);
@@ -424,15 +422,8 @@ void AssetScriptingInterface::downloadData(QString urlString, QScriptValue callb
         }
 
         request->deleteLater();
-
-        {
-            QWriteLocker locker(&_lock);
-            _pendingRequests.remove(request);
-        }
+        _pendingRequests.remove(request);
     });
 
     assetRequest->start();
 }
-
-
-
