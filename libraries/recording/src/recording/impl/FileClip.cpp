@@ -11,8 +11,6 @@
 #include <algorithm>
 
 #include <QtCore/QDebug>
-#include <QtCore/QJsonDocument>
-#include <QtCore/QJsonObject>
 
 #include <Finally.h>
 
@@ -40,41 +38,7 @@ QString FileClip::getName() const {
     return _file.fileName();
 }
 
-// FIXME move to frame?
-bool writeFrame(QIODevice& output, const Frame& frame, bool compressed = true) {
-    if (frame.type == Frame::TYPE_INVALID) {
-        qWarning() << "Attempting to write invalid frame";
-        return true;
-    }
 
-    auto written = output.write((char*)&(frame.type), sizeof(FrameType));
-    if (written != sizeof(FrameType)) {
-        return false;
-    }
-    //qDebug() << "Writing frame with time offset " << frame.timeOffset;
-    written = output.write((char*)&(frame.timeOffset), sizeof(Frame::Time));
-    if (written != sizeof(Frame::Time)) {
-        return false;
-    }
-    QByteArray frameData = frame.data;
-    if (compressed) {
-        frameData = qCompress(frameData);
-    }
-
-    uint16_t dataSize = frameData.size();
-    written = output.write((char*)&dataSize, sizeof(FrameSize));
-    if (written != sizeof(uint16_t)) {
-        return false;
-    }
-
-    if (dataSize != 0) {
-        written = output.write(frameData);
-        if (written != dataSize) {
-            return false;
-        }
-    }
-    return true;
-}
 
 bool FileClip::write(const QString& fileName, Clip::Pointer clip) {
     // FIXME need to move this to a different thread
@@ -90,33 +54,7 @@ bool FileClip::write(const QString& fileName, Clip::Pointer clip) {
     }
 
     Finally closer([&] { outputFile.close(); });
-    {
-        auto frameTypes = Frame::getFrameTypes();
-        QJsonObject frameTypeObj;
-        for (const auto& frameTypeName : frameTypes.keys()) {
-            frameTypeObj[frameTypeName] = frameTypes[frameTypeName];
-        }
-
-        QJsonObject rootObject;
-        rootObject.insert(FRAME_TYPE_MAP, frameTypeObj);
-        // Always mark new files as compressed
-        rootObject.insert(FRAME_COMREPSSION_FLAG, true);
-        QByteArray headerFrameData = QJsonDocument(rootObject).toBinaryData();
-        // Never compress the header frame
-        if (!writeFrame(outputFile, Frame({ Frame::TYPE_HEADER, 0, headerFrameData }), false)) {
-            return false;
-        }
-
-    }
-
-    clip->seek(0);
-    for (auto frame = clip->nextFrame(); frame; frame = clip->nextFrame()) {
-        if (!writeFrame(outputFile, *frame)) {
-            return false;
-        }
-    }
-    outputFile.close();
-    return true;
+    return clip->write(outputFile);
 }
 
 FileClip::~FileClip() {
