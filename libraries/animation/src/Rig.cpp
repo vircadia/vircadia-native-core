@@ -444,19 +444,38 @@ bool Rig::getJointRotationInWorldFrame(int jointIndex, glm::quat& result, const 
 // Deprecated.
 // WARNING: this is not symmetric with setJointRotation. It's historical. Use the appropriate specific variation.
 bool Rig::getJointRotation(int jointIndex, glm::quat& rotation) const {
-    if (jointIndex == -1 || jointIndex >= _jointStates.size()) {
+
+    // AJT: LEGACY
+    {
+        if (jointIndex == -1 || jointIndex >= _jointStates.size()) {
+            return false;
+        }
+        rotation = _jointStates[jointIndex].getRotation();
+    }
+
+    if (jointIndex >= 0 && jointIndex < _relativePoses.size()) {
+        rotation = _relativePoses[jointIndex].rot;
+        return true;
+    } else {
         return false;
     }
-    rotation = _jointStates[jointIndex].getRotation();
-    return true;
 }
 
 bool Rig::getJointTranslation(int jointIndex, glm::vec3& translation) const {
-    if (jointIndex == -1 || jointIndex >= _jointStates.size()) {
+     // AJT: LEGACY
+    {
+        if (jointIndex == -1 || jointIndex >= _jointStates.size()) {
+            return false;
+        }
+        translation = _jointStates[jointIndex].getTranslation();
+    }
+
+    if (jointIndex >= 0 && jointIndex < _relativePoses.size()) {
+        translation = _relativePoses[jointIndex].trans;
+        return true;
+    } else {
         return false;
     }
-    translation = _jointStates[jointIndex].getTranslation();
-    return true;
 }
 
 bool Rig::getJointCombinedRotation(int jointIndex, glm::quat& result, const glm::quat& rotation) const {
