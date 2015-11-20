@@ -55,6 +55,10 @@ public slots:
     void playAvatarSound(Sound* avatarSound) { setAvatarSound(avatarSound); }
 
 private slots:
+    void requestScript();
+    void scriptRequestFinished();
+    void executeScript();
+    
     void handleAudioPacket(QSharedPointer<NLPacket> packet);
     void handleOctreePacket(QSharedPointer<NLPacket> packet, SharedNodePointer senderNode);
     void handleJurisdictionPacket(QSharedPointer<NLPacket> packet, SharedNodePointer senderNode);
@@ -68,13 +72,13 @@ private:
     MixedAudioStream _receivedAudioStream;
     float _lastReceivedAudioLoudness;
 
-    void setAvatarData(AvatarData* avatarData, const QString& objectName);
     void setAvatarSound(Sound* avatarSound) { _avatarSound = avatarSound; }
 
     void sendAvatarIdentityPacket();
     void sendAvatarBillboardPacket();
 
-    AvatarData* _avatarData = nullptr;
+    QString _scriptContents;
+    QTimer* _scriptRequestTimeout { nullptr };
     bool _isListeningToAudioStream = false;
     Sound* _avatarSound = nullptr;
     int _numAvatarSoundSentBytes = 0;

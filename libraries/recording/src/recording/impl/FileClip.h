@@ -10,27 +10,13 @@
 #ifndef hifi_Recording_Impl_FileClip_h
 #define hifi_Recording_Impl_FileClip_h
 
-#include "ArrayClip.h"
-
-#include <mutex>
+#include "PointerClip.h"
 
 #include <QtCore/QFile>
-#include <QtCore/QJsonDocument>
-
-#include "../Frame.h"
 
 namespace recording {
 
-struct FileFrameHeader : public FrameHeader {
-    FrameType type;
-    Frame::Time timeOffset;
-    uint16_t size;
-    quint64 fileOffset;
-};
-
-using FileFrameHeaderList = std::list<FileFrameHeader>;
-
-class FileClip : public ArrayClip<FileFrameHeader> {
+class FileClip : public PointerClip {
 public:
     using Pointer = std::shared_ptr<FileClip>;
 
@@ -38,20 +24,11 @@ public:
     virtual ~FileClip();
 
     virtual QString getName() const override;
-    virtual void addFrame(FrameConstPointer) override;
-
-    const QJsonDocument& getHeader() {
-        return _fileHeader;
-    }
 
     static bool write(const QString& filePath, Clip::Pointer clip);
 
 private:
-    virtual FrameConstPointer readFrame(size_t index) const override;
-    QJsonDocument _fileHeader;
     QFile _file;
-    uchar* _map { nullptr };
-    bool _compressed { true };
 };
 
 }

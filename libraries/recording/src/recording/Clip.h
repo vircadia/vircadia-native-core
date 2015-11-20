@@ -47,10 +47,16 @@ public:
     virtual void skipFrame() = 0;
     virtual void addFrame(FrameConstPointer) = 0;
 
+    bool write(QIODevice& output);
+
     static Pointer fromFile(const QString& filePath);
     static void toFile(const QString& filePath, const ConstPointer& clip);
+    static QByteArray toBuffer(const ConstPointer& clip);
     static Pointer newClip();
     
+    static const QString FRAME_TYPE_MAP;
+    static const QString FRAME_COMREPSSION_FLAG;
+
 protected:
     friend class WrapperClip;
     using Mutex = std::recursive_mutex;
