@@ -14,6 +14,7 @@
 #include <QBuffer>
 
 #include <LogHandler.h>
+#include <MessagesClient.h>
 #include <NodeList.h>
 #include <udt/PacketHeaders.h>
 
@@ -24,9 +25,7 @@ const QString MESSAGES_MIXER_LOGGING_NAME = "messages-mixer";
 MessagesMixer::MessagesMixer(NLPacket& packet) :
     ThreadedAssignment(packet)
 {
-    // make sure we hear about node kills so we can tell the other nodes
     connect(DependencyManager::get<NodeList>().data(), &NodeList::nodeKilled, this, &MessagesMixer::nodeKilled);
-
     auto& packetReceiver = DependencyManager::get<NodeList>()->getPacketReceiver();
     packetReceiver.registerMessageListener(PacketType::MessagesData, this, "handleMessages");
     packetReceiver.registerMessageListener(PacketType::MessagesSubscribe, this, "handleMessagesSubscribe");
@@ -45,42 +44,20 @@ void MessagesMixer::nodeKilled(SharedNodePointer killedNode) {
 void MessagesMixer::handleMessages(QSharedPointer<NLPacketList> packetList, SharedNodePointer senderNode) {
     Q_ASSERT(packetList->getType() == PacketType::MessagesData);
 
-    QByteArray packetData = packetList->getMessage();
-    QBuffer packet{ &packetData };
-    packet.open(QIODevice::ReadOnly);
+    QString channel, message;
+    QUuid senderID;
+    MessagesClient::decodeMessagesPacket(packetList, channel, message, senderID);
+    Q_ASSERT(senderNode->getUUID() == senderID); // NOTE: do we want to reject messages that come from bogus senders
 
-    quint16 channelLength;
-    packet.read(reinterpret_cast<char*>(&channelLength), sizeof(channelLength));
-    auto channelData = packet.read(channelLength);
-    QString channel = QString::fromUtf8(channelData);
-
-    quint16 messageLength;
-    packet.read(reinterpret_cast<char*>(&messageLength), sizeof(messageLength));
-    auto messageData = packet.read(messageLength);
-    QString message = QString::fromUtf8(messageData);
-    
     auto nodeList = DependencyManager::get<NodeList>();
 
     nodeList->eachMatchingNode(
         [&](const SharedNodePointer& node)->bool {
-
         return node->getType() == NodeType::Agent && node->getActiveSocket() &&
                 _channelSubscribers[channel].contains(node->getUUID());
     },
         [&](const SharedNodePointer& node) {
-
-        auto packetList = NLPacketList::create(PacketType::MessagesData, QByteArray(), true, true);
-
-        auto channelUtf8 = channel.toUtf8();
-        quint16 channelLength = channelUtf8.length();
-        packetList->writePrimitive(channelLength);
-        packetList->write(channelUtf8);
-
-        auto messageUtf8 = message.toUtf8();
-        quint16 messageLength = messageUtf8.length();
-        packetList->writePrimitive(messageLength);
-        packetList->write(messageUtf8);
-
+        auto packetList = MessagesClient::encodeMessagesPacket(channel, message, senderID);
         nodeList->sendPacketList(std::move(packetList), *node);
     });
 }
@@ -107,15 +84,13 @@ void MessagesMixer::sendStatsPacket() {
     QJsonObject statsObject;
     QJsonObject messagesObject;
     auto nodeList = DependencyManager::get<NodeList>();
+
     // add stats for each listerner
     nodeList->eachNode([&](const SharedNodePointer& node) {
         QJsonObject messagesStats;
-
-        // add the key to ask the domain-server for a username replacement, if it has it
         messagesStats[USERNAME_UUID_REPLACEMENT_STATS_KEY] = uuidStringWithoutCurlyBraces(node->getUUID());
         messagesStats["outbound_kbps"] = node->getOutboundBandwidth();
         messagesStats["inbound_kbps"] = node->getInboundBandwidth();
-
         messagesObject[uuidStringWithoutCurlyBraces(node->getUUID())] = messagesStats;
     });
 
@@ -125,10 +100,6 @@ void MessagesMixer::sendStatsPacket() {
 
 void MessagesMixer::run() {
     ThreadedAssignment::commonInit(MESSAGES_MIXER_LOGGING_NAME, NodeType::MessagesMixer);
-
     auto nodeList = DependencyManager::get<NodeList>();
     nodeList->addNodeTypeToInterestSet(NodeType::Agent);
-    
-    // The messages-mixer currently does currently have any domain settings. If it did, they would be
-    // synchronously grabbed here.
 }
