@@ -183,7 +183,7 @@ void Agent::scriptRequestFinished() {
         _scriptContents = reply->readAll();
         qDebug() << "Downloaded script:" << _scriptContents;
         
-        // we could just call executeScript directly - we use a QueuedConnect to allow scriptRequestFinished
+        // we could just call executeScript directly - we use a QueuedConnection to allow scriptRequestFinished
         // to return before calling executeScript
         QMetaObject::invokeMethod(this, "executeScript", Qt::QueuedConnection);
     } else {
