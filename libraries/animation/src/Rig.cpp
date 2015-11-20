@@ -1386,7 +1386,8 @@ void Rig::copyJointsIntoJointData(QVector<JointData>& jointDataVec) const {
         data.rotationSet |= getJointStateRotation(i, data.rotation);
         // geometry offset is used here so that translations are in meters.
         // this is what the avatar mixer expects
-        data.translationSet |= getJointStateTranslation(i, _geometryOffset * data.translation);
+        data.translationSet |= getJointStateTranslation(i, data.translation);
+        data.translation = _geometryOffset * data.translation;
     }
 }
 
