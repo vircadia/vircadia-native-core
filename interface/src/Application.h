@@ -159,6 +159,7 @@ public:
     bool isForeground() const { return _isForeground; }
     
     float getFps() const { return _fps; }
+    float getTargetFramePeriod() { return isHMDMode() ? 1.0f / 75.0f : 1.0f / 60.0f; }
     float getLastInstanteousFps() const { return _lastInstantaneousFps; }
     float getLastPaintWait() const { return _lastPaintWait; };
     float getLastDeducedNonVSyncFps() const { return _lastDeducedNonVSyncFps; }

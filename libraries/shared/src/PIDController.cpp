@@ -33,8 +33,9 @@ float PIDController::update(float measuredValue, float dt, bool resetAccumulator
 
     if (getIsLogging()) {  // if logging/reporting
         updateHistory(measuredValue, dt, error, accumulatedError, changeInError, p, i, d, computedValue, FIXME1, FIXME2);
-     }
-
+    }
+    Q_ASSERT(!isnan(computedValue));
+    
     // update state for next time
     _lastError = error;
     _lastAccumulation = accumulatedError;

@@ -91,7 +91,7 @@ void AvatarManager::init() {
     }
     scene->enqueuePendingChanges(pendingChanges);
 
-    const float target_fps = 75.0f; // qApp->isHMDMode() ? 75.0f : 60.0f; FIXME
+    const float target_fps = 1.0f / qApp->getTargetFramePeriod();
     _renderDistanceController.setMeasuredValueSetpoint(target_fps);
     const float TREE_SCALE = 32768.0f; // Not in shared library, alas.
     const float SMALLEST_REASONABLE_HORIZON = 5.0f; // meters
@@ -102,9 +102,9 @@ void AvatarManager::init() {
     // Turn on logging with the following (or from js with AvatarList.setRenderDistanceControllerHistory("avatar render", 300))
     //_renderDistanceController.setHistorySize("avatar render", target_fps * 4);
     // Note that extra logging/hysteresis is turned off in Avatar.cpp when the above logging is on.
-    _renderDistanceController.setKP(0.0003f); //Usually about 0.6 of largest that doesn't oscillate, with other constants 0.
-    _renderDistanceController.setKI(0.001f); // Big enough to bring us to target with the above KP.
-    _renderDistanceController.setKD(0.00001f); // a touch of kd increases the speed by which we get there
+    _renderDistanceController.setKP(0.0005f); // Usually about 0.6 of largest that doesn't oscillate when other constants 0.
+    _renderDistanceController.setKI(0.0004f); // Big enough to bring us to target with the above KP.
+    _renderDistanceController.setKD(0.00001f); // A touch of kd increases the speed by which we get there.
 
 }
 

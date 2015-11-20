@@ -1102,15 +1102,18 @@ void Application::paintGL() {
     // Here we make a guess for deducedNonVSyncFps = 1 / deducedNonVSyncPeriod.
     //
     // Time between previous paintGL call and this one, which can vary not only with vSync misses, but also with QT timing.
+    // We're using this as a proxy for the time between vsync and displayEnd, below. (Not exact, but tends to be the same over time.)
     // This is not the same as update(deltaTime), because the latter attempts to throttle to 60hz and also clamps to 1/4 second.
     const float actualPeriod = diff / (float)USECS_PER_SECOND; // same as 1/instantaneousFps but easier for compiler to optimize
     // Note that _lastPaintWait (stored at end of last call) is for the same paint cycle.
     float deducedNonVSyncPeriod = actualPeriod - _lastPaintWait; // plus a some non-zero time for machinery we can't measure
     // We don't know how much time to allow for that, but if we went over the target period, we know it's at least the portion
-    // of paintWait up to the next vSync.
-    const float targetPeriod = isHMDMode() ? 1.0f / 75.0f : 1.0f / 60.0f;
-    const float minumumMachinery = glm::max(0.0f, (floorf(_lastPaintWait / targetPeriod) * targetPeriod) - _lastPaintWait);
-    deducedNonVSyncPeriod += minumumMachinery;
+    // of paintWait up to the next vSync. This gives us enough of a penalty so that when actualPeriod crosses two cycles,
+    // the key part (and not an exagerated part) of _lastPaintWait is accounted for.
+    const float targetPeriod = getTargetFramePeriod();
+    if (_lastPaintWait > EPSILON && actualPeriod > targetPeriod) {
+        deducedNonVSyncPeriod += remainder(actualPeriod, _lastPaintWait);
+    }
     _lastDeducedNonVSyncFps = 1.0f / deducedNonVSyncPeriod;
     _lastInstantaneousFps = instantaneousFps;
 
