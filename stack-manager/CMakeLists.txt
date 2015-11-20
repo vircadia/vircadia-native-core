@@ -46,3 +46,5 @@ else ()
 #    add_executable(${TARGET_NAME} ${SM_SRCS})
   endif ()
 endif ()
+
+package_libraries_for_deployment()

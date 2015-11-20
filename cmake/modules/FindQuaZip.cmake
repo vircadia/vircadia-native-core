@@ -17,13 +17,10 @@ hifi_library_search_hints("quazip")
 
 if (WIN32)
     find_path(QUAZIP_INCLUDE_DIRS quazip.h PATH_SUFFIXES include/quazip HINTS ${QUAZIP_SEARCH_DIRS})
-#    find_library(QUAZIP_LIBRARIES NAMES quazip PATH_SUFFIXES lib HINTS ${QUAZIP_SEARCH_DIRS})
 elseif (APPLE)
     find_path(QUAZIP_INCLUDE_DIRS quazip.h PATH_SUFFIXES include/quazip HINTS ${QUAZIP_SEARCH_DIRS})
-#    find_library(QUAZIP_LIBRARIES NAMES quazip PATH_SUFFIXES lib HINTS ${QUAZIP_SEARCH_DIRS})
 else ()
     find_path(QUAZIP_INCLUDE_DIRS quazip.h PATH_SUFFIXES quazip HINTS ${QUAZIP_SEARCH_DIRS})
-#    find_library(QUAZIP_LIBRARIES NAMES quazip-qt5 PATH_SUFFIXES lib HINTS ${QUAZIP_SEARCH_DIRS})
 endif ()
 
 include(FindPackageHandleStandardArgs)
