@@ -175,9 +175,9 @@ public:
 
     void computeEyesInRootFrame(const AnimPoseVec& poses);
 
-    glm::vec3 Rig::avatarToGeometry(const glm::vec3& pos) const;
-    glm::quat Rig::avatarToGeometryZForward(const glm::quat& quat) const;
-    glm::quat Rig::avatarToGeometryNegZForward(const glm::quat& quat) const;
+    glm::vec3 avatarToGeometry(const glm::vec3& pos) const;
+    glm::quat avatarToGeometryZForward(const glm::quat& quat) const;
+    glm::quat avatarToGeometryNegZForward(const glm::quat& quat) const;
 
     // AJT: TODO: LEGACY
     QVector<JointState> _jointStates;

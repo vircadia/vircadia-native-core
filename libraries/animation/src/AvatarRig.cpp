@@ -91,7 +91,7 @@ void AvatarRig::setJointTranslation(int index, bool valid, const glm::vec3& tran
     }
 
     if (index > 0 && index < (int)_overrideFlags.size()) {
-        assert(_overrideFlags.size() == _overidePoses.size());
+        assert(_overrideFlags.size() == _overridePoses.size());
         _overrideFlags[index] = true;
         _overridePoses[index].trans = translation;
     }
@@ -115,7 +115,7 @@ void AvatarRig::setJointState(int index, bool valid, const glm::quat& rotation, 
     }
 
     if (index > 0 && index < (int)_overrideFlags.size()) {
-        assert(_overrideFlags.size() == _overidePoses.size());
+        assert(_overrideFlags.size() == _overridePoses.size());
         _overrideFlags[index] = true;
         _overridePoses[index].rot = rotation;
         _overridePoses[index].trans = translation;

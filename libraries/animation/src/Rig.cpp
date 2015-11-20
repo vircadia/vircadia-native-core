@@ -363,7 +363,7 @@ void Rig::setJointRotation(int index, bool valid, const glm::quat& rotation, flo
     }
 
     if (index >= 0 && index < (int)_overrideFlags.size()) {
-        assert(_overrideFlags.size() == _overidePoses.size());
+        assert(_overrideFlags.size() == _overridePoses.size());
         _overrideFlags[index] = true;
         _overridePoses[index].rot = rotation;
     }
