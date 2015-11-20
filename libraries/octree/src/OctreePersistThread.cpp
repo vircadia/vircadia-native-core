@@ -52,6 +52,15 @@ OctreePersistThread::OctreePersistThread(OctreePointer tree, const QString& file
     _filename = sansExt + "." + _persistAsFileType;
 }
 
+QString OctreePersistThread::getPersistFileMimeType() const {
+    if (_persistAsFileType == "json") {
+        return "application/json";
+    } if (_persistAsFileType == "json.gz") {
+        return "application/zip";
+    }
+    return "";
+}
+
 void OctreePersistThread::parseSettings(const QJsonObject& settings) {
     if (settings["backups"].isArray()) {
         const QJsonArray& backupRules = settings["backups"].toArray();
@@ -227,6 +236,15 @@ void OctreePersistThread::aboutToFinish() {
     persist();
     qCDebug(octree) << "Persist thread done with about to finish...";
     _stopThread = true;
+}
+
+QByteArray OctreePersistThread::getPersistFileContents() const {
+    QByteArray fileContents;
+    QFile file(_filename);
+    if (file.open(QIODevice::ReadOnly)) {
+        fileContents = file.readAll();
+    }
+    return fileContents;
 }
 
 void OctreePersistThread::persist() {

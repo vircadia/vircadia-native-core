@@ -117,7 +117,7 @@ Transform Transform::fromJson(const QJsonValue& json) {
         result.setTranslation(vec3FromJsonValue(obj[JSON_TRANSLATION]));
     }
     if (obj.contains(JSON_SCALE)) {
-        result.setScale(vec3FromJsonValue(obj[JSON_TRANSLATION]));
+        result.setScale(vec3FromJsonValue(obj[JSON_SCALE]));
     }
     return result;
 }

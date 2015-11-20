@@ -74,9 +74,10 @@ class QAudioInput;
 class QAudioOutput;
 class QIODevice;
 
+
 typedef struct ty_gverb ty_gverb;
 
-
+class Transform;
 class NLPacket;
 
 class AudioClient : public AbstractAudioInterface, public Dependency {
@@ -147,6 +148,7 @@ public slots:
 
     void sendDownstreamAudioStatsPacket() { _stats.sendDownstreamAudioStatsPacket(); }
     void handleAudioInput();
+    void handleRecordedAudioInput(const QByteArray& audio);
     void reset();
     void audioMixerKilled();
     void toggleMute();
@@ -317,8 +319,6 @@ private:
     void checkDevices();
 
     bool _hasReceivedFirstPacket = false;
-
-    std::unique_ptr<NLPacket> _audioPacket;
 };
 
 

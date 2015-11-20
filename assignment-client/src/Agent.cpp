@@ -17,6 +17,7 @@
 #include <QtNetwork/QNetworkReply>
 
 #include <AvatarHashMap.h>
+#include <MessagesClient.h>
 #include <NetworkAccessManager.h>
 #include <NodeList.h>
 #include <udt/PacketHeaders.h>
@@ -24,10 +25,16 @@
 #include <SoundCache.h>
 #include <UUID.h>
 
+#include <recording/Deck.h>
+#include <recording/Recorder.h>
+#include <recording/Frame.h>
+
 #include <WebSocketServerClass.h>
 #include <EntityScriptingInterface.h> // TODO: consider moving to scriptengine.h
 
 #include "avatars/ScriptableAvatar.h"
+#include "RecordingScriptingInterface.h"
+#include "AbstractAudioInterface.h"
 
 #include "Agent.h"
 
@@ -45,6 +52,9 @@ Agent::Agent(NLPacket& packet) :
 
     DependencyManager::set<ResourceCacheSharedItems>();
     DependencyManager::set<SoundCache>();
+    DependencyManager::set<recording::Deck>();
+    DependencyManager::set<recording::Recorder>();
+    DependencyManager::set<RecordingScriptingInterface>();
 
     auto& packetReceiver = DependencyManager::get<NodeList>()->getPacketReceiver();
     
@@ -93,7 +103,7 @@ void Agent::handleJurisdictionPacket(QSharedPointer<NLPacket> packet, SharedNode
         DependencyManager::get<EntityScriptingInterface>()->getJurisdictionListener()->
             queueReceivedPacket(packet, senderNode);
     }
-} 
+}
 
 void Agent::handleAudioPacket(QSharedPointer<NLPacket> packet) {
     _receivedAudioStream.parseData(*packet);
@@ -104,21 +114,26 @@ void Agent::handleAudioPacket(QSharedPointer<NLPacket> packet) {
 }
 
 const QString AGENT_LOGGING_NAME = "agent";
-const int PING_INTERVAL = 1000;
 
 void Agent::run() {
     ThreadedAssignment::commonInit(AGENT_LOGGING_NAME, NodeType::Agent);
+
+    // Setup MessagesClient
+    auto messagesClient = DependencyManager::set<MessagesClient>();
+    QThread* messagesThread = new QThread;
+    messagesThread->setObjectName("Messages Client Thread");
+    messagesClient->moveToThread(messagesThread);
+    connect(messagesThread, &QThread::started, messagesClient.data(), &MessagesClient::init);
+    messagesThread->start();
+
 
     auto nodeList = DependencyManager::get<NodeList>();
     nodeList->addSetOfNodeTypesToNodeInterestSet(NodeSet()
                                                  << NodeType::AudioMixer
                                                  << NodeType::AvatarMixer
                                                  << NodeType::EntityServer
+                                                 << NodeType::MessagesMixer
                                                 );
-
-    _pingTimer = new QTimer(this);
-    connect(_pingTimer, SIGNAL(timeout()), SLOT(sendPingRequests()));
-    _pingTimer->start(PING_INTERVAL);
 
     // figure out the URL for the script for this agent assignment
     QUrl scriptURL;
@@ -157,16 +172,38 @@ void Agent::run() {
     _scriptEngine->setParent(this); // be the parent of the script engine so it gets moved when we do
 
     // setup an Avatar for the script to use
-    ScriptableAvatar scriptedAvatar(_scriptEngine.get());
-    scriptedAvatar.setForceFaceTrackerConnected(true);
+    auto scriptedAvatar = DependencyManager::get<ScriptableAvatar>();
+    connect(_scriptEngine.get(), SIGNAL(update(float)), scriptedAvatar.data(), SLOT(update(float)), Qt::ConnectionType::QueuedConnection);
+    scriptedAvatar->setForceFaceTrackerConnected(true);
 
     // call model URL setters with empty URLs so our avatar, if user, will have the default models
-    scriptedAvatar.setFaceModelURL(QUrl());
-    scriptedAvatar.setSkeletonModelURL(QUrl());
-
+    scriptedAvatar->setFaceModelURL(QUrl());
+    scriptedAvatar->setSkeletonModelURL(QUrl());
     // give this AvatarData object to the script engine
-    setAvatarData(&scriptedAvatar, "Avatar");
-    
+    _scriptEngine->registerGlobalObject("Avatar", scriptedAvatar.data());
+
+
+    using namespace recording;
+    static const FrameType AVATAR_FRAME_TYPE = Frame::registerFrameType(AvatarData::FRAME_NAME);
+    // FIXME how to deal with driving multiple avatars locally?  
+    Frame::registerFrameHandler(AVATAR_FRAME_TYPE, [this, scriptedAvatar](Frame::ConstPointer frame) {
+        AvatarData::fromFrame(frame->data, *scriptedAvatar);
+    });
+
+
+    using namespace recording;
+    static const FrameType AUDIO_FRAME_TYPE = Frame::registerFrameType(AudioConstants::AUDIO_FRAME_NAME);
+    Frame::registerFrameHandler(AUDIO_FRAME_TYPE, [this, &scriptedAvatar](Frame::ConstPointer frame) {
+        const QByteArray& audio = frame->data;
+        static quint16 audioSequenceNumber{ 0 };
+        Transform audioTransform;
+        audioTransform.setTranslation(scriptedAvatar->getPosition());
+        audioTransform.setRotation(scriptedAvatar->getOrientation());
+        AbstractAudioInterface::emitAudioPacket(audio.data(), audio.size(), audioSequenceNumber, audioTransform, PacketType::MicrophoneAudioNoEcho);
+    });
+
+
+
     auto avatarHashMap = DependencyManager::set<AvatarHashMap>();
     _scriptEngine->registerGlobalObject("AvatarList", avatarHashMap.data());
 
@@ -205,6 +242,10 @@ void Agent::run() {
     QObject::connect(_scriptEngine.get(), &ScriptEngine::update, this, &Agent::processAgentAvatarAndAudio);
 
     _scriptEngine->run();
+
+    Frame::clearFrameHandler(AUDIO_FRAME_TYPE);
+    Frame::clearFrameHandler(AVATAR_FRAME_TYPE);
+
     setFinished(true);
 }
 
@@ -226,6 +267,7 @@ void Agent::setIsAvatar(bool isAvatar) {
     }
 
     if (!_isAvatar) {
+
         if (_avatarIdentityTimer) {
             _avatarIdentityTimer->stop();
             delete _avatarIdentityTimer;
@@ -240,33 +282,30 @@ void Agent::setIsAvatar(bool isAvatar) {
     }
 }
 
-void Agent::setAvatarData(AvatarData* avatarData, const QString& objectName) {
-    _avatarData = avatarData;
-    _scriptEngine->registerGlobalObject(objectName, avatarData);
-}
-
 void Agent::sendAvatarIdentityPacket() {
-    if (_isAvatar && _avatarData) {
-        _avatarData->sendIdentityPacket();
+    if (_isAvatar) {
+        auto scriptedAvatar = DependencyManager::get<ScriptableAvatar>();
+        scriptedAvatar->sendIdentityPacket();
     }
 }
 
 void Agent::sendAvatarBillboardPacket() {
-    if (_isAvatar && _avatarData) {
-        _avatarData->sendBillboardPacket();
+    if (_isAvatar) {
+        auto scriptedAvatar = DependencyManager::get<ScriptableAvatar>();
+        scriptedAvatar->sendBillboardPacket();
     }
 }
 
 
 void Agent::processAgentAvatarAndAudio(float deltaTime) {
-    if (!_scriptEngine->isFinished() && _isAvatar && _avatarData) {
-
+    if (!_scriptEngine->isFinished() && _isAvatar) {
+        auto scriptedAvatar = DependencyManager::get<ScriptableAvatar>();
         const int SCRIPT_AUDIO_BUFFER_SAMPLES = floor(((SCRIPT_DATA_CALLBACK_USECS * AudioConstants::SAMPLE_RATE)
             / (1000 * 1000)) + 0.5);
         const int SCRIPT_AUDIO_BUFFER_BYTES = SCRIPT_AUDIO_BUFFER_SAMPLES * sizeof(int16_t);
 
-        QByteArray avatarByteArray = _avatarData->toByteArray(true, randFloat() < AVATAR_SEND_FULL_UPDATE_RATIO);
-        _avatarData->doneEncoding(true);
+        QByteArray avatarByteArray = scriptedAvatar->toByteArray(true, randFloat() < AVATAR_SEND_FULL_UPDATE_RATIO);
+        scriptedAvatar->doneEncoding(true);
 
         static AvatarDataSequenceNumber sequenceNumber = 0;
         auto avatarPacket = NLPacket::create(PacketType::AvatarData, avatarByteArray.size() + sizeof(sequenceNumber));
@@ -331,8 +370,8 @@ void Agent::processAgentAvatarAndAudio(float deltaTime) {
                 audioPacket->writePrimitive(SCRIPT_AUDIO_BUFFER_SAMPLES);
 
                 // use the orientation and position of this avatar for the source of this audio
-                audioPacket->writePrimitive(_avatarData->getPosition());
-                glm::quat headOrientation = _avatarData->getHeadOrientation();
+                audioPacket->writePrimitive(scriptedAvatar->getPosition());
+                glm::quat headOrientation = scriptedAvatar->getHeadOrientation();
                 audioPacket->writePrimitive(headOrientation);
 
             }else if (nextSoundOutput) {
@@ -340,8 +379,8 @@ void Agent::processAgentAvatarAndAudio(float deltaTime) {
                 audioPacket->writePrimitive((quint8)0);
 
                 // use the orientation and position of this avatar for the source of this audio
-                audioPacket->writePrimitive(_avatarData->getPosition());
-                glm::quat headOrientation = _avatarData->getHeadOrientation();
+                audioPacket->writePrimitive(scriptedAvatar->getPosition());
+                glm::quat headOrientation = scriptedAvatar->getHeadOrientation();
                 audioPacket->writePrimitive(headOrientation);
 
                 // write the raw audio data
@@ -372,28 +411,6 @@ void Agent::aboutToFinish() {
         _scriptEngine->stop();
     }
 
-    if (_pingTimer) {
-        _pingTimer->stop();
-        delete _pingTimer;
-    }
-
     // our entity tree is going to go away so tell that to the EntityScriptingInterface
     DependencyManager::get<EntityScriptingInterface>()->setEntityTree(NULL);
-}
-
-void Agent::sendPingRequests() {
-    auto nodeList = DependencyManager::get<NodeList>();
-
-    nodeList->eachMatchingNode([](const SharedNodePointer& node)->bool {
-        switch (node->getType()) {
-        case NodeType::AvatarMixer:
-        case NodeType::AudioMixer:
-        case NodeType::EntityServer:
-            return true;
-        default:
-            return false;
-        }
-    }, [nodeList](const SharedNodePointer& node) {
-        nodeList->sendPacket(nodeList->constructPingPacket(), *node);
-    });
 }
