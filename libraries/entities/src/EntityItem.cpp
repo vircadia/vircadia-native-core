@@ -500,6 +500,15 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
         }
     }
 
+    // before proceeding, check to see if this is an entity that we know has been deleted, which
+    // might happen in the case of out-of-order and/or recorvered packets, if we've deleted the entity
+    // we can confidently ignore this packet
+    EntityTreePointer tree = getTree();
+    if (tree && tree->isDeletedEntity(_id)) {
+        qDebug() << "Recieved packet for previously deleted entity [" << _id << "] ignoring. (inside " << __FUNCTION__ << ")";
+        ignoreServerPacket = true;
+    }
+
     if (ignoreServerPacket) {
         overwriteLocalData = false;
         #ifdef WANT_DEBUG
