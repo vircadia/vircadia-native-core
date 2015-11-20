@@ -1551,7 +1551,7 @@ void AvatarData::fromFrame(const QByteArray& frameData, AvatarData& result) {
             auto joint = jointDataFromJsonValue(jointJson);
             jointArray.push_back(joint);
             result.setJointData(i, joint.rotation, joint.translation);
-            result._jointData[i].rotationSet = true; // Have to do that yep
+            result._jointData[i].rotationSet = true; // Have to do that to broadcast the avatar new pose
             i++;
         }
         result.setRawJointData(jointArray);
