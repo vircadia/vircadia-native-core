@@ -14,6 +14,7 @@
 #define hifi_AssetClient_h
 
 #include <QString>
+#include <QScriptValue>
 
 #include <DependencyManager.h>
 
@@ -21,6 +22,7 @@
 #include "LimitedNodeList.h"
 #include "NLPacket.h"
 #include "Node.h"
+#include "ResourceCache.h"
 
 class AssetRequest;
 class AssetUpload;
@@ -67,5 +69,16 @@ private:
     friend class AssetRequest;
     friend class AssetUpload;
 };
+
+
+class AssetScriptingInterface : public QObject {
+    Q_OBJECT
+public:
+    Q_INVOKABLE void uploadData(QString data, QString extension, QScriptValue callback);
+    Q_INVOKABLE void downloadData(QString url, QScriptValue downloadComplete);
+protected:
+    QSet<AssetRequest*> _pendingRequests;
+};
+
 
 #endif
