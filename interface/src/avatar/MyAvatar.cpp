@@ -982,7 +982,7 @@ void MyAvatar::updateLookAtTargetAvatar() {
     const float KEEP_LOOKING_AT_CURRENT_ANGLE_FACTOR = 1.3f;
     const float GREATEST_LOOKING_AT_DISTANCE = 10.0f;
 
-    AvatarHash hash = DependencyManager::get<AvatarManager>()->getCopy();
+    AvatarHash hash = DependencyManager::get<AvatarManager>()->getHashCopy();
     
     foreach (const AvatarSharedPointer& avatarPointer, hash) {
         auto avatar = static_pointer_cast<Avatar>(avatarPointer);

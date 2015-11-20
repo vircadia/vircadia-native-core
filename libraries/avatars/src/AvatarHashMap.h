@@ -31,7 +31,7 @@ class AvatarHashMap : public QObject, public Dependency {
     SINGLETON_DEPENDENCY
 
 public:
-    AvatarHash getCopy() { return _avatarHash; }
+    AvatarHash getHashCopy() { return _avatarHash; }
     int size() { return _avatarHash.size(); }
 
 signals:
