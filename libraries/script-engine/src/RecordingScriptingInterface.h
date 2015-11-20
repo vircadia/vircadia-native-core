@@ -82,9 +82,6 @@ protected:
     Flag _useAttachments { false };
     Flag _useSkeletonModel { false };
     recording::ClipPointer _lastClip;
-
-private:
-    void clipUploadFinished(AssetUpload* upload, const QString& hash);
 };
 
 #endif // hifi_RecordingScriptingInterface_h
