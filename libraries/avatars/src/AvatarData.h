@@ -50,7 +50,6 @@ typedef unsigned long long quint64;
 #include <Node.h>
 #include <RegisteredMetaTypes.h>
 #include <SimpleMovingAverage.h>
-#include <recording/Forward.h>
 
 #include "AABox.h"
 #include "HandData.h"

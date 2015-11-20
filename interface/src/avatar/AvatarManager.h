@@ -65,8 +65,7 @@ public:
     void getObjectsToChange(VectorOfMotionStates& motionStates);
     void handleOutgoingChanges(const VectorOfMotionStates& motionStates);
     void handleCollisionEvents(const CollisionEvents& collisionEvents);
-
-    void updateAvatarPhysicsShape(const QUuid& id);
+    void updateAvatarPhysicsShape(Avatar* avatar);
     
     // Expose results and parameter-tuning operations to other systems, such as stats and javascript.
     Q_INVOKABLE float getRenderDistance() { return _renderDistance; }
@@ -93,7 +92,9 @@ private:
     virtual AvatarSharedPointer newSharedAvatar();
     virtual AvatarSharedPointer addAvatar(const QUuid& sessionUUID, const QWeakPointer<Node>& mixerWeakPointer);
     void removeAvatarMotionState(AvatarSharedPointer avatar);
+    
     virtual void removeAvatar(const QUuid& sessionUUID);
+    virtual void handleRemovedAvatar(const AvatarSharedPointer& removedAvatar);
     
     QVector<AvatarSharedPointer> _avatarFades;
     std::shared_ptr<MyAvatar> _myAvatar;

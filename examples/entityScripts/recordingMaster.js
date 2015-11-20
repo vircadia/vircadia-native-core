@@ -10,13 +10,9 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 
-var PARAMS_SCRIPT_URL = Script.resolvePath('recordingEntityScript.js');
-
 HIFI_PUBLIC_BUCKET = "http://s3.amazonaws.com/hifi-public/";
-Script.include("../libraries/toolBars.js");
-Script.include("../libraries/utils.js");
-
-
+Script.include(HIFI_PUBLIC_BUCKET + "scripts/libraries/toolBars.js");
+Script.include(HIFI_PUBLIC_BUCKET + "scripts/libraries/utils.js");
 
 var rotation = Quat.safeEulerAngles(Camera.getOrientation());
 rotation = Quat.fromPitchYawRollDegrees(0, rotation.y, 0);
@@ -29,37 +25,8 @@ var COLOR_TOOL_BAR = { red: 0, green: 0, blue: 0 };
 
 var toolBar = null;
 var recordIcon;
-
-
-
 var isRecording = false;
-
-var recordAreaEntity = Entities.addEntity({
-    name: 'recorderEntity',
-    dimensions: {
-        x: 2,
-        y: 1,
-        z: 2
-    },
-    type: 'Box',
-    position: center,
-    color: {
-        red: 255,
-        green: 255,
-        blue: 255
-    },
-    visible: true,
-    ignoreForCollisions: true,
-    script: PARAMS_SCRIPT_URL,
-    
-    userData: JSON.stringify({
-        recordingKey: {
-            isRecordingStarted: false
-        }
-    })
-});
-
-
+var channel = "groupRecordingChannel";
 setupToolBar();
 
 function setupToolBar() {
@@ -69,9 +36,7 @@ function setupToolBar() {
     }
     Tool.IMAGE_HEIGHT /= 2;
     Tool.IMAGE_WIDTH /= 2;
-    
-    toolBar = new ToolBar(0, 0, ToolBar.HORIZONTAL);    //put the button in the up-left corner
-    
+    toolBar = new ToolBar(0, 100, ToolBar.HORIZONTAL);    //put the button in the up-left corner
     toolBar.setBack(COLOR_TOOL_BAR, ALPHA_OFF);
     
     recordIcon = toolBar.addTool({
@@ -81,9 +46,8 @@ function setupToolBar() {
         width: Tool.IMAGE_WIDTH,
         height: Tool.IMAGE_HEIGHT,
         alpha: Recording.isPlaying() ? ALPHA_OFF : ALPHA_ON,
-        visible: true
+        visible: true,
     }, true, isRecording);
-    
 }
 
 function mousePressEvent(event) {
@@ -91,26 +55,22 @@ function mousePressEvent(event) {
     if (recordIcon === toolBar.clicked(clickedOverlay, false)) {
         if (!isRecording) {
             print("I'm the master. I want to start recording");
+            var message = "RECONDING STARTED";
+            Messages.sendMessage(channel, message);
             isRecording = true;
-            setEntityCustomData("recordingKey", recordAreaEntity, {isRecordingStarted: true});
-            
         } else {
             print("I want to stop recording");
+            var message = "RECONDING ENDED";
+            Messages.sendMessage(channel, message);
             isRecording = false;
-            setEntityCustomData("recordingKey", recordAreaEntity, {isRecordingStarted: false});
-            
         }
-    } 
+    }
 }
-
 
 function cleanup() {
     toolBar.cleanup();
-    Entities.callEntityMethod(recordAreaEntity, 'clean');      //have to call this before deleting to avoid the JSON warnings
-    Entities.deleteEntity(recordAreaEntity);
+    Messages.unsubscribe(channel);
 }
 
-
-
- Script.scriptEnding.connect(cleanup);
- Controller.mousePressEvent.connect(mousePressEvent);
+Script.scriptEnding.connect(cleanup);
+Controller.mousePressEvent.connect(mousePressEvent);

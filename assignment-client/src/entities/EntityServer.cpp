@@ -112,7 +112,6 @@ int EntityServer::sendSpecialPackets(const SharedNodePointer& node, OctreeQueryN
         quint64 deletePacketSentAt = usecTimestampNow();
         EntityTreePointer tree = std::static_pointer_cast<EntityTree>(_tree);
         auto recentlyDeleted = tree->getRecentlyDeletedEntityIDs();
-        bool hasMoreToSend = true;
 
         packetsSent = 0;
 
@@ -254,7 +253,7 @@ void EntityServer::pruneDeletedEntities() {
     }
 }
 
-bool EntityServer::readAdditionalConfiguration(const QJsonObject& settingsSectionObject) {
+void EntityServer::readAdditionalConfiguration(const QJsonObject& settingsSectionObject) {
     bool wantEditLogging = false;
     readOptionBool(QString("wantEditLogging"), settingsSectionObject, wantEditLogging);
     qDebug("wantEditLogging=%s", debug::valueOf(wantEditLogging));
@@ -266,6 +265,4 @@ bool EntityServer::readAdditionalConfiguration(const QJsonObject& settingsSectio
     EntityTreePointer tree = std::static_pointer_cast<EntityTree>(_tree);
     tree->setWantEditLogging(wantEditLogging);
     tree->setWantTerseEditLogging(wantTerseEditLogging);
-
-    return true;
 }

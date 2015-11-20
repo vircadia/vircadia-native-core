@@ -16,11 +16,10 @@
 #include <AvatarData.h>
 #include <ScriptEngine.h>
 
-class ScriptableAvatar : public AvatarData {
+class ScriptableAvatar : public AvatarData, public Dependency{
     Q_OBJECT
 public:
-    ScriptableAvatar(ScriptEngine* scriptEngine);
-    
+   
     /// Allows scripts to run animations.
     Q_INVOKABLE void startAnimation(const QString& url, float fps = 30.0f, float priority = 1.0f, bool loop = false,
                                     bool hold = false, float firstFrame = 0.0f, float lastFrame = FLT_MAX, const QStringList& maskedJoints = QStringList());
@@ -31,7 +30,6 @@ private slots:
     void update(float deltatime);
     
 private:
-    ScriptEngine* _scriptEngine;
     AnimationPointer _animation;
     AnimationDetails _animationDetails;
     QStringList _maskedJoints;

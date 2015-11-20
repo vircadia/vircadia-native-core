@@ -55,9 +55,12 @@ public:
         : FrameHeader(type, timeOffset), data(data) { }
 
     static FrameType registerFrameType(const QString& frameTypeName);
+    static Handler registerFrameHandler(FrameType type, Handler handler);
+    static Handler registerFrameHandler(const QString& frameTypeName, Handler handler);
+    static void clearFrameHandler(FrameType type);
+    static void clearFrameHandler(const QString& frameTypeName);
     static QMap<QString, FrameType> getFrameTypes();
     static QMap<FrameType, QString> getFrameTypeNames();
-    static Handler registerFrameHandler(FrameType type, Handler handler);
     static void handleFrame(const ConstPointer& frame);
 };
 

@@ -70,6 +70,7 @@
 #include <LogHandler.h>
 #include <MainWindow.h>
 #include <MessageDialog.h>
+#include <MessagesClient.h>
 #include <ModelEntityItem.h>
 #include <NetworkAccessManager.h>
 #include <NetworkingConstants.h>
@@ -86,6 +87,7 @@
 #include <RenderDeferredTask.h>
 #include <ResourceCache.h>
 #include <SceneScriptingInterface.h>
+#include <RecordingScriptingInterface.h>
 #include <ScriptCache.h>
 #include <SoundCache.h>
 #include <TextureCache.h>
@@ -126,7 +128,6 @@
 #include "scripting/LocationScriptingInterface.h"
 #include "scripting/MenuScriptingInterface.h"
 #include "scripting/SettingsScriptingInterface.h"
-#include "scripting/RecordingScriptingInterface.h"
 #include "scripting/WebWindowClass.h"
 #include "scripting/WindowScriptingInterface.h"
 #include "scripting/ControllerScriptingInterface.h"
@@ -339,6 +340,7 @@ bool setupEssentials(int& argc, char** argv) {
     DependencyManager::set<PathUtils>();
     DependencyManager::set<InterfaceActionFactory>();
     DependencyManager::set<AssetClient>();
+    DependencyManager::set<MessagesClient>();
     DependencyManager::set<UserInputMapper>();
     DependencyManager::set<controller::ScriptingInterface, ControllerScriptingInterface>();
     return true;
@@ -452,6 +454,17 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
     audioIO->setOrientationGetter([this]{ return getMyAvatar()->getOrientationForAudio(); });
 
     audioIO->moveToThread(audioThread);
+    recording::Frame::registerFrameHandler(AudioConstants::AUDIO_FRAME_NAME, [=](recording::Frame::ConstPointer frame) {
+        audioIO->handleRecordedAudioInput(frame->data);
+    });
+
+    connect(audioIO.data(), &AudioClient::inputReceived, [](const QByteArray& audio){
+        static auto recorder = DependencyManager::get<recording::Recorder>();
+        if (recorder->isRecording()) {
+            static const recording::FrameType AUDIO_FRAME_TYPE = recording::Frame::registerFrameType(AudioConstants::AUDIO_FRAME_NAME);
+            recorder->recordFrame(AUDIO_FRAME_TYPE, audio);
+        }
+    });
 
     auto& audioScriptingInterface = AudioScriptingInterface::getInstance();
 
@@ -483,6 +496,14 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
     assetClient->moveToThread(assetThread);
     connect(assetThread, &QThread::started, assetClient.data(), &AssetClient::init);
     assetThread->start();
+
+    // Setup MessagesClient
+    auto messagesClient = DependencyManager::get<MessagesClient>();
+    QThread* messagesThread = new QThread;
+    messagesThread->setObjectName("Messages Client Thread");
+    messagesClient->moveToThread(messagesThread);
+    connect(messagesThread, &QThread::started, messagesClient.data(), &MessagesClient::init);
+    messagesThread->start();
 
     const DomainHandler& domainHandler = nodeList->getDomainHandler();
 
@@ -550,7 +571,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
 
     // tell the NodeList instance who to tell the domain server we care about
     nodeList->addSetOfNodeTypesToNodeInterestSet(NodeSet() << NodeType::AudioMixer << NodeType::AvatarMixer
-        << NodeType::EntityServer << NodeType::AssetServer);
+        << NodeType::EntityServer << NodeType::AssetServer << NodeType::MessagesMixer);
 
     // connect to the packet sent signal of the _entityEditSender
     connect(&_entityEditSender, &EntityEditPacketSender::packetSent, this, &Application::packetSent);
@@ -827,7 +848,6 @@ void Application::cleanupBeforeQuit() {
 #ifdef HAVE_IVIEWHMD
     DependencyManager::get<EyeTracker>()->setEnabled(false, true);
 #endif
-
     AnimDebugDraw::getInstance().shutdown();
 
     // FIXME: once we move to shared pointer for the INputDevice we shoud remove this naked delete:
@@ -988,10 +1008,6 @@ void Application::initializeGL() {
     _octreeProcessor.initialize(_enableProcessOctreeThread);
     connect(&_octreeProcessor, &OctreePacketProcessor::packetVersionMismatch, this, &Application::notifyPacketVersionMismatch);
     _entityEditSender.initialize(_enableProcessOctreeThread);
-
-    // call our timer function every second
-    connect(&pingTimer, &QTimer::timeout, this, &Application::ping);
-    pingTimer.start(1000);
 
     _idleLoopStdev.reset();
 
@@ -1241,6 +1257,19 @@ void Application::paintGL() {
                     glm::vec3(0.0f, 0.0f, -1.0f) * MIRROR_FULLSCREEN_DISTANCE * _scaleMirror);
             }
             renderArgs._renderMode = RenderArgs::MIRROR_RENDER_MODE;
+        } else if (_myCamera.getMode() == CAMERA_MODE_ENTITY) {
+            EntityItemPointer cameraEntity = _myCamera.getCameraEntityPointer();
+            if (cameraEntity != nullptr) {
+                if (isHMDMode()) {
+                    glm::quat hmdRotation = extractRotation(myAvatar->getHMDSensorMatrix());
+                    _myCamera.setRotation(cameraEntity->getRotation() * hmdRotation);
+                    glm::vec3 hmdOffset = extractTranslation(myAvatar->getHMDSensorMatrix());
+                    _myCamera.setPosition(cameraEntity->getPosition() + (hmdRotation * hmdOffset));
+                } else {
+                    _myCamera.setRotation(cameraEntity->getRotation());
+                    _myCamera.setPosition(cameraEntity->getPosition());
+                }
+            }
         }
         // Update camera position 
         if (!isHMDMode()) {
@@ -2150,13 +2179,6 @@ bool Application::acceptSnapshot(const QString& urlString) {
     return true;
 }
 
-//  Every second, send a ping, if menu item is checked.
-void Application::ping() {
-    if (Menu::getInstance()->isOptionChecked(MenuOption::TestPing)) {
-        DependencyManager::get<NodeList>()->sendPingPackets();
-    }
-}
-
 void Application::idle(uint64_t now) {
     if (_aboutToQuit) {
         return; // bail early, nothing to do here.
@@ -2696,8 +2718,8 @@ void Application::cycleCamera() {
         menu->setIsOptionChecked(MenuOption::ThirdPerson, false);
         menu->setIsOptionChecked(MenuOption::FullscreenMirror, true);
 
-    } else if (menu->isOptionChecked(MenuOption::IndependentMode)) {
-        // do nothing if in independe mode
+    } else if (menu->isOptionChecked(MenuOption::IndependentMode) || menu->isOptionChecked(MenuOption::CameraEntityMode)) {
+        // do nothing if in independent or camera entity modes
         return;
     }
     cameraMenuChanged(); // handle the menu change
@@ -2723,6 +2745,10 @@ void Application::cameraMenuChanged() {
     } else if (Menu::getInstance()->isOptionChecked(MenuOption::IndependentMode)) {
         if (_myCamera.getMode() != CAMERA_MODE_INDEPENDENT) {
             _myCamera.setMode(CAMERA_MODE_INDEPENDENT);
+        }
+    } else if (Menu::getInstance()->isOptionChecked(MenuOption::CameraEntityMode)) {
+        if (_myCamera.getMode() != CAMERA_MODE_ENTITY) {
+            _myCamera.setMode(CAMERA_MODE_ENTITY);
         }
     }
 }
@@ -4009,7 +4035,6 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEngine* scri
                             RayToOverlayIntersectionResultFromScriptValue);
 
     scriptEngine->registerGlobalObject("Desktop", DependencyManager::get<DesktopScriptingInterface>().data());
-    scriptEngine->registerGlobalObject("Recording", DependencyManager::get<RecordingScriptingInterface>().data());
 
     scriptEngine->registerGlobalObject("Window", DependencyManager::get<WindowScriptingInterface>().data());
     scriptEngine->registerGetterSetter("location", LocationScriptingInterface::locationGetter,

@@ -30,6 +30,7 @@
 #include "EntityTypes.h"
 #include "SimulationOwner.h"
 #include "SimulationFlags.h"
+#include "EntityActionInterface.h"
 
 class EntitySimulation;
 class EntityTreeElement;
@@ -419,7 +420,9 @@ public:
 
     void setSourceUUID(const QUuid& sourceUUID) { _sourceUUID = sourceUUID; }
     const QUuid& getSourceUUID() const { return _sourceUUID; }
-    bool matchesSourceUUID(const QUuid& sourceUUID) const  { return _sourceUUID == sourceUUID; }
+    bool matchesSourceUUID(const QUuid& sourceUUID) const { return _sourceUUID == sourceUUID; }
+
+    QList<EntityActionPointer> getActionsOfType(EntityActionType typeToGet);
 
 protected:
 

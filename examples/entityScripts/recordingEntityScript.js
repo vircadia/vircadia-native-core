@@ -12,67 +12,66 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 
+(function () {
 
-
-
-(function() {
-    var insideRecorderArea = false;
-    var enteredInTime = false;
-    var isAvatarRecording = false;
     var _this;
+    var isAvatarRecording = false;
+    var channel = "groupRecordingChannel";
+    var startMessage = "RECONDING STARTED";
+    var stopMessage = "RECONDING ENDED";
 
     function recordingEntity() {
         _this = this;
         return;
     }
-    
+
+    function receivingMessage(channel, message, senderID) {
+        print("message received on channel:" + channel + ", message:" + message + ", senderID:" + senderID);
+        if(message === startMessage) {
+            _this.startRecording();
+        } else if(message === stopMessage) {
+            _this.stopRecording();
+        }
+    };
+
     recordingEntity.prototype = {
-        update: function(){
-            var userData = JSON.parse(Entities.getEntityProperties(_this.entityID, ["userData"]).userData);
-            var isRecordingStarted = userData.recordingKey.isRecordingStarted;
-            if(isRecordingStarted && !isAvatarRecording){
-                _this.startRecording();
-            }else if((!isRecordingStarted && isAvatarRecording) || (isAvatarRecording && !insideRecorderArea)){
-                _this.stopRecording();
-            }else if(!isRecordingStarted && insideRecorderArea && !enteredInTime){
-                //if an avatar enters the zone while a recording is started he will be able to participate to the next group recording
-                enteredInTime = true;
+
+        preload: function (entityID) {
+            print("RECORDING ENTITY PRELOAD");
+            this.entityID = entityID;
+            
+            var entityProperties = Entities.getEntityProperties(_this.entityID);
+            if (!entityProperties.ignoreForCollisions) {
+                Entities.editEntity(_this.entityID, { ignoreForCollisions: true });
             }
+
+            Messages.messageReceived.connect(receivingMessage);
+        },
+
+        enterEntity: function (entityID) {
+            print("entering in the recording area");
+            Messages.subscribe(channel);
             
         },
-        preload: function(entityID) {
-            this.entityID = entityID;
-            Script.update.connect(_this.update);
-        },
-        enterEntity: function(entityID) {       
-            print("entering in the recording area");
-            insideRecorderArea = true;
-            var userData = JSON.parse(Entities.getEntityProperties(_this.entityID, ["userData"]).userData);
-            var isRecordingStarted = userData.recordingKey.isRecordingStarted;
-            if(!isRecordingStarted){
-                //i'm in the recording area in time (before the event starts)
-                enteredInTime = true;
-            }
-        },
-        leaveEntity: function(entityID) {      
+
+        leaveEntity: function (entityID) {
             print("leaving the recording area");
-            insideRecorderArea = false;
-            enteredInTime = false;
+            _this.stopRecording();
+            Messages.unsubscribe(channel);
         },
-        
-        startRecording: function(entityID){
-            if(enteredInTime && !isAvatarRecording){
+
+        startRecording: function (entityID) {
+            if (!isAvatarRecording) {
                 print("RECORDING STARTED");
                 Recording.startRecording();
                 isAvatarRecording = true;
             }
         },
-        
-        stopRecording: function(entityID){
-            if(isAvatarRecording){
+
+        stopRecording: function (entityID) {
+            if (isAvatarRecording) {
                 print("RECORDING ENDED");
                 Recording.stopRecording();
-                Recording.loadLastRecording();
                 isAvatarRecording = false;
                 recordingFile = Window.save("Save recording to file", "./groupRecording", "Recordings (*.hfr)");
                 if (!(recordingFile === "null" || recordingFile === null || recordingFile === "")) {
@@ -80,12 +79,14 @@
                 }
             }
         },
-        clean: function(entityID) {
-            Script.update.disconnect(_this.update);
+
+        unload: function (entityID) {
+            print("RECORDING ENTITY UNLOAD");
+            _this.stopRecording();
+            Messages.unsubscribe(channel);
+            Messages.messageReceived.disconnect(receivingMessage);
         }
     }
-    
-    
 
     return new recordingEntity();
 });

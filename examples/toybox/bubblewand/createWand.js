@@ -12,8 +12,8 @@
 
 Script.include("../../libraries/utils.js");
 
-var WAND_MODEL = 'http://hifi-public.s3.amazonaws.com/models/bubblewand/wand.fbx';
-var WAND_COLLISION_SHAPE = 'http://hifi-public.s3.amazonaws.com/models/bubblewand/actual_no_top_collision_hull.obj';
+var WAND_MODEL = 'http://hifi-content.s3.amazonaws.com/james/bubblewand/wand.fbx';
+var WAND_COLLISION_SHAPE = 'http://hifi-content.s3.amazonaws.com/james/bubblewand/wand_collision_hull.obj';
 
 var WAND_SCRIPT_URL = Script.resolvePath("wand.js");
 
@@ -43,5 +43,18 @@ var wand = Entities.addEntity({
     //must be enabled to be grabbable in the physics engine
     collisionsWillMove: true,
     compoundShapeURL: WAND_COLLISION_SHAPE,
-    script: WAND_SCRIPT_URL
+    script: WAND_SCRIPT_URL,
+    userData: JSON.stringify({
+        grabbableKey: {
+            invertSolidWhileHeld: true,
+            spatialKey: {
+                relativePosition: {
+                    x: 0,
+                    y: 0.1,
+                    z: 0
+                },
+                relativeRotation: Quat.fromPitchYawRollDegrees(0, 0, 90)
+            }
+        }
+    })
 });
