@@ -133,6 +133,7 @@
         notchDetector: null,
         arrow: null,
         arrowIsBurning: false,
+        prePickupString: null,
         stringData: {
             currentColor: {
                 red: 255,
@@ -149,7 +150,7 @@
             this.arrowHitSound = SoundCache.getSound(ARROW_HIT_SOUND_URL);
             this.arrowNotchSound = SoundCache.getSound(NOTCH_ARROW_SOUND_URL);
             this.arrowWhizzSound = SoundCache.getSound(ARROW_WHIZZ_SOUND_URL);
-            //Script.update.connect(this.updateArrowTrackers);
+            Script.update.connect(this.drawStringsBeforePickup);
 
         },
 
@@ -170,6 +171,8 @@
             Entities.deleteEntity(this.notchDetector);
             Entities.deleteEntity(this.preNotchString);
             Entities.deleteEntity(this.arrow);
+            Entities.deleteEntity(this.preNotchString);
+            Script.update.disconnect(this.drawStringsBeforePickup);
 
         },
 
@@ -234,8 +237,8 @@
 
             if (this.preNotchString !== null && this.aiming === false) {
                 //   print('DRAW PRE NOTCH STRING')
-                this.drawPreNotchStrings();
-                this.updateArrowAttachedToBow();
+                //  this.drawPreNotchStrings();
+                // this.updateArrowAttachedToBow();
             }
 
             // create the notch detector that arrows will look for
@@ -277,12 +280,12 @@
                     spatialKey: BOW_SPATIAL_KEY
                 });
                 Entities.deleteEntity(this.notchDetector);
-                Entities.deleteEntity(this.preNotchString);
+                // Entities.deleteEntity(this.preNotchString);
                 Entities.deleteEntity(this.arrow);
                 this.aiming = false;
                 this.notchDetector = null;
                 this.hasArrowNotched = false;
-                this.preNotchString = null;
+                // this.preNotchString = null;
 
             }
         },
@@ -303,7 +306,12 @@
                 ignoreForCollisions: true,
                 collisionSoundURL: 'http://hifi-content.s3.amazonaws.com/james/bow_and_arrow/sounds/Arrow_impact1.L.wav',
                 gravity: ARROW_GRAVITY,
-                linearDamping: 0.01
+                linearDamping: 0.01,
+                userData: JSON.stringify({
+                    grabbableKey: {
+                        grabbable: false
+                    }
+                })
 
             });
             return arrow
@@ -410,6 +418,17 @@
             var topVector = Vec3.subtract(this.arrowRearPosition, this.topStringPosition);
             var bottomVector = Vec3.subtract(this.arrowRearPosition, this.bottomStringPosition);
             return [topVector, bottomVector];
+        },
+
+        drawStringsBeforePickup: function() {
+            this.bowProperties = Entities.getEntityProperties(this.entityID, ["position", "rotation", "userData"]);
+
+            if (this.prePickupString === null) {
+                this.createPreNotchString();
+
+            } else {
+                this.drawPreNotchStrings();
+            }
         },
 
         createPreNotchString: function() {
@@ -585,7 +604,7 @@
             // handToNotch = Vec3.normalize(handToNotch)
             var forwardVec = handToNotch;
             // var forwardVec = Vec3.multiply(handToNotch, arrowForce);
-            var forwardVec = Vec3.multiply(handToNotch, 2);
+            var forwardVec = Vec3.multiply(handToNotch,handToNotch);
             var arrowProperties = {
                 //  rotation: arrowRotation,
                 velocity: forwardVec,
@@ -609,7 +628,7 @@
             this.stringDrawn = false;
             this.deleteStrings();
 
-            //set an itnerval to heck how far the arrow is from the bow before adding gravity, etc.  if we add this too soon, the arrow collides with the bow.  hence, this function
+            //set an itnerval to check how far the arrow is from the bow before adding gravity, etc.  if we add this too soon, the arrow collides with the bow.  hence, this function
 
             var physicalArrowInterval = Script.setInterval(function() {
                 //  print('in physical interval')
