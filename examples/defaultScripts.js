@@ -19,4 +19,3 @@ Script.load("controllers/handControllerGrab.js");
 Script.load("grab.js");
 Script.load("directory.js");
 Script.load("dialTone.js");
-Script.load("libraries/omniTool.js");
