@@ -181,8 +181,7 @@ void Rig::initJointStates(const FBXGeometry& geometry, const glm::mat4& modelOff
     _relativePoses.clear();
     _relativePoses = _animSkeleton->getRelativeDefaultPoses();
 
-    _absolutePoses.clear();
-    _absolutePoses = _animSkeleton->getAbsoluteDefaultPoses();
+    buildAbsolutePoses();
 
     _overridePoses.clear();
     _overridePoses = _animSkeleton->getRelativeDefaultPoses();
@@ -208,8 +207,7 @@ void Rig::reset(const FBXGeometry& geometry) {
     _relativePoses.clear();
     _relativePoses = _animSkeleton->getRelativeDefaultPoses();
 
-    _absolutePoses.clear();
-    _absolutePoses = _animSkeleton->getAbsoluteDefaultPoses();
+    buildAbsolutePoses();
 
     _overridePoses.clear();
     _overridePoses = _animSkeleton->getRelativeDefaultPoses();
