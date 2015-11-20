@@ -27,12 +27,30 @@
 
 static const size_t VERTEX_PER_PARTICLE = 4;
 
-class ParticlePayload {
+template<typename T>
+struct InterpolationData {
+    T start;
+    T middle;
+    T finish;
+    T spread;
+};
+
+class ParticlePayloadData {
 public:
-    using Payload = render::Payload<ParticlePayload>;
+    struct ParticleUniforms {
+        InterpolationData<float> radius;
+        InterpolationData<glm::vec4> color; // rgba
+        float lifespan;
+    };
+    
+    struct ParticlePrimitive {
+        ParticlePrimitive(glm::vec3 xyzIn, glm::vec2 uvIn) : xyz(xyzIn), uv(uvIn) {}
+        glm::vec3 xyz; // Position
+        glm::vec2 uv; // Lifetime + seed
+    };
+    
+    using Payload = render::Payload<ParticlePayloadData>;
     using Pointer = Payload::DataPointer;
-    using ParticlePrimitive = RenderableParticleEffectEntityItem::ParticlePrimitive;
-    using ParticleUniforms = RenderableParticleEffectEntityItem::ParticleUniforms;
     using PipelinePointer = gpu::PipelinePointer;
     using FormatPointer = gpu::Stream::FormatPointer;
     using BufferPointer = gpu::BufferPointer;
@@ -40,8 +58,9 @@ public:
     using Format = gpu::Stream::Format;
     using Buffer = gpu::Buffer;
     using BufferView = gpu::BufferView;
-
-    ParticlePayload(EntityItemPointer entity) : _entity(entity) {
+    using ParticlePrimitives = std::vector<ParticlePrimitive>;
+    
+    ParticlePayloadData() {
         ParticleUniforms uniforms;
         _uniformBuffer = std::make_shared<Buffer>(sizeof(ParticleUniforms), (const gpu::Byte*) &uniforms);
         
@@ -92,7 +111,6 @@ public:
     }
 
 protected:
-    EntityItemPointer _entity;
     Transform _modelTransform;
     AABox _bound;
     PipelinePointer _pipeline;
@@ -105,7 +123,7 @@ protected:
 
 namespace render {
     template <>
-    const ItemKey payloadGetKey(const ParticlePayload::Pointer& payload) {
+    const ItemKey payloadGetKey(const ParticlePayloadData::Pointer& payload) {
         if (payload->getVisibleFlag()) {
             return ItemKey::Builder::transparentShape();
         } else {
@@ -114,12 +132,12 @@ namespace render {
     }
 
     template <>
-    const Item::Bound payloadGetBound(const ParticlePayload::Pointer& payload) {
+    const Item::Bound payloadGetBound(const ParticlePayloadData::Pointer& payload) {
         return payload->getBound();
     }
 
     template <>
-    void payloadRender(const ParticlePayload::Pointer& payload, RenderArgs* args) {
+    void payloadRender(const ParticlePayloadData::Pointer& payload, RenderArgs* args) {
         payload->render(args);
     }
 }
@@ -145,9 +163,9 @@ bool RenderableParticleEffectEntityItem::addToScene(EntityItemPointer self,
 
     _scene = scene;
     _renderItemId = _scene->allocateID();
-    auto particlePayload = std::make_shared<ParticlePayload>(shared_from_this());
-    particlePayload->setPipeline(_untexturedPipeline);
-    auto renderPayload = std::make_shared<ParticlePayload::Payload>(particlePayload);
+    auto particlePayloadData = std::make_shared<ParticlePayloadData>();
+    particlePayloadData->setPipeline(_untexturedPipeline);
+    auto renderPayload = std::make_shared<ParticlePayloadData::Payload>(particlePayloadData);
     render::Item::Status::Getters statusGetters;
     makeEntityItemStatusGetters(shared_from_this(), statusGetters);
     renderPayload->addStatusGetters(statusGetters);
@@ -187,25 +205,29 @@ void RenderableParticleEffectEntityItem::updateRenderItem() {
     if (!_scene) {
         return;
     }
+    using ParticleUniforms = ParticlePayloadData::ParticleUniforms;
+    using ParticlePrimitive = ParticlePayloadData::ParticlePrimitive;
+    using ParticlePrimitives = ParticlePayloadData::ParticlePrimitives;
     
+    ParticleUniforms particleUniforms;
     // Fill in Uniforms structure
-    _particleUniforms.radius.start = getRadiusStart();
-    _particleUniforms.radius.middle = getParticleRadius();
-    _particleUniforms.radius.finish = getRadiusFinish();
-    _particleUniforms.radius.spread = getRadiusSpread();
+    particleUniforms.radius.start = getRadiusStart();
+    particleUniforms.radius.middle = getParticleRadius();
+    particleUniforms.radius.finish = getRadiusFinish();
+    particleUniforms.radius.spread = getRadiusSpread();
     
-    _particleUniforms.color.start = toGlm(getColorStart(), getAlphaStart());
-    _particleUniforms.color.middle = toGlm(getXColor(), getAlpha());
-    _particleUniforms.color.finish = toGlm(getColorFinish(), getAlphaFinish());
-    _particleUniforms.color.spread = toGlm(getColorSpread(), getAlphaSpread());
+    particleUniforms.color.start = toGlm(getColorStart(), getAlphaStart());
+    particleUniforms.color.middle = toGlm(getXColor(), getAlpha());
+    particleUniforms.color.finish = toGlm(getColorFinish(), getAlphaFinish());
+    particleUniforms.color.spread = toGlm(getColorSpread(), getAlphaSpread());
     
-    _particleUniforms.lifespan = getLifespan();
+    particleUniforms.lifespan = getLifespan();
     
     // Build particle primitives
-    _particlePrimitives.clear(); // clear primitives
-    _particlePrimitives.reserve(_particles.size()); // Reserve space
+    auto particlePrimitives = std::make_shared<ParticlePrimitives>();
+    particlePrimitives->reserve(_particles.size()); // Reserve space
     for (auto& particle : _particles) {
-        _particlePrimitives.emplace_back(particle.position, glm::vec2(particle.lifetime, particle.seed));
+        particlePrimitives->emplace_back(particle.position, glm::vec2(particle.lifetime, particle.seed));
     }
 
     // No need to sort if we're doing additive blending
@@ -216,35 +238,36 @@ void RenderableParticleEffectEntityItem::updateRenderItem() {
         // Get direction in the entity space
         direction = glm::inverse(getRotation()) * direction;
         
-        std::sort(_particlePrimitives.begin(), _particlePrimitives.end(),
+        std::sort(particlePrimitives->begin(), particlePrimitives->end(),
                   [&](const ParticlePrimitive& lhs, const ParticlePrimitive& rhs) {
             return glm::dot(lhs.xyz, direction) > glm::dot(rhs.xyz, direction);
         });
     }
+    
+    auto bounds = getAABox();
+    auto position = getPosition();
+    auto rotation = getRotation();
+    Transform transform;
+    transform.setTranslation(position);
+    transform.setRotation(rotation);
 
     render::PendingChanges pendingChanges;
-    pendingChanges.updateItem<ParticlePayload>(_renderItemId, [this](ParticlePayload& payload) {
+    pendingChanges.updateItem<ParticlePayloadData>(_renderItemId, [=](ParticlePayloadData& payload) {
         // Update particle uniforms
-        memcpy(&payload.editParticleUniforms(), &_particleUniforms, sizeof(ParticleUniforms));
+        memcpy(&payload.editParticleUniforms(), &particleUniforms, sizeof(ParticleUniforms));
         
         // Update particle buffer
         auto particleBuffer = payload.getParticleBuffer();
-        size_t numBytes = sizeof(ParticlePrimitive) * _particlePrimitives.size();
+        size_t numBytes = sizeof(ParticlePrimitive) * particlePrimitives->size();
         particleBuffer->resize(numBytes);
         if (numBytes == 0) {
             return;
         }
-        memcpy(particleBuffer->editData(), _particlePrimitives.data(), numBytes);
+        memcpy(particleBuffer->editData(), particlePrimitives->data(), numBytes);
 
-        // update transform
-        glm::vec3 position = getPosition();
-        glm::quat rotation = getRotation();
-        Transform transform;
-        transform.setTranslation(position);
-        transform.setRotation(rotation);
-        
+        // Update transform and bounds
         payload.setModelTransform(transform);
-        payload.setBound(getAABox());
+        payload.setBound(bounds);
 
         bool textured = _texture && _texture->isLoaded();
         if (textured) {

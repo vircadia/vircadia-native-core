@@ -16,7 +16,7 @@
 #include "RenderableEntityItem.h"
 
 class RenderableParticleEffectEntityItem : public ParticleEffectEntityItem  {
-    friend class ParticlePayload;
+    friend class ParticlePayloadData;
 public:
     static EntityItemPointer factory(const EntityItemID& entityID, const EntityItemProperties& properties);
     RenderableParticleEffectEntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties);
@@ -29,42 +29,14 @@ public:
     virtual void removeFromScene(EntityItemPointer self, render::ScenePointer scene, render::PendingChanges& pendingChanges) override;
 
 protected:
-    struct ParticleUniforms {
-        struct {
-            float start;
-            float middle;
-            float finish;
-            float spread;
-        } radius;
-        
-        struct {
-            glm::vec4 start;
-            glm::vec4 middle;
-            glm::vec4 finish;
-            glm::vec4 spread;
-        } color;
-        
-        float lifespan;
-    };
-    
-    struct ParticlePrimitive {
-        ParticlePrimitive(glm::vec3 xyzIn, glm::vec2 uvIn) : xyz(xyzIn), uv(uvIn) {}
-        glm::vec3 xyz; // Position
-        glm::vec2 uv; // Lifetime + seed
-    };
-    using ParticlePrimitives = std::vector<ParticlePrimitive>;
-    
     void createPipelines();
     
+    render::ScenePointer _scene;
     render::ItemID _renderItemId;
-    ParticlePrimitives _particlePrimitives;
-    ParticleUniforms _particleUniforms;
     
+    NetworkTexturePointer _texture;
     gpu::PipelinePointer _untexturedPipeline;
     gpu::PipelinePointer _texturedPipeline;
-
-    render::ScenePointer _scene;
-    NetworkTexturePointer _texture;
 };
 
 
