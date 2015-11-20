@@ -410,5 +410,5 @@ void Agent::aboutToFinish() {
     assetThread->wait();
     
     // cleanup the AudioInjectorManager (and any still running injectors)
-    DependencyManager::set<AudioInjectorManager>();
+    DependencyManager::destroy<AudioInjectorManager>();
 }
