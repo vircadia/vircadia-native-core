@@ -25,7 +25,7 @@ public:
     RecordingScriptingInterface();
 
 public slots:
-    void loadRecording(const QString& url);
+    bool loadRecording(const QString& url);
 
     void startPlaying();
     void pausePlayer();
