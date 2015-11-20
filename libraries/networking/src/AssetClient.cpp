@@ -369,16 +369,18 @@ void AssetClient::handleNodeKilled(SharedNodePointer node) {
 void AssetScriptingInterface::uploadData(QString data, QString extension, QScriptValue callback) {
     QByteArray dataByteArray = data.toUtf8();
     auto upload = DependencyManager::get<AssetClient>()->createUpload(dataByteArray, extension);
-    QObject::connect(upload, &AssetUpload::finished, this, [callback, extension](AssetUpload* upload, const QString& hash) mutable {
-        if (callback.isFunction()) {
-            QString url = "atp://" + hash + "." + extension;
-            QScriptValueList args { url };
-            callback.call(QScriptValue(), args);
-        }
-    });
+    if (upload) {
+        QObject::connect(upload, &AssetUpload::finished, this, [callback, extension](AssetUpload* upload, const QString& hash) mutable {
+            if (callback.isFunction()) {
+                QString url = "atp://" + hash + "." + extension;
+                QScriptValueList args { url };
+                callback.call(QScriptValue(), args);
+            }
+        });
 
-    // start the upload now
-    upload->start();
+        // start the upload now
+        upload->start();
+    }
 }
 
 void AssetScriptingInterface::downloadData(QString urlString, QScriptValue callback) {
@@ -405,7 +407,10 @@ void AssetScriptingInterface::downloadData(QString urlString, QScriptValue callb
         return;
     }
 
-    _pendingRequests << assetRequest;
+    {
+        QWriteLocker locker(&_lock);
+        _pendingRequests << assetRequest;
+    }
 
     connect(assetRequest, &AssetRequest::finished, [this, callback](AssetRequest* request) mutable {
         Q_ASSERT(request->getState() == AssetRequest::Finished);
@@ -419,7 +424,11 @@ void AssetScriptingInterface::downloadData(QString urlString, QScriptValue callb
         }
 
         request->deleteLater();
-        _pendingRequests.remove(request);
+
+        {
+            QWriteLocker locker(&_lock);
+            _pendingRequests.remove(request);
+        }
     });
 
     assetRequest->start();
