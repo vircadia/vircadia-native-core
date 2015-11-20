@@ -87,9 +87,6 @@ void Rig::overrideAnimation(const QString& url, float fps, bool loop, float firs
     _animVars.set("userAnimB", _userAnimState == UserAnimState::B);
 }
 
-const float FRAMES_PER_SECOND = 30.0f;
-const float FADE_FRAMES = 30.0f;
-
 void Rig::restoreAnimation() {
     if (_currentUserAnimURL != "") {
         _currentUserAnimURL = "";
@@ -691,7 +688,7 @@ void Rig::updateAnimations(float deltaTime, glm::mat4 rootTransform) {
         // evaluate the animation
         AnimNode::Triggers triggersOut;
         _relativePoses = _animNode->evaluate(_animVars, deltaTime, triggersOut);
-        if (_relativePoses.size() != _animSkeleton->getNumJoints()) {
+        if ((int)_relativePoses.size() != _animSkeleton->getNumJoints()) {
             // animations haven't fully loaded yet.
             _relativePoses = _animSkeleton->getRelativeBindPoses();
         }
@@ -913,8 +910,6 @@ glm::quat Rig::avatarToGeometryZForward(const glm::quat& quat) const {
 void Rig::updateFromHandParameters(const HandParameters& params, float dt) {
 
     if (_animSkeleton && _animNode) {
-
-        AnimPose rootBindPose = _animSkeleton->getRootAbsoluteBindPoseByChildName("LeftHand");
         if (params.isLeftEnabled) {
             _animVars.set("leftHandPosition", avatarToGeometry(params.leftPosition));
             _animVars.set("leftHandRotation", avatarToGeometryZForward(params.leftOrientation));
@@ -1005,9 +1000,9 @@ void Rig::applyOverridePoses() {
         return;
     }
 
-    ASSERT(_animSkeleton->getNumJoints() == _relativePoses.size());
-    ASSERT(_animSkeleton->getNumJoints() == _overrideFlags.size());
-    ASSERT(_animSkeleton->getNumJoints() == _overridePoses.size());
+    ASSERT(_animSkeleton->getNumJoints() == (int)_relativePoses.size());
+    ASSERT(_animSkeleton->getNumJoints() == (int)_overrideFlags.size());
+    ASSERT(_animSkeleton->getNumJoints() == (int)_overridePoses.size());
 
     for (size_t i = 0; i < _overrideFlags.size(); i++) {
         if (_overrideFlags[i]) {
@@ -1021,7 +1016,7 @@ void Rig::buildAbsolutePoses() {
         return;
     }
 
-    ASSERT(_animSkeleton->getNumJoints() == _relativePoses.size());
+    ASSERT(_animSkeleton->getNumJoints() == (int)_relativePoses.size());
 
     _absolutePoses.resize(_relativePoses.size());
     for (int i = 0; i < (int)_relativePoses.size(); i++) {

@@ -108,7 +108,6 @@ void Model::initJointTransforms() {
     if (!_geometry || !_geometry->isLoaded()) {
         return;
     }
-    const FBXGeometry& geometry = _geometry->getFBXGeometry();
     glm::mat4 modelOffset = glm::scale(_scale) * glm::translate(_offset);
     _rig->setModelOffset(modelOffset);
 }
@@ -933,8 +932,6 @@ void Model::updateRig(float deltaTime, glm::mat4 parentTransform) {
 }
 void Model::simulateInternal(float deltaTime) {
     // update the world space transforms for all joints
-
-    const FBXGeometry& geometry = _geometry->getFBXGeometry();
     glm::mat4 parentTransform = glm::scale(_scale) * glm::translate(_offset);
     updateRig(deltaTime, parentTransform);
 }
