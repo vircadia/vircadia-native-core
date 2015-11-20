@@ -38,20 +38,26 @@ AvatarSharedPointer AvatarHashMap::newSharedAvatar() {
     return std::make_shared<AvatarData>();
 }
 
+AvatarSharedPointer AvatarHashMap::addAvatar(const QUuid& sessionUUID, const QWeakPointer<Node>& mixerWeakPointer) {
+    qCDebug(avatars) << "Adding avatar with sessionUUID " << sessionUUID << "to AvatarHashMap.";
+    
+    auto avatar = newSharedAvatar();
+    avatar->setSessionUUID(sessionUUID);
+    avatar->setOwningAvatarMixer(mixerWeakPointer);
+    
+    _avatarHash.insert(sessionUUID, avatar);
+    emit avatarAddedEvent(sessionUUID);
+    
+    return avatar;
+}
+
 AvatarSharedPointer AvatarHashMap::newOrExistingAvatar(const QUuid& sessionUUID, const QWeakPointer<Node>& mixerWeakPointer) {
     QWriteLocker locker(&_hashLock);
     
     auto avatar = _avatarHash.value(sessionUUID);
     
     if (!avatar) {
-        qCDebug(avatars) << "Adding avatar with sessionUUID " << sessionUUID << "to AvatarHashMap.";
-        
-        avatar = newSharedAvatar();
-        avatar->setSessionUUID(sessionUUID);
-        avatar->setOwningAvatarMixer(mixerWeakPointer);
-        
-        _avatarHash.insert(sessionUUID, avatar);
-        emit avatarAddedEvent(sessionUUID);
+        avatar = addAvatar(sessionUUID, mixerWeakPointer);
     }
     
     return avatar;

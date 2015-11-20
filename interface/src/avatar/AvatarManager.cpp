@@ -123,7 +123,7 @@ void AvatarManager::updateOtherAvatars(float deltaTime) {
     
     AvatarHash::iterator avatarIterator = hashCopy.begin();
     while (avatarIterator != hashCopy.end()) {
-        auto avatar = std::dynamic_pointer_cast<Avatar>(avatarIterator.value());
+        auto avatar = std::static_pointer_cast<Avatar>(avatarIterator.value());
 
         if (avatar == _myAvatar || !avatar->isInitialized()) {
             // DO NOT update _myAvatar!  Its update has already been done earlier in the main loop.
@@ -169,19 +169,21 @@ void AvatarManager::simulateAvatarFades(float deltaTime) {
 }
 
 AvatarSharedPointer AvatarManager::newSharedAvatar() {
-    return AvatarSharedPointer(std::make_shared<Avatar>(std::make_shared<AvatarRig>()));
+    return std::make_shared<Avatar>(std::make_shared<AvatarRig>());
 }
 
-// virtual
-AvatarSharedPointer AvatarManager::newOrExistingAvatar(const QUuid& sessionUUID, const QWeakPointer<Node>& mixerWeakPointer) {
-    auto avatar = std::dynamic_pointer_cast<Avatar>(AvatarHashMap::newOrExistingAvatar(sessionUUID, mixerWeakPointer));
+AvatarSharedPointer AvatarManager::addAvatar(const QUuid& sessionUUID, const QWeakPointer<Node>& mixerWeakPointer) {
+    auto newAvatar = AvatarHashMap::addAvatar(sessionUUID, mixerWeakPointer);
+    auto rawRenderableAvatar = std::static_pointer_cast<Avatar>(newAvatar);
+    
     render::ScenePointer scene = qApp->getMain3DScene();
     render::PendingChanges pendingChanges;
     if (DependencyManager::get<SceneScriptingInterface>()->shouldRenderAvatars()) {
-        avatar->addToScene(avatar, scene, pendingChanges);
+        rawRenderableAvatar->addToScene(rawRenderableAvatar, scene, pendingChanges);
     }
     scene->enqueuePendingChanges(pendingChanges);
-    return avatar;
+    
+    return newAvatar;
 }
 
 // protected
@@ -209,9 +211,6 @@ void AvatarManager::removeAvatar(const QUuid& sessionUUID) {
 }
 
 void AvatarManager::handleRemovedAvatar(const AvatarSharedPointer& removedAvatar) {
-    qDebug() << "Removed avatar with UUID" << uuidStringWithoutCurlyBraces(removedAvatar->getSessionUUID())
-        << "from AvatarManager";
-    
     AvatarHashMap::handleRemovedAvatar(removedAvatar);
     
     removeAvatarMotionState(removedAvatar);
@@ -326,7 +325,6 @@ void AvatarManager::handleCollisionEvents(const CollisionEvents& collisionEvents
 }
 
 void AvatarManager::updateAvatarPhysicsShape(Avatar* avatar) {
-    qDebug() << "Update physics state called for" << avatar;
     AvatarMotionState* motionState = avatar->getMotionState();
     if (motionState) {
         motionState->addDirtyFlags(Simulation::DIRTY_SHAPE);
@@ -346,7 +344,7 @@ void AvatarManager::updateAvatarPhysicsShape(Avatar* avatar) {
 void AvatarManager::updateAvatarRenderStatus(bool shouldRenderAvatars) {
     if (DependencyManager::get<SceneScriptingInterface>()->shouldRenderAvatars()) {
         for (auto avatarData : _avatarHash) {
-            auto avatar = std::dynamic_pointer_cast<Avatar>(avatarData);
+            auto avatar = std::static_pointer_cast<Avatar>(avatarData);
             render::ScenePointer scene = qApp->getMain3DScene();
             render::PendingChanges pendingChanges;
             avatar->addToScene(avatar, scene, pendingChanges);
@@ -354,7 +352,7 @@ void AvatarManager::updateAvatarRenderStatus(bool shouldRenderAvatars) {
         }
     } else {
         for (auto avatarData : _avatarHash) {
-            auto avatar = std::dynamic_pointer_cast<Avatar>(avatarData);
+            auto avatar = std::static_pointer_cast<Avatar>(avatarData);
             render::ScenePointer scene = qApp->getMain3DScene();
             render::PendingChanges pendingChanges;
             avatar->removeFromScene(avatar, scene, pendingChanges);

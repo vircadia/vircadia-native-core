@@ -54,7 +54,8 @@ protected:
     AvatarHashMap();
 
     virtual AvatarSharedPointer newSharedAvatar();
-    virtual AvatarSharedPointer newOrExistingAvatar(const QUuid& sessionUUID, const QWeakPointer<Node>& mixerWeakPointer);
+    virtual AvatarSharedPointer addAvatar(const QUuid& sessionUUID, const QWeakPointer<Node>& mixerWeakPointer);
+    AvatarSharedPointer newOrExistingAvatar(const QUuid& sessionUUID, const QWeakPointer<Node>& mixerWeakPointer);
     virtual AvatarSharedPointer findAvatar(const QUuid& sessionUUID); // uses a QReadLocker on the hashLock
     virtual void removeAvatar(const QUuid& sessionUUID);
     
