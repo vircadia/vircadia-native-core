@@ -1106,7 +1106,7 @@ void Application::paintGL() {
     // This is not the same as update(deltaTime), because the latter attempts to throttle to 60hz and also clamps to 1/4 second.
     const float actualPeriod = diff / (float)USECS_PER_SECOND; // same as 1/instantaneousFps but easier for compiler to optimize
     // Note that _lastPaintWait (stored at end of last call) is for the same paint cycle.
-    float deducedNonVSyncPeriod = actualPeriod - _lastPaintWait; // plus a some non-zero time for machinery we can't measure
+    float deducedNonVSyncPeriod = actualPeriod - _lastPaintWait + 0.002f; // plus a some non-zero time for machinery we can't measure
     // We don't know how much time to allow for that, but if we went over the target period, we know it's at least the portion
     // of paintWait up to the next vSync. This gives us enough of a penalty so that when actualPeriod crosses two cycles,
     // the key part (and not an exagerated part) of _lastPaintWait is accounted for.

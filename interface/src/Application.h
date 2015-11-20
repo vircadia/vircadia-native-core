@@ -163,6 +163,7 @@ public:
     float getLastInstanteousFps() const { return _lastInstantaneousFps; }
     float getLastPaintWait() const { return _lastPaintWait; };
     float getLastDeducedNonVSyncFps() const { return _lastDeducedNonVSyncFps; }
+    void setMarginForDeducedFramePeriod(float newValue) { _marginForDeducedFramePeriod = newValue; }
 
     float getFieldOfView() { return _fieldOfView.get(); }
     void setFieldOfView(float fov);
@@ -437,6 +438,7 @@ private:
     float _lastInstantaneousFps { 0.0f };
     float _lastPaintWait { 0.0f };
     float _lastDeducedNonVSyncFps { 0.0f };
+    float _marginForDeducedFramePeriod { 1.0f };
 
     ShapeManager _shapeManager;
     PhysicalEntitySimulation _entitySimulation;

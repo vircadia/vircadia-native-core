@@ -73,11 +73,12 @@ public:
     Q_INVOKABLE int getNumberInRenderRange() { return _renderedAvatarCount; }
     Q_INVOKABLE bool getRenderDistanceControllerIsLogging() { return _renderDistanceController.getIsLogging(); }
     Q_INVOKABLE void setRenderDistanceControllerHistory(QString label, int size) { return _renderDistanceController.setHistorySize(label, size); }
-    Q_INVOKABLE void setRenderDistanceKP(float f) { _renderDistanceController.setKP(f); }
-    Q_INVOKABLE void setRenderDistanceKI(float f) { _renderDistanceController.setKI(f); }
-    Q_INVOKABLE void setRenderDistanceKD(float f) { _renderDistanceController.setKD(f); }
-    Q_INVOKABLE void setRenderDistanceLowLimit(float f) { _renderDistanceController.setControlledValueLowLimit(f); }
-    Q_INVOKABLE void setRenderDistanceHighLimit(float f) { _renderDistanceController.setControlledValueHighLimit(f); }
+    Q_INVOKABLE void setRenderDistanceKP(float newValue) { _renderDistanceController.setKP(newValue); }
+    Q_INVOKABLE void setRenderDistanceKI(float newValue) { _renderDistanceController.setKI(newValue); }
+    Q_INVOKABLE void setRenderDistanceKD(float newValue) { _renderDistanceController.setKD(newValue); }
+    Q_INVOKABLE void setRenderDistanceLowLimit(float newValue) { _renderDistanceController.setControlledValueLowLimit(newValue); }
+    Q_INVOKABLE void setRenderDistanceHighLimit(float newValue) { _renderDistanceController.setControlledValueHighLimit(newValue); }
+   // Q_INVOKABLE void setRenderPresentationAllowance(float newValue) { qApp->setMarginForDeducedFramePeriod(newValue); }
    
 public slots:
     void setShouldShowReceiveStats(bool shouldShowReceiveStats) { _shouldShowReceiveStats = shouldShowReceiveStats; }
@@ -103,9 +104,10 @@ private:
 
     bool _shouldShowReceiveStats = false;
     float _renderDistance { (float) TREE_SCALE };
-    int _renderedAvatarCount {0};
-    PIDController _renderDistanceController {};
-    SimpleMovingAverage _renderDistanceAverage {10};
+    int _renderedAvatarCount { 0 };
+    float _renderPresentationAllowance { 0.0f };
+    PIDController _renderDistanceController { };
+    SimpleMovingAverage _renderDistanceAverage { 10 };
 
 
 
