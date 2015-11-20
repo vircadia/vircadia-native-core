@@ -42,12 +42,9 @@ public:
         float leanForward = 0.0f; // degrees
         float torsoTwist = 0.0f; // degrees
         bool enableLean = false;
-        glm::quat worldHeadOrientation = glm::quat();
-        glm::quat localHeadOrientation = glm::quat();
-        float localHeadPitch = 0.0f; // degrees
-        float localHeadYaw = 0.0f; // degrees
-        float localHeadRoll = 0.0f; // degrees
-        glm::vec3 localHeadPosition = glm::vec3();
+        glm::quat worldHeadOrientation = glm::quat();  // world space (-z forward)
+        glm::quat localHeadOrientation = glm::quat();  // avatar space (-z forward)
+        glm::vec3 localHeadPosition = glm::vec3();     // avatar space
         bool isInHMD = false;
         int leanJointIndex = -1;
         int neckJointIndex = -1;
@@ -67,10 +64,10 @@ public:
     struct HandParameters {
         bool isLeftEnabled;
         bool isRightEnabled;
-        glm::vec3 leftPosition = glm::vec3();
-        glm::quat leftOrientation = glm::quat();
-        glm::vec3 rightPosition = glm::vec3();
-        glm::quat rightOrientation = glm::quat();
+        glm::vec3 leftPosition = glm::vec3();     // avatar space
+        glm::quat leftOrientation = glm::quat();  // avatar space (z forward)
+        glm::vec3 rightPosition = glm::vec3();    // avatar space
+        glm::quat rightOrientation = glm::quat(); // avatar space (z forward)
         float leftTrigger = 0.0f;
         float rightTrigger = 0.0f;
     };
@@ -167,6 +164,7 @@ public:
 
     const glm::vec3& getEyesInRootFrame() const { return _eyesInRootFrame; }
 
+
  protected:
     void updateAnimationStateHandlers();
     void applyOverridePoses();
@@ -178,6 +176,10 @@ public:
     void calcAnimAlpha(float speed, const std::vector<float>& referenceSpeeds, float* alphaOut) const;
 
     void computeEyesInRootFrame(const AnimPoseVec& poses);
+
+    glm::vec3 Rig::avatarToGeometry(const glm::vec3& pos) const;
+    glm::quat Rig::avatarToGeometryZForward(const glm::quat& quat) const;
+    glm::quat Rig::avatarToGeometryNegZForward(const glm::quat& quat) const;
 
     // AJT: TODO: LEGACY
     QVector<JointState> _jointStates;

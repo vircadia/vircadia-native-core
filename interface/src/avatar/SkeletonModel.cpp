@@ -114,9 +114,6 @@ void SkeletonModel::updateRig(float deltaTime, glm::mat4 parentTransform) {
         headParams.leanSideways = head->getFinalLeanSideways();
         headParams.leanForward = head->getFinalLeanForward();
         headParams.torsoTwist = head->getTorsoTwist();
-        headParams.localHeadPitch = head->getFinalPitch();
-        headParams.localHeadYaw = head->getFinalYaw();
-        headParams.localHeadRoll = head->getFinalRoll();
 
         if (qApp->getAvatarUpdater()->isHMDMode()) {
             headParams.isInHMD = true;
