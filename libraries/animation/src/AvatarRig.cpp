@@ -77,10 +77,10 @@ void AvatarRig::setHandPosition(int jointIndex,
 }
 
 void AvatarRig::setJointTranslation(int index, bool valid, const glm::vec3& translation, float priority) {
-    if (index != -1 && index < _jointStates.size()) {
+    // AJT: LEGACY
+    {
 
-        // AJT: LEGACY
-        {
+        if (index != -1 && index < _jointStates.size()) {
             JointState& state = _jointStates[index];
             if (valid) {
                 state.setTranslation(translation, priority);
@@ -88,7 +88,10 @@ void AvatarRig::setJointTranslation(int index, bool valid, const glm::vec3& tran
                 state.restoreTranslation(1.0f, priority);
             }
         }
+    }
 
+    if (index > 0 && index < (int)_overrideFlags.size()) {
+        assert(_overrideFlags.size() == _overidePoses.size());
         _overrideFlags[index] = true;
         _overridePoses[index].trans = translation;
     }
@@ -96,10 +99,10 @@ void AvatarRig::setJointTranslation(int index, bool valid, const glm::vec3& tran
 
 
 void AvatarRig::setJointState(int index, bool valid, const glm::quat& rotation, const glm::vec3& translation, float priority) {
-    if (index != -1 && index < _jointStates.size()) {
+    // AJT: LEGACY
+    {
+        if (index != -1 && index < _jointStates.size()) {
 
-        // AJT: LEGACY
-        {
             JointState& state = _jointStates[index];
             if (valid) {
                 state.setRotationInConstrainedFrame(rotation, priority);
@@ -109,7 +112,10 @@ void AvatarRig::setJointState(int index, bool valid, const glm::quat& rotation, 
                 state.restoreTranslation(1.0f, priority);
             }
         }
+    }
 
+    if (index > 0 && index < (int)_overrideFlags.size()) {
+        assert(_overrideFlags.size() == _overidePoses.size());
         _overrideFlags[index] = true;
         _overridePoses[index].rot = rotation;
         _overridePoses[index].trans = translation;

@@ -335,34 +335,37 @@ void Rig::clearJointStates() {
 }
 
 void Rig::clearJointAnimationPriority(int index) {
-    if (index != -1 && index < _jointStates.size()) {
-        _jointStates[index].setAnimationPriority(0.0f);
+    // AJT: legacy
+    {
+        if (index != -1 && index < _jointStates.size()) {
+            _jointStates[index].setAnimationPriority(0.0f);
+        }
     }
-}
 
-float Rig::getJointAnimatinoPriority(int index) {
-    if (index != -1 && index < _jointStates.size()) {
-        return _jointStates[index].getAnimationPriority();
-    }
-    return 0.0f;
-}
-
-void Rig::setJointAnimatinoPriority(int index, float newPriority) {
-    if (index != -1 && index < _jointStates.size()) {
-        _jointStates[index].setAnimationPriority(newPriority);
+    if (index >= 0 && index < (int)_overrideFlags.size()) {
+        _overrideFlags[index] = false;
     }
 }
 
 // Deprecated.
 // WARNING: this is not symmetric with getJointRotation. It's historical. Use the appropriate specific variation.
 void Rig::setJointRotation(int index, bool valid, const glm::quat& rotation, float priority) {
-    if (index != -1 && index < _jointStates.size()) {
-        JointState& state = _jointStates[index];
-        if (valid) {
-            state.setRotationInConstrainedFrame(rotation, priority);
-        } else {
-            state.restoreRotation(1.0f, priority);
+    // AJT: legacy
+    {
+        if (index != -1 && index < _jointStates.size()) {
+            JointState& state = _jointStates[index];
+            if (valid) {
+                state.setRotationInConstrainedFrame(rotation, priority);
+            } else {
+                state.restoreRotation(1.0f, priority);
+            }
         }
+    }
+
+    if (index >= 0 && index < (int)_overrideFlags.size()) {
+        assert(_overrideFlags.size() == _overidePoses.size());
+        _overrideFlags[index] = true;
+        _overridePoses[index].rot = rotation;
     }
 }
 
@@ -750,7 +753,7 @@ void Rig::updateAnimations(float deltaTime, glm::mat4 rootTransform) {
         }
 
         // AJT: LEGACY
-        {
+        if (false) {
             clearJointStatePriorities();
 
             // copy poses into jointStates
@@ -764,8 +767,7 @@ void Rig::updateAnimations(float deltaTime, glm::mat4 rootTransform) {
         computeEyesInRootFrame(_relativePoses);
     }
 
-    // AJT: enable this for script
-    //applyOverridePoses();
+    applyOverridePoses();
     buildAbsolutePoses();
 
     // AJT: LEGACY
@@ -1277,12 +1279,6 @@ void Rig::buildAbsolutePoses() {
     AnimPose rootTransform(_modelOffset * _geometryOffset);
     for (int i = 0; i < (int)_absolutePoses.size(); i++) {
         _absolutePoses[i] = rootTransform * _absolutePoses[i];
-        // AJT: REMOVE
-        /*
-        _absolutePoses[i].trans = _modelOffset.trans + _absolutePoses[i].trans;
-        _absolutePoses[i].rot = _modelOffset.rot * _absolutePoses[i].rot;
-        _absolutePoses[i].scale = _absolutePoses[i].scale * _modelScale;
-        */
     }
 
     // AJT: LEGACY
@@ -1312,12 +1308,8 @@ glm::mat4 Rig::getJointTransform(int jointIndex) const {
         return glm::mat4();
     }
 
-    // AJT: test if _absolutePoses are the same as jointTransforms
-    // only test once we have a full skeleton (ryan avatar)
-    //if (_jointStates.size() == 73) {
-
     // check for differences between jointStates and _absolutePoses!
-    if (true) {
+    if (false) {
 
         glm::mat4 oldMat = _jointStates[jointIndex].getTransform();
         AnimPose oldPose(oldMat);

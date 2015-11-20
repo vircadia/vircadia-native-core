@@ -106,8 +106,6 @@ public:
     void clearJointState(int index);
     void clearJointStates();
     void clearJointAnimationPriority(int index);
-    float getJointAnimatinoPriority(int index);
-    void setJointAnimatinoPriority(int index, float newPriority);
 
     virtual void setJointState(int index, bool valid, const glm::quat& rotation, const glm::vec3& translation,
                                float priority) = 0;
