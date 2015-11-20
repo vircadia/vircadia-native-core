@@ -59,8 +59,8 @@ void AudioInjector::finish() {
     }
     
     if (shouldDelete) {
-        // we've been asked to delete after finishing, trigger a queued deleteLater here
-        QMetaObject::invokeMethod(this, "deleteLater", Qt::QueuedConnection);
+        // we've been asked to delete after finishing, trigger a deleteLater here
+        deleteLater();
     }
 }
 
