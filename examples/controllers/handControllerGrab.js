@@ -200,13 +200,6 @@ function entityIsGrabbedByOther(entityID) {
     return false;
 }
 
-
-
-//make sure to clean this up when the script ends so we don't get stuck.
-Script.scriptEnding.connect(function() {
-    MyController.endHandGrasp();
-})
-
 function MyController(hand) {
     this.hand = hand;
     if (this.hand === RIGHT_HAND) {
@@ -1122,6 +1115,7 @@ function MyController(hand) {
 
     this.cleanup = function() {
         this.release();
+        this.endHandGrasp();
     };
 
     this.activateEntity = function(entityID, grabbedProperties) {
