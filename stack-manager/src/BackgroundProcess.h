@@ -9,7 +9,7 @@
 #ifndef hifi_BackgroundProcess_h
 #define hifi_BackgroundProcess_h
 
-#include "LogViewer.h"
+#include <LogViewer.h>
 
 #include <QProcess>
 #include <QString>

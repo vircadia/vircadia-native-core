@@ -9,8 +9,8 @@
 #include "Downloader.h"
 #include "GlobalData.h"
 
-#include <quazip.h>
-#include <quazipfile.h>
+#include <quazip/quazip.h>
+#include <quazip/quazipfile.h>
 
 #include <QNetworkRequest>
 #include <QFile>
