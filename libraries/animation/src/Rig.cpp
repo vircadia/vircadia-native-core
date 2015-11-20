@@ -318,7 +318,7 @@ bool Rig::getJointStateRotation(int index, glm::quat& rotation) const {
 
     if (index >= 0 && index < (int)_relativePoses.size()) {
         rotation = _relativePoses[index].rot;
-        return isEqual(rotation, _animSkeleton->getRelativeDefaultPose(index).rot);
+        return !isEqual(rotation, _animSkeleton->getRelativeDefaultPose(index).rot);
     } else {
         return false;
     }
@@ -336,7 +336,7 @@ bool Rig::getJointStateTranslation(int index, glm::vec3& translation) const {
 
     if (index >= 0 && index < (int)_relativePoses.size()) {
         translation = _relativePoses[index].trans;
-        return isEqual(translation, _animSkeleton->getRelativeDefaultPose(index).trans);
+        return !isEqual(translation, _animSkeleton->getRelativeDefaultPose(index).trans);
     } else {
         return false;
     }

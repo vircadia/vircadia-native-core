@@ -11,6 +11,7 @@
 
 #include "AvatarRig.h"
 
+// AJT: REMOVE, this should no longer be used
 void AvatarRig::setHandPosition(int jointIndex,
                                 const glm::vec3& position, const glm::quat& rotation,
                                 float scale, float priority) {
@@ -90,7 +91,7 @@ void AvatarRig::setJointTranslation(int index, bool valid, const glm::vec3& tran
         }
     }
 
-    if (index > 0 && index < (int)_overrideFlags.size()) {
+    if (index >= 0 && index < (int)_overrideFlags.size()) {
         if (valid) {
             assert(_overrideFlags.size() == _overridePoses.size());
             _overrideFlags[index] = true;
@@ -116,7 +117,7 @@ void AvatarRig::setJointState(int index, bool valid, const glm::quat& rotation, 
         }
     }
 
-    if (index > 0 && index < (int)_overrideFlags.size()) {
+    if (index >= 0 && index < (int)_overrideFlags.size()) {
         assert(_overrideFlags.size() == _overridePoses.size());
         _overrideFlags[index] = true;
         _overridePoses[index].rot = rotation;

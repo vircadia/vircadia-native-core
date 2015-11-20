@@ -12,10 +12,9 @@
 #include "EntityRig.h"
 
 void EntityRig::setJointState(int index, bool valid, const glm::quat& rotation, const glm::vec3& translation, float priority) {
-    if (index != -1 && index < _jointStates.size()) {
-
-        // AJT: LEGACY
-        {
+    // AJT: LEGACY
+    {
+        if (index != -1 && index < _jointStates.size()) {
             JointState& state = _jointStates[index];
             if (valid) {
                 state.setRotationInConstrainedFrame(rotation, priority);
@@ -25,8 +24,12 @@ void EntityRig::setJointState(int index, bool valid, const glm::quat& rotation, 
                 // state.restoreTranslation(1.0f, priority);
             }
         }
+    }
 
+    if (index >= 0 && index < (int)_overrideFlags.size()) {
+        assert(_overrideFlags.size() == _overridePoses.size());
         _overrideFlags[index] = true;
         _overridePoses[index].rot = rotation;
+        _overridePoses[index].trans = translation;
     }
 }
