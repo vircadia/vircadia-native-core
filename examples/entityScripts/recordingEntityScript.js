@@ -16,9 +16,11 @@
 
     var _this;
     var isAvatarRecording = false;
-    var channel = "groupRecordingChannel";
-    var startMessage = "RECONDING STARTED";
-    var stopMessage = "RECONDING ENDED";
+    var MASTER_TO_CLIENTS_CHANNEL = "startStopChannel";
+    var CLIENTS_TO_MASTER_CHANNEL = "resultsChannel";
+    var START_MESSAGE = "recordingStarted";
+    var STOP_MESSAGE = "recordingEnded";
+    var PARTICIPATING_MESSAGE = "participatingToRecording";
 
     function recordingEntity() {
         _this = this;
@@ -26,11 +28,13 @@
     }
 
     function receivingMessage(channel, message, senderID) {
-        print("message received on channel:" + channel + ", message:" + message + ", senderID:" + senderID);
-        if(message === startMessage) {
-            _this.startRecording();
-        } else if(message === stopMessage) {
-            _this.stopRecording();
+        if(channel === MASTER_TO_CLIENTS_CHANNEL){
+            print("CLIENT received message:" + message);
+            if(message === START_MESSAGE) {
+                _this.startRecording();
+            } else if(message === STOP_MESSAGE) {
+                _this.stopRecording();
+            }
         }
     };
 
@@ -50,19 +54,20 @@
 
         enterEntity: function (entityID) {
             print("entering in the recording area");
-            Messages.subscribe(channel);
+            Messages.subscribe(MASTER_TO_CLIENTS_CHANNEL);
             
         },
 
         leaveEntity: function (entityID) {
             print("leaving the recording area");
             _this.stopRecording();
-            Messages.unsubscribe(channel);
+            Messages.unsubscribe(MASTER_TO_CLIENTS_CHANNEL);
         },
 
         startRecording: function (entityID) {
             if (!isAvatarRecording) {
                 print("RECORDING STARTED");
+                Messages.sendMessage(CLIENTS_TO_MASTER_CHANNEL, PARTICIPATING_MESSAGE);  //tell to master that I'm participating
                 Recording.startRecording();
                 isAvatarRecording = true;
             }
@@ -77,13 +82,14 @@
                 if (!(recordingFile === "null" || recordingFile === null || recordingFile === "")) {
                     Recording.saveRecording(recordingFile);
                 }
+                Messages.sendMessage(CLIENTS_TO_MASTER_CHANNEL, recordingFile);    //send back to the master the url
             }
         },
 
         unload: function (entityID) {
             print("RECORDING ENTITY UNLOAD");
             _this.stopRecording();
-            Messages.unsubscribe(channel);
+            Messages.unsubscribe(MASTER_TO_CLIENTS_CHANNEL);
             Messages.messageReceived.disconnect(receivingMessage);
         }
     }
