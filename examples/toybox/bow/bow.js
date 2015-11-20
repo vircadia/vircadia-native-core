@@ -9,15 +9,6 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-// to do: 
-// create field with haybales and targets
-// create torches to start arrow on fire 
-// play start fire sound
-// parent the arrow fire to the arrow
-// delete the arrow fire when the arrow is notched (the bow will now create and track fire)
-// make arrow rotate toward ground as it flies
-// working shader or transparent model for glow box
-
 (function() {
 
     Script.include("../../libraries/utils.js");
@@ -27,7 +18,7 @@
     var STRING_PULL_SOUND_URL = 'http://hifi-content.s3.amazonaws.com/james/bow_and_arrow/sounds/Bow_draw.1.L.wav';
     var ARROW_WHIZZ_SOUND_URL = 'http://hifi-content.s3.amazonaws.com/james/bow_and_arrow/sounds/whizz.wav';
     //todo : multiple impact sounds
-    var ARROW_HIT_SOUND_URL = 'http://hifi-content.s3.amazonaws.com/bow_and_arrow/sounds/Arrow_impact1.L.wav'
+    var ARROW_HIT_SOUND_URL = 'http://hifi-content.s3.amazonaws.com/james/bow_and_arrow/sounds/Arrow_impact1.L.wav'
     var ARROW_DIMENSIONS = {
         x: 0.02,
         y: 0.02,
@@ -50,13 +41,12 @@
     var ARROW_TIP_OFFSET = 0.32;
     var ARROW_GRAVITY = {
         x: 0,
-        y: -4.8,
+        y: 0,
         z: 0
     };
 
     var ARROW_MODEL_URL = "http://hifi-content.s3.amazonaws.com/james/bow_and_arrow/models/newarrow_textured.fbx";
     var ARROW_COLLISION_HULL_URL = "http://hifi-content.s3.amazonaws.com/james/bow_and_arrow/models/newarrow_collision_hull.obj";
-    var ARROW_SCRIPT_URL = Script.resolvePath('arrow.js');
 
     var ARROW_DIMENSIONS = {
         x: 0.02,
@@ -117,12 +107,6 @@
         return;
     }
 
-    // pick up bow
-    // pick up arrow
-    // move arrow near notch detector
-    // pull back on the trigger to draw the string
-    // release to fire
-
     Bow.prototype = {
         isGrabbed: false,
         stringDrawn: false,
@@ -150,6 +134,7 @@
             this.arrowHitSound = SoundCache.getSound(ARROW_HIT_SOUND_URL);
             this.arrowNotchSound = SoundCache.getSound(NOTCH_ARROW_SOUND_URL);
             this.arrowWhizzSound = SoundCache.getSound(ARROW_WHIZZ_SOUND_URL);
+            this.createPreNotchString();
             Script.update.connect(this.drawStringsBeforePickup);
 
         },
@@ -171,7 +156,6 @@
             Entities.deleteEntity(this.notchDetector);
             Entities.deleteEntity(this.preNotchString);
             Entities.deleteEntity(this.arrow);
-            Entities.deleteEntity(this.preNotchString);
             Script.update.disconnect(this.drawStringsBeforePickup);
 
         },
@@ -218,22 +202,21 @@
 
             this.updateNotchDetectorPosition();
 
-            if (this.hasArrowNotched === false) {
-                this.hasArrowNotched = true
+            // if (this.hasArrowNotched === false) {
+            //     this.hasArrowNotched = true
 
-                this.arrowIsBurning = false
-                setEntityCustomData('grabbableKey', this.entityID, {
-                    turnOffOtherHand: true,
-                    invertSolidWhileHeld: true,
-                    spatialKey: BOW_SPATIAL_KEY
-                });
-            }
+            //     this.arrowIsBurning = false
+            //     setEntityCustomData('grabbableKey', this.entityID, {
+            //         turnOffOtherHand: true,
+            //         invertSolidWhileHeld: true,
+            //         spatialKey: BOW_SPATIAL_KEY
+            //     });
+            // }
 
             //create a string across the bow when we pick it up
-            if (this.preNotchString === null) {
-                print('CREATE PRE NOTCH STRING')
-                this.createPreNotchString();
-            }
+            // if (this.preNotchString === null) {
+            //     this.createPreNotchString();
+            // }
 
             if (this.preNotchString !== null && this.aiming === false) {
                 //   print('DRAW PRE NOTCH STRING')
@@ -247,25 +230,25 @@
             }
 
             //if we have an arrow notched, then draw some new strings
-            if (this.hasArrowNotched === true) {
-                if (this.aiming === true) {
-                    Entities.editEntity(this.preNotchString, {
-                        visible: false
-                    })
-                } else {
-                    Entities.editEntity(this.preNotchString, {
-                        visible: true
-                    })
-                }
-                //only test for strings now that an arrow is notched
-
-                this.checkStringHand();
-
+            // if (this.hasArrowNotched === true) {
+            if (this.aiming === true) {
+                Entities.editEntity(this.preNotchString, {
+                    visible: false
+                })
             } else {
-                //   print('DONT DO ANYTHING')
-                //otherwise, don't do much of anything.
-
+                Entities.editEntity(this.preNotchString, {
+                    visible: true
+                })
             }
+            //only test for strings now that an arrow is notched
+
+            this.checkStringHand();
+
+            // } else {
+            //     //   print('DONT DO ANYTHING')
+            //     //otherwise, don't do much of anything.
+
+            // }
         },
 
         releaseGrab: function() {
@@ -301,12 +284,11 @@
                 compoundShapeURL: ARROW_COLLISION_HULL_URL,
                 dimensions: ARROW_DIMENSIONS,
                 position: this.bowProperties.position,
-                script: ARROW_SCRIPT_URL,
                 collisionsWillMove: false,
-                ignoreForCollisions: true,
-                collisionSoundURL: 'http://hifi-content.s3.amazonaws.com/james/bow_and_arrow/sounds/Arrow_impact1.L.wav',
+                ignoreForCollisions: false,
+                collisionSoundURL:ARROW_HIT_SOUND_URL,
                 gravity: ARROW_GRAVITY,
-                linearDamping: 0.01,
+                damping: 0.01,
                 userData: JSON.stringify({
                     grabbableKey: {
                         grabbable: false
@@ -314,6 +296,15 @@
                 })
 
             });
+            var arrowProps = Entities.getEntityProperties(arrow)
+             Script.addEventHandler(arrow, "collisionWithEntity", function(entityA, entityB, collision) {
+                //have to reverse lookup the tracker by the arrow id to get access to the children
+            
+                print('ARROW COLLIDED WITH::' + entityB);
+                print('NAME OF ENTITY:::' + Entities.getEntityProperties(entityB, "name").name)
+
+            });
+
             return arrow
         },
 
@@ -364,6 +355,7 @@
         },
 
         updateStringPositions: function() {
+            //    print('update string positions!!!')
             var upVector = Quat.getUp(this.bowProperties.rotation);
             var upOffset = Vec3.multiply(upVector, TOP_NOTCH_OFFSET);
             var downVector = Vec3.multiply(-1, Quat.getUp(this.bowProperties.rotation));
@@ -374,15 +366,17 @@
             this.topStringPosition = Vec3.sum(topStringPosition, backOffset);
             var bottomStringPosition = Vec3.sum(this.bowProperties.position, downOffset);
             this.bottomStringPosition = Vec3.sum(bottomStringPosition, backOffset);
+
+            Entities.editEntity(this.preNotchString, {
+                position: this.topStringPosition
+            });
+
             Entities.editEntity(this.topString, {
                 position: this.topStringPosition
             });
 
             Entities.editEntity(this.bottomString, {
                 position: this.bottomStringPosition
-            });
-            Entities.editEntity(this.preNotchString, {
-                position: this.topStringPosition
             });
 
         },
@@ -421,17 +415,12 @@
         },
 
         drawStringsBeforePickup: function() {
-            this.bowProperties = Entities.getEntityProperties(this.entityID, ["position", "rotation", "userData"]);
-
-            if (this.prePickupString === null) {
-                this.createPreNotchString();
-
-            } else {
-                this.drawPreNotchStrings();
-            }
+            _this.drawPreNotchStrings();
         },
 
         createPreNotchString: function() {
+            this.bowProperties = Entities.getEntityProperties(_this.entityID, ["position", "rotation", "userData"]);
+
             var stringProperties = {
                 type: 'Line',
                 position: Vec3.sum(this.bowProperties.position, TOP_NOTCH_OFFSET),
@@ -448,12 +437,16 @@
         },
 
         drawPreNotchStrings: function() {
+            this.bowProperties = Entities.getEntityProperties(_this.entityID, ["position", "rotation", "userData"]);
+
+
             this.updateStringPositions();
 
             var downVector = Vec3.multiply(-1, Quat.getUp(this.bowProperties.rotation));
             var downOffset = Vec3.multiply(downVector, BOTTOM_NOTCH_OFFSET * 2);
 
             Entities.editEntity(this.preNotchString, {
+                name: 'Hifi-Pre-Notch-String',
                 linePoints: [{
                     x: 0,
                     y: 0,
@@ -464,7 +457,8 @@
                     z: 0
                 }, downOffset)],
                 lineWidth: 5,
-                color: this.stringData.currentColor
+                color: this.stringData.currentColor,
+                ignoreForCollisions: true
             });
         },
 
@@ -490,13 +484,15 @@
             if (this.triggerValue < DRAW_STRING_THRESHOLD && this.stringDrawn === true) {
 
                 // firing the arrow
-                // print('HIT RELEASE LOOP IN CHECK')
+                print('HIT RELEASE LOOP IN CHECK')
 
-
+                this.hasArrowNotched = false;
+                this.aiming = false;
+                this.stringDrawn = false;
                 this.releaseArrow();
 
             } else if (this.triggerValue >= DRAW_STRING_THRESHOLD && this.stringDrawn === true) {
-                //  print('HIT CONTINUE LOOP IN CHECK')
+                // print('HIT CONTINUE LOOP IN CHECK')
                 this.aiming = true;
                 //continuing to aim the arrow
                 this.stringData.handPosition = this.getStringHandPosition();
@@ -602,13 +598,14 @@
             var arrowForce = this.scaleArrowShotStrength(pullBackDistance);
             print('ARROW FORCE::' + arrowForce);
             // handToNotch = Vec3.normalize(handToNotch)
-            var forwardVec = handToNotch;
-            // var forwardVec = Vec3.multiply(handToNotch, arrowForce);
-            var forwardVec = Vec3.multiply(handToNotch,handToNotch);
+            //var forwardVec = handToNotch;
+            var forwardVec = Vec3.multiply(handToNotch, arrowForce);
+            //var forwardVec = Vec3.multiply(handToNotch, handToNotch);
             var arrowProperties = {
                 //  rotation: arrowRotation,
+                collisionsWillMove: true,
                 velocity: forwardVec,
-                lifetime: 10
+                // lifetime: 10
             };
 
             this.playShootArrowSound();
@@ -617,37 +614,33 @@
 
             var arrowStore = this.arrow;
             this.arrow = null;
-            this.hasArrowNotched = false;
-            this.aiming = false;
-
 
             Entities.editEntity(this.preNotchString, {
                 visible: true
             });
 
-            this.stringDrawn = false;
             this.deleteStrings();
 
             //set an itnerval to check how far the arrow is from the bow before adding gravity, etc.  if we add this too soon, the arrow collides with the bow.  hence, this function
 
-            var physicalArrowInterval = Script.setInterval(function() {
-                //  print('in physical interval')
-                var arrowProps = Entities.getEntityProperties(arrowStore, "position");
-                var bowProps = Entities.getEntityProperties(_this.entityID, "position");
-                var arrowPosition = arrowProps.position;
-                var bowPosition = bowProps.position;
+            // var physicalArrowInterval = Script.setInterval(function() {
+            //     //  print('in physical interval')
+            //     var arrowProps = Entities.getEntityProperties(arrowStore, "position");
+            //     var bowProps = Entities.getEntityProperties(_this.entityID, "position");
+            //     var arrowPosition = arrowProps.position;
+            //     var bowPosition = bowProps.position;
 
-                var length = Vec3.distance(arrowPosition, bowPosition);
-                // print('LENGTH:::' + length);
-                if (length > 2) {
-                    print('make arrow physical' + arrowStore)
-                    Entities.editEntity(arrowStore, {
-                        ignoreForCollisions: false,
-                        collisionsWillMove: true
-                    });
-                    Script.clearInterval(physicalArrowInterval);
-                }
-            }, 5)
+            //     var length = Vec3.distance(arrowPosition, bowPosition);
+            //     // print('LENGTH:::' + length);
+            //     if (length > 2) {
+            //         print('make arrow physical' + arrowStore)
+            //         Entities.editEntity(arrowStore, {
+            //             ignoreForCollisions: false,
+            //             collisionsWillMove: true
+            //         });
+            //         Script.clearInterval(physicalArrowInterval);
+            //     }
+            // }, 5)
 
         },
 

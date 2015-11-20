@@ -307,7 +307,14 @@ function MyController(hand) {
             position: closePoint,
             linePoints: [ZERO_VEC, farPoint],
             color: color,
-            lifetime: 0.1
+            lifetime: 0.1,
+            collisionsWillMove: false,
+            ignoreForCollisions: true,
+            userData: JSON.stringify({
+                grabbableKey: {
+                    grabbable: false
+                }
+            })
         });
     }
 
@@ -322,7 +329,14 @@ function MyController(hand) {
                 position: closePoint,
                 linePoints: [ZERO_VEC, farPoint],
                 color: color,
-                lifetime: LIFETIME
+                lifetime: LIFETIME,
+                collisionsWillMove: false,
+                ignoreForCollisions: true,
+                userData: JSON.stringify({
+                    grabbableKey: {
+                        grabbable: false
+                    }
+                })
             });
         } else {
             var age = Entities.getEntityProperties(this.pointer, "age").age;
@@ -526,7 +540,14 @@ function MyController(hand) {
                     green: 255,
                     blue: 0
                 },
-                lifetime: 0.1
+                lifetime: 0.1,
+                collisionsWillMove: false,
+                ignoreForCollisions: true,
+                userData: JSON.stringify({
+                    grabbableKey: {
+                        grabbable: false
+                    }
+                })
             });
         }
 
