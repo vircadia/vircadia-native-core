@@ -18,18 +18,20 @@ class OffsetClip : public WrapperClip {
 public:
     using Pointer = std::shared_ptr<OffsetClip>;
 
-    OffsetClip(const Clip::Pointer& wrappedClip, Time offset);
-    virtual ~OffsetClip();
+    OffsetClip(const Clip::Pointer& wrappedClip, float offset);
 
-    virtual Time duration() const override;
-    virtual void seek(Time offset) override;
-    virtual Time position() const override;
+    virtual QString getName() const override;
+
+    virtual Clip::Pointer duplicate() const override;
+    virtual float duration() const override;
+    virtual void seekFrameTime(Frame::Time offset) override;
+    virtual Frame::Time positionFrameTime() const override;
 
     virtual FrameConstPointer peekFrame() const override;
     virtual FrameConstPointer nextFrame() override;
 
 protected:
-    const Time _offset;
+    const Frame::Time _offset;
 };
 
 }

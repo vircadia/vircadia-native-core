@@ -24,6 +24,7 @@
 #include <AudioEffectOptions.h>
 #include <AvatarData.h>
 #include <EntityScriptingInterface.h>
+#include <MessagesClient.h>
 #include <NetworkAccessManager.h>
 #include <NodeList.h>
 #include <udt/PacketHeaders.h>
@@ -366,6 +367,7 @@ void ScriptEngine::init() {
     registerGlobalObject("Vec3", &_vec3Library);
     registerGlobalObject("Uuid", &_uuidLibrary);
     registerGlobalObject("AnimationCache", DependencyManager::get<AnimationCache>().data());
+    registerGlobalObject("Messages", DependencyManager::get<MessagesClient>().data());
     qScriptRegisterMetaType(this, animVarMapToScriptValue, animVarMapFromScriptValue);
     qScriptRegisterMetaType(this, resultHandlerToScriptValue, resultHandlerFromScriptValue);
     

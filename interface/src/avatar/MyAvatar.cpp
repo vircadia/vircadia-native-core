@@ -80,10 +80,6 @@ const QString& DEFAULT_AVATAR_COLLISION_SOUND_URL = "https://hifi-public.s3.amaz
 const float MyAvatar::ZOOM_MIN = 0.5f;
 const float MyAvatar::ZOOM_MAX = 25.0f;
 const float MyAvatar::ZOOM_DEFAULT = 1.5f;
-static const QString HEADER_NAME = "com.highfidelity.recording.AvatarData";
-static recording::FrameType AVATAR_FRAME_TYPE = recording::Frame::TYPE_INVALID;
-static std::once_flag frameTypeRegistration;
-
 
 MyAvatar::MyAvatar(RigPointer rig) :
     Avatar(rig),
@@ -120,17 +116,6 @@ MyAvatar::MyAvatar(RigPointer rig) :
     _hmdAtRestDetector(glm::vec3(0), glm::quat())
 {
     using namespace recording;
-
-    std::call_once(frameTypeRegistration, [] {
-        AVATAR_FRAME_TYPE = recording::Frame::registerFrameType(HEADER_NAME);
-    });
-
-    // FIXME how to deal with driving multiple avatars locally?
-    Frame::registerFrameHandler(AVATAR_FRAME_TYPE, [this](Frame::ConstPointer frame) {
-        qDebug() << "Playback of avatar frame length: " << frame->data.size();
-        avatarStateFromFrame(frame->data, this);
-    });
-
 
     for (int i = 0; i < MAX_DRIVE_KEYS; i++) {
         _driveKeys[i] = 0.0f;
@@ -326,8 +311,10 @@ void MyAvatar::simulate(float deltaTime) {
     }
 
     // Record avatars movements.
-    if (_recorder && _recorder->isRecording()) {
-        _recorder->recordFrame(AVATAR_FRAME_TYPE, avatarStateToFrame(this));
+    auto recorder = DependencyManager::get<recording::Recorder>();
+    if (recorder->isRecording()) {
+        static const recording::FrameType FRAME_TYPE = recording::Frame::registerFrameType(AvatarData::FRAME_NAME);
+        recorder->recordFrame(FRAME_TYPE, toFrame(*this));
     }
 
     // consider updating our billboard
@@ -392,6 +379,13 @@ void MyAvatar::updateHMDFollowVelocity() {
 // update sensor to world matrix from current body position and hmd sensor.
 // This is so the correct camera can be used for rendering.
 void MyAvatar::updateSensorToWorldMatrix() {
+
+#ifdef DEBUG_RENDERING
+    // draw marker about avatar's position
+    const glm::vec4 red(1.0f, 0.0f, 0.0f, 1.0f);
+    DebugDraw::getInstance().addMyAvatarMarker("pos", glm::quat(), glm::vec3(), red);
+#endif
+
     // update the sensor mat so that the body position will end up in the desired
     // position when driven from the head.
     glm::mat4 desiredMat = createMatFromQuatAndPos(getOrientation(), getPosition());
@@ -403,8 +397,8 @@ void MyAvatar::updateFromTrackers(float deltaTime) {
     glm::vec3 estimatedPosition, estimatedRotation;
 
     bool inHmd = qApp->getAvatarUpdater()->isHMDMode();
-
-    if (isPlaying() && inHmd) {
+    bool playing = DependencyManager::get<recording::Deck>()->isPlaying();
+    if (inHmd && playing) {
         return;
     }
 
@@ -455,7 +449,7 @@ void MyAvatar::updateFromTrackers(float deltaTime) {
 
 
     Head* head = getHead();
-    if (inHmd || isPlaying()) {
+    if (inHmd || playing) {
         head->setDeltaPitch(estimatedRotation.x);
         head->setDeltaYaw(estimatedRotation.y);
         head->setDeltaRoll(estimatedRotation.z);
@@ -570,102 +564,6 @@ bool MyAvatar::setJointReferential(const QUuid& id, int jointIndex) {
         changeReferential(NULL);
         return false;
     }
-}
-
-bool MyAvatar::isRecording() {
-    if (!_recorder) {
-        return false;
-    }
-    if (QThread::currentThread() != thread()) {
-        bool result;
-        QMetaObject::invokeMethod(this, "isRecording", Qt::BlockingQueuedConnection,
-                                  Q_RETURN_ARG(bool, result));
-        return result;
-    }
-    return _recorder && _recorder->isRecording();
-}
-
-float MyAvatar::recorderElapsed() {
-    if (QThread::currentThread() != thread()) {
-        float result;
-        QMetaObject::invokeMethod(this, "recorderElapsed", Qt::BlockingQueuedConnection,
-                                  Q_RETURN_ARG(float, result));
-        return result;
-    }
-    if (!_recorder) {
-        return 0;
-    }
-    return (float)_recorder->position() / (float) MSECS_PER_SECOND;
-}
-
-QMetaObject::Connection _audioClientRecorderConnection;
-
-void MyAvatar::startRecording() {
-    if (QThread::currentThread() != thread()) {
-        QMetaObject::invokeMethod(this, "startRecording", Qt::BlockingQueuedConnection);
-        return;
-    }
-
-    _recorder = std::make_shared<recording::Recorder>();
-    // connect to AudioClient's signal so we get input audio
-    auto audioClient = DependencyManager::get<AudioClient>();
-    _audioClientRecorderConnection = connect(audioClient.data(), &AudioClient::inputReceived, [] {
-        // FIXME, missing audio data handling
-    });
-    setRecordingBasis();
-    _recorder->start();
-}
-
-void MyAvatar::stopRecording() {
-    if (!_recorder) {
-        return;
-    }
-    if (QThread::currentThread() != thread()) {
-        QMetaObject::invokeMethod(this, "stopRecording", Qt::BlockingQueuedConnection);
-        return;
-    }
-    if (_recorder) {
-        QObject::disconnect(_audioClientRecorderConnection);
-        _audioClientRecorderConnection = QMetaObject::Connection();
-        _recorder->stop();
-        clearRecordingBasis();
-    }
-}
-
-void MyAvatar::saveRecording(const QString& filename) {
-    if (!_recorder) {
-        qCDebug(interfaceapp) << "There is no recording to save";
-        return;
-    }
-    if (QThread::currentThread() != thread()) {
-        QMetaObject::invokeMethod(this, "saveRecording", Qt::BlockingQueuedConnection,
-                                  Q_ARG(QString, filename));
-        return;
-    }
-
-    if (_recorder) {
-        auto clip = _recorder->getClip();
-        recording::Clip::toFile(filename, clip);
-    }
-}
-
-void MyAvatar::loadLastRecording() {
-    if (QThread::currentThread() != thread()) {
-        QMetaObject::invokeMethod(this, "loadLastRecording", Qt::BlockingQueuedConnection);
-        return;
-    }
-
-    if (!_recorder || !_recorder->getClip()) {
-        qCDebug(interfaceapp) << "There is no recording to load";
-        return;
-    }
-
-    if (!_player) {
-        _player = std::make_shared<recording::Deck>();
-    }
-
-    _player->queueClip(_recorder->getClip());
-    _player->play();
 }
 
 void MyAvatar::startAnimation(const QString& url, float fps, float priority,
@@ -1968,6 +1866,7 @@ glm::quat MyAvatar::getWorldBodyOrientation() const {
     return glm::quat_cast(_sensorToWorldMatrix * _bodySensorMatrix);
 }
 
+#if 0
 // derive avatar body position and orientation from the current HMD Sensor location.
 // results are in sensor space
 glm::mat4 MyAvatar::deriveBodyFromHMDSensor() const {
@@ -1985,6 +1884,66 @@ glm::mat4 MyAvatar::deriveBodyFromHMDSensor() const {
     }
     return glm::mat4();
 }
+#else
+// old school meat hook style
+glm::mat4 MyAvatar::deriveBodyFromHMDSensor() const {
+
+    // HMD is in sensor space.
+    const glm::vec3 hmdPosition = getHMDSensorPosition();
+    const glm::quat hmdOrientation = getHMDSensorOrientation();
+    const glm::quat hmdOrientationYawOnly = cancelOutRollAndPitch(hmdOrientation);
+
+    /*
+    const glm::vec3 DEFAULT_RIGHT_EYE_POS(-0.3f, 1.6f, 0.0f);
+    const glm::vec3 DEFAULT_LEFT_EYE_POS(0.3f, 1.6f, 0.0f);
+    const glm::vec3 DEFAULT_NECK_POS(0.0f, 1.5f, 0.0f);
+    const glm::vec3 DEFAULT_HIPS_POS(0.0f, 1.0f, 0.0f);
+    */
+
+    // 2 meter tall dude
+    const glm::vec3 DEFAULT_RIGHT_EYE_POS(-0.3f, 1.9f, 0.0f);
+    const glm::vec3 DEFAULT_LEFT_EYE_POS(0.3f, 1.9f, 0.0f);
+    const glm::vec3 DEFAULT_NECK_POS(0.0f, 1.70f, 0.0f);
+    const glm::vec3 DEFAULT_HIPS_POS(0.0f, 1.05f, 0.0f);
+
+    vec3 localEyes, localNeck;
+    if (!_debugDrawSkeleton) {
+        const glm::quat rotY180 = glm::angleAxis((float)PI, glm::vec3(0.0f, 1.0f, 0.0f));
+        localEyes = rotY180 * (((DEFAULT_RIGHT_EYE_POS + DEFAULT_LEFT_EYE_POS) / 2.0f) - DEFAULT_HIPS_POS);
+        localNeck = rotY180 * (DEFAULT_NECK_POS - DEFAULT_HIPS_POS);
+    } else {
+        // TODO: At the moment MyAvatar does not have access to the rig, which has the skeleton, which has the bind poses.
+        // for now use the _debugDrawSkeleton, which is initialized with the same FBX model as the rig.
+
+        // TODO: cache these indices.
+        int rightEyeIndex = _debugDrawSkeleton->nameToJointIndex("RightEye");
+        int leftEyeIndex = _debugDrawSkeleton->nameToJointIndex("LeftEye");
+        int neckIndex = _debugDrawSkeleton->nameToJointIndex("Neck");
+        int hipsIndex = _debugDrawSkeleton->nameToJointIndex("Hips");
+
+        glm::vec3 absRightEyePos = rightEyeIndex != -1 ? _debugDrawSkeleton->getAbsoluteBindPose(rightEyeIndex).trans : DEFAULT_RIGHT_EYE_POS;
+        glm::vec3 absLeftEyePos = leftEyeIndex != -1 ? _debugDrawSkeleton->getAbsoluteBindPose(leftEyeIndex).trans : DEFAULT_LEFT_EYE_POS;
+        glm::vec3 absNeckPos = neckIndex != -1 ? _debugDrawSkeleton->getAbsoluteBindPose(neckIndex).trans : DEFAULT_NECK_POS;
+        glm::vec3 absHipsPos = neckIndex != -1 ? _debugDrawSkeleton->getAbsoluteBindPose(hipsIndex).trans : DEFAULT_HIPS_POS;
+
+        const glm::quat rotY180 = glm::angleAxis((float)PI, glm::vec3(0.0f, 1.0f, 0.0f));
+        localEyes = rotY180 * (((absRightEyePos + absLeftEyePos) / 2.0f) - absHipsPos);
+        localNeck = rotY180 * (absNeckPos - absHipsPos);
+    }
+
+    // apply simplistic head/neck model
+    // figure out where the avatar body should be by applying offsets from the avatar's neck & head joints.
+
+    // eyeToNeck offset is relative full HMD orientation.
+    // while neckToRoot offset is only relative to HMDs yaw.
+    glm::vec3 eyeToNeck = hmdOrientation * (localNeck - localEyes);
+    glm::vec3 neckToRoot = hmdOrientationYawOnly * -localNeck;
+    glm::vec3 bodyPos = hmdPosition + eyeToNeck + neckToRoot;
+
+    // avatar facing is determined solely by hmd orientation.
+    return createMatFromQuatAndPos(hmdOrientationYawOnly, bodyPos);
+}
+#endif
 
 glm::vec3 MyAvatar::getPositionForAudio() {
     switch (_audioListenerMode) {

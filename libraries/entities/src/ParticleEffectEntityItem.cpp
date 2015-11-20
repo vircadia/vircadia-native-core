@@ -662,7 +662,7 @@ void ParticleEffectEntityItem::stepSimulation(float deltaTime) {
             // move head forward
             _particleHeadIndex = (_particleHeadIndex + 1) % _maxParticles;
         } else {
-            float age = 1.0f - _particleLifetimes[i] / _lifespan;  // 0.0 .. 1.0
+            float age = _particleLifetimes[i] / _lifespan;  // 0.0 .. 1.0
             updateRadius(i, age);
             updateColor(i, age);
             updateAlpha(i, age);

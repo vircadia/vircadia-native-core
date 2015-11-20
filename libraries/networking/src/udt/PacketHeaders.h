@@ -87,7 +87,10 @@ public:
         AssetGetInfo,
         AssetGetInfoReply,
         DomainDisconnectRequest,
-        DomainServerRemovedNode
+        DomainServerRemovedNode,
+        MessagesData,
+        MessagesSubscribe,
+        MessagesUnsubscribe
     };
 };
 
@@ -156,6 +159,7 @@ const PacketVersion VERSION_ENTITIES_ANIMATION_PROPERTIES_GROUP = 46;
 const PacketVersion VERSION_ENTITIES_KEYLIGHT_PROPERTIES_GROUP = 47;
 const PacketVersion VERSION_ENTITIES_KEYLIGHT_PROPERTIES_GROUP_BIS = 48;
 const PacketVersion VERSION_ENTITIES_PARTICLES_ADDITIVE_BLENDING = 49;
-const PacketVersion VERSION_ENTITIES_ACTIONS_PER_HAND_OFFSET = 50;
+const PacketVersion VERSION_ENTITIES_POLYLINE_TEXTURE = 50;
+const PacketVersion VERSION_ENTITIES_ACTIONS_PER_HAND_OFFSET = 51;
 
 #endif // hifi_PacketHeaders_h

@@ -70,6 +70,7 @@
 #include <LogHandler.h>
 #include <MainWindow.h>
 #include <MessageDialog.h>
+#include <MessagesClient.h>
 #include <ModelEntityItem.h>
 #include <NetworkAccessManager.h>
 #include <NetworkingConstants.h>
@@ -94,6 +95,8 @@
 #include <UserActivityLogger.h>
 #include <UUID.h>
 #include <VrMenu.h>
+#include <recording/Deck.h>
+#include <recording/Recorder.h>
 
 #include "AnimDebugDraw.h"
 #include "AudioClient.h"
@@ -124,6 +127,7 @@
 #include "scripting/LocationScriptingInterface.h"
 #include "scripting/MenuScriptingInterface.h"
 #include "scripting/SettingsScriptingInterface.h"
+#include "scripting/RecordingScriptingInterface.h"
 #include "scripting/WebWindowClass.h"
 #include "scripting/WindowScriptingInterface.h"
 #include "scripting/ControllerScriptingInterface.h"
@@ -132,6 +136,7 @@
 #endif
 #include "Stars.h"
 #include "ui/AddressBarDialog.h"
+#include "ui/RecorderDialog.h"
 #include "ui/AvatarInputs.h"
 #include "ui/AssetUploadDialogFactory.h"
 #include "ui/DataWebDialog.h"
@@ -295,6 +300,8 @@ bool setupEssentials(int& argc, char** argv) {
     Setting::init();
 
     // Set dependencies
+    DependencyManager::set<recording::Deck>();
+    DependencyManager::set<recording::Recorder>();
     DependencyManager::set<AddressManager>();
     DependencyManager::set<NodeList>(NodeType::Agent, listenPort);
     DependencyManager::set<GeometryCache>();
@@ -319,6 +326,7 @@ bool setupEssentials(int& argc, char** argv) {
     DependencyManager::set<ResourceCacheSharedItems>();
     DependencyManager::set<DesktopScriptingInterface>();
     DependencyManager::set<EntityScriptingInterface>();
+    DependencyManager::set<RecordingScriptingInterface>();
     DependencyManager::set<WindowScriptingInterface>();
     DependencyManager::set<HMDScriptingInterface>();
 
@@ -332,6 +340,7 @@ bool setupEssentials(int& argc, char** argv) {
     DependencyManager::set<PathUtils>();
     DependencyManager::set<InterfaceActionFactory>();
     DependencyManager::set<AssetClient>();
+    DependencyManager::set<MessagesClient>();
     DependencyManager::set<UserInputMapper>();
     DependencyManager::set<controller::ScriptingInterface, ControllerScriptingInterface>();
     return true;
@@ -477,6 +486,14 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
     connect(assetThread, &QThread::started, assetClient.data(), &AssetClient::init);
     assetThread->start();
 
+    // Setup MessagesClient
+    auto messagesClient = DependencyManager::get<MessagesClient>();
+    QThread* messagesThread = new QThread;
+    messagesThread->setObjectName("Messages Client Thread");
+    messagesClient->moveToThread(messagesThread);
+    connect(messagesThread, &QThread::started, messagesClient.data(), &MessagesClient::init);
+    messagesThread->start();
+
     const DomainHandler& domainHandler = nodeList->getDomainHandler();
 
     connect(&domainHandler, SIGNAL(hostnameChanged(const QString&)), SLOT(domainChanged(const QString&)));
@@ -543,7 +560,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
 
     // tell the NodeList instance who to tell the domain server we care about
     nodeList->addSetOfNodeTypesToNodeInterestSet(NodeSet() << NodeType::AudioMixer << NodeType::AvatarMixer
-        << NodeType::EntityServer << NodeType::AssetServer);
+        << NodeType::EntityServer << NodeType::AssetServer << NodeType::MessagesMixer);
 
     // connect to the packet sent signal of the _entityEditSender
     connect(&_entityEditSender, &EntityEditPacketSender::packetSent, this, &Application::packetSent);
@@ -996,6 +1013,7 @@ void Application::initializeGL() {
 
 void Application::initializeUi() {
     AddressBarDialog::registerType();
+    RecorderDialog::registerType();
     ErrorDialog::registerType();
     LoginDialog::registerType();
     MessageDialog::registerType();
@@ -1011,6 +1029,7 @@ void Application::initializeUi() {
     offscreenUi->load("RootMenu.qml");
     auto scriptingInterface = DependencyManager::get<controller::ScriptingInterface>();
     offscreenUi->getRootContext()->setContextProperty("Controller", scriptingInterface.data());
+    offscreenUi->getRootContext()->setContextProperty("MyAvatar", getMyAvatar());
     _glWidget->installEventFilter(offscreenUi.data());
     VrMenu::load();
     VrMenu::executeQueuedLambdas();
@@ -1580,8 +1599,9 @@ void Application::keyPressEvent(QKeyEvent* event) {
 
             case Qt::Key_X:
                 if (isMeta && isShifted) {
-                    auto offscreenUi = DependencyManager::get<OffscreenUi>();
-                    offscreenUi->load("TestControllers.qml");
+//                    auto offscreenUi = DependencyManager::get<OffscreenUi>();
+//                    offscreenUi->load("TestControllers.qml");
+                    RecorderDialog::toggle();
                 }
                 break;
 
@@ -3969,6 +3989,7 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEngine* scri
                             RayToOverlayIntersectionResultFromScriptValue);
 
     scriptEngine->registerGlobalObject("Desktop", DependencyManager::get<DesktopScriptingInterface>().data());
+    scriptEngine->registerGlobalObject("Recording", DependencyManager::get<RecordingScriptingInterface>().data());
 
     scriptEngine->registerGlobalObject("Window", DependencyManager::get<WindowScriptingInterface>().data());
     scriptEngine->registerGetterSetter("location", LocationScriptingInterface::locationGetter,
