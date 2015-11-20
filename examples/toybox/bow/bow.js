@@ -41,7 +41,7 @@
     var ARROW_TIP_OFFSET = 0.32;
     var ARROW_GRAVITY = {
         x: 0,
-        y: 0,
+        y: -4.8,
         z: 0
     };
 
@@ -285,21 +285,22 @@
                 dimensions: ARROW_DIMENSIONS,
                 position: this.bowProperties.position,
                 collisionsWillMove: false,
-                ignoreForCollisions: false,
-                collisionSoundURL:ARROW_HIT_SOUND_URL,
+                ignoreForCollisions: true,
+                collisionSoundURL: ARROW_HIT_SOUND_URL,
                 gravity: ARROW_GRAVITY,
                 damping: 0.01,
                 userData: JSON.stringify({
                     grabbableKey: {
+                        invertSolidWhileHeld: true,
                         grabbable: false
                     }
                 })
 
             });
             var arrowProps = Entities.getEntityProperties(arrow)
-             Script.addEventHandler(arrow, "collisionWithEntity", function(entityA, entityB, collision) {
+            Script.addEventHandler(arrow, "collisionWithEntity", function(entityA, entityB, collision) {
                 //have to reverse lookup the tracker by the arrow id to get access to the children
-            
+
                 print('ARROW COLLIDED WITH::' + entityB);
                 print('NAME OF ENTITY:::' + Entities.getEntityProperties(entityB, "name").name)
 
@@ -426,6 +427,8 @@
                 position: Vec3.sum(this.bowProperties.position, TOP_NOTCH_OFFSET),
                 dimensions: LINE_DIMENSIONS,
                 visible: true,
+                ignoreForCollisions: true,
+                collisionsWillMove: false,
                 userData: JSON.stringify({
                     grabbableKey: {
                         grabbable: false
@@ -603,6 +606,7 @@
             //var forwardVec = Vec3.multiply(handToNotch, handToNotch);
             var arrowProperties = {
                 //  rotation: arrowRotation,
+                ignoreForCollisions: false,
                 collisionsWillMove: true,
                 velocity: forwardVec,
                 // lifetime: 10
