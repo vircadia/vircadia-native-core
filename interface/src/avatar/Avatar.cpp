@@ -44,7 +44,7 @@
 #include "Util.h"
 #include "world.h"
 #include "InterfaceLogging.h"
-#include "EntityRig.h"
+#include <Rig.h>
 
 using namespace std;
 
@@ -965,7 +965,7 @@ void Avatar::setAttachmentData(const QVector<AttachmentData>& attachmentData) {
         if (_unusedAttachments.size() > 0) {
             model = _unusedAttachments.takeFirst();
         } else {
-            model = new Model(std::make_shared<EntityRig>(), this);
+            model = new Model(std::make_shared<Rig>(), this);
         }
         model->init();
         _attachmentModels.append(model);

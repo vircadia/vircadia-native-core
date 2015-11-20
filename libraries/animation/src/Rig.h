@@ -97,9 +97,8 @@ public:
     void clearJointStates();
     void clearJointAnimationPriority(int index);
 
-    virtual void setJointState(int index, bool valid, const glm::quat& rotation, const glm::vec3& translation,
-                               float priority) = 0;
-    virtual void setJointTranslation(int index, bool valid, const glm::vec3& translation, float priority) {}
+    void setJointState(int index, bool valid, const glm::quat& rotation, const glm::vec3& translation, float priority);
+    void setJointTranslation(int index, bool valid, const glm::vec3& translation, float priority);
     void setJointRotation(int index, bool valid, const glm::quat& rotation, float priority);
 
     void restoreJointRotation(int index, float fraction, float priority);

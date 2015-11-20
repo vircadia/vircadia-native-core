@@ -285,6 +285,25 @@ void Rig::clearJointAnimationPriority(int index) {
     }
 }
 
+void Rig::setJointTranslation(int index, bool valid, const glm::vec3& translation, float priority) {
+    if (index >= 0 && index < (int)_overrideFlags.size()) {
+        if (valid) {
+            assert(_overrideFlags.size() == _overridePoses.size());
+            _overrideFlags[index] = true;
+            _overridePoses[index].trans = translation;
+        }
+    }
+}
+
+void Rig::setJointState(int index, bool valid, const glm::quat& rotation, const glm::vec3& translation, float priority) {
+    if (index >= 0 && index < (int)_overrideFlags.size()) {
+        assert(_overrideFlags.size() == _overridePoses.size());
+        _overrideFlags[index] = true;
+        _overridePoses[index].rot = rotation;
+        _overridePoses[index].trans = translation;
+    }
+}
+
 // Deprecated.
 // WARNING: this is not symmetric with getJointRotation. It's historical. Use the appropriate specific variation.
 void Rig::setJointRotation(int index, bool valid, const glm::quat& rotation, float priority) {

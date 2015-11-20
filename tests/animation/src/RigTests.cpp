@@ -44,7 +44,7 @@
 #include "FBXReader.h"
 #include "OBJReader.h" 
 
-#include "AvatarRig.h" // We might later test Rig vs AvatarRig separately, but for now, we're concentrating on the main use case.
+#include <Rig.h>
 #include "RigTests.h"
 
 static void reportJoint(int index, JointState joint) { // Handy for debugging
@@ -94,7 +94,7 @@ void RigTests::initTestCase() {
         jointStates.append(state);
     }
 
-    _rig = std::make_shared<AvatarRig>();
+    _rig = std::make_shared<Rig>();
     _rig->initJointStates(jointStates, glm::mat4(), 0, 41, 40, 39, 17, 16, 15); // FIXME? get by name? do we really want to exclude the shoulder blades?
     std::cout << "Rig is ready " << geometry->joints.count() << " joints " << std::endl;
     reportAll(_rig);
