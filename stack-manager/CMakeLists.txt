@@ -1,4 +1,5 @@
 set(TARGET_NAME "stack-manager")
+set(BUILD_BUNDLE YES)
 setup_hifi_project(Widgets Gui Svg Core Network WebKitWidgets)
 
 if (WIN32)
@@ -31,8 +32,6 @@ include_directories(
 
 target_quazip()
 
-target_link_libraries(${TARGET_NAME} ${QUAZIP_LIBRARIES})
-
 if (APPLE)
   set(CMAKE_OSX_DEPLOYMENT_TARGET 10.8)
   set(MACOSX_BUNDLE_BUNDLE_NAME "Stack Manager")
@@ -40,7 +39,6 @@ if (APPLE)
   set(MACOSX_BUNDLE_ICON_FILE icon.icns)
   set_source_files_properties(${CMAKE_CURRENT_SOURCE_DIR}/assets/icon.icns PROPERTIES MACOSX_PACKAGE_LOCATION Resources)
   set(SM_SRCS ${SM_SRCS} "${CMAKE_CURRENT_SOURCE_DIR}/assets/icon.icns")
-#  add_executable(${TARGET_NAME} MACOSX_BUNDLE ${SM_SRCS})
 else ()
   if (WIN32)
 #    add_executable(${TARGET_NAME} WIN32 ${SM_SRCS} windows_icon.rc)
