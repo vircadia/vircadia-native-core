@@ -44,9 +44,6 @@ public:
 
     // FIXME move to frame?
     static const qint64 MINIMUM_FRAME_SIZE = sizeof(FrameType) + sizeof(Frame::Time) + sizeof(FrameSize);
-    static const QString FRAME_TYPE_MAP;
-    static const QString FRAME_COMREPSSION_FLAG;
-
 protected:
     void reset();
     virtual FrameConstPointer readFrame(size_t index) const override;

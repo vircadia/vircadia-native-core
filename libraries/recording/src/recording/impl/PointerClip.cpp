@@ -23,16 +23,13 @@
 
 using namespace recording;
 
-const QString PointerClip::FRAME_TYPE_MAP = QStringLiteral("frameTypes");
-const QString PointerClip::FRAME_COMREPSSION_FLAG = QStringLiteral("compressed");
-
 using FrameTranslationMap = QMap<FrameType, FrameType>;
 
 FrameTranslationMap parseTranslationMap(const QJsonDocument& doc) {
     FrameTranslationMap results;
     auto headerObj = doc.object();
-    if (headerObj.contains(PointerClip::FRAME_TYPE_MAP)) {
-        auto frameTypeObj = headerObj[PointerClip::FRAME_TYPE_MAP].toObject();
+    if (headerObj.contains(Clip::FRAME_TYPE_MAP)) {
+        auto frameTypeObj = headerObj[Clip::FRAME_TYPE_MAP].toObject();
         auto currentFrameTypes = Frame::getFrameTypes();
         for (auto frameTypeName : frameTypeObj.keys()) {
             qDebug() << frameTypeName;
