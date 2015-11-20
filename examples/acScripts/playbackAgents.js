@@ -52,24 +52,19 @@ function getAction(channel, message, senderID) {
         
         if (command.id_key == id || command.id_key == -1) {
             if (command.action_key === 6) {
-                clip_url = command.clip_url_key;
                 
-                // If the id is -1 (broadcast) and the action is 6, in the url should be the performance file
-                // with all the clips recorded in a session (not just the single clip url).
-                // It has to be computed here in order to retrieve the url for the single agent. 
-                // Checking the id we can assign the correct url to the correct agent.
+                clip_url = command.clip_url_key;
                 
                 if (command.id_key == -1) {
                     Assets.downloadData(clip_url, function (data) {
                         var myJSONObject = JSON.parse(data);
-                        var hash = myJSONObject.results[id].hashATP;
+                        var hash = myJSONObject.avatarClips[id];
                     });
                     
-                    Assets.downloadData(hash, function (data) {
-                        clip_url = JSON.parse(data);
-                    });
+                    clip_url = hash;
                 }
             }
+                
             
             action = command.action_key;
             print("That command was for me!");
