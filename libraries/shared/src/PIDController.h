@@ -28,7 +28,7 @@ class PIDController {
 public:
     // These are the main interfaces:
     void setMeasuredValueSetpoint(float newValue) { _measuredValueSetpoint = newValue; }
-    float update(float measuredValue, float dt, bool resetAccumulator = false, float FIXME1 = 0.0f, float FIXME2 = 0.0f); // returns the new computedValue
+    float update(float measuredValue, float dt, bool resetAccumulator = false); // returns the new computedValue
     void setHistorySize(QString label = QString(""), int size = 0) { _history.reserve(size); _history.resize(0); _label = label; } // non-empty does logging
 
     bool getIsLogging() { return _history.capacity(); }
@@ -55,8 +55,6 @@ public:
 
     class Row { // one row of accumulated history, used only for logging (if at all)
     public:
-        float FIXME1;
-        float FIXME2;
         float measured;
         float dt;
         float error;
@@ -69,7 +67,7 @@ public:
     };
 protected:
     void reportHistory();
-    void updateHistory(float measured, float dt, float error, float accumulatedError, float changeInErro, float p, float i, float d, float computedValue, float FIXME1, float FIXME2);
+    void updateHistory(float measured, float dt, float error, float accumulatedError, float changeInErro, float p, float i, float d, float computedValue);
     float _measuredValueSetpoint { 0.0f };
     float _controlledValueLowLimit { 0.0f };
     float _controlledValueHighLimit { std::numeric_limits<float>::max() };

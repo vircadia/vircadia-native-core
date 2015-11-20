@@ -438,7 +438,7 @@ private:
     float _lastInstantaneousFps { 0.0f };
     float _lastPaintWait { 0.0f };
     float _lastDeducedNonVSyncFps { 0.0f };
-    float _marginForDeducedFramePeriod { 1.0f };
+    float _marginForDeducedFramePeriod{ 0.002f }; // 2ms, adjustable
 
     ShapeManager _shapeManager;
     PhysicalEntitySimulation _entitySimulation;

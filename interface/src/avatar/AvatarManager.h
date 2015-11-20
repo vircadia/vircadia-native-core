@@ -78,7 +78,6 @@ public:
     Q_INVOKABLE void setRenderDistanceKD(float newValue) { _renderDistanceController.setKD(newValue); }
     Q_INVOKABLE void setRenderDistanceLowLimit(float newValue) { _renderDistanceController.setControlledValueLowLimit(newValue); }
     Q_INVOKABLE void setRenderDistanceHighLimit(float newValue) { _renderDistanceController.setControlledValueHighLimit(newValue); }
-   // Q_INVOKABLE void setRenderPresentationAllowance(float newValue) { qApp->setMarginForDeducedFramePeriod(newValue); }
    
 public slots:
     void setShouldShowReceiveStats(bool shouldShowReceiveStats) { _shouldShowReceiveStats = shouldShowReceiveStats; }
@@ -105,7 +104,6 @@ private:
     bool _shouldShowReceiveStats = false;
     float _renderDistance { (float) TREE_SCALE };
     int _renderedAvatarCount { 0 };
-    float _renderPresentationAllowance { 0.0f };
     PIDController _renderDistanceController { };
     SimpleMovingAverage _renderDistanceAverage { 10 };
 

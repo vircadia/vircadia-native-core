@@ -14,7 +14,7 @@
 #include "SharedLogging.h"
 #include "PIDController.h"
 
-float PIDController::update(float measuredValue, float dt, bool resetAccumulator, float FIXME1, float FIXME2) {
+float PIDController::update(float measuredValue, float dt, bool resetAccumulator) {
     const float error = getMeasuredValueSetpoint() - measuredValue;   // Sign is the direction we want measuredValue to go. Positive means go higher.
 
     const float p = getKP() * error; // term is Proportional to error
@@ -32,7 +32,7 @@ float PIDController::update(float measuredValue, float dt, bool resetAccumulator
         getControlledValueHighLimit());
 
     if (getIsLogging()) {  // if logging/reporting
-        updateHistory(measuredValue, dt, error, accumulatedError, changeInError, p, i, d, computedValue, FIXME1, FIXME2);
+        updateHistory(measuredValue, dt, error, accumulatedError, changeInError, p, i, d, computedValue);
     }
     Q_ASSERT(!isnan(computedValue));
     
@@ -43,7 +43,7 @@ float PIDController::update(float measuredValue, float dt, bool resetAccumulator
 }
 
 // Just for logging/reporting. Used when picking/verifying the operational parameters.
-void PIDController::updateHistory(float measuredValue, float dt, float error, float accumulatedError, float changeInError, float p, float i, float d, float computedValue, float FIXME1, float FIXME2) {
+void PIDController::updateHistory(float measuredValue, float dt, float error, float accumulatedError, float changeInError, float p, float i, float d, float computedValue) {
     // Don't report each update(), as the I/O messes with the results a lot.
     // Instead, add to history, and then dump out at once when full.
     // Typically, the first few values reported in each batch should be ignored.
@@ -51,8 +51,6 @@ void PIDController::updateHistory(float measuredValue, float dt, float error, fl
     _history.resize(n + 1);
     Row& next = _history[n];
     next.measured = measuredValue;
-    next.FIXME1 = FIXME1;
-    next.FIXME2 = FIXME2;
     next.dt = dt;
     next.error = error;
     next.accumulated = accumulatedError;
@@ -70,7 +68,7 @@ void PIDController::reportHistory() {
     qCDebug(shared) << _label << "measured dt FIXME || error accumulated changed || p i d controlled";
     for (int i = 0; i < _history.size(); i++) {
         Row& row = _history[i];
-        qCDebug(shared) << row.measured << (row.dt * 1000)  << row.FIXME1 << (row.FIXME2 * 1000) <<
+        qCDebug(shared) << row.measured << row.dt <<
             "||" << row.error << row.accumulated << row.changed <<
             "||" << row.p << row.i << row.d << row.computed << 1.0f/row.computed;
     }
