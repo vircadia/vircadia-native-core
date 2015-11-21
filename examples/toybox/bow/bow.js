@@ -461,7 +461,6 @@
                 }, downOffset)],
                 lineWidth: 5,
                 color: this.stringData.currentColor,
-                ignoreForCollisions: true
             });
         },
 
@@ -609,7 +608,7 @@
                 ignoreForCollisions: false,
                 collisionsWillMove: true,
                 velocity: forwardVec,
-                // lifetime: 10
+                lifetime: 10
             };
 
             this.playShootArrowSound();
@@ -624,27 +623,6 @@
             });
 
             this.deleteStrings();
-
-            //set an itnerval to check how far the arrow is from the bow before adding gravity, etc.  if we add this too soon, the arrow collides with the bow.  hence, this function
-
-            // var physicalArrowInterval = Script.setInterval(function() {
-            //     //  print('in physical interval')
-            //     var arrowProps = Entities.getEntityProperties(arrowStore, "position");
-            //     var bowProps = Entities.getEntityProperties(_this.entityID, "position");
-            //     var arrowPosition = arrowProps.position;
-            //     var bowPosition = bowProps.position;
-
-            //     var length = Vec3.distance(arrowPosition, bowPosition);
-            //     // print('LENGTH:::' + length);
-            //     if (length > 2) {
-            //         print('make arrow physical' + arrowStore)
-            //         Entities.editEntity(arrowStore, {
-            //             ignoreForCollisions: false,
-            //             collisionsWillMove: true
-            //         });
-            //         Script.clearInterval(physicalArrowInterval);
-            //     }
-            // }, 5)
 
         },
 
