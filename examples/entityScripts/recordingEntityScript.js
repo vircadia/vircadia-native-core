@@ -82,12 +82,12 @@
                 print("RECORDING ENDED");
                 Recording.stopRecording();
                 isAvatarRecording = false;
-                Recording.saveRecordingToAsset(getClipUrl);     //save the clip to the asset and link a callback to get its url
 
                 var recordingFile = Window.save("Save recording to file", "./groupRecording", "Recordings (*.hfr)");
                 if (!(recordingFile === "null" || recordingFile === null || recordingFile === "")) {
                     Recording.saveRecording(recordingFile);     //save the clip locally
                 }
+                Recording.saveRecordingToAsset(getClipUrl);     //save the clip to the asset and link a callback to get its url
             }
         },
 

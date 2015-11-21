@@ -32,7 +32,6 @@ var TIMEOUT = 20;
 var toolBar = null;
 var recordIcon;
 var isRecording = false;
-var avatarClips = [];
 var performanceJSON = { "avatarClips" : [] };
 var responsesExpected = 0;
 var waitingForPerformanceFile = true;
@@ -109,7 +108,6 @@ function update(deltaTime) {
             responsesExpected = 0;
             totalWaitingTime = 0;
             Script.update.disconnect(update);
-            avatarClips = [];
             performanceJSON = { "avatarClips" : [] };
         }
     }
@@ -122,8 +120,8 @@ function uploadFinished(url){
     Assets.downloadData(url, function (data) {
         printPerformanceJSON(JSON.parse(data));
     });
-    //need to print somehow the url here //this way the master can copy the url
-    //Window.prompt(url);     
+    //need to print somehow the url here this way the master can copy the url
+    Window.prompt("Performance file url: ", url);
 }
 
 function printPerformanceJSON(obj) {
