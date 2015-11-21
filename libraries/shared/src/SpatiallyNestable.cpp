@@ -121,6 +121,12 @@ const glm::vec3& SpatiallyNestable::getPosition() const {
     return _absolutePositionCache;
 }
 
+const glm::vec3& SpatiallyNestable::getPosition(int jointIndex) const {
+    getTransform(); // update _worldTransformCache
+    // XXX ... something with joints
+    return _absolutePositionCache;
+}
+
 void SpatiallyNestable::setPosition(const glm::vec3& position) {
     Transform parentTransform = getParentTransform();
     Transform myWorldTransform;
@@ -133,6 +139,11 @@ const glm::quat& SpatiallyNestable::getOrientation() const {
     Transform parentTransformDescaled = getParentTransform();
     _absoluteRotationCache = parentTransformDescaled.getRotation() * getLocalOrientation();
     return _absoluteRotationCache;
+}
+
+const glm::quat& SpatiallyNestable::getOrientation(int jointIndex) const {
+    // XXX something with joints...
+    return getOrientation();
 }
 
 void SpatiallyNestable::setOrientation(const glm::quat& orientation) {
@@ -149,6 +160,12 @@ const Transform& SpatiallyNestable::getTransform() const {
     return _worldTransformCache;
 }
 
+const Transform& SpatiallyNestable::getTransform(int jointIndex) const {
+    getTransform(); // update _worldTransformCache
+    // XXX ... something with joints
+    return _worldTransformCache;
+}
+
 void SpatiallyNestable::setTransform(const Transform& transform) {
     Transform parentTransform = getParentTransform();
     Transform::inverseMult(_transform, parentTransform, transform);
@@ -156,6 +173,11 @@ void SpatiallyNestable::setTransform(const Transform& transform) {
 
 const glm::vec3& SpatiallyNestable::getScale() const {
     return _transform.getScale();
+}
+
+const glm::vec3& SpatiallyNestable::getScale(int jointIndex) const {
+    // XXX ... something with joints
+    return getScale();
 }
 
 void SpatiallyNestable::setScale(const glm::vec3& scale) {
@@ -203,4 +225,12 @@ QList<SpatiallyNestablePointer> SpatiallyNestable::getChildren() const {
         }
     }
     return children;
+}
+
+
+const Transform& SpatiallyNestable::getJointTransformInObjectFrame(int jointIndex) const {
+    _jointInObjectFrameCache.resize(jointIndex);
+    // XXX
+    _jointInObjectFrameCache[jointIndex] = Transform();
+    return _jointInObjectFrameCache[jointIndex];
 }

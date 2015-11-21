@@ -59,10 +59,16 @@ public:
     virtual void setPosition(const glm::vec3& position);
 
     virtual const glm::quat& getOrientation() const;
+    virtual const glm::quat& getOrientation(int jointIndex) const;
     virtual void setOrientation(const glm::quat& orientation);
 
     virtual const glm::vec3& getScale() const;
     virtual void setScale(const glm::vec3& scale);
+
+    // get world location of a specific joint
+    virtual const Transform& getTransform(int jointIndex) const;
+    virtual const glm::vec3& getPosition(int jointIndex) const;
+    virtual const glm::vec3& getScale(int jointIndex) const;
 
     // object's parent's frame
     virtual const Transform& getLocalTransform() const;
@@ -79,6 +85,9 @@ public:
 
     QList<SpatiallyNestablePointer> getChildren() const;
     NestableTypes::NestableType getNestableType() const { return _nestableType; }
+
+    // this object's frame
+    virtual const Transform& getJointTransformInObjectFrame(int jointIndex) const;
 
 protected:
     NestableTypes::NestableType _nestableType; // EntityItem or an AvatarData
@@ -102,6 +111,7 @@ private:
     mutable glm::quat _absoluteRotationCache;
     mutable Transform _worldTransformCache;
     mutable bool _parentKnowsMe = false;
+    mutable QVector<Transform> _jointInObjectFrameCache;
 };
 
 
