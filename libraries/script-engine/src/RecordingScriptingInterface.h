@@ -18,9 +18,7 @@
 #include <recording/Forward.h>
 #include <recording/Frame.h>
 
-#include <QtScript/QScriptValue>
-#include <AssetClient.h>
-#include <AssetUpload.h>
+class QScriptValue;
 
 class RecordingScriptingInterface : public QObject, public Dependency {
     Q_OBJECT
