@@ -255,8 +255,9 @@ public slots:
 
     const QString& getAnimGraphUrl() const { return _animGraphUrl; }
 
-    void setEnableDebugDrawBindPose(bool isEnabled);
+    void setEnableDebugDrawDefaultPose(bool isEnabled);
     void setEnableDebugDrawAnimPose(bool isEnabled);
+    void setEnableDebugDrawPosition(bool isEnabled);
     void setEnableMeshVisible(bool isEnabled);
     void setAnimGraphUrl(const QString& url) { _animGraphUrl = url; }
 
@@ -386,9 +387,8 @@ private:
     RigPointer _rig;
     bool _prevShouldDrawHead;
 
-    bool _enableDebugDrawBindPose { false };
+    bool _enableDebugDrawDefaultPose { false };
     bool _enableDebugDrawAnimPose { false };
-    AnimSkeleton::ConstPointer _debugDrawSkeleton { nullptr };
 
     AudioListenerMode _audioListenerMode;
     glm::vec3 _customListenPosition;

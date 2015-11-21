@@ -40,7 +40,6 @@
 #include <recording/Frame.h>
 #include "devices/Faceshift.h"
 
-
 #include "Application.h"
 #include "AvatarManager.h"
 #include "Environment.h"
@@ -353,12 +352,6 @@ void MyAvatar::updateHMDFollowVelocity() {
 // This is so the correct camera can be used for rendering.
 void MyAvatar::updateSensorToWorldMatrix() {
 
-//#ifdef DEBUG_RENDERING
-    // draw marker about avatar's position
-    const glm::vec4 red(1.0f, 0.0f, 0.0f, 1.0f);
-    DebugDraw::getInstance().addMyAvatarMarker("pos", glm::quat(), glm::vec3(), red);
-//#endif
-
     // update the sensor mat so that the body position will end up in the desired
     // position when driven from the head.
     glm::mat4 desiredMat = createMatFromQuatAndPos(getOrientation(), getPosition());
@@ -631,13 +624,8 @@ float loadSetting(QSettings& settings, const char* name, float defaultValue) {
     return value;
 }
 
-// Resource loading is not yet thread safe. If an animation is not loaded when requested by other than tha main thread,
-// we block in AnimationHandle::setURL => AnimationCache::getAnimation.
-// Meanwhile, the main thread will also eventually lock as it tries to render us.
-// If we demand the animation from the update thread while we're locked, we'll deadlock.
-// Until we untangle this, code puts the updates back on the main thread temporarilly and starts all the loading.
-void MyAvatar::setEnableDebugDrawBindPose(bool isEnabled) {
-    _enableDebugDrawBindPose = isEnabled;
+void MyAvatar::setEnableDebugDrawDefaultPose(bool isEnabled) {
+    _enableDebugDrawDefaultPose = isEnabled;
 
     if (!isEnabled) {
         AnimDebugDraw::getInstance().removeSkeleton("myAvatar");
@@ -649,6 +637,15 @@ void MyAvatar::setEnableDebugDrawAnimPose(bool isEnabled) {
 
     if (!isEnabled) {
         AnimDebugDraw::getInstance().removeAbsolutePoses("myAvatar");
+    }
+}
+
+void MyAvatar::setEnableDebugDrawPosition(bool isEnabled) {
+    if (isEnabled) {
+        const glm::vec4 red(1.0f, 0.0f, 0.0f, 1.0f);
+        DebugDraw::getInstance().addMyAvatarMarker("avatarPosition", glm::quat(), glm::vec3(), red);
+    } else {
+        DebugDraw::getInstance().removeMyAvatarMarker("avatarPosition");
     }
 }
 
@@ -702,8 +699,9 @@ void MyAvatar::loadData() {
     settings.endGroup();
 
     setEnableMeshVisible(Menu::getInstance()->isOptionChecked(MenuOption::MeshVisible));
-    setEnableDebugDrawBindPose(Menu::getInstance()->isOptionChecked(MenuOption::AnimDebugDrawBindPose));
+    setEnableDebugDrawDefaultPose(Menu::getInstance()->isOptionChecked(MenuOption::AnimDebugDrawDefaultPose));
     setEnableDebugDrawAnimPose(Menu::getInstance()->isOptionChecked(MenuOption::AnimDebugDrawAnimPose));
+    setEnableDebugDrawPosition(Menu::getInstance()->isOptionChecked(MenuOption::AnimDebugDrawPosition));
 }
 
 void MyAvatar::saveAttachmentData(const AttachmentData& attachment) const {
@@ -1257,34 +1255,33 @@ void MyAvatar::preRender(RenderArgs* renderArgs) {
         initHeadBones();
         _skeletonModel.setCauterizeBoneSet(_headBoneSet);
         initAnimGraph();
-        _debugDrawSkeleton = std::make_shared<AnimSkeleton>(_skeletonModel.getGeometry()->getFBXGeometry());
     }
 
-    if (_enableDebugDrawBindPose || _enableDebugDrawAnimPose) {
+    if (_enableDebugDrawDefaultPose || _enableDebugDrawAnimPose) {
+
+        auto animSkeleton = _rig->getAnimSkeleton();
 
         // bones are aligned such that z is forward, not -z.
         glm::quat rotY180 = glm::angleAxis((float)M_PI, glm::vec3(0.0f, 1.0f, 0.0f));
         AnimPose xform(glm::vec3(1), getOrientation() * rotY180, getPosition());
 
-        /*
-        if (_enableDebugDrawBindPose && _debugDrawSkeleton) {
+        if (_enableDebugDrawDefaultPose && animSkeleton) {
             glm::vec4 gray(0.2f, 0.2f, 0.2f, 0.2f);
-            AnimDebugDraw::getInstance().addSkeleton("myAvatar", _debugDrawSkeleton, xform, gray);
+            AnimDebugDraw::getInstance().addSkeleton("myAvatar", animSkeleton, xform, gray);
         }
-        */
 
-        if (_enableDebugDrawAnimPose && _debugDrawSkeleton) {
+        if (_enableDebugDrawAnimPose && animSkeleton) {
             glm::vec4 cyan(0.1f, 0.6f, 0.6f, 1.0f);
 
             auto rig = _skeletonModel.getRig();
 
             // build absolute AnimPoseVec from rig
             AnimPoseVec absPoses;
-            absPoses.reserve(_debugDrawSkeleton->getNumJoints());
+            absPoses.reserve(rig->getJointStateCount());
             for (int i = 0; i < _rig->getJointStateCount(); i++) {
                 absPoses.push_back(AnimPose(_rig->getJointTransform(i)));
             }
-            AnimDebugDraw::getInstance().addAbsolutePoses("myAvatar", _debugDrawSkeleton, absPoses, xform, cyan);
+            AnimDebugDraw::getInstance().addAbsolutePoses("myAvatar", animSkeleton, absPoses, xform, cyan);
         }
     }
 
@@ -1749,28 +1746,18 @@ glm::mat4 MyAvatar::deriveBodyFromHMDSensor() const {
     const glm::vec3 DEFAULT_NECK_POS(0.0f, 1.70f, 0.0f);
     const glm::vec3 DEFAULT_HIPS_POS(0.0f, 1.05f, 0.0f);
 
-    vec3 localEyes, localNeck;
-    if (!_debugDrawSkeleton) {
-        localEyes = (((DEFAULT_RIGHT_EYE_POS + DEFAULT_LEFT_EYE_POS) / 2.0f) - DEFAULT_HIPS_POS);
-        localNeck = (DEFAULT_NECK_POS - DEFAULT_HIPS_POS);
-    } else {
-        // TODO: At the moment MyAvatar does not have access to the rig, which has the skeleton, which has the bind poses.
-        // for now use the _debugDrawSkeleton, which is initialized with the same FBX model as the rig.
+    int rightEyeIndex = _rig->indexOfJoint("RightEye");
+    int leftEyeIndex = _rig->indexOfJoint("LeftEye");
+    int neckIndex = _rig->indexOfJoint("Neck");
+    int hipsIndex = _rig->indexOfJoint("Hips");
 
-        // TODO: cache these indices.
-        int rightEyeIndex = _debugDrawSkeleton->nameToJointIndex("RightEye");
-        int leftEyeIndex = _debugDrawSkeleton->nameToJointIndex("LeftEye");
-        int neckIndex = _debugDrawSkeleton->nameToJointIndex("Neck");
-        int hipsIndex = _debugDrawSkeleton->nameToJointIndex("Hips");
+    glm::vec3 absRightEyePos = rightEyeIndex != -1 ? _rig->getAbsoluteDefaultPose(rightEyeIndex).trans : DEFAULT_RIGHT_EYE_POS;
+    glm::vec3 absLeftEyePos = leftEyeIndex != -1 ? _rig->getAbsoluteDefaultPose(leftEyeIndex).trans : DEFAULT_LEFT_EYE_POS;
+    glm::vec3 absNeckPos = neckIndex != -1 ? _rig->getAbsoluteDefaultPose(neckIndex).trans : DEFAULT_NECK_POS;
+    glm::vec3 absHipsPos = neckIndex != -1 ? _rig->getAbsoluteDefaultPose(hipsIndex).trans : DEFAULT_HIPS_POS;
 
-        glm::vec3 absRightEyePos = rightEyeIndex != -1 ? _rig->getAbsoluteDefaultPose(rightEyeIndex).trans : DEFAULT_RIGHT_EYE_POS;
-        glm::vec3 absLeftEyePos = leftEyeIndex != -1 ? _rig->getAbsoluteDefaultPose(leftEyeIndex).trans : DEFAULT_LEFT_EYE_POS;
-        glm::vec3 absNeckPos = neckIndex != -1 ? _rig->getAbsoluteDefaultPose(neckIndex).trans : DEFAULT_NECK_POS;
-        glm::vec3 absHipsPos = neckIndex != -1 ? _rig->getAbsoluteDefaultPose(hipsIndex).trans : DEFAULT_HIPS_POS;
-
-        localEyes = (((absRightEyePos + absLeftEyePos) / 2.0f) - absHipsPos);
-        localNeck = (absNeckPos - absHipsPos);
-    }
+    glm::vec3 localEyes = (((absRightEyePos + absLeftEyePos) / 2.0f) - absHipsPos);
+    glm::vec3 localNeck = (absNeckPos - absHipsPos);
 
     // apply simplistic head/neck model
     // figure out where the avatar body should be by applying offsets from the avatar's neck & head joints.

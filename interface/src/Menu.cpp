@@ -443,10 +443,12 @@ Menu::Menu() {
     addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::FixGaze, 0, false);
     addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::EnableAvatarUpdateThreading, 0, false,
                                            qApp, SLOT(setAvatarUpdateThreading(bool)));
-    addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::AnimDebugDrawBindPose, 0, false,
-                                           avatar, SLOT(setEnableDebugDrawBindPose(bool)));
+    addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::AnimDebugDrawDefaultPose, 0, false,
+                                           avatar, SLOT(setEnableDebugDrawDefaultPose(bool)));
     addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::AnimDebugDrawAnimPose, 0, false,
                                            avatar, SLOT(setEnableDebugDrawAnimPose(bool)));
+    addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::AnimDebugDrawPosition, 0, false,
+                                           avatar, SLOT(setEnableDebugDrawPosition(bool)));
     addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::MeshVisible, 0, true,
                                            avatar, SLOT(setEnableMeshVisible(bool)));
     addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::DisableEyelidAdjustment, 0, false);

@@ -74,6 +74,7 @@ public:
     virtual ~Rig() {}
 
     void destroyAnimGraph();
+
     void overrideAnimation(const QString& url, float fps, bool loop, float firstFrame, float lastFrame);
     void restoreAnimation();
     QStringList getAnimationRoles() const;

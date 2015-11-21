@@ -131,7 +131,8 @@ namespace MenuOption {
     const QString AddressBar = "Show Address Bar";
     const QString Animations = "Animations...";
     const QString AnimDebugDrawAnimPose = "Debug Draw Animation";
-    const QString AnimDebugDrawBindPose = "Debug Draw Bind Pose";
+    const QString AnimDebugDrawDefaultPose = "Debug Draw Default Pose";
+    const QString AnimDebugDrawPosition= "Debug Draw Position";
     const QString Antialiasing = "Antialiasing";
     const QString AssetMigration = "ATP Asset Migration";
     const QString Atmosphere = "Atmosphere";

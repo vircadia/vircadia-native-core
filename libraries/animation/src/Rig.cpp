@@ -161,9 +161,9 @@ void Rig::prefetchAnimation(const QString& url) {
 }
 
 void Rig::destroyAnimGraph() {
-    _animSkeleton = nullptr;
-    _animLoader = nullptr;
-    _animNode = nullptr;
+    _animSkeleton.reset();
+    _animLoader.reset();
+    _animNode.reset();
     _relativePoses.clear();
     _absolutePoses.clear();
     _overridePoses.clear();
@@ -237,7 +237,11 @@ int Rig::getJointStateCount() const {
 }
 
 int Rig::indexOfJoint(const QString& jointName) const {
-    return _animSkeleton->nameToJointIndex(jointName);
+    if (_animSkeleton) {
+        return _animSkeleton->nameToJointIndex(jointName);
+    } else {
+        return -1;
+    }
 }
 
 void Rig::setModelOffset(const glm::mat4& modelOffset) {
