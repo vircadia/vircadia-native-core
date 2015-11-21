@@ -758,14 +758,20 @@ function MyController(hand) {
 
     this.nearGrabbing = function() {
         var now = Date.now();
-
+        print('HAND IN NEAR GRAB:::'+this.hand)
         var grabbableData = getEntityCustomData(GRABBABLE_DATA_KEY, this.grabbedEntity, DEFAULT_GRABBABLE_DATA);
 
         var turnOffOtherHand = grabbableData["turnOffOtherHand"];
-        if (turnOffOtherHand) {
-            //don't activate the second hand grab because the script is handling the second hand logic
-            return;
+        print('TURN OFF OTHER HAND??'+turnOffOtherHand);
+        if(turnOffOtherHand==='left' && this.hand ===1){
+            print('IGNORE RIGHT')
+            return
         }
+        if(turnOffOtherHand==='right'&&this.hand===0){
+            print('IGNORE LEFT')
+            return
+        }
+
 
         if (this.state == STATE_NEAR_GRABBING && this.triggerSmoothedReleased()) {
             this.setState(STATE_RELEASE);
