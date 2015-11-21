@@ -603,7 +603,7 @@
             //var forwardVec = Vec3.multiply(handToNotch, handToNotch);
             var arrowProperties = {
                 //  rotation: arrowRotation,
-                ignoreForCollisions: false,
+                ignoreForCollisions: true,
                 collisionsWillMove: true,
                 velocity: forwardVec,
                 lifetime: 10
