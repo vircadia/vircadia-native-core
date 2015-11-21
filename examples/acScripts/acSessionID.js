@@ -1,1 +1,0 @@
-print("sessionID:" + Agent.sessionUUID);
