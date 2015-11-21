@@ -193,7 +193,7 @@ bool RenderableModelEntityItem::addToScene(EntityItemPointer self, std::shared_p
     
     if (_model) {
         render::Item::Status::Getters statusGetters;
-        makeEntityItemStatusGetters(shared_from_this(), statusGetters);
+        makeEntityItemStatusGetters(getThisPointer(), statusGetters);
         
         // note: we don't care if the model fails to add items, we always added our meta item and therefore we return
         // true so that the system knows our meta item is in the scene!
@@ -237,7 +237,7 @@ void RenderableModelEntityItem::render(RenderArgs* args) {
                 _model->removeFromScene(scene, pendingChanges);
 
                 render::Item::Status::Getters statusGetters;
-                makeEntityItemStatusGetters(shared_from_this(), statusGetters);
+                makeEntityItemStatusGetters(getThisPointer(), statusGetters);
                 _model->addToScene(scene, pendingChanges, statusGetters, _showCollisionHull);
 
                 scene->enqueuePendingChanges(pendingChanges);

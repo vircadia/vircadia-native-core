@@ -31,7 +31,7 @@ EntityItemPointer PolyLineEntityItem::factory(const EntityItemID& entityID, cons
     return entity;
 }
 
-PolyLineEntityItem::PolyLineEntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties) :
+PolyLineEntityItem::PolyLineEntityItem(const EntityItemID& entityItemID) :
 EntityItem(entityItemID),
 _lineWidth(DEFAULT_LINE_WIDTH),
 _pointsChanged(true),

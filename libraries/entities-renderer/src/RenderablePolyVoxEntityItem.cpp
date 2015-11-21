@@ -551,7 +551,7 @@ bool RenderablePolyVoxEntityItem::addToScene(EntityItemPointer self,
     auto renderPayload = std::make_shared<PolyVoxPayload::Payload>(renderData);
 
     render::Item::Status::Getters statusGetters;
-    makeEntityItemStatusGetters(shared_from_this(), statusGetters);
+    makeEntityItemStatusGetters(getThisPointer(), statusGetters);
     renderPayload->addStatusGetters(statusGetters);
 
     pendingChanges.resetItem(_myItem, renderPayload);

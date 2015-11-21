@@ -785,11 +785,6 @@ std::shared_ptr<Transform> AvatarData::getRecordingBasis() const {
     return _recordingBasis;
 }
 
-void AvatarData::changeReferential(Referential* ref) {
-    delete _referential;
-    _referential = ref;
-}
-
 void AvatarData::setRawJointData(QVector<JointData> data) {
     if (QThread::currentThread() != thread()) {
         QMetaObject::invokeMethod(this, "setRawJointData", Q_ARG(QVector<JointData>, data));
@@ -1374,14 +1369,6 @@ void AvatarData::setRecordingBasis(std::shared_ptr<Transform> recordingBasis) {
 
 void AvatarData::clearRecordingBasis() {
     _recordingBasis.reset();
-}
-
-Transform AvatarData::getTransform() const {
-    Transform result;
-    result.setRotation(getOrientation());
-    result.setTranslation(getPosition());
-    result.setScale(getTargetScale());
-    return result;
 }
 
 static const QString JSON_AVATAR_BASIS = QStringLiteral("basisTransform");
