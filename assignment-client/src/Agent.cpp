@@ -416,7 +416,7 @@ void Agent::processAgentAvatarAndAudio(float deltaTime) {
                 glm::quat headOrientation = scriptedAvatar->getHeadOrientation();
                 audioPacket->writePrimitive(headOrientation);
 
-            }else if (nextSoundOutput) {
+            } else if (nextSoundOutput) {
                 // assume scripted avatar audio is mono and set channel flag to zero
                 audioPacket->writePrimitive((quint8)0);
 
