@@ -5,6 +5,7 @@
         "type": "overlay",
         "data": {
             "alpha": 1.0,
+            "alphaVar": "ikOverlayAlpha",
             "boneSet": "fullBody"
         },
         "children": [
@@ -178,7 +179,7 @@
                                         "type": "clip",
                                         "data": {
                                             "url": "http://hifi-public.s3.amazonaws.com/ozan/anim/hand_anims/point_right_hand.fbx",
-                                            "startFrame": 0.0,
+                                            "startFrame": 12.0,
                                             "endFrame": 65.0,
                                             "timeScale": 1.0,
                                             "loopFlag": false
@@ -327,7 +328,7 @@
                                                 "type": "clip",
                                                 "data": {
                                                     "url": "http://hifi-public.s3.amazonaws.com/ozan/anim/hand_anims/point_left_hand.fbx",
-                                                    "startFrame": 0.0,
+                                                    "startFrame": 12.0,
                                                     "endFrame": 65.0,
                                                     "timeScale": 1.0,
                                                     "loopFlag": false
@@ -378,15 +379,16 @@
                                             "states": [
                                                 {
                                                     "id": "idle",
-                                                    "interpTarget": 6,
-                                                    "interpDuration": 6,
+                                                    "interpTarget": 15,
+                                                    "interpDuration": 15,
                                                     "transitions": [
                                                         { "var": "isMovingForward", "state": "walkFwd" },
                                                         { "var": "isMovingBackward", "state": "walkBwd" },
                                                         { "var": "isMovingRight", "state": "strafeRight" },
                                                         { "var": "isMovingLeft", "state": "strafeLeft" },
                                                         { "var": "isTurningRight", "state": "turnRight" },
-                                                        { "var": "isTurningLeft", "state": "turnLeft" }
+                                                        { "var": "isTurningLeft", "state": "turnLeft" },
+                                                        { "var": "isAway", "state": "awayIntro" }
                                                     ]
                                                 },
                                                 {
@@ -399,7 +401,8 @@
                                                         { "var": "isMovingRight", "state": "strafeRight" },
                                                         { "var": "isMovingLeft", "state": "strafeLeft" },
                                                         { "var": "isTurningRight", "state": "turnRight" },
-                                                        { "var": "isTurningLeft", "state": "turnLeft" }
+                                                        { "var": "isTurningLeft", "state": "turnLeft" },
+                                                        { "var": "isAway", "state": "awayIntro" }
                                                     ]
                                                 },
                                                 {
@@ -412,7 +415,8 @@
                                                         { "var": "isMovingRight", "state": "strafeRight" },
                                                         { "var": "isMovingLeft", "state": "strafeLeft" },
                                                         { "var": "isTurningRight", "state": "turnRight" },
-                                                        { "var": "isTurningLeft", "state": "turnLeft" }
+                                                        { "var": "isTurningLeft", "state": "turnLeft" },
+                                                        { "var": "isAway", "state": "awayIntro" }
                                                     ]
                                                 },
                                                 {
@@ -425,7 +429,8 @@
                                                         { "var": "isMovingBackward", "state": "walkBwd" },
                                                         { "var": "isMovingLeft", "state": "strafeLeft" },
                                                         { "var": "isTurningRight", "state": "turnRight" },
-                                                        { "var": "isTurningLeft", "state": "turnLeft" }
+                                                        { "var": "isTurningLeft", "state": "turnLeft" },
+                                                        { "var": "isAway", "state": "awayIntro" }
                                                     ]
                                                 },
                                                 {
@@ -438,7 +443,8 @@
                                                         { "var": "isMovingBackward", "state": "walkBwd" },
                                                         { "var": "isMovingRight", "state": "strafeRight" },
                                                         { "var": "isTurningRight", "state": "turnRight" },
-                                                        { "var": "isTurningLeft", "state": "turnLeft" }
+                                                        { "var": "isTurningLeft", "state": "turnLeft" },
+                                                        { "var": "isAway", "state": "awayIntro" }
                                                     ]
                                                 },
                                                 {
@@ -451,7 +457,8 @@
                                                         { "var": "isMovingBackward", "state": "walkBwd" },
                                                         { "var": "isMovingRight", "state": "strafeRight" },
                                                         { "var": "isMovingLeft", "state": "strafeLeft" },
-                                                        { "var": "isTurningLeft", "state": "turnLeft" }
+                                                        { "var": "isTurningLeft", "state": "turnLeft" },
+                                                        { "var": "isAway", "state": "awayIntro" }
                                                     ]
                                                 },
                                                 {
@@ -464,7 +471,32 @@
                                                         { "var": "isMovingBackward", "state": "walkBwd" },
                                                         { "var": "isMovingRight", "state": "strafeRight" },
                                                         { "var": "isMovingLeft", "state": "strafeLeft" },
-                                                        { "var": "isTurningRight", "state": "turnRight" }
+                                                        { "var": "isTurningRight", "state": "turnRight" },
+                                                        { "var": "isAway", "state": "awayIntro" }
+                                                    ]
+                                                },
+                                                {
+                                                    "id": "awayIntro",
+                                                    "interpTarget": 30,
+                                                    "interpDuration": 30,
+                                                    "transitions": [
+                                                        { "var": "awayIntroOnDone", "state": "away"}
+                                                    ]
+                                                },
+                                                {
+                                                    "id": "away",
+                                                    "interpTarget": 3,
+                                                    "interpDuration": 3,
+                                                    "transitions": [
+                                                        { "var": "isNotAway", "state": "awayOutro" }
+                                                    ]
+                                                },
+                                                {
+                                                    "id": "awayOutro",
+                                                    "interpTarget": 3,
+                                                    "interpDuration": 3,
+                                                    "transitions": [
+                                                        { "var": "awayOutroOnDone", "state": "idle" }
                                                     ]
                                                 }
                                             ]
@@ -704,6 +736,42 @@
                                                         "children": []
                                                     }
                                                 ]
+                                            },
+                                            {
+                                                "id": "awayIntro",
+                                                "type": "clip",
+                                                "data": {
+                                                    "url": "https://hifi-public.s3.amazonaws.com/ozan/anim/kneel/kneel.fbx",
+                                                    "startFrame": 0.0,
+                                                    "endFrame": 83.0,
+                                                    "timeScale": 1.0,
+                                                    "loopFlag": false
+                                                },
+                                                "children": []
+                                            },
+                                            {
+                                                "id": "away",
+                                                "type": "clip",
+                                                "data": {
+                                                    "url": "https://hifi-public.s3.amazonaws.com/ozan/anim/kneel/kneel.fbx",
+                                                    "startFrame": 83.0,
+                                                    "endFrame": 84.0,
+                                                    "timeScale": 1.0,
+                                                    "loopFlag": true
+                                                },
+                                                "children": []
+                                            },
+                                            {
+                                                "id": "awayOutro",
+                                                "type": "clip",
+                                                "data": {
+                                                    "url": "https://hifi-public.s3.amazonaws.com/ozan/anim/kneel/kneel.fbx",
+                                                    "startFrame": 84.0,
+                                                    "endFrame": 167.0,
+                                                    "timeScale": 1.0,
+                                                    "loopFlag": false
+                                                },
+                                                "children": []
                                             }
                                         ]
                                     }

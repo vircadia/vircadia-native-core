@@ -37,8 +37,6 @@ const QString & OpenVrDisplayPlugin::getName() const {
     return NAME;
 }
 
-vr::IVRSystem* _hmd{ nullptr };
-int hmdRefCount = 0;
 static vr::IVRCompositor* _compositor{ nullptr };
 vr::TrackedDevicePose_t _trackedDevicePose[vr::k_unMaxTrackedDeviceCount];
 mat4 _trackedDevicePoseMat4[vr::k_unMaxTrackedDeviceCount];
@@ -78,24 +76,17 @@ mat4 toGlm(const vr::HmdMatrix34_t& m) {
 }
 
 bool OpenVrDisplayPlugin::isSupported() const {
-    bool success = vr::VR_IsHmdPresent();
-    if (success) {
-        vr::HmdError eError = vr::HmdError_None;
-        auto hmd = vr::VR_Init(&eError);
-        success = (hmd != nullptr);
-        vr::VR_Shutdown();
-    }
+    auto hmd = acquireOpenVrSystem();
+    bool success = nullptr != hmd;
+    releaseOpenVrSystem();
     return success;
 }
 
 void OpenVrDisplayPlugin::activate() {
     _container->setIsOptionChecked(StandingHMDSensorMode, true);
 
-    hmdRefCount++;
-    vr::HmdError eError = vr::HmdError_None;
     if (!_hmd) {
-        _hmd = vr::VR_Init(&eError);
-        Q_ASSERT(eError == vr::HmdError_None);
+        _hmd = acquireOpenVrSystem();
     }
     Q_ASSERT(_hmd);
 
@@ -114,6 +105,7 @@ void OpenVrDisplayPlugin::activate() {
     });
 
 
+    vr::HmdError eError = vr::HmdError_None;
     _compositor = (vr::IVRCompositor*)vr::VR_GetGenericInterface(vr::IVRCompositor_Version, &eError);
     Q_ASSERT(eError == vr::HmdError_None);
     Q_ASSERT(_compositor);
@@ -133,11 +125,8 @@ void OpenVrDisplayPlugin::activate() {
 
 void OpenVrDisplayPlugin::deactivate() {
     _container->setIsOptionChecked(StandingHMDSensorMode, false);
-
-    hmdRefCount--;
-
-    if (hmdRefCount == 0 && _hmd) {
-        vr::VR_Shutdown();
+    if (_hmd) {
+        releaseOpenVrSystem();
         _hmd = nullptr;
     }
     _compositor = nullptr;

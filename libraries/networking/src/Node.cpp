@@ -32,6 +32,7 @@ void NodeType::init() {
     TypeNameHash.insert(NodeType::Agent, "Agent");
     TypeNameHash.insert(NodeType::AudioMixer, "Audio Mixer");
     TypeNameHash.insert(NodeType::AvatarMixer, "Avatar Mixer");
+    TypeNameHash.insert(NodeType::MessagesMixer, "Messages Mixer");
     TypeNameHash.insert(NodeType::AssetServer, "Asset Server");
     TypeNameHash.insert(NodeType::Unassigned, "Unassigned");
 }
@@ -47,7 +48,6 @@ Node::Node(const QUuid& uuid, NodeType_t type, const HifiSockAddr& publicSocket,
     NetworkPeer(uuid, publicSocket, localSocket, parent),
     _type(type),
     _connectionSecret(connectionSecret),
-    _linkedData(NULL),
     _isAlive(true),
     _pingMs(-1),  // "Uninitialized"
     _clockSkewUsec(0),
@@ -58,10 +58,6 @@ Node::Node(const QUuid& uuid, NodeType_t type, const HifiSockAddr& publicSocket,
 {
     // Update socket's object name
     setType(_type);
-}
-
-Node::~Node() {
-    delete _linkedData;
 }
 
 void Node::setType(char type) {

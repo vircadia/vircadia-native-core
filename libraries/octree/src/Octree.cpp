@@ -1841,6 +1841,7 @@ bool Octree::readFromStream(unsigned long streamLength, QDataStream& inputStream
 
 
 bool Octree::readSVOFromStream(unsigned long streamLength, QDataStream& inputStream) {
+    qWarning() << "SVO file format depricated. Support for reading SVO files is no longer support and will be removed soon.";
 
     bool fileOk = false;
 
@@ -1890,8 +1891,8 @@ bool Octree::readSVOFromStream(unsigned long streamLength, QDataStream& inputStr
                             versionForPacketType(expectedDataPacketType()), gotVersion);
             }
         } else {
-            qCDebug(octree) << "SVO file type mismatch. Expected: " << nameForPacketType(expectedType)
-                        << " Got: " << nameForPacketType(gotType);
+            qCDebug(octree) << "SVO file type mismatch. Expected: " << expectedType
+                        << " Got: " << gotType;
         }
 
     } else {
@@ -2062,6 +2063,8 @@ void Octree::writeToJSONFile(const char* fileName, OctreeElementPointer element,
 }
 
 void Octree::writeToSVOFile(const char* fileName, OctreeElementPointer element) {
+    qWarning() << "SVO file format depricated. Support for reading SVO files is no longer support and will be removed soon.";
+
     std::ofstream file(fileName, std::ios::out|std::ios::binary);
 
     if(file.is_open()) {

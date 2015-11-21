@@ -66,6 +66,8 @@ public:
 
     void setAssignmentServerSocket(const HifiSockAddr& serverSocket) { _assignmentServerSocket = serverSocket; }
     void sendAssignment(Assignment& assignment);
+    
+    void setIsShuttingDown(bool isShuttingDown) { _isShuttingDown = isShuttingDown; }
 
 public slots:
     void reset();
@@ -74,6 +76,7 @@ public slots:
 
     void processDomainServerList(QSharedPointer<NLPacket> packet);
     void processDomainServerAddedNode(QSharedPointer<NLPacket> packet);
+    void processDomainServerRemovedNode(QSharedPointer<NLPacket> packet);
     void processDomainServerPathResponse(QSharedPointer<NLPacket> packet);
 
     void processDomainServerConnectionTokenPacket(QSharedPointer<NLPacket> packet);
@@ -82,6 +85,7 @@ public slots:
     void processPingReplyPacket(QSharedPointer<NLPacket> packet, SharedNodePointer sendingNode);
 
     void processICEPingPacket(QSharedPointer<NLPacket> packet);
+    
 signals:
     void limitOfSilentDomainCheckInsReached();
 private slots:
@@ -92,6 +96,8 @@ private slots:
     void handleNodePingTimeout();
 
     void pingPunchForDomainServer();
+    
+    void sendKeepAlivePings();
 private:
     NodeList() : LimitedNodeList(0, 0) { assert(false); } // Not implemented, needed for DependencyManager templates compile
     NodeList(char ownerType, unsigned short socketListenPort = 0, unsigned short dtlsListenPort = 0);
@@ -114,6 +120,8 @@ private:
     DomainHandler _domainHandler;
     int _numNoReplyDomainCheckIns;
     HifiSockAddr _assignmentServerSocket;
+    bool _isShuttingDown { false };
+    QTimer _keepAlivePingTimer;
 };
 
 #endif // hifi_NodeList_h

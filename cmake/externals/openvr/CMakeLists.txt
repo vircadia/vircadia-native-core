@@ -7,7 +7,8 @@ string(TOUPPER ${EXTERNAL_NAME} EXTERNAL_NAME_UPPER)
 
 ExternalProject_Add(
   ${EXTERNAL_NAME}
-  URL https://github.com/ValveSoftware/openvr/archive/0.9.1.zip
+  #URL https://github.com/ValveSoftware/openvr/archive/0.9.1.zip
+  URL http://hifi-public.s3.amazonaws.com/dependencies/openvr-0.9.1.zip
   URL_MD5 f986f5a6815e9454c53c5bf58ce02fdc
   CONFIGURE_COMMAND ""
   BUILD_COMMAND ""
@@ -24,9 +25,14 @@ set(${EXTERNAL_NAME_UPPER}_INCLUDE_DIRS ${SOURCE_DIR}/headers CACHE TYPE INTERNA
 
 if (WIN32)
 
-  # FIXME need to account for different architectures 
-  set(${EXTERNAL_NAME_UPPER}_LIBRARIES ${SOURCE_DIR}/lib/win32/openvr_api.lib CACHE TYPE INTERNAL)
-  add_paths_to_fixup_libs(${SOURCE_DIR}/bin/win32)
+  # FIXME need to account for different architectures
+  if ("${CMAKE_SIZEOF_VOID_P}" EQUAL "8")
+    set(${EXTERNAL_NAME_UPPER}_LIBRARIES ${SOURCE_DIR}/lib/win64/openvr_api.lib CACHE TYPE INTERNAL)
+    add_paths_to_fixup_libs(${SOURCE_DIR}/bin/win64)
+  else()
+    set(${EXTERNAL_NAME_UPPER}_LIBRARIES ${SOURCE_DIR}/lib/win32/openvr_api.lib CACHE TYPE INTERNAL)
+    add_paths_to_fixup_libs(${SOURCE_DIR}/bin/win32)
+  endif()
 
 elseif(APPLE)
 

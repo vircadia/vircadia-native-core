@@ -233,7 +233,7 @@ MasterReset = function() {
                 y: -9.8,
                 z: 0
             },
-            linearDamping: 1,
+            damping: 1,
             dimensions: {
                 x: 0.4,
                 y: 1.37,
@@ -247,7 +247,8 @@ MasterReset = function() {
                     resetMe: true
                 },
                 grabbableKey: {
-                    grabbable: false
+                    grabbable: false,
+                    wantsTrigger: true
                 }
             })
         });
@@ -281,13 +282,14 @@ MasterReset = function() {
                         z: DIAMETER
                     },
                     restitution: 1.0,
-                    linearDamping: 0.00001,
+                    damping: 0.00001,
                     gravity: {
                         x: 0,
                         y: -9.8,
                         z: 0
                     },
                     collisionsWillMove: true,
+                    collisionSoundURL: 'http://hifi-public.s3.amazonaws.com/sounds/basketball/basketball.wav',
                     ignoreForCollisions: false,
                     modelURL: basketballURL,
                     userData: JSON.stringify({
@@ -333,7 +335,7 @@ MasterReset = function() {
             name: "Basketball Resetter",
             script: basketballResetterScriptURL,
             dimensions: dimensions,
-            visible:false,
+            visible: false,
             userData: JSON.stringify({
                 resetMe: {
                     resetMe: true
@@ -366,7 +368,7 @@ MasterReset = function() {
             name: "Target Resetter",
             script: targetsResetterScriptURL,
             dimensions: dimensions,
-            visible:false,
+            visible: false,
             userData: JSON.stringify({
                 resetMe: {
                     resetMe: true
@@ -851,7 +853,7 @@ MasterReset = function() {
                 y: -100,
                 z: 0
             },
-            linearDamping: 1,
+            damping: 1,
             angularDamping: 10,
             mass: 10,
             userData: JSON.stringify({
@@ -867,8 +869,8 @@ MasterReset = function() {
 
     function createPingPongBallGun() {
         var MODEL_URL = 'http://hifi-public.s3.amazonaws.com/models/ping_pong_gun/ping_pong_gun.fbx';
-        var COLLISION_HULL_URL = 'http://hifi-public.s3.amazonaws.com/models/ping_pong_gun/ping_pong_gun_collision_hull.obj';
-
+        var COLLISION_HULL_URL = 'http://hifi-public.s3.amazonaws.com/models/ping_pong_gun/ping_pong_gun_convex.obj';
+        var COLLISION_SOUND_URL = 'http://hifi-public.s3.amazonaws.com/sounds/Collisions-otherorganic/plastic_impact.L.wav';
         var position = {
             x: 548.6,
             y: 495.4,
@@ -880,7 +882,8 @@ MasterReset = function() {
         var pingPongGun = Entities.addEntity({
             type: "Model",
             modelURL: MODEL_URL,
-            shapeType: 'box',
+            shapeType: 'compound',
+            compoundShapeURL:COLLISION_HULL_URL,
             script: pingPongScriptURL,
             position: position,
             rotation: rotation,
@@ -895,6 +898,7 @@ MasterReset = function() {
                 z: 0.47
             },
             collisionsWillMove: true,
+            collisionSoundURL: COLLISION_SOUND_URL,
             userData: JSON.stringify({
                 resetMe: {
                     resetMe: true
@@ -908,8 +912,8 @@ MasterReset = function() {
     }
 
     function createWand(position) {
-        var WAND_MODEL = 'http://hifi-public.s3.amazonaws.com/james/bubblewand/models/wand/wand.fbx';
-        var WAND_COLLISION_SHAPE = 'http://hifi-public.s3.amazonaws.com/james/bubblewand/models/wand/actual_no_top_collision_hull.obj';
+        var WAND_MODEL = 'http://hifi-public.s3.amazonaws.com/models/bubblewand/wand.fbx';
+        var WAND_COLLISION_SHAPE = 'http://hifi-public.s3.amazonaws.com/models/bubblewand/actual_no_top_collision_hull.obj';
 
         var entity = Entities.addEntity({
             name: 'Bubble Wand',
@@ -969,7 +973,7 @@ MasterReset = function() {
                 z: 0
             },
             restitution: 10,
-            linearDamping: 0.0,
+            damping: 0.01,
             velocity: {
                 x: 0,
                 y: -0.01,
@@ -1092,7 +1096,7 @@ MasterReset = function() {
                 y: 0,
                 z: 0
             },
-            linearDamping: 0.4,
+            damping: 0.4,
             userData: JSON.stringify({
                 resetMe: {
                     resetMe: true
@@ -1135,7 +1139,7 @@ MasterReset = function() {
                 y: 0,
                 z: 0
             },
-            linearDamping: 0.2,
+            damping: 0.2,
             userData: JSON.stringify({
                 resetMe: {
                     resetMe: true

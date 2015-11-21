@@ -46,7 +46,7 @@ function makeBasketball() {
         collisionSoundURL: collisionSoundURL,
         modelURL: basketballURL,
         restitution: 1.0,
-        linearDamping: 0.00001,
+        damping: 0.00001,
         shapeType: "sphere"
     });
     originalPosition = position;

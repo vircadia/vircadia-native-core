@@ -43,7 +43,7 @@
             this.hand = LEFT_HAND;
         },
 
-        startFarGrabNonColliding: function() {
+        startFarTrigger: function() {
             if (this.painting) {
                 return;
             }
@@ -62,7 +62,7 @@
             });
         },
 
-        continueFarGrabbingNonColliding: function() {
+        continueFarTrigger: function() {
             var handPosition = this.getHandPosition();
             var pickRay = {
                 origin: handPosition,
@@ -183,7 +183,7 @@
 
         },
 
-        releaseGrab: function() {
+        stopFarTrigger: function() {
             if(this.hand !== this.whichHand) {
                 return;
             }

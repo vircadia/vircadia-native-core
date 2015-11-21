@@ -25,7 +25,7 @@ bool OculusDebugDisplayPlugin::isSupported() const {
 }
 
 void OculusDebugDisplayPlugin::customizeContext() {
-    WindowOpenGLDisplayPlugin::customizeContext();
+    OculusBaseDisplayPlugin::customizeContext();
     enableVsync(false);
 }
 

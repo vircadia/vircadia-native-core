@@ -205,7 +205,7 @@ void AudioInjector::injectToMixer() {
 
         while (_currentSendOffset < _audioData.size() && !_shouldStop) {
 
-            int bytesToCopy = std::min(((_options.stereo) ? 2 : 1) * AudioConstants::NETWORK_FRAME_BYTES_PER_CHANNEL,
+            int bytesToCopy = std::min((_options.stereo ? 2 : 1) * AudioConstants::NETWORK_FRAME_BYTES_PER_CHANNEL,
                                        _audioData.size() - _currentSendOffset);
 
             //  Measure the loudness of this frame
@@ -261,7 +261,7 @@ void AudioInjector::injectToMixer() {
 
                 // not the first packet and not done
                 // sleep for the appropriate time
-                int usecToSleep = (++nextFrame * AudioConstants::NETWORK_FRAME_USECS) - timer.nsecsElapsed() / 1000;
+                int usecToSleep = (++nextFrame * (_options.stereo ? 2 : 1) * AudioConstants::NETWORK_FRAME_USECS) - timer.nsecsElapsed() / 1000;
 
                 if (usecToSleep > 0) {
                     usleep(usecToSleep);

@@ -38,11 +38,11 @@ protected:
         uint32_t rgba;
     };
 
-    static void createPipelines();
+    void createPipelines();
 
     std::vector<Vertex> _vertices;
-    static gpu::PipelinePointer _untexturedPipeline;
-    static gpu::PipelinePointer _texturedPipeline;
+    gpu::PipelinePointer _untexturedPipeline;
+    gpu::PipelinePointer _texturedPipeline;
 
     render::ScenePointer _scene;
     NetworkTexturePointer _texture;
