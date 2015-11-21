@@ -37,6 +37,7 @@ var BUMPER_ON_VALUE = 0.5;
 var DISTANCE_HOLDING_RADIUS_FACTOR = 5; // multiplied by distance between hand and object
 var DISTANCE_HOLDING_ACTION_TIMEFRAME = 0.1; // how quickly objects move to their new position
 var DISTANCE_HOLDING_ROTATION_EXAGGERATION_FACTOR = 2.0; // object rotates this much more than hand did
+
 var NO_INTERSECT_COLOR = {
     red: 10,
     green: 10,
@@ -86,6 +87,7 @@ var ZERO_VEC = {
     y: 0,
     z: 0
 };
+
 var NULL_ACTION_ID = "{00000000-0000-0000-000000000000}";
 var MSEC_PER_SEC = 1000.0;
 
@@ -95,7 +97,8 @@ var ACTION_TTL = 15; // seconds
 var ACTION_TTL_REFRESH = 5;
 var PICKS_PER_SECOND_PER_HAND = 5;
 var MSECS_PER_SEC = 1000.0;
-var GRABBABLE_PROPERTIES = ["position",
+var GRABBABLE_PROPERTIES = [
+    "position",
     "rotation",
     "gravity",
     "ignoreForCollisions",
@@ -103,7 +106,6 @@ var GRABBABLE_PROPERTIES = ["position",
     "locked",
     "name"
 ];
-
 
 var GRABBABLE_DATA_KEY = "grabbableKey"; // shared with grab.js
 var GRAB_USER_DATA_KEY = "grabKey"; // shared with grab.js
@@ -114,7 +116,6 @@ var DEFAULT_GRABBABLE_DATA = {
 };
 
 var disabledHand = 'none';
-
 
 // states for the state machine
 var STATE_OFF = 0;
@@ -461,7 +462,7 @@ function MyController(hand) {
 
                 //this code will disabled the beam for the opposite hand of the one that grabbed it if the entity says so
                 var grabbableData = getEntityCustomData(GRABBABLE_DATA_KEY, intersection.entityID, DEFAULT_GRABBABLE_DATA);
-                if (grabbableData["turnOffOppositeBeam"]) {
+                if (grabbableData["turnOffOppositeBeam"]===true) {
                     if (this.hand === RIGHT_HAND) {
                         disabledHand = LEFT_HAND;
                     } else {
@@ -758,16 +759,16 @@ function MyController(hand) {
 
     this.nearGrabbing = function() {
         var now = Date.now();
-        print('HAND IN NEAR GRAB:::'+this.hand)
+        print('HAND IN NEAR GRAB:::' + this.hand)
         var grabbableData = getEntityCustomData(GRABBABLE_DATA_KEY, this.grabbedEntity, DEFAULT_GRABBABLE_DATA);
 
         var turnOffOtherHand = grabbableData["turnOffOtherHand"];
-        print('TURN OFF OTHER HAND??'+turnOffOtherHand);
-        if(turnOffOtherHand==='left' && this.hand ===1){
+        print('TURN OFF OTHER HAND??' + turnOffOtherHand);
+        if (turnOffOtherHand === 'left' && this.hand === 1) {
             print('IGNORE RIGHT')
             return
         }
-        if(turnOffOtherHand==='right'&&this.hand===0){
+        if (turnOffOtherHand === 'right' && this.hand === 0) {
             print('IGNORE LEFT')
             return
         }

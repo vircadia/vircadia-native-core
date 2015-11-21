@@ -46,7 +46,8 @@ var bow = Entities.addEntity({
     script: SCRIPT_URL,
     userData: JSON.stringify({
         grabbableKey: {
-            // turnOffOtherHand:true,
+            turnOffOtherHand:false,
+            turnOffOppositebeam:true,
             invertSolidWhileHeld: true,
             spatialKey: {
                 relativePosition: {
