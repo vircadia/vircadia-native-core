@@ -250,7 +250,7 @@ void Rig::setModelOffset(const glm::mat4& modelOffset) {
 }
 
 bool Rig::getJointStateRotation(int index, glm::quat& rotation) const {
-    if (index >= 0 && index < (int)_relativePoses.size()) {
+    if (isValid(index)) {
         rotation = _relativePoses[index].rot;
         return !isEqual(rotation, _animSkeleton->getRelativeDefaultPose(index).rot);
     } else {
@@ -259,7 +259,7 @@ bool Rig::getJointStateRotation(int index, glm::quat& rotation) const {
 }
 
 bool Rig::getJointStateTranslation(int index, glm::vec3& translation) const {
-    if (index >= 0 && index < (int)_relativePoses.size()) {
+    if (isValid(index)) {
         translation = _relativePoses[index].trans;
         return !isEqual(translation, _animSkeleton->getRelativeDefaultPose(index).trans);
     } else {
@@ -268,7 +268,7 @@ bool Rig::getJointStateTranslation(int index, glm::vec3& translation) const {
 }
 
 void Rig::clearJointState(int index) {
-    if (index >= 0 && index < (int)_relativePoses.size()) {
+    if (isValid(index)) {
         _overrideFlags[index] = false;
     }
 }
@@ -279,13 +279,13 @@ void Rig::clearJointStates() {
 }
 
 void Rig::clearJointAnimationPriority(int index) {
-    if (index >= 0 && index < (int)_overrideFlags.size()) {
+    if (isValid(index)) {
         _overrideFlags[index] = false;
     }
 }
 
 void Rig::setJointTranslation(int index, bool valid, const glm::vec3& translation, float priority) {
-    if (index >= 0 && index < (int)_overrideFlags.size()) {
+    if (isValid(index)) {
         if (valid) {
             assert(_overrideFlags.size() == _overridePoses.size());
             _overrideFlags[index] = true;
@@ -295,7 +295,7 @@ void Rig::setJointTranslation(int index, bool valid, const glm::vec3& translatio
 }
 
 void Rig::setJointState(int index, bool valid, const glm::quat& rotation, const glm::vec3& translation, float priority) {
-    if (index >= 0 && index < (int)_overrideFlags.size()) {
+    if (isValid(index)) {
         assert(_overrideFlags.size() == _overridePoses.size());
         _overrideFlags[index] = true;
         _overridePoses[index].rot = rotation;
@@ -306,7 +306,7 @@ void Rig::setJointState(int index, bool valid, const glm::quat& rotation, const 
 // Deprecated.
 // WARNING: this is not symmetric with getJointRotation. It's historical. Use the appropriate specific variation.
 void Rig::setJointRotation(int index, bool valid, const glm::quat& rotation, float priority) {
-    if (index >= 0 && index < (int)_overrideFlags.size()) {
+    if (isValid(index)) {
         if (valid) {
             ASSERT(_overrideFlags.size() == _overridePoses.size());
             _overrideFlags[index] = true;
@@ -327,7 +327,7 @@ void Rig::restoreJointTranslation(int index, float fraction, float priority) {
 
 // AJT: NOTE old code did not have 180 flip!
 bool Rig::getJointPositionInWorldFrame(int jointIndex, glm::vec3& position, glm::vec3 translation, glm::quat rotation) const {
-    if (jointIndex >= 0 && jointIndex < (int)_absolutePoses.size()) {
+    if (isValid(jointIndex)) {
         glm::quat yFlip180 = glm::angleAxis(PI, glm::vec3(0.0f, 1.0f, 0.0f));
         position = (rotation * yFlip180 * _absolutePoses[jointIndex].trans) + translation;
         return true;
@@ -338,7 +338,7 @@ bool Rig::getJointPositionInWorldFrame(int jointIndex, glm::vec3& position, glm:
 
 // AJT: NOTE old code did not have 180 flip!
 bool Rig::getJointPosition(int jointIndex, glm::vec3& position) const {
-    if (jointIndex >= 0 && jointIndex < (int)_absolutePoses.size()) {
+    if (isValid(jointIndex)) {
         glm::quat yFlip180 = glm::angleAxis(PI, glm::vec3(0.0f, 1.0f, 0.0f));
         position = yFlip180 * _absolutePoses[jointIndex].trans;
         return true;
@@ -348,7 +348,7 @@ bool Rig::getJointPosition(int jointIndex, glm::vec3& position) const {
 }
 
 bool Rig::getJointRotationInWorldFrame(int jointIndex, glm::quat& result, const glm::quat& rotation) const {
-    if (jointIndex >= 0 && jointIndex < (int)_absolutePoses.size()) {
+    if (isValid(jointIndex)) {
         result = rotation * _absolutePoses[jointIndex].rot;
         return true;
     } else {
@@ -359,7 +359,7 @@ bool Rig::getJointRotationInWorldFrame(int jointIndex, glm::quat& result, const 
 // Deprecated.
 // WARNING: this is not symmetric with setJointRotation. It's historical. Use the appropriate specific variation.
 bool Rig::getJointRotation(int jointIndex, glm::quat& rotation) const {
-    if (jointIndex >= 0 && jointIndex < (int)_relativePoses.size()) {
+    if (isValid(jointIndex)) {
         rotation = _relativePoses[jointIndex].rot;
         return true;
     } else {
@@ -368,7 +368,7 @@ bool Rig::getJointRotation(int jointIndex, glm::quat& rotation) const {
 }
 
 bool Rig::getJointTranslation(int jointIndex, glm::vec3& translation) const {
-    if (jointIndex >= 0 && jointIndex < (int)_relativePoses.size()) {
+    if (isValid(jointIndex)) {
         translation = _relativePoses[jointIndex].trans;
         return true;
     } else {
@@ -638,10 +638,12 @@ QScriptValue Rig::addAnimationStateHandler(QScriptValue handler, QScriptValue pr
     }
     return QScriptValue(_nextStateHandlerId); // suitable for giving to removeAnimationStateHandler
 }
+
 void Rig::removeAnimationStateHandler(QScriptValue identifier) { // called in script thread
     QMutexLocker locker(&_stateMutex);
     _stateHandlers.remove(identifier.isNumber() ? identifier.toInt32() : 0); // silently continues if handler not present. 0 is unused
 }
+
 void Rig::animationStateHandlerResult(int identifier, QScriptValue result) { // called synchronously from script
     QMutexLocker locker(&_stateMutex);
     auto found = _stateHandlers.find(identifier);
@@ -785,13 +787,11 @@ static const glm::vec3 Y_AXIS(0.0f, 1.0f, 0.0f);
 static const glm::vec3 Z_AXIS(0.0f, 0.0f, 1.0f);
 
 void Rig::updateLeanJoint(int index, float leanSideways, float leanForward, float torsoTwist) {
-    if (index >= 0 && index) {
-        if (_animSkeleton) {
-            glm::quat absRot = (glm::angleAxis(-RADIANS_PER_DEGREE * leanSideways, Z_AXIS) *
-                                glm::angleAxis(-RADIANS_PER_DEGREE * leanForward, X_AXIS) *
-                                glm::angleAxis(RADIANS_PER_DEGREE * torsoTwist, Y_AXIS));
-            _animVars.set("lean", absRot);
-        }
+    if (isValid(index)) {
+        glm::quat absRot = (glm::angleAxis(-RADIANS_PER_DEGREE * leanSideways, Z_AXIS) *
+                            glm::angleAxis(-RADIANS_PER_DEGREE * leanForward, X_AXIS) *
+                            glm::angleAxis(RADIANS_PER_DEGREE * torsoTwist, Y_AXIS));
+        _animVars.set("lean", absRot);
     }
 }
 
@@ -1025,7 +1025,7 @@ void Rig::buildAbsolutePoses() {
 }
 
 glm::mat4 Rig::getJointTransform(int jointIndex) const {
-    if (jointIndex >= 0 && jointIndex < (int)_absolutePoses.size()) {
+    if (isValid(jointIndex)) {
         return _absolutePoses[jointIndex];
     } else {
         return glm::mat4();
