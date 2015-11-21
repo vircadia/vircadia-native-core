@@ -53,20 +53,9 @@ function getAction(channel, message, senderID) {
         
         if (command.id_key == id || command.id_key == -1) {
             if (command.action_key === 6) {
-                
                 clip_url = command.clip_url_key;
-                
-                if (command.id_key == -1) {
-                    Assets.downloadData(clip_url, function (data) {
-                        var myJSONObject = JSON.parse(data);
-                        var hash = myJSONObject.avatarClips[id];
-                    });
-                    
-                    clip_url = hash;
-                }
             }
-                
-            
+                           
             action = command.action_key;
             print("That command was for me!");
             print("My clip is: " + clip_url);
@@ -173,4 +162,3 @@ Messages.messageReceived.connect(function (channel, message, senderID) {
 });
 
 Script.update.connect(update);
-
