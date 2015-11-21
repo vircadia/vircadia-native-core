@@ -1,7 +1,7 @@
 //
 //  bow.js
 //
-//  This script attaches to a bow that you can pick up with a hand controller. Load an arrow and then shoot it.
+//  This script attaches to a bow that you can pick up with a hand controller.
 //  Created by James B. Pollack @imgntn on 10/19/2015
 //  Copyright 2015 High Fidelity, Inc.
 //
@@ -13,28 +13,15 @@
 
     Script.include("../../libraries/utils.js");
 
-    var NOTCH_ARROW_SOUND_URL = 'http://hifi-content.s3.amazonaws.com/james/bow_and_arrow/sounds/notch.wav?123';
+    var NOTCH_ARROW_SOUND_URL = 'http://hifi-content.s3.amazonaws.com/james/bow_and_arrow/sounds/notch.wav';
     var SHOOT_ARROW_SOUND_URL = 'http://hifi-content.s3.amazonaws.com/james/bow_and_arrow/sounds/String_release2.L.wav';
     var STRING_PULL_SOUND_URL = 'http://hifi-content.s3.amazonaws.com/james/bow_and_arrow/sounds/Bow_draw.1.L.wav';
-    var ARROW_WHIZZ_SOUND_URL = 'http://hifi-content.s3.amazonaws.com/james/bow_and_arrow/sounds/whizz.wav';
-    //todo : multiple impact sounds
     var ARROW_HIT_SOUND_URL = 'http://hifi-content.s3.amazonaws.com/james/bow_and_arrow/sounds/Arrow_impact1.L.wav'
+
     var ARROW_DIMENSIONS = {
         x: 0.02,
         y: 0.02,
         z: 0.64
-    };
-
-    var ZERO_VEC = {
-        x: 0,
-        y: 0,
-        z: 0
-    };
-
-    var LINE_ENTITY_DIMENSIONS = {
-        x: 10,
-        y: 10,
-        z: 10
     };
 
     var ARROW_OFFSET = -0.36;
@@ -117,7 +104,6 @@
         preNotchString: null,
         hasArrowNotched: false,
         arrow: null,
-        prePickupString: null,
         stringData: {
             currentColor: {
                 red: 255,
@@ -126,7 +112,6 @@
             }
         },
         preload: function(entityID) {
-            print('preload bow');
             this.entityID = entityID;
             this.stringPullSound = SoundCache.getSound(STRING_PULL_SOUND_URL);
             this.shootArrowSound = SoundCache.getSound(SHOOT_ARROW_SOUND_URL);
@@ -166,7 +151,7 @@
             setEntityCustomData('grabbableKey', this.entityID, {
                 turnOffOtherHand: this.initialHand,
                 invertSolidWhileHeld: true,
-                turnOffOppositebeam: true,
+                turnOffOppositeBeam: true,
                 spatialKey: BOW_SPATIAL_KEY
             });
 
@@ -183,7 +168,6 @@
             if (this.preNotchString !== null && this.aiming === false) {
                 //   print('DRAW PRE NOTCH STRING')
                 this.drawPreNotchStrings();
-                // this.updateArrowAttachedToBow();
             }
 
             // create the notch detector that arrows will look for
@@ -211,7 +195,7 @@
                 setEntityCustomData('grabbableKey', this.entityID, {
                     turnOffOtherHand: false,
                     invertSolidWhileHeld: true,
-                    turnOffOppositebeam: true,
+                    turnOffOppositebBam: true,
                     spatialKey: BOW_SPATIAL_KEY
                 });
                 Entities.deleteEntity(this.preNotchString);
@@ -241,19 +225,26 @@
                 userData: JSON.stringify({
                     grabbableKey: {
                         grabbable: false
-                            //shouldnbt need this but just in case
-                        invertSolidWhileHeld: true,
                     }
                 })
 
             });
-            var arrowProps = Entities.getEntityProperties(arrow)
+
             Script.addEventHandler(arrow, "collisionWithEntity", function(entityA, entityB, collision) {
-                //have to reverse lookup the tracker by the arrow id to get access to the children
-
+                Entities.editEntity(entityA, {
+                    velocity: {
+                        x: 0,
+                        y: 0,
+                        z: 0
+                    },
+                    gravity: {
+                        x: 0,
+                        y: 0,
+                        z: 0
+                    },
+                    collisionsWillMove: false
+                })
                 print('ARROW COLLIDED WITH::' + entityB);
-                print('NAME OF ENTITY:::' + Entities.getEntityProperties(entityB, "name").name)
-
             });
 
             return arrow

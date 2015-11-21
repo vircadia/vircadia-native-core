@@ -562,8 +562,7 @@ function MyController(hand) {
             if (typeof grabbableDataForCandidate.grabbable !== 'undefined' && !grabbableDataForCandidate.grabbable) {
                 continue;
             }
-            var propsForCandidate =
-                Entities.getEntityProperties(nearbyEntities[i], GRABBABLE_PROPERTIES);
+            var propsForCandidate = Entities.getEntityProperties(nearbyEntities[i], GRABBABLE_PROPERTIES);
 
             if (propsForCandidate.type == 'Unknown') {
                 continue;
