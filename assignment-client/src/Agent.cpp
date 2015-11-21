@@ -223,7 +223,6 @@ void Agent::executeScript() {
         AvatarData::fromFrame(frame->data, *scriptedAvatar);
     });
     
-    
     using namespace recording;
     static const FrameType AUDIO_FRAME_TYPE = Frame::registerFrameType(AudioConstants::AUDIO_FRAME_NAME);
     Frame::registerFrameHandler(AUDIO_FRAME_TYPE, [this, &scriptedAvatar](Frame::ConstPointer frame) {
@@ -279,6 +278,11 @@ void Agent::executeScript() {
     
     setFinished(true);
 }
+
+QUuid Agent::getSessionUUID() const {
+    return DependencyManager::get<NodeList>()->getSessionUUID();
+}
+
 
 void Agent::setIsAvatar(bool isAvatar) {
     _isAvatar = isAvatar;

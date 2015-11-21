@@ -14,10 +14,15 @@ HIFI_PUBLIC_BUCKET = "http://s3.amazonaws.com/hifi-public/";
 
 var ac_number = 1; // This is the default number of ACs. Their ID need to be unique and between 0 (included) and ac_number (excluded)
 var names = new Array();  // It is possible to specify the name of the ACs in this array. ACs names ordered by IDs (Default name is "ACx", x = ID + 1))
-var channel = "PlaybackChannel1";
+var channel = "com.highfidelity.PlaybackChannel1";
 var subscribed = false;
 var clip_url = null;
 var input_text = null;
+
+var knownAgents = new Array; // We will add our known agents here when we discover them
+
+// available playbackAgents will announce their sessionID here.
+var announceIDChannel = "com.highfidelity.playbackAgent.announceID";
 
 // Script. DO NOT MODIFY BEYOND THIS LINE.
 Script.include("../libraries/toolBars.js");
@@ -51,8 +56,9 @@ setupPlayback();
 
 function setupPlayback() {
     ac_number = Window.prompt("Insert number of agents: ","1");
-    if (ac_number === "" || ac_number === null)
+    if (ac_number === "" || ac_number === null) {
         ac_number = 1;
+    }
     Messages.subscribe(channel);
     subscribed = true;
     setupToolBars();
@@ -134,7 +140,6 @@ function setupToolBars() {
 }
 
 function sendCommand(id, action) {
-    
     if (action === SHOW) {
         toolBars[id].selectTool(onOffIcon[id], false);
         toolBars[id].setAlpha(ALPHA_ON, playIcon[id]);
@@ -151,8 +156,9 @@ function sendCommand(id, action) {
         return;
     }
     
-    if (id == (toolBars.length - 1))
+    if (id == (toolBars.length - 1)) {
         id = -1; // Master command becomes broadcast.
+    }
     
     var message = {
         id_key: id,
@@ -249,12 +255,30 @@ function scriptEnding() {
         Overlays.deleteOverlay(nameOverlays[i]);
     }
     
-    if(subscribed)
+    if (subscribed) {
         Messages.unsubscribe(channel);
+    }
+    Messages.unsubscribe(announceIDChannel);
 }
 
 Controller.mousePressEvent.connect(mousePressEvent);
 Script.update.connect(update);
 Script.scriptEnding.connect(scriptEnding);
+
+
+
+Messages.subscribe(announceIDChannel);
+Messages.messageReceived.connect(function (channel, message, senderID) {
+    if (channel == announceIDChannel && message == "ready") {
+        // check to see if we know about this agent
+        if (knownAgents.indexOf(senderID) < 0) {
+            var indexOfNewAgent = knownAgents.length;
+            knownAgents[indexOfNewAgent] = senderID;
+            var acknowledgeMessage = senderID + "." + indexOfNewAgent;
+            Messages.sendMessage(announceIDChannel, acknowledgeMessage);
+        }
+
+    }
+});
 
 moveUI();
