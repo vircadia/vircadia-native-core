@@ -253,7 +253,7 @@
                     y: -9.8,
                     z: 0
                 },
-                linearDamping: 1,
+                damping: 1,
                 dimensions: {
                     x: 0.4,
                     y: 1.37,
@@ -301,7 +301,7 @@
                             z: DIAMETER
                         },
                         restitution: 1.0,
-                        linearDamping: 0.00001,
+                        damping: 0.00001,
                         gravity: {
                             x: 0,
                             y: -9.8,
@@ -871,7 +871,7 @@
                     y: -100,
                     z: 0
                 },
-                linearDamping: 1,
+                damping: 1,
                 angularDamping: 10,
                 mass: 10,
                 userData: JSON.stringify({
@@ -990,7 +990,7 @@
                     z: 0
                 },
                 restitution: 10,
-                linearDamping: 0.0,
+                damping: 0.0,
                 velocity: {
                     x: 0,
                     y: -0.01,
@@ -1113,7 +1113,7 @@
                     y: 0,
                     z: 0
                 },
-                linearDamping: 0.4,
+                damping: 0.4,
                 userData: JSON.stringify({
                     resetMe: {
                         resetMe: true
@@ -1156,7 +1156,7 @@
                     y: 0,
                     z: 0
                 },
-                linearDamping: 0.2,
+                damping: 0.2,
                 userData: JSON.stringify({
                     resetMe: {
                         resetMe: true
