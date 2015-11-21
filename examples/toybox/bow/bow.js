@@ -134,8 +134,7 @@
             this.arrowHitSound = SoundCache.getSound(ARROW_HIT_SOUND_URL);
             this.arrowNotchSound = SoundCache.getSound(NOTCH_ARROW_SOUND_URL);
             this.arrowWhizzSound = SoundCache.getSound(ARROW_WHIZZ_SOUND_URL);
-            this.createPreNotchString();
-            Script.update.connect(this.drawStringsBeforePickup);
+
 
         },
 
@@ -156,7 +155,6 @@
             Entities.deleteEntity(this.notchDetector);
             Entities.deleteEntity(this.preNotchString);
             Entities.deleteEntity(this.arrow);
-            Script.update.disconnect(this.drawStringsBeforePickup);
 
         },
 
@@ -214,13 +212,13 @@
             // }
 
             //create a string across the bow when we pick it up
-            // if (this.preNotchString === null) {
-            //     this.createPreNotchString();
-            // }
+            if (this.preNotchString === null) {
+                this.createPreNotchString();
+            }
 
             if (this.preNotchString !== null && this.aiming === false) {
                 //   print('DRAW PRE NOTCH STRING')
-                //  this.drawPreNotchStrings();
+                  this.drawPreNotchStrings();
                 // this.updateArrowAttachedToBow();
             }
 
@@ -263,12 +261,12 @@
                     spatialKey: BOW_SPATIAL_KEY
                 });
                 Entities.deleteEntity(this.notchDetector);
-                // Entities.deleteEntity(this.preNotchString);
+                 Entities.deleteEntity(this.preNotchString);
                 Entities.deleteEntity(this.arrow);
                 this.aiming = false;
                 this.notchDetector = null;
                 this.hasArrowNotched = false;
-                // this.preNotchString = null;
+                 this.preNotchString = null;
 
             }
         },
