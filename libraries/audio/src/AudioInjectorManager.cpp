@@ -94,7 +94,12 @@ void AudioInjectorManager::run() {
                         }
                     }
                     
-                    front = _injectors.top();
+                    if (_injectors.size() > 0) {
+                        front = _injectors.top();
+                    } else {
+                        // no more injectors to look at, break
+                        break;
+                    }
                 }
             }
 
