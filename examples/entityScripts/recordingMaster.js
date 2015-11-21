@@ -81,18 +81,17 @@ function mousePressEvent(event) {
 }
 
 function masterReceivingMessage(channel, message, senderID) {
-        if (channel === CLIENTS_TO_MASTER_CHANNEL) {
-            print("MASTER received message:" + message );
-            if (message === PARTICIPATING_MESSAGE) {
-                //increment the counter of all the participants
-                responsesExpected++;
-            } else if (waitingForPerformanceFile) {
-                //I get an atp url from one participant
-                performanceJSON.avatarClips[performanceJSON.avatarClips.length] = message;
-            }
-            
+    if (channel === CLIENTS_TO_MASTER_CHANNEL) {
+        print("MASTER received message:" + message );
+        if (message === PARTICIPATING_MESSAGE) {
+            //increment the counter of all the participants
+            responsesExpected++;
+        } else if (waitingForPerformanceFile) {
+            //I get an atp url from one participant
+            performanceJSON.avatarClips[performanceJSON.avatarClips.length] = message;
         }
     }
+}
 
 function update(deltaTime) {
     if (waitingForPerformanceFile) {
@@ -114,17 +113,15 @@ function update(deltaTime) {
 }
 
 function uploadFinished(url){
-    print("some info:");
-    print("performance file uploaded to: " + url);
-    uploadedFile = url;
+    //need to print somehow the url here this way the master can copy the url
+    print("PERFORMANCE FILE URL: " + url);
     Assets.downloadData(url, function (data) {
         printPerformanceJSON(JSON.parse(data));
     });
-    //need to print somehow the url here this way the master can copy the url
-    Window.prompt("Performance file url: ", url);
 }
 
 function printPerformanceJSON(obj) {
+    print("some info:");
     print("downloaded performance file from asset and examinating its content...");
     var avatarClips = obj.avatarClips;
     avatarClips.forEach(function(param) {
