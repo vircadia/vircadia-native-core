@@ -2935,11 +2935,6 @@ void Application::update(float deltaTime) {
         loadViewFrustum(_myCamera, _viewFrustum);
     }
 
-    // Update animation debug draw renderer
-    {
-        AnimDebugDraw::getInstance().update();
-    }
-
     quint64 now = usecTimestampNow();
 
     // Update my voxel servers with my current voxel query...
@@ -3499,6 +3494,8 @@ void Application::displaySide(RenderArgs* renderArgs, Camera& theCamera, bool se
     myAvatar->preRender(renderArgs);
     myAvatar->endRender();
 
+    // Update animation debug draw renderer
+    AnimDebugDraw::getInstance().update();
 
     activeRenderingThread = QThread::currentThread();
     PROFILE_RANGE(__FUNCTION__);
