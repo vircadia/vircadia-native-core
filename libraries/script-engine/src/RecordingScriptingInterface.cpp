@@ -185,13 +185,10 @@ bool RecordingScriptingInterface::saveRecordingToAsset(QScriptValue getClipAtpUr
         return false;
     }
 
-
     if (QThread::currentThread() != thread()) {
-        bool result{ false };
         QMetaObject::invokeMethod(this, "saveRecordingToAsset", Qt::BlockingQueuedConnection,
-            Q_ARG(QScriptValue, getClipAtpUrl),
-            Q_RETURN_ARG(bool, result));
-        return result;
+            Q_ARG(QScriptValue, getClipAtpUrl));
+        return false;
     }
 
     if (!_lastClip) {
