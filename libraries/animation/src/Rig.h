@@ -88,7 +88,7 @@ public:
     int getJointStateCount() const;
     int indexOfJoint(const QString& jointName) const;
 
-    void setModelOffset(const glm::mat4& modelOffset);
+    void setModelOffset(const glm::mat4& modelOffsetMat);
 
     bool getJointStateRotation(int index, glm::quat& rotation) const;
     bool getJointStateTranslation(int index, glm::vec3& translation) const;
@@ -147,6 +147,7 @@ public:
     const glm::vec3& getEyesInRootFrame() const { return _eyesInRootFrame; }
 
     AnimPose getAbsoluteDefaultPose(int index) const;  // avatar space
+    const AnimPoseVec& getAbsoluteDefaultPoses() const;  // avatar space
 
     void copyJointsIntoJointData(QVector<JointData>& jointDataVec) const;
     void copyJointsFromJointData(const QVector<JointData>& jointDataVec);
@@ -155,7 +156,7 @@ public:
     bool isValid(int index) const { return _animSkeleton && index >= 0 && index < _animSkeleton->getNumJoints(); }
     void updateAnimationStateHandlers();
     void applyOverridePoses();
-    void buildAbsolutePoses();
+    void buildAbsoluteRigPoses(const AnimPoseVec& relativePoses, AnimPoseVec& absolutePosesOut, bool omitY180Flip = false);
 
     void updateLeanJoint(int index, float leanSideways, float leanForward, float torsoTwist);
     void updateNeckJoint(int index, const HeadParameters& params);
@@ -172,6 +173,8 @@ public:
     AnimPoseVec _absolutePoses; // avatar space, not relative to parent.
     AnimPoseVec _overridePoses; // geometry space relative to parent.
     std::vector<bool> _overrideFlags;
+
+    AnimPoseVec _absoluteDefaultPoses; // avatar space, not relative to parent.
 
     glm::mat4 _geometryToRigTransform;
     glm::mat4 _rigToGeometryTransform;

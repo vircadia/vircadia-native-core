@@ -628,7 +628,7 @@ void MyAvatar::setEnableDebugDrawDefaultPose(bool isEnabled) {
     _enableDebugDrawDefaultPose = isEnabled;
 
     if (!isEnabled) {
-        AnimDebugDraw::getInstance().removeSkeleton("myAvatar");
+        AnimDebugDraw::getInstance().removeAbsolutePoses("myAvatarDefaultPoses");
     }
 }
 
@@ -636,7 +636,7 @@ void MyAvatar::setEnableDebugDrawAnimPose(bool isEnabled) {
     _enableDebugDrawAnimPose = isEnabled;
 
     if (!isEnabled) {
-        AnimDebugDraw::getInstance().removeAbsolutePoses("myAvatar");
+        AnimDebugDraw::getInstance().removeAbsolutePoses("myAvatarAnimPoses");
     }
 }
 
@@ -1261,27 +1261,27 @@ void MyAvatar::preRender(RenderArgs* renderArgs) {
 
         auto animSkeleton = _rig->getAnimSkeleton();
 
-        // bones are aligned such that z is forward, not -z.
-        glm::quat rotY180 = glm::angleAxis((float)M_PI, glm::vec3(0.0f, 1.0f, 0.0f));
-        AnimPose xform(glm::vec3(1), getOrientation() * rotY180, getPosition());
-
         if (_enableDebugDrawDefaultPose && animSkeleton) {
+            AnimPose xform(glm::vec3(1), getOrientation(), getPosition());
             glm::vec4 gray(0.2f, 0.2f, 0.2f, 0.2f);
-            AnimDebugDraw::getInstance().addSkeleton("myAvatar", animSkeleton, xform, gray);
+            AnimDebugDraw::getInstance().addAbsolutePoses("myAvatarDefaultPoses", animSkeleton, _rig->getAbsoluteDefaultPoses(), xform, gray);
         }
 
         if (_enableDebugDrawAnimPose && animSkeleton) {
             glm::vec4 cyan(0.1f, 0.6f, 0.6f, 1.0f);
 
-            auto rig = _skeletonModel.getRig();
+            // getJointTransforms are aligned such that z is forward, not -z.
+            // so they need a 180 flip
+            glm::quat rotY180 = glm::angleAxis((float)M_PI, glm::vec3(0.0f, 1.0f, 0.0f));
+            AnimPose xform(glm::vec3(1), getOrientation() * rotY180, getPosition());
 
             // build absolute AnimPoseVec from rig
             AnimPoseVec absPoses;
-            absPoses.reserve(rig->getJointStateCount());
+            absPoses.reserve(_rig->getJointStateCount());
             for (int i = 0; i < _rig->getJointStateCount(); i++) {
                 absPoses.push_back(AnimPose(_rig->getJointTransform(i)));
             }
-            AnimDebugDraw::getInstance().addAbsolutePoses("myAvatar", animSkeleton, absPoses, xform, cyan);
+            AnimDebugDraw::getInstance().addAbsolutePoses("myAvatarAnimPoses", animSkeleton, absPoses, xform, cyan);
         }
     }
 

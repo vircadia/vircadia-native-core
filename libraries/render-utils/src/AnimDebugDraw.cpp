@@ -349,17 +349,6 @@ void AnimDebugDraw::update() {
 
         // AJT: FIX ME
         /*
-        for (auto& iter : _skeletons) {
-            AnimSkeleton::ConstPointer& skeleton = std::get<0>(iter.second);
-            numVerts += skeleton->getNumJoints() * VERTICES_PER_BONE;
-            for (int i = 0; i < skeleton->getNumJoints(); i++) {
-                auto parentIndex = skeleton->getParentIndex(i);
-                if (parentIndex >= 0) {
-                    numVerts += VERTICES_PER_LINK;
-                }
-            }
-        }
-
         for (auto& iter : _animNodes) {
             AnimNode::ConstPointer& animNode = std::get<0>(iter.second);
             auto poses = animNode->getPosesInternal();
@@ -406,37 +395,6 @@ void AnimDebugDraw::update() {
         data._vertexBuffer->resize(sizeof(Vertex) * numVerts);
         Vertex* verts = (Vertex*)data._vertexBuffer->editData();
         Vertex* v = verts;
-
-        // AJT: fixme
-        // draw skeletons
-        /*
-        for (auto& iter : _skeletons) {
-            AnimSkeleton::ConstPointer& skeleton = std::get<0>(iter.second);
-            AnimPose rootPose = std::get<1>(iter.second);
-            int hipsIndex = skeleton->nameToJointIndex("Hips");
-            if (hipsIndex >= 0) {
-                rootPose.trans -= skeleton->getRelativeBindPose(hipsIndex).trans;
-            }
-            glm::vec4 color = std::get<2>(iter.second);
-
-            for (int i = 0; i < skeleton->getNumJoints(); i++) {
-                AnimPose pose = skeleton->getAbsoluteBindPose(i);
-
-                const float radius = BONE_RADIUS / (pose.scale.x * rootPose.scale.x);
-
-                // draw bone
-                addBone(rootPose, pose, radius, v);
-
-                // draw link to parent
-                auto parentIndex = skeleton->getParentIndex(i);
-                if (parentIndex >= 0) {
-                    assert(parentIndex < skeleton->getNumJoints());
-                    AnimPose parentPose = skeleton->getAbsoluteBindPose(parentIndex);
-                    addLink(rootPose, pose, parentPose, radius, color, v);
-                }
-            }
-        }
-        */
 
         // AJT: FIXME
         /*

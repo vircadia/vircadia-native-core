@@ -172,8 +172,9 @@ void Rig::destroyAnimGraph() {
 
 void Rig::initJointStates(const FBXGeometry& geometry, const glm::mat4& modelOffset) {
 
-    setModelOffset(modelOffset);
     _geometryOffset = AnimPose(geometry.offset);
+    setModelOffset(modelOffset);
+
     _animSkeleton = std::make_shared<AnimSkeleton>(geometry);
 
     computeEyesInRootFrame(_animSkeleton->getRelativeDefaultPoses());
@@ -181,13 +182,15 @@ void Rig::initJointStates(const FBXGeometry& geometry, const glm::mat4& modelOff
     _relativePoses.clear();
     _relativePoses = _animSkeleton->getRelativeDefaultPoses();
 
-    buildAbsolutePoses();
+    buildAbsoluteRigPoses(_relativePoses, _absolutePoses, true);
 
     _overridePoses.clear();
     _overridePoses = _animSkeleton->getRelativeDefaultPoses();
 
     _overrideFlags.clear();
     _overrideFlags.resize(_animSkeleton->getNumJoints(), false);
+
+    buildAbsoluteRigPoses(_animSkeleton->getRelativeDefaultPoses(), _absoluteDefaultPoses);
 
     _rootJointIndex = geometry.rootJointIndex;
     _leftHandJointIndex = geometry.leftHandJointIndex;
@@ -207,13 +210,15 @@ void Rig::reset(const FBXGeometry& geometry) {
     _relativePoses.clear();
     _relativePoses = _animSkeleton->getRelativeDefaultPoses();
 
-    buildAbsolutePoses();
+    buildAbsoluteRigPoses(_relativePoses, _absolutePoses, true);
 
     _overridePoses.clear();
     _overridePoses = _animSkeleton->getRelativeDefaultPoses();
 
     _overrideFlags.clear();
     _overrideFlags.resize(_animSkeleton->getNumJoints(), false);
+
+    buildAbsoluteRigPoses(_animSkeleton->getRelativeDefaultPoses(), _absoluteDefaultPoses);
 
     _rootJointIndex = geometry.rootJointIndex;
     _leftHandJointIndex = geometry.leftHandJointIndex;
@@ -244,13 +249,22 @@ int Rig::indexOfJoint(const QString& jointName) const {
     }
 }
 
-void Rig::setModelOffset(const glm::mat4& modelOffset) {
-    _modelOffset = AnimPose(modelOffset);
+void Rig::setModelOffset(const glm::mat4& modelOffsetMat) {
+    AnimPose newModelOffset = AnimPose(modelOffsetMat);
+    if (!isEqual(_modelOffset.trans, newModelOffset.trans) ||
+        !isEqual(_modelOffset.rot, newModelOffset.rot) ||
+        !isEqual(_modelOffset.scale, newModelOffset.scale)) {
 
-    // compute geometryToAvatarTransforms
-    glm::quat yFlip180 = glm::angleAxis(PI, glm::vec3(0.0f, 1.0f, 0.0f));
-    _geometryToRigTransform = AnimPose(glm::vec3(1), yFlip180, glm::vec3()) * _modelOffset * _geometryOffset;
-    _rigToGeometryTransform = glm::inverse(_geometryToRigTransform);
+        _modelOffset = newModelOffset;
+
+        // compute geometryToAvatarTransforms
+        glm::quat yFlip180 = glm::angleAxis(PI, glm::vec3(0.0f, 1.0f, 0.0f));
+        _geometryToRigTransform = AnimPose(glm::vec3(1), yFlip180, glm::vec3()) * _modelOffset * _geometryOffset;
+        _rigToGeometryTransform = glm::inverse(_geometryToRigTransform);
+
+        // rebuild cached default poses
+        buildAbsoluteRigPoses(_animSkeleton->getRelativeDefaultPoses(), _absoluteDefaultPoses);
+    }
 }
 
 bool Rig::getJointStateRotation(int index, glm::quat& rotation) const {
@@ -430,10 +444,14 @@ void Rig::computeEyesInRootFrame(const AnimPoseVec& poses) {
 
 AnimPose Rig::getAbsoluteDefaultPose(int index) const {
     if (_animSkeleton && index >= 0 && index < _animSkeleton->getNumJoints()) {
-        return AnimPose(_geometryToRigTransform) * _animSkeleton->getAbsoluteDefaultPose(index);
+        return _absoluteDefaultPoses[index];
     } else {
         return AnimPose::identity;
     }
+}
+
+const AnimPoseVec& Rig::getAbsoluteDefaultPoses() const {
+    return _absoluteDefaultPoses;
 }
 
 // animation reference speeds.
@@ -719,7 +737,7 @@ void Rig::updateAnimations(float deltaTime, glm::mat4 rootTransform) {
     }
 
     applyOverridePoses();
-    buildAbsolutePoses();
+    buildAbsoluteRigPoses(_relativePoses, _absolutePoses, true);
 }
 
 void Rig::inverseKinematics(int endIndex, glm::vec3 targetPosition, const glm::quat& targetRotation, float priority,
@@ -1005,26 +1023,35 @@ void Rig::applyOverridePoses() {
     }
 }
 
-void Rig::buildAbsolutePoses() {
+// AJT: TODO: we should ALWAYS have the 180 flip.
+// However currently matrices used for rendering require it.
+// we need to find were the 180 is applied down the pipe and remove it,
+// cluster matrices? render parts?
+void Rig::buildAbsoluteRigPoses(const AnimPoseVec& relativePoses, AnimPoseVec& absolutePosesOut, bool omitY180Flip) {
     if (!_animSkeleton) {
         return;
     }
 
-    ASSERT(_animSkeleton->getNumJoints() == (int)_relativePoses.size());
+    ASSERT(_animSkeleton->getNumJoints() == (int)relativePoses.size());
 
-    _absolutePoses.resize(_relativePoses.size());
-    for (int i = 0; i < (int)_relativePoses.size(); i++) {
+    // flatten all poses out so they are absolute not relative
+    absolutePosesOut.resize(relativePoses.size());
+    for (int i = 0; i < (int)relativePoses.size(); i++) {
         int parentIndex = _animSkeleton->getParentIndex(i);
         if (parentIndex == -1) {
-            _absolutePoses[i] = _relativePoses[i];
+            absolutePosesOut[i] = relativePoses[i];
         } else {
-            _absolutePoses[i] = _absolutePoses[parentIndex] * _relativePoses[i];
+            absolutePosesOut[i] = absolutePosesOut[parentIndex] * relativePoses[i];
         }
     }
 
-    AnimPose rootTransform(_modelOffset * _geometryOffset);
+    // transform all absolute poses into rig space.
+    AnimPose geometryToRigTransform(_geometryToRigTransform);
+    if (omitY180Flip) {
+        geometryToRigTransform = _modelOffset * _geometryOffset;
+    }
     for (int i = 0; i < (int)_absolutePoses.size(); i++) {
-        _absolutePoses[i] = rootTransform * _absolutePoses[i];
+        absolutePosesOut[i] = geometryToRigTransform * absolutePosesOut[i];
     }
 }
 
