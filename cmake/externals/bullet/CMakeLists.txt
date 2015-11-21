@@ -31,7 +31,7 @@ else ()
     ${EXTERNAL_NAME}
     #URL http://bullet.googlecode.com/files/bullet-2.82-r2704.tgz
     URL http://hifi-public.s3.amazonaws.com/dependencies/bullet-2.82-ccd-fix.tgz
-    URL_MD5 8d9daf5a46409120fa02c77d02c23c56
+    URL_MD5 fb140a4983b4109aa1c825a162aa8d64
     CMAKE_ARGS ${PLATFORM_CMAKE_ARGS} -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_INSTALL_PREFIX:PATH=<INSTALL_DIR> -DBUILD_EXTRAS=0 -DINSTALL_LIBS=1 -DBUILD_DEMOS=0 -DUSE_GLUT=0
     LOG_DOWNLOAD 1
     LOG_CONFIGURE 1
