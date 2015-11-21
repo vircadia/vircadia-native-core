@@ -10,7 +10,6 @@
 
 #include "AnimPose.h"
 #include <GLMHelpers.h>
-#include <glm/gtc/matrix_transform.hpp>
 #include <algorithm>
 
 const AnimPose AnimPose::identity = AnimPose(glm::vec3(1.0f),
@@ -19,14 +18,7 @@ const AnimPose AnimPose::identity = AnimPose(glm::vec3(1.0f),
 
 AnimPose::AnimPose(const glm::mat4& mat) {
     scale = extractScale(mat);
-    float maxScale = std::max(std::max(scale.x, scale.y), scale.z);
-    if (maxScale > 1.01f || maxScale <= 0.99f) {
-        // quat_cast doesn't work so well with scaled matrices, so cancel it out.
-        mat4 tmp = glm::scale(mat, 1.0f / scale);
-        rot = glm::normalize(glm::quat_cast(tmp));
-    } else {
-        rot = glm::normalize(glm::quat_cast(mat));
-    }
+    rot = glmExtractRotation(mat);
     trans = extractTranslation(mat);
 }
 

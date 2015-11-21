@@ -131,6 +131,7 @@ glm::vec3 extractTranslation(const glm::mat4& matrix);
 void setTranslation(glm::mat4& matrix, const glm::vec3& translation);
 
 glm::quat extractRotation(const glm::mat4& matrix, bool assumeOrthogonal = false);
+glm::quat glmExtractRotation(const glm::mat4& matrix);
 
 glm::vec3 extractScale(const glm::mat4& matrix);
 

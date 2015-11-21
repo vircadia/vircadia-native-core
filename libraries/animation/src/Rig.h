@@ -85,10 +85,9 @@ public:
     void reset(const FBXGeometry& geometry);
     bool jointStatesEmpty();
     int getJointStateCount() const;
-    int indexOfJoint(const QString& jointName);
+    int indexOfJoint(const QString& jointName) const;
 
     void setModelOffset(const glm::mat4& modelOffset);
-    const AnimPose& getGeometryOffset() const { return _geometryOffset; }
 
     bool getJointStateRotation(int index, glm::quat& rotation) const;
     bool getJointStateTranslation(int index, glm::vec3& translation) const;
@@ -146,6 +145,8 @@ public:
 
     const glm::vec3& getEyesInRootFrame() const { return _eyesInRootFrame; }
 
+    AnimPose getAbsoluteDefaultPose(int index) const;  // avatar space
+
     void copyJointsIntoJointData(QVector<JointData>& jointDataVec) const;
     void copyJointsFromJointData(const QVector<JointData>& jointDataVec);
 
@@ -156,14 +157,12 @@ public:
 
     void updateLeanJoint(int index, float leanSideways, float leanForward, float torsoTwist);
     void updateNeckJoint(int index, const HeadParameters& params);
+    void computeHeadNeckAnimVars(const AnimPose& hmdPose, glm::vec3& headPositionOut, glm::quat& headOrientationOut,
+                                 glm::vec3& neckPositionOut, glm::quat& neckOrientationOut) const;
     void updateEyeJoint(int index, const glm::vec3& modelTranslation, const glm::quat& modelRotation, const glm::quat& worldHeadOrientation, const glm::vec3& lookAt, const glm::vec3& saccade);
     void calcAnimAlpha(float speed, const std::vector<float>& referenceSpeeds, float* alphaOut) const;
 
     void computeEyesInRootFrame(const AnimPoseVec& poses);
-
-    glm::vec3 avatarToGeometry(const glm::vec3& pos) const;
-    glm::quat avatarToGeometryZForward(const glm::quat& quat) const;
-    glm::quat avatarToGeometryNegZForward(const glm::quat& quat) const;
 
     AnimPose _modelOffset;  // model to avatar space (without 180 flip)
     AnimPose _geometryOffset; // geometry to model space (includes unit offset & fst offsets)
@@ -171,6 +170,9 @@ public:
     AnimPoseVec _absolutePoses; // avatar space, not relative to parent.
     AnimPoseVec _overridePoses; // geometry space relative to parent.
     std::vector<bool> _overrideFlags;
+
+    glm::mat4 _geometryToRigTransform;
+    glm::mat4 _rigToGeometryTransform;
 
     int _rootJointIndex { -1 };
 
