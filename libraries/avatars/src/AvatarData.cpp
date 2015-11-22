@@ -1425,13 +1425,15 @@ QByteArray AvatarData::toFrame(const AvatarData& avatar) {
     }
 
     auto recordingBasis = avatar.getRecordingBasis();
+    Transform avatarTransform = avatar.getTransform();
+    avatarTransform.setScale(avatar.getTargetScale());
     if (recordingBasis) {
         root[JSON_AVATAR_BASIS] = Transform::toJson(*recordingBasis);
         // Find the relative transform
-        auto relativeTransform = recordingBasis->relativeTransform(avatar.getTransform());
+        auto relativeTransform = recordingBasis->relativeTransform(avatarTransform);
         root[JSON_AVATAR_RELATIVE] = Transform::toJson(relativeTransform);
     } else {
-        root[JSON_AVATAR_RELATIVE] = Transform::toJson(avatar.getTransform());
+        root[JSON_AVATAR_RELATIVE] = Transform::toJson(avatarTransform);
     }
 
     // Skeleton pose
