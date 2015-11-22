@@ -88,6 +88,8 @@ public:
 
     // this object's frame
     virtual const Transform& getJointTransformInObjectFrame(int jointIndex) const;
+    virtual glm::quat getJointRotation(int index) const = 0;
+    virtual glm::vec3 getJointTranslation(int index) const = 0;
 
 protected:
     NestableTypes::NestableType _nestableType; // EntityItem or an AvatarData
@@ -112,6 +114,7 @@ private:
     mutable Transform _worldTransformCache;
     mutable bool _parentKnowsMe = false;
     mutable QVector<Transform> _jointInObjectFrameCache;
+    mutable QVector<Transform> _jointInWorldFrameCache;
 };
 
 

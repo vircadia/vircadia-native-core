@@ -403,6 +403,10 @@ public:
 
     QList<EntityActionPointer> getActionsOfType(EntityActionType typeToGet);
 
+    // these are in the frame of this object
+    virtual glm::quat getJointRotation(int index) const { return glm::quat(); }
+    virtual glm::vec3 getJointTranslation(int index) const { return glm::vec3(0.0f); }
+
 protected:
 
     const QByteArray getActionDataInternal() const;
