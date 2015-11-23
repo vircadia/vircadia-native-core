@@ -90,44 +90,85 @@ public:
 
     void setModelOffset(const glm::mat4& modelOffsetMat);
 
-    bool getJointStateRotation(int index, glm::quat& rotation) const;       // geometry space
-    bool getJointStateTranslation(int index, glm::vec3& translation) const; // geometry space
+    // geometry space
+    bool getJointStateRotation(int index, glm::quat& rotation) const;
+
+    // geometry space
+    bool getJointStateTranslation(int index, glm::vec3& translation) const;
 
     void clearJointState(int index);
     void clearJointStates();
     void clearJointAnimationPriority(int index);
 
+    // geometry space
     void setJointState(int index, bool valid, const glm::quat& rotation, const glm::vec3& translation, float priority);
+
+    // geometry space
     void setJointTranslation(int index, bool valid, const glm::vec3& translation, float priority);
+
+    // geometry space
     void setJointRotation(int index, bool valid, const glm::quat& rotation, float priority);
 
+    // legacy
     void restoreJointRotation(int index, float fraction, float priority);
     void restoreJointTranslation(int index, float fraction, float priority);
+
+    // if translation and rotation is identity, position will be in rig space
     bool getJointPositionInWorldFrame(int jointIndex, glm::vec3& position,
                                       glm::vec3 translation, glm::quat rotation) const;
 
+    // rig space
     bool getJointPosition(int jointIndex, glm::vec3& position) const;
+
+    // if rotation is identity, result will be in rig space
     bool getJointRotationInWorldFrame(int jointIndex, glm::quat& result, const glm::quat& rotation) const;
+
+    // geometry space
     bool getJointRotation(int jointIndex, glm::quat& rotation) const;
+
+    // geometry space
     bool getJointTranslation(int jointIndex, glm::vec3& translation) const;
+
+    // legacy
     bool getJointCombinedRotation(int jointIndex, glm::quat& result, const glm::quat& rotation) const;
+
+    // rig space (without y 180 flip)
     glm::mat4 getJointTransform(int jointIndex) const;
+
     // Start or stop animations as needed.
     void computeMotionAnimationState(float deltaTime, const glm::vec3& worldPosition, const glm::vec3& worldVelocity, const glm::quat& worldRotation);
+
     // Regardless of who started the animations or how many, update the joints.
     void updateAnimations(float deltaTime, glm::mat4 rootTransform);
+
+    // legacy
     void inverseKinematics(int endIndex, glm::vec3 targetPosition, const glm::quat& targetRotation, float priority,
                            const QVector<int>& freeLineage, glm::mat4 rootTransform);
+
+    // legacy
     bool restoreJointPosition(int jointIndex, float fraction, float priority, const QVector<int>& freeLineage);
+
+    // legacy
     float getLimbLength(int jointIndex, const QVector<int>& freeLineage,
                         const glm::vec3 scale, const QVector<FBXJoint>& fbxJoints) const;
 
+    // legacy
     glm::quat setJointRotationInBindFrame(int jointIndex, const glm::quat& rotation, float priority);
+
+    // legacy
     glm::vec3 getJointDefaultTranslationInConstrainedFrame(int jointIndex);
+
+    // legacy
     glm::quat setJointRotationInConstrainedFrame(int jointIndex, glm::quat targetRotation,
                                                  float priority, float mix = 1.0f);
+
+    // legacy
     bool getJointRotationInConstrainedFrame(int jointIndex, glm::quat& rotOut) const;
+
+    // legacy
     glm::quat getJointDefaultRotationInParentFrame(int jointIndex);
+
+    // legacy
     void clearJointStatePriorities();
 
     void updateFromHeadParameters(const HeadParameters& params, float dt);
@@ -142,12 +183,16 @@ public:
     void removeAnimationStateHandler(QScriptValue handler);
     void animationStateHandlerResult(int identifier, QScriptValue result);
 
+    // rig space (without y 180 flip)
     bool getModelRegistrationPoint(glm::vec3& modelRegistrationPointOut) const;
 
     const glm::vec3& getEyesInRootFrame() const { return _eyesInRootFrame; }
 
-    AnimPose getAbsoluteDefaultPose(int index) const;  // rig space
-    const AnimPoseVec& getAbsoluteDefaultPoses() const;  // rig space
+    // rig space
+    AnimPose getAbsoluteDefaultPose(int index) const;
+
+    // rig space
+    const AnimPoseVec& getAbsoluteDefaultPoses() const;
 
     void copyJointsIntoJointData(QVector<JointData>& jointDataVec) const;
     void copyJointsFromJointData(const QVector<JointData>& jointDataVec);
