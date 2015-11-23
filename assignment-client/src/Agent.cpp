@@ -53,9 +53,19 @@ Agent::Agent(NLPacket& packet) :
 
     DependencyManager::set<ResourceCacheSharedItems>();
     DependencyManager::set<SoundCache>();
+    DependencyManager::set<AssetClient>();
     DependencyManager::set<recording::Deck>();
     DependencyManager::set<recording::Recorder>();
     DependencyManager::set<RecordingScriptingInterface>();
+
+    // Setup AssetClient
+    auto assetClient = DependencyManager::get<AssetClient>();
+    QThread* assetThread = new QThread;
+    assetThread->setObjectName("Asset Thread");
+    assetClient->moveToThread(assetThread);
+    connect(assetThread, &QThread::started, assetClient.data(), &AssetClient::init);
+    assetThread->start();
+
 
     auto& packetReceiver = DependencyManager::get<NodeList>()->getPacketReceiver();
     
