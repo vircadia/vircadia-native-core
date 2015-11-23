@@ -193,6 +193,7 @@ MyAvatar::~MyAvatar() {
 
 QByteArray MyAvatar::toByteArray(bool cullSmallChanges, bool sendAll) {
     CameraMode mode = qApp->getCamera()->getMode();
+    _globalPosition = getPosition();
     if (mode == CAMERA_MODE_THIRD_PERSON || mode == CAMERA_MODE_INDEPENDENT) {
         // fake the avatar position that is sent up to the AvatarMixer
         glm::vec3 oldPosition = getPosition();

@@ -210,6 +210,9 @@ QByteArray AvatarData::toByteArray(bool cullSmallChanges, bool sendAll) {
     memcpy(destinationBuffer, &position, sizeof(position));
     destinationBuffer += sizeof(position);
 
+    memcpy(destinationBuffer, &_globalPosition, sizeof(_globalPosition));
+    destinationBuffer += sizeof(_globalPosition);
+
     // Body rotation
     glm::vec3 bodyEulerAngles = glm::degrees(safeEulerAngles(getLocalOrientation()));
     destinationBuffer += packFloatAngleToTwoByte(destinationBuffer, bodyEulerAngles.y);
@@ -491,6 +494,9 @@ int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
         glm::vec3 position;
         memcpy(&position, sourceBuffer, sizeof(position));
         sourceBuffer += sizeof(position);
+
+        memcpy(&_globalPosition, sourceBuffer, sizeof(_globalPosition));
+        sourceBuffer += sizeof(_globalPosition);
 
         if (glm::isnan(position.x) || glm::isnan(position.y) || glm::isnan(position.z)) {
             if (shouldLogError(now)) {

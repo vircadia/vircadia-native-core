@@ -338,6 +338,8 @@ public:
     TransformPointer getRecordingBasis() const;
     void setRecordingBasis(TransformPointer recordingBasis = TransformPointer());
 
+    glm::vec3 getClientGlobalPosition() { return _globalPosition; }
+
 public slots:
     void sendAvatarDataPacket();
     void sendIdentityPacket();
@@ -402,6 +404,11 @@ protected:
     // During recording, this holds the starting position, orientation & scale of the recorded avatar
     // During playback, it holds the origin from which to play the relative positions in the clip
     TransformPointer _recordingBasis;
+
+    // _globalPosition is sent along with localPosition + parent because the avatar-mixer doesn't know
+    // where Entities are located.  This is currently only used by the mixer to decide how often to send
+    // updates about one avatar to another.
+    glm::vec3 _globalPosition;
 
 private:
     friend void avatarStateFromFrame(const QByteArray& frameData, AvatarData* _avatar);
