@@ -244,6 +244,9 @@ void ObjectAction::activateBody() {
     if (rigidBody) {
         rigidBody->activate();
     }
+}
+
+void ObjectAction::forceBodyNonStatic() {
     auto ownerEntity = _ownerEntity.lock();
     if (!ownerEntity) {
         return;
