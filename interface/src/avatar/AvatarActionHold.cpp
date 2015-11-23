@@ -326,5 +326,6 @@ void AvatarActionHold::deserialize(QByteArray serializedArguments) {
         #endif
 
         _active = true;
+        activateBody();
     });
 }
