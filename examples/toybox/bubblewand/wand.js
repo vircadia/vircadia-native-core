@@ -28,7 +28,7 @@
     var BUBBLE_LIFETIME_MAX = 8;
     var BUBBLE_SIZE_MIN = 0.02;
     var BUBBLE_SIZE_MAX = 0.1;
-    var BUBBLE_LINEAR_DAMPING = 0.4;
+    var BUBBLE_LINEAR_DAMPING = 0.2;
     var BUBBLE_GRAVITY_MIN = 0.1;
     var BUBBLE_GRAVITY_MAX = 0.3;
     var GROWTH_FACTOR = 0.005;
@@ -163,7 +163,7 @@
                 dimensions: BUBBLE_INITIAL_DIMENSIONS,
                 collisionsWillMove: false,
                 ignoreForCollisions: true,
-                linearDamping: BUBBLE_LINEAR_DAMPING,
+                damping: BUBBLE_LINEAR_DAMPING,
                 shapeType: "sphere"
             });
 

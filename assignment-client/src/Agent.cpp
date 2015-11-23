@@ -61,6 +61,14 @@ Agent::Agent(NLPacket& packet) :
     connect(assetThread, &QThread::started, assetClient.data(), &AssetClient::init);
     assetThread->start();
 
+    auto assetClient = DependencyManager::set<AssetClient>();
+
+    QThread* assetThread = new QThread;
+    assetThread->setObjectName("Asset Thread");
+    assetClient->moveToThread(assetThread);
+    connect(assetThread, &QThread::started, assetClient.data(), &AssetClient::init);
+    assetThread->start();
+
     DependencyManager::set<ResourceCacheSharedItems>();
     DependencyManager::set<SoundCache>();
     DependencyManager::set<AudioInjectorManager>();
@@ -144,7 +152,7 @@ void Agent::run() {
     messagesThread->start();
     
     nodeList->addSetOfNodeTypesToNodeInterestSet({
-        NodeType::AudioMixer, NodeType::AvatarMixer, NodeType::EntityServer, NodeType::MessagesMixer
+        NodeType::AudioMixer, NodeType::AvatarMixer, NodeType::EntityServer, NodeType::MessagesMixer, NodeType::AssetServer
     });
 }
 
@@ -234,7 +242,6 @@ void Agent::executeScript() {
         AvatarData::fromFrame(frame->data, *scriptedAvatar);
     });
     
-    
     using namespace recording;
     static const FrameType AUDIO_FRAME_TYPE = Frame::registerFrameType(AudioConstants::AUDIO_FRAME_NAME);
     Frame::registerFrameHandler(AUDIO_FRAME_TYPE, [this, &scriptedAvatar](Frame::ConstPointer frame) {
@@ -290,6 +297,11 @@ void Agent::executeScript() {
     
     setFinished(true);
 }
+
+QUuid Agent::getSessionUUID() const {
+    return DependencyManager::get<NodeList>()->getSessionUUID();
+}
+
 
 void Agent::setIsAvatar(bool isAvatar) {
     _isAvatar = isAvatar;

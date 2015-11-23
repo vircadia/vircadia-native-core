@@ -18,10 +18,18 @@
 #include <recording/Frame.h>
 #include <recording/ClipCache.h>
 
+
+#include <QtScript/QScriptValue>
+#include <AssetClient.h>
+#include <AssetUpload.h>
+#include <QtCore/QUrl>
+#include <QtWidgets/QFileDialog>
+
 #include "ScriptEngineLogging.h"
 
 using namespace recording;
 
+static const QString HFR_EXTENSION = "hfr";
 
 RecordingScriptingInterface::RecordingScriptingInterface() {
     _player = DependencyManager::get<Deck>();
@@ -169,6 +177,47 @@ void RecordingScriptingInterface::saveRecording(const QString& filename) {
     }
 
     recording::Clip::toFile(filename, _lastClip);
+}
+
+bool RecordingScriptingInterface::saveRecordingToAsset(QScriptValue getClipAtpUrl) {
+    if (!getClipAtpUrl.isFunction()) {
+        qCWarning(scriptengine) << "The argument is not a function.";
+        return false;
+    }
+
+    if (QThread::currentThread() != thread()) {
+        QMetaObject::invokeMethod(this, "saveRecordingToAsset", Qt::BlockingQueuedConnection,
+            Q_ARG(QScriptValue, getClipAtpUrl));
+        return false;
+    }
+
+    if (!_lastClip) {
+        qWarning() << "There is no recording to save";
+        return false;
+    }
+
+    if (auto upload = DependencyManager::get<AssetClient>()->createUpload(recording::Clip::toBuffer(_lastClip), HFR_EXTENSION)) {
+        QObject::connect(upload, &AssetUpload::finished, this, [=](AssetUpload* upload, const QString& hash) mutable {
+            QString clip_atp_url = "";
+
+            if (upload->getError() == AssetUpload::NoError) {
+
+                clip_atp_url = QString("%1:%2.%3").arg(URL_SCHEME_ATP, hash, upload->getExtension());
+                upload->deleteLater();
+            } else {
+                qCWarning(scriptengine) << "Error during the Asset upload.";
+            }
+
+            QScriptValueList args;
+            args << clip_atp_url;
+            getClipAtpUrl.call(QScriptValue(), args);
+        });
+        upload->start();
+        return true;
+    }
+
+    qCWarning(scriptengine) << "Saving on asset failed.";
+    return false;
 }
 
 void RecordingScriptingInterface::loadLastRecording() {
