@@ -44,6 +44,9 @@ public:
     const AnimPose& getAbsoluteDefaultPose(int jointIndex) const;
     const AnimPoseVec& getAbsoluteDefaultPoses() const { return _absoluteDefaultPoses; }
 
+    // get pre-rotation aka Maya's joint orientation.
+    const glm::quat getPreRotation(int jointIndex) const;
+
     int getParentIndex(int jointIndex) const;
 
     AnimPose getAbsolutePose(int jointIndex, const AnimPoseVec& poses) const;

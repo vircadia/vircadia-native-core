@@ -76,6 +76,10 @@ const AnimPose& AnimSkeleton::getAbsoluteDefaultPose(int jointIndex) const {
     return _absoluteDefaultPoses[jointIndex];
 }
 
+const glm::quat AnimSkeleton::getPreRotation(int jointIndex) const {
+    return _joints[jointIndex].preRotation;
+}
+
 int AnimSkeleton::getParentIndex(int jointIndex) const {
     return _joints[jointIndex].parentIndex;
 }
