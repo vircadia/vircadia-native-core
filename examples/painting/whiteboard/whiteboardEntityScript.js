@@ -90,9 +90,7 @@
                             y: this.currentStrokeWidth
                         }
                     });
-                    print("TRIGGER VALUE " + this.triggerValue);
                     if (this.triggerValue > PAINT_TRIGGER_THRESHOLD) {
-                        print("PAINT")
                         this.paint(this.intersection.intersection, this.intersection.surfaceNormal);
                     } else {
                         this.painting = false;
