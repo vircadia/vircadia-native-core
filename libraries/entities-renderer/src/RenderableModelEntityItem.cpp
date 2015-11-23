@@ -219,7 +219,7 @@ void RenderableModelEntityItem::render(RenderArgs* args) {
 
     if (hasModel()) {
         if (_model) {
-            if (getModelURL() != _model->getURL().toString()) {
+            if (getModelURL() != _model->getURL().toEncoded()) {
                 qDebug() << "Updating model URL: " << getModelURL();
                 _model->setURL(getModelURL());
             }
