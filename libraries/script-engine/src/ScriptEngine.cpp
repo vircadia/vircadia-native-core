@@ -124,14 +124,9 @@ static bool hadUncaughtExceptions(QScriptEngine& engine, const QString& fileName
 
 ScriptEngine::ScriptEngine(const QString& scriptContents, const QString& fileNameString, bool wantSignals) :
     _scriptContents(scriptContents),
-    _isFinished(false),
-    _isRunning(false),
-    _isInitialized(false),
     _timerFunctionMap(),
     _wantSignals(wantSignals),
     _fileNameString(fileNameString),
-    _isUserLoaded(false),
-    _isReloading(false),
     _arrayBufferClass(new ArrayBufferClass(this))
 {
     _allScriptsMutex.lock();
@@ -140,6 +135,8 @@ ScriptEngine::ScriptEngine(const QString& scriptContents, const QString& fileNam
 }
 
 ScriptEngine::~ScriptEngine() {
+    qDebug() << "Script Engine shutting down (destructor) for script:" << getFilename();
+
     // If we're not already in the middle of stopping all scripts, then we should remove ourselves
     // from the list of running scripts. We don't do this if we're in the process of stopping all scripts
     // because that method removes scripts from its list as it iterates them
@@ -150,7 +147,13 @@ ScriptEngine::~ScriptEngine() {
     }
 }
 
+void ScriptEngine::disconnectNonEssentialSignals() {
+    disconnect();
+    connect(this, &ScriptEngine::doneRunning, thread(), &QThread::quit);
+}
+
 void ScriptEngine::runInThread() {
+    _isThreaded = true;
     QThread* workerThread = new QThread(); // thread is not owned, so we need to manage the delete
     QString scriptEngineName = QString("Script Thread:") + getFilename();
     workerThread->setObjectName(scriptEngineName);
@@ -176,11 +179,12 @@ void ScriptEngine::runInThread() {
 QSet<ScriptEngine*> ScriptEngine::_allKnownScriptEngines;
 QMutex ScriptEngine::_allScriptsMutex;
 bool ScriptEngine::_stoppingAllScripts = false;
-bool ScriptEngine::_doneRunningThisScript = false;
 
 void ScriptEngine::stopAllScripts(QObject* application) {
     _allScriptsMutex.lock();
     _stoppingAllScripts = true;
+
+    qDebug() << "Stopping all scripts.... currently known scripts:" << _allKnownScriptEngines.size();
 
     QMutableSetIterator<ScriptEngine*> i(_allKnownScriptEngines);
     while (i.hasNext()) {
@@ -219,7 +223,9 @@ void ScriptEngine::stopAllScripts(QObject* application) {
             // We need to wait for the engine to be done running before we proceed, because we don't
             // want any of the scripts final "scriptEnding()" or pending "update()" methods from accessing
             // any application state after we leave this stopAllScripts() method
+            qDebug() << "waiting on script:" << scriptName;
             scriptEngine->waitTillDoneRunning();
+            qDebug() << "done waiting on script:" << scriptName;
 
             // If the script is stopped, we can remove it from our set
             i.remove();
@@ -227,21 +233,19 @@ void ScriptEngine::stopAllScripts(QObject* application) {
     }
     _stoppingAllScripts = false;
     _allScriptsMutex.unlock();
+    qDebug() << "DONE Stopping all scripts....";
 }
 
 
 void ScriptEngine::waitTillDoneRunning() {
     // If the script never started running or finished running before we got here, we don't need to wait for it
-    if (_isRunning) {
-
-        _doneRunningThisScript = false; // NOTE: this is static, we serialize our waiting for scripts to finish
+    if (_isRunning && _isThreaded) {
 
         // NOTE: waitTillDoneRunning() will be called on the main Application thread, inside of stopAllScripts()
         // we want the application thread to continue to process events, because the scripts will likely need to
         // marshall messages across to the main thread. For example if they access Settings or Meny in any of their
         // shutdown code.
-        while (!_doneRunningThisScript) {
-
+        while (thread()->isRunning()) {
             // process events for the main application thread, allowing invokeMethod calls to pass between threads
             QCoreApplication::processEvents();
         }
@@ -752,8 +756,6 @@ void ScriptEngine::run() {
         emit runningStateChanged();
         emit doneRunning();
     }
-
-    _doneRunningThisScript = true;
 }
 
 // NOTE: This is private because it must be called on the same thread that created the timers, which is why
