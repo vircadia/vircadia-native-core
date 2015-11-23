@@ -10,7 +10,7 @@
 //
 
 // Set the following variables to the values needed
-var channel = "PlaybackChannel1";
+var commandChannel = "com.highfidelity.PlaybackChannel1";
 var clip_url = null;
 var playFromCurrentLocation = true;
 var useDisplayName = true;
@@ -18,7 +18,9 @@ var useAttachments = true;
 var useAvatarModel = true;
 
 // ID of the agent. Two agents can't have the same ID.
-var id = 0;
+var announceIDChannel = "com.highfidelity.playbackAgent.announceID";
+var UNKNOWN_AGENT_ID = -2;
+var id = UNKNOWN_AGENT_ID;  // unknown until aknowledged
 
 // Set position/orientation/scale here if playFromCurrentLocation is true
 Avatar.position = { x:0, y: 0, z: 0 };
@@ -45,7 +47,6 @@ Recording.setPlayerUseHeadModel(false);
 Recording.setPlayerUseSkeletonModel(useAvatarModel);
 
 function getAction(channel, message, senderID) {    
-
     if(subscribed) {
         var command = JSON.parse(message);
         print("I'm the agent " + id + " and I received this: ID: " + command.id_key + " Action: " + command.action_key + " URL: " + command.clip_url_key);
@@ -53,24 +54,8 @@ function getAction(channel, message, senderID) {
         if (command.id_key == id || command.id_key == -1) {
             if (command.action_key === 6) {
                 clip_url = command.clip_url_key;
-                
-                // If the id is -1 (broadcast) and the action is 6, in the url should be the performance file
-                // with all the clips recorded in a session (not just the single clip url).
-                // It has to be computed here in order to retrieve the url for the single agent. 
-                // Checking the id we can assign the correct url to the correct agent.
-                
-                if (command.id_key == -1) {
-                    Assets.downloadData(clip_url, function (data) {
-                        var myJSONObject = JSON.parse(data);
-                        var hash = myJSONObject.results[id].hashATP;
-                    });
-                    
-                    Assets.downloadData(hash, function (data) {
-                        clip_url = JSON.parse(data);
-                    });
-                }
             }
-            
+                           
             action = command.action_key;
             print("That command was for me!");
             print("My clip is: " + clip_url);
@@ -139,17 +124,41 @@ function getAction(channel, message, senderID) {
 }
 
 
-function update(deltaTime) {   
+function update(deltaTime) {
 
     totalTime += deltaTime;
 
-    if (totalTime > WAIT_FOR_AUDIO_MIXER && !subscribed) {
-        Messages.subscribe(channel);
-        subscribed = true;
-        print("I'm the agent and I am ready to receive!")
+    if (totalTime > WAIT_FOR_AUDIO_MIXER) {
+        if (!subscribed) {
+            Messages.subscribe(commandChannel); // command channel
+            Messages.subscribe(announceIDChannel); // id announce channel
+            subscribed = true;
+            print("I'm the agent and I am ready to receive!");
+        }
+        if (subscribed && id == UNKNOWN_AGENT_ID) {
+            print("sending ready, id:" + id);
+            Messages.sendMessage(announceIDChannel, "ready");
+        }
     }
+
 }
 
-Script.update.connect(update);
-Messages.messageReceived.connect(getAction);
+Messages.messageReceived.connect(function (channel, message, senderID) {
+    if (channel == announceIDChannel && message != "ready") {
+        // If I don't yet know if my ID has been recieved, then check to see if the master has acknowledged me
+        if (id == UNKNOWN_AGENT_ID) {
+            var parts = message.split(".");
+            var agentID = parts[0];
+            var agentIndex = parts[1];
+            if (agentID == Agent.sessionUUID) {
+                id = agentIndex;
+                Messages.unsubscribe(announceIDChannel); // id announce channel
+            }
+        }
+    }
+    if (channel == commandChannel) {
+        getAction(channel, message, senderID);
+    }
+});
 
+Script.update.connect(update);
