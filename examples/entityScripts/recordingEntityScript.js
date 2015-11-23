@@ -16,22 +16,31 @@
 
     var _this;
     var isAvatarRecording = false;
-    var channel = "groupRecordingChannel";
-    var startMessage = "RECONDING STARTED";
-    var stopMessage = "RECONDING ENDED";
+    var MASTER_TO_CLIENTS_CHANNEL = "startStopChannel";
+    var CLIENTS_TO_MASTER_CHANNEL = "resultsChannel";
+    var START_MESSAGE = "recordingStarted";
+    var STOP_MESSAGE = "recordingEnded";
+    var PARTICIPATING_MESSAGE = "participatingToRecording";
 
     function recordingEntity() {
         _this = this;
         return;
-    }
+    };
 
     function receivingMessage(channel, message, senderID) {
-        print("message received on channel:" + channel + ", message:" + message + ", senderID:" + senderID);
-        if(message === startMessage) {
-            _this.startRecording();
-        } else if(message === stopMessage) {
-            _this.stopRecording();
+        if (channel === MASTER_TO_CLIENTS_CHANNEL) {
+            print("CLIENT received message:" + message);
+            if (message === START_MESSAGE) {
+                _this.startRecording();
+            } else if (message === STOP_MESSAGE) {
+                _this.stopRecording();
+            }
         }
+    };
+
+    function getClipUrl(url) {
+        Messages.sendMessage(CLIENTS_TO_MASTER_CHANNEL, url);    //send back the url to the master
+        print("clip uploaded and url sent to master");
     };
 
     recordingEntity.prototype = {
@@ -50,19 +59,19 @@
 
         enterEntity: function (entityID) {
             print("entering in the recording area");
-            Messages.subscribe(channel);
-            
+            Messages.subscribe(MASTER_TO_CLIENTS_CHANNEL);
         },
 
         leaveEntity: function (entityID) {
             print("leaving the recording area");
             _this.stopRecording();
-            Messages.unsubscribe(channel);
+            Messages.unsubscribe(MASTER_TO_CLIENTS_CHANNEL);
         },
 
         startRecording: function (entityID) {
             if (!isAvatarRecording) {
                 print("RECORDING STARTED");
+                Messages.sendMessage(CLIENTS_TO_MASTER_CHANNEL, PARTICIPATING_MESSAGE);  //tell to master that I'm participating
                 Recording.startRecording();
                 isAvatarRecording = true;
             }
@@ -73,17 +82,19 @@
                 print("RECORDING ENDED");
                 Recording.stopRecording();
                 isAvatarRecording = false;
-                recordingFile = Window.save("Save recording to file", "./groupRecording", "Recordings (*.hfr)");
+
+                var recordingFile = Window.save("Save recording to file", "./groupRecording", "Recordings (*.hfr)");
                 if (!(recordingFile === "null" || recordingFile === null || recordingFile === "")) {
-                    Recording.saveRecording(recordingFile);
+                    Recording.saveRecording(recordingFile);     //save the clip locally
                 }
+                Recording.saveRecordingToAsset(getClipUrl);     //save the clip to the asset and link a callback to get its url
             }
         },
 
         unload: function (entityID) {
             print("RECORDING ENTITY UNLOAD");
             _this.stopRecording();
-            Messages.unsubscribe(channel);
+            Messages.unsubscribe(MASTER_TO_CLIENTS_CHANNEL);
             Messages.messageReceived.disconnect(receivingMessage);
         }
     }
