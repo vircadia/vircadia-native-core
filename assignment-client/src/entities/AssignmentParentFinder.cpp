@@ -1,6 +1,6 @@
 //
 //  AssignmentParentFinder.cpp
-//  assignment-client/src/
+//  assignment-client/src/entities
 //
 //  Created by Seth Alves on 2015-10-22
 //  Copyright 2015 High Fidelity, Inc.

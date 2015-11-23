@@ -1,6 +1,6 @@
 //
 //  AssignmentParentFinder.h
-//  interface/src/
+//  interface/src/entities
 //
 //  Created by Seth Alves on 2015-10-21
 //  Copyright 2015 High Fidelity, Inc.
