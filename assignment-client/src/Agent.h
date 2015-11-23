@@ -18,6 +18,7 @@
 #include <QtScript/QScriptEngine>
 #include <QtCore/QObject>
 #include <QtCore/QUrl>
+#include <QUuid>
 
 #include <EntityEditPacketSender.h>
 #include <EntityTree.h>
@@ -35,6 +36,8 @@ class Agent : public ThreadedAssignment {
     Q_PROPERTY(bool isPlayingAvatarSound READ isPlayingAvatarSound)
     Q_PROPERTY(bool isListeningToAudioStream READ isListeningToAudioStream WRITE setIsListeningToAudioStream)
     Q_PROPERTY(float lastReceivedAudioLoudness READ getLastReceivedAudioLoudness)
+    Q_PROPERTY(QUuid sessionUUID READ getSessionUUID)
+
 public:
     Agent(NLPacket& packet);
     
@@ -47,6 +50,7 @@ public:
     void setIsListeningToAudioStream(bool isListeningToAudioStream) { _isListeningToAudioStream = isListeningToAudioStream; }
 
     float getLastReceivedAudioLoudness() const { return _lastReceivedAudioLoudness; }
+    QUuid getSessionUUID() const;
 
     virtual void aboutToFinish();
     

@@ -14,6 +14,7 @@
 #include <fstream>
 #include <iostream>
 #include <math.h>
+#include <memory>
 #include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -661,7 +662,7 @@ void AudioMixer::domainSettingsRequestComplete() {
     nodeList->addNodeTypeToInterestSet(NodeType::Agent);
     
     nodeList->linkedDataCreateCallback = [](Node* node) {
-        node->setLinkedData(new AudioMixerClientData());
+        node->setLinkedData(std::unique_ptr<AudioMixerClientData> { new AudioMixerClientData });
     };
     
     DomainHandler& domainHandler = nodeList->getDomainHandler();
