@@ -17,6 +17,7 @@
 #include <QtNetwork/QNetworkReply>
 
 #include <AvatarHashMap.h>
+#include <AssetClient.h>
 #include <MessagesClient.h>
 #include <NetworkAccessManager.h>
 #include <NodeList.h>
@@ -51,21 +52,19 @@ Agent::Agent(NLPacket& packet) :
 {
     DependencyManager::get<EntityScriptingInterface>()->setPacketSender(&_entityEditSender);
 
-    DependencyManager::set<ResourceCacheSharedItems>();
-    DependencyManager::set<SoundCache>();
-    DependencyManager::set<AssetClient>();
-    DependencyManager::set<recording::Deck>();
-    DependencyManager::set<recording::Recorder>();
-    DependencyManager::set<RecordingScriptingInterface>();
+    auto assetClient = DependencyManager::set<AssetClient>();
 
-    // Setup AssetClient
-    auto assetClient = DependencyManager::get<AssetClient>();
     QThread* assetThread = new QThread;
     assetThread->setObjectName("Asset Thread");
     assetClient->moveToThread(assetThread);
     connect(assetThread, &QThread::started, assetClient.data(), &AssetClient::init);
     assetThread->start();
 
+    DependencyManager::set<ResourceCacheSharedItems>();
+    DependencyManager::set<SoundCache>();
+    DependencyManager::set<recording::Deck>();
+    DependencyManager::set<recording::Recorder>();
+    DependencyManager::set<RecordingScriptingInterface>();
 
     auto& packetReceiver = DependencyManager::get<NodeList>()->getPacketReceiver();
     
@@ -143,7 +142,7 @@ void Agent::run() {
     messagesThread->start();
     
     nodeList->addSetOfNodeTypesToNodeInterestSet({
-        NodeType::AudioMixer, NodeType::AvatarMixer, NodeType::EntityServer, NodeType::MessagesMixer
+        NodeType::AudioMixer, NodeType::AvatarMixer, NodeType::EntityServer, NodeType::MessagesMixer, NodeType::AssetServer
     });
 }
 
@@ -458,4 +457,10 @@ void Agent::aboutToFinish() {
 
     // our entity tree is going to go away so tell that to the EntityScriptingInterface
     DependencyManager::get<EntityScriptingInterface>()->setEntityTree(NULL);
+
+    // cleanup the AssetClient thread
+    QThread* assetThread = DependencyManager::get<AssetClient>()->thread();
+    DependencyManager::destroy<AssetClient>();
+    assetThread->quit();
+    assetThread->wait();
 }
