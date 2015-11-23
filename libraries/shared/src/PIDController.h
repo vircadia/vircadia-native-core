@@ -38,9 +38,9 @@ public:
     float getControlledValueLowLimit() const { return _controlledValueLowLimit; }
     float getControlledValueHighLimit() const { return _controlledValueHighLimit; }
     float getAntiWindupFactor() const { return _antiWindupFactor; } // default 10
-    float getKP() const { return _kp; }
-    float getKI() const { return _ki; }
-    float getKD() const { return _kd; }
+    float getKP() const { return _kp; }  // proportional to error. See comment above class.
+    float getKI() const { return _ki; }  // to time integral of error
+    float getKD() const { return _kd; }  // to time derivative of error
     float getAccumulatedValueHighLimit() const { return getAntiWindupFactor() * getMeasuredValueSetpoint(); }
     float getAccumulatedValueLowLimit() const { return -getAntiWindupFactor() * getMeasuredValueSetpoint(); }
 
