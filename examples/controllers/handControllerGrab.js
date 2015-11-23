@@ -109,13 +109,13 @@ var GRABBABLE_PROPERTIES = [
 
 var GRABBABLE_DATA_KEY = "grabbableKey"; // shared with grab.js
 var GRAB_USER_DATA_KEY = "grabKey"; // shared with grab.js
+var BEAM_DISABLER_KEY = 'beamDisablerKey'
 
 var DEFAULT_GRABBABLE_DATA = {
     grabbable: true,
     invertSolidWhileHeld: false
 };
 
-var disabledHand = 'none';
 
 // states for the state machine
 var STATE_OFF = 0;
@@ -411,11 +411,6 @@ function MyController(hand) {
     this.search = function() {
         this.grabbedEntity = null;
 
-        // if this hand is the one that's disabled, we don't want to search for anything at all
-        if (this.hand === disabledHand) {
-            return;
-        }
-
         if (this.state == STATE_SEARCHING ? this.triggerSmoothedReleased() : this.bumperReleased()) {
             this.setState(STATE_RELEASE);
             return;
@@ -460,17 +455,7 @@ function MyController(hand) {
                 // the ray is intersecting something we can move.
                 var intersectionDistance = Vec3.distance(pickRay.origin, intersection.intersection);
 
-                //this code will disabled the beam for the opposite hand of the one that grabbed it if the entity says so
                 var grabbableData = getEntityCustomData(GRABBABLE_DATA_KEY, intersection.entityID, DEFAULT_GRABBABLE_DATA);
-                if (grabbableData["turnOffOppositeBeam"]===true) {
-                    if (this.hand === RIGHT_HAND) {
-                        disabledHand = LEFT_HAND;
-                    } else {
-                        disabledHand = RIGHT_HAND;
-                    }
-                } else {
-                    disabledHand = 'none';
-                }
 
                 if (intersection.properties.name == "Grab Debug Entity") {
                     continue;
@@ -758,20 +743,7 @@ function MyController(hand) {
 
     this.nearGrabbing = function() {
         var now = Date.now();
-        print('HAND IN NEAR GRAB:::' + this.hand)
         var grabbableData = getEntityCustomData(GRABBABLE_DATA_KEY, this.grabbedEntity, DEFAULT_GRABBABLE_DATA);
-
-        var turnOffOtherHand = grabbableData["turnOffOtherHand"];
-        print('TURN OFF OTHER HAND??' + turnOffOtherHand);
-        if (turnOffOtherHand === 'left' && this.hand === 1) {
-            print('IGNORE RIGHT')
-            return
-        }
-        if (turnOffOtherHand === 'right' && this.hand === 0) {
-            print('IGNORE LEFT')
-            return
-        }
-
 
         if (this.state == STATE_NEAR_GRABBING && this.triggerSmoothedReleased()) {
             this.setState(STATE_RELEASE);
@@ -1121,10 +1093,6 @@ function MyController(hand) {
 
     this.release = function() {
 
-        if (this.hand !== disabledHand) {
-            //release the disabled hand when we let go with the main one
-            disabledHand = 'none';
-        }
         this.lineOff();
 
         if (this.grabbedEntity !== null) {
@@ -1246,14 +1214,64 @@ mapping.from([Controller.Standard.LB]).peek().to(leftController.bumperPress);
 Controller.enableMapping(MAPPING_NAME);
 
 
+var beamDisabler;
+
+function createBeamDisabler() {
+    print('CREATING DISABLER')
+    var disablerProps = {
+        name: 'Hifi-Beam-Disabler',
+        type: 'Sphere',
+        dimensions: {
+            x: 0.1,
+            y: 0.1,
+            z: 0.1
+        },
+        color: {
+            red: 255,
+            green: 0,
+            blue: 0
+        },
+        visible: true,
+        position: MyAvatar.position,
+        ignoreForCollisions: true,
+        collisionsWillMove: false,
+        userData: JSON.stringify({
+            beamDisablerKey: {
+                handToDisable: 'none'
+            },
+            grabbableKey: {
+                grabbable: false
+            }
+        })
+    }
+    beamDisabler = Entities.addEntity(disablerProps)
+}
+
+function updateBeamDisablerPosition() {
+    Entities.editEntity(beamDisabler, {
+        position: MyAvatar.position
+    })
+}
+
+createBeamDisabler();
+
 function update() {
-    rightController.update();
-    leftController.update();
+    updateBeamDisablerPosition();
+    var beamDisablerData = getEntityCustomData(BEAM_DISABLER_KEY, beamDisabler, {
+        handToDisable: 'none'
+    });
+    if (beamDisablerData.handToDisable !== 0) {
+        leftController.update();
+    }
+    if (beamDisablerData.handToDisable !== 1) {
+        rightController.update();
+    }
 }
 
 function cleanup() {
     rightController.cleanup();
     leftController.cleanup();
+    Entities.deleteEntity(beamDisabler);
     Controller.disableMapping(MAPPING_NAME);
 }
 

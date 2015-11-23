@@ -76,6 +76,7 @@
     }
 
 
+    var USE_DEBOUNCE = false;
     function interval() {
         var lastTime = new Date().getTime();
 
@@ -111,13 +112,13 @@
                 blue: 255
             }
         },
+        sinceLastUpdate:0,
         preload: function(entityID) {
             this.entityID = entityID;
             this.stringPullSound = SoundCache.getSound(STRING_PULL_SOUND_URL);
             this.shootArrowSound = SoundCache.getSound(SHOOT_ARROW_SOUND_URL);
             this.arrowHitSound = SoundCache.getSound(ARROW_HIT_SOUND_URL);
             this.arrowNotchSound = SoundCache.getSound(NOTCH_ARROW_SOUND_URL);
-            this.arrowWhizzSound = SoundCache.getSound(ARROW_WHIZZ_SOUND_URL);
 
         },
 
@@ -145,11 +146,25 @@
             if (this.isGrabbed === true) {
                 return false;
             }
+
             this.isGrabbed = true;
             this.initialHand = this.hand;
 
+            var ids = Entities.findEntities(MyAvatar.position, 1);
+
+            for (var i in ids) {
+                var entityId = ids[i];
+                var foundProps = Entities.getEntityProperties(entityId);
+                if (foundProps.name == "Hifi-Beam-Disabler") {
+                    print('FOUND THE BEAM DISABLER')
+                    setEntityCustomData('beamDisablerKey',entityId,{
+                        handToDisable:this.initialHand==='left'?1:0
+                    })
+                }
+            }
+
             setEntityCustomData('grabbableKey', this.entityID, {
-                turnOffOtherHand: this.initialHand,
+                grabbable: false,
                 invertSolidWhileHeld: true,
                 turnOffOppositeBeam: true,
                 spatialKey: BOW_SPATIAL_KEY
@@ -157,7 +172,19 @@
 
         },
         continueNearGrab: function() {
-            this.deltaTime = checkInterval();
+
+            //debounce during debugging -- maybe we're updating too fast?
+            if (USE_DEBOUNCE === true) {
+                this.deltaTime = checkInterval();
+                this.sinceLastUpdate = this.sinceLastUpdate + this.deltaTime;
+
+                if (this.sinceLastUpdate > 60) {
+                    this.sinceLastUpdate = 0;
+                } else {
+                    return;
+                }
+            }
+
             this.bowProperties = Entities.getEntityProperties(this.entityID);
 
             //create a string across the bow when we pick it up
@@ -189,13 +216,27 @@
         releaseGrab: function() {
             print('RELEASE GRAB EVENT')
             if (this.isGrabbed === true && this.hand === this.initialHand) {
+                            var ids = Entities.findEntities(MyAvatar.position, 1);
+
+            for (var i in ids) {
+                var entityId = ids[i];
+                var foundProps = Entities.getEntityProperties(entityId);
+                if (foundProps.name == "Hifi-Beam-Disabler") {
+                    print('FOUND THE BEAM DISABLER')
+                    setEntityCustomData('beamDisablerKey',entityId,{
+                        handToDisable:'none'
+                    })
+                }
+            }
+
+
                 this.isGrabbed = false;
                 this.stringDrawn = false;
                 this.deleteStrings();
                 setEntityCustomData('grabbableKey', this.entityID, {
-                    turnOffOtherHand: false,
+                    grabbable: true,
+                    turnOffOppositeBeam: true,
                     invertSolidWhileHeld: true,
-                    turnOffOppositebBam: true,
                     spatialKey: BOW_SPATIAL_KEY
                 });
                 Entities.deleteEntity(this.preNotchString);
@@ -414,15 +455,19 @@
             //  print('TRIGGER VALUE:::' + this.triggerValue);
 
             if (this.triggerValue < DRAW_STRING_THRESHOLD && this.stringDrawn === true) {
-                // firing the arrow
+                print('TRIGGER VALUE??' + this.triggerValue)
+                    // firing the arrow
                 print('HIT RELEASE LOOP IN CHECK');
-                this.updateArrowPositionInNotch(true);
+      
+                this.drawStrings();
                 this.hasArrowNotched = false;
                 this.aiming = false;
                 this.stringDrawn = false;
+                this.updateArrowPositionInNotch(true);
+
 
             } else if (this.triggerValue > DRAW_STRING_THRESHOLD && this.stringDrawn === true) {
-                // print('HIT CONTINUE LOOP IN CHECK')
+                 print('HIT CONTINUE LOOP IN CHECK')
                 //continuing to aim the arrow
 
                 this.aiming = true;
@@ -454,7 +499,6 @@
 
         updateArrowPositionInNotch: function(shouldReleaseArrow) {
             var bowProperties = Entities.getEntityProperties(this.entityID);
-
             //set the notch that the arrow should go through
             var frontVector = Quat.getFront(bowProperties.rotation);
             var notchVectorForward = Vec3.multiply(frontVector, NOTCH_OFFSET_FORWARD);
@@ -494,6 +538,7 @@
 
             //shoot the arrow
             if (shouldReleaseArrow === true) {
+                var arrowProperties = Entities.getEntityProperties(this.arrow);
 
                 //scale the shot strength by the distance you've pulled the arrow back and set its release velocity to be in the direction of the v
                 var arrowForce = this.scaleArrowShotStrength(pullBackDistance);
@@ -504,7 +549,9 @@
                     collisionsWillMove: true,
                     velocity: releaseVelocity,
                     gravity: ARROW_GRAVITY,
-                    lifetime: 10
+                    lifetime: 10,
+                    position:notchPosition,
+                    rotation:arrowRotation
                 };
 
                 //actually shoot the arrow and play its sound
