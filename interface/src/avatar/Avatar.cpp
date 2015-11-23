@@ -1136,7 +1136,7 @@ void Avatar::computeShapeInfo(ShapeInfo& shapeInfo) {
 
 // virtual
 void Avatar::rebuildSkeletonBody() {
-    DependencyManager::get<AvatarManager>()->updateAvatarPhysicsShape(getSessionUUID());
+    DependencyManager::get<AvatarManager>()->updateAvatarPhysicsShape(this);
 }
 
 glm::vec3 Avatar::getLeftPalmPosition() {

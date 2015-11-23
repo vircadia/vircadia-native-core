@@ -87,6 +87,7 @@
 #include <RenderDeferredTask.h>
 #include <ResourceCache.h>
 #include <SceneScriptingInterface.h>
+#include <RecordingScriptingInterface.h>
 #include <ScriptCache.h>
 #include <SoundCache.h>
 #include <TextureCache.h>
@@ -127,7 +128,6 @@
 #include "scripting/LocationScriptingInterface.h"
 #include "scripting/MenuScriptingInterface.h"
 #include "scripting/SettingsScriptingInterface.h"
-#include "scripting/RecordingScriptingInterface.h"
 #include "scripting/WebWindowClass.h"
 #include "scripting/WindowScriptingInterface.h"
 #include "scripting/ControllerScriptingInterface.h"
@@ -454,6 +454,17 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
     audioIO->setOrientationGetter([this]{ return getMyAvatar()->getOrientationForAudio(); });
 
     audioIO->moveToThread(audioThread);
+    recording::Frame::registerFrameHandler(AudioConstants::AUDIO_FRAME_NAME, [=](recording::Frame::ConstPointer frame) {
+        audioIO->handleRecordedAudioInput(frame->data);
+    });
+
+    connect(audioIO.data(), &AudioClient::inputReceived, [](const QByteArray& audio){
+        static auto recorder = DependencyManager::get<recording::Recorder>();
+        if (recorder->isRecording()) {
+            static const recording::FrameType AUDIO_FRAME_TYPE = recording::Frame::registerFrameType(AudioConstants::AUDIO_FRAME_NAME);
+            recorder->recordFrame(AUDIO_FRAME_TYPE, audio);
+        }
+    });
 
     auto& audioScriptingInterface = AudioScriptingInterface::getInstance();
 
@@ -837,7 +848,6 @@ void Application::cleanupBeforeQuit() {
 #ifdef HAVE_IVIEWHMD
     DependencyManager::get<EyeTracker>()->setEnabled(false, true);
 #endif
-
     AnimDebugDraw::getInstance().shutdown();
 
     // FIXME: once we move to shared pointer for the INputDevice we shoud remove this naked delete:
@@ -998,10 +1008,6 @@ void Application::initializeGL() {
     _octreeProcessor.initialize(_enableProcessOctreeThread);
     connect(&_octreeProcessor, &OctreePacketProcessor::packetVersionMismatch, this, &Application::notifyPacketVersionMismatch);
     _entityEditSender.initialize(_enableProcessOctreeThread);
-
-    // call our timer function every second
-    connect(&pingTimer, &QTimer::timeout, this, &Application::ping);
-    pingTimer.start(1000);
 
     _idleLoopStdev.reset();
 
@@ -2141,13 +2147,6 @@ bool Application::acceptSnapshot(const QString& urlString) {
         msgBox.exec();
     }
     return true;
-}
-
-//  Every second, send a ping, if menu item is checked.
-void Application::ping() {
-    if (Menu::getInstance()->isOptionChecked(MenuOption::TestPing)) {
-        DependencyManager::get<NodeList>()->sendPingPackets();
-    }
 }
 
 void Application::idle(uint64_t now) {
@@ -3997,7 +3996,6 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEngine* scri
                             RayToOverlayIntersectionResultFromScriptValue);
 
     scriptEngine->registerGlobalObject("Desktop", DependencyManager::get<DesktopScriptingInterface>().data());
-    scriptEngine->registerGlobalObject("Recording", DependencyManager::get<RecordingScriptingInterface>().data());
 
     scriptEngine->registerGlobalObject("Window", DependencyManager::get<WindowScriptingInterface>().data());
     scriptEngine->registerGetterSetter("location", LocationScriptingInterface::locationGetter,

@@ -47,6 +47,7 @@
 #include "WebSocketClass.h"
 
 #include "SceneScriptingInterface.h"
+#include "RecordingScriptingInterface.h"
 
 #include "MIDIEvent.h"
 
@@ -61,7 +62,7 @@ static QScriptValue debugPrint(QScriptContext* context, QScriptEngine* engine){
         }
         message += context->argument(i).toString();
     }
-    qCDebug(scriptengine) << "script:print()<<" << message;
+    qCDebug(scriptengine).noquote() << "script:print()<<" << message;  // noquote() so that \n is treated as newline
 
     message = message.replace("\\", "\\\\")
                      .replace("\n", "\\n")
@@ -377,6 +378,12 @@ void ScriptEngine::init() {
     auto scriptingInterface = DependencyManager::get<controller::ScriptingInterface>();
     registerGlobalObject("Controller", scriptingInterface.data());
     UserInputMapper::registerControllerTypes(this);
+
+    auto recordingInterface = DependencyManager::get<RecordingScriptingInterface>();
+    registerGlobalObject("Recording", recordingInterface.data());
+
+    registerGlobalObject("Assets", &_assetScriptingInterface);
+    
 }
 
 void ScriptEngine::registerValue(const QString& valueName, QScriptValue value) {

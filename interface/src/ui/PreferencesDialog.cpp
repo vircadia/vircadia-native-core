@@ -56,7 +56,7 @@ PreferencesDialog::PreferencesDialog(QWidget* parent) :
 
     // move dialog to left side
     move(parentWidget()->geometry().topLeft());
-    setFixedHeight(parentWidget()->size().height() - PREFERENCES_HEIGHT_PADDING);
+    resize(sizeHint().width(), parentWidget()->size().height() - PREFERENCES_HEIGHT_PADDING);
 
     UIUtil::scaleWidgetFontSizes(this);
 }

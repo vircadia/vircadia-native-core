@@ -127,8 +127,8 @@ private:
     NetworkPeer _icePeer;
     bool _isConnected;
     QJsonObject _settingsObject;
-    int _failedSettingsRequests;
     QString _pendingPath;
+    QTimer _settingsTimer;
 };
 
 #endif // hifi_DomainHandler_h

@@ -8,43 +8,32 @@
 
 #include "RecordingScriptingInterface.h"
 
+#include <QtCore/QThread>
+
+#include <NumericalConstants.h>
+#include <Transform.h>
 #include <recording/Deck.h>
 #include <recording/Recorder.h>
 #include <recording/Clip.h>
 #include <recording/Frame.h>
-#include <NumericalConstants.h>
-#include <AudioClient.h>
-#include <AudioConstants.h>
+#include <recording/ClipCache.h>
 
-#include "avatar/AvatarManager.h"
-#include "Application.h"
-#include "InterfaceLogging.h"
 
-typedef int16_t AudioSample;
+#include <QtScript/QScriptValue>
+#include <AssetClient.h>
+#include <AssetUpload.h>
+#include <QtCore/QUrl>
+#include <QtWidgets/QFileDialog>
 
+#include "ScriptEngineLogging.h"
 
 using namespace recording;
 
-// FIXME move to somewhere audio related?
-static const QString AUDIO_FRAME_NAME = "com.highfidelity.recording.Audio";
+static const QString HFR_EXTENSION = "hfr";
 
 RecordingScriptingInterface::RecordingScriptingInterface() {
-    static const recording::FrameType AVATAR_FRAME_TYPE = recording::Frame::registerFrameType(AvatarData::FRAME_NAME);
-    // FIXME how to deal with driving multiple avatars locally?  
-    Frame::registerFrameHandler(AVATAR_FRAME_TYPE, [this](Frame::ConstPointer frame) {
-        processAvatarFrame(frame);
-    });
-
-    static const recording::FrameType AUDIO_FRAME_TYPE = recording::Frame::registerFrameType(AUDIO_FRAME_NAME);
-    Frame::registerFrameHandler(AUDIO_FRAME_TYPE, [this](Frame::ConstPointer frame) {
-        processAudioFrame(frame);
-    });
-
     _player = DependencyManager::get<Deck>();
     _recorder = DependencyManager::get<Recorder>();
-
-    auto audioClient = DependencyManager::get<AudioClient>();
-    connect(audioClient.data(), &AudioClient::inputReceived, this, &RecordingScriptingInterface::processAudioInput);
 }
 
 bool RecordingScriptingInterface::isPlaying() const {
@@ -63,34 +52,31 @@ float RecordingScriptingInterface::playerLength() const {
     return _player->length();
 }
 
-void RecordingScriptingInterface::loadRecording(const QString& filename) {
+bool RecordingScriptingInterface::loadRecording(const QString& url) {
     using namespace recording;
 
-    if (QThread::currentThread() != thread()) {
-        QMetaObject::invokeMethod(this, "loadRecording", Qt::BlockingQueuedConnection,
-            Q_ARG(QString, filename));
-        return;
+    auto loader = ClipCache::instance().getClipLoader(url);
+    QEventLoop loop;
+    QObject::connect(loader.data(), &Resource::loaded, &loop, &QEventLoop::quit);
+    QObject::connect(loader.data(), &Resource::failed, &loop, &QEventLoop::quit);
+    loop.exec();
+
+    if (!loader->isLoaded()) {
+        qWarning() << "Clip failed to load from " << url;
+        return false;
     }
 
-    ClipPointer clip = Clip::fromFile(filename);
-    if (!clip) {
-        qWarning() << "Unable to load clip data from " << filename;
-    }
-    _player->queueClip(clip);
+    _player->queueClip(loader->getClip());
+    return true;
 }
+
 
 void RecordingScriptingInterface::startPlaying() {
     if (QThread::currentThread() != thread()) {
         QMetaObject::invokeMethod(this, "startPlaying", Qt::BlockingQueuedConnection);
         return;
     }
-    auto myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
-    // Playback from the current position
-    if (_playFromCurrentLocation) {
-        _dummyAvatar.setRecordingBasis(std::make_shared<Transform>(myAvatar->getTransform()));
-    } else {
-        _dummyAvatar.clearRecordingBasis();
-    }
+
     _player->play();
 }
 
@@ -160,7 +146,7 @@ float RecordingScriptingInterface::recorderElapsed() const {
 
 void RecordingScriptingInterface::startRecording() {
     if (_recorder->isRecording()) {
-        qCWarning(interfaceapp) << "Recorder is already running";
+        qCWarning(scriptengine) << "Recorder is already running";
         return;
     }
 
@@ -169,8 +155,6 @@ void RecordingScriptingInterface::startRecording() {
         return;
     }
 
-    _recordingEpoch = Frame::epochForFrameTime(0);
-    DependencyManager::get<AvatarManager>()->getMyAvatar()->setRecordingBasis();
     _recorder->start();
 }
 
@@ -178,7 +162,6 @@ void RecordingScriptingInterface::stopRecording() {
     _recorder->stop();
     _lastClip = _recorder->getClip();
     _lastClip->seek(0);
-    DependencyManager::get<AvatarManager>()->getMyAvatar()->clearRecordingBasis();
 }
 
 void RecordingScriptingInterface::saveRecording(const QString& filename) {
@@ -196,6 +179,47 @@ void RecordingScriptingInterface::saveRecording(const QString& filename) {
     recording::Clip::toFile(filename, _lastClip);
 }
 
+bool RecordingScriptingInterface::saveRecordingToAsset(QScriptValue getClipAtpUrl) {
+    if (!getClipAtpUrl.isFunction()) {
+        qCWarning(scriptengine) << "The argument is not a function.";
+        return false;
+    }
+
+    if (QThread::currentThread() != thread()) {
+        QMetaObject::invokeMethod(this, "saveRecordingToAsset", Qt::BlockingQueuedConnection,
+            Q_ARG(QScriptValue, getClipAtpUrl));
+        return false;
+    }
+
+    if (!_lastClip) {
+        qWarning() << "There is no recording to save";
+        return false;
+    }
+
+    if (auto upload = DependencyManager::get<AssetClient>()->createUpload(recording::Clip::toBuffer(_lastClip), HFR_EXTENSION)) {
+        QObject::connect(upload, &AssetUpload::finished, this, [=](AssetUpload* upload, const QString& hash) mutable {
+            QString clip_atp_url = "";
+
+            if (upload->getError() == AssetUpload::NoError) {
+
+                clip_atp_url = QString("%1:%2.%3").arg(URL_SCHEME_ATP, hash, upload->getExtension());
+                upload->deleteLater();
+            } else {
+                qCWarning(scriptengine) << "Error during the Asset upload.";
+            }
+
+            QScriptValueList args;
+            args << clip_atp_url;
+            getClipAtpUrl.call(QScriptValue(), args);
+        });
+        upload->start();
+        return true;
+    }
+
+    qCWarning(scriptengine) << "Saving on asset failed.";
+    return false;
+}
+
 void RecordingScriptingInterface::loadLastRecording() {
     if (QThread::currentThread() != thread()) {
         QMetaObject::invokeMethod(this, "loadLastRecording", Qt::BlockingQueuedConnection);
@@ -203,7 +227,7 @@ void RecordingScriptingInterface::loadLastRecording() {
     }
 
     if (!_lastClip) {
-        qCDebug(interfaceapp) << "There is no recording to load";
+        qCDebug(scriptengine) << "There is no recording to load";
         return;
     }
 
@@ -211,45 +235,3 @@ void RecordingScriptingInterface::loadLastRecording() {
     _player->play();
 }
 
-void RecordingScriptingInterface::processAvatarFrame(const Frame::ConstPointer& frame) {
-    Q_ASSERT(QThread::currentThread() == thread());
-
-    AvatarData::fromFrame(frame->data, _dummyAvatar);
-
-    auto myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
-    if (_useHeadModel && _dummyAvatar.getFaceModelURL().isValid() && 
-        (_dummyAvatar.getFaceModelURL() != myAvatar->getFaceModelURL())) {
-        // FIXME
-        //myAvatar->setFaceModelURL(_dummyAvatar.getFaceModelURL());
-    }
-
-    if (_useSkeletonModel && _dummyAvatar.getSkeletonModelURL().isValid() &&
-        (_dummyAvatar.getSkeletonModelURL() != myAvatar->getSkeletonModelURL())) {
-        // FIXME
-        //myAvatar->useFullAvatarURL()
-    }
-
-    if (_useDisplayName && _dummyAvatar.getDisplayName() != myAvatar->getDisplayName()) {
-        myAvatar->setDisplayName(_dummyAvatar.getDisplayName());
-    }
-
-    myAvatar->setPosition(_dummyAvatar.getPosition());
-    myAvatar->setOrientation(_dummyAvatar.getOrientation());
-
-    // FIXME attachments
-    // FIXME joints
-    // FIXME head lean
-    // FIXME head orientation
-}
-
-void RecordingScriptingInterface::processAudioInput(const QByteArray& audio) {
-    if (_recorder->isRecording()) {
-        static const recording::FrameType AUDIO_FRAME_TYPE = recording::Frame::registerFrameType(AUDIO_FRAME_NAME);
-        _recorder->recordFrame(AUDIO_FRAME_TYPE, audio);
-    }
-}
-
-void RecordingScriptingInterface::processAudioFrame(const recording::FrameConstPointer& frame) {
-    auto audioClient = DependencyManager::get<AudioClient>();
-    audioClient->handleRecordedAudioInput(frame->data);
-}
