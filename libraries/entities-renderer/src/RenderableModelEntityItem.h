@@ -47,6 +47,7 @@ public:
     virtual bool addToScene(EntityItemPointer self, std::shared_ptr<render::Scene> scene, render::PendingChanges& pendingChanges);
     virtual void removeFromScene(EntityItemPointer self, std::shared_ptr<render::Scene> scene, render::PendingChanges& pendingChanges);
 
+    virtual void simulate(const quint64& now);
 
     virtual void render(RenderArgs* args);
     virtual bool supportsDetailedRayIntersection() const { return true; }
