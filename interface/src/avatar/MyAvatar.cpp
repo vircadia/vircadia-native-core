@@ -49,7 +49,6 @@
 #include "ModelReferential.h"
 #include "MyAvatar.h"
 #include "Physics.h"
-#include "Recorder.h"
 #include "Util.h"
 #include "InterfaceLogging.h"
 #include "DebugDraw.h"
