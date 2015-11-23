@@ -167,7 +167,7 @@ void AvatarManager::updateOtherAvatars(float deltaTime) {
         } else {
             avatar->startUpdate();
             avatar->simulate(deltaTime);
-            if (!avatar->getShouldSkipRendering()) {
+            if (avatar->getShouldRender()) {
                 renderableCount++;
             }
             avatar->endUpdate();
