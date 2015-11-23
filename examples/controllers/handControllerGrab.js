@@ -1217,7 +1217,6 @@ Controller.enableMapping(MAPPING_NAME);
 var beamDisabler;
 
 function createBeamDisabler() {
-    print('CREATING DISABLER')
     var disablerProps = {
         name: 'Hifi-Beam-Disabler',
         type: 'Sphere',
@@ -1231,7 +1230,7 @@ function createBeamDisabler() {
             green: 0,
             blue: 0
         },
-        visible: true,
+        visible: false,
         position: MyAvatar.position,
         ignoreForCollisions: true,
         collisionsWillMove: false,
