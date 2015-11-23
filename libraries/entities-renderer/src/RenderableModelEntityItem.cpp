@@ -562,3 +562,23 @@ bool RenderableModelEntityItem::contains(const glm::vec3& point) const {
     
     return false;
 }
+
+glm::quat getJointRotation(int index) const {
+    if (_model) {
+        glm::quat result;
+        if (_model->getJointRotation(index, result)) {
+            return result;
+        }
+    }
+    return glm::quat();
+}
+
+glm::vec3 getJointTranslation(int index) const {
+    if (_model) {
+        glm::vec3 result;
+        if (_model->getJointTranslation(index, result)) {
+            return result;
+        }
+    }
+    return glm::vec3(0.0f);
+}
