@@ -3,8 +3,9 @@ set(BUILD_BUNDLE YES)
 setup_hifi_project(Widgets Gui Svg Core Network WebKitWidgets)
 
 if (WIN32)
-  find_package(ZLIB REQUIRED)
+  target_zlib()
 endif ()
+target_quazip()
 
 if (DEFINED ENV{JOB_ID})
   set(PR_BUILD "false")
@@ -29,8 +30,6 @@ include_directories(
     ${QUAZIP_INCLUDE_DIRS}
     ${ZLIB_INCLUDE_DIRS}
 )
-
-target_quazip()
 
 if (APPLE)
   set(CMAKE_OSX_DEPLOYMENT_TARGET 10.8)
