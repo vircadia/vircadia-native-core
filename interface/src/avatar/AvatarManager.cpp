@@ -91,7 +91,7 @@ void AvatarManager::init() {
     }
     scene->enqueuePendingChanges(pendingChanges);
 
-    const float target_fps = 1.0f / qApp->getTargetFramePeriod();
+    const float target_fps = qApp->getTargetFrameRate();
     _renderDistanceController.setMeasuredValueSetpoint(target_fps);
     const float SMALLEST_REASONABLE_HORIZON = 5.0f; // meters
     _renderDistanceController.setControlledValueHighLimit(1.0f / SMALLEST_REASONABLE_HORIZON);
@@ -139,7 +139,7 @@ void AvatarManager::updateOtherAvatars(float deltaTime) {
 
     PerformanceTimer perfTimer("otherAvatars");
     
-    _renderDistanceController.setMeasuredValueSetpoint(1.0f / qApp->getTargetFramePeriod()); // No problem updating in flight.
+    _renderDistanceController.setMeasuredValueSetpoint(qApp->getTargetFrameRate()); // No problem updating in flight.
     // The PID controller raises the controlled value when the measured value goes up.
     // The measured value is frame rate. When the controlled value (1 / render cutoff distance)
     // goes up, the render cutoff distance gets closer, the number of rendered avatars is less, and frame rate
