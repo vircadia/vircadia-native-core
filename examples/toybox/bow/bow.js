@@ -270,8 +270,13 @@
 
             });
 
-            Script.addEventHandler(arrow, "collisionWithEntity", function(entityA, entityB, collision) {
+            var makeArrowStick = function(entityA, entityB, collision) {
                 Entities.editEntity(entityA, {
+                    angularVelocity: {
+                        x: 0,
+                        y: 0,
+                        z: 0
+                    },
                     velocity: {
                         x: 0,
                         y: 0,
@@ -282,10 +287,14 @@
                         y: 0,
                         z: 0
                     },
+                    position: collision.contactPoint,
                     collisionsWillMove: false
                 })
                 print('ARROW COLLIDED WITH::' + entityB);
-            });
+                Script.removeEventHandler(arrow, "collisionWithEntity", makeArrowStick)
+            }
+
+            Script.addEventHandler(arrow, "collisionWithEntity", makeArrowStick);
 
             return arrow
         },
@@ -549,6 +558,7 @@
                 //make the arrow physical, give it gravity, a lifetime, and set our velocity
                 var arrowProperties = {
                     collisionsWillMove: true,
+                    ignoreForCollisions:false,
                     velocity: releaseVelocity,
                     gravity: ARROW_GRAVITY,
                     lifetime: 10,
