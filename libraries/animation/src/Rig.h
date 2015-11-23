@@ -42,8 +42,8 @@ public:
         float torsoTwist = 0.0f; // degrees
         bool enableLean = false;
         glm::quat worldHeadOrientation = glm::quat();  // world space (-z forward)
-        glm::quat localHeadOrientation = glm::quat();  // avatar space (-z forward)
-        glm::vec3 localHeadPosition = glm::vec3();     // avatar space
+        glm::quat localHeadOrientation = glm::quat();  // rig space (-z forward)
+        glm::vec3 localHeadPosition = glm::vec3();     // rig space
         bool isInHMD = false;
         int leanJointIndex = -1;
         int neckJointIndex = -1;
@@ -63,10 +63,10 @@ public:
     struct HandParameters {
         bool isLeftEnabled;
         bool isRightEnabled;
-        glm::vec3 leftPosition = glm::vec3();     // avatar space
-        glm::quat leftOrientation = glm::quat();  // avatar space (z forward)
-        glm::vec3 rightPosition = glm::vec3();    // avatar space
-        glm::quat rightOrientation = glm::quat(); // avatar space (z forward)
+        glm::vec3 leftPosition = glm::vec3();     // rig space
+        glm::quat leftOrientation = glm::quat();  // rig space (z forward)
+        glm::vec3 rightPosition = glm::vec3();    // rig space
+        glm::quat rightOrientation = glm::quat(); // rig space (z forward)
         float leftTrigger = 0.0f;
         float rightTrigger = 0.0f;
     };
@@ -90,8 +90,8 @@ public:
 
     void setModelOffset(const glm::mat4& modelOffsetMat);
 
-    bool getJointStateRotation(int index, glm::quat& rotation) const;
-    bool getJointStateTranslation(int index, glm::vec3& translation) const;
+    bool getJointStateRotation(int index, glm::quat& rotation) const;       // geometry space
+    bool getJointStateTranslation(int index, glm::vec3& translation) const; // geometry space
 
     void clearJointState(int index);
     void clearJointStates();
@@ -146,8 +146,8 @@ public:
 
     const glm::vec3& getEyesInRootFrame() const { return _eyesInRootFrame; }
 
-    AnimPose getAbsoluteDefaultPose(int index) const;  // avatar space
-    const AnimPoseVec& getAbsoluteDefaultPoses() const;  // avatar space
+    AnimPose getAbsoluteDefaultPose(int index) const;  // rig space
+    const AnimPoseVec& getAbsoluteDefaultPoses() const;  // rig space
 
     void copyJointsIntoJointData(QVector<JointData>& jointDataVec) const;
     void copyJointsFromJointData(const QVector<JointData>& jointDataVec);
@@ -167,14 +167,15 @@ public:
 
     void computeEyesInRootFrame(const AnimPoseVec& poses);
 
-    AnimPose _modelOffset;  // model to avatar space (without 180 flip)
+    AnimPose _modelOffset;  // model to rig space (without 180 flip)
     AnimPose _geometryOffset; // geometry to model space (includes unit offset & fst offsets)
+
     AnimPoseVec _relativePoses; // geometry space relative to parent.
-    AnimPoseVec _absolutePoses; // avatar space, not relative to parent.
+    AnimPoseVec _absolutePoses; // rig space, not relative to parent. (without 180 flip)
     AnimPoseVec _overridePoses; // geometry space relative to parent.
     std::vector<bool> _overrideFlags;
 
-    AnimPoseVec _absoluteDefaultPoses; // avatar space, not relative to parent.
+    AnimPoseVec _absoluteDefaultPoses; // rig space, not relative to parent.
 
     glm::mat4 _geometryToRigTransform;
     glm::mat4 _rigToGeometryTransform;
