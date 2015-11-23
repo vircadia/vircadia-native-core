@@ -128,7 +128,7 @@ void main(void) {
     
     vec4 clipPos;
     vec4 eyePos = vec4(anchorPoint.xyz + quadPos.xyz, 1.0);
-    <$transformEyeToClip(cam, eyePos, clipPos)$>
+    <$transformEyeToClipPos(cam, eyePos, clipPos)$>
     gl_Position = clipPos;
     
     
