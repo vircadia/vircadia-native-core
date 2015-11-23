@@ -7,6 +7,11 @@ if (WIN32)
 endif ()
 target_quazip()
 
+set_target_properties(
+  ${TARGET_NAME} PROPERTIES
+  EXCLUDE_FROM_ALL TRUE
+)
+
 if (DEFINED ENV{JOB_ID})
   set(PR_BUILD "false")
   set(BUILD_SEQ $ENV{JOB_ID})
@@ -38,12 +43,6 @@ if (APPLE)
   set(MACOSX_BUNDLE_ICON_FILE icon.icns)
   set_source_files_properties(${CMAKE_CURRENT_SOURCE_DIR}/assets/icon.icns PROPERTIES MACOSX_PACKAGE_LOCATION Resources)
   set(SM_SRCS ${SM_SRCS} "${CMAKE_CURRENT_SOURCE_DIR}/assets/icon.icns")
-else ()
-  if (WIN32)
-#    add_executable(${TARGET_NAME} WIN32 ${SM_SRCS} windows_icon.rc)
-  else ()
-#    add_executable(${TARGET_NAME} ${SM_SRCS})
-  endif ()
 endif ()
 
 package_libraries_for_deployment()
