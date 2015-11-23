@@ -42,6 +42,10 @@ public:
 
     void aboutToFinish(); /// call this to inform the persist thread that the owner is about to finish to support final persist
 
+    QString getPersistFilename() const { return _filename; }
+    QString getPersistFileMimeType() const;
+    QByteArray getPersistFileContents() const;
+
 signals:
     void loadCompleted();
 

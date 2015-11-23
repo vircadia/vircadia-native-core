@@ -21,11 +21,10 @@
 
 const float MAX_AXIS = 75.0f;  // max forward = 2x speed
 
-static std::shared_ptr<SpacemouseDevice> instance;
-SpacemouseDevice::SpacemouseDevice() :
-InputDevice("Spacemouse")
+static std::shared_ptr<SpacemouseDevice> instance = std::make_shared<SpacemouseDevice>();
+
+SpacemouseDevice::SpacemouseDevice() : InputDevice("Spacemouse")
 {
-    instance = std::shared_ptr<SpacemouseDevice>(this);
 }
 
 void SpacemouseDevice::focusOutEvent() {
@@ -116,14 +115,6 @@ void SpacemouseDevice::update(float deltaTime, bool jointsCaptured) {
     // the update is done in the SpacemouseManager class.
     // for windows in the nativeEventFilter the inputmapper is connected or registed or removed when an 3Dconnnexion device is attached or detached
     // for osx the api will call DeviceAddedHandler or DeviceRemoveHandler when a 3Dconnexion device is attached or detached
-}
-
-SpacemouseManager& SpacemouseManager::getInstance() {
-    static SpacemouseManager sharedInstance;
-    if (instance == nullptr) {
-        new SpacemouseDevice();
-    }
-    return sharedInstance;
 }
 
 void SpacemouseManager::ManagerFocusOutEvent() {

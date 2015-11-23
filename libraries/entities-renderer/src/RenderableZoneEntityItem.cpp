@@ -19,6 +19,8 @@
 #include <GeometryCache.h>
 #include <PerfStat.h>
 
+#include "RenderableEntityItem.h"
+
 // Sphere entities should fit inside a cube entity of the same size, so a sphere that has dimensions 1x1x1
 // is a half unit sphere.  However, the geometry cache renders a UNIT sphere, so we need to scale down.
 static const float SPHERE_ENTITY_SCALE = 0.5f;
@@ -114,7 +116,9 @@ void RenderableZoneEntityItem::render(RenderArgs* args) {
                     render::ScenePointer scene = AbstractViewStateInterface::instance()->getMain3DScene();
                     render::PendingChanges pendingChanges;
                     _model->removeFromScene(scene, pendingChanges);
-                    _model->addToScene(scene, pendingChanges);
+                    render::Item::Status::Getters statusGetters;
+                    makeEntityItemStatusGetters(getThisPointer(), statusGetters);
+                    _model->addToScene(scene, pendingChanges, false);
                     
                     scene->enqueuePendingChanges(pendingChanges);
                     
@@ -205,7 +209,11 @@ bool RenderableZoneEntityItem::addToScene(EntityItemPointer self, std::shared_pt
     
     auto renderData = std::make_shared<RenderableZoneEntityItemMeta>(self);
     auto renderPayload = std::make_shared<RenderableZoneEntityItemMeta::Payload>(renderData);
-    
+
+    render::Item::Status::Getters statusGetters;
+    makeEntityItemStatusGetters(getThisPointer(), statusGetters);
+    renderPayload->addStatusGetters(statusGetters);
+
     pendingChanges.resetItem(_myMetaItem, renderPayload);
     return true;
 }

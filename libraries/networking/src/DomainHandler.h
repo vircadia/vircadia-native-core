@@ -35,7 +35,7 @@ class DomainHandler : public QObject {
 public:
     DomainHandler(QObject* parent = 0);
     
-    void clearConnectionInfo();
+    void disconnect();
     void clearSettings();
 
     const QUuid& getUUID() const { return _uuid; }
@@ -113,6 +113,7 @@ signals:
     void settingsReceiveFail();
 
 private:
+    void sendDisconnectPacket();
     void hardReset();
 
     QUuid _uuid;
@@ -126,8 +127,8 @@ private:
     NetworkPeer _icePeer;
     bool _isConnected;
     QJsonObject _settingsObject;
-    int _failedSettingsRequests;
     QString _pendingPath;
+    QTimer _settingsTimer;
 };
 
 #endif // hifi_DomainHandler_h

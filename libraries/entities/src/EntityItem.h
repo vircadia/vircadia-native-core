@@ -31,6 +31,7 @@
 #include "EntityTypes.h"
 #include "SimulationOwner.h"
 #include "SimulationFlags.h"
+#include "EntityActionInterface.h"
 
 class EntitySimulation;
 class EntityTreeElement;
@@ -276,6 +277,7 @@ public:
 
     QString getName() const { return _name; }
     void setName(const QString& value) { _name = value; }
+    QString getDebugName() { return _name != "" ? _name : getID().toString(); }
 
     bool getVisible() const { return _visible; }
     void setVisible(bool value) { _visible = value; }
@@ -360,6 +362,7 @@ public:
     void setPhysicsInfo(void* data) { _physicsInfo = data; }
     EntityTreeElementPointer getElement() const { return _element; }
     EntityTreePointer getTree() const;
+    bool wantTerseEditLogging();
 
     static void setSendPhysicsUpdates(bool value) { _sendPhysicsUpdates = value; }
     static bool getSendPhysicsUpdates() { return _sendPhysicsUpdates; }
@@ -385,12 +388,24 @@ public:
     QList<QUuid> getActionIDs() { return _objectActions.keys(); }
     QVariantMap getActionArguments(const QUuid& actionID) const;
     void deserializeActions();
+
     void setActionDataDirty(bool value) const { _actionDataDirty = value; }
+    bool actionDataDirty() const { return _actionDataDirty; }
+
+    void setActionDataNeedsTransmit(bool value) const { _actionDataNeedsTransmit = value; }
+    bool actionDataNeedsTransmit() const { return _actionDataNeedsTransmit; }
+
     bool shouldSuppressLocationEdits() const;
 
     void setSourceUUID(const QUuid& sourceUUID) { _sourceUUID = sourceUUID; }
     const QUuid& getSourceUUID() const { return _sourceUUID; }
-    bool matchesSourceUUID(const QUuid& sourceUUID) const  { return _sourceUUID == sourceUUID; }
+    bool matchesSourceUUID(const QUuid& sourceUUID) const { return _sourceUUID == sourceUUID; }
+
+    QList<EntityActionPointer> getActionsOfType(EntityActionType typeToGet);
+
+    // these are in the frame of this object
+    virtual glm::quat getJointRotation(int index) const { return glm::quat(); }
+    virtual glm::vec3 getJointTranslation(int index) const { return glm::vec3(0.0f); }
 
 protected:
 
@@ -419,7 +434,7 @@ protected:
     mutable bool _recalcAABox = true;
     mutable bool _recalcMinAACube = true;
     mutable bool _recalcMaxAACube = true;
-    
+
     float _glowLevel;
     float _localRenderAlpha;
     float _density = ENTITY_ITEM_DEFAULT_DENSITY; // kg/m^3
@@ -490,6 +505,7 @@ protected:
     void checkWaitingToRemove(EntitySimulation* simulation = nullptr);
     mutable QSet<QUuid> _actionsToRemove;
     mutable bool _actionDataDirty = false;
+    mutable bool _actionDataNeedsTransmit = false;
     // _previouslyDeletedActions is used to avoid an action being re-added due to server round-trip lag
     static quint64 _rememberDeletedActionTime;
     mutable QHash<QUuid, quint64> _previouslyDeletedActions;

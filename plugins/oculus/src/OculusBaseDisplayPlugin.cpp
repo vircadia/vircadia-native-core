@@ -29,6 +29,7 @@ glm::mat4 OculusBaseDisplayPlugin::getProjection(Eye eye, const glm::mat4& baseP
 void OculusBaseDisplayPlugin::resetSensors() {
 #if (OVR_MAJOR_VERSION >= 6)
     ovr_RecenterPose(_hmd);
+    preRender();
 #endif
 }
 

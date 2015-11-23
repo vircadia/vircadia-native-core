@@ -94,6 +94,7 @@ const float ParticleEffectEntityItem::DEFAULT_RADIUS_SPREAD = 0.0f;
 const float ParticleEffectEntityItem::DEFAULT_RADIUS_START = DEFAULT_PARTICLE_RADIUS;
 const float ParticleEffectEntityItem::DEFAULT_RADIUS_FINISH = DEFAULT_PARTICLE_RADIUS;
 const QString ParticleEffectEntityItem::DEFAULT_TEXTURES = "";
+const bool ParticleEffectEntityItem::DEFAULT_ADDITIVE_BLENDING = false;
 
 
 EntityItemPointer ParticleEffectEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
@@ -123,7 +124,10 @@ ParticleEffectEntityItem::ParticleEffectEntityItem(const EntityItemID& entityIte
     _alphaMiddles(DEFAULT_MAX_PARTICLES, DEFAULT_ALPHA),
     _alphaFinishes(DEFAULT_MAX_PARTICLES, DEFAULT_ALPHA),
     _particleMaxBound(glm::vec3(1.0f, 1.0f, 1.0f)),
-    _particleMinBound(glm::vec3(-1.0f, -1.0f, -1.0f)) {
+    _particleMinBound(glm::vec3(-1.0f, -1.0f, -1.0f)) ,
+    _additiveBlending(DEFAULT_ADDITIVE_BLENDING)
+{
+
     _type = EntityTypes::ParticleEffect;
     setColor(DEFAULT_COLOR);
 }
@@ -354,6 +358,8 @@ EntityItemProperties ParticleEffectEntityItem::getProperties(EntityPropertyFlags
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(alphaStart, getAlphaStart);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(alphaFinish, getAlphaFinish);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(textures, getTextures);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(additiveBlending, getAdditiveBlending);
+
 
     return properties;
 }
@@ -391,6 +397,7 @@ bool ParticleEffectEntityItem::setProperties(const EntityItemProperties& propert
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(alphaStart, setAlphaStart);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(alphaFinish, setAlphaFinish);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(textures, setTextures);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(additiveBlending, setAdditiveBlending);
 
     if (somethingChanged) {
         bool wantDebug = false;
@@ -482,6 +489,10 @@ int ParticleEffectEntityItem::readEntitySubclassDataFromBuffer(const unsigned ch
         READ_ENTITY_PROPERTY(PROP_AZIMUTH_FINISH, float, setAzimuthFinish);
     }
 
+    if (args.bitstreamVersion >= VERSION_ENTITIES_PARTICLES_ADDITIVE_BLENDING) {
+        READ_ENTITY_PROPERTY(PROP_ADDITIVE_BLENDING, bool, setAdditiveBlending);
+    }
+
     return bytesRead;
 }
 
@@ -519,6 +530,7 @@ EntityPropertyFlags ParticleEffectEntityItem::getEntityProperties(EncodeBitstrea
     requestedProperties += PROP_POLAR_FINISH;
     requestedProperties += PROP_AZIMUTH_START;
     requestedProperties += PROP_AZIMUTH_FINISH;
+    requestedProperties += PROP_ADDITIVE_BLENDING;
 
     return requestedProperties;
 }
@@ -561,6 +573,7 @@ void ParticleEffectEntityItem::appendSubclassData(OctreePacketData* packetData, 
     APPEND_ENTITY_PROPERTY(PROP_POLAR_FINISH, getPolarFinish());
     APPEND_ENTITY_PROPERTY(PROP_AZIMUTH_START, getAzimuthStart());
     APPEND_ENTITY_PROPERTY(PROP_AZIMUTH_FINISH, getAzimuthFinish());
+    APPEND_ENTITY_PROPERTY(PROP_ADDITIVE_BLENDING, getAdditiveBlending());
 }
 
 bool ParticleEffectEntityItem::isEmittingParticles() const {
@@ -650,7 +663,7 @@ void ParticleEffectEntityItem::stepSimulation(float deltaTime) {
             // move head forward
             _particleHeadIndex = (_particleHeadIndex + 1) % _maxParticles;
         } else {
-            float age = 1.0f - _particleLifetimes[i] / _lifespan;  // 0.0 .. 1.0
+            float age = _particleLifetimes[i] / _lifespan;  // 0.0 .. 1.0
             updateRadius(i, age);
             updateColor(i, age);
             updateAlpha(i, age);

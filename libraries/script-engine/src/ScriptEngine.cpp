@@ -18,11 +18,13 @@
 #include <QtNetwork/QNetworkReply>
 #include <QtScript/QScriptEngine>
 #include <QtScript/QScriptValue>
+#include <QtCore/QStringList>
 
 #include <AudioConstants.h>
 #include <AudioEffectOptions.h>
 #include <AvatarData.h>
 #include <EntityScriptingInterface.h>
+#include <MessagesClient.h>
 #include <NetworkAccessManager.h>
 #include <NodeList.h>
 #include <udt/PacketHeaders.h>
@@ -45,6 +47,7 @@
 #include "WebSocketClass.h"
 
 #include "SceneScriptingInterface.h"
+#include "RecordingScriptingInterface.h"
 
 #include "MIDIEvent.h"
 
@@ -59,7 +62,7 @@ static QScriptValue debugPrint(QScriptContext* context, QScriptEngine* engine){
         }
         message += context->argument(i).toString();
     }
-    qCDebug(scriptengine) << "script:print()<<" << message;
+    qCDebug(scriptengine).noquote() << "script:print()<<" << message;  // noquote() so that \n is treated as newline
 
     message = message.replace("\\", "\\\\")
                      .replace("\n", "\\n")
@@ -365,6 +368,7 @@ void ScriptEngine::init() {
     registerGlobalObject("Vec3", &_vec3Library);
     registerGlobalObject("Uuid", &_uuidLibrary);
     registerGlobalObject("AnimationCache", DependencyManager::get<AnimationCache>().data());
+    registerGlobalObject("Messages", DependencyManager::get<MessagesClient>().data());
     qScriptRegisterMetaType(this, animVarMapToScriptValue, animVarMapFromScriptValue);
     qScriptRegisterMetaType(this, resultHandlerToScriptValue, resultHandlerFromScriptValue);
 
@@ -374,6 +378,12 @@ void ScriptEngine::init() {
     auto scriptingInterface = DependencyManager::get<controller::ScriptingInterface>();
     registerGlobalObject("Controller", scriptingInterface.data());
     UserInputMapper::registerControllerTypes(this);
+
+    auto recordingInterface = DependencyManager::get<RecordingScriptingInterface>();
+    registerGlobalObject("Recording", recordingInterface.data());
+
+    registerGlobalObject("Assets", &_assetScriptingInterface);
+    
 }
 
 void ScriptEngine::registerValue(const QString& valueName, QScriptValue value) {
@@ -646,13 +656,14 @@ QScriptValue ScriptEngine::evaluate(const QString& sourceCode, const QString& fi
 }
 
 void ScriptEngine::run() {
-    // TODO: can we add a short circuit for _stoppingAllScripts here? What does it mean to not start running if
-    // we're in the process of stopping?
-
+    if (_stoppingAllScripts) {
+        return; // bail early - avoid setting state in init(), as evaluate() will bail too
+    }
+    
     if (!_isInitialized) {
         init();
     }
-    
+
     _isRunning = true;
     _isFinished = false;
     if (_wantSignals) {
@@ -900,14 +911,19 @@ void ScriptEngine::include(const QStringList& includeFiles, QScriptValue callbac
     BatchLoader* loader = new BatchLoader(urls);
 
     auto evaluateScripts = [=](const QMap<QUrl, QString>& data) {
+        auto parentURL = _parentURL;
         for (QUrl url : urls) {
             QString contents = data[url];
             if (contents.isNull()) {
                 qCDebug(scriptengine) << "Error loading file: " << url << "line:" << __LINE__;
             } else {
+                // Set the parent url so that path resolution will be relative
+                // to this script's url during its initial evaluation
+                _parentURL = url.toString();
                 QScriptValue result = evaluate(contents, url.toString());
             }
         }
+        _parentURL = parentURL;
 
         if (callback.isFunction()) {
             QScriptValue(callback).call();
@@ -1169,8 +1185,7 @@ void ScriptEngine::refreshFileScript(const EntityItemID& entityID) {
     recurseGuard = false;
 }
 
-
-void ScriptEngine::callEntityScriptMethod(const EntityItemID& entityID, const QString& methodName) {
+void ScriptEngine::callEntityScriptMethod(const EntityItemID& entityID, const QString& methodName, const QStringList& params) {
     if (QThread::currentThread() != thread()) {
         #ifdef THREAD_DEBUGGING
         qDebug() << "*** WARNING *** ScriptEngine::callEntityScriptMethod() called on wrong thread [" << QThread::currentThread() << "], invoking on correct thread [" << thread() << "]  "
@@ -1179,7 +1194,8 @@ void ScriptEngine::callEntityScriptMethod(const EntityItemID& entityID, const QS
 
         QMetaObject::invokeMethod(this, "callEntityScriptMethod",
             Q_ARG(const EntityItemID&, entityID),
-            Q_ARG(const QString&, methodName));
+            Q_ARG(const QString&, methodName),
+            Q_ARG(const QStringList&, params));
         return;
     }
     #ifdef THREAD_DEBUGGING
@@ -1194,6 +1210,7 @@ void ScriptEngine::callEntityScriptMethod(const EntityItemID& entityID, const QS
         if (entityScript.property(methodName).isFunction()) {
             QScriptValueList args;
             args << entityID.toScriptValue(this);
+            args << qScriptValueFromSequence(this, params);
             entityScript.property(methodName).call(entityScript, args);
         }
 

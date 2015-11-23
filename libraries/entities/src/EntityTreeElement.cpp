@@ -18,6 +18,7 @@
 #include "EntityItemProperties.h"
 #include "EntityTree.h"
 #include "EntityTreeElement.h"
+#include "EntityTypes.h"
 
 EntityTreeElement::EntityTreeElement(unsigned char* octalCode) : OctreeElement() {
     init(octalCode);
@@ -591,7 +592,8 @@ bool EntityTreeElement::findDetailedRayIntersection(const glm::vec3& origin, con
                     }
                 } else {
                     // if the entity type doesn't support a detailed intersection, then just return the non-AABox results
-                    if (localDistance < distance) {
+                    // Never intersect with particle effect entities
+                    if (localDistance < distance && EntityTypes::getEntityTypeName(entity->getType()) != "ParticleEffect") {
                         distance = localDistance;
                         face = localFace;
                         surfaceNormal = localSurfaceNormal;
@@ -892,12 +894,19 @@ int EntityTreeElement::readElementDataFromBuffer(const unsigned char* data, int 
                     entityItem = EntityTypes::constructEntityItem(dataAt, bytesLeftToRead, args);
                     if (entityItem) {
                         bytesForThisEntity = entityItem->readEntityDataFromBuffer(dataAt, bytesLeftToRead, args);
-                        addEntityItem(entityItem); // add this new entity to this elements entities
-                        entityItemID = entityItem->getEntityItemID();
-                        _myTree->setContainingElement(entityItemID, getThisPointer());
-                        _myTree->postAddEntity(entityItem);
-                        if (entityItem->getCreated() == UNKNOWN_CREATED_TIME) {
-                            entityItem->recordCreationTime();
+
+                        // don't add if we've recently deleted....
+                        if (!_myTree->isDeletedEntity(entityItem->getID())) {
+                            addEntityItem(entityItem); // add this new entity to this elements entities
+                            entityItemID = entityItem->getEntityItemID();
+                            _myTree->setContainingElement(entityItemID, getThisPointer());
+                            _myTree->postAddEntity(entityItem);
+                            if (entityItem->getCreated() == UNKNOWN_CREATED_TIME) {
+                                entityItem->recordCreationTime();
+                            }
+                        } else {
+                            qDebug() << "Recieved packet for previously deleted entity [" << 
+                                        entityItem->getID() << "] ignoring. (inside " << __FUNCTION__ << ")";
                         }
                     }
                 }

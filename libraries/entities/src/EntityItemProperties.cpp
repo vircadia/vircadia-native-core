@@ -195,6 +195,7 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
     CHECK_PROPERTY_CHANGE(PROP_ALPHA_SPREAD, alphaSpread);
     CHECK_PROPERTY_CHANGE(PROP_ALPHA_START, alphaStart);
     CHECK_PROPERTY_CHANGE(PROP_ALPHA_FINISH, alphaFinish);
+    CHECK_PROPERTY_CHANGE(PROP_ADDITIVE_BLENDING, additiveBlending);
     CHECK_PROPERTY_CHANGE(PROP_MODEL_URL, modelURL);
     CHECK_PROPERTY_CHANGE(PROP_COMPOUND_SHAPE_URL, compoundShapeURL);
     CHECK_PROPERTY_CHANGE(PROP_VISIBLE, visible);
@@ -353,6 +354,8 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine, bool
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_ALPHA_SPREAD, alphaSpread);
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_ALPHA_START, alphaStart);
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_ALPHA_FINISH, alphaFinish);
+        COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_ADDITIVE_BLENDING, additiveBlending);
+        
     }
 
     // Models only
@@ -431,6 +434,7 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine, bool
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_LINE_POINTS, linePoints);
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_NORMALS, normals);
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_STROKE_WIDTHS, strokeWidths);
+        COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_TEXTURES, textures);
     }
 
     // Sitting properties support
@@ -507,6 +511,7 @@ void EntityItemProperties::copyFromScriptValue(const QScriptValue& object, bool 
     COPY_PROPERTY_FROM_QSCRIPTVALUE(alphaSpread, float, setAlphaSpread);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(alphaStart, float, setAlphaStart);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(alphaFinish, float, setAlphaFinish);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(additiveBlending, bool, setAdditiveBlending);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(modelURL, QString, setModelURL);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(compoundShapeURL, QString, setCompoundShapeURL);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(glowLevel, float, setGlowLevel);
@@ -658,6 +663,7 @@ void EntityItemProperties::entityPropertyFlagsFromScriptValue(const QScriptValue
         ADD_PROPERTY_TO_MAP(PROP_ALPHA_SPREAD, AlphaSpread, alphaSpread, float);
         ADD_PROPERTY_TO_MAP(PROP_ALPHA_START, AlphaStart, alphaStart, float);
         ADD_PROPERTY_TO_MAP(PROP_ALPHA_FINISH, AlphaFinish, alphaFinish, float);
+        ADD_PROPERTY_TO_MAP(PROP_ADDITIVE_BLENDING, AdditiveBlending, additiveBlending, bool);
         ADD_PROPERTY_TO_MAP(PROP_MODEL_URL, ModelURL, modelURL, QString);
         ADD_PROPERTY_TO_MAP(PROP_COMPOUND_SHAPE_URL, CompoundShapeURL, compoundShapeURL, QString);
         ADD_PROPERTY_TO_MAP(PROP_REGISTRATION_POINT, RegistrationPoint, registrationPoint, glm::vec3);
@@ -968,6 +974,7 @@ bool EntityItemProperties::encodeEntityEditPacket(PacketType command, EntityItem
                 APPEND_ENTITY_PROPERTY(PROP_ALPHA_SPREAD, properties.getAlphaSpread());
                 APPEND_ENTITY_PROPERTY(PROP_ALPHA_START, properties.getAlphaStart());
                 APPEND_ENTITY_PROPERTY(PROP_ALPHA_FINISH, properties.getAlphaFinish());
+                APPEND_ENTITY_PROPERTY(PROP_ADDITIVE_BLENDING, properties.getAdditiveBlending());
             }
 
             if (properties.getType() == EntityTypes::Zone) {
@@ -1014,6 +1021,7 @@ bool EntityItemProperties::encodeEntityEditPacket(PacketType command, EntityItem
                 APPEND_ENTITY_PROPERTY(PROP_LINE_POINTS, properties.getLinePoints());
                 APPEND_ENTITY_PROPERTY(PROP_NORMALS, properties.getNormals());
                 APPEND_ENTITY_PROPERTY(PROP_STROKE_WIDTHS, properties.getStrokeWidths());
+                APPEND_ENTITY_PROPERTY(PROP_TEXTURES, properties.getTextures());
             }
             
             APPEND_ENTITY_PROPERTY(PROP_MARKETPLACE_ID, properties.getMarketplaceID());
@@ -1251,6 +1259,7 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_ALPHA_SPREAD, float, setAlphaSpread);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_ALPHA_START, float, setAlphaStart);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_ALPHA_FINISH, float, setAlphaFinish);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_ADDITIVE_BLENDING, bool, setAdditiveBlending);
     }
 
     if (properties.getType() == EntityTypes::Zone) {
@@ -1290,6 +1299,7 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_LINE_POINTS, QVector<glm::vec3>, setLinePoints);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_NORMALS, QVector<glm::vec3>, setNormals);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_STROKE_WIDTHS, QVector<float>, setStrokeWidths);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_TEXTURES, QString, setTextures);
     }
 
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_MARKETPLACE_ID, QString, setMarketplaceID);
@@ -1591,6 +1601,9 @@ QList<QString> EntityItemProperties::listChangedProperties() {
     }
     if (alphaFinishChanged()) {
         out += "alphaFinish";
+    }
+    if (additiveBlendingChanged()) {
+        out += "additiveBlending";
     }
     if (modelURLChanged()) {
         out += "modelURL";

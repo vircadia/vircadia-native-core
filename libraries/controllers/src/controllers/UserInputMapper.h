@@ -100,7 +100,7 @@ namespace controller {
         void setSensorToWorldMat(glm::mat4 sensorToWorldMat) { _sensorToWorldMat = sensorToWorldMat; }
         glm::mat4 getSensorToWorldMat() { return _sensorToWorldMat; }
 
-        DevicesMap getDevices() { return _registeredDevices; }
+        const DevicesMap& getDevices() { return _registeredDevices; }
         uint16 getStandardDeviceID() const { return STANDARD_DEVICE; }
         InputDevice::Pointer getStandardDevice() { return _registeredDevices[getStandardDeviceID()]; }
 

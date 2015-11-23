@@ -28,7 +28,7 @@ public:
     EntityMotionState(btCollisionShape* shape, EntityItemPointer item);
     virtual ~EntityMotionState();
 
-    void updateServerPhysicsVariables();
+    void updateServerPhysicsVariables(const QUuid& sessionID);
     virtual bool handleEasyChanges(uint32_t flags, PhysicsEngine* engine);
     virtual bool handleHardAndEasyChanges(uint32_t flags, PhysicsEngine* engine);
 

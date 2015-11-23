@@ -8,6 +8,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+Script.load("away.js");
 Script.load("progress.js");
 Script.load("edit.js");
 Script.load("selectAudioDevice.js");
@@ -18,4 +19,3 @@ Script.load("controllers/handControllerGrab.js");
 Script.load("grab.js");
 Script.load("directory.js");
 Script.load("dialTone.js");
-Script.load("libraries/omniTool.js");

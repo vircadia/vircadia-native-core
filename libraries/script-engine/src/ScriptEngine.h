@@ -19,9 +19,11 @@
 #include <QtCore/QSet>
 #include <QtCore/QWaitCondition>
 #include <QtScript/QScriptEngine>
+#include <QtCore/QStringList>
 
 #include <AnimationCache.h>
 #include <AnimVariant.h>
+#include <AssetClient.h>
 #include <AvatarData.h>
 #include <AvatarHashMap.h>
 #include <LimitedNodeList.h>
@@ -115,7 +117,7 @@ public:
     Q_INVOKABLE void loadEntityScript(const EntityItemID& entityID, const QString& entityScript, bool forceRedownload = false); // will call the preload method once loaded
     Q_INVOKABLE void unloadEntityScript(const EntityItemID& entityID); // will call unload method
     Q_INVOKABLE void unloadAllEntityScripts();
-    Q_INVOKABLE void callEntityScriptMethod(const EntityItemID& entityID, const QString& methodName);
+    Q_INVOKABLE void callEntityScriptMethod(const EntityItemID& entityID, const QString& methodName, const QStringList& params = QStringList());
     Q_INVOKABLE void callEntityScriptMethod(const EntityItemID& entityID, const QString& methodName, const MouseEvent& event);
     Q_INVOKABLE void callEntityScriptMethod(const EntityItemID& entityID, const QString& methodName, const EntityItemID& otherID, const Collision& collision);
 
@@ -193,6 +195,8 @@ private:
     bool _isReloading;
 
     ArrayBufferClass* _arrayBufferClass;
+
+    AssetScriptingInterface _assetScriptingInterface;
 
     QHash<EntityItemID, RegisteredEventHandlers> _registeredHandlers;
     void forwardHandlerCall(const EntityItemID& entityID, const QString& eventName, QScriptValueList eventHanderArgs);

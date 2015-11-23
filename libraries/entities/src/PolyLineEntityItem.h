@@ -67,7 +67,14 @@ class PolyLineEntityItem : public EntityItem {
     
     bool setStrokeWidths(const QVector<float>& strokeWidths);
     const QVector<float>& getStrokeWidths() const{ return _strokeWidths; }
-    
+
+    const QString& getTextures() const { return _textures; }
+    void setTextures(const QString& textures) {
+        if (_textures != textures) {
+            _textures = textures;
+            _texturesChangedFlag = true;
+        }
+    }
     
     virtual ShapeType getShapeType() const { return SHAPE_TYPE_LINE; }
 
@@ -90,6 +97,8 @@ class PolyLineEntityItem : public EntityItem {
     QVector<glm::vec3> _vertices;
     QVector<glm::vec3> _normals;
     QVector<float> _strokeWidths;
+    QString _textures;
+    bool _texturesChangedFlag { false };
     mutable QReadWriteLock _quadReadWriteLock;
 };
 

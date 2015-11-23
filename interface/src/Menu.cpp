@@ -44,22 +44,11 @@
 
 #include "Menu.h"
 
-Menu* Menu::_instance = NULL;
+static const char* const MENU_PROPERTY_NAME = "com.highfidelity.Menu";
 
 Menu* Menu::getInstance() {
-    static QMutex menuInstanceMutex;
-
-    // lock the menu instance mutex to make sure we don't race and create two menus and crash
-    menuInstanceMutex.lock();
-
-    if (!_instance) {
-        qCDebug(interfaceapp, "First call to Menu::getInstance() - initing menu.");
-        _instance = new Menu();
-    }
-
-    menuInstanceMutex.unlock();
-
-    return _instance;
+    static Menu* instance = globalInstance<Menu>(MENU_PROPERTY_NAME);
+    return instance;
 }
 
 Menu::Menu() {
@@ -280,6 +269,9 @@ Menu::Menu() {
                                                                       MenuOption::IndependentMode, 0,
                                                                       false, qApp, SLOT(cameraMenuChanged())));
     cameraModeGroup->addAction(addCheckableActionToQMenuAndActionHash(cameraModeMenu,
+                                                                      MenuOption::CameraEntityMode, 0,
+                                                                      false, qApp, SLOT(cameraMenuChanged())));
+    cameraModeGroup->addAction(addCheckableActionToQMenuAndActionHash(cameraModeMenu,
                                                                       MenuOption::FullscreenMirror, 0, // QML Qt::Key_H,
                                                                       false, qApp, SLOT(cameraMenuChanged())));
 
@@ -465,8 +457,6 @@ Menu::Menu() {
                                            avatar, SLOT(setEnableMeshVisible(bool)));
     addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::DisableEyelidAdjustment, 0, false);
 
-    addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::Connexion, 0, false, &SpacemouseManager::getInstance(), SLOT(toggleSpacemouse(bool)));
-
     addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::ComfortMode, 0, true);
 
     MenuWrapper* handOptionsMenu = developerMenu->addMenu("Hands");
@@ -515,7 +505,6 @@ Menu::Menu() {
     addCheckableActionToQMenuAndActionHash(perfTimerMenu, MenuOption::ExpandOtherAvatarTiming, 0, false);
     addCheckableActionToQMenuAndActionHash(perfTimerMenu, MenuOption::ExpandPaintGLTiming, 0, false);
 
-    addCheckableActionToQMenuAndActionHash(timingMenu, MenuOption::TestPing, 0, true);
     addCheckableActionToQMenuAndActionHash(timingMenu, MenuOption::FrameTimer);
     addActionToQMenuAndActionHash(timingMenu, MenuOption::RunTimingTests, 0, qApp, SLOT(runTests()));
     addCheckableActionToQMenuAndActionHash(timingMenu, MenuOption::PipelineWarnings);

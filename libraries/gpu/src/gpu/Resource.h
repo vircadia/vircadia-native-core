@@ -331,7 +331,7 @@ public:
 
     template <typename T> Iterator<T> begin() { return Iterator<T>(&edit<T>(0), _stride); }
     template <typename T> Iterator<T> end() { return Iterator<T>(&edit<T>(getNum<T>()), _stride); }
-    template <typename T> Iterator<const T> cbegin() const { return Iterator<const T>(&get<T>(0), _stride); }
+    template <typename T> Iterator<const T> cbegin() const { return Iterator<const T>(&get<T>(), _stride); }
     template <typename T> Iterator<const T> cend() const { return Iterator<const T>(&get<T>(getNum<T>()), _stride); }
 
     // the number of elements of the specified type fitting in the view size

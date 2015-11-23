@@ -500,6 +500,15 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
         }
     }
 
+    // before proceeding, check to see if this is an entity that we know has been deleted, which
+    // might happen in the case of out-of-order and/or recorvered packets, if we've deleted the entity
+    // we can confidently ignore this packet
+    EntityTreePointer tree = getTree();
+    if (tree && tree->isDeletedEntity(_id)) {
+        qDebug() << "Recieved packet for previously deleted entity [" << _id << "] ignoring. (inside " << __FUNCTION__ << ")";
+        ignoreServerPacket = true;
+    }
+
     if (ignoreServerPacket) {
         overwriteLocalData = false;
         #ifdef WANT_DEBUG
@@ -630,6 +639,9 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
             dataAt += bytes;
             bytesRead += bytes;
 
+            if (wantTerseEditLogging() && _simulationOwner != newSimOwner) {
+                qCDebug(entities) << "sim ownership for" << getDebugName() << "is now" << newSimOwner;
+            }
             if (_simulationOwner.set(newSimOwner)) {
                 _dirtyFlags |= Simulation::DIRTY_SIMULATOR_ID;
             }
@@ -704,17 +716,7 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
     READ_ENTITY_PROPERTY(PROP_COLLISION_SOUND_URL, QString, setCollisionSoundURL);
     READ_ENTITY_PROPERTY(PROP_HREF, QString, setHref);
     READ_ENTITY_PROPERTY(PROP_DESCRIPTION, QString, setDescription);
-
-    {   // When we own the simulation we don't accept updates to the entity's actions
-        // but since we're using macros below we have to temporarily modify overwriteLocalData.
-        // NOTE: this prevents userB from adding an action to an object1 when UserA 
-        // has simulation ownership of it.
-        // TODO: figure out how to allow multiple users to update actions simultaneously
-        bool oldOverwrite = overwriteLocalData;
-        overwriteLocalData = overwriteLocalData && !weOwnSimulation;
-        READ_ENTITY_PROPERTY(PROP_ACTION_DATA, QByteArray, setActionData);
-        overwriteLocalData = oldOverwrite;
-    }
+    READ_ENTITY_PROPERTY(PROP_ACTION_DATA, QByteArray, setActionData);
 
     READ_ENTITY_PROPERTY(PROP_PARENT_ID, QUuid, setParentID);
     READ_ENTITY_PROPERTY(PROP_PARENT_JOINT_INDEX, quint16, setParentJointIndex);
@@ -740,7 +742,7 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
         // this "new" data is actually slightly out of date. We calculate the time we need to skip forward and
         // use our simulation helper routine to get a best estimate of where the entity should be.
         float skipTimeForward = (float)(now - lastSimulatedFromBufferAdjusted) / (float)(USECS_PER_SECOND);
-        
+
         // we want to extrapolate the motion forward to compensate for packet travel time, but
         // we don't want the side effect of flag setting.
         simulateKinematicMotion(skipTimeForward, false);
@@ -748,7 +750,6 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
 
     if (overwriteLocalData) {
         if (!_simulationOwner.matchesValidID(myNodeID)) {
-
             _lastSimulated = now;
         }
     }
@@ -997,6 +998,11 @@ EntityTreePointer EntityItem::getTree() const {
     EntityTreeElementPointer containingElement = getElement();
     EntityTreePointer tree = containingElement ? containingElement->getTree() : nullptr;
     return tree;
+}
+
+bool EntityItem::wantTerseEditLogging() {
+    EntityTreePointer tree = getTree();
+    return tree ? tree->wantTerseEditLogging() : false;
 }
 
 glm::mat4 EntityItem::getEntityToWorldMatrix() const {
@@ -1567,20 +1573,35 @@ void EntityItem::updateCreated(uint64_t value) {
 }
 
 void EntityItem::setSimulationOwner(const QUuid& id, quint8 priority) {
+    if (wantTerseEditLogging() && (id != _simulationOwner.getID() || priority != _simulationOwner.getPriority())) {
+        qCDebug(entities) << "sim ownership for" << getDebugName() << "is now" << id << priority;
+    }
     _simulationOwner.set(id, priority);
 }
 
 void EntityItem::setSimulationOwner(const SimulationOwner& owner) {
+    if (wantTerseEditLogging() && _simulationOwner != owner) {
+        qCDebug(entities) << "sim ownership for" << getDebugName() << "is now" << owner;
+    }
+
     _simulationOwner.set(owner);
 }
 
 void EntityItem::updateSimulatorID(const QUuid& value) {
+    if (wantTerseEditLogging() && _simulationOwner.getID() != value) {
+        qCDebug(entities) << "sim ownership for" << getDebugName() << "is now" << value;
+    }
+
     if (_simulationOwner.setID(value)) {
         _dirtyFlags |= Simulation::DIRTY_SIMULATOR_ID;
     }
 }
 
 void EntityItem::clearSimulationOwnership() {
+    if (wantTerseEditLogging() && !_simulationOwner.isNull()) {
+        qCDebug(entities) << "sim ownership for" << getDebugName() << "is now null";
+    }
+
     _simulationOwner.clear();
     // don't bother setting the DIRTY_SIMULATOR_ID flag because clearSimulationOwnership()
     // is only ever called entity-server-side and the flags are only used client-side
@@ -1680,6 +1701,7 @@ bool EntityItem::removeActionInternal(const QUuid& actionID, EntitySimulation* s
         bool success = true;
         serializeActions(success, _allActionsDataCache);
         _dirtyFlags |= Simulation::DIRTY_PHYSICS_ACTIVATION;
+        setActionDataNeedsTransmit(true);
         return success;
     }
     return false;
@@ -1719,7 +1741,7 @@ void EntityItem::deserializeActionsInternal() {
         return;
     }
 
-    EntityTreePointer entityTree = _element ? _element->getTree() : nullptr;
+    EntityTreePointer entityTree = getTree();
     assert(entityTree);
     EntitySimulation* simulation = entityTree ? entityTree->getSimulation() : nullptr;
     assert(simulation);
@@ -1835,6 +1857,7 @@ void EntityItem::serializeActions(bool& success, QByteArray& result) const {
     serializedActionsStream << serializedActions;
 
     if (result.size() >= _maxActionsDataSize) {
+        qDebug() << "EntityItem::serializeActions size is too large -- " << result.size() << ">=" << _maxActionsDataSize;
         success = false;
         return;
     }
@@ -1893,4 +1916,19 @@ bool EntityItem::shouldSuppressLocationEdits() const {
     }
 
     return false;
+}
+
+QList<EntityActionPointer> EntityItem::getActionsOfType(EntityActionType typeToGet) {
+    QList<EntityActionPointer> result;
+
+    QHash<QUuid, EntityActionPointer>::const_iterator i = _objectActions.begin();
+    while (i != _objectActions.end()) {
+        EntityActionPointer action = i.value();
+        if (action->getType() == typeToGet && action->isActive()) {
+            result += action;
+        }
+        i++;
+    }
+
+    return result;
 }

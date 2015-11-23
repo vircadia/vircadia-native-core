@@ -12,8 +12,6 @@
 #include "DependencyManager.h"
 #include "SpatiallyNestable.h"
 
-// TODO -- make use of parent joint index
-
 
 SpatiallyNestable::SpatiallyNestable(NestableTypes::NestableType nestableType, QUuid id) :
     _nestableType(nestableType),
@@ -28,7 +26,7 @@ Transform SpatiallyNestable::getParentTransform() const {
     Transform result;
     SpatiallyNestablePointer parent = getParentPointer();
     if (parent) {
-        Transform parentTransform = parent->getTransform();
+        Transform parentTransform = parent->getTransform(_parentJointIndex);
         result = parentTransform.setScale(1.0f);
     }
     return result;
@@ -121,6 +119,14 @@ const glm::vec3& SpatiallyNestable::getPosition() const {
     return _absolutePositionCache;
 }
 
+const glm::vec3& SpatiallyNestable::getPosition(int jointIndex) const {
+    getTransform(); // update _worldTransformCache
+    getJointTransformInObjectFrame(jointIndex); // update _jointInObjectFrameCache
+    _jointInWorldFrameCache.resize(jointIndex);
+    Transform::mult(_jointInWorldFrameCache[jointIndex], _worldTransformCache, _jointInObjectFrameCache[jointIndex]);
+    return _jointInWorldFrameCache[jointIndex].getTranslation();
+}
+
 void SpatiallyNestable::setPosition(const glm::vec3& position) {
     Transform parentTransform = getParentTransform();
     Transform myWorldTransform;
@@ -133,6 +139,14 @@ const glm::quat& SpatiallyNestable::getOrientation() const {
     Transform parentTransformDescaled = getParentTransform();
     _absoluteRotationCache = parentTransformDescaled.getRotation() * getLocalOrientation();
     return _absoluteRotationCache;
+}
+
+const glm::quat& SpatiallyNestable::getOrientation(int jointIndex) const {
+    getTransform(); // update _worldTransformCache
+    getJointTransformInObjectFrame(jointIndex); // update _jointInObjectFrameCache
+    _jointInWorldFrameCache.resize(jointIndex + 1);
+    Transform::mult(_jointInWorldFrameCache[jointIndex], _worldTransformCache, _jointInObjectFrameCache[jointIndex]);
+    return _jointInWorldFrameCache[jointIndex].getRotation();
 }
 
 void SpatiallyNestable::setOrientation(const glm::quat& orientation) {
@@ -149,6 +163,14 @@ const Transform& SpatiallyNestable::getTransform() const {
     return _worldTransformCache;
 }
 
+const Transform& SpatiallyNestable::getTransform(int jointIndex) const {
+    getTransform(); // update _worldTransformCache
+    getJointTransformInObjectFrame(jointIndex); // update _jointInObjectFrameCache
+    _jointInWorldFrameCache.resize(jointIndex + 1);
+    Transform::mult(_jointInWorldFrameCache[jointIndex], _worldTransformCache, _jointInObjectFrameCache[jointIndex]);
+    return _jointInWorldFrameCache[jointIndex];
+}
+
 void SpatiallyNestable::setTransform(const Transform& transform) {
     Transform parentTransform = getParentTransform();
     Transform::inverseMult(_transform, parentTransform, transform);
@@ -156,6 +178,11 @@ void SpatiallyNestable::setTransform(const Transform& transform) {
 
 const glm::vec3& SpatiallyNestable::getScale() const {
     return _transform.getScale();
+}
+
+const glm::vec3& SpatiallyNestable::getScale(int jointIndex) const {
+    // XXX ... something with joints
+    return getScale();
 }
 
 void SpatiallyNestable::setScale(const glm::vec3& scale) {
@@ -203,4 +230,15 @@ QList<SpatiallyNestablePointer> SpatiallyNestable::getChildren() const {
         }
     }
     return children;
+}
+
+
+const Transform& SpatiallyNestable::getJointTransformInObjectFrame(int jointIndex) const {
+    _jointInObjectFrameCache.resize(jointIndex + 1);
+    _jointInObjectFrameCache[jointIndex] = Transform();
+    glm::vec3 position = getJointTranslation(jointIndex);
+    glm::quat orientation = getJointRotation(jointIndex);
+    _jointInObjectFrameCache[jointIndex].setRotation(orientation);
+    _jointInObjectFrameCache[jointIndex].setTranslation(position);
+    return _jointInObjectFrameCache[jointIndex];
 }
