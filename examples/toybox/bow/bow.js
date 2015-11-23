@@ -537,7 +537,7 @@
 
             //shoot the arrow
             if (shouldReleaseArrow === true) {
-                var arrowProperties = Entities.getEntityProperties(this.arrow);
+                var arrowProps = Entities.getEntityProperties(this.arrow);
 
                 //scale the shot strength by the distance you've pulled the arrow back and set its release velocity to be in the direction of the v
                 var arrowForce = this.scaleArrowShotStrength(pullBackDistance);
@@ -552,8 +552,8 @@
                     velocity: releaseVelocity,
                     gravity: ARROW_GRAVITY,
                     lifetime: 10,
-                    position: arrowProperties.position,
-                    rotation: arrowProperties.rotation
+                    // position: arrowProps.position,
+                    // rotation: arrowProps.rotation
                 };
 
                 //actually shoot the arrow and play its sound
