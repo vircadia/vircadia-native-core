@@ -16,7 +16,7 @@
 Script.include("../../libraries/utils.js");
 Script.include("../../libraries/constants.js");
 
-var GUN_FORCE = 10;
+var GUN_FORCE =20;
 
 
 var gameName = "Kill All The Rats!"

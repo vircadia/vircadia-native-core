@@ -40,4 +40,4 @@ function cleanup() {
     Entities.deleteEntity(pistol);
 }
 
-Script.scriptEnding.connect(cleanup);
+// Script.scriptEnding.connect(cleanup);
