@@ -176,7 +176,6 @@
                 z: 0
             };
 
-
             var bow = Entities.addEntity({
                 name: 'Hifi-Bow',
                 type: "Model",
