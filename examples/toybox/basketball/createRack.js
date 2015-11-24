@@ -41,7 +41,7 @@ var rack = Entities.addEntity({
         y: -9.8,
         z: 0
     },
-    linearDamping: 1,
+    damping: 1,
     dimensions: {
         x: 0.4,
         y: 1.37,
@@ -83,7 +83,7 @@ function createBalls() {
                 z: DIAMETER
             },
             restitution: 1.0,
-            linearDamping: 0.00001,
+            damping: 0.00001,
             gravity: {
                 x: 0,
                 y: -9.8,

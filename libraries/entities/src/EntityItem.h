@@ -30,6 +30,7 @@
 #include "EntityTypes.h"
 #include "SimulationOwner.h"
 #include "SimulationFlags.h"
+#include "EntityActionInterface.h"
 
 class EntitySimulation;
 class EntityTreeElement;
@@ -397,6 +398,7 @@ public:
     void getAllTerseUpdateProperties(EntityItemProperties& properties) const;
 
     void flagForOwnership() { _dirtyFlags |= Simulation::DIRTY_SIMULATOR_OWNERSHIP; }
+    void flagForMotionStateChange() { _dirtyFlags |= Simulation::DIRTY_MOTION_TYPE; }
 
     bool addAction(EntitySimulation* simulation, EntityActionPointer action);
     bool updateAction(EntitySimulation* simulation, const QUuid& actionID, const QVariantMap& arguments);
@@ -419,7 +421,9 @@ public:
 
     void setSourceUUID(const QUuid& sourceUUID) { _sourceUUID = sourceUUID; }
     const QUuid& getSourceUUID() const { return _sourceUUID; }
-    bool matchesSourceUUID(const QUuid& sourceUUID) const  { return _sourceUUID == sourceUUID; }
+    bool matchesSourceUUID(const QUuid& sourceUUID) const { return _sourceUUID == sourceUUID; }
+
+    QList<EntityActionPointer> getActionsOfType(EntityActionType typeToGet);
 
 protected:
 

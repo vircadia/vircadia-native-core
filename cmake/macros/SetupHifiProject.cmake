@@ -22,8 +22,11 @@ macro(SETUP_HIFI_PROJECT)
     endif ()
   endforeach()
   
-  # add the executable, include additional optional sources
-  add_executable(${TARGET_NAME} ${TARGET_SRCS} ${AUTOMTC_SRC} ${AUTOSCRIBE_SHADER_LIB_SRC})
+  if (DEFINED BUILD_BUNDLE AND BUILD_BUNDLE AND APPLE)
+    add_executable(${TARGET_NAME} MACOSX_BUNDLE ${TARGET_SRCS} ${AUTOMTC_SRC} ${AUTOSCRIBE_SHADER_LIB_SRC})
+  else ()
+    add_executable(${TARGET_NAME} ${TARGET_SRCS} ${AUTOMTC_SRC} ${AUTOSCRIBE_SHADER_LIB_SRC})
+  endif()
 
   set(${TARGET_NAME}_DEPENDENCY_QT_MODULES ${ARGN})
   list(APPEND ${TARGET_NAME}_DEPENDENCY_QT_MODULES Core)

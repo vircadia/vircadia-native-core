@@ -68,6 +68,7 @@ void EntityTree::eraseAllOctreeElements(bool createNewRoot) {
     Octree::eraseAllOctreeElements(createNewRoot);
 
     resetClientEditStats();
+    clearDeletedEntities();
 }
 
 bool EntityTree::handlesEditPacketType(PacketType packetType) const {
@@ -398,6 +399,9 @@ void EntityTree::processRemovedEntities(const DeleteEntityOperator& theOperator)
             // set up the deleted entities ID
             QWriteLocker locker(&_recentlyDeletedEntitiesLock);
             _recentlyDeletedEntityItemIDs.insert(deletedAt, theEntity->getEntityItemID());
+        } else {
+            // on the client side, we also remember that we deleted this entity, we don't care about the time
+            trackDeletedEntity(theEntity->getEntityItemID());
         }
 
         if (_simulation) {
@@ -702,6 +706,14 @@ void EntityTree::fixupTerseEditLogging(EntityItemProperties& properties, QList<Q
                 changeHint = "1";
             }
             changedProperties[index] = QString("locked:") + changeHint;
+        }
+    }
+
+    if (properties.userDataChanged()) {
+        int index = changedProperties.indexOf("userData");
+        if (index >= 0) {
+            QString changeHint = properties.getUserData();
+            changedProperties[index] = QString("userData:") + changeHint;
         }
     }
 }

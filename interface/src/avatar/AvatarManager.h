@@ -63,7 +63,7 @@ public:
     void handleOutgoingChanges(const VectorOfMotionStates& motionStates);
     void handleCollisionEvents(const CollisionEvents& collisionEvents);
 
-    void updateAvatarPhysicsShape(const QUuid& id);
+    void updateAvatarPhysicsShape(Avatar* avatar);
    
 public slots:
     void setShouldShowReceiveStats(bool shouldShowReceiveStats) { _shouldShowReceiveStats = shouldShowReceiveStats; }
@@ -79,7 +79,9 @@ private:
     virtual AvatarSharedPointer newSharedAvatar();
     virtual AvatarSharedPointer addAvatar(const QUuid& sessionUUID, const QWeakPointer<Node>& mixerWeakPointer);
     void removeAvatarMotionState(AvatarSharedPointer avatar);
+    
     virtual void removeAvatar(const QUuid& sessionUUID);
+    virtual void handleRemovedAvatar(const AvatarSharedPointer& removedAvatar);
     
     QVector<AvatarSharedPointer> _avatarFades;
     std::shared_ptr<MyAvatar> _myAvatar;

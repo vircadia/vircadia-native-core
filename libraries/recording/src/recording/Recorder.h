@@ -10,24 +10,25 @@
 #ifndef hifi_Recording_Recorder_h
 #define hifi_Recording_Recorder_h
 
-#include "Forward.h"
+#include <mutex>
 
 #include <QtCore/QObject>
 #include <QtCore/QElapsedTimer>
+
+#include <DependencyManager.h>
+
+#include "Forward.h"
 
 namespace recording {
 
 // An interface for interacting with clips, creating them by recording or
 // playing them back.  Also serialization to and from files / network sources
-class Recorder : public QObject {
+class Recorder : public QObject, public Dependency {
     Q_OBJECT
 public:
-    using Pointer = std::shared_ptr<Recorder>;
+    Recorder(QObject* parent = nullptr);
 
-    Recorder(QObject* parent = nullptr) : QObject(parent) {}
-    virtual ~Recorder();
-
-    Time position();
+    float position();
 
     // Start recording frames
     void start();
@@ -49,6 +50,10 @@ signals:
     void recordingStateChanged();
 
 private:
+    using Mutex = std::recursive_mutex;
+    using Locker = std::unique_lock<Mutex>;
+
+    Mutex _mutex;
     QElapsedTimer _timer;
     ClipPointer _clip;
     quint64 _elapsed { 0 };

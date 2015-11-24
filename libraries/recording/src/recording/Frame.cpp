@@ -12,6 +12,9 @@
 
 #include <QtCore/QMap>
 
+#include <NumericalConstants.h>
+#include <SharedUtil.h>
+
 using namespace recording;
 
 // FIXME move to shared
@@ -73,7 +76,31 @@ using Locker = std::unique_lock<Mutex>;
 static Mutex mutex;
 static std::once_flag once;
 
+float FrameHeader::frameTimeToSeconds(Frame::Time frameTime) {
+    float result = frameTime;
+    result /= MSECS_PER_SECOND;
+    return result;
+}
 
+uint32_t FrameHeader::frameTimeToMilliseconds(Frame::Time frameTime) {
+    return frameTime;
+}
+
+Frame::Time FrameHeader::frameTimeFromEpoch(quint64 epoch) {
+    auto intervalMicros = (usecTimestampNow() - epoch);
+    intervalMicros /= USECS_PER_MSEC;
+    return (Frame::Time)(intervalMicros);
+}
+
+quint64 FrameHeader::epochForFrameTime(Time frameTime) {
+    auto epoch = usecTimestampNow();
+    epoch -= (frameTime * USECS_PER_MSEC);
+    return epoch;
+}
+
+Frame::Time FrameHeader::secondsToFrameTime(float seconds) {
+    return (Time)(seconds * MSECS_PER_SECOND);
+}
 
 FrameType Frame::registerFrameType(const QString& frameTypeName) {
     Locker lock(mutex);
@@ -103,6 +130,25 @@ Frame::Handler Frame::registerFrameHandler(FrameType type, Handler handler) {
     handlerMap[type] = handler;
     return result;
 }
+
+Frame::Handler Frame::registerFrameHandler(const QString& frameTypeName, Handler handler) {
+    auto frameType = registerFrameType(frameTypeName);
+    return registerFrameHandler(frameType, handler);
+}
+
+void Frame::clearFrameHandler(FrameType type) {
+    Locker lock(mutex);
+    auto iterator = handlerMap.find(type);
+    if (iterator != handlerMap.end()) {
+        handlerMap.erase(iterator);
+    }
+}
+
+void Frame::clearFrameHandler(const QString& frameTypeName) {
+    auto frameType = registerFrameType(frameTypeName);
+    clearFrameHandler(frameType); 
+}
+
 
 void Frame::handleFrame(const Frame::ConstPointer& frame) {
     Handler handler; 

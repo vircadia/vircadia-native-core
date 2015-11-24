@@ -35,6 +35,7 @@
 #include "AssignmentActionFactory.h"
 
 #include "AssignmentClient.h"
+#include "avatars/ScriptableAvatar.h"
 
 const QString ASSIGNMENT_CLIENT_TARGET_NAME = "assignment-client";
 const long long ASSIGNMENT_REQUEST_INTERVAL_MSECS = 1 * 1000;
@@ -48,6 +49,7 @@ AssignmentClient::AssignmentClient(Assignment::Type requestAssignmentType, QStri
 
     QSettings::setDefaultFormat(QSettings::IniFormat);
  
+    auto scriptableAvatar = DependencyManager::set<ScriptableAvatar>();
     auto addressManager = DependencyManager::set<AddressManager>();
 
     // create a NodeList as an unassigned client, must be after addressManager
@@ -198,7 +200,7 @@ void AssignmentClient::sendStatusPacketToACM() {
 }
 
 void AssignmentClient::sendAssignmentRequest() {
-    if (!_currentAssignment) {
+    if (!_currentAssignment && !_isAssigned) {
 
         auto nodeList = DependencyManager::get<NodeList>();
 
@@ -229,8 +231,9 @@ void AssignmentClient::handleCreateAssignmentPacket(QSharedPointer<NLPacket> pac
     // construct the deployed assignment from the packet data
     _currentAssignment = AssignmentFactory::unpackAssignment(*packet);
 
-    if (_currentAssignment) {
+    if (_currentAssignment && !_isAssigned) {
         qDebug() << "Received an assignment -" << *_currentAssignment;
+        _isAssigned = true;
 
         auto nodeList = DependencyManager::get<NodeList>();
 
@@ -309,12 +312,11 @@ void AssignmentClient::handleAuthenticationRequest() {
 }
 
 void AssignmentClient::assignmentCompleted() {
-
     // we expect that to be here the previous assignment has completely cleaned up
     assert(_currentAssignment.isNull());
 
-    // reset our current assignment pointer to NULL now that it has been deleted
-    _currentAssignment = NULL;
+    // reset our current assignment pointer to null now that it has been deleted
+    _currentAssignment = nullptr;
 
     // reset the logging target to the the CHILD_TARGET_NAME
     LogHandler::getInstance().setTargetName(ASSIGNMENT_CLIENT_TARGET_NAME);
@@ -330,4 +332,6 @@ void AssignmentClient::assignmentCompleted() {
     nodeList->setOwnerType(NodeType::Unassigned);
     nodeList->reset();
     nodeList->resetNodeInterestSet();
+    
+    _isAssigned = false;
 }
