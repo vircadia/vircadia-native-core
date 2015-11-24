@@ -32,7 +32,7 @@ public slots:
     void sendStatsPacket();
 
 private slots:
-    void handleAvatarDataPacket(QSharedPointer<ReceivedMessage> packet, SharedNodePointer senderNode);
+    void handleAvatarDataPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode);
     void handleAvatarIdentityPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode);
     void handleAvatarBillboardPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode);
     void handleKillAvatarPacket(QSharedPointer<ReceivedMessage> message);

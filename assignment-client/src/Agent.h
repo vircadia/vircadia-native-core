@@ -63,8 +63,8 @@ private slots:
     void scriptRequestFinished();
     void executeScript();
 
-    void handleAudioPacket(QSharedPointer<ReceivedMessage> packet);
-    void handleOctreePacket(QSharedPointer<ReceivedMessage> packet, SharedNodePointer senderNode);
+    void handleAudioPacket(QSharedPointer<ReceivedMessage> message);
+    void handleOctreePacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode);
     void handleJurisdictionPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode);
 
     void processAgentAvatarAndAudio(float deltaTime);
