@@ -85,6 +85,8 @@ public:
     bool isKeyCaptured(const KeyEvent& event) const;
     bool isJoystickCaptured(int joystickIndex) const;
 
+    void updateInputControllers();
+
 public slots:
 
     virtual void captureKeyEvents(const KeyEvent& event);

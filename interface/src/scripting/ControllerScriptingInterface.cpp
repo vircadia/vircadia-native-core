@@ -89,8 +89,7 @@ controller::InputController* ControllerScriptingInterface::createInputController
     auto icIt = _inputControllers.find(0);
     if (icIt != _inputControllers.end()) {
         return (*icIt).second.get();
-    } 
-
+    }
 
     // Look for device
     DeviceTracker::ID deviceID = DeviceTracker::getDeviceID(deviceName.toStdString());
@@ -120,6 +119,12 @@ controller::InputController* ControllerScriptingInterface::createInputController
 
 void ControllerScriptingInterface::releaseInputController(controller::InputController* input) {
     _inputControllers.erase(input->getKey());
+}
+
+void ControllerScriptingInterface::updateInputControllers() {
+    for (auto it = _inputControllers.begin(); it != _inputControllers.end(); it++) {
+        (*it).second->update();
+    }
 }
 
 InputController::InputController(int deviceTrackerId, int subTrackerId, QObject* parent) :
