@@ -224,7 +224,7 @@ void RenderableModelEntityItem::render(RenderArgs* args) {
             
             // check if the URL has changed
             if (_url != _model->getURL()) {
-                qDebug() << "Updating model URL: " << _url;
+                qDebug().noquote() << "Updating model URL: " << _url.toDisplayString();
                 _model->setURL(_url);
             }
 
