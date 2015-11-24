@@ -29,8 +29,8 @@ public:
     virtual ~EntityMotionState();
 
     void updateServerPhysicsVariables(const QUuid& sessionID);
-    virtual bool handleEasyChanges(uint32_t flags, PhysicsEngine* engine);
-    virtual bool handleHardAndEasyChanges(uint32_t flags, PhysicsEngine* engine);
+    virtual bool handleEasyChanges(uint32_t& flags, PhysicsEngine* engine);
+    virtual bool handleHardAndEasyChanges(uint32_t& flags, PhysicsEngine* engine);
 
     /// \return MOTION_TYPE_DYNAMIC or MOTION_TYPE_STATIC based on params set in EntityItem
     virtual MotionType computeObjectMotionType() const;
