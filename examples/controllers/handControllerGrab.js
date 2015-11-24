@@ -1228,6 +1228,7 @@ function update() {
 Messages.subscribe('Hifi-Beam-Disabler');
 
 handleBeamDisablerMessages = function(channel, message, sender) {
+    print('GOT MESSAGE:::'+message)
     handToDisable = message;
     if (message === 'left') {
         handToDisable = 1;

@@ -441,17 +441,13 @@
             if (this.initialHand === 'left') {
                 triggerLookup=1;
                 this.getStringHandPosition = MyAvatar.getRightPalmPosition;
-               // this.stringTriggerAction = Controller.findAction("RIGHT_HAND_CLICK");
             } else if (this.initialHand === 'right') {
                 this.getStringHandPosition = MyAvatar.getLeftPalmPosition;
                  triggerLookup=0;
-               // this.stringTriggerAction = Controller.findAction("LEFT_HAND_CLICK");
             }
 
             this.triggerValue = Controller.getValue(TRIGGER_CONTROLS[triggerLookup]);
 
-           // this.triggerValue = Controller.getActionValue(this.stringTriggerAction);
-              print('TRIGGER VALUE:::' + this.triggerValue);
 
             if (this.triggerValue < DRAW_STRING_THRESHOLD && this.stringDrawn === true) {
                 // firing the arrow
