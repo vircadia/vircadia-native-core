@@ -63,6 +63,7 @@ public:
 
     static const QString DEFAULT_MODEL_URL;
     const QString& getModelURL() const { return _modelURL; }
+    const QUrl& getParsedModelURL() const { return _parsedModelURL; }
 
     static const QString DEFAULT_COMPOUND_SHAPE_URL;
     const QString& getCompoundShapeURL() const { return _compoundShapeURL; }
@@ -75,7 +76,7 @@ public:
     }
     
     // model related properties
-    void setModelURL(const QString& url) { _modelURL = url; }
+    void setModelURL(const QString& url) { _modelURL = url; _parsedModelURL = QUrl(url); }
     virtual void setCompoundShapeURL(const QString& url);
 
 
@@ -134,6 +135,7 @@ protected:
 
     rgbColor _color;
     QString _modelURL;
+    QUrl _parsedModelURL;
     QString _compoundShapeURL;
 
     AnimationPropertyGroup _animationProperties;
