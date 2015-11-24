@@ -62,6 +62,7 @@ function setupToolBar() {
         visible: true,
     }, true, isRecording);
 }
+toolBar.selectTool(recordIcon, !isRecording);
 
 function mousePressEvent(event) {
     clickedOverlay = Overlays.getOverlayAtPoint({ x: event.x, y: event.y });
@@ -77,6 +78,7 @@ function mousePressEvent(event) {
             Messages.sendMessage(MASTER_TO_CLIENTS_CHANNEL, STOP_MESSAGE);
             isRecording = false;
         }
+        toolBar.selectTool(recordIcon, !isRecording);
     }
 }
 
@@ -97,10 +99,12 @@ function update(deltaTime) {
     if (waitingForPerformanceFile) {
         totalWaitingTime += deltaTime;
         if (totalWaitingTime > TIMEOUT || performanceJSON.avatarClips.length === responsesExpected) {
-            print("UPLOADING PERFORMANCE FILE");
             if (performanceJSON.avatarClips.length !== 0) {
+                print("UPLOADING PERFORMANCE FILE");
                 //I can upload the performance file on the asset
                 Assets.uploadData(JSON.stringify(performanceJSON), extension, uploadFinished);
+            } else {
+                print("PERFORMANCE FILE EMPTY");
             }
             //clean things after upload performance file to asset
             waitingForPerformanceFile = false;
