@@ -201,4 +201,4 @@ else (APPLE)
   endif()
 endif (APPLE)
 
-copy_dlls_beside_windows_executable()
+package_libraries_for_deployment()

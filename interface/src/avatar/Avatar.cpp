@@ -40,7 +40,6 @@
 #include "Menu.h"
 #include "ModelReferential.h"
 #include "Physics.h"
-#include "Recorder.h"
 #include "Util.h"
 #include "world.h"
 #include "InterfaceLogging.h"

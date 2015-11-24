@@ -154,7 +154,7 @@ void AvatarManager::simulateAvatarFades(float deltaTime) {
     QVector<AvatarSharedPointer>::iterator fadingIterator = _avatarFades.begin();
 
     const float SHRINK_RATE = 0.9f;
-    const float MIN_FADE_SCALE = 0.001f;
+    const float MIN_FADE_SCALE = MIN_AVATAR_SCALE;
 
     render::ScenePointer scene = qApp->getMain3DScene();
     render::PendingChanges pendingChanges;
@@ -162,7 +162,7 @@ void AvatarManager::simulateAvatarFades(float deltaTime) {
         auto avatar = std::static_pointer_cast<Avatar>(*fadingIterator);
         avatar->startUpdate();
         avatar->setTargetScale(avatar->getScale() * SHRINK_RATE, true);
-        if (avatar->getTargetScale() < MIN_FADE_SCALE) {
+        if (avatar->getTargetScale() <= MIN_FADE_SCALE) {
             avatar->removeFromScene(*fadingIterator, scene, pendingChanges);
             fadingIterator = _avatarFades.erase(fadingIterator);
         } else {

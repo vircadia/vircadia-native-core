@@ -244,14 +244,14 @@ void PhysicsEngine::stepSimulation() {
     float timeStep = btMin(dt, MAX_TIMESTEP);
 
     if (_myAvatarController) {
-        // ADEBUG TODO: move this stuff outside and in front of stepSimulation, because
+        // TODO: move this stuff outside and in front of stepSimulation, because
         // the updateShapeIfNecessary() call needs info from MyAvatar and should
         // be done on the main thread during the pre-simulation stuff
         if (_myAvatarController->needsRemoval()) {
             _myAvatarController->setDynamicsWorld(nullptr);
 
             // We must remove any existing contacts for the avatar so that any new contacts will have
-            // valid data.  MyAvatar's RigidBody is the ONLY one in the simulation that does not yet 
+            // valid data.  MyAvatar's RigidBody is the ONLY one in the simulation that does not yet
             // have a MotionState so we pass nullptr to removeContacts().
             removeContacts(nullptr);
         }

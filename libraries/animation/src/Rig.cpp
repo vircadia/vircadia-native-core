@@ -893,23 +893,21 @@ void Rig::updateNeckJoint(int index, const HeadParameters& params) {
 void Rig::updateEyeJoint(int index, const glm::vec3& modelTranslation, const glm::quat& modelRotation, const glm::quat& worldHeadOrientation, const glm::vec3& lookAtSpot, const glm::vec3& saccade) {
     // AJT: TODO: fix eye tracking!
     /*
-    {
-        if (index >= 0 && _jointStates[index].getParentIndex() >= 0) {
-            auto& state = _jointStates[index];
-            auto& parentState = _jointStates[state.getParentIndex()];
+    if (index >= 0 && _jointStates[index].getParentIndex() >= 0) {
+        auto& state = _jointStates[index];
+        auto& parentState = _jointStates[state.getParentIndex()];
 
-            // NOTE: at the moment we do the math in the world-frame, hence the inverse transform is more complex than usual.
-            glm::mat4 inverse = glm::inverse(glm::mat4_cast(modelRotation) * parentState.getTransform() *
-                                             glm::translate(state.getDefaultTranslationInConstrainedFrame()) *
-                                             state.getPreTransform() * glm::mat4_cast(state.getPreRotation() * state.getDefaultRotation()));
-            glm::vec3 front = glm::vec3(inverse * glm::vec4(worldHeadOrientation * IDENTITY_FRONT, 0.0f));
-            glm::vec3 lookAtDelta = lookAtSpot - modelTranslation;
-            glm::vec3 lookAt = glm::vec3(inverse * glm::vec4(lookAtDelta + glm::length(lookAtDelta) * saccade, 1.0f));
-            glm::quat between = rotationBetween(front, lookAt);
-            const float MAX_ANGLE = 30.0f * RADIANS_PER_DEGREE;
-            state.setRotationInConstrainedFrame(glm::angleAxis(glm::clamp(glm::angle(between), -MAX_ANGLE, MAX_ANGLE), glm::axis(between)) *
-                                                state.getDefaultRotation(), DEFAULT_PRIORITY);
-        }
+        // NOTE: at the moment we do the math in the world-frame, hence the inverse transform is more complex than usual.
+        glm::mat4 inverse = glm::inverse(glm::mat4_cast(modelRotation) * parentState.getTransform() *
+                                         glm::translate(state.getUnscaledDefaultTranslation()) *
+                                         state.getPreTransform() * glm::mat4_cast(state.getPreRotation() * state.getDefaultRotation()));
+        glm::vec3 front = glm::vec3(inverse * glm::vec4(worldHeadOrientation * IDENTITY_FRONT, 0.0f));
+        glm::vec3 lookAtDelta = lookAtSpot - modelTranslation;
+        glm::vec3 lookAt = glm::vec3(inverse * glm::vec4(lookAtDelta + glm::length(lookAtDelta) * saccade, 1.0f));
+        glm::quat between = rotationBetween(front, lookAt);
+        const float MAX_ANGLE = 30.0f * RADIANS_PER_DEGREE;
+        state.setRotationInConstrainedFrame(glm::angleAxis(glm::clamp(glm::angle(between), -MAX_ANGLE, MAX_ANGLE), glm::axis(between)) *
+                                            state.getDefaultRotation(), DEFAULT_PRIORITY);
     }
     */
 }

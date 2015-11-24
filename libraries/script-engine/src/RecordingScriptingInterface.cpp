@@ -56,10 +56,12 @@ bool RecordingScriptingInterface::loadRecording(const QString& url) {
     using namespace recording;
 
     auto loader = ClipCache::instance().getClipLoader(url);
-    QEventLoop loop;
-    QObject::connect(loader.data(), &Resource::loaded, &loop, &QEventLoop::quit);
-    QObject::connect(loader.data(), &Resource::failed, &loop, &QEventLoop::quit);
-    loop.exec();
+    if (!loader->isLoaded()) {
+        QEventLoop loop;
+        QObject::connect(loader.data(), &Resource::loaded, &loop, &QEventLoop::quit);
+        QObject::connect(loader.data(), &Resource::failed, &loop, &QEventLoop::quit);
+        loop.exec();
+    }
 
     if (!loader->isLoaded()) {
         qWarning() << "Clip failed to load from " << url;
