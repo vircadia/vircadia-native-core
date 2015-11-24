@@ -23,9 +23,11 @@ var RAT_DIMENSIONS = {
     z: 1.14
 };
 
-var RAT_MODEL_URL = 'http://hifi-content.s3.amazonaws.com/james/rat/ratrotated.fbx';
-var RAT_RUNNING_ANIMATION_URL = 'http://hifi-content.s3.amazonaws.com/james/rat/walk.fbx';
-var RAT_DEATH_ANIMATION_URL = 'http://hifi-content.s3.amazonaws.com/james/rat/death.fbx';
+var RAT_MODEL_URL = 'http://hifi-content.s3.amazonaws.com/james/rat/models/rat_model.fbx';
+var RAT_IDLE_ANIMATION_URL ='http://hifi-content.s3.amazonaws.com/james/rat/animations/idle.fbx';
+var RAT_WALKING_ANIMATION_URL = 'http://hifi-content.s3.amazonaws.com/james/rat/animations/walk.fbx';
+var RAT_RUNNING_ANIMATION_URL = 'http://hifi-content.s3.amazonaws.com/james/rat/animations/run.fbx';
+var RAT_DEATH_ANIMATION_URL = 'http://hifi-content.s3.amazonaws.com/james/rat/animations/death.fbx';
 
 var RAT_IN_NEST_DISTANCE = 3;
 
