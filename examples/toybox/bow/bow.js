@@ -21,10 +21,10 @@
     var ARROW_DIMENSIONS = {
         x: 0.02,
         y: 0.02,
-        z: 0.64
+        z: 0.72
     };
 
-    var ARROW_OFFSET = -0.36;
+    var ARROW_OFFSET = -0.44;
     var ARROW_TIP_OFFSET = 0.32;
     var ARROW_GRAVITY = {
         x: 0,
@@ -521,25 +521,31 @@
             var handToNotch = Vec3.subtract(notchPosition, stringHandPosition);
             var arrowRotation = Quat.rotationBetween(Vec3.FRONT, handToNotch);
 
-            //we draw strings to the rear of the arrow
-            this.setArrowRearPosition(notchPosition, arrowRotation);
+           
 
-            //modulate the sound by the 
+            
             var pullBackDistance = Vec3.length(handToNotch);
             // this.changeStringPullSoundVolume(pullBackDistance);
 
+            if(pullBackDistance>0.6){
+                pullBackDistance = 0.6;
+            }
+
             // //pull the arrow back a bit
-            // var pullBackOffset = Vec3.multiply(handToNotch, -pullBackDistance);
-            // var arrowPosition = Vec3.sum(detectorPosition, pullBackOffset);
+            var pullBackOffset = Vec3.multiply(handToNotch, -pullBackDistance);
+            var arrowPosition = Vec3.sum(notchPosition, pullBackOffset);
 
             // // move it forward a bit
-            // var pushForwardOffset = Vec3.multiply(handToNotch, -ARROW_OFFSET);
-            // var finalArrowPosition = Vec3.sum(arrowPosition, pushForwardOffset);
+            var pushForwardOffset = Vec3.multiply(handToNotch, -ARROW_OFFSET);
+            var finalArrowPosition = Vec3.sum(arrowPosition, pushForwardOffset);
+
+             //we draw strings to the rear of the arrow
+            this.setArrowRearPosition(finalArrowPosition, arrowRotation);
 
             //if we're not shooting, we're updating the arrow's orientation
             if (shouldReleaseArrow !== true) {
                 Entities.editEntity(this.arrow, {
-                    position: notchPosition,
+                    position: finalArrowPosition,
                     rotation: arrowRotation
                 })
             }
@@ -593,7 +599,7 @@
 
         playStringPullSound: function() {
             var audioProperties = {
-                volume: 0.15,
+                volume: 0.10,
                 position: this.bowProperties.position
             };
             this.stringPullInjector = Audio.playSound(this.stringPullSound, audioProperties);
@@ -601,7 +607,7 @@
 
         playShootArrowSound: function(sound) {
             var audioProperties = {
-                volume: 0.20,
+                volume: 0.15,
                 position: this.bowProperties.position
             };
             Audio.playSound(this.shootArrowSound, audioProperties);
@@ -609,7 +615,7 @@
 
         playArrowNotchSound: function() {
             var audioProperties = {
-                volume: 0.25,
+                volume: 0.15,
                 position: this.bowProperties.position
             };
             Audio.playSound(this.arrowNotchSound, audioProperties);
