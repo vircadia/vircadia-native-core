@@ -62,6 +62,7 @@ function setupToolBar() {
         visible: true,
     }, true, isRecording);
 }
+toolBar.selectTool(recordIcon, !isRecording);
 
 function mousePressEvent(event) {
     clickedOverlay = Overlays.getOverlayAtPoint({ x: event.x, y: event.y });
@@ -77,6 +78,7 @@ function mousePressEvent(event) {
             Messages.sendMessage(MASTER_TO_CLIENTS_CHANNEL, STOP_MESSAGE);
             isRecording = false;
         }
+        toolBar.selectTool(recordIcon, !isRecording);
     }
 }
 
