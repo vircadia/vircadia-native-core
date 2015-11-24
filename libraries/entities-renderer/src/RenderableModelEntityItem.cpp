@@ -313,7 +313,27 @@ Model* RenderableModelEntityItem::getModel(EntityTreeRenderer* renderer) {
 }
 
 bool RenderableModelEntityItem::needsToCallUpdate() const {
-    return !_dimensionsInitialized || _needsInitialSimulation || ModelEntityItem::needsToCallUpdate();
+    if (EntityItem::needsToCallUpdate()) {
+        return true;
+    }
+    // these if statements match the structure of those in RenderableModelEntityItem::update
+    if (!_dimensionsInitialized && _model && _model->isActive()) {
+        return true;
+    }
+    if (_model) {
+        if (hasAnimation()) {
+            return true;
+        }
+        bool movingOrAnimating = isMoving() || isAnimatingSomething();
+        if ((movingOrAnimating ||
+             _needsInitialSimulation ||
+             _model->getTranslation() != getPosition() ||
+             _model->getRotation() != getRotation() ||
+             _model->getRegistrationPoint() != getRegistrationPoint())
+            && _model->isActive() && _dimensionsInitialized) {
+            return true;
+        }
+    }
 }
 
 void RenderableModelEntityItem::update(const quint64& now) {
