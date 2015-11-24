@@ -345,7 +345,7 @@ void RenderableModelEntityItem::update(const quint64& now) {
                                   Q_ARG(EntityItemProperties, properties));
     }
 
-    if (!_model || _needsModelReload) {
+    if (_myRenderer && (!_model || _needsModelReload)) {
         // TODO: this getModel() appears to be about 3% of model render time. We should optimize
         PerformanceTimer perfTimer("getModel");
         getModel(_myRenderer);
