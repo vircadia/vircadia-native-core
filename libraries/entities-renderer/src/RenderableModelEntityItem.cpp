@@ -210,54 +210,6 @@ void RenderableModelEntityItem::removeFromScene(EntityItemPointer self, std::sha
     }
 }
 
-void RenderableModelEntityItem::simulate(const quint64& now) {
-    EntityItem::simulate(now);
-
-    if (_model) {
-        // handle animations..
-        if (hasAnimation()) {
-            if (!jointsMapped()) {
-                QStringList modelJointNames = _model->getJointNames();
-                mapJoints(modelJointNames);
-            }
-
-            if (jointsMapped()) {
-                bool newFrame;
-                QVector<glm::quat> frameDataRotations;
-                QVector<glm::vec3> frameDataTranslations;
-                getAnimationFrame(newFrame, frameDataRotations, frameDataTranslations);
-                assert(frameDataRotations.size() == frameDataTranslations.size());
-                if (newFrame) {
-                    for (int i = 0; i < frameDataRotations.size(); i++) {
-                        _model->setJointState(i, true, frameDataRotations[i], frameDataTranslations[i], 1.0f);
-                    }
-                }
-            }
-        }
-
-        bool movingOrAnimating = isMoving() || isAnimatingSomething();
-        if ((movingOrAnimating ||
-             _needsInitialSimulation ||
-             _model->getTranslation() != getPosition() ||
-             _model->getRotation() != getRotation() ||
-             _model->getRegistrationPoint() != getRegistrationPoint())
-            && _model->isActive() && _dimensionsInitialized) {
-            _model->setScaleToFit(true, getDimensions());
-            _model->setSnapModelToRegistrationPoint(true, getRegistrationPoint());
-            _model->setRotation(getRotation());
-            _model->setTranslation(getPosition());
-
-            // make sure to simulate so everything gets set up correctly for rendering
-            {
-                PerformanceTimer perfTimer("_model->simulate");
-                _model->simulate(0.0f);
-            }
-
-            _needsInitialSimulation = false;
-        }
-    }
-}
-
 // NOTE: this only renders the "meta" portion of the Model, namely it renders debugging items, and it handles
 // the per frame simulation/update that might be required if the models properties changed.
 void RenderableModelEntityItem::render(RenderArgs* args) {
@@ -369,14 +321,58 @@ void RenderableModelEntityItem::update(const quint64& now) {
         EntityItemProperties properties;
         auto extents = _model->getMeshExtents();
         properties.setDimensions(extents.maximum - extents.minimum);
-        
+
         qCDebug(entitiesrenderer) << "Autoresizing:" << (!getName().isEmpty() ? getName() : getModelURL());
         QMetaObject::invokeMethod(DependencyManager::get<EntityScriptingInterface>().data(), "editEntity",
                                   Qt::QueuedConnection,
                                   Q_ARG(QUuid, getEntityItemID()),
                                   Q_ARG(EntityItemProperties, properties));
     }
-    
+
+    if (_model) {
+        // handle animations..
+        if (hasAnimation()) {
+            if (!jointsMapped()) {
+                QStringList modelJointNames = _model->getJointNames();
+                mapJoints(modelJointNames);
+            }
+
+            if (jointsMapped()) {
+                bool newFrame;
+                QVector<glm::quat> frameDataRotations;
+                QVector<glm::vec3> frameDataTranslations;
+                getAnimationFrame(newFrame, frameDataRotations, frameDataTranslations);
+                assert(frameDataRotations.size() == frameDataTranslations.size());
+                if (newFrame) {
+                    for (int i = 0; i < frameDataRotations.size(); i++) {
+                        _model->setJointState(i, true, frameDataRotations[i], frameDataTranslations[i], 1.0f);
+                    }
+                }
+            }
+        }
+
+        bool movingOrAnimating = isMoving() || isAnimatingSomething();
+        if ((movingOrAnimating ||
+             _needsInitialSimulation ||
+             _model->getTranslation() != getPosition() ||
+             _model->getRotation() != getRotation() ||
+             _model->getRegistrationPoint() != getRegistrationPoint())
+            && _model->isActive() && _dimensionsInitialized) {
+            _model->setScaleToFit(true, getDimensions());
+            _model->setSnapModelToRegistrationPoint(true, getRegistrationPoint());
+            _model->setRotation(getRotation());
+            _model->setTranslation(getPosition());
+
+            // make sure to simulate so everything gets set up correctly for rendering
+            {
+                PerformanceTimer perfTimer("_model->simulate");
+                _model->simulate(0.0f);
+            }
+
+            _needsInitialSimulation = false;
+        }
+    }
+
     ModelEntityItem::update(now);
 }
 

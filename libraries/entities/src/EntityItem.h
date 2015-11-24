@@ -183,7 +183,7 @@ public:
     quint64 getLastUpdated() const { return _lastUpdated; }
 
     // perform linear extrapolation for SimpleEntitySimulation
-    virtual void simulate(const quint64& now);
+    void simulate(const quint64& now);
     void simulateKinematicMotion(float timeElapsed, bool setFlags=true);
 
     virtual bool needsToCallUpdate() const { return false; }
