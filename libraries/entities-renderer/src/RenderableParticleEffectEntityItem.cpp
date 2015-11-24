@@ -23,7 +23,6 @@
 #include "untextured_particle_frag.h"
 #include "textured_particle_vert.h"
 #include "textured_particle_frag.h"
-#include "textured_particle_alpha_discard_frag.h"
 
 static const size_t VERTEX_PER_PARTICLE = 4;
 
@@ -229,20 +228,6 @@ void RenderableParticleEffectEntityItem::updateRenderItem() {
     for (auto& particle : _particles) {
         particlePrimitives->emplace_back(particle.position, glm::vec2(particle.lifetime, particle.seed));
     }
-
-    // No need to sort if we're doing additive blending
-    if (!_additiveBlending) {
-        // sort particles back to front
-        // NOTE: this is view frustum might be one frame out of date.
-        auto direction = AbstractViewStateInterface::instance()->getCurrentViewFrustum()->getDirection();
-        // Get direction in the entity space
-        direction = glm::inverse(getRotation()) * direction;
-        
-        std::sort(particlePrimitives->begin(), particlePrimitives->end(),
-                  [&](const ParticlePrimitive& lhs, const ParticlePrimitive& rhs) {
-            return glm::dot(lhs.xyz, direction) > glm::dot(rhs.xyz, direction);
-        });
-    }
     
     auto bounds = getAABox();
     auto position = getPosition();
@@ -283,44 +268,29 @@ void RenderableParticleEffectEntityItem::updateRenderItem() {
 }
 
 void RenderableParticleEffectEntityItem::createPipelines() {
-    bool writeToDepthBuffer = false;
-    gpu::State::BlendArg destinationColorBlendArg;
-    if (_additiveBlending) {
-        destinationColorBlendArg = gpu::State::ONE;
-    } else {
-        destinationColorBlendArg = gpu::State::INV_SRC_ALPHA;
-        writeToDepthBuffer = true;
-    }
     if (!_untexturedPipeline) {
         auto state = std::make_shared<gpu::State>();
         state->setCullMode(gpu::State::CULL_BACK);
-        state->setDepthTest(true, writeToDepthBuffer, gpu::LESS_EQUAL);
-        state->setBlendFunction(true, gpu::State::SRC_ALPHA, gpu::State::BLEND_OP_ADD,
-                                destinationColorBlendArg, gpu::State::FACTOR_ALPHA,
-                                gpu::State::BLEND_OP_ADD, gpu::State::ONE);
+        state->setDepthTest(true, false, gpu::LESS_EQUAL);
+        state->setBlendFunction(true, gpu::State::SRC_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::ONE,
+                                gpu::State::FACTOR_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::ONE);
+
         auto vertShader = gpu::ShaderPointer(gpu::Shader::createVertex(std::string(untextured_particle_vert)));
         auto fragShader = gpu::ShaderPointer(gpu::Shader::createPixel(std::string(untextured_particle_frag)));
+
         auto program = gpu::ShaderPointer(gpu::Shader::createProgram(vertShader, fragShader));
         _untexturedPipeline = gpu::PipelinePointer(gpu::Pipeline::create(program, state));
     }
     if (!_texturedPipeline) {
         auto state = std::make_shared<gpu::State>();
         state->setCullMode(gpu::State::CULL_BACK);
-       
+        state->setDepthTest(true, false, gpu::LESS_EQUAL);
+        state->setBlendFunction(true, gpu::State::SRC_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::ONE,
+                                gpu::State::FACTOR_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::ONE);
 
-        bool writeToDepthBuffer = !_additiveBlending;
-        state->setDepthTest(true, writeToDepthBuffer, gpu::LESS_EQUAL);
-        state->setBlendFunction(true, gpu::State::SRC_ALPHA, gpu::State::BLEND_OP_ADD,
-                                destinationColorBlendArg, gpu::State::FACTOR_ALPHA,
-                                gpu::State::BLEND_OP_ADD, gpu::State::ONE);
         auto vertShader = gpu::ShaderPointer(gpu::Shader::createVertex(std::string(textured_particle_vert)));
-        gpu::ShaderPointer fragShader;
-        if (_additiveBlending) {
-           fragShader = gpu::ShaderPointer(gpu::Shader::createPixel(std::string(textured_particle_frag)));
-        } else {
-            //If we are sorting and have no additive blending, we want to discard pixels with low alpha to avoid inter-particle entity artifacts
-            fragShader = gpu::ShaderPointer(gpu::Shader::createPixel(std::string(textured_particle_alpha_discard_frag)));
-        }
+        auto fragShader = gpu::ShaderPointer(gpu::Shader::createPixel(std::string(textured_particle_frag)));
+
         auto program = gpu::ShaderPointer(gpu::Shader::createProgram(vertShader, fragShader));
         _texturedPipeline = gpu::PipelinePointer(gpu::Pipeline::create(program, state));
    
