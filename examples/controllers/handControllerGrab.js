@@ -1214,6 +1214,7 @@ mapping.from([Controller.Standard.LB]).peek().to(leftController.bumperPress);
 Controller.enableMapping(MAPPING_NAME);
 
 var handToDisable = 'none';
+
 function update() {
     if (handToDisable !== 0) {
         leftController.update();
@@ -1225,26 +1226,21 @@ function update() {
 
 Messages.subscribe('Hifi-Beam-Disabler');
 
-handleBeamDisablerMessages = function(channel, message,sender) {
-    print("got message:"+message+" on channel:" + channel + " from sender:"+sender);
+handleBeamDisablerMessages = function(channel, message, sender) {
     handToDisable = message;
-    if(message==='left'){
+    if (message === 'left') {
         handToDisable = 1;
     }
-    if(message==='right'){
+    if (message === 'right') {
         handToDisable = 0;
     }
-
 }
 
 Messages.messageReceived.connect(handleBeamDisablerMessages);
 
-
-
 function cleanup() {
     rightController.cleanup();
     leftController.cleanup();
-    Entities.deleteEntity(beamDisabler);
     Controller.disableMapping(MAPPING_NAME);
 }
 
