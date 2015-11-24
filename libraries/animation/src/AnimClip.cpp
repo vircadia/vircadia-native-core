@@ -129,7 +129,7 @@ void AnimClip::copyFromNetworkAnim() {
                 // so it looks wrong if we enable this code.
                 glm::quat preRotation = animSkeleton.getPreRotation(animJoint);
 #else
-                // TODO: This is legacy approach, this does not work when animations and models do not
+                // TODO: This is the legacy approach, this does not work when animations and models do not
                 // have the same set of pre rotations.  For example when mixing maya models with blender animations.
                 glm::quat preRotation = _skeleton->getRelativeBindPose(skeletonJoint).rot;
 #endif

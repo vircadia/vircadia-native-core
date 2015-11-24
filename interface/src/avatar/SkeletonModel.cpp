@@ -59,7 +59,6 @@ void SkeletonModel::initJointStates() {
         getJointPosition(rootJointIndex, rootModelPosition);
 
         _defaultEyeModelPosition = midEyePosition - rootModelPosition;
-        _defaultEyeModelPosition.z = -_defaultEyeModelPosition.z;
 
         // Skeleton may have already been scaled so unscale it
         _defaultEyeModelPosition = _defaultEyeModelPosition / _scale;
@@ -91,25 +90,20 @@ void SkeletonModel::updateRig(float deltaTime, glm::mat4 parentTransform) {
         if (qApp->getAvatarUpdater()->isHMDMode()) {
             headParams.isInHMD = true;
 
-            // get HMD position from sensor space into world space, and back into model space
-            AnimPose avatarToWorld(glm::vec3(1.0f), myAvatar->getOrientation(), myAvatar->getPosition());
-            glm::mat4 worldToAvatar = glm::inverse((glm::mat4)avatarToWorld);
+            // get HMD position from sensor space into world space, and back into rig space
             glm::mat4 worldHMDMat = myAvatar->getSensorToWorldMatrix() * myAvatar->getHMDSensorMatrix();
-            glm::mat4 hmdMat = worldToAvatar * worldHMDMat;
+            glm::mat4 rigToWorld = createMatFromQuatAndPos(getRotation(), getTranslation());
+            glm::mat4 worldToRig = glm::inverse(rigToWorld);
+            glm::mat4 rigHMDMat = worldToRig * worldHMDMat;
 
-            // in local avatar space (i.e. relative to avatar pos/orientation.)
-            glm::vec3 hmdPosition = extractTranslation(hmdMat);
-            glm::quat hmdOrientation = extractRotation(hmdMat);
-
-            headParams.localHeadPosition = hmdPosition;
-            headParams.localHeadOrientation = hmdOrientation;
-
+            headParams.rigHeadPosition = extractTranslation(rigHMDMat);
+            headParams.rigHeadOrientation = extractRotation(rigHMDMat);
             headParams.worldHeadOrientation = extractRotation(worldHMDMat);
         } else {
             headParams.isInHMD = false;
 
             // We don't have a valid localHeadPosition.
-            headParams.localHeadOrientation = head->getFinalOrientationInLocalFrame();
+            headParams.rigHeadOrientation = Quaternions::Y_180 * head->getFinalOrientationInLocalFrame();
             headParams.worldHeadOrientation = head->getFinalOrientationInWorldFrame();
         }
 
@@ -124,8 +118,8 @@ void SkeletonModel::updateRig(float deltaTime, glm::mat4 parentTransform) {
         auto leftPalm = myAvatar->getHand()->getCopyOfPalmData(HandData::LeftHand);
         if (leftPalm.isValid() && leftPalm.isActive()) {
             handParams.isLeftEnabled = true;
-            handParams.leftPosition = leftPalm.getRawPosition();
-            handParams.leftOrientation = leftPalm.getRawRotation();
+            handParams.leftPosition = Quaternions::Y_180 * leftPalm.getRawPosition();
+            handParams.leftOrientation = Quaternions::Y_180 * leftPalm.getRawRotation();
             handParams.leftTrigger = leftPalm.getTrigger();
         } else {
             handParams.isLeftEnabled = false;
@@ -134,8 +128,8 @@ void SkeletonModel::updateRig(float deltaTime, glm::mat4 parentTransform) {
         auto rightPalm = myAvatar->getHand()->getCopyOfPalmData(HandData::RightHand);
         if (rightPalm.isValid() && rightPalm.isActive()) {
             handParams.isRightEnabled = true;
-            handParams.rightPosition = rightPalm.getRawPosition();
-            handParams.rightOrientation = rightPalm.getRawRotation();
+            handParams.rightPosition = Quaternions::Y_180 * rightPalm.getRawPosition();
+            handParams.rightOrientation = Quaternions::Y_180 * rightPalm.getRawRotation();
             handParams.rightTrigger = rightPalm.getTrigger();
         } else {
             handParams.isRightEnabled = false;
@@ -144,6 +138,7 @@ void SkeletonModel::updateRig(float deltaTime, glm::mat4 parentTransform) {
         _rig->updateFromHandParameters(handParams, deltaTime);
 
         _rig->computeMotionAnimationState(deltaTime, _owningAvatar->getPosition(), _owningAvatar->getVelocity(), _owningAvatar->getOrientation());
+
         // evaluate AnimGraph animation and update jointStates.
         Model::updateRig(deltaTime, parentTransform);
 
@@ -198,8 +193,7 @@ void SkeletonModel::updateRig(float deltaTime, glm::mat4 parentTransform) {
 
 void SkeletonModel::updateAttitude() {
     setTranslation(_owningAvatar->getSkeletonPosition());
-    static const glm::quat refOrientation = glm::angleAxis(PI, glm::vec3(0.0f, 1.0f, 0.0f));
-    setRotation(_owningAvatar->getOrientation() * refOrientation);
+    setRotation(_owningAvatar->getOrientation() * Quaternions::Y_180);
     setScale(glm::vec3(1.0f, 1.0f, 1.0f) * _owningAvatar->getScale());
 }
 

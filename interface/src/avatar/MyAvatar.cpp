@@ -1319,26 +1319,22 @@ void MyAvatar::preRender(RenderArgs* renderArgs) {
 
         auto animSkeleton = _rig->getAnimSkeleton();
 
+        // the rig is in the skeletonModel frame
+        AnimPose xform(glm::vec3(1), _skeletonModel.getRotation(), _skeletonModel.getTranslation());
+
         if (_enableDebugDrawDefaultPose && animSkeleton) {
-            AnimPose xform(glm::vec3(1), getOrientation(), getPosition());
             glm::vec4 gray(0.2f, 0.2f, 0.2f, 0.2f);
             AnimDebugDraw::getInstance().addAbsolutePoses("myAvatarDefaultPoses", animSkeleton, _rig->getAbsoluteDefaultPoses(), xform, gray);
         }
 
         if (_enableDebugDrawAnimPose && animSkeleton) {
-            glm::vec4 cyan(0.1f, 0.6f, 0.6f, 1.0f);
-
-            // getJointTransforms are aligned such that z is forward, not -z.
-            // so they need a 180 flip
-            glm::quat rotY180 = glm::angleAxis((float)M_PI, glm::vec3(0.0f, 1.0f, 0.0f));
-            AnimPose xform(glm::vec3(1), getOrientation() * rotY180, getPosition());
-
             // build absolute AnimPoseVec from rig
             AnimPoseVec absPoses;
             absPoses.reserve(_rig->getJointStateCount());
             for (int i = 0; i < _rig->getJointStateCount(); i++) {
                 absPoses.push_back(AnimPose(_rig->getJointTransform(i)));
             }
+            glm::vec4 cyan(0.1f, 0.6f, 0.6f, 1.0f);
             AnimDebugDraw::getInstance().addAbsolutePoses("myAvatarAnimPoses", animSkeleton, absPoses, xform, cyan);
         }
     }
@@ -1791,42 +1787,33 @@ glm::mat4 MyAvatar::deriveBodyFromHMDSensor() const {
     const glm::quat hmdOrientation = getHMDSensorOrientation();
     const glm::quat hmdOrientationYawOnly = cancelOutRollAndPitch(hmdOrientation);
 
-    /*
-    const glm::vec3 DEFAULT_RIGHT_EYE_POS(-0.3f, 1.6f, 0.0f);
-    const glm::vec3 DEFAULT_LEFT_EYE_POS(0.3f, 1.6f, 0.0f);
-    const glm::vec3 DEFAULT_NECK_POS(0.0f, 1.5f, 0.0f);
-    const glm::vec3 DEFAULT_HIPS_POS(0.0f, 1.0f, 0.0f);
-    */
-
     // 2 meter tall dude
-    const glm::vec3 DEFAULT_RIGHT_EYE_POS(-0.3f, 1.9f, 0.0f);
-    const glm::vec3 DEFAULT_LEFT_EYE_POS(0.3f, 1.9f, 0.0f);
-    const glm::vec3 DEFAULT_NECK_POS(0.0f, 1.70f, 0.0f);
-    const glm::vec3 DEFAULT_HIPS_POS(0.0f, 1.05f, 0.0f);
+    const glm::vec3 DEFAULT_RIG_MIDDLE_EYE_POS(0.0f, 1.9f, 0.0f);
+    const glm::vec3 DEFAULT_RIG_NECK_POS(0.0f, 1.70f, 0.0f);
+    const glm::vec3 DEFAULT_RIG_HIPS_POS(0.0f, 1.05f, 0.0f);
 
     int rightEyeIndex = _rig->indexOfJoint("RightEye");
     int leftEyeIndex = _rig->indexOfJoint("LeftEye");
     int neckIndex = _rig->indexOfJoint("Neck");
     int hipsIndex = _rig->indexOfJoint("Hips");
 
-    glm::vec3 absRightEyePos = rightEyeIndex != -1 ? _rig->getAbsoluteDefaultPose(rightEyeIndex).trans : DEFAULT_RIGHT_EYE_POS;
-    glm::vec3 absLeftEyePos = leftEyeIndex != -1 ? _rig->getAbsoluteDefaultPose(leftEyeIndex).trans : DEFAULT_LEFT_EYE_POS;
-    glm::vec3 absNeckPos = neckIndex != -1 ? _rig->getAbsoluteDefaultPose(neckIndex).trans : DEFAULT_NECK_POS;
-    glm::vec3 absHipsPos = neckIndex != -1 ? _rig->getAbsoluteDefaultPose(hipsIndex).trans : DEFAULT_HIPS_POS;
+    glm::vec3 rigMiddleEyePos = leftEyeIndex != -1 ? _rig->getAbsoluteDefaultPose(leftEyeIndex).trans : DEFAULT_RIG_MIDDLE_EYE_POS;
+    glm::vec3 rigNeckPos = neckIndex != -1 ? _rig->getAbsoluteDefaultPose(neckIndex).trans : DEFAULT_RIG_NECK_POS;
+    glm::vec3 rigHipsPos = hipsIndex != -1 ? _rig->getAbsoluteDefaultPose(hipsIndex).trans : DEFAULT_RIG_HIPS_POS;
 
-    glm::vec3 localEyes = (((absRightEyePos + absLeftEyePos) / 2.0f) - absHipsPos);
-    glm::vec3 localNeck = (absNeckPos - absHipsPos);
+    glm::vec3 localEyes = (rigMiddleEyePos - rigHipsPos);
+    glm::vec3 localNeck = (rigNeckPos - rigHipsPos);
 
     // apply simplistic head/neck model
     // figure out where the avatar body should be by applying offsets from the avatar's neck & head joints.
 
     // eyeToNeck offset is relative full HMD orientation.
     // while neckToRoot offset is only relative to HMDs yaw.
-    glm::vec3 eyeToNeck = hmdOrientation * (localNeck - localEyes);
-    glm::vec3 neckToRoot = hmdOrientationYawOnly * -localNeck;
+    // Y_180 is necessary because rig is z forward and hmdOrientation is -z forward
+    glm::vec3 eyeToNeck = hmdOrientation * Quaternions::Y_180 * (localNeck - localEyes);
+    glm::vec3 neckToRoot = hmdOrientationYawOnly * Quaternions::Y_180 * -localNeck;
     glm::vec3 bodyPos = hmdPosition + eyeToNeck + neckToRoot;
 
-    // avatar facing is determined solely by hmd orientation.
     return createMatFromQuatAndPos(hmdOrientationYawOnly, bodyPos);
 }
 #endif

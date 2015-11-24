@@ -182,7 +182,7 @@ void Rig::initJointStates(const FBXGeometry& geometry, const glm::mat4& modelOff
     _relativePoses.clear();
     _relativePoses = _animSkeleton->getRelativeDefaultPoses();
 
-    buildAbsoluteRigPoses(_relativePoses, _absolutePoses, true);
+    buildAbsoluteRigPoses(_relativePoses, _absolutePoses);
 
     _overridePoses.clear();
     _overridePoses = _animSkeleton->getRelativeDefaultPoses();
@@ -210,7 +210,7 @@ void Rig::reset(const FBXGeometry& geometry) {
     _relativePoses.clear();
     _relativePoses = _animSkeleton->getRelativeDefaultPoses();
 
-    buildAbsoluteRigPoses(_relativePoses, _absolutePoses, true);
+    buildAbsoluteRigPoses(_relativePoses, _absolutePoses);
 
     _overridePoses.clear();
     _overridePoses = _animSkeleton->getRelativeDefaultPoses();
@@ -258,8 +258,7 @@ void Rig::setModelOffset(const glm::mat4& modelOffsetMat) {
         _modelOffset = newModelOffset;
 
         // compute geometryToAvatarTransforms
-        glm::quat yFlip180 = glm::angleAxis(PI, glm::vec3(0.0f, 1.0f, 0.0f));
-        _geometryToRigTransform = AnimPose(glm::vec3(1), yFlip180, glm::vec3()) * _modelOffset * _geometryOffset;
+        _geometryToRigTransform = _modelOffset * _geometryOffset;
         _rigToGeometryTransform = glm::inverse(_geometryToRigTransform);
 
         // rebuild cached default poses
@@ -343,22 +342,18 @@ void Rig::restoreJointTranslation(int index, float fraction, float priority) {
     ASSERT(false);
 }
 
-// AJT: NOTE old code did not have 180 flip!
 bool Rig::getJointPositionInWorldFrame(int jointIndex, glm::vec3& position, glm::vec3 translation, glm::quat rotation) const {
     if (isValid(jointIndex)) {
-        glm::quat yFlip180 = glm::angleAxis(PI, glm::vec3(0.0f, 1.0f, 0.0f));
-        position = (rotation * yFlip180 * _absolutePoses[jointIndex].trans) + translation;
+        position = (rotation * _absolutePoses[jointIndex].trans) + translation;
         return true;
     } else {
         return false;
     }
 }
 
-// AJT: NOTE old code did not have 180 flip!
 bool Rig::getJointPosition(int jointIndex, glm::vec3& position) const {
     if (isValid(jointIndex)) {
-        glm::quat yFlip180 = glm::angleAxis(PI, glm::vec3(0.0f, 1.0f, 0.0f));
-        position = yFlip180 * _absolutePoses[jointIndex].trans;
+        position = _absolutePoses[jointIndex].trans;
         return true;
     } else {
         return false;
@@ -737,7 +732,7 @@ void Rig::updateAnimations(float deltaTime, glm::mat4 rootTransform) {
     }
 
     applyOverridePoses();
-    buildAbsoluteRigPoses(_relativePoses, _absolutePoses, true);
+    buildAbsoluteRigPoses(_relativePoses, _absolutePoses);
 }
 
 void Rig::inverseKinematics(int endIndex, glm::vec3 targetPosition, const glm::quat& targetRotation, float priority,
@@ -859,7 +854,7 @@ void Rig::updateNeckJoint(int index, const HeadParameters& params) {
             glm::vec3 headPos, neckPos;
             glm::quat headRot, neckRot;
 
-            AnimPose hmdPose(glm::vec3(1.0f), params.localHeadOrientation * yFlip180, params.localHeadPosition);
+            AnimPose hmdPose(glm::vec3(1.0f), params.rigHeadOrientation * yFlip180, params.rigHeadPosition);
             computeHeadNeckAnimVars(hmdPose, headPos, headRot, neckPos, neckRot);
 
             // debug rendering
@@ -885,7 +880,7 @@ void Rig::updateNeckJoint(int index, const HeadParameters& params) {
 
         } else {
             _animVars.unset("headPosition");
-            _animVars.set("headRotation", params.localHeadOrientation * yFlip180);
+            _animVars.set("headRotation", params.rigHeadOrientation * yFlip180);
             _animVars.set("headAndNeckType", (int)IKTarget::Type::RotationOnly);
             _animVars.set("headType", (int)IKTarget::Type::RotationOnly);
             _animVars.unset("neckPosition");
@@ -1023,11 +1018,7 @@ void Rig::applyOverridePoses() {
     }
 }
 
-// AJT: TODO: we should ALWAYS have the 180 flip.
-// However currently matrices used for rendering require it.
-// we need to find were the 180 is applied down the pipe and remove it,
-// cluster matrices? render parts?
-void Rig::buildAbsoluteRigPoses(const AnimPoseVec& relativePoses, AnimPoseVec& absolutePosesOut, bool omitY180Flip) {
+void Rig::buildAbsoluteRigPoses(const AnimPoseVec& relativePoses, AnimPoseVec& absolutePosesOut) {
     if (!_animSkeleton) {
         return;
     }
@@ -1047,9 +1038,7 @@ void Rig::buildAbsoluteRigPoses(const AnimPoseVec& relativePoses, AnimPoseVec& a
 
     // transform all absolute poses into rig space.
     AnimPose geometryToRigTransform(_geometryToRigTransform);
-    if (omitY180Flip) {
-        geometryToRigTransform = _modelOffset * _geometryOffset;
-    }
+    geometryToRigTransform = _modelOffset * _geometryOffset;
     for (int i = 0; i < (int)_absolutePoses.size(); i++) {
         absolutePosesOut[i] = geometryToRigTransform * absolutePosesOut[i];
     }

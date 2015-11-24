@@ -42,8 +42,8 @@ public:
         float torsoTwist = 0.0f; // degrees
         bool enableLean = false;
         glm::quat worldHeadOrientation = glm::quat();  // world space (-z forward)
-        glm::quat localHeadOrientation = glm::quat();  // rig space (-z forward)
-        glm::vec3 localHeadPosition = glm::vec3();     // rig space
+        glm::quat rigHeadOrientation = glm::quat();  // rig space (-z forward)
+        glm::vec3 rigHeadPosition = glm::vec3();     // rig space
         bool isInHMD = false;
         int leanJointIndex = -1;
         int neckJointIndex = -1;
@@ -132,7 +132,7 @@ public:
     // legacy
     bool getJointCombinedRotation(int jointIndex, glm::quat& result, const glm::quat& rotation) const;
 
-    // rig space (without y 180 flip)
+    // rig space
     glm::mat4 getJointTransform(int jointIndex) const;
 
     // Start or stop animations as needed.
@@ -183,7 +183,7 @@ public:
     void removeAnimationStateHandler(QScriptValue handler);
     void animationStateHandlerResult(int identifier, QScriptValue result);
 
-    // rig space (without y 180 flip)
+    // rig space
     bool getModelRegistrationPoint(glm::vec3& modelRegistrationPointOut) const;
 
     const glm::vec3& getEyesInRootFrame() const { return _eyesInRootFrame; }
@@ -201,7 +201,7 @@ public:
     bool isValid(int index) const { return _animSkeleton && index >= 0 && index < _animSkeleton->getNumJoints(); }
     void updateAnimationStateHandlers();
     void applyOverridePoses();
-    void buildAbsoluteRigPoses(const AnimPoseVec& relativePoses, AnimPoseVec& absolutePosesOut, bool omitY180Flip = false);
+    void buildAbsoluteRigPoses(const AnimPoseVec& relativePoses, AnimPoseVec& absolutePosesOut);
 
     void updateLeanJoint(int index, float leanSideways, float leanForward, float torsoTwist);
     void updateNeckJoint(int index, const HeadParameters& params);
@@ -212,11 +212,11 @@ public:
 
     void computeEyesInRootFrame(const AnimPoseVec& poses);
 
-    AnimPose _modelOffset;  // model to rig space (without 180 flip)
+    AnimPose _modelOffset;  // model to rig space
     AnimPose _geometryOffset; // geometry to model space (includes unit offset & fst offsets)
 
     AnimPoseVec _relativePoses; // geometry space relative to parent.
-    AnimPoseVec _absolutePoses; // rig space, not relative to parent. (without 180 flip)
+    AnimPoseVec _absolutePoses; // rig space, not relative to parent.
     AnimPoseVec _overridePoses; // geometry space relative to parent.
     std::vector<bool> _overrideFlags;
 
