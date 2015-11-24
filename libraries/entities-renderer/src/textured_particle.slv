@@ -14,21 +14,22 @@
 
 <$declareStandardTransform()$>
 
+struct Radiuses {
+    float start;
+    float middle;
+    float finish;
+    float spread;
+};
+struct Colors {
+    vec4 start;
+    vec4 middle;
+    vec4 finish;
+    vec4 spread;
+};
+
 struct ParticleUniforms {
-    struct {
-        float start;
-        float middle;
-        float finish;
-        float spread;
-    } radius;
-    
-    struct {
-        vec4 start;
-        vec4 middle;
-        vec4 finish;
-        vec4 spread;
-    } color;
-    
+    Radiuses radius;
+    Colors color;
     float lifespan;
 };
 
@@ -44,10 +45,10 @@ out vec2 varTexcoord;
 
 const int NUM_VERTICES_PER_PARTICLE = 4;
 const vec4 UNIT_QUAD[NUM_VERTICES_PER_PARTICLE] = vec4[NUM_VERTICES_PER_PARTICLE](
-    vec4(-1.0, -1.0, 0.0, 1.0),
-    vec4(1.0, -1.0, 0.0, 1.0),
-    vec4(-1.0, 1.0, 0.0, 1.0),
-    vec4(1.0, 1.0, 0.0, 1.0)
+    vec4(-1.0, -1.0, 0.0, 0.0),
+    vec4(1.0, -1.0, 0.0, 0.0),
+    vec4(-1.0, 1.0, 0.0, 0.0),
+    vec4(1.0, 1.0, 0.0, 0.0)
 );
 
 float bezierInterpolate(float y1, float y2, float y3, float u) {

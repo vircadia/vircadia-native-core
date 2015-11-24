@@ -152,7 +152,7 @@ RenderableParticleEffectEntityItem::RenderableParticleEffectEntityItem(const Ent
     ParticleEffectEntityItem(entityItemID, properties) {
 
     // lazy creation of particle system pipeline
-    if (!_untexturedPipeline && !_texturedPipeline) {
+    if (!_untexturedPipeline || !_texturedPipeline) {
         createPipelines();
     }
 }
