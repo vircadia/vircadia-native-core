@@ -78,6 +78,11 @@
 
     var USE_DEBOUNCE = false;
 
+    var TRIGGER_CONTROLS = [
+        Controller.Standard.LT,
+        Controller.Standard.RT,
+    ];
+
     function interval() {
         var lastTime = new Date().getTime();
 
@@ -144,6 +149,8 @@
         },
 
         startNearGrab: function() {
+
+            print('START BOW GRAB')
             if (this.isGrabbed === true) {
                 return false;
             }
@@ -226,6 +233,7 @@
         },
 
         createArrow: function() {
+            print('create arrow')
             this.playArrowNotchSound();
 
             var arrow = Entities.addEntity({
@@ -429,16 +437,21 @@
 
         checkStringHand: function() {
             //invert the hands because our string will be held with the opposite hand of the first one we pick up the bow with
+              var triggerLookup;
             if (this.initialHand === 'left') {
+                triggerLookup=1;
                 this.getStringHandPosition = MyAvatar.getRightPalmPosition;
-                this.stringTriggerAction = Controller.findAction("RIGHT_HAND_CLICK");
+               // this.stringTriggerAction = Controller.findAction("RIGHT_HAND_CLICK");
             } else if (this.initialHand === 'right') {
                 this.getStringHandPosition = MyAvatar.getLeftPalmPosition;
-                this.stringTriggerAction = Controller.findAction("LEFT_HAND_CLICK");
+                 triggerLookup=0;
+               // this.stringTriggerAction = Controller.findAction("LEFT_HAND_CLICK");
             }
 
-            this.triggerValue = Controller.getActionValue(this.stringTriggerAction);
-            //  print('TRIGGER VALUE:::' + this.triggerValue);
+            this.triggerValue = Controller.getValue(TRIGGER_CONTROLS[triggerLookup]);
+
+           // this.triggerValue = Controller.getActionValue(this.stringTriggerAction);
+              print('TRIGGER VALUE:::' + this.triggerValue);
 
             if (this.triggerValue < DRAW_STRING_THRESHOLD && this.stringDrawn === true) {
                 // firing the arrow

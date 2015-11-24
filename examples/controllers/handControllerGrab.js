@@ -1216,6 +1216,7 @@ Controller.enableMapping(MAPPING_NAME);
 var handToDisable = 'none';
 
 function update() {
+  //  print('disabled in update:::'+handToDisable)
     if (handToDisable !== 0) {
         leftController.update();
     }
