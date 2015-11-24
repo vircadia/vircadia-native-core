@@ -477,8 +477,8 @@ void RenderablePolyVoxEntityItem::render(RenderArgs* args) {
     _meshLock.unlock();
 
     if (!_pipeline) {
-        gpu::ShaderPointer vertexShader = gpu::ShaderPointer(gpu::Shader::createVertex(std::string(polyvox_vert)));
-        gpu::ShaderPointer pixelShader = gpu::ShaderPointer(gpu::Shader::createPixel(std::string(polyvox_frag)));
+        gpu::ShaderPointer vertexShader = gpu::Shader::createVertex(std::string(polyvox_vert));
+        gpu::ShaderPointer pixelShader = gpu::Shader::createPixel(std::string(polyvox_frag));
 
         gpu::Shader::BindingSet slotBindings;
         slotBindings.insert(gpu::Shader::Binding(std::string("materialBuffer"), MATERIAL_GPU_SLOT));
@@ -486,14 +486,14 @@ void RenderablePolyVoxEntityItem::render(RenderArgs* args) {
         slotBindings.insert(gpu::Shader::Binding(std::string("yMap"), 1));
         slotBindings.insert(gpu::Shader::Binding(std::string("zMap"), 2));
 
-        gpu::ShaderPointer program = gpu::ShaderPointer(gpu::Shader::createProgram(vertexShader, pixelShader));
+        gpu::ShaderPointer program = gpu::Shader::createProgram(vertexShader, pixelShader);
         gpu::Shader::makeProgram(*program, slotBindings);
 
         auto state = std::make_shared<gpu::State>();
         state->setCullMode(gpu::State::CULL_BACK);
         state->setDepthTest(true, true, gpu::LESS_EQUAL);
 
-        _pipeline = gpu::PipelinePointer(gpu::Pipeline::create(program, state));
+        _pipeline = gpu::Pipeline::create(program, state);
     }
 
     gpu::Batch& batch = *args->_batch;

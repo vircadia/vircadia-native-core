@@ -85,9 +85,9 @@ public:
 uint32_t toCompactColor(const glm::vec4& color);
 
 gpu::ShaderPointer makeShader(const std::string & vertexShaderSrc, const std::string & fragmentShaderSrc, const gpu::Shader::BindingSet & bindings) {
-    auto vs = gpu::ShaderPointer(gpu::Shader::createVertex(vertexShaderSrc));
-    auto fs = gpu::ShaderPointer(gpu::Shader::createPixel(fragmentShaderSrc));
-    auto shader = gpu::ShaderPointer(gpu::Shader::createProgram(vs, fs));
+    auto vs = gpu::Shader::createVertex(vertexShaderSrc);
+    auto fs = gpu::Shader::createPixel(fragmentShaderSrc);
+    auto shader = gpu::Shader::createProgram(vs, fs);
     if (!gpu::Shader::makeProgram(*shader, bindings)) {
         printf("Could not compile shader\n");
         exit(-1);
@@ -172,7 +172,7 @@ public:
         auto state = std::make_shared<gpu::State>();
         state->setMultisampleEnable(true);
         state->setDepthTest(gpu::State::DepthTest { true });
-        _pipeline = gpu::PipelinePointer(gpu::Pipeline::create(shader, state));
+        _pipeline = gpu::Pipeline::create(shader, state);
         _instanceLocation = _pipeline->getProgram()->getUniforms().findLocation("Instanced");
         
         // Clear screen
