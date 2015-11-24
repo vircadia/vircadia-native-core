@@ -7,7 +7,7 @@
 # 
 macro(TARGET_QUAZIP)
   add_dependency_external_projects(quazip)
-  find_package(QUAZIP REQUIRED)
+  find_package(quazip REQUIRED)
   target_include_directories(${TARGET_NAME} PUBLIC ${QUAZIP_INCLUDE_DIRS})
   target_link_libraries(${TARGET_NAME} ${QUAZIP_LIBRARIES})
   if (WIN32)
