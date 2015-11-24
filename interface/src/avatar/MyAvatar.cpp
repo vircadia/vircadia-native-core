@@ -428,7 +428,7 @@ void MyAvatar::updateHMDFollowVelocity() {
         }
         if (_followSpeed > 0.0f) {
             // to compute new velocity we must rotate offset into the world-frame
-            glm::quat sensorToWorldRotation = extractRotation(_sensorToWorldMatrix);
+            glm::quat sensorToWorldRotation = glm::normalize(glm::quat_cast(_sensorToWorldMatrix));
             _followVelocity = _followSpeed * glm::normalize(sensorToWorldRotation * offset);
         }
     }
@@ -982,10 +982,8 @@ void MyAvatar::updateLookAtTargetAvatar() {
     const float KEEP_LOOKING_AT_CURRENT_ANGLE_FACTOR = 1.3f;
     const float GREATEST_LOOKING_AT_DISTANCE = 10.0f;
 
-    AvatarHash hash;
-    DependencyManager::get<AvatarManager>()->withAvatarHash([&] (const AvatarHash& locked) {
-        hash = locked; // make a shallow copy and operate on that, to minimize lock time
-    });
+    AvatarHash hash = DependencyManager::get<AvatarManager>()->getHashCopy();
+    
     foreach (const AvatarSharedPointer& avatarPointer, hash) {
         auto avatar = static_pointer_cast<Avatar>(avatarPointer);
         bool isCurrentTarget = avatar->getIsLookAtTarget();

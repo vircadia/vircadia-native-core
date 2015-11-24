@@ -46,8 +46,8 @@ void EntityServer::handleEntityPacket(QSharedPointer<ReceivedMessage> message, S
     }
 }
 
-OctreeQueryNode* EntityServer::createOctreeQueryNode() {
-    return new EntityNodeData();
+std::unique_ptr<OctreeQueryNode> EntityServer::createOctreeQueryNode() {
+    return std::unique_ptr<OctreeQueryNode> { new EntityNodeData() };
 }
 
 OctreePointer EntityServer::createTree() {

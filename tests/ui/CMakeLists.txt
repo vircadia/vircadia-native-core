@@ -13,4 +13,4 @@ endif()
 # link in the shared libraries
 link_hifi_libraries(shared networking gl gpu ui)
 
-copy_dlls_beside_windows_executable()
+package_libraries_for_deployment()

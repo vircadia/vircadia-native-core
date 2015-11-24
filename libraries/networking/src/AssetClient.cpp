@@ -16,6 +16,7 @@
 #include <QtCore/QBuffer>
 #include <QtCore/QStandardPaths>
 #include <QtCore/QThread>
+#include <QtScript/QScriptEngine>
 #include <QtNetwork/QNetworkDiskCache>
 
 #include "AssetRequest.h"
@@ -375,4 +376,71 @@ void AssetClient::handleNodeKilled(SharedNodePointer node) {
             messageMapIt->second.clear();
         }
     }
+}
+
+void AssetScriptingInterface::uploadData(QString data, QString extension, QScriptValue callback) {
+    QByteArray dataByteArray = data.toUtf8();
+    auto upload = DependencyManager::get<AssetClient>()->createUpload(dataByteArray, extension);
+    if (!upload) {
+        qCWarning(asset_client) << "Error uploading file to asset server";
+        return;
+    }
+
+    QObject::connect(upload, &AssetUpload::finished, this, [this, callback, extension](AssetUpload* upload, const QString& hash) mutable {
+        if (callback.isFunction()) {
+            QString url = "atp://" + hash + "." + extension;
+            QScriptValueList args { url };
+            callback.call(_engine->currentContext()->thisObject(), args);
+        }
+    });
+    upload->start();
+}
+
+AssetScriptingInterface::AssetScriptingInterface(QScriptEngine* engine) :
+    _engine(engine)
+{
+}
+
+void AssetScriptingInterface::downloadData(QString urlString, QScriptValue callback) {
+    const QString ATP_SCHEME { "atp://" };
+
+    if (!urlString.startsWith(ATP_SCHEME)) {
+        return;
+    }
+
+    // Make request to atp
+    auto path = urlString.right(urlString.length() - ATP_SCHEME.length());
+    auto parts = path.split(".", QString::SkipEmptyParts);
+    auto hash = parts.length() > 0 ? parts[0] : "";
+    auto extension = parts.length() > 1 ? parts[1] : "";
+
+    if (hash.length() != SHA256_HASH_HEX_LENGTH) {
+        return;
+    }
+
+    auto assetClient = DependencyManager::get<AssetClient>();
+    auto assetRequest = assetClient->createRequest(hash, extension);
+
+    if (!assetRequest) {
+        return;
+    }
+
+    _pendingRequests << assetRequest;
+
+    connect(assetRequest, &AssetRequest::finished, this, [this, callback](AssetRequest* request) mutable {
+        Q_ASSERT(request->getState() == AssetRequest::Finished);
+
+        if (request->getError() == AssetRequest::Error::NoError) {
+            if (callback.isFunction()) {
+                QString data = QString::fromUtf8(request->getData());
+                QScriptValueList args { data };
+                callback.call(_engine->currentContext()->thisObject(), args);
+            }
+        }
+
+        request->deleteLater();
+        _pendingRequests.remove(request);
+    });
+
+    assetRequest->start();
 }

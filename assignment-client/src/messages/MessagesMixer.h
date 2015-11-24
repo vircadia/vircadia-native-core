@@ -22,7 +22,6 @@ class MessagesMixer : public ThreadedAssignment {
     Q_OBJECT
 public:
     MessagesMixer(ReceivedMessage& message);
-    ~MessagesMixer();
 
 public slots:
     void run();

@@ -9,6 +9,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include <memory>
 #include <signal.h>
 
 #include <AddressManager.h>
@@ -227,8 +228,9 @@ void AssignmentClientMonitor::handleChildStatusPacket(QSharedPointer<ReceivedMes
                 matchingNode = DependencyManager::get<LimitedNodeList>()->addOrUpdateNode
                     (senderID, NodeType::Unassigned, senderSockAddr, senderSockAddr, false, false);
                 
-                childData = new AssignmentClientChildData(Assignment::Type::AllTypes);
-                matchingNode->setLinkedData(childData);
+                auto childData = std::unique_ptr<AssignmentClientChildData>
+                    { new AssignmentClientChildData(Assignment::Type::AllTypes) };
+                matchingNode->setLinkedData(std::move(childData));
             } else {
                 // tell unknown assignment-client child to exit.
                 qDebug() << "Asking unknown child at" << senderSockAddr << "to exit.";

@@ -8,19 +8,28 @@
 
 #include "RecordingScriptingInterface.h"
 
-#include <QThread>
+#include <QtCore/QThread>
 
+#include <NumericalConstants.h>
+#include <Transform.h>
 #include <recording/Deck.h>
 #include <recording/Recorder.h>
 #include <recording/Clip.h>
 #include <recording/Frame.h>
-#include <NumericalConstants.h>
-#include <Transform.h>
+#include <recording/ClipCache.h>
+
+
+#include <QtScript/QScriptValue>
+#include <AssetClient.h>
+#include <AssetUpload.h>
+#include <QtCore/QUrl>
+#include <QtWidgets/QFileDialog>
 
 #include "ScriptEngineLogging.h"
 
 using namespace recording;
 
+static const QString HFR_EXTENSION = "hfr";
 
 RecordingScriptingInterface::RecordingScriptingInterface() {
     _player = DependencyManager::get<Deck>();
@@ -43,21 +52,24 @@ float RecordingScriptingInterface::playerLength() const {
     return _player->length();
 }
 
-void RecordingScriptingInterface::loadRecording(const QString& filename) {
+bool RecordingScriptingInterface::loadRecording(const QString& url) {
     using namespace recording;
 
-    if (QThread::currentThread() != thread()) {
-        QMetaObject::invokeMethod(this, "loadRecording", Qt::BlockingQueuedConnection,
-            Q_ARG(QString, filename));
-        return;
+    auto loader = ClipCache::instance().getClipLoader(url);
+    QEventLoop loop;
+    QObject::connect(loader.data(), &Resource::loaded, &loop, &QEventLoop::quit);
+    QObject::connect(loader.data(), &Resource::failed, &loop, &QEventLoop::quit);
+    loop.exec();
+
+    if (!loader->isLoaded()) {
+        qWarning() << "Clip failed to load from " << url;
+        return false;
     }
 
-    ClipPointer clip = Clip::fromFile(filename);
-    if (!clip) {
-        qWarning() << "Unable to load clip data from " << filename;
-    }
-    _player->queueClip(clip);
+    _player->queueClip(loader->getClip());
+    return true;
 }
+
 
 void RecordingScriptingInterface::startPlaying() {
     if (QThread::currentThread() != thread()) {
@@ -165,6 +177,47 @@ void RecordingScriptingInterface::saveRecording(const QString& filename) {
     }
 
     recording::Clip::toFile(filename, _lastClip);
+}
+
+bool RecordingScriptingInterface::saveRecordingToAsset(QScriptValue getClipAtpUrl) {
+    if (!getClipAtpUrl.isFunction()) {
+        qCWarning(scriptengine) << "The argument is not a function.";
+        return false;
+    }
+
+    if (QThread::currentThread() != thread()) {
+        QMetaObject::invokeMethod(this, "saveRecordingToAsset", Qt::BlockingQueuedConnection,
+            Q_ARG(QScriptValue, getClipAtpUrl));
+        return false;
+    }
+
+    if (!_lastClip) {
+        qWarning() << "There is no recording to save";
+        return false;
+    }
+
+    if (auto upload = DependencyManager::get<AssetClient>()->createUpload(recording::Clip::toBuffer(_lastClip), HFR_EXTENSION)) {
+        QObject::connect(upload, &AssetUpload::finished, this, [=](AssetUpload* upload, const QString& hash) mutable {
+            QString clip_atp_url = "";
+
+            if (upload->getError() == AssetUpload::NoError) {
+
+                clip_atp_url = QString("%1:%2.%3").arg(URL_SCHEME_ATP, hash, upload->getExtension());
+                upload->deleteLater();
+            } else {
+                qCWarning(scriptengine) << "Error during the Asset upload.";
+            }
+
+            QScriptValueList args;
+            args << clip_atp_url;
+            getClipAtpUrl.call(QScriptValue(), args);
+        });
+        upload->start();
+        return true;
+    }
+
+    qCWarning(scriptengine) << "Saving on asset failed.";
+    return false;
 }
 
 void RecordingScriptingInterface::loadLastRecording() {

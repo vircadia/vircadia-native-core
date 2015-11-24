@@ -14,6 +14,8 @@
 
 #include "../octree/OctreeServer.h"
 
+#include <memory>
+
 #include "EntityItem.h"
 #include "EntityServerConsts.h"
 #include "EntityTree.h"
@@ -26,7 +28,7 @@ public:
     ~EntityServer();
 
     // Subclasses must implement these methods
-    virtual OctreeQueryNode* createOctreeQueryNode() override ;
+    virtual std::unique_ptr<OctreeQueryNode> createOctreeQueryNode() override ;
     virtual char getMyNodeType() const override { return NodeType::EntityServer; }
     virtual PacketType getMyQueryMessageType() const override { return PacketType::EntityQuery; }
     virtual const char* getMyServerName() const override { return MODEL_SERVER_NAME; }

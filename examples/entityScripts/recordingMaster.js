@@ -22,12 +22,24 @@ var TOOL_ICON_URL = HIFI_PUBLIC_BUCKET + "images/tools/";
 var ALPHA_ON = 1.0;
 var ALPHA_OFF = 0.7;
 var COLOR_TOOL_BAR = { red: 0, green: 0, blue: 0 };
+var MASTER_TO_CLIENTS_CHANNEL = "startStopChannel";
+var CLIENTS_TO_MASTER_CHANNEL = "resultsChannel";
+var START_MESSAGE = "recordingStarted";
+var STOP_MESSAGE = "recordingEnded";
+var PARTICIPATING_MESSAGE = "participatingToRecording";
+var TIMEOUT = 20;
 
 var toolBar = null;
 var recordIcon;
 var isRecording = false;
-var channel = "groupRecordingChannel";
-Messages.subscribe(channel);
+var performanceJSON = { "avatarClips" : [] };
+var responsesExpected = 0;
+var waitingForPerformanceFile = true;
+var totalWaitingTime = 0;
+var extension = "txt";
+
+
+Messages.subscribe(CLIENTS_TO_MASTER_CHANNEL);
 setupToolBar();
 
 function setupToolBar() {
@@ -50,28 +62,82 @@ function setupToolBar() {
         visible: true,
     }, true, isRecording);
 }
+toolBar.selectTool(recordIcon, !isRecording);
 
 function mousePressEvent(event) {
     clickedOverlay = Overlays.getOverlayAtPoint({ x: event.x, y: event.y });
     if (recordIcon === toolBar.clicked(clickedOverlay, false)) {
         if (!isRecording) {
             print("I'm the master. I want to start recording");
-            var message = "RECONDING STARTED";
-            Messages.sendMessage(channel, message);
+            Messages.sendMessage(MASTER_TO_CLIENTS_CHANNEL, START_MESSAGE);
             isRecording = true;
         } else {
             print("I want to stop recording");
-            var message = "RECONDING ENDED";
-            Messages.sendMessage(channel, message);
+            waitingForPerformanceFile = true;
+            Script.update.connect(update);
+            Messages.sendMessage(MASTER_TO_CLIENTS_CHANNEL, STOP_MESSAGE);
             isRecording = false;
+        }
+        toolBar.selectTool(recordIcon, !isRecording);
+    }
+}
+
+function masterReceivingMessage(channel, message, senderID) {
+    if (channel === CLIENTS_TO_MASTER_CHANNEL) {
+        print("MASTER received message:" + message );
+        if (message === PARTICIPATING_MESSAGE) {
+            //increment the counter of all the participants
+            responsesExpected++;
+        } else if (waitingForPerformanceFile) {
+            //I get an atp url from one participant
+            performanceJSON.avatarClips[performanceJSON.avatarClips.length] = message;
         }
     }
 }
 
+function update(deltaTime) {
+    if (waitingForPerformanceFile) {
+        totalWaitingTime += deltaTime;
+        if (totalWaitingTime > TIMEOUT || performanceJSON.avatarClips.length === responsesExpected) {
+            if (performanceJSON.avatarClips.length !== 0) {
+                print("UPLOADING PERFORMANCE FILE");
+                //I can upload the performance file on the asset
+                Assets.uploadData(JSON.stringify(performanceJSON), extension, uploadFinished);
+            } else {
+                print("PERFORMANCE FILE EMPTY");
+            }
+            //clean things after upload performance file to asset
+            waitingForPerformanceFile = false;
+            responsesExpected = 0;
+            totalWaitingTime = 0;
+            Script.update.disconnect(update);
+            performanceJSON = { "avatarClips" : [] };
+        }
+    }
+}
+
+function uploadFinished(url){
+    //need to print somehow the url here this way the master can copy the url
+    print("PERFORMANCE FILE URL: " + url);
+    Assets.downloadData(url, function (data) {
+        printPerformanceJSON(JSON.parse(data));
+    });
+}
+
+function printPerformanceJSON(obj) {
+    print("some info:");
+    print("downloaded performance file from asset and examinating its content...");
+    var avatarClips = obj.avatarClips;
+    avatarClips.forEach(function(param) {
+        print("clip url obtained: " + param);
+    });
+}
+
 function cleanup() {
     toolBar.cleanup();
-    Messages.unsubscribe(channel);
+    Messages.unsubscribe(CLIENTS_TO_MASTER_CHANNEL);
 }
 
 Script.scriptEnding.connect(cleanup);
 Controller.mousePressEvent.connect(mousePressEvent);
+Messages.messageReceived.connect(masterReceivingMessage);

@@ -36,46 +36,64 @@ void MessagesClient::init() {
     }
 }
 
-void MessagesClient::handleMessagesPacket(QSharedPointer<NLPacketList> packetList, SharedNodePointer senderNode) {
-    QByteArray packetData = packetList->getMessage();
-    QBuffer packet{ &packetData };
-    packet.open(QIODevice::ReadOnly);
-
+void MessagesClient::decodeMessagesPacket(QSharedPointer<ReceivedMessage> receivedMessage, QString& channel, QString& message, QUuid& senderID) {
     quint16 channelLength;
-    packet.read(reinterpret_cast<char*>(&channelLength), sizeof(channelLength));
-    auto channelData = packet.read(channelLength);
-    QString channel = QString::fromUtf8(channelData);
+    receivedMessage->readPrimitive(&channelLength);
+    auto channelData = receivedMessage->read(channelLength);
+    channel = QString::fromUtf8(channelData);
 
     quint16 messageLength;
-    packet.read(reinterpret_cast<char*>(&messageLength), sizeof(messageLength));
-    auto messageData = packet.read(messageLength);
-    QString message = QString::fromUtf8(messageData);
+    receivedMessage->readPrimitive(&messageLength);
+    auto messageData = receivedMessage->read(messageLength);
+    message = QString::fromUtf8(messageData);
 
-    emit messageReceived(channel, message, senderNode->getUUID());
+    QByteArray bytesSenderID = receivedMessage->read(NUM_BYTES_RFC4122_UUID);
+    if (bytesSenderID.length() == NUM_BYTES_RFC4122_UUID) {
+        senderID = QUuid::fromRfc4122(bytesSenderID);
+    } else {
+        QUuid emptyUUID;
+        senderID = emptyUUID; // packet was missing UUID use default instead
+    }
 }
 
-void MessagesClient::sendMessage(const QString& channel, const QString& message) {
+std::unique_ptr<NLPacketList> MessagesClient::encodeMessagesPacket(QString channel, QString message, QUuid senderID) {
+    auto packetList = NLPacketList::create(PacketType::MessagesData, QByteArray(), true, true);
+
+    auto channelUtf8 = channel.toUtf8();
+    quint16 channelLength = channelUtf8.length();
+    packetList->writePrimitive(channelLength);
+    packetList->write(channelUtf8);
+
+    auto messageUtf8 = message.toUtf8();
+    quint16 messageLength = messageUtf8.length();
+    packetList->writePrimitive(messageLength);
+    packetList->write(messageUtf8);
+
+    packetList->write(senderID.toRfc4122());
+
+    return packetList;
+}
+
+
+void MessagesClient::handleMessagesPacket(QSharedPointer<ReceivedMessage> receivedMessage, SharedNodePointer senderNode) {
+    QString channel, message;
+    QUuid senderID;
+    decodeMessagesPacket(receivedMessage, channel, message, senderID);
+    emit messageReceived(channel, message, senderID);
+}
+
+void MessagesClient::sendMessage(QString channel, QString message) {
     auto nodeList = DependencyManager::get<NodeList>();
     SharedNodePointer messagesMixer = nodeList->soloNodeOfType(NodeType::MessagesMixer);
     
     if (messagesMixer) {
-        auto packetList = NLPacketList::create(PacketType::MessagesData, QByteArray(), true, true);
-
-        auto channelUtf8 = channel.toUtf8();
-        quint16 channelLength = channelUtf8.length();
-        packetList->writePrimitive(channelLength);
-        packetList->write(channelUtf8);
-
-        auto messageUtf8 = message.toUtf8();
-        quint16 messageLength = messageUtf8.length();
-        packetList->writePrimitive(messageLength);
-        packetList->write(messageUtf8);
-
+        QUuid senderID = nodeList->getSessionUUID();
+        auto packetList = encodeMessagesPacket(channel, message, senderID);
         nodeList->sendPacketList(std::move(packetList), *messagesMixer);
     }
 }
 
-void MessagesClient::subscribe(const QString& channel) {
+void MessagesClient::subscribe(QString channel) {
     _subscribedChannels << channel;
     auto nodeList = DependencyManager::get<NodeList>();
     SharedNodePointer messagesMixer = nodeList->soloNodeOfType(NodeType::MessagesMixer);
@@ -87,7 +105,7 @@ void MessagesClient::subscribe(const QString& channel) {
     }
 }
 
-void MessagesClient::unsubscribe(const QString& channel) {
+void MessagesClient::unsubscribe(QString channel) {
     _subscribedChannels.remove(channel);
     auto nodeList = DependencyManager::get<NodeList>();
     SharedNodePointer messagesMixer = nodeList->soloNodeOfType(NodeType::MessagesMixer);

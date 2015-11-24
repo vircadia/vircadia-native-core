@@ -18,6 +18,7 @@
 #include <QtScript/QScriptEngine>
 #include <QtCore/QObject>
 #include <QtCore/QUrl>
+#include <QUuid>
 
 #include <EntityEditPacketSender.h>
 #include <EntityTree.h>
@@ -35,6 +36,8 @@ class Agent : public ThreadedAssignment {
     Q_PROPERTY(bool isPlayingAvatarSound READ isPlayingAvatarSound)
     Q_PROPERTY(bool isListeningToAudioStream READ isListeningToAudioStream WRITE setIsListeningToAudioStream)
     Q_PROPERTY(float lastReceivedAudioLoudness READ getLastReceivedAudioLoudness)
+    Q_PROPERTY(QUuid sessionUUID READ getSessionUUID)
+
 public:
     Agent(ReceivedMessage& message);
     
@@ -47,6 +50,7 @@ public:
     void setIsListeningToAudioStream(bool isListeningToAudioStream) { _isListeningToAudioStream = isListeningToAudioStream; }
 
     float getLastReceivedAudioLoudness() const { return _lastReceivedAudioLoudness; }
+    QUuid getSessionUUID() const;
 
     virtual void aboutToFinish();
     
@@ -55,9 +59,14 @@ public slots:
     void playAvatarSound(Sound* avatarSound) { setAvatarSound(avatarSound); }
 
 private slots:
+    void requestScript();
+    void scriptRequestFinished();
+    void executeScript();
+
     void handleAudioPacket(QSharedPointer<ReceivedMessage> packet);
     void handleOctreePacket(QSharedPointer<ReceivedMessage> packet, SharedNodePointer senderNode);
     void handleJurisdictionPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode);
+
     void processAgentAvatarAndAudio(float deltaTime);
 
 private:
@@ -73,6 +82,8 @@ private:
     void sendAvatarIdentityPacket();
     void sendAvatarBillboardPacket();
 
+    QString _scriptContents;
+    QTimer* _scriptRequestTimeout { nullptr };
     bool _isListeningToAudioStream = false;
     Sound* _avatarSound = nullptr;
     int _numAvatarSoundSentBytes = 0;

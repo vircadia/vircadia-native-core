@@ -68,6 +68,7 @@ void EntityTree::eraseAllOctreeElements(bool createNewRoot) {
     Octree::eraseAllOctreeElements(createNewRoot);
 
     resetClientEditStats();
+    clearDeletedEntities();
 }
 
 bool EntityTree::handlesEditPacketType(PacketType packetType) const {
@@ -398,6 +399,9 @@ void EntityTree::processRemovedEntities(const DeleteEntityOperator& theOperator)
             // set up the deleted entities ID
             QWriteLocker locker(&_recentlyDeletedEntitiesLock);
             _recentlyDeletedEntityItemIDs.insert(deletedAt, theEntity->getEntityItemID());
+        } else {
+            // on the client side, we also remember that we deleted this entity, we don't care about the time
+            trackDeletedEntity(theEntity->getEntityItemID());
         }
 
         if (_simulation) {

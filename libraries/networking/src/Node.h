@@ -12,6 +12,7 @@
 #ifndef hifi_Node_h
 #define hifi_Node_h
 
+#include <memory>
 #include <ostream>
 #include <stdint.h>
 
@@ -34,7 +35,6 @@ public:
          const HifiSockAddr& publicSocket, const HifiSockAddr& localSocket,
          bool canAdjustLocks, bool canRez, const QUuid& connectionSecret = QUuid(),
          QObject* parent = 0);
-    ~Node();
 
     bool operator==(const Node& otherNode) const { return _uuid == otherNode._uuid; }
     bool operator!=(const Node& otherNode) const { return !(*this == otherNode); }
@@ -45,8 +45,8 @@ public:
     const QUuid& getConnectionSecret() const { return _connectionSecret; }
     void setConnectionSecret(const QUuid& connectionSecret) { _connectionSecret = connectionSecret; }
 
-    NodeData* getLinkedData() const { return _linkedData; }
-    void setLinkedData(NodeData* linkedData) { _linkedData = linkedData; }
+    NodeData* getLinkedData() const { return _linkedData.get(); }
+    void setLinkedData(std::unique_ptr<NodeData> linkedData) { _linkedData = std::move(linkedData); }
 
     bool isAlive() const { return _isAlive; }
     void setAlive(bool isAlive) { _isAlive = isAlive; }
@@ -75,7 +75,7 @@ private:
     NodeType_t _type;
 
     QUuid _connectionSecret;
-    NodeData* _linkedData;
+    std::unique_ptr<NodeData> _linkedData;
     bool _isAlive;
     int _pingMs;
     int _clockSkewUsec;

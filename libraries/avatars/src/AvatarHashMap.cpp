@@ -22,13 +22,9 @@ AvatarHashMap::AvatarHashMap() {
     connect(DependencyManager::get<NodeList>().data(), &NodeList::uuidChanged, this, &AvatarHashMap::sessionUUIDChanged);
 }
 
-void AvatarHashMap::withAvatarHash(std::function<void(const AvatarHash& hash)> callback) {
-    QReadLocker locker(&_hashLock);
-    callback(_avatarHash);
-}
 bool AvatarHashMap::isAvatarInRange(const glm::vec3& position, const float range) {
-    QReadLocker locker(&_hashLock);
-    foreach(const AvatarSharedPointer& sharedAvatar, _avatarHash) {
+    auto hashCopy = getHashCopy();
+    foreach(const AvatarSharedPointer& sharedAvatar, hashCopy) {
         glm::vec3 avatarPosition = sharedAvatar->getPosition();
         float distance = glm::distance(avatarPosition, position);
         if (distance < range) {
@@ -44,18 +40,35 @@ AvatarSharedPointer AvatarHashMap::newSharedAvatar() {
 
 AvatarSharedPointer AvatarHashMap::addAvatar(const QUuid& sessionUUID, const QWeakPointer<Node>& mixerWeakPointer) {
     qCDebug(avatars) << "Adding avatar with sessionUUID " << sessionUUID << "to AvatarHashMap.";
-
-    AvatarSharedPointer avatar = newSharedAvatar();
+    
+    auto avatar = newSharedAvatar();
     avatar->setSessionUUID(sessionUUID);
     avatar->setOwningAvatarMixer(mixerWeakPointer);
-    QWriteLocker locker(&_hashLock);
+    
     _avatarHash.insert(sessionUUID, avatar);
     emit avatarAddedEvent(sessionUUID);
+    
     return avatar;
 }
 
-void AvatarHashMap::processAvatarDataPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer sendingNode) {
+AvatarSharedPointer AvatarHashMap::newOrExistingAvatar(const QUuid& sessionUUID, const QWeakPointer<Node>& mixerWeakPointer) {
+    QWriteLocker locker(&_hashLock);
+    
+    auto avatar = _avatarHash.value(sessionUUID);
+    
+    if (!avatar) {
+        avatar = addAvatar(sessionUUID, mixerWeakPointer);
+    }
+    
+    return avatar;
+}
 
+AvatarSharedPointer AvatarHashMap::findAvatar(const QUuid& sessionUUID) {
+    QReadLocker locker(&_hashLock);
+    return _avatarHash.value(sessionUUID);
+}
+
+void AvatarHashMap::processAvatarDataPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer sendingNode) {
     // enumerate over all of the avatars in this packet
     // only add them if mixerWeakPointer points to something (meaning that mixer is still around)
     while (message->getBytesLeftToRead()) {
@@ -66,10 +79,7 @@ void AvatarHashMap::processAvatarDataPacket(QSharedPointer<ReceivedMessage> mess
         QByteArray byteArray = message->readWithoutCopy(message->getBytesLeftToRead());
         
         if (sessionUUID != _lastOwnerSessionUUID) {
-            AvatarSharedPointer avatar = _avatarHash.value(sessionUUID);
-            if (!avatar) {
-                avatar = addAvatar(sessionUUID, sendingNode);
-            }
+            auto avatar = newOrExistingAvatar(sessionUUID, sendingNode);
             
             // have the matching (or new) avatar parse the data from the packet
             int bytesRead = avatar->parseDataFromBuffer(byteArray);
@@ -97,10 +107,8 @@ void AvatarHashMap::processAvatarIdentityPacket(QSharedPointer<ReceivedMessage> 
         identityStream >> sessionUUID >> faceMeshURL >> skeletonURL >> attachmentData >> displayName;
 
         // mesh URL for a UUID, find avatar in our list
-        AvatarSharedPointer avatar = _avatarHash.value(sessionUUID);
-        if (!avatar) {
-            avatar = addAvatar(sessionUUID, sendingNode);
-        }
+        auto avatar = newOrExistingAvatar(sessionUUID, sendingNode);
+        
         if (avatar->getFaceModelURL() != faceMeshURL) {
             avatar->setFaceModelURL(faceMeshURL);
         }
@@ -122,10 +130,7 @@ void AvatarHashMap::processAvatarIdentityPacket(QSharedPointer<ReceivedMessage> 
 void AvatarHashMap::processAvatarBillboardPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer sendingNode) {
     QUuid sessionUUID = QUuid::fromRfc4122(message->readWithoutCopy(NUM_BYTES_RFC4122_UUID));
 
-    AvatarSharedPointer avatar = _avatarHash.value(sessionUUID);
-    if (!avatar) {
-        avatar = addAvatar(sessionUUID, sendingNode);
-    }
+    auto avatar = newOrExistingAvatar(sessionUUID, sendingNode);
 
     QByteArray billboard = message->read(message->getBytesLeftToRead());
     if (avatar->getBillboard() != billboard) {
@@ -137,13 +142,22 @@ void AvatarHashMap::processKillAvatar(QSharedPointer<ReceivedMessage> message, S
     // read the node id
     QUuid sessionUUID = QUuid::fromRfc4122(message->readWithoutCopy(NUM_BYTES_RFC4122_UUID));
     removeAvatar(sessionUUID);
-
 }
 
 void AvatarHashMap::removeAvatar(const QUuid& sessionUUID) {
     QWriteLocker locker(&_hashLock);
-    _avatarHash.remove(sessionUUID);
-    emit avatarRemovedEvent(sessionUUID);
+    
+    auto removedAvatar = _avatarHash.take(sessionUUID);
+    
+    if (removedAvatar) {
+        handleRemovedAvatar(removedAvatar);
+    }
+}
+
+void AvatarHashMap::handleRemovedAvatar(const AvatarSharedPointer& removedAvatar) {
+    qDebug() << "Removed avatar with UUID" << uuidStringWithoutCurlyBraces(removedAvatar->getSessionUUID())
+        << "from AvatarHashMap";
+    emit avatarRemovedEvent(removedAvatar->getSessionUUID());
 }
 
 void AvatarHashMap::sessionUUIDChanged(const QUuid& sessionUUID, const QUuid& oldUUID) {
