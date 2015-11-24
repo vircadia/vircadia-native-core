@@ -5,7 +5,7 @@ cmake_policy(SET CMP0046 OLD)
 include(ExternalProject)
 ExternalProject_Add(
   ${EXTERNAL_NAME}
-  URL https://s3-us-west-1.amazonaws.com/hifi-production/dependencies/quazip-0.6.2.zip
+  URL http://s3-us-west-1.amazonaws.com/hifi-production/dependencies/quazip-0.6.2.zip
   URL_MD5 514851970f1a14d815bdc3ad6267af4d
   BINARY_DIR ${EXTERNAL_PROJECT_PREFIX}/build
   CMAKE_ARGS -DCMAKE_INSTALL_PREFIX:PATH=<INSTALL_DIR> -DCMAKE_PREFIX_PATH=$ENV{QT_CMAKE_PREFIX_PATH} -DCMAKE_INSTALL_NAME_DIR:PATH=<INSTALL_DIR>/lib -DZLIB_ROOT=${ZLIB_ROOT}
