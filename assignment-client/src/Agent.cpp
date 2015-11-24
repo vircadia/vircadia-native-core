@@ -52,14 +52,6 @@ Agent::Agent(NLPacket& packet) :
         DEFAULT_WINDOW_SECONDS_FOR_DESIRED_REDUCTION, false))
 {
     DependencyManager::get<EntityScriptingInterface>()->setPacketSender(&_entityEditSender);
-    
-    auto assetClient = DependencyManager::set<AssetClient>();
-
-    QThread* assetThread = new QThread;
-    assetThread->setObjectName("Asset Thread");
-    assetClient->moveToThread(assetThread);
-    connect(assetThread, &QThread::started, assetClient.data(), &AssetClient::init);
-    assetThread->start();
 
     auto assetClient = DependencyManager::set<AssetClient>();
 
