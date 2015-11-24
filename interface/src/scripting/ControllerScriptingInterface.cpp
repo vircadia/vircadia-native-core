@@ -84,11 +84,11 @@ glm::vec2 ControllerScriptingInterface::getViewportDimensions() const {
     return qApp->getUiSize();
 }
 
-controller::InputController::Pointer ControllerScriptingInterface::createInputController(const QString& deviceName, const QString& tracker) {
-    // This is where we retreive the Device Tracker category and then the sub tracker within it
+controller::InputController* ControllerScriptingInterface::createInputController(const QString& deviceName, const QString& tracker) {
+    // This is where we retrieve the Device Tracker category and then the sub tracker within it
     auto icIt = _inputControllers.find(0);
     if (icIt != _inputControllers.end()) {
-        return (*icIt).second;
+        return (*icIt).second.get();
     } 
 
 
@@ -110,15 +110,15 @@ controller::InputController::Pointer ControllerScriptingInterface::createInputCo
                 controller::InputController::Pointer inputController = std::make_shared<InputController>(deviceID, trackerID, this);
                 controller::InputController::Key key = inputController->getKey();
                 _inputControllers.insert(InputControllerMap::value_type(key, inputController));
-                return inputController;
+                return inputController.get();
             }
         }
     }
 
-    return controller::InputController::Pointer();
+    return nullptr;
 }
 
-void ControllerScriptingInterface::releaseInputController(controller::InputController::Pointer input) {
+void ControllerScriptingInterface::releaseInputController(controller::InputController* input) {
     _inputControllers.erase(input->getKey());
 }
 
