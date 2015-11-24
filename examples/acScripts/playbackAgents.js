@@ -11,7 +11,6 @@
 
 // Set the following variables to the values needed
 var commandChannel = "com.highfidelity.PlaybackChannel1";
-var clip_url = null;
 var playFromCurrentLocation = true;
 var useDisplayName = true;
 var useAttachments = true;
@@ -21,6 +20,12 @@ var useAvatarModel = true;
 var announceIDChannel = "com.highfidelity.playbackAgent.announceID";
 var UNKNOWN_AGENT_ID = -2;
 var id = UNKNOWN_AGENT_ID;  // unknown until aknowledged
+
+// The time between alive messages on the command channel
+var timeSinceLastAlive = 0;
+var ALIVE_PERIOD = 5;
+var NUM_CYCLES_BEFORE_RESET = 5;
+var notifyAlive = false;
 
 // Set position/orientation/scale here if playFromCurrentLocation is true
 Avatar.position = { x:0, y: 0, z: 0 };
@@ -32,6 +37,7 @@ var subscribed = false;
 var WAIT_FOR_AUDIO_MIXER = 1;
 
 // Script. DO NOT MODIFY BEYOND THIS LINE.
+var ALIVE = -1;
 var DO_NOTHING = 0;
 var PLAY = 1;
 var PLAY_LOOP = 2;
@@ -48,17 +54,14 @@ Recording.setPlayerUseSkeletonModel(useAvatarModel);
 
 function getAction(channel, message, senderID) {    
     if(subscribed) {
+
         var command = JSON.parse(message);
         print("I'm the agent " + id + " and I received this: ID: " + command.id_key + " Action: " + command.action_key + " URL: " + command.clip_url_key);
         
         if (command.id_key == id || command.id_key == -1) {
-            if (command.action_key === 6) {
-                clip_url = command.clip_url_key;
-            }
                            
             action = command.action_key;
-            print("That command was for me!");
-            print("My clip is: " + clip_url);
+            print("That command was for me! Agent with id: " + id);
         } else {
             action = DO_NOTHING;
         } 
@@ -104,10 +107,20 @@ function getAction(channel, message, senderID) {
             Agent.isAvatar = false;
             break;
         case LOAD:
-            print("Load");            
-            if(clip_url !== null) {
-                Recording.loadRecording(clip_url);
+            print("Load");   
+            if (!Agent.isAvatar) {
+                Agent.isAvatar = true;
+            }         
+            if(command.clip_url_key !== null) {
+                print("Agent #" + id + " loading clip URL: " + command.clip_url_key);
+                Recording.loadRecording(command.clip_url_key);
+            } else {
+                 print("Agent #" + id + " loading clip URL is NULL, nothing happened"); 
             }
+            break;
+        case ALIVE:
+            print("Alive");
+            notifyAlive = true;
             break;
         case DO_NOTHING:
             break;
@@ -136,11 +149,26 @@ function update(deltaTime) {
             print("I'm the agent and I am ready to receive!");
         }
         if (subscribed && id == UNKNOWN_AGENT_ID) {
-            print("sending ready, id:" + id);
+
             Messages.sendMessage(announceIDChannel, "ready");
         }
     }
 
+    if (subscribed && id != UNKNOWN_AGENT_ID) {
+        timeSinceLastAlive += deltaTime;
+        if (notifyAlive) {
+            timeSinceLastAlive = 0;
+            notifyAlive = false;
+            print("Master Alive");            
+        } else if (timeSinceLastAlive > NUM_CYCLES_BEFORE_RESET * ALIVE_PERIOD) {
+            print("Master Lost, reseting Agent");
+            if (Recording.isPlaying()) {
+                Recording.stopPlaying();
+            }
+            Agent.isAvatar = false;
+            id = UNKNOWN_AGENT_ID;           
+        }
+    }
 }
 
 Messages.messageReceived.connect(function (channel, message, senderID) {

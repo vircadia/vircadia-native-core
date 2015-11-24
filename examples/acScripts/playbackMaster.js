@@ -14,9 +14,8 @@ HIFI_PUBLIC_BUCKET = "http://s3.amazonaws.com/hifi-public/";
 
 var ac_number = 1; // This is the default number of ACs. Their ID need to be unique and between 0 (included) and ac_number (excluded)
 var names = new Array();  // It is possible to specify the name of the ACs in this array. ACs names ordered by IDs (Default name is "ACx", x = ID + 1))
-var channel = "com.highfidelity.PlaybackChannel1";
+var commandChannel = "com.highfidelity.PlaybackChannel1";
 var subscribed = false;
-var clip_url = null;
 var input_text = null;
 
 var knownAgents = new Array; // We will add our known agents here when we discover them
@@ -24,9 +23,15 @@ var knownAgents = new Array; // We will add our known agents here when we discov
 // available playbackAgents will announce their sessionID here.
 var announceIDChannel = "com.highfidelity.playbackAgent.announceID";
 
-// Script. DO NOT MODIFY BEYOND THIS LINE.
-Script.include("../libraries/toolBars.js");
+// The time between alive messages on the command channel
+var timeSinceLastAlive = 0;
+var ALIVE_PERIOD = 5;
 
+// Script. DO NOT MODIFY BEYOND THIS LINE.
+//Script.include("../libraries/toolBars.js");
+Script.include(HIFI_PUBLIC_BUCKET + "scripts/libraries/toolBars.js");
+
+var ALIVE = -1;
 var DO_NOTHING = 0;
 var PLAY = 1;
 var PLAY_LOOP = 2;
@@ -52,6 +57,9 @@ var playLoopIcon = new Array();
 var stopIcon = new Array();
 var loadIcon = new Array();
 
+var performanceJSON = null;
+var performanceLoadedNeedUpdate = false;
+
 setupPlayback();
 
 function setupPlayback() {
@@ -59,7 +67,7 @@ function setupPlayback() {
     if (ac_number === "" || ac_number === null) {
         ac_number = 1;
     }
-    Messages.subscribe(channel);
+    Messages.subscribe(commandChannel);
     subscribed = true;
     setupToolBars();
 }
@@ -139,7 +147,27 @@ function setupToolBars() {
     }
 }
 
-function sendCommand(id, action) {
+function loadAvatarClipsFromPerformanceJSON(performanceJSON) {
+    if (performanceJSON.avatarClips) {
+        var numClips = performanceJSON.avatarClips.length;
+        print("Performance file contains:" + JSON.stringify(performanceJSON)); 
+        print("Number of clips in the performance file is: " + numClips + " Number of agents is: " + knownAgents.length);
+
+        if (numClips > knownAgents.length) {
+          numClips = knownAgents.length;
+        }
+
+        for (i = 0; i < numClips; i++) {
+            var clipURL = performanceJSON.avatarClips[i];
+            print("Loading clip " + clipURL + " to Agent #" + i);
+            sendCommand(i, LOAD, clipURL);
+        }
+    } else {
+        print("Performance file cannot be interpreted:" + JSON.stringify(performanceJSON));
+    }
+}
+
+function sendCommand(id, action, argument) {
     if (action === SHOW) {
         toolBars[id].selectTool(onOffIcon[id], false);
         toolBars[id].setAlpha(ALPHA_ON, playIcon[id]);
@@ -152,24 +180,48 @@ function sendCommand(id, action) {
         toolBars[id].setAlpha(ALPHA_OFF, playLoopIcon[id]);
         toolBars[id].setAlpha(ALPHA_OFF, stopIcon[id]);
         toolBars[id].setAlpha(ALPHA_OFF, loadIcon[id]);
+    } else if (action == ALIVE) {
     } else if (toolBars[id].toolSelected(onOffIcon[id])) {
         return;
     }
     
     if (id == (toolBars.length - 1)) {
-        id = -1; // Master command becomes broadcast.
-    }
-    
-    var message = {
-        id_key: id,
-        action_key: action,
-        clip_url_key: clip_url
-    };
-    
-    if(subscribed){
-        Messages.sendMessage(channel, JSON.stringify(message));
-        print("Message sent!");
-        clip_url = null;
+
+        if (action == LOAD) {
+            if (performanceLoadedNeedUpdate == false) {
+                Assets.downloadData(argument, function (data) {
+                    performanceJSON = JSON.parse(data);
+                    performanceLoadedNeedUpdate = true;
+                  // print("Performance file contains:" + JSON.stringify(performanceJSON)); 
+                });
+                return;
+            }
+        } else {
+            id = -1;
+        
+            var message = {
+                id_key: id,
+                action_key: action,
+                clip_url_key: argument
+            };
+            
+            if(subscribed){
+                Messages.sendMessage(commandChannel, JSON.stringify(message));
+                print("Message sent!");
+            }
+        } 
+    } else {
+        
+        var message = {
+            id_key: id,
+            action_key: action,
+            clip_url_key: argument
+        };
+        
+        if(subscribed){
+            Messages.sendMessage(commandChannel, JSON.stringify(message));
+            print("Message sent!");
+        }
     }
 }
 
@@ -193,8 +245,7 @@ function mousePressEvent(event) {
     } else if (loadIcon[i] === toolBars[i].clicked(clickedOverlay, false)) {
         input_text = Window.prompt("Insert the url of the clip: ","");
         if (!(input_text === "" || input_text === null)) {
-            clip_url = input_text;
-            sendCommand(i, LOAD);
+            sendCommand(i, LOAD, input_text);
         }
     } else {
         // Check individual controls
@@ -214,8 +265,7 @@ function mousePressEvent(event) {
             } else if (loadIcon[i] === toolBars[i].clicked(clickedOverlay, false)) {                
                 input_text = Window.prompt("Insert the url of the clip: ","");
                 if (!(input_text === "" || input_text === null)) {
-                    clip_url = input_text;
-                    sendCommand(i, LOAD);
+                    sendCommand(i, LOAD, input_text);
                 }                
             } else {
                 
@@ -240,12 +290,24 @@ function moveUI() {
     }
 }
 
-function update() {
+function update(deltaTime) {
     var newDimensions = Controller.getViewportDimensions();
     if (windowDimensions.x != newDimensions.x ||
             windowDimensions.y != newDimensions.y) {
         windowDimensions = newDimensions;
         moveUI();
+    }
+
+    if (performanceLoadedNeedUpdate) {
+        loadAvatarClipsFromPerformanceJSON(performanceJSON);
+        performanceLoadedNeedUpdate = false;
+    }
+
+    timeSinceLastAlive += deltaTime;
+    if (timeSinceLastAlive > ALIVE_PERIOD) {
+        timeSinceLastAlive = 0;
+        print("ping alive");
+        sendCommand((toolBars.length - 1), ALIVE);
     }
 }
 
@@ -256,7 +318,7 @@ function scriptEnding() {
     }
     
     if (subscribed) {
-        Messages.unsubscribe(channel);
+        Messages.unsubscribe(commandChannel);
     }
     Messages.unsubscribe(announceIDChannel);
 }
@@ -272,10 +334,16 @@ Messages.messageReceived.connect(function (channel, message, senderID) {
     if (channel == announceIDChannel && message == "ready") {
         // check to see if we know about this agent
         if (knownAgents.indexOf(senderID) < 0) {
+            print("New agent to be hired " + senderID);
             var indexOfNewAgent = knownAgents.length;
             knownAgents[indexOfNewAgent] = senderID;
             var acknowledgeMessage = senderID + "." + indexOfNewAgent;
+            Overlays.editOverlay(nameOverlays[indexOfNewAgent], { backgroundColor: { red: 0, green: 255, blue: 0 }, text: "Agent-Hired"  } );
+            print("Hired new Agent " + senderID + " #" + indexOfNewAgent);
             Messages.sendMessage(announceIDChannel, acknowledgeMessage);
+        } else {
+            
+            print("New agent still sending ready ? " + senderID);
         }
 
     }
