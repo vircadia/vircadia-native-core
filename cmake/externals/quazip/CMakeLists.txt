@@ -1,5 +1,6 @@
 set(EXTERNAL_NAME quazip)
 string(TOUPPER ${EXTERNAL_NAME} EXTERNAL_NAME_UPPER)
+cmake_policy(SET CMP0046 OLD)
 
 include(ExternalProject)
 ExternalProject_Add(
@@ -30,7 +31,9 @@ if (APPLE)
   set(${EXTERNAL_NAME_UPPER}_LIBRARY_RELEASE ${INSTALL_DIR}/lib/libquazip.1.0.0.dylib CACHE FILEPATH "Location of QuaZip release library")
 elseif (WIN32)
   set(${EXTERNAL_NAME_UPPER}_LIBRARY_RELEASE ${INSTALL_DIR}/lib/quazip.lib CACHE FILEPATH "Location of QuaZip release library")
-endif()
+else ()
+  set(${EXTERNAL_NAME_UPPER}_LIBRARY_RELEASE ${INSTALL_DIR}/lib/libquazip.so CACHE FILEPATH "Location of QuaZip release library")
+endif ()
 
 include(SelectLibraryConfigurations)
 select_library_configurations(${EXTERNAL_NAME_UPPER})
