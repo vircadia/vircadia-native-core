@@ -247,18 +247,7 @@ void RenderableModelEntityItem::render(RenderArgs* args) {
             _model->setVisibleInScene(getVisible(), scene);
         }
 
-
         remapTextures();
-        {
-            // float alpha = getLocalRenderAlpha();
-
-            if (!_model || _needsModelReload) {
-                // TODO: this getModel() appears to be about 3% of model render time. We should optimize
-                PerformanceTimer perfTimer("getModel");
-                EntityTreeRenderer* renderer = static_cast<EntityTreeRenderer*>(args->_renderer);
-                getModel(renderer);
-            }
-        }
     } else {
         static glm::vec4 greenColor(0.0f, 1.0f, 0.0f, 1.0f);
         gpu::Batch& batch = *args->_batch;
@@ -317,6 +306,11 @@ bool RenderableModelEntityItem::needsToCallUpdate() const {
         return true;
     }
     // these if statements match the structure of those in RenderableModelEntityItem::update
+    if (hasModel() && _myRenderer) {
+        if (!_model || _needsModelReload) {
+            return true;
+        }
+    }
     if (!_dimensionsInitialized && _model && _model->isActive()) {
         return true;
     }
@@ -349,6 +343,12 @@ void RenderableModelEntityItem::update(const quint64& now) {
                                   Qt::QueuedConnection,
                                   Q_ARG(QUuid, getEntityItemID()),
                                   Q_ARG(EntityItemProperties, properties));
+    }
+
+    if (!_model || _needsModelReload) {
+        // TODO: this getModel() appears to be about 3% of model render time. We should optimize
+        PerformanceTimer perfTimer("getModel");
+        getModel(_myRenderer);
     }
 
     if (_model) {
