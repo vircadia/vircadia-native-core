@@ -219,9 +219,13 @@ void RenderableModelEntityItem::render(RenderArgs* args) {
 
     if (hasModel()) {
         if (_model) {
-            if (getModelURL() != _model->getURL().toEncoded()) {
-                qDebug() << "Updating model URL: " << getModelURL();
-                _model->setURL(getModelURL());
+            // convert the QString from getModelURL to a URL
+            _url = getModelURL();
+            
+            // check if the URL has changed
+            if (_url != _model->getURL()) {
+                qDebug() << "Updating model URL: " << _url;
+                _model->setURL(_url);
             }
 
             render::ScenePointer scene = AbstractViewStateInterface::instance()->getMain3DScene();

@@ -79,6 +79,7 @@ private:
     bool _originalTexturesRead = false;
     QVector<QVector<glm::vec3>> _points;
     bool _dimensionsInitialized = true;
+    QUrl _url;
     
     render::ItemID _myMetaItem;
 
