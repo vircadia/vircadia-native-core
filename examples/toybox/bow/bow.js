@@ -149,20 +149,9 @@
             }
 
             this.isGrabbed = true;
+
             this.initialHand = this.hand;
-
-            var ids = Entities.findEntities(MyAvatar.position, 1);
-
-            for (var i in ids) {
-                var entityId = ids[i];
-                var foundProps = Entities.getEntityProperties(entityId);
-                if (foundProps.name == "Hifi-Beam-Disabler") {
-                    print('FOUND THE BEAM DISABLER')
-                    setEntityCustomData('beamDisablerKey', entityId, {
-                        handToDisable: this.initialHand === 'left' ? 1 : 0
-                    })
-                }
-            }
+            Messages.sendMessage('Hifi-Beam-Disabler', this.initialHand);
 
             setEntityCustomData('grabbableKey', this.entityID, {
                 grabbable: false,
@@ -214,21 +203,10 @@
         },
 
         releaseGrab: function() {
-            print('RELEASE GRAB EVENT')
+            //  print('RELEASE GRAB EVENT')
             if (this.isGrabbed === true && this.hand === this.initialHand) {
-                var ids = Entities.findEntities(MyAvatar.position, 1);
 
-                for (var i in ids) {
-                    var entityId = ids[i];
-                    var foundProps = Entities.getEntityProperties(entityId);
-                    if (foundProps.name == "Hifi-Beam-Disabler") {
-                        print('FOUND THE BEAM DISABLER')
-                        setEntityCustomData('beamDisablerKey', entityId, {
-                            handToDisable: 'none'
-                        })
-                    }
-                }
-
+                Messages.sendMessage('Hifi-Beam-Disabler', "none")
 
                 this.isGrabbed = false;
                 this.stringDrawn = false;
@@ -272,25 +250,25 @@
 
             var makeArrowStick = function(entityA, entityB, collision) {
                 Entities.editEntity(entityA, {
-                    angularVelocity: {
-                        x: 0,
-                        y: 0,
-                        z: 0
-                    },
-                    velocity: {
-                        x: 0,
-                        y: 0,
-                        z: 0
-                    },
-                    gravity: {
-                        x: 0,
-                        y: 0,
-                        z: 0
-                    },
-                    position: collision.contactPoint,
-                    collisionsWillMove: false
-                })
-                print('ARROW COLLIDED WITH::' + entityB);
+                        angularVelocity: {
+                            x: 0,
+                            y: 0,
+                            z: 0
+                        },
+                        velocity: {
+                            x: 0,
+                            y: 0,
+                            z: 0
+                        },
+                        gravity: {
+                            x: 0,
+                            y: 0,
+                            z: 0
+                        },
+                        position: collision.contactPoint,
+                        collisionsWillMove: false
+                    })
+                    // print('ARROW COLLIDED WITH::' + entityB);
                 Script.removeEventHandler(arrow, "collisionWithEntity", makeArrowStick)
             }
 
@@ -463,9 +441,8 @@
             //  print('TRIGGER VALUE:::' + this.triggerValue);
 
             if (this.triggerValue < DRAW_STRING_THRESHOLD && this.stringDrawn === true) {
-                print('TRIGGER VALUE??' + this.triggerValue)
-                    // firing the arrow
-                print('HIT RELEASE LOOP IN CHECK');
+                // firing the arrow
+                //  print('HIT RELEASE LOOP IN CHECK');
 
                 this.drawStrings();
                 this.hasArrowNotched = false;
@@ -483,7 +460,7 @@
                 this.updateArrowPositionInNotch();
 
             } else if (this.triggerValue > DRAW_STRING_THRESHOLD && this.stringDrawn === false) {
-                print('HIT START LOOP IN CHECK');
+                // print('HIT START LOOP IN CHECK');
                 this.arrow = this.createArrow();
                 this.playStringPullSound();
 
@@ -521,13 +498,12 @@
             var handToNotch = Vec3.subtract(notchPosition, stringHandPosition);
             var arrowRotation = Quat.rotationBetween(Vec3.FRONT, handToNotch);
 
-           
 
-            
+
             var pullBackDistance = Vec3.length(handToNotch);
             // this.changeStringPullSoundVolume(pullBackDistance);
 
-            if(pullBackDistance>0.6){
+            if (pullBackDistance > 0.6) {
                 pullBackDistance = 0.6;
             }
 
@@ -539,7 +515,7 @@
             var pushForwardOffset = Vec3.multiply(handToNotch, -ARROW_OFFSET);
             var finalArrowPosition = Vec3.sum(arrowPosition, pushForwardOffset);
 
-             //we draw strings to the rear of the arrow
+            //we draw strings to the rear of the arrow
             this.setArrowRearPosition(finalArrowPosition, arrowRotation);
 
             //if we're not shooting, we're updating the arrow's orientation
@@ -564,7 +540,7 @@
                 //make the arrow physical, give it gravity, a lifetime, and set our velocity
                 var arrowProperties = {
                     collisionsWillMove: true,
-                    ignoreForCollisions:false,
+                    ignoreForCollisions: false,
                     velocity: releaseVelocity,
                     gravity: ARROW_GRAVITY,
                     lifetime: 10,
@@ -581,9 +557,6 @@
                 Entities.editEntity(this.preNotchString, {
                     visible: true
                 });
-
-                var afterVelocity = Entities.getEntityProperties(this.arrow).velocity;
-                print('VELOCITY AFTER RELEASE:::' + JSON.stringify(afterVelocity))
 
             }
 
