@@ -183,11 +183,14 @@
         },
 
         changeLightWithTriggerPressure: function(flashLightHand) {
-            var handClickString = flashLightHand + "_HAND_CLICK";
 
-            var handClick = Controller.findAction(handClickString);
+            if (flashLightHand === 'LEFT') {
+                this.triggerValue = Controller.getValue(Controller.Standard.LT);
+            }
+            if (flashLightHand === 'RIGHT') {
+                this.triggerValue = Controller.getValue(Controller.Standard.RT);
 
-            this.triggerValue = Controller.getActionValue(handClick);
+            }
 
             if (this.triggerValue < DISABLE_LIGHT_THRESHOLD && this.lightOn === true) {
                 this.turnLightOff();
