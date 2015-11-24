@@ -21,9 +21,8 @@
     var START_MESSAGE = "recordingStarted";
     var STOP_MESSAGE = "recordingEnded";
     var PARTICIPATING_MESSAGE = "participatingToRecording";
-    var HIFI_PUBLIC_BUCKET = "http://s3.amazonaws.com/hifi-public/";
-    var RECORDING_ICON_URL = HIFI_PUBLIC_BUCKET + "images/tools/play.svg";
-    var NOT_RECORDING_ICON_URL = HIFI_PUBLIC_BUCKET + "images/tools/ac-on-off.svg";
+    var RECORDING_ICON_URL = "http://cdn.highfidelity.com/alan/production/icons/ICO_rec-active.svg";
+    var NOT_RECORDING_ICON_URL = "http://cdn.highfidelity.com/alan/production/icons/ICO_rec-inactive.svg";
     var ICON_WIDTH = 60;
     var ICON_HEIGHT = 60;
     var overlay = null;
@@ -68,10 +67,10 @@
             print("entering in the recording area");
             Messages.subscribe(MASTER_TO_CLIENTS_CHANNEL);
             overlay = Overlays.addOverlay("image", {
-                imageURL: NOT_RECORDING_ICON_URL,    //waiting for the official logo
+                imageURL: NOT_RECORDING_ICON_URL,
                 width: ICON_HEIGHT,
                 height: ICON_WIDTH,
-                x: 600,
+                x: 210,
                 y: 0,
                 visible: true
             });
@@ -91,7 +90,7 @@
                 Messages.sendMessage(CLIENTS_TO_MASTER_CHANNEL, PARTICIPATING_MESSAGE);  //tell to master that I'm participating
                 Recording.startRecording();
                 isAvatarRecording = true;
-                Overlays.editOverlay(overlay, {imageURL: RECORDING_ICON_URL});  //waiting for the official logo
+                Overlays.editOverlay(overlay, {imageURL: RECORDING_ICON_URL});
             }
         },
 
@@ -100,13 +99,8 @@
                 print("RECORDING ENDED");
                 Recording.stopRecording();
                 isAvatarRecording = false;
-
-                var recordingFile = Window.save("Save recording to file", "./groupRecording", "Recordings (*.hfr)");
-                if (!(recordingFile === "null" || recordingFile === null || recordingFile === "")) {
-                    Recording.saveRecording(recordingFile);     //save the clip locally
-                }
                 Recording.saveRecordingToAsset(getClipUrl);     //save the clip to the asset and link a callback to get its url
-                Overlays.editOverlay(overlay, {imageURL: NOT_RECORDING_ICON_URL});   //waiting for the official logo
+                Overlays.editOverlay(overlay, {imageURL: NOT_RECORDING_ICON_URL});
             }
         },
 
