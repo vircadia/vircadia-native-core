@@ -2840,14 +2840,8 @@ void Application::update(float deltaTime) {
             myAvatar->setDriveKeys(TRANSLATE_Y, userInputMapper->getActionState(controller::Action::TRANSLATE_Y));
             myAvatar->setDriveKeys(TRANSLATE_X, userInputMapper->getActionState(controller::Action::TRANSLATE_X));
             if (deltaTime > FLT_EPSILON) {
-                // For rotations what we really want are meausures of "angles per second" (in order to prevent 
-                // fps-dependent spin rates) so we need to scale the units of the controller contribution.
-                // (TODO?: maybe we should similarly scale ALL action state info, or change the expected behavior 
-                // controllers to provide a delta_per_second value rather than a raw delta.)
-                const float EXPECTED_FRAME_RATE = 60.0f;
-                float timeFactor = EXPECTED_FRAME_RATE * deltaTime;
-                myAvatar->setDriveKeys(PITCH, -1.0f * userInputMapper->getActionState(controller::Action::PITCH) / timeFactor);
-                myAvatar->setDriveKeys(YAW, -1.0f * userInputMapper->getActionState(controller::Action::YAW) / timeFactor);
+                myAvatar->setDriveKeys(PITCH, -1.0f * userInputMapper->getActionState(controller::Action::PITCH));
+                myAvatar->setDriveKeys(YAW, -1.0f * userInputMapper->getActionState(controller::Action::YAW));
                 myAvatar->setDriveKeys(STEP_YAW, -1.0f * userInputMapper->getActionState(controller::Action::STEP_YAW));
             }
         }

@@ -16,4 +16,4 @@ if (WIN32)
     target_link_libraries(${TARGET_NAME} ${OPENVR_LIBRARIES})
 endif()
 
-copy_dlls_beside_windows_executable()
+package_libraries_for_deployment()

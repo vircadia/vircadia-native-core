@@ -3,7 +3,7 @@ set(TARGET_NAME recording-test)
 setup_hifi_project(Test)
 set_target_properties(${TARGET_NAME} PROPERTIES FOLDER "Tests/manual-tests/")
 link_hifi_libraries(shared recording)
-copy_dlls_beside_windows_executable()
+package_libraries_for_deployment()
 
 # FIXME convert to unit tests
 # Declare dependencies
@@ -11,6 +11,6 @@ copy_dlls_beside_windows_executable()
 #  # link in the shared libraries
 #  link_hifi_libraries(shared recording)
 #
-#  copy_dlls_beside_windows_executable()
+#  package_libraries_for_deployment()
 #endmacro ()
 #setup_hifi_testcase()

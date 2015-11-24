@@ -122,7 +122,7 @@ void EntityTreeRenderer::init() {
 }
 
 void EntityTreeRenderer::shutdown() {
-    _entitiesScriptEngine->disconnect(); // disconnect all slots/signals from the script engine
+    _entitiesScriptEngine->disconnectNonEssentialSignals(); // disconnect all slots/signals from the script engine, except essential
     _shuttingDown = true;
 }
 
