@@ -1288,7 +1288,7 @@ void Rig::updateEyeJoint(int index, const glm::vec3& modelTranslation, const glm
 
         // NOTE: at the moment we do the math in the world-frame, hence the inverse transform is more complex than usual.
         glm::mat4 inverse = glm::inverse(glm::mat4_cast(modelRotation) * parentState.getTransform() *
-                                         glm::translate(state.getDefaultTranslationInConstrainedFrame()) *
+                                         glm::translate(state.getUnscaledDefaultTranslation()) *
                                          state.getPreTransform() * glm::mat4_cast(state.getPreRotation() * state.getDefaultRotation()));
         glm::vec3 front = glm::vec3(inverse * glm::vec4(worldHeadOrientation * IDENTITY_FRONT, 0.0f));
         glm::vec3 lookAtDelta = lookAtSpot - modelTranslation;
