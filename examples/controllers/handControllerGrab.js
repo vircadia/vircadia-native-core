@@ -1216,7 +1216,6 @@ Controller.enableMapping(MAPPING_NAME);
 var handToDisable = 'none';
 
 function update() {
-  //  print('disabled in update:::'+handToDisable)
     if (handToDisable !== 0) {
         leftController.update();
     }
@@ -1228,14 +1227,17 @@ function update() {
 Messages.subscribe('Hifi-Beam-Disabler');
 
 handleBeamDisablerMessages = function(channel, message, sender) {
-    print('GOT MESSAGE:::'+message)
-    handToDisable = message;
-    if (message === 'left') {
-        handToDisable = 1;
+
+    if (sender === MyAvatar.sessionUUID) {
+        handToDisable = message;
+        if (message === 'left') {
+            handToDisable = 1;
+        }
+        if (message === 'right') {
+            handToDisable = 0;
+        }
     }
-    if (message === 'right') {
-        handToDisable = 0;
-    }
+
 }
 
 Messages.messageReceived.connect(handleBeamDisablerMessages);
