@@ -196,7 +196,7 @@ private:
 
     ArrayBufferClass* _arrayBufferClass;
 
-    AssetScriptingInterface _assetScriptingInterface;
+    AssetScriptingInterface _assetScriptingInterface{ this };
 
     QHash<EntityItemID, RegisteredEventHandlers> _registeredHandlers;
     void forwardHandlerCall(const EntityItemID& entityID, const QString& eventName, QScriptValueList eventHanderArgs);
