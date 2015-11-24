@@ -180,10 +180,22 @@ MyAvatar::MyAvatar(RigPointer rig) :
         setPosition(dummyAvatar.getPosition());
         setOrientation(dummyAvatar.getOrientation());
 
-        // FIXME attachments
-        // FIXME joints
-        // FIXME head lean
-        // FIXME head orientation
+        if (!dummyAvatar.getAttachmentData().isEmpty()) {
+            setAttachmentData(dummyAvatar.getAttachmentData());
+        }
+
+        auto headData = dummyAvatar.getHeadData();
+        if (headData && _headData) {
+            // blendshapes
+            if (!headData->getBlendshapeCoefficients().isEmpty()) {
+                _headData->setBlendshapeCoefficients(headData->getBlendshapeCoefficients());
+            }
+            // head lean
+            _headData->setLeanForward(headData->getLeanForward());
+            _headData->setLeanSideways(headData->getLeanSideways());
+            // head orientation
+            _headData->setLookAtPosition(headData->getLookAtPosition());
+        }
     });
 }
 
