@@ -334,6 +334,8 @@ bool RenderableModelEntityItem::needsToCallUpdate() const {
             return true;
         }
     }
+
+    return false;
 }
 
 void RenderableModelEntityItem::update(const quint64& now) {
