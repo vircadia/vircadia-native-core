@@ -61,43 +61,7 @@ float interpolate3Floats(float y1, float y2, float y3, float u) {
         // Flat line.
         return y2;
     }
-    
-    if ((y2 >= y1 && y2 >= y3) || (y2 <= y1 && y2 <= y3)) {
-        // U or inverted-U shape.
-        // Make the slope at y2 = 0, which means that the control points half way between the value points have the value y2.
-        if (u <= 0.5) {
-            return bezierInterpolate(y1, y2, y2, 2.0 * u);
-        } else {
-            return bezierInterpolate(y2, y2, y3, 2.0 * u - 1.0);
-        }
-        
-    } else {
-        // L or inverted and/or mirrored L shape.
-        // Make the slope at y2 be the slope between y1 and y3, up to a maximum of double the minimum of the slopes between y1
-        // and y2, and y2 and y3. Use this slope to calculate the control points half way between the value points.
-        // Note: The maximum ensures that the control points and therefore the interpolated values stay between y1 and y3.
-        float slope = y3 - y1;
-        float slope12 = y2 - y1;
-        float slope23 = y3 - y2;
-        if (abs(slope) > abs(2.0 * slope12)) {
-            slope = 2.0 * slope12;
-        } else if (abs(slope) > abs(2.0 * slope23)) {
-            slope = 2.0 * slope23;
-        }
-        
-        if (u <= 0.5) {
-            return bezierInterpolate(y1, y2 - slope / 2.0, y2, 2.0 * u);
-        } else {
-            return bezierInterpolate(y2, y2 + slope / 2.0, y3, 2.0 * u - 1.0);
-        }
-
-//        float uGreaterHalf = step(0.5, u);
-//        float uSign = sign(uGreaterHalf - 0.5);
-//        vec4 y12 = mix(y1, y2, uGreaterHalf)
-//        vec4 y23 = mix(y2, y3, uGreaterHalf)
-//        
-//        return bezierInterpolate(y12, y2 + uSign * slope / 2.0, y23, 2.0 * u - uGreaterHalf);
-    }
+    return bezierInterpolate(y1, y2, y3, u);
 }
 
 vec4 interpolate3Vec4(vec4 y1, vec4 y2, vec4 y3, float u) {
@@ -116,7 +80,7 @@ void main(void) {
     int particleID = gl_VertexID / NUM_VERTICES_PER_PARTICLE;
     // Which quad vertex pos?
     int twoTriID = gl_VertexID - particleID * NUM_VERTICES_PER_PARTICLE;
-	
+
 	// Particle properties
     float age = inColor.x / particle.lifespan;
     float seed = inColor.y;

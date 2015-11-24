@@ -26,16 +26,15 @@
 
 static const size_t VERTEX_PER_PARTICLE = 4;
 
-template<typename T>
-struct InterpolationData {
-    T start;
-    T middle;
-    T finish;
-    T spread;
-};
-
 class ParticlePayloadData {
 public:
+    template<typename T>
+    struct InterpolationData {
+        T start;
+        T middle;
+        T finish;
+        T spread;
+    };
     struct ParticleUniforms {
         InterpolationData<float> radius;
         InterpolationData<glm::vec4> color; // rgba
@@ -207,19 +206,17 @@ void RenderableParticleEffectEntityItem::updateRenderItem() {
     using ParticleUniforms = ParticlePayloadData::ParticleUniforms;
     using ParticlePrimitive = ParticlePayloadData::ParticlePrimitive;
     using ParticlePrimitives = ParticlePayloadData::ParticlePrimitives;
-    
-    ParticleUniforms particleUniforms;
+
     // Fill in Uniforms structure
+    ParticleUniforms particleUniforms;
     particleUniforms.radius.start = getRadiusStart();
     particleUniforms.radius.middle = getParticleRadius();
     particleUniforms.radius.finish = getRadiusFinish();
     particleUniforms.radius.spread = getRadiusSpread();
-    
     particleUniforms.color.start = toGlm(getColorStart(), getAlphaStart());
     particleUniforms.color.middle = toGlm(getXColor(), getAlpha());
     particleUniforms.color.finish = toGlm(getColorFinish(), getAlphaFinish());
     particleUniforms.color.spread = toGlm(getColorSpread(), getAlphaSpread());
-    
     particleUniforms.lifespan = getLifespan();
     
     // Build particle primitives
@@ -254,8 +251,7 @@ void RenderableParticleEffectEntityItem::updateRenderItem() {
         payload.setModelTransform(transform);
         payload.setBound(bounds);
 
-        bool textured = _texture && _texture->isLoaded();
-        if (textured) {
+        if (_texture && _texture->isLoaded()) {
             payload.setTexture(_texture->getGPUTexture());
             payload.setPipeline(_texturedPipeline);
         } else {
