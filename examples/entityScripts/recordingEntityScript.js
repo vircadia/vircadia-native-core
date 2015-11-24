@@ -70,7 +70,7 @@
                 imageURL: NOT_RECORDING_ICON_URL,
                 width: ICON_HEIGHT,
                 height: ICON_WIDTH,
-                x: 210,
+                x: 275,
                 y: 0,
                 visible: true
             });
