@@ -738,6 +738,10 @@ var mousePressStartPosition = {
 var mouseDown = false;
 
 function mousePressEvent(event) {
+    if (!event.isLeftButton) {
+        // If another mouse button than left is pressed ignore it
+        return false;
+    }
     mouseDown = true;
     mousePressStartPosition = {
         x: event.x,
