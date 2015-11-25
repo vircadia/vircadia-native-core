@@ -8,24 +8,27 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
+Agent.isAvatar = true;
+Script.include("./AgentPoolControler.js");
 
 // Set the following variables to the values needed
-var commandChannel = "com.highfidelity.PlaybackChannel1";
 var playFromCurrentLocation = true;
 var useDisplayName = true;
 var useAttachments = true;
 var useAvatarModel = true;
 
+var agentController = new AgentController();
+
 // ID of the agent. Two agents can't have the same ID.
-var announceIDChannel = "com.highfidelity.playbackAgent.announceID";
-var UNKNOWN_AGENT_ID = -2;
-var id = UNKNOWN_AGENT_ID;  // unknown until aknowledged
+//var UNKNOWN_AGENT_ID = -2;
+//var id = UNKNOWN_AGENT_ID;  // unknown until aknowledged
 
 // The time between alive messages on the command channel
-var timeSinceLastAlive = 0;
+/*var timeSinceLastAlive = 0;
 var ALIVE_PERIOD = 5;
 var NUM_CYCLES_BEFORE_RESET = 5;
 var notifyAlive = false;
+*/
 
 // Set position/orientation/scale here if playFromCurrentLocation is true
 Avatar.position = { x:0, y: 0, z: 0 };
@@ -118,7 +121,7 @@ function getAction(channel, message, senderID) {
                  print("Agent #" + id + " loading clip URL is NULL, nothing happened"); 
             }
             break;
-        case ALIVE:
+        case MASTER_ALIVE:
             print("Alive");
             notifyAlive = true;
             break;
@@ -138,10 +141,16 @@ function getAction(channel, message, senderID) {
 
 
 function update(deltaTime) {
-
+ totalTime += deltaTime;
+  if (totalTime > WAIT_FOR_AUDIO_MIXER) {
+        if (!agentController.subscribed) {
+            agentController.reset();
+        }
+    }
+    /*
+        
     totalTime += deltaTime;
-
-    if (totalTime > WAIT_FOR_AUDIO_MIXER) {
+  if (totalTime > WAIT_FOR_AUDIO_MIXER) {
         if (!subscribed) {
             Messages.subscribe(commandChannel); // command channel
             Messages.subscribe(announceIDChannel); // id announce channel
@@ -168,9 +177,11 @@ function update(deltaTime) {
             Agent.isAvatar = false;
             id = UNKNOWN_AGENT_ID;           
         }
-    }
-}
+    }*/
 
+    agentController.update(deltaTime);
+}
+/*
 Messages.messageReceived.connect(function (channel, message, senderID) {
     if (channel == announceIDChannel && message != "ready") {
         // If I don't yet know if my ID has been recieved, then check to see if the master has acknowledged me
@@ -187,6 +198,13 @@ Messages.messageReceived.connect(function (channel, message, senderID) {
     if (channel == commandChannel) {
         getAction(channel, message, senderID);
     }
-});
+});*/
+
+function scriptEnding() {
+   
+    agentController.destroy();
+}
+
 
 Script.update.connect(update);
+Script.scriptEnding.connect(scriptEnding);

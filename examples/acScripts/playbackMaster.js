@@ -8,30 +8,22 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
+Script.include("./AgentPoolControler.js");
 
 HIFI_PUBLIC_BUCKET = "http://s3.amazonaws.com/hifi-public/";
 
+var masterController = new MasterController();
 
 var ac_number = 1; // This is the default number of ACs. Their ID need to be unique and between 0 (included) and ac_number (excluded)
 var names = new Array();  // It is possible to specify the name of the ACs in this array. ACs names ordered by IDs (Default name is "ACx", x = ID + 1))
-var commandChannel = "com.highfidelity.PlaybackChannel1";
-var subscribed = false;
 var input_text = null;
 
-var knownAgents = new Array; // We will add our known agents here when we discover them
-
-// available playbackAgents will announce their sessionID here.
-var announceIDChannel = "com.highfidelity.playbackAgent.announceID";
-
-// The time between alive messages on the command channel
-var timeSinceLastAlive = 0;
-var ALIVE_PERIOD = 5;
 
 // Script. DO NOT MODIFY BEYOND THIS LINE.
 //Script.include("../libraries/toolBars.js");
 Script.include(HIFI_PUBLIC_BUCKET + "scripts/libraries/toolBars.js");
 
-var ALIVE = -1;
+
 var DO_NOTHING = 0;
 var PLAY = 1;
 var PLAY_LOOP = 2;
@@ -67,9 +59,8 @@ function setupPlayback() {
     if (ac_number === "" || ac_number === null) {
         ac_number = 1;
     }
-    Messages.subscribe(commandChannel);
-    subscribed = true;
     setupToolBars();
+    masterController.reset();
 }
 
 function setupToolBars() {      
@@ -180,7 +171,6 @@ function sendCommand(id, action, argument) {
         toolBars[id].setAlpha(ALPHA_OFF, playLoopIcon[id]);
         toolBars[id].setAlpha(ALPHA_OFF, stopIcon[id]);
         toolBars[id].setAlpha(ALPHA_OFF, loadIcon[id]);
-    } else if (action == ALIVE) {
     } else if (toolBars[id].toolSelected(onOffIcon[id])) {
         return;
     }
@@ -199,6 +189,8 @@ function sendCommand(id, action, argument) {
         } else {
             id = -1;
         
+            masterController.sendMessage(id, action, argument);
+            /*
             var message = {
                 id_key: id,
                 action_key: action,
@@ -208,10 +200,11 @@ function sendCommand(id, action, argument) {
             if(subscribed){
                 Messages.sendMessage(commandChannel, JSON.stringify(message));
                 print("Message sent!");
-            }
+            }*/
         } 
     } else {
-        
+        masterController.sendMessage(id, action, argument);
+        /*    
         var message = {
             id_key: id,
             action_key: action,
@@ -221,7 +214,7 @@ function sendCommand(id, action, argument) {
         if(subscribed){
             Messages.sendMessage(commandChannel, JSON.stringify(message));
             print("Message sent!");
-        }
+        }*/
     }
 }
 
@@ -303,12 +296,7 @@ function update(deltaTime) {
         performanceLoadedNeedUpdate = false;
     }
 
-    timeSinceLastAlive += deltaTime;
-    if (timeSinceLastAlive > ALIVE_PERIOD) {
-        timeSinceLastAlive = 0;
-        print("ping alive");
-        sendCommand((toolBars.length - 1), ALIVE);
-    }
+    masterController.update(deltaTime);
 }
 
 function scriptEnding() {
@@ -317,10 +305,7 @@ function scriptEnding() {
         Overlays.deleteOverlay(nameOverlays[i]);
     }
     
-    if (subscribed) {
-        Messages.unsubscribe(commandChannel);
-    }
-    Messages.unsubscribe(announceIDChannel);
+    masterController.destroy();
 }
 
 Controller.mousePressEvent.connect(mousePressEvent);
@@ -328,7 +313,7 @@ Script.update.connect(update);
 Script.scriptEnding.connect(scriptEnding);
 
 
-
+/*
 Messages.subscribe(announceIDChannel);
 Messages.messageReceived.connect(function (channel, message, senderID) {
     if (channel == announceIDChannel && message == "ready") {
@@ -348,5 +333,5 @@ Messages.messageReceived.connect(function (channel, message, senderID) {
 
     }
 });
-
+*/
 moveUI();
