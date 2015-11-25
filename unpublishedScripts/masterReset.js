@@ -161,9 +161,9 @@ MasterReset = function() {
                         relativePosition: {
                             x: 0,
                             y: 0,
-                            z: -0.2
+                            z: -0.1
                         },
-                        relativeRotation: Quat.fromPitchYawRollDegrees(120, 90, 0)
+                        relativeRotation: Quat.fromPitchYawRollDegrees(100, 90, 0)
                     },
                     invertSolidWhileHeld: true
                 },
