@@ -96,6 +96,7 @@ Avatar::Avatar(RigPointer rig) :
     _moving(false),
     _initialized(false),
     _shouldRenderBillboard(true),
+    _shouldSkipRender(true),
     _voiceSphereID(GeometryCache::UNKNOWN_ID)
 {
     // we may have been created in the network thread, but we live in the main thread
@@ -183,9 +184,29 @@ void Avatar::simulate(float deltaTime) {
     if (_shouldRenderBillboard) {
         if (getLODDistance() < BILLBOARD_LOD_DISTANCE * (1.0f - BILLBOARD_HYSTERESIS_PROPORTION)) {
             _shouldRenderBillboard = false;
+            qCDebug(interfaceapp) << "Unbillboarding" << (isMyAvatar() ? "myself" : getSessionUUID()) << "for LOD" << getLODDistance();
         }
     } else if (getLODDistance() > BILLBOARD_LOD_DISTANCE * (1.0f + BILLBOARD_HYSTERESIS_PROPORTION)) {
         _shouldRenderBillboard = true;
+        qCDebug(interfaceapp) << "Billboarding" << (isMyAvatar() ? "myself" : getSessionUUID()) << "for LOD" << getLODDistance();
+    }
+    
+    const bool isControllerLogging = DependencyManager::get<AvatarManager>()->getRenderDistanceControllerIsLogging();
+    float renderDistance = DependencyManager::get<AvatarManager>()->getRenderDistance();
+    const float SKIP_HYSTERESIS_PROPORTION = isControllerLogging ? 0.0f : BILLBOARD_HYSTERESIS_PROPORTION;
+    float distance = glm::distance(qApp->getCamera()->getPosition(), _position);
+    if (_shouldSkipRender) {
+        if (distance < renderDistance * (1.0f - SKIP_HYSTERESIS_PROPORTION)) {
+            _shouldSkipRender = false;
+            if (!isControllerLogging) {  // Test for isMyAvatar is prophylactic. Never occurs in current code.
+                qCDebug(interfaceapp) << "Rerendering" << (isMyAvatar() ? "myself" : getSessionUUID()) << "for distance" << renderDistance;
+            }
+        }
+    } else if (distance > renderDistance * (1.0f + SKIP_HYSTERESIS_PROPORTION)) {
+        _shouldSkipRender = true;
+        if (!isControllerLogging) {
+            qCDebug(interfaceapp) << "Unrendering" << (isMyAvatar() ? "myself" : getSessionUUID()) << "for distance" << renderDistance;
+        }
     }
 
     // simple frustum check
@@ -198,7 +219,7 @@ void Avatar::simulate(float deltaTime) {
         getHand()->simulate(deltaTime, false);
     }
 
-    if (!_shouldRenderBillboard && inViewFrustum) {
+    if (!_shouldRenderBillboard && !_shouldSkipRender && inViewFrustum) {
         {
             PerformanceTimer perfTimer("skeleton");
             for (int i = 0; i < _jointData.size(); i++) {
@@ -588,6 +609,10 @@ void Avatar::fixupModelsInScene() {
     // check to see if when we added our models to the scene they were ready, if they were not ready, then
     // fix them up in the scene
     render::ScenePointer scene = qApp->getMain3DScene();
+    _skeletonModel.setVisibleInScene(!_shouldSkipRender, scene);
+    if (_shouldSkipRender) {
+        return;
+    }
     render::PendingChanges pendingChanges;
     if (_skeletonModel.isRenderable() && _skeletonModel.needsFixupInScene()) {
         _skeletonModel.removeFromScene(scene, pendingChanges);
