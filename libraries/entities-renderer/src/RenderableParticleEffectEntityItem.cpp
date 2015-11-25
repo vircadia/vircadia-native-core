@@ -24,10 +24,11 @@
 #include "textured_particle_vert.h"
 #include "textured_particle_frag.h"
 
-static const size_t VERTEX_PER_PARTICLE = 4;
 
 class ParticlePayloadData {
 public:
+    static const size_t VERTEX_PER_PARTICLE = 4;
+
     template<typename T>
     struct InterpolationData {
         T start;
@@ -193,10 +194,6 @@ void RenderableParticleEffectEntityItem::update(const quint64& now) {
     }
 
     updateRenderItem();
-}
-
-static glm::vec4 toGlm(const xColor& color, float alpha) {
-    return glm::vec4((float)color.red / 255.0f, (float)color.green / 255.0f, (float)color.blue / 255.0f, alpha);
 }
 
 void RenderableParticleEffectEntityItem::updateRenderItem() {
