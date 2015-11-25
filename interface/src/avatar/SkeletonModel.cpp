@@ -354,7 +354,7 @@ void SkeletonModel::renderBoundingCollisionShapes(gpu::Batch& batch, float alpha
     auto geometryCache = DependencyManager::get<GeometryCache>();
     auto deferredLighting = DependencyManager::get<DeferredLightingEffect>();
     // draw a blue sphere at the capsule top point
-    glm::vec3 topPoint = _translation + _boundingCapsuleLocalOffset + (0.5f * _boundingCapsuleHeight) * glm::vec3(0.0f, 1.0f, 0.0f);
+    glm::vec3 topPoint = _translation + getRotation() * (_boundingCapsuleLocalOffset + (0.5f * _boundingCapsuleHeight) * glm::vec3(0.0f, 1.0f, 0.0f));
 
     deferredLighting->renderSolidSphereInstance(batch,
         Transform().setTranslation(topPoint).postScale(_boundingCapsuleRadius),
