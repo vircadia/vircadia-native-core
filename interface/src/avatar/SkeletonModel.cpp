@@ -153,11 +153,6 @@ void SkeletonModel::updateRig(float deltaTime, glm::mat4 parentTransform) {
 
         _rig->updateFromEyeParameters(eyeParams);
 
-        /* AJT: FIXME this will likely break eye tracking...
-        // rebuild the jointState transform for the eyes only. Must be after updateRig.
-        _rig->updateJointState(eyeParams.leftEyeJointIndex, parentTransform);
-        _rig->updateJointState(eyeParams.rightEyeJointIndex, parentTransform);
-        */
     } else {
 
         Model::updateRig(deltaTime, parentTransform);
@@ -171,6 +166,7 @@ void SkeletonModel::updateRig(float deltaTime, glm::mat4 parentTransform) {
         // However, in the !isLookingAtMe case, the eyes aren't rotating the way they should right now.
         // We will revisit that as priorities allow, and particularly after the new rig/animation/joints.
         const FBXGeometry& geometry = _geometry->getFBXGeometry();
+
         // If the head is not positioned, updateEyeJoints won't get the math right
         glm::quat headOrientation;
         _rig->getJointRotation(geometry.headJointIndex, headOrientation);
@@ -187,6 +183,7 @@ void SkeletonModel::updateRig(float deltaTime, glm::mat4 parentTransform) {
         eyeParams.modelTranslation = getTranslation();
         eyeParams.leftEyeJointIndex = geometry.leftEyeJointIndex;
         eyeParams.rightEyeJointIndex = geometry.rightEyeJointIndex;
+
         _rig->updateFromEyeParameters(eyeParams);
      }
 }

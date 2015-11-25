@@ -198,7 +198,7 @@ public:
     void copyJointsFromJointData(const QVector<JointData>& jointDataVec);
 
  protected:
-    bool isValid(int index) const { return _animSkeleton && index >= 0 && index < _animSkeleton->getNumJoints(); }
+    bool isIndexValid(int index) const { return _animSkeleton && index >= 0 && index < _animSkeleton->getNumJoints(); }
     void updateAnimationStateHandlers();
     void applyOverridePoses();
     void buildAbsoluteRigPoses(const AnimPoseVec& relativePoses, AnimPoseVec& absolutePosesOut);
