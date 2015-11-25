@@ -96,7 +96,6 @@ Avatar::Avatar(RigPointer rig) :
     _moving(false),
     _initialized(false),
     _shouldRenderBillboard(true),
-    _shouldSkipRender(true),
     _voiceSphereID(GeometryCache::UNKNOWN_ID)
 {
     // we may have been created in the network thread, but we live in the main thread
