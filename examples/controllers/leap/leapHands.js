@@ -196,7 +196,7 @@ var leapHands = (function () {
         MyAvatar.setJointRotation("LeftArm", Quat.fromPitchYawRollDegrees(90.0, 0.0, 0.0));
         MyAvatar.setJointRotation("LeftForeArm", Quat.fromPitchYawRollDegrees(0.0, 90.0, 90.0));
         MyAvatar.setJointRotation("LeftHand", Quat.fromPitchYawRollRadians(0.0, 0.0, 0.0));
-        MyAvatar.setJointRotation("RightArm", Quat.fromPitchYawRollDegrees(90.0,0.0, 0.0));
+        MyAvatar.setJointRotation("RightArm", Quat.fromPitchYawRollDegrees(90.0, 0.0, 0.0));
         MyAvatar.setJointRotation("RightForeArm", Quat.fromPitchYawRollDegrees(0.0, -90.0, -90.0));
         MyAvatar.setJointRotation("RightHand", Quat.fromPitchYawRollRadians(0.0, 0.0, 0.0));
 
@@ -384,7 +384,7 @@ var leapHands = (function () {
                         x: -handRotation.x,
                         y: -handRotation.z,
                         z: -handRotation.y,
-                        w: handRotation.w,
+                        w: handRotation.w
                     };
 
                     // Hand rotation in avatar coordinates ...
@@ -414,7 +414,7 @@ var leapHands = (function () {
                         x: -handRotation.x,
                         y: -handRotation.z,
                         z: -handRotation.y,
-                        w: handRotation.w,
+                        w: handRotation.w
                     };
 
                     // Hand rotation in avatar coordinates ...
