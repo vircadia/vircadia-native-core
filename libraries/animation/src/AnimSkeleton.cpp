@@ -81,7 +81,7 @@ AnimPose AnimSkeleton::getAbsolutePose(int jointIndex, const AnimPoseVec& poses)
 
 void AnimSkeleton::convertRelativePosesToAbsolute(AnimPoseVec& poses) const {
     // poses start off relative and leave in absolute frame
-    for (int i = 0; i < poses.size() && i < _joints.size(); ++i) {
+    for (int i = 0; i < (int)poses.size() && i < (int)_joints.size(); ++i) {
         int parentIndex = _joints[i].parentIndex;
         if (parentIndex != -1) {
             poses[i] = poses[parentIndex] * poses[i];
