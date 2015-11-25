@@ -381,23 +381,14 @@ var leapHands = (function () {
 
                     // Hand rotation in camera coordinates ...
                     handRotation = {
-                        x: handRotation.z,
-                        y: handRotation.y,
-                        z: handRotation.x,
-                        w: handRotation.w
+                        x: -handRotation.x,
+                        y: -handRotation.z,
+                        z: -handRotation.y,
+                        w: handRotation.w,
                     };
 
                     // Hand rotation in avatar coordinates ...
-                    if (h === 0) {
-                        handRotation.x = -handRotation.x;
-                        handRotation = Quat.multiply(Quat.angleAxis(90.0, { x: 1, y: 0, z: 0 }), handRotation);
-                        handRotation = Quat.multiply(Quat.angleAxis(90.0, { x: 0, y: 0, z: 1 }), handRotation);
-                    } else {
-                        handRotation.z = -handRotation.z;
-                        handRotation = Quat.multiply(Quat.angleAxis(90.0, { x: 1, y: 0, z: 0 }), handRotation);
-                        handRotation = Quat.multiply(Quat.angleAxis(-90.0, { x: 0, y: 0, z: 1 }), handRotation);
-                    }
-
+                    handRotation = Quat.multiply(Quat.angleAxis(180.0, { x: 0, y: 1, z: 0 }), handRotation);
                     cameraOrientation.x = -cameraOrientation.x;
                     cameraOrientation.z = -cameraOrientation.z;
                     handRotation = Quat.multiply(cameraOrientation, handRotation);
