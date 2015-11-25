@@ -24,7 +24,7 @@ var RAT_DIMENSIONS = {
 };
 
 var RAT_MODEL_URL = 'http://hifi-content.s3.amazonaws.com/james/rat/models/rat_model.fbx';
-var RAT_IDLE_ANIMATION_URL ='http://hifi-content.s3.amazonaws.com/james/rat/animations/idle.fbx';
+var RAT_IDLE_ANIMATION_URL = 'http://hifi-content.s3.amazonaws.com/james/rat/animations/idle.fbx';
 var RAT_WALKING_ANIMATION_URL = 'http://hifi-content.s3.amazonaws.com/james/rat/animations/walk.fbx';
 var RAT_RUNNING_ANIMATION_URL = 'http://hifi-content.s3.amazonaws.com/james/rat/animations/run.fbx';
 var RAT_DEATH_ANIMATION_URL = 'http://hifi-content.s3.amazonaws.com/james/rat/animations/death.fbx';
@@ -35,17 +35,18 @@ var RAT_IN_NEST_DISTANCE = 3;
 var RAT_SPAWN_RATE = 2500;
 
 function playRatRunningAnimation(rat) {
+    print('RUN  RAT')
     var animationSettings = JSON.stringify({
         running: true
     });
     Entities.editEntity(rat, {
         animationURL: RAT_RUNNING_ANIMATION_URL,
-        animationSettings: animationSettings
-            // animation: {
-            //     url: RAT_RUNNING_ANIMATION_URL,
-            //     running: true,
-            //     fps: 180
-            // },
+        // animationSettings: animationSettings,
+        animation: {
+            url: RAT_RUNNING_ANIMATION_URL,
+            running: true,
+            fps: 30
+        },
     });
 }
 
@@ -64,28 +65,6 @@ function playRatDeathAnimation(rat) {
     });
 }
 
-var ratProperties = {
-    name: 'Rat',
-    type: 'Box',
-    color: {
-        red: 0,
-        green: 0,
-        blue: 255
-    },
-    dimensions: {
-        x: 1,
-        y: 1,
-        z: 1
-    },
-    collisionsWillMove: true,
-    gravity: {
-        x: 0,
-        y: -9.8,
-        z: 0
-    },
-    position: RAT_SPAWNER_LOCATION
-};
-
 var modelRatProperties = {
     name: 'rat',
     type: 'Model',
@@ -94,17 +73,20 @@ var modelRatProperties = {
     position: RAT_SPAWNER_LOCATION,
     shapeType: 'Box',
     collisionsWillMove: true,
+    ignoreForCollisions: false,
     gravity: {
         x: 0,
-        y: -9.8,
+        y: -19.8,
         z: 0
-    }
-    //enable this if for some reason we want grabbable rats
-    // userData:JSON.stringify({
-    //     grabbableKey:{
-    //         grabbable:false
-    //     }
-    // })
+    },
+    lifetime: 30,
+    rotation: Quat.fromPitchYawRollDegrees(0, 180, 0),
+    //disable this if for some reason we want grabbable rats
+    userData: JSON.stringify({
+        grabbableKey: {
+            grabbable: false
+        }
+    })
 
 };
 
@@ -123,18 +105,16 @@ var targetProperties = {
     },
     visible: false,
     position: RAT_NEST_LOCATION
-        //  script: Script.resolvePath('rat.js')
 };
 
 var target = Entities.addEntity(targetProperties);
 
 function addRat() {
     var rat = Entities.addEntity(modelRatProperties);
-    rats.push(rat);
+    return rat
 }
 
 var rats = [];
-addRat();
 
 var AVOIDER_Y_HEIGHT = 99;
 var FIRST_AVOIDER_START_POSITION = {
@@ -190,7 +170,7 @@ function addAvoiderBlock(position) {
         position: position,
         collisionsWillMove: false,
         ignoreForCollisions: true,
-        visible: false
+        visible: true
     };
 
     var avoider = Entities.addEntity(avoiderProperties);
@@ -274,7 +254,6 @@ function moveRats() {
 
         averageAvatarFlight = Vec3.multiply(averageAvatarFlight, 1 / avatarFlightVectors.length);
 
-
         var avoidBlockVectors = steer.fleeAvoiderBlocks(rat);
 
         var averageAvoiderFlight;
@@ -306,14 +285,21 @@ function moveRats() {
 
         averageVector = Vec3.multiply(averageVector, 1 / divisorCount);
         var thisRatProps = Entities.getEntityProperties(rat, ["position", "rotation"]);
+
+        var eulerAngle = Quat.safeEulerAngles(thisRatProps.rotation);
+        eulerAngle.x = 0;
+        eulerAngle.z = 0;
+        var constrainedRotation = Quat.fromVec3Degrees(eulerAngle);
+
+        //  print('CR:::'+JSON.stringify(constrainedRotation))
+
         var ratPosition = thisRatProps.position;
         var ratToNest = Vec3.subtract(RAT_NEST_LOCATION, ratPosition);
-        var ratRotation = Quat.rotationBetween(Vec3.FRONT, ratToNest);
+        var ratRotation = Quat.rotationBetween(Vec3.UNIT_Z, ratToNest);
 
         Entities.editEntity(rat, {
             velocity: averageVector,
-            rotation: ratRotation,
-            //rotation: Quat.fromPitchYawRollDegrees(0,0,0)
+            rotation: constrainedRotation,
         })
 
         //  castRay(rat);
@@ -374,7 +360,7 @@ var ratSpawnerInterval;
 
 if (USE_CONSTANT_SPAWNER === true) {
     ratSpawnerInterval = Script.setInterval(function() {
-        addRat();
+        var rat = addRat();
         playRatRunningAnimation(rat);
         rats.push(rat);
     }, RAT_SPAWN_RATE);

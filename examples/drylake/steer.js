@@ -14,7 +14,7 @@ function flee(thisEntity, target) {
   if (d < 2) {
     var steer = Vec3.subtract(desired, velocity);
 
-    var steerVector = new V3(desired.x, desired.y, desired.z);
+    var steerVector = new V3(desired.x, 0, desired.z);
     steer = steerVector.limit(MAX_FORCE);
 
     return steer;
@@ -47,11 +47,11 @@ function fleeAllAvatars(thisEntity) {
       desired = Vec3.multiply(MAX_SPEED, desired);
       if (d < 3) {
         var steer = Vec3.subtract(desired, velocity);
-        var steerVector = new V3(desired.x, desired.y, desired.z);
+        var steerVector = new V3(desired.x, 0, desired.z);
         steer = steerVector.limit(MAX_FORCE)
         flightVectors.push(steer)
       } else {
-       //  print('target too far away from this avatar to flee' + d);
+        //  print('target too far away from this avatar to flee' + d);
       }
     }
 
@@ -61,7 +61,7 @@ function fleeAllAvatars(thisEntity) {
 }
 
 function fleeAvoiderBlocks(thisEntity) {
- // print('FLEE AVOIDER BLOCKS');
+  // print('FLEE AVOIDER BLOCKS');
   var properties = Entities.getEntityProperties(thisEntity, ["position", "velocity"]);
   var location = properties.position;
   var velocity = properties.velocity;
@@ -72,7 +72,7 @@ function fleeAvoiderBlocks(thisEntity) {
     var entityID = nearbyEntities[entityIndex];
     var entityProps = Entities.getEntityProperties(entityID);
     if (entityProps.name === 'Hifi-Rat-Avoider') {
-    //  print('found an avoiderblock to flee');
+      //  print('found an avoiderblock to flee');
 
       var MAX_SPEED = 8;
       var MAX_FORCE = 6;
@@ -87,7 +87,7 @@ function fleeAvoiderBlocks(thisEntity) {
         steer = steerVector.limit(MAX_FORCE)
         flightVectors.push(steer);
       } else {
-         //print('target too far away from this avoider to flee' + d);
+        //print('target too far away from this avoider to flee' + d);
       }
     }
 
@@ -116,7 +116,7 @@ function arrive(thisEntity, target) {
 
   }
   var steer = Vec3.subtract(desired, velocity);
-  var steerVector = new V3(desired.x, desired.y, desired.z);
+  var steerVector = new V3(desired.x, 0, desired.z);
   steer = steerVector.limit(MAX_FORCE)
 
   return steer
@@ -161,7 +161,7 @@ loadSteer = function() {
   return {
     flee: flee,
     fleeAllAvatars: fleeAllAvatars,
-    fleeAvoiderBlocks:fleeAvoiderBlocks,
+    fleeAvoiderBlocks: fleeAvoiderBlocks,
     arrive: arrive
   }
 }
