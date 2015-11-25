@@ -48,13 +48,6 @@ public:
     virtual void elementDeleted(OctreeElementPointer element) = 0;
 };
 
-// Callers who want update hook callbacks should implement this class
-class OctreeElementUpdateHook {
-public:
-    virtual void elementUpdated(OctreeElementPointer element) = 0;
-};
-
-
 class OctreeElement: public std::enable_shared_from_this<OctreeElement> {
 
 protected:
@@ -184,9 +177,6 @@ public:
     static void addDeleteHook(OctreeElementDeleteHook* hook);
     static void removeDeleteHook(OctreeElementDeleteHook* hook);
 
-    static void addUpdateHook(OctreeElementUpdateHook* hook);
-    static void removeUpdateHook(OctreeElementUpdateHook* hook);
-
     static void resetPopulationStatistics();
     static unsigned long getNodeCount() { return _voxelNodeCount; }
     static unsigned long getInternalNodeCount() { return _voxelNodeCount - _voxelNodeLeafCount; }
@@ -245,7 +235,6 @@ protected:
 
     void calculateAACube();
     void notifyDeleteHooks();
-    void notifyUpdateHooks();
 
     AACube _cube; /// Client and server, axis aligned box for bounds of this voxel, 48 bytes
 
@@ -291,9 +280,6 @@ protected:
 
     static QReadWriteLock _deleteHooksLock;
     static std::vector<OctreeElementDeleteHook*> _deleteHooks;
-
-    //static QReadWriteLock _updateHooksLock;
-    static std::vector<OctreeElementUpdateHook*> _updateHooks;
 
     static AtomicUIntStat _voxelNodeCount;
     static AtomicUIntStat _voxelNodeLeafCount;

@@ -115,7 +115,6 @@ OctreeElement::~OctreeElement() {
 
 void OctreeElement::markWithChangedTime() {
     _lastChanged = usecTimestampNow();
-    notifyUpdateHooks(); // if the node has changed, notify our hooks
 }
 
 // This method is called by Octree when the subtree below this node
@@ -550,28 +549,6 @@ void OctreeElement::notifyDeleteHooks() {
     _deleteHooksLock.unlock();
     _deleteHooksNotified = true;
 }
-
-std::vector<OctreeElementUpdateHook*> OctreeElement::_updateHooks;
-
-void OctreeElement::addUpdateHook(OctreeElementUpdateHook* hook) {
-    _updateHooks.push_back(hook);
-}
-
-void OctreeElement::removeUpdateHook(OctreeElementUpdateHook* hook) {
-    for (unsigned int i = 0; i < _updateHooks.size(); i++) {
-        if (_updateHooks[i] == hook) {
-            _updateHooks.erase(_updateHooks.begin() + i);
-            return;
-        }
-    }
-}
-
-void OctreeElement::notifyUpdateHooks() {
-    for (unsigned int i = 0; i < _updateHooks.size(); i++) {
-        _updateHooks[i]->elementUpdated(shared_from_this());
-    }
-}
-
 
 bool OctreeElement::findSpherePenetration(const glm::vec3& center, float radius,
                         glm::vec3& penetration, void** penetratedObject) const {
