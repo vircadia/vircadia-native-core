@@ -1111,7 +1111,7 @@ void Rig::computeAvatarBoundingCapsule(
 
     AnimPose geometryToRig = _modelOffset * _geometryOffset;
 
-    AnimPose hips = geometryToRig * _animSkeleton->getRootAbsoluteBindPoseByChildName("LeftHand");
+    AnimPose hips = geometryToRig * _animSkeleton->getAbsoluteBindPose(_animSkeleton->nameToJointIndex("Hips"));
     AnimVariantMap animVars;
     glm::quat handRotation = glm::angleAxis(PI, Vectors::UNIT_X);
     animVars.set("leftHandPosition", hips.trans);
