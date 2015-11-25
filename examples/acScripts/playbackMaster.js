@@ -190,31 +190,9 @@ function sendCommand(id, action, argument) {
             id = -1;
         
             masterController.sendMessage(id, action, argument);
-            /*
-            var message = {
-                id_key: id,
-                action_key: action,
-                clip_url_key: argument
-            };
-            
-            if(subscribed){
-                Messages.sendMessage(commandChannel, JSON.stringify(message));
-                print("Message sent!");
-            }*/
         } 
     } else {
         masterController.sendMessage(id, action, argument);
-        /*    
-        var message = {
-            id_key: id,
-            action_key: action,
-            clip_url_key: argument
-        };
-        
-        if(subscribed){
-            Messages.sendMessage(commandChannel, JSON.stringify(message));
-            print("Message sent!");
-        }*/
     }
 }
 
@@ -312,26 +290,4 @@ Controller.mousePressEvent.connect(mousePressEvent);
 Script.update.connect(update);
 Script.scriptEnding.connect(scriptEnding);
 
-
-/*
-Messages.subscribe(announceIDChannel);
-Messages.messageReceived.connect(function (channel, message, senderID) {
-    if (channel == announceIDChannel && message == "ready") {
-        // check to see if we know about this agent
-        if (knownAgents.indexOf(senderID) < 0) {
-            print("New agent to be hired " + senderID);
-            var indexOfNewAgent = knownAgents.length;
-            knownAgents[indexOfNewAgent] = senderID;
-            var acknowledgeMessage = senderID + "." + indexOfNewAgent;
-            Overlays.editOverlay(nameOverlays[indexOfNewAgent], { backgroundColor: { red: 0, green: 255, blue: 0 }, text: "Agent-Hired"  } );
-            print("Hired new Agent " + senderID + " #" + indexOfNewAgent);
-            Messages.sendMessage(announceIDChannel, acknowledgeMessage);
-        } else {
-            
-            print("New agent still sending ready ? " + senderID);
-        }
-
-    }
-});
-*/
 moveUI();
