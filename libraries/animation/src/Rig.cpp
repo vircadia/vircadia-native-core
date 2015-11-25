@@ -1288,7 +1288,7 @@ void Rig::updateEyeJoint(int index, const glm::vec3& modelTranslation, const glm
 
         // NOTE: at the moment we do the math in the world-frame, hence the inverse transform is more complex than usual.
         glm::mat4 inverse = glm::inverse(glm::mat4_cast(modelRotation) * parentState.getTransform() *
-                                         glm::translate(state.getDefaultTranslationInConstrainedFrame()) *
+                                         glm::translate(state.getUnscaledDefaultTranslation()) *
                                          state.getPreTransform() * glm::mat4_cast(state.getPreRotation() * state.getDefaultRotation()));
         glm::vec3 front = glm::vec3(inverse * glm::vec4(worldHeadOrientation * IDENTITY_FRONT, 0.0f));
         glm::vec3 lookAtDelta = lookAtSpot - modelTranslation;
@@ -1306,10 +1306,10 @@ void Rig::updateFromHandParameters(const HandParameters& params, float dt) {
 
         // TODO: figure out how to obtain the yFlip from where it is actually stored
         glm::quat yFlipHACK = glm::angleAxis(PI, glm::vec3(0.0f, 1.0f, 0.0f));
-        AnimPose rootBindPose = _animSkeleton->getRootAbsoluteBindPoseByChildName("LeftHand");
+        AnimPose hipsBindPose = _animSkeleton->getAbsoluteBindPose(_animSkeleton->nameToJointIndex("Hips"));
         if (params.isLeftEnabled) {
-            _animVars.set("leftHandPosition", rootBindPose.trans + rootBindPose.rot * yFlipHACK * params.leftPosition);
-            _animVars.set("leftHandRotation", rootBindPose.rot * yFlipHACK * params.leftOrientation);
+            _animVars.set("leftHandPosition", hipsBindPose.trans + hipsBindPose.rot * yFlipHACK * params.leftPosition);
+            _animVars.set("leftHandRotation", hipsBindPose.rot * yFlipHACK * params.leftOrientation);
             _animVars.set("leftHandType", (int)IKTarget::Type::RotationAndPosition);
         } else {
             _animVars.unset("leftHandPosition");
@@ -1317,8 +1317,8 @@ void Rig::updateFromHandParameters(const HandParameters& params, float dt) {
             _animVars.set("leftHandType", (int)IKTarget::Type::HipsRelativeRotationAndPosition);
         }
         if (params.isRightEnabled) {
-            _animVars.set("rightHandPosition", rootBindPose.trans + rootBindPose.rot * yFlipHACK * params.rightPosition);
-            _animVars.set("rightHandRotation", rootBindPose.rot * yFlipHACK * params.rightOrientation);
+            _animVars.set("rightHandPosition", hipsBindPose.trans + hipsBindPose.rot * yFlipHACK * params.rightPosition);
+            _animVars.set("rightHandRotation", hipsBindPose.rot * yFlipHACK * params.rightOrientation);
             _animVars.set("rightHandType", (int)IKTarget::Type::RotationAndPosition);
         } else {
             _animVars.unset("rightHandPosition");
