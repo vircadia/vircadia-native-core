@@ -321,8 +321,6 @@ void Rig::setJointState(int index, bool valid, const glm::quat& rotation, const 
     }
 }
 
-// Deprecated.
-// WARNING: this is not symmetric with getJointRotation. It's historical. Use the appropriate specific variation.
 void Rig::setJointRotation(int index, bool valid, const glm::quat& rotation, float priority) {
     if (isIndexValid(index)) {
         if (valid) {
@@ -370,8 +368,6 @@ bool Rig::getJointRotationInWorldFrame(int jointIndex, glm::quat& result, const 
     }
 }
 
-// Deprecated.
-// WARNING: this is not symmetric with setJointRotation. It's historical. Use the appropriate specific variation.
 bool Rig::getJointRotation(int jointIndex, glm::quat& rotation) const {
     if (isIndexValid(jointIndex)) {
         rotation = _relativePoses[jointIndex].rot;

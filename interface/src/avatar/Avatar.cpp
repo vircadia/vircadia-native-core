@@ -639,7 +639,7 @@ void Avatar::simulateAttachments(float deltaTime) {
         glm::vec3 jointPosition;
         glm::quat jointRotation;
         if (_skeletonModel.getJointPositionInWorldFrame(jointIndex, jointPosition) &&
-            _skeletonModel.getJointCombinedRotation(jointIndex, jointRotation)) {
+            _skeletonModel.getJointRotationInWorldFrame(jointIndex, jointRotation)) {
             model->setTranslation(jointPosition + jointRotation * attachment.translation * _scale);
             model->setRotation(jointRotation * attachment.rotation);
             model->setScaleToFit(true, _scale * attachment.scale, true); // hack to force rescale
