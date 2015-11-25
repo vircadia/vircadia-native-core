@@ -19,8 +19,9 @@
 #include <DebugDraw.h>
 
 #include "AnimationLogging.h"
-#include "AnimSkeleton.h"
 #include "AnimClip.h"
+#include "AnimInverseKinematics.h"
+#include "AnimSkeleton.h"
 #include "IKTarget.h"
 
 static bool isEqual(const glm::vec3& u, const glm::vec3& v) {
@@ -1064,4 +1065,106 @@ void Rig::copyJointsFromJointData(const QVector<JointData>& jointDataVec) {
         // geometry offset is used here to undo the fact that avatar mixer translations are in meters.
         setJointTranslation(i, data.translationSet, invGeometryOffset * data.translation, 1.0f);
     }
+}
+
+void Rig::computeAvatarBoundingCapsule(
+        const FBXGeometry& geometry,
+        float& radiusOut,
+        float& heightOut,
+        glm::vec3& localOffsetOut) const {
+    if (! _animSkeleton) {
+        const float DEFAULT_AVATAR_CAPSULE_RADIUS = 0.3f;
+        const float DEFAULT_AVATAR_CAPSULE_HEIGHT = 1.3f;
+        const glm::vec3 DEFAULT_AVATAR_CAPSULE_LOCAL_OFFSET = glm::vec3(0.0f, -0.25f, 0.0f);
+        radiusOut = DEFAULT_AVATAR_CAPSULE_RADIUS;
+        heightOut = DEFAULT_AVATAR_CAPSULE_HEIGHT;
+        localOffsetOut = DEFAULT_AVATAR_CAPSULE_LOCAL_OFFSET;
+        return;
+    }
+
+    AnimInverseKinematics ikNode("boundingShape");
+    ikNode.setSkeleton(_animSkeleton);
+    ikNode.setTargetVars("LeftHand",
+                         "leftHandPosition",
+                         "leftHandRotation",
+                         "leftHandType");
+    ikNode.setTargetVars("RightHand",
+                         "rightHandPosition",
+                         "rightHandRotation",
+                         "rightHandType");
+    ikNode.setTargetVars("LeftFoot",
+                         "leftFootPosition",
+                         "leftFootRotation",
+                         "leftFootType");
+    ikNode.setTargetVars("RightFoot",
+                         "rightFootPosition",
+                         "rightFootRotation",
+                         "rightFootType");
+
+    AnimPose geometryToRig = _modelOffset * _geometryOffset;
+
+    AnimPose hips = geometryToRig * _animSkeleton->getAbsoluteBindPose(_animSkeleton->nameToJointIndex("Hips"));
+    AnimVariantMap animVars;
+    glm::quat handRotation = glm::angleAxis(PI, Vectors::UNIT_X);
+    animVars.set("leftHandPosition", hips.trans);
+    animVars.set("leftHandRotation", handRotation);
+    animVars.set("leftHandType", (int)IKTarget::Type::RotationAndPosition);
+    animVars.set("rightHandPosition", hips.trans);
+    animVars.set("rightHandRotation", handRotation);
+    animVars.set("rightHandType", (int)IKTarget::Type::RotationAndPosition);
+
+    int rightFootIndex = _animSkeleton->nameToJointIndex("RightFoot");
+    int leftFootIndex = _animSkeleton->nameToJointIndex("LeftFoot");
+    if (rightFootIndex != -1 && leftFootIndex != -1) {
+        glm::vec3 foot = Vectors::ZERO;
+        glm::quat footRotation = glm::angleAxis(0.5f * PI, Vectors::UNIT_X);
+        animVars.set("leftFootPosition", foot);
+        animVars.set("leftFootRotation", footRotation);
+        animVars.set("leftFootType", (int)IKTarget::Type::RotationAndPosition);
+        animVars.set("rightFootPosition", foot);
+        animVars.set("rightFootRotation", footRotation);
+        animVars.set("rightFootType", (int)IKTarget::Type::RotationAndPosition);
+    }
+
+    // call overlay twice: once to verify AnimPoseVec joints and again to do the IK
+    AnimNode::Triggers triggersOut;
+    float dt = 1.0f; // the value of this does not matter
+    ikNode.overlay(animVars, dt, triggersOut, _animSkeleton->getRelativeBindPoses());
+    AnimPoseVec finalPoses =  ikNode.overlay(animVars, dt, triggersOut, _animSkeleton->getRelativeBindPoses());
+
+    // convert relative poses to absolute
+    _animSkeleton->convertRelativePosesToAbsolute(finalPoses);
+
+    // compute bounding box that encloses all points
+    Extents totalExtents;
+    totalExtents.reset();
+    int numPoses = finalPoses.size();
+    for (int i = 0; i < numPoses; i++) {
+        const FBXJointShapeInfo& shapeInfo = geometry.joints.at(i).shapeInfo;
+        AnimPose pose = finalPoses[i];
+        if (shapeInfo.points.size() > 0) {
+            for (int j = 0; j < shapeInfo.points.size(); ++j) {
+                totalExtents.addPoint((pose * shapeInfo.points[j]));
+            }
+        } else {
+            totalExtents.addPoint(pose.trans);
+        }
+    }
+    // HACK so that default legless robot doesn't knuckle-drag
+    if (rightFootIndex > -1) {
+        totalExtents.addPoint(finalPoses[rightFootIndex].trans);
+    }
+    if (leftFootIndex > -1) {
+        totalExtents.addPoint(finalPoses[leftFootIndex].trans);
+    }
+
+    // compute bounding shape parameters
+    // NOTE: we assume that the longest side of totalExtents is the yAxis...
+    glm::vec3 diagonal = geometryToRig * (totalExtents.maximum - totalExtents.minimum);
+    // ... and assume the radiusOut is half the RMS of the X and Z sides:
+    radiusOut = 0.5f * sqrtf(0.5f * (diagonal.x * diagonal.x + diagonal.z * diagonal.z));
+    heightOut = diagonal.y - 2.0f * radiusOut;
+
+    glm::vec3 rootPosition = finalPoses[geometry.rootJointIndex].trans;
+    localOffsetOut = geometryToRig * (0.5f * (totalExtents.maximum + totalExtents.minimum) - rootPosition);
 }

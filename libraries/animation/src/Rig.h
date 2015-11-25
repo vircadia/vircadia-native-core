@@ -197,6 +197,8 @@ public:
     void copyJointsIntoJointData(QVector<JointData>& jointDataVec) const;
     void copyJointsFromJointData(const QVector<JointData>& jointDataVec);
 
+    void computeAvatarBoundingCapsule(const FBXGeometry& geometry, float& radiusOut, float& heightOut, glm::vec3& offsetOut) const;
+
  protected:
     bool isIndexValid(int index) const { return _animSkeleton && index >= 0 && index < _animSkeleton->getNumJoints(); }
     void updateAnimationStateHandlers();

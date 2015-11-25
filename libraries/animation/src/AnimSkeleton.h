@@ -51,6 +51,8 @@ public:
 
     AnimPose getAbsolutePose(int jointIndex, const AnimPoseVec& poses) const;
 
+    void convertRelativePosesToAbsolute(AnimPoseVec& poses) const;
+
 #ifndef NDEBUG
     void dump() const;
     void dump(const AnimPoseVec& poses) const;
