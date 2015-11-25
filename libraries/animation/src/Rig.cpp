@@ -1027,7 +1027,6 @@ void Rig::buildAbsoluteRigPoses(const AnimPoseVec& relativePoses, AnimPoseVec& a
 
     // transform all absolute poses into rig space.
     AnimPose geometryToRigTransform(_geometryToRigTransform);
-    geometryToRigTransform = _modelOffset * _geometryOffset;
     for (int i = 0; i < (int)_absolutePoses.size(); i++) {
         absolutePosesOut[i] = geometryToRigTransform * absolutePosesOut[i];
     }
@@ -1134,6 +1133,12 @@ void Rig::computeAvatarBoundingCapsule(
     // compute bounding box that encloses all points
     Extents totalExtents;
     totalExtents.reset();
+
+    // HACK by convention our Avatars are always modeled such that y=0 is the ground plane.
+    // add the zero point so that our avatars will always have bounding volumes that are flush with the ground
+    // even if they do not have legs (default robot)
+    totalExtents.addPoint(glm::vec3(0.0f));
+
     int numPoses = finalPoses.size();
     for (int i = 0; i < numPoses; i++) {
         const FBXJointShapeInfo& shapeInfo = geometry.joints.at(i).shapeInfo;
@@ -1142,25 +1147,17 @@ void Rig::computeAvatarBoundingCapsule(
             for (int j = 0; j < shapeInfo.points.size(); ++j) {
                 totalExtents.addPoint((pose * shapeInfo.points[j]));
             }
-        } else {
-            totalExtents.addPoint(pose.trans);
         }
-    }
-    // HACK so that default legless robot doesn't knuckle-drag
-    if (rightFootIndex > -1) {
-        totalExtents.addPoint(finalPoses[rightFootIndex].trans);
-    }
-    if (leftFootIndex > -1) {
-        totalExtents.addPoint(finalPoses[leftFootIndex].trans);
     }
 
     // compute bounding shape parameters
     // NOTE: we assume that the longest side of totalExtents is the yAxis...
-    glm::vec3 diagonal = geometryToRig * (totalExtents.maximum - totalExtents.minimum);
+    glm::vec3 diagonal = (geometryToRig * totalExtents.maximum) - (geometryToRig * totalExtents.minimum);
     // ... and assume the radiusOut is half the RMS of the X and Z sides:
     radiusOut = 0.5f * sqrtf(0.5f * (diagonal.x * diagonal.x + diagonal.z * diagonal.z));
     heightOut = diagonal.y - 2.0f * radiusOut;
 
     glm::vec3 rootPosition = finalPoses[geometry.rootJointIndex].trans;
-    localOffsetOut = geometryToRig * (0.5f * (totalExtents.maximum + totalExtents.minimum) - rootPosition);
+    glm::vec3 rigCenter = (geometryToRig * (0.5f * (totalExtents.maximum + totalExtents.minimum)));
+    localOffsetOut = rigCenter - (geometryToRig * rootPosition);
 }
