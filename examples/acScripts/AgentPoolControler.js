@@ -65,11 +65,22 @@ function printDebug(message) {
         return JSON.parse(message);
     };
     
+    // Actor
+    //---------------------------------
+    var Actor = function() {
+        this.agentID = INVALID_ACTOR;
+        this.onHired = function(actor) {};
+        this.onLost = function(actor) {};
+    };
+
+    this.Actor = Actor;
+
     // master side
     //---------------------------------
     var MasterController = function() {
         this.timeSinceLastAlive = 0;
         this.knownAgents = new Array;
+        this.hiredActors = new Array;
         this.hiringAgentsQueue = new Array;
         this.subscribed = false;
     };
@@ -126,6 +137,10 @@ function printDebug(message) {
                 if (agentIndex < 0) {
                     printDebug("Lost agent " + message.src + " " + agentIndex + " Forgeting about it");
                     this.knownAgents[agentIndex] = INVALID_ACTOR;
+                    var lostActor = this.hiredActors[agentIndex];
+                    this.hiredActors[agentIndex] = null;
+                    lostActor.agentID = INVALID_ACTOR;
+                    lostActor.onLost(lostActor);
                 }
             }
         }
@@ -147,22 +162,27 @@ function printDebug(message) {
     };
 
 
-    MasterController.prototype.hireAgent = function(onHired) {
+    MasterController.prototype.hireAgent = function(actor) {
+        if (actor == null) {
+            printDebug("trying to hire an agent with a null actor, abort");
+            return;
+        }
         var localThis = this;
         this.hiringAgentsQueue.unshift(function(agentID) { 
-            printDebug("hiring callback with agent " + agentID);
-            
-            var indexOfNewAgent = localThis.knownAgents.length;
-            localThis.knownAgents[indexOfNewAgent] = agentID;
+            printDebug("hiring callback with agent " + agentID+ " " + JSON.stringify(localThis) );
+        
+            var indexOfNewAgent = localThis.knownAgents.push(agentID)
+            actor.agentID = agentID;    
+            localThis.hiredActors.push(actor);
                               
-            printDebug("New agent available to be hired " + agentID + " " + index);                        
-            var hireMessage = "HIRE." + index;
+            printDebug("New agent available to be hired " + agentID + " " + indexOfNewAgent);                        
+            var hireMessage = "HIRE." + indexOfNewAgent;
             var answerMessage = packAnnounceMessage(agentID, hireMessage, MASTER_ID);
             Messages.sendMessage(ANNOUNCE_CHANNEL, answerMessage);
+            
+            printDebug("message sent calling the actor" + JSON.stringify(actor) );
 
-            if (onHired != null) {
-                onHired(index);
-            }  
+            actor.onHired(actor); 
         })
     };
 

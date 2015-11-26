@@ -17,7 +17,7 @@ var masterController = new MasterController();
 var ac_number = 1; // This is the default number of ACs. Their ID need to be unique and between 0 (included) and ac_number (excluded)
 var names = new Array();  // It is possible to specify the name of the ACs in this array. ACs names ordered by IDs (Default name is "ACx", x = ID + 1))
 var input_text = null;
-
+var actors = new Array();
 
 // Script. DO NOT MODIFY BEYOND THIS LINE.
 //Script.include("../libraries/toolBars.js");
@@ -54,8 +54,14 @@ var performanceLoadedNeedUpdate = false;
 
 setupPlayback();
 
-function onHiring(agentID, index) {
-    print("agent hired from playbackMaster! " + agentID + " " + index)
+function onActorHired(actor) {
+    print("agent hired from playbackMaster! " + actor.agentID + " " + actor.index)
+}
+
+function onActorLost(actor) {
+    print("agent lost from playbackMaster! " + actor.agentID + " " + actor.index)
+
+    actors[actor.index] = null; 
 }
 
 function setupPlayback() {
@@ -66,7 +72,12 @@ function setupPlayback() {
     masterController.reset();
 
     for (var i = 0; i < ac_number; i++) {
-        masterController.hireAgent(onHiring);
+        var newActor = new Actor();
+        newActor.index = i;
+        newActor.onHired = onActorHired;
+        newActor.onLost = onActorLost;
+        masterController.hireAgent(newActor);
+        actors.push(newActor);
     }
 
     setupToolBars();
