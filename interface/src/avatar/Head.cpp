@@ -43,9 +43,11 @@ Head::Head(Avatar* owningAvatar) :
     _longTermAverageLoudness(-1.0f),
     _audioAttack(0.0f),
     _audioJawOpen(0.0f),
+	_trailingAudioJawOpen(0.0f),
     _mouth2(0.0f),
     _mouth3(0.0f),
     _mouth4(0.0f),
+	_mouthTime(0.0f),
     _renderLookatVectors(false),
     _renderLookatTarget(false),
     _saccade(0.0f, 0.0f, 0.0f),
@@ -246,28 +248,33 @@ void Head::calculateMouthShapes() {
     const float JAW_OPEN_SCALE = 0.015f;
     const float JAW_OPEN_RATE = 0.9f;
     const float JAW_CLOSE_RATE = 0.90f;
-    float audioDelta = sqrtf(glm::max(_averageLoudness - _longTermAverageLoudness, 0.0f)) * JAW_OPEN_SCALE;
-    if (audioDelta > _audioJawOpen) {
-        _audioJawOpen += (audioDelta - _audioJawOpen) * JAW_OPEN_RATE;
-    } else {
-        _audioJawOpen *= JAW_CLOSE_RATE;
-    }
-    _audioJawOpen = glm::clamp(_audioJawOpen, 0.0f, 1.0f);
+	const float TIMESTEP_CONSTANT = 0.0032f;
+	const float MMMM_POWER = 0.10f;
+	const float SMILE_POWER = 0.10f;
+	const float FUNNEL_POWER = 0.35f;
+	const float MMMM_SPEED = 2.685f;
+	const float SMILE_SPEED = 1.0f;
+	const float FUNNEL_SPEED = 2.335f;
+	const float STOP_GAIN = 5.0f;
 
-    // _mouth2 = "mmmm" shape
-    // _mouth3 = "funnel" shape
-    // _mouth4 = "smile" shape
-    const float FUNNEL_PERIOD = 0.985f;
-    const float FUNNEL_RANDOM_PERIOD = 0.01f;
-    const float MMMM_POWER = 0.25f;
-    const float MMMM_PERIOD = 0.91f;
-    const float MMMM_RANDOM_PERIOD = 0.15f;
-    const float SMILE_PERIOD = 0.925f;
-    const float SMILE_RANDOM_PERIOD = 0.05f;
+	// From the change in loudness, decide how much to open or close the jaw
+	float audioDelta = sqrtf(glm::max(_averageLoudness - _longTermAverageLoudness, 0.0f)) * JAW_OPEN_SCALE;
+	if (audioDelta > _audioJawOpen) {
+		_audioJawOpen += (audioDelta - _audioJawOpen) * JAW_OPEN_RATE;
+	}
+	else {
+		_audioJawOpen *= JAW_CLOSE_RATE;
+	}
+	_audioJawOpen = glm::clamp(_audioJawOpen, 0.0f, 1.0f);
+	_trailingAudioJawOpen = glm::mix(_trailingAudioJawOpen, _audioJawOpen, 0.99f);
 
-    _mouth3 = glm::mix(_audioJawOpen, _mouth3, FUNNEL_PERIOD + randFloat() * FUNNEL_RANDOM_PERIOD);
-    _mouth2 = glm::mix(_audioJawOpen * MMMM_POWER, _mouth2, MMMM_PERIOD + randFloat() * MMMM_RANDOM_PERIOD);
-    _mouth4 = glm::mix(_audioJawOpen, _mouth4, SMILE_PERIOD + randFloat() * SMILE_RANDOM_PERIOD);
+	// Advance time at a rate proportional to loudness, and move the mouth shapes through 
+	// a cycle at differing speeds to create a continuous random blend of shapes.
+	_mouthTime += sqrtf(_averageLoudness) * TIMESTEP_CONSTANT;
+	_mouth2 = (sinf(_mouthTime * MMMM_SPEED) + 1.0f) * MMMM_POWER * glm::min(1.0f, _trailingAudioJawOpen * STOP_GAIN);
+	_mouth3 = (sinf(_mouthTime * FUNNEL_SPEED) + 1.0f) * FUNNEL_POWER * glm::min(1.0f, _trailingAudioJawOpen * STOP_GAIN);
+	_mouth4 = (sinf(_mouthTime * SMILE_SPEED) + 1.0f) * SMILE_POWER * glm::min(1.0f, _trailingAudioJawOpen * STOP_GAIN);
+
 }
 
 void Head::applyEyelidOffset(glm::quat headOrientation) {
