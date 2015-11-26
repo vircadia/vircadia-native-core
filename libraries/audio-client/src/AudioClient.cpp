@@ -547,8 +547,8 @@ void AudioClient::configureReverb() {
     p.sampleRate = _outputFormat.sampleRate();
     p.roomSize = _reverbOptions->getRoomSize();
     p.reverbTime = _reverbOptions->getReverbTime();
-    p.highGain = -24.0f * _reverbOptions->getDamping();
-    p.bandwidth = 12000.0f * _reverbOptions->getInputBandwidth();
+    p.highGain = -24.0f * (1.0f - _reverbOptions->getDamping());
+    p.bandwidth = 10000.0f * _reverbOptions->getInputBandwidth();
     p.earlyGain = _reverbOptions->getEarlyLevel();
     p.lateGain = _reverbOptions->getTailLevel();
     p.wetDryMix = 100.0f * powf(10.0f, _reverbOptions->getWetLevel() * (1/20.0f));
@@ -558,7 +558,7 @@ void AudioClient::configureReverb() {
     p.wetDryMix = 100.0f;
     p.preDelay = 0.0f;
     p.earlyGain = -96.0f;   // disable ER
-    p.lateGain -= 6.0f;     // quieter than listener reverb
+    p.lateGain -= 12.0f;     // quieter than listener reverb
     p.lateMixLeft = 0.0f;
     p.lateMixRight = 0.0f;
     _sourceReverb.setParameters(&p);
@@ -811,7 +811,7 @@ void AudioClient::processReceivedSamples(const QByteArray& inputBuffer, QByteArr
                        _desiredOutputFormat, _outputFormat);
 
     // apply stereo reverb at the listener, to the received audio
-    bool hasReverb = _receivedAudioStream.hasReverb();
+    bool hasReverb = _reverb || _receivedAudioStream.hasReverb();
     if (hasReverb) {
         assert(_outputFormat.channelCount() == 2);
         updateReverbOptions();
