@@ -87,47 +87,6 @@ const QUrl& AvatarData::defaultFullAvatarModelUrl() {
     return _defaultFullAvatarModelUrl;
 }
 
-float AvatarData::getBodyYaw() const {
-    glm::vec3 eulerAngles = glm::degrees(safeEulerAngles(getOrientation()));
-    return eulerAngles.y;
-}
-
-void AvatarData::setBodyYaw(float bodyYaw) {
-    glm::vec3 eulerAngles = glm::degrees(safeEulerAngles(getOrientation()));
-    eulerAngles.y = bodyYaw;
-    setOrientation(glm::quat(glm::radians(eulerAngles)));
-}
-
-float AvatarData::getBodyPitch() const {
-    glm::vec3 eulerAngles = glm::degrees(safeEulerAngles(getOrientation()));
-    return eulerAngles.x;
-}
-
-void AvatarData::setBodyPitch(float bodyPitch) {
-    glm::vec3 eulerAngles = glm::degrees(safeEulerAngles(getOrientation()));
-    eulerAngles.x = bodyPitch;
-    setOrientation(glm::quat(glm::radians(eulerAngles)));
-}
-
-float AvatarData::getBodyRoll() const {
-    glm::vec3 eulerAngles = glm::degrees(safeEulerAngles(getOrientation()));
-    return eulerAngles.z;
-}
-
-void AvatarData::setBodyRoll(float bodyRoll) {
-    glm::vec3 eulerAngles = glm::degrees(safeEulerAngles(getOrientation()));
-    eulerAngles.z = bodyRoll;
-    setOrientation(glm::quat(glm::radians(eulerAngles)));
-}
-
-void AvatarData::setPosition(const glm::vec3& position) {
-    SpatiallyNestable::setPosition(position);
-}
-
-void AvatarData::setOrientation(const glm::quat& orientation) {
-    SpatiallyNestable::setOrientation(orientation);
-}
-
 // There are a number of possible strategies for this set of tools through endRender, below.
 void AvatarData::nextAttitude(glm::vec3 position, glm::quat orientation) {
     avatarLock.lock();
@@ -1615,4 +1574,45 @@ void AvatarData::fromFrame(const QByteArray& frameData, AvatarData& result) {
     }
 #endif
     result.fromJson(doc.object());
+}
+
+float AvatarData::getBodyYaw() const {
+    glm::vec3 eulerAngles = glm::degrees(safeEulerAngles(getOrientation()));
+    return eulerAngles.y;
+}
+
+void AvatarData::setBodyYaw(float bodyYaw) {
+    glm::vec3 eulerAngles = glm::degrees(safeEulerAngles(getOrientation()));
+    eulerAngles.y = bodyYaw;
+    setOrientation(glm::quat(glm::radians(eulerAngles)));
+}
+
+float AvatarData::getBodyPitch() const {
+    glm::vec3 eulerAngles = glm::degrees(safeEulerAngles(getOrientation()));
+    return eulerAngles.x;
+}
+
+void AvatarData::setBodyPitch(float bodyPitch) {
+    glm::vec3 eulerAngles = glm::degrees(safeEulerAngles(getOrientation()));
+    eulerAngles.x = bodyPitch;
+    setOrientation(glm::quat(glm::radians(eulerAngles)));
+}
+
+float AvatarData::getBodyRoll() const {
+    glm::vec3 eulerAngles = glm::degrees(safeEulerAngles(getOrientation()));
+    return eulerAngles.z;
+}
+
+void AvatarData::setBodyRoll(float bodyRoll) {
+    glm::vec3 eulerAngles = glm::degrees(safeEulerAngles(getOrientation()));
+    eulerAngles.z = bodyRoll;
+    setOrientation(glm::quat(glm::radians(eulerAngles)));
+}
+
+void AvatarData::setPosition(const glm::vec3& position) {
+    SpatiallyNestable::setPosition(position);
+}
+
+void AvatarData::setOrientation(const glm::quat& orientation) {
+    SpatiallyNestable::setOrientation(orientation);
 }
