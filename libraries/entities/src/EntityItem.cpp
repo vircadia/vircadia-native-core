@@ -622,7 +622,7 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
     auto nodeList = DependencyManager::get<NodeList>();
     const QUuid& myNodeID = nodeList->getSessionUUID();
     bool weOwnSimulation = _simulationOwner.matchesValidID(myNodeID);
-    
+
 
     if (args.bitstreamVersion >= VERSION_ENTITIES_HAVE_SIMULATION_OWNER_AND_ACTIONS_OVER_WIRE) {
         // pack SimulationOwner and terse update properties near each other
@@ -802,17 +802,11 @@ void EntityItem::setDensity(float density) {
     _density = glm::max(glm::min(density, ENTITY_ITEM_MAX_DENSITY), ENTITY_ITEM_MIN_DENSITY);
 }
 
-const float ACTIVATION_RELATIVE_DENSITY_DELTA = 0.01f; // 1 percent
-
 void EntityItem::updateDensity(float density) {
     float clampedDensity = glm::max(glm::min(density, ENTITY_ITEM_MAX_DENSITY), ENTITY_ITEM_MIN_DENSITY);
     if (_density != clampedDensity) {
         _density = clampedDensity;
-
-        if (fabsf(_density - clampedDensity) / _density > ACTIVATION_RELATIVE_DENSITY_DELTA) {
-            // the density has changed enough that we should update the physics simulation
-            _dirtyFlags |= Simulation::DIRTY_MASS;
-        }
+        _dirtyFlags |= Simulation::DIRTY_MASS;
     }
 }
 
@@ -825,11 +819,16 @@ void EntityItem::setMass(float mass) {
 
     // compute new density
     const float MIN_VOLUME = 1.0e-6f; // 0.001mm^3
+    float newDensity = 1.0f;
     if (volume < 1.0e-6f) {
         // avoid divide by zero
-        _density = glm::min(mass / MIN_VOLUME, ENTITY_ITEM_MAX_DENSITY);
+        newDensity = glm::min(mass / MIN_VOLUME, ENTITY_ITEM_MAX_DENSITY);
     } else {
-        _density = glm::max(glm::min(mass / volume, ENTITY_ITEM_MAX_DENSITY), ENTITY_ITEM_MIN_DENSITY);
+        newDensity = glm::max(glm::min(mass / volume, ENTITY_ITEM_MAX_DENSITY), ENTITY_ITEM_MIN_DENSITY);
+    }
+    if (_density != newDensity) {
+        _density = newDensity;
+        _dirtyFlags |= Simulation::DIRTY_MASS;
     }
 }
 
@@ -887,12 +886,12 @@ void EntityItem::simulateKinematicMotion(float timeElapsed, bool setFlags) {
 #ifdef WANT_DEBUG
     qCDebug(entities) << "EntityItem::simulateKinematicMotion timeElapsed" << timeElapsed;
 #endif
-    
+
     const float MIN_TIME_SKIP = 0.0f;
     const float MAX_TIME_SKIP = 1.0f; // in seconds
-    
+
     timeElapsed = glm::clamp(timeElapsed, MIN_TIME_SKIP, MAX_TIME_SKIP);
-    
+
     if (hasActions()) {
         return;
     }
@@ -1340,12 +1339,8 @@ void EntityItem::updatePosition(const glm::vec3& value) {
     if (shouldSuppressLocationEdits()) {
         return;
     }
-    auto delta = glm::distance(getLocalPosition(), value);
-    if (delta > IGNORE_POSITION_DELTA) {
+    if (getLocalPosition() != value) {
         setLocalPosition(value);
-        if (delta > ACTIVATION_POSITION_DELTA) {
-            _dirtyFlags |= Simulation::DIRTY_PHYSICS_ACTIVATION;
-        }
         forSelfAndEachChildEntity([&](EntityItemPointer entity) {
             entity->_dirtyFlags |= Simulation::DIRTY_POSITION;
         });
@@ -1384,17 +1379,13 @@ void EntityItem::updateRotation(const glm::quat& rotation) {
     if (shouldSuppressLocationEdits()) {
         return;
     }
-    if (getRotation() != rotation) {
-        auto alignmentDot = glm::abs(glm::dot(getRotation(), rotation));
-        setRotation(rotation);
-        if (alignmentDot < ACTIVATION_ALIGNMENT_DOT) {
-            _dirtyFlags |= Simulation::DIRTY_PHYSICS_ACTIVATION;
-        }
+    if (getLocalOrientation() != rotation) {
+        setLocalRotation(rotation);
         forSelfAndEachChildEntity([&](EntityItemPointer entity) {
-            if (alignmentDot < IGNORE_ALIGNMENT_DOT) {
-                entity->_dirtyFlags |= Simulation::DIRTY_ROTATION;
+            entity->_dirtyFlags |= Simulation::DIRTY_ROTATION;
+            if (this->getID() != entity->getID()) {
+                entity->_dirtyFlags |= Simulation::DIRTY_POSITION;
             }
-            entity->requiresRecalcBoxes();
         });
     }
 }
@@ -1414,16 +1405,11 @@ void EntityItem::setLocalRotation(const glm::quat& orientation) {
 }
 
 void EntityItem::updateDimensions(const glm::vec3& value) {
-    auto delta = glm::distance(getDimensions(), value);
-    if (delta > IGNORE_DIMENSIONS_DELTA) {
+    if (getDimensions() != value) {
         setDimensions(value);
-        if (delta > ACTIVATION_DIMENSIONS_DELTA) {
-            // rebuilding the shape will always activate
-            _dirtyFlags |= (Simulation::DIRTY_SHAPE | Simulation::DIRTY_MASS);
-        }
+        _dirtyFlags |= (Simulation::DIRTY_SHAPE | Simulation::DIRTY_MASS);
     }
 }
-
 
 void EntityItem::updateMass(float mass) {
     // Setting the mass actually changes the _density (at fixed volume), however
@@ -1442,11 +1428,8 @@ void EntityItem::updateMass(float mass) {
         newDensity = glm::max(glm::min(mass / volume, ENTITY_ITEM_MAX_DENSITY), ENTITY_ITEM_MIN_DENSITY);
     }
 
-    float oldDensity = _density;
-    _density = newDensity;
-
-    if (fabsf(_density - oldDensity) / _density > ACTIVATION_RELATIVE_DENSITY_DELTA) {
-        // the density has changed enough that we should update the physics simulation
+    if (_density != newDensity) {
+        _density = newDensity;
         _dirtyFlags |= Simulation::DIRTY_MASS;
     }
 }
@@ -1455,38 +1438,29 @@ void EntityItem::updateVelocity(const glm::vec3& value) {
     if (shouldSuppressLocationEdits()) {
         return;
     }
-    auto delta = glm::distance(_velocity, value);
-    if (delta > IGNORE_LINEAR_VELOCITY_DELTA) {
-        _dirtyFlags |= Simulation::DIRTY_LINEAR_VELOCITY;
+    if (_velocity != value) {
         const float MIN_LINEAR_SPEED = 0.001f;
         if (glm::length(value) < MIN_LINEAR_SPEED) {
             _velocity = ENTITY_ITEM_ZERO_VEC3;
         } else {
             _velocity = value;
-            // only activate when setting non-zero velocity
-            if (delta > ACTIVATION_LINEAR_VELOCITY_DELTA) {
-                _dirtyFlags |= Simulation::DIRTY_PHYSICS_ACTIVATION;
-            }
         }
+        _dirtyFlags |= Simulation::DIRTY_LINEAR_VELOCITY;
     }
 }
 
 void EntityItem::updateDamping(float value) {
     auto clampedDamping = glm::clamp(value, 0.0f, 1.0f);
-    if (fabsf(_damping - clampedDamping) > IGNORE_DAMPING_DELTA) {
+    if (_damping != clampedDamping) {
         _damping = clampedDamping;
         _dirtyFlags |= Simulation::DIRTY_MATERIAL;
     }
 }
 
 void EntityItem::updateGravity(const glm::vec3& value) {
-    auto delta = glm::distance(_gravity, value);
-    if (delta > IGNORE_GRAVITY_DELTA) {
+    if (_gravity != value) {
         _gravity = value;
         _dirtyFlags |= Simulation::DIRTY_LINEAR_VELOCITY;
-        if (delta > ACTIVATION_GRAVITY_DELTA) {
-            _dirtyFlags |= Simulation::DIRTY_PHYSICS_ACTIVATION;
-        }
     }
 }
 
@@ -1494,25 +1468,20 @@ void EntityItem::updateAngularVelocity(const glm::vec3& value) {
     if (shouldSuppressLocationEdits()) {
         return;
     }
-    auto delta = glm::distance(_angularVelocity, value);
-    if (delta > IGNORE_ANGULAR_VELOCITY_DELTA) {
-        _dirtyFlags |= Simulation::DIRTY_ANGULAR_VELOCITY;
+    if (_angularVelocity != value) {
         const float MIN_ANGULAR_SPEED = 0.0002f;
         if (glm::length(value) < MIN_ANGULAR_SPEED) {
             _angularVelocity = ENTITY_ITEM_ZERO_VEC3;
         } else {
             _angularVelocity = value;
-            // only activate when setting non-zero velocity
-            if (delta > ACTIVATION_ANGULAR_VELOCITY_DELTA) {
-                _dirtyFlags |= Simulation::DIRTY_PHYSICS_ACTIVATION;
-            }
         }
+        _dirtyFlags |= Simulation::DIRTY_ANGULAR_VELOCITY;
     }
 }
 
 void EntityItem::updateAngularDamping(float value) {
     auto clampedDamping = glm::clamp(value, 0.0f, 1.0f);
-    if (fabsf(_angularDamping - clampedDamping) > IGNORE_DAMPING_DELTA) {
+    if (_angularDamping != clampedDamping) {
         _angularDamping = clampedDamping;
         _dirtyFlags |= Simulation::DIRTY_MATERIAL;
     }

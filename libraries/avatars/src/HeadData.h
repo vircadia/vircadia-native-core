@@ -28,6 +28,7 @@ const float MIN_HEAD_ROLL = -50.0f;
 const float MAX_HEAD_ROLL = 50.0f;
 
 class AvatarData;
+class QJsonObject;
 
 class HeadData {
 public:
@@ -83,6 +84,9 @@ public:
     
     friend class AvatarData;
     
+    QJsonObject toJson() const;
+    void fromJson(const QJsonObject& json);
+
 protected:
     // degrees
     float _baseYaw;

@@ -17,6 +17,7 @@
 #include <QtNetwork/QNetworkReply>
 
 #include <AvatarHashMap.h>
+#include <AssetClient.h>
 #include <MessagesClient.h>
 #include <NetworkAccessManager.h>
 #include <NodeList.h>
@@ -50,6 +51,14 @@ Agent::Agent(NLPacket& packet) :
         DEFAULT_WINDOW_SECONDS_FOR_DESIRED_REDUCTION, false))
 {
     DependencyManager::get<EntityScriptingInterface>()->setPacketSender(&_entityEditSender);
+
+    auto assetClient = DependencyManager::set<AssetClient>();
+
+    QThread* assetThread = new QThread;
+    assetThread->setObjectName("Asset Thread");
+    assetClient->moveToThread(assetThread);
+    connect(assetThread, &QThread::started, assetClient.data(), &AssetClient::init);
+    assetThread->start();
 
     DependencyManager::set<ResourceCacheSharedItems>();
     DependencyManager::set<SoundCache>();
@@ -133,7 +142,7 @@ void Agent::run() {
     messagesThread->start();
     
     nodeList->addSetOfNodeTypesToNodeInterestSet({
-        NodeType::AudioMixer, NodeType::AvatarMixer, NodeType::EntityServer, NodeType::MessagesMixer
+        NodeType::AudioMixer, NodeType::AvatarMixer, NodeType::EntityServer, NodeType::MessagesMixer, NodeType::AssetServer
     });
 }
 
@@ -448,4 +457,10 @@ void Agent::aboutToFinish() {
 
     // our entity tree is going to go away so tell that to the EntityScriptingInterface
     DependencyManager::get<EntityScriptingInterface>()->setEntityTree(NULL);
+
+    // cleanup the AssetClient thread
+    QThread* assetThread = DependencyManager::get<AssetClient>()->thread();
+    DependencyManager::destroy<AssetClient>();
+    assetThread->quit();
+    assetThread->wait();
 }
