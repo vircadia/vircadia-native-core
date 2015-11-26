@@ -1798,10 +1798,10 @@ glm::mat4 MyAvatar::deriveBodyFromHMDSensor() const {
     const glm::quat hmdOrientation = getHMDSensorOrientation();
     const glm::quat hmdOrientationYawOnly = cancelOutRollAndPitch(hmdOrientation);
 
-    // 2 meter tall dude
-    const glm::vec3 DEFAULT_RIG_MIDDLE_EYE_POS(0.0f, 1.9f, 0.0f);
-    const glm::vec3 DEFAULT_RIG_NECK_POS(0.0f, 1.70f, 0.0f);
-    const glm::vec3 DEFAULT_RIG_HIPS_POS(0.0f, 1.05f, 0.0f);
+    // 2 meter tall dude (in rig coordinates)
+    const glm::vec3 DEFAULT_RIG_MIDDLE_EYE_POS(0.0f, 0.9f, 0.0f);
+    const glm::vec3 DEFAULT_RIG_NECK_POS(0.0f, 0.70f, 0.0f);
+    const glm::vec3 DEFAULT_RIG_HIPS_POS(0.0f, 0.05f, 0.0f);
 
     int rightEyeIndex = _rig->indexOfJoint("RightEye");
     int leftEyeIndex = _rig->indexOfJoint("LeftEye");
