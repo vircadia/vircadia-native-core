@@ -1326,6 +1326,13 @@ void EntityItem::updatePosition(const glm::vec3& value) {
     }
 }
 
+void EntityItem::updateDimensions(const glm::vec3& value) {
+    if (getDimensions() != value) {
+        setDimensions(value);
+        _dirtyFlags |= (Simulation::DIRTY_SHAPE | Simulation::DIRTY_MASS);
+    }
+}
+
 void EntityItem::updateRotation(const glm::quat& rotation) {
     if (shouldSuppressLocationEdits()) {
         return;
@@ -1338,13 +1345,6 @@ void EntityItem::updateRotation(const glm::quat& rotation) {
                 entity->_dirtyFlags |= Simulation::DIRTY_POSITION;
             }
         });
-    }
-}
-
-void EntityItem::updateDimensions(const glm::vec3& value) {
-    if (getDimensions() != value) {
-        setDimensions(value);
-        _dirtyFlags |= (Simulation::DIRTY_SHAPE | Simulation::DIRTY_MASS);
     }
 }
 
