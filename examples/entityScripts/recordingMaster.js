@@ -29,11 +29,14 @@ var STOP_MESSAGE = "recordingEnded";
 var PARTICIPATING_MESSAGE = "participatingToRecording";
 var TIMEOUT = 20;
 
+
 var toolBar = null;
 var recordIcon;
 var isRecording = false;
 var performanceJSON = { "avatarClips" : [] };
 var responsesExpected = 0;
+var readyToPrintInfo = false;
+var performanceFileURL = null;
 var waitingForPerformanceFile = true;
 var totalWaitingTime = 0;
 var extension = "txt";
@@ -62,6 +65,7 @@ function setupToolBar() {
         visible: true,
     }, true, isRecording);
 }
+toolBar.selectTool(recordIcon, !isRecording);
 
 function mousePressEvent(event) {
     clickedOverlay = Overlays.getOverlayAtPoint({ x: event.x, y: event.y });
@@ -70,13 +74,14 @@ function mousePressEvent(event) {
             print("I'm the master. I want to start recording");
             Messages.sendMessage(MASTER_TO_CLIENTS_CHANNEL, START_MESSAGE);
             isRecording = true;
+            waitingForPerformanceFile = true;
         } else {
             print("I want to stop recording");
-            waitingForPerformanceFile = true;
             Script.update.connect(update);
             Messages.sendMessage(MASTER_TO_CLIENTS_CHANNEL, STOP_MESSAGE);
             isRecording = false;
         }
+        toolBar.selectTool(recordIcon, !isRecording);
     }
 }
 
@@ -97,36 +102,47 @@ function update(deltaTime) {
     if (waitingForPerformanceFile) {
         totalWaitingTime += deltaTime;
         if (totalWaitingTime > TIMEOUT || performanceJSON.avatarClips.length === responsesExpected) {
-            print("UPLOADING PERFORMANCE FILE");
             if (performanceJSON.avatarClips.length !== 0) {
+                print("UPLOADING PERFORMANCE FILE");
                 //I can upload the performance file on the asset
                 Assets.uploadData(JSON.stringify(performanceJSON), extension, uploadFinished);
+            } else {
+                print("PERFORMANCE FILE EMPTY");
             }
             //clean things after upload performance file to asset
             waitingForPerformanceFile = false;
-            responsesExpected = 0;
             totalWaitingTime = 0;
             Script.update.disconnect(update);
-            performanceJSON = { "avatarClips" : [] };
         }
+    } else if (readyToPrintInfo == true){
+        Window.prompt("Performance file and clips: ", getUtilityString());
+        responsesExpected = 0;
+        performanceJSON = { "avatarClips" : [] };
+        Script.update.disconnect(update);
     }
+}
+
+function getUtilityString() {
+    var resultString = "JSON:\n" + performanceFileURL + "\n" + responsesExpected + " avatar clips:\n";
+    var avatarClips = performanceJSON.avatarClips;
+    avatarClips.forEach(function(param) {
+        resultString += param + "\n";
+    });
+    return resultString;
 }
 
 function uploadFinished(url){
     //need to print somehow the url here this way the master can copy the url
-    print("PERFORMANCE FILE URL: " + url);
-    Assets.downloadData(url, function (data) {
-        printPerformanceJSON(JSON.parse(data));
-    });
-}
-
-function printPerformanceJSON(obj) {
     print("some info:");
-    print("downloaded performance file from asset and examinating its content...");
-    var avatarClips = obj.avatarClips;
+    performanceFileURL = url;
+    print("PERFORMANCE FILE URL: " + performanceFileURL);
+    print("number of clips obtained:" + responsesExpected);
+    var avatarClips = performanceJSON.avatarClips;
     avatarClips.forEach(function(param) {
         print("clip url obtained: " + param);
     });
+    readyToPrintInfo = true;
+    Script.update.connect(update);
 }
 
 function cleanup() {

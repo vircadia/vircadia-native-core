@@ -40,8 +40,10 @@ public:
     
 protected:
     void updateGeometry();
+    void updateVertices();
     gpu::BufferPointer _verticesBuffer;
     unsigned int _numVertices;
+    QVector<glm::vec3> _vertices;
 
 };
 
