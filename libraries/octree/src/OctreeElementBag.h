@@ -17,12 +17,10 @@
 #define hifi_OctreeElementBag_h
 
 #include "OctreeElement.h"
+#include <sharedUtil.h>
 
-class OctreeElementBag : public OctreeElementDeleteHook {
-
+class OctreeElementBag {
 public:
-    OctreeElementBag();
-    ~OctreeElementBag();
 
     void insert(OctreeElementPointer element); // put a element into the bag
     OctreeElementPointer extract(); // pull a element out of the bag (could come in any order)
@@ -32,13 +30,9 @@ public:
     int count() const { return _bagElements.size(); }
 
     void deleteAll();
-    virtual void elementDeleted(OctreeElementPointer element);
-
-    void unhookNotifications();
 
 private:
-    QSet<OctreeElementPointer> _bagElements;
-    bool _hooked;
+    QHash<OctreeElement*, OctreeElementWeakPointer> _bagElements;
 };
 
 typedef QMap<const OctreeElement*, void*> OctreeElementExtraEncodeData;

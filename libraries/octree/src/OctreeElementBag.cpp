@@ -12,54 +12,30 @@
 #include "OctreeElementBag.h"
 #include <OctalCode.h>
 
-OctreeElementBag::OctreeElementBag() : 
-    _bagElements()
-{
-    OctreeElement::addDeleteHook(this);
-    _hooked = true;
-}
-
-OctreeElementBag::~OctreeElementBag() {
-    unhookNotifications();
-    deleteAll();
-}
-
-void OctreeElementBag::unhookNotifications() {
-    if (_hooked) {
-        OctreeElement::removeDeleteHook(this);
-        _hooked = false;
-    }
-}
-
-void OctreeElementBag::elementDeleted(OctreeElementPointer element) {
-    remove(element); // note: remove can safely handle nodes that aren't in it, so we don't need to check contains()
-}
-
-
 void OctreeElementBag::deleteAll() {
     _bagElements.clear();
 }
 
-
 void OctreeElementBag::insert(OctreeElementPointer element) {
-    _bagElements.insert(element);
+    _bagElements.insert(element.get(), element);
 }
 
 OctreeElementPointer OctreeElementBag::extract() {
-    OctreeElementPointer result = NULL;
+    OctreeElementPointer result;
 
-    if (_bagElements.size() > 0) {
-        QSet<OctreeElementPointer>::iterator front = _bagElements.begin();
-        result = *front;
-        _bagElements.erase(front);
+    // Find the first element still alive
+    while (!_bagElements.empty() && !result) {
+        auto it = _bagElements.begin();
+        result = it->lock();
+        _bagElements.erase(it);
     }
     return result;
 }
 
 bool OctreeElementBag::contains(OctreeElementPointer element) {
-    return _bagElements.contains(element);
+    return _bagElements.contains(element.get());
 }
 
 void OctreeElementBag::remove(OctreeElementPointer element) {
-    _bagElements.remove(element);
+    _bagElements.remove(element.get());
 }

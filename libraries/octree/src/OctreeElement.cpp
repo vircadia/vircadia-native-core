@@ -95,10 +95,6 @@ void OctreeElement::init(unsigned char * octalCode) {
 }
 
 OctreeElement::~OctreeElement() {
-    // We can't call notifyDeleteHooks from here:
-    //   notifyDeleteHooks();
-    // see comment in EntityTreeElement::createNewElement.
-    assert(_deleteHooksNotified);
     _voxelNodeCount--;
     if (isLeaf()) {
         _voxelNodeLeafCount--;
@@ -519,35 +515,6 @@ float OctreeElement::distanceToPoint(const glm::vec3& point) const {
     glm::vec3 temp = point - _cube.calcCenter();
     float distance = sqrtf(glm::dot(temp, temp));
     return distance;
-}
-
-QReadWriteLock OctreeElement::_deleteHooksLock;
-std::vector<OctreeElementDeleteHook*> OctreeElement::_deleteHooks;
-
-void OctreeElement::addDeleteHook(OctreeElementDeleteHook* hook) {
-    _deleteHooksLock.lockForWrite();
-    _deleteHooks.push_back(hook);
-    _deleteHooksLock.unlock();
-}
-
-void OctreeElement::removeDeleteHook(OctreeElementDeleteHook* hook) {
-    _deleteHooksLock.lockForWrite();
-    for (unsigned int i = 0; i < _deleteHooks.size(); i++) {
-        if (_deleteHooks[i] == hook) {
-            _deleteHooks.erase(_deleteHooks.begin() + i);
-            break;
-        }
-    }
-    _deleteHooksLock.unlock();
-}
-
-void OctreeElement::notifyDeleteHooks() {
-    _deleteHooksLock.lockForRead();
-    for (unsigned int i = 0; i < _deleteHooks.size(); i++) {
-        _deleteHooks[i]->elementDeleted(shared_from_this());
-    }
-    _deleteHooksLock.unlock();
-    _deleteHooksNotified = true;
 }
 
 bool OctreeElement::findSpherePenetration(const glm::vec3& center, float radius,
