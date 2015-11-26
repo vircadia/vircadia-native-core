@@ -95,7 +95,7 @@ void EntityMotionState::updateServerPhysicsVariables(const QUuid& sessionID) {
 }
 
 // virtual
-bool EntityMotionState::handleEasyChanges(uint32_t flags, PhysicsEngine* engine) {
+bool EntityMotionState::handleEasyChanges(uint32_t& flags, PhysicsEngine* engine) {
     assert(entityTreeIsLocked());
     updateServerPhysicsVariables(engine->getSessionID());
     ObjectMotionState::handleEasyChanges(flags, engine);
@@ -120,7 +120,7 @@ bool EntityMotionState::handleEasyChanges(uint32_t flags, PhysicsEngine* engine)
     }
     if (flags & Simulation::DIRTY_SIMULATOR_OWNERSHIP) {
         // (DIRTY_SIMULATOR_OWNERSHIP really means "we should bid for ownership with SCRIPT priority")
-        // we're manipulating this object directly via script, so we artificially 
+        // we're manipulating this object directly via script, so we artificially
         // manipulate the logic to trigger an immediate bid for ownership
         setOutgoingPriority(SCRIPT_EDIT_SIMULATION_PRIORITY);
     }
@@ -133,7 +133,7 @@ bool EntityMotionState::handleEasyChanges(uint32_t flags, PhysicsEngine* engine)
 
 
 // virtual
-bool EntityMotionState::handleHardAndEasyChanges(uint32_t flags, PhysicsEngine* engine) {
+bool EntityMotionState::handleHardAndEasyChanges(uint32_t& flags, PhysicsEngine* engine) {
     updateServerPhysicsVariables(engine->getSessionID());
     return ObjectMotionState::handleHardAndEasyChanges(flags, engine);
 }

@@ -74,10 +74,13 @@ private:
 class AssetScriptingInterface : public QObject {
     Q_OBJECT
 public:
+    AssetScriptingInterface(QScriptEngine* engine);
+
     Q_INVOKABLE void uploadData(QString data, QString extension, QScriptValue callback);
     Q_INVOKABLE void downloadData(QString url, QScriptValue downloadComplete);
 protected:
     QSet<AssetRequest*> _pendingRequests;
+    QScriptEngine* _engine;
 };
 
 

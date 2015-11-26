@@ -4,19 +4,20 @@ string(TOUPPER ${EXTERNAL_NAME} EXTERNAL_NAME_UPPER)
 include(ExternalProject)
 
 ExternalProject_Add(
-${EXTERNAL_NAME}
-URL http://zlib.net/zlib128.zip
-CMAKE_ARGS -DCMAKE_INSTALL_PREFIX:PATH=<INSTALL_DIR>
-BINARY_DIR ${EXTERNAL_PROJECT_PREFIX}/build
-LOG_DOWNLOAD 1
-LOG_CONFIGURE 1
-LOG_BUILD 1
+  ${EXTERNAL_NAME}
+  URL http://zlib.net/zlib128.zip
+  CMAKE_ARGS -DCMAKE_INSTALL_PREFIX:PATH=<INSTALL_DIR>
+  BINARY_DIR ${EXTERNAL_PROJECT_PREFIX}/build
+  LOG_DOWNLOAD 1
+  LOG_CONFIGURE 1
+  LOG_BUILD 1
 )
   
 # Hide this external target (for ide users)
 set_target_properties(${EXTERNAL_NAME} PROPERTIES FOLDER "hidden/externals")
 
 ExternalProject_Get_Property(${EXTERNAL_NAME} INSTALL_DIR)
+set(${EXTERNAL_NAME_UPPER}_ROOT ${INSTALL_DIR} CACHE PATH "Path for Zlib install root")
 set(${EXTERNAL_NAME_UPPER}_INCLUDE_DIR ${INSTALL_DIR}/include CACHE PATH "List of zlib include directories")
 set(${EXTERNAL_NAME_UPPER}_INCLUDE_DIRS ${${EXTERNAL_NAME_UPPER}_INCLUDE_DIR} CACHE PATH "List of zlib include directories")
 set(${EXTERNAL_NAME_UPPER}_DLL_PATH ${INSTALL_DIR}/bin CACHE FILEPATH "Location of ZLib DLL")
