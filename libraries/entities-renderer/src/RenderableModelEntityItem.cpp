@@ -210,6 +210,7 @@ void RenderableModelEntityItem::removeFromScene(EntityItemPointer self, std::sha
     }
 }
 
+
 // NOTE: this only renders the "meta" portion of the Model, namely it renders debugging items, and it handles
 // the per frame simulation/update that might be required if the models properties changed.
 void RenderableModelEntityItem::render(RenderArgs* args) {
@@ -248,6 +249,7 @@ void RenderableModelEntityItem::render(RenderArgs* args) {
             //        so most of the time we don't do anything in this function.
             _model->setVisibleInScene(getVisible(), scene);
         }
+
 
         remapTextures();
     } else {
@@ -304,22 +306,23 @@ Model* RenderableModelEntityItem::getModel(EntityTreeRenderer* renderer) {
 }
 
 bool RenderableModelEntityItem::needsToCallUpdate() const {
-    if (EntityItem::needsToCallUpdate()) {
+    if (!_dimensionsInitialized || _needsInitialSimulation || ModelEntityItem::needsToCallUpdate()) {
         return true;
     }
-    // these if statements match the structure of those in RenderableModelEntityItem::update
-    if (hasModel() && _myRenderer) {
-        if (!_model || _needsModelReload) {
-            return true;
-        }
-    }
+
     if (!_dimensionsInitialized && _model && _model->isActive()) {
         return true;
     }
+
+    if (_myRenderer && (!_model || _needsModelReload)) {
+        return true;
+    }
+
     if (_model) {
-        if (hasAnimation()) {
+        if (hasAnimation() || jointsMapped()) {
             return true;
         }
+
         bool movingOrAnimating = isMoving() || isAnimatingSomething();
         if ((movingOrAnimating ||
              _needsInitialSimulation ||
@@ -339,14 +342,14 @@ void RenderableModelEntityItem::update(const quint64& now) {
         EntityItemProperties properties;
         auto extents = _model->getMeshExtents();
         properties.setDimensions(extents.maximum - extents.minimum);
-
+        
         qCDebug(entitiesrenderer) << "Autoresizing:" << (!getName().isEmpty() ? getName() : getModelURL());
         QMetaObject::invokeMethod(DependencyManager::get<EntityScriptingInterface>().data(), "editEntity",
                                   Qt::QueuedConnection,
                                   Q_ARG(QUuid, getEntityItemID()),
                                   Q_ARG(EntityItemProperties, properties));
     }
-
+    
     if (_myRenderer && (!_model || _needsModelReload)) {
         // TODO: this getModel() appears to be about 3% of model render time. We should optimize
         PerformanceTimer perfTimer("getModel");
