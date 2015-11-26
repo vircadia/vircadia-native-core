@@ -54,13 +54,23 @@ var performanceLoadedNeedUpdate = false;
 
 setupPlayback();
 
+function onHiring(agentID, index) {
+    print("agent hired from playbackMaster! " + agentID + " " + index)
+}
+
 function setupPlayback() {
     ac_number = Window.prompt("Insert number of agents: ","1");
     if (ac_number === "" || ac_number === null) {
         ac_number = 1;
-    }
-    setupToolBars();
+    } 
     masterController.reset();
+
+    for (var i = 0; i < ac_number; i++) {
+        masterController.hireAgent(onHiring);
+    }
+
+    setupToolBars();
+    
 }
 
 function setupToolBars() {      
@@ -96,13 +106,13 @@ function setupToolBars() {
         
         var playLoopWidthFactor = 1.65;
         playLoopIcon[i] = toolBars[i].addTool({
-                                              imageURL: TOOL_ICON_URL + "play-and-loop.svg",
-                                              subImage: { x: 0, y: 0, width: playLoopWidthFactor * Tool.IMAGE_WIDTH, height: Tool.IMAGE_HEIGHT },
-                                              width: playLoopWidthFactor * Tool.IMAGE_WIDTH,
-                                              height: Tool.IMAGE_HEIGHT,
-                                              alpha: ALPHA_OFF,
-                                              visible: true
-                                              }, false);
+                                          imageURL: TOOL_ICON_URL + "play-and-loop.svg",
+                                          subImage: { x: 0, y: 0, width: playLoopWidthFactor * Tool.IMAGE_WIDTH, height: Tool.IMAGE_HEIGHT },
+                                          width: playLoopWidthFactor * Tool.IMAGE_WIDTH,
+                                          height: Tool.IMAGE_HEIGHT,
+                                          alpha: ALPHA_OFF,
+                                          visible: true
+                                          }, false);
         
         stopIcon[i] = toolBars[i].addTool({
                                           imageURL: TOOL_ICON_URL + "recording-stop.svg",
@@ -121,20 +131,20 @@ function setupToolBars() {
                                           }, false);
         
         nameOverlays.push(Overlays.addOverlay("text", {
-                                              backgroundColor: { red: 0, green: 0, blue: 0 },
-                                              font: { size: TEXT_HEIGHT },
-                                              text: (i == ac_number) ? "Master" : i + ". " +
-                                              ((i < names.length) ? names[i] :
-                                               "AC" + i),
-                                              x: 0, y: 0,
-                                              width: toolBars[i].width + ToolBar.SPACING,
-                                              height: TEXT_HEIGHT + TEXT_MARGIN,
-                                              leftMargin: TEXT_MARGIN,
-                                              topMargin: TEXT_MARGIN,
-                                              alpha: ALPHA_OFF,
-                                              backgroundAlpha: ALPHA_OFF,
-                                              visible: true
-                                              }));
+                                          backgroundColor: { red: 0, green: 0, blue: 0 },
+                                          font: { size: TEXT_HEIGHT },
+                                          text: (i == ac_number) ? "Master" : i + ". " +
+                                          ((i < names.length) ? names[i] :
+                                           "AC" + i),
+                                          x: 0, y: 0,
+                                          width: toolBars[i].width + ToolBar.SPACING,
+                                          height: TEXT_HEIGHT + TEXT_MARGIN,
+                                          leftMargin: TEXT_MARGIN,
+                                          topMargin: TEXT_MARGIN,
+                                          alpha: ALPHA_OFF,
+                                          backgroundAlpha: ALPHA_OFF,
+                                          visible: true
+                                          }));
     }
 }
 
