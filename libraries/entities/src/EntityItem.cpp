@@ -241,7 +241,7 @@ OctreeElement::AppendState EntityItem::appendEntityData(OctreePacketData* packet
 
         APPEND_ENTITY_PROPERTY(PROP_SIMULATION_OWNER, _simulationOwner.toByteArray());
         APPEND_ENTITY_PROPERTY(PROP_POSITION, getLocalPosition());
-        APPEND_ENTITY_PROPERTY(PROP_ROTATION, getRotation());
+        APPEND_ENTITY_PROPERTY(PROP_ROTATION, getLocalOrientation());
         APPEND_ENTITY_PROPERTY(PROP_VELOCITY, getVelocity());
         APPEND_ENTITY_PROPERTY(PROP_ANGULAR_VELOCITY, getAngularVelocity());
         APPEND_ENTITY_PROPERTY(PROP_ACCELERATION, getAcceleration());
@@ -1045,7 +1045,7 @@ EntityItemProperties EntityItem::getProperties(EntityPropertyFlags desiredProper
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(simulationOwner, getSimulationOwner);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(position, getLocalPosition);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(dimensions, getDimensions); // NOTE: radius is obsolete
-    COPY_ENTITY_PROPERTY_TO_PROPERTIES(rotation, getRotation);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(rotation, getLocalOrientation);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(density, getDensity);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(velocity, getVelocity);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(gravity, getGravity);
@@ -1085,7 +1085,7 @@ void EntityItem::getAllTerseUpdateProperties(EntityItemProperties& properties) c
     // a TerseUpdate includes the transform and its derivatives
     properties._position = getLocalPosition();
     properties._velocity = _velocity;
-    properties._rotation = getRotation();
+    properties._rotation = getLocalOrientation();
     properties._angularVelocity = _angularVelocity;
     properties._acceleration = _acceleration;
 
@@ -1314,27 +1314,6 @@ void EntityItem::computeShapeInfo(ShapeInfo& info) {
     info.setParams(getShapeType(), 0.5f * getDimensions());
 }
 
-void EntityItem::forSelfAndEachChildEntity(std::function<void(EntityItemPointer)> actor) {
-    QQueue<SpatiallyNestablePointer> toProcess;
-    toProcess.enqueue(shared_from_this());
-
-    while (!toProcess.empty()) {
-        EntityItemPointer entity = std::static_pointer_cast<EntityItem>(toProcess.dequeue());
-        actor(entity);
-        foreach (SpatiallyNestablePointer child, entity->getChildren()) {
-            if (child && child->getNestableType() == NestableTypes::Entity) {
-                toProcess.enqueue(child);
-            }
-        }
-    }
-}
-
-void EntityItem::parentChanged() {
-    forSelfAndEachChildEntity([&](EntityItemPointer entity) {
-        entity->requiresRecalcBoxes();
-    });
-}
-
 void EntityItem::updatePosition(const glm::vec3& value) {
     if (shouldSuppressLocationEdits()) {
         return;
@@ -1345,34 +1324,6 @@ void EntityItem::updatePosition(const glm::vec3& value) {
             entity->_dirtyFlags |= Simulation::DIRTY_POSITION;
         });
     }
-}
-
-void EntityItem::setTransform(const Transform& transform) {
-    SpatiallyNestable::setTransform(transform);
-    forSelfAndEachChildEntity([&](EntityItemPointer entity) {
-        entity->requiresRecalcBoxes();
-    });
-}
-
-void EntityItem::setLocalTransform(const Transform& transform) {
-    SpatiallyNestable::setLocalTransform(transform);
-    forSelfAndEachChildEntity([&](EntityItemPointer entity) {
-        entity->requiresRecalcBoxes();
-    });
-}
-
-void EntityItem::setPosition(const glm::vec3& position) {
-    SpatiallyNestable::setPosition(position);
-    forSelfAndEachChildEntity([&](EntityItemPointer entity) {
-        entity->requiresRecalcBoxes();
-    });
-}
-
-void EntityItem::setLocalPosition(const glm::vec3& position) {
-    SpatiallyNestable::setLocalPosition(position);
-    forSelfAndEachChildEntity([&](EntityItemPointer entity) {
-        entity->requiresRecalcBoxes();
-    });
 }
 
 void EntityItem::updateRotation(const glm::quat& rotation) {
@@ -1388,20 +1339,6 @@ void EntityItem::updateRotation(const glm::quat& rotation) {
             }
         });
     }
-}
-
-void EntityItem::setRotation(const glm::quat& orientation) {
-    SpatiallyNestable::setOrientation(orientation);
-    forSelfAndEachChildEntity([&](EntityItemPointer entity) {
-        entity->requiresRecalcBoxes();
-    });
-}
-
-void EntityItem::setLocalRotation(const glm::quat& orientation) {
-    SpatiallyNestable::setLocalOrientation(orientation);
-    forSelfAndEachChildEntity([&](EntityItemPointer entity) {
-        entity->requiresRecalcBoxes();
-    });
 }
 
 void EntityItem::updateDimensions(const glm::vec3& value) {
@@ -1900,4 +1837,67 @@ QList<EntityActionPointer> EntityItem::getActionsOfType(EntityActionType typeToG
     }
 
     return result;
+}
+
+void EntityItem::forSelfAndEachChildEntity(std::function<void(EntityItemPointer)> actor) {
+    QQueue<SpatiallyNestablePointer> toProcess;
+    toProcess.enqueue(shared_from_this());
+
+    while (!toProcess.empty()) {
+        EntityItemPointer entity = std::static_pointer_cast<EntityItem>(toProcess.dequeue());
+        actor(entity);
+        foreach (SpatiallyNestablePointer child, entity->getChildren()) {
+            if (child && child->getNestableType() == NestableTypes::Entity) {
+                toProcess.enqueue(child);
+            }
+        }
+    }
+}
+
+void EntityItem::parentChanged() {
+    forSelfAndEachChildEntity([&](EntityItemPointer entity) {
+            entity->requiresRecalcBoxes();
+        });
+}
+
+void EntityItem::setTransform(const Transform& transform) {
+    SpatiallyNestable::setTransform(transform);
+    forSelfAndEachChildEntity([&](EntityItemPointer entity) {
+            entity->requiresRecalcBoxes();
+        });
+}
+
+void EntityItem::setLocalTransform(const Transform& transform) {
+    SpatiallyNestable::setLocalTransform(transform);
+    forSelfAndEachChildEntity([&](EntityItemPointer entity) {
+            entity->requiresRecalcBoxes();
+        });
+}
+
+void EntityItem::setPosition(const glm::vec3& position) {
+    SpatiallyNestable::setPosition(position);
+    forSelfAndEachChildEntity([&](EntityItemPointer entity) {
+            entity->requiresRecalcBoxes();
+        });
+}
+
+void EntityItem::setLocalPosition(const glm::vec3& position) {
+    SpatiallyNestable::setLocalPosition(position);
+    forSelfAndEachChildEntity([&](EntityItemPointer entity) {
+            entity->requiresRecalcBoxes();
+        });
+}
+
+void EntityItem::setRotation(const glm::quat& orientation) {
+    SpatiallyNestable::setOrientation(orientation);
+    forSelfAndEachChildEntity([&](EntityItemPointer entity) {
+            entity->requiresRecalcBoxes();
+        });
+}
+
+void EntityItem::setLocalRotation(const glm::quat& orientation) {
+    SpatiallyNestable::setLocalOrientation(orientation);
+    forSelfAndEachChildEntity([&](EntityItemPointer entity) {
+            entity->requiresRecalcBoxes();
+        });
 }
