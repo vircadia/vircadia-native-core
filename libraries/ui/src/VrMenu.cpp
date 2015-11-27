@@ -183,6 +183,10 @@ void VrMenu::insertAction(QAction* before, QAction* action) {
 }
 
 void VrMenu::removeAction(QAction* action) {
+    if (!action) {
+        qWarning("Attempted to remove invalid menu action");
+        return;
+    }
     MenuUserData* userData = MenuUserData::forObject(action);
     if (!userData) {
         qWarning("Attempted to remove menu action with no found QML object");
