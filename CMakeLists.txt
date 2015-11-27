@@ -230,6 +230,8 @@ set(CPACK_PACKAGE_VERSION_MAJOR "${BUILD_SEQ}")
 set(CPACK_PACKAGE_VERSION_MINOR "0")
 set(CPACK_PACKAGE_VERSION_PATCH "0")
 set(CPACK_PACKAGE_INSTALL_DIRECTORY "High Fidelity")
+set(CPACK_NSIS_CREATE_ICONS_EXTRA "CreateShortCut '$SMPROGRAMS\\\\$STARTMENU_FOLDER\\\\Interface.lnk' '$INSTDIR\\\\interface.exe'")
+set(CPACK_NSIS_CREATE_ICONS_EXTRA "CreateShortCut '$SMPROGRAMS\\\\$STARTMENU_FOLDER\\\\StacK Manager.lnk' '$INSTDIR\\\\stack-manager.exe'")
 
 if (WIN32)
   install(DIRECTORY ${CMAKE_BINARY_DIR}/full-stack-deployment/ DESTINATION "./")
