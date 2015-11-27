@@ -84,7 +84,7 @@
             overlay = null;
         },
 
-        startRecording: function (entityID) {
+        startRecording: function () {
             if (!isAvatarRecording) {
                 print("RECORDING STARTED");
                 Messages.sendMessage(CLIENTS_TO_MASTER_CHANNEL, PARTICIPATING_MESSAGE);  //tell to master that I'm participating
@@ -94,7 +94,7 @@
             }
         },
 
-        stopRecording: function (entityID) {
+        stopRecording: function () {
             if (isAvatarRecording) {
                 print("RECORDING ENDED");
                 Recording.stopRecording();
@@ -109,7 +109,7 @@
             _this.stopRecording();
             Messages.unsubscribe(MASTER_TO_CLIENTS_CHANNEL);
             Messages.messageReceived.disconnect(receivingMessage);
-            if(overlay !== null){
+            if (overlay !== null) {
                 Overlays.deleteOverlay(overlay);
                 overlay = null;
             }

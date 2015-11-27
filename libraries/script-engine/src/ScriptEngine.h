@@ -128,6 +128,7 @@ public:
     bool isFinished() const { return _isFinished; } // used by Application and ScriptWidget
     bool isRunning() const { return _isRunning; } // used by ScriptWidget
 
+    void disconnectNonEssentialSignals();
     static void stopAllScripts(QObject* application); // used by Application on shutdown
 
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -165,15 +166,16 @@ signals:
 protected:
     QString _scriptContents;
     QString _parentURL;
-    bool _isFinished;
-    bool _isRunning;
-    int _evaluatesPending = 0;
-    bool _isInitialized;
+    bool _isFinished { false };
+    bool _isRunning { false };
+    int _evaluatesPending { 0 };
+    bool _isInitialized { false };
     QHash<QTimer*, QScriptValue> _timerFunctionMap;
     QSet<QUrl> _includedURLs;
-    bool _wantSignals = true;
+    bool _wantSignals { true };
     QHash<EntityItemID, EntityScriptDetails> _entityScripts;
-private:
+    bool _isThreaded { false };
+
     void init();
     QString getFilename() const;
     void waitTillDoneRunning();
@@ -191,8 +193,8 @@ private:
     Quat _quatLibrary;
     Vec3 _vec3Library;
     ScriptUUID _uuidLibrary;
-    bool _isUserLoaded;
-    bool _isReloading;
+    bool _isUserLoaded { false };
+    bool _isReloading { false };
 
     ArrayBufferClass* _arrayBufferClass;
 
@@ -205,8 +207,6 @@ private:
     static QSet<ScriptEngine*> _allKnownScriptEngines;
     static QMutex _allScriptsMutex;
     static bool _stoppingAllScripts;
-    static bool _doneRunningThisScript;
-
 };
 
 #endif // hifi_ScriptEngine_h
