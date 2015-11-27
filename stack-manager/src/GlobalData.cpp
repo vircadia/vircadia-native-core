@@ -32,11 +32,8 @@ GlobalData::GlobalData() {
     _resourcePath = "resources/";
     _assignmentClientExecutable = "assignment-client";
     _domainServerExecutable = "domain-server";
-    QString applicationSupportDirectory = QStandardPaths::writableLocation(QStandardPaths::DataLocation);
-    if (PR_BUILD) {
-        applicationSupportDirectory += "/pr-binaries";
-    }
-    
+	QString applicationSupportDirectory = QCoreApplication::applicationDirPath();
+
     _clientsLaunchPath = QDir::toNativeSeparators(applicationSupportDirectory + "/");
     _clientsResourcePath = QDir::toNativeSeparators(applicationSupportDirectory + "/" + _resourcePath);
 
@@ -48,18 +45,6 @@ GlobalData::GlobalData() {
     if (_platform == "win") {
         _domainServerExecutablePath.append(".exe");
     }
-
-    _requirementsURL = urlBase + "/binaries/" + _platform + "/requirements/requirements.zip";
-    _requirementsZipPath = _clientsLaunchPath + "requirements.zip";
-    _requirementsMD5URL = urlBase + "/binaries/" + _platform + "/requirements/requirements.md5";
-    _assignmentClientURL = urlBase + "/binaries/" + _platform + "/assignment-client" + (_platform == "win" ? "/assignment-client.exe" : "/assignment-client");
-    _domainServerResourcesURL = urlBase + "/binaries/" + _platform + "/domain-server/resources.zip";
-    _domainServerResourcesZipPath = _clientsLaunchPath + "resources.zip";
-    _domainServerResourcesMD5URL = urlBase + "/binaries/" + _platform + "/domain-server/resources.md5";
-    _domainServerURL = urlBase + "/binaries/" + _platform + "/domain-server" + (_platform == "win" ? "/domain-server.exe" : "/domain-server");
-
-    _assignmentClientMD5URL = urlBase + "/binaries/" + _platform + "/assignment-client/assignment-client.md5";
-    _domainServerMD5URL = urlBase + "/binaries/" + _platform + "/domain-server/domain-server.md5";
 
     _defaultDomain = "localhost";
     _logsPath = QDir::toNativeSeparators(_clientsLaunchPath + "logs/");

@@ -221,3 +221,18 @@ if (HIFI_MEMORY_DEBUGGING)
     MESSAGE("-- Memory debugging is enabled")
   endif (UNIX)
 endif ()
+
+set(CPACK_PACKAGE_NAME "High Fidelity")
+set(CPACK_PACKAGE_VENDOR "High Fidelity, Inc")
+set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "High Fidelity Interface and Stack")
+set(CPACK_PACKAGE_VERSION "${BUILD_SEQ}")
+set(CPACK_PACKAGE_VERSION_MAJOR "${BUILD_SEQ}")
+set(CPACK_PACKAGE_VERSION_MINOR "0")
+set(CPACK_PACKAGE_VERSION_PATCH "0")
+set(CPACK_PACKAGE_INSTALL_DIRECTORY "High Fidelity")
+
+if (WIN32)
+  install(DIRECTORY ${CMAKE_BINARY_DIR}/full-stack-deployment/ DESTINATION "./")
+endif (WIN32)
+
+include(CPack)

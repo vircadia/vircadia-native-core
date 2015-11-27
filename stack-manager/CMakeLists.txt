@@ -2,6 +2,7 @@ set(TARGET_NAME "stack-manager")
 set(BUILD_BUNDLE YES)
 setup_hifi_project(Widgets Gui Svg Core Network WebKitWidgets)
 add_dependencies(${TARGET_NAME} assignment-client domain-server)
+include_application_version()
 
 if (WIN32)
   target_zlib()
