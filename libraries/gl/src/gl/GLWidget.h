@@ -1,5 +1,5 @@
 //
-//  GLCanvas.h
+//  GLWidget.h
 //  interface/src
 //
 //  Created by Stephen Birarda on 8/14/13.
@@ -9,18 +9,27 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef hifi_GLCanvas_h
-#define hifi_GLCanvas_h
+#ifndef hifi_GLWidget_h
+#define hifi_GLWidget_h
 
-#include <gl/GLWidget.h>
+#include <QGLWidget>
 
 /// customized canvas that simply forwards requests/events to the singleton application
-class GLCanvas : public GLWidget {
+class GLWidget : public QGLWidget {
     Q_OBJECT
+    
+public:
+    GLWidget();
+    int getDeviceWidth() const;
+    int getDeviceHeight() const;
+    QSize getDeviceSize() const { return QSize(getDeviceWidth(), getDeviceHeight()); }
+
 protected:
-    virtual void paintGL() override;
-    virtual void resizeGL(int width, int height) override;
+    virtual void initializeGL() override;
     virtual bool event(QEvent* event) override;
+
+private slots:
+    virtual bool eventFilter(QObject*, QEvent* event) override;
 };
 
 
