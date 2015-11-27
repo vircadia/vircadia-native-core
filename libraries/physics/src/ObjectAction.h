@@ -63,6 +63,7 @@ protected:
     virtual glm::vec3 getAngularVelocity();
     virtual void setAngularVelocity(glm::vec3 angularVelocity);
     virtual void activateBody();
+    virtual void forceBodyNonStatic();
 
     EntityItemWeakPointer _ownerEntity;
     QString _tag;

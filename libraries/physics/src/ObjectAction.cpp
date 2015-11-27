@@ -246,6 +246,18 @@ void ObjectAction::activateBody() {
     }
 }
 
+void ObjectAction::forceBodyNonStatic() {
+    auto ownerEntity = _ownerEntity.lock();
+    if (!ownerEntity) {
+        return;
+    }
+    void* physicsInfo = ownerEntity->getPhysicsInfo();
+    ObjectMotionState* motionState = static_cast<ObjectMotionState*>(physicsInfo);
+    if (motionState && motionState->getMotionType() == MOTION_TYPE_STATIC) {
+        ownerEntity->flagForMotionStateChange();
+    }
+}
+
 bool ObjectAction::lifetimeIsOver() {
     if (_expires == 0) {
         return false;

@@ -17,6 +17,14 @@
 #include "PhysicsHelpers.h"
 #include "PhysicsLogging.h"
 
+// these thresholds determine what updates (object-->body) will activate the physical object
+const float ACTIVATION_POSITION_DELTA = 0.005f;
+const float ACTIVATION_ALIGNMENT_DOT = 0.99990f;
+const float ACTIVATION_LINEAR_VELOCITY_DELTA = 0.01f;
+const float ACTIVATION_GRAVITY_DELTA = 0.1f;
+const float ACTIVATION_ANGULAR_VELOCITY_DELTA = 0.03f;
+
+
 // origin of physics simulation in world-frame
 glm::vec3 _worldOffset(0.0f);
 
@@ -115,6 +123,31 @@ void ObjectMotionState::setMotionType(MotionType motionType) {
     _motionType = motionType;
 }
 
+// Update the Continuous Collision Detection (CCD) configuration settings of our RigidBody so that
+// CCD will be enabled automatically when its speed surpasses a certain threshold.
+void ObjectMotionState::updateCCDConfiguration() {
+    if (_body) {
+        if (_shape) {
+            // If this object moves faster than its bounding radius * RADIUS_MOTION_THRESHOLD_MULTIPLIER,
+            // CCD will be enabled for this object.
+            const auto RADIUS_MOTION_THRESHOLD_MULTIPLIER = 0.5f;
+
+            btVector3 center;
+            btScalar radius;
+            _shape->getBoundingSphere(center, radius);
+            _body->setCcdMotionThreshold(radius * RADIUS_MOTION_THRESHOLD_MULTIPLIER);
+
+            // TODO: Ideally the swept sphere radius would be contained by the object. Using the bounding sphere
+            // radius works well for spherical objects, but may cause issues with other shapes. For arbitrary
+            // objects we may want to consider a different approach, such as grouping rigid bodies together.
+            _body->setCcdSweptSphereRadius(radius);
+        } else {
+            // Disable CCD
+            _body->setCcdMotionThreshold(0);
+        }
+    }
+}
+
 void ObjectMotionState::setRigidBody(btRigidBody* body) {
     // give the body a (void*) back-pointer to this ObjectMotionState
     if (_body != body) {
@@ -125,31 +158,69 @@ void ObjectMotionState::setRigidBody(btRigidBody* body) {
         if (_body) {
             _body->setUserPointer(this);
         }
+        updateCCDConfiguration();
     }
 }
 
-bool ObjectMotionState::handleEasyChanges(uint32_t flags, PhysicsEngine* engine) {
+bool ObjectMotionState::handleEasyChanges(uint32_t& flags, PhysicsEngine* engine) {
     if (flags & Simulation::DIRTY_POSITION) {
-        btTransform worldTrans;
-        if (flags & Simulation::DIRTY_ROTATION) {
-            worldTrans.setRotation(glmToBullet(getObjectRotation()));
-        } else {
-            worldTrans = _body->getWorldTransform();
+        btTransform worldTrans = _body->getWorldTransform();
+        btVector3 newPosition = glmToBullet(getObjectPosition());
+        float delta = (newPosition - worldTrans.getOrigin()).length();
+        if (delta > ACTIVATION_POSITION_DELTA) {
+            flags |= Simulation::DIRTY_PHYSICS_ACTIVATION;
         }
-        worldTrans.setOrigin(glmToBullet(getObjectPosition()));
+        worldTrans.setOrigin(newPosition);
+
+        if (flags & Simulation::DIRTY_ROTATION) {
+            btQuaternion newRotation = glmToBullet(getObjectRotation());
+            float alignmentDot = fabsf(worldTrans.getRotation().dot(newRotation));
+            if (alignmentDot < ACTIVATION_ALIGNMENT_DOT) {
+                flags |= Simulation::DIRTY_PHYSICS_ACTIVATION;
+            }
+            worldTrans.setRotation(newRotation);
+        }
         _body->setWorldTransform(worldTrans);
     } else if (flags & Simulation::DIRTY_ROTATION) {
         btTransform worldTrans = _body->getWorldTransform();
-        worldTrans.setRotation(glmToBullet(getObjectRotation()));
+        btQuaternion newRotation = glmToBullet(getObjectRotation());
+        float alignmentDot = fabsf(worldTrans.getRotation().dot(newRotation));
+        if (alignmentDot < ACTIVATION_ALIGNMENT_DOT) {
+            flags |= Simulation::DIRTY_PHYSICS_ACTIVATION;
+        }
+        worldTrans.setRotation(newRotation);
         _body->setWorldTransform(worldTrans);
     }
 
     if (flags & Simulation::DIRTY_LINEAR_VELOCITY) {
-        _body->setLinearVelocity(glmToBullet(getObjectLinearVelocity()));
-        _body->setGravity(glmToBullet(getObjectGravity()));
+        btVector3 newLinearVelocity = glmToBullet(getObjectLinearVelocity());
+        if (!(flags & Simulation::DIRTY_PHYSICS_ACTIVATION)) {
+            float delta = (newLinearVelocity - _body->getLinearVelocity()).length();
+            if (delta > ACTIVATION_LINEAR_VELOCITY_DELTA) {
+                flags |= Simulation::DIRTY_PHYSICS_ACTIVATION;
+            }
+        }
+        _body->setLinearVelocity(newLinearVelocity);
+
+        btVector3 newGravity = glmToBullet(getObjectGravity());
+        if (!(flags & Simulation::DIRTY_PHYSICS_ACTIVATION)) {
+            float delta = (newGravity - _body->getGravity()).length();
+            if (delta > ACTIVATION_GRAVITY_DELTA ||
+                    (delta > 0.0f && _body->getGravity().length2() == 0.0f)) {
+                flags |= Simulation::DIRTY_PHYSICS_ACTIVATION;
+            }
+        }
+        _body->setGravity(newGravity);
     }
     if (flags & Simulation::DIRTY_ANGULAR_VELOCITY) {
-        _body->setAngularVelocity(glmToBullet(getObjectAngularVelocity()));
+        btVector3 newAngularVelocity = glmToBullet(getObjectAngularVelocity());
+        if (!(flags & Simulation::DIRTY_PHYSICS_ACTIVATION)) {
+            float delta = (newAngularVelocity - _body->getAngularVelocity()).length();
+            if (delta > ACTIVATION_ANGULAR_VELOCITY_DELTA) {
+                flags |= Simulation::DIRTY_PHYSICS_ACTIVATION;
+            }
+        }
+        _body->setAngularVelocity(newAngularVelocity);
     }
 
     if (flags & Simulation::DIRTY_MATERIAL) {
@@ -163,7 +234,7 @@ bool ObjectMotionState::handleEasyChanges(uint32_t flags, PhysicsEngine* engine)
     return true;
 }
 
-bool ObjectMotionState::handleHardAndEasyChanges(uint32_t flags, PhysicsEngine* engine) {
+bool ObjectMotionState::handleHardAndEasyChanges(uint32_t& flags, PhysicsEngine* engine) {
     if (flags & Simulation::DIRTY_SHAPE) {
         // make sure the new shape is valid
         if (!isReadyToComputeShape()) {
@@ -187,6 +258,8 @@ bool ObjectMotionState::handleHardAndEasyChanges(uint32_t flags, PhysicsEngine* 
         if (_shape != newShape) {
             _shape = newShape;
             _body->setCollisionShape(_shape);
+
+            updateCCDConfiguration();
         } else {
             // huh... the shape didn't actually change, so we clear the DIRTY_SHAPE flag
             flags &= ~Simulation::DIRTY_SHAPE;
@@ -195,8 +268,8 @@ bool ObjectMotionState::handleHardAndEasyChanges(uint32_t flags, PhysicsEngine* 
     if (flags & EASY_DIRTY_PHYSICS_FLAGS) {
         handleEasyChanges(flags, engine);
     }
-    // it is possible that there are no HARD flags at this point (if DIRTY_SHAPE was removed)
-    // so we check again befoe we reinsert:
+    // it is possible there are no HARD flags at this point (if DIRTY_SHAPE was removed)
+    // so we check again before we reinsert:
     if (flags & HARD_DIRTY_PHYSICS_FLAGS) {
         engine->reinsertObject(this);
     }
