@@ -1213,64 +1213,38 @@ mapping.from([Controller.Standard.LB]).peek().to(leftController.bumperPress);
 
 Controller.enableMapping(MAPPING_NAME);
 
-
-var beamDisabler;
-
-function createBeamDisabler() {
-    var disablerProps = {
-        name: 'Hifi-Beam-Disabler',
-        type: 'Sphere',
-        dimensions: {
-            x: 0.1,
-            y: 0.1,
-            z: 0.1
-        },
-        color: {
-            red: 255,
-            green: 0,
-            blue: 0
-        },
-        visible: false,
-        position: MyAvatar.position,
-        ignoreForCollisions: true,
-        collisionsWillMove: false,
-        userData: JSON.stringify({
-            beamDisablerKey: {
-                handToDisable: 'none'
-            },
-            grabbableKey: {
-                grabbable: false
-            }
-        })
-    }
-    beamDisabler = Entities.addEntity(disablerProps)
-}
-
-function updateBeamDisablerPosition() {
-    Entities.editEntity(beamDisabler, {
-        position: MyAvatar.position
-    })
-}
-
-createBeamDisabler();
+var handToDisable = 'none';
 
 function update() {
-    updateBeamDisablerPosition();
-    var beamDisablerData = getEntityCustomData(BEAM_DISABLER_KEY, beamDisabler, {
-        handToDisable: 'none'
-    });
-    if (beamDisablerData.handToDisable !== 0) {
+    if (handToDisable !== 0) {
         leftController.update();
     }
-    if (beamDisablerData.handToDisable !== 1) {
+    if (handToDisable !== 1) {
         rightController.update();
     }
 }
 
+Messages.subscribe('Hifi-Beam-Disabler');
+
+handleBeamDisablerMessages = function(channel, message, sender) {
+
+    if (sender === MyAvatar.sessionUUID) {
+        handToDisable = message;
+        if (message === 'left') {
+            handToDisable = 1;
+        }
+        if (message === 'right') {
+            handToDisable = 0;
+        }
+    }
+
+}
+
+Messages.messageReceived.connect(handleBeamDisablerMessages);
+
 function cleanup() {
     rightController.cleanup();
     leftController.cleanup();
-    Entities.deleteEntity(beamDisabler);
     Controller.disableMapping(MAPPING_NAME);
 }
 

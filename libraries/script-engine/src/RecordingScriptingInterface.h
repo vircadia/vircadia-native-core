@@ -18,6 +18,8 @@
 #include <recording/Forward.h>
 #include <recording/Frame.h>
 
+class QScriptValue;
+
 class RecordingScriptingInterface : public QObject, public Dependency {
     Q_OBJECT
 
@@ -60,6 +62,7 @@ public slots:
     float recorderElapsed() const;
 
     void saveRecording(const QString& filename);
+    bool saveRecordingToAsset(QScriptValue getClipAtpUrl);
     void loadLastRecording();
 
 protected:

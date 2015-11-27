@@ -21,10 +21,10 @@
     var ARROW_DIMENSIONS = {
         x: 0.02,
         y: 0.02,
-        z: 0.64
+        z: 0.72
     };
 
-    var ARROW_OFFSET = -0.36;
+    var ARROW_OFFSET = -0.44;
     var ARROW_TIP_OFFSET = 0.32;
     var ARROW_GRAVITY = {
         x: 0,
@@ -77,6 +77,11 @@
 
 
     var USE_DEBOUNCE = false;
+
+    var TRIGGER_CONTROLS = [
+        Controller.Standard.LT,
+        Controller.Standard.RT,
+    ];
 
     function interval() {
         var lastTime = new Date().getTime();
@@ -144,25 +149,16 @@
         },
 
         startNearGrab: function() {
+
+            print('START BOW GRAB')
             if (this.isGrabbed === true) {
                 return false;
             }
 
             this.isGrabbed = true;
+
             this.initialHand = this.hand;
-
-            var ids = Entities.findEntities(MyAvatar.position, 1);
-
-            for (var i in ids) {
-                var entityId = ids[i];
-                var foundProps = Entities.getEntityProperties(entityId);
-                if (foundProps.name == "Hifi-Beam-Disabler") {
-                    print('FOUND THE BEAM DISABLER')
-                    setEntityCustomData('beamDisablerKey', entityId, {
-                        handToDisable: this.initialHand === 'left' ? 1 : 0
-                    })
-                }
-            }
+            Messages.sendMessage('Hifi-Beam-Disabler', this.initialHand);
 
             setEntityCustomData('grabbableKey', this.entityID, {
                 grabbable: false,
@@ -214,21 +210,10 @@
         },
 
         releaseGrab: function() {
-            print('RELEASE GRAB EVENT')
+            //  print('RELEASE GRAB EVENT')
             if (this.isGrabbed === true && this.hand === this.initialHand) {
-                var ids = Entities.findEntities(MyAvatar.position, 1);
 
-                for (var i in ids) {
-                    var entityId = ids[i];
-                    var foundProps = Entities.getEntityProperties(entityId);
-                    if (foundProps.name == "Hifi-Beam-Disabler") {
-                        print('FOUND THE BEAM DISABLER')
-                        setEntityCustomData('beamDisablerKey', entityId, {
-                            handToDisable: 'none'
-                        })
-                    }
-                }
-
+                Messages.sendMessage('Hifi-Beam-Disabler', "none")
 
                 this.isGrabbed = false;
                 this.stringDrawn = false;
@@ -248,6 +233,7 @@
         },
 
         createArrow: function() {
+            print('create arrow')
             this.playArrowNotchSound();
 
             var arrow = Entities.addEntity({
@@ -270,22 +256,31 @@
 
             });
 
-            Script.addEventHandler(arrow, "collisionWithEntity", function(entityA, entityB, collision) {
+            var makeArrowStick = function(entityA, entityB, collision) {
                 Entities.editEntity(entityA, {
-                    velocity: {
-                        x: 0,
-                        y: 0,
-                        z: 0
-                    },
-                    gravity: {
-                        x: 0,
-                        y: 0,
-                        z: 0
-                    },
-                    collisionsWillMove: false
-                })
-                print('ARROW COLLIDED WITH::' + entityB);
-            });
+                        angularVelocity: {
+                            x: 0,
+                            y: 0,
+                            z: 0
+                        },
+                        velocity: {
+                            x: 0,
+                            y: 0,
+                            z: 0
+                        },
+                        gravity: {
+                            x: 0,
+                            y: 0,
+                            z: 0
+                        },
+                        position: collision.contactPoint,
+                        collisionsWillMove: false
+                    })
+                    // print('ARROW COLLIDED WITH::' + entityB);
+                Script.removeEventHandler(arrow, "collisionWithEntity", makeArrowStick)
+            }
+
+            Script.addEventHandler(arrow, "collisionWithEntity", makeArrowStick);
 
             return arrow
         },
@@ -442,21 +437,21 @@
 
         checkStringHand: function() {
             //invert the hands because our string will be held with the opposite hand of the first one we pick up the bow with
+              var triggerLookup;
             if (this.initialHand === 'left') {
+                triggerLookup=1;
                 this.getStringHandPosition = MyAvatar.getRightPalmPosition;
-                this.stringTriggerAction = Controller.findAction("RIGHT_HAND_CLICK");
             } else if (this.initialHand === 'right') {
                 this.getStringHandPosition = MyAvatar.getLeftPalmPosition;
-                this.stringTriggerAction = Controller.findAction("LEFT_HAND_CLICK");
+                 triggerLookup=0;
             }
 
-            this.triggerValue = Controller.getActionValue(this.stringTriggerAction);
-            //  print('TRIGGER VALUE:::' + this.triggerValue);
+            this.triggerValue = Controller.getValue(TRIGGER_CONTROLS[triggerLookup]);
+
 
             if (this.triggerValue < DRAW_STRING_THRESHOLD && this.stringDrawn === true) {
-                print('TRIGGER VALUE??' + this.triggerValue)
-                    // firing the arrow
-                print('HIT RELEASE LOOP IN CHECK');
+                // firing the arrow
+                //  print('HIT RELEASE LOOP IN CHECK');
 
                 this.drawStrings();
                 this.hasArrowNotched = false;
@@ -474,7 +469,7 @@
                 this.updateArrowPositionInNotch();
 
             } else if (this.triggerValue > DRAW_STRING_THRESHOLD && this.stringDrawn === false) {
-                print('HIT START LOOP IN CHECK');
+                // print('HIT START LOOP IN CHECK');
                 this.arrow = this.createArrow();
                 this.playStringPullSound();
 
@@ -512,32 +507,37 @@
             var handToNotch = Vec3.subtract(notchPosition, stringHandPosition);
             var arrowRotation = Quat.rotationBetween(Vec3.FRONT, handToNotch);
 
-            //we draw strings to the rear of the arrow
-            this.setArrowRearPosition(notchPosition, arrowRotation);
 
-            //modulate the sound by the 
+
             var pullBackDistance = Vec3.length(handToNotch);
             // this.changeStringPullSoundVolume(pullBackDistance);
 
+            if (pullBackDistance > 0.6) {
+                pullBackDistance = 0.6;
+            }
+
             // //pull the arrow back a bit
-            // var pullBackOffset = Vec3.multiply(handToNotch, -pullBackDistance);
-            // var arrowPosition = Vec3.sum(detectorPosition, pullBackOffset);
+            var pullBackOffset = Vec3.multiply(handToNotch, -pullBackDistance);
+            var arrowPosition = Vec3.sum(notchPosition, pullBackOffset);
 
             // // move it forward a bit
-            // var pushForwardOffset = Vec3.multiply(handToNotch, -ARROW_OFFSET);
-            // var finalArrowPosition = Vec3.sum(arrowPosition, pushForwardOffset);
+            var pushForwardOffset = Vec3.multiply(handToNotch, -ARROW_OFFSET);
+            var finalArrowPosition = Vec3.sum(arrowPosition, pushForwardOffset);
+
+            //we draw strings to the rear of the arrow
+            this.setArrowRearPosition(finalArrowPosition, arrowRotation);
 
             //if we're not shooting, we're updating the arrow's orientation
             if (shouldReleaseArrow !== true) {
                 Entities.editEntity(this.arrow, {
-                    position: notchPosition,
+                    position: finalArrowPosition,
                     rotation: arrowRotation
                 })
             }
 
             //shoot the arrow
             if (shouldReleaseArrow === true) {
-                var arrowProperties = Entities.getEntityProperties(this.arrow);
+                var arrowProps = Entities.getEntityProperties(this.arrow);
 
                 //scale the shot strength by the distance you've pulled the arrow back and set its release velocity to be in the direction of the v
                 var arrowForce = this.scaleArrowShotStrength(pullBackDistance);
@@ -549,11 +549,12 @@
                 //make the arrow physical, give it gravity, a lifetime, and set our velocity
                 var arrowProperties = {
                     collisionsWillMove: true,
+                    ignoreForCollisions: false,
                     velocity: releaseVelocity,
                     gravity: ARROW_GRAVITY,
                     lifetime: 10,
-                    position: arrowProperties.position,
-                    rotation: arrowProperties.rotation
+                    // position: arrowProps.position,
+                    // rotation: arrowProps.rotation
                 };
 
                 //actually shoot the arrow and play its sound
@@ -565,9 +566,6 @@
                 Entities.editEntity(this.preNotchString, {
                     visible: true
                 });
-
-                var afterVelocity = Entities.getEntityProperties(this.arrow).velocity;
-                print('VELOCITY AFTER RELEASE:::' + JSON.stringify(afterVelocity))
 
             }
 
@@ -583,7 +581,7 @@
 
         playStringPullSound: function() {
             var audioProperties = {
-                volume: 0.15,
+                volume: 0.10,
                 position: this.bowProperties.position
             };
             this.stringPullInjector = Audio.playSound(this.stringPullSound, audioProperties);
@@ -591,7 +589,7 @@
 
         playShootArrowSound: function(sound) {
             var audioProperties = {
-                volume: 0.20,
+                volume: 0.15,
                 position: this.bowProperties.position
             };
             Audio.playSound(this.shootArrowSound, audioProperties);
@@ -599,7 +597,7 @@
 
         playArrowNotchSound: function() {
             var audioProperties = {
-                volume: 0.25,
+                volume: 0.15,
                 position: this.bowProperties.position
             };
             Audio.playSound(this.arrowNotchSound, audioProperties);

@@ -271,7 +271,7 @@ function loadBirds(howMany) {
                     dimensions: { x: BIRD_SIZE, y: BIRD_SIZE, z: BIRD_SIZE },
                     gravity: {  x: 0, y: BIRD_GRAVITY, z: 0 },
                     velocity: { x: 0, y: -0.1, z: 0 },
-                    linearDamping: LINEAR_DAMPING,
+                    damping: LINEAR_DAMPING,
                     collisionsWillMove: true,
                     lifetime: STARTING_LIFETIME,
                     color: colors[whichBird]
