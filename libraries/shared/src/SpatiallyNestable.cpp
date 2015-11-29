@@ -87,34 +87,38 @@ void SpatiallyNestable::forgetChild(SpatiallyNestablePointer newChild) const {
     });
 }
 
-void SpatiallyNestable::setParentID(const QUuid& parentID) {
+void SpatiallyNestable::setParentID(const QUuid parentID) {
     if (_parentID != parentID) {
         _parentID = parentID;
         _parentKnowsMe = false;
     }
 }
 
-glm::vec3 SpatiallyNestable::worldToLocal(const glm::vec3& position) {
+glm::vec3 SpatiallyNestable::worldToLocal(const glm::vec3 position) {
     Transform parentTransform = getParentTransform();
     Transform myWorldTransform;
-    Transform::mult(myWorldTransform, parentTransform, _transform);
+    _transformLock.withReadLock([&] {
+        Transform::mult(myWorldTransform, parentTransform, _transform);
+    });
     myWorldTransform.setTranslation(position);
     Transform result;
     Transform::inverseMult(result, parentTransform, myWorldTransform);
     return result.getTranslation();
 }
 
-glm::quat SpatiallyNestable::worldToLocal(const glm::quat& orientation) {
+glm::quat SpatiallyNestable::worldToLocal(const glm::quat orientation) {
     Transform parentTransform = getParentTransform();
     Transform myWorldTransform;
-    Transform::mult(myWorldTransform, parentTransform, _transform);
+    _transformLock.withReadLock([&] {
+        Transform::mult(myWorldTransform, parentTransform, _transform);
+    });
     myWorldTransform.setRotation(orientation);
     Transform result;
     Transform::inverseMult(result, parentTransform, myWorldTransform);
     return result.getRotation();
 }
 
-glm::vec3 SpatiallyNestable::localToWorld(const glm::vec3& position, QUuid parentID, int parentJointIndex) {
+glm::vec3 SpatiallyNestable::localToWorld(const glm::vec3 position, QUuid parentID, int parentJointIndex) {
     QSharedPointer<SpatialParentFinder> parentFinder = DependencyManager::get<SpatialParentFinder>();
     auto parentWP = parentFinder->find(parentID);
     auto parent = parentWP.lock();
@@ -130,7 +134,7 @@ glm::vec3 SpatiallyNestable::localToWorld(const glm::vec3& position, QUuid paren
     return result.getTranslation();
 }
 
-glm::quat SpatiallyNestable::localToWorld(const glm::quat& orientation, QUuid parentID, int parentJointIndex) {
+glm::quat SpatiallyNestable::localToWorld(const glm::quat orientation, QUuid parentID, int parentJointIndex) {
     QSharedPointer<SpatialParentFinder> parentFinder = DependencyManager::get<SpatialParentFinder>();
     auto parentWP = parentFinder->find(parentID);
     auto parent = parentWP.lock();
@@ -147,115 +151,152 @@ glm::quat SpatiallyNestable::localToWorld(const glm::quat& orientation, QUuid pa
 }
 
 
-const glm::vec3& SpatiallyNestable::getPosition() const {
+const glm::vec3 SpatiallyNestable::getPosition() const {
     Transform parentTransformDescaled = getParentTransform();
     glm::mat4 parentMat;
     parentTransformDescaled.getMatrix(parentMat);
     glm::vec4 absPos = parentMat * glm::vec4(getLocalPosition(), 1.0f);
-    _absolutePositionCache = glm::vec3(absPos);
-    return _absolutePositionCache;
+    return glm::vec3(absPos);
 }
 
-const glm::vec3& SpatiallyNestable::getPosition(int jointIndex) const {
-    getTransform(); // update _worldTransformCache
-    getJointTransformInObjectFrame(jointIndex); // update _jointInObjectFrameCache
-    _jointInWorldFrameCache.resize(jointIndex);
-    Transform::mult(_jointInWorldFrameCache[jointIndex], _worldTransformCache, _jointInObjectFrameCache[jointIndex]);
-    return _jointInWorldFrameCache[jointIndex].getTranslation();
+const glm::vec3 SpatiallyNestable::getPosition(int jointIndex) const {
+    Transform worldTransform = getTransform();
+    Transform jointInObjectFrame = getJointTransformInObjectFrame(jointIndex);
+    Transform jointInWorldFrame;
+    Transform::mult(jointInWorldFrame, worldTransform, jointInObjectFrame);
+    return jointInWorldFrame.getTranslation();
 }
 
-void SpatiallyNestable::setPosition(const glm::vec3& position) {
+void SpatiallyNestable::setPosition(const glm::vec3 position) {
     Transform parentTransform = getParentTransform();
     Transform myWorldTransform;
-    Transform::mult(myWorldTransform, parentTransform, _transform);
-    myWorldTransform.setTranslation(position);
-    Transform::inverseMult(_transform, parentTransform, myWorldTransform);
+    _transformLock.withWriteLock([&] {
+        Transform::mult(myWorldTransform, parentTransform, _transform);
+        myWorldTransform.setTranslation(position);
+        Transform::inverseMult(_transform, parentTransform, myWorldTransform);
+    });
 }
 
-const glm::quat& SpatiallyNestable::getOrientation() const {
+const glm::quat SpatiallyNestable::getOrientation() const {
     Transform parentTransformDescaled = getParentTransform();
-    _absoluteRotationCache = parentTransformDescaled.getRotation() * getLocalOrientation();
-    return _absoluteRotationCache;
+    return parentTransformDescaled.getRotation() * getLocalOrientation();
 }
 
-const glm::quat& SpatiallyNestable::getOrientation(int jointIndex) const {
-    getTransform(); // update _worldTransformCache
-    getJointTransformInObjectFrame(jointIndex); // update _jointInObjectFrameCache
-    _jointInWorldFrameCache.resize(jointIndex + 1);
-    Transform::mult(_jointInWorldFrameCache[jointIndex], _worldTransformCache, _jointInObjectFrameCache[jointIndex]);
-    return _jointInWorldFrameCache[jointIndex].getRotation();
+const glm::quat SpatiallyNestable::getOrientation(int jointIndex) const {
+    Transform worldTransform = getTransform();
+    Transform jointInObjectFrame = getJointTransformInObjectFrame(jointIndex);
+    Transform jointInWorldFrame;
+    Transform::mult(jointInWorldFrame, worldTransform, jointInObjectFrame);
+    return jointInWorldFrame.getRotation();
 }
 
-void SpatiallyNestable::setOrientation(const glm::quat& orientation) {
+void SpatiallyNestable::setOrientation(const glm::quat orientation) {
     Transform parentTransform = getParentTransform();
     Transform myWorldTransform;
-    Transform::mult(myWorldTransform, parentTransform, _transform);
-    myWorldTransform.setRotation(orientation);
-    Transform::inverseMult(_transform, parentTransform, myWorldTransform);
+    _transformLock.withWriteLock([&] {
+        Transform::mult(myWorldTransform, parentTransform, _transform);
+        myWorldTransform.setRotation(orientation);
+        Transform::inverseMult(_transform, parentTransform, myWorldTransform);
+    });
 }
 
-const Transform& SpatiallyNestable::getTransform() const {
+const Transform SpatiallyNestable::getTransform() const {
     Transform parentTransform = getParentTransform();
-    Transform::mult(_worldTransformCache, parentTransform, _transform);
-    return _worldTransformCache;
+    Transform result;
+    _transformLock.withReadLock([&] {
+        Transform::mult(result, parentTransform, _transform);
+    });
+    return result;
 }
 
-const Transform& SpatiallyNestable::getTransform(int jointIndex) const {
-    getTransform(); // update _worldTransformCache
-    getJointTransformInObjectFrame(jointIndex); // update _jointInObjectFrameCache
-    _jointInWorldFrameCache.resize(jointIndex + 1);
-    Transform::mult(_jointInWorldFrameCache[jointIndex], _worldTransformCache, _jointInObjectFrameCache[jointIndex]);
-    return _jointInWorldFrameCache[jointIndex];
+const Transform SpatiallyNestable::getTransform(int jointIndex) const {
+    Transform worldTransform = getTransform();
+    Transform jointInObjectFrame = getJointTransformInObjectFrame(jointIndex);
+    Transform jointInWorldFrame;
+    Transform::mult(jointInWorldFrame, worldTransform, jointInObjectFrame);
+    return jointInWorldFrame;
 }
 
-void SpatiallyNestable::setTransform(const Transform& transform) {
+void SpatiallyNestable::setTransform(const Transform transform) {
     Transform parentTransform = getParentTransform();
-    Transform::inverseMult(_transform, parentTransform, transform);
+    _transformLock.withWriteLock([&] {
+        Transform::inverseMult(_transform, parentTransform, transform);
+    });
 }
 
-const glm::vec3& SpatiallyNestable::getScale() const {
-    return _transform.getScale();
+const glm::vec3 SpatiallyNestable::getScale() const {
+    glm::vec3 result;
+    _transformLock.withReadLock([&] {
+        result = _transform.getScale();
+    });
+    return result;
 }
 
-const glm::vec3& SpatiallyNestable::getScale(int jointIndex) const {
+const glm::vec3 SpatiallyNestable::getScale(int jointIndex) const {
     // XXX ... something with joints
     return getScale();
 }
 
-void SpatiallyNestable::setScale(const glm::vec3& scale) {
-    _transform.setScale(scale);
+void SpatiallyNestable::setScale(const glm::vec3 scale) {
+    _transformLock.withWriteLock([&] {
+        _transform.setScale(scale);
+    });
 }
 
-const Transform& SpatiallyNestable::getLocalTransform() const {
-    return _transform;
+const Transform SpatiallyNestable::getLocalTransform() const {
+    Transform result;
+    _transformLock.withReadLock([&] {
+        result =_transform;
+    });
+    return result;
 }
 
-void SpatiallyNestable::setLocalTransform(const Transform& transform) {
-    _transform = transform;
+void SpatiallyNestable::setLocalTransform(const Transform transform) {
+    _transformLock.withWriteLock([&] {
+        _transform = transform;
+    });
 }
 
-const glm::vec3& SpatiallyNestable::getLocalPosition() const {
-    return _transform.getTranslation();
+const glm::vec3 SpatiallyNestable::getLocalPosition() const {
+    glm::vec3 result;
+    _transformLock.withReadLock([&] {
+        result = _transform.getTranslation();
+    });
+    return result;
 }
 
-void SpatiallyNestable::setLocalPosition(const glm::vec3& position) {
-    _transform.setTranslation(position);
+void SpatiallyNestable::setLocalPosition(const glm::vec3 position) {
+    _transformLock.withWriteLock([&] {
+        _transform.setTranslation(position);
+    });
 }
 
-const glm::quat& SpatiallyNestable::getLocalOrientation() const {
-    return _transform.getRotation();
+const glm::quat SpatiallyNestable::getLocalOrientation() const {
+    glm::quat result;
+    _transformLock.withReadLock([&] {
+        result = _transform.getRotation();
+    });
+    return result;
 }
 
-void SpatiallyNestable::setLocalOrientation(const glm::quat& orientation) {
-    _transform.setRotation(orientation);
+void SpatiallyNestable::setLocalOrientation(const glm::quat orientation) {
+    _transformLock.withWriteLock([&] {
+        _transform.setRotation(orientation);
+    });
 }
 
-const glm::vec3& SpatiallyNestable::getLocalScale() const {
-    return _transform.getScale();
+const glm::vec3 SpatiallyNestable::getLocalScale() const {
+    glm::vec3 result;
+    _transformLock.withReadLock([&] {
+        result = _transform.getScale();
+    });
+    return result;
 }
 
-void SpatiallyNestable::setLocalScale(const glm::vec3& scale) {
-    _transform.setScale(scale);
+void SpatiallyNestable::setLocalScale(const glm::vec3 scale) {
+    _transformLock.withWriteLock([&] {
+        _transform.setScale(scale);
+    });
 }
 
 QList<SpatiallyNestablePointer> SpatiallyNestable::getChildren() const {
@@ -272,12 +313,11 @@ QList<SpatiallyNestablePointer> SpatiallyNestable::getChildren() const {
 }
 
 
-const Transform& SpatiallyNestable::getJointTransformInObjectFrame(int jointIndex) const {
-    _jointInObjectFrameCache.resize(jointIndex + 1);
-    _jointInObjectFrameCache[jointIndex] = Transform();
+const Transform SpatiallyNestable::getJointTransformInObjectFrame(int jointIndex) const {
+    Transform jointInObjectFrame;
     glm::vec3 position = getJointTranslation(jointIndex);
     glm::quat orientation = getJointRotation(jointIndex);
-    _jointInObjectFrameCache[jointIndex].setRotation(orientation);
-    _jointInObjectFrameCache[jointIndex].setTranslation(position);
-    return _jointInObjectFrameCache[jointIndex];
+    jointInObjectFrame.setRotation(orientation);
+    jointInObjectFrame.setTranslation(position);
+    return jointInObjectFrame;
 }

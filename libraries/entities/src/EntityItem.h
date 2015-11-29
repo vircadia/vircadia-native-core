@@ -196,8 +196,8 @@ public:
     void setDescription(QString value) { _description = value; }
 
     /// Dimensions in meters (0.0 - TREE_SCALE)
-    inline const glm::vec3& getDimensions() const { return getScale(); }
-    virtual void setDimensions(const glm::vec3& value);
+    inline const glm::vec3 getDimensions() const { return getScale(); }
+    virtual void setDimensions(const glm::vec3 value);
 
     float getGlowLevel() const { return _glowLevel; }
     void setGlowLevel(float glowLevel) { _glowLevel = glowLevel; }
@@ -325,15 +325,15 @@ public:
     /// return preferred shape type (actual physical shape may differ)
     virtual ShapeType getShapeType() const { return SHAPE_TYPE_NONE; }
 
-    virtual void setTransform(const Transform& transform);
-    virtual void setLocalTransform(const Transform& transform);
-    // virtual const glm::vec3& getPosition() const { return SpatiallyNestable::getPosition(); }
-    virtual const glm::quat& getRotation() const { return SpatiallyNestable::getOrientation(); }
+    virtual void setTransform(const Transform transform);
+    virtual void setLocalTransform(const Transform transform);
+    // virtual const glm::vec3 getPosition() const { return SpatiallyNestable::getPosition(); }
+    virtual const glm::quat getRotation() const { return SpatiallyNestable::getOrientation(); }
 
-    virtual void setPosition(const glm::vec3& position);
-    virtual void setLocalPosition(const glm::vec3& position);
-    virtual void setRotation(const glm::quat& orientation);
-    virtual void setLocalRotation(const glm::quat& orientation);
+    virtual void setPosition(const glm::vec3 position);
+    virtual void setLocalPosition(const glm::vec3 position);
+    virtual void setRotation(const glm::quat orientation);
+    virtual void setLocalRotation(const glm::quat orientation);
 
     // updateFoo() methods to be used when changes need to be accumulated in the _dirtyFlags
     void updatePosition(const glm::vec3& value);

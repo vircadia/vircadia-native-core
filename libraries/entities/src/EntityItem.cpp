@@ -1188,7 +1188,7 @@ const Transform EntityItem::getTransformToCenter() const {
     return result;
 }
 
-void EntityItem::setDimensions(const glm::vec3& value) {
+void EntityItem::setDimensions(const glm::vec3 value) {
     if (value.x <= 0.0f || value.y <= 0.0f || value.z <= 0.0f) {
         return;
     }
@@ -1860,44 +1860,44 @@ void EntityItem::parentChanged() {
         });
 }
 
-void EntityItem::setTransform(const Transform& transform) {
+void EntityItem::setTransform(const Transform transform) {
     SpatiallyNestable::setTransform(transform);
     forSelfAndEachChildEntity([&](EntityItemPointer entity) {
-            entity->requiresRecalcBoxes();
-        });
+        entity->requiresRecalcBoxes();
+    });
 }
 
-void EntityItem::setLocalTransform(const Transform& transform) {
+void EntityItem::setLocalTransform(const Transform transform) {
     SpatiallyNestable::setLocalTransform(transform);
     forSelfAndEachChildEntity([&](EntityItemPointer entity) {
-            entity->requiresRecalcBoxes();
-        });
+        entity->requiresRecalcBoxes();
+    });
 }
 
-void EntityItem::setPosition(const glm::vec3& position) {
+void EntityItem::setPosition(const glm::vec3 position) {
     SpatiallyNestable::setPosition(position);
     forSelfAndEachChildEntity([&](EntityItemPointer entity) {
-            entity->requiresRecalcBoxes();
-        });
+        entity->requiresRecalcBoxes();
+    });
 }
 
-void EntityItem::setLocalPosition(const glm::vec3& position) {
+void EntityItem::setLocalPosition(const glm::vec3 position) {
     SpatiallyNestable::setLocalPosition(position);
     forSelfAndEachChildEntity([&](EntityItemPointer entity) {
-            entity->requiresRecalcBoxes();
-        });
+        entity->requiresRecalcBoxes();
+    });
 }
 
-void EntityItem::setRotation(const glm::quat& orientation) {
+void EntityItem::setRotation(const glm::quat orientation) {
     SpatiallyNestable::setOrientation(orientation);
     forSelfAndEachChildEntity([&](EntityItemPointer entity) {
-            entity->requiresRecalcBoxes();
-        });
+        entity->requiresRecalcBoxes();
+    });
 }
 
-void EntityItem::setLocalRotation(const glm::quat& orientation) {
+void EntityItem::setLocalRotation(const glm::quat orientation) {
     SpatiallyNestable::setLocalOrientation(orientation);
     forSelfAndEachChildEntity([&](EntityItemPointer entity) {
-            entity->requiresRecalcBoxes();
-        });
+        entity->requiresRecalcBoxes();
+    });
 }

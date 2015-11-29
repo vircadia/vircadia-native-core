@@ -3329,7 +3329,7 @@ MyAvatar* Application::getMyAvatar() const {
     return DependencyManager::get<AvatarManager>()->getMyAvatar();
 }
 
-const glm::vec3& Application::getAvatarPosition() const {
+const glm::vec3 Application::getAvatarPosition() const {
     return getMyAvatar()->getPosition();
 }
 

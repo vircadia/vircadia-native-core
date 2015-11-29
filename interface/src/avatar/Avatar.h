@@ -161,8 +161,8 @@ public:
     void setMotionState(AvatarMotionState* motionState) { _motionState = motionState; }
     AvatarMotionState* getMotionState() { return _motionState; }
 
-    virtual void setPosition(const glm::vec3& position);
-    virtual void setOrientation(const glm::quat& orientation);
+    virtual void setPosition(const glm::vec3 position);
+    virtual void setOrientation(const glm::quat orientation);
 
 public slots:
 

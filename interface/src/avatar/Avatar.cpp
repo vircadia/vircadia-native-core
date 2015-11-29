@@ -1212,12 +1212,12 @@ glm::quat Avatar::getRightPalmRotation() {
     return rightRotation;
 }
 
-void Avatar::setPosition(const glm::vec3& position) {
+void Avatar::setPosition(const glm::vec3 position) {
     AvatarData::setPosition(position);
     updateAttitude();
 }
 
-void Avatar::setOrientation(const glm::quat& orientation) {
+void Avatar::setOrientation(const glm::quat orientation) {
     AvatarData::setOrientation(orientation);
     updateAttitude();
 }

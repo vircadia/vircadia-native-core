@@ -44,7 +44,7 @@ RenderableModelEntityItem::~RenderableModelEntityItem() {
     }
 }
 
-void RenderableModelEntityItem::setDimensions(const glm::vec3& value) {
+void RenderableModelEntityItem::setDimensions(const glm::vec3 value) {
     _dimensionsInitialized = true;
     ModelEntityItem::setDimensions(value);
 }

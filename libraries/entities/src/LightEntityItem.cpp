@@ -40,7 +40,7 @@ LightEntityItem::LightEntityItem(const EntityItemID& entityItemID) : EntityItem(
     _cutoff = PI;
 }
 
-void LightEntityItem::setDimensions(const glm::vec3& value) {
+void LightEntityItem::setDimensions(const glm::vec3 value) {
     if (_isSpotlight) {
         // If we are a spotlight, treat the z value as our radius or length, and
         // recalculate the x/y dimensions to properly encapsulate the spotlight.
