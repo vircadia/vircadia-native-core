@@ -1224,17 +1224,17 @@ function update() {
     }
 }
 
-Messages.subscribe('Hifi-Beam-Disabler');
+Messages.subscribe('Hifi-Hand-Disabler');
 
 handleBeamDisablerMessages = function(channel, message, sender) {
 
     if (sender === MyAvatar.sessionUUID) {
         handToDisable = message;
         if (message === 'left') {
-            handToDisable = 1;
+            handToDisable = LEFT_HAND;
         }
         if (message === 'right') {
-            handToDisable = 0;
+            handToDisable = RIGHT_HAND;
         }
     }
 
