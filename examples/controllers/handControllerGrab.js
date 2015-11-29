@@ -37,6 +37,7 @@ var BUMPER_ON_VALUE = 0.5;
 var DISTANCE_HOLDING_RADIUS_FACTOR = 5; // multiplied by distance between hand and object
 var DISTANCE_HOLDING_ACTION_TIMEFRAME = 0.1; // how quickly objects move to their new position
 var DISTANCE_HOLDING_ROTATION_EXAGGERATION_FACTOR = 2.0; // object rotates this much more than hand did
+
 var NO_INTERSECT_COLOR = {
     red: 10,
     green: 10,
@@ -86,6 +87,7 @@ var ZERO_VEC = {
     y: 0,
     z: 0
 };
+
 var NULL_ACTION_ID = "{00000000-0000-0000-000000000000}";
 var MSEC_PER_SEC = 1000.0;
 
@@ -95,7 +97,8 @@ var ACTION_TTL = 15; // seconds
 var ACTION_TTL_REFRESH = 5;
 var PICKS_PER_SECOND_PER_HAND = 5;
 var MSECS_PER_SEC = 1000.0;
-var GRABBABLE_PROPERTIES = ["position",
+var GRABBABLE_PROPERTIES = [
+    "position",
     "rotation",
     "gravity",
     "ignoreForCollisions",
@@ -104,7 +107,6 @@ var GRABBABLE_PROPERTIES = ["position",
     "name"
 ];
 
-
 var GRABBABLE_DATA_KEY = "grabbableKey"; // shared with grab.js
 var GRAB_USER_DATA_KEY = "grabKey"; // shared with grab.js
 
@@ -112,8 +114,6 @@ var DEFAULT_GRABBABLE_DATA = {
     grabbable: true,
     invertSolidWhileHeld: false
 };
-
-var disabledHand = 'none';
 
 
 // states for the state machine
@@ -307,7 +307,14 @@ function MyController(hand) {
             position: closePoint,
             linePoints: [ZERO_VEC, farPoint],
             color: color,
-            lifetime: 0.1
+            lifetime: 0.1,
+            collisionsWillMove: false,
+            ignoreForCollisions: true,
+            userData: JSON.stringify({
+                grabbableKey: {
+                    grabbable: false
+                }
+            })
         });
     }
 
@@ -322,7 +329,14 @@ function MyController(hand) {
                 position: closePoint,
                 linePoints: [ZERO_VEC, farPoint],
                 color: color,
-                lifetime: LIFETIME
+                lifetime: LIFETIME,
+                collisionsWillMove: false,
+                ignoreForCollisions: true,
+                userData: JSON.stringify({
+                    grabbableKey: {
+                        grabbable: false
+                    }
+                })
             });
         } else {
             var age = Entities.getEntityProperties(this.pointer, "age").age;
@@ -396,11 +410,6 @@ function MyController(hand) {
     this.search = function() {
         this.grabbedEntity = null;
 
-        // if this hand is the one that's disabled, we don't want to search for anything at all
-        if (this.hand === disabledHand) {
-            return;
-        }
-
         if (this.state == STATE_SEARCHING ? this.triggerSmoothedReleased() : this.bumperReleased()) {
             this.setState(STATE_RELEASE);
             return;
@@ -445,17 +454,7 @@ function MyController(hand) {
                 // the ray is intersecting something we can move.
                 var intersectionDistance = Vec3.distance(pickRay.origin, intersection.intersection);
 
-                //this code will disabled the beam for the opposite hand of the one that grabbed it if the entity says so
                 var grabbableData = getEntityCustomData(GRABBABLE_DATA_KEY, intersection.entityID, DEFAULT_GRABBABLE_DATA);
-                if (grabbableData["turnOffOppositeBeam"]) {
-                    if (this.hand === RIGHT_HAND) {
-                        disabledHand = LEFT_HAND;
-                    } else {
-                        disabledHand = RIGHT_HAND;
-                    }
-                } else {
-                    disabledHand = 'none';
-                }
 
                 if (intersection.properties.name == "Grab Debug Entity") {
                     continue;
@@ -526,7 +525,14 @@ function MyController(hand) {
                     green: 255,
                     blue: 0
                 },
-                lifetime: 0.1
+                lifetime: 0.1,
+                collisionsWillMove: false,
+                ignoreForCollisions: true,
+                userData: JSON.stringify({
+                    grabbableKey: {
+                        grabbable: false
+                    }
+                })
             });
         }
 
@@ -540,8 +546,7 @@ function MyController(hand) {
             if (typeof grabbableDataForCandidate.grabbable !== 'undefined' && !grabbableDataForCandidate.grabbable) {
                 continue;
             }
-            var propsForCandidate =
-                Entities.getEntityProperties(nearbyEntities[i], GRABBABLE_PROPERTIES);
+            var propsForCandidate = Entities.getEntityProperties(nearbyEntities[i], GRABBABLE_PROPERTIES);
 
             if (propsForCandidate.type == 'Unknown') {
                 continue;
@@ -737,14 +742,7 @@ function MyController(hand) {
 
     this.nearGrabbing = function() {
         var now = Date.now();
-
         var grabbableData = getEntityCustomData(GRABBABLE_DATA_KEY, this.grabbedEntity, DEFAULT_GRABBABLE_DATA);
-
-        var turnOffOtherHand = grabbableData["turnOffOtherHand"];
-        if (turnOffOtherHand) {
-            //don't activate the second hand grab because the script is handling the second hand logic
-            return;
-        }
 
         if (this.state == STATE_NEAR_GRABBING && this.triggerSmoothedReleased()) {
             this.setState(STATE_RELEASE);
@@ -1094,10 +1092,6 @@ function MyController(hand) {
 
     this.release = function() {
 
-        if (this.hand !== disabledHand) {
-            //release the disabled hand when we let go with the main one
-            disabledHand = 'none';
-        }
         this.lineOff();
 
         if (this.grabbedEntity !== null) {
@@ -1218,11 +1212,34 @@ mapping.from([Controller.Standard.LB]).peek().to(leftController.bumperPress);
 
 Controller.enableMapping(MAPPING_NAME);
 
+var handToDisable = 'none';
 
 function update() {
-    rightController.update();
-    leftController.update();
+    if (handToDisable !== LEFT_HAND) {
+        leftController.update();
+    }
+    if (handToDisable !== RIGHT_HAND) {
+        rightController.update();
+    }
 }
+
+Messages.subscribe('Hifi-Hand-Disabler');
+
+handleHandDisablerMessages = function(channel, message, sender) {
+
+    if (sender === MyAvatar.sessionUUID) {
+        handToDisable = message;
+        if (message === 'left') {
+            handToDisable = LEFT_HAND;
+        }
+        if (message === 'right') {
+            handToDisable = RIGHT_HAND;
+        }
+    }
+
+}
+
+Messages.messageReceived.connect(handleHandDisablerMessages);
 
 function cleanup() {
     rightController.cleanup();
