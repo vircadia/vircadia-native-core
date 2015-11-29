@@ -1226,7 +1226,7 @@ function update() {
 
 Messages.subscribe('Hifi-Hand-Disabler');
 
-handleBeamDisablerMessages = function(channel, message, sender) {
+handleHandDisablerMessages = function(channel, message, sender) {
 
     if (sender === MyAvatar.sessionUUID) {
         handToDisable = message;
@@ -1240,7 +1240,7 @@ handleBeamDisablerMessages = function(channel, message, sender) {
 
 }
 
-Messages.messageReceived.connect(handleBeamDisablerMessages);
+Messages.messageReceived.connect(handleHandDisablerMessages);
 
 function cleanup() {
     rightController.cleanup();
