@@ -16,6 +16,7 @@
 
 #include "Transform.h"
 #include "SpatialParentFinder.h"
+#include "shared/ReadWriteLockable.h"
 
 
 class SpatiallyNestable;
@@ -48,6 +49,9 @@ public:
 
     glm::vec3 worldToLocal(const glm::vec3& position);
     glm::quat worldToLocal(const glm::quat& orientation);
+
+    static glm::vec3 localToWorld(const glm::vec3& position, QUuid parentID, int parentJointIndex);
+    static glm::quat localToWorld(const glm::quat& orientation, QUuid parentID, int parentJointIndex);
 
     // world frame
     virtual const Transform& getTransform() const;
@@ -101,6 +105,8 @@ protected:
 
     virtual void beParentOfChild(SpatiallyNestablePointer newChild) const;
     virtual void forgetChild(SpatiallyNestablePointer newChild) const;
+
+    mutable ReadWriteLockable _childrenLock;
     mutable QHash<QUuid, SpatiallyNestableWeakPointer> _children;
 
     virtual void parentChanged() {} // called when parent pointer is updated
