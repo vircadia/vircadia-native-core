@@ -109,7 +109,6 @@ var GRABBABLE_PROPERTIES = [
 
 var GRABBABLE_DATA_KEY = "grabbableKey"; // shared with grab.js
 var GRAB_USER_DATA_KEY = "grabKey"; // shared with grab.js
-var BEAM_DISABLER_KEY = 'beamDisablerKey'
 
 var DEFAULT_GRABBABLE_DATA = {
     grabbable: true,
