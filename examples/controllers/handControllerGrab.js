@@ -1216,10 +1216,10 @@ Controller.enableMapping(MAPPING_NAME);
 var handToDisable = 'none';
 
 function update() {
-    if (handToDisable !== 0) {
+    if (handToDisable !== LEFT_HAND) {
         leftController.update();
     }
-    if (handToDisable !== 1) {
+    if (handToDisable !== RIGHT_HAND) {
         rightController.update();
     }
 }
