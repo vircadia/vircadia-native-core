@@ -11,7 +11,7 @@
 //
 
 
-var SCRIPT_URL = Script.resolvePath('bow.js?'+Math.random());
+var SCRIPT_URL = Script.resolvePath('bow.js');
 
 var MODEL_URL = "https://hifi-public.s3.amazonaws.com/models/bow/new/bow-deadly.fbx";
 var COLLISION_HULL_URL = "https://hifi-public.s3.amazonaws.com/models/bow/new/bow_collision_hull.obj";
