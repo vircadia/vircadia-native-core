@@ -158,7 +158,10 @@
             this.isGrabbed = true;
 
             this.initialHand = this.hand;
-            Messages.sendMessage('Hifi-Beam-Disabler', this.initialHand);
+
+            //disable the opposite hand in handControllerGrab.js by message
+            var handToDisable = this.initialHand === 'right' ? 'left' : 'right';
+            Messages.sendMessage('Hifi-Hand-Disabler', handToDisable);
 
             setEntityCustomData('grabbableKey', this.entityID, {
                 grabbable: false,
@@ -437,13 +440,13 @@
 
         checkStringHand: function() {
             //invert the hands because our string will be held with the opposite hand of the first one we pick up the bow with
-              var triggerLookup;
+            var triggerLookup;
             if (this.initialHand === 'left') {
-                triggerLookup=1;
+                triggerLookup = 1;
                 this.getStringHandPosition = MyAvatar.getRightPalmPosition;
             } else if (this.initialHand === 'right') {
                 this.getStringHandPosition = MyAvatar.getLeftPalmPosition;
-                 triggerLookup=0;
+                triggerLookup = 0;
             }
 
             this.triggerValue = Controller.getValue(TRIGGER_CONTROLS[triggerLookup]);
