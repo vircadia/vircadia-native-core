@@ -6,17 +6,18 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include "GlWindow.h"
+#include "GLWindow.h"
 
 #include <QtGui/QOpenGLContext>
 #include <QtGui/QOpenGLDebugLogger>
 
 #include "GLHelpers.h"
 
-GlWindow::GlWindow(QOpenGLContext* shareContext) : GlWindow(getDefaultOpenGlSurfaceFormat(), shareContext) {
+void GLWindow::createContext(QOpenGLContext* shareContext) {
+    createContext(getDefaultOpenGlSurfaceFormat(), shareContext);
 }
 
-GlWindow::GlWindow(const QSurfaceFormat& format, QOpenGLContext* shareContext) {
+void GLWindow::createContext(const QSurfaceFormat& format, QOpenGLContext* shareContext) {
     setSurfaceType(QSurface::OpenGLSurface);
     setFormat(format);
     _context = new QOpenGLContext;
@@ -27,13 +28,15 @@ GlWindow::GlWindow(const QSurfaceFormat& format, QOpenGLContext* shareContext) {
     _context->create();
 }
 
-GlWindow::~GlWindow() {
-    _context->doneCurrent();
-    _context->deleteLater();
-    _context = nullptr;
+GLWindow::~GLWindow() {
+    if (_context) {
+        _context->doneCurrent();
+        _context->deleteLater();
+        _context = nullptr;
+    }
 }
 
-bool GlWindow::makeCurrent() {
+bool GLWindow::makeCurrent() {
     bool makeCurrentResult = _context->makeCurrent(this);
     Q_ASSERT(makeCurrentResult);
     
@@ -49,11 +52,16 @@ bool GlWindow::makeCurrent() {
     return makeCurrentResult;
 }
 
-void GlWindow::doneCurrent() {
+void GLWindow::doneCurrent() {
     _context->doneCurrent();
 }
 
-void GlWindow::swapBuffers() {
+void GLWindow::swapBuffers() {
     _context->swapBuffers(this);
 }
+
+QOpenGLContext* GLWindow::context() const {
+    return _context;
+}
+
 

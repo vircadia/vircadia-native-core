@@ -45,6 +45,14 @@ void GLWidget::initializeGL() {
     setAutoBufferSwap(false);
 }
 
+void GLWidget::paintEvent(QPaintEvent* event) {
+    QWidget::paintEvent(event);
+}
+
+void GLWidget::resizeEvent(QResizeEvent* event) {
+    QWidget::resizeEvent(event);
+}
+
 bool GLWidget::event(QEvent* event) {
     switch (event->type()) {
         case QEvent::MouseMove:

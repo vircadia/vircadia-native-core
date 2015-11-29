@@ -12,7 +12,6 @@
 #include <QtWidgets/QMainWindow>
 #include <QtOpenGL/QGLWidget>
 #include <GLMHelpers.h>
-#include <gl/GlWindow.h>
 #include <QEvent>
 #include <QtGui/QResizeEvent>
 #include <QtGui/QOpenGLContext>

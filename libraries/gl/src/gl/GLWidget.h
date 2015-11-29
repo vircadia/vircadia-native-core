@@ -27,6 +27,8 @@ public:
 protected:
     virtual void initializeGL() override;
     virtual bool event(QEvent* event) override;
+    virtual void paintEvent(QPaintEvent* event) override;
+    virtual void resizeEvent(QResizeEvent* event) override;
 
 private slots:
     virtual bool eventFilter(QObject*, QEvent* event) override;
