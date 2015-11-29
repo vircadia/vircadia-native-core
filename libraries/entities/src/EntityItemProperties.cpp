@@ -1491,10 +1491,12 @@ AABox EntityItemProperties::getAABox() const {
     glm::vec3 unrotatedMinRelativeToEntity = - (_dimensions * _registrationPoint);
     glm::vec3 unrotatedMaxRelativeToEntity = _dimensions * registrationRemainder;
     Extents unrotatedExtentsRelativeToRegistrationPoint = { unrotatedMinRelativeToEntity, unrotatedMaxRelativeToEntity };
-    Extents rotatedExtentsRelativeToRegistrationPoint = unrotatedExtentsRelativeToRegistrationPoint.getRotated(getRotation());
+    glm::quat worldRotation = SpatiallyNestable::localToWorld(getRotation(), _parentID, _parentJointIndex);
+    Extents rotatedExtentsRelativeToRegistrationPoint = unrotatedExtentsRelativeToRegistrationPoint.getRotated(worldRotation);
 
     // shift the extents to be relative to the position/registration point
-    rotatedExtentsRelativeToRegistrationPoint.shiftBy(_position);
+    glm::vec3 worldPosition = SpatiallyNestable::localToWorld(_position, _parentID, _parentJointIndex);
+    rotatedExtentsRelativeToRegistrationPoint.shiftBy(worldPosition);
 
     return AABox(rotatedExtentsRelativeToRegistrationPoint);
 }
