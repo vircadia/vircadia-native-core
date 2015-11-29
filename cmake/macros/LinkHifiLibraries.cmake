@@ -21,7 +21,7 @@ macro(LINK_HIFI_LIBRARIES)
     include_directories("${HIFI_LIBRARY_DIR}/${HIFI_LIBRARY}/src")
 
     add_dependencies(${TARGET_NAME} ${HIFI_LIBRARY})
-  
+
     # link the actual library - it is static so don't bubble it up
     target_link_libraries(${TARGET_NAME} ${HIFI_LIBRARY})
     
