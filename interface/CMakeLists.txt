@@ -100,6 +100,13 @@ else()
   add_executable(${TARGET_NAME} ${INTERFACE_SRCS} ${QM})
 endif()
 
+# disable /OPT:REF and /OPT:ICF for the Debug builds
+# This will prevent the following linker warnings
+# LINK : warning LNK4075: ignoring '/INCREMENTAL' due to '/OPT:ICF' specification
+if (WIN32)
+  set_property(TARGET ${TARGET_NAME} APPEND_STRING PROPERTY LINK_FLAGS_DEBUG "/OPT:NOREF /OPT:NOICF")
+endif()
+
 # link required hifi libraries
 link_hifi_libraries(shared octree environment gpu gl procedural model render 
                     recording fbx networking model-networking entities avatars 
