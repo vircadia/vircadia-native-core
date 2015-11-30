@@ -506,6 +506,7 @@ Grabber.prototype.activateEntity = function(entityID, grabbedProperties) {
     if (data["refCount"] == 1) {
         data["gravity"] = grabbedProperties.gravity;
         data["ignoreForCollisions"] = grabbedProperties.ignoreForCollisions;
+        data["collisionsWillMove"] = grabbedProperties.collisionsWillMove;
         var whileHeldProperties = {gravity: {x:0, y:0, z:0}};
         if (invertSolidWhileHeld) {
             whileHeldProperties["ignoreForCollisions"] = ! grabbedProperties.ignoreForCollisions;
@@ -522,7 +523,8 @@ Grabber.prototype.deactivateEntity = function(entityID) {
         if (data["refCount"] < 1) {
             Entities.editEntity(entityID, {
                 gravity: data["gravity"],
-                ignoreForCollisions: data["ignoreForCollisions"]
+                ignoreForCollisions: data["ignoreForCollisions"],
+                collisionsWillMove: data["collisionsWillMove"]
             });
             data = null;
         }

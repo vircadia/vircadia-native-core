@@ -15,10 +15,6 @@
 
 #include "ScriptableAvatar.h"
 
-ScriptableAvatar::ScriptableAvatar(ScriptEngine* scriptEngine) : _scriptEngine(scriptEngine), _animation(NULL) {
-    connect(_scriptEngine, SIGNAL(update(float)), this, SLOT(update(float)));
-}
-
 // hold and priority unused but kept so that client side JS can run.
 void ScriptableAvatar::startAnimation(const QString& url, float fps, float priority,
                               bool loop, bool hold, float firstFrame, float lastFrame, const QStringList& maskedJoints) {

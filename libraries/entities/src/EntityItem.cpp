@@ -500,6 +500,15 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
         }
     }
 
+    // before proceeding, check to see if this is an entity that we know has been deleted, which
+    // might happen in the case of out-of-order and/or recorvered packets, if we've deleted the entity
+    // we can confidently ignore this packet
+    EntityTreePointer tree = getTree();
+    if (tree && tree->isDeletedEntity(_id)) {
+        qDebug() << "Recieved packet for previously deleted entity [" << _id << "] ignoring. (inside " << __FUNCTION__ << ")";
+        ignoreServerPacket = true;
+    }
+
     if (ignoreServerPacket) {
         overwriteLocalData = false;
         #ifdef WANT_DEBUG
@@ -613,7 +622,7 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
     auto nodeList = DependencyManager::get<NodeList>();
     const QUuid& myNodeID = nodeList->getSessionUUID();
     bool weOwnSimulation = _simulationOwner.matchesValidID(myNodeID);
-    
+
 
     if (args.bitstreamVersion >= VERSION_ENTITIES_HAVE_SIMULATION_OWNER_AND_ACTIONS_OVER_WIRE) {
         // pack SimulationOwner and terse update properties near each other
@@ -630,6 +639,9 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
             dataAt += bytes;
             bytesRead += bytes;
 
+            if (wantTerseEditLogging() && _simulationOwner != newSimOwner) {
+                qCDebug(entities) << "sim ownership for" << getDebugName() << "is now" << newSimOwner;
+            }
             if (_simulationOwner.set(newSimOwner)) {
                 _dirtyFlags |= Simulation::DIRTY_SIMULATOR_ID;
             }
@@ -704,17 +716,7 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
     READ_ENTITY_PROPERTY(PROP_COLLISION_SOUND_URL, QString, setCollisionSoundURL);
     READ_ENTITY_PROPERTY(PROP_HREF, QString, setHref);
     READ_ENTITY_PROPERTY(PROP_DESCRIPTION, QString, setDescription);
-
-    {   // When we own the simulation we don't accept updates to the entity's actions
-        // but since we're using macros below we have to temporarily modify overwriteLocalData.
-        // NOTE: this prevents userB from adding an action to an object1 when UserA 
-        // has simulation ownership of it.
-        // TODO: figure out how to allow multiple users to update actions simultaneously
-        bool oldOverwrite = overwriteLocalData;
-        overwriteLocalData = overwriteLocalData && !weOwnSimulation;
-        READ_ENTITY_PROPERTY(PROP_ACTION_DATA, QByteArray, setActionData);
-        overwriteLocalData = oldOverwrite;
-    }
+    READ_ENTITY_PROPERTY(PROP_ACTION_DATA, QByteArray, setActionData);
 
     bytesRead += readEntitySubclassDataFromBuffer(dataAt, (bytesLeftToRead - bytesRead), args,
                                                   propertyFlags, overwriteLocalData, somethingChanged);
@@ -737,7 +739,7 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
         // this "new" data is actually slightly out of date. We calculate the time we need to skip forward and
         // use our simulation helper routine to get a best estimate of where the entity should be.
         float skipTimeForward = (float)(now - lastSimulatedFromBufferAdjusted) / (float)(USECS_PER_SECOND);
-        
+
         // we want to extrapolate the motion forward to compensate for packet travel time, but
         // we don't want the side effect of flag setting.
         simulateKinematicMotion(skipTimeForward, false);
@@ -745,7 +747,6 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
 
     if (overwriteLocalData) {
         if (!_simulationOwner.matchesValidID(myNodeID)) {
-
             _lastSimulated = now;
         }
     }
@@ -798,17 +799,11 @@ void EntityItem::setDensity(float density) {
     _density = glm::max(glm::min(density, ENTITY_ITEM_MAX_DENSITY), ENTITY_ITEM_MIN_DENSITY);
 }
 
-const float ACTIVATION_RELATIVE_DENSITY_DELTA = 0.01f; // 1 percent
-
 void EntityItem::updateDensity(float density) {
     float clampedDensity = glm::max(glm::min(density, ENTITY_ITEM_MAX_DENSITY), ENTITY_ITEM_MIN_DENSITY);
     if (_density != clampedDensity) {
         _density = clampedDensity;
-
-        if (fabsf(_density - clampedDensity) / _density > ACTIVATION_RELATIVE_DENSITY_DELTA) {
-            // the density has changed enough that we should update the physics simulation
-            _dirtyFlags |= Simulation::DIRTY_MASS;
-        }
+        _dirtyFlags |= Simulation::DIRTY_MASS;
     }
 }
 
@@ -821,11 +816,16 @@ void EntityItem::setMass(float mass) {
 
     // compute new density
     const float MIN_VOLUME = 1.0e-6f; // 0.001mm^3
+    float newDensity = 1.0f;
     if (volume < 1.0e-6f) {
         // avoid divide by zero
-        _density = glm::min(mass / MIN_VOLUME, ENTITY_ITEM_MAX_DENSITY);
+        newDensity = glm::min(mass / MIN_VOLUME, ENTITY_ITEM_MAX_DENSITY);
     } else {
-        _density = glm::max(glm::min(mass / volume, ENTITY_ITEM_MAX_DENSITY), ENTITY_ITEM_MIN_DENSITY);
+        newDensity = glm::max(glm::min(mass / volume, ENTITY_ITEM_MAX_DENSITY), ENTITY_ITEM_MIN_DENSITY);
+    }
+    if (_density != newDensity) {
+        _density = newDensity;
+        _dirtyFlags |= Simulation::DIRTY_MASS;
     }
 }
 
@@ -883,12 +883,12 @@ void EntityItem::simulateKinematicMotion(float timeElapsed, bool setFlags) {
 #ifdef WANT_DEBUG
     qCDebug(entities) << "EntityItem::simulateKinematicMotion timeElapsed" << timeElapsed;
 #endif
-    
+
     const float MIN_TIME_SKIP = 0.0f;
     const float MAX_TIME_SKIP = 1.0f; // in seconds
-    
+
     timeElapsed = glm::clamp(timeElapsed, MIN_TIME_SKIP, MAX_TIME_SKIP);
-    
+
     if (hasActions()) {
         return;
     }
@@ -994,6 +994,11 @@ EntityTreePointer EntityItem::getTree() const {
     EntityTreeElementPointer containingElement = getElement();
     EntityTreePointer tree = containingElement ? containingElement->getTree() : nullptr;
     return tree;
+}
+
+bool EntityItem::wantTerseEditLogging() {
+    EntityTreePointer tree = getTree();
+    return tree ? tree->wantTerseEditLogging() : false;
 }
 
 glm::mat4 EntityItem::getEntityToWorldMatrix() const {
@@ -1306,24 +1311,16 @@ void EntityItem::updatePosition(const glm::vec3& value) {
     if (shouldSuppressLocationEdits()) {
         return;
     }
-    auto delta = glm::distance(getPosition(), value);
-    if (delta > IGNORE_POSITION_DELTA) {
-        _dirtyFlags |= Simulation::DIRTY_POSITION;
+    if (getPosition() != value) {
         setPosition(value);
-        if (delta > ACTIVATION_POSITION_DELTA) {
-            _dirtyFlags |= Simulation::DIRTY_PHYSICS_ACTIVATION;
-        }
+        _dirtyFlags |= Simulation::DIRTY_POSITION;
     }
 }
 
 void EntityItem::updateDimensions(const glm::vec3& value) {
-    auto delta = glm::distance(getDimensions(), value);
-    if (delta > IGNORE_DIMENSIONS_DELTA) {
+    if (getDimensions() != value) {
         setDimensions(value);
-        if (delta > ACTIVATION_DIMENSIONS_DELTA) {
-            // rebuilding the shape will always activate
-            _dirtyFlags |= (Simulation::DIRTY_SHAPE | Simulation::DIRTY_MASS);
-        }
+        _dirtyFlags |= (Simulation::DIRTY_SHAPE | Simulation::DIRTY_MASS);
     }
 }
 
@@ -1333,14 +1330,7 @@ void EntityItem::updateRotation(const glm::quat& rotation) {
     }
     if (getRotation() != rotation) {
         setRotation(rotation);
-
-        auto alignmentDot = glm::abs(glm::dot(getRotation(), rotation));
-        if (alignmentDot < IGNORE_ALIGNMENT_DOT) {
-            _dirtyFlags |= Simulation::DIRTY_ROTATION;
-        }
-        if (alignmentDot < ACTIVATION_ALIGNMENT_DOT) {
-            _dirtyFlags |= Simulation::DIRTY_PHYSICS_ACTIVATION;
-        }
+        _dirtyFlags |= Simulation::DIRTY_ROTATION;
     }
 }
 
@@ -1361,11 +1351,8 @@ void EntityItem::updateMass(float mass) {
         newDensity = glm::max(glm::min(mass / volume, ENTITY_ITEM_MAX_DENSITY), ENTITY_ITEM_MIN_DENSITY);
     }
 
-    float oldDensity = _density;
-    _density = newDensity;
-
-    if (fabsf(_density - oldDensity) / _density > ACTIVATION_RELATIVE_DENSITY_DELTA) {
-        // the density has changed enough that we should update the physics simulation
+    if (_density != newDensity) {
+        _density = newDensity;
         _dirtyFlags |= Simulation::DIRTY_MASS;
     }
 }
@@ -1374,38 +1361,29 @@ void EntityItem::updateVelocity(const glm::vec3& value) {
     if (shouldSuppressLocationEdits()) {
         return;
     }
-    auto delta = glm::distance(_velocity, value);
-    if (delta > IGNORE_LINEAR_VELOCITY_DELTA) {
-        _dirtyFlags |= Simulation::DIRTY_LINEAR_VELOCITY;
+    if (_velocity != value) {
         const float MIN_LINEAR_SPEED = 0.001f;
         if (glm::length(value) < MIN_LINEAR_SPEED) {
             _velocity = ENTITY_ITEM_ZERO_VEC3;
         } else {
             _velocity = value;
-            // only activate when setting non-zero velocity
-            if (delta > ACTIVATION_LINEAR_VELOCITY_DELTA) {
-                _dirtyFlags |= Simulation::DIRTY_PHYSICS_ACTIVATION;
-            }
         }
+        _dirtyFlags |= Simulation::DIRTY_LINEAR_VELOCITY;
     }
 }
 
 void EntityItem::updateDamping(float value) {
     auto clampedDamping = glm::clamp(value, 0.0f, 1.0f);
-    if (fabsf(_damping - clampedDamping) > IGNORE_DAMPING_DELTA) {
+    if (_damping != clampedDamping) {
         _damping = clampedDamping;
         _dirtyFlags |= Simulation::DIRTY_MATERIAL;
     }
 }
 
 void EntityItem::updateGravity(const glm::vec3& value) {
-    auto delta = glm::distance(_gravity, value);
-    if (delta > IGNORE_GRAVITY_DELTA) {
+    if (_gravity != value) {
         _gravity = value;
         _dirtyFlags |= Simulation::DIRTY_LINEAR_VELOCITY;
-        if (delta > ACTIVATION_GRAVITY_DELTA) {
-            _dirtyFlags |= Simulation::DIRTY_PHYSICS_ACTIVATION;
-        }
     }
 }
 
@@ -1413,25 +1391,20 @@ void EntityItem::updateAngularVelocity(const glm::vec3& value) {
     if (shouldSuppressLocationEdits()) {
         return;
     }
-    auto delta = glm::distance(_angularVelocity, value);
-    if (delta > IGNORE_ANGULAR_VELOCITY_DELTA) {
-        _dirtyFlags |= Simulation::DIRTY_ANGULAR_VELOCITY;
+    if (_angularVelocity != value) {
         const float MIN_ANGULAR_SPEED = 0.0002f;
         if (glm::length(value) < MIN_ANGULAR_SPEED) {
             _angularVelocity = ENTITY_ITEM_ZERO_VEC3;
         } else {
             _angularVelocity = value;
-            // only activate when setting non-zero velocity
-            if (delta > ACTIVATION_ANGULAR_VELOCITY_DELTA) {
-                _dirtyFlags |= Simulation::DIRTY_PHYSICS_ACTIVATION;
-            }
         }
+        _dirtyFlags |= Simulation::DIRTY_ANGULAR_VELOCITY;
     }
 }
 
 void EntityItem::updateAngularDamping(float value) {
     auto clampedDamping = glm::clamp(value, 0.0f, 1.0f);
-    if (fabsf(_angularDamping - clampedDamping) > IGNORE_DAMPING_DELTA) {
+    if (_angularDamping != clampedDamping) {
         _angularDamping = clampedDamping;
         _dirtyFlags |= Simulation::DIRTY_MATERIAL;
     }
@@ -1492,20 +1465,35 @@ void EntityItem::updateCreated(uint64_t value) {
 }
 
 void EntityItem::setSimulationOwner(const QUuid& id, quint8 priority) {
+    if (wantTerseEditLogging() && (id != _simulationOwner.getID() || priority != _simulationOwner.getPriority())) {
+        qCDebug(entities) << "sim ownership for" << getDebugName() << "is now" << id << priority;
+    }
     _simulationOwner.set(id, priority);
 }
 
 void EntityItem::setSimulationOwner(const SimulationOwner& owner) {
+    if (wantTerseEditLogging() && _simulationOwner != owner) {
+        qCDebug(entities) << "sim ownership for" << getDebugName() << "is now" << owner;
+    }
+
     _simulationOwner.set(owner);
 }
 
 void EntityItem::updateSimulatorID(const QUuid& value) {
+    if (wantTerseEditLogging() && _simulationOwner.getID() != value) {
+        qCDebug(entities) << "sim ownership for" << getDebugName() << "is now" << value;
+    }
+
     if (_simulationOwner.setID(value)) {
         _dirtyFlags |= Simulation::DIRTY_SIMULATOR_ID;
     }
 }
 
 void EntityItem::clearSimulationOwnership() {
+    if (wantTerseEditLogging() && !_simulationOwner.isNull()) {
+        qCDebug(entities) << "sim ownership for" << getDebugName() << "is now null";
+    }
+
     _simulationOwner.clear();
     // don't bother setting the DIRTY_SIMULATOR_ID flag because clearSimulationOwnership()
     // is only ever called entity-server-side and the flags are only used client-side
@@ -1607,6 +1595,7 @@ bool EntityItem::removeActionInternal(const QUuid& actionID, EntitySimulation* s
         bool success = true;
         serializeActions(success, _allActionsDataCache);
         _dirtyFlags |= Simulation::DIRTY_PHYSICS_ACTIVATION;
+        setActionDataNeedsTransmit(true);
         return success;
     }
     return false;
@@ -1649,7 +1638,7 @@ void EntityItem::deserializeActionsInternal() {
         return;
     }
 
-    EntityTreePointer entityTree = _element ? _element->getTree() : nullptr;
+    EntityTreePointer entityTree = getTree();
     assert(entityTree);
     EntitySimulation* simulation = entityTree ? entityTree->getSimulation() : nullptr;
     assert(simulation);
@@ -1770,6 +1759,7 @@ void EntityItem::serializeActions(bool& success, QByteArray& result) const {
     serializedActionsStream << serializedActions;
 
     if (result.size() >= _maxActionsDataSize) {
+        qDebug() << "EntityItem::serializeActions size is too large -- " << result.size() << ">=" << _maxActionsDataSize;
         success = false;
         return;
     }
@@ -1829,4 +1819,19 @@ bool EntityItem::shouldSuppressLocationEdits() const {
     }
 
     return false;
+}
+
+QList<EntityActionPointer> EntityItem::getActionsOfType(EntityActionType typeToGet) {
+    QList<EntityActionPointer> result;
+
+    QHash<QUuid, EntityActionPointer>::const_iterator i = _objectActions.begin();
+    while (i != _objectActions.end()) {
+        EntityActionPointer action = i.value();
+        if (action->getType() == typeToGet && action->isActive()) {
+            result += action;
+        }
+        i++;
+    }
+
+    return result;
 }

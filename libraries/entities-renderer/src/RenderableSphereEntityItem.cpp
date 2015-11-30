@@ -20,7 +20,6 @@
 #include <GeometryCache.h>
 #include <PerfStat.h>
 
-#include "RenderableDebugableEntityItem.h"
 #include "../render-utils/simple_vert.h"
 #include "../render-utils/simple_frag.h"
 
@@ -70,7 +69,4 @@ void RenderableSphereEntityItem::render(RenderArgs* args) {
         batch.setModelTransform(Transform());
         DependencyManager::get<DeferredLightingEffect>()->renderSolidSphereInstance(batch, modelTransform, sphereColor);
     }
-
-
-    RenderableDebugableEntityItem::render(this, args);
 };

@@ -39,17 +39,16 @@
 #include <recording/Recorder.h>
 #include <recording/Clip.h>
 #include <recording/Frame.h>
-#include "devices/Faceshift.h"
-
+#include <RecordingScriptingInterface.h>
 
 #include "Application.h"
+#include "devices/Faceshift.h"
 #include "AvatarManager.h"
 #include "Environment.h"
 #include "Menu.h"
 #include "ModelReferential.h"
 #include "MyAvatar.h"
 #include "Physics.h"
-#include "Recorder.h"
 #include "Util.h"
 #include "InterfaceLogging.h"
 #include "DebugDraw.h"
@@ -80,10 +79,6 @@ const QString& DEFAULT_AVATAR_COLLISION_SOUND_URL = "https://hifi-public.s3.amaz
 const float MyAvatar::ZOOM_MIN = 0.5f;
 const float MyAvatar::ZOOM_MAX = 25.0f;
 const float MyAvatar::ZOOM_DEFAULT = 1.5f;
-static const QString HEADER_NAME = "com.highfidelity.recording.AvatarData";
-static recording::FrameType AVATAR_FRAME_TYPE = recording::Frame::TYPE_INVALID;
-static std::once_flag frameTypeRegistration;
-
 
 MyAvatar::MyAvatar(RigPointer rig) :
     Avatar(rig),
@@ -121,17 +116,6 @@ MyAvatar::MyAvatar(RigPointer rig) :
 {
     using namespace recording;
 
-    std::call_once(frameTypeRegistration, [] {
-        AVATAR_FRAME_TYPE = recording::Frame::registerFrameType(HEADER_NAME);
-    });
-
-    // FIXME how to deal with driving multiple avatars locally?  
-    Frame::registerFrameHandler(AVATAR_FRAME_TYPE, [this](Frame::ConstPointer frame) {
-        qDebug() << "Playback of avatar frame length: " << frame->data.size();
-        avatarStateFromFrame(frame->data, this);
-    });
-
-
     for (int i = 0; i < MAX_DRIVE_KEYS; i++) {
         _driveKeys[i] = 0.0f;
     }
@@ -142,6 +126,77 @@ MyAvatar::MyAvatar(RigPointer rig) :
     _characterController.setEnabled(true);
 
     _bodySensorMatrix = deriveBodyFromHMDSensor();
+
+    using namespace recording;
+
+    auto player = DependencyManager::get<Deck>();
+    auto recorder = DependencyManager::get<Recorder>();
+    connect(player.data(), &Deck::playbackStateChanged, [=] {
+        if (player->isPlaying()) {
+            auto recordingInterface = DependencyManager::get<RecordingScriptingInterface>();
+            if (recordingInterface->getPlayFromCurrentLocation()) {
+                setRecordingBasis();
+            }
+        } else {
+            clearRecordingBasis();
+        }
+    });
+
+    connect(recorder.data(), &Recorder::recordingStateChanged, [=] {
+        if (recorder->isRecording()) {
+            setRecordingBasis();
+        } else {
+            clearRecordingBasis();
+        }
+    });
+
+    static const recording::FrameType AVATAR_FRAME_TYPE = recording::Frame::registerFrameType(AvatarData::FRAME_NAME);
+    Frame::registerFrameHandler(AVATAR_FRAME_TYPE, [=](Frame::ConstPointer frame) {
+        static AvatarData dummyAvatar;
+        AvatarData::fromFrame(frame->data, dummyAvatar);
+        if (getRecordingBasis()) {
+            dummyAvatar.setRecordingBasis(getRecordingBasis());
+        } else {
+            dummyAvatar.clearRecordingBasis();
+        }
+
+        auto recordingInterface = DependencyManager::get<RecordingScriptingInterface>();
+        if (recordingInterface->getPlayerUseHeadModel() && dummyAvatar.getFaceModelURL().isValid() &&
+            (dummyAvatar.getFaceModelURL() != getFaceModelURL())) {
+            // FIXME
+            //myAvatar->setFaceModelURL(_dummyAvatar.getFaceModelURL());
+        }
+
+        if (recordingInterface->getPlayerUseSkeletonModel() && dummyAvatar.getSkeletonModelURL().isValid() &&
+            (dummyAvatar.getSkeletonModelURL() != getSkeletonModelURL())) {
+            // FIXME
+            //myAvatar->useFullAvatarURL()
+        }
+
+        if (recordingInterface->getPlayerUseDisplayName() && dummyAvatar.getDisplayName() != getDisplayName()) {
+            setDisplayName(dummyAvatar.getDisplayName());
+        }
+
+        setPosition(dummyAvatar.getPosition());
+        setOrientation(dummyAvatar.getOrientation());
+
+        if (!dummyAvatar.getAttachmentData().isEmpty()) {
+            setAttachmentData(dummyAvatar.getAttachmentData());
+        }
+
+        auto headData = dummyAvatar.getHeadData();
+        if (headData && _headData) {
+            // blendshapes
+            if (!headData->getBlendshapeCoefficients().isEmpty()) {
+                _headData->setBlendshapeCoefficients(headData->getBlendshapeCoefficients());
+            }
+            // head lean
+            _headData->setLeanForward(headData->getLeanForward());
+            _headData->setLeanSideways(headData->getLeanSideways());
+            // head orientation
+            _headData->setLookAtPosition(headData->getLookAtPosition());
+        }
+    });
 }
 
 MyAvatar::~MyAvatar() {
@@ -177,9 +232,8 @@ void MyAvatar::reset(bool andReload) {
 
     // Reset dynamic state.
     _wasPushing = _isPushing = _isBraking = _billboardValid = false;
-    _isFollowingHMD = false;
-    _hmdFollowVelocity = Vectors::ZERO;
-    _hmdFollowSpeed = 0.0f;
+    _followVelocity = Vectors::ZERO;
+    _followSpeed = 0.0f;
     _skeletonModel.reset();
     getHead()->reset();
     _targetVelocity = glm::vec3(0.0f);
@@ -327,8 +381,10 @@ void MyAvatar::simulate(float deltaTime) {
     }
 
     // Record avatars movements.
-    if (_recorder && _recorder->isRecording()) {
-        _recorder->recordFrame(AVATAR_FRAME_TYPE, avatarStateToFrame(this));
+    auto recorder = DependencyManager::get<recording::Recorder>();
+    if (recorder->isRecording()) {
+        static const recording::FrameType FRAME_TYPE = recording::Frame::registerFrameType(AvatarData::FRAME_NAME);
+        recorder->recordFrame(FRAME_TYPE, toFrame(*this));
     }
 
     // consider updating our billboard
@@ -352,52 +408,40 @@ void MyAvatar::updateFromHMDSensorMatrix(const glm::mat4& hmdSensorMatrix) {
 void MyAvatar::updateHMDFollowVelocity() {
     // compute offset to body's target position (in sensor-frame)
     auto sensorBodyMatrix = deriveBodyFromHMDSensor();
-    _hmdFollowOffset = extractTranslation(sensorBodyMatrix) - extractTranslation(_bodySensorMatrix);
-    glm::vec3 truncatedOffset = _hmdFollowOffset;
-    if (truncatedOffset.y < 0.0f) {
-        // don't pull the body DOWN to match the target (allow animation system to squat)
-        truncatedOffset.y = 0.0f;
-    }
-    float truncatedOffsetDistance = glm::length(truncatedOffset);
+    glm::vec3 offset = extractTranslation(sensorBodyMatrix) - extractTranslation(_bodySensorMatrix);
+    _followOffsetDistance = glm::length(offset);
 
-    bool isMoving;
-    if (_lastIsMoving) {
-        const float MOVE_EXIT_SPEED_THRESHOLD = 0.07f;  // m/sec
-        isMoving = glm::length(_velocity) >= MOVE_EXIT_SPEED_THRESHOLD;
-    } else {
-        const float MOVE_ENTER_SPEED_THRESHOLD = 0.2f; // m/sec
-        isMoving = glm::length(_velocity) > MOVE_ENTER_SPEED_THRESHOLD;
-    }
-    bool justStartedMoving = (_lastIsMoving != isMoving) && isMoving;
-    _lastIsMoving = isMoving;
+    const float FOLLOW_TIMESCALE = 0.5f;
+    const float FOLLOW_THRESHOLD_SPEED = 0.2f;
+    const float FOLLOW_MIN_DISTANCE = 0.01f;
+    const float FOLLOW_THRESHOLD_DISTANCE = 0.2f;
+    const float FOLLOW_MAX_IDLE_DISTANCE = 0.1f;
+
     bool hmdIsAtRest = _hmdAtRestDetector.update(_hmdSensorPosition, _hmdSensorOrientation);
-    const float MIN_HMD_HIP_SHIFT = 0.05f;
-    if (justStartedMoving || (hmdIsAtRest && truncatedOffsetDistance > MIN_HMD_HIP_SHIFT)) {
-        _isFollowingHMD = true;
-    }
 
-    bool needNewFollowSpeed = (_isFollowingHMD && _hmdFollowSpeed == 0.0f);
-    if (!needNewFollowSpeed) {
-        // check to see if offset has exceeded its threshold
-        const float MAX_HMD_HIP_SHIFT = 0.2f;
-        if (truncatedOffsetDistance > MAX_HMD_HIP_SHIFT) {
-            _isFollowingHMD = true;
-            needNewFollowSpeed = true;
+    _followOffsetDistance = glm::length(offset);
+    if (_followOffsetDistance < FOLLOW_MIN_DISTANCE) {
+        // close enough
+        _followOffsetDistance = 0.0f;
+    } else {
+        bool avatarIsMoving = glm::length(_velocity - _followVelocity) > FOLLOW_THRESHOLD_SPEED;
+        bool shouldFollow = (hmdIsAtRest || avatarIsMoving) && _followOffsetDistance > FOLLOW_MAX_IDLE_DISTANCE;
+
+        glm::vec3 truncatedOffset = offset;
+        if (truncatedOffset.y < 0.0f) {
+            truncatedOffset.y = 0.0f;
         }
-    }
-    if (_isFollowingHMD) {
-        // only bother to rotate into world frame if we're following
-        glm::quat sensorToWorldRotation = extractRotation(_sensorToWorldMatrix);
-        _hmdFollowOffset = sensorToWorldRotation * _hmdFollowOffset;
-    }
-    if (needNewFollowSpeed) {
-        // compute new velocity that will be used to resolve offset of hips from body
-        const float FOLLOW_HMD_DURATION = 0.5f;  // seconds
-        _hmdFollowVelocity = (_hmdFollowOffset / FOLLOW_HMD_DURATION);
-        _hmdFollowSpeed = glm::length(_hmdFollowVelocity);
-    } else if (_isFollowingHMD) {
-        // compute new velocity (but not new speed)
-        _hmdFollowVelocity = _hmdFollowSpeed * glm::normalize(_hmdFollowOffset);
+        float truncatedDistance = glm::length(truncatedOffset);
+        bool needsNewSpeed = truncatedDistance > FOLLOW_THRESHOLD_DISTANCE;
+        if (needsNewSpeed || (shouldFollow && _followSpeed == 0.0f)) {
+            // compute new speed
+            _followSpeed = _followOffsetDistance / FOLLOW_TIMESCALE;
+        }
+        if (_followSpeed > 0.0f) {
+            // to compute new velocity we must rotate offset into the world-frame
+            glm::quat sensorToWorldRotation = glm::normalize(glm::quat_cast(_sensorToWorldMatrix));
+            _followVelocity = _followSpeed * glm::normalize(sensorToWorldRotation * offset);
+        }
     }
 }
 
@@ -405,6 +449,13 @@ void MyAvatar::updateHMDFollowVelocity() {
 // update sensor to world matrix from current body position and hmd sensor.
 // This is so the correct camera can be used for rendering.
 void MyAvatar::updateSensorToWorldMatrix() {
+
+#ifdef DEBUG_RENDERING
+    // draw marker about avatar's position
+    const glm::vec4 red(1.0f, 0.0f, 0.0f, 1.0f);
+    DebugDraw::getInstance().addMyAvatarMarker("pos", glm::quat(), glm::vec3(), red);
+#endif
+
     // update the sensor mat so that the body position will end up in the desired
     // position when driven from the head.
     glm::mat4 desiredMat = createMatFromQuatAndPos(getOrientation(), getPosition());
@@ -416,8 +467,8 @@ void MyAvatar::updateFromTrackers(float deltaTime) {
     glm::vec3 estimatedPosition, estimatedRotation;
 
     bool inHmd = qApp->getAvatarUpdater()->isHMDMode();
-
-    if (isPlaying() && inHmd) {
+    bool playing = DependencyManager::get<recording::Deck>()->isPlaying();
+    if (inHmd && playing) {
         return;
     }
 
@@ -468,7 +519,7 @@ void MyAvatar::updateFromTrackers(float deltaTime) {
 
 
     Head* head = getHead();
-    if (inHmd || isPlaying()) {
+    if (inHmd || playing) {
         head->setDeltaPitch(estimatedRotation.x);
         head->setDeltaYaw(estimatedRotation.y);
         head->setDeltaRoll(estimatedRotation.z);
@@ -583,102 +634,6 @@ bool MyAvatar::setJointReferential(const QUuid& id, int jointIndex) {
         changeReferential(NULL);
         return false;
     }
-}
-
-bool MyAvatar::isRecording() {
-    if (!_recorder) {
-        return false;
-    }
-    if (QThread::currentThread() != thread()) {
-        bool result;
-        QMetaObject::invokeMethod(this, "isRecording", Qt::BlockingQueuedConnection,
-                                  Q_RETURN_ARG(bool, result));
-        return result;
-    }
-    return _recorder && _recorder->isRecording();
-}
-
-float MyAvatar::recorderElapsed() {
-    if (QThread::currentThread() != thread()) {
-        float result;
-        QMetaObject::invokeMethod(this, "recorderElapsed", Qt::BlockingQueuedConnection,
-                                  Q_RETURN_ARG(float, result));
-        return result;
-    }
-    if (!_recorder) {
-        return 0;
-    }
-    return (float)_recorder->position() / MSECS_PER_SECOND;
-}
-
-QMetaObject::Connection _audioClientRecorderConnection;
-
-void MyAvatar::startRecording() {
-    if (QThread::currentThread() != thread()) {
-        QMetaObject::invokeMethod(this, "startRecording", Qt::BlockingQueuedConnection);
-        return;
-    }
-
-    _recorder = std::make_shared<recording::Recorder>();
-    // connect to AudioClient's signal so we get input audio
-    auto audioClient = DependencyManager::get<AudioClient>();
-    _audioClientRecorderConnection = connect(audioClient.data(), &AudioClient::inputReceived, [] {
-        // FIXME, missing audio data handling
-    });
-    setRecordingBasis();
-    _recorder->start();
-}
-
-void MyAvatar::stopRecording() {
-    if (!_recorder) {
-        return;
-    }
-    if (QThread::currentThread() != thread()) {
-        QMetaObject::invokeMethod(this, "stopRecording", Qt::BlockingQueuedConnection);
-        return;
-    }
-    if (_recorder) {
-        QObject::disconnect(_audioClientRecorderConnection);
-        _audioClientRecorderConnection = QMetaObject::Connection();
-        _recorder->stop();
-        clearRecordingBasis();
-    }
-}
-
-void MyAvatar::saveRecording(const QString& filename) {
-    if (!_recorder) {
-        qCDebug(interfaceapp) << "There is no recording to save";
-        return;
-    }
-    if (QThread::currentThread() != thread()) {
-        QMetaObject::invokeMethod(this, "saveRecording", Qt::BlockingQueuedConnection,
-                                  Q_ARG(QString, filename));
-        return;
-    }
-
-    if (_recorder) {
-        auto clip = _recorder->getClip();
-        recording::Clip::toFile(filename, clip);
-    }
-}
-
-void MyAvatar::loadLastRecording() {
-    if (QThread::currentThread() != thread()) {
-        QMetaObject::invokeMethod(this, "loadLastRecording", Qt::BlockingQueuedConnection);
-        return;
-    }
-
-    if (!_recorder || !_recorder->getClip()) {
-        qCDebug(interfaceapp) << "There is no recording to load";
-        return;
-    }
-
-    if (!_player) {
-        _player = std::make_shared<recording::Deck>();
-    }
-
-    _player->queueClip(_recorder->getClip());
-    _player->play();
 }
 
 void MyAvatar::startAnimation(const QString& url, float fps, float priority,
@@ -1024,11 +979,6 @@ int MyAvatar::parseDataFromBuffer(const QByteArray& buffer) {
     return buffer.size();
 }
 
-void MyAvatar::sendKillAvatar() {
-    auto killPacket = NLPacket::create(PacketType::KillAvatar, 0);
-    DependencyManager::get<NodeList>()->broadcastToNodes(std::move(killPacket), NodeSet() << NodeType::AvatarMixer);
-}
-
 void MyAvatar::updateLookAtTargetAvatar() {
     //
     //  Look at the avatar whose eyes are closest to the ray in direction of my avatar's head
@@ -1043,10 +993,8 @@ void MyAvatar::updateLookAtTargetAvatar() {
     const float KEEP_LOOKING_AT_CURRENT_ANGLE_FACTOR = 1.3f;
     const float GREATEST_LOOKING_AT_DISTANCE = 10.0f;
 
-    AvatarHash hash;
-    DependencyManager::get<AvatarManager>()->withAvatarHash([&] (const AvatarHash& locked) {
-        hash = locked; // make a shallow copy and operate on that, to minimize lock time
-    });
+    AvatarHash hash = DependencyManager::get<AvatarManager>()->getHashCopy();
+    
     foreach (const AvatarSharedPointer& avatarPointer, hash) {
         auto avatar = static_pointer_cast<Avatar>(avatarPointer);
         bool isCurrentTarget = avatar->getIsLookAtTarget();
@@ -1300,11 +1248,11 @@ void MyAvatar::prepareForPhysicsSimulation() {
     _characterController.setAvatarPositionAndOrientation(getPosition(), getOrientation());
     if (qApp->isHMDMode()) {
         updateHMDFollowVelocity();
-    } else if (_isFollowingHMD) {
-        _isFollowingHMD = false;
-        _hmdFollowVelocity = Vectors::ZERO;
+    } else if (_followSpeed > 0.0f) {
+        _followVelocity = Vectors::ZERO;
+        _followSpeed = 0.0f;
     }
-    _characterController.setHMDVelocity(_hmdFollowVelocity);
+    _characterController.setFollowVelocity(_followVelocity);
 }
 
 void MyAvatar::harvestResultsFromPhysicsSimulation() {
@@ -1312,35 +1260,27 @@ void MyAvatar::harvestResultsFromPhysicsSimulation() {
     glm::quat orientation = getOrientation();
     _characterController.getAvatarPositionAndOrientation(position, orientation);
     nextAttitude(position, orientation);
-    if (_isFollowingHMD) {
-        setVelocity(_characterController.getLinearVelocity() + _hmdFollowVelocity);
-        glm::vec3 hmdShift = _characterController.getHMDShift();
-        adjustSensorTransform(hmdShift);
+    if (_followSpeed > 0.0f) {
+        adjustSensorTransform();
+        setVelocity(_characterController.getLinearVelocity() + _followVelocity);
     } else {
         setVelocity(_characterController.getLinearVelocity());
     }
 }
 
-void MyAvatar::adjustSensorTransform(glm::vec3 hmdShift) {
+void MyAvatar::adjustSensorTransform() {
     // compute blendFactor of latest hmdShift
     // which we'll use to blend the rotation part
-    float blendFactor = 1.0f;
-    float shiftLength = glm::length(hmdShift);
-    if (shiftLength > 1.0e-5f) {
-        float offsetLength = glm::length(_hmdFollowOffset);
-        if (offsetLength > shiftLength) {
-            blendFactor = shiftLength / offsetLength;
-        }
-    }
+    float linearDistance = _characterController.getFollowTime() * _followSpeed;
+    float blendFactor = linearDistance < _followOffsetDistance ? linearDistance / _followOffsetDistance : 1.0f;
 
     auto newBodySensorMatrix = deriveBodyFromHMDSensor();
     auto worldBodyMatrix = _sensorToWorldMatrix * newBodySensorMatrix;
     glm::quat finalBodyRotation = glm::normalize(glm::quat_cast(worldBodyMatrix));
     if (blendFactor >= 0.99f) {
         // the "adjustment" is more or less complete so stop following
-        _isFollowingHMD = false;
-        _hmdFollowSpeed = 0.0f;
-        _hmdFollowVelocity = Vectors::ZERO;
+        _followVelocity = Vectors::ZERO;
+        _followSpeed = 0.0f;
         // and slam the body's transform anyway to eliminate any slight errors
         glm::vec3 finalBodyPosition = extractTranslation(worldBodyMatrix);
         nextAttitude(finalBodyPosition, finalBodyRotation);
@@ -1520,6 +1460,9 @@ void MyAvatar::initAnimGraph() {
                          QUrl::fromLocalFile(PathUtils::resourcesPath() + "meshes/defaultAvatar_full/avatar-animation.json") :
                          _animGraphUrl);
     _rig->initAnimGraph(graphUrl, _skeletonModel.getGeometry()->getFBXGeometry());
+
+    _bodySensorMatrix = deriveBodyFromHMDSensor(); // Based on current cached HMD position/rotation..
+    updateSensorToWorldMatrix(); // Uses updated position/orientation and _bodySensorMatrix changes
 }
 
 void MyAvatar::destroyAnimGraph() {
@@ -1991,8 +1934,26 @@ glm::quat MyAvatar::getWorldBodyOrientation() const {
     return glm::quat_cast(_sensorToWorldMatrix * _bodySensorMatrix);
 }
 
+#if 0
 // derive avatar body position and orientation from the current HMD Sensor location.
 // results are in sensor space
+glm::mat4 MyAvatar::deriveBodyFromHMDSensor() const {
+    if (_rig) {
+        // orientation
+        const glm::quat hmdOrientation = getHMDSensorOrientation();
+        const glm::quat yaw = cancelOutRollAndPitch(hmdOrientation);
+        // position
+        // we flip about yAxis when going from "root" to "avatar" frame
+        // and we must also apply "yaw" to get into HMD frame
+        glm::quat rotY180 = glm::angleAxis((float)M_PI, glm::vec3(0.0f, 1.0f, 0.0f));
+        glm::vec3 eyesInAvatarFrame = rotY180 * yaw * _rig->getEyesInRootFrame();
+        glm::vec3 bodyPos = getHMDSensorPosition() - eyesInAvatarFrame;
+        return createMatFromQuatAndPos(yaw, bodyPos);
+    }
+    return glm::mat4();
+}
+#else
+// old school meat hook style
 glm::mat4 MyAvatar::deriveBodyFromHMDSensor() const {
 
     // HMD is in sensor space.
@@ -2000,10 +1961,18 @@ glm::mat4 MyAvatar::deriveBodyFromHMDSensor() const {
     const glm::quat hmdOrientation = getHMDSensorOrientation();
     const glm::quat hmdOrientationYawOnly = cancelOutRollAndPitch(hmdOrientation);
 
+    /*
     const glm::vec3 DEFAULT_RIGHT_EYE_POS(-0.3f, 1.6f, 0.0f);
     const glm::vec3 DEFAULT_LEFT_EYE_POS(0.3f, 1.6f, 0.0f);
     const glm::vec3 DEFAULT_NECK_POS(0.0f, 1.5f, 0.0f);
     const glm::vec3 DEFAULT_HIPS_POS(0.0f, 1.0f, 0.0f);
+    */
+
+    // 2 meter tall dude
+    const glm::vec3 DEFAULT_RIGHT_EYE_POS(-0.3f, 1.9f, 0.0f);
+    const glm::vec3 DEFAULT_LEFT_EYE_POS(0.3f, 1.9f, 0.0f);
+    const glm::vec3 DEFAULT_NECK_POS(0.0f, 1.70f, 0.0f);
+    const glm::vec3 DEFAULT_HIPS_POS(0.0f, 1.05f, 0.0f);
 
     vec3 localEyes, localNeck;
     if (!_debugDrawSkeleton) {
@@ -2042,6 +2011,7 @@ glm::mat4 MyAvatar::deriveBodyFromHMDSensor() const {
     // avatar facing is determined solely by hmd orientation.
     return createMatFromQuatAndPos(hmdOrientationYawOnly, bodyPos);
 }
+#endif
 
 glm::vec3 MyAvatar::getPositionForAudio() {
     switch (_audioListenerMode) {

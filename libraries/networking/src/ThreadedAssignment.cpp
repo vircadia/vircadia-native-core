@@ -33,14 +33,19 @@ void ThreadedAssignment::setFinished(bool isFinished) {
         if (_isFinished) {
 
             qDebug() << "ThreadedAssignment::setFinished(true) called - finishing up.";
-
-            auto& packetReceiver = DependencyManager::get<NodeList>()->getPacketReceiver();
+            
+            auto nodeList = DependencyManager::get<NodeList>();
+            
+            auto& packetReceiver = nodeList->getPacketReceiver();
 
             // we should de-register immediately for any of our packets
             packetReceiver.unregisterListener(this);
 
             // we should also tell the packet receiver to drop packets while we're cleaning up
             packetReceiver.setShouldDropPackets(true);
+            
+            // send a disconnect packet to the domain
+            nodeList->getDomainHandler().disconnect();
 
             if (_domainServerTimer) {
                 // stop the domain-server check in timer by calling deleteLater so it gets cleaned up on NL thread
@@ -71,6 +76,9 @@ void ThreadedAssignment::commonInit(const QString& targetName, NodeType_t nodeTy
     _domainServerTimer = new QTimer;
     connect(_domainServerTimer, SIGNAL(timeout()), this, SLOT(checkInWithDomainServerOrExit()));
     _domainServerTimer->start(DOMAIN_SERVER_CHECK_IN_MSECS);
+    
+    // send a domain-server check in immediately
+    checkInWithDomainServerOrExit();
     
     // move the domain server time to the NL so check-ins fire from there
     _domainServerTimer->moveToThread(nodeList->thread());
@@ -124,4 +132,9 @@ void ThreadedAssignment::checkInWithDomainServerOrExit() {
     } else {
         DependencyManager::get<NodeList>()->sendDomainServerCheckIn();
     }
+}
+
+void ThreadedAssignment::domainSettingsRequestFailed() {
+    qDebug() << "Failed to retreive settings object from domain-server. Bailing on assignment.";
+    setFinished(true);
 }

@@ -49,23 +49,6 @@ const AnimPose& AnimSkeleton::getAbsoluteBindPose(int jointIndex) const {
     return _absoluteBindPoses[jointIndex];
 }
 
-AnimPose AnimSkeleton::getRootAbsoluteBindPoseByChildName(const QString& childName) const {
-    AnimPose pose = AnimPose::identity;
-    int jointIndex = nameToJointIndex(childName);
-    if (jointIndex >= 0) {
-        int numJoints = (int)(_absoluteBindPoses.size());
-        if (jointIndex < numJoints) {
-            int parentIndex = getParentIndex(jointIndex);
-            while (parentIndex != -1 && parentIndex < numJoints) {
-                jointIndex = parentIndex;
-                parentIndex = getParentIndex(jointIndex);
-            }
-            pose = _absoluteBindPoses[jointIndex];
-        }
-    }
-    return pose;
-}
-
 const AnimPose& AnimSkeleton::getRelativeBindPose(int jointIndex) const {
     return _relativeBindPoses[jointIndex];
 }
@@ -79,7 +62,7 @@ const QString& AnimSkeleton::getJointName(int jointIndex) const {
 }
 
 AnimPose AnimSkeleton::getAbsolutePose(int jointIndex, const AnimPoseVec& poses) const {
-    if (jointIndex < 0) {
+    if (jointIndex < 0 || jointIndex >= (int)poses.size() || jointIndex >= (int)_joints.size()) {
         return AnimPose::identity;
     } else {
         return getAbsolutePose(_joints[jointIndex].parentIndex, poses) * poses[jointIndex];

@@ -19,10 +19,11 @@ var MAX_LINE_LENGTH = 40; // This must be 2 or greater;
 var DEFAULT_STROKE_WIDTH = 0.1;
 var DEFAULT_LIFETIME = 20;
 var DEFAULT_COLOR = { red: 255, green: 255, blue: 255 };
-var PolyLine = function(position, color, lifetime) {
+var PolyLine = function(position, color, lifetime, texture) {
     this.position = position;
     this.color = color;
     this.lifetime = lifetime === undefined ? DEFAULT_LIFETIME : lifetime;
+    this.texture = texture ? texture : "";
     this.points = [
     ];
     this.strokeWidths = [
@@ -37,7 +38,8 @@ var PolyLine = function(position, color, lifetime) {
         strokeWidths: this.strokeWidths,
         dimensions: LINE_DIMENSIONS,
         color: color,
-        lifetime: lifetime
+        lifetime: lifetime,
+        textures: this.texture
     });
 };
 
@@ -98,26 +100,29 @@ PolyLine.prototype.destroy = function() {
 
 
 // InfiniteLine
-InfiniteLine = function(position, color, lifetime) {
+InfiniteLine = function(position, color, lifetime, textureBegin, textureMiddle) {
     this.position = position;
     this.color = color;
     this.lifetime = lifetime === undefined ? DEFAULT_LIFETIME : lifetime;
     this.lines = [];
     this.size = 0;
+
+    this.textureBegin = textureBegin ? textureBegin : "";
+    this.textureMiddle = textureMiddle ? textureMiddle : "";
 };
 
 InfiniteLine.prototype.enqueuePoint = function(position, strokeWidth) {
     var currentLine;
 
     if (this.lines.length == 0) {
-        currentLine = new PolyLine(position, this.color, this.lifetime);
+        currentLine = new PolyLine(position, this.color, this.lifetime, this.textureBegin);
         this.lines.push(currentLine);
     } else {
         currentLine = this.lines[this.lines.length - 1];
     }
 
     if (currentLine.isFull()) {
-        var newLine = new PolyLine(currentLine.getLastPoint(), this.color, this.lifetime);
+        var newLine = new PolyLine(currentLine.getLastPoint(), this.color, this.lifetime, this.textureMiddle);
         newLine.enqueuePoint(currentLine.getLastPoint(), strokeWidth);
         this.lines.push(newLine);
         currentLine = newLine;

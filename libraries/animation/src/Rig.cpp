@@ -23,6 +23,19 @@
 #include "AnimSkeleton.h"
 #include "IKTarget.h"
 
+/*
+const glm::vec3 DEFAULT_RIGHT_EYE_POS(-0.3f, 1.6f, 0.0f);
+const glm::vec3 DEFAULT_LEFT_EYE_POS(0.3f, 1.6f, 0.0f);
+const glm::vec3 DEFAULT_HEAD_POS(0.0f, 1.55f, 0.0f);
+const glm::vec3 DEFAULT_NECK_POS(0.0f, 1.5f, 0.0f);
+*/
+
+// 2 meter tall dude
+const glm::vec3 DEFAULT_RIGHT_EYE_POS(-0.3f, 1.9f, 0.0f);
+const glm::vec3 DEFAULT_LEFT_EYE_POS(0.3f, 1.9f, 0.0f);
+const glm::vec3 DEFAULT_HEAD_POS(0.0f, 1.75f, 0.0f);
+const glm::vec3 DEFAULT_NECK_POS(0.0f, 1.70f, 0.0f);
+
 void insertSorted(QList<AnimationHandlePointer>& handles, const AnimationHandlePointer& handle) {
     for (QList<AnimationHandlePointer>::iterator it = handles.begin(); it != handles.end(); it++) {
         if (handle->getPriority() > (*it)->getPriority()) {
@@ -407,6 +420,26 @@ void Rig::calcAnimAlpha(float speed, const std::vector<float>& referenceSpeeds, 
     *alphaOut = alpha;
 }
 
+void Rig::computeEyesInRootFrame(const AnimPoseVec& poses) {
+    // TODO: use cached eye/hips indices for these calculations
+    int numPoses = poses.size();
+    int hipsIndex = _animSkeleton->nameToJointIndex(QString("Hips"));
+    int headIndex = _animSkeleton->nameToJointIndex(QString("Head"));
+    if (hipsIndex > 0 && headIndex > 0) {
+        int rightEyeIndex = _animSkeleton->nameToJointIndex(QString("RightEye"));
+        int leftEyeIndex = _animSkeleton->nameToJointIndex(QString("LeftEye"));
+        if (numPoses > rightEyeIndex && numPoses > leftEyeIndex && rightEyeIndex > 0 && leftEyeIndex > 0) {
+            glm::vec3 rightEye = _animSkeleton->getAbsolutePose(rightEyeIndex, poses).trans;
+            glm::vec3 leftEye = _animSkeleton->getAbsolutePose(leftEyeIndex, poses).trans;
+            glm::vec3 hips = _animSkeleton->getAbsolutePose(hipsIndex, poses).trans;
+            _eyesInRootFrame = 0.5f * (rightEye + leftEye) - hips;
+        } else {
+            glm::vec3 hips = _animSkeleton->getAbsolutePose(hipsIndex, poses).trans;
+            _eyesInRootFrame = 0.5f * (DEFAULT_RIGHT_EYE_POS + DEFAULT_LEFT_EYE_POS) - hips;
+        }
+    }
+}
+
 // animation reference speeds.
 static const std::vector<float> FORWARD_SPEEDS = { 0.4f, 1.4f, 4.5f }; // m/s
 static const std::vector<float> BACKWARD_SPEEDS = { 0.6f, 1.45f }; // m/s
@@ -730,6 +763,7 @@ void Rig::updateAnimations(float deltaTime, glm::mat4 rootTransform) {
             setJointTranslation((int)i, true, poses[i].trans, PRIORITY);
         }
 
+        computeEyesInRootFrame(poses);
     } else {
 
         // First normalize the fades so that they sum to 1.0.
@@ -1124,14 +1158,14 @@ void Rig::updateLeanJoint(int index, float leanSideways, float leanForward, floa
 
 static AnimPose avatarToBonePose(AnimPose pose, AnimSkeleton::ConstPointer skeleton) {
     AnimPose rootPose = skeleton->getAbsoluteBindPose(skeleton->nameToJointIndex("Hips"));
-    AnimPose rotY180(glm::vec3(1), glm::angleAxis((float)PI, glm::vec3(0.0f, 1.0f, 0.0f)), glm::vec3(0));
+    AnimPose rotY180(glm::vec3(1.0f), glm::angleAxis(PI, glm::vec3(0.0f, 1.0f, 0.0f)), glm::vec3(0));
     return rootPose * rotY180 * pose;
 }
 
 #ifdef DEBUG_RENDERING
 static AnimPose boneToAvatarPose(AnimPose pose, AnimSkeleton::ConstPointer skeleton) {
     AnimPose rootPose = skeleton->getAbsoluteBindPose(skeleton->nameToJointIndex("Hips"));
-    AnimPose rotY180(glm::vec3(1), glm::angleAxis((float)PI, glm::vec3(0.0f, 1.0f, 0.0f)), glm::vec3(0));
+    AnimPose rotY180(glm::vec3(1.0f), glm::angleAxis(PI, glm::vec3(0.0f, 1.0f, 0.0f)), glm::vec3(0));
     return (rootPose * rotY180).inverse() * pose;
 }
 #endif
@@ -1152,11 +1186,6 @@ static void computeHeadNeckAnimVars(AnimSkeleton::ConstPointer skeleton, const A
     int leftEyeIndex = skeleton->nameToJointIndex("LeftEye");
     int headIndex = skeleton->nameToJointIndex("Head");
     int neckIndex = skeleton->nameToJointIndex("Neck");
-
-    const glm::vec3 DEFAULT_RIGHT_EYE_POS(-0.3f, 1.6f, 0.0f);
-    const glm::vec3 DEFAULT_LEFT_EYE_POS(0.3f, 1.6f, 0.0f);
-    const glm::vec3 DEFAULT_HEAD_POS(0.0f, 1.55f, 0.0f);
-    const glm::vec3 DEFAULT_NECK_POS(0.0f, 1.5f, 0.0f);
 
     // Use absolute bindPose positions just in case the relBindPose have rotations we don't expect.
     glm::vec3 absRightEyePos = rightEyeIndex != -1 ? skeleton->getAbsoluteBindPose(rightEyeIndex).trans : DEFAULT_RIGHT_EYE_POS;
@@ -1259,7 +1288,7 @@ void Rig::updateEyeJoint(int index, const glm::vec3& modelTranslation, const glm
 
         // NOTE: at the moment we do the math in the world-frame, hence the inverse transform is more complex than usual.
         glm::mat4 inverse = glm::inverse(glm::mat4_cast(modelRotation) * parentState.getTransform() *
-                                         glm::translate(state.getDefaultTranslationInConstrainedFrame()) *
+                                         glm::translate(state.getUnscaledDefaultTranslation()) *
                                          state.getPreTransform() * glm::mat4_cast(state.getPreRotation() * state.getDefaultRotation()));
         glm::vec3 front = glm::vec3(inverse * glm::vec4(worldHeadOrientation * IDENTITY_FRONT, 0.0f));
         glm::vec3 lookAtDelta = lookAtSpot - modelTranslation;
@@ -1277,10 +1306,10 @@ void Rig::updateFromHandParameters(const HandParameters& params, float dt) {
 
         // TODO: figure out how to obtain the yFlip from where it is actually stored
         glm::quat yFlipHACK = glm::angleAxis(PI, glm::vec3(0.0f, 1.0f, 0.0f));
-        AnimPose rootBindPose = _animSkeleton->getRootAbsoluteBindPoseByChildName("LeftHand");
+        AnimPose hipsBindPose = _animSkeleton->getAbsoluteBindPose(_animSkeleton->nameToJointIndex("Hips"));
         if (params.isLeftEnabled) {
-            _animVars.set("leftHandPosition", rootBindPose.trans + rootBindPose.rot * yFlipHACK * params.leftPosition);
-            _animVars.set("leftHandRotation", rootBindPose.rot * yFlipHACK * params.leftOrientation);
+            _animVars.set("leftHandPosition", hipsBindPose.trans + hipsBindPose.rot * yFlipHACK * params.leftPosition);
+            _animVars.set("leftHandRotation", hipsBindPose.rot * yFlipHACK * params.leftOrientation);
             _animVars.set("leftHandType", (int)IKTarget::Type::RotationAndPosition);
         } else {
             _animVars.unset("leftHandPosition");
@@ -1288,8 +1317,8 @@ void Rig::updateFromHandParameters(const HandParameters& params, float dt) {
             _animVars.set("leftHandType", (int)IKTarget::Type::HipsRelativeRotationAndPosition);
         }
         if (params.isRightEnabled) {
-            _animVars.set("rightHandPosition", rootBindPose.trans + rootBindPose.rot * yFlipHACK * params.rightPosition);
-            _animVars.set("rightHandRotation", rootBindPose.rot * yFlipHACK * params.rightOrientation);
+            _animVars.set("rightHandPosition", hipsBindPose.trans + hipsBindPose.rot * yFlipHACK * params.rightPosition);
+            _animVars.set("rightHandRotation", hipsBindPose.rot * yFlipHACK * params.rightOrientation);
             _animVars.set("rightHandType", (int)IKTarget::Type::RotationAndPosition);
         } else {
             _animVars.unset("rightHandPosition");
@@ -1342,6 +1371,7 @@ void Rig::updateFromHandParameters(const HandParameters& params, float dt) {
 void Rig::makeAnimSkeleton(const FBXGeometry& fbxGeometry) {
     if (!_animSkeleton) {
         _animSkeleton = std::make_shared<AnimSkeleton>(fbxGeometry);
+        computeEyesInRootFrame(_animSkeleton->getRelativeBindPoses());
     }
 }
 

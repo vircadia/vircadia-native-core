@@ -269,6 +269,9 @@ Menu::Menu() {
                                                                       MenuOption::IndependentMode, 0,
                                                                       false, qApp, SLOT(cameraMenuChanged())));
     cameraModeGroup->addAction(addCheckableActionToQMenuAndActionHash(cameraModeMenu,
+                                                                      MenuOption::CameraEntityMode, 0,
+                                                                      false, qApp, SLOT(cameraMenuChanged())));
+    cameraModeGroup->addAction(addCheckableActionToQMenuAndActionHash(cameraModeMenu,
                                                                       MenuOption::FullscreenMirror, 0, // QML Qt::Key_H,
                                                                       false, qApp, SLOT(cameraMenuChanged())));
 
@@ -502,7 +505,6 @@ Menu::Menu() {
     addCheckableActionToQMenuAndActionHash(perfTimerMenu, MenuOption::ExpandOtherAvatarTiming, 0, false);
     addCheckableActionToQMenuAndActionHash(perfTimerMenu, MenuOption::ExpandPaintGLTiming, 0, false);
 
-    addCheckableActionToQMenuAndActionHash(timingMenu, MenuOption::TestPing, 0, true);
     addCheckableActionToQMenuAndActionHash(timingMenu, MenuOption::FrameTimer);
     addActionToQMenuAndActionHash(timingMenu, MenuOption::RunTimingTests, 0, qApp, SLOT(runTests()));
     addCheckableActionToQMenuAndActionHash(timingMenu, MenuOption::PipelineWarnings);
@@ -947,6 +949,7 @@ void Menu::addMenuItem(const MenuItemProperties& properties) {
         QShortcut* shortcut = NULL;
         if (!properties.shortcutKeySequence.isEmpty()) {
             shortcut = new QShortcut(properties.shortcutKeySequence, this);
+            shortcut->setContext(Qt::WidgetWithChildrenShortcut);
         }
 
         // check for positioning requests

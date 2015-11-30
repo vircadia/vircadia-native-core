@@ -55,8 +55,6 @@ typedef unsigned long long quint64;
 #include "HandData.h"
 #include "HeadData.h"
 #include "PathUtils.h"
-#include "Player.h"
-#include "Recorder.h"
 #include "Referential.h"
 
 using AvatarSharedPointer = std::shared_ptr<AvatarData>;
@@ -165,7 +163,13 @@ class AvatarData : public QObject {
     Q_PROPERTY(QStringList jointNames READ getJointNames)
 
     Q_PROPERTY(QUuid sessionUUID READ getSessionUUID)
+
 public:
+    static const QString FRAME_NAME;
+
+    static void fromFrame(const QByteArray& frameData, AvatarData& avatar);
+    static QByteArray toFrame(const AvatarData& avatar);
+
     AvatarData();
     virtual ~AvatarData();
     
@@ -243,7 +247,7 @@ public:
     Q_INVOKABLE char getHandState() const { return _handState; }
 
     const QVector<JointData>& getRawJointData() const { return _jointData; }
-    void setRawJointData(QVector<JointData> data)  { _jointData = data; }
+    Q_INVOKABLE void setRawJointData(QVector<JointData> data);
 
     Q_INVOKABLE virtual void setJointData(int index, const glm::quat& rotation, const glm::vec3& translation);
     Q_INVOKABLE virtual void setJointRotation(int index, const glm::quat& rotation);
@@ -338,6 +342,8 @@ public:
     void clearRecordingBasis();
     TransformPointer getRecordingBasis() const;
     void setRecordingBasis(TransformPointer recordingBasis = TransformPointer());
+    QJsonObject toJson() const;
+    void fromJson(const QJsonObject& json);
 
 public slots:
     void sendAvatarDataPacket();
@@ -348,25 +354,6 @@ public slots:
     void setJointMappingsFromNetworkReply();
     void setSessionUUID(const QUuid& sessionUUID) { _sessionUUID = sessionUUID; }
     bool hasReferential();
-    
-    bool isPlaying();
-    bool isPaused();
-    float playerElapsed();
-    float playerLength();
-    void loadRecording(const QString& filename);
-    void startPlaying();
-    void setPlayerVolume(float volume);
-    void setPlayerAudioOffset(float audioOffset);
-    void setPlayerTime(float time);
-    void setPlayFromCurrentLocation(bool playFromCurrentLocation);
-    void setPlayerLoop(bool loop);
-    void setPlayerUseDisplayName(bool useDisplayName);
-    void setPlayerUseAttachments(bool useAttachments);
-    void setPlayerUseHeadModel(bool useHeadModel);
-    void setPlayerUseSkeletonModel(bool useSkeletonModel);
-    void play();
-    void pausePlayer();
-    void stopPlaying();
 
 protected:
     QUuid _sessionUUID;
@@ -421,8 +408,6 @@ protected:
     
     QWeakPointer<Node> _owningAvatarMixer;
     
-    recording::DeckPointer _player;
-    
     /// Loads the joint indices, names from the FST file (if any)
     virtual void updateJointMappings();
     void changeReferential(Referential* ref);
@@ -437,7 +422,7 @@ protected:
     QMutex avatarLock; // Name is redundant, but it aids searches.
     
     // During recording, this holds the starting position, orientation & scale of the recorded avatar
-    // During playback, it holds the 
+    // During playback, it holds the origin from which to play the relative positions in the clip
     TransformPointer _recordingBasis;
 
 private:
@@ -457,19 +442,23 @@ public:
     bool translationSet = false;
 };
 
+QJsonValue toJsonValue(const JointData& joint);
+JointData jointDataFromJsonValue(const QJsonValue& q);
+
 class AttachmentData {
 public:
     QUrl modelURL;
     QString jointName;
     glm::vec3 translation;
     glm::quat rotation;
-    float scale;
-    
-    AttachmentData();
+    float scale { 1.0f };
     
     bool isValid() const { return modelURL.isValid(); }
     
     bool operator==(const AttachmentData& other) const;
+
+    QJsonObject toJson() const;
+    void fromJson(const QJsonObject& json);
 };
 
 QDataStream& operator<<(QDataStream& out, const AttachmentData& attachment);

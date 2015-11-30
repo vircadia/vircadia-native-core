@@ -15,16 +15,21 @@
 #include <QtCore/QObject>
 #include <QtMultimedia/qaudiooutput.h>
 
+#include <udt/PacketHeaders.h>
+
 #include "AudioInjectorOptions.h"
 
 class AudioInjector;
 class AudioInjectorLocalBuffer;
+class Transform;
 
 class AbstractAudioInterface : public QObject {
     Q_OBJECT
 public:
     AbstractAudioInterface(QObject* parent = 0) : QObject(parent) {};
     
+    static void emitAudioPacket(const void* audioData, size_t bytes, quint16& sequenceNumber, const Transform& transform, PacketType packetType);
+
 public slots:
     virtual bool outputLocalInjector(bool isStereo, AudioInjector* injector) = 0;
     

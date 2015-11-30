@@ -1460,7 +1460,7 @@ FBXGeometry* FBXReader::extractFBXGeometry(const QVariantHash& mapping, const QS
                             it != extracted.newIndices.end() && it.key() == oldIndex; it++) {
 
                         // remember vertices with at least 1/4 weight
-                        const float EXPANSION_WEIGHT_THRESHOLD = 0.25f;
+                        const float EXPANSION_WEIGHT_THRESHOLD = 0.99f;
                         if (weight > EXPANSION_WEIGHT_THRESHOLD) {
                             // transform to joint-frame and save for later
                             const glm::mat4 vertexTransform = meshToJoint * glm::translate(extracted.mesh.vertices.at(it.value()));
@@ -1535,63 +1535,49 @@ FBXGeometry* FBXReader::extractFBXGeometry(const QVariantHash& mapping, const QS
         meshIDsToMeshIndices.insert(it.key(), meshIndex);
     }
 
-    // now that all joints have been scanned, compute a radius for each bone
+    const float INV_SQRT_3 = 0.57735026918f;
+    ShapeVertices cardinalDirections = {
+        Vectors::UNIT_X,
+        Vectors::UNIT_Y,
+        Vectors::UNIT_Z,
+        glm::vec3(INV_SQRT_3,  INV_SQRT_3,  INV_SQRT_3),
+        glm::vec3(INV_SQRT_3, -INV_SQRT_3,  INV_SQRT_3),
+        glm::vec3(INV_SQRT_3,  INV_SQRT_3, -INV_SQRT_3),
+        glm::vec3(INV_SQRT_3, -INV_SQRT_3, -INV_SQRT_3)
+    };
+
+    // now that all joints have been scanned compute a k-Dop bounding volume of mesh
     glm::vec3 defaultCapsuleAxis(0.0f, 1.0f, 0.0f);
     for (int i = 0; i < geometry.joints.size(); ++i) {
         FBXJoint& joint = geometry.joints[i];
 
         // NOTE: points are in joint-frame
-        // compute average point
         ShapeVertices& points = shapeVertices[i];
-        glm::vec3 avgPoint = glm::vec3(0.0f);
-        for (uint32_t j = 0; j < points.size(); ++j) {
-            avgPoint += points[j];
-        }
-        avgPoint /= (float)points.size();
-
-        // compute axis from begin to avgPoint
-        glm::vec3 begin(0.0f);
-        glm::vec3 end = avgPoint;
-        glm::vec3 axis = end - begin;
-        float axisLength = glm::length(axis);
-        if (axisLength > EPSILON) {
-            axis /= axisLength;
-        } else {
-            axis = glm::vec3(0.0f);
-        }
-
-        // measure average cylindrical radius
-        float avgRadius = 0.0f;
         if (points.size() > 0) {
-            float minProjection = FLT_MAX;
-            float maxProjection = -FLT_MIN;
+            // compute average point
+            glm::vec3 avgPoint = glm::vec3(0.0f);
             for (uint32_t j = 0; j < points.size(); ++j) {
-                glm::vec3 offset = points[j] - avgPoint;
-                float projection = glm::dot(offset, axis);
-                maxProjection = glm::max(maxProjection, projection);
-                minProjection = glm::min(minProjection, projection);
-                avgRadius += glm::length(offset - projection * axis);
+                avgPoint += points[j];
             }
-            avgRadius /= (float)points.size();
+            avgPoint /= (float)points.size();
 
-            // compute endpoints of capsule in joint-frame
-            glm::vec3 capsuleBegin = avgPoint;
-            glm::vec3 capsuleEnd = avgPoint;
-            if (maxProjection - minProjection < 2.0f * avgRadius) {
-                // the mesh-as-cylinder approximation is too short to collide as a capsule
-                // so we'll collapse it to a sphere (although that isn't a very good approximation)
-                capsuleBegin = avgPoint + 0.5f * (maxProjection + minProjection) * axis;
-                capsuleEnd = capsuleBegin;
-            } else {
-                capsuleBegin = avgPoint + (minProjection + avgRadius) * axis;
-                capsuleEnd = avgPoint + (maxProjection - avgRadius) * axis;
+            // compute a k-Dop bounding volume
+            for (uint32_t j = 0; j < cardinalDirections.size(); ++j) {
+                float maxDot = -FLT_MAX;
+                float minDot = FLT_MIN;
+                for (uint32_t k = 0; k < points.size(); ++k) {
+                    float kDot = glm::dot(cardinalDirections[j], points[k] - avgPoint);
+                    if (kDot > maxDot) {
+                        maxDot = kDot;
+                    }
+                    if (kDot < minDot) {
+                        minDot = kDot;
+                    }
+                }
+                joint.shapeInfo.points.push_back(avgPoint + maxDot * cardinalDirections[j]);
+                joint.shapeInfo.points.push_back(avgPoint + minDot * cardinalDirections[j]);
             }
-
-            // save points for later
-            joint.shapeInfo.points.push_back(capsuleBegin);
-            joint.shapeInfo.points.push_back(capsuleEnd);
         }
-        joint.shapeInfo.radius = avgRadius;
     }
     geometry.palmDirection = parseVec3(mapping.value("palmDirection", "0, -1, 0").toString());
 

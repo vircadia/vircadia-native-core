@@ -63,11 +63,11 @@ protected:
     virtual glm::vec3 getAngularVelocity();
     virtual void setAngularVelocity(glm::vec3 angularVelocity);
     virtual void activateBody();
+    virtual void forceBodyNonStatic();
 
     EntityItemWeakPointer _ownerEntity;
     QString _tag;
     quint64 _expires { 0 }; // in seconds since epoch
-    bool _active { false };
 
 private:
     int getEntityServerClockSkew() const;

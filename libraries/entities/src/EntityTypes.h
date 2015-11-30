@@ -20,8 +20,8 @@
 #include <OctreeRenderer.h> // for RenderArgs
 
 class EntityItem;
-typedef std::shared_ptr<EntityItem> EntityItemPointer;
-typedef std::weak_ptr<EntityItem> EntityItemWeakPointer;
+using EntityItemPointer = std::shared_ptr<EntityItem>;
+using EntityItemWeakPointer = std::weak_ptr<EntityItem>;
 
 inline uint qHash(const EntityItemPointer& a, uint seed) {
     return qHash(a.get(), seed);
