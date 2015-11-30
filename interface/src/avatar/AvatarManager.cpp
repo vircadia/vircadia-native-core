@@ -356,7 +356,8 @@ void AvatarManager::handleCollisionEvents(const CollisionEvents& collisionEvents
 
                 AudioInjector::playSound(collisionSoundURL, energyFactorOfFull, AVATAR_STRETCH_FACTOR, myAvatar->getPosition());
                 myAvatar->collisionWithEntity(collision);
-                return;            }
+                return;
+            }
         }
     }
 }
