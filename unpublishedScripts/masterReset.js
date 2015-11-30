@@ -883,7 +883,7 @@ MasterReset = function() {
             type: "Model",
             modelURL: MODEL_URL,
             shapeType: 'compound',
-            compoundShapeURL:COLLISION_HULL_URL,
+            compoundShapeURL: COLLISION_HULL_URL,
             script: pingPongScriptURL,
             position: position,
             rotation: rotation,
@@ -913,17 +913,18 @@ MasterReset = function() {
 
     function createWand(position) {
         var WAND_MODEL = 'http://hifi-public.s3.amazonaws.com/models/bubblewand/wand.fbx';
-        var WAND_COLLISION_SHAPE = 'http://hifi-public.s3.amazonaws.com/models/bubblewand/actual_no_top_collision_hull.obj';
+        var WAND_COLLISION_SHAPE = 'http://hifi-content.s3.amazonaws.com/james/bubblewand/wand_collision_hull.obj';
 
-        var entity = Entities.addEntity({
+        var wand = Entities.addEntity({
             name: 'Bubble Wand',
             type: "Model",
             modelURL: WAND_MODEL,
+            shapeType: 'compound',
             position: position,
             gravity: {
                 x: 0,
-                y: -9.8,
-                z: 0
+                y: 0,
+                z: 0,
             },
             dimensions: {
                 x: 0.05,
@@ -931,23 +932,26 @@ MasterReset = function() {
                 z: 0.05
             },
             //must be enabled to be grabbable in the physics engine
-            shapeType: 'compound',
             collisionsWillMove: true,
             compoundShapeURL: WAND_COLLISION_SHAPE,
-            //Look into why bubble wand is going through table when gravity is enabled
-            // gravity: {x: 0, y: -3.5, z: 0},
-            // velocity: {x: 0, y: -0.01, z:0},
             script: wandScriptURL,
             userData: JSON.stringify({
-                resetMe: {
-                    resetMe: true
-                },
                 grabbableKey: {
-                    invertSolidWhileHeld: true
+                    resetMe: {
+                        resetMe: true
+                    },
+                    invertSolidWhileHeld: true,
+                    spatialKey: {
+                        relativePosition: {
+                            x: 0,
+                            y: 0.1,
+                            z: 0
+                        },
+                        relativeRotation: Quat.fromPitchYawRollDegrees(0, 0, 90)
+                    }
                 }
             })
         });
-
 
     }
 
