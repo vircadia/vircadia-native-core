@@ -356,7 +356,7 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine, bool
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_ALPHA_FINISH, alphaFinish);
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_ADDITIVE_BLENDING, additiveBlending);
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_LOCAL_POSITION, localPosition);
-        COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_LOCAL_ROTATION, localrotation);
+        COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_LOCAL_ROTATION, localRotation);
     }
 
     // Models only
@@ -1498,12 +1498,10 @@ AABox EntityItemProperties::getAABox() const {
     glm::vec3 unrotatedMinRelativeToEntity = - (_dimensions * _registrationPoint);
     glm::vec3 unrotatedMaxRelativeToEntity = _dimensions * registrationRemainder;
     Extents unrotatedExtentsRelativeToRegistrationPoint = { unrotatedMinRelativeToEntity, unrotatedMaxRelativeToEntity };
-    glm::quat worldRotation = SpatiallyNestable::localToWorld(getRotation(), _parentID, _parentJointIndex);
-    Extents rotatedExtentsRelativeToRegistrationPoint = unrotatedExtentsRelativeToRegistrationPoint.getRotated(worldRotation);
+    Extents rotatedExtentsRelativeToRegistrationPoint = unrotatedExtentsRelativeToRegistrationPoint.getRotated(_rotation);
 
     // shift the extents to be relative to the position/registration point
-    glm::vec3 worldPosition = SpatiallyNestable::localToWorld(_position, _parentID, _parentJointIndex);
-    rotatedExtentsRelativeToRegistrationPoint.shiftBy(worldPosition);
+    rotatedExtentsRelativeToRegistrationPoint.shiftBy(_position);
 
     return AABox(rotatedExtentsRelativeToRegistrationPoint);
 }

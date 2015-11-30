@@ -113,7 +113,7 @@ EntityItemProperties convertLocationFromScriptSemantics(EntityItemProperties scr
 
 
 QUuid EntityScriptingInterface::addEntity(const EntityItemProperties& properties) {
-    EntityItemProperties propertiesWithSimID = properties;
+    EntityItemProperties propertiesWithSimID = convertLocationFromScriptSemantics(properties);
     propertiesWithSimID.setDimensionsInitialized(properties.dimensionsChanged());
 
     EntityItemID id = EntityItemID(QUuid::createUuid());
@@ -159,6 +159,15 @@ EntityItemProperties EntityScriptingInterface::getEntityProperties(QUuid identit
         _entityTree->withReadLock([&] {
             EntityItemPointer entity = _entityTree->findEntityByEntityItemID(EntityItemID(identity));
             if (entity) {
+                if (desiredProperties.getHasProperty(PROP_POSITION) ||
+                    desiredProperties.getHasProperty(PROP_ROTATION) ||
+                    desiredProperties.getHasProperty(PROP_LOCAL_POSITION) ||
+                    desiredProperties.getHasProperty(PROP_LOCAL_ROTATION)) {
+                    // if we are explicitly getting position or rotation, we need parent information to make sense of them.
+                    desiredProperties.setHasProperty(PROP_PARENT_ID);
+                    desiredProperties.setHasProperty(PROP_PARENT_JOINT_INDEX);
+                }
+
                 results = entity->getProperties(desiredProperties);
 
                 // TODO: improve sitting points and naturalDimensions in the future,
@@ -178,10 +187,11 @@ EntityItemProperties EntityScriptingInterface::getEntityProperties(QUuid identit
         });
     }
 
-    return results;
+    return convertLocationToScriptSemantics(results);
 }
 
-QUuid EntityScriptingInterface::editEntity(QUuid id, EntityItemProperties properties) {
+QUuid EntityScriptingInterface::editEntity(QUuid id, EntityItemProperties scriptSideProperties) {
+    EntityItemProperties properties = convertLocationFromScriptSemantics(scriptSideProperties);
     EntityItemID entityID(id);
     // If we have a local entity tree set, then also update it.
     if (!_entityTree) {

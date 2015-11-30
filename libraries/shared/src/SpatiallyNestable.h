@@ -47,11 +47,11 @@ public:
     virtual quint16 getParentJointIndex() const { return _parentJointIndex; }
     virtual void setParentJointIndex(quint16 parentJointIndex) { _parentJointIndex = parentJointIndex; }
 
-    static glm::vec3 worldToLocal(const glm::vec3 position, QUuid parentID, int parentJointIndex);
-    static glm::quat worldToLocal(const glm::quat orientation, QUuid parentID, int parentJointIndex);
+    static glm::vec3 worldToLocal(glm::vec3 position, QUuid parentID, int parentJointIndex);
+    static glm::quat worldToLocal(glm::quat orientation, QUuid parentID, int parentJointIndex);
 
-    static glm::vec3 localToWorld(const glm::vec3 position, QUuid parentID, int parentJointIndex);
-    static glm::quat localToWorld(const glm::quat orientation, QUuid parentID, int parentJointIndex);
+    static glm::vec3 localToWorld(glm::vec3 position, QUuid parentID, int parentJointIndex);
+    static glm::quat localToWorld(glm::quat orientation, QUuid parentID, int parentJointIndex);
 
     // world frame
     virtual const Transform getTransform() const;
@@ -59,33 +59,33 @@ public:
 
     virtual Transform getParentTransform() const;
 
-    virtual const glm::vec3 getPosition() const;
-    virtual void setPosition(const glm::vec3 position);
+    virtual glm::vec3 getPosition() const;
+    virtual void setPosition(glm::vec3 position);
 
-    virtual const glm::quat getOrientation() const;
-    virtual const glm::quat getOrientation(int jointIndex) const;
-    virtual void setOrientation(const glm::quat orientation);
+    virtual glm::quat getOrientation() const;
+    virtual glm::quat getOrientation(int jointIndex) const;
+    virtual void setOrientation(glm::quat orientation);
 
-    virtual const glm::vec3 getScale() const;
-    virtual void setScale(const glm::vec3 scale);
+    virtual glm::vec3 getScale() const;
+    virtual void setScale(glm::vec3 scale);
 
     // get world location of a specific joint
     virtual const Transform getTransform(int jointIndex) const;
-    virtual const glm::vec3 getPosition(int jointIndex) const;
-    virtual const glm::vec3 getScale(int jointIndex) const;
+    virtual glm::vec3 getPosition(int jointIndex) const;
+    virtual glm::vec3 getScale(int jointIndex) const;
 
     // object's parent's frame
     virtual const Transform getLocalTransform() const;
     virtual void setLocalTransform(const Transform transform);
 
-    virtual const glm::vec3 getLocalPosition() const;
-    virtual void setLocalPosition(const glm::vec3 position);
+    virtual glm::vec3 getLocalPosition() const;
+    virtual void setLocalPosition(glm::vec3 position);
 
-    virtual const glm::quat getLocalOrientation() const;
-    virtual void setLocalOrientation(const glm::quat orientation);
+    virtual glm::quat getLocalOrientation() const;
+    virtual void setLocalOrientation(glm::quat orientation);
 
-    virtual const glm::vec3 getLocalScale() const;
-    virtual void setLocalScale(const glm::vec3 scale);
+    virtual glm::vec3 getLocalScale() const;
+    virtual void setLocalScale(glm::vec3 scale);
 
     QList<SpatiallyNestablePointer> getChildren() const;
     NestableTypes::NestableType getNestableType() const { return _nestableType; }

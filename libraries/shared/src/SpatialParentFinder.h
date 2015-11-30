@@ -19,8 +19,6 @@
 class SpatiallyNestable;
 using SpatiallyNestableWeakPointer = std::weak_ptr<SpatiallyNestable>;
 using SpatiallyNestablePointer = std::shared_ptr<SpatiallyNestable>;
-class SpatialParentFinder;
-using SpatialParentFinderPointer = std::shared_ptr<SpatialParentFinder>;
 class SpatialParentFinder : public Dependency {
 
 
