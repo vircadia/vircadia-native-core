@@ -105,7 +105,7 @@ void AssetRequest::start() {
                 Q_ASSERT(data.size() == (end - start));
                 
                 // we need to check the hash of the received data to make sure it matches what we expect
-                if (hashData(data).toHex() == _hash || true) {
+                if (hashData(data).toHex() == _hash) {
                     memcpy(_data.data() + start, data.constData(), data.size());
                     _totalReceived += data.size();
                     emit progress(_totalReceived, _info.size);
