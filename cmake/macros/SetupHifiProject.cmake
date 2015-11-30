@@ -34,6 +34,13 @@ macro(SETUP_HIFI_PROJECT)
   # find these Qt modules and link them to our own target
   find_package(Qt5 COMPONENTS ${${TARGET_NAME}_DEPENDENCY_QT_MODULES} REQUIRED)
 
+  # disable /OPT:REF and /OPT:ICF for the Debug builds
+  # This will prevent the following linker warnings
+  # LINK : warning LNK4075: ignoring '/INCREMENTAL' due to '/OPT:ICF' specification
+  if (WIN32)
+     set_property(TARGET ${TARGET_NAME} APPEND_STRING PROPERTY LINK_FLAGS_DEBUG "/OPT:NOREF /OPT:NOICF")
+  endif()
+
   foreach(QT_MODULE ${${TARGET_NAME}_DEPENDENCY_QT_MODULES})
     target_link_libraries(${TARGET_NAME} Qt5::${QT_MODULE})
   endforeach()
