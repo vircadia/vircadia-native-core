@@ -99,7 +99,7 @@ protected:
     NestableTypes::NestableType _nestableType; // EntityItem or an AvatarData
     QUuid _id;
     QUuid _parentID; // what is this thing's transform relative to?
-    quint16 _parentJointIndex; // which joint of the parent is this relative to?
+    quint16 _parentJointIndex { 0 }; // which joint of the parent is this relative to?
     SpatiallyNestablePointer getParentPointer() const;
     mutable SpatiallyNestableWeakPointer _parent;
 
