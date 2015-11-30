@@ -1,4 +1,4 @@
-var center = Vec3.sum(MyAvatar.position, Vec3.multiply(0.5, Quat.getFront(Camera.getOrientation())));
+var center = Vec3.sum(MyAvatar.position, Vec3.multiply(1.5, Quat.getFront(Camera.getOrientation())));
 var scriptURL = Script.resolvePath('pistol.js');
 var modelURL = "https://s3.amazonaws.com/hifi-public/eric/models/gun.fbx";
 
@@ -20,6 +20,8 @@ var pistol = Entities.addEntity({
     },
     shapeType: 'box',
     collisionsWillMove: true,
+    gravity: {x: 0, y: -5.0, z: 0},
+    restitution: 0,
     collisionSoundURL: "https://s3.amazonaws.com/hifi-public/sounds/Guns/Gun_Drop_and_Metalli_1.wav",
     userData: JSON.stringify({
         grabbableKey: {
@@ -41,4 +43,4 @@ function cleanup() {
     Entities.deleteEntity(pistol);
 }
 
-// Script.scriptEnding.connect(cleanup);
+Script.scriptEnding.connect(cleanup);

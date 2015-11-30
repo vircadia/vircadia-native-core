@@ -354,7 +354,7 @@
                             y: DIAMETER,
                             z: DIAMETER
                         },
-                        restitution: 1.0,
+                        restitution: 0.0,
                         linearDamping: 0.00001,
                         gravity: {
                             x: 0,
