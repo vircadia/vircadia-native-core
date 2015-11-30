@@ -13,29 +13,29 @@
 #include <OctalCode.h>
 
 void OctreeElementBag::deleteAll() {
-    _bagElements.clear();
+    _bagElements = Bag();
+}
+
+bool OctreeElementBag::isEmpty() {
+    // Pop all expired front elements
+    while (!_bagElements.empty() && _bagElements.front().expired()) {
+        _bagElements.pop();
+    }
+    
+    return _bagElements.empty();
 }
 
 void OctreeElementBag::insert(OctreeElementPointer element) {
-    _bagElements.insert(element.get(), element);
+    _bagElements.push(element);
 }
 
 OctreeElementPointer OctreeElementBag::extract() {
     OctreeElementPointer result;
 
     // Find the first element still alive
-    while (!_bagElements.empty() && !result) {
-        auto it = _bagElements.begin();
-        result = it->lock();
-        _bagElements.erase(it);
+    while (!result && !_bagElements.empty()) {
+        result = _bagElements.front().lock(); // Grab head's shared_ptr
+        _bagElements.pop();
     }
     return result;
-}
-
-bool OctreeElementBag::contains(OctreeElementPointer element) {
-    return _bagElements.contains(element.get());
-}
-
-void OctreeElementBag::remove(OctreeElementPointer element) {
-    _bagElements.remove(element.get());
 }

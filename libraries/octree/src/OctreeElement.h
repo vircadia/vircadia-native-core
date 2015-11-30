@@ -32,7 +32,6 @@ using AtomicUIntStat = std::atomic<uintmax_t>;
 class EncodeBitstreamParams;
 class Octree;
 class OctreeElement;
-class OctreeElementBag;
 class OctreePacketData;
 class ReadBitstreamToTreeParams;
 class Shape;
@@ -91,7 +90,7 @@ public:
     virtual bool shouldRecurseChildTree(int childIndex, EncodeBitstreamParams& params) const { return true; }
     
     virtual void updateEncodedData(int childIndex, AppendState childAppendState, EncodeBitstreamParams& params) const { }
-    virtual void elementEncodeComplete(EncodeBitstreamParams& params, OctreeElementBag* bag) const { }
+    virtual void elementEncodeComplete(EncodeBitstreamParams& params) const { }
 
     /// Override to serialize the state of this element. This is used for persistance and for transmission across the network.
     virtual AppendState appendElementData(OctreePacketData* packetData, EncodeBitstreamParams& params) const 

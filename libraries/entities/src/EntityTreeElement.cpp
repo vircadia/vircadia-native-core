@@ -153,7 +153,7 @@ void EntityTreeElement::updateEncodedData(int childIndex, AppendState childAppen
 
 
 
-void EntityTreeElement::elementEncodeComplete(EncodeBitstreamParams& params, OctreeElementBag* bag) const {
+void EntityTreeElement::elementEncodeComplete(EncodeBitstreamParams& params) const {
     const bool wantDebug = false;
     
     if (wantDebug) {
