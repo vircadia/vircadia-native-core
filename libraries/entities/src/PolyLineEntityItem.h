@@ -93,8 +93,9 @@ class PolyLineEntityItem : public EntityItem {
     rgbColor _color;
     float _lineWidth;
     bool _pointsChanged;
+    bool _normalsChanged;
+    bool _strokeWidthsChanged;
     QVector<glm::vec3> _points;
-    QVector<glm::vec3> _vertices;
     QVector<glm::vec3> _normals;
     QVector<float> _strokeWidths;
     QString _textures;

@@ -361,8 +361,8 @@ function update() {
 }
 
 function updateControllerState() {
-    rightTriggerValue = Controller.getActionValue(rightHandClick);
-    leftTriggerValue = Controller.getActionValue(leftHandClick);
+    rightTriggerValue = Controller.getValue(Controller.Standard.RT);
+    leftTriggerValue =Controller.getValue(Controller.Standard.LT);
 
     if (rightTriggerValue > TRIGGER_THRESHOLD && !swordHeld) {
         grabSword("right")
