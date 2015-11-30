@@ -15,13 +15,6 @@ uvec2 OculusBaseDisplayPlugin::getRecommendedRenderSize() const {
     return _desiredFramebufferSize;
 }
 
-void OculusBaseDisplayPlugin::preRender() {
-#if (OVR_MAJOR_VERSION >= 6)
-    ovrFrameTiming ftiming = ovr_GetFrameTiming(_hmd, _frameIndex);
-    _trackingState = ovr_GetTrackingState(_hmd, ftiming.DisplayMidpointSeconds);
-#endif
-}
-
 glm::mat4 OculusBaseDisplayPlugin::getProjection(Eye eye, const glm::mat4& baseProjection) const {
     return _eyeProjections[eye];
 }
@@ -29,7 +22,6 @@ glm::mat4 OculusBaseDisplayPlugin::getProjection(Eye eye, const glm::mat4& baseP
 void OculusBaseDisplayPlugin::resetSensors() {
 #if (OVR_MAJOR_VERSION >= 6)
     ovr_RecenterPose(_hmd);
-    preRender();
 #endif
 }
 
@@ -37,14 +29,13 @@ glm::mat4 OculusBaseDisplayPlugin::getEyeToHeadTransform(Eye eye) const {
     return glm::translate(mat4(), toGlm(_eyeOffsets[eye]));
 }
 
-glm::mat4 OculusBaseDisplayPlugin::getHeadPose() const {
-    return toGlm(_trackingState.HeadPose.ThePose);
+glm::mat4 OculusBaseDisplayPlugin::getHeadPose(uint32_t frameIndex) const {
+#if (OVR_MAJOR_VERSION >= 6)
+    auto frameTiming = ovr_GetFrameTiming(_hmd, frameIndex);
+    auto trackingState = ovr_GetTrackingState(_hmd, frameTiming.DisplayMidpointSeconds);
+    return toGlm(trackingState.HeadPose.ThePose);
+#endif
 }
-
-void OculusBaseDisplayPlugin::setEyeRenderPose(Eye eye, const glm::mat4& pose) {
-    _eyePoses[eye] = ovrPoseFromGlm(pose);
-}
-
 
 bool OculusBaseDisplayPlugin::isSupported() const {
 #if (OVR_MAJOR_VERSION >= 6)
@@ -64,9 +55,11 @@ bool OculusBaseDisplayPlugin::isSupported() const {
 
 // DLL based display plugins MUST initialize GLEW inside the DLL code.
 void OculusBaseDisplayPlugin::customizeContext() {
+    makeCurrent();
     glewExperimental = true;
     GLenum err = glewInit();
     glGetError();
+    doneCurrent();
     WindowOpenGLDisplayPlugin::customizeContext();
 }
 
@@ -123,8 +116,6 @@ void OculusBaseDisplayPlugin::activate() {
         eyeSizes[0].x + eyeSizes[1].x,
         std::max(eyeSizes[0].y, eyeSizes[1].y));
 
-    _frameIndex = 0;
-
     if (!OVR_SUCCESS(ovr_ConfigureTracking(_hmd,
         ovrTrackingCap_Orientation | ovrTrackingCap_Position | ovrTrackingCap_MagYawCorrection, 0))) {
         qFatal("Could not attach to sensor device");
@@ -159,9 +150,6 @@ void OculusBaseDisplayPlugin::deactivate() {
 #endif
 }
 
-void OculusBaseDisplayPlugin::display(GLuint finalTexture, const glm::uvec2& sceneSize) {
-    ++_frameIndex;
-}
 
 float OculusBaseDisplayPlugin::getIPD() const {
     float result = OVR_DEFAULT_IPD;

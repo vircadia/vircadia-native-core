@@ -10,6 +10,8 @@
 #include "WindowOpenGLDisplayPlugin.h"
 
 class QScreen;
+class QAction;
+
 class Basic2DWindowOpenGLDisplayPlugin : public WindowOpenGLDisplayPlugin {
     Q_OBJECT
 
@@ -19,7 +21,7 @@ public:
     virtual void activate() override;
     virtual void deactivate() override;
 
-    virtual void display(GLuint sceneTexture, const glm::uvec2& sceneSize) override;
+    virtual void submitSceneTexture(uint32_t frameIndex, uint32_t sceneTexture, const glm::uvec2& sceneSize) override;
 
     virtual bool isThrottled() const override;
 
@@ -31,6 +33,9 @@ private:
     void updateFramerate();
     static const QString NAME;
     QScreen* getFullscreenTarget();
-    uint32_t _framerateTarget{ 0 };
+    std::vector<QAction*> _framerateActions;
+    QAction* _vsyncAction { nullptr };
+    uint32_t _framerateTarget { 0 };
     int _fullscreenTarget{ -1 };
+    bool _wantVsync { true };
 };

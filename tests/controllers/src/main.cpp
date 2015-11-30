@@ -91,7 +91,12 @@ public:
     virtual void unsetFullscreen(const QScreen* avoidScreen = nullptr) override {}
     virtual void showDisplayPluginsTools() override {}
     virtual void requestReset() override {}
-    virtual QGLWidget* getPrimarySurface() override { return nullptr; }
+    virtual bool makeRenderingContextCurrent() override { return true; }
+    virtual void releaseSceneTexture(uint32_t texture) override {}
+    virtual void releaseOverlayTexture(uint32_t texture) override {}
+    virtual QGLWidget* getPrimaryWidget() override { return nullptr; }
+    virtual QWindow* getPrimaryWindow() override { return nullptr; }
+    virtual QOpenGLContext* getPrimaryContext() override { return nullptr; }
     virtual bool isForeground() override { return true;  }
     virtual const DisplayPlugin* getActiveDisplayPlugin() const override { return nullptr;  }
 };

@@ -158,6 +158,7 @@ public:
 
     bool isForeground() const { return _isForeground; }
     
+    uint32_t getFrameCount() { return _frameCount; }
     float getFps() const { return _fps; }
     float const HMD_TARGET_FRAME_RATE = 75.0f;
     float const DESKTOP_TARGET_FRAME_RATE = 60.0f;
@@ -424,6 +425,11 @@ private:
     OffscreenGLCanvas* _offscreenContext { nullptr };
     DisplayPluginPointer _displayPlugin;
     InputPluginList _activeInputPlugins;
+
+    bool _activatingDisplayPlugin { false };
+    QVector<QPair<QString, QString>> _currentDisplayPluginActions;
+    QVector<QPair<QString, QString>> _currentInputPluginActions;
+    QMap<uint32_t, gpu::FramebufferPointer> _lockedFramebufferMap;
 
     MainWindow* _window;
 

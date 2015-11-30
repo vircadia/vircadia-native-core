@@ -8,11 +8,15 @@
 #pragma once
 
 #include <functional>
+#include <stdint.h>
 #include <QString>
 
 class QAction;
 class QGLWidget;
 class QScreen;
+class QOpenGLContext;
+class QWindow;
+
 class DisplayPlugin;
 
 class PluginContainer {
@@ -30,7 +34,12 @@ public:
     virtual void unsetFullscreen(const QScreen* avoidScreen = nullptr) = 0;
     virtual void showDisplayPluginsTools() = 0;
     virtual void requestReset() = 0;
-    virtual QGLWidget* getPrimarySurface() = 0;
+    virtual bool makeRenderingContextCurrent() = 0;
+    virtual void releaseSceneTexture(uint32_t texture) = 0;
+    virtual void releaseOverlayTexture(uint32_t texture) = 0;
+    virtual QGLWidget* getPrimaryWidget() = 0;
+    virtual QWindow* getPrimaryWindow() = 0;
+    virtual QOpenGLContext* getPrimaryContext() = 0;
     virtual bool isForeground() = 0;
     virtual const DisplayPlugin* getActiveDisplayPlugin() const = 0;
 };

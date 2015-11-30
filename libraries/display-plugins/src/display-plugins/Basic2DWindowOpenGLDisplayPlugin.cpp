@@ -30,44 +30,41 @@ const QString& Basic2DWindowOpenGLDisplayPlugin::getName() const {
     return NAME;
 }
 
-std::vector<QAction*> _framerateActions;
-QAction* _vsyncAction{ nullptr };
-
 void Basic2DWindowOpenGLDisplayPlugin::activate() {
-    _framerateActions.clear();
-    _container->addMenuItem(MENU_PATH(), FULLSCREEN,
-        [this](bool clicked) {
-            if (clicked) {
-                _container->setFullscreen(getFullscreenTarget());
-            } else {
-                _container->unsetFullscreen();
-            }
-        }, true, false);
-    _container->addMenu(FRAMERATE);
-    _framerateActions.push_back(
-        _container->addMenuItem(FRAMERATE, FRAMERATE_UNLIMITED,
-            [this](bool) { updateFramerate(); }, true, true, FRAMERATE));
-    _framerateActions.push_back(
-        _container->addMenuItem(FRAMERATE, FRAMERATE_60,
-            [this](bool) { updateFramerate(); }, true, false, FRAMERATE));
-    _framerateActions.push_back(
-        _container->addMenuItem(FRAMERATE, FRAMERATE_50,
-            [this](bool) { updateFramerate(); }, true, false, FRAMERATE));
-    _framerateActions.push_back(
-        _container->addMenuItem(FRAMERATE, FRAMERATE_40,
-            [this](bool) { updateFramerate(); }, true, false, FRAMERATE));
-    _framerateActions.push_back(
-        _container->addMenuItem(FRAMERATE, FRAMERATE_30,
-            [this](bool) { updateFramerate(); }, true, false, FRAMERATE));
+    //_framerateActions.clear();
+    //_container->addMenuItem(MENU_PATH(), FULLSCREEN,
+    //    [this](bool clicked) {
+    //        if (clicked) {
+    //            _container->setFullscreen(getFullscreenTarget());
+    //        } else {
+    //            _container->unsetFullscreen();
+    //        }
+    //    }, true, false);
+    //_container->addMenu(FRAMERATE);
+    //_framerateActions.push_back(
+    //    _container->addMenuItem(FRAMERATE, FRAMERATE_UNLIMITED,
+    //        [this](bool) { updateFramerate(); }, true, true, FRAMERATE));
+    //_framerateActions.push_back(
+    //    _container->addMenuItem(FRAMERATE, FRAMERATE_60,
+    //        [this](bool) { updateFramerate(); }, true, false, FRAMERATE));
+    //_framerateActions.push_back(
+    //    _container->addMenuItem(FRAMERATE, FRAMERATE_50,
+    //        [this](bool) { updateFramerate(); }, true, false, FRAMERATE));
+    //_framerateActions.push_back(
+    //    _container->addMenuItem(FRAMERATE, FRAMERATE_40,
+    //        [this](bool) { updateFramerate(); }, true, false, FRAMERATE));
+    //_framerateActions.push_back(
+    //    _container->addMenuItem(FRAMERATE, FRAMERATE_30,
+    //        [this](bool) { updateFramerate(); }, true, false, FRAMERATE));
 
     WindowOpenGLDisplayPlugin::activate();
 
-    // Vsync detection happens in the parent class activate, so we need to check after that
-    if (_vsyncSupported) {
-        _vsyncAction = _container->addMenuItem(MENU_PATH(), VSYNC_ON, [this](bool) {}, true, true);
-    } else {
-        _vsyncAction = nullptr;
-    }
+    //// Vsync detection happens in the parent class activate, so we need to check after that
+    //if (_vsyncSupported) {
+    //    _vsyncAction = _container->addMenuItem(MENU_PATH(), VSYNC_ON, [this](bool) {}, true, true);
+    //} else {
+    //    _vsyncAction = nullptr;
+    //}
 
     updateFramerate();
 }
@@ -76,18 +73,17 @@ void Basic2DWindowOpenGLDisplayPlugin::deactivate() {
     WindowOpenGLDisplayPlugin::deactivate();
 }
 
-void Basic2DWindowOpenGLDisplayPlugin::display(GLuint sceneTexture, const glm::uvec2& sceneSize) {
+void Basic2DWindowOpenGLDisplayPlugin::submitSceneTexture(uint32_t frameIndex, uint32_t sceneTexture, const glm::uvec2& sceneSize) {
     if (_vsyncAction) {
-        bool wantVsync = _vsyncAction->isChecked();
-        bool vsyncEnabed = isVsyncEnabled();
-        if (vsyncEnabed ^ wantVsync) {
-            enableVsync(wantVsync);
-        }
+        _wantVsync = _vsyncAction->isChecked();
+        //bool vsyncEnabed = isVsyncEnabled();
+        //if (vsyncEnabed ^ wantVsync) {
+        //    enableVsync(wantVsync);
+        //}
     }
 
-    WindowOpenGLDisplayPlugin::display(sceneTexture, sceneSize);
+    WindowOpenGLDisplayPlugin::submitSceneTexture(frameIndex, sceneTexture, sceneSize);
 }
-
 
 int Basic2DWindowOpenGLDisplayPlugin::getDesiredInterval() const {
     static const int THROTTLED_PAINT_TIMER_DELAY_MS = MSECS_PER_SECOND / 15;

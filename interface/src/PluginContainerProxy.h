@@ -22,7 +22,12 @@ class PluginContainerProxy : public QObject, PluginContainer {
     virtual void unsetFullscreen(const QScreen* avoidScreen = nullptr) override;
     virtual void showDisplayPluginsTools() override;
     virtual void requestReset() override;
-    virtual QGLWidget* getPrimarySurface() override;
+    virtual bool makeRenderingContextCurrent() override;
+    virtual void releaseSceneTexture(uint32_t texture) override;
+    virtual void releaseOverlayTexture(uint32_t texture) override;
+    virtual QGLWidget* getPrimaryWidget() override;
+    virtual QWindow* getPrimaryWindow() override;
+    virtual QOpenGLContext* getPrimaryContext() override;
     virtual bool isForeground() override;
     virtual const DisplayPlugin* getActiveDisplayPlugin() const override;
 

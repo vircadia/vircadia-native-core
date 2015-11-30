@@ -19,7 +19,8 @@ public:
     virtual void customizeContext() override;
 
     virtual glm::uvec2 getRecommendedRenderSize() const override;
-    void display(GLuint finalTexture, const glm::uvec2& sceneSize) override;
+
+    void internalPresent() override;
 
 private:
     static const QString NAME;

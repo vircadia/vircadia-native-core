@@ -32,7 +32,8 @@ class Stats : public QQuickItem {
     Q_PROPERTY(float audioPacketlossDownstream READ getAudioPacketLossDownstream)
 
     STATS_PROPERTY(int, serverCount, 0)
-    STATS_PROPERTY(int, framerate, 0)
+    STATS_PROPERTY(int, renderrate, 0)
+    STATS_PROPERTY(int, presentrate, 0)
     STATS_PROPERTY(int, simrate, 0)
     STATS_PROPERTY(int, avatarSimrate, 0)
     STATS_PROPERTY(int, avatarCount, 0)
@@ -115,7 +116,8 @@ signals:
     void expandedChanged();
     void timingExpandedChanged();
     void serverCountChanged();
-    void framerateChanged();
+    void renderrateChanged();
+    void presentrateChanged();
     void simrateChanged();
     void avatarSimrateChanged();
     void avatarCountChanged();
