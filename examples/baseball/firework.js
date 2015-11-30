@@ -9,7 +9,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-Script.include("http://rawgit.com/huffman/hifi/baseball/examples/baseball/utils.js");
+Script.include("utils.js");
 
 var emitters = [];
 
