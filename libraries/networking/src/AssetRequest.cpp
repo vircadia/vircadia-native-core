@@ -110,7 +110,7 @@ void AssetRequest::start() {
                     _totalReceived += data.size();
                     emit progress(_totalReceived, _info.size);
                     
-                    //saveToCache(getUrl(), data);
+                    saveToCache(getUrl(), data);
                 } else {
                     // hash doesn't match - we have an error
                     _error = HashVerificationFailed;
