@@ -8,7 +8,10 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
+
+// Agent is an avatar
 Agent.isAvatar = true;
+
 Script.include("./AgentPoolControler.js");
 var agentController = new AgentController();
 
@@ -29,7 +32,6 @@ var WAIT_FOR_AUDIO_MIXER = 1;
 
 // Script. DO NOT MODIFY BEYOND THIS LINE.
 var ALIVE = -1;
-var DO_NOTHING = 0;
 var PLAY = 1;
 var PLAY_LOOP = 2;
 var STOP = 3;
@@ -47,22 +49,11 @@ function getAction(command) {
     if(true) {
 
        // var command = JSON.parse(message);
-        print("I'm the agent " + id + " and I received this: ID: " + command.id_key + " Action: " + command.action_key + " URL: " + command.clip_url_key);
-        
-        if (command.id_key == id || command.id_key == -1) {
-                           
-            action = command.action_key;
-            print("That command was for me! Agent with id: " + id);
-        } else {
-            action = DO_NOTHING;
-        } 
-        
-        switch(action) {
+        print("I'm the agent " + this.actorUUID + " and I received this: Dest: " + command.dest_key + " Action: " + command.action_key + " URL: " + command.argument_key);
+     
+        switch(command.action_key) {
         case PLAY:
             print("Play");
-            if (!Agent.isAvatar) {
-                Agent.isAvatar = true;
-            }
             if (!Recording.isPlaying()) {
                 Recording.startPlaying();
             }
@@ -70,9 +61,6 @@ function getAction(command) {
             break;
         case PLAY_LOOP:
             print("Play loop");
-            if (!Agent.isAvatar) {
-                Agent.isAvatar = true;
-            }
             if (!Recording.isPlaying()) {
                 Recording.startPlaying();
             }
@@ -86,22 +74,15 @@ function getAction(command) {
             break;
         case SHOW:
             print("Show");
-            if (!Agent.isAvatar) {
-                Agent.isAvatar = true;
-            }
             break;
         case HIDE:
-            print("Hide");
+            print("Hide"); 
             if (Recording.isPlaying()) {
                 Recording.stopPlaying();
             }
-            Agent.isAvatar = false;
             break;
         case LOAD:
             print("Load");   
-            if (!Agent.isAvatar) {
-                Agent.isAvatar = true;
-            }         
             if(command.argument_key !== null) {
                 print("Agent #" + id + " loading clip URL: " + command.argument_key);
                 Recording.loadRecording(command.argument_key);
@@ -109,26 +90,27 @@ function getAction(command) {
                  print("Agent #" + id + " loading clip URL is NULL, nothing happened"); 
             }
             break;
-        case DO_NOTHING:
-            break;
         default:
-            print("Unknown action: " + action);
+            print("Unknown action: " + command.action_key);
             break;
 
         }
-
-        if (Recording.isPlaying()) {
-            Recording.play();
-        }  
     }
 }
 
 function agentHired() {
     print("Agent Hired from playbackAgents.js");
+    if (Recording.isPlaying()) {
+        Recording.stopPlaying();
+    }
+    Recording.setPlayerLoop(false);
 }
 
 function agentFired() {
     print("Agent Fired from playbackAgents.js");
+    if (Recording.isPlaying()) {
+        Recording.stopPlaying();
+    }
 }
 
 

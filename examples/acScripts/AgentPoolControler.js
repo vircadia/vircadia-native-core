@@ -52,9 +52,9 @@ function printDebug(message) {
         return JSON.parse(message);
     };
 
-    var packCommandMessage = function(id, action, argument) {
+    var packCommandMessage = function(dest, action, argument) {
         var message = {
-            id_key: id,
+            dest_key: dest,
             action_key: action,
             argument_key: argument
         };
@@ -72,6 +72,10 @@ function printDebug(message) {
         this.onHired = function(actor) {};
         this.onLost = function(actor) {};
     };
+
+    Actor.prototype.isConnected = function () {
+        return (this.agentID != INVALID_ACTOR);
+    }
 
     this.Actor = Actor;
 
@@ -129,18 +133,19 @@ function printDebug(message) {
                 } else {
                     // Master think the agent is hired but not the other way around, forget about it
                     printDebug("New agent still sending ready ? " + message.src + " " + agentIndex + " Forgeting about it");
-                    this.knownAgents[agentIndex] = INVALID_ACTOR;
+                    lostActor.agentID = INVALID_ACTOR;
+                    lostActor.onLost(lostActor);
+                    _clearAgent(agentIndex);
                 }
             } else if (message.command == AGENT_LOST) {
                  // check to see if we know about this agent
                 var agentIndex = this.knownAgents.indexOf(message.src);
-                if (agentIndex < 0) {
-                    printDebug("Lost agent " + message.src + " " + agentIndex + " Forgeting about it");
-                    this.knownAgents[agentIndex] = INVALID_ACTOR;
-                    var lostActor = this.hiredActors[agentIndex];
-                    this.hiredActors[agentIndex] = null;
+                if (agentIndex >= 0) {
                     lostActor.agentID = INVALID_ACTOR;
                     lostActor.onLost(lostActor);
+                    _clearAgent(agentIndex);
+                } else {
+                    return;
                 }
             }
         }
@@ -186,6 +191,38 @@ function printDebug(message) {
         })
     };
 
+    MasterController.prototype.fireAgent = function(actor) {
+        // check to see if we know about this agent
+        printDebug("MasterController.prototype.fireAgent" + JSON.stringify(actor) + "  " + JSON.stringify(this.knownAgents));
+        var actorIndex = this.knownAgents.indexOf(actor.agentID);                
+        if (actorIndex >= 0) {
+            printDebug("fired actor found #" + actorIndex);
+
+            var currentAgentID = actor.agentID;
+            this._clearAgent(actorIndex);
+            printDebug("fired actor found #" + actorIndex);
+
+            if (currentAgentID != INVALID_ACTOR) {
+                printDebug("fired actor is still connected, send fire command");
+                this.sendCommand(currentAgentID, MASTER_FIRE_AGENT);
+            }
+        }
+    }
+
+    MasterController.prototype._clearAgent = function(actorIndex) {
+        // check to see if we know about this agent  
+        if (actorIndex >= 0) {
+            printDebug("before _clearAgent #" + actorIndex + " " + JSON.stringify(this))
+            this.knownAgents.splice(actorIndex, 1);
+            var lostActor = this.hiredActors[actorIndex];
+            this.hiredActors.splice(actorIndex, 1);
+            lostActor.agentID = INVALID_ACTOR;
+            printDebug("Clearing agent  " + actorIndex + " Forgeting about it");
+            printDebug("after _clearAgent #" + actorIndex + " " + JSON.stringify(this))
+            
+        }
+    }
+
     this.MasterController = MasterController;
 
     // agent side
@@ -211,7 +248,7 @@ function printDebug(message) {
 
     AgentController.prototype.destroy = function() {
         if (this.subscribed) {  
-            this.fire();    
+            this.fired();    
             Messages.unsubscribe(ANNOUNCE_CHANNEL);
             Messages.unsubscribe(COMMAND_CHANNEL);
             this.subscribed = true;
@@ -242,7 +279,7 @@ function printDebug(message) {
     };
 
     AgentController.prototype._processAnnounceMessage = function(message, senderID) {
-        var announce = unpackCommandMessage(message);
+        var announce = unpackAnnounceMessage(message);
         //printDebug("Client " + this.actorIndex + " Received Announcement = " + message);
         if (announce.dest == this.actorUUID) {
             if (announce.command != AGENT_READY) {
@@ -251,11 +288,11 @@ function printDebug(message) {
                     printDebug(announce.command);
 
                     var parts = announce.command.split(".");
-                    var agentID = parts[0];
-                    var actorIndex = parts[1];
+                    var commandPart0 = parts[0];
+                    var commandPart1 = parts[1];
                     //printDebug("Client " + Agent.sessionUUID + " - " + agentID + " Hired!");
                 //    if (agentID == Agent.sessionUUID) {
-                        this.actorIndex = actorIndex;
+                        this.actorIndex = commandPart1;
                         printDebug("Client " + this.actorIndex + " Hired!");
                         this.onHired();         
                     //    Messages.unsubscribe(ANNOUNCE_CHANNEL); // id announce channel
@@ -269,12 +306,12 @@ function printDebug(message) {
         var command = unpackCommandMessage(message);
         //printDebug("Received command = " + JSON.stringify(command));
 
-        if ((command.id_key == this.actorUUID) || (command.id_key == AGENTS_BROADCAST)) {
+        if ((command.dest_key == this.actorUUID) || (command.dest_key == AGENTS_BROADCAST)) {
             if (command.action_key == MASTER_ALIVE) {
                 this.notifyAlive = true;
             } else if (command.action_key == MASTER_FIRE_AGENT) {
                 printDebug("Master firing Agent");
-                this.fire();
+                this.fired();
             } else {
                 printDebug("True action received = " + JSON.stringify(command) + senderID); 
                 this.onCommand(command);
