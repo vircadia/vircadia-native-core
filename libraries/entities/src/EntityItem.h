@@ -48,6 +48,7 @@ namespace render {
     class PendingChanges;
 }
 
+/*
 // these thesholds determine what updates will be ignored (client and server)
 const float IGNORE_POSITION_DELTA = 0.0001f;
 const float IGNORE_DIMENSIONS_DELTA = 0.0005f;
@@ -64,6 +65,7 @@ const float ACTIVATION_ALIGNMENT_DOT = 0.99990f;
 const float ACTIVATION_LINEAR_VELOCITY_DELTA = 0.01f;
 const float ACTIVATION_GRAVITY_DELTA = 0.1f;
 const float ACTIVATION_ANGULAR_VELOCITY_DELTA = 0.03f;
+*/
 
 #define DONT_ALLOW_INSTANTIATION virtual void pureVirtualFunctionPlaceHolder() = 0;
 #define ALLOW_INSTANTIATION virtual void pureVirtualFunctionPlaceHolder() { };

@@ -108,6 +108,7 @@ public:
     const glm::quat& getPostRotation() const { return _postRotation; }
     const glm::quat& getDefaultRotation() const { return _defaultRotation; }
     glm::vec3 getDefaultTranslation() const { return _defaultTranslation * _unitsScale; }
+    glm::vec3 getUnscaledDefaultTranslation() const { return _defaultTranslation; }
     const glm::quat& getInverseDefaultRotation() const { return _inverseDefaultRotation; }
     const QString& getName() const { return _name; }
     bool getIsFree() const { return _isFree; }

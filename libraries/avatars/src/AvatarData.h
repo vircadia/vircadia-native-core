@@ -342,6 +342,8 @@ public:
     void clearRecordingBasis();
     TransformPointer getRecordingBasis() const;
     void setRecordingBasis(TransformPointer recordingBasis = TransformPointer());
+    QJsonObject toJson() const;
+    void fromJson(const QJsonObject& json);
 
 public slots:
     void sendAvatarDataPacket();
@@ -449,13 +451,14 @@ public:
     QString jointName;
     glm::vec3 translation;
     glm::quat rotation;
-    float scale;
-    
-    AttachmentData();
+    float scale { 1.0f };
     
     bool isValid() const { return modelURL.isValid(); }
     
     bool operator==(const AttachmentData& other) const;
+
+    QJsonObject toJson() const;
+    void fromJson(const QJsonObject& json);
 };
 
 QDataStream& operator<<(QDataStream& out, const AttachmentData& attachment);

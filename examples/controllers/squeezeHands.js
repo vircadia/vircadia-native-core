@@ -25,8 +25,6 @@ var LAST_FRAME = 15.0;    //  What is the number of the last frame we want to us
 var SMOOTH_FACTOR = 0.75;
 var MAX_FRAMES = 30.0;
 
-var LEFT_HAND_CLICK = Controller.findAction("LEFT_HAND_CLICK");
-var RIGHT_HAND_CLICK = Controller.findAction("RIGHT_HAND_CLICK");
 
 var CONTROLLER_DEAD_SPOT = 0.25;
 
@@ -45,8 +43,8 @@ function normalizeControllerValue(val) {
 }
 
 Script.update.connect(function(deltaTime) {
-    var leftTrigger = normalizeControllerValue(Controller.getActionValue(LEFT_HAND_CLICK));
-    var rightTrigger = normalizeControllerValue(Controller.getActionValue(RIGHT_HAND_CLICK));
+    var leftTrigger = normalizeControllerValue(Controller.getValue(Controller.Standard.LT));
+    var rightTrigger = normalizeControllerValue(Controller.getValue(Controller.Standard.RT));
 
     //  Average last few trigger values together for a bit of smoothing
     var smoothLeftTrigger = leftTrigger * (1.0 - SMOOTH_FACTOR) + lastLeftTrigger * SMOOTH_FACTOR;
