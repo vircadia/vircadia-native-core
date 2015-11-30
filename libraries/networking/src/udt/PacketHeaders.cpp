@@ -41,7 +41,7 @@ PacketVersion versionForPacketType(PacketType packetType) {
         case PacketType::EntityAdd:
         case PacketType::EntityEdit:
         case PacketType::EntityData:
-            return VERSION_ENTITIES_POLYLINE_TEXTURE;
+            return VERSION_ENTITIES_ACTIONS_PER_HAND_OFFSET;
         case PacketType::AvatarData:
         case PacketType::BulkAvatarData:
         default:
