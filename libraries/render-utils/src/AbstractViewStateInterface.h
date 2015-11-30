@@ -45,7 +45,7 @@ public:
     virtual int getBoundaryLevelAdjust() const = 0;
     virtual PickRay computePickRay(float x, float y) const = 0;
 
-    virtual const glm::vec3 getAvatarPosition() const = 0;
+    virtual glm::vec3 getAvatarPosition() const = 0;
 
     virtual void postLambdaEvent(std::function<void()> f) = 0;
     virtual qreal getDevicePixelRatio() = 0;
