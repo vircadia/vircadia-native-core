@@ -458,14 +458,14 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
     audioIO->setOrientationGetter([this]{ return getMyAvatar()->getOrientationForAudio(); });
 
     audioIO->moveToThread(audioThread);
-    recording::Frame::registerFrameHandler(AudioConstants::AUDIO_FRAME_NAME, [=](recording::Frame::ConstPointer frame) {
+    recording::Frame::registerFrameHandler(AudioConstants::getAudioFrameName(), [=](recording::Frame::ConstPointer frame) {
         audioIO->handleRecordedAudioInput(frame->data);
     });
 
     connect(audioIO.data(), &AudioClient::inputReceived, [](const QByteArray& audio){
         static auto recorder = DependencyManager::get<recording::Recorder>();
         if (recorder->isRecording()) {
-            static const recording::FrameType AUDIO_FRAME_TYPE = recording::Frame::registerFrameType(AudioConstants::AUDIO_FRAME_NAME);
+            static const recording::FrameType AUDIO_FRAME_TYPE = recording::Frame::registerFrameType(AudioConstants::getAudioFrameName());
             recorder->recordFrame(AUDIO_FRAME_TYPE, audio);
         }
     });
