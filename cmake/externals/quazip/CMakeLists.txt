@@ -4,7 +4,7 @@ cmake_policy(SET CMP0046 OLD)
 
 include(ExternalProject)
 
-# string(REPLACE \\ / QT_CMAKE_PREFIX_PATH $ENV{QT_CMAKE_PREFIX_PATH})
+string(REPLACE \\ / QT_CMAKE_PREFIX_PATH $ENV{QT_CMAKE_PREFIX_PATH})
 ExternalProject_Add(
   ${EXTERNAL_NAME}
   URL http://s3-us-west-1.amazonaws.com/hifi-production/dependencies/quazip-0.6.2.zip
