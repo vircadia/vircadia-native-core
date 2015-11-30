@@ -35,7 +35,7 @@
         }
         this.fireSound = SoundCache.getSound("https://s3.amazonaws.com/hifi-public/sounds/Guns/GUN-SHOT2.raw");
         this.ricochetSound = SoundCache.getSound("https://s3.amazonaws.com/hifi-public/sounds/Guns/Ricochet.L.wav");
-        this.playRichochetSoundChance = 0.7;
+        this.playRichochetSoundChance = 0.1;
         this.fireVolume = 0.5;
         this.bulletForce = 10;
 
