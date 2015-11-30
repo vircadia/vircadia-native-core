@@ -49,6 +49,11 @@ Connection::Connection(Socket* parentSocket, HifiSockAddr destination, std::uniq
 
 Connection::~Connection() {
     stopSendQueue();
+
+    // Fail any pending received messages
+    for (auto& pendingMessage : _pendingReceivedMessages) {
+        _parentSocket->messageFailed(this, pendingMessage.first);
+    }
 }
 
 void Connection::stopSendQueue() {
@@ -805,6 +810,9 @@ void Connection::resetReceiveState() {
     _receivedControlProbeTail = false;
     
     // clear any pending received messages
+    for (auto& pendingMessage : _pendingReceivedMessages) {
+        _parentSocket->messageFailed(this, pendingMessage.first);
+    }
     _pendingReceivedMessages.clear();
 }
 

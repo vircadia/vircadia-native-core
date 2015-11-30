@@ -74,6 +74,7 @@ public:
     void setCongestionControlFactory(std::unique_ptr<CongestionControlVirtualFactory> ccFactory);
 
     void messageReceived(std::unique_ptr<Packet> packet);
+    void messageFailed(Connection* connection, Packet::MessageNumber messageNumber);
     
     StatsVector sampleStatsForAllConnections();
 

@@ -74,6 +74,8 @@ public:
     
     bool isActive() const { return _isActive; }
 
+    HifiSockAddr getDestination() const { return _destination; }
+
 signals:
     void packetSent();
     void connectionInactive(const HifiSockAddr& sockAddr);

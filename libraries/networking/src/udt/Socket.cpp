@@ -218,6 +218,12 @@ void Socket::messageReceived(std::unique_ptr<Packet> packet) {
     }
 }
 
+void Socket::messageFailed(Connection* connection, Packet::MessageNumber messageNumber) {
+    if (_messageFailureHandler) {
+        _messageFailureHandler(connection->getDestination(), messageNumber);
+    }
+}
+
 void Socket::readPendingDatagrams() {
     int packetSizeWithHeader = -1;
     while ((packetSizeWithHeader = _udpSocket.pendingDatagramSize()) != -1) {
