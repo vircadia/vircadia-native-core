@@ -50,6 +50,7 @@
 #include <AssetClient.h>
 #include <AssetUpload.h>
 #include <AutoUpdater.h>
+#include <AudioInjectorManager.h>
 #include <CursorManager.h>
 #include <DeferredLightingEffect.h>
 #include <display-plugins/DisplayPlugin.h>
@@ -340,6 +341,7 @@ bool setupEssentials(int& argc, char** argv) {
     DependencyManager::set<PathUtils>();
     DependencyManager::set<InterfaceActionFactory>();
     DependencyManager::set<AssetClient>();
+    DependencyManager::set<AudioInjectorManager>();
     DependencyManager::set<MessagesClient>();
     DependencyManager::set<UserInputMapper>();
     DependencyManager::set<controller::ScriptingInterface, ControllerScriptingInterface>();
@@ -894,6 +896,10 @@ void Application::cleanupBeforeQuit() {
 
     // destroy the AudioClient so it and its thread have a chance to go down safely
     DependencyManager::destroy<AudioClient>();
+    
+    // destroy the AudioInjectorManager so it and its thread have a chance to go down safely
+    // this will also stop any ongoing network injectors
+    DependencyManager::destroy<AudioInjectorManager>();
 
     // Destroy third party processes after scripts have finished using them.
 #ifdef HAVE_DDE
