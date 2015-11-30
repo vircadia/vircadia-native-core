@@ -66,15 +66,15 @@ function fleeAvoiderBlocks(thisEntity) {
   var location = properties.position;
   var velocity = properties.velocity;
 
-  var nearbyEntities = Entities.findEntities(location, 4);
+  var nearbyEntities = Entities.findEntities(location, 2);
   var flightVectors = [];
   for (var entityIndex = 0; entityIndex < nearbyEntities.length; entityIndex++) {
     var entityID = nearbyEntities[entityIndex];
     var entityProps = Entities.getEntityProperties(entityID);
     if (entityProps.name === 'Hifi-Rat-Avoider') {
-      //  print('found an avoiderblock to flee');
+      // print('found an avoiderblock to flee');
 
-      var MAX_SPEED = 8;
+      var MAX_SPEED = 11;
       var MAX_FORCE = 6;
 
       var desired = Vec3.subtract(location, entityProps.position);
@@ -83,7 +83,7 @@ function fleeAvoiderBlocks(thisEntity) {
       desired = Vec3.multiply(MAX_SPEED, desired);
       if (d < 5) {
         var steer = Vec3.subtract(desired, velocity);
-        var steerVector = new V3(desired.x, desired.y, desired.z);
+        var steerVector = new V3(desired.x, 0, desired.z);
         steer = steerVector.limit(MAX_FORCE)
         flightVectors.push(steer);
       } else {
@@ -102,9 +102,9 @@ function arrive(thisEntity, target) {
   var properties = Entities.getEntityProperties(thisEntity, ["position", "velocity"]);
   var location = properties.position;
   var velocity = properties.velocity;
-  var MAX_SPEED = 12;
-  var MAX_FORCE = 8;
-  var ARRIVAL_DISTANCE = 3;
+  var MAX_SPEED = 10;
+  var MAX_FORCE = 6;
+  var ARRIVAL_DISTANCE = 5;
 
   var desired = Vec3.subtract(targetPosition, location);
   var d = Vec3.length(desired);

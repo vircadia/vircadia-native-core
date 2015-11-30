@@ -7,7 +7,7 @@ var USE_CONSTANT_SPAWNER = true;
 
 var RAT_SPAWNER_LOCATION = {
     x: 1001,
-    y: 98.5,
+    y: 97.5,
     z: 1039
 };
 
@@ -35,7 +35,6 @@ var RAT_IN_NEST_DISTANCE = 3;
 var RAT_SPAWN_RATE = 2500;
 
 function playRatRunningAnimation(rat) {
-    print('RUN  RAT')
     var animationSettings = JSON.stringify({
         running: true
     });
@@ -72,15 +71,19 @@ var modelRatProperties = {
     dimensions: RAT_DIMENSIONS,
     position: RAT_SPAWNER_LOCATION,
     shapeType: 'Box',
+    damping:0.8,
+    angularDamping:0.99,
+    friction:0.75,
+    // restitution:0.1,
     collisionsWillMove: true,
     ignoreForCollisions: false,
     gravity: {
         x: 0,
-        y: -19.8,
+        y: -9.8,
         z: 0
     },
     lifetime: 30,
-    rotation: Quat.fromPitchYawRollDegrees(0, 180, 0),
+   // rotation: Quat.fromPitchYawRollDegrees(0, 180, 0),
     //disable this if for some reason we want grabbable rats
     userData: JSON.stringify({
         grabbableKey: {
@@ -286,17 +289,19 @@ function moveRats() {
         averageVector = Vec3.multiply(averageVector, 1 / divisorCount);
         var thisRatProps = Entities.getEntityProperties(rat, ["position", "rotation"]);
 
-        var eulerAngle = Quat.safeEulerAngles(thisRatProps.rotation);
-        eulerAngle.x = 0;
-        eulerAngle.z = 0;
-        var constrainedRotation = Quat.fromVec3Degrees(eulerAngle);
+   
+      //  var constrainedRotation = Quat.fromVec3Degrees(eulerAngle);
 
         //  print('CR:::'+JSON.stringify(constrainedRotation))
 
         var ratPosition = thisRatProps.position;
         var ratToNest = Vec3.subtract(RAT_NEST_LOCATION, ratPosition);
-        var ratRotation = Quat.rotationBetween(Vec3.UNIT_Z, ratToNest);
-
+         var ratRotation = Quat.rotationBetween(Vec3.UNIT_Z, ratToNest);
+              var eulerAngle = Quat.safeEulerAngles(ratRotation);
+        eulerAngle.x = 0;
+        eulerAngle.z = 0;
+        var constrainedRotation = Quat.fromVec3Degrees(eulerAngle)
+      
         Entities.editEntity(rat, {
             velocity: averageVector,
             rotation: constrainedRotation,
