@@ -330,10 +330,10 @@ public:
     // virtual const glm::vec3 getPosition() const { return SpatiallyNestable::getPosition(); }
     virtual const glm::quat getRotation() const { return SpatiallyNestable::getOrientation(); }
 
-    virtual void setPosition(const glm::vec3 position);
-    virtual void setLocalPosition(const glm::vec3 position);
-    virtual void setRotation(const glm::quat orientation);
-    virtual void setLocalRotation(const glm::quat orientation);
+    virtual void setPosition(glm::vec3 position);
+    virtual void setLocalPosition(glm::vec3 position);
+    virtual void setRotation(glm::quat orientation);
+    virtual void setLocalRotation(glm::quat orientation);
 
     // updateFoo() methods to be used when changes need to be accumulated in the _dirtyFlags
     void updatePosition(const glm::vec3& value);
