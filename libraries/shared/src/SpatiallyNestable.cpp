@@ -94,24 +94,41 @@ void SpatiallyNestable::setParentID(const QUuid parentID) {
     }
 }
 
-glm::vec3 SpatiallyNestable::worldToLocal(const glm::vec3 position) {
-    Transform parentTransform = getParentTransform();
+glm::vec3 SpatiallyNestable::worldToLocal(const glm::vec3 position, QUuid parentID, int parentJointIndex) {
+    QSharedPointer<SpatialParentFinder> parentFinder = DependencyManager::get<SpatialParentFinder>();
+    auto parentWP = parentFinder->find(parentID);
+    auto parent = parentWP.lock();
+    Transform parentTransform;
+    if (parent) {
+        parentTransform = parent->getTransform(parentJointIndex);
+        parentTransform.setScale(1.0f);
+    }
+
+    Transform positionTransform;
+    positionTransform.setTranslation(position);
     Transform myWorldTransform;
-    _transformLock.withReadLock([&] {
-        Transform::mult(myWorldTransform, parentTransform, _transform);
-    });
+    Transform::mult(myWorldTransform, parentTransform, positionTransform);
+
     myWorldTransform.setTranslation(position);
     Transform result;
     Transform::inverseMult(result, parentTransform, myWorldTransform);
     return result.getTranslation();
 }
 
-glm::quat SpatiallyNestable::worldToLocal(const glm::quat orientation) {
-    Transform parentTransform = getParentTransform();
+glm::quat SpatiallyNestable::worldToLocal(const glm::quat orientation, QUuid parentID, int parentJointIndex) {
+    QSharedPointer<SpatialParentFinder> parentFinder = DependencyManager::get<SpatialParentFinder>();
+    auto parentWP = parentFinder->find(parentID);
+    auto parent = parentWP.lock();
+    Transform parentTransform;
+    if (parent) {
+        parentTransform = parent->getTransform(parentJointIndex);
+        parentTransform.setScale(1.0f);
+    }
+
+    Transform orientationTransform;
+    orientationTransform.setRotation(orientation);
     Transform myWorldTransform;
-    _transformLock.withReadLock([&] {
-        Transform::mult(myWorldTransform, parentTransform, _transform);
-    });
+    Transform::mult(myWorldTransform, parentTransform, orientationTransform);
     myWorldTransform.setRotation(orientation);
     Transform result;
     Transform::inverseMult(result, parentTransform, myWorldTransform);

@@ -64,6 +64,54 @@ void EntityScriptingInterface::setEntityTree(EntityTreePointer elementTree) {
     }
 }
 
+EntityItemProperties convertLocationToScriptSemantics(EntityItemProperties entitySideProperties) {
+    // In EntityTree code, properties.position and properties.rotation are relative to the parent.  In javascript,
+    // they are in world-space.  The local versions are put into localPosition and localRotation and position and
+    // rotation are converted from local to world space.
+    EntityItemProperties scriptSideProperties = entitySideProperties;
+    scriptSideProperties.setLocalPosition(entitySideProperties.getPosition());
+    scriptSideProperties.setLocalRotation(entitySideProperties.getRotation());
+
+    glm::vec3 worldPosition = SpatiallyNestable::localToWorld(entitySideProperties.getPosition(),
+                                                              entitySideProperties.getParentID(),
+                                                              entitySideProperties.getParentJointIndex());
+    glm::quat worldRotation = SpatiallyNestable::localToWorld(entitySideProperties.getRotation(),
+                                                              entitySideProperties.getParentID(),
+                                                              entitySideProperties.getParentJointIndex());
+    scriptSideProperties.setPosition(worldPosition);
+    scriptSideProperties.setRotation(worldRotation);
+
+    return scriptSideProperties;
+}
+
+
+EntityItemProperties convertLocationFromScriptSemantics(EntityItemProperties scriptSideProperties) {
+    // convert position and rotation properties from world-space to local, unless localPosition and localRotation
+    // are set.  If they are set, they overwrite position and rotation.
+    EntityItemProperties entitySideProperties = scriptSideProperties;
+
+    if (scriptSideProperties.localPositionChanged()) {
+        entitySideProperties.setPosition(scriptSideProperties.getLocalPosition());
+    } else if (scriptSideProperties.positionChanged()) {
+        glm::vec3 localPosition = SpatiallyNestable::worldToLocal(entitySideProperties.getPosition(),
+                                                                  entitySideProperties.getParentID(),
+                                                                  entitySideProperties.getParentJointIndex());
+        entitySideProperties.setPosition(localPosition);
+    }
+
+    if (scriptSideProperties.localRotationChanged()) {
+        entitySideProperties.setRotation(scriptSideProperties.getLocalRotation());
+    } else if (scriptSideProperties.rotationChanged()) {
+        glm::quat localRotation = SpatiallyNestable::worldToLocal(entitySideProperties.getRotation(),
+                                                                  entitySideProperties.getParentID(),
+                                                                  entitySideProperties.getParentJointIndex());
+        entitySideProperties.setRotation(localRotation);
+    }
+
+    return entitySideProperties;
+}
+
+
 QUuid EntityScriptingInterface::addEntity(const EntityItemProperties& properties) {
     EntityItemProperties propertiesWithSimID = properties;
     propertiesWithSimID.setDimensionsInitialized(properties.dimensionsChanged());

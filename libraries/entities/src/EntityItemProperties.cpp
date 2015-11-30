@@ -355,7 +355,8 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine, bool
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_ALPHA_START, alphaStart);
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_ALPHA_FINISH, alphaFinish);
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_ADDITIVE_BLENDING, additiveBlending);
-        
+        COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_LOCAL_POSITION, localPosition);
+        COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_LOCAL_ROTATION, localrotation);
     }
 
     // Models only
@@ -472,6 +473,9 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine, bool
 
     COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_PARENT_ID, parentID);
     COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_PARENT_JOINT_INDEX, parentJointIndex);
+
+    COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_LOCAL_POSITION, localPosition);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_LOCAL_ROTATION, localRotation);
 
     // FIXME - I don't think these properties are supported any more
     //COPY_PROPERTY_TO_QSCRIPTVALUE(glowLevel);
@@ -597,6 +601,9 @@ void EntityItemProperties::copyFromScriptValue(const QScriptValue& object, bool 
 
     COPY_PROPERTY_FROM_QSCRIPTVALUE(parentID, QUuid, setParentID);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(parentJointIndex, quint16, setParentJointIndex);
+
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(localPosition, glmVec3, setLocalPosition);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(localRotation, glmQuat, setLocalRotation);
 
     _lastEdited = usecTimestampNow();
 }

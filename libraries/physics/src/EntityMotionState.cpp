@@ -455,8 +455,9 @@ void EntityMotionState::sendUpdate(OctreeEditPacketSender* packetSender, const Q
     EntityItemProperties properties;
 
     // explicitly set the properties that changed so that they will be packed
-    properties.setPosition(_entity->worldToLocal(_serverPosition));
-    properties.setRotation(_entity->worldToLocal(_serverRotation));
+    properties.setPosition(_entity->getLocalPosition());
+    properties.setRotation(_entity->getLocalOrientation());
+
     properties.setVelocity(_serverVelocity);
     properties.setAcceleration(_serverAcceleration);
     properties.setAngularVelocity(_serverAngularVelocity);
