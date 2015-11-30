@@ -636,7 +636,7 @@ QScriptValue ScriptEngine::evaluate(const QString& sourceCode, const QString& fi
         QScriptValue result;
 #ifdef THREAD_DEBUGGING
         qDebug() << "*** WARNING *** ScriptEngine::evaluate() called on wrong thread [" << QThread::currentThread() << "], invoking on correct thread [" << thread() << "] "
-        "sourceCode:" << sourceCode << " fileName:" << fileName << "lineNumber:" << lineNumber;
+            "sourceCode:" << sourceCode << " fileName:" << fileName << "lineNumber:" << lineNumber;
 #endif
         QMetaObject::invokeMethod(this, "evaluate", Qt::BlockingQueuedConnection,
                                   Q_RETURN_ARG(QScriptValue, result),
@@ -1015,7 +1015,8 @@ void ScriptEngine::forwardHandlerCall(const EntityItemID& entityID, const QStrin
 void ScriptEngine::loadEntityScript(const EntityItemID& entityID, const QString& entityScript, bool forceRedownload) {
     if (QThread::currentThread() != thread()) {
 #ifdef THREAD_DEBUGGING
-        qDebug() << "*** WARNING *** ScriptEngine::loadEntityScript() called on wrong thread [" << QThread::currentThread() << "], invoking on correct thread [" << thread() << "]  "
+        qDebug() << "*** WARNING *** ScriptEngine::loadEntityScript() called on wrong thread ["
+            << QThread::currentThread() << "], invoking on correct thread [" << thread() << "]  "
             "entityID:" << entityID << "entityScript:" << entityScript <<"forceRedownload:" << forceRedownload;
 #endif
 
@@ -1052,8 +1053,10 @@ void ScriptEngine::loadEntityScript(const EntityItemID& entityID, const QString&
 void ScriptEngine::entityScriptContentAvailable(const EntityItemID& entityID, const QString& scriptOrURL, const QString& contents, bool isURL, bool success) {
     if (QThread::currentThread() != thread()) {
 #ifdef THREAD_DEBUGGING
-        qDebug() << "*** WARNING *** ScriptEngine::entityScriptContentAvailable() called on wrong thread [" << QThread::currentThread() << "], invoking on correct thread [" << thread() << "]  "
-        "entityID:" << entityID << "scriptOrURL:" << scriptOrURL << "contents:" << contents << "isURL:" << isURL << "success:" << success;
+        qDebug() << "*** WARNING *** ScriptEngine::entityScriptContentAvailable() called on wrong thread ["
+            << QThread::currentThread() << "], invoking on correct thread [" << thread()
+            << "]  " "entityID:" << entityID << "scriptOrURL:" << scriptOrURL << "contents:"
+            << contents << "isURL:" << isURL << "success:" << success;
 #endif
 
         QMetaObject::invokeMethod(this, "entityScriptContentAvailable",
