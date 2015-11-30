@@ -266,7 +266,7 @@ void Head::calculateMouthShapes() {
 		_audioJawOpen *= JAW_CLOSE_RATE;
 	}
 	_audioJawOpen = glm::clamp(_audioJawOpen, 0.0f, 1.0f);
-	_trailingAudioJawOpen = glm::mix(_trailingAudioJawOpen, _audioJawOpen, 0.99f);
+	_trailingAudioJawOpen = glm::mix(_trailingAudioJawOpen, _audioJawOpen, 0.99f); 
 
 	// Advance time at a rate proportional to loudness, and move the mouth shapes through 
 	// a cycle at differing speeds to create a continuous random blend of shapes.
