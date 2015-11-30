@@ -17,7 +17,7 @@
 #define hifi_OctreeElementBag_h
 
 #include "OctreeElement.h"
-#include <sharedUtil.h>
+#include <SharedUtil.h>
 
 class OctreeElementBag {
 public:
