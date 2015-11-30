@@ -2549,11 +2549,12 @@ void Application::init() {
     setAvatarUpdateThreading();
 }
 
+const bool ENABLE_AVATAR_UPDATE_THREADING = false;
 void Application::setAvatarUpdateThreading() {
-    setAvatarUpdateThreading(Menu::getInstance()->isOptionChecked(MenuOption::EnableAvatarUpdateThreading));
+    setAvatarUpdateThreading(ENABLE_AVATAR_UPDATE_THREADING);
 }
 void Application::setRawAvatarUpdateThreading() {
-    setRawAvatarUpdateThreading(Menu::getInstance()->isOptionChecked(MenuOption::EnableAvatarUpdateThreading));
+    setRawAvatarUpdateThreading(ENABLE_AVATAR_UPDATE_THREADING);
 }
 void Application::setRawAvatarUpdateThreading(bool isThreaded) {
     if (_avatarUpdate) {

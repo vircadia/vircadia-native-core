@@ -189,10 +189,7 @@ namespace MenuOption {
     const QString EchoServerAudio = "Echo Server Audio";
     const QString EditEntitiesHelp = "Edit Entities Help...";
     const QString Enable3DTVMode = "Enable 3DTV Mode";
-    const QString EnableAvatarUpdateThreading = "Enable Avatar Update Threading";
-    const QString EnableAnimGraph = "Enable Anim Graph";
     const QString EnableCharacterController = "Enable avatar collisions";
-    const QString EnableRigAnimations = "Enable Rig Animations";
     const QString ExpandMyAvatarSimulateTiming = "Expand /myAvatar/simulation";
     const QString ExpandMyAvatarTiming = "Expand /myAvatar";
     const QString ExpandOtherAvatarTiming = "Expand /otherAvatar";

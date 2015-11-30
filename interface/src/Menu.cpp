@@ -441,8 +441,6 @@ Menu::Menu() {
     addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::RenderFocusIndicator, 0, false);
     addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::ShowWhosLookingAtMe, 0, false);
     addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::FixGaze, 0, false);
-    addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::EnableAvatarUpdateThreading, 0, false,
-                                           qApp, SLOT(setAvatarUpdateThreading(bool)));
     addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::AnimDebugDrawDefaultPose, 0, false,
                                            avatar, SLOT(setEnableDebugDrawDefaultPose(bool)));
     addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::AnimDebugDrawAnimPose, 0, false,
