@@ -4,7 +4,14 @@ cmake_policy(SET CMP0046 OLD)
 
 include(ExternalProject)
 
-string(REPLACE \\ / QT_CMAKE_PREFIX_PATH $ENV{QT_CMAKE_PREFIX_PATH})
+if (WIN32)
+    # windows shell does not like backslashes expanded on the command line,
+    # so convert all backslashes in the QT path to forward slashes
+    string(REPLACE \\ / QT_CMAKE_PREFIX_PATH $ENV{QT_CMAKE_PREFIX_PATH})
+elseif ($ENV{QT_CMAKE_PREFIX_PATH})
+    set(QT_CMAKE_PREFIX_PATH $ENV{QT_CMAKE_PREFIX_PATH})
+endif ()
+
 ExternalProject_Add(
   ${EXTERNAL_NAME}
   URL http://s3-us-west-1.amazonaws.com/hifi-production/dependencies/quazip-0.6.2.zip
