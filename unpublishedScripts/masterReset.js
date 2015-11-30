@@ -21,6 +21,7 @@ var pingPongScriptURL = Script.resolvePath('../examples/toybox/ping_pong_gun/pin
 var wandScriptURL = Script.resolvePath("../examples/toybox/bubblewand/wand.js");
 var dollScriptURL = Script.resolvePath("../examples/toybox/doll/doll.js");
 var lightsScriptURL = Script.resolvePath("../examples/toybox/lights/lightSwitch.js");
+var bowScriptURL = Script.resolvePath("../examples/toybox/bow/bow.js");
 var targetsScriptURL = Script.resolvePath('../examples/toybox/ping_pong_gun/wallTarget.js');
 var basketballResetterScriptURL = Script.resolvePath('basketballsResetter.js');
 var targetsResetterScriptURL = Script.resolvePath('targetsResetter.js');
@@ -35,6 +36,8 @@ MasterReset = function() {
     //Before creating anything, first search a radius and delete all the things that should be deleted
     deleteAllToys();
     createAllToys();
+
+
 
     function createAllToys() {
         createBlocks({
@@ -111,7 +114,7 @@ MasterReset = function() {
             z: 503.91
         });
 
-
+        createBow();
 
     }
 
@@ -125,6 +128,62 @@ MasterReset = function() {
                 Entities.deleteEntity(entity);
             }
         });
+    }
+
+    function createBow() {
+
+        var startPosition = {
+            x: 546.41,
+            y: 495.33,
+            z: 506.46
+        };
+
+        var BOW_ROTATION = Quat.fromPitchYawRollDegrees(-103.05, -178.60, -87.27);
+
+        var MODEL_URL = "https://hifi-public.s3.amazonaws.com/models/bow/new/bow-deadly.fbx";
+        var COLLISION_HULL_URL = "https://hifi-public.s3.amazonaws.com/models/bow/new/bow_collision_hull.obj";
+        var BOW_DIMENSIONS = {
+            x: 0.04,
+            y: 1.3,
+            z: 0.21
+        };
+
+        var BOW_GRAVITY = {
+            x: 0,
+            y: -9.8,
+            z: 0
+        };
+
+        var bow = Entities.addEntity({
+            name: 'Hifi-Bow',
+            type: "Model",
+            modelURL: MODEL_URL,
+            position: startPosition,
+            rotation: BOW_ROTATION,
+            dimensions: BOW_DIMENSIONS,
+            collisionsWillMove: true,
+            gravity: BOW_GRAVITY,
+            shapeType: 'compound',
+            compoundShapeURL: COLLISION_HULL_URL,
+            script: bowScriptURL,
+            userData: JSON.stringify({
+                resetMe: {
+                    resetMe: true
+                },
+                grabbableKey: {
+                    invertSolidWhileHeld: true,
+                    spatialKey: {
+                        relativePosition: {
+                            x: 0,
+                            y: 0.06,
+                            z: 0.11
+                        },
+                        relativeRotation: Quat.fromPitchYawRollDegrees(0, -90, 90)
+                    }
+                }
+            })
+        });
+
     }
 
     function createFire() {
@@ -883,7 +942,7 @@ MasterReset = function() {
             type: "Model",
             modelURL: MODEL_URL,
             shapeType: 'compound',
-            compoundShapeURL:COLLISION_HULL_URL,
+            compoundShapeURL: COLLISION_HULL_URL,
             script: pingPongScriptURL,
             position: position,
             rotation: rotation,

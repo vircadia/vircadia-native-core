@@ -944,6 +944,7 @@ void Menu::addMenuItem(const MenuItemProperties& properties) {
         QShortcut* shortcut = NULL;
         if (!properties.shortcutKeySequence.isEmpty()) {
             shortcut = new QShortcut(properties.shortcutKeySequence, this);
+            shortcut->setContext(Qt::WidgetWithChildrenShortcut);
         }
 
         // check for positioning requests
