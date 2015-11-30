@@ -155,6 +155,7 @@ MasterReset = function() {
             shapeType: 'box',
             gravity: {x: 0, y: -3.0, z: 0},
             collisionsWillMove: true,
+            collisionSoundURL: "https://s3.amazonaws.com/hifi-public/sounds/Guns/Gun_Drop_and_Metalli_1.wav",
             userData: JSON.stringify({
                 grabbableKey: {
                     spatialKey: {

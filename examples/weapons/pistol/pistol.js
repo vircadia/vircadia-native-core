@@ -34,6 +34,8 @@
             z: 0.16
         }
         this.fireSound = SoundCache.getSound("https://s3.amazonaws.com/hifi-public/sounds/Guns/GUN-SHOT2.raw");
+        this.ricochetSound = SoundCache.getSound("https://s3.amazonaws.com/hifi-public/sounds/Guns/Ricochet.L.wav");
+        this.playRichochetSoundChance = 0.7;
         this.fireVolume = 0.5;
         this.bulletForce = 10;
 
@@ -67,7 +69,7 @@
                 });
             } else if (this.triggerValue >= DISABLE_LASER_THRESHOLD && this.showLaser === false) {
                 this.showLaser = true
-                  Overlays.editOverlay(this.laser, {
+                Overlays.editOverlay(this.laser, {
                     visible: true
                 });
             }
@@ -126,10 +128,19 @@
                 position: this.barrelPoint,
                 volume: this.fireVolume
             });
+
             this.createGunFireEffect(this.barrelPoint)
             var intersection = Entities.findRayIntersectionBlocking(pickRay, true);
             if (intersection.intersects) {
                 this.createEntityHitEffect(intersection.intersection);
+                if (Math.random() < this.playRichochetSoundChance) {
+                    Script.setTimeout(function() {
+                        Audio.playSound(_this.ricochetSound, {
+                            position: intersection.intersection,
+                            volume: _this.fireVolume
+                        });
+                    }, randFloat(10, 200));
+                }
                 if (intersection.properties.collisionsWillMove === 1) {
                     // Any entity with collisions will move can be shot
                     Entities.editEntity(intersection.entityID, {

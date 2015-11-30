@@ -20,6 +20,7 @@ var pistol = Entities.addEntity({
     },
     shapeType: 'box',
     collisionsWillMove: true,
+    collisionSoundURL: "https://s3.amazonaws.com/hifi-public/sounds/Guns/Gun_Drop_and_Metalli_1.wav",
     userData: JSON.stringify({
         grabbableKey: {
             spatialKey: {

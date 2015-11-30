@@ -164,6 +164,7 @@
                 name: "pistol",
                 modelURL: modelURL,
                 position: position,
+                collisionSoundURL: "https://s3.amazonaws.com/hifi-public/sounds/Guns/Gun_Drop_and_Metalli_1.wav",
                 dimensions: {
                     x: 0.05,
                     y: .23,
