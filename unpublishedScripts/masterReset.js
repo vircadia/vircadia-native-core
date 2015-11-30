@@ -912,7 +912,7 @@ MasterReset = function() {
     }
 
     function createWand(position) {
-        var WAND_MODEL = 'http://hifi-public.s3.amazonaws.com/models/bubblewand/wand.fbx';
+        var WAND_MODEL = 'http://hifi-content.s3.amazonaws.com/james/bubblewand/wand.fbx';
         var WAND_COLLISION_SHAPE = 'http://hifi-content.s3.amazonaws.com/james/bubblewand/wand_collision_hull.obj';
 
         var wand = Entities.addEntity({
@@ -923,7 +923,7 @@ MasterReset = function() {
             position: position,
             gravity: {
                 x: 0,
-                y: 0,
+                y: -9.8,
                 z: 0,
             },
             dimensions: {
@@ -936,10 +936,10 @@ MasterReset = function() {
             compoundShapeURL: WAND_COLLISION_SHAPE,
             script: wandScriptURL,
             userData: JSON.stringify({
+                resetMe: {
+                    resetMe: true
+                },
                 grabbableKey: {
-                    resetMe: {
-                        resetMe: true
-                    },
                     invertSolidWhileHeld: true,
                     spatialKey: {
                         relativePosition: {
