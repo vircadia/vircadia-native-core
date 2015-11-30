@@ -52,8 +52,10 @@ void ReceivedMessage::setFailed() {
 void ReceivedMessage::appendPacket(NLPacket& packet) {
     Q_ASSERT_X(!_isComplete, "ReceivedMessage::appendPacket", 
                "We should not be appending to a complete message");
-    // 50 * 1500 bytes = 75 kb
+
+    // Limit progress signal to every X packets
     const int EMIT_PROGRESS_EVERY_X_PACKETS = 50;
+
     ++_numPackets;
 
     _data.append(packet.getPayload(), packet.getPayloadSize());
