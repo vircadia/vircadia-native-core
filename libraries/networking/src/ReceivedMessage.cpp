@@ -52,10 +52,16 @@ void ReceivedMessage::setFailed() {
 void ReceivedMessage::appendPacket(NLPacket& packet) {
     Q_ASSERT_X(!_isComplete, "ReceivedMessage::appendPacket", 
                "We should not be appending to a complete message");
+    // 50 * 1500 bytes = 75 kb
+    const int EMIT_PROGRESS_EVERY_X_PACKETS = 50;
     ++_numPackets;
 
     _data.append(packet.getPayload(), packet.getPayloadSize());
-    emit progress();
+
+    if (_numPackets % EMIT_PROGRESS_EVERY_X_PACKETS == 0) {
+        emit progress();
+    }
+
     if (packet.getPacketPosition() == NLPacket::PacketPosition::LAST) {
         _isComplete = true;
         emit completed();
