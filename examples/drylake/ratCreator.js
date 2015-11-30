@@ -173,7 +173,7 @@ function addAvoiderBlock(position) {
         position: position,
         collisionsWillMove: false,
         ignoreForCollisions: true,
-        visible: true
+        visible: false
     };
 
     var avoider = Entities.addEntity(avoiderProperties);
