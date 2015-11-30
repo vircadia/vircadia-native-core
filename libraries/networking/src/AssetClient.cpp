@@ -256,15 +256,12 @@ void AssetClient::handleAssetGetReply(QSharedPointer<ReceivedMessage> message, S
                 callbacks.completeCallback(true, error, message->readAll());
             } else {
                 connect(message.data(), &ReceivedMessage::progress, this, [this, length, message, callbacks]() {
-                    qDebug() << "Progress: " << message->getSize(), length;
                     callbacks.progressCallback(message->getSize(), length);
                 });
                 connect(message.data(), &ReceivedMessage::completed, this, [this, message, error, callbacks]() {
                     if (message->failed()) {
-                        qDebug() << "Failed to received asset :(";
                         callbacks.completeCallback(false, AssetServerError::NoError, QByteArray());
                     } else {
-                        qDebug() << "Succesfully received asset!";
                         callbacks.completeCallback(true, error, message->readAll());
                     }
                 });
