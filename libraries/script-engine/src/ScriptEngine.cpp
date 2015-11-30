@@ -65,9 +65,9 @@ static QScriptValue debugPrint(QScriptContext* context, QScriptEngine* engine){
     qCDebug(scriptengine).noquote() << "script:print()<<" << message;  // noquote() so that \n is treated as newline
 
     message = message.replace("\\", "\\\\")
-    .replace("\n", "\\n")
-    .replace("\r", "\\r")
-    .replace("'", "\\'");
+                     .replace("\n", "\\n")
+                     .replace("\r", "\\r")
+                     .replace("'", "\\'");
     engine->evaluate("Script.print('" + message + "')");
 
     return QScriptValue();
@@ -123,11 +123,11 @@ static bool hadUncaughtExceptions(QScriptEngine& engine, const QString& fileName
 }
 
 ScriptEngine::ScriptEngine(const QString& scriptContents, const QString& fileNameString, bool wantSignals) :
-_scriptContents(scriptContents),
-_timerFunctionMap(),
-_wantSignals(wantSignals),
-_fileNameString(fileNameString),
-_arrayBufferClass(new ArrayBufferClass(this))
+    _scriptContents(scriptContents),
+    _timerFunctionMap(),
+    _wantSignals(wantSignals),
+    _fileNameString(fileNameString),
+    _arrayBufferClass(new ArrayBufferClass(this))
 {
     _allScriptsMutex.lock();
     _allKnownScriptEngines.insert(this);
@@ -495,7 +495,7 @@ void ScriptEngine::registerGetterSetter(const QString& name, QScriptEngine::Func
     if (QThread::currentThread() != thread()) {
 #ifdef THREAD_DEBUGGING
         qDebug() << "*** WARNING *** ScriptEngine::registerGetterSetter() called on wrong thread [" << QThread::currentThread() << "], invoking on correct thread [" << thread() << "] "
-        " name:" << name << "parent:" << parent;
+            " name:" << name << "parent:" << parent;
 #endif
         QMetaObject::invokeMethod(this, "registerGetterSetter",
                                   Q_ARG(const QString&, name),
@@ -528,7 +528,7 @@ void ScriptEngine::removeEventHandler(const EntityItemID& entityID, const QStrin
     if (QThread::currentThread() != thread()) {
 #ifdef THREAD_DEBUGGING
         qDebug() << "*** WARNING *** ScriptEngine::removeEventHandler() called on wrong thread [" << QThread::currentThread() << "], invoking on correct thread [" << thread() << "] "
-        "entityID:" << entityID << " eventName:" << eventName;
+            "entityID:" << entityID << " eventName:" << eventName;
 #endif
         QMetaObject::invokeMethod(this, "removeEventHandler",
                                   Q_ARG(const EntityItemID&, entityID),
@@ -955,7 +955,7 @@ void ScriptEngine::include(const QStringList& includeFiles, QScriptValue callbac
 void ScriptEngine::include(const QString& includeFile, QScriptValue callback) {
     if (_stoppingAllScripts) {
         qCDebug(scriptengine) << "Script.include() while shutting down is ignored... "
-        << "includeFile:" << includeFile << "parent script:" << getFilename();
+            << "includeFile:" << includeFile << "parent script:" << getFilename();
         return; // bail early
     }
 
@@ -970,7 +970,7 @@ void ScriptEngine::include(const QString& includeFile, QScriptValue callback) {
 void ScriptEngine::load(const QString& loadFile) {
     if (_stoppingAllScripts) {
         qCDebug(scriptengine) << "Script.load() while shutting down is ignored... "
-        << "loadFile:" << loadFile << "parent script:" << getFilename();
+            << "loadFile:" << loadFile << "parent script:" << getFilename();
         return; // bail early
     }
 
@@ -1016,7 +1016,7 @@ void ScriptEngine::loadEntityScript(const EntityItemID& entityID, const QString&
     if (QThread::currentThread() != thread()) {
 #ifdef THREAD_DEBUGGING
         qDebug() << "*** WARNING *** ScriptEngine::loadEntityScript() called on wrong thread [" << QThread::currentThread() << "], invoking on correct thread [" << thread() << "]  "
-        "entityID:" << entityID << "entityScript:" << entityScript <<"forceRedownload:" << forceRedownload;
+            "entityID:" << entityID << "entityScript:" << entityScript <<"forceRedownload:" << forceRedownload;
 #endif
 
         QMetaObject::invokeMethod(this, "loadEntityScript",
@@ -1027,18 +1027,20 @@ void ScriptEngine::loadEntityScript(const EntityItemID& entityID, const QString&
     }
 #ifdef THREAD_DEBUGGING
     qDebug() << "ScriptEngine::loadEntityScript() called on correct thread [" << thread() << "]  "
-    "entityID:" << entityID << "entityScript:" << entityScript << "forceRedownload:" << forceRedownload;
+        "entityID:" << entityID << "entityScript:" << entityScript << "forceRedownload:" << forceRedownload;
 #endif
 
     // If we've been called our known entityScripts should not know about us..
     assert(!_entityScripts.contains(entityID));
 
 #ifdef THREAD_DEBUGGING
-    qDebug() << "ScriptEngine::loadEntityScript() calling scriptCache->getScriptContents() on thread [" << QThread::currentThread() << "] expected thread [" << thread() << "]";
+    qDebug() << "ScriptEngine::loadEntityScript() calling scriptCache->getScriptContents() on thread ["
+        << QThread::currentThread() << "] expected thread [" << thread() << "]";
 #endif
     DependencyManager::get<ScriptCache>()->getScriptContents(entityScript, [=](const QString& scriptOrURL, const QString& contents, bool isURL, bool success) {
 #ifdef THREAD_DEBUGGING
-        qDebug() << "ScriptEngine::entityScriptContentAvailable() IN LAMBDA contentAvailable on thread [" << QThread::currentThread() << "] expected thread [" << thread() << "]";
+        qDebug() << "ScriptEngine::entityScriptContentAvailable() IN LAMBDA contentAvailable on thread ["
+            << QThread::currentThread() << "] expected thread [" << thread() << "]";
 #endif
 
         this->entityScriptContentAvailable(entityID, scriptOrURL, contents, isURL, success);
@@ -1091,11 +1093,13 @@ void ScriptEngine::entityScriptContentAvailable(const EntityItemID& entityID, co
 
     if (!testConstructor.isFunction()) {
         qCDebug(scriptengine) << "ScriptEngine::loadEntityScript() entity:" << entityID << "\n"
-        "    NOT CONSTRUCTOR\n"
-        "    SCRIPT:" << scriptOrURL;
+            "    NOT CONSTRUCTOR\n"
+            "    SCRIPT:" << scriptOrURL;
+
         if (!isFileUrl) {
             scriptCache->addScriptToBadScriptList(scriptOrURL);
         }
+
         return; // done processing script
     }
 
@@ -1121,7 +1125,7 @@ void ScriptEngine::unloadEntityScript(const EntityItemID& entityID) {
     if (QThread::currentThread() != thread()) {
 #ifdef THREAD_DEBUGGING
         qDebug() << "*** WARNING *** ScriptEngine::unloadEntityScript() called on wrong thread [" << QThread::currentThread() << "], invoking on correct thread [" << thread() << "]  "
-        "entityID:" << entityID;
+            "entityID:" << entityID;
 #endif
 
         QMetaObject::invokeMethod(this, "unloadEntityScript",
@@ -1130,7 +1134,7 @@ void ScriptEngine::unloadEntityScript(const EntityItemID& entityID) {
     }
 #ifdef THREAD_DEBUGGING
     qDebug() << "ScriptEngine::unloadEntityScript() called on correct thread [" << thread() << "]  "
-    "entityID:" << entityID;
+        "entityID:" << entityID;
 #endif
 
     if (_entityScripts.contains(entityID)) {
@@ -1195,7 +1199,7 @@ void ScriptEngine::callEntityScriptMethod(const EntityItemID& entityID, const QS
     if (QThread::currentThread() != thread()) {
 #ifdef THREAD_DEBUGGING
         qDebug() << "*** WARNING *** ScriptEngine::callEntityScriptMethod() called on wrong thread [" << QThread::currentThread() << "], invoking on correct thread [" << thread() << "]  "
-        "entityID:" << entityID << "methodName:" << methodName;
+            "entityID:" << entityID << "methodName:" << methodName;
 #endif
 
         QMetaObject::invokeMethod(this, "callEntityScriptMethod",
@@ -1206,7 +1210,7 @@ void ScriptEngine::callEntityScriptMethod(const EntityItemID& entityID, const QS
     }
 #ifdef THREAD_DEBUGGING
     qDebug() << "ScriptEngine::callEntityScriptMethod() called on correct thread [" << thread() << "]  "
-    "entityID:" << entityID << "methodName:" << methodName;
+        "entityID:" << entityID << "methodName:" << methodName;
 #endif
 
     refreshFileScript(entityID);
@@ -1227,7 +1231,7 @@ void ScriptEngine::callEntityScriptMethod(const EntityItemID& entityID, const QS
     if (QThread::currentThread() != thread()) {
 #ifdef THREAD_DEBUGGING
         qDebug() << "*** WARNING *** ScriptEngine::callEntityScriptMethod() called on wrong thread [" << QThread::currentThread() << "], invoking on correct thread [" << thread() << "]  "
-        "entityID:" << entityID << "methodName:" << methodName << "event: mouseEvent";
+            "entityID:" << entityID << "methodName:" << methodName << "event: mouseEvent";
 #endif
 
         QMetaObject::invokeMethod(this, "callEntityScriptMethod",
@@ -1238,7 +1242,7 @@ void ScriptEngine::callEntityScriptMethod(const EntityItemID& entityID, const QS
     }
 #ifdef THREAD_DEBUGGING
     qDebug() << "ScriptEngine::callEntityScriptMethod() called on correct thread [" << thread() << "]  "
-    "entityID:" << entityID << "methodName:" << methodName << "event: mouseEvent";
+        "entityID:" << entityID << "methodName:" << methodName << "event: mouseEvent";
 #endif
 
     refreshFileScript(entityID);
@@ -1259,7 +1263,7 @@ void ScriptEngine::callEntityScriptMethod(const EntityItemID& entityID, const QS
     if (QThread::currentThread() != thread()) {
 #ifdef THREAD_DEBUGGING
         qDebug() << "*** WARNING *** ScriptEngine::callEntityScriptMethod() called on wrong thread [" << QThread::currentThread() << "], invoking on correct thread [" << thread() << "]  "
-        "entityID:" << entityID << "methodName:" << methodName << "otherID:" << otherID << "collision: collision";
+            "entityID:" << entityID << "methodName:" << methodName << "otherID:" << otherID << "collision: collision";
 #endif
 
         QMetaObject::invokeMethod(this, "callEntityScriptMethod",
@@ -1271,7 +1275,7 @@ void ScriptEngine::callEntityScriptMethod(const EntityItemID& entityID, const QS
     }
 #ifdef THREAD_DEBUGGING
     qDebug() << "ScriptEngine::callEntityScriptMethod() called on correct thread [" << thread() << "]  "
-    "entityID:" << entityID << "methodName:" << methodName << "otherID:" << otherID << "collision: collision";
+        "entityID:" << entityID << "methodName:" << methodName << "otherID:" << otherID << "collision: collision";
 #endif
     
     refreshFileScript(entityID);

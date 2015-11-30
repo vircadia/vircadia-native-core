@@ -145,7 +145,7 @@ public:
     // NOTE - this is used by the TypedArray implemetation. we need to review this for thread safety
     ArrayBufferClass* getArrayBufferClass() { return _arrayBufferClass; }
 
-    public slots:
+public slots:
     void callAnimationStateHandler(QScriptValue callback, AnimVariantMap parameters, QStringList names, bool useNames, AnimVariantResultHandler resultHandler);
 
 signals:
