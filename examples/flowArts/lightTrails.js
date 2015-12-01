@@ -33,14 +33,6 @@ var MIN_POINT_DISTANCE = 0.01;
 var MIN_BRUSH_RADIUS = 0.08;
 var MAX_BRUSH_RADIUS = 0.1;
 
-var RIGHT_BUTTON_1 = 7
-var RIGHT_BUTTON_2 = 8
-var RIGHT_BUTTON_3 = 9;
-var RIGHT_BUTTON_4 = 10
-var LEFT_BUTTON_1 = 1;
-var LEFT_BUTTON_2 = 2;
-var LEFT_BUTTON_3 = 3;
-var LEFT_BUTTON_4 = 4;
 
 var colorPalette = [{
     red: 250,
@@ -73,31 +65,24 @@ function controller(side, triggerAction) {
     this.side = side;
     this.triggerAction = triggerAction;
     this.cycleColorButton = side == LEFT ? Controller.Standard.LeftPrimaryThumb : Controller.Standard.RightPrimaryThumb;
-
+    this.currentColorIndex = 0;
+    this.currentColor = colorPalette[this.currentColorIndex];
+    this.trail = Entities.addEntity({
+        type: "PolyLine",
+        color: this.currentColor,
+        dimensions: {
+            x: LINE_DIMENSIONS,
+            y: LINE_DIMENSIONS,
+            z: LINE_DIMENSIONS
+        },
+        textures: "http://localhost:8080/trails.png",
+        lifetime: LIFETIME
+    });
     this.points = [];
     this.normals = [];
     this.strokeWidths = [];
-
-    this.currentColorIndex = 0;
-    this.currentColor = colorPalette[this.currentColorIndex];
-
     var self = this;
 
-
-    this.brush = Entities.addEntity({
-        type: 'Sphere',
-        position: {
-            x: 0,
-            y: 0,
-            z: 0
-        },
-        color: this.currentColor,
-        dimensions: {
-            x: MIN_BRUSH_RADIUS,
-            y: MIN_BRUSH_RADIUS,
-            z: MIN_BRUSH_RADIUS
-        }
-    });
 
     this.cycleColor = function() {
         this.currentColor = colorPalette[++this.currentColorIndex];
@@ -105,62 +90,48 @@ function controller(side, triggerAction) {
             this.currentColorIndex = -1;
         }
     }
-    this.newLine = function(position) {
-        this.linePosition = position;
-        this.line = Entities.addEntity({
-            position: position,
-            type: "PolyLine",
-            color: this.currentColor,
-            dimensions: {
-                x: LINE_DIMENSIONS,
-                y: LINE_DIMENSIONS,
-                z: LINE_DIMENSIONS
-            },
-            textures: "http://localhost:8080/trails.png",
-            lifetime: LIFETIME
+
+    this.setTrailPosition = function(position) {
+        this.trailPosition = position;
+        Entities.editEntity(this.trail, {
+            position: this.trailPosition
         });
-        this.points = [];
-        this.normals = []
-        this.strokeWidths = [];
     }
+
 
     this.update = function(deltaTime) {
         this.updateControllerState();
-        var newBrushPosOffset = Vec3.multiply(Vec3.normalize(Vec3.subtract(this.tipPosition, this.palmPosition)), DRAWING_DEPTH);
-        var newBrushPos = Vec3.sum(this.palmPosition, newBrushPosOffset);
-        var brushRadius = map(this.triggerValue, TRIGGER_THRESHOLD, 1, MIN_BRUSH_RADIUS, MAX_BRUSH_RADIUS)
-        Entities.editEntity(this.brush, {
-            position: newBrushPos,
-            color: this.currentColor,
-            dimensions: {
-                x: brushRadius,
-                y: brushRadius,
-                z: brushRadius
-            }
-        });
+        var newTrailPosOffset = Vec3.multiply(Vec3.normalize(Vec3.subtract(this.tipPosition, this.palmPosition)), DRAWING_DEPTH);
+        var newTrailPos = Vec3.sum(this.palmPosition, newTrailPosOffset);
 
 
         if (this.triggerValue > TRIGGER_THRESHOLD && !this.drawing) {
-            this.newLine(newBrushPos);
+            this.setTrailPosition(newTrailPos);
             this.drawing = true;
         } else if (this.drawing && this.triggerValue < TRIGGER_THRESHOLD) {
             this.drawing = false;
         }
 
-        if (this.drawing && this.points.length < MAX_POINTS_PER_LINE) {
-            var localPoint = Vec3.subtract(newBrushPos, this.linePosition);
+        if (this.drawing) {
+            var localPoint = Vec3.subtract(newTrailPos, this.trailPosition);
             if (Vec3.distance(localPoint, this.points[this.points.length - 1]) < MIN_POINT_DISTANCE) {
                 //Need a minimum distance to avoid binormal NANs
                 return;
             }
 
+            if (this.points.length === MAX_POINTS_PER_LINE) {
+                this.points.shift();
+                this.normals.shift();
+                this.strokeWidths.shift();
+            }
+
             this.points.push(localPoint);
-            var normal = computeNormal(newBrushPos, Camera.getPosition());
+            var normal = computeNormal(newTrailPos, Camera.getPosition());
 
             this.normals.push(normal);
             var strokeWidth = map(this.triggerValue, TRIGGER_THRESHOLD, 1, MIN_STROKE_WIDTH, MAX_STROKE_WIDTH);
             this.strokeWidths.push(strokeWidth);
-            Entities.editEntity(this.line, {
+            Entities.editEntity(this.trail, {
                 linePoints: this.points,
                 normals: this.normals,
                 strokeWidths: this.strokeWidths,
@@ -175,9 +146,9 @@ function controller(side, triggerAction) {
         this.cycleColorButtonPressed = Controller.getValue(this.cycleColorButton);
         this.palmPosition = this.side == RIGHT ? MyAvatar.rightHandPose.translation : MyAvatar.leftHandPose.translation;
         this.tipPosition = this.side == RIGHT ? MyAvatar.rightHandTipPose.translation : MyAvatar.leftHandTipPose.translation;
-        this.triggerValue =  Controller.getActionValue(this.triggerAction);
+        this.triggerValue = Controller.getActionValue(this.triggerAction);
 
-        
+
         if (this.prevCycleColorButtonPressed === true && this.cycleColorButtonPressed === false) {
             this.cycleColor();
             Entities.editEntity(this.brush, {
@@ -189,9 +160,7 @@ function controller(side, triggerAction) {
 
     }
 
-    this.cleanup = function() {
-        Entities.deleteEntity(self.brush);
-    }
+    this.cleanup = function() {}
 }
 
 function computeNormal(p1, p2) {
@@ -204,7 +173,7 @@ function update(deltaTime) {
 }
 
 function scriptEnding() {
-    leftController.cleanup(); 
+    leftController.cleanup();
     rightController.cleanup();
 }
 
