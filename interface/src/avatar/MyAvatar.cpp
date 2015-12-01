@@ -1808,7 +1808,10 @@ glm::mat4 MyAvatar::deriveBodyFromHMDSensor() const {
     int neckIndex = _rig->indexOfJoint("Neck");
     int hipsIndex = _rig->indexOfJoint("Hips");
 
-    glm::vec3 rigMiddleEyePos = leftEyeIndex != -1 ? _rig->getAbsoluteDefaultPose(leftEyeIndex).trans : DEFAULT_RIG_MIDDLE_EYE_POS;
+    glm::vec3 rigMiddleEyePos = DEFAULT_RIG_MIDDLE_EYE_POS;
+    if (leftEyeIndex >= 0 && rightEyeIndex >= 0) {
+        rigMiddleEyePos = (_rig->getAbsoluteDefaultPose(leftEyeIndex).trans + _rig->getAbsoluteDefaultPose(rightEyeIndex).trans) / 2.0f;
+    }
     glm::vec3 rigNeckPos = neckIndex != -1 ? _rig->getAbsoluteDefaultPose(neckIndex).trans : DEFAULT_RIG_NECK_POS;
     glm::vec3 rigHipsPos = hipsIndex != -1 ? _rig->getAbsoluteDefaultPose(hipsIndex).trans : DEFAULT_RIG_HIPS_POS;
 
