@@ -32,9 +32,6 @@ public:
     
 signals:
     void ready();
-
-signals:
-    void ready();
     
 private:
     QByteArray _byteArray;
