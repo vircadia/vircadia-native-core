@@ -46,7 +46,7 @@ PacketVersion versionForPacketType(PacketType packetType) {
         case PacketType::BulkAvatarData:
             return 17;
         default:
-            return 16;
+            return 17;
     }
 }
 

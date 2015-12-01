@@ -13,6 +13,7 @@
 #include <QObject>
 #include <QByteArray>
 #include <QtConcurrent/QtConcurrentRun>
+#include <glm/gtx/transform.hpp>
 
 #if defined(__GNUC__) && !defined(__clang__)
 #pragma GCC diagnostic push
