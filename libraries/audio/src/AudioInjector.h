@@ -12,6 +12,9 @@
 #ifndef hifi_AudioInjector_h
 #define hifi_AudioInjector_h
 
+#include <memory>
+
+#include <QtCore/QElapsedTimer>
 #include <QtCore/QObject>
 #include <QtCore/QSharedPointer>
 #include <QtCore/QThread>
@@ -19,11 +22,14 @@
 #include <glm/glm.hpp>
 #include <glm/gtx/quaternion.hpp>
 
+#include <NLPacket.h>
+
 #include "AudioInjectorLocalBuffer.h"
 #include "AudioInjectorOptions.h"
 #include "Sound.h"
 
 class AbstractAudioInterface;
+class AudioInjectorManager;
 
 // In order to make scripting cleaner for the AudioInjector, the script now holds on to the AudioInjector object
 // until it dies. 
@@ -32,11 +38,17 @@ class AudioInjector : public QObject {
     Q_OBJECT
     
 public:
+    enum class State : uint8_t {
+        NotFinished,
+        NotFinishedWithPendingDelete,
+        Finished
+    };
+    
     AudioInjector(QObject* parent);
     AudioInjector(Sound* sound, const AudioInjectorOptions& injectorOptions);
     AudioInjector(const QByteArray& audioData, const AudioInjectorOptions& injectorOptions);
     
-    bool isFinished() const { return _isFinished; }
+    bool isFinished() const { return _state == State::Finished; }
     
     int getCurrentSendOffset() const { return _currentSendOffset; }
     void setCurrentSendOffset(int currentSendOffset) { _currentSendOffset = currentSendOffset; }
@@ -51,40 +63,46 @@ public:
     static AudioInjector* playSound(const QString& soundUrl, const float volume, const float stretchFactor, const glm::vec3 position);
 
 public slots:
-    void injectAudio();
     void restart();
     
     void stop();
-    void triggerDeleteAfterFinish() { _shouldDeleteAfterFinish = true; }
+    void triggerDeleteAfterFinish();
     void stopAndDeleteLater();
     
     const AudioInjectorOptions& getOptions() const { return _options; }
     void setOptions(const AudioInjectorOptions& options) { _options = options;  }
     
     float getLoudness() const { return _loudness; }
-    bool isPlaying() const { return _isPlaying; }
-    void restartPortionAfterFinished();
+    bool isPlaying() const { return _state == State::NotFinished || _state == State::NotFinishedWithPendingDelete; }
     
 signals:
     void finished();
-
-private:
-    void injectToMixer();
-    void injectLocally();
+    void restarting();
     
-    void setIsFinished(bool isFinished);
+private slots:
+    void finish();
+    
+private:
+    void setupInjection();
+    uint64_t injectNextFrame();
+    bool injectLocally();
     
     QByteArray _audioData;
     AudioInjectorOptions _options;
+    State _state { State::NotFinished };
+    bool _hasSetup = false;
     bool _shouldStop = false;
     float _loudness = 0.0f;
-    bool _isPlaying = false;
-    bool _isStarted = false;
-    bool _isFinished = false;
-    bool _shouldDeleteAfterFinish = false;
     int _currentSendOffset = 0;
-    AbstractAudioInterface* _localAudioInterface = NULL;
-    AudioInjectorLocalBuffer* _localBuffer = NULL;
+    std::unique_ptr<NLPacket> _currentPacket { nullptr };
+    AbstractAudioInterface* _localAudioInterface { nullptr };
+    AudioInjectorLocalBuffer* _localBuffer { nullptr };
+    
+    int _nextFrame { 0 };
+    std::unique_ptr<QElapsedTimer> _frameTimer { nullptr };
+    quint16 _outgoingSequenceNumber { 0 };
+    
+    friend class AudioInjectorManager;
 };
 
 
