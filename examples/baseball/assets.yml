@@ -14,4 +14,20 @@ assets:
   baseball-hitting-bat-1.wav:
     s3_url: "http://hifi-public.s3.amazonaws.com/birarda/baseball/baseball-hitting-bat-1.wav"
     atp_url: "atp:6f0b691a0c9c9ece6557d97fe242b1faec4020fe26efc9c17327993b513c5fe5.wav"
-    attribution: "CC BY 3.0 - Credit: Alyssa Galindo - http://freesound.org/people/AshFox/"
+    attribution: "CC BY 3.0 - Credit: https://www.freesound.org/people/SocializedArtist45/"
+  baseball-hitting-bat-set-1.wav:
+    s3_url: "http://hifi-public.s3.amazonaws.com/birarda/baseball/baseball-hitting-bat-set-1.wav"
+    atp_url: "atp:5be5806205158ebdc5c3623ceb7ae73315028b51ffeae24292aff7042e3fa6a9.wav"
+    attribution: "CC BY 3.0 - Credit: CGEffex - https://www.freesound.org/people/CGEffex/"
+  baseball-hitting-bat-set-2.wav:
+    s3_url: "http://hifi-public.s3.amazonaws.com/birarda/baseball/baseball-hitting-bat-set-2.wav"
+    atp_url: "atp:e68661374e2145c480809c26134782aad11e0de456c7802170c7abccc4028873.wav"
+    attribution: "CC BY 3.0 - Credit: CGEffex - https://www.freesound.org/people/CGEffex/"
+  baseball-hitting-bat-set-3.wav:
+    s3_url: "http://hifi-public.s3.amazonaws.com/birarda/baseball/baseball-hitting-bat-set-3.wav"
+    atp_url: "atp:787e3c9af17dd3929527787176ede83d6806260e63ddd5a4cef48cd22e32c6f7.wav"
+    attribution: "CC BY 3.0 - Credit: CGEffex - https://www.freesound.org/people/CGEffex/"
+  baseball-hitting-bat-set-4.wav:
+    s3_url: "http://hifi-public.s3.amazonaws.com/birarda/baseball/baseball-hitting-bat-set-4.wav"
+    atp_url: "atp:fc65383431a6238c7a4749f0f6f061f75a604ed5e17d775ab1b2955609e67ebb.wav"
+    attribution: "CC BY 3.0 - Credit: CGEffex - https://www.freesound.org/people/CGEffex/"
