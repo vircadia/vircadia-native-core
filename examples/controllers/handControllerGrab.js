@@ -200,6 +200,34 @@ function entityIsGrabbedByOther(entityID) {
     return false;
 }
 
+function getSpatialOffsetPosition(hand, spatialKey) {
+    if (hand !== RIGHT_HAND && spatialKey.leftRelativePosition) {
+        return spatialKey.leftRelativePosition;
+    }
+    if (hand === RIGHT_HAND && spatialKey.rightRelativePosition) {
+        return spatialKey.rightRelativePosition;
+    }
+    if (spatialKey.relativePosition) {
+        return spatialKey.relativePosition;
+    }
+
+    return Vec3.ZERO;
+}
+
+function getSpatialOffsetRotation(hand, spatialKey) {
+    if (hand !== RIGHT_HAND && spatialKey.leftRelativeRotation) {
+        return spatialKey.leftRelativeRotation;
+    }
+    if (hand === RIGHT_HAND && spatialKey.rightRelativeRotation) {
+        return spatialKey.rightRelativeRotation;
+    }
+    if (spatialKey.relativeRotation) {
+        return spatialKey.relativeRotation;
+    }
+
+    return Quat.IDENTITY;
+}
+
 function MyController(hand) {
     this.hand = hand;
     if (this.hand === RIGHT_HAND) {
@@ -223,17 +251,8 @@ function MyController(hand) {
     this.rawTriggerValue = 0;
     this.rawBumperValue = 0;
 
-    this.offsetPosition = {
-        x: 0.0,
-        y: 0.0,
-        z: 0.0
-    };
-    this.offsetRotation = {
-        x: 0.0,
-        y: 0.0,
-        z: 0.0,
-        w: 1.0
-    };
+    this.offsetPosition = Vec3.ZERO;
+    this.offsetRotation = Quat.IDENTITY;
 
     var _this = this;
 
@@ -767,12 +786,8 @@ function MyController(hand) {
 
         if (this.state != STATE_NEAR_GRABBING && grabbableData.spatialKey) {
             // if an object is "equipped" and has a spatialKey, use it.
-            if (grabbableData.spatialKey.relativePosition) {
-                this.offsetPosition = grabbableData.spatialKey.relativePosition;
-            }
-            if (grabbableData.spatialKey.relativeRotation) {
-                this.offsetRotation = grabbableData.spatialKey.relativeRotation;
-            }
+            this.offsetPosition = getSpatialOffsetPosition(this.hand, grabbableData.spatialKey);
+            this.offsetRotation = getSpatialOffsetRotation(this.hand, grabbableData.spatialKey);
         } else {
             var objectRotation = grabbedProperties.rotation;
             this.offsetRotation = Quat.multiply(Quat.inverse(handRotation), objectRotation);
@@ -895,23 +910,8 @@ function MyController(hand) {
         var grabbableData = getEntityCustomData(GRABBABLE_DATA_KEY, this.grabbedEntity, DEFAULT_GRABBABLE_DATA);
 
         // use a spring to pull the object to where it will be when equipped
-        var relativeRotation = {
-            x: 0.0,
-            y: 0.0,
-            z: 0.0,
-            w: 1.0
-        };
-        var relativePosition = {
-            x: 0.0,
-            y: 0.0,
-            z: 0.0
-        };
-        if (grabbableData.spatialKey.relativePosition) {
-            relativePosition = grabbableData.spatialKey.relativePosition;
-        }
-        if (grabbableData.spatialKey.relativeRotation) {
-            relativeRotation = grabbableData.spatialKey.relativeRotation;
-        }
+        var relativeRotation = getSpatialOffsetRotation(this.hand, grabbableData.spatialKey);
+        var relativePosition = getSpatialOffsetPosition(this.hand, grabbableData.spatialKey);
         var handRotation = this.getHandRotation();
         var handPosition = this.getHandPosition();
         var targetRotation = Quat.multiply(handRotation, relativeRotation);
