@@ -200,6 +200,7 @@ function entityIsGrabbedByOther(entityID) {
     return false;
 }
 
+
 function MyController(hand) {
     this.hand = hand;
     if (this.hand === RIGHT_HAND) {
@@ -222,6 +223,8 @@ function MyController(hand) {
     this.triggerValue = 0; // rolling average of trigger value
     this.rawTriggerValue = 0;
     this.rawBumperValue = 0;
+
+    this.overlayLine = null;
 
     this.offsetPosition = {
         x: 0.0,
@@ -318,32 +321,35 @@ function MyController(hand) {
         });
     }
 
-    this.overlayLineOn = function(color) {
+    this.overlayLineOn = function(closePoint, farPoint, color) {
+        if (this.overlayLine === null) {
+            print('creating handline')
 
-        var handPosition = this.getHandPosition();
-        var distantPickRay = {
-            origin: handPosition,
-            direction: Quat.getUp(this.getHandRotation()),
-            length: PICK_MAX_DISTANCE
-        };
+            var lineProperties = {
+                lineWidth: 5,
+                start: closePoint,
+                end: farPoint,
+                color: color,
+                ignoreRayIntersection: true, // always ignore this
+                visible: true,
+                alpha: 1
+            };
 
-        var end = Vec3.Sum(handPosition, Vec3.multiply(distantPickRay.direction, NEAR_PICK_MAX_DISTANCE));
+            this.overlayLine = Overlays.addOverlay("line3d", lineProperties);
 
-        var lineProperties = {
-            lineWidth: 5,
-            //get palm position
-            start: distantPickRay.origin,
-            end: end,
-            color: color || {
-                red: 255,
-                green: 0,
-                blue: 255
-            },
-            ignoreRayIntersection: true, // always ignore this
-            visible: true,
-        };
+        } else {
+            print('editing handline' + this.overlayLine)
+            var success = Overlays.editOverlay(this.overlayLine, {
+                lineWidth: 5,
+                start: closePoint,
+                end: farPoint,
+                color: color,
+                visible: true,
+                ignoreRayIntersection: true, // always ignore this
+                alpha: 1
+            });
+        }
 
-        this.pointerOverlay = Overlays.addOverlay("line3d", lineProperties);
     }
 
     this.lineOn = function(closePoint, farPoint, color) {
@@ -382,6 +388,13 @@ function MyController(hand) {
             Entities.deleteEntity(this.pointer);
         }
         this.pointer = null;
+    };
+
+    this.overlayLineOff = function() {
+        if (this.overlayLine !== null) {
+            Overlays.deleteOverlay(this.overlayLine);
+        }
+        this.overlayLine = null;
     };
 
     this.triggerPress = function(value) {
@@ -626,7 +639,8 @@ function MyController(hand) {
             }
         }
 
-        this.lineOn(distantPickRay.origin, Vec3.multiply(distantPickRay.direction, LINE_LENGTH), NO_INTERSECT_COLOR);
+        //this.lineOn(distantPickRay.origin, Vec3.multiply(distantPickRay.direction, LINE_LENGTH), NO_INTERSECT_COLOR);
+        this.overlayLineOn(distantPickRay.origin, Vec3.sum(distantPickRay.origin, Vec3.multiply(distantPickRay.direction, LINE_LENGTH)), NO_INTERSECT_COLOR);
     };
 
     this.distanceHolding = function() {
@@ -671,6 +685,9 @@ function MyController(hand) {
 
         this.currentAvatarPosition = MyAvatar.position;
         this.currentAvatarOrientation = MyAvatar.orientation;
+
+        this.overlayLineOff();
+
 
     };
 
@@ -779,6 +796,7 @@ function MyController(hand) {
         }
 
         this.lineOff();
+        this.overlayLineOff();
 
         var grabbedProperties = Entities.getEntityProperties(this.grabbedEntity, GRABBABLE_PROPERTIES);
         this.activateEntity(this.grabbedEntity, grabbedProperties);
@@ -918,6 +936,7 @@ function MyController(hand) {
 
     this.pullTowardEquipPosition = function() {
         this.lineOff();
+        this.overlayLineOff();
 
         var grabbedProperties = Entities.getEntityProperties(this.grabbedEntity, GRABBABLE_PROPERTIES);
         var grabbableData = getEntityCustomData(GRABBABLE_DATA_KEY, this.grabbedEntity, DEFAULT_GRABBABLE_DATA);
@@ -1121,7 +1140,7 @@ function MyController(hand) {
     this.release = function() {
 
         this.lineOff();
-
+        this.overlayLineOff();
         if (this.grabbedEntity !== null) {
             if (this.actionID !== null) {
                 Entities.deleteAction(this.grabbedEntity, this.actionID);
