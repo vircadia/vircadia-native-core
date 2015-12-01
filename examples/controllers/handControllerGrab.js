@@ -479,7 +479,11 @@ function MyController(hand) {
                             this.setState(STATE_NEAR_GRABBING);
                         } else { // equipping
                             if (typeof grabbableData.spatialKey !== 'undefined') {
-                                this.setState(STATE_EQUIP_SPRING);
+                                // TODO
+                                // if we go to STATE_EQUIP_SPRING the item will be pulled to the hand and will then switch
+                                // to STATE_EQUIP.  This needs some debugging, so just jump straight to STATE_EQUIP here.
+                                // this.setState(STATE_EQUIP_SPRING);
+                                this.setState(STATE_EQUIP);
                             } else {
                                 this.setState(STATE_EQUIP);
                             }
@@ -493,7 +497,9 @@ function MyController(hand) {
                         this.grabbedEntity = intersection.entityID;
                         if (typeof grabbableData.spatialKey !== 'undefined' && this.state == STATE_EQUIP_SEARCHING) {
                             // if a distance pick in equip mode hits something with a spatialKey, equip it
-                            this.setState(STATE_EQUIP_SPRING);
+                            // TODO use STATE_EQUIP_SPRING here once it works right.
+                            // this.setState(STATE_EQUIP_SPRING);
+                            this.setState(STATE_EQUIP);
                             return;
                         } else if (this.state == STATE_SEARCHING) {
                             this.setState(STATE_DISTANCE_HOLDING);
@@ -802,6 +808,7 @@ function MyController(hand) {
                 // equipping
                 Entities.callEntityMethod(this.grabbedEntity, "startEquip", [JSON.stringify(this.hand)]);
                 this.startHandGrasp();
+
                 this.setState(STATE_CONTINUE_EQUIP_BD);
             }
 
@@ -885,6 +892,7 @@ function MyController(hand) {
             Entities.callEntityMethod(this.grabbedEntity, "releaseGrab");
             Entities.callEntityMethod(this.grabbedEntity, "unequip");
             this.endHandGrasp();
+
         }
     };
 
