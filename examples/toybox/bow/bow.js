@@ -216,7 +216,7 @@
             //  print('RELEASE GRAB EVENT')
             if (this.isGrabbed === true && this.hand === this.initialHand) {
 
-                Messages.sendMessage('Hifi-Beam-Disabler', "none")
+                Messages.sendMessage('Hifi-Hand-Disabler', "none")
 
                 this.isGrabbed = false;
                 this.stringDrawn = false;
