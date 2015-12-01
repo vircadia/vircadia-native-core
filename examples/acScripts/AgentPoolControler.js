@@ -141,7 +141,7 @@ function printDebug(message) {
                 } else {
                     // Master think the agent is hired but not the other way around, forget about it
                     printDebug("New agent still sending ready ? " + message.src + " " + agentIndex + " Forgeting about it");
-                    this._removeAgent(agentIndex);
+                    this._removeHiredAgent(agentIndex);
                 }
             } else if (message.command == AGENT_ALIVE) {
                  // check to see if we know about this agent
@@ -199,7 +199,7 @@ function printDebug(message) {
                     var actor = this.hiredActors[i];
                     var lastAlive = actor.incrementAliveCycle()
                     if (lastAlive > NUM_CYCLES_BEFORE_RESET) {
-                        printDebug("Agent Lost, firing Agent #" + i + JSON.stringify(actor));
+                        printDebug("Agent Lost, firing Agent #" + i + " ID " + actor.agentID);
                         lostAgents.push(i);
                     }
                 }
@@ -228,25 +228,31 @@ function printDebug(message) {
 
     MasterController.prototype.fireAgent = function(actor) {
         // check to see if we know about this agent
-        printDebug("MasterController.prototype.fireAgent" + JSON.stringify(actor) + "  " + JSON.stringify(this.knownAgents));
+        printDebug("MasterController.prototype.fireAgent" + actor.agentID);
         
+        // Try the waiting list first
         var waitingIndex = this.hiringAgentsQueue.indexOf(actor);                
         if (waitingIndex >= 0) {
-            printDebug("MasterController.prototype.fireAgent found actor on waiting queue #" + waitingIndex);
-            this.hiringAgentsQueue.splice(waitingIndex, 1);
+            printDebug("fireAgent found actor on waiting queue #" + waitingIndex);
+            var lostActor = this.hiringAgentsQueue.splice(waitingIndex, 1);
+            if (lostActor.length) {
+                lostActor[0].onFired(lostActor[0]);    
+            }
+            return;
         }
 
+        // then the hired agents
         var actorIndex = this.knownAgents.indexOf(actor.agentID);                
         if (actorIndex >= 0) {
             printDebug("fired actor found #" + actorIndex);
-            this._removeAgent(actorIndex);
+            this._removeHiredAgent(actorIndex);
         }
     }
 
-    MasterController.prototype._removeAgent = function(actorIndex) {
+    MasterController.prototype._removeHiredAgent = function(actorIndex) {
         // check to see if we know about this agent  
         if (actorIndex >= 0) {
-            printDebug("MasterController.prototype._removeAgent #" + actorIndex + " " + JSON.stringify(this))
+            printDebug("MasterController.prototype._removeHiredAgent #" + this.knownAgents[actorIndex])
             this.knownAgents.splice(actorIndex, 1);
 
             var lostActor = this.hiredActors[actorIndex];

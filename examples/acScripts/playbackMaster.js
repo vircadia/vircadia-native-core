@@ -61,6 +61,8 @@ Actor.prototype.onMousePressEvent = function(clickedOverlay) {
         masterController.sendCommand(this.agentID, PLAY_LOOP);
     } else if (this.stopIcon === this.toolbar.clicked(clickedOverlay, false)) {
         masterController.sendCommand(this.agentID, STOP);
+    } else if (this.nameOverlay === clickedOverlay) {                
+        print("Actor: " + JSON.stringify(this));
     } else {
         return false;
     }
@@ -136,6 +138,8 @@ Director = function() {
     this.actors = new Array();
     this.toolbar = null;
     this._buildUI();
+    this.requestPerformanceLoad = false;
+    this.performanceURL = "";
 };
 
 Director.prototype.destroy = function () {
@@ -234,27 +238,11 @@ Director.prototype.onMousePressEvent = function(clickedOverlay) {
         input_text = Window.prompt("Insert the url of the clip: ","");
         if (!(input_text === "" || input_text === null)) {
             print("Performance file ready to be loaded url = " + input_text); 
-            var urlpartition = input_text.split(".");
-            print(urlpartition[0]);
-            print(urlpartition[1]);
-
-            if ((urlpartition.length > 1) && (urlpartition[urlpartition.length - 1] === "hfr")) {
-                print("detected a unique clip url");
-                var oneClipPerformance = new Object();
-                oneClipPerformance.avatarClips = new Array();
-                oneClipPerformance.avatarClips[0] = input_text;
-
-                print(JSON.stringify(oneClipPerformance));
-
-                // we make a local simple performance file with a single clip and pipe in directly
-                this.onPerformanceLoaded(oneClipPerformance);
-                return true;
-            } else {
-                // FIXME: I cannot pass directly this.onPerformanceLoaded, is that exepected ?
-                var localThis = this;
-                Assets.downloadData(input_text, function(data) { localThis.onPerformanceLoaded(JSON.parse(data)); });
-            }
+            this.requestPerformanceLoad = true;
+            this.performanceURL = input_text;
         }        
+    } else if (this.nameOverlay === clickedOverlay) {                
+        print("Director: " + JSON.stringify(this));
     } else {
         // Check individual controls
         for (var i = 0; i < this.actors.length; i++) {
@@ -283,6 +271,32 @@ Director.prototype.moveUI = function(pos) {
         this.actors[i].moveUI({x: relative.x, y: windowDimensions.y - relative.y +
                          (i + 1) * (Tool.IMAGE_HEIGHT + ToolBar.SPACING + textSize)});
     }
+}
+
+
+Director.prototype.reloadPerformance = function() {
+      this.requestPerformanceLoad = false;
+       
+      var urlpartition = this.performanceURL.split(".");
+      print(urlpartition[0]);
+      print(urlpartition[1]);
+
+      if ((urlpartition.length > 1) && (urlpartition[urlpartition.length - 1] === "hfr")) {
+          print("detected a unique clip url");
+          var oneClipPerformance = new Object();
+          oneClipPerformance.avatarClips = new Array();
+          oneClipPerformance.avatarClips[0] = input_text;
+
+          print(JSON.stringify(oneClipPerformance));
+
+          // we make a local simple performance file with a single clip and pipe in directly
+          this.onPerformanceLoaded(oneClipPerformance);
+          return true;
+      } else {
+          // FIXME: I cannot pass directly this.onPerformanceLoaded, is that exepected ?
+          var localThis = this;
+          Assets.downloadData(input_text, function(data) { localThis.onPerformanceLoaded(JSON.parse(data)); });
+      }
 }
 
 Director.prototype.onPerformanceLoaded = function(performanceJSON) {
@@ -375,6 +389,11 @@ function update(deltaTime) {
             windowDimensions.y != newDimensions.y) {
         windowDimensions = newDimensions;
         moveUI();
+    }
+
+    if (director.requestPerformanceLoad) {
+       print("reloadPerformance " + director.performanceURL);
+       director.reloadPerformance();
     }
 
     masterController.update(deltaTime);
