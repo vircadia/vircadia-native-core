@@ -125,10 +125,11 @@
             createLights();
 
             createCat({
-                x: 551.09,
-                y: 494.98,
-                z: 503.49
+                x: 551.0,
+                y: 495.3,
+                z: 503.3
             });
+
 
             createSprayCan({
                 x: 549.7,
