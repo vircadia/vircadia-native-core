@@ -318,6 +318,34 @@ function MyController(hand) {
         });
     }
 
+    this.overlayLineOn = function(color) {
+
+        var handPosition = this.getHandPosition();
+        var distantPickRay = {
+            origin: handPosition,
+            direction: Quat.getUp(this.getHandRotation()),
+            length: PICK_MAX_DISTANCE
+        };
+
+        var end = Vec3.Sum(handPosition, Vec3.multiply(distantPickRay.direction, NEAR_PICK_MAX_DISTANCE));
+
+        var lineProperties = {
+            lineWidth: 5,
+            //get palm position
+            start: distantPickRay.origin,
+            end: end,
+            color: color || {
+                red: 255,
+                green: 0,
+                blue: 255
+            },
+            ignoreRayIntersection: true, // always ignore this
+            visible: true,
+        };
+
+        this.pointerOverlay = Overlays.addOverlay("line3d", lineProperties);
+    }
+
     this.lineOn = function(closePoint, farPoint, color) {
         // draw a line
         if (this.pointer === null) {
