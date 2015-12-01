@@ -170,8 +170,8 @@
                 collisionSoundURL: "https://s3.amazonaws.com/hifi-public/sounds/Guns/Gun_Drop_and_Metalli_1.wav",
                 dimensions: {
                     x: 0.05,
-                    y: .23,
-                    z: .36
+                    y: 0.23,
+                    z: 0.36
                 },
                 script: gunScriptURL,
                 color: {
