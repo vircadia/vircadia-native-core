@@ -136,5 +136,3 @@ playFireworkShow = function(position, numberOfFireworks, duration) {
         }(randomPosition), Math.random() * duration)
     }
 }
-
-//playFireworkShow(10, 2000);
