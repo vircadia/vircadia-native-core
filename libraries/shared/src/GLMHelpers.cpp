@@ -10,7 +10,7 @@
 //
 
 #include "GLMHelpers.h"
-
+#include <glm/gtc/matrix_transform.hpp>
 #include "NumericalConstants.h"
 
 const vec3 Vectors::UNIT_X{ 1.0f, 0.0f, 0.0f };
@@ -34,6 +34,7 @@ const vec3& Vectors::UP = Vectors::UNIT_Y;
 const vec3& Vectors::FRONT = Vectors::UNIT_NEG_Z;
 
 const quat Quaternions::IDENTITY{ 1.0f, 0.0f, 0.0f, 0.0f };
+const quat Quaternions::Y_180{ 0.0f, 0.0f, 1.0f, 0.0f };
 
 //  Safe version of glm::mix; based on the code in Nick Bobick's article,
 //  http://www.gamasutra.com/features/19980703/quaternions_01.htm (via Clyde,
@@ -274,6 +275,18 @@ glm::quat extractRotation(const glm::mat4& matrix, bool assumeOrthogonal) {
                                     0.5f * sqrtf(x2) * (upper[1][2] >= upper[2][1] ? 1.0f : -1.0f),
                                     0.5f * sqrtf(y2) * (upper[2][0] >= upper[0][2] ? 1.0f : -1.0f),
                                     0.5f * sqrtf(z2) * (upper[0][1] >= upper[1][0] ? 1.0f : -1.0f)));
+}
+
+glm::quat glmExtractRotation(const glm::mat4& matrix) {
+    glm::vec3 scale = extractScale(matrix);
+    float maxScale = std::max(std::max(scale.x, scale.y), scale.z);
+    if (maxScale > 1.01f || maxScale <= 0.99f) {
+        // quat_cast doesn't work so well with scaled matrices, so cancel it out.
+        glm::mat4 tmp = glm::scale(matrix, 1.0f / scale);
+        return glm::normalize(glm::quat_cast(tmp));
+    } else {
+        return glm::normalize(glm::quat_cast(matrix));
+    }
 }
 
 glm::vec3 extractScale(const glm::mat4& matrix) {

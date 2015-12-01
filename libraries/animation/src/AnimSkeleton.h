@@ -24,7 +24,7 @@ public:
     using ConstPointer = std::shared_ptr<const AnimSkeleton>;
 
     AnimSkeleton(const FBXGeometry& fbxGeometry);
-    AnimSkeleton(const std::vector<FBXJoint>& joints, const AnimPose& geometryOffset);
+    AnimSkeleton(const std::vector<FBXJoint>& joints);
     int nameToJointIndex(const QString& jointName) const;
     const QString& getJointName(int jointIndex) const;
     int getNumJoints() const;
@@ -36,9 +36,20 @@ public:
     const AnimPose& getRelativeBindPose(int jointIndex) const;
     const AnimPoseVec& getRelativeBindPoses() const { return _relativeBindPoses; }
 
+    // the default poses are the orientations of the joints on frame 0.
+    const AnimPose& getRelativeDefaultPose(int jointIndex) const;
+    const AnimPoseVec& getRelativeDefaultPoses() const { return _relativeDefaultPoses; }
+    const AnimPose& getAbsoluteDefaultPose(int jointIndex) const;
+    const AnimPoseVec& getAbsoluteDefaultPoses() const { return _absoluteDefaultPoses; }
+
+    // get pre-rotation aka Maya's joint orientation.
+    const glm::quat getPreRotation(int jointIndex) const;
+
     int getParentIndex(int jointIndex) const;
 
     AnimPose getAbsolutePose(int jointIndex, const AnimPoseVec& poses) const;
+
+    void convertRelativePosesToAbsolute(AnimPoseVec& poses) const;
 
 #ifndef NDEBUG
     void dump() const;
@@ -46,11 +57,13 @@ public:
 #endif
 
 protected:
-    void buildSkeletonFromJoints(const std::vector<FBXJoint>& joints, const AnimPose& geometryOffset);
+    void buildSkeletonFromJoints(const std::vector<FBXJoint>& joints);
 
     std::vector<FBXJoint> _joints;
     AnimPoseVec _absoluteBindPoses;
     AnimPoseVec _relativeBindPoses;
+    AnimPoseVec _relativeDefaultPoses;
+    AnimPoseVec _absoluteDefaultPoses;
 
     // no copies
     AnimSkeleton(const AnimSkeleton&) = delete;

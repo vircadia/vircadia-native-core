@@ -26,6 +26,7 @@
 #include "Head.h"
 #include "SkeletonModel.h"
 #include "world.h"
+#include "Rig.h"
 
 namespace render {
     template <> const ItemKey payloadGetKey(const AvatarSharedPointer& avatar);
@@ -65,7 +66,7 @@ public:
 
     typedef render::Payload<AvatarData> Payload;
     typedef std::shared_ptr<render::Item::PayloadInterface> PayloadPointer;
-    
+
     void init();
     void simulate(float deltaTime);
 
@@ -100,20 +101,20 @@ public:
     float getLODDistance() const;
 
     virtual bool isMyAvatar() const { return false; }
-    
+
     virtual QVector<glm::quat> getJointRotations() const;
     virtual glm::quat getJointRotation(int index) const;
     virtual glm::vec3 getJointTranslation(int index) const;
     virtual int getJointIndex(const QString& name) const;
     virtual QStringList getJointNames() const;
-    
+
     virtual void setFaceModelURL(const QUrl& faceModelURL);
     virtual void setSkeletonModelURL(const QUrl& skeletonModelURL);
     virtual void setAttachmentData(const QVector<AttachmentData>& attachmentData);
     virtual void setBillboard(const QByteArray& billboard);
 
     void setShowDisplayName(bool showDisplayName);
-    
+
     virtual int parseDataFromBuffer(const QByteArray& buffer);
 
     static void renderJointConnectingCone( gpu::Batch& batch, glm::vec3 position1, glm::vec3 position2,
@@ -124,16 +125,9 @@ public:
     Q_INVOKABLE void setSkeletonOffset(const glm::vec3& offset);
     Q_INVOKABLE glm::vec3 getSkeletonOffset() { return _skeletonOffset; }
     virtual glm::vec3 getSkeletonPosition() const;
-    
+
     Q_INVOKABLE glm::vec3 getJointPosition(int index) const;
     Q_INVOKABLE glm::vec3 getJointPosition(const QString& name) const;
-    Q_INVOKABLE glm::quat getJointCombinedRotation(int index) const;
-    Q_INVOKABLE glm::quat getJointCombinedRotation(const QString& name) const;
-    
-    Q_INVOKABLE void setJointModelPositionAndOrientation(int index, const glm::vec3 position, const glm::quat& rotation);
-    Q_INVOKABLE void setJointModelPositionAndOrientation(const QString& name, const glm::vec3 position,
-        const glm::quat& rotation);
-    
     Q_INVOKABLE glm::vec3 getNeckPosition() const;
 
     Q_INVOKABLE glm::vec3 getAcceleration() const { return _acceleration; }
@@ -196,9 +190,9 @@ protected:
     glm::vec3 _worldUpDirection;
     float _stringLength;
     bool _moving; ///< set when position is changing
-    
+
     bool isLookingAtMe(AvatarSharedPointer avatar);
-    
+
     // protected methods...
     glm::vec3 getBodyRightDirection() const { return getOrientation() * IDENTITY_RIGHT; }
     glm::vec3 getBodyUpDirection() const { return getOrientation() * IDENTITY_UP; }

@@ -55,6 +55,41 @@ static const char* animNodeTypeToString(AnimNode::Type type) {
     return nullptr;
 }
 
+static AnimNode::Type stringToAnimNodeType(const QString& str) {
+    // O(n), move to map when number of types becomes large.
+    const int NUM_TYPES = static_cast<int>(AnimNode::Type::NumTypes);
+    for (int i = 0; i < NUM_TYPES; i++) {
+        AnimNode::Type type = static_cast<AnimNode::Type>(i);
+        if (str == animNodeTypeToString(type)) {
+            return type;
+        }
+    }
+    return AnimNode::Type::NumTypes;
+}
+
+static const char* animManipulatorJointVarTypeToString(AnimManipulator::JointVar::Type type) {
+    switch (type) {
+    case AnimManipulator::JointVar::Type::AbsoluteRotation: return "absoluteRotation";
+    case AnimManipulator::JointVar::Type::AbsolutePosition: return "absolutePosition";
+    case AnimManipulator::JointVar::Type::RelativeRotation: return "relativeRotation";
+    case AnimManipulator::JointVar::Type::RelativePosition: return "relativePosition";
+    case AnimManipulator::JointVar::Type::NumTypes: return nullptr;
+    };
+    return nullptr;
+}
+
+static AnimManipulator::JointVar::Type stringToAnimManipulatorJointVarType(const QString& str) {
+    // O(n), move to map when number of types becomes large.
+    const int NUM_TYPES = static_cast<int>(AnimManipulator::JointVar::Type::NumTypes);
+    for (int i = 0; i < NUM_TYPES; i++) {
+        AnimManipulator::JointVar::Type type = static_cast<AnimManipulator::JointVar::Type>(i);
+        if (str == animManipulatorJointVarTypeToString(type)) {
+            return type;
+        }
+    }
+    return AnimManipulator::JointVar::Type::NumTypes;
+}
+
 static NodeLoaderFunc animNodeTypeToLoaderFunc(AnimNode::Type type) {
     switch (type) {
     case AnimNode::Type::Clip: return loadClipNode;
@@ -120,17 +155,6 @@ static NodeProcessFunc animNodeTypeToProcessFunc(AnimNode::Type type) {
     }                                                                   \
     float NAME = (float)NAME##_VAL.toDouble()
 
-static AnimNode::Type stringToEnum(const QString& str) {
-    // O(n), move to map when number of types becomes large.
-    const int NUM_TYPES = static_cast<int>(AnimNode::Type::NumTypes);
-    for (int i = 0; i < NUM_TYPES; i++) {
-        AnimNode::Type type = static_cast<AnimNode::Type>(i);
-        if (str == animNodeTypeToString(type)) {
-            return type;
-        }
-    }
-    return AnimNode::Type::NumTypes;
-}
 
 static AnimNode::Pointer loadNode(const QJsonObject& jsonObj, const QUrl& jsonUrl) {
     auto idVal = jsonObj.value("id");
@@ -146,7 +170,7 @@ static AnimNode::Pointer loadNode(const QJsonObject& jsonObj, const QUrl& jsonUr
         return nullptr;
     }
     QString typeStr = typeVal.toString();
-    AnimNode::Type type = stringToEnum(typeStr);
+    AnimNode::Type type = stringToAnimNodeType(typeStr);
     if (type == AnimNode::Type::NumTypes) {
         qCCritical(animation) << "AnimNodeLoader, unknown node type" << typeStr << ", id =" << id << ", url =" << jsonUrl.toDisplayString();
         return nullptr;
@@ -355,10 +379,17 @@ static AnimNode::Pointer loadManipulatorNode(const QJsonObject& jsonObj, const Q
         }
         auto jointObj = jointValue.toObject();
 
-        READ_STRING(var, jointObj, id, jsonUrl, nullptr);
+        READ_STRING(type, jointObj, id, jsonUrl, nullptr);
         READ_STRING(jointName, jointObj, id, jsonUrl, nullptr);
+        READ_STRING(var, jointObj, id, jsonUrl, nullptr);
 
-        AnimManipulator::JointVar jointVar(var, jointName);
+        AnimManipulator::JointVar::Type jointVarType = stringToAnimManipulatorJointVarType(type);
+        if (jointVarType == AnimManipulator::JointVar::Type::NumTypes) {
+            qCCritical(animation) << "AnimNodeLoader, bad type in \"joints\", id =" << id << ", url =" << jsonUrl.toDisplayString();
+            return nullptr;
+        }
+
+        AnimManipulator::JointVar jointVar(var, jointName, jointVarType);
         node->addJointVar(jointVar);
     };
 
@@ -393,9 +424,9 @@ AnimNode::Pointer loadInverseKinematicsNode(const QJsonObject& jsonObj, const QS
     return node;
 }
 
-void buildChildMap(std::map<QString, AnimNode::Pointer>& map, AnimNode::Pointer node) {
-    for ( auto child : node->_children ) {
-        map.insert(std::pair<QString, AnimNode::Pointer>(child->_id, child));
+void buildChildMap(std::map<QString, int>& map, AnimNode::Pointer node) {
+    for (int i = 0; i < (int)node->getChildCount(); ++i) {
+        map.insert(std::pair<QString, int>(node->getChild(i)->getID(), i));
     }
 }
 
@@ -412,7 +443,7 @@ bool processStateMachineNode(AnimNode::Pointer node, const QJsonObject& jsonObj,
     }
 
     // build a map for all children by name.
-    std::map<QString, AnimNode::Pointer> childMap;
+    std::map<QString, int> childMap;
     buildChildMap(childMap, node);
 
     // first pass parse all the states and build up the state and transition map.
