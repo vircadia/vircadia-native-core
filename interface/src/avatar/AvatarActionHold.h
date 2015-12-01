@@ -41,12 +41,12 @@ private:
     static const uint16_t holdVersion;
 
     void doKinematicUpdate(float deltaTimeStep);
-    
-    glm::vec3 _relativePosition { 0.0f };
-    glm::quat _relativeRotation;
-    glm::vec3 _perHandRelativePosition { 0.0f };
-    glm::quat _perHandRelativeRotation;
-    
+
+    glm::vec3 _leftRelativePosition{ Vectors::ZERO };
+    glm::quat _leftRelativeRotation{ Quaternions::IDENTITY };
+    glm::vec3 _rightRelativePosition{ Vectors::ZERO };
+    glm::quat _rightRelativeRotation{ Quaternions::IDENTITY };
+
     QString _hand { "right" };
     QUuid _holderID;
 

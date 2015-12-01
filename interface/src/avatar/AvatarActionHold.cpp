@@ -33,63 +33,46 @@ AvatarActionHold::~AvatarActionHold() {
 }
 
 std::shared_ptr<Avatar> AvatarActionHold::getTarget(glm::quat& rotation, glm::vec3& position) {
-    std::shared_ptr<Avatar> holdingAvatar = nullptr;
+    auto avatarManager = DependencyManager::get<AvatarManager>();
+    auto holdingAvatar = std::static_pointer_cast<Avatar>(avatarManager->getAvatarBySessionID(_holderID));
+
+    if (!holdingAvatar) {
+        return holdingAvatar;
+    }
 
     withTryReadLock([&]{
-        QSharedPointer<AvatarManager> avatarManager = DependencyManager::get<AvatarManager>();
-        AvatarSharedPointer holdingAvatarData = avatarManager->getAvatarBySessionID(_holderID);
-        holdingAvatar = std::static_pointer_cast<Avatar>(holdingAvatarData);
-        
-        if (holdingAvatar) {
-            bool isRightHand = (_hand == "right");
-            glm::vec3 palmPosition { Vectors::ZERO };
-            glm::quat palmRotation { Quaternions::IDENTITY };
+        bool isRightHand = (_hand == "right");
+        glm::vec3 palmPosition { Vectors::ZERO };
+        glm::quat palmRotation { Quaternions::IDENTITY };
             
-            
-            static const glm::quat yFlip = glm::angleAxis(PI, Vectors::UNIT_Y);
-            if (_ignoreIK && holdingAvatar->isMyAvatar()) {
-                // We cannot ignore other avatars IK and this is not the point of this option
-                // This is meant to make the grabbing behavior more reactive.
-                if (isRightHand) {
-                    palmPosition = holdingAvatar->getHand()->getCopyOfPalmData(HandData::RightHand).getPosition();
-                    palmRotation = holdingAvatar->getHand()->getCopyOfPalmData(HandData::RightHand).getRotation();
-                } else {
-                    palmPosition = holdingAvatar->getHand()->getCopyOfPalmData(HandData::LeftHand).getPosition();
-                    palmRotation = holdingAvatar->getHand()->getCopyOfPalmData(HandData::LeftHand).getRotation();
-                    palmRotation *= yFlip; // Match right hand frame of reference
-                }
-            } else {
-                if (isRightHand) {
-                    palmPosition = holdingAvatar->getRightPalmPosition();
-                    palmRotation = holdingAvatar->getRightPalmRotation();
-                } else {
-                    palmPosition = holdingAvatar->getLeftPalmPosition();
-                    palmRotation = holdingAvatar->getLeftPalmRotation();
-                    palmRotation *= yFlip; // Match right hand frame of reference
-                }
-            }
-            
-            rotation = palmRotation * _relativeRotation;
-            position = palmPosition + rotation * _relativePosition;
-            
+        if (_ignoreIK && holdingAvatar->isMyAvatar()) {
+            // We cannot ignore other avatars IK and this is not the point of this option
+            // This is meant to make the grabbing behavior more reactive.
             if (isRightHand) {
-                rotation *= _perHandRelativeRotation;
-                position += rotation * _perHandRelativePosition;
+                palmPosition = holdingAvatar->getHand()->getCopyOfPalmData(HandData::RightHand).getPosition();
+                palmRotation = holdingAvatar->getHand()->getCopyOfPalmData(HandData::RightHand).getRotation();
             } else {
-                auto mirroredRotation = _perHandRelativeRotation;
-                auto mirroredPosition = _perHandRelativePosition;
-
-                // Mirror along z axis
-                auto eulerAngles = safeEulerAngles(mirroredRotation);
-                eulerAngles.x *= -1;
-                eulerAngles.y *= -1;
-                mirroredRotation = glm::quat(eulerAngles);
-                
-                mirroredPosition.z *= -1;
-                
-                rotation *= mirroredRotation;
-                position += rotation * mirroredPosition;
+                palmPosition = holdingAvatar->getHand()->getCopyOfPalmData(HandData::LeftHand).getPosition();
+                palmRotation = holdingAvatar->getHand()->getCopyOfPalmData(HandData::LeftHand).getRotation();
             }
+        } else {
+            if (isRightHand) {
+                palmPosition = holdingAvatar->getRightPalmPosition();
+                palmRotation = holdingAvatar->getRightPalmRotation();
+            } else {
+                palmPosition = holdingAvatar->getLeftPalmPosition();
+                palmRotation = holdingAvatar->getLeftPalmRotation();
+            }
+        }
+
+        if (isRightHand) {
+            rotation = palmRotation * _rightRelativeRotation;
+            position = palmPosition + rotation * _rightRelativePosition;
+        } else {
+            static const glm::quat yFlip = glm::angleAxis(PI, Vectors::UNIT_Y);
+            palmRotation *= yFlip; // Match right hand frame of reference
+            rotation = palmRotation * _leftRelativeRotation;
+            position = palmPosition + rotation * _leftRelativePosition;
         }
     });
 
@@ -192,10 +175,10 @@ void AvatarActionHold::doKinematicUpdate(float deltaTimeStep) {
 }
 
 bool AvatarActionHold::updateArguments(QVariantMap arguments) {
-    glm::vec3 relativePosition;
-    glm::quat relativeRotation;
-    glm::vec3 perHandRelativePosition;
-    glm::quat perHandRelativeRotation;
+    glm::vec3 leftRelativePosition;
+    glm::quat leftRelativeRotation;
+    glm::vec3 rightRelativePosition;
+    glm::quat rightRelativeRotation;
     float timeScale;
     QString hand;
     QUuid holderID;
@@ -207,29 +190,27 @@ bool AvatarActionHold::updateArguments(QVariantMap arguments) {
     bool somethingChanged = ObjectAction::updateArguments(arguments);
     withReadLock([&]{
         bool ok = true;
-        relativePosition = EntityActionInterface::extractVec3Argument("hold", arguments, "relativePosition", ok, false);
+        leftRelativePosition = EntityActionInterface::extractVec3Argument("hold", arguments, "leftRelativePosition", ok, false);
         if (!ok) {
-            relativePosition = _relativePosition;
+            leftRelativePosition = _leftRelativePosition;
         }
         
         ok = true;
-        relativeRotation = EntityActionInterface::extractQuatArgument("hold", arguments, "relativeRotation", ok, false);
+        leftRelativeRotation = EntityActionInterface::extractQuatArgument("hold", arguments, "leftRelativeRotation", ok, false);
         if (!ok) {
-            relativeRotation = _relativeRotation;
+            leftRelativeRotation = _leftRelativeRotation;
         }
         
         ok = true;
-        perHandRelativePosition = EntityActionInterface::extractVec3Argument("hold", arguments,
-                                                                             "perHandRelativePosition", ok, false);
+        rightRelativePosition = EntityActionInterface::extractVec3Argument("hold", arguments, "rightRelativePosition", ok, false);
         if (!ok) {
-            perHandRelativePosition = _perHandRelativePosition;
+            rightRelativePosition = _rightRelativePosition;
         }
         
         ok = true;
-        perHandRelativeRotation = EntityActionInterface::extractQuatArgument("hold", arguments,
-                                                                             "perHandRelativeRotation", ok, false);
+        rightRelativeRotation = EntityActionInterface::extractQuatArgument("hold", arguments, "rightRelativeRotation", ok, false);
         if (!ok) {
-            perHandRelativeRotation = _perHandRelativeRotation;
+            rightRelativeRotation = _rightRelativeRotation;
         }
 
         ok = true;
@@ -268,10 +249,10 @@ bool AvatarActionHold::updateArguments(QVariantMap arguments) {
         }
 
         if (somethingChanged ||
-            relativePosition != _relativePosition ||
-            relativeRotation != _relativeRotation ||
-            perHandRelativePosition != _perHandRelativePosition ||
-            perHandRelativeRotation != _perHandRelativeRotation ||
+            leftRelativePosition != _leftRelativePosition ||
+            leftRelativeRotation != _leftRelativeRotation ||
+            rightRelativePosition != _rightRelativePosition ||
+            rightRelativeRotation != _rightRelativeRotation ||
             timeScale != _linearTimeScale ||
             hand != _hand ||
             holderID != _holderID ||
@@ -284,10 +265,10 @@ bool AvatarActionHold::updateArguments(QVariantMap arguments) {
 
     if (needUpdate) {
         withWriteLock([&] {
-            _relativePosition = relativePosition;
-            _relativeRotation = relativeRotation;
-            _perHandRelativePosition = perHandRelativePosition;
-            _perHandRelativeRotation = perHandRelativeRotation;
+            _leftRelativePosition = leftRelativePosition;
+            _leftRelativeRotation = leftRelativeRotation;
+            _rightRelativePosition = rightRelativePosition;
+            _rightRelativeRotation = rightRelativeRotation;
             const float MIN_TIMESCALE = 0.1f;
             _linearTimeScale = glm::max(MIN_TIMESCALE, timeScale);
             _angularTimeScale = _linearTimeScale;
@@ -314,10 +295,10 @@ QVariantMap AvatarActionHold::getArguments() {
     QVariantMap arguments = ObjectAction::getArguments();
     withReadLock([&]{
         arguments["holderID"] = _holderID;
-        arguments["relativePosition"] = glmToQMap(_relativePosition);
-        arguments["relativeRotation"] = glmToQMap(_relativeRotation);
-        arguments["perHandRelativePosition"] = glmToQMap(_perHandRelativePosition);
-        arguments["perHandRelativeRotation"] = glmToQMap(_perHandRelativeRotation);
+        arguments["leftRelativePosition"] = glmToQMap(_leftRelativePosition);
+        arguments["leftRelativeRotation"] = glmToQMap(_leftRelativeRotation);
+        arguments["rightRelativePosition"] = glmToQMap(_rightRelativePosition);
+        arguments["rightRelativeRotation"] = glmToQMap(_rightRelativeRotation);
         arguments["timeScale"] = _linearTimeScale;
         arguments["hand"] = _hand;
         arguments["kinematic"] = _kinematic;
@@ -337,10 +318,10 @@ QByteArray AvatarActionHold::serialize() const {
         dataStream << AvatarActionHold::holdVersion;
 
         dataStream << _holderID;
-        dataStream << _relativePosition;
-        dataStream << _relativeRotation;
-        dataStream << _perHandRelativePosition;
-        dataStream << _perHandRelativeRotation;
+        dataStream << _leftRelativePosition;
+        dataStream << _leftRelativeRotation;
+        dataStream << _rightRelativePosition;
+        dataStream << _rightRelativeRotation;
         dataStream << _linearTimeScale;
         dataStream << _hand;
 
@@ -372,10 +353,10 @@ void AvatarActionHold::deserialize(QByteArray serializedArguments) {
 
     withWriteLock([&]{
         dataStream >> _holderID;
-        dataStream >> _relativePosition;
-        dataStream >> _relativeRotation;
-        dataStream >> _perHandRelativePosition;
-        dataStream >> _perHandRelativeRotation;
+        dataStream >> _leftRelativePosition;
+        dataStream >> _leftRelativeRotation;
+        dataStream >> _rightRelativePosition;
+        dataStream >> _rightRelativeRotation;
         dataStream >> _linearTimeScale;
         _angularTimeScale = _linearTimeScale;
         dataStream >> _hand;
