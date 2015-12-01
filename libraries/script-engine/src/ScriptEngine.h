@@ -19,9 +19,11 @@
 #include <QtCore/QSet>
 #include <QtCore/QWaitCondition>
 #include <QtScript/QScriptEngine>
+#include <QtCore/QStringList>
 
 #include <AnimationCache.h>
 #include <AnimVariant.h>
+#include <AssetClient.h>
 #include <AvatarData.h>
 #include <AvatarHashMap.h>
 #include <LimitedNodeList.h>
@@ -115,7 +117,7 @@ public:
     Q_INVOKABLE void loadEntityScript(const EntityItemID& entityID, const QString& entityScript, bool forceRedownload = false); // will call the preload method once loaded
     Q_INVOKABLE void unloadEntityScript(const EntityItemID& entityID); // will call unload method
     Q_INVOKABLE void unloadAllEntityScripts();
-    Q_INVOKABLE void callEntityScriptMethod(const EntityItemID& entityID, const QString& methodName);
+    Q_INVOKABLE void callEntityScriptMethod(const EntityItemID& entityID, const QString& methodName, const QStringList& params = QStringList());
     Q_INVOKABLE void callEntityScriptMethod(const EntityItemID& entityID, const QString& methodName, const MouseEvent& event);
     Q_INVOKABLE void callEntityScriptMethod(const EntityItemID& entityID, const QString& methodName, const EntityItemID& otherID, const Collision& collision);
 
@@ -126,6 +128,7 @@ public:
     bool isFinished() const { return _isFinished; } // used by Application and ScriptWidget
     bool isRunning() const { return _isRunning; } // used by ScriptWidget
 
+    void disconnectNonEssentialSignals();
     static void stopAllScripts(QObject* application); // used by Application on shutdown
 
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -163,15 +166,16 @@ signals:
 protected:
     QString _scriptContents;
     QString _parentURL;
-    bool _isFinished;
-    bool _isRunning;
-    int _evaluatesPending = 0;
-    bool _isInitialized;
+    bool _isFinished { false };
+    bool _isRunning { false };
+    int _evaluatesPending { 0 };
+    bool _isInitialized { false };
     QHash<QTimer*, QScriptValue> _timerFunctionMap;
     QSet<QUrl> _includedURLs;
-    bool _wantSignals = true;
+    bool _wantSignals { true };
     QHash<EntityItemID, EntityScriptDetails> _entityScripts;
-private:
+    bool _isThreaded { false };
+
     void init();
     QString getFilename() const;
     void waitTillDoneRunning();
@@ -189,10 +193,12 @@ private:
     Quat _quatLibrary;
     Vec3 _vec3Library;
     ScriptUUID _uuidLibrary;
-    bool _isUserLoaded;
-    bool _isReloading;
+    bool _isUserLoaded { false };
+    bool _isReloading { false };
 
     ArrayBufferClass* _arrayBufferClass;
+
+    AssetScriptingInterface _assetScriptingInterface{ this };
 
     QHash<EntityItemID, RegisteredEventHandlers> _registeredHandlers;
     void forwardHandlerCall(const EntityItemID& entityID, const QString& eventName, QScriptValueList eventHanderArgs);
@@ -201,8 +207,6 @@ private:
     static QSet<ScriptEngine*> _allKnownScriptEngines;
     static QMutex _allScriptsMutex;
     static bool _stoppingAllScripts;
-    static bool _doneRunningThisScript;
-
 };
 
 #endif // hifi_ScriptEngine_h

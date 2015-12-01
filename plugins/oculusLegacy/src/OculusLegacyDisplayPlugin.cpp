@@ -167,10 +167,7 @@ void OculusLegacyDisplayPlugin::activate() {
         }
     });
 
-    #ifndef QT_NO_DEBUG
-    ovrBool result =
-    #endif
-        ovrHmd_ConfigureRendering(_hmd, &config.Config, distortionCaps, _eyeFovs, _eyeRenderDescs);
+    ovrBool result = ovrHmd_ConfigureRendering(_hmd, &config.Config, distortionCaps, _eyeFovs, _eyeRenderDescs);
     Q_ASSERT(result);
 }
 

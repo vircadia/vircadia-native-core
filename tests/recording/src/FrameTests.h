@@ -10,6 +10,7 @@
 #ifndef hifi_FrameTests_h
 #define hifi_FrameTests_h
 
+#if 0
 #include <QtTest/QtTest>
 
 class FrameTests : public QObject {
@@ -17,5 +18,7 @@ class FrameTests : public QObject {
 private slots:
     void registerFrameTypeTest();
 };
+
+#endif
 
 #endif // hifi_FrameTests_h

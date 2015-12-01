@@ -38,15 +38,26 @@ DomainHandler::DomainHandler(QObject* parent) :
     _icePeer(this),
     _isConnected(false),
     _settingsObject(),
-    _failedSettingsRequests(0)
+    _settingsTimer(this)
 {
     _sockAddr.setObjectName("DomainServer");
 
     // if we get a socket that make sure our NetworkPeer ping timer stops
     connect(this, &DomainHandler::completedSocketDiscovery, &_icePeer, &NetworkPeer::stopPingTimer);
+    
+    // setup a timeout for failure on settings requests
+    static const int DOMAIN_SETTINGS_TIMEOUT_MS = 5000;
+    _settingsTimer.setInterval(DOMAIN_SETTINGS_TIMEOUT_MS);
+    connect(&_settingsTimer, &QTimer::timeout, this, &DomainHandler::settingsReceiveFail);
 }
 
-void DomainHandler::clearConnectionInfo() {
+void DomainHandler::disconnect() {
+    // if we're currently connected to a domain, send a disconnect packet on our way out
+    if (_isConnected) {
+        sendDisconnectPacket();
+    }
+    
+    // clear member variables that hold the connection state to a domain
     _uuid = QUuid();
     _connectionToken = QUuid();
     
@@ -60,15 +71,30 @@ void DomainHandler::clearConnectionInfo() {
     setIsConnected(false);
 }
 
+void DomainHandler::sendDisconnectPacket() {
+    // The DomainDisconnect packet is not verified - we're relying on the eventual addition of DTLS to the
+    // domain-server connection to stop greifing here
+    
+    // construct the disconnect packet once (an empty packet but sourced with our current session UUID)
+    static auto disconnectPacket = NLPacket::create(PacketType::DomainDisconnectRequest, 0);
+    
+    // send the disconnect packet to the current domain server
+    auto nodeList = DependencyManager::get<NodeList>();
+    nodeList->sendUnreliablePacket(*disconnectPacket, _sockAddr);
+}
+
 void DomainHandler::clearSettings() {
     _settingsObject = QJsonObject();
-    _failedSettingsRequests = 0;
 }
 
 void DomainHandler::softReset() {
     qCDebug(networking) << "Resetting current domain connection information.";
-    clearConnectionInfo();
+    disconnect();
+    
     clearSettings();
+    
+    // cancel the failure timeout for any pending requests for settings
+    QMetaObject::invokeMethod(&_settingsTimer, "stop", Qt::AutoConnection);
 }
 
 void DomainHandler::hardReset() {
@@ -232,34 +258,35 @@ void DomainHandler::requestDomainSettings() {
     
     NodeType_t owningNodeType = DependencyManager::get<NodeList>()->getOwnerType();
     if (owningNodeType == NodeType::Agent) {
-        // for now the agent nodes don't need any settings - this allows local assignment-clients
-        // to connect to a domain that is using automatic networking (since we don't have TCP hole punch yet)
+        // for now the agent nodes don't need any domain settings
         _settingsObject = QJsonObject();
         emit settingsReceived(_settingsObject);
     } else {
-        if (_settingsObject.isEmpty()) {
-            qCDebug(networking) << "Requesting settings from domain server";
-
-            Assignment::Type assignmentType = Assignment::typeForNodeType(DependencyManager::get<NodeList>()->getOwnerType());
-
-            auto packet = NLPacket::create(PacketType::DomainSettingsRequest, sizeof(assignmentType), true, false);
-            packet->writePrimitive(assignmentType);
-
-            auto nodeList = DependencyManager::get<LimitedNodeList>();
-            nodeList->sendPacket(std::move(packet), _sockAddr);
-        }
+        qCDebug(networking) << "Requesting settings from domain server";
+        
+        Assignment::Type assignmentType = Assignment::typeForNodeType(DependencyManager::get<NodeList>()->getOwnerType());
+        
+        auto packet = NLPacket::create(PacketType::DomainSettingsRequest, sizeof(assignmentType), true, false);
+        packet->writePrimitive(assignmentType);
+        
+        auto nodeList = DependencyManager::get<LimitedNodeList>();
+        nodeList->sendPacket(std::move(packet), _sockAddr);
+        
+        _settingsTimer.start();
     }
 }
 
 void DomainHandler::processSettingsPacketList(QSharedPointer<NLPacketList> packetList) {
+    // stop our settings timer since we successfully requested the settings we need
+    _settingsTimer.stop();
+    
     auto data = packetList->getMessage();
 
     _settingsObject = QJsonDocument::fromJson(data).object();
-
-    qCDebug(networking) << "Received domain settings: \n" << QString(data);
-
-    // reset failed settings requests to 0, we got them
-    _failedSettingsRequests = 0;
+    
+    if (!_settingsObject.isEmpty()) {
+        qCDebug(networking) << "Received domain settings: \n" << _settingsObject;
+    }
 
     emit settingsReceived(_settingsObject);
 }

@@ -12,35 +12,59 @@
 
 #include "Forward.h"
 
+#include <mutex>
+
 #include <QtCore/QObject>
+
+#include "Frame.h"
 
 class QIODevice;
 
 namespace recording {
 
-class Clip : public QObject {
+class Clip {
 public:
     using Pointer = std::shared_ptr<Clip>;
+    using ConstPointer = std::shared_ptr<const Clip>;
 
-    Clip(QObject* parent = nullptr) : QObject(parent) {}
     virtual ~Clip() {}
 
-    Pointer duplicate();
+    virtual Pointer duplicate() const = 0;
 
-    virtual void seek(float offset) = 0;
-    virtual float position() const = 0;
+    virtual QString getName() const = 0;
 
-    virtual FramePointer peekFrame() const = 0;
-    virtual FramePointer nextFrame() = 0;
+    virtual float duration() const = 0;
+    virtual size_t frameCount() const = 0;
+
+    virtual void seek(float offset) final;
+    virtual float position() const final;
+
+    virtual void seekFrameTime(Frame::Time offset) = 0;
+    virtual Frame::Time positionFrameTime() const = 0;
+
+    virtual FrameConstPointer peekFrame() const = 0;
+    virtual FrameConstPointer nextFrame() = 0;
     virtual void skipFrame() = 0;
-    virtual void appendFrame(FramePointer) = 0;
+    virtual void addFrame(FrameConstPointer) = 0;
 
+    bool write(QIODevice& output);
 
     static Pointer fromFile(const QString& filePath);
-    static void toFile(Pointer clip, const QString& filePath);
+    static void toFile(const QString& filePath, const ConstPointer& clip);
+    static QByteArray toBuffer(const ConstPointer& clip);
+    static Pointer newClip();
     
+    static const QString FRAME_TYPE_MAP;
+    static const QString FRAME_COMREPSSION_FLAG;
+
 protected:
+    friend class WrapperClip;
+    using Mutex = std::recursive_mutex;
+    using Locker = std::unique_lock<Mutex>;
+
     virtual void reset() = 0;
+
+    mutable Mutex _mutex;
 };
 
 }

@@ -28,10 +28,9 @@
 #include <render/Scene.h>
 #include <Transform.h>
 
-#include "AnimationHandle.h"
 #include "GeometryCache.h"
-#include "JointState.h"
 #include "TextureCache.h"
+#include "Rig.h"
 
 class AbstractViewStateInterface;
 class QScriptEngine;
@@ -76,10 +75,13 @@ public:
         return !_needsReload && isRenderable() && isActive() && isLoaded();
     }
     bool initWhenReady(render::ScenePointer scene);
-    bool addToScene(std::shared_ptr<render::Scene> scene, render::PendingChanges& pendingChanges);
     bool addToScene(std::shared_ptr<render::Scene> scene,
                     render::PendingChanges& pendingChanges,
-                    render::Item::Status::Getters& statusGetters);
+                    bool showCollisionHull = false);
+    bool addToScene(std::shared_ptr<render::Scene> scene,
+                    render::PendingChanges& pendingChanges,
+                    render::Item::Status::Getters& statusGetters,
+                    bool showCollisionHull = false);
     void removeFromScene(std::shared_ptr<render::Scene> scene, render::PendingChanges& pendingChanges);
     void renderSetup(RenderArgs* args);
     bool isRenderable() const { return !_meshStates.isEmpty() || (isActive() && _geometry->getMeshes().empty()); }
@@ -271,7 +273,7 @@ protected:
     // returns 'true' if needs fullUpdate after geometry change
     bool updateGeometry();
 
-    virtual void initJointStates(QVector<JointState> states);
+    virtual void initJointStates();
 
     void setScaleInternal(const glm::vec3& scale);
     void scaleToFit();
@@ -279,18 +281,6 @@ protected:
 
     void simulateInternal(float deltaTime);
     virtual void updateRig(float deltaTime, glm::mat4 parentTransform);
-
-    /// \param jointIndex index of joint in model structure
-    /// \param position position of joint in model-frame
-    /// \param rotation rotation of joint in model-frame
-    /// \param useRotation false if rotation should be ignored
-    /// \param lastFreeIndex
-    /// \param allIntermediatesFree
-    /// \param alignment
-    /// \return true if joint exists
-    bool setJointPosition(int jointIndex, const glm::vec3& position, const glm::quat& rotation = glm::quat(),
-        bool useRotation = false, int lastFreeIndex = -1, bool allIntermediatesFree = false,
-        const glm::vec3& alignment = glm::vec3(0.0f, -1.0f, 0.0f), float priority = 1.0f);
 
     /// Restores the indexed joint to its default position.
     /// \param fraction the fraction of the default position to apply (i.e., 0.25f to slerp one fourth of the way to
@@ -315,7 +305,6 @@ protected:
 private:
 
     void deleteGeometry();
-    QVector<JointState> createJointStates(const FBXGeometry& geometry);
     void initJointTransforms();
 
     QSharedPointer<NetworkGeometry> _collisionGeometry;
@@ -368,6 +357,7 @@ private:
     bool _readyWhenAdded = false;
     bool _needsReload = true;
     bool _needsUpdateClusterMatrices = true;
+    bool _showCollisionHull = false;
 
     friend class MeshPartPayload;
 protected:

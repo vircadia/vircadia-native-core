@@ -9,13 +9,13 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 /*global MyAvatar, Entities, AnimationCache, SoundCache, Scene, Camera, Overlays, HMD, AvatarList, AvatarManager, Controller, UndoStack, Window, Account, GlobalServices, Script, ScriptDiscoveryService, LODManager, Menu, Vec3, Quat, AudioDevice, Paths, Clipboard, Settings, XMLHttpRequest, randFloat, randInt */
-Script.include("../../utilities.js");
+Script.include("../../libraries/utils.js");
 
 var scriptURL = Script.resolvePath('pingPongGun.js');
 
 var MODEL_URL = 'http://hifi-public.s3.amazonaws.com/models/ping_pong_gun/ping_pong_gun.fbx'
-var COLLISION_HULL_URL = 'http://hifi-public.s3.amazonaws.com/models/ping_pong_gun/ping_pong_gun_collision_hull.obj';
-
+var COLLISION_HULL_URL = 'http://hifi-public.s3.amazonaws.com/models/ping_pong_gun/ping_pong_gun_convex.obj';
+var COLLISION_SOUND_URL = 'http://hifi-public.s3.amazonaws.com/sounds/Collisions-otherorganic/plastic_impact.L.wav';
 var center = Vec3.sum(Vec3.sum(MyAvatar.position, {
     x: 0,
     y: 0.5,
@@ -25,9 +25,8 @@ var center = Vec3.sum(Vec3.sum(MyAvatar.position, {
 var pingPongGun = Entities.addEntity({
     type: "Model",
     modelURL: MODEL_URL,
-    shapeType:'box',
-    // shapeType: 'compound',
-    // compoundShapeURL: COLLISION_HULL_URL,
+    shapeType: 'compound',
+    compoundShapeURL: COLLISION_HULL_URL,
     script: scriptURL,
     position: center,
     dimensions: {
@@ -36,6 +35,7 @@ var pingPongGun = Entities.addEntity({
         z: 0.47
     },
     collisionsWillMove: true,
+    collisionSoundURL: COLLISION_SOUND_URL
 });
 
 function cleanUp() {

@@ -14,7 +14,7 @@
             ]
         },
         { "from": "Standard.RX", "to": "Actions.Yaw" },
-        
+
         { "from": "Standard.RY", 
           "when": "Application.Grounded", 
           "to": "Actions.Up", 

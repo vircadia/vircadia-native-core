@@ -8,98 +8,60 @@
 
 #include "FileClip.h"
 
-#include "../Frame.h"
-
 #include <algorithm>
+
+#include <QtCore/QDebug>
+
+#include <Finally.h>
+
+#include "../Frame.h"
+#include "../Logging.h"
+#include "BufferClip.h"
+
 
 using namespace recording;
 
-static const qint64 MINIMUM_FRAME_SIZE = sizeof(FrameType) + sizeof(float) + sizeof(uint16_t) + 1;
-
-FileClip::FileClip(const QString& fileName, QObject* parent) : Clip(parent), _file(fileName) {
+FileClip::FileClip(const QString& fileName) : _file(fileName) {
     auto size = _file.size();
-    _map = _file.map(0, size, QFile::MapPrivateOption);
-
-    auto current = _map;
-    auto end = current + size;
-    // Read all the frame headers
-    while (end - current < MINIMUM_FRAME_SIZE) {
-        FrameHeader header;
-        memcpy(&(header.type), current, sizeof(FrameType));
-        current += sizeof(FrameType);
-        memcpy(&(header.timeOffset), current, sizeof(FrameType));
-        current += sizeof(float);
-        memcpy(&(header.size), current, sizeof(uint16_t));
-        current += sizeof(uint16_t);
-        header.fileOffset = current - _map;
-        if (end - current < header.size) {
-            break;
-        }
-
-        _frameHeaders.push_back(header);
+    qDebug() << "Opening file of size: " << size;
+    bool opened = _file.open(QIODevice::ReadOnly);
+    if (!opened) {
+        qCWarning(recordingLog) << "Unable to open file " << fileName;
+        return;
     }
+    auto mappedFile = _file.map(0, size, QFile::MapPrivateOption);
+    init(mappedFile, size);
+}
+
+
+QString FileClip::getName() const {
+    return _file.fileName();
+}
+
+
+
+bool FileClip::write(const QString& fileName, Clip::Pointer clip) {
+    // FIXME need to move this to a different thread
+    //qCDebug(recordingLog) << "Writing clip to file " << fileName << " with " << clip->frameCount() << " frames";
+
+    if (0 == clip->frameCount()) {
+        return false;
+    }
+
+    QFile outputFile(fileName);
+    if (!outputFile.open(QFile::Truncate | QFile::WriteOnly)) {
+        return false;
+    }
+
+    Finally closer([&] { outputFile.close(); });
+    return clip->write(outputFile);
 }
 
 FileClip::~FileClip() {
     Locker lock(_mutex);
-    _file.unmap(_map);
-    _map = nullptr;
-}
-
-void FileClip::seek(float offset) {
-    Locker lock(_mutex);
-    auto itr = std::lower_bound(_frameHeaders.begin(), _frameHeaders.end(), offset,
-        [](const FrameHeader& a, float b)->bool {
-            return a.timeOffset < b;
-        }
-    );
-    _frameIndex = itr - _frameHeaders.begin();
-}
-
-float FileClip::position() const {
-    Locker lock(_mutex);
-    float result = std::numeric_limits<float>::max();
-    if (_frameIndex < _frameHeaders.size()) {
-        result = _frameHeaders[_frameIndex].timeOffset;
+    _file.unmap(_data);
+    if (_file.isOpen()) {
+        _file.close();
     }
-    return result;
+    reset();
 }
-
-FramePointer FileClip::readFrame(uint32_t frameIndex) const {
-    FramePointer result;
-    if (frameIndex < _frameHeaders.size()) {
-        result = std::make_shared<Frame>();
-        const FrameHeader& header = _frameHeaders[frameIndex];
-        result->type = header.type;
-        result->timeOffset = header.timeOffset;
-        result->data.insert(0, reinterpret_cast<char*>(_map)+header.fileOffset, header.size);
-    }
-    return result;
-}
-
-FramePointer FileClip::peekFrame() const {
-    Locker lock(_mutex);
-    return readFrame(_frameIndex);
-}
-
-FramePointer FileClip::nextFrame() {
-    Locker lock(_mutex);
-    auto result = readFrame(_frameIndex);
-    if (_frameIndex < _frameHeaders.size()) {
-        ++_frameIndex;
-    }
-    return result;
-}
-
-void FileClip::skipFrame() {
-    ++_frameIndex;
-}
-
-void FileClip::reset() {
-    _frameIndex = 0;
-}
-
-void FileClip::appendFrame(FramePointer) {
-    throw std::runtime_error("File clips are read only");
-}
-

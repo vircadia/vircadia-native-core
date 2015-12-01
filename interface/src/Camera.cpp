@@ -28,6 +28,8 @@ CameraMode stringToMode(const QString& mode) {
         return CAMERA_MODE_MIRROR;
     } else if (mode == "independent") {
         return CAMERA_MODE_INDEPENDENT;
+    } else if (mode == "entity") {
+        return CAMERA_MODE_ENTITY;
     }
     return CAMERA_MODE_NULL;
 }
@@ -41,6 +43,8 @@ QString modeToString(CameraMode mode) {
         return "mirror";
     } else if (mode == CAMERA_MODE_INDEPENDENT) {
         return "independent";
+    } else if (mode == CAMERA_MODE_ENTITY) {
+        return "entity";
     }
     return "unknown";
 }
@@ -94,6 +98,17 @@ void Camera::setMode(CameraMode mode) {
     emit modeUpdated(modeToString(mode));
 }
 
+QUuid Camera::getCameraEntity() const {
+    if (_cameraEntity != nullptr) {
+        return _cameraEntity->getID();
+    }
+    return QUuid();
+};
+
+void Camera::setCameraEntity(QUuid entityID) {
+    _cameraEntity = qApp->getEntities()->getTree()->findEntityByID(entityID);
+}
+
 void Camera::setProjection(const glm::mat4& projection) { 
     _projection = projection;
 }
@@ -117,6 +132,9 @@ void Camera::setModeString(const QString& mode) {
             break;
         case CAMERA_MODE_INDEPENDENT:
             Menu::getInstance()->setIsOptionChecked(MenuOption::IndependentMode, true);
+            break;
+        case CAMERA_MODE_ENTITY:
+            Menu::getInstance()->setIsOptionChecked(MenuOption::CameraEntityMode, true);
             break;
         default:
             break;

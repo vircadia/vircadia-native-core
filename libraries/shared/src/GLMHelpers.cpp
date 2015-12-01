@@ -10,7 +10,7 @@
 //
 
 #include "GLMHelpers.h"
-
+#include <glm/gtc/matrix_transform.hpp>
 #include "NumericalConstants.h"
 
 const vec3 Vectors::UNIT_X{ 1.0f, 0.0f, 0.0f };
@@ -34,6 +34,7 @@ const vec3& Vectors::UP = Vectors::UNIT_Y;
 const vec3& Vectors::FRONT = Vectors::UNIT_NEG_Z;
 
 const quat Quaternions::IDENTITY{ 1.0f, 0.0f, 0.0f, 0.0f };
+const quat Quaternions::Y_180{ 0.0f, 0.0f, 1.0f, 0.0f };
 
 //  Safe version of glm::mix; based on the code in Nick Bobick's article,
 //  http://www.gamasutra.com/features/19980703/quaternions_01.htm (via Clyde,
@@ -201,30 +202,7 @@ float angleBetween(const glm::vec3& v1, const glm::vec3& v2) {
 
 //  Helper function return the rotation from the first vector onto the second
 glm::quat rotationBetween(const glm::vec3& v1, const glm::vec3& v2) {
-    float angle = angleBetween(v1, v2);
-    if (glm::isnan(angle) || angle < EPSILON) {
-        return glm::quat();
-    }
-    glm::vec3 axis;
-    if (angle > 179.99f * RADIANS_PER_DEGREE) { // 180 degree rotation; must use another axis
-        axis = glm::cross(v1, glm::vec3(1.0f, 0.0f, 0.0f));
-        float axisLength = glm::length(axis);
-        if (axisLength < EPSILON) { // parallel to x; y will work
-            axis = glm::normalize(glm::cross(v1, glm::vec3(0.0f, 1.0f, 0.0f)));
-        } else {
-            axis /= axisLength;
-        }
-    } else {
-        axis = glm::normalize(glm::cross(v1, v2));
-        // It is possible for axis to be nan even when angle is not less than EPSILON.
-        // For example when angle is small but not tiny but v1 and v2 and have very short lengths.
-        if (glm::isnan(glm::dot(axis, axis))) {
-            // set angle and axis to values that will generate an identity rotation
-            angle = 0.0f;
-            axis = glm::vec3(1.0f, 0.0f, 0.0f);
-        }
-    }
-    return glm::angleAxis(angle, axis);
+    return glm::rotation(glm::normalize(v1), glm::normalize(v2));
 }
 
 bool isPointBehindTrianglesPlane(glm::vec3 point, glm::vec3 p0, glm::vec3 p1, glm::vec3 p2) {
@@ -297,6 +275,18 @@ glm::quat extractRotation(const glm::mat4& matrix, bool assumeOrthogonal) {
                                     0.5f * sqrtf(x2) * (upper[1][2] >= upper[2][1] ? 1.0f : -1.0f),
                                     0.5f * sqrtf(y2) * (upper[2][0] >= upper[0][2] ? 1.0f : -1.0f),
                                     0.5f * sqrtf(z2) * (upper[0][1] >= upper[1][0] ? 1.0f : -1.0f)));
+}
+
+glm::quat glmExtractRotation(const glm::mat4& matrix) {
+    glm::vec3 scale = extractScale(matrix);
+    float maxScale = std::max(std::max(scale.x, scale.y), scale.z);
+    if (maxScale > 1.01f || maxScale <= 0.99f) {
+        // quat_cast doesn't work so well with scaled matrices, so cancel it out.
+        glm::mat4 tmp = glm::scale(matrix, 1.0f / scale);
+        return glm::normalize(glm::quat_cast(tmp));
+    } else {
+        return glm::normalize(glm::quat_cast(matrix));
+    }
 }
 
 glm::vec3 extractScale(const glm::mat4& matrix) {

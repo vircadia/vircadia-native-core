@@ -147,10 +147,19 @@ public:
     void addNewlyCreatedHook(NewlyCreatedEntityHook* hook);
     void removeNewlyCreatedHook(NewlyCreatedEntityHook* hook);
 
-    bool hasAnyDeletedEntities() const { return _recentlyDeletedEntityItemIDs.size() > 0; }
+    bool hasAnyDeletedEntities() const { 
+        QReadLocker locker(&_recentlyDeletedEntitiesLock);
+        return _recentlyDeletedEntityItemIDs.size() > 0;
+    }
+
     bool hasEntitiesDeletedSince(quint64 sinceTime);
-    std::unique_ptr<NLPacket> encodeEntitiesDeletedSince(OCTREE_PACKET_SEQUENCE sequenceNumber, quint64& sinceTime,
-                                                         bool& hasMore);
+    static quint64 getAdjustedConsiderSince(quint64 sinceTime);
+
+    QMultiMap<quint64, QUuid> getRecentlyDeletedEntityIDs() const { 
+        QReadLocker locker(&_recentlyDeletedEntitiesLock);
+        return _recentlyDeletedEntityItemIDs;
+    }
+
     void forgetEntitiesDeletedBefore(quint64 sinceTime);
 
     int processEraseMessage(NLPacket& packet, const SharedNodePointer& sourceNode);
@@ -219,6 +228,11 @@ public:
 
     EntityTreePointer getThisPointer() { return std::static_pointer_cast<EntityTree>(shared_from_this()); }
 
+    bool isDeletedEntity(const QUuid& id) {
+        QReadLocker locker(&_deletedEntitiesLock);
+        return _deletedEntityItemIDs.contains(id);
+    }
+
 signals:
     void deletingEntity(const EntityItemID& entityID);
     void addingEntity(const EntityItemID& entityID);
@@ -226,7 +240,7 @@ signals:
     void newCollisionSoundURL(const QUrl& url);
     void clearingEntities();
 
-private:
+protected:
 
     void processRemovedEntities(const DeleteEntityOperator& theOperator);
     bool updateEntityWithElement(EntityItemPointer entity, const EntityItemProperties& properties,
@@ -243,8 +257,22 @@ private:
     QReadWriteLock _newlyCreatedHooksLock;
     QVector<NewlyCreatedEntityHook*> _newlyCreatedHooks;
 
-    QReadWriteLock _recentlyDeletedEntitiesLock;
-    QMultiMap<quint64, QUuid> _recentlyDeletedEntityItemIDs;
+    mutable QReadWriteLock _recentlyDeletedEntitiesLock; /// lock of server side recent deletes
+    QMultiMap<quint64, QUuid> _recentlyDeletedEntityItemIDs; /// server side recent deletes
+
+    mutable QReadWriteLock _deletedEntitiesLock; /// lock of client side recent deletes
+    QSet<QUuid> _deletedEntityItemIDs; /// client side recent deletes
+
+    void clearDeletedEntities() {
+        QWriteLocker locker(&_deletedEntitiesLock);
+        _deletedEntityItemIDs.clear();
+    }
+
+    void trackDeletedEntity(const QUuid& id) {
+        QWriteLocker locker(&_deletedEntitiesLock);
+        _deletedEntityItemIDs << id;
+    }
+
     EntityItemFBXService* _fbxService;
 
     QHash<EntityItemID, EntityTreeElementPointer> _entityToElementMap;

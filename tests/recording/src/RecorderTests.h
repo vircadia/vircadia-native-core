@@ -10,6 +10,8 @@
 #ifndef hifi_RecorderTests_h
 #define hifi_RecorderTests_h
 
+#if 0
+
 #include <QtTest/QtTest>
 
 class RecorderTests : public QObject {
@@ -17,5 +19,7 @@ class RecorderTests : public QObject {
 private slots:
     void recorderTest();
 };
+
+#endif
 
 #endif

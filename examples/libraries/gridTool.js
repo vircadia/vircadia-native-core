@@ -1,3 +1,5 @@
+var GRID_CONTROLS_HTML_URL = Script.resolvePath('../html/gridControls.html');
+
 Grid = function(opts) {
     var that = {};
 
@@ -228,7 +230,7 @@ GridTool = function(opts) {
     var verticalGrid = opts.verticalGrid;
     var listeners = [];
 
-    var url = Script.resolvePath('html/gridControls.html');
+    var url = GRID_CONTROLS_HTML_URL;
     var webView = new WebWindow('Grid', url, 200, 280, true);
 
     horizontalGrid.addListener(function(data) {

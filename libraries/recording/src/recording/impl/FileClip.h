@@ -10,51 +10,25 @@
 #ifndef hifi_Recording_Impl_FileClip_h
 #define hifi_Recording_Impl_FileClip_h
 
-#include "../Clip.h"
+#include "PointerClip.h"
 
 #include <QtCore/QFile>
 
-#include <mutex>
-
 namespace recording {
 
-class FileClip : public Clip {
+class FileClip : public PointerClip {
 public:
     using Pointer = std::shared_ptr<FileClip>;
 
-    FileClip(const QString& file, QObject* parent = nullptr);
+    FileClip(const QString& file);
     virtual ~FileClip();
 
-    virtual void seek(float offset) override;
-    virtual float position() const override;
+    virtual QString getName() const override;
 
-    virtual FramePointer peekFrame() const override;
-    virtual FramePointer nextFrame() override;
-    virtual void appendFrame(FramePointer) override;
-    virtual void skipFrame() override;
+    static bool write(const QString& filePath, Clip::Pointer clip);
 
 private:
-    using Mutex = std::mutex;
-    using Locker = std::unique_lock<Mutex>;
-
-    virtual void reset() override;
-
-    struct FrameHeader {
-        FrameType type;
-        float timeOffset;
-        uint16_t size;
-        quint64 fileOffset;
-    };
-
-    using FrameHeaders = std::vector<FrameHeader>;
-
-    FramePointer readFrame(uint32_t frameIndex) const;
-
-    mutable Mutex _mutex;
     QFile _file;
-    uint32_t _frameIndex { 0 };
-    uchar* _map;
-    FrameHeaders _frameHeaders;
 };
 
 }

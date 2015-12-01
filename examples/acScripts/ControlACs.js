@@ -17,10 +17,13 @@ var NAMES = new Array("Craig", "Clement", "Jeff"); // ACs names ordered by IDs (
 
 // Those variables MUST be common to every scripts
 var controlEntitySize = 0.25;
-var controlEntityPosition = { x: 2000 , y: 0, z: 0 };
+var controlEntityPosition = { x: 0, y: 0, z: 0 };
 
 // Script. DO NOT MODIFY BEYOND THIS LINE.
 Script.include("../libraries/toolBars.js");
+
+var clip_url = null;
+var input_text = null;
 
 var DO_NOTHING = 0;
 var PLAY = 1;
@@ -28,14 +31,7 @@ var PLAY_LOOP = 2;
 var STOP = 3;
 var SHOW = 4;
 var HIDE = 5;
-
-var COLORS = [];
-COLORS[PLAY] = { red: PLAY, green: 0,  blue: 0 };
-COLORS[PLAY_LOOP] = { red: PLAY_LOOP, green: 0,  blue: 0 };
-COLORS[STOP] = { red: STOP, green: 0,  blue: 0 };
-COLORS[SHOW] = { red: SHOW, green: 0,  blue: 0 };
-COLORS[HIDE] = { red: HIDE, green: 0,  blue: 0 };
-
+var LOAD = 6;
 
 
 var windowDimensions = Controller.getViewportDimensions();
@@ -53,6 +49,7 @@ var onOffIcon = new Array();
 var playIcon = new Array();
 var playLoopIcon = new Array();
 var stopIcon = new Array();
+var loadIcon = new Array();
 setupToolBars();
 
 
@@ -104,6 +101,14 @@ function setupToolBars() {
                                           alpha: ALPHA_OFF,
                                           visible: true
                                           }, false);
+                                          
+        loadIcon[i] = toolBars[i].addTool({
+                                          imageURL: TOOL_ICON_URL + "recording-upload.svg",
+                                          width: Tool.IMAGE_WIDTH,
+                                          height: Tool.IMAGE_HEIGHT,
+                                          alpha: ALPHA_OFF,
+                                          visible: true
+                                          }, false);
         
         nameOverlays.push(Overlays.addOverlay("text", {
                                               backgroundColor: { red: 0, green: 0, blue: 0 },
@@ -124,36 +129,46 @@ function setupToolBars() {
 }
 
 function sendCommand(id, action) {
+    
     if (action === SHOW) {
         toolBars[id].selectTool(onOffIcon[id], false);
         toolBars[id].setAlpha(ALPHA_ON, playIcon[id]);
         toolBars[id].setAlpha(ALPHA_ON, playLoopIcon[id]);
         toolBars[id].setAlpha(ALPHA_ON, stopIcon[id]);
+        toolBars[id].setAlpha(ALPHA_ON, loadIcon[id]);
     } else if (action === HIDE) {
         toolBars[id].selectTool(onOffIcon[id], true);
         toolBars[id].setAlpha(ALPHA_OFF, playIcon[id]);
         toolBars[id].setAlpha(ALPHA_OFF, playLoopIcon[id]);
         toolBars[id].setAlpha(ALPHA_OFF, stopIcon[id]);
+        toolBars[id].setAlpha(ALPHA_OFF, loadIcon[id]);
     } else if (toolBars[id].toolSelected(onOffIcon[id])) {
         return;
     }
     
-    if (id === (toolBars.length - 1)) {
-        for (i = 0; i < NUM_AC; i++) {
-            sendCommand(i, action);
-        }
-        return;
-    }
+    if (id === (toolBars.length - 1))
+        id = -1;
     
-    var position = { x: controlEntityPosition.x + id * controlEntitySize,
-                     y: controlEntityPosition.y, z: controlEntityPosition.z };
-    Entities.addEntity({
+    var controlEntity = Entities.addEntity({
+        name: 'New Actor Controller',
         type: "Box",
-        position: position, 
-        dimensions: { x: controlEntitySize, y: controlEntitySize, z: controlEntitySize }, 
-        color: COLORS[action],
-        lifetime: 5
-    });
+        color: { red: 0, green: 0, blue: 0 },
+        position: controlEntityPosition, 
+        dimensions: { x: controlEntitySize, y: controlEntitySize, z: controlEntitySize },
+        visible: false,
+        lifetime: 10,
+        userData: JSON.stringify({
+            idKey: {
+                uD_id: id
+            },
+            actionKey: {
+                uD_action: action
+            },
+            clipKey: {
+                uD_url: clip_url
+            }
+        })
+  });
 }
 
 function mousePressEvent(event) {
@@ -173,6 +188,12 @@ function mousePressEvent(event) {
         sendCommand(i, PLAY_LOOP);
     } else if (stopIcon[i] === toolBars[i].clicked(clickedOverlay, false)) {
         sendCommand(i, STOP);
+    } else if (loadIcon[i] === toolBars[i].clicked(clickedOverlay, false)) {
+        input_text = Window.prompt("Insert the url of the clip: ","");
+        if (!(input_text === "" || input_text === null)) {
+            clip_url = input_text;
+            sendCommand(i, LOAD);
+        }
     } else {
         // Check individual controls
         for (i = 0; i < NUM_AC; i++) {
@@ -188,6 +209,12 @@ function mousePressEvent(event) {
                 sendCommand(i, PLAY_LOOP);
             } else if (stopIcon[i] === toolBars[i].clicked(clickedOverlay, false)) {
                 sendCommand(i, STOP);
+            } else if (loadIcon[i] === toolBars[i].clicked(clickedOverlay, false)) {                
+                input_text = Window.prompt("Insert the url of the clip: ","");
+                if (!(input_text === "" || input_text === null)) {
+                    clip_url = input_text;
+                    sendCommand(i, LOAD);
+                }                
             } else {
                 
             }

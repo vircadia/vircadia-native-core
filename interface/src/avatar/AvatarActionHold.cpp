@@ -10,7 +10,6 @@
 //
 
 #include "QVariantGLM.h"
-#include "avatar/MyAvatar.h"
 #include "avatar/AvatarManager.h"
 
 #include "AvatarActionHold.h"
@@ -22,8 +21,7 @@ AvatarActionHold::AvatarActionHold(const QUuid& id, EntityItemPointer ownerEntit
     _relativePosition(glm::vec3(0.0f)),
     _relativeRotation(glm::quat()),
     _hand("right"),
-    _holderID(QUuid())
-{
+    _holderID(QUuid()) {
     _type = ACTION_TYPE_HOLD;
     #if WANT_DEBUG
     qDebug() << "AvatarActionHold::AvatarActionHold";
@@ -36,13 +34,10 @@ AvatarActionHold::~AvatarActionHold() {
     #endif
 }
 
-void AvatarActionHold::updateActionWorker(float deltaTimeStep) {
-    bool gotLock = false;
-    glm::quat rotation;
-    glm::vec3 position;
+std::shared_ptr<Avatar> AvatarActionHold::getTarget(glm::quat& rotation, glm::vec3& position) {
     std::shared_ptr<Avatar> holdingAvatar = nullptr;
 
-    gotLock = withTryReadLock([&]{
+    withTryReadLock([&]{
         QSharedPointer<AvatarManager> avatarManager = DependencyManager::get<AvatarManager>();
         AvatarSharedPointer holdingAvatarData = avatarManager->getAvatarBySessionID(_holderID);
         holdingAvatar = std::static_pointer_cast<Avatar>(holdingAvatarData);
@@ -65,22 +60,53 @@ void AvatarActionHold::updateActionWorker(float deltaTimeStep) {
         }
     });
 
-    if (holdingAvatar) {
+    return holdingAvatar;
+}
+
+void AvatarActionHold::updateActionWorker(float deltaTimeStep) {
+    glm::quat rotation;
+    glm::vec3 position;
+    bool valid = false;
+    int holdCount = 0;
+
+    auto ownerEntity = _ownerEntity.lock();
+    if (!ownerEntity) {
+        return;
+    }
+    QList<EntityActionPointer> holdActions = ownerEntity->getActionsOfType(ACTION_TYPE_HOLD);
+    foreach (EntityActionPointer action, holdActions) {
+        std::shared_ptr<AvatarActionHold> holdAction = std::static_pointer_cast<AvatarActionHold>(action);
+        glm::quat rotationForAction;
+        glm::vec3 positionForAction;
+        std::shared_ptr<Avatar> holdingAvatar = holdAction->getTarget(rotationForAction, positionForAction);
+        if (holdingAvatar) {
+            holdCount ++;
+            if (holdAction.get() == this) {
+                // only use the rotation for this action
+                valid = true;
+                rotation = rotationForAction;
+            }
+
+            position += positionForAction;
+        }
+    }
+
+    if (valid && holdCount > 0) {
+        position /= holdCount;
+
+        bool gotLock = withTryWriteLock([&]{
+            _positionalTarget = position;
+            _rotationalTarget = rotation;
+            _positionalTargetSet = true;
+            _rotationalTargetSet = true;
+            _active = true;
+        });
         if (gotLock) {
-            gotLock = withTryWriteLock([&]{
-                _positionalTarget = position;
-                _rotationalTarget = rotation;
-                _positionalTargetSet = true;
-                _rotationalTargetSet = true;
-                _active = true;
-            });
-            if (gotLock) {
-                if (_kinematic) {
-                    doKinematicUpdate(deltaTimeStep);
-                } else {
-                    activateBody();
-                    ObjectActionSpring::updateActionWorker(deltaTimeStep);
-                }
+            if (_kinematic) {
+                doKinematicUpdate(deltaTimeStep);
+            } else {
+                activateBody();
+                ObjectActionSpring::updateActionWorker(deltaTimeStep);
             }
         }
     }
@@ -109,7 +135,8 @@ void AvatarActionHold::doKinematicUpdate(float deltaTimeStep) {
             if (_previousSet) {
                 // smooth velocity over 2 frames
                 glm::vec3 positionalDelta = _positionalTarget - _previousPositionalTarget;
-                glm::vec3 positionalVelocity = (positionalDelta + _previousPositionalDelta) / (deltaTimeStep + _previousDeltaTimeStep);
+                glm::vec3 positionalVelocity =
+                    (positionalDelta + _previousPositionalDelta) / (deltaTimeStep + _previousDeltaTimeStep);
                 rigidBody->setLinearVelocity(glmToBullet(positionalVelocity));
                 _previousPositionalDelta = positionalDelta;
                 _previousDeltaTimeStep = deltaTimeStep;
@@ -212,6 +239,7 @@ bool AvatarActionHold::updateArguments(QVariantMap arguments) {
             auto ownerEntity = _ownerEntity.lock();
             if (ownerEntity) {
                 ownerEntity->setActionDataDirty(true);
+                ownerEntity->setActionDataNeedsTransmit(true);
             }
         });
         activateBody();
@@ -299,4 +327,6 @@ void AvatarActionHold::deserialize(QByteArray serializedArguments) {
 
         _active = true;
     });
+
+    forceBodyNonStatic();
 }

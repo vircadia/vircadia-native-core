@@ -57,6 +57,7 @@ private:
 class Menu : public QMenuBar {
     Q_OBJECT
 public:
+    Menu();
     static Menu* getInstance();
 
     void loadSettings();
@@ -103,9 +104,6 @@ public slots:
     void setIsOptionChecked(const QString& menuOption, bool isChecked);
 
 private:
-    static Menu* _instance;
-    Menu();
-
     typedef void(*settingsAction)(Settings&, QAction&);
     static void loadAction(Settings& settings, QAction& action);
     static void saveAction(Settings& settings, QAction& action);
@@ -133,7 +131,8 @@ namespace MenuOption {
     const QString AddressBar = "Show Address Bar";
     const QString Animations = "Animations...";
     const QString AnimDebugDrawAnimPose = "Debug Draw Animation";
-    const QString AnimDebugDrawBindPose = "Debug Draw Bind Pose";
+    const QString AnimDebugDrawDefaultPose = "Debug Draw Default Pose";
+    const QString AnimDebugDrawPosition= "Debug Draw Position";
     const QString Antialiasing = "Antialiasing";
     const QString AssetMigration = "ATP Asset Migration";
     const QString Atmosphere = "Atmosphere";
@@ -157,6 +156,7 @@ namespace MenuOption {
     const QString Bookmarks = "Bookmarks";
     const QString CachesSize = "RAM Caches Size";
     const QString CalibrateCamera = "Calibrate Camera";
+    const QString CameraEntityMode = "Entity Mode";
     const QString CenterPlayerInView = "Center Player In View";
     const QString Chat = "Chat...";
     const QString Collisions = "Collisions";
@@ -189,10 +189,7 @@ namespace MenuOption {
     const QString EchoServerAudio = "Echo Server Audio";
     const QString EditEntitiesHelp = "Edit Entities Help...";
     const QString Enable3DTVMode = "Enable 3DTV Mode";
-    const QString EnableAvatarUpdateThreading = "Enable Avatar Update Threading";
-    const QString EnableAnimGraph = "Enable Anim Graph";
     const QString EnableCharacterController = "Enable avatar collisions";
-    const QString EnableRigAnimations = "Enable Rig Animations";
     const QString ExpandMyAvatarSimulateTiming = "Expand /myAvatar/simulation";
     const QString ExpandMyAvatarTiming = "Expand /myAvatar";
     const QString ExpandOtherAvatarTiming = "Expand /otherAvatar";
@@ -272,7 +269,6 @@ namespace MenuOption {
     const QString ScriptedMotorControl = "Enable Scripted Motor Control";
     const QString ShowDSConnectTable = "Show Domain Connection Timing";
     const QString ShowBordersEntityNodes = "Show Entity Nodes";
-    const QString ShowIKConstraints = "Show IK Constraints";
     const QString ShowRealtimeEntityStats = "Show Realtime Entity Stats";
     const QString ShowWhosLookingAtMe = "Show Who's Looking at Me";
     const QString StandingHMDSensorMode = "Standing HMD Sensor Mode";
@@ -282,7 +278,6 @@ namespace MenuOption {
     const QString Stats = "Stats";
     const QString StopAllScripts = "Stop All Scripts";
     const QString SuppressShortTimings = "Suppress Timings Less than 10ms";
-    const QString TestPing = "Test Ping";
     const QString ThirdPerson = "Third Person";
     const QString ThreePointCalibration = "3 Point Calibration";
     const QString ThrottleFPSIfNotFocus = "Throttle FPS If Not Focus"; // FIXME - this value duplicated in Basic2DWindowOpenGLDisplayPlugin.cpp
