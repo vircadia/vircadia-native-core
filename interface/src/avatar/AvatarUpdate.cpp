@@ -44,9 +44,11 @@ void AvatarUpdate::synchronousProcess() {
 bool AvatarUpdate::process() {
     PerformanceTimer perfTimer("AvatarUpdate");
     quint64 start = usecTimestampNow();
-    quint64 deltaMicroseconds = 0;
+    quint64 deltaMicroseconds = 10000;
     if (_lastAvatarUpdate > 0) {
         deltaMicroseconds = start - _lastAvatarUpdate;
+    } else {
+        deltaMicroseconds = 10000; // 10 ms
     }
     float deltaSeconds = (float) deltaMicroseconds / (float) USECS_PER_SECOND;
     _lastAvatarUpdate = start;
