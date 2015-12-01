@@ -31,3 +31,23 @@ assets:
     s3_url: "http://hifi-public.s3.amazonaws.com/birarda/baseball/baseball-hitting-bat-set-4.wav"
     atp_url: "atp:fc65383431a6238c7a4749f0f6f061f75a604ed5e17d775ab1b2955609e67ebb.wav"
     attribution: "CC BY 3.0 - Credit: CGEffex - https://www.freesound.org/people/CGEffex/"
+  chatter-loop.wav:
+    s3_url: "http://hifi-public.s3.amazonaws.com/birarda/baseball/chatter-loop.wav"
+    atp_url: "atp:d9978e693035d4e2b5c7b546c8cccfb2dde5677834d9eed5206ccb2da55b4732.wav"
+    attribution: "CC BY 3.0 - Credit: Alyssa Galindo - http://freesound.org/people/AshFox/"
+  zorba-organ.wav:
+    s3_url: "http://hifi-public.s3.amazonaws.com/birarda/baseball/zorba-organ.wav"
+    atp_url: "atp:1ee58f4d929fdef7c2989cd8be964952a24cdd653d80f57b6a89a2ae8e3029e1.wav"
+    attribution: "CC BY 3.0 - Credit: Alyssa Galindo - http://freesound.org/people/AshFox/"
+  charge-organ.wav:
+    s3_url: "http://hifi-public.s3.amazonaws.com/birarda/baseball/charge-organ.wav"
+    atp_url: "atp:cefaba2d5f1a378382ee046716bffcf6b6a40676649b23a1e81a996efe22d7d3.wav"
+    attribution: "CC BY 3.0 - Credit: Alyssa Galindo - http://freesound.org/people/AshFox/"
+  ball-game.wav:
+    s3_url: "http://hifi-public.s3.amazonaws.com/birarda/baseball/ball-game.wav"
+    atp_url: "atp:fb41e37f8f8f7b78e546ac78800df6e39edaa09b2df4bfa0afdd8d749dac38b8.wav"
+    attribution: "CC BY 3.0 - Credit: Alyssa Galindo - http://freesound.org/people/AshFox/"
+  clapping.wav:
+    s3_url: "http://hifi-public.s3.amazonaws.com/birarda/baseball/clapping.wav"
+    atp_url: "atp:44a83a788ccfd2924e35c902c34808b24dbd0309d000299ce01a355f91cf8115.wav"
+    attribution: "CC BY 3.0 - Credit: Alyssa Galindo - http://freesound.org/people/AshFox/"
