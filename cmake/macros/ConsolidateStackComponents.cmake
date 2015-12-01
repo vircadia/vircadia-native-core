@@ -1,6 +1,6 @@
 macro(CONSOLIDATE_STACK_COMPONENTS)
 
-  if (DEFINED ENV{ghprbPullId})
+  if (DEFINED ENV{ghprbPullId} AND WIN32)
   # Copy all the output for this target into the common deployment location
   add_custom_command(
   	TARGET ${TARGET_NAME} POST_BUILD
