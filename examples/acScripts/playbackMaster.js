@@ -23,7 +23,6 @@ Script.include(HIFI_PUBLIC_BUCKET + "scripts/libraries/toolBars.js");
 Tool.IMAGE_HEIGHT /= 2;
 Tool.IMAGE_WIDTH /= 2;
 
-var DO_NOTHING = 0;
 var PLAY = 1;
 var PLAY_LOOP = 2;
 var STOP = 3;
@@ -149,10 +148,10 @@ Director.prototype.destroy = function () {
 
 Director.prototype.clearActors = function () {
     print("Director.prototype.clearActors")
-    for (var i = 0; i < this.actors.length; i++) {
-        print("Destroy actor #" + i)
-        this.actors[i].destroy();
+    while (this.actors.length > 0) {
+        this.actors.pop().destroy();
     }
+
     this.actors = new Array();// Brand new actors    
 }
 
@@ -222,23 +221,40 @@ Director.prototype._buildUI = function () {
 }
 
 Director.prototype.onMousePressEvent = function(clickedOverlay) {
-    if (this.onOffIcon === this.toolbar.clicked(clickedOverlay, false)) {
+    if (this.playIcon === this.toolbar.clicked(clickedOverlay, false)) {
+        print("master play");
+        masterController.sendCommand(BROADCAST_AGENTS, PLAY);
+    } else if (this.onOffIcon === this.toolbar.clicked(clickedOverlay, false)) {
         this.clearActors();
         return true;
-    } else if (this.playIcon === this.toolbar.clicked(clickedOverlay, false)) {
-        masterController.sendCommand(AGENTS_BROADCAST, PLAY);
     } else if (this.playLoopIcon === this.toolbar.clicked(clickedOverlay, false)) {
-        masterController.sendCommand(AGENTS_BROADCAST, PLAY_LOOP);
+        masterController.sendCommand(BROADCAST_AGENTS, PLAY_LOOP);
     } else if (this.stopIcon === this.toolbar.clicked(clickedOverlay, false)) {
-        masterController.sendCommand(AGENTS_BROADCAST, STOP);
-   } else if (this.loadIcon === this.toolbar.clicked(clickedOverlay, false)) {                
+        masterController.sendCommand(BROADCAST_AGENTS, STOP);
+    } else if (this.loadIcon === this.toolbar.clicked(clickedOverlay, false)) {                
         input_text = Window.prompt("Insert the url of the clip: ","");
         if (!(input_text === "" || input_text === null)) {
             print("Performance file ready to be loaded url = " + input_text); 
-           
-            // FIXME: I cannot pass directly this.onPerformanceLoaded, is that exepected ?
-            var localThis = this;
-            Assets.downloadData(input_text, function(data) { localThis.onPerformanceLoaded(data); });
+            var urlpartition = input_text.split(".");
+            print(urlpartition[0]);
+            print(urlpartition[1]);
+
+            if ((urlpartition.length > 1) && (urlpartition[urlpartition.length - 1] === "hfr")) {
+                print("detected a unique clip url");
+                var oneClipPerformance = new Object();
+                oneClipPerformance.avatarClips = new Array();
+                oneClipPerformance.avatarClips[0] = input_text;
+
+                print(JSON.stringify(oneClipPerformance));
+
+                // we make a local simple performance file with a single clip and pipe in directly
+                this.onPerformanceLoaded(oneClipPerformance);
+                return true;
+            } else {
+                // FIXME: I cannot pass directly this.onPerformanceLoaded, is that exepected ?
+                var localThis = this;
+                Assets.downloadData(input_text, function(data) { localThis.onPerformanceLoaded(JSON.parse(data)); });
+            }
         }        
     } else {
         // Check individual controls
@@ -270,19 +286,17 @@ Director.prototype.moveUI = function(pos) {
     }
 }
 
-Director.prototype.onPerformanceLoaded = function(performanceData) {
-    var performanceJSON = JSON.parse(performanceData);
+Director.prototype.onPerformanceLoaded = function(performanceJSON) {
+    // First fire all the current actors    
+    this.clearActors();
+
     print("Director.prototype.onPerformanceLoaded = " + JSON.stringify(performanceJSON));
     if (performanceJSON.avatarClips != null) {
         var numClips = performanceJSON.avatarClips.length;
         print("Found " + numClips + "in the performance file, and currently using " + this.actors.length + " actor(s)");
 
         for (var i = 0; i < numClips; i++) {
-            if (i < this.actors.length) {
-                // load correct clip to actor
-            } else {
-                this.hireActor(performanceJSON.avatarClips[i]);
-            }
+            this.hireActor(performanceJSON.avatarClips[i]);
         }
 
     }
@@ -309,13 +323,14 @@ Director.prototype.hireActor = function(clipURL) {
         }
     };
 
-    newActor.onLost = function(actor) { 
-        print("agent lost from playbackMaster! " + actor.agentID);
+    newActor.onFired = function(actor) { 
+        print("agent fired from playbackMaster! " + actor.agentID);
         var index = localThis.actors.indexOf(actor);
         if (index >= 0) {
             localThis.actors.splice(index, 1); 
         }
         actor.destroy();
+        moveUI();
     }
 
     newActor.resetClip(clipURL,  function(actor) {

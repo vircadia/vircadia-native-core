@@ -31,7 +31,6 @@ var totalTime = 0;
 var WAIT_FOR_AUDIO_MIXER = 1;
 
 // Script. DO NOT MODIFY BEYOND THIS LINE.
-var ALIVE = -1;
 var PLAY = 1;
 var PLAY_LOOP = 2;
 var STOP = 3;
@@ -45,11 +44,11 @@ Recording.setPlayerUseAttachments(useAttachments);
 Recording.setPlayerUseHeadModel(false);
 Recording.setPlayerUseSkeletonModel(useAvatarModel);
 
-function getAction(command) {    
+function agentCommand(command) {    
     if(true) {
 
        // var command = JSON.parse(message);
-        print("I'm the agent " + this.actorUUID + " and I received this: Dest: " + command.dest_key + " Action: " + command.action_key + " URL: " + command.argument_key);
+        print("I'm the agent " + this.agentUUID + " and I received this: Dest: " + command.dest_key + " Action: " + command.action_key + " URL: " + command.argument_key);
      
         switch(command.action_key) {
         case PLAY:
@@ -82,13 +81,19 @@ function getAction(command) {
             }
             break;
         case LOAD:
-            print("Load");   
-            if(command.argument_key !== null) {
+        {
+            print("Load" + command.argument_key);  
+            print("Agent #" + command.dest_key + " loading clip URL: " + command.argument_key);
+                Recording.loadRecording(command.argument_key);
+            print("After Load" + command.argument_key);  
+
+            /*if(command.argument_key == null) {
+                print("Agent #" + id + " loading clip URL is NULL, nothing happened"); 
+            } else *{
                 print("Agent #" + id + " loading clip URL: " + command.argument_key);
                 Recording.loadRecording(command.argument_key);
-            } else {
-                 print("Agent #" + id + " loading clip URL is NULL, nothing happened"); 
-            }
+            }*/
+         }
             break;
         default:
             print("Unknown action: " + command.action_key);
@@ -102,7 +107,7 @@ function agentHired() {
     print("Agent Hired from playbackAgents.js");
     if (Recording.isPlaying()) {
         Recording.stopPlaying();
-    }
+    }   
     Recording.setPlayerLoop(false);
 }
 
@@ -119,7 +124,7 @@ function update(deltaTime) {
     if (totalTime > WAIT_FOR_AUDIO_MIXER) {
         if (!agentController.subscribed) {
             agentController.reset();
-            agentController.onCommand = getAction;
+            agentController.onCommand = agentCommand;
             agentController.onHired = agentHired;
             agentController.onFired = agentFired;
         }
