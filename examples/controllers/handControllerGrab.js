@@ -802,6 +802,7 @@ function MyController(hand) {
                 // equipping
                 Entities.callEntityMethod(this.grabbedEntity, "startEquip", [JSON.stringify(this.hand)]);
                 this.startHandGrasp();
+
                 this.setState(STATE_CONTINUE_EQUIP_BD);
             }
 
@@ -885,6 +886,7 @@ function MyController(hand) {
             Entities.callEntityMethod(this.grabbedEntity, "releaseGrab");
             Entities.callEntityMethod(this.grabbedEntity, "unequip");
             this.endHandGrasp();
+
         }
     };
 
