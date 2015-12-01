@@ -51,10 +51,9 @@
         var batUserData = {
             grabbableKey: {
                 spatialKey: {
-                    relativePosition: { x: 0.9, y: 0, z: 0 },
-                    relativeRotation: Quat.fromPitchYawRollDegrees(0, 0, 45),
-                    perHandRelativePosition: { x: 0.0, y: -0.05, z: -0.04 },
-                    perHandRelativeRotation: Quat.fromPitchYawRollDegrees(0, 0, 0)
+                    leftRelativePosition: { x: 0.9, y: 0.05, z: -0.05 },
+                    rightRelativePosition: { x: 0.9, y: 0.05, z: 0.05 },
+                    relativeRotation: Quat.fromPitchYawRollDegrees(0, 0, 45)
                 }
             }
         }

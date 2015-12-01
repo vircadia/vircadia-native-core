@@ -38,15 +38,12 @@ public:
     std::shared_ptr<Avatar> getTarget(glm::quat& rotation, glm::vec3& position);
 
 private:
+    void doKinematicUpdate(float deltaTimeStep);
+
     static const uint16_t holdVersion;
 
-    void doKinematicUpdate(float deltaTimeStep);
-    
-    glm::vec3 _relativePosition { 0.0f };
-    glm::quat _relativeRotation;
-    glm::vec3 _perHandRelativePosition { 0.0f };
-    glm::quat _perHandRelativeRotation;
-    
+    glm::vec3 _relativePosition { Vectors::ZERO };
+    glm::quat _relativeRotation { Quaternions::IDENTITY };
     QString _hand { "right" };
     QUuid _holderID;
 

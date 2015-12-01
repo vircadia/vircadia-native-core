@@ -67,12 +67,17 @@
     }
 
     var BOW_SPATIAL_KEY = {
-        relativePosition: {
-            x: 0,
+        leftRelativePosition: {
+            x: 0.05,
             y: 0.06,
-            z: 0.11
+            z: -0.05
         },
-        relativeRotation: Quat.fromPitchYawRollDegrees(0, -90, 90)
+        rightRelativePosition: {
+            x: -0.05,
+            y: 0.06,
+            z: -0.05
+        },
+        relativeRotation: Quat.fromPitchYawRollDegrees(0, 90, -90)
     }
 
 
