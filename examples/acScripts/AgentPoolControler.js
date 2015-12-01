@@ -192,27 +192,22 @@ function printDebug(message) {
             this.timeSinceLastAlive = 0;
             Messages.sendMessage(SERVICE_CHANNEL, packServiceMessage(BROADCAST_AGENTS, MASTER_ALIVE, MASTER_ID));
         
-            printDebug("checking the agents status");
             {
                 // Check for alive connected agents
                 var lostAgents = new Array();
                 for (var i = 0; i < this.hiredActors.length; i++) {
                     var actor = this.hiredActors[i];
-                    printDebug("checking :" + JSON.stringify(actor));
                     var lastAlive = actor.incrementAliveCycle()
                     if (lastAlive > NUM_CYCLES_BEFORE_RESET) {
-                        printDebug("Agent Lost, firing Agent");
-                        lostAgents.push(actor);
+                        printDebug("Agent Lost, firing Agent #" + i + JSON.stringify(actor));
+                        lostAgents.push(i);
                     }
                 }
 
-                // now fire gathered lost agents
-                if (lostAgents.length > 0) {
+                // now fire gathered lost agents from end to begin
+                while (lostAgents.length > 0) {
                     printDebug("Firing " + lostAgents.length + " agents" + JSON.stringify(lostAgents));
-                        
-                    for (var i = 0; i < lostAgents.length; i++) {
-                        this.fireAgent(lostAgents[l]);
-                    }
+                    this.fireAgent(this.hiredActors[lostAgents.pop()]);
                 }
             }
         }
@@ -251,7 +246,7 @@ function printDebug(message) {
     MasterController.prototype._removeAgent = function(actorIndex) {
         // check to see if we know about this agent  
         if (actorIndex >= 0) {
-            printDebug("before _removeAgent #" + actorIndex + " " + JSON.stringify(this))
+            printDebug("MasterController.prototype._removeAgent #" + actorIndex + " " + JSON.stringify(this))
             this.knownAgents.splice(actorIndex, 1);
 
             var lostActor = this.hiredActors[actorIndex];
@@ -259,9 +254,6 @@ function printDebug(message) {
             
             var lostAgentID = lostActor.agentID;
             lostActor.agentID = INVALID_AGENT;
-
-            printDebug("Clearing agent  " + actorIndex + " Forgeting about it");
-            printDebug("after _removeAgent #" + actorIndex + " " + JSON.stringify(this))
         
             if (lostAgentID != INVALID_AGENT) {
                 printDebug("fired actor is still connected, send fire command");

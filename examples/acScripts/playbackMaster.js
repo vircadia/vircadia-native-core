@@ -26,8 +26,6 @@ Tool.IMAGE_WIDTH /= 2;
 var PLAY = 1;
 var PLAY_LOOP = 2;
 var STOP = 3;
-var SHOW = 4;
-var HIDE = 5;
 var LOAD = 6;
 
 var windowDimensions = Controller.getViewportDimensions();
@@ -42,10 +40,6 @@ var TEXT_MARGIN = 3;
 // Add new features to Actor class:
 Actor.prototype.destroy = function() { 
     print("Actor.prototype.destroy");
-
-    this.toolbar.cleanup();
-    Overlays.deleteOverlay(this.nameOverlay);   
-    
     print("Need to fire myself" + this.agentID);
     masterController.fireAgent(this);  
 }
@@ -121,6 +115,11 @@ Actor.prototype._buildUI = function() {
                                       backgroundAlpha: ALPHA_OFF,
                                       visible: true
                                       });
+}
+
+Actor.prototype._destroyUI = function() {
+    this.toolbar.cleanup();
+    Overlays.deleteOverlay(this.nameOverlay);   
 }
 
 Actor.prototype.moveUI = function(pos) {
@@ -329,6 +328,9 @@ Director.prototype.hireActor = function(clipURL) {
         if (index >= 0) {
             localThis.actors.splice(index, 1); 
         }
+
+        actor._destroyUI();
+    
         actor.destroy();
         moveUI();
     }
@@ -337,6 +339,7 @@ Director.prototype.hireActor = function(clipURL) {
         print("Load clip for agent" + actor.agentID + " calling load clip for url " + actor.clipURL); 
         masterController.sendCommand(actor.agentID, LOAD, actor.clipURL);
     });
+
 
     masterController.hireAgent(newActor);        
     newActor._buildUI();

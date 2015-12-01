@@ -9,9 +9,6 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-// Agent is an avatar
-Agent.isAvatar = true;
-
 Script.include("./AgentPoolControler.js");
 var agentController = new AgentController();
 
@@ -34,8 +31,6 @@ var WAIT_FOR_AUDIO_MIXER = 1;
 var PLAY = 1;
 var PLAY_LOOP = 2;
 var STOP = 3;
-var SHOW = 4;
-var HIDE = 5;
 var LOAD = 6;
 
 Recording.setPlayFromCurrentLocation(playFromCurrentLocation);
@@ -71,28 +66,13 @@ function agentCommand(command) {
                 Recording.stopPlaying();
             }
             break;
-        case SHOW:
-            print("Show");
-            break;
-        case HIDE:
-            print("Hide"); 
-            if (Recording.isPlaying()) {
-                Recording.stopPlaying();
-            }
-            break;
         case LOAD:
         {
             print("Load" + command.argument_key);  
             print("Agent #" + command.dest_key + " loading clip URL: " + command.argument_key);
                 Recording.loadRecording(command.argument_key);
             print("After Load" + command.argument_key);  
-
-            /*if(command.argument_key == null) {
-                print("Agent #" + id + " loading clip URL is NULL, nothing happened"); 
-            } else *{
-                print("Agent #" + id + " loading clip URL: " + command.argument_key);
-                Recording.loadRecording(command.argument_key);
-            }*/
+            Recording.setPlayerTime(0);
          }
             break;
         default:
@@ -105,17 +85,18 @@ function agentCommand(command) {
 
 function agentHired() {
     print("Agent Hired from playbackAgents.js");
-    if (Recording.isPlaying()) {
-        Recording.stopPlaying();
-    }   
+    Agent.isAvatar = true;
+    Recording.stopPlaying();
     Recording.setPlayerLoop(false);
+    Recording.setPlayerTime(0);
 }
 
 function agentFired() {
     print("Agent Fired from playbackAgents.js");
-    if (Recording.isPlaying()) {
-        Recording.stopPlaying();
-    }
+    Recording.stopPlaying();
+    Recording.setPlayerTime(0);
+    Recording.setPlayerLoop(false);
+    Agent.isAvatar = false;
 }
 
 
