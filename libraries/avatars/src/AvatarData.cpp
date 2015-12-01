@@ -90,8 +90,10 @@ const QUrl& AvatarData::defaultFullAvatarModelUrl() {
 // There are a number of possible strategies for this set of tools through endRender, below.
 void AvatarData::nextAttitude(glm::vec3 position, glm::quat orientation) {
     avatarLock.lock();
-    SpatiallyNestable::setPosition(position);
-    SpatiallyNestable::setOrientation(orientation);
+    Transform trans;
+    trans.setTranslation(position);
+    trans.setRotation(orientation);
+    SpatiallyNestable::setTransform(trans);
     avatarLock.unlock();
     updateAttitude();
 }
@@ -478,6 +480,12 @@ int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
         }
 
         // TODO is this safe? will the floats not exactly match?
+        // Andrew says:
+        // Yes, there is a possibility that the transmitted will not quite match the extracted despite being originally
+        // extracted from the exact same quaternion. I followed the code through and it appears the risk is that the
+        // avatar's SkeletonModel might fall into the CPU expensive part of Model::updateClusterMatrices() when otherwise it
+        // would not have required it.  However, we know we can update many simultaneously animating avatars, and most
+        // avatars will be moving constantly anyway, so I don't think we need to worry.
         if (getBodyYaw() != yaw || getBodyPitch() != pitch || getBodyRoll() != roll) {
             _hasNewJointRotations = true;
             glm::vec3 eulerAngles(pitch, yaw, roll);

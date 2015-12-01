@@ -191,7 +191,7 @@ EntityItemProperties EntityScriptingInterface::getEntityProperties(QUuid identit
 }
 
 QUuid EntityScriptingInterface::editEntity(QUuid id, EntityItemProperties scriptSideProperties) {
-    EntityItemProperties properties = convertLocationFromScriptSemantics(scriptSideProperties);
+    EntityItemProperties properties = scriptSideProperties;
     EntityItemID entityID(id);
     // If we have a local entity tree set, then also update it.
     if (!_entityTree) {
@@ -204,25 +204,17 @@ QUuid EntityScriptingInterface::editEntity(QUuid id, EntityItemProperties script
         if (scriptSideProperties.parentDependentPropertyChanged()) {
             // if the script sets a location property but didn't include parent information, grab the needed
             // properties from the entity.
-            bool recompute = false;
-            EntityItemPointer entity = nullptr;
-            if (!scriptSideProperties.parentIDChanged()) {
-                entity = _entityTree->findEntityByEntityItemID(entityID);
-                scriptSideProperties.setParentID(entity->getParentID());
-                recompute = true;
-            }
-            if (!scriptSideProperties.parentJointIndexChanged()) {
-                if (!entity) {
-                    entity = _entityTree->findEntityByEntityItemID(entityID);
+            if (!scriptSideProperties.parentIDChanged() || !scriptSideProperties.parentJointIndexChanged()) {
+                EntityItemPointer entity = _entityTree->findEntityByEntityItemID(entityID);
+                if (entity && !scriptSideProperties.parentIDChanged()) {
+                    properties.setParentID(entity->getParentID());
                 }
-                scriptSideProperties.setParentJointIndex(entity->getParentJointIndex());
-                recompute = true;
-            }
-            if (recompute) {
-                properties = convertLocationFromScriptSemantics(scriptSideProperties);
+                if (entity && !scriptSideProperties.parentJointIndexChanged()) {
+                    properties.setParentJointIndex(entity->getParentJointIndex());
+                }
             }
         }
-
+        properties = convertLocationFromScriptSemantics(properties);
         updatedEntity = _entityTree->updateEntity(entityID, properties);
     });
 
