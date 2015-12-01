@@ -51,3 +51,15 @@ assets:
     s3_url: "http://hifi-public.s3.amazonaws.com/birarda/baseball/clapping.wav"
     atp_url: "atp:44a83a788ccfd2924e35c902c34808b24dbd0309d000299ce01a355f91cf8115.wav"
     attribution: "CC BY 3.0 - Credit: Alyssa Galindo - http://freesound.org/people/AshFox/"
+  pop1.wav:
+    s3_url: "http://hifi-public.s3.amazonaws.com/birarda/baseball/fireworks/pop1.wav"
+    atp_url: "atp:a2bf79c95fe74c2c6c9188acc7230f7cd1b0f6008f2c81954ecd93eca0497ec6.wav"
+  pop2.wav:
+    s3_url: "http://hifi-public.s3.amazonaws.com/birarda/baseball/fireworks/pop2.wav"
+    atp_url: "atp:901067ebc2cda4c0d86ec02fcca2ed901e85f9097ad68bbde78b4cad8eaf2ed7.wav"
+  pop3.wav:
+    s3_url: "http://hifi-public.s3.amazonaws.com/birarda/baseball/fireworks/pop3.wav"
+    atp_url: "atp:830312930577cb1ea36ba2d743e957debbacceb441b20addead5a6faa05a3771.wav"
+  pop4.wav:
+    s3_url: "http://hifi-public.s3.amazonaws.com/birarda/baseball/fireworks/pop4.wav"
+    atp_url: "atp:62e80d0a9f084cf731bcc66ca6e9020ee88587417071a281eee3167307b53560.wav"
