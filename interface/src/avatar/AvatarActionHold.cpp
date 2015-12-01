@@ -65,15 +65,13 @@ std::shared_ptr<Avatar> AvatarActionHold::getTarget(glm::quat& rotation, glm::ve
             }
         }
 
-        if (isRightHand) {
-            rotation = palmRotation * _rightRelativeRotation;
-            position = palmPosition + rotation * _rightRelativePosition;
-        } else {
+        if (!isRightHand) {
             static const glm::quat yFlip = glm::angleAxis(PI, Vectors::UNIT_Y);
             palmRotation *= yFlip; // Match right hand frame of reference
-            rotation = palmRotation * _leftRelativeRotation;
-            position = palmPosition + rotation * _leftRelativePosition;
         }
+
+        rotation = palmRotation * _relativeRotation;
+        position = palmPosition + rotation * _relativePosition;
     });
 
     return holdingAvatar;
@@ -175,10 +173,8 @@ void AvatarActionHold::doKinematicUpdate(float deltaTimeStep) {
 }
 
 bool AvatarActionHold::updateArguments(QVariantMap arguments) {
-    glm::vec3 leftRelativePosition;
-    glm::quat leftRelativeRotation;
-    glm::vec3 rightRelativePosition;
-    glm::quat rightRelativeRotation;
+    glm::vec3 relativePosition;
+    glm::quat relativeRotation;
     float timeScale;
     QString hand;
     QUuid holderID;
@@ -190,27 +186,15 @@ bool AvatarActionHold::updateArguments(QVariantMap arguments) {
     bool somethingChanged = ObjectAction::updateArguments(arguments);
     withReadLock([&]{
         bool ok = true;
-        leftRelativePosition = EntityActionInterface::extractVec3Argument("hold", arguments, "leftRelativePosition", ok, false);
+        relativePosition = EntityActionInterface::extractVec3Argument("hold", arguments, "relativePosition", ok, false);
         if (!ok) {
-            leftRelativePosition = _leftRelativePosition;
+            relativePosition = _relativePosition;
         }
-        
+
         ok = true;
-        leftRelativeRotation = EntityActionInterface::extractQuatArgument("hold", arguments, "leftRelativeRotation", ok, false);
+        relativeRotation = EntityActionInterface::extractQuatArgument("hold", arguments, "relativeRotation", ok, false);
         if (!ok) {
-            leftRelativeRotation = _leftRelativeRotation;
-        }
-        
-        ok = true;
-        rightRelativePosition = EntityActionInterface::extractVec3Argument("hold", arguments, "rightRelativePosition", ok, false);
-        if (!ok) {
-            rightRelativePosition = _rightRelativePosition;
-        }
-        
-        ok = true;
-        rightRelativeRotation = EntityActionInterface::extractQuatArgument("hold", arguments, "rightRelativeRotation", ok, false);
-        if (!ok) {
-            rightRelativeRotation = _rightRelativeRotation;
+            relativeRotation = _relativeRotation;
         }
 
         ok = true;
@@ -234,25 +218,17 @@ bool AvatarActionHold::updateArguments(QVariantMap arguments) {
         if (!ok) {
             _kinematic = false;
         }
-        
+
         ok = true;
         kinematicSetVelocity = EntityActionInterface::extractBooleanArgument("hold", arguments,
                                                                              "kinematicSetVelocity", ok, false);
         if (!ok) {
             _kinematicSetVelocity = false;
         }
-        
-        ok = true;
-        ignoreIK = EntityActionInterface::extractBooleanArgument("hold", arguments, "ignoreIK", ok, false);
-        if (!ok) {
-            _ignoreIK = true;
-        }
 
         if (somethingChanged ||
-            leftRelativePosition != _leftRelativePosition ||
-            leftRelativeRotation != _leftRelativeRotation ||
-            rightRelativePosition != _rightRelativePosition ||
-            rightRelativeRotation != _rightRelativeRotation ||
+            relativePosition != _relativePosition ||
+            relativeRotation != _relativeRotation ||
             timeScale != _linearTimeScale ||
             hand != _hand ||
             holderID != _holderID ||
@@ -265,10 +241,8 @@ bool AvatarActionHold::updateArguments(QVariantMap arguments) {
 
     if (needUpdate) {
         withWriteLock([&] {
-            _leftRelativePosition = leftRelativePosition;
-            _leftRelativeRotation = leftRelativeRotation;
-            _rightRelativePosition = rightRelativePosition;
-            _rightRelativeRotation = rightRelativeRotation;
+            _relativePosition = relativePosition;
+            _relativeRotation = relativeRotation;
             const float MIN_TIMESCALE = 0.1f;
             _linearTimeScale = glm::max(MIN_TIMESCALE, timeScale);
             _angularTimeScale = _linearTimeScale;
@@ -295,10 +269,8 @@ QVariantMap AvatarActionHold::getArguments() {
     QVariantMap arguments = ObjectAction::getArguments();
     withReadLock([&]{
         arguments["holderID"] = _holderID;
-        arguments["leftRelativePosition"] = glmToQMap(_leftRelativePosition);
-        arguments["leftRelativeRotation"] = glmToQMap(_leftRelativeRotation);
-        arguments["rightRelativePosition"] = glmToQMap(_rightRelativePosition);
-        arguments["rightRelativeRotation"] = glmToQMap(_rightRelativeRotation);
+        arguments["relativePosition"] = glmToQMap(_relativePosition);
+        arguments["relativeRotation"] = glmToQMap(_relativeRotation);
         arguments["timeScale"] = _linearTimeScale;
         arguments["hand"] = _hand;
         arguments["kinematic"] = _kinematic;
@@ -318,10 +290,8 @@ QByteArray AvatarActionHold::serialize() const {
         dataStream << AvatarActionHold::holdVersion;
 
         dataStream << _holderID;
-        dataStream << _leftRelativePosition;
-        dataStream << _leftRelativeRotation;
-        dataStream << _rightRelativePosition;
-        dataStream << _rightRelativeRotation;
+        dataStream << _relativePosition;
+        dataStream << _relativeRotation;
         dataStream << _linearTimeScale;
         dataStream << _hand;
 
@@ -353,10 +323,8 @@ void AvatarActionHold::deserialize(QByteArray serializedArguments) {
 
     withWriteLock([&]{
         dataStream >> _holderID;
-        dataStream >> _leftRelativePosition;
-        dataStream >> _leftRelativeRotation;
-        dataStream >> _rightRelativePosition;
-        dataStream >> _rightRelativeRotation;
+        dataStream >> _relativePosition;
+        dataStream >> _relativeRotation;
         dataStream >> _linearTimeScale;
         _angularTimeScale = _linearTimeScale;
         dataStream >> _hand;
