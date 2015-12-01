@@ -24,14 +24,22 @@
 
 
 
+struct PolyLineUniforms {
+    float time;
+};
+
 EntityItemPointer RenderablePolyLineEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
     return EntityItemPointer(new RenderablePolyLineEntityItem(entityID, properties));
 }
 
 RenderablePolyLineEntityItem::RenderablePolyLineEntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties) :
-PolyLineEntityItem(entityItemID, properties) {
-    _numVertices = 0;
+PolyLineEntityItem(entityItemID, properties),
+_counter(0.0f),
+_numVertices(0)
+{
     _vertices = QVector<glm::vec3>(0.0f);
+    PolyLineUniforms uniforms;
+    _uniformBuffer = std::make_shared<gpu::Buffer>(sizeof(PolyLineUniforms), (const gpu::Byte*) &uniforms);
 
 }
 
@@ -161,6 +169,18 @@ void RenderablePolyLineEntityItem::updateVertices() {
 
 }
 
+void RenderablePolyLineEntityItem::update(const quint64& now) {
+    PolyLineUniforms uniforms;
+    _counter += 0.01;
+    uniforms.time = _counter;
+    memcpy(&_uniformBuffer.edit<PolyLineUniforms>(), &uniforms, sizeof(PolyLineUniforms));
+
+    if (_pointsChanged || _strokeWidthsChanged || _normalsChanged) {
+        updateVertices();
+        updateGeometry();
+    }
+
+}
 
 void RenderablePolyLineEntityItem::render(RenderArgs* args) {
     QWriteLocker lock(&_quadReadWriteLock);
@@ -181,17 +201,13 @@ void RenderablePolyLineEntityItem::render(RenderArgs* args) {
 
     PerformanceTimer perfTimer("RenderablePolyLineEntityItem::render");
     Q_ASSERT(getType() == EntityTypes::PolyLine);
-
     Q_ASSERT(args->_batch);
-    if (_pointsChanged || _strokeWidthsChanged || _normalsChanged) {
-        updateVertices();
-        updateGeometry();
-    }
 
     gpu::Batch& batch = *args->_batch;
     Transform transform = Transform();
     transform.setTranslation(getPosition());
     transform.setRotation(getRotation());
+    batch.setUniformBuffer(0, _uniformBuffer);
     batch.setModelTransform(transform);
 
     batch.setPipeline(_pipeline);
@@ -200,7 +216,7 @@ void RenderablePolyLineEntityItem::render(RenderArgs* args) {
     } else {
         batch.setResourceTexture(PAINTSTROKE_GPU_SLOT, args->_whiteTexture);
     }
-
+   
     batch.setInputFormat(_format);
     batch.setInputBuffer(0, _verticesBuffer, 0, _format->getChannels().at(0)._stride);
 

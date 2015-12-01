@@ -75,7 +75,9 @@ class PolyLineEntityItem : public EntityItem {
             _texturesChangedFlag = true;
         }
     }
-    
+
+    virtual bool needsToCallUpdate() const { return true; }
+
     virtual ShapeType getShapeType() const { return SHAPE_TYPE_LINE; }
 
     // never have a ray intersection pick a PolyLineEntityItem.

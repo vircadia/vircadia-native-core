@@ -90,6 +90,7 @@ bool PolyLineEntityItem::setProperties(const EntityItemProperties& properties) {
     return somethingChanged;
 }
 
+
 bool PolyLineEntityItem::appendPoint(const glm::vec3& point) {
     if (_points.size() > MAX_POINTS_PER_LINE - 1) {
         qDebug() << "MAX POINTS REACHED!";
@@ -104,6 +105,7 @@ bool PolyLineEntityItem::appendPoint(const glm::vec3& point) {
     _pointsChanged = true;
     return true;
 }
+
 
 bool PolyLineEntityItem::setStrokeWidths(const QVector<float>& strokeWidths) {
     _strokeWidths = strokeWidths;
