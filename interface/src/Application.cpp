@@ -2856,6 +2856,8 @@ void Application::update(float deltaTime) {
         }
     }
 
+    _controllerScriptingInterface->updateInputControllers();
+
     // Transfer the user inputs to the driveKeys
     // FIXME can we drop drive keys and just have the avatar read the action states directly?
     myAvatar->clearDriveKeys();
