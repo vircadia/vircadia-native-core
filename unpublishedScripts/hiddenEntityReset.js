@@ -1134,7 +1134,7 @@
                 shapeType: 'box',
                 gravity: {
                     x: 0,
-                    y: -0.5,
+                    y: -3.0,
                     z: 0
                 },
                 velocity: {
