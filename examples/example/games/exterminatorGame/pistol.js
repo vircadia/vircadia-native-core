@@ -13,8 +13,8 @@
 //
 
 
-Script.include("../../libraries/utils.js");
-Script.include("../../libraries/constants.js");
+Script.include("../../../libraries/utils.js");
+Script.include("../../../libraries/constants.js");
 
 var GUN_FORCE =20;
 

@@ -14,7 +14,7 @@
 var utilitiesScript = Script.resolvePath("../examples/libraries/utils.js");
 Script.include(utilitiesScript);
 
-var gunScriptURL = Script.resolvePath("../examples/weapons/pistol/pistol.js");
+var gunScriptURL = Script.resolvePath("../examples/toybox/pistol/pistol.js");
 var sprayPaintScriptURL = Script.resolvePath("../examples/toybox/spray_paint/sprayPaintCan.js");
 var catScriptURL = Script.resolvePath("../examples/toybox/cat/cat.js");
 var flashlightScriptURL = Script.resolvePath('../examples/toybox/flashlight/flashlight.js');
