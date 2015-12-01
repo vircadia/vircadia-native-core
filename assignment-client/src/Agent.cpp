@@ -18,6 +18,7 @@
 
 #include <AssetClient.h>
 #include <AvatarHashMap.h>
+#include <AudioInjectorManager.h>
 #include <AssetClient.h>
 #include <MessagesClient.h>
 #include <NetworkAccessManager.h>
@@ -63,6 +64,7 @@ Agent::Agent(NLPacket& packet) :
 
     DependencyManager::set<ResourceCacheSharedItems>();
     DependencyManager::set<SoundCache>();
+    DependencyManager::set<AudioInjectorManager>();
     DependencyManager::set<recording::Deck>();
     DependencyManager::set<recording::Recorder>();
     DependencyManager::set<RecordingScriptingInterface>();
@@ -421,7 +423,7 @@ void Agent::processAgentAvatarAndAudio(float deltaTime) {
                 glm::quat headOrientation = scriptedAvatar->getHeadOrientation();
                 audioPacket->writePrimitive(headOrientation);
 
-            }else if (nextSoundOutput) {
+            } else if (nextSoundOutput) {
                 // assume scripted avatar audio is mono and set channel flag to zero
                 audioPacket->writePrimitive((quint8)0);
 
@@ -467,4 +469,7 @@ void Agent::aboutToFinish() {
     DependencyManager::destroy<AssetClient>();
     assetThread->quit();
     assetThread->wait();
+    
+    // cleanup the AudioInjectorManager (and any still running injectors)
+    DependencyManager::destroy<AudioInjectorManager>();
 }
