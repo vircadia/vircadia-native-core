@@ -123,7 +123,7 @@
                 type:'Sphere',
                 color: BALL_COLOR,
                 dimensions: BALL_DIMENSIONS,
-                linearDamping: BALL_LINEAR_DAMPING,
+                damping: BALL_LINEAR_DAMPING,
                 gravity: BALL_GRAVITY,
                 restitution: BALL_RESTITUTION,
                 collisionsWillMove: true,

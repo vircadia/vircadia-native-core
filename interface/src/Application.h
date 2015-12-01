@@ -159,6 +159,14 @@ public:
     bool isForeground() const { return _isForeground; }
     
     float getFps() const { return _fps; }
+    float const HMD_TARGET_FRAME_RATE = 75.0f;
+    float const DESKTOP_TARGET_FRAME_RATE = 60.0f;
+    float getTargetFrameRate() { return isHMDMode() ? HMD_TARGET_FRAME_RATE : DESKTOP_TARGET_FRAME_RATE; }
+    float getTargetFramePeriod() { return isHMDMode() ? 1.0f / HMD_TARGET_FRAME_RATE : 1.0f / DESKTOP_TARGET_FRAME_RATE; } // same as 1/getTargetFrameRate, but w/compile-time division
+    float getLastInstanteousFps() const { return _lastInstantaneousFps; }
+    float getLastPaintWait() const { return _lastPaintWait; };
+    float getLastDeducedNonVSyncFps() const { return _lastDeducedNonVSyncFps; }
+    void setMarginForDeducedFramePeriod(float newValue) { _marginForDeducedFramePeriod = newValue; }
 
     float getFieldOfView() { return _fieldOfView.get(); }
     void setFieldOfView(float fov);
@@ -429,6 +437,10 @@ private:
     float _fps;
     QElapsedTimer _timerStart;
     QElapsedTimer _lastTimeUpdated;
+    float _lastInstantaneousFps { 0.0f };
+    float _lastPaintWait { 0.0f };
+    float _lastDeducedNonVSyncFps { 0.0f };
+    float _marginForDeducedFramePeriod{ 0.002f }; // 2ms, adjustable
 
     ShapeManager _shapeManager;
     PhysicalEntitySimulation _entitySimulation;

@@ -153,28 +153,12 @@ void AnimDebugDraw::shutdown() {
     }
 }
 
-void AnimDebugDraw::addSkeleton(const std::string& key, AnimSkeleton::ConstPointer skeleton, const AnimPose& rootPose, const glm::vec4& color) {
-    _skeletons[key] = SkeletonInfo(skeleton, rootPose, color);
+void AnimDebugDraw::addAbsolutePoses(const std::string& key, AnimSkeleton::ConstPointer skeleton, const AnimPoseVec& poses, const AnimPose& rootPose, const glm::vec4& color) {
+    _absolutePoses[key] = PosesInfo(skeleton, poses, rootPose, color);
 }
 
-void AnimDebugDraw::removeSkeleton(const std::string& key) {
-    _skeletons.erase(key);
-}
-
-void AnimDebugDraw::addAnimNode(const std::string& key, AnimNode::ConstPointer animNode, const AnimPose& rootPose, const glm::vec4& color) {
-    _animNodes[key] = AnimNodeInfo(animNode, rootPose, color);
-}
-
-void AnimDebugDraw::removeAnimNode(const std::string& key) {
-    _animNodes.erase(key);
-}
-
-void AnimDebugDraw::addPoses(const std::string& key, AnimSkeleton::ConstPointer skeleton, const AnimPoseVec& poses, const AnimPose& rootPose, const glm::vec4& color) {
-    _poses[key] = PosesInfo(skeleton, poses, rootPose, color);
-}
-
-void AnimDebugDraw::removePoses(const std::string& key) {
-    _poses.erase(key);
+void AnimDebugDraw::removeAbsolutePoses(const std::string& key) {
+    _absolutePoses.erase(key);
 }
 
 static const uint32_t red = toRGBA(255, 0, 0, 255);
@@ -338,31 +322,8 @@ void AnimDebugDraw::update() {
 
         // figure out how many verts we will need.
         int numVerts = 0;
-        for (auto& iter : _skeletons) {
-            AnimSkeleton::ConstPointer& skeleton = std::get<0>(iter.second);
-            numVerts += skeleton->getNumJoints() * VERTICES_PER_BONE;
-            for (int i = 0; i < skeleton->getNumJoints(); i++) {
-                auto parentIndex = skeleton->getParentIndex(i);
-                if (parentIndex >= 0) {
-                    numVerts += VERTICES_PER_LINK;
-                }
-            }
-        }
 
-        for (auto& iter : _animNodes) {
-            AnimNode::ConstPointer& animNode = std::get<0>(iter.second);
-            auto poses = animNode->getPosesInternal();
-            numVerts += poses.size() * VERTICES_PER_BONE;
-            auto skeleton = animNode->getSkeleton();
-            for (size_t i = 0; i < poses.size(); i++) {
-                auto parentIndex = skeleton->getParentIndex(i);
-                if (parentIndex >= 0) {
-                    numVerts += VERTICES_PER_LINK;
-                }
-            }
-        }
-
-        for (auto& iter : _poses) {
+        for (auto& iter : _absolutePoses) {
             AnimSkeleton::ConstPointer& skeleton = std::get<0>(iter.second);
             numVerts += skeleton->getNumJoints() * VERTICES_PER_BONE;
             for (int i = 0; i < skeleton->getNumJoints(); i++) {
@@ -379,106 +340,29 @@ void AnimDebugDraw::update() {
         auto myAvatarMarkerMap = DebugDraw::getInstance().getMyAvatarMarkerMap();
         numVerts += myAvatarMarkerMap.size() * VERTICES_PER_BONE;
 
+        // allocate verts!
         data._vertexBuffer->resize(sizeof(Vertex) * numVerts);
         Vertex* verts = (Vertex*)data._vertexBuffer->editData();
         Vertex* v = verts;
-        for (auto& iter : _skeletons) {
+
+        // draw absolute poses
+        for (auto& iter : _absolutePoses) {
             AnimSkeleton::ConstPointer& skeleton = std::get<0>(iter.second);
-            AnimPose rootPose = std::get<1>(iter.second);
-            int hipsIndex = skeleton->nameToJointIndex("Hips");
-            if (hipsIndex >= 0) {
-                rootPose.trans -= skeleton->getRelativeBindPose(hipsIndex).trans;
-            }
-            glm::vec4 color = std::get<2>(iter.second);
-
-            for (int i = 0; i < skeleton->getNumJoints(); i++) {
-                AnimPose pose = skeleton->getAbsoluteBindPose(i);
-
-                const float radius = BONE_RADIUS / (pose.scale.x * rootPose.scale.x);
-
-                // draw bone
-                addBone(rootPose, pose, radius, v);
-
-                // draw link to parent
-                auto parentIndex = skeleton->getParentIndex(i);
-                if (parentIndex >= 0) {
-                    assert(parentIndex < skeleton->getNumJoints());
-                    AnimPose parentPose = skeleton->getAbsoluteBindPose(parentIndex);
-                    addLink(rootPose, pose, parentPose, radius, color, v);
-                }
-            }
-        }
-
-        for (auto& iter : _animNodes) {
-            AnimNode::ConstPointer& animNode = std::get<0>(iter.second);
-            AnimPose rootPose = std::get<1>(iter.second);
-            if (animNode->_skeleton) {
-                int hipsIndex = animNode->_skeleton->nameToJointIndex("Hips");
-                if (hipsIndex >= 0) {
-                    rootPose.trans -= animNode->_skeleton->getRelativeBindPose(hipsIndex).trans;
-                }
-            }
-            glm::vec4 color = std::get<2>(iter.second);
-
-            auto poses = animNode->getPosesInternal();
-
-            auto skeleton = animNode->getSkeleton();
-
-            std::vector<AnimPose> absAnimPose;
-            absAnimPose.resize(skeleton->getNumJoints());
-
-            for (size_t i = 0; i < poses.size(); i++) {
-
-                auto parentIndex = skeleton->getParentIndex(i);
-                if (parentIndex >= 0) {
-                    absAnimPose[i] = absAnimPose[parentIndex] * poses[i];
-                } else {
-                    absAnimPose[i] = poses[i];
-                }
-
-                const float radius = BONE_RADIUS / (absAnimPose[i].scale.x * rootPose.scale.x);
-                addBone(rootPose, absAnimPose[i], radius, v);
-
-                if (parentIndex >= 0) {
-                    assert((size_t)parentIndex < poses.size());
-                    // draw line to parent
-                    addLink(rootPose, absAnimPose[i], absAnimPose[parentIndex], radius, color, v);
-                }
-            }
-        }
-
-        for (auto& iter : _poses) {
-            AnimSkeleton::ConstPointer& skeleton = std::get<0>(iter.second);
-            AnimPoseVec& poses = std::get<1>(iter.second);
+            AnimPoseVec& absPoses = std::get<1>(iter.second);
             AnimPose rootPose = std::get<2>(iter.second);
-            int hipsIndex = skeleton->nameToJointIndex("Hips");
-            if (hipsIndex >= 0) {
-                rootPose.trans -= skeleton->getRelativeBindPose(hipsIndex).trans;
-            }
             glm::vec4 color = std::get<3>(iter.second);
 
-            std::vector<AnimPose> absAnimPose;
-            absAnimPose.resize(skeleton->getNumJoints());
-
             for (int i = 0; i < skeleton->getNumJoints(); i++) {
-                const AnimPose& pose = poses[i];
-
-                const float radius = BONE_RADIUS / (pose.scale.x * rootPose.scale.x);
-
-                auto parentIndex = skeleton->getParentIndex(i);
-                if (parentIndex >= 0) {
-                    absAnimPose[i] = absAnimPose[parentIndex] * pose;
-                } else {
-                    absAnimPose[i] = pose;
-                }
+                const float radius = BONE_RADIUS / (absPoses[i].scale.x * rootPose.scale.x);
 
                 // draw bone
-                addBone(rootPose, absAnimPose[i], radius, v);
+                addBone(rootPose, absPoses[i], radius, v);
 
                 // draw link to parent
+                auto parentIndex = skeleton->getParentIndex(i);
                 if (parentIndex >= 0) {
                     assert(parentIndex < skeleton->getNumJoints());
-                    addLink(rootPose, absAnimPose[i], absAnimPose[parentIndex], radius, color, v);
+                    addLink(rootPose, absPoses[i], absPoses[parentIndex], radius, color, v);
                 }
             }
         }

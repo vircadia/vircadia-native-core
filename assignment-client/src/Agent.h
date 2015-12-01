@@ -18,6 +18,7 @@
 #include <QtScript/QScriptEngine>
 #include <QtCore/QObject>
 #include <QtCore/QUrl>
+#include <QUuid>
 
 #include <EntityEditPacketSender.h>
 #include <EntityTree.h>
@@ -30,14 +31,16 @@
 
 class Agent : public ThreadedAssignment {
     Q_OBJECT
-    
+
     Q_PROPERTY(bool isAvatar READ isAvatar WRITE setIsAvatar)
     Q_PROPERTY(bool isPlayingAvatarSound READ isPlayingAvatarSound)
     Q_PROPERTY(bool isListeningToAudioStream READ isListeningToAudioStream WRITE setIsListeningToAudioStream)
     Q_PROPERTY(float lastReceivedAudioLoudness READ getLastReceivedAudioLoudness)
+    Q_PROPERTY(QUuid sessionUUID READ getSessionUUID)
+
 public:
     Agent(NLPacket& packet);
-    
+
     void setIsAvatar(bool isAvatar);
     bool isAvatar() const { return _isAvatar; }
 
@@ -47,14 +50,19 @@ public:
     void setIsListeningToAudioStream(bool isListeningToAudioStream) { _isListeningToAudioStream = isListeningToAudioStream; }
 
     float getLastReceivedAudioLoudness() const { return _lastReceivedAudioLoudness; }
+    QUuid getSessionUUID() const;
 
     virtual void aboutToFinish();
-    
+
 public slots:
     void run();
     void playAvatarSound(Sound* avatarSound) { setAvatarSound(avatarSound); }
 
 private slots:
+    void requestScript();
+    void scriptRequestFinished();
+    void executeScript();
+
     void handleAudioPacket(QSharedPointer<NLPacket> packet);
     void handleOctreePacket(QSharedPointer<NLPacket> packet, SharedNodePointer senderNode);
     void handleJurisdictionPacket(QSharedPointer<NLPacket> packet, SharedNodePointer senderNode);
@@ -64,7 +72,7 @@ private:
     std::unique_ptr<ScriptEngine> _scriptEngine;
     EntityEditPacketSender _entityEditSender;
     EntityTreeHeadlessViewer _entityViewer;
-    
+
     MixedAudioStream _receivedAudioStream;
     float _lastReceivedAudioLoudness;
 
@@ -73,6 +81,8 @@ private:
     void sendAvatarIdentityPacket();
     void sendAvatarBillboardPacket();
 
+    QString _scriptContents;
+    QTimer* _scriptRequestTimeout { nullptr };
     bool _isListeningToAudioStream = false;
     Sound* _avatarSound = nullptr;
     int _numAvatarSoundSentBytes = 0;

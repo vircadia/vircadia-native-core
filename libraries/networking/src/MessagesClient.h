@@ -28,12 +28,16 @@ public:
     
     Q_INVOKABLE void init();
 
-    Q_INVOKABLE void sendMessage(const QString& channel, const QString& message);
-    Q_INVOKABLE void subscribe(const QString& channel);
-    Q_INVOKABLE void unsubscribe(const QString& channel);
+    Q_INVOKABLE void sendMessage(QString channel, QString message);
+    Q_INVOKABLE void subscribe(QString channel);
+    Q_INVOKABLE void unsubscribe(QString channel);
+
+    static void decodeMessagesPacket(QSharedPointer<NLPacketList> packetList, QString& channel, QString& message, QUuid& senderID);
+    static std::unique_ptr<NLPacketList> encodeMessagesPacket(QString channel, QString message, QUuid senderID);
+
 
 signals:
-    void messageReceived(const QString& channel, const QString& message, const QUuid& senderUUID);
+    void messageReceived(QString channel, QString message, QUuid senderUUID);
 
 private slots:
     void handleMessagesPacket(QSharedPointer<NLPacketList> packetList, SharedNodePointer senderNode);

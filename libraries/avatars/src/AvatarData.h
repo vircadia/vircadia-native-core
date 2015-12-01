@@ -46,6 +46,7 @@ typedef unsigned long long quint64;
 #include <QtScript/QScriptable>
 #include <QReadWriteLock>
 
+#include <JointData.h>
 #include <NLPacket.h>
 #include <Node.h>
 #include <RegisteredMetaTypes.h>
@@ -131,7 +132,6 @@ enum KeyState {
 class QDataStream;
 
 class AttachmentData;
-class JointData;
 class Transform;
 using TransformPointer = std::shared_ptr<Transform>;
 
@@ -247,7 +247,7 @@ public:
     Q_INVOKABLE char getHandState() const { return _handState; }
 
     const QVector<JointData>& getRawJointData() const { return _jointData; }
-    void setRawJointData(QVector<JointData> data)  { _jointData = data; }
+    Q_INVOKABLE void setRawJointData(QVector<JointData> data);
 
     Q_INVOKABLE virtual void setJointData(int index, const glm::quat& rotation, const glm::vec3& translation);
     Q_INVOKABLE virtual void setJointRotation(int index, const glm::quat& rotation);
@@ -342,6 +342,8 @@ public:
     void clearRecordingBasis();
     TransformPointer getRecordingBasis() const;
     void setRecordingBasis(TransformPointer recordingBasis = TransformPointer());
+    QJsonObject toJson() const;
+    void fromJson(const QJsonObject& json);
 
 public slots:
     void sendAvatarDataPacket();
@@ -432,14 +434,6 @@ private:
 };
 Q_DECLARE_METATYPE(AvatarData*)
 
-class JointData {
-public:
-    glm::quat rotation;
-    bool rotationSet = false;
-    glm::vec3 translation;
-    bool translationSet = false;
-};
-
 QJsonValue toJsonValue(const JointData& joint);
 JointData jointDataFromJsonValue(const QJsonValue& q);
 
@@ -449,13 +443,14 @@ public:
     QString jointName;
     glm::vec3 translation;
     glm::quat rotation;
-    float scale;
-    
-    AttachmentData();
+    float scale { 1.0f };
     
     bool isValid() const { return modelURL.isValid(); }
     
     bool operator==(const AttachmentData& other) const;
+
+    QJsonObject toJson() const;
+    void fromJson(const QJsonObject& json);
 };
 
 QDataStream& operator<<(QDataStream& out, const AttachmentData& attachment);

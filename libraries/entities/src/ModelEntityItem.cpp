@@ -224,6 +224,7 @@ void ModelEntityItem::getAnimationFrame(bool& newFrame,
     if (myAnimation && myAnimation->isLoaded()) {
 
         const QVector<FBXAnimationFrame>&  frames = myAnimation->getFramesReference(); // NOTE: getFrames() is too heavy
+        auto& fbxJoints = myAnimation->getGeometry().joints;
 
         int frameCount = frames.size();
         if (frameCount > 0) {
@@ -244,7 +245,7 @@ void ModelEntityItem::getAnimationFrame(bool& newFrame,
                 for (int j = 0; j < _jointMapping.size(); j++) {
                     int index = _jointMapping[j];
                     if (index != -1 && index < rotations.size()) {
-                        _lastKnownFrameDataRotations[j] = rotations[index];
+                        _lastKnownFrameDataRotations[j] = fbxJoints[index].preRotation * rotations[index];
                     }
                     if (index != -1 && index < translations.size()) {
                         _lastKnownFrameDataTranslations[j] = translations[index];
