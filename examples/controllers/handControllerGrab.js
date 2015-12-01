@@ -323,8 +323,6 @@ function MyController(hand) {
 
     this.overlayLineOn = function(closePoint, farPoint, color) {
         if (this.overlayLine === null) {
-            print('creating handline')
-
             var lineProperties = {
                 lineWidth: 5,
                 start: closePoint,
@@ -338,7 +336,6 @@ function MyController(hand) {
             this.overlayLine = Overlays.addOverlay("line3d", lineProperties);
 
         } else {
-            print('editing handline' + this.overlayLine)
             var success = Overlays.editOverlay(this.overlayLine, {
                 lineWidth: 5,
                 start: closePoint,
@@ -349,7 +346,6 @@ function MyController(hand) {
                 alpha: 1
             });
         }
-
     }
 
     this.lineOn = function(closePoint, farPoint, color) {
