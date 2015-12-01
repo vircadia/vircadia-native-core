@@ -330,5 +330,6 @@ void AvatarActionHold::deserialize(QByteArray serializedArguments) {
         _active = true;
     });
 
+    activateBody();
     forceBodyNonStatic();
 }
