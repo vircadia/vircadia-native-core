@@ -44,24 +44,27 @@
 #include "FBXReader.h"
 #include "OBJReader.h" 
 
-#include "AvatarRig.h" // We might later test Rig vs AvatarRig separately, but for now, we're concentrating on the main use case.
+#include <Rig.h>
 #include "RigTests.h"
 
-static void reportJoint(int index, JointState joint) { // Handy for debugging
+static void reportJoint(RigPointer rig, int index) { // Handy for debugging
     std::cout << "\n";
-    std::cout << index << " " << joint.getName().toUtf8().data() << "\n";
-    std::cout << " pos:" << joint.getPosition() << "/" << joint.getPositionInParentFrame() << " from " << joint.getParentIndex() << "\n";
-    std::cout << " rot:" << safeEulerAngles(joint.getRotation()) << "/" << safeEulerAngles(joint.getRotationInParentFrame()) << "/" << safeEulerAngles(joint.getRotationInBindFrame()) << "\n";
+    std::cout << index << " " << rig->getAnimSkeleton()->getJointName(index).toUtf8().data() << "\n";
+    glm::vec3 pos;
+    rig->getJointPosition(index, pos);
+    glm::quat rot;
+    rig->getJointRotation(index, rot);
+    std::cout << " pos:" << pos << "\n";
+    std::cout << " rot:" << safeEulerAngles(rot) << "\n";
     std::cout << "\n";
 }
 static void reportByName(RigPointer rig, const QString& name) {
     int jointIndex = rig->indexOfJoint(name);
-    reportJoint(jointIndex, rig->getJointState(jointIndex));
+    reportJoint(rig, jointIndex);
 }
 static void reportAll(RigPointer rig) {
     for (int i = 0; i < rig->getJointStateCount(); i++) {
-        JointState joint = rig->getJointState(i);
-        reportJoint(i, joint);
+        reportJoint(rig, i);
     }
 }
 static void reportSome(RigPointer rig) {
@@ -88,17 +91,11 @@ void RigTests::initTestCase() {
 #endif
     QVERIFY((bool)geometry);
 
-    QVector<JointState> jointStates;
-    for (int i = 0; i < geometry->joints.size(); ++i) {
-        JointState state(geometry->joints[i]);
-        jointStates.append(state);
-    }
-
-    _rig = std::make_shared<AvatarRig>();
-    _rig->initJointStates(jointStates, glm::mat4(), 0, 41, 40, 39, 17, 16, 15); // FIXME? get by name? do we really want to exclude the shoulder blades?
+    _rig = std::make_shared<Rig>();
+    _rig->initJointStates(*geometry, glm::mat4());
     std::cout << "Rig is ready " << geometry->joints.count() << " joints " << std::endl;
     reportAll(_rig);
-   }
+}
 
 void RigTests::initialPoseArmsDown() {
     reportSome(_rig);

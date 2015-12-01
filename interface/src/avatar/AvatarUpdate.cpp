@@ -44,9 +44,12 @@ void AvatarUpdate::synchronousProcess() {
 bool AvatarUpdate::process() {
     PerformanceTimer perfTimer("AvatarUpdate");
     quint64 start = usecTimestampNow();
-    quint64 deltaMicroseconds = start - _lastAvatarUpdate;
-    _lastAvatarUpdate = start;
+    quint64 deltaMicroseconds = 0;
+    if (_lastAvatarUpdate > 0) {
+        deltaMicroseconds = start - _lastAvatarUpdate;
+    }
     float deltaSeconds = (float) deltaMicroseconds / (float) USECS_PER_SECOND;
+    _lastAvatarUpdate = start;
     qApp->setAvatarSimrateSample(1.0f / deltaSeconds);
 
     QSharedPointer<AvatarManager> manager = DependencyManager::get<AvatarManager>();

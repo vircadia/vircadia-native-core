@@ -75,7 +75,7 @@ function updateJoints(factor){
     for (var i = 0; i < startPoseAndTransition.length; i++){
         var scaledTransition = Vec3.multiply(startPoseAndTransition[i].transition, factor);
         var rotation = Vec3.sum(startPoseAndTransition[i].start, scaledTransition);
-        MyAvatar.setJointData(startPoseAndTransition[i].joint, Quat.fromVec3Degrees( rotation ));
+        MyAvatar.setJointRotation(startPoseAndTransition[i].joint, Quat.fromVec3Degrees( rotation ));
     }
 }
 
@@ -282,7 +282,8 @@ function update(deltaTime){
         MyAvatar.position.z != avatarOldPosition.z ||
         locationChanged) {
         avatarOldPosition = MyAvatar.position;
-        
+
+        /*
         var SEARCH_RADIUS = 50;
         var foundModels = Entities.findEntities(MyAvatar.position, SEARCH_RADIUS);
         // Let's remove indicator that got out of radius
@@ -306,6 +307,7 @@ function update(deltaTime){
         if (hiddingSeats && passedTime >= animationLenght) {
             showIndicators(true);
         }
+        */
     }
 }
 var oldHost = location.hostname;

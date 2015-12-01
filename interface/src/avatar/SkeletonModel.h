@@ -27,13 +27,11 @@ public:
     SkeletonModel(Avatar* owningAvatar, QObject* parent = nullptr, RigPointer rig = nullptr);
     ~SkeletonModel();
 
-    virtual void initJointStates(QVector<JointState> states) override;
+    virtual void initJointStates() override;
 
     virtual void simulate(float deltaTime, bool fullUpdate = true) override;
     virtual void updateRig(float deltaTime, glm::mat4 parentTransform) override;
     void updateAttitude();
-
-    void renderIKConstraints(gpu::Batch& batch);
 
     /// Returns the index of the left hand joint, or -1 if not found.
     int getLeftHandJointIndex() const { return isActive() ? _geometry->getFBXGeometry().leftHandJointIndex : -1; }
@@ -83,10 +81,6 @@ public:
 
     bool getLocalNeckPosition(glm::vec3& neckPosition) const;
 
-    /// Returns the rotation of the neck joint's parent from default orientation
-    /// \return whether or not the neck was found
-    bool getNeckParentRotationFromDefaultOrientation(glm::quat& neckParentRotation) const;
-
     /// Retrieve the positions of up to two eye meshes.
     /// \return whether or not both eye meshes were found
     bool getEyePositions(glm::vec3& firstEyePosition, glm::vec3& secondEyePosition) const;
@@ -114,24 +108,8 @@ protected:
 
     void computeBoundingShape();
 
-    /// \param jointIndex index of joint in model
-    /// \param position position of joint in model-frame
-    void applyHandPosition(int jointIndex, const glm::vec3& position);
-
     void applyPalmData(int jointIndex, const PalmData& palm);
 private:
-
-    void renderJointConstraints(gpu::Batch& batch, int jointIndex);
-    void renderOrientationDirections(gpu::Batch& batch, int jointIndex,
-                                     glm::vec3 position, const glm::quat& orientation, float size);
-
-    struct OrientationLineIDs {
-        int _up;
-        int _front;
-        int _right;
-    };
-    QHash<int, OrientationLineIDs> _jointOrientationLines;
-    int _triangleFanID;
 
     bool getEyeModelPositions(glm::vec3& firstEyePosition, glm::vec3& secondEyePosition) const;
 
