@@ -678,16 +678,16 @@ ParticleEffectEntityItem::Particle ParticleEffectEntityItem::createParticle() {
                 radiusScale = 1.0f - std::pow(1.0f - randRadius, 3.0f);
             }
             
-            glm::vec3 radiuses = radiusScale * 0.5f * _emitDimensions;
-            float x = radiuses.x * glm::cos(elevation) * glm::cos(azimuth);
-            float y = radiuses.y * glm::cos(elevation) * glm::sin(azimuth);
-            float z = radiuses.z * glm::sin(elevation);
+            glm::vec3 radii = radiusScale * 0.5f * _emitDimensions;
+            float x = radii.x * glm::cos(elevation) * glm::cos(azimuth);
+            float y = radii.y * glm::cos(elevation) * glm::sin(azimuth);
+            float z = radii.z * glm::sin(elevation);
             glm::vec3 emitPosition = glm::vec3(x, y, z);
             emitDirection = glm::normalize(glm::vec3(
-                                                     radiuses.x > 0.0f ? x / (radiuses.x * radiuses.x) : 0.0f,
-                                                     radiuses.y > 0.0f ? y / (radiuses.y * radiuses.y) : 0.0f,
-                                                     radiuses.z > 0.0f ? z / (radiuses.z * radiuses.z) : 0.0f
-                                                     ));
+                radii.x > 0.0f ? x / (radii.x * radii.x) : 0.0f,
+                radii.y > 0.0f ? y / (radii.y * radii.y) : 0.0f,
+                radii.z > 0.0f ? z / (radii.z * radii.z) : 0.0f
+            ));
             
             particle.position = _emitOrientation * emitPosition;
         }

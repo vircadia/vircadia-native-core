@@ -14,7 +14,7 @@
 
 <$declareStandardTransform()$>
 
-struct Radiuses {
+struct Radii {
     float start;
     float middle;
     float finish;
@@ -28,7 +28,7 @@ struct Colors {
 };
 
 struct ParticleUniforms {
-    Radiuses radius;
+    Radii radius;
     Colors color;
     float lifespan;
 };
