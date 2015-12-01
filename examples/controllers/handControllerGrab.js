@@ -200,6 +200,7 @@ function entityIsGrabbedByOther(entityID) {
     return false;
 }
 
+
 function MyController(hand) {
     this.hand = hand;
     if (this.hand === RIGHT_HAND) {
@@ -222,6 +223,8 @@ function MyController(hand) {
     this.triggerValue = 0; // rolling average of trigger value
     this.rawTriggerValue = 0;
     this.rawBumperValue = 0;
+
+    this.overlayLine = null;
 
     this.offsetPosition = {
         x: 0.0,
@@ -318,6 +321,33 @@ function MyController(hand) {
         });
     }
 
+    this.overlayLineOn = function(closePoint, farPoint, color) {
+        if (this.overlayLine === null) {
+            var lineProperties = {
+                lineWidth: 5,
+                start: closePoint,
+                end: farPoint,
+                color: color,
+                ignoreRayIntersection: true, // always ignore this
+                visible: true,
+                alpha: 1
+            };
+
+            this.overlayLine = Overlays.addOverlay("line3d", lineProperties);
+
+        } else {
+            var success = Overlays.editOverlay(this.overlayLine, {
+                lineWidth: 5,
+                start: closePoint,
+                end: farPoint,
+                color: color,
+                visible: true,
+                ignoreRayIntersection: true, // always ignore this
+                alpha: 1
+            });
+        }
+    }
+
     this.lineOn = function(closePoint, farPoint, color) {
         // draw a line
         if (this.pointer === null) {
@@ -354,6 +384,13 @@ function MyController(hand) {
             Entities.deleteEntity(this.pointer);
         }
         this.pointer = null;
+    };
+
+    this.overlayLineOff = function() {
+        if (this.overlayLine !== null) {
+            Overlays.deleteOverlay(this.overlayLine);
+        }
+        this.overlayLine = null;
     };
 
     this.triggerPress = function(value) {
@@ -479,7 +516,11 @@ function MyController(hand) {
                             this.setState(STATE_NEAR_GRABBING);
                         } else { // equipping
                             if (typeof grabbableData.spatialKey !== 'undefined') {
-                                this.setState(STATE_EQUIP_SPRING);
+                                // TODO
+                                // if we go to STATE_EQUIP_SPRING the item will be pulled to the hand and will then switch
+                                // to STATE_EQUIP.  This needs some debugging, so just jump straight to STATE_EQUIP here.
+                                // this.setState(STATE_EQUIP_SPRING);
+                                this.setState(STATE_EQUIP);
                             } else {
                                 this.setState(STATE_EQUIP);
                             }
@@ -493,7 +534,9 @@ function MyController(hand) {
                         this.grabbedEntity = intersection.entityID;
                         if (typeof grabbableData.spatialKey !== 'undefined' && this.state == STATE_EQUIP_SEARCHING) {
                             // if a distance pick in equip mode hits something with a spatialKey, equip it
-                            this.setState(STATE_EQUIP_SPRING);
+                            // TODO use STATE_EQUIP_SPRING here once it works right.
+                            // this.setState(STATE_EQUIP_SPRING);
+                            this.setState(STATE_EQUIP);
                             return;
                         } else if (this.state == STATE_SEARCHING) {
                             this.setState(STATE_DISTANCE_HOLDING);
@@ -598,7 +641,8 @@ function MyController(hand) {
             }
         }
 
-        this.lineOn(distantPickRay.origin, Vec3.multiply(distantPickRay.direction, LINE_LENGTH), NO_INTERSECT_COLOR);
+        //this.lineOn(distantPickRay.origin, Vec3.multiply(distantPickRay.direction, LINE_LENGTH), NO_INTERSECT_COLOR);
+        this.overlayLineOn(distantPickRay.origin, Vec3.sum(distantPickRay.origin, Vec3.multiply(distantPickRay.direction, LINE_LENGTH)), NO_INTERSECT_COLOR);
     };
 
     this.distanceHolding = function() {
@@ -643,6 +687,9 @@ function MyController(hand) {
 
         this.currentAvatarPosition = MyAvatar.position;
         this.currentAvatarOrientation = MyAvatar.orientation;
+
+        this.overlayLineOff();
+
 
     };
 
@@ -751,6 +798,7 @@ function MyController(hand) {
         }
 
         this.lineOff();
+        this.overlayLineOff();
 
         var grabbedProperties = Entities.getEntityProperties(this.grabbedEntity, GRABBABLE_PROPERTIES);
         this.activateEntity(this.grabbedEntity, grabbedProperties);
@@ -802,6 +850,7 @@ function MyController(hand) {
                 // equipping
                 Entities.callEntityMethod(this.grabbedEntity, "startEquip", [JSON.stringify(this.hand)]);
                 this.startHandGrasp();
+
                 this.setState(STATE_CONTINUE_EQUIP_BD);
             }
 
@@ -885,11 +934,13 @@ function MyController(hand) {
             Entities.callEntityMethod(this.grabbedEntity, "releaseGrab");
             Entities.callEntityMethod(this.grabbedEntity, "unequip");
             this.endHandGrasp();
+
         }
     };
 
     this.pullTowardEquipPosition = function() {
         this.lineOff();
+        this.overlayLineOff();
 
         var grabbedProperties = Entities.getEntityProperties(this.grabbedEntity, GRABBABLE_PROPERTIES);
         var grabbableData = getEntityCustomData(GRABBABLE_DATA_KEY, this.grabbedEntity, DEFAULT_GRABBABLE_DATA);
@@ -1093,7 +1144,7 @@ function MyController(hand) {
     this.release = function() {
 
         this.lineOff();
-
+        this.overlayLineOff();
         if (this.grabbedEntity !== null) {
             if (this.actionID !== null) {
                 Entities.deleteAction(this.grabbedEntity, this.actionID);

@@ -139,6 +139,7 @@ void AvatarActionHold::updateActionWorker(float deltaTimeStep) {
                 doKinematicUpdate(deltaTimeStep);
             } else {
                 activateBody();
+                forceBodyNonStatic();
                 ObjectActionSpring::updateActionWorker(deltaTimeStep);
             }
         }
@@ -189,6 +190,7 @@ void AvatarActionHold::doKinematicUpdate(float deltaTimeStep) {
     });
 
     activateBody();
+    forceBodyNonStatic();
 }
 
 bool AvatarActionHold::updateArguments(QVariantMap arguments) {
@@ -397,5 +399,6 @@ void AvatarActionHold::deserialize(QByteArray serializedArguments) {
         _active = true;
     });
 
+    activateBody();
     forceBodyNonStatic();
 }

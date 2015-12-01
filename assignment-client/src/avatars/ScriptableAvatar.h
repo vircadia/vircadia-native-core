@@ -33,6 +33,7 @@ private:
     AnimationPointer _animation;
     AnimationDetails _animationDetails;
     QStringList _maskedJoints;
+    AnimationPointer _bind; // a sleazy way to get the skeleton, given the various library/cmake dependencies
 };
 
 #endif // hifi_ScriptableAvatar_h
