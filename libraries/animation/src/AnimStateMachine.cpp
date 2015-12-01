@@ -46,7 +46,7 @@ const AnimPoseVec& AnimStateMachine::evaluate(const AnimVariantMap& animVars, fl
     }
 
     assert(_currentState);
-    auto currentStateNode = _currentState->getNode();
+    auto currentStateNode = _children[_currentState->getChildIndex()];
     assert(currentStateNode);
 
     if (_duringInterp) {
@@ -79,8 +79,8 @@ void AnimStateMachine::switchState(const AnimVariantMap& animVars, State::Pointe
 
     const float FRAMES_PER_SECOND = 30.0f;
 
-    auto prevStateNode = _currentState->getNode();
-    auto nextStateNode = desiredState->getNode();
+    auto prevStateNode = _children[_currentState->getChildIndex()];
+    auto nextStateNode = _children[desiredState->getChildIndex()];
 
     _duringInterp = true;
     _alpha = 0.0f;

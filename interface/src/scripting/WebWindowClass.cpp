@@ -196,5 +196,9 @@ QScriptValue WebWindowClass::constructor(QScriptContext* context, QScriptEngine*
 }
 
 void WebWindowClass::setTitle(const QString& title) {
+    if (QThread::currentThread() != thread()) {
+        QMetaObject::invokeMethod(this, "setTitle", Qt::AutoConnection, Q_ARG(QString, title));
+        return;
+    }
     _windowWidget->setWindowTitle(title);
 }

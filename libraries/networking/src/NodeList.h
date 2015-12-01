@@ -85,6 +85,7 @@ public slots:
     void processPingReplyPacket(QSharedPointer<NLPacket> packet, SharedNodePointer sendingNode);
 
     void processICEPingPacket(QSharedPointer<NLPacket> packet);
+    
 signals:
     void limitOfSilentDomainCheckInsReached();
 private slots:
@@ -95,6 +96,8 @@ private slots:
     void handleNodePingTimeout();
 
     void pingPunchForDomainServer();
+    
+    void sendKeepAlivePings();
 private:
     NodeList() : LimitedNodeList(0, 0) { assert(false); } // Not implemented, needed for DependencyManager templates compile
     NodeList(char ownerType, unsigned short socketListenPort = 0, unsigned short dtlsListenPort = 0);
@@ -118,6 +121,7 @@ private:
     int _numNoReplyDomainCheckIns;
     HifiSockAddr _assignmentServerSocket;
     bool _isShuttingDown { false };
+    QTimer _keepAlivePingTimer;
 };
 
 #endif // hifi_NodeList_h

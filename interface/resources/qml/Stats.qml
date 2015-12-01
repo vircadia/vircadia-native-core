@@ -256,6 +256,12 @@ Item {
                         visible: root.expanded
                         text: "LOD: " + root.lodStatus;
                     }
+                    Text {
+                        color: root.fontColor;
+                        font.pixelSize: root.fontSize
+                        visible: root.expanded
+                        text: "Renderable avatars: " + root.avatarRenderableCount + " w/in " + root.avatarRenderDistance + "m";
+                    }
                 }
             }
         }

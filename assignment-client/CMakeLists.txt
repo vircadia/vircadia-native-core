@@ -10,5 +10,4 @@ link_hifi_libraries(
 )
 
 include_application_version()
-
-copy_dlls_beside_windows_executable()
+package_libraries_for_deployment()

@@ -23,6 +23,7 @@
     var dollScriptURL = Script.resolvePath("../examples/toybox/doll/doll.js");
     var lightsScriptURL = Script.resolvePath("../examples/toybox/lights/lightSwitch.js");
     var targetsScriptURL = Script.resolvePath('../examples/toybox/ping_pong_gun/wallTarget.js');
+    var bowScriptURL = Script.resolvePath('../examples/toybox/bow/bow.js');
     var basketballResetterScriptURL = Script.resolvePath('basketballsResetter.js');
     var targetsResetterScriptURL = Script.resolvePath('targetsResetter.js');
 
@@ -141,6 +142,9 @@
                 y: 495.6,
                 z: 503.91
             });
+
+            createBow();
+
         }
 
         function deleteAllToys() {
@@ -154,7 +158,6 @@
                 }
             });
         }
-
 
         function createGun(position) {
             var modelURL = "https://s3.amazonaws.com/hifi-public/eric/models/gun.fbx";
@@ -202,6 +205,64 @@
             });
         }
 
+        function createBow() {
+
+            var startPosition = {
+                x: 546.41,
+                y: 495.33,
+                z: 506.46
+            };
+
+            var BOW_ROTATION = Quat.fromPitchYawRollDegrees(-103.05, -178.60, -87.27);
+
+            var MODEL_URL = "https://hifi-public.s3.amazonaws.com/models/bow/new/bow-deadly.fbx";
+            var COLLISION_HULL_URL = "https://hifi-public.s3.amazonaws.com/models/bow/new/bow_collision_hull.obj";
+            var BOW_DIMENSIONS = {
+                x: 0.04,
+                y: 1.3,
+                z: 0.21
+            };
+
+            var BOW_GRAVITY = {
+                x: 0,
+                y: -9.8,
+                z: 0
+            };
+
+            var bow = Entities.addEntity({
+                name: 'Hifi-Bow',
+                type: "Model",
+                modelURL: MODEL_URL,
+                position: startPosition,
+                rotation: BOW_ROTATION,
+                dimensions: BOW_DIMENSIONS,
+                collisionsWillMove: true,
+                gravity: BOW_GRAVITY,
+                shapeType: 'compound',
+                compoundShapeURL: COLLISION_HULL_URL,
+                script: bowScriptURL,
+                userData: JSON.stringify({
+                    resetMe: {
+                        resetMe: true
+                    },
+                    grabbableKey: {
+                        invertSolidWhileHeld: true,
+                        spatialKey: {
+                            relativePosition: {
+                                x: 0,
+                                y: 0.06,
+                                z: 0.11
+                            },
+                            relativeRotation: Quat.fromPitchYawRollDegrees(0, -90, 90)
+                        }
+                    }
+                })
+            });
+
+        }
+
+
+>>>>>>> master
         function createFire() {
 
 
@@ -307,7 +368,7 @@
                     y: -9.8,
                     z: 0
                 },
-                linearDamping: 1,
+                damping: 1,
                 dimensions: {
                     x: 0.4,
                     y: 1.37,
@@ -354,8 +415,8 @@
                             y: DIAMETER,
                             z: DIAMETER
                         },
-                        restitution: 0.0,
-                        linearDamping: 0.00001,
+                        restitution: 1.0,
+                        damping: 0.00001,
                         gravity: {
                             x: 0,
                             y: -9.8,
@@ -925,7 +986,7 @@
                     y: -100,
                     z: 0
                 },
-                linearDamping: 1,
+                damping: 1,
                 angularDamping: 10,
                 mass: 10,
                 userData: JSON.stringify({
@@ -984,17 +1045,19 @@
         }
 
         function createWand(position) {
-            var WAND_MODEL = 'http://hifi-public.s3.amazonaws.com/models/bubblewand/wand.fbx';
-            var WAND_COLLISION_SHAPE = 'http://hifi-public.s3.amazonaws.com/models/bubblewand/actual_no_top_collision_hull.obj';
-            var entity = Entities.addEntity({
+            var WAND_MODEL = 'http://hifi-content.s3.amazonaws.com/james/bubblewand/wand.fbx';
+            var WAND_COLLISION_SHAPE = 'http://hifi-content.s3.amazonaws.com/james/bubblewand/wand_collision_hull.obj';
+
+            var wand = Entities.addEntity({
                 name: 'Bubble Wand',
                 type: "Model",
                 modelURL: WAND_MODEL,
+                shapeType: 'compound',
                 position: position,
                 gravity: {
                     x: 0,
                     y: -9.8,
-                    z: 0
+                    z: 0,
                 },
                 dimensions: {
                     x: 0.05,
@@ -1002,23 +1065,26 @@
                     z: 0.05
                 },
                 //must be enabled to be grabbable in the physics engine
-                shapeType: 'compound',
                 collisionsWillMove: true,
                 compoundShapeURL: WAND_COLLISION_SHAPE,
-                //Look into why bubble wand is going through table when gravity is enabled
-                // gravity: {x: 0, y: -3.5, z: 0},
-                // velocity: {x: 0, y: -0.01, z:0},
                 script: wandScriptURL,
                 userData: JSON.stringify({
                     resetMe: {
                         resetMe: true
                     },
                     grabbableKey: {
-                        invertSolidWhileHeld: true
+                        invertSolidWhileHeld: true,
+                        spatialKey: {
+                            relativePosition: {
+                                x: 0,
+                                y: 0.1,
+                                z: 0
+                            },
+                            relativeRotation: Quat.fromPitchYawRollDegrees(0, 0, 90)
+                        }
                     }
                 })
             });
-
 
         }
 
@@ -1044,7 +1110,7 @@
                     z: 0
                 },
                 restitution: 10,
-                linearDamping: 0.0,
+                damping: 0.0,
                 velocity: {
                     x: 0,
                     y: -0.01,
@@ -1167,7 +1233,7 @@
                     y: 0,
                     z: 0
                 },
-                linearDamping: 0.4,
+                damping: 0.4,
                 userData: JSON.stringify({
                     resetMe: {
                         resetMe: true
@@ -1210,7 +1276,7 @@
                     y: 0,
                     z: 0
                 },
-                linearDamping: 0.2,
+                damping: 0.2,
                 userData: JSON.stringify({
                     resetMe: {
                         resetMe: true
@@ -1303,6 +1369,7 @@
                 }
             }
         }
+
 
         function cleanup() {
             deleteAllToys();

@@ -12,32 +12,41 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 
-
 (function () {
 
-    HIFI_PUBLIC_BUCKET = "http://s3.amazonaws.com/hifi-public/";
-    Script.include(HIFI_PUBLIC_BUCKET + "scripts/libraries/utils.js");
-
-    var insideRecorderArea = false;
-    var enteredInTime = false;
-    var isAvatarRecording = false;
     var _this;
+    var isAvatarRecording = false;
+    var MASTER_TO_CLIENTS_CHANNEL = "startStopChannel";
+    var CLIENTS_TO_MASTER_CHANNEL = "resultsChannel";
+    var START_MESSAGE = "recordingStarted";
+    var STOP_MESSAGE = "recordingEnded";
+    var PARTICIPATING_MESSAGE = "participatingToRecording";
+    var RECORDING_ICON_URL = "http://cdn.highfidelity.com/alan/production/icons/ICO_rec-active.svg";
+    var NOT_RECORDING_ICON_URL = "http://cdn.highfidelity.com/alan/production/icons/ICO_rec-inactive.svg";
+    var ICON_WIDTH = 60;
+    var ICON_HEIGHT = 60;
+    var overlay = null;
+
 
     function recordingEntity() {
         _this = this;
         return;
-    }
+    };
 
-    function update() {
-        var isRecordingStarted = getEntityCustomData("recordingKey", _this.entityID, { isRecordingStarted: false }).isRecordingStarted;
-        if (isRecordingStarted && !isAvatarRecording) {
-            _this.startRecording();
-        } else if ((!isRecordingStarted && isAvatarRecording) || (isAvatarRecording && !insideRecorderArea)) {
-            _this.stopRecording();
-        } else if (!isRecordingStarted && insideRecorderArea && !enteredInTime) {
-            //if an avatar enters the zone while a recording is started he will be able to participate to the next group recording
-            enteredInTime = true;
+    function receivingMessage(channel, message, senderID) {
+        if (channel === MASTER_TO_CLIENTS_CHANNEL) {
+            print("CLIENT received message:" + message);
+            if (message === START_MESSAGE) {
+                _this.startRecording();
+            } else if (message === STOP_MESSAGE) {
+                _this.stopRecording();
+            }
         }
+    };
+
+    function getClipUrl(url) {
+        Messages.sendMessage(CLIENTS_TO_MASTER_CHANNEL, url);    //send back the url to the master
+        print("clip uploaded and url sent to master");
     };
 
     recordingEntity.prototype = {
@@ -45,62 +54,67 @@
         preload: function (entityID) {
             print("RECORDING ENTITY PRELOAD");
             this.entityID = entityID;
-
+            
             var entityProperties = Entities.getEntityProperties(_this.entityID);
             if (!entityProperties.ignoreForCollisions) {
                 Entities.editEntity(_this.entityID, { ignoreForCollisions: true });
             }
 
-            //print(JSON.stringify(entityProperties));
-            var recordingKey = getEntityCustomData("recordingKey", _this.entityID, undefined);
-            if (recordingKey === undefined) {
-                setEntityCustomData("recordingKey", _this.entityID, { isRecordingStarted: false });
-            }
-
-            Script.update.connect(update);
+            Messages.messageReceived.connect(receivingMessage);
         },
+
         enterEntity: function (entityID) {
             print("entering in the recording area");
-            insideRecorderArea = true;
-            var isRecordingStarted = getEntityCustomData("recordingKey", _this.entityID, { isRecordingStarted: false }).isRecordingStarted;
-            if (!isRecordingStarted) {
-                //i'm in the recording area in time (before the event starts)
-                enteredInTime = true;
-            }
+            Messages.subscribe(MASTER_TO_CLIENTS_CHANNEL);
+            overlay = Overlays.addOverlay("image", {
+                imageURL: NOT_RECORDING_ICON_URL,
+                width: ICON_HEIGHT,
+                height: ICON_WIDTH,
+                x: 275,
+                y: 0,
+                visible: true
+            });
         },
+
         leaveEntity: function (entityID) {
             print("leaving the recording area");
-            insideRecorderArea = false;
-            enteredInTime = false;
+            _this.stopRecording();
+            Messages.unsubscribe(MASTER_TO_CLIENTS_CHANNEL);
+            Overlays.deleteOverlay(overlay);
+            overlay = null;
         },
 
-        startRecording: function (entityID) {
-            if (enteredInTime && !isAvatarRecording) {
+        startRecording: function () {
+            if (!isAvatarRecording) {
                 print("RECORDING STARTED");
+                Messages.sendMessage(CLIENTS_TO_MASTER_CHANNEL, PARTICIPATING_MESSAGE);  //tell to master that I'm participating
                 Recording.startRecording();
                 isAvatarRecording = true;
+                Overlays.editOverlay(overlay, {imageURL: RECORDING_ICON_URL});
             }
         },
 
-        stopRecording: function (entityID) {
+        stopRecording: function () {
             if (isAvatarRecording) {
                 print("RECORDING ENDED");
                 Recording.stopRecording();
-                Recording.loadLastRecording();
                 isAvatarRecording = false;
-                recordingFile = Window.save("Save recording to file", "./groupRecording", "Recordings (*.hfr)");
-                if (!(recordingFile === "null" || recordingFile === null || recordingFile === "")) {
-                    Recording.saveRecording(recordingFile);
-                }
+                Recording.saveRecordingToAsset(getClipUrl);     //save the clip to the asset and link a callback to get its url
+                Overlays.editOverlay(overlay, {imageURL: NOT_RECORDING_ICON_URL});
             }
         },
+
         unload: function (entityID) {
             print("RECORDING ENTITY UNLOAD");
-            Script.update.disconnect(update);
+            _this.stopRecording();
+            Messages.unsubscribe(MASTER_TO_CLIENTS_CHANNEL);
+            Messages.messageReceived.disconnect(receivingMessage);
+            if (overlay !== null) {
+                Overlays.deleteOverlay(overlay);
+                overlay = null;
+            }
         }
     }
-
-
 
     return new recordingEntity();
 });

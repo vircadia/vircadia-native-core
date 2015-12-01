@@ -98,8 +98,8 @@ void AnimInverseKinematics::computeTargets(const AnimVariantMap& animVars, std::
             target.setType(animVars.lookup(targetVar.typeVar, (int)IKTarget::Type::RotationAndPosition));
             if (target.getType() != IKTarget::Type::Unknown) {
                 AnimPose defaultPose = _skeleton->getAbsolutePose(targetVar.jointIndex, underPoses);
-                glm::quat rotation = animVars.lookup(targetVar.rotationVar, defaultPose.rot);
-                glm::vec3 translation = animVars.lookup(targetVar.positionVar, defaultPose.trans);
+                glm::quat rotation = animVars.lookupRigToGeometry(targetVar.rotationVar, defaultPose.rot);
+                glm::vec3 translation = animVars.lookupRigToGeometry(targetVar.positionVar, defaultPose.trans);
                 if (target.getType() == IKTarget::Type::HipsRelativeRotationAndPosition) {
                     translation += _hipsOffset;
                 }
