@@ -72,7 +72,7 @@ public:
 
     void resetStats();
 
-    NodeToSenderStatsMap& getSingleSenderStats() { return _singleSenderStats; }
+    NodeToSenderStatsMap getSingleSenderStats() { QReadLocker locker(&_senderStatsLock); return _singleSenderStats; }
 
     virtual void terminating() { _shuttingDown = true; ReceivedPacketProcessor::terminating(); }
 
@@ -101,6 +101,7 @@ private:
     quint64 _totalPackets;
     
     NodeToSenderStatsMap _singleSenderStats;
+    QReadWriteLock _senderStatsLock;
 
     quint64 _lastNackTime;
     bool _shuttingDown;
