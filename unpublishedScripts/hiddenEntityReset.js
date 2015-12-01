@@ -262,7 +262,6 @@
         }
 
 
->>>>>>> master
         function createFire() {
 
 

@@ -121,8 +121,8 @@ MasterReset = function() {
             z: 503.91
         });
 
-        createBow();
 
+        createBow();
     }
 
     function deleteAllToys() {
@@ -136,6 +136,7 @@ MasterReset = function() {
             }
         });
     }
+
 
     function createGun(position) {
         var modelURL = "https://s3.amazonaws.com/hifi-public/eric/models/gun.fbx";
@@ -157,7 +158,11 @@ MasterReset = function() {
                 blue: 20
             },
             shapeType: 'box',
-            gravity: {x: 0, y: -5.0, z: 0},
+            gravity: {
+                x: 0,
+                y: -5.0,
+                z: 0
+            },
             restitution: 0,
             collisionsWillMove: true,
             collisionSoundURL: "https://s3.amazonaws.com/hifi-public/sounds/Guns/Gun_Drop_and_Metalli_1.wav",
@@ -178,6 +183,7 @@ MasterReset = function() {
                 }
             })
         });
+    }
 
     function createBow() {
 
@@ -232,7 +238,6 @@ MasterReset = function() {
                 }
             })
         });
-
     }
 
     function createFire() {
