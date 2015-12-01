@@ -19,7 +19,6 @@
 #include <PathUtils.h>
 
 #include "AddressBarDialog.h"
-#include "AnimationsDialog.h"
 #include "AttachmentsDialog.h"
 #include "BandwidthDialog.h"
 #include "CachesSizeDialog.h"
@@ -107,15 +106,6 @@ void DialogsManager::editAttachments() {
         _attachmentsDialog->show();
     } else {
         _attachmentsDialog->close();
-    }
-}
-
-void DialogsManager::editAnimations() {
-    if (!_animationsDialog) {
-        maybeCreateDialog(_animationsDialog);
-        _animationsDialog->show();
-    } else {
-        _animationsDialog->close();
     }
 }
 

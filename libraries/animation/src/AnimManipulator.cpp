@@ -46,39 +46,15 @@ const AnimPoseVec& AnimManipulator::overlay(const AnimVariantMap& animVars, floa
 
         if (jointVar.jointIndex >= 0) {
 
-            AnimPose defaultAbsPose;
+            // use the underPose as our default value if we can.
             AnimPose defaultRelPose;
-            AnimPose parentAbsPose = AnimPose::identity;
             if (jointVar.jointIndex <= (int)underPoses.size()) {
-
-                // jointVar is an absolute rotation, if it is not set we will use the underPose as our default value
                 defaultRelPose = underPoses[jointVar.jointIndex];
-                defaultAbsPose = _skeleton->getAbsolutePose(jointVar.jointIndex, underPoses);
-                defaultAbsPose.rot = animVars.lookup(jointVar.var, defaultAbsPose.rot);
-
-                // because jointVar is absolute, we must use an absolute parent frame to convert into a relative pose.
-                int parentIndex = _skeleton->getParentIndex(jointVar.jointIndex);
-                if (parentIndex >= 0) {
-                    parentAbsPose = _skeleton->getAbsolutePose(parentIndex, underPoses);
-                }
-
             } else {
-
-                // jointVar is an absolute rotation, if it is not set we will use the bindPose as our default value
                 defaultRelPose = AnimPose::identity;
-                defaultAbsPose = _skeleton->getAbsoluteBindPose(jointVar.jointIndex);
-                defaultAbsPose.rot = animVars.lookup(jointVar.var, defaultAbsPose.rot);
-
-                // because jointVar is absolute, we must use an absolute parent frame to convert into a relative pose
-                // here we use the bind pose
-                int parentIndex = _skeleton->getParentIndex(jointVar.jointIndex);
-                if (parentIndex >= 0) {
-                    parentAbsPose = _skeleton->getAbsoluteBindPose(parentIndex);
-                }
             }
 
-            // convert from absolute to relative
-            AnimPose relPose = parentAbsPose.inverse() * defaultAbsPose;
+            AnimPose relPose = computeRelativePoseFromJointVar(animVars, jointVar, defaultRelPose, underPoses);
 
             // blend with underPose
             ::blend(1, &defaultRelPose, &relPose, _alpha, &_poses[jointVar.jointIndex]);
@@ -113,4 +89,45 @@ const AnimPoseVec& AnimManipulator::getPosesInternal() const {
 
 void AnimManipulator::addJointVar(const JointVar& jointVar) {
     _jointVars.push_back(jointVar);
+}
+
+void AnimManipulator::removeAllJointVars() {
+    _jointVars.clear();
+}
+
+AnimPose AnimManipulator::computeRelativePoseFromJointVar(const AnimVariantMap& animVars, const JointVar& jointVar,
+                                                          const AnimPose& defaultRelPose, const AnimPoseVec& underPoses) {
+
+    AnimPose defaultAbsPose = _skeleton->getAbsolutePose(jointVar.jointIndex, underPoses);
+
+    if (jointVar.type == JointVar::Type::AbsoluteRotation || jointVar.type == JointVar::Type::AbsolutePosition) {
+
+        if (jointVar.type == JointVar::Type::AbsoluteRotation) {
+            defaultAbsPose.rot = animVars.lookupRigToGeometry(jointVar.var, defaultAbsPose.rot);
+        } else if (jointVar.type == JointVar::Type::AbsolutePosition) {
+            defaultAbsPose.trans = animVars.lookupRigToGeometry(jointVar.var, defaultAbsPose.trans);
+        }
+
+        // because jointVar is absolute, we must use an absolute parent frame to convert into a relative pose.
+        AnimPose parentAbsPose = AnimPose::identity;
+        int parentIndex = _skeleton->getParentIndex(jointVar.jointIndex);
+        if (parentIndex >= 0) {
+            parentAbsPose = _skeleton->getAbsolutePose(parentIndex, underPoses);
+        }
+
+        // convert from absolute to relative
+        return parentAbsPose.inverse() * defaultAbsPose;
+
+    } else {
+
+        // override the default rel pose
+        AnimPose relPose = defaultRelPose;
+        if (jointVar.type == JointVar::Type::RelativeRotation) {
+            relPose.rot = animVars.lookupRigToGeometry(jointVar.var, defaultRelPose.rot);
+        } else if (jointVar.type == JointVar::Type::RelativePosition) {
+            relPose.trans = animVars.lookupRigToGeometry(jointVar.var, defaultRelPose.trans);
+        }
+
+        return relPose;
+    }
 }

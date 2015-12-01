@@ -9,7 +9,8 @@
 //
 
 #include "AnimPose.h"
-#include "GLMHelpers.h"
+#include <GLMHelpers.h>
+#include <algorithm>
 
 const AnimPose AnimPose::identity = AnimPose(glm::vec3(1.0f),
                                              glm::quat(),
@@ -17,7 +18,7 @@ const AnimPose AnimPose::identity = AnimPose(glm::vec3(1.0f),
 
 AnimPose::AnimPose(const glm::mat4& mat) {
     scale = extractScale(mat);
-    rot = glm::normalize(glm::quat_cast(mat));
+    rot = glmExtractRotation(mat);
     trans = extractTranslation(mat);
 }
 

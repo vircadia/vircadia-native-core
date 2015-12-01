@@ -2555,11 +2555,12 @@ void Application::init() {
     setAvatarUpdateThreading();
 }
 
+const bool ENABLE_AVATAR_UPDATE_THREADING = false;
 void Application::setAvatarUpdateThreading() {
-    setAvatarUpdateThreading(Menu::getInstance()->isOptionChecked(MenuOption::EnableAvatarUpdateThreading));
+    setAvatarUpdateThreading(ENABLE_AVATAR_UPDATE_THREADING);
 }
 void Application::setRawAvatarUpdateThreading() {
-    setRawAvatarUpdateThreading(Menu::getInstance()->isOptionChecked(MenuOption::EnableAvatarUpdateThreading));
+    setRawAvatarUpdateThreading(ENABLE_AVATAR_UPDATE_THREADING);
 }
 void Application::setRawAvatarUpdateThreading(bool isThreaded) {
     if (_avatarUpdate) {
@@ -2577,17 +2578,11 @@ void Application::setAvatarUpdateThreading(bool isThreaded) {
     }
 
     auto myAvatar = getMyAvatar();
-    bool isRigEnabled = myAvatar->getEnableRigAnimations();
-    bool isGraphEnabled = myAvatar->getEnableAnimGraph();
     if (_avatarUpdate) {
         _avatarUpdate->terminate(); // Must be before we shutdown anim graph.
     }
-    myAvatar->setEnableRigAnimations(false);
-    myAvatar->setEnableAnimGraph(false);
     _avatarUpdate = new AvatarUpdate();
     _avatarUpdate->initialize(isThreaded);
-    myAvatar->setEnableRigAnimations(isRigEnabled);
-    myAvatar->setEnableAnimGraph(isGraphEnabled);
 }
 
 void Application::updateLOD() {
@@ -2968,11 +2963,6 @@ void Application::update(float deltaTime) {
     {
         PerformanceTimer perfTimer("loadViewFrustum");
         loadViewFrustum(_myCamera, _viewFrustum);
-    }
-
-    // Update animation debug draw renderer
-    {
-        AnimDebugDraw::getInstance().update();
     }
 
     quint64 now = usecTimestampNow();
@@ -3534,6 +3524,8 @@ void Application::displaySide(RenderArgs* renderArgs, Camera& theCamera, bool se
     myAvatar->preRender(renderArgs);
     myAvatar->endRender();
 
+    // Update animation debug draw renderer
+    AnimDebugDraw::getInstance().update();
 
     activeRenderingThread = QThread::currentThread();
     PROFILE_RANGE(__FUNCTION__);
@@ -4365,10 +4357,6 @@ void Application::stopAllScripts(bool restart) {
         it.value()->stop();
         qCDebug(interfaceapp) << "stopping script..." << it.key();
     }
-    // HACK: ATM scripts cannot set/get their animation priorities, so we clear priorities
-    // whenever a script stops in case it happened to have been setting joint rotations.
-    // TODO: expose animation priorities and provide a layered animation control system.
-    getMyAvatar()->clearJointAnimationPriorities();
     getMyAvatar()->clearScriptableSettings();
 }
 
@@ -4384,10 +4372,6 @@ bool Application::stopScript(const QString& scriptHash, bool restart) {
         scriptEngine->stop();
         stoppedScript = true;
         qCDebug(interfaceapp) << "stopping script..." << scriptHash;
-        // HACK: ATM scripts cannot set/get their animation priorities, so we clear priorities
-        // whenever a script stops in case it happened to have been setting joint rotations.
-        // TODO: expose animation priorities and provide a layered animation control system.
-        getMyAvatar()->clearJointAnimationPriorities();
     }
     if (_scriptEnginesHash.empty()) {
         getMyAvatar()->clearScriptableSettings();
