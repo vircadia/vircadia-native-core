@@ -218,6 +218,7 @@ void SpatiallyNestable::setOrientation(glm::quat orientation) {
 }
 
 const Transform SpatiallyNestable::getTransform() const {
+    // return a world-space transform for this object's location
     Transform parentTransform = getParentTransform();
     Transform result;
     _transformLock.withReadLock([&] {
@@ -227,6 +228,8 @@ const Transform SpatiallyNestable::getTransform() const {
 }
 
 const Transform SpatiallyNestable::getTransform(int jointIndex) const {
+    // this returns the world-space transform for this object.  It find its parent's transform (which may
+    // cause this object's parent to query its parent, etc) and multiplies this object's local transform onto it.
     Transform worldTransform = getTransform();
     Transform jointInObjectFrame = getJointTransformInObjectFrame(jointIndex);
     Transform jointInWorldFrame;

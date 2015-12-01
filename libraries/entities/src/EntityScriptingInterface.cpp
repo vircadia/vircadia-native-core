@@ -201,9 +201,30 @@ QUuid EntityScriptingInterface::editEntity(QUuid id, EntityItemProperties script
 
     bool updatedEntity = false;
     _entityTree->withWriteLock([&] {
+        if (scriptSideProperties.parentDependentPropertyChanged()) {
+            // if the script sets a location property but didn't include parent information, grab the needed
+            // properties from the entity.
+            bool recompute = false;
+            EntityItemPointer entity = nullptr;
+            if (!scriptSideProperties.parentIDChanged()) {
+                entity = _entityTree->findEntityByEntityItemID(entityID);
+                scriptSideProperties.setParentID(entity->getParentID());
+                recompute = true;
+            }
+            if (!scriptSideProperties.parentJointIndexChanged()) {
+                if (!entity) {
+                    entity = _entityTree->findEntityByEntityItemID(entityID);
+                }
+                scriptSideProperties.setParentJointIndex(entity->getParentJointIndex());
+                recompute = true;
+            }
+            if (recompute) {
+                properties = convertLocationFromScriptSemantics(scriptSideProperties);
+            }
+        }
+
         updatedEntity = _entityTree->updateEntity(entityID, properties);
     });
-
 
     if (!updatedEntity) {
         return QUuid();

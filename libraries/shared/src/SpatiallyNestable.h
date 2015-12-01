@@ -69,7 +69,7 @@ public:
     virtual glm::vec3 getScale() const;
     virtual void setScale(glm::vec3 scale);
 
-    // get world location of a specific joint
+    // get world-frame values for a specific joint
     virtual const Transform getTransform(int jointIndex) const;
     virtual glm::vec3 getPosition(int jointIndex) const;
     virtual glm::vec3 getScale(int jointIndex) const;

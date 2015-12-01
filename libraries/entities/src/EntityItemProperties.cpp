@@ -1789,3 +1789,7 @@ QList<QString> EntityItemProperties::listChangedProperties() {
 
     return out;
 }
+
+bool EntityItemProperties::parentDependentPropertyChanged() {
+    return localPositionChanged() || positionChanged() || localRotationChanged() || rotationChanged();
+}
