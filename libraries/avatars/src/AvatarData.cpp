@@ -1212,7 +1212,14 @@ void AvatarData::setJointMappingsFromNetworkReply() {
 
     QByteArray line;
     while (!(line = networkReply->readLine()).isEmpty()) {
-        if (!(line = line.trimmed()).startsWith("jointIndex")) {
+        line = line.trimmed();
+        if (line.startsWith("filename")) {
+            int filenameIndex = line.indexOf('=') + 1;
+                if (filenameIndex > 0) {
+                    _skeletonFBXURL = _skeletonModelURL.resolved(QString(line.mid(filenameIndex).trimmed()));
+                }
+            }
+        if (!line.startsWith("jointIndex")) {
             continue;
         }
         int jointNameIndex = line.indexOf('=') + 1;
