@@ -725,7 +725,7 @@ glm::vec3 Avatar::getDisplayNamePosition() const {
         const float HEAD_PROPORTION = 0.75f;
         float billboardSize = getBillboardSize();
 
-        DEBUG_VALUE("_position =", _position);
+        DEBUG_VALUE("_position =", getPosition());
         DEBUG_VALUE("billboardSize =", billboardSize);
         namePosition = getPosition() + bodyUpDirection * (billboardSize * HEAD_PROPORTION);
     }
