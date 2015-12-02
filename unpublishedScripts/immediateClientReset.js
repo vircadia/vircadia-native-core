@@ -20,17 +20,29 @@ function createHiddenMasterSwitch() {
         type: "Box",
         name: "Master Switch",
         script: hiddenEntityScriptURL,
-        dimensions: {x: 0.7, y: 0.2, z: 0.1},
-        position: {x: 543.9, y: 496.05, z: 502.43},
+        dimensions: {
+            x: 0.7,
+            y: 0.2,
+            z: 0.1
+        },
+        position: {
+            x: 543.9,
+            y: 496.05,
+            z: 502.43
+        },
         rotation: Quat.fromPitchYawRollDegrees(0, 33, 0),
-        visible: false
+        visible: false,
+        userData: JSON.stringify({
+            grabbableKey: {
+                wantsTrigger: true
+            }
+        })
     });
 }
 
 var entities = Entities.findEntities(MyAvatar.position, 100);
 
 entities.forEach(function(entity) {
-    //params: customKey, id, defaultValue
     var name = Entities.getEntityProperties(entity, "name").name
     if (name === "Master Switch") {
         Entities.deleteEntity(entity);

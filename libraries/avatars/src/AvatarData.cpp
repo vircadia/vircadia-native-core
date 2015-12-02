@@ -116,7 +116,7 @@ void AvatarData::setOrientation(const glm::quat& orientation, bool overideRefere
         glm::vec3 eulerAngles = glm::degrees(safeEulerAngles(orientation));
         _bodyPitch = eulerAngles.x;
         _bodyYaw = eulerAngles.y;
-        _bodyRoll = eulerAngles.z;
+        _bodyRoll = eulerAngles.z; 
     }
 }
 
@@ -1212,7 +1212,14 @@ void AvatarData::setJointMappingsFromNetworkReply() {
 
     QByteArray line;
     while (!(line = networkReply->readLine()).isEmpty()) {
-        if (!(line = line.trimmed()).startsWith("jointIndex")) {
+        line = line.trimmed();
+        if (line.startsWith("filename")) {
+            int filenameIndex = line.indexOf('=') + 1;
+                if (filenameIndex > 0) {
+                    _skeletonFBXURL = _skeletonModelURL.resolved(QString(line.mid(filenameIndex).trimmed()));
+                }
+            }
+        if (!line.startsWith("jointIndex")) {
             continue;
         }
         int jointNameIndex = line.indexOf('=') + 1;
@@ -1522,6 +1529,17 @@ QJsonObject AvatarData::toJson() const {
 }
 
 void AvatarData::fromJson(const QJsonObject& json) {
+    // The head setOrientation likes to overwrite the avatar orientation, 
+    // so lets do the head first
+    // Most head data is relative to the avatar, and needs no basis correction,
+    // but the lookat vector does need correction
+    if (json.contains(JSON_AVATAR_HEAD)) {
+        if (!_headData) {
+            _headData = new HeadData(this);
+        }
+        _headData->fromJson(json[JSON_AVATAR_HEAD].toObject());
+    }
+
     if (json.contains(JSON_AVATAR_HEAD_MODEL)) {
         auto faceModelURL = json[JSON_AVATAR_HEAD_MODEL].toString();
         if (faceModelURL != getFaceModelURL().toString()) {
@@ -1592,15 +1610,6 @@ void AvatarData::fromJson(const QJsonObject& json) {
             i++;
         }
         setRawJointData(jointArray);
-    }
-
-    // Most head data is relative to the avatar, and needs no basis correction,
-    // but the lookat vector does need correction
-    if (json.contains(JSON_AVATAR_HEAD)) {
-        if (!_headData) {
-            _headData = new HeadData(this);
-        }
-        _headData->fromJson(json[JSON_AVATAR_HEAD].toObject());
     }
 }
 

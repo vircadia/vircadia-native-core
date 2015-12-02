@@ -14,6 +14,7 @@
 var utilitiesScript = Script.resolvePath("../examples/libraries/utils.js");
 Script.include(utilitiesScript);
 
+var gunScriptURL = Script.resolvePath("../examples/toybox/pistol/pistol.js");
 var sprayPaintScriptURL = Script.resolvePath("../examples/toybox/spray_paint/sprayPaintCan.js");
 var catScriptURL = Script.resolvePath("../examples/toybox/cat/cat.js");
 var flashlightScriptURL = Script.resolvePath('../examples/toybox/flashlight/flashlight.js');
@@ -57,6 +58,13 @@ MasterReset = function() {
             y: 495.41,
             z: 505.09
         });
+
+        createGun({
+            x: 546.2,
+            y: 495.5,
+            z: 505.2
+        });
+
 
         createWand({
             x: 546.71,
@@ -102,11 +110,10 @@ MasterReset = function() {
 
 
         createCat({
-            x: 551.09,
-            y: 494.98,
-            z: 503.49
+            x: 551.0,
+            y: 495.3,
+            z: 503.3
         });
-
 
         createSprayCan({
             x: 549.7,
@@ -114,8 +121,8 @@ MasterReset = function() {
             z: 503.91
         });
 
-        createBow();
 
+        createBow();
     }
 
     function deleteAllToys() {
@@ -127,6 +134,54 @@ MasterReset = function() {
             if (shouldReset === true) {
                 Entities.deleteEntity(entity);
             }
+        });
+    }
+
+
+    function createGun(position) {
+        var modelURL = "https://s3.amazonaws.com/hifi-public/eric/models/gun.fbx";
+
+        var pistol = Entities.addEntity({
+            type: 'Model',
+            name: "pistol",
+            modelURL: modelURL,
+            position: position,
+            dimensions: {
+                x: 0.05,
+                y: 0.23,
+                z: 0.36
+            },
+            script: gunScriptURL,
+            color: {
+                red: 200,
+                green: 0,
+                blue: 20
+            },
+            shapeType: 'box',
+            gravity: {
+                x: 0,
+                y: -5.0,
+                z: 0
+            },
+            restitution: 0,
+            collisionsWillMove: true,
+            collisionSoundURL: "https://s3.amazonaws.com/hifi-public/sounds/Guns/Gun_Drop_and_Metalli_1.wav",
+            userData: JSON.stringify({
+                grabbableKey: {
+                    spatialKey: {
+                        relativePosition: {
+                            x: 0,
+                            y: 0,
+                            z: -0.1
+                        },
+                        relativeRotation: Quat.fromPitchYawRollDegrees(100, 90, 0)
+                    },
+                    invertSolidWhileHeld: true
+                },
+                resetMe: {
+                    resetMe: true
+                }
+            })
         });
     }
 
@@ -165,6 +220,7 @@ MasterReset = function() {
             gravity: BOW_GRAVITY,
             shapeType: 'compound',
             compoundShapeURL: COLLISION_HULL_URL,
+            collisionSoundURL: "http://hifi-public.s3.amazonaws.com/sounds/bow_fall.L.wav",
             script: bowScriptURL,
             userData: JSON.stringify({
                 resetMe: {
@@ -183,7 +239,6 @@ MasterReset = function() {
                 }
             })
         });
-
     }
 
     function createFire() {
@@ -575,6 +630,7 @@ MasterReset = function() {
                 z: 0.08
             },
             collisionsWillMove: true,
+            collisionSoundURL: "http://hifi-public.s3.amazonaws.com/sounds/flashlight_drop.L.wav",
             gravity: {
                 x: 0,
                 y: -3.5,
@@ -1111,10 +1167,11 @@ MasterReset = function() {
                 z: 0.07
             },
             collisionsWillMove: true,
+            collisionSoundURL: "http://hifi-public.s3.amazonaws.com/sounds/SpryPntCnDrp1.L.wav",
             shapeType: 'box',
             gravity: {
                 x: 0,
-                y: -0.5,
+                y: -3.0,
                 z: 0
             },
             velocity: {
