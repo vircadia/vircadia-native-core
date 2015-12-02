@@ -275,28 +275,34 @@ Director.prototype.moveUI = function(pos) {
 
 
 Director.prototype.reloadPerformance = function() {
-      this.requestPerformanceLoad = false;
-       
-      var urlpartition = this.performanceURL.split(".");
-      print(urlpartition[0]);
-      print(urlpartition[1]);
+    this.requestPerformanceLoad = false;
 
-      if ((urlpartition.length > 1) && (urlpartition[urlpartition.length - 1] === "hfr")) {
-          print("detected a unique clip url");
-          var oneClipPerformance = new Object();
-          oneClipPerformance.avatarClips = new Array();
-          oneClipPerformance.avatarClips[0] = input_text;
+    if (this.performanceURL[0] == '{') {
+        var jsonPerformance = JSON.parse(this.performanceURL);
+        this.onPerformanceLoaded(jsonPerformance);
+    } else {
 
-          print(JSON.stringify(oneClipPerformance));
+        var urlpartition = this.performanceURL.split(".");
+        print(urlpartition[0]);
+        print(urlpartition[1]);
 
-          // we make a local simple performance file with a single clip and pipe in directly
-          this.onPerformanceLoaded(oneClipPerformance);
-          return true;
-      } else {
-          // FIXME: I cannot pass directly this.onPerformanceLoaded, is that exepected ?
-          var localThis = this;
-          Assets.downloadData(input_text, function(data) { localThis.onPerformanceLoaded(JSON.parse(data)); });
-      }
+        if ((urlpartition.length > 1) && (urlpartition[urlpartition.length - 1] === "hfr")) {
+            print("detected a unique clip url");
+            var oneClipPerformance = new Object();
+            oneClipPerformance.avatarClips = new Array();
+            oneClipPerformance.avatarClips[0] = input_text;
+
+            print(JSON.stringify(oneClipPerformance));
+
+            // we make a local simple performance file with a single clip and pipe in directly
+            this.onPerformanceLoaded(oneClipPerformance);
+            return true;
+        } else {
+            // FIXME: I cannot pass directly this.onPerformanceLoaded, is that exepected ?
+            var localThis = this;
+            Assets.downloadData(input_text, function(data) { localThis.onPerformanceLoaded(JSON.parse(data)); });
+        }
+    }
 }
 
 Director.prototype.onPerformanceLoaded = function(performanceJSON) {

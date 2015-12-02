@@ -131,21 +131,21 @@ function printDebug(message) {
     };
 
     MasterController.prototype._processServiceMessage = function(message, senderID) {
-        var message = unpackServiceMessage(message);       
-        if (message.dest == MASTER_ID) {
-            if (message.command == AGENT_READY) {
+        var service = unpackServiceMessage(message);       
+        if (service.dest == MASTER_ID) {
+            if (service.command == AGENT_READY) {
                 // check to see if we know about this agent
-                var agentIndex = this.knownAgents.indexOf(message.src);
+                var agentIndex = this.knownAgents.indexOf(service.src);
                 if (agentIndex < 0) {
-                    this._onAgentAvailableForHiring(message.src);
+                    this._onAgentAvailableForHiring(service.src);
                 } else {
                     // Master think the agent is hired but not the other way around, forget about it
-                    printDebug("New agent still sending ready ? " + message.src + " " + agentIndex + " Forgeting about it");
-                    this._removeHiredAgent(agentIndex);
+                    printDebug("New agent still sending ready ? " + service.src + " " + agentIndex + " Forgeting about it");
+               //     this._removeHiredAgent(agentIndex);
                 }
-            } else if (message.command == AGENT_ALIVE) {
+            } else if (service.command == AGENT_ALIVE) {
                  // check to see if we know about this agent
-                var agentIndex = this.knownAgents.indexOf(message.src);
+                var agentIndex = this.knownAgents.indexOf(service.src);
                 if (agentIndex >= 0) {
                     // yes so reset its alive beat
                     this.hiredActors[agentIndex].alive();                  
@@ -171,8 +171,10 @@ function printDebug(message) {
         newActor.agentID = agentID;    
         this.hiredActors.push(newActor);
                           
-        printDebug("New agent available to be hired " + agentID + " " + indexOfNewAgent);                        
-        Messages.sendMessage(SERVICE_CHANNEL, packServiceMessage(agentID, MASTER_HIRE_AGENT, MASTER_ID));
+        printDebug("New agent available to be hired " + agentID + " " + indexOfNewAgent);
+        var serviceMessage = packServiceMessage(agentID, MASTER_HIRE_AGENT, MASTER_ID);
+        printDebug("serviceMessage = " + serviceMessage);                        
+        Messages.sendMessage(SERVICE_CHANNEL, serviceMessage);
         printDebug("message sent calling the actor" + JSON.stringify(newActor) );
 
         newActor.onHired(newActor); 
@@ -276,7 +278,6 @@ function printDebug(message) {
     //---------------------------------
     var AgentController = function() {
         this.subscribed = false; 
-        
         this._init();
 
         this.onHired = function() {};
@@ -325,40 +326,42 @@ function printDebug(message) {
     };
 
     AgentController.prototype._processServiceMessage = function(message, senderID) {
-        var announce = unpackServiceMessage(message);
-        //printDebug("Client " + this.agentUUID + " Received Announcement = " + message);
-        if (announce.dest == this.agentUUID) {
-            if (announce.command != AGENT_READY) {
-                var parts = announce.command.split(".");
+        var service = unpackServiceMessage(message);
+        printDebug("Client " + this.agentUUID + " Received message = " + message);
+        if (service.dest == this.agentUUID) {
+            if (service.command != AGENT_READY) {
                     
-                // this is potnetially a message to hire me if i m not already
-                if (!this.isHired && (parts[0] == MASTER_HIRE_AGENT)) {
-                    printDebug(announce.command);
+                // this is potentially a message to hire me if i m not already
+                if (!this.isHired && (service.command == MASTER_HIRE_AGENT)) {
+                    printDebug(service.command);
                     this.isHired = true;
-                    printDebug("Client Hired by master UUID" + senderID);
-                    this.onHired();         
+                    printDebug("Client Hired by master UUID" + service.src);
+                    this.onHired();
+                    this.alive();         
                     return;
                 }
 
-                if (this.isHired && (parts[0] == MASTER_FIRE_AGENT)) {
+                // Or maybe a message to fire me if i m not hired
+                if (this.isHired && (service.command == MASTER_FIRE_AGENT)) {
                     printDebug("Client Fired by master UUID" + senderID);
                     this.fired();
                     return;   
                 }
             }
-        } else if (announce.src == MASTER_ID && announce.command ==  MASTER_ALIVE) {
+        } else if ((service.src == MASTER_ID) && (service.command == MASTER_ALIVE)) {
             this.numCyclesWithoutAlive = 0;
             return;
         }
     }
 
     AgentController.prototype._processCommandMessage = function(message, senderID) {            
-        var command = unpackCommandMessage(message);
-        if ((command.dest_key == this.agentUUID) || (command.dest_key == BROADCAST_AGENTS)) {
-            printDebug("Command received = " + JSON.stringify(command) + senderID); 
-            this.onCommand(command);
-        } else {
-            // ignored
+        // ONly work if hired
+        if (this.isHired) {
+            var command = unpackCommandMessage(message);
+            if ((command.dest_key == this.agentUUID) || (command.dest_key == BROADCAST_AGENTS)) {
+                printDebug("Command received = " + JSON.stringify(command) + senderID); 
+                this.onCommand(command);
+            }    
         }
     };
 
@@ -370,9 +373,9 @@ function printDebug(message) {
                 if (!this.isHired) {
                     Messages.sendMessage(SERVICE_CHANNEL, packServiceMessage(MASTER_ID, AGENT_READY, this.agentUUID));
                     //printDebug("Client Ready" + SERVICE_CHANNEL + AGENT_READY); 
-                } else {
-                    
+                } else { 
                     // Send alive beat
+                    printDebug("beat !");
                     Messages.sendMessage(SERVICE_CHANNEL, packServiceMessage(MASTER_ID, AGENT_ALIVE, this.agentUUID));
                     
                     // Listen for master beat
