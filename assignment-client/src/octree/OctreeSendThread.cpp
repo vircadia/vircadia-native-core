@@ -421,14 +421,14 @@ int OctreeSendThread::packetDistributor(OctreeQueryNode* nodeData, bool viewFrus
 
                 quint64 lockWaitStart = usecTimestampNow();
                 _myServer->getOctree()->withReadLock([&]{
+                    quint64 lockWaitEnd = usecTimestampNow();
+                    lockWaitElapsedUsec = (float)(lockWaitEnd - lockWaitStart);
+                    quint64 encodeStart = usecTimestampNow();
+                    
                     OctreeElementPointer subTree = nodeData->elementBag.extract();
                     if (!subTree) {
                         return;
                     }
-                    
-                    quint64 lockWaitEnd = usecTimestampNow();
-                    lockWaitElapsedUsec = (float)(lockWaitEnd - lockWaitStart);
-                    quint64 encodeStart = usecTimestampNow();
 
                     /* TODO: Looking for a way to prevent locking and encoding a tree that is not
                     // going to result in any packets being sent...
