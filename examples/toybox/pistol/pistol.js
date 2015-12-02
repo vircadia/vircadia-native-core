@@ -22,6 +22,8 @@
         Controller.Standard.LT,
         Controller.Standard.RT,
     ];
+    var RELOAD_THRESHOLD = 0.95;
+
     Pistol = function() {
         _this = this;
         this.equipped = false;
@@ -36,7 +38,7 @@
         this.fireSound = SoundCache.getSound("https://s3.amazonaws.com/hifi-public/sounds/Guns/GUN-SHOT2.raw");
         this.ricochetSound = SoundCache.getSound("https://s3.amazonaws.com/hifi-public/sounds/Guns/Ricochet.L.wav");
         this.playRichochetSoundChance = 0.1;
-        this.fireVolume = 0.5;
+        this.fireVolume = 0.2;
         this.bulletForce = 10;
 
 
@@ -45,6 +47,7 @@
     };
 
     Pistol.prototype = {
+        canShoot: false,
 
         startEquip: function(id, params) {
             this.equipped = true;
@@ -62,6 +65,17 @@
         },
         toggleWithTriggerPressure: function() {
             this.triggerValue = Controller.getValue(TRIGGER_CONTROLS[this.hand]);
+
+            if (this.triggerValue < RELOAD_THRESHOLD) {
+                // print('RELOAD');
+                this.canShoot = true;
+            }
+            if (this.canShoot === true && this.triggerValue === 1) {
+                // print('SHOOT');
+                this.fire();
+                this.canShoot = false;
+            }
+
             if (this.triggerValue < DISABLE_LASER_THRESHOLD && this.showLaser === true) {
                 this.showLaser = false;
                 Overlays.editOverlay(this.laser, {
@@ -73,6 +87,7 @@
                     visible: true
                 });
             }
+
 
         },
         updateLaser: function() {
@@ -101,7 +116,7 @@
 
         preload: function(entityID) {
             this.entityID = entityID;
-            this.initControllerMapping();
+            // this.initControllerMapping();
             this.laser = Overlays.addOverlay("line3d", {
                 start: ZERO_VECTOR,
                 end: ZERO_VECTOR,
@@ -150,22 +165,7 @@
             }
         },
 
-        initControllerMapping: function() {
-            this.mapping = Controller.newMapping();
-            this.mapping.from(Controller.Standard.LT).hysteresis(0.0, 0.75).to(function(value) {
-                _this.triggerPress(0, value);
-            });
-
-
-            this.mapping.from(Controller.Standard.RT).hysteresis(0.0, 0.75).to(function(value) {
-                _this.triggerPress(1, value);
-            });
-            this.mapping.enable();
-
-        },
-
         unload: function() {
-            this.mapping.disable();
             Overlays.deleteOverlay(this.laser);
         },
 

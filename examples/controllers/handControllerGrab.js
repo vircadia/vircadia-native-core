@@ -200,6 +200,7 @@ function entityIsGrabbedByOther(entityID) {
     return false;
 }
 
+
 function MyController(hand) {
     this.hand = hand;
     if (this.hand === RIGHT_HAND) {
@@ -222,6 +223,8 @@ function MyController(hand) {
     this.triggerValue = 0; // rolling average of trigger value
     this.rawTriggerValue = 0;
     this.rawBumperValue = 0;
+
+    this.overlayLine = null;
 
     this.offsetPosition = {
         x: 0.0,
@@ -318,6 +321,33 @@ function MyController(hand) {
         });
     }
 
+    this.overlayLineOn = function(closePoint, farPoint, color) {
+        if (this.overlayLine === null) {
+            var lineProperties = {
+                lineWidth: 5,
+                start: closePoint,
+                end: farPoint,
+                color: color,
+                ignoreRayIntersection: true, // always ignore this
+                visible: true,
+                alpha: 1
+            };
+
+            this.overlayLine = Overlays.addOverlay("line3d", lineProperties);
+
+        } else {
+            var success = Overlays.editOverlay(this.overlayLine, {
+                lineWidth: 5,
+                start: closePoint,
+                end: farPoint,
+                color: color,
+                visible: true,
+                ignoreRayIntersection: true, // always ignore this
+                alpha: 1
+            });
+        }
+    }
+
     this.lineOn = function(closePoint, farPoint, color) {
         // draw a line
         if (this.pointer === null) {
@@ -354,6 +384,13 @@ function MyController(hand) {
             Entities.deleteEntity(this.pointer);
         }
         this.pointer = null;
+    };
+
+    this.overlayLineOff = function() {
+        if (this.overlayLine !== null) {
+            Overlays.deleteOverlay(this.overlayLine);
+        }
+        this.overlayLine = null;
     };
 
     this.triggerPress = function(value) {
@@ -604,7 +641,8 @@ function MyController(hand) {
             }
         }
 
-        this.lineOn(distantPickRay.origin, Vec3.multiply(distantPickRay.direction, LINE_LENGTH), NO_INTERSECT_COLOR);
+        //this.lineOn(distantPickRay.origin, Vec3.multiply(distantPickRay.direction, LINE_LENGTH), NO_INTERSECT_COLOR);
+        this.overlayLineOn(distantPickRay.origin, Vec3.sum(distantPickRay.origin, Vec3.multiply(distantPickRay.direction, LINE_LENGTH)), NO_INTERSECT_COLOR);
     };
 
     this.distanceHolding = function() {
@@ -649,6 +687,9 @@ function MyController(hand) {
 
         this.currentAvatarPosition = MyAvatar.position;
         this.currentAvatarOrientation = MyAvatar.orientation;
+
+        this.overlayLineOff();
+
 
     };
 
@@ -757,6 +798,7 @@ function MyController(hand) {
         }
 
         this.lineOff();
+        this.overlayLineOff();
 
         var grabbedProperties = Entities.getEntityProperties(this.grabbedEntity, GRABBABLE_PROPERTIES);
         this.activateEntity(this.grabbedEntity, grabbedProperties);
@@ -898,6 +940,7 @@ function MyController(hand) {
 
     this.pullTowardEquipPosition = function() {
         this.lineOff();
+        this.overlayLineOff();
 
         var grabbedProperties = Entities.getEntityProperties(this.grabbedEntity, GRABBABLE_PROPERTIES);
         var grabbableData = getEntityCustomData(GRABBABLE_DATA_KEY, this.grabbedEntity, DEFAULT_GRABBABLE_DATA);
@@ -1101,7 +1144,7 @@ function MyController(hand) {
     this.release = function() {
 
         this.lineOff();
-
+        this.overlayLineOff();
         if (this.grabbedEntity !== null) {
             if (this.actionID !== null) {
                 Entities.deleteAction(this.grabbedEntity, this.actionID);
@@ -1223,10 +1266,10 @@ Controller.enableMapping(MAPPING_NAME);
 var handToDisable = 'none';
 
 function update() {
-    if (handToDisable !== LEFT_HAND) {
+    if (handToDisable !== LEFT_HAND && handToDisable!=='both') {
         leftController.update();
     }
-    if (handToDisable !== RIGHT_HAND) {
+    if (handToDisable !== RIGHT_HAND  && handToDisable!=='both') {
         rightController.update();
     }
 }
@@ -1234,14 +1277,19 @@ function update() {
 Messages.subscribe('Hifi-Hand-Disabler');
 
 handleHandDisablerMessages = function(channel, message, sender) {
-
+    
     if (sender === MyAvatar.sessionUUID) {
-        handToDisable = message;
         if (message === 'left') {
             handToDisable = LEFT_HAND;
         }
         if (message === 'right') {
             handToDisable = RIGHT_HAND;
+        }
+        if(message==='both'){
+            handToDisable='both';
+        }
+        if(message==='none'){
+            handToDisable='none';
         }
     }
 

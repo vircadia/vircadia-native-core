@@ -110,9 +110,9 @@ MasterReset = function() {
 
 
         createCat({
-            x: 551.09,
-            y: 494.98,
-            z: 503.49
+            x: 551.0,
+            y: 495.3,
+            z: 503.3
         });
 
         createSprayCan({
@@ -220,6 +220,7 @@ MasterReset = function() {
             gravity: BOW_GRAVITY,
             shapeType: 'compound',
             compoundShapeURL: COLLISION_HULL_URL,
+            collisionSoundURL: "http://hifi-public.s3.amazonaws.com/sounds/bow_fall.L.wav",
             script: bowScriptURL,
             userData: JSON.stringify({
                 resetMe: {
@@ -629,6 +630,7 @@ MasterReset = function() {
                 z: 0.08
             },
             collisionsWillMove: true,
+            collisionSoundURL: "http://hifi-public.s3.amazonaws.com/sounds/flashlight_drop.L.wav",
             gravity: {
                 x: 0,
                 y: -3.5,
@@ -1165,10 +1167,11 @@ MasterReset = function() {
                 z: 0.07
             },
             collisionsWillMove: true,
+            collisionSoundURL: "http://hifi-public.s3.amazonaws.com/sounds/SpryPntCnDrp1.L.wav",
             shapeType: 'box',
             gravity: {
                 x: 0,
-                y: -0.5,
+                y: -3.0,
                 z: 0
             },
             velocity: {

@@ -18,6 +18,7 @@ Script.include("../../../libraries/constants.js");
 
 var GUN_FORCE =20;
 
+Messages.sendMessage('Hifi-Hand-Disabler', "both");
 
 var gameName = "Kill All The Rats!"
 // var HOST = "localhost:5000"
@@ -194,6 +195,7 @@ function fire(side, value) {
 
 
 function scriptEnding() {
+    Messages.sendMessage('Hifi-Hand-Disabler', 'none');
     mapping.disable();
     for (var i = 0; i < pointers.length; ++i) {
         Overlays.deleteOverlay(pointers[i]);
