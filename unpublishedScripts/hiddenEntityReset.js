@@ -655,6 +655,7 @@
                     y: -3.5,
                     z: 0
                 },
+                restitution: 0,
                 velocity: {
                     x: 0,
                     y: -0.01,
@@ -1188,6 +1189,7 @@
                 collisionsWillMove: true,
                 collisionSoundURL: "http://hifi-public.s3.amazonaws.com/sounds/SpryPntCnDrp1.L.wav",
                 shapeType: 'box',
+                restitution: 0,
                 gravity: {
                     x: 0,
                     y: -3.0,

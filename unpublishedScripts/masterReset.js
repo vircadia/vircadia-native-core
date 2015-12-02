@@ -635,6 +635,7 @@ MasterReset = function() {
                 y: -3.5,
                 z: 0
             },
+            restitution: 0,
             velocity: {
                 x: 0,
                 y: -0.01,
@@ -1173,6 +1174,7 @@ MasterReset = function() {
                 y: -3.0,
                 z: 0
             },
+            restitution: 0,
             velocity: {
                 x: 0,
                 y: -1,
