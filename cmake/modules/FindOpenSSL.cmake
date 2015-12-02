@@ -250,16 +250,15 @@ else ()
   )
 endif ()
 
-
-    message(STATUS "++++++++++++++++++++++++++++")
-    message(STATUS "${OPENSSL_LIBRARIES}")
-    message(STATUS "${OPENSSL_DLL_PATH}")
 if (WIN32)
   add_paths_to_fixup_libs(${OPENSSL_DLL_PATH})
-  if (DEFINED ENV{ghprbPullId})
+  #
+  # For some reason fixup misses the following DLL and only copies libeay32. There's gotta be a better way to handle this
+  # but for now resorting to the following interm solution
+  if (DEFINED DEPLOY_PACKAGE AND DEPLOY_PACKAGE)
     add_custom_command(
       TARGET ${TARGET_NAME} POST_BUILD
-      COMMAND "${CMAKE_COMMAND}" -E copy ${OPENSSL_DLL_PATH}/ssleay32.dll ${CMAKE_BINARY_DIR}/full-stack-deployment
+      COMMAND "${CMAKE_COMMAND}" -E copy ${OPENSSL_DLL_PATH}/ssleay32.dll ${CMAKE_BINARY_DIR}/full-stack-deployment/
     )
   endif ()
 endif ()

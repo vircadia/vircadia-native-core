@@ -224,7 +224,16 @@ endif ()
 
 include_application_version()
 
-if (DEFINED ENV{ghprbPullId})
+if (DEFINED DEPLOY_PACKAGE AND DEPLOY_PACKAGE)
+  message(STATUS "+++++ Package for deployment will be generated on this build +++++")
+  
+  file(MAKE_DIRECTORY ${CMAKE_BINARY_DIR}/full-stack-deployment)
+  
+  set (ICONPATH_INTERFACE "$INSTDIR/${PATH_INSTALL_DATA}/interface.ico")
+  set (ICONPATH_STACK_MANAGER "$INSTDIR/${PATH_INSTALL_DATA}/stack-manager.ico")
+  string (REPLACE "/" "\\\\" ICONPATH_INTERFACE ${ICONPATH_INTERFACE})
+  string (REPLACE "/" "\\\\" ICONPATH_STACK_MANAGER ${ICONPATH_STACK_MANAGER})
+
   set(CPACK_PACKAGE_NAME "High Fidelity")
   set(CPACK_PACKAGE_VENDOR "High Fidelity, Inc")
   set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "High Fidelity Interface and Stack")
@@ -233,8 +242,8 @@ if (DEFINED ENV{ghprbPullId})
   set(CPACK_PACKAGE_VERSION_MINOR "0")
   set(CPACK_PACKAGE_VERSION_PATCH "0")
   set(CPACK_PACKAGE_INSTALL_DIRECTORY "High Fidelity-${BUILD_SEQ}")
-  set(CPACK_NSIS_CREATE_ICONS_EXTRA "CreateShortCut '$SMPROGRAMS\\\\$STARTMENU_FOLDER\\\\Interface.lnk' '$INSTDIR\\\\interface.exe'")
-  set(CPACK_NSIS_CREATE_ICONS_EXTRA "CreateShortCut '$SMPROGRAMS\\\\$STARTMENU_FOLDER\\\\Stack Manager.lnk' '$INSTDIR\\\\stack-manager.exe'")
+  set(CPACK_NSIS_CREATE_ICONS_EXTRA "CreateShortCut '$SMPROGRAMS\\\\$STARTMENU_FOLDER\\\\Interface.lnk' '$INSTDIR\\\\interface.exe' '${ICONPATH_INTERFACE}'")
+  set(CPACK_NSIS_CREATE_ICONS_EXTRA "CreateShortCut '$SMPROGRAMS\\\\$STARTMENU_FOLDER\\\\Stack Manager.lnk' '$INSTDIR\\\\stack-manager.exe' '${ICONPATH_STACK_MANAGER}'")
 
   if (WIN32)
     install(DIRECTORY ${CMAKE_BINARY_DIR}/full-stack-deployment/ DESTINATION "./")
