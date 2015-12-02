@@ -9,7 +9,7 @@
 #ifndef hifi_AudioReverb_h
 #define hifi_AudioReverb_h
 
-#include "stdint.h"
+#include <stdint.h>
 
 typedef struct ReverbParameters {
 

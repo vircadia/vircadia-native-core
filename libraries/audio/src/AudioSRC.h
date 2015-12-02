@@ -12,7 +12,7 @@
 #ifndef hifi_AudioSRC_h
 #define hifi_AudioSRC_h
 
-#include "stdint.h"
+#include <stdint.h>
 
 class AudioSRC {
 
