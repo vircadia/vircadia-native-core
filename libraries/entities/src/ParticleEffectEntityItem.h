@@ -229,9 +229,9 @@ protected:
     struct Particle {
         float seed { 0.0f };
         float lifetime { 0.0f };
-        glm::vec3 position { Vectors::ZERO};
-        glm::vec3 velocity { Vectors::ZERO};
-        glm::vec3 acceleration { Vectors::ZERO};
+        glm::vec3 position { Vectors::ZERO };
+        glm::vec3 velocity { Vectors::ZERO };
+        glm::vec3 acceleration { Vectors::ZERO };
     };
     
     // Particles container
