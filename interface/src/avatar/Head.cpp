@@ -261,8 +261,7 @@ void Head::calculateMouthShapes() {
     float audioDelta = sqrtf(glm::max(_averageLoudness - _longTermAverageLoudness, 0.0f)) * JAW_OPEN_SCALE;
     if (audioDelta > _audioJawOpen) {
         _audioJawOpen += (audioDelta - _audioJawOpen) * JAW_OPEN_RATE;
-    }
-    else {
+    } else {
         _audioJawOpen *= JAW_CLOSE_RATE;
     }
     _audioJawOpen = glm::clamp(_audioJawOpen, 0.0f, 1.0f);
