@@ -70,6 +70,8 @@ public:
     
     // Expose results and parameter-tuning operations to other systems, such as stats and javascript.
     Q_INVOKABLE float getRenderDistance() { return _renderDistance; }
+    Q_INVOKABLE float getRenderDistanceLowLimit() { return _renderDistanceController.getControlledValueLowLimit(); }
+    Q_INVOKABLE float getRenderDistanceHighLimit() { return _renderDistanceController.getControlledValueHighLimit(); }
     Q_INVOKABLE int getNumberInRenderRange() { return _renderedAvatarCount; }
     Q_INVOKABLE bool getRenderDistanceControllerIsLogging() { return _renderDistanceController.getIsLogging(); }
     Q_INVOKABLE void setRenderDistanceControllerHistory(QString label, int size) { return _renderDistanceController.setHistorySize(label, size); }
@@ -77,7 +79,7 @@ public:
     Q_INVOKABLE void setRenderDistanceKI(float newValue) { _renderDistanceController.setKI(newValue); }
     Q_INVOKABLE void setRenderDistanceKD(float newValue) { _renderDistanceController.setKD(newValue); }
     Q_INVOKABLE void setRenderDistanceLowLimit(float newValue) { _renderDistanceController.setControlledValueLowLimit(newValue); }
-    Q_INVOKABLE void setRenderDistanceHighLimit(float newValue) { _renderDistanceController.setControlledValueHighLimit(newValue); }
+    Q_INVOKABLE void setRenderDistanceHighLimit(float newValue);
    
 public slots:
     void setShouldShowReceiveStats(bool shouldShowReceiveStats) { _shouldShowReceiveStats = shouldShowReceiveStats; }
