@@ -821,6 +821,11 @@ bool OctreeServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
             .arg(locale.toString((uint)checkSum).rightJustified(16, ' '));
 
         statsString += "\r\n\r\n";
+
+        statsString += serverSubclassStats();
+
+        statsString += "\r\n\r\n";
+
         statsString += "</pre>\r\n";
         statsString += "</doc></html>";
 
@@ -1179,6 +1184,8 @@ void OctreeServer::nodeKilled(SharedNodePointer node) {
     if (usecsElapsed > 1000) {
         qDebug() << qPrintable(_safeServerName) << "server nodeKilled() took: " << usecsElapsed << " usecs for node:" << *node;
     }
+
+    trackViewerGone(node->getUUID());
 }
 
 void OctreeServer::forceNodeShutdown(SharedNodePointer node) {

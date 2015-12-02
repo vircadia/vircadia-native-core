@@ -467,6 +467,12 @@ int OctreeSendThread::packetDistributor(OctreeQueryNode* nodeData, bool viewFrus
                                                  isFullScene, &nodeData->stats, _myServer->getJurisdiction(),
                                                  &nodeData->extraEncodeData);
 
+                    // Our trackSend() function is implemented by the server subclass, and will be called back
+                    // during the encodeTreeBitstream() as new entities/data elements are sent 
+                    params.trackSend = [this](const QUuid& dataID, quint64 dataEdited) {
+                        _myServer->trackSend(dataID, dataEdited, _nodeUUID);
+                    };
+
                     // TODO: should this include the lock time or not? This stat is sent down to the client,
                     // it seems like it may be a good idea to include the lock time as part of the encode time
                     // are reported to client. Since you can encode without the lock
