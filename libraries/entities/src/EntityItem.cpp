@@ -313,7 +313,7 @@ OctreeElement::AppendState EntityItem::appendEntityData(OctreePacketData* packet
 
     // if any part of our entity was sent, call trackSend
     if (appendState != OctreeElement::NONE) {
-        params.trackSend(getID());
+        params.trackSend(getID(), getLastEdited());
     }
 
     return appendState;

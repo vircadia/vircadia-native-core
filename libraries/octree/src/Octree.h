@@ -177,7 +177,7 @@ public:
         }
     }
 
-    std::function<void(const QUuid&)> trackSend { [](const QUuid&){} };
+    std::function<void(const QUuid& dataID, quint64 itemLastEdited)> trackSend { [](const QUuid&, quint64){} };
 };
 
 class ReadElementBufferToTreeArgs {
