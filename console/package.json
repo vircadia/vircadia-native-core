@@ -17,6 +17,7 @@
   },
   "main": "main.js",
   "scripts": {
-    "start": "electron ."
+    "start": "electron .",
+    "package-darwin": "electron-packager . Console --platform=darwin --arch=x64 --version=0.35.2"
   }
 }
