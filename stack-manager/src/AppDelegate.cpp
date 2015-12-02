@@ -117,9 +117,9 @@ AppDelegate::AppDelegate(int argc, char* argv[]) :
 
     connect(this, &QApplication::aboutToQuit, this, &AppDelegate::stopStack);
 
-	_window->setRequirementsLastChecked(QDateTime::currentDateTime().toString());
-	_window->show();
-	toggleStack(true);
+    _window->setRequirementsLastChecked(QDateTime::currentDateTime().toString());
+    _window->show();
+    toggleStack(true);
 }
 
 AppDelegate::~AppDelegate() {

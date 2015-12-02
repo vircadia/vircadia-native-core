@@ -32,7 +32,7 @@ GlobalData::GlobalData() {
     _resourcePath = "resources/";
     _assignmentClientExecutable = "assignment-client";
     _domainServerExecutable = "domain-server";
-	QString applicationSupportDirectory = QCoreApplication::applicationDirPath();
+    QString applicationSupportDirectory = QCoreApplication::applicationDirPath();
 
     _clientsLaunchPath = QDir::toNativeSeparators(applicationSupportDirectory + "/");
     _clientsResourcePath = QDir::toNativeSeparators(applicationSupportDirectory + "/" + _resourcePath);
