@@ -19,19 +19,17 @@ var LASER_COLOR = {
     green: 150,
     blue: 200
 };
-var TRIGGER_THRESHOLD = .1;
 
-var MAX_POINTS_PER_LINE = 40;
+var MAX_POINTS_PER_LINE = 50;
 
 var LIFETIME = 6000;
-var DRAWING_DEPTH = 1;
+var DRAWING_DEPTH = 0.3;
 var LINE_DIMENSIONS = 20;
 
 
-var MIN_POINT_DISTANCE = 0.01;
+var MIN_POINT_DISTANCE = 0.03;
 
-var MIN_BRUSH_RADIUS = 0.08;
-var MAX_BRUSH_RADIUS = 0.1;
+
 
 
 var colorPalette = [{
@@ -75,7 +73,7 @@ function controller(side, triggerAction) {
             y: LINE_DIMENSIONS,
             z: LINE_DIMENSIONS
         },
-        textures: "http://localhost:8080/trails.png",
+        textures: "http://localhost:8080/trails.png?v1" + Math.random(),
         lifetime: LIFETIME
     });
     this.points = [];
@@ -105,11 +103,9 @@ function controller(side, triggerAction) {
         var newTrailPos = Vec3.sum(this.palmPosition, newTrailPosOffset);
 
 
-        if (this.triggerValue > TRIGGER_THRESHOLD && !this.drawing) {
+        if (!this.drawing) {
             this.setTrailPosition(newTrailPos);
             this.drawing = true;
-        } else if (this.drawing && this.triggerValue < TRIGGER_THRESHOLD) {
-            this.drawing = false;
         }
 
         if (this.drawing) {
@@ -129,7 +125,7 @@ function controller(side, triggerAction) {
             var normal = computeNormal(newTrailPos, Camera.getPosition());
 
             this.normals.push(normal);
-            var strokeWidth = map(this.triggerValue, TRIGGER_THRESHOLD, 1, MIN_STROKE_WIDTH, MAX_STROKE_WIDTH);
+            var strokeWidth = MAX_STROKE_WIDTH;
             this.strokeWidths.push(strokeWidth);
             Entities.editEntity(this.trail, {
                 linePoints: this.points,
@@ -160,7 +156,9 @@ function controller(side, triggerAction) {
 
     }
 
-    this.cleanup = function() {}
+    this.cleanup = function() {
+        Entities.deleteEntity(this.trail);
+    }
 }
 
 function computeNormal(p1, p2) {

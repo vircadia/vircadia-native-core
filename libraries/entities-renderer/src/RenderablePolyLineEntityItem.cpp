@@ -80,30 +80,12 @@ void RenderablePolyLineEntityItem::updateGeometry() {
     _verticesBuffer.reset(new gpu::Buffer());
     int vertexIndex = 0;
     vec2 uv;
-    float tailStart = 0.0f;
-    float tailEnd = 0.25f;
-    float tailLength = tailEnd - tailStart;
-
-    float headStart = 0.76f;
-    float headEnd = 1.0f;
-    float headLength = headEnd - headStart;
     float uCoord, vCoord;
-
-    int numTailStrips = 5;
-    int numHeadStrips = 10;
-    int startHeadIndex = _vertices.size() / 2 - numHeadStrips;
+    uCoord = 0.0f;
+    float uCoordInc = 1.0 / (_vertices.size() / 2);
     for (int i = 0; i < _vertices.size() / 2; i++) {
-        uCoord = 0.26f;
         vCoord = 0.0f;
-        //tail
-        if (i < numTailStrips) {
-            uCoord = float(i) / numTailStrips * tailLength + tailStart;
-        }
-
-        //head
-        if (i > startHeadIndex) {
-            uCoord = float((i + 1) - startHeadIndex) / numHeadStrips * headLength + headStart;
-        }
+  
 
         uv = vec2(uCoord, vCoord);
 
@@ -121,6 +103,7 @@ void RenderablePolyLineEntityItem::updateGeometry() {
         vertexIndex++;
 
         _numVertices += 2;
+        uCoord += uCoordInc;
     }
     _pointsChanged = false;
     _normalsChanged = false;

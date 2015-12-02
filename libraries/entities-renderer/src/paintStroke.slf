@@ -38,14 +38,11 @@ void main(void) {
     
     vec4 texel = texture(originalTexture, varTexcoord);
     int frontCondition = 1 -int(gl_FrontFacing) * 2;
-   vec3 color = varColor.rgb;
-   color.g = 1.0 + sin(polyline.time) * 0.5;
-   //texel.a = varVertexId / 20.0;
-   //vec3 normal, float alpha, vec3 diffuse, vec3 specular, float shininess
+    vec3 color = varColor.rgb;
     packDeferredFragmentTranslucent(
         interpolatedNormal * frontCondition,
         texel.a,
-        color * texel.rgb,
+        texel.rgb,
         vec3(0.01, 0.01, 0.01),
         10.0);
 }
