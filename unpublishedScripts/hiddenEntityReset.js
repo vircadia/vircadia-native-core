@@ -241,6 +241,7 @@
                 gravity: BOW_GRAVITY,
                 shapeType: 'compound',
                 compoundShapeURL: COLLISION_HULL_URL,
+                collisionSoundURL: "http://hifi-public.s3.amazonaws.com/sounds/bow_fall.L.wav",
                 script: bowScriptURL,
                 userData: JSON.stringify({
                     resetMe: {
@@ -649,6 +650,7 @@
                     z: 0.08
                 },
                 collisionsWillMove: true,
+                collisionSoundURL: "http://hifi-public.s3.amazonaws.com/sounds/flashlight_drop.L.wav",
                 gravity: {
                     x: 0,
                     y: -3.5,
@@ -1185,6 +1187,7 @@
                     z: 0.07
                 },
                 collisionsWillMove: true,
+                collisionSoundURL: "http://hifi-public.s3.amazonaws.com/sounds/SpryPntCnDrp1.L.wav",
                 shapeType: 'box',
                 gravity: {
                     x: 0,
