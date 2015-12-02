@@ -51,7 +51,7 @@ PacketList::PacketList(PacketList&& other) :
 }
 
 HifiSockAddr PacketList::getSenderSockAddr() const {
-    return _packets.size() > 0 ? _packets.front().get()->getSenderSockAddr() : HifiSockAddr();
+    return _packets.size() > 0 ? _packets.front()->getSenderSockAddr() : HifiSockAddr();
 }
 
 void PacketList::startSegment() {
