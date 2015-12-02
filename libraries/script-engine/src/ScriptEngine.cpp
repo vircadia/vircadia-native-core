@@ -81,6 +81,9 @@ void avatarDataFromScriptValue(const QScriptValue &object, AvatarData* &out) {
     out = qobject_cast<AvatarData*>(object.toQObject());
 }
 
+Q_DECLARE_METATYPE(controller::InputController*)
+static int inputControllerPointerId = qRegisterMetaType<controller::InputController*>();
+
 QScriptValue inputControllerToScriptValue(QScriptEngine *engine, controller::InputController* const &in) {
     return engine->newQObject(in);
 }
@@ -88,8 +91,6 @@ QScriptValue inputControllerToScriptValue(QScriptEngine *engine, controller::Inp
 void inputControllerFromScriptValue(const QScriptValue &object, controller::InputController* &out) {
     out = qobject_cast<controller::InputController*>(object.toQObject());
 }
-
-
 
 static bool hasCorrectSyntax(const QScriptProgram& program) {
     const auto syntaxCheck = QScriptEngine::checkSyntax(program.sourceCode());

@@ -248,7 +248,7 @@ QByteArray OctreePersistThread::getPersistFileContents() const {
 }
 
 void OctreePersistThread::persist() {
-    if (_tree->isDirty()) {
+    if (_tree->isDirty() && _initialLoadComplete) {
 
         _tree->withWriteLock([&] {
             qCDebug(octree) << "pruning Octree before saving...";

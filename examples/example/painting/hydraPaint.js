@@ -116,6 +116,7 @@ function controller(side, triggerAction) {
                 y: LINE_DIMENSIONS,
                 z: LINE_DIMENSIONS
             },
+            textures: "http://localhost:8080/trails.png",
             lifetime: LIFETIME
         });
         this.points = [];

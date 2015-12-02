@@ -424,8 +424,11 @@ int OctreeSendThread::packetDistributor(OctreeQueryNode* nodeData, bool viewFrus
                     quint64 lockWaitEnd = usecTimestampNow();
                     lockWaitElapsedUsec = (float)(lockWaitEnd - lockWaitStart);
                     quint64 encodeStart = usecTimestampNow();
-
+                    
                     OctreeElementPointer subTree = nodeData->elementBag.extract();
+                    if (!subTree) {
+                        return;
+                    }
 
                     /* TODO: Looking for a way to prevent locking and encoding a tree that is not
                     // going to result in any packets being sent...
@@ -463,6 +466,12 @@ int OctreeSendThread::packetDistributor(OctreeQueryNode* nodeData, bool viewFrus
                                                  nodeData->getLastTimeBagEmpty(),
                                                  isFullScene, &nodeData->stats, _myServer->getJurisdiction(),
                                                  &nodeData->extraEncodeData);
+
+                    // Our trackSend() function is implemented by the server subclass, and will be called back
+                    // during the encodeTreeBitstream() as new entities/data elements are sent 
+                    params.trackSend = [this](const QUuid& dataID, quint64 dataEdited) {
+                        _myServer->trackSend(dataID, dataEdited, _nodeUUID);
+                    };
 
                     // TODO: should this include the lock time or not? This stat is sent down to the client,
                     // it seems like it may be a good idea to include the lock time as part of the encode time

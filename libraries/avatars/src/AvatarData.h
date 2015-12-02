@@ -46,6 +46,7 @@ typedef unsigned long long quint64;
 #include <QtScript/QScriptable>
 #include <QReadWriteLock>
 
+#include <JointData.h>
 #include <NLPacket.h>
 #include <Node.h>
 #include <RegisteredMetaTypes.h>
@@ -131,7 +132,6 @@ enum KeyState {
 class QDataStream;
 
 class AttachmentData;
-class JointData;
 class Transform;
 using TransformPointer = std::shared_ptr<Transform>;
 
@@ -392,6 +392,7 @@ protected:
 
     QUrl _faceModelURL; // These need to be empty so that on first time setting them they will not short circuit
     QUrl _skeletonModelURL; // These need to be empty so that on first time setting them they will not short circuit
+    QUrl _skeletonFBXURL;
     QVector<AttachmentData> _attachmentData;
     QString _displayName;
 
@@ -433,14 +434,6 @@ private:
     AvatarData& operator= (const AvatarData&);
 };
 Q_DECLARE_METATYPE(AvatarData*)
-
-class JointData {
-public:
-    glm::quat rotation;
-    bool rotationSet = false;
-    glm::vec3 translation;
-    bool translationSet = false;
-};
 
 QJsonValue toJsonValue(const JointData& joint);
 JointData jointDataFromJsonValue(const QJsonValue& q);
