@@ -19,8 +19,8 @@ var audioOptions = new AudioEffectOptions({
     inputBandwidth: 0.8,
     earlyLevel: 0,
     tailLevel: 0,
-    dryLevel: 0,
-    wetLevel: 0
+    dryLevel: -6,
+    wetLevel: -6
 });
 
 AudioDevice.setReverbOptions(audioOptions);
