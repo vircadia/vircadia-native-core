@@ -1184,6 +1184,8 @@ void OctreeServer::nodeKilled(SharedNodePointer node) {
     if (usecsElapsed > 1000) {
         qDebug() << qPrintable(_safeServerName) << "server nodeKilled() took: " << usecsElapsed << " usecs for node:" << *node;
     }
+
+    trackViewerGone(node->getUUID());
 }
 
 void OctreeServer::forceNodeShutdown(SharedNodePointer node) {

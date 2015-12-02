@@ -81,6 +81,7 @@ public:
     virtual int sendSpecialPackets(const SharedNodePointer& node, OctreeQueryNode* queryNode, int& packetsSent) { return 0; }
     virtual QString serverSubclassStats() { return QString(); }
     virtual void trackSend(const QUuid& dataID, quint64 dataLastEdited, const QUuid& viewerNode) { }
+    virtual void trackViewerGone(const QUuid& viewerNode) { }
 
     static float SKIP_TIME; // use this for trackXXXTime() calls for non-times
 
