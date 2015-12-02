@@ -821,6 +821,11 @@ bool OctreeServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
             .arg(locale.toString((uint)checkSum).rightJustified(16, ' '));
 
         statsString += "\r\n\r\n";
+
+        statsString += serverSubclassStats();
+
+        statsString += "\r\n\r\n";
+
         statsString += "</pre>\r\n";
         statsString += "</doc></html>";
 

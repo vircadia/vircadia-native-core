@@ -176,6 +176,8 @@ public:
             case OCCLUDED: return QString("OCCLUDED"); break;
         }
     }
+
+    std::function<void(const QUuid&)> trackSend { [](const QUuid&){} };
 };
 
 class ReadElementBufferToTreeArgs {

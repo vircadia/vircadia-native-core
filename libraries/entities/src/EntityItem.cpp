@@ -311,6 +311,11 @@ OctreeElement::AppendState EntityItem::appendEntityData(OctreePacketData* packet
         entityTreeElementExtraEncodeData->entities.insert(getEntityItemID(), propertiesDidntFit);
     }
 
+    // if any part of our entity was sent, call trackSend
+    if (appendState != OctreeElement::NONE) {
+        params.trackSend(getID());
+    }
+
     return appendState;
 }
 

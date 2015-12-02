@@ -266,3 +266,49 @@ void EntityServer::readAdditionalConfiguration(const QJsonObject& settingsSectio
     tree->setWantEditLogging(wantEditLogging);
     tree->setWantTerseEditLogging(wantTerseEditLogging);
 }
+
+void EntityServer::trackSend(const QUuid& dataID, const QUuid& viewerNode) {
+    QWriteLocker locker(&_viewerSendingStatsLock);
+    _viewerSendingStats[viewerNode] = usecTimestampNow();
+}
+
+
+QString EntityServer::serverSubclassStats() {
+    QLocale locale(QLocale::English);
+    QString statsString;
+
+    // display memory usage stats
+    statsString += "<b>Entity Server Memory Statistics</b>\r\n";
+    statsString += QString().sprintf("EntityTreeElement size... %ld bytes\r\n", sizeof(EntityTreeElement));
+    statsString += QString().sprintf("       EntityItem size... %ld bytes\r\n", sizeof(EntityItem));
+    statsString += "\r\n\r\n";
+
+    statsString += "<b>Entity Server Sending to Viewer Statistics</b>\r\n";
+    statsString += "----- Viewer Node ID -----------------    ---------- Last Sent To ----------\r\n";
+
+    int viewers = 0;
+    const int COLUMN_WIDTH = 24;
+
+    {
+        QReadLocker locker(&_viewerSendingStatsLock);
+        quint64 now = usecTimestampNow();
+
+        for (auto key : _viewerSendingStats.keys()) {
+            quint64 lastSentAt = _viewerSendingStats[key];
+            quint64 elapsed = now - lastSentAt;
+            double msecsAgo = (double)(elapsed / USECS_PER_MSEC);
+            statsString += key.toString();
+            statsString += "    ";
+            statsString += QString("%1 msecs ago\r\n")
+                .arg(locale.toString((double)msecsAgo).rightJustified(COLUMN_WIDTH, ' '));
+
+            viewers++;
+        }
+    }
+    if (viewers < 1) {
+        statsString += "    no viewers... \r\n";
+    }
+    statsString += "\r\n\r\n";
+
+    return statsString;
+}

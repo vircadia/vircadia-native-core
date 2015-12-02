@@ -44,6 +44,9 @@ public:
 
     virtual void entityCreated(const EntityItem& newEntity, const SharedNodePointer& senderNode) override;
     virtual void readAdditionalConfiguration(const QJsonObject& settingsSectionObject) override;
+    virtual QString serverSubclassStats();
+
+    virtual void trackSend(const QUuid& dataID, const QUuid& viewerNode);
 
 public slots:
     void pruneDeletedEntities();
@@ -57,6 +60,9 @@ private slots:
 private:
     EntitySimulation* _entitySimulation;
     QTimer* _pruneDeletedEntitiesTimer = nullptr;
+
+    QReadWriteLock _viewerSendingStatsLock;
+    QMap<QUuid,quint64> _viewerSendingStats;
 };
 
 #endif // hifi_EntityServer_h
