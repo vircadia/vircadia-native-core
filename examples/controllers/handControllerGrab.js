@@ -1266,10 +1266,10 @@ Controller.enableMapping(MAPPING_NAME);
 var handToDisable = 'none';
 
 function update() {
-    if (handToDisable !== LEFT_HAND) {
+    if (handToDisable !== LEFT_HAND && handToDisable!=='both') {
         leftController.update();
     }
-    if (handToDisable !== RIGHT_HAND) {
+    if (handToDisable !== RIGHT_HAND  && handToDisable!=='both') {
         rightController.update();
     }
 }
@@ -1279,12 +1279,17 @@ Messages.subscribe('Hifi-Hand-Disabler');
 handleHandDisablerMessages = function(channel, message, sender) {
 
     if (sender === MyAvatar.sessionUUID) {
-        handToDisable = message;
         if (message === 'left') {
             handToDisable = LEFT_HAND;
         }
         if (message === 'right') {
             handToDisable = RIGHT_HAND;
+        }
+        if(message==='both'){
+            handToDisable='both';
+        }
+        if(message==='none'){
+            handToDisable='none';
         }
     }
 
