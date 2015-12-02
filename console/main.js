@@ -1,5 +1,7 @@
 var app = require('app');  // Module to control application life.
 var BrowserWindow = require('browser-window');  // Module to create native browser window.
+var Menu = require('menu');
+var Tray = require('tray');
 
 // Report crashes to our server.
 require('crash-reporter').start();
@@ -7,6 +9,7 @@ require('crash-reporter').start();
 // Keep a global reference of the window object, if you don't, the window will
 // be closed automatically when the JavaScript object is garbage collected.
 var mainWindow = null;
+var appIcon = null;
 
 // Quit when all windows are closed.
 app.on('window-all-closed', function() {
@@ -20,6 +23,16 @@ app.on('window-all-closed', function() {
 // This method will be called when Electron has finished
 // initialization and is ready to create browser windows.
 app.on('ready', function() {
+  // Create tray icon
+  appIcon = new Tray('resources/tray-icon.png');
+  appIcon.setToolTip('High Fidelity Console');
+  var contextMenu = Menu.buildFromTemplate([{
+    label: 'Quit',
+    accelerator: 'Command+Q',
+    click: function() { app.quit(); }
+  }]);
+  appIcon.setContextMenu(contextMenu);
+
   // Create the browser window.
   mainWindow = new BrowserWindow({width: 800, height: 600});
 
