@@ -711,7 +711,7 @@ bool OctreeServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
 
 
         int senderNumber = 0;
-        NodeToSenderStatsMap& allSenderStats = _octreeInboundPacketProcessor->getSingleSenderStats();
+        NodeToSenderStatsMap allSenderStats = _octreeInboundPacketProcessor->getSingleSenderStats();
         for (NodeToSenderStatsMapConstIterator i = allSenderStats.begin(); i != allSenderStats.end(); i++) {
             senderNumber++;
             QUuid senderID = i.key();
