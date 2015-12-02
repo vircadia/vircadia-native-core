@@ -1277,7 +1277,6 @@ function update() {
 Messages.subscribe('Hifi-Hand-Disabler');
 
 handleHandDisablerMessages = function(channel, message, sender) {
-    
     if (sender === MyAvatar.sessionUUID) {
         if (message === 'left') {
             handToDisable = LEFT_HAND;
