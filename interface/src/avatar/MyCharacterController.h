@@ -64,8 +64,8 @@ public:
     void getAvatarPositionAndOrientation(glm::vec3& position, glm::quat& rotation) const;
 
     void setTargetVelocity(const glm::vec3& velocity);
-    void setHMDVelocity(const glm::vec3& velocity);
-    glm::vec3 getHMDShift() const { return _lastStepDuration * bulletToGLM(_hmdVelocity); }
+    void setFollowVelocity(const glm::vec3& velocity);
+    float getFollowTime() const { return _followTime; }
 
     glm::vec3 getLinearVelocity() const;
 
@@ -75,7 +75,7 @@ protected:
 protected:
     btVector3 _currentUp;
     btVector3 _walkVelocity;
-    btVector3 _hmdVelocity;
+    btVector3 _followVelocity;
     btTransform _avatarBodyTransform;
 
     glm::vec3 _shapeLocalOffset;
@@ -93,7 +93,7 @@ protected:
     btScalar _gravity;
 
     btScalar _jumpSpeed;
-    btScalar _lastStepDuration;
+    btScalar _followTime;
 
     bool _enabled;
     bool _isOnGround;

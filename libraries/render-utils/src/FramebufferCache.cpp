@@ -41,8 +41,8 @@ void FramebufferCache::setFrameBufferSize(QSize frameBufferSize) {
         _primarySpecularTexture.reset();
         _selfieFramebuffer.reset();
         _cachedFramebuffers.clear();
-        _beautyTexture.reset();
-        _beautyFramebuffer.reset();
+        _lightingTexture.reset();
+        _lightingFramebuffer.reset();
     }
 }
 
@@ -78,10 +78,11 @@ void FramebufferCache::createPrimaryFramebuffer() {
     _selfieFramebuffer->setRenderBuffer(0, tex);
     
     
-    _beautyTexture = gpu::TexturePointer(gpu::Texture::create2D(gpu::Element(gpu::VEC4, gpu::NUINT8, gpu::RGBA), width, height, defaultSampler));
-//    _beautyTexture = gpu::TexturePointer(gpu::Texture::create2D(gpu::Element(gpu::VEC4, gpu::NUINT8, gpu::SRGBA), width, height, defaultSampler));
-    _beautyFramebuffer  = gpu::FramebufferPointer(gpu::Framebuffer::create());
-    _beautyFramebuffer->setRenderBuffer(0, _beautyTexture);
+  //  _lightingTexture = gpu::TexturePointer(gpu::Texture::create2D(gpu::Element(gpu::VEC4, gpu::NUINT8, gpu::RGBA), width, height, defaultSampler));
+    _lightingTexture = gpu::TexturePointer(gpu::Texture::create2D(gpu::Element(gpu::VEC4, gpu::NUINT8, gpu::SRGBA), width, height, defaultSampler));
+   // _lightingTexture = gpu::TexturePointer(gpu::Texture::create2D(gpu::Element(gpu::VEC4, gpu::HALF, gpu::RGBA), width, height, defaultSampler));
+    _lightingFramebuffer  = gpu::FramebufferPointer(gpu::Framebuffer::create());
+    _lightingFramebuffer->setRenderBuffer(0, _lightingTexture);
 }
 
 gpu::FramebufferPointer FramebufferCache::getPrimaryFramebuffer() {
@@ -126,18 +127,18 @@ gpu::TexturePointer FramebufferCache::getPrimarySpecularTexture() {
     return _primarySpecularTexture;
 }
 
-gpu::FramebufferPointer FramebufferCache::getBeautyFramebuffer() {
-    if (!_beautyFramebuffer) {
+gpu::FramebufferPointer FramebufferCache::getLightingFramebuffer() {
+    if (!_lightingFramebuffer) {
         createPrimaryFramebuffer();
     }
-    return _beautyFramebuffer;
+    return _lightingFramebuffer;
 }
 
-gpu::TexturePointer FramebufferCache::getBeautyTexture() {
-    if (!_beautyTexture) {
+gpu::TexturePointer FramebufferCache::getLightingTexture() {
+    if (!_lightingTexture) {
         createPrimaryFramebuffer();
     }
-    return _beautyTexture;
+    return _lightingTexture;
 }
 
 gpu::FramebufferPointer FramebufferCache::getFramebuffer() {

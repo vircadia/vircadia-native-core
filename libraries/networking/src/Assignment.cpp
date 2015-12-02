@@ -30,6 +30,8 @@ Assignment::Type Assignment::typeForNodeType(NodeType_t nodeType) {
             return Assignment::EntityServerType;
         case NodeType::AssetServer:
             return Assignment::AssetServerType;
+        case NodeType::MessagesMixer:
+            return Assignment::MessagesMixerType;
         default:
             return Assignment::AllTypes;
     }
@@ -131,6 +133,8 @@ const char* Assignment::getTypeName() const {
             return "asset-server";
         case Assignment::EntityServerType:
             return "entity-server";
+        case Assignment::MessagesMixerType:
+            return "messages-mixer";
         default:
             return "unknown";
     }

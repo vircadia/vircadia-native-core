@@ -147,10 +147,19 @@ public:
     void addNewlyCreatedHook(NewlyCreatedEntityHook* hook);
     void removeNewlyCreatedHook(NewlyCreatedEntityHook* hook);
 
-    bool hasAnyDeletedEntities() const { return _recentlyDeletedEntityItemIDs.size() > 0; }
+    bool hasAnyDeletedEntities() const { 
+        QReadLocker locker(&_recentlyDeletedEntitiesLock);
+        return _recentlyDeletedEntityItemIDs.size() > 0;
+    }
+
     bool hasEntitiesDeletedSince(quint64 sinceTime);
-    std::unique_ptr<NLPacket> encodeEntitiesDeletedSince(OCTREE_PACKET_SEQUENCE sequenceNumber, quint64& sinceTime,
-                                                         bool& hasMore);
+    static quint64 getAdjustedConsiderSince(quint64 sinceTime);
+
+    QMultiMap<quint64, QUuid> getRecentlyDeletedEntityIDs() const { 
+        QReadLocker locker(&_recentlyDeletedEntitiesLock);
+        return _recentlyDeletedEntityItemIDs;
+    }
+
     void forgetEntitiesDeletedBefore(quint64 sinceTime);
 
     int processEraseMessage(NLPacket& packet, const SharedNodePointer& sourceNode);
@@ -243,7 +252,7 @@ private:
     QReadWriteLock _newlyCreatedHooksLock;
     QVector<NewlyCreatedEntityHook*> _newlyCreatedHooks;
 
-    QReadWriteLock _recentlyDeletedEntitiesLock;
+    mutable QReadWriteLock _recentlyDeletedEntitiesLock;
     QMultiMap<quint64, QUuid> _recentlyDeletedEntityItemIDs;
     EntityItemFBXService* _fbxService;
 

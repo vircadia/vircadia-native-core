@@ -33,15 +33,6 @@ var SHOW = 4;
 var HIDE = 5;
 var LOAD = 6;
 
-var COLORS = [];
-COLORS[PLAY] = { red: PLAY, green: 0,  blue: 0 };
-COLORS[PLAY_LOOP] = { red: PLAY_LOOP, green: 0,  blue: 0 };
-COLORS[STOP] = { red: STOP, green: 0,  blue: 0 };
-COLORS[SHOW] = { red: SHOW, green: 0,  blue: 0 };
-COLORS[HIDE] = { red: HIDE, green: 0,  blue: 0 };
-COLORS[LOAD] = { red: LOAD, green: 0,  blue: 0 };
-
-
 
 var windowDimensions = Controller.getViewportDimensions();
 var TOOL_ICON_URL = HIFI_PUBLIC_BUCKET + "images/tools/";
@@ -138,6 +129,7 @@ function setupToolBars() {
 }
 
 function sendCommand(id, action) {
+    
     if (action === SHOW) {
         toolBars[id].selectTool(onOffIcon[id], false);
         toolBars[id].setAlpha(ALPHA_ON, playIcon[id]);
@@ -154,24 +146,29 @@ function sendCommand(id, action) {
         return;
     }
     
-    if (id === (toolBars.length - 1)) {
-        for (i = 0; i < NUM_AC; i++) {
-            sendCommand(i, action);
-        }
-        return;
-    }
+    if (id === (toolBars.length - 1))
+        id = -1;
     
-    var position = { x: controlEntityPosition.x + id * controlEntitySize,
-                     y: controlEntityPosition.y, z: controlEntityPosition.z };
-    Entities.addEntity({
-        name: "Actor Controller",
-        userData: clip_url,
+    var controlEntity = Entities.addEntity({
+        name: 'New Actor Controller',
         type: "Box",
-        position: position, 
-        dimensions: { x: controlEntitySize, y: controlEntitySize, z: controlEntitySize }, 
-        color: COLORS[action],
-        lifetime: 5
-    });
+        color: { red: 0, green: 0, blue: 0 },
+        position: controlEntityPosition, 
+        dimensions: { x: controlEntitySize, y: controlEntitySize, z: controlEntitySize },
+        visible: false,
+        lifetime: 10,
+        userData: JSON.stringify({
+            idKey: {
+                uD_id: id
+            },
+            actionKey: {
+                uD_action: action
+            },
+            clipKey: {
+                uD_url: clip_url
+            }
+        })
+  });
 }
 
 function mousePressEvent(event) {
@@ -191,8 +188,12 @@ function mousePressEvent(event) {
         sendCommand(i, PLAY_LOOP);
     } else if (stopIcon[i] === toolBars[i].clicked(clickedOverlay, false)) {
         sendCommand(i, STOP);
-     } else if (loadIcon[i] === toolBars[i].clicked(clickedOverlay, false)) {
-        sendCommand(i, LOAD);
+    } else if (loadIcon[i] === toolBars[i].clicked(clickedOverlay, false)) {
+        input_text = Window.prompt("Insert the url of the clip: ","");
+        if (!(input_text === "" || input_text === null)) {
+            clip_url = input_text;
+            sendCommand(i, LOAD);
+        }
     } else {
         // Check individual controls
         for (i = 0; i < NUM_AC; i++) {
@@ -210,7 +211,7 @@ function mousePressEvent(event) {
                 sendCommand(i, STOP);
             } else if (loadIcon[i] === toolBars[i].clicked(clickedOverlay, false)) {                
                 input_text = Window.prompt("Insert the url of the clip: ","");
-                if(!(input_text === "" || input_text === null)){
+                if (!(input_text === "" || input_text === null)) {
                     clip_url = input_text;
                     sendCommand(i, LOAD);
                 }                

@@ -157,7 +157,7 @@ void SimulationOwner::test() {
 }
 
 bool SimulationOwner::operator!=(const SimulationOwner& other) {
-    return (_id != other._id && _priority != other._priority);
+    return (_id != other._id || _priority != other._priority);
 }
 
 SimulationOwner& SimulationOwner::operator=(const SimulationOwner& other) {

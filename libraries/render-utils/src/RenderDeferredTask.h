@@ -97,7 +97,12 @@ public:
     int _drawStatusJobIndex = -1;
     int _drawHitEffectJobIndex = -1;
 
-    void setDrawItemStatus(bool draw) { if (_drawStatusJobIndex >= 0) { _jobs[_drawStatusJobIndex].setEnabled(draw); } }
+    void setDrawItemStatus(int draw) {
+        if (_drawStatusJobIndex >= 0) {
+            _jobs[_drawStatusJobIndex].setEnabled(draw > 0);
+        }
+    }
+
     bool doDrawItemStatus() const { if (_drawStatusJobIndex >= 0) { return _jobs[_drawStatusJobIndex].isEnabled(); } else { return false; } }
     
     void setDrawHitEffect(bool draw) { if (_drawHitEffectJobIndex >= 0) { _jobs[_drawHitEffectJobIndex].setEnabled(draw); } }
