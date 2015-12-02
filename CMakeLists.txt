@@ -15,7 +15,7 @@ endif ()
 
 if (POLICY CMP0043)
   cmake_policy(SET CMP0043 OLD)
-endif () 
+endif ()
 
 if (POLICY CMP0042)
   cmake_policy(SET CMP0042 OLD)
@@ -26,7 +26,7 @@ set_property(GLOBAL PROPERTY PREDEFINED_TARGETS_FOLDER "CMakeTargets")
 
 project(hifi)
 add_definitions(-DGLM_FORCE_RADIANS)
-set(CMAKE_CXX_FLAGS_DEBUG  "${CMAKE_CXX_FLAGS_DEBUG} -DDEBUG") 
+set(CMAKE_CXX_FLAGS_DEBUG  "${CMAKE_CXX_FLAGS_DEBUG} -DDEBUG")
 
 if (WIN32)
   add_definitions(-DNOMINMAX -D_CRT_SECURE_NO_WARNINGS)
@@ -70,7 +70,7 @@ if ((NOT MSVC12) AND (NOT MSVC14))
   endif()
 endif ()
 
-if (APPLE) 
+if (APPLE)
   set(CMAKE_XCODE_ATTRIBUTE_CLANG_CXX_LANGUAGE_STANDARD "c++0x")
   set(CMAKE_XCODE_ATTRIBUTE_CLANG_CXX_LIBRARY "libc++")
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} --stdlib=libc++")
@@ -80,16 +80,16 @@ if (NOT ANDROID_LIB_DIR)
   set(ANDROID_LIB_DIR $ENV{ANDROID_LIB_DIR})
 endif ()
 
-if (ANDROID)  
+if (ANDROID)
   if (NOT ANDROID_QT_CMAKE_PREFIX_PATH)
     set(QT_CMAKE_PREFIX_PATH ${ANDROID_LIB_DIR}/Qt/5.4/android_armv7/lib/cmake)
   else ()
     set(QT_CMAKE_PREFIX_PATH ${ANDROID_QT_CMAKE_PREFIX_PATH})
   endif ()
-  
+
   set(CMAKE_FIND_ROOT_PATH_MODE_PROGRAM NEVER)
   set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/lib)
-  
+
   if (ANDROID_LIB_DIR)
     list(APPEND CMAKE_FIND_ROOT_PATH ${ANDROID_LIB_DIR})
   endif ()
@@ -114,34 +114,34 @@ get_filename_component(QT_DIR "${QT_CMAKE_PREFIX_PATH}/../../" ABSOLUTE)
 set(CMAKE_PREFIX_PATH ${CMAKE_PREFIX_PATH} ${QT_CMAKE_PREFIX_PATH})
 
 if (APPLE)
-  
+
   exec_program(sw_vers ARGS -productVersion  OUTPUT_VARIABLE OSX_VERSION)
   string(REGEX MATCH "^[0-9]+\\.[0-9]+" OSX_VERSION ${OSX_VERSION})
   message(STATUS "Detected OS X version = ${OSX_VERSION}")
-  
+
   set(OSX_SDK "${OSX_VERSION}" CACHE String "OS X SDK version to look for inside Xcode bundle or at OSX_SDK_PATH")
-  
+
   # set our OS X deployment target
   set(CMAKE_OSX_DEPLOYMENT_TARGET 10.8)
-  
+
   # find the SDK path for the desired SDK
   find_path(
-    _OSX_DESIRED_SDK_PATH 
-    NAME MacOSX${OSX_SDK}.sdk 
+    _OSX_DESIRED_SDK_PATH
+    NAME MacOSX${OSX_SDK}.sdk
     HINTS ${OSX_SDK_PATH}
     PATHS /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/
           /Applications/Xcode-beta.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/
   )
-  
+
   if (NOT _OSX_DESIRED_SDK_PATH)
     message(STATUS "Could not find OS X ${OSX_SDK} SDK. Will fall back to default. If you want a specific SDK, please pass OSX_SDK and optionally OSX_SDK_PATH to CMake.")
   else ()
     message(STATUS "Found OS X ${OSX_SDK} SDK at ${_OSX_DESIRED_SDK_PATH}/MacOSX${OSX_SDK}.sdk")
-    
+
     # set that as the SDK to use
     set(CMAKE_OSX_SYSROOT ${_OSX_DESIRED_SDK_PATH}/MacOSX${OSX_SDK}.sdk)
   endif ()
-  
+
 endif ()
 
 # Hide automoc folders (for IDEs)
@@ -204,6 +204,7 @@ if (NOT ANDROID)
   set_target_properties(interface PROPERTIES FOLDER "Apps")
   add_subdirectory(stack-manager)
   set_target_properties(stack-manager PROPERTIES FOLDER "Apps")
+  add_subdirectory(console)
   add_subdirectory(tests)
   add_subdirectory(plugins)
   add_subdirectory(tools)
