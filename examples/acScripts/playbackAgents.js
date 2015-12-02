@@ -9,7 +9,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-Script.include("./AgentPoolControler.js");
+Script.include("./AgentPoolController.js");
 var agentController = new AgentController();
 
 // Set the following variables to the values needed
