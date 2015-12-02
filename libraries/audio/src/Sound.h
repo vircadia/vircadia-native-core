@@ -30,6 +30,9 @@ public:
      
     const QByteArray& getByteArray() { return _byteArray; }
 
+signals:
+    void ready();
+    
 private:
     QByteArray _byteArray;
     bool _isStereo;

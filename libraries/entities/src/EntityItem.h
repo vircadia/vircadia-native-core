@@ -48,23 +48,6 @@ namespace render {
     class PendingChanges;
 }
 
-// these thesholds determine what updates will be ignored (client and server)
-const float IGNORE_POSITION_DELTA = 0.0001f;
-const float IGNORE_DIMENSIONS_DELTA = 0.0005f;
-const float IGNORE_ALIGNMENT_DOT = 0.99997f;
-const float IGNORE_LINEAR_VELOCITY_DELTA = 0.001f;
-const float IGNORE_DAMPING_DELTA = 0.001f;
-const float IGNORE_GRAVITY_DELTA = 0.001f;
-const float IGNORE_ANGULAR_VELOCITY_DELTA = 0.0002f;
-
-// these thresholds determine what updates will activate the physical object
-const float ACTIVATION_POSITION_DELTA = 0.005f;
-const float ACTIVATION_DIMENSIONS_DELTA = 0.005f;
-const float ACTIVATION_ALIGNMENT_DOT = 0.99990f;
-const float ACTIVATION_LINEAR_VELOCITY_DELTA = 0.01f;
-const float ACTIVATION_GRAVITY_DELTA = 0.1f;
-const float ACTIVATION_ANGULAR_VELOCITY_DELTA = 0.03f;
-
 #define DONT_ALLOW_INSTANTIATION virtual void pureVirtualFunctionPlaceHolder() = 0;
 #define ALLOW_INSTANTIATION virtual void pureVirtualFunctionPlaceHolder() { };
 
@@ -192,7 +175,7 @@ public:
 
     virtual bool supportsDetailedRayIntersection() const { return false; }
     virtual bool findDetailedRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
-                         bool& keepSearching, OctreeElementPointer& element, float& distance, 
+                         bool& keepSearching, OctreeElementPointer& element, float& distance,
                          BoxFace& face, glm::vec3& surfaceNormal,
                          void** intersectedObject, bool precisionPicking) const { return true; }
 
@@ -385,9 +368,6 @@ public:
     EntityTreePointer getTree() const;
     bool wantTerseEditLogging();
 
-    static void setSendPhysicsUpdates(bool value) { _sendPhysicsUpdates = value; }
-    static bool getSendPhysicsUpdates() { return _sendPhysicsUpdates; }
-
     glm::mat4 getEntityToWorldMatrix() const;
     glm::mat4 getWorldToEntityMatrix() const;
     glm::vec3 worldToEntity(const glm::vec3& point) const;
@@ -398,6 +378,7 @@ public:
     void getAllTerseUpdateProperties(EntityItemProperties& properties) const;
 
     void flagForOwnership() { _dirtyFlags |= Simulation::DIRTY_SIMULATOR_OWNERSHIP; }
+    void flagForMotionStateChange() { _dirtyFlags |= Simulation::DIRTY_MOTION_TYPE; }
 
     bool addAction(EntitySimulation* simulation, EntityActionPointer action);
     bool updateAction(EntitySimulation* simulation, const QUuid& actionID, const QVariantMap& arguments);
@@ -429,7 +410,6 @@ protected:
     const QByteArray getActionDataInternal() const;
     void setActionDataInternal(QByteArray actionData);
 
-    static bool _sendPhysicsUpdates;
     EntityTypes::EntityType _type;
     QUuid _id;
     quint64 _lastSimulated; // last time this entity called simulate(), this includes velocity, angular velocity,

@@ -75,7 +75,7 @@ var HIFI_PUBLIC_BUCKET = "http://s3.amazonaws.com/hifi-public/";
                         z: DIAMETER
                     },
                     restitution: 1.0,
-                    linearDamping: 0.00001,
+                    damping: 0.00001,
                     gravity: {
                         x: 0,
                         y: -9.8,

@@ -17,7 +17,6 @@
 #include <atomic>
 
 #include <GenericThread.h>
-#include <OctreeElementBag.h>
 
 #include "OctreeQueryNode.h"
 

@@ -80,8 +80,8 @@ public:
     ObjectMotionState(btCollisionShape* shape);
     ~ObjectMotionState();
 
-    virtual bool handleEasyChanges(uint32_t flags, PhysicsEngine* engine);
-    virtual bool handleHardAndEasyChanges(uint32_t flags, PhysicsEngine* engine);
+    virtual bool handleEasyChanges(uint32_t& flags, PhysicsEngine* engine);
+    virtual bool handleHardAndEasyChanges(uint32_t& flags, PhysicsEngine* engine);
 
     void updateBodyMaterialProperties();
     void updateBodyVelocities();
@@ -151,6 +151,7 @@ protected:
     virtual bool isReadyToComputeShape() = 0;
     virtual btCollisionShape* computeNewShape() = 0;
     void setMotionType(MotionType motionType);
+    void updateCCDConfiguration();
 
     // clearObjectBackPointer() overrrides should call the base method, then actually clear the object back pointer.
     virtual void clearObjectBackPointer() { _type = MOTIONSTATE_TYPE_INVALID; }

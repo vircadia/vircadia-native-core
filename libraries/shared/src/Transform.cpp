@@ -117,7 +117,7 @@ Transform Transform::fromJson(const QJsonValue& json) {
         result.setTranslation(vec3FromJsonValue(obj[JSON_TRANSLATION]));
     }
     if (obj.contains(JSON_SCALE)) {
-        result.setScale(vec3FromJsonValue(obj[JSON_TRANSLATION]));
+        result.setScale(vec3FromJsonValue(obj[JSON_SCALE]));
     }
     return result;
 }
@@ -128,17 +128,25 @@ QJsonObject Transform::toJson(const Transform& transform) {
     }
 
     QJsonObject result;
-    auto json = toJsonValue(transform.getTranslation());
-    if (!json.isNull()) {
-        result[JSON_TRANSLATION] = json;
+    if (transform.getTranslation() != vec3()) {
+        auto json = toJsonValue(transform.getTranslation());
+        if (!json.isNull()) {
+            result[JSON_TRANSLATION] = json;
+        }
     }
-    json = toJsonValue(transform.getRotation());
-    if (!json.isNull()) {
-        result[JSON_ROTATION] = json;
+
+    if (transform.getRotation() != quat()) {
+        auto json = toJsonValue(transform.getRotation());
+        if (!json.isNull()) {
+            result[JSON_ROTATION] = json;
+        }
     }
-    json = toJsonValue(transform.getScale());
-    if (!json.isNull()) {
-        result[JSON_SCALE] = json;
+
+    if (transform.getScale() != vec3(1.0f)) {
+        auto json = toJsonValue(transform.getScale());
+        if (!json.isNull()) {
+            result[JSON_SCALE] = json;
+        }
     }
     return result;
 }

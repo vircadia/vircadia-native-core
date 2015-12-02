@@ -76,7 +76,7 @@ var playerSphere = Entities.addEntity({
         z: 0
     },
     collisionsWillMove: true,
-    linearDamping: 0.2
+    damping: 0.2
 });
 
 Script.setInterval(function(){

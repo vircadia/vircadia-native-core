@@ -47,6 +47,7 @@
 #include "WebSocketClass.h"
 
 #include "SceneScriptingInterface.h"
+#include "RecordingScriptingInterface.h"
 
 #include "MIDIEvent.h"
 
@@ -61,7 +62,7 @@ static QScriptValue debugPrint(QScriptContext* context, QScriptEngine* engine){
         }
         message += context->argument(i).toString();
     }
-    qCDebug(scriptengine) << "script:print()<<" << message;
+    qCDebug(scriptengine).noquote() << "script:print()<<" << message;  // noquote() so that \n is treated as newline
 
     message = message.replace("\\", "\\\\")
                      .replace("\n", "\\n")
@@ -80,6 +81,9 @@ void avatarDataFromScriptValue(const QScriptValue &object, AvatarData* &out) {
     out = qobject_cast<AvatarData*>(object.toQObject());
 }
 
+Q_DECLARE_METATYPE(controller::InputController*)
+static int inputControllerPointerId = qRegisterMetaType<controller::InputController*>();
+
 QScriptValue inputControllerToScriptValue(QScriptEngine *engine, controller::InputController* const &in) {
     return engine->newQObject(in);
 }
@@ -87,8 +91,6 @@ QScriptValue inputControllerToScriptValue(QScriptEngine *engine, controller::Inp
 void inputControllerFromScriptValue(const QScriptValue &object, controller::InputController* &out) {
     out = qobject_cast<controller::InputController*>(object.toQObject());
 }
-
-
 
 static bool hasCorrectSyntax(const QScriptProgram& program) {
     const auto syntaxCheck = QScriptEngine::checkSyntax(program.sourceCode());
@@ -123,14 +125,9 @@ static bool hadUncaughtExceptions(QScriptEngine& engine, const QString& fileName
 
 ScriptEngine::ScriptEngine(const QString& scriptContents, const QString& fileNameString, bool wantSignals) :
     _scriptContents(scriptContents),
-    _isFinished(false),
-    _isRunning(false),
-    _isInitialized(false),
     _timerFunctionMap(),
     _wantSignals(wantSignals),
     _fileNameString(fileNameString),
-    _isUserLoaded(false),
-    _isReloading(false),
     _arrayBufferClass(new ArrayBufferClass(this))
 {
     _allScriptsMutex.lock();
@@ -139,6 +136,8 @@ ScriptEngine::ScriptEngine(const QString& scriptContents, const QString& fileNam
 }
 
 ScriptEngine::~ScriptEngine() {
+    qCDebug(scriptengine) << "Script Engine shutting down (destructor) for script:" << getFilename();
+
     // If we're not already in the middle of stopping all scripts, then we should remove ourselves
     // from the list of running scripts. We don't do this if we're in the process of stopping all scripts
     // because that method removes scripts from its list as it iterates them
@@ -149,10 +148,20 @@ ScriptEngine::~ScriptEngine() {
     }
 }
 
+void ScriptEngine::disconnectNonEssentialSignals() {
+    disconnect();
+    connect(this, &ScriptEngine::doneRunning, thread(), &QThread::quit);
+}
+
 void ScriptEngine::runInThread() {
+    _isThreaded = true;
     QThread* workerThread = new QThread(); // thread is not owned, so we need to manage the delete
     QString scriptEngineName = QString("Script Thread:") + getFilename();
     workerThread->setObjectName(scriptEngineName);
+
+    // NOTE: If you connect any essential signals for proper shutdown or cleanup of
+    // the script engine, make sure to add code to "reconnect" them to the
+    // disconnectNonEssentialSignals() method
 
     // when the worker thread is started, call our engine's run..
     connect(workerThread, &QThread::started, this, &ScriptEngine::run);
@@ -175,11 +184,12 @@ void ScriptEngine::runInThread() {
 QSet<ScriptEngine*> ScriptEngine::_allKnownScriptEngines;
 QMutex ScriptEngine::_allScriptsMutex;
 bool ScriptEngine::_stoppingAllScripts = false;
-bool ScriptEngine::_doneRunningThisScript = false;
 
 void ScriptEngine::stopAllScripts(QObject* application) {
     _allScriptsMutex.lock();
     _stoppingAllScripts = true;
+
+    qCDebug(scriptengine) << "Stopping all scripts.... currently known scripts:" << _allKnownScriptEngines.size();
 
     QMutableSetIterator<ScriptEngine*> i(_allKnownScriptEngines);
     while (i.hasNext()) {
@@ -218,7 +228,9 @@ void ScriptEngine::stopAllScripts(QObject* application) {
             // We need to wait for the engine to be done running before we proceed, because we don't
             // want any of the scripts final "scriptEnding()" or pending "update()" methods from accessing
             // any application state after we leave this stopAllScripts() method
+            qCDebug(scriptengine) << "waiting on script:" << scriptName;
             scriptEngine->waitTillDoneRunning();
+            qCDebug(scriptengine) << "done waiting on script:" << scriptName;
 
             // If the script is stopped, we can remove it from our set
             i.remove();
@@ -226,21 +238,19 @@ void ScriptEngine::stopAllScripts(QObject* application) {
     }
     _stoppingAllScripts = false;
     _allScriptsMutex.unlock();
+    qCDebug(scriptengine) << "DONE Stopping all scripts....";
 }
 
 
 void ScriptEngine::waitTillDoneRunning() {
     // If the script never started running or finished running before we got here, we don't need to wait for it
-    if (_isRunning) {
-
-        _doneRunningThisScript = false; // NOTE: this is static, we serialize our waiting for scripts to finish
+    if (_isRunning && _isThreaded) {
 
         // NOTE: waitTillDoneRunning() will be called on the main Application thread, inside of stopAllScripts()
         // we want the application thread to continue to process events, because the scripts will likely need to
         // marshall messages across to the main thread. For example if they access Settings or Meny in any of their
         // shutdown code.
-        while (!_doneRunningThisScript) {
-
+        while (thread()->isRunning()) {
             // process events for the main application thread, allowing invokeMethod calls to pass between threads
             QCoreApplication::processEvents();
         }
@@ -377,6 +387,12 @@ void ScriptEngine::init() {
     auto scriptingInterface = DependencyManager::get<controller::ScriptingInterface>();
     registerGlobalObject("Controller", scriptingInterface.data());
     UserInputMapper::registerControllerTypes(this);
+
+    auto recordingInterface = DependencyManager::get<RecordingScriptingInterface>();
+    registerGlobalObject("Recording", recordingInterface.data());
+
+    registerGlobalObject("Assets", &_assetScriptingInterface);
+    
 }
 
 void ScriptEngine::registerValue(const QString& valueName, QScriptValue value) {
@@ -745,8 +761,6 @@ void ScriptEngine::run() {
         emit runningStateChanged();
         emit doneRunning();
     }
-
-    _doneRunningThisScript = true;
 }
 
 // NOTE: This is private because it must be called on the same thread that created the timers, which is why
@@ -1161,7 +1175,7 @@ void ScriptEngine::refreshFileScript(const EntityItemID& entityID) {
         QString filePath = QUrl(details.scriptText).toLocalFile();
         auto lastModified = QFileInfo(filePath).lastModified().toMSecsSinceEpoch();
         if (lastModified > details.lastModified) {
-            qDebug() << "Reloading modified script " << details.scriptText;
+            qCDebug(scriptengine) << "Reloading modified script " << details.scriptText;
 
             QFile file(filePath);
             file.open(QIODevice::ReadOnly);

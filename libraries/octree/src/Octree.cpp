@@ -1736,7 +1736,7 @@ int Octree::encodeTreeBitstreamRecursion(OctreeElementPointer element,
 
     // If our element is completed let the element know so it can do any cleanup it of extra  wants
     if (elementAppendState == OctreeElement::COMPLETED) {
-        element->elementEncodeComplete(params, &bag);
+        element->elementEncodeComplete(params);
     }
 
     return bytesAtThisLevel;
@@ -1841,6 +1841,7 @@ bool Octree::readFromStream(unsigned long streamLength, QDataStream& inputStream
 
 
 bool Octree::readSVOFromStream(unsigned long streamLength, QDataStream& inputStream) {
+    qWarning() << "SVO file format depricated. Support for reading SVO files is no longer support and will be removed soon.";
 
     bool fileOk = false;
 
@@ -2062,6 +2063,8 @@ void Octree::writeToJSONFile(const char* fileName, OctreeElementPointer element,
 }
 
 void Octree::writeToSVOFile(const char* fileName, OctreeElementPointer element) {
+    qWarning() << "SVO file format depricated. Support for reading SVO files is no longer support and will be removed soon.";
+
     std::ofstream file(fileName, std::ios::out|std::ios::binary);
 
     if(file.is_open()) {
@@ -2101,9 +2104,7 @@ void Octree::writeToSVOFile(const char* fileName, OctreeElementPointer element) 
         int bytesWritten = 0;
         bool lastPacketWritten = false;
 
-        while (!elementBag.isEmpty()) {
-            OctreeElementPointer subTree = elementBag.extract();
-
+        while (OctreeElementPointer subTree = elementBag.extract()) {
             EncodeBitstreamParams params(INT_MAX, IGNORE_VIEW_FRUSTUM, WANT_COLOR, NO_EXISTS_BITS);
             withReadLock([&] {
                 params.extraEncodeData = &extraEncodeData;

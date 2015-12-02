@@ -28,10 +28,10 @@ AudioEffectOptions::AudioEffectOptions(QScriptValue arguments) :
     _damping(0.5f),
     _spread(15.0f),
     _inputBandwidth(0.75f),
-    _earlyLevel(-22.0f),
-    _tailLevel(-28.0f),
+    _earlyLevel(-12.0f),
+    _tailLevel(-18.0f),
     _dryLevel(0.0f),
-    _wetLevel(6.0f) {
+    _wetLevel(0.0f) {
         if (arguments.property(MAX_ROOM_SIZE_HANDLE).isNumber()) {
             _maxRoomSize = arguments.property(MAX_ROOM_SIZE_HANDLE).toNumber();
         }

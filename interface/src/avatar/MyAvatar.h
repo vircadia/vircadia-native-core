@@ -114,27 +114,24 @@ public:
 
     float getRealWorldFieldOfView() { return _realWorldFieldOfView.get(); }
 
-    const QList<AnimationHandlePointer>& getAnimationHandles() const { return _rig->getAnimationHandles(); }
-    AnimationHandlePointer addAnimationHandle() { return _rig->createAnimationHandle(); }
-    void removeAnimationHandle(const AnimationHandlePointer& handle) { _rig->removeAnimationHandle(handle); }
-    /// Allows scripts to run animations.
-    Q_INVOKABLE void startAnimation(const QString& url, float fps = 30.0f, float priority = 1.0f, bool loop = false,
-                                    bool hold = false, float firstFrame = 0.0f,
-                                    float lastFrame = FLT_MAX, const QStringList& maskedJoints = QStringList());
+    // Interrupt the current animation with a custom animation.
+    Q_INVOKABLE void overrideAnimation(const QString& url, float fps, bool loop, float firstFrame, float lastFrame);
 
-    /// Stops an animation as identified by a URL.
-    Q_INVOKABLE void stopAnimation(const QString& url);
+    // Stop the animation that was started with overrideAnimation and go back to the standard animation.
+    Q_INVOKABLE void restoreAnimation();
 
-    /// Starts an animation by its role, using the provided URL and parameters if the avatar doesn't have a custom
-    /// animation for the role.
-    Q_INVOKABLE void startAnimationByRole(const QString& role, const QString& url = QString(), float fps = 30.0f,
-                                          float priority = 1.0f, bool loop = false, bool hold = false, float firstFrame = 0.0f,
-                                          float lastFrame = FLT_MAX, const QStringList& maskedJoints = QStringList());
-    /// Stops an animation identified by its role.
-    Q_INVOKABLE void stopAnimationByRole(const QString& role);
-    Q_INVOKABLE AnimationDetails getAnimationDetailsByRole(const QString& role);
-    Q_INVOKABLE AnimationDetails getAnimationDetails(const QString& url);
-    void clearJointAnimationPriorities();
+    // Returns a list of all clips that are available
+    Q_INVOKABLE QStringList getAnimationRoles();
+
+    // Replace an existing standard role animation with a custom one.
+    Q_INVOKABLE void overrideRoleAnimation(const QString& role, const QString& url, float fps, bool loop, float firstFrame, float lastFrame);
+
+    // remove an animation role override and return to the standard animation.
+    Q_INVOKABLE void restoreRoleAnimation(const QString& role);
+
+    // prefetch animation
+    Q_INVOKABLE void prefetchAnimation(const QString& url);
+
     // Adds handler(animStateDictionaryIn) => animStateDictionaryOut, which will be invoked just before each animGraph state update.
     // The handler will be called with an animStateDictionaryIn that has all those properties specified by the (possibly empty)
     // propertiesList argument. However for debugging, if the properties argument is null, all internal animGraph state is provided.
@@ -256,13 +253,11 @@ public slots:
 
     virtual void rebuildSkeletonBody() override;
 
-    bool getEnableRigAnimations() const { return _rig->getEnableRig(); }
-    void setEnableRigAnimations(bool isEnabled);
-    bool getEnableAnimGraph() const { return _rig->getEnableAnimGraph(); }
     const QString& getAnimGraphUrl() const { return _animGraphUrl; }
-    void setEnableAnimGraph(bool isEnabled);
-    void setEnableDebugDrawBindPose(bool isEnabled);
+
+    void setEnableDebugDrawDefaultPose(bool isEnabled);
     void setEnableDebugDrawAnimPose(bool isEnabled);
+    void setEnableDebugDrawPosition(bool isEnabled);
     void setEnableMeshVisible(bool isEnabled);
     void setAnimGraphUrl(const QString& url) { _animGraphUrl = url; }
 
@@ -361,7 +356,6 @@ private:
     void maybeUpdateBillboard();
     void initHeadBones();
     void initAnimGraph();
-    void safelyLoadAnimations();
 
     // Avatar Preferences
     QUrl _fullAvatarURLFromPreferences;
@@ -393,9 +387,8 @@ private:
     RigPointer _rig;
     bool _prevShouldDrawHead;
 
-    bool _enableDebugDrawBindPose { false };
+    bool _enableDebugDrawDefaultPose { false };
     bool _enableDebugDrawAnimPose { false };
-    AnimSkeleton::ConstPointer _debugDrawSkeleton { nullptr };
 
     AudioListenerMode _audioListenerMode;
     glm::vec3 _customListenPosition;

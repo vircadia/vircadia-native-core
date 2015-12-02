@@ -18,6 +18,8 @@
 
 #include <AvatarHashMap.h>
 #include <PhysicsEngine.h>
+#include <PIDController.h>
+#include <SimpleMovingAverage.h>
 
 #include "Avatar.h"
 #include "AvatarMotionState.h"
@@ -43,6 +45,7 @@ public:
     void clearOtherAvatars();
    
     bool shouldShowReceiveStats() const { return _shouldShowReceiveStats; }
+    PIDController& getRenderDistanceController()  { return _renderDistanceController; }
 
     class LocalLight {
     public:
@@ -63,7 +66,18 @@ public:
     void handleOutgoingChanges(const VectorOfMotionStates& motionStates);
     void handleCollisionEvents(const CollisionEvents& collisionEvents);
 
-    void updateAvatarPhysicsShape(const QUuid& id);
+    void updateAvatarPhysicsShape(Avatar* avatar);
+    
+    // Expose results and parameter-tuning operations to other systems, such as stats and javascript.
+    Q_INVOKABLE float getRenderDistance() { return _renderDistance; }
+    Q_INVOKABLE int getNumberInRenderRange() { return _renderedAvatarCount; }
+    Q_INVOKABLE bool getRenderDistanceControllerIsLogging() { return _renderDistanceController.getIsLogging(); }
+    Q_INVOKABLE void setRenderDistanceControllerHistory(QString label, int size) { return _renderDistanceController.setHistorySize(label, size); }
+    Q_INVOKABLE void setRenderDistanceKP(float newValue) { _renderDistanceController.setKP(newValue); }
+    Q_INVOKABLE void setRenderDistanceKI(float newValue) { _renderDistanceController.setKI(newValue); }
+    Q_INVOKABLE void setRenderDistanceKD(float newValue) { _renderDistanceController.setKD(newValue); }
+    Q_INVOKABLE void setRenderDistanceLowLimit(float newValue) { _renderDistanceController.setControlledValueLowLimit(newValue); }
+    Q_INVOKABLE void setRenderDistanceHighLimit(float newValue) { _renderDistanceController.setControlledValueHighLimit(newValue); }
    
 public slots:
     void setShouldShowReceiveStats(bool shouldShowReceiveStats) { _shouldShowReceiveStats = shouldShowReceiveStats; }
@@ -79,7 +93,9 @@ private:
     virtual AvatarSharedPointer newSharedAvatar();
     virtual AvatarSharedPointer addAvatar(const QUuid& sessionUUID, const QWeakPointer<Node>& mixerWeakPointer);
     void removeAvatarMotionState(AvatarSharedPointer avatar);
+    
     virtual void removeAvatar(const QUuid& sessionUUID);
+    virtual void handleRemovedAvatar(const AvatarSharedPointer& removedAvatar);
     
     QVector<AvatarSharedPointer> _avatarFades;
     std::shared_ptr<MyAvatar> _myAvatar;
@@ -88,6 +104,10 @@ private:
     QVector<AvatarManager::LocalLight> _localLights;
 
     bool _shouldShowReceiveStats = false;
+    float _renderDistance { (float) TREE_SCALE };
+    int _renderedAvatarCount { 0 };
+    PIDController _renderDistanceController { };
+    SimpleMovingAverage _renderDistanceAverage { 10 };
 
     SetOfAvatarMotionStates _avatarMotionStates;
     SetOfMotionStates _motionStatesToAdd;

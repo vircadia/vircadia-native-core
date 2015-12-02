@@ -14,6 +14,7 @@
 
     var _this;
 
+    var gunScriptURL = Script.resolvePath("../examples/toybox/pistol/pistol.js");
     var sprayPaintScriptURL = Script.resolvePath("../examples/toybox/spray_paint/sprayPaintCan.js");
     var catScriptURL = Script.resolvePath("../examples/toybox/cat/cat.js");
     var flashlightScriptURL = Script.resolvePath('../examples/toybox/flashlight/flashlight.js');
@@ -22,6 +23,7 @@
     var dollScriptURL = Script.resolvePath("../examples/toybox/doll/doll.js");
     var lightsScriptURL = Script.resolvePath("../examples/toybox/lights/lightSwitch.js");
     var targetsScriptURL = Script.resolvePath('../examples/toybox/ping_pong_gun/wallTarget.js');
+    var bowScriptURL = Script.resolvePath('../examples/toybox/bow/bow.js');
     var basketballResetterScriptURL = Script.resolvePath('basketballsResetter.js');
     var targetsResetterScriptURL = Script.resolvePath('targetsResetter.js');
 
@@ -84,6 +86,12 @@
                 z: 505.09
             });
 
+            createGun({
+                x: 546.2,
+                y: 495.5,
+                z: 505.2
+            });
+
             createWand({
                 x: 546.71,
                 y: 495.55,
@@ -124,16 +132,20 @@
             createLights();
 
             createCat({
-                x: 551.09,
-                y: 494.98,
-                z: 503.49
+                x: 551.0,
+                y: 495.3,
+                z: 503.3
             });
+
 
             createSprayCan({
                 x: 549.7,
                 y: 495.6,
                 z: 503.91
             });
+
+            createBow();
+
         }
 
         function deleteAllToys() {
@@ -147,6 +159,110 @@
                 }
             });
         }
+
+        function createGun(position) {
+            var modelURL = "https://s3.amazonaws.com/hifi-public/eric/models/gun.fbx";
+
+            var pistol = Entities.addEntity({
+                type: 'Model',
+                name: "pistol",
+                modelURL: modelURL,
+                position: position,
+                collisionSoundURL: "https://s3.amazonaws.com/hifi-public/sounds/Guns/Gun_Drop_and_Metalli_1.wav",
+                dimensions: {
+                    x: 0.05,
+                    y: 0.23,
+                    z: 0.36
+                },
+                script: gunScriptURL,
+                color: {
+                    red: 200,
+                    green: 0,
+                    blue: 20
+                },
+                shapeType: 'box',
+                gravity: {
+                    x: 0,
+                    y: -3.0,
+                    z: 0
+                },
+                collisionsWillMove: true,
+                userData: JSON.stringify({
+                    grabbableKey: {
+                        spatialKey: {
+                            relativePosition: {
+                                x: 0,
+                                y: 0,
+                                z: 0
+                            },
+                            relativeRotation: Quat.fromPitchYawRollDegrees(45, 90, 0)
+                        },
+                        invertSolidWhileHeld: true
+                    },
+                    resetMe: {
+                        resetMe: true
+                    }
+                })
+            });
+        }
+
+        function createBow() {
+
+            var startPosition = {
+                x: 546.41,
+                y: 495.33,
+                z: 506.46
+            };
+
+            var BOW_ROTATION = Quat.fromPitchYawRollDegrees(-103.05, -178.60, -87.27);
+
+            var MODEL_URL = "https://hifi-public.s3.amazonaws.com/models/bow/new/bow-deadly.fbx";
+            var COLLISION_HULL_URL = "https://hifi-public.s3.amazonaws.com/models/bow/new/bow_collision_hull.obj";
+            var BOW_DIMENSIONS = {
+                x: 0.04,
+                y: 1.3,
+                z: 0.21
+            };
+
+            var BOW_GRAVITY = {
+                x: 0,
+                y: -9.8,
+                z: 0
+            };
+
+            var bow = Entities.addEntity({
+                name: 'Hifi-Bow',
+                type: "Model",
+                modelURL: MODEL_URL,
+                position: startPosition,
+                rotation: BOW_ROTATION,
+                dimensions: BOW_DIMENSIONS,
+                collisionsWillMove: true,
+                gravity: BOW_GRAVITY,
+                shapeType: 'compound',
+                compoundShapeURL: COLLISION_HULL_URL,
+                collisionSoundURL: "http://hifi-public.s3.amazonaws.com/sounds/bow_fall.L.wav",
+                script: bowScriptURL,
+                userData: JSON.stringify({
+                    resetMe: {
+                        resetMe: true
+                    },
+                    grabbableKey: {
+                        invertSolidWhileHeld: true,
+                        spatialKey: {
+                            relativePosition: {
+                                x: 0,
+                                y: 0.06,
+                                z: 0.11
+                            },
+                            relativeRotation: Quat.fromPitchYawRollDegrees(0, -90, 90)
+                        }
+                    }
+                })
+            });
+
+        }
+
 
         function createFire() {
 
@@ -253,7 +369,7 @@
                     y: -9.8,
                     z: 0
                 },
-                linearDamping: 1,
+                damping: 1,
                 dimensions: {
                     x: 0.4,
                     y: 1.37,
@@ -301,7 +417,7 @@
                             z: DIAMETER
                         },
                         restitution: 1.0,
-                        linearDamping: 0.00001,
+                        damping: 0.00001,
                         gravity: {
                             x: 0,
                             y: -9.8,
@@ -534,6 +650,7 @@
                     z: 0.08
                 },
                 collisionsWillMove: true,
+                collisionSoundURL: "http://hifi-public.s3.amazonaws.com/sounds/flashlight_drop.L.wav",
                 gravity: {
                     x: 0,
                     y: -3.5,
@@ -871,7 +988,7 @@
                     y: -100,
                     z: 0
                 },
-                linearDamping: 1,
+                damping: 1,
                 angularDamping: 10,
                 mass: 10,
                 userData: JSON.stringify({
@@ -930,17 +1047,19 @@
         }
 
         function createWand(position) {
-            var WAND_MODEL = 'http://hifi-public.s3.amazonaws.com/models/bubblewand/wand.fbx';
-            var WAND_COLLISION_SHAPE = 'http://hifi-public.s3.amazonaws.com/models/bubblewand/actual_no_top_collision_hull.obj';
-            var entity = Entities.addEntity({
+            var WAND_MODEL = 'http://hifi-content.s3.amazonaws.com/james/bubblewand/wand.fbx';
+            var WAND_COLLISION_SHAPE = 'http://hifi-content.s3.amazonaws.com/james/bubblewand/wand_collision_hull.obj';
+
+            var wand = Entities.addEntity({
                 name: 'Bubble Wand',
                 type: "Model",
                 modelURL: WAND_MODEL,
+                shapeType: 'compound',
                 position: position,
                 gravity: {
                     x: 0,
                     y: -9.8,
-                    z: 0
+                    z: 0,
                 },
                 dimensions: {
                     x: 0.05,
@@ -948,23 +1067,26 @@
                     z: 0.05
                 },
                 //must be enabled to be grabbable in the physics engine
-                shapeType: 'compound',
                 collisionsWillMove: true,
                 compoundShapeURL: WAND_COLLISION_SHAPE,
-                //Look into why bubble wand is going through table when gravity is enabled
-                // gravity: {x: 0, y: -3.5, z: 0},
-                // velocity: {x: 0, y: -0.01, z:0},
                 script: wandScriptURL,
                 userData: JSON.stringify({
                     resetMe: {
                         resetMe: true
                     },
                     grabbableKey: {
-                        invertSolidWhileHeld: true
+                        invertSolidWhileHeld: true,
+                        spatialKey: {
+                            relativePosition: {
+                                x: 0,
+                                y: 0.1,
+                                z: 0
+                            },
+                            relativeRotation: Quat.fromPitchYawRollDegrees(0, 0, 90)
+                        }
                     }
                 })
             });
-
 
         }
 
@@ -990,7 +1112,7 @@
                     z: 0
                 },
                 restitution: 10,
-                linearDamping: 0.0,
+                damping: 0.0,
                 velocity: {
                     x: 0,
                     y: -0.01,
@@ -1065,10 +1187,11 @@
                     z: 0.07
                 },
                 collisionsWillMove: true,
+                collisionSoundURL: "http://hifi-public.s3.amazonaws.com/sounds/SpryPntCnDrp1.L.wav",
                 shapeType: 'box',
                 gravity: {
                     x: 0,
-                    y: -0.5,
+                    y: -3.0,
                     z: 0
                 },
                 velocity: {
@@ -1113,7 +1236,7 @@
                     y: 0,
                     z: 0
                 },
-                linearDamping: 0.4,
+                damping: 0.4,
                 userData: JSON.stringify({
                     resetMe: {
                         resetMe: true
@@ -1156,7 +1279,7 @@
                     y: 0,
                     z: 0
                 },
-                linearDamping: 0.2,
+                damping: 0.2,
                 userData: JSON.stringify({
                     resetMe: {
                         resetMe: true
@@ -1249,6 +1372,7 @@
                 }
             }
         }
+
 
         function cleanup() {
             deleteAllToys();

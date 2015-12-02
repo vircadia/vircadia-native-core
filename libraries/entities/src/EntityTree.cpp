@@ -44,12 +44,7 @@ void EntityTree::createRootElement() {
 }
 
 OctreeElementPointer EntityTree::createNewElement(unsigned char* octalCode) {
-    EntityTreeElementPointer newElement = EntityTreeElementPointer(new EntityTreeElement(octalCode),
-                                                                   // see comment int EntityTreeElement::createNewElement
-                                                                   [=](EntityTreeElement* dyingElement) {
-                                                                       EntityTreeElementPointer tmpSharedPointer(dyingElement);
-                                                                       dyingElement->notifyDeleteHooks();
-                                                                   });
+    auto newElement = EntityTreeElementPointer(new EntityTreeElement(octalCode));
     newElement->setTree(std::static_pointer_cast<EntityTree>(shared_from_this()));
     return std::static_pointer_cast<OctreeElement>(newElement);
 }
@@ -68,6 +63,7 @@ void EntityTree::eraseAllOctreeElements(bool createNewRoot) {
     Octree::eraseAllOctreeElements(createNewRoot);
 
     resetClientEditStats();
+    clearDeletedEntities();
 }
 
 bool EntityTree::handlesEditPacketType(PacketType packetType) const {
@@ -398,6 +394,9 @@ void EntityTree::processRemovedEntities(const DeleteEntityOperator& theOperator)
             // set up the deleted entities ID
             QWriteLocker locker(&_recentlyDeletedEntitiesLock);
             _recentlyDeletedEntityItemIDs.insert(deletedAt, theEntity->getEntityItemID());
+        } else {
+            // on the client side, we also remember that we deleted this entity, we don't care about the time
+            trackDeletedEntity(theEntity->getEntityItemID());
         }
 
         if (_simulation) {
