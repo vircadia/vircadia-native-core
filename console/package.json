@@ -8,11 +8,15 @@
     ""
   ],
   "devDependencies": {
+    "electron-packager": "^5.1.1",
     "electron-prebuilt": "^0.35.0"
   },
   "repository": {
-      "type": "git",
-      "url": "https://github.com/highfidelity/hifi.git"
+    "type": "git",
+    "url": "https://github.com/highfidelity/hifi.git"
   },
-  "main": "main.js"
+  "main": "main.js",
+  "scripts": {
+    "start": "electron ."
+  }
 }
