@@ -85,6 +85,8 @@ public:
     bool isKeyCaptured(const KeyEvent& event) const;
     bool isJoystickCaptured(int joystickIndex) const;
 
+    void updateInputControllers();
+
 public slots:
 
     virtual void captureKeyEvents(const KeyEvent& event);
@@ -96,8 +98,8 @@ public slots:
     virtual glm::vec2 getViewportDimensions() const;
 
     /// Factory to create an InputController
-    virtual controller::InputController::Pointer createInputController(const QString& deviceName, const QString& tracker);
-    virtual void releaseInputController(controller::InputController::Pointer input);
+    virtual controller::InputController* createInputController(const QString& deviceName, const QString& tracker);
+    virtual void releaseInputController(controller::InputController* input);
 
 signals:
     void keyPressEvent(const KeyEvent& event);

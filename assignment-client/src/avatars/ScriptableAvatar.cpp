@@ -12,7 +12,6 @@
 #include <QThread>
 
 #include <GLMHelpers.h>
-
 #include "ScriptableAvatar.h"
 
 // hold and priority unused but kept so that client side JS can run.
@@ -48,14 +47,12 @@ AnimationDetails ScriptableAvatar::getAnimationDetails() {
 }
 
 void ScriptableAvatar::update(float deltatime) {
+    if (_bind.isNull() && !_skeletonFBXURL.isEmpty()) { // AvatarData will parse the .fst, but not get the .fbx skeleton.
+        _bind = DependencyManager::get<AnimationCache>()->getAnimation(_skeletonFBXURL);
+    }
+
     // Run animation
-    if (_animation && _animation->isLoaded() && _animation->getFrames().size() > 0) {
-        QStringList modelJoints = getJointNames();
-        QStringList animationJoints = _animation->getJointNames();
-        
-        if (_jointData.size() != modelJoints.size()) {
-            _jointData.resize(modelJoints.size());
-        }
+    if (_animation && _animation->isLoaded() && _animation->getFrames().size() > 0 && _bind->isLoaded()) {
         
         float currentFrame = _animationDetails.currentFrame + deltatime * _animationDetails.fps;
         if (_animationDetails.loop || currentFrame < _animationDetails.lastFrame) {
@@ -63,19 +60,29 @@ void ScriptableAvatar::update(float deltatime) {
                 currentFrame -= (_animationDetails.lastFrame - _animationDetails.firstFrame);
             }
             _animationDetails.currentFrame = currentFrame;
+
+            const QVector<FBXJoint>& modelJoints = _bind->getGeometry().joints;
+            QStringList animationJointNames = _animation->getJointNames();
+
+            if (_jointData.size() != modelJoints.size()) {
+                _jointData.resize(modelJoints.size());
+            }
             
             const int frameCount = _animation->getFrames().size();
             const FBXAnimationFrame& floorFrame = _animation->getFrames().at((int)glm::floor(currentFrame) % frameCount);
             const FBXAnimationFrame& ceilFrame = _animation->getFrames().at((int)glm::ceil(currentFrame) % frameCount);
             const float frameFraction = glm::fract(currentFrame);
             
-            for (int i = 0; i < animationJoints.size(); i++) {
-                const QString& name = animationJoints[i];
-                int mapping = getJointIndex(name);
+            for (int i = 0; i < animationJointNames.size(); i++) {
+                const QString& name = animationJointNames[i];
+                // As long as we need the model preRotations anyway, let's get the jointIndex from the bind skeleton rather than
+                // trusting the .fst (which is sometimes not updated to match changes to .fbx).
+                int mapping = _bind->getGeometry().getJointIndex(name);
                 if (mapping != -1 && !_maskedJoints.contains(name)) {
                     JointData& data = _jointData[mapping];
 
-                    auto newRotation = safeMix(floorFrame.rotations.at(i), ceilFrame.rotations.at(i), frameFraction);
+                    auto newRotation = modelJoints[mapping].preRotation *
+                        safeMix(floorFrame.rotations.at(i), ceilFrame.rotations.at(i), frameFraction);
                     // We could probably do translations as in interpolation in model space (rather than the parent space that each frame is in),
                     // but we don't do so for MyAvatar yet, so let's not be different here.
                     if (data.rotation != newRotation) {
