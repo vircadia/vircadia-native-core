@@ -279,14 +279,9 @@ glm::quat extractRotation(const glm::mat4& matrix, bool assumeOrthogonal) {
 
 glm::quat glmExtractRotation(const glm::mat4& matrix) {
     glm::vec3 scale = extractScale(matrix);
-    float maxScale = std::max(std::max(scale.x, scale.y), scale.z);
-    if (maxScale > 1.01f || maxScale <= 0.99f) {
-        // quat_cast doesn't work so well with scaled matrices, so cancel it out.
-        glm::mat4 tmp = glm::scale(matrix, 1.0f / scale);
-        return glm::normalize(glm::quat_cast(tmp));
-    } else {
-        return glm::normalize(glm::quat_cast(matrix));
-    }
+    // quat_cast doesn't work so well with scaled matrices, so cancel it out.
+    glm::mat4 tmp = glm::scale(matrix, 1.0f / scale);
+    return glm::normalize(glm::quat_cast(tmp));
 }
 
 glm::vec3 extractScale(const glm::mat4& matrix) {
