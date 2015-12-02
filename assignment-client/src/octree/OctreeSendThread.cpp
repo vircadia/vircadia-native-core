@@ -417,10 +417,15 @@ int OctreeSendThread::packetDistributor(OctreeQueryNode* nodeData, bool viewFrus
             quint64 startInside = usecTimestampNow();
 
             bool lastNodeDidntFit = false; // assume each node fits
-            if (OctreeElementPointer subTree = nodeData->elementBag.extract()) {
+            if (!nodeData->elementBag.isEmpty()) {
 
                 quint64 lockWaitStart = usecTimestampNow();
                 _myServer->getOctree()->withReadLock([&]{
+                    OctreeElementPointer subTree = nodeData->elementBag.extract();
+                    if (!subTree) {
+                        return;
+                    }
+                    
                     quint64 lockWaitEnd = usecTimestampNow();
                     lockWaitElapsedUsec = (float)(lockWaitEnd - lockWaitStart);
                     quint64 encodeStart = usecTimestampNow();
