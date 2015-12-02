@@ -232,30 +232,27 @@ void MyAvatar::reset(bool andReload) {
     setThrust(glm::vec3(0.0f));
 
     if (andReload) {
-        // Get fresh data, in case we're really slow and out of wack.
-        _hmdSensorMatrix = qApp->getHMDSensorPose();
-        _hmdSensorPosition = extractTranslation(_hmdSensorMatrix);
-        _hmdSensorOrientation = glm::quat_cast(_hmdSensorMatrix);
-
-        // Reset body position/orientation under the head.
+        // derive the desired body orientation from the *old* hmd orientation, before the sensor reset.
         auto newBodySensorMatrix = deriveBodyFromHMDSensor(); // Based on current cached HMD position/rotation..
+
+        // transform this body into world space
         auto worldBodyMatrix = _sensorToWorldMatrix * newBodySensorMatrix;
-        glm::vec3 worldBodyPos = extractTranslation(worldBodyMatrix);
-        glm::quat worldBodyRot = glm::normalize(glm::quat_cast(worldBodyMatrix));
+        auto worldBodyPos = extractTranslation(worldBodyMatrix);
+        auto worldBodyRot = glm::normalize(glm::quat_cast(worldBodyMatrix));
 
-        // FIXME: Hack to retain the previous behavior wrt height.
-        // I'd like to make the body match head height, but that will have to wait for separate PR.
-        worldBodyPos.y = getPosition().y;
-
+        // this will become our new position.
         setPosition(worldBodyPos);
         setOrientation(worldBodyRot);
-        // If there is any discrepency between positioning and the head (as there is in initial deriveBodyFromHMDSensor),
-        // we can make that right by setting _bodySensorMatrix = newBodySensorMatrix.
-        // However, doing so will make the head want to point to the previous body orientation, as cached above.
-        //_bodySensorMatrix = newBodySensorMatrix;
-        //updateSensorToWorldMatrix(); // Uses updated position/orientation and _bodySensorMatrix changes
 
-        qApp->setRawAvatarUpdateThreading();
+        // now sample the new hmd orientation AFTER sensor reset.
+        updateFromHMDSensorMatrix(qApp->getHMDSensorPose());
+
+        // update the body in sensor space using the new hmd sensor sample
+        _bodySensorMatrix = deriveBodyFromHMDSensor();
+
+        // rebuild the sensor to world matrix such that, the HMD will point in the desired orientation.
+        // i.e. the along avatar's current position and orientation.
+        updateSensorToWorldMatrix();
     }
 }
 
@@ -1779,7 +1776,10 @@ glm::mat4 MyAvatar::deriveBodyFromHMDSensor() const {
     int neckIndex = _rig->indexOfJoint("Neck");
     int hipsIndex = _rig->indexOfJoint("Hips");
 
-    glm::vec3 rigMiddleEyePos = leftEyeIndex != -1 ? _rig->getAbsoluteDefaultPose(leftEyeIndex).trans : DEFAULT_RIG_MIDDLE_EYE_POS;
+    glm::vec3 rigMiddleEyePos = DEFAULT_RIG_MIDDLE_EYE_POS;
+    if (leftEyeIndex >= 0 && rightEyeIndex >= 0) {
+        rigMiddleEyePos = (_rig->getAbsoluteDefaultPose(leftEyeIndex).trans + _rig->getAbsoluteDefaultPose(rightEyeIndex).trans) / 2.0f;
+    }
     glm::vec3 rigNeckPos = neckIndex != -1 ? _rig->getAbsoluteDefaultPose(neckIndex).trans : DEFAULT_RIG_NECK_POS;
     glm::vec3 rigHipsPos = hipsIndex != -1 ? _rig->getAbsoluteDefaultPose(hipsIndex).trans : DEFAULT_RIG_HIPS_POS;
 

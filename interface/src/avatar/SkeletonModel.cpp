@@ -42,7 +42,6 @@ SkeletonModel::~SkeletonModel() {
 
 void SkeletonModel::initJointStates() {
     const FBXGeometry& geometry = _geometry->getFBXGeometry();
-    glm::mat4 geometryOffset = geometry.offset;
     glm::mat4 modelOffset = glm::scale(_scale) * glm::translate(_offset);
     _rig->initJointStates(geometry, modelOffset);
 
@@ -237,11 +236,6 @@ void SkeletonModel::applyPalmData(int jointIndex, const PalmData& palm) {
     if (parentJointIndex == -1) {
         return;
     }
-
-    // the palm's position must be transformed into the model-frame
-    glm::quat inverseRotation = glm::inverse(_rotation);
-    glm::vec3 palmPosition = inverseRotation * (palm.getPosition() - _translation);
-    glm::quat palmRotation = inverseRotation * palm.getRotation();
 }
 
 bool SkeletonModel::getLeftHandPosition(glm::vec3& position) const {

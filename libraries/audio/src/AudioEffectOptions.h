@@ -15,6 +15,8 @@
 #include <QtScript/QScriptContext>
 #include <QtScript/QScriptEngine>
 
+#include "AudioReverb.h"
+
 class AudioEffectOptions : public QObject {
     Q_OBJECT
 

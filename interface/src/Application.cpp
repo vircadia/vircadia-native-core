@@ -2581,7 +2581,6 @@ void Application::setAvatarUpdateThreading(bool isThreaded) {
         return;
     }
 
-    auto myAvatar = getMyAvatar();
     if (_avatarUpdate) {
         _avatarUpdate->terminate(); // Must be before we shutdown anim graph.
     }

@@ -127,9 +127,6 @@ public slots:
     Q_INVOKABLE void setDrawZoneBoundaries(bool value);
     Q_INVOKABLE bool getDrawZoneBoundaries() const;
 
-    Q_INVOKABLE void setSendPhysicsUpdates(bool value);
-    Q_INVOKABLE bool getSendPhysicsUpdates() const;
-
     Q_INVOKABLE bool setVoxelSphere(QUuid entityID, const glm::vec3& center, float radius, int value);
     Q_INVOKABLE bool setVoxel(QUuid entityID, const glm::vec3& position, int value);
     Q_INVOKABLE bool setAllVoxels(QUuid entityID, int value);
