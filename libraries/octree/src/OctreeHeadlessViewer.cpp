@@ -53,7 +53,6 @@ void OctreeHeadlessViewer::queryOctree() {
     _octreeQuery.setWantLowResMoving(true);
     _octreeQuery.setWantColor(true);
     _octreeQuery.setWantDelta(true);
-    _octreeQuery.setWantOcclusionCulling(false);
     _octreeQuery.setWantCompression(true); // TODO: should be on by default
 
     _octreeQuery.setCameraPosition(_viewFrustum.getPosition());

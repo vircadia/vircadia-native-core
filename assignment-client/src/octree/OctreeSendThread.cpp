@@ -350,7 +350,6 @@ int OctreeSendThread::packetDistributor(OctreeQueryNode* nodeData, bool viewFrus
             if (nodeData->moveShouldDump() || nodeData->hasLodChanged()) {
                 nodeData->dumpOutOfView();
             }
-            nodeData->map.erase();
         }
 
         if (!viewFrustumChanged && !nodeData->getWantDelta()) {
@@ -451,9 +450,6 @@ int OctreeSendThread::packetDistributor(OctreeQueryNode* nodeData, bool viewFrus
                     }
                     */
 
-                    bool wantOcclusionCulling = nodeData->getWantOcclusionCulling();
-                    CoverageMap* coverageMap = wantOcclusionCulling ? &nodeData->map : IGNORE_COVERAGE_MAP;
-
                     float octreeSizeScale = nodeData->getOctreeSizeScale();
                     int boundaryLevelAdjustClient = nodeData->getBoundaryLevelAdjust();
 
@@ -462,7 +458,7 @@ int OctreeSendThread::packetDistributor(OctreeQueryNode* nodeData, bool viewFrus
 
                     EncodeBitstreamParams params(INT_MAX, &nodeData->getCurrentViewFrustum(), wantColor,
                                                  WANT_EXISTS_BITS, DONT_CHOP, wantDelta, lastViewFrustum,
-                                                 wantOcclusionCulling, coverageMap, boundaryLevelAdjust, octreeSizeScale,
+                                                 boundaryLevelAdjust, octreeSizeScale,
                                                  nodeData->getLastTimeBagEmpty(),
                                                  isFullScene, &nodeData->stats, _myServer->getJurisdiction(),
                                                  &nodeData->extraEncodeData);
@@ -634,7 +630,6 @@ int OctreeSendThread::packetDistributor(OctreeQueryNode* nodeData, bool viewFrus
         if (nodeData->elementBag.isEmpty()) {
             nodeData->updateLastKnownViewFrustum();
             nodeData->setViewSent(true);
-            nodeData->map.erase(); // It would be nice if we could save this, and only reset it when the view frustum changes
         }
 
     } // end if bag wasn't empty, and so we sent stuff...

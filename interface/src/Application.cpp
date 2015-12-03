@@ -3076,7 +3076,6 @@ void Application::queryOctree(NodeType_t serverType, PacketType packetType, Node
     _octreeQuery.setWantLowResMoving(true);
     _octreeQuery.setWantColor(true);
     _octreeQuery.setWantDelta(true);
-    _octreeQuery.setWantOcclusionCulling(false);
     _octreeQuery.setWantCompression(true);
 
     _octreeQuery.setCameraPosition(_viewFrustum.getPosition());
