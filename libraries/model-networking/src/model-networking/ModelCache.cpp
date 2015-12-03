@@ -308,10 +308,9 @@ static NetworkMaterial* buildNetworkMaterial(const FBXMaterial& material, const 
         material._material->setTextureMap(model::MaterialKey::GLOSS_MAP, glossMap);
     }
     if (!material.emissiveTexture.filename.isEmpty()) {
-        networkMaterial->emissiveTexture = textureCache->getTexture(textureBaseUrl.resolved(QUrl(material.emissiveTexture.filename)), EMISSIVE_TEXTURE, material.emissiveTexture.content);
+        networkMaterial->emissiveTexture = textureCache->getTexture(textureBaseUrl.resolved(QUrl(material.emissiveTexture.filename)), LIGHTMAP_TEXTURE, material.emissiveTexture.content);
         networkMaterial->emissiveTextureName = material.emissiveTexture.name;
 
-        //checkForTexcoordLightmap = true;
 
         auto lightmapMap = model::TextureMapPointer(new model::TextureMap());
         lightmapMap->setTextureSource(networkMaterial->emissiveTexture->_textureSource);

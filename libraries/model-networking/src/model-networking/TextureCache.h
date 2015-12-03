@@ -29,7 +29,7 @@ class NetworkTexture;
 
 typedef QSharedPointer<NetworkTexture> NetworkTexturePointer;
 
-enum TextureType { DEFAULT_TEXTURE, NORMAL_TEXTURE, BUMP_TEXTURE, SPECULAR_TEXTURE, EMISSIVE_TEXTURE, CUBE_TEXTURE, CUSTOM_TEXTURE };
+enum TextureType { DEFAULT_TEXTURE, NORMAL_TEXTURE, BUMP_TEXTURE, SPECULAR_TEXTURE, EMISSIVE_TEXTURE, CUBE_TEXTURE, LIGHTMAP_TEXTURE, CUSTOM_TEXTURE };
 
 /// Stores cached textures, including render-to-texture targets.
 class TextureCache : public ResourceCache, public Dependency {
