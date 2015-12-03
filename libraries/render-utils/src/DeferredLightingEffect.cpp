@@ -713,7 +713,7 @@ void DeferredLightingEffect::render(RenderArgs* args) {
 
 void DeferredLightingEffect::copyBack(RenderArgs* args) {
     auto framebufferCache = DependencyManager::get<FramebufferCache>();
-    gpu::doInBatch(args->_context, [&](gpu::Batch& batch) {
+    gpu::doInBatch(args->_context, [=](gpu::Batch& batch) {
         batch.enableStereo(false);
         QSize framebufferSize = framebufferCache->getFrameBufferSize();
 
