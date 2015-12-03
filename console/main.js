@@ -1,5 +1,6 @@
 'use strict'
 
+var extend = require('extend');
 var util = require('util');
 var events = require('events');
 var electron = require('electron');
@@ -13,13 +14,35 @@ const ipcMain = electron.ipcMain;
 require('crash-reporter').start();
 
 // Keep a global reference of the window object, if you don't, the window will
-// be closed automatically when the JavaScript object is garbage collected.
+// be closed automatically when the JavaScript object is garggbage collected.
 var mainWindow = null;
 
 const ProcessStates = {
     STOPPED: 'stopped',
-    STARTED: 'started'
+    STARTED: 'started',
+    STOPPING: 'stopping'
 };
+
+function ProcessGroup(name, processes) {
+    this.name = name;
+    this.processes = processes;
+};
+util.inherits(ProcessGroup, events.EventEmitter);
+ProcessGroup.prototype = extend(ProcessGroup.prototype, {
+    addProcess: function(process) {
+        this.processes.push(process);
+    },
+    start: function() {
+        for (let process of this.processes) {
+            process.start();
+        }
+    },
+    stop: function() {
+        for (let process of this.processes) {
+            process.stop();
+        }
+    }
+});
 
 var ID = 0;
 function Process(name, command, commandArgs) {
@@ -109,13 +132,28 @@ app.on('ready', function() {
         mainWindow = null;
     });
 
-    var processes = {};
-
     var pInterface = new Process('interface', 'C:\\Interface\\interface.exe');
-    processes[pInterface.name] = pInterface;
+
+    var domainServerPath = 'C:\\Users\\Ryan\\AppData\\Local\\High Fidelity\\Stack Manager\\domain-server.exe';
+    var acPath = 'C:\\Users\\Ryan\\AppData\\Local\\High Fidelity\\Stack Manager\\assignment-client.exe';
+
+    var homeServer = new ProcessGroup('home', [
+        new Process('Domain Server', domainServerPath),
+        new Process('AC - Audio', acPath, ['-t0']),
+        new Process('AC - Avatar', acPath, ['-t1']),
+        new Process('AC - Asset', acPath, ['-t3']),
+        new Process('AC - Messages', acPath, ['-t4']),
+        new Process('AC - Entity', acPath, ['-t6'])
+    ]);
+    homeServer.start();
+
+    var processes = {
+        interface: pInterface,
+        home: homeServer
+    };
 
     function sendProcessUpdate() {
-        console.log("sending update");
+        console.log("Sending process update to web view");
         mainWindow.webContents.send('process-update', processes);
     };
 
