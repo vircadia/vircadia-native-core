@@ -41,61 +41,19 @@ app.on('window-all-closed', function() {
 
 // Check command line arguments to see how to find binaries
 var argv = require('yargs').argv;
-var fs = require('fs');
+var pathFinder = require('./path-finder.js');
 
-function localProcessForBinary(name, preferRelease) {
-    var path = "../build/" + name + "/";
+var interfacePath = null;
+var dsPath = null;
+var acPath = null;
 
-    function processFromPath(name, path) {
-        function platformExtension() {
-            return process.platform == 'win32' ? ".exe" : ""
-        }
-
-        try {
-            var fullPath = path + name + platformExtension();
-
-            var stats = fs.lstatSync(path + name + platformExtension())
-
-            if (stats.isFile()) {
-                console.log("Found " + name + " at " + fullPath);
-                return fullPath;
-            }
-        } catch (e) {
-            console.log("Executable with name " + name + " not found at path " + path);
-        }
-
-        return null;
-    }
-
-    // does the executable exist at this path already?
-    // if so assume we're on a platform that doesn't have Debug/Release
-    // folders and just use the discovered executable
-    var matchingProcess = processFromPath(name, path);
-
-    if (matchingProcess == null) {
-        if (preferRelease) {
-            // check if we can find the executable in a Release folder below this path
-            matchingProcess = processFromPath(name, path + "Release/");
-        } else {
-            // check if we can find the executable in a Debug folder below this path
-            matchingProcess = processFromPath(name, path + "Debug/");
-        }
-    }
-
-    return matchingProcess;
+if (argv.localDebugBuilds || argv.localReleaseBuilds) {
+    interfacePath = pathFinder.discoveredPath("Interface", argv.localReleaseBuilds);
+    dsPath = pathFinder.discoveredPath("domain-server", argv.localReleaseBuilds);
+    acPath = pathFinder.discoveredPath("assignment-client", argv.localReleaseBuilds);
 }
 
-
-if (argv.localDebugBuilds) {
-    // check in a dev folder structure for debug binaries
-    var interfaceProcess = localProcessForBinary("Interface");
-    var dsProcess = localProcessForBinary("domain-server");
-    var acProcess = localProcessForBinary("assignment-client");
-} else if (argv.localReleaseBuilds) {
-    // check in a dev folder structure for release binaries
-} else {
-    // check beside the console application for the binaries
-}
+// if at this point any of the paths are null, we're missing something we wanted to find
 
 // This method will be called when Electron has finished
 // initialization and is ready to create browser windows.
