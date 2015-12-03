@@ -88,10 +88,15 @@ void Basic2DWindowOpenGLDisplayPlugin::display(GLuint sceneTexture, const glm::u
     WindowOpenGLDisplayPlugin::display(sceneTexture, sceneSize);
 }
 
-
+#define THROTTLED_FRAMERATE 15
 int Basic2DWindowOpenGLDisplayPlugin::getDesiredInterval() const {
     static const int ULIMIITED_PAINT_TIMER_DELAY_MS = 1;
     int result = ULIMIITED_PAINT_TIMER_DELAY_MS;
+    // This test wouldn't be necessary if we could depend on updateFramerate setting _framerateTarget.
+    // Alas, that gets complicated: isThrottled() is const and other stuff depends on it.
+    if (_isThrottled) {
+        result = MSECS_PER_SECOND / THROTTLED_FRAMERATE;
+    }
     if (0 != _framerateTarget) {
         result = MSECS_PER_SECOND / _framerateTarget;
     }
@@ -139,7 +144,7 @@ void Basic2DWindowOpenGLDisplayPlugin::updateFramerate() {
             _framerateTarget = 30;
         }
     } else if (_isThrottled) {
-        _framerateTarget = 15;
+        _framerateTarget = (float) THROTTLED_FRAMERATE;
     }
     _inverseFrameRate = _framerateTarget ? 1.0f / (float) _framerateTarget : 1.0f / TARGET_FRAMERATE_Basic2DWindowOpenGL; // not truncated
 
