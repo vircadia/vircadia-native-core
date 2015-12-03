@@ -6,9 +6,9 @@ var BrowserWindow = require('browser-window');  // Module to create native brows
 var Menu = require('menu');
 var Tray = require('tray');
 
-var process = require('./modules/process.js');
-var Process = process.Process;
-var ProcessGroup = process.ProcessGroup;
+var hfprocess = require('./modules/hf-process.js');
+var Process = hfprocess.Process;
+var ProcessGroup = hfprocess.ProcessGroup;
 
 const ipcMain = electron.ipcMain;
 
