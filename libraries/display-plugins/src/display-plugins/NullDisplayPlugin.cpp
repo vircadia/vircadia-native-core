@@ -9,7 +9,9 @@
 //
 #include "NullDisplayPlugin.h"
 
+#include <QtGui/QImage>
 #include <plugins/PluginContainer.h>
+
 const QString NullDisplayPlugin::NAME("NullDisplayPlugin");
 
 const QString & NullDisplayPlugin::getName() const {
@@ -33,3 +35,7 @@ void NullDisplayPlugin::submitOverlayTexture(uint32_t overlayTexture, const glm:
 }
 
 void NullDisplayPlugin::stop() {}
+
+QImage NullDisplayPlugin::getScreenshot() const {
+    return QImage();
+}

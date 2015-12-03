@@ -14,6 +14,7 @@
 
 #include <QtCore/QSize>
 #include <QtCore/QPoint>
+class QImage;
 
 #include <GLMHelpers.h>
 #include <RegisteredMetaTypes.h>
@@ -95,6 +96,9 @@ public:
     virtual glm::mat4 getProjection(Eye eye, const glm::mat4& baseProjection) const {
         return baseProjection;
     }
+
+    // Fetch the most recently displayed image as a QImage
+    virtual QImage getScreenshot() const = 0;
 
     // HMD specific methods
     // TODO move these into another class?

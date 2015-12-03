@@ -44,6 +44,9 @@
 
 #include <QtNetwork/QNetworkDiskCache>
 
+#include <gl/Config.h>
+#include <QtGui/QOpenGLContext>
+
 #include <AccountManager.h>
 #include <AddressManager.h>
 #include <ApplicationVersion.h>
@@ -150,8 +153,6 @@
 #include "InterfaceParentFinder.h"
 
 
-#include <gpu/GLBackend.h>
-#include <QtGui/QOpenGLContext>
 
 // ON WIndows PC, NVidia Optimus laptop, we want to enable NVIDIA GPU
 // FIXME seems to be broken.
@@ -1091,7 +1092,6 @@ void Application::paintGL() {
     // update fps once a second
     if (now - _lastFramesPerSecondUpdate > USECS_PER_SECOND) {
         _fps = _framesPerSecond.getAverage();
-        qDebug() << QString::number(_fps, 'g', 4);
         _lastFramesPerSecondUpdate = now;
     }
 
@@ -1344,6 +1344,7 @@ void Application::paintGL() {
     }
 
     // Overlay Composition, needs to occur after screen space effects have completed
+    // FIXME migrate composition into the display plugins
     {
         PROFILE_RANGE(__FUNCTION__ "/compositor");
         PerformanceTimer perfTimer("compositor");
@@ -1372,7 +1373,6 @@ void Application::paintGL() {
     {
         PROFILE_RANGE(__FUNCTION__ "/pluginOutput");
         PerformanceTimer perfTimer("pluginOutput");
-        uint64_t displayStart = usecTimestampNow();
         auto primaryFramebuffer = framebufferCache->getPrimaryFramebuffer();
         auto scratchFramebuffer = framebufferCache->getFramebuffer();
         gpu::doInBatch(renderArgs._context, [=](gpu::Batch& batch) {
@@ -1386,12 +1386,18 @@ void Application::paintGL() {
         });
         auto finalTexturePointer = scratchFramebuffer->getRenderBuffer(0);
         GLuint finalTexture = gpu::GLBackend::getTextureID(finalTexturePointer);
-
         Q_ASSERT(0 != finalTexture);
+
         Q_ASSERT(!_lockedFramebufferMap.contains(finalTexture));
         _lockedFramebufferMap[finalTexture] = scratchFramebuffer;
+
+        uint64_t displayStart = usecTimestampNow();
         Q_ASSERT(QOpenGLContext::currentContext() == _offscreenContext->getContext());
-        displayPlugin->submitSceneTexture(_frameCount, finalTexture, toGlm(size));
+        {
+            PROFILE_RANGE(__FUNCTION__ "/pluginSubmitScene");
+            PerformanceTimer perfTimer("pluginSubmitScene");
+            displayPlugin->submitSceneTexture(_frameCount, finalTexture, toGlm(size));
+        }
         Q_ASSERT(QOpenGLContext::currentContext() == _offscreenContext->getContext());
 
         uint64_t displayEnd = usecTimestampNow();
@@ -4499,13 +4505,12 @@ void Application::toggleLogDialog() {
 }
 
 void Application::takeSnapshot() {
-#if 0
     QMediaPlayer* player = new QMediaPlayer();
     QFileInfo inf = QFileInfo(PathUtils::resourcesPath() + "sounds/snap.wav");
     player->setMedia(QUrl::fromLocalFile(inf.absoluteFilePath()));
     player->play();
 
-    QString fileName = Snapshot::saveSnapshot(_glWidget->grabFrameBuffer());
+    QString fileName = Snapshot::saveSnapshot(getActiveDisplayPlugin()->getScreenshot());
 
     AccountManager& accountManager = AccountManager::getInstance();
     if (!accountManager.isLoggedIn()) {
@@ -4516,7 +4521,6 @@ void Application::takeSnapshot() {
         _snapshotShareDialog = new SnapshotShareDialog(fileName, _glWidget);
     }
     _snapshotShareDialog->show();
-#endif
 }
 
 float Application::getRenderResolutionScale() const {
@@ -4728,6 +4732,7 @@ void Application::updateDisplayMode() {
         bool first = true;
         foreach(auto displayPlugin, displayPlugins) {
             addDisplayPluginToMenu(displayPlugin, first);
+            // This must be a queued connection to avoid a deadlock
             QObject::connect(displayPlugin.get(), &DisplayPlugin::requestRender, 
                 this, &Application::paintGL, Qt::QueuedConnection);
 

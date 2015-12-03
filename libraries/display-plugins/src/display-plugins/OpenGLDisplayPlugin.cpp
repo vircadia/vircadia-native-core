@@ -7,12 +7,15 @@
 //
 #include "OpenGLDisplayPlugin.h"
 
+#include <condition_variable>
+
 #include <QtCore/QCoreApplication>
 #include <QtCore/QThread>
 #include <QtCore/QTimer>
 
 #include <QtOpenGL/QGLWidget>
 #include <QtGui/QOpenGLContext>
+#include <QtGui/QImage>
 
 #include <NumericalConstants.h>
 #include <DependencyManager.h>
@@ -23,7 +26,9 @@
 
 class PresentThread : public QThread, public Dependency {
     using Mutex = std::mutex;
+    using Condition = std::condition_variable;
     using Lock = std::unique_lock<Mutex>;
+
     friend class OpenGLDisplayPlugin;
 public:
 
@@ -40,6 +45,25 @@ public:
     virtual void run() override {
         Q_ASSERT(_context);
         while (!_shutdown) {
+            if (_pendingMainThreadOperation) {
+                {
+                    Lock lock(_mutex);
+                    // Move the context to the main thread
+                    _context->moveToThread(qApp->thread());
+                    _widgetContext->moveToThread(qApp->thread());
+                    _pendingMainThreadOperation = false;
+                    // Release the main thread to do it's action
+                    _condition.notify_one();
+                }
+
+
+                {
+                    // Main thread does it's thing while we wait on the lock to release
+                    Lock lock(_mutex);
+                    _condition.wait(lock, [&] { return _finishedMainThreadOperation; });
+                }
+            }
+
             // Check before lock
             if (_newPlugin != nullptr) {
                 Lock lock(_mutex);
@@ -69,17 +93,43 @@ public:
 
         }
         _context->doneCurrent();
+        _widgetContext->moveToThread(qApp->thread());
         _context->moveToThread(qApp->thread());
+    }
+
+    void withMainThreadContext(std::function<void()> f) {
+        // Signal to the thread that there is work to be done on the main thread
+        Lock lock(_mutex);
+        _pendingMainThreadOperation = true;
+        _finishedMainThreadOperation = false;
+        _condition.wait(lock, [&] { return !_pendingMainThreadOperation; });
+
+        _widgetContext->makeCurrent();
+        f();
+        _widgetContext->doneCurrent();
+
+        // restore control of the context to the presentation thread and signal 
+        // the end of the operation
+        _widgetContext->moveToThread(this);
+        _context->moveToThread(this);
+        _finishedMainThreadOperation = true;
+        lock.unlock();
+        _condition.notify_one();
     }
 
 
 private:
     bool _shutdown { false };
     Mutex _mutex;
+    // Used to allow the main thread to perform context operations
+    Condition _condition;
+    bool _pendingMainThreadOperation { false };
+    bool _finishedMainThreadOperation { false };
     QThread* _mainThread { nullptr };
     OpenGLDisplayPlugin* _newPlugin { nullptr };
     OpenGLDisplayPlugin* _activePlugin { nullptr };
     QOpenGLContext* _context { nullptr };
+    QGLContext* _widgetContext { nullptr };
 };
 
 OpenGLDisplayPlugin::OpenGLDisplayPlugin() {
@@ -114,14 +164,16 @@ void OpenGLDisplayPlugin::activate() {
     if (!presentThread) {
         DependencyManager::set<PresentThread>();
         presentThread = DependencyManager::get<PresentThread>();
+        presentThread->setObjectName("Presentation Thread");
+
         auto widget = _container->getPrimaryWidget();
-        auto glContext = widget->context();
-        auto context = glContext->contextHandle();
-        glContext->moveToThread(presentThread.data());
-        context->moveToThread(presentThread.data());
 
         // Move the OpenGL context to the present thread
-        presentThread->_context = context;
+        // Extra code because of the widget 'wrapper' context
+        presentThread->_widgetContext = widget->context();
+        presentThread->_widgetContext->moveToThread(presentThread.data());
+        presentThread->_context = presentThread->_widgetContext->contextHandle();
+        presentThread->_context->moveToThread(presentThread.data());
 
         // Start execution
         presentThread->start();
@@ -324,4 +376,19 @@ void OpenGLDisplayPlugin::doneCurrent() {
 void OpenGLDisplayPlugin::swapBuffers() {
     static auto widget = _container->getPrimaryWidget();
     widget->swapBuffers();
+}
+
+void OpenGLDisplayPlugin::withMainThreadContext(std::function<void()> f) const {
+    static auto presentThread = DependencyManager::get<PresentThread>();
+    presentThread->withMainThreadContext(f);
+    _container->makeRenderingContextCurrent();
+}
+
+QImage OpenGLDisplayPlugin::getScreenshot() const {
+    QImage result;
+    withMainThreadContext([&] {
+        static auto widget = _container->getPrimaryWidget();
+        result = widget->grabFrameBuffer();
+    });
+    return result;
 }

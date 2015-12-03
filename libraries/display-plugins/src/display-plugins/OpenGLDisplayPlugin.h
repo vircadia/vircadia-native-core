@@ -31,17 +31,20 @@ public:
     virtual void submitOverlayTexture(uint32_t overlayTexture, const glm::uvec2& overlaySize) override;
     virtual float presentRate() override;
 
-    virtual glm::uvec2 getRecommendedRenderSize() const {
+    virtual glm::uvec2 getRecommendedRenderSize() const override {
         return getSurfacePixels();
     }
 
-    virtual glm::uvec2 getRecommendedUiSize() const {
+    virtual glm::uvec2 getRecommendedUiSize() const override {
         return getSurfaceSize();
     }
+
+    virtual QImage getScreenshot() const override;
 
 protected:
     friend class PresentThread;
 
+    
     virtual glm::uvec2 getSurfaceSize() const = 0;
     virtual glm::uvec2 getSurfacePixels() const = 0;
 
@@ -53,6 +56,9 @@ protected:
     virtual void customizeContext();
     virtual void uncustomizeContext();
     virtual void cleanupForSceneTexture(uint32_t sceneTexture);
+    void withMainThreadContext(std::function<void()> f) const;
+
+
     void present();
     void updateTextures();
     void updateFramerate();
