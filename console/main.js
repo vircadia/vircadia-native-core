@@ -24,19 +24,11 @@ var APP_ICON = 'resources/tray-icon.png';
 
 // Quit when all windows are closed.
 app.on('window-all-closed', function() {
-<<<<<<< HEAD
     // On OS X it is common for applications and their menu bar
     // to stay active until the user quits explicitly with Cmd + Q
     if (process.platform != 'darwin') {
         app.quit();
     }
-=======
-      // On OS X it is common for applications and their menu bar
-      // to stay active until the user quits explicitly with Cmd + Q
-      if (process.platform != 'darwin') {
-          app.quit();
-      }
->>>>>>> add initial local process search
 });
 
 // Check command line arguments to see how to find binaries
@@ -54,6 +46,7 @@ if (argv.localDebugBuilds || argv.localReleaseBuilds) {
 }
 
 // if at this point any of the paths are null, we're missing something we wanted to find
+// TODO: show an error for the binaries that couldn't be found
 
 // This method will be called when Electron has finished
 // initialization and is ready to create browser windows.
