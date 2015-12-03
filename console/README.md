@@ -13,9 +13,9 @@ npm start
 
 To run, the console needs to find a build of Interface, domain-server, and assignment-client.
 
-The command `npm start` tells the console to look for debug builds of those binaries in a build folder beside this console folder.
+The command `npm start` tells the console to look for builds of those binaries in a build folder beside this console folder.
 
-To look for release builds in the build folder, you'll want `npm run local-release`.
+On platforms with separate build folders for release and debug libraries `npm start` will choose the debug binaries. On those platforms if you prefer to use local release builds you'll want `npm run local-release`.
 
 ### Packaging
 

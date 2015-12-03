@@ -24,24 +24,78 @@ var APP_ICON = 'resources/tray-icon.png';
 
 // Quit when all windows are closed.
 app.on('window-all-closed', function() {
+<<<<<<< HEAD
     // On OS X it is common for applications and their menu bar
     // to stay active until the user quits explicitly with Cmd + Q
     if (process.platform != 'darwin') {
         app.quit();
     }
+=======
+      // On OS X it is common for applications and their menu bar
+      // to stay active until the user quits explicitly with Cmd + Q
+      if (process.platform != 'darwin') {
+          app.quit();
+      }
+>>>>>>> add initial local process search
 });
 
 // Check command line arguments to see how to find binaries
-var argv = require('yargs');
+var argv = require('yargs').argv;
+var fs = require('fs');
 
-if (argv.localDebugBuilds) {
-  // check in a dev folder structure for debug binaries
-} else if (argv.localReleaseBuilds) {
-  // check in a dev folder structure for release binaries
-} else {
-  // check beside the console application for the binaries
+function localProcessForBinary(name, preferRelease) {
+    var path = "../build/" + name + "/";
+
+    function processFromPath(name, path) {
+        function platformExtension() {
+            return process.platform == 'win32' ? ".exe" : ""
+        }
+
+        try {
+            var fullPath = path + name + platformExtension();
+
+            var stats = fs.lstatSync(path + name + platformExtension())
+
+            if (stats.isFile()) {
+                console.log("Found " + name + " at " + fullPath);
+                return fullPath;
+            }
+        } catch (e) {
+            console.log("Executable with name " + name + " not found at path " + path);
+        }
+
+        return null;
+    }
+
+    // does the executable exist at this path already?
+    // if so assume we're on a platform that doesn't have Debug/Release
+    // folders and just use the discovered executable
+    var matchingProcess = processFromPath(name, path);
+
+    if (matchingProcess == null) {
+        if (preferRelease) {
+            // check if we can find the executable in a Release folder below this path
+            matchingProcess = processFromPath(name, path + "Release/");
+        } else {
+            // check if we can find the executable in a Debug folder below this path
+            matchingProcess = processFromPath(name, path + "Debug/");
+        }
+    }
+
+    return matchingProcess;
 }
 
+
+if (argv.localDebugBuilds) {
+    // check in a dev folder structure for debug binaries
+    var interfaceProcess = localProcessForBinary("Interface");
+    var dsProcess = localProcessForBinary("domain-server");
+    var acProcess = localProcessForBinary("assignment-client");
+} else if (argv.localReleaseBuilds) {
+    // check in a dev folder structure for release binaries
+} else {
+    // check beside the console application for the binaries
+}
 
 // This method will be called when Electron has finished
 // initialization and is ready to create browser windows.
