@@ -78,7 +78,7 @@ public:
     bool getCurrentPacketIsColor() const { return _currentPacketIsColor; }
     bool getCurrentPacketIsCompressed() const { return _currentPacketIsCompressed; }
     bool getCurrentPacketFormatMatches() {
-        return (getCurrentPacketIsColor() == getWantColor() && getCurrentPacketIsCompressed() == getWantCompression());
+        return (getCurrentPacketIsCompressed() == getWantCompression());
     }
 
     bool hasLodChanged() const { return _lodChanged; }

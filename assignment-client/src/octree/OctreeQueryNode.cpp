@@ -179,7 +179,6 @@ void OctreeQueryNode::resetOctreePacket() {
 
     // If we're moving, and the client asked for low res, then we force monochrome, otherwise, use
     // the clients requested color state.
-    _currentPacketIsColor = getWantColor();
     _currentPacketIsCompressed = getWantCompression();
     OCTREE_PACKET_FLAGS flags = 0;
     if (_currentPacketIsColor) {
