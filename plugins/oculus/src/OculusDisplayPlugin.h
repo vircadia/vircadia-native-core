@@ -20,8 +20,8 @@ public:
     virtual void deactivate() override;
     virtual const QString & getName() const override;
 
-    virtual float getTargetFrameRate() { return TARGET_RATE_Oculus; }
-    virtual float getTargetFramePeriod() { return 1.0f / TARGET_RATE_Oculus; }
+    virtual float getTargetFrameRate() override { return TARGET_RATE_Oculus; }
+    virtual float getTargetFramePeriod() override { return 1.0f / TARGET_RATE_Oculus; }
 
 protected:
     virtual void display(GLuint finalTexture, const glm::uvec2& sceneSize) override;

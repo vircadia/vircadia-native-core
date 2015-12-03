@@ -18,8 +18,8 @@ class Basic2DWindowOpenGLDisplayPlugin : public WindowOpenGLDisplayPlugin {
 public:
     virtual const QString & getName() const override;
 
-    virtual float getTargetFrameRate() { return  _framerateTarget ? (float) _framerateTarget : TARGET_FRAMERATE_Basic2DWindowOpenGL; }
-    virtual float getTargetFramePeriod() { return _inverseFrameRate; }
+    virtual float getTargetFrameRate() override { return  _framerateTarget ? (float) _framerateTarget : TARGET_FRAMERATE_Basic2DWindowOpenGL; }
+    virtual float getTargetFramePeriod() override { return _inverseFrameRate; }
 
     virtual void activate() override;
     virtual void deactivate() override;
@@ -27,6 +27,7 @@ public:
     virtual void display(GLuint sceneTexture, const glm::uvec2& sceneSize) override;
 
     virtual bool isThrottled() const override;
+    virtual bool isVSynchronized() const override;
 
 protected:
     int getDesiredInterval() const;

@@ -27,8 +27,8 @@ public:
     virtual bool eventFilter(QObject* receiver, QEvent* event) override;
     virtual int getHmdScreen() const override;
 
-    virtual float getTargetFrameRate() { return TARGET_RATE_OculusLegacy; }
-    virtual float getTargetFramePeriod() { return 1.0f / TARGET_RATE_OculusLegacy; }
+    virtual float getTargetFrameRate() override { return TARGET_RATE_OculusLegacy; }
+    virtual float getTargetFramePeriod() override { return 1.0f / TARGET_RATE_OculusLegacy; }
 
     // Stereo specific methods
     virtual bool isHmd() const override { return true; }

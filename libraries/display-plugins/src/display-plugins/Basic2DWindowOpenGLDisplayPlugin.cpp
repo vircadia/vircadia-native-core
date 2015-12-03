@@ -113,6 +113,9 @@ bool Basic2DWindowOpenGLDisplayPlugin::isThrottled() const {
     return shouldThrottle;
 }
 
+bool Basic2DWindowOpenGLDisplayPlugin::isVSynchronized() const {
+    return (_framerateTarget == 0) && (!_vsyncAction || _vsyncAction->isChecked());
+}
 
 void Basic2DWindowOpenGLDisplayPlugin::updateFramerate() {
     QAction* checkedFramerate{ nullptr };
@@ -141,10 +144,8 @@ void Basic2DWindowOpenGLDisplayPlugin::updateFramerate() {
     _inverseFrameRate = _framerateTarget ? 1.0f / (float) _framerateTarget : 1.0f / TARGET_FRAMERATE_Basic2DWindowOpenGL; // not truncated
 
     int newInterval = getDesiredInterval();
-    if (_framerateTarget) { // For any target other than vsync, we have little hope of achieving it with timer alone:
-        const int ALLOWANCE_FOR_DISPLAY_FINISHFRAME_AND_TIMER = 3; // ideally a windowed average of qApp->getLastPaintWait and then some, but not worth the complexity
-        newInterval -= ALLOWANCE_FOR_DISPLAY_FINISHFRAME_AND_TIMER;  // Otherwise, any controller expecting us to hit "target" will always be disappointed.
-    }
+    // Note: when not isVSynchronized, we are often not likely to hit target with a newInterval timer.
+    // We could try subtracting an allowance for qApp->getLastPaintWait() and qt timer machinery, but that starts getting complicated.
     qDebug() << newInterval;
     _timer.start(newInterval);
 }
