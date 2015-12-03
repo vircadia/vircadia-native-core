@@ -57,7 +57,7 @@ void OctreePacketProcessor::processPacket(QSharedPointer<ReceivedMessage> messag
             qDebug() << "Got piggyback, read " << piggybackBytes << " bytes";
             
             auto newPacket = NLPacket::fromReceivedPacket(std::move(buffer), piggybackBytes, message->getSenderSockAddr());
-            message = QSharedPointer<ReceivedMessage>(new ReceivedMessage(*newPacket.release()));
+            message = QSharedPointer<ReceivedMessage>::create(*newPacket.release());
         } else {
             // Note... stats packets don't have sequence numbers, so we don't want to send those to trackIncomingVoxelPacket()
             return; // bail since no piggyback data

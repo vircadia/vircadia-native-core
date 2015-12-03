@@ -91,7 +91,7 @@ void Agent::handleOctreePacket(QSharedPointer<ReceivedMessage> message, SharedNo
             memcpy(buffer.get(), message->getRawMessage() + statsMessageLength, piggyBackedSizeWithHeader);
 
             auto newPacket = NLPacket::fromReceivedPacket(std::move(buffer), piggyBackedSizeWithHeader, message->getSenderSockAddr());
-            message = QSharedPointer<ReceivedMessage>(new ReceivedMessage(*newPacket));
+            message = QSharedPointer<ReceivedMessage>::create(*newPacket);
         } else {
             return; // bail since no piggyback data
         }
