@@ -6,6 +6,8 @@ var events = require('events');
 var electron = require('electron');
 var app = electron.app;  // Module to control application life.
 var BrowserWindow = require('browser-window');  // Module to create native browser window.
+var Menu = require('menu');
+var Tray = require('tray');
 var childProcess = require('child_process');
 
 const ipcMain = electron.ipcMain;
@@ -16,6 +18,9 @@ require('crash-reporter').start();
 // Keep a global reference of the window object, if you don't, the window will
 // be closed automatically when the JavaScript object is garggbage collected.
 var mainWindow = null;
+var appIcon = null;
+var TRAY_ICON = 'resources/tray-icon.png';
+var APP_ICON = 'resources/tray-icon.png';
 
 const ProcessStates = {
     STOPPED: 'stopped',
@@ -115,8 +120,18 @@ app.on('window-all-closed', function() {
 // This method will be called when Electron has finished
 // initialization and is ready to create browser windows.
 app.on('ready', function() {
+    // Create tray icon
+    appIcon = new Tray(TRAY_ICON);
+    appIcon.setToolTip('High Fidelity Console');
+    var contextMenu = Menu.buildFromTemplate([{
+        label: 'Quit',
+        accelerator: 'Command+Q',
+        click: function() { app.quit(); }
+    }]);
+    appIcon.setContextMenu(contextMenu);
+
     // Create the browser window.
-    mainWindow = new BrowserWindow({width: 800, height: 600});
+    mainWindow = new BrowserWindow({width: 800, height: 600, icon: APP_ICON});
 
     // and load the index.html of the app.
     mainWindow.loadURL('file://' + __dirname + '/index.html');
