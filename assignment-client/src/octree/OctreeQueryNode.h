@@ -77,9 +77,7 @@ public:
 
     bool getCurrentPacketIsColor() const { return _currentPacketIsColor; }
     bool getCurrentPacketIsCompressed() const { return _currentPacketIsCompressed; }
-    bool getCurrentPacketFormatMatches() {
-        return (getCurrentPacketIsCompressed() == getWantCompression());
-    }
+    bool getCurrentPacketFormatMatches() { return (getCurrentPacketIsCompressed() == true); } // FIXME
 
     bool hasLodChanged() const { return _lodChanged; }
 

@@ -38,7 +38,7 @@ const int WANT_LOW_RES_MOVING_BIT = 0;
 const int UNUSED_BIT_1 = 1; // unused... available for new feature
 const int WANT_DELTA_AT_BIT = 2;
 const int UNUSED_BIT_3 = 3; // unused... available for new feature
-const int WANT_COMPRESSION = 4; // 5th bit
+const int UNUSED_BIT_4 = 4; // 5th bit, unused... available for new feature
 
 class OctreeQuery : public NodeData {
     Q_OBJECT
@@ -73,7 +73,6 @@ public:
     // related to Octree Sending strategies
     bool getWantDelta() const { return _wantDelta; }
     bool getWantLowResMoving() const { return _wantLowResMoving; }
-    bool getWantCompression() const { return _wantCompression; }
     int getMaxQueryPacketsPerSecond() const { return _maxQueryPPS; }
     float getOctreeSizeScale() const { return _octreeElementSizeScale; }
     int getBoundaryLevelAdjust() const { return _boundaryLevelAdjust; }
@@ -81,7 +80,6 @@ public:
 public slots:
     void setWantLowResMoving(bool wantLowResMoving) { _wantLowResMoving = wantLowResMoving; }
     void setWantDelta(bool wantDelta) { _wantDelta = wantDelta; }
-    void setWantCompression(bool wantCompression) { _wantCompression = wantCompression; }
     void setMaxQueryPacketsPerSecond(int maxQueryPPS) { _maxQueryPPS = maxQueryPPS; }
     void setOctreeSizeScale(float octreeSizeScale) { _octreeElementSizeScale = octreeSizeScale; }
     void setBoundaryLevelAdjust(int boundaryLevelAdjust) { _boundaryLevelAdjust = boundaryLevelAdjust; }
@@ -99,7 +97,6 @@ protected:
     // octree server sending items
     bool _wantDelta = true;
     bool _wantLowResMoving = true;
-    bool _wantCompression = false;
     int _maxQueryPPS = DEFAULT_MAX_OCTREE_PPS;
     float _octreeElementSizeScale = DEFAULT_OCTREE_SIZE_SCALE; /// used for LOD calculations
     int _boundaryLevelAdjust = 0; /// used for LOD calculations
