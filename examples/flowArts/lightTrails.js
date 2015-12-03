@@ -66,7 +66,7 @@ function controller(side, triggerAction) {
     this.cycleColorButton = side == LEFT ? Controller.Standard.LeftPrimaryThumb : Controller.Standard.RightPrimaryThumb;
     this.currentColorIndex = 0;
     this.currentColor = colorPalette[this.currentColorIndex];
-    var textures = "http://localhost:8080/trails.png?v2" + Math.random();
+    var texture = "https://s3.amazonaws.com/hifi-public/eric/textures/paintStrokes/trails.png";
 
     // this.light = Entities.addEntity({
     //     type: 'Light',
@@ -84,7 +84,7 @@ function controller(side, triggerAction) {
             y: LINE_DIMENSIONS,
             z: LINE_DIMENSIONS
         },
-        textures: textures,
+        textures: texture,
         lifetime: LIFETIME
     });
     this.points = [];
