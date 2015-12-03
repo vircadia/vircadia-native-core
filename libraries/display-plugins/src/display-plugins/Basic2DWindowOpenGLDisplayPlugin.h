@@ -9,12 +9,17 @@
 
 #include "WindowOpenGLDisplayPlugin.h"
 
+#define TARGET_FRAMERATE_Basic2DWindowOpenGL 60.0f
+
 class QScreen;
 class Basic2DWindowOpenGLDisplayPlugin : public WindowOpenGLDisplayPlugin {
     Q_OBJECT
 
 public:
     virtual const QString & getName() const override;
+
+    virtual float getTargetFrameRate() { return  _framerateTarget ? (float) _framerateTarget : TARGET_FRAMERATE_Basic2DWindowOpenGL; }
+    virtual float getTargetFramePeriod() { return _inverseFrameRate; }
 
     virtual void activate() override;
     virtual void deactivate() override;
@@ -33,4 +38,5 @@ private:
     QScreen* getFullscreenTarget();
     uint32_t _framerateTarget{ 0 };
     int _fullscreenTarget{ -1 };
+    float _inverseFrameRate{ 1.0f }; //seconds
 };

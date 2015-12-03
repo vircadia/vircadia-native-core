@@ -13,6 +13,8 @@
 
 #include <OVR_CAPI.h>
 
+#define TARGET_RATE_OculusLegacy 75.0f;
+
 class OculusLegacyDisplayPlugin : public WindowOpenGLDisplayPlugin {
 public:
     OculusLegacyDisplayPlugin();
@@ -24,6 +26,9 @@ public:
 
     virtual bool eventFilter(QObject* receiver, QEvent* event) override;
     virtual int getHmdScreen() const override;
+
+    virtual float getTargetFrameRate() { return TARGET_RATE_OculusLegacy; }
+    virtual float getTargetFramePeriod() { return 1.0f / TARGET_RATE_OculusLegacy; }
 
     // Stereo specific methods
     virtual bool isHmd() const override { return true; }

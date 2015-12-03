@@ -12,11 +12,16 @@
 struct SwapFramebufferWrapper;
 using SwapFboPtr = QSharedPointer<SwapFramebufferWrapper>;
 
+#define TARGET_RATE_Oculus 75.0f;
+
 class OculusDisplayPlugin : public OculusBaseDisplayPlugin {
 public:
     virtual void activate() override;
     virtual void deactivate() override;
     virtual const QString & getName() const override;
+
+    virtual float getTargetFrameRate() { return TARGET_RATE_Oculus; }
+    virtual float getTargetFramePeriod() { return 1.0f / TARGET_RATE_Oculus; }
 
 protected:
     virtual void display(GLuint finalTexture, const glm::uvec2& sceneSize) override;

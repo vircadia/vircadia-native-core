@@ -139,7 +139,8 @@ void Basic2DWindowOpenGLDisplayPlugin::updateFramerate() {
         } else if (FRAMERATE_30 == actionText) {
             _framerateTarget = 30;
         }
-    } 
+    }
+    _inverseFrameRate = _framerateTarget ? 1.0f / (float) _framerateTarget : 1.0f / TARGET_FRAMERATE_Basic2DWindowOpenGL; // not truncated
 
     int newInterval = getDesiredInterval();
     qDebug() << newInterval;

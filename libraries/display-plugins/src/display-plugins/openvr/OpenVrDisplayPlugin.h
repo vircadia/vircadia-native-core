@@ -14,11 +14,16 @@
 
 #include "../WindowOpenGLDisplayPlugin.h"
 
+#define TARGET_RATE_OpenVr 90.0f;  // FIXME: get from sdk tracked device property? This number is vive-only.
+
 class OpenVrDisplayPlugin : public WindowOpenGLDisplayPlugin {
 public:
     virtual bool isSupported() const override;
     virtual const QString & getName() const override;
     virtual bool isHmd() const override { return true; }
+
+    virtual float getTargetFrameRate() { return TARGET_RATE_OpenVr; }
+    virtual float getTargetFramePeriod() { return 1.0f / TARGET_RATE_OpenVr; }
 
     virtual void activate() override;
     virtual void deactivate() override;

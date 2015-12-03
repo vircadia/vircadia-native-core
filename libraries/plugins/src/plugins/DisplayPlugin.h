@@ -57,6 +57,8 @@ public:
     /// By default, all HMDs are stereo
     virtual bool isStereo() const { return isHmd(); }
     virtual bool isThrottled() const { return false; }
+    virtual float getTargetFrameRate() { return 0.0f; }
+    virtual float getTargetFramePeriod() { return 0.0f; }
 
     // Rendering support
 
