@@ -40,17 +40,16 @@ SpatiallyNestablePointer SpatiallyNestable::getParentPointer() const {
         return nullptr;
     }
 
-    SpatiallyNestableConstPointer constThisPointer = shared_from_this();
-    SpatiallyNestablePointer thisPointer = std::const_pointer_cast<SpatiallyNestable>(constThisPointer); // ermahgerd !!!
-
     if (parent && parent->getID() == _parentID) {
         // parent pointer is up-to-date
         if (!_parentKnowsMe) {
-            parent->beParentOfChild(thisPointer);
+            parent->beParentOfChild(getThisPointer());
             _parentKnowsMe = true;
         }
         return parent;
     }
+
+    SpatiallyNestablePointer thisPointer = getThisPointer();
 
     if (parent) {
         // we have a parent pointer but our _parentID doesn't indicate this parent.
@@ -167,21 +166,12 @@ glm::quat SpatiallyNestable::localToWorld(glm::quat orientation, QUuid parentID,
     return result.getRotation();
 }
 
-
 glm::vec3 SpatiallyNestable::getPosition() const {
-    Transform parentTransformDescaled = getParentTransform();
-    glm::mat4 parentMat;
-    parentTransformDescaled.getMatrix(parentMat);
-    glm::vec4 absPos = parentMat * glm::vec4(getLocalPosition(), 1.0f);
-    return glm::vec3(absPos);
+    return getTransform().getTranslation();
 }
 
 glm::vec3 SpatiallyNestable::getPosition(int jointIndex) const {
-    Transform worldTransform = getTransform();
-    Transform jointInObjectFrame = getJointTransformInObjectFrame(jointIndex);
-    Transform jointInWorldFrame;
-    Transform::mult(jointInWorldFrame, worldTransform, jointInObjectFrame);
-    return jointInWorldFrame.getTranslation();
+    return getTransform(jointIndex).getTranslation();
 }
 
 void SpatiallyNestable::setPosition(glm::vec3 position) {
@@ -195,16 +185,11 @@ void SpatiallyNestable::setPosition(glm::vec3 position) {
 }
 
 glm::quat SpatiallyNestable::getOrientation() const {
-    Transform parentTransformDescaled = getParentTransform();
-    return parentTransformDescaled.getRotation() * getLocalOrientation();
+    return getTransform().getRotation();
 }
 
 glm::quat SpatiallyNestable::getOrientation(int jointIndex) const {
-    Transform worldTransform = getTransform();
-    Transform jointInObjectFrame = getJointTransformInObjectFrame(jointIndex);
-    Transform jointInWorldFrame;
-    Transform::mult(jointInWorldFrame, worldTransform, jointInObjectFrame);
-    return jointInWorldFrame.getRotation();
+    return getTransform(jointIndex).getRotation();
 }
 
 void SpatiallyNestable::setOrientation(glm::quat orientation) {
@@ -228,7 +213,7 @@ const Transform SpatiallyNestable::getTransform() const {
 }
 
 const Transform SpatiallyNestable::getTransform(int jointIndex) const {
-    // this returns the world-space transform for this object.  It find its parent's transform (which may
+    // this returns the world-space transform for this object.  It finds its parent's transform (which may
     // cause this object's parent to query its parent, etc) and multiplies this object's local transform onto it.
     Transform worldTransform = getTransform();
     Transform jointInObjectFrame = getJointTransformInObjectFrame(jointIndex);
@@ -340,4 +325,10 @@ const Transform SpatiallyNestable::getJointTransformInObjectFrame(int jointIndex
     jointInObjectFrame.setRotation(orientation);
     jointInObjectFrame.setTranslation(position);
     return jointInObjectFrame;
+}
+
+SpatiallyNestablePointer SpatiallyNestable::getThisPointer() const {
+    SpatiallyNestableConstPointer constThisPointer = shared_from_this();
+    SpatiallyNestablePointer thisPointer = std::const_pointer_cast<SpatiallyNestable>(constThisPointer); // ermahgerd !!!
+    return thisPointer;
 }

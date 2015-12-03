@@ -95,6 +95,8 @@ public:
     virtual glm::quat getJointRotation(int index) const = 0;
     virtual glm::vec3 getJointTranslation(int index) const = 0;
 
+    SpatiallyNestablePointer getThisPointer() const;
+
 protected:
     NestableTypes::NestableType _nestableType; // EntityItem or an AvatarData
     QUuid _id;
