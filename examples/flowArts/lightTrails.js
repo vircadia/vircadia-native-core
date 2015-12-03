@@ -12,23 +12,36 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+Script.include("../libraries/utils.js");
+
 var eraseTrail = true;
 var ugLSD = 25;
 // var eraseTrail = false;
 var LEFT = 0;
 var RIGHT = 1;
-var LASER_WIDTH = 3;
-var LASER_COLOR = {
-    red: 50,
-    green: 150,
-    blue: 200
-};
-
 var MAX_POINTS_PER_LINE = 50;
 
 var LIFETIME = 6000;
-var DRAWING_DEPTH = 0.2;
+var DRAWING_DEPTH = 0.6;
 var LINE_DIMENSIONS = 20;
+
+var lightZone = Entities.addEntity({
+    type: "Zone",
+    shapeType: 'box',
+    keyLightIntensity: 0.02,
+    keyLightColor: {
+        red: 5,
+        green: 0,
+        blue: 5
+    },
+    keyLightAmbientIntensity: .05,
+    position: MyAvatar.position,
+    dimensions: {
+        x: 100,
+        y: 100,
+        z: 100
+    }
+});
 
 
 var MIN_POINT_DISTANCE = 0.02;
@@ -36,49 +49,45 @@ var MIN_POINT_DISTANCE = 0.02;
 
 var colorPalette = [{
     red: 250,
-    green: 0,
-    blue: 0
+    green: 137,
+    blue: 162
 }, {
-    red: 214,
-    green: 91,
-    blue: 67
+    red: 204,
+    green: 244,
+    blue: 249
 }, {
-    red: 192,
-    green: 41,
-    blue: 66
+    red: 146,
+    green: 206,
+    blue: 116
 }, {
-    red: 84,
-    green: 36,
-    blue: 55
-}, {
-    red: 83,
-    green: 119,
-    blue: 122
+    red: 240,
+    green: 87,
+    blue: 129
 }];
 
-var STROKE_WIDTH = 0.05;
+var STROKE_WIDTH = 0.03;
 
 function controller(side, triggerAction) {
     this.triggerHeld = false;
     this.triggerThreshold = 0.9;
     this.side = side;
     this.triggerAction = triggerAction;
-    this.cycleColorButton = side == LEFT ? Controller.Standard.LeftPrimaryThumb : Controller.Standard.RightPrimaryThumb;
-    this.currentColorIndex = 0;
-    this.currentColor = colorPalette[this.currentColorIndex];
     var texture = "https://s3.amazonaws.com/hifi-public/eric/textures/paintStrokes/trails.png";
 
-    // this.light = Entities.addEntity({
-    //     type: 'Light',
-    //     position: MyAvatar.position,
-    //     dimensions: {x: 20, y: 20, z: 20},
-    //     color: {red: 60, green: 10, blue: 100},
-    //     intensity: 10
-    // });
+    this.light = Entities.addEntity({
+        type: 'Light',
+        position: MyAvatar.position,
+        dimensions: {
+            x: 20,
+            y: 20,
+            z: 20
+        },
+        color: colorPalette[randInt(0, colorPalette.length)],
+        intensity: 20
+    });
 
     this.trail = Entities.addEntity({
         type: "PolyLine",
-        color: this.currentColor,
         dimensions: {
             x: LINE_DIMENSIONS,
             y: LINE_DIMENSIONS,
@@ -105,12 +114,6 @@ function controller(side, triggerAction) {
         }
     }, ugLSD);
 
-    this.cycleColor = function() {
-        this.currentColor = colorPalette[++this.currentColorIndex];
-        if (this.currentColorIndex === colorPalette.length - 1) {
-            this.currentColorIndex = -1;
-        }
-    }
 
     this.setTrailPosition = function(position) {
         this.trailPosition = position;
@@ -124,9 +127,9 @@ function controller(side, triggerAction) {
         this.updateControllerState();
         var newTrailPosOffset = Vec3.multiply(Vec3.normalize(Vec3.subtract(this.tipPosition, this.palmPosition)), DRAWING_DEPTH);
         var newTrailPos = Vec3.sum(this.palmPosition, newTrailPosOffset);
-        // Entities.editEntity(this.light, {
-        //     position: newTrailPos
-        // });
+        Entities.editEntity(this.light, {
+            position: newTrailPos
+        });
 
 
         if (!this.drawing) {
@@ -151,12 +154,11 @@ function controller(side, triggerAction) {
             var normal = computeNormal(newTrailPos, Camera.getPosition());
 
             this.normals.push(normal);
-            this.strokeWidths.push(STROKE_WIDTH);
+            this.strokeWidths.push(STROKE_WIDTH + Math.random() * 0.01);
             Entities.editEntity(this.trail, {
                 linePoints: this.points,
                 normals: this.normals,
                 strokeWidths: this.strokeWidths,
-                color: this.currentColor
             });
 
         }
@@ -164,26 +166,15 @@ function controller(side, triggerAction) {
 
 
     this.updateControllerState = function() {
-        this.cycleColorButtonPressed = Controller.getValue(this.cycleColorButton);
         this.palmPosition = this.side == RIGHT ? MyAvatar.rightHandPose.translation : MyAvatar.leftHandPose.translation;
         this.tipPosition = this.side == RIGHT ? MyAvatar.rightHandTipPose.translation : MyAvatar.leftHandTipPose.translation;
         this.triggerValue = Controller.getActionValue(this.triggerAction);
-
-
-        if (this.prevCycleColorButtonPressed === true && this.cycleColorButtonPressed === false) {
-            this.cycleColor();
-            Entities.editEntity(this.brush, {
-                // color: this.currentColor
-            });
-        }
-
-        this.prevCycleColorButtonPressed = this.cycleColorButtonPressed;
 
     }
 
     this.cleanup = function() {
         Entities.deleteEntity(this.trail);
-        // Entities.deleteEntity(this.light);
+        Entities.deleteEntity(this.light);
         Script.clearInterval(this.trailEraseInterval);
     }
 }
@@ -200,6 +191,7 @@ function update(deltaTime) {
 function scriptEnding() {
     leftController.cleanup();
     rightController.cleanup();
+    Entities.deleteEntity(lightZone);
 }
 
 function vectorIsZero(v) {
