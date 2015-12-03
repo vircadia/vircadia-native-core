@@ -11,15 +11,15 @@ npm install
 npm start
 ```
 
-To run, the console needs a build of Interface, domain-server, and assignment-client.
+To run, the console needs to find a build of Interface, domain-server, and assignment-client.
 
-The default, `npm start` tells the console to look for debug builds of those binaries in a build folder beside the console folder.
+The command `npm start` tells the console to look for debug builds of those binaries in a build folder beside this console folder.
 
-If you want to use release builds use `npm run local-release`.
+To look for release builds in the build folder, you'll want `npm run local-release`.
 
 ### Packaging
 
 CMake produces a target `package-console` that will bundle up everything you need for the console on your platform.
 It ensures that there are available builds for the domain-server, assignment-client, and Interface. Then it produces an executable for the console.
 
-Finally it copies all of the produced executables to a directory, ready for testing or packaging for deployment. 
+Finally it copies all of the produced executables to a directory, ready for testing or packaging for deployment.
