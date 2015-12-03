@@ -90,12 +90,8 @@ void Basic2DWindowOpenGLDisplayPlugin::display(GLuint sceneTexture, const glm::u
 
 
 int Basic2DWindowOpenGLDisplayPlugin::getDesiredInterval() const {
-    static const int THROTTLED_PAINT_TIMER_DELAY_MS = MSECS_PER_SECOND / 15;
     static const int ULIMIITED_PAINT_TIMER_DELAY_MS = 1;
     int result = ULIMIITED_PAINT_TIMER_DELAY_MS;
-    if (_isThrottled) {
-        result = THROTTLED_PAINT_TIMER_DELAY_MS;
-    }
     if (0 != _framerateTarget) {
         result = MSECS_PER_SECOND / _framerateTarget;
     }
@@ -139,12 +135,18 @@ void Basic2DWindowOpenGLDisplayPlugin::updateFramerate() {
         } else if (FRAMERATE_30 == actionText) {
             _framerateTarget = 30;
         }
+    } else if (_isThrottled) {
+        _framerateTarget = 15;
     }
     _inverseFrameRate = _framerateTarget ? 1.0f / (float) _framerateTarget : 1.0f / TARGET_FRAMERATE_Basic2DWindowOpenGL; // not truncated
 
     int newInterval = getDesiredInterval();
+    if (_framerateTarget) { // For any target other than vsync, we have little hope of achieving it with timer alone:
+        const int ALLOWANCE_FOR_DISPLAY_FINISHFRAME_AND_TIMER = 3; // ideally a windowed average of qApp->getLastPaintWait and then some, but not worth the complexity
+        newInterval -= ALLOWANCE_FOR_DISPLAY_FINISHFRAME_AND_TIMER;  // Otherwise, any controller expecting us to hit "target" will always be disappointed.
+    }
     qDebug() << newInterval;
-    _timer.start(getDesiredInterval());
+    _timer.start(newInterval);
 }
 
 // FIXME target the screen the window is currently on
