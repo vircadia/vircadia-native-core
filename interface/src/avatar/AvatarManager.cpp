@@ -77,9 +77,9 @@ AvatarManager::AvatarManager(QObject* parent) :
 }
 
 const float SMALLEST_REASONABLE_HORIZON = 5.0f; // meters
-Setting::Handle<float> avatarRenderDistanceHighLimit("avatarRenderDistanceHighLimit", 1.0f / SMALLEST_REASONABLE_HORIZON);
-void AvatarManager::setRenderDistanceHighLimit(float newValue) {
-    avatarRenderDistanceHighLimit.set(newValue);
+Setting::Handle<float> avatarRenderDistanceInverseHighLimit("avatarRenderDistanceHighLimit", 1.0f / SMALLEST_REASONABLE_HORIZON);
+void AvatarManager::setRenderDistanceInverseHighLimit(float newValue) {
+    avatarRenderDistanceInverseHighLimit.set(newValue);
      _renderDistanceController.setControlledValueHighLimit(newValue);
 }
 
@@ -101,7 +101,7 @@ void AvatarManager::init() {
 
     const float target_fps = qApp->getTargetFrameRate();
     _renderDistanceController.setMeasuredValueSetpoint(target_fps);
-    _renderDistanceController.setControlledValueHighLimit(avatarRenderDistanceHighLimit.get());
+    _renderDistanceController.setControlledValueHighLimit(avatarRenderDistanceInverseHighLimit.get());
     _renderDistanceController.setControlledValueLowLimit(1.0f / (float) TREE_SCALE);
     // Advice for tuning parameters:
     // See PIDController.h. There's a section on tuning in the reference.
