@@ -20,6 +20,9 @@ var leapHands = (function () {
         hasHandAndWristJoints,
         handToWristOffset = [],  // For avatars without a wrist joint we control an estimate of a proper hand joint position
         HAND_OFFSET = 0.4,  // Relative distance of wrist to hand versus wrist to index finger knuckle
+        handAnimationStateHandlers,
+        handAnimationStateFunctions,
+        handAnimationStateProperties,
         hands,
         wrists,
         NUM_HANDS = 2,  // 0 = left; 1 = right
@@ -123,6 +126,26 @@ var leapHands = (function () {
         65: body
         ... skeleton joint names
         */
+    }
+
+    function animateLeftHand() {
+        var ROTATION_AND_POSITION = 0;
+
+        return {
+            leftHandType: ROTATION_AND_POSITION,
+            leftHandPosition: hands[0].position,
+            leftHandRotation: hands[0].rotation
+        };
+    }
+
+    function animateRightHand() {
+        var ROTATION_AND_POSITION = 0;
+
+        return {
+            rightHandType: ROTATION_AND_POSITION,
+            rightHandPosition: hands[1].position,
+            rightHandRotation: hands[1].rotation
+        };
     }
 
     function finishCalibration() {
@@ -315,6 +338,13 @@ var leapHands = (function () {
             ]
         ];
 
+        handAnimationStateHandlers = [null, null];
+        handAnimationStateFunctions = [animateLeftHand, animateRightHand];
+        handAnimationStateProperties = [
+            ["leftHandType", "leftHandPosition", "leftHandRotation"],
+            ["rightHandType", "rightHandPosition", "rightHandPosition"]
+        ];
+
         setIsOnHMD();
 
         settingsTimer = Script.setInterval(checkSettings, 2000);
@@ -342,6 +372,12 @@ var leapHands = (function () {
                 // Calibrate if necessary.
                 if (!checkCalibration()) {
                     return;
+                }
+
+                // Hand animation handlers ...
+                if (handAnimationStateHandlers[h] === null) {
+                    handAnimationStateHandlers[h] = MyAvatar.addAnimationStateHandler(handAnimationStateFunctions[h],
+                        handAnimationStateProperties[h]);
                 }
 
                 // Hand position ...
@@ -454,14 +490,9 @@ var leapHands = (function () {
                     hands[h].inactiveCount += 1;
 
                     if (hands[h].inactiveCount === MAX_HAND_INACTIVE_COUNT) {
-                        if (h === 0) {
-                            MyAvatar.clearJointData("LeftHand");
-                            MyAvatar.clearJointData("LeftForeArm");
-                            MyAvatar.clearJointData("LeftArm");
-                        } else {
-                            MyAvatar.clearJointData("RightHand");
-                            MyAvatar.clearJointData("RightForeArm");
-                            MyAvatar.clearJointData("RightArm");
+                        if (handAnimationStateHandlers[h] !== null) {
+                            MyAvatar.removeAnimationStateHandler(handAnimationStateHandlers[h]);
+                            handAnimationStateHandlers[h] = null;
                         }
                     }
                 }
@@ -479,6 +510,9 @@ var leapHands = (function () {
         for (h = 0; h < NUM_HANDS; h += 1) {
             Controller.releaseInputController(hands[h].controller);
             Controller.releaseInputController(wrists[h].controller);
+            if (handAnimationStateHandlers[h] !== null) {
+                MyAvatar.removeAnimationStateHandler(handAnimationStateHandlers[h]);
+            }
             for (i = 0; i < NUM_FINGERS; i += 1) {
                 for (j = 0; j < NUM_FINGER_JOINTS; j += 1) {
                     if (fingers[h][i][j].controller !== null) {
