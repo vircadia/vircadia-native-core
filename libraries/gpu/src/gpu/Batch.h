@@ -342,13 +342,17 @@ public:
     class Param {
     public:
         union {
+#if (QT_POINTER_SIZE == 8)
             size_t _size;
+#endif            
             int32 _int;
             uint32 _uint;
             float _float;
             char _chars[sizeof(size_t)];
         };
+#if (QT_POINTER_SIZE == 8)
         Param(size_t val) : _size(val) {}
+#endif            
         Param(int32 val) : _int(val) {}
         Param(uint32 val) : _uint(val) {}
         Param(float val) : _float(val) {}
