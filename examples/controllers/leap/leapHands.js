@@ -166,10 +166,8 @@ var leapHands = (function () {
 
         MyAvatar.clearJointData("LeftHand");
         MyAvatar.clearJointData("LeftForeArm");
-        MyAvatar.clearJointData("LeftArm");
         MyAvatar.clearJointData("RightHand");
         MyAvatar.clearJointData("RightForeArm");
-        MyAvatar.clearJointData("RightArm");
 
         calibrationStatus = CALIBRATED;
         print("Leap Motion: Calibrated");
@@ -193,12 +191,10 @@ var leapHands = (function () {
         }
 
         // Set avatar arms vertical, forearms horizontal, as "zero" position for calibration
-        MyAvatar.setJointRotation("LeftArm", Quat.fromPitchYawRollDegrees(90.0, 0.0, 0.0));
-        MyAvatar.setJointRotation("LeftForeArm", Quat.fromPitchYawRollDegrees(0.0, 90.0, 90.0));
-        MyAvatar.setJointRotation("LeftHand", Quat.fromPitchYawRollRadians(0.0, 0.0, 0.0));
-        MyAvatar.setJointRotation("RightArm", Quat.fromPitchYawRollDegrees(90.0, 0.0, 0.0));
-        MyAvatar.setJointRotation("RightForeArm", Quat.fromPitchYawRollDegrees(0.0, -90.0, -90.0));
-        MyAvatar.setJointRotation("RightHand", Quat.fromPitchYawRollRadians(0.0, 0.0, 0.0));
+        MyAvatar.setJointRotation("LeftForeArm", Quat.fromPitchYawRollDegrees(0.0, 0.0, 90.0));
+        MyAvatar.setJointRotation("LeftHand", Quat.fromPitchYawRollDegrees(0.0, 90.0, 0.0));
+        MyAvatar.setJointRotation("RightForeArm", Quat.fromPitchYawRollDegrees(0.0, 0.0, -90.0));
+        MyAvatar.setJointRotation("RightHand", Quat.fromPitchYawRollDegrees(0.0, -90.0, 0.0));
 
         // Wait for arms to assume their positions before calculating
         Script.setTimeout(finishCalibration, CALIBRATION_TIME);
