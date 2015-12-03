@@ -47,7 +47,9 @@ public:
     static const char* StatusCode302;
     static const char* StatusCode400;
     static const char* StatusCode401;
+    static const char* StatusCode403;
     static const char* StatusCode404;
+    static const char* StatusCode500;
     static const char* DefaultContentType;
 
     /// WebSocket close status codes.

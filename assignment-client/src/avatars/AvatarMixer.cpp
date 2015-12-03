@@ -11,6 +11,7 @@
 
 #include <cfloat>
 #include <random>
+#include <memory>
 
 #include <QtCore/QCoreApplication>
 #include <QtCore/QDateTime>
@@ -63,13 +64,14 @@ AvatarMixer::~AvatarMixer() {
     _broadcastThread.wait();
 }
 
-const float BILLBOARD_AND_IDENTITY_SEND_PROBABILITY = 1.0f / 300.0f;
+// An 80% chance of sending a identity packet within a 5 second interval.
+// assuming 60 htz update rate.
+const float BILLBOARD_AND_IDENTITY_SEND_PROBABILITY = 1.0f / 187.0f;
 
 // NOTE: some additional optimizations to consider.
 //    1) use the view frustum to cull those avatars that are out of view. Since avatar data doesn't need to be present
 //       if the avatar is not in view or in the keyhole.
 void AvatarMixer::broadcastAvatarData() {
-
     int idleTime = QDateTime::currentMSecsSinceEpoch() - _lastFrameTimestamp;
 
     ++_numStatFrames;
@@ -243,6 +245,46 @@ void AvatarMixer::broadcastAvatarData() {
                         return;
                     }
 
+                    // make sure we send out identity and billboard packets to and from new arrivals.
+                    bool forceSend = !otherNodeData->checkAndSetHasReceivedFirstPacketsFrom(node->getUUID());
+
+                    // we will also force a send of billboard or identity packet
+                    // if either has changed in the last frame
+                    if (otherNodeData->getBillboardChangeTimestamp() > 0
+                        && (forceSend
+                            || otherNodeData->getBillboardChangeTimestamp() > _lastFrameTimestamp
+                            || distribution(generator) < BILLBOARD_AND_IDENTITY_SEND_PROBABILITY)) {
+
+                        QByteArray rfcUUID = otherNode->getUUID().toRfc4122();
+                        QByteArray billboard = otherNodeData->getAvatar().getBillboard();
+
+                        auto billboardPacket = NLPacket::create(PacketType::AvatarBillboard, rfcUUID.size() + billboard.size());
+                        billboardPacket->write(rfcUUID);
+                        billboardPacket->write(billboard);
+
+                        nodeList->sendPacket(std::move(billboardPacket), *node);
+
+                        ++_sumBillboardPackets;
+                    }
+
+                    if (otherNodeData->getIdentityChangeTimestamp() > 0
+                        && (forceSend
+                            || otherNodeData->getIdentityChangeTimestamp() > _lastFrameTimestamp
+                            || distribution(generator) < BILLBOARD_AND_IDENTITY_SEND_PROBABILITY)) {
+
+                        QByteArray individualData = otherNodeData->getAvatar().identityByteArray();
+
+                        auto identityPacket = NLPacket::create(PacketType::AvatarIdentity, individualData.size());
+
+                        individualData.replace(0, NUM_BYTES_RFC4122_UUID, otherNode->getUUID().toRfc4122());
+
+                        identityPacket->write(individualData);
+
+                        nodeList->sendPacket(std::move(identityPacket), *node);
+
+                        ++_sumIdentityPackets;
+                    }
+
                     AvatarData& otherAvatar = otherNodeData->getAvatar();
                     //  Decide whether to send this avatar's data based on it's distance from us
 
@@ -254,10 +296,10 @@ void AvatarMixer::broadcastAvatarData() {
                     // potentially update the max full rate distance for this frame
                     maxAvatarDistanceThisFrame = std::max(maxAvatarDistanceThisFrame, distanceToAvatar);
 
-		    if (distanceToAvatar != 0.0f
+                    if (distanceToAvatar != 0.0f
                         && distribution(generator) > (nodeData->getFullRateDistance() / distanceToAvatar)) {
-		      return;
-		    }
+                        return;
+                    }
 
                     AvatarDataSequenceNumber lastSeqToReceiver = nodeData->getLastBroadcastSequenceNumber(otherNode->getUUID());
                     AvatarDataSequenceNumber lastSeqFromSender = otherNodeData->getLastReceivedSequenceNumber();
@@ -291,53 +333,11 @@ void AvatarMixer::broadcastAvatarData() {
 
                     numAvatarDataBytes += avatarPacketList->write(otherNode->getUUID().toRfc4122());
                     numAvatarDataBytes +=
-                        avatarPacketList->write(otherAvatar.toByteArray(false, randFloat() < AVATAR_SEND_FULL_UPDATE_RATIO));
+                        avatarPacketList->write(otherAvatar.toByteArray(false, distribution(generator) < AVATAR_SEND_FULL_UPDATE_RATIO));
 
                     avatarPacketList->endSegment();
-
-                    // if the receiving avatar has just connected make sure we send out the mesh and billboard
-                    // for this avatar (assuming they exist)
-                    bool forceSend = !nodeData->checkAndSetHasReceivedFirstPackets();
-
-                    // we will also force a send of billboard or identity packet
-                    // if either has changed in the last frame
-
-                    if (otherNodeData->getBillboardChangeTimestamp() > 0
-                        && (forceSend
-                            || otherNodeData->getBillboardChangeTimestamp() > _lastFrameTimestamp
-                            || randFloat() < BILLBOARD_AND_IDENTITY_SEND_PROBABILITY)) {
-
-                        QByteArray rfcUUID = otherNode->getUUID().toRfc4122();
-                        QByteArray billboard = otherNodeData->getAvatar().getBillboard();
-
-                        auto billboardPacket = NLPacket::create(PacketType::AvatarBillboard, rfcUUID.size() + billboard.size());
-                        billboardPacket->write(rfcUUID);
-                        billboardPacket->write(billboard);
-
-                        nodeList->sendPacket(std::move(billboardPacket), *node);
-
-                        ++_sumBillboardPackets;
-                    }
-
-                    if (otherNodeData->getIdentityChangeTimestamp() > 0
-                        && (forceSend
-                            || otherNodeData->getIdentityChangeTimestamp() > _lastFrameTimestamp
-                            || randFloat() < BILLBOARD_AND_IDENTITY_SEND_PROBABILITY)) {
-
-                        QByteArray individualData = otherNodeData->getAvatar().identityByteArray();
-
-                        auto identityPacket = NLPacket::create(PacketType::AvatarIdentity, individualData.size());
-
-                        individualData.replace(0, NUM_BYTES_RFC4122_UUID, otherNode->getUUID().toRfc4122());
-
-                        identityPacket->write(individualData);
-
-                        nodeList->sendPacket(std::move(identityPacket), *node);
-
-                        ++_sumIdentityPackets;
-                    }
             });
-            
+
             // close the current packet so that we're always sending something
             avatarPacketList->closeCurrentPacket(true);
 
@@ -484,7 +484,7 @@ void AvatarMixer::sendStatsPacket() {
 
         // add the key to ask the domain-server for a username replacement, if it has it
         avatarStats[USERNAME_UUID_REPLACEMENT_STATS_KEY] = uuidStringWithoutCurlyBraces(node->getUUID());
-        
+
         avatarStats[NODE_OUTBOUND_KBPS_STAT_KEY] = node->getOutboundBandwidth();
         avatarStats[NODE_INBOUND_KBPS_STAT_KEY] = node->getInboundBandwidth();
 
@@ -513,14 +513,14 @@ void AvatarMixer::sendStatsPacket() {
 }
 
 void AvatarMixer::run() {
+    qDebug() << "Waiting for connection to domain to request settings from domain-server.";
+    
+    // wait until we have the domain-server settings, otherwise we bail
+    DomainHandler& domainHandler = DependencyManager::get<NodeList>()->getDomainHandler();
+    connect(&domainHandler, &DomainHandler::settingsReceived, this, &AvatarMixer::domainSettingsRequestComplete);
+    connect(&domainHandler, &DomainHandler::settingsReceiveFail, this, &AvatarMixer::domainSettingsRequestFailed);
+    
     ThreadedAssignment::commonInit(AVATAR_MIXER_LOGGING_NAME, NodeType::AvatarMixer);
-
-    auto nodeList = DependencyManager::get<NodeList>();
-    nodeList->addNodeTypeToInterestSet(NodeType::Agent);
-
-    nodeList->linkedDataCreateCallback = [] (Node* node) {
-        node->setLinkedData(new AvatarMixerClientData());
-    };
 
     // setup the timer that will be fired on the broadcast thread
     _broadcastTimer = new QTimer;
@@ -530,32 +530,23 @@ void AvatarMixer::run() {
     // connect appropriate signals and slots
     connect(_broadcastTimer, &QTimer::timeout, this, &AvatarMixer::broadcastAvatarData, Qt::DirectConnection);
     connect(&_broadcastThread, SIGNAL(started()), _broadcastTimer, SLOT(start()));
+}
 
-    // wait until we have the domain-server settings, otherwise we bail
-    DomainHandler& domainHandler = nodeList->getDomainHandler();
-
-    qDebug() << "Waiting for domain settings from domain-server.";
-
-    // block until we get the settingsRequestComplete signal
+void AvatarMixer::domainSettingsRequestComplete() {
+    auto nodeList = DependencyManager::get<NodeList>();
+    nodeList->addNodeTypeToInterestSet(NodeType::Agent);
     
-    QEventLoop loop;
-    connect(&domainHandler, &DomainHandler::settingsReceived, &loop, &QEventLoop::quit);
-    connect(&domainHandler, &DomainHandler::settingsReceiveFail, &loop, &QEventLoop::quit);
-    domainHandler.requestDomainSettings();
-    loop.exec();
-
-    if (domainHandler.getSettingsObject().isEmpty()) {
-        qDebug() << "Failed to retreive settings object from domain-server. Bailing on assignment.";
-        setFinished(true);
-        return;
-    }
-
+    nodeList->linkedDataCreateCallback = [] (Node* node) {
+        node->setLinkedData(std::unique_ptr<AvatarMixerClientData> { new AvatarMixerClientData });
+    };
+    
     // parse the settings to pull out the values we need
-    parseDomainServerSettings(domainHandler.getSettingsObject());
-
+    parseDomainServerSettings(nodeList->getDomainHandler().getSettingsObject());
+    
     // start the broadcastThread
     _broadcastThread.start();
 }
+
 
 void AvatarMixer::parseDomainServerSettings(const QJsonObject& domainSettings) {
     const QString AVATAR_MIXER_SETTINGS_KEY = "avatar_mixer";

@@ -33,35 +33,13 @@
 #include <QtMultimedia/QAudioInput>
 #include <QtMultimedia/QAudioOutput>
 
-#if defined(__GNUC__) && !defined(__clang__)
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wdouble-promotion"
-#endif
-
-#ifdef WIN32
-#pragma warning (push)
-#pragma warning (disable: 4273 4305)
-#endif
-
-extern "C" {
-    #include <gverb/gverb.h>
-    #include <gverb/gverbdsp.h>
-}
-
-#ifdef WIN32
-#pragma warning (pop)
-#endif
-
-#if defined(__GNUC__) && !defined(__clang__)
-#pragma GCC diagnostic pop
-#endif
-
 #include <NodeList.h>
 #include <udt/PacketHeaders.h>
 #include <PositionalAudioStream.h>
 #include <SettingHandle.h>
 #include <SharedUtil.h>
 #include <UUID.h>
+#include <Transform.h>
 
 #include "AudioInjector.h"
 #include "AudioConstants.h"
@@ -119,7 +97,6 @@ AudioClient::AudioClient() :
     _audioSourceInjectEnabled(false),
     _reverb(false),
     _reverbOptions(&_scriptReverbOptions),
-    _gverb(NULL),
     _inputToNetworkResampler(NULL),
     _networkToOutputResampler(NULL),
     _loopbackResampler(NULL),
@@ -144,9 +121,7 @@ AudioClient::AudioClient() :
     connect(updateTimer, &QTimer::timeout, this, &AudioClient::checkDevices);
     updateTimer->start(DEVICE_CHECK_INTERVAL_MSECS);
 
-    // create GVerb filter
-    _gverb = createGverbFilter();
-    configureGverbFilter(_gverb);
+    configureReverb();
 
     auto& packetReceiver = DependencyManager::get<NodeList>()->getPacketReceiver();
     packetReceiver.registerListener(PacketType::AudioStreamStats, &_stats, "processStreamStatsPacket");
@@ -159,10 +134,6 @@ AudioClient::AudioClient() :
 
 AudioClient::~AudioClient() {
     stop();
-
-    if (_gverb) {
-        gverb_free(_gverb);
-    }
 }
 
 void AudioClient::reset() {
@@ -172,8 +143,8 @@ void AudioClient::reset() {
     _toneSource.reset();
     _sourceGain.reset();
     _inputGain.reset();
-
-    gverb_flush(_gverb);
+    _sourceReverb.reset();
+    _listenerReverb.reset();
 }
 
 void AudioClient::audioMixerKilled() {
@@ -568,27 +539,32 @@ bool AudioClient::switchOutputToAudioDevice(const QString& outputDeviceName) {
     return switchOutputToAudioDevice(getNamedAudioDeviceForMode(QAudio::AudioOutput, outputDeviceName));
 }
 
-ty_gverb* AudioClient::createGverbFilter() {
-    // Initialize a new gverb instance
-    ty_gverb* filter = gverb_new(_outputFormat.sampleRate(), _reverbOptions->getMaxRoomSize(), _reverbOptions->getRoomSize(),
-                                 _reverbOptions->getReverbTime(), _reverbOptions->getDamping(), _reverbOptions->getSpread(),
-                                 _reverbOptions->getInputBandwidth(), _reverbOptions->getEarlyLevel(),
-                                 _reverbOptions->getTailLevel());
+void AudioClient::configureReverb() {
+    ReverbParameters p;
+    _listenerReverb.getParameters(&p);
 
-    return filter;
+    // for now, reuse the gverb parameters
+    p.sampleRate = _outputFormat.sampleRate();
+    p.roomSize = _reverbOptions->getRoomSize();
+    p.reverbTime = _reverbOptions->getReverbTime();
+    p.highGain = -24.0f * (1.0f - _reverbOptions->getDamping());
+    p.bandwidth = 10000.0f * _reverbOptions->getInputBandwidth();
+    p.earlyGain = _reverbOptions->getEarlyLevel();
+    p.lateGain = _reverbOptions->getTailLevel();
+    p.wetDryMix = 100.0f * powf(10.0f, _reverbOptions->getWetLevel() * (1/20.0f));
+    _listenerReverb.setParameters(&p);
+
+    // used for adding self-reverb to loopback audio
+    p.wetDryMix = 100.0f;
+    p.preDelay = 0.0f;
+    p.earlyGain = -96.0f;   // disable ER
+    p.lateGain -= 12.0f;     // quieter than listener reverb
+    p.lateMixLeft = 0.0f;
+    p.lateMixRight = 0.0f;
+    _sourceReverb.setParameters(&p);
 }
 
-void AudioClient::configureGverbFilter(ty_gverb* filter) {
-    // Configure the instance (these functions are not super well named - they actually set several internal variables)
-    gverb_set_roomsize(filter, _reverbOptions->getRoomSize());
-    gverb_set_revtime(filter, _reverbOptions->getReverbTime());
-    gverb_set_damping(filter, _reverbOptions->getDamping());
-    gverb_set_inputbandwidth(filter, _reverbOptions->getInputBandwidth());
-    gverb_set_earlylevel(filter, DB_CO(_reverbOptions->getEarlyLevel()));
-    gverb_set_taillevel(filter, DB_CO(_reverbOptions->getTailLevel()));
-}
-
-void AudioClient::updateGverbOptions() {
+void AudioClient::updateReverbOptions() {
     bool reverbChanged = false;
     if (_receivedAudioStream.hasReverb()) {
 
@@ -598,7 +574,7 @@ void AudioClient::updateGverbOptions() {
         }
         if (_zoneReverbOptions.getWetLevel() != _receivedAudioStream.getWetLevel()) {
             _zoneReverbOptions.setWetLevel(_receivedAudioStream.getWetLevel());
-            // Not part of actual filter config, no need to set reverbChanged to true
+            reverbChanged = true;
         }
 
         if (_reverbOptions != &_zoneReverbOptions) {
@@ -611,9 +587,7 @@ void AudioClient::updateGverbOptions() {
     }
 
     if (reverbChanged) {
-        gverb_free(_gverb);
-        _gverb = createGverbFilter();
-        configureGverbFilter(_gverb);
+        configureReverb();
     }
 }
 
@@ -621,7 +595,8 @@ void AudioClient::setReverb(bool reverb) {
     _reverb = reverb;
 
     if (!_reverb) {
-        gverb_flush(_gverb);
+        _sourceReverb.reset();
+        _listenerReverb.reset();
     }
 }
 
@@ -641,47 +616,7 @@ void AudioClient::setReverbOptions(const AudioEffectOptions* options) {
 
     if (_reverbOptions == &_scriptReverbOptions) {
         // Apply them to the reverb instances
-        gverb_free(_gverb);
-        _gverb = createGverbFilter();
-        configureGverbFilter(_gverb);
-    }
-}
-
-void AudioClient::addReverb(ty_gverb* gverb, int16_t* samplesData, int16_t* reverbAlone, int numSamples,
-                            QAudioFormat& audioFormat, bool noEcho) {
-    float wetFraction = DB_CO(_reverbOptions->getWetLevel());
-    float dryFraction = 1.0f - wetFraction;
-
-    float lValue,rValue;
-    for (int sample = 0; sample < numSamples; sample += audioFormat.channelCount()) {
-        // Run GVerb
-        float value = (float)samplesData[sample];
-        gverb_do(gverb, value, &lValue, &rValue);
-
-        // Mix, accounting for clipping, the left and right channels. Ignore the rest.
-        for (int j = sample; j < sample + audioFormat.channelCount(); j++) {
-            if (j == sample) {
-                // left channel
-                int lResult = glm::clamp((int)(samplesData[j] * dryFraction + lValue * wetFraction),
-                                         AudioConstants::MIN_SAMPLE_VALUE, AudioConstants::MAX_SAMPLE_VALUE);
-                samplesData[j] = (int16_t)lResult;
-
-                if (noEcho) {
-                    reverbAlone[j] = (int16_t)lValue * wetFraction;
-                }
-            } else if (j == (sample + 1)) {
-                // right channel
-                int rResult = glm::clamp((int)(samplesData[j] * dryFraction + rValue * wetFraction),
-                                         AudioConstants::MIN_SAMPLE_VALUE, AudioConstants::MAX_SAMPLE_VALUE);
-                samplesData[j] = (int16_t)rResult;
-
-                if (noEcho) {
-                    reverbAlone[j] = (int16_t)rValue * wetFraction;
-                }
-            } else {
-                // ignore channels above 2
-            }
-        }
+        configureReverb();
     }
 }
 
@@ -715,46 +650,35 @@ void AudioClient::handleLocalEchoAndReverb(QByteArray& inputByteArray) {
         _loopbackResampler = new AudioSRC(_inputFormat.sampleRate(), _outputFormat.sampleRate(), channelCount);
     }
 
-    static QByteArray reverbAlone;  // Intermediary for local reverb with no echo
     static QByteArray loopBackByteArray;
 
     int numInputSamples = inputByteArray.size() / sizeof(int16_t);
     int numLoopbackSamples = numDestinationSamplesRequired(_inputFormat, _outputFormat, numInputSamples);
 
-    reverbAlone.resize(numInputSamples * sizeof(int16_t));
     loopBackByteArray.resize(numLoopbackSamples * sizeof(int16_t));
 
     int16_t* inputSamples = reinterpret_cast<int16_t*>(inputByteArray.data());
-    int16_t* reverbAloneSamples = reinterpret_cast<int16_t*>(reverbAlone.data());
     int16_t* loopbackSamples = reinterpret_cast<int16_t*>(loopBackByteArray.data());
 
-    if (hasReverb) {
-        updateGverbOptions();
-        addReverb(_gverb, inputSamples, reverbAloneSamples, numInputSamples,
-                  _inputFormat, !_shouldEchoLocally);
-    }
-
     possibleResampling(_loopbackResampler,
-                       (_shouldEchoLocally) ? inputSamples : reverbAloneSamples, loopbackSamples,
+                       inputSamples, loopbackSamples,
                        numInputSamples, numLoopbackSamples,
                        _inputFormat, _outputFormat);
+
+    // apply stereo reverb at the source, to the loopback audio
+    if (!_shouldEchoLocally && hasReverb) {
+        assert(_outputFormat.channelCount() == 2);
+        updateReverbOptions();
+        _sourceReverb.render(loopbackSamples, loopbackSamples, numLoopbackSamples/2);
+    }
 
     _loopbackOutputDevice->write(loopBackByteArray);
 }
 
 void AudioClient::handleAudioInput() {
-    if (!_audioPacket) {
-        // we don't have an audioPacket yet - set that up now
-        _audioPacket = NLPacket::create(PacketType::MicrophoneAudioNoEcho);
-    }
-
-    float inputToNetworkInputRatio = calculateDeviceToNetworkInputRatio();
-
-    int inputSamplesRequired = (int)((float)AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL * inputToNetworkInputRatio);
-
-    static int leadingBytes = sizeof(quint16) + sizeof(glm::vec3) + sizeof(glm::quat) + sizeof(quint8);
-    int16_t* networkAudioSamples = (int16_t*)(_audioPacket->getPayload() + leadingBytes);
-
+    const float inputToNetworkInputRatio = calculateDeviceToNetworkInputRatio();
+    const int inputSamplesRequired = (int)((float)AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL * inputToNetworkInputRatio);
+    const auto inputAudioSamples = std::unique_ptr<int16_t[]>(new int16_t[inputSamplesRequired]);
     QByteArray inputByteArray = _inputDevice->readAll();
 
     //  Add audio source injection if enabled
@@ -783,34 +707,30 @@ void AudioClient::handleAudioInput() {
     float audioInputMsecsRead = inputByteArray.size() / (float)(_inputFormat.bytesForDuration(USECS_PER_MSEC));
     _stats.updateInputMsecsRead(audioInputMsecsRead);
 
-    while (_inputRingBuffer.samplesAvailable() >= inputSamplesRequired) {
+    const int numNetworkBytes = _isStereoInput
+        ? AudioConstants::NETWORK_FRAME_BYTES_STEREO
+        : AudioConstants::NETWORK_FRAME_BYTES_PER_CHANNEL;
+    const int numNetworkSamples = _isStereoInput
+        ? AudioConstants::NETWORK_FRAME_SAMPLES_STEREO
+        : AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL;
 
-        const int numNetworkBytes = _isStereoInput
-            ? AudioConstants::NETWORK_FRAME_BYTES_STEREO
-            : AudioConstants::NETWORK_FRAME_BYTES_PER_CHANNEL;
-        const int numNetworkSamples = _isStereoInput
-            ? AudioConstants::NETWORK_FRAME_SAMPLES_STEREO
-            : AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL;
+    static int16_t networkAudioSamples[AudioConstants::NETWORK_FRAME_SAMPLES_STEREO];
+
+    while (_inputRingBuffer.samplesAvailable() >= inputSamplesRequired) {
 
         if (!_muted) {
 
-            // zero out the monoAudioSamples array and the locally injected audio
-            memset(networkAudioSamples, 0, numNetworkBytes);
 
             //  Increment the time since the last clip
             if (_timeSinceLastClip >= 0.0f) {
-                _timeSinceLastClip += (float) numNetworkSamples / (float) AudioConstants::SAMPLE_RATE;
+                _timeSinceLastClip += (float)numNetworkSamples / (float)AudioConstants::SAMPLE_RATE;
             }
 
-            int16_t* inputAudioSamples = new int16_t[inputSamplesRequired];
-            _inputRingBuffer.readSamples(inputAudioSamples, inputSamplesRequired);
-
+            _inputRingBuffer.readSamples(inputAudioSamples.get(), inputSamplesRequired);
             possibleResampling(_inputToNetworkResampler,
-                               inputAudioSamples, networkAudioSamples,
-                               inputSamplesRequired, numNetworkSamples,
-                               _inputFormat, _desiredInputFormat);
-
-            delete[] inputAudioSamples;
+                inputAudioSamples.get(), networkAudioSamples,
+                inputSamplesRequired, numNetworkSamples,
+                _inputFormat, _desiredInputFormat);
 
             //  Remove DC offset
             if (!_isStereoInput && !_audioSourceInjectEnabled) {
@@ -832,7 +752,7 @@ void AudioClient::handleAudioInput() {
 
                 for (int i = 0; i < numNetworkSamples; i++) {
                     int thisSample = std::abs(networkAudioSamples[i]);
-                    loudness += (float) thisSample;
+                    loudness += (float)thisSample;
 
                     if (thisSample > (AudioConstants::MAX_SAMPLE_VALUE * AudioNoiseGate::CLIPPING_THRESHOLD)) {
                         _timeSinceLastClip = 0.0f;
@@ -842,8 +762,7 @@ void AudioClient::handleAudioInput() {
                 _lastInputLoudness = fabs(loudness / numNetworkSamples);
             }
 
-            emit inputReceived(QByteArray(reinterpret_cast<const char*>(networkAudioSamples),
-                                          AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL * sizeof(AudioConstants::AudioSample)));
+            emit inputReceived({ reinterpret_cast<char*>(networkAudioSamples), numNetworkBytes });
 
         } else {
             // our input loudness is 0, since we're muted
@@ -853,59 +772,27 @@ void AudioClient::handleAudioInput() {
             _inputRingBuffer.shiftReadPosition(inputSamplesRequired);
         }
 
-        auto nodeList = DependencyManager::get<NodeList>();
-        SharedNodePointer audioMixer = nodeList->soloNodeOfType(NodeType::AudioMixer);
+        auto packetType = _shouldEchoToServer ?
+            PacketType::MicrophoneAudioWithEcho : PacketType::MicrophoneAudioNoEcho;
 
-        if (audioMixer && audioMixer->getActiveSocket()) {
-            glm::vec3 headPosition = _positionGetter();
-            glm::quat headOrientation = _orientationGetter();
-            quint8 isStereo = _isStereoInput ? 1 : 0;
-
-            if (_lastInputLoudness == 0) {
-                _audioPacket->setType(PacketType::SilentAudioFrame);
-            } else {
-                if (_shouldEchoToServer) {
-                    _audioPacket->setType(PacketType::MicrophoneAudioWithEcho);
-                } else {
-                    _audioPacket->setType(PacketType::MicrophoneAudioNoEcho);
-                }
-            }
-
-            // reset the audio packet so we can start writing
-            _audioPacket->reset();
-
-            // write sequence number
-            _audioPacket->writePrimitive(_outgoingAvatarAudioSequenceNumber);
-
-            if (_audioPacket->getType() == PacketType::SilentAudioFrame) {
-                // pack num silent samples
-                quint16 numSilentSamples = numNetworkSamples;
-                _audioPacket->writePrimitive(numSilentSamples);
-            } else {
-                // set the mono/stereo byte
-                _audioPacket->writePrimitive(isStereo);
-            }
-
-            // pack the three float positions
-            _audioPacket->writePrimitive(headPosition);
-
-            // pack the orientation
-            _audioPacket->writePrimitive(headOrientation);
-            
-            if (_audioPacket->getType() != PacketType::SilentAudioFrame) {
-                // audio samples have already been packed (written to networkAudioSamples)
-                _audioPacket->setPayloadSize(_audioPacket->getPayloadSize() + numNetworkBytes);
-            }
-            
-            _stats.sentPacket();
-
-            nodeList->flagTimeForConnectionStep(LimitedNodeList::ConnectionStep::SendAudioPacket);
-
-            nodeList->sendUnreliablePacket(*_audioPacket, *audioMixer);
-
-            _outgoingAvatarAudioSequenceNumber++;
+        if (_lastInputLoudness == 0) {
+            packetType = PacketType::SilentAudioFrame;
         }
+        Transform audioTransform;
+        audioTransform.setTranslation(_positionGetter());
+        audioTransform.setRotation(_orientationGetter());
+        // FIXME find a way to properly handle both playback audio and user audio concurrently
+        emitAudioPacket(networkAudioSamples, numNetworkBytes, _outgoingAvatarAudioSequenceNumber, audioTransform, packetType);
+        _stats.sentPacket();
     }
+}
+
+void AudioClient::handleRecordedAudioInput(const QByteArray& audio) {
+    Transform audioTransform;
+    audioTransform.setTranslation(_positionGetter());
+    audioTransform.setRotation(_orientationGetter());
+    // FIXME check a flag to see if we should echo audio?
+    emitAudioPacket(audio.data(), audio.size(), _outgoingAvatarAudioSequenceNumber, audioTransform, PacketType::MicrophoneAudioWithEcho);
 }
 
 void AudioClient::processReceivedSamples(const QByteArray& inputBuffer, QByteArray& outputBuffer) {
@@ -916,12 +803,20 @@ void AudioClient::processReceivedSamples(const QByteArray& inputBuffer, QByteArr
     outputBuffer.resize(numDeviceOutputSamples * sizeof(int16_t));
 
     const int16_t* receivedSamples = reinterpret_cast<const int16_t*>(inputBuffer.data());
+    int16_t* outputSamples = reinterpret_cast<int16_t*>(outputBuffer.data());
 
     // copy the packet from the RB to the output
-    possibleResampling(_networkToOutputResampler, receivedSamples,
-                       reinterpret_cast<int16_t*>(outputBuffer.data()),
+    possibleResampling(_networkToOutputResampler, receivedSamples, outputSamples,
                        numNetworkOutputSamples, numDeviceOutputSamples,
                        _desiredOutputFormat, _outputFormat);
+
+    // apply stereo reverb at the listener, to the received audio
+    bool hasReverb = _reverb || _receivedAudioStream.hasReverb();
+    if (hasReverb) {
+        assert(_outputFormat.channelCount() == 2);
+        updateReverbOptions();
+        _listenerReverb.render(outputSamples, outputSamples, numDeviceOutputSamples/2);
+    }
 }
 
 void AudioClient::sendMuteEnvironmentPacket() {

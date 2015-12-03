@@ -79,8 +79,13 @@ EntityMotionState::~EntityMotionState() {
     assert(!_entity);
 }
 
-void EntityMotionState::updateServerPhysicsVariables() {
+void EntityMotionState::updateServerPhysicsVariables(const QUuid& sessionID) {
     assert(entityTreeIsLocked());
+    if (_entity->getSimulatorID() == sessionID) {
+        // don't slam these values if we are the simulation owner
+        return;
+    }
+
     _serverPosition = _entity->getPosition();
     _serverRotation = _entity->getRotation();
     _serverVelocity = _entity->getVelocity();
@@ -90,9 +95,9 @@ void EntityMotionState::updateServerPhysicsVariables() {
 }
 
 // virtual
-bool EntityMotionState::handleEasyChanges(uint32_t flags, PhysicsEngine* engine) {
+bool EntityMotionState::handleEasyChanges(uint32_t& flags, PhysicsEngine* engine) {
     assert(entityTreeIsLocked());
-    updateServerPhysicsVariables();
+    updateServerPhysicsVariables(engine->getSessionID());
     ObjectMotionState::handleEasyChanges(flags, engine);
 
     if (flags & Simulation::DIRTY_SIMULATOR_ID) {
@@ -107,15 +112,15 @@ bool EntityMotionState::handleEasyChanges(uint32_t flags, PhysicsEngine* engine)
             _outgoingPriority = NO_PRORITY;
         } else  {
             _nextOwnershipBid = usecTimestampNow() + USECS_BETWEEN_OWNERSHIP_BIDS;
-            if (engine->getSessionID() == _entity->getSimulatorID() || _entity->getSimulationPriority() > _outgoingPriority) {
-                // we own the simulation or our priority looses to remote
+            if (engine->getSessionID() == _entity->getSimulatorID() || _entity->getSimulationPriority() >= _outgoingPriority) {
+                // we own the simulation or our priority looses to (or ties with) remote
                 _outgoingPriority = NO_PRORITY;
             }
         }
     }
     if (flags & Simulation::DIRTY_SIMULATOR_OWNERSHIP) {
         // (DIRTY_SIMULATOR_OWNERSHIP really means "we should bid for ownership with SCRIPT priority")
-        // we're manipulating this object directly via script, so we artificially 
+        // we're manipulating this object directly via script, so we artificially
         // manipulate the logic to trigger an immediate bid for ownership
         setOutgoingPriority(SCRIPT_EDIT_SIMULATION_PRIORITY);
     }
@@ -128,8 +133,8 @@ bool EntityMotionState::handleEasyChanges(uint32_t flags, PhysicsEngine* engine)
 
 
 // virtual
-bool EntityMotionState::handleHardAndEasyChanges(uint32_t flags, PhysicsEngine* engine) {
-    updateServerPhysicsVariables();
+bool EntityMotionState::handleHardAndEasyChanges(uint32_t& flags, PhysicsEngine* engine) {
+    updateServerPhysicsVariables(engine->getSessionID());
     return ObjectMotionState::handleHardAndEasyChanges(flags, engine);
 }
 
@@ -239,7 +244,7 @@ bool EntityMotionState::isCandidateForOwnership(const QUuid& sessionID) const {
         return false;
     }
     assert(entityTreeIsLocked());
-    return _outgoingPriority != NO_PRORITY || sessionID == _entity->getSimulatorID();
+    return _outgoingPriority != NO_PRORITY || sessionID == _entity->getSimulatorID() || _entity->actionDataNeedsTransmit();
 }
 
 bool EntityMotionState::remoteSimulationOutOfSync(uint32_t simulationStep) {
@@ -287,7 +292,7 @@ bool EntityMotionState::remoteSimulationOutOfSync(uint32_t simulationStep) {
         _serverPosition += dt * _serverVelocity;
     }
 
-    if (_serverActionData != _entity->getActionData()) {
+    if (_entity->actionDataNeedsTransmit()) {
         setOutgoingPriority(SCRIPT_EDIT_SIMULATION_PRIORITY);
         return true;
     }
@@ -365,11 +370,15 @@ bool EntityMotionState::shouldSendUpdate(uint32_t simulationStep, const QUuid& s
     assert(_body);
     assert(entityTreeIsLocked());
 
+    if (_entity->actionDataNeedsTransmit()) {
+        return true;
+    }
+
     if (_entity->getSimulatorID() != sessionID) {
         // we don't own the simulation, but maybe we should...
         if (_outgoingPriority != NO_PRORITY) {
             if (_outgoingPriority < _entity->getSimulationPriority()) {
-                // our priority looses to remote, so we don't bother to bid
+                // our priority loses to remote, so we don't bother to bid
                 _outgoingPriority = NO_PRORITY;
                 return false;
             }
@@ -451,7 +460,10 @@ void EntityMotionState::sendUpdate(OctreeEditPacketSender* packetSender, const Q
     properties.setVelocity(_serverVelocity);
     properties.setAcceleration(_serverAcceleration);
     properties.setAngularVelocity(_serverAngularVelocity);
-    properties.setActionData(_serverActionData);
+    if (_entity->actionDataNeedsTransmit()) {
+        _entity->setActionDataNeedsTransmit(false);
+        properties.setActionData(_serverActionData);
+    }
 
     // set the LastEdited of the properties but NOT the entity itself
     quint64 now = usecTimestampNow();
@@ -480,20 +492,14 @@ void EntityMotionState::sendUpdate(OctreeEditPacketSender* packetSender, const Q
         _nextOwnershipBid = now + USECS_BETWEEN_OWNERSHIP_BIDS;
     }
 
-    if (EntityItem::getSendPhysicsUpdates()) {
-        EntityItemID id(_entity->getID());
-        EntityEditPacketSender* entityPacketSender = static_cast<EntityEditPacketSender*>(packetSender);
-        #ifdef WANT_DEBUG
-            qCDebug(physics) << "EntityMotionState::sendUpdate()... calling queueEditEntityMessage()...";
-        #endif
+    EntityItemID id(_entity->getID());
+    EntityEditPacketSender* entityPacketSender = static_cast<EntityEditPacketSender*>(packetSender);
+    #ifdef WANT_DEBUG
+        qCDebug(physics) << "EntityMotionState::sendUpdate()... calling queueEditEntityMessage()...";
+    #endif
 
-        entityPacketSender->queueEditEntityMessage(PacketType::EntityEdit, id, properties);
-        _entity->setLastBroadcast(usecTimestampNow());
-    } else {
-        #ifdef WANT_DEBUG
-            qCDebug(physics) << "EntityMotionState::sendUpdate()... NOT sending update as requested.";
-        #endif
-    }
+    entityPacketSender->queueEditEntityMessage(PacketType::EntityEdit, id, properties);
+    _entity->setLastBroadcast(usecTimestampNow());
 
     _lastStep = step;
 }
@@ -521,7 +527,7 @@ void EntityMotionState::clearIncomingDirtyFlags() {
     }
 }
 
-// virtual 
+// virtual
 quint8 EntityMotionState::getSimulationPriority() const {
     if (_entity) {
         return _entity->getSimulationPriority();

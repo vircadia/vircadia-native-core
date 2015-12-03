@@ -12,6 +12,8 @@
 #ifndef hifi_OctreeServer_h
 #define hifi_OctreeServer_h
 
+#include <memory>
+
 #include <QStringList>
 #include <QDateTime>
 #include <QtCore/QCoreApplication>
@@ -59,9 +61,12 @@ public:
     bool isInitialLoadComplete() const { return (_persistThread) ? _persistThread->isInitialLoadComplete() : true; }
     bool isPersistEnabled() const { return (_persistThread) ? true : false; }
     quint64 getLoadElapsedTime() const { return (_persistThread) ? _persistThread->getLoadElapsedTime() : 0; }
+    QString getPersistFilename() const { return (_persistThread) ? _persistThread->getPersistFilename() : ""; }
+    QString getPersistFileMimeType() const { return (_persistThread) ? _persistThread->getPersistFileMimeType() : "text/plain"; }
+    QByteArray getPersistFileContents() const { return (_persistThread) ? _persistThread->getPersistFileContents() : QByteArray(); }
 
     // Subclasses must implement these methods
-    virtual OctreeQueryNode* createOctreeQueryNode() = 0;
+    virtual std::unique_ptr<OctreeQueryNode> createOctreeQueryNode() = 0;
     virtual char getMyNodeType() const = 0;
     virtual PacketType getMyQueryMessageType() const = 0;
     virtual const char* getMyServerName() const = 0;
@@ -74,6 +79,9 @@ public:
     virtual void beforeRun() { }
     virtual bool hasSpecialPacketsToSend(const SharedNodePointer& node) { return false; }
     virtual int sendSpecialPackets(const SharedNodePointer& node, OctreeQueryNode* queryNode, int& packetsSent) { return 0; }
+    virtual QString serverSubclassStats() { return QString(); }
+    virtual void trackSend(const QUuid& dataID, quint64 dataLastEdited, const QUuid& viewerNode) { }
+    virtual void trackViewerGone(const QUuid& viewerNode) { }
 
     static float SKIP_TIME; // use this for trackXXXTime() calls for non-times
 
@@ -126,6 +134,7 @@ public slots:
     void sendStatsPacket();
 
 private slots:
+    void domainSettingsRequestComplete();
     void handleOctreeQueryPacket(QSharedPointer<NLPacket> packet, SharedNodePointer senderNode);
     void handleOctreeDataNackPacket(QSharedPointer<NLPacket> packet, SharedNodePointer senderNode);
     void handleJurisdictionRequestPacket(QSharedPointer<NLPacket> packet, SharedNodePointer senderNode);
@@ -135,8 +144,8 @@ protected:
     bool readOptionBool(const QString& optionName, const QJsonObject& settingsSectionObject, bool& result);
     bool readOptionInt(const QString& optionName, const QJsonObject& settingsSectionObject, int& result);
     bool readOptionString(const QString& optionName, const QJsonObject& settingsSectionObject, QString& result);
-    bool readConfiguration();
-    virtual bool readAdditionalConfiguration(const QJsonObject& settingsSectionObject) { return true;  };
+    void readConfiguration();
+    virtual void readAdditionalConfiguration(const QJsonObject& settingsSectionObject) { };
     void parsePayload();
     void initHTTPManager(int port);
     void resetSendingStats();
@@ -173,6 +182,7 @@ protected:
 
     int _persistInterval;
     bool _wantBackup;
+    bool _persistFileDownload;
     QString _backupExtensionFormat;
     int _backupInterval;
     int _maxBackupVersions;

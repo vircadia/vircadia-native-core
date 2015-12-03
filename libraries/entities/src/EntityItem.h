@@ -30,6 +30,7 @@
 #include "EntityTypes.h"
 #include "SimulationOwner.h"
 #include "SimulationFlags.h"
+#include "EntityActionInterface.h"
 
 class EntitySimulation;
 class EntityTreeElement;
@@ -46,23 +47,6 @@ namespace render {
     class Scene;
     class PendingChanges;
 }
-
-// these thesholds determine what updates will be ignored (client and server)
-const float IGNORE_POSITION_DELTA = 0.0001f;
-const float IGNORE_DIMENSIONS_DELTA = 0.0005f;
-const float IGNORE_ALIGNMENT_DOT = 0.99997f;
-const float IGNORE_LINEAR_VELOCITY_DELTA = 0.001f;
-const float IGNORE_DAMPING_DELTA = 0.001f;
-const float IGNORE_GRAVITY_DELTA = 0.001f;
-const float IGNORE_ANGULAR_VELOCITY_DELTA = 0.0002f;
-
-// these thresholds determine what updates will activate the physical object
-const float ACTIVATION_POSITION_DELTA = 0.005f;
-const float ACTIVATION_DIMENSIONS_DELTA = 0.005f;
-const float ACTIVATION_ALIGNMENT_DOT = 0.99990f;
-const float ACTIVATION_LINEAR_VELOCITY_DELTA = 0.01f;
-const float ACTIVATION_GRAVITY_DELTA = 0.1f;
-const float ACTIVATION_ANGULAR_VELOCITY_DELTA = 0.03f;
 
 #define DONT_ALLOW_INSTANTIATION virtual void pureVirtualFunctionPlaceHolder() = 0;
 #define ALLOW_INSTANTIATION virtual void pureVirtualFunctionPlaceHolder() { };
@@ -191,7 +175,7 @@ public:
 
     virtual bool supportsDetailedRayIntersection() const { return false; }
     virtual bool findDetailedRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
-                         bool& keepSearching, OctreeElementPointer& element, float& distance, 
+                         bool& keepSearching, OctreeElementPointer& element, float& distance,
                          BoxFace& face, glm::vec3& surfaceNormal,
                          void** intersectedObject, bool precisionPicking) const { return true; }
 
@@ -307,6 +291,7 @@ public:
 
     QString getName() const { return _name; }
     void setName(const QString& value) { _name = value; }
+    QString getDebugName() { return _name != "" ? _name : getID().toString(); }
 
     bool getVisible() const { return _visible; }
     void setVisible(bool value) { _visible = value; }
@@ -381,9 +366,7 @@ public:
     void setPhysicsInfo(void* data) { _physicsInfo = data; }
     EntityTreeElementPointer getElement() const { return _element; }
     EntityTreePointer getTree() const;
-
-    static void setSendPhysicsUpdates(bool value) { _sendPhysicsUpdates = value; }
-    static bool getSendPhysicsUpdates() { return _sendPhysicsUpdates; }
+    bool wantTerseEditLogging();
 
     glm::mat4 getEntityToWorldMatrix() const;
     glm::mat4 getWorldToEntityMatrix() const;
@@ -395,6 +378,7 @@ public:
     void getAllTerseUpdateProperties(EntityItemProperties& properties) const;
 
     void flagForOwnership() { _dirtyFlags |= Simulation::DIRTY_SIMULATOR_OWNERSHIP; }
+    void flagForMotionStateChange() { _dirtyFlags |= Simulation::DIRTY_MOTION_TYPE; }
 
     bool addAction(EntitySimulation* simulation, EntityActionPointer action);
     bool updateAction(EntitySimulation* simulation, const QUuid& actionID, const QVariantMap& arguments);
@@ -406,19 +390,26 @@ public:
     QList<QUuid> getActionIDs() { return _objectActions.keys(); }
     QVariantMap getActionArguments(const QUuid& actionID) const;
     void deserializeActions();
+
     void setActionDataDirty(bool value) const { _actionDataDirty = value; }
+    bool actionDataDirty() const { return _actionDataDirty; }
+
+    void setActionDataNeedsTransmit(bool value) const { _actionDataNeedsTransmit = value; }
+    bool actionDataNeedsTransmit() const { return _actionDataNeedsTransmit; }
+
     bool shouldSuppressLocationEdits() const;
 
     void setSourceUUID(const QUuid& sourceUUID) { _sourceUUID = sourceUUID; }
     const QUuid& getSourceUUID() const { return _sourceUUID; }
-    bool matchesSourceUUID(const QUuid& sourceUUID) const  { return _sourceUUID == sourceUUID; }
+    bool matchesSourceUUID(const QUuid& sourceUUID) const { return _sourceUUID == sourceUUID; }
+
+    QList<EntityActionPointer> getActionsOfType(EntityActionType typeToGet);
 
 protected:
 
     const QByteArray getActionDataInternal() const;
     void setActionDataInternal(QByteArray actionData);
 
-    static bool _sendPhysicsUpdates;
     EntityTypes::EntityType _type;
     QUuid _id;
     quint64 _lastSimulated; // last time this entity called simulate(), this includes velocity, angular velocity,
@@ -439,7 +430,7 @@ protected:
     mutable bool _recalcAABox = true;
     mutable bool _recalcMinAACube = true;
     mutable bool _recalcMaxAACube = true;
-    
+
     float _glowLevel;
     float _localRenderAlpha;
     float _density = ENTITY_ITEM_DEFAULT_DENSITY; // kg/m^3
@@ -510,6 +501,7 @@ protected:
     void checkWaitingToRemove(EntitySimulation* simulation = nullptr);
     mutable QSet<QUuid> _actionsToRemove;
     mutable bool _actionDataDirty = false;
+    mutable bool _actionDataNeedsTransmit = false;
     // _previouslyDeletedActions is used to avoid an action being re-added due to server round-trip lag
     static quint64 _rememberDeletedActionTime;
     mutable QHash<QUuid, quint64> _previouslyDeletedActions;

@@ -12,12 +12,11 @@
 
 /*global MyAvatar, Entities, AnimationCache, SoundCache, Scene, Camera, Overlays, HMD, AvatarList, AvatarManager, Controller, UndoStack, Window, Account, GlobalServices, Script, ScriptDiscoveryService, LODManager, Menu, Vec3, Quat, AudioDevice, Paths, Clipboard, Settings, XMLHttpRequest, randFloat, randInt */
 
-(function () {
+(function() {
 
-    Script.include("../../utilities.js");
     Script.include("../../libraries/utils.js");
 
-    var BUBBLE_MODEL = "http://hifi-public.s3.amazonaws.com/james/bubblewand/models/bubble/bubble.fbx";
+    var BUBBLE_MODEL = "http://hifi-content.s3.amazonaws.com/james/bubblewand/bubble.fbx";
 
     var BUBBLE_INITIAL_DIMENSIONS = {
         x: 0.01,
@@ -29,7 +28,7 @@
     var BUBBLE_LIFETIME_MAX = 8;
     var BUBBLE_SIZE_MIN = 0.02;
     var BUBBLE_SIZE_MAX = 0.1;
-    var BUBBLE_LINEAR_DAMPING = 0.4;
+    var BUBBLE_LINEAR_DAMPING = 0.2;
     var BUBBLE_GRAVITY_MIN = 0.1;
     var BUBBLE_GRAVITY_MAX = 0.3;
     var GROWTH_FACTOR = 0.005;
@@ -59,23 +58,23 @@
     BubbleWand.prototype = {
         timePassed: null,
         currentBubble: null,
-        preload: function (entityID) {
+        preload: function(entityID) {
             this.entityID = entityID;
         },
-        getWandTipPosition: function (properties) {
+        getWandTipPosition: function(properties) {
             //the tip of the wand is going to be in a different place than the center, so we move in space relative to the model to find that position
             var upVector = Quat.getUp(properties.rotation);
             var upOffset = Vec3.multiply(upVector, WAND_TIP_OFFSET);
             var wandTipPosition = Vec3.sum(properties.position, upOffset);
             return wandTipPosition;
         },
-        addCollisionsToBubbleAfterCreation: function (bubble) {
+        addCollisionsToBubbleAfterCreation: function(bubble) {
             //if the bubble collide immediately, we get weird effects.  so we add collisions after release
             Entities.editEntity(bubble, {
                 collisionsWillMove: true
             });
         },
-        randomizeBubbleGravity: function () {
+        randomizeBubbleGravity: function() {
             //change up the gravity a little bit for variation in floating effects
             var randomNumber = randFloat(BUBBLE_GRAVITY_MIN, BUBBLE_GRAVITY_MAX);
             var gravity = {
@@ -85,7 +84,7 @@
             };
             return gravity;
         },
-        growBubbleWithWandVelocity: function (properties, deltaTime) {
+        growBubbleWithWandVelocity: function(properties, deltaTime) {
             //get the wand and tip position for calculations
             var wandPosition = properties.position;
             this.getWandTipPosition(properties);
@@ -146,7 +145,7 @@
                 dimensions: dimensions
             });
         },
-        createBubbleAtTipOfWand: function () {
+        createBubbleAtTipOfWand: function() {
 
             //create a new bubble at the tip of the wand
             var properties = Entities.getEntityProperties(this.entityID, ["position", "rotation"]);
@@ -163,23 +162,22 @@
                 position: this.getWandTipPosition(properties),
                 dimensions: BUBBLE_INITIAL_DIMENSIONS,
                 collisionsWillMove: false,
-                ignoreForCollisions: false,
-                linearDamping: BUBBLE_LINEAR_DAMPING,
+                ignoreForCollisions: true,
+                damping: BUBBLE_LINEAR_DAMPING,
                 shapeType: "sphere"
             });
 
         },
-        startNearGrab: function () {
+        startNearGrab: function() {
             //create a bubble to grow at the start of the grab
             if (this.currentBubble === null) {
                 this.createBubbleAtTipOfWand();
             }
         },
-        continueNearGrab: function () {
+        continueNearGrab: function() {
             var deltaTime = checkInterval();
             //only get the properties that we need
             var properties = Entities.getEntityProperties(this.entityID, ["position", "rotation"]);
-
 
             var wandTipPosition = this.getWandTipPosition(properties);
 
@@ -190,7 +188,7 @@
             this.growBubbleWithWandVelocity(properties, deltaTime);
 
         },
-        releaseGrab: function () {
+        releaseGrab: function() {
             //delete the  current buble and reset state when the wand is released
             Entities.deleteEntity(this.currentBubble);
             this.currentBubble = null;

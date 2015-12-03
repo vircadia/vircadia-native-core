@@ -206,7 +206,7 @@ namespace controller {
     void ScriptingInterface::updateMaps() {
         QVariantMap newHardware;
         auto userInputMapper = DependencyManager::get<controller::UserInputMapper>();
-        auto devices = userInputMapper->getDevices();
+        const auto& devices = userInputMapper->getDevices();
         for (const auto& deviceMapping : devices) {
             auto deviceID = deviceMapping.first;
             if (deviceID != userInputMapper->getStandardDeviceID()) {

@@ -68,17 +68,16 @@ public:
 class RenderArgs {
 public:
     typedef std::function<bool(const RenderArgs* args, const AABox& bounds)> ShoudRenderFunctor;
-    
+
     enum RenderMode { DEFAULT_RENDER_MODE, SHADOW_RENDER_MODE, DIFFUSE_RENDER_MODE, NORMAL_RENDER_MODE, MIRROR_RENDER_MODE };
 
     enum RenderSide { MONO, STEREO_LEFT, STEREO_RIGHT };
 
     enum DebugFlags {
         RENDER_DEBUG_NONE = 0,
-        RENDER_DEBUG_HULLS = 1,
-        RENDER_DEBUG_SIMULATION_OWNERSHIP = 2,
+        RENDER_DEBUG_HULLS = 1
     };
-    
+
     RenderArgs(std::shared_ptr<gpu::Context> context = nullptr,
                OctreeRenderer* renderer = nullptr,
                ViewFrustum* viewFrustum = nullptr,

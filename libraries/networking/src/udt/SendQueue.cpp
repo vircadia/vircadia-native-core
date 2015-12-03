@@ -395,7 +395,7 @@ bool SendQueue::isInactive(bool sentAPacket) {
             
 #ifdef UDT_CONNECTION_DEBUG
             qCDebug(networking) << "SendQueue to" << _destination << "reached" << NUM_TIMEOUTS_BEFORE_INACTIVE << "timeouts"
-            << "and 5s before receiving any ACK/NAK and is now inactive. Stopping.";
+                << "and 5s before receiving any ACK/NAK and is now inactive. Stopping.";
 #endif
             
             deactivate();
@@ -427,9 +427,9 @@ bool SendQueue::isInactive(bool sentAPacket) {
                 if (cvStatus == std::cv_status::timeout) {
 #ifdef UDT_CONNECTION_DEBUG
                     qCDebug(networking) << "SendQueue to" << _destination << "has been empty for"
-                    << EMPTY_QUEUES_INACTIVE_TIMEOUT.count()
-                    << "seconds and receiver has ACKed all packets."
-                    << "The queue is now inactive and will be stopped.";
+                        << EMPTY_QUEUES_INACTIVE_TIMEOUT.count()
+                        << "seconds and receiver has ACKed all packets."
+                        << "The queue is now inactive and will be stopped.";
 #endif
                     
                     // Deactivate queue

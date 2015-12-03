@@ -9,7 +9,7 @@
 #  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 # 
 
-macro(COPY_DLLS_BESIDE_WINDOWS_EXECUTABLE)
+macro(PACKAGE_LIBRARIES_FOR_DEPLOYMENT)
   
   if (WIN32)
     configure_file(
@@ -18,12 +18,15 @@ macro(COPY_DLLS_BESIDE_WINDOWS_EXECUTABLE)
       @ONLY
     )
     
+    set(PLUGIN_PATH "plugins")
+    
     # add a post-build command to copy DLLs beside the executable
     add_custom_command(
       TARGET ${TARGET_NAME}
       POST_BUILD
       COMMAND ${CMAKE_COMMAND}
         -DBUNDLE_EXECUTABLE=$<TARGET_FILE:${TARGET_NAME}>
+        -DBUNDLE_PLUGIN_DIR=$<TARGET_FILE_DIR:${TARGET_NAME}>/${PLUGIN_PATH}
         -P ${CMAKE_CURRENT_BINARY_DIR}/FixupBundlePostBuild.cmake
     )
     
@@ -38,6 +41,19 @@ macro(COPY_DLLS_BESIDE_WINDOWS_EXECUTABLE)
       TARGET ${TARGET_NAME}
       POST_BUILD
       COMMAND CMD /C "SET PATH=%PATH%;${QT_DIR}/bin && ${WINDEPLOYQT_COMMAND} $<$<OR:$<CONFIG:Release>,$<CONFIG:MinSizeRel>,$<CONFIG:RelWithDebInfo>>:--release> $<TARGET_FILE:${TARGET_NAME}>"
+    )
+  elseif (DEFINED BUILD_BUNDLE AND BUILD_BUNDLE AND APPLE)
+    find_program(MACDEPLOYQT_COMMAND macdeployqt PATHS ${QT_DIR}/bin NO_DEFAULT_PATH)
+    
+    if (NOT MACDEPLOYQT_COMMAND)
+      message(FATAL_ERROR "Could not find macdeployqt at ${QT_DIR}/bin. macdeployqt is required.")
+    endif ()
+  
+    # add a post-build command to call macdeployqt to copy Qt plugins
+    add_custom_command(
+      TARGET ${TARGET_NAME}
+      POST_BUILD
+      COMMAND ${MACDEPLOYQT_COMMAND} ${CMAKE_CURRENT_BINARY_DIR}/\${CONFIGURATION}/${TARGET_NAME}.app -verbose 0
     )
   endif ()
 endmacro()

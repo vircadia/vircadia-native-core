@@ -28,6 +28,7 @@ const float MIN_HEAD_ROLL = -50.0f;
 const float MAX_HEAD_ROLL = 50.0f;
 
 class AvatarData;
+class QJsonObject;
 
 class HeadData {
 public:
@@ -48,6 +49,8 @@ public:
     virtual float getFinalYaw() const { return _baseYaw; }
     virtual float getFinalPitch() const { return _basePitch; }
     virtual float getFinalRoll() const { return _baseRoll; }
+    virtual glm::quat getRawOrientation() const;
+    virtual void setRawOrientation(const glm::quat& orientation);
 
     glm::quat getOrientation() const;
     void setOrientation(const glm::quat& orientation);
@@ -81,6 +84,9 @@ public:
     
     friend class AvatarData;
     
+    QJsonObject toJson() const;
+    void fromJson(const QJsonObject& json);
+
 protected:
     // degrees
     float _baseYaw;

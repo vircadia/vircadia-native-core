@@ -15,7 +15,7 @@
 #include <RegisteredMetaTypes.h>
 #include "AnimVariant.h" // which has AnimVariant/AnimVariantMap
 
-const AnimVariant AnimVariant::FALSE = AnimVariant();
+const AnimVariant AnimVariant::False = AnimVariant();
 
 QScriptValue AnimVariantMap::animVariantMapToScriptValue(QScriptEngine* engine, const QStringList& names, bool useNames) const {
     if (QThread::currentThread() != engine->thread()) {
@@ -45,7 +45,7 @@ QScriptValue AnimVariantMap::animVariantMapToScriptValue(QScriptEngine* engine, 
                 target.setProperty(name, quatToScriptValue(engine, value.getQuat()));
                 break;
             default:
-                // Note that we don't do mat4 in Javascript currently, and there's not yet a reason to start now.
+                // Unknown type
                 assert(QString("AnimVariant::Type") == QString("valid"));
         }
     };

@@ -113,6 +113,10 @@ void NetworkPeer::setActiveSocket(HifiSockAddr* discoveredSocket) {
 
     // we're now considered connected to this peer - reset the number of connection attemps
     resetConnectionAttempts();
+    
+    if (_activeSocket) {
+        emit socketActivated(*_activeSocket);
+    }
 }
 
 void NetworkPeer::activateLocalSocket() {

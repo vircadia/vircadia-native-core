@@ -32,6 +32,7 @@
 #include "udt/PacketHeaders.h"
 #include "SharedUtil.h"
 
+const int KEEPALIVE_PING_INTERVAL_MS = 1000;
 
 NodeList::NodeList(char newOwnerType, unsigned short socketListenPort, unsigned short dtlsListenPort) :
     LimitedNodeList(socketListenPort, dtlsListenPort),
@@ -87,6 +88,12 @@ NodeList::NodeList(char newOwnerType, unsigned short socketListenPort, unsigned 
 
     // anytime we get a new node we will want to attempt to punch to it
     connect(this, &LimitedNodeList::nodeAdded, this, &NodeList::startNodeHolePunch);
+    
+    // setup our timer to send keepalive pings (it's started and stopped on domain connect/disconnect)
+    _keepAlivePingTimer.setInterval(KEEPALIVE_PING_INTERVAL_MS);
+    connect(&_keepAlivePingTimer, &QTimer::timeout, this, &NodeList::sendKeepAlivePings);
+    connect(&_domainHandler, SIGNAL(connectedToDomain(QString)), &_keepAlivePingTimer, SLOT(start()));
+    connect(&_domainHandler, &DomainHandler::disconnectedFromDomain, &_keepAlivePingTimer, &QTimer::stop);
 
     // we definitely want STUN to update our public socket, so call the LNL to kick that off
     startSTUNPublicSocketUpdate();
@@ -103,6 +110,7 @@ NodeList::NodeList(char newOwnerType, unsigned short socketListenPort, unsigned 
     packetReceiver.registerListener(PacketType::DomainServerRequireDTLS, &_domainHandler, "processDTLSRequirementPacket");
     packetReceiver.registerListener(PacketType::ICEPingReply, &_domainHandler, "processICEPingReplyPacket");
     packetReceiver.registerListener(PacketType::DomainServerPathResponse, this, "processDomainServerPathResponse");
+    packetReceiver.registerListener(PacketType::DomainServerRemovedNode, this, "processDomainServerRemovedNode");
 }
 
 qint64 NodeList::sendStats(const QJsonObject& statsObject, const HifiSockAddr& destination) {
@@ -218,6 +226,10 @@ void NodeList::addSetOfNodeTypesToNodeInterestSet(const NodeSet& setOfNodeTypes)
 }
 
 void NodeList::sendDomainServerCheckIn() {
+    if (_isShuttingDown) {
+        qCDebug(networking) << "Refusing to send a domain-server check in while shutting down.";
+    }
+    
     if (_publicSockAddr.isNull()) {
         // we don't know our public socket and we need to send it to the domain server
         qCDebug(networking) << "Waiting for inital public socket from STUN. Will not send domain-server check in.";
@@ -513,6 +525,13 @@ void NodeList::processDomainServerAddedNode(QSharedPointer<NLPacket> packet) {
     parseNodeFromPacketStream(packetStream);
 }
 
+void NodeList::processDomainServerRemovedNode(QSharedPointer<NLPacket> packet) {
+    // read the UUID from the packet, remove it if it exists
+    QUuid nodeUUID = QUuid::fromRfc4122(packet->readWithoutCopy(NUM_BYTES_RFC4122_UUID));
+    qDebug() << "Received packet from domain-server to remove node with UUID" << uuidStringWithoutCurlyBraces(nodeUUID);
+    killNodeWithUUID(nodeUUID);
+}
+
 void NodeList::parseNodeFromPacketStream(QDataStream& packetStream) {
     // setup variables to read into from QDataStream
     qint8 nodeType;
@@ -619,4 +638,12 @@ void NodeList::activateSocketFromNodeCommunication(QSharedPointer<NLPacket> pack
     if (sendingNode->getType() == NodeType::AudioMixer) {
        flagTimeForConnectionStep(LimitedNodeList::ConnectionStep::SetAudioMixerSocket);
     }
+}
+
+void NodeList::sendKeepAlivePings() {
+    eachMatchingNode([this](const SharedNodePointer& node)->bool {
+        return _nodeTypesOfInterest.contains(node->getType());
+    }, [&](const SharedNodePointer& node) {
+        sendPacket(constructPingPacket(), *node);
+    });
 }

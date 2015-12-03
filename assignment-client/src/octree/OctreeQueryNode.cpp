@@ -59,7 +59,6 @@ OctreeQueryNode::~OctreeQueryNode() {
 
 void OctreeQueryNode::nodeKilled() {
     _isShuttingDown = true;
-    elementBag.unhookNotifications(); // if our node is shutting down, then we no longer need octree element notifications
     if (_octreeSendThread) {
         // just tell our thread we want to shutdown, this is asynchronous, and fast, we don't need or want it to block
         // while the thread actually shuts down
@@ -69,7 +68,6 @@ void OctreeQueryNode::nodeKilled() {
 
 void OctreeQueryNode::forceNodeShutdown() {
     _isShuttingDown = true;
-    elementBag.unhookNotifications(); // if our node is shutting down, then we no longer need octree element notifications
     if (_octreeSendThread) {
         // we really need to force our thread to shutdown, this is synchronous, we will block while the thread actually
         // shuts down because we really need it to shutdown, and it's ok if we wait for it to complete
@@ -338,8 +336,7 @@ void OctreeQueryNode::dumpOutOfView() {
     int stillInView = 0;
     int outOfView = 0;
     OctreeElementBag tempBag;
-    while (!elementBag.isEmpty()) {
-        OctreeElementPointer elementToCheck = elementBag.extract();
+    while (OctreeElementPointer elementToCheck = elementBag.extract()) {
         if (elementToCheck->isInView(_currentViewFrustum)) {
             tempBag.insert(elementToCheck);
             stillInView++;
@@ -348,8 +345,7 @@ void OctreeQueryNode::dumpOutOfView() {
         }
     }
     if (stillInView > 0) {
-        while (!tempBag.isEmpty()) {
-            OctreeElementPointer elementToKeepInBag = tempBag.extract();
+        while (OctreeElementPointer elementToKeepInBag = tempBag.extract()) {
             if (elementToKeepInBag->isInView(_currentViewFrustum)) {
                 elementBag.insert(elementToKeepInBag);
             }

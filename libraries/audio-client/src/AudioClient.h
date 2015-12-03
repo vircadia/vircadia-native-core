@@ -46,6 +46,7 @@
 #include "AudioIOStats.h"
 #include "AudioNoiseGate.h"
 #include "AudioSRC.h"
+#include "AudioReverb.h"
 
 #ifdef _WIN32
 #pragma warning( push )
@@ -74,9 +75,8 @@ class QAudioInput;
 class QAudioOutput;
 class QIODevice;
 
-typedef struct ty_gverb ty_gverb;
 
-
+class Transform;
 class NLPacket;
 
 class AudioClient : public AbstractAudioInterface, public Dependency {
@@ -147,6 +147,7 @@ public slots:
 
     void sendDownstreamAudioStatsPacket() { _stats.sendDownstreamAudioStatsPacket(); }
     void handleAudioInput();
+    void handleRecordedAudioInput(const QByteArray& audio);
     void reset();
     void audioMixerKilled();
     void toggleMute();
@@ -261,7 +262,8 @@ private:
     AudioEffectOptions _scriptReverbOptions;
     AudioEffectOptions _zoneReverbOptions;
     AudioEffectOptions* _reverbOptions;
-    ty_gverb* _gverb;
+    AudioReverb _sourceReverb { AudioConstants::SAMPLE_RATE };
+    AudioReverb _listenerReverb { AudioConstants::SAMPLE_RATE };
 
     // possible streams needed for resample
     AudioSRC* _inputToNetworkResampler;
@@ -269,10 +271,8 @@ private:
     AudioSRC* _loopbackResampler;
 
     // Adds Reverb
-    ty_gverb* createGverbFilter();
-    void configureGverbFilter(ty_gverb* filter);
-    void updateGverbOptions();
-    void addReverb(ty_gverb* gverb, int16_t* samples, int16_t* reverbAlone, int numSamples, QAudioFormat& format, bool noEcho = false);
+    void configureReverb();
+    void updateReverbOptions();
 
     void handleLocalEchoAndReverb(QByteArray& inputByteArray);
 
@@ -317,8 +317,6 @@ private:
     void checkDevices();
 
     bool _hasReceivedFirstPacket = false;
-
-    std::unique_ptr<NLPacket> _audioPacket;
 };
 
 

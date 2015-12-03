@@ -20,7 +20,7 @@
 
     BoardEraser.prototype = {
 
-        startFarGrabNonColliding: function() {
+        startFarTrigger: function() {
             this.eraseBoard();
         },
 

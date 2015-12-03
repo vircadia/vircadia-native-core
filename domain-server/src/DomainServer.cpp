@@ -11,6 +11,8 @@
 
 #include "DomainServer.h"
 
+#include <memory>
+
 #include <QDir>
 #include <QJsonDocument>
 #include <QJsonObject>
@@ -272,6 +274,7 @@ void DomainServer::setupNodeListAndAssignments(const QUuid& sessionUUID) {
     packetReceiver.registerListener(PacketType::DomainListRequest, this, "processListRequestPacket");
     packetReceiver.registerListener(PacketType::DomainServerPathQuery, this, "processPathQueryPacket");
     packetReceiver.registerMessageListener(PacketType::NodeJsonStats, this, "processNodeJSONStatsPacket");
+    packetReceiver.registerListener(PacketType::DomainDisconnectRequest, this, "processNodeDisconnectRequestPacket");
     
     // NodeList won't be available to the settings manager when it is created, so call registerListener here
     packetReceiver.registerListener(PacketType::DomainSettingsRequest, &_settingsManager, "processSettingsRequestPacket");
@@ -553,7 +556,6 @@ void DomainServer::populateDefaultStaticAssignmentsExcludingTypes(const QSet<Ass
          defaultedType != Assignment::AllTypes;
          defaultedType =  static_cast<Assignment::Type>(static_cast<int>(defaultedType) + 1)) {
         if (!excludedTypes.contains(defaultedType)
-            && defaultedType != Assignment::UNUSED_0
             && defaultedType != Assignment::UNUSED_1
             && defaultedType != Assignment::AgentType) {
             
@@ -1097,29 +1099,37 @@ bool DomainServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
 
     if (connection->requestOperation() == QNetworkAccessManager::GetOperation
         && assignmentRegex.indexIn(url.path()) != -1) {
-        QUuid matchingUUID = QUuid(assignmentRegex.cap(1));
-
-        SharedAssignmentPointer matchingAssignment = _allAssignments.value(matchingUUID);
-        if (!matchingAssignment) {
-            // check if we have a pending assignment that matches this temp UUID, and it is a scripted assignment
-            QUuid assignmentUUID = _gatekeeper.assignmentUUIDForPendingAssignment(matchingUUID);
-            if (!assignmentUUID.isNull()) {
-                matchingAssignment = _allAssignments.value(assignmentUUID);
-
-                if (matchingAssignment && matchingAssignment->getType() == Assignment::AgentType) {
-                    // we have a matching assignment and it is for the right type, have the HTTP manager handle it
-                    // via correct URL for the script so the client can download
-
-                    QUrl scriptURL = url;
-                    scriptURL.setPath(URI_ASSIGNMENT + "/scripts/"
-                                      + uuidStringWithoutCurlyBraces(assignmentUUID));
-
-                    // have the HTTPManager serve the appropriate script file
-                    return _httpManager.handleHTTPRequest(connection, scriptURL, true);
-                }
-            }
+        QUuid nodeUUID = QUuid(assignmentRegex.cap(1));
+        
+        auto matchingNode = nodeList->nodeWithUUID(nodeUUID);
+        
+        // don't handle if we don't have a matching node
+        if (!matchingNode) {
+            return false;
         }
-
+        
+        auto nodeData = dynamic_cast<DomainServerNodeData*>(matchingNode->getLinkedData());
+        
+        // don't handle if we don't have node data for this node
+        if (!nodeData) {
+            return false;
+        }
+        
+        SharedAssignmentPointer matchingAssignment = _allAssignments.value(nodeData->getAssignmentUUID());
+        
+        // check if we have an assignment that matches this temp UUID, and it is a scripted assignment
+        if (matchingAssignment && matchingAssignment->getType() == Assignment::AgentType) {
+            // we have a matching assignment and it is for the right type, have the HTTP manager handle it
+            // via correct URL for the script so the client can download
+            
+            QUrl scriptURL = url;
+            scriptURL.setPath(URI_ASSIGNMENT + "/scripts/"
+                              + uuidStringWithoutCurlyBraces(matchingAssignment->getUUID()));
+            
+            // have the HTTPManager serve the appropriate script file
+            return _httpManager.handleHTTPRequest(connection, scriptURL, true);
+        }
+        
         // request not handled
         return false;
     }
@@ -1640,7 +1650,7 @@ void DomainServer::refreshStaticAssignmentAndAddToQueue(SharedAssignmentPointer&
 
 void DomainServer::nodeAdded(SharedNodePointer node) {
     // we don't use updateNodeWithData, so add the DomainServerNodeData to the node here
-    node->setLinkedData(new DomainServerNodeData());
+    node->setLinkedData(std::unique_ptr<DomainServerNodeData> { new DomainServerNodeData() });
 }
 
 void DomainServer::nodeKilled(SharedNodePointer node) {
@@ -1824,5 +1834,37 @@ void DomainServer::processPathQueryPacket(QSharedPointer<NLPacket> packet) {
             // query/response is made reliable
             qDebug() << "No match for path query" << pathQuery << "- refusing to respond.";
         }
+    }
+}
+
+void DomainServer::processNodeDisconnectRequestPacket(QSharedPointer<NLPacket> packet) {
+    // This packet has been matched to a source node and they're asking not to be in the domain anymore
+    auto limitedNodeList = DependencyManager::get<LimitedNodeList>();
+    
+    const QUuid& nodeUUID = packet->getSourceID();
+    
+    qDebug() << "Received a disconnect request from node with UUID" << nodeUUID;
+    
+    // we want to check what type this node was before going to kill it so that we can avoid sending the RemovedNode
+    // packet to nodes that don't care about this type
+    auto nodeToKill = limitedNodeList->nodeWithUUID(nodeUUID);
+    
+    if (nodeToKill) {
+        auto nodeType = nodeToKill->getType();
+        limitedNodeList->killNodeWithUUID(nodeUUID);
+        
+        static auto removedNodePacket = NLPacket::create(PacketType::DomainServerRemovedNode, NUM_BYTES_RFC4122_UUID);
+        
+        removedNodePacket->reset();
+        removedNodePacket->write(nodeUUID.toRfc4122());
+    
+        // broadcast out the DomainServerRemovedNode message
+        limitedNodeList->eachMatchingNode([&nodeType](const SharedNodePointer& otherNode) -> bool {
+            // only send the removed node packet to nodes that care about the type of node this was
+            auto nodeLinkedData = dynamic_cast<DomainServerNodeData*>(otherNode->getLinkedData());
+            return (nodeLinkedData != nullptr) && nodeLinkedData->getNodeInterestSet().contains(nodeType);
+        }, [&limitedNodeList](const SharedNodePointer& otherNode){
+            limitedNodeList->sendUnreliablePacket(*removedNodePacket, *otherNode);
+        });
     }
 }

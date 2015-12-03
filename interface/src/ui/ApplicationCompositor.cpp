@@ -473,18 +473,7 @@ void ApplicationCompositor::renderControllerPointers(gpu::Batch& batch) {
             continue;
         }
 
-        int controllerButtons = 0;
-
-        //Check for if we should toggle or drag the magnification window
-        if (controllerButtons & BUTTON_3) {
-            if (isPressed[index] == false) {
-                //We are now dragging the window
-                isPressed[index] = true;
-                //set the pressed time in us
-                pressedTime[index] = usecTimestampNow();
-                stateWhenPressed[index] = _magActive[index];
-            }
-        } else if (isPressed[index]) {
+        if (isPressed[index]) {
             isPressed[index] = false;
             //If the button was only pressed for < 250 ms
             //then disable it.

@@ -20,7 +20,7 @@
     var _this;
     var RIGHT_HAND = 1;
     var LEFT_HAND = 0;
-    var MIN_POINT_DISTANCE = 0.01  ;
+    var MIN_POINT_DISTANCE = 0.01;
     var MAX_POINT_DISTANCE = 0.5;
     var MAX_POINTS_PER_LINE = 40;
     var MAX_DISTANCE = 5;
@@ -28,6 +28,11 @@
     var PAINT_TRIGGER_THRESHOLD = 0.6;
     var MIN_STROKE_WIDTH = 0.0005;
     var MAX_STROKE_WIDTH = 0.03;
+
+    var TRIGGER_CONTROLS = [
+        Controller.Standard.LT,
+        Controller.Standard.RT,
+    ];
 
     Whiteboard = function() {
         _this = this;
@@ -43,7 +48,7 @@
             this.hand = LEFT_HAND;
         },
 
-        startFarGrabNonColliding: function() {
+        startFarTrigger: function() {
             if (this.painting) {
                 return;
             }
@@ -51,18 +56,16 @@
             if (this.hand === RIGHT_HAND) {
                 this.getHandPosition = MyAvatar.getRightPalmPosition;
                 this.getHandRotation = MyAvatar.getRightPalmRotation;
-                this.triggerAction = Controller.findAction("RIGHT_HAND_CLICK");
             } else if (this.hand === LEFT_HAND) {
                 this.getHandPosition = MyAvatar.getLeftPalmPosition;
                 this.getHandRotation = MyAvatar.getLeftPalmRotation;
-                this.triggerAction = Controller.findAction("LEFT_HAND_CLICK");
             }
             Overlays.editOverlay(this.laserPointer, {
                 visible: true
             });
         },
 
-        continueFarGrabbingNonColliding: function() {
+        continueFarTrigger: function() {
             var handPosition = this.getHandPosition();
             var pickRay = {
                 origin: handPosition,
@@ -76,7 +79,7 @@
             if (this.intersection.intersects) {
                 var distance = Vec3.distance(handPosition, this.intersection.intersection);
                 if (distance < MAX_DISTANCE) {
-                    this.triggerValue = Controller.getActionValue(this.triggerAction);
+                    this.triggerValue = Controller.getValue(TRIGGER_CONTROLS[this.hand]);
                     this.currentStrokeWidth = map(this.triggerValue, 0, 1, MIN_STROKE_WIDTH, MAX_STROKE_WIDTH);
                     var displayPoint = this.intersection.intersection;
                     displayPoint = Vec3.sum(displayPoint, Vec3.multiply(this.normal, 0.01));
@@ -183,8 +186,8 @@
 
         },
 
-        releaseGrab: function() {
-            if(this.hand !== this.whichHand) {
+        stopFarTrigger: function() {
+            if (this.hand !== this.whichHand) {
                 return;
             }
             this.stopPainting();
@@ -209,7 +212,7 @@
             entities.forEach(function(entity) {
                 var props = Entities.getEntityProperties(entity, ["name, userData"]);
                 var name = props.name;
-                if(!props.userData) {
+                if (!props.userData) {
                     return;
                 }
                 var whiteboardID = JSON.parse(props.userData).whiteboard;

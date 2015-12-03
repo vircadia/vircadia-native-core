@@ -15,6 +15,8 @@
 //#define SIMPLE_CHILD_ARRAY
 #define SIMPLE_EXTERNAL_CHILDREN
 
+#include <atomic>
+
 #include <QReadWriteLock>
 
 #include <OctalCode.h>
@@ -24,31 +26,21 @@
 #include "ViewFrustum.h"
 #include "OctreeConstants.h"
 
+using AtomicUIntStat = std::atomic<uintmax_t>;
+
+
 class EncodeBitstreamParams;
 class Octree;
 class OctreeElement;
-class OctreeElementBag;
-class OctreeElementDeleteHook;
 class OctreePacketData;
 class ReadBitstreamToTreeParams;
 class Shape;
 class VoxelSystem;
-typedef std::shared_ptr<OctreeElement> OctreeElementPointer;
-typedef std::shared_ptr<const OctreeElement> ConstOctreeElementPointer;
-typedef std::shared_ptr<Octree> OctreePointer;
 
-// Callers who want delete hook callbacks should implement this class
-class OctreeElementDeleteHook {
-public:
-    virtual void elementDeleted(OctreeElementPointer element) = 0;
-};
-
-// Callers who want update hook callbacks should implement this class
-class OctreeElementUpdateHook {
-public:
-    virtual void elementUpdated(OctreeElementPointer element) = 0;
-};
-
+using OctreeElementPointer = std::shared_ptr<OctreeElement>;
+using OctreeElementWeakPointer = std::weak_ptr<OctreeElement>;
+using ConstOctreeElementPointer = std::shared_ptr<const OctreeElement>;
+using OctreePointer = std::shared_ptr<Octree>;
 
 class OctreeElement: public std::enable_shared_from_this<OctreeElement> {
 
@@ -98,7 +90,7 @@ public:
     virtual bool shouldRecurseChildTree(int childIndex, EncodeBitstreamParams& params) const { return true; }
     
     virtual void updateEncodedData(int childIndex, AppendState childAppendState, EncodeBitstreamParams& params) const { }
-    virtual void elementEncodeComplete(EncodeBitstreamParams& params, OctreeElementBag* bag) const { }
+    virtual void elementEncodeComplete(EncodeBitstreamParams& params) const { }
 
     /// Override to serialize the state of this element. This is used for persistance and for transmission across the network.
     virtual AppendState appendElementData(OctreePacketData* packetData, EncodeBitstreamParams& params) const 
@@ -176,12 +168,6 @@ public:
     bool matchesSourceUUID(const QUuid& sourceUUID) const;
     static uint16_t getSourceNodeUUIDKey(const QUuid& sourceUUID);
 
-    static void addDeleteHook(OctreeElementDeleteHook* hook);
-    static void removeDeleteHook(OctreeElementDeleteHook* hook);
-
-    static void addUpdateHook(OctreeElementUpdateHook* hook);
-    static void removeUpdateHook(OctreeElementUpdateHook* hook);
-
     static void resetPopulationStatistics();
     static unsigned long getNodeCount() { return _voxelNodeCount; }
     static unsigned long getInternalNodeCount() { return _voxelNodeCount - _voxelNodeLeafCount; }
@@ -239,8 +225,6 @@ protected:
     void setChildAtIndex(int childIndex, OctreeElementPointer child);
 
     void calculateAACube();
-    void notifyDeleteHooks();
-    void notifyUpdateHooks();
 
     AACube _cube; /// Client and server, axis aligned box for bounds of this voxel, 48 bytes
 
@@ -282,28 +266,20 @@ protected:
          _unknownBufferIndex : 1,
          _childrenExternal : 1; /// Client only, is this voxel's VBO buffer the unknown buffer index, 1 bit
 
-    bool _deleteHooksNotified = false;
+    static AtomicUIntStat _voxelNodeCount;
+    static AtomicUIntStat _voxelNodeLeafCount;
 
-    static QReadWriteLock _deleteHooksLock;
-    static std::vector<OctreeElementDeleteHook*> _deleteHooks;
+    static AtomicUIntStat _octreeMemoryUsage;
+    static AtomicUIntStat _octcodeMemoryUsage;
+    static AtomicUIntStat _externalChildrenMemoryUsage;
 
-    //static QReadWriteLock _updateHooksLock;
-    static std::vector<OctreeElementUpdateHook*> _updateHooks;
+    static AtomicUIntStat _getChildAtIndexTime;
+    static AtomicUIntStat _getChildAtIndexCalls;
+    static AtomicUIntStat _setChildAtIndexTime;
+    static AtomicUIntStat _setChildAtIndexCalls;
 
-    static quint64 _voxelNodeCount;
-    static quint64 _voxelNodeLeafCount;
-
-    static quint64 _octreeMemoryUsage;
-    static quint64 _octcodeMemoryUsage;
-    static quint64 _externalChildrenMemoryUsage;
-
-    static quint64 _getChildAtIndexTime;
-    static quint64 _getChildAtIndexCalls;
-    static quint64 _setChildAtIndexTime;
-    static quint64 _setChildAtIndexCalls;
-
-    static quint64 _externalChildrenCount;
-    static quint64 _childrenCount[NUMBER_OF_CHILDREN + 1];
+    static AtomicUIntStat _externalChildrenCount;
+    static AtomicUIntStat _childrenCount[NUMBER_OF_CHILDREN + 1];
 };
 
 #endif // hifi_OctreeElement_h

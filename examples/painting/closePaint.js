@@ -11,7 +11,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-Script.include("libraries/utils.js");
+Script.include("../libraries/utils.js");
 
 
 var RIGHT_HAND = 1;
@@ -159,7 +159,8 @@ function MyController(hand, triggerAction) {
     }
 
     this.updateControllerState = function() {
-        this.triggerValue = Controller.getActionValue(this.triggerAction);
+        this.triggerValue = Controller.getValue(this.triggerAction);
+        
         if (this.triggerValue > TRIGGER_ON_VALUE && this.prevTriggerValue <= TRIGGER_ON_VALUE) {
             this.squeeze();
         } else if (this.triggerValue < TRIGGER_ON_VALUE && this.prevTriggerValue >= TRIGGER_ON_VALUE) {
@@ -256,8 +257,8 @@ function MyController(hand, triggerAction) {
     }
 }
 
-var rightController = new MyController(RIGHT_HAND, Controller.findAction("RIGHT_HAND_CLICK"));
-var leftController = new MyController(LEFT_HAND, Controller.findAction("LEFT_HAND_CLICK"));
+var rightController = new MyController(RIGHT_HAND, Controller.Standard.RT);
+var leftController = new MyController(LEFT_HAND, Controller.Standard.LT);
 
 Controller.actionEvent.connect(function(action, state) {
     if (state === 0) {

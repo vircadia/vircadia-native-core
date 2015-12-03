@@ -34,7 +34,7 @@ public:
         NumTypes
     };
 
-    static const AnimVariant FALSE;
+    static const AnimVariant False;
 
     AnimVariant() : _type(Type::Bool) { memset(&_val, 0, sizeof(_val)); }
     AnimVariant(bool value) : _type(Type::Bool) { _val.boolVal = value; }
@@ -147,7 +147,7 @@ public:
         }
     }
 
-    const glm::vec3& lookup(const QString& key, const glm::vec3& defaultValue) const {
+    const glm::vec3& lookupRaw(const QString& key, const glm::vec3& defaultValue) const {
         if (key.isEmpty()) {
             return defaultValue;
         } else {
@@ -156,12 +156,30 @@ public:
         }
     }
 
-    const glm::quat& lookup(const QString& key, const glm::quat& defaultValue) const {
+    glm::vec3 lookupRigToGeometry(const QString& key, const glm::vec3& defaultValue) const {
+        if (key.isEmpty()) {
+            return defaultValue;
+        } else {
+            auto iter = _map.find(key);
+            return iter != _map.end() ? transformPoint(_rigToGeometryMat, iter->second.getVec3()) : defaultValue;
+        }
+    }
+
+    const glm::quat& lookupRaw(const QString& key, const glm::quat& defaultValue) const {
         if (key.isEmpty()) {
             return defaultValue;
         } else {
             auto iter = _map.find(key);
             return iter != _map.end() ? iter->second.getQuat() : defaultValue;
+        }
+    }
+
+    glm::quat lookupRigToGeometry(const QString& key, const glm::quat& defaultValue) const {
+        if (key.isEmpty()) {
+            return defaultValue;
+        } else {
+            auto iter = _map.find(key);
+            return iter != _map.end() ? _rigToGeometryRot * iter->second.getQuat() : defaultValue;
         }
     }
 
@@ -185,6 +203,11 @@ public:
     void setTrigger(const QString& key) { _triggers.insert(key); }
     void clearTriggers() { _triggers.clear(); }
 
+    void setRigToGeometryTransform(const glm::mat4& rigToGeometry) {
+        _rigToGeometryMat = rigToGeometry;
+        _rigToGeometryRot = glmExtractRotation(rigToGeometry);
+    }
+
     void clearMap() { _map.clear(); }
     bool hasKey(const QString& key) const { return _map.find(key) != _map.end(); }
 
@@ -193,7 +216,7 @@ public:
         if (iter != _map.end()) {
             return iter->second;
         } else {
-            return AnimVariant::FALSE;
+            return AnimVariant::False;
         }
     }
 
@@ -236,6 +259,8 @@ public:
 protected:
     std::map<QString, AnimVariant> _map;
     std::set<QString> _triggers;
+    glm::mat4 _rigToGeometryMat;
+    glm::quat _rigToGeometryRot;
 };
 
 typedef std::function<void(QScriptValue)> AnimVariantResultHandler;

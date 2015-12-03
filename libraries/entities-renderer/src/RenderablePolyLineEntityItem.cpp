@@ -31,12 +31,12 @@ EntityItemPointer RenderablePolyLineEntityItem::factory(const EntityItemID& enti
 RenderablePolyLineEntityItem::RenderablePolyLineEntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties) :
 PolyLineEntityItem(entityItemID, properties) {
     _numVertices = 0;
+    _vertices = QVector<glm::vec3>(0.0f);
 
 }
 
 gpu::PipelinePointer RenderablePolyLineEntityItem::_pipeline;
 gpu::Stream::FormatPointer RenderablePolyLineEntityItem::_format;
-gpu::TexturePointer RenderablePolyLineEntityItem::_texture;
 int32_t RenderablePolyLineEntityItem::PAINTSTROKE_GPU_SLOT;
 
 void RenderablePolyLineEntityItem::createPipeline() {
@@ -44,9 +44,6 @@ void RenderablePolyLineEntityItem::createPipeline() {
     static const int COLOR_OFFSET = 24;
     static const int TEXTURE_OFFSET = 28;
 
-    auto textureCache = DependencyManager::get<TextureCache>();
-    QString path = PathUtils::resourcesPath() + "images/paintStroke.png";
-    _texture = textureCache->getImageTexture(path);
     _format.reset(new gpu::Stream::Format());
     _format->setAttribute(gpu::Stream::POSITION, 0, gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::XYZ), 0);
     _format->setAttribute(gpu::Stream::NORMAL, 0, gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::XYZ), NORMAL_OFFSET);
@@ -118,13 +115,56 @@ void RenderablePolyLineEntityItem::updateGeometry() {
         _numVertices += 2;
     }
     _pointsChanged = false;
+    _normalsChanged = false;
+    _strokeWidthsChanged = false;
+}
+
+void RenderablePolyLineEntityItem::updateVertices() {
+    // Calculate the minimum vector size out of normals, points, and stroke widths
+    int minVectorSize = _normals.size();
+    if (_points.size() < minVectorSize) {
+        minVectorSize = _points.size();
+    }
+    if (_strokeWidths.size() < minVectorSize) {
+        minVectorSize = _strokeWidths.size();
+    }
+
+    _vertices.clear();
+    glm::vec3 v1, v2, tangent, binormal, point;
+
+    int finalIndex = minVectorSize - 1;
+    for (int i = 0; i < finalIndex; i++) {
+        float width = _strokeWidths.at(i);
+        point = _points.at(i);
+
+        tangent = _points.at(i);
+
+        tangent = _points.at(i + 1) - point; 
+        glm::vec3 normal = _normals.at(i);
+        binormal = glm::normalize(glm::cross(tangent, normal)) * width;
+
+        // Check to make sure binormal is not a NAN. If it is, don't add to vertices vector
+        if (binormal.x != binormal.x) {
+            continue;
+        }
+        v1 = point + binormal;
+        v2 = point - binormal;
+        _vertices << v1 << v2;
+    }
+
+    // For last point we can assume binormals are the same since it represents the last two vertices of quad
+    point = _points.at(finalIndex);
+    v1 = point + binormal;
+    v2 = point - binormal;
+    _vertices << v1 << v2;
+
 
 }
 
 
 void RenderablePolyLineEntityItem::render(RenderArgs* args) {
     QWriteLocker lock(&_quadReadWriteLock);
-    if (_points.size() < 2 || _normals.size () < 2 || _vertices.size() < 2) {
+    if (_points.size() < 2 || _normals.size () < 2 || _strokeWidths.size() < 2) {
         return;
     }
 
@@ -132,11 +172,19 @@ void RenderablePolyLineEntityItem::render(RenderArgs* args) {
         createPipeline();
     }
 
+    if (!_texture || _texturesChangedFlag) {
+        auto textureCache = DependencyManager::get<TextureCache>();
+        QString path = _textures.isEmpty() ? PathUtils::resourcesPath() + "images/paintStroke.png" : _textures;
+        _texture = textureCache->getTexture(QUrl(path));
+        _texturesChangedFlag = false;
+    }
+
     PerformanceTimer perfTimer("RenderablePolyLineEntityItem::render");
     Q_ASSERT(getType() == EntityTypes::PolyLine);
 
     Q_ASSERT(args->_batch);
-    if (_pointsChanged) {
+    if (_pointsChanged || _strokeWidthsChanged || _normalsChanged) {
+        updateVertices();
         updateGeometry();
     }
 
@@ -147,12 +195,14 @@ void RenderablePolyLineEntityItem::render(RenderArgs* args) {
     batch.setModelTransform(transform);
 
     batch.setPipeline(_pipeline);
-    batch.setResourceTexture(PAINTSTROKE_GPU_SLOT, _texture);
+    if (_texture->isLoaded()) {
+        batch.setResourceTexture(PAINTSTROKE_GPU_SLOT, _texture->getGPUTexture());
+    } else {
+        batch.setResourceTexture(PAINTSTROKE_GPU_SLOT, args->_whiteTexture);
+    }
 
     batch.setInputFormat(_format);
     batch.setInputBuffer(0, _verticesBuffer, 0, _format->getChannels().at(0)._stride);
 
     batch.draw(gpu::TRIANGLE_STRIP, _numVertices, 0);
-
-    RenderableDebugableEntityItem::render(this, args);
 };

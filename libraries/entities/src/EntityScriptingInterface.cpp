@@ -167,8 +167,8 @@ QUuid EntityScriptingInterface::editEntity(QUuid id, EntityItemProperties proper
                     if (hasTerseUpdateChanges) {
                         entity->getAllTerseUpdateProperties(properties);
                     }
-                    // TODO: if we knew that ONLY TerseUpdate properties have changed in properties AND the object 
-                    // is dynamic AND it is active in the physics simulation then we could chose to NOT queue an update 
+                    // TODO: if we knew that ONLY TerseUpdate properties have changed in properties AND the object
+                    // is dynamic AND it is active in the physics simulation then we could chose to NOT queue an update
                     // and instead let the physics simulation decide when to send a terse update.  This would remove
                     // the "slide-no-rotate" glitch (and typical a double-update) that we see during the "poke rolling
                     // balls" test.  However, even if we solve this problem we still need to provide a "slerp the visible
@@ -217,13 +217,12 @@ void EntityScriptingInterface::deleteEntity(QUuid id) {
     }
 }
 
-void EntityScriptingInterface::callEntityMethod(QUuid id, const QString& method) {
+void EntityScriptingInterface::callEntityMethod(QUuid id, const QString& method, const QStringList& params) {
     if (_entitiesScriptEngine) {
         EntityItemID entityID{ id };
-        _entitiesScriptEngine->callEntityScriptMethod(entityID, method);
+        _entitiesScriptEngine->callEntityScriptMethod(entityID, method, params);
     }
 }
-
 
 QUuid EntityScriptingInterface::findClosestEntity(const glm::vec3& center, float radius) const {
     EntityItemID result;
@@ -333,15 +332,6 @@ void EntityScriptingInterface::setDrawZoneBoundaries(bool value) {
 bool EntityScriptingInterface::getDrawZoneBoundaries() const {
     return ZoneEntityItem::getDrawZoneBoundaries();
 }
-
-void EntityScriptingInterface::setSendPhysicsUpdates(bool value) {
-    EntityItem::setSendPhysicsUpdates(value);
-}
-
-bool EntityScriptingInterface::getSendPhysicsUpdates() const {
-    return EntityItem::getSendPhysicsUpdates();
-}
-
 
 RayToEntityIntersectionResult::RayToEntityIntersectionResult() :
     intersects(false),
@@ -549,16 +539,16 @@ bool EntityScriptingInterface::appendPoint(QUuid entityID, const glm::vec3& poin
     if (!entity) {
         qCDebug(entities) << "EntityScriptingInterface::setPoints no entity with ID" << entityID;
     }
-    
+
     EntityTypes::EntityType entityType = entity->getType();
-    
+
     if (entityType == EntityTypes::Line) {
         return setPoints(entityID, [point](LineEntityItem& lineEntity) -> bool
         {
             return (LineEntityItem*)lineEntity.appendPoint(point);
         });
     }
-    
+
     return false;
 }
 
@@ -612,7 +602,8 @@ QUuid EntityScriptingInterface::addAction(const QString& actionTypeString,
                                           const QVariantMap& arguments) {
     QUuid actionID = QUuid::createUuid();
     auto actionFactory = DependencyManager::get<EntityActionFactoryInterface>();
-    bool success = actionWorker(entityID, [&](EntitySimulation* simulation, EntityItemPointer entity) {
+    bool success = false;
+    actionWorker(entityID, [&](EntitySimulation* simulation, EntityItemPointer entity) {
             // create this action even if the entity doesn't have physics info.  it will often be the
             // case that a script adds an action immediately after an object is created, and the physicsInfo
             // is computed asynchronously.
@@ -624,16 +615,16 @@ QUuid EntityScriptingInterface::addAction(const QString& actionTypeString,
                 return false;
             }
             EntityActionPointer action = actionFactory->factory(actionType, actionID, entity, arguments);
-            if (action) {
-                entity->addAction(simulation, action);
-                auto nodeList = DependencyManager::get<NodeList>();
-                const QUuid myNodeID = nodeList->getSessionUUID();
-                if (entity->getSimulatorID() != myNodeID) {
-                    entity->flagForOwnership();
-                }
-                return true;
+            if (!action) {
+                return false;
             }
-            return false;
+            success = entity->addAction(simulation, action);
+            auto nodeList = DependencyManager::get<NodeList>();
+            const QUuid myNodeID = nodeList->getSessionUUID();
+            if (entity->getSimulatorID() != myNodeID) {
+                entity->flagForOwnership();
+            }
+            return false; // Physics will cause a packet to be sent, so don't send from here.
         });
     if (success) {
         return actionID;
@@ -657,9 +648,12 @@ bool EntityScriptingInterface::updateAction(const QUuid& entityID, const QUuid& 
 }
 
 bool EntityScriptingInterface::deleteAction(const QUuid& entityID, const QUuid& actionID) {
-    return actionWorker(entityID, [&](EntitySimulation* simulation, EntityItemPointer entity) {
-            return entity->removeAction(simulation, actionID);
+    bool success = false;
+    actionWorker(entityID, [&](EntitySimulation* simulation, EntityItemPointer entity) {
+            success = entity->removeAction(simulation, actionID);
+            return false; // Physics will cause a packet to be sent, so don't send from here.
         });
+    return success;
 }
 
 QVector<QUuid> EntityScriptingInterface::getActionIDs(const QUuid& entityID) {

@@ -22,7 +22,6 @@
 #include <ViewFrustum.h>
 
 #include "AbstractViewStateInterface.h"
-#include "AnimationHandle.h"
 #include "Model.h"
 #include "MeshPartPayload.h"
 
@@ -88,12 +87,10 @@ void Model::setScale(const glm::vec3& scale) {
     _scaledToFit = false;
 }
 
-void Model::setScaleInternal(const glm::vec3& scale) {
-    float scaleLength = glm::length(_scale);
-    float relativeDeltaScale = glm::length(_scale - scale) / scaleLength;
+const float METERS_PER_MILLIMETER = 0.01f;
 
-    const float ONE_PERCENT = 0.01f;
-    if (relativeDeltaScale > ONE_PERCENT || scaleLength < EPSILON) {
+void Model::setScaleInternal(const glm::vec3& scale) {
+    if (glm::distance(_scale, scale) > METERS_PER_MILLIMETER) {
         _scale = scale;
         initJointTransforms();
     }
@@ -107,24 +104,12 @@ void Model::setOffset(const glm::vec3& offset) {
     _snappedToRegistrationPoint = false;
 }
 
-QVector<JointState> Model::createJointStates(const FBXGeometry& geometry) {
-    QVector<JointState> jointStates;
-    for (int i = 0; i < geometry.joints.size(); ++i) {
-        const FBXJoint& joint = geometry.joints[i];
-        // store a pointer to the FBXJoint in the JointState
-        JointState state(joint);
-        jointStates.append(state);
-    }
-    return jointStates;
-};
-
 void Model::initJointTransforms() {
     if (!_geometry || !_geometry->isLoaded()) {
         return;
     }
-    const FBXGeometry& geometry = _geometry->getFBXGeometry();
-    glm::mat4 parentTransform = glm::scale(_scale) * glm::translate(_offset) * geometry.offset;
-    _rig->initJointTransforms(parentTransform);
+    glm::mat4 modelOffset = glm::scale(_scale) * glm::translate(_offset);
+    _rig->setModelOffset(modelOffset);
 }
 
 void Model::init() {
@@ -133,17 +118,13 @@ void Model::init() {
 void Model::reset() {
     if (_geometry && _geometry->isLoaded()) {
         const FBXGeometry& geometry = _geometry->getFBXGeometry();
-        _rig->reset(geometry.joints);
+        _rig->reset(geometry);
     }
-    _meshGroupsKnown = false;
-    _readyWhenAdded = false; // in case any of our users are using scenes
-    invalidCalculatedMeshBoxes(); // if we have to reload, we need to assume our mesh boxes are all invalid
 }
 
 bool Model::updateGeometry() {
     PROFILE_RANGE(__FUNCTION__);
     bool needFullUpdate = false;
-    bool needToRebuild = false;
 
     if (!_geometry || !_geometry->isLoaded()) {
         // geometry is not ready
@@ -152,17 +133,10 @@ bool Model::updateGeometry() {
 
     _needsReload = false;
 
-    QSharedPointer<NetworkGeometry> geometry = _geometry;
-    if (_rig->jointStatesEmpty()) {
-        const FBXGeometry& fbxGeometry = geometry->getFBXGeometry();
-        if (fbxGeometry.joints.size() > 0) {
-            initJointStates(createJointStates(fbxGeometry));
-            needToRebuild = true;
-        }
-    }
+    if (_rig->jointStatesEmpty() && _geometry->getFBXGeometry().joints.size() > 0) {
+        initJointStates();
 
-    if (needToRebuild) {
-        const FBXGeometry& fbxGeometry = geometry->getFBXGeometry();
+        const FBXGeometry& fbxGeometry = _geometry->getFBXGeometry();
         foreach (const FBXMesh& mesh, fbxGeometry.meshes) {
             MeshState state;
             state.clusterMatrices.resize(mesh.clusters.size());
@@ -185,26 +159,11 @@ bool Model::updateGeometry() {
 }
 
 // virtual
-void Model::initJointStates(QVector<JointState> states) {
+void Model::initJointStates() {
     const FBXGeometry& geometry = _geometry->getFBXGeometry();
-    glm::mat4 parentTransform = glm::scale(_scale) * glm::translate(_offset) * geometry.offset;
+    glm::mat4 modelOffset = glm::scale(_scale) * glm::translate(_offset);
 
-    int rootJointIndex = geometry.rootJointIndex;
-    int leftHandJointIndex = geometry.leftHandJointIndex;
-    int leftElbowJointIndex = leftHandJointIndex >= 0 ? geometry.joints.at(leftHandJointIndex).parentIndex : -1;
-    int leftShoulderJointIndex = leftElbowJointIndex >= 0 ? geometry.joints.at(leftElbowJointIndex).parentIndex : -1;
-    int rightHandJointIndex = geometry.rightHandJointIndex;
-    int rightElbowJointIndex = rightHandJointIndex >= 0 ? geometry.joints.at(rightHandJointIndex).parentIndex : -1;
-    int rightShoulderJointIndex = rightElbowJointIndex >= 0 ? geometry.joints.at(rightElbowJointIndex).parentIndex : -1;
-
-    _rig->initJointStates(states, parentTransform,
-                          rootJointIndex,
-                          leftHandJointIndex,
-                          leftElbowJointIndex,
-                          leftShoulderJointIndex,
-                          rightHandJointIndex,
-                          rightElbowJointIndex,
-                          rightShoulderJointIndex);
+    _rig->initJointStates(geometry, modelOffset);
 }
 
 bool Model::findRayIntersectionAgainstSubMeshes(const glm::vec3& origin, const glm::vec3& direction, float& distance,
@@ -508,8 +467,10 @@ void Model::setVisibleInScene(bool newValue, std::shared_ptr<render::Scene> scen
 }
 
 
-bool Model::addToScene(std::shared_ptr<render::Scene> scene, render::PendingChanges& pendingChanges) {
-    if (!_meshGroupsKnown && isLoaded()) {
+bool Model::addToScene(std::shared_ptr<render::Scene> scene, render::PendingChanges& pendingChanges, bool showCollisionHull) {
+
+    if ((!_meshGroupsKnown || showCollisionHull != _showCollisionHull) && isLoaded()) {
+        _showCollisionHull = showCollisionHull;
         segregateMeshGroups();
     }
 
@@ -532,8 +493,12 @@ bool Model::addToScene(std::shared_ptr<render::Scene> scene, render::PendingChan
     return somethingAdded;
 }
 
-bool Model::addToScene(std::shared_ptr<render::Scene> scene, render::PendingChanges& pendingChanges, render::Item::Status::Getters& statusGetters) {
-    if (!_meshGroupsKnown && isLoaded()) {
+bool Model::addToScene(std::shared_ptr<render::Scene> scene,
+                       render::PendingChanges& pendingChanges,
+                       render::Item::Status::Getters& statusGetters,
+                       bool showCollisionHull) {
+    if ((!_meshGroupsKnown || showCollisionHull != _showCollisionHull) && isLoaded()) {
+        _showCollisionHull = showCollisionHull;
         segregateMeshGroups();
     }
 
@@ -839,6 +804,7 @@ void Blender::run() {
             const float NORMAL_COEFFICIENT_SCALE = 0.01f;
             for (int i = 0, n = qMin(_blendshapeCoefficients.size(), mesh.blendshapes.size()); i < n; i++) {
                 float vertexCoefficient = _blendshapeCoefficients.at(i);
+                const float EPSILON = 0.0001f;
                 if (vertexCoefficient < EPSILON) {
                     continue;
                 }
@@ -962,13 +928,11 @@ void Model::simulate(float deltaTime, bool fullUpdate) {
 //virtual
 void Model::updateRig(float deltaTime, glm::mat4 parentTransform) {
     _needsUpdateClusterMatrices = true;
-     _rig->updateAnimations(deltaTime, parentTransform);
+    _rig->updateAnimations(deltaTime, parentTransform);
 }
 void Model::simulateInternal(float deltaTime) {
     // update the world space transforms for all joints
-
-    const FBXGeometry& geometry = _geometry->getFBXGeometry();
-    glm::mat4 parentTransform = glm::scale(_scale) * glm::translate(_offset) * geometry.offset;
+    glm::mat4 parentTransform = glm::scale(_scale) * glm::translate(_offset);
     updateRig(deltaTime, parentTransform);
 }
 void Model::updateClusterMatrices() {
@@ -1029,22 +993,10 @@ void Model::updateClusterMatrices() {
     }
 }
 
-bool Model::setJointPosition(int jointIndex, const glm::vec3& position, const glm::quat& rotation, bool useRotation,
-                             int lastFreeIndex, bool allIntermediatesFree, const glm::vec3& alignment, float priority) {
-    const FBXGeometry& geometry = _geometry->getFBXGeometry();
-    const QVector<int>& freeLineage = geometry.joints.at(jointIndex).freeLineage;
-    glm::mat4 parentTransform = glm::scale(_scale) * glm::translate(_offset) * geometry.offset;
-    if (_rig->setJointPosition(jointIndex, position, rotation, useRotation,
-                               lastFreeIndex, allIntermediatesFree, alignment, priority, freeLineage, parentTransform)) {
-        return true;
-    }
-    return false;
-}
-
 void Model::inverseKinematics(int endIndex, glm::vec3 targetPosition, const glm::quat& targetRotation, float priority) {
     const FBXGeometry& geometry = _geometry->getFBXGeometry();
     const QVector<int>& freeLineage = geometry.joints.at(endIndex).freeLineage;
-    glm::mat4 parentTransform = glm::scale(_scale) * glm::translate(_offset) * geometry.offset;
+    glm::mat4 parentTransform = glm::scale(_scale) * glm::translate(_offset);
     _rig->inverseKinematics(endIndex, targetPosition, targetRotation, priority, freeLineage, parentTransform);
 }
 
@@ -1102,9 +1054,7 @@ void Model::setGeometry(const QSharedPointer<NetworkGeometry>& newGeometry) {
 
 void Model::deleteGeometry() {
     _blendedVertexBuffers.clear();
-    _rig->clearJointStates();
     _meshStates.clear();
-    _rig->deleteAnimations();
     _rig->destroyAnimGraph();
     _blendedBlendshapeCoefficients.clear();
 }
@@ -1144,10 +1094,14 @@ AABox Model::getPartBounds(int meshIndex, int partIndex) {
 }
 
 void Model::segregateMeshGroups() {
-    const FBXGeometry& geometry = _geometry->getFBXGeometry();
-    const std::vector<std::unique_ptr<NetworkMesh>>& networkMeshes = _geometry->getMeshes();
-
-    _rig->makeAnimSkeleton(geometry);
+    QSharedPointer<NetworkGeometry> networkGeometry;
+    if (_showCollisionHull && _collisionGeometry && _collisionGeometry->isLoaded()) {
+        networkGeometry = _collisionGeometry;
+    } else {
+        networkGeometry = _geometry;
+    }
+    const FBXGeometry& geometry = networkGeometry->getFBXGeometry();
+    const std::vector<std::unique_ptr<NetworkMesh>>& networkMeshes = networkGeometry->getMeshes();
 
     // all of our mesh vectors must match in size
     if ((int)networkMeshes.size() != geometry.meshes.size() ||
@@ -1155,6 +1109,9 @@ void Model::segregateMeshGroups() {
         qDebug() << "WARNING!!!! Mesh Sizes don't match! We will not segregate mesh groups yet.";
         return;
     }
+
+    Q_ASSERT(_renderItems.isEmpty()); // We should not have any existing renderItems if we enter this section of code
+    Q_ASSERT(_renderItemsSet.isEmpty()); // We should not have any existing renderItemsSet if we enter this section of code
 
     _renderItemsSet.clear();
 

@@ -18,16 +18,6 @@
 #include <QHash>
 #include <QObject>
 
-class CoverageMap;
-class ReadBitstreamToTreeParams;
-class Octree;
-class OctreeElement;
-class OctreeElementBag;
-class OctreePacketData;
-class Shape;
-typedef std::shared_ptr<Octree> OctreePointer;
-
-
 #include <shared/ReadWriteLockable.h>
 #include <SimpleMovingAverage.h>
 
@@ -38,6 +28,13 @@ typedef std::shared_ptr<Octree> OctreePointer;
 #include "OctreePacketData.h"
 #include "OctreeSceneStats.h"
 
+class CoverageMap;
+class ReadBitstreamToTreeParams;
+class Octree;
+class OctreeElement;
+class OctreePacketData;
+class Shape;
+using OctreePointer = std::shared_ptr<Octree>;
 
 extern QVector<QString> PERSIST_EXTENSIONS;
 
@@ -179,6 +176,8 @@ public:
             case OCCLUDED: return QString("OCCLUDED"); break;
         }
     }
+
+    std::function<void(const QUuid& dataID, quint64 itemLastEdited)> trackSend { [](const QUuid&, quint64){} };
 };
 
 class ReadElementBufferToTreeArgs {

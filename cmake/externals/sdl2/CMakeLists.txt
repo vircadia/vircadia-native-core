@@ -7,7 +7,7 @@ string(TOUPPER ${EXTERNAL_NAME} EXTERNAL_NAME_UPPER)
 if (WIN32)
   ExternalProject_Add(
     ${EXTERNAL_NAME}
-    URL http://www.libsdl.org/release/SDL2-devel-2.0.3-VC.zip
+    URL http://hifi-public.s3.amazonaws.com/dependencies/SDL2-devel-2.0.3-VC.zip
     URL_MD5 30a333bcbe94bc5016e8799c73e86233
     CONFIGURE_COMMAND ""
     BUILD_COMMAND ""
@@ -18,7 +18,7 @@ elseif (APPLE)
 
     ExternalProject_Add(
       ${EXTERNAL_NAME}
-      URL https://hifi-public.s3.amazonaws.com/dependencies/SDL2-2.0.3.zip
+      URL http://hifi-public.s3.amazonaws.com/dependencies/SDL2-2.0.3.zip
       CMAKE_ARGS -DCMAKE_INSTALL_PREFIX:PATH=<INSTALL_DIR> -DVIDEO_OPENGL=OFF
       BINARY_DIR ${EXTERNAL_PROJECT_PREFIX}/build
       LOG_DOWNLOAD 1
@@ -66,8 +66,15 @@ if (APPLE)
 elseif (WIN32)
   ExternalProject_Get_Property(${EXTERNAL_NAME} SOURCE_DIR)
   set(${EXTERNAL_NAME_UPPER}_INCLUDE_DIR ${SOURCE_DIR}/include CACHE PATH "Location of SDL2 include directory")
-  set(${EXTERNAL_NAME_UPPER}_LIBRARY_TEMP ${SOURCE_DIR}/lib/x86/SDL2.lib CACHE FILEPATH "Path to SDL2 library")
-  set(${EXTERNAL_NAME_UPPER}_DLL_PATH ${SOURCE_DIR}/lib/x86 CACHE PATH "Location of SDL2 DLL")
+
+  if ("${CMAKE_SIZEOF_VOID_P}" EQUAL "8")
+    set(${EXTERNAL_NAME_UPPER}_LIBRARY_TEMP ${SOURCE_DIR}/lib/x64/SDL2.lib CACHE FILEPATH "Path to SDL2 library")
+    set(${EXTERNAL_NAME_UPPER}_DLL_PATH ${SOURCE_DIR}/lib/x64 CACHE PATH "Location of SDL2 DLL")
+  else()
+    set(${EXTERNAL_NAME_UPPER}_LIBRARY_TEMP ${SOURCE_DIR}/lib/x86/SDL2.lib CACHE FILEPATH "Path to SDL2 library")
+    set(${EXTERNAL_NAME_UPPER}_DLL_PATH ${SOURCE_DIR}/lib/x86 CACHE PATH "Location of SDL2 DLL")
+  endif()
+  
 else ()
   ExternalProject_Get_Property(${EXTERNAL_NAME} INSTALL_DIR)
   set(${EXTERNAL_NAME_UPPER}_INCLUDE_DIR ${INSTALL_DIR}/include/SDL2 CACHE PATH "Location of SDL2 include directory")

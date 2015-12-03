@@ -122,7 +122,7 @@ public:
     virtual bool shouldIncludeChildData(int childIndex, EncodeBitstreamParams& params) const;
     virtual bool shouldRecurseChildTree(int childIndex, EncodeBitstreamParams& params) const;
     virtual void updateEncodedData(int childIndex, AppendState childAppendState, EncodeBitstreamParams& params) const;
-    virtual void elementEncodeComplete(EncodeBitstreamParams& params, OctreeElementBag* bag) const;
+    virtual void elementEncodeComplete(EncodeBitstreamParams& params) const;
 
     bool alreadyFullyEncoded(EncodeBitstreamParams& params) const;
 

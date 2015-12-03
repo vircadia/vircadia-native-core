@@ -13,7 +13,7 @@
 
 using namespace controller;
 
-
+const float PulseFilter::DEFAULT_LAST_EMIT_TIME = -::std::numeric_limits<float>::max();
 
 float PulseFilter::apply(float value) const {
     float result = 0.0f;
@@ -25,13 +25,22 @@ float PulseFilter::apply(float value) const {
             _lastEmitTime = now;
             result = value;
         }
+    } else if (_resetOnZero) {
+        _lastEmitTime = DEFAULT_LAST_EMIT_TIME;
     }
 
     return result;
 }
 
 bool PulseFilter::parseParameters(const QJsonValue& parameters) {
-    static const QString JSON_MIN = QStringLiteral("interval");
-    return parseSingleFloatParameter(parameters, JSON_MIN, _interval);
+    static const QString JSON_INTERVAL = QStringLiteral("interval");
+    static const QString JSON_RESET = QStringLiteral("resetOnZero");
+    if (parameters.isObject()) {
+        auto obj = parameters.toObject();
+        if (obj.contains(JSON_RESET)) {
+            _resetOnZero = obj[JSON_RESET].toBool();
+        }
+    }
+    return parseSingleFloatParameter(parameters, JSON_INTERVAL, _interval);
 }
 

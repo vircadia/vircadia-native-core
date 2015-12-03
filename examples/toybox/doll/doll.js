@@ -13,7 +13,6 @@
 /*global MyAvatar, Entities, AnimationCache, SoundCache, Scene, Camera, Overlays, Audio, HMD, AvatarList, AvatarManager, Controller, UndoStack, Window, Account, GlobalServices, Script, ScriptDiscoveryService, LODManager, Menu, Vec3, Quat, AudioDevice, Paths, Clipboard, Settings, XMLHttpRequest, randFloat, randInt */
 
 (function() {
-    Script.include("../../utilities.js");
     Script.include("../../libraries/utils.js");
     var _this;
     // this is the "constructor" for the entity as a JS object we don't do much here
@@ -37,12 +36,8 @@
             Entities.editEntity(this.entityID, {
                 animation: {
                     url: "https://hifi-public.s3.amazonaws.com/models/Bboys/zombie_scream.fbx",
-                    currentFrame: 0
+                    running: true
                 }
-            });
-
-            Entities.editEntity(_this.entityID, {
-                animationIsPlaying: true
             });
 
             var position = Entities.getEntityProperties(this.entityID, "position").position;
@@ -68,8 +63,10 @@
                 this.audioInjector.stop();
                 Entities.editEntity(this.entityID, {
                     animation: {
-                        url: "http://hifi-public.s3.amazonaws.com/models/Bboys/bboy2/bboy2.fbx",
-                        currentFrame: 0
+                        // Providing actual model fbx for animation used to work, now contorts doll into a weird ball
+                        // See bug:  https://app.asana.com/0/26225263936266/70097355490098
+                        // url: "http://hifi-public.s3.amazonaws.com/models/Bboys/bboy2/bboy2.fbx",
+                        running: false,
                     }
                 });
 

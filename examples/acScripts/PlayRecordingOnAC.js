@@ -10,43 +10,39 @@
 //
 
 
-var filename = "http://your.recording.url";
+var recordingFile = "http://your.recording.url";
 var playFromCurrentLocation = true;
 var loop = true;
-
-Avatar.faceModelURL = "http://public.highfidelity.io/models/heads/EvilPhilip_v7.fst";
-Avatar.skeletonModelURL = "http://public.highfidelity.io/models/skeletons/Philip_Carl_Body_A-Pose.fst";
 
 // Set position here if playFromCurrentLocation is true
 Avatar.position = { x:1, y: 1, z: 1 };
 Avatar.orientation = Quat.fromPitchYawRollDegrees(0, 0, 0);
 Avatar.scale = 1.0;
-
 Agent.isAvatar = true;
-    
-Avatar.loadRecording(filename);
+
+Recording.loadRecording(recordingFile);
 
 count = 300; // This is necessary to wait for the audio mixer to connect
 function update(event) {
-  if (count > 0) {
-    count--;
-    return;
-  }
-  if (count == 0) {
-    Avatar.setPlayFromCurrentLocation(playFromCurrentLocation);
-    Avatar.setPlayerLoop(loop);
-    Avatar.startPlaying();
-    Avatar.play();
-    Vec3.print("Playing from ", Avatar.position);
-
-    count--;
-  }
-  
-  if (Avatar.isPlaying()) {
-    Avatar.play();
-  } else {
-    Script.update.disconnect(update);
-  }
+    if (count > 0) {
+        count--;
+        return;
+    }
+    if (count == 0) {
+        Recording.setPlayFromCurrentLocation(playFromCurrentLocation);
+        Recording.setPlayerLoop(loop);
+        Recording.setPlayerUseDisplayName(true);
+        Recording.setPlayerUseAttachments(true);
+        Recording.setPlayerUseHeadModel(false);
+        Recording.setPlayerUseSkeletonModel(true);
+        Recording.startPlaying();
+        Vec3.print("Playing from ", Avatar.position);
+        count--;
+    }
+    
+    if (!Recording.isPlaying()) {
+        Script.update.disconnect(update);
+    }
 }
 
 Script.update.connect(update);

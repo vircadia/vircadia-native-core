@@ -143,7 +143,7 @@ public:
 
         const Varying getInput() const { return _input; }
 
-        ModelI(const std::string& name, const Varying& input): Concept(name), _input(input) {}
+        ModelI(const std::string& name, const Varying& input, Data data = Data()) : Concept(name), _data(data), _input(input) {}
         ModelI(const std::string& name, Data data): Concept(name), _data(data) {}
 
         void run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext) {
