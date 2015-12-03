@@ -7,7 +7,7 @@ exports.discoveredPath = function (name, preferRelease) {
         function platformExtension(name) {
             if (name == "Interface") {
                 if (process.platform == "darwin") {
-                    return ".app"
+                    return ".app/Contents/MacOS/" + name
                 } else if (process.platform == "win32") {
                     return ".exe"
                 } else {
