@@ -52,8 +52,6 @@ typedef QHash<uint, AACube> CubeList;
 
 const bool NO_EXISTS_BITS         = false;
 const bool WANT_EXISTS_BITS       = true;
-const bool NO_COLOR               = false;
-const bool WANT_COLOR             = true;
 const bool COLLAPSE_EMPTY_TREE    = true;
 const bool DONT_COLLAPSE          = false;
 
@@ -72,7 +70,6 @@ public:
     int maxEncodeLevel;
     int maxLevelReached;
     const ViewFrustum* viewFrustum;
-    bool includeColor;
     bool includeExistsBits;
     int chopLevels;
     bool deltaViewFrustum;
@@ -103,7 +100,6 @@ public:
     EncodeBitstreamParams(
         int maxEncodeLevel = INT_MAX,
         const ViewFrustum* viewFrustum = IGNORE_VIEW_FRUSTUM,
-        bool includeColor = WANT_COLOR,
         bool includeExistsBits = WANT_EXISTS_BITS,
         int  chopLevels = 0,
         bool deltaViewFrustum = false,
@@ -118,7 +114,6 @@ public:
             maxEncodeLevel(maxEncodeLevel),
             maxLevelReached(0),
             viewFrustum(viewFrustum),
-            includeColor(includeColor),
             includeExistsBits(includeExistsBits),
             chopLevels(chopLevels),
             deltaViewFrustum(deltaViewFrustum),
@@ -181,7 +176,6 @@ public:
 
 class ReadBitstreamToTreeParams {
 public:
-    bool includeColor;
     bool includeExistsBits;
     OctreeElementPointer destinationElement;
     QUuid sourceUUID;
@@ -192,14 +186,12 @@ public:
     int entitiesPerPacket = 0;
 
     ReadBitstreamToTreeParams(
-        bool includeColor = WANT_COLOR,
         bool includeExistsBits = WANT_EXISTS_BITS,
         OctreeElementPointer destinationElement = NULL,
         QUuid sourceUUID = QUuid(),
         SharedNodePointer sourceNode = SharedNodePointer(),
         bool wantImportProgress = false,
         PacketVersion bitstreamVersion = 0) :
-            includeColor(includeColor),
             includeExistsBits(includeExistsBits),
             destinationElement(destinationElement),
             sourceUUID(sourceUUID),
@@ -306,7 +298,7 @@ public:
                                     Octree::lockType lockType = Octree::TryLock, bool* accurateResult = NULL);
 
     // Note: this assumes the fileFormat is the HIO individual voxels code files
-    void loadOctreeFile(const char* fileName, bool wantColorRandomizer);
+    void loadOctreeFile(const char* fileName);
 
     // Octree exporters
     void writeToFile(const char* filename, OctreeElementPointer element = NULL, QString persistAsFileType = "svo");

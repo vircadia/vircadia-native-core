@@ -321,7 +321,6 @@ int OctreeSendThread::packetDistributor(OctreeQueryNode* nodeData, bool viewFrus
     // If we're starting a fresh packet, then...
     //     If we're moving, and the client asked for low res, then we force monochrome, otherwise, use
     //     the clients requested color state.
-    bool wantColor = nodeData->getWantColor();
     bool wantCompression = nodeData->getWantCompression();
 
     // If we have a packet waiting, and our desired want color, doesn't match the current waiting packets color
@@ -456,7 +455,7 @@ int OctreeSendThread::packetDistributor(OctreeQueryNode* nodeData, bool viewFrus
                     int boundaryLevelAdjust = boundaryLevelAdjustClient + (viewFrustumChanged && nodeData->getWantLowResMoving()
                                                                            ? LOW_RES_MOVING_ADJUST : NO_BOUNDARY_ADJUST);
 
-                    EncodeBitstreamParams params(INT_MAX, &nodeData->getCurrentViewFrustum(), wantColor,
+                    EncodeBitstreamParams params(INT_MAX, &nodeData->getCurrentViewFrustum(), 
                                                  WANT_EXISTS_BITS, DONT_CHOP, wantDelta, lastViewFrustum,
                                                  boundaryLevelAdjust, octreeSizeScale,
                                                  nodeData->getLastTimeBagEmpty(),
