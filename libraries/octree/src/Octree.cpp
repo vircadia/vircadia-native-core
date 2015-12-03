@@ -41,7 +41,6 @@
 #include <PathUtils.h>
 #include <Gzip.h>
 
-#include "CoverageMap.h"
 #include "OctreeConstants.h"
 #include "OctreeElementBag.h"
 #include "Octree.h"
@@ -1103,31 +1102,6 @@ int Octree::encodeTreeBitstreamRecursion(OctreeElementPointer element,
             params.stopReason = EncodeBitstreamParams::NO_CHANGE;
             return bytesAtThisLevel;
         }
-
-        // If the user also asked for occlusion culling, check if this element is occluded, but only if it's not a leaf.
-        // leaf occlusion is handled down below when we check child nodes
-        if (params.wantOcclusionCulling && !element->isLeaf()) {
-            OctreeProjectedPolygon* voxelPolygon =
-                new OctreeProjectedPolygon(params.viewFrustum->getProjectedPolygon(element->getAACube()));
-
-            // In order to check occlusion culling, the shadow has to be "all in view" otherwise, we will ignore occlusion
-            // culling and proceed as normal
-            if (voxelPolygon->getAllInView()) {
-                CoverageMapStorageResult result = params.map->checkMap(voxelPolygon, false);
-                delete voxelPolygon; // cleanup
-                if (result == OCCLUDED) {
-                    if (params.stats) {
-                        params.stats->skippedOccluded(element);
-                    }
-                    params.stopReason = EncodeBitstreamParams::OCCLUDED;
-                    return bytesAtThisLevel;
-                }
-            } else {
-                // If this shadow wasn't "all in view" then we ignored it for occlusion culling, but
-                // we do need to clean up memory and proceed as normal...
-                delete voxelPolygon;
-            }
-        }
     }
 
     bool keepDiggingDeeper = true; // Assuming we're in view we have a great work ethic, we're always ready for more!
@@ -1190,20 +1164,10 @@ int Octree::encodeTreeBitstreamRecursion(OctreeElementPointer element,
             }
         }
 
-        if (params.wantOcclusionCulling) {
-            if (childElement) {
-                float distance = params.viewFrustum ? childElement->distanceToCamera(*params.viewFrustum) : 0;
-
-                currentCount = insertOctreeElementIntoSortedArrays(childElement, distance, i,
-                                                                   sortedChildren, (float*)&distancesToChildren,
-                                                                   (int*)&indexOfChildren, currentCount, NUMBER_OF_CHILDREN);
-            }
-        } else {
-            sortedChildren[i] = childElement;
-            indexOfChildren[i] = i;
-            distancesToChildren[i] = 0.0f;
-            currentCount++;
-        }
+        sortedChildren[i] = childElement;
+        indexOfChildren[i] = i;
+        distancesToChildren[i] = 0.0f;
+        currentCount++;
 
         // track stats
         // must check childElement here, because it could be we got here with no childElement
@@ -1254,36 +1218,6 @@ int Octree::encodeTreeBitstreamRecursion(OctreeElementPointer element,
                 }
 
                 bool childIsOccluded = false; // assume it's not occluded
-
-                // If the user also asked for occlusion culling, check if this element is occluded
-                if (params.wantOcclusionCulling && childElement->isLeaf()) {
-                    // Don't check occlusion here, just add them to our distance ordered array...
-
-                    // FIXME params.ViewFrustum is used here, but later it is checked against nullptr.
-                    OctreeProjectedPolygon* voxelPolygon = new OctreeProjectedPolygon(
-                                params.viewFrustum->getProjectedPolygon(childElement->getAACube()));
-
-                    // In order to check occlusion culling, the shadow has to be "all in view" otherwise, we ignore occlusion
-                    // culling and proceed as normal
-                    if (voxelPolygon->getAllInView()) {
-                        CoverageMapStorageResult result = params.map->checkMap(voxelPolygon, true);
-
-                        // In all cases where the shadow wasn't stored, we need to free our own memory.
-                        // In the case where it is stored, the CoverageMap will free memory for us later.
-                        if (result != STORED) {
-                            delete voxelPolygon;
-                        }
-
-                        // If while attempting to add this voxel's shadow, we determined it was occluded, then
-                        // we don't need to process it further and we can exit early.
-                        if (result == OCCLUDED) {
-                            childIsOccluded = true;
-                        }
-                    } else {
-                        delete voxelPolygon;
-                    }
-                } // wants occlusion culling & isLeaf()
-
 
                 bool shouldRender = !params.viewFrustum
                                     ? true
@@ -1613,33 +1547,6 @@ int Octree::encodeTreeBitstreamRecursion(OctreeElementPointer element,
                 } // end if (childTreeBytesOut == 0)
             } // end if (oneAtBit(childrenExistInPacketBits, originalIndex))
         } // end for
-
-        // reshuffle here...
-        if (continueThisLevel && params.wantOcclusionCulling) {
-            unsigned char tempReshuffleBuffer[MAX_OCTREE_UNCOMRESSED_PACKET_SIZE];
-
-            unsigned char* tempBufferTo = &tempReshuffleBuffer[0]; // this is our temporary destination
-
-            // iterate through our childrenExistInPacketBits, these will be the sections of the packet that we copied subTree
-            // details into. Unfortunately, they're in distance sorted order, not original index order. we need to put them
-            // back into original distance order
-            for (int originalIndex = 0; originalIndex < NUMBER_OF_CHILDREN; originalIndex++) {
-                if (oneAtBit(childrenExistInPacketBits, originalIndex)) {
-                    int thisSliceSize = recursiveSliceSizes[originalIndex];
-                    const unsigned char* thisSliceStarts = recursiveSliceStarts[originalIndex];
-
-                    memcpy(tempBufferTo, thisSliceStarts, thisSliceSize);
-                    tempBufferTo += thisSliceSize;
-                }
-            }
-
-            // now that all slices are back in the correct order, copy them to the correct output buffer
-            continueThisLevel = packetData->updatePriorBytes(firstRecursiveSliceOffset, &tempReshuffleBuffer[0], allSlicesSize);
-            if (!continueThisLevel) {
-                qCDebug(octree) << "WARNING UNEXPECTED CASE: Failed to update recursive slice!!!";
-                qCDebug(octree) << "This is not expected!!!!  -- continueThisLevel=FALSE....";
-            }
-        }
     } // end keepDiggingDeeper
 
     // If we made it this far, then we've written all of our child data... if this element is the root

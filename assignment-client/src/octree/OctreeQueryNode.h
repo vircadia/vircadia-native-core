@@ -14,7 +14,6 @@
 
 #include <iostream>
 
-#include <CoverageMap.h>
 #include <NodeData.h>
 #include <OctreeConstants.h>
 #include <OctreeElementBag.h>
@@ -55,7 +54,6 @@ public:
     void setMaxLevelReached(int maxLevelReached) { _maxLevelReachedInLastSearch = maxLevelReached; }
 
     OctreeElementBag elementBag;
-    CoverageMap map;
     OctreeElementExtraEncodeData extraEncodeData;
 
     ViewFrustum& getCurrentViewFrustum() { return _currentViewFrustum; }
