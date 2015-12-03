@@ -242,7 +242,7 @@ public:
         float _gloss{0.1f};
         Color _emissive{0.0f};
         float _spare0{0.0f};
-        glm::vec4  _spareVec4{0.0f}; // for alignment lighting, Material size == Mat4x4
+        glm::vec4  _spareVec4{0.0f}; // for alignment beauty, Material size == Mat4x4
 
         Schema() {}
     };

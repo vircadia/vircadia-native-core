@@ -82,7 +82,7 @@ void avatarDataFromScriptValue(const QScriptValue &object, AvatarData* &out) {
 }
 
 Q_DECLARE_METATYPE(controller::InputController*)
-static int inputControllerPointerId = qRegisterMetaType<controller::InputController*>();
+//static int inputControllerPointerId = qRegisterMetaType<controller::InputController*>();
 
 QScriptValue inputControllerToScriptValue(QScriptEngine *engine, controller::InputController* const &in) {
     return engine->newQObject(in);

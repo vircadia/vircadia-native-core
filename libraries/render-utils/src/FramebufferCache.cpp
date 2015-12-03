@@ -78,8 +78,8 @@ void FramebufferCache::createPrimaryFramebuffer() {
     _selfieFramebuffer->setRenderBuffer(0, tex);
     
     
-  //  _lightingTexture = gpu::TexturePointer(gpu::Texture::create2D(gpu::Element(gpu::VEC4, gpu::NUINT8, gpu::RGBA), width, height, defaultSampler));
-    _lightingTexture = gpu::TexturePointer(gpu::Texture::create2D(gpu::Element(gpu::VEC4, gpu::NUINT8, gpu::SRGBA), width, height, defaultSampler));
+    _lightingTexture = gpu::TexturePointer(gpu::Texture::create2D(gpu::Element(gpu::VEC4, gpu::NUINT8, gpu::RGBA), width, height, defaultSampler));
+    //_lightingTexture = gpu::TexturePointer(gpu::Texture::create2D(gpu::Element(gpu::VEC4, gpu::NUINT8, gpu::SRGBA), width, height, defaultSampler));
    // _lightingTexture = gpu::TexturePointer(gpu::Texture::create2D(gpu::Element(gpu::VEC4, gpu::HALF, gpu::RGBA), width, height, defaultSampler));
     _lightingFramebuffer  = gpu::FramebufferPointer(gpu::Framebuffer::create());
     _lightingFramebuffer->setRenderBuffer(0, _lightingTexture);
