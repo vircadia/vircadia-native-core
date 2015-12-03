@@ -41,7 +41,7 @@ app.on('window-all-closed', function() {
 
 // Check command line arguments to see how to find binaries
 var argv = require('yargs').argv;
-var pathFinder = require('./path-finder.js');
+var pathFinder = require('./modules/path-finder.js');
 
 var interfacePath = null;
 var dsPath = null;
