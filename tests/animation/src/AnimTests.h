@@ -28,6 +28,7 @@ private slots:
     void testAccumulateTime();
     void testExpressionTokenizer();
     void testExpressionParser();
+    void testExpressionEvaluator();
 };
 
 #endif // hifi_AnimTests_h

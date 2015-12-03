@@ -366,82 +366,120 @@ void AnimTests::testExpressionParser() {
     vars.set("five", (float)5.0f);
     vars.set("forty", (float)40.0f);
 
-    AnimExpression e("(!f)");
-    QVERIFY(e._opCodes.size() == 2);
-    if (e._opCodes.size() == 2) {
-        QVERIFY(e._opCodes[0].type == AnimExpression::OpCode::Identifier);
-        QVERIFY(e._opCodes[0].strVal == "f");
-        QVERIFY(e._opCodes[1].type == AnimExpression::OpCode::Not);
-
-        auto opCode = e.evaluate(vars);
-        QVERIFY(opCode.type == AnimExpression::OpCode::Bool);
-        QVERIFY((opCode.intVal != 0) == true);
-    }
-
-    e = AnimExpression("!!f");
-    QVERIFY(e._opCodes.size() == 3);
-    if (e._opCodes.size() == 3) {
-        QVERIFY(e._opCodes[0].type == AnimExpression::OpCode::Identifier);
-        QVERIFY(e._opCodes[0].strVal == "f");
-        QVERIFY(e._opCodes[1].type == AnimExpression::OpCode::Not);
-        QVERIFY(e._opCodes[2].type == AnimExpression::OpCode::Not);
-
-        auto opCode = e.evaluate(vars);
-        QVERIFY(opCode.type == AnimExpression::OpCode::Bool);
-        QVERIFY((opCode.intVal != 0) == false);
-    }
-
-    e = AnimExpression("!!(!f)");
-    QVERIFY(e._opCodes.size() == 4);
-    if (e._opCodes.size() == 4) {
-        QVERIFY(e._opCodes[0].type == AnimExpression::OpCode::Identifier);
-        QVERIFY(e._opCodes[0].strVal == "f");
-        QVERIFY(e._opCodes[1].type == AnimExpression::OpCode::Not);
-        QVERIFY(e._opCodes[2].type == AnimExpression::OpCode::Not);
-        QVERIFY(e._opCodes[3].type == AnimExpression::OpCode::Not);
-
-        auto opCode = e.evaluate(vars);
-        QVERIFY(opCode.type == AnimExpression::OpCode::Bool);
-        QVERIFY((opCode.intVal != 0) == true);
-    }
-/*
-    e = AnimExpression("f || !f");
-    QVERIFY(e._opCodes.size() == 4);
-    if (e._opCodes.size() == 4) {
-        QVERIFY(e._opCodes[0].type == AnimExpression::OpCode::Identifier);
-        QVERIFY(e._opCodes[0].strVal == "f");
-        QVERIFY(e._opCodes[1].type == AnimExpression::OpCode::Identifier);
-        QVERIFY(e._opCodes[1].strVal == "f");
-        QVERIFY(e._opCodes[2].type == AnimExpression::OpCode::Not);
-        QVERIFY(e._opCodes[3].type == AnimExpression::OpCode::Or);
-
-        auto opCode = e.evaluate(vars);
-        QVERIFY(opCode.type == AnimExpression::OpCode::Bool);
-        QVERIFY((opCode.intVal != 0) == true);
-    }
-*/
-    e = AnimExpression("-10");
-    QVERIFY(e._opCodes.size() == 2);
+    AnimExpression e("10");
+    QVERIFY(e._opCodes.size() == 1);
     if (e._opCodes.size() == 1) {
         QVERIFY(e._opCodes[0].type == AnimExpression::OpCode::Int);
         QVERIFY(e._opCodes[0].intVal == 10);
-        QVERIFY(e._opCodes[1].type == AnimExpression::OpCode::Minus);
-
-        auto opCode = e.evaluate(vars);
-        QVERIFY(opCode.type == AnimExpression::OpCode::Int);
-        QVERIFY(opCode.intVal == 10);
     }
 
-    e = AnimExpression("-ten");
-    QVERIFY(e._opCodes.size() == 2);
+    e = AnimExpression("(10)");
+    QVERIFY(e._opCodes.size() == 1);
+    if (e._opCodes.size() == 1) {
+        QVERIFY(e._opCodes[0].type == AnimExpression::OpCode::Int);
+        QVERIFY(e._opCodes[0].intVal == 10);
+    }
+
+    e = AnimExpression("((10))");
+    QVERIFY(e._opCodes.size() == 1);
+    if (e._opCodes.size() == 1) {
+        QVERIFY(e._opCodes[0].type == AnimExpression::OpCode::Int);
+        QVERIFY(e._opCodes[0].intVal == 10);
+    }
+
+    e = AnimExpression("12.5");
+    QVERIFY(e._opCodes.size() == 1);
+    if (e._opCodes.size() == 1) {
+        QVERIFY(e._opCodes[0].type == AnimExpression::OpCode::Float);
+        QVERIFY(e._opCodes[0].floatVal == 12.5f);
+    }
+
+    e = AnimExpression("twenty");
+    QVERIFY(e._opCodes.size() == 1);
     if (e._opCodes.size() == 1) {
         QVERIFY(e._opCodes[0].type == AnimExpression::OpCode::Identifier);
-        QVERIFY(e._opCodes[0].strVal == "ten");
-        QVERIFY(e._opCodes[1].type == AnimExpression::OpCode::Minus);
+        QVERIFY(e._opCodes[0].strVal == "twenty");
+    }
 
-        auto opCode = e.evaluate(vars);
-        QVERIFY(opCode.type == AnimExpression::OpCode::Int);
-        QVERIFY(opCode.intVal == 10);
+    e = AnimExpression("2 + 3");
+    QVERIFY(e._opCodes.size() == 3);
+    if (e._opCodes.size() == 3) {
+        QVERIFY(e._opCodes[0].type == AnimExpression::OpCode::Int);
+        QVERIFY(e._opCodes[0].intVal == 2);
+        QVERIFY(e._opCodes[1].type == AnimExpression::OpCode::Int);
+        QVERIFY(e._opCodes[1].intVal == 3);
+        QVERIFY(e._opCodes[2].type == AnimExpression::OpCode::Add);
+    }
+
+    e = AnimExpression("2 + 3 * 10");
+    QVERIFY(e._opCodes.size() == 5);
+    if (e._opCodes.size() == 5) {
+        QVERIFY(e._opCodes[0].type == AnimExpression::OpCode::Int);
+        QVERIFY(e._opCodes[0].intVal == 2);
+        QVERIFY(e._opCodes[1].type == AnimExpression::OpCode::Int);
+        QVERIFY(e._opCodes[1].intVal == 3);
+        QVERIFY(e._opCodes[2].type == AnimExpression::OpCode::Int);
+        QVERIFY(e._opCodes[2].intVal == 10);
+        QVERIFY(e._opCodes[3].type == AnimExpression::OpCode::Multiply);
+        QVERIFY(e._opCodes[4].type == AnimExpression::OpCode::Add);
+    }
+
+    e = AnimExpression("(2 + 3) * 10");
+    QVERIFY(e._opCodes.size() == 5);
+    if (e._opCodes.size() == 5) {
+        QVERIFY(e._opCodes[0].type == AnimExpression::OpCode::Int);
+        QVERIFY(e._opCodes[0].intVal == 2);
+        QVERIFY(e._opCodes[1].type == AnimExpression::OpCode::Int);
+        QVERIFY(e._opCodes[1].intVal == 3);
+        QVERIFY(e._opCodes[2].type == AnimExpression::OpCode::Add);
+        QVERIFY(e._opCodes[3].type == AnimExpression::OpCode::Int);
+        QVERIFY(e._opCodes[3].intVal == 10);
+        QVERIFY(e._opCodes[4].type == AnimExpression::OpCode::Multiply);
     }
 }
 
+void AnimTests::testExpressionEvaluator() {
+    auto vars = AnimVariantMap();
+    vars.set("f", false);
+    vars.set("t", true);
+    vars.set("ten", (int)10);
+    vars.set("twenty", (int)20);
+    vars.set("five", (float)5.0f);
+    vars.set("forty", (float)40.0f);
+
+    AnimExpression::OpCode result = AnimExpression("10").evaluate(vars);
+    QVERIFY(result.type == AnimExpression::OpCode::Int);
+    QVERIFY(result.intVal == 10);
+
+    result = AnimExpression("(10)").evaluate(vars);
+    QVERIFY(result.type == AnimExpression::OpCode::Int);
+    QVERIFY(result.intVal == 10);
+
+    result = AnimExpression("2 + 3").evaluate(vars);
+    QVERIFY(result.type == AnimExpression::OpCode::Int);
+    QVERIFY(result.intVal == 2 + 3);
+
+    result = AnimExpression("2 + 3 * 5").evaluate(vars);
+    QVERIFY(result.type == AnimExpression::OpCode::Int);
+    QVERIFY(result.intVal == 2 + 3 * 5);
+
+    result = AnimExpression("(2 + 3) * 5").evaluate(vars);
+    QVERIFY(result.type == AnimExpression::OpCode::Int);
+    QVERIFY(result.intVal == (2 + 3) * 5);
+
+    result = AnimExpression("(2 + 3) * (5 + 3)").evaluate(vars);
+    QVERIFY(result.type == AnimExpression::OpCode::Int);
+    QVERIFY(result.intVal == (2 + 3) * (5 + 3));
+
+    result = AnimExpression("(ten + twenty) * 5").evaluate(vars);
+    QVERIFY(result.type == AnimExpression::OpCode::Int);
+    QVERIFY(result.intVal == (10 + 20) * 5);
+
+    result = AnimExpression("(ten + twenty) * 5.0").evaluate(vars);
+    QVERIFY(result.type == AnimExpression::OpCode::Float);
+    QVERIFY(result.floatVal == (10 + 20) * 5.0f);
+
+    result = AnimExpression("five * forty").evaluate(vars);
+    QVERIFY(result.type == AnimExpression::OpCode::Float);
+    QVERIFY(result.floatVal == 5.0f * 40.0f);
+}

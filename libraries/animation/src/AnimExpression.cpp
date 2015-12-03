@@ -17,8 +17,15 @@
 AnimExpression::AnimExpression(const QString& str) :
     _expression(str) {
     auto iter = str.begin();
-    parseExpression(_expression, iter);
+    parseExpr(_expression, iter);
+    while(!_tokenStack.empty()) {
+        _tokenStack.pop();
+    }
 }
+
+//
+// Tokenizer
+//
 
 void AnimExpression::unconsumeToken(const Token& token) {
     _tokenStack.push(token);
@@ -49,6 +56,7 @@ AnimExpression::Token AnimExpression::consumeToken(const QString& str, QString::
                 case '-': ++iter; return Token(Token::Minus);
                 case '+': ++iter; return Token(Token::Plus);
                 case '*': ++iter; return Token(Token::Multiply);
+                case '/': ++iter; return Token(Token::Divide);
                 case '%': ++iter; return Token(Token::Modulus);
                 case ',': ++iter; return Token(Token::Comma);
                 default:
@@ -184,73 +192,137 @@ AnimExpression::Token AnimExpression::consumeNot(const QString& str, QString::co
     }
 }
 
-bool AnimExpression::parseExpression(const QString& str, QString::const_iterator& iter) {
+//
+// Parser
+//
+
+/*
+Expr   → Term Expr'
+Expr'  → + Term Expr'
+       | – Term Expr'
+       | ε
+Term   → Factor Term'
+Term'  → * Term'
+       | / Term'
+       | ε
+Factor → INT
+       | FLOAT
+       | IDENTIFIER
+       | (Expr)
+*/
+
+bool AnimExpression::parseExpr(const QString& str, QString::const_iterator& iter) {
+    if (!parseTerm(str, iter)) {
+        return false;
+    }
+    if (!parseExprPrime(str, iter)) {
+        return false;
+    }
+    return true;
+}
+
+bool AnimExpression::parseExprPrime(const QString& str, QString::const_iterator& iter) {
     auto token = consumeToken(str, iter);
-    if (token.type == Token::Identifier) {
-        if (token.strVal == "true") {
-            _opCodes.push_back(OpCode {true});
-        } else if (token.strVal == "false") {
-            _opCodes.push_back(OpCode {false});
-        } else {
-            _opCodes.push_back(OpCode {token.strVal});
+    if (token.type == Token::Plus) {
+        if (!parseTerm(str, iter)) {
+            unconsumeToken(token);
+            return false;
         }
+        if (!parseExprPrime(str, iter)) {
+            unconsumeToken(token);
+            return false;
+        }
+        _opCodes.push_back(OpCode {OpCode::Add});
         return true;
-    } else if (token.type == Token::Int) {
+    } else if (token.type == Token::Minus) {
+        if (!parseTerm(str, iter)) {
+            unconsumeToken(token);
+            return false;
+        }
+        if (!parseExprPrime(str, iter)) {
+            unconsumeToken(token);
+            return false;
+        }
+        _opCodes.push_back(OpCode {OpCode::Subtract});
+        return true;
+    } else {
+        unconsumeToken(token);
+        return true;
+    }
+}
+
+bool AnimExpression::parseTerm(const QString& str, QString::const_iterator& iter) {
+    if (!parseFactor(str, iter)) {
+        return false;
+    }
+    if (!parseTermPrime(str, iter)) {
+        return false;
+    }
+    return true;
+}
+
+bool AnimExpression::parseTermPrime(const QString& str, QString::const_iterator& iter) {
+    auto token = consumeToken(str, iter);
+    if (token.type == Token::Multiply) {
+        if (!parseTerm(str, iter)) {
+            unconsumeToken(token);
+            return false;
+        }
+        if (!parseTermPrime(str, iter)) {
+            unconsumeToken(token);
+            return false;
+        }
+        _opCodes.push_back(OpCode {OpCode::Multiply});
+        return true;
+    } else if (token.type == Token::Divide) {
+        if (!parseTerm(str, iter)) {
+            unconsumeToken(token);
+            return false;
+        }
+        if (!parseTermPrime(str, iter)) {
+            unconsumeToken(token);
+            return false;
+        }
+        _opCodes.push_back(OpCode {OpCode::Divide});
+        return true;
+    } else {
+        unconsumeToken(token);
+        return true;
+    }
+}
+
+bool AnimExpression::parseFactor(const QString& str, QString::const_iterator& iter) {
+    auto token = consumeToken(str, iter);
+    if (token.type == Token::Int) {
         _opCodes.push_back(OpCode {token.intVal});
         return true;
     } else if (token.type == Token::Float) {
         _opCodes.push_back(OpCode {token.floatVal});
         return true;
+    } else if (token.type == Token::Identifier) {
+        _opCodes.push_back(OpCode {token.strVal});
+        return true;
     } else if (token.type == Token::LeftParen) {
-        if (parseUnaryExpression(str, iter)) {
-            token = consumeToken(str, iter);
-            if (token.type != Token::RightParen) {
-                qCCritical(animation) << "Error parsing expression, expected ')'";
-                return false;
-            } else {
-                return true;
-            }
-        } else {
+        if (!parseExpr(str, iter)) {
+            unconsumeToken(token);
             return false;
         }
+        auto nextToken = consumeToken(str, iter);
+        if (nextToken.type != Token::RightParen) {
+            unconsumeToken(nextToken);
+            unconsumeToken(token);
+            return false;
+        }
+        return true;
     } else {
         unconsumeToken(token);
-        if (parseUnaryExpression(str, iter)) {
-            return true;
-        } else {
-            qCCritical(animation) << "Error parsing expression";
-            return false;
-        }
+        return false;
     }
 }
 
-bool AnimExpression::parseUnaryExpression(const QString& str, QString::const_iterator& iter) {
-    auto token = consumeToken(str, iter);
-    if (token.type == Token::Plus) { // unary plus is a no op.
-        if (parseExpression(str, iter)) {
-            return true;
-        } else {
-            return false;
-        }
-    } else if (token.type == Token::Minus) {
-        if (parseExpression(str, iter)) {
-            _opCodes.push_back(OpCode {OpCode::Minus});
-            return true;
-        } else {
-            return false;
-        }
-    } else if (token.type == Token::Not) {
-        if (parseExpression(str, iter)) {
-            _opCodes.push_back(OpCode {OpCode::Not});
-            return true;
-        } else {
-            return false;
-        }
-    } else {
-        unconsumeToken(token);
-        return parseExpression(str, iter);
-    }
-}
+//
+// Evaluator
+//
 
 AnimExpression::OpCode AnimExpression::evaluate(const AnimVariantMap& map) const {
     std::stack<OpCode> stack;
@@ -274,8 +346,9 @@ AnimExpression::OpCode AnimExpression::evaluate(const AnimVariantMap& map) const
         case OpCode::Subtract: evalSubtract(map, stack); break;
         case OpCode::Add: evalAdd(map, stack); break;
         case OpCode::Multiply: evalMultiply(map, stack); break;
+        case OpCode::Divide: evalDivide(map, stack); break;
         case OpCode::Modulus: evalModulus(map, stack); break;
-        case OpCode::Minus: evalMinus(map, stack); break;
+        case OpCode::UnaryMinus: evalUnaryMinus(map, stack); break;
         }
     }
     return stack.top();
@@ -362,15 +435,107 @@ void AnimExpression::evalSubtract(const AnimVariantMap& map, std::stack<OpCode>&
     PUSH(0.0f);
 }
 
-void AnimExpression::evalAdd(const AnimVariantMap& map, std::stack<OpCode>& stack) const {
-    OpCode lhs = stack.top(); stack.pop();
-    OpCode rhs = stack.top(); stack.pop();
+void AnimExpression::add(int lhs, const OpCode& rhs, std::stack<OpCode>& stack) const {
+    switch (rhs.type) {
+    case OpCode::Bool:
+    case OpCode::Int:
+        PUSH(lhs + rhs.intVal);
+        break;
+    case OpCode::Float:
+        PUSH((float)lhs + rhs.floatVal);
+        break;
+    default:
+        PUSH(lhs);
+    }
+}
 
-    // TODO:
-    PUSH(0.0f);
+void AnimExpression::add(float lhs, const OpCode& rhs, std::stack<OpCode>& stack) const {
+    switch (rhs.type) {
+    case OpCode::Bool:
+    case OpCode::Int:
+        PUSH(lhs + (float)rhs.intVal);
+        break;
+    case OpCode::Float:
+        PUSH(lhs + rhs.floatVal);
+        break;
+    default:
+        PUSH(lhs);
+    }
+}
+
+void AnimExpression::evalAdd(const AnimVariantMap& map, std::stack<OpCode>& stack) const {
+    OpCode lhs = coerseToValue(map, stack.top());
+    stack.pop();
+    OpCode rhs = coerseToValue(map, stack.top());
+    stack.pop();
+
+    switch (lhs.type) {
+    case OpCode::Bool:
+        add(lhs.intVal, rhs, stack);
+        break;
+    case OpCode::Int:
+        add(lhs.intVal, rhs, stack);
+        break;
+    case OpCode::Float:
+        add(lhs.floatVal, rhs, stack);
+        break;
+    default:
+        add(0, rhs, stack);
+        break;
+    }
 }
 
 void AnimExpression::evalMultiply(const AnimVariantMap& map, std::stack<OpCode>& stack) const {
+    OpCode lhs = coerseToValue(map, stack.top());
+    stack.pop();
+    OpCode rhs = coerseToValue(map, stack.top());
+    stack.pop();
+
+    switch(lhs.type) {
+    case OpCode::Bool:
+        mul(lhs.intVal, rhs, stack);
+        break;
+    case OpCode::Int:
+        mul(lhs.intVal, rhs, stack);
+        break;
+    case OpCode::Float:
+        mul(lhs.floatVal, rhs, stack);
+        break;
+    default:
+        mul(0, rhs, stack);
+        break;
+    }
+}
+
+void AnimExpression::mul(int lhs, const OpCode& rhs, std::stack<OpCode>& stack) const {
+    switch (rhs.type) {
+    case OpCode::Bool:
+    case OpCode::Int:
+        PUSH(lhs * rhs.intVal);
+        break;
+    case OpCode::Float:
+        PUSH((float)lhs * rhs.floatVal);
+        break;
+    default:
+        PUSH(lhs);
+    }
+}
+
+void AnimExpression::mul(float lhs, const OpCode& rhs, std::stack<OpCode>& stack) const {
+    switch (rhs.type) {
+    case OpCode::Bool:
+    case OpCode::Int:
+        PUSH(lhs * (float)rhs.intVal);
+        break;
+    case OpCode::Float:
+        PUSH(lhs * rhs.floatVal);
+        break;
+    default:
+        PUSH(lhs);
+    }
+}
+
+void AnimExpression::evalDivide(const AnimVariantMap& map, std::stack<OpCode>& stack) const {
     OpCode lhs = stack.top(); stack.pop();
     OpCode rhs = stack.top(); stack.pop();
 
@@ -386,7 +551,7 @@ void AnimExpression::evalModulus(const AnimVariantMap& map, std::stack<OpCode>& 
     PUSH((int)0);
 }
 
-void AnimExpression::evalMinus(const AnimVariantMap& map, std::stack<OpCode>& stack) const {
+void AnimExpression::evalUnaryMinus(const AnimVariantMap& map, std::stack<OpCode>& stack) const {
     OpCode rhs = stack.top(); stack.pop();
 
     switch (rhs.type) {
@@ -428,4 +593,70 @@ void AnimExpression::evalMinus(const AnimVariantMap& map, std::stack<OpCode>& st
         PUSH(false);
         break;
     }
+}
+
+AnimExpression::OpCode AnimExpression::coerseToValue(const AnimVariantMap& map, const OpCode& opCode) const {
+    switch (opCode.type) {
+    case OpCode::Identifier:
+        {
+            const AnimVariant& var = map.get(opCode.strVal);
+            switch (var.getType()) {
+            case AnimVariant::Type::Bool:
+                qCWarning(animation) << "AnimExpression: type missmatch, expected a number not a bool";
+                return OpCode(0);
+                break;
+            case AnimVariant::Type::Int:
+                return OpCode(var.getInt());
+                break;
+            case AnimVariant::Type::Float:
+                return OpCode(var.getFloat());
+                break;
+            default:
+                // TODO: Vec3, Quat are unsupported
+                assert(false);
+                return OpCode(0);
+                break;
+            }
+        }
+        break;
+    case OpCode::Bool:
+    case OpCode::Int:
+    case OpCode::Float:
+        return opCode;
+    default:
+        qCCritical(animation) << "AnimExpression: ERROR expected a number, type = " << opCode.type;
+        assert(false);
+        return OpCode(0);
+        break;
+    }
+}
+
+void AnimExpression::dumpOpCodes() const {
+    QString tmp;
+    for (auto& op : _opCodes) {
+        switch (op.type) {
+        case OpCode::Identifier: tmp += QString(" %1").arg(op.strVal); break;
+        case OpCode::Bool: tmp += QString(" %1").arg(op.intVal ? "true" : "false"); break;
+        case OpCode::Int: tmp += QString(" %1").arg(op.intVal); break;
+        case OpCode::Float: tmp += QString(" %1").arg(op.floatVal); break;
+        case OpCode::And: tmp += " &&"; break;
+        case OpCode::Or: tmp += " ||"; break;
+        case OpCode::GreaterThan: tmp += " >"; break;
+        case OpCode::GreaterThanEqual: tmp += " >="; break;
+        case OpCode::LessThan: tmp += " <"; break;
+        case OpCode::LessThanEqual: tmp += " <="; break;
+        case OpCode::Equal: tmp += " =="; break;
+        case OpCode::NotEqual: tmp += " !="; break;
+        case OpCode::Not: tmp += " !"; break;
+        case OpCode::Subtract: tmp += " -"; break;
+        case OpCode::Add: tmp += " +"; break;
+        case OpCode::Multiply: tmp += " *"; break;
+        case OpCode::Divide: tmp += " /"; break;
+        case OpCode::Modulus: tmp += " %"; break;
+        case OpCode::UnaryMinus: tmp += " unary-"; break;
+        default: tmp += " ???"; break;
+        }
+    }
+    qCDebug(animation).nospace().noquote() << "opCodes =" << tmp;
+    qCDebug(animation).resetFormat();
 }

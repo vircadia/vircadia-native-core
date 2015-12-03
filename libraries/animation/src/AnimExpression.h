@@ -43,6 +43,7 @@ protected:
             Minus,
             Plus,
             Multiply,
+            Divide,
             Modulus,
             Comma,
             Error
@@ -75,8 +76,9 @@ protected:
             Subtract,
             Add,
             Multiply,
+            Divide,
             Modulus,
-            Minus
+            UnaryMinus
         };
         OpCode(Type type) : type {type} {}
         OpCode(const QStringRef& strRef) : type {Type::Identifier}, strVal {strRef.toString()} {}
@@ -111,8 +113,11 @@ protected:
     Token consumeLessThan(const QString& str, QString::const_iterator& iter) const;
     Token consumeNot(const QString& str, QString::const_iterator& iter) const;
 
-    bool parseExpression(const QString& str, QString::const_iterator& iter);
-    bool parseUnaryExpression(const QString& str, QString::const_iterator& iter);
+    bool parseExpr(const QString& str, QString::const_iterator& iter);
+    bool parseExprPrime(const QString& str, QString::const_iterator& iter);
+    bool parseTerm(const QString& str, QString::const_iterator& iter);
+    bool parseTermPrime(const QString& str, QString::const_iterator& iter);
+    bool parseFactor(const QString& str, QString::const_iterator& iter);
 
     OpCode evaluate(const AnimVariantMap& map) const;
     void evalAnd(const AnimVariantMap& map, std::stack<OpCode>& stack) const;
@@ -126,13 +131,24 @@ protected:
     void evalNot(const AnimVariantMap& map, std::stack<OpCode>& stack) const;
     void evalSubtract(const AnimVariantMap& map, std::stack<OpCode>& stack) const;
     void evalAdd(const AnimVariantMap& map, std::stack<OpCode>& stack) const;
+    void add(int lhs, const OpCode& rhs, std::stack<OpCode>& stack) const;
+    void add(float lhs, const OpCode& rhs, std::stack<OpCode>& stack) const;
     void evalMultiply(const AnimVariantMap& map, std::stack<OpCode>& stack) const;
+    void mul(int lhs, const OpCode& rhs, std::stack<OpCode>& stack) const;
+    void mul(float lhs, const OpCode& rhs, std::stack<OpCode>& stack) const;
+    void evalDivide(const AnimVariantMap& map, std::stack<OpCode>& stack) const;
     void evalModulus(const AnimVariantMap& map, std::stack<OpCode>& stack) const;
-    void evalMinus(const AnimVariantMap& map, std::stack<OpCode>& stack) const;
+    void evalUnaryMinus(const AnimVariantMap& map, std::stack<OpCode>& stack) const;
+
+    OpCode coerseToValue(const AnimVariantMap& map, const OpCode& opCode) const;
 
     QString _expression;
     mutable std::stack<Token> _tokenStack;    // TODO: remove, only needed during parsing
     std::vector<OpCode> _opCodes;
+
+#ifndef NDEBUG
+    void dumpOpCodes() const;
+#endif
 };
 
 #endif
