@@ -22,43 +22,63 @@ const ProcessStates = {
 };
 
 var ID = 0;
-function Process(name, command) {
+function Process(name, command, commandArgs) {
     events.EventEmitter.call(this);
 
     this.id = ++ID;
     this.name = name;
     this.command = command;
+    this.commandArgs = commandArgs ? commandArgs : [];
     this.child = null;
 
     this.state = ProcessStates.STOPPED;
 };
 util.inherits(Process, events.EventEmitter);
-Process.prototype.start = function() {
-    if (this.state != ProcessStates.STOPPED) {
-        console.warn("Can't start process that is not stopped.");
-        return;
-    }
-    console.log("Starting " + this.command);
-    try {
-        this.child = childProcess.spawn(this.command);
-        this.child.on('close', this.childClosed.bind(this));
-        this.state = ProcessStates.STARTED;
-        console.log("Child process started");
-    } catch (e) {
-        console.log("Got error starting child process for " + this.name);
-        this.child = null;
+Process.prototype = extend(Process.prototype, {
+    start: function() {
+        if (this.state != ProcessStates.STOPPED) {
+            console.warn("Can't start process that is not stopped.");
+            return;
+        }
+        console.log("Starting " + this.command);
+        try {
+            this.child = childProcess.spawn(this.command, this.commandArgs, {
+                detached: false
+            });
+            //console.log("started ", this.child);
+            this.child.on('error', this.onChildStartError.bind(this));
+            this.child.on('close', this.onChildClose.bind(this));
+            this.state = ProcessStates.STARTED;
+            console.log("Child process started");
+        } catch (e) {
+            console.log("Got error starting child process for " + this.name, e);
+            this.child = null;
+            this.state = ProcessStates.STOPPED;
+        }
+
+        this.emit('state-update');
+    },
+    stop: function() {
+        if (this.state != ProcessStates.STARTED) {
+            console.warn("Can't stop process that is not started.");
+            return;
+        }
+        this.child.kill();
+        this.state = ProcessStates.STOPPING;
+    },
+
+    // Events
+    onChildStartError: function(error) {
+        console.log("Child process error ", error);
         this.state = ProcessStates.STOPPED;
+        this.emit('state-update');
+    },
+    onChildClose: function(code) {
+        console.log("Child process closed with code ", code);
+        this.state = ProcessStates.STOPPED;
+        this.emit('state-update');
     }
-
-    this.emit('state-update');
-};
-
-// Events
-Process.prototype.childClosed = function(code) {
-    console.log("Child process closed with code ", code);
-    this.state = ProcessStates.STOPPED;
-    this.emit('state-update');
-};
+});
 
 // Quit when all windows are closed.
 app.on('window-all-closed', function() {
@@ -105,4 +125,13 @@ app.on('ready', function() {
         pInterface.start();
         sendProcessUpdate();
     });
+    ipcMain.on('stop-process', function(event, arg) {
+        pInterface.stop();
+        sendProcessUpdate();
+    });
+    ipcMain.on('update', function(event, arg) {
+        sendProcessUpdate();
+    });
+
+    sendProcessUpdate();
 });
