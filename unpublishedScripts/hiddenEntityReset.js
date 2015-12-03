@@ -1027,6 +1027,7 @@
                     y: -9.8,
                     z: 0
                 },
+                restitution: 0,
                 dimensions: {
                     x: 0.08,
                     y: 0.21,
