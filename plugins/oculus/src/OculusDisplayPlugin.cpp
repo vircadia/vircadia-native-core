@@ -154,8 +154,6 @@ void OculusDisplayPlugin::activate() {
 
 void OculusDisplayPlugin::customizeContext() {
     OculusBaseDisplayPlugin::customizeContext();
-    bool makeCurrentResult = makeCurrent();
-    Q_ASSERT(makeCurrentResult);
 #if (OVR_MAJOR_VERSION >= 6)
     _sceneFbo = SwapFboPtr(new SwapFramebufferWrapper(_hmd));
     _sceneFbo->Init(getRecommendedRenderSize());
@@ -169,14 +167,11 @@ void OculusDisplayPlugin::customizeContext() {
     enableVsync(false);
     // Only enable mirroring if we know vsync is disabled
     _enablePreview = !isVsyncEnabled();
-    doneCurrent();
 }
 
 void OculusDisplayPlugin::uncustomizeContext() {
 #if (OVR_MAJOR_VERSION >= 6)
-    makeCurrent();
     _sceneFbo.reset();
-    doneCurrent();
 #endif
     OculusBaseDisplayPlugin::uncustomizeContext();
 }

@@ -26,17 +26,17 @@ DisplayPluginList getDisplayPlugins() {
     DisplayPlugin* PLUGIN_POOL[] = {
         new Basic2DWindowOpenGLDisplayPlugin(),
         new NullDisplayPlugin(),
-//#ifdef DEBUG
-//#endif
-//
-//        // Stereo modes
-//
-//        // SBS left/right
-//        new SideBySideStereoDisplayPlugin(),
-//        // Interleaved left/right
-//        new InterleavedStereoDisplayPlugin(),
-//
-//        // HMDs
+#ifdef DEBUG
+#endif
+
+        // Stereo modes
+
+        // SBS left/right
+        new SideBySideStereoDisplayPlugin(),
+        // Interleaved left/right
+        new InterleavedStereoDisplayPlugin(),
+
+        // HMDs
 //#ifdef Q_OS_WIN
 //        // SteamVR SDK
 //        new OpenVrDisplayPlugin(),

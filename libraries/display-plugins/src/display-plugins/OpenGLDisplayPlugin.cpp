@@ -28,8 +28,6 @@ class PresentThread : public QThread, public Dependency {
     using Mutex = std::mutex;
     using Condition = std::condition_variable;
     using Lock = std::unique_lock<Mutex>;
-
-    friend class OpenGLDisplayPlugin;
 public:
 
     ~PresentThread() {
@@ -42,6 +40,14 @@ public:
         _newPlugin = plugin;
     }
 
+    void setContext(QGLContext * context) {
+        // Move the OpenGL context to the present thread
+        // Extra code because of the widget 'wrapper' context
+        _context = context;
+        _context->moveToThread(this);
+        _context->contextHandle()->moveToThread(this);
+    }
+
     virtual void run() override {
         Q_ASSERT(_context);
         while (!_shutdown) {
@@ -50,7 +56,7 @@ public:
                     Lock lock(_mutex);
                     // Move the context to the main thread
                     _context->moveToThread(qApp->thread());
-                    _widgetContext->moveToThread(qApp->thread());
+                    _context->contextHandle()->moveToThread(qApp->thread());
                     _pendingMainThreadOperation = false;
                     // Release the main thread to do it's action
                     _condition.notify_one();
@@ -67,6 +73,7 @@ public:
             // Check before lock
             if (_newPlugin != nullptr) {
                 Lock lock(_mutex);
+                _context->makeCurrent();
                 // Check if we have a new plugin to activate
                 if (_newPlugin != nullptr) {
                     // Deactivate the old plugin
@@ -77,8 +84,8 @@ public:
                     _newPlugin->customizeContext();
                     _activePlugin = _newPlugin;
                     _newPlugin = nullptr;
-                    _context->doneCurrent();
                 }
+                _context->doneCurrent();
                 lock.unlock();
             }
 
@@ -89,12 +96,14 @@ public:
             }
 
             // take the latest texture and present it
+            _context->makeCurrent();
             _activePlugin->present();
-
+            _context->doneCurrent();
         }
+
         _context->doneCurrent();
-        _widgetContext->moveToThread(qApp->thread());
         _context->moveToThread(qApp->thread());
+        _context->contextHandle()->moveToThread(qApp->thread());
     }
 
     void withMainThreadContext(std::function<void()> f) {
@@ -104,14 +113,16 @@ public:
         _finishedMainThreadOperation = false;
         _condition.wait(lock, [&] { return !_pendingMainThreadOperation; });
 
-        _widgetContext->makeCurrent();
+        _context->makeCurrent();
         f();
-        _widgetContext->doneCurrent();
+        _context->doneCurrent();
+
+        // Move the context back to the presentation thread
+        _context->moveToThread(this);
+        _context->contextHandle()->moveToThread(this);
 
         // restore control of the context to the presentation thread and signal 
         // the end of the operation
-        _widgetContext->moveToThread(this);
-        _context->moveToThread(this);
         _finishedMainThreadOperation = true;
         lock.unlock();
         _condition.notify_one();
@@ -119,6 +130,9 @@ public:
 
 
 private:
+    void makeCurrent();
+    void doneCurrent();
+
     bool _shutdown { false };
     Mutex _mutex;
     // Used to allow the main thread to perform context operations
@@ -128,8 +142,7 @@ private:
     QThread* _mainThread { nullptr };
     OpenGLDisplayPlugin* _newPlugin { nullptr };
     OpenGLDisplayPlugin* _activePlugin { nullptr };
-    QOpenGLContext* _context { nullptr };
-    QGLContext* _widgetContext { nullptr };
+    QGLContext* _context { nullptr };
 };
 
 OpenGLDisplayPlugin::OpenGLDisplayPlugin() {
@@ -165,16 +178,8 @@ void OpenGLDisplayPlugin::activate() {
         DependencyManager::set<PresentThread>();
         presentThread = DependencyManager::get<PresentThread>();
         presentThread->setObjectName("Presentation Thread");
-
         auto widget = _container->getPrimaryWidget();
-
-        // Move the OpenGL context to the present thread
-        // Extra code because of the widget 'wrapper' context
-        presentThread->_widgetContext = widget->context();
-        presentThread->_widgetContext->moveToThread(presentThread.data());
-        presentThread->_context = presentThread->_widgetContext->contextHandle();
-        presentThread->_context->moveToThread(presentThread.data());
-
+        presentThread->setContext(widget->context());
         // Start execution
         presentThread->start();
     }
@@ -196,9 +201,6 @@ void OpenGLDisplayPlugin::customizeContext() {
     auto presentThread = DependencyManager::get<PresentThread>();
     Q_ASSERT(thread() == presentThread->thread());
 
-    bool makeCurrentResult = makeCurrent();
-    Q_ASSERT(makeCurrentResult);
-
     // TODO: write the proper code for linux
 #if defined(Q_OS_WIN)
     _vsyncSupported = wglewGetExtension("WGL_EXT_swap_control");
@@ -213,15 +215,11 @@ void OpenGLDisplayPlugin::customizeContext() {
 
     _program = loadDefaultShader();
     _plane = loadPlane(_program);
-
-    doneCurrent();
 }
 
 void OpenGLDisplayPlugin::uncustomizeContext() {
-    makeCurrent();
     _program.reset();
     _plane.reset();
-    doneCurrent();
 }
 
 // Pressing Alt (and Meta) key alone activates the menubar because its style inherits the
@@ -310,19 +308,11 @@ void OpenGLDisplayPlugin::internalPresent() {
 }
 
 void OpenGLDisplayPlugin::present() {
-    auto makeCurrentResult = makeCurrent();
-    Q_ASSERT(makeCurrentResult);
-    if (!makeCurrentResult) {
-        qDebug() << "Failed to make current";
-        return;
-    }
-
     updateTextures();
     if (_currentSceneTexture) {
         internalPresent();
         updateFramerate();
     }
-    doneCurrent();
 }
 
 float OpenGLDisplayPlugin::presentRate() {
@@ -359,18 +349,6 @@ bool OpenGLDisplayPlugin::isVsyncEnabled() {
 #else
     return true;
 #endif
-}
-bool OpenGLDisplayPlugin::makeCurrent() {
-    static auto widget = _container->getPrimaryWidget();
-    widget->makeCurrent();
-    auto result = widget->context()->contextHandle() == QOpenGLContext::currentContext();
-    Q_ASSERT(result);
-    return result;
-}
-
-void OpenGLDisplayPlugin::doneCurrent() {
-    static auto widget = _container->getPrimaryWidget();
-    widget->doneCurrent();
 }
 
 void OpenGLDisplayPlugin::swapBuffers() {

@@ -67,5 +67,9 @@ glm::uvec2 InterleavedStereoDisplayPlugin::getRecommendedRenderSize() const {
 }
 
 void InterleavedStereoDisplayPlugin::internalPresent() {
-    // FIXME 
+    using namespace oglplus;
+    _program->Bind();
+    auto sceneSize = getRecommendedRenderSize();
+    Uniform<ivec2>(*_program, "textureSize").SetValue(sceneSize);
+    WindowOpenGLDisplayPlugin::internalPresent();
 }

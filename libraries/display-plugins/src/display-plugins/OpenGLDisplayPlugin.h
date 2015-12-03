@@ -63,8 +63,6 @@ protected:
     void updateTextures();
     void updateFramerate();
     void drawUnitQuad();
-    bool makeCurrent();
-    void doneCurrent();
     void swapBuffers();
     // Plugin specific functionality to composite the scene and overlay and present the result
     virtual void internalPresent();
