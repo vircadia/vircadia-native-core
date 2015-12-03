@@ -146,13 +146,21 @@ void AvatarManager::updateOtherAvatars(float deltaTime) {
 
     PerformanceTimer perfTimer("otherAvatars");
     
-    _renderDistanceController.setMeasuredValueSetpoint(qApp->getTargetFrameRate()); // No problem updating in flight.
-    // The PID controller raises the controlled value when the measured value goes up.
-    // The measured value is frame rate. When the controlled value (1 / render cutoff distance)
-    // goes up, the render cutoff distance gets closer, the number of rendered avatars is less, and frame rate
-    // goes up.
-    const float deduced = qApp->getLastDeducedNonVSyncFps();
-    const float distance = 1.0f / _renderDistanceController.update(deduced, deltaTime);
+    float distance;
+    if (qApp->isVSynchronized()) {
+        _renderDistanceController.setMeasuredValueSetpoint(qApp->getTargetFrameRate()); // No problem updating in flight.
+        // The PID controller raises the controlled value when the measured value goes up.
+        // The measured value is frame rate. When the controlled value (1 / render cutoff distance)
+        // goes up, the render cutoff distance gets closer, the number of rendered avatars is less, and frame rate
+        // goes up.
+        const float deduced = qApp->getLastDeducedNonVSyncFps();
+        distance = 1.0f / _renderDistanceController.update(deduced, deltaTime);
+    } else {
+        // We could keep the controller running when not vsync'd, if getLastDeducedNonVSyncFps is still meaningful.
+        // But the basic 2d controller doesn't try to adjust the timer for qt load or getLastPaintWait, so running the
+        // Here we choose to just use the maximum render cutoff distance if: throttled, running without vsync, or 30-60 "fixed" targets.
+        distance = 1.0f / _renderDistanceController.getControlledValueLowLimit();
+    }
     _renderDistanceAverage.updateAverage(distance);
     _renderDistance = _renderDistanceAverage.getAverage();
     int renderableCount = 0;

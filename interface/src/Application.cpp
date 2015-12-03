@@ -3248,6 +3248,7 @@ bool Application::isHMDMode() const {
 }
 float Application::getTargetFrameRate() { return getActiveDisplayPlugin()->getTargetFrameRate(); }
 float Application::getTargetFramePeriod() { return getActiveDisplayPlugin()->getTargetFramePeriod(); }
+bool Application::isVSynchronized() const { return getActiveDisplayPlugin()->isVSynchronized(); }
 
 QRect Application::getDesirableApplicationGeometry() {
     QRect applicationGeometry = getWindow()->geometry();
