@@ -211,7 +211,6 @@ namespace MenuOption {
     const QString LeapMotionOnHMD = "Leap Motion on HMD";
     const QString LoadScript = "Open and Run Script File...";
     const QString LoadScriptURL = "Open and Run Script from URL...";
-    const QString LoadRSSDKFile = "Load .rssdk file";
     const QString LodTools = "LOD Tools";
     const QString Login = "Login";
     const QString Log = "Log";

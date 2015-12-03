@@ -2,7 +2,7 @@ set(TARGET_NAME interface)
 project(${TARGET_NAME})
 
 # set a default root dir for each of our optional externals if it was not passed
-set(OPTIONAL_EXTERNALS "LeapMotion" "RtMidi" "RSSDK")
+set(OPTIONAL_EXTERNALS "LeapMotion")
 
 if(WIN32)
     list(APPEND OPTIONAL_EXTERNALS "3DConnexionClient")
@@ -160,13 +160,6 @@ foreach(EXTERNAL ${OPTIONAL_EXTERNALS})
     endif ()
   endif ()
 endforeach()
-
-# special OS X modifications for RtMidi library
-if (RTMIDI_FOUND AND NOT DISABLE_RTMIDI AND APPLE)
-  find_library(CoreMIDI CoreMIDI)
-  add_definitions(-D__MACOSX_CORE__)
-  target_link_libraries(${TARGET_NAME} ${CoreMIDI})
-endif ()
 
 # include headers for interface and InterfaceConfig.
 include_directories("${PROJECT_SOURCE_DIR}/src")

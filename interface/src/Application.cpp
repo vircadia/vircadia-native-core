@@ -110,8 +110,6 @@
 #include "devices/EyeTracker.h"
 #include "devices/Faceshift.h"
 #include "devices/Leapmotion.h"
-#include "devices/MIDIManager.h"
-#include "devices/RealSense.h"
 #include "DiscoverabilityManager.h"
 #include "GLCanvas.h"
 #include "InterfaceActionFactory.h"
@@ -719,12 +717,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
     // set the local loopback interface for local sounds from audio scripts
     AudioScriptingInterface::getInstance().setLocalAudioInterface(audioIO.data());
 
-#ifdef HAVE_RTMIDI
-    // setup the MIDIManager
-    MIDIManager& midiManagerInstance = MIDIManager::getInstance();
-    midiManagerInstance.openDefaultPort();
-#endif
-
     this->installEventFilter(this);
 
     // initialize our face trackers after loading the menu settings
@@ -970,7 +962,6 @@ Application::~Application() {
     nodeThread->wait();
 
     Leapmotion::destroy();
-    RealSense::destroy();
 
 #if 0
     ConnexionClient::getInstance().destroy();
@@ -2519,7 +2510,6 @@ void Application::init() {
     qCDebug(interfaceapp) << "Loaded settings";
 
     Leapmotion::init();
-    RealSense::init();
 
     // fire off an immediate domain-server check in now that settings are loaded
     DependencyManager::get<NodeList>()->sendDomainServerCheckIn();
@@ -4069,10 +4059,6 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEngine* scri
     scriptEngine->registerGlobalObject("Scene", DependencyManager::get<SceneScriptingInterface>().data());
 
     scriptEngine->registerGlobalObject("ScriptDiscoveryService", this->getRunningScriptsWidget());
-
-#ifdef HAVE_RTMIDI
-    scriptEngine->registerGlobalObject("MIDI", &MIDIManager::getInstance());
-#endif
 }
 
 bool Application::canAcceptURL(const QString& urlString) {
