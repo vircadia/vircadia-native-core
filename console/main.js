@@ -10,6 +10,8 @@ require('crash-reporter').start();
 // be closed automatically when the JavaScript object is garbage collected.
 var mainWindow = null;
 var appIcon = null;
+var TRAY_ICON = 'resources/tray-icon.png';
+var APP_ICON = 'resources/tray-icon.png';
 
 // Quit when all windows are closed.
 app.on('window-all-closed', function() {
@@ -24,7 +26,7 @@ app.on('window-all-closed', function() {
 // initialization and is ready to create browser windows.
 app.on('ready', function() {
   // Create tray icon
-  appIcon = new Tray('resources/tray-icon.png');
+  appIcon = new Tray(TRAY_ICON);
   appIcon.setToolTip('High Fidelity Console');
   var contextMenu = Menu.buildFromTemplate([{
     label: 'Quit',
@@ -34,7 +36,7 @@ app.on('ready', function() {
   appIcon.setContextMenu(contextMenu);
 
   // Create the browser window.
-  mainWindow = new BrowserWindow({width: 800, height: 600});
+  mainWindow = new BrowserWindow({width: 800, height: 600, icon: APP_ICON});
 
   // and load the index.html of the app.
   mainWindow.loadURL('file://' + __dirname + '/index.html');
