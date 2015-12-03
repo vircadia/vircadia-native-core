@@ -5,7 +5,7 @@
 #include <QtGui/QSurfaceFormat>
 #include <QtOpenGL/QGL>
 
-const QSurfaceFormat& getDefaultOpenGlSurfaceFormat() {
+const QSurfaceFormat& getDefaultOpenGLSurfaceFormat() {
     static QSurfaceFormat format;
     static std::once_flag once;
     std::call_once(once, [] {

@@ -14,7 +14,7 @@
 #include "GLHelpers.h"
 
 void GLWindow::createContext(QOpenGLContext* shareContext) {
-    createContext(getDefaultOpenGlSurfaceFormat(), shareContext);
+    createContext(getDefaultOpenGLSurfaceFormat(), shareContext);
 }
 
 void GLWindow::createContext(const QSurfaceFormat& format, QOpenGLContext* shareContext) {

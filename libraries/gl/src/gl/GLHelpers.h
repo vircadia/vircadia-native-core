@@ -19,6 +19,6 @@
 class QSurfaceFormat;
 class QGLFormat;
 
-const QSurfaceFormat& getDefaultOpenGlSurfaceFormat();
+const QSurfaceFormat& getDefaultOpenGLSurfaceFormat();
 const QGLFormat& getDefaultGLFormat();
 #endif
