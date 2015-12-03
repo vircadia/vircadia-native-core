@@ -92,8 +92,8 @@ public:
 
     // this object's frame
     virtual const Transform getJointTransformInObjectFrame(int jointIndex) const;
-    virtual glm::quat getJointRotation(int index) const = 0;
-    virtual glm::vec3 getJointTranslation(int index) const = 0;
+    virtual glm::quat getJointRotation(int index) const { assert(false); }
+    virtual glm::vec3 getJointTranslation(int index) const { assert(false); }
 
     SpatiallyNestablePointer getThisPointer() const;
 
@@ -112,6 +112,11 @@ protected:
     mutable QHash<QUuid, SpatiallyNestableWeakPointer> _children;
 
     virtual void parentChanged() {} // called when parent pointer is updated
+    virtual void locationChanged(); // called when a this object's location has changed
+    virtual void dimensionsChanged() {} // called when a this object's dimensions have changed
+
+    void forEachChild(std::function<void(SpatiallyNestablePointer)> actor);
+    void forEachDescendant(std::function<void(SpatiallyNestablePointer)> actor);
 
 private:
     mutable ReadWriteLockable _transformLock;

@@ -1319,9 +1319,6 @@ void EntityItem::updatePosition(const glm::vec3& value) {
     }
     if (getLocalPosition() != value) {
         setLocalPosition(value);
-        forSelfAndEachChildEntity([&](EntityItemPointer entity) {
-            entity->_dirtyFlags |= Simulation::DIRTY_POSITION;
-        });
     }
 }
 
@@ -1337,10 +1334,12 @@ void EntityItem::updateRotation(const glm::quat& rotation) {
         return;
     }
     if (getLocalOrientation() != rotation) {
-        setLocalRotation(rotation);
-        forSelfAndEachChildEntity([&](EntityItemPointer entity) {
-            entity->_dirtyFlags |= Simulation::DIRTY_ROTATION;
-            if (this->getID() != entity->getID()) {
+        setLocalOrientation(rotation);
+        _dirtyFlags |= Simulation::DIRTY_ROTATION;
+        forEachDescendant([&](SpatiallyNestablePointer object) {
+            if (object->getNestableType() == NestableTypes::Entity) {
+                EntityItemPointer entity = std::static_pointer_cast<EntityItem>(object);
+                entity->_dirtyFlags |= Simulation::DIRTY_ROTATION;
                 entity->_dirtyFlags |= Simulation::DIRTY_POSITION;
             }
         });
@@ -1838,65 +1837,7 @@ QList<EntityActionPointer> EntityItem::getActionsOfType(EntityActionType typeToG
     return result;
 }
 
-void EntityItem::forSelfAndEachChildEntity(std::function<void(EntityItemPointer)> actor) {
-    QQueue<SpatiallyNestablePointer> toProcess;
-    toProcess.enqueue(shared_from_this());
-
-    while (!toProcess.empty()) {
-        EntityItemPointer entity = std::static_pointer_cast<EntityItem>(toProcess.dequeue());
-        actor(entity);
-        foreach (SpatiallyNestablePointer child, entity->getChildren()) {
-            if (child && child->getNestableType() == NestableTypes::Entity) {
-                toProcess.enqueue(child);
-            }
-        }
-    }
-}
-
-void EntityItem::parentChanged() {
-    forSelfAndEachChildEntity([&](EntityItemPointer entity) {
-            entity->requiresRecalcBoxes();
-        });
-}
-
-void EntityItem::setTransform(const Transform transform) {
-    SpatiallyNestable::setTransform(transform);
-    forSelfAndEachChildEntity([&](EntityItemPointer entity) {
-        entity->requiresRecalcBoxes();
-    });
-}
-
-void EntityItem::setLocalTransform(const Transform transform) {
-    SpatiallyNestable::setLocalTransform(transform);
-    forSelfAndEachChildEntity([&](EntityItemPointer entity) {
-        entity->requiresRecalcBoxes();
-    });
-}
-
-void EntityItem::setPosition(const glm::vec3 position) {
-    SpatiallyNestable::setPosition(position);
-    forSelfAndEachChildEntity([&](EntityItemPointer entity) {
-        entity->requiresRecalcBoxes();
-    });
-}
-
-void EntityItem::setLocalPosition(const glm::vec3 position) {
-    SpatiallyNestable::setLocalPosition(position);
-    forSelfAndEachChildEntity([&](EntityItemPointer entity) {
-        entity->requiresRecalcBoxes();
-    });
-}
-
-void EntityItem::setRotation(const glm::quat orientation) {
-    SpatiallyNestable::setOrientation(orientation);
-    forSelfAndEachChildEntity([&](EntityItemPointer entity) {
-        entity->requiresRecalcBoxes();
-    });
-}
-
-void EntityItem::setLocalRotation(const glm::quat orientation) {
-    SpatiallyNestable::setLocalOrientation(orientation);
-    forSelfAndEachChildEntity([&](EntityItemPointer entity) {
-        entity->requiresRecalcBoxes();
-    });
+void EntityItem::locationChanged() {
+    requiresRecalcBoxes();
+    SpatiallyNestable::locationChanged(); // tell all the children, also
 }

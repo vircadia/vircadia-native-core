@@ -306,15 +306,9 @@ public:
     /// return preferred shape type (actual physical shape may differ)
     virtual ShapeType getShapeType() const { return SHAPE_TYPE_NONE; }
 
-    virtual void setTransform(const Transform transform);
-    virtual void setLocalTransform(const Transform transform);
-    // virtual const glm::vec3 getPosition() const { return SpatiallyNestable::getPosition(); }
-    virtual const glm::quat getRotation() const { return SpatiallyNestable::getOrientation(); }
-
-    virtual void setPosition(glm::vec3 position);
-    virtual void setLocalPosition(glm::vec3 position);
-    virtual void setRotation(glm::quat orientation);
-    virtual void setLocalRotation(glm::quat orientation);
+    // these are only needed because the names don't match
+    virtual const glm::quat getRotation() const { return getOrientation(); }
+    virtual void setRotation(glm::quat orientation) { setOrientation(orientation); }
 
     // updateFoo() methods to be used when changes need to be accumulated in the _dirtyFlags
     void updatePosition(const glm::vec3& value);
@@ -393,8 +387,7 @@ protected:
     const QByteArray getActionDataInternal() const;
     void setActionDataInternal(QByteArray actionData);
 
-    void forSelfAndEachChildEntity(std::function<void(EntityItemPointer)> actor);
-    virtual void parentChanged();
+    virtual void locationChanged();
     EntityTypes::EntityType _type;
     quint64 _lastSimulated; // last time this entity called simulate(), this includes velocity, angular velocity,
                             // and physics changes

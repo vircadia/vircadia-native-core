@@ -9,6 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include <QQueue>
+
 #include "DependencyManager.h"
 #include "SpatiallyNestable.h"
 
@@ -91,6 +93,7 @@ void SpatiallyNestable::setParentID(const QUuid parentID) {
         _parentID = parentID;
         _parentKnowsMe = false;
     }
+    parentChanged();
 }
 
 glm::vec3 SpatiallyNestable::worldToLocal(glm::vec3 position, QUuid parentID, int parentJointIndex) {
@@ -182,6 +185,7 @@ void SpatiallyNestable::setPosition(glm::vec3 position) {
         myWorldTransform.setTranslation(position);
         Transform::inverseMult(_transform, parentTransform, myWorldTransform);
     });
+    locationChanged();
 }
 
 glm::quat SpatiallyNestable::getOrientation() const {
@@ -200,6 +204,7 @@ void SpatiallyNestable::setOrientation(glm::quat orientation) {
         myWorldTransform.setRotation(orientation);
         Transform::inverseMult(_transform, parentTransform, myWorldTransform);
     });
+    locationChanged();
 }
 
 const Transform SpatiallyNestable::getTransform() const {
@@ -227,6 +232,7 @@ void SpatiallyNestable::setTransform(const Transform transform) {
     _transformLock.withWriteLock([&] {
         Transform::inverseMult(_transform, parentTransform, transform);
     });
+    locationChanged();
 }
 
 glm::vec3 SpatiallyNestable::getScale() const {
@@ -246,6 +252,7 @@ void SpatiallyNestable::setScale(glm::vec3 scale) {
     _transformLock.withWriteLock([&] {
         _transform.setScale(scale);
     });
+    dimensionsChanged();
 }
 
 const Transform SpatiallyNestable::getLocalTransform() const {
@@ -260,6 +267,7 @@ void SpatiallyNestable::setLocalTransform(const Transform transform) {
     _transformLock.withWriteLock([&] {
         _transform = transform;
     });
+    locationChanged();
 }
 
 glm::vec3 SpatiallyNestable::getLocalPosition() const {
@@ -274,6 +282,7 @@ void SpatiallyNestable::setLocalPosition(glm::vec3 position) {
     _transformLock.withWriteLock([&] {
         _transform.setTranslation(position);
     });
+    locationChanged();
 }
 
 glm::quat SpatiallyNestable::getLocalOrientation() const {
@@ -288,6 +297,7 @@ void SpatiallyNestable::setLocalOrientation(glm::quat orientation) {
     _transformLock.withWriteLock([&] {
         _transform.setRotation(orientation);
     });
+    locationChanged();
 }
 
 glm::vec3 SpatiallyNestable::getLocalScale() const {
@@ -302,12 +312,13 @@ void SpatiallyNestable::setLocalScale(glm::vec3 scale) {
     _transformLock.withWriteLock([&] {
         _transform.setScale(scale);
     });
+    dimensionsChanged();
 }
 
 QList<SpatiallyNestablePointer> SpatiallyNestable::getChildren() const {
     QList<SpatiallyNestablePointer> children;
     _childrenLock.withReadLock([&] {
-        foreach (SpatiallyNestableWeakPointer childWP, _children.values()) {
+        foreach(SpatiallyNestableWeakPointer childWP, _children.values()) {
             SpatiallyNestablePointer child = childWP.lock();
             if (child) {
                 children << child;
@@ -316,7 +327,6 @@ QList<SpatiallyNestablePointer> SpatiallyNestable::getChildren() const {
     });
     return children;
 }
-
 
 const Transform SpatiallyNestable::getJointTransformInObjectFrame(int jointIndex) const {
     Transform jointInObjectFrame;
@@ -331,4 +341,31 @@ SpatiallyNestablePointer SpatiallyNestable::getThisPointer() const {
     SpatiallyNestableConstPointer constThisPointer = shared_from_this();
     SpatiallyNestablePointer thisPointer = std::const_pointer_cast<SpatiallyNestable>(constThisPointer); // ermahgerd !!!
     return thisPointer;
+}
+
+void SpatiallyNestable::forEachChild(std::function<void(SpatiallyNestablePointer)> actor) {
+    foreach(SpatiallyNestablePointer child, getChildren()) {
+        actor(child);
+    }
+}
+
+void SpatiallyNestable::forEachDescendant(std::function<void(SpatiallyNestablePointer)> actor) {
+    QQueue<SpatiallyNestablePointer> toProcess;
+    foreach(SpatiallyNestablePointer child, getChildren()) {
+        toProcess.enqueue(child);
+    }
+
+    while (!toProcess.empty()) {
+        SpatiallyNestablePointer object = toProcess.dequeue();
+        actor(object);
+        foreach (SpatiallyNestablePointer child, object->getChildren()) {
+            toProcess.enqueue(child);
+        }
+    }
+}
+
+void SpatiallyNestable::locationChanged() {
+    forEachChild([&](SpatiallyNestablePointer object) {
+        object->locationChanged();
+    });
 }
