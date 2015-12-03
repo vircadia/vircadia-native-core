@@ -196,7 +196,7 @@ void GLBackend::resetOutputStage() {
     }
 }
 
-void GLBackend::do_setFramebuffer(Batch& batch, uint32 paramOffset) {
+void GLBackend::do_setFramebuffer(Batch& batch, size_t paramOffset) {
     auto framebuffer = batch._framebuffers.get(batch._params[paramOffset]._uint);
     if (_output._framebuffer != framebuffer) {
         auto newFBO = getFramebufferID(framebuffer);
@@ -208,7 +208,7 @@ void GLBackend::do_setFramebuffer(Batch& batch, uint32 paramOffset) {
     }
 }
 
-void GLBackend::do_clearFramebuffer(Batch& batch, uint32 paramOffset) {
+void GLBackend::do_clearFramebuffer(Batch& batch, size_t paramOffset) {
     if (_stereo._enable && !_pipeline._stateCache.scissorEnable) {
         qWarning("Clear without scissor in stereo mode");
     }
@@ -298,7 +298,7 @@ void GLBackend::do_clearFramebuffer(Batch& batch, uint32 paramOffset) {
     (void) CHECK_GL_ERROR();
 }
 
-void GLBackend::do_blit(Batch& batch, uint32 paramOffset) {
+void GLBackend::do_blit(Batch& batch, size_t paramOffset) {
     auto srcframebuffer = batch._framebuffers.get(batch._params[paramOffset]._uint);
     Vec4i srcvp;
     for (size_t i = 0; i < 4; ++i) {
