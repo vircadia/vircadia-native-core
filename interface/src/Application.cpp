@@ -3246,6 +3246,8 @@ void Application::queryOctree(NodeType_t serverType, PacketType packetType, Node
 bool Application::isHMDMode() const {
     return getActiveDisplayPlugin()->isHmd();
 }
+float Application::getTargetFrameRate() { return getActiveDisplayPlugin()->getTargetFrameRate(); }
+float Application::getTargetFramePeriod() { return getActiveDisplayPlugin()->getTargetFramePeriod(); }
 
 QRect Application::getDesirableApplicationGeometry() {
     QRect applicationGeometry = getWindow()->geometry();
