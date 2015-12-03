@@ -29,7 +29,7 @@ exports.discoveredPath = function (name, preferRelease) {
                 return fullPath;
             }
         } catch (e) {
-            console.log("Executable with name " + name + " not found at path " + fullPath);
+            console.warn("Executable with name " + name + " not found at path " + fullPath);
         }
 
         return null;
