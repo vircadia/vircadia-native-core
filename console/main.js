@@ -91,6 +91,12 @@ app.on('ready', function() {
         ]);
         homeServer.start();
 
+        // make sure we stop child processes on app quit
+        app.on('quit', function(){
+            pInterface.stop();
+            homeServer.stop();
+        })
+
         var processes = {
             interface: pInterface,
             home: homeServer
