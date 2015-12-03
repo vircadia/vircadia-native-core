@@ -87,6 +87,7 @@ app.on('ready', function() {
     };
 
     pInterface.on('state-update', sendProcessUpdate);
+    homeServer.on('state-update', sendProcessUpdate);
 
     ipcMain.on('start-process', function(event, arg) {
         pInterface.start();
@@ -96,9 +97,15 @@ app.on('ready', function() {
         pInterface.stop();
         sendProcessUpdate();
     });
-    ipcMain.on('update', function(event, arg) {
+    ipcMain.on('start-server', function(event, arg) {
+        homeServer.start();
         sendProcessUpdate();
     });
+    ipcMain.on('stop-server', function(event, arg) {
+        homeServer.stop();
+        sendProcessUpdate();
+    });
+    ipcMain.on('update', sendProcessUpdate);
 
     sendProcessUpdate();
 });
