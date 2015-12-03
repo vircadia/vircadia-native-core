@@ -21,12 +21,11 @@ uniform sampler2D originalTexture;
 // the interpolated normal
 in vec3 interpolatedNormal;
 in vec2 varTexcoord;
-in vec4 varColor;
 
 flat in int varVertexId;
 
 struct PolyLineUniforms {
-    float time;
+    vec3 color;
 };
 
 uniform polyLineBuffer {
@@ -38,11 +37,10 @@ void main(void) {
     
     vec4 texel = texture(originalTexture, varTexcoord);
     int frontCondition = 1 -int(gl_FrontFacing) * 2;
-    vec3 color = varColor.rgb;
     packDeferredFragmentTranslucent(
         interpolatedNormal * frontCondition,
         texel.a,
-        texel.rgb,
+        polyline.color * texel.rgb,
         vec3(0.01, 0.01, 0.01),
         10.0);
 }

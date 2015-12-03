@@ -47,7 +47,6 @@ protected:
     gpu::BufferView _uniformBuffer;
     unsigned int _numVertices;
     QVector<glm::vec3> _vertices;
-    float _counter;
 
 };
 

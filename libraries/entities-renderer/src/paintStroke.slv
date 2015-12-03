@@ -23,15 +23,12 @@ out vec3 interpolatedNormal;
 //the diffuse texture
 out vec2 varTexcoord;
 
-out vec4 varColor;
 flat out int varVertexId;
 
 void main(void) {
     
     varTexcoord = inTexCoord0.st;
     
-    // pass along the diffuse color
-    varColor = inColor;
     varVertexId = gl_VertexID;
 
     // standard transform

@@ -22,7 +22,7 @@ var RIGHT = 1;
 var MAX_POINTS_PER_LINE = 50;
 
 var LIFETIME = 6000;
-var DRAWING_DEPTH = 0.6;
+var DRAWING_DEPTH = 0.8;
 var LINE_DIMENSIONS = 20;
 
 var lightZone = Entities.addEntity({
@@ -65,7 +65,7 @@ var colorPalette = [{
     blue: 129
 }];
 
-var STROKE_WIDTH = 0.03;
+var STROKE_WIDTH = 0.04;
 
 function controller(side, triggerAction) {
     this.triggerHeld = false;
@@ -83,7 +83,7 @@ function controller(side, triggerAction) {
             z: 20
         },
         color: colorPalette[randInt(0, colorPalette.length)],
-        intensity: 20
+        intensity: 5
     });
 
     this.trail = Entities.addEntity({
@@ -93,6 +93,7 @@ function controller(side, triggerAction) {
             y: LINE_DIMENSIONS,
             z: LINE_DIMENSIONS
         },
+        color: {red: 255, green: 255, blue: 255},
         textures: texture,
         lifetime: LIFETIME
     });
