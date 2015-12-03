@@ -1,12 +1,29 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <title>Hello World!</title>
+    <title>Console</title>
+    <script src="index.js"></script>
   </head>
-  <body>
-    <h1>Hello World!</h1>
-    We are using node <script>document.write(process.versions.node)</script>,
-    Chrome <script>document.write(process.versions.chrome)</script>,
-    and Electron <script>document.write(process.versions.electron)</script>.
+  <body onload="ready()">
+
+    <h1>Console</h1>
+
+    <h2>Interface</h2>
+    <div id="process-status">
+      <div id="process-interface">
+        <span class="name">Interface</span>
+        <span class="status">unknown</span>
+        <button class="power-on">Turn On</button>
+        <button class="power-off">Turn Off</button>
+      </div>
+    </div>
+
+    <h2>Home</h2>
+    <div id="server">
+    </div>
+
+    <div>
+        Node Version: <script>document.write(process.versions.node)</script>
+    </div>
   </body>
 </html>

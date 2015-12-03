@@ -1,13 +1,22 @@
-var app = require('app');  // Module to control application life.
+'use strict'
+
+var electron = require('electron');
+var app = electron.app;  // Module to control application life.
 var BrowserWindow = require('browser-window');  // Module to create native browser window.
 var Menu = require('menu');
 var Tray = require('tray');
+
+var hfprocess = require('./modules/hf-process.js');
+var Process = hfprocess.Process;
+var ProcessGroup = hfprocess.ProcessGroup;
+
+const ipcMain = electron.ipcMain;
 
 // Report crashes to our server.
 require('crash-reporter').start();
 
 // Keep a global reference of the window object, if you don't, the window will
-// be closed automatically when the JavaScript object is garbage collected.
+// be closed automatically when the JavaScript object is garggbage collected.
 var mainWindow = null;
 var appIcon = null;
 var TRAY_ICON = 'resources/tray-icon.png';
@@ -51,4 +60,45 @@ app.on('ready', function() {
         // when you should delete the corresponding element.
         mainWindow = null;
     });
+
+    var pInterface = new Process('interface', 'C:\\Interface\\interface.exe');
+
+    var domainServerPath = 'C:\\Users\\Ryan\\AppData\\Local\\High Fidelity\\Stack Manager\\domain-server.exe';
+    var acPath = 'C:\\Users\\Ryan\\AppData\\Local\\High Fidelity\\Stack Manager\\assignment-client.exe';
+
+    var homeServer = new ProcessGroup('home', [
+        new Process('Domain Server', domainServerPath),
+        new Process('AC - Audio', acPath, ['-t0']),
+        new Process('AC - Avatar', acPath, ['-t1']),
+        new Process('AC - Asset', acPath, ['-t3']),
+        new Process('AC - Messages', acPath, ['-t4']),
+        new Process('AC - Entity', acPath, ['-t6'])
+    ]);
+    homeServer.start();
+
+    var processes = {
+        interface: pInterface,
+        home: homeServer
+    };
+
+    function sendProcessUpdate() {
+        console.log("Sending process update to web view");
+        mainWindow.webContents.send('process-update', processes);
+    };
+
+    pInterface.on('state-update', sendProcessUpdate);
+
+    ipcMain.on('start-process', function(event, arg) {
+        pInterface.start();
+        sendProcessUpdate();
+    });
+    ipcMain.on('stop-process', function(event, arg) {
+        pInterface.stop();
+        sendProcessUpdate();
+    });
+    ipcMain.on('update', function(event, arg) {
+        sendProcessUpdate();
+    });
+
+    sendProcessUpdate();
 });
