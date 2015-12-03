@@ -119,7 +119,7 @@ bool Basic2DWindowOpenGLDisplayPlugin::isThrottled() const {
 }
 
 bool Basic2DWindowOpenGLDisplayPlugin::isVSynchronized() const {
-    return (_framerateTarget == 0) && (!_vsyncAction || _vsyncAction->isChecked());
+    return (_framerateTarget == 0) && !_isThrottled;
 }
 
 void Basic2DWindowOpenGLDisplayPlugin::updateFramerate() {
