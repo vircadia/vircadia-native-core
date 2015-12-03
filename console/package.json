@@ -20,5 +20,8 @@
     "start": "electron . --local-debug-builds",
     "local-release": "electron . --local-release-builds",
     "package-darwin": "electron-packager . Console --platform=darwin --arch=x64 --version=0.35.2"
+  },
+  "dependencies": {
+    "yargs": "^3.30.0"
   }
 }

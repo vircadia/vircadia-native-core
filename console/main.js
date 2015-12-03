@@ -31,6 +31,18 @@ app.on('window-all-closed', function() {
     }
 });
 
+// Check command line arguments to see how to find binaries
+var argv = require('yargs');
+
+if (argv.localDebugBuilds) {
+  // check in a dev folder structure for debug binaries
+} else if (argv.localReleaseBuilds) {
+  // check in a dev folder structure for release binaries
+} else {
+  // check beside the console application for the binaries
+}
+
+
 // This method will be called when Electron has finished
 // initialization and is ready to create browser windows.
 app.on('ready', function() {
