@@ -18,10 +18,11 @@
 #include <gpu/Context.h>
 #include <gpu/StandardShaderLib.h>
 
-#include "FramebufferCache.h"
+#include "DebugDeferredBuffer.h"
 #include "DeferredLightingEffect.h"
-#include "TextureCache.h"
+#include "FramebufferCache.h"
 #include "HitEffect.h"
+#include "TextureCache.h"
 
 #include "render/DrawStatus.h"
 #include "AmbientOcclusionEffect.h"
@@ -111,6 +112,8 @@ RenderDeferredTask::RenderDeferredTask() : Task() {
 
     _jobs.push_back(Job(new DepthSortItems::JobModel("DepthSortTransparent", _jobs.back().getOutput(), DepthSortItems(false))));
     _jobs.push_back(Job(new DrawTransparentDeferred::JobModel("TransparentDeferred", _jobs.back().getOutput())));
+    
+    _jobs.push_back(Job(new DebugDeferredBuffer::JobModel("DebugDeferredBuffer")));
     
     // Grab a texture map representing the different status icons and assign that to the drawStatsuJob
     auto iconMapPath = PathUtils::resourcesPath() + "icons/statusIconAtlas.svg";

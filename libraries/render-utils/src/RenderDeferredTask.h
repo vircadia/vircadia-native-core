@@ -80,9 +80,9 @@ class DrawOverlay3D {
     static gpu::PipelinePointer _opaquePipeline; //lazy evaluation hence mutable
 public:
     static const gpu::PipelinePointer& getOpaquePipeline();
-
+    
     void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext);
-
+    
     typedef render::Job::Model<DrawOverlay3D> JobModel;
 };
 

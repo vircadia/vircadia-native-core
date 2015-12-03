@@ -14,6 +14,7 @@
 
 #include <glm/gtc/random.hpp>
 
+#include <DependencyManager.h>
 #include <PathUtils.h>
 #include <SharedUtil.h>
 
