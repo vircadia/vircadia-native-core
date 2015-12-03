@@ -4,21 +4,32 @@ exports.discoveredPath = function (name, preferRelease) {
     var path = "../build/" + name + "/";
 
     function binaryFromPath(name, path) {
-        function platformExtension() {
-            return process.platform == 'win32' ? ".exe" : ""
+        function platformExtension(name) {
+            if (name == "Interface") {
+                if (process.platform == "darwin") {
+                    return ".app"
+                } else if (process.platform == "win32") {
+                    return ".exe"
+                } else {
+                    return ""
+                }
+            } else {
+                return process.platform == "win32" ? ".exe" : ""
+            }
         }
 
+        var extension = platformExtension(name);
+        var fullPath = path + name + extension;
+
         try {
-            var fullPath = path + name + platformExtension();
+            var stats = fs.lstatSync(fullPath);
 
-            var stats = fs.lstatSync(path + name + platformExtension())
-
-            if (stats.isFile()) {
+            if (stats.isFile() || (stats.isDirectory() && extension == ".app")) {
                 console.log("Found " + name + " at " + fullPath);
                 return fullPath;
             }
         } catch (e) {
-            console.log("Executable with name " + name + " not found at path " + path);
+            console.log("Executable with name " + name + " not found at path " + fullPath);
         }
 
         return null;
