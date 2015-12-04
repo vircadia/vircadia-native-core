@@ -1288,6 +1288,7 @@ void MyAvatar::setAnimGraphUrl(const QUrl& url) {
         return;
     }
     destroyAnimGraph();
+    _skeletonModel.reset(); // Why is this necessary? Without this, we crash in the next render.
     _animGraphUrl = url;
     initAnimGraph();
 }
@@ -1311,16 +1312,13 @@ void MyAvatar::initAnimGraph() {
     auto graphUrl =_animGraphUrl.isEmpty() ?
         QUrl::fromLocalFile(PathUtils::resourcesPath() + "meshes/defaultAvatar_full/avatar-animation.json") :
         QUrl(_animGraphUrl);
-    qCDebug(interfaceapp) << "*** FIXME initAnimGraph" << graphUrl.toString();
     _rig->initAnimGraph(graphUrl);
 
     _bodySensorMatrix = deriveBodyFromHMDSensor(); // Based on current cached HMD position/rotation..
     updateSensorToWorldMatrix(); // Uses updated position/orientation and _bodySensorMatrix changes
-    qCDebug(interfaceapp) << "*** FIXME initAnimGraph ready" << graphUrl.toString();
 }
 
 void MyAvatar::destroyAnimGraph() {
-    qCDebug(interfaceapp) << "*** FIXME destroyAnimGraph" << _animGraphUrl.toString();
     _rig->destroyAnimGraph();
 }
 
