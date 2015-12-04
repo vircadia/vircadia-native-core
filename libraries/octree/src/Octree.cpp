@@ -1438,15 +1438,6 @@ int Octree::encodeTreeBitstreamRecursion(OctreeElementPointer element,
         // we know the last thing we wrote to the packet was our childrenExistInPacketBits. Let's remember where that was!
         int childExistsPlaceHolder = packetData->getUncompressedByteOffset(sizeof(childrenExistInPacketBits));
 
-        // we are also going to recurse these child trees in "distance" sorted order, but we need to pack them in the
-        // final packet in standard order. So what we're going to do is keep track of how big each subtree was in bytes,
-        // and then later reshuffle these sections of our output buffer back into normal order. This allows us to make
-        // a single recursive pass in distance sorted order, but retain standard order in our encoded packet
-        int recursiveSliceSizes[NUMBER_OF_CHILDREN];
-        const unsigned char* recursiveSliceStarts[NUMBER_OF_CHILDREN];
-        int firstRecursiveSliceOffset = packetData->getUncompressedByteOffset();
-        int allSlicesSize = 0;
-
         // for each child element in Distance sorted order..., check to see if they exist, are colored, and in view, and if so
         // add them to our distance ordered array of children
         for (int indexByDistance = 0; indexByDistance < currentCount; indexByDistance++) {
@@ -1456,9 +1447,6 @@ int Octree::encodeTreeBitstreamRecursion(OctreeElementPointer element,
             if (oneAtBit(childrenExistInPacketBits, originalIndex)) {
 
                 int thisLevel = currentEncodeLevel;
-                // remember this for reshuffling
-                recursiveSliceStarts[originalIndex] = packetData->getUncompressedData() + packetData->getUncompressedSize();
-
                 int childTreeBytesOut = 0;
 
                 // NOTE: some octree styles (like models and particles) will store content in parent elements, and child
@@ -1477,10 +1465,6 @@ int Octree::encodeTreeBitstreamRecursion(OctreeElementPointer element,
                         childTreeBytesOut = 0;
                     }
                 }
-
-                // remember this for reshuffling
-                recursiveSliceSizes[originalIndex] = childTreeBytesOut;
-                allSlicesSize += childTreeBytesOut;
 
                 // if the child wrote 0 bytes, it means that nothing below exists or was in view, or we ran out of space,
                 // basically, the children below don't contain any info.
