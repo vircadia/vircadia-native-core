@@ -50,10 +50,10 @@ public:
 
     virtual void entityCreated(const EntityItem& newEntity, const SharedNodePointer& senderNode) override;
     virtual void readAdditionalConfiguration(const QJsonObject& settingsSectionObject) override;
-    virtual QString serverSubclassStats();
+    virtual QString serverSubclassStats() override;
 
-    virtual void trackSend(const QUuid& dataID, quint64 dataLastEdited, const QUuid& viewerNode);
-    virtual void trackViewerGone(const QUuid& viewerNode);
+    virtual void trackSend(const QUuid& dataID, quint64 dataLastEdited, const QUuid& viewerNode) override;
+    virtual void trackViewerGone(const QUuid& viewerNode) override;
 
 public slots:
     void pruneDeletedEntities();
