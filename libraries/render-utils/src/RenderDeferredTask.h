@@ -80,9 +80,9 @@ class DrawOverlay3D {
     static gpu::PipelinePointer _opaquePipeline; //lazy evaluation hence mutable
 public:
     static const gpu::PipelinePointer& getOpaquePipeline();
-
+    
     void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext);
-
+    
     typedef render::Job::Model<DrawOverlay3D> JobModel;
 };
 
@@ -93,16 +93,23 @@ public:
     ~RenderDeferredTask();
 
     render::Jobs _jobs;
-
+    
+    int _drawDebugDeferredBufferIndex = -1;
     int _drawStatusJobIndex = -1;
     int _drawHitEffectJobIndex = -1;
-
+    
+    void setDrawDebugDeferredBuffer(int draw) {
+        if (_drawDebugDeferredBufferIndex >= 0) {
+            _jobs[_drawDebugDeferredBufferIndex].setEnabled(draw > 0);
+        }
+    }
+    bool doDrawDebugDeferredBuffer() const { if (_drawDebugDeferredBufferIndex >= 0) { return _jobs[_drawDebugDeferredBufferIndex].isEnabled(); } else { return false; } }
+    
     void setDrawItemStatus(int draw) {
         if (_drawStatusJobIndex >= 0) {
             _jobs[_drawStatusJobIndex].setEnabled(draw > 0);
         }
     }
-
     bool doDrawItemStatus() const { if (_drawStatusJobIndex >= 0) { return _jobs[_drawStatusJobIndex].isEnabled(); } else { return false; } }
     
     void setDrawHitEffect(bool draw) { if (_drawHitEffectJobIndex >= 0) { _jobs[_drawHitEffectJobIndex].setEnabled(draw); } }
