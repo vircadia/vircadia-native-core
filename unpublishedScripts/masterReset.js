@@ -1347,6 +1347,9 @@ MasterReset = function() {
                     userData: JSON.stringify({
                         resetMe: {
                             resetMe: true
+                        },
+                        grabbableKey: {
+                          invertSolidWhileHeld: true  
                         }
                     })
                 });
