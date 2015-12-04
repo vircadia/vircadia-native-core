@@ -60,7 +60,7 @@ void DebugDeferredBuffer::run(const SceneContextPointer& sceneContext, const Ren
         
         batch.setPipeline(getPipeline());
         
-        batch.setResourceTexture(0, framebufferCache->getPrimaryNormalTexture());
+        batch.setResourceTexture(0, framebufferCache->getDeferredColorTexture());
         
         glm::vec4 color(0.0f, 0.0f, 1.0f, 1.0f);
         glm::vec2 bottomLeft(0.0f, -1.0f);

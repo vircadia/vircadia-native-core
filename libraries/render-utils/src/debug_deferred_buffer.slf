@@ -18,5 +18,5 @@ in vec2 uv;
 out vec4 outFragColor;
 
 void main(void) {
-    outFragColor = texture(normalMap, uv);
+    outFragColor = texture(diffuseMap, uv);
 }
