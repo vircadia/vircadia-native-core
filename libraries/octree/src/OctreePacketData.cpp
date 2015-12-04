@@ -23,12 +23,13 @@ AtomicUIntStat OctreePacketData::_totalBytesOfValues { 0 };
 AtomicUIntStat OctreePacketData::_totalBytesOfPositions { 0 };
 AtomicUIntStat OctreePacketData::_totalBytesOfRawData { 0 };
 
-OctreePacketData::OctreePacketData(bool enableCompression, int targetSize) {
-    changeSettings(enableCompression, targetSize); // does reset...
+OctreePacketData::OctreePacketData(int targetSize, bool enableCompression) {
+    changeSettings(targetSize); // does reset...
+    _enableCompression = enableCompression; // FIXME
 }
 
-void OctreePacketData::changeSettings(bool enableCompression, unsigned int targetSize) {
-    _enableCompression = enableCompression;
+void OctreePacketData::changeSettings(unsigned int targetSize) {
+    _enableCompression = true; // FIXME
     _targetSize = std::min(MAX_OCTREE_UNCOMRESSED_PACKET_SIZE, targetSize);
     reset();
 }

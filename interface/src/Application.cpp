@@ -3074,10 +3074,7 @@ void Application::queryOctree(NodeType_t serverType, PacketType packetType, Node
 
     // These will be the same for all servers, so we can set them up once and then reuse for each server we send to.
     _octreeQuery.setWantLowResMoving(true);
-    _octreeQuery.setWantColor(true);
     _octreeQuery.setWantDelta(true);
-    _octreeQuery.setWantOcclusionCulling(false);
-    _octreeQuery.setWantCompression(true);
 
     _octreeQuery.setCameraPosition(_viewFrustum.getPosition());
     _octreeQuery.setCameraOrientation(_viewFrustum.getOrientation());

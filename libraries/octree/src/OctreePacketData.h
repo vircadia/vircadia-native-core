@@ -83,11 +83,11 @@ private:
 /// Handles packing of the data portion of PacketType_OCTREE_DATA messages. 
 class OctreePacketData {
 public:
-    OctreePacketData(bool enableCompression = false, int maxFinalizedSize = MAX_OCTREE_PACKET_DATA_SIZE);
+    OctreePacketData(int maxFinalizedSize = MAX_OCTREE_PACKET_DATA_SIZE, bool enableCompression = true);
     ~OctreePacketData();
 
     /// change compression and target size settings
-    void changeSettings(bool enableCompression = false, unsigned int targetSize = MAX_OCTREE_PACKET_DATA_SIZE);
+    void changeSettings(unsigned int targetSize = MAX_OCTREE_PACKET_DATA_SIZE);
 
     /// reset completely, all data is discarded
     void reset();
@@ -262,7 +262,7 @@ private:
     bool append(unsigned char byte);
 
     unsigned int _targetSize;
-    bool _enableCompression;
+    bool _enableCompression { true }; // FIXME - these will always be compressed, so remove this option
     
     unsigned char _uncompressed[MAX_OCTREE_UNCOMRESSED_PACKET_SIZE];
     int _bytesInUse;
