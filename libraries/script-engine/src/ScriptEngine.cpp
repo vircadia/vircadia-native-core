@@ -674,7 +674,6 @@ void ScriptEngine::run() {
     }
 
     _isRunning = true;
-    _isFinished = false;
     if (_wantSignals) {
         emit runningStateChanged();
     }

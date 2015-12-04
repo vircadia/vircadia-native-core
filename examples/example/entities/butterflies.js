@@ -32,7 +32,7 @@ function randVector(a, b) {
 
 var startTimeInSeconds = new Date().getTime() / 1000;
 
-var NATURAL_SIZE_OF_BUTTERFLY = { x: 1.0, y: 0.4, z: 0.2 };
+var NATURAL_SIZE_OF_BUTTERFLY = { x:0.5, y: 0.2, z: 0.1 };
 
 var lifeTime = 3600; // One hour lifespan
 var range = 7.0; // Over what distance in meters do you want the flock to fly around
@@ -65,8 +65,8 @@ function addButterfly() {
     var color = { red: 100, green: 100, blue: 100 };
     var size = 0;
 
-    var MINSIZE = 0.06;
-    var RANGESIZE = 0.2;
+    var MINSIZE = 0.01;
+    var RANGESIZE = 0.05;
     var maxSize = MINSIZE + RANGESIZE;
     
     size = MINSIZE + Math.random() * RANGESIZE;
@@ -74,7 +74,7 @@ function addButterfly() {
     var dimensions = Vec3.multiply(NATURAL_SIZE_OF_BUTTERFLY, (size / maxSize));
         
     var GRAVITY = -0.2;
-    var newFrameRate = 20 + Math.random() * 30;
+    var newFrameRate = 29 + Math.random() * 30;
     var properties = {
         type: "Model",
         lifetime: lifeTime,
@@ -86,17 +86,13 @@ function addButterfly() {
         dimensions: dimensions,
         color: color,
         animation: { 
-            url: "http://public.highfidelity.io/models/content/butterfly/butterfly.fbx",
-            firstFrame: 0,
+            url: "http://hifi-content.s3.amazonaws.com/james/butterfly/butterfly.fbx",
             fps: newFrameRate,
-            currentFrame: 0,
-            hold: false,
-            lastFrame: 10000,
             loop: true,
             running: true,
             startAutomatically:false
         },
-        modelURL: "http://public.highfidelity.io/models/content/butterfly/butterfly.fbx"
+        modelURL: "http://hifi-content.s3.amazonaws.com/james/butterfly/butterfly.fbx"
     };
     butterflies.push(Entities.addEntity(properties));
 }
