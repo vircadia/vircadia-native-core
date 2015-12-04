@@ -95,35 +95,75 @@ Process.prototype = extend(Process.prototype, {
             return;
         }
         console.log("Starting " + this.command);
+
+        var logDirectoryCreated = false;
         try {
+            fs.mkdirSync('logs');
+            logDirectoryCreated = true;
+        } catch (e) {
+            if (e.code == 'EEXIST') {
+                logDirectoryCreated = true;
+            } else {
+                console.error("Error creating log directory");
+            }
+        }
+
+        var logStdout = 'ignore',
+            logStderr = 'ignore';
+
+        if (logDirectoryCreated) {
+            // Create a temporary file with the current time
             var time = (new Date).getTime();
-            console.log('time', time);
-            var tmpLogStdout = './logs/' + this.name + "-" + time + "-stdout.txt";
-            var tmpLogStderr = './logs/' + this.name + "-" + time + "-stderr.txt";
+            var tmpLogStdout = './logs/' + this.name + '-' + time + '-stdout.txt';
+            var tmpLogStderr = './logs/' + this.name + '-' + time + '-stderr.txt';
 
-            var logStdout = fs.openSync(tmpLogStdout, 'ax');
-            var logStderr = fs.openSync(tmpLogStderr, 'ax');
+            try {
+                logStdout = fs.openSync(tmpLogStdout, 'ax');
+            } catch(e) {
+                console.log("Error creating stdout log file", e);
+                logStdout = 'ignore';
+            }
+            try {
+                logStderr = fs.openSync(tmpLogStderr, 'ax');
+            } catch(e) {
+                console.log("Error creating stderr log file", e);
+                logStderr = 'ignore';
+            }
+        }
 
+        try {
             this.child = childProcess.spawn(this.command, this.commandArgs, {
                 detached: false,
                 stdio: ['ignore', logStdout, logStderr]
             });
-
-            var pidLogStdout = './logs/' + this.name + "-" + this.child.pid + "-stdout.txt";
-            var pidLogStderr = './logs/' + this.name + "-" + this.child.pid + "-stderr.txt";
-
-            fs.rename(tmpLogStdout, pidLogStdout, function(e) { });
-            fs.rename(tmpLogStderr, pidLogStderr, function(e) { });
-
-            this.child.on('error', this.onChildStartError.bind(this));
-            this.child.on('close', this.onChildClose.bind(this));
-            this.state = ProcessStates.STARTED;
-            console.log("Child process started");
         } catch (e) {
             console.log("Got error starting child process for " + this.name, e);
             this.child = null;
             this.state = ProcessStates.STOPPED;
         }
+
+        if (logStdout != 'ignore') {
+            var pidLogStdout = './logs/' + this.name + "-" + this.child.pid + "-" + time + "-stdout.txt";
+            fs.rename(tmpLogStdout, pidLogStdout, function(e) {
+                if (e !== null) {
+                    console.log("Error renaming log file from " + tmpLogStdout + " to " + pidLogStdout, e);
+                }
+            });
+        }
+
+        if (logStderr != 'ignore') {
+            var pidLogStderr = './logs/' + this.name + "-" + this.child.pid + "-" + time + "-stderr.txt";
+            fs.rename(tmpLogStderr, pidLogStderr, function(e) {
+                if (e !== null) {
+                    console.log("Error renaming log file from " + tmpLogStdout + " to " + pidLogStdout, e);
+                }
+            });
+        }
+
+        this.child.on('error', this.onChildStartError.bind(this));
+        this.child.on('close', this.onChildClose.bind(this));
+        this.state = ProcessStates.STARTED;
+        console.log("Child process started");
 
         this.emit('state-update', this);
     },
