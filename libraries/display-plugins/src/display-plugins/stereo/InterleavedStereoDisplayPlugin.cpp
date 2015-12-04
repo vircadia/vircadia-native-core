@@ -8,15 +8,6 @@
 
 #include "InterleavedStereoDisplayPlugin.h"
 
-#include <QApplication>
-#include <QDesktopWidget>
-
-#include <gl/GlWindow.h>
-#include <ViewFrustum.h>
-#include <MatrixStack.h>
-
-#include <gpu/GLBackend.h>
-
 static const char * INTERLEAVED_TEXTURED_VS = R"VS(#version 410 core
 #pragma line __LINE__
 
