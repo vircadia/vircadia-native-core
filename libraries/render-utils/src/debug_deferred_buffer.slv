@@ -14,6 +14,9 @@
 
 <@include gpu/Inputs.slh@>
 
+out vec2 uv;
+
 void main(void) {
+    uv = (inPosition.xy + 1.0) * 0.5;
     gl_Position = inPosition;
 }

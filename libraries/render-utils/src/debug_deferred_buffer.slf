@@ -12,10 +12,11 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-<@include DeferredBufferWrite.slh@>
+<@include DeferredBuffer.slh@>
 
+in vec2 uv;
 out vec4 outFragColor;
 
 void main(void) {
-    outFragColor = vec4(0.0, 0.0, 1.0, 1.0);
+    outFragColor = texture(normalMap, uv);
 }

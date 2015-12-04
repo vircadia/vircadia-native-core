@@ -17,6 +17,7 @@
 #include <ViewFrustum.h>
 
 #include "GeometryCache.h"
+#include "FramebufferCache.h"
 
 #include "debug_deferred_buffer_vert.h"
 #include "debug_deferred_buffer_frag.h"
@@ -33,16 +34,8 @@ const gpu::PipelinePointer& DebugDeferredBuffer::getPipeline() {
         gpu::Shader::BindingSet slotBindings;
         gpu::Shader::makeProgram(*program, slotBindings);
         
-        auto state = std::make_shared<gpu::State>();
-        
-        state->setDepthTest(false, false, gpu::LESS_EQUAL);
-        
-        // Blend on transparent
-        state->setBlendFunction(true,
-                                gpu::State::SRC_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::INV_SRC_ALPHA);
-        
         // Good to go add the brand new pipeline
-        _pipeline.reset(gpu::Pipeline::create(program, state));
+        _pipeline.reset(gpu::Pipeline::create(program, std::make_shared<gpu::State>()));
     }
     return _pipeline;
 }
@@ -53,6 +46,9 @@ void DebugDeferredBuffer::run(const SceneContextPointer& sceneContext, const Ren
     assert(renderContext->args->_viewFrustum);
     RenderArgs* args = renderContext->args;
     gpu::doInBatch(args->_context, [&](gpu::Batch& batch) {
+        auto geometryBuffer = DependencyManager::get<GeometryCache>();
+        auto framebufferCache = DependencyManager::get<FramebufferCache>();
+        
         
         glm::mat4 projMat;
         Transform viewMat;
@@ -64,9 +60,11 @@ void DebugDeferredBuffer::run(const SceneContextPointer& sceneContext, const Ren
         
         batch.setPipeline(getPipeline());
         
+        batch.setResourceTexture(0, framebufferCache->getPrimaryNormalTexture());
+        
         glm::vec4 color(0.0f, 0.0f, 1.0f, 1.0f);
         glm::vec2 bottomLeft(0.0f, -1.0f);
         glm::vec2 topRight(1.0f, 1.0f);
-        DependencyManager::get<GeometryCache>()->renderQuad(batch, bottomLeft, topRight, color);
+        geometryBuffer->renderQuad(batch, bottomLeft, topRight, color);
     });
 }
