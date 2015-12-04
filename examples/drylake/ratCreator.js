@@ -428,7 +428,7 @@ if (USE_CONSTANT_SPAWNER === true) {
         rats.push(rat);
         // print('ratCount::'+ratCount)
         ratCount++;
-        // if (ratCount % 3 === 0) {
+        if (ratCount % 6 === 0) {
         var metaRat = {
             rat: rat,
             injector: createRatSoundInjector()
@@ -439,7 +439,7 @@ if (USE_CONSTANT_SPAWNER === true) {
                 //if we have too many injectors hanging around there are problems
                 metaRat.injector.stop();
             }, RAT_SPAWN_RATE * 3)
-            // }
+            }
 
     }, RAT_SPAWN_RATE);
 }
