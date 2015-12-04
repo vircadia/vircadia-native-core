@@ -34,7 +34,7 @@ var BUMPER_ON_VALUE = 0.5;
 // distant manipulation
 //
 
-var DISTANCE_HOLDING_RADIUS_FACTOR = 5; // multiplied by distance between hand and object
+var DISTANCE_HOLDING_RADIUS_FACTOR = 3.5; // multiplied by distance between hand and object
 var DISTANCE_HOLDING_ACTION_TIMEFRAME = 0.1; // how quickly objects move to their new position
 var DISTANCE_HOLDING_ROTATION_EXAGGERATION_FACTOR = 2.0; // object rotates this much more than hand did
 
@@ -659,6 +659,12 @@ function MyController(hand) {
         this.handRelativePreviousPosition = Vec3.subtract(handControllerPosition, MyAvatar.position);
         this.handPreviousRotation = handRotation;
 
+        // compute a constant based on the initial conditions which we use below to exagerate hand motion onto the held object
+        this.radiusScalar = Math.log(Vec3.distance(this.currentObjectPosition, handControllerPosition) + 1.0);
+        if (this.radiusScalar < 1.0) {
+            this.radiusScalar = 1.0;
+        }
+
         this.actionID = NULL_ACTION_ID;
         this.actionID = Entities.addAction("spring", this.grabbedEntity, {
             targetPosition: this.currentObjectPosition,
@@ -689,8 +695,6 @@ function MyController(hand) {
         this.currentAvatarOrientation = MyAvatar.orientation;
 
         this.overlayLineOff();
-
-
     };
 
     this.continueDistanceHolding = function() {
@@ -719,8 +723,12 @@ function MyController(hand) {
         this.lineOn(handPosition, Vec3.subtract(grabbedProperties.position, handPosition), INTERSECT_COLOR);
 
         // the action was set up on a previous call.  update the targets.
-        var radius = Math.max(Vec3.distance(this.currentObjectPosition, handControllerPosition) *
-            DISTANCE_HOLDING_RADIUS_FACTOR, DISTANCE_HOLDING_RADIUS_FACTOR);
+        var radius = Vec3.distance(this.currentObjectPosition, handControllerPosition) *
+            this.radiusScalar * DISTANCE_HOLDING_RADIUS_FACTOR;
+        if (radius < 1.0) {
+            radius = 1.0;
+        }
+
         // how far did avatar move this timestep?
         var currentPosition = MyAvatar.position;
         var avatarDeltaPosition = Vec3.subtract(currentPosition, this.currentAvatarPosition);
@@ -751,11 +759,11 @@ function MyController(hand) {
         var handMoved = Vec3.subtract(handToAvatar, this.handRelativePreviousPosition);
         this.handRelativePreviousPosition = handToAvatar;
 
-        //  magnify the hand movement but not the change from avatar movement & rotation
+        // magnify the hand movement but not the change from avatar movement & rotation
         handMoved = Vec3.subtract(handMoved, handMovementFromTurning);
         var superHandMoved = Vec3.multiply(handMoved, radius);
 
-        //  Move the object by the magnified amount and then by amount from avatar movement & rotation
+        // Move the object by the magnified amount and then by amount from avatar movement & rotation
         var newObjectPosition = Vec3.sum(this.currentObjectPosition, superHandMoved);
         newObjectPosition = Vec3.sum(newObjectPosition, avatarDeltaPosition);
         newObjectPosition = Vec3.sum(newObjectPosition, objectMovementFromTurning);
