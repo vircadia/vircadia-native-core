@@ -67,13 +67,11 @@ public:
     void setCameraEyeOffsetPosition(const glm::vec3& eyeOffsetPosition) { _cameraEyeOffsetPosition = eyeOffsetPosition; }
 
     // related to Octree Sending strategies
-    bool getWantLowResMoving() const { return _wantLowResMoving; }
     int getMaxQueryPacketsPerSecond() const { return _maxQueryPPS; }
     float getOctreeSizeScale() const { return _octreeElementSizeScale; }
     int getBoundaryLevelAdjust() const { return _boundaryLevelAdjust; }
 
 public slots:
-    void setWantLowResMoving(bool wantLowResMoving) { _wantLowResMoving = wantLowResMoving; }
     void setMaxQueryPacketsPerSecond(int maxQueryPPS) { _maxQueryPPS = maxQueryPPS; }
     void setOctreeSizeScale(float octreeSizeScale) { _octreeElementSizeScale = octreeSizeScale; }
     void setBoundaryLevelAdjust(int boundaryLevelAdjust) { _boundaryLevelAdjust = boundaryLevelAdjust; }
@@ -89,7 +87,6 @@ protected:
     glm::vec3 _cameraEyeOffsetPosition = glm::vec3(0.0f);
 
     // octree server sending items
-    bool _wantLowResMoving = true;
     int _maxQueryPPS = DEFAULT_MAX_OCTREE_PPS;
     float _octreeElementSizeScale = DEFAULT_OCTREE_SIZE_SCALE; /// used for LOD calculations
     int _boundaryLevelAdjust = 0; /// used for LOD calculations

@@ -40,7 +40,9 @@ int OctreeQuery::getBroadcastData(unsigned char* destinationBuffer) {
 
     // bitMask of less than byte wide items
     unsigned char bitItems = 0;
-    if (_wantLowResMoving)     { setAtBit(bitItems, WANT_LOW_RES_MOVING_BIT); }
+    // NOTE: we used to use these bits to set feature request items
+    // if we need to extend the protocol with optional features 
+    // do it here with... setAtBit(bitItems, WANT_FEATURE_BIT);
 
     *destinationBuffer++ = bitItems;
 
@@ -79,7 +81,9 @@ int OctreeQuery::parseData(NLPacket& packet) {
     // voxel sending features...
     unsigned char bitItems = 0;
     bitItems = (unsigned char)*sourceBuffer++;
-    _wantLowResMoving = oneAtBit(bitItems, WANT_LOW_RES_MOVING_BIT);
+
+    // NOTE: we used to use these bits to set feature request items if we need to extend the protocol with optional features
+    // do it here with... wantFeature= oneAtBit(bitItems, WANT_FEATURE_BIT);
 
     // desired Max Octree PPS
     memcpy(&_maxQueryPPS, sourceBuffer, sizeof(_maxQueryPPS));

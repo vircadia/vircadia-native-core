@@ -440,8 +440,8 @@ int OctreeSendThread::packetDistributor(OctreeQueryNode* nodeData, bool viewFrus
                     float octreeSizeScale = nodeData->getOctreeSizeScale();
                     int boundaryLevelAdjustClient = nodeData->getBoundaryLevelAdjust();
 
-                    int boundaryLevelAdjust = boundaryLevelAdjustClient + (viewFrustumChanged && nodeData->getWantLowResMoving()
-                                                                           ? LOW_RES_MOVING_ADJUST : NO_BOUNDARY_ADJUST);
+                    int boundaryLevelAdjust = boundaryLevelAdjustClient + 
+                                              (viewFrustumChanged ? LOW_RES_MOVING_ADJUST : NO_BOUNDARY_ADJUST);
 
                     EncodeBitstreamParams params(INT_MAX, &nodeData->getCurrentViewFrustum(), 
                                                  WANT_EXISTS_BITS, DONT_CHOP, viewFrustumChanged, lastViewFrustum,
