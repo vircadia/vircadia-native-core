@@ -41,6 +41,8 @@ void FramebufferCache::setFrameBufferSize(QSize frameBufferSize) {
         _primarySpecularTexture.reset();
         _selfieFramebuffer.reset();
         _cachedFramebuffers.clear();
+        _lightingTexture.reset();
+        _lightingFramebuffer.reset();
     }
 }
 
@@ -74,6 +76,12 @@ void FramebufferCache::createPrimaryFramebuffer() {
     _selfieFramebuffer = gpu::FramebufferPointer(gpu::Framebuffer::create());
     auto tex = gpu::TexturePointer(gpu::Texture::create2D(colorFormat, width * 0.5, height * 0.5, defaultSampler));
     _selfieFramebuffer->setRenderBuffer(0, tex);
+
+    _lightingTexture = gpu::TexturePointer(gpu::Texture::create2D(gpu::Element(gpu::VEC4, gpu::NUINT8, gpu::RGBA), width, height, defaultSampler));
+        //_lightingTexture = gpu::TexturePointer(gpu::Texture::create2D(gpu::Element(gpu::VEC4, gpu::NUINT8, gpu::SRGBA), width, height, defaultSampler));
+        // _lightingTexture = gpu::TexturePointer(gpu::Texture::create2D(gpu::Element(gpu::VEC4, gpu::HALF, gpu::RGBA), width, height, defaultSampler));
+        _lightingFramebuffer = gpu::FramebufferPointer(gpu::Framebuffer::create());
+    _lightingFramebuffer->setRenderBuffer(0, _lightingTexture);
 }
 
 gpu::FramebufferPointer FramebufferCache::getPrimaryFramebuffer() {
@@ -116,6 +124,20 @@ gpu::TexturePointer FramebufferCache::getPrimarySpecularTexture() {
         createPrimaryFramebuffer();
     }
     return _primarySpecularTexture;
+}
+
+gpu::FramebufferPointer FramebufferCache::getLightingFramebuffer() {
+    if (!_lightingFramebuffer) {
+        createPrimaryFramebuffer();
+    }
+    return _lightingFramebuffer;
+}
+
+gpu::TexturePointer FramebufferCache::getLightingTexture() {
+    if (!_lightingTexture) {
+        createPrimaryFramebuffer();
+    }
+    return _lightingTexture;
 }
 
 gpu::FramebufferPointer FramebufferCache::getFramebuffer() {
