@@ -463,16 +463,6 @@ void Avatar::render(RenderArgs* renderArgs, const glm::vec3& cameraPosition) {
             }
         }
 
-        /*
-        // TODO: re-implement these when we have more detailed avatar collision shapes
-        bool renderSkeleton = Menu::getInstance()->isOptionChecked(MenuOption::RenderSkeletonCollisionShapes);
-        if (renderSkeleton) {
-        }
-        bool renderHead = Menu::getInstance()->isOptionChecked(MenuOption::RenderHeadCollisionShapes);
-        if (renderHead && shouldRenderHead(renderArgs)) {
-        }
-        */
-
         bool renderBounding = Menu::getInstance()->isOptionChecked(MenuOption::RenderBoundingCollisionShapes);
         if (renderBounding && shouldRenderHead(renderArgs) && _skeletonModel.isRenderable()) {
             PROFILE_RANGE_BATCH(batch, __FUNCTION__":skeletonBoundingCollisionShapes");
