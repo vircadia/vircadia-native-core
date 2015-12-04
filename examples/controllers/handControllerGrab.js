@@ -37,7 +37,7 @@ var BUMPER_ON_VALUE = 0.5;
 var DISTANCE_HOLDING_RADIUS_FACTOR = 3.5; // multiplied by distance between hand and object
 var DISTANCE_HOLDING_ACTION_TIMEFRAME = 0.1; // how quickly objects move to their new position
 var DISTANCE_HOLDING_ROTATION_EXAGGERATION_FACTOR = 2.0; // object rotates this much more than hand did
-var MOVE_WITH_HEAD = false; // experimental head-controll of distantly held objects
+var MOVE_WITH_HEAD = true; // experimental head-controll of distantly held objects
 
 var NO_INTERSECT_COLOR = {
     red: 10,
