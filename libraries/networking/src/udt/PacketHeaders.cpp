@@ -38,10 +38,11 @@ const QSet<PacketType> RELIABLE_PACKETS = QSet<PacketType>();
 
 PacketVersion versionForPacketType(PacketType packetType) {
     switch (packetType) {
+        case PacketType::EntityQuery:
         case PacketType::EntityAdd:
         case PacketType::EntityEdit:
         case PacketType::EntityData:
-            return VERSION_ENTITIES_HAVE_PARENTS;
+            return VERSION_ENTITIES_DEFAULT_QUERY_BITS;
         case PacketType::AvatarData:
         case PacketType::BulkAvatarData:
             return 17;
