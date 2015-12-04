@@ -53,6 +53,7 @@ public:
     int _numDrawnOverlay3DItems = 0;
     int _maxDrawnOverlay3DItems = -1;
 
+    int _drawDebugDeferredBuffer = 0;
     int _drawItemStatus = 0;
     bool _drawHitEffect = false;
 

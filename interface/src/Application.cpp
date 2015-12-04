@@ -3621,7 +3621,9 @@ void Application::displaySide(RenderArgs* renderArgs, Camera& theCamera, bool se
         renderContext._maxDrawnOpaqueItems = sceneInterface->getEngineMaxDrawnOpaqueItems();
         renderContext._maxDrawnTransparentItems = sceneInterface->getEngineMaxDrawnTransparentItems();
         renderContext._maxDrawnOverlay3DItems = sceneInterface->getEngineMaxDrawnOverlay3DItems();
-
+        
+        renderContext._drawDebugDeferredBuffer = sceneInterface->doEngineDisplayDebugDeferredBuffer();
+        
         renderContext._drawItemStatus = sceneInterface->doEngineDisplayItemStatus();
         if (Menu::getInstance()->isOptionChecked(MenuOption::PhysicsShowOwned)) {
             renderContext._drawItemStatus |= render::showNetworkStatusFlag;

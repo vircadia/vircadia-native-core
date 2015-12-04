@@ -9,11 +9,7 @@
 #ifndef hifi_hitEffect_h
 #define hifi_hitEffect_h
 
-#include <DependencyManager.h>
-#include "render/DrawTask.h"
-
-class AbstractViewStateInterface;
-class ProgramObject;
+#include <render/DrawTask.h>
 
 class HitEffect {
 public:
@@ -23,7 +19,7 @@ public:
     void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext);
     typedef render::Job::Model<HitEffect> JobModel;
     
-    const gpu::PipelinePointer&     getHitEffectPipeline();
+    const gpu::PipelinePointer& getHitEffectPipeline();
     
 private:
     gpu::PipelinePointer _hitEffectPipeline;
