@@ -51,9 +51,7 @@ void OctreeHeadlessViewer::queryOctree() {
 
     // These will be the same for all servers, so we can set them up once and then reuse for each server we send to.
     _octreeQuery.setWantLowResMoving(true);
-    _octreeQuery.setWantColor(true);
     _octreeQuery.setWantDelta(true);
-    _octreeQuery.setWantOcclusionCulling(false);
     _octreeQuery.setWantCompression(true); // TODO: should be on by default
 
     _octreeQuery.setCameraPosition(_viewFrustum.getPosition());

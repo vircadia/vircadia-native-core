@@ -44,12 +44,7 @@ void EntityTree::createRootElement() {
 }
 
 OctreeElementPointer EntityTree::createNewElement(unsigned char* octalCode) {
-    EntityTreeElementPointer newElement = EntityTreeElementPointer(new EntityTreeElement(octalCode),
-                                                                   // see comment int EntityTreeElement::createNewElement
-                                                                   [=](EntityTreeElement* dyingElement) {
-                                                                       EntityTreeElementPointer tmpSharedPointer(dyingElement);
-                                                                       dyingElement->notifyDeleteHooks();
-                                                                   });
+    auto newElement = EntityTreeElementPointer(new EntityTreeElement(octalCode));
     newElement->setTree(std::static_pointer_cast<EntityTree>(shared_from_this()));
     return std::static_pointer_cast<OctreeElement>(newElement);
 }
@@ -145,8 +140,11 @@ bool EntityTree::updateEntityWithElement(EntityItemPointer entity, const EntityI
             if (!wantsLocked) {
                 EntityItemProperties tempProperties;
                 tempProperties.setLocked(wantsLocked);
-                UpdateEntityOperator theOperator(getThisPointer(), containingElement, entity, tempProperties);
+
+                BoundingBoxRelatedProperties newBBRelProperties(entity, tempProperties);
+                UpdateEntityOperator theOperator(getThisPointer(), containingElement, entity, newBBRelProperties);
                 recurseTreeWithOperator(&theOperator);
+                entity->setProperties(tempProperties);
                 _isDirty = true;
             }
         }
@@ -211,8 +209,34 @@ bool EntityTree::updateEntityWithElement(EntityItemPointer entity, const EntityI
         quint64 entityScriptTimestampBefore = entity->getScriptTimestamp();
         QString collisionSoundURLBefore = entity->getCollisionSoundURL();
         uint32_t preFlags = entity->getDirtyFlags();
-        UpdateEntityOperator theOperator(getThisPointer(), containingElement, entity, properties);
+
+        BoundingBoxRelatedProperties newBBRelProperties(entity, properties);
+        UpdateEntityOperator theOperator(getThisPointer(), containingElement, entity, newBBRelProperties);
         recurseTreeWithOperator(&theOperator);
+        entity->setProperties(properties);
+
+        // if the entity has children, run UpdateEntityOperator on them.  If the children have children, recurse
+        QQueue<SpatiallyNestablePointer> toProcess;
+        foreach (SpatiallyNestablePointer child, entity->getChildren()) {
+            if (child && child->getNestableType() == NestableTypes::Entity) {
+                toProcess.enqueue(child);
+            }
+        }
+
+        while (!toProcess.empty()) {
+            EntityItemPointer childEntity = std::static_pointer_cast<EntityItem>(toProcess.dequeue());
+            BoundingBoxRelatedProperties newChildBBRelProperties(childEntity);
+            UpdateEntityOperator theChildOperator(getThisPointer(),
+                                                  childEntity->getElement(),
+                                                  childEntity, newChildBBRelProperties);
+            recurseTreeWithOperator(&theChildOperator);
+            foreach (SpatiallyNestablePointer childChild, childEntity->getChildren()) {
+                if (childChild && childChild->getNestableType() == NestableTypes::Entity) {
+                    toProcess.enqueue(childChild);
+                }
+            }
+        }
+
         _isDirty = true;
 
         uint32_t newFlags = entity->getDirtyFlags() & ~preFlags;

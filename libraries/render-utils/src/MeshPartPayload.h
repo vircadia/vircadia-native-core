@@ -24,7 +24,7 @@ class Model;
 
 class MeshPartPayload {
 public:
-    MeshPartPayload(Model* model, int meshIndex, int partIndex, int shapeIndex);
+    MeshPartPayload(Model* model, int meshIndex, int partIndex, int shapeIndex, glm::vec3 position, glm::quat orientation);
     
     typedef render::Payload<MeshPartPayload> Payload;
     typedef Payload::DataPointer Pointer;
@@ -33,7 +33,11 @@ public:
     int meshIndex;
     int partIndex;
     int _shapeID;
-    
+    glm::vec3 _modelPosition;
+    glm::quat _modelOrientation;
+
+    void updateModelLocation(glm::vec3 position, glm::quat orientation);
+
     // Render Item interface
     render::ItemKey getKey() const;
     render::Item::Bound getBound() const;

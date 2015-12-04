@@ -67,12 +67,12 @@ var colorPalette = [{
 var MIN_STROKE_WIDTH = 0.002;
 var MAX_STROKE_WIDTH = 0.05;
 
-function controller(side, cycleColorButton) {
+function controller(side, triggerAction) {
     this.triggerHeld = false;
     this.triggerThreshold = 0.9;
     this.side = side;
-    this.trigger = side == LEFT ? Controller.Stantard.LT : Controller.Standard.RT;
-    this.cycleColorButton = side == LEFT ? Controller.Stantard.LeftPrimaryThumb : Controller.Standard.RightPrimaryThumb;
+    this.triggerAction = triggerAction;
+    this.cycleColorButton = side == LEFT ? Controller.Standard.LeftPrimaryThumb : Controller.Standard.RightPrimaryThumb;
 
     this.points = [];
     this.normals = [];
@@ -116,6 +116,7 @@ function controller(side, cycleColorButton) {
                 y: LINE_DIMENSIONS,
                 z: LINE_DIMENSIONS
             },
+            textures: "http://localhost:8080/trails.png",
             lifetime: LIFETIME
         });
         this.points = [];
@@ -174,7 +175,7 @@ function controller(side, cycleColorButton) {
         this.cycleColorButtonPressed = Controller.getValue(this.cycleColorButton);
         this.palmPosition = this.side == RIGHT ? MyAvatar.rightHandPose.translation : MyAvatar.leftHandPose.translation;
         this.tipPosition = this.side == RIGHT ? MyAvatar.rightHandTipPose.translation : MyAvatar.leftHandTipPose.translation;
-        this.triggerValue = Controller.getValue(this.trigger);
+        this.triggerValue =  Controller.getActionValue(this.triggerAction);
 
         
         if (this.prevCycleColorButtonPressed === true && this.cycleColorButtonPressed === false) {
@@ -212,8 +213,8 @@ function vectorIsZero(v) {
 }
 
 
-var rightController = new controller(RIGHT);
-var leftController = new controller(LEFT);
+var rightController = new controller(RIGHT, Controller.findAction("RIGHT_HAND_CLICK"));
+var leftController = new controller(LEFT, Controller.findAction("LEFT_HAND_CLICK"));
 Script.update.connect(update);
 Script.scriptEnding.connect(scriptEnding);
 

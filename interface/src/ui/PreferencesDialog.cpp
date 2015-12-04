@@ -189,7 +189,7 @@ void PreferencesDialog::loadPreferences() {
     
     ui.leanScaleSpin->setValue(myAvatar->getLeanScale());
     
-    ui.avatarScaleSpin->setValue(myAvatar->getScale());
+    ui.avatarScaleSpin->setValue(myAvatar->getAvatarScale());
     ui.avatarAnimationEdit->setText(myAvatar->getAnimGraphUrl());
     
     ui.maxOctreePPSSpin->setValue(qApp->getMaxOctreePacketsPerSecond());
@@ -204,6 +204,7 @@ void PreferencesDialog::loadPreferences() {
     auto lodManager = DependencyManager::get<LODManager>();
     ui.desktopMinimumFPSSpin->setValue(lodManager->getDesktopLODDecreaseFPS());
     ui.hmdMinimumFPSSpin->setValue(lodManager->getHMDLODDecreaseFPS());
+    ui.avatarRenderSmallestReasonableHorizon->setValue(1.0f / DependencyManager::get<AvatarManager>()->getRenderDistanceInverseHighLimit());
 }
 
 void PreferencesDialog::savePreferences() {
@@ -247,12 +248,7 @@ void PreferencesDialog::savePreferences() {
     myAvatar->setLeanScale(ui.leanScaleSpin->value());
     myAvatar->setClampedTargetScale(ui.avatarScaleSpin->value());
     if (myAvatar->getAnimGraphUrl() != ui.avatarAnimationEdit->text()) { // If changed, destroy the old and start with the new
-        bool isEnabled = myAvatar->getEnableAnimGraph();
-        myAvatar->setEnableAnimGraph(false);
         myAvatar->setAnimGraphUrl(ui.avatarAnimationEdit->text());
-        if (isEnabled) {
-            myAvatar->setEnableAnimGraph(true);
-        }
     }
 
     myAvatar->setRealWorldFieldOfView(ui.realWorldFieldOfViewSpin->value());
@@ -299,4 +295,5 @@ void PreferencesDialog::savePreferences() {
     auto lodManager = DependencyManager::get<LODManager>();
     lodManager->setDesktopLODDecreaseFPS(ui.desktopMinimumFPSSpin->value());
     lodManager->setHMDLODDecreaseFPS(ui.hmdMinimumFPSSpin->value());
+    DependencyManager::get<AvatarManager>()->setRenderDistanceInverseHighLimit(1.0f / ui.avatarRenderSmallestReasonableHorizon->value());
 }

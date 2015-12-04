@@ -1701,9 +1701,9 @@ void GeometryCache::renderLine(gpu::Batch& batch, const glm::vec2& p1, const glm
 
 void GeometryCache::useSimpleDrawPipeline(gpu::Batch& batch, bool noBlend) {
     if (!_standardDrawPipeline) {
-        auto vs = gpu::ShaderPointer(gpu::Shader::createVertex(std::string(standardTransformPNTC_vert)));
-        auto ps = gpu::ShaderPointer(gpu::Shader::createPixel(std::string(standardDrawTexture_frag)));
-        auto program = gpu::ShaderPointer(gpu::Shader::createProgram(vs, ps));
+        auto vs = gpu::Shader::createVertex(std::string(standardTransformPNTC_vert));
+        auto ps = gpu::Shader::createPixel(std::string(standardDrawTexture_frag));
+        auto program = gpu::Shader::createProgram(vs, ps);
         gpu::Shader::makeProgram((*program));
 
         auto state = std::make_shared<gpu::State>();
@@ -1712,14 +1712,14 @@ void GeometryCache::useSimpleDrawPipeline(gpu::Batch& batch, bool noBlend) {
         // enable decal blend
         state->setBlendFunction(true, gpu::State::SRC_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::INV_SRC_ALPHA);
 
-        _standardDrawPipeline.reset(gpu::Pipeline::create(program, state));
+        _standardDrawPipeline = gpu::Pipeline::create(program, state);
 
 
         auto stateNoBlend = std::make_shared<gpu::State>();
         auto noBlendPS = gpu::StandardShaderLib::getDrawTextureOpaquePS();
-        auto programNoBlend = gpu::ShaderPointer(gpu::Shader::createProgram(vs, noBlendPS));
+        auto programNoBlend = gpu::Shader::createProgram(vs, noBlendPS);
         gpu::Shader::makeProgram((*programNoBlend));
-        _standardDrawPipelineNoBlend.reset(gpu::Pipeline::create(programNoBlend, stateNoBlend));
+        _standardDrawPipelineNoBlend = gpu::Pipeline::create(programNoBlend, stateNoBlend);
     }
     if (noBlend) {
         batch.setPipeline(_standardDrawPipelineNoBlend);

@@ -23,7 +23,7 @@
 #include <NumericalConstants.h>
 
 #include "GLEscrow.h"
-#include "OffscreenGlCanvas.h"
+#include "OffscreenGLCanvas.h"
 
 // FIXME move to threaded rendering with Qt 5.5
 //#define QML_THREADED
@@ -64,12 +64,12 @@ static const QEvent::Type STOP = QEvent::Type(QEvent::User + 4);
 static const QEvent::Type UPDATE = QEvent::Type(QEvent::User + 5);
 #endif
 
-class OffscreenQmlRenderer : public OffscreenGlCanvas {
+class OffscreenQmlRenderer : public OffscreenGLCanvas {
     friend class OffscreenQmlSurface;
 public:
 
     OffscreenQmlRenderer(OffscreenQmlSurface* surface, QOpenGLContext* shareContext) : _surface(surface) {
-        OffscreenGlCanvas::create(shareContext);
+        OffscreenGLCanvas::create(shareContext);
 #ifdef QML_THREADED
         // Qt 5.5
         _renderControl->prepareThread(_renderThread);

@@ -14,7 +14,6 @@
 #include <QMainWindow>
 #include <QGLWidget>
 #include <GLMHelpers.h>
-#include <gl/GlWindow.h>
 #include <QEvent>
 #include <QResizeEvent>
 

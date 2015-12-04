@@ -22,8 +22,10 @@ var laserPointer = (function () {
         ];
 
     function isHandPointing(hand) {
-        var MINIMUM_TRIGGER_PULL = 0.9;
-        return Controller.getTriggerValue(hand) > MINIMUM_TRIGGER_PULL;
+        var MINIMUM_TRIGGER_PULL = 0.9,
+            controller;
+        controller = hand === 0 ? Controller.Standard.LT : Controller.Standard.RT;
+        return Controller.getValue(controller) > MINIMUM_TRIGGER_PULL;
     }
 
     function isFingerPointing(hand) {

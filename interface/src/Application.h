@@ -65,7 +65,7 @@
 #include "ui/ToolWindow.h"
 #include "UndoStackScriptingInterface.h"
 
-class OffscreenGlCanvas;
+class OffscreenGLCanvas;
 class GLCanvas;
 class FaceTracker;
 class MainWindow;
@@ -185,7 +185,7 @@ public:
     virtual float getSizeScale() const;
     virtual int getBoundaryLevelAdjust() const;
     virtual PickRay computePickRay(float x, float y) const;
-    virtual const glm::vec3& getAvatarPosition() const;
+    virtual glm::vec3 getAvatarPosition() const;
     virtual void overrideEnvironmentData(const EnvironmentData& newData) { _environment.override(newData); }
     virtual void endOverrideEnvironmentData() { _environment.endOverride(); }
     virtual qreal getDevicePixelRatio();
@@ -421,7 +421,7 @@ private:
 
     bool _dependencyManagerIsSetup;
 
-    OffscreenGlCanvas* _offscreenContext { nullptr };
+    OffscreenGLCanvas* _offscreenContext { nullptr };
     DisplayPluginPointer _displayPlugin;
     InputPluginList _activeInputPlugins;
 

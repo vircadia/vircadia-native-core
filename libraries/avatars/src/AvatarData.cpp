@@ -47,13 +47,8 @@ const QString AvatarData::FRAME_NAME = "com.highfidelity.recording.AvatarData";
 static std::once_flag frameTypeRegistration;
 
 AvatarData::AvatarData() :
-    _sessionUUID(),
-    _position(0.0f),
+    SpatiallyNestable(NestableTypes::Avatar, QUuid()),
     _handPosition(0.0f),
-    _referential(NULL),
-    _bodyYaw(-90.0f),
-    _bodyPitch(0.0f),
-    _bodyRoll(0.0f),
     _targetScale(1.0f),
     _handState(0),
     _keyState(NO_KEY_DOWN),
@@ -72,12 +67,14 @@ AvatarData::AvatarData() :
     _targetVelocity(0.0f),
     _localAABox(DEFAULT_LOCAL_AABOX_CORNER, DEFAULT_LOCAL_AABOX_SCALE)
 {
+    setBodyPitch(0.0f);
+    setBodyYaw(-90.0f);
+    setBodyRoll(0.0f);
 }
 
 AvatarData::~AvatarData() {
     delete _headData;
     delete _handData;
-    delete _referential;
 }
 
 // We cannot have a file-level variable (const or otherwise) in the header if it uses PathUtils, because that references Application, which will not yet initialized.
@@ -90,49 +87,18 @@ const QUrl& AvatarData::defaultFullAvatarModelUrl() {
     return _defaultFullAvatarModelUrl;
 }
 
-const glm::vec3& AvatarData::getPosition() const {
-    if (_referential) {
-        _referential->update();
-    }
-    return _position;
-}
-
-void AvatarData::setPosition(const glm::vec3 position, bool overideReferential) {
-    if (!_referential || overideReferential) {
-        _position = position;
-    }
-}
-
-glm::quat AvatarData::getOrientation() const {
-    if (_referential) {
-        _referential->update();
-    }
-
-    return glm::quat(glm::radians(glm::vec3(_bodyPitch, _bodyYaw, _bodyRoll)));
-}
-
-void AvatarData::setOrientation(const glm::quat& orientation, bool overideReferential) {
-    if (!_referential || overideReferential) {
-        glm::vec3 eulerAngles = glm::degrees(safeEulerAngles(orientation));
-        _bodyPitch = eulerAngles.x;
-        _bodyYaw = eulerAngles.y;
-        _bodyRoll = eulerAngles.z;
-    }
-}
-
 // There are a number of possible strategies for this set of tools through endRender, below.
 void AvatarData::nextAttitude(glm::vec3 position, glm::quat orientation) {
     avatarLock.lock();
-    setPosition(position, true);
-    setOrientation(orientation, true);
+    Transform trans;
+    trans.setTranslation(position);
+    trans.setRotation(orientation);
+    SpatiallyNestable::setTransform(trans);
     avatarLock.unlock();
+    updateAttitude();
 }
 void AvatarData::startCapture() {
     avatarLock.lock();
-    assert(_nextAllowed);
-    _nextAllowed = false;
-    _nextPosition = getPosition();
-    _nextOrientation = getOrientation();
 }
 void AvatarData::endCapture() {
     avatarLock.unlock();
@@ -145,57 +111,42 @@ void AvatarData::endUpdate() {
 }
 void AvatarData::startRenderRun() {
     // I'd like to get rid of this and just (un)lock at (end-)startRender.
-    // But somehow that causes judder in rotations.
+    // But somehow that causes judder in rotations.
     avatarLock.lock();
 }
 void AvatarData::endRenderRun() {
     avatarLock.unlock();
 }
 void AvatarData::startRender() {
-    glm::vec3 pos = getPosition();
-    glm::quat rot = getOrientation();
-    setPosition(_nextPosition, true);
-    setOrientation(_nextOrientation, true);
     updateAttitude();
-    _nextPosition = pos;
-    _nextOrientation = rot;
 }
 void AvatarData::endRender() {
-    setPosition(_nextPosition, true);
-    setOrientation(_nextOrientation, true);
     updateAttitude();
-    _nextAllowed = true;
 }
 
 float AvatarData::getTargetScale() const {
-    if (_referential) {
-        _referential->update();
-    }
-
     return _targetScale;
 }
 
-void AvatarData::setTargetScale(float targetScale, bool overideReferential) {
-    if (!_referential || overideReferential) {
-        _targetScale = std::max(MIN_AVATAR_SCALE, std::min(MAX_AVATAR_SCALE, targetScale));
-    }
+void AvatarData::setTargetScale(float targetScale) {
+    _targetScale = std::max(MIN_AVATAR_SCALE, std::min(MAX_AVATAR_SCALE, targetScale));
 }
 
-void AvatarData::setClampedTargetScale(float targetScale, bool overideReferential) {
+void AvatarData::setClampedTargetScale(float targetScale) {
 
     targetScale =  glm::clamp(targetScale, MIN_AVATAR_SCALE, MAX_AVATAR_SCALE);
 
-    setTargetScale(targetScale, overideReferential);
+    setTargetScale(targetScale);
     qCDebug(avatars) << "Changed scale to " << _targetScale;
 }
 
 glm::vec3 AvatarData::getHandPosition() const {
-    return getOrientation() * _handPosition + _position;
+    return getOrientation() * _handPosition + getPosition();
 }
 
 void AvatarData::setHandPosition(const glm::vec3& handPosition) {
     // store relative to position/orientation
-    _handPosition = glm::inverse(getOrientation()) * (handPosition - _position);
+    _handPosition = glm::inverse(getOrientation()) * (handPosition - getPosition());
 }
 
 QByteArray AvatarData::toByteArray(bool cullSmallChanges, bool sendAll) {
@@ -216,13 +167,18 @@ QByteArray AvatarData::toByteArray(bool cullSmallChanges, bool sendAll) {
     unsigned char* destinationBuffer = reinterpret_cast<unsigned char*>(avatarDataByteArray.data());
     unsigned char* startPosition = destinationBuffer;
 
-    memcpy(destinationBuffer, &_position, sizeof(_position));
-    destinationBuffer += sizeof(_position);
+    const glm::vec3& position = getLocalPosition();
+    memcpy(destinationBuffer, &position, sizeof(position));
+    destinationBuffer += sizeof(position);
 
-    // Body rotation (NOTE: This needs to become a quaternion to save two bytes)
-    destinationBuffer += packFloatAngleToTwoByte(destinationBuffer, _bodyYaw);
-    destinationBuffer += packFloatAngleToTwoByte(destinationBuffer, _bodyPitch);
-    destinationBuffer += packFloatAngleToTwoByte(destinationBuffer, _bodyRoll);
+    memcpy(destinationBuffer, &_globalPosition, sizeof(_globalPosition));
+    destinationBuffer += sizeof(_globalPosition);
+
+    // Body rotation
+    glm::vec3 bodyEulerAngles = glm::degrees(safeEulerAngles(getLocalOrientation()));
+    destinationBuffer += packFloatAngleToTwoByte(destinationBuffer, bodyEulerAngles.y);
+    destinationBuffer += packFloatAngleToTwoByte(destinationBuffer, bodyEulerAngles.x);
+    destinationBuffer += packFloatAngleToTwoByte(destinationBuffer, bodyEulerAngles.z);
 
     // Body scale
     destinationBuffer += packFloatRatioToTwoByte(destinationBuffer, _targetScale);
@@ -255,14 +211,18 @@ QByteArray AvatarData::toByteArray(bool cullSmallChanges, bool sendAll) {
         setAtBit(bitItems, IS_EYE_TRACKER_CONNECTED);
     }
     // referential state
-    if (_referential != NULL && _referential->isValid()) {
+    SpatiallyNestablePointer parent = getParentPointer();
+    if (parent) {
         setAtBit(bitItems, HAS_REFERENTIAL);
     }
     *destinationBuffer++ = bitItems;
 
-    // Add referential
-    if (_referential != NULL && _referential->isValid()) {
-        destinationBuffer += _referential->packReferential(destinationBuffer);
+    if (parent) {
+        QByteArray referentialAsBytes = parent->getID().toRfc4122();
+        memcpy(destinationBuffer, referentialAsBytes.data(), referentialAsBytes.size());
+        destinationBuffer += referentialAsBytes.size();
+        memcpy(destinationBuffer, &_parentJointIndex, sizeof(_parentJointIndex));
+        destinationBuffer += sizeof(_parentJointIndex);
     }
 
     // If it is connected, pack up the data
@@ -496,13 +456,16 @@ int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
         memcpy(&position, sourceBuffer, sizeof(position));
         sourceBuffer += sizeof(position);
 
+        memcpy(&_globalPosition, sourceBuffer, sizeof(_globalPosition));
+        sourceBuffer += sizeof(_globalPosition);
+
         if (glm::isnan(position.x) || glm::isnan(position.y) || glm::isnan(position.z)) {
             if (shouldLogError(now)) {
                 qCDebug(avatars) << "Discard nan AvatarData::position; displayName = '" << _displayName << "'";
             }
             return maxAvailableSize;
         }
-        setPosition(position);
+        setLocalPosition(position);
 
         // rotation (NOTE: This needs to become a quaternion to save two bytes)
         float yaw, pitch, roll;
@@ -515,11 +478,18 @@ int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
             }
             return maxAvailableSize;
         }
-        if (_bodyYaw != yaw || _bodyPitch != pitch || _bodyRoll != roll) {
+
+        // TODO is this safe? will the floats not exactly match?
+        // Andrew says:
+        // Yes, there is a possibility that the transmitted will not quite match the extracted despite being originally
+        // extracted from the exact same quaternion. I followed the code through and it appears the risk is that the
+        // avatar's SkeletonModel might fall into the CPU expensive part of Model::updateClusterMatrices() when otherwise it
+        // would not have required it.  However, we know we can update many simultaneously animating avatars, and most
+        // avatars will be moving constantly anyway, so I don't think we need to worry.
+        if (getBodyYaw() != yaw || getBodyPitch() != pitch || getBodyRoll() != roll) {
             _hasNewJointRotations = true;
-            _bodyYaw = yaw;
-            _bodyPitch = pitch;
-            _bodyRoll = roll;
+            glm::vec3 eulerAngles(pitch, yaw, roll);
+            setLocalOrientation(glm::quat(glm::radians(eulerAngles)));
         }
 
         // scale
@@ -581,20 +551,16 @@ int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
         _headData->_isEyeTrackerConnected = oneAtBit(bitItems, IS_EYE_TRACKER_CONNECTED);
         bool hasReferential = oneAtBit(bitItems, HAS_REFERENTIAL);
 
-        // Referential
         if (hasReferential) {
-            Referential* ref = new Referential(sourceBuffer, this);
-            if (_referential == NULL ||
-                ref->version() != _referential->version()) {
-                changeReferential(ref);
-            } else {
-                delete ref;
-            }
-            _referential->update();
-        } else if (_referential != NULL) {
-            changeReferential(NULL);
+            const int sizeOfPackedUuid = 16;
+            QByteArray referentialAsBytes((const char*)sourceBuffer, sizeOfPackedUuid);
+            _parentID = QUuid::fromRfc4122(referentialAsBytes);
+            sourceBuffer += sizeOfPackedUuid;
+            memcpy(&_parentJointIndex, sourceBuffer, sizeof(_parentJointIndex));
+            sourceBuffer += sizeof(_parentJointIndex);
+        } else {
+            _parentID = QUuid();
         }
-
 
         if (_headData->_isFaceTrackerConnected) {
             float leftEyeBlink, rightEyeBlink, averageLoudness, browAudioLift;
@@ -788,17 +754,8 @@ int AvatarData::getReceiveRate() const {
     return lrint(1.0f / _averageBytesReceived.getEventDeltaAverage());
 }
 
-bool AvatarData::hasReferential() {
-    return _referential != NULL;
-}
-
 std::shared_ptr<Transform> AvatarData::getRecordingBasis() const {
     return _recordingBasis;
-}
-
-void AvatarData::changeReferential(Referential* ref) {
-    delete _referential;
-    _referential = ref;
 }
 
 void AvatarData::setRawJointData(QVector<JointData> data) {
@@ -1211,7 +1168,14 @@ void AvatarData::setJointMappingsFromNetworkReply() {
 
     QByteArray line;
     while (!(line = networkReply->readLine()).isEmpty()) {
-        if (!(line = line.trimmed()).startsWith("jointIndex")) {
+        line = line.trimmed();
+        if (line.startsWith("filename")) {
+            int filenameIndex = line.indexOf('=') + 1;
+                if (filenameIndex > 0) {
+                    _skeletonFBXURL = _skeletonModelURL.resolved(QString(line.mid(filenameIndex).trimmed()));
+                }
+            }
+        if (!line.startsWith("jointIndex")) {
             continue;
         }
         int jointNameIndex = line.indexOf('=') + 1;
@@ -1429,14 +1393,6 @@ void AvatarData::clearRecordingBasis() {
     _recordingBasis.reset();
 }
 
-Transform AvatarData::getTransform() const {
-    Transform result;
-    result.setRotation(getOrientation());
-    result.setTranslation(getPosition());
-    result.setScale(getTargetScale());
-    return result;
-}
-
 static const QString JSON_AVATAR_BASIS = QStringLiteral("basisTransform");
 static const QString JSON_AVATAR_RELATIVE = QStringLiteral("relativeTransform");
 static const QString JSON_AVATAR_JOINT_ARRAY = QStringLiteral("jointArray");
@@ -1487,15 +1443,17 @@ QJsonObject AvatarData::toJson() const {
     }
 
     auto recordingBasis = getRecordingBasis();
+    Transform avatarTransform = getTransform();
+    avatarTransform.setScale(getTargetScale());
     if (recordingBasis) {
         root[JSON_AVATAR_BASIS] = Transform::toJson(*recordingBasis);
         // Find the relative transform
-        auto relativeTransform = recordingBasis->relativeTransform(getTransform());
+        auto relativeTransform = recordingBasis->relativeTransform(avatarTransform);
         if (!relativeTransform.isIdentity()) {
             root[JSON_AVATAR_RELATIVE] = Transform::toJson(relativeTransform);
         }
     } else {
-        root[JSON_AVATAR_RELATIVE] = Transform::toJson(getTransform());
+        root[JSON_AVATAR_RELATIVE] = Transform::toJson(avatarTransform);
     }
 
     auto scale = getTargetScale();
@@ -1521,6 +1479,17 @@ QJsonObject AvatarData::toJson() const {
 }
 
 void AvatarData::fromJson(const QJsonObject& json) {
+    // The head setOrientation likes to overwrite the avatar orientation, 
+    // so lets do the head first
+    // Most head data is relative to the avatar, and needs no basis correction,
+    // but the lookat vector does need correction
+    if (json.contains(JSON_AVATAR_HEAD)) {
+        if (!_headData) {
+            _headData = new HeadData(this);
+        }
+        _headData->fromJson(json[JSON_AVATAR_HEAD].toObject());
+    }
+
     if (json.contains(JSON_AVATAR_HEAD_MODEL)) {
         auto faceModelURL = json[JSON_AVATAR_HEAD_MODEL].toString();
         if (faceModelURL != getFaceModelURL().toString()) {
@@ -1592,15 +1561,6 @@ void AvatarData::fromJson(const QJsonObject& json) {
         }
         setRawJointData(jointArray);
     }
-
-    // Most head data is relative to the avatar, and needs no basis correction,
-    // but the lookat vector does need correction
-    if (json.contains(JSON_AVATAR_HEAD)) {
-        if (!_headData) {
-            _headData = new HeadData(this);
-        }
-        _headData->fromJson(json[JSON_AVATAR_HEAD].toObject());
-    }
 }
 
 // Every frame will store both a basis for the recording and a relative transform
@@ -1630,4 +1590,45 @@ void AvatarData::fromFrame(const QByteArray& frameData, AvatarData& result) {
     }
 #endif
     result.fromJson(doc.object());
+}
+
+float AvatarData::getBodyYaw() const {
+    glm::vec3 eulerAngles = glm::degrees(safeEulerAngles(getOrientation()));
+    return eulerAngles.y;
+}
+
+void AvatarData::setBodyYaw(float bodyYaw) {
+    glm::vec3 eulerAngles = glm::degrees(safeEulerAngles(getOrientation()));
+    eulerAngles.y = bodyYaw;
+    setOrientation(glm::quat(glm::radians(eulerAngles)));
+}
+
+float AvatarData::getBodyPitch() const {
+    glm::vec3 eulerAngles = glm::degrees(safeEulerAngles(getOrientation()));
+    return eulerAngles.x;
+}
+
+void AvatarData::setBodyPitch(float bodyPitch) {
+    glm::vec3 eulerAngles = glm::degrees(safeEulerAngles(getOrientation()));
+    eulerAngles.x = bodyPitch;
+    setOrientation(glm::quat(glm::radians(eulerAngles)));
+}
+
+float AvatarData::getBodyRoll() const {
+    glm::vec3 eulerAngles = glm::degrees(safeEulerAngles(getOrientation()));
+    return eulerAngles.z;
+}
+
+void AvatarData::setBodyRoll(float bodyRoll) {
+    glm::vec3 eulerAngles = glm::degrees(safeEulerAngles(getOrientation()));
+    eulerAngles.z = bodyRoll;
+    setOrientation(glm::quat(glm::radians(eulerAngles)));
+}
+
+void AvatarData::setPosition(const glm::vec3 position) {
+    SpatiallyNestable::setPosition(position);
+}
+
+void AvatarData::setOrientation(const glm::quat orientation) {
+    SpatiallyNestable::setOrientation(orientation);
 }

@@ -40,7 +40,8 @@ NodeList::NodeList(char newOwnerType, unsigned short socketListenPort, unsigned 
     _nodeTypesOfInterest(),
     _domainHandler(this),
     _numNoReplyDomainCheckIns(0),
-    _assignmentServerSocket()
+    _assignmentServerSocket(),
+    _keepAlivePingTimer(this)
 {
     setCustomDeleter([](Dependency* dependency){
         static_cast<NodeList*>(dependency)->deleteLater();

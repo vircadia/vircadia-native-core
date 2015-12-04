@@ -115,7 +115,7 @@ void OctreeRenderer::processDatagram(ReceivedMessage& message, SharedNodePointer
             
             if (sectionLength) {
                 // ask the VoxelTree to read the bitstream into the tree
-                ReadBitstreamToTreeParams args(packetIsColored ? WANT_COLOR : NO_COLOR, WANT_EXISTS_BITS, NULL,
+                ReadBitstreamToTreeParams args(WANT_EXISTS_BITS, NULL,
                                                 sourceUUID, sourceNode, false, message.getVersion());
                 quint64 startUncompress, startLock = usecTimestampNow();
                 quint64 startReadBitsteam, endReadBitsteam;

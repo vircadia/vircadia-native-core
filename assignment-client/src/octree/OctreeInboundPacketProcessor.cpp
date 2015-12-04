@@ -43,6 +43,7 @@ void OctreeInboundPacketProcessor::resetStats() {
     _totalPackets = 0;
     _lastNackTime = usecTimestampNow();
 
+    QWriteLocker locker(&_senderStatsLock);
     _singleSenderStats.clear();
 }
 
@@ -220,6 +221,8 @@ void OctreeInboundPacketProcessor::trackInboundPacket(const QUuid& nodeUUID, uns
     _totalElementsInPacket += editsInPacket;
     _totalPackets++;
 
+    QWriteLocker locker(&_senderStatsLock);
+
     // find the individual senders stats and track them there too...
     // see if this is the first we've heard of this node...
     if (_singleSenderStats.find(nodeUUID) == _singleSenderStats.end()) {
@@ -242,6 +245,8 @@ int OctreeInboundPacketProcessor::sendNackPackets() {
     int packetsSent = 0;
     int totalBytesSent = 0;
 
+    QWriteLocker locker(&_senderStatsLock);
+
     NodeToSenderStatsMapIterator i = _singleSenderStats.begin();
     while (i != _singleSenderStats.end()) {
 
@@ -262,10 +267,9 @@ int OctreeInboundPacketProcessor::sendNackPackets() {
         }
 
         const SharedNodePointer& destinationNode = DependencyManager::get<NodeList>()->nodeWithUUID(nodeUUID);
-        // If the node no longer exists, wait until the ReceivedPacketProcessor has cleaned up the node
-        // to remove it from our stats list.
-        // FIXME Is it safe to clean it up here before ReceivedPacketProcess has?
+        // if the node no longer exists, remove its stats
         if (!destinationNode) {
+            i = _singleSenderStats.erase(i);
             continue;
         }
 

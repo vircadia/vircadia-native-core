@@ -25,17 +25,17 @@ const QString ModelEntityItem::DEFAULT_MODEL_URL = QString("");
 const QString ModelEntityItem::DEFAULT_COMPOUND_SHAPE_URL = QString("");
 
 EntityItemPointer ModelEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
-    return std::make_shared<ModelEntityItem>(entityID, properties);
+    EntityItemPointer entity { new ModelEntityItem(entityID) };
+    entity->setProperties(properties);
+    return entity;
 }
 
-ModelEntityItem::ModelEntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties) :
-        EntityItem(entityItemID)
+ModelEntityItem::ModelEntityItem(const EntityItemID& entityItemID) : EntityItem(entityItemID)
 {
     _animationProperties.associateWithAnimationLoop(&_animationLoop);
     _animationLoop.setResetOnRunning(false);
 
     _type = EntityTypes::Model;
-    setProperties(properties);
     _jointMappingCompleted = false;
     _lastKnownCurrentFrame = -1;
     _color[0] = _color[1] = _color[2] = 0;
@@ -224,6 +224,7 @@ void ModelEntityItem::getAnimationFrame(bool& newFrame,
     if (myAnimation && myAnimation->isLoaded()) {
 
         const QVector<FBXAnimationFrame>&  frames = myAnimation->getFramesReference(); // NOTE: getFrames() is too heavy
+        auto& fbxJoints = myAnimation->getGeometry().joints;
 
         int frameCount = frames.size();
         if (frameCount > 0) {
@@ -244,7 +245,7 @@ void ModelEntityItem::getAnimationFrame(bool& newFrame,
                 for (int j = 0; j < _jointMapping.size(); j++) {
                     int index = _jointMapping[j];
                     if (index != -1 && index < rotations.size()) {
-                        _lastKnownFrameDataRotations[j] = rotations[index];
+                        _lastKnownFrameDataRotations[j] = fbxJoints[index].preRotation * rotations[index];
                     }
                     if (index != -1 && index < translations.size()) {
                         _lastKnownFrameDataTranslations[j] = translations[index];

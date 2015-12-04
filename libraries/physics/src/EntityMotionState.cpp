@@ -455,8 +455,9 @@ void EntityMotionState::sendUpdate(OctreeEditPacketSender* packetSender, const Q
     EntityItemProperties properties;
 
     // explicitly set the properties that changed so that they will be packed
-    properties.setPosition(_serverPosition);
-    properties.setRotation(_serverRotation);
+    properties.setPosition(_entity->getLocalPosition());
+    properties.setRotation(_entity->getLocalOrientation());
+
     properties.setVelocity(_serverVelocity);
     properties.setAcceleration(_serverAcceleration);
     properties.setAngularVelocity(_serverAngularVelocity);
@@ -492,20 +493,14 @@ void EntityMotionState::sendUpdate(OctreeEditPacketSender* packetSender, const Q
         _nextOwnershipBid = now + USECS_BETWEEN_OWNERSHIP_BIDS;
     }
 
-    if (EntityItem::getSendPhysicsUpdates()) {
-        EntityItemID id(_entity->getID());
-        EntityEditPacketSender* entityPacketSender = static_cast<EntityEditPacketSender*>(packetSender);
-        #ifdef WANT_DEBUG
-            qCDebug(physics) << "EntityMotionState::sendUpdate()... calling queueEditEntityMessage()...";
-        #endif
+    EntityItemID id(_entity->getID());
+    EntityEditPacketSender* entityPacketSender = static_cast<EntityEditPacketSender*>(packetSender);
+    #ifdef WANT_DEBUG
+        qCDebug(physics) << "EntityMotionState::sendUpdate()... calling queueEditEntityMessage()...";
+    #endif
 
-        entityPacketSender->queueEditEntityMessage(PacketType::EntityEdit, id, properties);
-        _entity->setLastBroadcast(usecTimestampNow());
-    } else {
-        #ifdef WANT_DEBUG
-            qCDebug(physics) << "EntityMotionState::sendUpdate()... NOT sending update as requested.";
-        #endif
-    }
+    entityPacketSender->queueEditEntityMessage(PacketType::EntityEdit, id, properties);
+    _entity->setLastBroadcast(usecTimestampNow());
 
     _lastStep = step;
 }

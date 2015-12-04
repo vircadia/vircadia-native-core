@@ -128,7 +128,7 @@ protected:
 public:
     QTestWindow() {
         setSurfaceType(QSurface::OpenGLSurface);
-        QSurfaceFormat format = getDefaultOpenGlSurfaceFormat();
+        QSurfaceFormat format = getDefaultOpenGLSurfaceFormat();
         setFormat(format);
         _context = new QOpenGLContext;
         _context->setFormat(format);
@@ -160,9 +160,9 @@ public:
 };
 
 void testShaderBuild(const char* vs_src, const char * fs_src) {
-    auto vs = gpu::ShaderPointer(gpu::Shader::createVertex(std::string(vs_src)));
-    auto fs = gpu::ShaderPointer(gpu::Shader::createPixel(std::string(fs_src)));
-    auto pr = gpu::ShaderPointer(gpu::Shader::createProgram(vs, fs));
+    auto vs = gpu::Shader::createVertex(std::string(vs_src));
+    auto fs = gpu::Shader::createPixel(std::string(fs_src));
+    auto pr = gpu::Shader::createProgram(vs, fs);
     if (!gpu::Shader::makeProgram(*pr)) {
         throw std::runtime_error("Failed to compile shader");
     }
