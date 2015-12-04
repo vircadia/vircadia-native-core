@@ -1254,6 +1254,16 @@ void MyAvatar::initHeadBones() {
     }
 }
 
+void MyAvatar::setAnimGraphUrl(const QUrl& url) {
+    if (_animGraphUrl == url) {
+        return;
+    }
+    destroyAnimGraph();
+    _skeletonModel.reset(); // Why is this necessary? Without this, we crash in the next render.
+    _animGraphUrl = url;
+    initAnimGraph();
+}
+
 void MyAvatar::initAnimGraph() {
     // avatar.json
     // https://gist.github.com/hyperlogic/7d6a0892a7319c69e2b9
@@ -1270,9 +1280,9 @@ void MyAvatar::initAnimGraph() {
     // or run a local web-server
     // python -m SimpleHTTPServer&
     //auto graphUrl = QUrl("http://localhost:8000/avatar.json");
-    auto graphUrl = QUrl(_animGraphUrl.isEmpty() ?
-                         QUrl::fromLocalFile(PathUtils::resourcesPath() + "meshes/defaultAvatar_full/avatar-animation.json") :
-                         _animGraphUrl);
+    auto graphUrl =_animGraphUrl.isEmpty() ?
+        QUrl::fromLocalFile(PathUtils::resourcesPath() + "meshes/defaultAvatar_full/avatar-animation.json") :
+        QUrl(_animGraphUrl);
     _rig->initAnimGraph(graphUrl);
 
     _bodySensorMatrix = deriveBodyFromHMDSensor(); // Based on current cached HMD position/rotation..
