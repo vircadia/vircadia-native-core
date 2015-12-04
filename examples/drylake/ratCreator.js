@@ -356,7 +356,6 @@ function removeRatFromScene(rat) {
     var metaRatIndex = findWithAttr(metaRats, 'rat', rat);
     if (metaRatIndex > -1) {
         metaRats[index].injector.stop();
-        delete metaRats[index].injector
         metaRats.splice(index, 1);
     }
 
@@ -373,7 +372,6 @@ function popRatFromStack(entityID) {
     var metaRatIndex = findWithAttr(metaRats, 'rat', entityID);
     if (metaRatIndex > -1) {
         metaRats[index].injector.stop();
-        delete metaRats[index].injector
         metaRats.splice(index, 1);
     }
 
