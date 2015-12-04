@@ -28,9 +28,9 @@ public:
     virtual Pose pose() override;
     virtual void apply(const Pose& value, const Pointer& source) override { }
 
-    virtual bool writeable() const { return false; }
-    virtual bool readable() const { return !_read; }
-    virtual void reset() { _read = false; }
+    virtual bool writeable() const override { return false; }
+    virtual bool readable() const override { return !_read; }
+    virtual void reset() override { _read = false; }
 
 private:
     bool _read { false };

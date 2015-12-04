@@ -533,15 +533,13 @@ bool Overlays::isLoaded(unsigned int id) {
 QSizeF Overlays::textSize(unsigned int id, const QString& text) const {
     Overlay::Pointer thisOverlay = _overlaysHUD[id];
     if (thisOverlay) {
-        if (typeid(*thisOverlay) == typeid(TextOverlay)) {
-            return std::dynamic_pointer_cast<TextOverlay>(thisOverlay)->textSize(text);
+        if (auto textOverlay = std::dynamic_pointer_cast<TextOverlay>(thisOverlay)) {
+            return textOverlay->textSize(text);
         }
     } else {
         thisOverlay = _overlaysWorld[id];
-        if (thisOverlay) {
-            if (typeid(*thisOverlay) == typeid(Text3DOverlay)) {
-                return std::dynamic_pointer_cast<Text3DOverlay>(thisOverlay)->textSize(text);
-            }
+        if (auto text3dOverlay = std::dynamic_pointer_cast<Text3DOverlay>(thisOverlay)) {
+            return text3dOverlay->textSize(text);
         }
     }
     return QSizeF(0.0f, 0.0f);
