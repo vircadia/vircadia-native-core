@@ -27,7 +27,7 @@ class PluginContainerProxy : public QObject, PluginContainer {
     virtual bool makeRenderingContextCurrent() override;
     virtual void releaseSceneTexture(uint32_t texture) override;
     virtual void releaseOverlayTexture(uint32_t texture) override;
-    virtual QGLWidget* getPrimaryWidget() override;
+    virtual GLWidget* getPrimaryWidget() override;
     virtual QWindow* getPrimaryWindow() override;
     virtual QOpenGLContext* getPrimaryContext() override;
     virtual bool isForeground() override;

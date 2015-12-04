@@ -150,7 +150,7 @@ void PluginContainerProxy::showDisplayPluginsTools() {
     DependencyManager::get<DialogsManager>()->hmdTools(true);
 }
 
-QGLWidget* PluginContainerProxy::getPrimaryWidget() {
+GLWidget* PluginContainerProxy::getPrimaryWidget() {
     return qApp->_glWidget;
 }
 

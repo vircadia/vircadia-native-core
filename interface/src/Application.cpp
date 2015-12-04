@@ -620,6 +620,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
 
     // enable mouse tracking; otherwise, we only get drag events
     _glWidget->setMouseTracking(true);
+    _glWidget->makeCurrent();
+    _glWidget->initializeGL();
 
     _offscreenContext = new OffscreenGLCanvas();
     _offscreenContext->create(_glWidget->context()->contextHandle());
@@ -1194,6 +1196,9 @@ void Application::paintGL() {
         QSize size = getDeviceSize();
         renderArgs._viewport = glm::ivec4(0, 0, size.width(), size.height());
         _applicationOverlay.renderOverlay(&renderArgs);
+        gpu::FramebufferPointer overlayFramebuffer = _applicationOverlay.getOverlayFramebuffer();
+
+
     }
 
     {

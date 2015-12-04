@@ -81,7 +81,7 @@ protected:
     GLTextureEscrow _overlayTextureEscrow;
     GLTextureEscrow _sceneTextureEscrow;
 
-    static bool _vsyncSupported;
+    bool _vsyncSupported { false };
 };
 
 

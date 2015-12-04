@@ -17,6 +17,7 @@
 #include <QtGui/QOpenGLContext>
 #include <QtGui/QImage>
 
+#include <gl/GLWidget.h>
 #include <NumericalConstants.h>
 #include <DependencyManager.h>
 #include <plugins/PluginContainer.h>
@@ -145,8 +146,6 @@ private:
     QGLContext* _context { nullptr };
 };
 
-bool OpenGLDisplayPlugin::_vsyncSupported = false;
-
 OpenGLDisplayPlugin::OpenGLDisplayPlugin() {
     _sceneTextureEscrow.setRecycler([this](GLuint texture){
         cleanupForSceneTexture(texture);
@@ -172,19 +171,14 @@ void OpenGLDisplayPlugin::cleanupForSceneTexture(uint32_t sceneTexture) {
 
 
 void OpenGLDisplayPlugin::activate() {
-    _timer.start(2);
+    _timer.start(1);
+    _vsyncSupported = _container->getPrimaryWidget()->isVsyncSupported();
 
     // Start the present thread if necessary
     auto presentThread = DependencyManager::get<PresentThread>();
     if (!presentThread) {
         auto widget = _container->getPrimaryWidget();
 
-        // TODO: write the proper code for linux
-#if defined(Q_OS_WIN)
-        widget->makeCurrent();
-        _vsyncSupported = wglewGetExtension("WGL_EXT_swap_control");
-        widget->doneCurrent();
-#endif
 
         DependencyManager::set<PresentThread>();
         presentThread = DependencyManager::get<PresentThread>();
@@ -195,7 +189,6 @@ void OpenGLDisplayPlugin::activate() {
     }
     presentThread->setNewDisplayPlugin(this);
     DisplayPlugin::activate();
-    emit requestRender();
 }
 
 void OpenGLDisplayPlugin::stop() {

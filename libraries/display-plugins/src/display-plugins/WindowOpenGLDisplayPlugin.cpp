@@ -7,7 +7,7 @@
 //
 #include "WindowOpenGLDisplayPlugin.h"
 
-#include <QGLWidget>
+#include <gl/GLWidget.h>
 
 #include "plugins/PluginContainer.h"
 

@@ -16,7 +16,7 @@
 #include "Forward.h"
 
 class QAction;
-class QGLWidget;
+class GLWidget;
 class QScreen;
 class QOpenGLContext;
 class QWindow;
@@ -41,7 +41,7 @@ public:
     virtual bool makeRenderingContextCurrent() = 0;
     virtual void releaseSceneTexture(uint32_t texture) = 0;
     virtual void releaseOverlayTexture(uint32_t texture) = 0;
-    virtual QGLWidget* getPrimaryWidget() = 0;
+    virtual GLWidget* getPrimaryWidget() = 0;
     virtual QWindow* getPrimaryWindow() = 0;
     virtual QOpenGLContext* getPrimaryContext() = 0;
     virtual bool isForeground() = 0;
