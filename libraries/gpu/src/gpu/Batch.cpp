@@ -80,9 +80,9 @@ void Batch::clear() {
     _framebuffers.clear();
 }
 
-uint32 Batch::cacheData(uint32 size, const void* data) {
-    uint32 offset = _data.size();
-    uint32 numBytes = size;
+size_t Batch::cacheData(size_t size, const void* data) {
+    size_t offset = _data.size();
+    size_t numBytes = size;
     _data.resize(offset + numBytes);
     memcpy(_data.data() + offset, data, size);
 
