@@ -128,7 +128,7 @@ protected:
 public:
     QTestWindow() {
         setSurfaceType(QSurface::OpenGLSurface);
-        QSurfaceFormat format = getDefaultOpenGlSurfaceFormat();
+        QSurfaceFormat format = getDefaultOpenGLSurfaceFormat();
         setFormat(format);
         _context = new QOpenGLContext;
         _context->setFormat(format);
