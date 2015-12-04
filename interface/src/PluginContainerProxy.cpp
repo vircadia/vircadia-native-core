@@ -6,7 +6,6 @@
 #include <plugins/Plugin.h>
 #include <plugins/PluginManager.h>
 #include <display-plugins/DisplayPlugin.h>
-#include <gl/GlWindow.h>
 #include <DependencyManager.h>
 #include <FramebufferCache.h>
 
