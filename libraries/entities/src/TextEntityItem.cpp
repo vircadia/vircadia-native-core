@@ -30,19 +30,18 @@ const xColor TextEntityItem::DEFAULT_BACKGROUND_COLOR = { 0, 0, 0};
 const bool TextEntityItem::DEFAULT_FACE_CAMERA = false;
 
 EntityItemPointer TextEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
-    return std::make_shared<TextEntityItem>(entityID, properties);
+    EntityItemPointer entity { new TextEntityItem(entityID) };
+    entity->setProperties(properties);
+    return entity;
 }
 
-TextEntityItem::TextEntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties) :
-        EntityItem(entityItemID) 
-{
+TextEntityItem::TextEntityItem(const EntityItemID& entityItemID) : EntityItem(entityItemID) {
     _type = EntityTypes::Text;
-    setProperties(properties);
 }
 
 const float TEXT_ENTITY_ITEM_FIXED_DEPTH = 0.01f;
 
-void TextEntityItem::setDimensions(const glm::vec3& value) {
+void TextEntityItem::setDimensions(const glm::vec3 value) {
     // NOTE: Text Entities always have a "depth" of 1cm.
     EntityItem::setDimensions(glm::vec3(value.x, value.y, TEXT_ENTITY_ITEM_FIXED_DEPTH));
 }

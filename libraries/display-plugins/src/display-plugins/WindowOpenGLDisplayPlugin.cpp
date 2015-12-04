@@ -8,7 +8,6 @@
 #include "WindowOpenGLDisplayPlugin.h"
 
 #include <QGLWidget>
-#include <QOpenGLContext>
 
 #include "plugins/PluginContainer.h"
 

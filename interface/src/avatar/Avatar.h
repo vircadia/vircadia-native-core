@@ -89,7 +89,7 @@ public:
     const SkeletonModel& getSkeletonModel() const { return _skeletonModel; }
     const QVector<Model*>& getAttachmentModels() const { return _attachmentModels; }
     glm::vec3 getChestPosition() const;
-    float getScale() const { return _scale; }
+    float getAvatarScale() const { return getScale().y; }
     const Head* getHead() const { return static_cast<const Head*>(_headData); }
     Head* getHead() { return static_cast<Head*>(_headData); }
     Hand* getHand() { return static_cast<Hand*>(_handData); }
@@ -155,6 +155,9 @@ public:
     void setMotionState(AvatarMotionState* motionState) { _motionState = motionState; }
     AvatarMotionState* getMotionState() { return _motionState; }
 
+    virtual void setPosition(glm::vec3 position);
+    virtual void setOrientation(glm::quat orientation);
+
 public slots:
 
     // FIXME - these should be migrated to use Pose data instead
@@ -186,7 +189,6 @@ protected:
     glm::quat _lastOrientation;
 
     float _leanScale;
-    float _scale;
     glm::vec3 _worldUpDirection;
     float _stringLength;
     bool _moving; ///< set when position is changing
@@ -198,7 +200,7 @@ protected:
     glm::vec3 getBodyUpDirection() const { return getOrientation() * IDENTITY_UP; }
     glm::vec3 getBodyFrontDirection() const { return getOrientation() * IDENTITY_FRONT; }
     glm::quat computeRotationFromBodyToWorldUp(float proportion = 1.0f) const;
-    void setScale(float scale);
+    void setAvatarScale(float scale);
     void measureMotionDerivatives(float deltaTime);
 
     float getSkeletonHeight() const;

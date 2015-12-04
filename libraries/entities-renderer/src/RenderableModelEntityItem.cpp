@@ -26,13 +26,14 @@
 #include "RenderableEntityItem.h"
 
 EntityItemPointer RenderableModelEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
-    return std::make_shared<RenderableModelEntityItem>(entityID, properties);
+    EntityItemPointer entity{ new RenderableModelEntityItem(entityID, properties.getDimensionsInitialized()) };
+    entity->setProperties(properties);
+    return entity;
 }
-RenderableModelEntityItem::RenderableModelEntityItem(const EntityItemID& entityItemID,
-                                                     const EntityItemProperties& properties) :
-    ModelEntityItem(entityItemID, properties),
-    _dimensionsInitialized(properties.getDimensionsInitialized())
-{
+
+RenderableModelEntityItem::RenderableModelEntityItem(const EntityItemID& entityItemID, bool dimensionsInitialized) :
+    ModelEntityItem(entityItemID),
+    _dimensionsInitialized(dimensionsInitialized) {
 }
 
 RenderableModelEntityItem::~RenderableModelEntityItem() {
@@ -43,7 +44,7 @@ RenderableModelEntityItem::~RenderableModelEntityItem() {
     }
 }
 
-void RenderableModelEntityItem::setDimensions(const glm::vec3& value) {
+void RenderableModelEntityItem::setDimensions(const glm::vec3 value) {
     _dimensionsInitialized = true;
     ModelEntityItem::setDimensions(value);
 }
@@ -192,7 +193,7 @@ bool RenderableModelEntityItem::addToScene(EntityItemPointer self, std::shared_p
     
     if (_model) {
         render::Item::Status::Getters statusGetters;
-        makeEntityItemStatusGetters(shared_from_this(), statusGetters);
+        makeEntityItemStatusGetters(getThisPointer(), statusGetters);
         
         // note: we don't care if the model fails to add items, we always added our meta item and therefore we return
         // true so that the system knows our meta item is in the scene!
@@ -238,7 +239,7 @@ void RenderableModelEntityItem::render(RenderArgs* args) {
                 _model->removeFromScene(scene, pendingChanges);
 
                 render::Item::Status::Getters statusGetters;
-                makeEntityItemStatusGetters(shared_from_this(), statusGetters);
+                makeEntityItemStatusGetters(getThisPointer(), statusGetters);
                 _model->addToScene(scene, pendingChanges, statusGetters, _showCollisionHull);
 
                 scene->enqueuePendingChanges(pendingChanges);
@@ -562,4 +563,24 @@ bool RenderableModelEntityItem::contains(const glm::vec3& point) const {
     }
     
     return false;
+}
+
+glm::quat RenderableModelEntityItem::getJointRotation(int index) const {
+    if (_model) {
+        glm::quat result;
+        if (_model->getJointRotation(index, result)) {
+            return result;
+        }
+    }
+    return glm::quat();
+}
+
+glm::vec3 RenderableModelEntityItem::getJointTranslation(int index) const {
+    if (_model) {
+        glm::vec3 result;
+        if (_model->getJointTranslation(index, result)) {
+            return result;
+        }
+    }
+    return glm::vec3(0.0f);
 }

@@ -38,7 +38,6 @@
 #include "Hand.h"
 #include "Head.h"
 #include "Menu.h"
-#include "ModelReferential.h"
 #include "Physics.h"
 #include "Util.h"
 #include "world.h"
@@ -91,7 +90,6 @@ Avatar::Avatar(RigPointer rig) :
     _angularAcceleration(0.0f),
     _lastOrientation(),
     _leanScale(0.5f),
-    _scale(1.0f),
     _worldUpDirection(DEFAULT_UP_DIRECTION),
     _moving(false),
     _initialized(false),
@@ -101,6 +99,7 @@ Avatar::Avatar(RigPointer rig) :
     // we may have been created in the network thread, but we live in the main thread
     moveToThread(qApp->thread());
 
+    setAvatarScale(1.0f);
     // give the pointer to our head to inherited _headData variable from AvatarData
     _headData = static_cast<HeadData*>(new Head(this));
     _handData = static_cast<HandData*>(new Hand(this));
@@ -125,12 +124,12 @@ void Avatar::init() {
 glm::vec3 Avatar::getChestPosition() const {
     // for now, let's just assume that the "chest" is halfway between the root and the neck
     glm::vec3 neckPosition;
-    return _skeletonModel.getNeckPosition(neckPosition) ? (_position + neckPosition) * 0.5f : _position;
+    return _skeletonModel.getNeckPosition(neckPosition) ? (getPosition() + neckPosition) * 0.5f : getPosition();
 }
 
 glm::vec3 Avatar::getNeckPosition() const {
     glm::vec3 neckPosition;
-    return _skeletonModel.getNeckPosition(neckPosition) ? neckPosition : _position;
+    return _skeletonModel.getNeckPosition(neckPosition) ? neckPosition : getPosition();
 }
 
 
@@ -144,38 +143,14 @@ AABox Avatar::getBounds() const {
 
 float Avatar::getLODDistance() const {
     return DependencyManager::get<LODManager>()->getAvatarLODDistanceMultiplier() *
-            glm::distance(qApp->getCamera()->getPosition(), _position) / _scale;
+        glm::distance(qApp->getCamera()->getPosition(), getPosition()) / getAvatarScale();
 }
 
 void Avatar::simulate(float deltaTime) {
     PerformanceTimer perfTimer("simulate");
 
-    // update the avatar's position according to its referential
-    if (_referential) {
-        if (_referential->hasExtraData()) {
-            EntityTreePointer tree = qApp->getEntities()->getTree();
-            switch (_referential->type()) {
-                case Referential::MODEL:
-                    _referential = new ModelReferential(_referential,
-                                                        tree,
-                                                        this);
-                    break;
-                case Referential::JOINT:
-                    _referential = new JointReferential(_referential,
-                                                        tree,
-                                                        this);
-                    break;
-                default:
-                    qCDebug(interfaceapp) << "[WARNING] Avatar::simulate(): Unknown referential type.";
-                    break;
-            }
-        }
-
-        _referential->update();
-    }
-
-    if (_scale != _targetScale) {
-        setScale(_targetScale);
+    if (getAvatarScale() != _targetScale) {
+        setAvatarScale(_targetScale);
     }
 
     // update the billboard render flag
@@ -193,7 +168,7 @@ void Avatar::simulate(float deltaTime) {
     const bool isControllerLogging = DependencyManager::get<AvatarManager>()->getRenderDistanceControllerIsLogging();
     float renderDistance = DependencyManager::get<AvatarManager>()->getRenderDistance();
     const float SKIP_HYSTERESIS_PROPORTION = isControllerLogging ? 0.0f : BILLBOARD_HYSTERESIS_PROPORTION;
-    float distance = glm::distance(qApp->getCamera()->getPosition(), _position);
+    float distance = glm::distance(qApp->getCamera()->getPosition(), getPosition());
     if (_shouldSkipRender) {
         if (distance < renderDistance * (1.0f - SKIP_HYSTERESIS_PROPORTION)) {
             _shouldSkipRender = false;
@@ -212,7 +187,7 @@ void Avatar::simulate(float deltaTime) {
 
     // simple frustum check
     float boundingRadius = getBillboardSize();
-    bool inViewFrustum = qApp->getViewFrustum()->sphereInFrustum(_position, boundingRadius) !=
+    bool inViewFrustum = qApp->getViewFrustum()->sphereInFrustum(getPosition(), boundingRadius) !=
         ViewFrustum::OUTSIDE;
 
     {
@@ -231,11 +206,11 @@ void Avatar::simulate(float deltaTime) {
         }
         {
             PerformanceTimer perfTimer("head");
-            glm::vec3 headPosition = _position;
+            glm::vec3 headPosition = getPosition();
             _skeletonModel.getHeadPosition(headPosition);
             Head* head = getHead();
             head->setPosition(headPosition);
-            head->setScale(_scale);
+            head->setScale(getAvatarScale());
             head->simulate(deltaTime, false, _shouldRenderBillboard);
         }
     }
@@ -268,7 +243,7 @@ bool Avatar::isLookingAtMe(AvatarSharedPointer avatar) {
     glm::vec3 theirLookAt = dynamic_pointer_cast<Avatar>(avatar)->getHead()->getLookAtPosition();
     glm::vec3 myEyePosition = getHead()->getEyePosition();
 
-    return glm::distance(theirLookAt, myEyePosition) <= (HEAD_SPHERE_RADIUS * getScale());
+    return glm::distance(theirLookAt, myEyePosition) <= (HEAD_SPHERE_RADIUS * getAvatarScale());
 }
 
 void Avatar::slamPosition(const glm::vec3& newPosition) {
@@ -279,7 +254,7 @@ void Avatar::slamPosition(const glm::vec3& newPosition) {
 }
 
 void Avatar::applyPositionDelta(const glm::vec3& delta) {
-    _position += delta;
+    setPosition(getPosition() + delta);
     _positionDeltaAccumulator += delta;
 }
 
@@ -345,15 +320,10 @@ void Avatar::removeFromScene(AvatarSharedPointer self, std::shared_ptr<render::S
 }
 
 void Avatar::render(RenderArgs* renderArgs, const glm::vec3& cameraPosition) {
-    startRender();
-    if (_referential) {
-        _referential->update();
-    }
-
     auto& batch = *renderArgs->_batch;
     PROFILE_RANGE_BATCH(batch, __FUNCTION__);
 
-    if (glm::distance(DependencyManager::get<AvatarManager>()->getMyAvatar()->getPosition(), _position) < 10.0f) {
+    if (glm::distance(DependencyManager::get<AvatarManager>()->getMyAvatar()->getPosition(), getPosition()) < 10.0f) {
         auto geometryCache = DependencyManager::get<GeometryCache>();
         auto deferredLighting = DependencyManager::get<DeferredLightingEffect>();
 
@@ -453,7 +423,7 @@ void Avatar::render(RenderArgs* renderArgs, const glm::vec3& cameraPosition) {
             const float BASE_LIGHT_DISTANCE = 2.0f;
             const float LIGHT_EXPONENT = 1.0f;
             const float LIGHT_CUTOFF = glm::radians(80.0f);
-            float distance = BASE_LIGHT_DISTANCE * _scale;
+            float distance = BASE_LIGHT_DISTANCE * getAvatarScale();
             glm::vec3 position = glm::mix(_skeletonModel.getTranslation(), getHead()->getFaceModel().getTranslation(), 0.9f);
             glm::quat orientation = getOrientation();
             foreach (const AvatarManager::LocalLight& light, DependencyManager::get<AvatarManager>()->getLocalLights()) {
@@ -484,7 +454,8 @@ void Avatar::render(RenderArgs* renderArgs, const glm::vec3& cameraPosition) {
             static const float INDICATOR_OFFSET = 0.22f;
             static const float INDICATOR_RADIUS = 0.03f;
             static const glm::vec4 LOOK_AT_INDICATOR_COLOR = { 0.8f, 0.0f, 0.0f, 0.75f };
-            glm::vec3 position = glm::vec3(_position.x, getDisplayNamePosition().y + INDICATOR_OFFSET, _position.z);
+            glm::vec3 avatarPosition = getPosition();
+            glm::vec3 position = glm::vec3(avatarPosition.x, getDisplayNamePosition().y + INDICATOR_OFFSET, avatarPosition.z);
             PROFILE_RANGE_BATCH(batch, __FUNCTION__":renderFocusIndicator");
             Transform transform;
             transform.setTranslation(position);
@@ -518,7 +489,7 @@ void Avatar::render(RenderArgs* renderArgs, const glm::vec3& cameraPosition) {
                     }
 
                     DependencyManager::get<DeferredLightingEffect>()->renderSolidSphereInstance(batch,
-                        Transform(transform).postScale(eyeDiameter * _scale / 2.0f + RADIUS_INCREMENT),
+                        Transform(transform).postScale(eyeDiameter * getAvatarScale() / 2.0f + RADIUS_INCREMENT),
                         glm::vec4(LOOKING_AT_ME_COLOR, alpha));
 
                     position = getHead()->getRightEyePosition();
@@ -528,7 +499,7 @@ void Avatar::render(RenderArgs* renderArgs, const glm::vec3& cameraPosition) {
                         eyeDiameter = DEFAULT_EYE_DIAMETER;
                     }
                     DependencyManager::get<DeferredLightingEffect>()->renderSolidSphereInstance(batch,
-                        Transform(transform).postScale(eyeDiameter * _scale / 2.0f + RADIUS_INCREMENT),
+                        Transform(transform).postScale(eyeDiameter * getAvatarScale() / 2.0f + RADIUS_INCREMENT),
                         glm::vec4(LOOKING_AT_ME_COLOR, alpha));
 
                 }
@@ -559,7 +530,7 @@ void Avatar::render(RenderArgs* renderArgs, const glm::vec3& cameraPosition) {
 
 
                 Transform transform;
-                transform.setTranslation(_position);
+                transform.setTranslation(getPosition());
                 transform.setScale(height);
                 transform.postScale(sphereRadius);
                 DependencyManager::get<DeferredLightingEffect>()->renderSolidSphereInstance(batch,
@@ -662,9 +633,9 @@ void Avatar::simulateAttachments(float deltaTime) {
         glm::quat jointRotation;
         if (_skeletonModel.getJointPositionInWorldFrame(jointIndex, jointPosition) &&
             _skeletonModel.getJointRotationInWorldFrame(jointIndex, jointRotation)) {
-            model->setTranslation(jointPosition + jointRotation * attachment.translation * _scale);
+            model->setTranslation(jointPosition + jointRotation * attachment.translation * getAvatarScale());
             model->setRotation(jointRotation * attachment.rotation);
-            model->setScaleToFit(true, _scale * attachment.scale, true); // hack to force rescale
+            model->setScaleToFit(true, getAvatarScale() * attachment.scale, true); // hack to force rescale
             model->setSnapModelToCenter(false); // hack to force resnap
             model->setSnapModelToCenter(true);
             model->simulate(deltaTime);
@@ -694,14 +665,14 @@ void Avatar::renderBillboard(RenderArgs* renderArgs) {
     }
     // rotate about vertical to face the camera
     glm::quat rotation = getOrientation();
-    glm::vec3 cameraVector = glm::inverse(rotation) * (qApp->getCamera()->getPosition() - _position);
+    glm::vec3 cameraVector = glm::inverse(rotation) * (qApp->getCamera()->getPosition() - getPosition());
     rotation = rotation * glm::angleAxis(atan2f(-cameraVector.x, -cameraVector.z), glm::vec3(0.0f, 1.0f, 0.0f));
 
     // compute the size from the billboard camera parameters and scale
     float size = getBillboardSize();
 
     Transform transform;
-    transform.setTranslation(_position);
+    transform.setTranslation(getPosition());
     transform.setRotation(rotation);
     transform.setScale(size);
 
@@ -719,7 +690,7 @@ void Avatar::renderBillboard(RenderArgs* renderArgs) {
 }
 
 float Avatar::getBillboardSize() const {
-    return _scale * BILLBOARD_DISTANCE * glm::tan(glm::radians(BILLBOARD_FIELD_OF_VIEW / 2.0f));
+    return getAvatarScale() * BILLBOARD_DISTANCE * glm::tan(glm::radians(BILLBOARD_FIELD_OF_VIEW / 2.0f));
 }
 
 #ifdef DEBUG
@@ -754,9 +725,9 @@ glm::vec3 Avatar::getDisplayNamePosition() const {
         const float HEAD_PROPORTION = 0.75f;
         float billboardSize = getBillboardSize();
 
-        DEBUG_VALUE("_position =", _position);
+        DEBUG_VALUE("_position =", getPosition());
         DEBUG_VALUE("billboardSize =", billboardSize);
-        namePosition = _position + bodyUpDirection * (billboardSize * HEAD_PROPORTION);
+        namePosition = getPosition() + bodyUpDirection * (billboardSize * HEAD_PROPORTION);
     }
 
     if (glm::any(glm::isnan(namePosition)) || glm::any(glm::isinf(namePosition))) {
@@ -868,7 +839,7 @@ void Avatar::renderDisplayName(gpu::Batch& batch, const ViewFrustum& frustum, co
 }
 
 void Avatar::setSkeletonOffset(const glm::vec3& offset) {
-    const float MAX_OFFSET_LENGTH = _scale * 0.5f;
+    const float MAX_OFFSET_LENGTH = getAvatarScale() * 0.5f;
     float offsetLength = glm::length(offset);
     if (offsetLength > MAX_OFFSET_LENGTH) {
         _skeletonOffset = (MAX_OFFSET_LENGTH / offsetLength) * offset;
@@ -881,7 +852,7 @@ glm::vec3 Avatar::getSkeletonPosition() const {
     // The avatar is rotated PI about the yAxis, so we have to correct for it
     // to get the skeleton offset contribution in the world-frame.
     const glm::quat FLIP = glm::angleAxis(PI, glm::vec3(0.0f, 1.0f, 0.0f));
-    return _position + getOrientation() * FLIP * _skeletonOffset;
+    return getPosition() + getOrientation() * FLIP * _skeletonOffset;
 }
 
 QVector<glm::quat> Avatar::getJointRotations() const {
@@ -960,7 +931,7 @@ glm::vec3 Avatar::getJointPosition(const QString& name) const {
 
 void Avatar::scaleVectorRelativeToPosition(glm::vec3 &positionToScale) const {
     //Scale a world space vector as if it was relative to the position
-    positionToScale = _position + _scale * (positionToScale - _position);
+    positionToScale = getPosition() + getAvatarScale() * (positionToScale - getPosition());
 }
 
 void Avatar::setFaceModelURL(const QUrl& faceModelURL) {
@@ -1000,7 +971,7 @@ void Avatar::setAttachmentData(const QVector<AttachmentData>& attachmentData) {
     for (int i = 0; i < attachmentData.size(); i++) {
         _attachmentModels[i]->setURL(attachmentData.at(i).modelURL);
         _attachmentModels[i]->setSnapModelToCenter(true);
-        _attachmentModels[i]->setScaleToFit(true, _scale * _attachmentData.at(i).scale);
+        _attachmentModels[i]->setScaleToFit(true, getAvatarScale() * _attachmentData.at(i).scale);
     }
 }
 
@@ -1019,12 +990,12 @@ int Avatar::parseDataFromBuffer(const QByteArray& buffer) {
     }
 
     // change in position implies movement
-    glm::vec3 oldPosition = _position;
+    glm::vec3 oldPosition = getPosition();
 
     int bytesRead = AvatarData::parseDataFromBuffer(buffer);
 
     const float MOVE_DISTANCE_THRESHOLD = 0.001f;
-    _moving = glm::distance(oldPosition, _position) > MOVE_DISTANCE_THRESHOLD;
+    _moving = glm::distance(oldPosition, getPosition()) > MOVE_DISTANCE_THRESHOLD;
     if (_moving && _motionState) {
         _motionState->addDirtyFlags(Simulation::DIRTY_POSITION);
     }
@@ -1088,12 +1059,12 @@ void Avatar::renderJointConnectingCone(gpu::Batch& batch, glm::vec3 position1, g
     }
 }
 
-void Avatar::setScale(float scale) {
-    _scale = scale;
-
-    if (_targetScale * (1.0f - RESCALING_TOLERANCE) < _scale &&
-            _scale < _targetScale * (1.0f + RESCALING_TOLERANCE)) {
-        _scale = _targetScale;
+void Avatar::setAvatarScale(float scale) {
+    if (_targetScale * (1.0f - RESCALING_TOLERANCE) < scale &&
+        scale < _targetScale * (1.0f + RESCALING_TOLERANCE)) {
+        setScale(glm::vec3(_targetScale));
+    } else {
+        setScale(glm::vec3(scale));
     }
 }
 
@@ -1108,7 +1079,7 @@ float Avatar::getHeadHeight() const {
 
         // HACK: We have a really odd case when fading out for some models where this value explodes
         float result = extents.maximum.y - extents.minimum.y;
-        if (result >= 0.0f && result < 100.0f * _scale ) {
+        if (result >= 0.0f && result < 100.0f * getAvatarScale() ) {
             return result;
         }
     }
@@ -1116,7 +1087,7 @@ float Avatar::getHeadHeight() const {
     extents = _skeletonModel.getMeshExtents();
     glm::vec3 neckPosition;
     if (!extents.isEmpty() && extents.isValid() && _skeletonModel.getNeckPosition(neckPosition)) {
-        return extents.maximum.y / 2.0f - neckPosition.y + _position.y;
+        return extents.maximum.y / 2.0f - neckPosition.y + getPosition().y;
     }
 
     const float DEFAULT_HEAD_HEIGHT = 0.25f;
@@ -1188,4 +1159,14 @@ glm::quat Avatar::getRightPalmRotation() {
     glm::quat rightRotation;
     getSkeletonModel().getJointRotationInWorldFrame(getSkeletonModel().getRightHandJointIndex(), rightRotation);
     return rightRotation;
+}
+
+void Avatar::setPosition(const glm::vec3 position) {
+    AvatarData::setPosition(position);
+    updateAttitude();
+}
+
+void Avatar::setOrientation(const glm::quat orientation) {
+    AvatarData::setOrientation(orientation);
+    updateAttitude();
 }

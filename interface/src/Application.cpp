@@ -78,7 +78,7 @@
 #include <ObjectMotionState.h>
 #include <OctalCode.h>
 #include <OctreeSceneStats.h>
-#include <gl/OffscreenGlCanvas.h>
+#include <gl/OffscreenGLCanvas.h>
 #include <PathUtils.h>
 #include <PerfStat.h>
 #include <PhysicsEngine.h>
@@ -110,8 +110,6 @@
 #include "devices/EyeTracker.h"
 #include "devices/Faceshift.h"
 #include "devices/Leapmotion.h"
-#include "devices/MIDIManager.h"
-#include "devices/RealSense.h"
 #include "DiscoverabilityManager.h"
 #include "GLCanvas.h"
 #include "InterfaceActionFactory.h"
@@ -149,6 +147,8 @@
 #include "ui/Stats.h"
 #include "ui/UpdateDialog.h"
 #include "Util.h"
+#include "InterfaceParentFinder.h"
+
 
 
 // ON WIndows PC, NVidia Optimus laptop, we want to enable NVIDIA GPU
@@ -297,6 +297,7 @@ bool setupEssentials(int& argc, char** argv) {
     DependencyManager::registerInheritance<LimitedNodeList, NodeList>();
     DependencyManager::registerInheritance<AvatarHashMap, AvatarManager>();
     DependencyManager::registerInheritance<EntityActionFactoryInterface, InterfaceActionFactory>();
+    DependencyManager::registerInheritance<SpatialParentFinder, InterfaceParentFinder>();
 
     Setting::init();
 
@@ -345,6 +346,7 @@ bool setupEssentials(int& argc, char** argv) {
     DependencyManager::set<MessagesClient>();
     DependencyManager::set<UserInputMapper>();
     DependencyManager::set<controller::ScriptingInterface, ControllerScriptingInterface>();
+    DependencyManager::set<InterfaceParentFinder>();
     return true;
 }
 
@@ -616,7 +618,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
     // enable mouse tracking; otherwise, we only get drag events
     _glWidget->setMouseTracking(true);
 
-    _offscreenContext = new OffscreenGlCanvas();
+    _offscreenContext = new OffscreenGLCanvas();
     _offscreenContext->create(_glWidget->context()->contextHandle());
     _offscreenContext->makeCurrent();
     initializeGL();
@@ -718,12 +720,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
 
     // set the local loopback interface for local sounds from audio scripts
     AudioScriptingInterface::getInstance().setLocalAudioInterface(audioIO.data());
-
-#ifdef HAVE_RTMIDI
-    // setup the MIDIManager
-    MIDIManager& midiManagerInstance = MIDIManager::getInstance();
-    midiManagerInstance.openDefaultPort();
-#endif
 
     this->installEventFilter(this);
 
@@ -970,7 +966,6 @@ Application::~Application() {
     nodeThread->wait();
 
     Leapmotion::destroy();
-    RealSense::destroy();
 
 #if 0
     ConnexionClient::getInstance().destroy();
@@ -1250,7 +1245,7 @@ void Application::paintGL() {
                     * glm::quat(glm::vec3(0.0f, PI + _rotateMirror, 0.0f)) * hmdRotation);
                 glm::vec3 hmdOffset = extractTranslation(myAvatar->getHMDSensorMatrix());
                 _myCamera.setPosition(myAvatar->getDefaultEyePosition()
-                    + glm::vec3(0, _raiseMirror * myAvatar->getScale(), 0)
+                    + glm::vec3(0, _raiseMirror * myAvatar->getAvatarScale(), 0)
                     + (myAvatar->getOrientation() * glm::quat(glm::vec3(0.0f, _rotateMirror, 0.0f))) *
                     glm::vec3(0.0f, 0.0f, -1.0f) * MIRROR_FULLSCREEN_DISTANCE * _scaleMirror
                     + (myAvatar->getOrientation() * glm::quat(glm::vec3(0.0f, PI + _rotateMirror, 0.0f))) * hmdOffset);
@@ -1258,7 +1253,7 @@ void Application::paintGL() {
                 _myCamera.setRotation(myAvatar->getWorldAlignedOrientation()
                     * glm::quat(glm::vec3(0.0f, PI + _rotateMirror, 0.0f)));
                 _myCamera.setPosition(myAvatar->getDefaultEyePosition()
-                    + glm::vec3(0, _raiseMirror * myAvatar->getScale(), 0)
+                    + glm::vec3(0, _raiseMirror * myAvatar->getAvatarScale(), 0)
                     + (myAvatar->getOrientation() * glm::quat(glm::vec3(0.0f, _rotateMirror, 0.0f))) *
                     glm::vec3(0.0f, 0.0f, -1.0f) * MIRROR_FULLSCREEN_DISTANCE * _scaleMirror);
             }
@@ -2519,7 +2514,6 @@ void Application::init() {
     qCDebug(interfaceapp) << "Loaded settings";
 
     Leapmotion::init();
-    RealSense::init();
 
     // fire off an immediate domain-server check in now that settings are loaded
     DependencyManager::get<NodeList>()->sendDomainServerCheckIn();
@@ -3074,9 +3068,7 @@ void Application::queryOctree(NodeType_t serverType, PacketType packetType, Node
 
     // These will be the same for all servers, so we can set them up once and then reuse for each server we send to.
     _octreeQuery.setWantLowResMoving(true);
-    _octreeQuery.setWantColor(true);
     _octreeQuery.setWantDelta(true);
-    _octreeQuery.setWantOcclusionCulling(false);
     _octreeQuery.setWantCompression(true);
 
     _octreeQuery.setCameraPosition(_viewFrustum.getPosition());
@@ -3322,7 +3314,7 @@ MyAvatar* Application::getMyAvatar() const {
     return DependencyManager::get<AvatarManager>()->getMyAvatar();
 }
 
-const glm::vec3& Application::getAvatarPosition() const {
+glm::vec3 Application::getAvatarPosition() const {
     return getMyAvatar()->getPosition();
 }
 
@@ -4069,10 +4061,6 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEngine* scri
     scriptEngine->registerGlobalObject("Scene", DependencyManager::get<SceneScriptingInterface>().data());
 
     scriptEngine->registerGlobalObject("ScriptDiscoveryService", this->getRunningScriptsWidget());
-
-#ifdef HAVE_RTMIDI
-    scriptEngine->registerGlobalObject("MIDI", &MIDIManager::getInstance());
-#endif
 }
 
 bool Application::canAcceptURL(const QString& urlString) {

@@ -50,12 +50,13 @@ gpu::PipelinePointer RenderablePolyVoxEntityItem::_pipeline = nullptr;
 const float MARCHING_CUBE_COLLISION_HULL_OFFSET = 0.5;
 
 EntityItemPointer RenderablePolyVoxEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
-    return std::make_shared<RenderablePolyVoxEntityItem>(entityID, properties);
+    EntityItemPointer entity{ new RenderablePolyVoxEntityItem(entityID) };
+    entity->setProperties(properties);
+    return entity;
 }
 
-RenderablePolyVoxEntityItem::RenderablePolyVoxEntityItem(const EntityItemID& entityItemID,
-                                                         const EntityItemProperties& properties) :
-    PolyVoxEntityItem(entityItemID, properties),
+RenderablePolyVoxEntityItem::RenderablePolyVoxEntityItem(const EntityItemID& entityItemID) :
+    PolyVoxEntityItem(entityItemID),
     _mesh(new model::Mesh()),
     _meshDirty(true),
     _xTexture(nullptr),
@@ -546,12 +547,12 @@ bool RenderablePolyVoxEntityItem::addToScene(EntityItemPointer self,
                                              render::PendingChanges& pendingChanges) {
     _myItem = scene->allocateID();
 
-    auto renderItem = std::make_shared<PolyVoxPayload>(shared_from_this());
+    auto renderItem = std::make_shared<PolyVoxPayload>(getThisPointer());
     auto renderData = PolyVoxPayload::Pointer(renderItem);
     auto renderPayload = std::make_shared<PolyVoxPayload::Payload>(renderData);
 
     render::Item::Status::Getters statusGetters;
-    makeEntityItemStatusGetters(shared_from_this(), statusGetters);
+    makeEntityItemStatusGetters(getThisPointer(), statusGetters);
     renderPayload->addStatusGetters(statusGetters);
 
     pendingChanges.resetItem(_myItem, renderPayload);

@@ -117,13 +117,15 @@ namespace render {
 
 
 
-EntityItemPointer RenderableParticleEffectEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
-    return std::make_shared<RenderableParticleEffectEntityItem>(entityID, properties);
+EntityItemPointer RenderableParticleEffectEntityItem::factory(const EntityItemID& entityID,
+                                                              const EntityItemProperties& properties) {
+    EntityItemPointer entity{ new RenderableParticleEffectEntityItem(entityID) };
+    entity->setProperties(properties);
+    return entity;
 }
 
-RenderableParticleEffectEntityItem::RenderableParticleEffectEntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties) :
-    ParticleEffectEntityItem(entityItemID, properties) {
-
+RenderableParticleEffectEntityItem::RenderableParticleEffectEntityItem(const EntityItemID& entityItemID) :
+    ParticleEffectEntityItem(entityItemID) {
     // lazy creation of particle system pipeline
     if (!_untexturedPipeline && !_texturedPipeline) {
         createPipelines();
@@ -134,13 +136,14 @@ bool RenderableParticleEffectEntityItem::addToScene(EntityItemPointer self,
                                                     render::ScenePointer scene,
                                                     render::PendingChanges& pendingChanges) {
 
-    auto particlePayload = std::shared_ptr<ParticlePayload>(new ParticlePayload(shared_from_this()));
+    auto particlePayload =
+        std::shared_ptr<ParticlePayload>(new ParticlePayload(getThisPointer()));
     particlePayload->setPipeline(_untexturedPipeline);
     _renderItemId = scene->allocateID();
     auto renderData = ParticlePayload::Pointer(particlePayload);
     auto renderPayload = render::PayloadPointer(new ParticlePayload::Payload(renderData));
     render::Item::Status::Getters statusGetters;
-    makeEntityItemStatusGetters(shared_from_this(), statusGetters);
+    makeEntityItemStatusGetters(getThisPointer(), statusGetters);
     renderPayload->addStatusGetters(statusGetters);
     pendingChanges.resetItem(_renderItemId, renderPayload);
     _scene = scene;
