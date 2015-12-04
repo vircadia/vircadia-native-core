@@ -35,7 +35,7 @@
 using namespace render;
 
 void SetupDeferred::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext) {
-    RenderArgs* args = renderContext->args;
+/*    RenderArgs* args = renderContext->args;
     gpu::doInBatch(args->_context, [=](gpu::Batch& batch) {
 
         auto deferredFbo = DependencyManager::get<FramebufferCache>()->getDeferredFramebufferDepthColor();
@@ -51,6 +51,7 @@ void SetupDeferred::run(const SceneContextPointer& sceneContext, const RenderCon
             gpu::Framebuffer::BUFFER_STENCIL,
             vec4(vec3(0), 1), 1.0, 0.0, true);
     });
+    */
 }
 
 void PrepareDeferred::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext) {
