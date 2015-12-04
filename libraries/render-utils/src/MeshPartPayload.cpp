@@ -39,9 +39,14 @@ namespace render {
 
 using namespace render;
 
-MeshPartPayload::MeshPartPayload(Model* model, int meshIndex, int partIndex, int shapeIndex) :
-    model(model), meshIndex(meshIndex), partIndex(partIndex), _shapeID(shapeIndex)
-{
+MeshPartPayload::MeshPartPayload(Model* model, int meshIndex, int partIndex, int shapeIndex,
+                                 glm::vec3 position, glm::quat orientation) :
+    model(model),
+    meshIndex(meshIndex),
+    partIndex(partIndex),
+    _shapeID(shapeIndex),
+    _modelPosition(position),
+    _modelOrientation(orientation) {
     initCache();
 }
 
@@ -64,6 +69,11 @@ void MeshPartPayload::initCache() {
         _drawMaterial = networkMaterial->_material;
     };
 
+}
+
+void MeshPartPayload::updateModelLocation(glm::vec3 position, glm::quat orientation) {
+    _modelPosition = position;
+    _modelOrientation = orientation;
 }
 
 render::ItemKey MeshPartPayload::getKey() const {
@@ -91,7 +101,7 @@ render::ItemKey MeshPartPayload::getKey() const {
 render::Item::Bound MeshPartPayload::getBound() const {
     // NOTE: we can't cache this bounds because we need to handle the case of a moving
     // entity or mesh part.
-    return model->getPartBounds(meshIndex, partIndex);
+    return model->getPartBounds(meshIndex, partIndex, _modelPosition, _modelOrientation);
 }
 
 void MeshPartPayload::drawCall(gpu::Batch& batch) const {
@@ -222,7 +232,7 @@ void MeshPartPayload::bindTransform(gpu::Batch& batch, const ModelRender::Locati
             transform = Transform(state.clusterMatrices[0]);
         }
     }
-    transform.preTranslate(model->_translation);
+    transform.preTranslate(_modelPosition);
     batch.setModelTransform(transform);
 }
 
@@ -247,7 +257,7 @@ void MeshPartPayload::render(RenderArgs* args) const {
     }
     
     // Back to model to update the cluster matrices right now
-    model->updateClusterMatrices();
+    model->updateClusterMatrices(_modelPosition, _modelOrientation);
     
     const FBXMesh& mesh = geometry.meshes.at(meshIndex);
     

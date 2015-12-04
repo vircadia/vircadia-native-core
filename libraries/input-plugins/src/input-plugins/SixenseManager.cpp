@@ -68,7 +68,7 @@ void SixenseManager::activate() {
     
 #ifdef HAVE_SIXENSE
     _container->addMenu(MENU_PATH);
-    _container->addMenuItem(MENU_PATH, TOGGLE_SMOOTH,
+    _container->addMenuItem(PluginType::INPUT_PLUGIN, MENU_PATH, TOGGLE_SMOOTH,
                            [this] (bool clicked) { setSixenseFilter(clicked); },
                            true, true);
 

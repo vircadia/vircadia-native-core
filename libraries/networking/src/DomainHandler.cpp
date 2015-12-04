@@ -94,7 +94,7 @@ void DomainHandler::softReset() {
     clearSettings();
     
     // cancel the failure timeout for any pending requests for settings
-    QMetaObject::invokeMethod(&_settingsTimer, "stop", Qt::AutoConnection);
+    QMetaObject::invokeMethod(&_settingsTimer, "stop");
 }
 
 void DomainHandler::hardReset() {

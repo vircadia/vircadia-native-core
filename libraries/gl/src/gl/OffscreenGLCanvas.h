@@ -1,5 +1,5 @@
 //
-//  OffscreenGlCanvas.h
+//  OffscreenGLCanvas.h
 //  interface/src/renderer
 //
 //  Created by Bradley Austin Davis on 2014/04/09.
@@ -9,8 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 #pragma once
-#ifndef hifi_OffscreenGlCanvas_h
-#define hifi_OffscreenGlCanvas_h
+#ifndef hifi_OffscreenGLCanvas_h
+#define hifi_OffscreenGLCanvas_h
 
 #include <mutex>
 #include <QObject>
@@ -19,10 +19,10 @@ class QOpenGLContext;
 class QOffscreenSurface;
 class QOpenGLDebugLogger;
 
-class OffscreenGlCanvas : public QObject {
+class OffscreenGLCanvas : public QObject {
 public:
-    OffscreenGlCanvas();
-    ~OffscreenGlCanvas();
+    OffscreenGLCanvas();
+    ~OffscreenGLCanvas();
     void create(QOpenGLContext* sharedContext = nullptr);
     bool makeCurrent();
     void doneCurrent();
@@ -40,4 +40,4 @@ protected:
 
 };
 
-#endif // hifi_OffscreenGlCanvas_h
+#endif // hifi_OffscreenGLCanvas_h

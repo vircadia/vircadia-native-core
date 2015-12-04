@@ -76,7 +76,7 @@ public:
         }
     };
 
-    using Mutex = std::mutex;
+    using Mutex = std::recursive_mutex;
     using Lock = std::unique_lock<Mutex>;
     using Recycler = std::function<void(T t)>;
     // deque gives us random access, double ended push & pop and size, all in constant time
@@ -85,6 +85,11 @@ public:
     
     void setRecycler(Recycler recycler) {
         _recycler = recycler;
+    }
+
+    size_t depth() {
+        Lock lock(_mutex);
+        return _submits.size();
     }
 
     // Submit a new resource from the producer context
@@ -124,7 +129,22 @@ public:
         }
         return result;
     }
-    
+
+    // Returns the next available resource provided by the submitter,
+    // or if none is available (which could mean either the submission
+    // list is empty or that the first item on the list isn't yet signaled
+    // Also releases any previous texture held by the caller
+    T fetchAndRelease(T oldValue) {
+        T result = fetch();
+        if (!result) {
+            return oldValue;
+        }
+        if (oldValue) {
+            release(oldValue);
+        }
+        return result;
+    }
+
     // If fetch returns a non-zero value, it's the responsibility of the
     // client to release it at some point
     void release(T t, GLsync readSync = 0) {
@@ -157,7 +177,12 @@ private:
                 pop(_releases);
             }
 
-            trash.swap(_trash);
+            {
+                // FIXME I don't think this lock should be necessary, only the submitting thread 
+                // touches the trash
+                Lock lock(_mutex);
+                trash.swap(_trash);
+            }
         }
 
         // FIXME maybe doing a timing on the deleters and warn if it's taking excessive time?
@@ -175,6 +200,7 @@ private:
 
     // May be called on any thread, but must be inside a locked section
     void pop(Deque& deque) {
+        Lock lock(_mutex);
         auto& item = deque.front();
         _trash.push_front(item);
         deque.pop_front();

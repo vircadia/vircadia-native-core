@@ -22,7 +22,9 @@ namespace gpu {
 
 class Pipeline {
 public:
-    static Pipeline* create(const ShaderPointer& program, const StatePointer& state);
+    using Pointer = std::shared_ptr< Pipeline >;
+
+    static Pointer create(const ShaderPointer& program, const StatePointer& state);
     ~Pipeline();
 
     const ShaderPointer& getProgram() const { return _program; }
@@ -44,7 +46,7 @@ protected:
     friend class Backend;
 };
 
-typedef std::shared_ptr< Pipeline > PipelinePointer;
+typedef Pipeline::Pointer PipelinePointer;
 typedef std::vector< PipelinePointer > Pipelines;
 
 };

@@ -34,9 +34,10 @@ var BUMPER_ON_VALUE = 0.5;
 // distant manipulation
 //
 
-var DISTANCE_HOLDING_RADIUS_FACTOR = 5; // multiplied by distance between hand and object
+var DISTANCE_HOLDING_RADIUS_FACTOR = 3.5; // multiplied by distance between hand and object
 var DISTANCE_HOLDING_ACTION_TIMEFRAME = 0.1; // how quickly objects move to their new position
 var DISTANCE_HOLDING_ROTATION_EXAGGERATION_FACTOR = 2.0; // object rotates this much more than hand did
+var MOVE_WITH_HEAD = true; // experimental head-controll of distantly held objects
 
 var NO_INTERSECT_COLOR = {
     red: 10,
@@ -676,6 +677,13 @@ function MyController(hand) {
         this.currentObjectTime = now;
         this.handRelativePreviousPosition = Vec3.subtract(handControllerPosition, MyAvatar.position);
         this.handPreviousRotation = handRotation;
+        this.currentCameraOrientation = Camera.orientation;
+
+        // compute a constant based on the initial conditions which we use below to exagerate hand motion onto the held object
+        this.radiusScalar = Math.log(Vec3.distance(this.currentObjectPosition, handControllerPosition) + 1.0);
+        if (this.radiusScalar < 1.0) {
+            this.radiusScalar = 1.0;
+        }
 
         this.actionID = NULL_ACTION_ID;
         this.actionID = Entities.addAction("spring", this.grabbedEntity, {
@@ -707,8 +715,6 @@ function MyController(hand) {
         this.currentAvatarOrientation = MyAvatar.orientation;
 
         this.overlayLineOff();
-
-
     };
 
     this.continueDistanceHolding = function() {
@@ -737,8 +743,12 @@ function MyController(hand) {
         this.lineOn(handPosition, Vec3.subtract(grabbedProperties.position, handPosition), INTERSECT_COLOR);
 
         // the action was set up on a previous call.  update the targets.
-        var radius = Math.max(Vec3.distance(this.currentObjectPosition, handControllerPosition) *
-            DISTANCE_HOLDING_RADIUS_FACTOR, DISTANCE_HOLDING_RADIUS_FACTOR);
+        var radius = Vec3.distance(this.currentObjectPosition, handControllerPosition) *
+            this.radiusScalar * DISTANCE_HOLDING_RADIUS_FACTOR;
+        if (radius < 1.0) {
+            radius = 1.0;
+        }
+
         // how far did avatar move this timestep?
         var currentPosition = MyAvatar.position;
         var avatarDeltaPosition = Vec3.subtract(currentPosition, this.currentAvatarPosition);
@@ -769,11 +779,11 @@ function MyController(hand) {
         var handMoved = Vec3.subtract(handToAvatar, this.handRelativePreviousPosition);
         this.handRelativePreviousPosition = handToAvatar;
 
-        //  magnify the hand movement but not the change from avatar movement & rotation
+        // magnify the hand movement but not the change from avatar movement & rotation
         handMoved = Vec3.subtract(handMoved, handMovementFromTurning);
         var superHandMoved = Vec3.multiply(handMoved, radius);
 
-        //  Move the object by the magnified amount and then by amount from avatar movement & rotation
+        // Move the object by the magnified amount and then by amount from avatar movement & rotation
         var newObjectPosition = Vec3.sum(this.currentObjectPosition, superHandMoved);
         newObjectPosition = Vec3.sum(newObjectPosition, avatarDeltaPosition);
         newObjectPosition = Vec3.sum(newObjectPosition, objectMovementFromTurning);
@@ -794,6 +804,16 @@ function MyController(hand) {
         this.currentObjectRotation = Quat.multiply(handChange, this.currentObjectRotation);
 
         Entities.callEntityMethod(this.grabbedEntity, "continueDistantGrab");
+
+        // mix in head motion
+        if (MOVE_WITH_HEAD) {
+            var objDistance = Vec3.length(objectToAvatar);
+            var before = Vec3.multiplyQbyV(this.currentCameraOrientation, { x: 0.0, y: 0.0, z: objDistance });
+            var after = Vec3.multiplyQbyV(Camera.orientation, { x: 0.0, y: 0.0, z: objDistance });
+            var change = Vec3.subtract(before, after);
+            this.currentCameraOrientation = Camera.orientation;
+            this.currentObjectPosition = Vec3.sum(this.currentObjectPosition, change);
+        }
 
         Entities.updateAction(this.grabbedEntity, this.actionID, {
             targetPosition: this.currentObjectPosition,
@@ -1265,10 +1285,10 @@ Controller.enableMapping(MAPPING_NAME);
 var handToDisable = 'none';
 
 function update() {
-    if (handToDisable !== LEFT_HAND) {
+    if (handToDisable !== LEFT_HAND && handToDisable!=='both') {
         leftController.update();
     }
-    if (handToDisable !== RIGHT_HAND) {
+    if (handToDisable !== RIGHT_HAND  && handToDisable!=='both') {
         rightController.update();
     }
 }
@@ -1276,14 +1296,19 @@ function update() {
 Messages.subscribe('Hifi-Hand-Disabler');
 
 handleHandDisablerMessages = function(channel, message, sender) {
-
+    
     if (sender === MyAvatar.sessionUUID) {
-        handToDisable = message;
         if (message === 'left') {
             handToDisable = LEFT_HAND;
         }
         if (message === 'right') {
             handToDisable = RIGHT_HAND;
+        }
+        if(message==='both'){
+            handToDisable='both';
+        }
+        if(message==='none'){
+            handToDisable='none';
         }
     }
 

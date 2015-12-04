@@ -72,7 +72,7 @@ public:
 
     void resetStats();
 
-    NodeToSenderStatsMap& getSingleSenderStats() { return _singleSenderStats; }
+    NodeToSenderStatsMap getSingleSenderStats() { QReadLocker locker(&_senderStatsLock); return _singleSenderStats; }
 
     virtual void terminating() { _shuttingDown = true; ReceivedPacketProcessor::terminating(); }
 
@@ -94,15 +94,16 @@ private:
     OctreeServer* _myServer;
     int _receivedPacketCount;
     
-    quint64 _totalTransitTime;
-    quint64 _totalProcessTime;
-    quint64 _totalLockWaitTime;
-    quint64 _totalElementsInPacket;
-    quint64 _totalPackets;
+    std::atomic<uint64_t> _totalTransitTime;
+    std::atomic<uint64_t> _totalProcessTime;
+    std::atomic<uint64_t> _totalLockWaitTime;
+    std::atomic<uint64_t> _totalElementsInPacket;
+    std::atomic<uint64_t> _totalPackets;
     
     NodeToSenderStatsMap _singleSenderStats;
+    QReadWriteLock _senderStatsLock;
 
-    quint64 _lastNackTime;
+    std::atomic<uint64_t> _lastNackTime;
     bool _shuttingDown;
 };
 #endif // hifi_OctreeInboundPacketProcessor_h

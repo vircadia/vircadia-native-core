@@ -19,7 +19,6 @@ var createdStereoInputMenuItem = false;
 var DEVELOPER_MENU = "Developer";
 
 var ENTITIES_MENU = DEVELOPER_MENU + " > Entities";
-var COLLISION_UPDATES_TO_SERVER = "Don't send collision updates to server";
 
 var RENDER_MENU = DEVELOPER_MENU + " > Render";
 var ENTITIES_ITEM = "Entities";
@@ -66,7 +65,6 @@ function setupMenus() {
         Menu.addMenuItem({ menuName: "Developer > Entities", menuItemName: "Don't Do Precision Picking", isCheckable: true, isChecked: false });
         Menu.addMenuItem({ menuName: "Developer > Entities", menuItemName: "Disable Light Entities", isCheckable: true, isChecked: false });
         */
-        Menu.addMenuItem({ menuName: ENTITIES_MENU, menuItemName: COLLISION_UPDATES_TO_SERVER, isCheckable: true, isChecked: false });
     }
     
     if (!Menu.menuExists(RENDER_MENU)) {
@@ -112,11 +110,7 @@ function setupMenus() {
 Menu.menuItemEvent.connect(function (menuItem) {
     print("menuItemEvent() in JS... menuItem=" + menuItem);
 
-    if (menuItem == COLLISION_UPDATES_TO_SERVER) {
-        var dontSendUpdates = Menu.isOptionChecked(COLLISION_UPDATES_TO_SERVER); 
-        print("  dontSendUpdates... checked=" + dontSendUpdates);
-        Entities.setSendPhysicsUpdates(!dontSendUpdates);
-    } else if (menuItem == ENTITIES_ITEM) {
+    if (menuItem == ENTITIES_ITEM) {
         Scene.shouldRenderEntities = Menu.isOptionChecked(ENTITIES_ITEM);
     } else if (menuItem == AVATARS_ITEM) {
         Scene.shouldRenderAvatars = Menu.isOptionChecked(AVATARS_ITEM);

@@ -21,7 +21,7 @@ class ModelEntityItem : public EntityItem {
 public:
     static EntityItemPointer factory(const EntityItemID& entityID, const EntityItemProperties& properties);
 
-    ModelEntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties);
+    ModelEntityItem(const EntityItemID& entityItemID);
 
     ALLOW_INSTANTIATION // This class can be instantiated
 

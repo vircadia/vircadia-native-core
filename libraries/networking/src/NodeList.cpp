@@ -40,7 +40,8 @@ NodeList::NodeList(char newOwnerType, unsigned short socketListenPort, unsigned 
     _nodeTypesOfInterest(),
     _domainHandler(this),
     _numNoReplyDomainCheckIns(0),
-    _assignmentServerSocket()
+    _assignmentServerSocket(),
+    _keepAlivePingTimer(this)
 {
     setCustomDeleter([](Dependency* dependency){
         static_cast<NodeList*>(dependency)->deleteLater();
@@ -199,6 +200,11 @@ void NodeList::processICEPingPacket(QSharedPointer<NLPacket> packet) {
 }
 
 void NodeList::reset() {
+    if (thread() != QThread::currentThread()) {
+        QMetaObject::invokeMethod(this, "reset", Qt::BlockingQueuedConnection);
+        return;
+    }
+
     LimitedNodeList::reset();
 
     _numNoReplyDomainCheckIns = 0;
