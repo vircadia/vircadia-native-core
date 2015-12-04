@@ -309,13 +309,10 @@ int OctreeSendThread::packetDistributor(OctreeQueryNode* nodeData, bool viewFrus
     int truePacketsSent = 0;
     int trueBytesSent = 0;
     int packetsSentThisInterval = 0;
-    bool isFullScene = ((!viewFrustumChanged || !nodeData->getWantDelta()) && nodeData->getViewFrustumJustStoppedChanging())
+    bool isFullScene = ((!viewFrustumChanged) && nodeData->getViewFrustumJustStoppedChanging())
                                 || nodeData->hasLodChanged();
 
     bool somethingToSend = true; // assume we have something
-
-    // FOR NOW... node tells us if it wants to receive only view frustum deltas
-    bool wantDelta = viewFrustumChanged && nodeData->getWantDelta();
 
     // If our packet already has content in it, then we must use the color choice of the waiting packet.
     // If we're starting a fresh packet, then...
@@ -334,7 +331,7 @@ int OctreeSendThread::packetDistributor(OctreeQueryNode* nodeData, bool viewFrus
 
     _packetData.changeSettings(true, targetSize); // FIXME - eventually support only compressed packets
 
-    const ViewFrustum* lastViewFrustum =  wantDelta ? &nodeData->getLastKnownViewFrustum() : NULL;
+    const ViewFrustum* lastViewFrustum = viewFrustumChanged ? &nodeData->getLastKnownViewFrustum() : NULL;
 
     // If the current view frustum has changed OR we have nothing to send, then search against
     // the current view frustum for things to send.
@@ -345,11 +342,6 @@ int OctreeSendThread::packetDistributor(OctreeQueryNode* nodeData, bool viewFrus
             if (nodeData->moveShouldDump() || nodeData->hasLodChanged()) {
                 nodeData->dumpOutOfView();
             }
-        }
-
-        if (!viewFrustumChanged && !nodeData->getWantDelta()) {
-            // only set our last sent time if we weren't resetting due to frustum change
-            nodeData->setLastTimeBagEmpty();
         }
 
         // track completed scenes and send out the stats packet accordingly
@@ -452,7 +444,7 @@ int OctreeSendThread::packetDistributor(OctreeQueryNode* nodeData, bool viewFrus
                                                                            ? LOW_RES_MOVING_ADJUST : NO_BOUNDARY_ADJUST);
 
                     EncodeBitstreamParams params(INT_MAX, &nodeData->getCurrentViewFrustum(), 
-                                                 WANT_EXISTS_BITS, DONT_CHOP, wantDelta, lastViewFrustum,
+                                                 WANT_EXISTS_BITS, DONT_CHOP, viewFrustumChanged, lastViewFrustum,
                                                  boundaryLevelAdjust, octreeSizeScale,
                                                  nodeData->getLastTimeBagEmpty(),
                                                  isFullScene, &nodeData->stats, _myServer->getJurisdiction(),

@@ -35,10 +35,6 @@ typedef unsigned long long quint64;
 
 // First bitset
 const int WANT_LOW_RES_MOVING_BIT = 0;
-const int UNUSED_BIT_1 = 1; // unused... available for new feature
-const int WANT_DELTA_AT_BIT = 2;
-const int UNUSED_BIT_3 = 3; // unused... available for new feature
-const int UNUSED_BIT_4 = 4; // 5th bit... unused... available for new feature
 
 class OctreeQuery : public NodeData {
     Q_OBJECT
@@ -71,7 +67,6 @@ public:
     void setCameraEyeOffsetPosition(const glm::vec3& eyeOffsetPosition) { _cameraEyeOffsetPosition = eyeOffsetPosition; }
 
     // related to Octree Sending strategies
-    bool getWantDelta() const { return _wantDelta; }
     bool getWantLowResMoving() const { return _wantLowResMoving; }
     int getMaxQueryPacketsPerSecond() const { return _maxQueryPPS; }
     float getOctreeSizeScale() const { return _octreeElementSizeScale; }
@@ -79,7 +74,6 @@ public:
 
 public slots:
     void setWantLowResMoving(bool wantLowResMoving) { _wantLowResMoving = wantLowResMoving; }
-    void setWantDelta(bool wantDelta) { _wantDelta = wantDelta; }
     void setMaxQueryPacketsPerSecond(int maxQueryPPS) { _maxQueryPPS = maxQueryPPS; }
     void setOctreeSizeScale(float octreeSizeScale) { _octreeElementSizeScale = octreeSizeScale; }
     void setBoundaryLevelAdjust(int boundaryLevelAdjust) { _boundaryLevelAdjust = boundaryLevelAdjust; }
@@ -95,7 +89,6 @@ protected:
     glm::vec3 _cameraEyeOffsetPosition = glm::vec3(0.0f);
 
     // octree server sending items
-    bool _wantDelta = true;
     bool _wantLowResMoving = true;
     int _maxQueryPPS = DEFAULT_MAX_OCTREE_PPS;
     float _octreeElementSizeScale = DEFAULT_OCTREE_SIZE_SCALE; /// used for LOD calculations
