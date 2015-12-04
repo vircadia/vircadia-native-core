@@ -13,9 +13,6 @@ var ProcessGroup = hfprocess.ProcessGroup;
 
 const ipcMain = electron.ipcMain;
 
-// Report crashes to our server.
-require('crash-reporter').start();
-
 // Keep a global reference of the window object, if you don't, the window will
 // be closed automatically when the JavaScript object is garggbage collected.
 var mainWindow = null;
