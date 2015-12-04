@@ -14,7 +14,7 @@ var ProcessGroup = hfprocess.ProcessGroup;
 const ipcMain = electron.ipcMain;
 
 // Keep a global reference of the window object, if you don't, the window will
-// be closed automatically when the JavaScript object is garggbage collected.
+// be closed automatically when the JavaScript object is garbage collected.
 var mainWindow = null;
 var appIcon = null;
 var TRAY_ICON = 'resources/tray-icon.png';
