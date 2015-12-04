@@ -676,9 +676,9 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
     _applicationStateDevice->addInputVariant(QString("ComfortMode"), controller::StateController::ReadLambda([]() -> float {
         return (float)Menu::getInstance()->isOptionChecked(MenuOption::ComfortMode);
     }));
-	_applicationStateDevice->addInputVariant(QString("Grounded"), controller::StateController::ReadLambda([]() -> float {
-		return (float)qApp->getMyAvatar()->getCharacterController()->onGround();
-	}));
+    _applicationStateDevice->addInputVariant(QString("Grounded"), controller::StateController::ReadLambda([]() -> float {
+        return (float)qApp->getMyAvatar()->getCharacterController()->onGround();
+    }));
 
     userInputMapper->registerDevice(_applicationStateDevice);
 
@@ -1347,7 +1347,7 @@ void Application::paintGL() {
     {
         PROFILE_RANGE(__FUNCTION__ "/compositor");
         PerformanceTimer perfTimer("compositor");
-        auto primaryFbo = framebufferCache->getPrimaryFramebuffer();
+        auto primaryFbo = framebufferCache->getPrimaryFramebufferDepthColor();
         glBindFramebuffer(GL_DRAW_FRAMEBUFFER, gpu::GLBackend::getFramebufferID(primaryFbo));
         if (displayPlugin->isStereo()) {
             QRect currentViewport(QPoint(0, 0), QSize(size.width() / 2, size.height()));
@@ -1372,7 +1372,7 @@ void Application::paintGL() {
     {
         PROFILE_RANGE(__FUNCTION__ "/pluginOutput");
         PerformanceTimer perfTimer("pluginOutput");
-        auto primaryFbo = framebufferCache->getPrimaryFramebuffer();
+        auto primaryFbo = framebufferCache->getPrimaryFramebufferDepthColor();
         GLuint finalTexture = gpu::GLBackend::getTextureID(primaryFbo->getRenderBuffer(0));
         // Ensure the rendering context commands are completed when rendering
         GLsync sync = glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0);

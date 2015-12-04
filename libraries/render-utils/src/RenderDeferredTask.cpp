@@ -38,13 +38,13 @@ void SetupDeferred::run(const SceneContextPointer& sceneContext, const RenderCon
     RenderArgs* args = renderContext->args;
     gpu::doInBatch(args->_context, [=](gpu::Batch& batch) {
 
-        auto primaryFbo = DependencyManager::get<FramebufferCache>()->getPrimaryFramebufferDepthColor();
+        auto deferredFbo = DependencyManager::get<FramebufferCache>()->getDeferredFramebufferDepthColor();
 
         batch.enableStereo(false);
         batch.setViewportTransform(args->_viewport);
         batch.setStateScissorRect(args->_viewport);
 
-        batch.setFramebuffer(primaryFbo);
+        batch.setFramebuffer(deferredFbo);
         batch.clearFramebuffer(
             gpu::Framebuffer::BUFFER_COLOR0 |
             gpu::Framebuffer::BUFFER_DEPTH |
@@ -332,11 +332,11 @@ void DrawStencilDeferred::run(const SceneContextPointer& sceneContext, const Ren
     doInBatch(args->_context, [=](gpu::Batch& batch) {
         args->_batch = &batch;
 
-        auto primaryFboColorDepthStencil = DependencyManager::get<FramebufferCache>()->getPrimaryFramebufferDepthColor();
+        auto deferredFboColorDepthStencil = DependencyManager::get<FramebufferCache>()->getDeferredFramebufferDepthColor();
 
         batch.enableStereo(false);
 
-        batch.setFramebuffer(primaryFboColorDepthStencil);
+        batch.setFramebuffer(deferredFboColorDepthStencil);
         batch.setViewportTransform(args->_viewport);
         batch.setStateScissorRect(args->_viewport);
 
@@ -367,12 +367,12 @@ void DrawBackgroundDeferred::run(const SceneContextPointer& sceneContext, const 
     doInBatch(args->_context, [=](gpu::Batch& batch) {
         args->_batch = &batch;
 
-        auto primaryFboColorDepthStencil = DependencyManager::get<FramebufferCache>()->getPrimaryFramebufferDepthColor();
-        auto primaryFboFull = DependencyManager::get<FramebufferCache>()->getPrimaryFramebuffer();
+        auto deferredFboColorDepthStencil = DependencyManager::get<FramebufferCache>()->getDeferredFramebufferDepthColor();
+        auto deferredFboFull = DependencyManager::get<FramebufferCache>()->getDeferredFramebuffer();
 
         batch.enableSkybox(true);
 
-        batch.setFramebuffer(primaryFboColorDepthStencil);
+        batch.setFramebuffer(deferredFboColorDepthStencil);
 
         batch.setViewportTransform(args->_viewport);
         batch.setStateScissorRect(args->_viewport);
@@ -387,7 +387,7 @@ void DrawBackgroundDeferred::run(const SceneContextPointer& sceneContext, const 
 
         renderItems(sceneContext, renderContext, inItems);
 
-        batch.setFramebuffer(primaryFboFull);
+        batch.setFramebuffer(deferredFboFull);
 
     });
     args->_batch = nullptr;

@@ -201,7 +201,7 @@ void AmbientOcclusion::run(const render::SceneContextPointer& sceneContext, cons
         // Occlusion step
         getOcclusionPipeline();
         batch.setResourceTexture(0, framebufferCache->getPrimaryDepthTexture());
-        batch.setResourceTexture(1, framebufferCache->getPrimaryNormalTexture());
+        batch.setResourceTexture(1, framebufferCache->getDeferredNormalTexture());
         _occlusionBuffer->setRenderBuffer(0, _occlusionTexture);
         batch.setFramebuffer(_occlusionBuffer);
 
@@ -276,7 +276,7 @@ void AmbientOcclusion::run(const render::SceneContextPointer& sceneContext, cons
         // Blend step
         getBlendPipeline();
         batch.setResourceTexture(0, _hBlurTexture);
-        batch.setFramebuffer(framebufferCache->getPrimaryFramebuffer());
+        batch.setFramebuffer(framebufferCache->getDeferredFramebuffer());
 
         // Bind the fourth gpu::Pipeline we need - for blending the primary color buffer with blurred occlusion texture
         batch.setPipeline(getBlendPipeline());
