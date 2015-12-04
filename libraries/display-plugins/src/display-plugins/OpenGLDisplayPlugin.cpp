@@ -303,7 +303,6 @@ void OpenGLDisplayPlugin::internalPresent() {
     glBindTexture(GL_TEXTURE_2D, _currentSceneTexture);
     drawUnitQuad();
     swapBuffers();
-    updateFramerate();
 }
 
 void OpenGLDisplayPlugin::present() {
