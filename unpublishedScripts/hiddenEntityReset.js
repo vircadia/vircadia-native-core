@@ -1367,7 +1367,7 @@
                             resetMe: {
                                 resetMe: true
                             },
-                            grabbableKey; {
+                            grabbableKey: {
                                 invertSolidWhileHeld: true
                             }
 
