@@ -287,7 +287,7 @@ void ApplicationCompositor::displayOverlayTextureHmd(RenderArgs* renderArgs, int
         mat4 camMat;
         _cameraBaseTransform.getMatrix(camMat);
         auto displayPlugin = qApp->getActiveDisplayPlugin();
-        auto headPose = displayPlugin->getHeadPose();
+        auto headPose = displayPlugin->getHeadPose(qApp->getFrameCount());
         auto eyeToHead = displayPlugin->getEyeToHeadTransform((Eye)eye);
         camMat = (headPose * eyeToHead) * camMat;
         batch.setViewportTransform(renderArgs->_viewport);
