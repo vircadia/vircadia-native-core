@@ -89,6 +89,7 @@ public slots:
 signals:
     void limitOfSilentDomainCheckInsReached();
 private slots:
+    void stopKeepalivePingTimer();
     void sendPendingDSPathQuery();
     void handleICEConnectionToDomainServer();
 
