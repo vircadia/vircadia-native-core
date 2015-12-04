@@ -28,8 +28,6 @@ public:
     static PluginContainer& getInstance();
     PluginContainer();
     virtual ~PluginContainer();
-    virtual QVector<QPair<QString, QString>>& currentDisplayActions() = 0;
-    virtual QVector<QPair<QString, QString>>& currentInputActions() = 0;
     virtual void addMenu(const QString& menuName) = 0;
     virtual void removeMenu(const QString& menuName) = 0;
     virtual QAction* addMenuItem(PluginType pluginType, const QString& path, const QString& name, std::function<void(bool)> onClicked, bool checkable = false, bool checked = false, const QString& groupName = "") = 0;
@@ -48,4 +46,17 @@ public:
     virtual QOpenGLContext* getPrimaryContext() = 0;
     virtual bool isForeground() = 0;
     virtual const DisplayPlugin* getActiveDisplayPlugin() const = 0;
+
+    QVector<QPair<QString, QString>>& currentDisplayActions() {
+        return _currentDisplayPluginActions;
+    }
+
+    QVector<QPair<QString, QString>>& currentInputActions() {
+        return _currentInputPluginActions;
+    }
+
+protected:
+    QVector<QPair<QString, QString>> _currentDisplayPluginActions;
+    QVector<QPair<QString, QString>> _currentInputPluginActions;
+
 };

@@ -185,10 +185,3 @@ void PluginContainerProxy::releaseOverlayTexture(uint32_t texture) {
     // FIXME implement present thread compositing
 }
 
-QVector<QPair<QString, QString>>& PluginContainerProxy::currentDisplayActions() {
-    return _currentDisplayPluginActions;
-}
-
-QVector<QPair<QString, QString>>& PluginContainerProxy::currentInputActions() {
-    return _currentInputPluginActions;
-}

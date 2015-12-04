@@ -83,7 +83,7 @@ public:
     virtual ~PluginContainerProxy() {}
     virtual void addMenu(const QString& menuName) override {}
     virtual void removeMenu(const QString& menuName) override {}
-    virtual QAction* addMenuItem(const QString& path, const QString& name, std::function<void(bool)> onClicked, bool checkable = false, bool checked = false, const QString& groupName = "") override { return nullptr;  }
+    virtual QAction* addMenuItem(PluginType type, const QString& path, const QString& name, std::function<void(bool)> onClicked, bool checkable = false, bool checked = false, const QString& groupName = "") override { return nullptr;  }
     virtual void removeMenuItem(const QString& menuName, const QString& menuItem) override {}
     virtual bool isOptionChecked(const QString& name) override { return false;  }
     virtual void setIsOptionChecked(const QString& path, bool checked) override {}

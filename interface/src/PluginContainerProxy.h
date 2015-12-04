@@ -14,8 +14,6 @@ class PluginContainerProxy : public QObject, PluginContainer {
     Q_OBJECT
     PluginContainerProxy();
     virtual ~PluginContainerProxy();
-    virtual QVector<QPair<QString, QString>>& currentDisplayActions() override;
-    virtual QVector<QPair<QString, QString>>& currentInputActions() override;
     virtual void addMenu(const QString& menuName) override;
     virtual void removeMenu(const QString& menuName) override;
     virtual QAction* addMenuItem(PluginType type, const QString& path, const QString& name, std::function<void(bool)> onClicked, bool checkable = false, bool checked = false, const QString& groupName = "") override;
@@ -37,8 +35,6 @@ class PluginContainerProxy : public QObject, PluginContainer {
 
     QRect _savedGeometry{ 10, 120, 800, 600 };
     std::map<QString, QActionGroup*> _exclusiveGroups;
-    QVector<QPair<QString, QString>> _currentDisplayPluginActions;
-    QVector<QPair<QString, QString>> _currentInputPluginActions;
 
     friend class Application;
 
