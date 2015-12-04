@@ -321,22 +321,18 @@ int OctreeSendThread::packetDistributor(OctreeQueryNode* nodeData, bool viewFrus
     // If we're starting a fresh packet, then...
     //     If we're moving, and the client asked for low res, then we force monochrome, otherwise, use
     //     the clients requested color state.
-    bool wantCompression = nodeData->getWantCompression();
 
     // If we have a packet waiting, and our desired want color, doesn't match the current waiting packets color
     // then let's just send that waiting packet.
-    if (!nodeData->getCurrentPacketFormatMatches()) {
-        if (nodeData->isPacketWaiting()) {
-            packetsSentThisInterval += handlePacketSend(nodeData, trueBytesSent, truePacketsSent);
-        } else {
-            nodeData->resetOctreePacket();
-        }
-        int targetSize = MAX_OCTREE_PACKET_DATA_SIZE;
-        if (wantCompression) {
-            targetSize = nodeData->getAvailable() - sizeof(OCTREE_PACKET_INTERNAL_SECTION_SIZE);
-        }
-        _packetData.changeSettings(wantCompression, targetSize);
+    if (nodeData->isPacketWaiting()) {
+        packetsSentThisInterval += handlePacketSend(nodeData, trueBytesSent, truePacketsSent);
+    } else {
+        nodeData->resetOctreePacket();
     }
+    int targetSize = MAX_OCTREE_PACKET_DATA_SIZE;
+    targetSize = nodeData->getAvailable() - sizeof(OCTREE_PACKET_INTERNAL_SECTION_SIZE);
+
+    _packetData.changeSettings(true, targetSize); // FIXME - eventually support only compressed packets
 
     const ViewFrustum* lastViewFrustum =  wantDelta ? &nodeData->getLastKnownViewFrustum() : NULL;
 
@@ -522,8 +518,7 @@ int OctreeSendThread::packetDistributor(OctreeQueryNode* nodeData, bool viewFrus
                     // if for some reason the finalized size is greater than our available size, then probably the "compressed"
                     // form actually inflated beyond our padding, and in this case we will send the current packet, then
                     // write to out new packet...
-                    unsigned int writtenSize = _packetData.getFinalizedSize()
-                            + (nodeData->getCurrentPacketIsCompressed() ? sizeof(OCTREE_PACKET_INTERNAL_SECTION_SIZE) : 0);
+                    unsigned int writtenSize = _packetData.getFinalizedSize() + sizeof(OCTREE_PACKET_INTERNAL_SECTION_SIZE);
 
                     if (writtenSize > nodeData->getAvailable()) {
                         packetsSentThisInterval += handlePacketSend(nodeData, trueBytesSent, truePacketsSent);
@@ -539,8 +534,7 @@ int OctreeSendThread::packetDistributor(OctreeQueryNode* nodeData, bool viewFrus
                 // the packet doesn't have enough space to bother attempting to pack more...
                 bool sendNow = true;
 
-                if (nodeData->getCurrentPacketIsCompressed() &&
-                    nodeData->getAvailable() >= MINIMUM_ATTEMPT_MORE_PACKING &&
+                if (nodeData->getAvailable() >= MINIMUM_ATTEMPT_MORE_PACKING &&
                     extraPackingAttempts <= REASONABLE_NUMBER_OF_PACKING_ATTEMPTS) {
                     sendNow = false; // try to pack more
                 }
@@ -552,9 +546,7 @@ int OctreeSendThread::packetDistributor(OctreeQueryNode* nodeData, bool viewFrus
                     quint64 packetSendingEnd = usecTimestampNow();
                     packetSendingElapsedUsec = (float)(packetSendingEnd - packetSendingStart);
 
-                    if (wantCompression) {
-                        targetSize = nodeData->getAvailable() - sizeof(OCTREE_PACKET_INTERNAL_SECTION_SIZE);
-                    }
+                    targetSize = nodeData->getAvailable() - sizeof(OCTREE_PACKET_INTERNAL_SECTION_SIZE);
                 } else {
                     // If we're in compressed mode, then we want to see if we have room for more in this wire packet.
                     // but we've finalized the _packetData, so we want to start a new section, we will do that by
@@ -564,7 +556,7 @@ int OctreeSendThread::packetDistributor(OctreeQueryNode* nodeData, bool viewFrus
                     // a larger compressed size then uncompressed size
                     targetSize = nodeData->getAvailable() - sizeof(OCTREE_PACKET_INTERNAL_SECTION_SIZE) - COMPRESS_PADDING;
                 }
-                _packetData.changeSettings(nodeData->getWantCompression(), targetSize); // will do reset
+                _packetData.changeSettings(true, targetSize); // will do reset - NOTE: Always compressed
 
             }
             OctreeServer::trackTreeWaitTime(lockWaitElapsedUsec);
