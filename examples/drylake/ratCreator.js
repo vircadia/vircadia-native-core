@@ -327,10 +327,17 @@ function moveRats() {
 
         var metaRat = getMetaRatByRat(rat);
         if (metaRat !== undefined) {
-            metaRat.injector.options = {
-                loop: true,
-                position: ratPosition
+            if (metaRat.injector !== undefined) {
+                if (metaRat.injector.isPlaying === true) {
+                  //  print('update injector position')
+                    metaRat.injector.options = {
+                        loop: true,
+                        position: ratPosition
+                    }
+                }
             }
+
+
         } else {
             //   print('no meta rat for this rat')
         }
@@ -355,17 +362,20 @@ function checkDistanceFromNest(rat) {
 
 function removeRatFromScene(rat) {
 
-    var metaRatIndex = findWithAttr(metaRats, 'rat', rat);
-    if (metaRatIndex > -1) {
-        metaRats[index].injector.stop();
-        metaRats.splice(index, 1);
-    }
 
     var index = rats.indexOf(rat);
     if (index > -1) {
-        Entities.deleteEntity(rat);
+   //     print('CLEAR RAT::'+rat)
         rats.splice(index, 1);
+        Entities.deleteEntity(rat);
 
+    }
+
+    var metaRatIndex = findWithAttr(metaRats, 'rat', rat);
+    if (metaRatIndex > -1) {
+    //    print('CLEAR META RAT')
+        metaRats[index].injector.stop();
+        metaRats.splice(index, 1);
     }
 
 
@@ -373,15 +383,16 @@ function removeRatFromScene(rat) {
 }
 
 function popRatFromStack(entityID) {
-    var metaRatIndex = findWithAttr(metaRats, 'rat', entityID);
-    if (metaRatIndex > -1) {
-        metaRats[index].injector.stop();
-        metaRats.splice(index, 1);
-    }
 
     var index = rats.indexOf(entityID);
     if (index > -1) {
         rats.splice(index, 1);
+    }
+
+        var metaRatIndex = findWithAttr(metaRats, 'rat', entityID);
+    if (metaRatIndex > -1) {
+        metaRats[index].injector.stop();
+        metaRats.splice(index, 1);
     }
 
 }
@@ -405,7 +416,7 @@ Entities.deletingEntity.connect(popRatFromStack);
 
 
 function cleanupLeftoverAvoidersBeforeStart() {
-    print('CLEANING UP LEFTOVER AVOIDERS')
+   // print('CLEANING UP LEFTOVER AVOIDERS')
     var nearbyEntities = Entities.findEntities(RAT_SPAWNER_LOCATION, 100);
     var entityIndex;
     for (entityIndex = 0; entityIndex < nearbyEntities.length; entityIndex++) {
@@ -454,6 +465,7 @@ if (USE_CONSTANT_SPAWNER === true) {
             Script.setTimeout(function() {
                 //if we have too many injectors hanging around there are problems
                 metaRat.injector.stop();
+                delete metaRat.injector;
             }, RAT_SPAWN_RATE * 3)
         }
 
