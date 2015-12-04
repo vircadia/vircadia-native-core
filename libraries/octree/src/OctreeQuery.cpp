@@ -84,12 +84,13 @@ int OctreeQuery::parseData(NLPacket& packet) {
     memcpy(&_cameraEyeOffsetPosition, sourceBuffer, sizeof(_cameraEyeOffsetPosition));
     sourceBuffer += sizeof(_cameraEyeOffsetPosition);
 
-    // voxel sending features...
+    // optional feature flags
     unsigned char bitItems = 0;
     bitItems = (unsigned char)*sourceBuffer++;
 
     // NOTE: we used to use these bits to set feature request items if we need to extend the protocol with optional features
     // do it here with... wantFeature= oneAtBit(bitItems, WANT_FEATURE_BIT);
+    Q_UNUSED(bitItems);
 
     // desired Max Octree PPS
     memcpy(&_maxQueryPPS, sourceBuffer, sizeof(_maxQueryPPS));
