@@ -88,9 +88,9 @@ void Skybox::render(gpu::Batch& batch, const ViewFrustum& viewFrustum, const Sky
         }
 
         {
-            auto skyVS = gpu::ShaderPointer(gpu::Shader::createVertex(std::string(Skybox_vert)));
-            auto skyFS = gpu::ShaderPointer(gpu::Shader::createPixel(std::string(Skybox_frag)));
-            auto skyShader = gpu::ShaderPointer(gpu::Shader::createProgram(skyVS, skyFS));
+            auto skyVS = gpu::Shader::createVertex(std::string(Skybox_vert));
+            auto skyFS = gpu::Shader::createPixel(std::string(Skybox_frag));
+            auto skyShader = gpu::Shader::createProgram(skyVS, skyFS);
 
             gpu::Shader::BindingSet bindings;
             bindings.insert(gpu::Shader::Binding(std::string("cubeMap"), SKYBOX_SKYMAP_SLOT));
@@ -102,7 +102,7 @@ void Skybox::render(gpu::Batch& batch, const ViewFrustum& viewFrustum, const Sky
             auto skyState = std::make_shared<gpu::State>();
             skyState->setStencilTest(true, 0xFF, gpu::State::StencilTest(0, 0xFF, gpu::EQUAL, gpu::State::STENCIL_OP_KEEP, gpu::State::STENCIL_OP_KEEP, gpu::State::STENCIL_OP_KEEP));
 
-            thePipeline = gpu::PipelinePointer(gpu::Pipeline::create(skyShader, skyState));
+            thePipeline = gpu::Pipeline::create(skyShader, skyState);
         }
     });
 

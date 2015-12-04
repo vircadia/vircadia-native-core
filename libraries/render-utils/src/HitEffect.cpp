@@ -36,9 +36,9 @@ HitEffect::HitEffect() {
 
 const gpu::PipelinePointer& HitEffect::getHitEffectPipeline() {
     if (!_hitEffectPipeline) {
-        auto vs = gpu::ShaderPointer(gpu::Shader::createVertex(std::string(hit_effect_vert)));
-        auto ps = gpu::ShaderPointer(gpu::Shader::createPixel(std::string(hit_effect_frag)));
-        gpu::ShaderPointer program = gpu::ShaderPointer(gpu::Shader::createProgram(vs, ps));
+        auto vs = gpu::Shader::createVertex(std::string(hit_effect_vert));
+        auto ps = gpu::Shader::createPixel(std::string(hit_effect_frag));
+        gpu::ShaderPointer program = gpu::Shader::createProgram(vs, ps);
         
         
         gpu::Shader::BindingSet slotBindings;
@@ -54,7 +54,7 @@ const gpu::PipelinePointer& HitEffect::getHitEffectPipeline() {
                                 gpu::State::SRC_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::INV_SRC_ALPHA);
     
         // Good to go add the brand new pipeline
-        _hitEffectPipeline.reset(gpu::Pipeline::create(program, state));
+        _hitEffectPipeline = gpu::Pipeline::create(program, state);
     }
     return _hitEffectPipeline;
 }
