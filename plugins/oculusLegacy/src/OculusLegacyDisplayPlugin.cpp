@@ -14,7 +14,6 @@
 #include <GLMHelpers.h>
 #include <QEvent>
 #include <QtGui/QResizeEvent>
-#include <QtGui/QOpenGLContext>
 #include <QtGui/QGuiApplication>
 #include <QtGui/QScreen>
 
