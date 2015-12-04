@@ -189,7 +189,7 @@ void PreferencesDialog::loadPreferences() {
     
     ui.leanScaleSpin->setValue(myAvatar->getLeanScale());
     
-    ui.avatarScaleSpin->setValue(myAvatar->getScale());
+    ui.avatarScaleSpin->setValue(myAvatar->getAvatarScale());
     ui.avatarAnimationEdit->setText(myAvatar->getAnimGraphUrl());
     
     ui.maxOctreePPSSpin->setValue(qApp->getMaxOctreePacketsPerSecond());

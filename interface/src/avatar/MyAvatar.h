@@ -247,10 +247,6 @@ public slots:
 
     Q_INVOKABLE void updateMotionBehaviorFromMenu();
 
-    void clearReferential();
-    bool setModelReferential(const QUuid& id);
-    bool setJointReferential(const QUuid& id, int jointIndex);
-
     virtual void rebuildSkeletonBody() override;
 
     const QString& getAnimGraphUrl() const { return _animGraphUrl; }

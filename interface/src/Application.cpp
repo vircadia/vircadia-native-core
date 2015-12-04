@@ -147,6 +147,8 @@
 #include "ui/Stats.h"
 #include "ui/UpdateDialog.h"
 #include "Util.h"
+#include "InterfaceParentFinder.h"
+
 
 
 // ON WIndows PC, NVidia Optimus laptop, we want to enable NVIDIA GPU
@@ -295,6 +297,7 @@ bool setupEssentials(int& argc, char** argv) {
     DependencyManager::registerInheritance<LimitedNodeList, NodeList>();
     DependencyManager::registerInheritance<AvatarHashMap, AvatarManager>();
     DependencyManager::registerInheritance<EntityActionFactoryInterface, InterfaceActionFactory>();
+    DependencyManager::registerInheritance<SpatialParentFinder, InterfaceParentFinder>();
 
     Setting::init();
 
@@ -343,6 +346,7 @@ bool setupEssentials(int& argc, char** argv) {
     DependencyManager::set<MessagesClient>();
     DependencyManager::set<UserInputMapper>();
     DependencyManager::set<controller::ScriptingInterface, ControllerScriptingInterface>();
+    DependencyManager::set<InterfaceParentFinder>();
     return true;
 }
 
@@ -1241,7 +1245,7 @@ void Application::paintGL() {
                     * glm::quat(glm::vec3(0.0f, PI + _rotateMirror, 0.0f)) * hmdRotation);
                 glm::vec3 hmdOffset = extractTranslation(myAvatar->getHMDSensorMatrix());
                 _myCamera.setPosition(myAvatar->getDefaultEyePosition()
-                    + glm::vec3(0, _raiseMirror * myAvatar->getScale(), 0)
+                    + glm::vec3(0, _raiseMirror * myAvatar->getAvatarScale(), 0)
                     + (myAvatar->getOrientation() * glm::quat(glm::vec3(0.0f, _rotateMirror, 0.0f))) *
                     glm::vec3(0.0f, 0.0f, -1.0f) * MIRROR_FULLSCREEN_DISTANCE * _scaleMirror
                     + (myAvatar->getOrientation() * glm::quat(glm::vec3(0.0f, PI + _rotateMirror, 0.0f))) * hmdOffset);
@@ -1249,7 +1253,7 @@ void Application::paintGL() {
                 _myCamera.setRotation(myAvatar->getWorldAlignedOrientation()
                     * glm::quat(glm::vec3(0.0f, PI + _rotateMirror, 0.0f)));
                 _myCamera.setPosition(myAvatar->getDefaultEyePosition()
-                    + glm::vec3(0, _raiseMirror * myAvatar->getScale(), 0)
+                    + glm::vec3(0, _raiseMirror * myAvatar->getAvatarScale(), 0)
                     + (myAvatar->getOrientation() * glm::quat(glm::vec3(0.0f, _rotateMirror, 0.0f))) *
                     glm::vec3(0.0f, 0.0f, -1.0f) * MIRROR_FULLSCREEN_DISTANCE * _scaleMirror);
             }
@@ -3310,7 +3314,7 @@ MyAvatar* Application::getMyAvatar() const {
     return DependencyManager::get<AvatarManager>()->getMyAvatar();
 }
 
-const glm::vec3& Application::getAvatarPosition() const {
+glm::vec3 Application::getAvatarPosition() const {
     return getMyAvatar()->getPosition();
 }
 

@@ -22,8 +22,7 @@ class QObject;
 class RenderableWebEntityItem : public WebEntityItem  {
 public:
     static EntityItemPointer factory(const EntityItemID& entityID, const EntityItemProperties& properties);
-
-    RenderableWebEntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties);
+    RenderableWebEntityItem(const EntityItemID& entityItemID);
     ~RenderableWebEntityItem();
 
     virtual void render(RenderArgs* args);
