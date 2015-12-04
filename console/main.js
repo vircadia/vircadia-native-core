@@ -5,7 +5,7 @@ var app = electron.app;  // Module to control application life.
 var BrowserWindow = require('browser-window');  // Module to create native browser window.
 var Menu = require('menu');
 var Tray = require('tray');
-var shell = require('shell').
+var shell = require('shell');
 
 var hfprocess = require('./modules/hf-process.js');
 var Process = hfprocess.Process;
