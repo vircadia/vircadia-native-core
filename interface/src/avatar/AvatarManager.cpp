@@ -27,6 +27,8 @@
 
 #include <PerfStat.h>
 #include <RegisteredMetaTypes.h>
+#include <Rig.h>
+#include <SettingHandle.h>
 #include <UUID.h>
 
 #include "Application.h"
@@ -35,7 +37,6 @@
 #include "Menu.h"
 #include "MyAvatar.h"
 #include "SceneScriptingInterface.h"
-#include "AvatarRig.h"
 
 // 70 times per second - target is 60hz, but this helps account for any small deviations
 // in the update loop
@@ -66,13 +67,20 @@ AvatarManager::AvatarManager(QObject* parent) :
 {
     // register a meta type for the weak pointer we'll use for the owning avatar mixer for each avatar
     qRegisterMetaType<QWeakPointer<Node> >("NodeWeakPointer");
-    _myAvatar = std::make_shared<MyAvatar>(std::make_shared<AvatarRig>());
+    _myAvatar = std::make_shared<MyAvatar>(std::make_shared<Rig>());
 
     auto& packetReceiver = DependencyManager::get<NodeList>()->getPacketReceiver();
     packetReceiver.registerListener(PacketType::BulkAvatarData, this, "processAvatarDataPacket");
     packetReceiver.registerListener(PacketType::KillAvatar, this, "processKillAvatar");
     packetReceiver.registerListener(PacketType::AvatarIdentity, this, "processAvatarIdentityPacket");
     packetReceiver.registerListener(PacketType::AvatarBillboard, this, "processAvatarBillboardPacket");
+}
+
+const float SMALLEST_REASONABLE_HORIZON = 5.0f; // meters
+Setting::Handle<float> avatarRenderDistanceInverseHighLimit("avatarRenderDistanceHighLimit", 1.0f / SMALLEST_REASONABLE_HORIZON);
+void AvatarManager::setRenderDistanceInverseHighLimit(float newValue) {
+    avatarRenderDistanceInverseHighLimit.set(newValue);
+     _renderDistanceController.setControlledValueHighLimit(newValue);
 }
 
 void AvatarManager::init() {
@@ -93,8 +101,7 @@ void AvatarManager::init() {
 
     const float target_fps = qApp->getTargetFrameRate();
     _renderDistanceController.setMeasuredValueSetpoint(target_fps);
-    const float SMALLEST_REASONABLE_HORIZON = 5.0f; // meters
-    _renderDistanceController.setControlledValueHighLimit(1.0f / SMALLEST_REASONABLE_HORIZON);
+    _renderDistanceController.setControlledValueHighLimit(avatarRenderDistanceInverseHighLimit.get());
     _renderDistanceController.setControlledValueLowLimit(1.0f / (float) TREE_SCALE);
     // Advice for tuning parameters:
     // See PIDController.h. There's a section on tuning in the reference.
@@ -205,7 +212,7 @@ void AvatarManager::simulateAvatarFades(float deltaTime) {
 }
 
 AvatarSharedPointer AvatarManager::newSharedAvatar() {
-    return std::make_shared<Avatar>(std::make_shared<AvatarRig>());
+    return std::make_shared<Avatar>(std::make_shared<Rig>());
 }
 
 AvatarSharedPointer AvatarManager::addAvatar(const QUuid& sessionUUID, const QWeakPointer<Node>& mixerWeakPointer) {
@@ -356,7 +363,8 @@ void AvatarManager::handleCollisionEvents(const CollisionEvents& collisionEvents
 
                 AudioInjector::playSound(collisionSoundURL, energyFactorOfFull, AVATAR_STRETCH_FACTOR, myAvatar->getPosition());
                 myAvatar->collisionWithEntity(collision);
-                return;            }
+                return;
+            }
         }
     }
 }

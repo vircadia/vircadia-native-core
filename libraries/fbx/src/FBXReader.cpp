@@ -750,13 +750,6 @@ FBXGeometry* FBXReader::extractFBXGeometry(const QVariantHash& mapping, const QS
                     model.preRotation = glm::quat(glm::radians(preRotation));
                     model.rotation = glm::quat(glm::radians(rotation));
                     model.postRotation = glm::quat(glm::radians(postRotation));
-
-                    if (geometry.applicationName.startsWith("Blender")) {
-                        // blender puts the jointOffset in the wrong place.
-                        model.preRotation = model.rotation;
-                        model.rotation = glm::quat();
-                    }
-
                     model.postTransform = glm::translate(-rotationPivot) * glm::translate(scaleOffset) *
                         glm::translate(scalePivot) * glm::scale(scale) * glm::translate(-scalePivot);
                     // NOTE: angles from the FBX file are in degrees

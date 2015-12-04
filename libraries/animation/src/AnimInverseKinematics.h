@@ -54,9 +54,9 @@ protected:
     AnimInverseKinematics& operator=(const AnimInverseKinematics&) = delete;
 
     struct IKTargetVar {
-        IKTargetVar(const QString& jointNameIn, 
-                const QString& positionVarIn, 
-                const QString& rotationVarIn, 
+        IKTargetVar(const QString& jointNameIn,
+                const QString& positionVarIn,
+                const QString& rotationVarIn,
                 const QString& typeVarIn) :
             positionVar(positionVarIn),
             rotationVar(rotationVarIn),

@@ -32,7 +32,6 @@
 #include "EntityActionFactoryInterface.h"
 
 
-bool EntityItem::_sendPhysicsUpdates = true;
 int EntityItem::_maxActionsDataSize = 800;
 quint64 EntityItem::_rememberDeletedActionTime = 20 * USECS_PER_SECOND;
 
@@ -310,6 +309,11 @@ OctreeElement::AppendState EntityItem::appendEntityData(OctreePacketData* packet
     if (appendState != OctreeElement::COMPLETED) {
         // add this item into our list for the next appendElementData() pass
         entityTreeElementExtraEncodeData->entities.insert(getEntityItemID(), propertiesDidntFit);
+    }
+
+    // if any part of our entity was sent, call trackSend
+    if (appendState != OctreeElement::NONE) {
+        params.trackSend(getID(), getLastEdited());
     }
 
     return appendState;

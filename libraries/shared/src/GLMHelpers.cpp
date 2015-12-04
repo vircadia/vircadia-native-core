@@ -10,7 +10,7 @@
 //
 
 #include "GLMHelpers.h"
-
+#include <glm/gtc/matrix_transform.hpp>
 #include "NumericalConstants.h"
 
 const vec3 Vectors::UNIT_X{ 1.0f, 0.0f, 0.0f };
@@ -34,6 +34,7 @@ const vec3& Vectors::UP = Vectors::UNIT_Y;
 const vec3& Vectors::FRONT = Vectors::UNIT_NEG_Z;
 
 const quat Quaternions::IDENTITY{ 1.0f, 0.0f, 0.0f, 0.0f };
+const quat Quaternions::Y_180{ 0.0f, 0.0f, 1.0f, 0.0f };
 
 //  Safe version of glm::mix; based on the code in Nick Bobick's article,
 //  http://www.gamasutra.com/features/19980703/quaternions_01.htm (via Clyde,
@@ -276,8 +277,22 @@ glm::quat extractRotation(const glm::mat4& matrix, bool assumeOrthogonal) {
                                     0.5f * sqrtf(z2) * (upper[0][1] >= upper[1][0] ? 1.0f : -1.0f)));
 }
 
+glm::quat glmExtractRotation(const glm::mat4& matrix) {
+    glm::vec3 scale = extractScale(matrix);
+    // quat_cast doesn't work so well with scaled matrices, so cancel it out.
+    glm::mat4 tmp = glm::scale(matrix, 1.0f / scale);
+    return glm::normalize(glm::quat_cast(tmp));
+}
+
 glm::vec3 extractScale(const glm::mat4& matrix) {
-    return glm::vec3(glm::length(matrix[0]), glm::length(matrix[1]), glm::length(matrix[2]));
+    glm::mat3 m(matrix);
+    float det = glm::determinant(m);
+    if (det < 0) {
+        // left handed matrix, flip sign to compensate.
+        return glm::vec3(-glm::length(m[0]), glm::length(m[1]), glm::length(m[2]));
+    } else {
+        return glm::vec3(glm::length(m[0]), glm::length(m[1]), glm::length(m[2]));
+    }
 }
 
 float extractUniformScale(const glm::mat4& matrix) {

@@ -55,16 +55,16 @@ protected:
             State::Pointer _state;
         };
 
-        State(const QString& id, AnimNode::Pointer node, float interpTarget, float interpDuration) :
+        State(const QString& id, int childIndex, float interpTarget, float interpDuration) :
             _id(id),
-            _node(node),
+            _childIndex(childIndex),
             _interpTarget(interpTarget),
             _interpDuration(interpDuration) {}
 
         void setInterpTargetVar(const QString& interpTargetVar) { _interpTargetVar = interpTargetVar; }
         void setInterpDurationVar(const QString& interpDurationVar) { _interpDurationVar = interpDurationVar; }
 
-        AnimNode::Pointer getNode() const { return _node; }
+        int getChildIndex() const { return _childIndex; }
         const QString& getID() const { return _id; }
 
     protected:
@@ -75,7 +75,7 @@ protected:
         void addTransition(const Transition& transition) { _transitions.push_back(transition); }
 
         QString _id;
-        AnimNode::Pointer _node;
+        int _childIndex;
         float _interpTarget;  // frames
         float _interpDuration; // frames
 

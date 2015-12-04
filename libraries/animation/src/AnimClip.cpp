@@ -91,57 +91,64 @@ void AnimClip::copyFromNetworkAnim() {
     // build a mapping from animation joint indices to skeleton joint indices.
     // by matching joints with the same name.
     const FBXGeometry& geom = _networkAnim->getGeometry();
-    const QVector<FBXJoint>& animJoints = geom.joints;
+    AnimSkeleton animSkeleton(geom);
+    const int animJointCount = animSkeleton.getNumJoints();
+    const int skeletonJointCount = _skeleton->getNumJoints();
     std::vector<int> jointMap;
-    const int animJointCount = animJoints.count();
     jointMap.reserve(animJointCount);
     for (int i = 0; i < animJointCount; i++) {
-        int skeletonJoint = _skeleton->nameToJointIndex(animJoints.at(i).name);
+        int skeletonJoint = _skeleton->nameToJointIndex(animSkeleton.getJointName(i));
         if (skeletonJoint == -1) {
-            qCWarning(animation) << "animation contains joint =" << animJoints.at(i).name << " which is not in the skeleton, url =" << _url;
+            qCWarning(animation) << "animation contains joint =" << animSkeleton.getJointName(i) << " which is not in the skeleton, url =" << _url;
         }
         jointMap.push_back(skeletonJoint);
     }
 
     const int frameCount = geom.animationFrames.size();
-    const int skeletonJointCount = _skeleton->getNumJoints();
     _anim.resize(frameCount);
-
-    const glm::vec3 offsetScale = extractScale(geom.offset);
 
     for (int frame = 0; frame < frameCount; frame++) {
 
-        // init all joints in animation to bind pose
-        // this will give us a resonable result for bones in the skeleton but not in the animation.
+        // init all joints in animation to default pose
+        // this will give us a resonable result for bones in the model skeleton but not in the animation.
         _anim[frame].reserve(skeletonJointCount);
         for (int skeletonJoint = 0; skeletonJoint < skeletonJointCount; skeletonJoint++) {
-            _anim[frame].push_back(_skeleton->getRelativeBindPose(skeletonJoint));
+            _anim[frame].push_back(_skeleton->getRelativeDefaultPose(skeletonJoint));
         }
 
         for (int animJoint = 0; animJoint < animJointCount; animJoint++) {
-
             int skeletonJoint = jointMap[animJoint];
 
             // skip joints that are in the animation but not in the skeleton.
             if (skeletonJoint >= 0 && skeletonJoint < skeletonJointCount) {
 
-                const glm::vec3& fbxZeroTrans = geom.animationFrames[0].translations[animJoint] * offsetScale;
-                const AnimPose& relBindPose = _skeleton->getRelativeBindPose(skeletonJoint);
+                const glm::vec3& fbxZeroTrans = geom.animationFrames[0].translations[animJoint];
+#ifdef USE_PRE_ROT_FROM_ANIM
+                // TODO: This is the correct way to apply the pre rotations from maya, however
+                // the current animation set has incorrect preRotations for the left wrist and thumb
+                // so it looks wrong if we enable this code.
+                glm::quat preRotation = animSkeleton.getPreRotation(animJoint);
+#else
+                // TODO: This is the legacy approach, this does not work when animations and models do not
+                // have the same set of pre rotations.  For example when mixing maya models with blender animations.
+                glm::quat preRotation = _skeleton->getRelativeBindPose(skeletonJoint).rot;
+#endif
+                const AnimPose& relDefaultPose = _skeleton->getRelativeDefaultPose(skeletonJoint);
 
                 // used to adjust translation offsets, so large translation animatons on the reference skeleton
                 // will be adjusted when played on a skeleton with short limbs.
-                float limbLengthScale = fabsf(glm::length(fbxZeroTrans)) <= 0.0001f ? 1.0f : (glm::length(relBindPose.trans) / glm::length(fbxZeroTrans));
+                float limbLengthScale = fabsf(glm::length(fbxZeroTrans)) <= 0.0001f ? 1.0f : (glm::length(relDefaultPose.trans) / glm::length(fbxZeroTrans));
 
                 AnimPose& pose = _anim[frame][skeletonJoint];
                 const FBXAnimationFrame& fbxAnimFrame = geom.animationFrames[frame];
 
-                // rotation in fbxAnimationFrame is a delta from a reference skeleton bind pose.
-                pose.rot = relBindPose.rot * fbxAnimFrame.rotations[animJoint];
+                // rotation in fbxAnimationFrame is a delta from its preRotation.
+                pose.rot = preRotation * fbxAnimFrame.rotations[animJoint];
 
                 // translation in fbxAnimationFrame is not a delta.
                 // convert it into a delta by subtracting from the first frame.
-                const glm::vec3& fbxTrans = fbxAnimFrame.translations[animJoint] * offsetScale;
-                pose.trans = relBindPose.trans + limbLengthScale * (fbxTrans - fbxZeroTrans);
+                const glm::vec3& fbxTrans = fbxAnimFrame.translations[animJoint];
+                pose.trans = relDefaultPose.trans + limbLengthScale * (fbxTrans - fbxZeroTrans);
             }
         }
     }

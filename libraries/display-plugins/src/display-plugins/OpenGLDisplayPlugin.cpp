@@ -6,11 +6,9 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 #include "OpenGLDisplayPlugin.h"
-#include <QOpenGLContext>
 #include <QCoreApplication>
 
 #include <gl/Config.h>
-#include <gl/GlWindow.h>
 #include <GLMHelpers.h>
 
 

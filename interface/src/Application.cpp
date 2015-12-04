@@ -50,6 +50,7 @@
 #include <AssetClient.h>
 #include <AssetUpload.h>
 #include <AutoUpdater.h>
+#include <AudioInjectorManager.h>
 #include <CursorManager.h>
 #include <DeferredLightingEffect.h>
 #include <display-plugins/DisplayPlugin.h>
@@ -77,7 +78,7 @@
 #include <ObjectMotionState.h>
 #include <OctalCode.h>
 #include <OctreeSceneStats.h>
-#include <gl/OffscreenGlCanvas.h>
+#include <gl/OffscreenGLCanvas.h>
 #include <PathUtils.h>
 #include <PerfStat.h>
 #include <PhysicsEngine.h>
@@ -109,8 +110,6 @@
 #include "devices/EyeTracker.h"
 #include "devices/Faceshift.h"
 #include "devices/Leapmotion.h"
-#include "devices/MIDIManager.h"
-#include "devices/RealSense.h"
 #include "DiscoverabilityManager.h"
 #include "GLCanvas.h"
 #include "InterfaceActionFactory.h"
@@ -340,6 +339,7 @@ bool setupEssentials(int& argc, char** argv) {
     DependencyManager::set<PathUtils>();
     DependencyManager::set<InterfaceActionFactory>();
     DependencyManager::set<AssetClient>();
+    DependencyManager::set<AudioInjectorManager>();
     DependencyManager::set<MessagesClient>();
     DependencyManager::set<UserInputMapper>();
     DependencyManager::set<controller::ScriptingInterface, ControllerScriptingInterface>();
@@ -614,7 +614,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
     // enable mouse tracking; otherwise, we only get drag events
     _glWidget->setMouseTracking(true);
 
-    _offscreenContext = new OffscreenGlCanvas();
+    _offscreenContext = new OffscreenGLCanvas();
     _offscreenContext->create(_glWidget->context()->contextHandle());
     _offscreenContext->makeCurrent();
     initializeGL();
@@ -716,12 +716,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
 
     // set the local loopback interface for local sounds from audio scripts
     AudioScriptingInterface::getInstance().setLocalAudioInterface(audioIO.data());
-
-#ifdef HAVE_RTMIDI
-    // setup the MIDIManager
-    MIDIManager& midiManagerInstance = MIDIManager::getInstance();
-    midiManagerInstance.openDefaultPort();
-#endif
 
     this->installEventFilter(this);
 
@@ -894,6 +888,10 @@ void Application::cleanupBeforeQuit() {
 
     // destroy the AudioClient so it and its thread have a chance to go down safely
     DependencyManager::destroy<AudioClient>();
+    
+    // destroy the AudioInjectorManager so it and its thread have a chance to go down safely
+    // this will also stop any ongoing network injectors
+    DependencyManager::destroy<AudioInjectorManager>();
 
     // Destroy third party processes after scripts have finished using them.
 #ifdef HAVE_DDE
@@ -964,7 +962,6 @@ Application::~Application() {
     nodeThread->wait();
 
     Leapmotion::destroy();
-    RealSense::destroy();
 
 #if 0
     ConnexionClient::getInstance().destroy();
@@ -2513,7 +2510,6 @@ void Application::init() {
     qCDebug(interfaceapp) << "Loaded settings";
 
     Leapmotion::init();
-    RealSense::init();
 
     // fire off an immediate domain-server check in now that settings are loaded
     DependencyManager::get<NodeList>()->sendDomainServerCheckIn();
@@ -2549,11 +2545,12 @@ void Application::init() {
     setAvatarUpdateThreading();
 }
 
+const bool ENABLE_AVATAR_UPDATE_THREADING = false;
 void Application::setAvatarUpdateThreading() {
-    setAvatarUpdateThreading(Menu::getInstance()->isOptionChecked(MenuOption::EnableAvatarUpdateThreading));
+    setAvatarUpdateThreading(ENABLE_AVATAR_UPDATE_THREADING);
 }
 void Application::setRawAvatarUpdateThreading() {
-    setRawAvatarUpdateThreading(Menu::getInstance()->isOptionChecked(MenuOption::EnableAvatarUpdateThreading));
+    setRawAvatarUpdateThreading(ENABLE_AVATAR_UPDATE_THREADING);
 }
 void Application::setRawAvatarUpdateThreading(bool isThreaded) {
     if (_avatarUpdate) {
@@ -2570,18 +2567,11 @@ void Application::setAvatarUpdateThreading(bool isThreaded) {
         return;
     }
 
-    auto myAvatar = getMyAvatar();
-    bool isRigEnabled = myAvatar->getEnableRigAnimations();
-    bool isGraphEnabled = myAvatar->getEnableAnimGraph();
     if (_avatarUpdate) {
         _avatarUpdate->terminate(); // Must be before we shutdown anim graph.
     }
-    myAvatar->setEnableRigAnimations(false);
-    myAvatar->setEnableAnimGraph(false);
     _avatarUpdate = new AvatarUpdate();
     _avatarUpdate->initialize(isThreaded);
-    myAvatar->setEnableRigAnimations(isRigEnabled);
-    myAvatar->setEnableAnimGraph(isGraphEnabled);
 }
 
 void Application::updateLOD() {
@@ -2855,6 +2845,8 @@ void Application::update(float deltaTime) {
         }
     }
 
+    _controllerScriptingInterface->updateInputControllers();
+
     // Transfer the user inputs to the driveKeys
     // FIXME can we drop drive keys and just have the avatar read the action states directly?
     myAvatar->clearDriveKeys();
@@ -2962,11 +2954,6 @@ void Application::update(float deltaTime) {
     {
         PerformanceTimer perfTimer("loadViewFrustum");
         loadViewFrustum(_myCamera, _viewFrustum);
-    }
-
-    // Update animation debug draw renderer
-    {
-        AnimDebugDraw::getInstance().update();
     }
 
     quint64 now = usecTimestampNow();
@@ -3077,9 +3064,7 @@ void Application::queryOctree(NodeType_t serverType, PacketType packetType, Node
 
     // These will be the same for all servers, so we can set them up once and then reuse for each server we send to.
     _octreeQuery.setWantLowResMoving(true);
-    _octreeQuery.setWantColor(true);
     _octreeQuery.setWantDelta(true);
-    _octreeQuery.setWantOcclusionCulling(false);
     _octreeQuery.setWantCompression(true);
 
     _octreeQuery.setCameraPosition(_viewFrustum.getPosition());
@@ -3528,6 +3513,8 @@ void Application::displaySide(RenderArgs* renderArgs, Camera& theCamera, bool se
     myAvatar->preRender(renderArgs);
     myAvatar->endRender();
 
+    // Update animation debug draw renderer
+    AnimDebugDraw::getInstance().update();
 
     activeRenderingThread = QThread::currentThread();
     PROFILE_RANGE(__FUNCTION__);
@@ -4070,10 +4057,6 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEngine* scri
     scriptEngine->registerGlobalObject("Scene", DependencyManager::get<SceneScriptingInterface>().data());
 
     scriptEngine->registerGlobalObject("ScriptDiscoveryService", this->getRunningScriptsWidget());
-
-#ifdef HAVE_RTMIDI
-    scriptEngine->registerGlobalObject("MIDI", &MIDIManager::getInstance());
-#endif
 }
 
 bool Application::canAcceptURL(const QString& urlString) {
@@ -4359,10 +4342,6 @@ void Application::stopAllScripts(bool restart) {
         it.value()->stop();
         qCDebug(interfaceapp) << "stopping script..." << it.key();
     }
-    // HACK: ATM scripts cannot set/get their animation priorities, so we clear priorities
-    // whenever a script stops in case it happened to have been setting joint rotations.
-    // TODO: expose animation priorities and provide a layered animation control system.
-    getMyAvatar()->clearJointAnimationPriorities();
     getMyAvatar()->clearScriptableSettings();
 }
 
@@ -4378,10 +4357,6 @@ bool Application::stopScript(const QString& scriptHash, bool restart) {
         scriptEngine->stop();
         stoppedScript = true;
         qCDebug(interfaceapp) << "stopping script..." << scriptHash;
-        // HACK: ATM scripts cannot set/get their animation priorities, so we clear priorities
-        // whenever a script stops in case it happened to have been setting joint rotations.
-        // TODO: expose animation priorities and provide a layered animation control system.
-        getMyAvatar()->clearJointAnimationPriorities();
     }
     if (_scriptEnginesHash.empty()) {
         getMyAvatar()->clearScriptableSettings();

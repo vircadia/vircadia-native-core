@@ -33,7 +33,7 @@ typedef char int8;
 
 typedef unsigned char Byte;
     
-typedef uint32 Offset;
+typedef size_t Offset;
 
 typedef glm::mat4 Mat4;
 typedef glm::mat3 Mat3;

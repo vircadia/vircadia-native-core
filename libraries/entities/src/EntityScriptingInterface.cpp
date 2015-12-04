@@ -167,8 +167,8 @@ QUuid EntityScriptingInterface::editEntity(QUuid id, EntityItemProperties proper
                     if (hasTerseUpdateChanges) {
                         entity->getAllTerseUpdateProperties(properties);
                     }
-                    // TODO: if we knew that ONLY TerseUpdate properties have changed in properties AND the object 
-                    // is dynamic AND it is active in the physics simulation then we could chose to NOT queue an update 
+                    // TODO: if we knew that ONLY TerseUpdate properties have changed in properties AND the object
+                    // is dynamic AND it is active in the physics simulation then we could chose to NOT queue an update
                     // and instead let the physics simulation decide when to send a terse update.  This would remove
                     // the "slide-no-rotate" glitch (and typical a double-update) that we see during the "poke rolling
                     // balls" test.  However, even if we solve this problem we still need to provide a "slerp the visible
@@ -332,15 +332,6 @@ void EntityScriptingInterface::setDrawZoneBoundaries(bool value) {
 bool EntityScriptingInterface::getDrawZoneBoundaries() const {
     return ZoneEntityItem::getDrawZoneBoundaries();
 }
-
-void EntityScriptingInterface::setSendPhysicsUpdates(bool value) {
-    EntityItem::setSendPhysicsUpdates(value);
-}
-
-bool EntityScriptingInterface::getSendPhysicsUpdates() const {
-    return EntityItem::getSendPhysicsUpdates();
-}
-
 
 RayToEntityIntersectionResult::RayToEntityIntersectionResult() :
     intersects(false),
@@ -548,16 +539,16 @@ bool EntityScriptingInterface::appendPoint(QUuid entityID, const glm::vec3& poin
     if (!entity) {
         qCDebug(entities) << "EntityScriptingInterface::setPoints no entity with ID" << entityID;
     }
-    
+
     EntityTypes::EntityType entityType = entity->getType();
-    
+
     if (entityType == EntityTypes::Line) {
         return setPoints(entityID, [point](LineEntityItem& lineEntity) -> bool
         {
             return (LineEntityItem*)lineEntity.appendPoint(point);
         });
     }
-    
+
     return false;
 }
 

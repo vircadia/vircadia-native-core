@@ -23,10 +23,10 @@ class ActionEndpoint : public Endpoint {
 public:
     ActionEndpoint(const Input& id = Input::INVALID_INPUT) : Endpoint(id) { }
 
-    virtual float peek() const { return _currentValue; }
+    virtual float peek() const override { return _currentValue; }
     virtual void apply(float newValue, const Pointer& source) override;
 
-    virtual Pose peekPose() const { return _currentPose; }
+    virtual Pose peekPose() const override { return _currentPose; }
     virtual void apply(const Pose& value, const Pointer& source) override;
 
     virtual void reset() override;
