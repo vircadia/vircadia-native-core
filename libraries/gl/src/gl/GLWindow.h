@@ -7,8 +7,8 @@
 //
 
 #pragma once
-#ifndef hifi_GlWindow_h
-#define hifi_GlWindow_h
+#ifndef hifi_GLWindow_h
+#define hifi_GLWindow_h
 
 #include <mutex>
 #include <QtGui/QWindow>
@@ -16,14 +16,15 @@
 class QOpenGLContext;
 class QOpenGLDebugLogger;
 
-class GlWindow : public QWindow {
+class GLWindow : public QWindow {
 public:
-    GlWindow(QOpenGLContext* shareContext = nullptr);
-    GlWindow(const QSurfaceFormat& format, QOpenGLContext* shareContext = nullptr);
-    virtual ~GlWindow();
+    virtual ~GLWindow();
+    void createContext(QOpenGLContext* shareContext = nullptr);
+    void createContext(const QSurfaceFormat& format, QOpenGLContext* shareContext = nullptr);
     bool makeCurrent();
     void doneCurrent();
     void swapBuffers();
+    QOpenGLContext* context() const;
 private:
     std::once_flag _reportOnce;
     QOpenGLContext* _context{ nullptr };

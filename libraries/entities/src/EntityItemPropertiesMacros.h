@@ -257,7 +257,7 @@ inline glmQuat glmQuat_convertFromScriptValue(const QScriptValue& v, bool& isVal
 }
 
 inline xColor xColor_convertFromScriptValue(const QScriptValue& v, bool& isValid) { 
-    xColor newValue;
+    xColor newValue { 255, 255, 255 };
     isValid = false; /// assume it can't be converted
     QScriptValue r = v.property("red");
     QScriptValue g = v.property("green");

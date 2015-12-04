@@ -36,8 +36,6 @@ const int UNKNOWN_OCTCODE_LENGTH = -2;
 int numberOfThreeBitSectionsInCode(const unsigned char* octalCode, int maxBytes = UNKNOWN_OCTCODE_LENGTH);
 
 unsigned char* chopOctalCode(const unsigned char* originalOctalCode, int chopLevels);
-unsigned char* rebaseOctalCode(const unsigned char* originalOctalCode, const unsigned char* newParentOctalCode, 
-                               bool includeColorSpace = false);
 
 const int CHECK_NODE_ONLY = -1;
 bool isAncestorOf(const unsigned char* possibleAncestor, const unsigned char* possibleDescendent, 

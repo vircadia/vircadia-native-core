@@ -204,7 +204,7 @@ void PreferencesDialog::loadPreferences() {
     auto lodManager = DependencyManager::get<LODManager>();
     ui.desktopMinimumFPSSpin->setValue(lodManager->getDesktopLODDecreaseFPS());
     ui.hmdMinimumFPSSpin->setValue(lodManager->getHMDLODDecreaseFPS());
-    ui.avatarRenderSmallestReasonableHorizon->setValue(1.0f / DependencyManager::get<AvatarManager>()->getRenderDistanceHighLimit());
+    ui.avatarRenderSmallestReasonableHorizon->setValue(1.0f / DependencyManager::get<AvatarManager>()->getRenderDistanceInverseHighLimit());
 }
 
 void PreferencesDialog::savePreferences() {
@@ -295,5 +295,5 @@ void PreferencesDialog::savePreferences() {
     auto lodManager = DependencyManager::get<LODManager>();
     lodManager->setDesktopLODDecreaseFPS(ui.desktopMinimumFPSSpin->value());
     lodManager->setHMDLODDecreaseFPS(ui.hmdMinimumFPSSpin->value());
-    DependencyManager::get<AvatarManager>()->setRenderDistanceHighLimit(1.0f / ui.avatarRenderSmallestReasonableHorizon->value());
+    DependencyManager::get<AvatarManager>()->setRenderDistanceInverseHighLimit(1.0f / ui.avatarRenderSmallestReasonableHorizon->value());
 }

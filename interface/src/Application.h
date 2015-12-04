@@ -65,7 +65,7 @@
 #include "ui/ToolWindow.h"
 #include "UndoStackScriptingInterface.h"
 
-class OffscreenGlCanvas;
+class OffscreenGLCanvas;
 class GLCanvas;
 class FaceTracker;
 class MainWindow;
@@ -420,7 +420,7 @@ private:
 
     bool _dependencyManagerIsSetup;
 
-    OffscreenGlCanvas* _offscreenContext { nullptr };
+    OffscreenGLCanvas* _offscreenContext { nullptr };
     DisplayPluginPointer _displayPlugin;
     InputPluginList _activeInputPlugins;
 
