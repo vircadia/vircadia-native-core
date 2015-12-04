@@ -200,7 +200,7 @@ void NodeList::processICEPingPacket(QSharedPointer<NLPacket> packet) {
 
 void NodeList::reset() {
     if (thread() != QThread::currentThread()) {
-        QMetaObject::invokeMethod(this, "reset");
+        QMetaObject::invokeMethod(this, "reset", Qt::BlockingQueuedConnection);
         return;
     }
 
