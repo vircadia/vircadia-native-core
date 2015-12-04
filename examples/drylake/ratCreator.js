@@ -178,7 +178,7 @@ function addAvoiderBlock(position) {
         position: position,
         collisionsWillMove: false,
         ignoreForCollisions: true,
-        visible: false
+        visible: true
     };
 
     var avoider = Entities.addEntity(avoiderProperties);
@@ -361,9 +361,11 @@ function removeRatFromScene(rat) {
 
     var index = rats.indexOf(rat);
     if (index > -1) {
+        Entities.deleteEntity(rat);
         rats.splice(index, 1);
+
     }
-    Entities.deleteEntity(rat);
+
 
 
 }
@@ -426,12 +428,18 @@ if (USE_CONSTANT_SPAWNER === true) {
         rats.push(rat);
         // print('ratCount::'+ratCount)
         ratCount++;
-        if (ratCount % 3 === 0) {
-            metaRats.push({
-                rat: rat,
-                injector: createRatSoundInjector()
-            });
+        // if (ratCount % 3 === 0) {
+        var metaRat = {
+            rat: rat,
+            injector: createRatSoundInjector()
         }
+        metaRats.push(metaRat);
+
+        Script.setTimeout(function() {
+                //if we have too many injectors hanging around there are problems
+                metaRat.injector.stop();
+            }, RAT_SPAWN_RATE * 3)
+            // }
 
     }, RAT_SPAWN_RATE);
 }
