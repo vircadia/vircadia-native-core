@@ -8,7 +8,7 @@ var USE_CONSTANT_SPAWNER = true;
 var RAT_SPAWNER_LOCATION = {
     x: 1000.5,
     y: 98,
-    z: 1039.5
+    z: 1040
 };
 
 var RAT_NEST_LOCATION = {
@@ -156,6 +156,8 @@ var THIRD_AVOIDER_FINISH_POSITION = {
     z: 974
 };
 
+cleanupLeftoverAvoidersBeforeStart();
+
 var avoiders = [];
 addAvoiderBlock(FIRST_AVOIDER_START_POSITION);
 addAvoiderBlock(SECOND_AVOIDER_START_POSITION);
@@ -178,7 +180,7 @@ function addAvoiderBlock(position) {
         position: position,
         collisionsWillMove: false,
         ignoreForCollisions: true,
-        visible: true
+        visible: false
     };
 
     var avoider = Entities.addEntity(avoiderProperties);
@@ -401,6 +403,20 @@ function getMetaRatByRat(rat) {
 
 Entities.deletingEntity.connect(popRatFromStack);
 
+
+function cleanupLeftoverAvoidersBeforeStart() {
+    print('CLEANING UP LEFTOVER AVOIDERS')
+    var nearbyEntities = Entities.findEntities(RAT_SPAWNER_LOCATION, 100);
+    var entityIndex;
+    for (entityIndex = 0; entityIndex < nearbyEntities.length; entityIndex++) {
+        var entityID = nearbyEntities[entityIndex];
+        var entityProps = Entities.getEntityProperties(entityID);
+        if (entityProps.name === 'Hifi-Rat-Avoider') {
+            Entities.deleteEntity(entityID);
+        }
+    }
+}
+
 function cleanup() {
     while (rats.length > 0) {
         Entities.deleteEntity(rats.pop());
@@ -429,17 +445,17 @@ if (USE_CONSTANT_SPAWNER === true) {
         // print('ratCount::'+ratCount)
         ratCount++;
         if (ratCount % 6 === 0) {
-        var metaRat = {
-            rat: rat,
-            injector: createRatSoundInjector()
-        }
-        metaRats.push(metaRat);
+            var metaRat = {
+                rat: rat,
+                injector: createRatSoundInjector()
+            }
+            metaRats.push(metaRat);
 
-        Script.setTimeout(function() {
+            Script.setTimeout(function() {
                 //if we have too many injectors hanging around there are problems
                 metaRat.injector.stop();
             }, RAT_SPAWN_RATE * 3)
-            }
+        }
 
     }, RAT_SPAWN_RATE);
 }
