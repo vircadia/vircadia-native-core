@@ -10,8 +10,6 @@
 
 #include <gpu/GLBackend.h>
 
-#include <QOpenGLDebugLogger>
-
 #include <QLoggingCategory>
 #include <QResizeEvent>
 #include <QTimer>
@@ -21,6 +19,9 @@
 #include <QGuiApplication>
 
 #include <gl/GLHelpers.h>
+
+#include <QOpenGLDebugLoggerWrapper.h>
+#include <QOpenGLContextWrapper.h>
 
 #include "../model/Skybox_vert.h"
 #include "../model/Skybox_frag.h"
@@ -120,7 +121,7 @@
 // Create a simple OpenGL window that renders text in various ways
 class QTestWindow : public QWindow {
     Q_OBJECT
-    QOpenGLContext* _context{ nullptr };
+    QOpenGLContextWrapper _context;
 
 protected:
     void renderText();
@@ -130,22 +131,14 @@ public:
         setSurfaceType(QSurface::OpenGLSurface);
         QSurfaceFormat format = getDefaultOpenGLSurfaceFormat();
         setFormat(format);
-        _context = new QOpenGLContext;
-        _context->setFormat(format);
-        _context->create();
+        _context.setFormat(format);
+        _context.create();
 
         show();
         makeCurrent();
 
         gpu::Context::init<gpu::GLBackend>();
-        {
-            QOpenGLDebugLogger* logger = new QOpenGLDebugLogger(this);
-            logger->initialize(); // initializes in the current context, i.e. ctx
-            logger->enableMessages();
-            connect(logger, &QOpenGLDebugLogger::messageLogged, this, [&](const QOpenGLDebugMessage & debugMessage) {
-                qDebug() << debugMessage;
-            });
-        }
+        setupDebugLogger(this);
         makeCurrent();
         resize(QSize(800, 600));
     }
@@ -155,7 +148,7 @@ public:
 
     void draw();
     void makeCurrent() {
-        _context->makeCurrent(this);
+        _context.makeCurrent(this);
     }
 };
 
@@ -248,7 +241,7 @@ void QTestWindow::draw() {
         testShaderBuild(polyvox_vert, polyvox_frag);
 
     });
-    _context->swapBuffers(this);
+    _context.swapBuffers(this);
 }
 
 void messageHandler(QtMsgType type, const QMessageLogContext& context, const QString& message) {

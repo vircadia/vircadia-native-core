@@ -33,9 +33,8 @@
 #include <gpu/StandardShaderLib.h>
 #include <gpu/GLBackend.h>
 
-// Must come after GL headers
-#include <QtGui/QOpenGLContext>
-#include <QtGui/QOpenGLDebugLogger>
+#include <QOpenGLContextWrapper.h>
+#include <QOpenGLDebugLoggerWrapper.h>
 
 #include <GLMHelpers.h>
 #include <PathUtils.h>
@@ -118,7 +117,7 @@ gpu::Stream::FormatPointer& getInstancedSolidStreamFormat();
 class QTestWindow : public QWindow {
     Q_OBJECT
 
-    QOpenGLContext* _qGlContext{ nullptr };
+    QOpenGLContextWrapper _qGlContext;
     QSize _size;
     
     gpu::ContextPointer _context;
@@ -151,19 +150,12 @@ public:
 
         setFormat(format);
 
-        _qGlContext = new QOpenGLContext;
-        _qGlContext->setFormat(format);
-        _qGlContext->create();
+        _qGlContext.setFormat(format);
+        _qGlContext.create();
 
         show();
         makeCurrent();
-        QOpenGLDebugLogger* logger = new QOpenGLDebugLogger(this);
-        logger->initialize(); // initializes in the current context, i.e. ctx
-        connect(logger, &QOpenGLDebugLogger::messageLogged, [](const QOpenGLDebugMessage& message){
-            qDebug() << message;
-        });
-        logger->startLogging(QOpenGLDebugLogger::SynchronousLogging);
-
+        setupDebugLogger(this);
 
         gpu::Context::init<gpu::GLBackend>();
         _context = std::make_shared<gpu::Context>();
@@ -371,7 +363,7 @@ public:
         geometryCache->renderWireCube(batch);
 
         _context->render(batch);
-        _qGlContext->swapBuffers(this);
+        _qGlContext.swapBuffers(this);
         
         fps.increment();
         if (fps.elapsed() >= 0.5f) {
@@ -381,7 +373,7 @@ public:
     }
     
     void makeCurrent() {
-        _qGlContext->makeCurrent(this);
+        _qGlContext.makeCurrent(this);
     }
 
 protected:
