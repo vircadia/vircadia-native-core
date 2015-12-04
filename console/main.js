@@ -5,6 +5,7 @@ var app = electron.app;  // Module to control application life.
 var BrowserWindow = require('browser-window');  // Module to create native browser window.
 var Menu = require('menu');
 var Tray = require('tray');
+var shell = require('shell').
 
 var hfprocess = require('./modules/hf-process.js');
 var Process = hfprocess.Process;
@@ -59,6 +60,12 @@ app.on('ready', function() {
         // in an array if your app supports multi windows, this is the time
         // when you should delete the corresponding element.
         mainWindow = null;
+    });
+
+    // When a link is clicked that has `_target="_blank"`, open it in the user's native browser
+    mainWindow.webContents.on('new-window', function(e, url) {
+        e.preventDefault();
+        shell.openExternal(url);
     });
 
     var pInterface = new Process('interface', 'C:\\Interface\\interface.exe');
