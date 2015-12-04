@@ -87,6 +87,11 @@ public:
         _recycler = recycler;
     }
 
+    size_t depth() {
+        Lock lock(_mutex);
+        return _submits.size();
+    }
+
     // Submit a new resource from the producer context
     // returns the number of prior submissions that were
     // never consumed before becoming available.
@@ -124,7 +129,7 @@ public:
         }
         return result;
     }
-    
+
     // If fetch returns a non-zero value, it's the responsibility of the
     // client to release it at some point
     void release(T t, GLsync readSync = 0) {
@@ -175,6 +180,7 @@ private:
 
     // May be called on any thread, but must be inside a locked section
     void pop(Deque& deque) {
+        Lock lock(_mutex);
         auto& item = deque.front();
         _trash.push_front(item);
         deque.pop_front();
