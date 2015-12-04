@@ -4777,19 +4777,18 @@ void Application::updateDisplayMode() {
         return;
     }
 
-    if (!_currentDisplayPluginActions.isEmpty()) {
+
+    if (!_pluginContainer->currentDisplayActions().isEmpty()) {
         auto menu = Menu::getInstance();
-        foreach(auto itemInfo, _currentDisplayPluginActions) {
+        foreach(auto itemInfo, _pluginContainer->currentDisplayActions()) {
             menu->removeMenuItem(itemInfo.first, itemInfo.second);
         }
-        _currentDisplayPluginActions.clear();
+        _pluginContainer->currentDisplayActions().clear();
     }
 
     if (newDisplayPlugin) {
         _offscreenContext->makeCurrent();
-        _activatingDisplayPlugin = true;
         newDisplayPlugin->activate();
-        _activatingDisplayPlugin = false;
         _offscreenContext->makeCurrent();
         offscreenUi->resize(fromGlm(newDisplayPlugin->getRecommendedUiSize()));
         _offscreenContext->makeCurrent();

@@ -19,7 +19,6 @@ public:
     virtual void customizeContext() override;
 
     virtual glm::uvec2 getRecommendedRenderSize() const override;
-
     void internalPresent() override;
 
 private:

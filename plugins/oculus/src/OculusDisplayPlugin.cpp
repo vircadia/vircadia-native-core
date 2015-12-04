@@ -144,7 +144,7 @@ static const QString MONO_PREVIEW = "Mono Preview";
 static const QString FRAMERATE = DisplayPlugin::MENU_PATH() + ">Framerate";
 
 void OculusDisplayPlugin::activate() {
-    _container->addMenuItem(MENU_PATH(), MONO_PREVIEW,
+    _container->addMenuItem(PluginType::DISPLAY_PLUGIN, MENU_PATH(), MONO_PREVIEW,
         [this](bool clicked) {
             _monoPreview = clicked;
         }, true, true);

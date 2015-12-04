@@ -2,19 +2,23 @@
 #ifndef hifi_PluginContainerProxy_h
 #define hifi_PluginContainerProxy_h
 
-#include <QObject>
-#include <QRect>
+#include <QtCore/QObject>
+#include <QtCore/QRect>
 
 #include <plugins/Forward.h>
 #include <plugins/PluginContainer.h>
+
+class QActionGroup;
 
 class PluginContainerProxy : public QObject, PluginContainer {
     Q_OBJECT
     PluginContainerProxy();
     virtual ~PluginContainerProxy();
+    virtual QVector<QPair<QString, QString>>& currentDisplayActions() override;
+    virtual QVector<QPair<QString, QString>>& currentInputActions() override;
     virtual void addMenu(const QString& menuName) override;
     virtual void removeMenu(const QString& menuName) override;
-    virtual QAction* addMenuItem(const QString& path, const QString& name, std::function<void(bool)> onClicked, bool checkable = false, bool checked = false, const QString& groupName = "") override;
+    virtual QAction* addMenuItem(PluginType type, const QString& path, const QString& name, std::function<void(bool)> onClicked, bool checkable = false, bool checked = false, const QString& groupName = "") override;
     virtual void removeMenuItem(const QString& menuName, const QString& menuItem) override;
     virtual bool isOptionChecked(const QString& name) override;
     virtual void setIsOptionChecked(const QString& path, bool checked) override;
@@ -32,8 +36,12 @@ class PluginContainerProxy : public QObject, PluginContainer {
     virtual const DisplayPlugin* getActiveDisplayPlugin() const override;
 
     QRect _savedGeometry{ 10, 120, 800, 600 };
+    std::map<QString, QActionGroup*> _exclusiveGroups;
+    QVector<QPair<QString, QString>> _currentDisplayPluginActions;
+    QVector<QPair<QString, QString>> _currentInputPluginActions;
 
     friend class Application;
+
 };
 
 #endif

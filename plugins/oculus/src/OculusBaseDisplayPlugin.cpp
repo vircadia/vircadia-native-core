@@ -68,6 +68,7 @@ void OculusBaseDisplayPlugin::deinit() {
 }
 
 void OculusBaseDisplayPlugin::activate() {
+    WindowOpenGLDisplayPlugin::activate();
 #if (OVR_MAJOR_VERSION >= 6)
     if (!OVR_SUCCESS(ovr_Initialize(nullptr))) {
         qFatal("Could not init OVR");
@@ -134,8 +135,6 @@ void OculusBaseDisplayPlugin::activate() {
         qFatal("Could not attach to sensor device");
     }
 #endif
-
-    WindowOpenGLDisplayPlugin::activate();
 }
 
 void OculusBaseDisplayPlugin::deactivate() {

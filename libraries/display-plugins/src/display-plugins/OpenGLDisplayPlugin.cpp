@@ -145,6 +145,8 @@ private:
     QGLContext* _context { nullptr };
 };
 
+bool OpenGLDisplayPlugin::_vsyncSupported = false;
+
 OpenGLDisplayPlugin::OpenGLDisplayPlugin() {
     _sceneTextureEscrow.setRecycler([this](GLuint texture){
         cleanupForSceneTexture(texture);
@@ -175,10 +177,18 @@ void OpenGLDisplayPlugin::activate() {
     // Start the present thread if necessary
     auto presentThread = DependencyManager::get<PresentThread>();
     if (!presentThread) {
+        auto widget = _container->getPrimaryWidget();
+
+        // TODO: write the proper code for linux
+#if defined(Q_OS_WIN)
+        widget->makeCurrent();
+        _vsyncSupported = wglewGetExtension("WGL_EXT_swap_control");
+        widget->doneCurrent();
+#endif
+
         DependencyManager::set<PresentThread>();
         presentThread = DependencyManager::get<PresentThread>();
         presentThread->setObjectName("Presentation Thread");
-        auto widget = _container->getPrimaryWidget();
         presentThread->setContext(widget->context());
         // Start execution
         presentThread->start();
@@ -201,10 +211,6 @@ void OpenGLDisplayPlugin::customizeContext() {
     auto presentThread = DependencyManager::get<PresentThread>();
     Q_ASSERT(thread() == presentThread->thread());
 
-    // TODO: write the proper code for linux
-#if defined(Q_OS_WIN)
-    _vsyncSupported = wglewGetExtension("WGL_EXT_swap_control");
-#endif
     enableVsync();
 
     using namespace oglplus;

@@ -36,37 +36,31 @@ void PluginContainerProxy::removeMenu(const QString& menuName) {
     Menu::getInstance()->removeMenu(menuName);
 }
 
-extern bool _activatingDisplayPlugin;
-extern QVector<QPair<QString, QString>> _currentDisplayPluginActions;
-extern QVector<QPair<QString, QString>> _currentInputPluginActions;
-std::map<QString, QActionGroup*> _exclusiveGroups;
-
-QAction* PluginContainerProxy::addMenuItem(const QString& path, const QString& name, std::function<void(bool)> onClicked, bool checkable, bool checked, const QString& groupName) {
-    //auto menu = Menu::getInstance();
-    //MenuWrapper* parentItem = menu->getMenu(path);
-    //QAction* action = menu->addActionToQMenuAndActionHash(parentItem, name);
-    //if (!groupName.isEmpty()) {
-    //    QActionGroup* group{ nullptr };
-    //    if (!_exclusiveGroups.count(groupName)) {
-    //        group = _exclusiveGroups[groupName] = new QActionGroup(menu);
-    //        group->setExclusive(true);
-    //    } else {
-    //        group = _exclusiveGroups[groupName];
-    //    }
-    //    group->addAction(action);
-    //}
-    //connect(action, &QAction::triggered, [=] {
-    //    onClicked(action->isChecked());
-    //});
-    //action->setCheckable(checkable);
-    //action->setChecked(checked);
-    //if (_activatingDisplayPlugin) {
-    //    _currentDisplayPluginActions.push_back({ path, name });
-    //} else {
-    //    _currentInputPluginActions.push_back({ path, name });
-    //}
-    //return action;
-    return nullptr;
+QAction* PluginContainerProxy::addMenuItem(PluginType type, const QString& path, const QString& name, std::function<void(bool)> onClicked, bool checkable, bool checked, const QString& groupName) {
+    auto menu = Menu::getInstance();
+    MenuWrapper* parentItem = menu->getMenu(path);
+    QAction* action = menu->addActionToQMenuAndActionHash(parentItem, name);
+    if (!groupName.isEmpty()) {
+        QActionGroup* group{ nullptr };
+        if (!_exclusiveGroups.count(groupName)) {
+            group = _exclusiveGroups[groupName] = new QActionGroup(menu);
+            group->setExclusive(true);
+        } else {
+            group = _exclusiveGroups[groupName];
+        }
+        group->addAction(action);
+    }
+    connect(action, &QAction::triggered, [=] {
+        onClicked(action->isChecked());
+    });
+    action->setCheckable(checkable);
+    action->setChecked(checked);
+    if (type == PluginType::DISPLAY_PLUGIN) {
+        _currentDisplayPluginActions.push_back({ path, name });
+    } else {
+        _currentInputPluginActions.push_back({ path, name });
+    }
+    return action;
 }
 
 void PluginContainerProxy::removeMenuItem(const QString& menuName, const QString& menuItem) {
@@ -188,5 +182,13 @@ void PluginContainerProxy::releaseSceneTexture(uint32_t texture) {
 }
 
 void PluginContainerProxy::releaseOverlayTexture(uint32_t texture) {
+    // FIXME implement present thread compositing
+}
 
+QVector<QPair<QString, QString>>& PluginContainerProxy::currentDisplayActions() {
+    return _currentDisplayPluginActions;
+}
+
+QVector<QPair<QString, QString>>& PluginContainerProxy::currentInputActions() {
+    return _currentInputPluginActions;
 }

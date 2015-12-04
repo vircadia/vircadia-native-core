@@ -427,8 +427,6 @@ private:
     InputPluginList _activeInputPlugins;
 
     bool _activatingDisplayPlugin { false };
-    QVector<QPair<QString, QString>> _currentDisplayPluginActions;
-    QVector<QPair<QString, QString>> _currentInputPluginActions;
     QMap<uint32_t, gpu::FramebufferPointer> _lockedFramebufferMap;
 
     MainWindow* _window;

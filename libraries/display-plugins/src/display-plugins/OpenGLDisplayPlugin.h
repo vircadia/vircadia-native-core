@@ -70,7 +70,6 @@ protected:
     mutable QTimer _timer;
     ProgramPtr _program;
     ShapeWrapperPtr _plane;
-    bool _vsyncSupported { false };
 
     Mutex _mutex;
     SimpleMovingAverage _usecsPerFrame { 10 };
@@ -81,6 +80,8 @@ protected:
 
     GLTextureEscrow _overlayTextureEscrow;
     GLTextureEscrow _sceneTextureEscrow;
+
+    static bool _vsyncSupported;
 };
 
 

@@ -10,6 +10,10 @@
 #include <functional>
 #include <stdint.h>
 #include <QString>
+#include <QtCore/QVector>
+#include <QtCore/QPair>
+
+#include "Forward.h"
 
 class QAction;
 class QGLWidget;
@@ -24,9 +28,11 @@ public:
     static PluginContainer& getInstance();
     PluginContainer();
     virtual ~PluginContainer();
+    virtual QVector<QPair<QString, QString>>& currentDisplayActions() = 0;
+    virtual QVector<QPair<QString, QString>>& currentInputActions() = 0;
     virtual void addMenu(const QString& menuName) = 0;
     virtual void removeMenu(const QString& menuName) = 0;
-    virtual QAction* addMenuItem(const QString& path, const QString& name, std::function<void(bool)> onClicked, bool checkable = false, bool checked = false, const QString& groupName = "") = 0;
+    virtual QAction* addMenuItem(PluginType pluginType, const QString& path, const QString& name, std::function<void(bool)> onClicked, bool checkable = false, bool checked = false, const QString& groupName = "") = 0;
     virtual void removeMenuItem(const QString& menuName, const QString& menuItem) = 0;
     virtual bool isOptionChecked(const QString& name) = 0;
     virtual void setIsOptionChecked(const QString& path, bool checked) = 0;
