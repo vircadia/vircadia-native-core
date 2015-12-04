@@ -6,9 +6,9 @@ var TWEEN = loadTween();
 var USE_CONSTANT_SPAWNER = true;
 
 var RAT_SPAWNER_LOCATION = {
-    x: 1001,
-    y: 97.5,
-    z: 1039
+    x: 1000.5,
+    y: 98,
+    z: 1039.5
 };
 
 var RAT_NEST_LOCATION = {
@@ -33,6 +33,9 @@ var RAT_IN_NEST_DISTANCE = 3;
 
 //how many milliseconds between rats
 var RAT_SPAWN_RATE = 2500;
+
+var RAT_SOUND_URL = 'http://hifi-content.s3.amazonaws.com/james/rat/sounds/rat2.wav';
+var ratRunningSound = SoundCache.getSound(RAT_SOUND_URL);
 
 function playRatRunningAnimation(rat) {
     var animationSettings = JSON.stringify({
@@ -71,9 +74,9 @@ var modelRatProperties = {
     dimensions: RAT_DIMENSIONS,
     position: RAT_SPAWNER_LOCATION,
     shapeType: 'Box',
-    damping:0.8,
-    angularDamping:0.99,
-    friction:0.75,
+    damping: 0.8,
+    angularDamping: 0.99,
+    friction: 0.75,
     // restitution:0.1,
     collisionsWillMove: true,
     ignoreForCollisions: false,
@@ -83,7 +86,7 @@ var modelRatProperties = {
         z: 0
     },
     lifetime: 30,
-   // rotation: Quat.fromPitchYawRollDegrees(0, 180, 0),
+    // rotation: Quat.fromPitchYawRollDegrees(0, 180, 0),
     //disable this if for some reason we want grabbable rats
     userData: JSON.stringify({
         grabbableKey: {
@@ -118,6 +121,8 @@ function addRat() {
 }
 
 var rats = [];
+var metaRats = [];
+var ratCount = 0;
 
 var AVOIDER_Y_HEIGHT = 99;
 var FIRST_AVOIDER_START_POSITION = {
@@ -236,6 +241,17 @@ function updateTweens() {
     TWEEN.update();
 }
 
+function createRatSoundInjector() {
+    var audioOptions = {
+        volume: 0.05,
+        loop: true
+    }
+
+    var injector = Audio.playSound(ratRunningSound, audioOptions);
+
+    return injector
+}
+
 function moveRats() {
     rats.forEach(function(rat) {
         checkDistanceFromNest(rat);
@@ -289,24 +305,33 @@ function moveRats() {
         averageVector = Vec3.multiply(averageVector, 1 / divisorCount);
         var thisRatProps = Entities.getEntityProperties(rat, ["position", "rotation"]);
 
-   
-      //  var constrainedRotation = Quat.fromVec3Degrees(eulerAngle);
+
+        //  var constrainedRotation = Quat.fromVec3Degrees(eulerAngle);
 
         //  print('CR:::'+JSON.stringify(constrainedRotation))
 
         var ratPosition = thisRatProps.position;
         var ratToNest = Vec3.subtract(RAT_NEST_LOCATION, ratPosition);
-         var ratRotation = Quat.rotationBetween(Vec3.UNIT_Z, ratToNest);
-              var eulerAngle = Quat.safeEulerAngles(ratRotation);
+        var ratRotation = Quat.rotationBetween(Vec3.UNIT_Z, ratToNest);
+        var eulerAngle = Quat.safeEulerAngles(ratRotation);
         eulerAngle.x = 0;
         eulerAngle.z = 0;
         var constrainedRotation = Quat.fromVec3Degrees(eulerAngle)
-      
+
         Entities.editEntity(rat, {
             velocity: averageVector,
             rotation: constrainedRotation,
         })
 
+        var metaRat = getMetaRatByRat(rat);
+        if (metaRat !== undefined) {
+            metaRat.injector.options = {
+                loop: true,
+                position: ratPosition
+            }
+        } else {
+            print('no meta rat for this rat')
+        }
         //  castRay(rat);
     })
 }
@@ -332,6 +357,13 @@ function removeRatFromScene(rat) {
         rats.splice(index, 1);
     }
     Entities.deleteEntity(rat);
+
+    var metaRatIndex = findWithAttr(metaRats, 'rat', rat);
+    if (metaRatIndex > -1) {
+        metaRats[index].injector.stop();
+        delete metaRats[index].injector
+        metaRats.splice(index, 1);
+    }
 }
 
 function popRatFromStack(entityID) {
@@ -339,6 +371,29 @@ function popRatFromStack(entityID) {
     if (index > -1) {
         rats.splice(index, 1);
     }
+    var metaRatIndex = findWithAttr(metaRats, 'rat', entityID);
+    if (metaRatIndex > -1) {
+        metaRats[index].injector.stop();
+        delete metaRats[index].injector
+        metaRats.splice(index, 1);
+    }
+}
+
+function findWithAttr(array, attr, value) {
+    for (var i = 0; i < array.length; i += 1) {
+        if (array[i][attr] === value) {
+            return i;
+        }
+    }
+}
+
+function getMetaRatByRat(rat) {
+    var result = metaRats.filter(function(metaRat) {
+        print('metarat:::' + metaRat)
+        return rat === metaRat.rat;
+    });
+    //  print('RESULT LENGTH:::' + result.length)
+    return result[0];
 }
 
 Entities.deletingEntity.connect(popRatFromStack);
@@ -368,6 +423,15 @@ if (USE_CONSTANT_SPAWNER === true) {
         var rat = addRat();
         playRatRunningAnimation(rat);
         rats.push(rat);
+        // print('ratCount::'+ratCount)
+        ratCount++;
+        if (ratCount % 3 === 0) {
+            metaRats.push({
+                rat: rat,
+                injector: createRatSoundInjector()
+            });
+        }
+
     }, RAT_SPAWN_RATE);
 }
 
