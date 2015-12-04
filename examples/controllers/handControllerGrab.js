@@ -37,6 +37,7 @@ var BUMPER_ON_VALUE = 0.5;
 var DISTANCE_HOLDING_RADIUS_FACTOR = 3.5; // multiplied by distance between hand and object
 var DISTANCE_HOLDING_ACTION_TIMEFRAME = 0.1; // how quickly objects move to their new position
 var DISTANCE_HOLDING_ROTATION_EXAGGERATION_FACTOR = 2.0; // object rotates this much more than hand did
+var MOVE_WITH_HEAD = false; // experimental head-controll of distantly held objects
 
 var NO_INTERSECT_COLOR = {
     red: 10,
@@ -658,6 +659,7 @@ function MyController(hand) {
         this.currentObjectTime = now;
         this.handRelativePreviousPosition = Vec3.subtract(handControllerPosition, MyAvatar.position);
         this.handPreviousRotation = handRotation;
+        this.currentCameraOrientation = Camera.orientation;
 
         // compute a constant based on the initial conditions which we use below to exagerate hand motion onto the held object
         this.radiusScalar = Math.log(Vec3.distance(this.currentObjectPosition, handControllerPosition) + 1.0);
@@ -784,6 +786,16 @@ function MyController(hand) {
         this.currentObjectRotation = Quat.multiply(handChange, this.currentObjectRotation);
 
         Entities.callEntityMethod(this.grabbedEntity, "continueDistantGrab");
+
+        // mix in head motion
+        if (MOVE_WITH_HEAD) {
+            var objDistance = Vec3.length(objectToAvatar);
+            var before = Vec3.multiplyQbyV(this.currentCameraOrientation, { x: 0.0, y: 0.0, z: objDistance });
+            var after = Vec3.multiplyQbyV(Camera.orientation, { x: 0.0, y: 0.0, z: objDistance });
+            var change = Vec3.subtract(before, after);
+            this.currentCameraOrientation = Camera.orientation;
+            this.currentObjectPosition = Vec3.sum(this.currentObjectPosition, change);
+        }
 
         Entities.updateAction(this.grabbedEntity, this.actionID, {
             targetPosition: this.currentObjectPosition,
