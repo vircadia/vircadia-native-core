@@ -104,7 +104,7 @@ function arrive(thisEntity, target) {
   var velocity = properties.velocity;
   var MAX_SPEED = 10;
   var MAX_FORCE = 6;
-  var ARRIVAL_DISTANCE = 5;
+  var ARRIVAL_DISTANCE = 2;
 
   var desired = Vec3.subtract(targetPosition, location);
   var d = Vec3.length(desired);

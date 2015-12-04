@@ -29,7 +29,7 @@ var RAT_WALKING_ANIMATION_URL = 'http://hifi-content.s3.amazonaws.com/james/rat/
 var RAT_RUNNING_ANIMATION_URL = 'http://hifi-content.s3.amazonaws.com/james/rat/animations/run.fbx';
 var RAT_DEATH_ANIMATION_URL = 'http://hifi-content.s3.amazonaws.com/james/rat/animations/death.fbx';
 
-var RAT_IN_NEST_DISTANCE = 3;
+var RAT_IN_NEST_DISTANCE = 4;
 
 //how many milliseconds between rats
 var RAT_SPAWN_RATE = 2500;
