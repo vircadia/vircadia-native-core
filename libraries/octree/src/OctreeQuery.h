@@ -35,10 +35,10 @@ typedef unsigned long long quint64;
 
 // First bitset
 const int WANT_LOW_RES_MOVING_BIT = 0;
-const int UNUSED_BIT_1 = 1; // unused... available for new feature
+const int WANT_COLOR_AT_BIT = 1;
 const int WANT_DELTA_AT_BIT = 2;
-const int UNUSED_BIT_3 = 3; // unused... available for new feature
-const int UNUSED_BIT_4 = 4; // 5th bit, unused... available for new feature
+const int WANT_OCCLUSION_CULLING_BIT = 3;
+const int WANT_COMPRESSION = 4; // 5th bit
 
 class OctreeQuery : public NodeData {
     Q_OBJECT
@@ -71,15 +71,21 @@ public:
     void setCameraEyeOffsetPosition(const glm::vec3& eyeOffsetPosition) { _cameraEyeOffsetPosition = eyeOffsetPosition; }
 
     // related to Octree Sending strategies
+    bool getWantColor() const { return _wantColor; }
     bool getWantDelta() const { return _wantDelta; }
     bool getWantLowResMoving() const { return _wantLowResMoving; }
+    bool getWantOcclusionCulling() const { return _wantOcclusionCulling; }
+    bool getWantCompression() const { return _wantCompression; }
     int getMaxQueryPacketsPerSecond() const { return _maxQueryPPS; }
     float getOctreeSizeScale() const { return _octreeElementSizeScale; }
     int getBoundaryLevelAdjust() const { return _boundaryLevelAdjust; }
 
 public slots:
     void setWantLowResMoving(bool wantLowResMoving) { _wantLowResMoving = wantLowResMoving; }
+    void setWantColor(bool wantColor) { _wantColor = wantColor; }
     void setWantDelta(bool wantDelta) { _wantDelta = wantDelta; }
+    void setWantOcclusionCulling(bool wantOcclusionCulling) { _wantOcclusionCulling = wantOcclusionCulling; }
+    void setWantCompression(bool wantCompression) { _wantCompression = wantCompression; }
     void setMaxQueryPacketsPerSecond(int maxQueryPPS) { _maxQueryPPS = maxQueryPPS; }
     void setOctreeSizeScale(float octreeSizeScale) { _octreeElementSizeScale = octreeSizeScale; }
     void setBoundaryLevelAdjust(int boundaryLevelAdjust) { _boundaryLevelAdjust = boundaryLevelAdjust; }
@@ -95,8 +101,11 @@ protected:
     glm::vec3 _cameraEyeOffsetPosition = glm::vec3(0.0f);
 
     // octree server sending items
+    bool _wantColor = true;
     bool _wantDelta = true;
     bool _wantLowResMoving = true;
+    bool _wantOcclusionCulling = false;
+    bool _wantCompression = false;
     int _maxQueryPPS = DEFAULT_MAX_OCTREE_PPS;
     float _octreeElementSizeScale = DEFAULT_OCTREE_SIZE_SCALE; /// used for LOD calculations
     int _boundaryLevelAdjust = 0; /// used for LOD calculations

@@ -41,7 +41,10 @@ int OctreeQuery::getBroadcastData(unsigned char* destinationBuffer) {
     // bitMask of less than byte wide items
     unsigned char bitItems = 0;
     if (_wantLowResMoving)     { setAtBit(bitItems, WANT_LOW_RES_MOVING_BIT); }
+    if (_wantColor)            { setAtBit(bitItems, WANT_COLOR_AT_BIT); }
     if (_wantDelta)            { setAtBit(bitItems, WANT_DELTA_AT_BIT); }
+    if (_wantOcclusionCulling) { setAtBit(bitItems, WANT_OCCLUSION_CULLING_BIT); }
+    if (_wantCompression)      { setAtBit(bitItems, WANT_COMPRESSION); }
 
     *destinationBuffer++ = bitItems;
 
@@ -81,7 +84,10 @@ int OctreeQuery::parseData(NLPacket& packet) {
     unsigned char bitItems = 0;
     bitItems = (unsigned char)*sourceBuffer++;
     _wantLowResMoving = oneAtBit(bitItems, WANT_LOW_RES_MOVING_BIT);
+    _wantColor = oneAtBit(bitItems, WANT_COLOR_AT_BIT);
     _wantDelta = oneAtBit(bitItems, WANT_DELTA_AT_BIT);
+    _wantOcclusionCulling = oneAtBit(bitItems, WANT_OCCLUSION_CULLING_BIT);
+    _wantCompression = oneAtBit(bitItems, WANT_COMPRESSION);
 
     // desired Max Octree PPS
     memcpy(&_maxQueryPPS, sourceBuffer, sizeof(_maxQueryPPS));

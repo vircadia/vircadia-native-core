@@ -321,6 +321,8 @@ int OctreeSendThread::packetDistributor(OctreeQueryNode* nodeData, bool viewFrus
     // If we're starting a fresh packet, then...
     //     If we're moving, and the client asked for low res, then we force monochrome, otherwise, use
     //     the clients requested color state.
+    bool wantColor = nodeData->getWantColor();
+    bool wantCompression = nodeData->getWantCompression();
 
     // If we have a packet waiting, and our desired want color, doesn't match the current waiting packets color
     // then let's just send that waiting packet.
@@ -331,8 +333,10 @@ int OctreeSendThread::packetDistributor(OctreeQueryNode* nodeData, bool viewFrus
             nodeData->resetOctreePacket();
         }
         int targetSize = MAX_OCTREE_PACKET_DATA_SIZE;
-        targetSize = nodeData->getAvailable() - sizeof(OCTREE_PACKET_INTERNAL_SECTION_SIZE);
-        _packetData.changeSettings(targetSize);
+        if (wantCompression) {
+            targetSize = nodeData->getAvailable() - sizeof(OCTREE_PACKET_INTERNAL_SECTION_SIZE);
+        }
+        _packetData.changeSettings(wantCompression, targetSize);
     }
 
     const ViewFrustum* lastViewFrustum =  wantDelta ? &nodeData->getLastKnownViewFrustum() : NULL;
@@ -346,6 +350,7 @@ int OctreeSendThread::packetDistributor(OctreeQueryNode* nodeData, bool viewFrus
             if (nodeData->moveShouldDump() || nodeData->hasLodChanged()) {
                 nodeData->dumpOutOfView();
             }
+            nodeData->map.erase();
         }
 
         if (!viewFrustumChanged && !nodeData->getWantDelta()) {
@@ -446,15 +451,18 @@ int OctreeSendThread::packetDistributor(OctreeQueryNode* nodeData, bool viewFrus
                     }
                     */
 
+                    bool wantOcclusionCulling = nodeData->getWantOcclusionCulling();
+                    CoverageMap* coverageMap = wantOcclusionCulling ? &nodeData->map : IGNORE_COVERAGE_MAP;
+
                     float octreeSizeScale = nodeData->getOctreeSizeScale();
                     int boundaryLevelAdjustClient = nodeData->getBoundaryLevelAdjust();
 
                     int boundaryLevelAdjust = boundaryLevelAdjustClient + (viewFrustumChanged && nodeData->getWantLowResMoving()
                                                                            ? LOW_RES_MOVING_ADJUST : NO_BOUNDARY_ADJUST);
 
-                    EncodeBitstreamParams params(INT_MAX, &nodeData->getCurrentViewFrustum(), 
+                    EncodeBitstreamParams params(INT_MAX, &nodeData->getCurrentViewFrustum(), wantColor,
                                                  WANT_EXISTS_BITS, DONT_CHOP, wantDelta, lastViewFrustum,
-                                                 boundaryLevelAdjust, octreeSizeScale,
+                                                 wantOcclusionCulling, coverageMap, boundaryLevelAdjust, octreeSizeScale,
                                                  nodeData->getLastTimeBagEmpty(),
                                                  isFullScene, &nodeData->stats, _myServer->getJurisdiction(),
                                                  &nodeData->extraEncodeData);
@@ -548,7 +556,10 @@ int OctreeSendThread::packetDistributor(OctreeQueryNode* nodeData, bool viewFrus
                     packetsSentThisInterval += handlePacketSend(nodeData, trueBytesSent, truePacketsSent);
                     quint64 packetSendingEnd = usecTimestampNow();
                     packetSendingElapsedUsec = (float)(packetSendingEnd - packetSendingStart);
-                    targetSize = nodeData->getAvailable() - sizeof(OCTREE_PACKET_INTERNAL_SECTION_SIZE);
+
+                    if (wantCompression) {
+                        targetSize = nodeData->getAvailable() - sizeof(OCTREE_PACKET_INTERNAL_SECTION_SIZE);
+                    }
                 } else {
                     // If we're in compressed mode, then we want to see if we have room for more in this wire packet.
                     // but we've finalized the _packetData, so we want to start a new section, we will do that by
@@ -558,7 +569,7 @@ int OctreeSendThread::packetDistributor(OctreeQueryNode* nodeData, bool viewFrus
                     // a larger compressed size then uncompressed size
                     targetSize = nodeData->getAvailable() - sizeof(OCTREE_PACKET_INTERNAL_SECTION_SIZE) - COMPRESS_PADDING;
                 }
-                _packetData.changeSettings(targetSize); // will do reset
+                _packetData.changeSettings(nodeData->getWantCompression(), targetSize); // will do reset
 
             }
             OctreeServer::trackTreeWaitTime(lockWaitElapsedUsec);
@@ -623,6 +634,7 @@ int OctreeSendThread::packetDistributor(OctreeQueryNode* nodeData, bool viewFrus
         if (nodeData->elementBag.isEmpty()) {
             nodeData->updateLastKnownViewFrustum();
             nodeData->setViewSent(true);
+            nodeData->map.erase(); // It would be nice if we could save this, and only reset it when the view frustum changes
         }
 
     } // end if bag wasn't empty, and so we sent stuff...
