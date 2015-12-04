@@ -14,6 +14,7 @@
 
 #include <iostream>
 
+#include <CoverageMap.h>
 #include <NodeData.h>
 #include <OctreeConstants.h>
 #include <OctreeElementBag.h>
@@ -54,6 +55,7 @@ public:
     void setMaxLevelReached(int maxLevelReached) { _maxLevelReachedInLastSearch = maxLevelReached; }
 
     OctreeElementBag elementBag;
+    CoverageMap map;
     OctreeElementExtraEncodeData extraEncodeData;
 
     ViewFrustum& getCurrentViewFrustum() { return _currentViewFrustum; }
@@ -77,7 +79,9 @@ public:
 
     bool getCurrentPacketIsColor() const { return _currentPacketIsColor; }
     bool getCurrentPacketIsCompressed() const { return _currentPacketIsCompressed; }
-    bool getCurrentPacketFormatMatches() { return (getCurrentPacketIsCompressed() == true); } // FIXME
+    bool getCurrentPacketFormatMatches() {
+        return (getCurrentPacketIsColor() == getWantColor() && getCurrentPacketIsCompressed() == getWantCompression());
+    }
 
     bool hasLodChanged() const { return _lodChanged; }
 

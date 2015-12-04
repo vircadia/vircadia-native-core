@@ -89,7 +89,7 @@ public:
     void existsInPacketBitsWritten();
 
     /// Fix up tracking statistics in case where bitmasks were removed for some reason
-    void childBitsRemoved(bool includesExistsBits);
+    void childBitsRemoved(bool includesExistsBits, bool includesColors);
 
     /// Pack the details of the statistics into a buffer for sending as a network packet
     int packIntoPacket();

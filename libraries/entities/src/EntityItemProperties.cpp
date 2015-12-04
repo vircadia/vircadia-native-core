@@ -790,9 +790,7 @@ void EntityItemProperties::entityPropertyFlagsFromScriptValue(const QScriptValue
 //
 bool EntityItemProperties::encodeEntityEditPacket(PacketType command, EntityItemID id, const EntityItemProperties& properties,
                                                   QByteArray& buffer) {
-
-    // FIXME - remove non-compressed OctreePacketData and handle compressed edit packets
-    OctreePacketData ourDataPacket(buffer.size(), false); // create a packetData object to add out packet details too.
+    OctreePacketData ourDataPacket(false, buffer.size()); // create a packetData object to add out packet details too.
     OctreePacketData* packetData = &ourDataPacket; // we want a pointer to this so we can use our APPEND_ENTITY_PROPERTY macro
 
     bool success = true; // assume the best

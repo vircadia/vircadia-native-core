@@ -371,12 +371,14 @@ void OctreeSceneStats::existsInPacketBitsWritten() {
     _existsInPacketBitsWritten++;
 }
 
-void OctreeSceneStats::childBitsRemoved(bool includesExistsBits) {
+void OctreeSceneStats::childBitsRemoved(bool includesExistsBits, bool includesColors) {
     _existsInPacketBitsWritten--;
     if (includesExistsBits) {
         _existsBitsWritten--;
     }
-    _colorBitsWritten--;
+    if (includesColors) {
+        _colorBitsWritten--;
+    }
     _treesRemoved++;
 }
 
