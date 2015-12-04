@@ -4,6 +4,7 @@ var extend = require('extend');
 var util = require('util');
 var events = require('events');
 var childProcess = require('child_process');
+var fs = require('fs');
 
 const ProcessGroupStates = {
     STOPPED: 'stopped',
@@ -95,10 +96,25 @@ Process.prototype = extend(Process.prototype, {
         }
         console.log("Starting " + this.command);
         try {
+            var time = (new Date).getTime();
+            console.log('time', time);
+            var tmpLogStdout = './logs/' + this.name + "-" + time + "-stdout.txt";
+            var tmpLogStderr = './logs/' + this.name + "-" + time + "-stderr.txt";
+
+            var logStdout = fs.openSync(tmpLogStdout, 'ax');
+            var logStderr = fs.openSync(tmpLogStderr, 'ax');
+
             this.child = childProcess.spawn(this.command, this.commandArgs, {
-                detached: false
+                detached: false,
+                stdio: ['ignore', logStdout, logStderr]
             });
-            //console.log("started ", this.child);
+
+            var pidLogStdout = './logs/' + this.name + "-" + this.child.pid + "-stdout.txt";
+            var pidLogStderr = './logs/' + this.name + "-" + this.child.pid + "-stderr.txt";
+
+            fs.rename(tmpLogStdout, pidLogStdout, function(e) { });
+            fs.rename(tmpLogStderr, pidLogStderr, function(e) { });
+
             this.child.on('error', this.onChildStartError.bind(this));
             this.child.on('close', this.onChildClose.bind(this));
             this.state = ProcessStates.STARTED;

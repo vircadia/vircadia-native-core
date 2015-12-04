@@ -71,12 +71,13 @@ app.on('ready', function() {
     var acPath = 'C:\\Users\\Ryan\\AppData\\Local\\High Fidelity\\Stack Manager\\assignment-client.exe';
 
     var homeServer = new ProcessGroup('home', [
-        new Process('Domain Server', domainServerPath),
-        new Process('AC - Audio', acPath, ['-t0']),
-        new Process('AC - Avatar', acPath, ['-t1']),
-        new Process('AC - Asset', acPath, ['-t3']),
-        new Process('AC - Messages', acPath, ['-t4']),
-        new Process('AC - Entity', acPath, ['-t6'])
+        new Process('domain_server', domainServerPath),
+        new Process('ac_audio', acPath, ['-t0']),
+        new Process('ac_avatar', acPath, ['-t1']),
+        new Process('ac_agent', acPath, ['-t2']),
+        new Process('ac_asset', acPath, ['-t3']),
+        new Process('ac_messages', acPath, ['-t4']),
+        new Process('ac_entity', acPath, ['-t6'])
     ]);
     homeServer.start();
 
