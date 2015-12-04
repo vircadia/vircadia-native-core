@@ -34,9 +34,9 @@ Antialiasing::Antialiasing() {
 
 const gpu::PipelinePointer& Antialiasing::getAntialiasingPipeline() {
     if (!_antialiasingPipeline) {
-        auto vs = gpu::ShaderPointer(gpu::Shader::createVertex(std::string(fxaa_vert)));
-        auto ps = gpu::ShaderPointer(gpu::Shader::createPixel(std::string(fxaa_frag)));
-        gpu::ShaderPointer program = gpu::ShaderPointer(gpu::Shader::createProgram(vs, ps));
+        auto vs = gpu::Shader::createVertex(std::string(fxaa_vert));
+        auto ps = gpu::Shader::createPixel(std::string(fxaa_frag));
+        gpu::ShaderPointer program = gpu::Shader::createProgram(vs, ps);
 
         gpu::Shader::BindingSet slotBindings;
         slotBindings.insert(gpu::Shader::Binding(std::string("colorTexture"), 0));
@@ -59,7 +59,7 @@ const gpu::PipelinePointer& Antialiasing::getAntialiasingPipeline() {
         _antialiasingTexture = gpu::TexturePointer(gpu::Texture::create2D(format, width, height, defaultSampler));
 
         // Good to go add the brand new pipeline
-        _antialiasingPipeline.reset(gpu::Pipeline::create(program, state));
+        _antialiasingPipeline = gpu::Pipeline::create(program, state);
     }
 
     int w = DependencyManager::get<FramebufferCache>()->getFrameBufferSize().width();
@@ -73,9 +73,9 @@ const gpu::PipelinePointer& Antialiasing::getAntialiasingPipeline() {
 
 const gpu::PipelinePointer& Antialiasing::getBlendPipeline() {
     if (!_blendPipeline) {
-        auto vs = gpu::ShaderPointer(gpu::Shader::createVertex(std::string(fxaa_vert)));
-        auto ps = gpu::ShaderPointer(gpu::Shader::createPixel(std::string(fxaa_blend_frag)));
-        gpu::ShaderPointer program = gpu::ShaderPointer(gpu::Shader::createProgram(vs, ps));
+        auto vs = gpu::Shader::createVertex(std::string(fxaa_vert));
+        auto ps = gpu::Shader::createPixel(std::string(fxaa_blend_frag));
+        gpu::ShaderPointer program = gpu::Shader::createProgram(vs, ps);
 
         gpu::Shader::BindingSet slotBindings;
         slotBindings.insert(gpu::Shader::Binding(std::string("colorTexture"), 0));
@@ -87,7 +87,7 @@ const gpu::PipelinePointer& Antialiasing::getBlendPipeline() {
         state->setDepthTest(false, false, gpu::LESS_EQUAL);
 
         // Good to go add the brand new pipeline
-        _blendPipeline.reset(gpu::Pipeline::create(program, state));
+        _blendPipeline = gpu::Pipeline::create(program, state);
     }
     return _blendPipeline;
 }

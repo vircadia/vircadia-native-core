@@ -108,10 +108,10 @@ public:
         PROGRAM,
     };
 
-    static Shader* createVertex(const Source& source);
-    static Shader* createPixel(const Source& source);
+    static Pointer createVertex(const Source& source);
+    static Pointer createPixel(const Source& source);
 
-    static Shader* createProgram(Pointer& vertexShader, Pointer& pixelShader);
+    static Pointer createProgram(Pointer& vertexShader, Pointer& pixelShader);
 
 
     ~Shader();

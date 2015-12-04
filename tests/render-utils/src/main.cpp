@@ -170,9 +170,9 @@ static const glm::vec3 COLORS[4] = { { 1.0, 1.0, 1.0 }, { 0.5, 1.0, 0.5 }, {
 
 
 void testShaderBuild(const char* vs_src, const char * fs_src) {
-    auto vs = gpu::ShaderPointer(gpu::Shader::createVertex(std::string(vs_src)));
-    auto fs = gpu::ShaderPointer(gpu::Shader::createPixel(std::string(fs_src)));
-    auto pr = gpu::ShaderPointer(gpu::Shader::createProgram(vs, fs));
+    auto vs = gpu::Shader::createVertex(std::string(vs_src));
+    auto fs = gpu::Shader::createPixel(std::string(fs_src));
+    auto pr = gpu::Shader::createProgram(vs, fs);
     gpu::Shader::makeProgram(*pr);
 }
 
