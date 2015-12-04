@@ -35,6 +35,10 @@ typedef unsigned long long quint64;
 
 // First bitset
 const int WANT_LOW_RES_MOVING_BIT = 0;
+const int WANT_COLOR_AT_BIT = 1;
+const int WANT_DELTA_AT_BIT = 2;
+const int UNUSED_BIT_3 = 3; // unused... available for new feature
+const int WANT_COMPRESSION = 4; // 5th bit
 
 class OctreeQuery : public NodeData {
     Q_OBJECT

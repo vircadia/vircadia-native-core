@@ -40,9 +40,15 @@ int OctreeQuery::getBroadcastData(unsigned char* destinationBuffer) {
 
     // bitMask of less than byte wide items
     unsigned char bitItems = 0;
-    // NOTE: we used to use these bits to set feature request items
-    // if we need to extend the protocol with optional features 
-    // do it here with... setAtBit(bitItems, WANT_FEATURE_BIT);
+
+    // NOTE: we need to keep these here for new clients to talk to old servers. After we know that the clients and
+    // servers and clients have all been updated we could remove these bits. New servers will always force these
+    // features on old clients even if they don't ask for them. (which old clients will properly handle). New clients
+    // will always ask for these so that old servers will use these features.
+    setAtBit(bitItems, WANT_LOW_RES_MOVING_BIT);
+    setAtBit(bitItems, WANT_COLOR_AT_BIT);
+    setAtBit(bitItems, WANT_DELTA_AT_BIT);
+    setAtBit(bitItems, WANT_COMPRESSION);
 
     *destinationBuffer++ = bitItems;
 
