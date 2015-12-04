@@ -330,7 +330,7 @@ function moveRats() {
                 position: ratPosition
             }
         } else {
-            print('no meta rat for this rat')
+            //   print('no meta rat for this rat')
         }
         //  castRay(rat);
     })
@@ -352,11 +352,6 @@ function checkDistanceFromNest(rat) {
 }
 
 function removeRatFromScene(rat) {
-    var index = rats.indexOf(rat);
-    if (index > -1) {
-        rats.splice(index, 1);
-    }
-    Entities.deleteEntity(rat);
 
     var metaRatIndex = findWithAttr(metaRats, 'rat', rat);
     if (metaRatIndex > -1) {
@@ -364,19 +359,29 @@ function removeRatFromScene(rat) {
         delete metaRats[index].injector
         metaRats.splice(index, 1);
     }
-}
 
-function popRatFromStack(entityID) {
-    var index = rats.indexOf(entityID);
+    var index = rats.indexOf(rat);
     if (index > -1) {
         rats.splice(index, 1);
     }
+    Entities.deleteEntity(rat);
+
+
+}
+
+function popRatFromStack(entityID) {
     var metaRatIndex = findWithAttr(metaRats, 'rat', entityID);
     if (metaRatIndex > -1) {
         metaRats[index].injector.stop();
         delete metaRats[index].injector
         metaRats.splice(index, 1);
     }
+
+    var index = rats.indexOf(entityID);
+    if (index > -1) {
+        rats.splice(index, 1);
+    }
+
 }
 
 function findWithAttr(array, attr, value) {
@@ -389,10 +394,8 @@ function findWithAttr(array, attr, value) {
 
 function getMetaRatByRat(rat) {
     var result = metaRats.filter(function(metaRat) {
-        print('metarat:::' + metaRat)
         return rat === metaRat.rat;
     });
-    //  print('RESULT LENGTH:::' + result.length)
     return result[0];
 }
 
