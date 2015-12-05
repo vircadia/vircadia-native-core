@@ -24,20 +24,38 @@
 
 using namespace render;
 
-const gpu::PipelinePointer& DebugDeferredBuffer::getPipeline() {
-    if (!_pipeline) {
+static const std::string PLACEHOLDER { "DEBUG_PLACEHOLDER" };
+static const std::array<std::string, DebugDeferredBuffer::NUM_SLOTS> SLOT_NAMES {{
+    "diffuseMap",
+    "normalMap",
+    "specularMap",
+    "depthMap",
+    "lightingMap"
+}};
+
+std::string getCode(int slot) {
+    return std::string("return texture(").append(SLOT_NAMES[slot]).append(", uv);");
+}
+
+const gpu::PipelinePointer& DebugDeferredBuffer::getPipeline(int slot) {
+    if (!_pipelines[slot]) {
+        std::string fragmentShader = debug_deferred_buffer_frag;
+        fragmentShader.replace(fragmentShader.find(PLACEHOLDER), PLACEHOLDER.size(), getCode(slot));
+        
         auto vs = gpu::ShaderPointer(gpu::Shader::createVertex({ debug_deferred_buffer_vert }));
-        auto ps = gpu::ShaderPointer(gpu::Shader::createPixel({ debug_deferred_buffer_frag }));
+        auto ps = gpu::ShaderPointer(gpu::Shader::createPixel(fragmentShader));
         auto program = gpu::ShaderPointer(gpu::Shader::createProgram(vs, ps));
         
-        
         gpu::Shader::BindingSet slotBindings;
+        for (int slot = 0; slot < NUM_SLOTS; ++slot) {
+            slotBindings.insert(gpu::Shader::Binding(SLOT_NAMES[slot], slot));
+        }
         gpu::Shader::makeProgram(*program, slotBindings);
         
         // Good to go add the brand new pipeline
-        _pipeline = gpu::Pipeline::create(program, std::make_shared<gpu::State>());
+        _pipelines[slot] = gpu::Pipeline::create(program, std::make_shared<gpu::State>());
     }
-    return _pipeline;
+    return _pipelines[slot];
 }
 
 
@@ -58,9 +76,13 @@ void DebugDeferredBuffer::run(const SceneContextPointer& sceneContext, const Ren
         batch.setViewTransform(viewMat);
         batch.setModelTransform(Transform());
         
-        batch.setPipeline(getPipeline());
+        batch.setPipeline(getPipeline((DebugDeferredBufferSlot)(renderContext->_drawDebugDeferredBuffer - 1)));
         
-        batch.setResourceTexture(0, framebufferCache->getDeferredColorTexture());
+        batch.setResourceTexture(Diffuse, framebufferCache->getDeferredColorTexture());
+        batch.setResourceTexture(Normal, framebufferCache->getDeferredNormalTexture());
+        batch.setResourceTexture(Specular, framebufferCache->getDeferredSpecularTexture());
+        batch.setResourceTexture(Depth, framebufferCache->getPrimaryDepthTexture());
+        batch.setResourceTexture(Lighting, framebufferCache->getLightingTexture());
         
         glm::vec4 color(0.0f, 0.0f, 1.0f, 1.0f);
         glm::vec2 bottomLeft(0.0f, -1.0f);

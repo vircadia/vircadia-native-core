@@ -17,6 +17,10 @@
 in vec2 uv;
 out vec4 outFragColor;
 
+vec4 getFragmentColor() {
+    DEBUG_PLACEHOLDER
+}
+
 void main(void) {
-    outFragColor = texture(diffuseMap, uv);
+    outFragColor = getFragmentColor();
 }

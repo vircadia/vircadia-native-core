@@ -10,6 +10,9 @@
 
 Script.include("cookies.js");
 
+var MENU = "Developer>Render>Debug Deferred Buffer";
+var ACTIONS = ["Off", "Diffuse", "Normal", "Specular", "Depth", "Lighting"];
+
 var panel = new Panel(10, 100);
 
 function CounterWidget(parentPanel, name, feedGetter, drawGetter, capSetter, capGetter) {
@@ -61,16 +64,17 @@ var overlaysCounter = new CounterWidget(panel, "Overlays",
     function () { return Scene.getEngineMaxDrawnOverlay3DItems(); }
 );
 
+function menuItemEvent(menuItem) {
+    var index = ACTIONS.indexOf(menuItem);
+    if (index >= 0) {
+        Scene.setEngineDisplayDebugDeferredBuffer(index);
+        print(menuItem);
+    }
+}
 
 // see libraries/render/src/render/Engine.h
 var showDisplayStatusFlag = 1;
 var showNetworkStatusFlag = 2;
-
-panel.newCheckbox("Debug deferred buffer",
-    function(value) { Scene.setEngineDisplayDebugDeferredBuffer(value > 0); },
-    function() { return Scene.doEngineDisplayDebugDeferredBuffer() > 0; },
-    function(value) { return value > 0; }
-);
 
 panel.newCheckbox("Display status",
     function(value) { Scene.setEngineDisplayItemStatus(value ?
@@ -101,7 +105,11 @@ Controller.mouseMoveEvent.connect(function panelMouseMoveEvent(event) { return p
 Controller.mousePressEvent.connect( function panelMousePressEvent(event) { return panel.mousePressEvent(event); });
 Controller.mouseReleaseEvent.connect(function(event) { return panel.mouseReleaseEvent(event); });
 
+Menu.menuItemEvent.connect(menuItemEvent);
+Menu.addActionGroup(MENU, ACTIONS, ACTIONS[0]);
+
 function scriptEnding() {
     panel.destroy();
+    Menu.removeActionGroup(MENU);
 }
 Script.scriptEnding.connect(scriptEnding);
