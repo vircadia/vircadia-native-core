@@ -857,18 +857,12 @@ QVector<glm::quat> Avatar::getJointRotations() const {
 }
 
 glm::quat Avatar::getJointRotation(int index) const {
-    if (QThread::currentThread() != thread()) {
-        return AvatarData::getJointRotation(index);
-    }
     glm::quat rotation;
     _skeletonModel.getJointRotation(index, rotation);
     return rotation;
 }
 
 glm::vec3 Avatar::getJointTranslation(int index) const {
-    if (QThread::currentThread() != thread()) {
-        return AvatarData::getJointTranslation(index);
-    }
     glm::vec3 translation;
     _skeletonModel.getJointTranslation(index, translation);
     return translation;
