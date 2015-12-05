@@ -121,7 +121,7 @@ void Stats::updateStats(bool force) {
     STAT_UPDATE(serverCount, nodeList->size());
     STAT_UPDATE(renderrate, (int)qApp->getFps());
     if (qApp->getActiveDisplayPlugin()) {
-        STAT_UPDATE(presentrate, (int)qApp->getActiveDisplayPlugin()->presentRate());
+        STAT_UPDATE(presentrate, (int)round(qApp->getActiveDisplayPlugin()->presentRate()));
     } else {
         STAT_UPDATE(presentrate, -1);
     }
