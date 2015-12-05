@@ -106,7 +106,10 @@ public:
     Q_INVOKABLE int getEngineMaxDrawnTransparentItems() { return _maxDrawnTransparentItems; }
     Q_INVOKABLE void setEngineMaxDrawnOverlay3DItems(int count) { _maxDrawnOverlay3DItems = count; }
     Q_INVOKABLE int getEngineMaxDrawnOverlay3DItems() { return _maxDrawnOverlay3DItems; }
-
+    
+    Q_INVOKABLE void setEngineDisplayDebugDeferredBuffer(int display) { _drawDebugDeferredBuffer = display; }
+    Q_INVOKABLE int doEngineDisplayDebugDeferredBuffer() { return _drawDebugDeferredBuffer; }
+    
     Q_INVOKABLE void setEngineDisplayItemStatus(int display) { _drawItemStatus = display; }
     Q_INVOKABLE int doEngineDisplayItemStatus() { return _drawItemStatus; }
 
@@ -142,7 +145,8 @@ protected:
     int _maxDrawnOpaqueItems = -1;
     int _maxDrawnTransparentItems = -1;
     int _maxDrawnOverlay3DItems = -1;
-
+    
+    int _drawDebugDeferredBuffer = 0;
     int _drawItemStatus = 0;
 
     bool _drawHitEffect = false;

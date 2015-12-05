@@ -374,9 +374,9 @@ void DeferredLightingEffect::prepare(RenderArgs* args) {
         batch.enableStereo(false);
         batch.setStateScissorRect(args->_viewport);
 
-        auto primaryFbo = DependencyManager::get<FramebufferCache>()->getPrimaryFramebuffer();
+        auto deferredFbo = DependencyManager::get<FramebufferCache>()->getDeferredFramebuffer();
 
-        batch.setFramebuffer(primaryFbo);
+        batch.setFramebuffer(deferredFbo);
         // clear the normal and specular buffers
         batch.clearColorFramebuffer(gpu::Framebuffer::BUFFER_COLOR1, glm::vec4(0.0f, 0.0f, 0.0f, 0.0f), true);
         const float MAX_SPECULAR_EXPONENT = 128.0f;
@@ -412,9 +412,9 @@ void DeferredLightingEffect::render(RenderArgs* args) {
         batch.clearColorFramebuffer(lightingFBO->getBufferMask(), glm::vec4(0.0f, 0.0f, 0.0f, 0.0f), true);
 
         // BInd the G-Buffer surfaces
-        batch.setResourceTexture(0, framebufferCache->getPrimaryColorTexture());
-        batch.setResourceTexture(1, framebufferCache->getPrimaryNormalTexture());
-        batch.setResourceTexture(2, framebufferCache->getPrimarySpecularTexture());
+        batch.setResourceTexture(0, framebufferCache->getDeferredColorTexture());
+        batch.setResourceTexture(1, framebufferCache->getDeferredNormalTexture());
+        batch.setResourceTexture(2, framebufferCache->getDeferredSpecularTexture());
         batch.setResourceTexture(3, framebufferCache->getPrimaryDepthTexture());
 
         // THe main viewport is assumed to be the mono viewport (or the 2 stereo faces side by side within that viewport)

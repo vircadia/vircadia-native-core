@@ -29,13 +29,17 @@ public:
 
     /// Returns a pointer to the primary framebuffer object.  This render target includes a depth component, and is
     /// used for scene rendering.
-    gpu::FramebufferPointer getPrimaryFramebuffer();
     gpu::FramebufferPointer getPrimaryFramebufferDepthColor();
 
     gpu::TexturePointer getPrimaryDepthTexture();
     gpu::TexturePointer getPrimaryColorTexture();
-    gpu::TexturePointer getPrimaryNormalTexture();
-    gpu::TexturePointer getPrimarySpecularTexture();
+
+    gpu::FramebufferPointer getDeferredFramebuffer();
+    gpu::FramebufferPointer getDeferredFramebufferDepthColor();
+
+    gpu::TexturePointer getDeferredColorTexture();
+    gpu::TexturePointer getDeferredNormalTexture();
+    gpu::TexturePointer getDeferredSpecularTexture();
 
     
     gpu::TexturePointer getLightingTexture();
@@ -60,13 +64,17 @@ private:
 
     void createPrimaryFramebuffer();
 
-    gpu::FramebufferPointer _primaryFramebufferFull;
     gpu::FramebufferPointer _primaryFramebufferDepthColor;
 
     gpu::TexturePointer _primaryDepthTexture;
     gpu::TexturePointer _primaryColorTexture;
-    gpu::TexturePointer _primaryNormalTexture;
-    gpu::TexturePointer _primarySpecularTexture;
+
+    gpu::FramebufferPointer _deferredFramebuffer;
+    gpu::FramebufferPointer _deferredFramebufferDepthColor;
+
+    gpu::TexturePointer _deferredColorTexture;
+    gpu::TexturePointer _deferredNormalTexture;
+    gpu::TexturePointer _deferredSpecularTexture;
 
     gpu::TexturePointer _lightingTexture;
     gpu::FramebufferPointer _lightingFramebuffer;
