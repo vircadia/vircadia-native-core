@@ -34,7 +34,7 @@ class AvatarMixerClientData : public NodeData {
     Q_OBJECT
 public:
     int parseData(NLPacket& packet);
-    AvatarData& getAvatar() { return _avatar; }
+    AvatarData& getAvatar() { return *_avatar; }
 
     bool checkAndSetHasReceivedFirstPacketsFrom(const QUuid& uuid);
 
@@ -80,7 +80,7 @@ public:
 
     void loadJSONStats(QJsonObject& jsonObject) const;
 private:
-    AvatarData _avatar;
+    AvatarSharedPointer _avatar { new AvatarData() };
 
     uint16_t _lastReceivedSequenceNumber { 0 };
     std::unordered_map<QUuid, uint16_t> _lastBroadcastSequenceNumbers;
