@@ -107,8 +107,10 @@ public:
     Q_INVOKABLE void setEngineMaxDrawnOverlay3DItems(int count) { _maxDrawnOverlay3DItems = count; }
     Q_INVOKABLE int getEngineMaxDrawnOverlay3DItems() { return _maxDrawnOverlay3DItems; }
     
-    Q_INVOKABLE void setEngineDisplayDebugDeferredBuffer(int display) { _drawDebugDeferredBuffer = display; }
-    Q_INVOKABLE int doEngineDisplayDebugDeferredBuffer() { return _drawDebugDeferredBuffer; }
+    Q_INVOKABLE void setEngineDeferredDebugMode(int mode) { _deferredDebugMode = mode; }
+    Q_INVOKABLE int getEngineDeferredDebugMode() { return _deferredDebugMode; }
+    Q_INVOKABLE void setEngineDeferredDebugSize(glm::vec4 size) { _deferredDebugSize = size; }
+    Q_INVOKABLE glm::vec4 getEngineDeferredDebugSize() { return _deferredDebugSize; }
     
     Q_INVOKABLE void setEngineDisplayItemStatus(int display) { _drawItemStatus = display; }
     Q_INVOKABLE int doEngineDisplayItemStatus() { return _drawItemStatus; }
@@ -146,7 +148,8 @@ protected:
     int _maxDrawnTransparentItems = -1;
     int _maxDrawnOverlay3DItems = -1;
     
-    int _drawDebugDeferredBuffer = 0;
+    int _deferredDebugMode = -1;
+    glm::vec4 _deferredDebugSize { 0.0f, -1.0f, 1.0f, 1.0f };
     int _drawItemStatus = 0;
 
     bool _drawHitEffect = false;

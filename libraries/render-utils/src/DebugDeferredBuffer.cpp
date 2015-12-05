@@ -43,7 +43,8 @@ static const std::array<std::string, Slots::NUM_SLOTS> SLOT_NAMES {{
     "lightingMap"
 }};
 
-static const std::string PLACEHOLDER { "DEBUG_PLACEHOLDER" };
+static const std::string COMPUTE_PLACEHOLDER { "/*COMPUTE_PLACEHOLDER*/" }; // required
+static const std::string FUNCTIONS_PLACEHOLDER { "/*FUNCTIONS_PLACEHOLDER*/" }; // optional
 
 std::string DebugDeferredBuffer::getCode(Modes mode) {
     switch (mode) {
@@ -86,7 +87,8 @@ std::string DebugDeferredBuffer::getCode(Modes mode) {
 const gpu::PipelinePointer& DebugDeferredBuffer::getPipeline(Modes mode) {
     if (!_pipelines[mode]) {
         std::string fragmentShader = debug_deferred_buffer_frag;
-        fragmentShader.replace(fragmentShader.find(PLACEHOLDER), PLACEHOLDER.size(), getCode(mode));
+        fragmentShader.replace(fragmentShader.find(COMPUTE_PLACEHOLDER), COMPUTE_PLACEHOLDER.size(),
+                               getCode(mode));
         
         auto vs = gpu::ShaderPointer(gpu::Shader::createVertex({ debug_deferred_buffer_vert }));
         auto ps = gpu::ShaderPointer(gpu::Shader::createPixel(fragmentShader));
@@ -122,7 +124,7 @@ void DebugDeferredBuffer::run(const SceneContextPointer& sceneContext, const Ren
         batch.setViewTransform(viewMat);
         batch.setModelTransform(Transform());
         
-        batch.setPipeline(getPipeline(Modes(renderContext->_drawDebugDeferredBuffer - 1)));
+        batch.setPipeline(getPipeline(Modes(renderContext->_deferredDebugMode)));
         
         batch.setResourceTexture(Diffuse, framebufferCache->getDeferredColorTexture());
         batch.setResourceTexture(Normal, framebufferCache->getDeferredNormalTexture());
@@ -130,9 +132,9 @@ void DebugDeferredBuffer::run(const SceneContextPointer& sceneContext, const Ren
         batch.setResourceTexture(Depth, framebufferCache->getPrimaryDepthTexture());
         batch.setResourceTexture(Lighting, framebufferCache->getLightingTexture());
         
-        glm::vec4 color(0.0f, 0.0f, 1.0f, 1.0f);
-        glm::vec2 bottomLeft(0.0f, -1.0f);
-        glm::vec2 topRight(1.0f, 1.0f);
+        glm::vec4 color(1.0f, 1.0f, 1.0f, 1.0f);
+        glm::vec2 bottomLeft(renderContext->_deferredDebugSize.x, renderContext->_deferredDebugSize.y);
+        glm::vec2 topRight(renderContext->_deferredDebugSize.z, renderContext->_deferredDebugSize.w);
         geometryBuffer->renderQuad(batch, bottomLeft, topRight, color);
     });
 }

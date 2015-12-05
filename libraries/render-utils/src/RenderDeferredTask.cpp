@@ -157,7 +157,7 @@ void RenderDeferredTask::run(const SceneContextPointer& sceneContext, const Rend
     }
 
     // Make sure we turn the deferred buffer debug on/off
-    setDrawDebugDeferredBuffer(renderContext->_drawDebugDeferredBuffer);
+    setDrawDebugDeferredBuffer(renderContext->_deferredDebugMode);
     
     // Make sure we turn the displayItemStatus on/off
     setDrawItemStatus(renderContext->_drawItemStatus);

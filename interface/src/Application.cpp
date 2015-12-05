@@ -3622,7 +3622,8 @@ void Application::displaySide(RenderArgs* renderArgs, Camera& theCamera, bool se
         renderContext._maxDrawnTransparentItems = sceneInterface->getEngineMaxDrawnTransparentItems();
         renderContext._maxDrawnOverlay3DItems = sceneInterface->getEngineMaxDrawnOverlay3DItems();
         
-        renderContext._drawDebugDeferredBuffer = sceneInterface->doEngineDisplayDebugDeferredBuffer();
+        renderContext._deferredDebugMode = sceneInterface->getEngineDeferredDebugMode();
+        renderContext._deferredDebugSize = sceneInterface->getEngineDeferredDebugSize();
         
         renderContext._drawItemStatus = sceneInterface->doEngineDisplayItemStatus();
         if (Menu::getInstance()->isOptionChecked(MenuOption::PhysicsShowOwned)) {
