@@ -39,7 +39,7 @@ ShaderPointer StandardShaderLib::getProgram(GetShader getVS, GetShader getPS) {
     } else {
         auto vs = (getVS)();
         auto ps = (getPS)();
-        auto program = gpu::ShaderPointer(gpu::Shader::createProgram(vs, ps));
+        auto program = gpu::Shader::createProgram(vs, ps);
         if (program) {
             // Program created, let's try to make it
             if (gpu::Shader::makeProgram((*program))) {
@@ -59,42 +59,42 @@ ShaderPointer StandardShaderLib::getProgram(GetShader getVS, GetShader getPS) {
 
 ShaderPointer StandardShaderLib::getDrawUnitQuadTexcoordVS() {
     if (!_drawUnitQuadTexcoordVS) {
-        _drawUnitQuadTexcoordVS = gpu::ShaderPointer(gpu::Shader::createVertex(std::string(DrawUnitQuadTexcoord_vert)));
+        _drawUnitQuadTexcoordVS = gpu::Shader::createVertex(std::string(DrawUnitQuadTexcoord_vert));
     }
     return _drawUnitQuadTexcoordVS;
 }
 
 ShaderPointer StandardShaderLib::getDrawTransformUnitQuadVS() {
     if (!_drawTransformUnitQuadVS) {
-        _drawTransformUnitQuadVS = gpu::ShaderPointer(gpu::Shader::createVertex(std::string(DrawTransformUnitQuad_vert)));
+        _drawTransformUnitQuadVS = gpu::Shader::createVertex(std::string(DrawTransformUnitQuad_vert));
     }
     return _drawTransformUnitQuadVS;
 }
 
 ShaderPointer StandardShaderLib::getDrawTexcoordRectTransformUnitQuadVS() {
     if (!_drawTexcoordRectTransformUnitQuadVS) {
-        _drawTexcoordRectTransformUnitQuadVS = gpu::ShaderPointer(gpu::Shader::createVertex(std::string(DrawTexcoordRectTransformUnitQuad_vert)));
+        _drawTexcoordRectTransformUnitQuadVS = gpu::Shader::createVertex(std::string(DrawTexcoordRectTransformUnitQuad_vert));
     }
     return _drawTexcoordRectTransformUnitQuadVS;
 }
 
 ShaderPointer StandardShaderLib::getDrawViewportQuadTransformTexcoordVS() {
     if (!_drawViewportQuadTransformTexcoordVS) {
-        _drawViewportQuadTransformTexcoordVS = gpu::ShaderPointer(gpu::Shader::createVertex(std::string(DrawViewportQuadTransformTexcoord_vert)));
+        _drawViewportQuadTransformTexcoordVS = gpu::Shader::createVertex(std::string(DrawViewportQuadTransformTexcoord_vert));
     }
     return _drawViewportQuadTransformTexcoordVS;
 }
 
 ShaderPointer StandardShaderLib::getDrawTexturePS() {
     if (!_drawTexturePS) {
-        _drawTexturePS = gpu::ShaderPointer(gpu::Shader::createPixel(std::string(DrawTexture_frag)));
+        _drawTexturePS = gpu::Shader::createPixel(std::string(DrawTexture_frag));
     }
     return _drawTexturePS;
 }
 
 ShaderPointer StandardShaderLib::getDrawTextureOpaquePS() {
     if (!_drawTextureOpaquePS) {
-        _drawTextureOpaquePS = gpu::ShaderPointer(gpu::Shader::createPixel(std::string(DrawTextureOpaque_frag)));
+        _drawTextureOpaquePS = gpu::Shader::createPixel(std::string(DrawTextureOpaque_frag));
     }
     return _drawTextureOpaquePS;
 }
@@ -103,7 +103,7 @@ ShaderPointer StandardShaderLib::getDrawTextureOpaquePS() {
 
 ShaderPointer StandardShaderLib::getDrawColoredTexturePS() {
     if (!_drawColoredTexturePS) {
-        _drawColoredTexturePS = gpu::ShaderPointer(gpu::Shader::createPixel(std::string(DrawColoredTexture_frag)));
+        _drawColoredTexturePS = gpu::Shader::createPixel(std::string(DrawColoredTexture_frag));
     }
     return _drawColoredTexturePS;
 }

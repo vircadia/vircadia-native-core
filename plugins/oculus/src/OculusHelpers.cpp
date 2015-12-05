@@ -11,7 +11,6 @@
 
 namespace Oculus {
     ovrHmd _hmd;
-    unsigned int _frameIndex{ 0 };
     ovrEyeRenderDesc _eyeRenderDescs[2];
     ovrPosef _eyePoses[2];
     ovrVector3f _eyeOffsets[2];

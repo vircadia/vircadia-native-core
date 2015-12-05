@@ -29,7 +29,6 @@
 #include "avatar/AvatarManager.h"
 #include "devices/DdeFaceTracker.h"
 #include "devices/Faceshift.h"
-#include "devices/RealSense.h"
 #include "input-plugins/SpacemouseManager.h"
 #include "MainWindow.h"
 #include "scripting/MenuScriptingInterface.h"
@@ -433,8 +432,6 @@ Menu::Menu() {
     addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::AvatarReceiveStats, 0, false,
                                            avatarManager.data(), SLOT(setShouldShowReceiveStats(bool)));
 
-    addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::RenderSkeletonCollisionShapes);
-    addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::RenderHeadCollisionShapes);
     addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::RenderBoundingCollisionShapes);
     addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::RenderLookAtVectors, 0, false);
     addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::RenderLookAtTargets, 0, false);
@@ -461,12 +458,6 @@ Menu::Menu() {
 
     MenuWrapper* leapOptionsMenu = handOptionsMenu->addMenu("Leap Motion");
     addCheckableActionToQMenuAndActionHash(leapOptionsMenu, MenuOption::LeapMotionOnHMD, 0, false);
-
-#ifdef HAVE_RSSDK
-    MenuWrapper* realSenseOptionsMenu = handOptionsMenu->addMenu("RealSense");
-    addActionToQMenuAndActionHash(realSenseOptionsMenu, MenuOption::LoadRSSDKFile, 0,
-                                  RealSense::getInstance(), SLOT(loadRSSDKFile()));
-#endif
 
     MenuWrapper* networkMenu = developerMenu->addMenu("Network");
     addActionToQMenuAndActionHash(networkMenu, MenuOption::ReloadContent, 0, qApp, SLOT(reloadResourceCaches()));

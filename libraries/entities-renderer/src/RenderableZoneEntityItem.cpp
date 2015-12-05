@@ -26,7 +26,9 @@
 static const float SPHERE_ENTITY_SCALE = 0.5f;
 
 EntityItemPointer RenderableZoneEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
-    return std::make_shared<RenderableZoneEntityItem>(entityID, properties);
+    EntityItemPointer entity{ new RenderableZoneEntityItem(entityID) };
+    entity->setProperties(properties);
+    return entity;
 }
 
 template<typename Lambda>
@@ -115,7 +117,7 @@ void RenderableZoneEntityItem::render(RenderArgs* args) {
                     render::PendingChanges pendingChanges;
                     _model->removeFromScene(scene, pendingChanges);
                     render::Item::Status::Getters statusGetters;
-                    makeEntityItemStatusGetters(shared_from_this(), statusGetters);
+                    makeEntityItemStatusGetters(getThisPointer(), statusGetters);
                     _model->addToScene(scene, pendingChanges, false);
                     
                     scene->enqueuePendingChanges(pendingChanges);
@@ -209,7 +211,7 @@ bool RenderableZoneEntityItem::addToScene(EntityItemPointer self, std::shared_pt
     auto renderPayload = std::make_shared<RenderableZoneEntityItemMeta::Payload>(renderData);
 
     render::Item::Status::Getters statusGetters;
-    makeEntityItemStatusGetters(shared_from_this(), statusGetters);
+    makeEntityItemStatusGetters(getThisPointer(), statusGetters);
     renderPayload->addStatusGetters(statusGetters);
 
     pendingChanges.resetItem(_myMetaItem, renderPayload);

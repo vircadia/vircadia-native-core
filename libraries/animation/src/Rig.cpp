@@ -14,6 +14,8 @@
 #include <glm/gtx/vector_angle.hpp>
 #include <queue>
 #include <QScriptValueIterator>
+#include <QWriteLocker>
+#include <QReadLocker>
 
 #include <NumericalConstants.h>
 #include <DebugDraw.h>
@@ -158,10 +160,10 @@ void Rig::destroyAnimGraph() {
     _animSkeleton.reset();
     _animLoader.reset();
     _animNode.reset();
-    _relativePoses.clear();
-    _absolutePoses.clear();
-    _overridePoses.clear();
-    _overrideFlags.clear();
+    _internalPoseSet._relativePoses.clear();
+    _internalPoseSet._absolutePoses.clear();
+    _internalPoseSet._overridePoses.clear();
+    _internalPoseSet._overrideFlags.clear();
 }
 
 void Rig::initJointStates(const FBXGeometry& geometry, const glm::mat4& modelOffset) {
@@ -173,16 +175,16 @@ void Rig::initJointStates(const FBXGeometry& geometry, const glm::mat4& modelOff
 
     computeEyesInRootFrame(_animSkeleton->getRelativeDefaultPoses());
 
-    _relativePoses.clear();
-    _relativePoses = _animSkeleton->getRelativeDefaultPoses();
+    _internalPoseSet._relativePoses.clear();
+    _internalPoseSet._relativePoses = _animSkeleton->getRelativeDefaultPoses();
 
-    buildAbsoluteRigPoses(_relativePoses, _absolutePoses);
+    buildAbsoluteRigPoses(_internalPoseSet._relativePoses, _internalPoseSet._absolutePoses);
 
-    _overridePoses.clear();
-    _overridePoses = _animSkeleton->getRelativeDefaultPoses();
+    _internalPoseSet._overridePoses.clear();
+    _internalPoseSet._overridePoses = _animSkeleton->getRelativeDefaultPoses();
 
-    _overrideFlags.clear();
-    _overrideFlags.resize(_animSkeleton->getNumJoints(), false);
+    _internalPoseSet._overrideFlags.clear();
+    _internalPoseSet._overrideFlags.resize(_animSkeleton->getNumJoints(), false);
 
     buildAbsoluteRigPoses(_animSkeleton->getRelativeDefaultPoses(), _absoluteDefaultPoses);
 
@@ -201,16 +203,16 @@ void Rig::reset(const FBXGeometry& geometry) {
 
     computeEyesInRootFrame(_animSkeleton->getRelativeDefaultPoses());
 
-    _relativePoses.clear();
-    _relativePoses = _animSkeleton->getRelativeDefaultPoses();
+    _internalPoseSet._relativePoses.clear();
+    _internalPoseSet._relativePoses = _animSkeleton->getRelativeDefaultPoses();
 
-    buildAbsoluteRigPoses(_relativePoses, _absolutePoses);
+    buildAbsoluteRigPoses(_internalPoseSet._relativePoses, _internalPoseSet._absolutePoses);
 
-    _overridePoses.clear();
-    _overridePoses = _animSkeleton->getRelativeDefaultPoses();
+    _internalPoseSet._overridePoses.clear();
+    _internalPoseSet._overridePoses = _animSkeleton->getRelativeDefaultPoses();
 
-    _overrideFlags.clear();
-    _overrideFlags.resize(_animSkeleton->getNumJoints(), false);
+    _internalPoseSet._overrideFlags.clear();
+    _internalPoseSet._overrideFlags.resize(_animSkeleton->getNumJoints(), false);
 
     buildAbsoluteRigPoses(_animSkeleton->getRelativeDefaultPoses(), _absoluteDefaultPoses);
 
@@ -228,11 +230,11 @@ void Rig::reset(const FBXGeometry& geometry) {
 }
 
 bool Rig::jointStatesEmpty() {
-    return _relativePoses.empty();
+    return _internalPoseSet._relativePoses.empty();
 }
 
 int Rig::getJointStateCount() const {
-    return _relativePoses.size();
+    return _internalPoseSet._relativePoses.size();
 }
 
 int Rig::indexOfJoint(const QString& jointName) const {
@@ -262,7 +264,7 @@ void Rig::setModelOffset(const glm::mat4& modelOffsetMat) {
 
 bool Rig::getJointStateRotation(int index, glm::quat& rotation) const {
     if (isIndexValid(index)) {
-        rotation = _relativePoses[index].rot;
+        rotation = _internalPoseSet._relativePoses[index].rot;
         return !isEqual(rotation, _animSkeleton->getRelativeDefaultPose(index).rot);
     } else {
         return false;
@@ -271,7 +273,7 @@ bool Rig::getJointStateRotation(int index, glm::quat& rotation) const {
 
 bool Rig::getJointStateTranslation(int index, glm::vec3& translation) const {
     if (isIndexValid(index)) {
-        translation = _relativePoses[index].trans;
+        translation = _internalPoseSet._relativePoses[index].trans;
         return !isEqual(translation, _animSkeleton->getRelativeDefaultPose(index).trans);
     } else {
         return false;
@@ -280,46 +282,46 @@ bool Rig::getJointStateTranslation(int index, glm::vec3& translation) const {
 
 void Rig::clearJointState(int index) {
     if (isIndexValid(index)) {
-        _overrideFlags[index] = false;
+        _internalPoseSet._overrideFlags[index] = false;
     }
 }
 
 void Rig::clearJointStates() {
-    _overrideFlags.clear();
-    _overrideFlags.resize(_animSkeleton->getNumJoints());
+    _internalPoseSet._overrideFlags.clear();
+    _internalPoseSet._overrideFlags.resize(_animSkeleton->getNumJoints());
 }
 
 void Rig::clearJointAnimationPriority(int index) {
     if (isIndexValid(index)) {
-        _overrideFlags[index] = false;
+        _internalPoseSet._overrideFlags[index] = false;
     }
 }
 
 void Rig::setJointTranslation(int index, bool valid, const glm::vec3& translation, float priority) {
     if (isIndexValid(index)) {
         if (valid) {
-            assert(_overrideFlags.size() == _overridePoses.size());
-            _overrideFlags[index] = true;
-            _overridePoses[index].trans = translation;
+            assert(_internalPoseSet._overrideFlags.size() == _internalPoseSet._overridePoses.size());
+            _internalPoseSet._overrideFlags[index] = true;
+            _internalPoseSet._overridePoses[index].trans = translation;
         }
     }
 }
 
 void Rig::setJointState(int index, bool valid, const glm::quat& rotation, const glm::vec3& translation, float priority) {
     if (isIndexValid(index)) {
-        assert(_overrideFlags.size() == _overridePoses.size());
-        _overrideFlags[index] = true;
-        _overridePoses[index].rot = rotation;
-        _overridePoses[index].trans = translation;
+        assert(_internalPoseSet._overrideFlags.size() == _internalPoseSet._overridePoses.size());
+        _internalPoseSet._overrideFlags[index] = true;
+        _internalPoseSet._overridePoses[index].rot = rotation;
+        _internalPoseSet._overridePoses[index].trans = translation;
     }
 }
 
 void Rig::setJointRotation(int index, bool valid, const glm::quat& rotation, float priority) {
     if (isIndexValid(index)) {
         if (valid) {
-            ASSERT(_overrideFlags.size() == _overridePoses.size());
-            _overrideFlags[index] = true;
-            _overridePoses[index].rot = rotation;
+            ASSERT(_internalPoseSet._overrideFlags.size() == _internalPoseSet._overridePoses.size());
+            _internalPoseSet._overrideFlags[index] = true;
+            _internalPoseSet._overridePoses[index].rot = rotation;
         }
     }
 }
@@ -336,7 +338,7 @@ void Rig::restoreJointTranslation(int index, float fraction, float priority) {
 
 bool Rig::getJointPositionInWorldFrame(int jointIndex, glm::vec3& position, glm::vec3 translation, glm::quat rotation) const {
     if (isIndexValid(jointIndex)) {
-        position = (rotation * _absolutePoses[jointIndex].trans) + translation;
+        position = (rotation * _internalPoseSet._absolutePoses[jointIndex].trans) + translation;
         return true;
     } else {
         return false;
@@ -345,7 +347,7 @@ bool Rig::getJointPositionInWorldFrame(int jointIndex, glm::vec3& position, glm:
 
 bool Rig::getJointPosition(int jointIndex, glm::vec3& position) const {
     if (isIndexValid(jointIndex)) {
-        position = _absolutePoses[jointIndex].trans;
+        position = _internalPoseSet._absolutePoses[jointIndex].trans;
         return true;
     } else {
         return false;
@@ -354,7 +356,7 @@ bool Rig::getJointPosition(int jointIndex, glm::vec3& position) const {
 
 bool Rig::getJointRotationInWorldFrame(int jointIndex, glm::quat& result, const glm::quat& rotation) const {
     if (isIndexValid(jointIndex)) {
-        result = rotation * _absolutePoses[jointIndex].rot;
+        result = rotation * _internalPoseSet._absolutePoses[jointIndex].rot;
         return true;
     } else {
         return false;
@@ -362,8 +364,9 @@ bool Rig::getJointRotationInWorldFrame(int jointIndex, glm::quat& result, const 
 }
 
 bool Rig::getJointRotation(int jointIndex, glm::quat& rotation) const {
-    if (isIndexValid(jointIndex)) {
-        rotation = _relativePoses[jointIndex].rot;
+    QReadLocker readLock(&_externalPoseSetLock);
+    if (jointIndex >= 0 && jointIndex < (int)_externalPoseSet._relativePoses.size()) {
+        rotation = _externalPoseSet._relativePoses[jointIndex].rot;
         return true;
     } else {
         return false;
@@ -371,8 +374,9 @@ bool Rig::getJointRotation(int jointIndex, glm::quat& rotation) const {
 }
 
 bool Rig::getJointTranslation(int jointIndex, glm::vec3& translation) const {
-    if (isIndexValid(jointIndex)) {
-        translation = _relativePoses[jointIndex].trans;
+    QReadLocker readLock(&_externalPoseSetLock);
+    if (jointIndex >= 0 && jointIndex < (int)_externalPoseSet._relativePoses.size()) {
+        translation = _externalPoseSet._relativePoses[jointIndex].trans;
         return true;
     } else {
         return false;
@@ -708,21 +712,27 @@ void Rig::updateAnimations(float deltaTime, glm::mat4 rootTransform) {
 
         // evaluate the animation
         AnimNode::Triggers triggersOut;
-        _relativePoses = _animNode->evaluate(_animVars, deltaTime, triggersOut);
-        if ((int)_relativePoses.size() != _animSkeleton->getNumJoints()) {
+        _internalPoseSet._relativePoses = _animNode->evaluate(_animVars, deltaTime, triggersOut);
+        if ((int)_internalPoseSet._relativePoses.size() != _animSkeleton->getNumJoints()) {
             // animations haven't fully loaded yet.
-            _relativePoses = _animSkeleton->getRelativeDefaultPoses();
+            _internalPoseSet._relativePoses = _animSkeleton->getRelativeDefaultPoses();
         }
         _animVars.clearTriggers();
         for (auto& trigger : triggersOut) {
             _animVars.setTrigger(trigger);
         }
 
-        computeEyesInRootFrame(_relativePoses);
+        computeEyesInRootFrame(_internalPoseSet._relativePoses);
     }
 
     applyOverridePoses();
-    buildAbsoluteRigPoses(_relativePoses, _absolutePoses);
+    buildAbsoluteRigPoses(_internalPoseSet._relativePoses, _internalPoseSet._absolutePoses);
+
+    // copy internal poses to external poses
+    {
+        QWriteLocker writeLock(&_externalPoseSetLock);
+        _externalPoseSet = _internalPoseSet;
+    }
 }
 
 void Rig::inverseKinematics(int endIndex, glm::vec3 targetPosition, const glm::quat& targetRotation, float priority,
@@ -884,7 +894,7 @@ void Rig::updateEyeJoint(int index, const glm::vec3& modelTranslation, const glm
     if (isIndexValid(index)) {
         glm::mat4 rigToWorld = createMatFromQuatAndPos(modelRotation, modelTranslation);
         glm::mat4 worldToRig = glm::inverse(rigToWorld);
-        glm::vec3 zAxis = glm::normalize(_absolutePoses[index].trans - transformPoint(worldToRig, lookAtSpot));
+        glm::vec3 zAxis = glm::normalize(_internalPoseSet._absolutePoses[index].trans - transformPoint(worldToRig, lookAtSpot));
         glm::quat q = rotationBetween(IDENTITY_FRONT, zAxis);
 
         // limit rotation
@@ -892,7 +902,7 @@ void Rig::updateEyeJoint(int index, const glm::vec3& modelTranslation, const glm
         q = glm::angleAxis(glm::clamp(glm::angle(q), -MAX_ANGLE, MAX_ANGLE), glm::axis(q));
 
         // directly set absolutePose rotation
-        _absolutePoses[index].rot = q;
+        _internalPoseSet._absolutePoses[index].rot = q;
     }
 }
 
@@ -989,13 +999,13 @@ void Rig::applyOverridePoses() {
         return;
     }
 
-    ASSERT(_animSkeleton->getNumJoints() == (int)_relativePoses.size());
-    ASSERT(_animSkeleton->getNumJoints() == (int)_overrideFlags.size());
-    ASSERT(_animSkeleton->getNumJoints() == (int)_overridePoses.size());
+    ASSERT(_animSkeleton->getNumJoints() == (int)_internalPoseSet._relativePoses.size());
+    ASSERT(_animSkeleton->getNumJoints() == (int)_internalPoseSet._overrideFlags.size());
+    ASSERT(_animSkeleton->getNumJoints() == (int)_internalPoseSet._overridePoses.size());
 
-    for (size_t i = 0; i < _overrideFlags.size(); i++) {
-        if (_overrideFlags[i]) {
-            _relativePoses[i] = _overridePoses[i];
+    for (size_t i = 0; i < _internalPoseSet._overrideFlags.size(); i++) {
+        if (_internalPoseSet._overrideFlags[i]) {
+            _internalPoseSet._relativePoses[i] = _internalPoseSet._overridePoses[i];
         }
     }
 }
@@ -1020,14 +1030,14 @@ void Rig::buildAbsoluteRigPoses(const AnimPoseVec& relativePoses, AnimPoseVec& a
 
     // transform all absolute poses into rig space.
     AnimPose geometryToRigTransform(_geometryToRigTransform);
-    for (int i = 0; i < (int)_absolutePoses.size(); i++) {
+    for (int i = 0; i < (int)absolutePosesOut.size(); i++) {
         absolutePosesOut[i] = geometryToRigTransform * absolutePosesOut[i];
     }
 }
 
 glm::mat4 Rig::getJointTransform(int jointIndex) const {
     if (isIndexValid(jointIndex)) {
-        return _absolutePoses[jointIndex];
+        return _internalPoseSet._absolutePoses[jointIndex];
     } else {
         return glm::mat4();
     }

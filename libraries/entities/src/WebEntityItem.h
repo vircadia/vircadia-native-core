@@ -17,12 +17,12 @@ public:
 
     static EntityItemPointer factory(const EntityItemID& entityID, const EntityItemProperties& properties);
 
-    WebEntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties);
+    WebEntityItem(const EntityItemID& entityItemID);
     
     ALLOW_INSTANTIATION // This class can be instantiated
 
     /// set dimensions in domain scale units (0.0 - 1.0) this will also reset radius appropriately
-    virtual void setDimensions(const glm::vec3& value);
+    virtual void setDimensions(const glm::vec3 value);
     virtual ShapeType getShapeType() const { return SHAPE_TYPE_BOX; }
     
     // methods for getting/setting all properties of an entity

@@ -18,8 +18,6 @@
 class GLCanvas : public GLWidget {
     Q_OBJECT
 protected:
-    virtual void paintGL() override;
-    virtual void resizeGL(int width, int height) override;
     virtual bool event(QEvent* event) override;
 };
 

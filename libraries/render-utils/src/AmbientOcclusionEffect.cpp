@@ -37,9 +37,9 @@ AmbientOcclusion::AmbientOcclusion() {
 
 const gpu::PipelinePointer& AmbientOcclusion::getOcclusionPipeline() {
     if (!_occlusionPipeline) {
-        auto vs = gpu::ShaderPointer(gpu::Shader::createVertex(std::string(ambient_occlusion_vert)));
-        auto ps = gpu::ShaderPointer(gpu::Shader::createPixel(std::string(ambient_occlusion_frag)));
-        gpu::ShaderPointer program = gpu::ShaderPointer(gpu::Shader::createProgram(vs, ps));
+        auto vs = gpu::Shader::createVertex(std::string(ambient_occlusion_vert));
+        auto ps = gpu::Shader::createPixel(std::string(ambient_occlusion_frag));
+        gpu::ShaderPointer program = gpu::Shader::createProgram(vs, ps);
 
         gpu::Shader::BindingSet slotBindings;
         slotBindings.insert(gpu::Shader::Binding(std::string("depthTexture"), 0));
@@ -78,16 +78,16 @@ const gpu::PipelinePointer& AmbientOcclusion::getOcclusionPipeline() {
         _occlusionTexture = gpu::TexturePointer(gpu::Texture::create2D(format, width, height, defaultSampler));
 
         // Good to go add the brand new pipeline
-        _occlusionPipeline.reset(gpu::Pipeline::create(program, state));
+        _occlusionPipeline = gpu::Pipeline::create(program, state);
     }
     return _occlusionPipeline;
 }
 
 const gpu::PipelinePointer& AmbientOcclusion::getVBlurPipeline() {
     if (!_vBlurPipeline) {
-        auto vs = gpu::ShaderPointer(gpu::Shader::createVertex(std::string(gaussian_blur_vertical_vert)));
-        auto ps = gpu::ShaderPointer(gpu::Shader::createPixel(std::string(gaussian_blur_frag)));
-        gpu::ShaderPointer program = gpu::ShaderPointer(gpu::Shader::createProgram(vs, ps));
+        auto vs = gpu::Shader::createVertex(std::string(gaussian_blur_vertical_vert));
+        auto ps = gpu::Shader::createPixel(std::string(gaussian_blur_frag));
+        gpu::ShaderPointer program = gpu::Shader::createProgram(vs, ps);
 
         gpu::Shader::BindingSet slotBindings;
         gpu::Shader::makeProgram(*program, slotBindings);
@@ -111,16 +111,16 @@ const gpu::PipelinePointer& AmbientOcclusion::getVBlurPipeline() {
         _vBlurTexture = gpu::TexturePointer(gpu::Texture::create2D(format, width, height, defaultSampler));
 
         // Good to go add the brand new pipeline
-        _vBlurPipeline.reset(gpu::Pipeline::create(program, state));
+        _vBlurPipeline = gpu::Pipeline::create(program, state);
     }
     return _vBlurPipeline;
 }
 
 const gpu::PipelinePointer& AmbientOcclusion::getHBlurPipeline() {
     if (!_hBlurPipeline) {
-        auto vs = gpu::ShaderPointer(gpu::Shader::createVertex(std::string(gaussian_blur_horizontal_vert)));
-        auto ps = gpu::ShaderPointer(gpu::Shader::createPixel(std::string(gaussian_blur_frag)));
-        gpu::ShaderPointer program = gpu::ShaderPointer(gpu::Shader::createProgram(vs, ps));
+        auto vs = gpu::Shader::createVertex(std::string(gaussian_blur_horizontal_vert));
+        auto ps = gpu::Shader::createPixel(std::string(gaussian_blur_frag));
+        gpu::ShaderPointer program = gpu::Shader::createProgram(vs, ps);
 
         gpu::Shader::BindingSet slotBindings;
         gpu::Shader::makeProgram(*program, slotBindings);
@@ -144,16 +144,16 @@ const gpu::PipelinePointer& AmbientOcclusion::getHBlurPipeline() {
         _hBlurTexture = gpu::TexturePointer(gpu::Texture::create2D(format, width, height, defaultSampler));
 
         // Good to go add the brand new pipeline
-        _hBlurPipeline.reset(gpu::Pipeline::create(program, state));
+        _hBlurPipeline = gpu::Pipeline::create(program, state);
     }
     return _hBlurPipeline;
 }
 
 const gpu::PipelinePointer& AmbientOcclusion::getBlendPipeline() {
     if (!_blendPipeline) {
-        auto vs = gpu::ShaderPointer(gpu::Shader::createVertex(std::string(ambient_occlusion_vert)));
-        auto ps = gpu::ShaderPointer(gpu::Shader::createPixel(std::string(occlusion_blend_frag)));
-        gpu::ShaderPointer program = gpu::ShaderPointer(gpu::Shader::createProgram(vs, ps));
+        auto vs = gpu::Shader::createVertex(std::string(ambient_occlusion_vert));
+        auto ps = gpu::Shader::createPixel(std::string(occlusion_blend_frag));
+        gpu::ShaderPointer program = gpu::Shader::createProgram(vs, ps);
 
         gpu::Shader::BindingSet slotBindings;
         slotBindings.insert(gpu::Shader::Binding(std::string("blurredOcclusionTexture"), 0));
@@ -169,7 +169,7 @@ const gpu::PipelinePointer& AmbientOcclusion::getBlendPipeline() {
             gpu::State::INV_SRC_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::SRC_ALPHA);
 
         // Good to go add the brand new pipeline
-        _blendPipeline.reset(gpu::Pipeline::create(program, state));
+        _blendPipeline = gpu::Pipeline::create(program, state);
     }
     return _blendPipeline;
 }

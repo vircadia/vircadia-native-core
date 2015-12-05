@@ -46,7 +46,6 @@ private:
     static const QString NAME;
 
     ovrHmd _hmd;
-    unsigned int _frameIndex;
     ovrTrackingState _trackingState;
     ovrEyeRenderDesc _eyeRenderDescs[2];
     ovrPosef _eyePoses[2];

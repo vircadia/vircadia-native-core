@@ -15,10 +15,7 @@ public:
     virtual bool isSupported() const override;
 
 protected:
-    virtual void display(GLuint finalTexture, const glm::uvec2& sceneSize) override;
     virtual void customizeContext() override;
-    // Do not perform swap in finish
-    virtual void finishFrame() override;
 
 private:
     static const QString NAME;

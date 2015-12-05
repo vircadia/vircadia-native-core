@@ -31,11 +31,13 @@ const float DPI = 30.47f;
 const float METERS_TO_INCHES = 39.3701f;
 
 EntityItemPointer RenderableWebEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
-    return std::make_shared<RenderableWebEntityItem>(entityID, properties);
+    EntityItemPointer entity{ new RenderableWebEntityItem(entityID) };
+    entity->setProperties(properties);
+    return entity;
 }
 
-RenderableWebEntityItem::RenderableWebEntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties) :
-    WebEntityItem(entityItemID, properties) {
+RenderableWebEntityItem::RenderableWebEntityItem(const EntityItemID& entityItemID) :
+    WebEntityItem(entityItemID) {
     qDebug() << "Created web entity " << getID();
 }
 

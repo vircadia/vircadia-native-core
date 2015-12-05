@@ -32,7 +32,9 @@ const QString PolyVoxEntityItem::DEFAULT_Y_TEXTURE_URL = QString("");
 const QString PolyVoxEntityItem::DEFAULT_Z_TEXTURE_URL = QString("");
 
 EntityItemPointer PolyVoxEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
-    return std::make_shared<PolyVoxEntityItem>(entityID, properties);
+    EntityItemPointer entity { new PolyVoxEntityItem(entityID) };
+    entity->setProperties(properties);
+    return entity;
 }
 
 QByteArray PolyVoxEntityItem::makeEmptyVoxelData(quint16 voxelXSize, quint16 voxelYSize, quint16 voxelZSize) {
@@ -49,7 +51,7 @@ QByteArray PolyVoxEntityItem::makeEmptyVoxelData(quint16 voxelXSize, quint16 vox
     return newVoxelData;
 }
 
-PolyVoxEntityItem::PolyVoxEntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties) :
+PolyVoxEntityItem::PolyVoxEntityItem(const EntityItemID& entityItemID) :
     EntityItem(entityItemID),
     _voxelVolumeSize(PolyVoxEntityItem::DEFAULT_VOXEL_VOLUME_SIZE),
     _voxelData(PolyVoxEntityItem::DEFAULT_VOXEL_DATA),
@@ -59,7 +61,6 @@ PolyVoxEntityItem::PolyVoxEntityItem(const EntityItemID& entityItemID, const Ent
     _yTextureURL(PolyVoxEntityItem::DEFAULT_Y_TEXTURE_URL),
     _zTextureURL(PolyVoxEntityItem::DEFAULT_Z_TEXTURE_URL) {
     _type = EntityTypes::PolyVox;
-    setProperties(properties);
 }
 
 void PolyVoxEntityItem::setVoxelVolumeSize(glm::vec3 voxelVolumeSize) {
