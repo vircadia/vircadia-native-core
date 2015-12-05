@@ -40,7 +40,13 @@ var leapHands = (function () {
         avatarScale,
         avatarFaceModelURL,
         avatarSkeletonModelURL,
-        settingsTimer;
+        settingsTimer,
+        HMD_CAMERA_TO_AVATAR_ROTATION = [
+            Quat.angleAxis(180.0, { x: 0, y: 0, z: 1 }),
+            Quat.angleAxis(-180.0, { x: 0, y: 0, z: 1 })
+        ],
+        DESKTOP_CAMERA_TO_AVATAR_ROTATION =
+            Quat.multiply(Quat.angleAxis(180.0, { x: 0, y: 1, z: 0 }), Quat.angleAxis(90.0, { x: 0, y: 0, z: 1 }));
 
     function printSkeletonJointNames() {
         var jointNames,
@@ -394,37 +400,41 @@ var leapHands = (function () {
 
                     // Hand offset in camera coordinates ...
                     handOffset = {
-                        x: hands[h].zeroPosition.x - handOffset.x,
-                        y: hands[h].zeroPosition.y - handOffset.z,
-                        z: hands[h].zeroPosition.z + handOffset.y
+                        x: -handOffset.x,
+                        y: -handOffset.z,
+                        z: -handOffset.y - hands[h].zeroPosition.z
                     };
-                    handOffset.z = -handOffset.z;
 
                     // Hand offset in world coordinates ...
                     cameraOrientation = Camera.getOrientation();
                     handOffset = Vec3.sum(Camera.getPosition(), Vec3.multiplyQbyV(cameraOrientation, handOffset));
 
-                    // Hand offset  in avatar coordinates ...
+                    // Hand offset in avatar coordinates ...
                     inverseAvatarOrientation = Quat.inverse(MyAvatar.orientation);
                     handOffset = Vec3.subtract(handOffset, MyAvatar.position);
                     handOffset = Vec3.multiplyQbyV(inverseAvatarOrientation, handOffset);
                     handOffset.z = -handOffset.z;
                     handOffset.x = -handOffset.x;
 
+
                     // Hand rotation in camera coordinates ...
                     handRotation = {
-                        x: -handRotation.x,
+                        x: -handRotation.y,
                         y: -handRotation.z,
-                        z: -handRotation.y,
+                        z: -handRotation.x,
                         w: handRotation.w
                     };
 
                     // Hand rotation in avatar coordinates ...
-                    handRotation = Quat.multiply(Quat.angleAxis(180.0, { x: 0, y: 1, z: 0 }), handRotation);
-                    cameraOrientation.x = -cameraOrientation.x;
-                    cameraOrientation.z = -cameraOrientation.z;
-                    handRotation = Quat.multiply(cameraOrientation, handRotation);
-                    handRotation = Quat.multiply(inverseAvatarOrientation, handRotation);
+                    handRotation = Quat.multiply(HMD_CAMERA_TO_AVATAR_ROTATION[h], handRotation);
+                    cameraOrientation = {
+                        x: cameraOrientation.z,
+                        y: cameraOrientation.y,
+                        z: cameraOrientation.x,
+                        w: cameraOrientation.w
+                    };
+                    cameraOrientation = Quat.multiply(cameraOrientation, Quat.inverse(MyAvatar.orientation));
+                    handRotation = Quat.multiply(handRotation, cameraOrientation);  // Works!!!
 
                 } else {
 
@@ -443,18 +453,19 @@ var leapHands = (function () {
 
                     // Hand rotation in camera coordinates ...
                     handRotation = {
-                        x: -handRotation.x,
-                        y: -handRotation.z,
-                        z: -handRotation.y,
+                        x: handRotation.z,
+                        y: handRotation.y,
+                        z: handRotation.x,
                         w: handRotation.w
                     };
 
                     // Hand rotation in avatar coordinates ...
-                    handRotation = Quat.multiply(Quat.angleAxis(90.0, { x: 1, y: 0, z: 0 }), handRotation);
+                    handRotation = Quat.multiply(DESKTOP_CAMERA_TO_AVATAR_ROTATION, handRotation);
                 }
 
-                // Set hand position and orientation ...
-                MyAvatar.setJointModelPositionAndOrientation(hands[h].jointName, handOffset, handRotation, true);
+                // Set hand position and orientation for animation state handler ...
+                hands[h].position = handOffset;
+                hands[h].rotation = handRotation;
 
                 // Set finger joints ...
                 for (i = 0; i < NUM_FINGERS; i += 1) {
