@@ -36,8 +36,8 @@ int EntityItem::_maxActionsDataSize = 800;
 quint64 EntityItem::_rememberDeletedActionTime = 20 * USECS_PER_SECOND;
 
 EntityItem::EntityItem(const EntityItemID& entityItemID) :
+    SpatiallyNestable(NestableTypes::Entity, entityItemID),
     _type(EntityTypes::Unknown),
-    _id(entityItemID),
     _lastSimulated(0),
     _lastUpdated(0),
     _lastEdited(0),
@@ -45,7 +45,6 @@ EntityItem::EntityItem(const EntityItemID& entityItemID) :
     _lastEditedFromRemoteInRemoteTime(0),
     _created(UNKNOWN_CREATED_TIME),
     _changedOnServer(0),
-    _transform(),
     _glowLevel(ENTITY_ITEM_DEFAULT_GLOW_LEVEL),
     _localRenderAlpha(ENTITY_ITEM_DEFAULT_LOCAL_RENDER_ALPHA),
     _density(ENTITY_ITEM_DEFAULT_DENSITY),
@@ -79,9 +78,7 @@ EntityItem::EntityItem(const EntityItemID& entityItemID) :
     _simulated(false)
 {
     // explicitly set transform parts to set dirty flags used by batch rendering
-    _transform.setTranslation(ENTITY_ITEM_DEFAULT_POSITION);
-    _transform.setRotation(ENTITY_ITEM_DEFAULT_ROTATION);
-    _transform.setScale(ENTITY_ITEM_DEFAULT_DIMENSIONS);
+    setScale(ENTITY_ITEM_DEFAULT_DIMENSIONS);
     quint64 now = usecTimestampNow();
     _lastSimulated = now;
     _lastUpdated = now;
@@ -134,6 +131,8 @@ EntityPropertyFlags EntityItem::getEntityProperties(EncodeBitstreamParams& param
     requestedProperties += PROP_HREF;
     requestedProperties += PROP_DESCRIPTION;
     requestedProperties += PROP_ACTION_DATA;
+    requestedProperties += PROP_PARENT_ID;
+    requestedProperties += PROP_PARENT_JOINT_INDEX;
 
     return requestedProperties;
 }
@@ -240,8 +239,8 @@ OctreeElement::AppendState EntityItem::appendEntityData(OctreePacketData* packet
         //      PROP_CUSTOM_PROPERTIES_INCLUDED,
 
         APPEND_ENTITY_PROPERTY(PROP_SIMULATION_OWNER, _simulationOwner.toByteArray());
-        APPEND_ENTITY_PROPERTY(PROP_POSITION, getPosition());
-        APPEND_ENTITY_PROPERTY(PROP_ROTATION, getRotation());
+        APPEND_ENTITY_PROPERTY(PROP_POSITION, getLocalPosition());
+        APPEND_ENTITY_PROPERTY(PROP_ROTATION, getLocalOrientation());
         APPEND_ENTITY_PROPERTY(PROP_VELOCITY, getVelocity());
         APPEND_ENTITY_PROPERTY(PROP_ANGULAR_VELOCITY, getAngularVelocity());
         APPEND_ENTITY_PROPERTY(PROP_ACCELERATION, getAcceleration());
@@ -268,7 +267,8 @@ OctreeElement::AppendState EntityItem::appendEntityData(OctreePacketData* packet
         APPEND_ENTITY_PROPERTY(PROP_HREF, getHref());
         APPEND_ENTITY_PROPERTY(PROP_DESCRIPTION, getDescription());
         APPEND_ENTITY_PROPERTY(PROP_ACTION_DATA, getActionData());
-
+        APPEND_ENTITY_PROPERTY(PROP_PARENT_ID, getParentID());
+        APPEND_ENTITY_PROPERTY(PROP_PARENT_JOINT_INDEX, getParentJointIndex());
 
         appendSubclassData(packetData, params, entityTreeElementExtraEncodeData,
                                 requestedProperties,
@@ -722,6 +722,9 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
     READ_ENTITY_PROPERTY(PROP_DESCRIPTION, QString, setDescription);
     READ_ENTITY_PROPERTY(PROP_ACTION_DATA, QByteArray, setActionData);
 
+    READ_ENTITY_PROPERTY(PROP_PARENT_ID, QUuid, setParentID);
+    READ_ENTITY_PROPERTY(PROP_PARENT_JOINT_INDEX, quint16, setParentJointIndex);
+
     bytesRead += readEntitySubclassDataFromBuffer(dataAt, (bytesLeftToRead - bytesRead), args,
                                                   propertyFlags, overwriteLocalData, somethingChanged);
 
@@ -1044,9 +1047,9 @@ EntityItemProperties EntityItem::getProperties(EntityPropertyFlags desiredProper
     properties._type = getType();
 
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(simulationOwner, getSimulationOwner);
-    COPY_ENTITY_PROPERTY_TO_PROPERTIES(position, getPosition);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(position, getLocalPosition);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(dimensions, getDimensions); // NOTE: radius is obsolete
-    COPY_ENTITY_PROPERTY_TO_PROPERTIES(rotation, getRotation);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(rotation, getLocalOrientation);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(density, getDensity);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(velocity, getVelocity);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(gravity, getGravity);
@@ -1074,6 +1077,8 @@ EntityItemProperties EntityItem::getProperties(EntityPropertyFlags desiredProper
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(href, getHref);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(description, getDescription);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(actionData, getActionData);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(parentID, getParentID);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(parentJointIndex, getParentJointIndex);
 
     properties._defaultSettings = false;
 
@@ -1082,9 +1087,9 @@ EntityItemProperties EntityItem::getProperties(EntityPropertyFlags desiredProper
 
 void EntityItem::getAllTerseUpdateProperties(EntityItemProperties& properties) const {
     // a TerseUpdate includes the transform and its derivatives
-    properties._position = getPosition();
+    properties._position = getLocalPosition();
     properties._velocity = _velocity;
-    properties._rotation = getRotation();
+    properties._rotation = getLocalOrientation();
     properties._angularVelocity = _angularVelocity;
     properties._acceleration = _acceleration;
 
@@ -1136,6 +1141,8 @@ bool EntityItem::setProperties(const EntityItemProperties& properties) {
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(href, setHref);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(description, setDescription);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(actionData, setActionData);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(parentID, setParentID);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(parentJointIndex, setParentJointIndex);
 
     if (somethingChanged) {
         uint64_t now = usecTimestampNow();
@@ -1185,11 +1192,11 @@ const Transform EntityItem::getTransformToCenter() const {
     return result;
 }
 
-void EntityItem::setDimensions(const glm::vec3& value) {
+void EntityItem::setDimensions(const glm::vec3 value) {
     if (value.x <= 0.0f || value.y <= 0.0f || value.z <= 0.0f) {
         return;
     }
-    _transform.setScale(value);
+    setScale(value);
     requiresRecalcBoxes();
 }
 
@@ -1315,9 +1322,8 @@ void EntityItem::updatePosition(const glm::vec3& value) {
     if (shouldSuppressLocationEdits()) {
         return;
     }
-    if (getPosition() != value) {
-        setPosition(value);
-        _dirtyFlags |= Simulation::DIRTY_POSITION;
+    if (getLocalPosition() != value) {
+        setLocalPosition(value);
     }
 }
 
@@ -1332,9 +1338,16 @@ void EntityItem::updateRotation(const glm::quat& rotation) {
     if (shouldSuppressLocationEdits()) {
         return;
     }
-    if (getRotation() != rotation) {
-        setRotation(rotation);
+    if (getLocalOrientation() != rotation) {
+        setLocalOrientation(rotation);
         _dirtyFlags |= Simulation::DIRTY_ROTATION;
+        forEachDescendant([&](SpatiallyNestablePointer object) {
+            if (object->getNestableType() == NestableTypes::Entity) {
+                EntityItemPointer entity = std::static_pointer_cast<EntityItem>(object);
+                entity->_dirtyFlags |= Simulation::DIRTY_ROTATION;
+                entity->_dirtyFlags |= Simulation::DIRTY_POSITION;
+            }
+        });
     }
 }
 
@@ -1523,7 +1536,6 @@ bool EntityItem::addAction(EntitySimulation* simulation, EntityActionPointer act
 }
 
 bool EntityItem::addActionInternal(EntitySimulation* simulation, EntityActionPointer action) {
-    assertLocked();
     assert(action);
     assert(simulation);
     auto actionOwnerEntity = action->getOwnerEntity().lock();
@@ -1579,7 +1591,6 @@ bool EntityItem::removeAction(EntitySimulation* simulation, const QUuid& actionI
 }
 
 bool EntityItem::removeActionInternal(const QUuid& actionID, EntitySimulation* simulation) {
-    assertWriteLocked();
     _previouslyDeletedActions.insert(actionID, usecTimestampNow());
     if (_objectActions.contains(actionID)) {
         if (!simulation) {
@@ -1625,7 +1636,6 @@ bool EntityItem::clearActions(EntitySimulation* simulation) {
 
 
 void EntityItem::deserializeActions() {
-    assertUnlocked();
     withWriteLock([&] {
         deserializeActionsInternal();
     });
@@ -1633,8 +1643,6 @@ void EntityItem::deserializeActions() {
 
 
 void EntityItem::deserializeActionsInternal() {
-    assertWriteLocked();
-
     quint64 now = usecTimestampNow();
 
     if (!_element) {
@@ -1676,7 +1684,7 @@ void EntityItem::deserializeActionsInternal() {
             action->locallyAddedButNotYetReceived = false;
         } else {
             auto actionFactory = DependencyManager::get<EntityActionFactoryInterface>();
-            EntityItemPointer entity = shared_from_this();
+            EntityItemPointer entity = getThisPointer();
             EntityActionPointer action = actionFactory->factoryBA(entity, serializedAction);
             if (action) {
                 entity->addActionInternal(simulation, action);
@@ -1717,7 +1725,6 @@ void EntityItem::deserializeActionsInternal() {
 }
 
 void EntityItem::checkWaitingToRemove(EntitySimulation* simulation) {
-    assertLocked();
     foreach(QUuid actionID, _actionsToRemove) {
         removeActionInternal(actionID, simulation);
     }
@@ -1725,14 +1732,12 @@ void EntityItem::checkWaitingToRemove(EntitySimulation* simulation) {
 }
 
 void EntityItem::setActionData(QByteArray actionData) {
-    assertUnlocked();
     withWriteLock([&] {
         setActionDataInternal(actionData);
     });
 }
 
 void EntityItem::setActionDataInternal(QByteArray actionData) {
-    assertWriteLocked();
     if (_allActionsDataCache != actionData) {
         _allActionsDataCache = actionData;
         deserializeActionsInternal();
@@ -1741,8 +1746,6 @@ void EntityItem::setActionDataInternal(QByteArray actionData) {
 }
 
 void EntityItem::serializeActions(bool& success, QByteArray& result) const {
-    assertLocked();
-
     if (_objectActions.size() == 0) {
         success = true;
         result.clear();
@@ -1785,7 +1788,6 @@ const QByteArray EntityItem::getActionDataInternal() const {
 
 const QByteArray EntityItem::getActionData() const {
     QByteArray result;
-    assertUnlocked();
 
     if (_actionDataDirty) {
         withWriteLock([&] {
@@ -1838,4 +1840,9 @@ QList<EntityActionPointer> EntityItem::getActionsOfType(EntityActionType typeToG
     }
 
     return result;
+}
+
+void EntityItem::locationChanged() {
+    requiresRecalcBoxes();
+    SpatiallyNestable::locationChanged(); // tell all the children, also
 }

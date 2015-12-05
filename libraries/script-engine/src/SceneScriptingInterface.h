@@ -112,7 +112,7 @@ public:
     
     Q_INVOKABLE void setEngineDisplayItemStatus(int display) { _drawItemStatus = display; }
     Q_INVOKABLE int doEngineDisplayItemStatus() { return _drawItemStatus; }
-    
+
     Q_INVOKABLE void setEngineDisplayHitEffect(bool display) { _drawHitEffect = display; }
     Q_INVOKABLE bool doEngineDisplayHitEffect() { return _drawHitEffect; }
 
@@ -148,7 +148,7 @@ protected:
     
     int _drawDebugDeferredBuffer = 0;
     int _drawItemStatus = 0;
-    
+
     bool _drawHitEffect = false;
 
 };

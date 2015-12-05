@@ -239,16 +239,16 @@ void DrawTransparentDeferred::run(const SceneContextPointer& sceneContext, const
 gpu::PipelinePointer DrawOverlay3D::_opaquePipeline;
 const gpu::PipelinePointer& DrawOverlay3D::getOpaquePipeline() {
     if (!_opaquePipeline) {
-        auto vs = gpu::ShaderPointer(gpu::Shader::createVertex(std::string(overlay3D_vert)));
-        auto ps = gpu::ShaderPointer(gpu::Shader::createPixel(std::string(overlay3D_frag)));
-        auto program = gpu::ShaderPointer(gpu::Shader::createProgram(vs, ps));
+        auto vs = gpu::Shader::createVertex(std::string(overlay3D_vert));
+        auto ps = gpu::Shader::createPixel(std::string(overlay3D_frag));
+        auto program = gpu::Shader::createProgram(vs, ps);
         
         auto state = std::make_shared<gpu::State>();
         state->setDepthTest(false);
         // additive blending
         state->setBlendFunction(true, gpu::State::ONE, gpu::State::BLEND_OP_ADD, gpu::State::ONE);
 
-        _opaquePipeline.reset(gpu::Pipeline::create(program, state));
+        _opaquePipeline = gpu::Pipeline::create(program, state);
     }
     return _opaquePipeline;
 }
@@ -315,8 +315,8 @@ const gpu::PipelinePointer& DrawStencilDeferred::getOpaquePipeline() {
     if (!_opaquePipeline) {
         const gpu::int8 STENCIL_OPAQUE = 1;
         auto vs = gpu::StandardShaderLib::getDrawUnitQuadTexcoordVS();
-        auto ps = gpu::ShaderPointer(gpu::Shader::createPixel(std::string(drawOpaqueStencil_frag)));
-        auto program = gpu::ShaderPointer(gpu::Shader::createProgram(vs, ps));
+        auto ps = gpu::Shader::createPixel(std::string(drawOpaqueStencil_frag));
+        auto program = gpu::Shader::createProgram(vs, ps);
         
 
         gpu::Shader::makeProgram((*program));
@@ -326,7 +326,7 @@ const gpu::PipelinePointer& DrawStencilDeferred::getOpaquePipeline() {
         state->setStencilTest(true, 0xFF, gpu::State::StencilTest(STENCIL_OPAQUE, 0xFF, gpu::ALWAYS, gpu::State::STENCIL_OP_REPLACE, gpu::State::STENCIL_OP_KEEP, gpu::State::STENCIL_OP_REPLACE)); 
         state->setColorWriteMask(0);
 
-        _opaquePipeline.reset(gpu::Pipeline::create(program, state));
+        _opaquePipeline = gpu::Pipeline::create(program, state);
     }
     return _opaquePipeline;
 }

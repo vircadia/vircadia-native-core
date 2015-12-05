@@ -64,8 +64,56 @@ void EntityScriptingInterface::setEntityTree(EntityTreePointer elementTree) {
     }
 }
 
+EntityItemProperties convertLocationToScriptSemantics(EntityItemProperties entitySideProperties) {
+    // In EntityTree code, properties.position and properties.rotation are relative to the parent.  In javascript,
+    // they are in world-space.  The local versions are put into localPosition and localRotation and position and
+    // rotation are converted from local to world space.
+    EntityItemProperties scriptSideProperties = entitySideProperties;
+    scriptSideProperties.setLocalPosition(entitySideProperties.getPosition());
+    scriptSideProperties.setLocalRotation(entitySideProperties.getRotation());
+
+    glm::vec3 worldPosition = SpatiallyNestable::localToWorld(entitySideProperties.getPosition(),
+                                                              entitySideProperties.getParentID(),
+                                                              entitySideProperties.getParentJointIndex());
+    glm::quat worldRotation = SpatiallyNestable::localToWorld(entitySideProperties.getRotation(),
+                                                              entitySideProperties.getParentID(),
+                                                              entitySideProperties.getParentJointIndex());
+    scriptSideProperties.setPosition(worldPosition);
+    scriptSideProperties.setRotation(worldRotation);
+
+    return scriptSideProperties;
+}
+
+
+EntityItemProperties convertLocationFromScriptSemantics(EntityItemProperties scriptSideProperties) {
+    // convert position and rotation properties from world-space to local, unless localPosition and localRotation
+    // are set.  If they are set, they overwrite position and rotation.
+    EntityItemProperties entitySideProperties = scriptSideProperties;
+
+    if (scriptSideProperties.localPositionChanged()) {
+        entitySideProperties.setPosition(scriptSideProperties.getLocalPosition());
+    } else if (scriptSideProperties.positionChanged()) {
+        glm::vec3 localPosition = SpatiallyNestable::worldToLocal(entitySideProperties.getPosition(),
+                                                                  entitySideProperties.getParentID(),
+                                                                  entitySideProperties.getParentJointIndex());
+        entitySideProperties.setPosition(localPosition);
+    }
+
+    if (scriptSideProperties.localRotationChanged()) {
+        entitySideProperties.setRotation(scriptSideProperties.getLocalRotation());
+    } else if (scriptSideProperties.rotationChanged()) {
+        glm::quat localRotation = SpatiallyNestable::worldToLocal(entitySideProperties.getRotation(),
+                                                                  entitySideProperties.getParentID(),
+                                                                  entitySideProperties.getParentJointIndex());
+        entitySideProperties.setRotation(localRotation);
+    }
+
+    return entitySideProperties;
+}
+
+
 QUuid EntityScriptingInterface::addEntity(const EntityItemProperties& properties) {
-    EntityItemProperties propertiesWithSimID = properties;
+    EntityItemProperties propertiesWithSimID = convertLocationFromScriptSemantics(properties);
     propertiesWithSimID.setDimensionsInitialized(properties.dimensionsChanged());
 
     EntityItemID id = EntityItemID(QUuid::createUuid());
@@ -111,6 +159,15 @@ EntityItemProperties EntityScriptingInterface::getEntityProperties(QUuid identit
         _entityTree->withReadLock([&] {
             EntityItemPointer entity = _entityTree->findEntityByEntityItemID(EntityItemID(identity));
             if (entity) {
+                if (desiredProperties.getHasProperty(PROP_POSITION) ||
+                    desiredProperties.getHasProperty(PROP_ROTATION) ||
+                    desiredProperties.getHasProperty(PROP_LOCAL_POSITION) ||
+                    desiredProperties.getHasProperty(PROP_LOCAL_ROTATION)) {
+                    // if we are explicitly getting position or rotation, we need parent information to make sense of them.
+                    desiredProperties.setHasProperty(PROP_PARENT_ID);
+                    desiredProperties.setHasProperty(PROP_PARENT_JOINT_INDEX);
+                }
+
                 results = entity->getProperties(desiredProperties);
 
                 // TODO: improve sitting points and naturalDimensions in the future,
@@ -130,10 +187,11 @@ EntityItemProperties EntityScriptingInterface::getEntityProperties(QUuid identit
         });
     }
 
-    return results;
+    return convertLocationToScriptSemantics(results);
 }
 
-QUuid EntityScriptingInterface::editEntity(QUuid id, EntityItemProperties properties) {
+QUuid EntityScriptingInterface::editEntity(QUuid id, EntityItemProperties scriptSideProperties) {
+    EntityItemProperties properties = scriptSideProperties;
     EntityItemID entityID(id);
     // If we have a local entity tree set, then also update it.
     if (!_entityTree) {
@@ -143,9 +201,22 @@ QUuid EntityScriptingInterface::editEntity(QUuid id, EntityItemProperties proper
 
     bool updatedEntity = false;
     _entityTree->withWriteLock([&] {
+        if (scriptSideProperties.parentDependentPropertyChanged()) {
+            // if the script sets a location property but didn't include parent information, grab the needed
+            // properties from the entity.
+            if (!scriptSideProperties.parentIDChanged() || !scriptSideProperties.parentJointIndexChanged()) {
+                EntityItemPointer entity = _entityTree->findEntityByEntityItemID(entityID);
+                if (entity && !scriptSideProperties.parentIDChanged()) {
+                    properties.setParentID(entity->getParentID());
+                }
+                if (entity && !scriptSideProperties.parentJointIndexChanged()) {
+                    properties.setParentJointIndex(entity->getParentJointIndex());
+                }
+            }
+        }
+        properties = convertLocationFromScriptSemantics(properties);
         updatedEntity = _entityTree->updateEntity(entityID, properties);
     });
-
 
     if (!updatedEntity) {
         return QUuid();

@@ -35,7 +35,7 @@ const gpu::PipelinePointer& DebugDeferredBuffer::getPipeline() {
         gpu::Shader::makeProgram(*program, slotBindings);
         
         // Good to go add the brand new pipeline
-        _pipeline.reset(gpu::Pipeline::create(program, std::make_shared<gpu::State>()));
+        _pipeline = gpu::Pipeline::create(program, std::make_shared<gpu::State>());
     }
     return _pipeline;
 }

@@ -11,6 +11,8 @@
 #ifndef hifi_gpu_GLBackend_Shared_h
 #define hifi_gpu_GLBackend_Shared_h
 
+#include <gl/Config.h>
+
 #include <QDebug>
 
 #include "GPULogging.h"

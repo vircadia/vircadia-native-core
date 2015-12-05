@@ -194,10 +194,12 @@ void Socket::clearConnections() {
         QMetaObject::invokeMethod(this, "clearConnections", Qt::BlockingQueuedConnection);
         return;
     }
-    
-    // clear all of the current connections in the socket
-    qDebug() << "Clearing all remaining connections in Socket.";
-    _connectionsHash.clear();
+
+    if (_connectionsHash.size() > 0) {
+        // clear all of the current connections in the socket
+        qDebug() << "Clearing all remaining connections in Socket.";
+        _connectionsHash.clear();
+    }
 }
 
 void Socket::cleanupConnection(HifiSockAddr sockAddr) {

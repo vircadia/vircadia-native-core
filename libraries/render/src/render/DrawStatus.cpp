@@ -31,9 +31,9 @@ using namespace render;
 
 const gpu::PipelinePointer DrawStatus::getDrawItemBoundsPipeline() {
     if (!_drawItemBoundsPipeline) {
-        auto vs = gpu::ShaderPointer(gpu::Shader::createVertex(std::string(drawItemBounds_vert)));
-        auto ps = gpu::ShaderPointer(gpu::Shader::createPixel(std::string(drawItemBounds_frag)));
-        gpu::ShaderPointer program = gpu::ShaderPointer(gpu::Shader::createProgram(vs, ps));
+        auto vs = gpu::Shader::createVertex(std::string(drawItemBounds_vert));
+        auto ps = gpu::Shader::createPixel(std::string(drawItemBounds_frag));
+        gpu::ShaderPointer program = gpu::Shader::createProgram(vs, ps);
 
         gpu::Shader::BindingSet slotBindings;
         gpu::Shader::makeProgram(*program, slotBindings);
@@ -51,16 +51,16 @@ const gpu::PipelinePointer DrawStatus::getDrawItemBoundsPipeline() {
             gpu::State::DEST_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::ZERO);
 
         // Good to go add the brand new pipeline
-        _drawItemBoundsPipeline.reset(gpu::Pipeline::create(program, state));
+        _drawItemBoundsPipeline = gpu::Pipeline::create(program, state);
     }
     return _drawItemBoundsPipeline;
 }
 
 const gpu::PipelinePointer DrawStatus::getDrawItemStatusPipeline() {
     if (!_drawItemStatusPipeline) {
-        auto vs = gpu::ShaderPointer(gpu::Shader::createVertex(std::string(drawItemStatus_vert)));
-        auto ps = gpu::ShaderPointer(gpu::Shader::createPixel(std::string(drawItemStatus_frag)));
-        gpu::ShaderPointer program = gpu::ShaderPointer(gpu::Shader::createProgram(vs, ps));
+        auto vs = gpu::Shader::createVertex(std::string(drawItemStatus_vert));
+        auto ps = gpu::Shader::createPixel(std::string(drawItemStatus_frag));
+        gpu::ShaderPointer program = gpu::Shader::createProgram(vs, ps);
 
         gpu::Shader::BindingSet slotBindings;
         slotBindings.insert(gpu::Shader::Binding(std::string("iconStatusMap"), 0));
@@ -81,7 +81,7 @@ const gpu::PipelinePointer DrawStatus::getDrawItemStatusPipeline() {
             gpu::State::DEST_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::ZERO);
 
         // Good to go add the brand new pipeline
-        _drawItemStatusPipeline.reset(gpu::Pipeline::create(program, state));
+        _drawItemStatusPipeline = gpu::Pipeline::create(program, state);
     }
     return _drawItemStatusPipeline;
 }
