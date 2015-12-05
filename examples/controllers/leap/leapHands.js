@@ -46,7 +46,8 @@ var leapHands = (function () {
             Quat.angleAxis(-180.0, { x: 0, y: 0, z: 1 })
         ],
         DESKTOP_CAMERA_TO_AVATAR_ROTATION =
-            Quat.multiply(Quat.angleAxis(180.0, { x: 0, y: 1, z: 0 }), Quat.angleAxis(90.0, { x: 0, y: 0, z: 1 }));
+            Quat.multiply(Quat.angleAxis(180.0, { x: 0, y: 1, z: 0 }), Quat.angleAxis(90.0, { x: 0, y: 0, z: 1 })),
+        LEAP_THUMB_ROOT_ADJUST = [Quat.fromPitchYawRollDegrees(0, 0, 20), Quat.fromPitchYawRollDegrees(0, 0, -20)];
 
     function printSkeletonJointNames() {
         var jointNames,
@@ -479,6 +480,10 @@ var leapHands = (function () {
                                     z: side * -locRotation.x,
                                     w: locRotation.w
                                 };
+                                if (j === 0) {
+                                    // Adjust avatar thumb root joint rotation to make avatar hands look better
+                                    locRotation = Quat.multiply(LEAP_THUMB_ROOT_ADJUST[h], locRotation);
+                                }
                             } else {
                                 locRotation = {
                                     x: -locRotation.x,
