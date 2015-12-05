@@ -156,3 +156,9 @@ function scriptEnding() {
     Scene.setEngineDeferredDebugSize({ x: 0.0, y: -1.0, z: 1.0, w: 1.0 }); // Reset to default size
 }
 Script.scriptEnding.connect(scriptEnding);
+
+
+// Collapse items
+panel.mousePressEvent({ x: panel.x, y: panel.items["Overlays"].y});
+panel.mousePressEvent({ x: panel.x, y: panel.items["Transparents"].y});
+panel.mousePressEvent({ x: panel.x, y: panel.items["Opaques"].y});
