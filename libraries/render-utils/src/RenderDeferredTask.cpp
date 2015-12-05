@@ -35,25 +35,6 @@
 
 using namespace render;
 
-void SetupDeferred::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext) {
-/*    RenderArgs* args = renderContext->args;
-    gpu::doInBatch(args->_context, [=](gpu::Batch& batch) {
-
-        auto deferredFbo = DependencyManager::get<FramebufferCache>()->getDeferredFramebufferDepthColor();
-
-        batch.enableStereo(false);
-        batch.setViewportTransform(args->_viewport);
-        batch.setStateScissorRect(args->_viewport);
-
-        batch.setFramebuffer(deferredFbo);
-        batch.clearFramebuffer(
-            gpu::Framebuffer::BUFFER_COLOR0 |
-            gpu::Framebuffer::BUFFER_DEPTH |
-            gpu::Framebuffer::BUFFER_STENCIL,
-            vec4(vec3(0), 1), 1.0, 0.0, true);
-    });
-    */
-}
 
 void PrepareDeferred::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext) {
     DependencyManager::get<DeferredLightingEffect>()->prepare(renderContext->args);
@@ -69,8 +50,6 @@ void ResolveDeferred::run(const SceneContextPointer& sceneContext, const RenderC
 }
 
 RenderDeferredTask::RenderDeferredTask() : Task() {
-    _jobs.push_back(Job(new SetupDeferred::JobModel("SetupFramebuffer")));
-
     _jobs.push_back(Job(new PrepareDeferred::JobModel("PrepareDeferred")));
     _jobs.push_back(Job(new FetchItems::JobModel("FetchOpaque",
         FetchItems(
