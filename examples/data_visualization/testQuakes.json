@@ -1,0 +1,153 @@
+{
+    "type": "FeatureCollection",
+    "metadata": {
+        "generated": 1449347736000,
+        "url": "http://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/all_hour.geojson",
+        "title": "USGS All Earthquakes, Past Hour",
+        "status": 200,
+        "api": "1.1.0",
+        "count": 4
+    },
+    "features": [{
+        "type": "Feature",
+        "properties": {
+            "mag": 1.39,
+            "place": "17km ESE of Julian, California",
+            "time": 1449345604050,
+            "updated": 1449345856673,
+            "tz": -480,
+            "url": "http://earthquake.usgs.gov/earthquakes/eventpage/ci37498832",
+            "detail": "http://earthquake.usgs.gov/earthquakes/feed/v1.0/detail/ci37498832.geojson",
+            "felt": null,
+            "cdi": null,
+            "mmi": null,
+            "alert": null,
+            "status": "automatic",
+            "tsunami": 0,
+            "sig": 30,
+            "net": "ci",
+            "code": "37498832",
+            "ids": ",ci37498832,",
+            "sources": ",ci,",
+            "types": ",general-link,geoserve,nearby-cities,origin,phase-data,",
+            "nst": 32,
+            "dmin": 0.1379,
+            "rms": 0.21,
+            "gap": 68,
+            "magType": "ml",
+            "type": "earthquake",
+            "title": "M 1.4 - 17km ESE of Julian, California"
+        },
+        "geometry": {
+            "type": "Point",
+            "coordinates": [-116.4293333, 33.0301667, 7.84]
+        },
+        "id": "ci37498832"
+    }, {
+        "type": "Feature",
+        "properties": {
+            "mag": 1.12,
+            "place": "3km ESE of The Geysers, California",
+            "time": 1449344686690,
+            "updated": 1449344783260,
+            "tz": -480,
+            "url": "http://earthquake.usgs.gov/earthquakes/eventpage/nc72564866",
+            "detail": "http://earthquake.usgs.gov/earthquakes/feed/v1.0/detail/nc72564866.geojson",
+            "felt": null,
+            "cdi": null,
+            "mmi": null,
+            "alert": null,
+            "status": "automatic",
+            "tsunami": 0,
+            "sig": 19,
+            "net": "nc",
+            "code": "72564866",
+            "ids": ",nc72564866,",
+            "sources": ",nc,",
+            "types": ",general-link,geoserve,nearby-cities,origin,phase-data,",
+            "nst": 11,
+            "dmin": 0.01342,
+            "rms": 0.03,
+            "gap": 154,
+            "magType": "md",
+            "type": "earthquake",
+            "title": "M 1.1 - 3km ESE of The Geysers, California"
+        },
+        "geometry": {
+            "type": "Point",
+            "coordinates": [-122.7176666, 38.7598343, 1.48]
+        },
+        "id": "nc72564866"
+    }, {
+        "type": "Feature",
+        "properties": {
+            "mag": 1.99,
+            "place": "3km SE of The Geysers, California",
+            "time": 1449344287500,
+            "updated": 1449344383210,
+            "tz": -480,
+            "url": "http://earthquake.usgs.gov/earthquakes/eventpage/nc72564856",
+            "detail": "http://earthquake.usgs.gov/earthquakes/feed/v1.0/detail/nc72564856.geojson",
+            "felt": null,
+            "cdi": null,
+            "mmi": null,
+            "alert": null,
+            "status": "automatic",
+            "tsunami": 0,
+            "sig": 61,
+            "net": "nc",
+            "code": "72564856",
+            "ids": ",nc72564856,",
+            "sources": ",nc,",
+            "types": ",general-link,geoserve,nearby-cities,origin,phase-data,",
+            "nst": 13,
+            "dmin": 0.01626,
+            "rms": 0.02,
+            "gap": 72,
+            "magType": "md",
+            "type": "earthquake",
+            "title": "M 2.0 - 3km SE of The Geysers, California"
+        },
+        "geometry": {
+            "type": "Point",
+            "coordinates": [-122.7203369, 38.7571678, 0.3]
+        },
+        "id": "nc72564856"
+    }, {
+        "type": "Feature",
+        "properties": {
+            "mag": 2.36,
+            "place": "3km ESE of The Geysers, California",
+            "time": 1449344196380,
+            "updated": 1449344459434,
+            "tz": -480,
+            "url": "http://earthquake.usgs.gov/earthquakes/eventpage/nc72564836",
+            "detail": "http://earthquake.usgs.gov/earthquakes/feed/v1.0/detail/nc72564836.geojson",
+            "felt": 0,
+            "cdi": 1,
+            "mmi": null,
+            "alert": null,
+            "status": "automatic",
+            "tsunami": 0,
+            "sig": 86,
+            "net": "nc",
+            "code": "72564836",
+            "ids": ",nc72564836,",
+            "sources": ",nc,",
+            "types": ",dyfi,focal-mechanism,general-link,geoserve,nearby-cities,origin,phase-data,scitech-link,",
+            "nst": 36,
+            "dmin": 0.01395,
+            "rms": 0.07,
+            "gap": 38,
+            "magType": "md",
+            "type": "earthquake",
+            "title": "M 2.4 - 3km ESE of The Geysers, California"
+        },
+        "geometry": {
+            "type": "Point",
+            "coordinates": [-122.722168, 38.7598343, 1.21]
+        },
+        "id": "nc72564836"
+    }],
+    "bbox": [-122.722168, 33.0301667, 0.3, -116.4293333, 38.7598343, 7.84]
+}
