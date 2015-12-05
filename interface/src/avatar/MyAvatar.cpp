@@ -45,7 +45,6 @@
 #include "AvatarManager.h"
 #include "Environment.h"
 #include "Menu.h"
-#include "ModelReferential.h"
 #include "MyAvatar.h"
 #include "Physics.h"
 #include "Util.h"
@@ -204,13 +203,14 @@ MyAvatar::~MyAvatar() {
 
 QByteArray MyAvatar::toByteArray(bool cullSmallChanges, bool sendAll) {
     CameraMode mode = qApp->getCamera()->getMode();
+    _globalPosition = getPosition();
     if (mode == CAMERA_MODE_THIRD_PERSON || mode == CAMERA_MODE_INDEPENDENT) {
         // fake the avatar position that is sent up to the AvatarMixer
-        glm::vec3 oldPosition = _position;
-        _position = getSkeletonPosition();
+        glm::vec3 oldPosition = getPosition();
+        setPosition(getSkeletonPosition());
         QByteArray array = AvatarData::toByteArray(cullSmallChanges, sendAll);
         // copy the correct position back
-        _position = oldPosition;
+        setPosition(oldPosition);
         return array;
     }
     return AvatarData::toByteArray(cullSmallChanges, sendAll);
@@ -269,10 +269,6 @@ void MyAvatar::update(float deltaTime) {
         updateSensorToWorldMatrix();
     }
 
-    if (_referential) {
-        _referential->update();
-    }
-
     Head* head = getHead();
     head->relaxLean(deltaTime);
     updateFromTrackers(deltaTime);
@@ -291,9 +287,9 @@ extern void avatarStateFromFrame(const QByteArray& frameData, AvatarData* _avata
 void MyAvatar::simulate(float deltaTime) {
     PerformanceTimer perfTimer("simulate");
 
-    if (_scale != _targetScale) {
-        float scale = (1.0f - SMOOTHING_RATIO) * _scale + SMOOTHING_RATIO * _targetScale;
-        setScale(scale);
+    if (getAvatarScale() != _targetScale) {
+        float scale = (1.0f - SMOOTHING_RATIO) * getAvatarScale() + SMOOTHING_RATIO * _targetScale;
+        setAvatarScale(scale);
     }
 
     {
@@ -343,10 +339,10 @@ void MyAvatar::simulate(float deltaTime) {
         Head* head = getHead();
         glm::vec3 headPosition;
         if (!_skeletonModel.getHeadPosition(headPosition)) {
-            headPosition = _position;
+            headPosition = getPosition();
         }
         head->setPosition(headPosition);
-        head->setScale(_scale);
+        head->setScale(getAvatarScale());
         head->simulate(deltaTime, true);
     }
 
@@ -568,32 +564,6 @@ void MyAvatar::render(RenderArgs* renderArgs, const glm::vec3& cameraPosition) {
     Avatar::render(renderArgs, cameraPosition);
 }
 
-void MyAvatar::clearReferential() {
-    changeReferential(NULL);
-}
-
-bool MyAvatar::setModelReferential(const QUuid& id) {
-    EntityTreePointer tree = qApp->getEntities()->getTree();
-    changeReferential(new ModelReferential(id, tree, this));
-    if (_referential->isValid()) {
-        return true;
-    } else {
-        changeReferential(NULL);
-        return false;
-    }
-}
-
-bool MyAvatar::setJointReferential(const QUuid& id, int jointIndex) {
-    EntityTreePointer tree = qApp->getEntities()->getTree();
-    changeReferential(new JointReferential(jointIndex, id, tree, this));
-    if (!_referential->isValid()) {
-        return true;
-    } else {
-        changeReferential(NULL);
-        return false;
-    }
-}
-
 void MyAvatar::overrideAnimation(const QString& url, float fps, bool loop, float firstFrame, float lastFrame) {
     if (QThread::currentThread() != thread()) {
         QMetaObject::invokeMethod(this, "overrideAnimation", Q_ARG(const QString&, url), Q_ARG(float, fps),
@@ -732,7 +702,7 @@ void MyAvatar::loadData() {
 
     _leanScale = loadSetting(settings, "leanScale", 0.05f);
     _targetScale = loadSetting(settings, "scale", 1.0f);
-    setScale(_scale);
+    setAvatarScale(getAvatarScale());
 
     _animGraphUrl = settings.value("animGraphURL", "").toString();
     _fullAvatarURLFromPreferences = settings.value("fullAvatarURL", AvatarData::defaultFullAvatarModelUrl()).toUrl();
@@ -859,7 +829,8 @@ void MyAvatar::updateLookAtTargetAvatar() {
         bool isCurrentTarget = avatar->getIsLookAtTarget();
         float distanceTo = glm::length(avatar->getHead()->getEyePosition() - cameraPosition);
         avatar->setIsLookAtTarget(false);
-        if (!avatar->isMyAvatar() && avatar->isInitialized() && (distanceTo < GREATEST_LOOKING_AT_DISTANCE * getScale())) {
+        if (!avatar->isMyAvatar() && avatar->isInitialized() &&
+            (distanceTo < GREATEST_LOOKING_AT_DISTANCE * getAvatarScale())) {
             float angleTo = glm::angle(lookForward, glm::normalize(avatar->getHead()->getEyePosition() - cameraPosition));
             if (angleTo < (smallestAngleTo * (isCurrentTarget ? KEEP_LOOKING_AT_CURRENT_ANGLE_FACTOR : 1.0f))) {
                 _lookAtTargetAvatar = avatarPointer;
@@ -1071,7 +1042,7 @@ glm::vec3 MyAvatar::getSkeletonPosition() const {
         // The avatar is rotated PI about the yAxis, so we have to correct for it
         // to get the skeleton offset contribution in the world-frame.
         const glm::quat FLIP = glm::angleAxis(PI, glm::vec3(0.0f, 1.0f, 0.0f));
-        return _position + getOrientation() * FLIP * _skeletonOffset;
+        return getPosition() + getOrientation() * FLIP * _skeletonOffset;
     }
     return Avatar::getPosition();
 }
@@ -1229,7 +1200,7 @@ void MyAvatar::renderBody(RenderArgs* renderArgs, ViewFrustum* renderFrustum, fl
     if (qApp->isHMDMode()) {
         glm::vec3 cameraPosition = qApp->getCamera()->getPosition();
 
-        glm::mat4 headPose = qApp->getActiveDisplayPlugin()->getHeadPose();
+        glm::mat4 headPose = qApp->getActiveDisplayPlugin()->getHeadPose(qApp->getFrameCount());
         glm::mat4 leftEyePose = qApp->getActiveDisplayPlugin()->getEyeToHeadTransform(Eye::Left);
         leftEyePose = leftEyePose * headPose;
         glm::vec3 leftEyePosition = extractTranslation(leftEyePose);
@@ -1283,6 +1254,16 @@ void MyAvatar::initHeadBones() {
     }
 }
 
+void MyAvatar::setAnimGraphUrl(const QUrl& url) {
+    if (_animGraphUrl == url) {
+        return;
+    }
+    destroyAnimGraph();
+    _skeletonModel.reset(); // Why is this necessary? Without this, we crash in the next render.
+    _animGraphUrl = url;
+    initAnimGraph();
+}
+
 void MyAvatar::initAnimGraph() {
     // avatar.json
     // https://gist.github.com/hyperlogic/7d6a0892a7319c69e2b9
@@ -1299,9 +1280,9 @@ void MyAvatar::initAnimGraph() {
     // or run a local web-server
     // python -m SimpleHTTPServer&
     //auto graphUrl = QUrl("http://localhost:8000/avatar.json");
-    auto graphUrl = QUrl(_animGraphUrl.isEmpty() ?
-                         QUrl::fromLocalFile(PathUtils::resourcesPath() + "meshes/defaultAvatar_full/avatar-animation.json") :
-                         _animGraphUrl);
+    auto graphUrl =_animGraphUrl.isEmpty() ?
+        QUrl::fromLocalFile(PathUtils::resourcesPath() + "meshes/defaultAvatar_full/avatar-animation.json") :
+        QUrl(_animGraphUrl);
     _rig->initAnimGraph(graphUrl);
 
     _bodySensorMatrix = deriveBodyFromHMDSensor(); // Based on current cached HMD position/rotation..
@@ -1361,7 +1342,7 @@ const float RENDER_HEAD_CUTOFF_DISTANCE = 0.50f;
 bool MyAvatar::cameraInsideHead() const {
     const Head* head = getHead();
     const glm::vec3 cameraPosition = qApp->getCamera()->getPosition();
-    return glm::length(cameraPosition - head->getEyePosition()) < (RENDER_HEAD_CUTOFF_DISTANCE * _scale);
+    return glm::length(cameraPosition - head->getEyePosition()) < (RENDER_HEAD_CUTOFF_DISTANCE * getAvatarScale());
 }
 
 bool MyAvatar::shouldRenderHead(const RenderArgs* renderArgs) const {
@@ -1491,11 +1472,11 @@ glm::vec3 MyAvatar::applyKeyboardMotor(float deltaTime, const glm::vec3& localVe
             if (isHovering) {
                 // we're flying --> complex acceleration curve with high max speed
                 float motorSpeed = glm::length(_keyboardMotorVelocity);
-                float finalMaxMotorSpeed = _scale * MAX_KEYBOARD_MOTOR_SPEED;
+                float finalMaxMotorSpeed = getAvatarScale() * MAX_KEYBOARD_MOTOR_SPEED;
                 float speedGrowthTimescale  = 2.0f;
                 float speedIncreaseFactor = 1.8f;
                 motorSpeed *= 1.0f + glm::clamp(deltaTime / speedGrowthTimescale , 0.0f, 1.0f) * speedIncreaseFactor;
-                const float maxBoostSpeed = _scale * MAX_BOOST_SPEED;
+                const float maxBoostSpeed = getAvatarScale() * MAX_BOOST_SPEED;
                 if (motorSpeed < maxBoostSpeed) {
                     // an active keyboard motor should never be slower than this
                     float boostCoefficient = (maxBoostSpeed - motorSpeed) / maxBoostSpeed;

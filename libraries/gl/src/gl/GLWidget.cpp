@@ -7,6 +7,7 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
+#include <QtGlobal>
 
 #include "GLWidget.h"
 
@@ -16,10 +17,13 @@
 #include <QtCore/QUrl>
 #include <QtCore/QCoreApplication>
 
+#include <QtGui/QOpenGLContext>
 #include <QtGui/QKeyEvent>
 #include <QtGui/QWindow>
 
+
 #include "GLHelpers.h"
+
 
 GLWidget::GLWidget() : QGLWidget(getDefaultGLFormat()) {
 #ifdef Q_OS_LINUX
@@ -42,6 +46,12 @@ void GLWidget::initializeGL() {
     setAcceptDrops(true);
     // Note, we *DO NOT* want Qt to automatically swap buffers for us.  This results in the "ringing" bug mentioned in WL#19514 when we're throttling the framerate.
     setAutoBufferSwap(false);
+
+    // TODO: write the proper code for linux
+    makeCurrent();
+#if defined(Q_OS_WIN)
+    _vsyncSupported = context()->contextHandle()->hasExtension("WGL_EXT_swap_control");;
+#endif
 }
 
 void GLWidget::paintEvent(QPaintEvent* event) {
@@ -112,3 +122,8 @@ bool GLWidget::eventFilter(QObject*, QEvent* event) {
     }
     return false;
 }
+
+bool GLWidget::isVsyncSupported() const {
+    return _vsyncSupported;
+}
+

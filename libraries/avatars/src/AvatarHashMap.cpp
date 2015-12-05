@@ -65,7 +65,10 @@ AvatarSharedPointer AvatarHashMap::newOrExistingAvatar(const QUuid& sessionUUID,
 
 AvatarSharedPointer AvatarHashMap::findAvatar(const QUuid& sessionUUID) {
     QReadLocker locker(&_hashLock);
-    return _avatarHash.value(sessionUUID);
+    if (_avatarHash.contains(sessionUUID)) {
+        return _avatarHash.value(sessionUUID);
+    }
+    return nullptr;
 }
 
 void AvatarHashMap::processAvatarDataPacket(QSharedPointer<NLPacket> packet, SharedNodePointer sendingNode) {

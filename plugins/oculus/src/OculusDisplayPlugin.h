@@ -17,25 +17,24 @@ using SwapFboPtr = QSharedPointer<SwapFramebufferWrapper>;
 class OculusDisplayPlugin : public OculusBaseDisplayPlugin {
 public:
     virtual void activate() override;
-    virtual void deactivate() override;
     virtual const QString & getName() const override;
+    virtual void setEyeRenderPose(uint32_t frameIndex, Eye eye, const glm::mat4& pose) override final;
 
     virtual float getTargetFrameRate() override { return TARGET_RATE_Oculus; }
     virtual float getTargetFramePeriod() override { return 1.0f / TARGET_RATE_Oculus; }
 
 protected:
-    virtual void display(GLuint finalTexture, const glm::uvec2& sceneSize) override;
+    virtual void internalPresent() override;
     virtual void customizeContext() override;
-    // Do not perform swap in finish
-    virtual void finishFrame() override;
+    virtual void uncustomizeContext() override;
 
 private:
+    using EyePoses = std::pair<ovrPosef, ovrPosef>;
     static const QString NAME;
     bool _enablePreview { false };
     bool _monoPreview { true };
+    QMap<uint32_t, EyePoses> _frameEyePoses;
 
-#if (OVR_MAJOR_VERSION >= 6)
     SwapFboPtr       _sceneFbo;
-#endif
 };
 

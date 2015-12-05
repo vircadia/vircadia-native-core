@@ -12,6 +12,8 @@
 #define TARGET_FRAMERATE_Basic2DWindowOpenGL 60.0f
 
 class QScreen;
+class QAction;
+
 class Basic2DWindowOpenGLDisplayPlugin : public WindowOpenGLDisplayPlugin {
     Q_OBJECT
 
@@ -22,9 +24,10 @@ public:
     virtual float getTargetFramePeriod() override { return _inverseFrameRate; }
 
     virtual void activate() override;
-    virtual void deactivate() override;
 
-    virtual void display(GLuint sceneTexture, const glm::uvec2& sceneSize) override;
+    virtual void submitSceneTexture(uint32_t frameIndex, uint32_t sceneTexture, const glm::uvec2& sceneSize) override;
+
+    virtual void internalPresent() override;
 
     virtual bool isThrottled() const override;
     virtual bool isVSynchronized() const override;
@@ -37,7 +40,10 @@ private:
     void updateFramerate();
     static const QString NAME;
     QScreen* getFullscreenTarget();
-    uint32_t _framerateTarget{ 0 };
+    std::vector<QAction*> _framerateActions;
+    QAction* _vsyncAction { nullptr };
+    uint32_t _framerateTarget { 0 };
     int _fullscreenTarget{ -1 };
     float _inverseFrameRate{ 1.0f }; //seconds
+    bool _wantVsync { true };
 };

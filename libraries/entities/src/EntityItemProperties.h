@@ -83,6 +83,8 @@ public:
         { return (float)(usecTimestampNow() - getLastEdited()) / (float)USECS_PER_SECOND; }
     EntityPropertyFlags getChangedProperties() const;
 
+    bool parentDependentPropertyChanged(); // was there a changed in a property that requires parent info to interpret?
+
     AACube getMaximumAACube() const;
     AABox getAABox() const;
 
@@ -189,6 +191,12 @@ public:
     DEFINE_PROPERTY_REF(PROP_X_P_NEIGHBOR_ID, XPNeighborID, xPNeighborID, EntityItemID, UNKNOWN_ENTITY_ID);
     DEFINE_PROPERTY_REF(PROP_Y_P_NEIGHBOR_ID, YPNeighborID, yPNeighborID, EntityItemID, UNKNOWN_ENTITY_ID);
     DEFINE_PROPERTY_REF(PROP_Z_P_NEIGHBOR_ID, ZPNeighborID, zPNeighborID, EntityItemID, UNKNOWN_ENTITY_ID);
+    DEFINE_PROPERTY_REF(PROP_PARENT_ID, ParentID, parentID, QUuid, UNKNOWN_ENTITY_ID);
+    DEFINE_PROPERTY_REF(PROP_PARENT_JOINT_INDEX, ParentJointIndex, parentJointIndex, quint16, 0);
+
+    // these are used when bouncing location data into and out of scripts
+    DEFINE_PROPERTY_REF(PROP_LOCAL_POSITION, LocalPosition, localPosition, glmVec3, ENTITY_ITEM_ZERO_VEC3);
+    DEFINE_PROPERTY_REF(PROP_LOCAL_ROTATION, LocalRotation, localRotation, glmQuat, ENTITY_ITEM_DEFAULT_ROTATION);
 
     static QString getBackgroundModeString(BackgroundMode mode);
 
@@ -386,6 +394,9 @@ inline QDebug operator<<(QDebug debug, const EntityItemProperties& properties) {
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, XPNeighborID, xPNeighborID, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, YPNeighborID, yPNeighborID, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, ZPNeighborID, zPNeighborID, "");
+
+    DEBUG_PROPERTY_IF_CHANGED(debug, properties, ParentID, parentID, "");
+    DEBUG_PROPERTY_IF_CHANGED(debug, properties, ParentJointIndex, parentJointIndex, "");
 
     properties.getAnimation().debugDump();
     properties.getAtmosphere().debugDump();

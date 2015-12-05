@@ -23,6 +23,7 @@
 #include <LODManager.h>
 #include <OffscreenUi.h>
 #include <PerfStat.h>
+#include <plugins/DisplayPlugin.h>
 
 #include "BandwidthRecorder.h"
 #include "Menu.h"
@@ -118,7 +119,12 @@ void Stats::updateStats(bool force) {
     STAT_UPDATE(avatarRenderableCount, avatarManager->getNumberInRenderRange());
     STAT_UPDATE(avatarRenderDistance, (int) round(avatarManager->getRenderDistance())); // deliberately truncating
     STAT_UPDATE(serverCount, nodeList->size());
-    STAT_UPDATE(framerate, (int)qApp->getFps());
+    STAT_UPDATE(renderrate, (int)qApp->getFps());
+    if (qApp->getActiveDisplayPlugin()) {
+        STAT_UPDATE(presentrate, (int)round(qApp->getActiveDisplayPlugin()->presentRate()));
+    } else {
+        STAT_UPDATE(presentrate, -1);
+    }
     STAT_UPDATE(simrate, (int)qApp->getAverageSimsPerSecond());
     STAT_UPDATE(avatarSimrate, (int)qApp->getAvatarSimrate());
 

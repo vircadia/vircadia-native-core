@@ -36,13 +36,11 @@ public:
     virtual void resetSensors() override;
 
     virtual glm::mat4 getEyeToHeadTransform(Eye eye) const override;
-    virtual glm::mat4 getHeadPose() const override;
+    virtual glm::mat4 getHeadPose(uint32_t frameIndex) const override;
 
 protected:
-    virtual void display(GLuint finalTexture, const glm::uvec2& sceneSize) override;
+//    virtual void display(uint32_t frameIndex, uint32_t finalTexture, const glm::uvec2& sceneSize) override;
     virtual void customizeContext() override;
-    // Do not perform swap in finish
-    virtual void finishFrame() override;
 
 private:
     vr::IVRSystem* _hmd { nullptr };

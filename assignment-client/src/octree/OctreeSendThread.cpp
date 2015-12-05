@@ -321,6 +321,7 @@ int OctreeSendThread::packetDistributor(OctreeQueryNode* nodeData, bool viewFrus
     // If we're starting a fresh packet, then...
     //     If we're moving, and the client asked for low res, then we force monochrome, otherwise, use
     //     the clients requested color state.
+    bool wantCompression = nodeData->getWantCompression();
 
     // If we have a packet waiting, and our desired want color, doesn't match the current waiting packets color
     // then let's just send that waiting packet.
@@ -331,8 +332,10 @@ int OctreeSendThread::packetDistributor(OctreeQueryNode* nodeData, bool viewFrus
             nodeData->resetOctreePacket();
         }
         int targetSize = MAX_OCTREE_PACKET_DATA_SIZE;
-        targetSize = nodeData->getAvailable() - sizeof(OCTREE_PACKET_INTERNAL_SECTION_SIZE);
-        _packetData.changeSettings(targetSize);
+        if (wantCompression) {
+            targetSize = nodeData->getAvailable() - sizeof(OCTREE_PACKET_INTERNAL_SECTION_SIZE);
+        }
+        _packetData.changeSettings(wantCompression, targetSize);
     }
 
     const ViewFrustum* lastViewFrustum =  wantDelta ? &nodeData->getLastKnownViewFrustum() : NULL;
@@ -548,7 +551,10 @@ int OctreeSendThread::packetDistributor(OctreeQueryNode* nodeData, bool viewFrus
                     packetsSentThisInterval += handlePacketSend(nodeData, trueBytesSent, truePacketsSent);
                     quint64 packetSendingEnd = usecTimestampNow();
                     packetSendingElapsedUsec = (float)(packetSendingEnd - packetSendingStart);
-                    targetSize = nodeData->getAvailable() - sizeof(OCTREE_PACKET_INTERNAL_SECTION_SIZE);
+
+                    if (wantCompression) {
+                        targetSize = nodeData->getAvailable() - sizeof(OCTREE_PACKET_INTERNAL_SECTION_SIZE);
+                    }
                 } else {
                     // If we're in compressed mode, then we want to see if we have room for more in this wire packet.
                     // but we've finalized the _packetData, so we want to start a new section, we will do that by
@@ -558,7 +564,7 @@ int OctreeSendThread::packetDistributor(OctreeQueryNode* nodeData, bool viewFrus
                     // a larger compressed size then uncompressed size
                     targetSize = nodeData->getAvailable() - sizeof(OCTREE_PACKET_INTERNAL_SECTION_SIZE) - COMPRESS_PADDING;
                 }
-                _packetData.changeSettings(targetSize); // will do reset
+                _packetData.changeSettings(nodeData->getWantCompression(), targetSize); // will do reset
 
             }
             OctreeServer::trackTreeWaitTime(lockWaitElapsedUsec);

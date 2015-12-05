@@ -24,48 +24,52 @@ class RenderableModelEntityItem : public ModelEntityItem {
 public:
     static EntityItemPointer factory(const EntityItemID& entityID, const EntityItemProperties& properties);
 
-    RenderableModelEntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties);
+    RenderableModelEntityItem(const EntityItemID& entityItemID, bool dimensionsInitialized);
 
     virtual ~RenderableModelEntityItem();
 
-    virtual void setDimensions(const glm::vec3& value) override;
+    virtual void setDimensions(const glm::vec3 value) override;
     
-    virtual EntityItemProperties getProperties(EntityPropertyFlags desiredProperties = EntityPropertyFlags()) const;
-    virtual bool setProperties(const EntityItemProperties& properties);
+    virtual EntityItemProperties getProperties(EntityPropertyFlags desiredProperties = EntityPropertyFlags()) const override;
+    virtual bool setProperties(const EntityItemProperties& properties) override;
     virtual int readEntitySubclassDataFromBuffer(const unsigned char* data, int bytesLeftToRead, 
                                                 ReadBitstreamToTreeParams& args,
                                                 EntityPropertyFlags& propertyFlags, bool overwriteLocalData,
-                                                bool& somethingChanged);
+                                                bool& somethingChanged) override;
                                                 
-    virtual void somethingChangedNotification() { 
+    virtual void somethingChangedNotification() override {
         // FIX ME: this is overly aggressive. We only really need to simulate() if something about
         // the world space transform has changed and/or if some animation is occurring.
         _needsInitialSimulation = true;  
     }
 
     virtual bool readyToAddToScene(RenderArgs* renderArgs = nullptr);
-    virtual bool addToScene(EntityItemPointer self, std::shared_ptr<render::Scene> scene, render::PendingChanges& pendingChanges);
-    virtual void removeFromScene(EntityItemPointer self, std::shared_ptr<render::Scene> scene, render::PendingChanges& pendingChanges);
+    virtual bool addToScene(EntityItemPointer self, std::shared_ptr<render::Scene> scene, render::PendingChanges& pendingChanges) override;
+    virtual void removeFromScene(EntityItemPointer self, std::shared_ptr<render::Scene> scene, render::PendingChanges& pendingChanges) override;
 
 
-    virtual void render(RenderArgs* args);
-    virtual bool supportsDetailedRayIntersection() const { return true; }
+    virtual void render(RenderArgs* args) override;
+    virtual bool supportsDetailedRayIntersection() const override { return true; }
     virtual bool findDetailedRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
                         bool& keepSearching, OctreeElementPointer& element, float& distance, 
                         BoxFace& face, glm::vec3& surfaceNormal,
-                        void** intersectedObject, bool precisionPicking) const;
+                        void** intersectedObject, bool precisionPicking) const override;
 
     Model* getModel(EntityTreeRenderer* renderer);
     
-    virtual bool needsToCallUpdate() const;
-    virtual void update(const quint64& now);
+    virtual bool needsToCallUpdate() const override;
+    virtual void update(const quint64& now) override;
 
-    virtual void setCompoundShapeURL(const QString& url);
+    virtual void setCompoundShapeURL(const QString& url) override;
 
-    bool isReadyToComputeShape();
-    void computeShapeInfo(ShapeInfo& info);
+    virtual bool isReadyToComputeShape() override;
+    virtual void computeShapeInfo(ShapeInfo& info) override;
     
-    virtual bool contains(const glm::vec3& point) const;
+    virtual bool contains(const glm::vec3& point) const override;
+
+    // these are in the frame of this object
+    virtual glm::quat getJointRotation(int index) const;
+    virtual glm::vec3 getJointTranslation(int index) const;
 
 private:
     void remapTextures();

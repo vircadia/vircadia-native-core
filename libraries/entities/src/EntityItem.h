@@ -23,6 +23,7 @@
 #include <OctreePacketData.h>
 #include <ShapeInfo.h>
 #include <Transform.h>
+#include <SpatiallyNestable.h>
 
 #include "EntityItemID.h"
 #include "EntityItemPropertiesDefaults.h"
@@ -55,31 +56,10 @@ namespace render {
 #define debugTimeOnly(T) qPrintable(QString("%1").arg(T, 16, 10))
 #define debugTreeVector(V) V << "[" << V << " in meters ]"
 
-//#if DEBUG
-//  #define assertLocked() assert(isLocked())
-//#else
-//  #define assertLocked()
-//#endif
-//
-//#if DEBUG
-//  #define assertWriteLocked() assert(isWriteLocked())
-//#else
-//  #define assertWriteLocked()
-//#endif
-//
-//#if DEBUG
-//  #define assertUnlocked() assert(isUnlocked())
-//#else
-//  #define assertUnlocked()
-//#endif
-#define assertLocked()
-#define assertUnlocked()
-#define assertWriteLocked()
-
 /// EntityItem class this is the base class for all entity types. It handles the basic properties and functionality available
 /// to all other entity types. In particular: postion, size, rotation, age, lifetime, velocity, gravity. You can not instantiate
 /// one directly, instead you must only construct one of it's derived classes with additional features.
-class EntityItem : public std::enable_shared_from_this<EntityItem>, public ReadWriteLockable {
+class EntityItem : public SpatiallyNestable, public ReadWriteLockable {
     // These two classes manage lists of EntityItem pointers and must be able to cleanup pointers when an EntityItem is deleted.
     // To make the cleanup robust each EntityItem has backpointers to its manager classes (which are only ever set/cleared by
     // the managers themselves, hence they are fiends) whose NULL status can be used to determine which managers still need to
@@ -93,9 +73,8 @@ public:
     EntityItem(const EntityItemID& entityItemID);
     virtual ~EntityItem();
 
-    // ID and EntityItemID related methods
-    const QUuid& getID() const { return _id; }
-    void setID(const QUuid& id) { _id = id; }
+    inline EntityItemPointer getThisPointer() { return std::static_pointer_cast<EntityItem>(shared_from_this()); }
+
     EntityItemID getEntityItemID() const { return EntityItemID(_id); }
 
     // methods for getting/setting all properties of an entity
@@ -188,16 +167,6 @@ public:
     const Transform getTransformToCenter() const;
     void setTranformToCenter(const Transform& transform);
 
-    inline const Transform& getTransform() const { return _transform; }
-    inline void setTransform(const Transform& transform) { _transform = transform; requiresRecalcBoxes(); }
-
-    /// Position in meters (-TREE_SCALE - TREE_SCALE)
-    inline const glm::vec3& getPosition() const { return _transform.getTranslation(); }
-    inline void setPosition(const glm::vec3& value) { _transform.setTranslation(value); requiresRecalcBoxes(); }
-
-    inline const glm::quat& getRotation() const { return _transform.getRotation(); }
-    inline void setRotation(const glm::quat& rotation) { _transform.setRotation(rotation); requiresRecalcBoxes(); }
-
     inline void requiresRecalcBoxes() { _recalcAABox = true; _recalcMinAACube = true; _recalcMaxAACube = true; }
 
     // Hyperlink related getters and setters
@@ -208,8 +177,8 @@ public:
     void setDescription(QString value) { _description = value; }
 
     /// Dimensions in meters (0.0 - TREE_SCALE)
-    inline const glm::vec3& getDimensions() const { return _transform.getScale(); }
-    virtual void setDimensions(const glm::vec3& value);
+    inline const glm::vec3 getDimensions() const { return getScale(); }
+    virtual void setDimensions(const glm::vec3 value);
 
     float getGlowLevel() const { return _glowLevel; }
     void setGlowLevel(float glowLevel) { _glowLevel = glowLevel; }
@@ -337,6 +306,10 @@ public:
     /// return preferred shape type (actual physical shape may differ)
     virtual ShapeType getShapeType() const { return SHAPE_TYPE_NONE; }
 
+    // these are only needed because the names don't match
+    virtual const glm::quat getRotation() const { return getOrientation(); }
+    virtual void setRotation(glm::quat orientation) { setOrientation(orientation); }
+
     // updateFoo() methods to be used when changes need to be accumulated in the _dirtyFlags
     void updatePosition(const glm::vec3& value);
     void updateDimensions(const glm::vec3& value);
@@ -405,13 +378,17 @@ public:
 
     QList<EntityActionPointer> getActionsOfType(EntityActionType typeToGet);
 
+    // these are in the frame of this object
+    virtual glm::quat getJointRotation(int index) const { return glm::quat(); }
+    virtual glm::vec3 getJointTranslation(int index) const { return glm::vec3(0.0f); }
+
 protected:
 
     const QByteArray getActionDataInternal() const;
     void setActionDataInternal(QByteArray actionData);
 
+    virtual void locationChanged();
     EntityTypes::EntityType _type;
-    QUuid _id;
     quint64 _lastSimulated; // last time this entity called simulate(), this includes velocity, angular velocity,
                             // and physics changes
     quint64 _lastUpdated; // last time this entity called update(), this includes animations and non-physics changes
@@ -423,7 +400,6 @@ protected:
     quint64 _created;
     quint64 _changedOnServer;
 
-    Transform _transform;
     mutable AABox _cachedAABox;
     mutable AACube _maxAACube;
     mutable AACube _minAACube;
