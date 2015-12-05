@@ -127,10 +127,10 @@ public:
     // if rotation is identity, result will be in rig space
     bool getJointRotationInWorldFrame(int jointIndex, glm::quat& result, const glm::quat& rotation) const;
 
-    // geometry space
+    // geometry space (thread-safe)
     bool getJointRotation(int jointIndex, glm::quat& rotation) const;
 
-    // geometry space
+    // geometry space (thread-safe)
     bool getJointTranslation(int jointIndex, glm::vec3& translation) const;
 
     // legacy

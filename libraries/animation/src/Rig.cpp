@@ -300,7 +300,7 @@ void Rig::clearJointAnimationPriority(int index) {
 void Rig::setJointTranslation(int index, bool valid, const glm::vec3& translation, float priority) {
     if (isIndexValid(index)) {
         if (valid) {
-            assert(_overrideFlags.size() == _internalPoseSet._overridePoses.size());
+            assert(_internalPoseSet._overrideFlags.size() == _internalPoseSet._overridePoses.size());
             _internalPoseSet._overrideFlags[index] = true;
             _internalPoseSet._overridePoses[index].trans = translation;
         }
@@ -364,8 +364,9 @@ bool Rig::getJointRotationInWorldFrame(int jointIndex, glm::quat& result, const 
 }
 
 bool Rig::getJointRotation(int jointIndex, glm::quat& rotation) const {
-    if (isIndexValid(jointIndex)) {
-        rotation = _internalPoseSet._relativePoses[jointIndex].rot;
+    QReadLocker readLock(&_externalPoseSetLock);
+    if (jointIndex >= 0 && jointIndex < (int)_externalPoseSet._relativePoses.size()) {
+        rotation = _externalPoseSet._relativePoses[jointIndex].rot;
         return true;
     } else {
         return false;
@@ -373,8 +374,9 @@ bool Rig::getJointRotation(int jointIndex, glm::quat& rotation) const {
 }
 
 bool Rig::getJointTranslation(int jointIndex, glm::vec3& translation) const {
-    if (isIndexValid(jointIndex)) {
-        translation = _internalPoseSet._relativePoses[jointIndex].trans;
+    QReadLocker readLock(&_externalPoseSetLock);
+    if (jointIndex >= 0 && jointIndex < (int)_externalPoseSet._relativePoses.size()) {
+        translation = _externalPoseSet._relativePoses[jointIndex].trans;
         return true;
     } else {
         return false;
