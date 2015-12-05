@@ -30,7 +30,8 @@ void AvatarUpdate::synchronousProcess() {
 
     // Keep our own updated value, so that our asynchronous code can consult it.
     _isHMDMode = qApp->isHMDMode();
-    _headPose = qApp->getActiveDisplayPlugin()->getHeadPose();
+    auto frameCount = qApp->getFrameCount();
+    _headPose = qApp->getActiveDisplayPlugin()->getHeadPose(frameCount);
 
     if (_updateBillboard) {
         DependencyManager::get<AvatarManager>()->getMyAvatar()->doUpdateBillboard();

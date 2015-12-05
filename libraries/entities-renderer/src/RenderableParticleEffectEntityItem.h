@@ -19,7 +19,7 @@ class RenderableParticleEffectEntityItem : public ParticleEffectEntityItem  {
 friend class ParticlePayload;
 public:
     static EntityItemPointer factory(const EntityItemID& entityID, const EntityItemProperties& properties);
-    RenderableParticleEffectEntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties);
+    RenderableParticleEffectEntityItem(const EntityItemID& entityItemID);
 
     virtual void update(const quint64& now) override;
 

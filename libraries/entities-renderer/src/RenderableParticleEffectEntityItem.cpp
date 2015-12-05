@@ -117,13 +117,15 @@ namespace render {
 
 
 
-EntityItemPointer RenderableParticleEffectEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
-    return std::make_shared<RenderableParticleEffectEntityItem>(entityID, properties);
+EntityItemPointer RenderableParticleEffectEntityItem::factory(const EntityItemID& entityID,
+                                                              const EntityItemProperties& properties) {
+    EntityItemPointer entity{ new RenderableParticleEffectEntityItem(entityID) };
+    entity->setProperties(properties);
+    return entity;
 }
 
-RenderableParticleEffectEntityItem::RenderableParticleEffectEntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties) :
-    ParticleEffectEntityItem(entityItemID, properties) {
-
+RenderableParticleEffectEntityItem::RenderableParticleEffectEntityItem(const EntityItemID& entityItemID) :
+    ParticleEffectEntityItem(entityItemID) {
     // lazy creation of particle system pipeline
     if (!_untexturedPipeline && !_texturedPipeline) {
         createPipelines();
@@ -134,13 +136,14 @@ bool RenderableParticleEffectEntityItem::addToScene(EntityItemPointer self,
                                                     render::ScenePointer scene,
                                                     render::PendingChanges& pendingChanges) {
 
-    auto particlePayload = std::shared_ptr<ParticlePayload>(new ParticlePayload(shared_from_this()));
+    auto particlePayload =
+        std::shared_ptr<ParticlePayload>(new ParticlePayload(getThisPointer()));
     particlePayload->setPipeline(_untexturedPipeline);
     _renderItemId = scene->allocateID();
     auto renderData = ParticlePayload::Pointer(particlePayload);
     auto renderPayload = render::PayloadPointer(new ParticlePayload::Payload(renderData));
     render::Item::Status::Getters statusGetters;
-    makeEntityItemStatusGetters(shared_from_this(), statusGetters);
+    makeEntityItemStatusGetters(getThisPointer(), statusGetters);
     renderPayload->addStatusGetters(statusGetters);
     pendingChanges.resetItem(_renderItemId, renderPayload);
     _scene = scene;
@@ -334,10 +337,10 @@ void RenderableParticleEffectEntityItem::createPipelines() {
         state->setBlendFunction(true, gpu::State::SRC_ALPHA, gpu::State::BLEND_OP_ADD,
                                 destinationColorBlendArg, gpu::State::FACTOR_ALPHA,
                                 gpu::State::BLEND_OP_ADD, gpu::State::ONE);
-        auto vertShader = gpu::ShaderPointer(gpu::Shader::createVertex(std::string(untextured_particle_vert)));
-        auto fragShader = gpu::ShaderPointer(gpu::Shader::createPixel(std::string(untextured_particle_frag)));
-        auto program = gpu::ShaderPointer(gpu::Shader::createProgram(vertShader, fragShader));
-        _untexturedPipeline = gpu::PipelinePointer(gpu::Pipeline::create(program, state));
+        auto vertShader = gpu::Shader::createVertex(std::string(untextured_particle_vert));
+        auto fragShader = gpu::Shader::createPixel(std::string(untextured_particle_frag));
+        auto program = gpu::Shader::createProgram(vertShader, fragShader);
+        _untexturedPipeline = gpu::Pipeline::create(program, state);
     }
     if (!_texturedPipeline) {
         auto state = std::make_shared<gpu::State>();
@@ -349,17 +352,16 @@ void RenderableParticleEffectEntityItem::createPipelines() {
         state->setBlendFunction(true, gpu::State::SRC_ALPHA, gpu::State::BLEND_OP_ADD,
                                 destinationColorBlendArg, gpu::State::FACTOR_ALPHA,
                                 gpu::State::BLEND_OP_ADD, gpu::State::ONE);
-        auto vertShader = gpu::ShaderPointer(gpu::Shader::createVertex(std::string(textured_particle_vert)));
+        auto vertShader = gpu::Shader::createVertex(std::string(textured_particle_vert));
         gpu::ShaderPointer fragShader;
         if (_additiveBlending) {
-           fragShader = gpu::ShaderPointer(gpu::Shader::createPixel(std::string(textured_particle_frag)));
+           fragShader = gpu::Shader::createPixel(std::string(textured_particle_frag));
         }
         else {
             //If we are sorting and have no additive blending, we want to discard pixels with low alpha to avoid inter-particle entity artifacts
-            fragShader = gpu::ShaderPointer(gpu::Shader::createPixel(std::string(textured_particle_alpha_discard_frag)));
+            fragShader = gpu::Shader::createPixel(std::string(textured_particle_alpha_discard_frag));
         }
-        auto program = gpu::ShaderPointer(gpu::Shader::createProgram(vertShader, fragShader));
-        _texturedPipeline = gpu::PipelinePointer(gpu::Pipeline::create(program, state));
-   
+        auto program = gpu::Shader::createProgram(vertShader, fragShader);
+        _texturedPipeline = gpu::Pipeline::create(program, state);
     }
 }

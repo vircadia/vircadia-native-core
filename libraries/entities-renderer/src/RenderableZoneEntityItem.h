@@ -21,10 +21,10 @@ class RenderableZoneEntityItem : public ZoneEntityItem  {
 public:
     static EntityItemPointer factory(const EntityItemID& entityID, const EntityItemProperties& properties);
     
-    RenderableZoneEntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties) :
-    ZoneEntityItem(entityItemID, properties),
-    _model(NULL),
-    _needsInitialSimulation(true)
+    RenderableZoneEntityItem(const EntityItemID& entityItemID) :
+        ZoneEntityItem(entityItemID),
+        _model(NULL),
+        _needsInitialSimulation(true)
     { }
     
     virtual bool setProperties(const EntityItemProperties& properties);

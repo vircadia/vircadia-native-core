@@ -60,7 +60,7 @@ void ViveControllerManager::activate() {
     InputPlugin::activate();
 #ifdef Q_OS_WIN
     _container->addMenu(MENU_PATH);
-    _container->addMenuItem(MENU_PATH, RENDER_CONTROLLERS,
+    _container->addMenuItem(PluginType::INPUT_PLUGIN, MENU_PATH, RENDER_CONTROLLERS,
         [this] (bool clicked) { this->setRenderControllers(clicked); },
         true, true);
 

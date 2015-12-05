@@ -158,6 +158,7 @@ public:
 
     bool isForeground() const { return _isForeground; }
     
+    uint32_t getFrameCount() { return _frameCount; }
     float getFps() const { return _fps; }
     float const HMD_TARGET_FRAME_RATE = 75.0f;
     float const DESKTOP_TARGET_FRAME_RATE = 60.0f;
@@ -185,7 +186,7 @@ public:
     virtual float getSizeScale() const;
     virtual int getBoundaryLevelAdjust() const;
     virtual PickRay computePickRay(float x, float y) const;
-    virtual const glm::vec3& getAvatarPosition() const;
+    virtual glm::vec3 getAvatarPosition() const;
     virtual void overrideEnvironmentData(const EnvironmentData& newData) { _environment.override(newData); }
     virtual void endOverrideEnvironmentData() { _environment.endOverride(); }
     virtual qreal getDevicePixelRatio();
@@ -424,6 +425,9 @@ private:
     OffscreenGLCanvas* _offscreenContext { nullptr };
     DisplayPluginPointer _displayPlugin;
     InputPluginList _activeInputPlugins;
+
+    bool _activatingDisplayPlugin { false };
+    QMap<uint32_t, gpu::FramebufferPointer> _lockedFramebufferMap;
 
     MainWindow* _window;
 

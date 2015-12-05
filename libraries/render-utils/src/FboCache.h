@@ -12,7 +12,6 @@
 #ifndef hifi_FboCache_h
 #define hifi_FboCache_h
 
-#include <QOpenGLContext>
 #include <QOffscreenSurface>
 #include <QQueue>
 #include <QMap>
