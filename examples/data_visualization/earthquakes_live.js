@@ -1,7 +1,13 @@
 // earthquakes_live.js
+//
 // exploratory implementation in prep for abstract latlong to earth graphing tool for VR
 // shows all of the quakes in the past 24 hours reported by the USGS
+//
 // created by james b. pollack @imgntn on 12/5/2015
+//  Copyright 2015 High Fidelity, Inc.
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+//
 // working notes: maybe try doing markers as boxes,rotated to the sphere normal, and with the height representing some value
 
 Script.include('../libraries/promise.js');
