@@ -683,9 +683,9 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
     _applicationStateDevice->addInputVariant(QString("ComfortMode"), controller::StateController::ReadLambda([]() -> float {
         return (float)Menu::getInstance()->isOptionChecked(MenuOption::ComfortMode);
     }));
-	_applicationStateDevice->addInputVariant(QString("Grounded"), controller::StateController::ReadLambda([]() -> float {
-		return (float)qApp->getMyAvatar()->getCharacterController()->onGround();
-	}));
+    _applicationStateDevice->addInputVariant(QString("Grounded"), controller::StateController::ReadLambda([]() -> float {
+        return (float)qApp->getMyAvatar()->getCharacterController()->onGround();
+    }));
 
     userInputMapper->registerDevice(_applicationStateDevice);
 
@@ -1353,7 +1353,7 @@ void Application::paintGL() {
     {
         PROFILE_RANGE(__FUNCTION__ "/compositor");
         PerformanceTimer perfTimer("compositor");
-        auto primaryFbo = framebufferCache->getPrimaryFramebuffer();
+        auto primaryFbo = framebufferCache->getPrimaryFramebufferDepthColor();
         glBindFramebuffer(GL_DRAW_FRAMEBUFFER, gpu::GLBackend::getFramebufferID(primaryFbo));
         if (displayPlugin->isStereo()) {
             QRect currentViewport(QPoint(0, 0), QSize(size.width() / 2, size.height()));
@@ -1378,7 +1378,8 @@ void Application::paintGL() {
     {
         PROFILE_RANGE(__FUNCTION__ "/pluginOutput");
         PerformanceTimer perfTimer("pluginOutput");
-        auto primaryFramebuffer = framebufferCache->getPrimaryFramebuffer();
+
+        auto primaryFramebuffer = framebufferCache->getPrimaryFramebufferDepthColor();
         auto scratchFramebuffer = framebufferCache->getFramebuffer();
         gpu::doInBatch(renderArgs._context, [=](gpu::Batch& batch) {
             gpu::Vec4i rect;
@@ -3620,7 +3621,9 @@ void Application::displaySide(RenderArgs* renderArgs, Camera& theCamera, bool se
         renderContext._maxDrawnOpaqueItems = sceneInterface->getEngineMaxDrawnOpaqueItems();
         renderContext._maxDrawnTransparentItems = sceneInterface->getEngineMaxDrawnTransparentItems();
         renderContext._maxDrawnOverlay3DItems = sceneInterface->getEngineMaxDrawnOverlay3DItems();
-
+        
+        renderContext._drawDebugDeferredBuffer = sceneInterface->doEngineDisplayDebugDeferredBuffer();
+        
         renderContext._drawItemStatus = sceneInterface->doEngineDisplayItemStatus();
         if (Menu::getInstance()->isOptionChecked(MenuOption::PhysicsShowOwned)) {
             renderContext._drawItemStatus |= render::showNetworkStatusFlag;

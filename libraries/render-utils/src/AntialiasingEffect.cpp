@@ -123,7 +123,7 @@ void Antialiasing::run(const render::SceneContextPointer& sceneContext, const re
 
         // FXAA step
         getAntialiasingPipeline();
-        batch.setResourceTexture(0, framebufferCache->getPrimaryColorTexture());
+        batch.setResourceTexture(0, framebufferCache->getDeferredColorTexture());
         _antialiasingBuffer->setRenderBuffer(0, _antialiasingTexture);
         batch.setFramebuffer(_antialiasingBuffer);
         batch.setPipeline(getAntialiasingPipeline());
@@ -153,7 +153,7 @@ void Antialiasing::run(const render::SceneContextPointer& sceneContext, const re
         // Blend step
         getBlendPipeline();
         batch.setResourceTexture(0, _antialiasingTexture);
-        batch.setFramebuffer(framebufferCache->getPrimaryFramebuffer());
+        batch.setFramebuffer(framebufferCache->getDeferredFramebuffer());
         batch.setPipeline(getBlendPipeline());
 
         DependencyManager::get<GeometryCache>()->renderQuad(batch, bottomLeft, topRight, texCoordTopLeft, texCoordBottomRight, color);

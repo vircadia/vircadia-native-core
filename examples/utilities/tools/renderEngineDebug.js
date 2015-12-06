@@ -66,6 +66,12 @@ var overlaysCounter = new CounterWidget(panel, "Overlays",
 var showDisplayStatusFlag = 1;
 var showNetworkStatusFlag = 2;
 
+panel.newCheckbox("Debug deferred buffer",
+    function(value) { Scene.setEngineDisplayDebugDeferredBuffer(value > 0); },
+    function() { return Scene.doEngineDisplayDebugDeferredBuffer() > 0; },
+    function(value) { return value > 0; }
+);
+
 panel.newCheckbox("Display status",
     function(value) { Scene.setEngineDisplayItemStatus(value ?
                                                        Scene.doEngineDisplayItemStatus() | showDisplayStatusFlag :
