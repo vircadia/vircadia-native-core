@@ -80,7 +80,7 @@ function getQuakePosition(earthquake) {
     var position = EARTH_CENTER_POSITION;
     var finalPosition = Vec3.sum(position, latlng);
 
-    print('finalpos::' + JSON.stringify(finalPosition))
+    //print('finalpos::' + JSON.stringify(finalPosition))
     return finalPosition
 }
 
@@ -116,7 +116,7 @@ function createQuakeMarker(earthquake) {
         color: getQuakeMarkerColor(earthquake)
     }
 
-    print('marker properties::' + JSON.stringify(markerProperties))
+    //  print('marker properties::' + JSON.stringify(markerProperties))
     return Entities.addEntity(markerProperties);
 }
 
@@ -177,14 +177,20 @@ function cleanupEarth() {
     Entities.deleteEntity(earth);
 }
 
+function cleanupInterval() {
+    if (pollingInterval !== null) {
+        Script.clearInterval(pollingInterval)
+    }
+}
+
 Script.scriptEnding.connect(cleanupMarkers);
 Script.scriptEnding.connect(cleanupEarth);
-
+Script.scriptEnding.connect(cleanupInterval);
 //first draw
 getThenProcessQuakes();
 
+var pollingInterval = null;
 
-var pollingInterval;
 if (POLL_FOR_CHANGES === true) {
     pollingInterval = Script.setInterval(function() {
         cleanupMarkers();
