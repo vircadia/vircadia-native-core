@@ -565,20 +565,20 @@ bool RenderableModelEntityItem::contains(const glm::vec3& point) const {
     return false;
 }
 
-glm::quat RenderableModelEntityItem::getJointRotation(int index) const {
+glm::quat RenderableModelEntityItem::getJointRotationInModelFrame(int index) const {
     if (_model) {
         glm::quat result;
-        if (_model->getJointRotation(index, result)) {
+        if (_model->getJointRotationInModelFrame(index, result)) {
             return result;
         }
     }
     return glm::quat();
 }
 
-glm::vec3 RenderableModelEntityItem::getJointTranslation(int index) const {
+glm::vec3 RenderableModelEntityItem::getJointTranslationInModelFrame(int index) const {
     if (_model) {
         glm::vec3 result;
-        if (_model->getJointTranslation(index, result)) {
+        if (_model->getJointTranslationInModelFrame(index, result)) {
             return result;
         }
     }

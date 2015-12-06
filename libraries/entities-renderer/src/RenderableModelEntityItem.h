@@ -67,9 +67,9 @@ public:
     
     virtual bool contains(const glm::vec3& point) const override;
 
-    // these are in the frame of this object
-    virtual glm::quat getJointRotation(int index) const;
-    virtual glm::vec3 getJointTranslation(int index) const;
+    // these are in the frame of this object (model space)
+    virtual glm::quat getJointRotationInModelFrame(int index) const;
+    virtual glm::vec3 getJointTranslationInModelFrame(int index) const;
 
 private:
     void remapTextures();

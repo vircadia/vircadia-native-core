@@ -373,10 +373,30 @@ bool Rig::getJointRotation(int jointIndex, glm::quat& rotation) const {
     }
 }
 
+bool Rig::getJointRotationInModelFrame(int jointIndex, glm::quat& rotation) const {
+    QReadLocker readLock(&_externalPoseSetLock);
+    if (jointIndex >= 0 && jointIndex < (int)_externalPoseSet._absolutePoses.size()) {
+        rotation = _externalPoseSet._absolutePoses[jointIndex].rot;
+        return true;
+    } else {
+        return false;
+    }
+}
+
 bool Rig::getJointTranslation(int jointIndex, glm::vec3& translation) const {
     QReadLocker readLock(&_externalPoseSetLock);
     if (jointIndex >= 0 && jointIndex < (int)_externalPoseSet._relativePoses.size()) {
         translation = _externalPoseSet._relativePoses[jointIndex].trans;
+        return true;
+    } else {
+        return false;
+    }
+}
+
+bool Rig::getJointTranslationInModelFrame(int jointIndex, glm::vec3& translation) const {
+    QReadLocker readLock(&_externalPoseSetLock);
+    if (jointIndex >= 0 && jointIndex < (int)_externalPoseSet._absolutePoses.size()) {
+        translation = _externalPoseSet._absolutePoses[jointIndex].trans;
         return true;
     } else {
         return false;

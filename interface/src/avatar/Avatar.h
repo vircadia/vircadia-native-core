@@ -108,6 +108,9 @@ public:
     virtual int getJointIndex(const QString& name) const;
     virtual QStringList getJointNames() const;
 
+    virtual glm::quat getJointRotationInModelFrame(int index) const;
+    virtual glm::vec3 getJointTranslationInModelFrame(int index) const;
+
     virtual void setFaceModelURL(const QUrl& faceModelURL);
     virtual void setSkeletonModelURL(const QUrl& skeletonModelURL);
     virtual void setAttachmentData(const QVector<AttachmentData>& attachmentData);

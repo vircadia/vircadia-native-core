@@ -92,8 +92,8 @@ public:
 
     // this object's frame
     virtual const Transform getJointTransformInModelFrame(int jointIndex) const;
-    virtual glm::quat getJointRotation(int index) const { assert(false); return glm::quat(); }
-    virtual glm::vec3 getJointTranslation(int index) const { assert(false); return glm::vec3(); }
+    virtual glm::quat getJointRotationInModelFrame(int index) const { assert(false); return glm::quat(); }
+    virtual glm::vec3 getJointTranslationInModelFrame(int index) const { assert(false); return glm::vec3(); }
 
     SpatiallyNestablePointer getThisPointer() const;
 

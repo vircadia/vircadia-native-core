@@ -869,6 +869,17 @@ glm::vec3 Avatar::getJointTranslation(int index) const {
     return translation;
 }
 
+glm::quat Avatar::getJointRotationInModelFrame(int index) const {
+    glm::quat rotation;
+    _skeletonModel.getJointRotationInModelFrame(index, rotation);
+    return Quaternions::Y_180 * rotation;
+}
+
+glm::vec3 Avatar::getJointTranslationInModelFrame(int index) const {
+    glm::vec3 translation;
+    _skeletonModel.getJointTranslationInModelFrame(index, translation);
+    return Quaternions::Y_180 * translation;
+}
 
 int Avatar::getJointIndex(const QString& name) const {
     if (QThread::currentThread() != thread()) {

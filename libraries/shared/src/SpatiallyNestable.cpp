@@ -340,12 +340,12 @@ QList<SpatiallyNestablePointer> SpatiallyNestable::getChildren() const {
 }
 
 const Transform SpatiallyNestable::getJointTransformInModelFrame(int jointIndex) const {
-    Transform jointInObjectFrame;
-    glm::vec3 position = getJointTranslation(jointIndex);
-    glm::quat orientation = getJointRotation(jointIndex);
-    jointInObjectFrame.setRotation(orientation);
-    jointInObjectFrame.setTranslation(position);
-    return jointInObjectFrame;
+    Transform jointTransformInObjectFrame;
+    glm::vec3 position = getJointTranslationInModelFrame(jointIndex);
+    glm::quat orientation = getJointRotationInModelFrame(jointIndex);
+    jointTransformInObjectFrame.setRotation(orientation);
+    jointTransformInObjectFrame.setTranslation(position);
+    return jointTransformInObjectFrame;
 }
 
 SpatiallyNestablePointer SpatiallyNestable::getThisPointer() const {
