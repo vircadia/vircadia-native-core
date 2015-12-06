@@ -34,7 +34,7 @@ var EARTH_CENTER_POSITION = Vec3.sum(Vec3.sum(MyAvatar.position, {
 
 var EARTH_MODEL_URL = 'http://hifi-content.s3.amazonaws.com/james/earthquakes_live/models/earth-noclouds.fbx';
 
-var POLL_FOR_CHANGES = false;
+var POLL_FOR_CHANGES = true;
 //USGS updates the data every five minutes
 var CHECK_QUAKE_FREQUENCY = 5 * 60 * 1000;
 
