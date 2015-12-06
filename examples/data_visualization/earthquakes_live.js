@@ -50,7 +50,9 @@ function createEarth() {
             z: EARTH_SPHERE_RADIUS
         },
         rotation: Quat.fromPitchYawRollDegrees(0, 90, 0),
-        collisionsWillMove: false,
+        // collisionsWillMove: true,
+        //if you have a shapetype it blocks the smaller markers
+        // shapeType:'sphere'
         // userData: JSON.stringify({
         //     grabbableKey: {
         //         grabbable: false
@@ -119,6 +121,7 @@ function createQuakeMarker(earthquake) {
         parentID:earth,
         dimensions: QUAKE_MARKER_DIMENSIONS,
         position: getQuakePosition(earthquake),
+        ignoreForCollisions:true,
         lifetime: 6000,
         color: getQuakeMarkerColor(earthquake)
     }
