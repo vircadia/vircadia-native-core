@@ -91,7 +91,7 @@ void SpatiallyNestable::forgetChild(SpatiallyNestablePointer newChild) const {
     });
 }
 
-void SpatiallyNestable::setParentID(const QUuid parentID) {
+void SpatiallyNestable::setParentID(const QUuid& parentID) {
     if (_parentID != parentID) {
         _parentID = parentID;
         _parentKnowsMe = false;
@@ -188,7 +188,7 @@ glm::vec3 SpatiallyNestable::getPosition(int jointIndex) const {
     return getTransform(jointIndex).getTranslation();
 }
 
-void SpatiallyNestable::setPosition(glm::vec3 position) {
+void SpatiallyNestable::setPosition(const glm::vec3& position) {
     Transform parentTransform = getParentTransform();
     Transform myWorldTransform;
     _transformLock.withWriteLock([&] {
@@ -207,7 +207,7 @@ glm::quat SpatiallyNestable::getOrientation(int jointIndex) const {
     return getTransform(jointIndex).getRotation();
 }
 
-void SpatiallyNestable::setOrientation(glm::quat orientation) {
+void SpatiallyNestable::setOrientation(const glm::quat& orientation) {
     Transform parentTransform = getParentTransform();
     Transform myWorldTransform;
     _transformLock.withWriteLock([&] {
@@ -238,7 +238,7 @@ const Transform SpatiallyNestable::getTransform(int jointIndex) const {
     return jointInWorldFrame;
 }
 
-void SpatiallyNestable::setTransform(const Transform transform) {
+void SpatiallyNestable::setTransform(const Transform& transform) {
     Transform parentTransform = getParentTransform();
     _transformLock.withWriteLock([&] {
         Transform::inverseMult(_transform, parentTransform, transform);
@@ -259,7 +259,7 @@ glm::vec3 SpatiallyNestable::getScale(int jointIndex) const {
     return getScale();
 }
 
-void SpatiallyNestable::setScale(glm::vec3 scale) {
+void SpatiallyNestable::setScale(const glm::vec3& scale) {
     _transformLock.withWriteLock([&] {
         _transform.setScale(scale);
     });
@@ -274,7 +274,7 @@ const Transform SpatiallyNestable::getLocalTransform() const {
     return result;
 }
 
-void SpatiallyNestable::setLocalTransform(const Transform transform) {
+void SpatiallyNestable::setLocalTransform(const Transform& transform) {
     _transformLock.withWriteLock([&] {
         _transform = transform;
     });
@@ -289,7 +289,7 @@ glm::vec3 SpatiallyNestable::getLocalPosition() const {
     return result;
 }
 
-void SpatiallyNestable::setLocalPosition(glm::vec3 position) {
+void SpatiallyNestable::setLocalPosition(const glm::vec3& position) {
     _transformLock.withWriteLock([&] {
         _transform.setTranslation(position);
     });
@@ -304,7 +304,7 @@ glm::quat SpatiallyNestable::getLocalOrientation() const {
     return result;
 }
 
-void SpatiallyNestable::setLocalOrientation(glm::quat orientation) {
+void SpatiallyNestable::setLocalOrientation(const glm::quat& orientation) {
     _transformLock.withWriteLock([&] {
         _transform.setRotation(orientation);
     });
@@ -319,7 +319,7 @@ glm::vec3 SpatiallyNestable::getLocalScale() const {
     return result;
 }
 
-void SpatiallyNestable::setLocalScale(glm::vec3 scale) {
+void SpatiallyNestable::setLocalScale(const glm::vec3& scale) {
     _transformLock.withWriteLock([&] {
         _transform.setScale(scale);
     });
