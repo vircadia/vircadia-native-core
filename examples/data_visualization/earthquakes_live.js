@@ -185,6 +185,7 @@ function cleanupMarkers() {
 
 function cleanupEarth() {
     Entities.deleteEntity(earth);
+    Script.update.disconnect(spinEarth);
 }
 
 function cleanupInterval() {
@@ -196,7 +197,7 @@ function cleanupInterval() {
 Script.scriptEnding.connect(cleanupMarkers);
 Script.scriptEnding.connect(cleanupEarth);
 Script.scriptEnding.connect(cleanupInterval);
-//first draw
+
 getThenProcessQuakes();
 
 var pollingInterval = null;
@@ -207,3 +208,16 @@ if (POLL_FOR_CHANGES === true) {
         getThenProcessQuakes()
     }, CHECK_QUAKE_FREQUENCY)
 }
+
+
+function spinEarth(){
+Entities.editEntity(earth,{
+    angularVelocity:{
+        x:0,
+        y:0.5,
+        z:0
+    }
+})
+}
+
+Script.update.connect(spinEarth)
