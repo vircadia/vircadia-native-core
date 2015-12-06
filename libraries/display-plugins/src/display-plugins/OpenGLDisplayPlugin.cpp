@@ -157,7 +157,7 @@ OpenGLDisplayPlugin::OpenGLDisplayPlugin() {
     });
 
     connect(&_timer, &QTimer::timeout, this, [&] {
-        if (_active && _sceneTextureEscrow.depth() < 1) {
+        if (_active && _sceneTextureEscrow.depth() <= 1) {
             emit requestRender();
         }
     });
