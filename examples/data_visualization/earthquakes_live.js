@@ -26,12 +26,6 @@ var EARTH_CENTER_POSITION = Vec3.sum(Vec3.sum(MyAvatar.position, {
     z: 0
 }), Vec3.multiply(EARTH_SPHERE_RADIUS, Quat.getFront(Camera.getOrientation())));
 
-// var EARTH_CENTER_POSITION = Vec3.sum(MyAvatar.position, {
-//     x: 0,
-//     y: 0,
-//     z: 0
-// });
-
 var EARTH_MODEL_URL = 'http://hifi-content.s3.amazonaws.com/james/earthquakes_live/models/earth-noclouds.fbx';
 
 var POLL_FOR_CHANGES = true;
