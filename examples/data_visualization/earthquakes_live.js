@@ -44,7 +44,6 @@ function createEarth() {
         type: 'Model',
         modelURL: EARTH_MODEL_URL,
         position: EARTH_CENTER_POSITION,
-        collisionsWillMove:true,
         dimensions: {
             x: EARTH_SPHERE_RADIUS,
             y: EARTH_SPHERE_RADIUS,
