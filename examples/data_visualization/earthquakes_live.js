@@ -51,11 +51,11 @@ function createEarth() {
         },
         rotation: Quat.fromPitchYawRollDegrees(0, 90, 0),
         collisionsWillMove: false,
-        userData: JSON.stringify({
-            grabbableKey: {
-                grabbable: false
-            }
-        })
+        // userData: JSON.stringify({
+        //     grabbableKey: {
+        //         grabbable: false
+        //     }
+        // })
     }
 
     return Entities.addEntity(earthProperties)
