@@ -91,7 +91,7 @@ public:
     NestableTypes::NestableType getNestableType() const { return _nestableType; }
 
     // this object's frame
-    virtual const Transform getJointTransformInObjectFrame(int jointIndex) const;
+    virtual const Transform getJointTransformInModelFrame(int jointIndex) const;
     virtual glm::quat getJointRotation(int index) const { assert(false); return glm::quat(); }
     virtual glm::vec3 getJointTranslation(int index) const { assert(false); return glm::vec3(); }
 
