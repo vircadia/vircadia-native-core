@@ -201,6 +201,7 @@ void Avatar::simulate(float deltaTime) {
             _skeletonModel.getRig()->copyJointsFromJointData(_jointData);
             _skeletonModel.simulate(deltaTime, _hasNewJointRotations || _hasNewJointTranslations);
             simulateAttachments(deltaTime);
+            locationChanged(); // joints changed, so if there are any children, update them.
             _hasNewJointRotations = false;
             _hasNewJointTranslations = false;
         }
