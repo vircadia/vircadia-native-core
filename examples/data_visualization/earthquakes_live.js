@@ -44,6 +44,7 @@ function createEarth() {
         type: 'Model',
         modelURL: EARTH_MODEL_URL,
         position: EARTH_CENTER_POSITION,
+        collisionsWillMove:true,
         dimensions: {
             x: EARTH_SPHERE_RADIUS,
             y: EARTH_SPHERE_RADIUS,
@@ -116,6 +117,7 @@ function createQuakeMarker(earthquake) {
     var markerProperties = {
         name: earthquake.properties.place,
         type: 'Sphere',
+        parentID:earth,
         dimensions: QUAKE_MARKER_DIMENSIONS,
         position: getQuakePosition(earthquake),
         lifetime: 6000,
@@ -156,7 +158,7 @@ function processQuakes(earthquakes) {
     print('markers length:' + markers.length)
 }
 
-var quakea;
+var quakes;
 var markers = [];
 
 var earth = createEarth();
