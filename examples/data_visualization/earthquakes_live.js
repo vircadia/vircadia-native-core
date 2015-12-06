@@ -1,44 +1,49 @@
-//earthquakes_live.js
-//created by james b. pollack @imgntn on 12/5/2015
+// earthquakes_live.js
+// exploratory implementation in prep for abstract latlong to earth graphing tool for VR
+// shows all of the quakes in the past 24 hours reported by the USGS
+// created by james b. pollack @imgntn on 12/5/2015
+// working notes: maybe try doing markers as boxes,rotated to the sphere normal, and with the height representing some value
+
 Script.include('../libraries/promise.js');
 var Promise = loadPromise();
 
 Script.include('../libraries/tinyColor.js');
 var tinyColor = loadTinyColor();
 
-var EARTH_SPHERE_RADIUS = 5;
+//you could make it the size of the actual earth. 
+var EARTH_SPHERE_RADIUS = 6371;
+var EARTH_SPHERE_RADIUS = 2;
+
 var EARTH_CENTER_POSITION = Vec3.sum(MyAvatar.position, {
-    x: 5,
+    x: 0,
     y: 0,
     z: 0
 });
 
-var EARTH_MODEL_URL='http://public.highfidelity.io/marketplace/hificontent/Scripts/planets/planets/earth.fbx';
+var EARTH_MODEL_URL = 'http://hifi-content.s3.amazonaws.com/james/earthquakes_live/models/earth-noclouds.fbx';
+
+var POLL_FOR_CHANGES = false;
 //USGS updates the data every five minutes
-var CHECK_QUAKE_FREQUENCY = 300 * 1000;
+var CHECK_QUAKE_FREQUENCY = 5 * 60 * 1000;
 
 var QUAKE_MARKER_DIMENSIONS = {
-    x: 0.1,
-    y: 0.1,
-    z: 0.1
+    x: 0.01,
+    y: 0.01,
+    z: 0.01
 };
 
 function createEarth() {
     var earthProperties = {
         name: 'Earth',
         type: 'Model',
-        modelURL:EARTH_MODEL_URL,
+        modelURL: EARTH_MODEL_URL,
         position: EARTH_CENTER_POSITION,
         dimensions: {
             x: EARTH_SPHERE_RADIUS,
             y: EARTH_SPHERE_RADIUS,
             z: EARTH_SPHERE_RADIUS
         },
-        // color: {
-        //     red: 0,
-        //     green: 100,
-        //     blue: 150
-        // },
+        rotation: Quat.fromPitchYawRollDegrees(0, 90, 0),
         collisionsWillMove: false,
         userData: JSON.stringify({
             grabbableKey: {
@@ -50,26 +55,32 @@ function createEarth() {
     return Entities.addEntity(earthProperties)
 }
 
-function plotLatitudeLongitude(radiusOfSphere, latitude, longitude) {
-    var tx = radiusOfSphere * Math.cos(latitude) * Math.cos(longitude);
-    var ty = radiusOfSphere * -Math.sin(latitude);
-    var tz = radiusOfSphere * Math.cos(latitude) * Math.sin(longitude);
+function latLongToVector3(lat, lon, radius, height) {
+    var phi = (lat) * Math.PI / 180;
+    var theta = (lon - 180) * Math.PI / 180;
+
+    var x = -(radius + height) * Math.cos(phi) * Math.cos(theta);
+    var y = (radius + height) * Math.sin(phi);
+    var z = (radius + height) * Math.cos(phi) * Math.sin(theta);
+
     return {
-        x: tx,
-        y: ty,
-        z: tz
-    }
+        x: x,
+        y: y,
+        z: z
+    };
 }
 
 function getQuakePosition(earthquake) {
-    var latitude = earthquake.geometry.coordinates[0];
-    var longitude = earthquake.geometry.coordinates[1];
-    var latlng = plotLatitudeLongitude(2.5, latitude, longitude);
+    var longitude = earthquake.geometry.coordinates[0];
+    var latitude = earthquake.geometry.coordinates[1];
+    var depth = earthquake.geometry.coordinates[2];
+
+    var latlng = latLongToVector3(latitude, longitude, EARTH_SPHERE_RADIUS / 2, 0);
 
     var position = EARTH_CENTER_POSITION;
     var finalPosition = Vec3.sum(position, latlng);
 
-   // print('finalpos::' + JSON.stringify(finalPosition))
+    print('finalpos::' + JSON.stringify(finalPosition))
     return finalPosition
 }
 
@@ -95,14 +106,9 @@ function get(url) {
     });
 }
 
-function showEarthquake(snapshot) {
-    var earthquake = snapshot.val();
-    print("Mag " + earthquake.mag + " at " + earthquake.place);
-}
-
 function createQuakeMarker(earthquake) {
     var markerProperties = {
-        name: 'Marker',
+        name: earthquake.properties.place,
         type: 'Sphere',
         dimensions: QUAKE_MARKER_DIMENSIONS,
         position: getQuakePosition(earthquake),
@@ -110,7 +116,7 @@ function createQuakeMarker(earthquake) {
         color: getQuakeMarkerColor(earthquake)
     }
 
-    //print('marker properties::' + JSON.stringify(markerProperties))
+    print('marker properties::' + JSON.stringify(markerProperties))
     return Entities.addEntity(markerProperties);
 }
 
@@ -137,7 +143,7 @@ function scale(value, min1, max1, min2, max2) {
 function processQuakes(earthquakes) {
     print('quakers length' + earthquakes.length)
     earthquakes.forEach(function(quake) {
-       // print('PROCESSING A QUAKE')
+        // print('PROCESSING A QUAKE')
         var marker = createQuakeMarker(quake);
         markers.push(marker);
     })
@@ -147,16 +153,18 @@ function processQuakes(earthquakes) {
 var quakea;
 var markers = [];
 
-var earth =  createEarth();
+var earth = createEarth();
 
-get(QUAKE_URL).then(function(response) {
-    print('got it::' + response.features.length)
-    quakes = response.features;
-    processQuakes(quakes);
-    //print("Success!" + JSON.stringify(response));
-}, function(error) {
-    print('error getting quakes')
-});
+function getThenProcessQuakes() {
+    get(QUAKE_URL).then(function(response) {
+        print('got it::' + response.features.length)
+        quakes = response.features;
+        processQuakes(quakes);
+        //print("Success!" + JSON.stringify(response));
+    }, function(error) {
+        print('error getting quakes')
+    });
+}
 
 function cleanupMarkers() {
     print('CLEANING UP MARKERS')
@@ -171,3 +179,15 @@ function cleanupEarth() {
 
 Script.scriptEnding.connect(cleanupMarkers);
 Script.scriptEnding.connect(cleanupEarth);
+
+//first draw
+getThenProcessQuakes();
+
+
+var pollingInterval;
+if (POLL_FOR_CHANGES === true) {
+    pollingInterval = Script.setInterval(function() {
+        cleanupMarkers();
+        getThenProcessQuakes()
+    }, CHECK_QUAKE_FREQUENCY)
+}
