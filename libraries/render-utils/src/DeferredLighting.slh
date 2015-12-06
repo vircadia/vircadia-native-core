@@ -33,7 +33,9 @@ vec4 evalPBRShading(vec3 fragNormal, vec3 fragLightDir, vec3 fragEyeDir, vec3 sp
     vec3 schlick = specular * (1.0 - shlickPower5) + vec3(shlickPower5);
     vec3 reflect = specularPower * schlick;
 
-    return vec4(reflect, diffuse * (1 - length(schlick)));
+    // FIXME:
+    //return vec4(reflect, diffuse * (1 - length(schlick)));
+    return vec4(reflect, diffuse);
 }
 <@endfunc@>
 

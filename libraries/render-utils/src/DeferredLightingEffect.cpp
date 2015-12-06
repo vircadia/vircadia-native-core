@@ -179,8 +179,11 @@ void DeferredLightingEffect::init(AbstractViewStateInterface* viewState) {
         //auto blitProgram = gpu::StandardShaderLib::getProgram(gpu::StandardShaderLib::getDrawViewportQuadTransformTexcoordVS, gpu::StandardShaderLib::getDrawTexturePS);
         gpu::Shader::makeProgram(*blitProgram);
         auto blitState = std::make_shared<gpu::State>();
-        blitState->setColorWriteMask(true, true, true, false);
-        _blitLightBuffer = gpu::Pipeline::create(blitProgram, blitState);
+    /*    blitState->setBlendFunction(true,
+            gpu::State::SRC_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::INV_SRC_ALPHA,
+            gpu::State::FACTOR_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::ONE);*/
+        blitState->setColorWriteMask(true, true, true, true);
+        _blitLightBuffer = gpu::PipelinePointer(gpu::Pipeline::create(blitProgram, blitState));
     }
 
     // Allocate a global light representing the Global Directional light casting shadow (the sun) and the ambient light
@@ -372,11 +375,21 @@ void DeferredLightingEffect::addSpotLight(const glm::vec3& position, float radiu
 void DeferredLightingEffect::prepare(RenderArgs* args) {
     gpu::doInBatch(args->_context, [=](gpu::Batch& batch) {
         batch.enableStereo(false);
+    //    batch.setStateScissorRect(args->_viewport);
+        batch.setViewportTransform(args->_viewport);
         batch.setStateScissorRect(args->_viewport);
 
         auto deferredFbo = DependencyManager::get<FramebufferCache>()->getDeferredFramebuffer();
 
         batch.setFramebuffer(deferredFbo);
+
+        // Clear Color, Depth and Stencil
+        batch.clearFramebuffer(
+            gpu::Framebuffer::BUFFER_COLOR0 |
+            gpu::Framebuffer::BUFFER_DEPTH |
+            gpu::Framebuffer::BUFFER_STENCIL,
+            vec4(vec3(0), 1), 1.0, 0.0, true);
+
         // clear the normal and specular buffers
         batch.clearColorFramebuffer(gpu::Framebuffer::BUFFER_COLOR1, glm::vec4(0.0f, 0.0f, 0.0f, 0.0f), true);
         const float MAX_SPECULAR_EXPONENT = 128.0f;
