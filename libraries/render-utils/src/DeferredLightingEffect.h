@@ -21,7 +21,6 @@
 #include "model/Stage.h"
 #include "model/Geometry.h"
 
-class AbstractViewStateInterface;
 class RenderArgs;
 class SimpleProgramKey;
 struct LightLocations;
@@ -78,7 +77,6 @@ public:
     
     void prepare(RenderArgs* args);
     void render(RenderArgs* args);
-    void copyBack(RenderArgs* args);
 
     void setupTransparent(RenderArgs* args, int lightBufferUnit);
 
@@ -101,9 +99,7 @@ private:
     gpu::ShaderPointer _simpleShader;
     gpu::ShaderPointer _emissiveShader;
     QHash<SimpleProgramKey, gpu::PipelinePointer> _simplePrograms;
-
-    gpu::PipelinePointer _blitLightBuffer;
-
+    
     gpu::PipelinePointer _directionalSkyboxLight;
     LightLocationsPtr _directionalSkyboxLightLocations;
 
@@ -143,8 +139,6 @@ private:
     std::vector<int> _globalLights;
     std::vector<int> _pointLights;
     std::vector<int> _spotLights;
-    
-    AbstractViewStateInterface* _viewState;
 
     int _ambientLightMode = 0;
     model::AtmospherePointer _atmosphere;

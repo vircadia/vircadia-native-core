@@ -44,74 +44,91 @@ void RenderDeferred::run(const SceneContextPointer& sceneContext, const RenderCo
     DependencyManager::get<DeferredLightingEffect>()->render(renderContext->args);
 }
 
-void ResolveDeferred::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext) {
-    PerformanceTimer perfTimer("ResolveDeferred");
-    DependencyManager::get<DeferredLightingEffect>()->copyBack(renderContext->args);
+void ToneMappingDeferred::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext) {
+    PerformanceTimer perfTimer("ToneMappingDeferred");
+    _toneMappingEffect.render(renderContext->args);
 }
 
 RenderDeferredTask::RenderDeferredTask() : Task() {
-    _jobs.push_back(Job(new PrepareDeferred::JobModel("PrepareDeferred")));
+    // CPU only, create the list of renderedOpaques items
     _jobs.push_back(Job(new FetchItems::JobModel("FetchOpaque",
         FetchItems(
-            [] (const RenderContextPointer& context, int count) {
-                context->_numFeedOpaqueItems = count; 
-            }
+        [](const RenderContextPointer& context, int count) {
+        context->_numFeedOpaqueItems = count;
+    }
         )
-    )));
+        )));
     _jobs.push_back(Job(new CullItemsOpaque::JobModel("CullOpaque", _jobs.back().getOutput())));
     _jobs.push_back(Job(new DepthSortItems::JobModel("DepthSortOpaque", _jobs.back().getOutput())));
     auto& renderedOpaques = _jobs.back().getOutput();
-    _jobs.push_back(Job(new DrawOpaqueDeferred::JobModel("DrawOpaqueDeferred", _jobs.back().getOutput())));
 
+    // CPU only, create the list of renderedTransparents items
+    _jobs.push_back(Job(new FetchItems::JobModel("FetchTransparent",
+        FetchItems(
+        ItemFilter::Builder::transparentShape().withoutLayered(),
+        [](const RenderContextPointer& context, int count) {
+        context->_numFeedTransparentItems = count;
+    }
+        )
+        )));
+    _jobs.push_back(Job(new CullItemsTransparent::JobModel("CullTransparent", _jobs.back().getOutput())));
+    _jobs.push_back(Job(new DepthSortItems::JobModel("DepthSortTransparent", _jobs.back().getOutput(), DepthSortItems(false))));
+    auto& renderedTransparents = _jobs.back().getOutput();
+
+    // GPU Jobs: Start preparing the deferred and lighting buffer
+    _jobs.push_back(Job(new PrepareDeferred::JobModel("PrepareDeferred")));
+
+    // Render opaque objects in DeferredBuffer
+    _jobs.push_back(Job(new DrawOpaqueDeferred::JobModel("DrawOpaqueDeferred", renderedOpaques)));
+
+    // Once opaque is all rendered create stencil background
     _jobs.push_back(Job(new DrawStencilDeferred::JobModel("DrawOpaqueStencil")));
+
+    // Use Stencil and start drawing background in Lighting buffer
     _jobs.push_back(Job(new DrawBackgroundDeferred::JobModel("DrawBackgroundDeferred")));
 
+    // Draw Lights just add the lights to the current list of lights to deal with. NOt really gpu job for now.
     _jobs.push_back(Job(new DrawLight::JobModel("DrawLight")));
-    _jobs.push_back(Job(new RenderDeferred::JobModel("RenderDeferred")));
-    _jobs.push_back(Job(new ResolveDeferred::JobModel("ResolveDeferred")));
-    _jobs.push_back(Job(new AmbientOcclusion::JobModel("AmbientOcclusion")));
 
+    // DeferredBuffer is complete, now let's shade it into the LightingBuffer
+    _jobs.push_back(Job(new RenderDeferred::JobModel("RenderDeferred")));
+
+    // AO job, to be revisited
+    _jobs.push_back(Job(new AmbientOcclusion::JobModel("AmbientOcclusion")));
     _jobs.back().setEnabled(false);
     _occlusionJobIndex = _jobs.size() - 1;
 
+    // AA job to be revisited
     _jobs.push_back(Job(new Antialiasing::JobModel("Antialiasing")));
-
     _jobs.back().setEnabled(false);
     _antialiasingJobIndex = _jobs.size() - 1;
 
-    _jobs.push_back(Job(new FetchItems::JobModel("FetchTransparent",
-         FetchItems(
-            ItemFilter::Builder::transparentShape().withoutLayered(),
-            [] (const RenderContextPointer& context, int count) {
-                context->_numFeedTransparentItems = count; 
-            }
-         )
-     )));
-    _jobs.push_back(Job(new CullItemsTransparent::JobModel("CullTransparent", _jobs.back().getOutput())));
-
-
-    _jobs.push_back(Job(new DepthSortItems::JobModel("DepthSortTransparent", _jobs.back().getOutput(), DepthSortItems(false))));
-    _jobs.push_back(Job(new DrawTransparentDeferred::JobModel("TransparentDeferred", _jobs.back().getOutput())));
+    // Render transparent objects forward in LigthingBuffer
+    _jobs.push_back(Job(new DrawTransparentDeferred::JobModel("TransparentDeferred", renderedTransparents)));
     
+    // Lighting Buffer ready for tone mapping
+    _jobs.push_back(Job(new ToneMappingDeferred::JobModel("ToneMapping")));
+
+    // Debugging Deferred buffer job
     _jobs.push_back(Job(new DebugDeferredBuffer::JobModel("DebugDeferredBuffer")));
     _jobs.back().setEnabled(false);
     _drawDebugDeferredBufferIndex = _jobs.size() - 1;
-    
-    // Grab a texture map representing the different status icons and assign that to the drawStatsuJob
-    auto iconMapPath = PathUtils::resourcesPath() + "icons/statusIconAtlas.svg";
 
-    auto statusIconMap = DependencyManager::get<TextureCache>()->getImageTexture(iconMapPath);
-    _jobs.push_back(Job(new render::DrawStatus::JobModel("DrawStatus", renderedOpaques, DrawStatus(statusIconMap))));
-
-    _jobs.back().setEnabled(false);
-    _drawStatusJobIndex = _jobs.size() - 1;
+    // Status icon rendering job
+    {
+        // Grab a texture map representing the different status icons and assign that to the drawStatsuJob
+        auto iconMapPath = PathUtils::resourcesPath() + "icons/statusIconAtlas.svg";
+        auto statusIconMap = DependencyManager::get<TextureCache>()->getImageTexture(iconMapPath);
+        _jobs.push_back(Job(new render::DrawStatus::JobModel("DrawStatus", renderedOpaques, DrawStatus(statusIconMap))));
+        _jobs.back().setEnabled(false);
+        _drawStatusJobIndex = _jobs.size() - 1;
+    }
 
     _jobs.push_back(Job(new DrawOverlay3D::JobModel("DrawOverlay3D")));
 
     _jobs.push_back(Job(new HitEffect::JobModel("HitEffect")));
     _jobs.back().setEnabled(false);
     _drawHitEffectJobIndex = _jobs.size() -1;
-
 
     // Give ourselves 3 frmaes of timer queries
     _timerQueries.push_back(std::make_shared<gpu::Query>());
