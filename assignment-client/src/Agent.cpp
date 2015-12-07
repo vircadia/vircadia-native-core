@@ -16,6 +16,7 @@
 #include <QtNetwork/QNetworkRequest>
 #include <QtNetwork/QNetworkReply>
 
+#include <AssetClient.h>
 #include <AvatarHashMap.h>
 #include <AudioInjectorManager.h>
 #include <AssetClient.h>
@@ -131,6 +132,7 @@ void Agent::run() {
 
     // make sure we request our script once the agent connects to the domain
     auto nodeList = DependencyManager::get<NodeList>();
+
     connect(&nodeList->getDomainHandler(), &DomainHandler::connectedToDomain, this, &Agent::requestScript);
 
     ThreadedAssignment::commonInit(AGENT_LOGGING_NAME, NodeType::Agent);
@@ -223,6 +225,7 @@ void Agent::executeScript() {
     // call model URL setters with empty URLs so our avatar, if user, will have the default models
     scriptedAvatar->setFaceModelURL(QUrl());
     scriptedAvatar->setSkeletonModelURL(QUrl());
+
     // give this AvatarData object to the script engine
     _scriptEngine->registerGlobalObject("Avatar", scriptedAvatar.data());
 
