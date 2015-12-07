@@ -67,9 +67,9 @@ DomainServerSettingsManager::DomainServerSettingsManager() :
     QMetaObject::invokeMethod(QCoreApplication::instance(), "quit", Qt::QueuedConnection);
 }
 
-void DomainServerSettingsManager::processSettingsRequestPacket(QSharedPointer<NLPacket> packet) {
+void DomainServerSettingsManager::processSettingsRequestPacket(QSharedPointer<ReceivedMessage> message) {
     Assignment::Type type;
-    packet->readPrimitive(&type);
+    message->readPrimitive(&type);
 
     QJsonObject responseObject = responseObjectForType(QString::number(type));
     auto json = QJsonDocument(responseObject).toJson();
@@ -79,7 +79,7 @@ void DomainServerSettingsManager::processSettingsRequestPacket(QSharedPointer<NL
     packetList->write(json);
 
     auto nodeList = DependencyManager::get<LimitedNodeList>();
-    nodeList->sendPacketList(std::move(packetList), packet->getSenderSockAddr());
+    nodeList->sendPacketList(std::move(packetList), message->getSenderSockAddr());
 }
 
 void DomainServerSettingsManager::setupConfigMap(const QStringList& argumentList) {

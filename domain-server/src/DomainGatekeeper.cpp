@@ -51,15 +51,15 @@ const NodeSet STATICALLY_ASSIGNED_NODES = NodeSet() << NodeType::AudioMixer
     << NodeType::AssetServer
     << NodeType::MessagesMixer;
 
-void DomainGatekeeper::processConnectRequestPacket(QSharedPointer<NLPacket> packet) {
-    if (packet->getPayloadSize() == 0) {
+void DomainGatekeeper::processConnectRequestPacket(QSharedPointer<ReceivedMessage> message) {
+    if (message->getSize() == 0) {
         return;
     }
     
-    QDataStream packetStream(packet.data());
+    QDataStream packetStream(message->getMessage());
     
     // read a NodeConnectionData object from the packet so we can pass around this data while we're inspecting it
-    NodeConnectionData nodeConnection = NodeConnectionData::fromDataStream(packetStream, packet->getSenderSockAddr());
+    NodeConnectionData nodeConnection = NodeConnectionData::fromDataStream(packetStream, message->getSenderSockAddr());
     
     if (nodeConnection.localSockAddr.isNull() || nodeConnection.publicSockAddr.isNull()) {
         qDebug() << "Unexpected data received for node local socket or public socket. Will not allow connection.";
@@ -72,7 +72,7 @@ void DomainGatekeeper::processConnectRequestPacket(QSharedPointer<NLPacket> pack
     
     if (!VALID_NODE_TYPES.contains(nodeConnection.nodeType)) {
         qDebug() << "Received an invalid node type with connect request. Will not allow connection from"
-            << nodeConnection.senderSockAddr;
+            << nodeConnection.senderSockAddr << ": " << nodeConnection.nodeType;
         return;
     }
     
@@ -87,11 +87,11 @@ void DomainGatekeeper::processConnectRequestPacket(QSharedPointer<NLPacket> pack
         QString username;
         QByteArray usernameSignature;
         
-        if (packet->bytesLeftToRead() > 0) {
+        if (message->getBytesLeftToRead() > 0) {
             // read username from packet
             packetStream >> username;
             
-            if (packet->bytesLeftToRead() > 0) {
+            if (message->getBytesLeftToRead() > 0) {
                 // read user signature from packet
                 packetStream >> usernameSignature;
             }
@@ -103,14 +103,14 @@ void DomainGatekeeper::processConnectRequestPacket(QSharedPointer<NLPacket> pack
     if (node) {
         // set the sending sock addr and node interest set on this node
         DomainServerNodeData* nodeData = reinterpret_cast<DomainServerNodeData*>(node->getLinkedData());
-        nodeData->setSendingSockAddr(packet->getSenderSockAddr());
+        nodeData->setSendingSockAddr(message->getSenderSockAddr());
         nodeData->setNodeInterestSet(nodeConnection.interestList.toSet());
         
         // signal that we just connected a node so the DomainServer can get it a list
         // and broadcast its presence right away
         emit connectedNode(node);
     } else {
-        qDebug() << "Refusing connection from node at" << packet->getSenderSockAddr();
+        qDebug() << "Refusing connection from node at" << message->getSenderSockAddr();
     }
 }
 
@@ -572,10 +572,10 @@ void DomainGatekeeper::handlePeerPingTimeout() {
     }
 }
 
-void DomainGatekeeper::processICEPeerInformationPacket(QSharedPointer<NLPacket> packet) {
+void DomainGatekeeper::processICEPeerInformationPacket(QSharedPointer<ReceivedMessage> message) {
     // loop through the packet and pull out network peers
     // any peer we don't have we add to the hash, otherwise we update
-    QDataStream iceResponseStream(packet.data());
+    QDataStream iceResponseStream(message->getMessage());
     
     NetworkPeer* receivedPeer = new NetworkPeer;
     iceResponseStream >> *receivedPeer;
@@ -600,15 +600,15 @@ void DomainGatekeeper::processICEPeerInformationPacket(QSharedPointer<NLPacket> 
     }
 }
 
-void DomainGatekeeper::processICEPingPacket(QSharedPointer<NLPacket> packet) {
+void DomainGatekeeper::processICEPingPacket(QSharedPointer<ReceivedMessage> message) {
     auto limitedNodeList = DependencyManager::get<LimitedNodeList>();
-    auto pingReplyPacket = limitedNodeList->constructICEPingReplyPacket(*packet, limitedNodeList->getSessionUUID());
+    auto pingReplyPacket = limitedNodeList->constructICEPingReplyPacket(*message, limitedNodeList->getSessionUUID());
     
-    limitedNodeList->sendPacket(std::move(pingReplyPacket), packet->getSenderSockAddr());
+    limitedNodeList->sendPacket(std::move(pingReplyPacket), message->getSenderSockAddr());
 }
 
-void DomainGatekeeper::processICEPingReplyPacket(QSharedPointer<NLPacket> packet) {
-    QDataStream packetStream(packet.data());
+void DomainGatekeeper::processICEPingReplyPacket(QSharedPointer<ReceivedMessage> message) {
+    QDataStream packetStream(message->getMessage());
     
     QUuid nodeUUID;
     packetStream >> nodeUUID;
@@ -617,6 +617,6 @@ void DomainGatekeeper::processICEPingReplyPacket(QSharedPointer<NLPacket> packet
     
     if (sendingPeer) {
         // we had this NetworkPeer in our connecting list - add the right sock addr to our connected list
-        sendingPeer->activateMatchingOrNewSymmetricSocket(packet->getSenderSockAddr());
+        sendingPeer->activateMatchingOrNewSymmetricSocket(message->getSenderSockAddr());
     }
 }

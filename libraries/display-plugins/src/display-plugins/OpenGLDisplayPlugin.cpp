@@ -14,7 +14,6 @@
 #include <QtCore/QTimer>
 
 #include <QtOpenGL/QGLWidget>
-#include <QtGui/QOpenGLContext>
 #include <QtGui/QImage>
 
 #include <gl/GLWidget.h>
@@ -46,7 +45,6 @@ public:
         // Extra code because of the widget 'wrapper' context
         _context = context;
         _context->moveToThread(this);
-        _context->contextHandle()->moveToThread(this);
     }
 
     virtual void run() override {
@@ -57,7 +55,6 @@ public:
                     Lock lock(_mutex);
                     // Move the context to the main thread
                     _context->moveToThread(qApp->thread());
-                    _context->contextHandle()->moveToThread(qApp->thread());
                     _pendingMainThreadOperation = false;
                     // Release the main thread to do it's action
                     _condition.notify_one();
@@ -104,7 +101,6 @@ public:
 
         _context->doneCurrent();
         _context->moveToThread(qApp->thread());
-        _context->contextHandle()->moveToThread(qApp->thread());
     }
 
     void withMainThreadContext(std::function<void()> f) {
@@ -120,7 +116,6 @@ public:
 
         // Move the context back to the presentation thread
         _context->moveToThread(this);
-        _context->contextHandle()->moveToThread(this);
 
         // restore control of the context to the presentation thread and signal 
         // the end of the operation
