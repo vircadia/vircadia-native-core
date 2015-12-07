@@ -1126,9 +1126,9 @@ void Application::paintGL() {
     // Time between previous paintGL call and this one, which can vary not only with vSync misses, but also with QT timing.
     // We're using this as a proxy for the time between vsync and displayEnd, below. (Not exact, but tends to be the same over time.)
     // This is not the same as update(deltaTime), because the latter attempts to throttle to 60hz and also clamps to 1/4 second.
-    const float actualPeriod = diff / (float)USECS_PER_SECOND; // same as 1/instantaneousFps but easier for compiler to optimize
+    //const float actualPeriod = diff / (float)USECS_PER_SECOND; // same as 1/instantaneousFps but easier for compiler to optimize
     // Note that _lastPaintWait (stored at end of last call) is for the same paint cycle.
-    float deducedNonVSyncPeriod = actualPeriod - _lastPaintWait + _marginForDeducedFramePeriod; // plus a some non-zero time for machinery we can't measure
+    float deducedNonVSyncPeriod = (float) getActiveDisplayPlugin()->getLastSynchronizedElapsed() / (float) MSECS_PER_SECOND; /*actualPeriod - _lastPaintWait + _marginForDeducedFramePeriod; // plus a some non-zero time for machinery we can't measure
     // We don't know how much time to allow for that, but if we went over the target period, we know it's at least the portion
     // of paintWait up to the next vSync. This gives us enough of a penalty so that when actualPeriod crosses two cycles,
     // the key part (and not an exagerated part) of _lastPaintWait is accounted for.
@@ -1136,7 +1136,7 @@ void Application::paintGL() {
     if (_lastPaintWait > EPSILON && actualPeriod > targetPeriod) {
         // Don't use C++ remainder(). It's authors are mathematically insane.
         deducedNonVSyncPeriod += fmod(actualPeriod, _lastPaintWait);
-    }
+    }*/
     _lastDeducedNonVSyncFps = 1.0f / deducedNonVSyncPeriod;
     _lastInstantaneousFps = instantaneousFps;
 
@@ -1375,6 +1375,7 @@ void Application::paintGL() {
     }
 
     // deliver final composited scene to the display plugin
+    uint64_t displayStart = usecTimestampNow();
     {
         PROFILE_RANGE(__FUNCTION__ "/pluginOutput");
         PerformanceTimer perfTimer("pluginOutput");
@@ -1396,7 +1397,6 @@ void Application::paintGL() {
         Q_ASSERT(!_lockedFramebufferMap.contains(finalTexture));
         _lockedFramebufferMap[finalTexture] = scratchFramebuffer;
 
-        uint64_t displayStart = usecTimestampNow();
         Q_ASSERT(QOpenGLContext::currentContext() == _offscreenContext->getContext());
         {
             PROFILE_RANGE(__FUNCTION__ "/pluginSubmitScene");
@@ -1404,10 +1404,6 @@ void Application::paintGL() {
             displayPlugin->submitSceneTexture(_frameCount, finalTexture, toGlm(size));
         }
         Q_ASSERT(QOpenGLContext::currentContext() == _offscreenContext->getContext());
-
-        uint64_t displayEnd = usecTimestampNow();
-        const float displayPeriodUsec = (float)(displayEnd - displayStart); // usecs
-        _lastPaintWait = displayPeriodUsec / (float)USECS_PER_SECOND;
     }
 
     {
@@ -1418,6 +1414,9 @@ void Application::paintGL() {
             batch.resetStages();
         });
     }
+    uint64_t displayEnd = usecTimestampNow();
+    const float displayPeriodUsec = (float)(displayEnd - displayStart); // usecs
+    _lastPaintWait = displayPeriodUsec / (float)USECS_PER_SECOND;
 }
 
 void Application::runTests() {
