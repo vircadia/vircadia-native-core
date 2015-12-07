@@ -106,24 +106,12 @@ private:
 
     gpu::PipelinePointer _directionalSkyboxLight;
     LightLocationsPtr _directionalSkyboxLightLocations;
-    gpu::PipelinePointer _directionalSkyboxLightShadowMap;
-    LightLocationsPtr _directionalSkyboxLightShadowMapLocations;
-    gpu::PipelinePointer _directionalSkyboxLightCascadedShadowMap;
-    LightLocationsPtr _directionalSkyboxLightCascadedShadowMapLocations;
 
     gpu::PipelinePointer _directionalAmbientSphereLight;
     LightLocationsPtr _directionalAmbientSphereLightLocations;
-    gpu::PipelinePointer _directionalAmbientSphereLightShadowMap;
-    LightLocationsPtr _directionalAmbientSphereLightShadowMapLocations;
-    gpu::PipelinePointer _directionalAmbientSphereLightCascadedShadowMap;
-    LightLocationsPtr _directionalAmbientSphereLightCascadedShadowMapLocations;
 
     gpu::PipelinePointer _directionalLight;
     LightLocationsPtr _directionalLightLocations;
-    gpu::PipelinePointer _directionalLightShadowMap;
-    LightLocationsPtr _directionalLightShadowMapLocations;
-    gpu::PipelinePointer _directionalLightCascadedShadowMap;
-    LightLocationsPtr _directionalLightCascadedShadowMapLocations;
 
     gpu::PipelinePointer _pointLight;
     LightLocationsPtr _pointLightLocations;
