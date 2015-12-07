@@ -86,10 +86,8 @@
         },
 
         startNearGrab: function(entityID) {
-            print('id on grab',entityID)
             if (!this.hasSpotlight) {
 
-                print('CREATING LIGHTS', this.entityID)
                 var modelProperties = Entities.getEntityProperties(this.entityID, ['position', 'rotation']);
                 var lightTransform = evalLightWorldTransform(modelProperties.position, modelProperties.rotation);
                 var glowLightTransform = glowLightWorldTransform(modelProperties.position, modelProperties.rotation);
