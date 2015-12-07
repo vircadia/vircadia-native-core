@@ -111,7 +111,7 @@ void AvatarManager::init() {
     _renderDistanceController.setKP(0.0008f); // Usually about 0.6 of largest that doesn't oscillate when other parameters 0.
     _renderDistanceController.setKI(0.0006f); // Big enough to bring us to target with the above KP.
     _renderDistanceController.setKD(0.000001f); // A touch of kd increases the speed by which we get there.
-    a_renderDistanceController.setHistorySize("av", 240); //FIXME
+    _renderDistanceController.setHistorySize("av", 240); //FIXME
 }
 
 void AvatarManager::updateMyAvatar(float deltaTime) {
