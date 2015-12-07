@@ -18,7 +18,6 @@ function flee(thisEntity, target) {
   var MAX_SPEED = 1;
   var MAX_FORCE = 1;
 
-
   var desired = Vec3.subtract(location, targetPosition);
   var d = Vec3.length(desired);
   desired = Vec3.normalize(desired);
@@ -85,7 +84,6 @@ function fleeAvoiderBlocks(thisEntity) {
     var entityProps = Entities.getEntityProperties(entityID);
     if (entityProps.name === 'Hifi-Rat-Avoider') {
       // print('found an avoiderblock to flee');
-
       var MAX_SPEED = 11;
       var MAX_FORCE = 6;
 
