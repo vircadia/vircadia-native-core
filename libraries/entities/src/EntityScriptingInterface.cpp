@@ -64,7 +64,7 @@ void EntityScriptingInterface::setEntityTree(EntityTreePointer elementTree) {
     }
 }
 
-EntityItemProperties convertLocationToScriptSemantics(EntityItemProperties entitySideProperties) {
+EntityItemProperties convertLocationToScriptSemantics(const EntityItemProperties& entitySideProperties) {
     // In EntityTree code, properties.position and properties.rotation are relative to the parent.  In javascript,
     // they are in world-space.  The local versions are put into localPosition and localRotation and position and
     // rotation are converted from local to world space.
@@ -85,7 +85,7 @@ EntityItemProperties convertLocationToScriptSemantics(EntityItemProperties entit
 }
 
 
-EntityItemProperties convertLocationFromScriptSemantics(EntityItemProperties scriptSideProperties) {
+EntityItemProperties convertLocationFromScriptSemantics(const EntityItemProperties& scriptSideProperties) {
     // convert position and rotation properties from world-space to local, unless localPosition and localRotation
     // are set.  If they are set, they overwrite position and rotation.
     EntityItemProperties entitySideProperties = scriptSideProperties;
@@ -190,7 +190,7 @@ EntityItemProperties EntityScriptingInterface::getEntityProperties(QUuid identit
     return convertLocationToScriptSemantics(results);
 }
 
-QUuid EntityScriptingInterface::editEntity(QUuid id, EntityItemProperties scriptSideProperties) {
+QUuid EntityScriptingInterface::editEntity(QUuid id, const EntityItemProperties& scriptSideProperties) {
     EntityItemProperties properties = scriptSideProperties;
     EntityItemID entityID(id);
     // If we have a local entity tree set, then also update it.

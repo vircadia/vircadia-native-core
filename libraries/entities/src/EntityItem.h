@@ -178,7 +178,7 @@ public:
 
     /// Dimensions in meters (0.0 - TREE_SCALE)
     inline const glm::vec3 getDimensions() const { return getScale(); }
-    virtual void setDimensions(const glm::vec3 value);
+    virtual void setDimensions(const glm::vec3& value);
 
     float getGlowLevel() const { return _glowLevel; }
     void setGlowLevel(float glowLevel) { _glowLevel = glowLevel; }

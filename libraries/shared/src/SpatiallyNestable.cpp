@@ -99,7 +99,7 @@ void SpatiallyNestable::setParentID(const QUuid& parentID) {
     parentChanged();
 }
 
-glm::vec3 SpatiallyNestable::worldToLocal(glm::vec3 position, QUuid parentID, int parentJointIndex) {
+glm::vec3 SpatiallyNestable::worldToLocal(const glm::vec3& position, const QUuid& parentID, int parentJointIndex) {
     QSharedPointer<SpatialParentFinder> parentFinder = DependencyManager::get<SpatialParentFinder>();
     Transform parentTransform;
     if (parentFinder) {
@@ -122,7 +122,7 @@ glm::vec3 SpatiallyNestable::worldToLocal(glm::vec3 position, QUuid parentID, in
     return result.getTranslation();
 }
 
-glm::quat SpatiallyNestable::worldToLocal(glm::quat orientation, QUuid parentID, int parentJointIndex) {
+glm::quat SpatiallyNestable::worldToLocal(const glm::quat& orientation, const QUuid& parentID, int parentJointIndex) {
     QSharedPointer<SpatialParentFinder> parentFinder = DependencyManager::get<SpatialParentFinder>();
     Transform parentTransform;
     if (parentFinder) {
@@ -144,7 +144,7 @@ glm::quat SpatiallyNestable::worldToLocal(glm::quat orientation, QUuid parentID,
     return result.getRotation();
 }
 
-glm::vec3 SpatiallyNestable::localToWorld(glm::vec3 position, QUuid parentID, int parentJointIndex) {
+glm::vec3 SpatiallyNestable::localToWorld(const glm::vec3& position, const QUuid& parentID, int parentJointIndex) {
     QSharedPointer<SpatialParentFinder> parentFinder = DependencyManager::get<SpatialParentFinder>();
     Transform parentTransform;
     if (parentFinder) {
@@ -162,7 +162,7 @@ glm::vec3 SpatiallyNestable::localToWorld(glm::vec3 position, QUuid parentID, in
     return result.getTranslation();
 }
 
-glm::quat SpatiallyNestable::localToWorld(glm::quat orientation, QUuid parentID, int parentJointIndex) {
+glm::quat SpatiallyNestable::localToWorld(const glm::quat& orientation, const QUuid& parentID, int parentJointIndex) {
     QSharedPointer<SpatialParentFinder> parentFinder = DependencyManager::get<SpatialParentFinder>();
     Transform parentTransform;
     if (parentFinder) {

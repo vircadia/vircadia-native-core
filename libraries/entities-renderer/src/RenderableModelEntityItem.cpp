@@ -33,7 +33,8 @@ EntityItemPointer RenderableModelEntityItem::factory(const EntityItemID& entityI
 
 RenderableModelEntityItem::RenderableModelEntityItem(const EntityItemID& entityItemID, bool dimensionsInitialized) :
     ModelEntityItem(entityItemID),
-    _dimensionsInitialized(dimensionsInitialized) {
+    _dimensionsInitialized(dimensionsInitialized)
+{
 }
 
 RenderableModelEntityItem::~RenderableModelEntityItem() {
@@ -44,7 +45,7 @@ RenderableModelEntityItem::~RenderableModelEntityItem() {
     }
 }
 
-void RenderableModelEntityItem::setDimensions(const glm::vec3 value) {
+void RenderableModelEntityItem::setDimensions(const glm::vec3& value) {
     _dimensionsInitialized = true;
     ModelEntityItem::setDimensions(value);
 }

@@ -86,7 +86,7 @@ public slots:
 
     /// edits a model updating only the included properties, will return the identified EntityItemID in case of
     /// successful edit, if the input entityID is for an unknown model this function will have no effect
-    Q_INVOKABLE QUuid editEntity(QUuid entityID, EntityItemProperties properties);
+    Q_INVOKABLE QUuid editEntity(QUuid entityID, const EntityItemProperties& properties);
 
     /// deletes a model
     Q_INVOKABLE void deleteEntity(QUuid entityID);
