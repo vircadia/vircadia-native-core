@@ -21,15 +21,19 @@ public:
     int getDeviceWidth() const;
     int getDeviceHeight() const;
     QSize getDeviceSize() const { return QSize(getDeviceWidth(), getDeviceHeight()); }
+    bool isVsyncSupported() const;
+    virtual void initializeGL() override;
 
 protected:
-    virtual void initializeGL() override;
     virtual bool event(QEvent* event) override;
     virtual void paintEvent(QPaintEvent* event) override;
     virtual void resizeEvent(QResizeEvent* event) override;
 
 private slots:
     virtual bool eventFilter(QObject*, QEvent* event) override;
+
+private:
+    bool _vsyncSupported { false };
 };
 
 

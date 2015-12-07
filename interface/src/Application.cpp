@@ -44,6 +44,9 @@
 
 #include <QtNetwork/QNetworkDiskCache>
 
+#include <gl/Config.h>
+#include <QtGui/QOpenGLContext>
+
 #include <AccountManager.h>
 #include <AddressManager.h>
 #include <ApplicationVersion.h>
@@ -617,6 +620,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
 
     // enable mouse tracking; otherwise, we only get drag events
     _glWidget->setMouseTracking(true);
+    _glWidget->makeCurrent();
+    _glWidget->initializeGL();
 
     _offscreenContext = new OffscreenGLCanvas();
     _offscreenContext->create(_glWidget->context()->contextHandle());
@@ -1136,7 +1141,7 @@ void Application::paintGL() {
     _lastInstantaneousFps = instantaneousFps;
 
     auto displayPlugin = getActiveDisplayPlugin();
-    displayPlugin->preRender();
+    // FIXME not needed anymore?
     _offscreenContext->makeCurrent();
 
     // update the avatar with a fresh HMD pose
@@ -1191,6 +1196,9 @@ void Application::paintGL() {
         QSize size = getDeviceSize();
         renderArgs._viewport = glm::ivec4(0, 0, size.width(), size.height());
         _applicationOverlay.renderOverlay(&renderArgs);
+        gpu::FramebufferPointer overlayFramebuffer = _applicationOverlay.getOverlayFramebuffer();
+
+
     }
 
     {
@@ -1304,6 +1312,13 @@ void Application::paintGL() {
             auto baseProjection = renderArgs._viewFrustum->getProjection();
             auto hmdInterface = DependencyManager::get<HMDScriptingInterface>();
             float IPDScale = hmdInterface->getIPDScale();
+
+            // Tell the plugin what pose we're using to render.  In this case we're just using the
+            // unmodified head pose because the only plugin that cares (the Oculus plugin) uses it
+            // for rotational timewarp.  If we move to support positonal timewarp, we need to
+            // ensure this contains the full pose composed with the eye offsets.
+            mat4 headPose = displayPlugin->getHeadPose(_frameCount);
+
             // FIXME we probably don't need to set the projection matrix every frame,
             // only when the display plugin changes (or in non-HMD modes when the user
             // changes the FOV manually, which right now I don't think they can.
@@ -1319,12 +1334,7 @@ void Application::paintGL() {
                 mat4 eyeOffsetTransform = glm::translate(mat4(), eyeOffset * -1.0f * IPDScale);
                 eyeOffsets[eye] = eyeOffsetTransform;
 
-                // Tell the plugin what pose we're using to render.  In this case we're just using the
-                // unmodified head pose because the only plugin that cares (the Oculus plugin) uses it
-                // for rotational timewarp.  If we move to support positonal timewarp, we need to
-                // ensure this contains the full pose composed with the eye offsets.
-                mat4 headPose = displayPlugin->getHeadPose();
-                displayPlugin->setEyeRenderPose(eye, headPose);
+                displayPlugin->setEyeRenderPose(_frameCount, eye, headPose);
 
                 eyeProjections[eye] = displayPlugin->getProjection(eye, baseProjection);
             });
@@ -1339,6 +1349,7 @@ void Application::paintGL() {
     }
 
     // Overlay Composition, needs to occur after screen space effects have completed
+    // FIXME migrate composition into the display plugins
     {
         PROFILE_RANGE(__FUNCTION__ "/compositor");
         PerformanceTimer perfTimer("compositor");
@@ -1367,44 +1378,40 @@ void Application::paintGL() {
     {
         PROFILE_RANGE(__FUNCTION__ "/pluginOutput");
         PerformanceTimer perfTimer("pluginOutput");
-        auto primaryFbo = framebufferCache->getPrimaryFramebuffer();
-        GLuint finalTexture = gpu::GLBackend::getTextureID(primaryFbo->getRenderBuffer(0));
-        // Ensure the rendering context commands are completed when rendering
-        GLsync sync = glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
-        // Ensure the sync object is flushed to the driver thread before releasing the context
-        // CRITICAL for the mac driver apparently.
-        glFlush();
-        _offscreenContext->doneCurrent();
+        auto primaryFramebuffer = framebufferCache->getPrimaryFramebuffer();
+        auto scratchFramebuffer = framebufferCache->getFramebuffer();
+        gpu::doInBatch(renderArgs._context, [=](gpu::Batch& batch) {
+            gpu::Vec4i rect;
+            rect.z = size.width();
+            rect.w = size.height();
+            batch.setFramebuffer(scratchFramebuffer);
+            batch.clearColorFramebuffer(gpu::Framebuffer::BUFFER_COLOR0, glm::vec4(0.0f, 0.0f, 0.0f, 0.0f));
+            batch.blit(primaryFramebuffer, rect, scratchFramebuffer, rect);
+            batch.setFramebuffer(nullptr);
+        });
+        auto finalTexturePointer = scratchFramebuffer->getRenderBuffer(0);
+        GLuint finalTexture = gpu::GLBackend::getTextureID(finalTexturePointer);
+        Q_ASSERT(0 != finalTexture);
 
-        // Switches to the display plugin context
-        displayPlugin->preDisplay();
-        // Ensure all operations from the previous context are complete before we try to read the fbo
-        glWaitSync(sync, 0, GL_TIMEOUT_IGNORED);
-        glDeleteSync(sync);
+        Q_ASSERT(!_lockedFramebufferMap.contains(finalTexture));
+        _lockedFramebufferMap[finalTexture] = scratchFramebuffer;
+
         uint64_t displayStart = usecTimestampNow();
-
+        Q_ASSERT(QOpenGLContext::currentContext() == _offscreenContext->getContext());
         {
-            PROFILE_RANGE(__FUNCTION__ "/pluginDisplay");
-            PerformanceTimer perfTimer("pluginDisplay");
-            displayPlugin->display(finalTexture, toGlm(size));
+            PROFILE_RANGE(__FUNCTION__ "/pluginSubmitScene");
+            PerformanceTimer perfTimer("pluginSubmitScene");
+            displayPlugin->submitSceneTexture(_frameCount, finalTexture, toGlm(size));
         }
+        Q_ASSERT(QOpenGLContext::currentContext() == _offscreenContext->getContext());
 
-        {
-            PROFILE_RANGE(__FUNCTION__ "/bufferSwap");
-            PerformanceTimer perfTimer("bufferSwap");
-            displayPlugin->finishFrame();
-        }
         uint64_t displayEnd = usecTimestampNow();
         const float displayPeriodUsec = (float)(displayEnd - displayStart); // usecs
         _lastPaintWait = displayPeriodUsec / (float)USECS_PER_SECOND;
-
     }
 
     {
-        PerformanceTimer perfTimer("makeCurrent");
-        _offscreenContext->makeCurrent();
         Stats::getInstance()->setRenderDetails(renderArgs._details);
-
         // Reset the gpu::Context Stages
         // Back to the default framebuffer;
         gpu::doInBatch(renderArgs._context, [=](gpu::Batch& batch) {
@@ -2612,7 +2619,7 @@ void Application::updateMyAvatarLookAtPosition() {
             lookAtPosition.x = -lookAtPosition.x;
         }
         if (isHMD) {
-            glm::mat4 headPose = getActiveDisplayPlugin()->getHeadPose();
+            glm::mat4 headPose = getActiveDisplayPlugin()->getHeadPose(_frameCount);
             glm::quat hmdRotation = glm::quat_cast(headPose);
             lookAtSpot = _myCamera.getPosition() + myAvatar->getOrientation() * (hmdRotation * lookAtPosition);
         } else {
@@ -4505,7 +4512,7 @@ void Application::takeSnapshot() {
     player->setMedia(QUrl::fromLocalFile(inf.absoluteFilePath()));
     player->play();
 
-    QString fileName = Snapshot::saveSnapshot(_glWidget->grabFrameBuffer());
+    QString fileName = Snapshot::saveSnapshot(getActiveDisplayPlugin()->getScreenshot());
 
     AccountManager& accountManager = AccountManager::getInstance();
     if (!accountManager.isLoggedIn()) {
@@ -4516,7 +4523,6 @@ void Application::takeSnapshot() {
         _snapshotShareDialog = new SnapshotShareDialog(fileName, _glWidget);
     }
     _snapshotShareDialog->show();
-
 }
 
 float Application::getRenderResolutionScale() const {
@@ -4699,10 +4705,6 @@ const DisplayPlugin* Application::getActiveDisplayPlugin() const {
     return ((Application*)this)->getActiveDisplayPlugin();
 }
 
-bool _activatingDisplayPlugin{ false };
-QVector<QPair<QString, QString>> _currentDisplayPluginActions;
-QVector<QPair<QString, QString>> _currentInputPluginActions;
-
 static void addDisplayPluginToMenu(DisplayPluginPointer displayPlugin, bool active = false) {
     auto menu = Menu::getInstance();
     QString name = displayPlugin->getName();
@@ -4732,9 +4734,10 @@ void Application::updateDisplayMode() {
         bool first = true;
         foreach(auto displayPlugin, displayPlugins) {
             addDisplayPluginToMenu(displayPlugin, first);
-            QObject::connect(displayPlugin.get(), &DisplayPlugin::requestRender, [this] {
-                paintGL();
-            });
+            // This must be a queued connection to avoid a deadlock
+            QObject::connect(displayPlugin.get(), &DisplayPlugin::requestRender, 
+                this, &Application::paintGL, Qt::QueuedConnection);
+
             QObject::connect(displayPlugin.get(), &DisplayPlugin::recommendedFramebufferSizeChanged, [this](const QSize & size) {
                 resizeGL();
             });
@@ -4776,19 +4779,18 @@ void Application::updateDisplayMode() {
         return;
     }
 
-    if (!_currentDisplayPluginActions.isEmpty()) {
+
+    if (!_pluginContainer->currentDisplayActions().isEmpty()) {
         auto menu = Menu::getInstance();
-        foreach(auto itemInfo, _currentDisplayPluginActions) {
+        foreach(auto itemInfo, _pluginContainer->currentDisplayActions()) {
             menu->removeMenuItem(itemInfo.first, itemInfo.second);
         }
-        _currentDisplayPluginActions.clear();
+        _pluginContainer->currentDisplayActions().clear();
     }
 
     if (newDisplayPlugin) {
         _offscreenContext->makeCurrent();
-        _activatingDisplayPlugin = true;
         newDisplayPlugin->activate();
-        _activatingDisplayPlugin = false;
         _offscreenContext->makeCurrent();
         offscreenUi->resize(fromGlm(newDisplayPlugin->getRecommendedUiSize()));
         _offscreenContext->makeCurrent();
@@ -4914,7 +4916,7 @@ mat4 Application::getEyeOffset(int eye) const {
 
 mat4 Application::getHMDSensorPose() const {
     if (isHMDMode()) {
-        return getActiveDisplayPlugin()->getHeadPose();
+        return getActiveDisplayPlugin()->getHeadPose(_frameCount);
     }
     return mat4();
 }

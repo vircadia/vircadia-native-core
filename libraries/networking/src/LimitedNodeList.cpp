@@ -436,17 +436,23 @@ SharedNodePointer LimitedNodeList::nodeWithUUID(const QUuid& nodeUUID) {
  }
 
 void LimitedNodeList::eraseAllNodes() {
-    qCDebug(networking) << "Clearing the NodeList. Deleting all nodes in list.";
-
     QSet<SharedNodePointer> killedNodes;
-    eachNode([&killedNodes](const SharedNodePointer& node){
-        killedNodes.insert(node);
-    });
 
     {
-        // iterate the current nodes, emit that they are dying and remove them from the hash
+        // iterate the current nodes - grab them so we can emit that they are dying
+        // and then remove them from the hash
         QWriteLocker writeLocker(&_nodeMutex);
-        _nodeHash.clear();
+
+        if (_nodeHash.size() > 0) {
+            qCDebug(networking) << "LimitedNodeList::eraseAllNodes() removing all nodes from NodeList.";
+
+            auto it = _nodeHash.begin();
+
+            while (it != _nodeHash.end())  {
+                killedNodes.insert(it->second);
+                it = _nodeHash.unsafe_erase(it);
+            }
+        }
     }
     
     foreach(const SharedNodePointer& killedNode, killedNodes) {

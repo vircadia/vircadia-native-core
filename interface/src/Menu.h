@@ -238,10 +238,8 @@ namespace MenuOption {
     const QString ReloadContent = "Reload Content (Clears all caches)";
     const QString RenderBoundingCollisionShapes = "Show Bounding Collision Shapes";
     const QString RenderFocusIndicator = "Show Eye Focus";
-    const QString RenderHeadCollisionShapes = "Show Head Collision Shapes";
     const QString RenderLookAtTargets = "Show Look-at Targets";
     const QString RenderLookAtVectors = "Show Look-at Vectors";
-    const QString RenderSkeletonCollisionShapes = "Show Skeleton Collision Shapes";
     const QString RenderResolution = "Scale Resolution";
     const QString RenderResolutionOne = "1";
     const QString RenderResolutionTwoThird = "2/3";

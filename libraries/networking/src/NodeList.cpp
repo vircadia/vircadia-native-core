@@ -94,7 +94,7 @@ NodeList::NodeList(char newOwnerType, unsigned short socketListenPort, unsigned 
     _keepAlivePingTimer.setInterval(KEEPALIVE_PING_INTERVAL_MS);
     connect(&_keepAlivePingTimer, &QTimer::timeout, this, &NodeList::sendKeepAlivePings);
     connect(&_domainHandler, SIGNAL(connectedToDomain(QString)), &_keepAlivePingTimer, SLOT(start()));
-    connect(&_domainHandler, &DomainHandler::disconnectedFromDomain, &_keepAlivePingTimer, &QTimer::stop);
+    connect(&_domainHandler, &DomainHandler::disconnectedFromDomain, this, &NodeList::stopKeepalivePingTimer);
 
     // we definitely want STUN to update our public socket, so call the LNL to kick that off
     startSTUNPublicSocketUpdate();
@@ -200,6 +200,11 @@ void NodeList::processICEPingPacket(QSharedPointer<ReceivedMessage> message) {
 }
 
 void NodeList::reset() {
+    if (thread() != QThread::currentThread()) {
+        QMetaObject::invokeMethod(this, "reset", Qt::BlockingQueuedConnection);
+        return;
+    }
+
     LimitedNodeList::reset();
 
     _numNoReplyDomainCheckIns = 0;
@@ -638,6 +643,12 @@ void NodeList::activateSocketFromNodeCommunication(ReceivedMessage& message, con
 
     if (sendingNode->getType() == NodeType::AudioMixer) {
        flagTimeForConnectionStep(LimitedNodeList::ConnectionStep::SetAudioMixerSocket);
+    }
+}
+
+void NodeList::stopKeepalivePingTimer() {
+    if (_keepAlivePingTimer.isActive()) {
+        _keepAlivePingTimer.stop();
     }
 }
 

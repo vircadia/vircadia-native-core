@@ -152,7 +152,7 @@ glm::mat4 OpenVrDisplayPlugin::getEyeToHeadTransform(Eye eye) const {
     return _eyesData[eye]._eyeOffset;
 }
 
-glm::mat4 OpenVrDisplayPlugin::getHeadPose() const {
+glm::mat4 OpenVrDisplayPlugin::getHeadPose(uint32_t frameIndex) const {
     return _trackedDevicePoseMat4[0];
 }
 
@@ -160,26 +160,26 @@ void OpenVrDisplayPlugin::customizeContext() {
     WindowOpenGLDisplayPlugin::customizeContext();
 }
 
-void OpenVrDisplayPlugin::display(GLuint finalTexture, const glm::uvec2& sceneSize) {
-    // Flip y-axis since GL UV coords are backwards.
-    static vr::Compositor_TextureBounds leftBounds{ 0, 1, 0.5f, 0 };
-    static vr::Compositor_TextureBounds rightBounds{ 0.5f, 1, 1, 0 };
-    _compositor->Submit(vr::Eye_Left, (void*)finalTexture, &leftBounds);
-    _compositor->Submit(vr::Eye_Right, (void*)finalTexture, &rightBounds);
-    glFinish();
-}
+//void OpenVrDisplayPlugin::display(uint32_t frameIndex, uint32_t finalTexture, const glm::uvec2& sceneSize) {
+//    // Flip y-axis since GL UV coords are backwards.
+//    static vr::Compositor_TextureBounds leftBounds{ 0, 1, 0.5f, 0 };
+//    static vr::Compositor_TextureBounds rightBounds{ 0.5f, 1, 1, 0 };
+//    _compositor->Submit(vr::Eye_Left, (void*)finalTexture, &leftBounds);
+//    _compositor->Submit(vr::Eye_Right, (void*)finalTexture, &rightBounds);
+//    glFinish();
+//}
 
-void OpenVrDisplayPlugin::finishFrame() {
-//    swapBuffers();
-    doneCurrent();
-    _compositor->WaitGetPoses(_trackedDevicePose, vr::k_unMaxTrackedDeviceCount);
-    for (int i = 0; i < vr::k_unMaxTrackedDeviceCount; i++) {
-        _trackedDevicePoseMat4[i] = _sensorResetMat * toGlm(_trackedDevicePose[i].mDeviceToAbsoluteTracking);
-    }
-    openvr_for_each_eye([&](vr::Hmd_Eye eye) {
-        _eyesData[eye]._pose = _trackedDevicePoseMat4[0];
-    });
-};
+//void OpenVrDisplayPlugin::finishFrame() {
+////    swapBuffers();
+//    doneCurrent();
+//    _compositor->WaitGetPoses(_trackedDevicePose, vr::k_unMaxTrackedDeviceCount);
+//    for (int i = 0; i < vr::k_unMaxTrackedDeviceCount; i++) {
+//        _trackedDevicePoseMat4[i] = _sensorResetMat * toGlm(_trackedDevicePose[i].mDeviceToAbsoluteTracking);
+//    }
+//    openvr_for_each_eye([&](vr::Hmd_Eye eye) {
+//        _eyesData[eye]._pose = _trackedDevicePoseMat4[0];
+//    });
+//};
 
 #endif
 
