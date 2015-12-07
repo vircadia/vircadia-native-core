@@ -806,19 +806,19 @@ glm::vec3 EntityScriptingInterface::localCoordsToVoxelCoords(const QUuid& entity
     }
 }
 
-glm::vec3 EntityScriptingInterface::getJointTranslation(const QUuid& entityID, int jointIndex) {
+glm::vec3 EntityScriptingInterface::getAbsoluteJointTranslationInObjectFrame(const QUuid& entityID, int jointIndex) {
     if (auto entity = checkForTreeEntityAndTypeMatch(entityID, EntityTypes::Model)) {
         auto modelEntity = std::dynamic_pointer_cast<ModelEntityItem>(entity);
-        return modelEntity->getJointTranslation(jointIndex);
+        return modelEntity->getAbsoluteJointTranslationInObjectFrame(jointIndex);
     } else {
         return glm::vec3(0.0f);
     }
 }
 
-glm::quat EntityScriptingInterface::getJointRotation(const QUuid& entityID, int jointIndex) {
+glm::quat EntityScriptingInterface::getAbsoluteJointRotationInObjectFrame(const QUuid& entityID, int jointIndex) {
     if (auto entity = checkForTreeEntityAndTypeMatch(entityID, EntityTypes::Model)) {
         auto modelEntity = std::dynamic_pointer_cast<ModelEntityItem>(entity);
-        return modelEntity->getJointRotation(jointIndex);
+        return modelEntity->getAbsoluteJointRotationInObjectFrame(jointIndex);
     } else {
         return glm::quat();
     }
