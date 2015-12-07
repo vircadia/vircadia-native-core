@@ -18,22 +18,26 @@ class DebugDeferredBuffer {
 public:
     using JobModel = render::Job::Model<DebugDeferredBuffer>;
     
-    enum DebugDeferredBufferSlot : int {
-        Diffuse = 0,
-        Normal,
-        Specular,
-        Depth,
-        Lighting,
-        
-        NUM_SLOTS
-    };
-    
     void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext);
     
 private:
-    const gpu::PipelinePointer& getPipeline(int slot);
+    enum Modes : int {
+        DiffuseMode = 0,
+        AlphaMode,
+        SpecularMode,
+        RoughnessMode,
+        NormalMode,
+        DepthMode,
+        LightingMode,
+        CustomMode,
+        
+        NUM_MODES
+    };
     
-    std::array<gpu::PipelinePointer, NUM_SLOTS> _pipelines;
+    const gpu::PipelinePointer& getPipeline(Modes mode);
+    std::string getCode(Modes mode);
+    
+    std::array<gpu::PipelinePointer, NUM_MODES> _pipelines;
 };
 
 #endif // hifi_DebugDeferredBuffer_h

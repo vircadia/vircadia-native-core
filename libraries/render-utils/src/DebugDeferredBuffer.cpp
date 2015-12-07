@@ -11,6 +11,8 @@
 
 #include "DebugDeferredBuffer.h"
 
+#include <QString>
+
 #include <gpu/Batch.h>
 #include <gpu/Context.h>
 #include <render/Scene.h>
@@ -24,8 +26,16 @@
 
 using namespace render;
 
-static const std::string PLACEHOLDER { "DEBUG_PLACEHOLDER" };
-static const std::array<std::string, DebugDeferredBuffer::NUM_SLOTS> SLOT_NAMES {{
+enum Slots {
+    Diffuse = 0,
+    Normal,
+    Specular,
+    Depth,
+    Lighting,
+    
+    NUM_SLOTS
+};
+static const std::array<std::string, Slots::NUM_SLOTS> SLOT_NAMES {{
     "diffuseMap",
     "normalMap",
     "specularMap",
@@ -33,14 +43,52 @@ static const std::array<std::string, DebugDeferredBuffer::NUM_SLOTS> SLOT_NAMES 
     "lightingMap"
 }};
 
-std::string getCode(int slot) {
-    return std::string("return texture(").append(SLOT_NAMES[slot]).append(", uv);");
+static const std::string COMPUTE_PLACEHOLDER { "/*COMPUTE_PLACEHOLDER*/" }; // required
+static const std::string FUNCTIONS_PLACEHOLDER { "/*FUNCTIONS_PLACEHOLDER*/" }; // optional
+
+std::string DebugDeferredBuffer::getCode(Modes mode) {
+    switch (mode) {
+        case DiffuseMode: {
+            QString code = "return vec4(texture(%1, uv).xyz, 1.0);";
+            return code.arg(SLOT_NAMES[Diffuse].c_str()).toStdString();
+        }
+        case AlphaMode: {
+            QString code = "return vec4(vec3(texture(%1, uv).a), 1.0);";
+            return code.arg(SLOT_NAMES[Diffuse].c_str()).toStdString();
+        }
+        case SpecularMode: {
+            QString code = "return vec4(texture(%1, uv).xyz, 1.0);";
+            return code.arg(SLOT_NAMES[Specular].c_str()).toStdString();
+        }
+        case RoughnessMode: {
+            QString code = "return vec4(vec3(texture(%1, uv).a), 1.0);";
+            return code.arg(SLOT_NAMES[Specular].c_str()).toStdString();
+        }
+        case NormalMode: {
+            QString code = "return vec4(texture(%1, uv).xyz, 1.0);";
+            return code.arg(SLOT_NAMES[Normal].c_str()).toStdString();
+        }
+        case DepthMode: {
+            QString code = "return vec4(vec3(texture(%1, uv).x), 1.0);";
+            return code.arg(SLOT_NAMES[Depth].c_str()).toStdString();
+        }
+        case LightingMode: {
+            QString code = "return vec4(texture(%1, uv).xyz, 1.0);";
+            return code.arg(SLOT_NAMES[Lighting].c_str()).toStdString();
+        }
+        case CustomMode:
+            return std::string("return vec4(1.0);");
+        case NUM_MODES:
+            Q_UNIMPLEMENTED();
+            return std::string("return vec4(1.0);");
+    }
 }
 
-const gpu::PipelinePointer& DebugDeferredBuffer::getPipeline(int slot) {
-    if (!_pipelines[slot]) {
+const gpu::PipelinePointer& DebugDeferredBuffer::getPipeline(Modes mode) {
+    if (!_pipelines[mode]) {
         std::string fragmentShader = debug_deferred_buffer_frag;
-        fragmentShader.replace(fragmentShader.find(PLACEHOLDER), PLACEHOLDER.size(), getCode(slot));
+        fragmentShader.replace(fragmentShader.find(COMPUTE_PLACEHOLDER), COMPUTE_PLACEHOLDER.size(),
+                               getCode(mode));
         
         auto vs = gpu::ShaderPointer(gpu::Shader::createVertex({ debug_deferred_buffer_vert }));
         auto ps = gpu::ShaderPointer(gpu::Shader::createPixel(fragmentShader));
@@ -53,9 +101,9 @@ const gpu::PipelinePointer& DebugDeferredBuffer::getPipeline(int slot) {
         gpu::Shader::makeProgram(*program, slotBindings);
         
         // Good to go add the brand new pipeline
-        _pipelines[slot] = gpu::Pipeline::create(program, std::make_shared<gpu::State>());
+        _pipelines[mode] = gpu::Pipeline::create(program, std::make_shared<gpu::State>());
     }
-    return _pipelines[slot];
+    return _pipelines[mode];
 }
 
 
@@ -76,7 +124,7 @@ void DebugDeferredBuffer::run(const SceneContextPointer& sceneContext, const Ren
         batch.setViewTransform(viewMat);
         batch.setModelTransform(Transform());
         
-        batch.setPipeline(getPipeline((DebugDeferredBufferSlot)(renderContext->_drawDebugDeferredBuffer - 1)));
+        batch.setPipeline(getPipeline(Modes(renderContext->_deferredDebugMode)));
         
         batch.setResourceTexture(Diffuse, framebufferCache->getDeferredColorTexture());
         batch.setResourceTexture(Normal, framebufferCache->getDeferredNormalTexture());
@@ -84,9 +132,9 @@ void DebugDeferredBuffer::run(const SceneContextPointer& sceneContext, const Ren
         batch.setResourceTexture(Depth, framebufferCache->getPrimaryDepthTexture());
         batch.setResourceTexture(Lighting, framebufferCache->getLightingTexture());
         
-        glm::vec4 color(0.0f, 0.0f, 1.0f, 1.0f);
-        glm::vec2 bottomLeft(0.0f, -1.0f);
-        glm::vec2 topRight(1.0f, 1.0f);
+        glm::vec4 color(1.0f, 1.0f, 1.0f, 1.0f);
+        glm::vec2 bottomLeft(renderContext->_deferredDebugSize.x, renderContext->_deferredDebugSize.y);
+        glm::vec2 topRight(renderContext->_deferredDebugSize.z, renderContext->_deferredDebugSize.w);
         geometryBuffer->renderQuad(batch, bottomLeft, topRight, color);
     });
 }
