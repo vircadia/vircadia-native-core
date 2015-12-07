@@ -45,7 +45,7 @@
 #include <QtNetwork/QNetworkDiskCache>
 
 #include <gl/Config.h>
-#include <QtGui/QOpenGLContext>
+#include <QOpenGLContextWrapper.h>
 
 #include <AccountManager.h>
 #include <AddressManager.h>
@@ -1397,13 +1397,13 @@ void Application::paintGL() {
         _lockedFramebufferMap[finalTexture] = scratchFramebuffer;
 
         uint64_t displayStart = usecTimestampNow();
-        Q_ASSERT(QOpenGLContext::currentContext() == _offscreenContext->getContext());
+        Q_ASSERT(isCurrentContext(_offscreenContext->getContext()));
         {
             PROFILE_RANGE(__FUNCTION__ "/pluginSubmitScene");
             PerformanceTimer perfTimer("pluginSubmitScene");
             displayPlugin->submitSceneTexture(_frameCount, finalTexture, toGlm(size));
         }
-        Q_ASSERT(QOpenGLContext::currentContext() == _offscreenContext->getContext());
+        Q_ASSERT(isCurrentContext(_offscreenContext->getContext()));
 
         uint64_t displayEnd = usecTimestampNow();
         const float displayPeriodUsec = (float)(displayEnd - displayStart); // usecs
