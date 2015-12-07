@@ -34,16 +34,8 @@
 #include "deferred_light_spot_vert.h"
 
 #include "directional_light_frag.h"
-#include "directional_light_shadow_map_frag.h"
-#include "directional_light_cascaded_shadow_map_frag.h"
-
 #include "directional_ambient_light_frag.h"
-#include "directional_ambient_light_shadow_map_frag.h"
-#include "directional_ambient_light_cascaded_shadow_map_frag.h"
-
 #include "directional_skybox_light_frag.h"
-#include "directional_skybox_light_shadow_map_frag.h"
-#include "directional_skybox_light_cascaded_shadow_map_frag.h"
 
 #include "point_light_frag.h"
 #include "spot_light_frag.h"
@@ -51,8 +43,6 @@
 static const std::string glowIntensityShaderHandle = "glowIntensity";
 
 struct LightLocations {
-    int shadowDistances;
-    int shadowScale;
     int radius;
     int ambientSphere;
     int lightBufferUnit;
@@ -107,34 +97,16 @@ void DeferredLightingEffect::init(AbstractViewStateInterface* viewState) {
 
     _viewState = viewState;
     _directionalLightLocations = std::make_shared<LightLocations>();
-    _directionalLightShadowMapLocations = std::make_shared<LightLocations>();
-    _directionalLightCascadedShadowMapLocations = std::make_shared<LightLocations>();
     _directionalAmbientSphereLightLocations = std::make_shared<LightLocations>();
-    _directionalAmbientSphereLightShadowMapLocations = std::make_shared<LightLocations>();
-    _directionalAmbientSphereLightCascadedShadowMapLocations = std::make_shared<LightLocations>();
     _directionalSkyboxLightLocations = std::make_shared<LightLocations>();
-    _directionalSkyboxLightShadowMapLocations = std::make_shared<LightLocations>();
-    _directionalSkyboxLightCascadedShadowMapLocations = std::make_shared<LightLocations>();
     _pointLightLocations = std::make_shared<LightLocations>();
     _spotLightLocations = std::make_shared<LightLocations>();
 
     loadLightProgram(deferred_light_vert, directional_light_frag, false, _directionalLight, _directionalLightLocations);
-    loadLightProgram(deferred_light_vert, directional_light_shadow_map_frag, false, _directionalLightShadowMap,
-        _directionalLightShadowMapLocations);
-    loadLightProgram(deferred_light_vert, directional_light_cascaded_shadow_map_frag, false, _directionalLightCascadedShadowMap,
-        _directionalLightCascadedShadowMapLocations);
 
     loadLightProgram(deferred_light_vert, directional_ambient_light_frag, false, _directionalAmbientSphereLight, _directionalAmbientSphereLightLocations);
-    loadLightProgram(deferred_light_vert, directional_ambient_light_shadow_map_frag, false, _directionalAmbientSphereLightShadowMap,
-        _directionalAmbientSphereLightShadowMapLocations);
-    loadLightProgram(deferred_light_vert, directional_ambient_light_cascaded_shadow_map_frag, false, _directionalAmbientSphereLightCascadedShadowMap,
-        _directionalAmbientSphereLightCascadedShadowMapLocations);
 
     loadLightProgram(deferred_light_vert, directional_skybox_light_frag, false, _directionalSkyboxLight, _directionalSkyboxLightLocations);
-    loadLightProgram(deferred_light_vert, directional_skybox_light_shadow_map_frag, false, _directionalSkyboxLightShadowMap,
-        _directionalSkyboxLightShadowMapLocations);
-    loadLightProgram(deferred_light_vert, directional_skybox_light_cascaded_shadow_map_frag, false, _directionalSkyboxLightCascadedShadowMap,
-        _directionalSkyboxLightCascadedShadowMapLocations);
 
 
     loadLightProgram(deferred_light_limited_vert, point_light_frag, true, _pointLight, _pointLightLocations);
@@ -379,6 +351,15 @@ void DeferredLightingEffect::prepare(RenderArgs* args) {
         batch.setViewportTransform(args->_viewport);
         batch.setStateScissorRect(args->_viewport);
 
+        // Clear Lighting buffer
+        auto lightingFbo = DependencyManager::get<FramebufferCache>()->getLightingFramebuffer();
+
+        batch.setFramebuffer(lightingFbo);
+        batch.clearFramebuffer(
+            gpu::Framebuffer::BUFFER_COLOR0,
+            vec4(vec3(0), 0), 1.0, 0.0, true);
+
+        // Clear deferred
         auto deferredFbo = DependencyManager::get<FramebufferCache>()->getDeferredFramebuffer();
 
         batch.setFramebuffer(deferredFbo);
@@ -422,7 +403,7 @@ void DeferredLightingEffect::render(RenderArgs* args) {
         // Clearing it
         batch.setViewportTransform(args->_viewport);
         batch.setStateScissorRect(args->_viewport);
-        batch.clearColorFramebuffer(lightingFBO->getBufferMask(), glm::vec4(0.0f, 0.0f, 0.0f, 0.0f), true);
+      //  batch.clearColorFramebuffer(lightingFBO->getBufferMask(), glm::vec4(0.0f, 0.0f, 0.0f, 0.0f), true);
 
         // BInd the G-Buffer surfaces
         batch.setResourceTexture(0, framebufferCache->getDeferredColorTexture());
@@ -768,7 +749,6 @@ static void loadLightProgram(const char* vertSource, const char* fragSource, boo
     slotBindings.insert(gpu::Shader::Binding(std::string("normalMap"), 1));
     slotBindings.insert(gpu::Shader::Binding(std::string("specularMap"), 2));
     slotBindings.insert(gpu::Shader::Binding(std::string("depthMap"), 3));
-    slotBindings.insert(gpu::Shader::Binding(std::string("shadowMap"), 4));
     slotBindings.insert(gpu::Shader::Binding(std::string("skyboxMap"), 5));
     const int LIGHT_GPU_SLOT = 3;
     slotBindings.insert(gpu::Shader::Binding(std::string("lightBuffer"), LIGHT_GPU_SLOT));
@@ -779,8 +759,6 @@ static void loadLightProgram(const char* vertSource, const char* fragSource, boo
 
     gpu::Shader::makeProgram(*program, slotBindings);
 
-    locations->shadowDistances = program->getUniforms().findLocation("shadowDistances");
-    locations->shadowScale = program->getUniforms().findLocation("shadowScale");
 
     locations->radius = program->getUniforms().findLocation("radius");
     locations->ambientSphere = program->getUniforms().findLocation("ambientSphere.L00");
@@ -793,6 +771,10 @@ static void loadLightProgram(const char* vertSource, const char* fragSource, boo
     locations->deferredTransformBuffer = program->getBuffers().findLocation("deferredTransformBuffer");
 
     auto state = std::make_shared<gpu::State>();
+
+    // Stencil test all the light passes for objects pixels only, not the background
+    state->setStencilTest(true, 0xFF, gpu::State::StencilTest(0, 0xFF, gpu::NOT_EQUAL, gpu::State::STENCIL_OP_KEEP, gpu::State::STENCIL_OP_KEEP, gpu::State::STENCIL_OP_KEEP));
+
     if (lightVolume) {
         state->setCullMode(gpu::State::CULL_BACK);
         

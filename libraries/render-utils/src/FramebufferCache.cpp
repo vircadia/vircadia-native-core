@@ -92,6 +92,7 @@ void FramebufferCache::createPrimaryFramebuffer() {
         // _lightingTexture = gpu::TexturePointer(gpu::Texture::create2D(gpu::Element(gpu::VEC4, gpu::HALF, gpu::RGBA), width, height, defaultSampler));
         _lightingFramebuffer = gpu::FramebufferPointer(gpu::Framebuffer::create());
     _lightingFramebuffer->setRenderBuffer(0, _lightingTexture);
+    _lightingFramebuffer->setDepthStencilBuffer(_primaryDepthTexture, depthFormat);
 }
 
 gpu::FramebufferPointer FramebufferCache::getPrimaryFramebufferDepthColor() {

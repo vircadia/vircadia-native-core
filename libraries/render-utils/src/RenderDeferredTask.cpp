@@ -355,7 +355,8 @@ void DrawBackgroundDeferred::run(const SceneContextPointer& sceneContext, const 
     doInBatch(args->_context, [=](gpu::Batch& batch) {
         args->_batch = &batch;
 
-        auto deferredFboColorDepthStencil = DependencyManager::get<FramebufferCache>()->getDeferredFramebufferDepthColor();
+    //    auto deferredFboColorDepthStencil = DependencyManager::get<FramebufferCache>()->getDeferredFramebufferDepthColor();
+        auto deferredFboColorDepthStencil = DependencyManager::get<FramebufferCache>()->getLightingFramebuffer();
         auto deferredFboFull = DependencyManager::get<FramebufferCache>()->getDeferredFramebuffer();
 
         batch.enableSkybox(true);
@@ -375,7 +376,7 @@ void DrawBackgroundDeferred::run(const SceneContextPointer& sceneContext, const 
 
         renderItems(sceneContext, renderContext, inItems);
 
-        batch.setFramebuffer(deferredFboFull);
+   //     batch.setFramebuffer(deferredFboFull);
 
     });
     args->_batch = nullptr;
