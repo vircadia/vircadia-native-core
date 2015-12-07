@@ -1,4 +1,22 @@
-Script.include('steer.js');
+//
+//  ratCreator.js
+//
+//  Created by James B. Pollack @imgntn on 12/7/2015
+//  Copyright 2015 High Fidelity, Inc.
+//
+//  This script spawns some rats that have simple steering behaviors applied to them.
+//  Run it in the 'drylake' environment, or adjust all object locations to match your scene.
+//
+//  Steering bevhaviors from ratSteer.js:
+//  The rats will move from a spawning point toward their nest.
+//  They will avoid avoider blocks moving across the alley
+//  They will avoid avatars running createAvatarDetector.js
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+//
+
+Script.include('ratSteer.js');
 var steer = loadSteer();
 Script.include('../libraries/tween.js');
 var TWEEN = loadTween();
@@ -60,10 +78,6 @@ function playRatDeathAnimation(rat) {
     Entities.editEntity(rat, {
         animationURL: RAT_DEATH_ANIMATION_URL,
         animationSettings: animationSettings
-            // animation: {
-            //     url: RAT_DEATH_ANIMATION_URL,
-            //     running: true
-            // },
     });
 }
 
@@ -77,7 +91,6 @@ var modelRatProperties = {
     damping: 0.8,
     angularDamping: 0.99,
     friction: 0.75,
-    // restitution:0.1,
     collisionsWillMove: true,
     ignoreForCollisions: false,
     gravity: {
@@ -86,8 +99,6 @@ var modelRatProperties = {
         z: 0
     },
     lifetime: 30,
-    // rotation: Quat.fromPitchYawRollDegrees(0, 180, 0),
-    //disable this if for some reason we want grabbable rats
     userData: JSON.stringify({
         grabbableKey: {
             grabbable: false
@@ -256,13 +267,16 @@ function createRatSoundInjector() {
 
 function moveRats() {
     rats.forEach(function(rat) {
-        checkDistanceFromNest(rat);
-        //   print('debug1')
-        var avatarFlightVectors = steer.fleeAllAvatars(rat);
-        // print('avatarFlightVectors' + avatarFlightVectors)
-        var i, j;
-        var averageAvatarFlight;
 
+        //remove the rat if its near the nest
+        checkDistanceFromNest(rat);
+
+        //otherwise figure out where to send it
+
+        //see if there are avatars to run from
+        var avatarFlightVectors = steer.fleeAllAvatars(rat);
+        var averageAvatarFlight;
+        var i;
         for (i = 0; i < avatarFlightVectors.length; i++) {
             if (i === 0) {
                 averageAvatarFlight = avatarFlightVectors[0];
@@ -270,15 +284,12 @@ function moveRats() {
                 averageAvatarFlight = Vec3.sum(avatarFlightVectors[i - 1], avatarFlightVectors[i])
             }
         }
-
-        // averageAvatarFlight = Vec3.normalize(averageAvatarFlight);
-
         averageAvatarFlight = Vec3.multiply(averageAvatarFlight, 1 / avatarFlightVectors.length);
 
+        //see if there are avoiders to flee
         var avoidBlockVectors = steer.fleeAvoiderBlocks(rat);
-
         var averageAvoiderFlight;
-
+        var j;
         for (j = 0; j < avoidBlockVectors.length; j++) {
             if (j === 0) {
                 averageAvoiderFlight = avoidBlockVectors[0];
@@ -286,32 +297,29 @@ function moveRats() {
                 averageAvoiderFlight = Vec3.sum(avoidBlockVectors[j - 1], avoidBlockVectors[j])
             }
         };
-
-        // avarageAvoiderFlight = Vec3.normalize(averageAvoiderFlight);
-
         averageAvoiderFlight = Vec3.multiply(averageAvoiderFlight, 1 / avoidBlockVectors.length);
 
-        var averageVector;
+        //add all of the vectors and divide them by total to get average vector
+        //start by trying to go toward the nest
         var seek = steer.arrive(rat, target);
-        averageVector = seek;
+        var averageVector = seek;
         var divisorCount = 1;
+
+        //if there are avatars to run away from
         if (avatarFlightVectors.length > 0) {
             divisorCount++;
             averageVector = Vec3.sum(averageVector, averageAvatarFlight);
         }
+
+        //or if there are avoider blocks to run away from
         if (avoidBlockVectors.length > 0) {
             divisorCount++;
             averageVector = Vec3.sum(averageVector, averageAvoiderFlight);
         }
 
         averageVector = Vec3.multiply(averageVector, 1 / divisorCount);
+
         var thisRatProps = Entities.getEntityProperties(rat, ["position", "rotation"]);
-
-
-        //  var constrainedRotation = Quat.fromVec3Degrees(eulerAngle);
-
-        //  print('CR:::'+JSON.stringify(constrainedRotation))
-
         var ratPosition = thisRatProps.position;
         var ratToNest = Vec3.subtract(RAT_NEST_LOCATION, ratPosition);
         var ratRotation = Quat.rotationBetween(Vec3.UNIT_Z, ratToNest);
@@ -325,11 +333,12 @@ function moveRats() {
             rotation: constrainedRotation,
         })
 
+        //have to make a 'meta' rat object to keep track of rats for updating sound injector locations.  parenting sounds would make this easy.
         var metaRat = getMetaRatByRat(rat);
         if (metaRat !== undefined) {
             if (metaRat.injector !== undefined) {
                 if (metaRat.injector.isPlaying === true) {
-                  //  print('update injector position')
+                    //  print('update injector position')
                     metaRat.injector.options = {
                         loop: true,
                         position: ratPosition
@@ -337,11 +346,9 @@ function moveRats() {
                 }
             }
 
-
         } else {
             //   print('no meta rat for this rat')
         }
-        //  castRay(rat);
     })
 }
 
@@ -356,16 +363,14 @@ function checkDistanceFromNest(rat) {
         removeRatFromScene(rat);
     } else {
         // print('not yet at nest:::' + distance)
-
     }
 }
 
 function removeRatFromScene(rat) {
 
-
     var index = rats.indexOf(rat);
     if (index > -1) {
-   //     print('CLEAR RAT::'+rat)
+        //     print('CLEAR RAT::'+rat)
         rats.splice(index, 1);
         Entities.deleteEntity(rat);
 
@@ -373,12 +378,10 @@ function removeRatFromScene(rat) {
 
     var metaRatIndex = findWithAttr(metaRats, 'rat', rat);
     if (metaRatIndex > -1) {
-    //    print('CLEAR META RAT')
+        //    print('CLEAR META RAT')
         metaRats[index].injector.stop();
         metaRats.splice(index, 1);
     }
-
-
 
 }
 
@@ -389,7 +392,7 @@ function popRatFromStack(entityID) {
         rats.splice(index, 1);
     }
 
-        var metaRatIndex = findWithAttr(metaRats, 'rat', entityID);
+    var metaRatIndex = findWithAttr(metaRats, 'rat', entityID);
     if (metaRatIndex > -1) {
         metaRats[index].injector.stop();
         metaRats.splice(index, 1);
@@ -416,7 +419,7 @@ Entities.deletingEntity.connect(popRatFromStack);
 
 
 function cleanupLeftoverAvoidersBeforeStart() {
-   // print('CLEANING UP LEFTOVER AVOIDERS')
+    //sometimes if we crash or something there could be extra avoider blocks around.  clear them out.
     var nearbyEntities = Entities.findEntities(RAT_SPAWNER_LOCATION, 100);
     var entityIndex;
     for (entityIndex = 0; entityIndex < nearbyEntities.length; entityIndex++) {
@@ -453,7 +456,6 @@ if (USE_CONSTANT_SPAWNER === true) {
         var rat = addRat();
         playRatRunningAnimation(rat);
         rats.push(rat);
-        // print('ratCount::'+ratCount)
         ratCount++;
         if (ratCount % 6 === 0) {
             var metaRat = {
@@ -466,28 +468,8 @@ if (USE_CONSTANT_SPAWNER === true) {
                 //if we have too many injectors hanging around there are problems
                 metaRat.injector.stop();
                 delete metaRat.injector;
-            }, RAT_SPAWN_RATE * 3)
+            }, RAT_SPAWN_RATE * 3);
         }
 
     }, RAT_SPAWN_RATE);
 }
-
-//unused for now, to be used for some collision avoidance on walls and stuff?
-
-// function castRay(rat) {
-//     var ratProps = Entities.getEntityProperties(rat, ["position", "rotation"]);
-//     var shotDirection = Quat.getFront(ratProps.rotation);
-//     var pickRay = {
-//         origin: ratProps.position,
-//         direction: shotDirection
-//     };
-
-//     var intersection = Entities.findRayIntersection(pickRay, true);
-//     if (intersection.intersects) {
-//         var distance = Vec3.subtract(intersection.properties.position, ratProps.position);
-//         distance = Vec3.length(distance);
-//         //   print('INTERSECTION:::'+distance);
-//     } else {
-//         //print('no intersection')
-//     }
-// }

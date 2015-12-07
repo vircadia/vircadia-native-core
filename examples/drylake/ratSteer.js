@@ -1,3 +1,15 @@
+//
+//  ratSteer.js
+//
+//  Created by James B. Pollack @imgntn on 12/7/2015
+//  Copyright 2015 High Fidelity, Inc.
+//
+//  This is an example of steering behaviors that can be applied entities.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+//
+
 function flee(thisEntity, target) {
   var targetPosition = Entities.getEntityProperties(target, "position").position;
   var properties = Entities.getEntityProperties(thisEntity, ["position", "velocity"]);
@@ -48,8 +60,8 @@ function fleeAllAvatars(thisEntity) {
       if (d < 3) {
         var steer = Vec3.subtract(desired, velocity);
         var steerVector = new V3(desired.x, 0, desired.z);
-        steer = steerVector.limit(MAX_FORCE)
-        flightVectors.push(steer)
+        steer = steerVector.limit(MAX_FORCE);
+        flightVectors.push(steer);
       } else {
         //  print('target too far away from this avatar to flee' + d);
       }
@@ -57,7 +69,7 @@ function fleeAllAvatars(thisEntity) {
 
   }
 
-  return flightVectors
+  return flightVectors;
 }
 
 function fleeAvoiderBlocks(thisEntity) {
@@ -81,6 +93,7 @@ function fleeAvoiderBlocks(thisEntity) {
       var d = Vec3.length(desired);
       desired = Vec3.normalize(desired);
       desired = Vec3.multiply(MAX_SPEED, desired);
+
       if (d < 5) {
         var steer = Vec3.subtract(desired, velocity);
         var steerVector = new V3(desired.x, 0, desired.z);
@@ -89,11 +102,12 @@ function fleeAvoiderBlocks(thisEntity) {
       } else {
         //print('target too far away from this avoider to flee' + d);
       }
+
     }
 
   }
 
-  return flightVectors
+  return flightVectors;
 }
 
 function arrive(thisEntity, target) {
@@ -109,17 +123,19 @@ function arrive(thisEntity, target) {
   var desired = Vec3.subtract(targetPosition, location);
   var d = Vec3.length(desired);
   desired = Vec3.normalize(desired);
+
   if (d < ARRIVAL_DISTANCE) {
     var m = scale(d, 0, ARRIVAL_DISTANCE, 0, MAX_SPEED);
   } else {
     desired = Vec3.multiply(MAX_SPEED, desired);
 
   }
+
   var steer = Vec3.subtract(desired, velocity);
   var steerVector = new V3(desired.x, 0, desired.z);
-  steer = steerVector.limit(MAX_FORCE)
+  steer = steerVector.limit(MAX_FORCE);
 
-  return steer
+  return steer;
 }
 
 
