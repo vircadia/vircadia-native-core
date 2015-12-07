@@ -104,6 +104,7 @@
 inline QScriptValue convertScriptValue(QScriptEngine* e, const glm::vec3& v) { return vec3toScriptValue(e, v); }
 inline QScriptValue convertScriptValue(QScriptEngine* e, float v) { return QScriptValue(v); }
 inline QScriptValue convertScriptValue(QScriptEngine* e, int v) { return QScriptValue(v); }
+inline QScriptValue convertScriptValue(QScriptEngine* e, quint16 v) { return QScriptValue(v); }
 inline QScriptValue convertScriptValue(QScriptEngine* e, quint32 v) { return QScriptValue(v); }
 inline QScriptValue convertScriptValue(QScriptEngine* e, quint64 v) { return QScriptValue((qsreal)v); }
 inline QScriptValue convertScriptValue(QScriptEngine* e, const QString& v) { return QScriptValue(v); }
@@ -179,6 +180,7 @@ inline quint32 quint32_convertFromScriptValue(const QScriptValue& v, bool& isVal
     // Use QString::toUInt() so that isValid is set to false if the number is outside the quint32 range.
     return v.toString().toUInt(&isValid); 
 }
+inline quint16 quint16_convertFromScriptValue(const QScriptValue& v, bool& isValid) { return v.toVariant().toInt(&isValid); }
 inline uint16_t uint16_t_convertFromScriptValue(const QScriptValue& v, bool& isValid) { return v.toVariant().toInt(&isValid); }
 inline int int_convertFromScriptValue(const QScriptValue& v, bool& isValid) { return v.toVariant().toInt(&isValid); }
 inline bool bool_convertFromScriptValue(const QScriptValue& v, bool& isValid) { isValid = true; return v.toVariant().toBool(); }

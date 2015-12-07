@@ -25,8 +25,8 @@ const QString& DisplayPlugin::MENU_PATH() {
 DisplayPluginList getDisplayPlugins() {
     DisplayPlugin* PLUGIN_POOL[] = {
         new Basic2DWindowOpenGLDisplayPlugin(),
-#ifdef DEBUG
         new NullDisplayPlugin(),
+#ifdef DEBUG
 #endif
 
         // Stereo modes
@@ -37,10 +37,10 @@ DisplayPluginList getDisplayPlugins() {
         new InterleavedStereoDisplayPlugin(),
 
         // HMDs
-#ifdef Q_OS_WIN
-        // SteamVR SDK
-        new OpenVrDisplayPlugin(),
-#endif
+//#ifdef Q_OS_WIN
+//        // SteamVR SDK
+//        new OpenVrDisplayPlugin(),
+//#endif
         nullptr
     };
 

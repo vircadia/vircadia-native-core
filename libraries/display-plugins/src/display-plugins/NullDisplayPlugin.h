@@ -19,11 +19,9 @@ public:
 
     virtual glm::uvec2 getRecommendedRenderSize() const override;
     virtual bool hasFocus() const override;
-    virtual void preRender() override;
-    virtual void preDisplay() override;
-    virtual void display(uint32_t sceneTexture, const glm::uvec2& sceneSize) override;
-    virtual void finishFrame() override;
-
+    virtual void submitSceneTexture(uint32_t frameIndex, uint32_t sceneTexture, const glm::uvec2& sceneSize) override;
+    virtual void submitOverlayTexture(uint32_t overlayTexture, const glm::uvec2& overlaySize) override;
+    virtual QImage getScreenshot() const override;
 private:
     static const QString NAME;
 };

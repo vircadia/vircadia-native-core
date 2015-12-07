@@ -140,8 +140,11 @@ bool EntityTree::updateEntityWithElement(EntityItemPointer entity, const EntityI
             if (!wantsLocked) {
                 EntityItemProperties tempProperties;
                 tempProperties.setLocked(wantsLocked);
-                UpdateEntityOperator theOperator(getThisPointer(), containingElement, entity, tempProperties);
+
+                BoundingBoxRelatedProperties newBBRelProperties(entity, tempProperties);
+                UpdateEntityOperator theOperator(getThisPointer(), containingElement, entity, newBBRelProperties);
                 recurseTreeWithOperator(&theOperator);
+                entity->setProperties(tempProperties);
                 _isDirty = true;
             }
         }
@@ -206,8 +209,34 @@ bool EntityTree::updateEntityWithElement(EntityItemPointer entity, const EntityI
         quint64 entityScriptTimestampBefore = entity->getScriptTimestamp();
         QString collisionSoundURLBefore = entity->getCollisionSoundURL();
         uint32_t preFlags = entity->getDirtyFlags();
-        UpdateEntityOperator theOperator(getThisPointer(), containingElement, entity, properties);
+
+        BoundingBoxRelatedProperties newBBRelProperties(entity, properties);
+        UpdateEntityOperator theOperator(getThisPointer(), containingElement, entity, newBBRelProperties);
         recurseTreeWithOperator(&theOperator);
+        entity->setProperties(properties);
+
+        // if the entity has children, run UpdateEntityOperator on them.  If the children have children, recurse
+        QQueue<SpatiallyNestablePointer> toProcess;
+        foreach (SpatiallyNestablePointer child, entity->getChildren()) {
+            if (child && child->getNestableType() == NestableTypes::Entity) {
+                toProcess.enqueue(child);
+            }
+        }
+
+        while (!toProcess.empty()) {
+            EntityItemPointer childEntity = std::static_pointer_cast<EntityItem>(toProcess.dequeue());
+            BoundingBoxRelatedProperties newChildBBRelProperties(childEntity);
+            UpdateEntityOperator theChildOperator(getThisPointer(),
+                                                  childEntity->getElement(),
+                                                  childEntity, newChildBBRelProperties);
+            recurseTreeWithOperator(&theChildOperator);
+            foreach (SpatiallyNestablePointer childChild, childEntity->getChildren()) {
+                if (childChild && childChild->getNestableType() == NestableTypes::Entity) {
+                    toProcess.enqueue(childChild);
+                }
+            }
+        }
+
         _isDirty = true;
 
         uint32_t newFlags = entity->getDirtyFlags() & ~preFlags;
@@ -713,7 +742,7 @@ void EntityTree::fixupTerseEditLogging(EntityItemProperties& properties, QList<Q
     }
 }
 
-int EntityTree::processEditPacketData(NLPacket& packet, const unsigned char* editData, int maxLength,
+int EntityTree::processEditPacketData(ReceivedMessage& message, const unsigned char* editData, int maxLength,
                                      const SharedNodePointer& senderNode) {
 
     if (!getIsServer()) {
@@ -723,7 +752,7 @@ int EntityTree::processEditPacketData(NLPacket& packet, const unsigned char* edi
 
     int processedBytes = 0;
     // we handle these types of "edit" packets
-    switch (packet.getType()) {
+    switch (message.getType()) {
         case PacketType::EntityErase: {
             QByteArray dataByteArray = QByteArray::fromRawData(reinterpret_cast<const char*>(editData), maxLength);
             processedBytes = processEraseMessageDetails(dataByteArray, senderNode);
@@ -755,7 +784,7 @@ int EntityTree::processEditPacketData(NLPacket& packet, const unsigned char* edi
                 startLookup = usecTimestampNow();
                 EntityItemPointer existingEntity = findEntityByEntityItemID(entityItemID);
                 endLookup = usecTimestampNow();
-                if (existingEntity && packet.getType() == PacketType::EntityEdit) {
+                if (existingEntity && message.getType() == PacketType::EntityEdit) {
                     // if the EntityItem exists, then update it
                     startLogging = usecTimestampNow();
                     if (wantEditLogging()) {
@@ -775,7 +804,7 @@ int EntityTree::processEditPacketData(NLPacket& packet, const unsigned char* edi
                     existingEntity->markAsChangedOnServer();
                     endUpdate = usecTimestampNow();
                     _totalUpdates++;
-                } else if (packet.getType() == PacketType::EntityAdd) {
+                } else if (message.getType() == PacketType::EntityAdd) {
                     if (senderNode->getCanRez()) {
                         // this is a new entity... assign a new entityID
                         properties.setCreated(properties.getLastEdited());
@@ -808,7 +837,7 @@ int EntityTree::processEditPacketData(NLPacket& packet, const unsigned char* edi
                 } else {
                     static QString repeatedMessage =
                         LogHandler::getInstance().addRepeatedMessageRegex("^Edit failed.*");
-                    qCDebug(entities) << "Edit failed. [" << packet.getType() <<"] " <<
+                    qCDebug(entities) << "Edit failed. [" << message.getType() <<"] " <<
                             "entity id:" << entityItemID << 
                             "existingEntity pointer:" << existingEntity.get();
                 }
@@ -950,27 +979,27 @@ void EntityTree::forgetEntitiesDeletedBefore(quint64 sinceTime) {
 
 
 // TODO: consider consolidating processEraseMessageDetails() and processEraseMessage()
-int EntityTree::processEraseMessage(NLPacket& packet, const SharedNodePointer& sourceNode) {
+int EntityTree::processEraseMessage(ReceivedMessage& message, const SharedNodePointer& sourceNode) {
     #ifdef EXTRA_ERASE_DEBUGGING
         qDebug() << "EntityTree::processEraseMessage()";
     #endif
     withWriteLock([&] {
-        packet.seek(sizeof(OCTREE_PACKET_FLAGS) + sizeof(OCTREE_PACKET_SEQUENCE) + sizeof(OCTREE_PACKET_SENT_TIME));
+        message.seek(sizeof(OCTREE_PACKET_FLAGS) + sizeof(OCTREE_PACKET_SEQUENCE) + sizeof(OCTREE_PACKET_SENT_TIME));
 
         uint16_t numberOfIDs = 0; // placeholder for now
-        packet.readPrimitive(&numberOfIDs);
+        message.readPrimitive(&numberOfIDs);
 
         if (numberOfIDs > 0) {
             QSet<EntityItemID> entityItemIDsToDelete;
 
             for (size_t i = 0; i < numberOfIDs; i++) {
 
-                if (NUM_BYTES_RFC4122_UUID > packet.bytesLeftToRead()) {
+                if (NUM_BYTES_RFC4122_UUID > message.getBytesLeftToRead()) {
                     qCDebug(entities) << "EntityTree::processEraseMessage().... bailing because not enough bytes in buffer";
                     break; // bail to prevent buffer overflow
                 }
 
-                QUuid entityID = QUuid::fromRfc4122(packet.readWithoutCopy(NUM_BYTES_RFC4122_UUID));
+                QUuid entityID = QUuid::fromRfc4122(message.readWithoutCopy(NUM_BYTES_RFC4122_UUID));
                 #ifdef EXTRA_ERASE_DEBUGGING
                     qDebug() << "    ---- EntityTree::processEraseMessage() contained ID:" << entityID;
                 #endif
@@ -986,7 +1015,7 @@ int EntityTree::processEraseMessage(NLPacket& packet, const SharedNodePointer& s
             deleteEntities(entityItemIDsToDelete, true, true);
         }
     });
-    return packet.pos();
+    return message.getPosition();
 }
 
 // This version skips over the header

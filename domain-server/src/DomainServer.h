@@ -56,11 +56,11 @@ public slots:
 
     void restart();
 
-    void processRequestAssignmentPacket(QSharedPointer<NLPacket> packet);
-    void processListRequestPacket(QSharedPointer<NLPacket> packet, SharedNodePointer sendingNode);
-    void processNodeJSONStatsPacket(QSharedPointer<NLPacketList> packetList, SharedNodePointer sendingNode);
-    void processPathQueryPacket(QSharedPointer<NLPacket> packet);
-    void processNodeDisconnectRequestPacket(QSharedPointer<NLPacket> packet);
+    void processRequestAssignmentPacket(QSharedPointer<ReceivedMessage> packet);
+    void processListRequestPacket(QSharedPointer<ReceivedMessage> packet, SharedNodePointer sendingNode);
+    void processNodeJSONStatsPacket(QSharedPointer<ReceivedMessage> packetList, SharedNodePointer sendingNode);
+    void processPathQueryPacket(QSharedPointer<ReceivedMessage> packet);
+    void processNodeDisconnectRequestPacket(QSharedPointer<ReceivedMessage> message);
     
 private slots:
     void aboutToQuit();
