@@ -54,8 +54,8 @@ static const float LATE_MIX_LEFT_DEFAULT = 90.0f;
 static const float LATE_MIX_RIGHT_DEFAULT = 90.0f;
 static const float WET_DRY_MIX_DEFAULT = 50.0f;
 
-static void setOption(QScriptValue arguments, const QString name, float default, float& var) {
-    var = arguments.property(name).isNumber() ? arguments.property(name).toNumber() : default;
+static void setOption(QScriptValue arguments, const QString name, float defaultValue, float& variable) {
+    variable = arguments.property(name).isNumber() ? arguments.property(name).toNumber() : defaultValue;
 }
 
 AudioEffectOptions::AudioEffectOptions(QScriptValue arguments) {
