@@ -71,35 +71,34 @@ AvatarSharedPointer AvatarHashMap::findAvatar(const QUuid& sessionUUID) {
     return nullptr;
 }
 
-void AvatarHashMap::processAvatarDataPacket(QSharedPointer<NLPacket> packet, SharedNodePointer sendingNode) {
-
+void AvatarHashMap::processAvatarDataPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer sendingNode) {
     // enumerate over all of the avatars in this packet
     // only add them if mixerWeakPointer points to something (meaning that mixer is still around)
-    while (packet->bytesLeftToRead()) {
-        QUuid sessionUUID = QUuid::fromRfc4122(packet->readWithoutCopy(NUM_BYTES_RFC4122_UUID));
+    while (message->getBytesLeftToRead()) {
+        QUuid sessionUUID = QUuid::fromRfc4122(message->readWithoutCopy(NUM_BYTES_RFC4122_UUID));
         
-        int positionBeforeRead = packet->pos();
+        int positionBeforeRead = message->getPosition();
 
-        QByteArray byteArray = packet->readWithoutCopy(packet->bytesLeftToRead());
+        QByteArray byteArray = message->readWithoutCopy(message->getBytesLeftToRead());
         
         if (sessionUUID != _lastOwnerSessionUUID) {
             auto avatar = newOrExistingAvatar(sessionUUID, sendingNode);
             
             // have the matching (or new) avatar parse the data from the packet
             int bytesRead = avatar->parseDataFromBuffer(byteArray);
-            packet->seek(positionBeforeRead + bytesRead);
+            message->seek(positionBeforeRead + bytesRead);
         } else {
             // create a dummy AvatarData class to throw this data on the ground
             AvatarData dummyData;
             int bytesRead = dummyData.parseDataFromBuffer(byteArray);
-            packet->seek(positionBeforeRead + bytesRead);
+            message->seek(positionBeforeRead + bytesRead);
         }
     }
 }
 
-void AvatarHashMap::processAvatarIdentityPacket(QSharedPointer<NLPacket> packet, SharedNodePointer sendingNode) {
+void AvatarHashMap::processAvatarIdentityPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer sendingNode) {
     // setup a data stream to parse the packet
-    QDataStream identityStream(packet.data());
+    QDataStream identityStream(message->getMessage());
 
     QUuid sessionUUID;
     
@@ -131,20 +130,20 @@ void AvatarHashMap::processAvatarIdentityPacket(QSharedPointer<NLPacket> packet,
     }
 }
 
-void AvatarHashMap::processAvatarBillboardPacket(QSharedPointer<NLPacket> packet, SharedNodePointer sendingNode) {
-    QUuid sessionUUID = QUuid::fromRfc4122(packet->readWithoutCopy(NUM_BYTES_RFC4122_UUID));
+void AvatarHashMap::processAvatarBillboardPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer sendingNode) {
+    QUuid sessionUUID = QUuid::fromRfc4122(message->readWithoutCopy(NUM_BYTES_RFC4122_UUID));
 
     auto avatar = newOrExistingAvatar(sessionUUID, sendingNode);
 
-    QByteArray billboard = packet->read(packet->bytesLeftToRead());
+    QByteArray billboard = message->read(message->getBytesLeftToRead());
     if (avatar->getBillboard() != billboard) {
         avatar->setBillboard(billboard);
     }
 }
 
-void AvatarHashMap::processKillAvatar(QSharedPointer<NLPacket> packet, SharedNodePointer sendingNode) {
+void AvatarHashMap::processKillAvatar(QSharedPointer<ReceivedMessage> message, SharedNodePointer sendingNode) {
     // read the node id
-    QUuid sessionUUID = QUuid::fromRfc4122(packet->readWithoutCopy(NUM_BYTES_RFC4122_UUID));
+    QUuid sessionUUID = QUuid::fromRfc4122(message->readWithoutCopy(NUM_BYTES_RFC4122_UUID));
     removeAvatar(sessionUUID);
 }
 

@@ -91,9 +91,9 @@ public:
     NestableTypes::NestableType getNestableType() const { return _nestableType; }
 
     // this object's frame
-    virtual const Transform getJointTransformInModelFrame(int jointIndex) const;
-    virtual glm::quat getJointRotationInModelFrame(int index) const { assert(false); return glm::quat(); }
-    virtual glm::vec3 getJointTranslationInModelFrame(int index) const { assert(false); return glm::vec3(); }
+    virtual const Transform getAbsoluteJointTransformInObjectFrame(int jointIndex) const;
+    virtual glm::quat getAbsoluteJointRotationInObjectFrame(int index) const { assert(false); return glm::quat(); }
+    virtual glm::vec3 getAbsoluteJointTranslationInObjectFrame(int index) const { assert(false); return glm::vec3(); }
 
     SpatiallyNestablePointer getThisPointer() const;
 

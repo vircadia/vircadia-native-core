@@ -378,9 +378,9 @@ public:
 
     QList<EntityActionPointer> getActionsOfType(EntityActionType typeToGet);
 
-    // these are in the frame of this object (model space)
-    virtual glm::quat getJointRotationInModelFrame(int index) const { return glm::quat(); }
-    virtual glm::vec3 getJointTranslationInModelFrame(int index) const { return glm::vec3(0.0f); }
+    // these are in the frame of this object
+    virtual glm::quat getAbsoluteJointRotationInObjectFrame(int index) const override { return glm::quat(); }
+    virtual glm::vec3 getAbsoluteJointTranslationInObjectFrame(int index) const override { return glm::vec3(0.0f); }
 
 protected:
 

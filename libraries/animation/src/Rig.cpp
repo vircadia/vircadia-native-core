@@ -294,6 +294,7 @@ void Rig::clearJointStates() {
 void Rig::clearJointAnimationPriority(int index) {
     if (isIndexValid(index)) {
         _internalPoseSet._overrideFlags[index] = false;
+        _internalPoseSet._overridePoses[index] = _animSkeleton->getRelativeDefaultPose(index);
     }
 }
 
@@ -373,7 +374,7 @@ bool Rig::getJointRotation(int jointIndex, glm::quat& rotation) const {
     }
 }
 
-bool Rig::getJointRotationInModelFrame(int jointIndex, glm::quat& rotation) const {
+bool Rig::getAbsoluteJointRotationInRigFrame(int jointIndex, glm::quat& rotation) const {
     QReadLocker readLock(&_externalPoseSetLock);
     if (jointIndex >= 0 && jointIndex < (int)_externalPoseSet._absolutePoses.size()) {
         rotation = _externalPoseSet._absolutePoses[jointIndex].rot;
@@ -393,7 +394,7 @@ bool Rig::getJointTranslation(int jointIndex, glm::vec3& translation) const {
     }
 }
 
-bool Rig::getJointTranslationInModelFrame(int jointIndex, glm::vec3& translation) const {
+bool Rig::getAbsoluteJointTranslationInRigFrame(int jointIndex, glm::vec3& translation) const {
     QReadLocker readLock(&_externalPoseSetLock);
     if (jointIndex >= 0 && jointIndex < (int)_externalPoseSet._absolutePoses.size()) {
         translation = _externalPoseSet._absolutePoses[jointIndex].trans;

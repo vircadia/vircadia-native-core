@@ -33,8 +33,7 @@ EntityItemPointer RenderableModelEntityItem::factory(const EntityItemID& entityI
 
 RenderableModelEntityItem::RenderableModelEntityItem(const EntityItemID& entityItemID, bool dimensionsInitialized) :
     ModelEntityItem(entityItemID),
-    _dimensionsInitialized(dimensionsInitialized)
-{
+    _dimensionsInitialized(dimensionsInitialized) {
 }
 
 RenderableModelEntityItem::~RenderableModelEntityItem() {
@@ -566,20 +565,20 @@ bool RenderableModelEntityItem::contains(const glm::vec3& point) const {
     return false;
 }
 
-glm::quat RenderableModelEntityItem::getJointRotationInModelFrame(int index) const {
+glm::quat RenderableModelEntityItem::getAbsoluteJointRotationInObjectFrame(int index) const {
     if (_model) {
         glm::quat result;
-        if (_model->getJointRotationInModelFrame(index, result)) {
+        if (_model->getAbsoluteJointRotationInRigFrame(index, result)) {
             return result;
         }
     }
     return glm::quat();
 }
 
-glm::vec3 RenderableModelEntityItem::getJointTranslationInModelFrame(int index) const {
+glm::vec3 RenderableModelEntityItem::getAbsoluteJointTranslationInObjectFrame(int index) const {
     if (_model) {
         glm::vec3 result;
-        if (_model->getJointTranslationInModelFrame(index, result)) {
+        if (_model->getAbsoluteJointTranslationInRigFrame(index, result)) {
             return result;
         }
     }

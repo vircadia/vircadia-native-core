@@ -765,12 +765,12 @@ bool Model::getJointTranslation(int jointIndex, glm::vec3& translation) const {
     return _rig->getJointTranslation(jointIndex, translation);
 }
 
-bool Model::getJointRotationInModelFrame(int jointIndex, glm::quat& rotation) const {
-    return _rig->getJointRotationInModelFrame(jointIndex, rotation);
+bool Model::getAbsoluteJointRotationInRigFrame(int jointIndex, glm::quat& rotation) const {
+    return _rig->getAbsoluteJointRotationInRigFrame(jointIndex, rotation);
 }
 
-bool Model::getJointTranslationInModelFrame(int jointIndex, glm::vec3& translation) const {
-    return _rig->getJointTranslationInModelFrame(jointIndex, translation);
+bool Model::getAbsoluteJointTranslationInRigFrame(int jointIndex, glm::vec3& translation) const {
+    return _rig->getAbsoluteJointTranslationInRigFrame(jointIndex, translation);
 }
 
 bool Model::getJointCombinedRotation(int jointIndex, glm::quat& rotation) const {

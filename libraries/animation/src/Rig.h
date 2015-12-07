@@ -131,9 +131,9 @@ public:
     bool getJointRotation(int jointIndex, glm::quat& rotation) const;
     bool getJointTranslation(int jointIndex, glm::vec3& translation) const;
 
-    // model space (thread-safe)
-    bool getJointRotationInModelFrame(int jointIndex, glm::quat& rotation) const;
-    bool getJointTranslationInModelFrame(int jointIndex, glm::vec3& translation) const;
+    // rig space (thread-safe)
+    bool getAbsoluteJointRotationInRigFrame(int jointIndex, glm::quat& rotation) const;
+    bool getAbsoluteJointTranslationInRigFrame(int jointIndex, glm::vec3& translation) const;
 
     // legacy
     bool getJointCombinedRotation(int jointIndex, glm::quat& result, const glm::quat& rotation) const;

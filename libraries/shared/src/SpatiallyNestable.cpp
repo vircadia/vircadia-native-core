@@ -232,7 +232,7 @@ const Transform SpatiallyNestable::getTransform(int jointIndex) const {
     // this returns the world-space transform for this object.  It finds its parent's transform (which may
     // cause this object's parent to query its parent, etc) and multiplies this object's local transform onto it.
     Transform worldTransform = getTransform();
-    Transform jointInObjectFrame = getJointTransformInModelFrame(jointIndex);
+    Transform jointInObjectFrame = getAbsoluteJointTransformInObjectFrame(jointIndex);
     Transform jointInWorldFrame;
     Transform::mult(jointInWorldFrame, worldTransform, jointInObjectFrame);
     return jointInWorldFrame;
@@ -339,10 +339,10 @@ QList<SpatiallyNestablePointer> SpatiallyNestable::getChildren() const {
     return children;
 }
 
-const Transform SpatiallyNestable::getJointTransformInModelFrame(int jointIndex) const {
+const Transform SpatiallyNestable::getAbsoluteJointTransformInObjectFrame(int jointIndex) const {
     Transform jointTransformInObjectFrame;
-    glm::vec3 position = getJointTranslationInModelFrame(jointIndex);
-    glm::quat orientation = getJointRotationInModelFrame(jointIndex);
+    glm::vec3 position = getAbsoluteJointTranslationInObjectFrame(jointIndex);
+    glm::quat orientation = getAbsoluteJointRotationInObjectFrame(jointIndex);
     jointTransformInObjectFrame.setRotation(orientation);
     jointTransformInObjectFrame.setTranslation(position);
     return jointTransformInObjectFrame;
