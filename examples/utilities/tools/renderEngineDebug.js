@@ -90,7 +90,6 @@ function menuItemEvent(menuItem) {
     var index = ACTIONS.indexOf(menuItem);
     if (index >= 0) {
         Scene.setEngineDeferredDebugMode(index - 1);
-        print(menuItem);
     }
 }
 

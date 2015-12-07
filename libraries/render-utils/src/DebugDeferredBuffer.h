@@ -21,7 +21,7 @@ public:
     void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext);
     
 private:
-    enum Modes : int {
+    enum Modes : uint8_t {
         DiffuseMode = 0,
         AlphaMode,
         SpecularMode,
@@ -29,15 +29,15 @@ private:
         NormalMode,
         DepthMode,
         LightingMode,
-        CustomMode,
         
-        NUM_MODES
+        CustomMode // Needs to stay last
     };
     
+    bool pipelineNeedsUpdate(Modes mode) const;
     const gpu::PipelinePointer& getPipeline(Modes mode);
-    std::string getCode(Modes mode);
+    std::string getShaderSourceCode(Modes mode);
     
-    std::array<gpu::PipelinePointer, NUM_MODES> _pipelines;
+    std::array<gpu::PipelinePointer, CustomMode + 1> _pipelines;
 };
 
 #endif // hifi_DebugDeferredBuffer_h
