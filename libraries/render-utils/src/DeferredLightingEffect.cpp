@@ -355,9 +355,7 @@ void DeferredLightingEffect::prepare(RenderArgs* args) {
         auto lightingFbo = DependencyManager::get<FramebufferCache>()->getLightingFramebuffer();
 
         batch.setFramebuffer(lightingFbo);
-        batch.clearFramebuffer(
-            gpu::Framebuffer::BUFFER_COLOR0,
-            vec4(vec3(0), 0), 1.0, 0.0, true);
+        batch.clearColorFramebuffer(gpu::Framebuffer::BUFFER_COLOR0, vec4(vec3(0), 0), true);
 
         // Clear deferred
         auto deferredFbo = DependencyManager::get<FramebufferCache>()->getDeferredFramebuffer();
@@ -400,10 +398,8 @@ void DeferredLightingEffect::render(RenderArgs* args) {
         auto lightingFBO = framebufferCache->getLightingFramebuffer();
         batch.setFramebuffer(lightingFBO);
 
-        // Clearing it
         batch.setViewportTransform(args->_viewport);
         batch.setStateScissorRect(args->_viewport);
-      //  batch.clearColorFramebuffer(lightingFBO->getBufferMask(), glm::vec4(0.0f, 0.0f, 0.0f, 0.0f), true);
 
         // BInd the G-Buffer surfaces
         batch.setResourceTexture(0, framebufferCache->getDeferredColorTexture());
