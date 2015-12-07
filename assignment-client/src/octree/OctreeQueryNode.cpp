@@ -33,8 +33,6 @@ OctreeQueryNode::OctreeQueryNode() :
     _lastTimeBagEmpty(0),
     _viewFrustumChanging(false),
     _viewFrustumJustStoppedChanging(true),
-    _currentPacketIsColor(true),
-    _currentPacketIsCompressed(false),
     _octreeSendThread(NULL),
     _lastClientBoundaryLevelAdjust(0),
     _lastClientOctreeSizeScale(DEFAULT_OCTREE_SIZE_SCALE),
@@ -179,14 +177,9 @@ void OctreeQueryNode::resetOctreePacket() {
 
     // If we're moving, and the client asked for low res, then we force monochrome, otherwise, use
     // the clients requested color state.
-    _currentPacketIsCompressed = getWantCompression();
     OCTREE_PACKET_FLAGS flags = 0;
-    if (_currentPacketIsColor) {
-        setAtBit(flags, PACKET_IS_COLOR_BIT);
-    }
-    if (_currentPacketIsCompressed) {
-        setAtBit(flags, PACKET_IS_COMPRESSED_BIT);
-    }
+    setAtBit(flags, PACKET_IS_COLOR_BIT); // always color
+    setAtBit(flags, PACKET_IS_COMPRESSED_BIT); // always compressed
 
     _octreePacket->reset();
 
@@ -211,10 +204,9 @@ void OctreeQueryNode::writeToPacket(const unsigned char* buffer, unsigned int by
 
     // compressed packets include lead bytes which contain compressed size, this allows packing of
     // multiple compressed portions together
-    if (_currentPacketIsCompressed) {
-        OCTREE_PACKET_INTERNAL_SECTION_SIZE sectionSize = bytes;
-        _octreePacket->writePrimitive(sectionSize);
-    }
+    OCTREE_PACKET_INTERNAL_SECTION_SIZE sectionSize = bytes;
+    _octreePacket->writePrimitive(sectionSize);
+
     if (bytes <= _octreePacket->bytesAvailableForWrite()) {
         _octreePacket->write(reinterpret_cast<const char*>(buffer), bytes);
         _octreePacketWaiting = true;
@@ -370,11 +362,11 @@ const NLPacket* OctreeQueryNode::getNextNackedPacket() {
     return nullptr;
 }
 
-void OctreeQueryNode::parseNackPacket(NLPacket& packet) {
+void OctreeQueryNode::parseNackPacket(ReceivedMessage& message) {
     // read sequence numbers
-    while (packet.bytesLeftToRead()) {
+    while (message.getBytesLeftToRead()) {
         OCTREE_PACKET_SEQUENCE sequenceNumber;
-        packet.readPrimitive(&sequenceNumber);
+        message.readPrimitive(&sequenceNumber);
         _nackedSequenceNumbers.enqueue(sequenceNumber);
     }
 }

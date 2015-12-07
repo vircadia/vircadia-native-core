@@ -249,13 +249,13 @@ public slots:
 
     virtual void rebuildSkeletonBody() override;
 
-    const QString& getAnimGraphUrl() const { return _animGraphUrl; }
+    Q_INVOKABLE QUrl getAnimGraphUrl() const { return _animGraphUrl; }
 
     void setEnableDebugDrawDefaultPose(bool isEnabled);
     void setEnableDebugDrawAnimPose(bool isEnabled);
     void setEnableDebugDrawPosition(bool isEnabled);
     void setEnableMeshVisible(bool isEnabled);
-    void setAnimGraphUrl(const QString& url) { _animGraphUrl = url; }
+    Q_INVOKABLE void setAnimGraphUrl(const QUrl& url);
 
     glm::vec3 getPositionForAudio();
     glm::quat getOrientationForAudio();
@@ -356,7 +356,7 @@ private:
     // Avatar Preferences
     QUrl _fullAvatarURLFromPreferences;
     QString _fullAvatarModelName;
-    QString _animGraphUrl {""};
+    QUrl _animGraphUrl {""};
 
     // cache of the current HMD sensor position and orientation
     // in sensor space.

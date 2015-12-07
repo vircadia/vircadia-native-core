@@ -216,9 +216,9 @@ void Font::setupGPU() {
 
         // Setup render pipeline
         {
-            auto vertexShader = gpu::ShaderPointer(gpu::Shader::createVertex(std::string(sdf_text3D_vert)));
-            auto pixelShader = gpu::ShaderPointer(gpu::Shader::createPixel(std::string(sdf_text3D_frag)));
-            gpu::ShaderPointer program = gpu::ShaderPointer(gpu::Shader::createProgram(vertexShader, pixelShader));
+            auto vertexShader = gpu::Shader::createVertex(std::string(sdf_text3D_vert));
+            auto pixelShader = gpu::Shader::createPixel(std::string(sdf_text3D_frag));
+            gpu::ShaderPointer program = gpu::Shader::createProgram(vertexShader, pixelShader);
 
             gpu::Shader::BindingSet slotBindings;
             gpu::Shader::makeProgram(*program, slotBindings);
@@ -233,7 +233,7 @@ void Font::setupGPU() {
             state->setBlendFunction(true,
                 gpu::State::SRC_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::INV_SRC_ALPHA,
                 gpu::State::FACTOR_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::ONE);
-            _pipeline = gpu::PipelinePointer(gpu::Pipeline::create(program, state));
+            _pipeline = gpu::Pipeline::create(program, state);
         }
 
         // Sanity checks

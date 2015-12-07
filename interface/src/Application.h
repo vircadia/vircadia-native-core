@@ -158,6 +158,7 @@ public:
 
     bool isForeground() const { return _isForeground; }
     
+    uint32_t getFrameCount() { return _frameCount; }
     float getFps() const { return _fps; }
     float const HMD_TARGET_FRAME_RATE = 75.0f;
     float const DESKTOP_TARGET_FRAME_RATE = 60.0f;
@@ -328,7 +329,7 @@ private slots:
     void activeChanged(Qt::ApplicationState state);
     
     void domainSettingsReceived(const QJsonObject& domainSettingsObject);
-    void handleDomainConnectionDeniedPacket(QSharedPointer<NLPacket> packet);
+    void handleDomainConnectionDeniedPacket(QSharedPointer<ReceivedMessage> message);
     
     void notifyPacketVersionMismatch();
     
@@ -394,8 +395,8 @@ private:
     
     bool importSVOFromURL(const QString& urlString);
     
-    int processOctreeStats(NLPacket& packet, SharedNodePointer sendingNode);
-    void trackIncomingOctreePacket(NLPacket& packet, SharedNodePointer sendingNode, bool wasStatsPacket);
+    int processOctreeStats(ReceivedMessage& message, SharedNodePointer sendingNode);
+    void trackIncomingOctreePacket(ReceivedMessage& message, SharedNodePointer sendingNode, bool wasStatsPacket);
     
     void resizeEvent(QResizeEvent* size);
     
@@ -424,6 +425,9 @@ private:
     OffscreenGLCanvas* _offscreenContext { nullptr };
     DisplayPluginPointer _displayPlugin;
     InputPluginList _activeInputPlugins;
+
+    bool _activatingDisplayPlugin { false };
+    QMap<uint32_t, gpu::FramebufferPointer> _lockedFramebufferMap;
 
     MainWindow* _window;
 
