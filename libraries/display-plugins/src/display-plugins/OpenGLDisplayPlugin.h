@@ -10,6 +10,7 @@
 #include "DisplayPlugin.h"
 
 #include <QtCore/QTimer>
+#include <QElapsedTimer>
 
 #include <GLMHelpers.h>
 #include <SimpleMovingAverage.h>
@@ -30,6 +31,7 @@ public:
     virtual void submitSceneTexture(uint32_t frameIndex, uint32_t sceneTexture, const glm::uvec2& sceneSize) override;
     virtual void submitOverlayTexture(uint32_t overlayTexture, const glm::uvec2& overlaySize) override;
     virtual float presentRate() override;
+    virtual qint64 getLastSynchronizedElapsed() { return _lastSynchronizedElapsed; }
 
     virtual glm::uvec2 getRecommendedRenderSize() const override {
         return getSurfacePixels();
@@ -68,6 +70,8 @@ protected:
     virtual void internalPresent();
 
     mutable QTimer _timer;
+    QElapsedTimer _synchronizedTimer;
+    qint64 _lastSynchronizedElapsed { 0 };
     ProgramPtr _program;
     ShapeWrapperPtr _plane;
 

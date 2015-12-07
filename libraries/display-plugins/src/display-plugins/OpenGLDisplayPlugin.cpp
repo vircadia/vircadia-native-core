@@ -156,8 +156,10 @@ OpenGLDisplayPlugin::OpenGLDisplayPlugin() {
         _container->releaseOverlayTexture(texture);
     });
 
+    _synchronizedTimer.start();
     connect(&_timer, &QTimer::timeout, this, [&] {
         if (_active && _sceneTextureEscrow.depth() <= 1) {
+            _synchronizedTimer.start();
             emit requestRender();
         }
     });
@@ -279,6 +281,10 @@ void OpenGLDisplayPlugin::submitOverlayTexture(GLuint sceneTexture, const glm::u
 }
 
 void OpenGLDisplayPlugin::updateTextures() {
+    const qint64 elapsed =_synchronizedTimer.elapsed();
+    if (elapsed != 0) {
+        _lastSynchronizedElapsed = elapsed;
+    }
     _currentSceneTexture = _sceneTextureEscrow.fetchAndRelease(_currentSceneTexture);
     _currentOverlayTexture = _overlayTextureEscrow.fetchAndRelease(_currentOverlayTexture);
 }
