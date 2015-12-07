@@ -54,7 +54,6 @@ void OctreePacketProcessor::processPacket(QSharedPointer<ReceivedMessage> messag
             // construct a new packet from the piggybacked one
             auto buffer = std::unique_ptr<char[]>(new char[piggybackBytes]);
             memcpy(buffer.get(), message->getRawMessage() + statsMessageLength, piggybackBytes);
-            qDebug() << "Got piggyback, read " << piggybackBytes << " bytes";
             
             auto newPacket = NLPacket::fromReceivedPacket(std::move(buffer), piggybackBytes, message->getSenderSockAddr());
             message = QSharedPointer<ReceivedMessage>::create(*newPacket.release());
