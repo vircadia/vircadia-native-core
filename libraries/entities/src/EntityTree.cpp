@@ -24,6 +24,7 @@
 #include "EntitiesLogging.h"
 #include "RecurseOctreeToMapOperator.h"
 #include "LogHandler.h"
+#include "RemapIDOperator.h"
 
 static const quint64 DELETED_ENTITIES_EXTRA_USECS_TO_CONSIDER = USECS_PER_MSEC * 50;
 
@@ -1192,6 +1193,11 @@ bool EntityTree::sendEntitiesOperation(OctreeElementPointer element, void* extra
         }
     });
     return true;
+}
+
+void EntityTree::remapIDs() {
+    RemapIDOperator theOperator;
+    recurseTreeWithOperator(&theOperator);
 }
 
 bool EntityTree::writeToMap(QVariantMap& entityDescription, OctreeElementPointer element, bool skipDefaultValues) {

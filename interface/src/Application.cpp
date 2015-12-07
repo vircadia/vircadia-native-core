@@ -2480,6 +2480,7 @@ bool Application::importEntities(const QString& urlOrFilename) {
 
     bool success = _entityClipboard->readFromURL(url.toString());
     if (success) {
+        _entityClipboard->remapIDs();
         _entityClipboard->reaverageOctreeElements();
     }
     return success;
