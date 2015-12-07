@@ -2414,6 +2414,9 @@ bool Application::exportEntities(const QString& filename, const QVector<EntityIt
         exportTree->addEntity(entityItem->getEntityItemID(), properties);
     }
 
+    // remap IDs on export so that we aren't publishing the IDs of entities in our domain
+    exportTree->remapIDs();
+
     exportTree->writeToJSONFile(filename.toLocal8Bit().constData());
 
     // restore the main window's active state
