@@ -140,6 +140,7 @@ void ObjectMotionState::updateCCDConfiguration() {
             // TODO: Ideally the swept sphere radius would be contained by the object. Using the bounding sphere
             // radius works well for spherical objects, but may cause issues with other shapes. For arbitrary
             // objects we may want to consider a different approach, such as grouping rigid bodies together.
+
             _body->setCcdSweptSphereRadius(radius);
         } else {
             // Disable CCD

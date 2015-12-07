@@ -121,6 +121,9 @@ public:
     virtual bool shouldBePhysical() const;
     
     static void cleanupLoadedAnimations();
+    
+    virtual glm::vec3 getJointPosition(int jointIndex) const { return glm::vec3(); }
+    virtual glm::quat getJointRotation(int jointIndex) const { return glm::quat(); }
 
 private:
     void setAnimationSettings(const QString& value); // only called for old bitstream format
