@@ -967,8 +967,6 @@ void MyAvatar::clearJointData(int index) {
         QMetaObject::invokeMethod(this, "clearJointData", Q_ARG(int, index));
         return;
     }
-    // HACK: ATM only JS scripts call clearJointData() on MyAvatar so we hardcode the priority
-    _rig->setJointState(index, false, glm::quat(), glm::vec3(), 0.0f);
     _rig->clearJointAnimationPriority(index);
 }
 
