@@ -48,7 +48,7 @@ public:
     virtual ~OctreeQuery() {}
 
     int getBroadcastData(unsigned char* destinationBuffer);
-    int parseData(NLPacket& packet);
+    int parseData(ReceivedMessage& message) override;
 
     // getters for camera details
     const glm::vec3& getCameraPosition() const { return _cameraPosition; }

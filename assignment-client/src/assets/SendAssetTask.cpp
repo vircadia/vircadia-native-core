@@ -22,9 +22,9 @@
 
 #include "AssetUtils.h"
 
-SendAssetTask::SendAssetTask(QSharedPointer<NLPacket> packet, const SharedNodePointer& sendToNode, const QDir& resourcesDir) :
+SendAssetTask::SendAssetTask(QSharedPointer<ReceivedMessage> message, const SharedNodePointer& sendToNode, const QDir& resourcesDir) :
     QRunnable(),
-    _packet(packet),
+    _message(message),
     _senderNode(sendToNode),
     _resourcesDir(resourcesDir)
 {
@@ -36,16 +36,16 @@ void SendAssetTask::run() {
     uint8_t extensionLength;
     DataOffset start, end;
     
-    _packet->readPrimitive(&messageID);
-    QByteArray assetHash = _packet->read(SHA256_HASH_LENGTH);
-    _packet->readPrimitive(&extensionLength);
-    QByteArray extension = _packet->read(extensionLength);
+    _message->readPrimitive(&messageID);
+    QByteArray assetHash = _message->read(SHA256_HASH_LENGTH);
+    _message->readPrimitive(&extensionLength);
+    QByteArray extension = _message->read(extensionLength);
 
     // `start` and `end` indicate the range of data to retrieve for the asset identified by `assetHash`.
     // `start` is inclusive, `end` is exclusive. Requesting `start` = 1, `end` = 10 will retrieve 9 bytes of data,
     // starting at index 1.
-    _packet->readPrimitive(&start);
-    _packet->readPrimitive(&end);
+    _message->readPrimitive(&start);
+    _message->readPrimitive(&end);
     
     QString hexHash = assetHash.toHex();
     

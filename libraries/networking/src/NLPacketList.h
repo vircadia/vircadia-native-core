@@ -21,20 +21,25 @@ public:
     static std::unique_ptr<NLPacketList> create(PacketType packetType, QByteArray extendedHeader = QByteArray(),
                                                 bool isReliable = false, bool isOrdered = false);
     
-    static std::unique_ptr<NLPacketList> fromPacketList(std::unique_ptr<PacketList>);
+    static std::unique_ptr<NLPacketList> fromPacketList(std::unique_ptr<udt::PacketList>);
 
+    PacketVersion getVersion() const { return _packetVersion; }
     const QUuid& getSourceID() const { return _sourceID; }
     
 private:
     NLPacketList(PacketType packetType, QByteArray extendedHeader = QByteArray(), bool isReliable = false,
                  bool isOrdered = false);
-    NLPacketList(PacketList&& packetList);
+    NLPacketList(udt::PacketList&& packetList);
     NLPacketList(const NLPacketList& other) = delete;
     NLPacketList& operator=(const NLPacketList& other) = delete;
 
     virtual std::unique_ptr<udt::Packet> createPacket();
 
+
+    PacketVersion _packetVersion;
     QUuid _sourceID;
 };
+
+Q_DECLARE_METATYPE(QSharedPointer<NLPacketList>)
 
 #endif // hifi_PacketList_h
