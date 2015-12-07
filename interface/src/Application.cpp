@@ -2439,6 +2439,10 @@ bool Application::exportEntities(const QString& filename, float x, float y, floa
             properties.setPosition(properties.getPosition() - root);
             exportTree->addEntity(id, properties);
         }
+
+        // remap IDs on export so that we aren't publishing the IDs of entities in our domain
+        exportTree->remapIDs();
+
         exportTree->writeToSVOFile(filename.toLocal8Bit().constData());
     } else {
         qCDebug(interfaceapp) << "No models were selected";
