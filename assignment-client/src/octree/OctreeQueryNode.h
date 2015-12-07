@@ -75,12 +75,6 @@ public:
     quint64 getLastTimeBagEmpty() const { return _lastTimeBagEmpty; }
     void setLastTimeBagEmpty() { _lastTimeBagEmpty = _sceneSendStartTime; }
 
-    bool getCurrentPacketIsColor() const { return _currentPacketIsColor; }
-    bool getCurrentPacketIsCompressed() const { return _currentPacketIsCompressed; }
-    bool getCurrentPacketFormatMatches() {
-        return (getCurrentPacketIsCompressed() == getWantCompression());
-    }
-
     bool hasLodChanged() const { return _lodChanged; }
 
     OctreeSceneStats stats;
@@ -133,8 +127,6 @@ private:
     quint64 _lastTimeBagEmpty;
     bool _viewFrustumChanging;
     bool _viewFrustumJustStoppedChanging;
-    bool _currentPacketIsColor;
-    bool _currentPacketIsCompressed;
 
     OctreeSendThread* _octreeSendThread;
 
