@@ -39,7 +39,7 @@ AudioDevice.setReverbOptions(audioOptions);
 AudioDevice.setReverb(true);
 print("Reverb is ON.");
 
-var panel = new Panel(10, 150);
+var panel = new Panel(10, 160);
 
 var parameters = [
     { name: "bandwidth", min: 1000, max: 12000, units: " Hz" },
