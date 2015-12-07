@@ -3073,11 +3073,6 @@ void Application::queryOctree(NodeType_t serverType, PacketType packetType, Node
     //qCDebug(interfaceapp) << ">>> inside... queryOctree()... _viewFrustum.getFieldOfView()=" << _viewFrustum.getFieldOfView();
     bool wantExtraDebugging = getLogger()->extraDebugging();
 
-    // These will be the same for all servers, so we can set them up once and then reuse for each server we send to.
-    _octreeQuery.setWantLowResMoving(true);
-    _octreeQuery.setWantDelta(true);
-    _octreeQuery.setWantCompression(true);
-
     _octreeQuery.setCameraPosition(_viewFrustum.getPosition());
     _octreeQuery.setCameraOrientation(_viewFrustum.getOrientation());
     _octreeQuery.setCameraFov(_viewFrustum.getFieldOfView());
