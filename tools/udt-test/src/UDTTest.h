@@ -23,6 +23,13 @@
 #include <udt/Constants.h>
 #include <udt/Socket.h>
 
+#include <ReceivedMessage.h>
+
+struct Message {
+    udt::MessageNumber messageNumber;
+    QByteArray data;
+};
+
 class UDTTest : public QCoreApplication {
     Q_OBJECT
 public:
@@ -34,7 +41,7 @@ public slots:
     
 private:
     void parseArguments();
-    void handlePacketList(std::unique_ptr<udt::PacketList> packetList);
+    void handleMessage(std::unique_ptr<Message> message);
     
     void sendInitialPackets(); // fills the queue with packets to start
     void sendPacket(); // constructs and sends a packet according to the test parameters
@@ -53,6 +60,8 @@ private:
     bool _sendOrdered { false }; // whether to send ordered packets
     
     int _messageSize { 10000000 }; // number of bytes per message while sending ordered
+
+    std::unordered_map<udt::Packet::MessageNumber, std::unique_ptr<Message>> _pendingMessages;
     
     std::random_device _randomDevice;
     std::mt19937 _generator { _randomDevice() }; // random number generator for ordered data testing

@@ -24,9 +24,9 @@ void ReceivedPacketProcessor::terminating() {
     _hasPackets.wakeAll();
 }
 
-void ReceivedPacketProcessor::queueReceivedPacket(QSharedPointer<NLPacket> packet, SharedNodePointer sendingNode) {
+void ReceivedPacketProcessor::queueReceivedPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer sendingNode) {
     lock();
-    _packets.push_back({ sendingNode, packet });
+    _packets.push_back({ sendingNode, message });
     _nodePacketCounts[sendingNode->getUUID()]++;
     _lastWindowIncomingPackets++;
     unlock();
@@ -66,7 +66,7 @@ bool ReceivedPacketProcessor::process() {
     }
 
     lock();
-    std::list<NodeSharedPacketPair> currentPackets;
+    std::list<NodeSharedReceivedMessagePair> currentPackets;
     currentPackets.swap(_packets);
     unlock();
 

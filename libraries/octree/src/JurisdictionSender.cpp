@@ -28,8 +28,8 @@ JurisdictionSender::JurisdictionSender(JurisdictionMap* map, NodeType_t type) :
 JurisdictionSender::~JurisdictionSender() {
 }
 
-void JurisdictionSender::processPacket(QSharedPointer<NLPacket> packet, SharedNodePointer sendingNode) {
-    if (packet->getType() == PacketType::JurisdictionRequest) {
+void JurisdictionSender::processPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer sendingNode) {
+    if (message->getType() == PacketType::JurisdictionRequest) {
         lockRequestingNodes();
         _nodesRequestingJurisdictions.push(sendingNode->getUUID());
         unlockRequestingNodes();
