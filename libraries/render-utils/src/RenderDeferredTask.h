@@ -100,7 +100,7 @@ public:
     
     void setDrawDebugDeferredBuffer(int draw) {
         if (_drawDebugDeferredBufferIndex >= 0) {
-            _jobs[_drawDebugDeferredBufferIndex].setEnabled(draw > 0);
+            _jobs[_drawDebugDeferredBufferIndex].setEnabled(draw >= 0);
         }
     }
     bool doDrawDebugDeferredBuffer() const { if (_drawDebugDeferredBufferIndex >= 0) { return _jobs[_drawDebugDeferredBufferIndex].isEnabled(); } else { return false; } }
