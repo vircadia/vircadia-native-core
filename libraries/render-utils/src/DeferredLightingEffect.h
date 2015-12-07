@@ -33,7 +33,7 @@ public:
     static const int NORMAL_FITTING_MAP_SLOT = 10;
     static const int DEFERRED_TRANSFORM_BUFFER_SLOT = 2;
 
-    void init(AbstractViewStateInterface* viewState);
+    void init();
 
     /// Sets up the state necessary to render static untextured geometry with the simple program.
     gpu::PipelinePointer bindSimpleProgram(gpu::Batch& batch, bool textured = false, bool culled = true,

@@ -2499,7 +2499,7 @@ void Application::init() {
 
     _environment.init();
 
-    DependencyManager::get<DeferredLightingEffect>()->init(this);
+    DependencyManager::get<DeferredLightingEffect>()->init();
 
     DependencyManager::get<AvatarManager>()->init();
     _myCamera.setMode(CAMERA_MODE_FIRST_PERSON);
