@@ -45,7 +45,7 @@
 #include <QtNetwork/QNetworkDiskCache>
 
 #include <gl/Config.h>
-#include <QtGui/QOpenGLContext>
+#include <QOpenGLContextWrapper.h>
 
 #include <AccountManager.h>
 #include <AddressManager.h>
@@ -1397,13 +1397,14 @@ void Application::paintGL() {
         Q_ASSERT(!_lockedFramebufferMap.contains(finalTexture));
         _lockedFramebufferMap[finalTexture] = scratchFramebuffer;
 
-        Q_ASSERT(QOpenGLContext::currentContext() == _offscreenContext->getContext());
+        Q_ASSERT(isCurrentContext(_offscreenContext->getContext()));
         {
             PROFILE_RANGE(__FUNCTION__ "/pluginSubmitScene");
             PerformanceTimer perfTimer("pluginSubmitScene");
             displayPlugin->submitSceneTexture(_frameCount, finalTexture, toGlm(size));
         }
-        Q_ASSERT(QOpenGLContext::currentContext() == _offscreenContext->getContext());
+        Q_ASSERT(isCurrentContext(_offscreenContext->getContext()));
+
     }
 
     {
@@ -3779,12 +3780,11 @@ void Application::domainChanged(const QString& domainHostname) {
     _domainConnectionRefusals.clear();
 }
 
-void Application::handleDomainConnectionDeniedPacket(QSharedPointer<NLPacket> packet) {
+void Application::handleDomainConnectionDeniedPacket(QSharedPointer<ReceivedMessage> message) {
     // Read deny reason from packet
     quint16 reasonSize;
-    packet->readPrimitive(&reasonSize);
-    QString reason = QString::fromUtf8(packet->getPayload() + packet->pos(), reasonSize);
-    packet->seek(packet->pos() + reasonSize);
+    message->readPrimitive(&reasonSize);
+    QString reason = QString::fromUtf8(message->readWithoutCopy(reasonSize));
 
     // output to the log so the user knows they got a denied connection request
     // and check and signal for an access token so that we can make sure they are logged in
@@ -3870,9 +3870,7 @@ void Application::nodeKilled(SharedNodePointer node) {
         Menu::getInstance()->getActionForOption(MenuOption::UploadAsset)->setEnabled(false);
     }
 }
-
-void Application::trackIncomingOctreePacket(NLPacket& packet, SharedNodePointer sendingNode, bool wasStatsPacket) {
-
+void Application::trackIncomingOctreePacket(ReceivedMessage& message, SharedNodePointer sendingNode, bool wasStatsPacket) {
     // Attempt to identify the sender from its address.
     if (sendingNode) {
         const QUuid& nodeUUID = sendingNode->getUUID();
@@ -3881,13 +3879,13 @@ void Application::trackIncomingOctreePacket(NLPacket& packet, SharedNodePointer 
         _octreeServerSceneStats.withWriteLock([&] {
             if (_octreeServerSceneStats.find(nodeUUID) != _octreeServerSceneStats.end()) {
                 OctreeSceneStats& stats = _octreeServerSceneStats[nodeUUID];
-                stats.trackIncomingOctreePacket(packet, wasStatsPacket, sendingNode->getClockSkewUsec());
+                stats.trackIncomingOctreePacket(message, wasStatsPacket, sendingNode->getClockSkewUsec());
             }
         });
     }
 }
 
-int Application::processOctreeStats(NLPacket& packet, SharedNodePointer sendingNode) {
+int Application::processOctreeStats(ReceivedMessage& message, SharedNodePointer sendingNode) {
     // But, also identify the sender, and keep track of the contained jurisdiction root for this server
 
     // parse the incoming stats datas stick it in a temporary object for now, while we
@@ -3899,7 +3897,7 @@ int Application::processOctreeStats(NLPacket& packet, SharedNodePointer sendingN
     // now that we know the node ID, let's add these stats to the stats for that node...
     _octreeServerSceneStats.withWriteLock([&] {
         OctreeSceneStats& octreeStats = _octreeServerSceneStats[nodeUUID];
-        statsMessageLength = octreeStats.unpackFromPacket(packet);
+        statsMessageLength = octreeStats.unpackFromPacket(message);
 
         // see if this is the first we've heard of this node...
         NodeToJurisdictionMap* jurisdiction = NULL;

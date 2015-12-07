@@ -16,7 +16,7 @@
 
 class AssignmentFactory {
 public:
-    static ThreadedAssignment* unpackAssignment(NLPacket& packet);
+    static ThreadedAssignment* unpackAssignment(ReceivedMessage& message);
 };
 
 #endif // hifi_AssignmentFactory_h

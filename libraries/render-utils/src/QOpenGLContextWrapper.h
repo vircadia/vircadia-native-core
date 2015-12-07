@@ -30,4 +30,6 @@ private:
     QOpenGLContext* _context { nullptr };
 };
 
+bool isCurrentContext(QOpenGLContext* context);
+
 #endif // hifi_QOpenGLContextWrapper_h

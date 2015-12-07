@@ -229,10 +229,10 @@ void OctreeHeadlessViewer::queryOctree() {
 }
 
 
-int OctreeHeadlessViewer::parseOctreeStats(QSharedPointer<NLPacket> packet, SharedNodePointer sourceNode) {
+int OctreeHeadlessViewer::parseOctreeStats(QSharedPointer<ReceivedMessage> message, SharedNodePointer sourceNode) {
 
     OctreeSceneStats temp;
-    int statsMessageLength = temp.unpackFromPacket(*packet);
+    int statsMessageLength = temp.unpackFromPacket(*message);
 
     // TODO: actually do something with these stats, like expose them to JS...
 
