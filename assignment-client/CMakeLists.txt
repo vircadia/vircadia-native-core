@@ -11,3 +11,4 @@ link_hifi_libraries(
 
 include_application_version()
 package_libraries_for_deployment()
+consolidate_stack_components()

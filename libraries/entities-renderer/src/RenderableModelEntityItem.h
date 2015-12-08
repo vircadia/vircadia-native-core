@@ -28,7 +28,7 @@ public:
 
     virtual ~RenderableModelEntityItem();
 
-    virtual void setDimensions(const glm::vec3 value) override;
+    virtual void setDimensions(const glm::vec3& value) override;
     
     virtual EntityItemProperties getProperties(EntityPropertyFlags desiredProperties = EntityPropertyFlags()) const override;
     virtual bool setProperties(const EntityItemProperties& properties) override;
@@ -67,9 +67,9 @@ public:
     
     virtual bool contains(const glm::vec3& point) const override;
 
-    // these are in the frame of this object
-    virtual glm::quat getJointRotation(int index) const override;
-    virtual glm::vec3 getJointTranslation(int index) const override;
+    // these are in the frame of this object (model space)
+    virtual glm::quat getAbsoluteJointRotationInObjectFrame(int index) const override;
+    virtual glm::vec3 getAbsoluteJointTranslationInObjectFrame(int index) const override;
 
 private:
     void remapTextures();
