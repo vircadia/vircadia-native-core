@@ -1077,6 +1077,11 @@ void Application::initializeUi() {
 }
 
 void Application::paintGL() {
+    // paintGL uses a queued connection, so we can get messages from the queue even after we've quit 
+    // and the plugins have shutdown
+    if (_aboutToQuit) {
+        return;
+    }
     _frameCount++;
 
     // update fps moving average
@@ -4079,7 +4084,7 @@ bool Application::canAcceptURL(const QString& urlString) {
     QString lowerPath = url.path().toLower();
     while (i.hasNext()) {
         i.next();
-        if (lowerPath.endsWith(i.key())) {
+        if (lowerPath.endsWith(i.key(), Qt::CaseInsensitive)) {
             return true;
         }
     }
@@ -4099,7 +4104,7 @@ bool Application::acceptURL(const QString& urlString, bool defaultUpload) {
     QString lowerPath = url.path().toLower();
     while (i.hasNext()) {
         i.next();
-        if (lowerPath.endsWith(i.key())) {
+        if (lowerPath.endsWith(i.key(), Qt::CaseInsensitive)) {
             AcceptURLMethod method = i.value();
             return (this->*method)(urlString);
         }
@@ -4199,7 +4204,7 @@ bool Application::askToUploadAsset(const QString& filename) {
         messageBox.setDefaultButton(QMessageBox::Ok);
 
         // Option to drop model in world for models
-        if (filename.endsWith(FBX_EXTENSION) || filename.endsWith(OBJ_EXTENSION)) {
+        if (filename.endsWith(FBX_EXTENSION, Qt::CaseInsensitive) || filename.endsWith(OBJ_EXTENSION, Qt::CaseInsensitive)) {
             auto checkBox = new QCheckBox(&messageBox);
             checkBox->setText("Add to scene");
             messageBox.setCheckBox(checkBox);
@@ -4234,7 +4239,8 @@ void Application::modelUploadFinished(AssetUpload* upload, const QString& hash) 
     auto filename = QFileInfo(upload->getFilename()).fileName();
 
     if ((upload->getError() == AssetUpload::NoError) &&
-        (filename.endsWith(FBX_EXTENSION) || filename.endsWith(OBJ_EXTENSION))) {
+        (upload->getExtension().endsWith(FBX_EXTENSION, Qt::CaseInsensitive) ||
+         upload->getExtension().endsWith(OBJ_EXTENSION, Qt::CaseInsensitive))) {
 
         auto entities = DependencyManager::get<EntityScriptingInterface>();
 
