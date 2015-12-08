@@ -30,6 +30,12 @@ class PresentThread : public QThread, public Dependency {
     using Lock = std::unique_lock<Mutex>;
 public:
 
+    PresentThread() {
+        connect(qApp, &QCoreApplication::aboutToQuit, [this]{
+            _shutdown = true;
+        });
+    }
+
     ~PresentThread() {
         _shutdown = true;
         wait(); 
@@ -99,6 +105,10 @@ public:
             _context->doneCurrent();
         }
 
+        _context->makeCurrent();
+        if (_activePlugin) {
+            _activePlugin->uncustomizeContext();
+        }
         _context->doneCurrent();
         _context->moveToThread(qApp->thread());
     }

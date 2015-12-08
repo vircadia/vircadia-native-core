@@ -1077,6 +1077,11 @@ void Application::initializeUi() {
 }
 
 void Application::paintGL() {
+    // paintGL uses a queued connection, so we can get messages from the queue even after we've quit 
+    // and the plugins have shutdown
+    if (_aboutToQuit) {
+        return;
+    }
     _frameCount++;
 
     // update fps moving average
