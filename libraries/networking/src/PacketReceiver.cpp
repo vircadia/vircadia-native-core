@@ -297,7 +297,6 @@ void PacketReceiver::handleVerifiedMessage(QSharedPointer<ReceivedMessage> recei
                 emit dataReceived(matchingNode->getType(), receivedMessage->getSize());
                 matchingNode->recordBytesReceived(receivedMessage->getSize());
                 Node* n = matchingNode.data();
-                auto addr = n->getActiveSocket();
 
                 QMetaMethod metaMethod = listener.method;
                 
