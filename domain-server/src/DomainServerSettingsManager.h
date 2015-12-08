@@ -18,7 +18,7 @@
 #include <HifiConfigVariantMap.h>
 #include <HTTPManager.h>
 
-#include <NLPacket.h>
+#include <ReceivedMessage.h>
 
 const QString SETTINGS_PATHS_KEY = "paths";
 
@@ -42,7 +42,7 @@ public:
     QVariantMap& getSettingsMap() { return _configMap.getMergedConfig(); }
 
 private slots:
-    void processSettingsRequestPacket(QSharedPointer<NLPacket> packet);
+    void processSettingsRequestPacket(QSharedPointer<ReceivedMessage> message);
 
 private:
     QJsonObject responseObjectForType(const QString& typeValue, bool isAuthenticated = false);

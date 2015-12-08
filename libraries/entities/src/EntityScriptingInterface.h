@@ -148,6 +148,9 @@ public slots:
     Q_INVOKABLE glm::vec3 worldCoordsToVoxelCoords(const QUuid& entityID, glm::vec3 worldCoords);
     Q_INVOKABLE glm::vec3 voxelCoordsToLocalCoords(const QUuid& entityID, glm::vec3 voxelCoords);
     Q_INVOKABLE glm::vec3 localCoordsToVoxelCoords(const QUuid& entityID, glm::vec3 localCoords);
+    
+    Q_INVOKABLE glm::vec3 getJointTranslation(const QUuid& entityID, int jointIndex);
+    Q_INVOKABLE glm::quat getJointRotation(const QUuid& entityID, int jointIndex);
 
 signals:
     void collisionWithEntity(const EntityItemID& idA, const EntityItemID& idB, const Collision& collision);
@@ -179,6 +182,9 @@ private:
     bool setVoxels(QUuid entityID, std::function<bool(PolyVoxEntityItem&)> actor);
     bool setPoints(QUuid entityID, std::function<bool(LineEntityItem&)> actor);
     void queueEntityMessage(PacketType packetType, EntityItemID entityID, const EntityItemProperties& properties);
+    
+    EntityItemPointer checkForTreeEntityAndTypeMatch(const QUuid& entityID,
+                                                     EntityTypes::EntityType entityType = EntityTypes::Unknown);
 
 
     /// actually does the work of finding the ray intersection, can be called in locking mode or tryLock mode

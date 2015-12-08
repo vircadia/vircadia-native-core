@@ -75,8 +75,8 @@ bool AudioMixer::shouldMute(float quietestFrame) {
     return (quietestFrame > _noiseMutingThreshold);
 }
 
-AudioMixer::AudioMixer(NLPacket& packet) :
-    ThreadedAssignment(packet),
+AudioMixer::AudioMixer(ReceivedMessage& message) :
+    ThreadedAssignment(message),
     _trailingSleepRatio(1.0f),
     _minAudibilityThreshold(LOUDNESS_TO_DISTANCE_RATIO / 2.0f),
     _performanceThrottlingRatio(0.0f),
@@ -438,7 +438,6 @@ int AudioMixer::prepareMixForListeningNode(Node* node) {
     AudioMixerClientData* listenerNodeData = static_cast<AudioMixerClientData*>(node->getLinkedData());
 
     // zero out the client mix for this node
-    memset(_preMixSamples, 0, sizeof(_preMixSamples));
     memset(_mixSamples, 0, sizeof(_mixSamples));
 
     // loop through all other nodes that have sufficient audio to mix
@@ -459,6 +458,9 @@ int AudioMixer::prepareMixForListeningNode(Node* node) {
                 if (otherNodeStream->getType() == PositionalAudioStream::Microphone) {
                     streamUUID = otherNode->getUUID();
                 }
+                
+                // clear out the pre-mix samples before filling it up with this source
+                memset(_preMixSamples, 0, sizeof(_preMixSamples));
 
                 if (*otherNode != *node || otherNodeStream->shouldLoopbackForNode()) {
                     streamsMixed += addStreamToMixForListeningNodeWithStream(listenerNodeData, streamUUID,
@@ -542,17 +544,17 @@ void AudioMixer::sendAudioEnvironmentPacket(SharedNodePointer node) {
     }
 }
 
-void AudioMixer::handleNodeAudioPacket(QSharedPointer<NLPacket> packet, SharedNodePointer sendingNode) {
-    DependencyManager::get<NodeList>()->updateNodeWithDataFromPacket(packet, sendingNode);
+void AudioMixer::handleNodeAudioPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer sendingNode) {
+    DependencyManager::get<NodeList>()->updateNodeWithDataFromPacket(message, sendingNode);
 }
 
-void AudioMixer::handleMuteEnvironmentPacket(QSharedPointer<NLPacket> packet, SharedNodePointer sendingNode) {
+void AudioMixer::handleMuteEnvironmentPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer sendingNode) {
     auto nodeList = DependencyManager::get<NodeList>();
     
     if (sendingNode->getCanAdjustLocks()) {
-        auto newPacket = NLPacket::create(PacketType::MuteEnvironment, packet->getPayloadSize());
+        auto newPacket = NLPacket::create(PacketType::MuteEnvironment, message->getSize());
         // Copy payload
-        newPacket->write(packet->getPayload(), packet->getPayloadSize());
+        newPacket->write(message->getRawMessage(), message->getSize());
 
         nodeList->eachNode([&](const SharedNodePointer& node){
             if (node->getType() == NodeType::Agent && node->getActiveSocket() &&

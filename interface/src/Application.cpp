@@ -45,7 +45,7 @@
 #include <QtNetwork/QNetworkDiskCache>
 
 #include <gl/Config.h>
-#include <QtGui/QOpenGLContext>
+#include <QOpenGLContextWrapper.h>
 
 #include <AccountManager.h>
 #include <AddressManager.h>
@@ -1077,6 +1077,11 @@ void Application::initializeUi() {
 }
 
 void Application::paintGL() {
+    // paintGL uses a queued connection, so we can get messages from the queue even after we've quit 
+    // and the plugins have shutdown
+    if (_aboutToQuit) {
+        return;
+    }
     _frameCount++;
 
     // update fps moving average
@@ -1398,13 +1403,13 @@ void Application::paintGL() {
         _lockedFramebufferMap[finalTexture] = scratchFramebuffer;
 
         uint64_t displayStart = usecTimestampNow();
-        Q_ASSERT(QOpenGLContext::currentContext() == _offscreenContext->getContext());
+        Q_ASSERT(isCurrentContext(_offscreenContext->getContext()));
         {
             PROFILE_RANGE(__FUNCTION__ "/pluginSubmitScene");
             PerformanceTimer perfTimer("pluginSubmitScene");
             displayPlugin->submitSceneTexture(_frameCount, finalTexture, toGlm(size));
         }
-        Q_ASSERT(QOpenGLContext::currentContext() == _offscreenContext->getContext());
+        Q_ASSERT(isCurrentContext(_offscreenContext->getContext()));
 
         uint64_t displayEnd = usecTimestampNow();
         const float displayPeriodUsec = (float)(displayEnd - displayStart); // usecs
@@ -3074,11 +3079,6 @@ void Application::queryOctree(NodeType_t serverType, PacketType packetType, Node
     //qCDebug(interfaceapp) << ">>> inside... queryOctree()... _viewFrustum.getFieldOfView()=" << _viewFrustum.getFieldOfView();
     bool wantExtraDebugging = getLogger()->extraDebugging();
 
-    // These will be the same for all servers, so we can set them up once and then reuse for each server we send to.
-    _octreeQuery.setWantLowResMoving(true);
-    _octreeQuery.setWantDelta(true);
-    _octreeQuery.setWantCompression(true);
-
     _octreeQuery.setCameraPosition(_viewFrustum.getPosition());
     _octreeQuery.setCameraOrientation(_viewFrustum.getOrientation());
     _octreeQuery.setCameraFov(_viewFrustum.getFieldOfView());
@@ -3784,12 +3784,11 @@ void Application::domainChanged(const QString& domainHostname) {
     _domainConnectionRefusals.clear();
 }
 
-void Application::handleDomainConnectionDeniedPacket(QSharedPointer<NLPacket> packet) {
+void Application::handleDomainConnectionDeniedPacket(QSharedPointer<ReceivedMessage> message) {
     // Read deny reason from packet
     quint16 reasonSize;
-    packet->readPrimitive(&reasonSize);
-    QString reason = QString::fromUtf8(packet->getPayload() + packet->pos(), reasonSize);
-    packet->seek(packet->pos() + reasonSize);
+    message->readPrimitive(&reasonSize);
+    QString reason = QString::fromUtf8(message->readWithoutCopy(reasonSize));
 
     // output to the log so the user knows they got a denied connection request
     // and check and signal for an access token so that we can make sure they are logged in
@@ -3875,9 +3874,7 @@ void Application::nodeKilled(SharedNodePointer node) {
         Menu::getInstance()->getActionForOption(MenuOption::UploadAsset)->setEnabled(false);
     }
 }
-
-void Application::trackIncomingOctreePacket(NLPacket& packet, SharedNodePointer sendingNode, bool wasStatsPacket) {
-
+void Application::trackIncomingOctreePacket(ReceivedMessage& message, SharedNodePointer sendingNode, bool wasStatsPacket) {
     // Attempt to identify the sender from its address.
     if (sendingNode) {
         const QUuid& nodeUUID = sendingNode->getUUID();
@@ -3886,13 +3883,13 @@ void Application::trackIncomingOctreePacket(NLPacket& packet, SharedNodePointer 
         _octreeServerSceneStats.withWriteLock([&] {
             if (_octreeServerSceneStats.find(nodeUUID) != _octreeServerSceneStats.end()) {
                 OctreeSceneStats& stats = _octreeServerSceneStats[nodeUUID];
-                stats.trackIncomingOctreePacket(packet, wasStatsPacket, sendingNode->getClockSkewUsec());
+                stats.trackIncomingOctreePacket(message, wasStatsPacket, sendingNode->getClockSkewUsec());
             }
         });
     }
 }
 
-int Application::processOctreeStats(NLPacket& packet, SharedNodePointer sendingNode) {
+int Application::processOctreeStats(ReceivedMessage& message, SharedNodePointer sendingNode) {
     // But, also identify the sender, and keep track of the contained jurisdiction root for this server
 
     // parse the incoming stats datas stick it in a temporary object for now, while we
@@ -3904,7 +3901,7 @@ int Application::processOctreeStats(NLPacket& packet, SharedNodePointer sendingN
     // now that we know the node ID, let's add these stats to the stats for that node...
     _octreeServerSceneStats.withWriteLock([&] {
         OctreeSceneStats& octreeStats = _octreeServerSceneStats[nodeUUID];
-        statsMessageLength = octreeStats.unpackFromPacket(packet);
+        statsMessageLength = octreeStats.unpackFromPacket(message);
 
         // see if this is the first we've heard of this node...
         NodeToJurisdictionMap* jurisdiction = NULL;
@@ -4083,7 +4080,7 @@ bool Application::canAcceptURL(const QString& urlString) {
     QString lowerPath = url.path().toLower();
     while (i.hasNext()) {
         i.next();
-        if (lowerPath.endsWith(i.key())) {
+        if (lowerPath.endsWith(i.key(), Qt::CaseInsensitive)) {
             return true;
         }
     }
@@ -4103,7 +4100,7 @@ bool Application::acceptURL(const QString& urlString, bool defaultUpload) {
     QString lowerPath = url.path().toLower();
     while (i.hasNext()) {
         i.next();
-        if (lowerPath.endsWith(i.key())) {
+        if (lowerPath.endsWith(i.key(), Qt::CaseInsensitive)) {
             AcceptURLMethod method = i.value();
             return (this->*method)(urlString);
         }
@@ -4203,7 +4200,7 @@ bool Application::askToUploadAsset(const QString& filename) {
         messageBox.setDefaultButton(QMessageBox::Ok);
 
         // Option to drop model in world for models
-        if (filename.endsWith(FBX_EXTENSION) || filename.endsWith(OBJ_EXTENSION)) {
+        if (filename.endsWith(FBX_EXTENSION, Qt::CaseInsensitive) || filename.endsWith(OBJ_EXTENSION, Qt::CaseInsensitive)) {
             auto checkBox = new QCheckBox(&messageBox);
             checkBox->setText("Add to scene");
             messageBox.setCheckBox(checkBox);
@@ -4238,7 +4235,8 @@ void Application::modelUploadFinished(AssetUpload* upload, const QString& hash) 
     auto filename = QFileInfo(upload->getFilename()).fileName();
 
     if ((upload->getError() == AssetUpload::NoError) &&
-        (filename.endsWith(FBX_EXTENSION) || filename.endsWith(OBJ_EXTENSION))) {
+        (upload->getExtension().endsWith(FBX_EXTENSION, Qt::CaseInsensitive) ||
+         upload->getExtension().endsWith(OBJ_EXTENSION, Qt::CaseInsensitive))) {
 
         auto entities = DependencyManager::get<EntityScriptingInterface>();
 

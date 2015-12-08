@@ -67,7 +67,7 @@ public:
 
     /// run the script in the callers thread, exit when stop() is called.
     void run();
-    
+
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     // NOTE - these are NOT intended to be public interfaces available to scripts, the are only Q_INVOKABLE so we can
     //        properly ensure they are only called on the correct thread
@@ -77,14 +77,14 @@ public:
 
     /// registers a global getter/setter
     Q_INVOKABLE void registerGetterSetter(const QString& name, QScriptEngine::FunctionSignature getter,
-                            QScriptEngine::FunctionSignature setter, const QString& parent = QString(""));
-    
+                                          QScriptEngine::FunctionSignature setter, const QString& parent = QString(""));
+
     /// register a global function
     Q_INVOKABLE void registerFunction(const QString& name, QScriptEngine::FunctionSignature fun, int numArguments = -1);
 
     /// register a function as a method on a previously registered global object
     Q_INVOKABLE void registerFunction(const QString& parent, const QString& name, QScriptEngine::FunctionSignature fun,
-                          int numArguments = -1);
+                                      int numArguments = -1);
 
     /// registers a global object by name
     Q_INVOKABLE void registerValue(const QString& valueName, QScriptValue value);
@@ -93,12 +93,12 @@ public:
     Q_INVOKABLE QScriptValue evaluate(const QString& program, const QString& fileName, int lineNumber = 1); // this is also used by the script tool widget
 
     /// if the script engine is not already running, this will download the URL and start the process of seting it up
-    /// to run... NOTE - this is used by Application currently to load the url. We don't really want it to be exposed 
+    /// to run... NOTE - this is used by Application currently to load the url. We don't really want it to be exposed
     /// to scripts. we may not need this to be invokable
     void loadURL(const QUrl& scriptURL, bool reload);
 
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-    // NOTE - these are intended to be public interfaces available to scripts 
+    // NOTE - these are intended to be public interfaces available to scripts
     Q_INVOKABLE void addEventHandler(const EntityItemID& entityID, const QString& eventName, QScriptValue handler);
     Q_INVOKABLE void removeEventHandler(const EntityItemID& entityID, const QString& eventName, QScriptValue handler);
 

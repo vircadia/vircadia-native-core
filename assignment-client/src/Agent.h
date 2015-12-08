@@ -39,7 +39,7 @@ class Agent : public ThreadedAssignment {
     Q_PROPERTY(QUuid sessionUUID READ getSessionUUID)
 
 public:
-    Agent(NLPacket& packet);
+    Agent(ReceivedMessage& message);
 
     void setIsAvatar(bool isAvatar);
     bool isAvatar() const { return _isAvatar; }
@@ -63,9 +63,10 @@ private slots:
     void scriptRequestFinished();
     void executeScript();
 
-    void handleAudioPacket(QSharedPointer<NLPacket> packet);
-    void handleOctreePacket(QSharedPointer<NLPacket> packet, SharedNodePointer senderNode);
-    void handleJurisdictionPacket(QSharedPointer<NLPacket> packet, SharedNodePointer senderNode);
+    void handleAudioPacket(QSharedPointer<ReceivedMessage> message);
+    void handleOctreePacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode);
+    void handleJurisdictionPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode);
+
     void processAgentAvatarAndAudio(float deltaTime);
 
 private:
