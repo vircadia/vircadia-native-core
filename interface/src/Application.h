@@ -443,6 +443,7 @@ private:
     QElapsedTimer _lastTimeUpdated;
     float _lastInstantaneousFps { 0.0f };
     float _lastPaintWait { 0.0f };
+    uint64_t _paintWaitStart { 0 };
     float _lastDeducedNonVSyncFps { 0.0f };
     float _marginForDeducedFramePeriod{ 0.002f }; // 2ms, adjustable
 

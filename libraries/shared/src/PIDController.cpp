@@ -70,7 +70,7 @@ void PIDController::reportHistory() {
     for (int i = 0; i < _history.size(); i++) {
         Row& row = _history[i];
         qCDebug(shared) << row.measured << row.dt <<
-        row.fixme1 << row.fixme2 <<
+        (row.fixme1 * 1000.0f) << (row.fixme2) <<
             "||" << row.error << row.accumulated << row.changed <<
             "||" << row.p << row.i << row.d << row.computed << 1.0f/row.computed;
     }
