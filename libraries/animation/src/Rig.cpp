@@ -294,6 +294,7 @@ void Rig::clearJointStates() {
 void Rig::clearJointAnimationPriority(int index) {
     if (isIndexValid(index)) {
         _internalPoseSet._overrideFlags[index] = false;
+        _internalPoseSet._overridePoses[index] = _animSkeleton->getRelativeDefaultPose(index);
     }
 }
 

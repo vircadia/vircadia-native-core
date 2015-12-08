@@ -38,3 +38,7 @@ bool QOpenGLContextWrapper::makeCurrent(QSurface* surface) {
 void QOpenGLContextWrapper::doneCurrent() {
     _context->doneCurrent();
 }
+
+bool isCurrentContext(QOpenGLContext* context) {
+    return QOpenGLContext::currentContext() == context;
+}

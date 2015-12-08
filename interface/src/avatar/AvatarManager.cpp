@@ -409,7 +409,7 @@ void AvatarManager::updateAvatarRenderStatus(bool shouldRenderAvatars) {
 
 AvatarSharedPointer AvatarManager::getAvatarBySessionID(const QUuid& sessionID) {
     if (sessionID == _myAvatar->getSessionUUID()) {
-        return std::static_pointer_cast<Avatar>(_myAvatar);
+        return _myAvatar;
     }
     
     return findAvatar(sessionID);
