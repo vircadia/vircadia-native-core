@@ -288,7 +288,7 @@ public:
 
     quint8 getSimulationPriority() const { return _simulationOwner.getPriority(); }
     QUuid getSimulatorID() const { return _simulationOwner.getID(); }
-    void updateSimulatorID(const QUuid& value);
+    void updateSimulationOwner(const SimulationOwner& owner);
     void clearSimulationOwnership();
 
     const QString& getMarketplaceID() const { return _marketplaceID; }
