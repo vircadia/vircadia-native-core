@@ -201,7 +201,7 @@ else (APPLE)
 
   # link target to external libraries
   if (WIN32)
-    target_link_libraries(${TARGET_NAME} wsock32.lib Winmm.lib)
+    #target_link_libraries(${TARGET_NAME} wsock32.lib Winmm.lib)
   else (WIN32)
     # Nothing else required on linux apparently
   endif()
