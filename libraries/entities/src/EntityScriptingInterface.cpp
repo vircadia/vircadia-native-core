@@ -206,10 +206,13 @@ QUuid EntityScriptingInterface::editEntity(QUuid id, const EntityItemProperties&
             // All of parentID, parentJointIndex, position, rotation are needed to make sense of any of them.
             // If any of these changed, pull any missing properties from the entity.
             EntityItemPointer entity = _entityTree->findEntityByEntityItemID(entityID);
-            if (entity && !scriptSideProperties.parentIDChanged()) {
+            if (!entity) {
+                return;
+            }
+            if (!scriptSideProperties.parentIDChanged()) {
                 properties.setParentID(entity->getParentID());
             }
-            if (entity && !scriptSideProperties.parentJointIndexChanged()) {
+            if (!scriptSideProperties.parentJointIndexChanged()) {
                 properties.setParentJointIndex(entity->getParentJointIndex());
             }
             if (!scriptSideProperties.localPositionChanged() && !scriptSideProperties.positionChanged()) {

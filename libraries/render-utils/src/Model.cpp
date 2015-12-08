@@ -544,6 +544,7 @@ void Model::removeFromScene(std::shared_ptr<render::Scene> scene, render::Pendin
         pendingChanges.removeItem(item);
     }
     _renderItems.clear();
+    _renderItemsSet.clear();
     _readyWhenAdded = false;
 }
 
