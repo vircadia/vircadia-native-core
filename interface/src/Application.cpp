@@ -195,6 +195,8 @@ static const QString INFO_EDIT_ENTITIES_PATH = "html/edit-commands.html";
 static const unsigned int THROTTLED_SIM_FRAMERATE = 15;
 static const int THROTTLED_SIM_FRAME_PERIOD_MS = MSECS_PER_SECOND / THROTTLED_SIM_FRAMERATE;
 
+static const float PHYSICS_READY_RANGE = 3.0f; // how far from avatar to check for entities that aren't ready for simulation
+
 #ifndef __APPLE__
 static const QString DESKTOP_LOCATION = QStandardPaths::writableLocation(QStandardPaths::DesktopLocation);
 #else
@@ -2905,7 +2907,7 @@ void Application::update(float deltaTime) {
 
     _avatarUpdate->synchronousProcess();
 
-    {
+    if (_physicsEnabled) {
         PerformanceTimer perfTimer("physics");
 
         static VectorOfMotionStates motionStates;
@@ -3893,6 +3895,31 @@ void Application::trackIncomingOctreePacket(ReceivedMessage& message, SharedNode
     }
 }
 
+bool Application::nearbyEntitiesAreReadyForPhysics() {
+    // this is used to avoid the following scenario:
+    // A table has some items sitting on top of it.  The items are at rest, meaning they aren't active in bullet.
+    // Someone logs in close to the table.  They receive information about the items on the table before they
+    // receive information about the table.  The items are very close to the avatar's capsule, so they become
+    // activated in bullet.  This causes them to fall to the floor, because the table's shape isn't yet in bullet.
+    EntityTreePointer entityTree = _entities.getTree();
+    if (!entityTree) {
+        return false;
+    }
+
+    QVector<EntityItemPointer> entities;
+    entityTree->withReadLock([&] {
+        AABox box(getMyAvatar()->getPosition() - glm::vec3(PHYSICS_READY_RANGE), glm::vec3(2 * PHYSICS_READY_RANGE));
+        entityTree->findEntities(box, entities);
+    });
+
+    foreach (EntityItemPointer entity, entities) {
+        if (!entity->isReadyToComputeShape()) {
+            return false;
+        }
+    }
+    return true;
+}
+
 int Application::processOctreeStats(ReceivedMessage& message, SharedNodePointer sendingNode) {
     // But, also identify the sender, and keep track of the contained jurisdiction root for this server
 
@@ -3938,7 +3965,12 @@ int Application::processOctreeStats(ReceivedMessage& message, SharedNodePointer 
         });
     });
 
-
+    if (!_physicsEnabled && nearbyEntitiesAreReadyForPhysics()) {
+        // These stats packets are sent in between full sends of a scene.
+        // We keep physics disabled until we've recieved a full scene and everything near the avatar in that
+        // scene is ready to compute its collision shape.
+        _physicsEnabled = true;
+    }
 
     return statsMessageLength;
 }
