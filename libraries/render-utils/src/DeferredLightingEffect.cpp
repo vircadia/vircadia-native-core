@@ -689,6 +689,7 @@ static void loadLightProgram(const char* vertSource, const char* fragSource, boo
     locations->deferredTransformBuffer = program->getBuffers().findLocation("deferredTransformBuffer");
 
     auto state = std::make_shared<gpu::State>();
+    state->setColorWriteMask(true, true, true, false);
 
     // Stencil test all the light passes for objects pixels only, not the background
     state->setStencilTest(true, 0xFF, gpu::State::StencilTest(0, 0xFF, gpu::NOT_EQUAL, gpu::State::STENCIL_OP_KEEP, gpu::State::STENCIL_OP_KEEP, gpu::State::STENCIL_OP_KEEP));

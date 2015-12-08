@@ -160,6 +160,7 @@ enum Semantic {
     RGB,
     RGBA,
     BGRA,
+
     XY,
     XYZ,
     XYZW,
@@ -175,6 +176,8 @@ enum Semantic {
     SRGB,
     SRGBA,
     SBGRA,
+
+    R11G11B10,
 
     UNIFORM,
     UNIFORM_BUFFER,

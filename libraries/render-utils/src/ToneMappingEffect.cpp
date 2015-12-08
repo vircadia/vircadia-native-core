@@ -45,10 +45,20 @@ void ToneMappingEffect::init() {
         out vec4 outFragColor;
         
         void main(void) {
-            outFragColor = texture(colorMap, varTexCoord0);
+            vec4 fragColor = texture(colorMap, varTexCoord0);
             // if (gl_FragCoord.x > 1000) {
             // Manually gamma correct from Ligthing BUffer to color buffer
-            outFragColor.xyz = pow( outFragColor.xyz , vec3(1.0 / 2.2) );
+       //    outFragColor.xyz = pow( fragColor.xyz , vec3(1.0 / 2.2) );
+
+            fragColor *= 4.0;  // Hardcoded Exposure Adjustment
+            vec3 x = max(vec3(0.0),fragColor.xyz-0.004);
+            vec3 retColor = (x*(6.2*x+.5))/(x*(6.2*x+1.7)+0.06);
+
+        //    fragColor *= 8;  // Hardcoded Exposure Adjustment
+        //    fragColor = fragColor/(1.0+fragColor);
+        //    vec3 retColor = pow(fragColor.xyz,vec3(1/2.2));
+
+            outFragColor = vec4(retColor, 1.0);
             // }
         }
         

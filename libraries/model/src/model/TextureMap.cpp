@@ -121,11 +121,11 @@ gpu::Texture* TextureUsage::create2DTextureFromImage(const QImage& srcImage, con
         // bool isLinearRGB = true; //(_type == NORMAL_TEXTURE) || (_type == EMISSIVE_TEXTURE);
         bool isLinearRGB = false; //(_type == NORMAL_TEXTURE) || (_type == EMISSIVE_TEXTURE);
         
-        gpu::Element formatGPU = gpu::Element(gpu::VEC3, gpu::UINT8, (isLinearRGB ? gpu::RGB : gpu::SRGB));
-        gpu::Element formatMip = gpu::Element(gpu::VEC3, gpu::UINT8, (isLinearRGB ? gpu::RGB : gpu::SRGB));
+        gpu::Element formatGPU = gpu::Element(gpu::VEC3, gpu::NUINT8, (isLinearRGB ? gpu::RGB : gpu::SRGB));
+        gpu::Element formatMip = gpu::Element(gpu::VEC3, gpu::NUINT8, (isLinearRGB ? gpu::RGB : gpu::SRGB));
         if (image.hasAlphaChannel()) {
-            formatGPU = gpu::Element(gpu::VEC4, gpu::UINT8, (isLinearRGB ? gpu::RGBA : gpu::SRGBA));
-            formatMip = gpu::Element(gpu::VEC4, gpu::UINT8, (isLinearRGB ? gpu::BGRA : gpu::SBGRA));
+            formatGPU = gpu::Element(gpu::VEC4, gpu::NUINT8, (isLinearRGB ? gpu::RGBA : gpu::SRGBA));
+            formatMip = gpu::Element(gpu::VEC4, gpu::NUINT8, (isLinearRGB ? gpu::BGRA : gpu::SBGRA));
         }
         
 
@@ -156,11 +156,11 @@ gpu::Texture* TextureUsage::createNormalTextureFromNormalImage(const QImage& src
 
         bool isLinearRGB = true;
 
-        gpu::Element formatGPU = gpu::Element(gpu::VEC3, gpu::UINT8, (isLinearRGB ? gpu::RGB : gpu::SRGB));
-        gpu::Element formatMip = gpu::Element(gpu::VEC3, gpu::UINT8, (isLinearRGB ? gpu::RGB : gpu::SRGB));
+        gpu::Element formatGPU = gpu::Element(gpu::VEC3, gpu::NUINT8, (isLinearRGB ? gpu::RGB : gpu::SRGB));
+        gpu::Element formatMip = gpu::Element(gpu::VEC3, gpu::NUINT8, (isLinearRGB ? gpu::RGB : gpu::SRGB));
         if (image.hasAlphaChannel()) {
-            formatGPU = gpu::Element(gpu::VEC4, gpu::UINT8, (isLinearRGB ? gpu::RGBA : gpu::SRGBA));
-            formatMip = gpu::Element(gpu::VEC4, gpu::UINT8, (isLinearRGB ? gpu::BGRA : gpu::SBGRA));
+            formatGPU = gpu::Element(gpu::VEC4, gpu::NUINT8, (isLinearRGB ? gpu::RGBA : gpu::SRGBA));
+            formatMip = gpu::Element(gpu::VEC4, gpu::NUINT8, (isLinearRGB ? gpu::BGRA : gpu::SBGRA));
         }
 
         theTexture = (gpu::Texture::create2D(formatGPU, image.width(), image.height(), gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_MIP_LINEAR)));
@@ -246,11 +246,11 @@ gpu::Texture* TextureUsage::createNormalTextureFromBumpImage(const QImage& srcIm
         // bool isLinearRGB = true; //(_type == NORMAL_TEXTURE) || (_type == EMISSIVE_TEXTURE);
         bool isLinearRGB = true; //(_type == NORMAL_TEXTURE) || (_type == EMISSIVE_TEXTURE);
         
-        gpu::Element formatGPU = gpu::Element(gpu::VEC3, gpu::UINT8, (isLinearRGB ? gpu::RGB : gpu::SRGB));
-        gpu::Element formatMip = gpu::Element(gpu::VEC3, gpu::UINT8, (isLinearRGB ? gpu::RGB : gpu::SRGB));
+        gpu::Element formatGPU = gpu::Element(gpu::VEC3, gpu::NUINT8, (isLinearRGB ? gpu::RGB : gpu::SRGB));
+        gpu::Element formatMip = gpu::Element(gpu::VEC3, gpu::NUINT8, (isLinearRGB ? gpu::RGB : gpu::SRGB));
         if (image.hasAlphaChannel()) {
-            formatGPU = gpu::Element(gpu::VEC4, gpu::UINT8, (isLinearRGB ? gpu::RGBA : gpu::SRGBA));
-            formatMip = gpu::Element(gpu::VEC4, gpu::UINT8, (isLinearRGB ? gpu::BGRA : gpu::SBGRA));
+            formatGPU = gpu::Element(gpu::VEC4, gpu::NUINT8, (isLinearRGB ? gpu::RGBA : gpu::SRGBA));
+            formatMip = gpu::Element(gpu::VEC4, gpu::NUINT8, (isLinearRGB ? gpu::BGRA : gpu::SBGRA));
         }
         
         
@@ -368,11 +368,11 @@ gpu::Texture* TextureUsage::createCubeTextureFromImage(const QImage& srcImage, c
         // bool isLinearRGB = true; //(_type == NORMAL_TEXTURE) || (_type == EMISSIVE_TEXTURE);
         bool isLinearRGB = false; //(_type == NORMAL_TEXTURE) || (_type == EMISSIVE_TEXTURE);
         
-        gpu::Element formatGPU = gpu::Element(gpu::VEC3, gpu::UINT8, (isLinearRGB ? gpu::RGB : gpu::SRGB));
-        gpu::Element formatMip = gpu::Element(gpu::VEC3, gpu::UINT8, (isLinearRGB ? gpu::RGB : gpu::SRGB));
+        gpu::Element formatGPU = gpu::Element(gpu::VEC3, gpu::NUINT8, (isLinearRGB ? gpu::RGB : gpu::SRGB));
+        gpu::Element formatMip = gpu::Element(gpu::VEC3, gpu::NUINT8, (isLinearRGB ? gpu::RGB : gpu::SRGB));
         if (image.hasAlphaChannel()) {
-            formatGPU = gpu::Element(gpu::VEC4, gpu::UINT8, (isLinearRGB ? gpu::RGBA : gpu::SRGBA));
-            formatMip = gpu::Element(gpu::VEC4, gpu::UINT8, (isLinearRGB ? gpu::BGRA : gpu::SBGRA));
+            formatGPU = gpu::Element(gpu::VEC4, gpu::NUINT8, (isLinearRGB ? gpu::RGBA : gpu::SRGBA));
+            formatMip = gpu::Element(gpu::VEC4, gpu::NUINT8, (isLinearRGB ? gpu::BGRA : gpu::SBGRA));
         }
         
 
@@ -589,13 +589,13 @@ gpu::Texture* TextureUsage::createLightmapTextureFromImage(const QImage& srcImag
     if ((image.width() > 0) && (image.height() > 0)) {
 
         // bool isLinearRGB = true; //(_type == NORMAL_TEXTURE) || (_type == EMISSIVE_TEXTURE);
-        bool isLinearRGB = false; //(_type == NORMAL_TEXTURE) || (_type == EMISSIVE_TEXTURE);
+        bool isLinearRGB = true; //(_type == NORMAL_TEXTURE) || (_type == EMISSIVE_TEXTURE);
 
-        gpu::Element formatGPU = gpu::Element(gpu::VEC3, gpu::UINT8, (isLinearRGB ? gpu::RGB : gpu::SRGB));
-        gpu::Element formatMip = gpu::Element(gpu::VEC3, gpu::UINT8, (isLinearRGB ? gpu::RGB : gpu::SRGB));
+        gpu::Element formatGPU = gpu::Element(gpu::VEC3, gpu::NUINT8, (isLinearRGB ? gpu::RGB : gpu::SRGB));
+        gpu::Element formatMip = gpu::Element(gpu::VEC3, gpu::NUINT8, (isLinearRGB ? gpu::RGB : gpu::SRGB));
         if (image.hasAlphaChannel()) {
-            formatGPU = gpu::Element(gpu::VEC4, gpu::UINT8, (isLinearRGB ? gpu::RGBA : gpu::SRGBA));
-            formatMip = gpu::Element(gpu::VEC4, gpu::UINT8, (isLinearRGB ? gpu::BGRA : gpu::SBGRA));
+            formatGPU = gpu::Element(gpu::VEC4, gpu::NUINT8, (isLinearRGB ? gpu::RGBA : gpu::SRGBA));
+            formatMip = gpu::Element(gpu::VEC4, gpu::NUINT8, (isLinearRGB ? gpu::BGRA : gpu::SBGRA));
         }
 
 

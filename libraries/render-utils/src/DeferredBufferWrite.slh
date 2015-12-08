@@ -62,7 +62,7 @@ void packDeferredFragmentLightmap(vec3 normal, float alpha, vec3 diffuse, vec3 s
     }
 
     _fragColor0 = vec4(diffuse.rgb, 0.5);
-    _fragColor1 = vec4(bestFitNormal(normal), 1.0);
+    _fragColor1 = vec4(bestFitNormal(normal), 0.5);
     _fragColor2 = vec4(emissive, shininess / 128.0);
 }
 
