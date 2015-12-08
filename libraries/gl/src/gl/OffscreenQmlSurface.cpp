@@ -337,6 +337,9 @@ void OffscreenQmlSurface::create(QOpenGLContext* shareContext) {
     // a timer with a small interval is used to get better performance.
     _updateTimer.setInterval(MIN_TIMER_MS);
     connect(&_updateTimer, &QTimer::timeout, this, &OffscreenQmlSurface::updateQuick);
+    QObject::connect(qApp, &QCoreApplication::aboutToQuit, [this]{
+        disconnect(&_updateTimer, &QTimer::timeout, this, &OffscreenQmlSurface::updateQuick);
+    });
     _updateTimer.start();
 
     _qmlComponent = new QQmlComponent(_qmlEngine);
