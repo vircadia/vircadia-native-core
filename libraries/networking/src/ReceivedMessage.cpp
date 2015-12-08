@@ -22,8 +22,8 @@ static const int HEAD_DATA_SIZE = 512;
 ReceivedMessage::ReceivedMessage(const NLPacketList& packetList)
     : _data(packetList.getMessage()),
       _headData(_data.mid(0, HEAD_DATA_SIZE)),
-      _sourceID(packetList.getSourceID()),
       _numPackets(packetList.getNumPackets()),
+      _sourceID(packetList.getSourceID()),
       _packetType(packetList.getType()),
       _packetVersion(packetList.getVersion()),
       _senderSockAddr(packetList.getSenderSockAddr()),
@@ -34,8 +34,8 @@ ReceivedMessage::ReceivedMessage(const NLPacketList& packetList)
 ReceivedMessage::ReceivedMessage(NLPacket& packet)
     : _data(packet.readAll()),
       _headData(_data.mid(0, HEAD_DATA_SIZE)),
-      _sourceID(packet.getSourceID()),
       _numPackets(1),
+      _sourceID(packet.getSourceID()),
       _packetType(packet.getType()),
       _packetVersion(packet.getVersion()),
       _senderSockAddr(packet.getSenderSockAddr()),
