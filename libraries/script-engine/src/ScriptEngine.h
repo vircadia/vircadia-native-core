@@ -166,8 +166,8 @@ signals:
 protected:
     QString _scriptContents;
     QString _parentURL;
-    bool _isFinished { false };
-    bool _isRunning { false };
+    std::atomic<bool> _isFinished { false };
+    std::atomic<bool> _isRunning { false };
     int _evaluatesPending { 0 };
     bool _isInitialized { false };
     QHash<QTimer*, QScriptValue> _timerFunctionMap;
@@ -206,7 +206,7 @@ protected:
 
     static QSet<ScriptEngine*> _allKnownScriptEngines;
     static QMutex _allScriptsMutex;
-    static bool _stoppingAllScripts;
+    static std::atomic<bool> _stoppingAllScripts;
 };
 
 #endif // hifi_ScriptEngine_h

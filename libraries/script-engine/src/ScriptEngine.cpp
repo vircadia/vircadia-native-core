@@ -183,7 +183,7 @@ void ScriptEngine::runInThread() {
 
 QSet<ScriptEngine*> ScriptEngine::_allKnownScriptEngines;
 QMutex ScriptEngine::_allScriptsMutex;
-bool ScriptEngine::_stoppingAllScripts = false;
+std::atomic<bool> ScriptEngine::_stoppingAllScripts = false;
 
 void ScriptEngine::stopAllScripts(QObject* application) {
     _allScriptsMutex.lock();
