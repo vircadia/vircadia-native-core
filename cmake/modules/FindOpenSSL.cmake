@@ -107,7 +107,7 @@ if (WIN32 AND NOT CYGWIN)
     select_library_configurations(SSL_EAY)
 
     set(OPENSSL_LIBRARIES ${SSL_EAY_LIBRARY} ${LIB_EAY_LIBRARY})
-    
+
     find_path(OPENSSL_DLL_PATH NAMES ssleay32.dll PATH_SUFFIXES "bin" ${_OPENSSL_ROOT_HINTS_AND_PATHS})
     
   elseif (MINGW)
@@ -252,6 +252,15 @@ endif ()
 
 if (WIN32)
   add_paths_to_fixup_libs(${OPENSSL_DLL_PATH})
+  #
+  # For some reason fixup misses the following DLL and only copies libeay32. There's gotta be a better way to handle this
+  # but for now resorting to the following interm solution
+  if (DEFINED DEPLOY_PACKAGE AND DEPLOY_PACKAGE)
+    add_custom_command(
+      TARGET ${TARGET_NAME} POST_BUILD
+      COMMAND "${CMAKE_COMMAND}" -E copy ${OPENSSL_DLL_PATH}/ssleay32.dll ${CMAKE_BINARY_DIR}/full-stack-deployment/
+    )
+  endif ()
 endif ()
 
 mark_as_advanced(OPENSSL_INCLUDE_DIR OPENSSL_LIBRARIES OPENSSL_SEARCH_DIRS)
