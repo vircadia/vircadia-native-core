@@ -30,7 +30,7 @@ struct ViewerSendingStats {
 class EntityServer : public OctreeServer, public NewlyCreatedEntityHook {
     Q_OBJECT
 public:
-    EntityServer(NLPacket& packet);
+    EntityServer(ReceivedMessage& message);
     ~EntityServer();
 
     // Subclasses must implement these methods
@@ -62,7 +62,7 @@ protected:
     virtual OctreePointer createTree() override;
 
 private slots:
-    void handleEntityPacket(QSharedPointer<NLPacket> packet, SharedNodePointer senderNode);
+    void handleEntityPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode);
 
 private:
     EntitySimulation* _entitySimulation;
