@@ -65,11 +65,6 @@ std::shared_ptr<Avatar> AvatarActionHold::getTarget(glm::quat& rotation, glm::ve
             }
         }
 
-        if (!isRightHand) {
-            static const glm::quat yFlip = glm::angleAxis(PI, Vectors::UNIT_Y);
-            palmRotation *= yFlip; // Match right hand frame of reference
-        }
-
         rotation = palmRotation * _relativeRotation;
         position = palmPosition + rotation * _relativePosition;
     });
@@ -218,14 +213,20 @@ bool AvatarActionHold::updateArguments(QVariantMap arguments) {
         ok = true;
         kinematic = EntityActionInterface::extractBooleanArgument("hold", arguments, "kinematic", ok, false);
         if (!ok) {
-            _kinematic = false;
+            kinematic = _kinematic;
         }
 
         ok = true;
         kinematicSetVelocity = EntityActionInterface::extractBooleanArgument("hold", arguments,
                                                                              "kinematicSetVelocity", ok, false);
         if (!ok) {
-            _kinematicSetVelocity = false;
+            kinematicSetVelocity = _kinematicSetVelocity;
+        }
+
+        ok = true;
+        ignoreIK = EntityActionInterface::extractBooleanArgument("hold", arguments, "ignoreIK", ok, false);
+        if (!ok) {
+            ignoreIK = _ignoreIK;
         }
 
         if (somethingChanged ||
