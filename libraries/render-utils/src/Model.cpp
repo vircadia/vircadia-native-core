@@ -544,6 +544,7 @@ void Model::removeFromScene(std::shared_ptr<render::Scene> scene, render::Pendin
         pendingChanges.removeItem(item);
     }
     _renderItems.clear();
+    _renderItemsSet.clear();
     _readyWhenAdded = false;
 }
 
@@ -1118,8 +1119,10 @@ AABox Model::getPartBounds(int meshIndex, int partIndex, glm::vec3 modelPosition
 
 void Model::segregateMeshGroups() {
     QSharedPointer<NetworkGeometry> networkGeometry;
+    bool showingCollisionHull = false;
     if (_showCollisionHull && _collisionGeometry && _collisionGeometry->isLoaded()) {
         networkGeometry = _collisionGeometry;
+        showingCollisionHull = true;
     } else {
         networkGeometry = _geometry;
     }
@@ -1127,8 +1130,10 @@ void Model::segregateMeshGroups() {
     const std::vector<std::unique_ptr<NetworkMesh>>& networkMeshes = networkGeometry->getMeshes();
 
     // all of our mesh vectors must match in size
-    if ((int)networkMeshes.size() != geometry.meshes.size() ||
-        geometry.meshes.size() != _meshStates.size()) {
+    auto geoMeshesSize = geometry.meshes.size();
+    if ((int)networkMeshes.size() != geoMeshesSize ||
+      //  geometry.meshes.size() != _meshStates.size()) {
+        geoMeshesSize > _meshStates.size()) {
         qDebug() << "WARNING!!!! Mesh Sizes don't match! We will not segregate mesh groups yet.";
         return;
     }
@@ -1146,7 +1151,11 @@ void Model::segregateMeshGroups() {
         // Create the render payloads
         int totalParts = mesh.parts.size();
         for (int partIndex = 0; partIndex < totalParts; partIndex++) {
-            _renderItemsSet << std::make_shared<MeshPartPayload>(this, i, partIndex, shapeID, _translation, _rotation);
+            auto renderItem = std::make_shared<MeshPartPayload>(this, i, partIndex, shapeID, _translation, _rotation);
+            if (showingCollisionHull) {
+                renderItem->updateDrawMaterial(ModelRender::getCollisionHullMaterial());
+            }
+            _renderItemsSet << renderItem;
             shapeID++;
         }
     }

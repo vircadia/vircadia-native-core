@@ -71,6 +71,10 @@ void MeshPartPayload::initCache() {
 
 }
 
+void MeshPartPayload::updateDrawMaterial(model::MaterialPointer material) {
+    _drawMaterial = material;
+}
+
 void MeshPartPayload::updateModelLocation(glm::vec3 position, glm::quat orientation) {
     _modelPosition = position;
     _modelOrientation = orientation;

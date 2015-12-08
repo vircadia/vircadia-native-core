@@ -36,6 +36,9 @@ public:
     glm::vec3 _modelPosition;
     glm::quat _modelOrientation;
 
+    // can replace the material used to draw that item
+    void updateDrawMaterial(model::MaterialPointer material);
+
     void updateModelLocation(glm::vec3 position, glm::quat orientation);
 
     // Render Item interface
