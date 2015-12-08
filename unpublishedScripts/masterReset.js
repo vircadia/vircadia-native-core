@@ -220,7 +220,6 @@ MasterReset = function() {
             gravity: BOW_GRAVITY,
             shapeType: 'compound',
             compoundShapeURL: COLLISION_HULL_URL,
-            collisionSoundURL: "http://hifi-public.s3.amazonaws.com/sounds/bow_fall.L.wav",
             script: bowScriptURL,
             userData: JSON.stringify({
                 resetMe: {
@@ -636,6 +635,7 @@ MasterReset = function() {
                 y: -3.5,
                 z: 0
             },
+            restitution: 0,
             velocity: {
                 x: 0,
                 y: -0.01,
@@ -1007,6 +1007,7 @@ MasterReset = function() {
                 y: -9.8,
                 z: 0
             },
+            restitution: 0,
             dimensions: {
                 x: 0.08,
                 y: 0.21,
@@ -1174,6 +1175,7 @@ MasterReset = function() {
                 y: -3.0,
                 z: 0
             },
+            restitution: 0,
             velocity: {
                 x: 0,
                 y: -1,
@@ -1345,6 +1347,9 @@ MasterReset = function() {
                     userData: JSON.stringify({
                         resetMe: {
                             resetMe: true
+                        },
+                        grabbableKey: {
+                          invertSolidWhileHeld: true  
                         }
                     })
                 });

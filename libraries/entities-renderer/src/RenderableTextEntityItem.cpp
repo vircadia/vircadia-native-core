@@ -22,7 +22,9 @@
 #include "GLMHelpers.h"
 
 EntityItemPointer RenderableTextEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
-    return std::make_shared<RenderableTextEntityItem>(entityID, properties);
+    EntityItemPointer entity{ new RenderableTextEntityItem(entityID) };
+    entity->setProperties(properties);
+    return entity;
 }
 
 void RenderableTextEntityItem::render(RenderArgs* args) {

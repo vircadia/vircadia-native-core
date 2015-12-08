@@ -339,7 +339,7 @@ bool OctreeEditPacketSender::process() {
     return PacketSender::process();
 }
 
-void OctreeEditPacketSender::processNackPacket(NLPacket& packet, SharedNodePointer sendingNode) {
+void OctreeEditPacketSender::processNackPacket(ReceivedMessage& message, SharedNodePointer sendingNode) {
     // parse sending node from packet, retrieve packet history for that node
 
     // if packet history doesn't exist for the sender node (somehow), bail
@@ -350,9 +350,9 @@ void OctreeEditPacketSender::processNackPacket(NLPacket& packet, SharedNodePoint
     const SentPacketHistory& sentPacketHistory = _sentPacketHistories[sendingNode->getUUID()];
 
     // read sequence numbers and queue packets for resend
-    while (packet.bytesLeftToRead() > 0) {
+    while (message.getBytesLeftToRead() > 0) {
         unsigned short int sequenceNumber;
-        packet.readPrimitive(&sequenceNumber);
+        message.readPrimitive(&sequenceNumber);
         
         // retrieve packet from history
         const NLPacket* packet = sentPacketHistory.getPacket(sequenceNumber);

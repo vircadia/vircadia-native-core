@@ -223,7 +223,10 @@
             var elDimensionsZ = document.getElementById("property-dim-z");
             var elResetToNaturalDimensions = document.getElementById("reset-to-natural-dimensions");
             var elRescaleDimensionsPct = document.getElementById("dimension-rescale-pct");
-            var elRescaleDimensionsButton  = document.getElementById("dimension-rescale-button");
+            var elRescaleDimensionsButton = document.getElementById("dimension-rescale-button");
+
+            var elParentID = document.getElementById("property-parent-id");
+            var elParentJointIndex = document.getElementById("property-parent-joint-index");
 
             var elRegistrationX = document.getElementById("property-reg-x");
             var elRegistrationY = document.getElementById("property-reg-y");
@@ -453,6 +456,9 @@
                             elDimensionsY.value = properties.dimensions.y.toFixed(2);
                             elDimensionsZ.value = properties.dimensions.z.toFixed(2);
 
+                            elParentID.value = properties.parentID;
+                            elParentJointIndex.value = properties.parentJointIndex;
+
                             elRegistrationX.value = properties.registrationPoint.x.toFixed(2);
                             elRegistrationY.value = properties.registrationPoint.y.toFixed(2);
                             elRegistrationZ.value = properties.registrationPoint.z.toFixed(2);
@@ -665,6 +671,9 @@
             elDimensionsX.addEventListener('change', dimensionsChangeFunction);
             elDimensionsY.addEventListener('change', dimensionsChangeFunction);
             elDimensionsZ.addEventListener('change', dimensionsChangeFunction);
+
+            elParentID.addEventListener('change', createEmitTextPropertyUpdateFunction('parentID'));
+            elParentJointIndex.addEventListener('change', createEmitNumberPropertyUpdateFunction('parentJointIndex'));
 
             var registrationChangeFunction = createEmitVec3PropertyUpdateFunction(
                 'registrationPoint', elRegistrationX, elRegistrationY, elRegistrationZ);
@@ -1052,6 +1061,19 @@
                     <input type="button" id="move-all-to-grid" value="All to Grid">
                     <input type="button" id="preview-camera-button" value="Preview Camera">
                 </div>
+            </div>
+        </div>
+
+        <div class="property">
+            <span class="label" style="float: left; margin-right: 6px">ParentID</span>
+            <div class="value" style="overflow: hidden;">
+                <input type="text" id="property-parent-id">
+            </div>
+        </div>
+        <div class="property">
+            <span class="label" style="float: left; margin-right: 6px">ParentJointIndex</span>
+            <div class="value" style="overflow: hidden;">
+                <input type="text" id="property-parent-joint-index">
             </div>
         </div>
 

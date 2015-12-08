@@ -9,21 +9,17 @@
 
 #include "OpenGLDisplayPlugin.h"
 
-class QGLWidget;
+class QWidget;
 
 class WindowOpenGLDisplayPlugin : public OpenGLDisplayPlugin {
 public:
-    WindowOpenGLDisplayPlugin();
-    virtual glm::uvec2 getRecommendedRenderSize() const override;
-    virtual glm::uvec2 getRecommendedUiSize() const override;
     virtual bool hasFocus() const override;
     virtual void activate() override;
     virtual void deactivate() override;
 
 protected:
     virtual glm::uvec2 getSurfaceSize() const override final;
-    virtual void makeCurrent() override;
-    virtual void doneCurrent() override;
-    virtual void swapBuffers() override;
-    QGLWidget* _window{ nullptr };
+    virtual glm::uvec2 getSurfacePixels() const override final;
+    
+    QWidget* _window { nullptr };
 };

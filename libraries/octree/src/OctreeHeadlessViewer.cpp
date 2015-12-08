@@ -49,13 +49,6 @@ void OctreeHeadlessViewer::queryOctree() {
         qCDebug(octree) << "---------------";
     }
 
-    // These will be the same for all servers, so we can set them up once and then reuse for each server we send to.
-    _octreeQuery.setWantLowResMoving(true);
-    _octreeQuery.setWantColor(true);
-    _octreeQuery.setWantDelta(true);
-    _octreeQuery.setWantOcclusionCulling(false);
-    _octreeQuery.setWantCompression(true); // TODO: should be on by default
-
     _octreeQuery.setCameraPosition(_viewFrustum.getPosition());
     _octreeQuery.setCameraOrientation(_viewFrustum.getOrientation());
     _octreeQuery.setCameraFov(_viewFrustum.getFieldOfView());
@@ -231,10 +224,10 @@ void OctreeHeadlessViewer::queryOctree() {
 }
 
 
-int OctreeHeadlessViewer::parseOctreeStats(QSharedPointer<NLPacket> packet, SharedNodePointer sourceNode) {
+int OctreeHeadlessViewer::parseOctreeStats(QSharedPointer<ReceivedMessage> message, SharedNodePointer sourceNode) {
 
     OctreeSceneStats temp;
-    int statsMessageLength = temp.unpackFromPacket(*packet);
+    int statsMessageLength = temp.unpackFromPacket(*message);
 
     // TODO: actually do something with these stats, like expose them to JS...
 

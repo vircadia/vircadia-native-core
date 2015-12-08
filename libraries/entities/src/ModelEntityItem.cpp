@@ -25,17 +25,17 @@ const QString ModelEntityItem::DEFAULT_MODEL_URL = QString("");
 const QString ModelEntityItem::DEFAULT_COMPOUND_SHAPE_URL = QString("");
 
 EntityItemPointer ModelEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
-    return std::make_shared<ModelEntityItem>(entityID, properties);
+    EntityItemPointer entity { new ModelEntityItem(entityID) };
+    entity->setProperties(properties);
+    return entity;
 }
 
-ModelEntityItem::ModelEntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties) :
-        EntityItem(entityItemID)
+ModelEntityItem::ModelEntityItem(const EntityItemID& entityItemID) : EntityItem(entityItemID)
 {
     _animationProperties.associateWithAnimationLoop(&_animationLoop);
     _animationLoop.setResetOnRunning(false);
 
     _type = EntityTypes::Model;
-    setProperties(properties);
     _jointMappingCompleted = false;
     _lastKnownCurrentFrame = -1;
     _color[0] = _color[1] = _color[2] = 0;

@@ -12,31 +12,13 @@
 #ifndef hifi_GLCanvas_h
 #define hifi_GLCanvas_h
 
-#include <QDebug>
-#include <QGLWidget>
-#include <QTimer>
+#include <gl/GLWidget.h>
 
 /// customized canvas that simply forwards requests/events to the singleton application
-class GLCanvas : public QGLWidget {
+class GLCanvas : public GLWidget {
     Q_OBJECT
-    
-public:
-    GLCanvas();
-
-    int getDeviceWidth() const;
-    int getDeviceHeight() const;
-    QSize getDeviceSize() const { return QSize(getDeviceWidth(), getDeviceHeight()); }
-    
 protected:
-
-    virtual void initializeGL();
-    virtual void paintGL();
-    virtual void resizeGL(int width, int height);
-    virtual bool event(QEvent* event);
-
-private slots:
-    bool eventFilter(QObject*, QEvent* event);
-   
+    virtual bool event(QEvent* event) override;
 };
 
 

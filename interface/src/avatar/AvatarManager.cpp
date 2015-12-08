@@ -27,6 +27,8 @@
 
 #include <PerfStat.h>
 #include <RegisteredMetaTypes.h>
+#include <Rig.h>
+#include <SettingHandle.h>
 #include <UUID.h>
 
 #include "Application.h"
@@ -35,7 +37,6 @@
 #include "Menu.h"
 #include "MyAvatar.h"
 #include "SceneScriptingInterface.h"
-#include <Rig.h>
 
 // 70 times per second - target is 60hz, but this helps account for any small deviations
 // in the update loop
@@ -75,6 +76,13 @@ AvatarManager::AvatarManager(QObject* parent) :
     packetReceiver.registerListener(PacketType::AvatarBillboard, this, "processAvatarBillboardPacket");
 }
 
+const float SMALLEST_REASONABLE_HORIZON = 5.0f; // meters
+Setting::Handle<float> avatarRenderDistanceInverseHighLimit("avatarRenderDistanceHighLimit", 1.0f / SMALLEST_REASONABLE_HORIZON);
+void AvatarManager::setRenderDistanceInverseHighLimit(float newValue) {
+    avatarRenderDistanceInverseHighLimit.set(newValue);
+     _renderDistanceController.setControlledValueHighLimit(newValue);
+}
+
 void AvatarManager::init() {
     _myAvatar->init();
     {
@@ -93,8 +101,7 @@ void AvatarManager::init() {
 
     const float target_fps = qApp->getTargetFrameRate();
     _renderDistanceController.setMeasuredValueSetpoint(target_fps);
-    const float SMALLEST_REASONABLE_HORIZON = 5.0f; // meters
-    _renderDistanceController.setControlledValueHighLimit(1.0f / SMALLEST_REASONABLE_HORIZON);
+    _renderDistanceController.setControlledValueHighLimit(avatarRenderDistanceInverseHighLimit.get());
     _renderDistanceController.setControlledValueLowLimit(1.0f / (float) TREE_SCALE);
     // Advice for tuning parameters:
     // See PIDController.h. There's a section on tuning in the reference.
@@ -191,7 +198,7 @@ void AvatarManager::simulateAvatarFades(float deltaTime) {
     while (fadingIterator != _avatarFades.end()) {
         auto avatar = std::static_pointer_cast<Avatar>(*fadingIterator);
         avatar->startUpdate();
-        avatar->setTargetScale(avatar->getScale() * SHRINK_RATE, true);
+        avatar->setTargetScale(avatar->getAvatarScale() * SHRINK_RATE);
         if (avatar->getTargetScale() <= MIN_FADE_SCALE) {
             avatar->removeFromScene(*fadingIterator, scene, pendingChanges);
             fadingIterator = _avatarFades.erase(fadingIterator);
@@ -402,7 +409,7 @@ void AvatarManager::updateAvatarRenderStatus(bool shouldRenderAvatars) {
 
 AvatarSharedPointer AvatarManager::getAvatarBySessionID(const QUuid& sessionID) {
     if (sessionID == _myAvatar->getSessionUUID()) {
-        return std::static_pointer_cast<Avatar>(_myAvatar);
+        return _myAvatar;
     }
     
     return findAvatar(sessionID);

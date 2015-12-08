@@ -144,8 +144,7 @@ static const QString MONO_PREVIEW = "Mono Preview";
 static const QString FRAMERATE = DisplayPlugin::MENU_PATH() + ">Framerate";
 
 void OculusDisplayPlugin::activate() {
-
-    _container->addMenuItem(MENU_PATH(), MONO_PREVIEW,
+    _container->addMenuItem(PluginType::DISPLAY_PLUGIN, MENU_PATH(), MONO_PREVIEW,
         [this](bool clicked) {
             _monoPreview = clicked;
         }, true, true);
@@ -170,18 +169,19 @@ void OculusDisplayPlugin::customizeContext() {
     _enablePreview = !isVsyncEnabled();
 }
 
-void OculusDisplayPlugin::deactivate() {
+void OculusDisplayPlugin::uncustomizeContext() {
 #if (OVR_MAJOR_VERSION >= 6)
-    makeCurrent();
     _sceneFbo.reset();
-    doneCurrent();
 #endif
-
-    OculusBaseDisplayPlugin::deactivate();
+    OculusBaseDisplayPlugin::uncustomizeContext();
 }
 
-void OculusDisplayPlugin::display(GLuint finalTexture, const glm::uvec2& sceneSize) {
+void OculusDisplayPlugin::internalPresent() {
 #if (OVR_MAJOR_VERSION >= 6)
+    if (!_currentSceneTexture) {
+        return;
+    }
+
     using namespace oglplus;
     // Need to make sure only the display plugin is responsible for 
     // controlling vsync
@@ -196,7 +196,7 @@ void OculusDisplayPlugin::display(GLuint finalTexture, const glm::uvec2& sceneSi
         } else {
             Context::Viewport(windowSize.x, windowSize.y);
         }
-        glBindTexture(GL_TEXTURE_2D, finalTexture);
+        glBindTexture(GL_TEXTURE_2D, _currentSceneTexture);
         GLenum err = glGetError();
         Q_ASSERT(0 == err);
         drawUnitQuad();
@@ -205,16 +205,24 @@ void OculusDisplayPlugin::display(GLuint finalTexture, const glm::uvec2& sceneSi
     _sceneFbo->Bound([&] {
         auto size = _sceneFbo->size;
         Context::Viewport(size.x, size.y);
-        glBindTexture(GL_TEXTURE_2D, finalTexture);
+        glBindTexture(GL_TEXTURE_2D, _currentSceneTexture);
         GLenum err = glGetError();
         drawUnitQuad();
     });
 
-    ovr_for_each_eye([&](ovrEyeType eye) {
-        _sceneLayer.RenderPose[eye] = _eyePoses[eye];
-    });
+    uint32_t frameIndex { 0 };
+    EyePoses eyePoses;
+    {
+        Lock lock(_mutex);
+        Q_ASSERT(_sceneTextureToFrameIndexMap.contains(_currentSceneTexture));
+        frameIndex = _sceneTextureToFrameIndexMap[_currentSceneTexture];
+        Q_ASSERT(_frameEyePoses.contains(frameIndex));
+        eyePoses = _frameEyePoses[frameIndex];
+    }
 
-    auto windowSize = toGlm(_window->size());
+    _sceneLayer.RenderPose[ovrEyeType::ovrEye_Left] = eyePoses.first;
+    _sceneLayer.RenderPose[ovrEyeType::ovrEye_Right] = eyePoses.second;
+
     {
         ovrViewScaleDesc viewScaleDesc;
         viewScaleDesc.HmdSpaceToWorldScaleInMeters = 1.0f;
@@ -228,19 +236,26 @@ void OculusDisplayPlugin::display(GLuint finalTexture, const glm::uvec2& sceneSi
         }
     }
     _sceneFbo->Increment();
-
-    ++_frameIndex;
 #endif
-}
 
-/*
+    /*
     The swapbuffer call here is only required if we want to mirror the content to the screen.
-    However, it should only be done if we can reliably disable v-sync on the mirror surface, 
+    However, it should only be done if we can reliably disable v-sync on the mirror surface,
     otherwise the swapbuffer delay will interefere with the framerate of the headset
-*/
-void OculusDisplayPlugin::finishFrame() {
+    */
     if (_enablePreview) {
         swapBuffers();
     }
-    doneCurrent();
-};
+}
+
+void OculusDisplayPlugin::setEyeRenderPose(uint32_t frameIndex, Eye eye, const glm::mat4& pose) {
+    auto ovrPose = ovrPoseFromGlm(pose);
+    {
+        Lock lock(_mutex);
+        if (eye == Eye::Left) {
+            _frameEyePoses[frameIndex].first = ovrPose;
+        } else {
+            _frameEyePoses[frameIndex].second = ovrPose;
+        }
+    }
+}

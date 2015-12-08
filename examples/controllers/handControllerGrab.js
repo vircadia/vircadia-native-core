@@ -34,9 +34,10 @@ var BUMPER_ON_VALUE = 0.5;
 // distant manipulation
 //
 
-var DISTANCE_HOLDING_RADIUS_FACTOR = 5; // multiplied by distance between hand and object
+var DISTANCE_HOLDING_RADIUS_FACTOR = 3.5; // multiplied by distance between hand and object
 var DISTANCE_HOLDING_ACTION_TIMEFRAME = 0.1; // how quickly objects move to their new position
 var DISTANCE_HOLDING_ROTATION_EXAGGERATION_FACTOR = 2.0; // object rotates this much more than hand did
+var MOVE_WITH_HEAD = true; // experimental head-controll of distantly held objects
 
 var NO_INTERSECT_COLOR = {
     red: 10,
@@ -200,6 +201,33 @@ function entityIsGrabbedByOther(entityID) {
     return false;
 }
 
+function getSpatialOffsetPosition(hand, spatialKey) {
+    if (hand !== RIGHT_HAND && spatialKey.leftRelativePosition) {
+        return spatialKey.leftRelativePosition;
+    }
+    if (hand === RIGHT_HAND && spatialKey.rightRelativePosition) {
+        return spatialKey.rightRelativePosition;
+    }
+    if (spatialKey.relativePosition) {
+        return spatialKey.relativePosition;
+    }
+
+    return Vec3.ZERO;
+}
+
+function getSpatialOffsetRotation(hand, spatialKey) {
+    if (hand !== RIGHT_HAND && spatialKey.leftRelativeRotation) {
+        return spatialKey.leftRelativeRotation;
+    }
+    if (hand === RIGHT_HAND && spatialKey.rightRelativeRotation) {
+        return spatialKey.rightRelativeRotation;
+    }
+    if (spatialKey.relativeRotation) {
+        return spatialKey.relativeRotation;
+    }
+
+    return Quat.IDENTITY;
+}
 
 function MyController(hand) {
     this.hand = hand;
@@ -223,20 +251,11 @@ function MyController(hand) {
     this.triggerValue = 0; // rolling average of trigger value
     this.rawTriggerValue = 0;
     this.rawBumperValue = 0;
-
+    
     this.overlayLine = null;
-
-    this.offsetPosition = {
-        x: 0.0,
-        y: 0.0,
-        z: 0.0
-    };
-    this.offsetRotation = {
-        x: 0.0,
-        y: 0.0,
-        z: 0.0,
-        w: 1.0
-    };
+    
+    this.offsetPosition = Vec3.ZERO;
+    this.offsetRotation = Quat.IDENTITY;
 
     var _this = this;
 
@@ -658,6 +677,13 @@ function MyController(hand) {
         this.currentObjectTime = now;
         this.handRelativePreviousPosition = Vec3.subtract(handControllerPosition, MyAvatar.position);
         this.handPreviousRotation = handRotation;
+        this.currentCameraOrientation = Camera.orientation;
+
+        // compute a constant based on the initial conditions which we use below to exagerate hand motion onto the held object
+        this.radiusScalar = Math.log(Vec3.distance(this.currentObjectPosition, handControllerPosition) + 1.0);
+        if (this.radiusScalar < 1.0) {
+            this.radiusScalar = 1.0;
+        }
 
         this.actionID = NULL_ACTION_ID;
         this.actionID = Entities.addAction("spring", this.grabbedEntity, {
@@ -689,8 +715,6 @@ function MyController(hand) {
         this.currentAvatarOrientation = MyAvatar.orientation;
 
         this.overlayLineOff();
-
-
     };
 
     this.continueDistanceHolding = function() {
@@ -719,8 +743,12 @@ function MyController(hand) {
         this.lineOn(handPosition, Vec3.subtract(grabbedProperties.position, handPosition), INTERSECT_COLOR);
 
         // the action was set up on a previous call.  update the targets.
-        var radius = Math.max(Vec3.distance(this.currentObjectPosition, handControllerPosition) *
-            DISTANCE_HOLDING_RADIUS_FACTOR, DISTANCE_HOLDING_RADIUS_FACTOR);
+        var radius = Vec3.distance(this.currentObjectPosition, handControllerPosition) *
+            this.radiusScalar * DISTANCE_HOLDING_RADIUS_FACTOR;
+        if (radius < 1.0) {
+            radius = 1.0;
+        }
+
         // how far did avatar move this timestep?
         var currentPosition = MyAvatar.position;
         var avatarDeltaPosition = Vec3.subtract(currentPosition, this.currentAvatarPosition);
@@ -751,11 +779,11 @@ function MyController(hand) {
         var handMoved = Vec3.subtract(handToAvatar, this.handRelativePreviousPosition);
         this.handRelativePreviousPosition = handToAvatar;
 
-        //  magnify the hand movement but not the change from avatar movement & rotation
+        // magnify the hand movement but not the change from avatar movement & rotation
         handMoved = Vec3.subtract(handMoved, handMovementFromTurning);
         var superHandMoved = Vec3.multiply(handMoved, radius);
 
-        //  Move the object by the magnified amount and then by amount from avatar movement & rotation
+        // Move the object by the magnified amount and then by amount from avatar movement & rotation
         var newObjectPosition = Vec3.sum(this.currentObjectPosition, superHandMoved);
         newObjectPosition = Vec3.sum(newObjectPosition, avatarDeltaPosition);
         newObjectPosition = Vec3.sum(newObjectPosition, objectMovementFromTurning);
@@ -776,6 +804,16 @@ function MyController(hand) {
         this.currentObjectRotation = Quat.multiply(handChange, this.currentObjectRotation);
 
         Entities.callEntityMethod(this.grabbedEntity, "continueDistantGrab");
+
+        // mix in head motion
+        if (MOVE_WITH_HEAD) {
+            var objDistance = Vec3.length(objectToAvatar);
+            var before = Vec3.multiplyQbyV(this.currentCameraOrientation, { x: 0.0, y: 0.0, z: objDistance });
+            var after = Vec3.multiplyQbyV(Camera.orientation, { x: 0.0, y: 0.0, z: objDistance });
+            var change = Vec3.subtract(before, after);
+            this.currentCameraOrientation = Camera.orientation;
+            this.currentObjectPosition = Vec3.sum(this.currentObjectPosition, change);
+        }
 
         Entities.updateAction(this.grabbedEntity, this.actionID, {
             targetPosition: this.currentObjectPosition,
@@ -815,12 +853,8 @@ function MyController(hand) {
 
         if (this.state != STATE_NEAR_GRABBING && grabbableData.spatialKey) {
             // if an object is "equipped" and has a spatialKey, use it.
-            if (grabbableData.spatialKey.relativePosition) {
-                this.offsetPosition = grabbableData.spatialKey.relativePosition;
-            }
-            if (grabbableData.spatialKey.relativeRotation) {
-                this.offsetRotation = grabbableData.spatialKey.relativeRotation;
-            }
+            this.offsetPosition = getSpatialOffsetPosition(this.hand, grabbableData.spatialKey);
+            this.offsetRotation = getSpatialOffsetRotation(this.hand, grabbableData.spatialKey);
         } else {
             var objectRotation = grabbedProperties.rotation;
             this.offsetRotation = Quat.multiply(Quat.inverse(handRotation), objectRotation);
@@ -946,23 +980,8 @@ function MyController(hand) {
         var grabbableData = getEntityCustomData(GRABBABLE_DATA_KEY, this.grabbedEntity, DEFAULT_GRABBABLE_DATA);
 
         // use a spring to pull the object to where it will be when equipped
-        var relativeRotation = {
-            x: 0.0,
-            y: 0.0,
-            z: 0.0,
-            w: 1.0
-        };
-        var relativePosition = {
-            x: 0.0,
-            y: 0.0,
-            z: 0.0
-        };
-        if (grabbableData.spatialKey.relativePosition) {
-            relativePosition = grabbableData.spatialKey.relativePosition;
-        }
-        if (grabbableData.spatialKey.relativeRotation) {
-            relativeRotation = grabbableData.spatialKey.relativeRotation;
-        }
+        var relativeRotation = getSpatialOffsetRotation(this.hand, grabbableData.spatialKey);
+        var relativePosition = getSpatialOffsetPosition(this.hand, grabbableData.spatialKey);
         var handRotation = this.getHandRotation();
         var handPosition = this.getHandPosition();
         var targetRotation = Quat.multiply(handRotation, relativeRotation);

@@ -78,8 +78,8 @@ public:
                     { return thisVersion >= VERSION_ENTITIES_USE_METERS_AND_RADIANS; }
     virtual bool handlesEditPacketType(PacketType packetType) const;
     void fixupTerseEditLogging(EntityItemProperties& properties, QList<QString>& changedProperties);
-    virtual int processEditPacketData(NLPacket& packet, const unsigned char* editData, int maxLength,
-                                      const SharedNodePointer& senderNode);
+    virtual int processEditPacketData(ReceivedMessage& message, const unsigned char* editData, int maxLength,
+                                      const SharedNodePointer& senderNode) override;
 
     virtual bool findRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
         OctreeElementPointer& node, float& distance, BoxFace& face, glm::vec3& surfaceNormal,
@@ -162,7 +162,7 @@ public:
 
     void forgetEntitiesDeletedBefore(quint64 sinceTime);
 
-    int processEraseMessage(NLPacket& packet, const SharedNodePointer& sourceNode);
+    int processEraseMessage(ReceivedMessage& message, const SharedNodePointer& sourceNode);
     int processEraseMessageDetails(const QByteArray& buffer, const SharedNodePointer& sourceNode);
 
     EntityItemFBXService* getFBXService() const { return _fbxService; }
@@ -195,6 +195,8 @@ public:
 
     bool wantTerseEditLogging() const { return _wantTerseEditLogging; }
     void setWantTerseEditLogging(bool value) { _wantTerseEditLogging = value; }
+
+    void remapIDs();
 
     bool writeToMap(QVariantMap& entityDescription, OctreeElementPointer element, bool skipDefaultValues);
     bool readFromMap(QVariantMap& entityDescription);

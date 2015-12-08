@@ -41,7 +41,6 @@
 #include <PathUtils.h>
 #include <Gzip.h>
 
-#include "CoverageMap.h"
 #include "OctreeConstants.h"
 #include "OctreeElementBag.h"
 #include "Octree.h"
@@ -951,9 +950,9 @@ int Octree::encodeTreeBitstream(OctreeElementPointer element,
     // if childBytesWritten == 1 then something went wrong... that's not possible
     assert(childBytesWritten != 1);
 
-    // if includeColor and childBytesWritten == 2, then it can only mean that the lower level trees don't exist or for some
+    // if childBytesWritten == 2, then it can only mean that the lower level trees don't exist or for some
     // reason couldn't be written... so reset them here... This isn't true for the non-color included case
-    if (suppressEmptySubtrees() && params.includeColor && childBytesWritten == 2) {
+    if (suppressEmptySubtrees() && childBytesWritten == 2) {
         childBytesWritten = 0;
         //params.stopReason = EncodeBitstreamParams::UNKNOWN; // possibly should be DIDNT_FIT...
     }
@@ -1103,31 +1102,6 @@ int Octree::encodeTreeBitstreamRecursion(OctreeElementPointer element,
             params.stopReason = EncodeBitstreamParams::NO_CHANGE;
             return bytesAtThisLevel;
         }
-
-        // If the user also asked for occlusion culling, check if this element is occluded, but only if it's not a leaf.
-        // leaf occlusion is handled down below when we check child nodes
-        if (params.wantOcclusionCulling && !element->isLeaf()) {
-            OctreeProjectedPolygon* voxelPolygon =
-                new OctreeProjectedPolygon(params.viewFrustum->getProjectedPolygon(element->getAACube()));
-
-            // In order to check occlusion culling, the shadow has to be "all in view" otherwise, we will ignore occlusion
-            // culling and proceed as normal
-            if (voxelPolygon->getAllInView()) {
-                CoverageMapStorageResult result = params.map->checkMap(voxelPolygon, false);
-                delete voxelPolygon; // cleanup
-                if (result == OCCLUDED) {
-                    if (params.stats) {
-                        params.stats->skippedOccluded(element);
-                    }
-                    params.stopReason = EncodeBitstreamParams::OCCLUDED;
-                    return bytesAtThisLevel;
-                }
-            } else {
-                // If this shadow wasn't "all in view" then we ignored it for occlusion culling, but
-                // we do need to clean up memory and proceed as normal...
-                delete voxelPolygon;
-            }
-        }
     }
 
     bool keepDiggingDeeper = true; // Assuming we're in view we have a great work ethic, we're always ready for more!
@@ -1190,20 +1164,10 @@ int Octree::encodeTreeBitstreamRecursion(OctreeElementPointer element,
             }
         }
 
-        if (params.wantOcclusionCulling) {
-            if (childElement) {
-                float distance = params.viewFrustum ? childElement->distanceToCamera(*params.viewFrustum) : 0;
-
-                currentCount = insertOctreeElementIntoSortedArrays(childElement, distance, i,
-                                                                   sortedChildren, (float*)&distancesToChildren,
-                                                                   (int*)&indexOfChildren, currentCount, NUMBER_OF_CHILDREN);
-            }
-        } else {
-            sortedChildren[i] = childElement;
-            indexOfChildren[i] = i;
-            distancesToChildren[i] = 0.0f;
-            currentCount++;
-        }
+        sortedChildren[i] = childElement;
+        indexOfChildren[i] = i;
+        distancesToChildren[i] = 0.0f;
+        currentCount++;
 
         // track stats
         // must check childElement here, because it could be we got here with no childElement
@@ -1254,36 +1218,6 @@ int Octree::encodeTreeBitstreamRecursion(OctreeElementPointer element,
                 }
 
                 bool childIsOccluded = false; // assume it's not occluded
-
-                // If the user also asked for occlusion culling, check if this element is occluded
-                if (params.wantOcclusionCulling && childElement->isLeaf()) {
-                    // Don't check occlusion here, just add them to our distance ordered array...
-
-                    // FIXME params.ViewFrustum is used here, but later it is checked against nullptr.
-                    OctreeProjectedPolygon* voxelPolygon = new OctreeProjectedPolygon(
-                                params.viewFrustum->getProjectedPolygon(childElement->getAACube()));
-
-                    // In order to check occlusion culling, the shadow has to be "all in view" otherwise, we ignore occlusion
-                    // culling and proceed as normal
-                    if (voxelPolygon->getAllInView()) {
-                        CoverageMapStorageResult result = params.map->checkMap(voxelPolygon, true);
-
-                        // In all cases where the shadow wasn't stored, we need to free our own memory.
-                        // In the case where it is stored, the CoverageMap will free memory for us later.
-                        if (result != STORED) {
-                            delete voxelPolygon;
-                        }
-
-                        // If while attempting to add this voxel's shadow, we determined it was occluded, then
-                        // we don't need to process it further and we can exit early.
-                        if (result == OCCLUDED) {
-                            childIsOccluded = true;
-                        }
-                    } else {
-                        delete voxelPolygon;
-                    }
-                } // wants occlusion culling & isLeaf()
-
 
                 bool shouldRender = !params.viewFrustum
                                     ? true
@@ -1359,7 +1293,7 @@ int Octree::encodeTreeBitstreamRecursion(OctreeElementPointer element,
     // NOW might be a good time to give our tree subclass and this element a chance to set up and check any extra encode data
     element->initializeExtraEncodeData(params);
 
-    // write the child element data... NOTE: includeColor means include element data
+    // write the child element data...
     // NOTE: the format of the bitstream is generally this:
     //    [octalcode]
     //    [bitmask for existence of child data]
@@ -1369,65 +1303,63 @@ int Octree::encodeTreeBitstreamRecursion(OctreeElementPointer element,
     //        N x [ ... tree for children ...]
     //
     // This section of the code, is writing the "N x [child data]" portion of this bitstream
-    if (params.includeColor) {
-        for (int i = 0; i < NUMBER_OF_CHILDREN; i++) {
-            if (oneAtBit(childrenDataBits, i)) {
-                OctreeElementPointer childElement = element->getChildAtIndex(i);
+    for (int i = 0; i < NUMBER_OF_CHILDREN; i++) {
+        if (oneAtBit(childrenDataBits, i)) {
+            OctreeElementPointer childElement = element->getChildAtIndex(i);
 
-                // the childrenDataBits were set up by the in view/LOD logic, it may contain children that we've already
-                // processed and sent the data bits for. Let our tree subclass determine if it really wants to send the
-                // data for this child at this point
-                if (childElement && element->shouldIncludeChildData(i, params)) {
+            // the childrenDataBits were set up by the in view/LOD logic, it may contain children that we've already
+            // processed and sent the data bits for. Let our tree subclass determine if it really wants to send the
+            // data for this child at this point
+            if (childElement && element->shouldIncludeChildData(i, params)) {
 
-                    int bytesBeforeChild = packetData->getUncompressedSize();
+                int bytesBeforeChild = packetData->getUncompressedSize();
 
-                    // a childElement may "partially" write it's data. for example, the model server where the entire
-                    // contents of the element may be larger than can fit in a single MTU/packetData. In this case,
-                    // we want to allow the appendElementData() to respond that it produced partial data, which should be
-                    // written, but that the childElement needs to be reprocessed in an additional pass or passes
-                    // to be completed.
-                    LevelDetails childDataLevelKey = packetData->startLevel();
+                // a childElement may "partially" write it's data. for example, the model server where the entire
+                // contents of the element may be larger than can fit in a single MTU/packetData. In this case,
+                // we want to allow the appendElementData() to respond that it produced partial data, which should be
+                // written, but that the childElement needs to be reprocessed in an additional pass or passes
+                // to be completed.
+                LevelDetails childDataLevelKey = packetData->startLevel();
 
-                    OctreeElement::AppendState childAppendState = childElement->appendElementData(packetData, params);
+                OctreeElement::AppendState childAppendState = childElement->appendElementData(packetData, params);
 
-                    // allow our tree subclass to do any additional bookkeeping it needs to do with encoded data state
-                    element->updateEncodedData(i, childAppendState, params);
+                // allow our tree subclass to do any additional bookkeeping it needs to do with encoded data state
+                element->updateEncodedData(i, childAppendState, params);
 
-                    // Continue this level so long as some part of this child element was appended.
-                    bool childFit = (childAppendState != OctreeElement::NONE);
+                // Continue this level so long as some part of this child element was appended.
+                bool childFit = (childAppendState != OctreeElement::NONE);
 
-                    // some datatypes (like Voxels) assume that all child data will fit, if it doesn't fit
-                    // the data type wants to bail on this element level completely
-                    if (!childFit && mustIncludeAllChildData()) {
-                        continueThisLevel = false;
-                        break;
-                    }
+                // some datatypes (like Voxels) assume that all child data will fit, if it doesn't fit
+                // the data type wants to bail on this element level completely
+                if (!childFit && mustIncludeAllChildData()) {
+                    continueThisLevel = false;
+                    break;
+                }
 
-                    // If the child was partially or fully appended, then mark the actualChildrenDataBits as including
-                    // this child data
-                    if (childFit) {
-                        actualChildrenDataBits += (1 << (7 - i));
-                        continueThisLevel = packetData->endLevel(childDataLevelKey);
-                    } else {
-                        packetData->discardLevel(childDataLevelKey);
-                        elementAppendState = OctreeElement::PARTIAL;
-                        params.stopReason = EncodeBitstreamParams::DIDNT_FIT;
-                    }
+                // If the child was partially or fully appended, then mark the actualChildrenDataBits as including
+                // this child data
+                if (childFit) {
+                    actualChildrenDataBits += (1 << (7 - i));
+                    continueThisLevel = packetData->endLevel(childDataLevelKey);
+                } else {
+                    packetData->discardLevel(childDataLevelKey);
+                    elementAppendState = OctreeElement::PARTIAL;
+                    params.stopReason = EncodeBitstreamParams::DIDNT_FIT;
+                }
 
-                    // If this child was partially appended, then consider this element to be partially appended
-                    if (childAppendState == OctreeElement::PARTIAL) {
-                        elementAppendState = OctreeElement::PARTIAL;
-                        params.stopReason = EncodeBitstreamParams::DIDNT_FIT;
-                    }
+                // If this child was partially appended, then consider this element to be partially appended
+                if (childAppendState == OctreeElement::PARTIAL) {
+                    elementAppendState = OctreeElement::PARTIAL;
+                    params.stopReason = EncodeBitstreamParams::DIDNT_FIT;
+                }
 
-                    int bytesAfterChild = packetData->getUncompressedSize();
+                int bytesAfterChild = packetData->getUncompressedSize();
 
-                    bytesAtThisLevel += (bytesAfterChild - bytesBeforeChild); // keep track of byte count for this child
+                bytesAtThisLevel += (bytesAfterChild - bytesBeforeChild); // keep track of byte count for this child
 
-                    // don't need to check childElement here, because we can't get here with no childElement
-                    if (params.stats && (childAppendState != OctreeElement::NONE)) {
-                        params.stats->colorSent(childElement);
-                    }
+                // don't need to check childElement here, because we can't get here with no childElement
+                if (params.stats && (childAppendState != OctreeElement::NONE)) {
+                    params.stats->colorSent(childElement);
                 }
             }
         }
@@ -1510,10 +1442,6 @@ int Octree::encodeTreeBitstreamRecursion(OctreeElementPointer element,
         // final packet in standard order. So what we're going to do is keep track of how big each subtree was in bytes,
         // and then later reshuffle these sections of our output buffer back into normal order. This allows us to make
         // a single recursive pass in distance sorted order, but retain standard order in our encoded packet
-        int recursiveSliceSizes[NUMBER_OF_CHILDREN];
-        const unsigned char* recursiveSliceStarts[NUMBER_OF_CHILDREN];
-        int firstRecursiveSliceOffset = packetData->getUncompressedByteOffset();
-        int allSlicesSize = 0;
 
         // for each child element in Distance sorted order..., check to see if they exist, are colored, and in view, and if so
         // add them to our distance ordered array of children
@@ -1524,8 +1452,6 @@ int Octree::encodeTreeBitstreamRecursion(OctreeElementPointer element,
             if (oneAtBit(childrenExistInPacketBits, originalIndex)) {
 
                 int thisLevel = currentEncodeLevel;
-                // remember this for reshuffling
-                recursiveSliceStarts[originalIndex] = packetData->getUncompressedData() + packetData->getUncompressedSize();
 
                 int childTreeBytesOut = 0;
 
@@ -1546,10 +1472,6 @@ int Octree::encodeTreeBitstreamRecursion(OctreeElementPointer element,
                     }
                 }
 
-                // remember this for reshuffling
-                recursiveSliceSizes[originalIndex] = childTreeBytesOut;
-                allSlicesSize += childTreeBytesOut;
-
                 // if the child wrote 0 bytes, it means that nothing below exists or was in view, or we ran out of space,
                 // basically, the children below don't contain any info.
 
@@ -1566,17 +1488,10 @@ int Octree::encodeTreeBitstreamRecursion(OctreeElementPointer element,
                 // so, if the child returns 2 bytes out, we can actually consider that an empty tree also!!
                 //
                 // we can make this act like no bytes out, by just resetting the bytes out in this case
-                if (suppressEmptySubtrees() && params.includeColor && !params.includeExistsBits && childTreeBytesOut == 2) {
+                if (suppressEmptySubtrees() && !params.includeExistsBits && childTreeBytesOut == 2) {
                     childTreeBytesOut = 0; // this is the degenerate case of a tree with no colors and no child trees
 
                 }
-                // We used to try to collapse trees that didn't contain any data, but this does appear to create a problem
-                // in detecting element deletion. So, I've commented this out but left it in here as a warning to anyone else
-                // about not attempting to add this optimization back in, without solving the element deletion case.
-                // We need to send these bitMasks in case the exists in tree bitmask is indicating the deletion of a tree
-                //if (params.includeColor && params.includeExistsBits && childTreeBytesOut == 3) {
-                //    childTreeBytesOut = 0; // this is the degenerate case of a tree with no colors and no child trees
-                //}
 
                 bytesAtThisLevel += childTreeBytesOut;
 
@@ -1596,7 +1511,7 @@ int Octree::encodeTreeBitstreamRecursion(OctreeElementPointer element,
 
                     // If this is the last of the child exists bits, then we're actually be rolling out the entire tree
                     if (params.stats && childrenExistInPacketBits == 0) {
-                        params.stats->childBitsRemoved(params.includeExistsBits, params.includeColor);
+                        params.stats->childBitsRemoved(params.includeExistsBits);
                     }
 
                     if (!continueThisLevel) {
@@ -1613,33 +1528,6 @@ int Octree::encodeTreeBitstreamRecursion(OctreeElementPointer element,
                 } // end if (childTreeBytesOut == 0)
             } // end if (oneAtBit(childrenExistInPacketBits, originalIndex))
         } // end for
-
-        // reshuffle here...
-        if (continueThisLevel && params.wantOcclusionCulling) {
-            unsigned char tempReshuffleBuffer[MAX_OCTREE_UNCOMRESSED_PACKET_SIZE];
-
-            unsigned char* tempBufferTo = &tempReshuffleBuffer[0]; // this is our temporary destination
-
-            // iterate through our childrenExistInPacketBits, these will be the sections of the packet that we copied subTree
-            // details into. Unfortunately, they're in distance sorted order, not original index order. we need to put them
-            // back into original distance order
-            for (int originalIndex = 0; originalIndex < NUMBER_OF_CHILDREN; originalIndex++) {
-                if (oneAtBit(childrenExistInPacketBits, originalIndex)) {
-                    int thisSliceSize = recursiveSliceSizes[originalIndex];
-                    const unsigned char* thisSliceStarts = recursiveSliceStarts[originalIndex];
-
-                    memcpy(tempBufferTo, thisSliceStarts, thisSliceSize);
-                    tempBufferTo += thisSliceSize;
-                }
-            }
-
-            // now that all slices are back in the correct order, copy them to the correct output buffer
-            continueThisLevel = packetData->updatePriorBytes(firstRecursiveSliceOffset, &tempReshuffleBuffer[0], allSlicesSize);
-            if (!continueThisLevel) {
-                qCDebug(octree) << "WARNING UNEXPECTED CASE: Failed to update recursive slice!!!";
-                qCDebug(octree) << "This is not expected!!!!  -- continueThisLevel=FALSE....";
-            }
-        }
     } // end keepDiggingDeeper
 
     // If we made it this far, then we've written all of our child data... if this element is the root
@@ -1736,7 +1624,7 @@ int Octree::encodeTreeBitstreamRecursion(OctreeElementPointer element,
 
     // If our element is completed let the element know so it can do any cleanup it of extra  wants
     if (elementAppendState == OctreeElement::COMPLETED) {
-        element->elementEncodeComplete(params, &bag);
+        element->elementEncodeComplete(params);
     }
 
     return bytesAtThisLevel;
@@ -1918,7 +1806,7 @@ bool Octree::readSVOFromStream(unsigned long streamLength, QDataStream& inputStr
 
             unsigned char* dataAt = entireFileDataSection;
 
-            ReadBitstreamToTreeParams args(WANT_COLOR, NO_EXISTS_BITS, NULL, 0,
+            ReadBitstreamToTreeParams args(NO_EXISTS_BITS, NULL, 0,
                                                 SharedNodePointer(), wantImportProgress, gotVersion);
 
             readBitstreamToTree(dataAt, dataLength, args);
@@ -1957,7 +1845,7 @@ bool Octree::readSVOFromStream(unsigned long streamLength, QDataStream& inputStr
                 unsigned char* dataAt = fileChunk;
                 unsigned long  dataLength = chunkLength;
 
-                ReadBitstreamToTreeParams args(WANT_COLOR, NO_EXISTS_BITS, NULL, 0,
+                ReadBitstreamToTreeParams args(NO_EXISTS_BITS, NULL, 0,
                                                     SharedNodePointer(), wantImportProgress, gotVersion);
 
                 readBitstreamToTree(dataAt, dataLength, args);
@@ -2104,10 +1992,8 @@ void Octree::writeToSVOFile(const char* fileName, OctreeElementPointer element) 
         int bytesWritten = 0;
         bool lastPacketWritten = false;
 
-        while (!elementBag.isEmpty()) {
-            OctreeElementPointer subTree = elementBag.extract();
-
-            EncodeBitstreamParams params(INT_MAX, IGNORE_VIEW_FRUSTUM, WANT_COLOR, NO_EXISTS_BITS);
+        while (OctreeElementPointer subTree = elementBag.extract()) {
+            EncodeBitstreamParams params(INT_MAX, IGNORE_VIEW_FRUSTUM, NO_EXISTS_BITS);
             withReadLock([&] {
                 params.extraEncodeData = &extraEncodeData;
                 bytesWritten = encodeTreeBitstream(subTree, &packetData, elementBag, params);

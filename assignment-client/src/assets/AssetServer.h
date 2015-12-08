@@ -18,19 +18,20 @@
 #include <QThreadPool>
 
 #include "AssetUtils.h"
+#include "ReceivedMessage.h"
 
 class AssetServer : public ThreadedAssignment {
     Q_OBJECT
 public:
-    AssetServer(NLPacket& packet);
+    AssetServer(ReceivedMessage& message);
 
 public slots:
     void run();
 
 private slots:
-    void handleAssetGetInfo(QSharedPointer<NLPacket> packet, SharedNodePointer senderNode);
-    void handleAssetGet(QSharedPointer<NLPacket> packet, SharedNodePointer senderNode);
-    void handleAssetUpload(QSharedPointer<NLPacketList> packetList, SharedNodePointer senderNode);
+    void handleAssetGetInfo(QSharedPointer<ReceivedMessage> packet, SharedNodePointer senderNode);
+    void handleAssetGet(QSharedPointer<ReceivedMessage> packet, SharedNodePointer senderNode);
+    void handleAssetUpload(QSharedPointer<ReceivedMessage> packetList, SharedNodePointer senderNode);
     
     void sendStatsPacket();
     

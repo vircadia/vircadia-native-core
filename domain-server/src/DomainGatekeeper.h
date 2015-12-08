@@ -41,10 +41,10 @@ public:
     
     void removeICEPeer(const QUuid& peerUUID) { _icePeers.remove(peerUUID); }
 public slots:
-    void processConnectRequestPacket(QSharedPointer<NLPacket> packet);
-    void processICEPingPacket(QSharedPointer<NLPacket> packet);
-    void processICEPingReplyPacket(QSharedPointer<NLPacket> packet);
-    void processICEPeerInformationPacket(QSharedPointer<NLPacket> packet);
+    void processConnectRequestPacket(QSharedPointer<ReceivedMessage> message);
+    void processICEPingPacket(QSharedPointer<ReceivedMessage> message);
+    void processICEPingReplyPacket(QSharedPointer<ReceivedMessage> message);
+    void processICEPeerInformationPacket(QSharedPointer<ReceivedMessage> message);
 
     void publicKeyJSONCallback(QNetworkReply& requestReply);
     
