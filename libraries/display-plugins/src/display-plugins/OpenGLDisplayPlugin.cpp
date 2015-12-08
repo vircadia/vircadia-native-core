@@ -168,8 +168,9 @@ OpenGLDisplayPlugin::OpenGLDisplayPlugin() {
         // This is likely to be mooted by further planned changes.
         if (_active && _sceneTextureEscrow.depth() <= 1) {
 #else
-        if (_active && _sceneTextureEscrow.depth() < 1) {
+        if (_active && _sceneTextureEscrow.depth() <= 1) {
 #endif
+            _sinceSync.start();
             emit requestRender();
         }
     });

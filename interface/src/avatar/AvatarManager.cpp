@@ -154,24 +154,21 @@ void AvatarManager::updateOtherAvatars(float deltaTime) {
     const float targetFps = 60.0f;
     const float instantaneousFps = qApp->getLastInstanteousFps();
     const float paintWait = qApp->getLastPaintWait();
-    const float actual = 1.0f / instantaneousFps;
+    const float deduced = qApp->getLastDeducedNonVSyncFps();
+    /*const float actual = 1.0f / instantaneousFps;
     const float target = 1.0f / targetFps;
-    const float firstAdjusted = actual - paintWait /*+ 0.002f*/;
-    const float machinery = (paintWait > target) ? fmod(paintWait, target) : 0.0f;
-    const float secondAdjusted = firstAdjusted + machinery;
-    const float deduced = 1.0f / secondAdjusted;
     const float modulus = (instantaneousFps >= targetFps) ?
-                            (1.0f + floor(instantaneousFps / targetFps)) :
-                            (1.0f / floor(targetFps / instantaneousFps));
+            (1.0f + floor(instantaneousFps / targetFps)) :
+            (1.0f / floor(targetFps / instantaneousFps));
     const float cap = modulus * targetFps;
-    const float capped = glm::min(cap, deduced);
+    const float deduced = instantaneousFps + ((cap - instantaneousFps) * (paintWait / target));*/
     /*qCDebug(interfaceapp) << "dump " << instantaneousFps << (1000.0f * paintWait)
         << "(" << paintWait << actual
         << "(" << firstAdjusted << machinery << secondAdjusted
-        << ")" << deduced << ")";*/
+        << ")" << deduced << modulus << cap << capped << ")";*/
 
     //const float deduced = qApp->getLastDeducedNonVSyncFps();
-    const float distance = 1.0f / _renderDistanceController.update(capped, deltaTime, false, paintWait, instantaneousFps);
+    const float distance = 1.0f / _renderDistanceController.update(deduced, deltaTime, false, paintWait, instantaneousFps);
     _renderDistanceAverage.updateAverage(distance);
     _renderDistance = _renderDistanceAverage.getAverage();
     int renderableCount = 0;

@@ -1086,6 +1086,7 @@ void Application::paintGL() {
 
     // update fps moving average
     uint64_t now = usecTimestampNow();
+    qint64 sinceSync = getActiveDisplayPlugin()->getTimeSinceSync();
     static uint64_t lastPaintBegin{ now };
     uint64_t diff = now - lastPaintBegin;
     float instantaneousFps = 0.0f;
@@ -1122,8 +1123,8 @@ void Application::paintGL() {
     _inPaint = true;
     Finally clearFlagLambda([this] { _inPaint = false; });
 
-    _lastPaintWait = (float)(now - _paintWaitStart) / (float)USECS_PER_SECOND;
-    _lastInstantaneousFps = instantaneousFps;
+    //_lastPaintWait = (float)(now - _paintWaitStart) / (float)USECS_PER_SECOND;
+    //_lastInstantaneousFps = instantaneousFps;
     // Some LOD-like controls need to know a smoothly varying "potential" frame rate that doesn't
     // include time waiting for vsync, and which can report a number above target if we've got the headroom.
     // For example, if we're shooting for 75fps and paintWait is 3.3333ms (= 75% * 13.33ms), our deducedNonVSyncFps
@@ -1422,6 +1423,10 @@ void Application::paintGL() {
         });
     }
     _paintWaitStart = usecTimestampNow();
+    _lastPaintWait = (float)sinceSync / (float)MSECS_PER_SECOND;
+    _lastInstantaneousFps = instantaneousFps;
+    _lastDeducedNonVSyncFps = 1.0f / (((_paintWaitStart - now) / (float)USECS_PER_SECOND) + ((float)sinceSync / (float)MSECS_PER_SECOND));
+   // qCDebug(interfaceapp) << "pw/now/sync" << _paintWaitStart << now << sinceSync << "period" << (((_paintWaitStart - now) / (float)USECS_PER_SECOND) + ((float)sinceSync / (float)MSECS_PER_SECOND)) << "hz" << _lastDeducedNonVSyncFps;
 }
 
 void Application::runTests() {
