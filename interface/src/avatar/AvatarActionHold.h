@@ -50,7 +50,7 @@ private:
     bool _kinematic { false };
     bool _kinematicSetVelocity { false };
     bool _previousSet { false };
-    bool _ignoreIK { true };
+    bool _ignoreIK { false };
     glm::vec3 _previousPositionalTarget;
     glm::quat _previousRotationalTarget;
 
