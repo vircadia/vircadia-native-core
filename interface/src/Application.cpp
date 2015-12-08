@@ -3788,6 +3788,8 @@ void Application::domainChanged(const QString& domainHostname) {
     updateWindowTitle();
     clearDomainOctreeDetails();
     _domainConnectionRefusals.clear();
+    // disable physics until we have enough information about our new location to not cause craziness.
+    _physicsEnabled = false;
 }
 
 void Application::handleDomainConnectionDeniedPacket(QSharedPointer<ReceivedMessage> message) {
