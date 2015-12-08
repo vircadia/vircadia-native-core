@@ -83,7 +83,7 @@ public:
         { return (float)(usecTimestampNow() - getLastEdited()) / (float)USECS_PER_SECOND; }
     EntityPropertyFlags getChangedProperties() const;
 
-    bool parentDependentPropertyChanged(); // was there a changed in a property that requires parent info to interpret?
+    bool parentDependentPropertyChanged() const; // was there a changed in a property that requires parent info to interpret?
 
     AACube getMaximumAACube() const;
     AABox getAABox() const;

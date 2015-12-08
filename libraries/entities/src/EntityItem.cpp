@@ -1192,7 +1192,7 @@ const Transform EntityItem::getTransformToCenter() const {
     return result;
 }
 
-void EntityItem::setDimensions(const glm::vec3 value) {
+void EntityItem::setDimensions(const glm::vec3& value) {
     if (value.x <= 0.0f || value.y <= 0.0f || value.z <= 0.0f) {
         return;
     }

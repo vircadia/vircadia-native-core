@@ -178,7 +178,7 @@ public:
 
     /// Dimensions in meters (0.0 - TREE_SCALE)
     inline const glm::vec3 getDimensions() const { return getScale(); }
-    virtual void setDimensions(const glm::vec3 value);
+    virtual void setDimensions(const glm::vec3& value);
 
     float getGlowLevel() const { return _glowLevel; }
     void setGlowLevel(float glowLevel) { _glowLevel = glowLevel; }
@@ -379,8 +379,8 @@ public:
     QList<EntityActionPointer> getActionsOfType(EntityActionType typeToGet);
 
     // these are in the frame of this object
-    virtual glm::quat getJointRotation(int index) const { return glm::quat(); }
-    virtual glm::vec3 getJointTranslation(int index) const { return glm::vec3(0.0f); }
+    virtual glm::quat getAbsoluteJointRotationInObjectFrame(int index) const override { return glm::quat(); }
+    virtual glm::vec3 getAbsoluteJointTranslationInObjectFrame(int index) const override { return glm::vec3(0.0f); }
 
 protected:
 
