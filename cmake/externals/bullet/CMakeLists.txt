@@ -18,9 +18,9 @@ if (WIN32)
   ExternalProject_Add(
     ${EXTERNAL_NAME}
     # URL https://bullet.googlecode.com/files/bullet-2.82-r2704.zip
-    URL http://hifi-public.s3.amazonaws.com/dependencies/bullet-2.82-ccd-fix.zip
-    URL_MD5 d95b07eb120de7dd7786361c0b5a8d9f
-    CMAKE_ARGS ${PLATFORM_CMAKE_ARGS} -DCMAKE_INSTALL_PREFIX:PATH=<INSTALL_DIR> -DBUILD_EXTRAS=0 -DINSTALL_LIBS=1 -DBUILD_DEMOS=0 -DUSE_GLUT=0 -DUSE_DX11=0
+    URL http://hifi-public.s3.amazonaws.com/dependencies/bullet-2.83-ccd-and-cmake-fixes.tgz
+    URL_MD5 03051bf112dcc78ddd296f9cab38fd68
+    CMAKE_ARGS ${PLATFORM_CMAKE_ARGS} -DCMAKE_INSTALL_PREFIX:PATH=<INSTALL_DIR> -DBUILD_EXTRAS=0 -DINSTALL_LIBS=1 -DBUILD_BULLET3=0 -DBUILD_OPENGL3_DEMOS=0 -DBUILD_BULLET2_DEMOS=0 -DBUILD_UNIT_TESTS=0 -DUSE_GLUT=0 -DUSE_DX11=0
     LOG_DOWNLOAD 1
     LOG_CONFIGURE 1
     LOG_BUILD 1
@@ -30,7 +30,7 @@ else ()
   ExternalProject_Add(
     ${EXTERNAL_NAME}
     #URL http://bullet.googlecode.com/files/bullet-2.82-r2704.tgz
-    URL http://localhost/~andrew/bullet-2.83-ccd-and-cmake-fixes.tgz
+    URL http://hifi-public.s3.amazonaws.com/dependencies/bullet-2.83-ccd-and-cmake-fixes.tgz
     URL_MD5 03051bf112dcc78ddd296f9cab38fd68
     CMAKE_ARGS ${PLATFORM_CMAKE_ARGS} -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_INSTALL_PREFIX:PATH=<INSTALL_DIR> -DBUILD_EXTRAS=0 -DINSTALL_LIBS=1 -DBUILD_BULLET3=0 -DBUILD_OPENGL3_DEMOS=0 -DBUILD_BULLET2_DEMOS=0 -DBUILD_UNIT_TESTS=0 -DUSE_GLUT=0
     LOG_DOWNLOAD 1
