@@ -153,7 +153,7 @@ signals:
     void errorLoadingScript(const QString& scriptFilename);
     void update(float deltaTime);
     void scriptEnding();
-    void finished(const QString& fileNameString);
+    void finished(const QString& fileNameString, ScriptEngine* engine);
     void cleanupMenuItem(const QString& menuItemString);
     void printedMessage(const QString& message);
     void errorMessage(const QString& message);
