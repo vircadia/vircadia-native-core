@@ -21,7 +21,6 @@ public:
     virtual const QString & getName() const override;
 
     virtual float getTargetFrameRate() override { return  _framerateTarget ? (float) _framerateTarget : TARGET_FRAMERATE_Basic2DWindowOpenGL; }
-    virtual float getTargetFramePeriod() override { return _inverseFrameRate; }
 
     virtual void activate() override;
 
@@ -30,7 +29,6 @@ public:
     virtual void internalPresent() override;
 
     virtual bool isThrottled() const override;
-    virtual bool isVSynchronized() const override;
 
 protected:
     int getDesiredInterval() const;
@@ -44,6 +42,5 @@ private:
     QAction* _vsyncAction { nullptr };
     uint32_t _framerateTarget { 0 };
     int _fullscreenTarget{ -1 };
-    float _inverseFrameRate{ 1.0f }; //seconds
     bool _wantVsync { true };
 };

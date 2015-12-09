@@ -23,7 +23,6 @@ public:
     virtual bool isHmd() const override { return true; }
 
     virtual float getTargetFrameRate() override { return TARGET_RATE_OpenVr; }
-    virtual float getTargetFramePeriod() override { return 1.0f / TARGET_RATE_OpenVr; }
 
     virtual void activate() override;
     virtual void deactivate() override;

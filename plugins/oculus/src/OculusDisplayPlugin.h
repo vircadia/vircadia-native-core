@@ -21,7 +21,6 @@ public:
     virtual void setEyeRenderPose(uint32_t frameIndex, Eye eye, const glm::mat4& pose) override final;
 
     virtual float getTargetFrameRate() override { return TARGET_RATE_Oculus; }
-    virtual float getTargetFramePeriod() override { return 1.0f / TARGET_RATE_Oculus; }
 
 protected:
     virtual void internalPresent() override;

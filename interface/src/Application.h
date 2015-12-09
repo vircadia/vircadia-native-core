@@ -124,7 +124,6 @@ public:
     PickRay computePickRay() const;
 
     bool isThrottleRendering() const;
-    bool isVSynchronized() const;
 
     Camera* getCamera() { return &_myCamera; }
     // Represents the current view frustum of the avatar.
