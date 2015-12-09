@@ -71,6 +71,8 @@ public:
     virtual glm::quat getAbsoluteJointRotationInObjectFrame(int index) const override;
     virtual glm::vec3 getAbsoluteJointTranslationInObjectFrame(int index) const override;
 
+    void locationChanged();
+
 private:
     void remapTextures();
     
