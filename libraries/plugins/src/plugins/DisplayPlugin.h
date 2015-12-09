@@ -58,9 +58,7 @@ public:
     /// By default, all HMDs are stereo
     virtual bool isStereo() const { return isHmd(); }
     virtual bool isThrottled() const { return false; }
-    virtual bool isVSynchronized() const { return true; } // false when throttled or run by non vsync timer
     virtual float getTargetFrameRate() { return 0.0f; }
-    virtual float getTargetFramePeriod() { return 0.0f; }
 
     // Rendering support
 

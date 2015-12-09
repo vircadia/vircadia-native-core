@@ -166,6 +166,10 @@ public:
     bool getJointRotation(int jointIndex, glm::quat& rotation) const;
     bool getJointTranslation(int jointIndex, glm::vec3& translation) const;
 
+    // model frame
+    bool getAbsoluteJointRotationInRigFrame(int jointIndex, glm::quat& rotation) const;
+    bool getAbsoluteJointTranslationInRigFrame(int jointIndex, glm::vec3& translation) const;
+
     /// Returns the index of the parent of the indexed joint, or -1 if not found.
     int getParentJointIndex(int jointIndex) const;
 

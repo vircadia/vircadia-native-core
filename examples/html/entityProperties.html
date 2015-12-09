@@ -226,6 +226,7 @@
             var elRescaleDimensionsButton = document.getElementById("dimension-rescale-button");
 
             var elParentID = document.getElementById("property-parent-id");
+            var elParentJointIndex = document.getElementById("property-parent-joint-index");
 
             var elRegistrationX = document.getElementById("property-reg-x");
             var elRegistrationY = document.getElementById("property-reg-y");
@@ -456,6 +457,7 @@
                             elDimensionsZ.value = properties.dimensions.z.toFixed(2);
 
                             elParentID.value = properties.parentID;
+                            elParentJointIndex.value = properties.parentJointIndex;
 
                             elRegistrationX.value = properties.registrationPoint.x.toFixed(2);
                             elRegistrationY.value = properties.registrationPoint.y.toFixed(2);
@@ -671,6 +673,7 @@
             elDimensionsZ.addEventListener('change', dimensionsChangeFunction);
 
             elParentID.addEventListener('change', createEmitTextPropertyUpdateFunction('parentID'));
+            elParentJointIndex.addEventListener('change', createEmitNumberPropertyUpdateFunction('parentJointIndex'));
 
             var registrationChangeFunction = createEmitVec3PropertyUpdateFunction(
                 'registrationPoint', elRegistrationX, elRegistrationY, elRegistrationZ);
@@ -1065,6 +1068,12 @@
             <span class="label" style="float: left; margin-right: 6px">ParentID</span>
             <div class="value" style="overflow: hidden;">
                 <input type="text" id="property-parent-id">
+            </div>
+        </div>
+        <div class="property">
+            <span class="label" style="float: left; margin-right: 6px">ParentJointIndex</span>
+            <div class="value" style="overflow: hidden;">
+                <input type="text" id="property-parent-joint-index">
             </div>
         </div>
 

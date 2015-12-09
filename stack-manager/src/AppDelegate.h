@@ -53,7 +53,6 @@ signals:
     void indexPathChangeResponse(bool wasSuccessful);
     void stackStateChanged(bool isOn);
 private slots:
-    void onFileSuccessfullyInstalled(const QUrl& url);
     void requestDomainServerID();
     void handleDomainIDReply();
     void handleDomainGetReply();
@@ -64,16 +63,10 @@ private slots:
 
 private:
     void parseCommandLine();
-    void createExecutablePath();
-    void downloadLatestExecutablesAndRequirements();
 
     void changeDomainServerIndexPath(const QString& newPath);
 
     QNetworkAccessManager* _manager;
-    bool _qtReady;
-    bool _dsReady;
-    bool _dsResourcesReady;
-    bool _acReady;
     BackgroundProcess* _domainServerProcess;
     BackgroundProcess* _acMonitorProcess;
     QHash<QUuid, BackgroundProcess*> _scriptProcesses;

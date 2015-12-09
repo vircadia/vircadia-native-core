@@ -1,16 +1,20 @@
 set(TARGET_NAME "stack-manager")
 set(BUILD_BUNDLE YES)
 setup_hifi_project(Widgets Gui Svg Core Network WebKitWidgets)
+add_dependencies(${TARGET_NAME} assignment-client domain-server)
+include_application_version()
 
 if (WIN32)
   target_zlib()
 endif ()
 target_quazip()
 
-set_target_properties(
-  ${TARGET_NAME} PROPERTIES
-  EXCLUDE_FROM_ALL TRUE
-)
+if (UNIX)
+  set_target_properties(
+    ${TARGET_NAME} PROPERTIES
+    EXCLUDE_FROM_ALL TRUE
+  )
+endif (UNIX)
 
 if (DEFINED ENV{JOB_ID})
   set(PR_BUILD "false")
@@ -46,3 +50,4 @@ if (APPLE)
 endif ()
 
 package_libraries_for_deployment()
+consolidate_stack_components()

@@ -124,7 +124,6 @@ public:
     PickRay computePickRay() const;
 
     bool isThrottleRendering() const;
-    bool isVSynchronized() const;
 
     Camera* getCamera() { return &_myCamera; }
     // Represents the current view frustum of the avatar.
@@ -162,11 +161,8 @@ public:
     uint32_t getFrameCount() { return _frameCount; }
     float getFps() const { return _fps; }
     float getTargetFrameRate(); // frames/second
-    float getTargetFramePeriod(); // seconds
     float getLastInstanteousFps() const { return _lastInstantaneousFps; }
-    float getLastPaintWait() const { return _lastPaintWait; };
-    float getLastDeducedNonVSyncFps() const { return _lastDeducedNonVSyncFps; }
-    void setMarginForDeducedFramePeriod(float newValue) { _marginForDeducedFramePeriod = newValue; }
+    float getLastUnsynchronizedFps() const { return _lastUnsynchronizedFps; }
 
     float getFieldOfView() { return _fieldOfView.get(); }
     void setFieldOfView(float fov);
@@ -441,9 +437,7 @@ private:
     QElapsedTimer _timerStart;
     QElapsedTimer _lastTimeUpdated;
     float _lastInstantaneousFps { 0.0f };
-    float _lastPaintWait { 0.0f };
-    float _lastDeducedNonVSyncFps { 0.0f };
-    float _marginForDeducedFramePeriod{ 0.002f }; // 2ms, adjustable
+    float _lastUnsynchronizedFps { 0.0f };
 
     ShapeManager _shapeManager;
     PhysicalEntitySimulation _entitySimulation;
