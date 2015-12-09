@@ -143,13 +143,15 @@ namespace render {
 
 
 
-EntityItemPointer RenderableParticleEffectEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
-    return std::make_shared<RenderableParticleEffectEntityItem>(entityID, properties);
+EntityItemPointer RenderableParticleEffectEntityItem::factory(const EntityItemID& entityID,
+                                                              const EntityItemProperties& properties) {
+    auto entity = std::make_shared<RenderableParticleEffectEntityItem>(entityID);
+    entity->setProperties(properties);
+    return entity;
 }
 
-RenderableParticleEffectEntityItem::RenderableParticleEffectEntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties) :
-    ParticleEffectEntityItem(entityItemID, properties) {
-
+RenderableParticleEffectEntityItem::RenderableParticleEffectEntityItem(const EntityItemID& entityItemID) :
+    ParticleEffectEntityItem(entityItemID) {
     // lazy creation of particle system pipeline
     if (!_untexturedPipeline || !_texturedPipeline) {
         createPipelines();
@@ -159,14 +161,13 @@ RenderableParticleEffectEntityItem::RenderableParticleEffectEntityItem(const Ent
 bool RenderableParticleEffectEntityItem::addToScene(EntityItemPointer self,
                                                     render::ScenePointer scene,
                                                     render::PendingChanges& pendingChanges) {
-
     _scene = scene;
     _renderItemId = _scene->allocateID();
     auto particlePayloadData = std::make_shared<ParticlePayloadData>();
     particlePayloadData->setPipeline(_untexturedPipeline);
     auto renderPayload = std::make_shared<ParticlePayloadData::Payload>(particlePayloadData);
     render::Item::Status::Getters statusGetters;
-    makeEntityItemStatusGetters(shared_from_this(), statusGetters);
+    makeEntityItemStatusGetters(getThisPointer(), statusGetters);
     renderPayload->addStatusGetters(statusGetters);
     pendingChanges.resetItem(_renderItemId, renderPayload);
     return true;
@@ -268,11 +269,11 @@ void RenderableParticleEffectEntityItem::createPipelines() {
         state->setBlendFunction(true, gpu::State::SRC_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::ONE,
                                 gpu::State::FACTOR_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::ONE);
 
-        auto vertShader = gpu::ShaderPointer(gpu::Shader::createVertex(std::string(untextured_particle_vert)));
-        auto fragShader = gpu::ShaderPointer(gpu::Shader::createPixel(std::string(untextured_particle_frag)));
+        auto vertShader = gpu::Shader::createVertex(std::string(untextured_particle_vert));
+        auto fragShader = gpu::Shader::createPixel(std::string(untextured_particle_frag));
 
-        auto program = gpu::ShaderPointer(gpu::Shader::createProgram(vertShader, fragShader));
-        _untexturedPipeline = gpu::PipelinePointer(gpu::Pipeline::create(program, state));
+        auto program = gpu::Shader::createProgram(vertShader, fragShader);
+        _untexturedPipeline = gpu::Pipeline::create(program, state);
     }
     if (!_texturedPipeline) {
         auto state = std::make_shared<gpu::State>();
@@ -281,11 +282,10 @@ void RenderableParticleEffectEntityItem::createPipelines() {
         state->setBlendFunction(true, gpu::State::SRC_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::ONE,
                                 gpu::State::FACTOR_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::ONE);
 
-        auto vertShader = gpu::ShaderPointer(gpu::Shader::createVertex(std::string(textured_particle_vert)));
-        auto fragShader = gpu::ShaderPointer(gpu::Shader::createPixel(std::string(textured_particle_frag)));
+        auto vertShader = gpu::Shader::createVertex(std::string(textured_particle_vert));
+        auto fragShader = gpu::Shader::createPixel(std::string(textured_particle_frag));
 
-        auto program = gpu::ShaderPointer(gpu::Shader::createProgram(vertShader, fragShader));
-        _texturedPipeline = gpu::PipelinePointer(gpu::Pipeline::create(program, state));
-   
+        auto program = gpu::Shader::createProgram(vertShader, fragShader);
+        _texturedPipeline = gpu::Pipeline::create(program, state);
     }
 }

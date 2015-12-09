@@ -20,6 +20,9 @@ var leapHands = (function () {
         hasHandAndWristJoints,
         handToWristOffset = [],  // For avatars without a wrist joint we control an estimate of a proper hand joint position
         HAND_OFFSET = 0.4,  // Relative distance of wrist to hand versus wrist to index finger knuckle
+        handAnimationStateHandlers,
+        handAnimationStateFunctions,
+        handAnimationStateProperties,
         hands,
         wrists,
         NUM_HANDS = 2,  // 0 = left; 1 = right
@@ -37,7 +40,14 @@ var leapHands = (function () {
         avatarScale,
         avatarFaceModelURL,
         avatarSkeletonModelURL,
-        settingsTimer;
+        settingsTimer,
+        HMD_CAMERA_TO_AVATAR_ROTATION = [
+            Quat.angleAxis(180.0, { x: 0, y: 0, z: 1 }),
+            Quat.angleAxis(-180.0, { x: 0, y: 0, z: 1 })
+        ],
+        DESKTOP_CAMERA_TO_AVATAR_ROTATION =
+            Quat.multiply(Quat.angleAxis(180.0, { x: 0, y: 1, z: 0 }), Quat.angleAxis(90.0, { x: 0, y: 0, z: 1 })),
+        LEAP_THUMB_ROOT_ADJUST = [Quat.fromPitchYawRollDegrees(0, 0, 20), Quat.fromPitchYawRollDegrees(0, 0, -20)];
 
     function printSkeletonJointNames() {
         var jointNames,
@@ -125,6 +135,26 @@ var leapHands = (function () {
         */
     }
 
+    function animateLeftHand() {
+        var ROTATION_AND_POSITION = 0;
+
+        return {
+            leftHandType: ROTATION_AND_POSITION,
+            leftHandPosition: hands[0].position,
+            leftHandRotation: hands[0].rotation
+        };
+    }
+
+    function animateRightHand() {
+        var ROTATION_AND_POSITION = 0;
+
+        return {
+            rightHandType: ROTATION_AND_POSITION,
+            rightHandPosition: hands[1].position,
+            rightHandRotation: hands[1].rotation
+        };
+    }
+
     function finishCalibration() {
         var avatarPosition,
             handPosition,
@@ -166,10 +196,8 @@ var leapHands = (function () {
 
         MyAvatar.clearJointData("LeftHand");
         MyAvatar.clearJointData("LeftForeArm");
-        MyAvatar.clearJointData("LeftArm");
         MyAvatar.clearJointData("RightHand");
         MyAvatar.clearJointData("RightForeArm");
-        MyAvatar.clearJointData("RightArm");
 
         calibrationStatus = CALIBRATED;
         print("Leap Motion: Calibrated");
@@ -193,13 +221,10 @@ var leapHands = (function () {
         }
 
         // Set avatar arms vertical, forearms horizontal, as "zero" position for calibration
-        MyAvatar.setJointData("LeftArm", Quat.fromPitchYawRollDegrees(90.0, 0.0, -90.0));
-        MyAvatar.setJointData("LeftForeArm", Quat.fromPitchYawRollDegrees(90.0, 0.0, 180.0));
-        MyAvatar.setJointData("LeftHand", Quat.fromPitchYawRollRadians(0.0, 0.0, 0.0));
-        MyAvatar.setJointData("RightArm", Quat.fromPitchYawRollDegrees(90.0, 0.0, 90.0));
-        MyAvatar.setJointData("RightForeArm", Quat.fromPitchYawRollDegrees(90.0, 0.0, 180.0));
-        MyAvatar.setJointData("RightHand", Quat.fromPitchYawRollRadians(0.0, 0.0, 0.0));
-
+        MyAvatar.setJointRotation("LeftForeArm", Quat.fromPitchYawRollDegrees(0.0, 0.0, 90.0));
+        MyAvatar.setJointRotation("LeftHand", Quat.fromPitchYawRollDegrees(0.0, 90.0, 0.0));
+        MyAvatar.setJointRotation("RightForeArm", Quat.fromPitchYawRollDegrees(0.0, 0.0, -90.0));
+        MyAvatar.setJointRotation("RightHand", Quat.fromPitchYawRollDegrees(0.0, -90.0, 0.0));
 
         // Wait for arms to assume their positions before calculating
         Script.setTimeout(finishCalibration, CALIBRATION_TIME);
@@ -320,6 +345,13 @@ var leapHands = (function () {
             ]
         ];
 
+        handAnimationStateHandlers = [null, null];
+        handAnimationStateFunctions = [animateLeftHand, animateRightHand];
+        handAnimationStateProperties = [
+            ["leftHandType", "leftHandPosition", "leftHandRotation"],
+            ["rightHandType", "rightHandPosition", "rightHandPosition"]
+        ];
+
         setIsOnHMD();
 
         settingsTimer = Script.setInterval(checkSettings, 2000);
@@ -349,6 +381,12 @@ var leapHands = (function () {
                     return;
                 }
 
+                // Hand animation handlers ...
+                if (handAnimationStateHandlers[h] === null) {
+                    handAnimationStateHandlers[h] = MyAvatar.addAnimationStateHandler(handAnimationStateFunctions[h],
+                        handAnimationStateProperties[h]);
+                }
+
                 // Hand position ...
                 handOffset = hands[h].controller.getAbsTranslation();
                 handRotation = hands[h].controller.getAbsRotation();
@@ -363,46 +401,41 @@ var leapHands = (function () {
 
                     // Hand offset in camera coordinates ...
                     handOffset = {
-                        x: hands[h].zeroPosition.x - handOffset.x,
-                        y: hands[h].zeroPosition.y - handOffset.z,
-                        z: hands[h].zeroPosition.z + handOffset.y
+                        x: -handOffset.x,
+                        y: -handOffset.z,
+                        z: -handOffset.y - hands[h].zeroPosition.z
                     };
-                    handOffset.z = -handOffset.z;
 
                     // Hand offset in world coordinates ...
                     cameraOrientation = Camera.getOrientation();
                     handOffset = Vec3.sum(Camera.getPosition(), Vec3.multiplyQbyV(cameraOrientation, handOffset));
 
-                    // Hand offset  in avatar coordinates ...
+                    // Hand offset in avatar coordinates ...
                     inverseAvatarOrientation = Quat.inverse(MyAvatar.orientation);
                     handOffset = Vec3.subtract(handOffset, MyAvatar.position);
                     handOffset = Vec3.multiplyQbyV(inverseAvatarOrientation, handOffset);
                     handOffset.z = -handOffset.z;
                     handOffset.x = -handOffset.x;
 
+
                     // Hand rotation in camera coordinates ...
                     handRotation = {
-                        x: handRotation.z,
-                        y: handRotation.y,
-                        z: handRotation.x,
+                        x: -handRotation.y,
+                        y: -handRotation.z,
+                        z: -handRotation.x,
                         w: handRotation.w
                     };
 
                     // Hand rotation in avatar coordinates ...
-                    if (h === 0) {
-                        handRotation.x = -handRotation.x;
-                        handRotation = Quat.multiply(Quat.angleAxis(90.0, { x: 1, y: 0, z: 0 }), handRotation);
-                        handRotation = Quat.multiply(Quat.angleAxis(90.0, { x: 0, y: 0, z: 1 }), handRotation);
-                    } else {
-                        handRotation.z = -handRotation.z;
-                        handRotation = Quat.multiply(Quat.angleAxis(90.0, { x: 1, y: 0, z: 0 }), handRotation);
-                        handRotation = Quat.multiply(Quat.angleAxis(-90.0, { x: 0, y: 0, z: 1 }), handRotation);
-                    }
-
-                    cameraOrientation.x = -cameraOrientation.x;
-                    cameraOrientation.z = -cameraOrientation.z;
-                    handRotation = Quat.multiply(cameraOrientation, handRotation);
-                    handRotation = Quat.multiply(inverseAvatarOrientation, handRotation);
+                    handRotation = Quat.multiply(HMD_CAMERA_TO_AVATAR_ROTATION[h], handRotation);
+                    cameraOrientation = {
+                        x: cameraOrientation.z,
+                        y: cameraOrientation.y,
+                        z: cameraOrientation.x,
+                        w: cameraOrientation.w
+                    };
+                    cameraOrientation = Quat.multiply(cameraOrientation, Quat.inverse(MyAvatar.orientation));
+                    handRotation = Quat.multiply(handRotation, cameraOrientation);  // Works!!!
 
                 } else {
 
@@ -428,19 +461,12 @@ var leapHands = (function () {
                     };
 
                     // Hand rotation in avatar coordinates ...
-                    if (h === 0) {
-                        handRotation.x = -handRotation.x;
-                        handRotation = Quat.multiply(Quat.angleAxis(-90.0, { x: 0, y: 1, z: 0 }),
-                            handRotation);
-                    } else {
-                        handRotation.z = -handRotation.z;
-                        handRotation = Quat.multiply(Quat.angleAxis(90.0, { x: 0, y: 1, z: 0 }),
-                            handRotation);
-                    }
+                    handRotation = Quat.multiply(DESKTOP_CAMERA_TO_AVATAR_ROTATION, handRotation);
                 }
 
-                // Set hand position and orientation ...
-                MyAvatar.setJointModelPositionAndOrientation(hands[h].jointName, handOffset, handRotation, true);
+                // Set hand position and orientation for animation state handler ...
+                hands[h].position = handOffset;
+                hands[h].rotation = handRotation;
 
                 // Set finger joints ...
                 for (i = 0; i < NUM_FINGERS; i += 1) {
@@ -454,6 +480,10 @@ var leapHands = (function () {
                                     z: side * -locRotation.x,
                                     w: locRotation.w
                                 };
+                                if (j === 0) {
+                                    // Adjust avatar thumb root joint rotation to make avatar hands look better
+                                    locRotation = Quat.multiply(LEAP_THUMB_ROOT_ADJUST[h], locRotation);
+                                }
                             } else {
                                 locRotation = {
                                     x: -locRotation.x,
@@ -462,7 +492,7 @@ var leapHands = (function () {
                                     w: locRotation.w
                                 };
                             }
-                            MyAvatar.setJointData(fingers[h][i][j].jointName, locRotation);
+                            MyAvatar.setJointRotation(fingers[h][i][j].jointName, locRotation);
                         }
                     }
                 }
@@ -476,14 +506,9 @@ var leapHands = (function () {
                     hands[h].inactiveCount += 1;
 
                     if (hands[h].inactiveCount === MAX_HAND_INACTIVE_COUNT) {
-                        if (h === 0) {
-                            MyAvatar.clearJointData("LeftHand");
-                            MyAvatar.clearJointData("LeftForeArm");
-                            MyAvatar.clearJointData("LeftArm");
-                        } else {
-                            MyAvatar.clearJointData("RightHand");
-                            MyAvatar.clearJointData("RightForeArm");
-                            MyAvatar.clearJointData("RightArm");
+                        if (handAnimationStateHandlers[h] !== null) {
+                            MyAvatar.removeAnimationStateHandler(handAnimationStateHandlers[h]);
+                            handAnimationStateHandlers[h] = null;
                         }
                     }
                 }
@@ -501,6 +526,9 @@ var leapHands = (function () {
         for (h = 0; h < NUM_HANDS; h += 1) {
             Controller.releaseInputController(hands[h].controller);
             Controller.releaseInputController(wrists[h].controller);
+            if (handAnimationStateHandlers[h] !== null) {
+                MyAvatar.removeAnimationStateHandler(handAnimationStateHandlers[h]);
+            }
             for (i = 0; i < NUM_FINGERS; i += 1) {
                 for (j = 0; j < NUM_FINGER_JOINTS; j += 1) {
                     if (fingers[h][i][j].controller !== null) {

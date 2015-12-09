@@ -52,7 +52,6 @@ public slots:
     void cachesSizeDialog();
     void editPreferences();
     void editAttachments();
-    void editAnimations();
     void audioStatsDetails();
     void bandwidthDetails();
     void lodTools();

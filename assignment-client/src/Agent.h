@@ -31,7 +31,7 @@
 
 class Agent : public ThreadedAssignment {
     Q_OBJECT
-    
+
     Q_PROPERTY(bool isAvatar READ isAvatar WRITE setIsAvatar)
     Q_PROPERTY(bool isPlayingAvatarSound READ isPlayingAvatarSound)
     Q_PROPERTY(bool isListeningToAudioStream READ isListeningToAudioStream WRITE setIsListeningToAudioStream)
@@ -39,8 +39,8 @@ class Agent : public ThreadedAssignment {
     Q_PROPERTY(QUuid sessionUUID READ getSessionUUID)
 
 public:
-    Agent(NLPacket& packet);
-    
+    Agent(ReceivedMessage& message);
+
     void setIsAvatar(bool isAvatar);
     bool isAvatar() const { return _isAvatar; }
 
@@ -53,7 +53,7 @@ public:
     QUuid getSessionUUID() const;
 
     virtual void aboutToFinish();
-    
+
 public slots:
     void run();
     void playAvatarSound(Sound* avatarSound) { setAvatarSound(avatarSound); }
@@ -62,17 +62,18 @@ private slots:
     void requestScript();
     void scriptRequestFinished();
     void executeScript();
-    
-    void handleAudioPacket(QSharedPointer<NLPacket> packet);
-    void handleOctreePacket(QSharedPointer<NLPacket> packet, SharedNodePointer senderNode);
-    void handleJurisdictionPacket(QSharedPointer<NLPacket> packet, SharedNodePointer senderNode);
+
+    void handleAudioPacket(QSharedPointer<ReceivedMessage> message);
+    void handleOctreePacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode);
+    void handleJurisdictionPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode);
+
     void processAgentAvatarAndAudio(float deltaTime);
 
 private:
     std::unique_ptr<ScriptEngine> _scriptEngine;
     EntityEditPacketSender _entityEditSender;
     EntityTreeHeadlessViewer _entityViewer;
-    
+
     MixedAudioStream _receivedAudioStream;
     float _lastReceivedAudioLoudness;
 

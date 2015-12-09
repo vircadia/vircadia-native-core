@@ -14,6 +14,7 @@
 
 #include <QtCore/QSize>
 #include <QtCore/QPoint>
+class QImage;
 
 #include <GLMHelpers.h>
 #include <RegisteredMetaTypes.h>
@@ -66,28 +67,14 @@ public:
     virtual void stop() = 0;
 
     /**
-     *  Called by the application before the frame rendering.  Can be used for
-     *  render timing related calls (for instance, the Oculus begin frame timing
-     *  call)
-     */
-    virtual void preRender() = 0;
-    /**
-     *  Called by the application immediately before calling the display function.
-     *  For OpenGL based plugins, this is the best place to put activate the output
-     *  OpenGL context
-     */
-    virtual void preDisplay() = 0;
-
-    /**
      *  Sends the scene texture to the display plugin.
      */
-    virtual void display(uint32_t sceneTexture, const glm::uvec2& sceneSize) = 0;
+    virtual void submitSceneTexture(uint32_t frameIndex, uint32_t sceneTexture, const glm::uvec2& sceneSize) = 0;
 
     /**
-     *  Called by the application immeidately after display.  For OpenGL based
-     *  displays, this is the best place to put the buffer swap
-     */
-    virtual void finishFrame() = 0;
+    *  Sends the scene texture to the display plugin.
+    */
+    virtual void submitOverlayTexture(uint32_t overlayTexture, const glm::uvec2& overlaySize) = 0;
 
     // Does the rendering surface have current focus?
     virtual bool hasFocus() const = 0;
@@ -110,18 +97,21 @@ public:
         return baseProjection;
     }
 
+    // Fetch the most recently displayed image as a QImage
+    virtual QImage getScreenshot() const = 0;
+
     // HMD specific methods
     // TODO move these into another class?
     virtual glm::mat4 getEyeToHeadTransform(Eye eye) const {
         static const glm::mat4 transform; return transform;
     }
 
-    virtual glm::mat4 getHeadPose() const {
+    virtual glm::mat4 getHeadPose(uint32_t frameIndex) const {
         static const glm::mat4 pose; return pose;
     }
 
     // Needed for timewarp style features
-    virtual void setEyeRenderPose(Eye eye, const glm::mat4& pose) {
+    virtual void setEyeRenderPose(uint32_t frameIndex, Eye eye, const glm::mat4& pose) {
         // NOOP
     }
 
@@ -129,8 +119,8 @@ public:
 
     virtual void abandonCalibration() {}
     virtual void resetSensors() {}
-    virtual float devicePixelRatio() { return 1.0;  }
-
+    virtual float devicePixelRatio() { return 1.0f; }
+    virtual float presentRate() { return -1.0f; }
 
     static const QString& MENU_PATH();
 signals:

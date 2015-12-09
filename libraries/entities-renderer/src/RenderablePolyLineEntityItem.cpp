@@ -23,15 +23,16 @@
 #include "paintStroke_frag.h"
 
 
-
 EntityItemPointer RenderablePolyLineEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
-    return EntityItemPointer(new RenderablePolyLineEntityItem(entityID, properties));
+    EntityItemPointer entity{ new RenderablePolyLineEntityItem(entityID) };
+    entity->setProperties(properties);
+    return entity;
 }
 
-RenderablePolyLineEntityItem::RenderablePolyLineEntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties) :
-PolyLineEntityItem(entityItemID, properties) {
+RenderablePolyLineEntityItem::RenderablePolyLineEntityItem(const EntityItemID& entityItemID) :
+    PolyLineEntityItem(entityItemID) {
     _numVertices = 0;
-
+    _vertices = QVector<glm::vec3>(0.0f);
 }
 
 gpu::PipelinePointer RenderablePolyLineEntityItem::_pipeline;
@@ -49,9 +50,9 @@ void RenderablePolyLineEntityItem::createPipeline() {
     _format->setAttribute(gpu::Stream::COLOR, 0, gpu::Element::COLOR_RGBA_32, COLOR_OFFSET);
     _format->setAttribute(gpu::Stream::TEXCOORD, 0, gpu::Element(gpu::VEC2, gpu::FLOAT, gpu::UV), TEXTURE_OFFSET);
 
-    auto VS = gpu::ShaderPointer(gpu::Shader::createVertex(std::string(paintStroke_vert)));
-    auto PS = gpu::ShaderPointer(gpu::Shader::createPixel(std::string(paintStroke_frag)));
-    gpu::ShaderPointer program = gpu::ShaderPointer(gpu::Shader::createProgram(VS, PS));
+    auto VS = gpu::Shader::createVertex(std::string(paintStroke_vert));
+    auto PS = gpu::Shader::createPixel(std::string(paintStroke_frag));
+    gpu::ShaderPointer program = gpu::Shader::createProgram(VS, PS);
 
     gpu::Shader::BindingSet slotBindings;
     PAINTSTROKE_GPU_SLOT = 0;
@@ -63,7 +64,7 @@ void RenderablePolyLineEntityItem::createPipeline() {
     state->setBlendFunction(true,
         gpu::State::SRC_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::INV_SRC_ALPHA,
         gpu::State::FACTOR_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::ONE);
-    _pipeline = gpu::PipelinePointer(gpu::Pipeline::create(program, state));
+    _pipeline = gpu::Pipeline::create(program, state);
 }
 
 void RenderablePolyLineEntityItem::updateGeometry() {
@@ -114,13 +115,56 @@ void RenderablePolyLineEntityItem::updateGeometry() {
         _numVertices += 2;
     }
     _pointsChanged = false;
+    _normalsChanged = false;
+    _strokeWidthsChanged = false;
+}
+
+void RenderablePolyLineEntityItem::updateVertices() {
+    // Calculate the minimum vector size out of normals, points, and stroke widths
+    int minVectorSize = _normals.size();
+    if (_points.size() < minVectorSize) {
+        minVectorSize = _points.size();
+    }
+    if (_strokeWidths.size() < minVectorSize) {
+        minVectorSize = _strokeWidths.size();
+    }
+
+    _vertices.clear();
+    glm::vec3 v1, v2, tangent, binormal, point;
+
+    int finalIndex = minVectorSize - 1;
+    for (int i = 0; i < finalIndex; i++) {
+        float width = _strokeWidths.at(i);
+        point = _points.at(i);
+
+        tangent = _points.at(i);
+
+        tangent = _points.at(i + 1) - point; 
+        glm::vec3 normal = _normals.at(i);
+        binormal = glm::normalize(glm::cross(tangent, normal)) * width;
+
+        // Check to make sure binormal is not a NAN. If it is, don't add to vertices vector
+        if (binormal.x != binormal.x) {
+            continue;
+        }
+        v1 = point + binormal;
+        v2 = point - binormal;
+        _vertices << v1 << v2;
+    }
+
+    // For last point we can assume binormals are the same since it represents the last two vertices of quad
+    point = _points.at(finalIndex);
+    v1 = point + binormal;
+    v2 = point - binormal;
+    _vertices << v1 << v2;
+
 
 }
 
 
 void RenderablePolyLineEntityItem::render(RenderArgs* args) {
     QWriteLocker lock(&_quadReadWriteLock);
-    if (_points.size() < 2 || _normals.size () < 2 || _vertices.size() < 2) {
+    if (_points.size() < 2 || _normals.size () < 2 || _strokeWidths.size() < 2) {
         return;
     }
 
@@ -139,7 +183,8 @@ void RenderablePolyLineEntityItem::render(RenderArgs* args) {
     Q_ASSERT(getType() == EntityTypes::PolyLine);
 
     Q_ASSERT(args->_batch);
-    if (_pointsChanged) {
+    if (_pointsChanged || _strokeWidthsChanged || _normalsChanged) {
+        updateVertices();
         updateGeometry();
     }
 

@@ -32,28 +32,15 @@ using AtomicUIntStat = std::atomic<uintmax_t>;
 class EncodeBitstreamParams;
 class Octree;
 class OctreeElement;
-class OctreeElementBag;
-class OctreeElementDeleteHook;
 class OctreePacketData;
 class ReadBitstreamToTreeParams;
 class Shape;
 class VoxelSystem;
-typedef std::shared_ptr<OctreeElement> OctreeElementPointer;
-typedef std::shared_ptr<const OctreeElement> ConstOctreeElementPointer;
-typedef std::shared_ptr<Octree> OctreePointer;
 
-// Callers who want delete hook callbacks should implement this class
-class OctreeElementDeleteHook {
-public:
-    virtual void elementDeleted(OctreeElementPointer element) = 0;
-};
-
-// Callers who want update hook callbacks should implement this class
-class OctreeElementUpdateHook {
-public:
-    virtual void elementUpdated(OctreeElementPointer element) = 0;
-};
-
+using OctreeElementPointer = std::shared_ptr<OctreeElement>;
+using OctreeElementWeakPointer = std::weak_ptr<OctreeElement>;
+using ConstOctreeElementPointer = std::shared_ptr<const OctreeElement>;
+using OctreePointer = std::shared_ptr<Octree>;
 
 class OctreeElement: public std::enable_shared_from_this<OctreeElement> {
 
@@ -103,7 +90,7 @@ public:
     virtual bool shouldRecurseChildTree(int childIndex, EncodeBitstreamParams& params) const { return true; }
     
     virtual void updateEncodedData(int childIndex, AppendState childAppendState, EncodeBitstreamParams& params) const { }
-    virtual void elementEncodeComplete(EncodeBitstreamParams& params, OctreeElementBag* bag) const { }
+    virtual void elementEncodeComplete(EncodeBitstreamParams& params) const { }
 
     /// Override to serialize the state of this element. This is used for persistance and for transmission across the network.
     virtual AppendState appendElementData(OctreePacketData* packetData, EncodeBitstreamParams& params) const 
@@ -181,12 +168,6 @@ public:
     bool matchesSourceUUID(const QUuid& sourceUUID) const;
     static uint16_t getSourceNodeUUIDKey(const QUuid& sourceUUID);
 
-    static void addDeleteHook(OctreeElementDeleteHook* hook);
-    static void removeDeleteHook(OctreeElementDeleteHook* hook);
-
-    static void addUpdateHook(OctreeElementUpdateHook* hook);
-    static void removeUpdateHook(OctreeElementUpdateHook* hook);
-
     static void resetPopulationStatistics();
     static unsigned long getNodeCount() { return _voxelNodeCount; }
     static unsigned long getInternalNodeCount() { return _voxelNodeCount - _voxelNodeLeafCount; }
@@ -244,8 +225,6 @@ protected:
     void setChildAtIndex(int childIndex, OctreeElementPointer child);
 
     void calculateAACube();
-    void notifyDeleteHooks();
-    void notifyUpdateHooks();
 
     AACube _cube; /// Client and server, axis aligned box for bounds of this voxel, 48 bytes
 
@@ -286,14 +265,6 @@ protected:
          _octcodePointer : 1, /// Client and Server only, is this voxel's octal code a pointer or buffer, 1 bit
          _unknownBufferIndex : 1,
          _childrenExternal : 1; /// Client only, is this voxel's VBO buffer the unknown buffer index, 1 bit
-
-    bool _deleteHooksNotified = false;
-
-    static QReadWriteLock _deleteHooksLock;
-    static std::vector<OctreeElementDeleteHook*> _deleteHooks;
-
-    //static QReadWriteLock _updateHooksLock;
-    static std::vector<OctreeElementUpdateHook*> _updateHooks;
 
     static AtomicUIntStat _voxelNodeCount;
     static AtomicUIntStat _voxelNodeLeafCount;

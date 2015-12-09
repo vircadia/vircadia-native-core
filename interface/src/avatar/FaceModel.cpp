@@ -32,10 +32,7 @@ void FaceModel::simulate(float deltaTime, bool fullUpdate) {
         neckPosition = owningAvatar->getPosition();
     }
     setTranslation(neckPosition);
-    glm::quat neckParentRotation;
-    if (!owningAvatar->getSkeletonModel().getNeckParentRotationFromDefaultOrientation(neckParentRotation)) {
-        neckParentRotation = owningAvatar->getOrientation();
-    }
+    glm::quat neckParentRotation = owningAvatar->getOrientation();
     setRotation(neckParentRotation);
     setScale(glm::vec3(1.0f, 1.0f, 1.0f) * _owningHead->getScale());
 

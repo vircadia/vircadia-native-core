@@ -16,7 +16,9 @@
 #include <QtNetwork/QNetworkRequest>
 #include <QtNetwork/QNetworkReply>
 
+#include <AssetClient.h>
 #include <AvatarHashMap.h>
+#include <AudioInjectorManager.h>
 #include <AssetClient.h>
 #include <MessagesClient.h>
 #include <NetworkAccessManager.h>
@@ -42,8 +44,8 @@
 
 static const int RECEIVED_AUDIO_STREAM_CAPACITY_FRAMES = 10;
 
-Agent::Agent(NLPacket& packet) :
-    ThreadedAssignment(packet),
+Agent::Agent(ReceivedMessage& message) :
+    ThreadedAssignment(message),
     _entityEditSender(),
     _receivedAudioStream(AudioConstants::NETWORK_FRAME_SAMPLES_STEREO, RECEIVED_AUDIO_STREAM_CAPACITY_FRAMES,
         InboundAudioStream::Settings(0, false, RECEIVED_AUDIO_STREAM_CAPACITY_FRAMES, false,
@@ -62,12 +64,13 @@ Agent::Agent(NLPacket& packet) :
 
     DependencyManager::set<ResourceCacheSharedItems>();
     DependencyManager::set<SoundCache>();
+    DependencyManager::set<AudioInjectorManager>();
     DependencyManager::set<recording::Deck>();
     DependencyManager::set<recording::Recorder>();
     DependencyManager::set<RecordingScriptingInterface>();
 
     auto& packetReceiver = DependencyManager::get<NodeList>()->getPacketReceiver();
-    
+
     packetReceiver.registerListenerForTypes(
         { PacketType::MixedAudio, PacketType::SilentAudioFrame },
         this, "handleAudioPacket");
@@ -77,46 +80,46 @@ Agent::Agent(NLPacket& packet) :
     packetReceiver.registerListener(PacketType::Jurisdiction, this, "handleJurisdictionPacket");
 }
 
-void Agent::handleOctreePacket(QSharedPointer<NLPacket> packet, SharedNodePointer senderNode) {
-    auto packetType = packet->getType();
+void Agent::handleOctreePacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode) {
+    auto packetType = message->getType();
 
     if (packetType == PacketType::OctreeStats) {
 
-        int statsMessageLength = OctreeHeadlessViewer::parseOctreeStats(packet, senderNode);
-        if (packet->getPayloadSize() > statsMessageLength) {
+        int statsMessageLength = OctreeHeadlessViewer::parseOctreeStats(message, senderNode);
+        if (message->getSize() > statsMessageLength) {
             // pull out the piggybacked packet and create a new QSharedPointer<NLPacket> for it
-            int piggyBackedSizeWithHeader = packet->getPayloadSize() - statsMessageLength;
+            int piggyBackedSizeWithHeader = message->getSize() - statsMessageLength;
             
             auto buffer = std::unique_ptr<char[]>(new char[piggyBackedSizeWithHeader]);
-            memcpy(buffer.get(), packet->getPayload() + statsMessageLength, piggyBackedSizeWithHeader);
+            memcpy(buffer.get(), message->getRawMessage() + statsMessageLength, piggyBackedSizeWithHeader);
 
-            auto newPacket = NLPacket::fromReceivedPacket(std::move(buffer), piggyBackedSizeWithHeader, packet->getSenderSockAddr());
-            packet = QSharedPointer<NLPacket>(newPacket.release());
+            auto newPacket = NLPacket::fromReceivedPacket(std::move(buffer), piggyBackedSizeWithHeader, message->getSenderSockAddr());
+            message = QSharedPointer<ReceivedMessage>::create(*newPacket);
         } else {
             return; // bail since no piggyback data
         }
 
-        packetType = packet->getType();
+        packetType = message->getType();
     } // fall through to piggyback message
 
     if (packetType == PacketType::EntityData || packetType == PacketType::EntityErase) {
-        _entityViewer.processDatagram(*packet, senderNode);
+        _entityViewer.processDatagram(*message, senderNode);
     }
 }
 
-void Agent::handleJurisdictionPacket(QSharedPointer<NLPacket> packet, SharedNodePointer senderNode) {
+void Agent::handleJurisdictionPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode) {
     NodeType_t nodeType;
-    packet->peekPrimitive(&nodeType);
+    message->peekPrimitive(&nodeType);
 
     // PacketType_JURISDICTION, first byte is the node type...
     if (nodeType == NodeType::EntityServer) {
         DependencyManager::get<EntityScriptingInterface>()->getJurisdictionListener()->
-            queueReceivedPacket(packet, senderNode);
+            queueReceivedPacket(message, senderNode);
     }
 }
 
-void Agent::handleAudioPacket(QSharedPointer<NLPacket> packet) {
-    _receivedAudioStream.parseData(*packet);
+void Agent::handleAudioPacket(QSharedPointer<ReceivedMessage> message) {
+    _receivedAudioStream.parseData(*message);
 
     _lastReceivedAudioLoudness = _receivedAudioStream.getNextOutputFrameLoudness();
 
@@ -126,11 +129,12 @@ void Agent::handleAudioPacket(QSharedPointer<NLPacket> packet) {
 const QString AGENT_LOGGING_NAME = "agent";
 
 void Agent::run() {
-    
+
     // make sure we request our script once the agent connects to the domain
     auto nodeList = DependencyManager::get<NodeList>();
+
     connect(&nodeList->getDomainHandler(), &DomainHandler::connectedToDomain, this, &Agent::requestScript);
-    
+
     ThreadedAssignment::commonInit(AGENT_LOGGING_NAME, NodeType::Agent);
 
     // Setup MessagesClient
@@ -140,7 +144,7 @@ void Agent::run() {
     messagesClient->moveToThread(messagesThread);
     connect(messagesThread, &QThread::started, messagesClient.data(), &MessagesClient::init);
     messagesThread->start();
-    
+
     nodeList->addSetOfNodeTypesToNodeInterestSet({
         NodeType::AudioMixer, NodeType::AvatarMixer, NodeType::EntityServer, NodeType::MessagesMixer, NodeType::AssetServer
     });
@@ -149,7 +153,7 @@ void Agent::run() {
 void Agent::requestScript() {
     auto nodeList = DependencyManager::get<NodeList>();
     disconnect(&nodeList->getDomainHandler(), &DomainHandler::connectedToDomain, this, &Agent::requestScript);
-    
+
     // figure out the URL for the script for this agent assignment
     QUrl scriptURL;
     if (_payload.isEmpty())  {
@@ -160,24 +164,24 @@ void Agent::requestScript() {
     } else {
         scriptURL = QUrl(_payload);
     }
-    
+
     // setup a network access manager and
     QNetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
-    
+
     QNetworkDiskCache* cache = new QNetworkDiskCache();
     QString cachePath = QStandardPaths::writableLocation(QStandardPaths::DataLocation);
     cache->setCacheDirectory(!cachePath.isEmpty() ? cachePath : "agentCache");
     networkAccessManager.setCache(cache);
-    
+
     QNetworkRequest networkRequest = QNetworkRequest(scriptURL);
     networkRequest.setHeader(QNetworkRequest::UserAgentHeader, HIGH_FIDELITY_USER_AGENT);
-    
+
     // setup a timeout for script request
     static const int SCRIPT_TIMEOUT_MS = 10000;
     _scriptRequestTimeout = new QTimer(this);
     connect(_scriptRequestTimeout, &QTimer::timeout, this, &Agent::scriptRequestFinished);
     _scriptRequestTimeout->start(SCRIPT_TIMEOUT_MS);
-    
+
     qDebug() << "Downloading script at" << scriptURL.toString();
     QNetworkReply* reply = networkAccessManager.get(networkRequest);
     connect(reply, &QNetworkReply::finished, this, &Agent::scriptRequestFinished);
@@ -187,11 +191,11 @@ void Agent::scriptRequestFinished() {
     auto reply = qobject_cast<QNetworkReply*>(sender());
 
     _scriptRequestTimeout->stop();
-    
+
     if (reply && reply->error() == QNetworkReply::NoError) {
         _scriptContents = reply->readAll();
         qDebug() << "Downloaded script:" << _scriptContents;
-        
+
         // we could just call executeScript directly - we use a QueuedConnection to allow scriptRequestFinished
         // to return before calling executeScript
         QMetaObject::invokeMethod(this, "executeScript", Qt::QueuedConnection);
@@ -202,38 +206,39 @@ void Agent::scriptRequestFinished() {
         } else {
             qDebug() << "Failed to download script - request timed out. Bailing on assignment.";
         }
-        
+
         setFinished(true);
     }
-    
+
     reply->deleteLater();
 }
 
 void Agent::executeScript() {
     _scriptEngine = std::unique_ptr<ScriptEngine>(new ScriptEngine(_scriptContents, _payload));
     _scriptEngine->setParent(this); // be the parent of the script engine so it gets moved when we do
-    
+
     // setup an Avatar for the script to use
     auto scriptedAvatar = DependencyManager::get<ScriptableAvatar>();
     connect(_scriptEngine.get(), SIGNAL(update(float)), scriptedAvatar.data(), SLOT(update(float)), Qt::ConnectionType::QueuedConnection);
     scriptedAvatar->setForceFaceTrackerConnected(true);
-    
+
     // call model URL setters with empty URLs so our avatar, if user, will have the default models
     scriptedAvatar->setFaceModelURL(QUrl());
     scriptedAvatar->setSkeletonModelURL(QUrl());
+
     // give this AvatarData object to the script engine
     _scriptEngine->registerGlobalObject("Avatar", scriptedAvatar.data());
-    
-    
+
+
     using namespace recording;
     static const FrameType AVATAR_FRAME_TYPE = Frame::registerFrameType(AvatarData::FRAME_NAME);
     // FIXME how to deal with driving multiple avatars locally?
     Frame::registerFrameHandler(AVATAR_FRAME_TYPE, [this, scriptedAvatar](Frame::ConstPointer frame) {
         AvatarData::fromFrame(frame->data, *scriptedAvatar);
     });
-    
+
     using namespace recording;
-    static const FrameType AUDIO_FRAME_TYPE = Frame::registerFrameType(AudioConstants::AUDIO_FRAME_NAME);
+    static const FrameType AUDIO_FRAME_TYPE = Frame::registerFrameType(AudioConstants::getAudioFrameName());
     Frame::registerFrameHandler(AUDIO_FRAME_TYPE, [this, &scriptedAvatar](Frame::ConstPointer frame) {
         const QByteArray& audio = frame->data;
         static quint16 audioSequenceNumber{ 0 };
@@ -242,49 +247,49 @@ void Agent::executeScript() {
         audioTransform.setRotation(scriptedAvatar->getOrientation());
         AbstractAudioInterface::emitAudioPacket(audio.data(), audio.size(), audioSequenceNumber, audioTransform, PacketType::MicrophoneAudioNoEcho);
     });
-    
+
     auto avatarHashMap = DependencyManager::set<AvatarHashMap>();
     _scriptEngine->registerGlobalObject("AvatarList", avatarHashMap.data());
-    
+
     auto& packetReceiver = DependencyManager::get<NodeList>()->getPacketReceiver();
     packetReceiver.registerListener(PacketType::BulkAvatarData, avatarHashMap.data(), "processAvatarDataPacket");
     packetReceiver.registerListener(PacketType::KillAvatar, avatarHashMap.data(), "processKillAvatar");
     packetReceiver.registerListener(PacketType::AvatarIdentity, avatarHashMap.data(), "processAvatarIdentityPacket");
     packetReceiver.registerListener(PacketType::AvatarBillboard, avatarHashMap.data(), "processAvatarBillboardPacket");
-    
+
     // register ourselves to the script engine
     _scriptEngine->registerGlobalObject("Agent", this);
-    
+
     // FIXME -we shouldn't be calling this directly, it's normally called by run(), not sure why
     // viewers would need this called.
     //_scriptEngine->init(); // must be done before we set up the viewers
-    
+
     _scriptEngine->registerGlobalObject("SoundCache", DependencyManager::get<SoundCache>().data());
-    
+
     QScriptValue webSocketServerConstructorValue = _scriptEngine->newFunction(WebSocketServerClass::constructor);
     _scriptEngine->globalObject().setProperty("WebSocketServer", webSocketServerConstructorValue);
-    
+
     auto entityScriptingInterface = DependencyManager::get<EntityScriptingInterface>();
-    
+
     _scriptEngine->registerGlobalObject("EntityViewer", &_entityViewer);
-    
+
     // we need to make sure that init has been called for our EntityScriptingInterface
     // so that it actually has a jurisdiction listener when we ask it for it next
     entityScriptingInterface->init();
     _entityViewer.setJurisdictionListener(entityScriptingInterface->getJurisdictionListener());
-    
+
     _entityViewer.init();
-    
+
     entityScriptingInterface->setEntityTree(_entityViewer.getTree());
-    
+
     // wire up our additional agent related processing to the update signal
     QObject::connect(_scriptEngine.get(), &ScriptEngine::update, this, &Agent::processAgentAvatarAndAudio);
-    
+
     _scriptEngine->run();
-    
+
     Frame::clearFrameHandler(AUDIO_FRAME_TYPE);
     Frame::clearFrameHandler(AVATAR_FRAME_TYPE);
-    
+
     setFinished(true);
 }
 
@@ -317,7 +322,7 @@ void Agent::setIsAvatar(bool isAvatar) {
             delete _avatarIdentityTimer;
             _avatarIdentityTimer = nullptr;
         }
-        
+
         if (_avatarBillboardTimer) {
             _avatarBillboardTimer->stop();
             delete _avatarBillboardTimer;
@@ -418,7 +423,7 @@ void Agent::processAgentAvatarAndAudio(float deltaTime) {
                 glm::quat headOrientation = scriptedAvatar->getHeadOrientation();
                 audioPacket->writePrimitive(headOrientation);
 
-            }else if (nextSoundOutput) {
+            } else if (nextSoundOutput) {
                 // assume scripted avatar audio is mono and set channel flag to zero
                 audioPacket->writePrimitive((quint8)0);
 
@@ -451,6 +456,7 @@ void Agent::processAgentAvatarAndAudio(float deltaTime) {
 
 void Agent::aboutToFinish() {
     setIsAvatar(false);// will stop timers for sending billboards and identity packets
+
     if (_scriptEngine) {
         _scriptEngine->stop();
     }
@@ -463,4 +469,7 @@ void Agent::aboutToFinish() {
     DependencyManager::destroy<AssetClient>();
     assetThread->quit();
     assetThread->wait();
+    
+    // cleanup the AudioInjectorManager (and any still running injectors)
+    DependencyManager::destroy<AudioInjectorManager>();
 }

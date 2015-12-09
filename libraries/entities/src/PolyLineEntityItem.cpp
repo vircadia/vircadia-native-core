@@ -26,23 +26,23 @@ const int PolyLineEntityItem::MAX_POINTS_PER_LINE = 70;
 
 
 EntityItemPointer PolyLineEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
-    EntityItemPointer result{ new PolyLineEntityItem(entityID, properties) };
-    return result;
+    EntityItemPointer entity{ new PolyLineEntityItem(entityID) };
+    entity->setProperties(properties);
+    return entity;
 }
 
-PolyLineEntityItem::PolyLineEntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties) :
+PolyLineEntityItem::PolyLineEntityItem(const EntityItemID& entityItemID) :
 EntityItem(entityItemID),
 _lineWidth(DEFAULT_LINE_WIDTH),
 _pointsChanged(true),
+_normalsChanged(true),
+_strokeWidthsChanged(true),
 _points(QVector<glm::vec3>(0.0f)),
-_vertices(QVector<glm::vec3>(0.0f)),
 _normals(QVector<glm::vec3>(0.0f)),
 _strokeWidths(QVector<float>(0.0f)),
 _textures("")
 {
     _type = EntityTypes::PolyLine;
-    _created = properties.getCreated();
-    setProperties(properties);
 }
 
 EntityItemProperties PolyLineEntityItem::getProperties(EntityPropertyFlags desiredProperties) const {
@@ -106,47 +106,13 @@ bool PolyLineEntityItem::appendPoint(const glm::vec3& point) {
 
 bool PolyLineEntityItem::setStrokeWidths(const QVector<float>& strokeWidths) {
     _strokeWidths = strokeWidths;
+    _strokeWidthsChanged = true;
     return true;
 }
 
 bool PolyLineEntityItem::setNormals(const QVector<glm::vec3>& normals) {
     _normals = normals;
-    if (_points.size() < 2 || _normals.size() < 2 || _strokeWidths.size() < 2) {
-        return false;
-    }
-
-    int minVectorSize = _normals.size();
-    if (_points.size() < minVectorSize) {
-        minVectorSize = _points.size();
-    }
-    if (_strokeWidths.size() < minVectorSize) {
-        minVectorSize = _strokeWidths.size();
-    }
-
-    _vertices.clear();
-    glm::vec3 v1, v2, tangent, binormal, point;
-
-    int finalIndex = minVectorSize -1;
-    for (int i = 0; i < finalIndex; i++) {
-        float width = _strokeWidths.at(i);
-        point = _points.at(i);
-
-        tangent = _points.at(i + 1) - point;
-        glm::vec3 normal = normals.at(i);
-        binormal = glm::normalize(glm::cross(tangent, normal)) * width;
-
-        //This checks to make sure binormal is not a NAN
-        assert(binormal.x == binormal.x);
-        v1 = point + binormal;
-        v2 = point - binormal;
-        _vertices << v1 << v2;
-    }
-    //for last point we can just assume binormals are same since it represents last two vertices of quad
-    point = _points.at(finalIndex);
-    v1 = point + binormal;
-    v2 = point - binormal;
-    _vertices << v1 << v2;
-
+    _normalsChanged = true;
     return true;
 }
 

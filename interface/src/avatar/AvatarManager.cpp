@@ -27,6 +27,8 @@
 
 #include <PerfStat.h>
 #include <RegisteredMetaTypes.h>
+#include <Rig.h>
+#include <SettingHandle.h>
 #include <UUID.h>
 
 #include "Application.h"
@@ -35,7 +37,6 @@
 #include "Menu.h"
 #include "MyAvatar.h"
 #include "SceneScriptingInterface.h"
-#include "AvatarRig.h"
 
 // 70 times per second - target is 60hz, but this helps account for any small deviations
 // in the update loop
@@ -66,13 +67,20 @@ AvatarManager::AvatarManager(QObject* parent) :
 {
     // register a meta type for the weak pointer we'll use for the owning avatar mixer for each avatar
     qRegisterMetaType<QWeakPointer<Node> >("NodeWeakPointer");
-    _myAvatar = std::make_shared<MyAvatar>(std::make_shared<AvatarRig>());
+    _myAvatar = std::make_shared<MyAvatar>(std::make_shared<Rig>());
 
     auto& packetReceiver = DependencyManager::get<NodeList>()->getPacketReceiver();
     packetReceiver.registerListener(PacketType::BulkAvatarData, this, "processAvatarDataPacket");
     packetReceiver.registerListener(PacketType::KillAvatar, this, "processKillAvatar");
     packetReceiver.registerListener(PacketType::AvatarIdentity, this, "processAvatarIdentityPacket");
     packetReceiver.registerListener(PacketType::AvatarBillboard, this, "processAvatarBillboardPacket");
+}
+
+const float SMALLEST_REASONABLE_HORIZON = 5.0f; // meters
+Setting::Handle<float> avatarRenderDistanceInverseHighLimit("avatarRenderDistanceHighLimit", 1.0f / SMALLEST_REASONABLE_HORIZON);
+void AvatarManager::setRenderDistanceInverseHighLimit(float newValue) {
+    avatarRenderDistanceInverseHighLimit.set(newValue);
+     _renderDistanceController.setControlledValueHighLimit(newValue);
 }
 
 void AvatarManager::init() {
@@ -90,6 +98,20 @@ void AvatarManager::init() {
         _myAvatar->addToScene(_myAvatar, scene, pendingChanges);
     }
     scene->enqueuePendingChanges(pendingChanges);
+
+    const float target_fps = qApp->getTargetFrameRate();
+    _renderDistanceController.setMeasuredValueSetpoint(target_fps);
+    _renderDistanceController.setControlledValueHighLimit(avatarRenderDistanceInverseHighLimit.get());
+    _renderDistanceController.setControlledValueLowLimit(1.0f / (float) TREE_SCALE);
+    // Advice for tuning parameters:
+    // See PIDController.h. There's a section on tuning in the reference.
+    // Turn on logging with the following (or from js with AvatarList.setRenderDistanceControllerHistory("avatar render", 300))
+    //_renderDistanceController.setHistorySize("avatar render", target_fps * 4);
+    // Note that extra logging/hysteresis is turned off in Avatar.cpp when the above logging is on.
+    _renderDistanceController.setKP(0.0008f); // Usually about 0.6 of largest that doesn't oscillate when other parameters 0.
+    _renderDistanceController.setKI(0.0006f); // Big enough to bring us to target with the above KP.
+    _renderDistanceController.setKD(0.000001f); // A touch of kd increases the speed by which we get there.
+
 }
 
 void AvatarManager::updateMyAvatar(float deltaTime) {
@@ -123,6 +145,17 @@ void AvatarManager::updateOtherAvatars(float deltaTime) {
     PerformanceWarning warn(showWarnings, "Application::updateAvatars()");
 
     PerformanceTimer perfTimer("otherAvatars");
+    
+    _renderDistanceController.setMeasuredValueSetpoint(qApp->getTargetFrameRate()); // No problem updating in flight.
+    // The PID controller raises the controlled value when the measured value goes up.
+    // The measured value is frame rate. When the controlled value (1 / render cutoff distance)
+    // goes up, the render cutoff distance gets closer, the number of rendered avatars is less, and frame rate
+    // goes up.
+    const float deduced = qApp->getLastDeducedNonVSyncFps();
+    const float distance = 1.0f / _renderDistanceController.update(deduced, deltaTime);
+    _renderDistanceAverage.updateAverage(distance);
+    _renderDistance = _renderDistanceAverage.getAverage();
+    int renderableCount = 0;
 
     // simulate avatars
     auto hashCopy = getHashCopy();
@@ -141,10 +174,14 @@ void AvatarManager::updateOtherAvatars(float deltaTime) {
         } else {
             avatar->startUpdate();
             avatar->simulate(deltaTime);
+            if (avatar->getShouldRender()) {
+                renderableCount++;
+            }
             avatar->endUpdate();
             ++avatarIterator;
         }
     }
+    _renderedAvatarCount = renderableCount;
 
     // simulate avatar fades
     simulateAvatarFades(deltaTime);
@@ -161,7 +198,7 @@ void AvatarManager::simulateAvatarFades(float deltaTime) {
     while (fadingIterator != _avatarFades.end()) {
         auto avatar = std::static_pointer_cast<Avatar>(*fadingIterator);
         avatar->startUpdate();
-        avatar->setTargetScale(avatar->getScale() * SHRINK_RATE, true);
+        avatar->setTargetScale(avatar->getAvatarScale() * SHRINK_RATE);
         if (avatar->getTargetScale() <= MIN_FADE_SCALE) {
             avatar->removeFromScene(*fadingIterator, scene, pendingChanges);
             fadingIterator = _avatarFades.erase(fadingIterator);
@@ -175,7 +212,7 @@ void AvatarManager::simulateAvatarFades(float deltaTime) {
 }
 
 AvatarSharedPointer AvatarManager::newSharedAvatar() {
-    return std::make_shared<Avatar>(std::make_shared<AvatarRig>());
+    return std::make_shared<Avatar>(std::make_shared<Rig>());
 }
 
 AvatarSharedPointer AvatarManager::addAvatar(const QUuid& sessionUUID, const QWeakPointer<Node>& mixerWeakPointer) {
@@ -326,7 +363,8 @@ void AvatarManager::handleCollisionEvents(const CollisionEvents& collisionEvents
 
                 AudioInjector::playSound(collisionSoundURL, energyFactorOfFull, AVATAR_STRETCH_FACTOR, myAvatar->getPosition());
                 myAvatar->collisionWithEntity(collision);
-                return;            }
+                return;
+            }
         }
     }
 }
@@ -371,7 +409,7 @@ void AvatarManager::updateAvatarRenderStatus(bool shouldRenderAvatars) {
 
 AvatarSharedPointer AvatarManager::getAvatarBySessionID(const QUuid& sessionID) {
     if (sessionID == _myAvatar->getSessionUUID()) {
-        return std::static_pointer_cast<Avatar>(_myAvatar);
+        return _myAvatar;
     }
     
     return findAvatar(sessionID);

@@ -2,7 +2,7 @@ set(TARGET_NAME interface)
 project(${TARGET_NAME})
 
 # set a default root dir for each of our optional externals if it was not passed
-set(OPTIONAL_EXTERNALS "LeapMotion" "RtMidi" "RSSDK")
+set(OPTIONAL_EXTERNALS "LeapMotion")
 
 if(WIN32)
     list(APPEND OPTIONAL_EXTERNALS "3DConnexionClient")
@@ -100,6 +100,13 @@ else()
   add_executable(${TARGET_NAME} ${INTERFACE_SRCS} ${QM})
 endif()
 
+# disable /OPT:REF and /OPT:ICF for the Debug builds
+# This will prevent the following linker warnings
+# LINK : warning LNK4075: ignoring '/INCREMENTAL' due to '/OPT:ICF' specification
+if (WIN32)
+  set_property(TARGET ${TARGET_NAME} APPEND_STRING PROPERTY LINK_FLAGS_DEBUG "/OPT:NOREF /OPT:NOICF")
+endif()
+
 # link required hifi libraries
 link_hifi_libraries(shared octree environment gpu gl procedural model render 
                     recording fbx networking model-networking entities avatars 
@@ -154,13 +161,6 @@ foreach(EXTERNAL ${OPTIONAL_EXTERNALS})
   endif ()
 endforeach()
 
-# special OS X modifications for RtMidi library
-if (RTMIDI_FOUND AND NOT DISABLE_RTMIDI AND APPLE)
-  find_library(CoreMIDI CoreMIDI)
-  add_definitions(-D__MACOSX_CORE__)
-  target_link_libraries(${TARGET_NAME} ${CoreMIDI})
-endif ()
-
 # include headers for interface and InterfaceConfig.
 include_directories("${PROJECT_SOURCE_DIR}/src")
 
@@ -194,7 +194,6 @@ else (APPLE)
 
   # link target to external libraries
   if (WIN32)
-  #  target_link_libraries(${TARGET_NAME} wsock32.lib Winmm.lib)
     target_link_libraries(${TARGET_NAME} wsock32.lib Winmm.lib)
   else (WIN32)
     # Nothing else required on linux apparently
@@ -202,3 +201,4 @@ else (APPLE)
 endif (APPLE)
 
 package_libraries_for_deployment()
+consolidate_stack_components()

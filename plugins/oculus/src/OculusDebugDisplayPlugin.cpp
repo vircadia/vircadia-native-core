@@ -28,13 +28,3 @@ void OculusDebugDisplayPlugin::customizeContext() {
     OculusBaseDisplayPlugin::customizeContext();
     enableVsync(false);
 }
-
-void OculusDebugDisplayPlugin::display(GLuint finalTexture, const glm::uvec2& sceneSize) {
-    WindowOpenGLDisplayPlugin::display(finalTexture, sceneSize);
-    OculusBaseDisplayPlugin::display(finalTexture, sceneSize);
-}
-
-void OculusDebugDisplayPlugin::finishFrame() {
-    swapBuffers();
-    doneCurrent();
-};

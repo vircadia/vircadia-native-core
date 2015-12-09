@@ -36,24 +36,20 @@ Shader::~Shader()
 {
 }
 
-Shader* Shader::createVertex(const Source& source) {
-    Shader* shader = new Shader(VERTEX, source);
-    return shader;
+Shader::Pointer Shader::createVertex(const Source& source) {
+    return Pointer(new Shader(VERTEX, source));
 }
 
-Shader* Shader::createPixel(const Source& source) {
-    Shader* shader = new Shader(PIXEL, source);
-    return shader;
+Shader::Pointer Shader::createPixel(const Source& source) {
+    return Pointer(new Shader(PIXEL, source));
 }
 
-Shader* Shader::createProgram(Pointer& vertexShader, Pointer& pixelShader) {
-    if (vertexShader && vertexShader->getType() == VERTEX) {
-        if (pixelShader && pixelShader->getType() == PIXEL) {
-            Shader* shader = new Shader(PROGRAM, vertexShader, pixelShader);
-            return shader;
-        }
+Shader::Pointer Shader::createProgram(Pointer& vertexShader, Pointer& pixelShader) {
+    if (vertexShader && vertexShader->getType() == VERTEX &&
+        pixelShader && pixelShader->getType() == PIXEL) {
+        return Pointer(new Shader(PROGRAM, vertexShader, pixelShader));
     }
-    return nullptr;
+    return Pointer();
 }
 
 void Shader::defineSlots(const SlotSet& uniforms, const SlotSet& buffers, const SlotSet& textures, const SlotSet& samplers, const SlotSet& inputs, const SlotSet& outputs) {

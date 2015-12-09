@@ -45,7 +45,12 @@ Item {
                     Text {
                         color: root.fontColor;
                         font.pixelSize: root.fontSize
-                        text: "Framerate: " + root.framerate
+                        text: "Render Rate: " + root.renderrate
+                    }
+                    Text {
+                        color: root.fontColor;
+                        font.pixelSize: root.fontSize
+                        text: "Present Rate: " + root.presentrate
                     }
                     Text {
                         color: root.fontColor;
@@ -255,6 +260,12 @@ Item {
                         font.pixelSize: root.fontSize
                         visible: root.expanded
                         text: "LOD: " + root.lodStatus;
+                    }
+                    Text {
+                        color: root.fontColor;
+                        font.pixelSize: root.fontSize
+                        visible: root.expanded
+                        text: "Renderable avatars: " + root.avatarRenderableCount + " w/in " + root.avatarRenderDistance + "m";
                     }
                 }
             }

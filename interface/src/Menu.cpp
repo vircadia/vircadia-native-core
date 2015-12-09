@@ -29,7 +29,6 @@
 #include "avatar/AvatarManager.h"
 #include "devices/DdeFaceTracker.h"
 #include "devices/Faceshift.h"
-#include "devices/RealSense.h"
 #include "input-plugins/SpacemouseManager.h"
 #include "MainWindow.h"
 #include "scripting/MenuScriptingInterface.h"
@@ -145,8 +144,6 @@ Menu::Menu() {
 
     addActionToQMenuAndActionHash(editMenu, MenuOption::Attachments, 0,
                                   dialogsManager.data(), SLOT(editAttachments()));
-    addActionToQMenuAndActionHash(editMenu, MenuOption::Animations, 0,
-                                  dialogsManager.data(), SLOT(editAnimations()));
 
     MenuWrapper* toolsMenu = addMenu("Tools");
     addActionToQMenuAndActionHash(toolsMenu, MenuOption::ScriptEditor,  Qt::ALT | Qt::Key_S,
@@ -435,24 +432,18 @@ Menu::Menu() {
     addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::AvatarReceiveStats, 0, false,
                                            avatarManager.data(), SLOT(setShouldShowReceiveStats(bool)));
 
-    addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::RenderSkeletonCollisionShapes);
-    addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::RenderHeadCollisionShapes);
     addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::RenderBoundingCollisionShapes);
     addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::RenderLookAtVectors, 0, false);
     addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::RenderLookAtTargets, 0, false);
     addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::RenderFocusIndicator, 0, false);
     addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::ShowWhosLookingAtMe, 0, false);
     addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::FixGaze, 0, false);
-    addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::EnableAvatarUpdateThreading, 0, false,
-                                           qApp, SLOT(setAvatarUpdateThreading(bool)));
-    addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::EnableRigAnimations, 0, false,
-                                           avatar, SLOT(setEnableRigAnimations(bool)));
-    addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::EnableAnimGraph, 0, true,
-                                           avatar, SLOT(setEnableAnimGraph(bool)));
-    addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::AnimDebugDrawBindPose, 0, false,
-                                           avatar, SLOT(setEnableDebugDrawBindPose(bool)));
+    addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::AnimDebugDrawDefaultPose, 0, false,
+                                           avatar, SLOT(setEnableDebugDrawDefaultPose(bool)));
     addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::AnimDebugDrawAnimPose, 0, false,
                                            avatar, SLOT(setEnableDebugDrawAnimPose(bool)));
+    addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::AnimDebugDrawPosition, 0, false,
+                                           avatar, SLOT(setEnableDebugDrawPosition(bool)));
     addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::MeshVisible, 0, true,
                                            avatar, SLOT(setEnableMeshVisible(bool)));
     addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::DisableEyelidAdjustment, 0, false);
@@ -464,16 +455,9 @@ Menu::Menu() {
     addCheckableActionToQMenuAndActionHash(handOptionsMenu, MenuOption::EnableHandMouseInput, 0, false);
     addCheckableActionToQMenuAndActionHash(handOptionsMenu, MenuOption::LowVelocityFilter, 0, true,
                                            qApp, SLOT(setLowVelocityFilter(bool)));
-    addCheckableActionToQMenuAndActionHash(handOptionsMenu, MenuOption::ShowIKConstraints, 0, false);
 
     MenuWrapper* leapOptionsMenu = handOptionsMenu->addMenu("Leap Motion");
     addCheckableActionToQMenuAndActionHash(leapOptionsMenu, MenuOption::LeapMotionOnHMD, 0, false);
-
-#ifdef HAVE_RSSDK
-    MenuWrapper* realSenseOptionsMenu = handOptionsMenu->addMenu("RealSense");
-    addActionToQMenuAndActionHash(realSenseOptionsMenu, MenuOption::LoadRSSDKFile, 0,
-                                  RealSense::getInstance(), SLOT(loadRSSDKFile()));
-#endif
 
     MenuWrapper* networkMenu = developerMenu->addMenu("Network");
     addActionToQMenuAndActionHash(networkMenu, MenuOption::ReloadContent, 0, qApp, SLOT(reloadResourceCaches()));
@@ -949,6 +933,7 @@ void Menu::addMenuItem(const MenuItemProperties& properties) {
         QShortcut* shortcut = NULL;
         if (!properties.shortcutKeySequence.isEmpty()) {
             shortcut = new QShortcut(properties.shortcutKeySequence, this);
+            shortcut->setContext(Qt::WidgetWithChildrenShortcut);
         }
 
         // check for positioning requests

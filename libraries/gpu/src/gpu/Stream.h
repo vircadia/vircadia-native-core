@@ -93,19 +93,14 @@ public:
         };
         typedef std::map< Slot, ChannelInfo > ChannelMap;
 
-        Format() :
-            _attributes(),
-            _elementTotalSize(0) {}
-        ~Format() {}
-
-        uint32 getNumAttributes() const { return _attributes.size(); }
+        size_t getNumAttributes() const { return _attributes.size(); }
         const AttributeMap& getAttributes() const { return _attributes; }
 
-        uint8 getNumChannels() const { return _channels.size(); }
+        size_t getNumChannels() const { return _channels.size(); }
         const ChannelMap& getChannels() const { return _channels; }
         Offset getChannelStride(Slot channel) const { return _channels.at(channel)._stride; }
 
-        uint32 getElementTotalSize() const { return _elementTotalSize; }
+        size_t getElementTotalSize() const { return _elementTotalSize; }
 
         bool setAttribute(Slot slot, Slot channel, Element element, Offset offset = 0, Frequency frequency = PER_VERTEX);
         bool setAttribute(Slot slot, Frequency frequency = PER_VERTEX);
@@ -115,7 +110,7 @@ public:
     protected:
         AttributeMap _attributes;
         ChannelMap _channels;
-        uint32 _elementTotalSize;
+        uint32 _elementTotalSize { 0 };
 
         void evaluateCache();
     };
@@ -137,7 +132,7 @@ public:
     const Buffers& getBuffers() const { return _buffers; }
     const Offsets& getOffsets() const { return _offsets; }
     const Strides& getStrides() const { return _strides; }
-    uint32 getNumBuffers() const { return _buffers.size(); }
+    size_t getNumBuffers() const { return _buffers.size(); }
 
     BufferStream makeRangedStream(uint32 offset, uint32 count = -1) const;
 

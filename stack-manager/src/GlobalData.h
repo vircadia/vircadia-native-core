@@ -9,6 +9,7 @@
 #ifndef hifi_GlobalData_h
 #define hifi_GlobalData_h
 
+#include <QCoreApplication>
 #include <QString>
 #include <QHash>
 

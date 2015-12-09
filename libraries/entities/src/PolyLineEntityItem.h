@@ -18,7 +18,7 @@ class PolyLineEntityItem : public EntityItem {
  public:
     static EntityItemPointer factory(const EntityItemID& entityID, const EntityItemProperties& properties);
 
-    PolyLineEntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties);
+    PolyLineEntityItem(const EntityItemID& entityItemID);
     
     ALLOW_INSTANTIATION // This class can be instantiated
     
@@ -93,8 +93,9 @@ class PolyLineEntityItem : public EntityItem {
     rgbColor _color;
     float _lineWidth;
     bool _pointsChanged;
+    bool _normalsChanged;
+    bool _strokeWidthsChanged;
     QVector<glm::vec3> _points;
-    QVector<glm::vec3> _vertices;
     QVector<glm::vec3> _normals;
     QVector<float> _strokeWidths;
     QString _textures;

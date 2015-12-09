@@ -30,7 +30,8 @@ void AvatarUpdate::synchronousProcess() {
 
     // Keep our own updated value, so that our asynchronous code can consult it.
     _isHMDMode = qApp->isHMDMode();
-    _headPose = qApp->getActiveDisplayPlugin()->getHeadPose();
+    auto frameCount = qApp->getFrameCount();
+    _headPose = qApp->getActiveDisplayPlugin()->getHeadPose(frameCount);
 
     if (_updateBillboard) {
         DependencyManager::get<AvatarManager>()->getMyAvatar()->doUpdateBillboard();
@@ -44,9 +45,14 @@ void AvatarUpdate::synchronousProcess() {
 bool AvatarUpdate::process() {
     PerformanceTimer perfTimer("AvatarUpdate");
     quint64 start = usecTimestampNow();
-    quint64 deltaMicroseconds = start - _lastAvatarUpdate;
-    _lastAvatarUpdate = start;
+    quint64 deltaMicroseconds = 10000;
+    if (_lastAvatarUpdate > 0) {
+        deltaMicroseconds = start - _lastAvatarUpdate;
+    } else {
+        deltaMicroseconds = 10000; // 10 ms
+    }
     float deltaSeconds = (float) deltaMicroseconds / (float) USECS_PER_SECOND;
+    _lastAvatarUpdate = start;
     qApp->setAvatarSimrateSample(1.0f / deltaSeconds);
 
     QSharedPointer<AvatarManager> manager = DependencyManager::get<AvatarManager>();

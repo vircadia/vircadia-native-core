@@ -43,7 +43,7 @@
 #include "RenderablePolyLineEntityItem.h"
 #include "EntitiesRendererLogging.h"
 #include "AddressManager.h"
-#include "EntityRig.h"
+#include <Rig.h>
 
 EntityTreeRenderer::EntityTreeRenderer(bool wantScripts, AbstractViewStateInterface* viewState,
                                             AbstractScriptingServicesInterface* scriptingServices) :
@@ -408,8 +408,8 @@ int EntityTreeRenderer::getBoundaryLevelAdjust() const {
 }
 
 
-void EntityTreeRenderer::processEraseMessage(NLPacket& packet, const SharedNodePointer& sourceNode) {
-    std::static_pointer_cast<EntityTree>(_tree)->processEraseMessage(packet, sourceNode);
+void EntityTreeRenderer::processEraseMessage(ReceivedMessage& message, const SharedNodePointer& sourceNode) {
+    std::static_pointer_cast<EntityTree>(_tree)->processEraseMessage(message, sourceNode);
 }
 
 Model* EntityTreeRenderer::allocateModel(const QString& url, const QString& collisionUrl) {
@@ -422,7 +422,7 @@ Model* EntityTreeRenderer::allocateModel(const QString& url, const QString& coll
 
         return model;
     }
-    model = new Model(std::make_shared<EntityRig>());
+    model = new Model(std::make_shared<Rig>());
     model->init();
     model->setURL(QUrl(url));
     model->setCollisionModelURL(QUrl(collisionUrl));
@@ -455,7 +455,7 @@ Model* EntityTreeRenderer::updateModel(Model* original, const QString& newUrl, c
     }
 
     // create the model and correctly initialize it with the new url
-    model = new Model(std::make_shared<EntityRig>());
+    model = new Model(std::make_shared<Rig>());
     model->init();
     model->setURL(QUrl(newUrl));
     model->setCollisionModelURL(QUrl(collisionUrl));

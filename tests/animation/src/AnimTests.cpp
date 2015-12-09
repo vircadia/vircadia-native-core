@@ -194,10 +194,7 @@ void AnimTests::testVariant() {
     auto floatVarNegative = AnimVariant(-1.0f);
     auto vec3Var = AnimVariant(glm::vec3(1.0f, -2.0f, 3.0f));
     auto quatVar = AnimVariant(glm::quat(1.0f, 2.0f, -3.0f, 4.0f));
-    auto mat4Var = AnimVariant(glm::mat4(glm::vec4(1.0f, 2.0f, 3.0f, 4.0f),
-                                         glm::vec4(5.0f, 6.0f, -7.0f, 8.0f),
-                                         glm::vec4(9.0f, 10.0f, 11.0f, 12.0f),
-                                         glm::vec4(13.0f, 14.0f, 15.0f, 16.0f)));
+
     QVERIFY(defaultVar.isBool());
     QVERIFY(defaultVar.getBool() == false);
 
@@ -232,12 +229,6 @@ void AnimTests::testVariant() {
     QVERIFY(q.x == 2.0f);
     QVERIFY(q.y == -3.0f);
     QVERIFY(q.z == 4.0f);
-
-    QVERIFY(mat4Var.isMat4());
-    auto m = mat4Var.getMat4();
-    QVERIFY(m[0].x == 1.0f);
-    QVERIFY(m[1].z == -7.0f);
-    QVERIFY(m[3].w == 16.0f);
 }
 
 void AnimTests::testAccumulateTime() {
@@ -322,4 +313,84 @@ void AnimTests::testAccumulateTimeWithParameters(float startFrame, float endFram
     QVERIFY(resultFrame == startFrame + 0.5f);
     QVERIFY(!triggers.empty() && triggers[0] == "testNodeOnLoop");
     triggers.clear();
+}
+
+
+void AnimTests::testAnimPose() {
+    const float PI = (float)M_PI;
+    const glm::quat ROT_X_90 = glm::angleAxis(PI / 2.0f, glm::vec3(1.0f, 0.0f, 0.0f));
+    const glm::quat ROT_Y_180 = glm::angleAxis(PI, glm::vec3(0.0f, 1.0, 0.0f));
+    const glm::quat ROT_Z_30 = glm::angleAxis(PI / 6.0f, glm::vec3(1.0f, 0.0f, 0.0f));
+
+    std::vector<glm::vec3> scaleVec = {
+        glm::vec3(1),
+        glm::vec3(2.0f, 1.0f, 1.0f),
+        glm::vec3(1.0f, 0.5f, 1.0f),
+        glm::vec3(1.0f, 1.0f, 1.5f),
+        glm::vec3(2.0f, 0.5f, 1.5f),
+        glm::vec3(-2.0f, 0.5f, 1.5f),
+        glm::vec3(2.0f, -0.5f, 1.5f),
+        glm::vec3(2.0f, 0.5f, -1.5f),
+        glm::vec3(-2.0f, -0.5f, -1.5f),
+    };
+
+    std::vector<glm::quat> rotVec = {
+        glm::quat(),
+        ROT_X_90,
+        ROT_Y_180,
+        ROT_Z_30,
+        ROT_X_90 * ROT_Y_180 * ROT_Z_30,
+        -ROT_Y_180
+    };
+
+    std::vector<glm::vec3> transVec = {
+        glm::vec3(),
+        glm::vec3(10.0f, 0.0f, 0.0f),
+        glm::vec3(0.0f, 5.0f, 0.0f),
+        glm::vec3(0.0f, 0.0f, 7.5f),
+        glm::vec3(10.0f, 5.0f, 7.5f),
+        glm::vec3(-10.0f, 5.0f, 7.5f),
+        glm::vec3(10.0f, -5.0f, 7.5f),
+        glm::vec3(10.0f, 5.0f, -7.5f)
+    };
+
+    const float EPSILON = 0.001f;
+
+    for (auto& scale : scaleVec) {
+        for (auto& rot : rotVec) {
+            for (auto& trans : transVec) {
+
+                // build a matrix the old fashioned way.
+                glm::mat4 scaleMat = glm::scale(glm::mat4(), scale);
+                glm::mat4 rotTransMat = createMatFromQuatAndPos(rot, trans);
+                glm::mat4 rawMat = rotTransMat * scaleMat;
+
+                // use an anim pose to build a matrix by parts.
+                AnimPose pose(scale, rot, trans);
+                glm::mat4 poseMat = pose;
+
+                QCOMPARE_WITH_ABS_ERROR(rawMat, poseMat, EPSILON);
+            }
+        }
+    }
+
+    for (auto& scale : scaleVec) {
+        for (auto& rot : rotVec) {
+            for (auto& trans : transVec) {
+
+                // build a matrix the old fashioned way.
+                glm::mat4 scaleMat = glm::scale(glm::mat4(), scale);
+                glm::mat4 rotTransMat = createMatFromQuatAndPos(rot, trans);
+                glm::mat4 rawMat = rotTransMat * scaleMat;
+
+                // use an anim pose to decompse a matrix into parts
+                AnimPose pose(rawMat);
+
+                // now build a new matrix from those parts.
+                glm::mat4 poseMat = pose;
+
+                QCOMPARE_WITH_ABS_ERROR(rawMat, poseMat, EPSILON);
+            }
+        }
+    }
 }

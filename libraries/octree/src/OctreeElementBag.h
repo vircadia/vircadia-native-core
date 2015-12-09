@@ -16,31 +16,24 @@
 #ifndef hifi_OctreeElementBag_h
 #define hifi_OctreeElementBag_h
 
+#include <queue>
+
 #include "OctreeElement.h"
 
-class OctreeElementBag : public OctreeElementDeleteHook {
-
+class OctreeElementBag {
+    using Bag = std::queue<OctreeElementWeakPointer>;
+    
 public:
-    OctreeElementBag();
-    ~OctreeElementBag();
-
     void insert(OctreeElementPointer element); // put a element into the bag
     OctreeElementPointer extract(); // pull a element out of the bag (could come in any order)
-    bool contains(OctreeElementPointer element); // is this element in the bag?
-    void remove(OctreeElementPointer element); // remove a specific element from the bag
-    bool isEmpty() const { return _bagElements.isEmpty(); }
-    int count() const { return _bagElements.size(); }
-
+    bool isEmpty();
+    
     void deleteAll();
-    virtual void elementDeleted(OctreeElementPointer element);
-
-    void unhookNotifications();
 
 private:
-    QSet<OctreeElementPointer> _bagElements;
-    bool _hooked;
+    Bag _bagElements;
 };
 
-typedef QMap<const OctreeElement*, void*> OctreeElementExtraEncodeData;
+using OctreeElementExtraEncodeData = QMap<const OctreeElement*, void*>;
 
 #endif // hifi_OctreeElementBag_h

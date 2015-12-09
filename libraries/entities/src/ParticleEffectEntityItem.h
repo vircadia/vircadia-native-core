@@ -21,8 +21,7 @@ public:
 
     static EntityItemPointer factory(const EntityItemID& entityID, const EntityItemProperties& properties);
 
-    ParticleEffectEntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties);
-
+    ParticleEffectEntityItem(const EntityItemID& entityItemID);
 
     // methods for getting/setting all properties of this entity
     virtual EntityItemProperties getProperties(EntityPropertyFlags desiredProperties = EntityPropertyFlags()) const;

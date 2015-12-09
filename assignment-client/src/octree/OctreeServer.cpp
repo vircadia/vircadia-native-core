@@ -210,8 +210,8 @@ void OctreeServer::trackProcessWaitTime(float time) {
     _averageProcessWaitTime.updateAverage(time);
 }
 
-OctreeServer::OctreeServer(NLPacket& packet) :
-    ThreadedAssignment(packet),
+OctreeServer::OctreeServer(ReceivedMessage& message) :
+    ThreadedAssignment(message),
     _argc(0),
     _argv(NULL),
     _parsedArgV(NULL),
@@ -711,7 +711,7 @@ bool OctreeServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
 
 
         int senderNumber = 0;
-        NodeToSenderStatsMap& allSenderStats = _octreeInboundPacketProcessor->getSingleSenderStats();
+        NodeToSenderStatsMap allSenderStats = _octreeInboundPacketProcessor->getSingleSenderStats();
         for (NodeToSenderStatsMapConstIterator i = allSenderStats.begin(); i != allSenderStats.end(); i++) {
             senderNumber++;
             QUuid senderID = i.key();
@@ -821,6 +821,11 @@ bool OctreeServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
             .arg(locale.toString((uint)checkSum).rightJustified(16, ' '));
 
         statsString += "\r\n\r\n";
+
+        statsString += serverSubclassStats();
+
+        statsString += "\r\n\r\n";
+
         statsString += "</pre>\r\n";
         statsString += "</doc></html>";
 
@@ -873,12 +878,12 @@ void OctreeServer::parsePayload() {
     }
 }
 
-void OctreeServer::handleOctreeQueryPacket(QSharedPointer<NLPacket> packet, SharedNodePointer senderNode) {
+void OctreeServer::handleOctreeQueryPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode) {
     if (!_isFinished) {
         // If we got a query packet, then we're talking to an agent, and we
         // need to make sure we have it in our nodeList.
         auto nodeList = DependencyManager::get<NodeList>();
-        nodeList->updateNodeWithDataFromPacket(packet, senderNode);
+        nodeList->updateNodeWithDataFromPacket(message, senderNode);
         
         OctreeQueryNode* nodeData = dynamic_cast<OctreeQueryNode*>(senderNode->getLinkedData());
         if (nodeData && !nodeData->isOctreeSendThreadInitalized()) {
@@ -887,17 +892,17 @@ void OctreeServer::handleOctreeQueryPacket(QSharedPointer<NLPacket> packet, Shar
     }
 }
 
-void OctreeServer::handleOctreeDataNackPacket(QSharedPointer<NLPacket> packet, SharedNodePointer senderNode) {
+void OctreeServer::handleOctreeDataNackPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode) {
     // If we got a nack packet, then we're talking to an agent, and we
     // need to make sure we have it in our nodeList.
     OctreeQueryNode* nodeData = dynamic_cast<OctreeQueryNode*>(senderNode->getLinkedData());
     if (nodeData) {
-        nodeData->parseNackPacket(*packet);
+        nodeData->parseNackPacket(*message);
     }
 }
 
-void OctreeServer::handleJurisdictionRequestPacket(QSharedPointer<NLPacket> packet, SharedNodePointer senderNode) {
-    _jurisdictionSender->queueReceivedPacket(packet, senderNode);
+void OctreeServer::handleJurisdictionRequestPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode) {
+    _jurisdictionSender->queueReceivedPacket(message, senderNode);
 }
 
 bool OctreeServer::readOptionBool(const QString& optionName, const QJsonObject& settingsSectionObject, bool& result) {
@@ -1179,6 +1184,8 @@ void OctreeServer::nodeKilled(SharedNodePointer node) {
     if (usecsElapsed > 1000) {
         qDebug() << qPrintable(_safeServerName) << "server nodeKilled() took: " << usecsElapsed << " usecs for node:" << *node;
     }
+
+    trackViewerGone(node->getUUID());
 }
 
 void OctreeServer::forceNodeShutdown(SharedNodePointer node) {

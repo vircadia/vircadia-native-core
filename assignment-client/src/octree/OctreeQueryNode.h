@@ -14,7 +14,6 @@
 
 #include <iostream>
 
-#include <CoverageMap.h>
 #include <NodeData.h>
 #include <OctreeConstants.h>
 #include <OctreeElementBag.h>
@@ -55,7 +54,6 @@ public:
     void setMaxLevelReached(int maxLevelReached) { _maxLevelReachedInLastSearch = maxLevelReached; }
 
     OctreeElementBag elementBag;
-    CoverageMap map;
     OctreeElementExtraEncodeData extraEncodeData;
 
     ViewFrustum& getCurrentViewFrustum() { return _currentViewFrustum; }
@@ -76,12 +74,6 @@ public:
 
     quint64 getLastTimeBagEmpty() const { return _lastTimeBagEmpty; }
     void setLastTimeBagEmpty() { _lastTimeBagEmpty = _sceneSendStartTime; }
-
-    bool getCurrentPacketIsColor() const { return _currentPacketIsColor; }
-    bool getCurrentPacketIsCompressed() const { return _currentPacketIsCompressed; }
-    bool getCurrentPacketFormatMatches() {
-        return (getCurrentPacketIsColor() == getWantColor() && getCurrentPacketIsCompressed() == getWantCompression());
-    }
 
     bool hasLodChanged() const { return _lodChanged; }
 
@@ -108,7 +100,7 @@ public:
 
     OCTREE_PACKET_SEQUENCE getSequenceNumber() const { return _sequenceNumber; }
 
-    void parseNackPacket(NLPacket& packet);
+    void parseNackPacket(ReceivedMessage& message);
     bool hasNextNackedPacket() const;
     const NLPacket* getNextNackedPacket();
 
@@ -135,8 +127,6 @@ private:
     quint64 _lastTimeBagEmpty;
     bool _viewFrustumChanging;
     bool _viewFrustumJustStoppedChanging;
-    bool _currentPacketIsColor;
-    bool _currentPacketIsCompressed;
 
     OctreeSendThread* _octreeSendThread;
 

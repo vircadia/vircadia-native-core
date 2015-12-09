@@ -17,7 +17,7 @@ public:
 
     static EntityItemPointer factory(const EntityItemID& entityID, const EntityItemProperties& properties);
 
-    WebEntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties);
+    WebEntityItem(const EntityItemID& entityItemID);
     
     ALLOW_INSTANTIATION // This class can be instantiated
 

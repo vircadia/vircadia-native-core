@@ -95,16 +95,18 @@ const bool ParticleEffectEntityItem::DEFAULT_ADDITIVE_BLENDING = false;
 
 
 EntityItemPointer ParticleEffectEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
-    return std::make_shared<ParticleEffectEntityItem>(entityID, properties);
+    EntityItemPointer entity { new ParticleEffectEntityItem(entityID) };
+    entity->setProperties(properties);
+    return entity;
 }
 
 // our non-pure virtual subclass for now...
-ParticleEffectEntityItem::ParticleEffectEntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties) :
+ParticleEffectEntityItem::ParticleEffectEntityItem(const EntityItemID& entityItemID) :
     EntityItem(entityItemID),
     _lastSimulated(usecTimestampNow())
 {
     _type = EntityTypes::ParticleEffect;
-    setProperties(properties);
+    setColor(DEFAULT_COLOR);
 }
 
 void ParticleEffectEntityItem::setAlpha(float alpha) {

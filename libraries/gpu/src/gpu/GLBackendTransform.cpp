@@ -15,22 +15,22 @@
 using namespace gpu;
 
 // Transform Stage
-void GLBackend::do_setModelTransform(Batch& batch, uint32 paramOffset) {
+void GLBackend::do_setModelTransform(Batch& batch, size_t paramOffset) {
     _transform._model = batch._transforms.get(batch._params[paramOffset]._uint);
     _transform._invalidModel = true;
 }
 
-void GLBackend::do_setViewTransform(Batch& batch, uint32 paramOffset) {
+void GLBackend::do_setViewTransform(Batch& batch, size_t paramOffset) {
     _transform._view = batch._transforms.get(batch._params[paramOffset]._uint);
     _transform._invalidView = true;
 }
 
-void GLBackend::do_setProjectionTransform(Batch& batch, uint32 paramOffset) {
+void GLBackend::do_setProjectionTransform(Batch& batch, size_t paramOffset) {
     memcpy(&_transform._projection, batch.editData(batch._params[paramOffset]._uint), sizeof(Mat4));
     _transform._invalidProj = true;
 }
 
-void GLBackend::do_setViewportTransform(Batch& batch, uint32 paramOffset) {
+void GLBackend::do_setViewportTransform(Batch& batch, size_t paramOffset) {
     memcpy(&_transform._viewport, batch.editData(batch._params[paramOffset]._uint), sizeof(Vec4i));
 
     ivec4& vp = _transform._viewport;
@@ -49,7 +49,7 @@ void GLBackend::do_setViewportTransform(Batch& batch, uint32 paramOffset) {
     _transform._invalidViewport = true;
 }
 
-void GLBackend::do_setDepthRangeTransform(Batch& batch, uint32 paramOffset) {
+void GLBackend::do_setDepthRangeTransform(Batch& batch, size_t paramOffset) {
 
     Vec2 depthRange(batch._params[paramOffset + 0]._float, batch._params[paramOffset + 1]._float);
 
@@ -142,7 +142,8 @@ void GLBackend::TransformStageState::preUpdate(size_t commandIndex, const Stereo
 }
 
 void GLBackend::TransformStageState::transfer() const {
-    static QByteArray bufferData;
+    // FIXME not thread safe
+    static std::vector<uint8_t> bufferData;
     if (!_cameras.empty()) {
         glBindBuffer(GL_UNIFORM_BUFFER, _cameraBuffer);
         bufferData.resize(_cameraUboSize * _cameras.size());
@@ -168,22 +169,23 @@ void GLBackend::TransformStageState::transfer() const {
 }
 
 void GLBackend::TransformStageState::update(size_t commandIndex, const StereoState& stereo) const {
-    int offset = -1;
+    static const size_t INVALID_OFFSET = (size_t)-1;
+    size_t offset = INVALID_OFFSET;
     while ((_objectsItr != _objectOffsets.end()) && (commandIndex >= (*_objectsItr).first)) {
         offset = (*_objectsItr).second;
         ++_objectsItr;
     }
-    if (offset >= 0) {
+    if (offset != INVALID_OFFSET) {
         glBindBufferRange(GL_UNIFORM_BUFFER, TRANSFORM_OBJECT_SLOT,
             _objectBuffer, offset, sizeof(Backend::TransformObject));
     }
 
-    offset = -1;
+    offset = INVALID_OFFSET;
     while ((_camerasItr != _cameraOffsets.end()) && (commandIndex >= (*_camerasItr).first)) {
         offset = (*_camerasItr).second;
         ++_camerasItr;
     }
-    if (offset >= 0) {
+    if (offset != INVALID_OFFSET) {
         // We include both camera offsets for stereo
         if (stereo._enable && stereo._pass) {
             offset += _cameraUboSize;

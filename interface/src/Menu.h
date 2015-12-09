@@ -131,7 +131,8 @@ namespace MenuOption {
     const QString AddressBar = "Show Address Bar";
     const QString Animations = "Animations...";
     const QString AnimDebugDrawAnimPose = "Debug Draw Animation";
-    const QString AnimDebugDrawBindPose = "Debug Draw Bind Pose";
+    const QString AnimDebugDrawDefaultPose = "Debug Draw Default Pose";
+    const QString AnimDebugDrawPosition= "Debug Draw Position";
     const QString Antialiasing = "Antialiasing";
     const QString AssetMigration = "ATP Asset Migration";
     const QString Atmosphere = "Atmosphere";
@@ -188,10 +189,7 @@ namespace MenuOption {
     const QString EchoServerAudio = "Echo Server Audio";
     const QString EditEntitiesHelp = "Edit Entities Help...";
     const QString Enable3DTVMode = "Enable 3DTV Mode";
-    const QString EnableAvatarUpdateThreading = "Enable Avatar Update Threading";
-    const QString EnableAnimGraph = "Enable Anim Graph";
     const QString EnableCharacterController = "Enable avatar collisions";
-    const QString EnableRigAnimations = "Enable Rig Animations";
     const QString ExpandMyAvatarSimulateTiming = "Expand /myAvatar/simulation";
     const QString ExpandMyAvatarTiming = "Expand /myAvatar";
     const QString ExpandOtherAvatarTiming = "Expand /otherAvatar";
@@ -213,7 +211,6 @@ namespace MenuOption {
     const QString LeapMotionOnHMD = "Leap Motion on HMD";
     const QString LoadScript = "Open and Run Script File...";
     const QString LoadScriptURL = "Open and Run Script from URL...";
-    const QString LoadRSSDKFile = "Load .rssdk file";
     const QString LodTools = "LOD Tools";
     const QString Login = "Login";
     const QString Log = "Log";
@@ -241,10 +238,8 @@ namespace MenuOption {
     const QString ReloadContent = "Reload Content (Clears all caches)";
     const QString RenderBoundingCollisionShapes = "Show Bounding Collision Shapes";
     const QString RenderFocusIndicator = "Show Eye Focus";
-    const QString RenderHeadCollisionShapes = "Show Head Collision Shapes";
     const QString RenderLookAtTargets = "Show Look-at Targets";
     const QString RenderLookAtVectors = "Show Look-at Vectors";
-    const QString RenderSkeletonCollisionShapes = "Show Skeleton Collision Shapes";
     const QString RenderResolution = "Scale Resolution";
     const QString RenderResolutionOne = "1";
     const QString RenderResolutionTwoThird = "2/3";
@@ -271,7 +266,6 @@ namespace MenuOption {
     const QString ScriptedMotorControl = "Enable Scripted Motor Control";
     const QString ShowDSConnectTable = "Show Domain Connection Timing";
     const QString ShowBordersEntityNodes = "Show Entity Nodes";
-    const QString ShowIKConstraints = "Show IK Constraints";
     const QString ShowRealtimeEntityStats = "Show Realtime Entity Stats";
     const QString ShowWhosLookingAtMe = "Show Who's Looking at Me";
     const QString StandingHMDSensorMode = "Standing HMD Sensor Mode";
