@@ -54,6 +54,7 @@ public:
     }
 
     virtual void run() override {
+        OpenGLDisplayPlugin* currentPlugin{ nullptr };
         Q_ASSERT(_context);
         while (!_shutdown) {
             if (_pendingMainThreadOperation) {
@@ -81,12 +82,13 @@ public:
                 // Check if we have a new plugin to activate
                 if (_newPlugin != nullptr) {
                     // Deactivate the old plugin
-                    if (_activePlugin != nullptr) {
-                        _activePlugin->uncustomizeContext();
+                    if (currentPlugin != nullptr) {
+                        currentPlugin->uncustomizeContext();
+                        currentPlugin->enableDeactivate();
                     }
 
                     _newPlugin->customizeContext();
-                    _activePlugin = _newPlugin;
+                    currentPlugin = _newPlugin;
                     _newPlugin = nullptr;
                 }
                 _context->doneCurrent();
@@ -94,20 +96,21 @@ public:
             }
 
             // If there's no active plugin, just sleep
-            if (_activePlugin == nullptr) {
+            if (currentPlugin == nullptr) {
                 QThread::usleep(100);
                 continue;
             }
 
             // take the latest texture and present it
             _context->makeCurrent();
-            _activePlugin->present();
+            currentPlugin->present();
             _context->doneCurrent();
         }
 
         _context->makeCurrent();
-        if (_activePlugin) {
-            _activePlugin->uncustomizeContext();
+        if (currentPlugin) {
+            currentPlugin->uncustomizeContext();
+            currentPlugin->enableDeactivate();
         }
         _context->doneCurrent();
         _context->moveToThread(qApp->thread());
@@ -147,7 +150,6 @@ private:
     bool _finishedMainThreadOperation { false };
     QThread* _mainThread { nullptr };
     OpenGLDisplayPlugin* _newPlugin { nullptr };
-    OpenGLDisplayPlugin* _activePlugin { nullptr };
     QGLContext* _context { nullptr };
 };
 
@@ -208,11 +210,16 @@ void OpenGLDisplayPlugin::stop() {
 }
 
 void OpenGLDisplayPlugin::deactivate() {
+    {
+        Lock lock(_mutex);
+        _deactivateWait.wait(lock, [&]{ return _uncustomized; });
+    }
     _timer.stop();
     DisplayPlugin::deactivate();
 }
 
 void OpenGLDisplayPlugin::customizeContext() {
+    _uncustomized = false;
     auto presentThread = DependencyManager::get<PresentThread>();
     Q_ASSERT(thread() == presentThread->thread());
 
@@ -232,6 +239,7 @@ void OpenGLDisplayPlugin::uncustomizeContext() {
     _program.reset();
     _plane.reset();
 }
+
 
 // Pressing Alt (and Meta) key alone activates the menubar because its style inherits the
 // SHMenuBarAltKeyNavigation from QWindowsStyle. This makes it impossible for a scripts to
@@ -379,4 +387,10 @@ QImage OpenGLDisplayPlugin::getScreenshot() const {
         result = widget->grabFrameBuffer();
     });
     return result;
+}
+
+void OpenGLDisplayPlugin::enableDeactivate() {
+    Lock lock(_mutex);
+    _uncustomized = true;
+    _deactivateWait.notify_one();
 }
