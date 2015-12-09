@@ -505,6 +505,7 @@ private:
 
     TouchEvent _lastTouchEvent;
 
+    QReadWriteLock _scriptEnginesHashLock;
     RunningScriptsWidget* _runningScriptsWidget;
     QHash<QString, ScriptEngine*> _scriptEnginesHash;
     bool _runningScriptsWidgetWasVisible;

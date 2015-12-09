@@ -4259,10 +4259,13 @@ ScriptEngine* Application::loadScript(const QString& scriptFilename, bool isUser
 
     QUrl scriptUrl(scriptFilename);
     const QString& scriptURLString = scriptUrl.toString();
-    if (_scriptEnginesHash.contains(scriptURLString) && loadScriptFromEditor
-        && !_scriptEnginesHash[scriptURLString]->isFinished()) {
+    {
+        QReadLocker lock(&_scriptEnginesHashLock);
+        if (_scriptEnginesHash.contains(scriptURLString) && loadScriptFromEditor
+            && !_scriptEnginesHash[scriptURLString]->isFinished()) {
 
-        return _scriptEnginesHash[scriptURLString];
+            return _scriptEnginesHash[scriptURLString];
+        }
     }
 
     ScriptEngine* scriptEngine = new ScriptEngine(NO_SCRIPT, "", &_controllerScriptingInterface);
@@ -4302,7 +4305,11 @@ void Application::reloadScript(const QString& scriptName, bool isUserLoaded) {
 void Application::handleScriptEngineLoaded(const QString& scriptFilename) {
     ScriptEngine* scriptEngine = qobject_cast<ScriptEngine*>(sender());
 
-    _scriptEnginesHash.insertMulti(scriptFilename, scriptEngine);
+    {
+        QWriteLocker lock(&_scriptEnginesHashLock);
+        _scriptEnginesHash.insertMulti(scriptFilename, scriptEngine);
+    }
+
     _runningScriptsWidget->setRunningScripts(getRunningScripts());
     UserActivityLogger::getInstance().loadedScript(scriptFilename);
 
@@ -4317,55 +4324,86 @@ void Application::handleScriptLoadError(const QString& scriptFilename) {
     QMessageBox::warning(getWindow(), "Error Loading Script", scriptFilename + " failed to load.");
 }
 
-void Application::scriptFinished(const QString& scriptName) {
-    const QString& scriptURLString = QUrl(scriptName).toString();
-    QHash<QString, ScriptEngine*>::iterator it = _scriptEnginesHash.find(scriptURLString);
-    if (it != _scriptEnginesHash.end()) {
-        _scriptEnginesHash.erase(it);
-        _runningScriptsWidget->scriptStopped(scriptName);
-        _runningScriptsWidget->setRunningScripts(getRunningScripts());
-    }
+QStringList Application::getRunningScripts() {
+    QReadLocker lock(&_scriptEnginesHashLock);
+    return _scriptEnginesHash.keys();
 }
 
-void Application::stopAllScripts(bool restart) {
-    if (restart) {
-        // Delete all running scripts from cache so that they are re-downloaded when they are restarted
-        auto scriptCache = DependencyManager::get<ScriptCache>();
-        for (QHash<QString, ScriptEngine*>::const_iterator it = _scriptEnginesHash.constBegin();
-            it != _scriptEnginesHash.constEnd(); it++) {
-            if (!it.value()->isFinished()) {
-                scriptCache->deleteScript(it.key());
+ScriptEngine* Application::getScriptEngine(const QString& scriptHash) {
+    QReadLocker lock(&_scriptEnginesHashLock);
+    return _scriptEnginesHash.value(scriptHash, nullptr);
+}
+
+void Application::scriptFinished(const QString& scriptName, ScriptEngine* engine) {
+    bool removed = false;
+    {
+        QWriteLocker lock(&_scriptEnginesHashLock);
+        const QString& scriptURLString = QUrl(scriptName).toString();
+        for (auto it = _scriptEnginesHash.find(scriptURLString); it != _scriptEnginesHash.end(); ++it) {
+            if (it.value() == engine) {
+                _scriptEnginesHash.erase(it);
+                removed = true;
+                break;
             }
         }
     }
+    postLambdaEvent([this, scriptName]() {
+        _runningScriptsWidget->scriptStopped(scriptName);
+        _runningScriptsWidget->setRunningScripts(getRunningScripts());
+    });
+}
 
-    // Stop and possibly restart all currently running scripts
-    for (QHash<QString, ScriptEngine*>::const_iterator it = _scriptEnginesHash.constBegin();
+void Application::stopAllScripts(bool restart) {
+    {
+        QReadLocker lock(&_scriptEnginesHashLock);
+
+        if (restart) {
+            // Delete all running scripts from cache so that they are re-downloaded when they are restarted
+            auto scriptCache = DependencyManager::get<ScriptCache>();
+            for (QHash<QString, ScriptEngine*>::const_iterator it = _scriptEnginesHash.constBegin();
             it != _scriptEnginesHash.constEnd(); it++) {
-        if (it.value()->isFinished()) {
-            continue;
+                if (!it.value()->isFinished()) {
+                    scriptCache->deleteScript(it.key());
+                }
+            }
         }
-        if (restart && it.value()->isUserLoaded()) {
-            connect(it.value(), SIGNAL(finished(const QString&)), SLOT(reloadScript(const QString&)));
+
+        // Stop and possibly restart all currently running scripts
+        for (QHash<QString, ScriptEngine*>::const_iterator it = _scriptEnginesHash.constBegin();
+                it != _scriptEnginesHash.constEnd(); it++) {
+            if (it.value()->isFinished()) {
+                continue;
+            }
+            if (restart && it.value()->isUserLoaded()) {
+                connect(it.value(), &ScriptEngine::finished, this, [this](QString scriptName, ScriptEngine* engine) {
+                    reloadScript(scriptName);
+                });
+            }
+            QMetaObject::invokeMethod(it.value(), "stop");
+            //it.value()->stop();
+            qCDebug(interfaceapp) << "stopping script..." << it.key();
         }
-        it.value()->stop();
-        qCDebug(interfaceapp) << "stopping script..." << it.key();
     }
     getMyAvatar()->clearScriptableSettings();
 }
 
 bool Application::stopScript(const QString& scriptHash, bool restart) {
     bool stoppedScript = false;
-    if (_scriptEnginesHash.contains(scriptHash)) {
-        ScriptEngine* scriptEngine = _scriptEnginesHash[scriptHash];
-        if (restart) {
-            auto scriptCache = DependencyManager::get<ScriptCache>();
-            scriptCache->deleteScript(QUrl(scriptHash));
-            connect(scriptEngine, SIGNAL(finished(const QString&)), SLOT(reloadScript(const QString&)));
+    {
+        QReadLocker lock(&_scriptEnginesHashLock);
+        if (_scriptEnginesHash.contains(scriptHash)) {
+            ScriptEngine* scriptEngine = _scriptEnginesHash[scriptHash];
+            if (restart) {
+                auto scriptCache = DependencyManager::get<ScriptCache>();
+                scriptCache->deleteScript(QUrl(scriptHash));
+                connect(scriptEngine, &ScriptEngine::finished, this, [this](QString scriptName, ScriptEngine* engine) {
+                    reloadScript(scriptName);
+                });
+            }
+            scriptEngine->stop();
+            stoppedScript = true;
+            qCDebug(interfaceapp) << "stopping script..." << scriptHash;
         }
-        scriptEngine->stop();
-        stoppedScript = true;
-        qCDebug(interfaceapp) << "stopping script..." << scriptHash;
     }
     if (_scriptEnginesHash.empty()) {
         getMyAvatar()->clearScriptableSettings();
@@ -4384,6 +4422,7 @@ void Application::reloadOneScript(const QString& scriptName) {
 }
 
 void Application::loadDefaultScripts() {
+    QReadLocker lock(&_scriptEnginesHashLock);
     if (!_scriptEnginesHash.contains(DEFAULT_SCRIPTS_JS_URL)) {
         loadScript(DEFAULT_SCRIPTS_JS_URL);
     }
