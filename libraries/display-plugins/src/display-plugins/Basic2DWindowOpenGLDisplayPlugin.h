@@ -9,7 +9,7 @@
 
 #include "WindowOpenGLDisplayPlugin.h"
 
-#define TARGET_FRAMERATE_Basic2DWindowOpenGL 60.0f
+const float TARGET_FRAMERATE_Basic2DWindowOpenGL = 60.0f;
 
 class QScreen;
 class QAction;

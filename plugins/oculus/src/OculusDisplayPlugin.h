@@ -12,7 +12,7 @@
 struct SwapFramebufferWrapper;
 using SwapFboPtr = QSharedPointer<SwapFramebufferWrapper>;
 
-#define TARGET_RATE_Oculus 75.0f;
+const float TARGET_RATE_Oculus = 75.0f;
 
 class OculusDisplayPlugin : public OculusBaseDisplayPlugin {
 public:

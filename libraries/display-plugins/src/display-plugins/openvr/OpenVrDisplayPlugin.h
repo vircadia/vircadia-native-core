@@ -14,7 +14,7 @@
 
 #include "../WindowOpenGLDisplayPlugin.h"
 
-#define TARGET_RATE_OpenVr 90.0f;  // FIXME: get from sdk tracked device property? This number is vive-only.
+const float TARGET_RATE_OpenVr = 90.0f;  // FIXME: get from sdk tracked device property? This number is vive-only.
 
 class OpenVrDisplayPlugin : public WindowOpenGLDisplayPlugin {
 public:

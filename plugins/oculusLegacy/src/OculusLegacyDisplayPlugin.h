@@ -13,7 +13,7 @@
 
 #include <OVR_CAPI.h>
 
-#define TARGET_RATE_OculusLegacy 75.0f;
+const float TARGET_RATE_OculusLegacy = 75.0f;
 
 class OculusLegacyDisplayPlugin : public WindowOpenGLDisplayPlugin {
 public:
