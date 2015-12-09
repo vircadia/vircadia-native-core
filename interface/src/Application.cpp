@@ -4347,10 +4347,12 @@ void Application::scriptFinished(const QString& scriptName, ScriptEngine* engine
             }
         }
     }
-    postLambdaEvent([this, scriptName]() {
-        _runningScriptsWidget->scriptStopped(scriptName);
-        _runningScriptsWidget->setRunningScripts(getRunningScripts());
-    });
+    if (removed) {
+        postLambdaEvent([this, scriptName]() {
+            _runningScriptsWidget->scriptStopped(scriptName);
+            _runningScriptsWidget->setRunningScripts(getRunningScripts());
+        });
+    }
 }
 
 void Application::stopAllScripts(bool restart) {
