@@ -85,8 +85,8 @@ void AvatarActionHold::updateActionWorker(float deltaTimeStep) {
     QList<EntityActionPointer> holdActions = ownerEntity->getActionsOfType(ACTION_TYPE_HOLD);
     foreach (EntityActionPointer action, holdActions) {
         std::shared_ptr<AvatarActionHold> holdAction = std::static_pointer_cast<AvatarActionHold>(action);
-        glm::quat rotationForAction { Quaternions::IDENTITY };
-        glm::vec3 positionForAction { Vectors::ZERO };
+        glm::quat rotationForAction;
+        glm::vec3 positionForAction;
         std::shared_ptr<Avatar> holdingAvatar = holdAction->getTarget(rotationForAction, positionForAction);
         if (holdingAvatar) {
             holdCount ++;
