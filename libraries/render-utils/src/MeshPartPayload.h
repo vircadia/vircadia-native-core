@@ -24,7 +24,7 @@ class Model;
 
 class MeshPartPayload {
 public:
-    MeshPartPayload(Model* model, int meshIndex, int partIndex, int shapeIndex, glm::vec3 position, glm::quat orientation);
+    MeshPartPayload(Model* model, model::MeshPointer drawMesh, int meshIndex, int partIndex, int shapeIndex, glm::vec3 position, glm::quat orientation, bool applyMeshJoints = true);
     
     typedef render::Payload<MeshPartPayload> Payload;
     typedef Payload::DataPointer Pointer;
@@ -35,6 +35,7 @@ public:
     int _shapeID;
     glm::vec3 _modelPosition;
     glm::quat _modelOrientation;
+
 
     // can replace the material used to draw that item
     void updateDrawMaterial(model::MaterialPointer material);
@@ -62,6 +63,7 @@ public:
     bool _hasColorAttrib = false;
     bool _isSkinned = false;
     bool _isBlendShaped = false;
+    bool _applyMeshJoints = true;
 };
 
 namespace render {

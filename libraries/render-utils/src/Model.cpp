@@ -90,7 +90,7 @@ void Model::setScale(const glm::vec3& scale) {
     _scaledToFit = false;
 }
 
-const float METERS_PER_MILLIMETER = 0.01f;
+const float METERS_PER_MILLIMETER = 0.01f; 
 
 void Model::setScaleInternal(const glm::vec3& scale) {
     if (glm::distance(_scale, scale) > METERS_PER_MILLIMETER) {
@@ -1147,11 +1147,12 @@ void Model::segregateMeshGroups() {
     int shapeID = 0;
     for (int i = 0; i < (int)networkMeshes.size(); i++) {
         const FBXMesh& mesh = geometry.meshes.at(i);
+        const NetworkMesh& networkMesh = *(networkMeshes.at(i).get());
 
         // Create the render payloads
         int totalParts = mesh.parts.size();
         for (int partIndex = 0; partIndex < totalParts; partIndex++) {
-            auto renderItem = std::make_shared<MeshPartPayload>(this, i, partIndex, shapeID, _translation, _rotation);
+            auto renderItem = std::make_shared<MeshPartPayload>(this, networkMesh._mesh, i, partIndex, shapeID, _translation, _rotation, !showingCollisionHull);
             if (showingCollisionHull) {
                 renderItem->updateDrawMaterial(ModelRender::getCollisionHullMaterial());
             }

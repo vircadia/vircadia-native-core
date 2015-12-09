@@ -39,30 +39,31 @@ namespace render {
 
 using namespace render;
 
-MeshPartPayload::MeshPartPayload(Model* model, int meshIndex, int partIndex, int shapeIndex,
-                                 glm::vec3 position, glm::quat orientation) :
+MeshPartPayload::MeshPartPayload(Model* model, model::MeshPointer drawMesh, int meshIndex, int partIndex, int shapeIndex,
+    glm::vec3 position, glm::quat orientation, bool applyMeshJoints) :
     model(model),
+    _drawMesh(drawMesh),
     meshIndex(meshIndex),
     partIndex(partIndex),
     _shapeID(shapeIndex),
     _modelPosition(position),
-    _modelOrientation(orientation) {
+    _modelOrientation(orientation),
+    _applyMeshJoints(applyMeshJoints) {
     initCache();
 }
 
 void MeshPartPayload::initCache() {
-    const std::vector<std::unique_ptr<NetworkMesh>>& networkMeshes = model->_geometry->getMeshes();
-    const NetworkMesh& networkMesh = *(networkMeshes.at(meshIndex).get());
-    _drawMesh = networkMesh._mesh;
+    if (_drawMesh) {
+        auto vertexFormat = _drawMesh->getVertexFormat();
+        _hasColorAttrib = vertexFormat->hasAttribute(gpu::Stream::COLOR);
+        _isSkinned = vertexFormat->hasAttribute(gpu::Stream::SKIN_CLUSTER_WEIGHT) && vertexFormat->hasAttribute(gpu::Stream::SKIN_CLUSTER_INDEX);
 
-    const FBXGeometry& geometry = model->_geometry->getFBXGeometry();
-    const FBXMesh& mesh = geometry.meshes.at(meshIndex);
-    _hasColorAttrib = !mesh.colors.isEmpty();
-    _isBlendShaped = !mesh.blendshapes.isEmpty();
-    _isSkinned = !mesh.clusterIndices.isEmpty();
+        const FBXGeometry& geometry = model->_geometry->getFBXGeometry();
+        const FBXMesh& mesh = geometry.meshes.at(meshIndex);
+        _isBlendShaped = !mesh.blendshapes.isEmpty();
 
-
-    _drawPart = _drawMesh->getPartBuffer().get<model::Mesh::Part>(partIndex);
+        _drawPart = _drawMesh->getPartBuffer().get<model::Mesh::Part>(partIndex);
+    }
 
     auto networkMaterial = model->_geometry->getShapeMaterial(_shapeID);
     if (networkMaterial) {
@@ -219,25 +220,34 @@ void MeshPartPayload::bindMaterial(gpu::Batch& batch, const ModelRender::Locatio
 }
 
 void MeshPartPayload::bindTransform(gpu::Batch& batch, const ModelRender::Locations* locations) const {
-    // Still relying on the raw data from the model
-    const Model::MeshState& state = model->_meshStates.at(meshIndex);
+    if (_applyMeshJoints) {
+        // Still relying on the raw data from the model
+        const Model::MeshState& state = model->_meshStates.at(meshIndex);
 
-    Transform transform;
-    if (state.clusterBuffer) {
-        if (model->_cauterizeBones) {
-            batch.setUniformBuffer(ModelRender::SKINNING_GPU_SLOT, state.cauterizedClusterBuffer);
+        Transform transform;
+        if (state.clusterBuffer) {
+            if (model->_cauterizeBones) {
+                batch.setUniformBuffer(ModelRender::SKINNING_GPU_SLOT, state.cauterizedClusterBuffer);
+            } else {
+                batch.setUniformBuffer(ModelRender::SKINNING_GPU_SLOT, state.clusterBuffer);
+            }
         } else {
-            batch.setUniformBuffer(ModelRender::SKINNING_GPU_SLOT, state.clusterBuffer);
+            if (model->_cauterizeBones) {
+                transform = Transform(state.cauterizedClusterMatrices[0]);
+            } else {
+                transform = Transform(state.clusterMatrices[0]);
+            }
         }
+        transform.preTranslate(_modelPosition);
+        batch.setModelTransform(transform);
     } else {
-        if (model->_cauterizeBones) {
-            transform = Transform(state.cauterizedClusterMatrices[0]);
-        } else {
-            transform = Transform(state.clusterMatrices[0]);
-        }
+        Transform transform;
+        transform.setTranslation(_modelPosition);
+        transform.setRotation(_modelOrientation);
+        transform.postScale(model->getScale());
+        transform.postTranslate(model->getOffset());
+        batch.setModelTransform(transform);
     }
-    transform.preTranslate(_modelPosition);
-    batch.setModelTransform(transform);
 }
 
 
@@ -280,13 +290,7 @@ void MeshPartPayload::render(RenderArgs* args) const {
         // sanity check
         return; // FIXME!
     }
-    
-    
-    // guard against partially loaded meshes
-    if (partIndex >= mesh.parts.size()) {
-        return;
-    }
-    
+
     model::MaterialKey drawMaterialKey;
     if (_drawMaterial) {
         drawMaterialKey = _drawMaterial->getKey();

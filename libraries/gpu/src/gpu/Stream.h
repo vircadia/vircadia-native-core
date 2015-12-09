@@ -106,6 +106,7 @@ public:
         bool setAttribute(Slot slot, Frequency frequency = PER_VERTEX);
         bool setAttribute(Slot slot, Slot channel, Frequency frequency = PER_VERTEX);
 
+        bool hasAttribute(Slot slot) const { return (_attributes.find(slot) != _attributes.end()); }
 
     protected:
         AttributeMap _attributes;
