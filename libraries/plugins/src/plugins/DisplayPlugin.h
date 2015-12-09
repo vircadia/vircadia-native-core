@@ -58,7 +58,6 @@ public:
     /// By default, all HMDs are stereo
     virtual bool isStereo() const { return isHmd(); }
     virtual bool isThrottled() const { return false; }
-    virtual quint64 getTimeSinceSync() { return 0; }
 
     // Rendering support
 

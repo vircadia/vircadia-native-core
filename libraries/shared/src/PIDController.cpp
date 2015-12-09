@@ -14,7 +14,7 @@
 #include "SharedLogging.h"
 #include "PIDController.h"
 
-float PIDController::update(float measuredValue, float dt, bool resetAccumulator, float fixme1, float fixme2) {
+float PIDController::update(float measuredValue, float dt, bool resetAccumulator) {
     const float error = getMeasuredValueSetpoint() - measuredValue;   // Sign is the direction we want measuredValue to go. Positive means go higher.
 
     const float p = getKP() * error; // term is Proportional to error
@@ -32,7 +32,7 @@ float PIDController::update(float measuredValue, float dt, bool resetAccumulator
         getControlledValueHighLimit());
 
     if (getIsLogging()) {  // if logging/reporting
-        updateHistory(measuredValue, dt, error, accumulatedError, changeInError, p, i, d, computedValue, fixme1, fixme2);
+        updateHistory(measuredValue, dt, error, accumulatedError, changeInError, p, i, d, computedValue);
     }
     Q_ASSERT(!isnan(computedValue));
     
@@ -43,7 +43,7 @@ float PIDController::update(float measuredValue, float dt, bool resetAccumulator
 }
 
 // Just for logging/reporting. Used when picking/verifying the operational parameters.
-void PIDController::updateHistory(float measuredValue, float dt, float error, float accumulatedError, float changeInError, float p, float i, float d, float computedValue, float fixme1, float fixme2) {
+void PIDController::updateHistory(float measuredValue, float dt, float error, float accumulatedError, float changeInError, float p, float i, float d, float computedValue) {
     // Don't report each update(), as the I/O messes with the results a lot.
     // Instead, add to history, and then dump out at once when full.
     // Typically, the first few values reported in each batch should be ignored.
@@ -59,7 +59,6 @@ void PIDController::updateHistory(float measuredValue, float dt, float error, fl
     next.i = i;
     next.d = d;
     next.computed = computedValue;
-    next.fixme1 = fixme1; next.fixme2 = fixme2;
     if (_history.size() == _history.capacity()) { // report when buffer is full
         reportHistory();
         _history.resize(0);
@@ -70,7 +69,6 @@ void PIDController::reportHistory() {
     for (int i = 0; i < _history.size(); i++) {
         Row& row = _history[i];
         qCDebug(shared) << row.measured << row.dt <<
-        (row.fixme1 * 1000.0f) << (row.fixme2) <<
             "||" << row.error << row.accumulated << row.changed <<
             "||" << row.p << row.i << row.d << row.computed << 1.0f/row.computed;
     }

@@ -10,7 +10,6 @@
 #include "DisplayPlugin.h"
 
 #include <QtCore/QTimer>
-#include <QElapsedTimer.h>
 
 #include <GLMHelpers.h>
 #include <SimpleMovingAverage.h>
@@ -41,7 +40,6 @@ public:
     }
 
     virtual QImage getScreenshot() const override;
-    virtual quint64 getTimeSinceSync() { return _sinceSync.elapsed(); }
 
 protected:
     friend class PresentThread;
@@ -84,7 +82,6 @@ protected:
     GLTextureEscrow _sceneTextureEscrow;
 
     bool _vsyncSupported { false };
-    QElapsedTimer _sinceSync;
 };
 
 

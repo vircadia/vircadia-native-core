@@ -1086,7 +1086,6 @@ void Application::paintGL() {
 
     // update fps moving average
     uint64_t now = usecTimestampNow();
-    qint64 sinceSync = getActiveDisplayPlugin()->getTimeSinceSync();
     static uint64_t lastPaintBegin{ now };
     uint64_t diff = now - lastPaintBegin;
     float instantaneousFps = 0.0f;
@@ -1123,31 +1122,6 @@ void Application::paintGL() {
     _inPaint = true;
     Finally clearFlagLambda([this] { _inPaint = false; });
 
-    //_lastPaintWait = (float)(now - _paintWaitStart) / (float)USECS_PER_SECOND;
-    //_lastInstantaneousFps = instantaneousFps;
-    // Some LOD-like controls need to know a smoothly varying "potential" frame rate that doesn't
-    // include time waiting for vsync, and which can report a number above target if we've got the headroom.
-    // For example, if we're shooting for 75fps and paintWait is 3.3333ms (= 75% * 13.33ms), our deducedNonVSyncFps
-    // would be 100fps. In principle, a paintWait of zero would have deducedNonVSyncFps=75.
-    // Here we make a guess for deducedNonVSyncFps = 1 / deducedNonVSyncPeriod.
-    //
-    // Time between previous paintGL call and this one, which can vary not only with vSync misses, but also with QT timing.
-    // We're using this as a proxy for the time between vsync and displayEnd, below. (Not exact, but tends to be the same over time.)
-    // This is not the same as update(deltaTime), because the latter attempts to throttle to 60hz and also clamps to 1/4 second.
-/*    const float actualPeriod = diff / (float)USECS_PER_SECOND; // same as 1/instantaneousFps but easier for compiler to optimize
-    // Note that _lastPaintWait (stored at end of last call) is for the same paint cycle.
-    float deducedNonVSyncPeriod = actualPeriod - _lastPaintWait + _marginForDeducedFramePeriod; // plus a some non-zero time for machinery we can't measure
-    // We don't know how much time to allow for that, but if we went over the target period, we know it's at least the portion
-    // of paintWait up to the next vSync. This gives us enough of a penalty so that when actualPeriod crosses two cycles,
-    // the key part (and not an exagerated part) of _lastPaintWait is accounted for.
-    const float targetPeriod = getTargetFramePeriod();
-    if (_lastPaintWait > EPSILON && actualPeriod > targetPeriod) {
-        // Don't use C++ remainder(). It's authors are mathematically insane.
-        deducedNonVSyncPeriod += fmod(targetPeriod, _lastPaintWait);
-    }
-    _lastDeducedNonVSyncFps = 1.0f / deducedNonVSyncPeriod;
-    */
- 
     auto displayPlugin = getActiveDisplayPlugin();
     // FIXME not needed anymore?
     _offscreenContext->makeCurrent();
@@ -1422,11 +1396,14 @@ void Application::paintGL() {
             batch.resetStages();
         });
     }
-    _paintWaitStart = usecTimestampNow();
-    _lastPaintWait = (float)sinceSync / (float)MSECS_PER_SECOND;
+
+    // Some LOD-like controls need to know a smoothly varying "potential" frame rate that doesn't
+    // include time waiting for sync, and which can report a number above target if we've got the headroom.
+    // In my tests, the following is mostly less than 0.5ms, and never more than 3ms. I don't think its worth measuring during runtime.
+    static const float paintWaitAndQTTimerAllowance = 0.001; // seconds
+    // Store both values now for use by next cycle.
     _lastInstantaneousFps = instantaneousFps;
-    _lastDeducedNonVSyncFps = 1.0f / (((_paintWaitStart - now) / (float)USECS_PER_SECOND) + ((float)sinceSync / (float)MSECS_PER_SECOND));
-   // qCDebug(interfaceapp) << "pw/now/sync" << _paintWaitStart << now << sinceSync << "period" << (((_paintWaitStart - now) / (float)USECS_PER_SECOND) + ((float)sinceSync / (float)MSECS_PER_SECOND)) << "hz" << _lastDeducedNonVSyncFps;
+    _lastUnsynchronizedFps = 1.0f / (((usecTimestampNow() - now) / (float)USECS_PER_SECOND) + paintWaitAndQTTimerAllowance);
 }
 
 void Application::runTests() {

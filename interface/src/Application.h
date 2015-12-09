@@ -163,11 +163,8 @@ public:
     float const HMD_TARGET_FRAME_RATE = 75.0f;
     float const DESKTOP_TARGET_FRAME_RATE = 60.0f;
     float getTargetFrameRate() { return isHMDMode() ? HMD_TARGET_FRAME_RATE : DESKTOP_TARGET_FRAME_RATE; }
-    float getTargetFramePeriod() { return isHMDMode() ? 1.0f / HMD_TARGET_FRAME_RATE : 1.0f / DESKTOP_TARGET_FRAME_RATE; } // same as 1/getTargetFrameRate, but w/compile-time division
     float getLastInstanteousFps() const { return _lastInstantaneousFps; }
-    float getLastPaintWait() const { return _lastPaintWait; };
-    float getLastDeducedNonVSyncFps() const { return _lastDeducedNonVSyncFps; }
-    void setMarginForDeducedFramePeriod(float newValue) { _marginForDeducedFramePeriod = newValue; }
+    float getLastUnsynchronizedFps() const { return _lastUnsynchronizedFps; }
 
     float getFieldOfView() { return _fieldOfView.get(); }
     void setFieldOfView(float fov);
@@ -442,10 +439,7 @@ private:
     QElapsedTimer _timerStart;
     QElapsedTimer _lastTimeUpdated;
     float _lastInstantaneousFps { 0.0f };
-    float _lastPaintWait { 0.0f };
-    uint64_t _paintWaitStart { 0 };
-    float _lastDeducedNonVSyncFps { 0.0f };
-    float _marginForDeducedFramePeriod{ 0.002f }; // 2ms, adjustable
+    float _lastUnsynchronizedFps { 0.0f };
 
     ShapeManager _shapeManager;
     PhysicalEntitySimulation _entitySimulation;

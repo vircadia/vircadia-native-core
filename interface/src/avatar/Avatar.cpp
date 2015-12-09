@@ -174,14 +174,14 @@ void Avatar::simulate(float deltaTime) {
             _shouldSkipRender = false;
             _skeletonModel.setVisibleInScene(true, qApp->getMain3DScene());
             if (!isControllerLogging) {  // Test for isMyAvatar is prophylactic. Never occurs in current code.
-                //qCDebug(interfaceapp) << "Rerendering" << (isMyAvatar() ? "myself" : getSessionUUID()) << "for distance" << renderDistance;
+                qCDebug(interfaceapp) << "Rerendering" << (isMyAvatar() ? "myself" : getSessionUUID()) << "for distance" << renderDistance;
             }
         }
     } else if (distance > renderDistance * (1.0f + SKIP_HYSTERESIS_PROPORTION)) {
         _shouldSkipRender = true;
         _skeletonModel.setVisibleInScene(false, qApp->getMain3DScene());
         if (!isControllerLogging) {
-            //qCDebug(interfaceapp) << "Unrendering" << (isMyAvatar() ? "myself" : getSessionUUID()) << "for distance" << renderDistance;
+            qCDebug(interfaceapp) << "Unrendering" << (isMyAvatar() ? "myself" : getSessionUUID()) << "for distance" << renderDistance;
         }
     }
 
