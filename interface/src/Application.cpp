@@ -2907,7 +2907,7 @@ void Application::update(float deltaTime) {
 
     _avatarUpdate->synchronousProcess();
 
-    if (_physicsEnabled) {
+    if (true || _physicsEnabled) {
         PerformanceTimer perfTimer("physics");
 
         static VectorOfMotionStates motionStates;
