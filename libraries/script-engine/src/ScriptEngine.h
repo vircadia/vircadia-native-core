@@ -193,7 +193,7 @@ protected:
     Quat _quatLibrary;
     Vec3 _vec3Library;
     ScriptUUID _uuidLibrary;
-    bool _isUserLoaded { false };
+    std::atomic<bool> _isUserLoaded { false };
     bool _isReloading { false };
 
     ArrayBufferClass* _arrayBufferClass;
