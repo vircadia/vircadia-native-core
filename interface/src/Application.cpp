@@ -1400,7 +1400,7 @@ void Application::paintGL() {
     // Some LOD-like controls need to know a smoothly varying "potential" frame rate that doesn't
     // include time waiting for sync, and which can report a number above target if we've got the headroom.
     // In my tests, the following is mostly less than 0.5ms, and never more than 3ms. I don't think its worth measuring during runtime.
-    static const float paintWaitAndQTTimerAllowance = 0.001; // seconds
+    const float paintWaitAndQTTimerAllowance = 0.001f; // seconds
     // Store both values now for use by next cycle.
     _lastInstantaneousFps = instantaneousFps;
     _lastUnsynchronizedFps = 1.0f / (((usecTimestampNow() - now) / (float)USECS_PER_SECOND) + paintWaitAndQTTimerAllowance);
