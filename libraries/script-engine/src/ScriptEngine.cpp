@@ -775,6 +775,10 @@ void ScriptEngine::stopAllTimers() {
 
 void ScriptEngine::stop() {
     if (!_isFinished) {
+        if (QThread::currentThread() != thread()) {
+            QMetaObject::invokeMethod(this, "stop");
+            return;
+        }
         _isFinished = true;
         if (_wantSignals) {
             emit runningStateChanged();
