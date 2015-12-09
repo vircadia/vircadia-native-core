@@ -6,7 +6,10 @@
 #  See the accompanying file LICENSE or http:#www.apache.org/licenses/LICENSE-2.0.html
 #
 
-if (WIN32)
+# OpenVR is disabled until a) it works with threaded present and 
+# b) it doesn't interfere with Oculus SDK 0.8 
+if (FALSE)
+#if (WIN32)
     # we're using static GLEW, so define GLEW_STATIC
     add_definitions(-DGLEW_STATIC)
     set(TARGET_NAME openvr)
@@ -21,5 +24,4 @@ if (WIN32)
     find_package(OpenVR REQUIRED)
     target_include_directories(${TARGET_NAME} PRIVATE ${OPENVR_INCLUDE_DIRS})
     target_link_libraries(${TARGET_NAME} ${OPENVR_LIBRARIES})
-
 endif()

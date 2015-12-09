@@ -105,7 +105,7 @@ public:
             // take the latest texture and present it
             _context->makeCurrent();
             if (QOpenGLContext::currentContext() == _context->contextHandle()) {
-                _activePlugin->present();
+                currentPlugin->present();
                 _context->doneCurrent();
             } else {
                 qWarning() << "Makecurrent failed";
