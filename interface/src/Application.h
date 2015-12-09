@@ -202,8 +202,8 @@ public:
 
     NodeToJurisdictionMap& getEntityServerJurisdictions() { return _entityServerJurisdictions; }
 
-    QStringList getRunningScripts() { return _scriptEnginesHash.keys(); }
-    ScriptEngine* getScriptEngine(const QString& scriptHash) { return _scriptEnginesHash.value(scriptHash, NULL); }
+    QStringList getRunningScripts();
+    ScriptEngine* getScriptEngine(const QString& scriptHash);
 
     float getRenderResolutionScale() const;
 
@@ -336,7 +336,7 @@ private slots:
     void loadSettings();
     void saveSettings();
     
-    void scriptFinished(const QString& scriptName);
+    void scriptFinished(const QString& scriptName, ScriptEngine* engine);
     void saveScripts();
     void reloadScript(const QString& scriptName, bool isUserLoaded = true);
     
