@@ -195,6 +195,8 @@ static const QString INFO_EDIT_ENTITIES_PATH = "html/edit-commands.html";
 static const unsigned int THROTTLED_SIM_FRAMERATE = 15;
 static const int THROTTLED_SIM_FRAME_PERIOD_MS = MSECS_PER_SECOND / THROTTLED_SIM_FRAMERATE;
 
+static const float PHYSICS_READY_RANGE = 3.0f; // how far from avatar to check for entities that aren't ready for simulation
+
 #ifndef __APPLE__
 static const QString DESKTOP_LOCATION = QStandardPaths::writableLocation(QStandardPaths::DesktopLocation);
 #else
@@ -1400,7 +1402,7 @@ void Application::paintGL() {
     // Some LOD-like controls need to know a smoothly varying "potential" frame rate that doesn't
     // include time waiting for sync, and which can report a number above target if we've got the headroom.
     // In my tests, the following is mostly less than 0.5ms, and never more than 3ms. I don't think its worth measuring during runtime.
-    static const float paintWaitAndQTTimerAllowance = 0.001; // seconds
+    const float paintWaitAndQTTimerAllowance = 0.001f; // seconds
     // Store both values now for use by next cycle.
     _lastInstantaneousFps = instantaneousFps;
     _lastUnsynchronizedFps = 1.0f / (((usecTimestampNow() - now) / (float)USECS_PER_SECOND) + paintWaitAndQTTimerAllowance);
@@ -2886,7 +2888,7 @@ void Application::update(float deltaTime) {
 
     _avatarUpdate->synchronousProcess();
 
-    {
+    if (true || _physicsEnabled) {
         PerformanceTimer perfTimer("physics");
 
         static VectorOfMotionStates motionStates;
@@ -3768,6 +3770,8 @@ void Application::domainChanged(const QString& domainHostname) {
     updateWindowTitle();
     clearDomainOctreeDetails();
     _domainConnectionRefusals.clear();
+    // disable physics until we have enough information about our new location to not cause craziness.
+    _physicsEnabled = false;
 }
 
 void Application::handleDomainConnectionDeniedPacket(QSharedPointer<ReceivedMessage> message) {
@@ -3875,6 +3879,31 @@ void Application::trackIncomingOctreePacket(ReceivedMessage& message, SharedNode
     }
 }
 
+bool Application::nearbyEntitiesAreReadyForPhysics() {
+    // this is used to avoid the following scenario:
+    // A table has some items sitting on top of it.  The items are at rest, meaning they aren't active in bullet.
+    // Someone logs in close to the table.  They receive information about the items on the table before they
+    // receive information about the table.  The items are very close to the avatar's capsule, so they become
+    // activated in bullet.  This causes them to fall to the floor, because the table's shape isn't yet in bullet.
+    EntityTreePointer entityTree = _entities.getTree();
+    if (!entityTree) {
+        return false;
+    }
+
+    QVector<EntityItemPointer> entities;
+    entityTree->withReadLock([&] {
+        AABox box(getMyAvatar()->getPosition() - glm::vec3(PHYSICS_READY_RANGE), glm::vec3(2 * PHYSICS_READY_RANGE));
+        entityTree->findEntities(box, entities);
+    });
+
+    foreach (EntityItemPointer entity, entities) {
+        if (!entity->isReadyToComputeShape()) {
+            return false;
+        }
+    }
+    return true;
+}
+
 int Application::processOctreeStats(ReceivedMessage& message, SharedNodePointer sendingNode) {
     // But, also identify the sender, and keep track of the contained jurisdiction root for this server
 
@@ -3920,7 +3949,12 @@ int Application::processOctreeStats(ReceivedMessage& message, SharedNodePointer 
         });
     });
 
-
+    if (!_physicsEnabled && nearbyEntitiesAreReadyForPhysics()) {
+        // These stats packets are sent in between full sends of a scene.
+        // We keep physics disabled until we've recieved a full scene and everything near the avatar in that
+        // scene is ready to compute its collision shape.
+        _physicsEnabled = true;
+    }
 
     return statsMessageLength;
 }

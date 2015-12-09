@@ -390,6 +390,7 @@ private:
     
     bool importSVOFromURL(const QString& urlString);
     
+    bool nearbyEntitiesAreReadyForPhysics();
     int processOctreeStats(ReceivedMessage& message, SharedNodePointer sendingNode);
     void trackIncomingOctreePacket(ReceivedMessage& message, SharedNodePointer sendingNode, bool wasStatsPacket);
     
@@ -557,6 +558,7 @@ private:
     bool _isForeground = true; // starts out assumed to be in foreground
     bool _inPaint = false;
     bool _isGLInitialized { false };
+    bool _physicsEnabled { false };
 };
 
 #endif // hifi_Application_h
