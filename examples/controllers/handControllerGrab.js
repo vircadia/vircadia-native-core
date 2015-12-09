@@ -251,9 +251,10 @@ function MyController(hand) {
     this.triggerValue = 0; // rolling average of trigger value
     this.rawTriggerValue = 0;
     this.rawBumperValue = 0;
-    
+
     this.overlayLine = null;
-    
+    this.particleBeam = null;
+
     this.offsetPosition = Vec3.ZERO;
     this.offsetRotation = Quat.IDENTITY;
 
@@ -398,6 +399,119 @@ function MyController(hand) {
         }
     };
 
+
+    //test particles instead of overlays
+
+
+    this.handleParticleBeam = function(position, orientation) {
+
+        var rotation = Quat.angleAxis(0, {
+            x: 1,
+            y: 0,
+            z: 0
+        });
+
+        var finalRotation = Quat.multiply(orientation, rotation);
+
+
+        if (this.particleBeam === null) {
+            print('create beam')
+            this.createParticleBeam(position, finalRotation)
+        } else {
+            print('update beam')
+            this.updateParticleBeam(position, finalRotation)
+        }
+    }
+
+    this.createParticleBeam = function(position, orientation) {
+        var particleBeamProperties = {
+            type: "ParticleEffect",
+            isEmitting: true,
+            position: position,
+            //rotation:Quat.fromPitchYawRollDegrees(-90.0, 0.0, 0.0),
+            "name": "Particle Beam",
+            "color": {
+                "red": 110,
+                "green": 118.52941176470593,
+                "blue": 255
+            },
+            "maxParticles": 1000,
+            "lifespan": 3,
+            "emitRate": 20,
+            "emitSpeed": 10,
+            "speedSpread": 0,
+            "emitOrientation": {
+                "x": -0.7000000000000001,
+                "y": 0,
+                "z": 0,
+                "w": 0.7071068286895752
+            },
+            "emitDimensions": {
+                "x": 0,
+                "y": 0,
+                "z": 0
+            },
+            "emitRadiusStart": 0.5,
+            "polarStart": 0,
+            "polarFinish": 0,
+            "azimuthStart": -3.1415927410125732,
+            "azimuthFinish": 3.1415927410125732,
+            "emitAcceleration": {
+                x: 0,
+                y: 0,
+                z: 0
+            },
+            "accelerationSpread": {
+                "x": 0,
+                "y": 0,
+                "z": 0
+            },
+            "particleRadius": 0.02,
+            "radiusSpread": 0,
+            "radiusStart": 0.01,
+            "radiusFinish": 0.01,
+            "colorSpread": {
+                "red": 0,
+                "green": 0,
+                "blue": 0
+            },
+            "colorStart": {
+                "red": 110,
+                "green": 118.52941176470593,
+                "blue": 255
+            },
+            "colorFinish": {
+                "red": 110,
+                "green": 118.52941176470593,
+                "blue": 255
+            },
+            "alpha": 1,
+            "alphaSpread": 0,
+            "alphaStart": 1,
+            "alphaFinish": 1,
+            "additiveBlending": 0,
+            "textures": "https://hifi-public.s3.amazonaws.com/alan/Particles/Particle-Sprite-Smoke-1.png"
+        }
+
+        this.particleBeam = Entities.addEntity(particleBeamProperties);
+    }
+
+    this.updateParticleBeam = function(position, orientation, acceleration) {
+        print('O IN UPDATE:::' + JSON.stringify(orientation))
+
+        // var beamProps = Entities.getEntityProperties(this.particleBeam);
+
+        Entities.editEntity(this.particleBeam, {
+            //rotation:rotation,
+            rotation: orientation,
+            position: position,
+
+        })
+
+        // var emitO = Entities.getEntityProperties(this.particleBeam, "emitOrientation").emitOrientation;
+        // print('EMIT o :::' + JSON.stringify(emitO));
+    }
+
     this.lineOff = function() {
         if (this.pointer !== null) {
             Entities.deleteEntity(this.pointer);
@@ -411,6 +525,14 @@ function MyController(hand) {
         }
         this.overlayLine = null;
     };
+
+    this.particleBeamOff = function() {
+        if (this.particleBeam !== null) {
+            Entities.deleteEntity(this.particleBeam)
+        }
+
+        this.particleBeam = null;
+    }
 
     this.triggerPress = function(value) {
         _this.rawTriggerValue = value;
@@ -662,6 +784,9 @@ function MyController(hand) {
 
         //this.lineOn(distantPickRay.origin, Vec3.multiply(distantPickRay.direction, LINE_LENGTH), NO_INTERSECT_COLOR);
         this.overlayLineOn(distantPickRay.origin, Vec3.sum(distantPickRay.origin, Vec3.multiply(distantPickRay.direction, LINE_LENGTH)), NO_INTERSECT_COLOR);
+        this.handleParticleBeam(distantPickRay.origin, this.getHandRotation());
+
+
     };
 
     this.distanceHolding = function() {
@@ -715,6 +840,7 @@ function MyController(hand) {
         this.currentAvatarOrientation = MyAvatar.orientation;
 
         this.overlayLineOff();
+        this.particleBeamOff();
     };
 
     this.continueDistanceHolding = function() {
@@ -808,8 +934,16 @@ function MyController(hand) {
         // mix in head motion
         if (MOVE_WITH_HEAD) {
             var objDistance = Vec3.length(objectToAvatar);
-            var before = Vec3.multiplyQbyV(this.currentCameraOrientation, { x: 0.0, y: 0.0, z: objDistance });
-            var after = Vec3.multiplyQbyV(Camera.orientation, { x: 0.0, y: 0.0, z: objDistance });
+            var before = Vec3.multiplyQbyV(this.currentCameraOrientation, {
+                x: 0.0,
+                y: 0.0,
+                z: objDistance
+            });
+            var after = Vec3.multiplyQbyV(Camera.orientation, {
+                x: 0.0,
+                y: 0.0,
+                z: objDistance
+            });
             var change = Vec3.subtract(before, after);
             this.currentCameraOrientation = Camera.orientation;
             this.currentObjectPosition = Vec3.sum(this.currentObjectPosition, change);
@@ -837,6 +971,7 @@ function MyController(hand) {
 
         this.lineOff();
         this.overlayLineOff();
+        this.particleBeamOff();
 
         var grabbedProperties = Entities.getEntityProperties(this.grabbedEntity, GRABBABLE_PROPERTIES);
         this.activateEntity(this.grabbedEntity, grabbedProperties);
@@ -975,6 +1110,7 @@ function MyController(hand) {
     this.pullTowardEquipPosition = function() {
         this.lineOff();
         this.overlayLineOff();
+        this.particleBeamOff();
 
         var grabbedProperties = Entities.getEntityProperties(this.grabbedEntity, GRABBABLE_PROPERTIES);
         var grabbableData = getEntityCustomData(GRABBABLE_DATA_KEY, this.grabbedEntity, DEFAULT_GRABBABLE_DATA);
@@ -1164,6 +1300,7 @@ function MyController(hand) {
 
         this.lineOff();
         this.overlayLineOff();
+        this.particleBeamOff();
         if (this.grabbedEntity !== null) {
             if (this.actionID !== null) {
                 Entities.deleteAction(this.grabbedEntity, this.actionID);
@@ -1285,10 +1422,10 @@ Controller.enableMapping(MAPPING_NAME);
 var handToDisable = 'none';
 
 function update() {
-    if (handToDisable !== LEFT_HAND && handToDisable!=='both') {
+    if (handToDisable !== LEFT_HAND && handToDisable !== 'both') {
         leftController.update();
     }
-    if (handToDisable !== RIGHT_HAND  && handToDisable!=='both') {
+    if (handToDisable !== RIGHT_HAND && handToDisable !== 'both') {
         rightController.update();
     }
 }
@@ -1296,7 +1433,7 @@ function update() {
 Messages.subscribe('Hifi-Hand-Disabler');
 
 handleHandDisablerMessages = function(channel, message, sender) {
-    
+
     if (sender === MyAvatar.sessionUUID) {
         if (message === 'left') {
             handToDisable = LEFT_HAND;
@@ -1304,11 +1441,11 @@ handleHandDisablerMessages = function(channel, message, sender) {
         if (message === 'right') {
             handToDisable = RIGHT_HAND;
         }
-        if(message==='both'){
-            handToDisable='both';
+        if (message === 'both') {
+            handToDisable = 'both';
         }
-        if(message==='none'){
-            handToDisable='none';
+        if (message === 'none') {
+            handToDisable = 'none';
         }
     }
 
