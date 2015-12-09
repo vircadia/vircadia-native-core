@@ -65,7 +65,7 @@ void PIDController::updateHistory(float measuredValue, float dt, float error, fl
     }
 }
 void PIDController::reportHistory() {
-    qCDebug(shared) << _label << "measured dt FIXME || error accumulated changed || p i d controlled";
+    qCDebug(shared) << _label << "measured dt || error accumulated changed || p i d controlled";
     for (int i = 0; i < _history.size(); i++) {
         Row& row = _history[i];
         qCDebug(shared) << row.measured << row.dt <<
