@@ -462,24 +462,24 @@ void AudioClient::stop() {
     }
 }
 
-void AudioClient::handleAudioEnvironmentDataPacket(QSharedPointer<NLPacket> packet) {
+void AudioClient::handleAudioEnvironmentDataPacket(QSharedPointer<ReceivedMessage> message) {
 
     char bitset;
-    packet->readPrimitive(&bitset);
+    message->readPrimitive(&bitset);
 
     bool hasReverb = oneAtBit(bitset, HAS_REVERB_BIT);
     
     if (hasReverb) {
         float reverbTime, wetLevel;
-        packet->readPrimitive(&reverbTime);
-        packet->readPrimitive(&wetLevel);
+        message->readPrimitive(&reverbTime);
+        message->readPrimitive(&wetLevel);
         _receivedAudioStream.setReverb(reverbTime, wetLevel);
     } else {
         _receivedAudioStream.clearReverb();
    }
 }
 
-void AudioClient::handleAudioDataPacket(QSharedPointer<NLPacket> packet) {
+void AudioClient::handleAudioDataPacket(QSharedPointer<ReceivedMessage> message) {
     auto nodeList = DependencyManager::get<NodeList>();
     nodeList->flagTimeForConnectionStep(LimitedNodeList::ConnectionStep::ReceiveFirstAudioPacket);
 
@@ -493,11 +493,11 @@ void AudioClient::handleAudioDataPacket(QSharedPointer<NLPacket> packet) {
         }
 
         // Audio output must exist and be correctly set up if we're going to process received audio
-        _receivedAudioStream.parseData(*packet);
+        _receivedAudioStream.parseData(*message);
     }
 }
 
-void AudioClient::handleNoisyMutePacket(QSharedPointer<NLPacket> packet) {
+void AudioClient::handleNoisyMutePacket(QSharedPointer<ReceivedMessage> message) {
     if (!_muted) {
         toggleMute();
         
@@ -506,12 +506,12 @@ void AudioClient::handleNoisyMutePacket(QSharedPointer<NLPacket> packet) {
     }
 }
 
-void AudioClient::handleMuteEnvironmentPacket(QSharedPointer<NLPacket> packet) {
+void AudioClient::handleMuteEnvironmentPacket(QSharedPointer<ReceivedMessage> message) {
     glm::vec3 position;
     float radius;
     
-    packet->readPrimitive(&position);
-    packet->readPrimitive(&radius);
+    message->readPrimitive(&position);
+    message->readPrimitive(&radius);
 
     emit muteEnvironmentRequested(position, radius);
 }
@@ -541,26 +541,40 @@ bool AudioClient::switchOutputToAudioDevice(const QString& outputDeviceName) {
 
 void AudioClient::configureReverb() {
     ReverbParameters p;
-    _listenerReverb.getParameters(&p);
-
-    // for now, reuse the gverb parameters
     p.sampleRate = _outputFormat.sampleRate();
-    p.roomSize = _reverbOptions->getRoomSize();
+
+    p.bandwidth = _reverbOptions->getBandwidth();
+    p.preDelay = _reverbOptions->getPreDelay();
+    p.lateDelay = _reverbOptions->getLateDelay();
     p.reverbTime = _reverbOptions->getReverbTime();
-    p.highGain = -24.0f * (1.0f - _reverbOptions->getDamping());
-    p.bandwidth = 10000.0f * _reverbOptions->getInputBandwidth();
-    p.earlyGain = _reverbOptions->getEarlyLevel();
-    p.lateGain = _reverbOptions->getTailLevel();
-    p.wetDryMix = 100.0f * powf(10.0f, _reverbOptions->getWetLevel() * (1/20.0f));
+    p.earlyDiffusion = _reverbOptions->getEarlyDiffusion();
+    p.lateDiffusion = _reverbOptions->getLateDiffusion();
+    p.roomSize = _reverbOptions->getRoomSize();
+    p.density = _reverbOptions->getDensity();
+    p.bassMult = _reverbOptions->getBassMult();
+    p.bassFreq = _reverbOptions->getBassFreq();
+    p.highGain = _reverbOptions->getHighGain();
+    p.highFreq = _reverbOptions->getHighFreq();
+    p.modRate = _reverbOptions->getModRate();
+    p.modDepth = _reverbOptions->getModDepth();
+    p.earlyGain = _reverbOptions->getEarlyGain();
+    p.lateGain = _reverbOptions->getLateGain();
+    p.earlyMixLeft = _reverbOptions->getEarlyMixLeft();
+    p.earlyMixRight = _reverbOptions->getEarlyMixRight();
+    p.lateMixLeft = _reverbOptions->getLateMixLeft();
+    p.lateMixRight = _reverbOptions->getLateMixRight();
+    p.wetDryMix = _reverbOptions->getWetDryMix();
+
     _listenerReverb.setParameters(&p);
 
-    // used for adding self-reverb to loopback audio
+    // used only for adding self-reverb to loopback audio
     p.wetDryMix = 100.0f;
     p.preDelay = 0.0f;
     p.earlyGain = -96.0f;   // disable ER
-    p.lateGain -= 12.0f;     // quieter than listener reverb
+    p.lateGain -= 12.0f;    // quieter than listener reverb
     p.lateMixLeft = 0.0f;
     p.lateMixRight = 0.0f;
+
     _sourceReverb.setParameters(&p);
 }
 
@@ -572,10 +586,10 @@ void AudioClient::updateReverbOptions() {
             _zoneReverbOptions.setReverbTime(_receivedAudioStream.getRevebTime());
             reverbChanged = true;
         }
-        if (_zoneReverbOptions.getWetLevel() != _receivedAudioStream.getWetLevel()) {
-            _zoneReverbOptions.setWetLevel(_receivedAudioStream.getWetLevel());
-            reverbChanged = true;
-        }
+        //if (_zoneReverbOptions.getWetLevel() != _receivedAudioStream.getWetLevel()) {
+        //    _zoneReverbOptions.setWetLevel(_receivedAudioStream.getWetLevel());
+        //    reverbChanged = true;
+        //}
 
         if (_reverbOptions != &_zoneReverbOptions) {
             _reverbOptions = &_zoneReverbOptions;
@@ -602,17 +616,27 @@ void AudioClient::setReverb(bool reverb) {
 
 void AudioClient::setReverbOptions(const AudioEffectOptions* options) {
     // Save the new options
-    _scriptReverbOptions.setMaxRoomSize(options->getMaxRoomSize());
-    _scriptReverbOptions.setRoomSize(options->getRoomSize());
+    _scriptReverbOptions.setBandwidth(options->getBandwidth());
+    _scriptReverbOptions.setPreDelay(options->getPreDelay());
+    _scriptReverbOptions.setLateDelay(options->getLateDelay());
     _scriptReverbOptions.setReverbTime(options->getReverbTime());
-    _scriptReverbOptions.setDamping(options->getDamping());
-    _scriptReverbOptions.setSpread(options->getSpread());
-    _scriptReverbOptions.setInputBandwidth(options->getInputBandwidth());
-    _scriptReverbOptions.setEarlyLevel(options->getEarlyLevel());
-    _scriptReverbOptions.setTailLevel(options->getTailLevel());
-
-    _scriptReverbOptions.setDryLevel(options->getDryLevel());
-    _scriptReverbOptions.setWetLevel(options->getWetLevel());
+    _scriptReverbOptions.setEarlyDiffusion(options->getEarlyDiffusion());
+    _scriptReverbOptions.setLateDiffusion(options->getLateDiffusion());
+    _scriptReverbOptions.setRoomSize(options->getRoomSize());
+    _scriptReverbOptions.setDensity(options->getDensity());
+    _scriptReverbOptions.setBassMult(options->getBassMult());
+    _scriptReverbOptions.setBassFreq(options->getBassFreq());
+    _scriptReverbOptions.setHighGain(options->getHighGain());
+    _scriptReverbOptions.setHighFreq(options->getHighFreq());
+    _scriptReverbOptions.setModRate(options->getModRate());
+    _scriptReverbOptions.setModDepth(options->getModDepth());
+    _scriptReverbOptions.setEarlyGain(options->getEarlyGain());
+    _scriptReverbOptions.setLateGain(options->getLateGain());
+    _scriptReverbOptions.setEarlyMixLeft(options->getEarlyMixLeft());
+    _scriptReverbOptions.setEarlyMixRight(options->getEarlyMixRight());
+    _scriptReverbOptions.setLateMixLeft(options->getLateMixLeft());
+    _scriptReverbOptions.setLateMixRight(options->getLateMixRight());
+    _scriptReverbOptions.setWetDryMix(options->getWetDryMix());
 
     if (_reverbOptions == &_scriptReverbOptions) {
         // Apply them to the reverb instances

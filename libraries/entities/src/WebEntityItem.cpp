@@ -34,7 +34,7 @@ WebEntityItem::WebEntityItem(const EntityItemID& entityItemID) : EntityItem(enti
 
 const float WEB_ENTITY_ITEM_FIXED_DEPTH = 0.01f;
 
-void WebEntityItem::setDimensions(const glm::vec3 value) {
+void WebEntityItem::setDimensions(const glm::vec3& value) {
     // NOTE: Web Entities always have a "depth" of 1cm.
     EntityItem::setDimensions(glm::vec3(value.x, value.y, WEB_ENTITY_ITEM_FIXED_DEPTH));
 }

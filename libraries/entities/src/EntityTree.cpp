@@ -24,6 +24,7 @@
 #include "EntitiesLogging.h"
 #include "RecurseOctreeToMapOperator.h"
 #include "LogHandler.h"
+#include "RemapIDOperator.h"
 
 static const quint64 DELETED_ENTITIES_EXTRA_USECS_TO_CONSIDER = USECS_PER_MSEC * 50;
 
@@ -740,9 +741,17 @@ void EntityTree::fixupTerseEditLogging(EntityItemProperties& properties, QList<Q
             changedProperties[index] = QString("userData:") + changeHint;
         }
     }
+
+    if (properties.parentJointIndexChanged()) {
+        int index = changedProperties.indexOf("parentJointIndex");
+        if (index >= 0) {
+            quint16 value = properties.getParentJointIndex();
+            changedProperties[index] = QString("parentJointIndex:") + QString::number((int)value);
+        }
+    }
 }
 
-int EntityTree::processEditPacketData(NLPacket& packet, const unsigned char* editData, int maxLength,
+int EntityTree::processEditPacketData(ReceivedMessage& message, const unsigned char* editData, int maxLength,
                                      const SharedNodePointer& senderNode) {
 
     if (!getIsServer()) {
@@ -752,7 +761,7 @@ int EntityTree::processEditPacketData(NLPacket& packet, const unsigned char* edi
 
     int processedBytes = 0;
     // we handle these types of "edit" packets
-    switch (packet.getType()) {
+    switch (message.getType()) {
         case PacketType::EntityErase: {
             QByteArray dataByteArray = QByteArray::fromRawData(reinterpret_cast<const char*>(editData), maxLength);
             processedBytes = processEraseMessageDetails(dataByteArray, senderNode);
@@ -784,7 +793,7 @@ int EntityTree::processEditPacketData(NLPacket& packet, const unsigned char* edi
                 startLookup = usecTimestampNow();
                 EntityItemPointer existingEntity = findEntityByEntityItemID(entityItemID);
                 endLookup = usecTimestampNow();
-                if (existingEntity && packet.getType() == PacketType::EntityEdit) {
+                if (existingEntity && message.getType() == PacketType::EntityEdit) {
                     // if the EntityItem exists, then update it
                     startLogging = usecTimestampNow();
                     if (wantEditLogging()) {
@@ -804,7 +813,7 @@ int EntityTree::processEditPacketData(NLPacket& packet, const unsigned char* edi
                     existingEntity->markAsChangedOnServer();
                     endUpdate = usecTimestampNow();
                     _totalUpdates++;
-                } else if (packet.getType() == PacketType::EntityAdd) {
+                } else if (message.getType() == PacketType::EntityAdd) {
                     if (senderNode->getCanRez()) {
                         // this is a new entity... assign a new entityID
                         properties.setCreated(properties.getLastEdited());
@@ -837,7 +846,7 @@ int EntityTree::processEditPacketData(NLPacket& packet, const unsigned char* edi
                 } else {
                     static QString repeatedMessage =
                         LogHandler::getInstance().addRepeatedMessageRegex("^Edit failed.*");
-                    qCDebug(entities) << "Edit failed. [" << packet.getType() <<"] " <<
+                    qCDebug(entities) << "Edit failed. [" << message.getType() <<"] " <<
                             "entity id:" << entityItemID << 
                             "existingEntity pointer:" << existingEntity.get();
                 }
@@ -979,27 +988,27 @@ void EntityTree::forgetEntitiesDeletedBefore(quint64 sinceTime) {
 
 
 // TODO: consider consolidating processEraseMessageDetails() and processEraseMessage()
-int EntityTree::processEraseMessage(NLPacket& packet, const SharedNodePointer& sourceNode) {
+int EntityTree::processEraseMessage(ReceivedMessage& message, const SharedNodePointer& sourceNode) {
     #ifdef EXTRA_ERASE_DEBUGGING
         qDebug() << "EntityTree::processEraseMessage()";
     #endif
     withWriteLock([&] {
-        packet.seek(sizeof(OCTREE_PACKET_FLAGS) + sizeof(OCTREE_PACKET_SEQUENCE) + sizeof(OCTREE_PACKET_SENT_TIME));
+        message.seek(sizeof(OCTREE_PACKET_FLAGS) + sizeof(OCTREE_PACKET_SEQUENCE) + sizeof(OCTREE_PACKET_SENT_TIME));
 
         uint16_t numberOfIDs = 0; // placeholder for now
-        packet.readPrimitive(&numberOfIDs);
+        message.readPrimitive(&numberOfIDs);
 
         if (numberOfIDs > 0) {
             QSet<EntityItemID> entityItemIDsToDelete;
 
             for (size_t i = 0; i < numberOfIDs; i++) {
 
-                if (NUM_BYTES_RFC4122_UUID > packet.bytesLeftToRead()) {
+                if (NUM_BYTES_RFC4122_UUID > message.getBytesLeftToRead()) {
                     qCDebug(entities) << "EntityTree::processEraseMessage().... bailing because not enough bytes in buffer";
                     break; // bail to prevent buffer overflow
                 }
 
-                QUuid entityID = QUuid::fromRfc4122(packet.readWithoutCopy(NUM_BYTES_RFC4122_UUID));
+                QUuid entityID = QUuid::fromRfc4122(message.readWithoutCopy(NUM_BYTES_RFC4122_UUID));
                 #ifdef EXTRA_ERASE_DEBUGGING
                     qDebug() << "    ---- EntityTree::processEraseMessage() contained ID:" << entityID;
                 #endif
@@ -1015,7 +1024,7 @@ int EntityTree::processEraseMessage(NLPacket& packet, const SharedNodePointer& s
             deleteEntities(entityItemIDsToDelete, true, true);
         }
     });
-    return packet.pos();
+    return message.getPosition();
 }
 
 // This version skips over the header
@@ -1184,6 +1193,11 @@ bool EntityTree::sendEntitiesOperation(OctreeElementPointer element, void* extra
         }
     });
     return true;
+}
+
+void EntityTree::remapIDs() {
+    RemapIDOperator theOperator;
+    recurseTreeWithOperator(&theOperator);
 }
 
 bool EntityTree::writeToMap(QVariantMap& entityDescription, OctreeElementPointer element, bool skipDefaultValues) {

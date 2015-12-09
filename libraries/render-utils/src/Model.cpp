@@ -544,6 +544,7 @@ void Model::removeFromScene(std::shared_ptr<render::Scene> scene, render::Pendin
         pendingChanges.removeItem(item);
     }
     _renderItems.clear();
+    _renderItemsSet.clear();
     _readyWhenAdded = false;
 }
 
@@ -763,6 +764,14 @@ bool Model::getJointRotation(int jointIndex, glm::quat& rotation) const {
 
 bool Model::getJointTranslation(int jointIndex, glm::vec3& translation) const {
     return _rig->getJointTranslation(jointIndex, translation);
+}
+
+bool Model::getAbsoluteJointRotationInRigFrame(int jointIndex, glm::quat& rotation) const {
+    return _rig->getAbsoluteJointRotationInRigFrame(jointIndex, rotation);
+}
+
+bool Model::getAbsoluteJointTranslationInRigFrame(int jointIndex, glm::vec3& translation) const {
+    return _rig->getAbsoluteJointTranslationInRigFrame(jointIndex, translation);
 }
 
 bool Model::getJointCombinedRotation(int jointIndex, glm::quat& rotation) const {

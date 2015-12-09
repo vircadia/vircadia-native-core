@@ -985,8 +985,8 @@ void AvatarData::clearJointsData() {
     }
 }
 
-bool AvatarData::hasIdentityChangedAfterParsing(NLPacket& packet) {
-    QDataStream packetStream(&packet);
+bool AvatarData::hasIdentityChangedAfterParsing(const QByteArray& data) {
+    QDataStream packetStream(data);
 
     QUuid avatarUUID;
     QUrl faceModelURL, skeletonModelURL;
@@ -1030,12 +1030,11 @@ QByteArray AvatarData::identityByteArray() {
     return identityData;
 }
 
-bool AvatarData::hasBillboardChangedAfterParsing(NLPacket& packet) {
-    QByteArray newBillboard = packet.readAll();
-    if (newBillboard == _billboard) {
+bool AvatarData::hasBillboardChangedAfterParsing(const QByteArray& data) {
+    if (data == _billboard) {
         return false;
     }
-    _billboard = newBillboard;
+    _billboard = data;
     return true;
 }
 
@@ -1626,10 +1625,10 @@ void AvatarData::setBodyRoll(float bodyRoll) {
     setOrientation(glm::quat(glm::radians(eulerAngles)));
 }
 
-void AvatarData::setPosition(const glm::vec3 position) {
+void AvatarData::setPosition(const glm::vec3& position) {
     SpatiallyNestable::setPosition(position);
 }
 
-void AvatarData::setOrientation(const glm::quat orientation) {
+void AvatarData::setOrientation(const glm::quat& orientation) {
     SpatiallyNestable::setOrientation(orientation);
 }

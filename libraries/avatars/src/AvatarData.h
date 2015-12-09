@@ -201,8 +201,8 @@ public:
     float getBodyRoll() const;
     void setBodyRoll(float bodyRoll);
 
-    virtual void setPosition(glm::vec3 position);
-    virtual void setOrientation(glm::quat orientation);
+    virtual void setPosition(const glm::vec3& position) override;
+    virtual void setOrientation(const glm::quat& orientation) override;
 
     void nextAttitude(glm::vec3 position, glm::quat orientation); // Can be safely called at any time.
     void startCapture();    // start/end of the period in which the latest values are about to be captured for camera, etc.
@@ -284,10 +284,10 @@ public:
     const HeadData* getHeadData() const { return _headData; }
     const HandData* getHandData() const { return _handData; }
 
-    bool hasIdentityChangedAfterParsing(NLPacket& packet);
+    bool hasIdentityChangedAfterParsing(const QByteArray& data);
     QByteArray identityByteArray();
     
-    bool hasBillboardChangedAfterParsing(NLPacket& packet);
+    bool hasBillboardChangedAfterParsing(const QByteArray& data);
     
     const QUrl& getFaceModelURL() const { return _faceModelURL; }
     QString getFaceModelURLString() const { return _faceModelURL.toString(); }

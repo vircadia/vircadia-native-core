@@ -201,6 +201,7 @@ void Avatar::simulate(float deltaTime) {
             _skeletonModel.getRig()->copyJointsFromJointData(_jointData);
             _skeletonModel.simulate(deltaTime, _hasNewJointRotations || _hasNewJointTranslations);
             simulateAttachments(deltaTime);
+            locationChanged(); // joints changed, so if there are any children, update them.
             _hasNewJointRotations = false;
             _hasNewJointTranslations = false;
         }
@@ -857,23 +858,28 @@ QVector<glm::quat> Avatar::getJointRotations() const {
 }
 
 glm::quat Avatar::getJointRotation(int index) const {
-    if (QThread::currentThread() != thread()) {
-        return AvatarData::getJointRotation(index);
-    }
     glm::quat rotation;
     _skeletonModel.getJointRotation(index, rotation);
     return rotation;
 }
 
 glm::vec3 Avatar::getJointTranslation(int index) const {
-    if (QThread::currentThread() != thread()) {
-        return AvatarData::getJointTranslation(index);
-    }
     glm::vec3 translation;
     _skeletonModel.getJointTranslation(index, translation);
     return translation;
 }
 
+glm::quat Avatar::getAbsoluteJointRotationInObjectFrame(int index) const {
+    glm::quat rotation;
+    _skeletonModel.getAbsoluteJointRotationInRigFrame(index, rotation);
+    return Quaternions::Y_180 * rotation;
+}
+
+glm::vec3 Avatar::getAbsoluteJointTranslationInObjectFrame(int index) const {
+    glm::vec3 translation;
+    _skeletonModel.getAbsoluteJointTranslationInRigFrame(index, translation);
+    return Quaternions::Y_180 * translation;
+}
 
 int Avatar::getJointIndex(const QString& name) const {
     if (QThread::currentThread() != thread()) {
@@ -1151,12 +1157,12 @@ glm::quat Avatar::getRightPalmRotation() {
     return rightRotation;
 }
 
-void Avatar::setPosition(const glm::vec3 position) {
+void Avatar::setPosition(const glm::vec3& position) {
     AvatarData::setPosition(position);
     updateAttitude();
 }
 
-void Avatar::setOrientation(const glm::quat orientation) {
+void Avatar::setOrientation(const glm::quat& orientation) {
     AvatarData::setOrientation(orientation);
     updateAttitude();
 }

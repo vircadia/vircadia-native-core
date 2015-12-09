@@ -60,10 +60,6 @@ LimitedNodeList::LimitedNodeList(unsigned short socketListenPort, unsigned short
     if (firstCall) {
         NodeType::init();
 
-        // register the SharedNodePointer meta-type for signals/slots
-        qRegisterMetaType<QSharedPointer<Node>>();
-        qRegisterMetaType<SharedNodePointer>();
-
         firstCall = false;
     }
     
@@ -99,9 +95,14 @@ LimitedNodeList::LimitedNodeList(unsigned short socketListenPort, unsigned short
             _packetReceiver->handleVerifiedPacket(std::move(packet));
         }
     );
-    _nodeSocket.setPacketListHandler(
-        [this](std::unique_ptr<udt::PacketList> packetList) {
-            _packetReceiver->handleVerifiedPacketList(std::move(packetList));
+    _nodeSocket.setMessageHandler(
+        [this](std::unique_ptr<udt::Packet> packet) {
+            _packetReceiver->handleVerifiedMessagePacket(std::move(packet));
+        }
+    );
+    _nodeSocket.setMessageFailureHandler(
+        [this](HifiSockAddr from, udt::Packet::MessageNumber messageNumber) {
+            _packetReceiver->handleMessageFailure(from, messageNumber);
         }
     );
 
@@ -411,7 +412,7 @@ qint64 LimitedNodeList::sendPacket(std::unique_ptr<NLPacket> packet, const Node&
     return sendPacket(std::move(packet), destinationSockAddr, destinationNode.getConnectionSecret());
 }
 
-int LimitedNodeList::updateNodeWithDataFromPacket(QSharedPointer<NLPacket> packet, SharedNodePointer sendingNode) {
+int LimitedNodeList::updateNodeWithDataFromPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer sendingNode) {
     QMutexLocker locker(&sendingNode->getMutex());
 
     NodeData* linkedData = sendingNode->getLinkedData();
@@ -421,7 +422,7 @@ int LimitedNodeList::updateNodeWithDataFromPacket(QSharedPointer<NLPacket> packe
 
     if (linkedData) {
         QMutexLocker linkedDataLocker(&linkedData->getMutex());
-        return linkedData->parseData(*packet);
+        return linkedData->parseData(*message);
     }
     
     return 0;
@@ -487,9 +488,9 @@ bool LimitedNodeList::killNodeWithUUID(const QUuid& nodeUUID) {
     return false;
 }
 
-void LimitedNodeList::processKillNode(NLPacket& packet) {
+void LimitedNodeList::processKillNode(ReceivedMessage& message) {
     // read the node id
-    QUuid nodeUUID = QUuid::fromRfc4122(packet.readWithoutCopy(NUM_BYTES_RFC4122_UUID));
+    QUuid nodeUUID = QUuid::fromRfc4122(message.readWithoutCopy(NUM_BYTES_RFC4122_UUID));
 
     // kill the node with this UUID, if it exists
     killNodeWithUUID(nodeUUID);
@@ -562,11 +563,11 @@ std::unique_ptr<NLPacket> LimitedNodeList::constructPingPacket(PingType_t pingTy
     return pingPacket;
 }
 
-std::unique_ptr<NLPacket> LimitedNodeList::constructPingReplyPacket(NLPacket& pingPacket) {
+std::unique_ptr<NLPacket> LimitedNodeList::constructPingReplyPacket(ReceivedMessage& message) {
     PingType_t typeFromOriginalPing;
     quint64 timeFromOriginalPing;
-    pingPacket.readPrimitive(&typeFromOriginalPing);
-    pingPacket.readPrimitive(&timeFromOriginalPing);
+    message.readPrimitive(&typeFromOriginalPing);
+    message.readPrimitive(&timeFromOriginalPing);
 
     int packetSize = sizeof(PingType_t) + sizeof(quint64) + sizeof(quint64);
     auto replyPacket = NLPacket::create(PacketType::PingReply, packetSize);
@@ -587,11 +588,11 @@ std::unique_ptr<NLPacket> LimitedNodeList::constructICEPingPacket(PingType_t pin
     return icePingPacket;
 }
 
-std::unique_ptr<NLPacket> LimitedNodeList::constructICEPingReplyPacket(NLPacket& pingPacket, const QUuid& iceID) {
+std::unique_ptr<NLPacket> LimitedNodeList::constructICEPingReplyPacket(ReceivedMessage& message, const QUuid& iceID) {
     // pull out the ping type so we can reply back with that
     PingType_t pingType;
 
-    memcpy(&pingType, pingPacket.getPayload() + NUM_BYTES_RFC4122_UUID, sizeof(PingType_t));
+    memcpy(&pingType, message.getRawMessage() + NUM_BYTES_RFC4122_UUID, sizeof(PingType_t));
 
     int packetSize = NUM_BYTES_RFC4122_UUID + sizeof(PingType_t);
     auto icePingReplyPacket = NLPacket::create(PacketType::ICEPingReply, packetSize);

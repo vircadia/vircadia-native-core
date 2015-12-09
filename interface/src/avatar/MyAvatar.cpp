@@ -560,7 +560,7 @@ void MyAvatar::render(RenderArgs* renderArgs, const glm::vec3& cameraPosition) {
     if (!_shouldRender) {
         return; // exit early
     }
-
+    
     Avatar::render(renderArgs, cameraPosition);
 }
 
@@ -967,8 +967,6 @@ void MyAvatar::clearJointData(int index) {
         QMetaObject::invokeMethod(this, "clearJointData", Q_ARG(int, index));
         return;
     }
-    // HACK: ATM only JS scripts call clearJointData() on MyAvatar so we hardcode the priority
-    _rig->setJointState(index, false, glm::quat(), glm::vec3(), 0.0f);
     _rig->clearJointAnimationPriority(index);
 }
 
@@ -1188,7 +1186,7 @@ void MyAvatar::renderBody(RenderArgs* renderArgs, ViewFrustum* renderFrustum, fl
     if (!_skeletonModel.isRenderable()) {
         return; // wait until all models are loaded
     }
-
+    
     fixupModelsInScene();
 
     //  Render head so long as the camera isn't inside it

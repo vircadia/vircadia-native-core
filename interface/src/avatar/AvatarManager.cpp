@@ -111,7 +111,6 @@ void AvatarManager::init() {
     _renderDistanceController.setKP(0.0008f); // Usually about 0.6 of largest that doesn't oscillate when other parameters 0.
     _renderDistanceController.setKI(0.0006f); // Big enough to bring us to target with the above KP.
     _renderDistanceController.setKD(0.000001f); // A touch of kd increases the speed by which we get there.
-
 }
 
 void AvatarManager::updateMyAvatar(float deltaTime) {
@@ -153,7 +152,7 @@ void AvatarManager::updateOtherAvatars(float deltaTime) {
         // The measured value is frame rate. When the controlled value (1 / render cutoff distance)
         // goes up, the render cutoff distance gets closer, the number of rendered avatars is less, and frame rate
         // goes up.
-        const float deduced = qApp->getLastDeducedNonVSyncFps();
+        const float deduced = qApp->getLastUnsynchronizedFps();
         distance = 1.0f / _renderDistanceController.update(deduced, deltaTime);
     } else {
         // We could keep the controller running when not vsync'd, if getLastDeducedNonVSyncFps is still meaningful.
@@ -417,7 +416,7 @@ void AvatarManager::updateAvatarRenderStatus(bool shouldRenderAvatars) {
 
 AvatarSharedPointer AvatarManager::getAvatarBySessionID(const QUuid& sessionID) {
     if (sessionID == _myAvatar->getSessionUUID()) {
-        return std::static_pointer_cast<Avatar>(_myAvatar);
+        return _myAvatar;
     }
     
     return findAvatar(sessionID);

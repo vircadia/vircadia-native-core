@@ -45,7 +45,7 @@
 #include <QtNetwork/QNetworkDiskCache>
 
 #include <gl/Config.h>
-#include <QtGui/QOpenGLContext>
+#include <QOpenGLContextWrapper.h>
 
 #include <AccountManager.h>
 #include <AddressManager.h>
@@ -1077,6 +1077,11 @@ void Application::initializeUi() {
 }
 
 void Application::paintGL() {
+    // paintGL uses a queued connection, so we can get messages from the queue even after we've quit 
+    // and the plugins have shutdown
+    if (_aboutToQuit) {
+        return;
+    }
     _frameCount++;
 
     // update fps moving average
@@ -1116,29 +1121,6 @@ void Application::paintGL() {
     }
     _inPaint = true;
     Finally clearFlagLambda([this] { _inPaint = false; });
-
-    // Some LOD-like controls need to know a smoothly varying "potential" frame rate that doesn't
-    // include time waiting for vsync, and which can report a number above target if we've got the headroom.
-    // For example, if we're shooting for 75fps and paintWait is 3.3333ms (= 75% * 13.33ms), our deducedNonVSyncFps
-    // would be 100fps. In principle, a paintWait of zero would have deducedNonVSyncFps=75.
-    // Here we make a guess for deducedNonVSyncFps = 1 / deducedNonVSyncPeriod.
-    //
-    // Time between previous paintGL call and this one, which can vary not only with vSync misses, but also with QT timing.
-    // We're using this as a proxy for the time between vsync and displayEnd, below. (Not exact, but tends to be the same over time.)
-    // This is not the same as update(deltaTime), because the latter attempts to throttle to 60hz and also clamps to 1/4 second.
-    const float actualPeriod = diff / (float)USECS_PER_SECOND; // same as 1/instantaneousFps but easier for compiler to optimize
-    // Note that _lastPaintWait (stored at end of last call) is for the same paint cycle.
-    float deducedNonVSyncPeriod = actualPeriod - _lastPaintWait + _marginForDeducedFramePeriod; // plus a some non-zero time for machinery we can't measure
-    // We don't know how much time to allow for that, but if we went over the target period, we know it's at least the portion
-    // of paintWait up to the next vSync. This gives us enough of a penalty so that when actualPeriod crosses two cycles,
-    // the key part (and not an exagerated part) of _lastPaintWait is accounted for.
-    const float targetPeriod = getTargetFramePeriod();
-    if (_lastPaintWait > EPSILON && actualPeriod > targetPeriod) {
-        // Don't use C++ remainder(). It's authors are mathematically insane.
-        deducedNonVSyncPeriod += fmod(actualPeriod, _lastPaintWait);
-    }
-    _lastDeducedNonVSyncFps = 1.0f / deducedNonVSyncPeriod;
-    _lastInstantaneousFps = instantaneousFps;
 
     auto displayPlugin = getActiveDisplayPlugin();
     // FIXME not needed anymore?
@@ -1396,18 +1378,14 @@ void Application::paintGL() {
         Q_ASSERT(!_lockedFramebufferMap.contains(finalTexture));
         _lockedFramebufferMap[finalTexture] = scratchFramebuffer;
 
-        uint64_t displayStart = usecTimestampNow();
-        Q_ASSERT(QOpenGLContext::currentContext() == _offscreenContext->getContext());
+        Q_ASSERT(isCurrentContext(_offscreenContext->getContext()));
         {
             PROFILE_RANGE(__FUNCTION__ "/pluginSubmitScene");
             PerformanceTimer perfTimer("pluginSubmitScene");
             displayPlugin->submitSceneTexture(_frameCount, finalTexture, toGlm(size));
         }
-        Q_ASSERT(QOpenGLContext::currentContext() == _offscreenContext->getContext());
+        Q_ASSERT(isCurrentContext(_offscreenContext->getContext()));
 
-        uint64_t displayEnd = usecTimestampNow();
-        const float displayPeriodUsec = (float)(displayEnd - displayStart); // usecs
-        _lastPaintWait = displayPeriodUsec / (float)USECS_PER_SECOND;
     }
 
     {
@@ -1418,6 +1396,14 @@ void Application::paintGL() {
             batch.resetStages();
         });
     }
+
+    // Some LOD-like controls need to know a smoothly varying "potential" frame rate that doesn't
+    // include time waiting for sync, and which can report a number above target if we've got the headroom.
+    // In my tests, the following is mostly less than 0.5ms, and never more than 3ms. I don't think its worth measuring during runtime.
+    static const float paintWaitAndQTTimerAllowance = 0.001; // seconds
+    // Store both values now for use by next cycle.
+    _lastInstantaneousFps = instantaneousFps;
+    _lastUnsynchronizedFps = 1.0f / (((usecTimestampNow() - now) / (float)USECS_PER_SECOND) + paintWaitAndQTTimerAllowance);
 }
 
 void Application::runTests() {
@@ -2414,6 +2400,9 @@ bool Application::exportEntities(const QString& filename, const QVector<EntityIt
         exportTree->addEntity(entityItem->getEntityItemID(), properties);
     }
 
+    // remap IDs on export so that we aren't publishing the IDs of entities in our domain
+    exportTree->remapIDs();
+
     exportTree->writeToJSONFile(filename.toLocal8Bit().constData());
 
     // restore the main window's active state
@@ -2436,6 +2425,10 @@ bool Application::exportEntities(const QString& filename, float x, float y, floa
             properties.setPosition(properties.getPosition() - root);
             exportTree->addEntity(id, properties);
         }
+
+        // remap IDs on export so that we aren't publishing the IDs of entities in our domain
+        exportTree->remapIDs();
+
         exportTree->writeToSVOFile(filename.toLocal8Bit().constData());
     } else {
         qCDebug(interfaceapp) << "No models were selected";
@@ -2480,6 +2473,7 @@ bool Application::importEntities(const QString& urlOrFilename) {
 
     bool success = _entityClipboard->readFromURL(url.toString());
     if (success) {
+        _entityClipboard->remapIDs();
         _entityClipboard->reaverageOctreeElements();
     }
     return success;
@@ -3072,11 +3066,6 @@ void Application::queryOctree(NodeType_t serverType, PacketType packetType, Node
 
     //qCDebug(interfaceapp) << ">>> inside... queryOctree()... _viewFrustum.getFieldOfView()=" << _viewFrustum.getFieldOfView();
     bool wantExtraDebugging = getLogger()->extraDebugging();
-
-    // These will be the same for all servers, so we can set them up once and then reuse for each server we send to.
-    _octreeQuery.setWantLowResMoving(true);
-    _octreeQuery.setWantDelta(true);
-    _octreeQuery.setWantCompression(true);
 
     _octreeQuery.setCameraPosition(_viewFrustum.getPosition());
     _octreeQuery.setCameraOrientation(_viewFrustum.getOrientation());
@@ -3783,12 +3772,11 @@ void Application::domainChanged(const QString& domainHostname) {
     _domainConnectionRefusals.clear();
 }
 
-void Application::handleDomainConnectionDeniedPacket(QSharedPointer<NLPacket> packet) {
+void Application::handleDomainConnectionDeniedPacket(QSharedPointer<ReceivedMessage> message) {
     // Read deny reason from packet
     quint16 reasonSize;
-    packet->readPrimitive(&reasonSize);
-    QString reason = QString::fromUtf8(packet->getPayload() + packet->pos(), reasonSize);
-    packet->seek(packet->pos() + reasonSize);
+    message->readPrimitive(&reasonSize);
+    QString reason = QString::fromUtf8(message->readWithoutCopy(reasonSize));
 
     // output to the log so the user knows they got a denied connection request
     // and check and signal for an access token so that we can make sure they are logged in
@@ -3874,9 +3862,7 @@ void Application::nodeKilled(SharedNodePointer node) {
         Menu::getInstance()->getActionForOption(MenuOption::UploadAsset)->setEnabled(false);
     }
 }
-
-void Application::trackIncomingOctreePacket(NLPacket& packet, SharedNodePointer sendingNode, bool wasStatsPacket) {
-
+void Application::trackIncomingOctreePacket(ReceivedMessage& message, SharedNodePointer sendingNode, bool wasStatsPacket) {
     // Attempt to identify the sender from its address.
     if (sendingNode) {
         const QUuid& nodeUUID = sendingNode->getUUID();
@@ -3885,13 +3871,13 @@ void Application::trackIncomingOctreePacket(NLPacket& packet, SharedNodePointer 
         _octreeServerSceneStats.withWriteLock([&] {
             if (_octreeServerSceneStats.find(nodeUUID) != _octreeServerSceneStats.end()) {
                 OctreeSceneStats& stats = _octreeServerSceneStats[nodeUUID];
-                stats.trackIncomingOctreePacket(packet, wasStatsPacket, sendingNode->getClockSkewUsec());
+                stats.trackIncomingOctreePacket(message, wasStatsPacket, sendingNode->getClockSkewUsec());
             }
         });
     }
 }
 
-int Application::processOctreeStats(NLPacket& packet, SharedNodePointer sendingNode) {
+int Application::processOctreeStats(ReceivedMessage& message, SharedNodePointer sendingNode) {
     // But, also identify the sender, and keep track of the contained jurisdiction root for this server
 
     // parse the incoming stats datas stick it in a temporary object for now, while we
@@ -3903,7 +3889,7 @@ int Application::processOctreeStats(NLPacket& packet, SharedNodePointer sendingN
     // now that we know the node ID, let's add these stats to the stats for that node...
     _octreeServerSceneStats.withWriteLock([&] {
         OctreeSceneStats& octreeStats = _octreeServerSceneStats[nodeUUID];
-        statsMessageLength = octreeStats.unpackFromPacket(packet);
+        statsMessageLength = octreeStats.unpackFromPacket(message);
 
         // see if this is the first we've heard of this node...
         NodeToJurisdictionMap* jurisdiction = NULL;
@@ -4082,7 +4068,7 @@ bool Application::canAcceptURL(const QString& urlString) {
     QString lowerPath = url.path().toLower();
     while (i.hasNext()) {
         i.next();
-        if (lowerPath.endsWith(i.key())) {
+        if (lowerPath.endsWith(i.key(), Qt::CaseInsensitive)) {
             return true;
         }
     }
@@ -4102,7 +4088,7 @@ bool Application::acceptURL(const QString& urlString, bool defaultUpload) {
     QString lowerPath = url.path().toLower();
     while (i.hasNext()) {
         i.next();
-        if (lowerPath.endsWith(i.key())) {
+        if (lowerPath.endsWith(i.key(), Qt::CaseInsensitive)) {
             AcceptURLMethod method = i.value();
             return (this->*method)(urlString);
         }
@@ -4202,7 +4188,7 @@ bool Application::askToUploadAsset(const QString& filename) {
         messageBox.setDefaultButton(QMessageBox::Ok);
 
         // Option to drop model in world for models
-        if (filename.endsWith(FBX_EXTENSION) || filename.endsWith(OBJ_EXTENSION)) {
+        if (filename.endsWith(FBX_EXTENSION, Qt::CaseInsensitive) || filename.endsWith(OBJ_EXTENSION, Qt::CaseInsensitive)) {
             auto checkBox = new QCheckBox(&messageBox);
             checkBox->setText("Add to scene");
             messageBox.setCheckBox(checkBox);
@@ -4237,7 +4223,8 @@ void Application::modelUploadFinished(AssetUpload* upload, const QString& hash) 
     auto filename = QFileInfo(upload->getFilename()).fileName();
 
     if ((upload->getError() == AssetUpload::NoError) &&
-        (filename.endsWith(FBX_EXTENSION) || filename.endsWith(OBJ_EXTENSION))) {
+        (upload->getExtension().endsWith(FBX_EXTENSION, Qt::CaseInsensitive) ||
+         upload->getExtension().endsWith(OBJ_EXTENSION, Qt::CaseInsensitive))) {
 
         auto entities = DependencyManager::get<EntityScriptingInterface>();
 
