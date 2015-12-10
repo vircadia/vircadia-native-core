@@ -352,6 +352,7 @@ bool setupEssentials(int& argc, char** argv) {
     DependencyManager::set<UserInputMapper>();
     DependencyManager::set<controller::ScriptingInterface, ControllerScriptingInterface>();
     DependencyManager::set<InterfaceParentFinder>();
+    DependencyManager::set<EntityTreeRenderer>(true, qApp, qApp);
     return true;
 }
 
@@ -371,7 +372,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
     _frameCount(0),
     _fps(60.0f),
     _physicsEngine(new PhysicsEngine(Vectors::ZERO)),
-    _entities(true, this, this),
     _entityClipboardRenderer(false, this, this),
     _entityClipboard(new EntityTree()),
     _lastQueriedTime(usecTimestampNow()),
@@ -864,7 +864,7 @@ void Application::cleanupBeforeQuit() {
     }
     _keyboardFocusHighlight = nullptr;
 
-    _entities.clear(); // this will allow entity scripts to properly shutdown
+    getEntities()->clear(); // this will allow entity scripts to properly shutdown
 
     auto nodeList = DependencyManager::get<NodeList>();
 
@@ -875,7 +875,7 @@ void Application::cleanupBeforeQuit() {
     // tell the packet receiver we're shutting down, so it can drop packets
     nodeList->getPacketReceiver().setShouldDropPackets(true);
 
-    _entities.shutdown(); // tell the entities system we're shutting down, so it will stop running scripts
+    getEntities()->shutdown(); // tell the entities system we're shutting down, so it will stop running scripts
     ScriptEngine::stopAllScripts(this); // stop all currently running global scripts
 
     // first stop all timers directly or by invokeMethod
@@ -921,7 +921,7 @@ void Application::emptyLocalCache() {
 }
 
 Application::~Application() {
-    EntityTreePointer tree = _entities.getTree();
+    EntityTreePointer tree = getEntities()->getTree();
     tree->setSimulation(NULL);
 
     _octreeProcessor.terminate();
@@ -1995,7 +1995,7 @@ void Application::mouseMoveEvent(QMouseEvent* event, unsigned int deviceID) {
         event->buttons(), event->modifiers());
 
 
-    _entities.mouseMoveEvent(&mappedEvent, deviceID);
+    getEntities()->mouseMoveEvent(&mappedEvent, deviceID);
     _controllerScriptingInterface->emitMouseMoveEvent(&mappedEvent, deviceID); // send events to any registered scripts
 
     // if one of our scripts have asked to capture this event, then stop processing it
@@ -2021,7 +2021,7 @@ void Application::mousePressEvent(QMouseEvent* event, unsigned int deviceID) {
         event->buttons(), event->modifiers());
 
     if (!_aboutToQuit) {
-        _entities.mousePressEvent(&mappedEvent, deviceID);
+        getEntities()->mousePressEvent(&mappedEvent, deviceID);
     }
 
     _controllerScriptingInterface->emitMousePressEvent(&mappedEvent); // send events to any registered scripts
@@ -2066,7 +2066,7 @@ void Application::mouseReleaseEvent(QMouseEvent* event, unsigned int deviceID) {
         event->buttons(), event->modifiers());
 
     if (!_aboutToQuit) {
-        _entities.mouseReleaseEvent(&mappedEvent, deviceID);
+        getEntities()->mouseReleaseEvent(&mappedEvent, deviceID);
     }
 
     _controllerScriptingInterface->emitMouseReleaseEvent(&mappedEvent); // send events to any registered scripts
@@ -2389,7 +2389,7 @@ void Application::calibrateEyeTracker5Points() {
 bool Application::exportEntities(const QString& filename, const QVector<EntityItemID>& entityIDs) {
     QVector<EntityItemPointer> entities;
 
-    auto entityTree = _entities.getTree();
+    auto entityTree = getEntities()->getTree();
     auto exportTree = std::make_shared<EntityTree>();
     exportTree->createRootElement();
 
@@ -2433,7 +2433,7 @@ bool Application::exportEntities(const QString& filename, const QVector<EntityIt
 
 bool Application::exportEntities(const QString& filename, float x, float y, float z, float scale) {
     QVector<EntityItemPointer> entities;
-    _entities.getTree()->findEntities(AACube(glm::vec3(x, y, z), scale), entities);
+    getEntities()->getTree()->findEntities(AACube(glm::vec3(x, y, z), scale), entities);
 
     if (entities.size() > 0) {
         glm::vec3 root(x, y, z);
@@ -2501,7 +2501,7 @@ bool Application::importEntities(const QString& urlOrFilename) {
 }
 
 QVector<EntityItemID> Application::pasteEntities(float x, float y, float z) {
-    return _entityClipboard->sendEntities(&_entityEditSender, _entities.getTree(), x, y, z);
+    return _entityClipboard->sendEntities(&_entityEditSender, getEntities()->getTree(), x, y, z);
 }
 
 void Application::initDisplay() {
@@ -2540,13 +2540,13 @@ void Application::init() {
     // fire off an immediate domain-server check in now that settings are loaded
     DependencyManager::get<NodeList>()->sendDomainServerCheckIn();
 
-    _entities.init();
-    _entities.setViewFrustum(getViewFrustum());
+    getEntities()->init();
+    getEntities()->setViewFrustum(getViewFrustum());
 
     ObjectMotionState::setShapeManager(&_shapeManager);
     _physicsEngine->init();
 
-    EntityTreePointer tree = _entities.getTree();
+    EntityTreePointer tree = getEntities()->getTree();
     _entitySimulation.init(tree, _physicsEngine, &_entityEditSender);
     tree->setSimulation(&_entitySimulation);
 
@@ -2554,11 +2554,11 @@ void Application::init() {
 
     // connect the _entityCollisionSystem to our EntityTreeRenderer since that's what handles running entity scripts
     connect(&_entitySimulation, &EntitySimulation::entityCollisionWithEntity,
-            &_entities, &EntityTreeRenderer::entityCollisionWithEntity);
+            getEntities(), &EntityTreeRenderer::entityCollisionWithEntity);
 
     // connect the _entities (EntityTreeRenderer) to our script engine's EntityScriptingInterface for firing
     // of events related clicking, hovering over, and entering entities
-    _entities.connectSignalsToSlots(entityScriptingInterface.data());
+    getEntities()->connectSignalsToSlots(entityScriptingInterface.data());
 
     _entityClipboardRenderer.init();
     _entityClipboardRenderer.setViewFrustum(getViewFrustum());
@@ -2907,19 +2907,19 @@ void Application::update(float deltaTime) {
 
     _avatarUpdate->synchronousProcess();
 
-    if (true || _physicsEnabled) {
+    if (_physicsEnabled) {
         PerformanceTimer perfTimer("physics");
 
         static VectorOfMotionStates motionStates;
         _entitySimulation.getObjectsToDelete(motionStates);
         _physicsEngine->deleteObjects(motionStates);
 
-        _entities.getTree()->withWriteLock([&] {
+        getEntities()->getTree()->withWriteLock([&] {
             _entitySimulation.getObjectsToAdd(motionStates);
             _physicsEngine->addObjects(motionStates);
 
         });
-        _entities.getTree()->withWriteLock([&] {
+        getEntities()->getTree()->withWriteLock([&] {
             _entitySimulation.getObjectsToChange(motionStates);
             VectorOfMotionStates stillNeedChange = _physicsEngine->changeObjects(motionStates);
             _entitySimulation.setObjectsToChange(stillNeedChange);
@@ -2937,12 +2937,12 @@ void Application::update(float deltaTime) {
 
         myAvatar->prepareForPhysicsSimulation();
 
-        _entities.getTree()->withWriteLock([&] {
+        getEntities()->getTree()->withWriteLock([&] {
             _physicsEngine->stepSimulation();
         });
 
         if (_physicsEngine->hasOutgoingChanges()) {
-            _entities.getTree()->withWriteLock([&] {
+            getEntities()->getTree()->withWriteLock([&] {
                 _entitySimulation.handleOutgoingChanges(_physicsEngine->getOutgoingChanges(), _physicsEngine->getSessionID());
                 avatarManager->handleOutgoingChanges(_physicsEngine->getOutgoingChanges());
             });
@@ -2957,9 +2957,9 @@ void Application::update(float deltaTime) {
                 // Collision events (and their scripts) must not be handled when we're locked, above. (That would risk
                 // deadlock.)
                 _entitySimulation.handleCollisionEvents(collisionEvents);
-                // NOTE: the _entities.update() call below will wait for lock
+                // NOTE: the getEntities()->update() call below will wait for lock
                 // and will simulate entity motion (the EntityTree has been given an EntitySimulation).
-                _entities.update(); // update the models...
+                getEntities()->update(); // update the models...
             }
 
             myAvatar->harvestResultsFromPhysicsSimulation();
@@ -3781,7 +3781,7 @@ void Application::clearDomainOctreeDetails() {
     });
 
     // reset the model renderer
-    _entities.clear();
+    getEntities()->clear();
 }
 
 void Application::domainChanged(const QString& domainHostname) {
@@ -3903,7 +3903,7 @@ bool Application::nearbyEntitiesAreReadyForPhysics() {
     // Someone logs in close to the table.  They receive information about the items on the table before they
     // receive information about the table.  The items are very close to the avatar's capsule, so they become
     // activated in bullet.  This causes them to fall to the floor, because the table's shape isn't yet in bullet.
-    EntityTreePointer entityTree = _entities.getTree();
+    EntityTreePointer entityTree = getEntities()->getTree();
     if (!entityTree) {
         return false;
     }
@@ -3916,6 +3916,9 @@ bool Application::nearbyEntitiesAreReadyForPhysics() {
 
     foreach (EntityItemPointer entity, entities) {
         if (!entity->isReadyToComputeShape()) {
+            static QString repeatedMessage =
+                LogHandler::getInstance().addRepeatedMessageRegex("Physics disabled until entity loads: .*");
+            qCDebug(interfaceapp) << "Physics disabled until entity loads: " << entity->getID() << entity->getName();
             return false;
         }
     }
@@ -3967,11 +3970,21 @@ int Application::processOctreeStats(ReceivedMessage& message, SharedNodePointer 
         });
     });
 
-    if (!_physicsEnabled && nearbyEntitiesAreReadyForPhysics()) {
-        // These stats packets are sent in between full sends of a scene.
-        // We keep physics disabled until we've recieved a full scene and everything near the avatar in that
-        // scene is ready to compute its collision shape.
-        _physicsEnabled = true;
+    if (!_physicsEnabled) {
+        if (nearbyEntitiesAreReadyForPhysics()) {
+            // These stats packets are sent in between full sends of a scene.
+            // We keep physics disabled until we've recieved a full scene and everything near the avatar in that
+            // scene is ready to compute its collision shape.
+            _physicsEnabled = true;
+            getMyAvatar()->updateMotionBehaviorFromMenu();
+        } else {
+            auto characterController = getMyAvatar()->getCharacterController();
+            if (characterController) {
+                // if we have a character controller, disable it here so the avatar doesn't get stuck due to
+                // a non-loading collision hull.
+                characterController->setEnabled(false);
+            }
+        }
     }
 
     return statsMessageLength;
@@ -4034,7 +4047,7 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEngine* scri
     // we can use the same ones from the application.
     auto entityScriptingInterface = DependencyManager::get<EntityScriptingInterface>();
     entityScriptingInterface->setPacketSender(&_entityEditSender);
-    entityScriptingInterface->setEntityTree(_entities.getTree());
+    entityScriptingInterface->setEntityTree(getEntities()->getTree());
 
     // AvatarManager has some custom types
     AvatarManager::registerMetaTypes(scriptEngine);

@@ -1266,3 +1266,12 @@ void EntityTree::trackIncomingEntityLastEdited(quint64 lastEditedTime, int bytes
         }
     }
 }
+
+
+void EntityTree::callLoader(EntityItemID entityID) {
+    // this is used to bounce from the networking thread to the main thread
+    EntityItemPointer entity = findEntityByEntityItemID(entityID);
+    if (entity) {
+        entity->loader();
+    }
+}

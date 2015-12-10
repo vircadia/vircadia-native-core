@@ -235,6 +235,9 @@ public:
         return _deletedEntityItemIDs.contains(id);
     }
 
+public slots:
+    void callLoader(EntityItemID entityID);
+
 signals:
     void deletingEntity(const EntityItemID& entityID);
     void addingEntity(const EntityItemID& entityID);

@@ -136,7 +136,7 @@ public:
     const ViewFrustum* getDisplayViewFrustum() const;
     ViewFrustum* getShadowViewFrustum() { return &_shadowViewFrustum; }
     const OctreePacketProcessor& getOctreePacketProcessor() const { return _octreeProcessor; }
-    EntityTreeRenderer* getEntities() { return &_entities; }
+    EntityTreeRenderer* getEntities() { return DependencyManager::get<EntityTreeRenderer>().data(); }
     QUndoStack* getUndoStack() { return &_undoStack; }
     MainWindow* getWindow() { return _window; }
     EntityTreePointer getEntityClipboard() { return _entityClipboard; }
@@ -451,7 +451,6 @@ private:
     PhysicalEntitySimulation _entitySimulation;
     PhysicsEnginePointer _physicsEngine;
 
-    EntityTreeRenderer _entities;
     EntityTreeRenderer _entityClipboardRenderer;
     EntityTreePointer _entityClipboard;
 

@@ -30,7 +30,7 @@ class ZoneEntityItem;
 
 
 // Generic client side Octree renderer class.
-class EntityTreeRenderer : public OctreeRenderer, public EntityItemFBXService {
+class EntityTreeRenderer : public OctreeRenderer, public EntityItemFBXService, public Dependency {
     Q_OBJECT
 public:
     EntityTreeRenderer(bool wantScripts, AbstractViewStateInterface* viewState,

@@ -12,12 +12,14 @@
 #include <glm/gtx/quaternion.hpp>
 
 #include <QJsonDocument>
+#include <QtCore/QThread>
 
 #include <AbstractViewStateInterface.h>
 #include <DeferredLightingEffect.h>
 #include <Model.h>
 #include <PerfStat.h>
 #include <render/Scene.h>
+#include <DependencyManager.h>
 
 #include "EntityTreeRenderer.h"
 #include "EntitiesRendererLogging.h"
@@ -41,6 +43,32 @@ RenderableModelEntityItem::~RenderableModelEntityItem() {
     if (_myRenderer && _model) {
         _myRenderer->releaseModel(_model);
         _model = NULL;
+    }
+}
+
+void RenderableModelEntityItem::setModelURL(const QString& url) {
+    auto& currentURL = getParsedModelURL();
+    ModelEntityItem::setModelURL(url);
+
+    if (currentURL != getParsedModelURL() || !_model) {
+        EntityTreePointer tree = getTree();
+        if (tree) {
+            QMetaObject::invokeMethod(tree.get(), "callLoader", Qt::QueuedConnection, Q_ARG(EntityItemID, getID()));
+        }
+    }
+}
+
+void RenderableModelEntityItem::loader() {
+    _needsModelReload = true;
+    EntityTreeRenderer* renderer = DependencyManager::get<EntityTreeRenderer>().data();
+    assert(renderer);
+    if (!_model || _needsModelReload) {
+        PerformanceTimer perfTimer("getModel");
+        getModel(renderer);
+    }
+    if (_model) {
+        _model->setURL(getParsedModelURL());
+        _model->setCollisionModelURL(QUrl(getCompoundShapeURL()));
     }
 }
 
@@ -253,6 +281,60 @@ void RenderableModelEntityItem::render(RenderArgs* args) {
 
 
         remapTextures();
+        {
+            // float alpha = getLocalRenderAlpha();
+
+            if (!_model || _needsModelReload) {
+                // TODO: this getModel() appears to be about 3% of model render time. We should optimize
+                PerformanceTimer perfTimer("getModel");
+                EntityTreeRenderer* renderer = static_cast<EntityTreeRenderer*>(args->_renderer);
+                getModel(renderer);
+            }
+
+            if (_model) {
+                // handle animations..
+                if (hasAnimation()) {
+                    if (!jointsMapped()) {
+                        QStringList modelJointNames = _model->getJointNames();
+                        mapJoints(modelJointNames);
+                    }
+
+                    if (jointsMapped()) {
+                        bool newFrame;
+                        QVector<glm::quat> frameDataRotations;
+                        QVector<glm::vec3> frameDataTranslations;
+                        getAnimationFrame(newFrame, frameDataRotations, frameDataTranslations);
+                        assert(frameDataRotations.size() == frameDataTranslations.size());
+                        if (newFrame) {
+                            for (int i = 0; i < frameDataRotations.size(); i++) {
+                                _model->setJointState(i, true, frameDataRotations[i], frameDataTranslations[i], 1.0f);
+                            }
+                        }
+                    }
+                }
+
+                bool movingOrAnimating = isMoving() || isAnimatingSomething();
+                if ((movingOrAnimating ||
+                     _needsInitialSimulation ||
+                     _model->getTranslation() != getPosition() ||
+                     _model->getRotation() != getRotation() ||
+                     _model->getRegistrationPoint() != getRegistrationPoint())
+                    && _model->isActive() && _dimensionsInitialized) {
+                    _model->setScaleToFit(true, getDimensions());
+                    _model->setSnapModelToRegistrationPoint(true, getRegistrationPoint());
+                    _model->setRotation(getRotation());
+                    _model->setTranslation(getPosition());
+
+                    // make sure to simulate so everything gets set up correctly for rendering
+                    {
+                        PerformanceTimer perfTimer("_model->simulate");
+                        _model->simulate(0.0f);
+                    }
+
+                    _needsInitialSimulation = false;
+                }
+            }
+        }
     } else {
         static glm::vec4 greenColor(0.0f, 1.0f, 0.0f, 1.0f);
         gpu::Batch& batch = *args->_batch;
@@ -264,7 +346,7 @@ void RenderableModelEntityItem::render(RenderArgs* args) {
 
 Model* RenderableModelEntityItem::getModel(EntityTreeRenderer* renderer) {
     Model* result = NULL;
-    
+
     if (!renderer) {
         return result;
     }
@@ -286,7 +368,8 @@ Model* RenderableModelEntityItem::getModel(EntityTreeRenderer* renderer) {
     
         // if we have a previously allocated model, but its URL doesn't match
         // then we need to let our renderer update our model for us.
-        if (_model && QUrl(getModelURL()) != _model->getURL()) {
+        if (_model && (QUrl(getModelURL()) != _model->getURL() ||
+                       QUrl(getCompoundShapeURL()) != _model->getCollisionURL())) {
             result = _model = _myRenderer->updateModel(_model, getModelURL(), getCompoundShapeURL());
             _needsInitialSimulation = true;
         } else if (!_model) { // if we don't yet have a model, then we want our renderer to allocate one
@@ -295,6 +378,12 @@ Model* RenderableModelEntityItem::getModel(EntityTreeRenderer* renderer) {
         } else { // we already have the model we want...
             result = _model;
         }
+
+        if (_model && _needsInitialSimulation) {
+            PerformanceTimer perfTimer("_model->simulate");
+            _model->simulate(0.0f);
+        }
+        _needsInitialSimulation = false;
     } else { // if our desired URL is empty, we may need to delete our existing model
         if (_model) {
             _myRenderer->releaseModel(_model);
@@ -307,35 +396,7 @@ Model* RenderableModelEntityItem::getModel(EntityTreeRenderer* renderer) {
 }
 
 bool RenderableModelEntityItem::needsToCallUpdate() const {
-    if (!_dimensionsInitialized || _needsInitialSimulation || ModelEntityItem::needsToCallUpdate()) {
-        return true;
-    }
-
-    if (!_dimensionsInitialized && _model && _model->isActive()) {
-        return true;
-    }
-
-    if (_myRenderer && (!_model || _needsModelReload)) {
-        return true;
-    }
-
-    if (_model) {
-        if (hasAnimation() || jointsMapped()) {
-            return true;
-        }
-
-        bool movingOrAnimating = isMoving() || isAnimatingSomething();
-        if ((movingOrAnimating ||
-             _needsInitialSimulation ||
-             _model->getTranslation() != getPosition() ||
-             _model->getRotation() != getRotation() ||
-             _model->getRegistrationPoint() != getRegistrationPoint())
-            && _model->isActive() && _dimensionsInitialized) {
-            return true;
-        }
-    }
-
-    return false;
+    return !_dimensionsInitialized || _needsInitialSimulation || ModelEntityItem::needsToCallUpdate();
 }
 
 void RenderableModelEntityItem::update(const quint64& now) {
@@ -351,56 +412,6 @@ void RenderableModelEntityItem::update(const quint64& now) {
                                   Q_ARG(EntityItemProperties, properties));
     }
     
-    if (_myRenderer && (!_model || _needsModelReload)) {
-        // TODO: this getModel() appears to be about 3% of model render time. We should optimize
-        PerformanceTimer perfTimer("getModel");
-        getModel(_myRenderer);
-    }
-
-    if (_model) {
-        // handle animations..
-        if (hasAnimation()) {
-            if (!jointsMapped()) {
-                QStringList modelJointNames = _model->getJointNames();
-                mapJoints(modelJointNames);
-            }
-
-            if (jointsMapped()) {
-                bool newFrame;
-                QVector<glm::quat> frameDataRotations;
-                QVector<glm::vec3> frameDataTranslations;
-                getAnimationFrame(newFrame, frameDataRotations, frameDataTranslations);
-                assert(frameDataRotations.size() == frameDataTranslations.size());
-                if (newFrame) {
-                    for (int i = 0; i < frameDataRotations.size(); i++) {
-                        _model->setJointState(i, true, frameDataRotations[i], frameDataTranslations[i], 1.0f);
-                    }
-                }
-            }
-        }
-
-        bool movingOrAnimating = isMoving() || isAnimatingSomething();
-        if ((movingOrAnimating ||
-             _needsInitialSimulation ||
-             _model->getTranslation() != getPosition() ||
-             _model->getRotation() != getRotation() ||
-             _model->getRegistrationPoint() != getRegistrationPoint())
-            && _model->isActive() && _dimensionsInitialized) {
-            _model->setScaleToFit(true, getDimensions());
-            _model->setSnapModelToRegistrationPoint(true, getRegistrationPoint());
-            _model->setRotation(getRotation());
-            _model->setTranslation(getPosition());
-
-            // make sure to simulate so everything gets set up correctly for rendering
-            {
-                PerformanceTimer perfTimer("_model->simulate");
-                _model->simulate(0.0f);
-            }
-
-            _needsInitialSimulation = false;
-        }
-    }
-
     ModelEntityItem::update(now);
 }
 
@@ -427,17 +438,27 @@ bool RenderableModelEntityItem::findDetailedRayIntersection(const glm::vec3& ori
 }
 
 void RenderableModelEntityItem::setCompoundShapeURL(const QString& url) {
+    auto currentCompoundShapeURL = getCompoundShapeURL();
     ModelEntityItem::setCompoundShapeURL(url);
-    if (_model) {
-        _model->setCollisionModelURL(QUrl(url));
+
+    if (getCompoundShapeURL() != currentCompoundShapeURL || !_model) {
+        EntityTreePointer tree = getTree();
+        if (tree) {
+            QMetaObject::invokeMethod(tree.get(), "callLoader", Qt::QueuedConnection, Q_ARG(EntityItemID, getID()));
+        }
     }
 }
 
 bool RenderableModelEntityItem::isReadyToComputeShape() {
     ShapeType type = getShapeType();
+
     if (type == SHAPE_TYPE_COMPOUND) {
 
         if (!_model) {
+            EntityTreePointer tree = getTree();
+            if (tree) {
+                QMetaObject::invokeMethod(tree.get(), "callLoader", Qt::QueuedConnection, Q_ARG(EntityItemID, getID()));
+            }
             return false; // hmm...
         }
 
