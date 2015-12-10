@@ -9,10 +9,9 @@
 
 #include <QtGlobal>
 
-#if defined(Q_OS_WIN)
 #include <openvr.h>
 
-#include "../WindowOpenGLDisplayPlugin.h"
+#include <display-plugins/WindowOpenGLDisplayPlugin.h>
 
 class OpenVrDisplayPlugin : public WindowOpenGLDisplayPlugin {
 public:
@@ -23,6 +22,8 @@ public:
     virtual void activate() override;
     virtual void deactivate() override;
 
+    virtual void customizeContext() override;
+
     virtual glm::uvec2 getRecommendedRenderSize() const override;
     virtual glm::uvec2 getRecommendedUiSize() const override { return uvec2(1920, 1080); }
 
@@ -32,15 +33,13 @@ public:
 
     virtual glm::mat4 getEyeToHeadTransform(Eye eye) const override;
     virtual glm::mat4 getHeadPose(uint32_t frameIndex) const override;
+    virtual void submitSceneTexture(uint32_t frameIndex, uint32_t sceneTexture, const glm::uvec2& sceneSize) override;
 
 protected:
-//    virtual void display(uint32_t frameIndex, uint32_t finalTexture, const glm::uvec2& sceneSize) override;
-    virtual void customizeContext() override;
+    virtual void internalPresent() override;
 
 private:
     vr::IVRSystem* _hmd { nullptr };
     static const QString NAME;
 };
-
-#endif
 

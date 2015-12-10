@@ -15,7 +15,6 @@
 #include "KeyboardMouseDevice.h"
 #include "SDL2Manager.h"
 #include "SixenseManager.h"
-#include "ViveControllerManager.h"
 
 // TODO migrate to a DLL model where plugins are discovered and loaded at runtime by the PluginManager class
 InputPluginList getInputPlugins() {
@@ -23,7 +22,6 @@ InputPluginList getInputPlugins() {
         new KeyboardMouseDevice(),
         new SDL2Manager(),
         new SixenseManager(),
-        new ViveControllerManager(),
         nullptr
     };
 

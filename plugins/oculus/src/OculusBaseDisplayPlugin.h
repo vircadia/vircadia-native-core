@@ -43,17 +43,13 @@ protected:
     mat4 _compositeEyeProjections[2];
     uvec2 _desiredFramebufferSize;
 
-#if (OVR_MAJOR_VERSION >= 6)
-    ovrHmd _hmd;
+    ovrSession _session;
+    ovrGraphicsLuid _luid;
     float _ipd{ OVR_DEFAULT_IPD };
     ovrEyeRenderDesc _eyeRenderDescs[2];
     ovrFovPort _eyeFovs[2];
     ovrHmdDesc _hmdDesc;
     ovrLayerEyeFov _sceneLayer;
-#endif
-#if (OVR_MAJOR_VERSION == 7)
-    ovrGraphicsLuid _luid;
-#endif
 };
 
 #if (OVR_MAJOR_VERSION == 6) 
