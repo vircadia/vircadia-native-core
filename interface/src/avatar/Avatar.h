@@ -108,6 +108,9 @@ public:
     virtual int getJointIndex(const QString& name) const;
     virtual QStringList getJointNames() const;
 
+    virtual glm::quat getAbsoluteJointRotationInObjectFrame(int index) const override;
+    virtual glm::vec3 getAbsoluteJointTranslationInObjectFrame(int index) const override;
+
     virtual void setFaceModelURL(const QUrl& faceModelURL);
     virtual void setSkeletonModelURL(const QUrl& skeletonModelURL);
     virtual void setAttachmentData(const QVector<AttachmentData>& attachmentData);
@@ -155,8 +158,8 @@ public:
     void setMotionState(AvatarMotionState* motionState) { _motionState = motionState; }
     AvatarMotionState* getMotionState() { return _motionState; }
 
-    virtual void setPosition(glm::vec3 position);
-    virtual void setOrientation(glm::quat orientation);
+    virtual void setPosition(const glm::vec3& position) override;
+    virtual void setOrientation(const glm::quat& orientation) override;
 
 public slots:
 

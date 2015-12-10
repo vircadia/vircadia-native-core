@@ -230,7 +230,7 @@ void OculusDisplayPlugin::internalPresent() {
         viewScaleDesc.HmdToEyeViewOffset[1] = _eyeOffsets[1];
 
         ovrLayerHeader* layers = &_sceneLayer.Header;
-        ovrResult result = ovr_SubmitFrame(_hmd, 0, &viewScaleDesc, &layers, 1);
+        ovrResult result = ovr_SubmitFrame(_hmd, frameIndex, &viewScaleDesc, &layers, 1);
         if (!OVR_SUCCESS(result)) {
             qDebug() << result;
         }

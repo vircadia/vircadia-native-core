@@ -163,11 +163,8 @@ public:
     float const HMD_TARGET_FRAME_RATE = 75.0f;
     float const DESKTOP_TARGET_FRAME_RATE = 60.0f;
     float getTargetFrameRate() { return isHMDMode() ? HMD_TARGET_FRAME_RATE : DESKTOP_TARGET_FRAME_RATE; }
-    float getTargetFramePeriod() { return isHMDMode() ? 1.0f / HMD_TARGET_FRAME_RATE : 1.0f / DESKTOP_TARGET_FRAME_RATE; } // same as 1/getTargetFrameRate, but w/compile-time division
     float getLastInstanteousFps() const { return _lastInstantaneousFps; }
-    float getLastPaintWait() const { return _lastPaintWait; };
-    float getLastDeducedNonVSyncFps() const { return _lastDeducedNonVSyncFps; }
-    void setMarginForDeducedFramePeriod(float newValue) { _marginForDeducedFramePeriod = newValue; }
+    float getLastUnsynchronizedFps() const { return _lastUnsynchronizedFps; }
 
     float getFieldOfView() { return _fieldOfView.get(); }
     void setFieldOfView(float fov);
@@ -395,6 +392,7 @@ private:
     
     bool importSVOFromURL(const QString& urlString);
     
+    bool nearbyEntitiesAreReadyForPhysics();
     int processOctreeStats(ReceivedMessage& message, SharedNodePointer sendingNode);
     void trackIncomingOctreePacket(ReceivedMessage& message, SharedNodePointer sendingNode, bool wasStatsPacket);
     
@@ -442,9 +440,7 @@ private:
     QElapsedTimer _timerStart;
     QElapsedTimer _lastTimeUpdated;
     float _lastInstantaneousFps { 0.0f };
-    float _lastPaintWait { 0.0f };
-    float _lastDeducedNonVSyncFps { 0.0f };
-    float _marginForDeducedFramePeriod{ 0.002f }; // 2ms, adjustable
+    float _lastUnsynchronizedFps { 0.0f };
 
     ShapeManager _shapeManager;
     PhysicalEntitySimulation _entitySimulation;
@@ -564,6 +560,7 @@ private:
     bool _isForeground = true; // starts out assumed to be in foreground
     bool _inPaint = false;
     bool _isGLInitialized { false };
+    bool _physicsEnabled { false };
 };
 
 #endif // hifi_Application_h
