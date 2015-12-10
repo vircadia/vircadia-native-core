@@ -74,7 +74,7 @@ protected:
     ProgramPtr _program;
     ShapeWrapperPtr _plane;
 
-    Mutex _mutex;
+    mutable Mutex _mutex;
     SimpleMovingAverage _usecsPerFrame { 10 };
     QMap<uint32_t, uint32_t> _sceneTextureToFrameIndexMap;
 

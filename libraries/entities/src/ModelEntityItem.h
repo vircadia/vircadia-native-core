@@ -97,9 +97,6 @@ public:
     void setAnimationHold(bool hold) { _animationLoop.setHold(hold); }
     bool getAnimationHold() const { return _animationLoop.getHold(); }
     
-    void setAnimationStartAutomatically(bool startAutomatically) { _animationLoop.setStartAutomatically(startAutomatically); }
-    bool getAnimationStartAutomatically() const { return _animationLoop.getStartAutomatically(); }
-    
     void setAnimationFirstFrame(float firstFrame) { _animationLoop.setFirstFrame(firstFrame); }
     float getAnimationFirstFrame() const { return _animationLoop.getFirstFrame(); }
     
