@@ -1120,9 +1120,13 @@ AABox Model::getPartBounds(int meshIndex, int partIndex, glm::vec3 modelPosition
 void Model::segregateMeshGroups() {
     QSharedPointer<NetworkGeometry> networkGeometry;
     bool showingCollisionHull = false;
-    if (_showCollisionHull && _collisionGeometry && _collisionGeometry->isLoaded()) {
-        networkGeometry = _collisionGeometry;
-        showingCollisionHull = true;
+    if (_showCollisionHull && _collisionGeometry) {
+        if (_collisionGeometry->isLoaded()) {
+            networkGeometry = _collisionGeometry;
+            showingCollisionHull = true;
+        } else {
+            return;
+        }
     } else {
         networkGeometry = _geometry;
     }
@@ -1152,7 +1156,7 @@ void Model::segregateMeshGroups() {
         // Create the render payloads
         int totalParts = mesh.parts.size();
         for (int partIndex = 0; partIndex < totalParts; partIndex++) {
-            auto renderItem = std::make_shared<MeshPartPayload>(this, networkMesh._mesh, i, partIndex, shapeID, _translation, _rotation, !showingCollisionHull);
+            auto renderItem = std::make_shared<MeshPartPayload>(this, networkMesh._mesh, i, partIndex, shapeID, _translation, _rotation, showingCollisionHull);
             if (showingCollisionHull) {
                 renderItem->updateDrawMaterial(ModelRender::getCollisionHullMaterial());
             }

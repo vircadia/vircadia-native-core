@@ -287,6 +287,8 @@ model::MaterialPointer ModelRender::getCollisionHullMaterial() {
     if (!_collisionHullMaterial) {
         _collisionHullMaterial = std::make_shared<model::Material>();
         _collisionHullMaterial->setDiffuse(glm::vec3(1.0f, 0.5f, 0.0f));
+        _collisionHullMaterial->setMetallic(0.02f);
+        _collisionHullMaterial->setGloss(1.0f);
     }
     return _collisionHullMaterial;
 }

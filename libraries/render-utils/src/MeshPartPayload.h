@@ -24,7 +24,7 @@ class Model;
 
 class MeshPartPayload {
 public:
-    MeshPartPayload(Model* model, model::MeshPointer drawMesh, int meshIndex, int partIndex, int shapeIndex, glm::vec3 position, glm::quat orientation, bool applyMeshJoints = true);
+    MeshPartPayload(Model* model, model::MeshPointer drawMesh, int meshIndex, int partIndex, int shapeIndex, glm::vec3 position, glm::quat orientation, bool isCollisionGeometry = false);
     
     typedef render::Payload<MeshPartPayload> Payload;
     typedef Payload::DataPointer Pointer;
@@ -60,10 +60,11 @@ public:
     model::MeshPointer _drawMesh;
     model::Mesh::Part _drawPart;
     model::MaterialPointer _drawMaterial;
+    mutable model::Box _drawBound;
     bool _hasColorAttrib = false;
     bool _isSkinned = false;
     bool _isBlendShaped = false;
-    bool _applyMeshJoints = true;
+    bool _isCollisionGeometry = false;
 };
 
 namespace render {

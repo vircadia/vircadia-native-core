@@ -40,7 +40,7 @@ namespace render {
 using namespace render;
 
 MeshPartPayload::MeshPartPayload(Model* model, model::MeshPointer drawMesh, int meshIndex, int partIndex, int shapeIndex,
-    glm::vec3 position, glm::quat orientation, bool applyMeshJoints) :
+    glm::vec3 position, glm::quat orientation, bool isCollisionGeometry) :
     model(model),
     _drawMesh(drawMesh),
     meshIndex(meshIndex),
@@ -48,7 +48,7 @@ MeshPartPayload::MeshPartPayload(Model* model, model::MeshPointer drawMesh, int 
     _shapeID(shapeIndex),
     _modelPosition(position),
     _modelOrientation(orientation),
-    _applyMeshJoints(applyMeshJoints) {
+    _isCollisionGeometry(isCollisionGeometry) {
     initCache();
 }
 
@@ -58,9 +58,13 @@ void MeshPartPayload::initCache() {
         _hasColorAttrib = vertexFormat->hasAttribute(gpu::Stream::COLOR);
         _isSkinned = vertexFormat->hasAttribute(gpu::Stream::SKIN_CLUSTER_WEIGHT) && vertexFormat->hasAttribute(gpu::Stream::SKIN_CLUSTER_INDEX);
 
-        const FBXGeometry& geometry = model->_geometry->getFBXGeometry();
-        const FBXMesh& mesh = geometry.meshes.at(meshIndex);
-        _isBlendShaped = !mesh.blendshapes.isEmpty();
+        if (!_isCollisionGeometry) {
+            const FBXGeometry& geometry = model->_geometry->getFBXGeometry();
+            const FBXMesh& mesh = geometry.meshes.at(meshIndex);
+            _isBlendShaped = !mesh.blendshapes.isEmpty();
+        } else {
+            _isBlendShaped = false;
+        }
 
         _drawPart = _drawMesh->getPartBuffer().get<model::Mesh::Part>(partIndex);
     }
@@ -106,7 +110,19 @@ render::ItemKey MeshPartPayload::getKey() const {
 render::Item::Bound MeshPartPayload::getBound() const {
     // NOTE: we can't cache this bounds because we need to handle the case of a moving
     // entity or mesh part.
-    return model->getPartBounds(meshIndex, partIndex, _modelPosition, _modelOrientation);
+    if (_isCollisionGeometry) {
+        if (_drawMesh && _drawBound.isNull()) {
+            _drawBound = _drawMesh->evalPartBound(partIndex);
+        }
+        // If we not skinned use the bounds of the subMesh for all it's parts
+        const FBXMesh& mesh = model->_collisionGeometry->getFBXGeometry().meshes.at(meshIndex);
+        auto otherBound =  model->calculateScaledOffsetExtents(mesh.meshExtents, _modelPosition, _modelOrientation);
+
+        return model->getPartBounds(0, 0, _modelPosition, _modelOrientation);
+
+    } else {
+        return model->getPartBounds(meshIndex, partIndex, _modelPosition, _modelOrientation);
+    }
 }
 
 void MeshPartPayload::drawCall(gpu::Batch& batch) const {
@@ -220,7 +236,7 @@ void MeshPartPayload::bindMaterial(gpu::Batch& batch, const ModelRender::Locatio
 }
 
 void MeshPartPayload::bindTransform(gpu::Batch& batch, const ModelRender::Locations* locations) const {
-    if (_applyMeshJoints) {
+    if (!_isCollisionGeometry) {
         // Still relying on the raw data from the model
         const Model::MeshState& state = model->_meshStates.at(meshIndex);
 

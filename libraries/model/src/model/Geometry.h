@@ -107,10 +107,10 @@ public:
     uint getNumParts() const { return _partBuffer.getNumElements(); }
 
     // evaluate the bounding box of A part
-    const Box evalPartBound(int partNum) const;
+    Box evalPartBound(int partNum) const;
     // evaluate the bounding boxes of the parts in the range [start, end[ and fill the bounds parameter
     // the returned box is the bounding box of ALL the evaluated part bounds.
-    const Box evalPartBounds(int partStart, int partEnd, Boxes& bounds) const;
+    Box evalPartBounds(int partStart, int partEnd, Boxes& bounds) const;
 
     static gpu::Primitive topologyToPrimitive(Topology topo) { return static_cast<gpu::Primitive>(topo); }
 
