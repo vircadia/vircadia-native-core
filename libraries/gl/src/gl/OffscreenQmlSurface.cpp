@@ -19,12 +19,14 @@
 #include <QtCore/QMutex>
 #include <QtGui/QOpenGLContext>
 
+#include <shared/NsightHelpers.h>
 #include <PerfStat.h>
 #include <DependencyManager.h>
 #include <NumericalConstants.h>
 
 #include "GLEscrow.h"
 #include "OffscreenGLCanvas.h"
+
 
 // Time between receiving a request to render the offscreen UI actually triggering
 // the render.  Could possibly be increased depending on the framerate we expect to
@@ -220,9 +222,6 @@ private:
             return;
         }
 
-        //Q_ASSERT(toGlm(_quickWindow->geometry().size()) == _size);
-        //Q_ASSERT(toGlm(_quickWindow->geometry().size()) == _textures._size);
-
         _renderControl->sync();
         _cond.wakeOne();
         lock->unlock();
@@ -231,22 +230,24 @@ private:
 
         _quickWindow->setRenderTarget(GetName(*_fbo), QSize(_size.x, _size.y));
 
-        TexturePtr texture = _textures.getNextTexture();
-        _fbo->Bind(Framebuffer::Target::Draw);
-        _fbo->AttachTexture(Framebuffer::Target::Draw, FramebufferAttachment::Color, *texture, 0);
-        _fbo->Complete(Framebuffer::Target::Draw);
-        //Context::Clear().ColorBuffer();
         {
-            _renderControl->render();
-            // FIXME The web browsers seem to be leaving GL in an error state.
-            // Need a debug context with sync logging to figure out why.
-            // for now just clear the errors
-            glGetError();
+            PROFILE_RANGE("qml_render")
+            TexturePtr texture = _textures.getNextTexture();
+            _fbo->Bind(Framebuffer::Target::Draw);
+            _fbo->AttachTexture(Framebuffer::Target::Draw, FramebufferAttachment::Color, *texture, 0);
+            _fbo->Complete(Framebuffer::Target::Draw);
+            {
+                _renderControl->render();
+                // FIXME The web browsers seem to be leaving GL in an error state.
+                // Need a debug context with sync logging to figure out why.
+                // for now just clear the errors
+                glGetError();
+            }
+            // FIXME probably unecessary
+            DefaultFramebuffer().Bind(Framebuffer::Target::Draw);
+            _quickWindow->resetOpenGLState();
+            _escrow.submit(GetName(*texture));
         }
-        // FIXME probably unecessary
-        DefaultFramebuffer().Bind(Framebuffer::Target::Draw);
-        _quickWindow->resetOpenGLState();
-        _escrow.submit(GetName(*texture));
         _lastRenderTime = usecTimestampNow();
     }
 
