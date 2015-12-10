@@ -251,7 +251,7 @@ void RenderableModelEntityItem::render(RenderArgs* args) {
             // check if the URL has changed
             auto& currentURL = getParsedModelURL();
             if (currentURL != _model->getURL()) {
-                qDebug().noquote() << "Updating model URL: " << currentURL.toDisplayString();
+                qCDebug(entitiesrenderer).noquote() << "Updating model URL: " << currentURL.toDisplayString();
                 _model->setURL(currentURL);
             }
 
@@ -378,12 +378,6 @@ Model* RenderableModelEntityItem::getModel(EntityTreeRenderer* renderer) {
         } else { // we already have the model we want...
             result = _model;
         }
-
-        if (_model && _needsInitialSimulation) {
-            PerformanceTimer perfTimer("_model->simulate");
-            _model->simulate(0.0f);
-        }
-        _needsInitialSimulation = false;
     } else { // if our desired URL is empty, we may need to delete our existing model
         if (_model) {
             _myRenderer->releaseModel(_model);
@@ -463,7 +457,9 @@ bool RenderableModelEntityItem::isReadyToComputeShape() {
 
         if (_needsInitialSimulation) {
             // the _model's offset will be wrong until _needsInitialSimulation is false
-            return false;
+            PerformanceTimer perfTimer("_model->simulate");
+            _model->simulate(0.0f);
+            _needsInitialSimulation = false;
         }
 
         assert(!_model->getCollisionURL().isEmpty());
