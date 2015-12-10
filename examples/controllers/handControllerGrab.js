@@ -423,22 +423,25 @@ function MyController(hand) {
     this.handleDistantParticleBeam = function(handPosition, objectPosition, objectRotation, color) {
 
 
-          var handToObject = Vec3.subtract(objectPosition, handPosition);
-          var finalRotation = Quat.rotationBetween(Vec3.multiply(-1,Vec3.UP), handToObject);
+        var handToObject = Vec3.subtract(objectPosition, handPosition);
+        var finalRotation = Quat.rotationBetween(Vec3.multiply(-1, Vec3.UP), handToObject);
 
+        var distance = Vec3.distance(handPosition, objectPosition);
+        var speed = distance * 1;
 
-
+        var lifepsan = distance / speed;
+        var lifespan = 1;
 
         if (this.particleBeam === null) {
             print('create beam')
-            this.createParticleBeam(objectPosition, finalRotation, color)
+            this.createParticleBeam(objectPosition, finalRotation, color, speed)
         } else {
             print('update beam')
-            this.updateParticleBeam(objectPosition, finalRotation, color)
+            this.updateParticleBeam(objectPosition, finalRotation, color, speed, lifepsan)
         }
     }
 
-    this.createParticleBeam = function(position, orientation, color) {
+    this.createParticleBeam = function(position, orientation, color, speed, lifepsan) {
         var particleBeamProperties = {
             type: "ParticleEffect",
             isEmitting: true,
@@ -448,9 +451,9 @@ function MyController(hand) {
             "name": "Particle Beam",
             "color": color,
             "maxParticles": 2000,
-            "lifespan": 3,
+            "lifespan": 1,
             "emitRate": 50,
-            "emitSpeed": 20,
+            "emitSpeed": 1,
             "speedSpread": 0,
             "emitOrientation": {
                 "x": -1,
@@ -500,7 +503,7 @@ function MyController(hand) {
         this.particleBeam = Entities.addEntity(particleBeamProperties);
     }
 
-    this.updateParticleBeam = function(position, orientation, color) {
+    this.updateParticleBeam = function(position, orientation, color, speed, lifepsan) {
         print('O IN UPDATE:::' + JSON.stringify(orientation))
 
         // var beamProps = Entities.getEntityProperties(this.particleBeam);
@@ -509,7 +512,9 @@ function MyController(hand) {
             rotation: orientation,
             position: position,
             visible: true,
-            color: color
+            color: color,
+            emitSpeed: speed,
+            lifepsan: lifepsan
 
         })
 
@@ -871,8 +876,8 @@ function MyController(hand) {
             return;
         }
 
-       // this.lineOn(handPosition, Vec3.subtract(grabbedProperties.position, handPosition), INTERSECT_COLOR);
-            // the action was set up on a previous call.  update the targets.
+        // this.lineOn(handPosition, Vec3.subtract(grabbedProperties.position, handPosition), INTERSECT_COLOR);
+        // the action was set up on a previous call.  update the targets.
         var radius = Vec3.distance(this.currentObjectPosition, handControllerPosition) *
             this.radiusScalar * DISTANCE_HOLDING_RADIUS_FACTOR;
         if (radius < 1.0) {
@@ -953,7 +958,7 @@ function MyController(hand) {
             this.currentObjectPosition = Vec3.sum(this.currentObjectPosition, change);
         }
 
-        this.handleDistantParticleBeam(handPosition, grabbedProperties.position,this.currentObjectRotation, INTERSECT_COLOR)
+        this.handleDistantParticleBeam(handPosition, grabbedProperties.position, this.currentObjectRotation, INTERSECT_COLOR)
 
         Entities.updateAction(this.grabbedEntity, this.actionID, {
             targetPosition: this.currentObjectPosition,
