@@ -37,6 +37,8 @@ int OctreeQuery::getBroadcastData(unsigned char* destinationBuffer) {
     destinationBuffer += packClipValueToTwoByte(destinationBuffer, _cameraFarClip);
     memcpy(destinationBuffer, &_cameraEyeOffsetPosition, sizeof(_cameraEyeOffsetPosition));
     destinationBuffer += sizeof(_cameraEyeOffsetPosition);
+    memcpy(destinationBuffer, &_keyholeRadius, sizeof(_keyholeRadius));
+    destinationBuffer += sizeof(_keyholeRadius);
 
     // bitMask of less than byte wide items
     unsigned char bitItems = 0;
@@ -83,6 +85,8 @@ int OctreeQuery::parseData(ReceivedMessage& message) {
     sourceBuffer += unpackClipValueFromTwoByte(sourceBuffer,_cameraFarClip);
     memcpy(&_cameraEyeOffsetPosition, sourceBuffer, sizeof(_cameraEyeOffsetPosition));
     sourceBuffer += sizeof(_cameraEyeOffsetPosition);
+    memcpy(&_keyholeRadius, sourceBuffer, sizeof(_keyholeRadius));
+    sourceBuffer += sizeof(_keyholeRadius);
 
     // optional feature flags
     unsigned char bitItems = 0;
