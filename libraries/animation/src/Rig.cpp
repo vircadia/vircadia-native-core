@@ -283,12 +283,14 @@ bool Rig::getJointStateTranslation(int index, glm::vec3& translation) const {
 void Rig::clearJointState(int index) {
     if (isIndexValid(index)) {
         _internalPoseSet._overrideFlags[index] = false;
+        _internalPoseSet._overridePoses[index] = _animSkeleton->getRelativeDefaultPose(index);
     }
 }
 
 void Rig::clearJointStates() {
     _internalPoseSet._overrideFlags.clear();
     _internalPoseSet._overrideFlags.resize(_animSkeleton->getNumJoints());
+    _internalPoseSet._overridePoses = _animSkeleton->getRelativeDefaultPoses();
 }
 
 void Rig::clearJointAnimationPriority(int index) {
@@ -462,6 +464,25 @@ AnimPose Rig::getAbsoluteDefaultPose(int index) const {
 
 const AnimPoseVec& Rig::getAbsoluteDefaultPoses() const {
     return _absoluteDefaultPoses;
+}
+
+
+bool Rig::getRelativeDefaultJointRotation(int index, glm::quat& rotationOut) const {
+    if (_animSkeleton && index >= 0 && index < _animSkeleton->getNumJoints()) {
+        rotationOut = _animSkeleton->getRelativeDefaultPose(index).rot;
+        return true;
+    } else {
+        return false;
+    }
+}
+
+bool Rig::getRelativeDefaultJointTranslation(int index, glm::vec3& translationOut) const {
+    if (_animSkeleton && index >= 0 && index < _animSkeleton->getNumJoints()) {
+        translationOut = _animSkeleton->getRelativeDefaultPose(index).trans;
+        return true;
+    } else {
+        return false;
+    }
 }
 
 // animation reference speeds.
