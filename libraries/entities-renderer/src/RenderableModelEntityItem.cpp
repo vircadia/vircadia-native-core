@@ -453,7 +453,6 @@ bool RenderableModelEntityItem::isReadyToComputeShape() {
     ShapeType type = getShapeType();
 
     if (type == SHAPE_TYPE_COMPOUND) {
-
         if (!_model) {
             EntityTreePointer tree = getTree();
             if (tree) {
