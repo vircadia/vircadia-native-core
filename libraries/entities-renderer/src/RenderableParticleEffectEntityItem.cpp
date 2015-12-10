@@ -60,8 +60,6 @@ public:
     void setTexture(gpu::TexturePointer texture) { _texture = texture; }
     const gpu::TexturePointer& getTexture() const { return _texture; }
 
-    bool getVisibleFlag() const { return _entity->isVisible(); }
-
     void render(RenderArgs* args) const {
         assert(_pipeline);
 
@@ -80,23 +78,23 @@ public:
         auto numIndices = _indexBuffer->getSize() / sizeof(uint16_t);
         batch.drawIndexed(gpu::TRIANGLES, numIndices);
     }
+   
+    EntityItemPointer _entity;
 
 protected:
-    EntityItemPointer _entity;
     Transform _modelTransform;
     AABox _bound;
     gpu::PipelinePointer _pipeline;
     gpu::Stream::FormatPointer _vertexFormat;
     gpu::BufferPointer _vertexBuffer;
     gpu::BufferPointer _indexBuffer;
-    gpu::TexturePointer _texture;
-
+    gpu::TexturePointer _texture; 
 };
 
 namespace render {
     template <>
     const ItemKey payloadGetKey(const ParticlePayload::Pointer& payload) {
-        if (payload->getVisibleFlag()) {
+        if (payload->_entity->getVisible()) {
             return ItemKey::Builder::transparentShape();
         } else {
             return ItemKey::Builder().withInvisible().build();
@@ -110,11 +108,10 @@ namespace render {
 
     template <>
     void payloadRender(const ParticlePayload::Pointer& payload, RenderArgs* args) {
-        if (args) {
-            if (payload && payload->getVisibleFlag()) {
-                payload->render(args);
-            }
+        if (payload->_entity->getVisible()) {
+            payload->render(args);
         }
+
     }
 }
 
