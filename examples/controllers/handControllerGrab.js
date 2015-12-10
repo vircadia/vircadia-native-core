@@ -400,7 +400,7 @@ function MyController(hand) {
     };
 
     //test particles instead of overlays
-    this.handleParticleBeam = function(position, orientation) {
+    this.handleParticleBeam = function(position, orientation, color) {
 
         var rotation = Quat.angleAxis(0, {
             x: 1,
@@ -409,18 +409,36 @@ function MyController(hand) {
         });
 
         var finalRotation = Quat.multiply(orientation, rotation);
+        //  var finalRotation = orientation
+
+        if (this.particleBeam === null) {
+            print('create beam')
+            this.createParticleBeam(position, finalRotation, color)
+        } else {
+            print('update beam')
+            this.updateParticleBeam(position, finalRotation, color)
+        }
+    }
+
+    this.handleDistantParticleBeam = function(handPosition, objectPosition, objectRotation, color) {
+
+
+          var handToObject = Vec3.subtract(objectPosition, handPosition);
+          var finalRotation = Quat.rotationBetween(Vec3.multiply(-1,Vec3.UP), handToObject);
+
+
 
 
         if (this.particleBeam === null) {
             print('create beam')
-            this.createParticleBeam(position, finalRotation)
+            this.createParticleBeam(objectPosition, finalRotation, color)
         } else {
             print('update beam')
-            this.updateParticleBeam(position, finalRotation)
+            this.updateParticleBeam(objectPosition, finalRotation, color)
         }
     }
 
-    this.createParticleBeam = function(position, orientation) {
+    this.createParticleBeam = function(position, orientation, color) {
         var particleBeamProperties = {
             type: "ParticleEffect",
             isEmitting: true,
@@ -428,15 +446,11 @@ function MyController(hand) {
             visible: false,
             //rotation:Quat.fromPitchYawRollDegrees(-90.0, 0.0, 0.0),
             "name": "Particle Beam",
-            "color": {
-                "red": 110,
-                "green": 118.52941176470593,
-                "blue": 255
-            },
+            "color": color,
             "maxParticles": 2000,
             "lifespan": 3,
             "emitRate": 50,
-            "emitSpeed": 2,
+            "emitSpeed": 20,
             "speedSpread": 0,
             "emitOrientation": {
                 "x": -1,
@@ -473,16 +487,8 @@ function MyController(hand) {
                 "green": 0,
                 "blue": 0
             },
-            "colorStart": {
-                "red": 110,
-                "green": 118.52941176470593,
-                "blue": 255
-            },
-            "colorFinish": {
-                "red": 110,
-                "green": 118.52941176470593,
-                "blue": 255
-            },
+            "colorStart": color,
+            "colorFinish": color,
             "alpha": 1,
             "alphaSpread": 0,
             "alphaStart": 1,
@@ -494,21 +500,19 @@ function MyController(hand) {
         this.particleBeam = Entities.addEntity(particleBeamProperties);
     }
 
-    this.updateParticleBeam = function(position, orientation, acceleration) {
+    this.updateParticleBeam = function(position, orientation, color) {
         print('O IN UPDATE:::' + JSON.stringify(orientation))
 
         // var beamProps = Entities.getEntityProperties(this.particleBeam);
 
         Entities.editEntity(this.particleBeam, {
-            //rotation:rotation,
             rotation: orientation,
             position: position,
-            visible: true
+            visible: true,
+            color: color
 
         })
 
-        // var emitO = Entities.getEntityProperties(this.particleBeam, "emitOrientation").emitOrientation;
-        // print('EMIT o :::' + JSON.stringify(emitO));
     }
 
     this.lineOff = function() {
@@ -784,8 +788,8 @@ function MyController(hand) {
         }
 
         //this.lineOn(distantPickRay.origin, Vec3.multiply(distantPickRay.direction, LINE_LENGTH), NO_INTERSECT_COLOR);
-        this.overlayLineOn(distantPickRay.origin, Vec3.sum(distantPickRay.origin, Vec3.multiply(distantPickRay.direction, LINE_LENGTH)), NO_INTERSECT_COLOR);
-        this.handleParticleBeam(distantPickRay.origin, this.getHandRotation());
+        //this.overlayLineOn(distantPickRay.origin, Vec3.sum(distantPickRay.origin, Vec3.multiply(distantPickRay.direction, LINE_LENGTH)), NO_INTERSECT_COLOR);
+        this.handleParticleBeam(distantPickRay.origin, this.getHandRotation(), NO_INTERSECT_COLOR);
 
 
     };
@@ -867,9 +871,8 @@ function MyController(hand) {
             return;
         }
 
-        this.lineOn(handPosition, Vec3.subtract(grabbedProperties.position, handPosition), INTERSECT_COLOR);
-
-        // the action was set up on a previous call.  update the targets.
+       // this.lineOn(handPosition, Vec3.subtract(grabbedProperties.position, handPosition), INTERSECT_COLOR);
+            // the action was set up on a previous call.  update the targets.
         var radius = Vec3.distance(this.currentObjectPosition, handControllerPosition) *
             this.radiusScalar * DISTANCE_HOLDING_RADIUS_FACTOR;
         if (radius < 1.0) {
@@ -949,6 +952,8 @@ function MyController(hand) {
             this.currentCameraOrientation = Camera.orientation;
             this.currentObjectPosition = Vec3.sum(this.currentObjectPosition, change);
         }
+
+        this.handleDistantParticleBeam(handPosition, grabbedProperties.position,this.currentObjectRotation, INTERSECT_COLOR)
 
         Entities.updateAction(this.grabbedEntity, this.actionID, {
             targetPosition: this.currentObjectPosition,
