@@ -95,7 +95,6 @@ int Basic2DWindowOpenGLDisplayPlugin::getDesiredInterval() const {
         result = MSECS_PER_SECOND / _framerateTarget;
     }
 
-    qDebug() << "New interval " << result;
     return result;
 }
 
@@ -136,8 +135,6 @@ void Basic2DWindowOpenGLDisplayPlugin::updateFramerate() {
         }
     } 
 
-    int newInterval = getDesiredInterval();
-    qDebug() << newInterval;
     _timer.start(getDesiredInterval());
 }
 
