@@ -83,16 +83,16 @@ void Basic2DWindowOpenGLDisplayPlugin::internalPresent() {
     }
     WindowOpenGLDisplayPlugin::internalPresent();
 }
-
+const uint32_t THROTTLED_FRAMERATE = 15;
 int Basic2DWindowOpenGLDisplayPlugin::getDesiredInterval() const {
-    static const int THROTTLED_PAINT_TIMER_DELAY_MS = MSECS_PER_SECOND / 15;
     static const int ULIMIITED_PAINT_TIMER_DELAY_MS = 1;
     int result = ULIMIITED_PAINT_TIMER_DELAY_MS;
-    if (_isThrottled) {
-        result = THROTTLED_PAINT_TIMER_DELAY_MS;
-    }
     if (0 != _framerateTarget) {
         result = MSECS_PER_SECOND / _framerateTarget;
+    } else if (_isThrottled) {
+        // This test wouldn't be necessary if we could depend on updateFramerate setting _framerateTarget.
+        // Alas, that gets complicated: isThrottled() is const and other stuff depends on it.
+        result = MSECS_PER_SECOND / THROTTLED_FRAMERATE;
     }
 
     qDebug() << "New interval " << result;
@@ -111,7 +111,6 @@ bool Basic2DWindowOpenGLDisplayPlugin::isThrottled() const {
     
     return shouldThrottle;
 }
-
 
 void Basic2DWindowOpenGLDisplayPlugin::updateFramerate() {
     QAction* checkedFramerate{ nullptr };
@@ -134,11 +133,13 @@ void Basic2DWindowOpenGLDisplayPlugin::updateFramerate() {
         } else if (FRAMERATE_30 == actionText) {
             _framerateTarget = 30;
         }
-    } 
+    } else if (_isThrottled) {
+        _framerateTarget = THROTTLED_FRAMERATE;
+    }
 
     int newInterval = getDesiredInterval();
     qDebug() << newInterval;
-    _timer.start(getDesiredInterval());
+    _timer.start(newInterval);
 }
 
 // FIXME target the screen the window is currently on

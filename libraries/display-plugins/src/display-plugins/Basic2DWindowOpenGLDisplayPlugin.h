@@ -9,6 +9,8 @@
 
 #include "WindowOpenGLDisplayPlugin.h"
 
+const float TARGET_FRAMERATE_Basic2DWindowOpenGL = 60.0f;
+
 class QScreen;
 class QAction;
 
@@ -17,6 +19,8 @@ class Basic2DWindowOpenGLDisplayPlugin : public WindowOpenGLDisplayPlugin {
 
 public:
     virtual const QString & getName() const override;
+
+    virtual float getTargetFrameRate() override { return  _framerateTarget ? (float) _framerateTarget : TARGET_FRAMERATE_Basic2DWindowOpenGL; }
 
     virtual void activate() override;
 
