@@ -17,7 +17,7 @@
 #include <controllers/InputDevice.h>
 #include <controllers/StandardControls.h>
 
-#include "InputPlugin.h"
+#include <plugins/InputPlugin.h>
 
 struct _sixenseControllerData;
 using SixenseControllerData = _sixenseControllerData;
