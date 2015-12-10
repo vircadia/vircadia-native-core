@@ -110,11 +110,15 @@ void Model::setOffset(const glm::vec3& offset) {
 void Model::enqueueLocationChange() {
     render::ScenePointer scene = AbstractViewStateInterface::instance()->getMain3DScene();
 
+    Transform transform;
+    transform.setTranslation(_translation);
+    transform.setRotation(_rotation);
+
     render::PendingChanges pendingChanges;
     foreach (auto itemID, _renderItems.keys()) {
         pendingChanges.updateItem<MeshPartPayload>(itemID, [=](MeshPartPayload& data) {
-            data.updateModelLocation(_translation, _rotation);
-            data.model->_needsUpdateClusterMatrices = true;
+            data.updateTransform(transform);
+            data.notifyLocationChanged();
         });
     }
 
@@ -495,11 +499,12 @@ bool Model::addToScene(std::shared_ptr<render::Scene> scene, render::PendingChan
 
     foreach (auto renderItem, _renderItemsSet) {
         auto item = scene->allocateID();
-        auto renderData = MeshPartPayload::Pointer(renderItem);
+  //      auto renderData = MeshPartPayload::Pointer(renderItem);
+        auto renderData = renderItem;
         auto renderPayload = std::make_shared<MeshPartPayload::Payload>(renderData);
         pendingChanges.resetItem(item, renderPayload);
         pendingChanges.updateItem<MeshPartPayload>(item, [&](MeshPartPayload& data) {
-            data.model->_needsUpdateClusterMatrices = true;
+            data.notifyLocationChanged();
         });
         _renderItems.insert(item, renderPayload);
         somethingAdded = true;
@@ -528,7 +533,7 @@ bool Model::addToScene(std::shared_ptr<render::Scene> scene,
         renderPayload->addStatusGetters(statusGetters);
         pendingChanges.resetItem(item, renderPayload);
         pendingChanges.updateItem<MeshPartPayload>(item, [&](MeshPartPayload& data) {
-            data.model->_needsUpdateClusterMatrices = true;
+            data.notifyLocationChanged();
         });
         _renderItems.insert(item, renderPayload);
         somethingAdded = true;
@@ -1155,6 +1160,10 @@ void Model::segregateMeshGroups() {
 
     _renderItemsSet.clear();
 
+    Transform transform;
+    transform.setTranslation(_translation);
+    transform.setRotation(_rotation);
+
     // Run through all of the meshes, and place them into their segregated, but unsorted buckets
     int shapeID = 0;
     for (int i = 0; i < (int)networkMeshes.size(); i++) {
@@ -1164,11 +1173,13 @@ void Model::segregateMeshGroups() {
         // Create the render payloads
         int totalParts = mesh.parts.size();
         for (int partIndex = 0; partIndex < totalParts; partIndex++) {
-            auto renderItem = std::make_shared<MeshPartPayload>(this, networkMesh._mesh, i, partIndex, shapeID, _translation, _rotation, showingCollisionHull);
             if (showingCollisionHull) {
-                renderItem->updateDrawMaterial(ModelRender::getCollisionHullMaterial());
+                _renderItemsSet << std::make_shared<MeshPartPayload>(networkMesh._mesh, partIndex, ModelRender::getCollisionHullMaterial(), transform);
+
+            } else {
+                _renderItemsSet << std::make_shared<ModelMeshPartPayload>(this, i, partIndex, shapeID, _translation, _rotation);
             }
-            _renderItemsSet << renderItem;
+
             shapeID++;
         }
     }
@@ -1181,6 +1192,10 @@ bool Model::initWhenReady(render::ScenePointer scene) {
 
         render::PendingChanges pendingChanges;
 
+        Transform transform;
+        transform.setTranslation(_translation);
+        transform.setRotation(_rotation);
+
         foreach (auto renderItem, _renderItemsSet) {
             auto item = scene->allocateID();
             auto renderData = MeshPartPayload::Pointer(renderItem);
@@ -1188,8 +1203,8 @@ bool Model::initWhenReady(render::ScenePointer scene) {
             _renderItems.insert(item, renderPayload);
             pendingChanges.resetItem(item, renderPayload);
             pendingChanges.updateItem<MeshPartPayload>(item, [&](MeshPartPayload& data) {
-                data.updateModelLocation(_translation, _rotation);
-                data.model->_needsUpdateClusterMatrices = true;
+                data.updateTransform(transform);
+                data.notifyLocationChanged();
             });
         }
         scene->enqueuePendingChanges(pendingChanges);

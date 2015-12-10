@@ -12,6 +12,7 @@
 #include "AABox.h"
 
 #include "AACube.h"
+#include "Transform.h"
 #include "Extents.h"
 #include "GeometryUtil.h"
 #include "NumericalConstants.h"
@@ -485,4 +486,19 @@ AABox& AABox::operator += (const AABox& box) {
        _scale = glm::max(_scale, box.calcTopFarLeft() - _corner);
     }
     return (*this);
+}
+
+void AABox::scale(const glm::vec3& scale) {
+    _corner *= scale;
+    _scale *= scale;
+}
+
+void AABox::rotate(const glm::quat& rotation) {
+
+}
+
+void AABox::transform(const Transform& transform) {
+    scale(transform.getScale());
+    rotate(transform.getRotation());
+    translate(transform.getTranslation());
 }

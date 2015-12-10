@@ -366,7 +366,7 @@ private:
     bool _needsUpdateClusterMatrices = true;
     bool _showCollisionHull = false;
 
-    friend class MeshPartPayload;
+    friend class ModelMeshPartPayload;
 protected:
     RigPointer _rig;
 };
