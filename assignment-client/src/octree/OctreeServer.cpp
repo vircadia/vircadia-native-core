@@ -1460,15 +1460,22 @@ void OctreeServer::didCallWriteDatagram(OctreeSendThread* thread) {
 
 
 void OctreeServer::stopTrackingThread(OctreeSendThread* thread) {
-    QMutexLocker lockerA(&_threadsDidProcessMutex);
-    QMutexLocker lockerB(&_threadsDidPacketDistributorMutex);
-    QMutexLocker lockerC(&_threadsDidHandlePacketSendMutex);
-    QMutexLocker lockerD(&_threadsDidCallWriteDatagramMutex);
-
-    _threadsDidProcess.remove(thread);
-    _threadsDidPacketDistributor.remove(thread);
-    _threadsDidHandlePacketSend.remove(thread);
-    _threadsDidCallWriteDatagram.remove(thread);
+    {
+        QMutexLocker locker(&_threadsDidProcessMutex);
+        _threadsDidProcess.remove(thread);
+    }
+    {
+        QMutexLocker locker(&_threadsDidPacketDistributorMutex);
+        _threadsDidPacketDistributor.remove(thread);
+    }
+    {
+        QMutexLocker locker(&_threadsDidHandlePacketSendMutex);
+        _threadsDidHandlePacketSend.remove(thread);
+    }
+    {
+        QMutexLocker locker(&_threadsDidCallWriteDatagramMutex);
+        _threadsDidCallWriteDatagram.remove(thread);
+    }
 }
 
 int howManyThreadsDidSomething(QMutex& mutex, QMap<OctreeSendThread*, quint64>& something, quint64 since) {
