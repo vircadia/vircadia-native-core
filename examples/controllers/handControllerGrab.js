@@ -425,6 +425,7 @@ function MyController(hand) {
             type: "ParticleEffect",
             isEmitting: true,
             position: position,
+            visible: false,
             //rotation:Quat.fromPitchYawRollDegrees(-90.0, 0.0, 0.0),
             "name": "Particle Beam",
             "color": {
@@ -436,12 +437,12 @@ function MyController(hand) {
             "lifespan": 3,
             "emitRate": 50,
             "emitSpeed": 2,
-            "speedSpread": 0.1,
+            "speedSpread": 0,
             "emitOrientation": {
-                "x": -0.7000000000000001,
+                "x": -1,
                 "y": 0,
                 "z": 0,
-                "w": 0.7071068286895752
+                "w": 1
             },
             "emitDimensions": {
                 "x": 0,
@@ -486,7 +487,7 @@ function MyController(hand) {
             "alphaSpread": 0,
             "alphaStart": 1,
             "alphaFinish": 1,
-            "additiveBlending": 0,
+            "additiveBlending": 1,
             "textures": "https://hifi-public.s3.amazonaws.com/alan/Particles/Particle-Sprite-Smoke-1.png"
         }
 
@@ -502,6 +503,7 @@ function MyController(hand) {
             //rotation:rotation,
             rotation: orientation,
             position: position,
+            visible: true
 
         })
 
@@ -525,10 +527,12 @@ function MyController(hand) {
 
     this.particleBeamOff = function() {
         if (this.particleBeam !== null) {
-            Entities.deleteEntity(this.particleBeam)
+            Entities.editEntity(this.particleBeam, {
+                visible: false
+            })
         }
 
-        this.particleBeam = null;
+        //this.particleBeam = null;
     }
 
     this.triggerPress = function(value) {
@@ -1314,6 +1318,7 @@ function MyController(hand) {
     this.cleanup = function() {
         this.release();
         this.endHandGrasp();
+        Entities.deleteEntity(this.particleBeam);
     };
 
     this.activateEntity = function(entityID, grabbedProperties) {
@@ -1404,6 +1409,8 @@ function MyController(hand) {
 
 var rightController = new MyController(RIGHT_HAND);
 var leftController = new MyController(LEFT_HAND);
+rightController.createParticleBeam();
+leftController.createParticleBeam();
 
 var MAPPING_NAME = "com.highfidelity.handControllerGrab";
 
