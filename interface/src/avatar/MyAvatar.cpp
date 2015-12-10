@@ -1058,7 +1058,7 @@ void MyAvatar::rebuildSkeletonBody() {
 void MyAvatar::prepareForPhysicsSimulation() {
     relayDriveKeysToCharacterController();
     _characterController.setTargetVelocity(getTargetVelocity());
-    _characterController.setAvatarPositionAndOrientation(getPosition(), getOrientation());
+    _characterController.setPositionAndOrientation(getPosition(), getOrientation());
     if (qApp->isHMDMode()) {
         updateHMDFollowVelocity();
     } else if (_followSpeed > 0.0f) {
@@ -1071,7 +1071,7 @@ void MyAvatar::prepareForPhysicsSimulation() {
 void MyAvatar::harvestResultsFromPhysicsSimulation() {
     glm::vec3 position = getPosition();
     glm::quat orientation = getOrientation();
-    _characterController.getAvatarPositionAndOrientation(position, orientation);
+    _characterController.getPositionAndOrientation(position, orientation);
     nextAttitude(position, orientation);
     if (_followSpeed > 0.0f) {
         adjustSensorTransform();
