@@ -80,9 +80,13 @@ void CharacterController::setDynamicsWorld(btDynamicsWorld* world) {
         if (world && _rigidBody) {
             _dynamicsWorld = world;
             _pendingFlags &= ~PENDING_FLAG_JUMP;
+            // Before adding the RigidBody to the world we must save its oldGravity to the side
+            // because adding an object to the world will overwrite it with the default gravity.
+            btVector3 oldGravity = _rigidBody->getGravity();
             _dynamicsWorld->addRigidBody(_rigidBody, COLLISION_GROUP_MY_AVATAR, COLLISION_MASK_MY_AVATAR);
             _dynamicsWorld->addAction(this);
-            //reset(_dynamicsWorld);
+            // restore gravity settings
+            _rigidBody->setGravity(oldGravity);
         }
     }
     if (_dynamicsWorld) {
