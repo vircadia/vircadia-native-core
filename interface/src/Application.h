@@ -160,9 +160,7 @@ public:
     
     uint32_t getFrameCount() { return _frameCount; }
     float getFps() const { return _fps; }
-    float const HMD_TARGET_FRAME_RATE = 75.0f;
-    float const DESKTOP_TARGET_FRAME_RATE = 60.0f;
-    float getTargetFrameRate() { return isHMDMode() ? HMD_TARGET_FRAME_RATE : DESKTOP_TARGET_FRAME_RATE; }
+    float getTargetFrameRate(); // frames/second
     float getLastInstanteousFps() const { return _lastInstantaneousFps; }
     float getLastUnsynchronizedFps() const { return _lastUnsynchronizedFps; }
 
