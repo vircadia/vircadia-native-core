@@ -52,7 +52,7 @@ var RAT_IN_NEST_DISTANCE = 4;
 //how many milliseconds between rats
 var RAT_SPAWN_RATE = 2500;
 
-var RAT_SOUND_URL = 'http://hifi-content.s3.amazonaws.com/james/rat/sounds/rat2.wav';
+var RAT_SOUND_URL = 'http://hifi-public.s3.amazonaws.com/sounds/Rats_Squeaks_Active.wav';
 var ratRunningSound = SoundCache.getSound(RAT_SOUND_URL);
 
 function playRatRunningAnimation(rat) {
@@ -61,7 +61,6 @@ function playRatRunningAnimation(rat) {
     });
     Entities.editEntity(rat, {
         animationURL: RAT_RUNNING_ANIMATION_URL,
-        // animationSettings: animationSettings,
         animation: {
             url: RAT_RUNNING_ANIMATION_URL,
             running: true,
@@ -257,7 +256,7 @@ function updateTweens() {
 function createRatSoundInjector() {
     var audioOptions = {
         volume: 0.05,
-        loop: true
+        loop: false
     }
 
     var injector = Audio.playSound(ratRunningSound, audioOptions);
