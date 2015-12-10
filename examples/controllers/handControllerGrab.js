@@ -399,10 +399,7 @@ function MyController(hand) {
         }
     };
 
-
     //test particles instead of overlays
-
-
     this.handleParticleBeam = function(position, orientation) {
 
         var rotation = Quat.angleAxis(0, {
@@ -435,11 +432,11 @@ function MyController(hand) {
                 "green": 118.52941176470593,
                 "blue": 255
             },
-            "maxParticles": 1000,
+            "maxParticles": 2000,
             "lifespan": 3,
-            "emitRate": 20,
-            "emitSpeed": 10,
-            "speedSpread": 0,
+            "emitRate": 50,
+            "emitSpeed": 2,
+            "speedSpread": 0.1,
             "emitOrientation": {
                 "x": -0.7000000000000001,
                 "y": 0,
