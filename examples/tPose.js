@@ -2,7 +2,7 @@
 // tPose.js
 // examples
 //
-// Created by Anthony Thibault on 11/9/2015
+// Created by Anthony Thibault on 12/10/2015
 // Copyright 2015 High Fidelity, Inc.
 //
 // Distributed under the Apache License, Version 2.0.
