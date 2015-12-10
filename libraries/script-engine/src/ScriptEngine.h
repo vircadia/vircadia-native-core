@@ -153,7 +153,7 @@ signals:
     void errorLoadingScript(const QString& scriptFilename);
     void update(float deltaTime);
     void scriptEnding();
-    void finished(const QString& fileNameString);
+    void finished(const QString& fileNameString, ScriptEngine* engine);
     void cleanupMenuItem(const QString& menuItemString);
     void printedMessage(const QString& message);
     void errorMessage(const QString& message);
@@ -166,8 +166,8 @@ signals:
 protected:
     QString _scriptContents;
     QString _parentURL;
-    bool _isFinished { false };
-    bool _isRunning { false };
+    std::atomic<bool> _isFinished { false };
+    std::atomic<bool> _isRunning { false };
     int _evaluatesPending { 0 };
     bool _isInitialized { false };
     QHash<QTimer*, QScriptValue> _timerFunctionMap;
@@ -193,7 +193,7 @@ protected:
     Quat _quatLibrary;
     Vec3 _vec3Library;
     ScriptUUID _uuidLibrary;
-    bool _isUserLoaded { false };
+    std::atomic<bool> _isUserLoaded { false };
     bool _isReloading { false };
 
     ArrayBufferClass* _arrayBufferClass;
@@ -206,7 +206,7 @@ protected:
 
     static QSet<ScriptEngine*> _allKnownScriptEngines;
     static QMutex _allScriptsMutex;
-    static bool _stoppingAllScripts;
+    static std::atomic<bool> _stoppingAllScripts;
 };
 
 #endif // hifi_ScriptEngine_h

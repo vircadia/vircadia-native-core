@@ -202,31 +202,41 @@ function entityIsGrabbedByOther(entityID) {
 }
 
 function getSpatialOffsetPosition(hand, spatialKey) {
+    var position = Vec3.ZERO;
+
     if (hand !== RIGHT_HAND && spatialKey.leftRelativePosition) {
-        return spatialKey.leftRelativePosition;
+        position = spatialKey.leftRelativePosition;
     }
     if (hand === RIGHT_HAND && spatialKey.rightRelativePosition) {
-        return spatialKey.rightRelativePosition;
+        position = spatialKey.rightRelativePosition;
     }
     if (spatialKey.relativePosition) {
-        return spatialKey.relativePosition;
+        position = spatialKey.relativePosition;
     }
 
-    return Vec3.ZERO;
+    return position;
 }
 
+var yFlip = Quat.angleAxis(180, Vec3.UNIT_Y);
 function getSpatialOffsetRotation(hand, spatialKey) {
+    var rotation = Quat.IDENTITY;
+
     if (hand !== RIGHT_HAND && spatialKey.leftRelativeRotation) {
-        return spatialKey.leftRelativeRotation;
+        rotation = spatialKey.leftRelativeRotation;
     }
     if (hand === RIGHT_HAND && spatialKey.rightRelativeRotation) {
-        return spatialKey.rightRelativeRotation;
+        rotation = spatialKey.rightRelativeRotation;
     }
     if (spatialKey.relativeRotation) {
-        return spatialKey.relativeRotation;
+        rotation = spatialKey.relativeRotation;
     }
 
-    return Quat.IDENTITY;
+    // Flip left hand
+    if (hand !== RIGHT_HAND) {
+        rotation = Quat.multiply(yFlip, rotation);
+    }
+
+    return rotation;
 }
 
 function MyController(hand) {
@@ -254,7 +264,8 @@ function MyController(hand) {
 
     this.overlayLine = null;
     this.particleBeam = null;
-
+    
+    this.ignoreIK = false;
     this.offsetPosition = Vec3.ZERO;
     this.offsetRotation = Quat.IDENTITY;
 
@@ -999,9 +1010,12 @@ function MyController(hand) {
 
         if (this.state != STATE_NEAR_GRABBING && grabbableData.spatialKey) {
             // if an object is "equipped" and has a spatialKey, use it.
+            this.ignoreIK = grabbableData.spatialKey.ignoreIK ? grabbableData.spatialKey.ignoreIK : false;
             this.offsetPosition = getSpatialOffsetPosition(this.hand, grabbableData.spatialKey);
             this.offsetRotation = getSpatialOffsetRotation(this.hand, grabbableData.spatialKey);
         } else {
+            this.ignoreIK = false;
+
             var objectRotation = grabbedProperties.rotation;
             this.offsetRotation = Quat.multiply(Quat.inverse(handRotation), objectRotation);
 
@@ -1018,7 +1032,8 @@ function MyController(hand) {
             relativeRotation: this.offsetRotation,
             ttl: ACTION_TTL,
             kinematic: NEAR_GRABBING_KINEMATIC,
-            kinematicSetVelocity: true
+            kinematicSetVelocity: true,
+            ignoreIK: this.ignoreIK
         });
         if (this.actionID === NULL_ACTION_ID) {
             this.actionID = null;
@@ -1102,7 +1117,8 @@ function MyController(hand) {
                 relativeRotation: this.offsetRotation,
                 ttl: ACTION_TTL,
                 kinematic: NEAR_GRABBING_KINEMATIC,
-                kinematicSetVelocity: true
+                kinematicSetVelocity: true,
+                ignoreIK: this.ignoreIK
             });
             this.actionTimeout = now + (ACTION_TTL * MSEC_PER_SEC);
         }
@@ -1129,6 +1145,7 @@ function MyController(hand) {
         // use a spring to pull the object to where it will be when equipped
         var relativeRotation = getSpatialOffsetRotation(this.hand, grabbableData.spatialKey);
         var relativePosition = getSpatialOffsetPosition(this.hand, grabbableData.spatialKey);
+        var ignoreIK = grabbableData.spatialKey.ignoreIK ? grabbableData.spatialKey.ignoreIK : false;
         var handRotation = this.getHandRotation();
         var handPosition = this.getHandPosition();
         var targetRotation = Quat.multiply(handRotation, relativeRotation);
@@ -1143,7 +1160,8 @@ function MyController(hand) {
                 linearTimeScale: EQUIP_SPRING_TIMEFRAME,
                 targetRotation: targetRotation,
                 angularTimeScale: EQUIP_SPRING_TIMEFRAME,
-                ttl: ACTION_TTL
+                ttl: ACTION_TTL,
+                ignoreIK: ignoreIK
             });
             if (this.equipSpringID === NULL_ACTION_ID) {
                 this.equipSpringID = null;
@@ -1156,7 +1174,8 @@ function MyController(hand) {
                 linearTimeScale: EQUIP_SPRING_TIMEFRAME,
                 targetRotation: targetRotation,
                 angularTimeScale: EQUIP_SPRING_TIMEFRAME,
-                ttl: ACTION_TTL
+                ttl: ACTION_TTL,
+                ignoreIK: ignoreIK
             });
         }
 

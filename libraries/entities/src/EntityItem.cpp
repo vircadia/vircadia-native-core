@@ -36,7 +36,7 @@ int EntityItem::_maxActionsDataSize = 800;
 quint64 EntityItem::_rememberDeletedActionTime = 20 * USECS_PER_SECOND;
 
 EntityItem::EntityItem(const EntityItemID& entityItemID) :
-    SpatiallyNestable(NestableTypes::Entity, entityItemID),
+    SpatiallyNestable(NestableType::Entity, entityItemID),
     _type(EntityTypes::Unknown),
     _lastSimulated(0),
     _lastUpdated(0),
@@ -628,71 +628,50 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
     bool weOwnSimulation = _simulationOwner.matchesValidID(myNodeID);
 
 
-    if (args.bitstreamVersion >= VERSION_ENTITIES_HAVE_SIMULATION_OWNER_AND_ACTIONS_OVER_WIRE) {
-        // pack SimulationOwner and terse update properties near each other
+    // pack SimulationOwner and terse update properties near each other
 
-        // NOTE: the server is authoritative for changes to simOwnerID so we always unpack ownership data
-        // even when we would otherwise ignore the rest of the packet.
+    // NOTE: the server is authoritative for changes to simOwnerID so we always unpack ownership data
+    // even when we would otherwise ignore the rest of the packet.
 
-        if (propertyFlags.getHasProperty(PROP_SIMULATION_OWNER)) {
+    if (propertyFlags.getHasProperty(PROP_SIMULATION_OWNER)) {
 
-            QByteArray simOwnerData;
-            int bytes = OctreePacketData::unpackDataFromBytes(dataAt, simOwnerData);
-            SimulationOwner newSimOwner;
-            newSimOwner.fromByteArray(simOwnerData);
-            dataAt += bytes;
-            bytesRead += bytes;
+        QByteArray simOwnerData;
+        int bytes = OctreePacketData::unpackDataFromBytes(dataAt, simOwnerData);
+        SimulationOwner newSimOwner;
+        newSimOwner.fromByteArray(simOwnerData);
+        dataAt += bytes;
+        bytesRead += bytes;
 
-            if (wantTerseEditLogging() && _simulationOwner != newSimOwner) {
-                qCDebug(entities) << "sim ownership for" << getDebugName() << "is now" << newSimOwner;
-            }
-            if (_simulationOwner.set(newSimOwner)) {
-                _dirtyFlags |= Simulation::DIRTY_SIMULATOR_ID;
-            }
+        if (wantTerseEditLogging() && _simulationOwner != newSimOwner) {
+            qCDebug(entities) << "sim ownership for" << getDebugName() << "is now" << newSimOwner;
         }
-        {   // When we own the simulation we don't accept updates to the entity's transform/velocities
-            // but since we're using macros below we have to temporarily modify overwriteLocalData.
-            bool oldOverwrite = overwriteLocalData;
-            overwriteLocalData = overwriteLocalData && !weOwnSimulation;
-            READ_ENTITY_PROPERTY(PROP_POSITION, glm::vec3, updatePosition);
-            READ_ENTITY_PROPERTY(PROP_ROTATION, glm::quat, updateRotation);
-            READ_ENTITY_PROPERTY(PROP_VELOCITY, glm::vec3, updateVelocity);
-            READ_ENTITY_PROPERTY(PROP_ANGULAR_VELOCITY, glm::vec3, updateAngularVelocity);
-            READ_ENTITY_PROPERTY(PROP_ACCELERATION, glm::vec3, setAcceleration);
-            overwriteLocalData = oldOverwrite;
+        if (_simulationOwner.set(newSimOwner)) {
+            _dirtyFlags |= Simulation::DIRTY_SIMULATOR_ID;
         }
-
-        READ_ENTITY_PROPERTY(PROP_DIMENSIONS, glm::vec3, updateDimensions);
-        READ_ENTITY_PROPERTY(PROP_DENSITY, float, updateDensity);
-        READ_ENTITY_PROPERTY(PROP_GRAVITY, glm::vec3, updateGravity);
-
-        READ_ENTITY_PROPERTY(PROP_DAMPING, float, updateDamping);
-        READ_ENTITY_PROPERTY(PROP_RESTITUTION, float, updateRestitution);
-        READ_ENTITY_PROPERTY(PROP_FRICTION, float, updateFriction);
-        READ_ENTITY_PROPERTY(PROP_LIFETIME, float, updateLifetime);
-        READ_ENTITY_PROPERTY(PROP_SCRIPT, QString, setScript);
-        READ_ENTITY_PROPERTY(PROP_SCRIPT_TIMESTAMP, quint64, setScriptTimestamp);
-        READ_ENTITY_PROPERTY(PROP_REGISTRATION_POINT, glm::vec3, setRegistrationPoint);
-    } else {
-        // legacy order of packing here
-        // TODO: purge this logic in a few months from now (2015.07)
-        READ_ENTITY_PROPERTY(PROP_POSITION, glm::vec3, updatePosition);
-        READ_ENTITY_PROPERTY(PROP_DIMENSIONS, glm::vec3, updateDimensions);
-        READ_ENTITY_PROPERTY(PROP_ROTATION, glm::quat, updateRotation);
-        READ_ENTITY_PROPERTY(PROP_DENSITY, float, updateDensity);
-        READ_ENTITY_PROPERTY(PROP_VELOCITY, glm::vec3, updateVelocity);
-        READ_ENTITY_PROPERTY(PROP_GRAVITY, glm::vec3, updateGravity);
-        READ_ENTITY_PROPERTY(PROP_ACCELERATION, glm::vec3, setAcceleration);
-
-        READ_ENTITY_PROPERTY(PROP_DAMPING, float, updateDamping);
-        READ_ENTITY_PROPERTY(PROP_RESTITUTION, float, updateRestitution);
-        READ_ENTITY_PROPERTY(PROP_FRICTION, float, updateFriction);
-        READ_ENTITY_PROPERTY(PROP_LIFETIME, float, updateLifetime);
-        READ_ENTITY_PROPERTY(PROP_SCRIPT, QString, setScript);
-        READ_ENTITY_PROPERTY(PROP_SCRIPT_TIMESTAMP, quint64, setScriptTimestamp);
-        READ_ENTITY_PROPERTY(PROP_REGISTRATION_POINT, glm::vec3, setRegistrationPoint);
-        READ_ENTITY_PROPERTY(PROP_ANGULAR_VELOCITY, glm::vec3, updateAngularVelocity);
     }
+    {   // When we own the simulation we don't accept updates to the entity's transform/velocities
+        // but since we're using macros below we have to temporarily modify overwriteLocalData.
+        bool oldOverwrite = overwriteLocalData;
+        overwriteLocalData = overwriteLocalData && !weOwnSimulation;
+        READ_ENTITY_PROPERTY(PROP_POSITION, glm::vec3, updatePosition);
+        READ_ENTITY_PROPERTY(PROP_ROTATION, glm::quat, updateRotation);
+        READ_ENTITY_PROPERTY(PROP_VELOCITY, glm::vec3, updateVelocity);
+        READ_ENTITY_PROPERTY(PROP_ANGULAR_VELOCITY, glm::vec3, updateAngularVelocity);
+        READ_ENTITY_PROPERTY(PROP_ACCELERATION, glm::vec3, setAcceleration);
+        overwriteLocalData = oldOverwrite;
+    }
+
+    READ_ENTITY_PROPERTY(PROP_DIMENSIONS, glm::vec3, updateDimensions);
+    READ_ENTITY_PROPERTY(PROP_DENSITY, float, updateDensity);
+    READ_ENTITY_PROPERTY(PROP_GRAVITY, glm::vec3, updateGravity);
+
+    READ_ENTITY_PROPERTY(PROP_DAMPING, float, updateDamping);
+    READ_ENTITY_PROPERTY(PROP_RESTITUTION, float, updateRestitution);
+    READ_ENTITY_PROPERTY(PROP_FRICTION, float, updateFriction);
+    READ_ENTITY_PROPERTY(PROP_LIFETIME, float, updateLifetime);
+    READ_ENTITY_PROPERTY(PROP_SCRIPT, QString, setScript);
+    READ_ENTITY_PROPERTY(PROP_SCRIPT_TIMESTAMP, quint64, setScriptTimestamp);
+    READ_ENTITY_PROPERTY(PROP_REGISTRATION_POINT, glm::vec3, setRegistrationPoint);
 
     READ_ENTITY_PROPERTY(PROP_ANGULAR_DAMPING, float, updateAngularDamping);
     READ_ENTITY_PROPERTY(PROP_VISIBLE, bool, setVisible);
@@ -700,17 +679,6 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
     READ_ENTITY_PROPERTY(PROP_COLLISIONS_WILL_MOVE, bool, updateCollisionsWillMove);
     READ_ENTITY_PROPERTY(PROP_LOCKED, bool, setLocked);
     READ_ENTITY_PROPERTY(PROP_USER_DATA, QString, setUserData);
-
-    if (args.bitstreamVersion < VERSION_ENTITIES_HAVE_SIMULATION_OWNER_AND_ACTIONS_OVER_WIRE) {
-        // this code for when there is only simulatorID and no simulation priority
-
-        // we always accept the server's notion of simulatorID, so we fake overwriteLocalData as true
-        // before we try to READ_ENTITY_PROPERTY it
-        bool temp = overwriteLocalData;
-        overwriteLocalData = true;
-        READ_ENTITY_PROPERTY(PROP_SIMULATION_OWNER, QUuid, updateSimulatorID);
-        overwriteLocalData = temp;
-    }
 
     if (args.bitstreamVersion >= VERSION_ENTITIES_HAS_MARKETPLACE_ID) {
         READ_ENTITY_PROPERTY(PROP_MARKETPLACE_ID, QString, setMarketplaceID);
@@ -1104,7 +1072,7 @@ bool EntityItem::setProperties(const EntityItemProperties& properties) {
     bool somethingChanged = false;
 
     // these affect TerseUpdate properties
-    SET_ENTITY_PROPERTY_FROM_PROPERTIES(simulationOwner, setSimulationOwner);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(simulationOwner, updateSimulationOwner);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(position, updatePosition);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(rotation, updateRotation);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(velocity, updateVelocity);
@@ -1324,6 +1292,13 @@ void EntityItem::updatePosition(const glm::vec3& value) {
     }
     if (getLocalPosition() != value) {
         setLocalPosition(value);
+        _dirtyFlags |= Simulation::DIRTY_POSITION;
+        forEachDescendant([&](SpatiallyNestablePointer object) {
+            if (object->getNestableType() == NestableType::Entity) {
+                EntityItemPointer entity = std::static_pointer_cast<EntityItem>(object);
+                entity->_dirtyFlags |= Simulation::DIRTY_POSITION;
+            }
+        });
     }
 }
 
@@ -1342,7 +1317,7 @@ void EntityItem::updateRotation(const glm::quat& rotation) {
         setLocalOrientation(rotation);
         _dirtyFlags |= Simulation::DIRTY_ROTATION;
         forEachDescendant([&](SpatiallyNestablePointer object) {
-            if (object->getNestableType() == NestableTypes::Entity) {
+            if (object->getNestableType() == NestableType::Entity) {
                 EntityItemPointer entity = std::static_pointer_cast<EntityItem>(object);
                 entity->_dirtyFlags |= Simulation::DIRTY_ROTATION;
                 entity->_dirtyFlags |= Simulation::DIRTY_POSITION;
@@ -1496,12 +1471,12 @@ void EntityItem::setSimulationOwner(const SimulationOwner& owner) {
     _simulationOwner.set(owner);
 }
 
-void EntityItem::updateSimulatorID(const QUuid& value) {
-    if (wantTerseEditLogging() && _simulationOwner.getID() != value) {
-        qCDebug(entities) << "sim ownership for" << getDebugName() << "is now" << value;
+void EntityItem::updateSimulationOwner(const SimulationOwner& owner) {
+    if (wantTerseEditLogging() && _simulationOwner != owner) {
+        qCDebug(entities) << "sim ownership for" << getDebugName() << "is now" << owner;
     }
 
-    if (_simulationOwner.setID(value)) {
+    if (_simulationOwner.set(owner)) {
         _dirtyFlags |= Simulation::DIRTY_SIMULATOR_ID;
     }
 }

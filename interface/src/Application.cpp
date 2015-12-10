@@ -195,6 +195,8 @@ static const QString INFO_EDIT_ENTITIES_PATH = "html/edit-commands.html";
 static const unsigned int THROTTLED_SIM_FRAMERATE = 15;
 static const int THROTTLED_SIM_FRAME_PERIOD_MS = MSECS_PER_SECOND / THROTTLED_SIM_FRAMERATE;
 
+static const float PHYSICS_READY_RANGE = 3.0f; // how far from avatar to check for entities that aren't ready for simulation
+
 #ifndef __APPLE__
 static const QString DESKTOP_LOCATION = QStandardPaths::writableLocation(QStandardPaths::DesktopLocation);
 #else
@@ -1122,29 +1124,6 @@ void Application::paintGL() {
     _inPaint = true;
     Finally clearFlagLambda([this] { _inPaint = false; });
 
-    // Some LOD-like controls need to know a smoothly varying "potential" frame rate that doesn't
-    // include time waiting for vsync, and which can report a number above target if we've got the headroom.
-    // For example, if we're shooting for 75fps and paintWait is 3.3333ms (= 75% * 13.33ms), our deducedNonVSyncFps
-    // would be 100fps. In principle, a paintWait of zero would have deducedNonVSyncFps=75.
-    // Here we make a guess for deducedNonVSyncFps = 1 / deducedNonVSyncPeriod.
-    //
-    // Time between previous paintGL call and this one, which can vary not only with vSync misses, but also with QT timing.
-    // We're using this as a proxy for the time between vsync and displayEnd, below. (Not exact, but tends to be the same over time.)
-    // This is not the same as update(deltaTime), because the latter attempts to throttle to 60hz and also clamps to 1/4 second.
-    const float actualPeriod = diff / (float)USECS_PER_SECOND; // same as 1/instantaneousFps but easier for compiler to optimize
-    // Note that _lastPaintWait (stored at end of last call) is for the same paint cycle.
-    float deducedNonVSyncPeriod = actualPeriod - _lastPaintWait + _marginForDeducedFramePeriod; // plus a some non-zero time for machinery we can't measure
-    // We don't know how much time to allow for that, but if we went over the target period, we know it's at least the portion
-    // of paintWait up to the next vSync. This gives us enough of a penalty so that when actualPeriod crosses two cycles,
-    // the key part (and not an exagerated part) of _lastPaintWait is accounted for.
-    const float targetPeriod = getTargetFramePeriod();
-    if (_lastPaintWait > EPSILON && actualPeriod > targetPeriod) {
-        // Don't use C++ remainder(). It's authors are mathematically insane.
-        deducedNonVSyncPeriod += fmod(actualPeriod, _lastPaintWait);
-    }
-    _lastDeducedNonVSyncFps = 1.0f / deducedNonVSyncPeriod;
-    _lastInstantaneousFps = instantaneousFps;
-
     auto displayPlugin = getActiveDisplayPlugin();
     // FIXME not needed anymore?
     _offscreenContext->makeCurrent();
@@ -1401,7 +1380,6 @@ void Application::paintGL() {
         Q_ASSERT(!_lockedFramebufferMap.contains(finalTexture));
         _lockedFramebufferMap[finalTexture] = scratchFramebuffer;
 
-        uint64_t displayStart = usecTimestampNow();
         Q_ASSERT(isCurrentContext(_offscreenContext->getContext()));
         {
             PROFILE_RANGE(__FUNCTION__ "/pluginSubmitScene");
@@ -1410,9 +1388,6 @@ void Application::paintGL() {
         }
         Q_ASSERT(isCurrentContext(_offscreenContext->getContext()));
 
-        uint64_t displayEnd = usecTimestampNow();
-        const float displayPeriodUsec = (float)(displayEnd - displayStart); // usecs
-        _lastPaintWait = displayPeriodUsec / (float)USECS_PER_SECOND;
     }
 
     {
@@ -1423,6 +1398,14 @@ void Application::paintGL() {
             batch.resetStages();
         });
     }
+
+    // Some LOD-like controls need to know a smoothly varying "potential" frame rate that doesn't
+    // include time waiting for sync, and which can report a number above target if we've got the headroom.
+    // In my tests, the following is mostly less than 0.5ms, and never more than 3ms. I don't think its worth measuring during runtime.
+    const float paintWaitAndQTTimerAllowance = 0.001f; // seconds
+    // Store both values now for use by next cycle.
+    _lastInstantaneousFps = instantaneousFps;
+    _lastUnsynchronizedFps = 1.0f / (((usecTimestampNow() - now) / (float)USECS_PER_SECOND) + paintWaitAndQTTimerAllowance);
 }
 
 void Application::runTests() {
@@ -2905,7 +2888,7 @@ void Application::update(float deltaTime) {
 
     _avatarUpdate->synchronousProcess();
 
-    {
+    if (true || _physicsEnabled) {
         PerformanceTimer perfTimer("physics");
 
         static VectorOfMotionStates motionStates;
@@ -2961,6 +2944,7 @@ void Application::update(float deltaTime) {
             }
 
             myAvatar->harvestResultsFromPhysicsSimulation();
+            myAvatar->simulateAttachments(deltaTime);
         }
     }
 
@@ -3253,6 +3237,7 @@ void Application::queryOctree(NodeType_t serverType, PacketType packetType, Node
 bool Application::isHMDMode() const {
     return getActiveDisplayPlugin()->isHmd();
 }
+float Application::getTargetFrameRate() { return getActiveDisplayPlugin()->getTargetFrameRate(); }
 
 QRect Application::getDesirableApplicationGeometry() {
     QRect applicationGeometry = getWindow()->geometry();
@@ -3786,6 +3771,8 @@ void Application::domainChanged(const QString& domainHostname) {
     updateWindowTitle();
     clearDomainOctreeDetails();
     _domainConnectionRefusals.clear();
+    // disable physics until we have enough information about our new location to not cause craziness.
+    _physicsEnabled = false;
 }
 
 void Application::handleDomainConnectionDeniedPacket(QSharedPointer<ReceivedMessage> message) {
@@ -3893,6 +3880,31 @@ void Application::trackIncomingOctreePacket(ReceivedMessage& message, SharedNode
     }
 }
 
+bool Application::nearbyEntitiesAreReadyForPhysics() {
+    // this is used to avoid the following scenario:
+    // A table has some items sitting on top of it.  The items are at rest, meaning they aren't active in bullet.
+    // Someone logs in close to the table.  They receive information about the items on the table before they
+    // receive information about the table.  The items are very close to the avatar's capsule, so they become
+    // activated in bullet.  This causes them to fall to the floor, because the table's shape isn't yet in bullet.
+    EntityTreePointer entityTree = _entities.getTree();
+    if (!entityTree) {
+        return false;
+    }
+
+    QVector<EntityItemPointer> entities;
+    entityTree->withReadLock([&] {
+        AABox box(getMyAvatar()->getPosition() - glm::vec3(PHYSICS_READY_RANGE), glm::vec3(2 * PHYSICS_READY_RANGE));
+        entityTree->findEntities(box, entities);
+    });
+
+    foreach (EntityItemPointer entity, entities) {
+        if (!entity->isReadyToComputeShape()) {
+            return false;
+        }
+    }
+    return true;
+}
+
 int Application::processOctreeStats(ReceivedMessage& message, SharedNodePointer sendingNode) {
     // But, also identify the sender, and keep track of the contained jurisdiction root for this server
 
@@ -3938,7 +3950,12 @@ int Application::processOctreeStats(ReceivedMessage& message, SharedNodePointer 
         });
     });
 
-
+    if (!_physicsEnabled && nearbyEntitiesAreReadyForPhysics()) {
+        // These stats packets are sent in between full sends of a scene.
+        // We keep physics disabled until we've recieved a full scene and everything near the avatar in that
+        // scene is ready to compute its collision shape.
+        _physicsEnabled = true;
+    }
 
     return statsMessageLength;
 }
@@ -4021,7 +4038,7 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEngine* scri
     scriptEngine->registerGlobalObject("Clipboard", clipboardScriptable);
     connect(scriptEngine, SIGNAL(finished(const QString&)), clipboardScriptable, SLOT(deleteLater()));
 
-    connect(scriptEngine, SIGNAL(finished(const QString&)), this, SLOT(scriptFinished(const QString&)));
+    connect(scriptEngine, &ScriptEngine::finished, this, &Application::scriptFinished, Qt::DirectConnection);
 
     connect(scriptEngine, SIGNAL(loadScript(const QString&, bool)), this, SLOT(loadScript(const QString&, bool)));
     connect(scriptEngine, SIGNAL(reloadScript(const QString&, bool)), this, SLOT(reloadScript(const QString&, bool)));
@@ -4267,10 +4284,13 @@ ScriptEngine* Application::loadScript(const QString& scriptFilename, bool isUser
 
     QUrl scriptUrl(scriptFilename);
     const QString& scriptURLString = scriptUrl.toString();
-    if (_scriptEnginesHash.contains(scriptURLString) && loadScriptFromEditor
-        && !_scriptEnginesHash[scriptURLString]->isFinished()) {
+    {
+        QReadLocker lock(&_scriptEnginesHashLock);
+        if (_scriptEnginesHash.contains(scriptURLString) && loadScriptFromEditor
+            && !_scriptEnginesHash[scriptURLString]->isFinished()) {
 
-        return _scriptEnginesHash[scriptURLString];
+            return _scriptEnginesHash[scriptURLString];
+        }
     }
 
     ScriptEngine* scriptEngine = new ScriptEngine(NO_SCRIPT, "", &_controllerScriptingInterface);
@@ -4310,7 +4330,11 @@ void Application::reloadScript(const QString& scriptName, bool isUserLoaded) {
 void Application::handleScriptEngineLoaded(const QString& scriptFilename) {
     ScriptEngine* scriptEngine = qobject_cast<ScriptEngine*>(sender());
 
-    _scriptEnginesHash.insertMulti(scriptFilename, scriptEngine);
+    {
+        QWriteLocker lock(&_scriptEnginesHashLock);
+        _scriptEnginesHash.insertMulti(scriptFilename, scriptEngine);
+    }
+
     _runningScriptsWidget->setRunningScripts(getRunningScripts());
     UserActivityLogger::getInstance().loadedScript(scriptFilename);
 
@@ -4325,55 +4349,88 @@ void Application::handleScriptLoadError(const QString& scriptFilename) {
     QMessageBox::warning(getWindow(), "Error Loading Script", scriptFilename + " failed to load.");
 }
 
-void Application::scriptFinished(const QString& scriptName) {
-    const QString& scriptURLString = QUrl(scriptName).toString();
-    QHash<QString, ScriptEngine*>::iterator it = _scriptEnginesHash.find(scriptURLString);
-    if (it != _scriptEnginesHash.end()) {
-        _scriptEnginesHash.erase(it);
-        _runningScriptsWidget->scriptStopped(scriptName);
-        _runningScriptsWidget->setRunningScripts(getRunningScripts());
+QStringList Application::getRunningScripts() {
+    QReadLocker lock(&_scriptEnginesHashLock);
+    return _scriptEnginesHash.keys();
+}
+
+ScriptEngine* Application::getScriptEngine(const QString& scriptHash) {
+    QReadLocker lock(&_scriptEnginesHashLock);
+    return _scriptEnginesHash.value(scriptHash, nullptr);
+}
+
+void Application::scriptFinished(const QString& scriptName, ScriptEngine* engine) {
+    bool removed = false;
+    {
+        QWriteLocker lock(&_scriptEnginesHashLock);
+        const QString& scriptURLString = QUrl(scriptName).toString();
+        for (auto it = _scriptEnginesHash.find(scriptURLString); it != _scriptEnginesHash.end(); ++it) {
+            if (it.value() == engine) {
+                _scriptEnginesHash.erase(it);
+                removed = true;
+                break;
+            }
+        }
+    }
+    if (removed) {
+        postLambdaEvent([this, scriptName]() {
+            _runningScriptsWidget->scriptStopped(scriptName);
+            _runningScriptsWidget->setRunningScripts(getRunningScripts());
+        });
     }
 }
 
 void Application::stopAllScripts(bool restart) {
-    if (restart) {
-        // Delete all running scripts from cache so that they are re-downloaded when they are restarted
-        auto scriptCache = DependencyManager::get<ScriptCache>();
-        for (QHash<QString, ScriptEngine*>::const_iterator it = _scriptEnginesHash.constBegin();
+    {
+        QReadLocker lock(&_scriptEnginesHashLock);
+
+        if (restart) {
+            // Delete all running scripts from cache so that they are re-downloaded when they are restarted
+            auto scriptCache = DependencyManager::get<ScriptCache>();
+            for (QHash<QString, ScriptEngine*>::const_iterator it = _scriptEnginesHash.constBegin();
             it != _scriptEnginesHash.constEnd(); it++) {
-            if (!it.value()->isFinished()) {
-                scriptCache->deleteScript(it.key());
+                if (!it.value()->isFinished()) {
+                    scriptCache->deleteScript(it.key());
+                }
             }
         }
-    }
 
-    // Stop and possibly restart all currently running scripts
-    for (QHash<QString, ScriptEngine*>::const_iterator it = _scriptEnginesHash.constBegin();
-            it != _scriptEnginesHash.constEnd(); it++) {
-        if (it.value()->isFinished()) {
-            continue;
+        // Stop and possibly restart all currently running scripts
+        for (QHash<QString, ScriptEngine*>::const_iterator it = _scriptEnginesHash.constBegin();
+                it != _scriptEnginesHash.constEnd(); it++) {
+            if (it.value()->isFinished()) {
+                continue;
+            }
+            if (restart && it.value()->isUserLoaded()) {
+                connect(it.value(), &ScriptEngine::finished, this, [this](QString scriptName, ScriptEngine* engine) {
+                    reloadScript(scriptName);
+                });
+            }
+            QMetaObject::invokeMethod(it.value(), "stop");
+            //it.value()->stop();
+            qCDebug(interfaceapp) << "stopping script..." << it.key();
         }
-        if (restart && it.value()->isUserLoaded()) {
-            connect(it.value(), SIGNAL(finished(const QString&)), SLOT(reloadScript(const QString&)));
-        }
-        it.value()->stop();
-        qCDebug(interfaceapp) << "stopping script..." << it.key();
     }
     getMyAvatar()->clearScriptableSettings();
 }
 
 bool Application::stopScript(const QString& scriptHash, bool restart) {
     bool stoppedScript = false;
-    if (_scriptEnginesHash.contains(scriptHash)) {
-        ScriptEngine* scriptEngine = _scriptEnginesHash[scriptHash];
-        if (restart) {
-            auto scriptCache = DependencyManager::get<ScriptCache>();
-            scriptCache->deleteScript(QUrl(scriptHash));
-            connect(scriptEngine, SIGNAL(finished(const QString&)), SLOT(reloadScript(const QString&)));
+    {
+        QReadLocker lock(&_scriptEnginesHashLock);
+        if (_scriptEnginesHash.contains(scriptHash)) {
+            ScriptEngine* scriptEngine = _scriptEnginesHash[scriptHash];
+            if (restart) {
+                auto scriptCache = DependencyManager::get<ScriptCache>();
+                scriptCache->deleteScript(QUrl(scriptHash));
+                connect(scriptEngine, &ScriptEngine::finished, this, [this](QString scriptName, ScriptEngine* engine) {
+                    reloadScript(scriptName);
+                });
+            }
+            scriptEngine->stop();
+            stoppedScript = true;
+            qCDebug(interfaceapp) << "stopping script..." << scriptHash;
         }
-        scriptEngine->stop();
-        stoppedScript = true;
-        qCDebug(interfaceapp) << "stopping script..." << scriptHash;
     }
     if (_scriptEnginesHash.empty()) {
         getMyAvatar()->clearScriptableSettings();
@@ -4392,6 +4449,7 @@ void Application::reloadOneScript(const QString& scriptName) {
 }
 
 void Application::loadDefaultScripts() {
+    QReadLocker lock(&_scriptEnginesHashLock);
     if (!_scriptEnginesHash.contains(DEFAULT_SCRIPTS_JS_URL)) {
         loadScript(DEFAULT_SCRIPTS_JS_URL);
     }

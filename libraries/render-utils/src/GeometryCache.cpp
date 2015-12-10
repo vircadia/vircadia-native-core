@@ -214,6 +214,19 @@ VertexVector tesselate(const VertexVector& startingTriangles, int count) {
     return triangles;
 }
 
+size_t GeometryCache::getShapeTriangleCount(Shape shape) {
+    return _shapes[shape]._indexCount / VERTICES_PER_TRIANGLE;
+}
+
+size_t GeometryCache::getSphereTriangleCount() {
+    return getShapeTriangleCount(Sphere);
+}
+
+size_t GeometryCache::getCubeTriangleCount() {
+    return getShapeTriangleCount(Cube);
+}
+
+
 // FIXME solids need per-face vertices, but smooth shaded
 // components do not.  Find a way to support using draw elements
 // or draw arrays as appropriate
@@ -1727,3 +1740,4 @@ void GeometryCache::useSimpleDrawPipeline(gpu::Batch& batch, bool noBlend) {
         batch.setPipeline(_standardDrawPipeline);
     }
 }
+

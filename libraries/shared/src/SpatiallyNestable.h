@@ -25,17 +25,14 @@ using SpatiallyNestableWeakConstPointer = std::weak_ptr<const SpatiallyNestable>
 using SpatiallyNestablePointer = std::shared_ptr<SpatiallyNestable>;
 using SpatiallyNestableConstPointer = std::shared_ptr<const SpatiallyNestable>;
 
-class NestableTypes {
-public:
-    using NestableType = enum NestableType_t {
-        Entity,
-        Avatar
-    };
+enum class NestableType {
+    Entity,
+    Avatar
 };
 
 class SpatiallyNestable : public std::enable_shared_from_this<SpatiallyNestable> {
 public:
-    SpatiallyNestable(NestableTypes::NestableType nestableType, QUuid id);
+    SpatiallyNestable(NestableType nestableType, QUuid id);
     virtual ~SpatiallyNestable() { }
 
     virtual const QUuid& getID() const { return _id; }
@@ -88,17 +85,17 @@ public:
     virtual void setLocalScale(const glm::vec3& scale);
 
     QList<SpatiallyNestablePointer> getChildren() const;
-    NestableTypes::NestableType getNestableType() const { return _nestableType; }
+    NestableType getNestableType() const { return _nestableType; }
 
     // this object's frame
     virtual const Transform getAbsoluteJointTransformInObjectFrame(int jointIndex) const;
     virtual glm::quat getAbsoluteJointRotationInObjectFrame(int index) const { assert(false); return glm::quat(); }
     virtual glm::vec3 getAbsoluteJointTranslationInObjectFrame(int index) const { assert(false); return glm::vec3(); }
-
+    
     SpatiallyNestablePointer getThisPointer() const;
 
 protected:
-    NestableTypes::NestableType _nestableType; // EntityItem or an AvatarData
+    const NestableType _nestableType; // EntityItem or an AvatarData
     QUuid _id;
     QUuid _parentID; // what is this thing's transform relative to?
     quint16 _parentJointIndex { 0 }; // which joint of the parent is this relative to?

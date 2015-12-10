@@ -20,7 +20,7 @@
 #include <model/Geometry.h>
 #include <gpu/Texture.h>
 #include <controllers/InputDevice.h>
-#include "InputPlugin.h"
+#include <plugins/InputPlugin.h>
 #include <RenderArgs.h>
 #include <render/Scene.h>
 
