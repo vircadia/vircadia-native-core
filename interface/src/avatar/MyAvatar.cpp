@@ -324,11 +324,6 @@ void MyAvatar::simulate(float deltaTime) {
     }
 
     {
-        PerformanceTimer perfTimer("attachments");
-        simulateAttachments(deltaTime);
-    }
-
-    {
         PerformanceTimer perfTimer("joints");
         // copy out the skeleton joints from the model
         _rig->copyJointsIntoJointData(_jointData);

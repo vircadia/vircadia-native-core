@@ -219,7 +219,7 @@ bool EntityTree::updateEntityWithElement(EntityItemPointer entity, const EntityI
         // if the entity has children, run UpdateEntityOperator on them.  If the children have children, recurse
         QQueue<SpatiallyNestablePointer> toProcess;
         foreach (SpatiallyNestablePointer child, entity->getChildren()) {
-            if (child && child->getNestableType() == NestableTypes::Entity) {
+            if (child && child->getNestableType() == NestableType::Entity) {
                 toProcess.enqueue(child);
             }
         }
@@ -232,7 +232,7 @@ bool EntityTree::updateEntityWithElement(EntityItemPointer entity, const EntityI
                                                   childEntity, newChildBBRelProperties);
             recurseTreeWithOperator(&theChildOperator);
             foreach (SpatiallyNestablePointer childChild, childEntity->getChildren()) {
-                if (childChild && childChild->getNestableType() == NestableTypes::Entity) {
+                if (childChild && childChild->getNestableType() == NestableType::Entity) {
                     toProcess.enqueue(childChild);
                 }
             }
