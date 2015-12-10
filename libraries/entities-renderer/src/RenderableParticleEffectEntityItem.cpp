@@ -60,8 +60,7 @@ public:
     void setTexture(gpu::TexturePointer texture) { _texture = texture; }
     const gpu::TexturePointer& getTexture() const { return _texture; }
 
-    bool getVisibleFlag() const { return _visibleFlag; }
-    void setVisibleFlag(bool visibleFlag) { _visibleFlag = visibleFlag; }
+    bool getVisibleFlag() const { return _entity->isVisible(); }
 
     void render(RenderArgs* args) const {
         assert(_pipeline);
@@ -91,7 +90,7 @@ protected:
     gpu::BufferPointer _vertexBuffer;
     gpu::BufferPointer _indexBuffer;
     gpu::TexturePointer _texture;
-    bool _visibleFlag = true;
+
 };
 
 namespace render {
@@ -111,7 +110,11 @@ namespace render {
 
     template <>
     void payloadRender(const ParticlePayload::Pointer& payload, RenderArgs* args) {
-        payload->render(args);
+        if (args) {
+            if (payload && payload->getVisibleFlag()) {
+                payload->render(args);
+            }
+        }
     }
 }
 
