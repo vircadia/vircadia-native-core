@@ -203,7 +203,7 @@ void AvatarManager::simulateAvatarFades(float deltaTime) {
     while (fadingIterator != _avatarFades.end()) {
         auto avatar = std::static_pointer_cast<Avatar>(*fadingIterator);
         avatar->startUpdate();
-        avatar->setTargetScale(avatar->getAvatarScale() * SHRINK_RATE);
+        avatar->setTargetScale(avatar->getUniformScale() * SHRINK_RATE);
         if (avatar->getTargetScale() <= MIN_FADE_SCALE) {
             avatar->removeFromScene(*fadingIterator, scene, pendingChanges);
             fadingIterator = _avatarFades.erase(fadingIterator);
@@ -375,19 +375,17 @@ void AvatarManager::handleCollisionEvents(const CollisionEvents& collisionEvents
 }
 
 void AvatarManager::updateAvatarPhysicsShape(Avatar* avatar) {
-    AvatarMotionState* motionState = avatar->getMotionState();
-    if (motionState) {
-        motionState->addDirtyFlags(Simulation::DIRTY_SHAPE);
-    } else {
-        ShapeInfo shapeInfo;
-        avatar->computeShapeInfo(shapeInfo);
-        btCollisionShape* shape = ObjectMotionState::getShapeManager()->getShape(shapeInfo);
-        if (shape) {
-            AvatarMotionState* motionState = new AvatarMotionState(avatar, shape);
-            avatar->setMotionState(motionState);
-            _motionStatesToAdd.insert(motionState);
-            _avatarMotionStates.insert(motionState);
-        }
+    // adebug TODO: move most of this logic to MyAvatar class
+    assert(!avatar->getMotionState());
+
+    ShapeInfo shapeInfo;
+    avatar->computeShapeInfo(shapeInfo);
+    btCollisionShape* shape = ObjectMotionState::getShapeManager()->getShape(shapeInfo);
+    if (shape) {
+        AvatarMotionState* motionState = new AvatarMotionState(avatar, shape);
+        avatar->setMotionState(motionState);
+        _motionStatesToAdd.insert(motionState);
+        _avatarMotionStates.insert(motionState);
     }
 }
 

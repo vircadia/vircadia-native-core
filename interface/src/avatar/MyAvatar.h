@@ -249,7 +249,7 @@ public slots:
 
     Q_INVOKABLE void updateMotionBehaviorFromMenu();
 
-    virtual void rebuildSkeletonBody() override;
+    virtual void rebuildCollisionShape() override;
 
     Q_INVOKABLE QUrl getAnimGraphUrl() const { return _animGraphUrl; }
 
@@ -262,6 +262,9 @@ public slots:
 
     glm::vec3 getPositionForAudio();
     glm::quat getOrientationForAudio();
+
+protected:
+    void animateScaleChanges(float deltaTime);
 
 signals:
     void audioListenerModeChanged();

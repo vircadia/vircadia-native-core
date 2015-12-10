@@ -69,7 +69,7 @@ void SkeletonModel::initJointStates() {
     _headClipDistance = -(meshExtents.minimum.z / _scale.z - _defaultEyeModelPosition.z);
     _headClipDistance = std::max(_headClipDistance, DEFAULT_NEAR_CLIP);
 
-    _owningAvatar->rebuildSkeletonBody();
+    _owningAvatar->rebuildCollisionShape();
     emit skeletonLoaded();
 }
 

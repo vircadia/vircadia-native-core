@@ -284,13 +284,26 @@ void MyAvatar::update(float deltaTime) {
 extern QByteArray avatarStateToFrame(const AvatarData* _avatar);
 extern void avatarStateFromFrame(const QByteArray& frameData, AvatarData* _avatar);
 
+void MyAvatar::animateScaleChanges(float deltaTime) {
+    // HACK: override Avatar::animateScaleChanges() until MyAvatar has a MotionState
+    float currentScale = getUniformScale();
+    if (currentScale != _targetScale) {
+        const float SCALE_ANIMATION_TIMESCALE = 1.0f;
+        float blendFactor = deltaTime / SCALE_ANIMATION_TIMESCALE;
+        float animatedScale = (1.0f - blendFactor) * currentScale + blendFactor * _targetScale;
+        const float CLOSE_ENOUGH = 0.05f;
+        if (fabsf(animatedScale - _targetScale) / _targetScale < CLOSE_ENOUGH) {
+            animatedScale = _targetScale;
+        }
+        setScale(glm::vec3(animatedScale));
+        rebuildCollisionShape();
+    }
+}
+
 void MyAvatar::simulate(float deltaTime) {
     PerformanceTimer perfTimer("simulate");
 
-    if (getAvatarScale() != _targetScale) {
-        float scale = (1.0f - SMOOTHING_RATIO) * getAvatarScale() + SMOOTHING_RATIO * _targetScale;
-        setAvatarScale(scale);
-    }
+    animateScaleChanges(deltaTime);
 
     {
         PerformanceTimer perfTimer("transform");
@@ -337,7 +350,7 @@ void MyAvatar::simulate(float deltaTime) {
             headPosition = getPosition();
         }
         head->setPosition(headPosition);
-        head->setScale(getAvatarScale());
+        head->setScale(getUniformScale());
         head->simulate(deltaTime, true);
     }
 
@@ -681,7 +694,7 @@ void MyAvatar::loadData() {
 
     _leanScale = loadSetting(settings, "leanScale", 0.05f);
     _targetScale = loadSetting(settings, "scale", 1.0f);
-    setAvatarScale(getAvatarScale());
+    setScale(glm::vec3(getUniformScale()));
 
     _animGraphUrl = settings.value("animGraphURL", "").toString();
     _fullAvatarURLFromPreferences = settings.value("fullAvatarURL", AvatarData::defaultFullAvatarModelUrl()).toUrl();
@@ -809,7 +822,7 @@ void MyAvatar::updateLookAtTargetAvatar() {
         float distanceTo = glm::length(avatar->getHead()->getEyePosition() - cameraPosition);
         avatar->setIsLookAtTarget(false);
         if (!avatar->isMyAvatar() && avatar->isInitialized() &&
-            (distanceTo < GREATEST_LOOKING_AT_DISTANCE * getAvatarScale())) {
+            (distanceTo < GREATEST_LOOKING_AT_DISTANCE * getUniformScale())) {
             float angleTo = glm::angle(lookForward, glm::normalize(avatar->getHead()->getEyePosition() - cameraPosition));
             if (angleTo < (smallestAngleTo * (isCurrentTarget ? KEEP_LOOKING_AT_CURRENT_ANGLE_FACTOR : 1.0f))) {
                 _lookAtTargetAvatar = avatarPointer;
@@ -1036,14 +1049,15 @@ glm::vec3 MyAvatar::getSkeletonPosition() const {
     return Avatar::getPosition();
 }
 
-void MyAvatar::rebuildSkeletonBody() {
+void MyAvatar::rebuildCollisionShape() {
     // compute localAABox
-    float radius = _skeletonModel.getBoundingCapsuleRadius();
-    float height = _skeletonModel.getBoundingCapsuleHeight() + 2.0f * radius;
+    float scale = getUniformScale();
+    float radius = scale * _skeletonModel.getBoundingCapsuleRadius();
+    float height = scale * _skeletonModel.getBoundingCapsuleHeight() + 2.0f * radius;
     glm::vec3 corner(-radius, -0.5f * height, -radius);
-    corner += _skeletonModel.getBoundingCapsuleOffset();
-    glm::vec3 scale(2.0f * radius, height, 2.0f * radius);
-    _characterController.setLocalBoundingBox(corner, scale);
+    corner += scale * _skeletonModel.getBoundingCapsuleOffset();
+    glm::vec3 diagonal(2.0f * radius, height, 2.0f * radius);
+    _characterController.setLocalBoundingBox(corner, diagonal);
 }
 
 void MyAvatar::prepareForPhysicsSimulation() {
@@ -1331,7 +1345,7 @@ const float RENDER_HEAD_CUTOFF_DISTANCE = 0.50f;
 bool MyAvatar::cameraInsideHead() const {
     const Head* head = getHead();
     const glm::vec3 cameraPosition = qApp->getCamera()->getPosition();
-    return glm::length(cameraPosition - head->getEyePosition()) < (RENDER_HEAD_CUTOFF_DISTANCE * getAvatarScale());
+    return glm::length(cameraPosition - head->getEyePosition()) < (RENDER_HEAD_CUTOFF_DISTANCE * getUniformScale());
 }
 
 bool MyAvatar::shouldRenderHead(const RenderArgs* renderArgs) const {
@@ -1455,11 +1469,11 @@ glm::vec3 MyAvatar::applyKeyboardMotor(float deltaTime, const glm::vec3& localVe
             if (isHovering) {
                 // we're flying --> complex acceleration curve with high max speed
                 float motorSpeed = glm::length(_keyboardMotorVelocity);
-                float finalMaxMotorSpeed = getAvatarScale() * MAX_KEYBOARD_MOTOR_SPEED;
+                float finalMaxMotorSpeed = getUniformScale() * MAX_KEYBOARD_MOTOR_SPEED;
                 float speedGrowthTimescale  = 2.0f;
                 float speedIncreaseFactor = 1.8f;
                 motorSpeed *= 1.0f + glm::clamp(deltaTime / speedGrowthTimescale , 0.0f, 1.0f) * speedIncreaseFactor;
-                const float maxBoostSpeed = getAvatarScale() * MAX_BOOST_SPEED;
+                const float maxBoostSpeed = getUniformScale() * MAX_BOOST_SPEED;
                 if (motorSpeed < maxBoostSpeed) {
                     // an active keyboard motor should never be slower than this
                     float boostCoefficient = (maxBoostSpeed - motorSpeed) / maxBoostSpeed;

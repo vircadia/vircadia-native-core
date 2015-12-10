@@ -90,7 +90,7 @@ const QUrl& AvatarData::defaultFullAvatarModelUrl() {
 // There are a number of possible strategies for this set of tools through endRender, below.
 void AvatarData::nextAttitude(glm::vec3 position, glm::quat orientation) {
     avatarLock.lock();
-    Transform trans;
+    Transform trans = getTransform();
     trans.setTranslation(position);
     trans.setRotation(orientation);
     SpatiallyNestable::setTransform(trans);
