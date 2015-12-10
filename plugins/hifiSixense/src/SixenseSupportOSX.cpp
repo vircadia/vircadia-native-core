@@ -17,8 +17,7 @@
 
 #include <QtCore/QCoreApplication>
 #include <QtCore/QLibrary>
-
-#include "InputPluginsLogging.h"
+#include <QtCore/QDebug>
 
 #ifndef SIXENSE_LIB_FILENAME
 #define SIXENSE_LIB_FILENAME QCoreApplication::applicationDirPath() + "/../Frameworks/libsixense_x64"
