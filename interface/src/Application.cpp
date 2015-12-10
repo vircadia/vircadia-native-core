@@ -2944,6 +2944,7 @@ void Application::update(float deltaTime) {
             }
 
             myAvatar->harvestResultsFromPhysicsSimulation();
+            myAvatar->simulateAttachments(deltaTime);
         }
     }
 
