@@ -41,6 +41,8 @@ PacketVersion versionForPacketType(PacketType packetType) {
         case PacketType::EntityAdd:
         case PacketType::EntityEdit:
         case PacketType::EntityData:
+            return VERSION_ENTITIES_REMOVED_START_AUTOMATICALLY_FROM_ANIMATION_PROPERTY_GROUP;
+        case PacketType::EntityQuery:
             return VERSION_ENTITIES_QUERY_KEYHOLE_RADIUS;
         case PacketType::AvatarData:
         case PacketType::BulkAvatarData:
