@@ -89,7 +89,7 @@ public:
 
     bool getVisibleFlag() const { return _visibleFlag; }
     void setVisibleFlag(bool visibleFlag) { _visibleFlag = visibleFlag; }
-
+    
     void render(RenderArgs* args) const {
         assert(_pipeline);
 
@@ -137,7 +137,9 @@ namespace render {
 
     template <>
     void payloadRender(const ParticlePayloadData::Pointer& payload, RenderArgs* args) {
-        payload->render(args);
+        if (payload->getVisibleFlag()) {
+            payload->render(args);
+        }
     }
 }
 
@@ -201,6 +203,16 @@ void RenderableParticleEffectEntityItem::updateRenderItem() {
     if (!_scene) {
         return;
     }
+    if (!getVisible()) {
+        render::PendingChanges pendingChanges;
+        pendingChanges.updateItem<ParticlePayloadData>(_renderItemId, [](ParticlePayloadData& payload) {
+            payload.setVisibleFlag(false);
+        });
+        
+        _scene->enqueuePendingChanges(pendingChanges);
+        return;
+    }
+    
     using ParticleUniforms = ParticlePayloadData::ParticleUniforms;
     using ParticlePrimitive = ParticlePayloadData::ParticlePrimitive;
     using ParticlePrimitives = ParticlePayloadData::ParticlePrimitives;
@@ -233,6 +245,8 @@ void RenderableParticleEffectEntityItem::updateRenderItem() {
 
     render::PendingChanges pendingChanges;
     pendingChanges.updateItem<ParticlePayloadData>(_renderItemId, [=](ParticlePayloadData& payload) {
+        payload.setVisibleFlag(true);
+        
         // Update particle uniforms
         memcpy(&payload.editParticleUniforms(), &particleUniforms, sizeof(ParticleUniforms));
         
