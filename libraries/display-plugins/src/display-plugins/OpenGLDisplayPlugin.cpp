@@ -15,7 +15,8 @@
 
 #include <QtOpenGL/QGLWidget>
 #include <QtGui/QImage>
-#include <QtGui/QOpenGLContext>
+
+#include <QOpenGLContextWrapper.h>
 
 #include <gl/GLWidget.h>
 #include <NumericalConstants.h>
@@ -104,7 +105,7 @@ public:
 
             // take the latest texture and present it
             _context->makeCurrent();
-            if (QOpenGLContext::currentContext() == _context->contextHandle()) {
+            if (isCurrentContext(_context->contextHandle())) {
                 currentPlugin->present();
                 _context->doneCurrent();
             } else {
