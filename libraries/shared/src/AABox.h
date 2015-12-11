@@ -24,6 +24,7 @@
 
 class AACube;
 class Extents;
+class Transform;
 
 class AABox {
 
@@ -40,12 +41,7 @@ public:
     void setBox(const glm::vec3& corner, float scale);
     glm::vec3 getVertexP(const glm::vec3& normal) const;
     glm::vec3 getVertexN(const glm::vec3& normal) const;
-    
-    void shiftBy(const glm::vec3& delta) { _corner += delta; }
-    void rotate(const glm::quat& rotation);
-    void scale(float scale) { _corner *= scale; _scale *= scale; }
-    void scale(const glm::vec3& scale) { _corner *= scale; _scale *= scale; }
-    
+
     const glm::vec3& getCorner() const { return _corner; }
     const glm::vec3& getScale() const { return _scale; }
     const glm::vec3& getDimensions() const { return _scale; }
@@ -84,6 +80,20 @@ public:
 
     AABox& operator += (const glm::vec3& point);
     AABox& operator += (const AABox& box);
+
+    // Translate the AABox just moving the corner
+    void translate(const glm::vec3& translation) { _corner += translation; }
+
+    // Rotate the AABox around its frame origin
+    // meaning rotating the corners of the AABox around the point {0,0,0} and reevaluating the min max
+    void rotate(const glm::quat& rotation);
+
+    /// Scale the AABox
+    void scale(float scale);
+    void scale(const glm::vec3& scale);
+
+    // Transform the extents with transform
+    void transform(const Transform& transform);
 
     bool isInvalid() const { return _corner == glm::vec3(std::numeric_limits<float>::infinity()); }
 
