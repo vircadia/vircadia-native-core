@@ -15,7 +15,6 @@
 #include <deque>
 #include <forward_list>
 #include <functional>
-#include <GL/glew.h>
 #include <mutex>
 
 #include <SharedUtil.h>
