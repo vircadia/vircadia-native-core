@@ -233,8 +233,8 @@ bool Rig::jointStatesEmpty() {
     return _internalPoseSet._relativePoses.empty();
 }
 
-size_t Rig::getJointStateCount() const {
-    return _internalPoseSet._relativePoses.size();
+int Rig::getJointStateCount() const {
+    return (int)_internalPoseSet._relativePoses.size();
 }
 
 int Rig::indexOfJoint(const QString& jointName) const {

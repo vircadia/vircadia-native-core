@@ -39,8 +39,8 @@ int AnimSkeleton::nameToJointIndex(const QString& jointName) const {
     return -1;
 }
 
-size_t AnimSkeleton::getNumJoints() const {
-    return _joints.size();
+int AnimSkeleton::getNumJoints() const {
+    return (int)_joints.size();
 }
 
 const AnimPose& AnimSkeleton::getAbsoluteBindPose(int jointIndex) const {

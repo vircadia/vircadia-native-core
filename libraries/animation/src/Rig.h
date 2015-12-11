@@ -89,7 +89,7 @@ public:
     void initJointStates(const FBXGeometry& geometry, const glm::mat4& modelOffset);
     void reset(const FBXGeometry& geometry);
     bool jointStatesEmpty();
-    size_t getJointStateCount() const;
+    int getJointStateCount() const;
     int indexOfJoint(const QString& jointName) const;
 
     void setModelOffset(const glm::mat4& modelOffsetMat);
