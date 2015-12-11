@@ -29,7 +29,8 @@ public:
     QOpenGLContext* getContext() {
         return _context;
     }
-
+    QObject* getContextObject();
+    
 protected:
     std::once_flag _reportOnce;
     QOpenGLContext* _context;
