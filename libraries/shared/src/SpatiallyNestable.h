@@ -38,11 +38,11 @@ public:
     virtual const QUuid& getID() const { return _id; }
     virtual void setID(const QUuid& id) { _id = id; }
 
-    virtual const QUuid getParentID() const { return _parentID; }
+    virtual QUuid getParentID() const { return _parentID; }
     virtual void setParentID(const QUuid& parentID);
 
     virtual quint16 getParentJointIndex() const { return _parentJointIndex; }
-    virtual void setParentJointIndex(quint16 parentJointIndex) { _parentJointIndex = parentJointIndex; }
+    virtual void setParentJointIndex(quint16 parentJointIndex);
 
     static glm::vec3 worldToLocal(const glm::vec3& position, const QUuid& parentID, int parentJointIndex);
     static glm::quat worldToLocal(const glm::quat& orientation, const QUuid& parentID, int parentJointIndex);

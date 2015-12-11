@@ -994,6 +994,9 @@ int Avatar::parseDataFromBuffer(const QByteArray& buffer) {
     if (_moving && _motionState) {
         _motionState->addDirtyFlags(Simulation::DIRTY_POSITION);
     }
+    if (_moving || _hasNewJointRotations || _hasNewJointTranslations) {
+        locationChanged();
+    }
     endUpdate();
 
     return bytesRead;

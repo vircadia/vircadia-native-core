@@ -99,6 +99,11 @@ void SpatiallyNestable::setParentID(const QUuid& parentID) {
     parentChanged();
 }
 
+void SpatiallyNestable::setParentJointIndex(quint16 parentJointIndex) {
+    _parentJointIndex = parentJointIndex;
+}
+
+
 glm::vec3 SpatiallyNestable::worldToLocal(const glm::vec3& position, const QUuid& parentID, int parentJointIndex) {
     QSharedPointer<SpatialParentFinder> parentFinder = DependencyManager::get<SpatialParentFinder>();
     Transform parentTransform;

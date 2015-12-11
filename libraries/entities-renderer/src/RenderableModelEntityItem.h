@@ -73,6 +73,7 @@ public:
     virtual glm::vec3 getAbsoluteJointTranslationInObjectFrame(int index) const override;
 
     virtual void loader() override;
+    virtual void locationChanged() override;
 
 private:
     void remapTextures();

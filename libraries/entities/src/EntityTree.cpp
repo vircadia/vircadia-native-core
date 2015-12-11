@@ -749,6 +749,14 @@ void EntityTree::fixupTerseEditLogging(EntityItemProperties& properties, QList<Q
             changedProperties[index] = QString("parentJointIndex:") + QString::number((int)value);
         }
     }
+
+    if (properties.parentIDChanged()) {
+        int index = changedProperties.indexOf("parentID");
+        if (index >= 0) {
+            QUuid value = properties.getParentID();
+            changedProperties[index] = QString("parentID:") + value.toString();
+        }
+    }
 }
 
 int EntityTree::processEditPacketData(ReceivedMessage& message, const unsigned char* editData, int maxLength,

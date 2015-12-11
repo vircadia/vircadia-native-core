@@ -95,6 +95,9 @@ const float METERS_PER_MILLIMETER = 0.01f;
 void Model::setScaleInternal(const glm::vec3& scale) {
     if (glm::distance(_scale, scale) > METERS_PER_MILLIMETER) {
         _scale = scale;
+        if (_scale.x == 0.0f || _scale.y == 0.0f || _scale.z == 0.0f) {
+            assert(false);
+        }
         initJointTransforms();
     }
 }
@@ -1210,7 +1213,7 @@ bool Model::initWhenReady(render::ScenePointer scene) {
             auto renderPayload = std::make_shared<MeshPartPayload::Payload>(renderItem);
             _renderItems.insert(item, renderPayload);
             pendingChanges.resetItem(item, renderPayload);
-            pendingChanges.updateItem<MeshPartPayload>(item, [&](MeshPartPayload& data) {
+            pendingChanges.updateItem<MeshPartPayload>(item, [=](MeshPartPayload& data) {
                 data.updateTransform(transform, offset);
                 data.notifyLocationChanged();
             });
