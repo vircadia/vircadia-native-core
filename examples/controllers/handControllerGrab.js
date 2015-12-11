@@ -1599,8 +1599,10 @@ var rightController = new MyController(RIGHT_HAND);
 var leftController = new MyController(LEFT_HAND);
 
 //reload the particle beams
-rightController.createParticleBeam();
-leftController.createParticleBeam();
+if (USE_PARTICLE_BEAM_FOR_SEARCHING === true || USE_PARTICLE_BEAM_FOR_MOVING === true) {
+    rightController.createParticleBeam();
+    leftController.createParticleBeam();
+}
 
 var MAPPING_NAME = "com.highfidelity.handControllerGrab";
 
