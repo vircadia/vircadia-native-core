@@ -127,8 +127,14 @@ var target = Entities.addEntity(targetProperties);
 
 function addRat() {
     var rat = Entities.addEntity(modelRatProperties);
-    return rat
+    return rat;
 }
+
+//every sixth rat will play a sound
+var RAT_SOUND_RATE = 6;
+
+//spawn rate will be multiplied by this to clear any sounds hanging around
+var RAT_SOUND_CLEAR_RATE = 3;
 
 var rats = [];
 var metaRats = [];
@@ -257,11 +263,11 @@ function createRatSoundInjector() {
     var audioOptions = {
         volume: 0.05,
         loop: false
-    }
+    };
 
     var injector = Audio.playSound(ratRunningSound, audioOptions);
 
-    return injector
+    return injector;
 }
 
 function moveRats() {
@@ -269,8 +275,6 @@ function moveRats() {
 
         //remove the rat if its near the nest
         checkDistanceFromNest(rat);
-
-        //otherwise figure out where to send it
 
         //see if there are avatars to run from
         var avatarFlightVectors = steer.fleeAllAvatars(rat);
@@ -280,7 +284,7 @@ function moveRats() {
             if (i === 0) {
                 averageAvatarFlight = avatarFlightVectors[0];
             } else {
-                averageAvatarFlight = Vec3.sum(avatarFlightVectors[i - 1], avatarFlightVectors[i])
+                averageAvatarFlight = Vec3.sum(avatarFlightVectors[i - 1], avatarFlightVectors[i]);
             }
         }
         averageAvatarFlight = Vec3.multiply(averageAvatarFlight, 1 / avatarFlightVectors.length);
@@ -325,12 +329,12 @@ function moveRats() {
         var eulerAngle = Quat.safeEulerAngles(ratRotation);
         eulerAngle.x = 0;
         eulerAngle.z = 0;
-        var constrainedRotation = Quat.fromVec3Degrees(eulerAngle)
+        var constrainedRotation = Quat.fromVec3Degrees(eulerAngle);
 
         Entities.editEntity(rat, {
             velocity: averageVector,
             rotation: constrainedRotation,
-        })
+        });
 
         //have to make a 'meta' rat object to keep track of rats for updating sound injector locations.  parenting sounds would make this easy.
         var metaRat = getMetaRatByRat(rat);
@@ -452,23 +456,23 @@ var ratSpawnerInterval;
 
 if (USE_CONSTANT_SPAWNER === true) {
     ratSpawnerInterval = Script.setInterval(function() {
-        var rat = addRat();
-        playRatRunningAnimation(rat);
-        rats.push(rat);
-        ratCount++;
-        if (ratCount % 6 === 0) {
-            var metaRat = {
-                rat: rat,
-                injector: createRatSoundInjector()
-            }
-            metaRats.push(metaRat);
+            var rat = addRat();
+            playRatRunningAnimation(rat);
+            rats.push(rat);
+            ratCount++;
+            if (ratCount % RAT_SOUND_RATE === 0) {
+                var metaRat = {
+                    rat: rat,
+                    injector: createRatSoundInjector()
+                }
+                metaRats.push(metaRat);
 
-            Script.setTimeout(function() {
-                //if we have too many injectors hanging around there are problems
-                metaRat.injector.stop();
-                delete metaRat.injector;
-            }, RAT_SPAWN_RATE * 3);
-        }
+                Script.setTimeout(function() {
+                        //if we have too many injectors hanging around there are problems
+                        metaRat.injector.stop();
+                        delete metaRat.injector;
+                    }, RAT_SPAWN_RATE * RAT_SOUND_CLEAR_RATE;
+                }
 
-    }, RAT_SPAWN_RATE);
-}
+            }, RAT_SPAWN_RATE);
+    }
