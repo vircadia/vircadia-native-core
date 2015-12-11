@@ -90,7 +90,7 @@ void Model::setScale(const glm::vec3& scale) {
     _scaledToFit = false;
 }
 
-const float METERS_PER_MILLIMETER = 0.01f;
+const float METERS_PER_MILLIMETER = 0.01f; 
 
 void Model::setScaleInternal(const glm::vec3& scale) {
     if (glm::distance(_scale, scale) > METERS_PER_MILLIMETER) {
@@ -110,11 +110,19 @@ void Model::setOffset(const glm::vec3& offset) {
 void Model::enqueueLocationChange() {
     render::ScenePointer scene = AbstractViewStateInterface::instance()->getMain3DScene();
 
+    Transform transform;
+    transform.setTranslation(_translation);
+    transform.setRotation(_rotation);
+
+    Transform offset;
+    offset.setScale(_scale);
+    offset.postTranslate(_offset);
+
     render::PendingChanges pendingChanges;
     foreach (auto itemID, _renderItems.keys()) {
         pendingChanges.updateItem<MeshPartPayload>(itemID, [=](MeshPartPayload& data) {
-            data.updateModelLocation(_translation, _rotation);
-            data.model->_needsUpdateClusterMatrices = true;
+            data.updateTransform(transform, offset);
+            data.notifyLocationChanged();
         });
     }
 
@@ -495,11 +503,10 @@ bool Model::addToScene(std::shared_ptr<render::Scene> scene, render::PendingChan
 
     foreach (auto renderItem, _renderItemsSet) {
         auto item = scene->allocateID();
-        auto renderData = MeshPartPayload::Pointer(renderItem);
-        auto renderPayload = std::make_shared<MeshPartPayload::Payload>(renderData);
+        auto renderPayload = std::make_shared<MeshPartPayload::Payload>(renderItem);
         pendingChanges.resetItem(item, renderPayload);
         pendingChanges.updateItem<MeshPartPayload>(item, [&](MeshPartPayload& data) {
-            data.model->_needsUpdateClusterMatrices = true;
+            data.notifyLocationChanged();
         });
         _renderItems.insert(item, renderPayload);
         somethingAdded = true;
@@ -523,12 +530,11 @@ bool Model::addToScene(std::shared_ptr<render::Scene> scene,
 
     foreach (auto renderItem, _renderItemsSet) {
         auto item = scene->allocateID();
-        auto renderData = MeshPartPayload::Pointer(renderItem);
-        auto renderPayload = std::make_shared<MeshPartPayload::Payload>(renderData);
+        auto renderPayload = std::make_shared<MeshPartPayload::Payload>(renderItem);
         renderPayload->addStatusGetters(statusGetters);
         pendingChanges.resetItem(item, renderPayload);
         pendingChanges.updateItem<MeshPartPayload>(item, [&](MeshPartPayload& data) {
-            data.model->_needsUpdateClusterMatrices = true;
+            data.notifyLocationChanged();
         });
         _renderItems.insert(item, renderPayload);
         somethingAdded = true;
@@ -1127,8 +1133,14 @@ AABox Model::getPartBounds(int meshIndex, int partIndex, glm::vec3 modelPosition
 
 void Model::segregateMeshGroups() {
     QSharedPointer<NetworkGeometry> networkGeometry;
-    if (_showCollisionHull && _collisionGeometry && _collisionGeometry->isLoaded()) {
-        networkGeometry = _collisionGeometry;
+    bool showingCollisionHull = false;
+    if (_showCollisionHull && _collisionGeometry) {
+        if (_collisionGeometry->isLoaded()) {
+            networkGeometry = _collisionGeometry;
+            showingCollisionHull = true;
+        } else {
+            return;
+        }
     } else {
         networkGeometry = _geometry;
     }
@@ -1136,8 +1148,10 @@ void Model::segregateMeshGroups() {
     const std::vector<std::unique_ptr<NetworkMesh>>& networkMeshes = networkGeometry->getMeshes();
 
     // all of our mesh vectors must match in size
-    if ((int)networkMeshes.size() != geometry.meshes.size() ||
-        geometry.meshes.size() != _meshStates.size()) {
+    auto geoMeshesSize = geometry.meshes.size();
+    if ((int)networkMeshes.size() != geoMeshesSize ||
+      //  geometry.meshes.size() != _meshStates.size()) {
+        geoMeshesSize > _meshStates.size()) {
         qDebug() << "WARNING!!!! Mesh Sizes don't match! We will not segregate mesh groups yet.";
         return;
     }
@@ -1147,15 +1161,30 @@ void Model::segregateMeshGroups() {
 
     _renderItemsSet.clear();
 
+    Transform transform;
+    transform.setTranslation(_translation);
+    transform.setRotation(_rotation);
+
+    Transform offset;
+    offset.setScale(_scale);
+    offset.postTranslate(_offset);
+
     // Run through all of the meshes, and place them into their segregated, but unsorted buckets
     int shapeID = 0;
     for (int i = 0; i < (int)networkMeshes.size(); i++) {
         const FBXMesh& mesh = geometry.meshes.at(i);
+        const NetworkMesh& networkMesh = *(networkMeshes.at(i).get());
 
         // Create the render payloads
         int totalParts = mesh.parts.size();
         for (int partIndex = 0; partIndex < totalParts; partIndex++) {
-            _renderItemsSet << std::make_shared<MeshPartPayload>(this, i, partIndex, shapeID, _translation, _rotation);
+            if (showingCollisionHull) {
+                _renderItemsSet << std::make_shared<MeshPartPayload>(networkMesh._mesh, partIndex, ModelRender::getCollisionHullMaterial(), transform, offset);
+
+            } else {
+                _renderItemsSet << std::make_shared<ModelMeshPartPayload>(this, i, partIndex, shapeID, transform, offset);
+            }
+
             shapeID++;
         }
     }
@@ -1168,15 +1197,22 @@ bool Model::initWhenReady(render::ScenePointer scene) {
 
         render::PendingChanges pendingChanges;
 
+        Transform transform;
+        transform.setTranslation(_translation);
+        transform.setRotation(_rotation);
+
+        Transform offset;
+        offset.setScale(_scale);
+        offset.postTranslate(_offset);
+
         foreach (auto renderItem, _renderItemsSet) {
             auto item = scene->allocateID();
-            auto renderData = MeshPartPayload::Pointer(renderItem);
-            auto renderPayload = std::make_shared<MeshPartPayload::Payload>(renderData);
+            auto renderPayload = std::make_shared<MeshPartPayload::Payload>(renderItem);
             _renderItems.insert(item, renderPayload);
             pendingChanges.resetItem(item, renderPayload);
             pendingChanges.updateItem<MeshPartPayload>(item, [&](MeshPartPayload& data) {
-                data.updateModelLocation(_translation, _rotation);
-                data.model->_needsUpdateClusterMatrices = true;
+                data.updateTransform(transform, offset);
+                data.notifyLocationChanged();
             });
         }
         scene->enqueuePendingChanges(pendingChanges);

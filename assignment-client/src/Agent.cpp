@@ -102,8 +102,10 @@ void Agent::handleOctreePacket(QSharedPointer<ReceivedMessage> message, SharedNo
         packetType = message->getType();
     } // fall through to piggyback message
 
-    if (packetType == PacketType::EntityData || packetType == PacketType::EntityErase) {
+    if (packetType == PacketType::EntityData) {
         _entityViewer.processDatagram(*message, senderNode);
+    } else if (packetType == PacketType::EntityErase) {
+        _entityViewer.processEraseMessage(*message, senderNode);
     }
 }
 
