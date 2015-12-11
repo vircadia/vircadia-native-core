@@ -131,7 +131,7 @@ public:
 
     void (*linkedDataCreateCallback)(Node *);
 
-    int size() const { return _nodeHash.size(); }
+    size_t size() const { return _nodeHash.size(); }
 
     SharedNodePointer nodeWithUUID(const QUuid& nodeUUID);
 

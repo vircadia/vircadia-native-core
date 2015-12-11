@@ -52,7 +52,7 @@ public:
 
     unsigned char* getRootOctalCode() const { return _rootOctalCode; }
     unsigned char* getEndNodeOctalCode(int index) const { return _endNodes[index]; }
-    int getEndNodeCount() const { return _endNodes.size(); }
+    size_t getEndNodeCount() const { return _endNodes.size(); }
 
     void copyContents(unsigned char* rootCodeIn, const std::vector<unsigned char*>& endNodesIn);
 

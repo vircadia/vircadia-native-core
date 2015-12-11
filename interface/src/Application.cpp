@@ -3054,7 +3054,7 @@ int Application::sendNackPackets() {
             }
 
             if (nackPacketList->getNumPackets()) {
-                packetsSent += nackPacketList->getNumPackets();
+                packetsSent += (int)nackPacketList->getNumPackets();
 
                 // send the packet list
                 nodeList->sendPacketList(std::move(nackPacketList), *node);

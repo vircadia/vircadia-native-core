@@ -49,7 +49,7 @@ public:
         times.clear();
     }
 
-    unsigned int count() const {
+    size_t count() const {
         return times.size() - 1;
     }
 

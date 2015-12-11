@@ -38,7 +38,7 @@ public:
     }
 
     unsigned int count() const {
-        return times.size() - 1;
+        return (unsigned int)times.size() - 1;
     }
 
     float elapsed() const {

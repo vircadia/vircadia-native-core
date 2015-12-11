@@ -44,7 +44,7 @@ public:
     }
 
     /// How many received packets waiting are to be processed
-    int packetsToProcessCount() const { return _packets.size(); }
+    size_t packetsToProcessCount() const { return _packets.size(); }
 
     float getIncomingPPS() const { return _incomingPPS.getAverage(); }
     float getProcessedPPS() const { return _processedPPS.getAverage(); }

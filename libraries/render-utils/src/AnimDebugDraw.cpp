@@ -48,7 +48,7 @@ public:
         batch.setIndexBuffer(gpu::UINT16, _indexBuffer, 0);
 
         auto numIndices = _indexBuffer->getSize() / sizeof(uint16_t);
-        batch.drawIndexed(gpu::LINES, numIndices);
+        batch.drawIndexed(gpu::LINES, (int)numIndices);
     }
 
     gpu::PipelinePointer _pipeline;
@@ -321,12 +321,12 @@ void AnimDebugDraw::update() {
         const float POSE_RADIUS = 0.1f; // 10 cm
 
         // figure out how many verts we will need.
-        int numVerts = 0;
+        size_t numVerts = 0;
 
         for (auto& iter : _absolutePoses) {
             AnimSkeleton::ConstPointer& skeleton = std::get<0>(iter.second);
             numVerts += skeleton->getNumJoints() * VERTICES_PER_BONE;
-            for (int i = 0; i < skeleton->getNumJoints(); i++) {
+            for (auto i = 0; i < skeleton->getNumJoints(); i++) {
                 auto parentIndex = skeleton->getParentIndex(i);
                 if (parentIndex >= 0) {
                     numVerts += VERTICES_PER_LINK;

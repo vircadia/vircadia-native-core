@@ -233,7 +233,7 @@ bool Rig::jointStatesEmpty() {
     return _internalPoseSet._relativePoses.empty();
 }
 
-int Rig::getJointStateCount() const {
+size_t Rig::getJointStateCount() const {
     return _internalPoseSet._relativePoses.size();
 }
 
@@ -434,7 +434,7 @@ void Rig::calcAnimAlpha(float speed, const std::vector<float>& referenceSpeeds, 
 
 void Rig::computeEyesInRootFrame(const AnimPoseVec& poses) {
     // TODO: use cached eye/hips indices for these calculations
-    int numPoses = poses.size();
+    auto numPoses = poses.size();
     int hipsIndex = _animSkeleton->nameToJointIndex(QString("Hips"));
     int headIndex = _animSkeleton->nameToJointIndex(QString("Head"));
     if (hipsIndex > 0 && headIndex > 0) {
@@ -1066,8 +1066,8 @@ glm::mat4 Rig::getJointTransform(int jointIndex) const {
 }
 
 void Rig::copyJointsIntoJointData(QVector<JointData>& jointDataVec) const {
-    jointDataVec.resize(getJointStateCount());
-    for (int i = 0; i < jointDataVec.size(); i++) {
+    jointDataVec.resize((int)getJointStateCount());
+    for (auto i = 0; i < jointDataVec.size(); i++) {
         JointData& data = jointDataVec[i];
         data.rotationSet |= getJointStateRotation(i, data.rotation);
         // geometry offset is used here so that translations are in meters.
@@ -1164,7 +1164,7 @@ void Rig::computeAvatarBoundingCapsule(
     // even if they do not have legs (default robot)
     totalExtents.addPoint(glm::vec3(0.0f));
 
-    int numPoses = finalPoses.size();
+    auto numPoses = finalPoses.size();
     for (int i = 0; i < numPoses; i++) {
         const FBXJointShapeInfo& shapeInfo = geometry.joints.at(i).shapeInfo;
         AnimPose pose = finalPoses[i];
