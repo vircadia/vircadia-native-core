@@ -559,7 +559,7 @@ function MyController(hand) {
         //this light casts the beam
         var lightProperties = {
             type: "Light",
-            isSpotlight: true,
+            isSpotlight: false,
             dimensions: {
                 x: 2,
                 y: 2,
@@ -576,17 +576,18 @@ function MyController(hand) {
             cutoff: 20,
             lifetime: LIFETIME,
             position: lightTransform.p,
-            rotation: lightTransform.q,
+            // rotation: lightTransform.q,
         };
 
 
         if (this.spotlight === null) {
             this.spotlight = Entities.addEntity(lightProperties);
         } else {
-            // var rotationBetween = Quat.rotationBetween(Vec3.UP, )
-            // Entities.editEntity(this.spotlight, {
-            //     rotation: lightTransform.q
-            // })
+            Entities.editEntity(this.spotlight, {
+                parentID:parentID,
+                position:lightTransform.p,
+                  visible:true
+            })
         }
     }
 
@@ -616,9 +617,13 @@ function MyController(hand) {
 
     this.spotlightOff = function() {
         if (this.spotlight !== null) {
-            Overlays.deleteOverlay(this.spotlight);
+            print('SHOULD DELETE SPOTLIGHT' + this.spotlight)
+            Entities.editEntity(this.spotlight,{
+                visible:false
+            })
+            //Entities.deleteEntity(this.spotlight);
         }
-        this.spotlight = null;
+        //this.spotlight = null;
     }
 
     this.triggerPress = function(value) {
@@ -1416,6 +1421,7 @@ function MyController(hand) {
         this.release();
         this.endHandGrasp();
         Entities.deleteEntity(this.particleBeam);
+        Entities.deleteEntity(this.spotLight);
     };
 
     this.activateEntity = function(entityID, grabbedProperties) {
