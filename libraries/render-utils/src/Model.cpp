@@ -114,10 +114,14 @@ void Model::enqueueLocationChange() {
     transform.setTranslation(_translation);
     transform.setRotation(_rotation);
 
+    Transform offset;
+    offset.setScale(_scale);
+    offset.postTranslate(_offset);
+
     render::PendingChanges pendingChanges;
     foreach (auto itemID, _renderItems.keys()) {
         pendingChanges.updateItem<MeshPartPayload>(itemID, [=](MeshPartPayload& data) {
-            data.updateTransform(transform);
+            data.updateTransform(transform, offset);
             data.notifyLocationChanged();
         });
     }
@@ -1164,6 +1168,10 @@ void Model::segregateMeshGroups() {
     transform.setTranslation(_translation);
     transform.setRotation(_rotation);
 
+    Transform offset;
+    offset.setScale(_scale);
+    offset.postTranslate(_offset);
+
     // Run through all of the meshes, and place them into their segregated, but unsorted buckets
     int shapeID = 0;
     for (int i = 0; i < (int)networkMeshes.size(); i++) {
@@ -1174,7 +1182,7 @@ void Model::segregateMeshGroups() {
         int totalParts = mesh.parts.size();
         for (int partIndex = 0; partIndex < totalParts; partIndex++) {
             if (showingCollisionHull) {
-                _renderItemsSet << std::make_shared<MeshPartPayload>(networkMesh._mesh, partIndex, ModelRender::getCollisionHullMaterial(), transform);
+                _renderItemsSet << std::make_shared<MeshPartPayload>(networkMesh._mesh, partIndex, ModelRender::getCollisionHullMaterial(), transform, offset);
 
             } else {
                 _renderItemsSet << std::make_shared<ModelMeshPartPayload>(this, i, partIndex, shapeID, _translation, _rotation);
@@ -1196,6 +1204,10 @@ bool Model::initWhenReady(render::ScenePointer scene) {
         transform.setTranslation(_translation);
         transform.setRotation(_rotation);
 
+        Transform offset;
+        offset.setScale(_scale);
+        offset.postTranslate(_offset);
+
         foreach (auto renderItem, _renderItemsSet) {
             auto item = scene->allocateID();
             auto renderData = MeshPartPayload::Pointer(renderItem);
@@ -1203,7 +1215,7 @@ bool Model::initWhenReady(render::ScenePointer scene) {
             _renderItems.insert(item, renderPayload);
             pendingChanges.resetItem(item, renderPayload);
             pendingChanges.updateItem<MeshPartPayload>(item, [&](MeshPartPayload& data) {
-                data.updateTransform(transform);
+                data.updateTransform(transform, offset);
                 data.notifyLocationChanged();
             });
         }

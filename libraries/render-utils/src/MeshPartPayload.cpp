@@ -39,11 +39,11 @@ namespace render {
 
 using namespace render;
 
-MeshPartPayload::MeshPartPayload(model::MeshPointer mesh, int partIndex, model::MaterialPointer material, const Transform& transform) {
+MeshPartPayload::MeshPartPayload(model::MeshPointer mesh, int partIndex, model::MaterialPointer material, const Transform& transform, const Transform& offsetTransform) {
 
     updateMeshPart(mesh, partIndex);
     updateMaterial(material);
-    updateTransform(transform);
+    updateTransform(transform, offsetTransform);
 }
 
 void MeshPartPayload::updateMeshPart(model::MeshPointer drawMesh, int partIndex) {
@@ -57,8 +57,10 @@ void MeshPartPayload::updateMeshPart(model::MeshPointer drawMesh, int partIndex)
     }
 }
 
-void MeshPartPayload::updateTransform(const Transform& transform) {
-    _drawTransform = transform;
+void MeshPartPayload::updateTransform(const Transform& transform, const Transform& offsetTransform) {
+    _transform = transform;
+    _offsetTransform = offsetTransform;
+    Transform::mult(_drawTransform, _transform, _offsetTransform);
     _worldBound = _localBound;
     _worldBound.transform(_drawTransform);
 }
@@ -342,7 +344,7 @@ render::ItemKey ModelMeshPartPayload::getKey() const {
 render::Item::Bound ModelMeshPartPayload::getBound() const {
     // NOTE: we can't cache this bounds because we need to handle the case of a moving
     // entity or mesh part.
-    return _model->getPartBounds(_meshIndex, _partIndex, _modelPosition, _modelOrientation);
+    return _model->getPartBounds(_meshIndex, _partIndex, _transform.getTranslation(), _transform.getRotation());
 }
 
 void ModelMeshPartPayload::bindMesh(gpu::Batch& batch) const {
@@ -387,7 +389,7 @@ void ModelMeshPartPayload::bindTransform(gpu::Batch& batch, const ModelRender::L
         }
     }
   //  transform.preTranslate(_modelPosition);
-    transform.preTranslate(_drawTransform.getTranslation());
+    transform.preTranslate(_transform.getTranslation());
     batch.setModelTransform(transform);
 }
 
@@ -412,7 +414,7 @@ void ModelMeshPartPayload::render(RenderArgs* args) const {
     }
     
     // Back to model to update the cluster matrices right now
-    _model->updateClusterMatrices(_modelPosition, _modelOrientation);
+    _model->updateClusterMatrices(_transform.getTranslation(), _transform.getRotation());
     
     const FBXMesh& mesh = geometry.meshes.at(_meshIndex);
     

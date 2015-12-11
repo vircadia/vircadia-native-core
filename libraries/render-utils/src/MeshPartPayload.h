@@ -25,7 +25,7 @@ class Model;
 class MeshPartPayload {
 public:
     MeshPartPayload() {}
-    MeshPartPayload(model::MeshPointer mesh, int partIndex, model::MaterialPointer material, const Transform& transform);
+    MeshPartPayload(model::MeshPointer mesh, int partIndex, model::MaterialPointer material, const Transform& transform, const Transform& offsetTransform);
 
     typedef render::Payload<MeshPartPayload> Payload;
     typedef Payload::DataPointer Pointer;
@@ -33,7 +33,7 @@ public:
     virtual void updateMeshPart(model::MeshPointer drawMesh, int partIndex);
 
     virtual void notifyLocationChanged() {}
-    virtual void updateTransform(const Transform& transform);
+    virtual void updateTransform(const Transform& transform, const Transform& offsetTransform);
 
     virtual void updateMaterial(model::MaterialPointer drawMaterial);
 
@@ -57,6 +57,8 @@ public:
     
     model::Box _localBound;
     Transform _drawTransform;
+    Transform _transform;
+    Transform _offsetTransform;
     mutable model::Box _worldBound;
     
     bool _hasColorAttrib = false;
