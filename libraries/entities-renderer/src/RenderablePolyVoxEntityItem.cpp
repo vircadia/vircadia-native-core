@@ -539,7 +539,7 @@ void RenderablePolyVoxEntityItem::render(RenderArgs* args) {
     int voxelVolumeSizeLocation = _pipeline->getProgram()->getUniforms().findLocation("voxelVolumeSize");
     batch._glUniform3f(voxelVolumeSizeLocation, _voxelVolumeSize.x, _voxelVolumeSize.y, _voxelVolumeSize.z);
 
-    batch.drawIndexed(gpu::TRIANGLES, mesh->getNumIndices(), 0);
+    batch.drawIndexed(gpu::TRIANGLES, (gpu::uint32)mesh->getNumIndices(), 0);
 }
 
 bool RenderablePolyVoxEntityItem::addToScene(EntityItemPointer self,

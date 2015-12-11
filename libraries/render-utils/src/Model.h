@@ -156,7 +156,7 @@ public:
     }
 
     /// Returns the number of joint states in the model.
-    int getJointStateCount() const { return _rig->getJointStateCount(); }
+    int getJointStateCount() const { return (int)_rig->getJointStateCount(); }
     bool getJointPositionInWorldFrame(int jointIndex, glm::vec3& position) const;
     bool getJointRotationInWorldFrame(int jointIndex, glm::quat& rotation) const;
     bool getJointCombinedRotation(int jointIndex, glm::quat& rotation) const;

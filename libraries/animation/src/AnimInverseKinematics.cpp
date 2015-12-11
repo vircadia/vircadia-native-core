@@ -114,7 +114,7 @@ void AnimInverseKinematics::computeTargets(const AnimVariantMap& animVars, std::
     }
 
     if (removeUnfoundJoints) {
-        int numVars = _targetVarVec.size();
+        auto numVars = _targetVarVec.size();
         int i = 0;
         while (i < numVars) {
             if (_targetVarVec[i].jointIndex == -1) {
@@ -145,7 +145,7 @@ void AnimInverseKinematics::solveWithCyclicCoordinateDescent(const std::vector<I
     int numLoops = 0;
     const int MAX_IK_LOOPS = 4;
     do {
-        int lowestMovedIndex = _relativePoses.size();
+        auto lowestMovedIndex = _relativePoses.size();
         for (auto& target: targets) {
             IKTarget::Type targetType = target.getType();
             if (targetType == IKTarget::Type::RotationOnly) {
@@ -274,8 +274,8 @@ void AnimInverseKinematics::solveWithCyclicCoordinateDescent(const std::vector<I
         ++numLoops;
 
         // harvest accumulated rotations and apply the average
-        const int numJoints = (int)_accumulators.size();
-        for (int i = 0; i < numJoints; ++i) {
+        const size_t numJoints = _accumulators.size();
+        for (auto i = 0; i < numJoints; ++i) {
             if (_accumulators[i].size() > 0) {
                 _relativePoses[i].rot = _accumulators[i].getAverage();
                 _accumulators[i].clear();
@@ -283,8 +283,8 @@ void AnimInverseKinematics::solveWithCyclicCoordinateDescent(const std::vector<I
         }
 
         // only update the absolutePoses that need it: those between lowestMovedIndex and _maxTargetIndex
-        for (int i = lowestMovedIndex; i <= _maxTargetIndex; ++i) {
-            int parentIndex = _skeleton->getParentIndex(i);
+        for (auto i = lowestMovedIndex; i <= _maxTargetIndex; ++i) {
+            auto parentIndex = _skeleton->getParentIndex((int)i);
             if (parentIndex != -1) {
                 absolutePoses[i] = absolutePoses[parentIndex] * _relativePoses[i];
             }
