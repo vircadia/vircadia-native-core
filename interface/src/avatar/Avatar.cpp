@@ -150,11 +150,12 @@ float Avatar::getLODDistance() const {
 void Avatar::animateScaleChanges(float deltaTime) {
     float currentScale = getUniformScale();
     if (currentScale != _targetScale) {
-        const float SCALE_ANIMATION_TIMESCALE = 1.0f;
-        float blendFactor = deltaTime / SCALE_ANIMATION_TIMESCALE;
-        float animatedScale = (1.0f - blendFactor) * currentScale + blendFactor * _targetScale;
-        const float CLOSE_ENOUGH = 0.05f;
-        if (fabsf(animatedScale - _targetScale) / _targetScale < CLOSE_ENOUGH) {
+        const float SCALE_ANIMATION_TIMESCALE = 0.5f;
+        float scaleVelocity = (_targetScale - currentScale) / SCALE_ANIMATION_TIMESCALE;
+        float animatedScale = currentScale + deltaTime * scaleVelocity;
+        const float MIN_SCALE_SPEED = 0.3f;
+        if (fabsf(scaleVelocity) < MIN_SCALE_SPEED) {
+            // close enough
             animatedScale = _targetScale;
         }
         setScale(glm::vec3(animatedScale)); // avatar scale is uniform
@@ -165,6 +166,9 @@ void Avatar::animateScaleChanges(float deltaTime) {
 void Avatar::simulate(float deltaTime) {
     PerformanceTimer perfTimer("simulate");
 
+    if (!isDead() && !_motionState) {
+        DependencyManager::get<AvatarManager>()->updateAvatarPhysicsShape(this);
+    }
     animateScaleChanges(deltaTime);
 
     // update the billboard render flag
@@ -1107,13 +1111,14 @@ void Avatar::computeShapeInfo(ShapeInfo& shapeInfo) {
     shapeInfo.setOffset(uniformScale * _skeletonModel.getBoundingCapsuleOffset());
 }
 
+void Avatar::setMotionState(AvatarMotionState* motionState) {
+    _motionState = motionState;
+}
+
 // virtual
 void Avatar::rebuildCollisionShape() {
     if (_motionState) {
         _motionState->addDirtyFlags(Simulation::DIRTY_SHAPE);
-    } else {
-        // adebug TODO: move most of updateAvatarPhysicsShape() to here
-        DependencyManager::get<AvatarManager>()->updateAvatarPhysicsShape(this);
     }
 }
 

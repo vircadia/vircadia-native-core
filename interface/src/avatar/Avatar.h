@@ -157,7 +157,6 @@ public:
 
     virtual void computeShapeInfo(ShapeInfo& shapeInfo);
 
-    void setMotionState(AvatarMotionState* motionState) { _motionState = motionState; }
     AvatarMotionState* getMotionState() { return _motionState; }
 
     virtual void setPosition(const glm::vec3& position) override;
@@ -172,6 +171,10 @@ public slots:
     glm::quat getRightPalmRotation();
 
 protected:
+    friend class AvatarManager;
+
+    void setMotionState(AvatarMotionState* motionState);
+
     SkeletonModel _skeletonModel;
     glm::vec3 _skeletonOffset;
     QVector<Model*> _attachmentModels;
