@@ -12,31 +12,57 @@
 Script.include("cookies.js");
 
 var audioOptions = new AudioEffectOptions({
-    maxRoomSize: 50,
+    bandwidth: 10000,
+    preDelay: 20,
+    lateDelay: 0,
+    reverbTime: 2,
+    earlyDiffusion: 100,
+    lateDiffusion: 100,
     roomSize: 50,
-    reverbTime: 4,
-    damping: 0.50,
-    inputBandwidth: 0.8,
-    earlyLevel: 0,
-    tailLevel: 0,
-    dryLevel: -6,
-    wetLevel: -6
+    density: 100,
+    bassMult: 1.5,
+    bassFreq: 250,
+    highGain: -6,
+    highFreq: 3000,
+    modRate: 2.3,
+    modDepth: 50,
+    earlyGain: 0,
+    lateGain: 0,
+    earlyMixLeft: 20,
+    earlyMixRight: 20,
+    lateMixLeft: 90,
+    lateMixRight: 90,
+    wetDryMix: 50,
 });
 
 AudioDevice.setReverbOptions(audioOptions);
 AudioDevice.setReverb(true);
 print("Reverb is ON.");
 
-var panel = new Panel(10, 200);
+var panel = new Panel(10, 160);
 
 var parameters = [
-    { name: "roomSize", min: 0, max: 100, units: " feet" },
-    { name: "reverbTime", min: 0, max: 10, units: " sec" },
-    { name: "damping", min: 0, max: 1, units: " " },
-    { name: "inputBandwidth", min: 0, max: 1, units: " " },
-    { name: "earlyLevel", min: -48, max: 0, units: " dB" },
-    { name: "tailLevel", min: -48, max: 0, units: " dB" },
-    { name: "wetLevel", min: -48, max: 0, units: " dB" },    
+    { name: "bandwidth", min: 1000, max: 12000, units: " Hz" },
+    { name: "preDelay", min: 0, max: 333, units: " ms" },
+    { name: "lateDelay", min: 0, max: 166, units: " ms" },
+    { name: "reverbTime", min: 0.1, max: 10, units: " seconds" },
+    { name: "earlyDiffusion", min: 0, max: 100, units: " percent" },
+    { name: "lateDiffusion", min: 0, max: 100, units: " percent" },
+    { name: "roomSize", min: 0, max: 100, units: " percent" },
+    { name: "density", min: 0, max: 100, units: " percent" },
+    { name: "bassMult", min: 0.1, max: 4, units: " ratio" },
+    { name: "bassFreq", min: 10, max: 500, units: " Hz" },
+    { name: "highGain", min: -24, max: 0, units: " dB" },
+    { name: "highFreq", min: 1000, max: 12000, units: " Hz" },
+    { name: "modRate", min: 0.1, max: 10, units: " Hz" },
+    { name: "modDepth", min: 0, max: 100, units: " percent" }, 
+    { name: "earlyGain", min: -96, max: 24, units: " dB" },
+    { name: "lateGain", min: -96, max: 24, units: " dB" },
+    { name: "earlyMixLeft", min: 0, max: 100, units: " percent" },
+    { name: "earlyMixRight", min: 0, max: 100, units: " percent" },
+    { name: "lateMixLeft", min: 0, max: 100, units: " percent" },
+    { name: "lateMixRight", min: 0, max: 100, units: " percent" },
+    { name: "wetDryMix", min: 0, max: 100, units: " percent" },
 ]
 
 function setter(name) {
@@ -48,7 +74,7 @@ function getter(name) {
 }
 
 function displayer(units) {
-    return function(value) { return (value).toFixed(1) + units; };
+    return function(value) { return (value).toFixed(1) + units; }
 }
 
 // create a slider for each parameter

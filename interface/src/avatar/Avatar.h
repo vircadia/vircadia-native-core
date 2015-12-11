@@ -69,6 +69,7 @@ public:
 
     void init();
     void simulate(float deltaTime);
+    void simulateAttachments(float deltaTime);
 
     virtual void render(RenderArgs* renderArgs, const glm::vec3& cameraPosition);
 
@@ -87,7 +88,6 @@ public:
     bool isInitialized() const { return _initialized; }
     SkeletonModel& getSkeletonModel() { return _skeletonModel; }
     const SkeletonModel& getSkeletonModel() const { return _skeletonModel; }
-    const QVector<Model*>& getAttachmentModels() const { return _attachmentModels; }
     glm::vec3 getChestPosition() const;
     float getAvatarScale() const { return getScale().y; }
     const Head* getHead() const { return static_cast<const Head*>(_headData); }
@@ -107,6 +107,9 @@ public:
     virtual glm::vec3 getJointTranslation(int index) const;
     virtual int getJointIndex(const QString& name) const;
     virtual QStringList getJointNames() const;
+
+    virtual glm::quat getAbsoluteJointRotationInObjectFrame(int index) const override;
+    virtual glm::vec3 getAbsoluteJointTranslationInObjectFrame(int index) const override;
 
     virtual void setFaceModelURL(const QUrl& faceModelURL);
     virtual void setSkeletonModelURL(const QUrl& skeletonModelURL);
@@ -155,8 +158,8 @@ public:
     void setMotionState(AvatarMotionState* motionState) { _motionState = motionState; }
     AvatarMotionState* getMotionState() { return _motionState; }
 
-    virtual void setPosition(glm::vec3 position);
-    virtual void setOrientation(glm::quat orientation);
+    virtual void setPosition(const glm::vec3& position) override;
+    virtual void setOrientation(const glm::quat& orientation) override;
 
 public slots:
 
@@ -213,8 +216,6 @@ protected:
     virtual void renderBody(RenderArgs* renderArgs, ViewFrustum* renderFrustum, float glowLevel = 0.0f);
     virtual bool shouldRenderHead(const RenderArgs* renderArgs) const;
     virtual void fixupModelsInScene();
-
-    void simulateAttachments(float deltaTime);
 
     virtual void updateJointMappings();
 

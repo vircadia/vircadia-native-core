@@ -64,7 +64,7 @@ void EntityScriptingInterface::setEntityTree(EntityTreePointer elementTree) {
     }
 }
 
-EntityItemProperties convertLocationToScriptSemantics(EntityItemProperties entitySideProperties) {
+EntityItemProperties convertLocationToScriptSemantics(const EntityItemProperties& entitySideProperties) {
     // In EntityTree code, properties.position and properties.rotation are relative to the parent.  In javascript,
     // they are in world-space.  The local versions are put into localPosition and localRotation and position and
     // rotation are converted from local to world space.
@@ -85,7 +85,7 @@ EntityItemProperties convertLocationToScriptSemantics(EntityItemProperties entit
 }
 
 
-EntityItemProperties convertLocationFromScriptSemantics(EntityItemProperties scriptSideProperties) {
+EntityItemProperties convertLocationFromScriptSemantics(const EntityItemProperties& scriptSideProperties) {
     // convert position and rotation properties from world-space to local, unless localPosition and localRotation
     // are set.  If they are set, they overwrite position and rotation.
     EntityItemProperties entitySideProperties = scriptSideProperties;
@@ -190,7 +190,7 @@ EntityItemProperties EntityScriptingInterface::getEntityProperties(QUuid identit
     return convertLocationToScriptSemantics(results);
 }
 
-QUuid EntityScriptingInterface::editEntity(QUuid id, EntityItemProperties scriptSideProperties) {
+QUuid EntityScriptingInterface::editEntity(QUuid id, const EntityItemProperties& scriptSideProperties) {
     EntityItemProperties properties = scriptSideProperties;
     EntityItemID entityID(id);
     // If we have a local entity tree set, then also update it.
@@ -201,17 +201,25 @@ QUuid EntityScriptingInterface::editEntity(QUuid id, EntityItemProperties script
 
     bool updatedEntity = false;
     _entityTree->withWriteLock([&] {
-        if (scriptSideProperties.parentDependentPropertyChanged()) {
-            // if the script sets a location property but didn't include parent information, grab the needed
-            // properties from the entity.
-            if (!scriptSideProperties.parentIDChanged() || !scriptSideProperties.parentJointIndexChanged()) {
-                EntityItemPointer entity = _entityTree->findEntityByEntityItemID(entityID);
-                if (entity && !scriptSideProperties.parentIDChanged()) {
-                    properties.setParentID(entity->getParentID());
-                }
-                if (entity && !scriptSideProperties.parentJointIndexChanged()) {
-                    properties.setParentJointIndex(entity->getParentJointIndex());
-                }
+        if (scriptSideProperties.parentDependentPropertyChanged() ||
+            scriptSideProperties.parentIDChanged() || scriptSideProperties.parentJointIndexChanged()) {
+            // All of parentID, parentJointIndex, position, rotation are needed to make sense of any of them.
+            // If any of these changed, pull any missing properties from the entity.
+            EntityItemPointer entity = _entityTree->findEntityByEntityItemID(entityID);
+            if (!entity) {
+                return;
+            }
+            if (!scriptSideProperties.parentIDChanged()) {
+                properties.setParentID(entity->getParentID());
+            }
+            if (!scriptSideProperties.parentJointIndexChanged()) {
+                properties.setParentJointIndex(entity->getParentJointIndex());
+            }
+            if (!scriptSideProperties.localPositionChanged() && !scriptSideProperties.positionChanged()) {
+                properties.setPosition(entity->getPosition());
+            }
+            if (!scriptSideProperties.localRotationChanged() && !scriptSideProperties.rotationChanged()) {
+                properties.setRotation(entity->getOrientation());
             }
         }
         properties = convertLocationFromScriptSemantics(properties);
@@ -801,19 +809,19 @@ glm::vec3 EntityScriptingInterface::localCoordsToVoxelCoords(const QUuid& entity
     }
 }
 
-glm::vec3 EntityScriptingInterface::getJointTranslation(const QUuid& entityID, int jointIndex) {
+glm::vec3 EntityScriptingInterface::getAbsoluteJointTranslationInObjectFrame(const QUuid& entityID, int jointIndex) {
     if (auto entity = checkForTreeEntityAndTypeMatch(entityID, EntityTypes::Model)) {
         auto modelEntity = std::dynamic_pointer_cast<ModelEntityItem>(entity);
-        return modelEntity->getJointTranslation(jointIndex);
+        return modelEntity->getAbsoluteJointTranslationInObjectFrame(jointIndex);
     } else {
         return glm::vec3(0.0f);
     }
 }
 
-glm::quat EntityScriptingInterface::getJointRotation(const QUuid& entityID, int jointIndex) {
+glm::quat EntityScriptingInterface::getAbsoluteJointRotationInObjectFrame(const QUuid& entityID, int jointIndex) {
     if (auto entity = checkForTreeEntityAndTypeMatch(entityID, EntityTypes::Model)) {
         auto modelEntity = std::dynamic_pointer_cast<ModelEntityItem>(entity);
-        return modelEntity->getJointRotation(jointIndex);
+        return modelEntity->getAbsoluteJointRotationInObjectFrame(jointIndex);
     } else {
         return glm::quat();
     }

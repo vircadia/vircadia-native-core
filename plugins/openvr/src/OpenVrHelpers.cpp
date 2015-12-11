@@ -7,14 +7,15 @@
 //
 #include "OpenVrHelpers.h"
 
-#if defined(Q_OS_WIN)
-
-#include <QtCore/QTimer>
-
 #include <atomic>
 #include <mutex>
 
-#include "../Logging.h"
+#include <QtCore/QDebug>
+#include <QtCore/QTimer>
+#include <QtCore/QLoggingCategory>
+
+
+Q_DECLARE_LOGGING_CATEGORY(displayplugins)
 
 using Mutex = std::mutex;
 using Lock = std::unique_lock<Mutex>;
@@ -30,13 +31,13 @@ vr::IVRSystem* acquireOpenVrSystem() {
     if (hmdPresent) {
         Lock lock(mutex);
         if (!activeHmd) {
-            qCDebug(displayPlugins) << "openvr: No vr::IVRSystem instance active, building";
-            vr::HmdError eError = vr::HmdError_None;
+            qCDebug(displayplugins) << "openvr: No vr::IVRSystem instance active, building";
+            vr::EVRInitError eError = vr::VRInitError_None;
             activeHmd = vr::VR_Init(&eError);
-            qCDebug(displayPlugins) << "openvr display: HMD is " << activeHmd << " error is " << eError;
+            qCDebug(displayplugins) << "openvr display: HMD is " << activeHmd << " error is " << eError;
         }
         if (activeHmd) {
-            qCDebug(displayPlugins) << "openvr: incrementing refcount";
+            qCDebug(displayplugins) << "openvr: incrementing refcount";
             ++refCount;
         }
     }
@@ -46,10 +47,10 @@ vr::IVRSystem* acquireOpenVrSystem() {
 void releaseOpenVrSystem() {
     if (activeHmd) {
         Lock lock(mutex);
-        qDebug() << "openvr: decrementing refcount";
+        qCDebug(displayplugins) << "openvr: decrementing refcount";
         --refCount;
         if (0 == refCount) {
-            qDebug() << "openvr: zero refcount, deallocate VR system";
+            qCDebug(displayplugins) << "openvr: zero refcount, deallocate VR system";
             // Avoid spamming the VR system with activate/deactivate calls at system startup by
             // putting in a delay before we destory the shutdown the VR subsystem
 
@@ -71,5 +72,3 @@ void releaseOpenVrSystem() {
         }
     }
 }
-
-#endif

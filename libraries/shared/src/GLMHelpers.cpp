@@ -360,6 +360,10 @@ QSize fromGlm(const glm::ivec2 & v) {
     return QSize(v.x, v.y);
 }
 
+vec4 toGlm(const xColor& color, float alpha) {
+    return vec4((float)color.red / 255.0f, (float)color.green / 255.0f, (float)color.blue / 255.0f, alpha);
+}
+
 QRectF glmToRect(const glm::vec2 & pos, const glm::vec2 & size) {
     QRectF result(pos.x, pos.y, size.x, size.y);
     return result;

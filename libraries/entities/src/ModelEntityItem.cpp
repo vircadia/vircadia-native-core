@@ -384,11 +384,6 @@ void ModelEntityItem::setAnimationSettings(const QString& value) {
         setAnimationHold(hold);
     }
 
-    if (settingsMap.contains("startAutomatically")) {
-        bool startAutomatically = settingsMap["startAutomatically"].toBool();
-        setAnimationStartAutomatically(startAutomatically);
-    }
-
     _dirtyFlags |= Simulation::DIRTY_UPDATEABLE;
 }
 

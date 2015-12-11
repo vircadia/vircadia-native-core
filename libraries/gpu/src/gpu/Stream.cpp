@@ -77,16 +77,6 @@ bool Stream::Format::setAttribute(Slot slot, Slot channel, Frequency frequency) 
     return true;
 }
 
-
-BufferStream::BufferStream() :
-    _buffers(),
-    _offsets(),
-    _strides()
-{}
-
-BufferStream::~BufferStream() {
-}
-
 void BufferStream::addBuffer(const BufferPointer& buffer, Offset offset, Offset stride) {
     _buffers.push_back(buffer);
     _offsets.push_back(offset);

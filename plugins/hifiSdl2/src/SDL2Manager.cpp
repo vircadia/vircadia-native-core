@@ -11,8 +11,6 @@
 
 #include <qapplication.h>
 
-#include <HFActionEvent.h>
-#include <HFBackEvent.h>
 #include <PerfStat.h>
 #include <controllers/UserInputMapper.h>
 
@@ -163,6 +161,7 @@ void SDL2Manager::pluginUpdate(float deltaTime, bool jointsCaptured) {
                     joystick->handleButtonEvent(event.cbutton);
                 }
                 
+#if 0
                 if (event.cbutton.button == SDL_CONTROLLER_BUTTON_BACK) {
                     // this will either start or stop a global back event
                     QEvent::Type backType = (event.type == SDL_CONTROLLERBUTTONDOWN)
@@ -172,6 +171,7 @@ void SDL2Manager::pluginUpdate(float deltaTime, bool jointsCaptured) {
                     
                     qApp->sendEvent(qApp, &backEvent);
                 }
+#endif
                 
             } else if (event.type == SDL_CONTROLLERDEVICEADDED) {
                 SDL_GameController* controller = SDL_GameControllerOpen(event.cdevice.which);

@@ -622,7 +622,8 @@ QScriptValue WindowScriptingInterface::showBrowse(const QString& title, const QS
     fileDialog.setAcceptMode(acceptMode);
     QUrl fileUrl(directory);
     if (acceptMode == QFileDialog::AcceptSave) {
-        fileDialog.setFileMode(QFileDialog::Directory);
+        // TODO -- Setting this breaks the dialog on Linux.  Does it help something on other platforms?
+        // fileDialog.setFileMode(QFileDialog::Directory);
         fileDialog.selectFile(fileUrl.fileName());
     }
     if (fileDialog.exec()) {

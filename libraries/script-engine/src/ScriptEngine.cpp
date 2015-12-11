@@ -82,7 +82,7 @@ void avatarDataFromScriptValue(const QScriptValue &object, AvatarData* &out) {
 }
 
 Q_DECLARE_METATYPE(controller::InputController*)
-static int inputControllerPointerId = qRegisterMetaType<controller::InputController*>();
+//static int inputControllerPointerId = qRegisterMetaType<controller::InputController*>();
 
 QScriptValue inputControllerToScriptValue(QScriptEngine *engine, controller::InputController* const &in) {
     return engine->newQObject(in);
@@ -183,7 +183,7 @@ void ScriptEngine::runInThread() {
 
 QSet<ScriptEngine*> ScriptEngine::_allKnownScriptEngines;
 QMutex ScriptEngine::_allScriptsMutex;
-bool ScriptEngine::_stoppingAllScripts = false;
+std::atomic<bool> ScriptEngine::_stoppingAllScripts { false };
 
 void ScriptEngine::stopAllScripts(QObject* application) {
     _allScriptsMutex.lock();
@@ -752,7 +752,7 @@ void ScriptEngine::run() {
     }
 
     if (_wantSignals) {
-        emit finished(_fileNameString);
+        emit finished(_fileNameString, this);
     }
 
     _isRunning = false;
@@ -775,6 +775,10 @@ void ScriptEngine::stopAllTimers() {
 
 void ScriptEngine::stop() {
     if (!_isFinished) {
+        if (QThread::currentThread() != thread()) {
+            QMetaObject::invokeMethod(this, "stop");
+            return;
+        }
         _isFinished = true;
         if (_wantSignals) {
             emit runningStateChanged();

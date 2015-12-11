@@ -63,7 +63,11 @@ set_target_properties(${EXTERNAL_NAME} PROPERTIES FOLDER "hidden/externals")
 
 
 if (APPLE)
+
+# NOOP
+
 elseif (WIN32)
+
   ExternalProject_Get_Property(${EXTERNAL_NAME} SOURCE_DIR)
   set(${EXTERNAL_NAME_UPPER}_INCLUDE_DIR ${SOURCE_DIR}/include CACHE PATH "Location of SDL2 include directory")
 
@@ -75,8 +79,12 @@ elseif (WIN32)
     set(${EXTERNAL_NAME_UPPER}_DLL_PATH ${SOURCE_DIR}/lib/x86 CACHE PATH "Location of SDL2 DLL")
   endif()
   
+  add_paths_to_fixup_libs(${${EXTERNAL_NAME_UPPER}_DLL_PATH})
+  
 else ()
+
   ExternalProject_Get_Property(${EXTERNAL_NAME} INSTALL_DIR)
   set(${EXTERNAL_NAME_UPPER}_INCLUDE_DIR ${INSTALL_DIR}/include/SDL2 CACHE PATH "Location of SDL2 include directory")
   set(${EXTERNAL_NAME_UPPER}_LIBRARY_TEMP ${INSTALL_DIR}/lib/libSDL2.so CACHE FILEPATH "Path to SDL2 library")
+
 endif ()

@@ -10,10 +10,15 @@
 # 
 
 macro(INCLUDE_APPLICATION_VERSION)
+  #
+  # We are relying on Jenkins defined environment variables to determine the origin of this build
+  # and will only package if this is a PR or Release build
   if (DEFINED ENV{JOB_ID})
+    set (DEPLOY_PACKAGE 1)
     set (BUILD_SEQ $ENV{JOB_ID})
   elseif (DEFINED ENV{ghprbPullId})
-    set (BUILD_SEQ "PR: $ENV{ghprbPullId} - Commit: $ENV{ghprbActualCommit}")
+    set (DEPLOY_PACKAGE 1)
+    set (BUILD_SEQ "PR-$ENV{ghprbPullId}")
   else ()
     set(BUILD_SEQ "dev")
   endif ()
