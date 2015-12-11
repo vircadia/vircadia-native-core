@@ -68,7 +68,6 @@
 #include <HFBackEvent.h>
 #include <InfoView.h>
 #include <input-plugins/InputPlugin.h>
-#include <input-plugins/Joystick.h> // this should probably be removed
 #include <controllers/UserInputMapper.h>
 #include <controllers/StateController.h>
 #include <LogHandler.h>
@@ -4017,13 +4016,6 @@ void Application::saveScripts() {
     settings.endArray();
 }
 
-QScriptValue joystickToScriptValue(QScriptEngine *engine, Joystick* const &in) {
-    return engine->newQObject(in);
-}
-
-void joystickFromScriptValue(const QScriptValue &object, Joystick* &out) {
-    out = qobject_cast<Joystick*>(object.toQObject());
-}
 
 void Application::registerScriptEngineWithApplicationServices(ScriptEngine* scriptEngine) {
     // setup the packet senders and jurisdiction listeners of the script engine's scripting interfaces so
@@ -4087,8 +4079,6 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEngine* scri
     scriptEngine->registerGlobalObject("FaceTracker", DependencyManager::get<DdeFaceTracker>().data());
 
     scriptEngine->registerGlobalObject("AvatarManager", DependencyManager::get<AvatarManager>().data());
-
-    qScriptRegisterMetaType(scriptEngine, joystickToScriptValue, joystickFromScriptValue);
 
     scriptEngine->registerGlobalObject("UndoStack", &_undoStackScriptingInterface);
 
