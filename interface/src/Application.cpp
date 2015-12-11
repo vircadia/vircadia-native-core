@@ -2763,6 +2763,8 @@ void Application::reloadResourceCaches() {
     DependencyManager::get<TextureCache>()->refreshAll();
 
     DependencyManager::get<NodeList>()->reset();  // Force redownload of .fst models
+
+    getMyAvatar()->resetFullAvatarURL();
 }
 
 void Application::rotationModeChanged() {
