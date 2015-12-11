@@ -196,6 +196,8 @@ public:
     bool wantTerseEditLogging() const { return _wantTerseEditLogging; }
     void setWantTerseEditLogging(bool value) { _wantTerseEditLogging = value; }
 
+    void remapIDs();
+
     bool writeToMap(QVariantMap& entityDescription, OctreeElementPointer element, bool skipDefaultValues);
     bool readFromMap(QVariantMap& entityDescription);
 
@@ -232,6 +234,9 @@ public:
         QReadLocker locker(&_deletedEntitiesLock);
         return _deletedEntityItemIDs.contains(id);
     }
+
+public slots:
+    void callLoader(EntityItemID entityID);
 
 signals:
     void deletingEntity(const EntityItemID& entityID);

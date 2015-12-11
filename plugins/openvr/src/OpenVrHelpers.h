@@ -7,9 +7,6 @@
 //
 #pragma once
 
-#include <QtGlobal>
-
-#if defined(Q_OS_WIN)
 #include <openvr.h>
 #include <GLMHelpers.h>
 #include <glm/gtc/type_ptr.hpp>
@@ -17,6 +14,4 @@
 
 vr::IVRSystem* acquireOpenVrSystem();
 void releaseOpenVrSystem(); 
-
-#endif
 

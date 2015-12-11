@@ -41,7 +41,7 @@ TextEntityItem::TextEntityItem(const EntityItemID& entityItemID) : EntityItem(en
 
 const float TEXT_ENTITY_ITEM_FIXED_DEPTH = 0.01f;
 
-void TextEntityItem::setDimensions(const glm::vec3 value) {
+void TextEntityItem::setDimensions(const glm::vec3& value) {
     // NOTE: Text Entities always have a "depth" of 1cm.
     EntityItem::setDimensions(glm::vec3(value.x, value.y, TEXT_ENTITY_ITEM_FIXED_DEPTH));
 }

@@ -24,6 +24,7 @@
 #include "EntitiesLogging.h"
 #include "RecurseOctreeToMapOperator.h"
 #include "LogHandler.h"
+#include "RemapIDOperator.h"
 
 static const quint64 DELETED_ENTITIES_EXTRA_USECS_TO_CONSIDER = USECS_PER_MSEC * 50;
 
@@ -218,7 +219,7 @@ bool EntityTree::updateEntityWithElement(EntityItemPointer entity, const EntityI
         // if the entity has children, run UpdateEntityOperator on them.  If the children have children, recurse
         QQueue<SpatiallyNestablePointer> toProcess;
         foreach (SpatiallyNestablePointer child, entity->getChildren()) {
-            if (child && child->getNestableType() == NestableTypes::Entity) {
+            if (child && child->getNestableType() == NestableType::Entity) {
                 toProcess.enqueue(child);
             }
         }
@@ -231,7 +232,7 @@ bool EntityTree::updateEntityWithElement(EntityItemPointer entity, const EntityI
                                                   childEntity, newChildBBRelProperties);
             recurseTreeWithOperator(&theChildOperator);
             foreach (SpatiallyNestablePointer childChild, childEntity->getChildren()) {
-                if (childChild && childChild->getNestableType() == NestableTypes::Entity) {
+                if (childChild && childChild->getNestableType() == NestableType::Entity) {
                     toProcess.enqueue(childChild);
                 }
             }
@@ -740,6 +741,14 @@ void EntityTree::fixupTerseEditLogging(EntityItemProperties& properties, QList<Q
             changedProperties[index] = QString("userData:") + changeHint;
         }
     }
+
+    if (properties.parentJointIndexChanged()) {
+        int index = changedProperties.indexOf("parentJointIndex");
+        if (index >= 0) {
+            quint16 value = properties.getParentJointIndex();
+            changedProperties[index] = QString("parentJointIndex:") + QString::number((int)value);
+        }
+    }
 }
 
 int EntityTree::processEditPacketData(ReceivedMessage& message, const unsigned char* editData, int maxLength,
@@ -1186,6 +1195,11 @@ bool EntityTree::sendEntitiesOperation(OctreeElementPointer element, void* extra
     return true;
 }
 
+void EntityTree::remapIDs() {
+    RemapIDOperator theOperator;
+    recurseTreeWithOperator(&theOperator);
+}
+
 bool EntityTree::writeToMap(QVariantMap& entityDescription, OctreeElementPointer element, bool skipDefaultValues) {
     if (! entityDescription.contains("Entities")) {
         entityDescription["Entities"] = QVariantList();
@@ -1250,5 +1264,14 @@ void EntityTree::trackIncomingEntityLastEdited(quint64 lastEditedTime, int bytes
         if (sinceEdit > _maxEditDelta) {
             _maxEditDelta = sinceEdit;
         }
+    }
+}
+
+
+void EntityTree::callLoader(EntityItemID entityID) {
+    // this is used to bounce from the networking thread to the main thread
+    EntityItemPointer entity = findEntityByEntityItemID(entityID);
+    if (entity) {
+        entity->loader();
     }
 }

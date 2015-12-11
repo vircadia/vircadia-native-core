@@ -17,7 +17,7 @@
 #include <controllers/InputDevice.h>
 #include <controllers/StandardControls.h>
 
-#include "InputPlugin.h"
+#include <plugins/InputPlugin.h>
 
 struct _sixenseControllerData;
 using SixenseControllerData = _sixenseControllerData;
@@ -60,6 +60,8 @@ private:
     class InputDevice : public controller::InputDevice {
     public:
         InputDevice() : controller::InputDevice("Hydra") {}
+        void setDebugDrawRaw(bool flag);
+        void setDebugDrawCalibrated(bool flag);
     private:
         // Device functions
         virtual controller::Input::NamedVector getAvailableInputs() const override;
@@ -82,6 +84,8 @@ private:
     
         float _lastDistance;
         bool _requestReset { false };
+        bool _debugDrawRaw { false };
+        bool _debugDrawCalibrated { false };
         // these are measured values used to compute the calibration results
         quint64 _lockExpiry;
         glm::vec3 _averageLeft;

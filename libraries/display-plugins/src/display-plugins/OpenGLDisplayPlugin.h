@@ -9,6 +9,8 @@
 
 #include "DisplayPlugin.h"
 
+#include <condition_variable>
+
 #include <QtCore/QTimer>
 
 #include <GLMHelpers.h>
@@ -18,8 +20,9 @@
 
 class OpenGLDisplayPlugin : public DisplayPlugin {
 protected:
-    using Mutex = std::recursive_mutex;
+    using Mutex = std::mutex;
     using Lock = std::unique_lock<Mutex>;
+    using Condition = std::condition_variable;
 public:
     OpenGLDisplayPlugin();
     virtual void activate() override;
@@ -71,7 +74,7 @@ protected:
     ProgramPtr _program;
     ShapeWrapperPtr _plane;
 
-    Mutex _mutex;
+    mutable Mutex _mutex;
     SimpleMovingAverage _usecsPerFrame { 10 };
     QMap<uint32_t, uint32_t> _sceneTextureToFrameIndexMap;
 
@@ -82,6 +85,12 @@ protected:
     GLTextureEscrow _sceneTextureEscrow;
 
     bool _vsyncSupported { false };
+
+private:
+    void enableDeactivate();
+    Condition _deactivateWait;
+    bool _uncustomized{ false };
+
 };
 
 

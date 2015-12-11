@@ -47,7 +47,7 @@ const QString AvatarData::FRAME_NAME = "com.highfidelity.recording.AvatarData";
 static std::once_flag frameTypeRegistration;
 
 AvatarData::AvatarData() :
-    SpatiallyNestable(NestableTypes::Avatar, QUuid()),
+    SpatiallyNestable(NestableType::Avatar, QUuid()),
     _handPosition(0.0f),
     _targetScale(1.0f),
     _handState(0),
@@ -1625,10 +1625,10 @@ void AvatarData::setBodyRoll(float bodyRoll) {
     setOrientation(glm::quat(glm::radians(eulerAngles)));
 }
 
-void AvatarData::setPosition(const glm::vec3 position) {
+void AvatarData::setPosition(const glm::vec3& position) {
     SpatiallyNestable::setPosition(position);
 }
 
-void AvatarData::setOrientation(const glm::quat orientation) {
+void AvatarData::setOrientation(const glm::quat& orientation) {
     SpatiallyNestable::setOrientation(orientation);
 }

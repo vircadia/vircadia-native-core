@@ -7,9 +7,8 @@ string(TOUPPER ${EXTERNAL_NAME} EXTERNAL_NAME_UPPER)
 
 ExternalProject_Add(
   ${EXTERNAL_NAME}
-  #URL https://github.com/ValveSoftware/openvr/archive/0.9.1.zip
-  URL http://hifi-public.s3.amazonaws.com/dependencies/openvr-0.9.1.zip
-  URL_MD5 f986f5a6815e9454c53c5bf58ce02fdc
+  URL https://github.com/ValveSoftware/openvr/archive/v0.9.12.zip
+  URL_MD5 c08dced68ce4e341e1467e6814ae419d
   CONFIGURE_COMMAND ""
   BUILD_COMMAND ""
   INSTALL_COMMAND ""
