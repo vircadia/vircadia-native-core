@@ -476,7 +476,7 @@ function MyController(hand) {
             "color": color,
             "maxParticles": 2000,
             "lifespan": 1,
-            "emitRate": 15,
+            "emitRate": 300,
             "emitSpeed": 1,
             "speedSpread": 0,
             "emitOrientation": {
@@ -505,7 +505,7 @@ function MyController(hand) {
                 "y": 0,
                 "z": 0
             },
-            "particleRadius": 0.02,
+            "particleRadius": 0.01,
             "radiusSpread": 0,
             // "radiusStart": 0.01,
             // "radiusFinish": 0.01,
@@ -583,7 +583,10 @@ function MyController(hand) {
         if (this.spotlight === null) {
             this.spotlight = Entities.addEntity(lightProperties);
         } else {
-
+            // var rotationBetween = Quat.rotationBetween(Vec3.UP, )
+            // Entities.editEntity(this.spotlight, {
+            //     rotation: lightTransform.q
+            // })
         }
     }
 
@@ -612,8 +615,10 @@ function MyController(hand) {
     }
 
     this.spotlightOff = function() {
-        // Entities.deleteEntity(this.spotlight);
-        // this.spotlight = null;
+        if (this.spotlight !== null) {
+            Overlays.deleteOverlay(this.spotlight);
+        }
+        this.spotlight = null;
     }
 
     this.triggerPress = function(value) {
