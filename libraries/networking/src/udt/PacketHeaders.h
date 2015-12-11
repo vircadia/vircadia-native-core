@@ -163,7 +163,4 @@ const PacketVersion VERSION_ENTITIES_POLYLINE_TEXTURE = 50;
 const PacketVersion VERSION_ENTITIES_HAVE_PARENTS = 51;
 const PacketVersion VERSION_ENTITIES_REMOVED_START_AUTOMATICALLY_FROM_ANIMATION_PROPERTY_GROUP = 52;
 
-// EntityQuery versions
-const PacketVersion VERSION_ENTITY_QUERY_KEYHOLE_RADIUS = 18;
-
 #endif // hifi_PacketHeaders_h
