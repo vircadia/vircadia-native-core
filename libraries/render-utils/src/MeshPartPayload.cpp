@@ -277,16 +277,14 @@ namespace render {
 
 using namespace render;
 
-ModelMeshPartPayload::ModelMeshPartPayload(Model* model, int _meshIndex, int partIndex, int shapeIndex,
-    glm::vec3 position, glm::quat orientation) :
+ModelMeshPartPayload::ModelMeshPartPayload(Model* model, int _meshIndex, int partIndex, int shapeIndex, const Transform& transform, const Transform& offsetTransform) :
     _model(model),
     _meshIndex(_meshIndex),
-    _shapeID(shapeIndex),
-    _modelPosition(position),
-    _modelOrientation(orientation) {
+    _shapeID(shapeIndex) {
     auto& modelMesh = _model->_geometry->getMeshes().at(_meshIndex)->_mesh;
     updateMeshPart(modelMesh, partIndex);
 
+    updateTransform(transform, offsetTransform);
     initCache();
 }
 
@@ -312,11 +310,6 @@ void ModelMeshPartPayload::initCache() {
 
 void ModelMeshPartPayload::notifyLocationChanged() {
     _model->_needsUpdateClusterMatrices = true;
-}
-
-void ModelMeshPartPayload::updateModelLocation(glm::vec3 position, glm::quat orientation) {
-    _modelPosition = position;
-    _modelOrientation = orientation;
 }
 
 render::ItemKey ModelMeshPartPayload::getKey() const {

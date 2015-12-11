@@ -73,30 +73,27 @@ namespace render {
 
 class ModelMeshPartPayload : public MeshPartPayload {
 public:
-    ModelMeshPartPayload(Model* model, int meshIndex, int partIndex, int shapeIndex, glm::vec3 position, glm::quat orientation);
+    ModelMeshPartPayload(Model* model, int meshIndex, int partIndex, int shapeIndex, const Transform& transform, const Transform& offsetTransform);
     
     typedef render::Payload<ModelMeshPartPayload> Payload;
     typedef Payload::DataPointer Pointer;
 
-    virtual void notifyLocationChanged();
-    virtual void updateModelLocation(glm::vec3 position, glm::quat orientation);
+    void notifyLocationChanged() override;
 
     // Render Item interface
-    render::ItemKey getKey() const;
-    render::Item::Bound getBound() const;
-    void render(RenderArgs* args) const;
+    render::ItemKey getKey() const override;
+    render::Item::Bound getBound() const override;
+    void render(RenderArgs* args) const override;
     
     // ModelMeshPartPayload functions to perform render
-    void bindMesh(gpu::Batch& batch) const;
-    void bindTransform(gpu::Batch& batch, const ModelRender::Locations* locations) const;
+    void bindMesh(gpu::Batch& batch) const override;
+    void bindTransform(gpu::Batch& batch, const ModelRender::Locations* locations) const override;
 
 
     void initCache();
     Model* _model;
     int _meshIndex;
     int _shapeID;
-    glm::vec3 _modelPosition;
-    glm::quat _modelOrientation;
     bool _isSkinned = false;
     bool _isBlendShaped = false;
 };

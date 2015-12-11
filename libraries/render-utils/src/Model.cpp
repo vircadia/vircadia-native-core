@@ -503,9 +503,7 @@ bool Model::addToScene(std::shared_ptr<render::Scene> scene, render::PendingChan
 
     foreach (auto renderItem, _renderItemsSet) {
         auto item = scene->allocateID();
-  //      auto renderData = MeshPartPayload::Pointer(renderItem);
-        auto renderData = renderItem;
-        auto renderPayload = std::make_shared<MeshPartPayload::Payload>(renderData);
+        auto renderPayload = std::make_shared<MeshPartPayload::Payload>(renderItem);
         pendingChanges.resetItem(item, renderPayload);
         pendingChanges.updateItem<MeshPartPayload>(item, [&](MeshPartPayload& data) {
             data.notifyLocationChanged();
@@ -532,8 +530,7 @@ bool Model::addToScene(std::shared_ptr<render::Scene> scene,
 
     foreach (auto renderItem, _renderItemsSet) {
         auto item = scene->allocateID();
-        auto renderData = MeshPartPayload::Pointer(renderItem);
-        auto renderPayload = std::make_shared<MeshPartPayload::Payload>(renderData);
+        auto renderPayload = std::make_shared<MeshPartPayload::Payload>(renderItem);
         renderPayload->addStatusGetters(statusGetters);
         pendingChanges.resetItem(item, renderPayload);
         pendingChanges.updateItem<MeshPartPayload>(item, [&](MeshPartPayload& data) {
@@ -1185,7 +1182,7 @@ void Model::segregateMeshGroups() {
                 _renderItemsSet << std::make_shared<MeshPartPayload>(networkMesh._mesh, partIndex, ModelRender::getCollisionHullMaterial(), transform, offset);
 
             } else {
-                _renderItemsSet << std::make_shared<ModelMeshPartPayload>(this, i, partIndex, shapeID, _translation, _rotation);
+                _renderItemsSet << std::make_shared<ModelMeshPartPayload>(this, i, partIndex, shapeID, transform, offset);
             }
 
             shapeID++;
@@ -1210,8 +1207,7 @@ bool Model::initWhenReady(render::ScenePointer scene) {
 
         foreach (auto renderItem, _renderItemsSet) {
             auto item = scene->allocateID();
-            auto renderData = MeshPartPayload::Pointer(renderItem);
-            auto renderPayload = std::make_shared<MeshPartPayload::Payload>(renderData);
+            auto renderPayload = std::make_shared<MeshPartPayload::Payload>(renderItem);
             _renderItems.insert(item, renderPayload);
             pendingChanges.resetItem(item, renderPayload);
             pendingChanges.updateItem<MeshPartPayload>(item, [&](MeshPartPayload& data) {
