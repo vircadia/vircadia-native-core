@@ -30,7 +30,7 @@ function flee(thisEntity, target) {
 
         return steer;
     } else {
-        //   print('target too far away to flee' + d);
+        //target too far away to flee
         return
     }
 }
@@ -47,7 +47,7 @@ function fleeAllAvatars(thisEntity) {
         var entityID = nearbyEntities[entityIndex];
         var entityProps = Entities.getEntityProperties(entityID);
         if (entityProps.name === 'Hifi-Avatar-Detector') {
-            //print('found an avatar to flee')
+            //found an avatar to flee
 
             var MAX_SPEED = 8;
             var MAX_FORCE = 8;
@@ -62,7 +62,7 @@ function fleeAllAvatars(thisEntity) {
                 steer = steerVector.limit(MAX_FORCE);
                 flightVectors.push(steer);
             } else {
-                //  print('target too far away from this avatar to flee' + d);
+                // target too far away from this avatar to flee
             }
         }
 
@@ -83,7 +83,8 @@ function fleeAvoiderBlocks(thisEntity) {
         var entityID = nearbyEntities[entityIndex];
         var entityProps = Entities.getEntityProperties(entityID);
         if (entityProps.name === 'Hifi-Rat-Avoider') {
-            // print('found an avoiderblock to flee');
+            //found an avoiderblock to flee
+
             var MAX_SPEED = 11;
             var MAX_FORCE = 6;
             var FLEE_AVOIDER_RANGE = 5;
@@ -99,7 +100,7 @@ function fleeAvoiderBlocks(thisEntity) {
                 steer = steerVector.limit(MAX_FORCE);
                 flightVectors.push(steer);
             } else {
-                //print('target too far away from this avoider to flee' + d);
+                //target too far away from this avoider to flee
             }
 
         }

@@ -348,8 +348,6 @@ function moveRats() {
                 }
             }
 
-        } else {
-            //  no meta rat for this rat
         }
     })
 }
@@ -363,8 +361,6 @@ function checkDistanceFromNest(rat) {
     if (distance < RAT_IN_NEST_DISTANCE) {
         //at nest
         removeRatFromScene(rat);
-    } else {
-        //not yet at nest
     }
 }
 
