@@ -297,7 +297,7 @@ function moveRats() {
             if (j === 0) {
                 averageAvoiderFlight = avoidBlockVectors[0];
             } else {
-                averageAvoiderFlight = Vec3.sum(avoidBlockVectors[j - 1], avoidBlockVectors[j])
+                averageAvoiderFlight = Vec3.sum(avoidBlockVectors[j - 1], avoidBlockVectors[j]);
             }
         };
         averageAvoiderFlight = Vec3.multiply(averageAvoiderFlight, 1 / avoidBlockVectors.length);
@@ -341,16 +341,15 @@ function moveRats() {
         if (metaRat !== undefined) {
             if (metaRat.injector !== undefined) {
                 if (metaRat.injector.isPlaying === true) {
-                    //  print('update injector position')
                     metaRat.injector.options = {
                         loop: true,
                         position: ratPosition
-                    }
+                    };
                 }
             }
 
         } else {
-            //   print('no meta rat for this rat')
+            //  no meta rat for this rat
         }
     })
 }
@@ -362,10 +361,10 @@ function checkDistanceFromNest(rat) {
     var ratProps = Entities.getEntityProperties(rat, "position");
     var distance = Vec3.distance(ratProps.position, RAT_NEST_LOCATION);
     if (distance < RAT_IN_NEST_DISTANCE) {
-        //print('at nest')
+        //at nest
         removeRatFromScene(rat);
     } else {
-        // print('not yet at nest:::' + distance)
+        //not yet at nest
     }
 }
 
@@ -373,7 +372,6 @@ function removeRatFromScene(rat) {
 
     var index = rats.indexOf(rat);
     if (index > -1) {
-        //     print('CLEAR RAT::'+rat)
         rats.splice(index, 1);
         Entities.deleteEntity(rat);
 
@@ -381,7 +379,6 @@ function removeRatFromScene(rat) {
 
     var metaRatIndex = findWithAttr(metaRats, 'rat', rat);
     if (metaRatIndex > -1) {
-        //    print('CLEAR META RAT')
         metaRats[index].injector.stop();
         metaRats.splice(index, 1);
     }
