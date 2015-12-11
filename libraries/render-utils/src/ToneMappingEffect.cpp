@@ -50,7 +50,7 @@ void ToneMappingEffect::init() {
             // Manually gamma correct from Ligthing BUffer to color buffer
        //    outFragColor.xyz = pow( fragColor.xyz , vec3(1.0 / 2.2) );
 
-            fragColor *= 4.0;  // Hardcoded Exposure Adjustment
+            fragColor *= 2.0;  // Hardcoded Exposure Adjustment
             vec3 x = max(vec3(0.0),fragColor.xyz-0.004);
             vec3 retColor = (x*(6.2*x+.5))/(x*(6.2*x+1.7)+0.06);
 
