@@ -154,7 +154,7 @@ GLBackend::GLShader* compileShader(const Shader& shader) {
 
         qCWarning(gpulogging) << "GLShader::compileShader - failed to compile the gl shader object:";
         qCWarning(gpulogging) << temp;
-
+        
         /*
         filestream.open("debugshader.glsl.info.txt");
         if (filestream.is_open()) {

@@ -27,9 +27,11 @@
 #include <PerfStat.h>
 #include <plugins/PluginContainer.h>
 #include <SettingHandle.h>
-#include <UserActivityLogger.h>
 
-#include "InputPluginsLogging.h"
+#include <QLoggingCategory>
+
+Q_DECLARE_LOGGING_CATEGORY(inputplugins)
+Q_LOGGING_CATEGORY(inputplugins, "hifi.inputplugins")
 
 static const unsigned int BUTTON_0 = 1U << 0; // the skinny button between 1 and 2
 static const unsigned int BUTTON_1 = 1U << 5;

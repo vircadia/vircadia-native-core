@@ -352,6 +352,7 @@ bool setupEssentials(int& argc, char** argv) {
     DependencyManager::set<UserInputMapper>();
     DependencyManager::set<controller::ScriptingInterface, ControllerScriptingInterface>();
     DependencyManager::set<InterfaceParentFinder>();
+    DependencyManager::set<EntityTreeRenderer>(true, qApp, qApp);
     return true;
 }
 
@@ -371,7 +372,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
     _frameCount(0),
     _fps(60.0f),
     _physicsEngine(new PhysicsEngine(Vectors::ZERO)),
-    _entities(true, this, this),
     _entityClipboardRenderer(false, this, this),
     _entityClipboard(new EntityTree()),
     _lastQueriedTime(usecTimestampNow()),
@@ -864,7 +864,7 @@ void Application::cleanupBeforeQuit() {
     }
     _keyboardFocusHighlight = nullptr;
 
-    _entities.clear(); // this will allow entity scripts to properly shutdown
+    getEntities()->clear(); // this will allow entity scripts to properly shutdown
 
     auto nodeList = DependencyManager::get<NodeList>();
 
@@ -875,7 +875,7 @@ void Application::cleanupBeforeQuit() {
     // tell the packet receiver we're shutting down, so it can drop packets
     nodeList->getPacketReceiver().setShouldDropPackets(true);
 
-    _entities.shutdown(); // tell the entities system we're shutting down, so it will stop running scripts
+    getEntities()->shutdown(); // tell the entities system we're shutting down, so it will stop running scripts
     ScriptEngine::stopAllScripts(this); // stop all currently running global scripts
 
     // first stop all timers directly or by invokeMethod
@@ -921,7 +921,7 @@ void Application::emptyLocalCache() {
 }
 
 Application::~Application() {
-    EntityTreePointer tree = _entities.getTree();
+    EntityTreePointer tree = getEntities()->getTree();
     tree->setSimulation(NULL);
 
     _octreeProcessor.terminate();
@@ -1976,7 +1976,7 @@ void Application::mouseMoveEvent(QMouseEvent* event, unsigned int deviceID) {
         event->buttons(), event->modifiers());
 
 
-    _entities.mouseMoveEvent(&mappedEvent, deviceID);
+    getEntities()->mouseMoveEvent(&mappedEvent, deviceID);
     _controllerScriptingInterface->emitMouseMoveEvent(&mappedEvent, deviceID); // send events to any registered scripts
 
     // if one of our scripts have asked to capture this event, then stop processing it
@@ -2002,7 +2002,7 @@ void Application::mousePressEvent(QMouseEvent* event, unsigned int deviceID) {
         event->buttons(), event->modifiers());
 
     if (!_aboutToQuit) {
-        _entities.mousePressEvent(&mappedEvent, deviceID);
+        getEntities()->mousePressEvent(&mappedEvent, deviceID);
     }
 
     _controllerScriptingInterface->emitMousePressEvent(&mappedEvent); // send events to any registered scripts
@@ -2047,7 +2047,7 @@ void Application::mouseReleaseEvent(QMouseEvent* event, unsigned int deviceID) {
         event->buttons(), event->modifiers());
 
     if (!_aboutToQuit) {
-        _entities.mouseReleaseEvent(&mappedEvent, deviceID);
+        getEntities()->mouseReleaseEvent(&mappedEvent, deviceID);
     }
 
     _controllerScriptingInterface->emitMouseReleaseEvent(&mappedEvent); // send events to any registered scripts
@@ -2370,7 +2370,7 @@ void Application::calibrateEyeTracker5Points() {
 bool Application::exportEntities(const QString& filename, const QVector<EntityItemID>& entityIDs) {
     QVector<EntityItemPointer> entities;
 
-    auto entityTree = _entities.getTree();
+    auto entityTree = getEntities()->getTree();
     auto exportTree = std::make_shared<EntityTree>();
     exportTree->createRootElement();
 
@@ -2414,7 +2414,7 @@ bool Application::exportEntities(const QString& filename, const QVector<EntityIt
 
 bool Application::exportEntities(const QString& filename, float x, float y, float z, float scale) {
     QVector<EntityItemPointer> entities;
-    _entities.getTree()->findEntities(AACube(glm::vec3(x, y, z), scale), entities);
+    getEntities()->getTree()->findEntities(AACube(glm::vec3(x, y, z), scale), entities);
 
     if (entities.size() > 0) {
         glm::vec3 root(x, y, z);
@@ -2482,7 +2482,7 @@ bool Application::importEntities(const QString& urlOrFilename) {
 }
 
 QVector<EntityItemID> Application::pasteEntities(float x, float y, float z) {
-    return _entityClipboard->sendEntities(&_entityEditSender, _entities.getTree(), x, y, z);
+    return _entityClipboard->sendEntities(&_entityEditSender, getEntities()->getTree(), x, y, z);
 }
 
 void Application::initDisplay() {
@@ -2521,13 +2521,13 @@ void Application::init() {
     // fire off an immediate domain-server check in now that settings are loaded
     DependencyManager::get<NodeList>()->sendDomainServerCheckIn();
 
-    _entities.init();
-    _entities.setViewFrustum(getViewFrustum());
+    getEntities()->init();
+    getEntities()->setViewFrustum(getViewFrustum());
 
     ObjectMotionState::setShapeManager(&_shapeManager);
     _physicsEngine->init();
 
-    EntityTreePointer tree = _entities.getTree();
+    EntityTreePointer tree = getEntities()->getTree();
     _entitySimulation.init(tree, _physicsEngine, &_entityEditSender);
     tree->setSimulation(&_entitySimulation);
 
@@ -2535,11 +2535,11 @@ void Application::init() {
 
     // connect the _entityCollisionSystem to our EntityTreeRenderer since that's what handles running entity scripts
     connect(&_entitySimulation, &EntitySimulation::entityCollisionWithEntity,
-            &_entities, &EntityTreeRenderer::entityCollisionWithEntity);
+            getEntities(), &EntityTreeRenderer::entityCollisionWithEntity);
 
     // connect the _entities (EntityTreeRenderer) to our script engine's EntityScriptingInterface for firing
     // of events related clicking, hovering over, and entering entities
-    _entities.connectSignalsToSlots(entityScriptingInterface.data());
+    getEntities()->connectSignalsToSlots(entityScriptingInterface.data());
 
     _entityClipboardRenderer.init();
     _entityClipboardRenderer.setViewFrustum(getViewFrustum());
@@ -2888,19 +2888,19 @@ void Application::update(float deltaTime) {
 
     _avatarUpdate->synchronousProcess();
 
-    if (true || _physicsEnabled) {
+    if (_physicsEnabled) {
         PerformanceTimer perfTimer("physics");
 
         static VectorOfMotionStates motionStates;
         _entitySimulation.getObjectsToDelete(motionStates);
         _physicsEngine->deleteObjects(motionStates);
 
-        _entities.getTree()->withWriteLock([&] {
+        getEntities()->getTree()->withWriteLock([&] {
             _entitySimulation.getObjectsToAdd(motionStates);
             _physicsEngine->addObjects(motionStates);
 
         });
-        _entities.getTree()->withWriteLock([&] {
+        getEntities()->getTree()->withWriteLock([&] {
             _entitySimulation.getObjectsToChange(motionStates);
             VectorOfMotionStates stillNeedChange = _physicsEngine->changeObjects(motionStates);
             _entitySimulation.setObjectsToChange(stillNeedChange);
@@ -2918,12 +2918,12 @@ void Application::update(float deltaTime) {
 
         myAvatar->prepareForPhysicsSimulation();
 
-        _entities.getTree()->withWriteLock([&] {
+        getEntities()->getTree()->withWriteLock([&] {
             _physicsEngine->stepSimulation();
         });
 
         if (_physicsEngine->hasOutgoingChanges()) {
-            _entities.getTree()->withWriteLock([&] {
+            getEntities()->getTree()->withWriteLock([&] {
                 _entitySimulation.handleOutgoingChanges(_physicsEngine->getOutgoingChanges(), _physicsEngine->getSessionID());
                 avatarManager->handleOutgoingChanges(_physicsEngine->getOutgoingChanges());
             });
@@ -2938,12 +2938,13 @@ void Application::update(float deltaTime) {
                 // Collision events (and their scripts) must not be handled when we're locked, above. (That would risk
                 // deadlock.)
                 _entitySimulation.handleCollisionEvents(collisionEvents);
-                // NOTE: the _entities.update() call below will wait for lock
+                // NOTE: the getEntities()->update() call below will wait for lock
                 // and will simulate entity motion (the EntityTree has been given an EntitySimulation).
-                _entities.update(); // update the models...
+                getEntities()->update(); // update the models...
             }
 
             myAvatar->harvestResultsFromPhysicsSimulation();
+            myAvatar->simulateAttachments(deltaTime);
         }
     }
 
@@ -3236,6 +3237,7 @@ void Application::queryOctree(NodeType_t serverType, PacketType packetType, Node
 bool Application::isHMDMode() const {
     return getActiveDisplayPlugin()->isHmd();
 }
+float Application::getTargetFrameRate() { return getActiveDisplayPlugin()->getTargetFrameRate(); }
 
 QRect Application::getDesirableApplicationGeometry() {
     QRect applicationGeometry = getWindow()->geometry();
@@ -3762,7 +3764,7 @@ void Application::clearDomainOctreeDetails() {
     });
 
     // reset the model renderer
-    _entities.clear();
+    getEntities()->clear();
 }
 
 void Application::domainChanged(const QString& domainHostname) {
@@ -3884,7 +3886,7 @@ bool Application::nearbyEntitiesAreReadyForPhysics() {
     // Someone logs in close to the table.  They receive information about the items on the table before they
     // receive information about the table.  The items are very close to the avatar's capsule, so they become
     // activated in bullet.  This causes them to fall to the floor, because the table's shape isn't yet in bullet.
-    EntityTreePointer entityTree = _entities.getTree();
+    EntityTreePointer entityTree = getEntities()->getTree();
     if (!entityTree) {
         return false;
     }
@@ -3897,6 +3899,9 @@ bool Application::nearbyEntitiesAreReadyForPhysics() {
 
     foreach (EntityItemPointer entity, entities) {
         if (!entity->isReadyToComputeShape()) {
+            static QString repeatedMessage =
+                LogHandler::getInstance().addRepeatedMessageRegex("Physics disabled until entity loads: .*");
+            qCDebug(interfaceapp) << "Physics disabled until entity loads: " << entity->getID() << entity->getName();
             return false;
         }
     }
@@ -3948,11 +3953,21 @@ int Application::processOctreeStats(ReceivedMessage& message, SharedNodePointer 
         });
     });
 
-    if (!_physicsEnabled && nearbyEntitiesAreReadyForPhysics()) {
-        // These stats packets are sent in between full sends of a scene.
-        // We keep physics disabled until we've recieved a full scene and everything near the avatar in that
-        // scene is ready to compute its collision shape.
-        _physicsEnabled = true;
+    if (!_physicsEnabled) {
+        if (nearbyEntitiesAreReadyForPhysics()) {
+            // These stats packets are sent in between full sends of a scene.
+            // We keep physics disabled until we've recieved a full scene and everything near the avatar in that
+            // scene is ready to compute its collision shape.
+            _physicsEnabled = true;
+            getMyAvatar()->updateMotionBehaviorFromMenu();
+        } else {
+            auto characterController = getMyAvatar()->getCharacterController();
+            if (characterController) {
+                // if we have a character controller, disable it here so the avatar doesn't get stuck due to
+                // a non-loading collision hull.
+                characterController->setEnabled(false);
+            }
+        }
     }
 
     return statsMessageLength;
@@ -4015,7 +4030,7 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEngine* scri
     // we can use the same ones from the application.
     auto entityScriptingInterface = DependencyManager::get<EntityScriptingInterface>();
     entityScriptingInterface->setPacketSender(&_entityEditSender);
-    entityScriptingInterface->setEntityTree(_entities.getTree());
+    entityScriptingInterface->setEntityTree(getEntities()->getTree());
 
     // AvatarManager has some custom types
     AvatarManager::registerMetaTypes(scriptEngine);
@@ -4036,7 +4051,7 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEngine* scri
     scriptEngine->registerGlobalObject("Clipboard", clipboardScriptable);
     connect(scriptEngine, SIGNAL(finished(const QString&)), clipboardScriptable, SLOT(deleteLater()));
 
-    connect(scriptEngine, SIGNAL(finished(const QString&)), this, SLOT(scriptFinished(const QString&)));
+    connect(scriptEngine, &ScriptEngine::finished, this, &Application::scriptFinished, Qt::DirectConnection);
 
     connect(scriptEngine, SIGNAL(loadScript(const QString&, bool)), this, SLOT(loadScript(const QString&, bool)));
     connect(scriptEngine, SIGNAL(reloadScript(const QString&, bool)), this, SLOT(reloadScript(const QString&, bool)));
@@ -4282,10 +4297,13 @@ ScriptEngine* Application::loadScript(const QString& scriptFilename, bool isUser
 
     QUrl scriptUrl(scriptFilename);
     const QString& scriptURLString = scriptUrl.toString();
-    if (_scriptEnginesHash.contains(scriptURLString) && loadScriptFromEditor
-        && !_scriptEnginesHash[scriptURLString]->isFinished()) {
+    {
+        QReadLocker lock(&_scriptEnginesHashLock);
+        if (_scriptEnginesHash.contains(scriptURLString) && loadScriptFromEditor
+            && !_scriptEnginesHash[scriptURLString]->isFinished()) {
 
-        return _scriptEnginesHash[scriptURLString];
+            return _scriptEnginesHash[scriptURLString];
+        }
     }
 
     ScriptEngine* scriptEngine = new ScriptEngine(NO_SCRIPT, "", &_controllerScriptingInterface);
@@ -4325,7 +4343,11 @@ void Application::reloadScript(const QString& scriptName, bool isUserLoaded) {
 void Application::handleScriptEngineLoaded(const QString& scriptFilename) {
     ScriptEngine* scriptEngine = qobject_cast<ScriptEngine*>(sender());
 
-    _scriptEnginesHash.insertMulti(scriptFilename, scriptEngine);
+    {
+        QWriteLocker lock(&_scriptEnginesHashLock);
+        _scriptEnginesHash.insertMulti(scriptFilename, scriptEngine);
+    }
+
     _runningScriptsWidget->setRunningScripts(getRunningScripts());
     UserActivityLogger::getInstance().loadedScript(scriptFilename);
 
@@ -4340,55 +4362,88 @@ void Application::handleScriptLoadError(const QString& scriptFilename) {
     QMessageBox::warning(getWindow(), "Error Loading Script", scriptFilename + " failed to load.");
 }
 
-void Application::scriptFinished(const QString& scriptName) {
-    const QString& scriptURLString = QUrl(scriptName).toString();
-    QHash<QString, ScriptEngine*>::iterator it = _scriptEnginesHash.find(scriptURLString);
-    if (it != _scriptEnginesHash.end()) {
-        _scriptEnginesHash.erase(it);
-        _runningScriptsWidget->scriptStopped(scriptName);
-        _runningScriptsWidget->setRunningScripts(getRunningScripts());
+QStringList Application::getRunningScripts() {
+    QReadLocker lock(&_scriptEnginesHashLock);
+    return _scriptEnginesHash.keys();
+}
+
+ScriptEngine* Application::getScriptEngine(const QString& scriptHash) {
+    QReadLocker lock(&_scriptEnginesHashLock);
+    return _scriptEnginesHash.value(scriptHash, nullptr);
+}
+
+void Application::scriptFinished(const QString& scriptName, ScriptEngine* engine) {
+    bool removed = false;
+    {
+        QWriteLocker lock(&_scriptEnginesHashLock);
+        const QString& scriptURLString = QUrl(scriptName).toString();
+        for (auto it = _scriptEnginesHash.find(scriptURLString); it != _scriptEnginesHash.end(); ++it) {
+            if (it.value() == engine) {
+                _scriptEnginesHash.erase(it);
+                removed = true;
+                break;
+            }
+        }
+    }
+    if (removed) {
+        postLambdaEvent([this, scriptName]() {
+            _runningScriptsWidget->scriptStopped(scriptName);
+            _runningScriptsWidget->setRunningScripts(getRunningScripts());
+        });
     }
 }
 
 void Application::stopAllScripts(bool restart) {
-    if (restart) {
-        // Delete all running scripts from cache so that they are re-downloaded when they are restarted
-        auto scriptCache = DependencyManager::get<ScriptCache>();
-        for (QHash<QString, ScriptEngine*>::const_iterator it = _scriptEnginesHash.constBegin();
+    {
+        QReadLocker lock(&_scriptEnginesHashLock);
+
+        if (restart) {
+            // Delete all running scripts from cache so that they are re-downloaded when they are restarted
+            auto scriptCache = DependencyManager::get<ScriptCache>();
+            for (QHash<QString, ScriptEngine*>::const_iterator it = _scriptEnginesHash.constBegin();
             it != _scriptEnginesHash.constEnd(); it++) {
-            if (!it.value()->isFinished()) {
-                scriptCache->deleteScript(it.key());
+                if (!it.value()->isFinished()) {
+                    scriptCache->deleteScript(it.key());
+                }
             }
         }
-    }
 
-    // Stop and possibly restart all currently running scripts
-    for (QHash<QString, ScriptEngine*>::const_iterator it = _scriptEnginesHash.constBegin();
-            it != _scriptEnginesHash.constEnd(); it++) {
-        if (it.value()->isFinished()) {
-            continue;
+        // Stop and possibly restart all currently running scripts
+        for (QHash<QString, ScriptEngine*>::const_iterator it = _scriptEnginesHash.constBegin();
+                it != _scriptEnginesHash.constEnd(); it++) {
+            if (it.value()->isFinished()) {
+                continue;
+            }
+            if (restart && it.value()->isUserLoaded()) {
+                connect(it.value(), &ScriptEngine::finished, this, [this](QString scriptName, ScriptEngine* engine) {
+                    reloadScript(scriptName);
+                });
+            }
+            QMetaObject::invokeMethod(it.value(), "stop");
+            //it.value()->stop();
+            qCDebug(interfaceapp) << "stopping script..." << it.key();
         }
-        if (restart && it.value()->isUserLoaded()) {
-            connect(it.value(), SIGNAL(finished(const QString&)), SLOT(reloadScript(const QString&)));
-        }
-        it.value()->stop();
-        qCDebug(interfaceapp) << "stopping script..." << it.key();
     }
     getMyAvatar()->clearScriptableSettings();
 }
 
 bool Application::stopScript(const QString& scriptHash, bool restart) {
     bool stoppedScript = false;
-    if (_scriptEnginesHash.contains(scriptHash)) {
-        ScriptEngine* scriptEngine = _scriptEnginesHash[scriptHash];
-        if (restart) {
-            auto scriptCache = DependencyManager::get<ScriptCache>();
-            scriptCache->deleteScript(QUrl(scriptHash));
-            connect(scriptEngine, SIGNAL(finished(const QString&)), SLOT(reloadScript(const QString&)));
+    {
+        QReadLocker lock(&_scriptEnginesHashLock);
+        if (_scriptEnginesHash.contains(scriptHash)) {
+            ScriptEngine* scriptEngine = _scriptEnginesHash[scriptHash];
+            if (restart) {
+                auto scriptCache = DependencyManager::get<ScriptCache>();
+                scriptCache->deleteScript(QUrl(scriptHash));
+                connect(scriptEngine, &ScriptEngine::finished, this, [this](QString scriptName, ScriptEngine* engine) {
+                    reloadScript(scriptName);
+                });
+            }
+            scriptEngine->stop();
+            stoppedScript = true;
+            qCDebug(interfaceapp) << "stopping script..." << scriptHash;
         }
-        scriptEngine->stop();
-        stoppedScript = true;
-        qCDebug(interfaceapp) << "stopping script..." << scriptHash;
     }
     if (_scriptEnginesHash.empty()) {
         getMyAvatar()->clearScriptableSettings();
@@ -4407,6 +4462,7 @@ void Application::reloadOneScript(const QString& scriptName) {
 }
 
 void Application::loadDefaultScripts() {
+    QReadLocker lock(&_scriptEnginesHashLock);
     if (!_scriptEnginesHash.contains(DEFAULT_SCRIPTS_JS_URL)) {
         loadScript(DEFAULT_SCRIPTS_JS_URL);
     }

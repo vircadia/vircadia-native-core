@@ -35,12 +35,13 @@ public:
     AABox(const glm::vec3& corner, const glm::vec3& dimensions);
     AABox();
     ~AABox() {};
-
+    
     void setBox(const glm::vec3& corner, const glm::vec3& scale);
 
     void setBox(const glm::vec3& corner, float scale);
     glm::vec3 getVertexP(const glm::vec3& normal) const;
     glm::vec3 getVertexN(const glm::vec3& normal) const;
+
     const glm::vec3& getCorner() const { return _corner; }
     const glm::vec3& getScale() const { return _scale; }
     const glm::vec3& getDimensions() const { return _scale; }

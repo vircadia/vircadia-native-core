@@ -20,9 +20,6 @@
 #include "Application.h"
 #include "devices/MotionTracker.h"
 
-// TODO: this needs to be removed, as well as any related controller-specific information
-#include <input-plugins/SixenseManager.h>
-
 void ControllerScriptingInterface::handleMetaEvent(HFMetaEvent* event) {
     if (event->type() == HFActionEvent::startType()) {
         emit actionStartEvent(static_cast<HFActionEvent&>(*event));

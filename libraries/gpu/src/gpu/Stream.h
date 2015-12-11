@@ -50,7 +50,7 @@ public:
     // Frequency describer
     enum Frequency {
         PER_VERTEX = 0,
-        PER_INSTANCE,
+        PER_INSTANCE = 1,
     };
 
     // The attribute description
@@ -125,10 +125,7 @@ typedef std::vector< Offset > Offsets;
 // A Buffer Stream can be assigned to the Batch to set several stream channels in one call
 class BufferStream {
 public:
-    typedef Offsets Strides;
-
-    BufferStream();
-    ~BufferStream();
+    using Strides = Offsets;
 
     void clear() { _buffers.clear(); _offsets.clear(); _strides.clear(); }
     void addBuffer(const BufferPointer& buffer, Offset offset, Offset stride);
