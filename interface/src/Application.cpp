@@ -45,7 +45,7 @@
 #include <QtNetwork/QNetworkDiskCache>
 
 #include <gl/Config.h>
-#include <QOpenGLContextWrapper.h>
+#include <gl/QOpenGLContextWrapper.h>
 
 #include <AccountManager.h>
 #include <AddressManager.h>

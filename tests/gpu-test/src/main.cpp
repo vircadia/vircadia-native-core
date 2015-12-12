@@ -33,8 +33,8 @@
 #include <gpu/StandardShaderLib.h>
 #include <gpu/GLBackend.h>
 
-#include <QOpenGLContextWrapper.h>
-#include <QOpenGLDebugLoggerWrapper.h>
+#include <gl/QOpenGLContextWrapper.h>
+#include <gl/QOpenGLDebugLoggerWrapper.h>
 
 #include <GLMHelpers.h>
 #include <PathUtils.h>

@@ -16,7 +16,7 @@
 #include <QtOpenGL/QGLWidget>
 #include <QtGui/QImage>
 
-#include <QOpenGLContextWrapper.h>
+#include <gl/QOpenGLContextWrapper.h>
 
 #include <gl/GLWidget.h>
 #include <NumericalConstants.h>
