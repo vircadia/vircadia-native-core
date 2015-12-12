@@ -74,7 +74,9 @@ var keysToIgnore = [
     'shapeType',
     'isEmitting',
     'sittingPoints',
-    'originalTextures'
+    'originalTextures',
+    'parentJointIndex',
+    'parentID'
 ];
 
 var individualKeys = [];

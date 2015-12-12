@@ -100,6 +100,15 @@ else()
   add_executable(${TARGET_NAME} ${INTERFACE_SRCS} ${QM})
 endif()
 
+# These are external plugins, but we need to do the 'add dependency' here so that their 
+# binary directories get added to the fixup path
+add_dependency_external_projects(sixense)
+add_dependency_external_projects(sdl2)
+if (WIN32)
+    add_dependency_external_projects(OpenVR)
+endif()
+
+
 # disable /OPT:REF and /OPT:ICF for the Debug builds
 # This will prevent the following linker warnings
 # LINK : warning LNK4075: ignoring '/INCREMENTAL' due to '/OPT:ICF' specification
@@ -194,7 +203,6 @@ else (APPLE)
 
   # link target to external libraries
   if (WIN32)
-  #  target_link_libraries(${TARGET_NAME} wsock32.lib Winmm.lib)
     target_link_libraries(${TARGET_NAME} wsock32.lib Winmm.lib)
   else (WIN32)
     # Nothing else required on linux apparently
@@ -202,3 +210,4 @@ else (APPLE)
 endif (APPLE)
 
 package_libraries_for_deployment()
+consolidate_stack_components()

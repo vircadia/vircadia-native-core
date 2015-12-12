@@ -41,7 +41,7 @@ PacketVersion versionForPacketType(PacketType packetType) {
         case PacketType::EntityAdd:
         case PacketType::EntityEdit:
         case PacketType::EntityData:
-            return VERSION_ENTITIES_HAVE_PARENTS;
+            return VERSION_ENTITIES_REMOVED_START_AUTOMATICALLY_FROM_ANIMATION_PROPERTY_GROUP;
         case PacketType::AvatarData:
         case PacketType::BulkAvatarData:
             return 17;

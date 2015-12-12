@@ -69,6 +69,7 @@ public:
 
     void init();
     void simulate(float deltaTime);
+    void simulateAttachments(float deltaTime);
 
     virtual void render(RenderArgs* renderArgs, const glm::vec3& cameraPosition);
 
@@ -87,7 +88,6 @@ public:
     bool isInitialized() const { return _initialized; }
     SkeletonModel& getSkeletonModel() { return _skeletonModel; }
     const SkeletonModel& getSkeletonModel() const { return _skeletonModel; }
-    const QVector<Model*>& getAttachmentModels() const { return _attachmentModels; }
     glm::vec3 getChestPosition() const;
     float getAvatarScale() const { return getScale().y; }
     const Head* getHead() const { return static_cast<const Head*>(_headData); }
@@ -216,8 +216,6 @@ protected:
     virtual void renderBody(RenderArgs* renderArgs, ViewFrustum* renderFrustum, float glowLevel = 0.0f);
     virtual bool shouldRenderHead(const RenderArgs* renderArgs) const;
     virtual void fixupModelsInScene();
-
-    void simulateAttachments(float deltaTime);
 
     virtual void updateJointMappings();
 

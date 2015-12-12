@@ -58,6 +58,7 @@ public:
     float getCameraNearClip() const { return _cameraNearClip; }
     float getCameraFarClip() const { return _cameraFarClip; }
     const glm::vec3& getCameraEyeOffsetPosition() const { return _cameraEyeOffsetPosition; }
+    float getKeyholeRadius() const { return _keyholeRadius; }
 
     glm::vec3 calculateCameraDirection() const;
 
@@ -69,6 +70,7 @@ public:
     void setCameraNearClip(float nearClip) { _cameraNearClip = nearClip; }
     void setCameraFarClip(float farClip) { _cameraFarClip = farClip; }
     void setCameraEyeOffsetPosition(const glm::vec3& eyeOffsetPosition) { _cameraEyeOffsetPosition = eyeOffsetPosition; }
+    void setKeyholeRadius(float keyholeRadius) { _keyholeRadius = keyholeRadius; }
 
     // related to Octree Sending strategies
     int getMaxQueryPacketsPerSecond() const { return _maxQueryPPS; }
@@ -88,6 +90,7 @@ protected:
     float _cameraAspectRatio = 1.0f;
     float _cameraNearClip = 0.0f;
     float _cameraFarClip = 0.0f;
+    float _keyholeRadius { 0.0f };
     glm::vec3 _cameraEyeOffsetPosition = glm::vec3(0.0f);
 
     // octree server sending items

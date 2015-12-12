@@ -112,8 +112,6 @@ public:
         Vec4 _shadow{0.0f};
 
         Vec4 _control{0.0f, 0.0f, 0.0f, 0.0f};
-
-        Schema() {}
     };
 
     const UniformBufferView& getSchemaBuffer() const { return _schemaBuffer; }

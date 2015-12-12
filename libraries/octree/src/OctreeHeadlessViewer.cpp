@@ -56,6 +56,7 @@ void OctreeHeadlessViewer::queryOctree() {
     _octreeQuery.setCameraNearClip(_viewFrustum.getNearClip());
     _octreeQuery.setCameraFarClip(_viewFrustum.getFarClip());
     _octreeQuery.setCameraEyeOffsetPosition(glm::vec3());
+    _octreeQuery.setKeyholeRadius(_viewFrustum.getKeyholeRadius());
 
     _octreeQuery.setOctreeSizeScale(getVoxelSizeScale());
     _octreeQuery.setBoundaryLevelAdjust(getBoundaryLevelAdjust());

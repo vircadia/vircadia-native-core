@@ -15,7 +15,7 @@
 #include "SpatiallyNestable.h"
 
 
-SpatiallyNestable::SpatiallyNestable(NestableTypes::NestableType nestableType, QUuid id) :
+SpatiallyNestable::SpatiallyNestable(NestableType nestableType, QUuid id) :
     _nestableType(nestableType),
     _id(id),
     _transform() {

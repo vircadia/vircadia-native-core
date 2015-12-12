@@ -219,20 +219,27 @@ bool EntityTree::updateEntityWithElement(EntityItemPointer entity, const EntityI
         // if the entity has children, run UpdateEntityOperator on them.  If the children have children, recurse
         QQueue<SpatiallyNestablePointer> toProcess;
         foreach (SpatiallyNestablePointer child, entity->getChildren()) {
-            if (child && child->getNestableType() == NestableTypes::Entity) {
+            if (child && child->getNestableType() == NestableType::Entity) {
                 toProcess.enqueue(child);
             }
         }
 
         while (!toProcess.empty()) {
             EntityItemPointer childEntity = std::static_pointer_cast<EntityItem>(toProcess.dequeue());
+            if (!childEntity) {
+                continue;
+            }
             BoundingBoxRelatedProperties newChildBBRelProperties(childEntity);
+            EntityTreeElementPointer containingElement = childEntity->getElement();
+            if (!containingElement) {
+                continue;
+            }
             UpdateEntityOperator theChildOperator(getThisPointer(),
-                                                  childEntity->getElement(),
+                                                  containingElement,
                                                   childEntity, newChildBBRelProperties);
             recurseTreeWithOperator(&theChildOperator);
             foreach (SpatiallyNestablePointer childChild, childEntity->getChildren()) {
-                if (childChild && childChild->getNestableType() == NestableTypes::Entity) {
+                if (childChild && childChild->getNestableType() == NestableType::Entity) {
                     toProcess.enqueue(childChild);
                 }
             }
@@ -1264,5 +1271,14 @@ void EntityTree::trackIncomingEntityLastEdited(quint64 lastEditedTime, int bytes
         if (sinceEdit > _maxEditDelta) {
             _maxEditDelta = sinceEdit;
         }
+    }
+}
+
+
+void EntityTree::callLoader(EntityItemID entityID) {
+    // this is used to bounce from the networking thread to the main thread
+    EntityItemPointer entity = findEntityByEntityItemID(entityID);
+    if (entity) {
+        entity->loader();
     }
 }

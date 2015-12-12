@@ -324,11 +324,6 @@ void MyAvatar::simulate(float deltaTime) {
     }
 
     {
-        PerformanceTimer perfTimer("attachments");
-        simulateAttachments(deltaTime);
-    }
-
-    {
         PerformanceTimer perfTimer("joints");
         // copy out the skeleton joints from the model
         _rig->copyJointsIntoJointData(_jointData);
@@ -991,6 +986,14 @@ void MyAvatar::setSkeletonModelURL(const QUrl& skeletonModelURL) {
     _headBoneSet.clear();
 }
 
+
+void MyAvatar::resetFullAvatarURL() {
+    auto lastAvatarURL = getFullAvatarURLFromPreferences();
+    auto lastAvatarName = getFullAvatarModelName();
+    useFullAvatarURL(QUrl());
+    useFullAvatarURL(lastAvatarURL, lastAvatarName);
+}
+
 void MyAvatar::useFullAvatarURL(const QUrl& fullAvatarURL, const QString& modelName) {
 
     if (QThread::currentThread() != thread()) {
@@ -1058,7 +1061,7 @@ void MyAvatar::rebuildSkeletonBody() {
 void MyAvatar::prepareForPhysicsSimulation() {
     relayDriveKeysToCharacterController();
     _characterController.setTargetVelocity(getTargetVelocity());
-    _characterController.setAvatarPositionAndOrientation(getPosition(), getOrientation());
+    _characterController.setPositionAndOrientation(getPosition(), getOrientation());
     if (qApp->isHMDMode()) {
         updateHMDFollowVelocity();
     } else if (_followSpeed > 0.0f) {
@@ -1071,7 +1074,7 @@ void MyAvatar::prepareForPhysicsSimulation() {
 void MyAvatar::harvestResultsFromPhysicsSimulation() {
     glm::vec3 position = getPosition();
     glm::quat orientation = getOrientation();
-    _characterController.getAvatarPositionAndOrientation(position, orientation);
+    _characterController.getPositionAndOrientation(position, orientation);
     nextAttitude(position, orientation);
     if (_followSpeed > 0.0f) {
         adjustSensorTransform();

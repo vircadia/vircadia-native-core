@@ -15,17 +15,16 @@ string(TOUPPER ${EXTERNAL_NAME} EXTERNAL_NAME_UPPER)
 # 0.6 public
 #    URL http://static.oculus.com/sdk-downloads/0.6.0.1/Public/1435190862/ovr_sdk_win_0.6.0.1.zip
 #    URL_MD5 4b3ef825f9a1d6d3035c9f6820687da9
-# 0.7 alpha
-#    URL https://s3.amazonaws.com/static.oculus.com/sdk-downloads/0.7.0.0/Public/Alpha/ovr_sdk_win_0.7.0.0_RC1.zip
-#    URL_MD5 a562bb9d117087b2cf9d86653ea70fd8
-
+# 0.8 public
+#    URL http://static.oculus.com/sdk-downloads/0.8.0.0/Public/1445451746/ovr_sdk_win_0.8.0.0.zip
+#    URL_MD5 54944b03b95149d6010f84eb701b9647
 
 if (WIN32)
 
   ExternalProject_Add(
     ${EXTERNAL_NAME}
-    URL http://static.oculus.com/sdk-downloads/0.6.0.1/Public/1435190862/ovr_sdk_win_0.6.0.1.zip
-    URL_MD5 4b3ef825f9a1d6d3035c9f6820687da9
+    URL http://static.oculus.com/sdk-downloads/0.8.0.0/Public/1445451746/ovr_sdk_win_0.8.0.0.zip
+    URL_MD5 54944b03b95149d6010f84eb701b9647
     CONFIGURE_COMMAND ""
     BUILD_COMMAND ""
     INSTALL_COMMAND ""

@@ -288,7 +288,7 @@ public:
 
     quint8 getSimulationPriority() const { return _simulationOwner.getPriority(); }
     QUuid getSimulatorID() const { return _simulationOwner.getID(); }
-    void updateSimulatorID(const QUuid& value);
+    void updateSimulationOwner(const SimulationOwner& owner);
     void clearSimulationOwnership();
 
     const QString& getMarketplaceID() const { return _marketplaceID; }
@@ -381,6 +381,8 @@ public:
     // these are in the frame of this object
     virtual glm::quat getAbsoluteJointRotationInObjectFrame(int index) const override { return glm::quat(); }
     virtual glm::vec3 getAbsoluteJointTranslationInObjectFrame(int index) const override { return glm::vec3(0.0f); }
+
+    virtual void loader() {} // called indirectly when urls for geometry are updated
 
 protected:
 
