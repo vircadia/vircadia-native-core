@@ -95,6 +95,14 @@ void VrMenu::setRootMenu(QObject* rootMenu) {
     _rootMenu = rootMenu;
 }
 
+void updateQmlItemFromAction(QObject* target, QAction* source) {
+    target->setProperty("checkable", source->isCheckable());
+    target->setProperty("enabled", source->isEnabled());
+    target->setProperty("text", source->text());
+    target->setProperty("checked", source->isChecked());
+    target->setProperty("visible", source->isVisible());
+}
+
 void VrMenu::addMenu(QMenu* menu) {
     Q_ASSERT(!MenuUserData::forObject(menu));
     QObject* parent = menu->parent();
@@ -119,14 +127,12 @@ void VrMenu::addMenu(QMenu* menu) {
 
     // Bind the QML and Widget together
     new MenuUserData(menu, result);
-}
+    auto menuAction = menu->menuAction();
+    updateQmlItemFromAction(result, menuAction);
+    QObject::connect(menuAction, &QAction::changed, [=] {
+        updateQmlItemFromAction(result, menuAction);
+    });
 
-void updateQmlItemFromAction(QObject* target, QAction* source) {
-    target->setProperty("checkable", source->isCheckable());
-    target->setProperty("enabled", source->isEnabled());
-    target->setProperty("visible", source->isVisible());
-    target->setProperty("text", source->text());
-    target->setProperty("checked", source->isChecked());
 }
 
 void bindActionToQmlAction(QObject* qmlAction, QAction* action) {

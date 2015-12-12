@@ -68,16 +68,22 @@ Menu::Menu() {
                 dialogsManager.data(), &DialogsManager::toggleLoginDialog);
     }
 
-    addDisabledActionAndSeparator(fileMenu, "Scripts");
+    // File Menu > Scripts section -- "Advanced" grouping
+    addDisabledActionAndSeparator(fileMenu, "Scripts", UNSPECIFIED_POSITION, "Advanced");
     addActionToQMenuAndActionHash(fileMenu, MenuOption::LoadScript, Qt::CTRL | Qt::Key_O,
-                                  qApp, SLOT(loadDialog()));
+                                  qApp, SLOT(loadDialog()),
+                                  QAction::NoRole, UNSPECIFIED_POSITION, "Advanced");
     addActionToQMenuAndActionHash(fileMenu, MenuOption::LoadScriptURL,
-                                    Qt::CTRL | Qt::SHIFT | Qt::Key_O, qApp, SLOT(loadScriptURLDialog()));
-    addActionToQMenuAndActionHash(fileMenu, MenuOption::StopAllScripts, 0, qApp, SLOT(stopAllScripts()));
+                                    Qt::CTRL | Qt::SHIFT | Qt::Key_O, qApp, SLOT(loadScriptURLDialog()),
+                                    QAction::NoRole, UNSPECIFIED_POSITION, "Advanced");
+    addActionToQMenuAndActionHash(fileMenu, MenuOption::StopAllScripts, 0, qApp, SLOT(stopAllScripts()),
+                                  QAction::NoRole, UNSPECIFIED_POSITION, "Advanced");
     addActionToQMenuAndActionHash(fileMenu, MenuOption::ReloadAllScripts, Qt::CTRL | Qt::Key_R,
-                                  qApp, SLOT(reloadAllScripts()));
+                                  qApp, SLOT(reloadAllScripts()),
+                                  QAction::NoRole, UNSPECIFIED_POSITION, "Advanced");
     addActionToQMenuAndActionHash(fileMenu, MenuOption::RunningScripts, Qt::CTRL | Qt::Key_J,
-                                  qApp, SLOT(toggleRunningScriptsWidget()));
+                                  qApp, SLOT(toggleRunningScriptsWidget()),
+                                  QAction::NoRole, UNSPECIFIED_POSITION, "Advanced");
 
     auto addressManager = DependencyManager::get<AddressManager>();
 
@@ -112,9 +118,11 @@ Menu::Menu() {
                                   dialogsManager.data(),
                                   SLOT(toggleAddressBar()));
     addActionToQMenuAndActionHash(fileMenu, MenuOption::CopyAddress, 0,
-                                  addressManager.data(), SLOT(copyAddress()));
+                                  addressManager.data(), SLOT(copyAddress()),
+                                  QAction::NoRole, UNSPECIFIED_POSITION, "Advanced");
     addActionToQMenuAndActionHash(fileMenu, MenuOption::CopyPath, 0,
-                                  addressManager.data(), SLOT(copyPath()));
+                                  addressManager.data(), SLOT(copyPath()),
+                                  QAction::NoRole, UNSPECIFIED_POSITION, "Advanced");
 
     addActionToQMenuAndActionHash(fileMenu,
                                   MenuOption::Quit,
@@ -143,11 +151,13 @@ Menu::Menu() {
                                   QAction::PreferencesRole);
 
     addActionToQMenuAndActionHash(editMenu, MenuOption::Attachments, 0,
-                                  dialogsManager.data(), SLOT(editAttachments()));
+                                  dialogsManager.data(), SLOT(editAttachments()),
+                                  QAction::NoRole, UNSPECIFIED_POSITION, "Advanced");
 
     MenuWrapper* toolsMenu = addMenu("Tools");
     addActionToQMenuAndActionHash(toolsMenu, MenuOption::ScriptEditor,  Qt::ALT | Qt::Key_S,
-                                  dialogsManager.data(), SLOT(showScriptEditor()));
+                                  dialogsManager.data(), SLOT(showScriptEditor()),
+                                  QAction::NoRole, UNSPECIFIED_POSITION, "Advanced");
 
 #if defined(Q_OS_MAC) || defined(Q_OS_WIN)
     auto speechRecognizer = DependencyManager::get<SpeechRecognizer>();
@@ -155,13 +165,16 @@ Menu::Menu() {
                                                                              Qt::CTRL | Qt::SHIFT | Qt::Key_C,
                                                                              speechRecognizer->getEnabled(),
                                                                              speechRecognizer.data(),
-                                                                             SLOT(setEnabled(bool)));
+                                                                             SLOT(setEnabled(bool)),
+                                                                             UNSPECIFIED_POSITION, "Advanced");
     connect(speechRecognizer.data(), SIGNAL(enabledUpdated(bool)), speechRecognizerAction, SLOT(setChecked(bool)));
 #endif
 
     addActionToQMenuAndActionHash(toolsMenu, MenuOption::Chat,
                                   0, // QML Qt::Key_Backslash,
-                                  dialogsManager.data(), SLOT(showIRCLink()));
+                                  dialogsManager.data(), SLOT(showIRCLink()),
+                                  QAction::NoRole, UNSPECIFIED_POSITION, "Advanced");
+
     addActionToQMenuAndActionHash(toolsMenu, MenuOption::AddRemoveFriends, 0,
                                   qApp, SLOT(showFriendsWindow()));
 
@@ -193,22 +206,26 @@ Menu::Menu() {
                                   MenuOption::ToolWindow,
                                   Qt::CTRL | Qt::ALT | Qt::Key_T,
                                   dialogsManager.data(),
-                                  SLOT(toggleToolWindow()));
+                                  SLOT(toggleToolWindow()),
+                                  QAction::NoRole, UNSPECIFIED_POSITION, "Advanced");
 
     addActionToQMenuAndActionHash(toolsMenu,
                                   MenuOption::Console,
                                   Qt::CTRL | Qt::ALT | Qt::Key_J,
                                   DependencyManager::get<StandAloneJSConsole>().data(),
-                                  SLOT(toggleConsole()));
+                                  SLOT(toggleConsole()),
+                                  QAction::NoRole, UNSPECIFIED_POSITION, "Advanced");
 
     addActionToQMenuAndActionHash(toolsMenu,
                                   MenuOption::ResetSensors,
                                   0, // QML Qt::Key_Apostrophe,
                                   qApp,
-                                  SLOT(resetSensors()));
+                                  SLOT(resetSensors()),
+                                  QAction::NoRole, UNSPECIFIED_POSITION, "Advanced");
 
     addActionToQMenuAndActionHash(toolsMenu, MenuOption::PackageModel, 0,
-                                  qApp, SLOT(packageModel()));
+                                  qApp, SLOT(packageModel()),
+                                  QAction::NoRole, UNSPECIFIED_POSITION, "Advanced");
 
     addMenu(DisplayPlugin::MENU_PATH());
     {
@@ -220,7 +237,7 @@ Menu::Menu() {
     MenuWrapper* avatarMenu = addMenu("Avatar");
     QObject* avatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
 
-    MenuWrapper* inputModeMenu = addMenu(MenuOption::InputMenu);
+    MenuWrapper* inputModeMenu = addMenu(MenuOption::InputMenu, "Advanced");
     QActionGroup* inputModeGroup = new QActionGroup(inputModeMenu);
     inputModeGroup->setExclusive(false);
     
@@ -241,17 +258,15 @@ Menu::Menu() {
                                   avatar,
                                   SLOT(resetSize()));
 
-    addCheckableActionToQMenuAndActionHash(avatarMenu, MenuOption::KeyboardMotorControl,
-            Qt::CTRL | Qt::SHIFT | Qt::Key_K, true, avatar, SLOT(updateMotionBehaviorFromMenu()));
-    addCheckableActionToQMenuAndActionHash(avatarMenu, MenuOption::ScriptedMotorControl, 0, true,
-            avatar, SLOT(updateMotionBehaviorFromMenu()));
-    addCheckableActionToQMenuAndActionHash(avatarMenu, MenuOption::NamesAboveHeads, 0, true);
-    addCheckableActionToQMenuAndActionHash(avatarMenu, MenuOption::BlueSpeechSphere, 0, true);
-    addCheckableActionToQMenuAndActionHash(avatarMenu, MenuOption::EnableCharacterController, 0, true,
-            avatar, SLOT(updateMotionBehaviorFromMenu()));
+    addCheckableActionToQMenuAndActionHash(avatarMenu, MenuOption::NamesAboveHeads, 0, true, 
+                NULL, NULL, UNSPECIFIED_POSITION, "Advanced");
+
+    addCheckableActionToQMenuAndActionHash(avatarMenu, MenuOption::BlueSpeechSphere, 0, true,
+                NULL, NULL, UNSPECIFIED_POSITION, "Advanced");
 
     MenuWrapper* viewMenu = addMenu("View");
-    addActionToQMenuAndActionHash(viewMenu, MenuOption::ReloadContent, 0, qApp, SLOT(reloadResourceCaches()));
+    addActionToQMenuAndActionHash(viewMenu, MenuOption::ReloadContent, 0, qApp, SLOT(reloadResourceCaches()), 
+                QAction::NoRole, UNSPECIFIED_POSITION, "Advanced");
 
     MenuWrapper* cameraModeMenu = viewMenu->addMenu("Camera Mode");
     QActionGroup* cameraModeGroup = new QActionGroup(cameraModeMenu);
@@ -275,30 +290,29 @@ Menu::Menu() {
     addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::Mirror,
         0, //QML Qt::SHIFT | Qt::Key_H,
         true);
-    addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::FullscreenMirror,
-        0, // QML Qt::Key_H,
-        false, qApp, SLOT(cameraMenuChanged()));
     
     addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::CenterPlayerInView,
-                                           0, false, qApp, SLOT(rotationModeChanged()));
+                                           0, false, qApp, SLOT(rotationModeChanged()),
+                                           UNSPECIFIED_POSITION, "Advanced");
 
-    addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::TurnWithHead, 0, false);
-
-    addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::WorldAxes);
-
-    addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::Stats);
+    addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::WorldAxes, 0, false, NULL, NULL, UNSPECIFIED_POSITION, "Developer");
+    addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::Stats, 0, false, NULL, NULL, UNSPECIFIED_POSITION, "Developer");
     addActionToQMenuAndActionHash(viewMenu, MenuOption::Log,
-        Qt::CTRL | Qt::SHIFT | Qt::Key_L,
-        qApp, SLOT(toggleLogDialog()));
+                Qt::CTRL | Qt::SHIFT | Qt::Key_L, 
+                qApp, SLOT(toggleLogDialog()), QAction::NoRole, UNSPECIFIED_POSITION, "Developer");
+
     addActionToQMenuAndActionHash(viewMenu, MenuOption::AudioNetworkStats, 0,
-                                  dialogsManager.data(), SLOT(audioStatsDetails()));
+                dialogsManager.data(), SLOT(audioStatsDetails()), QAction::NoRole, UNSPECIFIED_POSITION, "Developer");
+
     addActionToQMenuAndActionHash(viewMenu, MenuOption::BandwidthDetails, 0,
-                                  dialogsManager.data(), SLOT(bandwidthDetails()));
+                dialogsManager.data(), SLOT(bandwidthDetails()), QAction::NoRole, UNSPECIFIED_POSITION, "Developer");
     addActionToQMenuAndActionHash(viewMenu, MenuOption::OctreeStats, 0,
-                                  dialogsManager.data(), SLOT(octreeStatsDetails()));
+                dialogsManager.data(), SLOT(octreeStatsDetails()), QAction::NoRole, UNSPECIFIED_POSITION, "Developer");
 
+    addCheckableActionToQMenuAndActionHash(viewMenu, "Advanced Menus", 0, false, this, SLOT(toggleAdvancedMenus()));
+    addCheckableActionToQMenuAndActionHash(viewMenu, "Developer Menus", 0, false, this, SLOT(toggleDeveloperMenus()));
 
-    MenuWrapper* developerMenu = addMenu("Developer");
+    MenuWrapper* developerMenu = addMenu("Developer", "Developer");
 
     MenuWrapper* renderOptionsMenu = developerMenu->addMenu("Render");
     addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::Atmosphere,
@@ -447,8 +461,22 @@ Menu::Menu() {
     addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::MeshVisible, 0, true,
                                            avatar, SLOT(setEnableMeshVisible(bool)));
     addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::DisableEyelidAdjustment, 0, false);
-
+    addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::TurnWithHead, 0, false);
     addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::ComfortMode, 0, true);
+
+    addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::KeyboardMotorControl,
+        Qt::CTRL | Qt::SHIFT | Qt::Key_K, true, avatar, SLOT(updateMotionBehaviorFromMenu()),
+        UNSPECIFIED_POSITION, "Developer");
+
+    addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::ScriptedMotorControl, 0, true,
+        avatar, SLOT(updateMotionBehaviorFromMenu()),
+        UNSPECIFIED_POSITION, "Developer");
+
+    addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::EnableCharacterController, 0, true,
+        avatar, SLOT(updateMotionBehaviorFromMenu()),
+        UNSPECIFIED_POSITION, "Developer");
+
+
 
     MenuWrapper* handOptionsMenu = developerMenu->addMenu("Hands");
     addCheckableActionToQMenuAndActionHash(handOptionsMenu, MenuOption::DisplayHandTargets, 0, false);
@@ -573,6 +601,14 @@ Menu::Menu() {
 #endif
 }
 
+void Menu::toggleAdvancedMenus() {
+    setGroupingIsVisible("Advanced", !getGroupingIsVisible("Advanced"));
+}
+
+void Menu::toggleDeveloperMenus() {
+    setGroupingIsVisible("Developer", !getGroupingIsVisible("Developer"));
+}
+
 void Menu::loadSettings() {
     scanMenuBar(&Menu::loadAction);
 }
@@ -610,23 +646,36 @@ void Menu::scanMenu(QMenu& menu, settingsAction modifySetting, Settings& setting
     settings.endGroup();
 }
 
-void Menu::addDisabledActionAndSeparator(MenuWrapper* destinationMenu, const QString& actionName, int menuItemLocation) {
+void Menu::addDisabledActionAndSeparator(MenuWrapper* destinationMenu, const QString& actionName, 
+                                            int menuItemLocation, const QString& grouping) {
     QAction* actionBefore = NULL;
+    QAction* separator;
+    QAction* separatorText;
+
     if (menuItemLocation >= 0 && destinationMenu->actions().size() > menuItemLocation) {
         actionBefore = destinationMenu->actions()[menuItemLocation];
     }
     if (actionBefore) {
-        QAction* separator = new QAction("",destinationMenu);
+        separator = new QAction("",destinationMenu);
         destinationMenu->insertAction(actionBefore, separator);
         separator->setSeparator(true);
 
-        QAction* separatorText = new QAction(actionName,destinationMenu);
+        separatorText = new QAction(actionName,destinationMenu);
         separatorText->setEnabled(false);
         destinationMenu->insertAction(actionBefore, separatorText);
 
     } else {
-        destinationMenu->addSeparator();
-        (destinationMenu->addAction(actionName))->setEnabled(false);
+        separator = destinationMenu->addSeparator();
+        separatorText = destinationMenu->addAction(actionName);
+        separatorText->setEnabled(false);
+    }
+
+    if (isValidGrouping(grouping)) {
+        _groupingActions[grouping] << separator;
+        _groupingActions[grouping] << separatorText;
+        bool isVisible = getGroupingIsVisible(grouping);
+        separator->setVisible(isVisible);
+        separatorText->setVisible(isVisible);
     }
 }
 
@@ -636,7 +685,8 @@ QAction* Menu::addActionToQMenuAndActionHash(MenuWrapper* destinationMenu,
                                              const QObject* receiver,
                                              const char* member,
                                              QAction::MenuRole role,
-                                             int menuItemLocation) {
+                                             int menuItemLocation, 
+                                             const QString& grouping) {
     QAction* action = NULL;
     QAction* actionBefore = NULL;
 
@@ -664,6 +714,11 @@ QAction* Menu::addActionToQMenuAndActionHash(MenuWrapper* destinationMenu,
 
     _actionHash.insert(actionName, action);
 
+    if (isValidGrouping(grouping)) {
+        _groupingActions[grouping] << action;
+        action->setVisible(getGroupingIsVisible(grouping));
+    }
+
     return action;
 }
 
@@ -672,7 +727,8 @@ QAction* Menu::addActionToQMenuAndActionHash(MenuWrapper* destinationMenu,
                                              const QString& actionName,
                                              const QKeySequence& shortcut,
                                              QAction::MenuRole role,
-                                             int menuItemLocation) {
+                                             int menuItemLocation, 
+                                             const QString& grouping) {
     QAction* actionBefore = NULL;
 
     if (menuItemLocation >= 0 && destinationMenu->actions().size() > menuItemLocation) {
@@ -699,6 +755,11 @@ QAction* Menu::addActionToQMenuAndActionHash(MenuWrapper* destinationMenu,
 
     _actionHash.insert(action->text(), action);
 
+    if (isValidGrouping(grouping)) {
+        _groupingActions[grouping] << action;
+        action->setVisible(getGroupingIsVisible(grouping));
+    }
+
     return action;
 }
 
@@ -708,19 +769,29 @@ QAction* Menu::addCheckableActionToQMenuAndActionHash(MenuWrapper* destinationMe
                                                       const bool checked,
                                                       const QObject* receiver,
                                                       const char* member,
-                                                      int menuItemLocation) {
+                                                      int menuItemLocation, 
+                                                      const QString& grouping) {
 
     QAction* action = addActionToQMenuAndActionHash(destinationMenu, actionName, shortcut, receiver, member,
                                                         QAction::NoRole, menuItemLocation);
     action->setCheckable(true);
     action->setChecked(checked);
 
+    if (isValidGrouping(grouping)) {
+        _groupingActions[grouping] << action;
+        action->setVisible(getGroupingIsVisible(grouping));
+    }
+
     return action;
 }
 
 void Menu::removeAction(MenuWrapper* menu, const QString& actionName) {
-    menu->removeAction(_actionHash.value(actionName));
+    auto action = _actionHash.value(actionName);
+    menu->removeAction(action);
     _actionHash.remove(actionName);
+    for (auto& grouping : _groupingActions) {
+        grouping.remove(action);
+    }
 }
 
 void Menu::setIsOptionChecked(const QString& menuOption, bool isChecked) {
@@ -850,7 +921,7 @@ int Menu::positionBeforeSeparatorIfNeeded(MenuWrapper* menu, int requestedPositi
 }
 
 
-MenuWrapper* Menu::addMenu(const QString& menuName) {
+MenuWrapper* Menu::addMenu(const QString& menuName, const QString& grouping) {
     QStringList menuTree = menuName.split(">");
     MenuWrapper* addTo = NULL;
     MenuWrapper* menu = NULL;
@@ -864,6 +935,14 @@ MenuWrapper* Menu::addMenu(const QString& menuName) {
             }
         }
         addTo = menu;
+    }
+
+    if (isValidGrouping(grouping)) {
+        auto action = getMenuAction(menuName);
+        if (action) {
+            _groupingActions[grouping] << action;
+            action->setVisible(getGroupingIsVisible(grouping));
+        }
     }
 
     QMenuBar::repaint();
@@ -897,7 +976,7 @@ bool Menu::menuExists(const QString& menuName) {
     return false;
 }
 
-void Menu::addSeparator(const QString& menuName, const QString& separatorName) {
+void Menu::addSeparator(const QString& menuName, const QString& separatorName, const QString& grouping) {
     MenuWrapper* menuObj = getMenu(menuName);
     if (menuObj) {
         addDisabledActionAndSeparator(menuObj, separatorName);
@@ -952,15 +1031,16 @@ void Menu::addMenuItem(const MenuItemProperties& properties) {
 
         QAction* menuItemAction = NULL;
         if (properties.isSeparator) {
-            addDisabledActionAndSeparator(menuObj, properties.menuItemName, requestedPosition);
+            addDisabledActionAndSeparator(menuObj, properties.menuItemName, requestedPosition, properties.grouping);
         } else if (properties.isCheckable) {
             menuItemAction = addCheckableActionToQMenuAndActionHash(menuObj, properties.menuItemName,
                                                                     properties.shortcutKeySequence, properties.isChecked,
-                                                                    MenuScriptingInterface::getInstance(), SLOT(menuItemTriggered()), requestedPosition);
+                                                                    MenuScriptingInterface::getInstance(), SLOT(menuItemTriggered()), 
+                                                                    requestedPosition, properties.grouping);
         } else {
             menuItemAction = addActionToQMenuAndActionHash(menuObj, properties.menuItemName, properties.shortcutKeySequence,
                                                            MenuScriptingInterface::getInstance(), SLOT(menuItemTriggered()),
-                                                           QAction::NoRole, requestedPosition);
+                                                           QAction::NoRole, requestedPosition, properties.grouping);
         }
         if (shortcut && menuItemAction) {
             connect(shortcut, SIGNAL(activated()), menuItemAction, SLOT(trigger()));
@@ -975,7 +1055,7 @@ void Menu::removeMenuItem(const QString& menu, const QString& menuitem) {
         removeAction(menuObj, menuitem);
         QMenuBar::repaint();
     }
-};
+}
 
 bool Menu::menuItemExists(const QString& menu, const QString& menuitem) {
     QAction* menuItemAction = _actionHash.value(menuitem);
@@ -983,7 +1063,31 @@ bool Menu::menuItemExists(const QString& menu, const QString& menuitem) {
         return (getMenu(menu) != NULL);
     }
     return false;
-};
+}
+
+bool Menu::getGroupingIsVisible(const QString& grouping) {
+    if (grouping.isEmpty() || grouping.isNull()) {
+        return true;
+    }
+    if (_groupingVisible.contains(grouping)) {
+        return _groupingVisible[grouping];
+    }
+    return false;
+}
+
+void Menu::setGroupingIsVisible(const QString& grouping, bool isVisible) {
+    // NOTE: Default grouping always visible
+    if (grouping.isEmpty() || grouping.isNull()) {
+        return;
+    }
+    _groupingVisible[grouping] = isVisible;
+
+    for (auto action: _groupingActions[grouping]) {
+        action->setVisible(isVisible);
+    }
+
+    QMenuBar::repaint();
+}
 
 
 MenuWrapper::MenuWrapper(QMenu* menu) : _realMenu(menu) {
@@ -1005,8 +1109,8 @@ void MenuWrapper::setEnabled(bool enabled) {
     _realMenu->setEnabled(enabled);
 }
 
-void MenuWrapper::addSeparator() {
-    _realMenu->addSeparator();
+QAction* MenuWrapper::addSeparator() {
+    return _realMenu->addSeparator();
 }
 
 void MenuWrapper::addAction(QAction* action) {
