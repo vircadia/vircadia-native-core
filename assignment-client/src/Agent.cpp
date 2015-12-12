@@ -384,7 +384,7 @@ void Agent::processAgentAvatarAndAudio(float deltaTime) {
                 int numAvailableBytes = (soundByteArray.size() - _numAvatarSoundSentBytes) > SCRIPT_AUDIO_BUFFER_BYTES
                     ? SCRIPT_AUDIO_BUFFER_BYTES
                     : soundByteArray.size() - _numAvatarSoundSentBytes;
-                numAvailableSamples = numAvailableBytes / sizeof(int16_t);
+                numAvailableSamples = (int16_t)numAvailableBytes / sizeof(int16_t);
 
 
                 // check if the all of the _numAvatarAudioBufferSamples to be sent are silence

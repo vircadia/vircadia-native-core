@@ -43,7 +43,7 @@ public:
     virtual void updateShapeIfNecessary() = 0;
 
     // overrides from btCharacterControllerInterface
-    virtual void setWalkDirection(const btVector3 &walkDirection) { assert(false); }
+    virtual void setWalkDirection(const btVector3 &walkDirection) override { assert(false); }
     virtual void setVelocityForTimeInterval(const btVector3 &velocity, btScalar timeInterval) override { assert(false); }
     virtual void reset(btCollisionWorld* collisionWorld) override { }
     virtual void warp(const btVector3& origin) override { }
@@ -57,7 +57,7 @@ public:
     virtual void playerStep(btCollisionWorld *collisionWorld, btScalar dt) override;
     virtual bool canJump() const override { assert(false); return false; } // never call this
     virtual void jump() override;
-    virtual bool onGround() const;
+    virtual bool onGround() const override;
 
     void preSimulation();
     void postSimulation();

@@ -335,7 +335,7 @@ void NetworkGeometry::modelParseSuccess(FBXGeometry* geometry) {
         _meshes.emplace_back(buildNetworkMesh(mesh, _textureBaseUrl));
     }
 
-    QHash<QString, int> fbxMatIDToMatID;
+    QHash<QString, size_t> fbxMatIDToMatID;
     foreach(const FBXMaterial& material, _geometry->materials) {
         fbxMatIDToMatID[material.materialID] = _materials.size();
         _materials.emplace_back(buildNetworkMaterial(material, _textureBaseUrl));
@@ -349,7 +349,7 @@ void NetworkGeometry::modelParseSuccess(FBXGeometry* geometry) {
             NetworkShape* networkShape = new NetworkShape();
             networkShape->_meshID = meshID;
             networkShape->_partID = partID;
-            networkShape->_materialID = fbxMatIDToMatID[part.materialID];
+            networkShape->_materialID = (int)fbxMatIDToMatID[part.materialID];
             _shapes.emplace_back(networkShape);
             partID++;
         }

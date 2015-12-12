@@ -109,7 +109,7 @@ int OctreeQuery::parseData(ReceivedMessage& message) {
 
     auto bytesRead = sourceBuffer - startPosition;
     auto bytesLeft = message.getSize() - bytesRead;
-    if (bytesLeft >= sizeof(_keyholeRadius)) {
+    if (bytesLeft >= (int)sizeof(_keyholeRadius)) {
         memcpy(&_keyholeRadius, sourceBuffer, sizeof(_keyholeRadius));
         sourceBuffer += sizeof(_keyholeRadius);
     }

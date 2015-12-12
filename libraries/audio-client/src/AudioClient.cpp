@@ -1184,11 +1184,11 @@ float AudioClient::getAudioOutputMsecsUnplayed() const {
 }
 
 qint64 AudioClient::AudioOutputIODevice::readData(char * data, qint64 maxSize) {
-    int samplesRequested = maxSize / sizeof(int16_t);
+    auto samplesRequested = maxSize / sizeof(int16_t);
     int samplesPopped;
     int bytesWritten;
 
-    if ((samplesPopped = _receivedAudioStream.popSamples(samplesRequested, false)) > 0) {
+    if ((samplesPopped = _receivedAudioStream.popSamples((int)samplesRequested, false)) > 0) {
         AudioRingBuffer::ConstIterator lastPopOutput = _receivedAudioStream.getLastPopOutput();
         lastPopOutput.readSamples((int16_t*)data, samplesPopped);
         bytesWritten = samplesPopped * sizeof(int16_t);

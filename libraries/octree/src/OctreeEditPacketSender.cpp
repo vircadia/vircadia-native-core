@@ -149,7 +149,7 @@ void OctreeEditPacketSender::queuePendingPacketToNodes(std::unique_ptr<NLPacket>
         _pendingPacketsLock.lock();
         _preServerSingleMessagePackets.push_back(std::move(packet));
         // if we've saved MORE than our max, then clear out the oldest packet...
-        int allPendingMessages = _preServerSingleMessagePackets.size() + _preServerEdits.size();
+        int allPendingMessages = (int)(_preServerSingleMessagePackets.size() + _preServerEdits.size());
         if (allPendingMessages > _maxPendingMessages) {
             _preServerSingleMessagePackets.pop_front();
         }
@@ -210,7 +210,7 @@ void OctreeEditPacketSender::queueOctreeEditMessage(PacketType type, QByteArray&
             _preServerEdits.push_back(messagePair);
 
             // if we've saved MORE than out max, then clear out the oldest packet...
-            int allPendingMessages = _preServerSingleMessagePackets.size() + _preServerEdits.size();
+            int allPendingMessages = (int)(_preServerSingleMessagePackets.size() + _preServerEdits.size());
             if (allPendingMessages > _maxPendingMessages) {
                 _preServerEdits.pop_front();
             }

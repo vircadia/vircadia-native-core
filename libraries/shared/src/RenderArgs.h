@@ -35,8 +35,8 @@ public:
     };
     
     struct Item {
-        int _considered = 0;
-        int _rendered = 0;
+        size_t _considered = 0;
+        size_t _rendered = 0;
         int _outOfView = 0;
         int _tooSmall = 0;
     };

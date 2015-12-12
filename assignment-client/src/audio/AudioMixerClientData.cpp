@@ -171,7 +171,7 @@ void AudioMixerClientData::sendAudioStreamStatsPackets(const SharedNodePointer& 
         statsPacket->writePrimitive(appendFlag);
         appendFlag = 1;
 
-        int numStreamStatsRoomFor = (statsPacket->size() - sizeof(quint8) - sizeof(quint16)) / sizeof(AudioStreamStats);
+        int numStreamStatsRoomFor = (int)(statsPacket->size() - sizeof(quint8) - sizeof(quint16)) / sizeof(AudioStreamStats);
 
         // calculate and pack the number of stream stats to follow
         quint16 numStreamStatsToPack = std::min(numStreamStatsRemaining, numStreamStatsRoomFor);
