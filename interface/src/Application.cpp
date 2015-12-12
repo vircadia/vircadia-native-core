@@ -1273,6 +1273,9 @@ void Application::paintGL() {
     // Primary rendering pass
     auto framebufferCache = DependencyManager::get<FramebufferCache>();
     const QSize size = framebufferCache->getFrameBufferSize();
+
+    auto finalFramebuffer = framebufferCache->getFramebuffer();
+
     {
         PROFILE_RANGE(__FUNCTION__ "/mainRender");
         PerformanceTimer perfTimer("mainRender");
@@ -1326,9 +1329,34 @@ void Application::paintGL() {
         }
         displaySide(&renderArgs, _myCamera);
         renderArgs._context->enableStereo(false);
-        gpu::doInBatch(renderArgs._context, [](gpu::Batch& batch) {
+      /*  gpu::doInBatch(renderArgs._context, [](gpu::Batch& batch) {
             batch.setFramebuffer(nullptr);
         });
+        */
+        float ratio = ((float)QApplication::desktop()->windowHandle()->devicePixelRatio() * getRenderResolutionScale());
+        // Flip the src and destination rect horizontally to do the mirror
+        auto mirrorRect = glm::ivec4(0, 0, _mirrorViewRect.width() * ratio, _mirrorViewRect.height() * ratio);
+        auto mirrorRectDest = glm::ivec4(mirrorRect.z, mirrorRect.y, mirrorRect.x, mirrorRect.w);
+
+        auto primaryFbo = framebufferCache->getPrimaryFramebuffer();
+        /**
+        gpu::doInBatch(renderArgs._context, [=](gpu::Batch& batch) {
+            batch.setFramebuffer(finalFramebuffer);
+            batch.clearColorFramebuffer(gpu::Framebuffer::BUFFER_COLOR0, glm::vec4(0.0f, 0.0f, 0.0f, 0.0f));
+            batch.blit(primaryFbo, mirrorRect, finalFramebuffer, mirrorRectDest);
+            batch.setFramebuffer(nullptr);
+        });
+        */
+        gpu::doInBatch(renderArgs._context, [=](gpu::Batch& batch) {
+            gpu::Vec4i rect;
+            rect.z = size.width();
+            rect.w = size.height();
+            batch.setFramebuffer(finalFramebuffer);
+            batch.clearColorFramebuffer(gpu::Framebuffer::BUFFER_COLOR0, glm::vec4(0.0f, 0.0f, 0.0f, 0.0f));
+            batch.blit(primaryFbo, rect, finalFramebuffer, rect);
+       //     batch.setFramebuffer(nullptr);
+        });
+
     }
 
     // Overlay Composition, needs to occur after screen space effects have completed
@@ -1336,7 +1364,8 @@ void Application::paintGL() {
     {
         PROFILE_RANGE(__FUNCTION__ "/compositor");
         PerformanceTimer perfTimer("compositor");
-        auto primaryFbo = framebufferCache->getPrimaryFramebuffer();
+     //   auto primaryFbo = framebufferCache->getPrimaryFramebuffer();
+        auto primaryFbo = finalFramebuffer;
         glBindFramebuffer(GL_DRAW_FRAMEBUFFER, gpu::GLBackend::getFramebufferID(primaryFbo));
         if (displayPlugin->isStereo()) {
             QRect currentViewport(QPoint(0, 0), QSize(size.width() / 2, size.height()));
@@ -1361,7 +1390,8 @@ void Application::paintGL() {
     {
         PROFILE_RANGE(__FUNCTION__ "/pluginOutput");
         PerformanceTimer perfTimer("pluginOutput");
-        auto primaryFramebuffer = framebufferCache->getPrimaryFramebuffer();
+        auto scratchFramebuffer = finalFramebuffer;
+    /*    auto primaryFramebuffer = framebufferCache->getPrimaryFramebuffer();
         auto scratchFramebuffer = framebufferCache->getFramebuffer();
         gpu::doInBatch(renderArgs._context, [=](gpu::Batch& batch) {
             gpu::Vec4i rect;
@@ -1371,7 +1401,7 @@ void Application::paintGL() {
             batch.clearColorFramebuffer(gpu::Framebuffer::BUFFER_COLOR0, glm::vec4(0.0f, 0.0f, 0.0f, 0.0f));
             batch.blit(primaryFramebuffer, rect, scratchFramebuffer, rect);
             batch.setFramebuffer(nullptr);
-        });
+        });*/
         auto finalTexturePointer = scratchFramebuffer->getRenderBuffer(0);
         GLuint finalTexture = gpu::GLBackend::getTextureID(finalTexturePointer);
         Q_ASSERT(0 != finalTexture);

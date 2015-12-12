@@ -1402,10 +1402,10 @@ void MyAvatar::updateOrientation(float deltaTime) {
         glm::vec3 euler = glm::eulerAngles(localOrientation) * DEGREES_PER_RADIAN;
 
         //Invert yaw and roll when in mirror mode
-        if (qApp->getCamera()->getMode() == CAMERA_MODE_MIRROR) {
+    /*    if (qApp->getCamera()->getMode() == CAMERA_MODE_MIRROR) {
             YAW(euler) *= -1.0f;
             ROLL(euler) *= -1.0f;
-        }
+        }*/
 
         Head* head = getHead();
         head->setBaseYaw(YAW(euler));
