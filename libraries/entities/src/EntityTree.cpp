@@ -18,7 +18,7 @@
 #include "VariantMapToScriptValue.h"
 
 #include "AddEntityOperator.h"
-#include "MovingEntitiesOperator.h"
+// #include "MovingEntitiesOperator.h"
 #include "UpdateEntityOperator.h"
 #include "QVariantGLM.h"
 #include "EntitiesLogging.h"
@@ -142,9 +142,9 @@ bool EntityTree::updateEntityWithElement(EntityItemPointer entity, const EntityI
                 EntityItemProperties tempProperties;
                 tempProperties.setLocked(wantsLocked);
 
-                BoundingBoxRelatedProperties newBBRelProperties(entity, tempProperties);
-                UpdateEntityOperator theOperator(getThisPointer(), containingElement, entity, newBBRelProperties);
+                UpdateEntityOperator theOperator(getThisPointer(), containingElement, entity, entity->getQueryAACube());
                 recurseTreeWithOperator(&theOperator);
+
                 entity->setProperties(tempProperties);
                 _isDirty = true;
             }
@@ -211,8 +211,7 @@ bool EntityTree::updateEntityWithElement(EntityItemPointer entity, const EntityI
         QString collisionSoundURLBefore = entity->getCollisionSoundURL();
         uint32_t preFlags = entity->getDirtyFlags();
 
-        BoundingBoxRelatedProperties newBBRelProperties(entity, properties);
-        UpdateEntityOperator theOperator(getThisPointer(), containingElement, entity, newBBRelProperties);
+        UpdateEntityOperator theOperator(getThisPointer(), containingElement, entity, properties.getQueryAACube());
         recurseTreeWithOperator(&theOperator);
         entity->setProperties(properties);
 
@@ -226,10 +225,9 @@ bool EntityTree::updateEntityWithElement(EntityItemPointer entity, const EntityI
 
         while (!toProcess.empty()) {
             EntityItemPointer childEntity = std::static_pointer_cast<EntityItem>(toProcess.dequeue());
-            BoundingBoxRelatedProperties newChildBBRelProperties(childEntity);
             UpdateEntityOperator theChildOperator(getThisPointer(),
                                                   childEntity->getElement(),
-                                                  childEntity, newChildBBRelProperties);
+                                                  childEntity, childEntity->getQueryAACube());
             recurseTreeWithOperator(&theChildOperator);
             foreach (SpatiallyNestablePointer childChild, childEntity->getChildren()) {
                 if (childChild && childChild->getNestableType() == NestableType::Entity) {

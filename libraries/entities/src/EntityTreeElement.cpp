@@ -302,7 +302,7 @@ OctreeElement::AppendState EntityTreeElement::appendElementData(OctreePacketData
                     // simulation changing what's visible. consider the case where the entity contains an angular velocity
                     // the entity may not be in view and then in view a frame later, let the client side handle it's view
                     // frustum culling on rendering.
-                    AACube entityCube = entity->getMaximumAACube();
+                    AACube entityCube = entity->getQueryAACube();
                     if (params.viewFrustum->cubeInFrustum(entityCube) == ViewFrustum::OUTSIDE) {
                         includeThisEntity = false; // out of view, don't include it
                     }
@@ -413,19 +413,19 @@ OctreeElement::AppendState EntityTreeElement::appendElementData(OctreePacketData
 }
 
 bool EntityTreeElement::containsEntityBounds(EntityItemPointer entity) const {
-    return containsBounds(entity->getMaximumAACube());
+    return containsBounds(entity->getQueryAACube());
 }
 
 bool EntityTreeElement::bestFitEntityBounds(EntityItemPointer entity) const {
-    return bestFitBounds(entity->getMaximumAACube());
+    return bestFitBounds(entity->getQueryAACube());
 }
 
 bool EntityTreeElement::containsBounds(const EntityItemProperties& properties) const {
-    return containsBounds(properties.getMaximumAACube());
+    return containsBounds(properties.getQueryAACube());
 }
 
 bool EntityTreeElement::bestFitBounds(const EntityItemProperties& properties) const {
-    return bestFitBounds(properties.getMaximumAACube());
+    return bestFitBounds(properties.getQueryAACube());
 }
 
 bool EntityTreeElement::containsBounds(const AACube& bounds) const {

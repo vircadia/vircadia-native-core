@@ -122,6 +122,9 @@ inline QScriptValue convertScriptValue(QScriptEngine* e, const QByteArray& v) {
 
 inline QScriptValue convertScriptValue(QScriptEngine* e, const EntityItemID& v) { return QScriptValue(QUuid(v).toString()); }
 
+inline QScriptValue convertScriptValue(QScriptEngine* e, const AACube& v) { return aaCubeToScriptValue(e, v); }
+
+
 
 #define COPY_GROUP_PROPERTY_TO_QSCRIPTVALUE(X,G,g,P,p) \
     if ((desiredProperties.isEmpty() || desiredProperties.getHasProperty(X)) && \

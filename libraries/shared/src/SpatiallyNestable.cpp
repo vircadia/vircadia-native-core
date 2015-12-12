@@ -385,3 +385,16 @@ void SpatiallyNestable::locationChanged() {
         object->locationChanged();
     });
 }
+
+void SpatiallyNestable::setQueryAACube(const AACube& queryAACube) {
+    _queryAACube = queryAACube;
+    _queryAACubeSet = true;
+}
+
+AACube SpatiallyNestable::getQueryAACube() const {
+    if (!_queryAACubeSet) {
+        _queryAACube = AACube(getPosition() - glm::vec3(0.5f), 1.0f); // XXX
+        _queryAACubeSet = true;
+    }
+    return _queryAACube;
+}

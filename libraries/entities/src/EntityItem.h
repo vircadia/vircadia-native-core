@@ -236,6 +236,8 @@ public:
     const AACube& getMinimumAACube() const;
     const AABox& getAABox() const; /// axis aligned bounding box in world-frame (meters)
 
+    virtual AACube getQueryAACube() const;
+
     const QString& getScript() const { return _script; }
     void setScript(const QString& value) { _script = value; }
 

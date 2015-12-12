@@ -15,6 +15,7 @@
 #include <QUuid>
 
 #include "Transform.h"
+#include "AACube.h"
 #include "SpatialParentFinder.h"
 #include "shared/ReadWriteLockable.h"
 
@@ -63,6 +64,9 @@ public:
     virtual glm::quat getOrientation(int jointIndex) const;
     virtual void setOrientation(const glm::quat& orientation);
 
+    virtual void setQueryAACube(const AACube& queryAACube);
+    virtual AACube getQueryAACube() const;
+
     virtual glm::vec3 getScale() const;
     virtual void setScale(const glm::vec3& scale);
 
@@ -91,7 +95,7 @@ public:
     virtual const Transform getAbsoluteJointTransformInObjectFrame(int jointIndex) const;
     virtual glm::quat getAbsoluteJointRotationInObjectFrame(int index) const { assert(false); return glm::quat(); }
     virtual glm::vec3 getAbsoluteJointTranslationInObjectFrame(int index) const { assert(false); return glm::vec3(); }
-    
+
     SpatiallyNestablePointer getThisPointer() const;
 
 protected:
@@ -114,6 +118,10 @@ protected:
 
     void forEachChild(std::function<void(SpatiallyNestablePointer)> actor);
     void forEachDescendant(std::function<void(SpatiallyNestablePointer)> actor);
+
+    // _queryAACube is used to decide where something lives in the octree
+    mutable AACube _queryAACube;
+    mutable bool _queryAACubeSet { false };
 
 private:
     mutable ReadWriteLockable _transformLock;

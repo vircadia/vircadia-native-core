@@ -133,6 +133,7 @@ EntityPropertyFlags EntityItem::getEntityProperties(EncodeBitstreamParams& param
     requestedProperties += PROP_ACTION_DATA;
     requestedProperties += PROP_PARENT_ID;
     requestedProperties += PROP_PARENT_JOINT_INDEX;
+    requestedProperties += PROP_QUERY_AA_CUBE;
 
     return requestedProperties;
 }
@@ -269,6 +270,7 @@ OctreeElement::AppendState EntityItem::appendEntityData(OctreePacketData* packet
         APPEND_ENTITY_PROPERTY(PROP_ACTION_DATA, getActionData());
         APPEND_ENTITY_PROPERTY(PROP_PARENT_ID, getParentID());
         APPEND_ENTITY_PROPERTY(PROP_PARENT_JOINT_INDEX, getParentJointIndex());
+        APPEND_ENTITY_PROPERTY(PROP_QUERY_AA_CUBE, getQueryAACube());
 
         appendSubclassData(packetData, params, entityTreeElementExtraEncodeData,
                                 requestedProperties,
@@ -692,6 +694,8 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
 
     READ_ENTITY_PROPERTY(PROP_PARENT_ID, QUuid, setParentID);
     READ_ENTITY_PROPERTY(PROP_PARENT_JOINT_INDEX, quint16, setParentJointIndex);
+
+    READ_ENTITY_PROPERTY(PROP_QUERY_AA_CUBE, AACube, setQueryAACube);
 
     bytesRead += readEntitySubclassDataFromBuffer(dataAt, (bytesLeftToRead - bytesRead), args,
                                                   propertyFlags, overwriteLocalData, somethingChanged);
@@ -1244,6 +1248,16 @@ const AABox& EntityItem::getAABox() const {
     }
     return _cachedAABox;
 }
+
+AACube EntityItem::getQueryAACube() const {
+    // XXX
+    if (!_queryAACubeSet) {
+        _queryAACube = getMaximumAACube();
+        _queryAACubeSet = true;
+    }
+    return SpatiallyNestable::getQueryAACube();
+}
+
 
 // NOTE: This should only be used in cases of old bitstreams which only contain radius data
 //    0,0,0 --> maxDimension,maxDimension,maxDimension

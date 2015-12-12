@@ -119,7 +119,7 @@ void EntitySimulation::sortEntitiesThatMoved() {
     while (itemItr != _entitiesToSort.end()) {
         EntityItemPointer entity = *itemItr;
         // check to see if this movement has sent the entity outside of the domain.
-        AACube newCube = entity->getMaximumAACube();
+        AACube newCube = entity->getQueryAACube();
         if (!domainBounds.touches(newCube)) {
             qCDebug(entities) << "Entity " << entity->getEntityItemID() << " moved out of domain bounds.";
             _entitiesToDelete.insert(entity);
@@ -200,7 +200,7 @@ void EntitySimulation::changeEntity(EntityItemPointer entity) {
     uint32_t dirtyFlags = entity->getDirtyFlags();
     if (dirtyFlags & Simulation::DIRTY_POSITION) {
         AACube domainBounds(glm::vec3((float)-HALF_TREE_SCALE), (float)TREE_SCALE);
-        AACube newCube = entity->getMaximumAACube();
+        AACube newCube = entity->getQueryAACube();
         if (!domainBounds.touches(newCube)) {
             qCDebug(entities) << "Entity " << entity->getEntityItemID() << " moved out of domain bounds.";
             _entitiesToDelete.insert(entity);
