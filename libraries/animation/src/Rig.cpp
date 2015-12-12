@@ -434,7 +434,7 @@ void Rig::calcAnimAlpha(float speed, const std::vector<float>& referenceSpeeds, 
 
 void Rig::computeEyesInRootFrame(const AnimPoseVec& poses) {
     // TODO: use cached eye/hips indices for these calculations
-    auto numPoses = poses.size();
+    int numPoses = (int)poses.size();
     int hipsIndex = _animSkeleton->nameToJointIndex(QString("Hips"));
     int headIndex = _animSkeleton->nameToJointIndex(QString("Head"));
     if (hipsIndex > 0 && headIndex > 0) {
@@ -1164,7 +1164,7 @@ void Rig::computeAvatarBoundingCapsule(
     // even if they do not have legs (default robot)
     totalExtents.addPoint(glm::vec3(0.0f));
 
-    auto numPoses = finalPoses.size();
+    int numPoses = (int)finalPoses.size();
     for (int i = 0; i < numPoses; i++) {
         const FBXJointShapeInfo& shapeInfo = geometry.joints.at(i).shapeInfo;
         AnimPose pose = finalPoses[i];

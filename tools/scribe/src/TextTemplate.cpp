@@ -730,7 +730,8 @@ int TextTemplate::evalBlockGeneration(std::ostream& dst, const BlockPointer& blo
                 BlockPointer funcBlock = _config->_funcs.findFunc(block->command.arguments.front().c_str());
                 if (funcBlock) {
                     // before diving in the func tree, let's modify the vars with the local defs:
-                    auto nbParams = std::min(block->command.arguments.size(), funcBlock->command.arguments.size());
+                    int nbParams = (int)std::min(block->command.arguments.size(),
+                                                 funcBlock->command.arguments.size());
                     std::vector< String > paramCache;
                     paramCache.push_back("");
                     String val;

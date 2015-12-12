@@ -321,7 +321,7 @@ void AnimDebugDraw::update() {
         const float POSE_RADIUS = 0.1f; // 10 cm
 
         // figure out how many verts we will need.
-        size_t numVerts = 0;
+        int numVerts = 0;
 
         for (auto& iter : _absolutePoses) {
             AnimSkeleton::ConstPointer& skeleton = std::get<0>(iter.second);

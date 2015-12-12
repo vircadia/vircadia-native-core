@@ -418,12 +418,12 @@ int OctreeSceneStats::packIntoPacket() {
     // add the root jurisdiction
     if (_jurisdictionRoot) {
         // copy the
-        auto bytes = bytesRequiredForCodeLength(numberOfThreeBitSectionsInCode(_jurisdictionRoot));
+        int bytes = (int)bytesRequiredForCodeLength(numberOfThreeBitSectionsInCode(_jurisdictionRoot));
         _statsPacket->writePrimitive(bytes);
         _statsPacket->write(reinterpret_cast<char*>(_jurisdictionRoot), bytes);
 
         // if and only if there's a root jurisdiction, also include the end elements
-        auto endNodeCount = _jurisdictionEndNodes.size();
+        int endNodeCount = (int)_jurisdictionEndNodes.size();
 
         _statsPacket->writePrimitive(endNodeCount);
 
