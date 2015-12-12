@@ -278,7 +278,7 @@ std::unique_ptr<NLPacket> JurisdictionMap::packIntoPacket() {
         packet->write(reinterpret_cast<char*>(_rootOctalCode), bytes);
 
         // if and only if there's a root jurisdiction, also include the end nodes
-        auto endNodeCount = _endNodes.size();
+        int endNodeCount = (int)_endNodes.size();
         packet->writePrimitive(endNodeCount);
 
         for (int i=0; i < endNodeCount; i++) {

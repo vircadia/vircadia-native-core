@@ -201,7 +201,7 @@ inline size_t PropertyFlags<Enum>::decode(const uint8_t* data, size_t size) {
     clear(); // we are cleared out!
 
     size_t bytesConsumed = 0;
-    auto bitCount = BITS_IN_BYTE * size;
+    int bitCount = BITS_IN_BYTE * (int)size;
 
     int encodedByteCount = 1; // there is at least 1 byte (after the leadBits)
     int leadBits = 1; // there is always at least 1 lead bit
