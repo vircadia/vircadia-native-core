@@ -3431,10 +3431,10 @@ namespace render {
 
         // Background rendering decision
         auto skyStage = DependencyManager::get<SceneScriptingInterface>()->getSkyStage();
-        auto skybox = model::SkyboxPointer();
         if (skyStage->getBackgroundMode() == model::SunSkyStage::NO_BACKGROUND) {
+            // this line intentionally left blank
         } else if (skyStage->getBackgroundMode() == model::SunSkyStage::SKY_DOME) {
-           if (/*!selfAvatarOnly &&*/ Menu::getInstance()->isOptionChecked(MenuOption::Stars)) {
+            if (Menu::getInstance()->isOptionChecked(MenuOption::Stars)) {
                 PerformanceTimer perfTimer("stars");
                 PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings),
                     "Application::payloadRender<BackgroundRenderData>() ... stars...");
@@ -3500,8 +3500,7 @@ namespace render {
             }
         } else if (skyStage->getBackgroundMode() == model::SunSkyStage::SKY_BOX) {
             PerformanceTimer perfTimer("skybox");
-
-            skybox = skyStage->getSkybox();
+            auto skybox = skyStage->getSkybox();
             if (skybox) {
                 skybox->render(batch, *(qApp->getDisplayViewFrustum()));
             }
@@ -3767,6 +3766,10 @@ void Application::clearDomainOctreeDetails() {
 
     // reset the model renderer
     getEntities()->clear();
+
+    auto skyStage = DependencyManager::get<SceneScriptingInterface>()->getSkyStage();
+    skyStage->setBackgroundMode(model::SunSkyStage::SKY_DOME);
+
 }
 
 void Application::domainChanged(const QString& domainHostname) {
