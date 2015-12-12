@@ -123,7 +123,7 @@ void Model::enqueueLocationChange() {
 
     render::PendingChanges pendingChanges;
     foreach (auto itemID, _renderItems.keys()) {
-        pendingChanges.updateItem<MeshPartPayload>(itemID, [=](MeshPartPayload& data) {
+        pendingChanges.updateItem<MeshPartPayload>(itemID, [transform, offset](MeshPartPayload& data) {
             data.updateTransform(transform, offset);
             data.notifyLocationChanged();
         });
@@ -508,7 +508,7 @@ bool Model::addToScene(std::shared_ptr<render::Scene> scene, render::PendingChan
         auto item = scene->allocateID();
         auto renderPayload = std::make_shared<MeshPartPayload::Payload>(renderItem);
         pendingChanges.resetItem(item, renderPayload);
-        pendingChanges.updateItem<MeshPartPayload>(item, [&](MeshPartPayload& data) {
+        pendingChanges.updateItem<MeshPartPayload>(item, [](MeshPartPayload& data) {
             data.notifyLocationChanged();
         });
         _renderItems.insert(item, renderPayload);
@@ -536,7 +536,7 @@ bool Model::addToScene(std::shared_ptr<render::Scene> scene,
         auto renderPayload = std::make_shared<MeshPartPayload::Payload>(renderItem);
         renderPayload->addStatusGetters(statusGetters);
         pendingChanges.resetItem(item, renderPayload);
-        pendingChanges.updateItem<MeshPartPayload>(item, [&](MeshPartPayload& data) {
+        pendingChanges.updateItem<MeshPartPayload>(item, [](MeshPartPayload& data) {
             data.notifyLocationChanged();
         });
         _renderItems.insert(item, renderPayload);
@@ -1213,7 +1213,7 @@ bool Model::initWhenReady(render::ScenePointer scene) {
             auto renderPayload = std::make_shared<MeshPartPayload::Payload>(renderItem);
             _renderItems.insert(item, renderPayload);
             pendingChanges.resetItem(item, renderPayload);
-            pendingChanges.updateItem<MeshPartPayload>(item, [=](MeshPartPayload& data) {
+            pendingChanges.updateItem<MeshPartPayload>(item, [transform,offset](MeshPartPayload& data) {
                 data.updateTransform(transform, offset);
                 data.notifyLocationChanged();
             });

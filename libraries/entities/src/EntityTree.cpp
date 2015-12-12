@@ -225,8 +225,15 @@ bool EntityTree::updateEntityWithElement(EntityItemPointer entity, const EntityI
 
         while (!toProcess.empty()) {
             EntityItemPointer childEntity = std::static_pointer_cast<EntityItem>(toProcess.dequeue());
+            if (!childEntity) {
+                continue;
+            }
+            EntityTreeElementPointer containingElement = childEntity->getElement();
+            if (!containingElement) {
+                continue;
+            }
             UpdateEntityOperator theChildOperator(getThisPointer(),
-                                                  childEntity->getElement(),
+                                                  containingElement,
                                                   childEntity, childEntity->getQueryAACube());
             recurseTreeWithOperator(&theChildOperator);
             foreach (SpatiallyNestablePointer childChild, childEntity->getChildren()) {

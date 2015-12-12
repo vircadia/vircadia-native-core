@@ -71,22 +71,12 @@ void Skybox::render(gpu::Batch& batch, const ViewFrustum& frustum) const {
 
 void Skybox::render(gpu::Batch& batch, const ViewFrustum& viewFrustum, const Skybox& skybox) {
     // Create the static shared elements used to render the skybox
-    static gpu::BufferPointer theBuffer;
-    static gpu::Stream::FormatPointer theFormat;
     static gpu::BufferPointer theConstants;
     static gpu::PipelinePointer thePipeline;
     const int SKYBOX_SKYMAP_SLOT = 0;
     const int SKYBOX_CONSTANTS_SLOT = 0;
     static std::once_flag once;
     std::call_once(once, [&] {
-        {
-            const float CLIP = 1.0f;
-            const glm::vec2 vertices[4] = { { -CLIP, -CLIP }, { CLIP, -CLIP }, { -CLIP, CLIP }, { CLIP, CLIP } };
-            theBuffer = std::make_shared<gpu::Buffer>(sizeof(vertices), (const gpu::Byte*) vertices);
-            theFormat = std::make_shared<gpu::Stream::Format>();
-            theFormat->setAttribute(gpu::Stream::POSITION, gpu::Stream::POSITION, gpu::Element(gpu::VEC2, gpu::FLOAT, gpu::XYZ));
-        }
-
         {
             auto skyVS = gpu::Shader::createVertex(std::string(Skybox_vert));
             auto skyFS = gpu::Shader::createPixel(std::string(Skybox_frag));
@@ -115,8 +105,6 @@ void Skybox::render(gpu::Batch& batch, const ViewFrustum& viewFrustum, const Sky
     batch.setProjectionTransform(projMat);
     batch.setViewTransform(viewTransform);
     batch.setModelTransform(Transform()); // only for Mac
-    batch.setInputBuffer(gpu::Stream::POSITION, theBuffer, 0, 8);
-    batch.setInputFormat(theFormat);
 
     gpu::TexturePointer skymap;
     if (skybox.getCubemap() && skybox.getCubemap()->isDefined()) {

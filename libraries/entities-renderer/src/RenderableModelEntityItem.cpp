@@ -455,13 +455,6 @@ bool RenderableModelEntityItem::isReadyToComputeShape() {
             return false; // hmm...
         }
 
-        if (_needsInitialSimulation) {
-            // the _model's offset will be wrong until _needsInitialSimulation is false
-            PerformanceTimer perfTimer("_model->simulate");
-            _model->simulate(0.0f);
-            _needsInitialSimulation = false;
-        }
-
         assert(!_model->getCollisionURL().isEmpty());
     
         if (_model->getURL().isEmpty()) {
@@ -475,6 +468,14 @@ bool RenderableModelEntityItem::isReadyToComputeShape() {
         if ((collisionNetworkGeometry && collisionNetworkGeometry->isLoaded()) &&
             (renderNetworkGeometry && renderNetworkGeometry->isLoaded())) {
             // we have both URLs AND both geometries AND they are both fully loaded.
+
+            if (_needsInitialSimulation) {
+                // the _model's offset will be wrong until _needsInitialSimulation is false
+                PerformanceTimer perfTimer("_model->simulate");
+                _model->simulate(0.0f);
+                _needsInitialSimulation = false;
+            }
+
             return true;
         }
 

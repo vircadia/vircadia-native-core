@@ -2763,6 +2763,8 @@ void Application::reloadResourceCaches() {
     DependencyManager::get<TextureCache>()->refreshAll();
 
     DependencyManager::get<NodeList>()->reset();  // Force redownload of .fst models
+
+    getMyAvatar()->resetFullAvatarURL();
 }
 
 void Application::rotationModeChanged() {
@@ -3076,6 +3078,7 @@ void Application::queryOctree(NodeType_t serverType, PacketType packetType, Node
     _octreeQuery.setCameraNearClip(_viewFrustum.getNearClip());
     _octreeQuery.setCameraFarClip(_viewFrustum.getFarClip());
     _octreeQuery.setCameraEyeOffsetPosition(glm::vec3());
+    _octreeQuery.setKeyholeRadius(_viewFrustum.getKeyholeRadius());
     auto lodManager = DependencyManager::get<LODManager>();
     _octreeQuery.setOctreeSizeScale(lodManager->getOctreeSizeScale());
     _octreeQuery.setBoundaryLevelAdjust(lodManager->getBoundaryLevelAdjust());
@@ -3428,10 +3431,10 @@ namespace render {
 
         // Background rendering decision
         auto skyStage = DependencyManager::get<SceneScriptingInterface>()->getSkyStage();
-        auto skybox = model::SkyboxPointer();
         if (skyStage->getBackgroundMode() == model::SunSkyStage::NO_BACKGROUND) {
+            // this line intentionally left blank
         } else if (skyStage->getBackgroundMode() == model::SunSkyStage::SKY_DOME) {
-           if (/*!selfAvatarOnly &&*/ Menu::getInstance()->isOptionChecked(MenuOption::Stars)) {
+            if (Menu::getInstance()->isOptionChecked(MenuOption::Stars)) {
                 PerformanceTimer perfTimer("stars");
                 PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings),
                     "Application::payloadRender<BackgroundRenderData>() ... stars...");
@@ -3497,10 +3500,9 @@ namespace render {
             }
         } else if (skyStage->getBackgroundMode() == model::SunSkyStage::SKY_BOX) {
             PerformanceTimer perfTimer("skybox");
-
-            skybox = skyStage->getSkybox();
+            auto skybox = skyStage->getSkybox();
             if (skybox) {
-                skybox->render(batch, *(qApp->getDisplayViewFrustum()));
+                skybox->render(batch, *(args->_viewFrustum));
             }
         }
     }
@@ -3764,6 +3766,10 @@ void Application::clearDomainOctreeDetails() {
 
     // reset the model renderer
     getEntities()->clear();
+
+    auto skyStage = DependencyManager::get<SceneScriptingInterface>()->getSkyStage();
+    skyStage->setBackgroundMode(model::SunSkyStage::SKY_DOME);
+
 }
 
 void Application::domainChanged(const QString& domainHostname) {

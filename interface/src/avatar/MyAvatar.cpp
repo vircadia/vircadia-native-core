@@ -986,6 +986,14 @@ void MyAvatar::setSkeletonModelURL(const QUrl& skeletonModelURL) {
     _headBoneSet.clear();
 }
 
+
+void MyAvatar::resetFullAvatarURL() {
+    auto lastAvatarURL = getFullAvatarURLFromPreferences();
+    auto lastAvatarName = getFullAvatarModelName();
+    useFullAvatarURL(QUrl());
+    useFullAvatarURL(lastAvatarURL, lastAvatarName);
+}
+
 void MyAvatar::useFullAvatarURL(const QUrl& fullAvatarURL, const QString& modelName) {
 
     if (QThread::currentThread() != thread()) {
