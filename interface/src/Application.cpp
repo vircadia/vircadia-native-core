@@ -1339,23 +1339,33 @@ void Application::paintGL() {
         auto mirrorRectDest = glm::ivec4(mirrorRect.z, mirrorRect.y, mirrorRect.x, mirrorRect.w);
 
         auto primaryFbo = framebufferCache->getPrimaryFramebuffer();
-        /**
-        gpu::doInBatch(renderArgs._context, [=](gpu::Batch& batch) {
-            batch.setFramebuffer(finalFramebuffer);
-            batch.clearColorFramebuffer(gpu::Framebuffer::BUFFER_COLOR0, glm::vec4(0.0f, 0.0f, 0.0f, 0.0f));
-            batch.blit(primaryFbo, mirrorRect, finalFramebuffer, mirrorRectDest);
-            batch.setFramebuffer(nullptr);
-        });
-        */
-        gpu::doInBatch(renderArgs._context, [=](gpu::Batch& batch) {
-            gpu::Vec4i rect;
-            rect.z = size.width();
-            rect.w = size.height();
-            batch.setFramebuffer(finalFramebuffer);
-            batch.clearColorFramebuffer(gpu::Framebuffer::BUFFER_COLOR0, glm::vec4(0.0f, 0.0f, 0.0f, 0.0f));
-            batch.blit(primaryFbo, rect, finalFramebuffer, rect);
-       //     batch.setFramebuffer(nullptr);
-        });
+
+        if (renderArgs._renderMode == RenderArgs::MIRROR_RENDER_MODE) {
+            gpu::doInBatch(renderArgs._context, [=](gpu::Batch& batch) {
+                gpu::Vec4i srcRect;
+                srcRect.z = size.width();
+                srcRect.w = size.height();
+                gpu::Vec4i destRect;
+                destRect.x = size.width();
+                destRect.y = 0;
+                destRect.z = 0;
+                destRect.w = size.height();
+                batch.setFramebuffer(finalFramebuffer);
+              //  batch.clearColorFramebuffer(gpu::Framebuffer::BUFFER_COLOR0, glm::vec4(0.0f, 0.0f, 0.0f, 0.0f));
+                batch.blit(primaryFbo, srcRect, finalFramebuffer, destRect);
+           //     batch.setFramebuffer(nullptr);
+            });
+        } else {
+            gpu::doInBatch(renderArgs._context, [=](gpu::Batch& batch) {
+                gpu::Vec4i rect;
+                rect.z = size.width();
+                rect.w = size.height();
+                batch.setFramebuffer(finalFramebuffer);
+              //  batch.clearColorFramebuffer(gpu::Framebuffer::BUFFER_COLOR0, glm::vec4(0.0f, 0.0f, 0.0f, 0.0f));
+                batch.blit(primaryFbo, rect, finalFramebuffer, rect);
+           //     batch.setFramebuffer(nullptr);
+            });
+        }
 
     }
 
