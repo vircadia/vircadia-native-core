@@ -122,7 +122,7 @@ var USE_ENTITY_LASERS_FOR_MOVING = true;
 var USE_OVERLAY_LINES_FOR_SEARCHING = true;
 var USE_PARTICLE_BEAM_FOR_SEARCHING = false;
 var USE_PARTICLE_BEAM_FOR_MOVING = false;
-var USE_SPOTLIGHT = true;
+var USE_SPOTLIGHT = false;
 var USE_POINTLIGHT = false;
 
 // states for the state machine
