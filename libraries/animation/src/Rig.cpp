@@ -717,7 +717,8 @@ void Rig::updateAnimationStateHandlers() { // called on avatar update thread (wh
         // This works (I tried it), but the result would be that we would still have same runtime type checks as the invokeMethod above
         // (occuring within the ScriptEngine::callAnimationStateHandler invokeMethod trampoline), _plus_ another runtime check for the dynamic_cast.
 
-        // gather results in (likely from an earlier update):
+        // Gather results in (likely from an earlier update).
+        // Note: the behavior is undefined if a handler (re-)sets a trigger. Scripts should not be doing that.
         _animVars.copyVariantsFrom(value.results); // If multiple handlers write the same anim var, the last registgered wins. (_map preserves order).
     }
 }
