@@ -32,11 +32,18 @@
 #include <PerfStat.h>
 #include <render/Scene.h>
 
+#ifdef _WIN32
+#pragma warning(push)
+#pragma warning( disable : 4267 )
+#endif
 #include <PolyVoxCore/CubicSurfaceExtractorWithNormals.h>
 #include <PolyVoxCore/MarchingCubesSurfaceExtractor.h>
 #include <PolyVoxCore/SurfaceMesh.h>
 #include <PolyVoxCore/SimpleVolume.h>
 #include <PolyVoxCore/Material.h>
+#ifdef _WIN32
+#pragma warning(pop)
+#endif
 
 #include "model/Geometry.h"
 #include "EntityTreeRenderer.h"
