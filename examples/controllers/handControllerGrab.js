@@ -122,7 +122,7 @@ var USE_ENTITY_LASERS_FOR_MOVING = true;
 var USE_OVERLAY_LINES_FOR_SEARCHING = true;
 var USE_PARTICLE_BEAM_FOR_SEARCHING = false;
 var USE_PARTICLE_BEAM_FOR_MOVING = false;
-var USE_SPOTLIGHT = false;
+var USE_SPOTLIGHT = true;
 var USE_POINTLIGHT = false;
 
 // states for the state machine
@@ -436,10 +436,8 @@ function MyController(hand) {
         var finalRotation = Quat.multiply(orientation, rotation);
 
         if (this.particleBeam === null) {
-            print('create beam')
             this.createParticleBeam(position, finalRotation, color);
         } else {
-            print('update beam')
             this.updateParticleBeam(position, finalRotation, color);
         }
     }
@@ -590,11 +588,8 @@ function MyController(hand) {
             this.spotlight = Entities.addEntity(lightProperties);
         } else {
             Entities.editEntity(this.spotlight, {
-                parentID: parentID,
-                position: lightTransform.p,
                 //without this, this light would maintain rotation with its parent
                 rotation: Quat.fromPitchYawRollDegrees(-90, 0, 0),
-                visible: true
             })
         }
     }
@@ -627,16 +622,9 @@ function MyController(hand) {
         };
 
         if (this.pointlight === null) {
-
-            print('create pointlight')
             this.pointlight = Entities.addEntity(lightProperties);
         } else {
-            print('update pointlight')
-            Entities.editEntity(this.pointlight, {
-                parentID: parentID,
-                position: lightTransform.p,
-                visible: true
-            })
+
         }
     }
 
@@ -665,19 +653,13 @@ function MyController(hand) {
     this.turnLightsOff = function() {
         //use visibility for now instead of creating and deleting since deleting seems to crash
         if (this.spotlight !== null) {
-            Entities.editEntity(this.spotlight, {
-                    visible: false
-                })
-                //Entities.deleteEntity(this.spotlight);
-                //this.spotLight=null;
+            Entities.deleteEntity(this.spotlight);
+            this.spotlight = null;
         }
 
         if (this.pointlight !== null) {
-            Entities.editEntity(this.pointlight, {
-                    visible: false
-                })
-                //Entities.deleteEntity(this.pointlight);
-                //this.pointlight = null;
+            Entities.deleteEntity(this.pointlight);
+            this.pointlight = null;
         }
     }
 
