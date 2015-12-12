@@ -1,5 +1,4 @@
 //  handControllerGrab.js
-//  examples
 //
 //  Created by Eric Levin on  9/2/15
 //  Additions by James B. Pollack @imgntn on 9/24/2015
@@ -7,13 +6,13 @@
 //  Copyright 2015 High Fidelity, Inc.
 //
 //  Grabs physically moveable entities with hydra-like controllers; it works for either near or far objects.
+//  Also supports touch and equipping objects.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 /*global print, MyAvatar, Entities, AnimationCache, SoundCache, Scene, Camera, Overlays, Audio, HMD, AvatarList, AvatarManager, Controller, UndoStack, Window, Account, GlobalServices, Script, ScriptDiscoveryService, LODManager, Menu, Vec3, Quat, AudioDevice, Paths, Clipboard, Settings, XMLHttpRequest, randFloat, randInt, pointInExtents, vec3equal, setEntityCustomData, getEntityCustomData */
 
 Script.include("../libraries/utils.js");
-
 
 //
 // add lines where the hand ray picking is happening
@@ -54,6 +53,7 @@ var LINE_ENTITY_DIMENSIONS = {
     y: 1000,
     z: 1000
 };
+
 var LINE_LENGTH = 500;
 var PICK_MAX_DISTANCE = 500; // max length of pick-ray
 
@@ -120,6 +120,7 @@ var DEFAULT_GRABBABLE_DATA = {
 var USE_ENTITY_LASERS_FOR_SEARCHING = false;
 var USE_ENTITY_LASERS_FOR_MOVING = true;
 var USE_OVERLAY_LINES_FOR_SEARCHING = true;
+var USE_OVERLAY_LINES_FOR_MOVING = false;
 var USE_PARTICLE_BEAM_FOR_SEARCHING = false;
 var USE_PARTICLE_BEAM_FOR_MOVING = false;
 var USE_SPOTLIGHT = false;
@@ -345,7 +346,7 @@ function MyController(hand) {
             print("STATE: " + stateToName(this.state) + " --> " + stateToName(newState) + ", hand: " + this.hand);
         }
         this.state = newState;
-    }
+    };
 
     this.debugLine = function(closePoint, farPoint, color) {
         Entities.addEntity({
@@ -365,7 +366,7 @@ function MyController(hand) {
                 }
             })
         });
-    }
+    };
 
     this.lineOn = function(closePoint, farPoint, color) {
         // draw a line
@@ -423,7 +424,7 @@ function MyController(hand) {
                 alpha: 1
             });
         }
-    }
+    };
 
     this.handleParticleBeam = function(position, orientation, color) {
 
@@ -440,7 +441,7 @@ function MyController(hand) {
         } else {
             this.updateParticleBeam(position, finalRotation, color);
         }
-    }
+    };
 
     this.handleDistantParticleBeam = function(handPosition, objectPosition, objectRotation, color) {
 
@@ -458,7 +459,7 @@ function MyController(hand) {
         } else {
             this.updateParticleBeam(objectPosition, finalRotation, color, speed, lifepsan);
         }
-    }
+    };
 
     this.createParticleBeam = function(position, orientation, color, speed, lifepsan) {
 
@@ -521,7 +522,7 @@ function MyController(hand) {
         }
 
         this.particleBeam = Entities.addEntity(particleBeamProperties);
-    }
+    };
 
     this.updateParticleBeam = function(position, orientation, color, speed, lifepsan) {
 
@@ -535,7 +536,7 @@ function MyController(hand) {
 
         })
 
-    }
+    };
 
     this.evalLightWorldTransform = function(modelPos, modelRot) {
 
@@ -555,7 +556,7 @@ function MyController(hand) {
             p: Vec3.sum(modelPos, Vec3.multiplyQbyV(modelRot, MODEL_LIGHT_POSITION)),
             q: Quat.multiply(modelRot, MODEL_LIGHT_ROTATION)
         };
-    }
+    };
 
     this.handleSpotlight = function(parentID, position) {
         var LIFETIME = 100;
@@ -592,7 +593,7 @@ function MyController(hand) {
                 rotation: Quat.fromPitchYawRollDegrees(-90, 0, 0),
             })
         }
-    }
+    };
 
     this.handlePointLight = function(parentID, position) {
         var LIFETIME = 100;
@@ -626,7 +627,7 @@ function MyController(hand) {
         } else {
 
         }
-    }
+    };
 
     this.lineOff = function() {
         if (this.pointer !== null) {
@@ -651,7 +652,6 @@ function MyController(hand) {
     }
 
     this.turnLightsOff = function() {
-        //use visibility for now instead of creating and deleting since deleting seems to crash
         if (this.spotlight !== null) {
             Entities.deleteEntity(this.spotlight);
             this.spotlight = null;
@@ -661,7 +661,22 @@ function MyController(hand) {
             Entities.deleteEntity(this.pointlight);
             this.pointlight = null;
         }
-    }
+    };
+
+
+    this.turnOffVisualizations = function() {
+        if (USE_ENTITY_LASERS_FOR_SEARCHING === true || USE_ENTITY_LASERS_FOR_MOVING === true) {
+            this.lineOff();
+        }
+
+        if (USE_OVERLAY_LINES_FOR_SEARCHING === true || USE_OVERLAY_LINES_FOR_MOVING === true) {
+            this.overlayLineOff();
+        }
+
+        if (USE_PARTICLE_BEAM_FOR_SEARCHING === true || USE_PARTICLE_BEAM_FOR_MOVING === true) {
+            this.particleBeamOff();
+        }
+    };
 
     this.triggerPress = function(value) {
         _this.rawTriggerValue = value;
@@ -693,11 +708,11 @@ function MyController(hand) {
 
     this.bumperSqueezed = function() {
         return _this.rawBumperValue > BUMPER_ON_VALUE;
-    }
+    };
 
     this.bumperReleased = function() {
         return _this.rawBumperValue < BUMPER_ON_VALUE;
-    }
+    };
 
     this.off = function() {
         if (this.triggerSmoothedSqueezed()) {
@@ -710,7 +725,7 @@ function MyController(hand) {
             this.setState(STATE_EQUIP_SEARCHING);
             return;
         }
-    }
+    };
 
     this.search = function() {
         this.grabbedEntity = null;
@@ -977,19 +992,6 @@ function MyController(hand) {
         this.turnOffVisualizations();
     };
 
-    this.turnOffVisualizations = function() {
-        if (USE_ENTITY_LASERS_FOR_SEARCHING === true || USE_ENTITY_LASERS_FOR_MOVING === true) {
-            this.lineOff();
-        }
-        if (USE_OVERLAY_LINES_FOR_SEARCHING === true) {
-            this.overlayLineOff();
-        }
-
-        if (USE_PARTICLE_BEAM_FOR_SEARCHING === true || USE_PARTICLE_BEAM_FOR_MOVING === true) {
-            this.particleBeamOff();
-        }
-    }
-
     this.continueDistanceHolding = function() {
         if (this.triggerSmoothedReleased()) {
             this.setState(STATE_RELEASE);
@@ -1100,14 +1102,15 @@ function MyController(hand) {
         if (USE_ENTITY_LASERS_FOR_MOVING === true) {
             this.lineOn(handPosition, Vec3.subtract(grabbedProperties.position, handPosition), INTERSECT_COLOR);
         }
+        if (USE_OVERLAY_LINES_FOR_MOVING === true) {
+            this.overlayLineOn(handPosition, Vec3.subtract(grabbedProperties.position, handPosition), INTERSECT_COLOR);
+        }
         if (USE_PARTICLE_BEAM_FOR_MOVING === true) {
             this.handleDistantParticleBeam(handPosition, grabbedProperties.position, this.currentObjectRotation, INTERSECT_COLOR)
         }
-
         if (USE_POINTLIGHT === true) {
             this.handlePointLight(this.grabbedEntity);
         }
-
         if (USE_SPOTLIGHT === true) {
             this.handleSpotlight(this.grabbedEntity);
         }
@@ -1399,6 +1402,7 @@ function MyController(hand) {
     };
 
     _this.allTouchedIDs = {};
+
     this.touchTest = function() {
         var maxDistance = 0.05;
         var leftHandPosition = MyAvatar.getLeftPalmPosition();
@@ -1559,28 +1563,29 @@ function MyController(hand) {
         }
         //return an object with our updated settings
         return result;
-    }
+    };
 
     this.graspHandler = null
+
     this.startHandGrasp = function() {
         if (this.hand === RIGHT_HAND) {
             this.graspHandler = MyAvatar.addAnimationStateHandler(this.graspHand, ['isRightHandGrab']);
         } else if (this.hand === LEFT_HAND) {
             this.graspHandler = MyAvatar.addAnimationStateHandler(this.graspHand, ['isLeftHandGrab']);
         }
-    }
+    };
 
     this.endHandGrasp = function() {
         // Tell the animation system we don't need any more callbacks.
         MyAvatar.removeAnimationStateHandler(this.graspHandler);
-    }
+    };
 
-}
+};
 
 var rightController = new MyController(RIGHT_HAND);
 var leftController = new MyController(LEFT_HAND);
 
-//reload the particle beams
+//preload the particle beams so that they are full length when you start searching
 if (USE_PARTICLE_BEAM_FOR_SEARCHING === true || USE_PARTICLE_BEAM_FOR_MOVING === true) {
     rightController.createParticleBeam();
     leftController.createParticleBeam();
@@ -1597,6 +1602,7 @@ mapping.from([Controller.Standard.LB]).peek().to(leftController.bumperPress);
 
 Controller.enableMapping(MAPPING_NAME);
 
+//the section below allows the grab script to listen for messages that disable either one or both hands.  useful for two handed items
 var handToDisable = 'none';
 
 function update() {
