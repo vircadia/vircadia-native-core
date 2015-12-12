@@ -968,7 +968,6 @@ function MyController(hand) {
             Entities.callEntityMethod(this.grabbedEntity, "releaseGrab");
             Entities.callEntityMethod(this.grabbedEntity, "unequip");
             this.endHandGrasp();
-
         }
     };
 
@@ -1288,33 +1287,40 @@ function update() {
     if (handToDisable !== LEFT_HAND && handToDisable!=='both') {
         leftController.update();
     }
-    if (handToDisable !== RIGHT_HAND  && handToDisable!=='both') {
+    if (handToDisable !== RIGHT_HAND && handToDisable!=='both') {
         rightController.update();
     }
 }
 
 Messages.subscribe('Hifi-Hand-Disabler');
+Messages.subscribe('Hifi-Hand-Grab');
 
-handleHandDisablerMessages = function(channel, message, sender) {
-    
+handleHandMessages = function(channel, message, sender) {
     if (sender === MyAvatar.sessionUUID) {
-        if (message === 'left') {
-            handToDisable = LEFT_HAND;
-        }
-        if (message === 'right') {
-            handToDisable = RIGHT_HAND;
-        }
-        if(message==='both'){
-            handToDisable='both';
-        }
-        if(message==='none'){
-            handToDisable='none';
+        if (channel === 'Hifi-Hand-Disabler') {
+            if (message === 'left') {
+                handToDisable = LEFT_HAND;
+            }
+            if (message === 'right') {
+                handToDisable = RIGHT_HAND;
+            }
+            if (message === 'both' || message === 'none') {
+                handToDisable = handToDisable;
+            }
+        } else if (channel === 'Hifi-Hand-Grab') {
+            try {
+                 var data = JSON.parse(message);
+                 var selectedController = (data.hand === 'left') ? leftController : rightController;
+                 selectedController.release();
+                 selectedController.setState(STATE_EQUIP);
+                 selectedController.grabbedEntity = data.entityID;
+                 
+            } catch (e) { }
         }
     }
-
 }
 
-Messages.messageReceived.connect(handleHandDisablerMessages);
+Messages.messageReceived.connect(handleHandMessages);
 
 function cleanup() {
     rightController.cleanup();
