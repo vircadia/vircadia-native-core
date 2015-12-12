@@ -14,8 +14,8 @@
 
 #include <gpu/GLBackend.h>
 
-#include <QOpenGLContextWrapper.h>
-#include <QOpenGLDebugLoggerWrapper.h>
+#include <gl/QOpenGLContextWrapper.h>
+#include <gl/QOpenGLDebugLoggerWrapper.h>
 
 #include <QDir>
 #include <QElapsedTimer>

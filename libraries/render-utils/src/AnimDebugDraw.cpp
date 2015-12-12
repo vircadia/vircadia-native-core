@@ -336,9 +336,9 @@ void AnimDebugDraw::update() {
 
         // count marker verts from shared DebugDraw singleton
         auto markerMap = DebugDraw::getInstance().getMarkerMap();
-        numVerts += markerMap.size() * VERTICES_PER_BONE;
+        numVerts += (int)markerMap.size() * VERTICES_PER_BONE;
         auto myAvatarMarkerMap = DebugDraw::getInstance().getMyAvatarMarkerMap();
-        numVerts += myAvatarMarkerMap.size() * VERTICES_PER_BONE;
+        numVerts += (int)myAvatarMarkerMap.size() * VERTICES_PER_BONE;
 
         // allocate verts!
         data._vertexBuffer->resize(sizeof(Vertex) * numVerts);
