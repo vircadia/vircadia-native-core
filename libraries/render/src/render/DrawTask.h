@@ -216,7 +216,7 @@ void renderItems(const SceneContextPointer& sceneContext, const RenderContextPoi
 
 class FetchItems {
 public:
-    typedef std::function<void (const RenderContextPointer& context, size_t count)> ProbeNumItems;
+    typedef std::function<void (const RenderContextPointer& context, int count)> ProbeNumItems;
     FetchItems(const ProbeNumItems& probe): _probeNumItems(probe) {}
     FetchItems(const ItemFilter& filter, const ProbeNumItems& probe): _filter(filter), _probeNumItems(probe) {}
 
