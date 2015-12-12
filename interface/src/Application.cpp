@@ -3503,7 +3503,7 @@ namespace render {
 
             skybox = skyStage->getSkybox();
             if (skybox) {
-                skybox->render(batch, *(qApp->getDisplayViewFrustum()));
+                skybox->render(batch, *(args->_viewFrustum));
             }
         }
     }
