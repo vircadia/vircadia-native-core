@@ -135,7 +135,7 @@ TransformCamera getTransformCamera() {
 
 <@func transformClipToEyeDir(cameraTransform, clipPos, eyeDir)@>
     { // transformClipToEyeDir
-        <$eyeDir$> = vec3(<$cameraTransform$>._projectionInverse * vec4(<$clipPos$>.xyz, 0.0));
+        <$eyeDir$> = vec3(<$cameraTransform$>._projectionInverse * vec4(<$clipPos$>.xyz, 1.0)); // Must be 1.0 here
     }
 <@endfunc@>
 
