@@ -18,7 +18,6 @@
 #include "VariantMapToScriptValue.h"
 
 #include "AddEntityOperator.h"
-// #include "MovingEntitiesOperator.h"
 #include "UpdateEntityOperator.h"
 #include "QVariantGLM.h"
 #include "EntitiesLogging.h"
@@ -144,7 +143,6 @@ bool EntityTree::updateEntityWithElement(EntityItemPointer entity, const EntityI
 
                 UpdateEntityOperator theOperator(getThisPointer(), containingElement, entity, entity->getQueryAACube());
                 recurseTreeWithOperator(&theOperator);
-
                 entity->setProperties(tempProperties);
                 _isDirty = true;
             }
