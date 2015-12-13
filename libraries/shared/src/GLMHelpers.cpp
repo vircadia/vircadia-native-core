@@ -135,8 +135,6 @@ int unpackOrientationQuatFromBytes(const unsigned char* buffer, glm::quat& quatO
     return sizeof(quatParts);
 }
 
-
-
 //  Safe version of glm::eulerAngles; uses the factorization method described in David Eberly's
 //  http://www.geometrictools.com/Documentation/EulerAngles.pdf (via Clyde,
 // https://github.com/threerings/clyde/blob/master/src/main/java/com/threerings/math/Quaternion.java)
