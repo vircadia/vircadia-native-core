@@ -179,5 +179,4 @@ function makeSliders(light) {
     }
 };
 
-
 makeSliders(light);
