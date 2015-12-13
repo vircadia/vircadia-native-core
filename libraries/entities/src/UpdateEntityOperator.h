@@ -34,7 +34,6 @@ private:
     EntityItemPointer _existingEntity;
     EntityTreeElementPointer _containingElement;
     AACube _containingElementCube; // we temporarily store our cube here in case we need to delete the containing element
-    // BoundingBoxRelatedProperties _newProperties;
     EntityItemID _entityItemID;
     bool _foundOld;
     bool _foundNew;
