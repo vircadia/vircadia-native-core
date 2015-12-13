@@ -3,8 +3,10 @@
 
 var BOX_SCRIPT_URL = Script.resolvePath('box.js');
 
-function entitySlider(color) {
+function entitySlider(color, sliderType, verticalOffset) {
     this.color = color;
+    this.sliderType = sliderType;
+    this.verticalOffset = verticalOffset;
     return this;
 }
 
@@ -38,6 +40,13 @@ var WHITE = {
     b: 255
 };
 
+var AXIS_SCALE = 1;
+var BOX_DIMENSIONS = {
+    x: 0.04,
+    y: 0.04,
+    z: 0.04
+}
+
 //what's the ux for adjusting values?  start with simple entities, try image overlays etc
 entitySlider.prototype = {
     createAxis: function() {
@@ -53,27 +62,98 @@ entitySlider.prototype = {
     createBoxIndicator: function() {
         var properties = {
             type: 'Box',
-            dimensions: {
-                x: 0.04,
-                y: 0.04,
-                z: 0.04
-            },
+            dimensions: BOX_DIMENSIONS,
             color: this.color,
             position: position,
             script: BOX_SCRIPT_URL
         };
 
-
-
         this.boxIndicator = Entities.addEntity(properties);
     },
-    moveIndicatorAlongAxis: function(direction) {
+    handleValueMessages: function(channel, message, sender) {
+        //easily protect from other people editing your values, but group editing might be fun so lets try that first.
+        // if (sender !== MyAvatar.sessionUUID) {
+        //     return;
+        // }
+        var parsedMessage = JSON.parse(message);
+        setValueFromMessage(parsedMessage);
+    },
+    setValueFromMessage: function(message) {
+        var lightProperties = Entities.getEntitiyProperties(message.lightID);
 
+        if (this.sliderType === 'color_red') {
+            Entities.editEntity(message.lightID, {
+                color: {
+                    red: message.sliderValue,
+                    green: lightProperties.color.g,
+                    blue: lightProperties.color.b
+                }
+            })
+        }
+
+        if (this.sliderType === 'color_green') {
+            Entities.editEntity(message.lightID, {
+                color: {
+                    red: lightProperties.color.r
+                    green: message.sliderValue,
+                    blue: lightProperties.color.b
+                }
+            })
+        }
+
+        if (this.sliderType === 'color_blue') {
+            Entities.editEntity(message.lightID, {
+                color: {
+                    red: lightProperties.color.r,
+                    green: lightProperties.color.g,
+                    blue: message.sliderValue,
+                }
+            })
+        }
+
+        if (this.sliderType === 'intensity') {
+            Entities.editEntity(message.lightID, {
+                intensity: message.sliderValue
+            })
+        }
+
+        if (this.sliderType === 'cutoff') {
+            Entities.editEntity(message.lightID, {
+                cutoff: message.sliderValue
+            })
+        }
+
+        if (this.sliderType === 'exponent') {
+            Entities.editEntity(message.lightID, {
+                exponent: message.sliderValue
+            })
+        }
+    },
+    subscribeToBoxMessages: function() {
+        Messages.subscribe('Hifi-Slider-Value-Reciever');
+        Messages.messageReceived.connect(this.handleValueMessages);
+    },
+    cleanup: function() {
+        Entities.deleteEntity(this.boxIndicator);
+        Entities.deleteEntity(this.axis);
+        Messages.messageReceived.disconnect(this.handleValueMessages);
     }
 };
 
-//create them for this light
+//create them for a given light
 function makeSliders(light) {
+    var initialPosition = {
+        x: 0,
+        y: 0,
+        z: 0
+    };
+
+    var perRowOffset = {
+        x: 0,
+        y: 0.2,
+        z: 0
+    };
+
     if (light.type === 'spotlight') {
         var USE_COLOR_SLIDER = true;
         var USE_INTENSITY_SLIDER = true;
@@ -87,17 +167,19 @@ function makeSliders(light) {
         var USE_EXPONENT_SLIDER = false;
     }
     if (USE_COLOR_SLIDER === true) {
-        var r = new entitySlider(RED);
-        var g = new entitySlider(GREEN);
-        var b = new entitySlider(BLUE);
+        var r = new entitySlider(RED, 'color_red', Vec3.multiply(1, perRowOffset));
+        var g = new entitySlider(GREEN, 'color_green', Vec3.multiply(2, perRowOffset));
+        var b = new entitySlider(BLUE, 'color_blue', Vec3.multiply(3, perRowOffset));
     }
     if (USE_INTENSITY_SLIDER === true) {
-        var intensity = new entitySlider(WHITE);
+        var intensity = new entitySlider(WHITE, 'intensity', Vec3.multiply(4, perRowOffset));
     }
     if (USE_CUTOFF_SLIDER === true) {
-        var cutoff = new entitySlider(PURPLE);
+        var cutoff = new entitySlider(PURPLE, 'cutoff', Vec3.multiply(5, perRowOffset));
     }
     if (USE_EXPONENT_SLIDER === true) {
-        var exponent = new entitySlider(PURPLE);
+        var exponent = new entitySlider(PURPLE, 'exponent', Vec3.multiply(6, perRowOffset));
     }
 };
+
+makeSliders(light)
