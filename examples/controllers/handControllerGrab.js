@@ -117,8 +117,8 @@ var DEFAULT_GRABBABLE_DATA = {
 };
 
 //we've created various ways of visualizing looking for and moving distant objects
-var USE_ENTITY_LASERS_FOR_SEARCHING = false;
-var USE_ENTITY_LASERS_FOR_MOVING = true;
+var USE_ENTITY_LINES_FOR_SEARCHING = false;
+var USE_ENTITY_LINES_FOR_MOVING = true;
 var USE_OVERLAY_LINES_FOR_SEARCHING = true;
 var USE_OVERLAY_LINES_FOR_MOVING = false;
 var USE_PARTICLE_BEAM_FOR_SEARCHING = false;
@@ -665,7 +665,7 @@ function MyController(hand) {
 
 
     this.turnOffVisualizations = function() {
-        if (USE_ENTITY_LASERS_FOR_SEARCHING === true || USE_ENTITY_LASERS_FOR_MOVING === true) {
+        if (USE_ENTITY_LINES_FOR_SEARCHING === true || USE_ENTITY_LINES_FOR_MOVING === true) {
             this.lineOff();
         }
 
@@ -925,7 +925,7 @@ function MyController(hand) {
         }
 
         //search line visualizations
-        if (USE_ENTITY_LASERS_FOR_SEARCHING === true) {
+        if (USE_ENTITY_LINES_FOR_SEARCHING === true) {
             this.lineOn(distantPickRay.origin, Vec3.multiply(distantPickRay.direction, LINE_LENGTH), NO_INTERSECT_COLOR);
         }
 
@@ -1099,7 +1099,7 @@ function MyController(hand) {
 
 
         //visualizations
-        if (USE_ENTITY_LASERS_FOR_MOVING === true) {
+        if (USE_ENTITY_LINES_FOR_MOVING === true) {
             this.lineOn(handPosition, Vec3.subtract(grabbedProperties.position, handPosition), INTERSECT_COLOR);
         }
         if (USE_OVERLAY_LINES_FOR_MOVING === true) {
