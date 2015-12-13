@@ -168,7 +168,6 @@ namespace MenuOption {
     const QString Back = "Back";
     const QString BandwidthDetails = "Bandwidth Details";
     const QString BinaryEyelidControl = "Binary Eyelid Control";
-    const QString BlueSpeechSphere = "Blue Sphere While Speaking";
     const QString BookmarkLocation = "Bookmark Location";
     const QString Bookmarks = "Bookmarks";
     const QString CachesSize = "RAM Caches Size";
