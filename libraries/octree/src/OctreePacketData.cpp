@@ -23,6 +23,11 @@ AtomicUIntStat OctreePacketData::_totalBytesOfValues { 0 };
 AtomicUIntStat OctreePacketData::_totalBytesOfPositions { 0 };
 AtomicUIntStat OctreePacketData::_totalBytesOfRawData { 0 };
 
+struct aaCubeData {
+    glm::vec3 corner;
+    float scale;
+};
+
 OctreePacketData::OctreePacketData(bool enableCompression, int targetSize) {
     changeSettings(enableCompression, targetSize); // does reset...
 }
@@ -462,8 +467,15 @@ bool OctreePacketData::appendValue(const QByteArray& bytes) {
 }
 
 bool OctreePacketData::appendValue(const AACube& aaCube) {
-    bool success = appendValue(aaCube.getCorner());
-    return success & appendValue(aaCube.getScale());
+    aaCubeData cube { aaCube.getCorner(), aaCube.getScale() };
+    const unsigned char* data = (const unsigned char*)&cube;
+    int length = sizeof(aaCubeData);
+    bool success = append(data, length);
+    if (success) {
+        _bytesOfValues += length;
+        _totalBytesOfValues += length;
+    }
+    return success;
 }
 
 bool OctreePacketData::appendPosition(const glm::vec3& value) {
@@ -644,10 +656,8 @@ int OctreePacketData::unpackDataFromBytes(const unsigned char* dataBytes, QByteA
 }
 
 int OctreePacketData::unpackDataFromBytes(const unsigned char* dataBytes, AACube& result) {
-    glm::vec3 corner;
-    float scale;
-    int bytes = unpackDataFromBytes(dataBytes, corner);
-    bytes += unpackDataFromBytes(dataBytes + bytes, scale);
-    result = AACube(corner, scale);
-    return bytes;
+    aaCubeData cube;
+    memcpy(&cube, dataBytes, sizeof(aaCubeData));
+    result = AACube(cube.corner, cube.scale);
+    return sizeof(aaCubeData);
 }
