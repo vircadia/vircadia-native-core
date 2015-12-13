@@ -3,10 +3,11 @@
 
 var BOX_SCRIPT_URL = Script.resolvePath('box.js');
 
-function entitySlider(color, sliderType, verticalOffset) {
+function entitySlider(light, color, sliderType, row) {
+    this.light = light;
     this.color = color;
     this.sliderType = sliderType;
-    this.verticalOffset = verticalOffset;
+    this.verticalOffset = Vec3.multiply(row, PER_ROW_OFFSET);;
     return this;
 }
 
@@ -42,20 +43,27 @@ var WHITE = {
 
 var AXIS_SCALE = 1;
 var BOX_DIMENSIONS = {
-    x: 0.04,
-    y: 0.04,
-    z: 0.04
-}
+    x: 0.05,
+    y: 0.05,
+    z: 0.05
+};
+var PER_ROW_OFFSET = {
+    x: 0,
+    y: 0.2,
+    z: 0
+};
 
 //what's the ux for adjusting values?  start with simple entities, try image overlays etc
 entitySlider.prototype = {
     createAxis: function() {
-        var properties = {
-            type: 'Line',
-            color: this.color,
-            collisionsWillMove: false,
-            ignoreForCollisions: true,
-        };
+        var position =
+            var properties = {
+                type: 'Line',
+                color: this.color,
+                collisionsWillMove: false,
+                ignoreForCollisions: true,
+                position: position,
+            };
 
         this.axis = Entities.addEntity(properties);
     },
@@ -79,54 +87,54 @@ entitySlider.prototype = {
         setValueFromMessage(parsedMessage);
     },
     setValueFromMessage: function(message) {
-        var lightProperties = Entities.getEntitiyProperties(message.lightID);
+        var lightProperties = Entities.getEntityProperties(this.lightID);
 
         if (this.sliderType === 'color_red') {
-            Entities.editEntity(message.lightID, {
+            Entities.editEntity(this.lightID, {
                 color: {
                     red: message.sliderValue,
                     green: lightProperties.color.g,
                     blue: lightProperties.color.b
                 }
-            })
+            });
         }
 
         if (this.sliderType === 'color_green') {
-            Entities.editEntity(message.lightID, {
+            Entities.editEntity(this.lightID, {
                 color: {
                     red: lightProperties.color.r
                     green: message.sliderValue,
                     blue: lightProperties.color.b
                 }
-            })
+            });
         }
 
         if (this.sliderType === 'color_blue') {
-            Entities.editEntity(message.lightID, {
+            Entities.editEntity(this.lightID, {
                 color: {
                     red: lightProperties.color.r,
                     green: lightProperties.color.g,
                     blue: message.sliderValue,
                 }
-            })
+            });
         }
 
         if (this.sliderType === 'intensity') {
-            Entities.editEntity(message.lightID, {
+            Entities.editEntity(this.lightID, {
                 intensity: message.sliderValue
-            })
+            });
         }
 
         if (this.sliderType === 'cutoff') {
-            Entities.editEntity(message.lightID, {
+            Entities.editEntity(this.lightID, {
                 cutoff: message.sliderValue
-            })
+            });
         }
 
         if (this.sliderType === 'exponent') {
-            Entities.editEntity(message.lightID, {
+            Entities.editEntity(this.lightID, {
                 exponent: message.sliderValue
-            })
+            });
         }
     },
     subscribeToBoxMessages: function() {
@@ -142,17 +150,6 @@ entitySlider.prototype = {
 
 //create them for a given light
 function makeSliders(light) {
-    var initialPosition = {
-        x: 0,
-        y: 0,
-        z: 0
-    };
-
-    var perRowOffset = {
-        x: 0,
-        y: 0.2,
-        z: 0
-    };
 
     if (light.type === 'spotlight') {
         var USE_COLOR_SLIDER = true;
@@ -167,7 +164,7 @@ function makeSliders(light) {
         var USE_EXPONENT_SLIDER = false;
     }
     if (USE_COLOR_SLIDER === true) {
-        var r = new entitySlider(RED, 'color_red', Vec3.multiply(1, perRowOffset));
+        var r = new entitySlider(RED, 'color_red', 1);
         var g = new entitySlider(GREEN, 'color_green', Vec3.multiply(2, perRowOffset));
         var b = new entitySlider(BLUE, 'color_blue', Vec3.multiply(3, perRowOffset));
     }
@@ -182,4 +179,5 @@ function makeSliders(light) {
     }
 };
 
-makeSliders(light)
+
+makeSliders(light);

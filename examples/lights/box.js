@@ -28,6 +28,7 @@
             var currentPosition = this.getClampedPosition();
             var distance = Vec3.distance(this.initialProperties.position, currentPosition);
             this.sliderValue = scaleValueBasedOnDistanceFromStart(distance);
+
             Entities.editEntity(this.entityID) {
                 position: currentPosition,
                 rotation: this.getClampedRotation()
@@ -41,6 +42,7 @@
                     z: 0
                 }
             })
+
             this.sendValueToSlider();
         },
         scaleValueBasedOnDistanceFromStart: function(value, min1, max1, min2, max2) {
@@ -52,7 +54,7 @@
         },
         sendValueToSlider: function() {
             var message = {
-                lightID: this.entityID,
+                boxID: this.entityID,
                 sliderValue: this.sliderValue
             }
             Messages.sendMessage('Hifi-Slider-Value-Reciever', JSON.stringify(message));
