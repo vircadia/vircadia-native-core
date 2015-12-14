@@ -47,9 +47,6 @@ void ProceduralSkybox::render(gpu::Batch& batch, const ViewFrustum& viewFrustum,
         Skybox::render(batch, viewFrustum, skybox);
     }
 
-    static gpu::BufferPointer theBuffer;
-    static gpu::Stream::FormatPointer theFormat;
-
     if (skybox._procedural && skybox._procedural->_enabled && skybox._procedural->ready()) {
         glm::mat4 projMat;
         viewFrustum.evalProjectionMatrix(projMat);

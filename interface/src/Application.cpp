@@ -1373,8 +1373,9 @@ void Application::paintGL() {
                     
                     batch.setFramebuffer(finalFramebuffer);
                     batch.clearColorFramebuffer(gpu::Framebuffer::BUFFER_COLOR0, glm::vec4(0.0f, 0.0f, 1.0f, 0.0f));
-                    batch.blit(primaryFbo, srcRectLeft, finalFramebuffer, destRectLeft);
-                  //  batch.blit(primaryFbo, srcRectRight, finalFramebuffer, destRectRight);
+                    // BLit left to right and right to left in stereo
+                    batch.blit(primaryFbo, srcRectRight, finalFramebuffer, destRectLeft);
+                    batch.blit(primaryFbo, srcRectLeft, finalFramebuffer, destRectRight);
                 });
             } else {
                 gpu::doInBatch(renderArgs._context, [=](gpu::Batch& batch) {
