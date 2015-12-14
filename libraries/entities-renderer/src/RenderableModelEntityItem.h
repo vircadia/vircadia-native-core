@@ -29,7 +29,7 @@ public:
     virtual ~RenderableModelEntityItem();
 
     virtual void setDimensions(const glm::vec3& value) override;
-    virtual void setModelURL(const QString& url);
+    virtual void setModelURL(const QString& url) override;
 
     virtual EntityItemProperties getProperties(EntityPropertyFlags desiredProperties = EntityPropertyFlags()) const override;
     virtual bool setProperties(const EntityItemProperties& properties) override;

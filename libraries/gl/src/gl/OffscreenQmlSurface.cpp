@@ -17,15 +17,14 @@
 #include <QtQuick/QQuickRenderControl>
 #include <QtCore/QWaitCondition>
 #include <QtCore/QMutex>
-#include <QtGui/QOpenGLContext>
 
 #include <shared/NsightHelpers.h>
 #include <PerfStat.h>
 #include <DependencyManager.h>
 #include <NumericalConstants.h>
 
-#include "GLEscrow.h"
 #include "OffscreenGLCanvas.h"
+#include "GLEscrow.h"
 
 
 // Time between receiving a request to render the offscreen UI actually triggering
@@ -60,7 +59,6 @@ static const QEvent::Type INIT = QEvent::Type(QEvent::User + 1);
 static const QEvent::Type RENDER = QEvent::Type(QEvent::User + 2);
 static const QEvent::Type RESIZE = QEvent::Type(QEvent::User + 3);
 static const QEvent::Type STOP = QEvent::Type(QEvent::User + 4);
-static const QEvent::Type UPDATE = QEvent::Type(QEvent::User + 5);
 
 class OffscreenQmlRenderer : public OffscreenGLCanvas {
     friend class OffscreenQmlSurface;
@@ -84,7 +82,7 @@ public:
 
         // Qt 5.5
         _renderControl->prepareThread(&_thread);
-        _context->moveToThread(&_thread);
+        getContextObject()->moveToThread(&_thread);
         moveToThread(&_thread);
         _thread.setObjectName("QML Thread");
         _thread.start();
@@ -176,7 +174,7 @@ private:
 
         doneCurrent();
 
-        _context->moveToThread(QCoreApplication::instance()->thread());
+        getContextObject()->moveToThread(QCoreApplication::instance()->thread());
         _cond.wakeOne();
     }
 

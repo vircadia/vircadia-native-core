@@ -31,7 +31,7 @@ AnimSkeleton::AnimSkeleton(const std::vector<FBXJoint>& joints) {
 }
 
 int AnimSkeleton::nameToJointIndex(const QString& jointName) const {
-    for (size_t i = 0; i < _joints.size(); i++) {
+    for (int i = 0; i < (int)_joints.size(); i++) {
         if (_joints[i].name == jointName) {
             return i;
         }
@@ -40,7 +40,7 @@ int AnimSkeleton::nameToJointIndex(const QString& jointName) const {
 }
 
 int AnimSkeleton::getNumJoints() const {
-    return _joints.size();
+    return (int)_joints.size();
 }
 
 const AnimPose& AnimSkeleton::getAbsoluteBindPose(int jointIndex) const {
@@ -101,7 +101,7 @@ void AnimSkeleton::buildSkeletonFromJoints(const std::vector<FBXJoint>& joints) 
     _relativeDefaultPoses.reserve(joints.size());
 
     // iterate over FBXJoints and extract the bind pose information.
-    for (size_t i = 0; i < joints.size(); i++) {
+    for (int i = 0; i < (int)joints.size(); i++) {
 
         // build relative and absolute default poses
         glm::mat4 rotTransform = glm::mat4_cast(_joints[i].preRotation * _joints[i].rotation * _joints[i].postRotation);

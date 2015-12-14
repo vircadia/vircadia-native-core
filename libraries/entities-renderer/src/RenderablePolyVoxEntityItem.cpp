@@ -32,11 +32,18 @@
 #include <PerfStat.h>
 #include <render/Scene.h>
 
+#ifdef _WIN32
+#pragma warning(push)
+#pragma warning( disable : 4267 )
+#endif
 #include <PolyVoxCore/CubicSurfaceExtractorWithNormals.h>
 #include <PolyVoxCore/MarchingCubesSurfaceExtractor.h>
 #include <PolyVoxCore/SurfaceMesh.h>
 #include <PolyVoxCore/SimpleVolume.h>
 #include <PolyVoxCore/Material.h>
+#ifdef _WIN32
+#pragma warning(pop)
+#endif
 
 #include "model/Geometry.h"
 #include "EntityTreeRenderer.h"
@@ -541,7 +548,7 @@ void RenderablePolyVoxEntityItem::render(RenderArgs* args) {
     int voxelVolumeSizeLocation = _pipeline->getProgram()->getUniforms().findLocation("voxelVolumeSize");
     batch._glUniform3f(voxelVolumeSizeLocation, _voxelVolumeSize.x, _voxelVolumeSize.y, _voxelVolumeSize.z);
 
-    batch.drawIndexed(gpu::TRIANGLES, mesh->getNumIndices(), 0);
+    batch.drawIndexed(gpu::TRIANGLES, (gpu::uint32)mesh->getNumIndices(), 0);
 }
 
 bool RenderablePolyVoxEntityItem::addToScene(EntityItemPointer self,

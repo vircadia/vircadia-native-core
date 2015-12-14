@@ -43,6 +43,8 @@ public:
     bool isCheckable;
     bool isChecked;
     bool isSeparator;
+
+    QString grouping; /// Either: "", "Advanced", or "Developer"
 };
 Q_DECLARE_METATYPE(MenuItemProperties)
 QScriptValue menuItemPropertiesToScriptValue(QScriptEngine* engine, const MenuItemProperties& props);

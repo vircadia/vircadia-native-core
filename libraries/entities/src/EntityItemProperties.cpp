@@ -1128,7 +1128,7 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
     // the first part of the data is an octcode, this is a required element of the edit packet format, but we don't
     // actually use it, we do need to skip it and read to the actual data we care about.
     int octets = numberOfThreeBitSectionsInCode(data);
-    int bytesToReadOfOctcode = bytesRequiredForCodeLength(octets);
+    int bytesToReadOfOctcode = (int)bytesRequiredForCodeLength(octets);
 
     // we don't actually do anything with this octcode...
     dataAt += bytesToReadOfOctcode;

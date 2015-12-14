@@ -495,7 +495,7 @@ public:
     /// WARNING, There is No check on the validity of the ID, so this could return a bad Item
     const Item& getItem(const ItemID& id) const { return _items[id]; }
 
-    unsigned int getNumItems() const { return _items.size(); }
+    size_t getNumItems() const { return _items.size(); }
 
 
     void processPendingChangesQueue();

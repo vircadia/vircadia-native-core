@@ -95,6 +95,7 @@ void menuItemPropertiesFromScriptValue(const QScriptValue& object, MenuItemPrope
     }
     properties.beforeItem = object.property("beforeItem").toVariant().toString();
     properties.afterItem = object.property("afterItem").toVariant().toString();
+    properties.grouping = object.property("grouping").toVariant().toString();
 }
 
 

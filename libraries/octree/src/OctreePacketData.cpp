@@ -154,7 +154,7 @@ bool OctreePacketData::startSubTree(const unsigned char* octcode) {
     int possibleStartAt = _bytesInUse;
     int length = 0;
     if (octcode) {
-        length = bytesRequiredForCodeLength(numberOfThreeBitSectionsInCode(octcode));
+        length = (int)bytesRequiredForCodeLength(numberOfThreeBitSectionsInCode(octcode));
         success = append(octcode, length); // handles checking compression
     } else {
         // NULL case, means root node, which is 0

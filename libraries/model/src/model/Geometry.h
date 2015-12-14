@@ -46,11 +46,11 @@ public:
     // Vertex buffer
     void setVertexBuffer(const BufferView& buffer);
     const BufferView& getVertexBuffer() const { return _vertexBuffer; }
-    uint getNumVertices() const { return _vertexBuffer.getNumElements(); }
+    size_t getNumVertices() const { return _vertexBuffer.getNumElements(); }
     bool hasVertexData() const { return _vertexBuffer._buffer.get() != nullptr; }
 
     // Attribute Buffers
-    int getNumAttributes() const { return _attributeBuffers.size(); }
+    size_t getNumAttributes() const { return _attributeBuffers.size(); }
     void addAttribute(Slot slot, const BufferView& buffer);
     const BufferView getAttributeBuffer(int attrib) const;
 
@@ -63,7 +63,7 @@ public:
     // Index Buffer
     void setIndexBuffer(const BufferView& buffer);
     const BufferView& getIndexBuffer() const { return _indexBuffer; }
-    uint getNumIndices() const { return _indexBuffer.getNumElements(); }
+    size_t getNumIndices() const { return _indexBuffer.getNumElements(); }
 
     // Access vertex position value
     const Vec3& getPos3(Index index) const { return _vertexBuffer.get<Vec3>(index); }
@@ -104,7 +104,7 @@ public:
 
     void setPartBuffer(const BufferView& buffer);
     const BufferView& getPartBuffer() const { return _partBuffer; }
-    uint getNumParts() const { return _partBuffer.getNumElements(); }
+    size_t getNumParts() const { return _partBuffer.getNumElements(); }
 
     // evaluate the bounding box of A part
     Box evalPartBound(int partNum) const;

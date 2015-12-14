@@ -334,8 +334,8 @@ unsigned char* pointToVoxel(float x, float y, float z, float s, unsigned char r,
         voxelSizeInOctets++;
     }
 
-    unsigned int voxelSizeInBytes = bytesRequiredForCodeLength(voxelSizeInOctets); // (voxelSizeInBits/8)+1;
-    unsigned int voxelBufferSize = voxelSizeInBytes + sizeof(rgbColor); // 3 for color
+    auto voxelSizeInBytes = bytesRequiredForCodeLength(voxelSizeInOctets); // (voxelSizeInBits/8)+1;
+    auto voxelBufferSize = voxelSizeInBytes + sizeof(rgbColor); // 3 for color
 
     // allocate our resulting buffer
     unsigned char* voxelOut = new unsigned char[voxelBufferSize];
