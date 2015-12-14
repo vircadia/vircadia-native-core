@@ -45,7 +45,7 @@
 #include <QtNetwork/QNetworkDiskCache>
 
 #include <gl/Config.h>
-#include <QOpenGLContextWrapper.h>
+#include <gl/QOpenGLContextWrapper.h>
 
 #include <AccountManager.h>
 #include <AddressManager.h>
@@ -3114,7 +3114,7 @@ int Application::sendNackPackets() {
             }
 
             if (nackPacketList->getNumPackets()) {
-                packetsSent += nackPacketList->getNumPackets();
+                packetsSent += (int)nackPacketList->getNumPackets();
 
                 // send the packet list
                 nodeList->sendPacketList(std::move(nackPacketList), *node);
