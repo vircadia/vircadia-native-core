@@ -1333,15 +1333,10 @@ void Application::paintGL() {
             batch.setFramebuffer(nullptr);
         });
         */
-        float ratio = ((float)QApplication::desktop()->windowHandle()->devicePixelRatio() * getRenderResolutionScale());
-        // Flip the src and destination rect horizontally to do the mirror
-        auto mirrorRect = glm::ivec4(0, 0, _mirrorViewRect.width() * ratio, _mirrorViewRect.height() * ratio);
-        auto mirrorRectDest = glm::ivec4(mirrorRect.z, mirrorRect.y, mirrorRect.x, mirrorRect.w);
-
         auto primaryFbo = framebufferCache->getPrimaryFramebuffer();
 
         if (renderArgs._renderMode == RenderArgs::MIRROR_RENDER_MODE) {
-            gpu::doInBatch(renderArgs._context, [=](gpu::Batch& batch) {
+            if (displayPlugin->isStereo()) {
                 gpu::Vec4i srcRect;
                 srcRect.z = size.width();
                 srcRect.w = size.height();
@@ -1350,23 +1345,60 @@ void Application::paintGL() {
                 destRect.y = 0;
                 destRect.z = 0;
                 destRect.w = size.height();
-                batch.setFramebuffer(finalFramebuffer);
-              //  batch.clearColorFramebuffer(gpu::Framebuffer::BUFFER_COLOR0, glm::vec4(0.0f, 0.0f, 0.0f, 0.0f));
-                batch.blit(primaryFbo, srcRect, finalFramebuffer, destRect);
-           //     batch.setFramebuffer(nullptr);
-            });
+               // batch.setFramebuffer(finalFramebuffer);
+                //  batch.clearColorFramebuffer(gpu::Framebuffer::BUFFER_COLOR0, glm::vec4(0.0f, 0.0f, 0.0f, 0.0f));
+              //  batch.blit(primaryFbo, srcRect, finalFramebuffer, destRect);
+
+                gpu::doInBatch(renderArgs._context, [=](gpu::Batch& batch) {
+                    gpu::Vec4i srcRectLeft;
+                    srcRectLeft.z = size.width() / 2;
+                    srcRectLeft.w = size.height();
+                    
+                    gpu::Vec4i srcRectRight;
+                    srcRectRight.x = size.width() / 2;
+                    srcRectRight.z = size.width();
+                    srcRectRight.w = size.height();
+  
+                    gpu::Vec4i destRectLeft;
+                    destRectLeft.x = srcRectLeft.z;
+                    destRectLeft.z = srcRectLeft.x;
+                    destRectLeft.y = srcRectLeft.y;
+                    destRectLeft.w = srcRectLeft.w;
+                    
+                    gpu::Vec4i destRectRight;
+                    destRectRight.x = srcRectRight.z;
+                    destRectRight.z = srcRectRight.x;
+                    destRectRight.y = srcRectRight.y;
+                    destRectRight.w = srcRectRight.w;
+                    
+                    batch.setFramebuffer(finalFramebuffer);
+                    batch.clearColorFramebuffer(gpu::Framebuffer::BUFFER_COLOR0, glm::vec4(0.0f, 0.0f, 1.0f, 0.0f));
+                    batch.blit(primaryFbo, srcRectLeft, finalFramebuffer, destRectLeft);
+                  //  batch.blit(primaryFbo, srcRectRight, finalFramebuffer, destRectRight);
+                });
+            } else {
+                gpu::doInBatch(renderArgs._context, [=](gpu::Batch& batch) {
+                    gpu::Vec4i srcRect;
+                    srcRect.z = size.width();
+                    srcRect.w = size.height();
+                    gpu::Vec4i destRect;
+                    destRect.x = size.width();
+                    destRect.y = 0;
+                    destRect.z = 0;
+                    destRect.w = size.height();
+                    batch.setFramebuffer(finalFramebuffer);
+                    batch.blit(primaryFbo, srcRect, finalFramebuffer, destRect);
+                });
+            }
         } else {
             gpu::doInBatch(renderArgs._context, [=](gpu::Batch& batch) {
                 gpu::Vec4i rect;
                 rect.z = size.width();
                 rect.w = size.height();
                 batch.setFramebuffer(finalFramebuffer);
-              //  batch.clearColorFramebuffer(gpu::Framebuffer::BUFFER_COLOR0, glm::vec4(0.0f, 0.0f, 0.0f, 0.0f));
                 batch.blit(primaryFbo, rect, finalFramebuffer, rect);
-           //     batch.setFramebuffer(nullptr);
             });
         }
-
     }
 
     // Overlay Composition, needs to occur after screen space effects have completed
@@ -1374,7 +1406,6 @@ void Application::paintGL() {
     {
         PROFILE_RANGE(__FUNCTION__ "/compositor");
         PerformanceTimer perfTimer("compositor");
-     //   auto primaryFbo = framebufferCache->getPrimaryFramebuffer();
         auto primaryFbo = finalFramebuffer;
         glBindFramebuffer(GL_DRAW_FRAMEBUFFER, gpu::GLBackend::getFramebufferID(primaryFbo));
         if (displayPlugin->isStereo()) {
@@ -1400,24 +1431,12 @@ void Application::paintGL() {
     {
         PROFILE_RANGE(__FUNCTION__ "/pluginOutput");
         PerformanceTimer perfTimer("pluginOutput");
-        auto scratchFramebuffer = finalFramebuffer;
-    /*    auto primaryFramebuffer = framebufferCache->getPrimaryFramebuffer();
-        auto scratchFramebuffer = framebufferCache->getFramebuffer();
-        gpu::doInBatch(renderArgs._context, [=](gpu::Batch& batch) {
-            gpu::Vec4i rect;
-            rect.z = size.width();
-            rect.w = size.height();
-            batch.setFramebuffer(scratchFramebuffer);
-            batch.clearColorFramebuffer(gpu::Framebuffer::BUFFER_COLOR0, glm::vec4(0.0f, 0.0f, 0.0f, 0.0f));
-            batch.blit(primaryFramebuffer, rect, scratchFramebuffer, rect);
-            batch.setFramebuffer(nullptr);
-        });*/
-        auto finalTexturePointer = scratchFramebuffer->getRenderBuffer(0);
+        auto finalTexturePointer = finalFramebuffer->getRenderBuffer(0);
         GLuint finalTexture = gpu::GLBackend::getTextureID(finalTexturePointer);
         Q_ASSERT(0 != finalTexture);
 
         Q_ASSERT(!_lockedFramebufferMap.contains(finalTexture));
-        _lockedFramebufferMap[finalTexture] = scratchFramebuffer;
+        _lockedFramebufferMap[finalTexture] = finalFramebuffer;
 
         Q_ASSERT(isCurrentContext(_offscreenContext->getContext()));
         {
