@@ -66,16 +66,6 @@
         max2: 15
     }
 
-    var BOW_SPATIAL_KEY = {
-        relativePosition: {
-            x: 0,
-            y: 0.06,
-            z: 0.11
-        },
-        relativeRotation: Quat.fromPitchYawRollDegrees(0, -90, 90)
-    }
-
-
     var USE_DEBOUNCE = false;
 
     var TRIGGER_CONTROLS = [
@@ -163,11 +153,9 @@
             var handToDisable = this.initialHand === 'right' ? 'left' : 'right';
             Messages.sendMessage('Hifi-Hand-Disabler', handToDisable);
 
-            setEntityCustomData('grabbableKey', this.entityID, {
-                grabbable: false,
-                invertSolidWhileHeld: true,
-                spatialKey: BOW_SPATIAL_KEY
-            });
+            var data = getEntityCustomData('grabbableKey', this.entityID, {});
+            data.grabbable = false;
+            setEntityCustomData('grabbableKey', this.entityID, data);
 
         },
         continueNearGrab: function() {
@@ -221,11 +209,10 @@
                 this.isGrabbed = false;
                 this.stringDrawn = false;
                 this.deleteStrings();
-                setEntityCustomData('grabbableKey', this.entityID, {
-                    grabbable: true,
-                    invertSolidWhileHeld: true,
-                    spatialKey: BOW_SPATIAL_KEY
-                });
+
+                var data = getEntityCustomData('grabbableKey', this.entityID, {});
+                data.grabbable = true;
+                setEntityCustomData('grabbableKey', this.entityID, data);
                 Entities.deleteEntity(this.preNotchString);
                 Entities.deleteEntity(this.arrow);
                 this.aiming = false;

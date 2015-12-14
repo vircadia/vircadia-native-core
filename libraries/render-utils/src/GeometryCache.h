@@ -151,16 +151,19 @@ public:
     void renderWireShapeInstances(gpu::Batch& batch, Shape shape, size_t count, gpu::BufferPointer& transformBuffer, gpu::BufferPointer& colorBuffer);
     void renderShape(gpu::Batch& batch, Shape shape);
     void renderWireShape(gpu::Batch& batch, Shape shape);
+    size_t getShapeTriangleCount(Shape shape);
 
     void renderCubeInstances(gpu::Batch& batch, size_t count, gpu::BufferPointer transformBuffer, gpu::BufferPointer colorBuffer);
     void renderWireCubeInstances(gpu::Batch& batch, size_t count, gpu::BufferPointer transformBuffer, gpu::BufferPointer colorBuffer);
     void renderCube(gpu::Batch& batch);
     void renderWireCube(gpu::Batch& batch);
+    size_t getCubeTriangleCount();
 
     void renderSphereInstances(gpu::Batch& batch, size_t count, gpu::BufferPointer transformBuffer, gpu::BufferPointer colorBuffer);
     void renderWireSphereInstances(gpu::Batch& batch, size_t count, gpu::BufferPointer transformBuffer, gpu::BufferPointer colorBuffer);
     void renderSphere(gpu::Batch& batch);
     void renderWireSphere(gpu::Batch& batch);
+    size_t getSphereTriangleCount();
 
     void renderGrid(gpu::Batch& batch, int xDivisions, int yDivisions, const glm::vec4& color);
     void renderGrid(gpu::Batch& batch, int x, int y, int width, int height, int rows, int cols, const glm::vec4& color, int id = UNKNOWN_ID);

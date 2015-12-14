@@ -19,6 +19,7 @@
 #include <QScriptValue>
 #include <vector>
 #include <JointData.h>
+#include <QReadWriteLock>
 
 #include "AnimNode.h"
 #include "AnimNodeLoader.h"
@@ -26,6 +27,9 @@
 
 class Rig;
 typedef std::shared_ptr<Rig> RigPointer;
+
+// Rig instances are reentrant.
+// However only specific methods thread-safe.  Noted below.
 
 class Rig : public QObject, public std::enable_shared_from_this<Rig> {
 public:
@@ -123,11 +127,13 @@ public:
     // if rotation is identity, result will be in rig space
     bool getJointRotationInWorldFrame(int jointIndex, glm::quat& result, const glm::quat& rotation) const;
 
-    // geometry space
+    // geometry space (thread-safe)
     bool getJointRotation(int jointIndex, glm::quat& rotation) const;
-
-    // geometry space
     bool getJointTranslation(int jointIndex, glm::vec3& translation) const;
+
+    // rig space (thread-safe)
+    bool getAbsoluteJointRotationInRigFrame(int jointIndex, glm::quat& rotation) const;
+    bool getAbsoluteJointTranslationInRigFrame(int jointIndex, glm::vec3& translation) const;
 
     // legacy
     bool getJointCombinedRotation(int jointIndex, glm::quat& result, const glm::quat& rotation) const;
@@ -217,10 +223,19 @@ public:
     AnimPose _modelOffset;  // model to rig space
     AnimPose _geometryOffset; // geometry to model space (includes unit offset & fst offsets)
 
-    AnimPoseVec _relativePoses; // geometry space relative to parent.
-    AnimPoseVec _absolutePoses; // rig space, not relative to parent.
-    AnimPoseVec _overridePoses; // geometry space relative to parent.
-    std::vector<bool> _overrideFlags;
+    struct PoseSet {
+        AnimPoseVec _relativePoses; // geometry space relative to parent.
+        AnimPoseVec _absolutePoses; // rig space, not relative to parent.
+        AnimPoseVec _overridePoses; // geometry space relative to parent.
+        std::vector<bool> _overrideFlags;
+    };
+
+    // Only accessed by the main thread
+    PoseSet _internalPoseSet;
+
+    // Copy of the _poseSet for external threads.
+    PoseSet _externalPoseSet;
+    mutable QReadWriteLock _externalPoseSetLock;
 
     AnimPoseVec _absoluteDefaultPoses; // rig space, not relative to parent.
 

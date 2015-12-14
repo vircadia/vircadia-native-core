@@ -72,13 +72,16 @@ Model::~Model() {
 
 AbstractViewStateInterface* Model::_viewState = NULL;
 
+
 void Model::setTranslation(const glm::vec3& translation) {
     _translation = translation;
+    enqueueLocationChange();
 }
-    
+
 void Model::setRotation(const glm::quat& rotation) {
     _rotation = rotation;
-}   
+    enqueueLocationChange();
+}
 
 void Model::setScale(const glm::vec3& scale) {
     setScaleInternal(scale);
@@ -87,7 +90,7 @@ void Model::setScale(const glm::vec3& scale) {
     _scaledToFit = false;
 }
 
-const float METERS_PER_MILLIMETER = 0.01f;
+const float METERS_PER_MILLIMETER = 0.01f; 
 
 void Model::setScaleInternal(const glm::vec3& scale) {
     if (glm::distance(_scale, scale) > METERS_PER_MILLIMETER) {
@@ -102,6 +105,28 @@ void Model::setOffset(const glm::vec3& offset) {
     // if someone manually sets our offset, then we are no longer snapped to center
     _snapModelToRegistrationPoint = false;
     _snappedToRegistrationPoint = false;
+}
+
+void Model::enqueueLocationChange() {
+    render::ScenePointer scene = AbstractViewStateInterface::instance()->getMain3DScene();
+
+    Transform transform;
+    transform.setTranslation(_translation);
+    transform.setRotation(_rotation);
+
+    Transform offset;
+    offset.setScale(_scale);
+    offset.postTranslate(_offset);
+
+    render::PendingChanges pendingChanges;
+    foreach (auto itemID, _renderItems.keys()) {
+        pendingChanges.updateItem<MeshPartPayload>(itemID, [transform, offset](MeshPartPayload& data) {
+            data.updateTransform(transform, offset);
+            data.notifyLocationChanged();
+        });
+    }
+
+    scene->enqueuePendingChanges(pendingChanges);
 }
 
 void Model::initJointTransforms() {
@@ -337,7 +362,7 @@ void Model::recalculateMeshBoxes(bool pickAgainstTriangles) {
         _calculatedMeshPartBoxes.clear();
         for (int i = 0; i < numberOfMeshes; i++) {
             const FBXMesh& mesh = geometry.meshes.at(i);
-            Extents scaledMeshExtents = calculateScaledOffsetExtents(mesh.meshExtents);
+            Extents scaledMeshExtents = calculateScaledOffsetExtents(mesh.meshExtents, _translation, _rotation);
 
             _calculatedMeshBoxes[i] = AABox(scaledMeshExtents);
 
@@ -478,11 +503,10 @@ bool Model::addToScene(std::shared_ptr<render::Scene> scene, render::PendingChan
 
     foreach (auto renderItem, _renderItemsSet) {
         auto item = scene->allocateID();
-        auto renderData = MeshPartPayload::Pointer(renderItem);
-        auto renderPayload = std::make_shared<MeshPartPayload::Payload>(renderData);
+        auto renderPayload = std::make_shared<MeshPartPayload::Payload>(renderItem);
         pendingChanges.resetItem(item, renderPayload);
-        pendingChanges.updateItem<MeshPartPayload>(item, [&](MeshPartPayload& data) {
-            data.model->_needsUpdateClusterMatrices = true;
+        pendingChanges.updateItem<MeshPartPayload>(item, [](MeshPartPayload& data) {
+            data.notifyLocationChanged();
         });
         _renderItems.insert(item, renderPayload);
         somethingAdded = true;
@@ -506,12 +530,11 @@ bool Model::addToScene(std::shared_ptr<render::Scene> scene,
 
     foreach (auto renderItem, _renderItemsSet) {
         auto item = scene->allocateID();
-        auto renderData = MeshPartPayload::Pointer(renderItem);
-        auto renderPayload = std::make_shared<MeshPartPayload::Payload>(renderData);
+        auto renderPayload = std::make_shared<MeshPartPayload::Payload>(renderItem);
         renderPayload->addStatusGetters(statusGetters);
         pendingChanges.resetItem(item, renderPayload);
-        pendingChanges.updateItem<MeshPartPayload>(item, [&](MeshPartPayload& data) {
-            data.model->_needsUpdateClusterMatrices = true;
+        pendingChanges.updateItem<MeshPartPayload>(item, [](MeshPartPayload& data) {
+            data.notifyLocationChanged();
         });
         _renderItems.insert(item, renderPayload);
         somethingAdded = true;
@@ -527,6 +550,7 @@ void Model::removeFromScene(std::shared_ptr<render::Scene> scene, render::Pendin
         pendingChanges.removeItem(item);
     }
     _renderItems.clear();
+    _renderItemsSet.clear();
     _readyWhenAdded = false;
 }
 
@@ -624,7 +648,8 @@ Extents Model::getUnscaledMeshExtents() const {
     return scaledExtents;
 }
 
-Extents Model::calculateScaledOffsetExtents(const Extents& extents) const {
+Extents Model::calculateScaledOffsetExtents(const Extents& extents,
+                                            glm::vec3 modelPosition, glm::quat modelOrientation) const {
     // we need to include any fst scaling, translation, and rotation, which is captured in the offset matrix
     glm::vec3 minimum = glm::vec3(_geometry->getFBXGeometry().offset * glm::vec4(extents.minimum, 1.0f));
     glm::vec3 maximum = glm::vec3(_geometry->getFBXGeometry().offset * glm::vec4(extents.maximum, 1.0f));
@@ -632,17 +657,17 @@ Extents Model::calculateScaledOffsetExtents(const Extents& extents) const {
     Extents scaledOffsetExtents = { ((minimum + _offset) * _scale),
                                     ((maximum + _offset) * _scale) };
 
-    Extents rotatedExtents = scaledOffsetExtents.getRotated(_rotation);
+    Extents rotatedExtents = scaledOffsetExtents.getRotated(modelOrientation);
 
-    Extents translatedExtents = { rotatedExtents.minimum + _translation,
-                                  rotatedExtents.maximum + _translation };
+    Extents translatedExtents = { rotatedExtents.minimum + modelPosition,
+                                  rotatedExtents.maximum + modelPosition };
 
     return translatedExtents;
 }
 
 /// Returns the world space equivalent of some box in model space.
-AABox Model::calculateScaledOffsetAABox(const AABox& box) const {
-    return AABox(calculateScaledOffsetExtents(Extents(box)));
+AABox Model::calculateScaledOffsetAABox(const AABox& box, glm::vec3 modelPosition, glm::quat modelOrientation) const {
+    return AABox(calculateScaledOffsetExtents(Extents(box), modelPosition, modelOrientation));
 }
 
 glm::vec3 Model::calculateScaledOffsetPoint(const glm::vec3& point) const {
@@ -745,6 +770,14 @@ bool Model::getJointRotation(int jointIndex, glm::quat& rotation) const {
 
 bool Model::getJointTranslation(int jointIndex, glm::vec3& translation) const {
     return _rig->getJointTranslation(jointIndex, translation);
+}
+
+bool Model::getAbsoluteJointRotationInRigFrame(int jointIndex, glm::quat& rotation) const {
+    return _rig->getAbsoluteJointRotationInRigFrame(jointIndex, rotation);
+}
+
+bool Model::getAbsoluteJointTranslationInRigFrame(int jointIndex, glm::vec3& translation) const {
+    return _rig->getAbsoluteJointTranslationInRigFrame(jointIndex, translation);
 }
 
 bool Model::getJointCombinedRotation(int jointIndex, glm::quat& rotation) const {
@@ -928,14 +961,14 @@ void Model::simulate(float deltaTime, bool fullUpdate) {
 //virtual
 void Model::updateRig(float deltaTime, glm::mat4 parentTransform) {
     _needsUpdateClusterMatrices = true;
-     _rig->updateAnimations(deltaTime, parentTransform);
+    _rig->updateAnimations(deltaTime, parentTransform);
 }
 void Model::simulateInternal(float deltaTime) {
     // update the world space transforms for all joints
     glm::mat4 parentTransform = glm::scale(_scale) * glm::translate(_offset);
     updateRig(deltaTime, parentTransform);
 }
-void Model::updateClusterMatrices() {
+void Model::updateClusterMatrices(glm::vec3 modelPosition, glm::quat modelOrientation) {
     PerformanceTimer perfTimer("Model::updateClusterMatrices");
 
     if (!_needsUpdateClusterMatrices) {
@@ -949,7 +982,7 @@ void Model::updateClusterMatrices() {
         glm::vec4(0.0f, 0.0f, 0.0f, 1.0f));
     auto cauterizeMatrix = _rig->getJointTransform(geometry.neckJointIndex) * zeroScale;
 
-    glm::mat4 modelToWorld = glm::mat4_cast(_rotation);
+    glm::mat4 modelToWorld = glm::mat4_cast(modelOrientation);
     for (int i = 0; i < _meshStates.size(); i++) {
         MeshState& state = _meshStates[i];
         const FBXMesh& mesh = geometry.meshes.at(i);
@@ -971,16 +1004,21 @@ void Model::updateClusterMatrices() {
         // Once computed the cluster matrices, update the buffer(s)
         if (mesh.clusters.size() > 1) {
             if (!state.clusterBuffer) {
-                state.clusterBuffer = std::make_shared<gpu::Buffer>(state.clusterMatrices.size() * sizeof(glm::mat4), (const gpu::Byte*) state.clusterMatrices.constData());
+                state.clusterBuffer = std::make_shared<gpu::Buffer>(state.clusterMatrices.size() * sizeof(glm::mat4),
+                                                                    (const gpu::Byte*) state.clusterMatrices.constData());
             } else {
-                state.clusterBuffer->setSubData(0, state.clusterMatrices.size() * sizeof(glm::mat4), (const gpu::Byte*) state.clusterMatrices.constData());
+                state.clusterBuffer->setSubData(0, state.clusterMatrices.size() * sizeof(glm::mat4),
+                                                (const gpu::Byte*) state.clusterMatrices.constData());
             }
 
             if (!_cauterizeBoneSet.empty() && (state.cauterizedClusterMatrices.size() > 1)) {
                 if (!state.cauterizedClusterBuffer) {
-                    state.cauterizedClusterBuffer = std::make_shared<gpu::Buffer>(state.cauterizedClusterMatrices.size() * sizeof(glm::mat4), (const gpu::Byte*) state.cauterizedClusterMatrices.constData());
+                    state.cauterizedClusterBuffer =
+                        std::make_shared<gpu::Buffer>(state.cauterizedClusterMatrices.size() * sizeof(glm::mat4),
+                                                      (const gpu::Byte*) state.cauterizedClusterMatrices.constData());
                 } else {
-                    state.cauterizedClusterBuffer->setSubData(0, state.cauterizedClusterMatrices.size() * sizeof(glm::mat4), (const gpu::Byte*) state.cauterizedClusterMatrices.constData());
+                    state.cauterizedClusterBuffer->setSubData(0, state.cauterizedClusterMatrices.size() * sizeof(glm::mat4),
+                                                              (const gpu::Byte*) state.cauterizedClusterMatrices.constData());
                 }
             }
         }
@@ -1059,7 +1097,7 @@ void Model::deleteGeometry() {
     _blendedBlendshapeCoefficients.clear();
 }
 
-AABox Model::getPartBounds(int meshIndex, int partIndex) {
+AABox Model::getPartBounds(int meshIndex, int partIndex, glm::vec3 modelPosition, glm::quat modelOrientation) {
 
     if (!_geometry || !_geometry->isLoaded()) {
         return AABox();
@@ -1070,7 +1108,7 @@ AABox Model::getPartBounds(int meshIndex, int partIndex) {
         bool isSkinned = state.clusterMatrices.size() > 1;
         if (isSkinned) {
             // if we're skinned return the entire mesh extents because we can't know for sure our clusters don't move us
-            return calculateScaledOffsetAABox(_geometry->getFBXGeometry().meshExtents);
+            return calculateScaledOffsetAABox(_geometry->getFBXGeometry().meshExtents, modelPosition, modelOrientation);
         }
     }
     if (_geometry->getFBXGeometry().meshes.size() > meshIndex) {
@@ -1088,15 +1126,21 @@ AABox Model::getPartBounds(int meshIndex, int partIndex) {
         //
         // If we not skinned use the bounds of the subMesh for all it's parts
         const FBXMesh& mesh = _geometry->getFBXGeometry().meshes.at(meshIndex);
-        return calculateScaledOffsetExtents(mesh.meshExtents);
+        return calculateScaledOffsetExtents(mesh.meshExtents, modelPosition, modelOrientation);
     }
     return AABox();
 }
 
 void Model::segregateMeshGroups() {
     QSharedPointer<NetworkGeometry> networkGeometry;
-    if (_showCollisionHull && _collisionGeometry && _collisionGeometry->isLoaded()) {
-        networkGeometry = _collisionGeometry;
+    bool showingCollisionHull = false;
+    if (_showCollisionHull && _collisionGeometry) {
+        if (_collisionGeometry->isLoaded()) {
+            networkGeometry = _collisionGeometry;
+            showingCollisionHull = true;
+        } else {
+            return;
+        }
     } else {
         networkGeometry = _geometry;
     }
@@ -1104,8 +1148,10 @@ void Model::segregateMeshGroups() {
     const std::vector<std::unique_ptr<NetworkMesh>>& networkMeshes = networkGeometry->getMeshes();
 
     // all of our mesh vectors must match in size
-    if ((int)networkMeshes.size() != geometry.meshes.size() ||
-        geometry.meshes.size() != _meshStates.size()) {
+    auto geoMeshesSize = geometry.meshes.size();
+    if ((int)networkMeshes.size() != geoMeshesSize ||
+      //  geometry.meshes.size() != _meshStates.size()) {
+        geoMeshesSize > _meshStates.size()) {
         qDebug() << "WARNING!!!! Mesh Sizes don't match! We will not segregate mesh groups yet.";
         return;
     }
@@ -1115,15 +1161,30 @@ void Model::segregateMeshGroups() {
 
     _renderItemsSet.clear();
 
+    Transform transform;
+    transform.setTranslation(_translation);
+    transform.setRotation(_rotation);
+
+    Transform offset;
+    offset.setScale(_scale);
+    offset.postTranslate(_offset);
+
     // Run through all of the meshes, and place them into their segregated, but unsorted buckets
     int shapeID = 0;
     for (int i = 0; i < (int)networkMeshes.size(); i++) {
         const FBXMesh& mesh = geometry.meshes.at(i);
+        const NetworkMesh& networkMesh = *(networkMeshes.at(i).get());
 
         // Create the render payloads
         int totalParts = mesh.parts.size();
         for (int partIndex = 0; partIndex < totalParts; partIndex++) {
-            _renderItemsSet << std::make_shared<MeshPartPayload>(this, i, partIndex, shapeID);
+            if (showingCollisionHull) {
+                _renderItemsSet << std::make_shared<MeshPartPayload>(networkMesh._mesh, partIndex, ModelRender::getCollisionHullMaterial(), transform, offset);
+
+            } else {
+                _renderItemsSet << std::make_shared<ModelMeshPartPayload>(this, i, partIndex, shapeID, transform, offset);
+            }
+
             shapeID++;
         }
     }
@@ -1136,14 +1197,22 @@ bool Model::initWhenReady(render::ScenePointer scene) {
 
         render::PendingChanges pendingChanges;
 
+        Transform transform;
+        transform.setTranslation(_translation);
+        transform.setRotation(_rotation);
+
+        Transform offset;
+        offset.setScale(_scale);
+        offset.postTranslate(_offset);
+
         foreach (auto renderItem, _renderItemsSet) {
             auto item = scene->allocateID();
-            auto renderData = MeshPartPayload::Pointer(renderItem);
-            auto renderPayload = std::make_shared<MeshPartPayload::Payload>(renderData);
+            auto renderPayload = std::make_shared<MeshPartPayload::Payload>(renderItem);
             _renderItems.insert(item, renderPayload);
             pendingChanges.resetItem(item, renderPayload);
-            pendingChanges.updateItem<MeshPartPayload>(item, [&](MeshPartPayload& data) {
-                data.model->_needsUpdateClusterMatrices = true;
+            pendingChanges.updateItem<MeshPartPayload>(item, [transform,offset](MeshPartPayload& data) {
+                data.updateTransform(transform, offset);
+                data.notifyLocationChanged();
             });
         }
         scene->enqueuePendingChanges(pendingChanges);

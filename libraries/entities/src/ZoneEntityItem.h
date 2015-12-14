@@ -25,7 +25,7 @@ class ZoneEntityItem : public EntityItem {
 public:
     static EntityItemPointer factory(const EntityItemID& entityID, const EntityItemProperties& properties);
 
-    ZoneEntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties);
+    ZoneEntityItem(const EntityItemID& entityItemID);
     
     ALLOW_INSTANTIATION // This class can be instantiated
     
@@ -57,7 +57,7 @@ public:
     static bool getDrawZoneBoundaries() { return _drawZoneBoundaries; }
     static void setDrawZoneBoundaries(bool value) { _drawZoneBoundaries = value; }
     
-    virtual bool isReadyToComputeShape() { return false; }
+    virtual bool isReadyToComputeShape() { return true; }
     void updateShapeType(ShapeType type) { _shapeType = type; }
     virtual ShapeType getShapeType() const;
     

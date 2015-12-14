@@ -64,8 +64,56 @@ void EntityScriptingInterface::setEntityTree(EntityTreePointer elementTree) {
     }
 }
 
+EntityItemProperties convertLocationToScriptSemantics(const EntityItemProperties& entitySideProperties) {
+    // In EntityTree code, properties.position and properties.rotation are relative to the parent.  In javascript,
+    // they are in world-space.  The local versions are put into localPosition and localRotation and position and
+    // rotation are converted from local to world space.
+    EntityItemProperties scriptSideProperties = entitySideProperties;
+    scriptSideProperties.setLocalPosition(entitySideProperties.getPosition());
+    scriptSideProperties.setLocalRotation(entitySideProperties.getRotation());
+
+    glm::vec3 worldPosition = SpatiallyNestable::localToWorld(entitySideProperties.getPosition(),
+                                                              entitySideProperties.getParentID(),
+                                                              entitySideProperties.getParentJointIndex());
+    glm::quat worldRotation = SpatiallyNestable::localToWorld(entitySideProperties.getRotation(),
+                                                              entitySideProperties.getParentID(),
+                                                              entitySideProperties.getParentJointIndex());
+    scriptSideProperties.setPosition(worldPosition);
+    scriptSideProperties.setRotation(worldRotation);
+
+    return scriptSideProperties;
+}
+
+
+EntityItemProperties convertLocationFromScriptSemantics(const EntityItemProperties& scriptSideProperties) {
+    // convert position and rotation properties from world-space to local, unless localPosition and localRotation
+    // are set.  If they are set, they overwrite position and rotation.
+    EntityItemProperties entitySideProperties = scriptSideProperties;
+
+    if (scriptSideProperties.localPositionChanged()) {
+        entitySideProperties.setPosition(scriptSideProperties.getLocalPosition());
+    } else if (scriptSideProperties.positionChanged()) {
+        glm::vec3 localPosition = SpatiallyNestable::worldToLocal(entitySideProperties.getPosition(),
+                                                                  entitySideProperties.getParentID(),
+                                                                  entitySideProperties.getParentJointIndex());
+        entitySideProperties.setPosition(localPosition);
+    }
+
+    if (scriptSideProperties.localRotationChanged()) {
+        entitySideProperties.setRotation(scriptSideProperties.getLocalRotation());
+    } else if (scriptSideProperties.rotationChanged()) {
+        glm::quat localRotation = SpatiallyNestable::worldToLocal(entitySideProperties.getRotation(),
+                                                                  entitySideProperties.getParentID(),
+                                                                  entitySideProperties.getParentJointIndex());
+        entitySideProperties.setRotation(localRotation);
+    }
+
+    return entitySideProperties;
+}
+
+
 QUuid EntityScriptingInterface::addEntity(const EntityItemProperties& properties) {
-    EntityItemProperties propertiesWithSimID = properties;
+    EntityItemProperties propertiesWithSimID = convertLocationFromScriptSemantics(properties);
     propertiesWithSimID.setDimensionsInitialized(properties.dimensionsChanged());
 
     EntityItemID id = EntityItemID(QUuid::createUuid());
@@ -111,6 +159,15 @@ EntityItemProperties EntityScriptingInterface::getEntityProperties(QUuid identit
         _entityTree->withReadLock([&] {
             EntityItemPointer entity = _entityTree->findEntityByEntityItemID(EntityItemID(identity));
             if (entity) {
+                if (desiredProperties.getHasProperty(PROP_POSITION) ||
+                    desiredProperties.getHasProperty(PROP_ROTATION) ||
+                    desiredProperties.getHasProperty(PROP_LOCAL_POSITION) ||
+                    desiredProperties.getHasProperty(PROP_LOCAL_ROTATION)) {
+                    // if we are explicitly getting position or rotation, we need parent information to make sense of them.
+                    desiredProperties.setHasProperty(PROP_PARENT_ID);
+                    desiredProperties.setHasProperty(PROP_PARENT_JOINT_INDEX);
+                }
+
                 results = entity->getProperties(desiredProperties);
 
                 // TODO: improve sitting points and naturalDimensions in the future,
@@ -130,10 +187,11 @@ EntityItemProperties EntityScriptingInterface::getEntityProperties(QUuid identit
         });
     }
 
-    return results;
+    return convertLocationToScriptSemantics(results);
 }
 
-QUuid EntityScriptingInterface::editEntity(QUuid id, EntityItemProperties properties) {
+QUuid EntityScriptingInterface::editEntity(QUuid id, const EntityItemProperties& scriptSideProperties) {
+    EntityItemProperties properties = scriptSideProperties;
     EntityItemID entityID(id);
     // If we have a local entity tree set, then also update it.
     if (!_entityTree) {
@@ -143,9 +201,30 @@ QUuid EntityScriptingInterface::editEntity(QUuid id, EntityItemProperties proper
 
     bool updatedEntity = false;
     _entityTree->withWriteLock([&] {
+        if (scriptSideProperties.parentDependentPropertyChanged() ||
+            scriptSideProperties.parentIDChanged() || scriptSideProperties.parentJointIndexChanged()) {
+            // All of parentID, parentJointIndex, position, rotation are needed to make sense of any of them.
+            // If any of these changed, pull any missing properties from the entity.
+            EntityItemPointer entity = _entityTree->findEntityByEntityItemID(entityID);
+            if (!entity) {
+                return;
+            }
+            if (!scriptSideProperties.parentIDChanged()) {
+                properties.setParentID(entity->getParentID());
+            }
+            if (!scriptSideProperties.parentJointIndexChanged()) {
+                properties.setParentJointIndex(entity->getParentJointIndex());
+            }
+            if (!scriptSideProperties.localPositionChanged() && !scriptSideProperties.positionChanged()) {
+                properties.setPosition(entity->getPosition());
+            }
+            if (!scriptSideProperties.localRotationChanged() && !scriptSideProperties.rotationChanged()) {
+                properties.setRotation(entity->getOrientation());
+            }
+        }
+        properties = convertLocationFromScriptSemantics(properties);
         updatedEntity = _entityTree->updateEntity(entityID, properties);
     });
-
 
     if (!updatedEntity) {
         return QUuid();
@@ -675,82 +754,75 @@ QVariantMap EntityScriptingInterface::getActionArguments(const QUuid& entityID, 
     return result;
 }
 
-glm::vec3 EntityScriptingInterface::voxelCoordsToWorldCoords(const QUuid& entityID, glm::vec3 voxelCoords) {
+EntityItemPointer EntityScriptingInterface::checkForTreeEntityAndTypeMatch(const QUuid& entityID,
+                                                                           EntityTypes::EntityType entityType) {
     if (!_entityTree) {
-        return glm::vec3(0.0f);
+        return EntityItemPointer();
     }
-
+    
     EntityItemPointer entity = _entityTree->findEntityByEntityItemID(entityID);
     if (!entity) {
-        qCDebug(entities) << "EntityScriptingInterface::voxelCoordsToWorldCoords no entity with ID" << entityID;
+        qDebug() << "EntityScriptingInterface::checkForTreeEntityAndTypeMatch - no entity with ID" << entityID;
+        return entity;
+    }
+    
+    if (entityType != EntityTypes::Unknown && entity->getType() != entityType) {
+        return EntityItemPointer();
+    }
+    
+    return entity;
+}
+
+glm::vec3 EntityScriptingInterface::voxelCoordsToWorldCoords(const QUuid& entityID, glm::vec3 voxelCoords) {
+    if (auto entity = checkForTreeEntityAndTypeMatch(entityID, EntityTypes::PolyVox)) {
+        auto polyVoxEntity = std::dynamic_pointer_cast<PolyVoxEntityItem>(entity);
+        return polyVoxEntity->voxelCoordsToWorldCoords(voxelCoords);
+    } else {
         return glm::vec3(0.0f);
     }
-
-    EntityTypes::EntityType entityType = entity->getType();
-    if (entityType != EntityTypes::PolyVox) {
-        return glm::vec3(0.0f);
-    }
-
-    auto polyVoxEntity = std::dynamic_pointer_cast<PolyVoxEntityItem>(entity);
-    return polyVoxEntity->voxelCoordsToWorldCoords(voxelCoords);
 }
 
 glm::vec3 EntityScriptingInterface::worldCoordsToVoxelCoords(const QUuid& entityID, glm::vec3 worldCoords) {
-    if (!_entityTree) {
+    if (auto entity = checkForTreeEntityAndTypeMatch(entityID, EntityTypes::PolyVox)) {
+        auto polyVoxEntity = std::dynamic_pointer_cast<PolyVoxEntityItem>(entity);
+        return polyVoxEntity->worldCoordsToVoxelCoords(worldCoords);
+    } else {
         return glm::vec3(0.0f);
     }
-
-    EntityItemPointer entity = _entityTree->findEntityByEntityItemID(entityID);
-    if (!entity) {
-        qCDebug(entities) << "EntityScriptingInterface::worldCoordsToVoxelCoords no entity with ID" << entityID;
-        return glm::vec3(0.0f);
-    }
-
-    EntityTypes::EntityType entityType = entity->getType();
-    if (entityType != EntityTypes::PolyVox) {
-        return glm::vec3(0.0f);
-    }
-
-    auto polyVoxEntity = std::dynamic_pointer_cast<PolyVoxEntityItem>(entity);
-    return polyVoxEntity->worldCoordsToVoxelCoords(worldCoords);
 }
 
 glm::vec3 EntityScriptingInterface::voxelCoordsToLocalCoords(const QUuid& entityID, glm::vec3 voxelCoords) {
-    if (!_entityTree) {
+    if (auto entity = checkForTreeEntityAndTypeMatch(entityID, EntityTypes::PolyVox)) {
+        auto polyVoxEntity = std::dynamic_pointer_cast<PolyVoxEntityItem>(entity);
+        return polyVoxEntity->voxelCoordsToLocalCoords(voxelCoords);
+    } else {
         return glm::vec3(0.0f);
     }
-
-    EntityItemPointer entity = _entityTree->findEntityByEntityItemID(entityID);
-    if (!entity) {
-        qCDebug(entities) << "EntityScriptingInterface::voxelCoordsToLocalCoords no entity with ID" << entityID;
-        return glm::vec3(0.0f);
-    }
-
-    EntityTypes::EntityType entityType = entity->getType();
-    if (entityType != EntityTypes::PolyVox) {
-        return glm::vec3(0.0f);
-    }
-
-    auto polyVoxEntity = std::dynamic_pointer_cast<PolyVoxEntityItem>(entity);
-    return polyVoxEntity->voxelCoordsToLocalCoords(voxelCoords);
 }
 
 glm::vec3 EntityScriptingInterface::localCoordsToVoxelCoords(const QUuid& entityID, glm::vec3 localCoords) {
-    if (!_entityTree) {
+    if (auto entity = checkForTreeEntityAndTypeMatch(entityID, EntityTypes::PolyVox)) {
+        auto polyVoxEntity = std::dynamic_pointer_cast<PolyVoxEntityItem>(entity);
+        return polyVoxEntity->localCoordsToVoxelCoords(localCoords);
+    } else {
         return glm::vec3(0.0f);
     }
+}
 
-    EntityItemPointer entity = _entityTree->findEntityByEntityItemID(entityID);
-    if (!entity) {
-        qCDebug(entities) << "EntityScriptingInterface::localCoordsToVoxelCoords no entity with ID" << entityID;
+glm::vec3 EntityScriptingInterface::getAbsoluteJointTranslationInObjectFrame(const QUuid& entityID, int jointIndex) {
+    if (auto entity = checkForTreeEntityAndTypeMatch(entityID, EntityTypes::Model)) {
+        auto modelEntity = std::dynamic_pointer_cast<ModelEntityItem>(entity);
+        return modelEntity->getAbsoluteJointTranslationInObjectFrame(jointIndex);
+    } else {
         return glm::vec3(0.0f);
     }
+}
 
-    EntityTypes::EntityType entityType = entity->getType();
-    if (entityType != EntityTypes::PolyVox) {
-        return glm::vec3(0.0f);
+glm::quat EntityScriptingInterface::getAbsoluteJointRotationInObjectFrame(const QUuid& entityID, int jointIndex) {
+    if (auto entity = checkForTreeEntityAndTypeMatch(entityID, EntityTypes::Model)) {
+        auto modelEntity = std::dynamic_pointer_cast<ModelEntityItem>(entity);
+        return modelEntity->getAbsoluteJointRotationInObjectFrame(jointIndex);
+    } else {
+        return glm::quat();
     }
-
-    auto polyVoxEntity = std::dynamic_pointer_cast<PolyVoxEntityItem>(entity);
-    return polyVoxEntity->localCoordsToVoxelCoords(localCoords);
 }

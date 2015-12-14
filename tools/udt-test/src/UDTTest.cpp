@@ -176,9 +176,36 @@ UDTTest::UDTTest(int& argc, char** argv) :
     } else {
         // this is a receiver - in case there are ordered packets (messages) being sent to us make sure that we handle them
         // so that they can be verified
-        _socket.setPacketListHandler(
-            [this](std::unique_ptr<udt::PacketList> packetList) { handlePacketList(std::move(packetList)); });
+        _socket.setMessageHandler(
+            [this](std::unique_ptr<udt::Packet> packet) {
+                auto messageNumber = packet->getMessageNumber();
+                auto it = _pendingMessages.find(messageNumber);
+
+                if (it == _pendingMessages.end()) {
+                    auto message = std::unique_ptr<Message>(new Message { messageNumber, packet->readAll() });
+                    message->data.reserve(_messageSize);
+                    if (packet->getPacketPosition() == udt::Packet::ONLY) {
+                        handleMessage(std::move(message));
+                    } else {
+                        _pendingMessages[messageNumber] = std::move(message);
+                    }
+                } else {
+                    auto& message = it->second;
+                    message->data.append(packet->readAll());
+
+                    if (packet->getPacketPosition() == udt::Packet::LAST) {
+                        handleMessage(std::move(message));
+                        _pendingMessages.erase(it);
+                    }
+                }
+
+        });
     }
+    _socket.setMessageFailureHandler(
+        [this](HifiSockAddr from, udt::Packet::MessageNumber messageNumber) {
+            _pendingMessages.erase(messageNumber);
+        }
+    );
     
     // the sender reports stats every 100 milliseconds, unless passed a custom value
     
@@ -284,8 +311,8 @@ void UDTTest::sendPacket() {
             
             packetList->closeCurrentPacket();
             
-            _totalQueuedBytes += packetList->getDataSize();
-            _totalQueuedPackets += packetList->getNumPackets();
+            _totalQueuedBytes += (int)packetList->getDataSize();
+            _totalQueuedPackets += (int)packetList->getNumPackets();
             
             _socket.writePacketList(std::move(packetList), _target);
         }
@@ -308,11 +335,11 @@ void UDTTest::sendPacket() {
     
 }
 
-void UDTTest::handlePacketList(std::unique_ptr<udt::PacketList> packetList) {
+void UDTTest::handleMessage(std::unique_ptr<Message> message) {
     // generate the byte array that should match this message - using the same seed the sender did
     
     int packetSize = udt::Packet::maxPayloadSize(true);
-    int messageSize = packetList->getMessageSize();
+    int messageSize = message->data.size();
     
     QByteArray messageData(messageSize, 0);
    
@@ -323,13 +350,13 @@ void UDTTest::handlePacketList(std::unique_ptr<udt::PacketList> packetList) {
         messageData.replace(i, sizeof(randomInt), reinterpret_cast<char*>(&randomInt), sizeof(randomInt));
     }
     
-    bool dataMatch = messageData == packetList->getMessage();
+    bool dataMatch = messageData == message->data;
     
-    Q_ASSERT_X(dataMatch, "UDTTest::handlePacketList",
+    Q_ASSERT_X(dataMatch, "UDTTest::handleMessage",
                "received message did not match expected message (from seeded random number generation).");
     
     if (!dataMatch) {
-        qCritical() << "UDTTest::handlePacketList" << "received message did not match expected message"
+        qCritical() << "UDTTest::handleMessage" << "received message did not match expected message"
             << "(from seeded random number generation).";
     }
 }

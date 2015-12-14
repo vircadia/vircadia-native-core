@@ -15,7 +15,6 @@
 #include <deque>
 #include <forward_list>
 #include <functional>
-#include <GL/glew.h>
 #include <mutex>
 
 #include <SharedUtil.h>
@@ -49,35 +48,32 @@ template <
 >
 class GLEscrow {
 public:
+    static const uint64_t MAX_UNSIGNALED_TIME = USECS_PER_SECOND / 2;
 
     struct Item {
-        T _value;
+        const T _value;
         GLsync _sync;
-        uint64_t _created;
+        const uint64_t _created;
 
         Item(T value, GLsync sync) :
             _value(value), _sync(sync), _created(usecTimestampNow()) 
         {
         }
 
-        uint64_t age() {
+        uint64_t age() const {
             return usecTimestampNow() - _created;
         }
 
-        bool signaled() {
+        bool signaled() const {
             auto result = glClientWaitSync(_sync, 0, 0);
             if (GL_TIMEOUT_EXPIRED != result && GL_WAIT_FAILED != result) {
                 return true;
-            }
-            if (age() > (USECS_PER_SECOND / 2)) {
-                qWarning() << "Long unsignaled sync";
             }
             return false;
         }
     };
 
     using Mutex = std::mutex;
-    using Lock = std::unique_lock<Mutex>;
     using Recycler = std::function<void(T t)>;
     // deque gives us random access, double ended push & pop and size, all in constant time
     using Deque = std::deque<Item>;
@@ -85,6 +81,34 @@ public:
     
     void setRecycler(Recycler recycler) {
         _recycler = recycler;
+    }
+
+    template <typename F> 
+    void withLock(F f) {
+        using Lock = std::unique_lock<Mutex>;
+        Lock lock(_mutex);
+        f();
+    }
+
+    template <typename F>
+    bool tryLock(F f) {
+        using Lock = std::unique_lock<Mutex>;
+        bool result = false;
+        Lock lock(_mutex, std::try_to_lock_t());
+        if (lock.owns_lock()) {
+            f();
+            result = true;
+        }
+        return result;
+    }
+
+
+    size_t depth() {
+        size_t result{ 0 };
+        withLock([&]{
+            result = _submits.size();
+        });
+        return result;
     }
 
     // Submit a new resource from the producer context
@@ -99,11 +123,9 @@ public:
             glFlush();
         }
 
-        {
-            Lock lock(_mutex);
+        withLock([&]{
             _submits.push_back(Item(t, writeSync));
-        }
-
+        });
         return cleanTrash();
     }
 
@@ -115,16 +137,31 @@ public:
         // On the one hand using try_lock() reduces the chance of blocking the consumer thread,
         // but if the produce thread is going fast enough, it could effectively
         // starve the consumer out of ever actually getting resources.
-        if (_mutex.try_lock()) {
+        tryLock([&]{
+            // May be called on any thread, but must be inside a locked section
             if (signaled(_submits, 0)) {
                 result = _submits.at(0)._value;
                 _submits.pop_front();
             }
-            _mutex.unlock();
+        });
+        return result;
+    }
+
+    // Returns the next available resource provided by the submitter,
+    // or if none is available (which could mean either the submission
+    // list is empty or that the first item on the list isn't yet signaled
+    // Also releases any previous texture held by the caller
+    T fetchAndRelease(T oldValue) {
+        T result = fetch();
+        if (!result) {
+            return oldValue;
+        }
+        if (oldValue) {
+            release(oldValue);
         }
         return result;
     }
-    
+
     // If fetch returns a non-zero value, it's the responsibility of the
     // client to release it at some point
     void release(T t, GLsync readSync = 0) {
@@ -134,32 +171,45 @@ public:
             glFlush();
         }
 
-        Lock lock(_mutex);
-        _releases.push_back(Item(t, readSync));
+        withLock([&]{
+            _releases.push_back(Item(t, readSync));
+        });
     }
     
 private:
     size_t cleanTrash() {
         size_t wastedWork{ 0 };
         List trash;
-        {
+        tryLock([&]{
+            while (!_submits.empty()) {
+                const auto& item = _submits.front();
+                if (!item._sync || item.age() < MAX_UNSIGNALED_TIME) {
+                    break;
+                }
+                qWarning() << "Long unsignaled sync " << item._sync << " unsignaled for " << item.age();
+                _trash.push_front(item);
+                _submits.pop_front();
+            }
+
             // We only ever need one ready item available in the list, so if the
             // second item is signaled (implying the first is as well, remove the first
             // item.  Iterate until the SECOND item in the list is not in the ready state
             // The signaled function takes care of checking against the deque size
             while (signaled(_submits, 1)) {
-                pop(_submits);
+                _trash.push_front(_submits.front());
+                _submits.pop_front();
                 ++wastedWork;
             }
 
             // Stuff in the release queue can be cleared out as soon as it's signaled
             while (signaled(_releases, 0)) {
-                pop(_releases);
+                _trash.push_front(_releases.front());
+                _releases.pop_front();
             }
 
             trash.swap(_trash);
-        }
-
+        });
+           
         // FIXME maybe doing a timing on the deleters and warn if it's taking excessive time?
         // although we are out of the lock, so it shouldn't be blocking anything
         std::for_each(trash.begin(), trash.end(), [&](typename List::const_reference item) {
@@ -171,13 +221,6 @@ private:
             }
         });
         return wastedWork;
-    }
-
-    // May be called on any thread, but must be inside a locked section
-    void pop(Deque& deque) {
-        auto& item = deque.front();
-        _trash.push_front(item);
-        deque.pop_front();
     }
 
     // May be called on any thread, but must be inside a locked section

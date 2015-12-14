@@ -30,36 +30,26 @@ public:
     virtual glm::uvec2 getRecommendedUiSize() const override final { return uvec2(1920, 1080); }
     virtual void resetSensors() override final;
     virtual glm::mat4 getEyeToHeadTransform(Eye eye) const override final;
-    virtual glm::mat4 getHeadPose() const override final;
-    virtual void setEyeRenderPose(Eye eye, const glm::mat4& pose) override final; 
     virtual float getIPD() const override final;
+    virtual glm::mat4 getHeadPose(uint32_t frameIndex) const override;
 
 protected:
     virtual void customizeContext() override;
-    virtual void preRender() override final;
-    virtual void display(GLuint finalTexture, const glm::uvec2& sceneSize) override;
 
 protected:
-    ovrPosef _eyePoses[2];
     ovrVector3f _eyeOffsets[2];
     
     mat4 _eyeProjections[3];
     mat4 _compositeEyeProjections[2];
     uvec2 _desiredFramebufferSize;
-    ovrTrackingState _trackingState;
-    unsigned int _frameIndex{ 0 };
 
-#if (OVR_MAJOR_VERSION >= 6)
-    ovrHmd _hmd;
+    ovrSession _session;
+    ovrGraphicsLuid _luid;
     float _ipd{ OVR_DEFAULT_IPD };
     ovrEyeRenderDesc _eyeRenderDescs[2];
     ovrFovPort _eyeFovs[2];
     ovrHmdDesc _hmdDesc;
     ovrLayerEyeFov _sceneLayer;
-#endif
-#if (OVR_MAJOR_VERSION == 7)
-    ovrGraphicsLuid _luid;
-#endif
 };
 
 #if (OVR_MAJOR_VERSION == 6) 

@@ -15,24 +15,14 @@
 #include <mutex>
 #include <functional>
 
+#include <shared/NsightHelpers.h>
+
 #include "Framebuffer.h"
 #include "Pipeline.h"
 #include "Query.h"
 #include "Stream.h"
 #include "Texture.h"
 #include "Transform.h"
-
-
-#if defined(NSIGHT_FOUND)
-    class ProfileRange {
-    public:
-        ProfileRange(const char *name);
-        ~ProfileRange();
-    };
-#define PROFILE_RANGE(name) ProfileRange profileRangeThis(name);
-#else
-#define PROFILE_RANGE(name)
-#endif
 
 class QDebug;
 
@@ -334,7 +324,7 @@ public:
         NUM_COMMANDS,
     };
     typedef std::vector<Command> Commands;
-    typedef std::vector<uint32> CommandOffsets;
+    typedef std::vector<size_t> CommandOffsets;
 
     const Commands& getCommands() const { return _commands; }
     const CommandOffsets& getCommandOffsets() const { return _commandOffsets; }
@@ -342,11 +332,17 @@ public:
     class Param {
     public:
         union {
+#if (QT_POINTER_SIZE == 8)
+            size_t _size;
+#endif            
             int32 _int;
             uint32 _uint;
-            float   _float;
-            char _chars[4];
+            float _float;
+            char _chars[sizeof(size_t)];
         };
+#if (QT_POINTER_SIZE == 8)
+        Param(size_t val) : _size(val) {}
+#endif            
         Param(int32 val) : _int(val) {}
         Param(uint32 val) : _uint(val) {}
         Param(float val) : _float(val) {}
@@ -370,8 +366,8 @@ public:
             std::vector< Cache<T> > _items;
 
             size_t size() const { return _items.size(); }
-            uint32 cache(const Data& data) {
-                uint32 offset = _items.size();
+            size_t cache(const Data& data) {
+                size_t offset = _items.size();
                 _items.push_back(Cache<T>(data));
                 return offset;
             }
@@ -403,8 +399,8 @@ public:
     // FOr example Mat4s are going there
     typedef unsigned char Byte;
     typedef std::vector<Byte> Bytes;
-    uint32 cacheData(uint32 size, const void* data);
-    Byte* editData(uint32 offset) {
+    size_t cacheData(size_t size, const void* data);
+    Byte* editData(size_t offset) {
         if (offset >= _data.size()) {
             return 0;
         }

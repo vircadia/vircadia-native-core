@@ -49,6 +49,7 @@ private slots:
     void openFullAvatarModelBrowser();
     void openSnapshotLocationBrowser();
     void openScriptsLocationBrowser();
+    void changeFullAvatarURL();
     void fullAvatarURLChanged(const QString& newValue, const QString& modelName);
 };
 

@@ -63,6 +63,7 @@ void AssetUpload::start() {
             
             // file opened, read the data and grab the extension
             _extension = QFileInfo(_filename).suffix();
+            _extension = _extension.toLower();
             
             _data = file.readAll();
         } else {

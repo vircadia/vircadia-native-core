@@ -118,7 +118,7 @@ GLBackend::GLFramebuffer* GLBackend::syncGPUObject(const Framebuffer& framebuffe
 
         // Last but not least, define where we draw
         if (!colorBuffers.empty()) {
-            glDrawBuffers(colorBuffers.size(), colorBuffers.data());
+            glDrawBuffers((GLsizei)colorBuffers.size(), colorBuffers.data());
         } else {
             glDrawBuffer( GL_NONE );
         }
@@ -196,7 +196,7 @@ void GLBackend::resetOutputStage() {
     }
 }
 
-void GLBackend::do_setFramebuffer(Batch& batch, uint32 paramOffset) {
+void GLBackend::do_setFramebuffer(Batch& batch, size_t paramOffset) {
     auto framebuffer = batch._framebuffers.get(batch._params[paramOffset]._uint);
     if (_output._framebuffer != framebuffer) {
         auto newFBO = getFramebufferID(framebuffer);
@@ -208,7 +208,7 @@ void GLBackend::do_setFramebuffer(Batch& batch, uint32 paramOffset) {
     }
 }
 
-void GLBackend::do_clearFramebuffer(Batch& batch, uint32 paramOffset) {
+void GLBackend::do_clearFramebuffer(Batch& batch, size_t paramOffset) {
     if (_stereo._enable && !_pipeline._stateCache.scissorEnable) {
         qWarning("Clear without scissor in stereo mode");
     }
@@ -253,7 +253,7 @@ void GLBackend::do_clearFramebuffer(Batch& batch, uint32 paramOffset) {
             }
 
             if (!drawBuffers.empty()) {
-                glDrawBuffers(drawBuffers.size(), drawBuffers.data());
+                glDrawBuffers((GLsizei)drawBuffers.size(), drawBuffers.data());
                 glClearColor(color.x, color.y, color.z, color.w);
                 glmask |= GL_COLOR_BUFFER_BIT;
             
@@ -291,23 +291,23 @@ void GLBackend::do_clearFramebuffer(Batch& batch, uint32 paramOffset) {
     if (_output._framebuffer && !drawBuffers.empty()) {
         auto glFramebuffer = syncGPUObject(*_output._framebuffer);
         if (glFramebuffer) {
-            glDrawBuffers(glFramebuffer->_colorBuffers.size(), glFramebuffer->_colorBuffers.data());
+            glDrawBuffers((GLsizei)glFramebuffer->_colorBuffers.size(), glFramebuffer->_colorBuffers.data());
         }
     }
 
     (void) CHECK_GL_ERROR();
 }
 
-void GLBackend::do_blit(Batch& batch, uint32 paramOffset) {
+void GLBackend::do_blit(Batch& batch, size_t paramOffset) {
     auto srcframebuffer = batch._framebuffers.get(batch._params[paramOffset]._uint);
     Vec4i srcvp;
-    for (size_t i = 0; i < 4; ++i) {
+    for (auto i = 0; i < 4; ++i) {
         srcvp[i] = batch._params[paramOffset + 1 + i]._int;
     }
 
     auto dstframebuffer = batch._framebuffers.get(batch._params[paramOffset + 5]._uint);
     Vec4i dstvp;
-    for (size_t i = 0; i < 4; ++i) {
+    for (auto i = 0; i < 4; ++i) {
         dstvp[i] = batch._params[paramOffset + 6 + i]._int;
     }
 

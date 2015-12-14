@@ -149,6 +149,11 @@ public:
 
     static const RenderPipelineLib& getRenderPipelineLib();
 
+    // Collision hull Material
+    static model::MaterialPointer _collisionHullMaterial;
+
+    static model::MaterialPointer getCollisionHullMaterial();
+
 };
 
 #endif // hifi_ModelRender_h

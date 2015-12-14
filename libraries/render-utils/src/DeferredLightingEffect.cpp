@@ -87,18 +87,18 @@ gpu::PipelinePointer DeferredLightingEffect::getPipeline(SimpleProgramKey config
                             gpu::State::FACTOR_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::ONE);
     
     gpu::ShaderPointer program = (config.isEmissive()) ? _emissiveShader : _simpleShader;
-    gpu::PipelinePointer pipeline = gpu::PipelinePointer(gpu::Pipeline::create(program, state));
+    gpu::PipelinePointer pipeline = gpu::Pipeline::create(program, state);
     _simplePrograms.insert(config, pipeline);
     return pipeline;
 }
 
 void DeferredLightingEffect::init(AbstractViewStateInterface* viewState) {
-    auto VS = gpu::ShaderPointer(gpu::Shader::createVertex(std::string(simple_vert)));
-    auto PS = gpu::ShaderPointer(gpu::Shader::createPixel(std::string(simple_textured_frag)));
-    auto PSEmissive = gpu::ShaderPointer(gpu::Shader::createPixel(std::string(simple_textured_emisive_frag)));
+    auto VS = gpu::Shader::createVertex(std::string(simple_vert));
+    auto PS = gpu::Shader::createPixel(std::string(simple_textured_frag));
+    auto PSEmissive = gpu::Shader::createPixel(std::string(simple_textured_emisive_frag));
     
-    _simpleShader = gpu::ShaderPointer(gpu::Shader::createProgram(VS, PS));
-    _emissiveShader = gpu::ShaderPointer(gpu::Shader::createProgram(VS, PSEmissive));
+    _simpleShader = gpu::Shader::createProgram(VS, PS);
+    _emissiveShader = gpu::Shader::createProgram(VS, PSEmissive);
     
     gpu::Shader::BindingSet slotBindings;
     slotBindings.insert(gpu::Shader::Binding(std::string("normalFittingMap"), DeferredLightingEffect::NORMAL_FITTING_MAP_SLOT));
@@ -150,7 +150,7 @@ void DeferredLightingEffect::init(AbstractViewStateInterface* viewState) {
                                 gpu::State::SRC_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::INV_SRC_ALPHA,
                                 gpu::State::FACTOR_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::ONE);
         blitState->setColorWriteMask(true, true, true, false);
-        _blitLightBuffer = gpu::PipelinePointer(gpu::Pipeline::create(blitProgram, blitState));
+        _blitLightBuffer = gpu::Pipeline::create(blitProgram, blitState);
     }
 
     // Allocate a global light representing the Global Directional light casting shadow (the sun) and the ambient light
@@ -314,7 +314,7 @@ void DeferredLightingEffect::addPointLight(const glm::vec3& position, float radi
 void DeferredLightingEffect::addSpotLight(const glm::vec3& position, float radius, const glm::vec3& color,
     float intensity, const glm::quat& orientation, float exponent, float cutoff) {
     
-    unsigned int lightID = _pointLights.size() + _spotLights.size() + _globalLights.size();
+    unsigned int lightID = (unsigned int)(_pointLights.size() + _spotLights.size() + _globalLights.size());
     if (lightID >= _allocatedLights.size()) {
         _allocatedLights.push_back(std::make_shared<model::Light>());
     }
@@ -721,10 +721,10 @@ void DeferredLightingEffect::setupTransparent(RenderArgs* args, int lightBufferU
 }
 
 static void loadLightProgram(const char* vertSource, const char* fragSource, bool lightVolume, gpu::PipelinePointer& pipeline, LightLocationsPtr& locations) {
-    auto VS = gpu::ShaderPointer(gpu::Shader::createVertex(std::string(vertSource)));
-    auto PS = gpu::ShaderPointer(gpu::Shader::createPixel(std::string(fragSource)));
+    auto VS = gpu::Shader::createVertex(std::string(vertSource));
+    auto PS = gpu::Shader::createPixel(std::string(fragSource));
     
-    gpu::ShaderPointer program = gpu::ShaderPointer(gpu::Shader::createProgram(VS, PS));
+    gpu::ShaderPointer program = gpu::Shader::createProgram(VS, PS);
 
     gpu::Shader::BindingSet slotBindings;
     slotBindings.insert(gpu::Shader::Binding(std::string("diffuseMap"), 0));
@@ -769,7 +769,7 @@ static void loadLightProgram(const char* vertSource, const char* fragSource, boo
     } else {
         state->setCullMode(gpu::State::CULL_BACK);
     }
-    pipeline.reset(gpu::Pipeline::create(program, state));
+    pipeline = gpu::Pipeline::create(program, state);
 
 }
 

@@ -47,8 +47,9 @@ Item {
         }
    }
 
-    implicitHeight: label.implicitHeight * 1.5
+    implicitHeight: source.visible ? label.implicitHeight * 1.5 : 0
     implicitWidth: label.implicitWidth + label.height * 2.5
+    visible: source.visible
 
     Timer {
         id: timer
@@ -66,6 +67,7 @@ Item {
         color: label.color
         text: checkText()
         size: label.height
+        visible: source.visible
         font.pixelSize: size
         function checkText() {
             if (!source || source.type != 1 || !source.checkable) {
@@ -89,6 +91,7 @@ Item {
         verticalAlignment: Text.AlignVCenter
         color: source.enabled ? hifi.colors.text : hifi.colors.disabledText
         enabled: source.enabled && source.visible
+        visible: source.visible
         function typedText() {
             if (source) {
                 switch (source.type) {
@@ -109,7 +112,7 @@ Item {
         x: listView.width - width - 4
         size: label.height
         width: implicitWidth
-        visible: source.type == 2
+        visible: source.visible && (source.type == 2)
         text: "\uF0DA"
         anchors.verticalCenter: parent.verticalCenter
         color: label.color

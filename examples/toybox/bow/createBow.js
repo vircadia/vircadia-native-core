@@ -48,12 +48,17 @@ var bow = Entities.addEntity({
         grabbableKey: {
             invertSolidWhileHeld: true,
             spatialKey: {
-                relativePosition: {
-                    x: 0,
-                    y: 0.06,
-                    z: 0.11
+                leftRelativePosition: {
+                    x: -0.02,
+                    y: 0.08,
+                    z: 0.09
                 },
-                relativeRotation: Quat.fromPitchYawRollDegrees(0, -90, 90)
+                relativePosition: {
+                    x: 0.02,
+                    y: 0.08,
+                    z: 0.09
+                },
+                relativeRotation: Quat.fromPitchYawRollDegrees(0, 90, -90)
             }
         }
     })

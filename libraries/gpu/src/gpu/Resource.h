@@ -26,9 +26,9 @@ namespace gpu {
 
 class Resource {
 public:
-    typedef unsigned int Size;
+    typedef size_t Size;
 
-    static const Size NOT_ALLOCATED = -1;
+    static const Size NOT_ALLOCATED = (Size)-1;
 
     // The size in bytes of data stored in the resource
     virtual Size getSize() const = 0;

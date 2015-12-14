@@ -26,7 +26,6 @@
 #include "Tooltip.h"
 
 #include "Application.h"
-#include <input-plugins/SixenseManager.h> // TODO: any references to sixense should be removed here
 #include <controllers/InputDevice.h>
 
 
@@ -287,7 +286,7 @@ void ApplicationCompositor::displayOverlayTextureHmd(RenderArgs* renderArgs, int
         mat4 camMat;
         _cameraBaseTransform.getMatrix(camMat);
         auto displayPlugin = qApp->getActiveDisplayPlugin();
-        auto headPose = displayPlugin->getHeadPose();
+        auto headPose = displayPlugin->getHeadPose(qApp->getFrameCount());
         auto eyeToHead = displayPlugin->getEyeToHeadTransform((Eye)eye);
         camMat = (headPose * eyeToHead) * camMat;
         batch.setViewportTransform(renderArgs->_viewport);
@@ -416,7 +415,7 @@ bool ApplicationCompositor::calculateRayUICollisionPoint(const glm::vec3& positi
     glm::vec3 relativeDirection = glm::normalize(inverseOrientation * direction);
 
     float t;
-    if (raySphereIntersect(relativeDirection, relativePosition, _oculusUIRadius * myAvatar->getScale(), &t)){
+    if (raySphereIntersect(relativeDirection, relativePosition, _oculusUIRadius * myAvatar->getAvatarScale(), &t)){
         result = position + direction * t;
         return true;
     }
