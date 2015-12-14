@@ -54,8 +54,8 @@ public:
     glm::vec3 getAtmosphereCenter(const glm::vec3& cameraPosition) const;
     glm::vec3 getSunLocation(const glm::vec3& cameraPosition) const;
 
-    int getBroadcastData(unsigned char* destinationBuffer) const;
-    int parseData(const unsigned char* sourceBuffer, int numBytes);
+    size_t getBroadcastData(unsigned char* destinationBuffer) const;
+    size_t parseData(const unsigned char* sourceBuffer, int numBytes);
     
 private:
 

@@ -20,7 +20,9 @@
 #include "RenderableLightEntityItem.h"
 
 EntityItemPointer RenderableLightEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
-    return std::make_shared<RenderableLightEntityItem>(entityID, properties);
+    EntityItemPointer entity{ new RenderableLightEntityItem(entityID) };
+    entity->setProperties(properties);
+    return entity;
 }
 
 void RenderableLightEntityItem::render(RenderArgs* args) {

@@ -91,12 +91,12 @@ RenderDeferredTask::RenderDeferredTask() : Task() {
     _jobs.push_back(Job(new AmbientOcclusion::JobModel("AmbientOcclusion")));
 
     _jobs.back().setEnabled(false);
-    _occlusionJobIndex = _jobs.size() - 1;
+    _occlusionJobIndex = (int)_jobs.size() - 1;
 
     _jobs.push_back(Job(new Antialiasing::JobModel("Antialiasing")));
 
     _jobs.back().setEnabled(false);
-    _antialiasingJobIndex = _jobs.size() - 1;
+    _antialiasingJobIndex = (int)_jobs.size() - 1;
 
     _jobs.push_back(Job(new FetchItems::JobModel("FetchTransparent",
          FetchItems(
@@ -119,13 +119,13 @@ RenderDeferredTask::RenderDeferredTask() : Task() {
     _jobs.push_back(Job(new render::DrawStatus::JobModel("DrawStatus", renderedOpaques, DrawStatus(statusIconMap))));
 
     _jobs.back().setEnabled(false);
-    _drawStatusJobIndex = _jobs.size() - 1;
+    _drawStatusJobIndex = (int)_jobs.size() - 1;
 
     _jobs.push_back(Job(new DrawOverlay3D::JobModel("DrawOverlay3D")));
 
     _jobs.push_back(Job(new HitEffect::JobModel("HitEffect")));
     _jobs.back().setEnabled(false);
-    _drawHitEffectJobIndex = _jobs.size() -1;
+    _drawHitEffectJobIndex = (int)_jobs.size() -1;
 
 
     // Give ourselves 3 frmaes of timer queries
@@ -181,7 +181,7 @@ void DrawOpaqueDeferred::run(const SceneContextPointer& sceneContext, const Rend
         batch.setStateScissorRect(args->_viewport);
         args->_batch = &batch;
 
-        renderContext->_numDrawnOpaqueItems = inItems.size();
+        renderContext->_numDrawnOpaqueItems = (int)inItems.size();
 
         glm::mat4 projMat;
         Transform viewMat;
@@ -210,7 +210,7 @@ void DrawTransparentDeferred::run(const SceneContextPointer& sceneContext, const
         batch.setStateScissorRect(args->_viewport);
         args->_batch = &batch;
     
-        renderContext->_numDrawnTransparentItems = inItems.size();
+        renderContext->_numDrawnTransparentItems = (int)inItems.size();
 
         glm::mat4 projMat;
         Transform viewMat;
@@ -231,16 +231,16 @@ void DrawTransparentDeferred::run(const SceneContextPointer& sceneContext, const
 gpu::PipelinePointer DrawOverlay3D::_opaquePipeline;
 const gpu::PipelinePointer& DrawOverlay3D::getOpaquePipeline() {
     if (!_opaquePipeline) {
-        auto vs = gpu::ShaderPointer(gpu::Shader::createVertex(std::string(overlay3D_vert)));
-        auto ps = gpu::ShaderPointer(gpu::Shader::createPixel(std::string(overlay3D_frag)));
-        auto program = gpu::ShaderPointer(gpu::Shader::createProgram(vs, ps));
+        auto vs = gpu::Shader::createVertex(std::string(overlay3D_vert));
+        auto ps = gpu::Shader::createPixel(std::string(overlay3D_frag));
+        auto program = gpu::Shader::createProgram(vs, ps);
         
         auto state = std::make_shared<gpu::State>();
         state->setDepthTest(false);
         // additive blending
         state->setBlendFunction(true, gpu::State::ONE, gpu::State::BLEND_OP_ADD, gpu::State::ONE);
 
-        _opaquePipeline.reset(gpu::Pipeline::create(program, state));
+        _opaquePipeline = gpu::Pipeline::create(program, state);
     }
     return _opaquePipeline;
 }
@@ -262,8 +262,8 @@ void DrawOverlay3D::run(const SceneContextPointer& sceneContext, const RenderCon
             inItems.emplace_back(id);
         }
     }
-    renderContext->_numFeedOverlay3DItems = inItems.size();
-    renderContext->_numDrawnOverlay3DItems = inItems.size();
+    renderContext->_numFeedOverlay3DItems = (int)inItems.size();
+    renderContext->_numDrawnOverlay3DItems = (int)inItems.size();
 
     if (!inItems.empty()) {
         RenderArgs* args = renderContext->args;
@@ -307,8 +307,8 @@ const gpu::PipelinePointer& DrawStencilDeferred::getOpaquePipeline() {
     if (!_opaquePipeline) {
         const gpu::int8 STENCIL_OPAQUE = 1;
         auto vs = gpu::StandardShaderLib::getDrawUnitQuadTexcoordVS();
-        auto ps = gpu::ShaderPointer(gpu::Shader::createPixel(std::string(drawOpaqueStencil_frag)));
-        auto program = gpu::ShaderPointer(gpu::Shader::createProgram(vs, ps));
+        auto ps = gpu::Shader::createPixel(std::string(drawOpaqueStencil_frag));
+        auto program = gpu::Shader::createProgram(vs, ps);
         
 
         gpu::Shader::makeProgram((*program));
@@ -318,7 +318,7 @@ const gpu::PipelinePointer& DrawStencilDeferred::getOpaquePipeline() {
         state->setStencilTest(true, 0xFF, gpu::State::StencilTest(STENCIL_OPAQUE, 0xFF, gpu::ALWAYS, gpu::State::STENCIL_OP_REPLACE, gpu::State::STENCIL_OP_KEEP, gpu::State::STENCIL_OP_REPLACE)); 
         state->setColorWriteMask(0);
 
-        _opaquePipeline.reset(gpu::Pipeline::create(program, state));
+        _opaquePipeline = gpu::Pipeline::create(program, state);
     }
     return _opaquePipeline;
 }

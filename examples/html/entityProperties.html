@@ -223,7 +223,10 @@
             var elDimensionsZ = document.getElementById("property-dim-z");
             var elResetToNaturalDimensions = document.getElementById("reset-to-natural-dimensions");
             var elRescaleDimensionsPct = document.getElementById("dimension-rescale-pct");
-            var elRescaleDimensionsButton  = document.getElementById("dimension-rescale-button");
+            var elRescaleDimensionsButton = document.getElementById("dimension-rescale-button");
+
+            var elParentID = document.getElementById("property-parent-id");
+            var elParentJointIndex = document.getElementById("property-parent-joint-index");
 
             var elRegistrationX = document.getElementById("property-reg-x");
             var elRegistrationY = document.getElementById("property-reg-y");
@@ -295,7 +298,6 @@
             var elModelAnimationLastFrame = document.getElementById("property-model-animation-last-frame");
             var elModelAnimationLoop = document.getElementById("property-model-animation-loop");
             var elModelAnimationHold = document.getElementById("property-model-animation-hold");
-            var elModelAnimationStartAutomatically = document.getElementById("property-model-animation-start-automatically");
             var elModelTextures = document.getElementById("property-model-textures");
             var elModelOriginalTextures = document.getElementById("property-model-original-textures");
 
@@ -453,6 +455,9 @@
                             elDimensionsY.value = properties.dimensions.y.toFixed(2);
                             elDimensionsZ.value = properties.dimensions.z.toFixed(2);
 
+                            elParentID.value = properties.parentID;
+                            elParentJointIndex.value = properties.parentJointIndex;
+
                             elRegistrationX.value = properties.registrationPoint.x.toFixed(2);
                             elRegistrationY.value = properties.registrationPoint.y.toFixed(2);
                             elRegistrationZ.value = properties.registrationPoint.z.toFixed(2);
@@ -526,7 +531,6 @@
                                 elModelAnimationLastFrame.value = properties.animation.lastFrame;
                                 elModelAnimationLoop.checked = properties.animation.loop;
                                 elModelAnimationHold.checked = properties.animation.hold;
-                                elModelAnimationStartAutomatically.checked = properties.animation.startAutomatically;
                                 elModelTextures.value = properties.textures;
                                 elModelOriginalTextures.value = properties.originalTextures;
                             } else if (properties.type == "Web") {
@@ -666,6 +670,9 @@
             elDimensionsY.addEventListener('change', dimensionsChangeFunction);
             elDimensionsZ.addEventListener('change', dimensionsChangeFunction);
 
+            elParentID.addEventListener('change', createEmitTextPropertyUpdateFunction('parentID'));
+            elParentJointIndex.addEventListener('change', createEmitNumberPropertyUpdateFunction('parentJointIndex'));
+
             var registrationChangeFunction = createEmitVec3PropertyUpdateFunction(
                 'registrationPoint', elRegistrationX, elRegistrationY, elRegistrationZ);
             elRegistrationX.addEventListener('change', registrationChangeFunction);
@@ -776,7 +783,6 @@
             elModelAnimationLastFrame.addEventListener('change', createEmitGroupNumberPropertyUpdateFunction('animation', 'lastFrame'));
             elModelAnimationLoop.addEventListener('change', createEmitGroupCheckedPropertyUpdateFunction('animation', 'loop'));
             elModelAnimationHold.addEventListener('change', createEmitGroupCheckedPropertyUpdateFunction('animation', 'hold'));
-            elModelAnimationStartAutomatically.addEventListener('change', createEmitGroupCheckedPropertyUpdateFunction('animation', 'startAutomatically'));
 
             elModelTextures.addEventListener('change', createEmitTextPropertyUpdateFunction('textures'));
 
@@ -1056,6 +1062,19 @@
         </div>
 
         <div class="property">
+            <span class="label" style="float: left; margin-right: 6px">ParentID</span>
+            <div class="value" style="overflow: hidden;">
+                <input type="text" id="property-parent-id">
+            </div>
+        </div>
+        <div class="property">
+            <span class="label" style="float: left; margin-right: 6px">ParentJointIndex</span>
+            <div class="value" style="overflow: hidden;">
+                <input type="text" id="property-parent-joint-index">
+            </div>
+        </div>
+
+        <div class="property">
             <div class="label">Registration</div>
             <div class="value">
                 <div class="input-area">X <input class="coord" type='number' id="property-reg-x"><div class="prop-x"></div></div>
@@ -1324,12 +1343,6 @@
             <span class="label">Animation Hold</span>
             <span class="value">
                 <input type='checkbox' id="property-model-animation-hold">
-            </span>
-        </div>
-        <div class="model-section property">
-            <span class="label">Animation Start Automatically</span>
-            <span class="value">
-                <input type='checkbox' id="property-model-animation-start-automatically">
             </span>
         </div>
         <div class="model-section property">

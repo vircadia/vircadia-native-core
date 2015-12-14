@@ -30,7 +30,7 @@ public:
     QList<QAction*> actions();
     MenuWrapper* addMenu(const QString& menuName);
     void setEnabled(bool enabled = true);
-    void addSeparator();
+    QAction* addSeparator();
     void addAction(QAction* action);
 
     QAction* addAction(const QString& menuName);
@@ -74,34 +74,45 @@ public:
                                            const QObject* receiver = NULL,
                                            const char* member = NULL,
                                            QAction::MenuRole role = QAction::NoRole,
-                                           int menuItemLocation = UNSPECIFIED_POSITION);
+                                           int menuItemLocation = UNSPECIFIED_POSITION,
+                                           const QString& grouping = QString());
+
     QAction* addActionToQMenuAndActionHash(MenuWrapper* destinationMenu,
                                            QAction* action,
                                            const QString& actionName = QString(),
                                            const QKeySequence& shortcut = 0,
                                            QAction::MenuRole role = QAction::NoRole,
-                                           int menuItemLocation = UNSPECIFIED_POSITION);
+                                           int menuItemLocation = UNSPECIFIED_POSITION,
+                                           const QString& grouping = QString());
+
     QAction* addCheckableActionToQMenuAndActionHash(MenuWrapper* destinationMenu,
                                                     const QString& actionName,
                                                     const QKeySequence& shortcut = 0,
                                                     const bool checked = false,
                                                     const QObject* receiver = NULL,
                                                     const char* member = NULL,
-                                                    int menuItemLocation = UNSPECIFIED_POSITION);
+                                                    int menuItemLocation = UNSPECIFIED_POSITION,
+                                                    const QString& grouping = QString());
 
     void removeAction(MenuWrapper* menu, const QString& actionName);
 
 public slots:
-    MenuWrapper* addMenu(const QString& menuName);
+    MenuWrapper* addMenu(const QString& menuName, const QString& grouping = QString());
     void removeMenu(const QString& menuName);
     bool menuExists(const QString& menuName);
-    void addSeparator(const QString& menuName, const QString& separatorName);
+    void addSeparator(const QString& menuName, const QString& separatorName, const QString& grouping = QString());
     void removeSeparator(const QString& menuName, const QString& separatorName);
     void addMenuItem(const MenuItemProperties& properties);
     void removeMenuItem(const QString& menuName, const QString& menuitem);
     bool menuItemExists(const QString& menuName, const QString& menuitem);
     bool isOptionChecked(const QString& menuOption) const;
     void setIsOptionChecked(const QString& menuOption, bool isChecked);
+
+    bool getGroupingIsVisible(const QString& grouping);
+    void setGroupingIsVisible(const QString& grouping, bool isVisible); /// NOTE: the "" grouping is always visible
+
+    void toggleDeveloperMenus();
+    void toggleAdvancedMenus();
 
 private:
     typedef void(*settingsAction)(Settings&, QAction&);
@@ -111,8 +122,10 @@ private:
     void scanMenu(QMenu& menu, settingsAction modifySetting, Settings& settings);
 
     /// helper method to have separators with labels that are also compatible with OS X
-    void addDisabledActionAndSeparator(MenuWrapper* destinationMenu, const QString& actionName,
-                                       int menuItemLocation = UNSPECIFIED_POSITION);
+    void addDisabledActionAndSeparator(MenuWrapper* destinationMenu, 
+                                       const QString& actionName,
+                                       int menuItemLocation = UNSPECIFIED_POSITION, 
+                                       const QString& grouping = QString());
 
     QAction* getActionFromName(const QString& menuName, MenuWrapper* menu);
     MenuWrapper* getSubMenuFromName(const QString& menuName, MenuWrapper* menu);
@@ -123,6 +136,10 @@ private:
     int positionBeforeSeparatorIfNeeded(MenuWrapper* menu, int requestedPosition);
 
     QHash<QString, QAction*> _actionHash;
+
+    bool isValidGrouping(const QString& grouping) const { return grouping == "Advanced" || grouping == "Developer"; }
+    QHash<QString, bool> _groupingVisible;
+    QHash<QString, QSet<QAction*>> _groupingActions;
 };
 
 namespace MenuOption {
@@ -211,7 +228,6 @@ namespace MenuOption {
     const QString LeapMotionOnHMD = "Leap Motion on HMD";
     const QString LoadScript = "Open and Run Script File...";
     const QString LoadScriptURL = "Open and Run Script from URL...";
-    const QString LoadRSSDKFile = "Load .rssdk file";
     const QString LodTools = "LOD Tools";
     const QString Login = "Login";
     const QString Log = "Log";
@@ -239,10 +255,8 @@ namespace MenuOption {
     const QString ReloadContent = "Reload Content (Clears all caches)";
     const QString RenderBoundingCollisionShapes = "Show Bounding Collision Shapes";
     const QString RenderFocusIndicator = "Show Eye Focus";
-    const QString RenderHeadCollisionShapes = "Show Head Collision Shapes";
     const QString RenderLookAtTargets = "Show Look-at Targets";
     const QString RenderLookAtVectors = "Show Look-at Vectors";
-    const QString RenderSkeletonCollisionShapes = "Show Skeleton Collision Shapes";
     const QString RenderResolution = "Scale Resolution";
     const QString RenderResolutionOne = "1";
     const QString RenderResolutionTwoThird = "2/3";

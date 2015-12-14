@@ -16,7 +16,6 @@
 #include <avatar/AvatarManager.h>
 #include <devices/DdeFaceTracker.h>
 #include <devices/Faceshift.h>
-#include <input-plugins/SixenseManager.h> // TODO: This should be replaced with InputDevice/InputPlugin, or something similar
 #include <NetworkingConstants.h>
 
 #include "Application.h"
@@ -33,8 +32,8 @@
 const int PREFERENCES_HEIGHT_PADDING = 20;
 
 PreferencesDialog::PreferencesDialog(QWidget* parent) :
-    QDialog(parent) {
-        
+    QDialog(parent)
+{
     setAttribute(Qt::WA_DeleteOnClose);
 
     ui.setupUi(this);
@@ -48,10 +47,8 @@ PreferencesDialog::PreferencesDialog(QWidget* parent) :
     connect(ui.buttonReloadDefaultScripts, &QPushButton::clicked, qApp, &Application::loadDefaultScripts);
 
     connect(ui.buttonChangeAppearance, &QPushButton::clicked, this, &PreferencesDialog::openFullAvatarModelBrowser);
-    connect(ui.appearanceDescription, &QLineEdit::textChanged, this, [this](const QString& url) {
-        DependencyManager::get<AvatarManager>()->getMyAvatar()->useFullAvatarURL(url, "");
-        this->fullAvatarURLChanged(url, "");
-    });
+    connect(ui.appearanceDescription, &QLineEdit::editingFinished, this, &PreferencesDialog::changeFullAvatarURL);
+
     connect(qApp, &Application::fullAvatarURLChanged, this, &PreferencesDialog::fullAvatarURLChanged);
 
     // move dialog to left side
@@ -59,6 +56,11 @@ PreferencesDialog::PreferencesDialog(QWidget* parent) :
     resize(sizeHint().width(), parentWidget()->size().height() - PREFERENCES_HEIGHT_PADDING);
 
     UIUtil::scaleWidgetFontSizes(this);
+}
+
+void PreferencesDialog::changeFullAvatarURL() {
+    DependencyManager::get<AvatarManager>()->getMyAvatar()->useFullAvatarURL(ui.appearanceDescription->text(), "");
+    this->fullAvatarURLChanged(ui.appearanceDescription->text(), "");
 }
 
 void PreferencesDialog::fullAvatarURLChanged(const QString& newValue, const QString& modelName) {
@@ -69,9 +71,17 @@ void PreferencesDialog::fullAvatarURLChanged(const QString& newValue, const QStr
 
 void PreferencesDialog::accept() {
     MyAvatar* myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
+
+    // if there is an attempted change to the full avatar URL, apply it now
+    if (QUrl(ui.appearanceDescription->text()) != myAvatar->getFullAvatarURLFromPreferences()) {
+        changeFullAvatarURL();
+    }
+
     _lastGoodAvatarURL = myAvatar->getFullAvatarURLFromPreferences();
     _lastGoodAvatarName = myAvatar->getFullAvatarModelName();
+
     savePreferences();
+
     close();
     delete _marketplaceWindow;
     _marketplaceWindow = NULL;
@@ -188,9 +198,9 @@ void PreferencesDialog::loadPreferences() {
     ui.fieldOfViewSpin->setValue(qApp->getFieldOfView());
     
     ui.leanScaleSpin->setValue(myAvatar->getLeanScale());
-    
-    ui.avatarScaleSpin->setValue(myAvatar->getScale());
-    ui.avatarAnimationEdit->setText(myAvatar->getAnimGraphUrl());
+
+    ui.avatarScaleSpin->setValue(myAvatar->getAvatarScale());
+    ui.avatarAnimationEdit->setText(myAvatar->getAnimGraphUrl().toString());
     
     ui.maxOctreePPSSpin->setValue(qApp->getMaxOctreePacketsPerSecond());
 

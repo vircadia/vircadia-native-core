@@ -23,14 +23,13 @@
 const QString WebEntityItem::DEFAULT_SOURCE_URL("http://www.google.com");
 
 EntityItemPointer WebEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
-    return std::make_shared<WebEntityItem>(entityID, properties);
+    EntityItemPointer entity { new WebEntityItem(entityID) };
+    entity->setProperties(properties);
+    return entity;
 }
 
-WebEntityItem::WebEntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties) :
-        EntityItem(entityItemID) 
-{
+WebEntityItem::WebEntityItem(const EntityItemID& entityItemID) : EntityItem(entityItemID) {
     _type = EntityTypes::Web;
-    setProperties(properties);
 }
 
 const float WEB_ENTITY_ITEM_FIXED_DEPTH = 0.01f;

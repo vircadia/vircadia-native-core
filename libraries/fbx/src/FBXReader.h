@@ -195,8 +195,7 @@ public:
     QMultiHash<int, int> newIndices;
     QVector<QHash<int, int> > blendshapeIndexMaps;
     QVector<QPair<int, int> > partMaterialTextures;
-    QHash<QString, int> texcoordSetMap;
-    std::map<QString, int> texcoordSetMap2;
+    QHash<QString, size_t> texcoordSetMap;
 };
 
 /// A single animation frame extracted from an FBX document.

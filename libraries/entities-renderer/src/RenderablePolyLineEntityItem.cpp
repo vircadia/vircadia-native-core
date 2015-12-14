@@ -28,18 +28,21 @@ struct PolyLineUniforms {
     glm::vec3 color;
 };
 
+
+
 EntityItemPointer RenderablePolyLineEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
-    return EntityItemPointer(new RenderablePolyLineEntityItem(entityID, properties));
+    EntityItemPointer entity{ new RenderablePolyLineEntityItem(entityID) };
+    entity->setProperties(properties);
+    return entity;
 }
 
-RenderablePolyLineEntityItem::RenderablePolyLineEntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties) :
-PolyLineEntityItem(entityItemID, properties),
+RenderablePolyLineEntityItem::RenderablePolyLineEntityItem(const EntityItemID& entityItemID) :
+PolyLineEntityItem(entityItemID),
 _numVertices(0)
 {
     _vertices = QVector<glm::vec3>(0.0f);
     PolyLineUniforms uniforms;
     _uniformBuffer = std::make_shared<gpu::Buffer>(sizeof(PolyLineUniforms), (const gpu::Byte*) &uniforms);
-
 }
 
 gpu::PipelinePointer RenderablePolyLineEntityItem::_pipeline;
@@ -55,9 +58,9 @@ void RenderablePolyLineEntityItem::createPipeline() {
     _format->setAttribute(gpu::Stream::NORMAL, 0, gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::XYZ), NORMAL_OFFSET);
     _format->setAttribute(gpu::Stream::TEXCOORD, 0, gpu::Element(gpu::VEC2, gpu::FLOAT, gpu::UV), TEXTURE_OFFSET);
 
-    auto VS = gpu::ShaderPointer(gpu::Shader::createVertex(std::string(paintStroke_vert)));
-    auto PS = gpu::ShaderPointer(gpu::Shader::createPixel(std::string(paintStroke_frag)));
-    gpu::ShaderPointer program = gpu::ShaderPointer(gpu::Shader::createProgram(VS, PS));
+    auto VS = gpu::Shader::createVertex(std::string(paintStroke_vert));
+    auto PS = gpu::Shader::createPixel(std::string(paintStroke_frag));
+    gpu::ShaderPointer program = gpu::Shader::createProgram(VS, PS);
 
     gpu::Shader::BindingSet slotBindings;
     PAINTSTROKE_GPU_SLOT = 0;
@@ -69,7 +72,7 @@ void RenderablePolyLineEntityItem::createPipeline() {
     state->setBlendFunction(true,
         gpu::State::SRC_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::INV_SRC_ALPHA,
         gpu::State::FACTOR_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::ONE);
-    _pipeline = gpu::PipelinePointer(gpu::Pipeline::create(program, state));
+    _pipeline = gpu::Pipeline::create(program, state);
 }
 
 void RenderablePolyLineEntityItem::updateGeometry() {

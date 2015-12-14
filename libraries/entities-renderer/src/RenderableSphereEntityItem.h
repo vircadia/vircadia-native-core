@@ -20,10 +20,7 @@
 class RenderableSphereEntityItem : public SphereEntityItem {
 public:
     static EntityItemPointer factory(const EntityItemID& entityID, const EntityItemProperties& properties);
-
-    RenderableSphereEntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties) :
-        SphereEntityItem(entityItemID, properties)
-        { }
+    RenderableSphereEntityItem(const EntityItemID& entityItemID) : SphereEntityItem(entityItemID) { }
 
     virtual void render(RenderArgs* args);
     virtual void setUserData(const QString& value);

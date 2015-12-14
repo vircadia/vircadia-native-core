@@ -408,8 +408,8 @@ int EntityTreeRenderer::getBoundaryLevelAdjust() const {
 }
 
 
-void EntityTreeRenderer::processEraseMessage(NLPacket& packet, const SharedNodePointer& sourceNode) {
-    std::static_pointer_cast<EntityTree>(_tree)->processEraseMessage(packet, sourceNode);
+void EntityTreeRenderer::processEraseMessage(ReceivedMessage& message, const SharedNodePointer& sourceNode) {
+    std::static_pointer_cast<EntityTree>(_tree)->processEraseMessage(message, sourceNode);
 }
 
 Model* EntityTreeRenderer::allocateModel(const QString& url, const QString& collisionUrl) {

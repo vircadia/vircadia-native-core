@@ -33,9 +33,8 @@
 #include <gpu/StandardShaderLib.h>
 #include <gpu/GLBackend.h>
 
-// Must come after GL headers
-#include <QtGui/QOpenGLContext>
-#include <QtGui/QOpenGLDebugLogger>
+#include <gl/QOpenGLContextWrapper.h>
+#include <gl/QOpenGLDebugLoggerWrapper.h>
 
 #include <GLMHelpers.h>
 #include <PathUtils.h>
@@ -59,7 +58,7 @@ public:
     }
 
     unsigned int count() const {
-        return times.size() - 1;
+        return (unsigned int)times.size() - 1;
     }
 
     float elapsed() const {
@@ -85,9 +84,9 @@ public:
 uint32_t toCompactColor(const glm::vec4& color);
 
 gpu::ShaderPointer makeShader(const std::string & vertexShaderSrc, const std::string & fragmentShaderSrc, const gpu::Shader::BindingSet & bindings) {
-    auto vs = gpu::ShaderPointer(gpu::Shader::createVertex(vertexShaderSrc));
-    auto fs = gpu::ShaderPointer(gpu::Shader::createPixel(fragmentShaderSrc));
-    auto shader = gpu::ShaderPointer(gpu::Shader::createProgram(vs, fs));
+    auto vs = gpu::Shader::createVertex(vertexShaderSrc);
+    auto fs = gpu::Shader::createPixel(fragmentShaderSrc);
+    auto shader = gpu::Shader::createProgram(vs, fs);
     if (!gpu::Shader::makeProgram(*shader, bindings)) {
         printf("Could not compile shader\n");
         exit(-1);
@@ -118,7 +117,7 @@ gpu::Stream::FormatPointer& getInstancedSolidStreamFormat();
 class QTestWindow : public QWindow {
     Q_OBJECT
 
-    QOpenGLContext* _qGlContext{ nullptr };
+    QOpenGLContextWrapper _qGlContext;
     QSize _size;
     
     gpu::ContextPointer _context;
@@ -151,19 +150,12 @@ public:
 
         setFormat(format);
 
-        _qGlContext = new QOpenGLContext;
-        _qGlContext->setFormat(format);
-        _qGlContext->create();
+        _qGlContext.setFormat(format);
+        _qGlContext.create();
 
         show();
         makeCurrent();
-        QOpenGLDebugLogger* logger = new QOpenGLDebugLogger(this);
-        logger->initialize(); // initializes in the current context, i.e. ctx
-        connect(logger, &QOpenGLDebugLogger::messageLogged, [](const QOpenGLDebugMessage& message){
-            qDebug() << message;
-        });
-        logger->startLogging(QOpenGLDebugLogger::SynchronousLogging);
-
+        setupDebugLogger(this);
 
         gpu::Context::init<gpu::GLBackend>();
         _context = std::make_shared<gpu::Context>();
@@ -172,7 +164,7 @@ public:
         auto state = std::make_shared<gpu::State>();
         state->setMultisampleEnable(true);
         state->setDepthTest(gpu::State::DepthTest { true });
-        _pipeline = gpu::PipelinePointer(gpu::Pipeline::create(shader, state));
+        _pipeline = gpu::Pipeline::create(shader, state);
         _instanceLocation = _pipeline->getProgram()->getUniforms().findLocation("Instanced");
         
         // Clear screen
@@ -291,10 +283,10 @@ public:
                     GeometryCache::ShapeData shapeData = geometryCache->_shapes[shape];
                     {
                         gpu::Batch::DrawIndexedIndirectCommand indirectCommand;
-                        indirectCommand._count = shapeData._indexCount;
+                        indirectCommand._count = (uint)shapeData._indexCount;
                         indirectCommand._instanceCount = ITEM_COUNT;
-                        indirectCommand._baseInstance = i * ITEM_COUNT;
-                        indirectCommand._firstIndex = shapeData._indexOffset / 2;
+                        indirectCommand._baseInstance = (uint)(i * ITEM_COUNT);
+                        indirectCommand._firstIndex = (uint)shapeData._indexOffset / 2;
                         indirectCommand._baseVertex = 0;
                         indirectBuffer->append(indirectCommand);
                     }
@@ -371,7 +363,7 @@ public:
         geometryCache->renderWireCube(batch);
 
         _context->render(batch);
-        _qGlContext->swapBuffers(this);
+        _qGlContext.swapBuffers(this);
         
         fps.increment();
         if (fps.elapsed() >= 0.5f) {
@@ -381,7 +373,7 @@ public:
     }
     
     void makeCurrent() {
-        _qGlContext->makeCurrent(this);
+        _qGlContext.makeCurrent(this);
     }
 
 protected:

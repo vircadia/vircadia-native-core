@@ -14,8 +14,6 @@
 #include "stereo/InterleavedStereoDisplayPlugin.h"
 #include "Basic2DWindowOpenGLDisplayPlugin.h"
 
-#include "openvr/OpenVrDisplayPlugin.h"
-
 const QString& DisplayPlugin::MENU_PATH() {
     static const QString value = "Display";
     return value;
@@ -28,19 +26,11 @@ DisplayPluginList getDisplayPlugins() {
 #ifdef DEBUG
         new NullDisplayPlugin(),
 #endif
-
         // Stereo modes
-
         // SBS left/right
         new SideBySideStereoDisplayPlugin(),
         // Interleaved left/right
         new InterleavedStereoDisplayPlugin(),
-
-        // HMDs
-#ifdef Q_OS_WIN
-        // SteamVR SDK
-        new OpenVrDisplayPlugin(),
-#endif
         nullptr
     };
 

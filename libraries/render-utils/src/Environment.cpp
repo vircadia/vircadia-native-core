@@ -51,10 +51,10 @@ void Environment::init() {
 
 void Environment::setupAtmosphereProgram(const char* vertSource, const char* fragSource, gpu::PipelinePointer& pipeline, int* locations) {
 
-    auto VS = gpu::ShaderPointer(gpu::Shader::createVertex(std::string(vertSource)));
-    auto PS = gpu::ShaderPointer(gpu::Shader::createPixel(std::string(fragSource)));
+    auto VS = gpu::Shader::createVertex(std::string(vertSource));
+    auto PS = gpu::Shader::createPixel(std::string(fragSource));
     
-    gpu::ShaderPointer program = gpu::ShaderPointer(gpu::Shader::createProgram(VS, PS));
+    gpu::ShaderPointer program = gpu::Shader::createProgram(VS, PS);
     
     gpu::Shader::BindingSet slotBindings;
     gpu::Shader::makeProgram(*program, slotBindings);
@@ -67,7 +67,7 @@ void Environment::setupAtmosphereProgram(const char* vertSource, const char* fra
                             gpu::State::SRC_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::INV_SRC_ALPHA,
                             gpu::State::FACTOR_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::ONE);
     
-    pipeline = gpu::PipelinePointer(gpu::Pipeline::create(program, state));
+    pipeline = gpu::Pipeline::create(program, state);
 
     locations[CAMERA_POS_LOCATION] = program->getUniforms().findLocation("v3CameraPos");
     locations[LIGHT_POS_LOCATION] = program->getUniforms().findLocation("v3LightPos");

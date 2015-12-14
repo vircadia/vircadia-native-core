@@ -30,7 +30,7 @@ class ZoneEntityItem;
 
 
 // Generic client side Octree renderer class.
-class EntityTreeRenderer : public OctreeRenderer, public EntityItemFBXService {
+class EntityTreeRenderer : public OctreeRenderer, public EntityItemFBXService, public Dependency {
     Q_OBJECT
 public:
     EntityTreeRenderer(bool wantScripts, AbstractViewStateInterface* viewState,
@@ -49,7 +49,7 @@ public:
 
     EntityTreePointer getTree() { return std::static_pointer_cast<EntityTree>(_tree); }
 
-    void processEraseMessage(NLPacket& packet, const SharedNodePointer& sourceNode);
+    void processEraseMessage(ReceivedMessage& message, const SharedNodePointer& sourceNode);
 
     virtual void init();
 

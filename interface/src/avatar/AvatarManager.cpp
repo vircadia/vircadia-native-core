@@ -111,7 +111,6 @@ void AvatarManager::init() {
     _renderDistanceController.setKP(0.0008f); // Usually about 0.6 of largest that doesn't oscillate when other parameters 0.
     _renderDistanceController.setKI(0.0006f); // Big enough to bring us to target with the above KP.
     _renderDistanceController.setKD(0.000001f); // A touch of kd increases the speed by which we get there.
-
 }
 
 void AvatarManager::updateMyAvatar(float deltaTime) {
@@ -146,13 +145,19 @@ void AvatarManager::updateOtherAvatars(float deltaTime) {
 
     PerformanceTimer perfTimer("otherAvatars");
     
-    _renderDistanceController.setMeasuredValueSetpoint(qApp->getTargetFrameRate()); // No problem updating in flight.
-    // The PID controller raises the controlled value when the measured value goes up.
-    // The measured value is frame rate. When the controlled value (1 / render cutoff distance)
-    // goes up, the render cutoff distance gets closer, the number of rendered avatars is less, and frame rate
-    // goes up.
-    const float deduced = qApp->getLastDeducedNonVSyncFps();
-    const float distance = 1.0f / _renderDistanceController.update(deduced, deltaTime);
+    float distance;
+    if (!qApp->isThrottleRendering()) {
+        _renderDistanceController.setMeasuredValueSetpoint(qApp->getTargetFrameRate()); // No problem updating in flight.
+        // The PID controller raises the controlled value when the measured value goes up.
+        // The measured value is frame rate. When the controlled value (1 / render cutoff distance)
+        // goes up, the render cutoff distance gets closer, the number of rendered avatars is less, and frame rate
+        // goes up.
+        const float deduced = qApp->getLastUnsynchronizedFps();
+        distance = 1.0f / _renderDistanceController.update(deduced, deltaTime);
+    } else {
+        // Here we choose to just use the maximum render cutoff distance if throttled.
+        distance = 1.0f / _renderDistanceController.getControlledValueLowLimit();
+    }
     _renderDistanceAverage.updateAverage(distance);
     _renderDistance = _renderDistanceAverage.getAverage();
     int renderableCount = 0;
@@ -198,7 +203,7 @@ void AvatarManager::simulateAvatarFades(float deltaTime) {
     while (fadingIterator != _avatarFades.end()) {
         auto avatar = std::static_pointer_cast<Avatar>(*fadingIterator);
         avatar->startUpdate();
-        avatar->setTargetScale(avatar->getScale() * SHRINK_RATE, true);
+        avatar->setTargetScale(avatar->getAvatarScale() * SHRINK_RATE);
         if (avatar->getTargetScale() <= MIN_FADE_SCALE) {
             avatar->removeFromScene(*fadingIterator, scene, pendingChanges);
             fadingIterator = _avatarFades.erase(fadingIterator);
@@ -409,7 +414,7 @@ void AvatarManager::updateAvatarRenderStatus(bool shouldRenderAvatars) {
 
 AvatarSharedPointer AvatarManager::getAvatarBySessionID(const QUuid& sessionID) {
     if (sessionID == _myAvatar->getSessionUUID()) {
-        return std::static_pointer_cast<Avatar>(_myAvatar);
+        return _myAvatar;
     }
     
     return findAvatar(sessionID);

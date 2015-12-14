@@ -41,9 +41,10 @@ PacketVersion versionForPacketType(PacketType packetType) {
         case PacketType::EntityAdd:
         case PacketType::EntityEdit:
         case PacketType::EntityData:
-            return VERSION_ENTITIES_POLYLINE_TEXTURE;
+            return VERSION_ENTITIES_REMOVED_START_AUTOMATICALLY_FROM_ANIMATION_PROPERTY_GROUP;
         case PacketType::AvatarData:
         case PacketType::BulkAvatarData:
+            return 17;
         default:
             return 17;
     }
