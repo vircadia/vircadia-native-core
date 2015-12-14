@@ -28,8 +28,7 @@ AddEntityOperator::AddEntityOperator(EntityTreePointer tree, EntityItemPointer n
     bool success;
     auto queryCube = _newEntity->getQueryAACube(success);
     if (!success) {
-        // XXX put on a list for reprocessing?
-        qDebug() << "Warning -- AddEntityOperator failed to get queryAACube:" << _newEntity->getID();
+        _newEntity->markAncestorMissing(true);
     }
 
     _newEntityBox = queryCube.clamp((float)(-HALF_TREE_SCALE), (float)HALF_TREE_SCALE);

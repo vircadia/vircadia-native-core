@@ -18,6 +18,7 @@
 #include "VariantMapToScriptValue.h"
 
 #include "AddEntityOperator.h"
+#include "MovingEntitiesOperator.h"
 #include "UpdateEntityOperator.h"
 #include "QVariantGLM.h"
 #include "EntitiesLogging.h"
@@ -323,6 +324,11 @@ EntityItemPointer EntityTree::addEntity(const EntityItemID& entityID, const Enti
         // Recurse the tree and store the entity in the correct tree element
         AddEntityOperator theOperator(getThisPointer(), result);
         recurseTreeWithOperator(&theOperator);
+        if (result->getAncestorMissing()) {
+            // we added the entity, but didn't know about all its ancestors, so it went into the wrong place.
+            // add it to a list of entities needing to be fixed once their parents are known.
+            _missingParent.append(result);
+        }
 
         postAddEntity(result);
     }
@@ -932,7 +938,35 @@ void EntityTree::entityChanged(EntityItemPointer entity) {
     }
 }
 
+void EntityTree::fixupMissingParents() {
+    MovingEntitiesOperator moveOperator(getThisPointer());
+
+    QMutableVectorIterator<EntityItemWeakPointer> iter(_missingParent);
+    while (iter.hasNext()) {
+        EntityItemWeakPointer entityWP = iter.next();
+        EntityItemPointer entity = entityWP.lock();
+        if (entity) {
+            bool success;
+            AACube newCube = entity->getQueryAACube(success);
+            if (success) {
+                // this entity's parent (or ancestry) was previously not fully known, and now is.  Update its
+                // location in the EntityTree.
+                moveOperator.addEntityToMoveList(entity, newCube);
+                iter.remove();
+                entity->markAncestorMissing(false);
+            }
+        }
+    }
+
+    if (moveOperator.hasMovingEntities()) {
+        PerformanceTimer perfTimer("recurseTreeWithOperator");
+        recurseTreeWithOperator(&moveOperator);
+    }
+
+}
+
 void EntityTree::update() {
+    fixupMissingParents();
     if (_simulation) {
         withWriteLock([&] {
             _simulation->updateEntities();

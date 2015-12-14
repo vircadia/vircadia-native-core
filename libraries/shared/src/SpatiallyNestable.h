@@ -103,6 +103,9 @@ public:
 
     SpatiallyNestablePointer getThisPointer() const;
 
+    void markAncestorMissing(bool value) { _missingAncestor = value; }
+    bool getAncestorMissing() { return _missingAncestor; }
+
 protected:
     const NestableType _nestableType; // EntityItem or an AvatarData
     QUuid _id;
@@ -126,6 +129,8 @@ protected:
     // _queryAACube is used to decide where something lives in the octree
     mutable AACube _queryAACube;
     mutable bool _queryAACubeSet { false };
+
+    bool _missingAncestor { false };
 
 private:
     mutable ReadWriteLockable _transformLock;
