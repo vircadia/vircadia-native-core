@@ -437,47 +437,49 @@ function MyController(hand) {
         });
 
         var finalRotation = Quat.multiply(orientation, rotation);
-
+        var lifespan = LINE_LENGTH / 10;
+        var speed = 5;
+        var spread = 2;
         if (this.particleBeam === null) {
-            this.createParticleBeam(position, finalRotation, color);
+            this.createParticleBeam(position, finalRotation, color, speed, spread, lifespan);
         } else {
-            this.updateParticleBeam(position, finalRotation, color);
+            this.updateParticleBeam(position, finalRotation, color, speed, spread, lifespan);
         }
     };
 
-    this.handleDistantParticleBeam = function(handPosition, objectPosition, objectRotation, color) {
+    this.handleDistantParticleBeam = function(handPosition, objectPosition, color) {
 
         var handToObject = Vec3.subtract(objectPosition, handPosition);
         var finalRotation = Quat.rotationBetween(Vec3.multiply(-1, Vec3.UP), handToObject);
 
         var distance = Vec3.distance(handPosition, objectPosition);
-        var speed = distance * 1;
+        var speed = 5;
+        var spread = 0;
 
-        var lifepsan = distance / speed;
-        var lifespan = 1;
+        var lifespan = distance / speed;
+
 
         if (this.particleBeam === null) {
-            this.createParticleBeam(objectPosition, finalRotation, color, speed);
+            this.createParticleBeam(objectPosition, finalRotation, color, speed, spread, lifespan);
         } else {
-            this.updateParticleBeam(objectPosition, finalRotation, color, speed, lifepsan);
+            this.updateParticleBeam(objectPosition, finalRotation, color, speed, spread, lifespan);
         }
     };
 
-    this.createParticleBeam = function(position, orientation, color, speed, lifepsan) {
+    this.createParticleBeam = function(position, orientation, color, speed, spread, lifespan) {
 
         var particleBeamProperties = {
             type: "ParticleEffect",
             isEmitting: true,
             position: position,
             visible: false,
-            //rotation:Quat.fromPitchYawRollDegrees(-90.0, 0.0, 0.0),
             "name": "Particle Beam",
             "color": color,
             "maxParticles": 2000,
-            "lifespan": LINE_LENGTH / 10,
+            "lifespan": lifespan,
             "emitRate": 50,
-            "emitSpeed": 5,
-            "speedSpread": 2,
+            "emitSpeed": speed,
+            "speedSpread": spread,
             "emitOrientation": {
                 "x": -1,
                 "y": 0,
@@ -519,22 +521,23 @@ function MyController(hand) {
             "alphaSpread": 0,
             "alphaStart": 1,
             "alphaFinish": 1,
-            "additiveBlending": 1,
+            "additiveBlending": 0,
             "textures": "https://hifi-content.s3.amazonaws.com/alan/dev/textures/grabsprite-3.png"
         }
 
         this.particleBeam = Entities.addEntity(particleBeamProperties);
     };
 
-    this.updateParticleBeam = function(position, orientation, color, speed, lifepsan) {
-
+    this.updateParticleBeam = function(position, orientation, color, speed, spread, lifespan) {
+        print('lifespan::' + lifespan);
         Entities.editEntity(this.particleBeam, {
             rotation: orientation,
             position: position,
             visible: true,
             color: color,
             emitSpeed: speed,
-            lifepsan: lifepsan
+            speedSpread:spread,
+            lifespan: lifespan
 
         })
 
@@ -1108,7 +1111,8 @@ function MyController(hand) {
             this.overlayLineOn(handPosition, grabbedProperties.position, INTERSECT_COLOR);
         }
         if (USE_PARTICLE_BEAM_FOR_MOVING === true) {
-            this.handleDistantParticleBeam(handPosition, grabbedProperties.position, this.currentObjectRotation, INTERSECT_COLOR)
+              this.handleDistantParticleBeam(handPosition,grabbedProperties.position, INTERSECT_COLOR)
+           // this.handleDistantParticleBeam(handPosition, this.currentObjectPosition, INTERSECT_COLOR)
         }
         if (USE_POINTLIGHT === true) {
             this.handlePointLight(this.grabbedEntity);
@@ -1399,7 +1403,10 @@ function MyController(hand) {
             }
         }
 
-        this.lineOn(pickRay.origin, Vec3.multiply(pickRay.direction, LINE_LENGTH), NO_INTERSECT_COLOR);
+        if (USE_ENTITY_LINES_FOR_MOVING === true) {
+            this.lineOn(pickRay.origin, Vec3.multiply(pickRay.direction, LINE_LENGTH), NO_INTERSECT_COLOR);
+        }
+
         Entities.callEntityMethod(this.grabbedEntity, "continueFarTrigger");
     };
 
