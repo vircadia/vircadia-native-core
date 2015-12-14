@@ -1105,7 +1105,7 @@ function MyController(hand) {
             this.lineOn(handPosition, Vec3.subtract(grabbedProperties.position, handPosition), INTERSECT_COLOR);
         }
         if (USE_OVERLAY_LINES_FOR_MOVING === true) {
-            this.overlayLineOn(handPosition, Vec3.subtract(grabbedProperties.position, handPosition), INTERSECT_COLOR);
+            this.overlayLineOn(handPosition, grabbedProperties.position, INTERSECT_COLOR);
         }
         if (USE_PARTICLE_BEAM_FOR_MOVING === true) {
             this.handleDistantParticleBeam(handPosition, grabbedProperties.position, this.currentObjectRotation, INTERSECT_COLOR)
