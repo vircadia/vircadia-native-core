@@ -20,39 +20,11 @@
 
 #include "OctreeSendThread.h"
 
-OctreeQueryNode::OctreeQueryNode() :
-    _viewSent(false),
-    _octreePacket(),
-    _octreePacketWaiting(false),
-    _lastOctreePayload(new char[udt::MAX_PACKET_SIZE]),
-    _lastOctreePacketLength(0),
-    _duplicatePacketCount(0),
-    _firstSuppressedPacket(usecTimestampNow()),
-    _maxSearchLevel(1),
-    _maxLevelReachedInLastSearch(1),
-    _lastTimeBagEmpty(0),
-    _viewFrustumChanging(false),
-    _viewFrustumJustStoppedChanging(true),
-    _octreeSendThread(NULL),
-    _lastClientBoundaryLevelAdjust(0),
-    _lastClientOctreeSizeScale(DEFAULT_OCTREE_SIZE_SCALE),
-    _lodChanged(false),
-    _lodInitialized(false),
-    _sequenceNumber(0),
-    _lastRootTimestamp(0),
-    _myPacketType(PacketType::Unknown),
-    _isShuttingDown(false),
-    _sentPacketHistory()
-{
-}
-
 OctreeQueryNode::~OctreeQueryNode() {
     _isShuttingDown = true;
     if (_octreeSendThread) {
         forceNodeShutdown();
     }
-
-    delete[] _lastOctreePayload;
 }
 
 void OctreeQueryNode::nodeKilled() {
@@ -105,7 +77,7 @@ bool OctreeQueryNode::packetIsDuplicate() const {
     // of the entire packet, we need to compare only the packet content...
 
     if (_lastOctreePacketLength == _octreePacket->getPayloadSize()) {
-        if (memcmp(_lastOctreePayload + OCTREE_PACKET_EXTRA_HEADERS_SIZE,
+        if (memcmp(&_lastOctreePayload + OCTREE_PACKET_EXTRA_HEADERS_SIZE,
                    _octreePacket->getPayload() + OCTREE_PACKET_EXTRA_HEADERS_SIZE,
                    _octreePacket->getPayloadSize() - OCTREE_PACKET_EXTRA_HEADERS_SIZE) == 0) {
             return true;
@@ -173,7 +145,7 @@ void OctreeQueryNode::resetOctreePacket() {
     // scene information, (e.g. the root node packet of a static scene), we can use this as a strategy for reducing
     // packet send rate.
     _lastOctreePacketLength = _octreePacket->getPayloadSize();
-    memcpy(_lastOctreePayload, _octreePacket->getPayload(), _lastOctreePacketLength);
+    memcpy(&_lastOctreePayload, _octreePacket->getPayload(), _lastOctreePacketLength);
 
     // If we're moving, and the client asked for low res, then we force monochrome, otherwise, use
     // the clients requested color state.

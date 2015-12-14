@@ -18,8 +18,7 @@
 
 #include <GenericThread.h>
 
-#include "OctreeQueryNode.h"
-
+class OctreeQueryNode;
 class OctreeServer;
 
 using AtomicUIntStat = std::atomic<uintmax_t>;
@@ -48,17 +47,18 @@ protected:
     virtual bool process();
 
 private:
-    OctreeServer* _myServer;
+    int handlePacketSend(OctreeQueryNode* nodeData, int& trueBytesSent, int& truePacketsSent);
+    int packetDistributor(OctreeQueryNode* nodeData, bool viewFrustumChanged);
+    
+    
+    OctreeServer* _myServer { nullptr };
     SharedNodePointer _node;
     QUuid _nodeUUID;
 
-    int handlePacketSend(OctreeQueryNode* nodeData, int& trueBytesSent, int& truePacketsSent);
-    int packetDistributor(OctreeQueryNode* nodeData, bool viewFrustumChanged);
-
     OctreePacketData _packetData;
 
-    int _nodeMissingCount;
-    bool _isShuttingDown;
+    int _nodeMissingCount { 0 };
+    bool _isShuttingDown { false };
 };
 
 #endif // hifi_OctreeSendThread_h

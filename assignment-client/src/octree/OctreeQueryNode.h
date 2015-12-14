@@ -29,7 +29,7 @@ class OctreeServer;
 class OctreeQueryNode : public OctreeQuery {
     Q_OBJECT
 public:
-    OctreeQueryNode();
+    OctreeQueryNode() {}
     virtual ~OctreeQueryNode();
 
     void init(); // called after creation to set up some virtual items
@@ -110,43 +110,44 @@ private slots:
 private:
     OctreeQueryNode(const OctreeQueryNode &);
     OctreeQueryNode& operator= (const OctreeQueryNode&);
-
-    bool _viewSent;
+    
+    bool _viewSent { false };
     std::unique_ptr<NLPacket> _octreePacket;
     bool _octreePacketWaiting;
 
-    char* _lastOctreePayload = nullptr;
-    unsigned int _lastOctreePacketLength;
-    int _duplicatePacketCount;
-    quint64 _firstSuppressedPacket;
+    unsigned int _lastOctreePacketLength { 0 };
+    int _duplicatePacketCount { 0 };
+    quint64 _firstSuppressedPacket { usecTimestampNow() };
 
-    int _maxSearchLevel;
-    int _maxLevelReachedInLastSearch;
+    int _maxSearchLevel { 1 };
+    int _maxLevelReachedInLastSearch { 1 };
     ViewFrustum _currentViewFrustum;
     ViewFrustum _lastKnownViewFrustum;
-    quint64 _lastTimeBagEmpty;
-    bool _viewFrustumChanging;
-    bool _viewFrustumJustStoppedChanging;
+    quint64 _lastTimeBagEmpty { 0 };
+    bool _viewFrustumChanging { false };
+    bool _viewFrustumJustStoppedChanging { true };
 
-    OctreeSendThread* _octreeSendThread;
+    OctreeSendThread* _octreeSendThread { nullptr };
 
     // watch for LOD changes
-    int _lastClientBoundaryLevelAdjust;
-    float _lastClientOctreeSizeScale;
-    bool _lodChanged;
-    bool _lodInitialized;
+    int _lastClientBoundaryLevelAdjust { 0 };
+    float _lastClientOctreeSizeScale { DEFAULT_OCTREE_SIZE_SCALE };
+    bool _lodChanged { false };
+    bool _lodInitialized { false };
 
-    OCTREE_PACKET_SEQUENCE _sequenceNumber;
+    OCTREE_PACKET_SEQUENCE _sequenceNumber { 0 };
 
-    quint64 _lastRootTimestamp;
+    quint64 _lastRootTimestamp { 0 };
 
-    PacketType _myPacketType;
-    bool _isShuttingDown;
+    PacketType _myPacketType { PacketType::Unknown };
+    bool _isShuttingDown { false };
 
     SentPacketHistory _sentPacketHistory;
     QQueue<OCTREE_PACKET_SEQUENCE> _nackedSequenceNumbers;
 
     quint64 _sceneSendStartTime = 0;
+    
+    std::array<char, udt::MAX_PACKET_SIZE> _lastOctreePayload;
 };
 
 #endif // hifi_OctreeQueryNode_h

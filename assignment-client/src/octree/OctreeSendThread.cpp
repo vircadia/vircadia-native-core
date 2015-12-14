@@ -14,6 +14,7 @@
 #include <udt/PacketHeaders.h>
 #include <PerfStat.h>
 
+#include "OctreeQueryNode.h"
 #include "OctreeSendThread.h"
 #include "OctreeServer.h"
 #include "OctreeServerConsts.h"
@@ -25,10 +26,7 @@ quint64 endSceneSleepTime = 0;
 OctreeSendThread::OctreeSendThread(OctreeServer* myServer, const SharedNodePointer& node) :
     _myServer(myServer),
     _node(node),
-    _nodeUUID(node->getUUID()),
-    _packetData(),
-    _nodeMissingCount(0),
-    _isShuttingDown(false)
+    _nodeUUID(node->getUUID())
 {
     QString safeServerName("Octree");
 
@@ -46,6 +44,8 @@ OctreeSendThread::OctreeSendThread(OctreeServer* myServer, const SharedNodePoint
 }
 
 OctreeSendThread::~OctreeSendThread() {
+    setIsShuttingDown();
+    
     QString safeServerName("Octree");
     if (_myServer) {
         safeServerName = _myServer->getMyServerName();

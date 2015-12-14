@@ -25,6 +25,7 @@
 
 #include "../AssignmentClient.h"
 
+#include "OctreeQueryNode.h"
 #include "OctreeServerConsts.h"
 
 OctreeServer* OctreeServer::_instance = NULL;
