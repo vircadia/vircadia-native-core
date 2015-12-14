@@ -1156,8 +1156,8 @@ void EntityItem::recordCreationTime() {
     _lastSimulated = now;
 }
 
-const Transform EntityItem::getTransformToCenter() const {
-    Transform result = getTransform();
+const Transform EntityItem::getTransformToCenter(bool& success) const {
+    Transform result = getTransform(success);
     if (getRegistrationPoint() != ENTITY_ITEM_HALF_VEC3) { // If it is not already centered, translate to center
         result.postTranslate(ENTITY_ITEM_HALF_VEC3 - getRegistrationPoint()); // Position to center
     }
@@ -1175,28 +1175,29 @@ void EntityItem::setDimensions(const glm::vec3& value) {
 /// The maximum bounding cube for the entity, independent of it's rotation.
 /// This accounts for the registration point (upon which rotation occurs around).
 ///
-const AACube& EntityItem::getMaximumAACube() const {
+const AACube& EntityItem::getMaximumAACube(bool& success) const {
     if (_recalcMaxAACube) {
         // * we know that the position is the center of rotation
-        glm::vec3 centerOfRotation = getPosition(); // also where _registration point is
+        glm::vec3 centerOfRotation = getPosition(success); // also where _registration point is
+        if (success) {
+            // * we know that the registration point is the center of rotation
+            // * we can calculate the length of the furthest extent from the registration point
+            //   as the dimensions * max (registrationPoint, (1.0,1.0,1.0) - registrationPoint)
+            glm::vec3 registrationPoint = (getDimensions() * getRegistrationPoint());
+            glm::vec3 registrationRemainder = (getDimensions() * (glm::vec3(1.0f, 1.0f, 1.0f) - getRegistrationPoint()));
+            glm::vec3 furthestExtentFromRegistration = glm::max(registrationPoint, registrationRemainder);
 
-        // * we know that the registration point is the center of rotation
-        // * we can calculate the length of the furthest extent from the registration point
-        //   as the dimensions * max (registrationPoint, (1.0,1.0,1.0) - registrationPoint)
-        glm::vec3 registrationPoint = (getDimensions() * getRegistrationPoint());
-        glm::vec3 registrationRemainder = (getDimensions() * (glm::vec3(1.0f, 1.0f, 1.0f) - getRegistrationPoint()));
-        glm::vec3 furthestExtentFromRegistration = glm::max(registrationPoint, registrationRemainder);
+            // * we know that if you rotate in any direction you would create a sphere
+            //   that has a radius of the length of furthest extent from registration point
+            float radius = glm::length(furthestExtentFromRegistration);
 
-        // * we know that if you rotate in any direction you would create a sphere
-        //   that has a radius of the length of furthest extent from registration point
-        float radius = glm::length(furthestExtentFromRegistration);
+            // * we know that the minimum bounding cube of this maximum possible sphere is
+            //   (center - radius) to (center + radius)
+            glm::vec3 minimumCorner = centerOfRotation - glm::vec3(radius, radius, radius);
 
-        // * we know that the minimum bounding cube of this maximum possible sphere is
-        //   (center - radius) to (center + radius)
-        glm::vec3 minimumCorner = centerOfRotation - glm::vec3(radius, radius, radius);
-
-        _maxAACube = AACube(minimumCorner, radius * 2.0f);
-        _recalcMaxAACube = false;
+            _maxAACube = AACube(minimumCorner, radius * 2.0f);
+            _recalcMaxAACube = false;
+        }
     }
     return _maxAACube;
 }
@@ -1204,7 +1205,7 @@ const AACube& EntityItem::getMaximumAACube() const {
 /// The minimum bounding cube for the entity accounting for it's rotation.
 /// This accounts for the registration point (upon which rotation occurs around).
 ///
-const AACube& EntityItem::getMinimumAACube() const {
+const AACube& EntityItem::getMinimumAACube(bool& success) const {
     if (_recalcMinAACube) {
         // _position represents the position of the registration point.
         glm::vec3 registrationRemainder = glm::vec3(1.0f, 1.0f, 1.0f) - _registrationPoint;
@@ -1212,25 +1213,28 @@ const AACube& EntityItem::getMinimumAACube() const {
         glm::vec3 unrotatedMinRelativeToEntity = - (getDimensions() * getRegistrationPoint());
         glm::vec3 unrotatedMaxRelativeToEntity = getDimensions() * registrationRemainder;
         Extents unrotatedExtentsRelativeToRegistrationPoint = { unrotatedMinRelativeToEntity, unrotatedMaxRelativeToEntity };
-        Extents rotatedExtentsRelativeToRegistrationPoint = unrotatedExtentsRelativeToRegistrationPoint.getRotated(getRotation());
+        Extents rotatedExtentsRelativeToRegistrationPoint =
+            unrotatedExtentsRelativeToRegistrationPoint.getRotated(getRotation());
 
         // shift the extents to be relative to the position/registration point
-        rotatedExtentsRelativeToRegistrationPoint.shiftBy(getPosition());
+        rotatedExtentsRelativeToRegistrationPoint.shiftBy(getPosition(success));
 
-        // the cube that best encompasses extents is...
-        AABox box(rotatedExtentsRelativeToRegistrationPoint);
-        glm::vec3 centerOfBox = box.calcCenter();
-        float longestSide = box.getLargestDimension();
-        float halfLongestSide = longestSide / 2.0f;
-        glm::vec3 cornerOfCube = centerOfBox - glm::vec3(halfLongestSide, halfLongestSide, halfLongestSide);
+        if (success) {
+            // the cube that best encompasses extents is...
+            AABox box(rotatedExtentsRelativeToRegistrationPoint);
+            glm::vec3 centerOfBox = box.calcCenter();
+            float longestSide = box.getLargestDimension();
+            float halfLongestSide = longestSide / 2.0f;
+            glm::vec3 cornerOfCube = centerOfBox - glm::vec3(halfLongestSide, halfLongestSide, halfLongestSide);
 
-        _minAACube = AACube(cornerOfCube, longestSide);
-        _recalcMinAACube = false;
+            _minAACube = AACube(cornerOfCube, longestSide);
+            _recalcMinAACube = false;
+        }
     }
     return _minAACube;
 }
 
-const AABox& EntityItem::getAABox() const {
+const AABox& EntityItem::getAABox(bool& success) const {
     if (_recalcAABox) {
         // _position represents the position of the registration point.
         glm::vec3 registrationRemainder = glm::vec3(1.0f, 1.0f, 1.0f) - _registrationPoint;
@@ -1238,24 +1242,26 @@ const AABox& EntityItem::getAABox() const {
         glm::vec3 unrotatedMinRelativeToEntity = - (getDimensions() * _registrationPoint);
         glm::vec3 unrotatedMaxRelativeToEntity = getDimensions() * registrationRemainder;
         Extents unrotatedExtentsRelativeToRegistrationPoint = { unrotatedMinRelativeToEntity, unrotatedMaxRelativeToEntity };
-        Extents rotatedExtentsRelativeToRegistrationPoint = unrotatedExtentsRelativeToRegistrationPoint.getRotated(getRotation());
+        Extents rotatedExtentsRelativeToRegistrationPoint =
+            unrotatedExtentsRelativeToRegistrationPoint.getRotated(getRotation());
 
         // shift the extents to be relative to the position/registration point
-        rotatedExtentsRelativeToRegistrationPoint.shiftBy(getPosition());
+        rotatedExtentsRelativeToRegistrationPoint.shiftBy(getPosition(success));
 
-        _cachedAABox = AABox(rotatedExtentsRelativeToRegistrationPoint);
-        _recalcAABox = false;
+        if (success) {
+            _cachedAABox = AABox(rotatedExtentsRelativeToRegistrationPoint);
+            _recalcAABox = false;
+        }
     }
     return _cachedAABox;
 }
 
-AACube EntityItem::getQueryAACube() const {
-    // XXX
-    if (!_queryAACubeSet) {
-        _queryAACube = getMaximumAACube();
-        _queryAACubeSet = true;
+AACube EntityItem::getQueryAACube(bool& success) const {
+    AACube result = getMaximumAACube(success);
+    if (success) {
+        return result;
     }
-    return SpatiallyNestable::getQueryAACube();
+    return SpatiallyNestable::getQueryAACube(success);
 }
 
 
@@ -1288,7 +1294,9 @@ float EntityItem::getRadius() const {
 
 bool EntityItem::contains(const glm::vec3& point) const {
     if (getShapeType() == SHAPE_TYPE_COMPOUND) {
-        return getAABox().contains(point);
+        bool success;
+        bool result = getAABox(success).contains(point);
+        return result & success;
     } else {
         ShapeInfo info;
         info.setParams(getShapeType(), glm::vec3(0.5f));
@@ -1829,6 +1837,14 @@ QList<EntityActionPointer> EntityItem::getActionsOfType(EntityActionType typeToG
     }
 
     return result;
+}
+
+glm::quat EntityItem::getAbsoluteJointRotationInObjectFrame(int index) const {
+    return glm::quat();
+}
+
+glm::vec3 EntityItem::getAbsoluteJointTranslationInObjectFrame(int index) const {
+    return glm::vec3(0.0f);
 }
 
 void EntityItem::locationChanged() {

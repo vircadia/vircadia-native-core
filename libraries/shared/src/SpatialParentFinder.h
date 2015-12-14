@@ -31,7 +31,7 @@ public:
     SpatialParentFinder() { }
     virtual ~SpatialParentFinder() { }
 
-    virtual SpatiallyNestableWeakPointer find(QUuid parentID) const = 0;
+    virtual SpatiallyNestableWeakPointer find(QUuid parentID, bool& success) const = 0;
 };
 
 #endif // hifi_SpatialParentFinder_h

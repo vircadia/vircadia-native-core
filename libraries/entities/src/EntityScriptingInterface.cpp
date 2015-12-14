@@ -72,12 +72,15 @@ EntityItemProperties convertLocationToScriptSemantics(const EntityItemProperties
     scriptSideProperties.setLocalPosition(entitySideProperties.getPosition());
     scriptSideProperties.setLocalRotation(entitySideProperties.getRotation());
 
+    bool success;
     glm::vec3 worldPosition = SpatiallyNestable::localToWorld(entitySideProperties.getPosition(),
                                                               entitySideProperties.getParentID(),
-                                                              entitySideProperties.getParentJointIndex());
+                                                              entitySideProperties.getParentJointIndex(),
+                                                              success);
     glm::quat worldRotation = SpatiallyNestable::localToWorld(entitySideProperties.getRotation(),
                                                               entitySideProperties.getParentID(),
-                                                              entitySideProperties.getParentJointIndex());
+                                                              entitySideProperties.getParentJointIndex(),
+                                                              success);
     scriptSideProperties.setPosition(worldPosition);
     scriptSideProperties.setRotation(worldRotation);
 
@@ -89,13 +92,15 @@ EntityItemProperties convertLocationFromScriptSemantics(const EntityItemProperti
     // convert position and rotation properties from world-space to local, unless localPosition and localRotation
     // are set.  If they are set, they overwrite position and rotation.
     EntityItemProperties entitySideProperties = scriptSideProperties;
+    bool success;
 
     if (scriptSideProperties.localPositionChanged()) {
         entitySideProperties.setPosition(scriptSideProperties.getLocalPosition());
     } else if (scriptSideProperties.positionChanged()) {
         glm::vec3 localPosition = SpatiallyNestable::worldToLocal(entitySideProperties.getPosition(),
                                                                   entitySideProperties.getParentID(),
-                                                                  entitySideProperties.getParentJointIndex());
+                                                                  entitySideProperties.getParentJointIndex(),
+                                                                  success);
         entitySideProperties.setPosition(localPosition);
     }
 
@@ -104,7 +109,8 @@ EntityItemProperties convertLocationFromScriptSemantics(const EntityItemProperti
     } else if (scriptSideProperties.rotationChanged()) {
         glm::quat localRotation = SpatiallyNestable::worldToLocal(entitySideProperties.getRotation(),
                                                                   entitySideProperties.getParentID(),
-                                                                  entitySideProperties.getParentJointIndex());
+                                                                  entitySideProperties.getParentJointIndex(),
+                                                                  success);
         entitySideProperties.setRotation(localRotation);
     }
 

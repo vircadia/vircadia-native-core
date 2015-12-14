@@ -196,7 +196,12 @@ namespace render {
     
     template <> const Item::Bound payloadGetBound(const RenderableModelEntityItemMeta::Pointer& payload) { 
         if (payload && payload->entity) {
-            return payload->entity->getAABox();
+            bool success;
+            auto result = payload->entity->getAABox(success);
+            if (!success) {
+                return render::Item::Bound();
+            }
+            return result;
         }
         return render::Item::Bound();
     }
@@ -338,9 +343,12 @@ void RenderableModelEntityItem::render(RenderArgs* args) {
     } else {
         static glm::vec4 greenColor(0.0f, 1.0f, 0.0f, 1.0f);
         gpu::Batch& batch = *args->_batch;
-        auto shapeTransform = getTransformToCenter();
-        batch.setModelTransform(Transform()); // we want to include the scale as well
-        DependencyManager::get<DeferredLightingEffect>()->renderWireCubeInstance(batch, shapeTransform, greenColor);
+        bool success;
+        auto shapeTransform = getTransformToCenter(success);
+        if (success) {
+            batch.setModelTransform(Transform()); // we want to include the scale as well
+            DependencyManager::get<DeferredLightingEffect>()->renderWireCubeInstance(batch, shapeTransform, greenColor);
+        }
     }
 }
 

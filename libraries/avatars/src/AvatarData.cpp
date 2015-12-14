@@ -93,7 +93,11 @@ void AvatarData::nextAttitude(glm::vec3 position, glm::quat orientation) {
     Transform trans;
     trans.setTranslation(position);
     trans.setRotation(orientation);
-    SpatiallyNestable::setTransform(trans);
+    bool success;
+    SpatiallyNestable::setTransform(trans, success);
+    if (!success) {
+        qDebug() << "Warning -- AvatarData::nextAttitude failed";
+    }
     avatarLock.unlock();
     updateAttitude();
 }
@@ -211,8 +215,9 @@ QByteArray AvatarData::toByteArray(bool cullSmallChanges, bool sendAll) {
         setAtBit(bitItems, IS_EYE_TRACKER_CONNECTED);
     }
     // referential state
-    SpatiallyNestablePointer parent = getParentPointer();
-    if (parent) {
+    bool success;
+    SpatiallyNestablePointer parent = getParentPointer(success);
+    if (parent && success) {
         setAtBit(bitItems, HAS_REFERENTIAL);
     }
     *destinationBuffer++ = bitItems;
@@ -1443,7 +1448,11 @@ QJsonObject AvatarData::toJson() const {
     }
 
     auto recordingBasis = getRecordingBasis();
-    Transform avatarTransform = getTransform();
+    bool success;
+    Transform avatarTransform = getTransform(success);
+    if (!success) {
+        qDebug() << "Warning -- AvatarData::toJson couldn't get avatar transform";
+    }
     avatarTransform.setScale(getTargetScale());
     if (recordingBasis) {
         root[JSON_AVATAR_BASIS] = Transform::toJson(*recordingBasis);

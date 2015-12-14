@@ -25,7 +25,14 @@ AddEntityOperator::AddEntityOperator(EntityTreePointer tree, EntityItemPointer n
     // caller must have verified existence of newEntity
     assert(_newEntity);
 
-    _newEntityBox = _newEntity->getQueryAACube().clamp((float)(-HALF_TREE_SCALE), (float)HALF_TREE_SCALE);
+    bool success;
+    auto queryCube = _newEntity->getQueryAACube(success);
+    if (!success) {
+        // XXX put on a list for reprocessing?
+        qDebug() << "Warning -- AddEntityOperator failed to get queryAACube:" << _newEntity->getID();
+    }
+
+    _newEntityBox = queryCube.clamp((float)(-HALF_TREE_SCALE), (float)HALF_TREE_SCALE);
 }
 
 bool AddEntityOperator::preRecursion(OctreeElementPointer element) {

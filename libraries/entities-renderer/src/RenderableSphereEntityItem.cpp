@@ -59,7 +59,11 @@ void RenderableSphereEntityItem::render(RenderArgs* args) {
 
     gpu::Batch& batch = *args->_batch;
     glm::vec4 sphereColor(toGlm(getXColor()), getLocalRenderAlpha());
-    Transform modelTransform = getTransformToCenter();
+    bool success;
+    Transform modelTransform = getTransformToCenter(success);
+    if (!success) {
+        return;
+    }
     modelTransform.postScale(SPHERE_ENTITY_SCALE);
     if (_procedural->ready()) {
         batch.setModelTransform(modelTransform); // use a transform with scale, rotation, registration point and translation

@@ -135,7 +135,11 @@ void RenderableZoneEntityItem::render(RenderArgs* args) {
                 gpu::Batch& batch = *args->_batch;
                 batch.setModelTransform(Transform());
 
-                auto shapeTransform = getTransformToCenter();
+                bool success;
+                auto shapeTransform = getTransformToCenter(success);
+                if (!success) {
+                    break;
+                }
                 auto deferredLightingEffect = DependencyManager::get<DeferredLightingEffect>();
                 if (getShapeType() == SHAPE_TYPE_SPHERE) {
                     shapeTransform.postScale(SPHERE_ENTITY_SCALE);
@@ -190,7 +194,12 @@ namespace render {
     
     template <> const Item::Bound payloadGetBound(const RenderableZoneEntityItemMeta::Pointer& payload) {
         if (payload && payload->entity) {
-            return payload->entity->getAABox();
+            bool success;
+            auto result = payload->entity->getAABox(success);
+            if (!success) {
+                return render::Item::Bound();
+            }
+            return result;
         }
         return render::Item::Bound();
     }

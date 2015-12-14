@@ -141,7 +141,12 @@ bool EntityTree::updateEntityWithElement(EntityItemPointer entity, const EntityI
                 EntityItemProperties tempProperties;
                 tempProperties.setLocked(wantsLocked);
 
-                UpdateEntityOperator theOperator(getThisPointer(), containingElement, entity, entity->getQueryAACube());
+                bool success;
+                AACube queryCube = entity->getQueryAACube(success);
+                if (!success) {
+                    qCDebug(entities) << "Warning -- failed to get query-cube for" << entity->getID();
+                }
+                UpdateEntityOperator theOperator(getThisPointer(), containingElement, entity, queryCube);
                 recurseTreeWithOperator(&theOperator);
                 entity->setProperties(tempProperties);
                 _isDirty = true;
@@ -230,9 +235,15 @@ bool EntityTree::updateEntityWithElement(EntityItemPointer entity, const EntityI
             if (!containingElement) {
                 continue;
             }
-            UpdateEntityOperator theChildOperator(getThisPointer(),
-                                                  containingElement,
-                                                  childEntity, childEntity->getQueryAACube());
+
+            bool success;
+            AACube queryCube = childEntity->getQueryAACube(success);
+            if (!success) {
+                qCDebug(entities) << "Can't update child -- failed to get query-cube for" << childEntity->getID();
+                // XXX put on a list for later checking?
+            }
+
+            UpdateEntityOperator theChildOperator(getThisPointer(), containingElement, childEntity, queryCube);
             recurseTreeWithOperator(&theChildOperator);
             foreach (SpatiallyNestablePointer childChild, childEntity->getChildren()) {
                 if (childChild && childChild->getNestableType() == NestableType::Entity) {
