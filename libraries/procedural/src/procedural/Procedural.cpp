@@ -123,7 +123,7 @@ void Procedural::parse(const QJsonObject& proceduralData) {
             _parsedChannels = channels.toArray();
             size_t channelCount = std::min(MAX_PROCEDURAL_TEXTURE_CHANNELS, (size_t)_parsedChannels.size());
             for (size_t i = 0; i < channelCount; ++i) {
-                QString url = _parsedChannels.at(i).toString();
+                QString url = _parsedChannels.at((int)i).toString();
                 _channels[i] = textureCache->getTexture(QUrl(url));
             }
         }
@@ -238,7 +238,7 @@ void Procedural::prepare(gpu::Batch& batch, const glm::vec3& position, const glm
                 gpuTexture->setSampler(sampler);
                 gpuTexture->autoGenerateMips(-1);
             }
-            batch.setResourceTexture(i, gpuTexture);
+            batch.setResourceTexture((gpu::uint32)i, gpuTexture);
         }
     }
 }

@@ -15,24 +15,14 @@
 #include <mutex>
 #include <functional>
 
+#include <shared/NsightHelpers.h>
+
 #include "Framebuffer.h"
 #include "Pipeline.h"
 #include "Query.h"
 #include "Stream.h"
 #include "Texture.h"
 #include "Transform.h"
-
-
-#if defined(NSIGHT_FOUND)
-    class ProfileRange {
-    public:
-        ProfileRange(const char *name);
-        ~ProfileRange();
-    };
-#define PROFILE_RANGE(name) ProfileRange profileRangeThis(name);
-#else
-#define PROFILE_RANGE(name)
-#endif
 
 class QDebug;
 

@@ -311,8 +311,8 @@ void UDTTest::sendPacket() {
             
             packetList->closeCurrentPacket();
             
-            _totalQueuedBytes += packetList->getDataSize();
-            _totalQueuedPackets += packetList->getNumPackets();
+            _totalQueuedBytes += (int)packetList->getDataSize();
+            _totalQueuedPackets += (int)packetList->getNumPackets();
             
             _socket.writePacketList(std::move(packetList), _target);
         }

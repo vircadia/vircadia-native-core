@@ -47,7 +47,7 @@ const QString AvatarData::FRAME_NAME = "com.highfidelity.recording.AvatarData";
 static std::once_flag frameTypeRegistration;
 
 AvatarData::AvatarData() :
-    SpatiallyNestable(NestableTypes::Avatar, QUuid()),
+    SpatiallyNestable(NestableType::Avatar, QUuid()),
     _handPosition(0.0f),
     _targetScale(1.0f),
     _handState(0),

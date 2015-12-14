@@ -416,27 +416,6 @@ int OctreeSendThread::packetDistributor(OctreeQueryNode* nodeData, bool viewFrus
                         return;
                     }
 
-                    /* TODO: Looking for a way to prevent locking and encoding a tree that is not
-                    // going to result in any packets being sent...
-                    //
-                    // If our node is root, and the root hasn't changed, and our view hasn't changed,
-                    // and we've already seen at least one duplicate packet, then we probably don't need
-                    // to lock the tree and encode, because the result should be that no bytes will be
-                    // encoded, and this will be a duplicate packet from the  last one we sent...
-                    OctreeElementPointer root = _myServer->getOctree()->getRoot();
-                    bool skipEncode = false;
-                    if (
-                            (subTree == root)
-                            && (nodeData->getLastRootTimestamp() == root->getLastChanged())
-                            && !viewFrustumChanged
-                            && (nodeData->getDuplicatePacketCount() > 0)
-                    ) {
-                        qDebug() << "is root, root not changed, view not changed, already seen a duplicate!"
-                            << "Can we skip it?";
-                        skipEncode = true;
-                    }
-                    */
-
                     float octreeSizeScale = nodeData->getOctreeSizeScale();
                     int boundaryLevelAdjustClient = nodeData->getBoundaryLevelAdjust();
 
@@ -471,20 +450,9 @@ int OctreeSendThread::packetDistributor(OctreeQueryNode* nodeData, bool viewFrus
                     // the packet and send it
                     completedScene = nodeData->elementBag.isEmpty();
 
-                    // if we're trying to fill a full size packet, then we use this logic to determine if we have a DIDNT_FIT case.
-                    if (_packetData.getTargetSize() == MAX_OCTREE_PACKET_DATA_SIZE) {
-                        if (_packetData.hasContent() && bytesWritten == 0 &&
-                                params.stopReason == EncodeBitstreamParams::DIDNT_FIT) {
-                            lastNodeDidntFit = true;
-                        }
-                    } else {
-                        // in compressed mode and we are trying to pack more... and we don't care if the _packetData has
-                        // content or not... because in this case even if we were unable to pack any data, we want to drop
-                        // below to our sendNow logic, but we do want to track that we attempted to pack extra
+                    if (params.stopReason == EncodeBitstreamParams::DIDNT_FIT) {
+                        lastNodeDidntFit = true;
                         extraPackingAttempts++;
-                        if (bytesWritten == 0 && params.stopReason == EncodeBitstreamParams::DIDNT_FIT) {
-                            lastNodeDidntFit = true;
-                        }
                     }
 
                     nodeData->stats.encodeStopped();
@@ -517,7 +485,6 @@ int OctreeSendThread::packetDistributor(OctreeQueryNode* nodeData, bool viewFrus
                     }
 
                     nodeData->writeToPacket(_packetData.getFinalizedData(), _packetData.getFinalizedSize());
-                    extraPackingAttempts = 0;
                     quint64 compressAndWriteEnd = usecTimestampNow();
                     compressAndWriteElapsedUsec = (float)(compressAndWriteEnd - compressAndWriteStart);
                 }
@@ -526,8 +493,8 @@ int OctreeSendThread::packetDistributor(OctreeQueryNode* nodeData, bool viewFrus
                 // the packet doesn't have enough space to bother attempting to pack more...
                 bool sendNow = true;
 
-                if (nodeData->getAvailable() >= MINIMUM_ATTEMPT_MORE_PACKING &&
-                    extraPackingAttempts <= REASONABLE_NUMBER_OF_PACKING_ATTEMPTS) {
+                if (!completedScene && (nodeData->getAvailable() >= MINIMUM_ATTEMPT_MORE_PACKING &&
+                                        extraPackingAttempts <= REASONABLE_NUMBER_OF_PACKING_ATTEMPTS)) {
                     sendNow = false; // try to pack more
                 }
 
@@ -539,6 +506,7 @@ int OctreeSendThread::packetDistributor(OctreeQueryNode* nodeData, bool viewFrus
                     packetSendingElapsedUsec = (float)(packetSendingEnd - packetSendingStart);
 
                     targetSize = nodeData->getAvailable() - sizeof(OCTREE_PACKET_INTERNAL_SECTION_SIZE);
+                    extraPackingAttempts = 0;
                 } else {
                     // If we're in compressed mode, then we want to see if we have room for more in this wire packet.
                     // but we've finalized the _packetData, so we want to start a new section, we will do that by

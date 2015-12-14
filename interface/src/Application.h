@@ -136,7 +136,7 @@ public:
     const ViewFrustum* getDisplayViewFrustum() const;
     ViewFrustum* getShadowViewFrustum() { return &_shadowViewFrustum; }
     const OctreePacketProcessor& getOctreePacketProcessor() const { return _octreeProcessor; }
-    EntityTreeRenderer* getEntities() { return &_entities; }
+    EntityTreeRenderer* getEntities() { return DependencyManager::get<EntityTreeRenderer>().data(); }
     QUndoStack* getUndoStack() { return &_undoStack; }
     MainWindow* getWindow() { return _window; }
     EntityTreePointer getEntityClipboard() { return _entityClipboard; }
@@ -160,9 +160,7 @@ public:
     
     uint32_t getFrameCount() { return _frameCount; }
     float getFps() const { return _fps; }
-    float const HMD_TARGET_FRAME_RATE = 75.0f;
-    float const DESKTOP_TARGET_FRAME_RATE = 60.0f;
-    float getTargetFrameRate() { return isHMDMode() ? HMD_TARGET_FRAME_RATE : DESKTOP_TARGET_FRAME_RATE; }
+    float getTargetFrameRate(); // frames/second
     float getLastInstanteousFps() const { return _lastInstantaneousFps; }
     float getLastUnsynchronizedFps() const { return _lastUnsynchronizedFps; }
 
@@ -199,8 +197,8 @@ public:
 
     NodeToJurisdictionMap& getEntityServerJurisdictions() { return _entityServerJurisdictions; }
 
-    QStringList getRunningScripts() { return _scriptEnginesHash.keys(); }
-    ScriptEngine* getScriptEngine(const QString& scriptHash) { return _scriptEnginesHash.value(scriptHash, NULL); }
+    QStringList getRunningScripts();
+    ScriptEngine* getScriptEngine(const QString& scriptHash);
 
     float getRenderResolutionScale() const;
 
@@ -333,7 +331,7 @@ private slots:
     void loadSettings();
     void saveSettings();
     
-    void scriptFinished(const QString& scriptName);
+    void scriptFinished(const QString& scriptName, ScriptEngine* engine);
     void saveScripts();
     void reloadScript(const QString& scriptName, bool isUserLoaded = true);
     
@@ -446,7 +444,6 @@ private:
     PhysicalEntitySimulation _entitySimulation;
     PhysicsEnginePointer _physicsEngine;
 
-    EntityTreeRenderer _entities;
     EntityTreeRenderer _entityClipboardRenderer;
     EntityTreePointer _entityClipboard;
 
@@ -501,6 +498,7 @@ private:
 
     TouchEvent _lastTouchEvent;
 
+    QReadWriteLock _scriptEnginesHashLock;
     RunningScriptsWidget* _runningScriptsWidget;
     QHash<QString, ScriptEngine*> _scriptEnginesHash;
     bool _runningScriptsWidgetWasVisible;

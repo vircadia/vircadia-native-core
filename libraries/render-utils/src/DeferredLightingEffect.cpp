@@ -314,7 +314,7 @@ void DeferredLightingEffect::addPointLight(const glm::vec3& position, float radi
 void DeferredLightingEffect::addSpotLight(const glm::vec3& position, float radius, const glm::vec3& color,
     float intensity, const glm::quat& orientation, float exponent, float cutoff) {
     
-    unsigned int lightID = _pointLights.size() + _spotLights.size() + _globalLights.size();
+    unsigned int lightID = (unsigned int)(_pointLights.size() + _spotLights.size() + _globalLights.size());
     if (lightID >= _allocatedLights.size()) {
         _allocatedLights.push_back(std::make_shared<model::Light>());
     }

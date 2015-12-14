@@ -479,12 +479,12 @@ void Octree::readBitstreamToTree(const unsigned char * bitstream, unsigned long 
             }
         }
 
-        int octalCodeBytes = bytesRequiredForCodeLength(numberOfThreeBitSectionsInStream);
+        auto octalCodeBytes = bytesRequiredForCodeLength(numberOfThreeBitSectionsInStream);
 
         int theseBytesRead = 0;
-        theseBytesRead += octalCodeBytes;
+        theseBytesRead += (int)octalCodeBytes;
         int lowerLevelBytes = readElementData(bitstreamRootElement, bitstreamAt + octalCodeBytes,
-                                       bufferSizeBytes - (bytesRead + octalCodeBytes), args);
+                                       bufferSizeBytes - (bytesRead + (int)octalCodeBytes), args);
 
         theseBytesRead += lowerLevelBytes;
 
@@ -921,7 +921,7 @@ int Octree::encodeTreeBitstream(OctreeElementPointer element,
         }
     } else {
         roomForOctalCode = packetData->startSubTree(element->getOctalCode());
-        codeLength = bytesRequiredForCodeLength(numberOfThreeBitSectionsInCode(element->getOctalCode()));
+        codeLength = (int)bytesRequiredForCodeLength(numberOfThreeBitSectionsInCode(element->getOctalCode()));
     }
 
     // If the octalcode couldn't fit, then we can return, because no nodes below us will fit...

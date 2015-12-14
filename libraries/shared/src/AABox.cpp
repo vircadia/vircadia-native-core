@@ -12,6 +12,7 @@
 #include "AABox.h"
 
 #include "AACube.h"
+#include "Transform.h"
 #include "Extents.h"
 #include "GeometryUtil.h"
 #include "NumericalConstants.h"
@@ -40,11 +41,6 @@ glm::vec3 AABox::calcCenter() const {
     glm::vec3 center(_corner);
     center += (_scale * 0.5f);
     return center;
-}
-
-void AABox::scale(float scale) {
-    _corner = _corner * scale;
-    _scale = _scale * scale;
 }
 
 glm::vec3 AABox::getVertex(BoxVertex vertex) const {
@@ -485,4 +481,60 @@ AABox& AABox::operator += (const AABox& box) {
        _scale = glm::max(_scale, box.calcTopFarLeft() - _corner);
     }
     return (*this);
+}
+
+void AABox::scale(const glm::vec3& scale) {
+    _corner *= scale;
+    _scale *= scale;
+}
+
+
+void AABox::rotate(const glm::quat& rotation) {
+    auto minimum = _corner;
+    auto maximum = _corner + _scale;
+
+    glm::vec3 bottomLeftNear(minimum.x, minimum.y, minimum.z);
+    glm::vec3 bottomRightNear(maximum.x, minimum.y, minimum.z);
+    glm::vec3 bottomLeftFar(minimum.x, minimum.y, maximum.z);
+    glm::vec3 bottomRightFar(maximum.x, minimum.y, maximum.z);
+    glm::vec3 topLeftNear(minimum.x, maximum.y, minimum.z);
+    glm::vec3 topRightNear(maximum.x, maximum.y, minimum.z);
+    glm::vec3 topLeftFar(minimum.x, maximum.y, maximum.z);
+    glm::vec3 topRightFar(maximum.x, maximum.y, maximum.z);
+
+    glm::vec3 bottomLeftNearRotated = rotation * bottomLeftNear;
+    glm::vec3 bottomRightNearRotated = rotation * bottomRightNear;
+    glm::vec3 bottomLeftFarRotated = rotation * bottomLeftFar;
+    glm::vec3 bottomRightFarRotated = rotation * bottomRightFar;
+    glm::vec3 topLeftNearRotated = rotation * topLeftNear;
+    glm::vec3 topRightNearRotated = rotation * topRightNear;
+    glm::vec3 topLeftFarRotated = rotation * topLeftFar;
+    glm::vec3 topRightFarRotated = rotation * topRightFar;
+
+    minimum = glm::min(bottomLeftNearRotated,
+        glm::min(bottomRightNearRotated,
+        glm::min(bottomLeftFarRotated,
+        glm::min(bottomRightFarRotated,
+        glm::min(topLeftNearRotated,
+        glm::min(topRightNearRotated,
+        glm::min(topLeftFarRotated,
+        topRightFarRotated)))))));
+
+    maximum = glm::max(bottomLeftNearRotated,
+        glm::max(bottomRightNearRotated,
+        glm::max(bottomLeftFarRotated,
+        glm::max(bottomRightFarRotated,
+        glm::max(topLeftNearRotated,
+        glm::max(topRightNearRotated,
+        glm::max(topLeftFarRotated,
+        topRightFarRotated)))))));
+
+    _corner = minimum;
+    _scale = maximum - minimum;
+}
+
+void AABox::transform(const Transform& transform) {
+    scale(transform.getScale());
+    rotate(transform.getRotation());
+    translate(transform.getTranslation());
 }

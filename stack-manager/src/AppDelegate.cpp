@@ -57,6 +57,10 @@ void myMessageHandler(QtMsgType type, const QMessageLogContext &context, const Q
 
     //in this function, you can write the message to any stream!
     switch (type) {
+        case QtInfoMsg:
+            fprintf(stdout, "UnknownType: %s\n", qPrintable(msg));
+            txt += msg;
+            break;
         case QtDebugMsg:
             fprintf(stdout, "Debug: %s\n", qPrintable(msg));
             txt += msg;
@@ -72,6 +76,7 @@ void myMessageHandler(QtMsgType type, const QMessageLogContext &context, const Q
         case QtFatalMsg:
             fprintf(stdout, "Fatal: %s\n", qPrintable(msg));
             txt += msg;
+            break;
     }
 
     if (outStream) {

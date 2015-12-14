@@ -319,10 +319,10 @@ void Resource::attemptRequest() {
 
 void Resource::finishedLoading(bool success) {
     if (success) {
-        qDebug().noquote() << "Finished loading:" << _url.toDisplayString();
+        qCDebug(networking).noquote() << "Finished loading:" << _url.toDisplayString();
         _loaded = true;
     } else {
-        qDebug().noquote() << "Failed to load:" << _url.toDisplayString();
+        qCDebug(networking).noquote() << "Failed to load:" << _url.toDisplayString();
         _failedToLoad = true;
     }
     _loadPriorities.clear();
@@ -339,13 +339,13 @@ void Resource::makeRequest() {
     _request = ResourceManager::createResourceRequest(this, _activeUrl);
 
     if (!_request) {
-        qDebug().noquote() << "Failed to get request for" << _url.toDisplayString();
+        qCDebug(networking).noquote() << "Failed to get request for" << _url.toDisplayString();
         ResourceCache::requestCompleted(this);
         finishedLoading(false);
         return;
     }
     
-    qDebug().noquote() << "Starting request for:" << _url.toDisplayString();
+    qCDebug(networking).noquote() << "Starting request for:" << _url.toDisplayString();
 
     connect(_request, &ResourceRequest::progress, this, &Resource::handleDownloadProgress);
     connect(_request, &ResourceRequest::finished, this, &Resource::handleReplyFinished);
@@ -369,7 +369,7 @@ void Resource::handleReplyFinished() {
     if (result == ResourceRequest::Success) {
         _data = _request->getData();
         auto extraInfo = _url == _activeUrl ? "" : QString(", %1").arg(_activeUrl.toDisplayString());
-        qDebug().noquote() << QString("Request finished for %1%2").arg(_url.toDisplayString(), extraInfo);
+        qCDebug(networking).noquote() << QString("Request finished for %1%2").arg(_url.toDisplayString(), extraInfo);
         
         finishedLoading(true);
         emit loaded(_data);
@@ -377,7 +377,7 @@ void Resource::handleReplyFinished() {
     } else {
         switch (result) {
             case ResourceRequest::Result::Timeout: {
-                qDebug() << "Timed out loading" << _url << "received" << _bytesReceived << "total" << _bytesTotal;
+                qCDebug(networking) << "Timed out loading" << _url << "received" << _bytesReceived << "total" << _bytesTotal;
                 // Fall through to other cases
             }
             case ResourceRequest::Result::ServerUnavailable: {
@@ -386,7 +386,7 @@ void Resource::handleReplyFinished() {
                 const int BASE_DELAY_MS = 1000;
                 if (_attempts++ < MAX_ATTEMPTS) {
                     auto waitTime = BASE_DELAY_MS * (int)pow(2.0, _attempts);
-                    qDebug().nospace() << "Retrying to load the asset in " << waitTime
+                    qCDebug(networking).nospace() << "Retrying to load the asset in " << waitTime
                                        << "ms, attempt " << _attempts << " of " << MAX_ATTEMPTS;
                     QTimer::singleShot(waitTime, this, &Resource::attemptRequest);
                     break;
@@ -394,7 +394,7 @@ void Resource::handleReplyFinished() {
                 // fall through to final failure
             }
             default: {
-                qDebug() << "Error loading " << _url;
+                qCDebug(networking) << "Error loading " << _url;
                 auto error = (result == ResourceRequest::Timeout) ? QNetworkReply::TimeoutError
                                                                   : QNetworkReply::UnknownNetworkError;
                 emit failed(error);

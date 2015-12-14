@@ -36,7 +36,7 @@ int EntityItem::_maxActionsDataSize = 800;
 quint64 EntityItem::_rememberDeletedActionTime = 20 * USECS_PER_SECOND;
 
 EntityItem::EntityItem(const EntityItemID& entityItemID) :
-    SpatiallyNestable(NestableTypes::Entity, entityItemID),
+    SpatiallyNestable(NestableType::Entity, entityItemID),
     _type(EntityTypes::Unknown),
     _lastSimulated(0),
     _lastUpdated(0),
@@ -620,7 +620,7 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
     Q_ASSERT(parser.data() + parser.offset() == dataAt);
 #else
     const unsigned char* dataAt = parser.data() + parser.offset();
-    int bytesRead = parser.offset();
+    int bytesRead = (int)parser.offset();
 #endif
 
     auto nodeList = DependencyManager::get<NodeList>();
@@ -749,7 +749,7 @@ void EntityItem::debugDump() const {
 void EntityItem::adjustEditPacketForClockSkew(QByteArray& buffer, int clockSkew) {
     unsigned char* dataAt = reinterpret_cast<unsigned char*>(buffer.data());
     int octets = numberOfThreeBitSectionsInCode(dataAt);
-    int lengthOfOctcode = bytesRequiredForCodeLength(octets);
+    int lengthOfOctcode = (int)bytesRequiredForCodeLength(octets);
     dataAt += lengthOfOctcode;
 
     // lastEdited
@@ -1294,7 +1294,7 @@ void EntityItem::updatePosition(const glm::vec3& value) {
         setLocalPosition(value);
         _dirtyFlags |= Simulation::DIRTY_POSITION;
         forEachDescendant([&](SpatiallyNestablePointer object) {
-            if (object->getNestableType() == NestableTypes::Entity) {
+            if (object->getNestableType() == NestableType::Entity) {
                 EntityItemPointer entity = std::static_pointer_cast<EntityItem>(object);
                 entity->_dirtyFlags |= Simulation::DIRTY_POSITION;
             }
@@ -1317,7 +1317,7 @@ void EntityItem::updateRotation(const glm::quat& rotation) {
         setLocalOrientation(rotation);
         _dirtyFlags |= Simulation::DIRTY_ROTATION;
         forEachDescendant([&](SpatiallyNestablePointer object) {
-            if (object->getNestableType() == NestableTypes::Entity) {
+            if (object->getNestableType() == NestableType::Entity) {
                 EntityItemPointer entity = std::static_pointer_cast<EntityItem>(object);
                 entity->_dirtyFlags |= Simulation::DIRTY_ROTATION;
                 entity->_dirtyFlags |= Simulation::DIRTY_POSITION;

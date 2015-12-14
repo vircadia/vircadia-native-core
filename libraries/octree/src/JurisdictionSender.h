@@ -32,7 +32,7 @@ public:
 
     void setJurisdiction(JurisdictionMap* map) { _jurisdictionMap = map; }
 
-    virtual bool process();
+    virtual bool process() override;
 
     NodeType_t getNodeType() const { return _nodeType; }
     void setNodeType(NodeType_t type) { _nodeType = type; }
