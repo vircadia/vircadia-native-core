@@ -23,7 +23,7 @@ var MAX_POINTS_PER_LINE = 50;
 
 var LIFETIME = 6000;
 var DRAWING_DEPTH = 0.8;
-var LINE_DIMENSIONS = 20;
+var LINE_DIMENSIONS = 100;
 
 var lightZone = Entities.addEntity({
     type: "Zone",
@@ -78,9 +78,9 @@ function controller(side, triggerAction) {
         type: 'Light',
         position: MyAvatar.position,
         dimensions: {
-            x: 20,
-            y: 20,
-            z: 20
+            x: 30,
+            y: 30,
+            z: 30
         },
         color: colorPalette[randInt(0, colorPalette.length)],
         intensity: 5
