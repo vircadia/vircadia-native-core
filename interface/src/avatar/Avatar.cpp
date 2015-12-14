@@ -454,7 +454,8 @@ void Avatar::render(RenderArgs* renderArgs, const glm::vec3& cameraPosition) {
         bool renderBounding = Menu::getInstance()->isOptionChecked(MenuOption::RenderBoundingCollisionShapes);
         if (renderBounding && shouldRenderHead(renderArgs) && _skeletonModel.isRenderable()) {
             PROFILE_RANGE_BATCH(batch, __FUNCTION__":skeletonBoundingCollisionShapes");
-            _skeletonModel.renderBoundingCollisionShapes(*renderArgs->_batch, 0.7f);
+            const float BOUNDING_SHAPE_ALPHA = 0.7f;
+            _skeletonModel.renderBoundingCollisionShapes(*renderArgs->_batch, getUniformScale(), BOUNDING_SHAPE_ALPHA);
         }
 
         // If this is the avatar being looked at, render a little ball above their head
