@@ -18,7 +18,11 @@
             this.initialProperties = Entities.getEntityProperties(this.entityID);
         },
         getClampedPosition: function() {
-            return position;
+            dPosition = Vec3.subtract(MyAvatar.position, previousPosition);
+            //convert to localFrame
+            dPosition = Vec3.multiplyQbyV(Quat.inverse(MyAvatar.orientation), dPosition);
+
+            return dPosition;
         },
         getClampedRotation: function() {
             var rotation = initialProperties.rotation;
