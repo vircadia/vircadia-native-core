@@ -55,6 +55,17 @@ enum class Action {
 
     SHIFT,
 
+    // Pointer/Reticle control
+    RETICLE_CLICK,
+    RETICLE_X,
+    RETICLE_Y,
+
+    // Biseced aliases for RETICLE_X/RETICLE_Y
+    RETICLE_LEFT,
+    RETICLE_RIGHT,
+    RETICLE_UP,
+    RETICLE_DOWN,
+
     // Biseced aliases for TRANSLATE_Z
     LONGITUDINAL_BACKWARD,
     LONGITUDINAL_FORWARD,
@@ -78,7 +89,7 @@ enum class Action {
     // Biseced aliases for TRANSLATE_CAMERA_Z
     BOOM_IN,
     BOOM_OUT,
-    
+
     NUM_ACTIONS,
 };
 
