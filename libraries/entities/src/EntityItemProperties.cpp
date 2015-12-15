@@ -474,6 +474,7 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine, bool
 
     COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_PARENT_ID, parentID);
     COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_PARENT_JOINT_INDEX, parentJointIndex);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_QUERY_AA_CUBE, queryAACube);
 
     COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_LOCAL_POSITION, localPosition);
     COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_LOCAL_ROTATION, localRotation);
@@ -604,6 +605,7 @@ void EntityItemProperties::copyFromScriptValue(const QScriptValue& object, bool 
 
     COPY_PROPERTY_FROM_QSCRIPTVALUE(parentID, QUuid, setParentID);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(parentJointIndex, quint16, setParentJointIndex);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(queryAACube, AACube, setQueryAACube);
 
     COPY_PROPERTY_FROM_QSCRIPTVALUE(localPosition, glmVec3, setLocalPosition);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(localRotation, glmQuat, setLocalRotation);
@@ -1465,6 +1467,8 @@ void EntityItemProperties::markAllChanged() {
 
     _parentIDChanged = true;
     _parentJointIndexChanged = true;
+
+    _queryAACubeChanged = true;
 }
 
 // The minimum bounding box for the entity.
@@ -1763,6 +1767,9 @@ QList<QString> EntityItemProperties::listChangedProperties() {
     }
     if (parentJointIndexChanged()) {
         out += "parentJointIndex";
+    }
+    if (queryAACubeChanged()) {
+        out += "queryAACube";
     }
 
     getAnimation().listChangedProperties(out);

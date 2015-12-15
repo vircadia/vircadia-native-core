@@ -228,6 +228,13 @@ inline glmVec3 glmVec3_convertFromScriptValue(const QScriptValue& v, bool& isVal
     return glm::vec3(0);
 }
 
+inline AACube AACube_convertFromScriptValue(const QScriptValue& v, bool& isValid) {
+    isValid = true;
+    AACube result;
+    aaCubeFromScriptValue(v, result);
+    return result;
+}
+
 inline qVectorFloat qVectorFloat_convertFromScriptValue(const QScriptValue& v, bool& isValid) {
     isValid = true;
     return qVectorFloatFromScriptValue(v);
