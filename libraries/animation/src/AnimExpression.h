@@ -119,6 +119,7 @@ protected:
     bool parseExprPrime(const QString& str, QString::const_iterator& iter);
     bool parseTerm(const QString& str, QString::const_iterator& iter);
     bool parseTermPrime(const QString& str, QString::const_iterator& iter);
+    bool parseUnary(const QString& str, QString::const_iterator& iter);
     bool parseFactor(const QString& str, QString::const_iterator& iter);
 
     OpCode evaluate(const AnimVariantMap& map) const;

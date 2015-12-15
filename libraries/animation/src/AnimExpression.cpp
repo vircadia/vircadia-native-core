@@ -208,9 +208,11 @@ AnimExpression::Token AnimExpression::consumeNot(const QString& str, QString::co
 Expr   → Term Expr'
 Expr'  → '||' Term Expr'
        | ε
-Term   → Factor Term'
-Term'  → '&&' Term'
+Term   → Unary Term'
+Term'  → '&&' Unary Term'
        | ε
+Unary  → '!' Unary
+       | Factor
 Factor → INT
        | BOOL
        | FLOAT
@@ -249,9 +251,9 @@ bool AnimExpression::parseExprPrime(const QString& str, QString::const_iterator&
     }
 }
 
-// Term → Factor Term'
+// Term → Unary Term'
 bool AnimExpression::parseTerm(const QString& str, QString::const_iterator& iter) {
-    if (!parseFactor(str, iter)) {
+    if (!parseUnary(str, iter)) {
         return false;
     }
     if (!parseTermPrime(str, iter)) {
@@ -260,11 +262,11 @@ bool AnimExpression::parseTerm(const QString& str, QString::const_iterator& iter
     return true;
 }
 
-// Term'  → '&&' Term' | ε
+// Term' → '&&' Unary Term' | ε
 bool AnimExpression::parseTermPrime(const QString& str, QString::const_iterator& iter) {
     auto token = consumeToken(str, iter);
     if (token.type == Token::And) {
-        if (!parseTerm(str, iter)) {
+        if (!parseUnary(str, iter)) {
             unconsumeToken(token);
             return false;
         }
@@ -279,6 +281,24 @@ bool AnimExpression::parseTermPrime(const QString& str, QString::const_iterator&
         return true;
     }
 }
+
+// Unary → '!' Unary | Factor
+bool AnimExpression::parseUnary(const QString& str, QString::const_iterator& iter) {
+
+    auto token = consumeToken(str, iter);
+    if (token.type == Token::Not) {
+        if (!parseUnary(str, iter)) {
+            unconsumeToken(token);
+            return false;
+        }
+        _opCodes.push_back(OpCode {OpCode::Not});
+        return true;
+    }
+    unconsumeToken(token);
+
+    return parseFactor(str, iter);
+}
+
 
 // Factor → INT | BOOL | FLOAT | IDENTIFIER | '(' Expr ')'
 bool AnimExpression::parseFactor(const QString& str, QString::const_iterator& iter) {
