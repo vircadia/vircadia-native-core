@@ -129,7 +129,7 @@ float AvatarData::getTargetScale() const {
 }
 
 void AvatarData::setTargetScale(float targetScale) {
-    _targetScale = std::max(MIN_AVATAR_SCALE, std::min(MAX_AVATAR_SCALE, targetScale));
+    _targetScale = glm::clamp(targetScale, MIN_AVATAR_SCALE, MAX_AVATAR_SCALE);
 }
 
 void AvatarData::setTargetScaleVerbose(float targetScale) {
