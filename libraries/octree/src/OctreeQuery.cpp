@@ -63,6 +63,9 @@ int OctreeQuery::getBroadcastData(unsigned char* destinationBuffer) {
     // desired boundaryLevelAdjust
     memcpy(destinationBuffer, &_boundaryLevelAdjust, sizeof(_boundaryLevelAdjust));
     destinationBuffer += sizeof(_boundaryLevelAdjust);
+
+    memcpy(destinationBuffer, &_keyholeRadius, sizeof(_keyholeRadius));
+    destinationBuffer += sizeof(_keyholeRadius);
     
     return destinationBuffer - bufferStart;
 }
@@ -104,6 +107,12 @@ int OctreeQuery::parseData(ReceivedMessage& message) {
     memcpy(&_boundaryLevelAdjust, sourceBuffer, sizeof(_boundaryLevelAdjust));
     sourceBuffer += sizeof(_boundaryLevelAdjust);
 
+    auto bytesRead = sourceBuffer - startPosition;
+    auto bytesLeft = message.getSize() - bytesRead;
+    if (bytesLeft >= (int)sizeof(_keyholeRadius)) {
+        memcpy(&_keyholeRadius, sourceBuffer, sizeof(_keyholeRadius));
+        sourceBuffer += sizeof(_keyholeRadius);
+    }
     return sourceBuffer - startPosition;
 }
 

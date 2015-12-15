@@ -129,7 +129,7 @@ QByteArray PacketList::getMessage() const {
     }
 
     QByteArray data;
-    data.reserve(sizeBytes);
+    data.reserve((int)sizeBytes);
 
     for (auto& packet : _packets) {
         data.append(packet->getPayload(), packet->getPayloadSize());

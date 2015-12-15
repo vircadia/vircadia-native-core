@@ -156,7 +156,7 @@ public:
     }
 
     /// Returns the number of joint states in the model.
-    int getJointStateCount() const { return _rig->getJointStateCount(); }
+    int getJointStateCount() const { return (int)_rig->getJointStateCount(); }
     bool getJointPositionInWorldFrame(int jointIndex, glm::vec3& position) const;
     bool getJointRotationInWorldFrame(int jointIndex, glm::quat& rotation) const;
     bool getJointCombinedRotation(int jointIndex, glm::quat& rotation) const;
@@ -165,6 +165,10 @@ public:
     /// \return true if joint exists
     bool getJointRotation(int jointIndex, glm::quat& rotation) const;
     bool getJointTranslation(int jointIndex, glm::vec3& translation) const;
+
+    // model frame
+    bool getAbsoluteJointRotationInRigFrame(int jointIndex, glm::quat& rotation) const;
+    bool getAbsoluteJointTranslationInRigFrame(int jointIndex, glm::vec3& translation) const;
 
     /// Returns the index of the parent of the indexed joint, or -1 if not found.
     int getParentJointIndex(int jointIndex) const;
@@ -362,7 +366,7 @@ private:
     bool _needsUpdateClusterMatrices = true;
     bool _showCollisionHull = false;
 
-    friend class MeshPartPayload;
+    friend class ModelMeshPartPayload;
 protected:
     RigPointer _rig;
 };

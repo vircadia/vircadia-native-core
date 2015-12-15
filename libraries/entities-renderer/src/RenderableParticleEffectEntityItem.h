@@ -16,7 +16,7 @@
 #include "RenderableEntityItem.h"
 
 class RenderableParticleEffectEntityItem : public ParticleEffectEntityItem  {
-friend class ParticlePayload;
+    friend class ParticlePayloadData;
 public:
     static EntityItemPointer factory(const EntityItemID& entityID, const EntityItemProperties& properties);
     RenderableParticleEffectEntityItem(const EntityItemID& entityItemID);
@@ -29,23 +29,14 @@ public:
     virtual void removeFromScene(EntityItemPointer self, render::ScenePointer scene, render::PendingChanges& pendingChanges) override;
 
 protected:
-    render::ItemID _renderItemId;
-
-    struct Vertex {
-        Vertex(glm::vec3 xyzIn, glm::vec2 uvIn, uint32_t rgbaIn) : xyz(xyzIn), uv(uvIn), rgba(rgbaIn) {}
-        glm::vec3 xyz;
-        glm::vec2 uv;
-        uint32_t rgba;
-    };
-
     void createPipelines();
-
-    std::vector<Vertex> _vertices;
+    
+    render::ScenePointer _scene;
+    render::ItemID _renderItemId;
+    
+    NetworkTexturePointer _texture;
     gpu::PipelinePointer _untexturedPipeline;
     gpu::PipelinePointer _texturedPipeline;
-
-    render::ScenePointer _scene;
-    NetworkTexturePointer _texture;
 };
 
 

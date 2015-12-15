@@ -96,12 +96,12 @@ RenderDeferredTask::RenderDeferredTask() : Task() {
     // AO job, to be revisited
     _jobs.push_back(Job(new AmbientOcclusion::JobModel("AmbientOcclusion")));
     _jobs.back().setEnabled(false);
-    _occlusionJobIndex = _jobs.size() - 1;
+    _occlusionJobIndex = (int)_jobs.size() - 1;
 
     // AA job to be revisited
     _jobs.push_back(Job(new Antialiasing::JobModel("Antialiasing")));
     _jobs.back().setEnabled(false);
-    _antialiasingJobIndex = _jobs.size() - 1;
+    _antialiasingJobIndex = (int)_jobs.size() - 1;
 
     // Render transparent objects forward in LigthingBuffer
     _jobs.push_back(Job(new DrawTransparentDeferred::JobModel("TransparentDeferred", renderedTransparents)));
@@ -128,7 +128,7 @@ RenderDeferredTask::RenderDeferredTask() : Task() {
 
     _jobs.push_back(Job(new HitEffect::JobModel("HitEffect")));
     _jobs.back().setEnabled(false);
-    _drawHitEffectJobIndex = _jobs.size() -1;
+    _drawHitEffectJobIndex = (int)_jobs.size() -1;
 
     // Give ourselves 3 frmaes of timer queries
     _timerQueries.push_back(std::make_shared<gpu::Query>());
@@ -186,7 +186,7 @@ void DrawOpaqueDeferred::run(const SceneContextPointer& sceneContext, const Rend
         batch.setStateScissorRect(args->_viewport);
         args->_batch = &batch;
 
-        renderContext->_numDrawnOpaqueItems = inItems.size();
+        renderContext->_numDrawnOpaqueItems = (int)inItems.size();
 
         glm::mat4 projMat;
         Transform viewMat;
@@ -215,7 +215,7 @@ void DrawTransparentDeferred::run(const SceneContextPointer& sceneContext, const
         batch.setStateScissorRect(args->_viewport);
         args->_batch = &batch;
     
-        renderContext->_numDrawnTransparentItems = inItems.size();
+        renderContext->_numDrawnTransparentItems = (int)inItems.size();
 
         glm::mat4 projMat;
         Transform viewMat;
@@ -267,8 +267,8 @@ void DrawOverlay3D::run(const SceneContextPointer& sceneContext, const RenderCon
             inItems.emplace_back(id);
         }
     }
-    renderContext->_numFeedOverlay3DItems = inItems.size();
-    renderContext->_numDrawnOverlay3DItems = inItems.size();
+    renderContext->_numFeedOverlay3DItems = (int)inItems.size();
+    renderContext->_numDrawnOverlay3DItems = (int)inItems.size();
 
     if (!inItems.empty()) {
         RenderArgs* args = renderContext->args;

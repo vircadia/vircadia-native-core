@@ -234,7 +234,7 @@ bool Rig::jointStatesEmpty() {
 }
 
 int Rig::getJointStateCount() const {
-    return _internalPoseSet._relativePoses.size();
+    return (int)_internalPoseSet._relativePoses.size();
 }
 
 int Rig::indexOfJoint(const QString& jointName) const {
@@ -374,10 +374,30 @@ bool Rig::getJointRotation(int jointIndex, glm::quat& rotation) const {
     }
 }
 
+bool Rig::getAbsoluteJointRotationInRigFrame(int jointIndex, glm::quat& rotation) const {
+    QReadLocker readLock(&_externalPoseSetLock);
+    if (jointIndex >= 0 && jointIndex < (int)_externalPoseSet._absolutePoses.size()) {
+        rotation = _externalPoseSet._absolutePoses[jointIndex].rot;
+        return true;
+    } else {
+        return false;
+    }
+}
+
 bool Rig::getJointTranslation(int jointIndex, glm::vec3& translation) const {
     QReadLocker readLock(&_externalPoseSetLock);
     if (jointIndex >= 0 && jointIndex < (int)_externalPoseSet._relativePoses.size()) {
         translation = _externalPoseSet._relativePoses[jointIndex].trans;
+        return true;
+    } else {
+        return false;
+    }
+}
+
+bool Rig::getAbsoluteJointTranslationInRigFrame(int jointIndex, glm::vec3& translation) const {
+    QReadLocker readLock(&_externalPoseSetLock);
+    if (jointIndex >= 0 && jointIndex < (int)_externalPoseSet._absolutePoses.size()) {
+        translation = _externalPoseSet._absolutePoses[jointIndex].trans;
         return true;
     } else {
         return false;
@@ -414,7 +434,7 @@ void Rig::calcAnimAlpha(float speed, const std::vector<float>& referenceSpeeds, 
 
 void Rig::computeEyesInRootFrame(const AnimPoseVec& poses) {
     // TODO: use cached eye/hips indices for these calculations
-    int numPoses = poses.size();
+    int numPoses = (int)poses.size();
     int hipsIndex = _animSkeleton->nameToJointIndex(QString("Hips"));
     int headIndex = _animSkeleton->nameToJointIndex(QString("Head"));
     if (hipsIndex > 0 && headIndex > 0) {
@@ -697,7 +717,8 @@ void Rig::updateAnimationStateHandlers() { // called on avatar update thread (wh
         // This works (I tried it), but the result would be that we would still have same runtime type checks as the invokeMethod above
         // (occuring within the ScriptEngine::callAnimationStateHandler invokeMethod trampoline), _plus_ another runtime check for the dynamic_cast.
 
-        // gather results in (likely from an earlier update):
+        // Gather results in (likely from an earlier update).
+        // Note: the behavior is undefined if a handler (re-)sets a trigger. Scripts should not be doing that.
         _animVars.copyVariantsFrom(value.results); // If multiple handlers write the same anim var, the last registgered wins. (_map preserves order).
     }
 }
@@ -1045,8 +1066,8 @@ glm::mat4 Rig::getJointTransform(int jointIndex) const {
 }
 
 void Rig::copyJointsIntoJointData(QVector<JointData>& jointDataVec) const {
-    jointDataVec.resize(getJointStateCount());
-    for (int i = 0; i < jointDataVec.size(); i++) {
+    jointDataVec.resize((int)getJointStateCount());
+    for (auto i = 0; i < jointDataVec.size(); i++) {
         JointData& data = jointDataVec[i];
         data.rotationSet |= getJointStateRotation(i, data.rotation);
         // geometry offset is used here so that translations are in meters.
@@ -1143,7 +1164,7 @@ void Rig::computeAvatarBoundingCapsule(
     // even if they do not have legs (default robot)
     totalExtents.addPoint(glm::vec3(0.0f));
 
-    int numPoses = finalPoses.size();
+    int numPoses = (int)finalPoses.size();
     for (int i = 0; i < numPoses; i++) {
         const FBXJointShapeInfo& shapeInfo = geometry.joints.at(i).shapeInfo;
         AnimPose pose = finalPoses[i];

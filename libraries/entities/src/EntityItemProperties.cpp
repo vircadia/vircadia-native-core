@@ -747,7 +747,6 @@ void EntityItemProperties::entityPropertyFlagsFromScriptValue(const QScriptValue
         ADD_GROUP_PROPERTY_TO_MAP(PROP_ANIMATION_FIRST_FRAME, Animation, animation, FirstFrame, firstFrame);
         ADD_GROUP_PROPERTY_TO_MAP(PROP_ANIMATION_LAST_FRAME, Animation, animation, LastFrame, lastFrame);
         ADD_GROUP_PROPERTY_TO_MAP(PROP_ANIMATION_HOLD, Animation, animation, Hold, hold);
-        ADD_GROUP_PROPERTY_TO_MAP(PROP_ANIMATION_START_AUTOMATICALLY, Animation, animation, StartAutomatically, startAutomatically);
 
         ADD_GROUP_PROPERTY_TO_MAP(PROP_ATMOSPHERE_CENTER, Atmosphere, atmosphere, Center, center);
         ADD_GROUP_PROPERTY_TO_MAP(PROP_ATMOSPHERE_INNER_RADIUS, Atmosphere, atmosphere, InnerRadius, innerRadius);
@@ -1125,7 +1124,7 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
     // the first part of the data is an octcode, this is a required element of the edit packet format, but we don't
     // actually use it, we do need to skip it and read to the actual data we care about.
     int octets = numberOfThreeBitSectionsInCode(data);
-    int bytesToReadOfOctcode = bytesRequiredForCodeLength(octets);
+    int bytesToReadOfOctcode = (int)bytesRequiredForCodeLength(octets);
 
     // we don't actually do anything with this octcode...
     dataAt += bytesToReadOfOctcode;
@@ -1780,6 +1779,12 @@ QList<QString> EntityItemProperties::listChangedProperties() {
     if (zPNeighborIDChanged()) {
         out += "zPNeighborID";
     }
+    if (parentIDChanged()) {
+        out += "parentID";
+    }
+    if (parentJointIndexChanged()) {
+        out += "parentJointIndex";
+    }
 
     getAnimation().listChangedProperties(out);
     getKeyLight().listChangedProperties(out);
@@ -1790,6 +1795,6 @@ QList<QString> EntityItemProperties::listChangedProperties() {
     return out;
 }
 
-bool EntityItemProperties::parentDependentPropertyChanged() {
+bool EntityItemProperties::parentDependentPropertyChanged() const {
     return localPositionChanged() || positionChanged() || localRotationChanged() || rotationChanged();
 }

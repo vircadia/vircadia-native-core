@@ -16,13 +16,6 @@
 #if defined(NSIGHT_FOUND)
 #include "nvToolsExt.h"
 
-ProfileRange::ProfileRange(const char *name) {
-    nvtxRangePush(name);
-}
-ProfileRange::~ProfileRange() {
-    nvtxRangePop();
-}
-
 ProfileRangeBatch::ProfileRangeBatch(gpu::Batch& batch, const char *name) : _batch(batch) {
     _batch.pushProfileRange(name);
 }

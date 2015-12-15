@@ -69,6 +69,7 @@ public:
 
     void init();
     void simulate(float deltaTime);
+    void simulateAttachments(float deltaTime);
 
     virtual void render(RenderArgs* renderArgs, const glm::vec3& cameraPosition);
 
@@ -87,7 +88,6 @@ public:
     bool isInitialized() const { return _initialized; }
     SkeletonModel& getSkeletonModel() { return _skeletonModel; }
     const SkeletonModel& getSkeletonModel() const { return _skeletonModel; }
-    const QVector<Model*>& getAttachmentModels() const { return _attachmentModels; }
     glm::vec3 getChestPosition() const;
     float getAvatarScale() const { return getScale().y; }
     const Head* getHead() const { return static_cast<const Head*>(_headData); }
@@ -100,22 +100,25 @@ public:
     /// Returns the distance to use as a LOD parameter.
     float getLODDistance() const;
 
-    virtual bool isMyAvatar() const { return false; }
+    virtual bool isMyAvatar() const override { return false; }
 
-    virtual QVector<glm::quat> getJointRotations() const;
-    virtual glm::quat getJointRotation(int index) const;
-    virtual glm::vec3 getJointTranslation(int index) const;
-    virtual int getJointIndex(const QString& name) const;
-    virtual QStringList getJointNames() const;
+    virtual QVector<glm::quat> getJointRotations() const override;
+    virtual glm::quat getJointRotation(int index) const override;
+    virtual glm::vec3 getJointTranslation(int index) const override;
+    virtual int getJointIndex(const QString& name) const override;
+    virtual QStringList getJointNames() const override;
 
-    virtual void setFaceModelURL(const QUrl& faceModelURL);
-    virtual void setSkeletonModelURL(const QUrl& skeletonModelURL);
-    virtual void setAttachmentData(const QVector<AttachmentData>& attachmentData);
-    virtual void setBillboard(const QByteArray& billboard);
+    virtual glm::quat getAbsoluteJointRotationInObjectFrame(int index) const override;
+    virtual glm::vec3 getAbsoluteJointTranslationInObjectFrame(int index) const override;
+
+    virtual void setFaceModelURL(const QUrl& faceModelURL) override;
+    virtual void setSkeletonModelURL(const QUrl& skeletonModelURL) override;
+    virtual void setAttachmentData(const QVector<AttachmentData>& attachmentData) override;
+    virtual void setBillboard(const QByteArray& billboard) override;
 
     void setShowDisplayName(bool showDisplayName);
 
-    virtual int parseDataFromBuffer(const QByteArray& buffer);
+    virtual int parseDataFromBuffer(const QByteArray& buffer) override;
 
     static void renderJointConnectingCone( gpu::Batch& batch, glm::vec3 position1, glm::vec3 position2,
                                                 float radius1, float radius2, const glm::vec4& color);
@@ -141,7 +144,7 @@ public:
     void scaleVectorRelativeToPosition(glm::vec3 &positionToScale) const;
 
     void slamPosition(const glm::vec3& position);
-    virtual void updateAttitude() { _skeletonModel.updateAttitude(); }
+    virtual void updateAttitude() override { _skeletonModel.updateAttitude(); }
 
     // Call this when updating Avatar position with a delta.  This will allow us to
     // _accurately_ measure position changes and compute the resulting velocity
@@ -155,8 +158,8 @@ public:
     void setMotionState(AvatarMotionState* motionState) { _motionState = motionState; }
     AvatarMotionState* getMotionState() { return _motionState; }
 
-    virtual void setPosition(glm::vec3 position);
-    virtual void setOrientation(glm::quat orientation);
+    virtual void setPosition(const glm::vec3& position) override;
+    virtual void setOrientation(const glm::quat& orientation) override;
 
 public slots:
 
@@ -214,9 +217,7 @@ protected:
     virtual bool shouldRenderHead(const RenderArgs* renderArgs) const;
     virtual void fixupModelsInScene();
 
-    void simulateAttachments(float deltaTime);
-
-    virtual void updateJointMappings();
+    virtual void updateJointMappings() override;
 
     render::ItemID _renderItemID;
 

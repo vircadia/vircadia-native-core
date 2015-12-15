@@ -33,8 +33,8 @@
 #include <gpu/StandardShaderLib.h>
 #include <gpu/GLBackend.h>
 
-#include <QOpenGLContextWrapper.h>
-#include <QOpenGLDebugLoggerWrapper.h>
+#include <gl/QOpenGLContextWrapper.h>
+#include <gl/QOpenGLDebugLoggerWrapper.h>
 
 #include <GLMHelpers.h>
 #include <PathUtils.h>
@@ -58,7 +58,7 @@ public:
     }
 
     unsigned int count() const {
-        return times.size() - 1;
+        return (unsigned int)times.size() - 1;
     }
 
     float elapsed() const {
@@ -283,10 +283,10 @@ public:
                     GeometryCache::ShapeData shapeData = geometryCache->_shapes[shape];
                     {
                         gpu::Batch::DrawIndexedIndirectCommand indirectCommand;
-                        indirectCommand._count = shapeData._indexCount;
+                        indirectCommand._count = (uint)shapeData._indexCount;
                         indirectCommand._instanceCount = ITEM_COUNT;
-                        indirectCommand._baseInstance = i * ITEM_COUNT;
-                        indirectCommand._firstIndex = shapeData._indexOffset / 2;
+                        indirectCommand._baseInstance = (uint)(i * ITEM_COUNT);
+                        indirectCommand._firstIndex = (uint)shapeData._indexOffset / 2;
                         indirectCommand._baseVertex = 0;
                         indirectBuffer->append(indirectCommand);
                     }

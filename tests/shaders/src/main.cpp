@@ -20,8 +20,8 @@
 
 #include <gl/GLHelpers.h>
 
-#include <QOpenGLDebugLoggerWrapper.h>
-#include <QOpenGLContextWrapper.h>
+#include <gl/QOpenGLDebugLoggerWrapper.h>
+#include <gl/QOpenGLContextWrapper.h>
 
 #include "../model/Skybox_vert.h"
 #include "../model/Skybox_frag.h"

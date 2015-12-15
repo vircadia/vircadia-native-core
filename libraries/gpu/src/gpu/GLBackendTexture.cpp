@@ -415,7 +415,7 @@ GLBackend::GLTexture* GLBackend::syncGPUObject(const Texture& texture) {
 
                 object->_storageStamp = texture.getStamp();
                 object->_contentStamp = texture.getDataStamp();
-                object->_size = texture.getSize();
+                object->_size = (GLuint)texture.getSize();
             }
 
             glBindTexture(GL_TEXTURE_2D, boundTex);
@@ -493,7 +493,7 @@ GLBackend::GLTexture* GLBackend::syncGPUObject(const Texture& texture) {
 
                 object->_storageStamp = texture.getStamp();
                 object->_contentStamp = texture.getDataStamp();
-                object->_size = texture.getSize();
+                object->_size = (GLuint)texture.getSize();
             }
 
             glBindTexture(GL_TEXTURE_CUBE_MAP, boundTex);

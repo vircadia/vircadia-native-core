@@ -74,11 +74,10 @@ public:
             _color[GREEN_INDEX] = value.green;
             _color[BLUE_INDEX] = value.blue;
     }
-    
-    // model related properties
-    void setModelURL(const QString& url) { _modelURL = url; _parsedModelURL = QUrl(url); }
-    virtual void setCompoundShapeURL(const QString& url);
 
+    // model related properties
+    virtual void setModelURL(const QString& url) { _modelURL = url; _parsedModelURL = QUrl(url); }
+    virtual void setCompoundShapeURL(const QString& url);
 
     // Animation related items...
     const AnimationPropertyGroup& getAnimationProperties() const { return _animationProperties; }
@@ -96,9 +95,6 @@ public:
     
     void setAnimationHold(bool hold) { _animationLoop.setHold(hold); }
     bool getAnimationHold() const { return _animationLoop.getHold(); }
-    
-    void setAnimationStartAutomatically(bool startAutomatically) { _animationLoop.setStartAutomatically(startAutomatically); }
-    bool getAnimationStartAutomatically() const { return _animationLoop.getStartAutomatically(); }
     
     void setAnimationFirstFrame(float firstFrame) { _animationLoop.setFirstFrame(firstFrame); }
     float getAnimationFirstFrame() const { return _animationLoop.getFirstFrame(); }

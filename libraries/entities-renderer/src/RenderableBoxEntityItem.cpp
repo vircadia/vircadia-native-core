@@ -41,6 +41,7 @@ void RenderableBoxEntityItem::render(RenderArgs* args) {
     Q_ASSERT(getType() == EntityTypes::Box);
     Q_ASSERT(args->_batch);
 
+
     if (!_procedural) {
         _procedural.reset(new Procedural(this->getUserData()));
         _procedural->_vertexSource = simple_vert;
@@ -64,4 +65,6 @@ void RenderableBoxEntityItem::render(RenderArgs* args) {
     } else {
         DependencyManager::get<DeferredLightingEffect>()->renderSolidCubeInstance(batch, getTransformToCenter(), cubeColor);
     }
-};
+    static const auto triCount = DependencyManager::get<GeometryCache>()->getCubeTriangleCount();
+    args->_details._trianglesRendered += (int)triCount;
+}

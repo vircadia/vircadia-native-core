@@ -11,19 +11,17 @@
 #ifndef hifi_ParticleEffectEntityItem_h
 #define hifi_ParticleEffectEntityItem_h
 
-#include <AnimationLoop.h>
+#include <deque>
 
 #include "EntityItem.h"
 
 class ParticleEffectEntityItem : public EntityItem {
 public:
+    ALLOW_INSTANTIATION // This class can be instantiated
 
     static EntityItemPointer factory(const EntityItemID& entityID, const EntityItemProperties& properties);
 
     ParticleEffectEntityItem(const EntityItemID& entityItemID);
-    virtual ~ParticleEffectEntityItem();
-
-    ALLOW_INSTANTIATION // This class can be instantiated
 
     // methods for getting/setting all properties of this entity
     virtual EntityItemProperties getProperties(EntityPropertyFlags desiredProperties = EntityPropertyFlags()) const;
@@ -218,16 +216,27 @@ public:
     virtual bool supportsDetailedRayIntersection() const { return false; }
 
 protected:
+    struct Particle;
+    using Particles = std::deque<Particle>;
 
     bool isAnimatingSomething() const;
+    
+    Particle createParticle();
     void stepSimulation(float deltaTime);
-    void updateRadius(quint32 index, float age);
-    void updateColor(quint32 index, float age);
-    void updateAlpha(quint32 index, float age);
-    void extendBounds(const glm::vec3& point);
-    void integrateParticle(quint32 index, float deltaTime);
-    quint32 getLivingParticleCount() const;
-    // the properties of this entity
+    void integrateParticle(Particle& particle, float deltaTime);
+    
+    struct Particle {
+        float seed { 0.0f };
+        float lifetime { 0.0f };
+        glm::vec3 position { Vectors::ZERO };
+        glm::vec3 velocity { Vectors::ZERO };
+        glm::vec3 acceleration { Vectors::ZERO };
+    };
+    
+    // Particles container
+    Particles _particles;
+    
+    // Particles properties
     rgbColor _color;
     xColor _colorStart = DEFAULT_COLOR;
     xColor _colorFinish = DEFAULT_COLOR;
@@ -236,63 +245,42 @@ protected:
     float _alphaStart = DEFAULT_ALPHA_START;
     float _alphaFinish = DEFAULT_ALPHA_FINISH;
     float _alphaSpread = DEFAULT_ALPHA_SPREAD;
-    quint32 _maxParticles = DEFAULT_MAX_PARTICLES;
-    float _lifespan = DEFAULT_LIFESPAN;
-    float _emitRate = DEFAULT_EMIT_RATE;
-    float _emitSpeed = DEFAULT_EMIT_SPEED;
-    float _speedSpread = DEFAULT_SPEED_SPREAD;
-    glm::quat _emitOrientation = DEFAULT_EMIT_ORIENTATION;
-    glm::vec3 _emitDimensions = DEFAULT_EMIT_DIMENSIONS;
-    float _emitRadiusStart = DEFAULT_EMIT_RADIUS_START;
-    float _polarStart = DEFAULT_POLAR_START;
-    float _polarFinish = DEFAULT_POLAR_FINISH;
-    float _azimuthStart = DEFAULT_AZIMUTH_START;
-    float _azimuthFinish = DEFAULT_AZIMUTH_FINISH;
-    glm::vec3 _emitAcceleration = DEFAULT_EMIT_ACCELERATION;
-    glm::vec3 _accelerationSpread = DEFAULT_ACCELERATION_SPREAD;
     float _particleRadius = DEFAULT_PARTICLE_RADIUS;
     float _radiusStart = DEFAULT_RADIUS_START;
     float _radiusFinish = DEFAULT_RADIUS_FINISH;
     float _radiusSpread = DEFAULT_RADIUS_SPREAD;
+    float _lifespan = DEFAULT_LIFESPAN;
+    
+    // Emiter properties
+    quint32 _maxParticles = DEFAULT_MAX_PARTICLES;
+    
+    float _emitRate = DEFAULT_EMIT_RATE;
+    float _emitSpeed = DEFAULT_EMIT_SPEED;
+    float _speedSpread = DEFAULT_SPEED_SPREAD;
+    
+    glm::quat _emitOrientation = DEFAULT_EMIT_ORIENTATION;
+    glm::vec3 _emitDimensions = DEFAULT_EMIT_DIMENSIONS;
+    float _emitRadiusStart = DEFAULT_EMIT_RADIUS_START;
+    glm::vec3 _emitAcceleration = DEFAULT_EMIT_ACCELERATION;
+    glm::vec3 _accelerationSpread = DEFAULT_ACCELERATION_SPREAD;
+    
+    float _polarStart = DEFAULT_POLAR_START;
+    float _polarFinish = DEFAULT_POLAR_FINISH;
+    float _azimuthStart = DEFAULT_AZIMUTH_START;
+    float _azimuthFinish = DEFAULT_AZIMUTH_FINISH;
+    
 
+    quint64 _lastSimulated { 0 };
+    bool _isEmitting { true };
 
-    quint64 _lastSimulated;
-    bool _isEmitting = true;
+    QString _textures { DEFAULT_TEXTURES };
+    bool _texturesChangedFlag { false };
+    ShapeType _shapeType { SHAPE_TYPE_NONE };
+    
+    float _timeUntilNextEmit { 0.0f };
 
-    QString _textures = DEFAULT_TEXTURES;
-    bool _texturesChangedFlag = false;
-    ShapeType _shapeType = SHAPE_TYPE_NONE;
-
-    // all the internals of running the particle sim
-    QVector<float> _particleLifetimes;
-    QVector<glm::vec3> _particlePositions;
-    QVector<glm::vec3> _particleVelocities;
-    QVector<glm::vec3> _particleAccelerations;
-    QVector<float> _particleRadiuses;
-    QVector<float> _radiusStarts;
-    QVector<float> _radiusMiddles;
-    QVector<float> _radiusFinishes;
-    QVector<xColor> _particleColors;
-    QVector<xColor> _colorStarts;
-    QVector<xColor> _colorMiddles;
-    QVector<xColor> _colorFinishes;
-    QVector<float> _particleAlphas;
-    QVector<float> _alphaStarts;
-    QVector<float> _alphaMiddles;
-    QVector<float> _alphaFinishes;
-
-    float _timeUntilNextEmit = 0.0f;
-
-    // particle arrays are a ring buffer, use these indices
-    // to keep track of the living particles.
-    quint32 _particleHeadIndex = 0;
-    quint32 _particleTailIndex = 0;
-
-    // bounding volume
-    glm::vec3 _particleMaxBound;
-    glm::vec3 _particleMinBound;
-
-    bool _additiveBlending;
+    
+    bool _additiveBlending { DEFAULT_ADDITIVE_BLENDING };
 };
 
 #endif // hifi_ParticleEffectEntityItem_h

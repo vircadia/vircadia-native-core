@@ -39,7 +39,7 @@ public:
     bool isReliable() const { return _isReliable; }
     bool isOrdered() const { return _isOrdered; }
     
-    int getNumPackets() const { return _packets.size() + (_currentPacket ? 1 : 0); }
+    size_t getNumPackets() const { return _packets.size() + (_currentPacket ? 1 : 0); }
     size_t getDataSize() const;
     size_t getMessageSize() const;
     QByteArray getMessage() const;

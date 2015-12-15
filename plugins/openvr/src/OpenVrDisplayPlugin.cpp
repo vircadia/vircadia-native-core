@@ -7,24 +7,23 @@
 //
 #include "OpenVrDisplayPlugin.h"
 
-#if defined(Q_OS_WIN)
-
 #include <memory>
 
 #include <QMainWindow>
+#include <QLoggingCategory>
 #include <QGLWidget>
-#include <GLMHelpers.h>
 #include <QEvent>
 #include <QResizeEvent>
+
+#include <GLMHelpers.h>
+#include <gl/GlWindow.h>
 
 #include <PerfStat.h>
 #include <plugins/PluginContainer.h>
 #include <ViewFrustum.h>
 
 #include "OpenVrHelpers.h"
-#include "GLMHelpers.h"
 
-#include <QLoggingCategory>
 Q_DECLARE_LOGGING_CATEGORY(displayplugins)
 Q_LOGGING_CATEGORY(displayplugins, "hifi.displayplugins")
 
@@ -41,12 +40,11 @@ vr::TrackedDevicePose_t _trackedDevicePose[vr::k_unMaxTrackedDeviceCount];
 mat4 _trackedDevicePoseMat4[vr::k_unMaxTrackedDeviceCount];
 static mat4 _sensorResetMat;
 static uvec2 _windowSize;
-static ivec2 _windowPosition;
 static uvec2 _renderTargetSize;
 
 struct PerEyeData {
-    uvec2 _viewportOrigin;
-    uvec2 _viewportSize;
+    //uvec2 _viewportOrigin;
+    //uvec2 _viewportSize;
     mat4 _projectionMatrix;
     mat4 _eyeOffset;
     mat4 _pose;
@@ -89,36 +87,17 @@ void OpenVrDisplayPlugin::activate() {
     }
     Q_ASSERT(_hmd);
 
-    _hmd->GetWindowBounds(&_windowPosition.x, &_windowPosition.y, &_windowSize.x, &_windowSize.y);
     _hmd->GetRecommendedRenderTargetSize(&_renderTargetSize.x, &_renderTargetSize.y);
     // Recommended render target size is per-eye, so double the X size for 
     // left + right eyes
     _renderTargetSize.x *= 2;
     openvr_for_each_eye([&](vr::Hmd_Eye eye) {
         PerEyeData& eyeData = _eyesData[eye];
-        _hmd->GetEyeOutputViewport(eye, 
-            &eyeData._viewportOrigin.x, &eyeData._viewportOrigin.y, 
-            &eyeData._viewportSize.x, &eyeData._viewportSize.y);
         eyeData._projectionMatrix = toGlm(_hmd->GetProjectionMatrix(eye, DEFAULT_NEAR_CLIP, DEFAULT_FAR_CLIP, vr::API_OpenGL));
         eyeData._eyeOffset = toGlm(_hmd->GetEyeToHeadTransform(eye));
     });
-
-
-    vr::HmdError eError = vr::HmdError_None;
-    _compositor = (vr::IVRCompositor*)vr::VR_GetGenericInterface(vr::IVRCompositor_Version, &eError);
-    Q_ASSERT(eError == vr::HmdError_None);
+    _compositor = vr::VRCompositor();
     Q_ASSERT(_compositor);
-
-    _compositor->SetGraphicsDevice(vr::Compositor_DeviceType_OpenGL, NULL);
-
-    uint32_t unSize = _compositor->GetLastError(NULL, 0);
-    if (unSize > 1) {
-        char* buffer = new char[unSize];
-        _compositor->GetLastError(buffer, unSize);
-        printf("Compositor - %s\n", buffer);
-        delete[] buffer;
-    }
-    Q_ASSERT(unSize <= 1);
     WindowOpenGLDisplayPlugin::activate();
 }
 
@@ -130,6 +109,16 @@ void OpenVrDisplayPlugin::deactivate() {
     }
     _compositor = nullptr;
     WindowOpenGLDisplayPlugin::deactivate();
+}
+
+void OpenVrDisplayPlugin::customizeContext() {
+    static std::once_flag once;
+    std::call_once(once, []{
+        glewExperimental = true;
+        GLenum err = glewInit();
+        glGetError();
+    });
+    WindowOpenGLDisplayPlugin::customizeContext();
 }
 
 uvec2 OpenVrDisplayPlugin::getRecommendedRenderSize() const {
@@ -153,33 +142,41 @@ glm::mat4 OpenVrDisplayPlugin::getEyeToHeadTransform(Eye eye) const {
 }
 
 glm::mat4 OpenVrDisplayPlugin::getHeadPose(uint32_t frameIndex) const {
-    return _trackedDevicePoseMat4[0];
+    glm::mat4 result;
+    {
+        Lock lock(_mutex);
+        result = _trackedDevicePoseMat4[0];
+
+    }
+    return result;
 }
 
-void OpenVrDisplayPlugin::customizeContext() {
-    WindowOpenGLDisplayPlugin::customizeContext();
+
+void OpenVrDisplayPlugin::submitSceneTexture(uint32_t frameIndex, uint32_t sceneTexture, const glm::uvec2& sceneSize) {
+    WindowOpenGLDisplayPlugin::submitSceneTexture(frameIndex, sceneTexture, sceneSize);
 }
 
-//void OpenVrDisplayPlugin::display(uint32_t frameIndex, uint32_t finalTexture, const glm::uvec2& sceneSize) {
-//    // Flip y-axis since GL UV coords are backwards.
-//    static vr::Compositor_TextureBounds leftBounds{ 0, 1, 0.5f, 0 };
-//    static vr::Compositor_TextureBounds rightBounds{ 0.5f, 1, 1, 0 };
-//    _compositor->Submit(vr::Eye_Left, (void*)finalTexture, &leftBounds);
-//    _compositor->Submit(vr::Eye_Right, (void*)finalTexture, &rightBounds);
-//    glFinish();
-//}
+void OpenVrDisplayPlugin::internalPresent() {
+    // Flip y-axis since GL UV coords are backwards.
+    static vr::VRTextureBounds_t leftBounds{ 0, 0, 0.5f, 1 };
+    static vr::VRTextureBounds_t rightBounds{ 0.5f, 0, 1, 1 };
+    vr::Texture_t texture{ (void*)_currentSceneTexture, vr::API_OpenGL, vr::ColorSpace_Auto };
+    {
+        Lock lock(_mutex);
+        _compositor->Submit(vr::Eye_Left, &texture, &leftBounds);
+        _compositor->Submit(vr::Eye_Right, &texture, &rightBounds);
+    }
+    glFinish();
+    {
+        Lock lock(_mutex);
+        _compositor->WaitGetPoses(_trackedDevicePose, vr::k_unMaxTrackedDeviceCount, nullptr, 0);
+        for (int i = 0; i < vr::k_unMaxTrackedDeviceCount; i++) {
+            _trackedDevicePoseMat4[i] = _sensorResetMat * toGlm(_trackedDevicePose[i].mDeviceToAbsoluteTracking);
+        }
+        openvr_for_each_eye([&](vr::Hmd_Eye eye) {
+            _eyesData[eye]._pose = _trackedDevicePoseMat4[0];
+        });
+    }
 
-//void OpenVrDisplayPlugin::finishFrame() {
-////    swapBuffers();
-//    doneCurrent();
-//    _compositor->WaitGetPoses(_trackedDevicePose, vr::k_unMaxTrackedDeviceCount);
-//    for (int i = 0; i < vr::k_unMaxTrackedDeviceCount; i++) {
-//        _trackedDevicePoseMat4[i] = _sensorResetMat * toGlm(_trackedDevicePose[i].mDeviceToAbsoluteTracking);
-//    }
-//    openvr_for_each_eye([&](vr::Hmd_Eye eye) {
-//        _eyesData[eye]._pose = _trackedDevicePoseMat4[0];
-//    });
-//};
-
-#endif
-
+    //WindowOpenGLDisplayPlugin::internalPresent();
+}

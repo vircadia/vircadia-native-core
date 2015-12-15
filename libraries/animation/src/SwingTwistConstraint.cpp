@@ -36,7 +36,7 @@ void SwingTwistConstraint::SwingLimitFunction::setCone(float maxAngle) {
 }
 
 void SwingTwistConstraint::SwingLimitFunction::setMinDots(const std::vector<float>& minDots) {
-    uint32_t numDots = minDots.size();
+    uint32_t numDots = (uint32_t)minDots.size();
     _minDots.clear();
     if (numDots == 0) {
         // push two copies of MIN_MINDOT
@@ -90,7 +90,7 @@ void SwingTwistConstraint::setSwingLimits(const std::vector<glm::vec3>& swungDir
     };
     std::vector<SwingLimitData> limits;
 
-    uint32_t numLimits = swungDirections.size();
+    uint32_t numLimits = (uint32_t)swungDirections.size();
     limits.reserve(numLimits);
 
     // compute the limit pairs: <theta, minDot>
@@ -108,7 +108,7 @@ void SwingTwistConstraint::setSwingLimits(const std::vector<glm::vec3>& swungDir
     }
 
     std::vector<float> minDots;
-    numLimits = limits.size();
+    numLimits = (uint32_t)limits.size();
     if (numLimits == 0) {
         // trivial case: nearly free constraint
         std::vector<float> minDots;

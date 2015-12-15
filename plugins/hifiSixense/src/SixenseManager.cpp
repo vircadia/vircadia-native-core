@@ -21,14 +21,17 @@
 
 #include <controllers/UserInputMapper.h>
 #include <GLMHelpers.h>
+#include <DebugDraw.h>
 #include <NumericalConstants.h>
 #include <PathUtils.h>
 #include <PerfStat.h>
 #include <plugins/PluginContainer.h>
 #include <SettingHandle.h>
-#include <UserActivityLogger.h>
 
-#include "InputPluginsLogging.h"
+#include <QLoggingCategory>
+
+Q_DECLARE_LOGGING_CATEGORY(inputplugins)
+Q_LOGGING_CATEGORY(inputplugins, "hifi.inputplugins")
 
 static const unsigned int BUTTON_0 = 1U << 0; // the skinny button between 1 and 2
 static const unsigned int BUTTON_1 = 1U << 5;
@@ -48,6 +51,8 @@ const QString MENU_PARENT = "Avatar";
 const QString MENU_NAME = "Sixense";
 const QString MENU_PATH = MENU_PARENT + ">" + MENU_NAME;
 const QString TOGGLE_SMOOTH = "Smooth Sixense Movement";
+const QString SHOW_DEBUG_RAW = "Debug Draw Raw Data";
+const QString SHOW_DEBUG_CALIBRATED = "Debug Draw Calibrated Data";
 
 bool SixenseManager::isSupported() const {
 #ifdef HAVE_SIXENSE
@@ -71,6 +76,14 @@ void SixenseManager::activate() {
     _container->addMenuItem(PluginType::INPUT_PLUGIN, MENU_PATH, TOGGLE_SMOOTH,
                            [this] (bool clicked) { setSixenseFilter(clicked); },
                            true, true);
+
+    _container->addMenuItem(PluginType::INPUT_PLUGIN, MENU_PATH, SHOW_DEBUG_RAW,
+                            [this] (bool clicked) { _inputDevice->setDebugDrawRaw(clicked); },
+                            true, false);
+
+    _container->addMenuItem(PluginType::INPUT_PLUGIN, MENU_PATH, SHOW_DEBUG_CALIBRATED,
+                            [this] (bool clicked) { _inputDevice->setDebugDrawCalibrated(clicked); },
+                            true, false);
 
     auto userInputMapper = DependencyManager::get<controller::UserInputMapper>();
     userInputMapper->registerDevice(_inputDevice);
@@ -149,6 +162,9 @@ void SixenseManager::InputDevice::update(float deltaTime, bool jointsCaptured) {
     // we only support two controllers
     SixenseControllerData controllers[2];
 
+    // store the raw controller data for debug rendering
+    controller::Pose rawPoses[2];
+
     int numActiveControllers = 0;
     for (int i = 0; i < maxControllers && numActiveControllers < 2; i++) {
         if (!sixenseIsControllerEnabled(i)) {
@@ -175,7 +191,7 @@ void SixenseManager::InputDevice::update(float deltaTime, bool jointsCaptured) {
                 //  Rotation of Palm
                 glm::quat rotation(data->rot_quat[3], data->rot_quat[0], data->rot_quat[1], data->rot_quat[2]);
                 handlePoseEvent(deltaTime, position, rotation, left);
-                
+                rawPoses[i] = controller::Pose(position, rotation, glm::vec3(0), glm::quat());
             } else {
                 _poseStateMap.clear();
                 _collectedSamples.clear();
@@ -197,7 +213,52 @@ void SixenseManager::InputDevice::update(float deltaTime, bool jointsCaptured) {
             _axisStateMap[axisState.first] = 0.0f;
         }
     }
+
+    if (_debugDrawCalibrated) {
+        auto poseIter = _poseStateMap.find(controller::StandardPoseChannel::LEFT_HAND);
+        if (poseIter != _poseStateMap.end() && poseIter->second.isValid()) {
+            DebugDraw::getInstance().addMyAvatarMarker("SIXENSE_CALIBRATED_LEFT", poseIter->second.rotation, poseIter->second.translation, glm::vec4(1));
+        } else {
+            DebugDraw::getInstance().removeMyAvatarMarker("SIXENSE_CALIBRATED_LEFT");
+        }
+        poseIter = _poseStateMap.find(controller::StandardPoseChannel::RIGHT_HAND);
+        if (poseIter != _poseStateMap.end() && poseIter->second.isValid()) {
+            DebugDraw::getInstance().addMyAvatarMarker("SIXENSE_CALIBRATED_RIGHT", poseIter->second.rotation, poseIter->second.translation, glm::vec4(1));
+        } else {
+            DebugDraw::getInstance().removeMyAvatarMarker("SIXENSE_CALIBRATED_RIGHT");
+        }
+    }
+
+    if (_debugDrawRaw) {
+        if (rawPoses[0].isValid()) {
+            DebugDraw::getInstance().addMyAvatarMarker("SIXENSE_RAW_LEFT", rawPoses[0].rotation, rawPoses[0].translation, glm::vec4(1));
+        } else {
+            DebugDraw::getInstance().removeMyAvatarMarker("SIXENSE_RAW_LEFT");
+        }
+        if (rawPoses[1].isValid()) {
+            DebugDraw::getInstance().addMyAvatarMarker("SIXENSE_RAW_RIGHT", rawPoses[1].rotation, rawPoses[1].translation, glm::vec4(1));
+        } else {
+            DebugDraw::getInstance().removeMyAvatarMarker("SIXENSE_RAW_RIGHT");
+        }
+    }
+
 #endif  // HAVE_SIXENSE
+}
+
+void SixenseManager::InputDevice::setDebugDrawRaw(bool flag) {
+    _debugDrawRaw = flag;
+    if (!flag) {
+        DebugDraw::getInstance().removeMyAvatarMarker("SIXENSE_RAW_LEFT");
+        DebugDraw::getInstance().removeMyAvatarMarker("SIXENSE_RAW_RIGHT");
+    }
+}
+
+void SixenseManager::InputDevice::setDebugDrawCalibrated(bool flag) {
+    _debugDrawCalibrated = flag;
+    if (!flag) {
+        DebugDraw::getInstance().removeMyAvatarMarker("SIXENSE_CALIBRATED_LEFT");
+        DebugDraw::getInstance().removeMyAvatarMarker("SIXENSE_CALIBRATED_RIGHT");
+    }
 }
 
 #ifdef HAVE_SIXENSE

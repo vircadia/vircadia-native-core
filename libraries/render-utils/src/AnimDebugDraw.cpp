@@ -48,7 +48,7 @@ public:
         batch.setIndexBuffer(gpu::UINT16, _indexBuffer, 0);
 
         auto numIndices = _indexBuffer->getSize() / sizeof(uint16_t);
-        batch.drawIndexed(gpu::LINES, numIndices);
+        batch.drawIndexed(gpu::LINES, (int)numIndices);
     }
 
     gpu::PipelinePointer _pipeline;
@@ -326,7 +326,7 @@ void AnimDebugDraw::update() {
         for (auto& iter : _absolutePoses) {
             AnimSkeleton::ConstPointer& skeleton = std::get<0>(iter.second);
             numVerts += skeleton->getNumJoints() * VERTICES_PER_BONE;
-            for (int i = 0; i < skeleton->getNumJoints(); i++) {
+            for (auto i = 0; i < skeleton->getNumJoints(); i++) {
                 auto parentIndex = skeleton->getParentIndex(i);
                 if (parentIndex >= 0) {
                     numVerts += VERTICES_PER_LINK;
@@ -336,9 +336,9 @@ void AnimDebugDraw::update() {
 
         // count marker verts from shared DebugDraw singleton
         auto markerMap = DebugDraw::getInstance().getMarkerMap();
-        numVerts += markerMap.size() * VERTICES_PER_BONE;
+        numVerts += (int)markerMap.size() * VERTICES_PER_BONE;
         auto myAvatarMarkerMap = DebugDraw::getInstance().getMyAvatarMarkerMap();
-        numVerts += myAvatarMarkerMap.size() * VERTICES_PER_BONE;
+        numVerts += (int)myAvatarMarkerMap.size() * VERTICES_PER_BONE;
 
         // allocate verts!
         data._vertexBuffer->resize(sizeof(Vertex) * numVerts);

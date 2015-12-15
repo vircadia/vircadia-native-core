@@ -93,28 +93,28 @@ void GeometryCache::ShapeData::setupBatch(gpu::Batch& batch) const {
 void GeometryCache::ShapeData::draw(gpu::Batch& batch) const {
     if (_indexCount) {
         setupBatch(batch);
-        batch.drawIndexed(gpu::TRIANGLES, _indexCount, _indexOffset);
+        batch.drawIndexed(gpu::TRIANGLES, (gpu::uint32)_indexCount, (gpu::uint32)_indexOffset);
     }
 }
 
 void GeometryCache::ShapeData::drawWire(gpu::Batch& batch) const {
     if (_wireIndexCount) {
         setupBatch(batch);
-        batch.drawIndexed(gpu::LINES, _wireIndexCount, _wireIndexOffset);
+        batch.drawIndexed(gpu::LINES, (gpu::uint32)_wireIndexCount, (gpu::uint32)_wireIndexOffset);
     }
 }
 
 void GeometryCache::ShapeData::drawInstances(gpu::Batch& batch, size_t count) const {
     if (_indexCount) {
         setupBatch(batch);
-        batch.drawIndexedInstanced(count, gpu::TRIANGLES, _indexCount, _indexOffset);
+        batch.drawIndexedInstanced((gpu::uint32)count, gpu::TRIANGLES, (gpu::uint32)_indexCount, (gpu::uint32)_indexOffset);
     }
 }
 
 void GeometryCache::ShapeData::drawWireInstances(gpu::Batch& batch, size_t count) const {
     if (_wireIndexCount) {
         setupBatch(batch);
-        batch.drawIndexedInstanced(count, gpu::LINES, _wireIndexCount, _wireIndexOffset);
+        batch.drawIndexedInstanced((gpu::uint32)count, gpu::LINES, (gpu::uint32)_wireIndexCount, (gpu::uint32)_wireIndexOffset);
     }
 }
 
@@ -214,6 +214,19 @@ VertexVector tesselate(const VertexVector& startingTriangles, int count) {
     return triangles;
 }
 
+size_t GeometryCache::getShapeTriangleCount(Shape shape) {
+    return _shapes[shape]._indexCount / VERTICES_PER_TRIANGLE;
+}
+
+size_t GeometryCache::getSphereTriangleCount() {
+    return getShapeTriangleCount(Sphere);
+}
+
+size_t GeometryCache::getCubeTriangleCount() {
+    return getShapeTriangleCount(Cube);
+}
+
+
 // FIXME solids need per-face vertices, but smooth shaded
 // components do not.  Find a way to support using draw elements
 // or draw arrays as appropriate
@@ -222,7 +235,7 @@ VertexVector tesselate(const VertexVector& startingTriangles, int count) {
 void GeometryCache::buildShapes() {
     auto vertexBuffer = std::make_shared<gpu::Buffer>();
     auto indexBuffer = std::make_shared<gpu::Buffer>();
-    uint16_t startingIndex = 0;
+    size_t startingIndex = 0;
     
     // Cube 
     startingIndex = _shapeVertices->getSize() / SHAPE_VERTEX_STRIDE;
@@ -311,7 +324,7 @@ void GeometryCache::buildShapes() {
             20, 21, 22, 22, 23, 20  // back
         };
         for (auto& index : indices) {
-            index += startingIndex;
+            index += (uint16_t)startingIndex;
         }
 
         IndexVector wireIndices{
@@ -321,7 +334,7 @@ void GeometryCache::buildShapes() {
         };
 
         for (size_t i = 0; i < wireIndices.size(); ++i) {
-            indices[i] += startingIndex;
+            indices[i] += (uint16_t)startingIndex;
         }
 
         shapeData.setupIndices(_shapeIndices, indices, wireIndices);
@@ -362,7 +375,7 @@ void GeometryCache::buildShapes() {
             for (size_t j = 0; j < VERTICES_PER_TRIANGLE; ++j) {
                 auto triangleVertexIndex = j;
                 auto vertexIndex = triangleStartIndex + triangleVertexIndex;
-                indices.push_back(vertexIndex + startingIndex);
+                indices.push_back((uint16_t)(vertexIndex + startingIndex));
             }
         }
 
@@ -372,7 +385,7 @@ void GeometryCache::buildShapes() {
         };
 
         for (size_t i = 0; i < wireIndices.size(); ++i) {
-            wireIndices[i] += startingIndex;
+            wireIndices[i] += (uint16_t)startingIndex;
         }
 
         shapeData.setupIndices(_shapeIndices, indices, wireIndices);
@@ -398,7 +411,7 @@ void GeometryCache::buildShapes() {
                     // Spheres use the same values for vertices and normals
                     vertices.push_back(vertex);
                     vertices.push_back(vertex);
-                    indices.push_back(vertexIndex + startingIndex);
+                    indices.push_back((uint16_t)(vertexIndex + startingIndex));
                 }
             }
         }
@@ -432,7 +445,7 @@ void GeometryCache::buildShapes() {
                     auto vertexIndex = triangleStartIndex + triangleVertexIndex;
                     vertices.push_back(glm::normalize(originalVertices[vertexIndex]));
                     vertices.push_back(faceNormal);
-                    indices.push_back(vertexIndex + startingIndex);
+                    indices.push_back((uint16_t)(vertexIndex + startingIndex));
                 }
             }
         }
@@ -452,8 +465,8 @@ void GeometryCache::buildShapes() {
         });
         IndexVector wireIndices;
         // Only two indices
-        wireIndices.push_back(0 + startingIndex);
-        wireIndices.push_back(1 + startingIndex);
+        wireIndices.push_back(0 + (uint16_t)startingIndex);
+        wireIndices.push_back(1 + (uint16_t)startingIndex);
 
         shapeData.setupIndices(_shapeIndices, IndexVector(), wireIndices);
     }
@@ -1727,3 +1740,4 @@ void GeometryCache::useSimpleDrawPipeline(gpu::Batch& batch, bool noBlend) {
         batch.setPipeline(_standardDrawPipeline);
     }
 }
+
