@@ -1,5 +1,11 @@
 (function() {
 
+    var AXIS_SCALE = 1;
+    var COLOR_MAX = 255;
+    var INTENSITY_MAX = 10;
+    var CUTOFF_MAX = 360;
+    var EXPONENT_MAX = 1;
+
     function Box() {
         return this;
     }
@@ -7,6 +13,8 @@
     Box.prototype = {
         preload: function(entityID) {
             this.entityID = entityID;
+            var userData = Entities.getEntityProperties(this.entityID, "userData");
+            this.userData = JSON.parse(userData);
         },
         startNearGrab: function() {
             this.setInitialProperties();
@@ -31,7 +39,8 @@
         continueDistantGrab: function() {
             var currentPosition = this.getClampedPosition();
             var distance = Vec3.distance(this.initialProperties.position, currentPosition);
-            this.sliderValue = scaleValueBasedOnDistanceFromStart(distance);
+            if ()
+                this.sliderValue = scaleValueBasedOnDistanceFromStart(distance);
 
             Entities.editEntity(this.entityID) {
                 position: currentPosition,
@@ -49,16 +58,17 @@
 
             this.sendValueToSlider();
         },
-        scaleValueBasedOnDistanceFromStart: function(value, min1, max1, min2, max2) {
+        scaleValueBasedOnDistanceFromStart: function(value, max2) {
             var min1 = 0;
             var max1 = 1;
             var min2 = 0;
-            var max2 = 255;
+            var max2 = max2;
             return min2 + (max2 - min2) * ((value - min1) / (max1 - min1));
         },
         sendValueToSlider: function() {
             var message = {
-                boxID: this.entityID,
+                lightID:userData.lightID,
+                sliderType:userData.sliderType,
                 sliderValue: this.sliderValue
             }
             Messages.sendMessage('Hifi-Slider-Value-Reciever', JSON.stringify(message));

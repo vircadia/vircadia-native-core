@@ -12,7 +12,7 @@
 
     var basePosition, avatarRot;
     avatarRot = Quat.fromPitchYawRollDegrees(0, MyAvatar.bodyYaw, 0.0);
-    basePosition = Vec3.sum(MyAvatar.position, Vec3.multiply(SPAWN_RANGE * 3, Quat.getFront(avatarRot)));
+    basePosition = Vec3.sum(MyAvatar.position, Vec3.multiply(-3, Quat.getUp(avatarRot)));
 
     var ground = Entities.addEntity({
       type: "Model",
@@ -28,11 +28,14 @@
 
     var light, block;
 
-    basePosition.y += 2;
+    // basePosition.y += 2;
 
     function createLight() {
+      print('making light' + block)
+      var blockProperties = Entities.getEntityProperties(block, ["position", "rotation"]);
+      var lightTransform = evalLightWorldTransform(blockProperties.position, blockProperties.rotation);
       var lightProperties = {
-        name: 'Hifi-Spotlight'
+        name: 'Hifi-Spotlight',
         type: "Light",
         isSpotlight: true,
         dimensions: {
@@ -40,33 +43,40 @@
           y: 2,
           z: 20
         },
-        parentID: box,
+        parentID: block,
         color: {
           red: 255,
-          green: 255,
+          green: 0,
           blue: 255
         },
         intensity: 2,
         exponent: 0.3,
         cutoff: 20,
-        lifetime: LIFETIME,
+        lifetime: -1,
         position: lightTransform.p,
-        rotation: lightTransform.q,
-      }
+        rotation: lightTransform.q
+      };
+
       light = Entities.addEntity(lightProperties);
 
       var message = {
         light: {
           id: light,
           type: 'spotlight',
-          initialProperties:lightProperties
+          initialProperties: lightProperties
         }
       };
+
       Messages.sendMessage('Hifi-Light-Mod-Receiver', JSON.stringify(message));
+      print('SENT MESSAGE')
 
     }
 
     function createBlock() {
+      print('making block');
+
+      var position = basePosition;
+      position.y += 5;
       var blockProperties = {
         name: 'Hifi-Spotlight-Block',
         type: 'Box',
@@ -76,16 +86,15 @@
           z: 1
         },
         collisionsWillMove: true,
-        shapeType: 'Box',
         color: {
           red: 0,
-          green: 0
+          green: 0,
           blue: 255
         },
-        position: basePosition
+        position: position
       }
 
-      block = Entities.addEntity(block);
+      block = Entities.addEntity(blockProperties);
     }
 
     function evalLightWorldTransform(modelPos, modelRot) {
@@ -96,9 +105,12 @@
     }
 
     function cleanup() {
+      Entities.deleteEntity(block);
       Entities.deleteEntity(ground);
       Entities.deleteEntity(light);
     }
+
+    Script.scriptEnding.connect(cleanup);
 
     createBlock();
     createLight();
