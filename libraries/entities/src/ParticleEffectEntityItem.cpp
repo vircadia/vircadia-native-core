@@ -33,6 +33,8 @@
 #include <ByteCountCoding.h>
 #include <GeometryUtil.h>
 #include <Interpolate.h>
+#include <random>
+#include <cmath>
 
 #include "EntityTree.h"
 #include "EntityTreeElement.h"
@@ -640,12 +642,18 @@ void ParticleEffectEntityItem::stepSimulation(float deltaTime) {
 ParticleEffectEntityItem::Particle ParticleEffectEntityItem::createParticle() {
     Particle particle;
     
-    particle.seed = randFloatInRange(0.0f, 1.0f);
-    
+    std::random_device rd;
+
+    std::mt19937_64 el(rd());
+    std::uniform_real_distribution<float> uniform_dist(-1.0, 1.0);
+ 
+    particle.seed = randFloatInRange(-1.0f, 1.0f);
+    particle.position = getPosition();
     // Position, velocity, and acceleration
     if (_polarStart == 0.0f && _polarFinish == 0.0f && _emitDimensions.z == 0.0f) {
         // Emit along z-axis from position
-        particle.velocity = (_emitSpeed + randFloatInRange(-1.0f, 1.0f) * _speedSpread) * (_emitOrientation * Vectors::UNIT_Z);
+
+        particle.velocity = (_emitSpeed + 0.2f * _speedSpread) * (_emitOrientation * Vectors::UNIT_Z);
         particle.acceleration = _emitAcceleration + randFloatInRange(-1.0f, 1.0f) * _accelerationSpread;
         
     } else {
@@ -691,10 +699,11 @@ ParticleEffectEntityItem::Particle ParticleEffectEntityItem::createParticle() {
                 radii.z > 0.0f ? z / (radii.z * radii.z) : 0.0f
             ));
             
-            particle.position = _emitOrientation * emitPosition;
+            particle.position += _emitOrientation * emitPosition;
         }
         
         particle.velocity = (_emitSpeed + randFloatInRange(-1.0f, 1.0f) * _speedSpread) * (_emitOrientation * emitDirection);
+       // particle.velocity = (_emitSpeed + uniform_dist(el) * _speedSpread) * (_emitOrientation * emitDirection);
         particle.acceleration = _emitAcceleration + randFloatInRange(-1.0f, 1.0f) * _accelerationSpread;
     }
     

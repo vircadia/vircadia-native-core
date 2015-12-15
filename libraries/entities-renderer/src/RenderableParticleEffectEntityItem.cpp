@@ -240,8 +240,8 @@ void RenderableParticleEffectEntityItem::updateRenderItem() {
     auto position = getPosition();
     auto rotation = getRotation();
     Transform transform;
-    transform.setTranslation(position);
-    transform.setRotation(rotation);
+   //transform.setTranslation(position);
+  // transform.setRotation(rotation);
 
     render::PendingChanges pendingChanges;
     pendingChanges.updateItem<ParticlePayloadData>(_renderItemId, [=](ParticlePayloadData& payload) {
