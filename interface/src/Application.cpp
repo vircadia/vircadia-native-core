@@ -664,7 +664,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
     auto userInputMapper = DependencyManager::get<UserInputMapper>();
     connect(userInputMapper.data(), &UserInputMapper::actionEvent, [this](int action, float state) {
         if (action == controller::toInt(controller::Action::RETICLE_CLICK)) {
-            auto globalPos = getReticlePosition();
+            auto globalPos = QCursor::pos();
             auto localPos = _glWidget->mapFromGlobal(globalPos);
             if (state) {
                 QMouseEvent mousePress(QEvent::MouseButtonPress, localPos, Qt::LeftButton, Qt::LeftButton, Qt::NoModifier);
@@ -686,13 +686,13 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
             } else if (action == controller::toInt(controller::Action::CONTEXT_MENU)) {
                 VrMenu::toggle(); // show context menu even on non-stereo displays
             } else if (action == controller::toInt(controller::Action::RETICLE_X)) {
-                auto reticlePos = getReticlePosition();
-                reticlePos.setX(reticlePos.x() + state);
-                setReticlePosition(reticlePos);
+                auto globalPos = QCursor::pos();
+                globalPos.setX(globalPos.x() + state);
+                QCursor::setPos(globalPos);
             } else if (action == controller::toInt(controller::Action::RETICLE_Y)) {
-                auto reticlePos = getReticlePosition();
-                reticlePos.setY(reticlePos.y() + state);
-                setReticlePosition(reticlePos);
+                auto globalPos = QCursor::pos();
+                globalPos.setY(globalPos.y() + state);
+                QCursor::setPos(globalPos);
             }
         }
     });
@@ -4751,14 +4751,6 @@ PickRay Application::computePickRay() const {
 
 bool Application::isThrottleRendering() const {
     return getActiveDisplayPlugin()->isThrottled();
-}
-
-QPoint Application::getReticlePosition() const {
-    return QCursor::pos();
-}
-
-void Application::setReticlePosition(QPoint position) {
-    QCursor::setPos(position);
 }
 
 ivec2 Application::getTrueMouse() const {

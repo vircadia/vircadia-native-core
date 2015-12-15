@@ -143,9 +143,6 @@ public:
     EntityTreeRenderer* getEntityClipboardRenderer() { return &_entityClipboardRenderer; }
     EntityEditPacketSender* getEntityEditPacketSender() { return &_entityEditSender; }
 
-    QPoint getReticlePosition() const;
-    void setReticlePosition(QPoint position);
-
     ivec2 getMouse() const;
     ivec2 getTrueMouse() const;
 
