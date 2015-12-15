@@ -13,8 +13,9 @@
     Box.prototype = {
         preload: function(entityID) {
             this.entityID = entityID;
-            var userData = Entities.getEntityProperties(this.entityID, "userData");
-            this.userData = JSON.parse(userData);
+            var entityProperties = Entities.getEntityProperties(this.entityID, "userData");
+            var parsedUserData = JSON.parse(entityProperties.userData);
+            var userData = parsedUserData.lightModifierKey;
         },
         startNearGrab: function() {
             this.setInitialProperties();
@@ -26,10 +27,10 @@
             this.initialProperties = Entities.getEntityProperties(this.entityID);
         },
         getClampedPosition: function() {
-
-            dPosition = Vec3.subtract(MyAvatar.position, this.previousPosition);
+            var dPosition;
+           // dPosition = Vec3.subtract(MyAvatar.position, this.previousPosition);
             //convert to localFrame
-            dPosition = Vec3.multiplyQbyV(Quat.inverse(MyAvatar.orientation), dPosition);
+          //  dPosition = Vec3.multiplyQbyV(Quat.inverse(MyAvatar.orientation), dPosition);
 
             return dPosition;
         },
@@ -52,12 +53,12 @@
             }
             if (userData.sliderType === 'exponent') {
                 this.sliderValue = scaleValueBasedOnDistanceFromStart(distance, EXPONENT_MAX);
-            }
+            };
 
-            Entities.editEntity(this.entityID) {
+            Entities.editEntity(this.entityID, {
                 position: currentPosition,
-                rotation: this.getClampedRotation()
-            }
+                // rotation: this.getClampedRotation()
+            });
         },
         releaseGrab: function() {
             Entities.editEntity(this.entityID, {
@@ -84,8 +85,7 @@
                 sliderValue: this.sliderValue
             }
             Messages.sendMessage('Hifi-Slider-Value-Reciever', JSON.stringify(message));
-        };
-
+        }
     };
 
     return new Box();

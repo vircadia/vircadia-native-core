@@ -115,6 +115,7 @@ entitySlider.prototype = {
         var endOfAxis;
         var properties = {
             type: 'Line',
+            name: 'Hifi-Slider-Axis::'+this.sliderType,
             color: this.color,
             collisionsWillMove: false,
             ignoreForCollisions: true,
@@ -135,6 +136,7 @@ entitySlider.prototype = {
         this.axis = Entities.addEntity(properties);
     },
     createBoxIndicator: function() {
+        print('BOX COLOR IS:::'+JSON.stringify(this.color));
         var position = Vec3.sum(this.basePosition, this.verticalOffset);
 
         //line starts on left and goes to right
@@ -163,6 +165,7 @@ entitySlider.prototype = {
         var endOfAxis = Vec3.sum(position, extension);
         var properties = {
             type: 'Box',
+            name: 'Hifi-Slider::'+this.sliderType,
             dimensions: BOX_DIMENSIONS,
             color: this.color,
             position: endOfAxis,
