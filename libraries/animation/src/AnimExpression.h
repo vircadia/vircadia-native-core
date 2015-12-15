@@ -27,6 +27,7 @@ protected:
         enum Type {
             End = 0,
             Identifier,
+            Bool,
             Int,
             Float,
             And,
@@ -50,8 +51,9 @@ protected:
         };
         Token(Type type) : type {type} {}
         Token(const QStringRef& strRef) : type {Type::Identifier}, strVal {strRef.toString()} {}
-        Token(int val) : type {Type::Int}, intVal {val} {}
-        Token(float val) : type {Type::Float}, floatVal {val} {}
+        explicit Token(int val) : type {Type::Int}, intVal {val} {}
+        explicit Token(bool val) : type {Type::Bool}, intVal {val} {}
+        explicit Token(float val) : type {Type::Float}, floatVal {val} {}
         Type type {End};
         QString strVal;
         int intVal {0};
@@ -81,11 +83,11 @@ protected:
             UnaryMinus
         };
         OpCode(Type type) : type {type} {}
-        OpCode(const QStringRef& strRef) : type {Type::Identifier}, strVal {strRef.toString()} {}
-        OpCode(const QString& str) : type {Type::Identifier}, strVal {str} {}
-        OpCode(int val) : type {Type::Int}, intVal {val} {}
-        OpCode(bool val) : type {Type::Bool}, intVal {(int)val} {}
-        OpCode(float val) : type {Type::Float}, floatVal {val} {}
+        explicit OpCode(const QStringRef& strRef) : type {Type::Identifier}, strVal {strRef.toString()} {}
+        explicit OpCode(const QString& str) : type {Type::Identifier}, strVal {str} {}
+        explicit OpCode(int val) : type {Type::Int}, intVal {val} {}
+        explicit OpCode(bool val) : type {Type::Bool}, intVal {(int)val} {}
+        explicit OpCode(float val) : type {Type::Float}, floatVal {val} {}
 
         bool coerceBool(const AnimVariantMap& map) const {
             if (type == Int || type == Bool) {

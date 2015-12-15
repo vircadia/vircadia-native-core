@@ -78,7 +78,15 @@ AnimExpression::Token AnimExpression::consumeIdentifier(const QString& str, QStr
     }
     int pos = (int)(begin - str.begin());
     int len = (int)(iter - begin);
-    return Token(QStringRef(const_cast<const QString*>(&str), pos, len));
+
+    QStringRef stringRef(const_cast<const QString*>(&str), pos, len);
+    if (stringRef == "true") {
+        return Token(true);
+    } else if (stringRef == "false") {
+        return Token(false);
+    } else {
+        return Token(stringRef);
+    }
 }
 
 // TODO: not very efficient or accruate, but it's close enough for now.
@@ -198,19 +206,19 @@ AnimExpression::Token AnimExpression::consumeNot(const QString& str, QString::co
 
 /*
 Expr   → Term Expr'
-Expr'  → + Term Expr'
-       | – Term Expr'
+Expr'  → '||' Term Expr'
        | ε
 Term   → Factor Term'
-Term'  → * Term'
-       | / Term'
+Term'  → '&&' Term'
        | ε
 Factor → INT
+       | BOOL
        | FLOAT
        | IDENTIFIER
-       | (Expr)
+       | '(' Expr ')'
 */
 
+// Expr → Term Expr'
 bool AnimExpression::parseExpr(const QString& str, QString::const_iterator& iter) {
     if (!parseTerm(str, iter)) {
         return false;
@@ -221,9 +229,10 @@ bool AnimExpression::parseExpr(const QString& str, QString::const_iterator& iter
     return true;
 }
 
+// Expr' → '||' Term Expr' | ε
 bool AnimExpression::parseExprPrime(const QString& str, QString::const_iterator& iter) {
     auto token = consumeToken(str, iter);
-    if (token.type == Token::Plus) {
+    if (token.type == Token::Or) {
         if (!parseTerm(str, iter)) {
             unconsumeToken(token);
             return false;
@@ -232,18 +241,7 @@ bool AnimExpression::parseExprPrime(const QString& str, QString::const_iterator&
             unconsumeToken(token);
             return false;
         }
-        _opCodes.push_back(OpCode {OpCode::Add});
-        return true;
-    } else if (token.type == Token::Minus) {
-        if (!parseTerm(str, iter)) {
-            unconsumeToken(token);
-            return false;
-        }
-        if (!parseExprPrime(str, iter)) {
-            unconsumeToken(token);
-            return false;
-        }
-        _opCodes.push_back(OpCode {OpCode::Subtract});
+        _opCodes.push_back(OpCode {OpCode::Or});
         return true;
     } else {
         unconsumeToken(token);
@@ -251,6 +249,7 @@ bool AnimExpression::parseExprPrime(const QString& str, QString::const_iterator&
     }
 }
 
+// Term → Factor Term'
 bool AnimExpression::parseTerm(const QString& str, QString::const_iterator& iter) {
     if (!parseFactor(str, iter)) {
         return false;
@@ -261,9 +260,10 @@ bool AnimExpression::parseTerm(const QString& str, QString::const_iterator& iter
     return true;
 }
 
+// Term'  → '&&' Term' | ε
 bool AnimExpression::parseTermPrime(const QString& str, QString::const_iterator& iter) {
     auto token = consumeToken(str, iter);
-    if (token.type == Token::Multiply) {
+    if (token.type == Token::And) {
         if (!parseTerm(str, iter)) {
             unconsumeToken(token);
             return false;
@@ -272,18 +272,7 @@ bool AnimExpression::parseTermPrime(const QString& str, QString::const_iterator&
             unconsumeToken(token);
             return false;
         }
-        _opCodes.push_back(OpCode {OpCode::Multiply});
-        return true;
-    } else if (token.type == Token::Divide) {
-        if (!parseTerm(str, iter)) {
-            unconsumeToken(token);
-            return false;
-        }
-        if (!parseTermPrime(str, iter)) {
-            unconsumeToken(token);
-            return false;
-        }
-        _opCodes.push_back(OpCode {OpCode::Divide});
+        _opCodes.push_back(OpCode {OpCode::And});
         return true;
     } else {
         unconsumeToken(token);
@@ -291,10 +280,14 @@ bool AnimExpression::parseTermPrime(const QString& str, QString::const_iterator&
     }
 }
 
+// Factor → INT | BOOL | FLOAT | IDENTIFIER | '(' Expr ')'
 bool AnimExpression::parseFactor(const QString& str, QString::const_iterator& iter) {
     auto token = consumeToken(str, iter);
     if (token.type == Token::Int) {
         _opCodes.push_back(OpCode {token.intVal});
+        return true;
+    } else if (token.type == Token::Bool) {
+        _opCodes.push_back(OpCode {(bool)token.intVal});
         return true;
     } else if (token.type == Token::Float) {
         _opCodes.push_back(OpCode {token.floatVal});
@@ -351,7 +344,7 @@ AnimExpression::OpCode AnimExpression::evaluate(const AnimVariantMap& map) const
         case OpCode::UnaryMinus: evalUnaryMinus(map, stack); break;
         }
     }
-    return stack.top();
+    return coerseToValue(map, stack.top());
 }
 
 #define POP_BOOL(NAME)                           \
@@ -602,8 +595,7 @@ AnimExpression::OpCode AnimExpression::coerseToValue(const AnimVariantMap& map, 
             const AnimVariant& var = map.get(opCode.strVal);
             switch (var.getType()) {
             case AnimVariant::Type::Bool:
-                qCWarning(animation) << "AnimExpression: type missmatch, expected a number not a bool";
-                return OpCode(0);
+                return OpCode((bool)var.getBool());
                 break;
             case AnimVariant::Type::Int:
                 return OpCode(var.getInt());
@@ -631,6 +623,7 @@ AnimExpression::OpCode AnimExpression::coerseToValue(const AnimVariantMap& map, 
     }
 }
 
+#ifndef NDEBUG
 void AnimExpression::dumpOpCodes() const {
     QString tmp;
     for (auto& op : _opCodes) {
@@ -660,3 +653,4 @@ void AnimExpression::dumpOpCodes() const {
     qCDebug(animation).nospace().noquote() << "opCodes =" << tmp;
     qCDebug(animation).resetFormat();
 }
+#endif
