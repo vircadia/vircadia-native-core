@@ -28,7 +28,6 @@
 #include "OctreeQueryNode.h"
 #include "OctreeServerConsts.h"
 
-OctreeServer* OctreeServer::_instance = NULL;
 int OctreeServer::_clientCount = 0;
 const int MOVING_AVERAGE_SAMPLE_COUNTS = 1000000;
 
@@ -232,13 +231,6 @@ OctreeServer::OctreeServer(ReceivedMessage& message) :
     _started(time(0)),
     _startedUSecs(usecTimestampNow())
 {
-    if (_instance) {
-        qDebug() << "Octree Server starting... while old instance still running _instance=["<<_instance<<"] this=[" << this << "]";
-    }
-
-    qDebug() << "Octree Server starting... setting _instance to=[" << this << "]";
-    _instance = this;
-
     _averageLoopTime.updateAverage(0);
     qDebug() << "Octree server starting... [" << this << "]";
 
@@ -282,9 +274,6 @@ OctreeServer::~OctreeServer() {
     _tree.reset();
     qDebug() << qPrintable(_safeServerName) << "server DONE cleaning up octree... [" << this << "]";
 
-    if (_instance == this) {
-        _instance = NULL; // we are gone
-    }
     qDebug() << qPrintable(_safeServerName) << "server DONE shutting down... [" << this << "]";
 }
 
@@ -1118,8 +1107,8 @@ void OctreeServer::domainSettingsRequestComplete() {
     setvbuf(stdout, NULL, _IOLBF, 0);
 #endif
     
-    nodeList->linkedDataCreateCallback = [] (Node* node) {
-        auto queryNodeData = _instance->createOctreeQueryNode();
+    nodeList->linkedDataCreateCallback = [this](Node* node) {
+        auto queryNodeData = createOctreeQueryNode();
         queryNodeData->init();
         node->setLinkedData(std::move(queryNodeData));
     };

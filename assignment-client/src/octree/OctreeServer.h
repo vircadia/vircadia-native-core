@@ -187,8 +187,6 @@ protected:
     int _backupInterval;
     int _maxBackupVersions;
 
-    static OctreeServer* _instance;
-
     time_t _started;
     quint64 _startedUSecs;
     QString _safeServerName;
