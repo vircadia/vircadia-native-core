@@ -15,6 +15,7 @@
     basePosition = Vec3.sum(MyAvatar.position, Vec3.multiply(-3, Quat.getUp(avatarRot)));
 
     var ground = Entities.addEntity({
+      name:'Hifi-Light-Mod-Floor',
       type: "Model",
       modelURL: "https://hifi-public.s3.amazonaws.com/eric/models/woodFloor.fbx",
       dimensions: {

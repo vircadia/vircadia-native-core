@@ -816,6 +816,19 @@ function MyController(hand) {
 
         Entities.callEntityMethod(this.grabbedEntity, "continueDistantGrab");
 
+        var defaultConstrainData = {
+                    axisBasePosition:false,
+                    endOfAxis: false,
+        }
+
+        var constraintData = getEntityCustomData('lightModifierKey', this.grabbedEntity, defaultConstrainData);
+
+        // var constrainX = constraintData.constrain.x;
+        // var constrainY = constraintData.constrain.y;
+        // var constrainZ = constraintData.constrain.z;
+
+        // print('constrainY'+constrainY);
+
         // mix in head motion
         if (MOVE_WITH_HEAD) {
             var objDistance = Vec3.length(objectToAvatar);
@@ -826,8 +839,21 @@ function MyController(hand) {
             this.currentObjectPosition = Vec3.sum(this.currentObjectPosition, change);
         }
 
+        var clampedVector;
+        var targetPosition;
+        if (constraintData.axisBasePosition !== false) {
+            clampedVector = this.projectVectorAlongAxis(this.currentObjectPosition, constraintData.axisBasePosition, constraintData.endOfAxis);
+            targetPosition = clampedVector;
+        } else {
+            targetPosition = {
+                x: this.currentObjectPosition.x,
+                y: this.currentObjectPosition.y,
+                z: this.currentObjectPosition.z
+            }
+        }
+
         Entities.updateAction(this.grabbedEntity, this.actionID, {
-            targetPosition: this.currentObjectPosition,
+            targetPosition: targetPosition,
             linearTimeScale: DISTANCE_HOLDING_ACTION_TIMEFRAME,
             targetRotation: this.currentObjectRotation,
             angularTimeScale: DISTANCE_HOLDING_ACTION_TIMEFRAME,
@@ -835,6 +861,34 @@ function MyController(hand) {
         });
         this.actionTimeout = now + (ACTION_TTL * MSEC_PER_SEC);
     };
+
+    this.projectVectorAlongAxis = function(position, axisStart, axisEnd) {
+
+        var aPrime = Vec3.subtract(position, axisStart);
+
+        var bPrime = Vec3.subtract(axisEnd, axisStart);
+
+        var bPrimeMagnitude = Vec3.length(bPrime);
+
+        var dotProduct = Vec3.dot(aPrime, bPrime);
+
+        var scalar = dotProduct / bPrimeMagnitude;
+
+        print('SCALAR:::'+scalar);
+
+        if(scalar<0){
+            scalar = 0;
+        }
+
+        if(scalar>1){
+            scalar = 1;
+        }
+
+        var projection = Vec3.sum(axisStart, Vec3.multiply(scalar, Vec3.normalize(bPrime)));
+
+        return projection
+
+    },
 
     this.nearGrabbing = function() {
         var now = Date.now();

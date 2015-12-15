@@ -14,51 +14,64 @@
         preload: function(entityID) {
             this.entityID = entityID;
             var entityProperties = Entities.getEntityProperties(this.entityID, "userData");
+            print('USER DATA:::' + entityProperties.userData)
             var parsedUserData = JSON.parse(entityProperties.userData);
-            var userData = parsedUserData.lightModifierKey;
+            this.userData = parsedUserData.lightModifierKey;
+            this.bPrime = Vec3.subtract(this.userData.endOfAxis, this.userData.axisBasePosition);
+            this.bPrimeMagnitude = Vec3.length(this.bPrime);
+
         },
         startNearGrab: function() {
             this.setInitialProperties();
         },
         startDistantGrab: function() {
+            // Entities.editEntity(this.entityID, {
+            //     parentID: MyAvatar.sessionUUID,
+            //     parentJointIndex: MyAvatar.getJointIndex("LeftHand")
+            // });
             this.setInitialProperties();
         },
         setInitialProperties: function() {
             this.initialProperties = Entities.getEntityProperties(this.entityID);
         },
-        getClampedPosition: function() {
-            var dPosition;
-           // dPosition = Vec3.subtract(MyAvatar.position, this.previousPosition);
-            //convert to localFrame
-          //  dPosition = Vec3.multiplyQbyV(Quat.inverse(MyAvatar.orientation), dPosition);
+        clampPosition: function() {
 
-            return dPosition;
-        },
-        getClampedRotation: function() {
-            var rotation = initialProperties.rotation;
-            return rotation;
+            var currentProperties = Entities.getEntityProperties(this.entityID);
+
+            var aPrime = Vec3.subtract(this.userData.axisBasePosition, currentProperties.position);
+
+            var dotProduct = Vec3.dot(aPrime, this.bPrime);
+
+            var scalar = dotProduct / this.bPrimeMagnitude;
+
+            print('SCALAR:::' + scalar);
+
+            var projection = Vec3.sum(this.userData.axisBasePosition, Vec3.multiply(scalar, Vec3.normalize(this.bPrime)));
+
+            this.currentProjection = projection;
+
         },
         continueDistantGrab: function() {
-            var currentPosition = this.getClampedPosition();
-            var distance = Vec3.distance(this.initialProperties.position, currentPosition);
+            //     this.clampPosition();
+            print('distant grab')
+            var currentPosition = Entities.getEntityProperties(this.entityID, "position").position;
 
-            if (userData.sliderType === 'color_red' || userData.sliderType === 'color_green' || userData.sliderType === 'color_blue') {
-                this.sliderValue = scaleValueBasedOnDistanceFromStart(distance, COLOR_MAX);
+            var distance = Vec3.distance(this.axisBasePosition, this.currentProjection);
+
+            if (this.userData.sliderType === 'color_red' || this.userData.sliderType === 'color_green' || this.userData.sliderType === 'color_blue') {
+                this.sliderValue = this.scaleValueBasedOnDistanceFromStart(distance, COLOR_MAX);
             }
-            if (userData.sliderType === 'intensity') {
-                this.sliderValue = scaleValueBasedOnDistanceFromStart(distance, INTENSITY_MAX);
+            if (this.userData.sliderType === 'intensity') {
+                this.sliderValue = this.scaleValueBasedOnDistanceFromStart(distance, INTENSITY_MAX);
             }
-            if (userData.sliderType === 'cutoff') {
-                this.sliderValue = scaleValueBasedOnDistanceFromStart(distance, CUTOFF_MAX);
+            if (this.userData.sliderType === 'cutoff') {
+                this.sliderValue = this.scaleValueBasedOnDistanceFromStart(distance, CUTOFF_MAX);
             }
-            if (userData.sliderType === 'exponent') {
-                this.sliderValue = scaleValueBasedOnDistanceFromStart(distance, EXPONENT_MAX);
+            if (this.userData.sliderType === 'exponent') {
+                this.sliderValue = this.scaleValueBasedOnDistanceFromStart(distance, EXPONENT_MAX);
             };
 
-            Entities.editEntity(this.entityID, {
-                position: currentPosition,
-                // rotation: this.getClampedRotation()
-            });
+
         },
         releaseGrab: function() {
             Entities.editEntity(this.entityID, {
@@ -66,7 +79,8 @@
                     x: 0,
                     y: 0,
                     z: 0
-                }
+                },
+                parentID: null
             })
 
             this.sendValueToSlider();
@@ -79,10 +93,11 @@
             return min2 + (max2 - min2) * ((value - min1) / (max1 - min1));
         },
         sendValueToSlider: function() {
+            var _t = this;
             var message = {
-                lightID: userData.lightID,
-                sliderType: userData.sliderType,
-                sliderValue: this.sliderValue
+                lightID: _t.userData.lightID,
+                sliderType: _t.userData.sliderType,
+                sliderValue: _t.sliderValue
             }
             Messages.sendMessage('Hifi-Slider-Value-Reciever', JSON.stringify(message));
         }

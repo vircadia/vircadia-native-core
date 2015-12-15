@@ -3,36 +3,36 @@
 
 
 
-var BOX_SCRIPT_URL = Script.resolvePath('box.js');
+var BOX_SCRIPT_URL = Script.resolvePath('box.js?'+Math.random(0,100));
 
 var RED = {
-    r: 255,
-    g: 0,
-    b: 0
+    red: 255,
+    green: 0,
+    blue: 0
 };
 
 var GREEN = {
-    r: 0,
-    g: 255,
-    b: 0
+    red: 0,
+    green: 255,
+    blue: 0
 };
 
 var BLUE = {
-    r: 0,
-    g: 0,
-    b: 255
+    red: 0,
+    green: 0,
+    blue: 255
 };
 
 var PURPLE = {
-    r: 255,
-    g: 0,
-    b: 255
+    red: 255,
+    green: 0,
+    blue: 255
 };
 
 var WHITE = {
-    r: 255,
-    g: 255,
-    b: 255
+    red: 255,
+    green: 255,
+    blue: 255
 };
 
 var AXIS_SCALE = 1;
@@ -44,7 +44,7 @@ var BOX_DIMENSIONS = {
 };
 var PER_ROW_OFFSET = {
     x: 0,
-    y: 0.2,
+    y: -0.2,
     z: 0
 };
 
@@ -55,6 +55,7 @@ function entitySlider(light, color, sliderType, row) {
     this.color = color;
     this.sliderType = sliderType;
     this.verticalOffset = Vec3.multiply(row, PER_ROW_OFFSET);
+    print('slider : ' + this.sliderType + "should have an offset of : " + this.verticalOffset);
 
     this.avatarRot = Quat.fromPitchYawRollDegrees(0, MyAvatar.bodyYaw, 0.0);
     this.basePosition = Vec3.sum(MyAvatar.position, Vec3.multiply(2, Quat.getFront(this.avatarRot)));
@@ -111,11 +112,11 @@ entitySlider.prototype = {
         var rightVector = Quat.getRight(this.avatarRot);
         var extension = Vec3.multiply(AXIS_SCALE, rightVector);
         var endOfAxis = Vec3.sum(position, extension);
-
-        var endOfAxis;
+        this.endOfAxis = endOfAxis;
+        print('endOfAxis:::' + JSON.stringify(endOfAxis))
         var properties = {
             type: 'Line',
-            name: 'Hifi-Slider-Axis::'+this.sliderType,
+            name: 'Hifi-Slider-Axis::' + this.sliderType,
             color: this.color,
             collisionsWillMove: false,
             ignoreForCollisions: true,
@@ -129,14 +130,14 @@ entitySlider.prototype = {
                 x: 0,
                 y: 0,
                 z: 0
-            }, endOfAxis],
+            }, extension],
             lineWidth: 5,
         };
 
         this.axis = Entities.addEntity(properties);
     },
     createBoxIndicator: function() {
-        print('BOX COLOR IS:::'+JSON.stringify(this.color));
+        print('BOX COLOR IS:::' + JSON.stringify(this.color));
         var position = Vec3.sum(this.basePosition, this.verticalOffset);
 
         //line starts on left and goes to right
@@ -162,18 +163,26 @@ entitySlider.prototype = {
             initialDistance = this.distanceExponent;
         }
         var extension = Vec3.multiply(initialDistance, rightVector);
-        var endOfAxis = Vec3.sum(position, extension);
+        var sliderPosition = Vec3.sum(position, extension);
         var properties = {
             type: 'Box',
-            name: 'Hifi-Slider::'+this.sliderType,
+            name: 'Hifi-Slider::' + this.sliderType,
             dimensions: BOX_DIMENSIONS,
+            collisionsWillMove: true,
             color: this.color,
-            position: endOfAxis,
+            position: sliderPosition,
             script: BOX_SCRIPT_URL,
             userData: JSON.stringify({
                 lightModifierKey: {
                     lightID: this.lightID,
-                    sliderType: this.sliderType
+                    sliderType: this.sliderType,
+                    axisBasePosition: position,
+                    endOfAxis: this.endOfAxis,
+                },
+                constraintKey: {
+                    constrain: {
+                        y: position.y
+                    }
                 }
             })
         };
