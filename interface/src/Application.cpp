@@ -1231,15 +1231,28 @@ void Application::paintGL() {
             }
         } else if (_myCamera.getMode() == CAMERA_MODE_MIRROR) {
             if (isHMDMode()) {
+                auto mirrorBodyOrientation = myAvatar->getWorldAlignedOrientation() * glm::quat(glm::vec3(0.0f, PI + _rotateMirror, 0.0f));
+
                 glm::quat hmdRotation = extractRotation(myAvatar->getHMDSensorMatrix());
-                _myCamera.setRotation(myAvatar->getWorldAlignedOrientation()
-                    * glm::quat(glm::vec3(0.0f, PI + _rotateMirror, 0.0f)) * hmdRotation);
+                // Mirror HMD yaw and roll
+                glm::vec3 mirrorHmdEulers = glm::eulerAngles(hmdRotation);
+                mirrorHmdEulers.y = -mirrorHmdEulers.y;
+                mirrorHmdEulers.z = -mirrorHmdEulers.z;
+                glm::quat mirrorHmdRotation = glm::quat(mirrorHmdEulers);
+
+                glm::quat worldMirrorRotation = mirrorBodyOrientation * mirrorHmdRotation;
+
+                _myCamera.setRotation(worldMirrorRotation);
+
                 glm::vec3 hmdOffset = extractTranslation(myAvatar->getHMDSensorMatrix());
+                // Mirror HMD lateral offsets
+                hmdOffset.x = -hmdOffset.x;
+
                 _myCamera.setPosition(myAvatar->getDefaultEyePosition()
                     + glm::vec3(0, _raiseMirror * myAvatar->getAvatarScale(), 0)
-                    + (myAvatar->getOrientation() * glm::quat(glm::vec3(0.0f, _rotateMirror, 0.0f))) *
-                    glm::vec3(0.0f, 0.0f, -1.0f) * MIRROR_FULLSCREEN_DISTANCE * _scaleMirror
-                    + (myAvatar->getOrientation() * glm::quat(glm::vec3(0.0f, PI + _rotateMirror, 0.0f))) * hmdOffset);
+                   + mirrorBodyOrientation * glm::vec3(0.0f, 0.0f, 1.0f) * MIRROR_FULLSCREEN_DISTANCE * _scaleMirror
+                   + mirrorBodyOrientation * hmdOffset);
+
             } else {
                 _myCamera.setRotation(myAvatar->getWorldAlignedOrientation()
                     * glm::quat(glm::vec3(0.0f, PI + _rotateMirror, 0.0f)));
