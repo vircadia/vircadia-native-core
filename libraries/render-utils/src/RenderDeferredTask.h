@@ -16,6 +16,8 @@
 
 #include "gpu/Pipeline.h"
 
+#include "ToneMappingEffect.h"
+
 class SetupDeferred {
 public:
     void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext);
@@ -38,11 +40,13 @@ public:
     typedef render::Job::Model<RenderDeferred> JobModel;
 };
 
-class ResolveDeferred {
+class ToneMappingDeferred {
 public:
     void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext);
 
-    typedef render::Job::Model<ResolveDeferred> JobModel;
+    ToneMappingEffect _toneMappingEffect;
+
+    typedef render::Job::Model<ToneMappingDeferred> JobModel;
 };
 
 class DrawOpaqueDeferred {

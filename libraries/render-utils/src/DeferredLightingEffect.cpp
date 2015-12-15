@@ -82,7 +82,7 @@ gpu::PipelinePointer DeferredLightingEffect::getPipeline(SimpleProgramKey config
     return pipeline;
 }
 
-void DeferredLightingEffect::init(AbstractViewStateInterface* viewState) {
+void DeferredLightingEffect::init() {
     auto VS = gpu::Shader::createVertex(std::string(simple_vert));
     auto PS = gpu::Shader::createPixel(std::string(simple_textured_frag));
     auto PSEmissive = gpu::Shader::createPixel(std::string(simple_textured_emisive_frag));
@@ -95,7 +95,7 @@ void DeferredLightingEffect::init(AbstractViewStateInterface* viewState) {
     gpu::Shader::makeProgram(*_simpleShader, slotBindings);
     gpu::Shader::makeProgram(*_emissiveShader, slotBindings);
 
-    _viewState = viewState;
+
     _directionalLightLocations = std::make_shared<LightLocations>();
     _directionalAmbientSphereLightLocations = std::make_shared<LightLocations>();
     _directionalSkyboxLightLocations = std::make_shared<LightLocations>();
@@ -111,49 +111,6 @@ void DeferredLightingEffect::init(AbstractViewStateInterface* viewState) {
 
     loadLightProgram(deferred_light_limited_vert, point_light_frag, true, _pointLight, _pointLightLocations);
     loadLightProgram(deferred_light_spot_vert, spot_light_frag, true, _spotLight, _spotLightLocations);
-
-    {
-        //auto VSFS = gpu::StandardShaderLib::getDrawViewportQuadTransformTexcoordVS();
-        //auto PSBlit = gpu::StandardShaderLib::getDrawTexturePS();
-        const char BlitTextureGamma_frag[] = R"SCRIBE(#version 410 core
-        //  Generated on Sat Oct 24 09:34:37 2015
-        //
-        //  Draw texture 0 fetched at texcoord.xy
-        //
-        //  Created by Sam Gateau on 6/22/2015
-        //  Copyright 2015 High Fidelity, Inc.
-        //
-        //  Distributed under the Apache License, Version 2.0.
-        //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
-        //
-        
-        
-        uniform sampler2D colorMap;
-        
-        in vec2 varTexCoord0;
-        out vec4 outFragColor;
-        
-        void main(void) {
-            outFragColor = texture(colorMap, varTexCoord0);
-            // if (gl_FragCoord.x > 1000) {
-            // Manually gamma correct from Ligthing BUffer to color buffer
-            outFragColor.xyz = pow( outFragColor.xyz , vec3(1.0 / 2.2) );
-            // }
-        }
-        
-        )SCRIBE";
-        auto blitPS = gpu::ShaderPointer(gpu::Shader::createPixel(std::string(BlitTextureGamma_frag)));
- 
-        //auto blitProgram = gpu::StandardShaderLib::getProgram(gpu::StandardShaderLib::getDrawViewportQuadTransformTexcoordVS, gpu::StandardShaderLib::getDrawTexturePS);
-        auto blitVS = gpu::StandardShaderLib::getDrawViewportQuadTransformTexcoordVS();
-        auto blitProgram = gpu::ShaderPointer(gpu::Shader::createProgram(blitVS, blitPS));
-        
-        //auto blitProgram = gpu::StandardShaderLib::getProgram(gpu::StandardShaderLib::getDrawViewportQuadTransformTexcoordVS, gpu::StandardShaderLib::getDrawTexturePS);
-        gpu::Shader::makeProgram(*blitProgram);
-        auto blitState = std::make_shared<gpu::State>();
-        blitState->setColorWriteMask(true, true, true, true);
-        _blitLightBuffer = gpu::PipelinePointer(gpu::Pipeline::create(blitProgram, blitState));
-    }
 
     // Allocate a global light representing the Global Directional light casting shadow (the sun) and the ambient light
     _globalLights.push_back(0);
@@ -693,38 +650,6 @@ void DeferredLightingEffect::render(RenderArgs* args) {
     }
 }
 
-
-void DeferredLightingEffect::copyBack(RenderArgs* args) {
-    auto framebufferCache = DependencyManager::get<FramebufferCache>();
-    gpu::doInBatch(args->_context, [=](gpu::Batch& batch) {
-        batch.enableStereo(false);
-        QSize framebufferSize = framebufferCache->getFrameBufferSize();
-
-        auto lightingBuffer = framebufferCache->getLightingTexture();
-        auto destFbo = framebufferCache->getPrimaryFramebuffer();
-        batch.setFramebuffer(destFbo);
-        batch.setViewportTransform(args->_viewport);
-        batch.setProjectionTransform(glm::mat4());
-        batch.setViewTransform(Transform());
-        {
-            float sMin = args->_viewport.x / (float)framebufferSize.width();
-            float sWidth = args->_viewport.z / (float)framebufferSize.width();
-            float tMin = args->_viewport.y / (float)framebufferSize.height();
-            float tHeight = args->_viewport.w / (float)framebufferSize.height();
-            Transform model;
-            batch.setPipeline(_blitLightBuffer);
-            model.setTranslation(glm::vec3(sMin, tMin, 0.0));
-            model.setScale(glm::vec3(sWidth, tHeight, 1.0));
-            batch.setModelTransform(model);
-        }
-
-        batch.setResourceTexture(0, lightingBuffer);
-        batch.draw(gpu::TRIANGLE_STRIP, 4);
-
-        args->_context->render(batch);
-    });
-}
-
 void DeferredLightingEffect::setupTransparent(RenderArgs* args, int lightBufferUnit) {
     auto globalLight = _allocatedLights[_globalLights.front()];
     args->_batch->setUniformBuffer(lightBufferUnit, globalLight->getSchemaBuffer());
@@ -763,6 +688,7 @@ static void loadLightProgram(const char* vertSource, const char* fragSource, boo
     locations->deferredTransformBuffer = program->getBuffers().findLocation("deferredTransformBuffer");
 
     auto state = std::make_shared<gpu::State>();
+    state->setColorWriteMask(true, true, true, false);
 
     // Stencil test all the light passes for objects pixels only, not the background
     state->setStencilTest(true, 0xFF, gpu::State::StencilTest(0, 0xFF, gpu::NOT_EQUAL, gpu::State::STENCIL_OP_KEEP, gpu::State::STENCIL_OP_KEEP, gpu::State::STENCIL_OP_KEEP));
