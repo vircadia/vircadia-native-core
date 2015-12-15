@@ -194,7 +194,7 @@ AnimationPointer ModelEntityItem::getAnimation(const QString& url) {
 
 void ModelEntityItem::mapJoints(const QStringList& modelJointNames) {
     // if we don't have animation, or we're already joint mapped then bail early
-    if (!hasAnimation() || _jointMappingCompleted) {
+    if (!hasAnimation() || jointsMapped()) {
         return;
     }
 
@@ -208,6 +208,7 @@ void ModelEntityItem::mapJoints(const QStringList& modelJointNames) {
                 _jointMapping[i] = animationJointNames.indexOf(modelJointNames[i]);
             }
             _jointMappingCompleted = true;
+            _jointMappingURL = _animationProperties.getURL();
         }
     }
 }
