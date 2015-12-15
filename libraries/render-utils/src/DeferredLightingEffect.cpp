@@ -650,7 +650,6 @@ void DeferredLightingEffect::render(RenderArgs* args) {
     }
 }
 
-
 void DeferredLightingEffect::setupTransparent(RenderArgs* args, int lightBufferUnit) {
     auto globalLight = _allocatedLights[_globalLights.front()];
     args->_batch->setUniformBuffer(lightBufferUnit, globalLight->getSchemaBuffer());

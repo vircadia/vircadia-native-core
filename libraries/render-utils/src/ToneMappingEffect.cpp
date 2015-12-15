@@ -87,7 +87,7 @@ void ToneMappingEffect::render(RenderArgs* args) {
         QSize framebufferSize = framebufferCache->getFrameBufferSize();
 
         auto lightingBuffer = framebufferCache->getLightingTexture();
-        auto destFbo = framebufferCache->getPrimaryFramebufferDepthColor();
+        auto destFbo = framebufferCache->getPrimaryFramebuffer();
         batch.setFramebuffer(destFbo);
         batch.setViewportTransform(args->_viewport);
         batch.setProjectionTransform(glm::mat4());
