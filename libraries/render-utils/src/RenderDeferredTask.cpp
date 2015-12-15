@@ -52,25 +52,21 @@ void ToneMappingDeferred::run(const SceneContextPointer& sceneContext, const Ren
 RenderDeferredTask::RenderDeferredTask() : Task() {
     // CPU only, create the list of renderedOpaques items
     _jobs.push_back(Job(new FetchItems::JobModel("FetchOpaque",
-        FetchItems(
-        [](const RenderContextPointer& context, int count) {
-        context->_numFeedOpaqueItems = count;
-    }
-        )
-        )));
+        FetchItems([](const RenderContextPointer& context, int count) {
+                context->_numFeedOpaqueItems = count;
+        })
+    )));
     _jobs.push_back(Job(new CullItemsOpaque::JobModel("CullOpaque", _jobs.back().getOutput())));
     _jobs.push_back(Job(new DepthSortItems::JobModel("DepthSortOpaque", _jobs.back().getOutput())));
     auto& renderedOpaques = _jobs.back().getOutput();
 
     // CPU only, create the list of renderedTransparents items
     _jobs.push_back(Job(new FetchItems::JobModel("FetchTransparent",
-        FetchItems(
-        ItemFilter::Builder::transparentShape().withoutLayered(),
-        [](const RenderContextPointer& context, int count) {
-        context->_numFeedTransparentItems = count;
-    }
-        )
-        )));
+        FetchItems(ItemFilter::Builder::transparentShape().withoutLayered(),
+            [](const RenderContextPointer& context, int count) {
+                context->_numFeedTransparentItems = count;
+        })
+     )));
     _jobs.push_back(Job(new CullItemsTransparent::JobModel("CullTransparent", _jobs.back().getOutput())));
     _jobs.push_back(Job(new DepthSortItems::JobModel("DepthSortTransparent", _jobs.back().getOutput(), DepthSortItems(false))));
     auto& renderedTransparents = _jobs.back().getOutput();
