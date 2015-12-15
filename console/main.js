@@ -29,6 +29,23 @@ app.on('window-all-closed', function() {
     }
 });
 
+// Check command line arguments to see how to find binaries
+var argv = require('yargs').argv;
+var pathFinder = require('./modules/path-finder.js');
+
+var interfacePath = null;
+var dsPath = null;
+var acPath = null;
+
+if (argv.localDebugBuilds || argv.localReleaseBuilds) {
+    interfacePath = pathFinder.discoveredPath("Interface", argv.localReleaseBuilds);
+    dsPath = pathFinder.discoveredPath("domain-server", argv.localReleaseBuilds);
+    acPath = pathFinder.discoveredPath("assignment-client", argv.localReleaseBuilds);
+}
+
+// if at this point any of the paths are null, we're missing something we wanted to find
+// TODO: show an error for the binaries that couldn't be found
+
 // This method will be called when Electron has finished
 // initialization and is ready to create browser windows.
 app.on('ready', function() {
@@ -65,52 +82,51 @@ app.on('ready', function() {
         shell.openExternal(url);
     });
 
-    var pInterface = new Process('interface', 'C:\\Interface\\interface.exe');
+    if (interfacePath && dsPath && acPath) {
+        var pInterface = new Process('interface', interfacePath);
 
-    var domainServerPath = 'C:\\Users\\Ryan\\AppData\\Local\\High Fidelity\\Stack Manager\\domain-server.exe';
-    var acPath = 'C:\\Users\\Ryan\\AppData\\Local\\High Fidelity\\Stack Manager\\assignment-client.exe';
-
-    var homeServer = new ProcessGroup('home', [
-        new Process('domain_server', domainServerPath),
-        new Process('ac_audio', acPath, ['-t0']),
-        new Process('ac_avatar', acPath, ['-t1']),
-        new Process('ac_agent', acPath, ['-t2']),
-        new Process('ac_asset', acPath, ['-t3']),
-        new Process('ac_messages', acPath, ['-t4']),
-        new Process('ac_entity', acPath, ['-t6'])
-    ]);
-    homeServer.start();
-
-    var processes = {
-        interface: pInterface,
-        home: homeServer
-    };
-
-    function sendProcessUpdate() {
-        console.log("Sending process update to web view");
-        mainWindow.webContents.send('process-update', processes);
-    };
-
-    pInterface.on('state-update', sendProcessUpdate);
-    homeServer.on('state-update', sendProcessUpdate);
-
-    ipcMain.on('start-process', function(event, arg) {
-        pInterface.start();
-        sendProcessUpdate();
-    });
-    ipcMain.on('stop-process', function(event, arg) {
-        pInterface.stop();
-        sendProcessUpdate();
-    });
-    ipcMain.on('start-server', function(event, arg) {
+        var homeServer = new ProcessGroup('home', [
+            new Process('domain_server', dsPath),
+            new Process('ac_audio', acPath, ['-t0']),
+            new Process('ac_avatar', acPath, ['-t1']),
+            new Process('ac_agent', acPath, ['-t2']),
+            new Process('ac_asset', acPath, ['-t3']),
+            new Process('ac_messages', acPath, ['-t4']),
+            new Process('ac_entity', acPath, ['-t6'])
+        ]);
         homeServer.start();
-        sendProcessUpdate();
-    });
-    ipcMain.on('stop-server', function(event, arg) {
-        homeServer.stop();
-        sendProcessUpdate();
-    });
-    ipcMain.on('update', sendProcessUpdate);
 
-    sendProcessUpdate();
+        var processes = {
+            interface: pInterface,
+            home: homeServer
+        };
+
+        function sendProcessUpdate() {
+            console.log("Sending process update to web view");
+            mainWindow.webContents.send('process-update', processes);
+        };
+
+        pInterface.on('state-update', sendProcessUpdate);
+        homeServer.on('state-update', sendProcessUpdate);
+
+        ipcMain.on('start-process', function(event, arg) {
+            pInterface.start();
+            sendProcessUpdate();
+        });
+        ipcMain.on('stop-process', function(event, arg) {
+            pInterface.stop();
+            sendProcessUpdate();
+        });
+        ipcMain.on('start-server', function(event, arg) {
+            homeServer.start();
+            sendProcessUpdate();
+        });
+        ipcMain.on('stop-server', function(event, arg) {
+            homeServer.stop();
+            sendProcessUpdate();
+        });
+        ipcMain.on('update', sendProcessUpdate);
+
+        sendProcessUpdate();
+    }
 });
