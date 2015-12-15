@@ -57,7 +57,7 @@ const AnimPoseVec& AnimClip::evaluate(const AnimVariantMap& animVars, float dt, 
 
         // It can be quite possible for the user to set _startFrame and _endFrame to
         // values before or past valid ranges.  We clamp the frames here.
-        int frameCount = _anim.size();
+        int frameCount = (int)_anim.size();
         prevIndex = std::min(std::max(0, prevIndex), frameCount - 1);
         nextIndex = std::min(std::max(0, nextIndex), frameCount - 1);
 
@@ -92,8 +92,8 @@ void AnimClip::copyFromNetworkAnim() {
     // by matching joints with the same name.
     const FBXGeometry& geom = _networkAnim->getGeometry();
     AnimSkeleton animSkeleton(geom);
-    const int animJointCount = animSkeleton.getNumJoints();
-    const int skeletonJointCount = _skeleton->getNumJoints();
+    const auto animJointCount = animSkeleton.getNumJoints();
+    const auto skeletonJointCount = _skeleton->getNumJoints();
     std::vector<int> jointMap;
     jointMap.reserve(animJointCount);
     for (int i = 0; i < animJointCount; i++) {

@@ -293,7 +293,7 @@ int OctreeInboundPacketProcessor::sendNackPackets() {
 
             qDebug() << "NACK Sent back to editor/client... destinationNode=" << nodeUUID;
 
-            packetsSent += nackPacketList->getNumPackets();
+            packetsSent += (int)nackPacketList->getNumPackets();
 
             // send the list of nack packets
             totalBytesSent += nodeList->sendPacketList(std::move(nackPacketList), *destinationNode);

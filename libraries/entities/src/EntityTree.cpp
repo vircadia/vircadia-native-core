@@ -226,9 +226,16 @@ bool EntityTree::updateEntityWithElement(EntityItemPointer entity, const EntityI
 
         while (!toProcess.empty()) {
             EntityItemPointer childEntity = std::static_pointer_cast<EntityItem>(toProcess.dequeue());
+            if (!childEntity) {
+                continue;
+            }
             BoundingBoxRelatedProperties newChildBBRelProperties(childEntity);
+            EntityTreeElementPointer containingElement = childEntity->getElement();
+            if (!containingElement) {
+                continue;
+            }
             UpdateEntityOperator theChildOperator(getThisPointer(),
-                                                  childEntity->getElement(),
+                                                  containingElement,
                                                   childEntity, newChildBBRelProperties);
             recurseTreeWithOperator(&theChildOperator);
             foreach (SpatiallyNestablePointer childChild, childEntity->getChildren()) {
@@ -1055,7 +1062,7 @@ int EntityTree::processEraseMessageDetails(const QByteArray& dataByteArray, cons
                 break; // bail to prevent buffer overflow
             }
 
-            QByteArray encodedID = dataByteArray.mid(processedBytes, NUM_BYTES_RFC4122_UUID);
+            QByteArray encodedID = dataByteArray.mid((int)processedBytes, NUM_BYTES_RFC4122_UUID);
             QUuid entityID = QUuid::fromRfc4122(encodedID);
             dataAt += encodedID.size();
             processedBytes += encodedID.size();
@@ -1074,7 +1081,7 @@ int EntityTree::processEraseMessageDetails(const QByteArray& dataByteArray, cons
         }
         deleteEntities(entityItemIDsToDelete, true, true);
     }
-    return processedBytes;
+    return (int)processedBytes;
 }
 
 EntityTreeElementPointer EntityTree::getContainingElement(const EntityItemID& entityItemID)  /*const*/ {

@@ -38,7 +38,7 @@ glm::vec3 EnvironmentData::getSunLocation(const glm::vec3& cameraPosition) const
     return _sunLocation;
 }
 
-int EnvironmentData::getBroadcastData(unsigned char* destinationBuffer) const {
+size_t EnvironmentData::getBroadcastData(unsigned char* destinationBuffer) const {
     unsigned char* bufferStart = destinationBuffer;
     
     memcpy(destinationBuffer, &_id, sizeof(_id));
@@ -77,7 +77,7 @@ int EnvironmentData::getBroadcastData(unsigned char* destinationBuffer) const {
     return destinationBuffer - bufferStart;
 }
 
-int EnvironmentData::parseData(const unsigned char* sourceBuffer, int numBytes) {
+size_t EnvironmentData::parseData(const unsigned char* sourceBuffer, int numBytes) {
     const unsigned char* startPosition = sourceBuffer;
     
     memcpy(&_id, sourceBuffer, sizeof(_id));
