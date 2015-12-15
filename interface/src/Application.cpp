@@ -1231,15 +1231,28 @@ void Application::paintGL() {
             }
         } else if (_myCamera.getMode() == CAMERA_MODE_MIRROR) {
             if (isHMDMode()) {
+                auto mirrorBodyOrientation = myAvatar->getWorldAlignedOrientation() * glm::quat(glm::vec3(0.0f, PI + _rotateMirror, 0.0f));
+
                 glm::quat hmdRotation = extractRotation(myAvatar->getHMDSensorMatrix());
-                _myCamera.setRotation(myAvatar->getWorldAlignedOrientation()
-                    * glm::quat(glm::vec3(0.0f, PI + _rotateMirror, 0.0f)) * hmdRotation);
+                // Mirror HMD yaw and roll
+                glm::vec3 mirrorHmdEulers = glm::eulerAngles(hmdRotation);
+                mirrorHmdEulers.y = -mirrorHmdEulers.y;
+                mirrorHmdEulers.z = -mirrorHmdEulers.z;
+                glm::quat mirrorHmdRotation = glm::quat(mirrorHmdEulers);
+
+                glm::quat worldMirrorRotation = mirrorBodyOrientation * mirrorHmdRotation;
+
+                _myCamera.setRotation(worldMirrorRotation);
+
                 glm::vec3 hmdOffset = extractTranslation(myAvatar->getHMDSensorMatrix());
+                // Mirror HMD lateral offsets
+                hmdOffset.x = -hmdOffset.x;
+
                 _myCamera.setPosition(myAvatar->getDefaultEyePosition()
                     + glm::vec3(0, _raiseMirror * myAvatar->getAvatarScale(), 0)
-                    + (myAvatar->getOrientation() * glm::quat(glm::vec3(0.0f, _rotateMirror, 0.0f))) *
-                    glm::vec3(0.0f, 0.0f, -1.0f) * MIRROR_FULLSCREEN_DISTANCE * _scaleMirror
-                    + (myAvatar->getOrientation() * glm::quat(glm::vec3(0.0f, PI + _rotateMirror, 0.0f))) * hmdOffset);
+                   + mirrorBodyOrientation * glm::vec3(0.0f, 0.0f, 1.0f) * MIRROR_FULLSCREEN_DISTANCE * _scaleMirror
+                   + mirrorBodyOrientation * hmdOffset);
+
             } else {
                 _myCamera.setRotation(myAvatar->getWorldAlignedOrientation()
                     * glm::quat(glm::vec3(0.0f, PI + _rotateMirror, 0.0f)));
@@ -1273,6 +1286,10 @@ void Application::paintGL() {
     // Primary rendering pass
     auto framebufferCache = DependencyManager::get<FramebufferCache>();
     const QSize size = framebufferCache->getFrameBufferSize();
+
+    // Final framebuffer that will be handled to the display-plugin
+    auto finalFramebuffer = framebufferCache->getFramebuffer();
+
     {
         PROFILE_RANGE(__FUNCTION__ "/mainRender");
         PerformanceTimer perfTimer("mainRender");
@@ -1326,9 +1343,63 @@ void Application::paintGL() {
         }
         displaySide(&renderArgs, _myCamera);
         renderArgs._context->enableStereo(false);
-        gpu::doInBatch(renderArgs._context, [](gpu::Batch& batch) {
-            batch.setFramebuffer(nullptr);
-        });
+
+        // Blit primary to final FBO
+        auto primaryFbo = framebufferCache->getPrimaryFramebuffer();
+
+        if (renderArgs._renderMode == RenderArgs::MIRROR_RENDER_MODE) {
+            if (displayPlugin->isStereo()) {
+                gpu::doInBatch(renderArgs._context, [=](gpu::Batch& batch) {
+                    gpu::Vec4i srcRectLeft;
+                    srcRectLeft.z = size.width() / 2;
+                    srcRectLeft.w = size.height();
+                    
+                    gpu::Vec4i srcRectRight;
+                    srcRectRight.x = size.width() / 2;
+                    srcRectRight.z = size.width();
+                    srcRectRight.w = size.height();
+  
+                    gpu::Vec4i destRectLeft;
+                    destRectLeft.x = srcRectLeft.z;
+                    destRectLeft.z = srcRectLeft.x;
+                    destRectLeft.y = srcRectLeft.y;
+                    destRectLeft.w = srcRectLeft.w;
+                    
+                    gpu::Vec4i destRectRight;
+                    destRectRight.x = srcRectRight.z;
+                    destRectRight.z = srcRectRight.x;
+                    destRectRight.y = srcRectRight.y;
+                    destRectRight.w = srcRectRight.w;
+                    
+                    batch.setFramebuffer(finalFramebuffer);
+                    batch.clearColorFramebuffer(gpu::Framebuffer::BUFFER_COLOR0, glm::vec4(0.0f, 0.0f, 1.0f, 0.0f));
+                    // BLit left to right and right to left in stereo
+                    batch.blit(primaryFbo, srcRectRight, finalFramebuffer, destRectLeft);
+                    batch.blit(primaryFbo, srcRectLeft, finalFramebuffer, destRectRight);
+                });
+            } else {
+                gpu::doInBatch(renderArgs._context, [=](gpu::Batch& batch) {
+                    gpu::Vec4i srcRect;
+                    srcRect.z = size.width();
+                    srcRect.w = size.height();
+                    gpu::Vec4i destRect;
+                    destRect.x = size.width();
+                    destRect.y = 0;
+                    destRect.z = 0;
+                    destRect.w = size.height();
+                    batch.setFramebuffer(finalFramebuffer);
+                    batch.blit(primaryFbo, srcRect, finalFramebuffer, destRect);
+                });
+            }
+        } else {
+            gpu::doInBatch(renderArgs._context, [=](gpu::Batch& batch) {
+                gpu::Vec4i rect;
+                rect.z = size.width();
+                rect.w = size.height();
+                batch.setFramebuffer(finalFramebuffer);
+                batch.blit(primaryFbo, rect, finalFramebuffer, rect);
+            });
+        }
     }
 
     // Overlay Composition, needs to occur after screen space effects have completed
@@ -1336,7 +1407,7 @@ void Application::paintGL() {
     {
         PROFILE_RANGE(__FUNCTION__ "/compositor");
         PerformanceTimer perfTimer("compositor");
-        auto primaryFbo = framebufferCache->getPrimaryFramebuffer();
+        auto primaryFbo = finalFramebuffer;
         glBindFramebuffer(GL_DRAW_FRAMEBUFFER, gpu::GLBackend::getFramebufferID(primaryFbo));
         if (displayPlugin->isStereo()) {
             QRect currentViewport(QPoint(0, 0), QSize(size.width() / 2, size.height()));
@@ -1361,23 +1432,12 @@ void Application::paintGL() {
     {
         PROFILE_RANGE(__FUNCTION__ "/pluginOutput");
         PerformanceTimer perfTimer("pluginOutput");
-        auto primaryFramebuffer = framebufferCache->getPrimaryFramebuffer();
-        auto scratchFramebuffer = framebufferCache->getFramebuffer();
-        gpu::doInBatch(renderArgs._context, [=](gpu::Batch& batch) {
-            gpu::Vec4i rect;
-            rect.z = size.width();
-            rect.w = size.height();
-            batch.setFramebuffer(scratchFramebuffer);
-            batch.clearColorFramebuffer(gpu::Framebuffer::BUFFER_COLOR0, glm::vec4(0.0f, 0.0f, 0.0f, 0.0f));
-            batch.blit(primaryFramebuffer, rect, scratchFramebuffer, rect);
-            batch.setFramebuffer(nullptr);
-        });
-        auto finalTexturePointer = scratchFramebuffer->getRenderBuffer(0);
+        auto finalTexturePointer = finalFramebuffer->getRenderBuffer(0);
         GLuint finalTexture = gpu::GLBackend::getTextureID(finalTexturePointer);
         Q_ASSERT(0 != finalTexture);
 
         Q_ASSERT(!_lockedFramebufferMap.contains(finalTexture));
-        _lockedFramebufferMap[finalTexture] = scratchFramebuffer;
+        _lockedFramebufferMap[finalTexture] = finalFramebuffer;
 
         Q_ASSERT(isCurrentContext(_offscreenContext->getContext()));
         {
