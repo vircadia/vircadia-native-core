@@ -66,7 +66,7 @@ public:
     void handleOutgoingChanges(const VectorOfMotionStates& motionStates);
     void handleCollisionEvents(const CollisionEvents& collisionEvents);
 
-    void updateAvatarPhysicsShape(Avatar* avatar);
+    void addAvatarToSimulation(Avatar* avatar);
 
     // Expose results and parameter-tuning operations to other systems, such as stats and javascript.
     Q_INVOKABLE float getRenderDistance() { return _renderDistance; }

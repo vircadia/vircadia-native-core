@@ -167,7 +167,7 @@ void Avatar::simulate(float deltaTime) {
     PerformanceTimer perfTimer("simulate");
 
     if (!isDead() && !_motionState) {
-        DependencyManager::get<AvatarManager>()->updateAvatarPhysicsShape(this);
+        DependencyManager::get<AvatarManager>()->addAvatarToSimulation(this);
     }
     animateScaleChanges(deltaTime);
 

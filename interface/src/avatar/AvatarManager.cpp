@@ -375,13 +375,14 @@ void AvatarManager::handleCollisionEvents(const CollisionEvents& collisionEvents
     }
 }
 
-void AvatarManager::updateAvatarPhysicsShape(Avatar* avatar) {
+void AvatarManager::addAvatarToSimulation(Avatar* avatar) {
     assert(!avatar->getMotionState());
 
     ShapeInfo shapeInfo;
     avatar->computeShapeInfo(shapeInfo);
     btCollisionShape* shape = ObjectMotionState::getShapeManager()->getShape(shapeInfo);
     if (shape) {
+        // we don't add to the simulation now, we put it on a list to be added later
         AvatarMotionState* motionState = new AvatarMotionState(avatar, shape);
         avatar->setMotionState(motionState);
         _motionStatesToAdd.insert(motionState);
