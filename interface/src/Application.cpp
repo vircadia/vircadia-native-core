@@ -1287,6 +1287,7 @@ void Application::paintGL() {
     auto framebufferCache = DependencyManager::get<FramebufferCache>();
     const QSize size = framebufferCache->getFrameBufferSize();
 
+    // Final framebuffer that will be handled to the display-plugin
     auto finalFramebuffer = framebufferCache->getFramebuffer();
 
     {
@@ -1342,26 +1343,12 @@ void Application::paintGL() {
         }
         displaySide(&renderArgs, _myCamera);
         renderArgs._context->enableStereo(false);
-      /*  gpu::doInBatch(renderArgs._context, [](gpu::Batch& batch) {
-            batch.setFramebuffer(nullptr);
-        });
-        */
+
+        // Blit primary to final FBO
         auto primaryFbo = framebufferCache->getPrimaryFramebuffer();
 
         if (renderArgs._renderMode == RenderArgs::MIRROR_RENDER_MODE) {
             if (displayPlugin->isStereo()) {
-                gpu::Vec4i srcRect;
-                srcRect.z = size.width();
-                srcRect.w = size.height();
-                gpu::Vec4i destRect;
-                destRect.x = size.width();
-                destRect.y = 0;
-                destRect.z = 0;
-                destRect.w = size.height();
-               // batch.setFramebuffer(finalFramebuffer);
-                //  batch.clearColorFramebuffer(gpu::Framebuffer::BUFFER_COLOR0, glm::vec4(0.0f, 0.0f, 0.0f, 0.0f));
-              //  batch.blit(primaryFbo, srcRect, finalFramebuffer, destRect);
-
                 gpu::doInBatch(renderArgs._context, [=](gpu::Batch& batch) {
                     gpu::Vec4i srcRectLeft;
                     srcRectLeft.z = size.width() / 2;
