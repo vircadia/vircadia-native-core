@@ -104,7 +104,7 @@ public:
     
     void mapJoints(const QStringList& modelJointNames);
     void getAnimationFrame(bool& newFrame, QVector<glm::quat>& rotationsResult, QVector<glm::vec3>& translationsResult);
-    bool jointsMapped() const { return _jointMappingCompleted; }
+    bool jointsMapped() const { return _jointMappingURL == getAnimationURL() && _jointMappingCompleted; }
     
     bool getAnimationIsPlaying() const { return _animationLoop.getRunning(); }
     float getAnimationCurrentFrame() const { return _animationLoop.getCurrentFrame(); }
@@ -146,6 +146,7 @@ protected:
     // used on client side
     bool _jointMappingCompleted;
     QVector<int> _jointMapping;
+    QString _jointMappingURL;
 
     static AnimationPointer getAnimation(const QString& url);
     static QMap<QString, AnimationPointer> _loadedAnimations;
