@@ -76,3 +76,6 @@ void OffscreenGLCanvas::doneCurrent() {
     _context->doneCurrent();
 }
 
+QObject* OffscreenGLCanvas::getContextObject() {
+    return _context;
+}

@@ -37,6 +37,7 @@
 #include <EntityScriptingInterface.h> // TODO: consider moving to scriptengine.h
 
 #include "avatars/ScriptableAvatar.h"
+#include "entities/AssignmentParentFinder.h"
 #include "RecordingScriptingInterface.h"
 #include "AbstractAudioInterface.h"
 
@@ -61,6 +62,8 @@ Agent::Agent(ReceivedMessage& message) :
     assetClient->moveToThread(assetThread);
     connect(assetThread, &QThread::started, assetClient.data(), &AssetClient::init);
     assetThread->start();
+
+    DependencyManager::registerInheritance<SpatialParentFinder, AssignmentParentFinder>();
 
     DependencyManager::set<ResourceCacheSharedItems>();
     DependencyManager::set<SoundCache>();
@@ -284,6 +287,8 @@ void Agent::executeScript() {
 
     entityScriptingInterface->setEntityTree(_entityViewer.getTree());
 
+    DependencyManager::set<AssignmentParentFinder>(_entityViewer.getTree());
+
     // wire up our additional agent related processing to the update signal
     QObject::connect(_scriptEngine.get(), &ScriptEngine::update, this, &Agent::processAgentAvatarAndAudio);
 
@@ -384,7 +389,7 @@ void Agent::processAgentAvatarAndAudio(float deltaTime) {
                 int numAvailableBytes = (soundByteArray.size() - _numAvatarSoundSentBytes) > SCRIPT_AUDIO_BUFFER_BYTES
                     ? SCRIPT_AUDIO_BUFFER_BYTES
                     : soundByteArray.size() - _numAvatarSoundSentBytes;
-                numAvailableSamples = numAvailableBytes / sizeof(int16_t);
+                numAvailableSamples = (int16_t)numAvailableBytes / sizeof(int16_t);
 
 
                 // check if the all of the _numAvatarAudioBufferSamples to be sent are silence

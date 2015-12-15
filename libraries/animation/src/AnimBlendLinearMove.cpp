@@ -46,10 +46,10 @@ const AnimPoseVec& AnimBlendLinearMove::evaluate(const AnimVariantMap& animVars,
         evaluateAndBlendChildren(animVars, triggersOut, alpha, prevPoseIndex, nextPoseIndex, prevDeltaTime, nextDeltaTime);
     } else {
 
-        float clampedAlpha = glm::clamp(_alpha, 0.0f, (float)(_children.size() - 1));
-        size_t prevPoseIndex = glm::floor(clampedAlpha);
-        size_t nextPoseIndex = glm::ceil(clampedAlpha);
-        float alpha = glm::fract(clampedAlpha);
+        auto clampedAlpha = glm::clamp(_alpha, 0.0f, (float)(_children.size() - 1));
+        auto prevPoseIndex = glm::floor(clampedAlpha);
+        auto nextPoseIndex = glm::ceil(clampedAlpha);
+        auto alpha = glm::fract(clampedAlpha);
         float prevDeltaTime, nextDeltaTime;
         setFrameAndPhase(dt, alpha, prevPoseIndex, nextPoseIndex, &prevDeltaTime, &nextDeltaTime, triggersOut);
         evaluateAndBlendChildren(animVars, triggersOut, alpha, prevPoseIndex, nextPoseIndex, prevDeltaTime, nextDeltaTime);

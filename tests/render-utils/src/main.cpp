@@ -14,8 +14,8 @@
 
 #include <gpu/GLBackend.h>
 
-#include <QOpenGLContextWrapper.h>
-#include <QOpenGLDebugLoggerWrapper.h>
+#include <gl/QOpenGLContextWrapper.h>
+#include <gl/QOpenGLDebugLoggerWrapper.h>
 
 #include <QDir>
 #include <QElapsedTimer>
@@ -38,7 +38,7 @@ public:
     }
 
     unsigned int count() const {
-        return times.size() - 1;
+        return (unsigned int)times.size() - 1;
     }
 
     float elapsed() const {

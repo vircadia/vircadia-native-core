@@ -495,39 +495,6 @@ void Avatar::render(RenderArgs* renderArgs, const glm::vec3& cameraPosition) {
                 }
             }
         }
-
-        // quick check before falling into the code below:
-        // (a 10 degree breadth of an almost 2 meter avatar kicks in at about 12m)
-        const float MIN_VOICE_SPHERE_DISTANCE = 12.0f;
-        if (Menu::getInstance()->isOptionChecked(MenuOption::BlueSpeechSphere)
-            && distanceToTarget > MIN_VOICE_SPHERE_DISTANCE) {
-            PROFILE_RANGE_BATCH(batch, __FUNCTION__":renderVoiceSphere");
-
-            // render voice intensity sphere for avatars that are farther away
-            const float MAX_SPHERE_ANGLE = 10.0f * RADIANS_PER_DEGREE;
-            const float MIN_SPHERE_ANGLE = 0.5f * RADIANS_PER_DEGREE;
-            const float MIN_SPHERE_SIZE = 0.01f;
-            const float SPHERE_LOUDNESS_SCALING = 0.0005f;
-            const float SPHERE_COLOR[] = { 0.5f, 0.8f, 0.8f };
-            float height = getSkeletonHeight();
-            glm::vec3 delta = height * (getHead()->getCameraOrientation() * IDENTITY_UP) / 2.0f;
-            float angle = abs(angleBetween(toTarget + delta, toTarget - delta));
-            float sphereRadius = getHead()->getAverageLoudness() * SPHERE_LOUDNESS_SCALING;
-
-            if (renderArgs->_renderMode == RenderArgs::DEFAULT_RENDER_MODE && (sphereRadius > MIN_SPHERE_SIZE) &&
-                    (angle < MAX_SPHERE_ANGLE) && (angle > MIN_SPHERE_ANGLE)) {
-                batch.setModelTransform(Transform());
-
-
-                Transform transform;
-                transform.setTranslation(getPosition());
-                transform.setScale(height);
-                transform.postScale(sphereRadius);
-                DependencyManager::get<DeferredLightingEffect>()->renderSolidSphereInstance(batch,
-                    transform,
-                    glm::vec4(SPHERE_COLOR[0], SPHERE_COLOR[1], SPHERE_COLOR[2], 1.0f - angle / MAX_SPHERE_ANGLE));
-            }
-        }
     }
 
     const float DISPLAYNAME_DISTANCE = 20.0f;

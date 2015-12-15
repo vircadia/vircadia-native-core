@@ -107,7 +107,7 @@ void FetchItems::run(const SceneContextPointer& sceneContext, const RenderContex
     }
 
     if (_probeNumItems) {
-        _probeNumItems(renderContext, outItems.size());
+        _probeNumItems(renderContext, (int)outItems.size());
     }
 }
 
