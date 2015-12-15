@@ -41,7 +41,7 @@ var containerBall = Entities.addEntity({
             spatialKey: {
                 relativePosition: {
                     x: 0,
-                    y: 2,
+                    y: 1,
                     z: 0
                 }
             },
@@ -93,9 +93,9 @@ var lightBall = Entities.addEntity({
      color: {red: 10, green: 0, blue: 255},
     "colorFinish": {red: 250, green: 200, blue:255},
     "maxParticles": 100000,
-    "lifespan": 7,
+    "lifespan": 2,
     "emitRate": 10000,
-    "emitSpeed": .02,
+    "emitSpeed": .2,
     "speedSpread": .01,
     "emitDimensions": {
         "x": 0,
@@ -125,7 +125,8 @@ var lightBall = Entities.addEntity({
     "alphaStart": 0,
     "alphaFinish": 0.5,
     "additiveBlending": 0,
-    "textures": "https://hifi-public.s3.amazonaws.com/alan/Particles/Particle-Sprite-Smoke-1.png"
+    "textures": "https://hifi-public.s3.amazonaws.com/alan/Particles/Particle-Sprite-Smoke-1.png",
+    emitterShouldTrail: false
 })
 
 

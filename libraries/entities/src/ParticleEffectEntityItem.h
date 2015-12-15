@@ -207,10 +207,10 @@ public:
         }
     }
 
-    static const bool DEFAULT_ADDITIVE_BLENDING;
-    bool getAdditiveBlending() const { return _additiveBlending; }
-    void setAdditiveBlending(bool additiveBlending) {
-        _additiveBlending = additiveBlending;
+    static const bool DEFAULT_EMITTER_SHOULD_TRAIL;
+    bool getEmitterShouldTrail() const { return _emitterShouldTrail; }
+    void setEmitterShouldTrail(bool emitterShouldTrail) {
+        _emitterShouldTrail = emitterShouldTrail;
     }
 
     virtual bool supportsDetailedRayIntersection() const { return false; }
@@ -280,7 +280,7 @@ protected:
     float _timeUntilNextEmit { 0.0f };
 
     
-    bool _additiveBlending { DEFAULT_ADDITIVE_BLENDING };
+    bool _emitterShouldTrail { DEFAULT_EMITTER_SHOULD_TRAIL };
 };
 
 #endif // hifi_ParticleEffectEntityItem_h

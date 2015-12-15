@@ -93,7 +93,7 @@ const float ParticleEffectEntityItem::DEFAULT_RADIUS_SPREAD = 0.0f;
 const float ParticleEffectEntityItem::DEFAULT_RADIUS_START = DEFAULT_PARTICLE_RADIUS;
 const float ParticleEffectEntityItem::DEFAULT_RADIUS_FINISH = DEFAULT_PARTICLE_RADIUS;
 const QString ParticleEffectEntityItem::DEFAULT_TEXTURES = "";
-const bool ParticleEffectEntityItem::DEFAULT_ADDITIVE_BLENDING = false;
+const bool ParticleEffectEntityItem::DEFAULT_EMITTER_SHOULD_TRAIL = false;
 
 
 EntityItemPointer ParticleEffectEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
@@ -333,7 +333,7 @@ EntityItemProperties ParticleEffectEntityItem::getProperties(EntityPropertyFlags
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(alphaStart, getAlphaStart);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(alphaFinish, getAlphaFinish);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(textures, getTextures);
-    COPY_ENTITY_PROPERTY_TO_PROPERTIES(additiveBlending, getAdditiveBlending);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(emitterShouldTrail, getEmitterShouldTrail);
 
 
     return properties;
@@ -372,7 +372,7 @@ bool ParticleEffectEntityItem::setProperties(const EntityItemProperties& propert
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(alphaStart, setAlphaStart);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(alphaFinish, setAlphaFinish);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(textures, setTextures);
-    SET_ENTITY_PROPERTY_FROM_PROPERTIES(additiveBlending, setAdditiveBlending);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(emitterShouldTrail, setEmitterShouldTrail);
 
     if (somethingChanged) {
         bool wantDebug = false;
@@ -465,7 +465,7 @@ int ParticleEffectEntityItem::readEntitySubclassDataFromBuffer(const unsigned ch
     }
 
     if (args.bitstreamVersion >= VERSION_ENTITIES_PARTICLES_ADDITIVE_BLENDING) {
-        READ_ENTITY_PROPERTY(PROP_ADDITIVE_BLENDING, bool, setAdditiveBlending);
+        READ_ENTITY_PROPERTY(PROP_EMITTER_SHOULD_TRAIL, bool, setEmitterShouldTrail);
     }
 
     return bytesRead;
@@ -505,7 +505,7 @@ EntityPropertyFlags ParticleEffectEntityItem::getEntityProperties(EncodeBitstrea
     requestedProperties += PROP_POLAR_FINISH;
     requestedProperties += PROP_AZIMUTH_START;
     requestedProperties += PROP_AZIMUTH_FINISH;
-    requestedProperties += PROP_ADDITIVE_BLENDING;
+    requestedProperties += PROP_EMITTER_SHOULD_TRAIL;
 
     return requestedProperties;
 }
@@ -548,7 +548,7 @@ void ParticleEffectEntityItem::appendSubclassData(OctreePacketData* packetData, 
     APPEND_ENTITY_PROPERTY(PROP_POLAR_FINISH, getPolarFinish());
     APPEND_ENTITY_PROPERTY(PROP_AZIMUTH_START, getAzimuthStart());
     APPEND_ENTITY_PROPERTY(PROP_AZIMUTH_FINISH, getAzimuthFinish());
-    APPEND_ENTITY_PROPERTY(PROP_ADDITIVE_BLENDING, getAdditiveBlending());
+    APPEND_ENTITY_PROPERTY(PROP_EMITTER_SHOULD_TRAIL, getEmitterShouldTrail());
 }
 
 bool ParticleEffectEntityItem::isEmittingParticles() const {
@@ -648,7 +648,9 @@ ParticleEffectEntityItem::Particle ParticleEffectEntityItem::createParticle() {
     std::uniform_real_distribution<float> uniform_dist(-1.0, 1.0);
  
     particle.seed = randFloatInRange(-1.0f, 1.0f);
-    particle.position = getPosition();
+    if (getEmitterShouldTrail()) {
+        particle.position = getPosition();
+    }
     // Position, velocity, and acceleration
     if (_polarStart == 0.0f && _polarFinish == 0.0f && _emitDimensions.z == 0.0f) {
         // Emit along z-axis from position
@@ -699,7 +701,12 @@ ParticleEffectEntityItem::Particle ParticleEffectEntityItem::createParticle() {
                 radii.z > 0.0f ? z / (radii.z * radii.z) : 0.0f
             ));
             
-            particle.position += _emitOrientation * emitPosition;
+            if (getEmitterShouldTrail()) {
+                particle.position += _emitOrientation * emitPosition;
+            }
+            else {
+                particle.position = _emitOrientation * emitPosition;
+            }
         }
         
         particle.velocity = (_emitSpeed + randFloatInRange(-1.0f, 1.0f) * _speedSpread) * (_emitOrientation * emitDirection);
