@@ -546,7 +546,11 @@ AACube SpatiallyNestable::getQueryAACube() const {
     bool success;
     auto result = getQueryAACube(success);
     if (!success) {
-        qDebug() << "getQueryAACube failed:" << getID();
+        if (_queryAACubeSet) {
+            result = _queryAACube;
+        } else {
+            qDebug() << "getQueryAACube failed:" << getID();
+        }
     }
     return result;
 }
