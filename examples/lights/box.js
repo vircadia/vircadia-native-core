@@ -26,7 +26,8 @@
             this.initialProperties = Entities.getEntityProperties(this.entityID);
         },
         getClampedPosition: function() {
-            dPosition = Vec3.subtract(MyAvatar.position, previousPosition);
+
+            dPosition = Vec3.subtract(MyAvatar.position, this.previousPosition);
             //convert to localFrame
             dPosition = Vec3.multiplyQbyV(Quat.inverse(MyAvatar.orientation), dPosition);
 
@@ -39,8 +40,19 @@
         continueDistantGrab: function() {
             var currentPosition = this.getClampedPosition();
             var distance = Vec3.distance(this.initialProperties.position, currentPosition);
-            if ()
-                this.sliderValue = scaleValueBasedOnDistanceFromStart(distance);
+
+            if (userData.sliderType === 'color_red' || userData.sliderType === 'color_green' || userData.sliderType === 'color_blue') {
+                this.sliderValue = scaleValueBasedOnDistanceFromStart(distance, COLOR_MAX);
+            }
+            if (userData.sliderType === 'intensity') {
+                this.sliderValue = scaleValueBasedOnDistanceFromStart(distance, INTENSITY_MAX);
+            }
+            if (userData.sliderType === 'cutoff') {
+                this.sliderValue = scaleValueBasedOnDistanceFromStart(distance, CUTOFF_MAX);
+            }
+            if (userData.sliderType === 'exponent') {
+                this.sliderValue = scaleValueBasedOnDistanceFromStart(distance, EXPONENT_MAX);
+            }
 
             Entities.editEntity(this.entityID) {
                 position: currentPosition,
@@ -67,8 +79,8 @@
         },
         sendValueToSlider: function() {
             var message = {
-                lightID:userData.lightID,
-                sliderType:userData.sliderType,
+                lightID: userData.lightID,
+                sliderType: userData.sliderType,
                 sliderValue: this.sliderValue
             }
             Messages.sendMessage('Hifi-Slider-Value-Reciever', JSON.stringify(message));

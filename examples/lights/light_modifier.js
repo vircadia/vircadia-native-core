@@ -1,6 +1,8 @@
 // given a selected light, instantiate some entities that represent various values you can dynamically adjust
 //
 
+
+
 var BOX_SCRIPT_URL = Script.resolvePath('box.js');
 
 var RED = {
@@ -54,6 +56,9 @@ function entitySlider(light, color, sliderType, row) {
     this.sliderType = sliderType;
     this.verticalOffset = Vec3.multiply(row, PER_ROW_OFFSET);
 
+    this.avatarRot = Quat.fromPitchYawRollDegrees(0, MyAvatar.bodyYaw, 0.0);
+    this.basePosition = Vec3.sum(MyAvatar.position, Vec3.multiply(2, Quat.getFront(this.avatarRot)));
+
     var message = {
         lightID: this.lightID,
         sliderType: this.sliderType,
@@ -97,8 +102,14 @@ function entitySlider(light, color, sliderType, row) {
 entitySlider.prototype = {
     createAxis: function() {
         //start of line
-        var position;
-        //1 meter along orientationAxis
+        var position = Vec3.sum(this.basePosition, this.verticalOffset);
+
+        //line starts on left and goes to right
+        //set the end of the line to the right
+        var rightVector = Quat.getRight(this.avatarRot);
+        var extension = Vec3.multiply(AXIS_SCALE, rightVector);
+        var endOfAxis = Vec3.sum(position, extension);
+
         var endOfAxis;
         var properties = {
             type: 'Line',
@@ -139,8 +150,6 @@ entitySlider.prototype = {
         this.boxIndicator = Entities.addEntity(properties);
     },
     setValueFromMessage: function(message) {
-        print('VALUE MESSAGE::'+JSON.stringify(message))
-        print('LIGHT ID::'+this.lightID);
 
         //message is not for our light
         if (message.lightID !== this.lightID) {
@@ -154,10 +163,9 @@ entitySlider.prototype = {
             return
         }
 
-        print('SHOULD SET SOME VALUE:::' + message.sliderType);
+        print('should set:::' + this.sliderType);
 
         var lightProperties = Entities.getEntityProperties(this.lightID);
-      //  print('LIGHT PROPERTIES::'+JSON.stringify(lightProperties));
 
         if (this.sliderType === 'color_red') {
             Entities.editEntity(this.lightID, {
@@ -190,7 +198,6 @@ entitySlider.prototype = {
         }
 
         if (this.sliderType === 'intensity') {
-            print('CHANGING INTENSITY TO::' + message.sliderValue)
             Entities.editEntity(this.lightID, {
                 intensity: message.sliderValue
             });
@@ -209,7 +216,6 @@ entitySlider.prototype = {
         }
     },
     subscribeToBoxMessages: function() {
-        print('subscribing to box messages');
         Messages.subscribe('Hifi-Slider-Value-Reciever');
         Messages.messageReceived.connect(handleValueMessages);
     },
@@ -296,17 +302,15 @@ function handleLightModMessages(channel, message, sender) {
     }
     var parsedMessage = JSON.parse(message);
 
-    print('MESSAGE LIGHT:::' + message)
     makeSliders(parsedMessage.light);
 }
 
 function handleValueMessages(channel, message, sender) {
 
-  
+
     if (channel !== 'Hifi-Slider-Value-Reciever') {
         return;
     }
-      print('HANDLE VALUE MESSAGE')
     //easily protect from other people editing your values, but group editing might be fun so lets try that first.
     // if (sender !== MyAvatar.sessionUUID) {
     //     return;
