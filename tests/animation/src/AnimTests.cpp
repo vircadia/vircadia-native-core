@@ -316,6 +316,85 @@ void AnimTests::testAccumulateTimeWithParameters(float startFrame, float endFram
     triggers.clear();
 }
 
+void AnimTests::testAnimPose() {
+    const float PI = (float)M_PI;
+    const glm::quat ROT_X_90 = glm::angleAxis(PI / 2.0f, glm::vec3(1.0f, 0.0f, 0.0f));
+    const glm::quat ROT_Y_180 = glm::angleAxis(PI, glm::vec3(0.0f, 1.0, 0.0f));
+    const glm::quat ROT_Z_30 = glm::angleAxis(PI / 6.0f, glm::vec3(1.0f, 0.0f, 0.0f));
+
+    std::vector<glm::vec3> scaleVec = {
+        glm::vec3(1),
+        glm::vec3(2.0f, 1.0f, 1.0f),
+        glm::vec3(1.0f, 0.5f, 1.0f),
+        glm::vec3(1.0f, 1.0f, 1.5f),
+        glm::vec3(2.0f, 0.5f, 1.5f),
+        glm::vec3(-2.0f, 0.5f, 1.5f),
+        glm::vec3(2.0f, -0.5f, 1.5f),
+        glm::vec3(2.0f, 0.5f, -1.5f),
+        glm::vec3(-2.0f, -0.5f, -1.5f),
+    };
+
+    std::vector<glm::quat> rotVec = {
+        glm::quat(),
+        ROT_X_90,
+        ROT_Y_180,
+        ROT_Z_30,
+        ROT_X_90 * ROT_Y_180 * ROT_Z_30,
+        -ROT_Y_180
+    };
+
+    std::vector<glm::vec3> transVec = {
+        glm::vec3(),
+        glm::vec3(10.0f, 0.0f, 0.0f),
+        glm::vec3(0.0f, 5.0f, 0.0f),
+        glm::vec3(0.0f, 0.0f, 7.5f),
+        glm::vec3(10.0f, 5.0f, 7.5f),
+        glm::vec3(-10.0f, 5.0f, 7.5f),
+        glm::vec3(10.0f, -5.0f, 7.5f),
+        glm::vec3(10.0f, 5.0f, -7.5f)
+    };
+
+    const float EPSILON = 0.001f;
+
+    for (auto& scale : scaleVec) {
+        for (auto& rot : rotVec) {
+            for (auto& trans : transVec) {
+
+                // build a matrix the old fashioned way.
+                glm::mat4 scaleMat = glm::scale(glm::mat4(), scale);
+                glm::mat4 rotTransMat = createMatFromQuatAndPos(rot, trans);
+                glm::mat4 rawMat = rotTransMat * scaleMat;
+
+                // use an anim pose to build a matrix by parts.
+                AnimPose pose(scale, rot, trans);
+                glm::mat4 poseMat = pose;
+
+                QCOMPARE_WITH_ABS_ERROR(rawMat, poseMat, EPSILON);
+            }
+        }
+    }
+
+    for (auto& scale : scaleVec) {
+        for (auto& rot : rotVec) {
+            for (auto& trans : transVec) {
+
+                // build a matrix the old fashioned way.
+                glm::mat4 scaleMat = glm::scale(glm::mat4(), scale);
+                glm::mat4 rotTransMat = createMatFromQuatAndPos(rot, trans);
+                glm::mat4 rawMat = rotTransMat * scaleMat;
+
+                // use an anim pose to decompse a matrix into parts
+                AnimPose pose(rawMat);
+
+                // now build a new matrix from those parts.
+                glm::mat4 poseMat = pose;
+
+                QCOMPARE_WITH_ABS_ERROR(rawMat, poseMat, EPSILON);
+            }
+        }
+    }
+}
+
 void AnimTests::testExpressionTokenizer() {
     QString str = "(10 +  x) >= 20.1 && (y != !z)";
     AnimExpression e("x");
@@ -354,6 +433,12 @@ void AnimTests::testExpressionTokenizer() {
     token = e.consumeToken(str, iter);
     QVERIFY(token.type == AnimExpression::Token::RightParen);
     token = e.consumeToken(str, iter);
+
+    str = "true";
+    iter = str.cbegin();
+    token = e.consumeToken(str, iter);
+    QVERIFY(token.type == AnimExpression::Token::Bool);
+    QVERIFY(token.intVal == (int)true);
 }
 
 void AnimTests::testExpressionParser() {
@@ -401,6 +486,43 @@ void AnimTests::testExpressionParser() {
         QVERIFY(e._opCodes[0].strVal == "twenty");
     }
 
+    e = AnimExpression("true || false");
+    QVERIFY(e._opCodes.size() == 3);
+    if (e._opCodes.size() == 3) {
+        QVERIFY(e._opCodes[0].type == AnimExpression::OpCode::Bool);
+        QVERIFY(e._opCodes[0].intVal == (int)true);
+        QVERIFY(e._opCodes[1].type == AnimExpression::OpCode::Bool);
+        QVERIFY(e._opCodes[1].intVal == (int)false);
+        QVERIFY(e._opCodes[2].type == AnimExpression::OpCode::Or);
+    }
+
+    e = AnimExpression("true || false && true");
+    QVERIFY(e._opCodes.size() == 5);
+    if (e._opCodes.size() == 5) {
+        QVERIFY(e._opCodes[0].type == AnimExpression::OpCode::Bool);
+        QVERIFY(e._opCodes[0].intVal == (int)true);
+        QVERIFY(e._opCodes[1].type == AnimExpression::OpCode::Bool);
+        QVERIFY(e._opCodes[1].intVal == (int)false);
+        QVERIFY(e._opCodes[2].type == AnimExpression::OpCode::Bool);
+        QVERIFY(e._opCodes[2].intVal == (int)true);
+        QVERIFY(e._opCodes[3].type == AnimExpression::OpCode::And);
+        QVERIFY(e._opCodes[4].type == AnimExpression::OpCode::Or);
+    }
+
+    e = AnimExpression("(true || false) && true");
+    QVERIFY(e._opCodes.size() == 5);
+    if (e._opCodes.size() == 5) {
+        QVERIFY(e._opCodes[0].type == AnimExpression::OpCode::Bool);
+        QVERIFY(e._opCodes[0].intVal == (int)true);
+        QVERIFY(e._opCodes[1].type == AnimExpression::OpCode::Bool);
+        QVERIFY(e._opCodes[1].intVal == (int)false);
+        QVERIFY(e._opCodes[2].type == AnimExpression::OpCode::Or);
+        QVERIFY(e._opCodes[3].type == AnimExpression::OpCode::Bool);
+        QVERIFY(e._opCodes[3].intVal == (int)true);
+        QVERIFY(e._opCodes[4].type == AnimExpression::OpCode::And);
+    }
+
+    /*
     e = AnimExpression("2 + 3");
     QVERIFY(e._opCodes.size() == 3);
     if (e._opCodes.size() == 3) {
@@ -436,18 +558,33 @@ void AnimTests::testExpressionParser() {
         QVERIFY(e._opCodes[3].intVal == 10);
         QVERIFY(e._opCodes[4].type == AnimExpression::OpCode::Multiply);
     }
+    */
 }
+
+#define TEST_BOOL_EXPR(EXPR)                                \
+    result = AnimExpression( #EXPR ).evaluate(vars);        \
+    QVERIFY(result.type == AnimExpression::OpCode::Bool);   \
+    QVERIFY(result.intVal == (int)(EXPR))
 
 void AnimTests::testExpressionEvaluator() {
     auto vars = AnimVariantMap();
-    vars.set("f", false);
-    vars.set("t", true);
-    vars.set("ten", (int)10);
-    vars.set("twenty", (int)20);
-    vars.set("five", (float)5.0f);
-    vars.set("forty", (float)40.0f);
 
-    AnimExpression::OpCode result = AnimExpression("10").evaluate(vars);
+    bool f = false;
+    bool t = true;
+    int ten = 10;
+    int twenty = 20;
+    float five = 5.0f;
+    float fourty = 40.0f;
+    vars.set("f", f);
+    vars.set("t", t);
+    vars.set("ten", ten);
+    vars.set("twenty", twenty);
+    vars.set("five", five);
+    vars.set("forty", fourty);
+
+    AnimExpression::OpCode result(AnimExpression::OpCode::Int);
+
+    result = AnimExpression("10").evaluate(vars);
     QVERIFY(result.type == AnimExpression::OpCode::Int);
     QVERIFY(result.intVal == 10);
 
@@ -455,18 +592,45 @@ void AnimTests::testExpressionEvaluator() {
     QVERIFY(result.type == AnimExpression::OpCode::Int);
     QVERIFY(result.intVal == 10);
 
-    result = AnimExpression("2 + 3").evaluate(vars);
-    QVERIFY(result.type == AnimExpression::OpCode::Int);
-    QVERIFY(result.intVal == 2 + 3);
+    TEST_BOOL_EXPR(true);
+    TEST_BOOL_EXPR(false);
+    TEST_BOOL_EXPR(t);
+    TEST_BOOL_EXPR(f);
 
-    result = AnimExpression("2 + 3 * 5").evaluate(vars);
-    QVERIFY(result.type == AnimExpression::OpCode::Int);
-    QVERIFY(result.intVal == 2 + 3 * 5);
+    TEST_BOOL_EXPR(true || false);
+    TEST_BOOL_EXPR(true || true);
+    TEST_BOOL_EXPR(false || false);
+    TEST_BOOL_EXPR(false || true);
 
-    result = AnimExpression("(2 + 3) * 5").evaluate(vars);
-    QVERIFY(result.type == AnimExpression::OpCode::Int);
-    QVERIFY(result.intVal == (2 + 3) * 5);
+    TEST_BOOL_EXPR(true && false);
+    TEST_BOOL_EXPR(true && true);
+    TEST_BOOL_EXPR(false && false);
+    TEST_BOOL_EXPR(false && true);
 
+    TEST_BOOL_EXPR(true || false && true);
+    TEST_BOOL_EXPR(true || false && false);
+    TEST_BOOL_EXPR(true || true && true);
+    TEST_BOOL_EXPR(true || true && false);
+    TEST_BOOL_EXPR(false || false && true);
+    TEST_BOOL_EXPR(false || false && false);
+    TEST_BOOL_EXPR(false || true && true);
+    TEST_BOOL_EXPR(false || true && false);
+
+    TEST_BOOL_EXPR(true && false || true);
+    TEST_BOOL_EXPR(true && false || false);
+    TEST_BOOL_EXPR(true && true || true);
+    TEST_BOOL_EXPR(true && true || false);
+    TEST_BOOL_EXPR(false && false || true);
+    TEST_BOOL_EXPR(false && false || false);
+    TEST_BOOL_EXPR(false && true || true);
+    TEST_BOOL_EXPR(false && true || false);
+
+    TEST_BOOL_EXPR(t || false);
+    TEST_BOOL_EXPR(t || true);
+    TEST_BOOL_EXPR(f || false);
+    TEST_BOOL_EXPR(f || true);
+
+/*
     result = AnimExpression("(2 + 3) * (5 + 3)").evaluate(vars);
     QVERIFY(result.type == AnimExpression::OpCode::Int);
     QVERIFY(result.intVal == (2 + 3) * (5 + 3));
@@ -482,4 +646,7 @@ void AnimTests::testExpressionEvaluator() {
     result = AnimExpression("five * forty").evaluate(vars);
     QVERIFY(result.type == AnimExpression::OpCode::Float);
     QVERIFY(result.floatVal == 5.0f * 40.0f);
+*/
 }
+
+

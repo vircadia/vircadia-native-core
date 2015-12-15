@@ -46,7 +46,7 @@ void AssetResourceRequest::doSend() {
     }
 
     connect(_assetRequest, &AssetRequest::progress, this, &AssetResourceRequest::progress);
-    connect(_assetRequest, &AssetRequest::finished, [this](AssetRequest* req) {
+    connect(_assetRequest, &AssetRequest::finished, this, [this](AssetRequest* req) {
         Q_ASSERT(_state == InProgress);
         Q_ASSERT(req == _assetRequest);
         Q_ASSERT(req->getState() == AssetRequest::Finished);

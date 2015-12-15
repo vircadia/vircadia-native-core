@@ -36,7 +36,12 @@ if (WIN32)
   if (MSVC10)
     set(WINDOW_SDK_PATH "C:\\Program Files\\Microsoft SDKs\\Windows\\v7.1 ")
   elseif (MSVC12)
-    set(WINDOW_SDK_PATH "C:\\Program Files (x86)\\Windows Kits\\8.1\\Lib\\winv6.3\\um\\x86 ")
+    if ("${CMAKE_SIZEOF_VOID_P}" EQUAL "8")
+      set(WINDOW_SDK_FOLDER "x64")    
+    else()
+      set(WINDOW_SDK_FOLDER "x86")    
+    endif()
+    set(WINDOW_SDK_PATH "C:\\Program Files (x86)\\Windows Kits\\8.1\\Lib\\winv6.3\\um\\${WINDOW_SDK_FOLDER}") 
   endif ()
   message (WINDOW_SDK_PATH= ${WINDOW_SDK_PATH})
   set(CMAKE_PREFIX_PATH ${CMAKE_PREFIX_PATH} ${WINDOW_SDK_PATH})
@@ -220,4 +225,37 @@ if (HIFI_MEMORY_DEBUGGING)
   if (UNIX)
     MESSAGE("-- Memory debugging is enabled")
   endif (UNIX)
+endif ()
+
+include_application_version()
+
+if (DEFINED DEPLOY_PACKAGE AND DEPLOY_PACKAGE)
+  message(STATUS "+++++ Package for deployment will be generated on this build +++++")
+  
+  file(MAKE_DIRECTORY ${CMAKE_BINARY_DIR}/full-stack-deployment)
+  
+  set(ICONPATH_INTERFACE "$INSTDIR/${PATH_INSTALL_DATA}/interface.ico")
+  set(ICONPATH_STACK_MANAGER "$INSTDIR/${PATH_INSTALL_DATA}/stack-manager.ico")
+  string(REPLACE "/" "\\\\" ICONPATH_INTERFACE ${ICONPATH_INTERFACE})
+  string(REPLACE "/" "\\\\" ICONPATH_STACK_MANAGER ${ICONPATH_STACK_MANAGER})
+
+  set(CPACK_PACKAGE_NAME "High Fidelity")
+  set(CPACK_PACKAGE_VENDOR "High Fidelity, Inc")
+  set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "High Fidelity Interface and Stack")
+  set(CPACK_PACKAGE_VERSION "${BUILD_SEQ}")
+  set(CPACK_PACKAGE_VERSION_MAJOR "${BUILD_SEQ}")
+  set(CPACK_PACKAGE_VERSION_MINOR "0")
+  set(CPACK_PACKAGE_VERSION_PATCH "0")
+  set(CPACK_PACKAGE_INSTALL_DIRECTORY "High Fidelity-${BUILD_SEQ}")
+  set(CPACK_NSIS_EXECUTABLES_DIRECTORY ".")
+  set(CPACK_PACKAGE_EXECUTABLES 
+    stack-manager "Stack Manager"
+    interface "Interface"
+  )
+
+  if (WIN32)
+    install(DIRECTORY ${CMAKE_BINARY_DIR}/full-stack-deployment/ DESTINATION "./")
+  endif (WIN32)
+
+  include(CPack)
 endif ()

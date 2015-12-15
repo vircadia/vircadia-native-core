@@ -88,7 +88,8 @@ public:
 
     bool isVisible() const { return _isVisible; }
 
-    AABox getPartBounds(int meshIndex, int partIndex);
+    void updateRenderItems();
+    AABox getPartBounds(int meshIndex, int partIndex, glm::vec3 modelPosition, glm::quat modelOrientation);
 
     bool maybeStartBlender();
 
@@ -111,7 +112,7 @@ public:
     bool getSnapModelToRegistrationPoint() { return _snapModelToRegistrationPoint; }
 
     virtual void simulate(float deltaTime, bool fullUpdate = true);
-    void updateClusterMatrices();
+    void updateClusterMatrices(glm::vec3 modelPosition, glm::quat modelOrientation);
 
     /// Returns a reference to the shared geometry.
     const QSharedPointer<NetworkGeometry>& getGeometry() const { return _geometry; }
@@ -155,7 +156,7 @@ public:
     }
 
     /// Returns the number of joint states in the model.
-    int getJointStateCount() const { return _rig->getJointStateCount(); }
+    int getJointStateCount() const { return (int)_rig->getJointStateCount(); }
     bool getJointPositionInWorldFrame(int jointIndex, glm::vec3& position) const;
     bool getJointRotationInWorldFrame(int jointIndex, glm::quat& rotation) const;
     bool getJointCombinedRotation(int jointIndex, glm::quat& rotation) const;
@@ -164,6 +165,10 @@ public:
     /// \return true if joint exists
     bool getJointRotation(int jointIndex, glm::quat& rotation) const;
     bool getJointTranslation(int jointIndex, glm::vec3& translation) const;
+
+    // model frame
+    bool getAbsoluteJointRotationInRigFrame(int jointIndex, glm::quat& rotation) const;
+    bool getAbsoluteJointTranslationInRigFrame(int jointIndex, glm::vec3& translation) const;
 
     /// Returns the index of the parent of the indexed joint, or -1 if not found.
     int getParentJointIndex(int jointIndex) const;
@@ -184,6 +189,8 @@ public:
 
     void setScale(const glm::vec3& scale);
     const glm::vec3& getScale() const { return _scale; }
+
+    void enqueueLocationChange();
 
     /// enables/disables scale to fit behavior, the model will be automatically scaled to the specified largest dimension
     bool getIsScaledToFit() const { return _scaledToFit; } /// is model scaled to fit
@@ -216,10 +223,10 @@ protected:
     Extents getUnscaledMeshExtents() const;
 
     /// Returns the scaled equivalent of some extents in model space.
-    Extents calculateScaledOffsetExtents(const Extents& extents) const;
+    Extents calculateScaledOffsetExtents(const Extents& extents, glm::vec3 modelPosition, glm::quat modelOrientation) const;
 
     /// Returns the world space equivalent of some box in model space.
-    AABox calculateScaledOffsetAABox(const AABox& box) const;
+    AABox calculateScaledOffsetAABox(const AABox& box, glm::vec3 modelPosition, glm::quat modelOrientation) const;
 
     /// Returns the scaled equivalent of a point in model space.
     glm::vec3 calculateScaledOffsetPoint(const glm::vec3& point) const;
@@ -359,7 +366,7 @@ private:
     bool _needsUpdateClusterMatrices = true;
     bool _showCollisionHull = false;
 
-    friend class MeshPartPayload;
+    friend class ModelMeshPartPayload;
 protected:
     RigPointer _rig;
 };

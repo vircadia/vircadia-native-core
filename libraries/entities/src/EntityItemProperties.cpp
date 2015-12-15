@@ -260,6 +260,8 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
     CHECK_PROPERTY_CHANGE(PROP_X_P_NEIGHBOR_ID, xPNeighborID);
     CHECK_PROPERTY_CHANGE(PROP_Y_P_NEIGHBOR_ID, yPNeighborID);
     CHECK_PROPERTY_CHANGE(PROP_Z_P_NEIGHBOR_ID, zPNeighborID);
+    CHECK_PROPERTY_CHANGE(PROP_PARENT_ID, parentID);
+    CHECK_PROPERTY_CHANGE(PROP_PARENT_JOINT_INDEX, parentJointIndex);
 
     changedProperties += _animation.getChangedProperties();
     changedProperties += _keyLight.getChangedProperties();
@@ -353,7 +355,8 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine, bool
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_ALPHA_START, alphaStart);
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_ALPHA_FINISH, alphaFinish);
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_ADDITIVE_BLENDING, additiveBlending);
-        
+        COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_LOCAL_POSITION, localPosition);
+        COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_LOCAL_ROTATION, localRotation);
     }
 
     // Models only
@@ -467,6 +470,12 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine, bool
     if (!skipDefaults) {
         COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER_NO_SKIP(originalTextures, textureNamesList); // gettable, but not settable
     }
+
+    COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_PARENT_ID, parentID);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_PARENT_JOINT_INDEX, parentJointIndex);
+
+    COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_LOCAL_POSITION, localPosition);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_LOCAL_ROTATION, localRotation);
 
     // FIXME - I don't think these properties are supported any more
     //COPY_PROPERTY_TO_QSCRIPTVALUE(glowLevel);
@@ -589,6 +598,12 @@ void EntityItemProperties::copyFromScriptValue(const QScriptValue& object, bool 
     COPY_PROPERTY_FROM_QSCRIPTVALUE(xPNeighborID, EntityItemID, setXPNeighborID);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(yPNeighborID, EntityItemID, setYPNeighborID);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(zPNeighborID, EntityItemID, setZPNeighborID);
+
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(parentID, QUuid, setParentID);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(parentJointIndex, quint16, setParentJointIndex);
+
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(localPosition, glmVec3, setLocalPosition);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(localRotation, glmQuat, setLocalRotation);
 
     _lastEdited = usecTimestampNow();
 }
@@ -732,7 +747,6 @@ void EntityItemProperties::entityPropertyFlagsFromScriptValue(const QScriptValue
         ADD_GROUP_PROPERTY_TO_MAP(PROP_ANIMATION_FIRST_FRAME, Animation, animation, FirstFrame, firstFrame);
         ADD_GROUP_PROPERTY_TO_MAP(PROP_ANIMATION_LAST_FRAME, Animation, animation, LastFrame, lastFrame);
         ADD_GROUP_PROPERTY_TO_MAP(PROP_ANIMATION_HOLD, Animation, animation, Hold, hold);
-        ADD_GROUP_PROPERTY_TO_MAP(PROP_ANIMATION_START_AUTOMATICALLY, Animation, animation, StartAutomatically, startAutomatically);
 
         ADD_GROUP_PROPERTY_TO_MAP(PROP_ATMOSPHERE_CENTER, Atmosphere, atmosphere, Center, center);
         ADD_GROUP_PROPERTY_TO_MAP(PROP_ATMOSPHERE_INNER_RADIUS, Atmosphere, atmosphere, InnerRadius, innerRadius);
@@ -906,7 +920,8 @@ bool EntityItemProperties::encodeEntityEditPacket(PacketType command, EntityItem
             APPEND_ENTITY_PROPERTY(PROP_USER_DATA, properties.getUserData());
             APPEND_ENTITY_PROPERTY(PROP_HREF, properties.getHref());
             APPEND_ENTITY_PROPERTY(PROP_DESCRIPTION, properties.getDescription());
-
+            APPEND_ENTITY_PROPERTY(PROP_PARENT_ID, properties.getParentID());
+            APPEND_ENTITY_PROPERTY(PROP_PARENT_JOINT_INDEX, properties.getParentJointIndex());
 
             if (properties.getType() == EntityTypes::Web) {
                 APPEND_ENTITY_PROPERTY(PROP_SOURCE_URL, properties.getSourceUrl());
@@ -1109,7 +1124,7 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
     // the first part of the data is an octcode, this is a required element of the edit packet format, but we don't
     // actually use it, we do need to skip it and read to the actual data we care about.
     int octets = numberOfThreeBitSectionsInCode(data);
-    int bytesToReadOfOctcode = bytesRequiredForCodeLength(octets);
+    int bytesToReadOfOctcode = (int)bytesRequiredForCodeLength(octets);
 
     // we don't actually do anything with this octcode...
     dataAt += bytesToReadOfOctcode;
@@ -1191,7 +1206,8 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_USER_DATA, QString, setUserData);
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_HREF, QString, setHref);
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_DESCRIPTION, QString, setDescription);
-
+    READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_PARENT_ID, QUuid, setParentID);
+    READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_PARENT_JOINT_INDEX, quint16, setParentJointIndex);
 
     if (properties.getType() == EntityTypes::Web) {
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_SOURCE_URL, QString, setSourceUrl);
@@ -1441,6 +1457,9 @@ void EntityItemProperties::markAllChanged() {
     _xPNeighborIDChanged = true;
     _yPNeighborIDChanged = true;
     _zPNeighborIDChanged = true;
+
+    _parentIDChanged = true;
+    _parentJointIndexChanged = true;
 }
 
 /// The maximum bounding cube for the entity, independent of it's rotation.
@@ -1478,7 +1497,7 @@ AABox EntityItemProperties::getAABox() const {
     glm::vec3 unrotatedMinRelativeToEntity = - (_dimensions * _registrationPoint);
     glm::vec3 unrotatedMaxRelativeToEntity = _dimensions * registrationRemainder;
     Extents unrotatedExtentsRelativeToRegistrationPoint = { unrotatedMinRelativeToEntity, unrotatedMaxRelativeToEntity };
-    Extents rotatedExtentsRelativeToRegistrationPoint = unrotatedExtentsRelativeToRegistrationPoint.getRotated(getRotation());
+    Extents rotatedExtentsRelativeToRegistrationPoint = unrotatedExtentsRelativeToRegistrationPoint.getRotated(_rotation);
 
     // shift the extents to be relative to the position/registration point
     rotatedExtentsRelativeToRegistrationPoint.shiftBy(_position);
@@ -1760,6 +1779,12 @@ QList<QString> EntityItemProperties::listChangedProperties() {
     if (zPNeighborIDChanged()) {
         out += "zPNeighborID";
     }
+    if (parentIDChanged()) {
+        out += "parentID";
+    }
+    if (parentJointIndexChanged()) {
+        out += "parentJointIndex";
+    }
 
     getAnimation().listChangedProperties(out);
     getKeyLight().listChangedProperties(out);
@@ -1768,4 +1793,8 @@ QList<QString> EntityItemProperties::listChangedProperties() {
     getStage().listChangedProperties(out);
 
     return out;
+}
+
+bool EntityItemProperties::parentDependentPropertyChanged() const {
+    return localPositionChanged() || positionChanged() || localRotationChanged() || rotationChanged();
 }

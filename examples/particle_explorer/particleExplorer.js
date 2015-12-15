@@ -128,7 +128,6 @@ function setUp() {
             blue: 255
         },
         lifespan: 5.0,
-        visible: false,
         locked: false,
         isEmitting: true,
         lifetime: 3600 // 1 hour; just in case

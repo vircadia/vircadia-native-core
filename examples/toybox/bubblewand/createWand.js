@@ -53,8 +53,13 @@ var wand = Entities.addEntity({
                     y: 0.1,
                     z: 0
                 },
-                relativeRotation: Quat.fromPitchYawRollDegrees(0, 0, 90)
+                relativeRotation: Quat.fromPitchYawRollDegrees(0, 0, -90)
             }
         }
     })
 });
+
+function scriptEnding() {
+    Entities.deleteEntity(wand);
+}
+Script.scriptEnding.connect(scriptEnding);

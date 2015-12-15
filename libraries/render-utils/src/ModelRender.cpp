@@ -42,26 +42,26 @@ ModelRender::RenderPipelineLib ModelRender::_renderPipelineLib;
 const ModelRender::RenderPipelineLib& ModelRender::getRenderPipelineLib() {
     if (_renderPipelineLib.empty()) {
         // Vertex shaders
-        auto modelVertex = gpu::ShaderPointer(gpu::Shader::createVertex(std::string(model_vert)));
-        auto modelNormalMapVertex = gpu::ShaderPointer(gpu::Shader::createVertex(std::string(model_normal_map_vert)));
-        auto modelLightmapVertex = gpu::ShaderPointer(gpu::Shader::createVertex(std::string(model_lightmap_vert)));
-        auto modelLightmapNormalMapVertex = gpu::ShaderPointer(gpu::Shader::createVertex(std::string(model_lightmap_normal_map_vert)));
-        auto modelShadowVertex = gpu::ShaderPointer(gpu::Shader::createVertex(std::string(model_shadow_vert)));
-        auto skinModelVertex = gpu::ShaderPointer(gpu::Shader::createVertex(std::string(skin_model_vert)));
-        auto skinModelNormalMapVertex = gpu::ShaderPointer(gpu::Shader::createVertex(std::string(skin_model_normal_map_vert)));
-        auto skinModelShadowVertex = gpu::ShaderPointer(gpu::Shader::createVertex(std::string(skin_model_shadow_vert)));
+        auto modelVertex = gpu::Shader::createVertex(std::string(model_vert));
+        auto modelNormalMapVertex = gpu::Shader::createVertex(std::string(model_normal_map_vert));
+        auto modelLightmapVertex = gpu::Shader::createVertex(std::string(model_lightmap_vert));
+        auto modelLightmapNormalMapVertex = gpu::Shader::createVertex(std::string(model_lightmap_normal_map_vert));
+        auto modelShadowVertex = gpu::Shader::createVertex(std::string(model_shadow_vert));
+        auto skinModelVertex = gpu::Shader::createVertex(std::string(skin_model_vert));
+        auto skinModelNormalMapVertex = gpu::Shader::createVertex(std::string(skin_model_normal_map_vert));
+        auto skinModelShadowVertex = gpu::Shader::createVertex(std::string(skin_model_shadow_vert));
 
         // Pixel shaders
-        auto modelPixel = gpu::ShaderPointer(gpu::Shader::createPixel(std::string(model_frag)));
-        auto modelNormalMapPixel = gpu::ShaderPointer(gpu::Shader::createPixel(std::string(model_normal_map_frag)));
-        auto modelSpecularMapPixel = gpu::ShaderPointer(gpu::Shader::createPixel(std::string(model_specular_map_frag)));
-        auto modelNormalSpecularMapPixel = gpu::ShaderPointer(gpu::Shader::createPixel(std::string(model_normal_specular_map_frag)));
-        auto modelTranslucentPixel = gpu::ShaderPointer(gpu::Shader::createPixel(std::string(model_translucent_frag)));
-        auto modelShadowPixel = gpu::ShaderPointer(gpu::Shader::createPixel(std::string(model_shadow_frag)));
-        auto modelLightmapPixel = gpu::ShaderPointer(gpu::Shader::createPixel(std::string(model_lightmap_frag)));
-        auto modelLightmapNormalMapPixel = gpu::ShaderPointer(gpu::Shader::createPixel(std::string(model_lightmap_normal_map_frag)));
-        auto modelLightmapSpecularMapPixel = gpu::ShaderPointer(gpu::Shader::createPixel(std::string(model_lightmap_specular_map_frag)));
-        auto modelLightmapNormalSpecularMapPixel = gpu::ShaderPointer(gpu::Shader::createPixel(std::string(model_lightmap_normal_specular_map_frag)));
+        auto modelPixel = gpu::Shader::createPixel(std::string(model_frag));
+        auto modelNormalMapPixel = gpu::Shader::createPixel(std::string(model_normal_map_frag));
+        auto modelSpecularMapPixel = gpu::Shader::createPixel(std::string(model_specular_map_frag));
+        auto modelNormalSpecularMapPixel = gpu::Shader::createPixel(std::string(model_normal_specular_map_frag));
+        auto modelTranslucentPixel = gpu::Shader::createPixel(std::string(model_translucent_frag));
+        auto modelShadowPixel = gpu::Shader::createPixel(std::string(model_shadow_frag));
+        auto modelLightmapPixel = gpu::Shader::createPixel(std::string(model_lightmap_frag));
+        auto modelLightmapNormalMapPixel = gpu::Shader::createPixel(std::string(model_lightmap_normal_map_frag));
+        auto modelLightmapSpecularMapPixel = gpu::Shader::createPixel(std::string(model_lightmap_specular_map_frag));
+        auto modelLightmapNormalSpecularMapPixel = gpu::Shader::createPixel(std::string(model_lightmap_normal_specular_map_frag));
 
         // Fill the renderPipelineLib
 
@@ -181,7 +181,7 @@ void ModelRender::RenderPipelineLib::addRenderPipeline(ModelRender::RenderKey ke
     slotBindings.insert(gpu::Shader::Binding(std::string("lightBuffer"), ModelRender::LIGHT_BUFFER_SLOT));
     slotBindings.insert(gpu::Shader::Binding(std::string("normalFittingMap"), DeferredLightingEffect::NORMAL_FITTING_MAP_SLOT));
 
-    gpu::ShaderPointer program = gpu::ShaderPointer(gpu::Shader::createProgram(vertexShader, pixelShader));
+    gpu::ShaderPointer program = gpu::Shader::createProgram(vertexShader, pixelShader);
     gpu::Shader::makeProgram(*program, slotBindings);
 
 
@@ -209,7 +209,7 @@ void ModelRender::RenderPipelineLib::addRenderPipeline(ModelRender::RenderKey ke
         gpu::State::FACTOR_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::ONE);
 
     // Good to go add the brand new pipeline
-    auto pipeline = gpu::PipelinePointer(gpu::Pipeline::create(program, state));
+    auto pipeline = gpu::Pipeline::create(program, state);
     insert(value_type(key.getRaw(), RenderPipeline(pipeline, locations)));
 
 
@@ -221,7 +221,7 @@ void ModelRender::RenderPipelineLib::addRenderPipeline(ModelRender::RenderKey ke
         wireframeState->setFillMode(gpu::State::FILL_LINE);
 
         // create a new RenderPipeline with the same shader side and the wireframe state
-        auto wireframePipeline = gpu::PipelinePointer(gpu::Pipeline::create(program, wireframeState));
+        auto wireframePipeline = gpu::Pipeline::create(program, wireframeState);
         insert(value_type(wireframeKey.getRaw(), RenderPipeline(wireframePipeline, locations)));
     }
 }
@@ -280,3 +280,16 @@ void ModelRender::pickPrograms(gpu::Batch& batch, RenderArgs::RenderMode mode, b
             DependencyManager::get<TextureCache>()->getNormalFittingTexture());
     }
 }
+
+model::MaterialPointer ModelRender::_collisionHullMaterial;
+
+model::MaterialPointer ModelRender::getCollisionHullMaterial() {
+    if (!_collisionHullMaterial) {
+        _collisionHullMaterial = std::make_shared<model::Material>();
+        _collisionHullMaterial->setDiffuse(glm::vec3(1.0f, 0.5f, 0.0f));
+        _collisionHullMaterial->setMetallic(0.02f);
+        _collisionHullMaterial->setGloss(1.0f);
+    }
+    return _collisionHullMaterial;
+}
+

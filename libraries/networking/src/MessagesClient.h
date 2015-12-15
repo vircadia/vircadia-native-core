@@ -20,6 +20,7 @@
 #include "LimitedNodeList.h"
 #include "NLPacket.h"
 #include "Node.h"
+#include "ReceivedMessage.h"
 
 class MessagesClient : public QObject, public Dependency {
     Q_OBJECT
@@ -32,7 +33,7 @@ public:
     Q_INVOKABLE void subscribe(QString channel);
     Q_INVOKABLE void unsubscribe(QString channel);
 
-    static void decodeMessagesPacket(QSharedPointer<NLPacketList> packetList, QString& channel, QString& message, QUuid& senderID);
+    static void decodeMessagesPacket(QSharedPointer<ReceivedMessage> receivedMessage, QString& channel, QString& message, QUuid& senderID);
     static std::unique_ptr<NLPacketList> encodeMessagesPacket(QString channel, QString message, QUuid senderID);
 
 
@@ -40,7 +41,7 @@ signals:
     void messageReceived(QString channel, QString message, QUuid senderUUID);
 
 private slots:
-    void handleMessagesPacket(QSharedPointer<NLPacketList> packetList, SharedNodePointer senderNode);
+    void handleMessagesPacket(QSharedPointer<ReceivedMessage> receivedMessage, SharedNodePointer senderNode);
     void handleNodeActivated(SharedNodePointer node);
 
 protected:

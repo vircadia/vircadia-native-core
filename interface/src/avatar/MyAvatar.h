@@ -196,6 +196,8 @@ public:
     Q_INVOKABLE void useFullAvatarURL(const QUrl& fullAvatarURL, const QString& modelName = QString());
     Q_INVOKABLE const QUrl& getFullAvatarURLFromPreferences() const { return _fullAvatarURLFromPreferences; }
     Q_INVOKABLE const QString& getFullAvatarModelName() const { return _fullAvatarModelName; }
+    void resetFullAvatarURL();
+
 
     virtual void setAttachmentData(const QVector<AttachmentData>& attachmentData) override;
 
@@ -247,19 +249,16 @@ public slots:
 
     Q_INVOKABLE void updateMotionBehaviorFromMenu();
 
-    void clearReferential();
-    bool setModelReferential(const QUuid& id);
-    bool setJointReferential(const QUuid& id, int jointIndex);
-
     virtual void rebuildSkeletonBody() override;
 
-    const QString& getAnimGraphUrl() const { return _animGraphUrl; }
+    Q_INVOKABLE QUrl getAnimGraphUrl() const { return _animGraphUrl; }
 
     void setEnableDebugDrawDefaultPose(bool isEnabled);
     void setEnableDebugDrawAnimPose(bool isEnabled);
     void setEnableDebugDrawPosition(bool isEnabled);
+    bool getEnableMeshVisible() const { return _skeletonModel.isVisible(); }
     void setEnableMeshVisible(bool isEnabled);
-    void setAnimGraphUrl(const QString& url) { _animGraphUrl = url; }
+    Q_INVOKABLE void setAnimGraphUrl(const QUrl& url);
 
     glm::vec3 getPositionForAudio();
     glm::quat getOrientationForAudio();
@@ -280,7 +279,7 @@ private:
     virtual void render(RenderArgs* renderArgs, const glm::vec3& cameraPositio) override;
     virtual void renderBody(RenderArgs* renderArgs, ViewFrustum* renderFrustum, float glowLevel = 0.0f) override;
     virtual bool shouldRenderHead(const RenderArgs* renderArgs) const override;
-    void setShouldRenderLocally(bool shouldRender) { _shouldRender = shouldRender; }
+    void setShouldRenderLocally(bool shouldRender) { _shouldRender = shouldRender; setEnableMeshVisible(shouldRender); }
     bool getShouldRenderLocally() const { return _shouldRender; }
     bool getDriveKeys(int key) { return _driveKeys[key] != 0.0f; };
     bool isMyAvatar() const override { return true; }
@@ -360,7 +359,7 @@ private:
     // Avatar Preferences
     QUrl _fullAvatarURLFromPreferences;
     QString _fullAvatarModelName;
-    QString _animGraphUrl {""};
+    QUrl _animGraphUrl {""};
 
     // cache of the current HMD sensor position and orientation
     // in sensor space.

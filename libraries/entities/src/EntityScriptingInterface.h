@@ -86,7 +86,7 @@ public slots:
 
     /// edits a model updating only the included properties, will return the identified EntityItemID in case of
     /// successful edit, if the input entityID is for an unknown model this function will have no effect
-    Q_INVOKABLE QUuid editEntity(QUuid entityID, EntityItemProperties properties);
+    Q_INVOKABLE QUuid editEntity(QUuid entityID, const EntityItemProperties& properties);
 
     /// deletes a model
     Q_INVOKABLE void deleteEntity(QUuid entityID);
@@ -149,6 +149,9 @@ public slots:
     Q_INVOKABLE glm::vec3 voxelCoordsToLocalCoords(const QUuid& entityID, glm::vec3 voxelCoords);
     Q_INVOKABLE glm::vec3 localCoordsToVoxelCoords(const QUuid& entityID, glm::vec3 localCoords);
 
+    Q_INVOKABLE glm::vec3 getAbsoluteJointTranslationInObjectFrame(const QUuid& entityID, int jointIndex);
+    Q_INVOKABLE glm::quat getAbsoluteJointRotationInObjectFrame(const QUuid& entityID, int jointIndex);
+
 signals:
     void collisionWithEntity(const EntityItemID& idA, const EntityItemID& idB, const Collision& collision);
 
@@ -179,6 +182,9 @@ private:
     bool setVoxels(QUuid entityID, std::function<bool(PolyVoxEntityItem&)> actor);
     bool setPoints(QUuid entityID, std::function<bool(LineEntityItem&)> actor);
     void queueEntityMessage(PacketType packetType, EntityItemID entityID, const EntityItemProperties& properties);
+    
+    EntityItemPointer checkForTreeEntityAndTypeMatch(const QUuid& entityID,
+                                                     EntityTypes::EntityType entityType = EntityTypes::Unknown);
 
 
     /// actually does the work of finding the ray intersection, can be called in locking mode or tryLock mode

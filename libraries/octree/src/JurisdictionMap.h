@@ -52,11 +52,11 @@ public:
 
     unsigned char* getRootOctalCode() const { return _rootOctalCode; }
     unsigned char* getEndNodeOctalCode(int index) const { return _endNodes[index]; }
-    int getEndNodeCount() const { return _endNodes.size(); }
+    int getEndNodeCount() const { return (int)_endNodes.size(); }
 
     void copyContents(unsigned char* rootCodeIn, const std::vector<unsigned char*>& endNodesIn);
 
-    int unpackFromPacket(NLPacket& packet);
+    int unpackFromPacket(ReceivedMessage& message);
     std::unique_ptr<NLPacket> packIntoPacket();
 
     /// Available to pack an empty or unknown jurisdiction into a network packet, used when no JurisdictionMap is available

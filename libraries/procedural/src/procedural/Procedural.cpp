@@ -123,7 +123,7 @@ void Procedural::parse(const QJsonObject& proceduralData) {
             _parsedChannels = channels.toArray();
             size_t channelCount = std::min(MAX_PROCEDURAL_TEXTURE_CHANNELS, (size_t)_parsedChannels.size());
             for (size_t i = 0; i < channelCount; ++i) {
-                QString url = _parsedChannels.at(i).toString();
+                QString url = _parsedChannels.at((int)i).toString();
                 _channels[i] = textureCache->getTexture(QUrl(url));
             }
         }
@@ -170,7 +170,7 @@ void Procedural::prepare(gpu::Batch& batch, const glm::vec3& position, const glm
     if (!_pipeline || _pipelineDirty) {
         _pipelineDirty = true;
         if (!_vertexShader) {
-            _vertexShader = gpu::ShaderPointer(gpu::Shader::createVertex(_vertexSource));
+            _vertexShader = gpu::Shader::createVertex(_vertexSource);
         }
 
         // Build the fragment shader
@@ -193,8 +193,8 @@ void Procedural::prepare(gpu::Batch& batch, const glm::vec3& position, const glm
             fragmentShaderSource.replace(replaceIndex, PROCEDURAL_BLOCK.size(), _shaderSource.toLocal8Bit().data());
         }
         //qDebug() << "FragmentShader:\n" << fragmentShaderSource.c_str();
-        _fragmentShader = gpu::ShaderPointer(gpu::Shader::createPixel(fragmentShaderSource));
-        _shader = gpu::ShaderPointer(gpu::Shader::createProgram(_vertexShader, _fragmentShader));
+        _fragmentShader = gpu::Shader::createPixel(fragmentShaderSource);
+        _shader = gpu::Shader::createProgram(_vertexShader, _fragmentShader);
 
         gpu::Shader::BindingSet slotBindings;
         slotBindings.insert(gpu::Shader::Binding(std::string("iChannel0"), 0));
@@ -203,7 +203,7 @@ void Procedural::prepare(gpu::Batch& batch, const glm::vec3& position, const glm
         slotBindings.insert(gpu::Shader::Binding(std::string("iChannel3"), 3));
         gpu::Shader::makeProgram(*_shader, slotBindings);
 
-        _pipeline = gpu::PipelinePointer(gpu::Pipeline::create(_shader, _state));
+        _pipeline = gpu::Pipeline::create(_shader, _state);
         for (size_t i = 0; i < NUM_STANDARD_UNIFORMS; ++i) {
             const std::string& name = STANDARD_UNIFORM_NAMES[i];
             _standardUniformSlots[i] = _shader->getUniforms().findLocation(name);
@@ -238,7 +238,7 @@ void Procedural::prepare(gpu::Batch& batch, const glm::vec3& position, const glm
                 gpuTexture->setSampler(sampler);
                 gpuTexture->autoGenerateMips(-1);
             }
-            batch.setResourceTexture(i, gpuTexture);
+            batch.setResourceTexture((gpu::uint32)i, gpuTexture);
         }
     }
 }

@@ -35,7 +35,12 @@ var pingPongGun = Entities.addEntity({
         z: 0.47
     },
     collisionsWillMove: true,
-    collisionSoundURL: COLLISION_SOUND_URL
+    collisionSoundURL: COLLISION_SOUND_URL,
+    userData: JSON.stringify({
+        grabbableKey: {
+            invertSolidWhileHeld: true
+        }
+    })
 });
 
 function cleanUp() {

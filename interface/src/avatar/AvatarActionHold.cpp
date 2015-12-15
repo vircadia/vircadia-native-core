@@ -9,63 +9,72 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include "QVariantGLM.h"
-#include "avatar/AvatarManager.h"
-
 #include "AvatarActionHold.h"
+
+#include <QVariantGLM.h>
+
+#include "avatar/AvatarManager.h"
 
 const uint16_t AvatarActionHold::holdVersion = 1;
 
 AvatarActionHold::AvatarActionHold(const QUuid& id, EntityItemPointer ownerEntity) :
-    ObjectActionSpring(id, ownerEntity),
-    _relativePosition(glm::vec3(0.0f)),
-    _relativeRotation(glm::quat()),
-    _hand("right"),
-    _holderID(QUuid()) {
+    ObjectActionSpring(id, ownerEntity)
+{
     _type = ACTION_TYPE_HOLD;
-    #if WANT_DEBUG
+#if WANT_DEBUG
     qDebug() << "AvatarActionHold::AvatarActionHold";
-    #endif
+#endif
 }
 
 AvatarActionHold::~AvatarActionHold() {
-    #if WANT_DEBUG
+#if WANT_DEBUG
     qDebug() << "AvatarActionHold::~AvatarActionHold";
-    #endif
+#endif
 }
 
 std::shared_ptr<Avatar> AvatarActionHold::getTarget(glm::quat& rotation, glm::vec3& position) {
-    std::shared_ptr<Avatar> holdingAvatar = nullptr;
+    auto avatarManager = DependencyManager::get<AvatarManager>();
+    auto holdingAvatar = std::static_pointer_cast<Avatar>(avatarManager->getAvatarBySessionID(_holderID));
+
+    if (!holdingAvatar) {
+        return holdingAvatar;
+    }
 
     withTryReadLock([&]{
-        QSharedPointer<AvatarManager> avatarManager = DependencyManager::get<AvatarManager>();
-        AvatarSharedPointer holdingAvatarData = avatarManager->getAvatarBySessionID(_holderID);
-        holdingAvatar = std::static_pointer_cast<Avatar>(holdingAvatarData);
-
-        if (holdingAvatar) {
-            glm::vec3 offset;
-            glm::vec3 palmPosition;
-            glm::quat palmRotation;
-            if (_hand == "right") {
+        bool isRightHand = (_hand == "right");
+        glm::vec3 palmPosition { Vectors::ZERO };
+        glm::quat palmRotation { Quaternions::IDENTITY };
+            
+        if (_ignoreIK && holdingAvatar->isMyAvatar()) {
+            // We cannot ignore other avatars IK and this is not the point of this option
+            // This is meant to make the grabbing behavior more reactive.
+            if (isRightHand) {
+                palmPosition = holdingAvatar->getHand()->getCopyOfPalmData(HandData::RightHand).getPosition();
+                palmRotation = holdingAvatar->getHand()->getCopyOfPalmData(HandData::RightHand).getRotation();
+            } else {
+                palmPosition = holdingAvatar->getHand()->getCopyOfPalmData(HandData::LeftHand).getPosition();
+                palmRotation = holdingAvatar->getHand()->getCopyOfPalmData(HandData::LeftHand).getRotation();
+            }
+        } else {
+            if (isRightHand) {
                 palmPosition = holdingAvatar->getRightPalmPosition();
                 palmRotation = holdingAvatar->getRightPalmRotation();
             } else {
                 palmPosition = holdingAvatar->getLeftPalmPosition();
                 palmRotation = holdingAvatar->getLeftPalmRotation();
             }
-
-            rotation = palmRotation * _relativeRotation;
-            offset = rotation * _relativePosition;
-            position = palmPosition + offset;
         }
+
+        rotation = palmRotation * _relativeRotation;
+        position = palmPosition + rotation * _relativePosition;
     });
 
     return holdingAvatar;
 }
 
 void AvatarActionHold::updateActionWorker(float deltaTimeStep) {
-    glm::quat rotation;
-    glm::vec3 position;
+    glm::quat rotation { Quaternions::IDENTITY };
+    glm::vec3 position { Vectors::ZERO };
     bool valid = false;
     int holdCount = 0;
 
@@ -168,6 +177,7 @@ bool AvatarActionHold::updateArguments(QVariantMap arguments) {
     QUuid holderID;
     bool kinematic;
     bool kinematicSetVelocity;
+    bool ignoreIK;
     bool needUpdate = false;
 
     bool somethingChanged = ObjectAction::updateArguments(arguments);
@@ -203,14 +213,20 @@ bool AvatarActionHold::updateArguments(QVariantMap arguments) {
         ok = true;
         kinematic = EntityActionInterface::extractBooleanArgument("hold", arguments, "kinematic", ok, false);
         if (!ok) {
-            _kinematic = false;
+            kinematic = _kinematic;
         }
 
         ok = true;
         kinematicSetVelocity = EntityActionInterface::extractBooleanArgument("hold", arguments,
                                                                              "kinematicSetVelocity", ok, false);
         if (!ok) {
-            _kinematicSetVelocity = false;
+            kinematicSetVelocity = _kinematicSetVelocity;
+        }
+
+        ok = true;
+        ignoreIK = EntityActionInterface::extractBooleanArgument("hold", arguments, "ignoreIK", ok, false);
+        if (!ok) {
+            ignoreIK = _ignoreIK;
         }
 
         if (somethingChanged ||
@@ -220,7 +236,8 @@ bool AvatarActionHold::updateArguments(QVariantMap arguments) {
             hand != _hand ||
             holderID != _holderID ||
             kinematic != _kinematic ||
-            kinematicSetVelocity != _kinematicSetVelocity) {
+            kinematicSetVelocity != _kinematicSetVelocity ||
+            ignoreIK != _ignoreIK) {
             needUpdate = true;
         }
     });
@@ -236,6 +253,7 @@ bool AvatarActionHold::updateArguments(QVariantMap arguments) {
             _holderID = holderID;
             _kinematic = kinematic;
             _kinematicSetVelocity = kinematicSetVelocity;
+            _ignoreIK = ignoreIK;
             _active = true;
 
             auto ownerEntity = _ownerEntity.lock();
@@ -260,6 +278,7 @@ QVariantMap AvatarActionHold::getArguments() {
         arguments["hand"] = _hand;
         arguments["kinematic"] = _kinematic;
         arguments["kinematicSetVelocity"] = _kinematicSetVelocity;
+        arguments["ignoreIK"] = _ignoreIK;
     });
     return arguments;
 }

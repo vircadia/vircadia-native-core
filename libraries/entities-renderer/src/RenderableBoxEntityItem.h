@@ -20,10 +20,7 @@
 class RenderableBoxEntityItem : public BoxEntityItem {
 public:
     static EntityItemPointer factory(const EntityItemID& entityID, const EntityItemProperties& properties);
-
-    RenderableBoxEntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties) :
-        BoxEntityItem(entityItemID, properties)
-        { }
+    RenderableBoxEntityItem(const EntityItemID& entityItemID) : BoxEntityItem(entityItemID) { }
 
     virtual void render(RenderArgs* args);
     virtual void setUserData(const QString& value);

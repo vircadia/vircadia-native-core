@@ -157,6 +157,7 @@ vec2 toGlm(const QPointF& pt);
 vec3 toGlm(const xColor& color);
 vec4 toGlm(const QColor& color);
 ivec4 toGlm(const QRect& rect);
+vec4 toGlm(const xColor& color, float alpha);
 
 QSize fromGlm(const glm::ivec2 & v);
 QMatrix4x4 fromGlm(const glm::mat4 & m);

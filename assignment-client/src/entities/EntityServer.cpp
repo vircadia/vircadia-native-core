@@ -16,13 +16,14 @@
 #include "EntityServer.h"
 #include "EntityServerConsts.h"
 #include "EntityNodeData.h"
+#include "AssignmentParentFinder.h"
 
 const char* MODEL_SERVER_NAME = "Entity";
 const char* MODEL_SERVER_LOGGING_TARGET_NAME = "entity-server";
 const char* LOCAL_MODELS_PERSIST_FILE = "resources/models.svo";
 
-EntityServer::EntityServer(NLPacket& packet) :
-    OctreeServer(packet),
+EntityServer::EntityServer(ReceivedMessage& message) :
+    OctreeServer(message),
     _entitySimulation(NULL)
 {
     auto& packetReceiver = DependencyManager::get<NodeList>()->getPacketReceiver();
@@ -40,9 +41,9 @@ EntityServer::~EntityServer() {
     tree->removeNewlyCreatedHook(this);
 }
 
-void EntityServer::handleEntityPacket(QSharedPointer<NLPacket> packet, SharedNodePointer senderNode) {
+void EntityServer::handleEntityPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode) {
     if (_octreeInboundPacketProcessor) {
-        _octreeInboundPacketProcessor->queueReceivedPacket(packet, senderNode);
+        _octreeInboundPacketProcessor->queueReceivedPacket(message, senderNode);
     }
 }
 
@@ -60,6 +61,10 @@ OctreePointer EntityServer::createTree() {
         tree->setSimulation(simpleSimulation);
         _entitySimulation = simpleSimulation;
     }
+
+    DependencyManager::registerInheritance<SpatialParentFinder, AssignmentParentFinder>();
+    DependencyManager::set<AssignmentParentFinder>(tree);
+
     return tree;
 }
 
