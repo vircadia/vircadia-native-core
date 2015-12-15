@@ -93,8 +93,10 @@ function entitySlider(light, color, sliderType, row) {
         this.setValueFromMessage(message);
     }
 
-    //  this.setInitialSliderPositions();
+    this.setInitialSliderPositions();
     this.subscribeToBoxMessages();
+    this.createAxis();
+    this.createBoxIndicator();
     return this;
 }
 
@@ -133,11 +135,37 @@ entitySlider.prototype = {
         this.axis = Entities.addEntity(properties);
     },
     createBoxIndicator: function() {
+        var position = Vec3.sum(this.basePosition, this.verticalOffset);
+
+        //line starts on left and goes to right
+        //set the end of the line to the right
+        var rightVector = Quat.getRight(this.avatarRot);
+        var initialDistance;
+        if (this.sliderType === 'color_red') {
+            initialDistance = this.distanceRed;
+        }
+        if (this.sliderType === 'color_green') {
+            initialDistance = this.distanceGreen;
+        }
+        if (this.sliderType === 'color_blue') {
+            initialDistance = this.distanceBlue;
+        }
+        if (this.sliderType === 'intensity') {
+            initialDistance = this.distanceRed;
+        }
+        if (this.sliderType === 'cutoff') {
+            initialDistance = this.distanceCutoff;
+        }
+        if (this.sliderType === 'exponent') {
+            initialDistance = this.distanceExponent;
+        }
+        var extension = Vec3.multiply(initialDistance, rightVector);
+        var endOfAxis = Vec3.sum(position, extension);
         var properties = {
             type: 'Box',
             dimensions: BOX_DIMENSIONS,
             color: this.color,
-            position: position,
+            position: endOfAxis,
             script: BOX_SCRIPT_URL,
             userData: JSON.stringify({
                 lightModifierKey: {
@@ -225,12 +253,12 @@ entitySlider.prototype = {
         var CUTOFF_MAX = 360;
         var EXPONENT_MAX = 1;
 
-        var distanceRed = (this.initialProperties.color.red / COLOR_MAX) * AXIS_SCALE;
-        var distanceGreen = (this.initialProperties.color.green / COLOR_MAX) * AXIS_SCALE;
-        var distanceBlue = (this.initialProperties.color.blue / COLOR_MAX) * AXIS_SCALE;
-        var distanceIntensity = (this.initialProperties.intensity / INTENSITY_MAX) * AXIS_SCALE;
-        var distanceCutoff = (this.initialProperties.cutoff / CUTOFF_MAX) * AXIS_SCALE;
-        var distanceExponent = (this.initialProperties.exponent / EXPONENT_MAX) * AXIS_SCALE;
+        this.distanceRed = (this.initialProperties.color.red / COLOR_MAX) * AXIS_SCALE;
+        this.distanceGreen = (this.initialProperties.color.green / COLOR_MAX) * AXIS_SCALE;
+        this.distanceBlue = (this.initialProperties.color.blue / COLOR_MAX) * AXIS_SCALE;
+        this.distanceIntensity = (this.initialProperties.intensity / INTENSITY_MAX) * AXIS_SCALE;
+        this.distanceCutoff = (this.initialProperties.cutoff / CUTOFF_MAX) * AXIS_SCALE;
+        this.distanceExponent = (this.initialProperties.exponent / EXPONENT_MAX) * AXIS_SCALE;
     },
     cleanup: function() {
         Entities.deleteEntity(this.boxIndicator);
@@ -307,7 +335,6 @@ function handleLightModMessages(channel, message, sender) {
 
 function handleValueMessages(channel, message, sender) {
 
-
     if (channel !== 'Hifi-Slider-Value-Reciever') {
         return;
     }
@@ -318,8 +345,6 @@ function handleValueMessages(channel, message, sender) {
     var parsedMessage = JSON.parse(message);
 
     slidersRef[parsedMessage.sliderType].setValueFromMessage(parsedMessage)
-
-    // this.setValueFromMessage(parsedMessage);
 }
 
 function cleanup() {
@@ -334,6 +359,8 @@ function cleanup() {
 Script.scriptEnding.connect(cleanup);
 subScribeToNewLights();
 
+
+//other light properties
 // diffuseColor: { red: 255, green: 255, blue: 255 },
 // ambientColor: { red: 255, green: 255, blue: 255 },
 // specularColor: { red: 255, green: 255, blue: 255 },

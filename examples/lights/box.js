@@ -72,7 +72,7 @@
         },
         scaleValueBasedOnDistanceFromStart: function(value, max2) {
             var min1 = 0;
-            var max1 = 1;
+            var max1 = AXIS_SCALE;
             var min2 = 0;
             var max2 = max2;
             return min2 + (max2 - min2) * ((value - min1) / (max1 - min1));
