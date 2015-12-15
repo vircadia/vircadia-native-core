@@ -134,6 +134,7 @@ QUuid EntityScriptingInterface::addEntity(const EntityItemProperties& properties
                 auto nodeList = DependencyManager::get<NodeList>();
                 const QUuid myNodeID = nodeList->getSessionUUID();
                 propertiesWithSimID.setSimulationOwner(myNodeID, SCRIPT_EDIT_SIMULATION_PRIORITY);
+                propertiesWithSimID.setQueryAACube(entity->getQueryAACube());
 
                 // and make note of it now, so we can act on it right away.
                 entity->setSimulationOwner(myNodeID, SCRIPT_EDIT_SIMULATION_PRIORITY);
@@ -199,11 +200,11 @@ EntityItemProperties EntityScriptingInterface::getEntityProperties(QUuid identit
 QUuid EntityScriptingInterface::editEntity(QUuid id, const EntityItemProperties& scriptSideProperties) {
     EntityItemProperties properties = scriptSideProperties;
     EntityItemID entityID(id);
-    // If we have a local entity tree set, then also update it.
     if (!_entityTree) {
         queueEntityMessage(PacketType::EntityEdit, entityID, properties);
         return id;
     }
+    // If we have a local entity tree set, then also update it.
 
     bool updatedEntity = false;
     _entityTree->withWriteLock([&] {
@@ -271,6 +272,7 @@ QUuid EntityScriptingInterface::editEntity(QUuid id, const EntityItemProperties&
                     entity->flagForOwnership();
                 }
             }
+            properties.setQueryAACube(entity->getQueryAACube());
             entity->setLastBroadcast(usecTimestampNow());
         }
     });
