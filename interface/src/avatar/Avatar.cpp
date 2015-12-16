@@ -1106,6 +1106,12 @@ void Avatar::rebuildSkeletonBody() {
 }
 
 glm::vec3 Avatar::getLeftPalmPosition() {
+    if (QThread::currentThread() != thread()) {
+        glm::vec3 result;
+        QMetaObject::invokeMethod(const_cast<Avatar*>(this), "getLeftPalmPosition", Qt::BlockingQueuedConnection,
+                                  Q_RETURN_ARG(glm::vec3, result));
+        return result;
+    }
     glm::vec3 leftHandPosition;
     getSkeletonModel().getLeftHandPosition(leftHandPosition);
     glm::quat leftRotation;
@@ -1115,12 +1121,24 @@ glm::vec3 Avatar::getLeftPalmPosition() {
 }
 
 glm::quat Avatar::getLeftPalmRotation() {
+    if (QThread::currentThread() != thread()) {
+        glm::quat result;
+        QMetaObject::invokeMethod(const_cast<Avatar*>(this), "getLeftPalmRotation", Qt::BlockingQueuedConnection,
+                                  Q_RETURN_ARG(glm::quat, result));
+        return result;
+    }
     glm::quat leftRotation;
     getSkeletonModel().getJointRotationInWorldFrame(getSkeletonModel().getLeftHandJointIndex(), leftRotation);
     return leftRotation;
 }
 
 glm::vec3 Avatar::getRightPalmPosition() {
+    if (QThread::currentThread() != thread()) {
+        glm::vec3 result;
+        QMetaObject::invokeMethod(const_cast<Avatar*>(this), "getRightPalmPosition", Qt::BlockingQueuedConnection,
+                                  Q_RETURN_ARG(glm::vec3, result));
+        return result;
+    }
     glm::vec3 rightHandPosition;
     getSkeletonModel().getRightHandPosition(rightHandPosition);
     glm::quat rightRotation;
@@ -1130,6 +1148,12 @@ glm::vec3 Avatar::getRightPalmPosition() {
 }
 
 glm::quat Avatar::getRightPalmRotation() {
+    if (QThread::currentThread() != thread()) {
+        glm::quat result;
+        QMetaObject::invokeMethod(const_cast<Avatar*>(this), "getRightPalmRotation", Qt::BlockingQueuedConnection,
+                                  Q_RETURN_ARG(glm::quat, result));
+        return result;
+    }
     glm::quat rightRotation;
     getSkeletonModel().getJointRotationInWorldFrame(getSkeletonModel().getRightHandJointIndex(), rightRotation);
     return rightRotation;
