@@ -11,17 +11,20 @@
 //
 
 
+//some experimental options
+var ONLY_I_CAN_EDIT = false;
+var SLIDERS_SHOULD_STAY_WITH_AVATAR = false;
+var VERTICAL_SLIDERS = false;
+
 // Script.include('../libraries/lightOverlayManager.js');
 // var lightOverlayManager = new LightOverlayManager();
 // lightOverlayManager.setVisible(true);
 
-   // var pickRay = Camera.computePickRay(event.x, event.y);
-   // var lightResult = lightOverlayManager.findRayIntersection(pickRay)
-
+// var pickRay = Camera.computePickRay(event.x, event.y);
+// var lightResult = lightOverlayManager.findRayIntersection(pickRay)
 
 var DEFAULT_PARENT_ID = '{00000000-0000-0000-0000-000000000000}'
-var SHOULD_STAY_WITH_AVATAR = false;
-var VERTICAL_SLIDERS = false;
+
 
 var AXIS_SCALE = 1;
 var COLOR_MAX = 255;
@@ -88,7 +91,7 @@ function entitySlider(light, color, sliderType, row) {
     this.verticalOffset = Vec3.multiply(row, PER_ROW_OFFSET);
     this.avatarRot = Quat.fromPitchYawRollDegrees(0, MyAvatar.bodyYaw, 0.0);
     this.basePosition = Vec3.sum(MyAvatar.position, Vec3.multiply(1.5, Quat.getFront(this.avatarRot)));
-    this.basePosition.y +=1;
+    this.basePosition.y += 1;
 
     var message = {
         lightID: this.lightID,
@@ -134,14 +137,23 @@ function entitySlider(light, color, sliderType, row) {
 entitySlider.prototype = {
     createAxis: function() {
         //start of line
-        var position = Vec3.sum(this.basePosition, this.verticalOffset);
+        var position;
+        var extension;
 
-        //line starts on left and goes to right
-        //set the end of the line to the right
-        var rightVector = Quat.getRight(this.avatarRot);
-        var extension = Vec3.multiply(AXIS_SCALE, rightVector);
-        var endOfAxis = Vec3.sum(position, extension);
-        this.endOfAxis = endOfAxis;
+        if (VERTICAL_SLIDERS == true) {
+            position = Vec3.sum(this.basePosition, Vec3.multiply(row, (Vec3.multiply(0.2, Quat.getRight(this.avatarRot)))));
+            //line starts on bottom and goes up
+            var upVector = Quat.getUp(this.avatarRot);
+            extension = Vec3.multiply(AXIS_SCALE, upVector);
+        } else {
+            position = Vec3.sum(this.basePosition, this.verticalOffset);
+            //line starts on left and goes to right
+            //set the end of the line to the right
+            var rightVector = Quat.getRight(this.avatarRot);
+            extension = Vec3.multiply(AXIS_SCALE, rightVector);
+        }
+
+        this.endOfAxis = Vec3.sum(position, extension);
         var properties = {
             type: 'Line',
             name: 'Hifi-Slider-Axis::' + this.sliderType,
@@ -165,10 +177,18 @@ entitySlider.prototype = {
         this.axis = Entities.addEntity(properties);
     },
     createSliderIndicator: function() {
-        var position = Vec3.sum(this.basePosition, this.verticalOffset);
-        //line starts on left and goes to right
-        //set the end of the line to the right
-        var rightVector = Quat.getRight(this.avatarRot);
+        var extensionVector;
+        var position;
+        if (VERTICAL_SLIDERS == true) {
+            position = Vec3.sum(this.basePosition, Vec3.multiply(row, (Vec3.multiply(0.2, Quat.getRight(this.avatarRot)))));
+            extensionVector = Quat.getUp(this.avatarRot);
+
+        } else {
+            position = Vec3.sum(this.basePosition, this.verticalOffset);
+            extensionVector = Quat.getRight(this.avatarRot);
+
+        }
+
         var initialDistance;
         if (this.sliderType === 'color_red') {
             initialDistance = this.distanceRed;
@@ -188,11 +208,13 @@ entitySlider.prototype = {
         if (this.sliderType === 'exponent') {
             initialDistance = this.distanceExponent;
         }
-        var extension = Vec3.multiply(initialDistance, rightVector);
+
+        var extension = Vec3.multiply(initialDistance, extensionVector);
         var sliderPosition = Vec3.sum(position, extension);
+
         var properties = {
             type: 'Sphere',
-            name: 'Hifi-Slider::' + this.sliderType,
+            name: 'Hifi-Slider-' + this.sliderType,
             dimensions: SLIDER_DIMENSIONS,
             collisionsWillMove: true,
             color: this.color,
@@ -367,10 +389,9 @@ function handleValueMessages(channel, message, sender) {
     if (channel !== 'Hifi-Slider-Value-Reciever') {
         return;
     }
-    //easily protect from other people editing your values, but group editing might be fun so lets try that first.
-    // if (sender !== MyAvatar.sessionUUID) {
-    //     return;
-    // }
+    if (ONLY_I_CAN_EDIT === true && sender !== MyAvatar.sessionUUID) {
+        return;
+    }
     var parsedMessage = JSON.parse(message);
 
     slidersRef[parsedMessage.sliderType].setValueFromMessage(parsedMessage);
@@ -452,7 +473,6 @@ Entities.deletingEntity.connect(deleteEntity);
 //         return delta;
 //     };
 // }
-
 
 
 
