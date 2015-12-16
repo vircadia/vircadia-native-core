@@ -23,19 +23,27 @@ var selectionManager;
 var lightOverlayManager;
 
 if (SHOW_OVERLAYS === true) {
+
+    Script.include('../libraries/gridTool.js');
     Script.include('../libraries/entitySelectionTool.js');
+    Script.include('../libraries/lightOverlayManager.js');
+
+    var grid = Grid();
+    gridTool = GridTool({
+        horizontalGrid: grid
+    });
+    gridTool.setVisible(false);
 
     selectionDisplay = SelectionDisplay;
     selectionManager = SelectionManager;
-    Script.include('../libraries/lightOverlayManager.js');
     lightOverlayManager = new LightOverlayManager();
     selectionManager.addEventListener(function() {
         selectionDisplay.updateHandles();
         lightOverlayManager.updatePositions();
     });
-
     lightOverlayManager.setVisible(true);
 }
+
 // var entityResult = Entities.findRayIntersection(pickRay, true); // want precision picking
 // var pickRay = Camera.computePickRay(event.x, event.y);
 // var lightResult = lightOverlayManager.findRayIntersection(pickRay)
