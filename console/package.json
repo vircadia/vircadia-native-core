@@ -15,7 +15,7 @@
     "type": "git",
     "url": "https://github.com/highfidelity/hifi.git"
   },
-  "main": "main.js",
+  "main": "src/main.js",
   "scripts": {
     "start": "electron . --local-debug-builds",
     "local-release": "electron . --local-release-builds",
@@ -24,6 +24,7 @@
     "package-linux": "electron-packager . Console --platform=linux --arch=x64 --version=0.36.0"
   },
   "dependencies": {
-    "yargs": "^3.30.0"
+    "yargs": "^3.30.0",
+    "extend": "^3.0.0"
   }
 }
