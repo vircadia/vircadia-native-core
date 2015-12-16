@@ -234,6 +234,7 @@ void NodeList::addSetOfNodeTypesToNodeInterestSet(const NodeSet& setOfNodeTypes)
 void NodeList::sendDomainServerCheckIn() {
     if (_isShuttingDown) {
         qCDebug(networking) << "Refusing to send a domain-server check in while shutting down.";
+        return;
     }
     
     if (_publicSockAddr.isNull()) {
