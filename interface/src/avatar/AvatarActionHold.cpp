@@ -52,7 +52,7 @@ void AvatarActionHold::prepareForPhysicsSimulation() {
         return;
     }
 
-    withReadLock([&]{
+    withWriteLock([&]{
         if (_ignoreIK && holdingAvatar->isMyAvatar()) {
             return;
         }
