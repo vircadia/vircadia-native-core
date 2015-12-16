@@ -84,6 +84,7 @@ public:
     EntityPropertyFlags getChangedProperties() const;
 
     bool parentDependentPropertyChanged() const; // was there a changed in a property that requires parent info to interpret?
+    bool parentRelatedPropertyChanged() const; // parentDependentPropertyChanged or parentID or parentJointIndex
 
     AABox getAABox() const;
 

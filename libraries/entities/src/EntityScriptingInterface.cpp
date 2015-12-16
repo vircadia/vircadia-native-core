@@ -134,7 +134,10 @@ QUuid EntityScriptingInterface::addEntity(const EntityItemProperties& properties
                 auto nodeList = DependencyManager::get<NodeList>();
                 const QUuid myNodeID = nodeList->getSessionUUID();
                 propertiesWithSimID.setSimulationOwner(myNodeID, SCRIPT_EDIT_SIMULATION_PRIORITY);
-                propertiesWithSimID.setQueryAACube(entity->getQueryAACube());
+                if (propertiesWithSimID.parentRelatedPropertyChanged()) {
+                    // due to parenting, the server may not know where something is in world-space, so include the bounding cube.
+                    propertiesWithSimID.setQueryAACube(entity->getQueryAACube());
+                }
 
                 // and make note of it now, so we can act on it right away.
                 entity->setSimulationOwner(myNodeID, SCRIPT_EDIT_SIMULATION_PRIORITY);
@@ -272,7 +275,9 @@ QUuid EntityScriptingInterface::editEntity(QUuid id, const EntityItemProperties&
                     entity->flagForOwnership();
                 }
             }
-            properties.setQueryAACube(entity->getQueryAACube());
+            if (properties.parentRelatedPropertyChanged()) {
+                properties.setQueryAACube(entity->getQueryAACube());
+            }
             entity->setLastBroadcast(usecTimestampNow());
         }
     });
