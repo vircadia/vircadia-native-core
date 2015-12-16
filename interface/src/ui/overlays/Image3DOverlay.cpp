@@ -26,14 +26,16 @@
 QString const Image3DOverlay::TYPE = "image3d";
 
 Image3DOverlay::Image3DOverlay() {
-      _isLoaded = false;
+    _isLoaded = false;
+    _emissive = false;
 }
 
 Image3DOverlay::Image3DOverlay(const Image3DOverlay* image3DOverlay) :
     Billboard3DOverlay(image3DOverlay),
     _url(image3DOverlay->_url),
     _texture(image3DOverlay->_texture),
-    _fromImage(image3DOverlay->_fromImage)
+    _fromImage(image3DOverlay->_fromImage),
+    _emissive(image3DOverlay->_emissive)
 {
 }
 
@@ -93,8 +95,8 @@ void Image3DOverlay::render(RenderArgs* args) {
 
     batch->setModelTransform(transform);
     batch->setResourceTexture(0, _texture->getGPUTexture());
-    
-    DependencyManager::get<DeferredLightingEffect>()->bindSimpleProgram(*batch, true, false, false, true);
+
+    DependencyManager::get<DeferredLightingEffect>()->bindSimpleProgram(*batch, true, false, _emissive, true);
     DependencyManager::get<GeometryCache>()->renderQuad(
         *batch, topLeft, bottomRight, texCoordTopLeft, texCoordBottomRight,
         glm::vec4(color.red / MAX_COLOR, color.green / MAX_COLOR, color.blue / MAX_COLOR, alpha)
@@ -144,6 +146,11 @@ void Image3DOverlay::setProperties(const QScriptValue &properties) {
             setClipFromSource(subImageRect);
         }
     }
+
+    QScriptValue emissiveValue = properties.property("emissive");
+    if (emissiveValue.isValid()) {
+        _emissive = emissiveValue.toBool();
+    }
 }
 
 QScriptValue Image3DOverlay::getProperty(const QString& property) {
@@ -155,6 +162,9 @@ QScriptValue Image3DOverlay::getProperty(const QString& property) {
     }
     if (property == "offsetPosition") {
         return vec3toScriptValue(_scriptEngine, getOffsetPosition());
+    }
+    if (property == "emissive") {
+        return _emissive;
     }
 
     return Billboard3DOverlay::getProperty(property);

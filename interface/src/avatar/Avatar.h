@@ -36,7 +36,6 @@ namespace render {
 
 static const float SCALING_RATIO = .05f;
 static const float SMOOTHING_RATIO = .05f; // 0 < ratio < 1
-static const float RESCALING_TOLERANCE = .02f;
 
 static const float BILLBOARD_FIELD_OF_VIEW = 30.0f; // degrees
 static const float BILLBOARD_DISTANCE = 5.56f;       // meters
@@ -89,7 +88,7 @@ public:
     SkeletonModel& getSkeletonModel() { return _skeletonModel; }
     const SkeletonModel& getSkeletonModel() const { return _skeletonModel; }
     glm::vec3 getChestPosition() const;
-    float getAvatarScale() const { return getScale().y; }
+    float getUniformScale() const { return getScale().y; }
     const Head* getHead() const { return static_cast<const Head*>(_headData); }
     Head* getHead() { return static_cast<Head*>(_headData); }
     Hand* getHand() { return static_cast<Hand*>(_handData); }
@@ -154,11 +153,10 @@ public:
     // (otherwise floating point error will cause problems at large positions).
     void applyPositionDelta(const glm::vec3& delta);
 
-    virtual void rebuildSkeletonBody();
+    virtual void rebuildCollisionShape();
 
     virtual void computeShapeInfo(ShapeInfo& shapeInfo);
 
-    void setMotionState(AvatarMotionState* motionState) { _motionState = motionState; }
     AvatarMotionState* getMotionState() { return _motionState; }
 
     using SpatiallyNestable::setPosition;
@@ -175,6 +173,10 @@ public slots:
     glm::quat getRightPalmRotation();
 
 protected:
+    friend class AvatarManager;
+
+    void setMotionState(AvatarMotionState* motionState);
+
     SkeletonModel _skeletonModel;
     glm::vec3 _skeletonOffset;
     QVector<Model*> _attachmentModels;
@@ -201,14 +203,15 @@ protected:
     float _stringLength;
     bool _moving; ///< set when position is changing
 
-    bool isLookingAtMe(AvatarSharedPointer avatar);
-
     // protected methods...
+    bool isLookingAtMe(AvatarSharedPointer avatar) const;
+
+    virtual void animateScaleChanges(float deltaTime);
+
     glm::vec3 getBodyRightDirection() const { return getOrientation() * IDENTITY_RIGHT; }
     glm::vec3 getBodyUpDirection() const { return getOrientation() * IDENTITY_UP; }
     glm::vec3 getBodyFrontDirection() const { return getOrientation() * IDENTITY_FRONT; }
     glm::quat computeRotationFromBodyToWorldUp(float proportion = 1.0f) const;
-    void setAvatarScale(float scale);
     void measureMotionDerivatives(float deltaTime);
 
     float getSkeletonHeight() const;

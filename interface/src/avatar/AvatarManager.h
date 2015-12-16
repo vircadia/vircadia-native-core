@@ -52,7 +52,7 @@ public:
         glm::vec3 color;
         glm::vec3 direction;
     };
-    
+
     Q_INVOKABLE void setLocalLights(const QVector<AvatarManager::LocalLight>& localLights);
     Q_INVOKABLE QVector<AvatarManager::LocalLight> getLocalLights() const;
     // Currently, your own avatar will be included as the null avatar id.
@@ -66,8 +66,8 @@ public:
     void handleOutgoingChanges(const VectorOfMotionStates& motionStates);
     void handleCollisionEvents(const CollisionEvents& collisionEvents);
 
-    void updateAvatarPhysicsShape(Avatar* avatar);
-    
+    void addAvatarToSimulation(Avatar* avatar);
+
     // Expose results and parameter-tuning operations to other systems, such as stats and javascript.
     Q_INVOKABLE float getRenderDistance() { return _renderDistance; }
     Q_INVOKABLE float getRenderDistanceInverseLowLimit() { return _renderDistanceController.getControlledValueLowLimit(); }
@@ -80,7 +80,7 @@ public:
     Q_INVOKABLE void setRenderDistanceKD(float newValue) { _renderDistanceController.setKD(newValue); }
     Q_INVOKABLE void setRenderDistanceInverseLowLimit(float newValue) { _renderDistanceController.setControlledValueLowLimit(newValue); }
     Q_INVOKABLE void setRenderDistanceInverseHighLimit(float newValue);
-   
+
 public slots:
     void setShouldShowReceiveStats(bool shouldShowReceiveStats) { _shouldShowReceiveStats = shouldShowReceiveStats; }
     void updateAvatarRenderStatus(bool shouldRenderAvatars);
@@ -90,19 +90,19 @@ private:
     AvatarManager(const AvatarManager& other);
 
     void simulateAvatarFades(float deltaTime);
-    
+
     // virtual overrides
     virtual AvatarSharedPointer newSharedAvatar();
     virtual AvatarSharedPointer addAvatar(const QUuid& sessionUUID, const QWeakPointer<Node>& mixerWeakPointer);
     void removeAvatarMotionState(AvatarSharedPointer avatar);
-    
+
     virtual void removeAvatar(const QUuid& sessionUUID);
     virtual void handleRemovedAvatar(const AvatarSharedPointer& removedAvatar);
-    
+
     QVector<AvatarSharedPointer> _avatarFades;
     std::shared_ptr<MyAvatar> _myAvatar;
     quint64 _lastSendAvatarDataTime = 0; // Controls MyAvatar send data rate.
-    
+
     QVector<AvatarManager::LocalLight> _localLights;
 
     bool _shouldShowReceiveStats = false;

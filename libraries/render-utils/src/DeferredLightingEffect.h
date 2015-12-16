@@ -38,7 +38,7 @@ public:
 
     /// Sets up the state necessary to render static untextured geometry with the simple program.
     gpu::PipelinePointer bindSimpleProgram(gpu::Batch& batch, bool textured = false, bool culled = true,
-                           bool emmisive = false, bool depthBias = false);
+                           bool emissive = false, bool depthBias = false);
 
     void renderSolidSphereInstance(gpu::Batch& batch, const Transform& xfm, const glm::vec4& color);
     void renderSolidSphereInstance(gpu::Batch& batch, const Transform& xfm, const glm::vec3& color) { 
