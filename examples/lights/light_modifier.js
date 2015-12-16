@@ -48,6 +48,12 @@ var WHITE = {
     blue: 255
 };
 
+var ORANGE={
+    red:255,
+    green:0,
+    blue:128
+}
+
 var SLIDER_DIMENSIONS = {
     x: 0.075,
     y: 0.075,
@@ -309,7 +315,7 @@ function makeSliders(light) {
         sliders.push(slidersRef.cutoff);
     }
     if (USE_EXPONENT_SLIDER === true) {
-        slidersRef.exponent = new entitySlider(light, PURPLE, 'exponent', 6);
+        slidersRef.exponent = new entitySlider(light, ORANGE, 'exponent', 6);
         sliders.push(slidersRef.exponent);
     }
     subscribeToSliderMessages();
