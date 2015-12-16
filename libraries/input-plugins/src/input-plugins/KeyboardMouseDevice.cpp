@@ -99,6 +99,9 @@ void KeyboardMouseDevice::mouseMoveEvent(QMouseEvent* event, unsigned int device
     _inputDevice->_axisStateMap[MOUSE_AXIS_Y_POS] = (currentMove.y() < 0 ? -currentMove.y() : 0.0f);
     _inputDevice->_axisStateMap[MOUSE_AXIS_Y_NEG] = (currentMove.y() > 0 ? currentMove.y() : 0.0f);
 
+    // FIXME - this has the characteristic that it will show large jumps when you move the cursor
+    // outside of the application window, because we don't get MouseEvents when the cursor is outside
+    // of the application window.
     _lastCursor = currentPos;
     _mouseMoved = true;
 
