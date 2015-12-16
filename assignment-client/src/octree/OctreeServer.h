@@ -124,7 +124,6 @@ public:
     bool handleHTTPRequest(HTTPConnection* connection, const QUrl& url, bool skipSubHandler);
 
     virtual void aboutToFinish();
-    void forceNodeShutdown(SharedNodePointer node);
 
 public slots:
     /// runs the octree server assignment
@@ -138,6 +137,7 @@ private slots:
     void handleOctreeQueryPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode);
     void handleOctreeDataNackPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode);
     void handleJurisdictionRequestPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode);
+    void removeSendThread();
 
 protected:
     virtual OctreePointer createTree() = 0;
@@ -190,6 +190,9 @@ protected:
     time_t _started;
     quint64 _startedUSecs;
     QString _safeServerName;
+    
+    using SendThreads = std::unordered_map<QUuid, std::unique_ptr<OctreeSendThread>>;
+    SendThreads _sendThreads;
 
     static int _clientCount;
     static SimpleMovingAverage _averageLoopTime;

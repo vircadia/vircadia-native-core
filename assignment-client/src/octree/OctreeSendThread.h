@@ -31,6 +31,8 @@ public:
     virtual ~OctreeSendThread();
 
     void setIsShuttingDown();
+    bool isShuttingDown() { return _isShuttingDown; }
+    
     QUuid getNodeUuid() const { return _nodeUuid; }
 
     static AtomicUIntStat _totalBytes;

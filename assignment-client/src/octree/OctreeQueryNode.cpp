@@ -20,52 +20,8 @@
 
 #include "OctreeSendThread.h"
 
-OctreeQueryNode::~OctreeQueryNode() {
-    _isShuttingDown = true;
-    if (_octreeSendThread) {
-        forceNodeShutdown();
-    }
-}
-
 void OctreeQueryNode::nodeKilled() {
     _isShuttingDown = true;
-    if (_octreeSendThread) {
-        // just tell our thread we want to shutdown, this is asynchronous, and fast, we don't need or want it to block
-        // while the thread actually shuts down
-        _octreeSendThread->setIsShuttingDown();
-    }
-}
-
-void OctreeQueryNode::forceNodeShutdown() {
-    _isShuttingDown = true;
-    if (_octreeSendThread) {
-        // we really need to force our thread to shutdown, this is synchronous, we will block while the thread actually
-        // shuts down because we really need it to shutdown, and it's ok if we wait for it to complete
-        OctreeSendThread* sendThread = _octreeSendThread;
-        _octreeSendThread = NULL;
-        sendThread->setIsShuttingDown();
-        sendThread->terminate();
-        delete sendThread;
-    }
-}
-
-void OctreeQueryNode::sendThreadFinished() {
-    // We've been notified by our thread that it is shutting down. So we can clean up our reference to it, and
-    // delete the actual thread object. Cleaning up our thread will correctly unroll all refereces to shared
-    // pointers to our node as well as the octree server assignment
-    if (_octreeSendThread) {
-        OctreeSendThread* sendThread = _octreeSendThread;
-        _octreeSendThread = NULL;
-        delete sendThread;
-    }
-}
-
-void OctreeQueryNode::initializeOctreeSendThread(OctreeServer* myServer, const SharedNodePointer& node) {
-    _octreeSendThread = new OctreeSendThread(myServer, node);
-
-    // we want to be notified when the thread finishes
-    connect(_octreeSendThread, &GenericThread::finished, this, &OctreeQueryNode::sendThreadFinished);
-    _octreeSendThread->initialize(true);
 }
 
 bool OctreeQueryNode::packetIsDuplicate() const {

@@ -29,8 +29,8 @@ class OctreeServer;
 class OctreeQueryNode : public OctreeQuery {
     Q_OBJECT
 public:
-    OctreeQueryNode() {}
-    virtual ~OctreeQueryNode();
+    OctreeQueryNode() = default;
+    virtual ~OctreeQueryNode() = default;
 
     void init(); // called after creation to set up some virtual items
     virtual PacketType getMyPacketType() const = 0;
@@ -79,9 +79,6 @@ public:
 
     OctreeSceneStats stats;
 
-    void initializeOctreeSendThread(OctreeServer* myServer, const SharedNodePointer& node);
-    bool isOctreeSendThreadInitalized() { return _octreeSendThread; }
-
     void dumpOutOfView();
 
     quint64 getLastRootTimestamp() const { return _lastRootTimestamp; }
@@ -92,7 +89,6 @@ public:
     void sceneStart(quint64 sceneSendStartTime) { _sceneSendStartTime = sceneSendStartTime; }
 
     void nodeKilled();
-    void forceNodeShutdown();
     bool isShuttingDown() const { return _isShuttingDown; }
 
     void octreePacketSent() { packetSent(*_octreePacket); }
@@ -103,9 +99,6 @@ public:
     void parseNackPacket(ReceivedMessage& message);
     bool hasNextNackedPacket() const;
     const NLPacket* getNextNackedPacket();
-
-private slots:
-    void sendThreadFinished();
 
 private:
     OctreeQueryNode(const OctreeQueryNode &);

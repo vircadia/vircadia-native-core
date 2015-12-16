@@ -15,7 +15,6 @@
 
 
 GenericThread::GenericThread() :
-    QObject(),
     _stopThread(false),
     _isThreaded(false) // assume non-threaded, must call initialize()
 {
