@@ -35,6 +35,7 @@ public:
 
     virtual bool shouldSuppressLocationEdits() override { return _active && !_ownerEntity.expired(); }
 
+    glm::vec3 getAvatarRigidBodyPosition();
     std::shared_ptr<Avatar> getTarget(glm::quat& rotation, glm::vec3& position);
 
     virtual void prepareForPhysicsSimulation() override;
