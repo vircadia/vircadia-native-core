@@ -47,13 +47,12 @@ protected:
     virtual bool process();
 
 private:
-    int handlePacketSend(OctreeQueryNode* nodeData, int& trueBytesSent, int& truePacketsSent);
-    int packetDistributor(OctreeQueryNode* nodeData, bool viewFrustumChanged);
+    int handlePacketSend(SharedNodePointer node, OctreeQueryNode* nodeData, int& trueBytesSent, int& truePacketsSent);
+    int packetDistributor(SharedNodePointer node, OctreeQueryNode* nodeData, bool viewFrustumChanged);
     
     
     OctreeServer* _myServer { nullptr };
-    SharedNodePointer _node;
-    QUuid _nodeUUID;
+    QWeakPointer<Node> _node;
 
     OctreePacketData _packetData;
 
