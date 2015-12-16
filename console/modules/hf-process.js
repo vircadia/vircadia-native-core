@@ -54,7 +54,8 @@ Process.prototype = extend(Process.prototype, {
         console.log("Starting " + this.command);
         try {
             this.child = childProcess.spawn(this.command, this.commandArgs, {
-                detached: false
+                detached: false,
+                stdio: 'ignore'
             });
             //console.log("started ", this.child);
             this.child.on('error', this.onChildStartError.bind(this));
