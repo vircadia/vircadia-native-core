@@ -86,19 +86,13 @@ public:
 
     template <class T> T& edit() {
         auto theConcept = std::dynamic_pointer_cast<typename T::JobModel>(_concept);
-        if (theConcept) {
-            return theConcept->_data;
-        }
-        assert(false);
-        return T();
+        assert(theConcept);
+        return theConcept->_data;
     }
     template <class T> const T& get() const {
         auto theConcept = std::dynamic_pointer_cast<typename T::JobModel>(_concept);
-        if (theConcept) {
-            return theConcept->_data;
-        }
-        assert(false);
-        return T();
+        assert(theConcept);
+        return theConcept->_data;
     }
 
     void run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext) {
