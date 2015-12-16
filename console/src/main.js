@@ -21,8 +21,8 @@ var mainWindow = null;
 var appIcon = null;
 
 var path = require('path');
-var TRAY_ICON = path.join(__dirname, '../resources/tray-icon.png');
-var APP_ICON = path.join(__dirname, '../resources/icon.png');
+var TRAY_ICON = path.join(__dirname, '../resources/console-tray.png');
+var APP_ICON = path.join(__dirname, '../resources/console.png');
 
 // Quit when all windows are closed.
 app.on('window-all-closed', function() {

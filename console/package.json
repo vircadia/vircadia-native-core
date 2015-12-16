@@ -19,8 +19,8 @@
   "scripts": {
     "start": "electron . --local-debug-builds",
     "local-release": "electron . --local-release-builds",
-    "package-darwin": "electron-packager . Console --overwrite --platform=darwin --arch=x64 --version=0.36.0 --icon=resources/icon.icns",
-    "package-win": "electron-packager . Console --overwrite --platform=win32 --arch=x64 --version=0.36.0",
+    "package-darwin": "electron-packager . Console --overwrite --platform=darwin --arch=x64 --version=0.36.0 --icon=resources/console.icns",
+    "package-win": "electron-packager . Console --overwrite --platform=win32 --arch=x64 --version=0.36.0 --icon=resources/console.ico",
     "package-linux": "electron-packager . Console --overwrite --platform=linux --arch=x64 --version=0.36.0"
   },
   "dependencies": {
