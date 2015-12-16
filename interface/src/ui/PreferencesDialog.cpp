@@ -225,7 +225,7 @@ void PreferencesDialog::loadPreferences() {
     ui.useAcuityCheckBox->setChecked(lodManager->getUseAcuity());
     ui.desktopMinimumFPSSpin->setValue(lodManager->getDesktopLODDecreaseFPS());
     ui.hmdMinimumFPSSpin->setValue(lodManager->getHMDLODDecreaseFPS());
-    ui.smallestReasonableRenderHorizon->setValue(1.0f / DependencyManager::get<AvatarManager>()->getRenderDistanceInverseHighLimit());
+    ui.smallestReasonableRenderHorizon->setValue(1.0f / lodManager->getRenderDistanceInverseHighLimit());
     changeUseAcuity();
 }
 
@@ -318,5 +318,5 @@ void PreferencesDialog::savePreferences() {
     lodManager->setUseAcuity(ui.useAcuityCheckBox->isChecked());
     lodManager->setDesktopLODDecreaseFPS(ui.desktopMinimumFPSSpin->value());
     lodManager->setHMDLODDecreaseFPS(ui.hmdMinimumFPSSpin->value());
-    DependencyManager::get<AvatarManager>()->setRenderDistanceInverseHighLimit(1.0f / ui.smallestReasonableRenderHorizon->value());
+    lodManager->setRenderDistanceInverseHighLimit(1.0f / ui.smallestReasonableRenderHorizon->value());
 }

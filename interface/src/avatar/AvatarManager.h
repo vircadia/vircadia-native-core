@@ -79,7 +79,7 @@ public:
     Q_INVOKABLE void setRenderDistanceKI(float newValue) { _renderDistanceController.setKI(newValue); }
     Q_INVOKABLE void setRenderDistanceKD(float newValue) { _renderDistanceController.setKD(newValue); }
     Q_INVOKABLE void setRenderDistanceInverseLowLimit(float newValue) { _renderDistanceController.setControlledValueLowLimit(newValue); }
-    Q_INVOKABLE void setRenderDistanceInverseHighLimit(float newValue);
+    Q_INVOKABLE void setRenderDistanceInverseHighLimit(float newValue) { _renderDistanceController.setControlledValueHighLimit(newValue); }
    
 public slots:
     void setShouldShowReceiveStats(bool shouldShowReceiveStats) { _shouldShowReceiveStats = shouldShowReceiveStats; }

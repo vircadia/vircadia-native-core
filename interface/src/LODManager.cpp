@@ -9,6 +9,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include <avatar/AvatarManager.h>
 #include <SettingHandle.h>
 #include <Util.h>
 
@@ -21,24 +22,31 @@
 Setting::Handle<float> desktopLODDecreaseFPS("desktopLODDecreaseFPS", DEFAULT_DESKTOP_LOD_DOWN_FPS);
 Setting::Handle<float> hmdLODDecreaseFPS("hmdLODDecreaseFPS", DEFAULT_HMD_LOD_DOWN_FPS);
 // There are two different systems in use, based on lodPreference:
-// pid: renderDistance is automatically adjusted such that frame rate targets are met.
-// acuity:  a pseudo-acuity target is held, or adjusted to match minimum frame rates.
+// pid: renderDistance is adjusted by a PID such that frame rate targets are met.
+// acuity:  a pseudo-acuity target is held, or adjusted to match minimum frame rates (and a PID controlls avatar rendering distance)
 // If unspecified, acuity is used only if user has specified non-default minumum frame rates.
 Setting::Handle<int> lodPreference("lodPreference", (int)LODManager::LODPreference::unspecified);
+const float SMALLEST_REASONABLE_HORIZON = 50.0f; // meters
+Setting::Handle<float> renderDistanceInverseHighLimit("renderDistanceInverseHighLimit", 1.0f / SMALLEST_REASONABLE_HORIZON);
+void LODManager::setRenderDistanceInverseHighLimit(float newValue) {
+    renderDistanceInverseHighLimit.set(newValue); // persist it, and tell all the controllers that use it
+    _renderDistanceController.setControlledValueHighLimit(newValue);
+   DependencyManager::get<AvatarManager>()->setRenderDistanceInverseHighLimit(newValue);
+}
 
 LODManager::LODManager() {
     calculateAvatarLODDistanceMultiplier();
 
-    _renderDistanceController.setControlledValueHighLimit(20.0f);
-    _renderDistanceController.setControlledValueLowLimit(1.0f / (float)TREE_SCALE);
+    setRenderDistanceInverseHighLimit(renderDistanceInverseHighLimit.get());
+    setRenderDistanceInverseLowLimit(1.0f / (float)TREE_SCALE);
     // Advice for tuning parameters:
     // See PIDController.h. There's a section on tuning in the reference.
     // Turn on logging with the following (or from js with AvatarList.setRenderDistanceControllerHistory("avatar render", 300))
     //_renderDistanceController.setHistorySize("avatar render", target_fps * 4);
     // Note that extra logging/hysteresis is turned off in Avatar.cpp when the above logging is on.
-    _renderDistanceController.setKP(0.000012f); // Usually about 0.6 of largest that doesn't oscillate when other parameters 0.
-    _renderDistanceController.setKI(0.00002f); // Big enough to bring us to target with the above KP.
-    _renderDistanceController.setHistorySize("FIXME", 240);
+    setRenderDistanceKP(0.000012f); // Usually about 0.6 of largest that doesn't oscillate when other parameters 0.
+    setRenderDistanceKI(0.00002f); // Big enough to bring us to target with the above KP.
+    //setRenderDistanceControllerHistory("FIXME", 240);
 }
 
 float LODManager::getLODDecreaseFPS() {
@@ -242,6 +250,14 @@ float LODManager::getRenderDistance() {
 }
 int LODManager::getRenderedCount() {
     return lastRenderedCount;
+}
+QString LODManager::getLODStatsRenderText() {
+    if (getUseAcuity()) {
+        auto avatarManager = DependencyManager::get<AvatarManager>();
+        return QString("Renderable avatars: ") + QString::number(avatarManager->getNumberInRenderRange()) + " w/in " + QString::number((int)avatarManager->getRenderDistance()) + "m";
+    } else {
+        return QString("Rendered objects: ") + QString::number(getRenderedCount()) + " w/in " + QString::number((int)getRenderDistance()) + "m";
+    }
 }
 // compare audoAdjustLOD()
 void LODManager::updatePIDRenderDistance(float targetFps, float measuredFps, float deltaTime, bool isThrottled) {

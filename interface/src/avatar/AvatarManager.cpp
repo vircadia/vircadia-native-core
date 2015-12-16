@@ -34,6 +34,7 @@
 #include "Application.h"
 #include "Avatar.h"
 #include "AvatarManager.h"
+#include "LODManager.h"
 #include "Menu.h"
 #include "MyAvatar.h"
 #include "SceneScriptingInterface.h"
@@ -76,13 +77,6 @@ AvatarManager::AvatarManager(QObject* parent) :
     packetReceiver.registerListener(PacketType::AvatarBillboard, this, "processAvatarBillboardPacket");
 }
 
-const float SMALLEST_REASONABLE_HORIZON = 5.0f; // meters
-Setting::Handle<float> avatarRenderDistanceInverseHighLimit("avatarRenderDistanceHighLimit", 1.0f / SMALLEST_REASONABLE_HORIZON);
-void AvatarManager::setRenderDistanceInverseHighLimit(float newValue) {
-    avatarRenderDistanceInverseHighLimit.set(newValue);
-     _renderDistanceController.setControlledValueHighLimit(newValue);
-}
-
 void AvatarManager::init() {
     _myAvatar->init();
     {
@@ -100,8 +94,8 @@ void AvatarManager::init() {
     scene->enqueuePendingChanges(pendingChanges);
 
     const float target_fps = qApp->getTargetFrameRate();
-    _renderDistanceController.setMeasuredValueSetpoint(target_fps);
-    _renderDistanceController.setControlledValueHighLimit(avatarRenderDistanceInverseHighLimit.get());
+    _renderDistanceController.setMeasuredValueSetpoint(target_fps / 2.0f);
+    _renderDistanceController.setControlledValueHighLimit(DependencyManager::get<LODManager>()->getRenderDistanceInverseHighLimit());
     _renderDistanceController.setControlledValueLowLimit(1.0f / (float) TREE_SCALE);
     // Advice for tuning parameters:
     // See PIDController.h. There's a section on tuning in the reference.
