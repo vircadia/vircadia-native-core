@@ -27,6 +27,9 @@ public:
 
     void render(RenderArgs* args);
 
+    void setExposure(float exposure);
+    float getExposure() const { return _parametersBuffer.get<Parameters>()._exposure; }
+
 private:
 
     gpu::PipelinePointer _blitLightBuffer;
@@ -34,7 +37,10 @@ private:
     // Class describing the uniform buffer with all the parameters common to the tone mapping shaders
     class Parameters {
     public:
-        
+        float _exposure = 0.0f;
+        float _twoPowExposure = 1.0f;
+        glm::vec2 spare;
+
         Parameters() {}
     };
     typedef gpu::BufferView UniformBufferView;

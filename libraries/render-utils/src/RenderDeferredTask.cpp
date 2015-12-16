@@ -104,6 +104,7 @@ RenderDeferredTask::RenderDeferredTask() : Task() {
     
     // Lighting Buffer ready for tone mapping
     _jobs.push_back(Job(new ToneMappingDeferred::JobModel("ToneMapping")));
+    _toneMappingJobIndex = _jobs.size() - 1;
 
     // Debugging Deferred buffer job
     _jobs.push_back(Job(new DebugDeferredBuffer::JobModel("DebugDeferredBuffer")));
@@ -163,6 +164,8 @@ void RenderDeferredTask::run(const SceneContextPointer& sceneContext, const Rend
     setOcclusionStatus(renderContext->_occlusionStatus);
 
     setAntialiasingStatus(renderContext->_fxaaStatus);
+
+    setToneMappingExposure(renderContext->_toneMappingExposure);
 
     renderContext->args->_context->syncCache();
 
@@ -389,4 +392,19 @@ void DrawBackgroundDeferred::run(const SceneContextPointer& sceneContext, const 
 
     });
     args->_batch = nullptr;
+}
+
+
+void RenderDeferredTask::setToneMappingExposure(float exposure) {
+    if (_toneMappingJobIndex >= 0) {
+        _jobs[_toneMappingJobIndex].edit<ToneMappingDeferred>()._toneMappingEffect.setExposure(exposure);
+    }
+}
+
+float RenderDeferredTask::getToneMappingExposure() const {
+    if (_toneMappingJobIndex >= 0) {
+        _jobs[_toneMappingJobIndex].get<ToneMappingDeferred>()._toneMappingEffect.getExposure();
+    } else {
+        return 0.0f; 
+    }
 }

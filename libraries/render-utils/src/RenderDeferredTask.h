@@ -129,6 +129,11 @@ public:
     void setAntialiasingStatus(bool draw) { if (_antialiasingJobIndex >= 0) { _jobs[_antialiasingJobIndex].setEnabled(draw); } }
     bool doAntialiasingStatus() const { if (_antialiasingJobIndex >= 0) { return _jobs[_antialiasingJobIndex].isEnabled(); } else { return false; } }
 
+    int _toneMappingJobIndex = -1;
+
+    void setToneMappingExposure(float exposure);
+    float getToneMappingExposure() const;
+
     virtual void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext);
 
 

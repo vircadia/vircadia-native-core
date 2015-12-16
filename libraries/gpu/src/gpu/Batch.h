@@ -211,6 +211,9 @@ public:
     // with xy and zw the bounding corners of the rect region.
     void blit(const FramebufferPointer& src, const Vec4i& srcRect, const FramebufferPointer& dst, const Vec4i& dstRect);
 
+    // Generate the mipmap for a texture
+    void generateTextureMipmap(const TexturePointer& texture);
+
     // Query Section
     void beginQuery(const QueryPointer& query);
     void endQuery(const QueryPointer& query);
@@ -292,6 +295,7 @@ public:
         COMMAND_setFramebuffer,
         COMMAND_clearFramebuffer,
         COMMAND_blit,
+        COMMAND_generateTextureMipmap,
 
         COMMAND_beginQuery,
         COMMAND_endQuery,

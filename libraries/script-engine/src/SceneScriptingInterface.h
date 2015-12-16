@@ -118,6 +118,9 @@ public:
     Q_INVOKABLE void setEngineDisplayHitEffect(bool display) { _drawHitEffect = display; }
     Q_INVOKABLE bool doEngineDisplayHitEffect() { return _drawHitEffect; }
 
+    Q_INVOKABLE void setEngineToneMappingExposure(float exposure) { _engineToneMappingExposure = exposure; }
+    Q_INVOKABLE float getEngineToneMappingExposure() { return _engineToneMappingExposure; }
+
 signals:
     void shouldRenderAvatarsChanged(bool shouldRenderAvatars);
     void shouldRenderEntitiesChanged(bool shouldRenderEntities);
@@ -154,6 +157,7 @@ protected:
 
     bool _drawHitEffect = false;
 
+    float _engineToneMappingExposure = 0.0f;
 };
 
 #endif // hifi_SceneScriptingInterface_h

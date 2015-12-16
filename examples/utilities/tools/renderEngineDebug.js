@@ -109,6 +109,11 @@ panel.newCheckbox("Network/Physics status",
     function(value) { return (value & showNetworkStatusFlag) > 0; }
 );
 
+panel.newSlider("Tone Mapping Exposure", -10, 10,
+    function (value) { Scene.setEngineToneMappingExposure(value); },
+    function() { return Scene.getEngineToneMappingExposure(); },
+    function (value) { return (value); });
+
 var tickTackPeriod = 500;
 
 function updateCounters() {

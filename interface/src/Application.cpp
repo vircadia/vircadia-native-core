@@ -3691,6 +3691,8 @@ void Application::displaySide(RenderArgs* renderArgs, Camera& theCamera, bool se
         renderContext._occlusionStatus = Menu::getInstance()->isOptionChecked(MenuOption::DebugAmbientOcclusion);
         renderContext._fxaaStatus = Menu::getInstance()->isOptionChecked(MenuOption::Antialiasing);
 
+        renderContext._toneMappingExposure = sceneInterface->getEngineToneMappingExposure();
+
         renderArgs->_shouldRender = LODManager::shouldRender;
 
         renderContext.args = renderArgs;

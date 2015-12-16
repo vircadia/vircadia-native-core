@@ -61,6 +61,8 @@ public:
     bool _occlusionStatus = false;
     bool _fxaaStatus = false;
 
+    float _toneMappingExposure = 0.0;
+
     RenderContext() {}
 };
 typedef std::shared_ptr<RenderContext> RenderContextPointer;
