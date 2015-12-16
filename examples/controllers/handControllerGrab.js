@@ -90,7 +90,6 @@ var ZERO_VEC = {
 };
 
 var NULL_ACTION_ID = "{00000000-0000-0000-000000000000}";
-var NULL_PARENT_ID = "{00000000-0000-0000-000000000000}";
 var MSEC_PER_SEC = 1000.0;
 
 // these control how long an abandoned pointer line or action will hang around
@@ -262,9 +261,9 @@ function MyController(hand) {
     this.triggerValue = 0; // rolling average of trigger value
     this.rawTriggerValue = 0;
     this.rawBumperValue = 0;
-
+    
     this.overlayLine = null;
-
+    
     this.ignoreIK = false;
     this.offsetPosition = Vec3.ZERO;
     this.offsetRotation = Quat.IDENTITY;
@@ -673,9 +672,7 @@ function MyController(hand) {
         }
 
         //this.lineOn(distantPickRay.origin, Vec3.multiply(distantPickRay.direction, LINE_LENGTH), NO_INTERSECT_COLOR);
-        this.overlayLineOn(distantPickRay.origin,
-                           Vec3.sum(distantPickRay.origin, Vec3.multiply(distantPickRay.direction, LINE_LENGTH)),
-                           NO_INTERSECT_COLOR);
+        this.overlayLineOn(distantPickRay.origin, Vec3.sum(distantPickRay.origin, Vec3.multiply(distantPickRay.direction, LINE_LENGTH)), NO_INTERSECT_COLOR);
     };
 
     this.distanceHolding = function() {
@@ -699,6 +696,7 @@ function MyController(hand) {
             this.radiusScalar = 1.0;
         }
 
+        this.actionID = NULL_ACTION_ID;
         this.actionID = Entities.addAction("spring", this.grabbedEntity, {
             targetPosition: this.currentObjectPosition,
             linearTimeScale: DISTANCE_HOLDING_ACTION_TIMEFRAME,
@@ -881,26 +879,41 @@ function MyController(hand) {
         }
 
         this.actionID = NULL_ACTION_ID;
-        Entities.editEntity(this.grabbedEntity, {
-            parentID: MyAvatar.sessionUUID,
-            parentJointIndex: MyAvatar.getJointIndex(this.hand === RIGHT_HAND ? "RightHand" : "LeftHand")
+        this.actionID = Entities.addAction("hold", this.grabbedEntity, {
+            hand: this.hand === RIGHT_HAND ? "right" : "left",
+            timeScale: NEAR_GRABBING_ACTION_TIMEFRAME,
+            relativePosition: this.offsetPosition,
+            relativeRotation: this.offsetRotation,
+            ttl: ACTION_TTL,
+            kinematic: NEAR_GRABBING_KINEMATIC,
+            kinematicSetVelocity: true,
+            ignoreIK: this.ignoreIK
         });
+        if (this.actionID === NULL_ACTION_ID) {
+            this.actionID = null;
+        } else {
+            this.actionTimeout = now + (ACTION_TTL * MSEC_PER_SEC);
+            if (this.state == STATE_NEAR_GRABBING) {
+                this.setState(STATE_CONTINUE_NEAR_GRABBING);
+            } else {
+                // equipping
+                Entities.callEntityMethod(this.grabbedEntity, "startEquip", [JSON.stringify(this.hand)]);
+                this.startHandGrasp();
 
-        if (this.state == STATE_NEAR_GRABBING) {
-            this.setState(STATE_CONTINUE_NEAR_GRABBING);
-        } else {
-            // equipping
-            Entities.callEntityMethod(this.grabbedEntity, "startEquip", [JSON.stringify(this.hand)]);
-            this.startHandGrasp();
-            this.setState(STATE_CONTINUE_EQUIP_BD);
+                this.setState(STATE_CONTINUE_EQUIP_BD);
+            }
+
+            if (this.hand === RIGHT_HAND) {
+                Entities.callEntityMethod(this.grabbedEntity, "setRightHand");
+            } else {
+                Entities.callEntityMethod(this.grabbedEntity, "setLeftHand");
+            }
+
+            Entities.callEntityMethod(this.grabbedEntity, "setHand", [this.hand]);
+
+            Entities.callEntityMethod(this.grabbedEntity, "startNearGrab");
+
         }
-        if (this.hand === RIGHT_HAND) {
-            Entities.callEntityMethod(this.grabbedEntity, "setRightHand");
-        } else {
-            Entities.callEntityMethod(this.grabbedEntity, "setLeftHand");
-        }
-        Entities.callEntityMethod(this.grabbedEntity, "setHand", [this.hand]);
-        Entities.callEntityMethod(this.grabbedEntity, "startNearGrab");
 
         this.currentHandControllerTipPosition =
             (this.hand === RIGHT_HAND) ? MyAvatar.rightHandTipPosition : MyAvatar.leftHandTipPosition;
@@ -947,6 +960,21 @@ function MyController(hand) {
 
         if (this.state === STATE_CONTINUE_EQUIP_BD) {
             Entities.callEntityMethod(this.grabbedEntity, "continueEquip");
+        }
+
+        if (this.actionTimeout - now < ACTION_TTL_REFRESH * MSEC_PER_SEC) {
+            // if less than a 5 seconds left, refresh the actions ttl
+            Entities.updateAction(this.grabbedEntity, this.actionID, {
+                hand: this.hand === RIGHT_HAND ? "right" : "left",
+                timeScale: NEAR_GRABBING_ACTION_TIMEFRAME,
+                relativePosition: this.offsetPosition,
+                relativeRotation: this.offsetRotation,
+                ttl: ACTION_TTL,
+                kinematic: NEAR_GRABBING_KINEMATIC,
+                kinematicSetVelocity: true,
+                ignoreIK: this.ignoreIK
+            });
+            this.actionTimeout = now + (ACTION_TTL * MSEC_PER_SEC);
         }
     };
 
@@ -1159,11 +1187,6 @@ function MyController(hand) {
             if (this.actionID !== null) {
                 Entities.deleteAction(this.grabbedEntity, this.actionID);
             }
-
-            Entities.editEntity(this.grabbedEntity, {
-                parentID: NULL_PARENT_ID,
-                parentJointIndex: 0
-            });
         }
 
         this.deactivateEntity(this.grabbedEntity);
@@ -1292,6 +1315,7 @@ function update() {
 Messages.subscribe('Hifi-Hand-Disabler');
 
 handleHandDisablerMessages = function(channel, message, sender) {
+    
     if (sender === MyAvatar.sessionUUID) {
         if (message === 'left') {
             handToDisable = LEFT_HAND;
