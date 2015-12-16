@@ -1222,14 +1222,15 @@ void OctreeServer::aboutToFinish() {
     }
     
     // Shut down all the send threads
-    for (auto it = _sendThreads.begin(); it != _sendThreads.end(); ++it) {
-        auto& sendThread = *it->second;
+    for (auto& it : _sendThreads) {
+        auto& sendThread = *it.second;
         sendThread.disconnect(this); // Disconnect so that removeSendThread doesn't get called later
         sendThread.setIsShuttingDown();
     }
     
-    // Wait on all send threads to be done before continuing
-    _sendThreads.clear();
+    // Clear will destruct all the unique_ptr to OctreeSendThreads which will call the GenericThread's dtor
+    // which waits on the thread to be done before returning
+    _sendThreads.clear(); // Cleans up all the send threads.
 
     if (_persistThread) {
         _persistThread->aboutToFinish();
