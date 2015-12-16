@@ -415,10 +415,25 @@
                                                     "states": [
                                                         {
                                                             "id": "idle",
-                                                            "interpTarget": 15,
-                                                            "interpDuration": 15,
+                                                            "interpTarget": 10,
+                                                            "interpDuration": 10,
                                                             "transitions": [
-                                                                { "var": "isMovingForward", "state": "walkFwd" },
+                                                                { "var": "isMovingForward", "state": "idleToWalkFwd" },
+                                                                { "var": "isMovingBackward", "state": "walkBwd" },
+                                                                { "var": "isMovingRight", "state": "strafeRight" },
+                                                                { "var": "isMovingLeft", "state": "strafeLeft" },
+                                                                { "var": "isTurningRight", "state": "turnRight" },
+                                                                { "var": "isTurningLeft", "state": "turnLeft" },
+                                                                { "var": "isAway", "state": "awayIntro" }
+                                                            ]
+                                                        },
+                                                        {
+                                                            "id": "idleToWalkFwd",
+                                                            "interpTarget": 3,
+                                                            "interpDuration": 3,
+                                                            "transitions": [
+                                                                { "var": "idleToWalkFwdOnDone", "state": "walkFwd" },
+                                                                { "var": "isNotMoving", "state": "idle" },
                                                                 { "var": "isMovingBackward", "state": "walkBwd" },
                                                                 { "var": "isMovingRight", "state": "strafeRight" },
                                                                 { "var": "isMovingLeft", "state": "strafeLeft" },
@@ -429,7 +444,7 @@
                                                         },
                                                         {
                                                             "id": "walkFwd",
-                                                            "interpTarget": 6,
+                                                            "interpTarget": 15,
                                                             "interpDuration": 6,
                                                             "transitions": [
                                                                 { "var": "isNotMoving", "state": "idle" },
@@ -637,6 +652,18 @@
                                                                 "children": []
                                                             }
                                                         ]
+                                                    },
+                                                    {
+                                                        "id": "idleToWalkFwd",
+                                                        "type": "clip",
+                                                        "data": {
+                                                            "url": "http://hifi-content.s3.amazonaws.com/ozan/dev/anim/standard_anims/idle_to_walk.fbx",
+                                                            "startFrame": 1.0,
+                                                            "endFrame": 19.0,
+                                                            "timeScale": 1.0,
+                                                            "loopFlag": false
+                                                        },
+                                                        "children": []
                                                     },
                                                     {
                                                         "id": "walkBwd",
