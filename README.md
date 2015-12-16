@@ -1,5 +1,3 @@
-### TESTING BUILD - DO NOT MERGE ###
-
 High Fidelity (hifi) is an early-stage technology lab experimenting with Virtual Worlds and VR. 
 
 In this repository you'll find the source to many of the components in our 
