@@ -10,21 +10,36 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-
 //some experimental options
 var ONLY_I_CAN_EDIT = false;
 var SLIDERS_SHOULD_STAY_WITH_AVATAR = false;
 var VERTICAL_SLIDERS = false;
+var SHOW_OVERLAYS = true;
+var SHOW_LIGHT_VOLUME = true;
 
-// Script.include('../libraries/lightOverlayManager.js');
-// var lightOverlayManager = new LightOverlayManager();
-// lightOverlayManager.setVisible(true);
+//variables for managing overlays
+var selectionDisplay;
+var selectionManager;
+var lightOverlayManager;
 
+if (SHOW_OVERLAYS === true) {
+    Script.include('../libraries/entitySelectionTool.js');
+
+    selectionDisplay = SelectionDisplay;
+    selectionManager = SelectionManager;
+    Script.include('../libraries/lightOverlayManager.js');
+    lightOverlayManager = new LightOverlayManager();
+    selectionManager.addEventListener(function() {
+        selectionDisplay.updateHandles();
+        lightOverlayManager.updatePositions();
+    });
+
+    lightOverlayManager.setVisible(true);
+}
 // var pickRay = Camera.computePickRay(event.x, event.y);
 // var lightResult = lightOverlayManager.findRayIntersection(pickRay)
 
 var DEFAULT_PARENT_ID = '{00000000-0000-0000-0000-000000000000}'
-
 
 var AXIS_SCALE = 1;
 var COLOR_MAX = 255;
@@ -323,7 +338,9 @@ var slidersRef = {
 }
 var light = null;
 
-function makeSliders(light) {
+function makeSliders(light) { //  selectionManager.setSelections([entityID]);
+
+
     if (light.type === 'spotlight') {
         var USE_COLOR_SLIDER = true;
         var USE_INTENSITY_SLIDER = true;
@@ -382,6 +399,9 @@ function handleLightModMessages(channel, message, sender) {
 
     makeSliders(parsedMessage.light);
     light = parsedMessage.light.id
+    if (SHOW_LIGHT_VOLUME === true) {
+        selectionManager.setSelections([parsedMessage.light.id]);
+    }
 }
 
 function handleValueMessages(channel, message, sender) {
