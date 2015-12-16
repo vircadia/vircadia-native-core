@@ -1,7 +1,7 @@
 //
 //  light_modifier_test_scene.js
 //
-//  Created byJames Pollack @imgntn on 10/19/2015
+//  Created byJames Pollack @imgntn on 12/15/2015
 //  Copyright 2015 High Fidelity, Inc.
 //
 //  Given a selected light, instantiate some entities that represent various values you can dynamically adjust.

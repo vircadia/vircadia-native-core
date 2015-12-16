@@ -1,3 +1,13 @@
+//
+//  slider.js
+//
+//  Created byJames Pollack @imgntn on 12/15/2015
+//  Copyright 2015 High Fidelity, Inc.
+//
+//  Entity script that sends a scaled value to a light based on its distance from the start of its constraint axis.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 (function() {
 
     var AXIS_SCALE = 1;
