@@ -92,9 +92,6 @@ private:
     void drawSphereSection(gpu::Batch& batch);
     void updateTooltips();
 
-    void renderPointers(gpu::Batch& batch);
-    void renderControllerPointers(gpu::Batch& batch);
-
     vec2 getPolarCoordinates(const PalmData& palm) const;
 
     // Support for hovering and tooltips
@@ -109,11 +106,6 @@ private:
     float _textureAspectRatio{ 1.0f };
     int _hemiVerticesID{ GeometryCache::UNKNOWN_ID };
 
-    enum Reticles { MOUSE, LEFT_CONTROLLER, RIGHT_CONTROLLER, NUMBER_OF_RETICLES };
-    bool _reticleActive[NUMBER_OF_RETICLES];
-    QPoint _reticlePosition[NUMBER_OF_RETICLES];
-    bool _magActive[NUMBER_OF_RETICLES];
-    float _magSizeMult[NUMBER_OF_RETICLES];
     bool _magnifier{ true };
 
     float _alpha{ 1.0f };
