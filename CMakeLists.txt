@@ -67,9 +67,9 @@ if ((NOT MSVC12) AND (NOT MSVC14))
   CHECK_CXX_COMPILER_FLAG("-std=c++0x" COMPILER_SUPPORTS_CXX0X)
 
   if (COMPILER_SUPPORTS_CXX11)
-  	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
   elseif(COMPILER_SUPPORTS_CXX0X)
-  	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++0x")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++0x")
   else()
     message(STATUS "The compiler ${CMAKE_CXX_COMPILER} has no C++11 support. Please use a different C++ compiler.")
   endif()
@@ -235,9 +235,9 @@ if (DEFINED DEPLOY_PACKAGE AND DEPLOY_PACKAGE)
   if (NOT MAKENSIS_COMMAND)
     message(FATAL_ERROR "The Nullsoft Scriptable Install Systems is required for generating packaged installers on Windows (http://nsis.sourceforge.net/)")
   endif ()
-	add_custom_target(
-		build-package ALL
-		DEPENDS interface assignment-client domain-server stack-manager
+  add_custom_target(
+    build-package ALL
+    DEPENDS interface assignment-client domain-server stack-manager
     COMMAND CMD /C "\"${MAKENSIS_COMMAND}\" ${CMAKE_SOURCE_DIR}/tools/nsis/release.nsi"
-	)
+  )
 endif ()
