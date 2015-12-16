@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.3.2)
+cmake_minimum_required(VERSION 3.2)
 
 if (USE_ANDROID_TOOLCHAIN)
   set(CMAKE_TOOLCHAIN_FILE "${CMAKE_CURRENT_SOURCE_DIR}/cmake/android/android.toolchain.cmake")
@@ -228,21 +228,4 @@ if (HIFI_MEMORY_DEBUGGING)
 endif ()
 
 include_application_version()
-
-if (DEFINED DEPLOY_PACKAGE AND DEPLOY_PACKAGE)
-  file(MAKE_DIRECTORY "${CMAKE_BINARY_DIR}/full-stack-deployment")
-  find_program(MAKENSIS_COMMAND makensis PATHS [HKEY_LOCAL_MACHINE\\SOFTWARE\\Wow6432Node\\NSIS])
-  if (NOT MAKENSIS_COMMAND)
-    message(FATAL_ERROR "The Nullsoft Scriptable Install Systems is required for generating packaged installers on Windows (http://nsis.sourceforge.net/)")
-  endif ()
-  add_custom_target(
-    build-package ALL
-    DEPENDS interface assignment-client domain-server stack-manager
-    COMMAND set INSTALLER_SOURCE_DIR=${CMAKE_BINARY_DIR}/full-stack-deployment
-    COMMAND set INSTALLER_NAME=${CMAKE_BINARY_DIR}/${INSTALLER_NAME}
-    COMMAND set INSTALLER_SCRIPTS_DIR=${CMAKE_SOURCE_DIR}/examples
-    COMMAND set INSTALLER_COMPANY=${INSTALLER_COMPANY}
-    COMMAND set INSTALLER_DIRECTORY=${INSTALLER_DIRECTORY}
-    COMMAND CMD /C "\"${MAKENSIS_COMMAND}\" ${CMAKE_SOURCE_DIR}/tools/nsis/release.nsi"
-  )
-endif ()
+generate_installers()
