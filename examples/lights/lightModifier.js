@@ -1,7 +1,7 @@
 //
-//  light_modifier.js
+//  lightModifier.js
 //
-//  Created byJames Pollack @imgntn on 12/15/2015
+//  Created by James Pollack @imgntn on 12/15/2015
 //  Copyright 2015 High Fidelity, Inc.
 //
 //  Given a selected light, instantiate some entities that represent various values you can dynamically adjust by grabbing and moving.
@@ -201,13 +201,13 @@ entitySlider.prototype = {
 
         //message is not for our light
         if (message.lightID !== this.lightID) {
-            print('not our light')
+        //    print('not our light')
             return;
         }
 
         //message is not our type
         if (message.sliderType !== this.sliderType) {
-            print('not our slider type')
+        //    print('not our slider type')
             return
         }
 

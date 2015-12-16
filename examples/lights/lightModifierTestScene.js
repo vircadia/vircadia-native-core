@@ -1,7 +1,7 @@
 //
-//  light_modifier_test_scene.js
+//  lightModifierTestScene.js
 //
-//  Created byJames Pollack @imgntn on 12/15/2015
+//  Created by James Pollack @imgntn on 12/15/2015
 //  Copyright 2015 High Fidelity, Inc.
 //
 //  Given a selected light, instantiate some entities that represent various values you can dynamically adjust.
@@ -116,7 +116,6 @@ function evalLightWorldTransform(modelPos, modelRot) {
 }
 
 function cleanup() {
-  print('CLEANUP TEST SCENE SCRIPT')
   Entities.deleteEntity(block);
   Entities.deleteEntity(ground);
   Entities.deleteEntity(light);
