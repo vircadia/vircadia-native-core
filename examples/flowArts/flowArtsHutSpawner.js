@@ -14,11 +14,11 @@
 
 
 Script.include("../../libraries/utils.js");
-Script.include("lightBall/lightBallSpawner.js");
+Script.include("lightBall/LightBall.js");
 
 var basePosition = Vec3.sum(MyAvatar.position, Vec3.multiply(1, Quat.getFront(Camera.getOrientation())));
 basePosition.y = MyAvatar.position.y + 1
-var lightBall = LightBallSpawner(basePosition);
+var lightBall = LightBall(basePosition);
 var modelURL = "file:///C:/Users/Eric/Desktop/RaveRoom.fbx?v1" + Math.random();
 
 var roomDimensions = {x: 30.58, y: 15.29, z: 30.58}; 
@@ -60,10 +60,6 @@ var lightZone = Entities.addEntity({
         z: 100
     }
 });
-
-
-
-
 
 
 function cleanup() {
