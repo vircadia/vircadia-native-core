@@ -18,14 +18,27 @@ var scriptURL = Script.resolvePath('flashlight.js');
 
 var modelURL = "https://hifi-public.s3.amazonaws.com/models/props/flashlight.fbx";
 
-var center = Vec3.sum(Vec3.sum(MyAvatar.position, {x: 0, y: 0.5, z: 0}), Vec3.multiply(0.5, Quat.getFront(Camera.getOrientation())));
+var center = Vec3.sum(Vec3.sum(MyAvatar.position, {
+    x: 0,
+    y: 0.5,
+    z: 0
+}), Vec3.multiply(0.5, Quat.getFront(Camera.getOrientation())));
 
 var flashlight = Entities.addEntity({
     type: "Model",
     modelURL: modelURL,
     position: center,
-    dimensions: { x: 0.08, y: 0.30, z: 0.08},
+    dimensions: {
+        x: 0.08,
+        y: 0.30,
+        z: 0.08
+    },
     collisionsWillMove: true,
     shapeType: 'box',
-    script: scriptURL
+    script: scriptURL,
+    userData: JSON.stringify({
+        grabbableKey: {
+            invertSolidWhileHeld: true
+        }
+    })
 });

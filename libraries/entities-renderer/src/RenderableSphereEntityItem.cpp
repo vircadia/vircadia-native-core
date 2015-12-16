@@ -29,7 +29,9 @@ static const float SPHERE_ENTITY_SCALE = 0.5f;
 
 
 EntityItemPointer RenderableSphereEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
-    return std::make_shared<RenderableSphereEntityItem>(entityID, properties);
+    EntityItemPointer entity{ new RenderableSphereEntityItem(entityID) };
+    entity->setProperties(properties);
+    return entity;
 }
 
 void RenderableSphereEntityItem::setUserData(const QString& value) {
@@ -69,4 +71,6 @@ void RenderableSphereEntityItem::render(RenderArgs* args) {
         batch.setModelTransform(Transform());
         DependencyManager::get<DeferredLightingEffect>()->renderSolidSphereInstance(batch, modelTransform, sphereColor);
     }
-};
+    static const auto triCount = DependencyManager::get<GeometryCache>()->getSphereTriangleCount();
+    args->_details._trianglesRendered += (int)triCount;
+}

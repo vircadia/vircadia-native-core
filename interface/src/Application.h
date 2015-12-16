@@ -65,7 +65,7 @@
 #include "ui/ToolWindow.h"
 #include "UndoStackScriptingInterface.h"
 
-class OffscreenGlCanvas;
+class OffscreenGLCanvas;
 class GLCanvas;
 class FaceTracker;
 class MainWindow;
@@ -136,7 +136,7 @@ public:
     const ViewFrustum* getDisplayViewFrustum() const;
     ViewFrustum* getShadowViewFrustum() { return &_shadowViewFrustum; }
     const OctreePacketProcessor& getOctreePacketProcessor() const { return _octreeProcessor; }
-    EntityTreeRenderer* getEntities() { return &_entities; }
+    EntityTreeRenderer* getEntities() { return DependencyManager::get<EntityTreeRenderer>().data(); }
     QUndoStack* getUndoStack() { return &_undoStack; }
     MainWindow* getWindow() { return _window; }
     EntityTreePointer getEntityClipboard() { return _entityClipboard; }
@@ -145,7 +145,6 @@ public:
 
     ivec2 getMouse() const;
     ivec2 getTrueMouse() const;
-    bool getLastMouseMoveWasSimulated() const { return _lastMouseMoveWasSimulated; }
 
     FaceTracker* getActiveFaceTracker();
     FaceTracker* getSelectedFaceTracker();
@@ -158,15 +157,11 @@ public:
 
     bool isForeground() const { return _isForeground; }
     
+    uint32_t getFrameCount() { return _frameCount; }
     float getFps() const { return _fps; }
-    float const HMD_TARGET_FRAME_RATE = 75.0f;
-    float const DESKTOP_TARGET_FRAME_RATE = 60.0f;
-    float getTargetFrameRate() { return isHMDMode() ? HMD_TARGET_FRAME_RATE : DESKTOP_TARGET_FRAME_RATE; }
-    float getTargetFramePeriod() { return isHMDMode() ? 1.0f / HMD_TARGET_FRAME_RATE : 1.0f / DESKTOP_TARGET_FRAME_RATE; } // same as 1/getTargetFrameRate, but w/compile-time division
+    float getTargetFrameRate(); // frames/second
     float getLastInstanteousFps() const { return _lastInstantaneousFps; }
-    float getLastPaintWait() const { return _lastPaintWait; };
-    float getLastDeducedNonVSyncFps() const { return _lastDeducedNonVSyncFps; }
-    void setMarginForDeducedFramePeriod(float newValue) { _marginForDeducedFramePeriod = newValue; }
+    float getLastUnsynchronizedFps() const { return _lastUnsynchronizedFps; }
 
     float getFieldOfView() { return _fieldOfView.get(); }
     void setFieldOfView(float fov);
@@ -185,7 +180,7 @@ public:
     virtual float getSizeScale() const;
     virtual int getBoundaryLevelAdjust() const;
     virtual PickRay computePickRay(float x, float y) const;
-    virtual const glm::vec3& getAvatarPosition() const;
+    virtual glm::vec3 getAvatarPosition() const;
     virtual void overrideEnvironmentData(const EnvironmentData& newData) { _environment.override(newData); }
     virtual void endOverrideEnvironmentData() { _environment.endOverride(); }
     virtual qreal getDevicePixelRatio();
@@ -201,8 +196,8 @@ public:
 
     NodeToJurisdictionMap& getEntityServerJurisdictions() { return _entityServerJurisdictions; }
 
-    QStringList getRunningScripts() { return _scriptEnginesHash.keys(); }
-    ScriptEngine* getScriptEngine(const QString& scriptHash) { return _scriptEnginesHash.value(scriptHash, NULL); }
+    QStringList getRunningScripts();
+    ScriptEngine* getScriptEngine(const QString& scriptHash);
 
     float getRenderResolutionScale() const;
 
@@ -328,14 +323,14 @@ private slots:
     void activeChanged(Qt::ApplicationState state);
     
     void domainSettingsReceived(const QJsonObject& domainSettingsObject);
-    void handleDomainConnectionDeniedPacket(QSharedPointer<NLPacket> packet);
+    void handleDomainConnectionDeniedPacket(QSharedPointer<ReceivedMessage> message);
     
     void notifyPacketVersionMismatch();
     
     void loadSettings();
     void saveSettings();
     
-    void scriptFinished(const QString& scriptName);
+    void scriptFinished(const QString& scriptName, ScriptEngine* engine);
     void saveScripts();
     void reloadScript(const QString& scriptName, bool isUserLoaded = true);
     
@@ -365,7 +360,6 @@ private:
     void update(float deltaTime);
 
     void setPalmData(Hand* hand, const controller::Pose& pose, float deltaTime, HandData::Hand whichHand, float triggerValue);
-    void emulateMouse(Hand* hand, float click, float shift, HandData::Hand whichHand);
 
     // Various helper functions called during update()
     void updateLOD();
@@ -394,8 +388,9 @@ private:
     
     bool importSVOFromURL(const QString& urlString);
     
-    int processOctreeStats(NLPacket& packet, SharedNodePointer sendingNode);
-    void trackIncomingOctreePacket(NLPacket& packet, SharedNodePointer sendingNode, bool wasStatsPacket);
+    bool nearbyEntitiesAreReadyForPhysics();
+    int processOctreeStats(ReceivedMessage& message, SharedNodePointer sendingNode);
+    void trackIncomingOctreePacket(ReceivedMessage& message, SharedNodePointer sendingNode, bool wasStatsPacket);
     
     void resizeEvent(QResizeEvent* size);
     
@@ -421,9 +416,12 @@ private:
 
     bool _dependencyManagerIsSetup;
 
-    OffscreenGlCanvas* _offscreenContext { nullptr };
+    OffscreenGLCanvas* _offscreenContext { nullptr };
     DisplayPluginPointer _displayPlugin;
     InputPluginList _activeInputPlugins;
+
+    bool _activatingDisplayPlugin { false };
+    QMap<uint32_t, gpu::FramebufferPointer> _lockedFramebufferMap;
 
     MainWindow* _window;
 
@@ -438,15 +436,12 @@ private:
     QElapsedTimer _timerStart;
     QElapsedTimer _lastTimeUpdated;
     float _lastInstantaneousFps { 0.0f };
-    float _lastPaintWait { 0.0f };
-    float _lastDeducedNonVSyncFps { 0.0f };
-    float _marginForDeducedFramePeriod{ 0.002f }; // 2ms, adjustable
+    float _lastUnsynchronizedFps { 0.0f };
 
     ShapeManager _shapeManager;
     PhysicalEntitySimulation _entitySimulation;
     PhysicsEnginePointer _physicsEngine;
 
-    EntityTreeRenderer _entities;
     EntityTreeRenderer _entityClipboardRenderer;
     EntityTreePointer _entityClipboard;
 
@@ -479,8 +474,6 @@ private:
 
     Environment _environment;
 
-    bool _lastMouseMoveWasSimulated;
-
     QSet<int> _keysPressed;
 
     bool _enableProcessOctreeThread;
@@ -501,6 +494,7 @@ private:
 
     TouchEvent _lastTouchEvent;
 
+    QReadWriteLock _scriptEnginesHashLock;
     RunningScriptsWidget* _runningScriptsWidget;
     QHash<QString, ScriptEngine*> _scriptEnginesHash;
     bool _runningScriptsWidgetWasVisible;
@@ -539,14 +533,6 @@ private:
     ApplicationCompositor _compositor;
     OverlayConductor _overlayConductor;
 
-
-    // FIXME - Hand Controller to mouse emulation helpers. This is crufty and should be moved
-    // into the input plugins or something.
-    int _oldHandMouseX[(int)HandData::NUMBER_OF_HANDS];
-    int _oldHandMouseY[(int)HandData::NUMBER_OF_HANDS];
-    bool _oldHandLeftClick[(int)HandData::NUMBER_OF_HANDS];
-    bool _oldHandRightClick[(int)HandData::NUMBER_OF_HANDS];
-
     DialogsManagerScriptingInterface* _dialogsManagerScriptingInterface = new DialogsManagerScriptingInterface();
 
     EntityItemID _keyboardFocusedItem;
@@ -560,6 +546,9 @@ private:
     bool _isForeground = true; // starts out assumed to be in foreground
     bool _inPaint = false;
     bool _isGLInitialized { false };
+    bool _physicsEnabled { false };
+
+    bool _reticleClickPressed { false };
 };
 
 #endif // hifi_Application_h

@@ -255,6 +255,9 @@ void UserInputMapper::update(float deltaTime) {
     fixBisectedAxis(_actionStates[toInt(Action::ROTATE_Y)], _actionStates[toInt(Action::YAW_LEFT)], _actionStates[toInt(Action::YAW_RIGHT)]);
     fixBisectedAxis(_actionStates[toInt(Action::ROTATE_X)], _actionStates[toInt(Action::PITCH_UP)], _actionStates[toInt(Action::PITCH_DOWN)]);
 
+    fixBisectedAxis(_actionStates[toInt(Action::RETICLE_X)], _actionStates[toInt(Action::RETICLE_LEFT)], _actionStates[toInt(Action::RETICLE_RIGHT)]);
+    fixBisectedAxis(_actionStates[toInt(Action::RETICLE_Y)], _actionStates[toInt(Action::RETICLE_UP)], _actionStates[toInt(Action::RETICLE_DOWN)]);
+
     static const float EPSILON = 0.01f;
     for (auto i = 0; i < toInt(Action::NUM_ACTIONS); i++) {
         _actionStates[i] *= _actionScales[i];
@@ -319,41 +322,11 @@ QVector<QString> UserInputMapper::getActionNames() const {
     }
     return result;
 }
-/*
-void UserInputMapper::assignDefaulActionScales() {
-    _actionScales[toInt(Action::LONGITUDINAL_BACKWARD)] = 1.0f; // 1m per unit
-    _actionScales[toInt(Action::LONGITUDINAL_FORWARD)] = 1.0f; // 1m per unit
-    _actionScales[toInt(Action::LATERAL_LEFT)] = 1.0f; // 1m per unit
-    _actionScales[toInt(Action::LATERAL_RIGHT)] = 1.0f; // 1m per unit
-    _actionScales[toInt(Action::VERTICAL_DOWN)] = 1.0f; // 1m per unit
-    _actionScales[toInt(Action::VERTICAL_UP)] = 1.0f; // 1m per unit
-    _actionScales[toInt(Action::YAW_LEFT)] = 1.0f; // 1 degree per unit
-    _actionScales[toInt(Action::YAW_RIGHT)] = 1.0f; // 1 degree per unit
-    _actionScales[toInt(Action::PITCH_DOWN)] = 1.0f; // 1 degree per unit
-    _actionScales[toInt(Action::PITCH_UP)] = 1.0f; // 1 degree per unit
-    _actionScales[toInt(Action::BOOM_IN)] = 0.5f; // .5m per unit
-    _actionScales[toInt(Action::BOOM_OUT)] = 0.5f; // .5m per unit
-    _actionScales[toInt(Action::LEFT_HAND)] = 1.0f; // default
-    _actionScales[toInt(Action::RIGHT_HAND)] = 1.0f; // default
-    _actionScales[toInt(Action::LEFT_HAND_CLICK)] = 1.0f; // on
-    _actionScales[toInt(Action::RIGHT_HAND_CLICK)] = 1.0f; // on
-    _actionScales[toInt(Action::SHIFT)] = 1.0f; // on
-    _actionScales[toInt(Action::ACTION1)] = 1.0f; // default
-    _actionScales[toInt(Action::ACTION2)] = 1.0f; // default
-    _actionScales[toInt(Action::TRANSLATE_X)] = 1.0f; // default
-    _actionScales[toInt(Action::TRANSLATE_Y)] = 1.0f; // default
-    _actionScales[toInt(Action::TRANSLATE_Z)] = 1.0f; // default
-    _actionScales[toInt(Action::ROLL)] = 1.0f; // default
-    _actionScales[toInt(Action::PITCH)] = 1.0f; // default
-    _actionScales[toInt(Action::YAW)] = 1.0f; // default
-}
-*/
 
 static int actionMetaTypeId = qRegisterMetaType<Action>();
 static int inputMetaTypeId = qRegisterMetaType<Input>();
 static int inputPairMetaTypeId = qRegisterMetaType<Input::NamedPair>();
 static int poseMetaTypeId = qRegisterMetaType<controller::Pose>("Pose");
-
 
 QScriptValue inputToScriptValue(QScriptEngine* engine, const Input& input);
 void inputFromScriptValue(const QScriptValue& object, Input& input);

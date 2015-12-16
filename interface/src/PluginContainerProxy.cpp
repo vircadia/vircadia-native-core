@@ -1,16 +1,21 @@
 #include "PluginContainerProxy.h"
 
-#include <QScreen>
-#include <QWindow>
+#include <QtGui/QScreen>
+#include <QtGui/QWindow>
 
 #include <plugins/Plugin.h>
 #include <plugins/PluginManager.h>
 #include <display-plugins/DisplayPlugin.h>
+#include <DependencyManager.h>
+#include <FramebufferCache.h>
 
 #include "Application.h"
 #include "MainWindow.h"
 #include "GLCanvas.h"
 #include "ui/DialogsManager.h"
+
+#include <gl/OffscreenGLCanvas.h>
+#include <QtGui/QOpenGLContext>
 
 PluginContainerProxy::PluginContainerProxy() {
 }
@@ -30,12 +35,7 @@ void PluginContainerProxy::removeMenu(const QString& menuName) {
     Menu::getInstance()->removeMenu(menuName);
 }
 
-extern bool _activatingDisplayPlugin;
-extern QVector<QPair<QString, QString>> _currentDisplayPluginActions;
-extern QVector<QPair<QString, QString>> _currentInputPluginActions;
-std::map<QString, QActionGroup*> _exclusiveGroups;
-
-QAction* PluginContainerProxy::addMenuItem(const QString& path, const QString& name, std::function<void(bool)> onClicked, bool checkable, bool checked, const QString& groupName) {
+QAction* PluginContainerProxy::addMenuItem(PluginType type, const QString& path, const QString& name, std::function<void(bool)> onClicked, bool checkable, bool checked, const QString& groupName) {
     auto menu = Menu::getInstance();
     MenuWrapper* parentItem = menu->getMenu(path);
     QAction* action = menu->addActionToQMenuAndActionHash(parentItem, name);
@@ -54,7 +54,7 @@ QAction* PluginContainerProxy::addMenuItem(const QString& path, const QString& n
     });
     action->setCheckable(checkable);
     action->setChecked(checked);
-    if (_activatingDisplayPlugin) {
+    if (type == PluginType::DISPLAY_PLUGIN) {
         _currentDisplayPluginActions.push_back({ path, name });
     } else {
         _currentInputPluginActions.push_back({ path, name });
@@ -150,10 +150,37 @@ void PluginContainerProxy::showDisplayPluginsTools() {
     DependencyManager::get<DialogsManager>()->hmdTools(true);
 }
 
-QGLWidget* PluginContainerProxy::getPrimarySurface() {
+GLWidget* PluginContainerProxy::getPrimaryWidget() {
     return qApp->_glWidget;
+}
+
+QWindow* PluginContainerProxy::getPrimaryWindow() {
+    return qApp->_glWidget->windowHandle();
+}
+
+QOpenGLContext* PluginContainerProxy::getPrimaryContext() {
+    return qApp->_glWidget->context()->contextHandle();
 }
 
 const DisplayPlugin* PluginContainerProxy::getActiveDisplayPlugin() const {
     return qApp->getActiveDisplayPlugin();
 }
+
+bool PluginContainerProxy::makeRenderingContextCurrent() {
+    return qApp->_offscreenContext->makeCurrent();
+}
+
+void PluginContainerProxy::releaseSceneTexture(uint32_t texture) {
+    Q_ASSERT(QThread::currentThread() == qApp->thread());
+    auto& framebufferMap = qApp->_lockedFramebufferMap;
+    Q_ASSERT(framebufferMap.contains(texture));
+    auto framebufferPointer = framebufferMap[texture];
+    framebufferMap.remove(texture);
+    auto framebufferCache = DependencyManager::get<FramebufferCache>();
+    framebufferCache->releaseFramebuffer(framebufferPointer);
+}
+
+void PluginContainerProxy::releaseOverlayTexture(uint32_t texture) {
+    // FIXME implement present thread compositing
+}
+

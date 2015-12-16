@@ -18,8 +18,8 @@
 
 #include "ThreadedAssignment.h"
 
-ThreadedAssignment::ThreadedAssignment(NLPacket& packet) :
-    Assignment(packet),
+ThreadedAssignment::ThreadedAssignment(ReceivedMessage& message) :
+    Assignment(message),
     _isFinished(false)
 
 {

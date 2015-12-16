@@ -23,11 +23,15 @@
 // ovr_CreateMirrorTextureGL, etc
 template <typename C>
 struct RiftFramebufferWrapper : public FramebufferWrapper<C, char> {
-    ovrHmd hmd;
-    RiftFramebufferWrapper(const ovrHmd & hmd) : hmd(hmd) {
+    ovrSession session;
+    RiftFramebufferWrapper(const ovrSession& session) : session(session) {
         color = 0;
         depth = 0;
     };
+
+    ~RiftFramebufferWrapper() {
+        destroyColor();
+    }
 
     void Resize(const uvec2 & size) {
         glBindFramebuffer(GL_DRAW_FRAMEBUFFER, oglplus::GetName(fbo));
@@ -39,6 +43,9 @@ struct RiftFramebufferWrapper : public FramebufferWrapper<C, char> {
     }
 
 protected:
+    virtual void destroyColor() {
+    }
+
     virtual void initDepth() override final {
     }
 };
@@ -53,12 +60,6 @@ struct SwapFramebufferWrapper : public RiftFramebufferWrapper<ovrSwapTextureSet*
         : RiftFramebufferWrapper(hmd) {
     }
 
-    ~SwapFramebufferWrapper() {
-        if (color) {
-            ovr_DestroySwapTextureSet(hmd, color);
-            color = nullptr;
-        }
-    }
 
     void Increment() {
         ++color->CurrentIndex;
@@ -66,13 +67,17 @@ struct SwapFramebufferWrapper : public RiftFramebufferWrapper<ovrSwapTextureSet*
     }
 
 protected:
-    virtual void initColor() override {
+    virtual void destroyColor() override {
         if (color) {
-            ovr_DestroySwapTextureSet(hmd, color);
+            ovr_DestroySwapTextureSet(session, color);
             color = nullptr;
         }
+    }
 
-        if (!OVR_SUCCESS(ovr_CreateSwapTextureSetGL(hmd, GL_RGBA, size.x, size.y, &color))) {
+    virtual void initColor() override {
+        destroyColor();
+
+        if (!OVR_SUCCESS(ovr_CreateSwapTextureSetGL(session, GL_SRGB8_ALPHA8, size.x, size.y, &color))) {
             qFatal("Unable to create swap textures");
         }
 
@@ -107,20 +112,17 @@ struct MirrorFramebufferWrapper : public RiftFramebufferWrapper<ovrGLTexture*> {
     MirrorFramebufferWrapper(const ovrHmd & hmd)
         : RiftFramebufferWrapper(hmd) { }
 
-    virtual ~MirrorFramebufferWrapper() {
+private:
+    virtual void destroyColor() override {
         if (color) {
-            ovr_DestroyMirrorTexture(hmd, (ovrTexture*)color);
+            ovr_DestroyMirrorTexture(session, (ovrTexture*)color);
             color = nullptr;
         }
     }
 
-private:
     void initColor() override {
-        if (color) {
-            ovr_DestroyMirrorTexture(hmd, (ovrTexture*)color);
-            color = nullptr;
-        }
-        ovrResult result = ovr_CreateMirrorTextureGL(hmd, GL_RGBA, size.x, size.y, (ovrTexture**)&color);
+        destroyColor();
+        ovrResult result = ovr_CreateMirrorTextureGL(session, GL_SRGB8_ALPHA8, size.x, size.y, (ovrTexture**)&color);
         Q_ASSERT(OVR_SUCCESS(result));
     }
 
@@ -144,8 +146,7 @@ static const QString MONO_PREVIEW = "Mono Preview";
 static const QString FRAMERATE = DisplayPlugin::MENU_PATH() + ">Framerate";
 
 void OculusDisplayPlugin::activate() {
-
-    _container->addMenuItem(MENU_PATH(), MONO_PREVIEW,
+    _container->addMenuItem(PluginType::DISPLAY_PLUGIN, MENU_PATH(), MONO_PREVIEW,
         [this](bool clicked) {
             _monoPreview = clicked;
         }, true, true);
@@ -155,8 +156,7 @@ void OculusDisplayPlugin::activate() {
 
 void OculusDisplayPlugin::customizeContext() {
     OculusBaseDisplayPlugin::customizeContext();
-#if (OVR_MAJOR_VERSION >= 6)
-    _sceneFbo = SwapFboPtr(new SwapFramebufferWrapper(_hmd));
+    _sceneFbo = SwapFboPtr(new SwapFramebufferWrapper(_session));
     _sceneFbo->Init(getRecommendedRenderSize());
 
     // We're rendering both eyes to the same texture, so only one of the 
@@ -164,24 +164,24 @@ void OculusDisplayPlugin::customizeContext() {
     _sceneLayer.ColorTexture[0] = _sceneFbo->color;
     // not needed since the structure was zeroed on init, but explicit
     _sceneLayer.ColorTexture[1] = nullptr;
-#endif
+
     enableVsync(false);
     // Only enable mirroring if we know vsync is disabled
     _enablePreview = !isVsyncEnabled();
 }
 
-void OculusDisplayPlugin::deactivate() {
+void OculusDisplayPlugin::uncustomizeContext() {
 #if (OVR_MAJOR_VERSION >= 6)
-    makeCurrent();
     _sceneFbo.reset();
-    doneCurrent();
 #endif
-
-    OculusBaseDisplayPlugin::deactivate();
+    OculusBaseDisplayPlugin::uncustomizeContext();
 }
 
-void OculusDisplayPlugin::display(GLuint finalTexture, const glm::uvec2& sceneSize) {
-#if (OVR_MAJOR_VERSION >= 6)
+void OculusDisplayPlugin::internalPresent() {
+    if (!_currentSceneTexture) {
+        return;
+    }
+
     using namespace oglplus;
     // Need to make sure only the display plugin is responsible for 
     // controlling vsync
@@ -196,7 +196,7 @@ void OculusDisplayPlugin::display(GLuint finalTexture, const glm::uvec2& sceneSi
         } else {
             Context::Viewport(windowSize.x, windowSize.y);
         }
-        glBindTexture(GL_TEXTURE_2D, finalTexture);
+        glBindTexture(GL_TEXTURE_2D, _currentSceneTexture);
         GLenum err = glGetError();
         Q_ASSERT(0 == err);
         drawUnitQuad();
@@ -205,16 +205,26 @@ void OculusDisplayPlugin::display(GLuint finalTexture, const glm::uvec2& sceneSi
     _sceneFbo->Bound([&] {
         auto size = _sceneFbo->size;
         Context::Viewport(size.x, size.y);
-        glBindTexture(GL_TEXTURE_2D, finalTexture);
+        glBindTexture(GL_TEXTURE_2D, _currentSceneTexture);
+        //glEnable(GL_FRAMEBUFFER_SRGB);
         GLenum err = glGetError();
         drawUnitQuad();
+        //glDisable(GL_FRAMEBUFFER_SRGB);
     });
 
-    ovr_for_each_eye([&](ovrEyeType eye) {
-        _sceneLayer.RenderPose[eye] = _eyePoses[eye];
-    });
+    uint32_t frameIndex { 0 };
+    EyePoses eyePoses;
+    {
+        Lock lock(_mutex);
+        Q_ASSERT(_sceneTextureToFrameIndexMap.contains(_currentSceneTexture));
+        frameIndex = _sceneTextureToFrameIndexMap[_currentSceneTexture];
+        Q_ASSERT(_frameEyePoses.contains(frameIndex));
+        eyePoses = _frameEyePoses[frameIndex];
+    }
 
-    auto windowSize = toGlm(_window->size());
+    _sceneLayer.RenderPose[ovrEyeType::ovrEye_Left] = eyePoses.first;
+    _sceneLayer.RenderPose[ovrEyeType::ovrEye_Right] = eyePoses.second;
+
     {
         ovrViewScaleDesc viewScaleDesc;
         viewScaleDesc.HmdSpaceToWorldScaleInMeters = 1.0f;
@@ -222,25 +232,31 @@ void OculusDisplayPlugin::display(GLuint finalTexture, const glm::uvec2& sceneSi
         viewScaleDesc.HmdToEyeViewOffset[1] = _eyeOffsets[1];
 
         ovrLayerHeader* layers = &_sceneLayer.Header;
-        ovrResult result = ovr_SubmitFrame(_hmd, 0, &viewScaleDesc, &layers, 1);
+        ovrResult result = ovr_SubmitFrame(_session, frameIndex, &viewScaleDesc, &layers, 1);
         if (!OVR_SUCCESS(result)) {
             qDebug() << result;
         }
     }
     _sceneFbo->Increment();
 
-    ++_frameIndex;
-#endif
-}
-
-/*
+    /*
     The swapbuffer call here is only required if we want to mirror the content to the screen.
-    However, it should only be done if we can reliably disable v-sync on the mirror surface, 
+    However, it should only be done if we can reliably disable v-sync on the mirror surface,
     otherwise the swapbuffer delay will interefere with the framerate of the headset
-*/
-void OculusDisplayPlugin::finishFrame() {
+    */
     if (_enablePreview) {
         swapBuffers();
     }
-    doneCurrent();
-};
+}
+
+void OculusDisplayPlugin::setEyeRenderPose(uint32_t frameIndex, Eye eye, const glm::mat4& pose) {
+    auto ovrPose = ovrPoseFromGlm(pose);
+    {
+        Lock lock(_mutex);
+        if (eye == Eye::Left) {
+            _frameEyePoses[frameIndex].first = ovrPose;
+        } else {
+            _frameEyePoses[frameIndex].second = ovrPose;
+        }
+    }
+}

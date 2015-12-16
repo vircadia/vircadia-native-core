@@ -10,6 +10,11 @@
 #include <vector>
 #include <memory>
 
+enum class PluginType {
+    DISPLAY_PLUGIN,
+    INPUT_PLUGIN,
+};
+
 class DisplayPlugin;
 class InputPlugin;
 class Plugin;

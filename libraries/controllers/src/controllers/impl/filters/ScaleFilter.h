@@ -23,7 +23,7 @@ public:
     virtual float apply(float value) const override {
         return value * _scale;
     }
-    virtual bool parseParameters(const QJsonValue& parameters);
+    virtual bool parseParameters(const QJsonValue& parameters) override;
 
 private:
     float _scale = 1.0f;

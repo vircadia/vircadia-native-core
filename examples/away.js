@@ -14,7 +14,6 @@
 // Goes into "paused" when the '.' key (and automatically when started in HMD), and normal when pressing any key.
 // See MAIN CONTROL, below, for what "paused" actually does.
 
-var IK_WINDOW_AFTER_GOING_ACTIVE = 3000; // milliseconds
 var OVERLAY_DATA = {
     text: "Paused:\npress any key to continue",
     font: {size: 75},
@@ -31,7 +30,6 @@ function playAwayAnimation() {
         return {isAway: true, isNotAway: false, isNotMoving: false, ikOverlayAlpha: 0.0};
     }
     if (stopper) {
-        Script.clearTimeout(stopper);
         stopper = false;
         MyAvatar.removeAnimationStateHandler(activeAnimationHandlerId); // do it now, before making new assignment
     }
@@ -47,15 +45,14 @@ function stopAwayAnimation() {
     // It cannot be as soon as we want to stop the away animation, because then things will look goofy as we come out of that animation.
     // (Imagine an away animation that sits or kneels, and then stands back up when coming out of it. If head is at the HMD, then it won't
     //  want to track the standing up animation.)
-    // Our standard anim graph flips 'awayOutroOnDone' for one frame, but it's a trigger (not an animVar) and other folks might use different graphs.
-    // So... Just give us a fixed amount of time to be done with animation, before we turn ik back on.
+    // The anim graph will trigger awayOutroOnDone when awayOutro is finished.
     var backToNormal = false;
-    stopper = Script.setTimeout(function () {
-        backToNormal = true;
-        stopper = false;
-    }, IK_WINDOW_AFTER_GOING_ACTIVE);
+    stopper = true;
     function animateActive(state) {
-        if (state.ikOverlayAlpha) {
+        if (state.awayOutroOnDone) {
+            backToNormal = true;
+            stopper = false;
+        } else if (state.ikOverlayAlpha) {
             // Once the right state gets reflected back to us, we don't need the hander any more.
             // But we are locked against handler changes during the execution of a handler, so remove asynchronously.
             Script.setTimeout(function () { MyAvatar.removeAnimationStateHandler(activeAnimationHandlerId); }, 0);
@@ -63,7 +60,7 @@ function stopAwayAnimation() {
         // It might be cool to "come back to life" by fading the ik overlay back in over a short time. But let's see how this goes.
         return {isAway: false, isNotAway: true, ikOverlayAlpha: backToNormal ? 1.0 : 0.0}; // IWBNI we had a way of deleting an anim var.
     }
-    activeAnimationHandlerId = MyAvatar.addAnimationStateHandler(animateActive, ['isAway', 'isNotAway', 'isNotMoving', 'ikOverlayAlpha']);
+    activeAnimationHandlerId = MyAvatar.addAnimationStateHandler(animateActive, ['ikOverlayAlpha', 'awayOutroOnDone']);
 }
 
 // OVERLAY

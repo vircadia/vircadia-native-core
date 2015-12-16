@@ -25,17 +25,17 @@ const QString ModelEntityItem::DEFAULT_MODEL_URL = QString("");
 const QString ModelEntityItem::DEFAULT_COMPOUND_SHAPE_URL = QString("");
 
 EntityItemPointer ModelEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
-    return std::make_shared<ModelEntityItem>(entityID, properties);
+    EntityItemPointer entity { new ModelEntityItem(entityID) };
+    entity->setProperties(properties);
+    return entity;
 }
 
-ModelEntityItem::ModelEntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties) :
-        EntityItem(entityItemID)
+ModelEntityItem::ModelEntityItem(const EntityItemID& entityItemID) : EntityItem(entityItemID)
 {
     _animationProperties.associateWithAnimationLoop(&_animationLoop);
     _animationLoop.setResetOnRunning(false);
 
     _type = EntityTypes::Model;
-    setProperties(properties);
     _jointMappingCompleted = false;
     _lastKnownCurrentFrame = -1;
     _color[0] = _color[1] = _color[2] = 0;
@@ -194,7 +194,7 @@ AnimationPointer ModelEntityItem::getAnimation(const QString& url) {
 
 void ModelEntityItem::mapJoints(const QStringList& modelJointNames) {
     // if we don't have animation, or we're already joint mapped then bail early
-    if (!hasAnimation() || _jointMappingCompleted) {
+    if (!hasAnimation() || jointsMapped()) {
         return;
     }
 
@@ -208,6 +208,7 @@ void ModelEntityItem::mapJoints(const QStringList& modelJointNames) {
                 _jointMapping[i] = animationJointNames.indexOf(modelJointNames[i]);
             }
             _jointMappingCompleted = true;
+            _jointMappingURL = _animationProperties.getURL();
         }
     }
 }
@@ -382,11 +383,6 @@ void ModelEntityItem::setAnimationSettings(const QString& value) {
     if (settingsMap.contains("hold")) {
         bool hold = settingsMap["hold"].toBool();
         setAnimationHold(hold);
-    }
-
-    if (settingsMap.contains("startAutomatically")) {
-        bool startAutomatically = settingsMap["startAutomatically"].toBool();
-        setAnimationStartAutomatically(startAutomatically);
     }
 
     _dirtyFlags |= Simulation::DIRTY_UPDATEABLE;

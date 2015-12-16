@@ -19,9 +19,9 @@
 #include <NLPacketList.h>
 
 
-UploadAssetTask::UploadAssetTask(QSharedPointer<NLPacketList> packetList, SharedNodePointer senderNode,
+UploadAssetTask::UploadAssetTask(QSharedPointer<ReceivedMessage> receivedMessage, SharedNodePointer senderNode,
                                  const QDir& resourcesDir) :
-    _packetList(packetList),
+    _receivedMessage(receivedMessage),
     _senderNode(senderNode),
     _resourcesDir(resourcesDir)
 {
@@ -29,7 +29,7 @@ UploadAssetTask::UploadAssetTask(QSharedPointer<NLPacketList> packetList, Shared
 }
 
 void UploadAssetTask::run() {
-    auto data = _packetList->getMessage();
+    auto data = _receivedMessage->getMessage();
     
     QBuffer buffer { &data };
     buffer.open(QIODevice::ReadOnly);

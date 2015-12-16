@@ -8,10 +8,11 @@
 //
 
 #include "DebugDraw.h"
+#include "SharedUtil.h"
 
 DebugDraw& DebugDraw::getInstance() {
-    static DebugDraw instance;
-    return instance;
+    static DebugDraw* instance = globalInstance<DebugDraw>("com.highfidelity.DebugDraw");
+    return *instance;
 }
 
 DebugDraw::DebugDraw() {

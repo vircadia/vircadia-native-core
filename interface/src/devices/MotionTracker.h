@@ -90,7 +90,7 @@ public:
 
     virtual bool isConnected() const;
 
-    Index numJointTrackers() const { return _jointsArray.size(); }
+    Index numJointTrackers() const { return (Index)_jointsArray.size(); }
 
     /// Access a Joint from it's index.
     /// Index 0 is always the "Root".

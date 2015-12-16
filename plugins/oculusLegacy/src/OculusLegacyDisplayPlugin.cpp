@@ -12,10 +12,8 @@
 #include <QtWidgets/QMainWindow>
 #include <QtOpenGL/QGLWidget>
 #include <GLMHelpers.h>
-#include <gl/GlWindow.h>
 #include <QEvent>
 #include <QtGui/QResizeEvent>
-#include <QtGui/QOpenGLContext>
 #include <QtGui/QGuiApplication>
 #include <QtGui/QScreen>
 
@@ -167,8 +165,11 @@ void OculusLegacyDisplayPlugin::activate() {
         }
     });
 
-    ovrBool result = ovrHmd_ConfigureRendering(_hmd, &config.Config, distortionCaps, _eyeFovs, _eyeRenderDescs);
-    Q_ASSERT(result);
+    #ifndef NDEBUG
+    ovrBool result =
+    #endif
+        ovrHmd_ConfigureRendering(_hmd, &config.Config, distortionCaps, _eyeFovs, _eyeRenderDescs);
+    assert(result);
 }
 
 void OculusLegacyDisplayPlugin::deactivate() {

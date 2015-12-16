@@ -2340,6 +2340,11 @@ SelectionDisplay = (function () {
 
     that.mousePressEvent = function(event) {
 
+        if (!event.isLeftButton) {
+            // if another mouse button than left is pressed ignore it
+            return false;
+        }
+
         var somethingClicked = false;
         var pickRay = Camera.computePickRay(event.x, event.y);
         
