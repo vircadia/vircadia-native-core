@@ -73,7 +73,13 @@ function createBlock() {
       green: 0,
       blue: 255
     },
-    position: position
+    position: position,
+    userData: JSON.stringify({
+
+      releaseVelocityKey: {
+        disableReleaseVelocity: true
+      }
+    })
   };
 
   block = Entities.addEntity(blockProperties);

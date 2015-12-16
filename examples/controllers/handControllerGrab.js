@@ -944,7 +944,7 @@ function MyController(hand) {
                 relativeRotation: this.offsetRotation,
                 ttl: ACTION_TTL,
                 kinematic: NEAR_GRABBING_KINEMATIC,
-                kinematicSetVelocity: false,
+                kinematicSetVelocity: true,
                 ignoreIK: this.ignoreIK
             });
             if (this.actionID === NULL_ACTION_ID) {
@@ -1029,7 +1029,7 @@ function MyController(hand) {
                 relativeRotation: this.offsetRotation,
                 ttl: ACTION_TTL,
                 kinematic: NEAR_GRABBING_KINEMATIC,
-                kinematicSetVelocity: false,
+                kinematicSetVelocity: true,
                 ignoreIK: this.ignoreIK
             });
             this.actionTimeout = now + (ACTION_TTL * MSEC_PER_SEC);
@@ -1243,7 +1243,26 @@ function MyController(hand) {
         this.overlayLineOff();
         if (this.grabbedEntity !== null) {
             if (this.actionID !== null) {
-                Entities.deleteAction(this.grabbedEntity, this.actionID);
+                //add velocity whatnot
+                var defaultReleaseVelocityData = {
+                    disableReleaseVelocity: false
+                };
+
+                var releaseVelocityData = getEntityCustomData('releaseVelocityKey', this.grabbedEntity, defaultReleaseVelocityData);
+                if (releaseVelocityData.disableReleaseVelocity === true) {
+                    Entities.updateAction(this.grabbedEntity, this.actionID, {
+                        ttl: 1,
+                        kinematic: false,
+                        kinematicSetVelocity: false,
+
+                    });
+                    //                Entities.deleteAction(this.grabbedEntity, this.actionID);
+
+                } else {
+                    //don't make adjustments
+                    Entities.deleteAction(this.grabbedEntity, this.actionID);
+
+                }
             }
         }
 

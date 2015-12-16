@@ -243,8 +243,7 @@ entitySlider.prototype = {
                     axisEnd: this.endOfAxis,
                 },
                 releaseVelocityKey: {
-                    disableReleaseVelocity: true,
-                    customReleaseVelocity: false
+                    disableReleaseVelocity: true
                 }
             })
         };
