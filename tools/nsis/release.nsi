@@ -1,18 +1,19 @@
 !include LogicLib.nsh
 !include x64.nsh
 
-!define srcdir $%INSTALLER_SOURCE_DIR%
-!define setup $%INSTALLER_NAME%
-!define scriptsdir $%INSTALLER_SCRIPTS_DIR%
-!define company $%INSTALLER_COMPANY%
+!define srcdir "$%INSTALLER_SOURCE_DIR%"
+!define setup "$%INSTALLER_NAME%"
+!define scriptsdir "$%INSTALLER_SCRIPTS_DIR%"
+!define company "$%INSTALLER_COMPANY%"
+!define install_directory "$%INSTALLER_DIRECTORY%"
 !define interface_exec "interface.exe"
 !define stack_manager_exec "stack-manager.exe"
 !define interface_icon "interface.ico"
 !define stack_manager_icon "stack-manager.ico"
 !define regkey "Software\${company}"
 !define uninstkey "Software\Microsoft\Windows\CurrentVersion\Uninstall\${company}"
-!define install_dir_company "$PROGRAMFILES64\${company}"
-!define startmenu_company "$SMPROGRAMS\${company}"
+!define install_dir_company "$PROGRAMFILES64\${install_directory}"
+!define startmenu_company "$SMPROGRAMS\${install_directory}"
 !define uninstaller "uninstall.exe"
 
 ;--------------------------------
