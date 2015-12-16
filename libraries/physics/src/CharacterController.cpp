@@ -15,6 +15,7 @@
 
 #include "BulletUtil.h"
 #include "PhysicsCollisionGroups.h"
+#include "ObjectMotionState.h"
 
 const btVector3 LOCAL_UP_AXIS(0.0f, 1.0f, 0.0f);
 const float JUMP_SPEED = 3.5f;
@@ -378,4 +379,16 @@ void CharacterController::preSimulation() {
 
 void CharacterController::postSimulation() {
     // postSimulation() exists for symmetry and just in case we need to do something here later
+}
+
+
+bool CharacterController::getRigidBodyLocation(glm::vec3& avatarRigidBodyPosition, glm::quat& avatarRigidBodyRotation) {
+    if (!_rigidBody) {
+        return false;
+    }
+
+    const btTransform& worldTrans = _rigidBody->getCenterOfMassTransform();
+    avatarRigidBodyPosition = bulletToGLM(worldTrans.getOrigin()) + ObjectMotionState::getWorldOffset();
+    avatarRigidBodyRotation = bulletToGLM(worldTrans.getRotation());
+    return true;
 }

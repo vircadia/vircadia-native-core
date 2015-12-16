@@ -14,6 +14,7 @@
 #include <QVariantGLM.h>
 
 #include "avatar/AvatarManager.h"
+#include "CharacterController.h"
 
 const uint16_t AvatarActionHold::holdVersion = 1;
 
@@ -32,6 +33,57 @@ AvatarActionHold::~AvatarActionHold() {
 #endif
 }
 
+void AvatarActionHold::prepareForPhysicsSimulation() {
+    auto avatarManager = DependencyManager::get<AvatarManager>();
+    auto holdingAvatar = std::static_pointer_cast<Avatar>(avatarManager->getAvatarBySessionID(_holderID));
+
+    if (!holdingAvatar) {
+        return;
+    }
+
+    withTryReadLock([&]{
+        bool isRightHand = (_hand == "right");
+
+        if (_ignoreIK && holdingAvatar->isMyAvatar()) {
+            return;
+        }
+
+        if (holdingAvatar->isMyAvatar()) {
+            glm::vec3 palmPosition { Vectors::ZERO };
+            glm::quat palmRotation { Quaternions::IDENTITY };
+            if (isRightHand) {
+                palmPosition = holdingAvatar->getHand()->getCopyOfPalmData(HandData::RightHand).getPosition();
+                palmRotation = holdingAvatar->getHand()->getCopyOfPalmData(HandData::RightHand).getRotation();
+            } else {
+                palmPosition = holdingAvatar->getHand()->getCopyOfPalmData(HandData::LeftHand).getPosition();
+                palmRotation = holdingAvatar->getHand()->getCopyOfPalmData(HandData::LeftHand).getRotation();
+            }
+
+            // XXX dup code
+            MyAvatar* myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
+            MyCharacterController* controller = myAvatar ? myAvatar->getCharacterController() : nullptr;
+            if (!controller) {
+                qDebug() << "AvatarActionHold::prepareForPhysicsSimulation failed to get character controller";
+                return;
+            }
+            glm::vec3 avatarRigidBodyPosition;
+            glm::quat avatarRigidBodyRotation;
+            controller->getRigidBodyLocation(avatarRigidBodyPosition, avatarRigidBodyRotation);
+
+
+            if (isRightHand) {
+                palmPosition = holdingAvatar->getRightPalmPosition();
+                palmRotation = holdingAvatar->getRightPalmRotation();
+            } else {
+                palmPosition = holdingAvatar->getLeftPalmPosition();
+                palmRotation = holdingAvatar->getLeftPalmRotation();
+            }
+
+            _palmOffsetFromRigidBody = palmPosition - avatarRigidBodyPosition;
+        }
+    });
+}
+
 std::shared_ptr<Avatar> AvatarActionHold::getTarget(glm::quat& rotation, glm::vec3& position) {
     auto avatarManager = DependencyManager::get<AvatarManager>();
     auto holdingAvatar = std::static_pointer_cast<Avatar>(avatarManager->getAvatarBySessionID(_holderID));
@@ -44,7 +96,7 @@ std::shared_ptr<Avatar> AvatarActionHold::getTarget(glm::quat& rotation, glm::ve
         bool isRightHand = (_hand == "right");
         glm::vec3 palmPosition { Vectors::ZERO };
         glm::quat palmRotation { Quaternions::IDENTITY };
-            
+
         if (_ignoreIK && holdingAvatar->isMyAvatar()) {
             // We cannot ignore other avatars IK and this is not the point of this option
             // This is meant to make the grabbing behavior more reactive.
@@ -55,6 +107,22 @@ std::shared_ptr<Avatar> AvatarActionHold::getTarget(glm::quat& rotation, glm::ve
                 palmPosition = holdingAvatar->getHand()->getCopyOfPalmData(HandData::LeftHand).getPosition();
                 palmRotation = holdingAvatar->getHand()->getCopyOfPalmData(HandData::LeftHand).getRotation();
             }
+        } else if (holdingAvatar->isMyAvatar()) {
+            // XXX dup code
+            MyAvatar* myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
+            MyCharacterController* controller = myAvatar ? myAvatar->getCharacterController() : nullptr;
+            if (!controller) {
+                qDebug() << "AvatarActionHold::prepareForPhysicsSimulation failed to get character controller";
+                return;
+            }
+            glm::vec3 avatarRigidBodyPosition;
+            glm::quat avatarRigidBodyRotation;
+            controller->getRigidBodyLocation(avatarRigidBodyPosition, avatarRigidBodyRotation);
+
+
+
+            palmPosition = avatarRigidBodyPosition + _palmOffsetFromRigidBody;
+            palmRotation = holdingAvatar->getRightPalmRotation(); // XXX
         } else {
             if (isRightHand) {
                 palmPosition = holdingAvatar->getRightPalmPosition();

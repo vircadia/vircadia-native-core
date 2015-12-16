@@ -2989,6 +2989,9 @@ void Application::update(float deltaTime) {
         _physicsEngine->changeObjects(motionStates);
 
         myAvatar->prepareForPhysicsSimulation();
+        _physicsEngine->forEachAction([&](EntityActionPointer action) {
+            action->prepareForPhysicsSimulation();
+        });
 
         getEntities()->getTree()->withWriteLock([&] {
             _physicsEngine->stepSimulation();
