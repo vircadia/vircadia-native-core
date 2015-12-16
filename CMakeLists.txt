@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 2.8.12.2)
+cmake_minimum_required(VERSION 3.3.2)
 
 if (USE_ANDROID_TOOLCHAIN)
   set(CMAKE_TOOLCHAIN_FILE "${CMAKE_CURRENT_SOURCE_DIR}/cmake/android/android.toolchain.cmake")
@@ -230,32 +230,14 @@ endif ()
 include_application_version()
 
 if (DEFINED DEPLOY_PACKAGE AND DEPLOY_PACKAGE)
-  message(STATUS "+++++ Package for deployment will be generated on this build +++++")
-  
-  file(MAKE_DIRECTORY ${CMAKE_BINARY_DIR}/full-stack-deployment)
-  
-  set(ICONPATH_INTERFACE "$INSTDIR/${PATH_INSTALL_DATA}/interface.ico")
-  set(ICONPATH_STACK_MANAGER "$INSTDIR/${PATH_INSTALL_DATA}/stack-manager.ico")
-  string(REPLACE "/" "\\\\" ICONPATH_INTERFACE ${ICONPATH_INTERFACE})
-  string(REPLACE "/" "\\\\" ICONPATH_STACK_MANAGER ${ICONPATH_STACK_MANAGER})
-
-  set(CPACK_PACKAGE_NAME "High Fidelity")
-  set(CPACK_PACKAGE_VENDOR "High Fidelity, Inc")
-  set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "High Fidelity Interface and Stack")
-  set(CPACK_PACKAGE_VERSION "${BUILD_SEQ}")
-  set(CPACK_PACKAGE_VERSION_MAJOR "${BUILD_SEQ}")
-  set(CPACK_PACKAGE_VERSION_MINOR "0")
-  set(CPACK_PACKAGE_VERSION_PATCH "0")
-  set(CPACK_PACKAGE_INSTALL_DIRECTORY "High Fidelity-${BUILD_SEQ}")
-  set(CPACK_NSIS_EXECUTABLES_DIRECTORY ".")
-  set(CPACK_PACKAGE_EXECUTABLES 
-    stack-manager "Stack Manager"
-    interface "Interface"
-  )
-
-  if (WIN32)
-    install(DIRECTORY ${CMAKE_BINARY_DIR}/full-stack-deployment/ DESTINATION "./")
-  endif (WIN32)
-
-  include(CPack)
+  file(MAKE_DIRECTORY "${CMAKE_BINARY_DIR}/full-stack-deployment")
+  find_program(MAKENSIS_COMMAND makensis PATHS [HKEY_LOCAL_MACHINE\\SOFTWARE\\Wow6432Node\\NSIS])
+  if (NOT MAKENSIS_COMMAND)
+    message(FATAL_ERROR "The Nullsoft Scriptable Install Systems is required for generating packaged installers on Windows (http://nsis.sourceforge.net/)")
+  endif ()
+	add_custom_target(
+		build-package ALL
+		DEPENDS interface assignment-client domain-server stack-manager
+    COMMAND CMD /C "\"${MAKENSIS_COMMAND}\" ${CMAKE_SOURCE_DIR}/tools/nsis/release.nsi"
+	)
 endif ()
