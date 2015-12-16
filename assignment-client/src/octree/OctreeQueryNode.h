@@ -103,7 +103,7 @@ public:
 private:
     OctreeQueryNode(const OctreeQueryNode &);
     OctreeQueryNode& operator= (const OctreeQueryNode&);
-    
+
     bool _viewSent { false };
     std::unique_ptr<NLPacket> _octreePacket;
     bool _octreePacketWaiting;

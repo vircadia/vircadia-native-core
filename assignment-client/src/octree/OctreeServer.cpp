@@ -1235,7 +1235,7 @@ void OctreeServer::aboutToFinish() {
         _persistThread->aboutToFinish();
         _persistThread->terminating();
     }
-    
+
     qDebug() << qPrintable(_safeServerName) << "server ENDING about to finish...";
 }
 
