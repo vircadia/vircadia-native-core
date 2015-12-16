@@ -12,21 +12,9 @@ var raveRoom = Entities.addEntity({
 });
 
 var colorPalette = [{
-    red: 250,
-    green: 137,
+    red: 25,
+    green: 20,
     blue: 162
-}, {
-    red: 204,
-    green: 244,
-    blue: 249
-}, {
-    red: 146,
-    green: 206,
-    blue: 116
-}, {
-    red: 240,
-    green: 87,
-    blue: 129
 }];
 
 
@@ -34,7 +22,7 @@ var containerBall = Entities.addEntity({
     type: "Sphere",
     position: center,
     dimensions: {x: .1, y: .1, z: .1},
-    color: {red: 1500, green: 10, blue: 50},
+    color: {red: 15, green: 10, blue: 150},
     collisionsWillMove: true,
     userData: JSON.stringify({
         grabbableKey: {
@@ -90,13 +78,13 @@ var lightBall = Entities.addEntity({
     isEmitting: true,
     "name": "ParticlesTest Emitter",
     "colorStart": {red: 200, green: 20, blue: 40},
-     color: {red: 10, green: 0, blue: 255},
-    "colorFinish": {red: 250, green: 200, blue:255},
+     color: {red: 200, green: 200, blue: 255},
+    "colorFinish": {red: 25, green: 20, blue:255},
     "maxParticles": 100000,
-    "lifespan": 2,
-    "emitRate": 10000,
-    "emitSpeed": .2,
-    "speedSpread": .01,
+    "lifespan": 5,
+    "emitRate": 500,
+    "emitSpeed": .02,
+    "speedSpread": .0,
     "emitDimensions": {
         "x": 0,
         "y": 0,
@@ -112,9 +100,9 @@ var lightBall = Entities.addEntity({
         "z": 0
     },
     "accelerationSpread": {
-        "x": .01,
-        "y": .01,
-        "z": .01
+        "x": .00,
+        "y": .00,
+        "z": .00
     },
     "particleRadius": 0.04,
     "radiusSpread": 0,
@@ -124,9 +112,8 @@ var lightBall = Entities.addEntity({
     "alphaSpread": .5,
     "alphaStart": 0,
     "alphaFinish": 0.5,
-    "additiveBlending": 0,
     "textures": "https://hifi-public.s3.amazonaws.com/alan/Particles/Particle-Sprite-Smoke-1.png",
-    emitterShouldTrail: false
+    emitterShouldTrail: true
 })
 
 

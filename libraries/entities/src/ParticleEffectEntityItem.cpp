@@ -645,7 +645,7 @@ ParticleEffectEntityItem::Particle ParticleEffectEntityItem::createParticle() {
     std::random_device rd;
 
     std::mt19937_64 el(rd());
-    std::uniform_real_distribution<float> uniform_dist(-1.0, 1.0);
+    std::uniform_real_distribution<float> uniform_dist(0.0, 1.0);
  
     particle.seed = randFloatInRange(-1.0f, 1.0f);
     if (getEmitterShouldTrail()) {
