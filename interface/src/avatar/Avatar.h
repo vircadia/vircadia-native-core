@@ -108,6 +108,9 @@ public:
     virtual int getJointIndex(const QString& name) const override;
     virtual QStringList getJointNames() const override;
 
+    Q_INVOKABLE virtual glm::quat getDefaultJointRotation(int index) const;
+    Q_INVOKABLE virtual glm::vec3 getDefaultJointTranslation(int index) const;
+
     virtual glm::quat getAbsoluteJointRotationInObjectFrame(int index) const override;
     virtual glm::vec3 getAbsoluteJointTranslationInObjectFrame(int index) const override;
 
