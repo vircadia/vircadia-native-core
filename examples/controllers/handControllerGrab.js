@@ -944,7 +944,7 @@ function MyController(hand) {
                 relativeRotation: this.offsetRotation,
                 ttl: ACTION_TTL,
                 kinematic: NEAR_GRABBING_KINEMATIC,
-                kinematicSetVelocity: true,
+                kinematicSetVelocity: false,
                 ignoreIK: this.ignoreIK
             });
             if (this.actionID === NULL_ACTION_ID) {
@@ -1029,7 +1029,7 @@ function MyController(hand) {
                 relativeRotation: this.offsetRotation,
                 ttl: ACTION_TTL,
                 kinematic: NEAR_GRABBING_KINEMATIC,
-                kinematicSetVelocity: true,
+                kinematicSetVelocity: false,
                 ignoreIK: this.ignoreIK
             });
             this.actionTimeout = now + (ACTION_TTL * MSEC_PER_SEC);
