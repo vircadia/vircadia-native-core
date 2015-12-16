@@ -199,6 +199,8 @@ void AvatarActionHold::doKinematicUpdate(float deltaTimeStep) {
 
         motionState->dirtyInternalKinematicChanges();
 
+        ownerEntity->setPosition(_positionalTarget);
+
         _previousPositionalTarget = _positionalTarget;
         _previousRotationalTarget = _rotationalTarget;
         _previousSet = true;
