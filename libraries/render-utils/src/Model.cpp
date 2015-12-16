@@ -772,12 +772,20 @@ bool Model::getJointTranslation(int jointIndex, glm::vec3& translation) const {
     return _rig->getJointTranslation(jointIndex, translation);
 }
 
-bool Model::getAbsoluteJointRotationInRigFrame(int jointIndex, glm::quat& rotation) const {
-    return _rig->getAbsoluteJointRotationInRigFrame(jointIndex, rotation);
+bool Model::getAbsoluteJointRotationInRigFrame(int jointIndex, glm::quat& rotationOut) const {
+    return _rig->getAbsoluteJointRotationInRigFrame(jointIndex, rotationOut);
 }
 
-bool Model::getAbsoluteJointTranslationInRigFrame(int jointIndex, glm::vec3& translation) const {
-    return _rig->getAbsoluteJointTranslationInRigFrame(jointIndex, translation);
+bool Model::getAbsoluteJointTranslationInRigFrame(int jointIndex, glm::vec3& translationOut) const {
+    return _rig->getAbsoluteJointTranslationInRigFrame(jointIndex, translationOut);
+}
+
+bool Model::getRelativeDefaultJointRotation(int jointIndex, glm::quat& rotationOut) const {
+    return _rig->getRelativeDefaultJointRotation(jointIndex, rotationOut);
+}
+
+bool Model::getRelativeDefaultJointTranslation(int jointIndex, glm::vec3& translationOut) const {
+    return _rig->getRelativeDefaultJointTranslation(jointIndex, translationOut);
 }
 
 bool Model::getJointCombinedRotation(int jointIndex, glm::quat& rotation) const {
