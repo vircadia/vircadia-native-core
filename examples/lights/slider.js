@@ -9,6 +9,7 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
+
 (function() {
 
     var AXIS_SCALE = 1;
@@ -61,9 +62,7 @@
                 this.sliderValue = this.scaleValueBasedOnDistanceFromStart(distance, EXPONENT_MAX);
             };
 
-            //print('SLIDER VALUE:::' + this.sliderValue)
             this.sendValueToSlider();
-
         },
         releaseGrab: function() {
             Entities.editEntity(this.entityID, {

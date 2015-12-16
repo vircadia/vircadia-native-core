@@ -10,6 +10,19 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+
+// Script.include('../libraries/lightOverlayManager.js');
+// var lightOverlayManager = new LightOverlayManager();
+// lightOverlayManager.setVisible(true);
+
+   // var pickRay = Camera.computePickRay(event.x, event.y);
+   // var lightResult = lightOverlayManager.findRayIntersection(pickRay)
+
+
+var DEFAULT_PARENT_ID = '{00000000-0000-0000-0000-000000000000}'
+var SHOULD_STAY_WITH_AVATAR = false;
+var VERTICAL_SLIDERS = false;
+
 var AXIS_SCALE = 1;
 var COLOR_MAX = 255;
 var INTENSITY_MAX = 0.05;
@@ -48,10 +61,10 @@ var WHITE = {
     blue: 255
 };
 
-var ORANGE={
-    red:255,
-    green:0,
-    blue:128
+var ORANGE = {
+    red: 255,
+    green: 0,
+    blue: 128
 }
 
 var SLIDER_DIMENSIONS = {
@@ -75,6 +88,7 @@ function entitySlider(light, color, sliderType, row) {
     this.verticalOffset = Vec3.multiply(row, PER_ROW_OFFSET);
     this.avatarRot = Quat.fromPitchYawRollDegrees(0, MyAvatar.bodyYaw, 0.0);
     this.basePosition = Vec3.sum(MyAvatar.position, Vec3.multiply(1.5, Quat.getFront(this.avatarRot)));
+    this.basePosition.y +=1;
 
     var message = {
         lightID: this.lightID,
@@ -190,6 +204,10 @@ entitySlider.prototype = {
                     sliderType: this.sliderType,
                     axisStart: position,
                     axisEnd: this.endOfAxis,
+                },
+                releaseVelocityKey: {
+                    disableReleaseVelocity: true,
+                    customReleaseVelocity: false
                 }
             })
         };
@@ -201,13 +219,13 @@ entitySlider.prototype = {
 
         //message is not for our light
         if (message.lightID !== this.lightID) {
-        //    print('not our light')
+            //    print('not our light')
             return;
         }
 
         //message is not our type
         if (message.sliderType !== this.sliderType) {
-        //    print('not our slider type')
+            //    print('not our slider type')
             return
         }
 
@@ -381,7 +399,61 @@ function deleteEntity(entityID) {
 }
 
 
+
 Entities.deletingEntity.connect(deleteEntity);
+
+// search for lights to make grabbable
+
+// var USE_DEBOUNCE = true;
+// var sinceLastUpdate = 0;
+
+// function searchForLightsToVisualize() {
+
+//     var deltaTime = interval();
+
+//     if (USE_DEBOUNCE === true) {
+//         sinceLastUpdate = sinceLastUpdate + deltaTime;
+
+//         if (sinceLastUpdate > 60) {
+//             sinceLastUpdate = 0;
+//         } else {
+//             return;
+//         }
+//     }
+
+//     print('SEARCHING FOR LIGHTS');
+
+//     var entitites = Entities.findEntities(MyAvatar.position, 50);
+//     for (i = 0; i < entities.length; i++) {
+//         var entityProperties = Entities.getEntityProperties(entities[i], ['type', 'parentID'])
+//         var parentID = entityProperties.parentID;
+//         var type = entityProperties.type;
+
+//         if (type !== 'Light') {
+//             return;
+//         }
+
+//         if (type === "Light" && parentID !== DEFAULT_PARENT_ID && parentID !== null) {
+//             var light = entities[i];
+//             //do something with the light.
+//         }
+
+//     }
+
+// }
+
+// function interval() {
+//     var lastTime = new Date().getTime();
+
+//     return function getInterval() {
+//         var newTime = new Date().getTime();
+//         var delta = newTime - lastTime;
+//         lastTime = newTime;
+//         return delta;
+//     };
+// }
+
+
 
 
 //other light properties

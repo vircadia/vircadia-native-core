@@ -9,39 +9,10 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
-var MODEL_LIGHT_POSITION = {
-  x: 0,
-  y: -0.3,
-  z: 0
-};
-var MODEL_LIGHT_ROTATION = Quat.angleAxis(-90, {
-  x: 1,
-  y: 0,
-  z: 0
-});
 
 var basePosition, avatarRot;
 avatarRot = Quat.fromPitchYawRollDegrees(0, MyAvatar.bodyYaw, 0.0);
-basePosition = Vec3.sum(MyAvatar.position, Vec3.multiply(-3, Quat.getUp(avatarRot)));
-
-var ground = Entities.addEntity({
-  name: 'Hifi-Light-Mod-Floor',
-  //type: "Model",
-  type: 'Box',
-  color: {
-    red: 100,
-    green: 100,
-    blue: 100
-  },
-  //modelURL: "https://hifi-public.s3.amazonaws.com/eric/models/woodFloor.fbx",
-  dimensions: {
-    x: 100,
-    y: 2,
-    z: 100
-  },
-  position: basePosition,
-  shapeType: 'box'
-});
+basePosition = Vec3.sum(MyAvatar.position, Vec3.multiply(0, Quat.getUp(avatarRot)));
 
 var light, block;
 
@@ -87,7 +58,7 @@ function createLight() {
 
 function createBlock() {
   var position = basePosition;
-  position.y += 5;
+  position.y += 3;
   var blockProperties = {
     name: 'Hifi-Spotlight-Block',
     type: 'Box',
@@ -103,12 +74,22 @@ function createBlock() {
       blue: 255
     },
     position: position
-  }
+  };
 
   block = Entities.addEntity(blockProperties);
 }
 
 function evalLightWorldTransform(modelPos, modelRot) {
+  var MODEL_LIGHT_POSITION = {
+    x: 0,
+    y: -0.3,
+    z: 0
+  };
+  var MODEL_LIGHT_ROTATION = Quat.angleAxis(-90, {
+    x: 1,
+    y: 0,
+    z: 0
+  });
   return {
     p: Vec3.sum(modelPos, Vec3.multiplyQbyV(modelRot, MODEL_LIGHT_POSITION)),
     q: Quat.multiply(modelRot, MODEL_LIGHT_ROTATION)
@@ -117,7 +98,6 @@ function evalLightWorldTransform(modelPos, modelRot) {
 
 function cleanup() {
   Entities.deleteEntity(block);
-  Entities.deleteEntity(ground);
   Entities.deleteEntity(light);
 }
 
