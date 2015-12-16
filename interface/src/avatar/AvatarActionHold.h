@@ -35,7 +35,7 @@ public:
 
     virtual bool shouldSuppressLocationEdits() override { return _active && !_ownerEntity.expired(); }
 
-    glm::vec3 getAvatarRigidBodyPosition();
+    bool getAvatarRigidBodyLocation(glm::vec3& avatarRigidBodyPosition, glm::quat& avatarRigidBodyRotation);
     std::shared_ptr<Avatar> getTarget(glm::quat& rotation, glm::vec3& position);
 
     virtual void prepareForPhysicsSimulation() override;
@@ -61,6 +61,7 @@ private:
     glm::vec3 _previousPositionalDelta;
 
     glm::vec3 _palmOffsetFromRigidBody;
+    glm::quat _palmRotationFromRigidBody;
 };
 
 #endif // hifi_AvatarActionHold_h
