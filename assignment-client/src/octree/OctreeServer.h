@@ -140,6 +140,9 @@ private slots:
     void removeSendThread();
 
 protected:
+    using UniqueSendThread = std::unique_ptr<OctreeSendThread>;
+    using SendThreads = std::unordered_map<QUuid, UniqueSendThread>;
+    
     virtual OctreePointer createTree() = 0;
     bool readOptionBool(const QString& optionName, const QJsonObject& settingsSectionObject, bool& result);
     bool readOptionInt(const QString& optionName, const QJsonObject& settingsSectionObject, int& result);
@@ -153,6 +156,8 @@ protected:
     QString getFileLoadTime();
     QString getConfiguration();
     QString getStatusLink();
+    
+    UniqueSendThread createSendThread(const SharedNodePointer& node);
 
     int _argc;
     const char** _argv;
@@ -191,7 +196,6 @@ protected:
     quint64 _startedUSecs;
     QString _safeServerName;
     
-    using SendThreads = std::unordered_map<QUuid, std::unique_ptr<OctreeSendThread>>;
     SendThreads _sendThreads;
 
     static int _clientCount;

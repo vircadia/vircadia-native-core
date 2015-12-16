@@ -868,6 +868,16 @@ void OctreeServer::parsePayload() {
     }
 }
 
+OctreeServer::UniqueSendThread OctreeServer::createSendThread(const SharedNodePointer& node) {
+    auto sendThread = std::unique_ptr<OctreeSendThread>(new OctreeSendThread(this, node));
+    
+    // we want to be notified when the thread finishes
+    connect(sendThread.get(), &GenericThread::finished, this, &OctreeServer::removeSendThread);
+    sendThread->initialize(true);
+
+    return sendThread;
+}
+
 void OctreeServer::removeSendThread() {
     auto sendThread = static_cast<OctreeSendThread*>(sender());
     
@@ -884,12 +894,7 @@ void OctreeServer::handleOctreeQueryPacket(QSharedPointer<ReceivedMessage> messa
         
         auto it = _sendThreads.find(senderNode->getUUID());
         if (it == _sendThreads.end() || it->second->isShuttingDown()) {
-            auto sendThread = std::unique_ptr<OctreeSendThread>(new OctreeSendThread(this, senderNode));
-            
-            // we want to be notified when the thread finishes
-            connect(sendThread.get(), &GenericThread::finished, this, &OctreeServer::removeSendThread);
-            sendThread->initialize(true);
-            _sendThreads.emplace(senderNode->getUUID(), std::move(sendThread));
+            _sendThreads.emplace(senderNode->getUUID(), createSendThread(senderNode));
         }
     }
 }
