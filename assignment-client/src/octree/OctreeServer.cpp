@@ -879,10 +879,11 @@ OctreeServer::UniqueSendThread OctreeServer::createSendThread(const SharedNodePo
 }
 
 void OctreeServer::removeSendThread() {
-    auto sendThread = static_cast<OctreeSendThread*>(sender());
-    
-    // This deletes the unique_ptr, so sendThread is destructed after that line
-    _sendThreads.erase(sendThread->getNodeUuid());
+    // If the object has been deleted since the event was queued, sender() will return nullptr
+    if (auto sendThread = qobject_cast<OctreeSendThread*>(sender())) {
+        // This deletes the unique_ptr, so sendThread is destructed after that line
+        _sendThreads.erase(sendThread->getNodeUuid());
+    }
 }
 
 void OctreeServer::handleOctreeQueryPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode) {
@@ -893,7 +894,13 @@ void OctreeServer::handleOctreeQueryPacket(QSharedPointer<ReceivedMessage> messa
         nodeList->updateNodeWithDataFromPacket(message, senderNode);
         
         auto it = _sendThreads.find(senderNode->getUUID());
-        if (it == _sendThreads.end() || it->second->isShuttingDown()) {
+        if (it == _sendThreads.end()) {
+            _sendThreads.emplace(senderNode->getUUID(), createSendThread(senderNode));
+        } else if (it->second->isShuttingDown()) {
+            auto& sendThread = *it->second;
+            sendThread.setIsShuttingDown();
+            _sendThreads.erase(it); // Remove right away and wait on thread to be
+            
             _sendThreads.emplace(senderNode->getUUID(), createSendThread(senderNode));
         }
     }
@@ -1224,7 +1231,6 @@ void OctreeServer::aboutToFinish() {
     // Shut down all the send threads
     for (auto& it : _sendThreads) {
         auto& sendThread = *it.second;
-        sendThread.disconnect(this); // Disconnect so that removeSendThread doesn't get called later
         sendThread.setIsShuttingDown();
     }
     
