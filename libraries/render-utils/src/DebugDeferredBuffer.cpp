@@ -49,7 +49,7 @@ static const std::string FUNCTIONS_PLACEHOLDER { "/*FUNCTIONS_PLACEHOLDER*/" }; 
 std::string DebugDeferredBuffer::getCode(Modes mode) {
     switch (mode) {
         case DiffuseMode: {
-            QString code = "return vec4(texture(%1, uv).xyz, 1.0);";
+            QString code = "return vec4(pow(texture(%1, uv).xyz, vec3(1.0 / 2.2)), 1.0);";
             return code.arg(SLOT_NAMES[Diffuse].c_str()).toStdString();
         }
         case AlphaMode: {
@@ -73,7 +73,7 @@ std::string DebugDeferredBuffer::getCode(Modes mode) {
             return code.arg(SLOT_NAMES[Depth].c_str()).toStdString();
         }
         case LightingMode: {
-            QString code = "return vec4(texture(%1, uv).xyz, 1.0);";
+            QString code = "return vec4(pow(texture(%1, uv).xyz, vec3(1.0 / 2.2)), 1.0);";
             return code.arg(SLOT_NAMES[Lighting].c_str()).toStdString();
         }
         case CustomMode:

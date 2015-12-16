@@ -20,12 +20,11 @@
 
 
 ToneMappingEffect::ToneMappingEffect() {
-
+    Parameters parameters;
+    _parametersBuffer = gpu::BufferView(std::make_shared<gpu::Buffer>(sizeof(Parameters), (const gpu::Byte*) &parameters));
 }
 
 void ToneMappingEffect::init() {
-    //auto VSFS = gpu::StandardShaderLib::getDrawViewportQuadTransformTexcoordVS();
-    //auto PSBlit = gpu::StandardShaderLib::getDrawTexturePS();
     const char BlitTextureGamma_frag[] = R"SCRIBE(#version 410 core
         //  Generated on Sat Oct 24 09:34:37 2015
         //
@@ -38,6 +37,16 @@ void ToneMappingEffect::init() {
         //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
         //
         
+        struct ToneMappingParams {
+            vec4 _exp_2powExp_s0_s1;
+        };
+
+        uniform toneMappingParamsBuffer {
+            ToneMappingParams params;
+        };
+        float getTwoPowExposure() {
+            return params._exp_2powExp_s0_s1.y;
+        }
         
         uniform sampler2D colorMap;
         
@@ -45,35 +54,46 @@ void ToneMappingEffect::init() {
         out vec4 outFragColor;
         
         void main(void) {
-            vec4 fragColor = texture(colorMap, varTexCoord0);
-            // if (gl_FragCoord.x > 1000) {
-            // Manually gamma correct from Ligthing BUffer to color buffer
-       //    outFragColor.xyz = pow( fragColor.xyz , vec3(1.0 / 2.2) );
+            vec4 fragColorRaw = textureLod(colorMap, varTexCoord0, 0);
+            vec3 fragColor = fragColorRaw.xyz;
 
-            fragColor *= 2.0;  // Hardcoded Exposure Adjustment
+/*            vec4 fragColorAverage = textureLod(colorMap, varTexCoord0, 10);
+            float averageIntensity = length(fragColorAverage.xyz);
+
+            vec3 fragColor = fragColorRaw.xyz / averageIntensity;
+*/
+            fragColor *= getTwoPowExposure();
+
+
+            // Manually gamma correct from Ligthing BUffer to color buffer
+            // outFragColor.xyz = pow( fragColor.xyz , vec3(1.0 / 2.2) );
+
             vec3 x = max(vec3(0.0),fragColor.xyz-0.004);
             vec3 retColor = (x*(6.2*x+.5))/(x*(6.2*x+1.7)+0.06);
 
-        //    fragColor *= 8;  // Hardcoded Exposure Adjustment
-        //    fragColor = fragColor/(1.0+fragColor);
-        //    vec3 retColor = pow(fragColor.xyz,vec3(1/2.2));
+            // fragColor = fragColor/(1.0+fragColor);
+            // vec3 retColor = pow(fragColor.xyz,vec3(1/2.2));
 
             outFragColor = vec4(retColor, 1.0);
-            // }
         }
         
         )SCRIBE";
     auto blitPS = gpu::ShaderPointer(gpu::Shader::createPixel(std::string(BlitTextureGamma_frag)));
 
-    //auto blitProgram = gpu::StandardShaderLib::getProgram(gpu::StandardShaderLib::getDrawViewportQuadTransformTexcoordVS, gpu::StandardShaderLib::getDrawTexturePS);
     auto blitVS = gpu::StandardShaderLib::getDrawViewportQuadTransformTexcoordVS();
     auto blitProgram = gpu::ShaderPointer(gpu::Shader::createProgram(blitVS, blitPS));
 
-    //auto blitProgram = gpu::StandardShaderLib::getProgram(gpu::StandardShaderLib::getDrawViewportQuadTransformTexcoordVS, gpu::StandardShaderLib::getDrawTexturePS);
-    gpu::Shader::makeProgram(*blitProgram);
+    gpu::Shader::BindingSet slotBindings;
+    slotBindings.insert(gpu::Shader::Binding(std::string("toneMappingParamsBuffer"), 3));
+    gpu::Shader::makeProgram(*blitProgram, slotBindings);
     auto blitState = std::make_shared<gpu::State>();
     blitState->setColorWriteMask(true, true, true, true);
     _blitLightBuffer = gpu::PipelinePointer(gpu::Pipeline::create(blitProgram, blitState));
+}
+
+void ToneMappingEffect::setExposure(float exposure) {
+    _parametersBuffer.edit<Parameters>()._exposure = exposure;
+    _parametersBuffer.edit<Parameters>()._twoPowExposure = pow(2.0, exposure);
 }
 
 
@@ -89,6 +109,9 @@ void ToneMappingEffect::render(RenderArgs* args) {
         auto lightingBuffer = framebufferCache->getLightingTexture();
         auto destFbo = framebufferCache->getPrimaryFramebuffer();
         batch.setFramebuffer(destFbo);
+
+        batch.generateTextureMips(lightingBuffer);
+
         batch.setViewportTransform(args->_viewport);
         batch.setProjectionTransform(glm::mat4());
         batch.setViewTransform(Transform());
@@ -104,6 +127,7 @@ void ToneMappingEffect::render(RenderArgs* args) {
             batch.setModelTransform(model);
         }
 
+        batch.setUniformBuffer(3, _parametersBuffer);
         batch.setResourceTexture(0, lightingBuffer);
         batch.draw(gpu::TRIANGLE_STRIP, 4);
 

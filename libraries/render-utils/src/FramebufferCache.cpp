@@ -87,9 +87,11 @@ void FramebufferCache::createPrimaryFramebuffer() {
     auto tex = gpu::TexturePointer(gpu::Texture::create2D(colorFormat, width * 0.5, height * 0.5, defaultSampler));
     _selfieFramebuffer->setRenderBuffer(0, tex);
 
+    auto smoothSampler = gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_MIP_LINEAR);
+
     //_lightingTexture = gpu::TexturePointer(gpu::Texture::create2D(gpu::Element::COLOR_RGBA_32, width, height, defaultSampler));
     //lightingTexture = gpu::TexturePointer(gpu::Texture::create2D(gpu::Element(gpu::VEC3, gpu::NUINT8, gpu::R11G11B10), width, height, defaultSampler));
-    _lightingTexture = gpu::TexturePointer(gpu::Texture::create2D(gpu::Element(gpu::VEC4, gpu::HALF, gpu::RGBA), width, height, defaultSampler));
+    _lightingTexture = gpu::TexturePointer(gpu::Texture::create2D(gpu::Element(gpu::VEC4, gpu::HALF, gpu::RGBA), width, height, smoothSampler));
     _lightingFramebuffer = gpu::FramebufferPointer(gpu::Framebuffer::create());
     _lightingFramebuffer->setRenderBuffer(0, _lightingTexture);
     _lightingFramebuffer->setDepthStencilBuffer(_primaryDepthTexture, depthFormat);
