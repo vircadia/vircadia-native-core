@@ -1254,6 +1254,8 @@ const AABox& EntityItem::getAABox(bool& success) const {
             _cachedAABox = AABox(rotatedExtentsRelativeToRegistrationPoint);
             _recalcAABox = false;
         }
+    } else {
+        success = true;
     }
     return _cachedAABox;
 }

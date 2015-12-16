@@ -240,8 +240,8 @@ bool EntityTree::updateEntityWithElement(EntityItemPointer entity, const EntityI
             bool success;
             AACube queryCube = childEntity->getQueryAACube(success);
             if (!success) {
-                qCDebug(entities) << "Can't update child -- failed to get query-cube for" << childEntity->getID();
-                // XXX put on a list for later checking?
+                _missingParent.append(childEntity);
+                continue;
             }
 
             UpdateEntityOperator theChildOperator(getThisPointer(), containingElement, childEntity, queryCube);
