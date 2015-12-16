@@ -75,7 +75,7 @@ ProcessGroup.prototype = extend(ProcessGroup.prototype, {
 });
 
 var ID = 0;
-function Process(name, command, commandArgs) {
+function Process(name, command, commandArgs, logDirectory) {
     events.EventEmitter.call(this);
 
     this.blah = 'adsf';
@@ -84,6 +84,7 @@ function Process(name, command, commandArgs) {
     this.command = command;
     this.commandArgs = commandArgs ? commandArgs : [];
     this.child = null;
+    this.logDirectory = logDirectory;
 
     this.state = ProcessStates.STOPPED;
 };
@@ -96,38 +97,41 @@ Process.prototype = extend(Process.prototype, {
         }
         console.log("Starting " + this.command);
 
-        var logDirectoryCreated = false;
-        try {
-            fs.mkdirSync('logs');
-            logDirectoryCreated = true;
-        } catch (e) {
-            if (e.code == 'EEXIST') {
-                logDirectoryCreated = true;
-            } else {
-                console.error("Error creating log directory");
-            }
-        }
-
         var logStdout = 'ignore',
             logStderr = 'ignore';
 
-        if (logDirectoryCreated) {
-            // Create a temporary file with the current time
-            var time = (new Date).getTime();
-            var tmpLogStdout = './logs/' + this.name + '-' + time + '-stdout.txt';
-            var tmpLogStderr = './logs/' + this.name + '-' + time + '-stderr.txt';
+        if (this.logDirectory) {
+            var logDirectoryCreated = false;
 
             try {
-                logStdout = fs.openSync(tmpLogStdout, 'ax');
-            } catch(e) {
-                console.log("Error creating stdout log file", e);
-                logStdout = 'ignore';
+                fs.mkdirSync('logs');
+                logDirectoryCreated = true;
+            } catch (e) {
+                if (e.code == 'EEXIST') {
+                    logDirectoryCreated = true;
+                } else {
+                    console.error("Error creating log directory");
+                }
             }
-            try {
-                logStderr = fs.openSync(tmpLogStderr, 'ax');
-            } catch(e) {
-                console.log("Error creating stderr log file", e);
-                logStderr = 'ignore';
+
+            if (logDirectoryCreated) {
+                // Create a temporary file with the current time
+                var time = (new Date).getTime();
+                var tmpLogStdout = this.logDirectory + '/' + this.name + '-' + time + '-stdout.txt';
+                var tmpLogStderr = this.logDirectory + '/' + this.name + '-' + time + '-stderr.txt';
+
+                try {
+                    logStdout = fs.openSync(tmpLogStdout, 'ax');
+                } catch(e) {
+                    console.log("Error creating stdout log file", e);
+                    logStdout = 'ignore';
+                }
+                try {
+                    logStderr = fs.openSync(tmpLogStderr, 'ax');
+                } catch(e) {
+                    console.log("Error creating stderr log file", e);
+                    logStderr = 'ignore';
+                }
             }
         }
 
