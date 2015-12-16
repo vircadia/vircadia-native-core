@@ -142,7 +142,7 @@ glm::vec3 RenderablePolyVoxEntityItem::getSurfacePositionAdjustment() const {
 
 glm::mat4 RenderablePolyVoxEntityItem::voxelToLocalMatrix() const {
     glm::vec3 scale = getDimensions() / _voxelVolumeSize; // meters / voxel-units
-    bool success; // XXX Does this actually have to happen in world space?
+    bool success; // TODO -- Does this actually have to happen in world space?
     glm::vec3 center = getCenterPosition(success);
     glm::vec3 position = getPosition(success);
     glm::vec3 positionToCenter = center - position;
