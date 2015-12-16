@@ -1260,15 +1260,14 @@ void Application::paintGL() {
                 hmdOffset.x = -hmdOffset.x;
 
                 _myCamera.setPosition(myAvatar->getDefaultEyePosition()
-                    + glm::vec3(0, _raiseMirror * myAvatar->getAvatarScale(), 0)
+                    + glm::vec3(0, _raiseMirror * myAvatar->getUniformScale(), 0)
                    + mirrorBodyOrientation * glm::vec3(0.0f, 0.0f, 1.0f) * MIRROR_FULLSCREEN_DISTANCE * _scaleMirror
                    + mirrorBodyOrientation * hmdOffset);
-
             } else {
                 _myCamera.setRotation(myAvatar->getWorldAlignedOrientation()
                     * glm::quat(glm::vec3(0.0f, PI + _rotateMirror, 0.0f)));
                 _myCamera.setPosition(myAvatar->getDefaultEyePosition()
-                    + glm::vec3(0, _raiseMirror * myAvatar->getAvatarScale(), 0)
+                    + glm::vec3(0, _raiseMirror * myAvatar->getUniformScale(), 0)
                     + (myAvatar->getOrientation() * glm::quat(glm::vec3(0.0f, _rotateMirror, 0.0f))) *
                     glm::vec3(0.0f, 0.0f, -1.0f) * MIRROR_FULLSCREEN_DISTANCE * _scaleMirror);
             }
