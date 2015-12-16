@@ -382,7 +382,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
     _scaleMirror(1.0f),
     _rotateMirror(0.0f),
     _raiseMirror(0.0f),
-    _lastMouseMoveWasSimulated(false),
     _enableProcessOctreeThread(true),
     _runningScriptsWidget(NULL),
     _runningScriptsWidgetWasVisible(false),
@@ -664,6 +663,21 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
     // Setup the userInputMapper with the actions
     auto userInputMapper = DependencyManager::get<UserInputMapper>();
     connect(userInputMapper.data(), &UserInputMapper::actionEvent, [this](int action, float state) {
+        if (action == controller::toInt(controller::Action::RETICLE_CLICK)) {
+            auto globalPos = QCursor::pos();
+            auto localPos = _glWidget->mapFromGlobal(globalPos);
+            if (state) {
+                QMouseEvent mousePress(QEvent::MouseButtonPress, localPos, Qt::LeftButton, Qt::LeftButton, Qt::NoModifier);
+                sendEvent(_glWidget, &mousePress);
+                _reticleClickPressed = true;
+            } else {
+                QMouseEvent mouseRelease(QEvent::MouseButtonRelease, localPos, Qt::LeftButton, Qt::NoButton, Qt::NoModifier);
+                sendEvent(_glWidget, &mouseRelease);
+                _reticleClickPressed = false;
+            }
+            return; // nothing else to do
+        }
+
         if (state) {
             if (action == controller::toInt(controller::Action::TOGGLE_MUTE)) {
                 DependencyManager::get<AudioClient>()->toggleMute();
@@ -671,6 +685,14 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
                 cycleCamera();
             } else if (action == controller::toInt(controller::Action::CONTEXT_MENU)) {
                 VrMenu::toggle(); // show context menu even on non-stereo displays
+            } else if (action == controller::toInt(controller::Action::RETICLE_X)) {
+                auto globalPos = QCursor::pos();
+                globalPos.setX(globalPos.x() + state);
+                QCursor::setPos(globalPos);
+            } else if (action == controller::toInt(controller::Action::RETICLE_Y)) {
+                auto globalPos = QCursor::pos();
+                globalPos.setY(globalPos.y() + state);
+                QCursor::setPos(globalPos);
             }
         }
     });
@@ -692,8 +714,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
 
     // Setup the keyboardMouseDevice and the user input mapper with the default bindings
     userInputMapper->registerDevice(_keyboardMouseDevice->getInputDevice());
-
-
     userInputMapper->loadDefaultMapping(userInputMapper->getStandardDeviceID());
 
     // check first run...
@@ -744,15 +764,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
     eyeTracker->init();
     setActiveEyeTracker();
 #endif
-
-    _oldHandMouseX[0] = -1;
-    _oldHandMouseY[0] = -1;
-    _oldHandMouseX[1] = -1;
-    _oldHandMouseY[1] = -1;
-    _oldHandLeftClick[0] = false;
-    _oldHandRightClick[0] = false;
-    _oldHandLeftClick[1] = false;
-    _oldHandRightClick[1] = false;
 
     auto applicationUpdater = DependencyManager::get<AutoUpdater>();
     connect(applicationUpdater.data(), &AutoUpdater::newVersionIsAvailable, dialogsManager.data(), &DialogsManager::showUpdateDialog);
@@ -2004,8 +2015,6 @@ void Application::focusOutEvent(QFocusEvent* event) {
 
 void Application::mouseMoveEvent(QMouseEvent* event, unsigned int deviceID) {
     PROFILE_RANGE(__FUNCTION__);
-    // Used by application overlay to determine how to draw cursor(s)
-    _lastMouseMoveWasSimulated = deviceID > 0;
 
     if (_aboutToQuit) {
         return;
@@ -2033,11 +2042,20 @@ void Application::mouseMoveEvent(QMouseEvent* event, unsigned int deviceID) {
 
     auto offscreenUi = DependencyManager::get<OffscreenUi>();
     QPointF transformedPos = offscreenUi->mapToVirtualScreen(event->localPos(), _glWidget);
+    auto button = event->button();
+    auto buttons = event->buttons();
+    // Determine if the ReticleClick Action is 1 and if so, fake include the LeftMouseButton
+    if (_reticleClickPressed) {
+        if (button == Qt::NoButton) {
+            button = Qt::LeftButton;
+        }
+        buttons |= Qt::LeftButton;
+    }
+
     QMouseEvent mappedEvent(event->type(),
         transformedPos,
-        event->screenPos(), event->button(),
-        event->buttons(), event->modifiers());
-
+        event->screenPos(), button,
+        buttons, event->modifiers());
 
     getEntities()->mouseMoveEvent(&mappedEvent, deviceID);
     _controllerScriptingInterface->emitMouseMoveEvent(&mappedEvent, deviceID); // send events to any registered scripts
@@ -2941,13 +2959,6 @@ void Application::update(float deltaTime) {
     Hand* hand = DependencyManager::get<AvatarManager>()->getMyAvatar()->getHand();
     setPalmData(hand, leftHand, deltaTime, HandData::LeftHand, userInputMapper->getActionState(controller::Action::LEFT_HAND_CLICK));
     setPalmData(hand, rightHand, deltaTime, HandData::RightHand, userInputMapper->getActionState(controller::Action::RIGHT_HAND_CLICK));
-    if (Menu::getInstance()->isOptionChecked(MenuOption::EnableHandMouseInput)) {
-        emulateMouse(hand, userInputMapper->getActionState(controller::Action::LEFT_HAND_CLICK),
-            userInputMapper->getActionState(controller::Action::SHIFT), HandData::LeftHand);
-        emulateMouse(hand, userInputMapper->getActionState(controller::Action::RIGHT_HAND_CLICK),
-            userInputMapper->getActionState(controller::Action::SHIFT), HandData::RightHand);
-    }
-
     updateThreads(deltaTime); // If running non-threaded, then give the threads some time to process...
     updateDialogs(deltaTime); // update various stats dialogs if present
 
@@ -4114,7 +4125,7 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEngine* scri
 
     ClipboardScriptingInterface* clipboardScriptable = new ClipboardScriptingInterface();
     scriptEngine->registerGlobalObject("Clipboard", clipboardScriptable);
-    connect(scriptEngine, SIGNAL(finished(const QString&)), clipboardScriptable, SLOT(deleteLater()));
+    connect(scriptEngine, &ScriptEngine::finished, clipboardScriptable, &ClipboardScriptingInterface::deleteLater);
 
     connect(scriptEngine, &ScriptEngine::finished, this, &Application::scriptFinished, Qt::DirectConnection);
 
@@ -5127,125 +5138,6 @@ void Application::setPalmData(Hand* hand, const controller::Pose& pose, float de
         palm.setTipPosition(newTipPosition);
         palm.setTrigger(triggerValue); // FIXME - we want to get rid of this idea of PalmData having a trigger
     });
-}
-
-void Application::emulateMouse(Hand* hand, float click, float shift, HandData::Hand whichHand) {
-    auto palms = hand->getCopyOfPalms();
-
-    // Locate the palm, if it exists and is active
-    PalmData* palm;
-    bool foundHand = false;
-    for (size_t j = 0; j < palms.size(); j++) {
-        if (palms[j].whichHand() == whichHand) {
-            palm = &(palms[j]);
-            foundHand = true;
-            break;
-        }
-    }
-    if (!foundHand || !palm->isActive()) {
-        return;
-    }
-
-    // Process the mouse events
-    QPoint pos;
-
-
-    // FIXME - this mouse emulation stuff needs to be reworked for new controller input plugins
-    unsigned int deviceID = whichHand == HandData::LeftHand ? CONTROLLER_0_EVENT : CONTROLLER_1_EVENT;
-    int index = (int)whichHand; // FIXME - hack attack
-
-    if (isHMDMode()) {
-        pos = getApplicationCompositor().getPalmClickLocation(palm);
-    } else {
-        // Get directon relative to avatar orientation
-        glm::vec3 direction = glm::inverse(getMyAvatar()->getOrientation()) * palm->getFingerDirection();
-
-        // Get the angles, scaled between (-0.5,0.5)
-        float xAngle = (atan2f(direction.z, direction.x) + (float)M_PI_2);
-        float yAngle = 0.5f - ((atan2f(direction.z, direction.y) + (float)M_PI_2));
-        auto canvasSize = getCanvasSize();
-        // Get the pixel range over which the xAngle and yAngle are scaled
-        float cursorRange = canvasSize.x * controller::InputDevice::getCursorPixelRangeMult();
-
-        pos.setX(canvasSize.x / 2.0f + cursorRange * xAngle);
-        pos.setY(canvasSize.y / 2.0f + cursorRange * yAngle);
-
-    }
-
-    //If we are off screen then we should stop processing, and if a trigger or bumper is pressed,
-    //we should unpress them.
-    if (pos.x() == INT_MAX) {
-        if (_oldHandLeftClick[index]) {
-            QMouseEvent mouseEvent(QEvent::MouseButtonRelease, pos, Qt::LeftButton, Qt::LeftButton, 0);
-
-            mouseReleaseEvent(&mouseEvent, deviceID);
-
-            _oldHandLeftClick[index] = false;
-        }
-        if (_oldHandRightClick[index]) {
-            QMouseEvent mouseEvent(QEvent::MouseButtonRelease, pos, Qt::RightButton, Qt::RightButton, 0);
-
-            mouseReleaseEvent(&mouseEvent, deviceID);
-
-            _oldHandRightClick[index] = false;
-        }
-        return;
-    }
-
-    //If position has changed, emit a mouse move to the application
-    if (pos.x() != _oldHandMouseX[index] || pos.y() != _oldHandMouseY[index]) {
-        QMouseEvent mouseEvent(QEvent::MouseMove, pos, Qt::NoButton, Qt::NoButton, 0);
-
-        // Only send the mouse event if the opposite left button isnt held down.
-        // Is this check necessary?
-        if (!_oldHandLeftClick[(int)(!index)]) {
-            mouseMoveEvent(&mouseEvent, deviceID);
-        }
-    }
-    _oldHandMouseX[index] = pos.x();
-    _oldHandMouseY[index] = pos.y();
-
-    //We need separate coordinates for clicks, since we need to check if
-    //a magnification window was clicked on
-    int clickX = pos.x();
-    int clickY = pos.y();
-    //Set pos to the new click location, which may be the same if no magnification window is open
-    pos.setX(clickX);
-    pos.setY(clickY);
-
-    // Right click
-    if (shift == 1.0f && click == 1.0f) {
-        if (!_oldHandRightClick[index]) {
-            _oldHandRightClick[index] = true;
-
-            QMouseEvent mouseEvent(QEvent::MouseButtonPress, pos, Qt::RightButton, Qt::RightButton, 0);
-
-            mousePressEvent(&mouseEvent, deviceID);
-        }
-    } else if (_oldHandRightClick[index]) {
-        QMouseEvent mouseEvent(QEvent::MouseButtonRelease, pos, Qt::RightButton, Qt::RightButton, 0);
-
-        mouseReleaseEvent(&mouseEvent, deviceID);
-
-        _oldHandRightClick[index] = false;
-    }
-
-    // Left click
-    if (shift != 1.0f && click == 1.0f) {
-        if (!_oldHandLeftClick[index]) {
-            _oldHandLeftClick[index] = true;
-
-            QMouseEvent mouseEvent(QEvent::MouseButtonPress, pos, Qt::LeftButton, Qt::LeftButton, 0);
-
-            mousePressEvent(&mouseEvent, deviceID);
-        }
-    } else if (_oldHandLeftClick[index]) {
-        QMouseEvent mouseEvent(QEvent::MouseButtonRelease, pos, Qt::LeftButton, Qt::LeftButton, 0);
-
-        mouseReleaseEvent(&mouseEvent, deviceID);
-
-        _oldHandLeftClick[index] = false;
-    }
 }
 
 void Application::crashApplication() {

@@ -950,7 +950,11 @@ void MyAvatar::clearJointData(int index) {
 }
 
 void MyAvatar::clearJointsData() {
-    //clearJointAnimationPriorities();
+    if (QThread::currentThread() != thread()) {
+        QMetaObject::invokeMethod(this, "clearJointsData");
+        return;
+    }
+    _rig->clearJointStates();
 }
 
 void MyAvatar::setFaceModelURL(const QUrl& faceModelURL) {
