@@ -1205,7 +1205,7 @@ void OctreeServer::aboutToFinish() {
 
     // we're going down - set the NodeList linkedDataCallback to NULL so we do not create any more OctreeQueryNode objects.
     // This ensures that we don't get any more newly connecting nodes
-    DependencyManager::get<NodeList>()->linkedDataCreateCallback = NULL;
+    DependencyManager::get<NodeList>()->linkedDataCreateCallback = nullptr;
 
     if (_octreeInboundPacketProcessor) {
         _octreeInboundPacketProcessor->terminating();
