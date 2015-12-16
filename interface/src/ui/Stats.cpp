@@ -116,8 +116,6 @@ void Stats::updateStats(bool force) {
     auto avatarManager = DependencyManager::get<AvatarManager>();
     // we need to take one avatar out so we don't include ourselves
     STAT_UPDATE(avatarCount, avatarManager->size() - 1);
-    STAT_UPDATE(avatarRenderableCount, DependencyManager::get<LODManager>()->getRenderedCount()); //FIXME avatarManager->getNumberInRenderRange());
-    STAT_UPDATE(avatarRenderDistance, (int)round(DependencyManager::get<LODManager>()->getRenderDistance())); // FIXME avatarManager->getRenderDistance())); // deliberately truncating
     STAT_UPDATE(serverCount, (int)nodeList->size());
     STAT_UPDATE(renderrate, (int)qApp->getFps());
     if (qApp->getActiveDisplayPlugin()) {
@@ -285,6 +283,8 @@ void Stats::updateStats(bool force) {
         STAT_UPDATE(localLeaves, (int)OctreeElement::getLeafNodeCount());
         // LOD Details
         STAT_UPDATE(lodStatus, "You can see " + DependencyManager::get<LODManager>()->getLODFeedbackText());
+        STAT_UPDATE(avatarRenderableCount, DependencyManager::get<LODManager>()->getRenderedCount()); //FIXME avatarManager->getNumberInRenderRange());
+        STAT_UPDATE(avatarRenderDistance, (int)round(DependencyManager::get<LODManager>()->getRenderDistance())); // FIXME avatarManager->getRenderDistance())); // deliberately truncating
     }
 
     bool performanceTimerIsActive = PerformanceTimer::isActive();
