@@ -15,10 +15,12 @@
 
 Script.include("../../libraries/utils.js");
 Script.include("lightBall/LightBall.js");
+Script.include("raveStick/RaveStick.js");
 
 var basePosition = Vec3.sum(MyAvatar.position, Vec3.multiply(1, Quat.getFront(Camera.getOrientation())));
-basePosition.y = MyAvatar.position.y + 1
-var lightBall = LightBall(basePosition);
+basePosition.y = MyAvatar.position.y + 1;
+var lightBall = new LightBall(basePosition);
+var raveStick = new RaveStick(Vec3.sum(basePosition, {x: 1, y: 1, z: 1}));
 var modelURL = "file:///C:/Users/Eric/Desktop/RaveRoom.fbx?v1" + Math.random();
 
 var roomDimensions = {x: 30.58, y: 15.29, z: 30.58}; 
@@ -38,8 +40,6 @@ var floor = Entities.addEntity({
     color: {red: 50, green: 10, blue: 100},
     shapeType: 'box'
 });
-
-
 
 
 
@@ -68,6 +68,7 @@ function cleanup() {
     Entities.deleteEntity(lightZone)
     Entities.deleteEntity(floor);
     lightBall.cleanup();
+    raveStick.cleanup();
 }
 
 Script.scriptEnding.connect(cleanup);
