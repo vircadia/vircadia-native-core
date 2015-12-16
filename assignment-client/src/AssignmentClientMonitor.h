@@ -16,6 +16,7 @@
 #include <QtCore/qpointer.h>
 #include <QtCore/QProcess>
 #include <QtCore/QDateTime>
+#include <QDir>
 
 #include <Assignment.h>
 
@@ -29,7 +30,7 @@ public:
     AssignmentClientMonitor(const unsigned int numAssignmentClientForks, const unsigned int minAssignmentClientForks,
                             const unsigned int maxAssignmentClientForks, Assignment::Type requestAssignmentType,
                             QString assignmentPool, quint16 listenPort, QUuid walletUUID, QString assignmentServerHostname,
-                            quint16 assignmentServerPort);
+                            quint16 assignmentServerPort, QDir logDirectory);
     ~AssignmentClientMonitor();
 
     void stopChildProcesses();
@@ -46,6 +47,8 @@ private:
     void simultaneousWaitOnChildren(int waitMsecs);
 
     QTimer _checkSparesTimer; // every few seconds see if it need fewer or more spare children
+
+    QDir _logDirectory;
 
     const unsigned int _numAssignmentClientForks;
     const unsigned int _minAssignmentClientForks;
