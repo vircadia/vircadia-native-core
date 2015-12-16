@@ -14,7 +14,6 @@
 #include "DependencyManager.h"
 #include "SpatiallyNestable.h"
 
-
 SpatiallyNestable::SpatiallyNestable(NestableType nestableType, QUuid id) :
     _nestableType(nestableType),
     _id(id),
@@ -275,9 +274,11 @@ glm::vec3 SpatiallyNestable::getPosition(bool& success) const {
 glm::vec3 SpatiallyNestable::getPosition() const {
     bool success;
     auto result = getPosition(success);
+    #ifdef WANT_DEBUG
     if (!success) {
-        qDebug() << "Warning -- getPosition failed";
+        qDebug() << "Warning -- getPosition failed" << getID();
     }
+    #endif
     return result;
 }
 
@@ -301,9 +302,11 @@ void SpatiallyNestable::setPosition(const glm::vec3& position, bool& success) {
 void SpatiallyNestable::setPosition(const glm::vec3& position) {
     bool success;
     setPosition(position, success);
+    #ifdef WANT_DEBUG
     if (!success) {
-        qDebug() << "Warning -- setPosition failed";
+        qDebug() << "Warning -- setPosition failed" << getID();
     }
+    #endif
 }
 
 glm::quat SpatiallyNestable::getOrientation(bool& success) const {
@@ -313,9 +316,11 @@ glm::quat SpatiallyNestable::getOrientation(bool& success) const {
 glm::quat SpatiallyNestable::getOrientation() const {
     bool success;
     auto result = getOrientation(success);
+    #ifdef WANT_DEBUG
     if (!success) {
-        qDebug() << "Warning -- getOrientation failed";
+        qDebug() << "Warning -- getOrientation failed" << getID();
     }
+    #endif
     return result;
 }
 
@@ -339,9 +344,11 @@ void SpatiallyNestable::setOrientation(const glm::quat& orientation, bool& succe
 void SpatiallyNestable::setOrientation(const glm::quat& orientation) {
     bool success;
     setOrientation(orientation, success);
+    #ifdef WANT_DEBUG
     if (!success) {
-        qDebug() << "Wanring -- setOrientation failed";
+        qDebug() << "Warning -- setOrientation failed" << getID();
     }
+    #endif
 }
 
 const Transform SpatiallyNestable::getTransform(bool& success) const {
