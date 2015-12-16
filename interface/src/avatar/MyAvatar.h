@@ -263,9 +263,6 @@ public slots:
     glm::vec3 getPositionForAudio();
     glm::quat getOrientationForAudio();
 
-protected:
-    void animateScaleChanges(float deltaTime);
-
 signals:
     void audioListenerModeChanged();
     void transformChanged();

@@ -150,14 +150,17 @@ float Avatar::getLODDistance() const {
 void Avatar::animateScaleChanges(float deltaTime) {
     float currentScale = getUniformScale();
     if (currentScale != _targetScale) {
+        // use exponential decay toward _targetScale
         const float SCALE_ANIMATION_TIMESCALE = 0.5f;
-        float scaleVelocity = (_targetScale - currentScale) / SCALE_ANIMATION_TIMESCALE;
-        float animatedScale = currentScale + deltaTime * scaleVelocity;
-        const float MIN_SCALE_SPEED = 0.3f;
-        if (fabsf(scaleVelocity) < MIN_SCALE_SPEED) {
-            // close enough
+        float blendFactor = glm::clamp(deltaTime / SCALE_ANIMATION_TIMESCALE, 0.0f, 1.0f);
+        float animatedScale = (1.0f - blendFactor) * currentScale + blendFactor * _targetScale;
+
+        // snap to the end when we get close enough
+        const float MIN_RELATIVE_SCALE_ERROR = 0.03f;
+        if (fabsf(_targetScale - currentScale) / _targetScale < 0.03f) {
             animatedScale = _targetScale;
         }
+
         setScale(glm::vec3(animatedScale)); // avatar scale is uniform
         rebuildCollisionShape();
     }

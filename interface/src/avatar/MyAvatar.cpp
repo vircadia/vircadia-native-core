@@ -284,22 +284,6 @@ void MyAvatar::update(float deltaTime) {
 extern QByteArray avatarStateToFrame(const AvatarData* _avatar);
 extern void avatarStateFromFrame(const QByteArray& frameData, AvatarData* _avatar);
 
-void MyAvatar::animateScaleChanges(float deltaTime) {
-    // HACK: override Avatar::animateScaleChanges() until MyAvatar has a MotionState
-    float currentScale = getUniformScale();
-    if (currentScale != _targetScale) {
-        const float SCALE_ANIMATION_TIMESCALE = 1.0f;
-        float blendFactor = deltaTime / SCALE_ANIMATION_TIMESCALE;
-        float animatedScale = (1.0f - blendFactor) * currentScale + blendFactor * _targetScale;
-        const float CLOSE_ENOUGH = 0.05f;
-        if (fabsf(animatedScale - _targetScale) / _targetScale < CLOSE_ENOUGH) {
-            animatedScale = _targetScale;
-        }
-        setScale(glm::vec3(animatedScale));
-        rebuildCollisionShape();
-    }
-}
-
 void MyAvatar::simulate(float deltaTime) {
     PerformanceTimer perfTimer("simulate");
 
