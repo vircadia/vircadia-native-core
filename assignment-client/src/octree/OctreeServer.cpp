@@ -897,8 +897,6 @@ void OctreeServer::handleOctreeQueryPacket(QSharedPointer<ReceivedMessage> messa
         if (it == _sendThreads.end()) {
             _sendThreads.emplace(senderNode->getUUID(), createSendThread(senderNode));
         } else if (it->second->isShuttingDown()) {
-            auto& sendThread = *it->second;
-            sendThread.setIsShuttingDown();
             _sendThreads.erase(it); // Remove right away and wait on thread to be
             
             _sendThreads.emplace(senderNode->getUUID(), createSendThread(senderNode));
