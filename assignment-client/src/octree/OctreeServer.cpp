@@ -1173,7 +1173,8 @@ void OctreeServer::nodeKilled(SharedNodePointer node) {
     // Shutdown send thread
     auto it = _sendThreads.find(node->getUUID());
     if (it != _sendThreads.end()) {
-        it->second->setIsShuttingDown();
+        auto& sendThread = *it->second;
+        sendThread.setIsShuttingDown();
     }
 
     // calling this here since nodeKilled slot in ReceivedPacketProcessor can't be triggered by signals yet!!
@@ -1217,8 +1218,9 @@ void OctreeServer::aboutToFinish() {
     
     // Shut down all the send threads
     for (auto it = _sendThreads.begin(); it != _sendThreads.end(); ++it) {
-        it->second->disconnect(this); // Disconnect so that removeSendThread doesn't get called later
-        it->second->setIsShuttingDown();
+        auto& sendThread = *it->second;
+        sendThread.disconnect(this); // Disconnect so that removeSendThread doesn't get called later
+        sendThread.setIsShuttingDown();
     }
     
     // Wait on all send threads to be done before continuing
