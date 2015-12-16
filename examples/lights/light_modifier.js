@@ -1,9 +1,22 @@
-// given a selected light, instantiate some entities that represent various values you can dynamically adjust
+//
+//  light_modifier.js
+//
+//  Created byJames Pollack @imgntn on 10/19/2015
+//  Copyright 2015 High Fidelity, Inc.
+//
+//  Given a selected light, instantiate some entities that represent various values you can dynamically adjust by grabbing and moving.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+var AXIS_SCALE = 1;
+var COLOR_MAX = 255;
+var INTENSITY_MAX = 0.05;
+var CUTOFF_MAX = 360;
+var EXPONENT_MAX = 1;
 
-
-var BOX_SCRIPT_URL = Script.resolvePath('box.js?'+Math.random(0,100));
+var SLIDER_SCRIPT_URL = Script.resolvePath('slider.js?' + Math.random(0, 100));
 
 var RED = {
     red: 255,
@@ -35,13 +48,12 @@ var WHITE = {
     blue: 255
 };
 
-var AXIS_SCALE = 1;
-
-var BOX_DIMENSIONS = {
-    x: 0.05,
-    y: 0.05,
-    z: 0.05
+var SLIDER_DIMENSIONS = {
+    x: 0.075,
+    y: 0.075,
+    z: 0.075
 };
+
 var PER_ROW_OFFSET = {
     x: 0,
     y: -0.2,
@@ -55,10 +67,8 @@ function entitySlider(light, color, sliderType, row) {
     this.color = color;
     this.sliderType = sliderType;
     this.verticalOffset = Vec3.multiply(row, PER_ROW_OFFSET);
-    print('slider : ' + this.sliderType + "should have an offset of : " + this.verticalOffset);
-
     this.avatarRot = Quat.fromPitchYawRollDegrees(0, MyAvatar.bodyYaw, 0.0);
-    this.basePosition = Vec3.sum(MyAvatar.position, Vec3.multiply(2, Quat.getFront(this.avatarRot)));
+    this.basePosition = Vec3.sum(MyAvatar.position, Vec3.multiply(1.5, Quat.getFront(this.avatarRot)));
 
     var message = {
         lightID: this.lightID,
@@ -95,9 +105,8 @@ function entitySlider(light, color, sliderType, row) {
     }
 
     this.setInitialSliderPositions();
-    this.subscribeToBoxMessages();
     this.createAxis();
-    this.createBoxIndicator();
+    this.createSliderIndicator();
     return this;
 }
 
@@ -113,7 +122,6 @@ entitySlider.prototype = {
         var extension = Vec3.multiply(AXIS_SCALE, rightVector);
         var endOfAxis = Vec3.sum(position, extension);
         this.endOfAxis = endOfAxis;
-        print('endOfAxis:::' + JSON.stringify(endOfAxis))
         var properties = {
             type: 'Line',
             name: 'Hifi-Slider-Axis::' + this.sliderType,
@@ -136,10 +144,8 @@ entitySlider.prototype = {
 
         this.axis = Entities.addEntity(properties);
     },
-    createBoxIndicator: function() {
-        print('BOX COLOR IS:::' + JSON.stringify(this.color));
+    createSliderIndicator: function() {
         var position = Vec3.sum(this.basePosition, this.verticalOffset);
-
         //line starts on left and goes to right
         //set the end of the line to the right
         var rightVector = Quat.getRight(this.avatarRot);
@@ -154,7 +160,7 @@ entitySlider.prototype = {
             initialDistance = this.distanceBlue;
         }
         if (this.sliderType === 'intensity') {
-            initialDistance = this.distanceRed;
+            initialDistance = this.distanceIntensity;
         }
         if (this.sliderType === 'cutoff') {
             initialDistance = this.distanceCutoff;
@@ -165,30 +171,26 @@ entitySlider.prototype = {
         var extension = Vec3.multiply(initialDistance, rightVector);
         var sliderPosition = Vec3.sum(position, extension);
         var properties = {
-            type: 'Box',
+            type: 'Sphere',
             name: 'Hifi-Slider::' + this.sliderType,
-            dimensions: BOX_DIMENSIONS,
+            dimensions: SLIDER_DIMENSIONS,
             collisionsWillMove: true,
             color: this.color,
             position: sliderPosition,
-            script: BOX_SCRIPT_URL,
+            script: SLIDER_SCRIPT_URL,
             userData: JSON.stringify({
                 lightModifierKey: {
                     lightID: this.lightID,
                     sliderType: this.sliderType,
-                    axisBasePosition: position,
-                    endOfAxis: this.endOfAxis,
-                },
-                constraintKey: {
-                    constrain: {
-                        y: position.y
-                    }
+                    axisStart: position,
+                    axisEnd: this.endOfAxis,
                 }
             })
         };
 
-        this.boxIndicator = Entities.addEntity(properties);
+        this.sliderIndicator = Entities.addEntity(properties);
     },
+
     setValueFromMessage: function(message) {
 
         //message is not for our light
@@ -202,8 +204,6 @@ entitySlider.prototype = {
             print('not our slider type')
             return
         }
-
-        print('should set:::' + this.sliderType);
 
         var lightProperties = Entities.getEntityProperties(this.lightID);
 
@@ -255,28 +255,15 @@ entitySlider.prototype = {
             });
         }
     },
-    subscribeToBoxMessages: function() {
-        Messages.subscribe('Hifi-Slider-Value-Reciever');
-        Messages.messageReceived.connect(handleValueMessages);
-    },
     setInitialSliderPositions: function() {
-        var COLOR_MAX = 255;
-        var INTENSITY_MAX = 10;
-        var CUTOFF_MAX = 360;
-        var EXPONENT_MAX = 1;
-
         this.distanceRed = (this.initialProperties.color.red / COLOR_MAX) * AXIS_SCALE;
         this.distanceGreen = (this.initialProperties.color.green / COLOR_MAX) * AXIS_SCALE;
         this.distanceBlue = (this.initialProperties.color.blue / COLOR_MAX) * AXIS_SCALE;
         this.distanceIntensity = (this.initialProperties.intensity / INTENSITY_MAX) * AXIS_SCALE;
         this.distanceCutoff = (this.initialProperties.cutoff / CUTOFF_MAX) * AXIS_SCALE;
         this.distanceExponent = (this.initialProperties.exponent / EXPONENT_MAX) * AXIS_SCALE;
-    },
-    cleanup: function() {
-        Entities.deleteEntity(this.boxIndicator);
-        Entities.deleteEntity(this.axis);
-        Messages.messageReceived.disconnect(this.handleValueMessages);
     }
+
 };
 
 var sliders = [];
@@ -288,9 +275,9 @@ var slidersRef = {
     cutoff: null,
     exponent: null
 }
+var light = null;
 
 function makeSliders(light) {
-    print('light in makesliders:::' + light)
     if (light.type === 'spotlight') {
         var USE_COLOR_SLIDER = true;
         var USE_INTENSITY_SLIDER = true;
@@ -325,12 +312,17 @@ function makeSliders(light) {
         slidersRef.exponent = new entitySlider(light, PURPLE, 'exponent', 6);
         sliders.push(slidersRef.exponent);
     }
+    subscribeToSliderMessages();
 };
 
 function subScribeToNewLights() {
-    print('subscribing to light messages')
     Messages.subscribe('Hifi-Light-Mod-Receiver');
     Messages.messageReceived.connect(handleLightModMessages);
+}
+
+function subscribeToSliderMessages() {
+    Messages.subscribe('Hifi-Slider-Value-Reciever');
+    Messages.messageReceived.connect(handleValueMessages);
 }
 
 function handleLightModMessages(channel, message, sender) {
@@ -343,6 +335,7 @@ function handleLightModMessages(channel, message, sender) {
     var parsedMessage = JSON.parse(message);
 
     makeSliders(parsedMessage.light);
+    light = parsedMessage.light.id
 }
 
 function handleValueMessages(channel, message, sender) {
@@ -356,27 +349,39 @@ function handleValueMessages(channel, message, sender) {
     // }
     var parsedMessage = JSON.parse(message);
 
-    slidersRef[parsedMessage.sliderType].setValueFromMessage(parsedMessage)
+    slidersRef[parsedMessage.sliderType].setValueFromMessage(parsedMessage);
 }
 
 function cleanup() {
-    while (sliders.length > 0) {
-        var slider = sliders.pop();
-        slider.cleanup();
+    var i;
+    for (i = 0; i < sliders.length; i++) {
+        Entities.deleteEntity(sliders[i].axis);
+        Entities.deleteEntity(sliders[i].sliderIndicator);
     }
+
     Messages.messageReceived.disconnect(handleLightModMessages);
-    delete sliders
+    Messages.messageReceived.disconnect(handleValueMessages);
+    Entities.deletingEntity.disconnect(deleteEntity);
+
 }
 
 Script.scriptEnding.connect(cleanup);
 subScribeToNewLights();
+
+function deleteEntity(entityID) {
+    if (entityID === light) {
+        //  cleanup();
+    }
+}
+
+
+Entities.deletingEntity.connect(deleteEntity);
 
 
 //other light properties
 // diffuseColor: { red: 255, green: 255, blue: 255 },
 // ambientColor: { red: 255, green: 255, blue: 255 },
 // specularColor: { red: 255, green: 255, blue: 255 },
-
 // constantAttenuation: 1,
 // linearAttenuation: 0,
 // quadraticAttenuation: 0,
