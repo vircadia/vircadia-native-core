@@ -24,7 +24,6 @@ var containerBall = Entities.addEntity({
     dimensions: {x: .1, y: .1, z: .1},
     color: {red: 15, green: 10, blue: 150},
     collisionsWillMove: true,
-    visible: false,
     userData: JSON.stringify({
         grabbableKey: {
             spatialKey: {
@@ -85,7 +84,7 @@ var lightBall = Entities.addEntity({
     "lifespan": 5,
     "emitRate": 5000,
     "emitSpeed": .1,
-    "speedSpread": .0,
+    "speedSpread": 0.0,
     "emitDimensions": {
         "x": 0,
         "y": 0,
