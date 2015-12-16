@@ -835,6 +835,18 @@ glm::vec3 Avatar::getJointTranslation(int index) const {
     return translation;
 }
 
+glm::quat Avatar::getDefaultJointRotation(int index) const {
+    glm::quat rotation;
+    _skeletonModel.getRelativeDefaultJointRotation(index, rotation);
+    return rotation;
+}
+
+glm::vec3 Avatar::getDefaultJointTranslation(int index) const {
+    glm::vec3 translation;
+    _skeletonModel.getRelativeDefaultJointTranslation(index, translation);
+    return translation;
+}
+
 glm::quat Avatar::getAbsoluteJointRotationInObjectFrame(int index) const {
     glm::quat rotation;
     _skeletonModel.getAbsoluteJointRotationInRigFrame(index, rotation);
