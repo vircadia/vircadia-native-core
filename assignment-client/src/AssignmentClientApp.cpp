@@ -22,6 +22,8 @@
 #include "AssignmentClient.h"
 #include "AssignmentClientMonitor.h"
 #include "AssignmentClientApp.h"
+#include <QtCore/QDir>
+#include <QtCore/QStandardPaths>
 
 
 AssignmentClientApp::AssignmentClientApp(int argc, char* argv[]) :
@@ -92,6 +94,9 @@ AssignmentClientApp::AssignmentClientApp(int argc, char* argv[]) :
     const QCommandLineOption monitorPortOption(ASSIGNMENT_CLIENT_MONITOR_PORT_OPTION, "assignment-client monitor port", "port");
     parser.addOption(monitorPortOption);
 
+    const QCommandLineOption logDirectoryOption(ASSIGNMENT_LOG_DIRECTORY, "directory to store logs", "log-directory");
+    parser.addOption(logDirectoryOption);
+
     if (!parser.parse(QCoreApplication::arguments())) {
         qCritical() << parser.errorText() << endl;
         parser.showHelp();
@@ -128,6 +133,13 @@ AssignmentClientApp::AssignmentClientApp(int argc, char* argv[]) :
     if (!numForks && minForks) {
         // if the user specified --min but not -n, set -n to --min
         numForks = minForks;
+    }
+
+    QDir logDirectory { "." };
+    if (parser.isSet(logDirectoryOption)) {
+        logDirectory = parser.value(logDirectoryOption);
+    } else {
+        logDirectory = QStandardPaths::writableLocation(QStandardPaths::DataLocation);
     }
 
     Assignment::Type requestAssignmentType = Assignment::AllTypes;
@@ -200,7 +212,7 @@ AssignmentClientApp::AssignmentClientApp(int argc, char* argv[]) :
         AssignmentClientMonitor* monitor =  new AssignmentClientMonitor(numForks, minForks, maxForks,
                                                                         requestAssignmentType, assignmentPool,
                                                                         listenPort, walletUUID, assignmentServerHostname,
-                                                                        assignmentServerPort);
+                                                                        assignmentServerPort, logDirectory);
         monitor->setParent(this);
         connect(this, &QCoreApplication::aboutToQuit, monitor, &AssignmentClientMonitor::aboutToQuit);
     } else {
