@@ -200,6 +200,10 @@ public:
     // rig space
     const AnimPoseVec& getAbsoluteDefaultPoses() const;
 
+    // geometry space
+    bool getRelativeDefaultJointRotation(int index, glm::quat& rotationOut) const;
+    bool getRelativeDefaultJointTranslation(int index, glm::vec3& translationOut) const;
+
     void copyJointsIntoJointData(QVector<JointData>& jointDataVec) const;
     void copyJointsFromJointData(const QVector<JointData>& jointDataVec);
 

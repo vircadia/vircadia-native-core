@@ -217,7 +217,6 @@ void OBJReader::parseMaterialLibrary(QIODevice* device) {
             materials[matName] = currentMaterial;
             matName = tokenizer.getDatum();
             currentMaterial = materials[matName];
-            currentMaterial.diffuseTextureFilename = "test";
             #ifdef WANT_DEBUG
             qCDebug(modelformat) << "OBJ Reader Starting new material definition " << matName;
             #endif
@@ -461,6 +460,9 @@ FBXGeometry* OBJReader::readOBJ(QByteArray& model, const QVariantHash& mapping, 
             }
 
             if (!textName.isEmpty()) {
+                #ifdef WANT_DEBUG
+                qCDebug(modelformat) << "OBJ Reader found a default texture: " << textName;
+                #endif
                 preDefinedMaterial.diffuseTextureFilename = textName;
             }
             materials[SMART_DEFAULT_MATERIAL_NAME] = preDefinedMaterial;
@@ -553,9 +555,7 @@ FBXGeometry* OBJReader::readOBJ(QByteArray& model, const QVariantHash& mapping, 
         model::MaterialPointer modelMaterial = fbxMaterial._material;
 
         if (!objMaterial.diffuseTextureFilename.isEmpty()) {
-            FBXTexture texture;
-            QUrl url = _url.resolved(QUrl(objMaterial.diffuseTextureFilename));
-            // TODO -- something to get textures working again
+            fbxMaterial.diffuseTexture.filename = objMaterial.diffuseTextureFilename;
         }
 
         modelMaterial->setEmissive(fbxMaterial.emissiveColor);
