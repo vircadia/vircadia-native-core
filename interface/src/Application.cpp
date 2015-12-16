@@ -671,7 +671,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
                 sendEvent(_glWidget, &mousePress);
                 _reticleClickPressed = true;
             } else {
-                QMouseEvent mouseRelease(QEvent::MouseButtonRelease, localPos, Qt::LeftButton, Qt::LeftButton, Qt::NoModifier);
+                QMouseEvent mouseRelease(QEvent::MouseButtonRelease, localPos, Qt::LeftButton, Qt::NoButton, Qt::NoModifier);
                 sendEvent(_glWidget, &mouseRelease);
                 _reticleClickPressed = false;
             }
