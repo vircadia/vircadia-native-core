@@ -31,6 +31,7 @@ public:
     virtual ~OctreeSendThread();
 
     void setIsShuttingDown();
+    QUuid getNodeUuid() const { return _nodeUuid; }
 
     static AtomicUIntStat _totalBytes;
     static AtomicUIntStat _totalWastedBytes;
@@ -53,6 +54,7 @@ private:
     
     OctreeServer* _myServer { nullptr };
     QWeakPointer<Node> _node;
+    QUuid _nodeUuid;
 
     OctreePacketData _packetData;
 
