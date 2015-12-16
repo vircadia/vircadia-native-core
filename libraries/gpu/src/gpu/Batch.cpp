@@ -311,8 +311,8 @@ void Batch::blit(const FramebufferPointer& src, const Vec4i& srcViewport,
     _params.push_back(dstViewport.w);
 }
 
-void Batch::generateTextureMipmap(const TexturePointer& texture) {
-    ADD_COMMAND(generateTextureMipmap);
+void Batch::generateTextureMips(const TexturePointer& texture) {
+    ADD_COMMAND(generateTextureMips);
 
     _params.push_back(_textures.cache(texture));
 }

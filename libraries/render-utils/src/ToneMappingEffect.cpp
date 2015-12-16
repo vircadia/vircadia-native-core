@@ -110,7 +110,7 @@ void ToneMappingEffect::render(RenderArgs* args) {
         auto destFbo = framebufferCache->getPrimaryFramebuffer();
         batch.setFramebuffer(destFbo);
 
-        batch.generateTextureMipmap(lightingBuffer);
+        batch.generateTextureMips(lightingBuffer);
 
         batch.setViewportTransform(args->_viewport);
         batch.setProjectionTransform(glm::mat4());

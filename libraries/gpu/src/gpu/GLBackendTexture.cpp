@@ -590,7 +590,7 @@ void GLBackend::syncSampler(const Sampler& sampler, Texture::Type type, GLTextur
 
 
 
-void GLBackend::do_generateTextureMipmap(Batch& batch, size_t paramOffset) {
+void GLBackend::do_generateTextureMips(Batch& batch, size_t paramOffset) {
     TexturePointer resourceTexture = batch._textures.get(batch._params[paramOffset + 0]._uint);
     if (!resourceTexture) {
         return;

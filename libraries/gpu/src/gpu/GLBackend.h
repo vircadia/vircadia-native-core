@@ -436,7 +436,7 @@ protected:
     void do_setFramebuffer(Batch& batch, size_t paramOffset);
     void do_clearFramebuffer(Batch& batch, size_t paramOffset);
     void do_blit(Batch& batch, size_t paramOffset);
-    void do_generateTextureMipmap(Batch& batch, size_t paramOffset);
+    void do_generateTextureMips(Batch& batch, size_t paramOffset);
 
     // Synchronize the state cache of this Backend with the actual real state of the GL Context
     void syncOutputStateCache();
