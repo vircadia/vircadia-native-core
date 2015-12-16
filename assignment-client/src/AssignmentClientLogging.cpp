@@ -11,4 +11,4 @@
 
 #include "AssignmentClientLogging.h"
 
-Q_LOGGING_CATEGORY(assigmnentclient, "hifi.assignmentclient")
+Q_LOGGING_CATEGORY(assigmnentclient, "hifi.assignment-client")
