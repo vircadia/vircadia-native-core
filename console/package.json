@@ -9,7 +9,7 @@
   ],
   "devDependencies": {
     "electron-packager": "^5.1.1",
-    "electron-prebuilt": "^0.35.0"
+    "electron-prebuilt": "0.36.0"
   },
   "repository": {
     "type": "git",
@@ -19,7 +19,9 @@
   "scripts": {
     "start": "electron . --local-debug-builds",
     "local-release": "electron . --local-release-builds",
-    "package-darwin": "electron-packager . Console --platform=darwin --arch=x64 --version=0.35.2"
+    "package-darwin": "electron-packager . Console --platform=darwin --arch=x64 --version=0.36.0",
+    "package-win": "electron-packager . Console --platform=win32 --arch=x64 --version=0.36.0",
+    "package-linux": "electron-packager . Console --platform=linux --arch=x64 --version=0.36.0"
   },
   "dependencies": {
     "yargs": "^3.30.0"
