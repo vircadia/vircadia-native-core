@@ -145,7 +145,6 @@ public:
 
     ivec2 getMouse() const;
     ivec2 getTrueMouse() const;
-    bool getLastMouseMoveWasSimulated() const { return _lastMouseMoveWasSimulated; }
 
     FaceTracker* getActiveFaceTracker();
     FaceTracker* getSelectedFaceTracker();
@@ -361,7 +360,6 @@ private:
     void update(float deltaTime);
 
     void setPalmData(Hand* hand, const controller::Pose& pose, float deltaTime, HandData::Hand whichHand, float triggerValue);
-    void emulateMouse(Hand* hand, float click, float shift, HandData::Hand whichHand);
 
     // Various helper functions called during update()
     void updateLOD();
@@ -476,8 +474,6 @@ private:
 
     Environment _environment;
 
-    bool _lastMouseMoveWasSimulated;
-
     QSet<int> _keysPressed;
 
     bool _enableProcessOctreeThread;
@@ -537,14 +533,6 @@ private:
     ApplicationCompositor _compositor;
     OverlayConductor _overlayConductor;
 
-
-    // FIXME - Hand Controller to mouse emulation helpers. This is crufty and should be moved
-    // into the input plugins or something.
-    int _oldHandMouseX[(int)HandData::NUMBER_OF_HANDS];
-    int _oldHandMouseY[(int)HandData::NUMBER_OF_HANDS];
-    bool _oldHandLeftClick[(int)HandData::NUMBER_OF_HANDS];
-    bool _oldHandRightClick[(int)HandData::NUMBER_OF_HANDS];
-
     DialogsManagerScriptingInterface* _dialogsManagerScriptingInterface = new DialogsManagerScriptingInterface();
 
     EntityItemID _keyboardFocusedItem;
@@ -559,6 +547,8 @@ private:
     bool _inPaint = false;
     bool _isGLInitialized { false };
     bool _physicsEnabled { false };
+
+    bool _reticleClickPressed { false };
 };
 
 #endif // hifi_Application_h

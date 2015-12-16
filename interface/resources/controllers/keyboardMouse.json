@@ -11,7 +11,7 @@
         { "from": "Keyboard.S", "when": "Keyboard.Shift", "to": "Actions.PITCH_DOWN" },
         { "from": "Keyboard.W", "when": "Keyboard.Shift", "to": "Actions.PITCH_UP" },
 
-        
+
         { "comment" : "Mouse turn need to be small continuous increments",
           "from": { "makeAxis" : [
                 [ "Keyboard.MouseMoveLeft" ],
@@ -75,7 +75,6 @@
         { "from": "Keyboard.S", "to": "Actions.LONGITUDINAL_BACKWARD" },
         { "from": "Keyboard.C", "to": "Actions.VERTICAL_DOWN" },
         { "from": "Keyboard.E", "to": "Actions.VERTICAL_UP" },
-
         { "from": "Keyboard.Left", "when": "Keyboard.RightMouseButton", "to": "Actions.LATERAL_LEFT" },
         { "from": "Keyboard.Right", "when": "Keyboard.RightMouseButton", "to": "Actions.LATERAL_RIGHT" },
         { "from": "Keyboard.Left", "when": "Keyboard.Shift", "to": "Actions.LATERAL_LEFT" },

@@ -13,8 +13,8 @@
                 { "type": "scale", "scale": 22.5 }
             ]
         },
-        { "from": "Standard.RX", "to": "Actions.Yaw" },
 
+        { "from": "Standard.RX", "to": "Actions.Yaw" },
         { "from": "Standard.RY", 
           "when": "Application.Grounded", 
           "to": "Actions.Up", 
@@ -24,6 +24,7 @@
                 "invert"
             ]
         }, 
+
         { "from": "Standard.RY", "to": "Actions.Up", "filters": "invert"}, 
 
         { "from": [ "Standard.DU", "Standard.DL", "Standard.DR", "Standard.DD" ], "to": "Standard.LeftPrimaryThumb" },
