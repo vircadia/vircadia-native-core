@@ -666,13 +666,14 @@ ParticleEffectEntityItem::Particle ParticleEffectEntityItem::createParticle() {
         
         float elevationMinZ = sin(PI_OVER_TWO - _polarFinish);
         float elevationMaxZ = sin(PI_OVER_TWO - _polarStart);
-        float elevation = asin(elevationMinZ + (elevationMaxZ - elevationMinZ) * randFloat());
+      //  float elevation = asin(elevationMinZ + (elevationMaxZ - elevationMinZ) * randFloat());
+        float elevation = asin(elevationMinZ + (elevationMaxZ - elevationMinZ) * uniform_dist(el));
         
         float azimuth;
         if (_azimuthFinish >= _azimuthStart) {
-            azimuth = _azimuthStart + (_azimuthFinish - _azimuthStart) * randFloat();
+            azimuth = _azimuthStart + (_azimuthFinish - _azimuthStart) *  uniform_dist(el);
         } else {
-            azimuth = _azimuthStart + (TWO_PI + _azimuthFinish - _azimuthStart) * randFloat();
+            azimuth = _azimuthStart + (TWO_PI + _azimuthFinish - _azimuthStart) * uniform_dist(el);
         }
         
         glm::vec3 emitDirection;
