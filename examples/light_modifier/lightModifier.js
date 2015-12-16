@@ -36,6 +36,7 @@ if (SHOW_OVERLAYS === true) {
 
     lightOverlayManager.setVisible(true);
 }
+// var entityResult = Entities.findRayIntersection(pickRay, true); // want precision picking
 // var pickRay = Camera.computePickRay(event.x, event.y);
 // var lightResult = lightOverlayManager.findRayIntersection(pickRay)
 
@@ -427,6 +428,7 @@ function cleanup() {
     Messages.messageReceived.disconnect(handleValueMessages);
     Entities.deletingEntity.disconnect(deleteEntity);
 
+    lightOverlayManager.setVisible(false);
 }
 
 Script.scriptEnding.connect(cleanup);

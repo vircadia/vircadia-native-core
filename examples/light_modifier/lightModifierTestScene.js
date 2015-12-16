@@ -26,7 +26,7 @@ function createLight() {
     dimensions: {
       x: 2,
       y: 2,
-      z: 20
+      z: 8
     },
     parentID: block,
     color: {
