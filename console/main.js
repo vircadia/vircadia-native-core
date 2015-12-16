@@ -6,6 +6,9 @@ var BrowserWindow = require('browser-window');  // Module to create native brows
 var Menu = require('menu');
 var Tray = require('tray');
 var shell = require('shell');
+var os = require('os');
+var childProcess = require('child_process');
+var path = require('path');
 
 var hfprocess = require('./modules/hf-process.js');
 var Process = hfprocess.Process;
@@ -41,6 +44,17 @@ if (argv.localDebugBuilds || argv.localReleaseBuilds) {
     interfacePath = pathFinder.discoveredPath("Interface", argv.localReleaseBuilds);
     dsPath = pathFinder.discoveredPath("domain-server", argv.localReleaseBuilds);
     acPath = pathFinder.discoveredPath("assignment-client", argv.localReleaseBuilds);
+}
+
+function openFileBrowser(path) {
+    var type = os.type();
+    if (type == "Windows_NT") {
+        childProcess.exec('start ' + path);
+    } else if (type == "Darwin") {
+        childProcess.exec('open ' + path);
+    } else if (type == "Linux") {
+        childProcess.exec('xdg-open ' + path);
+    }
 }
 
 // if at this point any of the paths are null, we're missing something we wanted to find
@@ -82,17 +96,14 @@ app.on('ready', function() {
         shell.openExternal(url);
     });
 
+    var logPath = path.join(app.getAppPath(), 'logs');
+
     if (interfacePath && dsPath && acPath) {
         var pInterface = new Process('interface', interfacePath);
 
         var homeServer = new ProcessGroup('home', [
             new Process('domain_server', dsPath),
-            new Process('ac_audio', acPath, ['-t0']),
-            new Process('ac_avatar', acPath, ['-t1']),
-            new Process('ac_agent', acPath, ['-t2']),
-            new Process('ac_asset', acPath, ['-t3']),
-            new Process('ac_messages', acPath, ['-t4']),
-            new Process('ac_entity', acPath, ['-t6'])
+            new Process('ac_monitor', acPath, ['-n6', '--log-directory', logPath])
         ]);
         homeServer.start();
 
@@ -124,6 +135,9 @@ app.on('ready', function() {
         ipcMain.on('stop-server', function(event, arg) {
             homeServer.stop();
             sendProcessUpdate();
+        });
+        ipcMain.on('open-logs', function(event, arg) {
+            openFileBrowser(logPath);
         });
         ipcMain.on('update', sendProcessUpdate);
 

@@ -31,6 +31,9 @@ ready = function() {
     $('#server .power-off').click(function() {
         ipcRenderer.send('stop-server', { name: 'home' });
     });
+    $('#open-logs').click(function() {
+        ipcRenderer.send('open-logs');
+    });
 
     ipcRenderer.on('process-update', onProcessUpdate);
 
