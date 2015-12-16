@@ -1,19 +1,18 @@
 !include LogicLib.nsh
 !include x64.nsh
 
-!define srcdir "E:\development\md-hifi\build\full-stack-deployment" ;$%INSTALLER_SOURCE_DIR%
-!define setup "E:\development\md-hifi\build\installer-test.exe" ;$%INSTALLER_NAME%
-!define scriptsdir "E:\development\md-hifi\examples" ;$%INSTALLER_SCRIPTS_DIR%
-!define company "High Fidelity"
-!define prodname "Interface"
-!define exec "interface.exe"
-!define icon "${srcdir}\interface.ico"
-!define regkey "Software\${company}\${prodname}"
-!define uninstkey "Software\Microsoft\Windows\CurrentVersion\Uninstall\${prodname}"
+!define srcdir $%INSTALLER_SOURCE_DIR%
+!define setup $%INSTALLER_NAME%
+!define scriptsdir $%INSTALLER_SCRIPTS_DIR%
+!define company $%INSTALLER_COMPANY%
+!define interface_exec "interface.exe"
+!define stack_manager_exec "stack-manager.exe"
+!define interface_icon "interface.ico"
+!define stack_manager_icon "stack-manager.ico"
+!define regkey "Software\${company}"
+!define uninstkey "Software\Microsoft\Windows\CurrentVersion\Uninstall\${company}"
 !define install_dir_company "$PROGRAMFILES64\${company}"
-!define install_dir_product "${install_dir_company}\${prodname}"
 !define startmenu_company "$SMPROGRAMS\${company}"
-!define startmenu_product "${startmenu_company}\${prodname}"
 !define uninstaller "uninstall.exe"
 
 ;--------------------------------
@@ -22,8 +21,8 @@ XPStyle on
 ShowInstDetails hide
 ShowUninstDetails hide
 
-Name "${prodname}"
-Caption "${prodname}"
+Name "${company}"
+Caption "${company}"
 
 !ifdef icon
     Icon "${icon}"
@@ -36,7 +35,7 @@ SetDatablockOptimize on
 CRCCheck on
 SilentInstall normal
 
-InstallDir "${install_dir_product}"
+InstallDir "${install_dir_company}"
 InstallDirRegKey HKLM "${regkey}" ""
 
 ; Page components
@@ -88,35 +87,28 @@ Section "Registry Entries and Procotol Handler" SEC02
     SectionIn RO
 
     WriteRegStr HKLM "${regkey}" "Install_Dir" "$INSTDIR"
-    WriteRegStr HKLM "${uninstkey}" "DisplayName" "${prodname} (remove only)"
+    WriteRegStr HKLM "${uninstkey}" "DisplayName" "${company} (remove only)"
     WriteRegStr HKLM "${uninstkey}" "UninstallString" '"$INSTDIR\${uninstaller}"'
-    WriteRegStr HKCR "${prodname}\Shell\open\command\" "" '"$INSTDIR\${exec} "%1"'
-
-    !ifdef icon
-        WriteRegStr HKCR "${prodname}\DefaultIcon" "" "$INSTDIR\${icon}"
-    !endif
+    WriteRegStr HKCR "${company}\Shell\open\command\" "" '"$INSTDIR\${interface_exec} "%1"'
+    WriteRegStr HKCR "${company}\DefaultIcon" "" "$INSTDIR\${interface_icon}"
 
     ; hifi:// protocol handler registry entries
     WriteRegStr HKCR 'hifi' '' 'URL:Alert Protocol'
     WriteRegStr HKCR 'hifi' 'URL Protocol' ''
-    WriteRegStr HKCR 'hifi\DefaultIcon' '' '$INSTDIR\${icon},1'
-    WriteRegStr HKCR 'hifi\shell\open\command' '' '$INSTDIR\${exec} --url "%1"'
+    WriteRegStr HKCR 'hifi\DefaultIcon' '' '$INSTDIR\${interface_icon},1'
+    WriteRegStr HKCR 'hifi\shell\open\command' '' '$INSTDIR\${interface_exec} --url "%1"'
 
     SetOutPath $INSTDIR
 
     ; package all files, recursively, preserving attributes
     ; assume files are in the correct places
     File /r "${srcdir}\"
-    !ifdef icon
-        File /a "${icon}"
-    !endif
+    File /a "${srcdir}\${interface_icon}"
+    File /a "${srcdir}\${stack_manager_icon}"
     ; any application-specific files
     !ifdef files
         !include "${files}"
     !endif
-    SetOutPath "$DOCUMENTS\${company}\Scripts"
-    File /r "${scriptsdir}\"
-    SetOutPath $INSTDIR
     WriteUninstaller "${uninstaller}"
     Exec '"$INSTDIR\2013_vcredist_x64.exe" /q /norestart'
     Exec '"$INSTDIR\2010_vcredist_x86.exe" /q /norestart'
@@ -129,24 +121,20 @@ Section "Start Menu Shortcuts" SEC03
 
     ; This should install the shortcuts for "All Users"
     SetShellVarContext all
-    CreateDirectory "${startmenu_product}"
+    CreateDirectory "${startmenu_company}"
     SetOutPath $INSTDIR ; for working directory
-    !ifdef icon
-        CreateShortCut "${startmenu_product}\${prodname}.lnk" "$INSTDIR\${exec}" "" "$INSTDIR\${icon}"
-    !else
-        CreateShortCut "${startmenu_product}\${prodname}.lnk" "$INSTDIR\${exec}"
-    !endif
-
-    CreateShortCut "${startmenu_product}\Uninstall ${prodname}.lnk" "$INSTDIR\${uninstaller}"
+    CreateShortCut "${startmenu_company}\Interface.lnk" "$INSTDIR\${interface_exec}" "" "$INSTDIR\${interface_icon}"
+    CreateShortCut "${startmenu_company}\Stack Manager.lnk" "$INSTDIR\${stack_manager_exec}" "" "$INSTDIR\${stack_manager_icon}"
+    CreateShortCut "${startmenu_company}\Uninstall ${company}.lnk" "$INSTDIR\${uninstaller}"
 SectionEnd
 
 ; Uninstaller
 ; All section names prefixed by "Un" will be in the uninstaller
 
-UninstallText "This will uninstall ${prodname}."
+UninstallText "This will uninstall ${company}."
 
 !ifdef icon
-    UninstallIcon "${icon}"
+    UninstallIcon "${interface_icon}"
 !endif
 
 Section "Uninstall" SEC04
@@ -155,11 +143,10 @@ Section "Uninstall" SEC04
 
     ; Explicitly remove all added shortcuts
     SetShellVarContext all
-    DELETE "${startmenu_product}\${prodname}.lnk"
-    DELETE "${startmenu_product}\Uninstall ${prodname}.lnk"
+    DELETE "${startmenu_company}\Interface.lnk"
+    DELETE "${startmenu_company}\Stack Manager.lnk"
+    DELETE "${startmenu_company}\Uninstall ${company}.lnk"
 
-    RMDIR "${startmenu_product}"
-    ; This should remove the High Fidelity folder in Start Menu if it's empty
     RMDIR "${startmenu_company}"
 
     RMDIR /r "$INSTDIR"

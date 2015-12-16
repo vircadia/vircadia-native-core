@@ -238,6 +238,9 @@ if (DEFINED DEPLOY_PACKAGE AND DEPLOY_PACKAGE)
   add_custom_target(
     build-package ALL
     DEPENDS interface assignment-client domain-server stack-manager
+    COMMAND set INSTALLER_SOURCE_DIR=${CMAKE_BINARY_DIR}/full-stack-deployment
+    COMMAND set INSTALLER_NAME=${CMAKE_BINARY_DIR}/this-is-a-test.exe
+    COMMANE set INSTALLER_SCRIPTS_DIR=${CMAKE_SOURCE_DIR}/examples
     COMMAND CMD /C "\"${MAKENSIS_COMMAND}\" ${CMAKE_SOURCE_DIR}/tools/nsis/release.nsi"
   )
 endif ()
