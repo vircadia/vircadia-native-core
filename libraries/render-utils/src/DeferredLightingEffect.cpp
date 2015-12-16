@@ -169,8 +169,8 @@ void DeferredLightingEffect::init(AbstractViewStateInterface* viewState) {
 
 
 gpu::PipelinePointer DeferredLightingEffect::bindSimpleProgram(gpu::Batch& batch, bool textured, bool culled,
-                                               bool emmisive, bool depthBias) {
-    SimpleProgramKey config{textured, culled, emmisive, depthBias};
+                                               bool emissive, bool depthBias) {
+    SimpleProgramKey config{textured, culled, emissive, depthBias};
     gpu::PipelinePointer pipeline = getPipeline(config);
     batch.setPipeline(pipeline);
 
