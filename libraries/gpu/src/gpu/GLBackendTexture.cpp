@@ -404,8 +404,6 @@ GLBackend::GLTexture* GLBackend::syncGPUObject(const Texture& texture) {
                 if (bytes && texture.isAutogenerateMips()) {
                     glGenerateMipmap(GL_TEXTURE_2D);
                     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-                } else if (texture.isAutogenerateMips()) {
-                    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
                 }
                 object->_target = GL_TEXTURE_2D;
 

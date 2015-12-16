@@ -25,8 +25,6 @@ ToneMappingEffect::ToneMappingEffect() {
 }
 
 void ToneMappingEffect::init() {
-    //auto VSFS = gpu::StandardShaderLib::getDrawViewportQuadTransformTexcoordVS();
-    //auto PSBlit = gpu::StandardShaderLib::getDrawTexturePS();
     const char BlitTextureGamma_frag[] = R"SCRIBE(#version 410 core
         //  Generated on Sat Oct 24 09:34:37 2015
         //
@@ -67,28 +65,24 @@ void ToneMappingEffect::init() {
             fragColor *= getTwoPowExposure();
 
 
-            // if (gl_FragCoord.x > 1000) {
             // Manually gamma correct from Ligthing BUffer to color buffer
-       //    outFragColor.xyz = pow( fragColor.xyz , vec3(1.0 / 2.2) );
+            // outFragColor.xyz = pow( fragColor.xyz , vec3(1.0 / 2.2) );
 
             vec3 x = max(vec3(0.0),fragColor.xyz-0.004);
             vec3 retColor = (x*(6.2*x+.5))/(x*(6.2*x+1.7)+0.06);
 
-        //    fragColor = fragColor/(1.0+fragColor);
-        //    vec3 retColor = pow(fragColor.xyz,vec3(1/2.2));
+            // fragColor = fragColor/(1.0+fragColor);
+            // vec3 retColor = pow(fragColor.xyz,vec3(1/2.2));
 
             outFragColor = vec4(retColor, 1.0);
-            // }
         }
         
         )SCRIBE";
     auto blitPS = gpu::ShaderPointer(gpu::Shader::createPixel(std::string(BlitTextureGamma_frag)));
 
-    //auto blitProgram = gpu::StandardShaderLib::getProgram(gpu::StandardShaderLib::getDrawViewportQuadTransformTexcoordVS, gpu::StandardShaderLib::getDrawTexturePS);
     auto blitVS = gpu::StandardShaderLib::getDrawViewportQuadTransformTexcoordVS();
     auto blitProgram = gpu::ShaderPointer(gpu::Shader::createProgram(blitVS, blitPS));
 
-    //auto blitProgram = gpu::StandardShaderLib::getProgram(gpu::StandardShaderLib::getDrawViewportQuadTransformTexcoordVS, gpu::StandardShaderLib::getDrawTexturePS);
     gpu::Shader::BindingSet slotBindings;
     slotBindings.insert(gpu::Shader::Binding(std::string("toneMappingParamsBuffer"), 3));
     gpu::Shader::makeProgram(*blitProgram, slotBindings);
