@@ -72,7 +72,6 @@ var lightZone = Entities.addEntity({
     }
 });
 
-
 function cleanup() {
 
     Entities.deleteEntity(raveRoom);

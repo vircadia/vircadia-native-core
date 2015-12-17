@@ -19,7 +19,7 @@
     var MAX_POINTS_PER_LINE = 50;
     var MIN_POINT_DISTANCE = 0.02;
     var STROKE_WIDTH = 0.05
-    var ugLSD = 25;
+    var ugLSD = 35;
     var RaveStick = function() {
         _this = this;
         this.colorPalette = [{
@@ -117,8 +117,10 @@
         },
 
         releaseGrab: function() {
-            Script.clearInterval(this.trailEraseInterval);
-            this.trailEraseInterval = null;
+            Script.setTimeout(function() {
+              Script.clearInterval(_this.trailEraseInterval);
+              _this.trailEraseInterval = null;  
+            }, 3000);
         },
 
         preload: function(entityID) {
@@ -192,13 +194,8 @@
                 emitterShouldTrail: false
             }
             this.beam = Entities.addEntity(props);
-
-            // props.emitterShouldTrail = true;
-            // this.beamTrail = Entities.addEntity(props);
-
         }
     };
-    // entity scripts always need to return a newly constructed object of our type
     return new RaveStick();
 
     function computeNormal(p1, p2) {

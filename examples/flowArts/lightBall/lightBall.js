@@ -44,7 +44,7 @@ LightBall = function(spawnPosition) {
         collisionsWillMove: true,
         gravity: {
             x: 0,
-            y: -.5,
+            y: -0.5,
             z: 0
         },
         userData: JSON.stringify({
