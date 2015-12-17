@@ -24,7 +24,7 @@
     var lightsScriptURL = Script.resolvePath("../examples/toybox/lights/lightSwitch.js");
     var targetsScriptURL = Script.resolvePath('../examples/toybox/ping_pong_gun/wallTarget.js');
     var bowScriptURL = Script.resolvePath('../examples/toybox/bow/bow.js');
-    var raveStickEntityScriptURL = Script.resolvePath("../examples/flowarts/raveStick/raveStickEntityScript.js");
+    var raveStickEntityScriptURL = Script.resolvePath("../examples/flowArts/raveStick/raveStickEntityScript.js");
     var basketballResetterScriptURL = Script.resolvePath('basketballsResetter.js');
     var targetsResetterScriptURL = Script.resolvePath('targetsResetter.js');
 
