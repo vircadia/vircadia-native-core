@@ -250,7 +250,7 @@ private:
         registerGlobalObject("Script", this);
         qScriptRegisterSequenceMetaType<QVector<QUuid>>(this);
         qScriptRegisterSequenceMetaType<QVector<QString>>(this);
-        globalObject().setProperty("QmlWebWindow", newFunction(QmlWebWindowClass::constructor));
+        globalObject().setProperty("OverlayWebWindow", newFunction(QmlWebWindowClass::constructor));
         QScriptValue printConstructorValue = newFunction(debugPrint);
         globalObject().setProperty("print", printConstructorValue);
     }

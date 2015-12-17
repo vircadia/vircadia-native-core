@@ -4155,7 +4155,6 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEngine* scri
     scriptEngine->registerGetterSetter("location", LocationScriptingInterface::locationGetter,
                                        LocationScriptingInterface::locationSetter);
 
-    scriptEngine->registerFunction("QmlWebWindow", QmlWebWindowClass::constructor);
     scriptEngine->registerFunction("WebWindow", WebWindowClass::constructor, 1);
 
     scriptEngine->registerGlobalObject("Menu", MenuScriptingInterface::getInstance());
