@@ -221,10 +221,10 @@ public:
     const MaterialKey& getKey() const { return _key; }
 
     void setEmissive(const Color& emissive, bool isSRGB = true);
-    const Color& getEmissive(bool SRGB = true) const { return (SRGB ? ColorUtils::toGamma22Vec3(_schemaBuffer.get<Schema>()._emissive) : _schemaBuffer.get<Schema>()._emissive); }
+    Color getEmissive(bool SRGB = true) const { return (SRGB ? ColorUtils::toGamma22Vec3(_schemaBuffer.get<Schema>()._emissive) : _schemaBuffer.get<Schema>()._emissive); }
 
     void setDiffuse(const Color& diffuse, bool isSRGB = true);
-    const Color& getDiffuse(bool SRGB = true) const { return (SRGB ? ColorUtils::toGamma22Vec3(_schemaBuffer.get<Schema>()._diffuse) : _schemaBuffer.get<Schema>()._diffuse); }
+    Color getDiffuse(bool SRGB = true) const { return (SRGB ? ColorUtils::toGamma22Vec3(_schemaBuffer.get<Schema>()._diffuse) : _schemaBuffer.get<Schema>()._diffuse); }
 
     void setMetallic(float metallic);
     float getMetallic() const { return _schemaBuffer.get<Schema>()._metallic.x; }
