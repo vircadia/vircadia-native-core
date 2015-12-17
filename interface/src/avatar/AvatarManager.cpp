@@ -34,7 +34,6 @@
 #include "Application.h"
 #include "Avatar.h"
 #include "AvatarManager.h"
-#include "LODManager.h"
 #include "Menu.h"
 #include "MyAvatar.h"
 #include "SceneScriptingInterface.h"
