@@ -386,7 +386,7 @@ bool ApplicationCompositor::calculateRayUICollisionPoint(const glm::vec3& positi
     glm::vec3 relativeDirection = glm::normalize(inverseOrientation * direction);
 
     float t;
-    if (raySphereIntersect(relativeDirection, relativePosition, _oculusUIRadius * myAvatar->getAvatarScale(), &t)){
+    if (raySphereIntersect(relativeDirection, relativePosition, _oculusUIRadius * myAvatar->getUniformScale(), &t)){
         result = position + direction * t;
         return true;
     }

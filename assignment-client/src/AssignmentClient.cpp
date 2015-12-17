@@ -35,6 +35,7 @@
 #include "AssignmentActionFactory.h"
 
 #include "AssignmentClient.h"
+#include "AssignmentClientLogging.h"
 #include "avatars/ScriptableAvatar.h"
 
 const QString ASSIGNMENT_CLIENT_TARGET_NAME = "assignment-client";
@@ -84,7 +85,7 @@ AssignmentClient::AssignmentClient(Assignment::Type requestAssignmentType, QStri
     // check for a wallet UUID on the command line or in the config
     // this would represent where the user running AC wants funds sent to
     if (!walletUUID.isNull()) {
-        qDebug() << "The destination wallet UUID for credits is" << uuidStringWithoutCurlyBraces(walletUUID);
+        qCDebug(assigmnentclient) << "The destination wallet UUID for credits is" << uuidStringWithoutCurlyBraces(walletUUID);
         _requestAssignment.setWalletUUID(walletUUID);
     }
 
@@ -98,13 +99,13 @@ AssignmentClient::AssignmentClient(Assignment::Type requestAssignmentType, QStri
     _assignmentServerSocket.setObjectName("AssigmentServer");
     nodeList->setAssignmentServerSocket(_assignmentServerSocket);
 
-    qDebug() << "Assignment server socket is" << _assignmentServerSocket;
+    qCDebug(assigmnentclient) << "Assignment server socket is" << _assignmentServerSocket;
 
     // call a timer function every ASSIGNMENT_REQUEST_INTERVAL_MSECS to ask for assignment, if required
-    qDebug() << "Waiting for assignment -" << _requestAssignment;
+    qCDebug(assigmnentclient) << "Waiting for assignment -" << _requestAssignment;
 
     if (_assignmentServerHostname != "localhost") {
-        qDebug () << "- will attempt to connect to domain-server on" << _assignmentServerSocket.getPort();
+        qCDebug(assigmnentclient) << "- will attempt to connect to domain-server on" << _assignmentServerSocket.getPort();
     }
 
     connect(&_requestTimer, SIGNAL(timeout()), SLOT(sendAssignmentRequest()));
@@ -122,7 +123,7 @@ AssignmentClient::AssignmentClient(Assignment::Type requestAssignmentType, QStri
         _assignmentClientMonitorSocket = HifiSockAddr(DEFAULT_ASSIGNMENT_CLIENT_MONITOR_HOSTNAME, assignmentMonitorPort);
         _assignmentClientMonitorSocket.setObjectName("AssignmentClientMonitor");
 
-        qDebug() << "Assignment-client monitor socket is" << _assignmentClientMonitorSocket;
+        qCDebug(assigmnentclient) << "Assignment-client monitor socket is" << _assignmentClientMonitorSocket;
 
         // Hook up a timer to send this child's status to the Monitor once per second
         setUpStatusToMonitor();
@@ -133,7 +134,7 @@ AssignmentClient::AssignmentClient(Assignment::Type requestAssignmentType, QStri
 }
 
 void AssignmentClient::stopAssignmentClient() {
-    qDebug() << "Forced stop of assignment-client.";
+    qCDebug(assigmnentclient) << "Forced stop of assignment-client.";
 
     _requestTimer.stop();
     _statsTimerACM.stop();
@@ -209,14 +210,14 @@ void AssignmentClient::sendAssignmentRequest() {
             quint16 localAssignmentServerPort;
             if (nodeList->getLocalServerPortFromSharedMemory(DOMAIN_SERVER_LOCAL_PORT_SMEM_KEY, localAssignmentServerPort)) {
                 if (localAssignmentServerPort != _assignmentServerSocket.getPort()) {
-                    qDebug() << "Port for local assignment server read from shared memory is"
+                    qCDebug(assigmnentclient) << "Port for local assignment server read from shared memory is"
                         << localAssignmentServerPort;
 
                     _assignmentServerSocket.setPort(localAssignmentServerPort);
                     nodeList->setAssignmentServerSocket(_assignmentServerSocket);
                 }
             } else {
-                qDebug() << "Failed to read local assignment server port from shared memory"
+                qCWarning(assigmnentclient) << "Failed to read local assignment server port from shared memory"
                     << "- will send assignment request to previous assignment server socket.";
             }
         }
@@ -226,13 +227,13 @@ void AssignmentClient::sendAssignmentRequest() {
 }
 
 void AssignmentClient::handleCreateAssignmentPacket(QSharedPointer<ReceivedMessage> message) {
-    qDebug() << "Received a PacketType::CreateAssignment - attempting to unpack.";
+    qCDebug(assigmnentclient) << "Received a PacketType::CreateAssignment - attempting to unpack.";
 
     // construct the deployed assignment from the packet data
     _currentAssignment = AssignmentFactory::unpackAssignment(*message);
 
     if (_currentAssignment && !_isAssigned) {
-        qDebug() << "Received an assignment -" << *_currentAssignment;
+        qDebug(assigmnentclient) << "Received an assignment -" << *_currentAssignment;
         _isAssigned = true;
 
         auto nodeList = DependencyManager::get<NodeList>();
@@ -242,7 +243,7 @@ void AssignmentClient::handleCreateAssignmentPacket(QSharedPointer<ReceivedMessa
         nodeList->getDomainHandler().setSockAddr(message->getSenderSockAddr(), _assignmentServerHostname);
         nodeList->getDomainHandler().setAssignmentUUID(_currentAssignment->getUUID());
 
-        qDebug() << "Destination IP for assignment is" << nodeList->getDomainHandler().getIP().toString();
+        qCDebug(assigmnentclient) << "Destination IP for assignment is" << nodeList->getDomainHandler().getIP().toString();
 
         // start the deployed assignment
         QThread* workerThread = new QThread;
@@ -270,7 +271,7 @@ void AssignmentClient::handleCreateAssignmentPacket(QSharedPointer<ReceivedMessa
         // Starts an event loop, and emits workerThread->started()
         workerThread->start();
     } else {
-        qDebug() << "Received an assignment that could not be unpacked. Re-requesting.";
+        qCWarning(assigmnentclient) << "Received an assignment that could not be unpacked. Re-requesting.";
     }
 }
 
@@ -278,12 +279,12 @@ void AssignmentClient::handleStopNodePacket(QSharedPointer<ReceivedMessage> mess
     const HifiSockAddr& senderSockAddr = message->getSenderSockAddr();
     
     if (senderSockAddr.getAddress() == QHostAddress::LocalHost ||
-            senderSockAddr.getAddress() == QHostAddress::LocalHostIPv6) {
-        qDebug() << "AssignmentClientMonitor at" << senderSockAddr << "requested stop via PacketType::StopNode.";
-
+        senderSockAddr.getAddress() == QHostAddress::LocalHostIPv6) {
+        
+        qCDebug(assigmnentclient) << "AssignmentClientMonitor at" << senderSockAddr << "requested stop via PacketType::StopNode.";
         QCoreApplication::quit();
     } else {
-        qDebug() << "Got a stop packet from other than localhost.";
+        qCWarning(assigmnentclient) << "Got a stop packet from other than localhost.";
     }
 }
 
@@ -303,7 +304,7 @@ void AssignmentClient::handleAuthenticationRequest() {
         // ask the account manager to log us in from the env variables
         accountManager.requestAccessToken(username, password);
     } else {
-        qDebug() << "Authentication was requested against" << qPrintable(accountManager.getAuthURL().toString())
+        qCWarning(assigmnentclient) << "Authentication was requested against" << qPrintable(accountManager.getAuthURL().toString())
             << "but both or one of" << qPrintable(DATA_SERVER_USERNAME_ENV)
             << "/" << qPrintable(DATA_SERVER_PASSWORD_ENV) << "are not set. Unable to authenticate.";
 
@@ -321,7 +322,7 @@ void AssignmentClient::assignmentCompleted() {
     // reset the logging target to the the CHILD_TARGET_NAME
     LogHandler::getInstance().setTargetName(ASSIGNMENT_CLIENT_TARGET_NAME);
 
-    qDebug() << "Assignment finished or never started - waiting for new assignment.";
+    qCDebug(assigmnentclient) << "Assignment finished or never started - waiting for new assignment.";
 
     auto nodeList = DependencyManager::get<NodeList>();
 

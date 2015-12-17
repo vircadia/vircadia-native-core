@@ -46,6 +46,7 @@ public:
 private:
     QString _url;
     NetworkTexturePointer _texture;
+    bool _emissive;
 
     QRect _fromImage; // where from in the image to sample
 };
