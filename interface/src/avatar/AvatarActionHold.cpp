@@ -48,38 +48,38 @@ void AvatarActionHold::prepareForPhysicsSimulation() {
     auto avatarManager = DependencyManager::get<AvatarManager>();
     auto holdingAvatar = std::static_pointer_cast<Avatar>(avatarManager->getAvatarBySessionID(_holderID));
 
-    if (!holdingAvatar) {
+    if (!holdingAvatar || !holdingAvatar->isMyAvatar()) {
         return;
     }
 
     withWriteLock([&]{
-        if (_ignoreIK && holdingAvatar->isMyAvatar()) {
+        if (_ignoreIK) {
             return;
         }
-        if (holdingAvatar->isMyAvatar()) {
-            glm::vec3 palmPosition;
-            glm::quat palmRotation;
-            if (_hand == "right") {
-                palmPosition = holdingAvatar->getRightPalmPosition();
-                palmRotation = holdingAvatar->getRightPalmRotation();
-            } else {
-                palmPosition = holdingAvatar->getLeftPalmPosition();
-                palmRotation = holdingAvatar->getLeftPalmRotation();
-            }
 
-            glm::vec3 avatarRigidBodyPosition;
-            glm::quat avatarRigidBodyRotation;
-            getAvatarRigidBodyLocation(avatarRigidBodyPosition, avatarRigidBodyRotation);
-
-            // determine the difference in translation and rotation between the avatar's
-            // rigid body and the palm position.  The avatar's rigid body will be moved by bullet
-            // between this call and the call to getTarget, below.  A call to get*PalmPosition in
-            // getTarget would get the palm position of the previous location of the avatar (because
-            // bullet has moved the av's rigid body but the rigid body's location has not yet been
-            // copied out into the Avatar class.
-            _palmOffsetFromRigidBody = palmPosition - avatarRigidBodyPosition;
-            _palmRotationFromRigidBody = glm::inverse(avatarRigidBodyRotation) * palmRotation;
+        glm::vec3 palmPosition;
+        glm::quat palmRotation;
+        if (_hand == "right") {
+            palmPosition = holdingAvatar->getRightPalmPosition();
+            palmRotation = holdingAvatar->getRightPalmRotation();
+        } else {
+            palmPosition = holdingAvatar->getLeftPalmPosition();
+            palmRotation = holdingAvatar->getLeftPalmRotation();
         }
+
+        glm::vec3 avatarRigidBodyPosition;
+        glm::quat avatarRigidBodyRotation;
+        getAvatarRigidBodyLocation(avatarRigidBodyPosition, avatarRigidBodyRotation);
+
+        // determine the difference in translation and rotation between the avatar's
+        // rigid body and the palm position.  The avatar's rigid body will be moved by bullet
+        // between this call and the call to getTarget, below.  A call to get*PalmPosition in
+        // getTarget would get the palm position of the previous location of the avatar (because
+        // bullet has moved the av's rigid body but the rigid body's location has not yet been
+        // copied out into the Avatar class.
+        glm::quat avatarRotationInverse = glm::inverse(avatarRigidBodyRotation);
+        _palmOffsetFromRigidBody = avatarRotationInverse * (palmPosition - avatarRigidBodyPosition);
+        _palmRotationFromRigidBody = avatarRotationInverse * palmRotation;
     });
 }
 
@@ -116,13 +116,8 @@ std::shared_ptr<Avatar> AvatarActionHold::getTarget(glm::quat& rotation, glm::ve
             // and the data in the Avatar class is stale.  This means that the result of get*PalmPosition will
             // be stale.  Instead, determine the current palm position with the current avatar's rigid body
             // location and the saved offsets.
-            palmPosition = avatarRigidBodyPosition + _palmOffsetFromRigidBody;
+            palmPosition = avatarRigidBodyPosition + avatarRigidBodyRotation * _palmOffsetFromRigidBody;
             palmRotation = avatarRigidBodyRotation * _palmRotationFromRigidBody;
-            if (isRightHand) {
-                palmRotation = holdingAvatar->getRightPalmRotation();
-            } else {
-                palmRotation = holdingAvatar->getLeftPalmRotation();
-            }
         } else {
             if (isRightHand) {
                 palmPosition = holdingAvatar->getRightPalmPosition();
