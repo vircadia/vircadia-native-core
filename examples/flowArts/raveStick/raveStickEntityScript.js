@@ -13,6 +13,11 @@
     Script.include("../../libraries/utils.js");
     var _this;
     // this is the "constructor" for the entity as a JS object we don't do much here
+    var LIFETIME = 6000;
+    var DRAWING_DEPTH = 0.8;
+    var LINE_DIMENSIONS = 100;
+    var MAX_POINTS_PER_LINE = 50;
+    var MIN_POINT_DISTANCE = 0.02;
     var RaveStick = function() {
         _this = this;
         this.colorPalette = [{
@@ -24,6 +29,21 @@
             green: 10,
             blue: 40
         }];
+        var texture = "https://s3.amazonaws.com/hifi-public/eric/textures/paintStrokes/trails.png";
+        this.trail = Entities.addEntity({
+            type: "PolyLine",
+            dimensions: {x: LINE_DIMENSIONS, y: LINE_DIMENSIONS, z: LINE_DIMENSIONS},
+            color: {
+                red: 255,
+                green: 255,
+                blue: 255
+            },
+            textures: texture,
+            lifetime: LIFETIME
+        })
+        this.points = [];
+        this.normals = [];
+        this.strokeWidths = [];
     };
 
     RaveStick.prototype = {
@@ -31,9 +51,31 @@
 
         startNearGrab: function() {
             // this.createBeam();
+            this.trailBasePosition = Entities.getEntityProperties(this.entityID, "position").position;
+            Entities.editEntity(this.trail, {
+                position: this.trailBasePosition
+            });
+            this.points = [];
+            this.normals = [];
+            this.strokeWidths = [];
         },
 
         continueNearGrab: function() {
+            var position = Entities.getEntityProperties(this.entityID, "position").position;
+            var localPoint = Vec3.subtract(position, this.trailBasePosition);
+            if (this.points.length >=1 && Vec3.distance(localPoint, this.points[this.points.length - 1]) < MIN_POINT_DISTANCE) {
+                //Need a minimum distance to avoid binormal NANs
+                return;
+            }
+            this.points.push(localPoint);
+            var normal = computeNormal(position, Camera.getPosition());
+            this.normals.push(normal);
+            this.strokeWidths.push(0.04);
+            Entities.editEntity(this.trail, {
+                linePoints: this.points,
+                normals: this.normals,
+                strokeWidths: this.strokeWidths
+            })
 
         },
 
@@ -48,6 +90,7 @@
 
         unload: function() {
             Entities.deleteEntity(this.beam);
+            Entities.deleteEntity(this.trail);
             // Entities.deleteEntity(this.beamTrail);
         },
 
@@ -60,7 +103,7 @@
             var position = Vec3.sum(props.position, Vec3.multiply(Quat.getFront(props.rotation), 0.1));
             position.z += 0.1;
             position.x += -0.035;
-            var color =  this.colorPalette[randInt(0, this.colorPalette.length)];
+            var color = this.colorPalette[randInt(0, this.colorPalette.length)];
             var props = {
                 type: "ParticleEffect",
                 position: position,
@@ -118,4 +161,8 @@
     };
     // entity scripts always need to return a newly constructed object of our type
     return new RaveStick();
+
+    function computeNormal(p1, p2) {
+        return Vec3.normalize(Vec3.subtract(p2, p1));
+    }
 });

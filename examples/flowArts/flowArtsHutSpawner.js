@@ -27,7 +27,7 @@ basePosition.y = MyAvatar.position.y + 1;
 var lightBall = new LightBall(basePosition);
 var raveStick = new RaveStick(Vec3.sum(basePosition, {x: 1, y: 0.5, z: 1}));
 var raveStick2 = new RaveStick(Vec3.sum(basePosition, {x: 2, y: 0.5, z: 1}));
-var lightSaber = new LightSaber(Vec3.sum(basePosition, {x: 3, y: 0.5, z: 1}));
+// var lightSaber = new LightSaber(Vec3.sum(basePosition, {x: 3, y: 0.5, z: 1}));
 
 
 var modelURL = "file:///C:/Users/Eric/Desktop/RaveRoom.fbx?v1" + Math.random();

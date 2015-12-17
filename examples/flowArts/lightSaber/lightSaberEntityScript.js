@@ -31,7 +31,7 @@
 
         startNearGrab: function() {
             // this.createBeam();
-            this.createBeam();
+       
         },
 
         continueNearGrab: function() {
@@ -44,6 +44,7 @@
 
         preload: function(entityID) {
             this.entityID = entityID;
+                 this.createBeam();
         },
 
         unload: function() {
@@ -53,11 +54,12 @@
 
         createBeam: function() {
 
-            var props = Entities.getEntityProperties(this.entityID, ["position", "rotation"]);
-            var forwardVec = Quat.getFront(Quat.multiply(props.rotation, Quat.fromPitchYawRollDegrees(-90, 0, 0)));
+
+            this.props = Entities.getEntityProperties(this.entityID, ["position", "rotation"]);
+            var forwardVec = Quat.getFront(Quat.multiply(this.props.rotation, Quat.fromPitchYawRollDegrees(-90, 0, 0)));
             forwardVec = Vec3.normalize(forwardVec);
             var forwardQuat = orientationOf(forwardVec);
-            var position = Vec3.sum(props.position, Vec3.multiply(Quat.getFront(props.rotation), 0.1));
+            var position = Vec3.sum(this.props.position, Vec3.multiply(Quat.getFront(this.props.rotation), 0.1));
             position.z += 0.1;
             position.x += -0.035;
             var color =  this.colorPalette[randInt(0, this.colorPalette.length)];
@@ -66,7 +68,6 @@
                 position: position,
                 parentID: this.entityID,
                 isEmitting: true,
-                "name": "ParticlesTest Emitter",
                 "colorStart": color,
                 color: {
                     red: 200,
@@ -80,11 +81,11 @@
                 emitOrientation: forwardQuat,
                 "emitSpeed": .4,
                 "speedSpread": 0.0,
-                // "emitDimensions": {
-                //     "x": .1,
-                //     "y": .1,
-                //     "z": .1
-                // },
+                "emitDimensions": {
+                    "x": 0,
+                    "y": 0,
+                    "z": 0
+                },
                 "polarStart": 0,
                 "polarFinish": .0,
                 "azimuthStart": .1,
