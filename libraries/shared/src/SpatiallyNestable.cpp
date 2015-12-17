@@ -531,17 +531,6 @@ void SpatiallyNestable::forEachDescendant(std::function<void(SpatiallyNestablePo
 }
 
 void SpatiallyNestable::locationChanged() {
-    bool success;
-    glm::vec3 currentPosition = getPosition(success);
-    if (success) {
-        AACube currentQueryAACube = getQueryAACube(success);
-        if (success) {
-            if (! currentQueryAACube.contains(currentPosition)) {
-                _queryAACubeSet = false;
-            }
-        }
-    }
-
     forEachChild([&](SpatiallyNestablePointer object) {
         object->locationChanged();
     });
@@ -549,7 +538,9 @@ void SpatiallyNestable::locationChanged() {
 
 void SpatiallyNestable::setQueryAACube(const AACube& queryAACube) {
     _queryAACube = queryAACube;
-    _queryAACubeSet = true;
+    if (queryAACube.getScale() > 0.0f) {
+        _queryAACubeSet = true;
+    }
 }
 
 AACube SpatiallyNestable::getMaximumAACube(bool& success) const {
