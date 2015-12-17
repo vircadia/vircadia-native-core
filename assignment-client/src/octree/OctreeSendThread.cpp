@@ -14,6 +14,7 @@
 #include <udt/PacketHeaders.h>
 #include <PerfStat.h>
 
+#include "OctreeQueryNode.h"
 #include "OctreeSendThread.h"
 #include "OctreeServer.h"
 #include "OctreeServerConsts.h"
@@ -25,15 +26,12 @@ quint64 endSceneSleepTime = 0;
 OctreeSendThread::OctreeSendThread(OctreeServer* myServer, const SharedNodePointer& node) :
     _myServer(myServer),
     _node(node),
-    _nodeUUID(node->getUUID()),
-    _packetData(),
-    _nodeMissingCount(0),
-    _isShuttingDown(false)
+    _nodeUuid(node->getUUID())
 {
     QString safeServerName("Octree");
 
     // set our QThread object name so we can identify this thread while debugging
-    setObjectName(QString("Octree Send Thread (%1)").arg(uuidStringWithoutCurlyBraces(node->getUUID())));
+    setObjectName(QString("Octree Send Thread (%1)").arg(uuidStringWithoutCurlyBraces(_nodeUuid)));
 
     if (_myServer) {
         safeServerName = _myServer->getMyServerName();
@@ -46,6 +44,8 @@ OctreeSendThread::OctreeSendThread(OctreeServer* myServer, const SharedNodePoint
 }
 
 OctreeSendThread::~OctreeSendThread() {
+    setIsShuttingDown();
+    
     QString safeServerName("Octree");
     if (_myServer) {
         safeServerName = _myServer->getMyServerName();
@@ -56,8 +56,6 @@ OctreeSendThread::~OctreeSendThread() {
 
     OctreeServer::clientDisconnected();
     OctreeServer::stopTrackingThread(this);
-
-    _node.clear();
 }
 
 void OctreeSendThread::setIsShuttingDown() {
@@ -79,15 +77,17 @@ bool OctreeSendThread::process() {
 
     // don't do any send processing until the initial load of the octree is complete...
     if (_myServer->isInitialLoadComplete()) {
-        if (_node) {
+        if (auto node = _node.lock()) {
             _nodeMissingCount = 0;
-            OctreeQueryNode* nodeData = static_cast<OctreeQueryNode*>(_node->getLinkedData());
+            OctreeQueryNode* nodeData = static_cast<OctreeQueryNode*>(node->getLinkedData());
 
             // Sometimes the node data has not yet been linked, in which case we can't really do anything
             if (nodeData && !nodeData->isShuttingDown()) {
                 bool viewFrustumChanged = nodeData->updateCurrentViewFrustum();
-                packetDistributor(nodeData, viewFrustumChanged);
+                packetDistributor(node, nodeData, viewFrustumChanged);
             }
+        } else {
+            return false; // exit early if we're shutting down
         }
     }
 
@@ -123,7 +123,8 @@ AtomicUIntStat OctreeSendThread::_totalSpecialBytes { 0 };
 AtomicUIntStat OctreeSendThread::_totalSpecialPackets { 0 };
 
 
-int OctreeSendThread::handlePacketSend(OctreeQueryNode* nodeData, int& trueBytesSent, int& truePacketsSent) {
+int OctreeSendThread::handlePacketSend(SharedNodePointer node, OctreeQueryNode* nodeData, int& trueBytesSent,
+                                       int& truePacketsSent) {
     OctreeServer::didHandlePacketSend(this);
 
     // if we're shutting down, then exit early
@@ -183,12 +184,12 @@ int OctreeSendThread::handlePacketSend(OctreeQueryNode* nodeData, int& trueBytes
 
             // actually send it
             OctreeServer::didCallWriteDatagram(this);
-            DependencyManager::get<NodeList>()->sendUnreliablePacket(statsPacket, *_node);
+            DependencyManager::get<NodeList>()->sendUnreliablePacket(statsPacket, *node);
             packetSent = true;
         } else {
             // not enough room in the packet, send two packets
             OctreeServer::didCallWriteDatagram(this);
-            DependencyManager::get<NodeList>()->sendUnreliablePacket(statsPacket, *_node);
+            DependencyManager::get<NodeList>()->sendUnreliablePacket(statsPacket, *node);
 
             // since a stats message is only included on end of scene, don't consider any of these bytes "wasted", since
             // there was nothing else to send.
@@ -219,7 +220,7 @@ int OctreeSendThread::handlePacketSend(OctreeQueryNode* nodeData, int& trueBytes
             packetsSent++;
 
             OctreeServer::didCallWriteDatagram(this);
-            DependencyManager::get<NodeList>()->sendUnreliablePacket(nodeData->getPacket(), *_node);
+            DependencyManager::get<NodeList>()->sendUnreliablePacket(nodeData->getPacket(), *node);
             packetSent = true;
 
             int packetSizeWithHeader = nodeData->getPacket().getDataSize();
@@ -251,7 +252,7 @@ int OctreeSendThread::handlePacketSend(OctreeQueryNode* nodeData, int& trueBytes
         if (nodeData->isPacketWaiting() && !nodeData->isShuttingDown()) {
             // just send the octree packet
             OctreeServer::didCallWriteDatagram(this);
-            DependencyManager::get<NodeList>()->sendUnreliablePacket(nodeData->getPacket(), *_node);
+            DependencyManager::get<NodeList>()->sendUnreliablePacket(nodeData->getPacket(), *node);
             packetSent = true;
 
             int packetSizeWithHeader = nodeData->getPacket().getDataSize();
@@ -293,7 +294,7 @@ int OctreeSendThread::handlePacketSend(OctreeQueryNode* nodeData, int& trueBytes
 }
 
 /// Version of octree element distributor that sends the deepest LOD level at once
-int OctreeSendThread::packetDistributor(OctreeQueryNode* nodeData, bool viewFrustumChanged) {
+int OctreeSendThread::packetDistributor(SharedNodePointer node, OctreeQueryNode* nodeData, bool viewFrustumChanged) {
 
     OctreeServer::didPacketDistributor(this);
 
@@ -322,7 +323,7 @@ int OctreeSendThread::packetDistributor(OctreeQueryNode* nodeData, bool viewFrus
     // If we have a packet waiting, and our desired want color, doesn't match the current waiting packets color
     // then let's just send that waiting packet.
     if (nodeData->isPacketWaiting()) {
-        packetsSentThisInterval += handlePacketSend(nodeData, trueBytesSent, truePacketsSent);
+        packetsSentThisInterval += handlePacketSend(node, nodeData, trueBytesSent, truePacketsSent);
     } else {
         nodeData->resetOctreePacket();
     }
@@ -355,7 +356,7 @@ int OctreeSendThread::packetDistributor(OctreeQueryNode* nodeData, bool viewFrus
         //unsigned long encodeTime = nodeData->stats.getTotalEncodeTime();
         //unsigned long elapsedTime = nodeData->stats.getElapsedTime();
 
-        int packetsJustSent = handlePacketSend(nodeData, trueBytesSent, truePacketsSent);
+        int packetsJustSent = handlePacketSend(node, nodeData, trueBytesSent, truePacketsSent);
         packetsSentThisInterval += packetsJustSent;
 
         // If we're starting a full scene, then definitely we want to empty the elementBag
@@ -431,8 +432,8 @@ int OctreeSendThread::packetDistributor(OctreeQueryNode* nodeData, bool viewFrus
 
                     // Our trackSend() function is implemented by the server subclass, and will be called back
                     // during the encodeTreeBitstream() as new entities/data elements are sent 
-                    params.trackSend = [this](const QUuid& dataID, quint64 dataEdited) {
-                        _myServer->trackSend(dataID, dataEdited, _nodeUUID);
+                    params.trackSend = [this, node](const QUuid& dataID, quint64 dataEdited) {
+                        _myServer->trackSend(dataID, dataEdited, node->getUUID());
                     };
 
                     // TODO: should this include the lock time or not? This stat is sent down to the client,
@@ -481,7 +482,7 @@ int OctreeSendThread::packetDistributor(OctreeQueryNode* nodeData, bool viewFrus
                     unsigned int writtenSize = _packetData.getFinalizedSize() + sizeof(OCTREE_PACKET_INTERNAL_SECTION_SIZE);
 
                     if (writtenSize > nodeData->getAvailable()) {
-                        packetsSentThisInterval += handlePacketSend(nodeData, trueBytesSent, truePacketsSent);
+                        packetsSentThisInterval += handlePacketSend(node, nodeData, trueBytesSent, truePacketsSent);
                     }
 
                     nodeData->writeToPacket(_packetData.getFinalizedData(), _packetData.getFinalizedSize());
@@ -501,7 +502,7 @@ int OctreeSendThread::packetDistributor(OctreeQueryNode* nodeData, bool viewFrus
                 int targetSize = MAX_OCTREE_PACKET_DATA_SIZE;
                 if (sendNow) {
                     quint64 packetSendingStart = usecTimestampNow();
-                    packetsSentThisInterval += handlePacketSend(nodeData, trueBytesSent, truePacketsSent);
+                    packetsSentThisInterval += handlePacketSend(node, nodeData, trueBytesSent, truePacketsSent);
                     quint64 packetSendingEnd = usecTimestampNow();
                     packetSendingElapsedUsec = (float)(packetSendingEnd - packetSendingStart);
 
@@ -538,9 +539,9 @@ int OctreeSendThread::packetDistributor(OctreeQueryNode* nodeData, bool viewFrus
         // Here's where we can/should allow the server to send other data...
         // send the environment packet
         // TODO: should we turn this into a while loop to better handle sending multiple special packets
-        if (_myServer->hasSpecialPacketsToSend(_node) && !nodeData->isShuttingDown()) {
+        if (_myServer->hasSpecialPacketsToSend(node) && !nodeData->isShuttingDown()) {
             int specialPacketsSent = 0;
-            trueBytesSent += _myServer->sendSpecialPackets(_node, nodeData, specialPacketsSent);
+            trueBytesSent += _myServer->sendSpecialPackets(node, nodeData, specialPacketsSent);
             nodeData->resetOctreePacket();   // because nodeData's _sequenceNumber has changed
             truePacketsSent += specialPacketsSent;
             packetsSentThisInterval += specialPacketsSent;
@@ -556,7 +557,7 @@ int OctreeSendThread::packetDistributor(OctreeQueryNode* nodeData, bool viewFrus
         while (nodeData->hasNextNackedPacket() && packetsSentThisInterval < maxPacketsPerInterval) {
             const NLPacket* packet = nodeData->getNextNackedPacket();
             if (packet) {
-                DependencyManager::get<NodeList>()->sendUnreliablePacket(*packet, *_node);
+                DependencyManager::get<NodeList>()->sendUnreliablePacket(*packet, *node);
                 truePacketsSent++;
                 packetsSentThisInterval++;
 

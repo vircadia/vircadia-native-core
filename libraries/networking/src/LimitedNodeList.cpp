@@ -40,7 +40,6 @@ const char SOLO_NODE_TYPES[2] = {
 };
 
 LimitedNodeList::LimitedNodeList(unsigned short socketListenPort, unsigned short dtlsListenPort) :
-    linkedDataCreateCallback(NULL),
     _sessionUUID(),
     _nodeHash(),
     _nodeMutex(QReadWriteLock::Recursive),
