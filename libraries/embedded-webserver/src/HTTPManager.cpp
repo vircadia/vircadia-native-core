@@ -145,9 +145,14 @@ bool HTTPManager::handleHTTPRequest(HTTPConnection* connection, const QUrl& url,
                 
                 localFileData = localFileString.toLocal8Bit();
             }
-            
-            connection->respond(HTTPConnection::StatusCode200, localFileData,
-                                qPrintable(mimeDatabase.mimeTypeForFile(filePath).name()));
+
+            // if this is an shtml file just make the MIME type match HTML so browsers aren't confused
+            auto mimeType = QString { "text/html" };
+            if (localFileInfo.suffix() != "shtml") {
+                mimeType = mimeDatabase.mimeTypeForFile(filePath).name();
+            }
+
+            connection->respond(HTTPConnection::StatusCode200, localFileData, qPrintable(mimeType));
             
             return true;
         }
