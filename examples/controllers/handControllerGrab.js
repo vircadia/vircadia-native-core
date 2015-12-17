@@ -1256,27 +1256,21 @@ function MyController(hand) {
                 var defaultReleaseVelocityData = {
                     disableReleaseVelocity: false
                 };
-
+                //sometimes we want things to stay right where they are when we let go.
                 var releaseVelocityData = getEntityCustomData('handControllerKey', this.grabbedEntity, defaultReleaseVelocityData);
                 if (releaseVelocityData.disableReleaseVelocity === true) {
-                    print('SHOULD NOT BE KINEMATIC AT RELEASE')
-                    // Entities.updateAction(this.grabbedEntity, this.actionID, {
-                    //     ttl: 1,
-                    //     kinematic: false,
-                    //     kinematicSetVelocity: false,
-                    // });
-                                        Entities.deleteAction(this.grabbedEntity, this.actionID);
+                    Entities.deleteAction(this.grabbedEntity, this.actionID);
 
-                    Entities.editEntity(this.grabbedEntity,{
-                        velocity:{
-                            x:0,
-                            y:0,
-                            z:0
+                    Entities.editEntity(this.grabbedEntity, {
+                        velocity: {
+                            x: 0,
+                            y: 0,
+                            z: 0
                         },
-                        angularVelocity:{
-                            x:0,
-                            y:0,
-                            z:0
+                        angularVelocity: {
+                            x: 0,
+                            y: 0,
+                            z: 0
                         }
                     })
                     Entities.deleteAction(this.grabbedEntity, this.actionID);
@@ -1288,6 +1282,7 @@ function MyController(hand) {
                 }
             }
         }
+
         this.deactivateEntity(this.grabbedEntity);
 
         this.grabbedEntity = null;

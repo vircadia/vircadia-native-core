@@ -10,6 +10,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+var PARENT_SCRIPT_URL = Script.resolvePath('lightParent.js?'+Math.random(0-100));
 var basePosition, avatarRot;
 avatarRot = Quat.fromPitchYawRollDegrees(0, MyAvatar.bodyYaw, 0.0);
 basePosition = Vec3.sum(MyAvatar.position, Vec3.multiply(0, Quat.getUp(avatarRot)));
@@ -74,6 +75,7 @@ function createBlock() {
       blue: 255
     },
     position: position,
+    script:PARENT_SCRIPT_URL,
     userData: JSON.stringify({
       handControllerKey: {
         disableReleaseVelocity: true
