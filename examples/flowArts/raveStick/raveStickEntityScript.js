@@ -1,0 +1,81 @@
+//  raveStickEntityScript.js
+//  
+//  Script Type: Entity
+//  Created by Eric Levin on 9/21/15.
+//  Additions by James B. Pollack @imgntn on 9/24/15
+//  Copyright 2015 High Fidelity, Inc.
+//
+//  This entity script create light trails on a given object as it moves.
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+//
+
+(function() {
+    Script.include("../../libraries/utils.js");
+    var _this;
+    // this is the "constructor" for the entity as a JS object we don't do much here
+    var Doll = function() {
+        _this = this;
+        this.screamSounds = [SoundCache.getSound("https://hifi-public.s3.amazonaws.com/sounds/KenDoll_1%2303.wav")];
+    };
+
+    Doll.prototype = {
+        audioInjector: null,
+        isGrabbed: false,
+        setLeftHand: function() {
+            this.hand = 'left';
+        },
+
+        setRightHand: function() {
+            this.hand = 'right';
+        },
+
+        startNearGrab: function() {
+            Entities.editEntity(this.entityID, {
+                animation: {
+                    url: "https://hifi-public.s3.amazonaws.com/models/Bboys/zombie_scream.fbx",
+                    running: true
+                }
+            });
+
+            var position = Entities.getEntityProperties(this.entityID, "position").position;
+            this.audioInjector = Audio.playSound(this.screamSounds[randInt(0, this.screamSounds.length)], {
+                position: position,
+                volume: 0.1
+            });
+
+            this.isGrabbed = true;
+            this.initialHand = this.hand;
+        },
+
+        continueNearGrab: function() {
+            var props = Entities.getEntityProperties(this.entityID, ["position"]);
+            var audioOptions = {
+                position: props.position
+            };
+            this.audioInjector.options = audioOptions;
+        },
+
+        releaseGrab: function() {
+            if (this.isGrabbed === true && this.hand === this.initialHand) {
+                this.audioInjector.stop();
+                Entities.editEntity(this.entityID, {
+                    animation: {
+                        // Providing actual model fbx for animation used to work, now contorts doll into a weird ball
+                        // See bug:  https://app.asana.com/0/26225263936266/70097355490098
+                        // url: "http://hifi-public.s3.amazonaws.com/models/Bboys/bboy2/bboy2.fbx",
+                        running: false,
+                    }
+                });
+
+                this.isGrabbed = false;
+            }
+        },
+
+        preload: function(entityID) {
+            this.entityID = entityID;
+        },
+    };
+    // entity scripts always need to return a newly constructed object of our type
+    return new Doll();
+});

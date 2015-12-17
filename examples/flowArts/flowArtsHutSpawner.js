@@ -19,8 +19,12 @@ Script.include("raveStick/RaveStick.js");
 
 var basePosition = Vec3.sum(MyAvatar.position, Vec3.multiply(1, Quat.getFront(Camera.getOrientation())));
 basePosition.y = MyAvatar.position.y + 1;
+
+// RAVE ITEMS
 var lightBall = new LightBall(basePosition);
-var raveStick = new RaveStick(Vec3.sum(basePosition, {x: 1, y: 1, z: 1}));
+var raveStick = new RaveStick(Vec3.sum(basePosition, {x: 1, y: 0.5, z: 1}));
+
+
 var modelURL = "file:///C:/Users/Eric/Desktop/RaveRoom.fbx?v1" + Math.random();
 
 var roomDimensions = {x: 30.58, y: 15.29, z: 30.58}; 
