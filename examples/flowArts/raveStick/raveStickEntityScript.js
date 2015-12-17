@@ -1,8 +1,7 @@
 //  raveStickEntityScript.js
 //  
 //  Script Type: Entity
-//  Created by Eric Levin on 9/21/15.
-//  Additions by James B. Pollack @imgntn on 9/24/15
+//  Created by Eric Levin on 12/16/15.
 //  Copyright 2015 High Fidelity, Inc.
 //
 //  This entity script create light trails on a given object as it moves.
@@ -14,68 +13,103 @@
     Script.include("../../libraries/utils.js");
     var _this;
     // this is the "constructor" for the entity as a JS object we don't do much here
-    var Doll = function() {
+    var RaveStick = function() {
         _this = this;
-        this.screamSounds = [SoundCache.getSound("https://hifi-public.s3.amazonaws.com/sounds/KenDoll_1%2303.wav")];
     };
 
-    Doll.prototype = {
-        audioInjector: null,
+    RaveStick.prototype = {
         isGrabbed: false,
-        setLeftHand: function() {
-            this.hand = 'left';
-        },
-
-        setRightHand: function() {
-            this.hand = 'right';
-        },
 
         startNearGrab: function() {
-            Entities.editEntity(this.entityID, {
-                animation: {
-                    url: "https://hifi-public.s3.amazonaws.com/models/Bboys/zombie_scream.fbx",
-                    running: true
-                }
-            });
-
-            var position = Entities.getEntityProperties(this.entityID, "position").position;
-            this.audioInjector = Audio.playSound(this.screamSounds[randInt(0, this.screamSounds.length)], {
-                position: position,
-                volume: 0.1
-            });
-
-            this.isGrabbed = true;
-            this.initialHand = this.hand;
+            // this.createBeam();
         },
 
         continueNearGrab: function() {
-            var props = Entities.getEntityProperties(this.entityID, ["position"]);
-            var audioOptions = {
-                position: props.position
-            };
-            this.audioInjector.options = audioOptions;
+
         },
 
         releaseGrab: function() {
-            if (this.isGrabbed === true && this.hand === this.initialHand) {
-                this.audioInjector.stop();
-                Entities.editEntity(this.entityID, {
-                    animation: {
-                        // Providing actual model fbx for animation used to work, now contorts doll into a weird ball
-                        // See bug:  https://app.asana.com/0/26225263936266/70097355490098
-                        // url: "http://hifi-public.s3.amazonaws.com/models/Bboys/bboy2/bboy2.fbx",
-                        running: false,
-                    }
-                });
 
-                this.isGrabbed = false;
-            }
         },
 
         preload: function(entityID) {
             this.entityID = entityID;
+            this.createBeam();
         },
+
+        unload: function() {
+            Entities.deleteEntity(this.beam);
+        },
+
+        createBeam: function() {
+
+            var props = Entities.getEntityProperties(this.entityID, ["position", "rotation"]);
+            var forwardVec = Quat.getFront(Quat.multiply(props.rotation, Quat.fromPitchYawRollDegrees(-90, 0, 0)));
+            forwardVec = Vec3.normalize(forwardVec);
+            var forwardQuat = orientationOf(forwardVec);
+            var position = Vec3.sum(props.position, Vec3.multiply(Quat.getFront(props.rotation), 0.1));
+            position.z += 0.1;
+            position.x += -0.035;
+            var props = {
+                type: "ParticleEffect",
+                position: position,
+                parentID: this.entityID,
+                isEmitting: true,
+                "name": "ParticlesTest Emitter",
+                "colorStart": {
+                    red: 0,
+                    green: 200,
+                    blue: 40
+                },
+                color: {
+                    red: 200,
+                    green: 200,
+                    blue: 255
+                },
+                "colorFinish": {
+                    red: 25,
+                    green: 200,
+                    blue: 5
+                },
+                "maxParticles": 100000,
+                "lifespan": 2,
+                "emitRate": 1000,
+                emitOrientation: forwardQuat,
+                "emitSpeed": .4,
+                "speedSpread": 0.0,
+                // "emitDimensions": {
+                //     "x": .1,
+                //     "y": .1,
+                //     "z": .1
+                // },
+                "polarStart": 0,
+                "polarFinish": .0,
+                "azimuthStart": .1,
+                "azimuthFinish": .01,
+                "emitAcceleration": {
+                    "x": 0,
+                    "y": 0,
+                    "z": 0
+                },
+                "accelerationSpread": {
+                    "x": .00,
+                    "y": .00,
+                    "z": .00
+                },
+                "radiusStart": 0.03,
+                radiusFinish: 0.025,
+                "alpha": 0.7,
+                "alphaSpread": .1,
+                "alphaStart": 0.5,
+                "alphaFinish": 0.5,
+                // "textures": "https://hifi-public.s3.amazonaws.com/alan/Particles/Particle-Sprite-Smoke-1.png",
+                "textures": "file:///C:/Users/Eric/Desktop/beamParticle.png?v1" + Math.random(),
+                emitterShouldTrail: false
+            }
+            this.beam = Entities.addEntity(props);
+
+        }
     };
     // entity scripts always need to return a newly constructed object of our type
-    return new Doll();
+    return new RaveStick();
 });

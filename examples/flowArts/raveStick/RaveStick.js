@@ -8,10 +8,11 @@ RaveStick = function(spawnPosition) {
         modelURL: modelURL,
         position: spawnPosition,
         shapeType: 'box',
+        script: scriptURL,
         dimensions: {
             x: 0.06,
             y: 0.06,
-            z: 0.8
+            z: 0.31
         },
         userData: JSON.stringify({
             grabbableKey: {
@@ -19,7 +20,7 @@ RaveStick = function(spawnPosition) {
                     relativePosition: {
                         x: 0,
                         y: 0,
-                        z: -0.4
+                        z: -0.1
                     },
                     relativeRotation: Quat.fromPitchYawRollDegrees(90, 90, 0)
                 },

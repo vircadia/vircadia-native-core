@@ -50,7 +50,7 @@ var floor = Entities.addEntity({
 var lightZone = Entities.addEntity({
     type: "Zone",
     shapeType: 'box',
-    keyLightIntensity: 0.2,
+    keyLightIntensity: 0.4,
     keyLightColor: {
         red: 50,
         green: 0,
