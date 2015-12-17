@@ -531,6 +531,17 @@ void SpatiallyNestable::forEachDescendant(std::function<void(SpatiallyNestablePo
 }
 
 void SpatiallyNestable::locationChanged() {
+    bool success;
+    glm::vec3 currentPosition = getPosition(success);
+    if (success) {
+        AACube currentQueryAACube = getQueryAACube(success);
+        if (success) {
+            if (! currentQueryAACube.contains(currentPosition)) {
+                _queryAACubeSet = false;
+            }
+        }
+    }
+
     forEachChild([&](SpatiallyNestablePointer object) {
         object->locationChanged();
     });
