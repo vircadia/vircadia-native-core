@@ -15,6 +15,15 @@
     // this is the "constructor" for the entity as a JS object we don't do much here
     var RaveStick = function() {
         _this = this;
+        this.colorPalette = [{
+            red: 0,
+            green: 200,
+            blue: 40
+        }, {
+            red: 200,
+            green: 10,
+            blue: 40
+        }];
     };
 
     RaveStick.prototype = {
@@ -39,6 +48,7 @@
 
         unload: function() {
             Entities.deleteEntity(this.beam);
+            // Entities.deleteEntity(this.beamTrail);
         },
 
         createBeam: function() {
@@ -50,27 +60,20 @@
             var position = Vec3.sum(props.position, Vec3.multiply(Quat.getFront(props.rotation), 0.1));
             position.z += 0.1;
             position.x += -0.035;
+            var color =  this.colorPalette[randInt(0, this.colorPalette.length)];
             var props = {
                 type: "ParticleEffect",
                 position: position,
                 parentID: this.entityID,
                 isEmitting: true,
                 "name": "ParticlesTest Emitter",
-                "colorStart": {
-                    red: 0,
-                    green: 200,
-                    blue: 40
-                },
+                "colorStart": color,
                 color: {
                     red: 200,
                     green: 200,
                     blue: 255
                 },
-                "colorFinish": {
-                    red: 25,
-                    green: 200,
-                    blue: 5
-                },
+                "colorFinish": color,
                 "maxParticles": 100000,
                 "lifespan": 2,
                 "emitRate": 1000,
@@ -107,6 +110,9 @@
                 emitterShouldTrail: false
             }
             this.beam = Entities.addEntity(props);
+
+            // props.emitterShouldTrail = true;
+            // this.beamTrail = Entities.addEntity(props);
 
         }
     };
