@@ -34,56 +34,119 @@ enum Slots {
     Lighting
 };
 
+static const std::string DEEFAULT_DIFFUSE_SHADER {
+    "vec4 getFragmentColor() {"
+    "    return vec4(pow(texture(diffuseMap, uv).xyz, vec3(1.0 / 2.2)), 1.0);"
+    " }"
+};
+static const std::string DEEFAULT_ALPHA_SHADER {
+    "vec4 getFragmentColor() {"
+    "    return vec4(vec3(texture(diffuseMap, uv).a), 1.0);"
+    " }"
+};
+static const std::string DEEFAULT_SPECULAR_SHADER {
+    "vec4 getFragmentColor() {"
+    "    return vec4(texture(specularMap, uv).xyz, 1.0);"
+    " }"
+};
+static const std::string DEEFAULT_ROUGHNESS_SHADER {
+    "vec4 getFragmentColor() {"
+    "    return vec4(vec3(texture(specularMap, uv).a), 1.0);"
+    " }"
+};
+static const std::string DEEFAULT_NORMAL_SHADER {
+    "vec4 getFragmentColor() {"
+    "    return vec4(texture(normalMap, uv).xyz, 1.0);"
+    " }"
+};
+static const std::string DEEFAULT_DEPTH_SHADER {
+    "vec4 getFragmentColor() {"
+    "    return vec4(vec3(texture(depthMap, uv).x), 1.0);"
+    " }"
+};
+static const std::string DEEFAULT_LIGHTING_SHADER {
+    "vec4 getFragmentColor() {"
+    "    return vec4(pow(texture(lightingMap, uv).xyz, vec3(1.0 / 2.2)), 1.0);"
+    " }"
+};
+static const std::string DEEFAULT_CUSTOM_SHADER {
+    "vec4 getFragmentColor() {"
+    "    return vec4(1.0, 0.0, 0.0, 1.0);"
+    " }"
+};
+
 static std::string getFileContent(std::string fileName, std::string defaultContent = std::string()) {
-    QFile customFile(QString::fromStdString(fileName));
+    QFile customFile(QUrl(QString::fromStdString(fileName)).toLocalFile());
     if (customFile.open(QIODevice::ReadOnly)) {
         return customFile.readAll().toStdString();
     }
+    qWarning() << "DebugDeferredBuffer::getFileContent(): Could not open"
+               << QUrl(QString::fromStdString(fileName)).toLocalFile();
     return defaultContent;
 }
 
-std::string DebugDeferredBuffer::getShaderSourceCode(Modes mode) {
+#include <QStandardPaths> // TODO REMOVE: Temporary until UI
+DebugDeferredBuffer::DebugDeferredBuffer() {
+    // TODO REMOVE: Temporary until UI
+    static const auto DESKTOP_PATH = QStandardPaths::writableLocation(QStandardPaths::DesktopLocation);
+    static const auto CUSTOM_FILE = "file://" + DESKTOP_PATH.toStdString() + "/custom.slh";
+    CustomPipeline pipeline;
+    pipeline.info = QFileInfo(DESKTOP_PATH + "/custom.slh");
+    _customPipelines.emplace(CUSTOM_FILE, pipeline);
+}
+
+std::string DebugDeferredBuffer::getShaderSourceCode(Modes mode, std::string customFile) {
     switch (mode) {
         case DiffuseMode:
-            return "vec4 getFragmentColor() { return vec4(pow(texture(diffuseMap, uv).xyz, vec3(1.0 / 2.2)), 1.0); }";
+            return DEEFAULT_DIFFUSE_SHADER;
         case AlphaMode:
-            return "vec4 getFragmentColor() { return vec4(vec3(texture(diffuseMap, uv).a), 1.0); }";
+            return DEEFAULT_ALPHA_SHADER;
         case SpecularMode:
-            return "vec4 getFragmentColor() { return vec4(texture(specularMap, uv).xyz, 1.0); }";
+            return DEEFAULT_SPECULAR_SHADER;
         case RoughnessMode:
-            return "vec4 getFragmentColor() { return vec4(vec3(texture(specularMap, uv).a), 1.0); }";
+            return DEEFAULT_ROUGHNESS_SHADER;
         case NormalMode:
-            return "vec4 getFragmentColor() { return vec4(texture(normalMap, uv).xyz, 1.0); }";
+            return DEEFAULT_NORMAL_SHADER;
         case DepthMode:
-            return "vec4 getFragmentColor() { return vec4(vec3(texture(depthMap, uv).x), 1.0); }";
+            return DEEFAULT_DEPTH_SHADER;
         case LightingMode:
-            return "vec4 getFragmentColor() { return vec4(pow(texture(lightingMap, uv).xyz, vec3(1.0 / 2.2)), 1.0); }";
+            return DEEFAULT_LIGHTING_SHADER;
         case CustomMode:
-            return getFileContent(CUSTOM_FILE, "vec4 getFragmentColor() { return vec4(1.0); }");
+            return getFileContent(customFile, DEEFAULT_CUSTOM_SHADER);
     }
 }
 
-bool DebugDeferredBuffer::pipelineNeedsUpdate(Modes mode) const {
+bool DebugDeferredBuffer::pipelineNeedsUpdate(Modes mode, std::string customFile) const {
     if (mode != CustomMode) {
         return !_pipelines[mode];
+    }
+    
+    auto it = _customPipelines.find(customFile);
+    if (it != _customPipelines.end() && it->second.pipeline) {
+        auto& info = it->second.info;
+        
+        auto lastModified = info.lastModified();
+        info.refresh();
+        return lastModified != info.lastModified();
     }
     
     return true;
 }
 
-const gpu::PipelinePointer& DebugDeferredBuffer::getPipeline(Modes mode) {
-    if (pipelineNeedsUpdate(mode)) {
+const gpu::PipelinePointer& DebugDeferredBuffer::getPipeline(Modes mode, std::string customFile) {
+    if (pipelineNeedsUpdate(mode, customFile)) {
         static const std::string VERTEX_SHADER { debug_deferred_buffer_vert };
         static const std::string FRAGMENT_SHADER { debug_deferred_buffer_frag };
         static const std::string SOURCE_PLACEHOLDER { "//SOURCE_PLACEHOLDER" };
         static const auto SOURCE_PLACEHOLDER_INDEX = FRAGMENT_SHADER.find(SOURCE_PLACEHOLDER);
-        Q_ASSERT_X(SOURCE_PLACEHOLDER_INDEX != std::string::npos, Q_FUNC_INFO, "Could not find source placeholder");
+        Q_ASSERT_X(SOURCE_PLACEHOLDER_INDEX != std::string::npos, Q_FUNC_INFO,
+                   "Could not find source placeholder");
         
         auto bakedFragmentShader = FRAGMENT_SHADER;
         bakedFragmentShader.replace(SOURCE_PLACEHOLDER_INDEX, SOURCE_PLACEHOLDER.size(),
-                                    getShaderSourceCode(mode));
+                                    getShaderSourceCode(mode, customFile));
         
-        const auto vs = gpu::Shader::createVertex(VERTEX_SHADER);
+        static const auto vs = gpu::Shader::createVertex(VERTEX_SHADER);
         const auto ps = gpu::Shader::createPixel(bakedFragmentShader);
         const auto program = gpu::Shader::createProgram(vs, ps);
         
@@ -95,10 +158,21 @@ const gpu::PipelinePointer& DebugDeferredBuffer::getPipeline(Modes mode) {
         slotBindings.insert(gpu::Shader::Binding("lightingMap", Lighting));
         gpu::Shader::makeProgram(*program, slotBindings);
         
+        auto pipeline = gpu::Pipeline::create(program, std::make_shared<gpu::State>());
+        
         // Good to go add the brand new pipeline
-        _pipelines[mode] = gpu::Pipeline::create(program, std::make_shared<gpu::State>());
+        if (mode != CustomMode) {
+            _pipelines[mode] = pipeline;
+        } else {
+            _customPipelines[customFile].pipeline = pipeline;
+        }
     }
-    return _pipelines[mode];
+    
+    if (mode != CustomMode) {
+        return _pipelines[mode];
+    } else {
+        return _customPipelines[customFile].pipeline;
+    }
 }
 
 
@@ -118,8 +192,11 @@ void DebugDeferredBuffer::run(const SceneContextPointer& sceneContext, const Ren
         batch.setProjectionTransform(projMat);
         batch.setViewTransform(viewMat);
         batch.setModelTransform(Transform());
+
+        // TODO REMOVE: Temporary until UI
+        auto first = _customPipelines.begin()->first;
         
-        batch.setPipeline(getPipeline(Modes(renderContext->_deferredDebugMode)));
+        batch.setPipeline(getPipeline(Modes(renderContext->_deferredDebugMode), first));
         
         batch.setResourceTexture(Diffuse, framebufferCache->getDeferredColorTexture());
         batch.setResourceTexture(Normal, framebufferCache->getDeferredNormalTexture());
