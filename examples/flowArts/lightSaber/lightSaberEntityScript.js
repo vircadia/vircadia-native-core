@@ -30,8 +30,9 @@
         isGrabbed: false,
 
         startNearGrab: function() {
-            // this.createBeam();
-
+            Entities.editEntity(this.beam, {
+                isEmitting: true
+            });
         },
 
         continueNearGrab: function() {
@@ -39,7 +40,9 @@
         },
 
         releaseGrab: function() {
-
+            Entities.editEntity(this.beam, {
+                isEmitting: false
+            });
         },
 
         preload: function(entityID) {
@@ -57,7 +60,7 @@
 
             this.props = Entities.getEntityProperties(this.entityID, ["position", "rotation"]);
             var forwardVec = Quat.getFront(Quat.multiply(this.props.rotation, Quat.fromPitchYawRollDegrees(-90, 0, 0)));
-            forwardVec = Vec3.normalize(forwardVec);
+            // forwardVec = Vec3.normalize(forwardVec);
             var forwardQuat = orientationOf(forwardVec);
             var position = Vec3.sum(this.props.position, Vec3.multiply(Quat.getFront(this.props.rotation), 0.1));
             position.z += 0.1;
@@ -67,7 +70,7 @@
                 type: "ParticleEffect",
                 position: position,
                 parentID: this.entityID,
-                isEmitting: true,
+                isEmitting: false,
                 "colorStart": color,
                 color: {
                     red: 200,
