@@ -261,9 +261,6 @@ Menu::Menu() {
     addCheckableActionToQMenuAndActionHash(avatarMenu, MenuOption::NamesAboveHeads, 0, true, 
                 NULL, NULL, UNSPECIFIED_POSITION, "Advanced");
 
-    addCheckableActionToQMenuAndActionHash(avatarMenu, MenuOption::BlueSpeechSphere, 0, true,
-                NULL, NULL, UNSPECIFIED_POSITION, "Advanced");
-
     MenuWrapper* viewMenu = addMenu("View");
     addActionToQMenuAndActionHash(viewMenu, MenuOption::ReloadContent, 0, qApp, SLOT(reloadResourceCaches()), 
                 QAction::NoRole, UNSPECIFIED_POSITION, "Advanced");
@@ -480,7 +477,6 @@ Menu::Menu() {
 
     MenuWrapper* handOptionsMenu = developerMenu->addMenu("Hands");
     addCheckableActionToQMenuAndActionHash(handOptionsMenu, MenuOption::DisplayHandTargets, 0, false);
-    addCheckableActionToQMenuAndActionHash(handOptionsMenu, MenuOption::EnableHandMouseInput, 0, false);
     addCheckableActionToQMenuAndActionHash(handOptionsMenu, MenuOption::LowVelocityFilter, 0, true,
                                            qApp, SLOT(setLowVelocityFilter(bool)));
 

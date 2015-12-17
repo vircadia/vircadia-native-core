@@ -115,10 +115,6 @@ bool raySphereIntersect(const glm::vec3 &dir, const glm::vec3 &origin, float r, 
 ApplicationCompositor::ApplicationCompositor() :
     _alphaPropertyAnimation(new QPropertyAnimation(this, "alpha"))
 {
-    memset(_reticleActive, 0, sizeof(_reticleActive));
-    memset(_magActive, 0, sizeof(_reticleActive));
-    memset(_magSizeMult, 0, sizeof(_magSizeMult));
-
     auto geometryCache = DependencyManager::get<GeometryCache>();
 
     _reticleQuad = geometryCache->allocateID();
@@ -219,9 +215,6 @@ void ApplicationCompositor::displayOverlayTexture(RenderArgs* renderArgs) {
         batch.setResourceTexture(0, overlayFramebuffer->getRenderBuffer(0));
         geometryCache->renderUnitQuad(batch, vec4(vec3(1), _alpha));
 
-        // Doesn't actually render
-        renderPointers(batch);
-
         //draw the mouse pointer
         // Get the mouse coordinates and convert to NDC [-1, 1]
         vec2 canvasSize = qApp->getCanvasSize();
@@ -306,8 +299,7 @@ void ApplicationCompositor::displayOverlayTextureHmd(RenderArgs* renderArgs, int
         }
     #endif
 
-        // Doesn't actually render
-        renderPointers(batch);
+
         vec3 reticleScale = vec3(Cursor::Manager::instance().getScale() * reticleSize);
 
         bindCursorTexture(batch);
@@ -316,34 +308,13 @@ void ApplicationCompositor::displayOverlayTextureHmd(RenderArgs* renderArgs, int
         glm::mat4 overlayXfm;
         _modelTransform.getMatrix(overlayXfm);
 
-        // Only render the hand pointers if the EnableHandMouseInput is enabled
-        if (Menu::getInstance()->isOptionChecked(MenuOption::EnableHandMouseInput)) {
-            MyAvatar* myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
-            auto palms = myAvatar->getHand()->getCopyOfPalms();
-            for (const auto& palm : palms) {
-                if (palm.isActive()) {
-                    glm::vec2 polar = getPolarCoordinates(palm);
-                    // Convert to quaternion
-                    mat4 pointerXfm = glm::mat4_cast(quat(vec3(polar.y, -polar.x, 0.0f))) * glm::translate(mat4(), vec3(0, 0, -1));
-                    mat4 reticleXfm = overlayXfm * pointerXfm;
-                    reticleXfm = glm::scale(reticleXfm, reticleScale);
-                    batch.setModelTransform(reticleXfm);
-                    // Render reticle at location
-                    geometryCache->renderUnitQuad(batch, glm::vec4(1), _reticleQuad);
-                }
-            }
-        }
-
         //Mouse Pointer
-        if (_reticleActive[MOUSE]) {
-            glm::vec2 projection = screenToSpherical(glm::vec2(_reticlePosition[MOUSE].x(),
-                _reticlePosition[MOUSE].y()));
-            mat4 pointerXfm = glm::mat4_cast(quat(vec3(-projection.y, projection.x, 0.0f))) * glm::translate(mat4(), vec3(0, 0, -1));
-            mat4 reticleXfm = overlayXfm * pointerXfm;
-            reticleXfm = glm::scale(reticleXfm, reticleScale);
-            batch.setModelTransform(reticleXfm);
-            geometryCache->renderUnitQuad(batch, glm::vec4(1), _reticleQuad);
-        }
+        glm::vec2 projection = screenToSpherical(qApp->getTrueMouse());
+        mat4 pointerXfm = glm::mat4_cast(quat(vec3(-projection.y, projection.x, 0.0f))) * glm::translate(mat4(), vec3(0, 0, -1));
+        mat4 reticleXfm = overlayXfm * pointerXfm;
+        reticleXfm = glm::scale(reticleXfm, reticleScale);
+        batch.setModelTransform(reticleXfm);
+        geometryCache->renderUnitQuad(batch, glm::vec4(1), _reticleQuad);
     });
 }
 
@@ -415,130 +386,12 @@ bool ApplicationCompositor::calculateRayUICollisionPoint(const glm::vec3& positi
     glm::vec3 relativeDirection = glm::normalize(inverseOrientation * direction);
 
     float t;
-    if (raySphereIntersect(relativeDirection, relativePosition, _oculusUIRadius * myAvatar->getAvatarScale(), &t)){
+    if (raySphereIntersect(relativeDirection, relativePosition, _oculusUIRadius * myAvatar->getUniformScale(), &t)){
         result = position + direction * t;
         return true;
     }
 
     return false;
-}
-
-//Renders optional pointers
-void ApplicationCompositor::renderPointers(gpu::Batch& batch) {
-    if (qApp->isHMDMode() && !qApp->getLastMouseMoveWasSimulated()) {
-        //If we are in oculus, render reticle later
-        auto trueMouse = qApp->getTrueMouse();
-        trueMouse /= qApp->getCanvasSize();
-        QPoint position = QPoint(qApp->getTrueMouse().x, qApp->getTrueMouse().y);
-        _reticlePosition[MOUSE] = position;
-        _reticleActive[MOUSE] = true;
-        _magActive[MOUSE] = _magnifier;
-        _reticleActive[LEFT_CONTROLLER] = false;
-        _reticleActive[RIGHT_CONTROLLER] = false;
-    } else if (qApp->getLastMouseMoveWasSimulated() 
-                && Menu::getInstance()->isOptionChecked(MenuOption::EnableHandMouseInput)) {
-        //only render controller pointer if we aren't already rendering a mouse pointer
-        _reticleActive[MOUSE] = false;
-        _magActive[MOUSE] = false;
-        renderControllerPointers(batch);
-    }
-}
-
-
-// FIXME - this is old code that likely needs to be removed and/or reworked to support the new input control model
-void ApplicationCompositor::renderControllerPointers(gpu::Batch& batch) {
-    MyAvatar* myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
-
-    //Static variables used for storing controller state
-    static quint64 pressedTime[NUMBER_OF_RETICLES] = { 0ULL, 0ULL, 0ULL };
-    static bool isPressed[NUMBER_OF_RETICLES] = { false, false, false };
-    static bool stateWhenPressed[NUMBER_OF_RETICLES] = { false, false, false };
-
-    const HandData* handData = DependencyManager::get<AvatarManager>()->getMyAvatar()->getHandData();
-    auto palms = handData->getCopyOfPalms();
-
-    for (unsigned int palmIndex = 2; palmIndex < 4; palmIndex++) {
-        const int index = palmIndex - 1;
-
-        const PalmData* palmData = NULL;
-
-        if (palmIndex >= palms.size()) {
-            return;
-        }
-
-        if (palms[palmIndex].isActive()) {
-            palmData = &palms[palmIndex];
-        } else {
-            continue;
-        }
-
-        if (isPressed[index]) {
-            isPressed[index] = false;
-            //If the button was only pressed for < 250 ms
-            //then disable it.
-
-            const int MAX_BUTTON_PRESS_TIME = 250 * MSECS_TO_USECS;
-            if (usecTimestampNow() < pressedTime[index] + MAX_BUTTON_PRESS_TIME) {
-                _magActive[index] = !stateWhenPressed[index];
-            }
-        }
-
-        //if we have the oculus, we should make the cursor smaller since it will be
-        //magnified
-        if (qApp->isHMDMode()) {
-
-            QPoint point = getPalmClickLocation(palmData);
-
-            _reticlePosition[index] = point;
-
-            //When button 2 is pressed we drag the mag window
-            if (isPressed[index]) {
-                _magActive[index] = true;
-            }
-
-            // If oculus is enabled, we draw the crosshairs later
-            continue;
-        }
-
-        auto canvasSize = qApp->getCanvasSize();
-        int mouseX, mouseY;
-
-        // Get directon relative to avatar orientation
-        glm::vec3 direction = glm::inverse(myAvatar->getOrientation()) * palmData->getFingerDirection();
-
-        // Get the angles, scaled between (-0.5,0.5)
-        float xAngle = (atan2f(direction.z, direction.x) + PI_OVER_TWO);
-        float yAngle = 0.5f - ((atan2f(direction.z, direction.y) + (float)PI_OVER_TWO));
-
-        // Get the pixel range over which the xAngle and yAngle are scaled
-        float cursorRange = canvasSize.x * controller::InputDevice::getCursorPixelRangeMult();
-
-        mouseX = (canvasSize.x / 2.0f + cursorRange * xAngle);
-        mouseY = (canvasSize.y / 2.0f + cursorRange * yAngle);
-
-        //If the cursor is out of the screen then don't render it
-        if (mouseX < 0 || mouseX >= (int)canvasSize.x || mouseY < 0 || mouseY >= (int)canvasSize.y) {
-            _reticleActive[index] = false;
-            continue;
-        }
-        _reticleActive[index] = true;
-
-
-        const float reticleSize = 40.0f;
-
-        mouseX -= reticleSize / 2.0f;
-        mouseY += reticleSize / 2.0f;
-
-
-        glm::vec2 topLeft(mouseX, mouseY);
-        glm::vec2 bottomRight(mouseX + reticleSize, mouseY - reticleSize);
-        glm::vec2 texCoordTopLeft(0.0f, 0.0f);
-        glm::vec2 texCoordBottomRight(1.0f, 1.0f);
-
-        DependencyManager::get<GeometryCache>()->renderQuad(batch, topLeft, bottomRight, texCoordTopLeft, texCoordBottomRight,
-                                                            glm::vec4(RETICLE_COLOR[0], RETICLE_COLOR[1], RETICLE_COLOR[2], 1.0f));
-
-    }
 }
 
 void ApplicationCompositor::buildHemiVertices(

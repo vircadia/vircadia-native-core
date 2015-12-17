@@ -203,7 +203,7 @@ void AvatarManager::simulateAvatarFades(float deltaTime) {
     while (fadingIterator != _avatarFades.end()) {
         auto avatar = std::static_pointer_cast<Avatar>(*fadingIterator);
         avatar->startUpdate();
-        avatar->setTargetScale(avatar->getAvatarScale() * SHRINK_RATE);
+        avatar->setTargetScale(avatar->getUniformScale() * SHRINK_RATE);
         if (avatar->getTargetScale() <= MIN_FADE_SCALE) {
             avatar->removeFromScene(*fadingIterator, scene, pendingChanges);
             fadingIterator = _avatarFades.erase(fadingIterator);
@@ -223,14 +223,14 @@ AvatarSharedPointer AvatarManager::newSharedAvatar() {
 AvatarSharedPointer AvatarManager::addAvatar(const QUuid& sessionUUID, const QWeakPointer<Node>& mixerWeakPointer) {
     auto newAvatar = AvatarHashMap::addAvatar(sessionUUID, mixerWeakPointer);
     auto rawRenderableAvatar = std::static_pointer_cast<Avatar>(newAvatar);
-    
+
     render::ScenePointer scene = qApp->getMain3DScene();
     render::PendingChanges pendingChanges;
     if (DependencyManager::get<SceneScriptingInterface>()->shouldRenderAvatars()) {
         rawRenderableAvatar->addToScene(rawRenderableAvatar, scene, pendingChanges);
     }
     scene->enqueuePendingChanges(pendingChanges);
-    
+
     return newAvatar;
 }
 
@@ -251,7 +251,7 @@ void AvatarManager::removeAvatarMotionState(AvatarSharedPointer avatar) {
 // virtual
 void AvatarManager::removeAvatar(const QUuid& sessionUUID) {
     QWriteLocker locker(&_hashLock);
-    
+
     auto removedAvatar = _avatarHash.take(sessionUUID);
     if (removedAvatar) {
         handleRemovedAvatar(removedAvatar);
@@ -260,7 +260,8 @@ void AvatarManager::removeAvatar(const QUuid& sessionUUID) {
 
 void AvatarManager::handleRemovedAvatar(const AvatarSharedPointer& removedAvatar) {
     AvatarHashMap::handleRemovedAvatar(removedAvatar);
-    
+
+    removedAvatar->die();
     removeAvatarMotionState(removedAvatar);
     _avatarFades.push_back(removedAvatar);
 }
@@ -268,7 +269,7 @@ void AvatarManager::handleRemovedAvatar(const AvatarSharedPointer& removedAvatar
 void AvatarManager::clearOtherAvatars() {
     // clear any avatars that came from an avatar-mixer
     QWriteLocker locker(&_hashLock);
-    
+
     AvatarHash::iterator avatarIterator =  _avatarHash.begin();
     while (avatarIterator != _avatarHash.end()) {
         auto avatar = std::static_pointer_cast<Avatar>(avatarIterator.value());
@@ -278,7 +279,7 @@ void AvatarManager::clearOtherAvatars() {
         } else {
             auto removedAvatar = avatarIterator.value();
             avatarIterator = _avatarHash.erase(avatarIterator);
-            
+
             handleRemovedAvatar(removedAvatar);
         }
     }
@@ -374,20 +375,18 @@ void AvatarManager::handleCollisionEvents(const CollisionEvents& collisionEvents
     }
 }
 
-void AvatarManager::updateAvatarPhysicsShape(Avatar* avatar) {
-    AvatarMotionState* motionState = avatar->getMotionState();
-    if (motionState) {
-        motionState->addDirtyFlags(Simulation::DIRTY_SHAPE);
-    } else {
-        ShapeInfo shapeInfo;
-        avatar->computeShapeInfo(shapeInfo);
-        btCollisionShape* shape = ObjectMotionState::getShapeManager()->getShape(shapeInfo);
-        if (shape) {
-            AvatarMotionState* motionState = new AvatarMotionState(avatar, shape);
-            avatar->setMotionState(motionState);
-            _motionStatesToAdd.insert(motionState);
-            _avatarMotionStates.insert(motionState);
-        }
+void AvatarManager::addAvatarToSimulation(Avatar* avatar) {
+    assert(!avatar->getMotionState());
+
+    ShapeInfo shapeInfo;
+    avatar->computeShapeInfo(shapeInfo);
+    btCollisionShape* shape = ObjectMotionState::getShapeManager()->getShape(shapeInfo);
+    if (shape) {
+        // we don't add to the simulation now, we put it on a list to be added later
+        AvatarMotionState* motionState = new AvatarMotionState(avatar, shape);
+        avatar->setMotionState(motionState);
+        _motionStatesToAdd.insert(motionState);
+        _avatarMotionStates.insert(motionState);
     }
 }
 
@@ -416,6 +415,6 @@ AvatarSharedPointer AvatarManager::getAvatarBySessionID(const QUuid& sessionID) 
     if (sessionID == _myAvatar->getSessionUUID()) {
         return _myAvatar;
     }
-    
+
     return findAvatar(sessionID);
 }
