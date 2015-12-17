@@ -23,7 +23,7 @@ const int MAX_PAYLOAD_BYTES = 1024;
 const QString emptyPool = QString();
 
 /// Holds information used for request, creation, and deployment of assignments
-class Assignment : public NodeData {
+class Assignment : public QObject {
     Q_OBJECT
 public:
 
