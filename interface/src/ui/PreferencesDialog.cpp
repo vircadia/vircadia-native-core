@@ -67,6 +67,7 @@ void PreferencesDialog::changeUseAcuity() {
     ui.hmdMinimumFPSSpin->setEnabled(useAcuity);
     ui.label_smallestReasonableRenderHorizon->setText(useAcuity ? "Minimum Avatar Display Distance (@half speed)" : "Minimum Display Distance (@half speed)");
     Menu::getInstance()->getActionForOption(MenuOption::LodTools)->setEnabled(useAcuity);
+    Menu::getInstance()->getSubMenuFromName(MenuOption::RenderResolution, Menu::getInstance()->getSubMenuFromName("Render", Menu::getInstance()->getMenu("Developer")))->setEnabled(useAcuity);
 }
 void PreferencesDialog::changeFullAvatarURL() {
     DependencyManager::get<AvatarManager>()->getMyAvatar()->useFullAvatarURL(ui.appearanceDescription->text(), "");

@@ -31,7 +31,6 @@ Setting::Handle<float> renderDistanceInverseHighLimit("renderDistanceInverseHigh
 void LODManager::setRenderDistanceInverseHighLimit(float newValue) {
     renderDistanceInverseHighLimit.set(newValue); // persist it, and tell all the controllers that use it
     _renderDistanceController.setControlledValueHighLimit(newValue);
-   DependencyManager::get<AvatarManager>()->setRenderDistanceInverseHighLimit(newValue);
 }
 
 LODManager::LODManager() {
@@ -252,12 +251,8 @@ int LODManager::getRenderedCount() {
     return lastRenderedCount;
 }
 QString LODManager::getLODStatsRenderText() {
-    if (getUseAcuity()) {
-        auto avatarManager = DependencyManager::get<AvatarManager>();
-        return QString("Renderable avatars: ") + QString::number(avatarManager->getNumberInRenderRange()) + " w/in " + QString::number((int)avatarManager->getRenderDistance()) + "m";
-    } else {
-        return QString("Rendered objects: ") + QString::number(getRenderedCount()) + " w/in " + QString::number((int)getRenderDistance()) + "m";
-    }
+    QString label = getUseAcuity() ? "Renderable avatars: " : "Rendered objects: ";
+    return label + QString::number(getRenderedCount()) + " w/in " + QString::number((int)getRenderDistance()) + "m";
 }
 // compare audoAdjustLOD()
 void LODManager::updatePIDRenderDistance(float targetFps, float measuredFps, float deltaTime, bool isThrottled) {
