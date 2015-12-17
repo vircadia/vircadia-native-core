@@ -19,6 +19,7 @@
 #include <QtWebSockets/QWebSocketServer>
 #include <QtWebChannel/QWebChannel>
 
+#include <AddressManager.h>
 #include <DependencyManager.h>
 
 #include "impl/websocketclientwrapper.h"
@@ -86,7 +87,13 @@ QmlWebWindowClass::QmlWebWindowClass(QObject* qmlWindow)
     qDebug() << "Created window with ID " << _windowId;
     Q_ASSERT(_qmlWindow);
     Q_ASSERT(dynamic_cast<const QQuickItem*>(_qmlWindow));
+    QObject::connect(_qmlWindow, SIGNAL(navigating(QString)), this, SLOT(handleNavigation(QString)));
 }
+
+void QmlWebWindowClass::handleNavigation(const QString& url) {
+    DependencyManager::get<AddressManager>()->handleLookupString(url);
+}
+
 
 void QmlWebWindowClass::setVisible(bool visible) {
     if (QThread::currentThread() != thread()) {

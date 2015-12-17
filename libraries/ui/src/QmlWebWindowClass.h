@@ -81,6 +81,7 @@ signals:
 
 private slots:
     void hasClosed();
+    void handleNavigation(const QString& url);
 
 private:
     QmlScriptEventBridge* _eventBridge;

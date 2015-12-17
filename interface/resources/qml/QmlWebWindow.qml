@@ -19,12 +19,27 @@ VrDialog {
     backgroundColor: "#7f000000"
     property url source: "about:blank"
 
+    signal navigating(string url)
+
     Component.onCompleted: {
         enabled = true
         console.log("Web Window Created " + root);
         webview.javaScriptConsoleMessage.connect(function(level, message, lineNumber, sourceID) {
             console.log("Web Window JS message: " + sourceID + " " + lineNumber + " " +  message);
         });
+
+        webview.loadingChanged.connect(handleWebviewLoading) 
+    }
+
+
+    function handleWebviewLoading(loadRequest) {
+        var HIFI_URL_PATTERN = /^hifi:\/\//;
+        if (WebEngineView.LoadStartedStatus == loadRequest.status) {
+            var newUrl = loadRequest.url.toString();
+            if (newUrl.match(HIFI_URL_PATTERN)) {
+                root.navigating(newUrl);
+            }
+        }
     }
 
     Item {
@@ -35,11 +50,14 @@ VrDialog {
         y: root.clientY
         width: root.clientWidth
         height: root.clientHeight
-        
+
         WebEngineView {
             id: webview
             url: root.source
             anchors.fill: parent
+            profile: WebEngineProfile {
+                httpUserAgent: "Mozilla/5.0 (HighFidelityInterface)"
+            }
         }
     } // item
 } // dialog
