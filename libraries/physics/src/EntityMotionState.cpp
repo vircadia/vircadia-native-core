@@ -507,6 +507,17 @@ void EntityMotionState::sendUpdate(OctreeEditPacketSender* packetSender, const Q
     entityPacketSender->queueEditEntityMessage(PacketType::EntityEdit, id, properties);
     _entity->setLastBroadcast(usecTimestampNow());
 
+    // if we've moved an entity with children, check/update the queryAACube of all descendents and tell the server
+    // if they've changed.
+    // TODO -- ancestors of this entity may also need to expand their queryAACubes.
+    _entity->forEachDescendant([&](SpatiallyNestablePointer descendant) {
+        if (descendant->setPuffedQueryAACube()) {
+            EntityItemProperties newQueryCubeProperties;
+            newQueryCubeProperties.setQueryAACube(descendant->getQueryAACube());
+            entityPacketSender->queueEditEntityMessage(PacketType::EntityEdit, descendant->getID(), newQueryCubeProperties);
+        }
+    });
+
     _lastStep = step;
 }
 

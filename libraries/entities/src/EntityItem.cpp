@@ -1177,7 +1177,7 @@ void EntityItem::setDimensions(const glm::vec3& value) {
 /// The maximum bounding cube for the entity, independent of it's rotation.
 /// This accounts for the registration point (upon which rotation occurs around).
 ///
-const AACube& EntityItem::getMaximumAACube(bool& success) const {
+AACube EntityItem::getMaximumAACube(bool& success) const {
     if (_recalcMaxAACube) {
         // * we know that the position is the center of rotation
         glm::vec3 centerOfRotation = getPosition(success); // also where _registration point is
@@ -1207,7 +1207,7 @@ const AACube& EntityItem::getMaximumAACube(bool& success) const {
 /// The minimum bounding cube for the entity accounting for it's rotation.
 /// This accounts for the registration point (upon which rotation occurs around).
 ///
-const AACube& EntityItem::getMinimumAACube(bool& success) const {
+AACube EntityItem::getMinimumAACube(bool& success) const {
     if (_recalcMinAACube) {
         // _position represents the position of the registration point.
         glm::vec3 registrationRemainder = glm::vec3(1.0f, 1.0f, 1.0f) - _registrationPoint;
@@ -1236,7 +1236,7 @@ const AACube& EntityItem::getMinimumAACube(bool& success) const {
     return _minAACube;
 }
 
-const AABox& EntityItem::getAABox(bool& success) const {
+AABox EntityItem::getAABox(bool& success) const {
     if (_recalcAABox) {
         // _position represents the position of the registration point.
         glm::vec3 registrationRemainder = glm::vec3(1.0f, 1.0f, 1.0f) - _registrationPoint;
@@ -1261,11 +1261,17 @@ const AABox& EntityItem::getAABox(bool& success) const {
 }
 
 AACube EntityItem::getQueryAACube(bool& success) const {
-    AACube result = getMaximumAACube(success);
+    AACube result = SpatiallyNestable::getQueryAACube(success);
     if (success) {
         return result;
     }
-    return SpatiallyNestable::getQueryAACube(success);
+    // this is for when we've loaded an older json file that didn't have queryAACube properties.
+    result = getMaximumAACube(success);
+    if (success) {
+        _queryAACube = result;
+        _queryAACubeSet = true;
+    }
+    return result;
 }
 
 

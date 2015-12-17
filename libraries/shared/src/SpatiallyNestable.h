@@ -68,6 +68,9 @@ public:
     virtual void setOrientation(const glm::quat& orientation, bool& success);
     virtual void setOrientation(const glm::quat& orientation);
 
+    virtual AACube getMaximumAACube(bool& success) const;
+    virtual bool setPuffedQueryAACube();
+
     virtual void setQueryAACube(const AACube& queryAACube);
     virtual AACube getQueryAACube(bool& success) const;
     virtual AACube getQueryAACube() const;
@@ -106,6 +109,9 @@ public:
     void markAncestorMissing(bool value) { _missingAncestor = value; }
     bool getAncestorMissing() { return _missingAncestor; }
 
+    void forEachChild(std::function<void(SpatiallyNestablePointer)> actor);
+    void forEachDescendant(std::function<void(SpatiallyNestablePointer)> actor);
+
 protected:
     const NestableType _nestableType; // EntityItem or an AvatarData
     QUuid _id;
@@ -122,9 +128,6 @@ protected:
 
     virtual void locationChanged(); // called when a this object's location has changed
     virtual void dimensionsChanged() {} // called when a this object's dimensions have changed
-
-    void forEachChild(std::function<void(SpatiallyNestablePointer)> actor);
-    void forEachDescendant(std::function<void(SpatiallyNestablePointer)> actor);
 
     // _queryAACube is used to decide where something lives in the octree
     mutable AACube _queryAACube;

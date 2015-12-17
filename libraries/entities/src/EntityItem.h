@@ -231,9 +231,9 @@ public:
     quint64 getExpiry() const;
 
     // position, size, and bounds related helpers
-    const AACube& getMaximumAACube(bool& success) const;
-    const AACube& getMinimumAACube(bool& success) const;
-    const AABox& getAABox(bool& success) const; /// axis aligned bounding box in world-frame (meters)
+    virtual AACube getMaximumAACube(bool& success) const override;
+    AACube getMinimumAACube(bool& success) const;
+    AABox getAABox(bool& success) const; /// axis aligned bounding box in world-frame (meters)
 
     using SpatiallyNestable::getQueryAACube;
     virtual AACube getQueryAACube(bool& success) const override;

@@ -552,11 +552,33 @@ void SpatiallyNestable::setQueryAACube(const AACube& queryAACube) {
     _queryAACubeSet = true;
 }
 
+AACube SpatiallyNestable::getMaximumAACube(bool& success) const {
+    return AACube(getPosition(success) - glm::vec3(0.5f), 1.0f); // XXX
+}
+
+bool SpatiallyNestable::setPuffedQueryAACube() {
+    bool success;
+    AACube currentAACube = getMaximumAACube(success);
+    if (!success) {
+        qDebug() << "can't getMaximumAACube for" << getID();
+        return false;
+    }
+    if (_queryAACubeSet && _queryAACube.contains(currentAACube)) {
+        return false;
+    }
+
+    // make an AACube with edges twice as long and centered on the object
+    _queryAACube = AACube(currentAACube.getCorner() - glm::vec3(currentAACube.getScale()), currentAACube.getScale() * 2.0f);
+    _queryAACubeSet = true;
+    return true;
+}
+
 AACube SpatiallyNestable::getQueryAACube(bool& success) const {
     if (_queryAACubeSet) {
         success = true;
         return _queryAACube;
     }
+    success = false;
     return AACube(getPosition(success) - glm::vec3(0.5f), 1.0f); // XXX
 }
 
@@ -564,11 +586,7 @@ AACube SpatiallyNestable::getQueryAACube() const {
     bool success;
     auto result = getQueryAACube(success);
     if (!success) {
-        if (_queryAACubeSet) {
-            result = _queryAACube;
-        } else {
-            qDebug() << "getQueryAACube failed:" << getID();
-        }
+        qDebug() << "getQueryAACube failed for" << getID();
     }
     return result;
 }
