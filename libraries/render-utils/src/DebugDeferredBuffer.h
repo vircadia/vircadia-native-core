@@ -33,6 +33,8 @@ private:
         CustomMode // Needs to stay last
     };
     
+    const std::string CUSTOM_FILE { "/Users/clement/Desktop/custom.slh" };
+    
     bool pipelineNeedsUpdate(Modes mode) const;
     const gpu::PipelinePointer& getPipeline(Modes mode);
     std::string getShaderSourceCode(Modes mode);

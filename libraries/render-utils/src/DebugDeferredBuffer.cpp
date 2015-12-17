@@ -11,6 +11,8 @@
 
 #include "DebugDeferredBuffer.h"
 
+#include <QFile>
+
 #include <gpu/Batch.h>
 #include <gpu/Context.h>
 #include <render/Scene.h>
@@ -32,6 +34,14 @@ enum Slots {
     Lighting
 };
 
+static std::string getFileContent(std::string fileName, std::string defaultContent = std::string()) {
+    QFile customFile(QString::fromStdString(fileName));
+    if (customFile.open(QIODevice::ReadOnly)) {
+        return customFile.readAll().toStdString();
+    }
+    return defaultContent;
+}
+
 std::string DebugDeferredBuffer::getShaderSourceCode(Modes mode) {
     switch (mode) {
         case DiffuseMode:
@@ -49,7 +59,7 @@ std::string DebugDeferredBuffer::getShaderSourceCode(Modes mode) {
         case LightingMode:
             return "vec4 getFragmentColor() { return vec4(pow(texture(lightingMap, uv).xyz, vec3(1.0 / 2.2)), 1.0); }";
         case CustomMode:
-            return "vec4 getFragmentColor() { return vec4(1.0); }";
+            return getFileContent(CUSTOM_FILE, "vec4 getFragmentColor() { return vec4(1.0); }");
     }
 }
 
@@ -57,8 +67,6 @@ bool DebugDeferredBuffer::pipelineNeedsUpdate(Modes mode) const {
     if (mode != CustomMode) {
         return !_pipelines[mode];
     }
-    
-    
     
     return true;
 }
