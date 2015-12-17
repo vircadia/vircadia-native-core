@@ -25,9 +25,9 @@
 
 #include "../AssignmentClient.h"
 
+#include "OctreeQueryNode.h"
 #include "OctreeServerConsts.h"
 
-OctreeServer* OctreeServer::_instance = NULL;
 int OctreeServer::_clientCount = 0;
 const int MOVING_AVERAGE_SAMPLE_COUNTS = 1000000;
 
@@ -231,13 +231,6 @@ OctreeServer::OctreeServer(ReceivedMessage& message) :
     _started(time(0)),
     _startedUSecs(usecTimestampNow())
 {
-    if (_instance) {
-        qDebug() << "Octree Server starting... while old instance still running _instance=["<<_instance<<"] this=[" << this << "]";
-    }
-
-    qDebug() << "Octree Server starting... setting _instance to=[" << this << "]";
-    _instance = this;
-
     _averageLoopTime.updateAverage(0);
     qDebug() << "Octree server starting... [" << this << "]";
 
@@ -281,9 +274,6 @@ OctreeServer::~OctreeServer() {
     _tree.reset();
     qDebug() << qPrintable(_safeServerName) << "server DONE cleaning up octree... [" << this << "]";
 
-    if (_instance == this) {
-        _instance = NULL; // we are gone
-    }
     qDebug() << qPrintable(_safeServerName) << "server DONE shutting down... [" << this << "]";
 }
 
@@ -878,16 +868,38 @@ void OctreeServer::parsePayload() {
     }
 }
 
+OctreeServer::UniqueSendThread OctreeServer::createSendThread(const SharedNodePointer& node) {
+    auto sendThread = std::unique_ptr<OctreeSendThread>(new OctreeSendThread(this, node));
+    
+    // we want to be notified when the thread finishes
+    connect(sendThread.get(), &GenericThread::finished, this, &OctreeServer::removeSendThread);
+    sendThread->initialize(true);
+
+    return sendThread;
+}
+
+void OctreeServer::removeSendThread() {
+    // If the object has been deleted since the event was queued, sender() will return nullptr
+    if (auto sendThread = qobject_cast<OctreeSendThread*>(sender())) {
+        // This deletes the unique_ptr, so sendThread is destructed after that line
+        _sendThreads.erase(sendThread->getNodeUuid());
+    }
+}
+
 void OctreeServer::handleOctreeQueryPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode) {
-    if (!_isFinished) {
+    if (!_isFinished && !_isShuttingDown) {
         // If we got a query packet, then we're talking to an agent, and we
         // need to make sure we have it in our nodeList.
         auto nodeList = DependencyManager::get<NodeList>();
         nodeList->updateNodeWithDataFromPacket(message, senderNode);
         
-        OctreeQueryNode* nodeData = dynamic_cast<OctreeQueryNode*>(senderNode->getLinkedData());
-        if (nodeData && !nodeData->isOctreeSendThreadInitalized()) {
-            nodeData->initializeOctreeSendThread(this, senderNode);
+        auto it = _sendThreads.find(senderNode->getUUID());
+        if (it == _sendThreads.end()) {
+            _sendThreads.emplace(senderNode->getUUID(), createSendThread(senderNode));
+        } else if (it->second->isShuttingDown()) {
+            _sendThreads.erase(it); // Remove right away and wait on thread to be
+            
+            _sendThreads.emplace(senderNode->getUUID(), createSendThread(senderNode));
         }
     }
 }
@@ -1117,8 +1129,8 @@ void OctreeServer::domainSettingsRequestComplete() {
     setvbuf(stdout, NULL, _IOLBF, 0);
 #endif
     
-    nodeList->linkedDataCreateCallback = [] (Node* node) {
-        auto queryNodeData = _instance->createOctreeQueryNode();
+    nodeList->linkedDataCreateCallback = [this](Node* node) {
+        auto queryNodeData = createOctreeQueryNode();
         queryNodeData->init();
         node->setLinkedData(std::move(queryNodeData));
     };
@@ -1167,6 +1179,13 @@ void OctreeServer::nodeAdded(SharedNodePointer node) {
 
 void OctreeServer::nodeKilled(SharedNodePointer node) {
     quint64 start  = usecTimestampNow();
+    
+    // Shutdown send thread
+    auto it = _sendThreads.find(node->getUUID());
+    if (it != _sendThreads.end()) {
+        auto& sendThread = *it->second;
+        sendThread.setIsShuttingDown();
+    }
 
     // calling this here since nodeKilled slot in ReceivedPacketProcessor can't be triggered by signals yet!!
     _octreeInboundPacketProcessor->nodeKilled(node);
@@ -1188,24 +1207,6 @@ void OctreeServer::nodeKilled(SharedNodePointer node) {
     trackViewerGone(node->getUUID());
 }
 
-void OctreeServer::forceNodeShutdown(SharedNodePointer node) {
-    quint64 start  = usecTimestampNow();
-
-    qDebug() << qPrintable(_safeServerName) << "server killed node:" << *node;
-    OctreeQueryNode* nodeData = dynamic_cast<OctreeQueryNode*>(node->getLinkedData());
-    if (nodeData) {
-        nodeData->forceNodeShutdown(); // tell our node data and sending threads that we'd like to shut down
-    } else {
-        qDebug() << qPrintable(_safeServerName) << "server node missing linked data node:" << *node;
-    }
-
-    quint64 end  = usecTimestampNow();
-    quint64 usecsElapsed = (end - start);
-    qDebug() << qPrintable(_safeServerName) << "server forceNodeShutdown() took: "
-                << usecsElapsed << " usecs for node:" << *node;
-}
-
-
 void OctreeServer::aboutToFinish() {
     qDebug() << qPrintable(_safeServerName) << "server STARTING about to finish...";
 
@@ -1214,9 +1215,8 @@ void OctreeServer::aboutToFinish() {
     qDebug() << qPrintable(_safeServerName) << "inform Octree Inbound Packet Processor that we are shutting down...";
 
     // we're going down - set the NodeList linkedDataCallback to NULL so we do not create any more OctreeQueryNode objects.
-    // This ensures that when we forceNodeShutdown below for each node we don't get any more newly connecting nodes
-    auto nodeList = DependencyManager::get<NodeList>();
-    nodeList->linkedDataCreateCallback = NULL;
+    // This ensures that we don't get any more newly connecting nodes
+    DependencyManager::get<NodeList>()->linkedDataCreateCallback = nullptr;
 
     if (_octreeInboundPacketProcessor) {
         _octreeInboundPacketProcessor->terminating();
@@ -1226,21 +1226,15 @@ void OctreeServer::aboutToFinish() {
         _jurisdictionSender->terminating();
     }
     
-    QSet<SharedNodePointer> nodesToShutdown;
-
-    // Force a shutdown of all of our OctreeSendThreads.
-    // At this point it has to be impossible for a linkedDataCreateCallback to be called for a new node
-    nodeList->eachNode([&nodesToShutdown](const SharedNodePointer& node) {
-        nodesToShutdown << node;
-    });
-    
-    // What follows is a hack to force OctreeSendThreads to cleanup before the OctreeServer is gone.
-    // I would prefer to allow the SharedNodePointer ref count drop to zero to do this automatically
-    // but that isn't possible as long as the OctreeSendThread has an OctreeServer* that it uses.
-    for (auto& node : nodesToShutdown) {
-        qDebug() << qPrintable(_safeServerName) << "server about to finish while node still connected node:" << *node;
-        forceNodeShutdown(node);
+    // Shut down all the send threads
+    for (auto& it : _sendThreads) {
+        auto& sendThread = *it.second;
+        sendThread.setIsShuttingDown();
     }
+    
+    // Clear will destruct all the unique_ptr to OctreeSendThreads which will call the GenericThread's dtor
+    // which waits on the thread to be done before returning
+    _sendThreads.clear(); // Cleans up all the send threads.
 
     if (_persistThread) {
         _persistThread->aboutToFinish();
@@ -1459,15 +1453,22 @@ void OctreeServer::didCallWriteDatagram(OctreeSendThread* thread) {
 
 
 void OctreeServer::stopTrackingThread(OctreeSendThread* thread) {
-    QMutexLocker lockerA(&_threadsDidProcessMutex);
-    QMutexLocker lockerB(&_threadsDidPacketDistributorMutex);
-    QMutexLocker lockerC(&_threadsDidHandlePacketSendMutex);
-    QMutexLocker lockerD(&_threadsDidCallWriteDatagramMutex);
-
-    _threadsDidProcess.remove(thread);
-    _threadsDidPacketDistributor.remove(thread);
-    _threadsDidHandlePacketSend.remove(thread);
-    _threadsDidCallWriteDatagram.remove(thread);
+    {
+        QMutexLocker locker(&_threadsDidProcessMutex);
+        _threadsDidProcess.remove(thread);
+    }
+    {
+        QMutexLocker locker(&_threadsDidPacketDistributorMutex);
+        _threadsDidPacketDistributor.remove(thread);
+    }
+    {
+        QMutexLocker locker(&_threadsDidHandlePacketSendMutex);
+        _threadsDidHandlePacketSend.remove(thread);
+    }
+    {
+        QMutexLocker locker(&_threadsDidCallWriteDatagramMutex);
+        _threadsDidCallWriteDatagram.remove(thread);
+    }
 }
 
 int howManyThreadsDidSomething(QMutex& mutex, QMap<OctreeSendThread*, quint64>& something, quint64 since) {
