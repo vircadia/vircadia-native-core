@@ -27,12 +27,13 @@ LightBall = function(spawnPosition) {
             blue: 150
         },
         collisionsWillMove: true,
+        gravity: {x: 0, y: -.5, z: 0},
         userData: JSON.stringify({
             grabbableKey: {
                 spatialKey: {
                     relativePosition: {
                         x: 0,
-                        y: .7,
+                        y: .1,
                         z: 0
                     }
                 },

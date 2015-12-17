@@ -8,6 +8,7 @@ RaveStick = function(spawnPosition) {
         modelURL: modelURL,
         position: spawnPosition,
         shapeType: 'box',
+        dimensions: {x: 0.17, y: 0.48, z: 0.17},
         userData: JSON.stringify({
             grabbableKey: {
                 invertSolidWhileHeld: true
