@@ -18,6 +18,8 @@
     var LINE_DIMENSIONS = 100;
     var MAX_POINTS_PER_LINE = 50;
     var MIN_POINT_DISTANCE = 0.02;
+    var STROKE_WIDTH = 0.05
+    var ugLSD = 25;
     var RaveStick = function() {
         _this = this;
         this.colorPalette = [{
@@ -32,7 +34,11 @@
         var texture = "https://s3.amazonaws.com/hifi-public/eric/textures/paintStrokes/trails.png";
         this.trail = Entities.addEntity({
             type: "PolyLine",
-            dimensions: {x: LINE_DIMENSIONS, y: LINE_DIMENSIONS, z: LINE_DIMENSIONS},
+            dimensions: {
+                x: LINE_DIMENSIONS,
+                y: LINE_DIMENSIONS,
+                z: LINE_DIMENSIONS
+            },
             color: {
                 red: 255,
                 green: 255,
@@ -58,29 +64,58 @@
             this.points = [];
             this.normals = [];
             this.strokeWidths = [];
+            this.setupEraseInterval();
         },
 
         continueNearGrab: function() {
-            var position = Entities.getEntityProperties(this.entityID, "position").position;
+            var props = Entities.getEntityProperties(this.entityID, ["position", "rotation"]);
+            var forwardVec = Quat.getFront(Quat.multiply(props.rotation, Quat.fromPitchYawRollDegrees(-90, 0, 0)));
+            forwardVec = Vec3.normalize(forwardVec);
+            var forwardQuat = orientationOf(forwardVec);
+            var position = Vec3.sum(props.position, Vec3.multiply(Quat.getFront(props.rotation), 0.2));
+            // position.z += 0.1;
+            // position.x += -0.035;
             var localPoint = Vec3.subtract(position, this.trailBasePosition);
-            if (this.points.length >=1 && Vec3.distance(localPoint, this.points[this.points.length - 1]) < MIN_POINT_DISTANCE) {
+            if (this.points.length >= 1 && Vec3.distance(localPoint, this.points[this.points.length - 1]) < MIN_POINT_DISTANCE) {
                 //Need a minimum distance to avoid binormal NANs
                 return;
             }
+            if (this.points.length === MAX_POINTS_PER_LINE) {
+                this.points.shift();
+                this.normals.shift();
+                this.strokeWidths.shift();
+            }
+
             this.points.push(localPoint);
-            var normal = computeNormal(position, Camera.getPosition());
+            var normal = Quat.getUp(props.rotation);
             this.normals.push(normal);
-            this.strokeWidths.push(0.04);
+            this.strokeWidths.push(STROKE_WIDTH);
             Entities.editEntity(this.trail, {
                 linePoints: this.points,
                 normals: this.normals,
                 strokeWidths: this.strokeWidths
-            })
+            });
+
 
         },
 
-        releaseGrab: function() {
+        setupEraseInterval: function() {
+            this.trailEraseInterval = Script.setInterval(function() {
+                if (_this.points.length > 0) {
+                    _this.points.shift();
+                    _this.normals.shift();
+                    _this.strokeWidths.shift();
+                    Entities.editEntity(_this.trail, {
+                        linePoints: _this.points,
+                        strokeWidths: _this.strokeWidths,
+                        normals: _this.normals
+                    });
+                }
+            }, ugLSD);
+        },
 
+        releaseGrab: function() {
+            Script.clearInterval(this.trailEraseInterval);
         },
 
         preload: function(entityID) {
@@ -91,7 +126,7 @@
         unload: function() {
             Entities.deleteEntity(this.beam);
             Entities.deleteEntity(this.trail);
-            // Entities.deleteEntity(this.beamTrail);
+            Script.clearInterval(this.trailEraseInterval);
         },
 
         createBeam: function() {
@@ -111,6 +146,7 @@
                 isEmitting: true,
                 "name": "ParticlesTest Emitter",
                 "colorStart": color,
+                colorSpread: {red: 200, green : 10, blue: 10},
                 color: {
                     red: 200,
                     green: 200,
@@ -118,16 +154,11 @@
                 },
                 "colorFinish": color,
                 "maxParticles": 100000,
-                "lifespan": 2,
+                "lifespan": 1,
                 "emitRate": 1000,
                 emitOrientation: forwardQuat,
-                "emitSpeed": .4,
+                "emitSpeed": .2,
                 "speedSpread": 0.0,
-                // "emitDimensions": {
-                //     "x": .1,
-                //     "y": .1,
-                //     "z": .1
-                // },
                 "polarStart": 0,
                 "polarFinish": .0,
                 "azimuthStart": .1,
