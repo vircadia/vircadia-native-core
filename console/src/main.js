@@ -19,8 +19,10 @@ require('crash-reporter').start();
 // be closed automatically when the JavaScript object is garbage collected.
 var mainWindow = null;
 var appIcon = null;
-var TRAY_ICON = 'resources/tray-icon.png';
-var APP_ICON = 'resources/tray-icon.png';
+
+var path = require('path');
+var TRAY_ICON = path.join(__dirname, '../resources/console-tray.png');
+var APP_ICON = path.join(__dirname, '../resources/console.png');
 
 // Quit when all windows are closed.
 app.on('window-all-closed', function() {

@@ -9,19 +9,22 @@
   ],
   "devDependencies": {
     "electron-packager": "^5.1.1",
-    "electron-prebuilt": "^0.35.0"
+    "electron-prebuilt": "0.36.0"
   },
   "repository": {
     "type": "git",
     "url": "https://github.com/highfidelity/hifi.git"
   },
-  "main": "main.js",
+  "main": "src/main.js",
   "scripts": {
     "start": "electron . --local-debug-builds",
     "local-release": "electron . --local-release-builds",
-    "package-darwin": "electron-packager . Console --platform=darwin --arch=x64 --version=0.35.2"
+    "package-darwin": "electron-packager . Console --overwrite --platform=darwin --arch=x64 --version=0.36.0 --icon=resources/console.icns",
+    "package-win": "electron-packager . Console --overwrite --platform=win32 --arch=x64 --version=0.36.0 --icon=resources/console.ico",
+    "package-linux": "electron-packager . Console --overwrite --platform=linux --arch=x64 --version=0.36.0"
   },
   "dependencies": {
-    "yargs": "^3.30.0"
+    "yargs": "^3.30.0",
+    "extend": "^3.0.0"
   }
 }
