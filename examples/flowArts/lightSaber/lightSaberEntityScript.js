@@ -56,7 +56,8 @@
             this.props = Entities.getEntityProperties(this.entityID, ["position", "rotation"]);
             var forwardVec = Quat.getFront(Quat.multiply(this.props.rotation, Quat.fromPitchYawRollDegrees(-90, 0, 0)));
             // forwardVec = Vec3.normalize(forwardVec);
-            var forwardQuat = orientationOf(forwardVec);
+            // var forwardQuat = orientationOf(forwardVec);
+            var forwardQuat = Quat.rotationBetween(Vec3.UNIT_Z, forwardVec);
             var position = Vec3.sum(this.props.position, Vec3.multiply(Quat.getFront(this.props.rotation), 0.1));
             position.z += 0.1;
             position.x += -0.035;

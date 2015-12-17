@@ -35,9 +35,9 @@ ArcBall = function(spawnPosition) {
             z: 0
         }),
         dimensions: {
-            x: .1,
-            y: .1,
-            z: .1
+            x: .2,
+            y: .2,
+            z: .2
         },
         color: {
             red: 15,
@@ -102,7 +102,7 @@ ArcBall = function(spawnPosition) {
         },
         maxParticles: 100000,
         lifespan: 2,
-        emitRate: 10000,
+        emitRate: 1000,
         emitSpeed: .1,
         lifetime: -1,
         speedSpread: 0.0,
