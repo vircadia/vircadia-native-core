@@ -147,10 +147,10 @@ bool HTTPManager::handleHTTPRequest(HTTPConnection* connection, const QUrl& url,
             }
 
             // if this is an shtml file just make the MIME type match HTML so browsers aren't confused
-            auto mimeType = QString { "text/html" };
-            if (localFileInfo.suffix() != "shtml") {
-                mimeType = mimeDatabase.mimeTypeForFile(filePath).name();
-            }
+            // otherwise use the mimeDatabase to look it up
+            auto mimeType = localFileInfo.suffix() == "shtml"
+                ? QString { "text/html" }
+                : mimeDatabase.mimeTypeForFile(filePath).name();
 
             connection->respond(HTTPConnection::StatusCode200, localFileData, qPrintable(mimeType));
             
