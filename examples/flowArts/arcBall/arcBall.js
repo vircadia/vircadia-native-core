@@ -1,6 +1,6 @@
 //
-//  LightBall.js
-//  examples/lightBall
+//  arcBall.js
+//  examples/arcBall
 //
 //  Created by Eric Levin on 12/17/15.
 //  Copyright 2014 High Fidelity, Inc.
@@ -14,7 +14,9 @@
 
 Script.include("../../libraries/utils.js");
 
-LightBall = function(spawnPosition) {
+
+var scriptURL = Script.resolvePath("arcBallEntityScript.js");
+ArcBall = function(spawnPosition) {
 
     var colorPalette = [{
         red: 25,
@@ -25,7 +27,8 @@ LightBall = function(spawnPosition) {
 
     var containerBall = Entities.addEntity({
         type: "Sphere",
-        name: "containerBall",
+        name: "Arc Ball",
+        script: scriptURL,
         position: Vec3.sum(spawnPosition, {
             x: 0,
             y: .5,
@@ -41,6 +44,7 @@ LightBall = function(spawnPosition) {
             green: 10,
             blue: 150
         },
+        mass: 10,
         collisionsWillMove: true,
         // gravity: {
         //     x: 0,
@@ -76,11 +80,11 @@ LightBall = function(spawnPosition) {
     });
 
 
-    var lightBall = Entities.addEntity({
+    var arcBall = Entities.addEntity({
         type: "ParticleEffect",
         parentID: containerBall,
         isEmitting: true,
-        name: "particleBall",
+        name: "Arc Ball Particle Effect",
         colorStart: {
             red: 200,
             green: 20,
@@ -136,7 +140,7 @@ LightBall = function(spawnPosition) {
 
 
     function cleanup() {
-        Entities.deleteEntity(lightBall);
+        Entities.deleteEntity(arcBall);
         Entities.deleteEntity(containerBall);
         Entities.deleteEntity(light);
     }
