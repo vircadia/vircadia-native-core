@@ -1,11 +1,11 @@
 //
-//  hydraPaint.js
+//  lightTrails.js
 //  examples
 //
 //  Created by Eric Levin on 5/14/15.
 //  Copyright 2014 High Fidelity, Inc.
 //
-//  This script allows you to paint with the hydra!
+//  This script creates light trails as you move your hydra hands
 //
 //
 //  Distributed under the Apache License, Version 2.0.
@@ -24,24 +24,6 @@ var MAX_POINTS_PER_LINE = 50;
 var LIFETIME = 6000;
 var DRAWING_DEPTH = 0.8;
 var LINE_DIMENSIONS = 100;
-
-var lightZone = Entities.addEntity({
-    type: "Zone",
-    shapeType: 'box',
-    keyLightIntensity: 0.02,
-    keyLightColor: {
-        red: 5,
-        green: 0,
-        blue: 5
-    },
-    keyLightAmbientIntensity: .05,
-    position: MyAvatar.position,
-    dimensions: {
-        x: 100,
-        y: 100,
-        z: 100
-    }
-});
 
 
 var MIN_POINT_DISTANCE = 0.02;
@@ -192,7 +174,6 @@ function update(deltaTime) {
 function scriptEnding() {
     leftController.cleanup();
     rightController.cleanup();
-    Entities.deleteEntity(lightZone);
 }
 
 function vectorIsZero(v) {

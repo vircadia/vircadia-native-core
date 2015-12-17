@@ -1,10 +1,10 @@
 //  lightSaberEntityScript.js
 //  
 //  Script Type: Entity
-//  Created by Eric Levin on 12/16/15.
+//  Created by Eric Levin on 12/17/15.
 //  Copyright 2015 High Fidelity, Inc.
 //
-//  This entity script creates a lightsaber.
+//  This entity script creates the logic for displaying the lightsaber beam.
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
@@ -35,10 +35,6 @@
             });
         },
 
-        continueNearGrab: function() {
-
-        },
-
         releaseGrab: function() {
             Entities.editEntity(this.beam, {
                 isEmitting: false
@@ -52,7 +48,6 @@
 
         unload: function() {
             Entities.deleteEntity(this.beam);
-            // Entities.deleteEntity(this.beamTrail);
         },
 
         createBeam: function() {
@@ -68,55 +63,52 @@
             var color = this.colorPalette[randInt(0, this.colorPalette.length)];
             var props = {
                 type: "ParticleEffect",
+                name: "LightSaber Beam",
                 position: position,
                 parentID: this.entityID,
                 isEmitting: false,
-                "colorStart": color,
+                colorStart: color,
                 color: {
                     red: 200,
                     green: 200,
                     blue: 255
                 },
-                "colorFinish": color,
-                "maxParticles": 100000,
-                "lifespan": 2,
-                "emitRate": 1000,
+                colorFinish: color,
+                maxParticles: 100000,
+                lifespan: 2,
+                emitRate: 1000,
                 emitOrientation: forwardQuat,
-                "emitSpeed": .4,
-                "speedSpread": 0.0,
-                "emitDimensions": {
-                    "x": 0,
-                    "y": 0,
-                    "z": 0
+                emitSpeed: .4,
+                speedSpread: 0.0,
+                emitDimensions: {
+                    x: 0,
+                    y: 0,
+                    z: 0
                 },
-                "polarStart": 0,
-                "polarFinish": .0,
-                "azimuthStart": .1,
-                "azimuthFinish": .01,
-                "emitAcceleration": {
-                    "x": 0,
-                    "y": 0,
-                    "z": 0
+                polarStart: 0,
+                polarFinish: .0,
+                azimuthStart: .1,
+                azimuthFinish: .01,
+                emitAcceleration: {
+                    x: 0,
+                    y: 0,
+                    z: 0
                 },
-                "accelerationSpread": {
-                    "x": .00,
-                    "y": .00,
-                    "z": .00
+                accelerationSpread: {
+                    x: .00,
+                    y: .00,
+                    z: .00
                 },
-                "radiusStart": 0.03,
-                radiusFinish: 0.025,
-                "alpha": 0.7,
-                "alphaSpread": .1,
-                "alphaStart": 0.5,
-                "alphaFinish": 0.5,
-                // "textures": "https://hifi-public.s3.amazonaws.com/alan/Particles/Particle-Sprite-Smoke-1.png",
-                "textures": "file:///C:/Users/Eric/Desktop/beamParticle.png?v1" + Math.random(),
+                radiusStart: 0.03,
+                adiusFinish: 0.025,
+                alpha: 0.7,
+                alphaSpread: .1,
+                alphaStart: 0.5,
+                alphaFinish: 0.5,
+                textures: "https://s3.amazonaws.com/hifi-public/eric/textures/particleSprites/beamParticle.png",
                 emitterShouldTrail: false
             }
             this.beam = Entities.addEntity(props);
-
-            // props.emitterShouldTrail = true;
-            // this.beamTrail = Entities.addEntity(props);
 
         }
     };

@@ -245,6 +245,7 @@ void RenderableParticleEffectEntityItem::updateRenderItem() {
         transform.setRotation(rotation);
     }
 
+
     render::PendingChanges pendingChanges;
     pendingChanges.updateItem<ParticlePayloadData>(_renderItemId, [=](ParticlePayloadData& payload) {
         payload.setVisibleFlag(true);

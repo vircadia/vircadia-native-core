@@ -641,11 +641,7 @@ void ParticleEffectEntityItem::stepSimulation(float deltaTime) {
 
 ParticleEffectEntityItem::Particle ParticleEffectEntityItem::createParticle() {
     Particle particle;
-    
-    std::random_device rd;
 
-    std::mt19937_64 el(rd());
-    std::uniform_real_distribution<float> uniform_dist(0.0, 1.0);
  
     particle.seed = randFloatInRange(-1.0f, 1.0f);
     if (getEmitterShouldTrail()) {
@@ -667,13 +663,13 @@ ParticleEffectEntityItem::Particle ParticleEffectEntityItem::createParticle() {
         float elevationMinZ = sin(PI_OVER_TWO - _polarFinish);
         float elevationMaxZ = sin(PI_OVER_TWO - _polarStart);
       //  float elevation = asin(elevationMinZ + (elevationMaxZ - elevationMinZ) * randFloat());
-        float elevation = asin(elevationMinZ + (elevationMaxZ - elevationMinZ) * uniform_dist(el));
+        float elevation = asin(elevationMinZ + (elevationMaxZ - elevationMinZ) *randFloat());
         
         float azimuth;
         if (_azimuthFinish >= _azimuthStart) {
-            azimuth = _azimuthStart + (_azimuthFinish - _azimuthStart) *  uniform_dist(el);
+            azimuth = _azimuthStart + (_azimuthFinish - _azimuthStart) *  randFloat();
         } else {
-            azimuth = _azimuthStart + (TWO_PI + _azimuthFinish - _azimuthStart) * uniform_dist(el);
+            azimuth = _azimuthStart + (TWO_PI + _azimuthFinish - _azimuthStart) * randFloat();
         }
         
         glm::vec3 emitDirection;
@@ -711,7 +707,6 @@ ParticleEffectEntityItem::Particle ParticleEffectEntityItem::createParticle() {
         }
         
         particle.velocity = (_emitSpeed + randFloatInRange(-1.0f, 1.0f) * _speedSpread) * (_emitOrientation * emitDirection);
-       // particle.velocity = (_emitSpeed + uniform_dist(el) * _speedSpread) * (_emitOrientation * emitDirection);
         particle.acceleration = _emitAcceleration + randFloatInRange(-1.0f, 1.0f) * _accelerationSpread;
     }
     

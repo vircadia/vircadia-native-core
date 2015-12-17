@@ -46,7 +46,9 @@
             },
             textures: texture,
             lifetime: LIFETIME
-        })
+        });
+
+
         this.points = [];
         this.normals = [];
         this.strokeWidths = [];
@@ -127,8 +129,8 @@
         unload: function() {
             Entities.deleteEntity(this.beam);
             Entities.deleteEntity(this.trail);
-            if(this.trailEraseInterval) {
-              Script.clearInterval(this.trailEraseInterval);  
+            if (this.trailEraseInterval) {
+                Script.clearInterval(this.trailEraseInterval);
             }
         },
 
@@ -147,43 +149,46 @@
                 position: position,
                 parentID: this.entityID,
                 isEmitting: true,
-                "name": "ParticlesTest Emitter",
-                "colorStart": color,
-                colorSpread: {red: 200, green : 10, blue: 10},
+                name: "raveBeam",
+                colorStart: color,
+                colorSpread: {
+                    red: 200,
+                    green: 10,
+                    blue: 10
+                },
                 color: {
                     red: 200,
                     green: 200,
                     blue: 255
                 },
-                "colorFinish": color,
-                "maxParticles": 100000,
-                "lifespan": 1,
-                "emitRate": 1000,
+                colorFinish: color,
+                maxParticles: 100000,
+                lifespan: 1,
+                emitRate: 1000,
                 emitOrientation: forwardQuat,
-                "emitSpeed": .2,
-                "speedSpread": 0.0,
-                "polarStart": 0,
-                "polarFinish": .0,
-                "azimuthStart": .1,
-                "azimuthFinish": .01,
-                "emitAcceleration": {
-                    "x": 0,
-                    "y": 0,
-                    "z": 0
+                emitSpeed: .2,
+                speedSpread: 0.0,
+                polarStart: 0,
+                polarFinish: .0,
+                azimuthStart: .1,
+                azimuthFinish: .01,
+                emitAcceleration: {
+                    x: 0,
+                    y: 0,
+                    z: 0
                 },
-                "accelerationSpread": {
-                    "x": .00,
-                    "y": .00,
-                    "z": .00
+                accelerationSpread: {
+                    x: .00,
+                    y: .00,
+                    z: .00
                 },
-                "radiusStart": 0.03,
+                radiusStart: 0.03,
                 radiusFinish: 0.025,
-                "alpha": 0.7,
-                "alphaSpread": .1,
-                "alphaStart": 0.5,
-                "alphaFinish": 0.5,
-                // "textures": "https://hifi-public.s3.amazonaws.com/alan/Particles/Particle-Sprite-Smoke-1.png",
-                "textures": "file:///C:/Users/Eric/Desktop/beamParticle.png?v1" + Math.random(),
+                alpha: 0.7,
+                alphaSpread: .1,
+                alphaStart: 0.5,
+                alphaFinish: 0.5,
+                textures: "https://s3.amazonaws.com/hifi-public/eric/textures/particleSprites/beamParticle.png",
                 emitterShouldTrail: false
             }
             this.beam = Entities.addEntity(props);

@@ -1,11 +1,11 @@
 //
 //  flowArtsHutSpawner.js
-//  examples
+//  examples/flowArts
 //
-//  Created by Eric Levin on 5/14/15.
+//  Created by Eric Levin on 12/17/15.
 //  Copyright 2014 High Fidelity, Inc.
 //
-//  This script creates a special flow arts hut with a numch of flow art toys people can go in and play with
+//  This script creates a special flow arts hut with a bunch of flow art toys people can go in and play with
 //
 //
 //  Distributed under the Apache License, Version 2.0.
@@ -29,12 +29,13 @@ var raveStick = new RaveStick(Vec3.sum(basePosition, {x: 1, y: 0.5, z: 1}));
 var lightSaber = new LightSaber(Vec3.sum(basePosition, {x: 3, y: 0.5, z: 1}));
 
 
-var modelURL = "file:///C:/Users/Eric/Desktop/RaveRoom.fbx?v1" + Math.random();
+var modelURL = "https://s3.amazonaws.com/hifi-public/eric/models/rave/RaveRoom.fbx";
 
 var roomDimensions = {x: 30.58, y: 15.29, z: 30.58}; 
 
 var raveRoom = Entities.addEntity({
     type: "Model",
+    name: "Rave Hut Room",
     modelURL: modelURL,
     position: basePosition,
     dimensions:roomDimensions,
@@ -43,7 +44,8 @@ var raveRoom = Entities.addEntity({
 
 var floor = Entities.addEntity({
     type: "Box",
-    position: Vec3.sum(basePosition, {x: 0, y: -1.5, z: 0}),
+    name: "Rave Floor",
+    position: Vec3.sum(basePosition, {x: 0, y: -1.2, z: 0}),
     dimensions: {x: roomDimensions.x, y: 0.6, z: roomDimensions.z},
     color: {red: 50, green: 10, blue: 100},
     shapeType: 'box'
@@ -53,6 +55,7 @@ var floor = Entities.addEntity({
 
 var lightZone = Entities.addEntity({
     type: "Zone",
+    name: "Rave Hut Zone",
     shapeType: 'box',
     keyLightIntensity: 0.4,
     keyLightColor: {
