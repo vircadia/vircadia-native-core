@@ -384,6 +384,7 @@ void LODManager::loadSettings() {
         setUseAcuity((getDesktopLODDecreaseFPS() != DEFAULT_DESKTOP_LOD_DOWN_FPS) || (getHMDLODDecreaseFPS() != DEFAULT_HMD_LOD_DOWN_FPS));
     }
     Menu::getInstance()->getActionForOption(MenuOption::LodTools)->setEnabled(getUseAcuity());
+    Menu::getInstance()->getSubMenuFromName(MenuOption::RenderResolution, Menu::getInstance()->getSubMenuFromName("Render", Menu::getInstance()->getMenu("Developer")))->setEnabled(getUseAcuity());
 }
 
 void LODManager::saveSettings() {
