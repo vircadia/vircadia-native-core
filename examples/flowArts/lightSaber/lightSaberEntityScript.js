@@ -31,7 +31,7 @@
 
         startNearGrab: function() {
             // this.createBeam();
-       
+
         },
 
         continueNearGrab: function() {
@@ -44,7 +44,7 @@
 
         preload: function(entityID) {
             this.entityID = entityID;
-                 this.createBeam();
+            this.createBeam();
         },
 
         unload: function() {
@@ -62,7 +62,7 @@
             var position = Vec3.sum(this.props.position, Vec3.multiply(Quat.getFront(this.props.rotation), 0.1));
             position.z += 0.1;
             position.x += -0.035;
-            var color =  this.colorPalette[randInt(0, this.colorPalette.length)];
+            var color = this.colorPalette[randInt(0, this.colorPalette.length)];
             var props = {
                 type: "ParticleEffect",
                 position: position,

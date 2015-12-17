@@ -116,6 +116,7 @@
 
         releaseGrab: function() {
             Script.clearInterval(this.trailEraseInterval);
+            this.trailEraseInterval = null;
         },
 
         preload: function(entityID) {
@@ -126,7 +127,9 @@
         unload: function() {
             Entities.deleteEntity(this.beam);
             Entities.deleteEntity(this.trail);
-            Script.clearInterval(this.trailEraseInterval);
+            if(this.trailEraseInterval) {
+              Script.clearInterval(this.trailEraseInterval);  
+            }
         },
 
         createBeam: function() {
