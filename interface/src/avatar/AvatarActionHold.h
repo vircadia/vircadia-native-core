@@ -61,7 +61,8 @@ private:
     glm::vec3 _previousPositionalDelta;
 
     glm::vec3 _palmOffsetFromRigidBody;
-    glm::quat _palmRotationFromRigidBody;
+    // leaving this here for future refernece.
+    // glm::quat _palmRotationFromRigidBody;
 };
 
 #endif // hifi_AvatarActionHold_h
