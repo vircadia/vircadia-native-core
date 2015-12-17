@@ -1,0 +1,38 @@
+Script.include("../../libraries/utils.js");
+var modelURL = "file:///C:/Users/Eric/Desktop/lightSaber.fbx?v1" + Math.random();
+var scriptURL = Script.resolvePath("lightSaberEntityScript.js");
+LightSaber = function(spawnPosition) {
+
+    var stick = Entities.addEntity({
+        type: "Model",
+        modelURL: modelURL,
+        position: spawnPosition,
+        shapeType: 'box',
+        script: scriptURL,
+        dimensions: {
+            x: 0.06,
+            y: 0.06,
+            z: 0.31
+        },
+        userData: JSON.stringify({
+            grabbableKey: {
+                spatialKey: {
+                    relativePosition: {
+                        x: 0,
+                        y: 0,
+                        z: -0.1
+                    },
+                    relativeRotation: Quat.fromPitchYawRollDegrees(90, 90, 0)
+                },
+                invertSolidWhileHeld: true
+            }
+        })
+    });
+
+
+    function cleanup() {
+        Entities.deleteEntity(stick);
+    }
+
+    this.cleanup = cleanup;
+}

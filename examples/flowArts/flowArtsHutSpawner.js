@@ -16,6 +16,9 @@
 Script.include("../../libraries/utils.js");
 Script.include("lightBall/LightBall.js");
 Script.include("raveStick/RaveStick.js");
+Script.include("lightSaber/LightSaber.js");
+
+
 
 var basePosition = Vec3.sum(MyAvatar.position, Vec3.multiply(1, Quat.getFront(Camera.getOrientation())));
 basePosition.y = MyAvatar.position.y + 1;
@@ -24,6 +27,7 @@ basePosition.y = MyAvatar.position.y + 1;
 var lightBall = new LightBall(basePosition);
 var raveStick = new RaveStick(Vec3.sum(basePosition, {x: 1, y: 0.5, z: 1}));
 var raveStick2 = new RaveStick(Vec3.sum(basePosition, {x: 2, y: 0.5, z: 1}));
+var lightSaber = new LightSaber(Vec3.sum(basePosition, {x: 3, y: 0.5, z: 1}));
 
 
 var modelURL = "file:///C:/Users/Eric/Desktop/RaveRoom.fbx?v1" + Math.random();
@@ -75,6 +79,7 @@ function cleanup() {
     lightBall.cleanup();
     raveStick.cleanup();
     raveStick2.cleanup();
+    lightSaber.cleanup();
 }
 
 Script.scriptEnding.connect(cleanup);
