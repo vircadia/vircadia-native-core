@@ -845,7 +845,8 @@ function MyController(hand) {
         var constraintData = getEntityCustomData('lightModifierKey', this.grabbedEntity, defaultConstraintData);
         var clampedVector;
         var targetPosition;
-        if (constraintData.startAxis !== false) {
+        if (constraintData.axisStart !== false) {
+            print('CONSTRAINING OBJECT')
             clampedVector = this.projectVectorAlongAxis(this.currentObjectPosition, constraintData.axisStart, constraintData.axisEnd);
             targetPosition = clampedVector;
         } else {
