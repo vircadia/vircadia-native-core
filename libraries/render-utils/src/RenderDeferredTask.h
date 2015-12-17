@@ -134,6 +134,9 @@ public:
     void setToneMappingExposure(float exposure);
     float getToneMappingExposure() const;
 
+    void setToneMappingToneCurve(int toneCurve);
+    int getToneMappingToneCurve() const;
+
     virtual void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext);
 
 

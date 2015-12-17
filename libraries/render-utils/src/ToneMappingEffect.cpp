@@ -36,10 +36,17 @@ void ToneMappingEffect::init() {
         //  Distributed under the Apache License, Version 2.0.
         //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
         //
-        
+
         struct ToneMappingParams {
             vec4 _exp_2powExp_s0_s1;
+            ivec4 _toneCurve_s0_s1_s2;
         };
+
+        const float INV_GAMMA_22 = 1.0 / 2.2;
+        const int ToneCurveNone = 0;
+        const int ToneCurveGamma22 = 1;
+        const int ToneCurveReinhard = 2;
+        const int ToneCurveFilmic = 3;
 
         uniform toneMappingParamsBuffer {
             ToneMappingParams params;
@@ -47,7 +54,10 @@ void ToneMappingEffect::init() {
         float getTwoPowExposure() {
             return params._exp_2powExp_s0_s1.y;
         }
-        
+        int getToneCurve() {
+            return params._toneCurve_s0_s1_s2.x;
+        }
+
         uniform sampler2D colorMap;
         
         in vec2 varTexCoord0;
@@ -56,25 +66,26 @@ void ToneMappingEffect::init() {
         void main(void) {
             vec4 fragColorRaw = textureLod(colorMap, varTexCoord0, 0);
             vec3 fragColor = fragColorRaw.xyz;
-
-/*            vec4 fragColorAverage = textureLod(colorMap, varTexCoord0, 10);
+/*
+           vec4 fragColorAverage = textureLod(colorMap, varTexCoord0, 10);
             float averageIntensity = length(fragColorAverage.xyz);
-
-            vec3 fragColor = fragColorRaw.xyz / averageIntensity;
+            fragColor /= averageIntensity;
 */
-            fragColor *= getTwoPowExposure();
+            vec3 srcColor = fragColor * getTwoPowExposure();
 
+            int toneCurve = getToneCurve();
+            vec3 tonedColor = srcColor;
+            if (toneCurve == ToneCurveFilmic) {
+                vec3 x = max(vec3(0.0), srcColor-0.004);
+                tonedColor = (x * (6.2 * x + 0.5)) / (x * (6.2 * x + 1.7) + 0.06);
+            } else if (toneCurve == ToneCurveReinhard) {
+                tonedColor = srcColor/(1.0 + srcColor);
+                tonedColor = pow(tonedColor, vec3(INV_GAMMA_22));
+            } else if (toneCurve == ToneCurveGamma22) {
+                tonedColor = pow(srcColor, vec3(INV_GAMMA_22));
+            } // else None toned = src
 
-            // Manually gamma correct from Ligthing BUffer to color buffer
-            // outFragColor.xyz = pow( fragColor.xyz , vec3(1.0 / 2.2) );
-
-            vec3 x = max(vec3(0.0),fragColor.xyz-0.004);
-            vec3 retColor = (x*(6.2*x+.5))/(x*(6.2*x+1.7)+0.06);
-
-            // fragColor = fragColor/(1.0+fragColor);
-            // vec3 retColor = pow(fragColor.xyz,vec3(1/2.2));
-
-            outFragColor = vec4(retColor, 1.0);
+            outFragColor = vec4(tonedColor, 1.0);
         }
         
         )SCRIBE";
@@ -96,6 +107,9 @@ void ToneMappingEffect::setExposure(float exposure) {
     _parametersBuffer.edit<Parameters>()._twoPowExposure = pow(2.0, exposure);
 }
 
+void ToneMappingEffect::setToneCurve(ToneCurve curve) {
+    _parametersBuffer.edit<Parameters>()._toneCurve = curve;
+}
 
 void ToneMappingEffect::render(RenderArgs* args) {
     if (!_blitLightBuffer) {

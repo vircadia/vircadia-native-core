@@ -166,6 +166,7 @@ void RenderDeferredTask::run(const SceneContextPointer& sceneContext, const Rend
     setAntialiasingStatus(renderContext->_fxaaStatus);
 
     setToneMappingExposure(renderContext->_toneMappingExposure);
+    setToneMappingToneCurve(renderContext->_toneMappingToneCurve);
 
     renderContext->args->_context->syncCache();
 
@@ -403,8 +404,23 @@ void RenderDeferredTask::setToneMappingExposure(float exposure) {
 
 float RenderDeferredTask::getToneMappingExposure() const {
     if (_toneMappingJobIndex >= 0) {
-        _jobs[_toneMappingJobIndex].get<ToneMappingDeferred>()._toneMappingEffect.getExposure();
+        return _jobs[_toneMappingJobIndex].get<ToneMappingDeferred>()._toneMappingEffect.getExposure();
     } else {
         return 0.0f; 
     }
 }
+
+void RenderDeferredTask::setToneMappingToneCurve(int toneCurve) {
+    if (_toneMappingJobIndex >= 0) {
+        _jobs[_toneMappingJobIndex].edit<ToneMappingDeferred>()._toneMappingEffect.setToneCurve((ToneMappingEffect::ToneCurve)toneCurve);
+    }
+}
+
+int RenderDeferredTask::getToneMappingToneCurve() const {
+    if (_toneMappingJobIndex >= 0) {
+        return _jobs[_toneMappingJobIndex].get<ToneMappingDeferred>()._toneMappingEffect.getToneCurve();
+    } else {
+        return 0.0f;
+    }
+}
+

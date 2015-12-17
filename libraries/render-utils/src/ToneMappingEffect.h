@@ -30,6 +30,16 @@ public:
     void setExposure(float exposure);
     float getExposure() const { return _parametersBuffer.get<Parameters>()._exposure; }
 
+    // Different tone curve available
+    enum ToneCurve {
+        None = 0,
+        Gamma22,
+        Reinhard,
+        Filmic,
+    };
+    void setToneCurve(ToneCurve curve);
+    ToneCurve getToneCurve() const { return (ToneCurve)_parametersBuffer.get<Parameters>()._toneCurve; }
+
 private:
 
     gpu::PipelinePointer _blitLightBuffer;
@@ -39,7 +49,9 @@ private:
     public:
         float _exposure = 0.0f;
         float _twoPowExposure = 1.0f;
-        glm::vec2 spare;
+        glm::vec2 spareA;
+        int _toneCurve = Filmic;
+        glm::vec3 spareB;
 
         Parameters() {}
     };
