@@ -10,11 +10,11 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-var grabScript = Script.resolvePath('../controllers/handControllerGrab.js');
+var grabScript = Script.resolvePath('../controllers/handControllerGrab.js?' + Math.random(0 - 100));
 Script.load(grabScript);
-var lightModifier = Script.resolvePath('lightModifier.js');
+var lightModifier = Script.resolvePath('lightModifier.js?' + Math.random(0 - 100));
 Script.load(lightModifier);
 Script.setTimeout(function() {
-    var lightModifierTestScene = Script.resolvePath('lightModifierTestScene.js');
+    var lightModifierTestScene = Script.resolvePath('lightModifierTestScene.js?' + Math.random(0 - 100));
     Script.load(lightModifierTestScene);
 }, 750)

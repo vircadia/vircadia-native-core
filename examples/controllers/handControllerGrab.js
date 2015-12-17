@@ -817,25 +817,34 @@ function MyController(hand) {
 
         Entities.callEntityMethod(this.grabbedEntity, "continueDistantGrab");
 
+        var defaultMoveWithHeadData = {
+            disableMoveWithHead: false
+        };
 
+        var handControllerData = getEntityCustomData('handControllerKey', this.grabbedEntity, defaultMoveWithHeadData);
 
-        // mix in head motion
-        if (MOVE_WITH_HEAD) {
-            var objDistance = Vec3.length(objectToAvatar);
-            var before = Vec3.multiplyQbyV(this.currentCameraOrientation, {
-                x: 0.0,
-                y: 0.0,
-                z: objDistance
-            });
-            var after = Vec3.multiplyQbyV(Camera.orientation, {
-                x: 0.0,
-                y: 0.0,
-                z: objDistance
-            });
-            var change = Vec3.subtract(before, after);
-            this.currentCameraOrientation = Camera.orientation;
-            this.currentObjectPosition = Vec3.sum(this.currentObjectPosition, change);
+        if (handControllerData.disableMoveWithHead !== true) {
+            // mix in head motion
+            if (MOVE_WITH_HEAD) {
+                var objDistance = Vec3.length(objectToAvatar);
+                var before = Vec3.multiplyQbyV(this.currentCameraOrientation, {
+                    x: 0.0,
+                    y: 0.0,
+                    z: objDistance
+                });
+                var after = Vec3.multiplyQbyV(Camera.orientation, {
+                    x: 0.0,
+                    y: 0.0,
+                    z: objDistance
+                });
+                var change = Vec3.subtract(before, after);
+                this.currentCameraOrientation = Camera.orientation;
+                this.currentObjectPosition = Vec3.sum(this.currentObjectPosition, change);
+            }
+        } else {
+            print('should not head move!');
         }
+
 
         var defaultConstraintData = {
             axisStart: false,
@@ -846,7 +855,6 @@ function MyController(hand) {
         var clampedVector;
         var targetPosition;
         if (constraintData.axisStart !== false) {
-            print('CONSTRAINING OBJECT')
             clampedVector = this.projectVectorAlongAxis(this.currentObjectPosition, constraintData.axisStart, constraintData.axisEnd);
             targetPosition = clampedVector;
         } else {
@@ -1249,15 +1257,29 @@ function MyController(hand) {
                     disableReleaseVelocity: false
                 };
 
-                var releaseVelocityData = getEntityCustomData('releaseVelocityKey', this.grabbedEntity, defaultReleaseVelocityData);
+                var releaseVelocityData = getEntityCustomData('handControllerKey', this.grabbedEntity, defaultReleaseVelocityData);
                 if (releaseVelocityData.disableReleaseVelocity === true) {
-                    Entities.updateAction(this.grabbedEntity, this.actionID, {
-                        ttl: 1,
-                        kinematic: false,
-                        kinematicSetVelocity: false,
+                    print('SHOULD NOT BE KINEMATIC AT RELEASE')
+                    // Entities.updateAction(this.grabbedEntity, this.actionID, {
+                    //     ttl: 1,
+                    //     kinematic: false,
+                    //     kinematicSetVelocity: false,
+                    // });
+                                        Entities.deleteAction(this.grabbedEntity, this.actionID);
 
-                    });
-                    //                Entities.deleteAction(this.grabbedEntity, this.actionID);
+                    Entities.editEntity(this.grabbedEntity,{
+                        velocity:{
+                            x:0,
+                            y:0,
+                            z:0
+                        },
+                        angularVelocity:{
+                            x:0,
+                            y:0,
+                            z:0
+                        }
+                    })
+                    Entities.deleteAction(this.grabbedEntity, this.actionID);
 
                 } else {
                     //don't make adjustments
@@ -1266,7 +1288,6 @@ function MyController(hand) {
                 }
             }
         }
-
         this.deactivateEntity(this.grabbedEntity);
 
         this.grabbedEntity = null;

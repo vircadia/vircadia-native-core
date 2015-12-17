@@ -75,8 +75,7 @@ function createBlock() {
     },
     position: position,
     userData: JSON.stringify({
-
-      releaseVelocityKey: {
+      handControllerKey: {
         disableReleaseVelocity: true
       }
     })

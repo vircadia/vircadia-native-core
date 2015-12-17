@@ -251,15 +251,15 @@ entitySlider.prototype = {
                     axisStart: position,
                     axisEnd: this.endOfAxis,
                 },
-                releaseVelocityKey: {
-                    disableReleaseVelocity: true
+                handControllerKey: {
+                    disableReleaseVelocity: true,
+                    disableMoveWithHead: true
                 }
-            })
+            }),
         };
 
         this.sliderIndicator = Entities.addEntity(properties);
     },
-
     setValueFromMessage: function(message) {
 
         //message is not for our light
