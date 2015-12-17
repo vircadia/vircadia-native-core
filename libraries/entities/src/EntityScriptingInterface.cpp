@@ -211,8 +211,7 @@ QUuid EntityScriptingInterface::editEntity(QUuid id, const EntityItemProperties&
 
     bool updatedEntity = false;
     _entityTree->withWriteLock([&] {
-        if (scriptSideProperties.parentDependentPropertyChanged() ||
-            scriptSideProperties.parentIDChanged() || scriptSideProperties.parentJointIndexChanged()) {
+        if (scriptSideProperties.parentRelatedPropertyChanged()) {
             // All of parentID, parentJointIndex, position, rotation are needed to make sense of any of them.
             // If any of these changed, pull any missing properties from the entity.
             EntityItemPointer entity = _entityTree->findEntityByEntityItemID(entityID);

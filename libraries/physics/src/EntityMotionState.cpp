@@ -466,6 +466,11 @@ void EntityMotionState::sendUpdate(OctreeEditPacketSender* packetSender, const Q
         properties.setActionData(_serverActionData);
     }
 
+    if (properties.parentRelatedPropertyChanged()) {
+        // due to parenting, the server may not know where something is in world-space, so include the bounding cube.
+        properties.setQueryAACube(_entity->getQueryAACube());
+    }
+
     // set the LastEdited of the properties but NOT the entity itself
     quint64 now = usecTimestampNow();
     properties.setLastEdited(now);

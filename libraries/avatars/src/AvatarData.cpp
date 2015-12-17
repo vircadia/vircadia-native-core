@@ -93,6 +93,7 @@ void AvatarData::nextAttitude(glm::vec3 position, glm::quat orientation) {
     bool success;
     Transform trans = getTransform(success);
     if (!success) {
+        qDebug() << "Warning -- AvatarData::nextAttitude failed";
         return;
     }
     trans.setTranslation(position);
