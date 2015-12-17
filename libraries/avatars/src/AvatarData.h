@@ -172,7 +172,7 @@ public:
 
     AvatarData();
     virtual ~AvatarData();
-    
+
     static const QUrl& defaultFullAvatarModelUrl();
 
     virtual bool isMyAvatar() const { return false; }
@@ -237,7 +237,7 @@ public:
     //  Scale
     float getTargetScale() const;
     void setTargetScale(float targetScale);
-    void setClampedTargetScale(float targetScale);
+    void setTargetScaleVerbose(float targetScale);
 
     //  Hand State
     Q_INVOKABLE void setHandState(char s) { _handState = s; }
@@ -261,7 +261,7 @@ public:
     Q_INVOKABLE bool isJointDataValid(const QString& name) const;
     Q_INVOKABLE glm::quat getJointRotation(const QString& name) const;
     Q_INVOKABLE glm::vec3 getJointTranslation(const QString& name) const;
-    
+
     Q_INVOKABLE virtual QVector<glm::quat> getJointRotations() const;
     Q_INVOKABLE virtual void setJointRotations(QVector<glm::quat> jointRotations);
     Q_INVOKABLE virtual void setJointTranslations(QVector<glm::vec3> jointTranslations);
@@ -342,6 +342,9 @@ public:
 
     glm::vec3 getClientGlobalPosition() { return _globalPosition; }
 
+    void die() { _isDead = true; }
+    bool isDead() const { return _isDead; }
+
 public slots:
     void sendAvatarDataPacket();
     void sendIdentityPacket();
@@ -412,6 +415,8 @@ protected:
     // where Entities are located.  This is currently only used by the mixer to decide how often to send
     // updates about one avatar to another.
     glm::vec3 _globalPosition;
+
+    bool _isDead { false };
 
 private:
     friend void avatarStateFromFrame(const QByteArray& frameData, AvatarData* _avatar);

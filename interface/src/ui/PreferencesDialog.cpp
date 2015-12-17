@@ -199,7 +199,7 @@ void PreferencesDialog::loadPreferences() {
     
     ui.leanScaleSpin->setValue(myAvatar->getLeanScale());
 
-    ui.avatarScaleSpin->setValue(myAvatar->getAvatarScale());
+    ui.avatarScaleSpin->setValue(myAvatar->getUniformScale());
     ui.avatarAnimationEdit->setText(myAvatar->getAnimGraphUrl().toString());
     
     ui.maxOctreePPSSpin->setValue(qApp->getMaxOctreePacketsPerSecond());
@@ -256,7 +256,7 @@ void PreferencesDialog::savePreferences() {
 
     myAvatar->getHead()->setPupilDilation(ui.pupilDilationSlider->value() / (float)ui.pupilDilationSlider->maximum());
     myAvatar->setLeanScale(ui.leanScaleSpin->value());
-    myAvatar->setClampedTargetScale(ui.avatarScaleSpin->value());
+    myAvatar->setTargetScaleVerbose(ui.avatarScaleSpin->value());
     if (myAvatar->getAnimGraphUrl() != ui.avatarAnimationEdit->text()) { // If changed, destroy the old and start with the new
         myAvatar->setAnimGraphUrl(ui.avatarAnimationEdit->text());
     }

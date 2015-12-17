@@ -32,7 +32,7 @@ MyCharacterController::~MyCharacterController() {
 
 void MyCharacterController::updateShapeIfNecessary() {
     if (_pendingFlags & PENDING_FLAG_UPDATE_SHAPE) {
-        _pendingFlags &= ~ PENDING_FLAG_UPDATE_SHAPE;
+        _pendingFlags &= ~PENDING_FLAG_UPDATE_SHAPE;
 
         // compute new dimensions from avatar's bounding box
         float x = _boxScale.x;
