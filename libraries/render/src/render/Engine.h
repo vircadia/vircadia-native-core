@@ -62,6 +62,7 @@ public:
     bool _fxaaStatus = false;
 
     float _toneMappingExposure = 0.0;
+    int _toneMappingToneCurve = 3;
 
     RenderContext() {}
 };

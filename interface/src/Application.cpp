@@ -3703,6 +3703,7 @@ void Application::displaySide(RenderArgs* renderArgs, Camera& theCamera, bool se
         renderContext._fxaaStatus = Menu::getInstance()->isOptionChecked(MenuOption::Antialiasing);
 
         renderContext._toneMappingExposure = sceneInterface->getEngineToneMappingExposure();
+        renderContext._toneMappingToneCurve = sceneInterface->getEngineToneMappingToneCurveValue();
 
         renderArgs->_shouldRender = LODManager::shouldRender;
 

@@ -167,3 +167,30 @@ void SceneScriptingInterface::clearEngineCounters() {
     _numFeedOverlay3DItems = 0;
     _numDrawnOverlay3DItems = 0;
 }
+
+
+void SceneScriptingInterface::setEngineToneMappingToneCurve(const QString& toneCurve) {
+    if (toneCurve == QString("None")) {
+        _engineToneMappingToneCurve = 0;
+    } else if (toneCurve == QString("Gamma22")) {
+        _engineToneMappingToneCurve = 1;
+    } else if (toneCurve == QString("Reinhard")) {
+        _engineToneMappingToneCurve = 2;
+    } else if (toneCurve == QString("Filmic")) {
+        _engineToneMappingToneCurve = 3;
+    }
+}
+QString SceneScriptingInterface::getEngineToneMappingToneCurve() const {
+    switch (_engineToneMappingToneCurve) {
+    case 0:
+        return QString("None");
+    case 1:
+        return QString("Gamma22");
+    case 2:
+        return QString("Reinhard");
+    case 3:
+        return QString("Filmic");
+    default:
+        return QString("Filmic");
+    };
+}
