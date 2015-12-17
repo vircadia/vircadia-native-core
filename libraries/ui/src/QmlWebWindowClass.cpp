@@ -10,7 +10,10 @@
 
 #include <mutex>
 
+#include <QtCore/QCoreApplication>
 #include <QtCore/QThread>
+#include <QtCore/QUrl>
+#include <QtCore/QUrlQuery>
 #include <QtScript/QScriptContext>
 #include <QtScript/QScriptEngine>
 
@@ -22,6 +25,7 @@
 #include <QtCore/QJsonDocument>
 #include <QtCore/QJsonObject>
 
+#include <AbstractUriHandler.h>
 #include <AddressManager.h>
 #include <DependencyManager.h>
 
@@ -88,7 +92,7 @@ QScriptValue QmlWebWindowClass::constructor(QScriptContext* context, QScriptEngi
     QmlWebWindowClass* retVal { nullptr };
     const QString title = context->argument(0).toString();
     QString url = context->argument(1).toString();
-    if (!url.startsWith("http") && !url.startsWith("file://")) {
+    if (!url.startsWith("http") && !url.startsWith("file://") && !url.startsWith("about:")) {
         url = QUrl::fromLocalFile(url).toString();
     }
     const int width = std::max(100, std::min(1280, context->argument(2).toInt32()));;
@@ -119,7 +123,23 @@ QmlWebWindowClass::QmlWebWindowClass(QObject* qmlWindow)
 }
 
 void QmlWebWindowClass::handleNavigation(const QString& url) {
-    DependencyManager::get<AddressManager>()->handleLookupString(url);
+    bool handled = false;
+
+    if (url.contains(HIFI_URL_PATTERN)) {
+        DependencyManager::get<AddressManager>()->handleLookupString(url);
+        handled = true;
+    } else {
+        static auto handler = dynamic_cast<AbstractUriHandler*>(qApp);
+        if (handler) {
+            if (handler->canAcceptURL(url)) {
+                handled = handler->acceptURL(url);
+            }
+        }
+    }
+
+    if (handled) {
+        QMetaObject::invokeMethod(_qmlWindow, "stop", Qt::AutoConnection);
+    }
 }
 
 void QmlWebWindowClass::setVisible(bool visible) {
@@ -202,6 +222,7 @@ QString QmlWebWindowClass::getURL() const {
         QMetaObject::invokeMethod(const_cast<QmlWebWindowClass*>(this), "getURL", Qt::BlockingQueuedConnection, Q_RETURN_ARG(QString, result));
         return result;
     }
+
     return _qmlWindow->property(URL_PROPERTY).toString();
 }
 
@@ -209,7 +230,23 @@ void QmlWebWindowClass::setURL(const QString& urlString) {
     if (QThread::currentThread() != thread()) {
         QMetaObject::invokeMethod(this, "setURL", Qt::QueuedConnection, Q_ARG(QString, urlString));
     }
-    _qmlWindow->setProperty(URL_PROPERTY, urlString);
+
+    static const QString ACCESS_TOKEN_PARAMETER = "access_token";
+    static const QString ALLOWED_HOST = "metaverse.highfidelity.com";
+
+    QUrl url(urlString);
+    qDebug() << "Url: " << urlString;
+    qDebug() << "Host: " << url.host();
+    if (url.host() == ALLOWED_HOST) {
+        QUrlQuery query(url);
+        if (query.allQueryItemValues(ACCESS_TOKEN_PARAMETER).empty()) {
+            AccountManager& accountManager = AccountManager::getInstance();
+            query.addQueryItem(ACCESS_TOKEN_PARAMETER, accountManager.getAccountInfo().getAccessToken().token);
+            url.setQuery(query.query());
+            qDebug() << "New URL " << url;
+        }
+    }
+    _qmlWindow->setProperty(URL_PROPERTY, url.toString());
 }
 
 
