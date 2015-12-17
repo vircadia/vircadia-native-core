@@ -34,8 +34,8 @@ Image3DOverlay::Image3DOverlay(const Image3DOverlay* image3DOverlay) :
     Billboard3DOverlay(image3DOverlay),
     _url(image3DOverlay->_url),
     _texture(image3DOverlay->_texture),
-    _fromImage(image3DOverlay->_fromImage),
-    _emissive(image3DOverlay->_emissive)
+    _emissive(image3DOverlay->_emissive),
+    _fromImage(image3DOverlay->_fromImage)
 {
 }
 
