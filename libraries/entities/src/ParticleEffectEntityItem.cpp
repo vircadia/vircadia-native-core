@@ -33,8 +33,6 @@
 #include <ByteCountCoding.h>
 #include <GeometryUtil.h>
 #include <Interpolate.h>
-#include <random>
-#include <cmath>
 
 #include "EntityTree.h"
 #include "EntityTreeElement.h"
