@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 2.8.12.2)
+cmake_minimum_required(VERSION 3.2)
 
 if (USE_ANDROID_TOOLCHAIN)
   set(CMAKE_TOOLCHAIN_FILE "${CMAKE_CURRENT_SOURCE_DIR}/cmake/android/android.toolchain.cmake")
@@ -67,9 +67,9 @@ if ((NOT MSVC12) AND (NOT MSVC14))
   CHECK_CXX_COMPILER_FLAG("-std=c++0x" COMPILER_SUPPORTS_CXX0X)
 
   if (COMPILER_SUPPORTS_CXX11)
-  	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
   elseif(COMPILER_SUPPORTS_CXX0X)
-  	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++0x")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++0x")
   else()
     message(STATUS "The compiler ${CMAKE_CXX_COMPILER} has no C++11 support. Please use a different C++ compiler.")
   endif()
@@ -228,34 +228,4 @@ if (HIFI_MEMORY_DEBUGGING)
 endif ()
 
 include_application_version()
-
-if (DEFINED DEPLOY_PACKAGE AND DEPLOY_PACKAGE)
-  message(STATUS "+++++ Package for deployment will be generated on this build +++++")
-  
-  file(MAKE_DIRECTORY ${CMAKE_BINARY_DIR}/full-stack-deployment)
-  
-  set(ICONPATH_INTERFACE "$INSTDIR/${PATH_INSTALL_DATA}/interface.ico")
-  set(ICONPATH_STACK_MANAGER "$INSTDIR/${PATH_INSTALL_DATA}/stack-manager.ico")
-  string(REPLACE "/" "\\\\" ICONPATH_INTERFACE ${ICONPATH_INTERFACE})
-  string(REPLACE "/" "\\\\" ICONPATH_STACK_MANAGER ${ICONPATH_STACK_MANAGER})
-
-  set(CPACK_PACKAGE_NAME "High Fidelity")
-  set(CPACK_PACKAGE_VENDOR "High Fidelity, Inc")
-  set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "High Fidelity Interface and Stack")
-  set(CPACK_PACKAGE_VERSION "${BUILD_SEQ}")
-  set(CPACK_PACKAGE_VERSION_MAJOR "${BUILD_SEQ}")
-  set(CPACK_PACKAGE_VERSION_MINOR "0")
-  set(CPACK_PACKAGE_VERSION_PATCH "0")
-  set(CPACK_PACKAGE_INSTALL_DIRECTORY "High Fidelity-${BUILD_SEQ}")
-  set(CPACK_NSIS_EXECUTABLES_DIRECTORY ".")
-  set(CPACK_PACKAGE_EXECUTABLES 
-    stack-manager "Stack Manager"
-    interface "Interface"
-  )
-
-  if (WIN32)
-    install(DIRECTORY ${CMAKE_BINARY_DIR}/full-stack-deployment/ DESTINATION "./")
-  endif (WIN32)
-
-  include(CPack)
-endif ()
+generate_installers()
