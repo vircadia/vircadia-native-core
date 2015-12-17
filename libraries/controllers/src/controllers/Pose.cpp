@@ -42,7 +42,23 @@ namespace controller {
     }
 
     void Pose::fromScriptValue(const QScriptValue& object, Pose& pose) {
-        // nothing for now...
+        bool isValid = true;
+        auto translation = object.property("translation");
+        auto rotation = object.property("rotation");
+        auto velocity = object.property("velocity");
+        auto angularVelocity = object.property("angularVelocity");
+        if (translation.isValid() &&
+                rotation.isValid() &&
+                velocity.isValid() &&
+                angularVelocity.isValid()) {
+            vec3FromScriptValue(translation, pose.translation);
+            quatFromScriptValue(rotation, pose.rotation);
+            vec3FromScriptValue(velocity, pose.velocity);
+            quatFromScriptValue(angularVelocity, pose.angularVelocity);
+            pose.valid = true;
+        } else {
+            pose.valid = false;
+        }
     }
 
 }
