@@ -608,10 +608,7 @@ void ParticleEffectEntityItem::stepSimulation(float deltaTime) {
             integrateParticle(particle, deltaTime);
         }
     }
-
-    for (int i = 0; i < popCount; i++) {
-        _particles.pop_front();
-    }
+    _particles.erase(_particles.begin(), _particles.begin() + popCount);
 
     // emit new particles, but only if we are emmitting
     if (getIsEmitting() && _emitRate > 0.0f && _lifespan > 0.0f && _polarStart <= _polarFinish) {
