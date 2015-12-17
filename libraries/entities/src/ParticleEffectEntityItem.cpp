@@ -595,18 +595,20 @@ void ParticleEffectEntityItem::integrateParticle(Particle& particle, float delta
 
 void ParticleEffectEntityItem::stepSimulation(float deltaTime) {
     // update particles between head and tail
+    int popCount = 0;
     for (Particle& particle : _particles) {
         particle.lifetime += deltaTime;
 
         // if particle has died.
         if (particle.lifetime >= _lifespan) {
             // move head forward
-            _particles.pop_front();
+            popCount++;
         } else {
             // Otherwise update it
             integrateParticle(particle, deltaTime);
         }
     }
+    _particles.erase(_particles.begin(), _particles.begin() + popCount);
 
     // emit new particles, but only if we are emmitting
     if (getIsEmitting() && _emitRate > 0.0f && _lifespan > 0.0f && _polarStart <= _polarFinish) {
