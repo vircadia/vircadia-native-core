@@ -1106,7 +1106,7 @@ MasterReset = function() {
             z: 503.39
         };
 
-        var rotation = Quat.fromPitchYawRollDegrees(0, 36, 0);
+        var rotation = Quat.fromPitchYawRollDegrees(0, 0, 0);
 
         var pingPongGun = Entities.addEntity({
             type: "Model",
