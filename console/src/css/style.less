@@ -1,5 +1,16 @@
 @light-gray: #949494;
 
+// the following two blocks avoid the bounce effect on OS X when scrolling
+html {
+    overflow: hidden;
+    height: 100%;
+}
+
+body {
+    height: 100%;
+    overflow: auto;
+}
+
 @font-face {
   font-family: 'Raleway';
   font-style: normal;
