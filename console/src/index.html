@@ -1,29 +1,53 @@
 <!DOCTYPE html>
 <html>
-  <head>
-    <title>Console</title>
+<head>
+    <title>High Fidelity</title>
     <script src="index.js"></script>
-  </head>
-  <body onload="ready()">
+    <link rel="stylesheet" type="text/css" href="css/style.less" />
+</head>
+<body onload="ready()">
+    <header>
+        <div id="console-version">
+            <p>Version #<span class="number">1.0.0</span></p>
+        </div>
+        <div id="hf-brand">
+            <h1>HIGH FIDELITY</h1>
+        </div>
+    </header>
 
-    <h1>Console</h1>
+    <div id="console-tray">
+        <div id="navigation">
+            <h4>NAVIGATE</h4>
+            <div id="search-square">
+                <p>Search</p>
+            </div>
+            <div id="last-visited-square"
+                <p>Last visited</p>
+            </div>
+        </div>
+        <div id="servers">
+            <h4>MY SERVER</h4>
+        </div>
+    </div>
+
+    <!-- <h1>Console</h1>
 
     <h2>Interface</h2>
     <div id="process-status">
-      <div id="process-interface">
-        <span class="name">Interface</span>
-        <span class="status">unknown</span>
-        <button class="power-on">Turn On</button>
-        <button class="power-off">Turn Off</button>
-      </div>
-    </div>
+    <div id="process-interface">
+    <span class="name">Interface</span>
+    <span class="status">unknown</span>
+    <button class="power-on">Turn On</button>
+    <button class="power-off">Turn Off</button>
+</div>
+</div>
 
-    <h2>Home</h2>
-    <div id="server">
-    </div>
+<h2>Home</h2>
+<div id="server">
+</div>
 
-    <div>
-        Node Version: <script>document.write(process.versions.node)</script>
-    </div>
-  </body>
+<div>
+Node Version: <script>document.write(process.versions.node)</script>
+</div> -->
+</body>
 </html>
