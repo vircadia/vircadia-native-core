@@ -274,7 +274,7 @@ QUuid EntityScriptingInterface::editEntity(QUuid id, const EntityItemProperties&
                     entity->flagForOwnership();
                 }
             }
-            if (properties.parentRelatedPropertyChanged()) {
+            if (properties.parentRelatedPropertyChanged() && entity->setPuffedQueryAACube()) {
                 properties.setQueryAACube(entity->getQueryAACube());
             }
             entity->setLastBroadcast(usecTimestampNow());

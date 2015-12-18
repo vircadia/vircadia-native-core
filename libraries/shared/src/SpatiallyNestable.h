@@ -72,6 +72,7 @@ public:
     virtual bool setPuffedQueryAACube();
 
     virtual void setQueryAACube(const AACube& queryAACube);
+    virtual bool queryAABoxNeedsUpdate() const;
     virtual AACube getQueryAACube(bool& success) const;
     virtual AACube getQueryAACube() const;
 

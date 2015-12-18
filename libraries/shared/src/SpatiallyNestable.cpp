@@ -536,6 +536,10 @@ void SpatiallyNestable::locationChanged() {
     });
 }
 
+AACube SpatiallyNestable::getMaximumAACube(bool& success) const {
+    return AACube(getPosition(success) - glm::vec3(0.5f), 1.0f); // XXX
+}
+
 void SpatiallyNestable::setQueryAACube(const AACube& queryAACube) {
     _queryAACube = queryAACube;
     if (queryAACube.getScale() > 0.0f) {
@@ -543,11 +547,7 @@ void SpatiallyNestable::setQueryAACube(const AACube& queryAACube) {
     }
 }
 
-AACube SpatiallyNestable::getMaximumAACube(bool& success) const {
-    return AACube(getPosition(success) - glm::vec3(0.5f), 1.0f); // XXX
-}
-
-bool SpatiallyNestable::setPuffedQueryAACube() {
+bool SpatiallyNestable::queryAABoxNeedsUpdate() const {
     bool success;
     AACube currentAACube = getMaximumAACube(success);
     if (!success) {
@@ -558,6 +558,15 @@ bool SpatiallyNestable::setPuffedQueryAACube() {
         return false;
     }
 
+    return true;
+}
+
+bool SpatiallyNestable::setPuffedQueryAACube() {
+    if (!queryAABoxNeedsUpdate()) {
+        return false;
+    }
+    bool success;
+    AACube currentAACube = getMaximumAACube(success);
     // make an AACube with edges twice as long and centered on the object
     _queryAACube = AACube(currentAACube.getCorner() - glm::vec3(currentAACube.getScale()), currentAACube.getScale() * 2.0f);
     _queryAACubeSet = true;

@@ -374,6 +374,10 @@ bool EntityMotionState::shouldSendUpdate(uint32_t simulationStep, const QUuid& s
         return true;
     }
 
+    if (_entity->queryAABoxNeedsUpdate()) {
+        return true;
+    }
+
     if (_entity->getSimulatorID() != sessionID) {
         // we don't own the simulation, but maybe we should...
         if (_outgoingPriority != NO_PRORITY) {
@@ -466,7 +470,7 @@ void EntityMotionState::sendUpdate(OctreeEditPacketSender* packetSender, const Q
         properties.setActionData(_serverActionData);
     }
 
-    if (properties.parentRelatedPropertyChanged()) {
+    if (properties.parentRelatedPropertyChanged() && _entity->setPuffedQueryAACube()) {
         // due to parenting, the server may not know where something is in world-space, so include the bounding cube.
         properties.setQueryAACube(_entity->getQueryAACube());
     }
