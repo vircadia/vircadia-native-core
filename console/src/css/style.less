@@ -17,8 +17,9 @@ body {
     height: 100%;
     overflow: auto;
     font-family: 'Raleway', sans-serif;
-    padding: 50px 75px 10px 75px;
     background-image: url('../images/background.jpg');
+    margin: 0;
+    font-size: 12px;
     letter-spacing: 2px;
 }
 
@@ -26,8 +27,12 @@ body {
     color: @light-gray;
 }
 
+h4 {
+    font-size: 14px;
+}
+
 header {
-    margin-bottom: 50px;
+    margin: 50px 75px;
 
     #console-version {
         float: right;
@@ -35,15 +40,13 @@ header {
 }
 
 #console-tray {
-    height: 200px;
+    display: inline-block;
+    width: 100%;
+    margin: 0px 75px;
     color: white;
 
-    h4 {
-        font-size: 14px;
-    }
-
     p {
-        font-size: 12px;
+        text-align: center;
     }
 
     #navigation, #servers, .tray-line {
@@ -82,10 +85,6 @@ header {
         align-items: center;
     }
 
-    p {
-        text-align: center;
-    }
-
     .nav-item {
         margin-right: 15px;
         float: left;
@@ -105,4 +104,64 @@ header {
             }
         }
     }
+}
+
+@focus-background: #A6A7AA;
+@dark-gray: #585858;
+
+#tray-focus {
+    margin-top: 15px;
+    width: 100%;
+    height: 300px;
+    background-color: @focus-background;
+
+    color: @dark-gray;
+
+    #server-focus {
+        padding: 15px 75px;
+
+        h2 {
+            color: black;
+            font-size: 36px;
+            margin-left: 315px;
+            margin-bottom: 0px;
+        }
+
+        .server-box {
+            float: left;
+
+            .title {
+                border-bottom: 1px solid @dark-gray;
+                margin-bottom: 20px;
+            }
+
+            .process-status {
+                @stop-red: #CA757F;
+                margin-bottom: 10px;
+
+                .circle {
+                    display: inline-block;
+                    margin-left: 10px;
+                    margin-right: 5px;
+                    background-color: @stop-red;
+                    border-radius: 50%;
+                    border: 1px solid #696A6B;
+                    width: 12px;
+                    height: 12px;
+                }
+            }
+
+            &#left-box {
+                h4 {
+                    margin-bottom: 10px;
+                    width: 275px;
+                }
+            }
+        }
+    }
+}
+
+#manage-server {
+    background-color: #232323;
+    height: 150px;
 }
