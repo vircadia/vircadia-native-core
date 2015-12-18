@@ -826,14 +826,16 @@ function MyController(hand) {
             this.currentObjectPosition = Vec3.sum(this.currentObjectPosition, change);
         }
 
-        Entities.updateAction(this.grabbedEntity, this.actionID, {
+        var success = Entities.updateAction(this.grabbedEntity, this.actionID, {
             targetPosition: this.currentObjectPosition,
             linearTimeScale: DISTANCE_HOLDING_ACTION_TIMEFRAME,
             targetRotation: this.currentObjectRotation,
             angularTimeScale: DISTANCE_HOLDING_ACTION_TIMEFRAME,
             ttl: ACTION_TTL
         });
-        this.actionTimeout = now + (ACTION_TTL * MSEC_PER_SEC);
+        if (success) {
+            this.actionTimeout = now + (ACTION_TTL * MSEC_PER_SEC);
+        }
     };
 
     this.nearGrabbing = function() {
