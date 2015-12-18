@@ -76,12 +76,12 @@ static const std::string DEEFAULT_CUSTOM_SHADER {
 };
 
 static std::string getFileContent(std::string fileName, std::string defaultContent = std::string()) {
-    QFile customFile(QUrl(QString::fromStdString(fileName)).toLocalFile());
+    QFile customFile(QString::fromStdString(fileName));
     if (customFile.open(QIODevice::ReadOnly)) {
         return customFile.readAll().toStdString();
     }
     qWarning() << "DebugDeferredBuffer::getFileContent(): Could not open"
-               << QUrl(QString::fromStdString(fileName)).toLocalFile();
+               << QString::fromStdString(fileName);
     return defaultContent;
 }
 
@@ -89,9 +89,9 @@ static std::string getFileContent(std::string fileName, std::string defaultConte
 DebugDeferredBuffer::DebugDeferredBuffer() {
     // TODO REMOVE: Temporary until UI
     static const auto DESKTOP_PATH = QStandardPaths::writableLocation(QStandardPaths::DesktopLocation);
-    static const auto CUSTOM_FILE = "file://" + DESKTOP_PATH.toStdString() + "/custom.slh";
+    static const auto CUSTOM_FILE = DESKTOP_PATH.toStdString() + "/custom.slh";
     CustomPipeline pipeline;
-    pipeline.info = QFileInfo(DESKTOP_PATH + "/custom.slh");
+    pipeline.info = QFileInfo(QString::fromStdString(CUSTOM_FILE));
     _customPipelines.emplace(CUSTOM_FILE, pipeline);
 }
 
