@@ -2,10 +2,13 @@
 <html>
 <head>
     <title>High Fidelity</title>
+    <script>
+        window.$ = window.jQuery = require('./vendor/jQuery/jquery-2.1.4.min.js');
+    </script>
     <script src="index.js"></script>
     <link rel="stylesheet" type="text/css" href="css/style.less" />
 </head>
-<body onload="ready()">
+<body>
     <header>
         <div id="console-version">
             <p>Version #<span class="number">1.0.0</span></p>

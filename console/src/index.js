@@ -1,6 +1,4 @@
-ready = function() {
-    window.$ = require('./vendor/jquery/jquery-2.1.4.min.js');
-
+$(function() {
     const ipcRenderer = require('electron').ipcRenderer;
 
     function onProcessUpdate(event, arg) {
@@ -28,4 +26,4 @@ ready = function() {
     ipcRenderer.on('process-update', onProcessUpdate);
 
     ipcRenderer.send('update');
-};
+});
