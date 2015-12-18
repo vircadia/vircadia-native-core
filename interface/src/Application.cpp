@@ -89,6 +89,7 @@
 #include <RenderableWebEntityItem.h>
 #include <RenderDeferredTask.h>
 #include <ResourceCache.h>
+#include <RenderScriptingInterface.h>
 #include <SceneScriptingInterface.h>
 #include <RecordingScriptingInterface.h>
 #include <ScriptCache.h>
@@ -341,6 +342,7 @@ bool setupEssentials(int& argc, char** argv) {
 #endif
     DependencyManager::set<DiscoverabilityManager>();
     DependencyManager::set<SceneScriptingInterface>();
+    DependencyManager::set<RenderScriptingInterface>();
     DependencyManager::set<OffscreenUi>();
     DependencyManager::set<AutoUpdater>();
     DependencyManager::set<PathUtils>();
@@ -3674,40 +3676,22 @@ void Application::displaySide(RenderArgs* renderArgs, Camera& theCamera, bool se
     // For now every frame pass the renderContext
     {
         PerformanceTimer perfTimer("EngineRun");
-        render::RenderContext renderContext;
-
-        auto sceneInterface = DependencyManager::get<SceneScriptingInterface>();
-
-        renderContext._cullOpaque = sceneInterface->doEngineCullOpaque();
-        renderContext._sortOpaque = sceneInterface->doEngineSortOpaque();
-        renderContext._renderOpaque = sceneInterface->doEngineRenderOpaque();
-        renderContext._cullTransparent = sceneInterface->doEngineCullTransparent();
-        renderContext._sortTransparent = sceneInterface->doEngineSortTransparent();
-        renderContext._renderTransparent = sceneInterface->doEngineRenderTransparent();
-
-        renderContext._maxDrawnOpaqueItems = sceneInterface->getEngineMaxDrawnOpaqueItems();
-        renderContext._maxDrawnTransparentItems = sceneInterface->getEngineMaxDrawnTransparentItems();
-        renderContext._maxDrawnOverlay3DItems = sceneInterface->getEngineMaxDrawnOverlay3DItems();
-        
-        renderContext._deferredDebugMode = sceneInterface->getEngineDeferredDebugMode();
-        renderContext._deferredDebugSize = sceneInterface->getEngineDeferredDebugSize();
-        
-        renderContext._drawItemStatus = sceneInterface->doEngineDisplayItemStatus();
-        if (Menu::getInstance()->isOptionChecked(MenuOption::PhysicsShowOwned)) {
-            renderContext._drawItemStatus |= render::showNetworkStatusFlag;
-        }
-        renderContext._drawHitEffect = sceneInterface->doEngineDisplayHitEffect();
-
-        renderContext._occlusionStatus = Menu::getInstance()->isOptionChecked(MenuOption::DebugAmbientOcclusion);
-        renderContext._fxaaStatus = Menu::getInstance()->isOptionChecked(MenuOption::Antialiasing);
-
-        renderContext._toneMappingExposure = sceneInterface->getEngineToneMappingExposure();
-        renderContext._toneMappingToneCurve = sceneInterface->getEngineToneMappingToneCurveValue();
 
         renderArgs->_shouldRender = LODManager::shouldRender;
-
-        renderContext.args = renderArgs;
         renderArgs->_viewFrustum = getDisplayViewFrustum();
+
+        auto renderInterface = DependencyManager::get<RenderScriptingInterface>();
+        auto renderItemsMeta = renderInterface->getItemsMeta();
+        auto renderTone = renderInterface->getTone();
+        int drawStatus = renderInterface->getDrawStatus();
+        bool drawHitEffect = renderInterface->getDrawHitEffect();
+
+        bool occlusionStatus = Menu::getInstance()->isOptionChecked(MenuOption::DebugAmbientOcclusion);
+        bool antialiasingStatus = Menu::getInstance()->isOptionChecked(MenuOption::Antialiasing);
+        bool showOwnedStatus = Menu::getInstance()->isOptionChecked(MenuOption::PhysicsShowOwned);
+
+        render::RenderContext renderContext{renderArgs, renderItemsMeta, renderTone};
+        renderContext.setOptions(drawStatus, drawHitEffect, occlusionStatus, antialiasingStatus, showOwnedStatus);
         _renderEngine->setRenderContext(renderContext);
 
         // Before the deferred pass, let's try to use the render engine
@@ -3715,15 +3699,8 @@ void Application::displaySide(RenderArgs* renderArgs, Camera& theCamera, bool se
         _renderEngine->run();
         myAvatar->endRenderRun();
 
-        auto engineRC = _renderEngine->getRenderContext();
-        sceneInterface->setEngineFeedOpaqueItems(engineRC->_numFeedOpaqueItems);
-        sceneInterface->setEngineDrawnOpaqueItems(engineRC->_numDrawnOpaqueItems);
-
-        sceneInterface->setEngineFeedTransparentItems(engineRC->_numFeedTransparentItems);
-        sceneInterface->setEngineDrawnTransparentItems(engineRC->_numDrawnTransparentItems);
-
-        sceneInterface->setEngineFeedOverlay3DItems(engineRC->_numFeedOverlay3DItems);
-        sceneInterface->setEngineDrawnOverlay3DItems(engineRC->_numDrawnOverlay3DItems);
+        auto engineContext = _renderEngine->getRenderContext();
+        renderInterface->setItemCounts(engineContext->getItemsMeta());
     }
 
     activeRenderingThread = nullptr;
@@ -4177,6 +4154,7 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEngine* scri
     scriptEngine->registerFunction("HMD", "getHUDLookAtPosition3D", HMDScriptingInterface::getHUDLookAtPosition3D, 0);
 
     scriptEngine->registerGlobalObject("Scene", DependencyManager::get<SceneScriptingInterface>().data());
+    scriptEngine->registerGlobalObject("Render", DependencyManager::get<RenderScriptingInterface>().data());
 
     scriptEngine->registerGlobalObject("ScriptDiscoveryService", this->getRunningScriptsWidget());
 }

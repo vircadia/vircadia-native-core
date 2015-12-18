@@ -23,7 +23,7 @@ public:
   
     SceneContext() {}
 };
-typedef std::shared_ptr<SceneContext> SceneContextPointer;
+using SceneContextPointer = std::shared_ptr<SceneContext>;
 
 // see examples/utilities/tools/renderEngineDebug.js
 const int showDisplayStatusFlag = 1;
@@ -32,43 +32,80 @@ const int showNetworkStatusFlag = 2;
 
 class RenderContext {
 public:
-    RenderArgs* args;
+    struct ItemsMeta {
+        inline void setCounts(const ItemsMeta& items) {
+            _opaque.setCounts(items._opaque);
+            _transparent.setCounts(items._transparent);
+            _overlay3D.setCounts(items._overlay3D);
+        };
 
-    bool _cullOpaque = true;
-    bool _sortOpaque = true;
-    bool _renderOpaque = true;
-    bool _cullTransparent = true;
-    bool _sortTransparent = true;
-    bool _renderTransparent = true;
+        struct Counter {
+            Counter() {};
+            Counter(const Counter& counter) {
+                _numFeed = _numDrawn = 0;
+                _maxDrawn = counter._maxDrawn;
+            };
 
-    int _numFeedOpaqueItems = 0;
-    int _numDrawnOpaqueItems = 0;
-    int _maxDrawnOpaqueItems = -1;
+            inline void setCounts(const Counter& counter) {
+                _numFeed = counter._numFeed;
+                _numDrawn = counter._numDrawn;
+            };
+
+            int _numFeed = 0;
+            int _numDrawn = 0;
+            int _maxDrawn = -1;
+        };
+
+        struct State : public Counter {
+            bool _render = true;
+            bool _cull = true;
+            bool _sort = true;
+
+            Counter _counter{};
+        };
+
+        // TODO: Store state/counter in a map instead of manually enumerated members
+        State _opaque{};
+        State _transparent{};
+        Counter _overlay3D{};
+    };
+
+    struct Tone {
+        int _toneCurve = 3;
+        float _exposure = 0.0;
+    };
     
-    int _numFeedTransparentItems = 0;
-    int _numDrawnTransparentItems = 0;
-    int _maxDrawnTransparentItems = -1;
+    RenderContext(RenderArgs* args, ItemsMeta items, Tone tone) : _args{args}, _items{items}, _tone{tone} {};
+    RenderContext() : RenderContext(nullptr, {}, {}) {};
 
-    int _numFeedOverlay3DItems = 0;
-    int _numDrawnOverlay3DItems = 0;
-    int _maxDrawnOverlay3DItems = -1;
+    inline RenderArgs* getArgs() { return _args; }
+    inline int getDrawStatus() { return _drawStatus; }
+    inline bool getDrawHitEffect() { return _drawHitEffect; }
+    inline bool getOcclusionStatus() { return _occlusionStatus; }
+    inline bool getFxaaStatus() { return _fxaaStatus; }
+    inline ItemsMeta& getItemsMeta() { return _items; }
+    inline Tone& getTone() { return _tone; }
+    void setOptions(int drawStatus, bool drawHitEffect, bool occlusion, bool fxaa, bool showOwned);
 
+    // Debugging
     int _deferredDebugMode = -1;
     glm::vec4 _deferredDebugSize { 0.0f, -1.0f, 1.0f, 1.0f };
-    int _drawItemStatus = 0;
-    bool _drawHitEffect = false;
 
+protected:
+    RenderArgs* _args;
+
+    // Options
+    int _drawStatus = 0; // bitflag
+    bool _drawHitEffect = false;
     bool _occlusionStatus = false;
     bool _fxaaStatus = false;
 
-    float _toneMappingExposure = 0.0;
-    int _toneMappingToneCurve = 3;
-
-    RenderContext() {}
+    ItemsMeta _items;
+    Tone _tone;
 };
 typedef std::shared_ptr<RenderContext> RenderContextPointer;
 
-// THe base class for a task that runs on the SceneContext
+// The base class for a task that runs on the SceneContext
 class Task {
 public:
     Task() {}
@@ -81,7 +118,7 @@ protected:
 typedef std::shared_ptr<Task> TaskPointer;
 typedef std::vector<TaskPointer> Tasks;
 
-// The root of the takss, the Engine, should not be known from the Tasks,
+// The root of the tasks, the Engine, should not be known from the Tasks,
 // The SceneContext is what navigates from the engine down to the Tasks
 class Engine {
 public:

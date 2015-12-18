@@ -37,23 +37,24 @@ using namespace render;
 
 
 void PrepareDeferred::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext) {
-    DependencyManager::get<DeferredLightingEffect>()->prepare(renderContext->args);
+    DependencyManager::get<DeferredLightingEffect>()->prepare(renderContext->getArgs());
 }
 
 void RenderDeferred::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext) {
-    DependencyManager::get<DeferredLightingEffect>()->render(renderContext->args);
+    DependencyManager::get<DeferredLightingEffect>()->render(renderContext->getArgs());
 }
 
 void ToneMappingDeferred::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext) {
     PerformanceTimer perfTimer("ToneMappingDeferred");
-    _toneMappingEffect.render(renderContext->args);
+    _toneMappingEffect.render(renderContext->getArgs());
 }
 
 RenderDeferredTask::RenderDeferredTask() : Task() {
     // CPU only, create the list of renderedOpaques items
     _jobs.push_back(Job(new FetchItems::JobModel("FetchOpaque",
         FetchItems([](const RenderContextPointer& context, int count) {
-                context->_numFeedOpaqueItems = count;
+            context->getItemsMeta()._opaque._numFeed = count;
+            auto& opaque = context->getItemsMeta()._opaque;
         })
     )));
     _jobs.push_back(Job(new CullItemsOpaque::JobModel("CullOpaque", _jobs.back().getOutput())));
@@ -64,7 +65,7 @@ RenderDeferredTask::RenderDeferredTask() : Task() {
     _jobs.push_back(Job(new FetchItems::JobModel("FetchTransparent",
         FetchItems(ItemFilter::Builder::transparentShape().withoutLayered(),
             [](const RenderContextPointer& context, int count) {
-                context->_numFeedTransparentItems = count;
+                context->getItemsMeta()._transparent._numFeed = count;
         })
      )));
     _jobs.push_back(Job(new CullItemsTransparent::JobModel("CullTransparent", _jobs.back().getOutput())));
@@ -146,7 +147,7 @@ void RenderDeferredTask::run(const SceneContextPointer& sceneContext, const Rend
 
 
     // Is it possible that we render without a viewFrustum ?
-    if (!(renderContext->args && renderContext->args->_viewFrustum)) {
+    if (!(renderContext->getArgs() && renderContext->getArgs()->_viewFrustum)) {
         return;
     }
 
@@ -154,21 +155,21 @@ void RenderDeferredTask::run(const SceneContextPointer& sceneContext, const Rend
     setDrawDebugDeferredBuffer(renderContext->_deferredDebugMode);
     
     // Make sure we turn the displayItemStatus on/off
-    setDrawItemStatus(renderContext->_drawItemStatus);
+    setDrawItemStatus(renderContext->getDrawStatus());
     
     // Make sure we display hit effect on screen, as desired from a script
-    setDrawHitEffect(renderContext->_drawHitEffect);
+    setDrawHitEffect(renderContext->getDrawHitEffect());
     
 
     // TODO: turn on/off AO through menu item
-    setOcclusionStatus(renderContext->_occlusionStatus);
+    setOcclusionStatus(renderContext->getOcclusionStatus());
 
-    setAntialiasingStatus(renderContext->_fxaaStatus);
+    setAntialiasingStatus(renderContext->getFxaaStatus());
 
-    setToneMappingExposure(renderContext->_toneMappingExposure);
-    setToneMappingToneCurve(renderContext->_toneMappingToneCurve);
+    setToneMappingExposure(renderContext->getTone()._exposure);
+    setToneMappingToneCurve(renderContext->getTone()._toneCurve);
 
-    renderContext->args->_context->syncCache();
+    renderContext->getArgs()->_context->syncCache();
 
     for (auto job : _jobs) {
         job.run(sceneContext, renderContext);
@@ -177,16 +178,17 @@ void RenderDeferredTask::run(const SceneContextPointer& sceneContext, const Rend
 };
 
 void DrawOpaqueDeferred::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const ItemIDsBounds& inItems) {
-    assert(renderContext->args);
-    assert(renderContext->args->_viewFrustum);
+    assert(renderContext->getArgs());
+    assert(renderContext->getArgs()->_viewFrustum);
 
-    RenderArgs* args = renderContext->args;
+    RenderArgs* args = renderContext->getArgs();
     gpu::doInBatch(args->_context, [=](gpu::Batch& batch) {
         batch.setViewportTransform(args->_viewport);
         batch.setStateScissorRect(args->_viewport);
         args->_batch = &batch;
 
-        renderContext->_numDrawnOpaqueItems = (int)inItems.size();
+        auto& opaque = renderContext->getItemsMeta()._opaque;
+        opaque._numDrawn = (int)inItems.size();
 
         glm::mat4 projMat;
         Transform viewMat;
@@ -200,22 +202,23 @@ void DrawOpaqueDeferred::run(const SceneContextPointer& sceneContext, const Rend
             const float OPAQUE_ALPHA_THRESHOLD = 0.5f;
             args->_alphaThreshold = OPAQUE_ALPHA_THRESHOLD;
         }
-        renderItems(sceneContext, renderContext, inItems, renderContext->_maxDrawnOpaqueItems);
+        renderItems(sceneContext, renderContext, inItems, opaque._maxDrawn);
         args->_batch = nullptr;
     });
 }
 
 void DrawTransparentDeferred::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const ItemIDsBounds& inItems) {
-    assert(renderContext->args);
-    assert(renderContext->args->_viewFrustum);
+    assert(renderContext->getArgs());
+    assert(renderContext->getArgs()->_viewFrustum);
 
-    RenderArgs* args = renderContext->args;
+    RenderArgs* args = renderContext->getArgs();
     gpu::doInBatch(args->_context, [=](gpu::Batch& batch) {
         batch.setViewportTransform(args->_viewport);
         batch.setStateScissorRect(args->_viewport);
         args->_batch = &batch;
     
-        renderContext->_numDrawnTransparentItems = (int)inItems.size();
+        auto& transparent = renderContext->getItemsMeta()._transparent;
+        transparent._numDrawn = (int)inItems.size();
 
         glm::mat4 projMat;
         Transform viewMat;
@@ -228,7 +231,7 @@ void DrawTransparentDeferred::run(const SceneContextPointer& sceneContext, const
         const float TRANSPARENT_ALPHA_THRESHOLD = 0.0f;
         args->_alphaThreshold = TRANSPARENT_ALPHA_THRESHOLD;
     
-        renderItems(sceneContext, renderContext, inItems, renderContext->_maxDrawnTransparentItems);
+        renderItems(sceneContext, renderContext, inItems, transparent._maxDrawn);
         args->_batch = nullptr;
     });
 }
@@ -251,8 +254,8 @@ const gpu::PipelinePointer& DrawOverlay3D::getOpaquePipeline() {
 }
 
 void DrawOverlay3D::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext) {
-    assert(renderContext->args);
-    assert(renderContext->args->_viewFrustum);
+    assert(renderContext->getArgs());
+    assert(renderContext->getArgs()->_viewFrustum);
 
     // render backgrounds
     auto& scene = sceneContext->_scene;
@@ -267,11 +270,12 @@ void DrawOverlay3D::run(const SceneContextPointer& sceneContext, const RenderCon
             inItems.emplace_back(id);
         }
     }
-    renderContext->_numFeedOverlay3DItems = (int)inItems.size();
-    renderContext->_numDrawnOverlay3DItems = (int)inItems.size();
+    auto& overlay3D = renderContext->getItemsMeta()._overlay3D;
+    overlay3D._numFeed = (int)inItems.size();
+    overlay3D._numDrawn = (int)inItems.size();
 
     if (!inItems.empty()) {
-        RenderArgs* args = renderContext->args;
+        RenderArgs* args = renderContext->getArgs();
 
         // Clear the framebuffer without stereo
         // Needs to be distinct from the other batch because using the clear call 
@@ -300,7 +304,7 @@ void DrawOverlay3D::run(const SceneContextPointer& sceneContext, const RenderCon
 
             batch.setPipeline(getOpaquePipeline());
             batch.setResourceTexture(0, args->_whiteTexture);
-            renderItems(sceneContext, renderContext, inItems, renderContext->_maxDrawnOverlay3DItems);
+            renderItems(sceneContext, renderContext, inItems, renderContext->getItemsMeta()._overlay3D._maxDrawn);
         });
         args->_batch = nullptr;
         args->_whiteTexture.reset();
@@ -329,11 +333,11 @@ const gpu::PipelinePointer& DrawStencilDeferred::getOpaquePipeline() {
 }
 
 void DrawStencilDeferred::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext) {
-    assert(renderContext->args);
-    assert(renderContext->args->_viewFrustum);
+    assert(renderContext->getArgs());
+    assert(renderContext->getArgs()->_viewFrustum);
 
     // from the touched pixel generate the stencil buffer 
-    RenderArgs* args = renderContext->args;
+    RenderArgs* args = renderContext->getArgs();
     doInBatch(args->_context, [=](gpu::Batch& batch) {
         args->_batch = &batch;
 
@@ -355,8 +359,8 @@ void DrawStencilDeferred::run(const SceneContextPointer& sceneContext, const Ren
 }
 
 void DrawBackgroundDeferred::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext) {
-    assert(renderContext->args);
-    assert(renderContext->args->_viewFrustum);
+    assert(renderContext->getArgs());
+    assert(renderContext->getArgs()->_viewFrustum);
 
     // render backgrounds
     auto& scene = sceneContext->_scene;
@@ -368,7 +372,7 @@ void DrawBackgroundDeferred::run(const SceneContextPointer& sceneContext, const 
     for (auto id : items) {
         inItems.emplace_back(id);
     }
-    RenderArgs* args = renderContext->args;
+    RenderArgs* args = renderContext->getArgs();
     doInBatch(args->_context, [=](gpu::Batch& batch) {
         args->_batch = &batch;
 
