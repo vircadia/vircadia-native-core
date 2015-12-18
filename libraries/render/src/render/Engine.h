@@ -32,8 +32,8 @@ const int showNetworkStatusFlag = 2;
 
 class RenderContext {
 public:
-    struct ItemsMeta {
-        inline void setCounts(const ItemsMeta& items) {
+    struct ItemsConfig {
+        inline void setCounts(const ItemsConfig& items) {
             _opaque.setCounts(items._opaque);
             _transparent.setCounts(items._transparent);
             _overlay3D.setCounts(items._overlay3D);
@@ -75,7 +75,7 @@ public:
         float _exposure = 0.0;
     };
     
-    RenderContext(RenderArgs* args, ItemsMeta items, Tone tone) : _args{args}, _items{items}, _tone{tone} {};
+    RenderContext(RenderArgs* args, ItemsConfig items, Tone tone) : _args{args}, _items{items}, _tone{tone} {};
     RenderContext() : RenderContext(nullptr, {}, {}) {};
 
     inline RenderArgs* getArgs() { return _args; }
@@ -83,7 +83,7 @@ public:
     inline bool getDrawHitEffect() { return _drawHitEffect; }
     inline bool getOcclusionStatus() { return _occlusionStatus; }
     inline bool getFxaaStatus() { return _fxaaStatus; }
-    inline ItemsMeta& getItemsMeta() { return _items; }
+    inline ItemsConfig& getItemsConfig() { return _items; }
     inline Tone& getTone() { return _tone; }
     void setOptions(int drawStatus, bool drawHitEffect, bool occlusion, bool fxaa, bool showOwned);
 
@@ -100,7 +100,7 @@ protected:
     bool _occlusionStatus = false;
     bool _fxaaStatus = false;
 
-    ItemsMeta _items;
+    ItemsConfig _items;
     Tone _tone;
 };
 typedef std::shared_ptr<RenderContext> RenderContextPointer;

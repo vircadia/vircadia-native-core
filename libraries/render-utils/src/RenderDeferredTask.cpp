@@ -53,8 +53,8 @@ RenderDeferredTask::RenderDeferredTask() : Task() {
     // CPU only, create the list of renderedOpaques items
     _jobs.push_back(Job(new FetchItems::JobModel("FetchOpaque",
         FetchItems([](const RenderContextPointer& context, int count) {
-            context->getItemsMeta()._opaque._numFeed = count;
-            auto& opaque = context->getItemsMeta()._opaque;
+            context->getItemsConfig()._opaque._numFeed = count;
+            auto& opaque = context->getItemsConfig()._opaque;
         })
     )));
     _jobs.push_back(Job(new CullItemsOpaque::JobModel("CullOpaque", _jobs.back().getOutput())));
@@ -65,7 +65,7 @@ RenderDeferredTask::RenderDeferredTask() : Task() {
     _jobs.push_back(Job(new FetchItems::JobModel("FetchTransparent",
         FetchItems(ItemFilter::Builder::transparentShape().withoutLayered(),
             [](const RenderContextPointer& context, int count) {
-                context->getItemsMeta()._transparent._numFeed = count;
+                context->getItemsConfig()._transparent._numFeed = count;
         })
      )));
     _jobs.push_back(Job(new CullItemsTransparent::JobModel("CullTransparent", _jobs.back().getOutput())));
@@ -187,7 +187,7 @@ void DrawOpaqueDeferred::run(const SceneContextPointer& sceneContext, const Rend
         batch.setStateScissorRect(args->_viewport);
         args->_batch = &batch;
 
-        auto& opaque = renderContext->getItemsMeta()._opaque;
+        auto& opaque = renderContext->getItemsConfig()._opaque;
         opaque._numDrawn = (int)inItems.size();
 
         glm::mat4 projMat;
@@ -217,7 +217,7 @@ void DrawTransparentDeferred::run(const SceneContextPointer& sceneContext, const
         batch.setStateScissorRect(args->_viewport);
         args->_batch = &batch;
     
-        auto& transparent = renderContext->getItemsMeta()._transparent;
+        auto& transparent = renderContext->getItemsConfig()._transparent;
         transparent._numDrawn = (int)inItems.size();
 
         glm::mat4 projMat;
@@ -270,7 +270,7 @@ void DrawOverlay3D::run(const SceneContextPointer& sceneContext, const RenderCon
             inItems.emplace_back(id);
         }
     }
-    auto& overlay3D = renderContext->getItemsMeta()._overlay3D;
+    auto& overlay3D = renderContext->getItemsConfig()._overlay3D;
     overlay3D._numFeed = (int)inItems.size();
     overlay3D._numDrawn = (int)inItems.size();
 
@@ -304,7 +304,7 @@ void DrawOverlay3D::run(const SceneContextPointer& sceneContext, const RenderCon
 
             batch.setPipeline(getOpaquePipeline());
             batch.setResourceTexture(0, args->_whiteTexture);
-            renderItems(sceneContext, renderContext, inItems, renderContext->getItemsMeta()._overlay3D._maxDrawn);
+            renderItems(sceneContext, renderContext, inItems, renderContext->getItemsConfig()._overlay3D._maxDrawn);
         });
         args->_batch = nullptr;
         args->_whiteTexture.reset();

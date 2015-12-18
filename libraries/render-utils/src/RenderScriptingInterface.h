@@ -72,15 +72,15 @@ class RenderScriptingInterface : public QObject, public Dependency {
 
     inline int getDrawStatus() { return _drawStatus; }
     inline bool getDrawHitEffect() { return _drawHitEffect; }
-    inline const render::RenderContext::ItemsMeta& getItemsMeta() { return _items; }
+    inline const render::RenderContext::ItemsConfig& getItemsConfig() { return _items; }
     inline const render::RenderContext::Tone& getTone() { return _tone;  }
-    void setItemCounts(const render::RenderContext::ItemsMeta& items) { _items.setCounts(items); };
+    void setItemCounts(const render::RenderContext::ItemsConfig& items) { _items.setCounts(items); };
 
 protected:
     RenderScriptingInterface();
     ~RenderScriptingInterface() {};
 
-    render::RenderContext::ItemsMeta _items;
+    render::RenderContext::ItemsConfig _items;
     render::RenderContext::Tone _tone;
 
     // Options

@@ -3681,7 +3681,7 @@ void Application::displaySide(RenderArgs* renderArgs, Camera& theCamera, bool se
         renderArgs->_viewFrustum = getDisplayViewFrustum();
 
         auto renderInterface = DependencyManager::get<RenderScriptingInterface>();
-        auto renderItemsMeta = renderInterface->getItemsMeta();
+        auto renderItemsConfig = renderInterface->getItemsConfig();
         auto renderTone = renderInterface->getTone();
         int drawStatus = renderInterface->getDrawStatus();
         bool drawHitEffect = renderInterface->getDrawHitEffect();
@@ -3690,7 +3690,7 @@ void Application::displaySide(RenderArgs* renderArgs, Camera& theCamera, bool se
         bool antialiasingStatus = Menu::getInstance()->isOptionChecked(MenuOption::Antialiasing);
         bool showOwnedStatus = Menu::getInstance()->isOptionChecked(MenuOption::PhysicsShowOwned);
 
-        render::RenderContext renderContext{renderArgs, renderItemsMeta, renderTone};
+        render::RenderContext renderContext{renderArgs, renderItemsConfig, renderTone};
         renderContext.setOptions(drawStatus, drawHitEffect, occlusionStatus, antialiasingStatus, showOwnedStatus);
         _renderEngine->setRenderContext(renderContext);
 
@@ -3700,7 +3700,7 @@ void Application::displaySide(RenderArgs* renderArgs, Camera& theCamera, bool se
         myAvatar->endRenderRun();
 
         auto engineContext = _renderEngine->getRenderContext();
-        renderInterface->setItemCounts(engineContext->getItemsMeta());
+        renderInterface->setItemCounts(engineContext->getItemsConfig());
     }
 
     activeRenderingThread = nullptr;
