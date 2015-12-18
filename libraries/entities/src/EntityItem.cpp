@@ -1200,6 +1200,8 @@ AACube EntityItem::getMaximumAACube(bool& success) const {
             _maxAACube = AACube(minimumCorner, radius * 2.0f);
             _recalcMaxAACube = false;
         }
+    } else {
+        success = true;
     }
     return _maxAACube;
 }
@@ -1232,6 +1234,8 @@ AACube EntityItem::getMinimumAACube(bool& success) const {
             _minAACube = AACube(cornerOfCube, longestSide);
             _recalcMinAACube = false;
         }
+    } else {
+        success = true;
     }
     return _minAACube;
 }
