@@ -16,7 +16,7 @@
 namespace controller {
 
     Pose::Pose(const vec3& translation, const quat& rotation,
-            const vec3& velocity, const quat& angularVelocity) :
+            const vec3& velocity, const vec3& angularVelocity) :
             translation(translation), rotation(rotation), velocity(velocity), angularVelocity(angularVelocity), valid (true) { }
 
     bool Pose::operator==(const Pose& right) const {
@@ -26,7 +26,7 @@ namespace controller {
         }
 
         // FIXME add margin of error?  Or add an additional withinEpsilon function?
-        return translation == right.getTranslation() && rotation == right.getRotation() && 
+        return translation == right.getTranslation() && rotation == right.getRotation() &&
             velocity == right.getVelocity() && angularVelocity == right.getAngularVelocity();
     }
 
@@ -35,7 +35,7 @@ namespace controller {
         obj.setProperty("translation", vec3toScriptValue(engine, pose.translation));
         obj.setProperty("rotation", quatToScriptValue(engine, pose.rotation));
         obj.setProperty("velocity", vec3toScriptValue(engine, pose.velocity));
-        obj.setProperty("angularVelocity", quatToScriptValue(engine, pose.angularVelocity));
+        obj.setProperty("angularVelocity", vec3toScriptValue(engine, pose.angularVelocity));
         obj.setProperty("valid", pose.valid);
 
         return obj;
