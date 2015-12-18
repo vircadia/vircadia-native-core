@@ -32,59 +32,63 @@ const int showNetworkStatusFlag = 2;
 
 class RenderContext {
 public:
-    struct ItemsConfig {
+    class ItemsConfig {
+    public:
         inline void setCounts(const ItemsConfig& items) {
-            _opaque.setCounts(items._opaque);
-            _transparent.setCounts(items._transparent);
-            _overlay3D.setCounts(items._overlay3D);
+            opaque.setCounts(items.opaque);
+            transparent.setCounts(items.transparent);
+            overlay3D.setCounts(items.overlay3D);
         };
 
-        struct Counter {
+        class Counter {
+        public:
             Counter() {};
             Counter(const Counter& counter) {
-                _numFeed = _numDrawn = 0;
-                _maxDrawn = counter._maxDrawn;
+                numFeed = numDrawn = 0;
+                maxDrawn = counter.maxDrawn;
             };
 
             inline void setCounts(const Counter& counter) {
-                _numFeed = counter._numFeed;
-                _numDrawn = counter._numDrawn;
+                numFeed = counter.numFeed;
+                numDrawn = counter.numDrawn;
             };
 
-            int _numFeed = 0;
-            int _numDrawn = 0;
-            int _maxDrawn = -1;
+            int numFeed = 0;
+            int numDrawn = 0;
+            int maxDrawn = -1;
         };
 
-        struct State : public Counter {
-            bool _render = true;
-            bool _cull = true;
-            bool _sort = true;
+        class State : public Counter {
+        public:
+            bool render = true;
+            bool cull = true;
+            bool sort = true;
 
-            Counter _counter{};
+            Counter counter{};
         };
 
-        // TODO: Store state/counter in a map instead of manually enumerated members
-        State _opaque{};
-        State _transparent{};
-        Counter _overlay3D{};
+        // TODO: If member count increases, store counters in a map instead of multiple members
+        State opaque{};
+        State transparent{};
+        Counter overlay3D{};
     };
 
-    struct Tone {
-        int _toneCurve = 3;
-        float _exposure = 0.0;
+    class Tone {
+    public:
+        int toneCurve = 3;
+        float exposure = 0.0;
     };
     
     RenderContext(RenderArgs* args, ItemsConfig items, Tone tone) : _args{args}, _items{items}, _tone{tone} {};
     RenderContext() : RenderContext(nullptr, {}, {}) {};
 
     inline RenderArgs* getArgs() { return _args; }
+    inline ItemsConfig& getItemsConfig() { return _items; }
+    inline Tone& getTone() { return _tone; }
     inline int getDrawStatus() { return _drawStatus; }
     inline bool getDrawHitEffect() { return _drawHitEffect; }
     inline bool getOcclusionStatus() { return _occlusionStatus; }
     inline bool getFxaaStatus() { return _fxaaStatus; }
-    inline ItemsConfig& getItemsConfig() { return _items; }
-    inline Tone& getTone() { return _tone; }
     void setOptions(int drawStatus, bool drawHitEffect, bool occlusion, bool fxaa, bool showOwned);
 
     // Debugging

@@ -15,18 +15,18 @@ RenderScriptingInterface::RenderScriptingInterface() {};
 
 void RenderScriptingInterface::setEngineToneMappingToneCurve(const QString& toneCurve) {
     if (toneCurve == QString("None")) {
-        _tone._toneCurve = 0;
+        _tone.toneCurve = 0;
     } else if (toneCurve == QString("Gamma22")) {
-        _tone._toneCurve = 1;
+        _tone.toneCurve = 1;
     } else if (toneCurve == QString("Reinhard")) {
-        _tone._toneCurve = 2;
+        _tone.toneCurve = 2;
     } else if (toneCurve == QString("Filmic")) {
-        _tone._toneCurve = 3;
+        _tone.toneCurve = 3;
     }
 }
 
 QString RenderScriptingInterface::getEngineToneMappingToneCurve() const {
-    switch (_tone._toneCurve) {
+    switch (_tone.toneCurve) {
     case 0:
         return QString("None");
     case 1:
