@@ -64,13 +64,9 @@ void ToneMappingEffect::init() {
         out vec4 outFragColor;
         
         void main(void) {
-            vec4 fragColorRaw = textureLod(colorMap, varTexCoord0, 0);
+            vec4 fragColorRaw = texture(colorMap, varTexCoord0);
             vec3 fragColor = fragColorRaw.xyz;
-/*
-           vec4 fragColorAverage = textureLod(colorMap, varTexCoord0, 10);
-            float averageIntensity = length(fragColorAverage.xyz);
-            fragColor /= averageIntensity;
-*/
+
             vec3 srcColor = fragColor * getTwoPowExposure();
 
             int toneCurve = getToneCurve();
@@ -124,7 +120,8 @@ void ToneMappingEffect::render(RenderArgs* args) {
         auto destFbo = framebufferCache->getPrimaryFramebuffer();
         batch.setFramebuffer(destFbo);
 
-        batch.generateTextureMips(lightingBuffer);
+        // FIXME: Generate the Luminosity map
+        //batch.generateTextureMips(lightingBuffer);
 
         batch.setViewportTransform(args->_viewport);
         batch.setProjectionTransform(glm::mat4());
