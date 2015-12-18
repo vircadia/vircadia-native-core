@@ -63,7 +63,7 @@ mapping.from(function() {
             translation: translation,
             rotation: rotation,
             velocity: { x: 0, y: 0, z: 0 },
-            angularVelocity: { x: 0, y: 0, z: 0, w: 1 }
+            angularVelocity: { x: 0, y: 0, z: 0 }
         };
     return pose;
 }).debug(true).to(Controller.Standard.LeftHand);

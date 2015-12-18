@@ -53,7 +53,7 @@ namespace controller {
             vec3FromScriptValue(translation, pose.translation);
             quatFromScriptValue(rotation, pose.rotation);
             vec3FromScriptValue(velocity, pose.velocity);
-            quatFromScriptValue(angularVelocity, pose.angularVelocity);
+            vec3FromScriptValue(angularVelocity, pose.angularVelocity);
             pose.valid = true;
         } else {
             pose.valid = false;
