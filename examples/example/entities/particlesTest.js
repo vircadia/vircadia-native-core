@@ -71,6 +71,7 @@
                 Entities.editEntity(particles, {
                     radiusSpread: 0.0,
                     radiusStart: 0.0,
+                    particleRadius: 2 * PARTICLE_RADIUS,  // Bezier interpolation used means that middle value isn't intersected
                     radiusFinish: 0.0
                 });
                 break;
@@ -78,6 +79,7 @@
                 print("Alpha 0.5");
                 Entities.editEntity(particles, {
                     radiusStart: PARTICLE_RADIUS,
+                    particleRadius: PARTICLE_RADIUS,
                     radiusFinish: PARTICLE_RADIUS,
                     alpha: 0.5
                 });
