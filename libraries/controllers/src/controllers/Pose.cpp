@@ -42,7 +42,6 @@ namespace controller {
     }
 
     void Pose::fromScriptValue(const QScriptValue& object, Pose& pose) {
-        bool isValid = true;
         auto translation = object.property("translation");
         auto rotation = object.property("rotation");
         auto velocity = object.property("velocity");
