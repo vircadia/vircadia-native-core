@@ -54,14 +54,17 @@ if (argv.localDebugBuilds || argv.localReleaseBuilds) {
 // initialization and is ready to create browser windows.
 app.on('ready', function() {
     // Create tray icon
-    appIcon = new Tray(TRAY_ICON);
-    appIcon.setToolTip('High Fidelity Console');
+    tray = new Tray(TRAY_ICON);
+    tray.setToolTip('High Fidelity Console');
     var contextMenu = Menu.buildFromTemplate([{
         label: 'Quit',
         accelerator: 'Command+Q',
         click: function() { app.quit(); }
     }]);
-    appIcon.setContextMenu(contextMenu);
+    tray.setContextMenu(contextMenu);
+
+    // Require electron-compile to use LESS files in place of basic CSS
+    require('electron-compile').init();
 
     // Create the browser window.
     mainWindow = new BrowserWindow({width: 800, height: 600, icon: APP_ICON});

@@ -1,5 +1,5 @@
 ready = function() {
-    window.$ = require('./jquery');
+    window.$ = require('./vendor/jquery/jquery-2.1.4.min.js');
 
     const ipcRenderer = require('electron').ipcRenderer;
 

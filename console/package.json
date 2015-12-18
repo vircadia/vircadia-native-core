@@ -8,6 +8,7 @@
     ""
   ],
   "devDependencies": {
+    "electron-compilers": "^1.0.1",
     "electron-packager": "^5.1.1",
     "electron-prebuilt": "0.36.0"
   },
@@ -24,7 +25,8 @@
     "package-linux": "electron-packager . Console --overwrite --platform=linux --arch=x64 --version=0.36.0"
   },
   "dependencies": {
-    "yargs": "^3.30.0",
-    "extend": "^3.0.0"
+    "electron-compile": "^1.0.2",
+    "extend": "^3.0.0",
+    "yargs": "^3.30.0"
   }
 }
