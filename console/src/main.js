@@ -55,7 +55,7 @@ if (argv.localDebugBuilds || argv.localReleaseBuilds) {
 app.on('ready', function() {
     // Create tray icon
     tray = new Tray(TRAY_ICON);
-    tray.setToolTip('High Fidelity Console');
+    tray.setToolTip('High Fidelity');
     var contextMenu = Menu.buildFromTemplate([{
         label: 'Quit',
         accelerator: 'Command+Q',
@@ -68,6 +68,7 @@ app.on('ready', function() {
 
     // Create the browser window.
     mainWindow = new BrowserWindow({
+        title: "High Fidelity",
         width: 800,
         height: 600,
         icon: APP_ICON,
