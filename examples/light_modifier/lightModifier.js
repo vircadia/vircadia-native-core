@@ -22,10 +22,13 @@ var selectionDisplay;
 var selectionManager;
 var lightOverlayManager;
 
+//for when we make a block parent for the light
+var PARENT_SCRIPT_URL = Script.resolvePath('lightParent.js?' + Math.random(0 - 100));
+
 if (SHOW_OVERLAYS === true) {
 
     Script.include('../libraries/gridTool.js');
-    Script.include('../libraries/entitySelectionTool.js?'+Math.random(0-100));
+    Script.include('../libraries/entitySelectionTool.js?' + Math.random(0 - 100));
     Script.include('../libraries/lightOverlayManager.js');
 
     var grid = Grid();
@@ -90,8 +93,8 @@ var WHITE = {
 
 var ORANGE = {
     red: 255,
-    green: 0,
-    blue: 128
+    green: 165,
+    blue: 0
 }
 
 var SLIDER_DIMENSIONS = {
@@ -99,6 +102,18 @@ var SLIDER_DIMENSIONS = {
     y: 0.075,
     z: 0.075
 };
+
+var CLOSE_BUTTON_DIMENSIONS ={
+    x:0.1,
+    y:0.1,
+    z:0.1
+}
+
+var LIGHT_MODEL_DIMENSIONS={
+    x:0.04,
+    y:0.04,
+    z:0.09
+}
 
 var PER_ROW_OFFSET = {
     x: 0,
@@ -348,7 +363,6 @@ var light = null;
 
 function makeSliders(light) { //  selectionManager.setSelections([entityID]);
 
-
     if (light.type === 'spotlight') {
         var USE_COLOR_SLIDER = true;
         var USE_INTENSITY_SLIDER = true;
@@ -383,8 +397,24 @@ function makeSliders(light) { //  selectionManager.setSelections([entityID]);
         slidersRef.exponent = new entitySlider(light, ORANGE, 'exponent', 6);
         sliders.push(slidersRef.exponent);
     }
+
+    var closeButtonPosition;
+
+    createCloseButton(closeButtonPosition);
     subscribeToSliderMessages();
 };
+
+function createCloseButton(position){
+    var buttonProperties = {
+        type:'Model',
+        modelURL:CLOSE_BUTTON_MODEL_URL,
+        dimensions:CLOSE_BUTTON_DIMENSIONS,
+        position:position,
+        rotation:Quat.fromPitchYawRollDegrees(90,0,0);
+    }
+
+    var button = Entities.addEntity(buttonProperties);
+}
 
 function subScribeToNewLights() {
     Messages.subscribe('Hifi-Light-Mod-Receiver');
@@ -395,6 +425,12 @@ function subscribeToSliderMessages() {
     Messages.subscribe('Hifi-Slider-Value-Reciever');
     Messages.messageReceived.connect(handleValueMessages);
 }
+
+function subscribeToLightOverlayRayCheckMessages() {
+    Messages.subscribe('Hifi-Light-Overlay-Ray-Check');
+    Messages.messageReceived.connect(handleLightOverlayRayCheckMessages);
+}
+
 
 function handleLightModMessages(channel, message, sender) {
     if (channel !== 'Hifi-Light-Mod-Receiver') {
@@ -425,6 +461,86 @@ function handleValueMessages(channel, message, sender) {
     slidersRef[parsedMessage.sliderType].setValueFromMessage(parsedMessage);
 }
 
+var currentLight;
+
+function handleLightOverlayRayCheckMessages(channel, message, sender) {
+    if (channel !== 'Hifi-Light-Overlay-Ray-Check') {
+        return;
+    }
+    if (ONLY_I_CAN_EDIT === true && sender !== MyAvatar.sessionUUID) {
+        return;
+    }
+
+    print('RAY CHECK GOT MESSAGE::' + message);
+    var pickRay = JSON.parse(message);
+
+    var doesIntersect = lightOverlayManager.findRayIntersection(pickRay);
+    print('DOES INTERSECT A LIGHT WE HAVE???' + doesIntersect.intersects);
+    if (doesIntersect.intersects === true) {
+        print('FULL MESSAGE:::' + JSON.stringify(doesIntersect))
+
+        var lightID = doesIntersect.entityID;
+        if (currentLight === lightID) {
+            print('ALREADY HAVE A BLOCK, EXIT')
+            return;
+        }
+        print('LIGHT ID::' + lightID);
+        currentLight = lightID;
+        var lightProperties = Entities.getEntityProperties(lightID);
+        var block = createBlock(lightProperties.position);
+
+        var light = {
+            id: lightID,
+            type: 'spotlight',
+            initialProperties: lightProperties
+        }
+
+        makeSliders(light);
+        print('AFTER MAKE SLIDERS')
+        if (SHOW_LIGHT_VOLUME === true) {
+            selectionManager.setSelections([lightID]);
+            print('SET SELECTIOIO MANAGER TO::: '+ lightID);
+            print('hasSelection???' + selectionManager.hasSelection())
+        }
+        print('BLOCK IS:::' + block);
+        Entities.editEntity(lightID, {
+            parentID: block
+        });
+
+
+    }
+}
+function createBlock(position) {
+    print('CREATE BLOCK')
+
+    var blockProperties = {
+        name: 'Hifi-Spotlight-Block',
+        type: 'Box',
+        dimensions: {
+            x: 1,
+            y: 1,
+            z: 1
+        },
+        collisionsWillMove: true,
+        color: {
+            red: 0,
+            green: 0,
+            blue: 255
+        },
+        position: position,
+        script: PARENT_SCRIPT_URL,
+        userData: JSON.stringify({
+            handControllerKey: {
+                disableReleaseVelocity: true
+            }
+        })
+    };
+
+    var block = Entities.addEntity(blockProperties);
+
+    return block
+}
+
 function cleanup() {
     var i;
     for (i = 0; i < sliders.length; i++) {
@@ -440,7 +556,6 @@ function cleanup() {
 }
 
 Script.scriptEnding.connect(cleanup);
-subScribeToNewLights();
 
 function deleteEntity(entityID) {
     if (entityID === light) {
@@ -448,60 +563,10 @@ function deleteEntity(entityID) {
     }
 }
 
-
-
 Entities.deletingEntity.connect(deleteEntity);
 
-// search for lights to make grabbable
-
-// var USE_DEBOUNCE = true;
-// var sinceLastUpdate = 0;
-
-// function searchForLightsToVisualize() {
-
-//     var deltaTime = interval();
-
-//     if (USE_DEBOUNCE === true) {
-//         sinceLastUpdate = sinceLastUpdate + deltaTime;
-
-//         if (sinceLastUpdate > 60) {
-//             sinceLastUpdate = 0;
-//         } else {
-//             return;
-//         }
-//     }
-
-//     print('SEARCHING FOR LIGHTS');
-
-//     var entitites = Entities.findEntities(MyAvatar.position, 50);
-//     for (i = 0; i < entities.length; i++) {
-//         var entityProperties = Entities.getEntityProperties(entities[i], ['type', 'parentID'])
-//         var parentID = entityProperties.parentID;
-//         var type = entityProperties.type;
-
-//         if (type !== 'Light') {
-//             return;
-//         }
-
-//         if (type === "Light" && parentID !== DEFAULT_PARENT_ID && parentID !== null) {
-//             var light = entities[i];
-//             //do something with the light.
-//         }
-
-//     }
-
-// }
-
-// function interval() {
-//     var lastTime = new Date().getTime();
-
-//     return function getInterval() {
-//         var newTime = new Date().getTime();
-//         var delta = newTime - lastTime;
-//         lastTime = newTime;
-//         return delta;
-//     };
-// }
+subscribeToLightOverlayRayCheckMessages();
+subScribeToNewLights();
 
 
 

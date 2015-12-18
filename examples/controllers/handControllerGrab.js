@@ -517,7 +517,7 @@ function MyController(hand) {
             }
 
             var intersection = Entities.findRayIntersection(pickRayBacked, true);
-
+            Messages.sendMessage('Hifi-Light-Overlay-Ray-Check', JSON.stringify(pickRayBacked));
             if (intersection.intersects) {
                 // the ray is intersecting something we can move.
                 var intersectionDistance = Vec3.distance(pickRay.origin, intersection.intersection);

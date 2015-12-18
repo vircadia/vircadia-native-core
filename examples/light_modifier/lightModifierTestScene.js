@@ -19,7 +19,10 @@ var light, block;
 
 function createLight() {
   var blockProperties = Entities.getEntityProperties(block, ["position", "rotation"]);
-  var lightTransform = evalLightWorldTransform(blockProperties.position, blockProperties.rotation);
+    var position = basePosition;
+  position.y += 3;
+  var lightTransform = evalLightWorldTransform(position,avatarRot);
+ // var lightTransform = evalLightWorldTransform(blockProperties.position, blockProperties.rotation);
   var lightProperties = {
     name: 'Hifi-Spotlight',
     type: "Light",
@@ -29,7 +32,7 @@ function createLight() {
       y: 2,
       z: 8
     },
-    parentID: block,
+   // parentID: block,
     color: {
       red: 255,
       green: 0,
@@ -53,7 +56,7 @@ function createLight() {
     }
   };
 
-  Messages.sendMessage('Hifi-Light-Mod-Receiver', JSON.stringify(message));
+//  Messages.sendMessage('Hifi-Light-Mod-Receiver', JSON.stringify(message));
 
 }
 
@@ -104,11 +107,11 @@ function evalLightWorldTransform(modelPos, modelRot) {
 }
 
 function cleanup() {
-  Entities.deleteEntity(block);
+  //Entities.deleteEntity(block);
   Entities.deleteEntity(light);
 }
 
 Script.scriptEnding.connect(cleanup);
 
-createBlock();
+//createBlock();
 createLight();

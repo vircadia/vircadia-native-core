@@ -20,7 +20,6 @@ SPACE_WORLD = "world";
 SelectionManager = (function() {
     var that = {};
 
-
     function subscribeToUpdateMessages() {
         Messages.subscribe('entityToolUpdates');
         Messages.messageReceived.connect(handleEntitySelectionToolUpdates);

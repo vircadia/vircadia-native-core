@@ -18,7 +18,6 @@
 
                 LightParent.prototype = {
                     preload: function(entityID) {
-                        print('LIGHT PARENT SCRIPT GO')
                         this.entityID = entityID;
                         var entityProperties = Entities.getEntityProperties(this.entityID, "userData");
                         this.initialProperties = entityProperties
@@ -32,7 +31,6 @@
                         this.continueDistantGrab();
                     },
                     continueDistantGrab: function() {
-                        print('distant grab, should send message!')
                         Messages.sendMessage('entityToolUpdates', 'callUpdate');
                     },
 
