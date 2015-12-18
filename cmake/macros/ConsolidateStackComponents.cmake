@@ -11,10 +11,10 @@ macro(CONSOLIDATE_STACK_COMPONENTS)
       # Copy icon files for interface and stack manager
       if (TARGET_NAME STREQUAL "interface" OR TARGET_NAME STREQUAL "stack-manager")
         if (TARGET_NAME STREQUAL "interface")
-          set (ICON_FILE_PATH "${PROJECT_SOURCE_DIR}/icon/interface.ico")
+          set (ICON_FILE_PATH "${PROJECT_SOURCE_DIR}/icon/${INTERFACE_ICON}")
           set (ICON_DESTINATION_NAME "interface.ico")
         elseif (TARGET_NAME STREQUAL "stack-manager")
-          set (ICON_FILE_PATH "${PROJECT_SOURCE_DIR}/assets/icon.ico")
+          set (ICON_FILE_PATH "${PROJECT_SOURCE_DIR}/assets/${STACK_MANAGER_ICON}")
           set (ICON_DESTINATION_NAME "stack-manager.ico")
         endif ()
         add_custom_command(
