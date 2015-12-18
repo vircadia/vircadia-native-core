@@ -60,7 +60,7 @@
                 });
                 break;
             case 3:
-                print("Radius spread");
+                print("Radius spread - temporarily not working");
                 Entities.editEntity(particles, {
                     accelerationSpread: { x: 0.0, y: 0.0, z: 0.0 },
                     radiusSpread: 0.035
@@ -83,7 +83,7 @@
                 });
                 break;
             case 6:
-                print("Alpha spread");
+                print("Alpha spread - temporarily not working");
                 Entities.editEntity(particles, {
                     alpha: 0.5,
                     alphaSpread: 0.5
@@ -99,7 +99,7 @@
                 });
                 break;
             case 8:
-                print("Color spread");
+                print("Color spread - temporarily not working");
                 Entities.editEntity(particles, {
                     alpha: 1.0,
                     alphaStart: 1.0,
