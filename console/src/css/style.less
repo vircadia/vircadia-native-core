@@ -1,14 +1,9 @@
 @light-gray: #949494;
 
-// the following two blocks avoid the bounce effect on OS X when scrolling
+// the following block avoids (only with two things in body) the bounce effect on OS X when scrolling
 html {
     overflow: hidden;
     height: 100%;
-}
-
-body {
-    height: 100%;
-    overflow: auto;
 }
 
 @font-face {
@@ -19,9 +14,12 @@ body {
 }
 
 body {
+    height: 100%;
+    overflow: auto;
     font-family: 'Raleway', sans-serif;
     padding: 50px 75px 10px 75px;
     background-image: url('../images/background.jpg');
+    letter-spacing: 2px;
 }
 
 .light-gray {
@@ -40,37 +38,64 @@ header {
     height: 200px;
     color: white;
 
-    #navigation, #servers {
+    h4 {
+        font-size: 14px;
+    }
+
+    p {
+        font-size: 12px;
+    }
+
+    #navigation, #servers, .tray-line {
         display: inline-block;
-        width: 50%;
+        float: left;
+        margin-right: 20px;
+    }
+
+    .tray-line {
+        background-color: @light-gray;
+        width: 1px;
+        height: 165px;
+        margin-top: 45px;
     }
 
     #servers {
-        float: right;
+        h4 {
+            margin-left: 14px;
+        }
+
+        margin-left: 20px;
+        img {
+            position: relative;
+            top: -5px;
+            width: 125px;
+            height: 125px;
+        }
+    }
+
+    .tray-square {
+        width: 130px;
+        height: 130px;
+
+        display: flex;
+        justify-content: center;
+        align-items: center;
+    }
+
+    p {
+        text-align: center;
     }
 
     .nav-item {
         margin-right: 15px;
         float: left;
-        width: 100px;
-        height: 120px;
-
-        .nav-square {
-            width: 100px;
-            height: 100px;
-
-            display: flex;
-            justify-content: center;
-            align-items: center;
-        }
-
-        p {
-            text-align: center;
-        }
+        width: 130px;
+        height: 150px;
 
         &#nav-search {
             .nav-square {
                 background-color: @light-gray;
+                box-shadow: 0px 3px 3px #000000;
             }
         }
 
