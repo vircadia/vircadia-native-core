@@ -1153,6 +1153,14 @@
                         resetMe: true
                     },
                     grabbableKey: {
+                        spatialKey: {
+                            relativePosition: {
+                                x: -0.05,
+                                y: 0,
+                                z: 0.0
+                            },
+                            relativeRotation: Quat.fromPitchYawRollDegrees(0, -90, -90)
+                        },
                         invertSolidWhileHeld: true
                     }
 

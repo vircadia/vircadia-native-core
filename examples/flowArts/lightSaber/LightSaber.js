@@ -44,6 +44,19 @@ LightSaber = function(spawnPosition) {
         })
     });
 
+    var light = Entities.addEntity({
+        type: 'Light',
+        name: "raveLight",
+        parentID: saberHandle,
+        dimensions: {
+            x: 30,
+            y: 30,
+            z: 30
+        },
+        color: {red: 200, green: 10, blue: 200},
+        intensity: 5
+    });
+
 
     function cleanup() {
         Entities.deleteEntity(saberHandle);
