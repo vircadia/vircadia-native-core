@@ -236,8 +236,14 @@ void Socket::readPendingDatagrams() {
         auto buffer = std::unique_ptr<char[]>(new char[packetSizeWithHeader]);
        
         // pull the datagram
-        _udpSocket.readDatagram(buffer.get(), packetSizeWithHeader,
-                                senderSockAddr.getAddressPointer(), senderSockAddr.getPortPointer());
+        auto sizeRead = _udpSocket.readDatagram(buffer.get(), packetSizeWithHeader,
+                                                senderSockAddr.getAddressPointer(), senderSockAddr.getPortPointer());
+
+        if (sizeRead <= 0) {
+            // we either didn't pull anything for this packet or there was an error reading (this seems to trigger
+            // on windows even if there's not a packet available)
+            continue;
+        }
         
         auto it = _unfilteredHandlers.find(senderSockAddr);
         
@@ -248,7 +254,7 @@ void Socket::readPendingDatagrams() {
                 it->second(std::move(basePacket));
             }
             
-            return;
+            continue;
         }
         
         // check if this was a control packet or a data packet
@@ -276,7 +282,7 @@ void Socket::readPendingDatagrams() {
                                                                   packet->getDataSize(),
                                                                   packet->getPayloadSize())) {
                         // the connection indicated that we should not continue processing this packet
-                        return;
+                        continue;
                     }
                 }
 
