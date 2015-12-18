@@ -1312,7 +1312,7 @@ void AttachmentData::fromJson(const QJsonObject& json) {
 
 bool AttachmentData::operator==(const AttachmentData& other) const {
     return modelURL == other.modelURL && jointName == other.jointName && translation == other.translation &&
-        rotation == other.rotation && scale == other.scale;
+        rotation == other.rotation && scale == other.scale && isSoft == other.isSoft;
 }
 
 QDataStream& operator<<(QDataStream& out, const AttachmentData& attachment) {
