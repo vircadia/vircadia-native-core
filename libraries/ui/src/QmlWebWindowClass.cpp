@@ -110,7 +110,7 @@ QScriptValue QmlWebWindowClass::constructor(QScriptContext* context, QScriptEngi
 }
 
 QmlWebWindowClass::QmlWebWindowClass(QObject* qmlWindow) 
-    : _isToolWindow(false), _windowId(++nextWindowId), _qmlWindow(qmlWindow)
+    : _windowId(++nextWindowId), _qmlWindow(qmlWindow)
 {
     qDebug() << "Created window with ID " << _windowId;
     Q_ASSERT(_qmlWindow);
@@ -128,7 +128,7 @@ void QmlWebWindowClass::setVisible(bool visible) {
         return;
     }
 
-    auto qmlWindow = (QQuickItem*)_qmlWindow;
+    auto qmlWindow = asQuickItem();
     if (qmlWindow->isEnabled() != visible) {
         qmlWindow->setEnabled(visible);
         emit visibilityChanged(visible);

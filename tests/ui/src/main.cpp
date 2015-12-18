@@ -26,8 +26,7 @@
 #include <QtGui/QResizeEvent>
 #include <QtGui/QScreen>
 
-#include <QtGui/QOpenGLContext>
-#include <QtGui/QOpenGLDebugLogger>
+#include <gl/QOpenGLContextWrapper.h>
 
 #include <QtScript/QScriptEngine>
 
@@ -403,7 +402,6 @@ private:
     std::atomic<bool> _isFinished { false };
     std::atomic<bool> _isRunning { false };
     bool _wantSignals { true };
-    bool _isThreaded { false };
     QHash<QTimer*, QScriptValue> _timerFunctionMap;
 };
 
@@ -423,7 +421,7 @@ Q_GUI_EXPORT void qt_gl_set_global_share_context(QOpenGLContext *context);
 class QTestWindow : public QWindow {
     Q_OBJECT
 
-    QOpenGLContext* _context{ nullptr };
+    QOpenGLContextWrapper* _context{ nullptr };
     QSize _size;
     bool _altPressed{ false };
     RateCounter fps;
@@ -450,7 +448,7 @@ public:
             setSurfaceType(QSurface::OpenGLSurface);
             QSurfaceFormat format = getDefaultOpenGLSurfaceFormat();
             setFormat(format);
-            _context = new QOpenGLContext;
+            _context = new QOpenGLContextWrapper();
             _context->setFormat(format);
             _context->setShareContext(_chromiumShareContext->getContext());
         }
@@ -463,18 +461,6 @@ public:
         show();
 
         makeCurrent();
-
-
-        {
-            qDebug() << (const char*)glGetString(GL_VERSION);
-            QOpenGLDebugLogger* logger = new QOpenGLDebugLogger(this);
-            logger->initialize(); // initializes in the current context, i.e. ctx
-            logger->enableMessages();
-            connect(logger, &QOpenGLDebugLogger::messageLogged, this, [&](const QOpenGLDebugMessage & debugMessage) {
-                qDebug() << debugMessage;
-            });
-            //logger->startLogging(QOpenGLDebugLogger::SynchronousLogging);
-        }
 
         glewExperimental = true;
         glewInit();
@@ -492,7 +478,7 @@ public:
 
         auto offscreenUi = DependencyManager::set<OffscreenUi>();
         {
-            offscreenUi->create(_context);
+            offscreenUi->create(_context->getContext());
             offscreenUi->setProxyWindow(this);
 
             connect(offscreenUi.data(), &OffscreenUi::textureUpdated, this, [this, offscreenUi](int textureId) {

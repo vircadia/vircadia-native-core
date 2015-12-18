@@ -93,9 +93,12 @@ private:
 
     QQuickItem* asQuickItem() const;
     QmlScriptEventBridge* const _eventBridge { new QmlScriptEventBridge(this) };
-    const bool _isToolWindow;
-    QObject* const _qmlWindow;
+
+    // FIXME needs to be initialized in the ctor once we have support
+    // for tool window panes in QML
+    const bool _isToolWindow { false };
     const int _windowId;
+    QObject* const _qmlWindow;
 };
 
 #endif
