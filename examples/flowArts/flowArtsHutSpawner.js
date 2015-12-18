@@ -25,10 +25,10 @@ var basePosition = Vec3.sum(MyAvatar.position, Vec3.multiply(1, Quat.getFront(Ca
 basePosition.y = MyAvatar.position.y + 1;
 
 // RAVE ITEMS
-var lightBall = new LightBall(basePosition);
+// var lightBall = new LightBall(basePosition);
 
-// var arcBall = new ArcBall(basePosition);
-// var arcBall2 = new ArcBall(Vec3.sum(basePosition, {x: -1, y: 0, z: 0}));
+var arcBall = new ArcBall(basePosition);
+var arcBall2 = new ArcBall(Vec3.sum(basePosition, {x: -1, y: 0, z: 0}));
 var raveStick = new RaveStick(Vec3.sum(basePosition, {x: 1, y: 0.5, z: 1}));
 var lightSaber = new LightSaber(Vec3.sum(basePosition, {x: 3, y: 0.5, z: 1}));
 
@@ -81,9 +81,9 @@ function cleanup() {
     Entities.deleteEntity(raveRoom);
     Entities.deleteEntity(lightZone);
     Entities.deleteEntity(floor);
-    lightBall.cleanup();
-    // arcBall.cleanup();
-    // arcBall2.cleanup();
+    // lightBall.cleanup();
+    arcBall.cleanup();
+    arcBall2.cleanup();
     raveStick.cleanup();
     lightSaber.cleanup();
 }

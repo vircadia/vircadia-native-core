@@ -26,7 +26,7 @@ ArcBall = function(spawnPosition) {
 
 
     var containerBall = Entities.addEntity({
-        type: "Sphere",
+        type: "Box",
         name: "Arc Ball",
         script: scriptURL,
         position: Vec3.sum(spawnPosition, {
@@ -37,7 +37,7 @@ ArcBall = function(spawnPosition) {
         dimensions: {
             x: .2,
             y: .2,
-            z: .2
+            z: .5
         },
         color: {
             red: 15,
@@ -53,13 +53,6 @@ ArcBall = function(spawnPosition) {
         // },
         userData: JSON.stringify({
             grabbableKey: {
-                spatialKey: {
-                    relativePosition: {
-                        x: 0,
-                        y: .1,
-                        z: 0
-                    }
-                },
                 invertSolidWhileHeld: true
             }
         })

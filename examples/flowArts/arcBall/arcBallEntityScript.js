@@ -42,7 +42,8 @@
                 dimensions: {x: .1, y: .1, z: 1},
                 color: {red: 200, green: 10, blue: 10},
                 position: startPosition,
-                rotation: emitOrientation
+                rotation: emitOrientation,
+                visible: false
             });
             var color = {
                 red: 200,
@@ -53,6 +54,8 @@
                 type: "ParticleEffect",
                 name: "Particle Arc",
                 parentID: this.entityID,
+                parentJointIndex: -1,
+                position: startPosition,
                 isEmitting: true,
                 colorStart: color,
                 color: {
