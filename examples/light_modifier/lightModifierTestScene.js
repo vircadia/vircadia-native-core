@@ -20,7 +20,7 @@ var light, block;
 function createLight() {
   var blockProperties = Entities.getEntityProperties(block, ["position", "rotation"]);
     var position = basePosition;
-  position.y += 3;
+  position.y += 2;
   var lightTransform = evalLightWorldTransform(position,avatarRot);
  // var lightTransform = evalLightWorldTransform(blockProperties.position, blockProperties.rotation);
   var lightProperties = {

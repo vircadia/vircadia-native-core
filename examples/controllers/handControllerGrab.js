@@ -842,7 +842,7 @@ function MyController(hand) {
                 this.currentObjectPosition = Vec3.sum(this.currentObjectPosition, change);
             }
         } else {
-            print('should not head move!');
+          //  print('should not head move!');
         }
 
 

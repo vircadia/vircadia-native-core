@@ -60,7 +60,7 @@ var CUTOFF_MAX = 360;
 var EXPONENT_MAX = 1;
 
 var SLIDER_SCRIPT_URL = Script.resolvePath('slider.js?' + Math.random(0, 100));
-var LIGHT_MODEL_URL = 'http://hifi-content.s3.amazonaws.com/james/light_modifier/source4_good.fbx';
+var LIGHT_MODEL_URL = 'http://hifi-content.s3.amazonaws.com/james/light_modifier/source4_rotated.fbx';
 var CLOSE_BUTTON_MODEL_URL = 'http://hifi-content.s3.amazonaws.com/james/light_modifier/red_x.fbx';
 var CLOSE_BUTTON_SCRIPT_URL = Script.resolvePath('closeButton.js?' + Math.random(0, 100));
 
@@ -108,14 +108,14 @@ var SLIDER_DIMENSIONS = {
 
 var CLOSE_BUTTON_DIMENSIONS = {
     x: 0.1,
-    y: 0.1,
+    y: 0.025,
     z: 0.1
 }
 
 var LIGHT_MODEL_DIMENSIONS = {
-    x: 0.68,
-    y: 0.68,
-    z: 1.54
+    x: 0.58,
+    y: 1.21,
+    z: 0.57
 }
 
 var PER_ROW_OFFSET = {
@@ -262,6 +262,7 @@ entitySlider.prototype = {
             color: this.color,
             position: sliderPosition,
             script: SLIDER_SCRIPT_URL,
+            ignoreForCollisions:true,
             userData: JSON.stringify({
                 lightModifierKey: {
                     lightID: this.lightID,
@@ -401,29 +402,34 @@ function makeSliders(light) {
         sliders.push(slidersRef.exponent);
     }
 
-    createCloseButton(7);
+    createCloseButton(slidersRef.exponent.endOfAxis);
 
     subscribeToSliderMessages();
 };
 
 var closeButtons = [];
 
-function createCloseButton(row) {
-    var avatarRot = Quat.fromPitchYawRollDegrees(0, MyAvatar.bodyYaw, 0.0);
-    var basePosition = Vec3.sum(MyAvatar.position, Vec3.multiply(1.5, Quat.getFront(avatarRot)));
-    var verticalOffset = Vec3.multiply(row, PER_ROW_OFFSET);
-    var downPosition = Vec3.sum(basePosition, verticalOffset);
-    var rightVector = Quat.getRight(avatarRot);
-    var extension = Vec3.multiply(AXIS_SCALE, rightVector);
-    var position = Vec3.sum(downPosition, extension);
+function createCloseButton(endOfAxis) {
+    // var avatarRot = Quat.fromPitchYawRollDegrees(0, MyAvatar.bodyYaw, 0.0);
+    // var basePosition = Vec3.sum(MyAvatar.position, Vec3.multiply(1.5, Quat.getFront(avatarRot)));
+    // var verticalOffset = Vec3.multiply(row, PER_ROW_OFFSET);
+    // var verticalOffset = lastRowVerticalOffset;
+    // var downPosition = Vec3.sum(basePosition, verticalOffset);
+    // var rightVector = Quat.getRight(avatarRot);
+    // var extension = Vec3.multiply(AXIS_SCALE, rightVector);
+    // var position = Vec3.sum(downPosition, extension);
 
     var buttonProperties = {
         name:'Hifi-Close-Button',
         type: 'Model',
         modelURL: CLOSE_BUTTON_MODEL_URL,
         dimensions: CLOSE_BUTTON_DIMENSIONS,
-        position: position,
-        rotation: Quat.fromPitchYawRollDegrees(90, 0, 0),
+        position: Vec3.sum(endOfAxis,{
+            x:0,
+            y:-0.15,
+            z:0
+        }),
+        rotation: Quat.fromPitchYawRollDegrees(0, 45, 90),
         collisionsWillMove: false
             //need to add wantsTrigger stuff so we can interact with it with our beamz
     }
@@ -440,7 +446,7 @@ function rotateCloseButtons() {
         Entities.editEntity(button, {
             angularVelocity: {
                 x: 0,
-                y: 0.25,
+                y: 0.5,
                 z: 0
             }
         })
@@ -519,8 +525,8 @@ function handleLightOverlayRayCheckMessages(channel, message, sender) {
 
         currentLight = lightID;
         var lightProperties = Entities.getEntityProperties(lightID);
-        block = createBlock(lightProperties.position);
-      //  block = createLightModel(lightProperties.position);
+      //   block = createBlock(lightProperties.position);
+        block = createLightModel(lightProperties.position);
 
         var light = {
             id: lightID,
@@ -532,12 +538,11 @@ function handleLightOverlayRayCheckMessages(channel, message, sender) {
 
         if (SHOW_LIGHT_VOLUME === true) {
             selectionManager.setSelections([lightID]);
-            print('SET SELECTIOIO MANAGER TO::: ' + lightID);
-            print('hasSelection???' + selectionManager.hasSelection())
         }
 
         Entities.editEntity(lightID, {
-            parentID: block
+            parentID: block,
+         parentJointIndex:-1
         });
 
 
@@ -551,10 +556,11 @@ function createLightModel(position) {
         type: 'Model',
         shapeType: 'box',
         modelURL: LIGHT_MODEL_URL,
+      //  modelURL:"http://hifi-content.s3.amazonaws.com/james/light_modifier/box4.fbx",
         dimensions: LIGHT_MODEL_DIMENSIONS,
         collisionsWillMove: true,
         position: position,
-        rotation: Quat.fromPitchYawRollDegrees(90, 0, 0),
+        // rotation: Quat.fromPitchYawRollDegrees(90, 0, 0),
         script: PARENT_SCRIPT_URL,
         userData: JSON.stringify({
             handControllerKey: {
@@ -576,7 +582,7 @@ function createBlock(position) {
         type: 'Box',
         dimensions: {
             x: 1,
-            y: 1,
+            y: 4,
             z: 1
         },
         color: {
@@ -604,6 +610,10 @@ function cleanup() {
     for (i = 0; i < sliders.length; i++) {
         Entities.deleteEntity(sliders[i].axis);
         Entities.deleteEntity(sliders[i].sliderIndicator);
+    }
+
+    while(closeButtons.length>0){
+        Entities.deleteEntity(closeButtons.pop());
     }
 
     Entities.deleteEntity(block);
