@@ -175,10 +175,10 @@ const gpu::PipelinePointer& AmbientOcclusion::getBlendPipeline() {
 }
 
 void AmbientOcclusion::run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext) {
-    assert(renderContext->args);
-    assert(renderContext->args->_viewFrustum);
+    assert(renderContext->getArgs());
+    assert(renderContext->getArgs()->_viewFrustum);
 
-    RenderArgs* args = renderContext->args;
+    RenderArgs* args = renderContext->getArgs();
     gpu::doInBatch(args->_context, [=](gpu::Batch& batch) {
         auto framebufferCache = DependencyManager::get<FramebufferCache>();
         QSize framebufferSize = framebufferCache->getFrameBufferSize();
