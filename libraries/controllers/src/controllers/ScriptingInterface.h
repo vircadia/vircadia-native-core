@@ -21,6 +21,7 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
 
+#include <QCursor>
 #include <QThread>
 #include <QtCore/QObject>
 #include <QtCore/QVariant>
@@ -87,6 +88,8 @@ namespace controller {
         Q_INVOKABLE QObject* parseMapping(const QString& json);
         Q_INVOKABLE QObject* loadMapping(const QString& jsonUrl);
 
+        Q_INVOKABLE glm::vec2 getReticlePosition() { return toGlm(QCursor::pos()); }
+        Q_INVOKABLE void setReticlePosition(glm::vec2 position) { QCursor::setPos(position.x, position.y); }
 
         //Q_INVOKABLE bool isPrimaryButtonPressed() const;
         //Q_INVOKABLE glm::vec2 getPrimaryJoystickPosition() const;
