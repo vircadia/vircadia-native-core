@@ -69,8 +69,8 @@ app.on('ready', function() {
     // Create the browser window.
     mainWindow = new BrowserWindow({
         title: "High Fidelity",
-        width: 800,
-        height: 600,
+        width: 1100,
+        height: 860,
         icon: APP_ICON,
         resizable: false
     });
