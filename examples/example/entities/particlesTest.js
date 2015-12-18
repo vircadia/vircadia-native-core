@@ -255,7 +255,6 @@
             textures: "https://hifi-public.s3.amazonaws.com/alan/Particles/Particle-Sprite-Smoke-1.png",
             color: { red: 255, green: 255, blue: 255 },
             lifespan: 5.0,
-            visible: false,
             locked: false,
             isEmitting: false,
             lifetime: 3600  // 1 hour; just in case
