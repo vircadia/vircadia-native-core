@@ -3017,8 +3017,7 @@ void Application::update(float deltaTime) {
                 getEntities()->update(); // update the models...
             }
 
-            myAvatar->harvestResultsFromPhysicsSimulation();
-            myAvatar->simulateAttachments(deltaTime);
+            myAvatar->harvestResultsFromPhysicsSimulation(deltaTime);
         }
     }
 

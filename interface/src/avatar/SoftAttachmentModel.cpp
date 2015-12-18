@@ -10,6 +10,7 @@
 //
 
 #include "SoftAttachmentModel.h"
+#include "InterfaceLogging.h"
 
 SoftAttachmentModel::SoftAttachmentModel(RigPointer rig, QObject* parent, RigPointer rigOverride) :
     Model(rig, parent),
@@ -55,7 +56,7 @@ void SoftAttachmentModel::updateClusterMatrices(glm::vec3 modelPosition, glm::qu
             // TODO: cache these look ups as an optimization
             int jointIndexOverride = getJointIndexOverride(cluster.jointIndex);
             glm::mat4 jointMatrix(glm::mat4::_null);
-            if (jointIndexOverride >= 0 && jointIndexOverride < getJointStateCount()) {
+            if (jointIndexOverride >= 0 && jointIndexOverride < _rigOverride->getJointStateCount()) {
                 jointMatrix = _rigOverride->getJointTransform(jointIndexOverride);
             } else {
                 jointMatrix = _rig->getJointTransform(cluster.jointIndex);

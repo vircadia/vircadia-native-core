@@ -42,6 +42,7 @@
 #include "Util.h"
 #include "world.h"
 #include "InterfaceLogging.h"
+#include "SoftAttachmentModel.h"
 #include <Rig.h>
 
 using namespace std;
@@ -108,9 +109,6 @@ Avatar::Avatar(RigPointer rig) :
 
 Avatar::~Avatar() {
     assert(_motionState == nullptr);
-    for(auto attachment : _unusedAttachments) {
-        delete attachment;
-    }
 }
 
 const float BILLBOARD_LOD_DISTANCE = 40.0f;
@@ -257,6 +255,8 @@ void Avatar::simulate(float deltaTime) {
     // until velocity is included in AvatarData update message.
     //_position += _velocity * deltaTime;
     measureMotionDerivatives(deltaTime);
+
+    simulateAttachments(deltaTime);
 }
 
 bool Avatar::isLookingAtMe(AvatarSharedPointer avatar) const {
@@ -324,7 +324,7 @@ bool Avatar::addToScene(AvatarSharedPointer self, std::shared_ptr<render::Scene>
     _skeletonModel.addToScene(scene, pendingChanges);
     getHead()->getFaceModel().addToScene(scene, pendingChanges);
 
-    for (auto attachmentModel : _attachmentModels) {
+    for (auto& attachmentModel : _attachmentModels) {
         attachmentModel->addToScene(scene, pendingChanges);
     }
 
@@ -335,7 +335,7 @@ void Avatar::removeFromScene(AvatarSharedPointer self, std::shared_ptr<render::S
     pendingChanges.removeItem(_renderItemID);
     _skeletonModel.removeFromScene(scene, pendingChanges);
     getHead()->getFaceModel().removeFromScene(scene, pendingChanges);
-    for (auto attachmentModel : _attachmentModels) {
+    for (auto& attachmentModel : _attachmentModels) {
         attachmentModel->removeFromScene(scene, pendingChanges);
     }
 }
@@ -565,15 +565,14 @@ void Avatar::fixupModelsInScene() {
         faceModel.removeFromScene(scene, pendingChanges);
         faceModel.addToScene(scene, pendingChanges);
     }
-    for (auto attachmentModel : _attachmentModels) {
+    for (auto& attachmentModel : _attachmentModels) {
         if (attachmentModel->isRenderable() && attachmentModel->needsFixupInScene()) {
             attachmentModel->removeFromScene(scene, pendingChanges);
             attachmentModel->addToScene(scene, pendingChanges);
         }
     }
-    for (auto attachmentModelToRemove : _attachmentsToRemove) {
+    for (auto& attachmentModelToRemove : _attachmentsToRemove) {
         attachmentModelToRemove->removeFromScene(scene, pendingChanges);
-        _unusedAttachments << attachmentModelToRemove;
     }
     _attachmentsToRemove.clear();
     scene->enqueuePendingChanges(pendingChanges);
@@ -603,21 +602,29 @@ bool Avatar::shouldRenderHead(const RenderArgs* renderArgs) const {
     return true;
 }
 
+// virtual
 void Avatar::simulateAttachments(float deltaTime) {
     for (int i = 0; i < _attachmentModels.size(); i++) {
         const AttachmentData& attachment = _attachmentData.at(i);
-        Model* model = _attachmentModels.at(i);
+        auto& model = _attachmentModels.at(i);
         int jointIndex = getJointIndex(attachment.jointName);
         glm::vec3 jointPosition;
         glm::quat jointRotation;
-        if (_skeletonModel.getJointPositionInWorldFrame(jointIndex, jointPosition) &&
-            _skeletonModel.getJointRotationInWorldFrame(jointIndex, jointRotation)) {
-            model->setTranslation(jointPosition + jointRotation * attachment.translation * getUniformScale());
-            model->setRotation(jointRotation * attachment.rotation);
-            model->setScaleToFit(true, getUniformScale() * attachment.scale, true); // hack to force rescale
-            model->setSnapModelToCenter(false); // hack to force resnap
-            model->setSnapModelToCenter(true);
+        if (attachment.isSoft) {
+            // soft attachments do not have transform offsets
+            model->setTranslation(getPosition());
+            model->setRotation(getOrientation() * Quaternions::Y_180);
             model->simulate(deltaTime);
+        } else {
+            if (_skeletonModel.getJointPositionInWorldFrame(jointIndex, jointPosition) &&
+                _skeletonModel.getJointRotationInWorldFrame(jointIndex, jointRotation)) {
+                model->setTranslation(jointPosition + jointRotation * attachment.translation * getUniformScale());
+                model->setRotation(jointRotation * attachment.rotation);
+                model->setScaleToFit(true, getUniformScale() * attachment.scale, true); // hack to force rescale
+                model->setSnapModelToCenter(false); // hack to force resnap
+                model->setSnapModelToCenter(true);
+                model->simulate(deltaTime);
+            }
         }
     }
 }
@@ -940,13 +947,48 @@ void Avatar::setSkeletonModelURL(const QUrl& skeletonModelURL) {
     _skeletonModel.setURL(_skeletonModelURL);
 }
 
+// create new model, can return an instance of a SoftAttachmentModel rather then Model
+static std::shared_ptr<Model> allocateAttachmentModel(bool isSoft, RigPointer rigOverride) {
+    if (isSoft) {
+        // cast to std::shared_ptr<Model>
+        return std::dynamic_pointer_cast<Model>(std::make_shared<SoftAttachmentModel>(std::make_shared<Rig>(), nullptr, rigOverride));
+    } else {
+        return std::make_shared<Model>(std::make_shared<Rig>());
+    }
+}
+
 void Avatar::setAttachmentData(const QVector<AttachmentData>& attachmentData) {
-    AvatarData::setAttachmentData(attachmentData);
     if (QThread::currentThread() != thread()) {
         QMetaObject::invokeMethod(this, "setAttachmentData", Qt::DirectConnection,
                                   Q_ARG(const QVector<AttachmentData>, attachmentData));
         return;
     }
+
+    auto oldAttachmentData = _attachmentData;
+    AvatarData::setAttachmentData(attachmentData);
+
+    // if number of attachments has been reduced, remove excess models.
+    while (_attachmentModels.size() > attachmentData.size()) {
+        auto attachmentModel = _attachmentModels.back();
+        _attachmentModels.pop_back();
+        _attachmentsToRemove.push_back(attachmentModel);
+    }
+
+    for (int i = 0; i < attachmentData.size(); i++) {
+        if (i == _attachmentModels.size()) {
+            // if number of attachments has been increased, we need to allocate a new model
+            _attachmentModels.push_back(allocateAttachmentModel(attachmentData[i].isSoft, _skeletonModel.getRig()));
+        }
+        else if (i < oldAttachmentData.size() && oldAttachmentData[i].isSoft != attachmentData[i].isSoft) {
+            // if the attachment has changed type, we need to re-allocate a new one.
+            _attachmentsToRemove.push_back(_attachmentModels[i]);
+            _attachmentModels[i] = allocateAttachmentModel(attachmentData[i].isSoft, _skeletonModel.getRig());
+        }
+        _attachmentModels[i]->setURL(attachmentData[i].modelURL);
+    }
+
+    // AJT: TODO REMOVE
+    /*
     // make sure we have as many models as attachments
     while (_attachmentModels.size() < attachmentData.size()) {
         Model* model = nullptr;
@@ -959,16 +1001,20 @@ void Avatar::setAttachmentData(const QVector<AttachmentData>& attachmentData) {
         _attachmentModels.append(model);
     }
     while (_attachmentModels.size() > attachmentData.size()) {
-        auto attachmentModel = _attachmentModels.takeLast();
-        _attachmentsToRemove << attachmentModel;
+        auto attachmentModel = _attachmentModels.back();
+        _attachmentModels.pop_back();
+        _attachmentsToRemove.push_back(attachmentModel);
     }
+    */
 
+    /*
     // update the urls
     for (int i = 0; i < attachmentData.size(); i++) {
         _attachmentModels[i]->setURL(attachmentData.at(i).modelURL);
         _attachmentModels[i]->setSnapModelToCenter(true);
         _attachmentModels[i]->setScaleToFit(true, getUniformScale() * _attachmentData.at(i).scale);
     }
+    */
 }
 
 void Avatar::setBillboard(const QByteArray& billboard) {

@@ -201,6 +201,11 @@ MyAvatar::~MyAvatar() {
     _lookAtTargetAvatar.reset();
 }
 
+// virtual
+void MyAvatar::simulateAttachments(float deltaTime) {
+    // don't update attachments here, do it in harvestResultsFromPhysicsSimulation()
+}
+
 QByteArray MyAvatar::toByteArray(bool cullSmallChanges, bool sendAll) {
     CameraMode mode = qApp->getCamera()->getMode();
     _globalPosition = getPosition();
@@ -621,6 +626,7 @@ void MyAvatar::saveData() {
         settings.setValue("rotation_y", eulers.y);
         settings.setValue("rotation_z", eulers.z);
         settings.setValue("scale", attachment.scale);
+        settings.setValue("isSoft", attachment.isSoft);
     }
     settings.endArray();
 
@@ -702,6 +708,7 @@ void MyAvatar::loadData() {
         eulers.z = loadSetting(settings, "rotation_z", 0.0f);
         attachment.rotation = glm::quat(eulers);
         attachment.scale = loadSetting(settings, "scale", 1.0f);
+        attachment.isSoft = settings.value("isSoft").toBool();
         attachmentData.append(attachment);
     }
     settings.endArray();
@@ -1057,7 +1064,7 @@ void MyAvatar::prepareForPhysicsSimulation() {
     _characterController.setFollowVelocity(_followVelocity);
 }
 
-void MyAvatar::harvestResultsFromPhysicsSimulation() {
+void MyAvatar::harvestResultsFromPhysicsSimulation(float deltaType) {
     glm::vec3 position = getPosition();
     glm::quat orientation = getOrientation();
     _characterController.getPositionAndOrientation(position, orientation);
@@ -1068,6 +1075,9 @@ void MyAvatar::harvestResultsFromPhysicsSimulation() {
     } else {
         setVelocity(_characterController.getLinearVelocity());
     }
+
+    // now that physics has adjusted our position, we can update attachements.
+    Avatar::simulateAttachments(deltaType);
 }
 
 void MyAvatar::adjustSensorTransform() {
@@ -1599,7 +1609,7 @@ void MyAvatar::maybeUpdateBillboard() {
     if (_billboardValid || !(_skeletonModel.isLoadedWithTextures() && getHead()->getFaceModel().isLoadedWithTextures())) {
         return;
     }
-    foreach (Model* model, _attachmentModels) {
+    for (auto& model : _attachmentModels) {
         if (!model->isLoadedWithTextures()) {
             return;
         }
