@@ -60,6 +60,8 @@ var CUTOFF_MAX = 360;
 var EXPONENT_MAX = 1;
 
 var SLIDER_SCRIPT_URL = Script.resolvePath('slider.js?' + Math.random(0, 100));
+var CLOSE_BUTTON_MODEL_URL = 'http://hifi-content.s3.amazonaws.com/james/light_modifier/red_x.fbx';
+var CLOSE_BUTTON_SCRIPT_URL = Script.resolvePath('closeButton.js?' + Math.random(0, 100));
 
 var RED = {
     red: 255,
@@ -103,16 +105,16 @@ var SLIDER_DIMENSIONS = {
     z: 0.075
 };
 
-var CLOSE_BUTTON_DIMENSIONS ={
-    x:0.1,
-    y:0.1,
-    z:0.1
+var CLOSE_BUTTON_DIMENSIONS = {
+    x: 0.1,
+    y: 0.1,
+    z: 0.1
 }
 
-var LIGHT_MODEL_DIMENSIONS={
-    x:0.04,
-    y:0.04,
-    z:0.09
+var LIGHT_MODEL_DIMENSIONS = {
+    x: 0.04,
+    y: 0.04,
+    z: 0.09
 }
 
 var PER_ROW_OFFSET = {
@@ -361,7 +363,7 @@ var slidersRef = {
 }
 var light = null;
 
-function makeSliders(light) { //  selectionManager.setSelections([entityID]);
+function makeSliders(light) {
 
     if (light.type === 'spotlight') {
         var USE_COLOR_SLIDER = true;
@@ -398,22 +400,50 @@ function makeSliders(light) { //  selectionManager.setSelections([entityID]);
         sliders.push(slidersRef.exponent);
     }
 
-    var closeButtonPosition;
+    createCloseButton(7);
 
-    createCloseButton(closeButtonPosition);
     subscribeToSliderMessages();
 };
 
-function createCloseButton(position){
+var closeButtons = [];
+
+function createCloseButton(row) {
+    var basePosition = Vec3.sum(MyAvatar.position, Vec3.multiply(1.5, Quat.getFront(this.avatarRot)));
+    var verticalOffset = Vec3.multiply(row, PER_ROW_OFFSET);
+    var downPosition = Vec3.sum(basePosition, verticalOffset);
+    var avatarRot = Quat.fromPitchYawRollDegrees(0, MyAvatar.bodyYaw, 0.0);
+    var rightVector = Quat.getRight(avatarRot);
+    var extension = Vec3.multiply(AXIS_SCALE, rightVector);
+    var position = Vec3.sum(downPosition, extension);
+
     var buttonProperties = {
-        type:'Model',
-        modelURL:CLOSE_BUTTON_MODEL_URL,
-        dimensions:CLOSE_BUTTON_DIMENSIONS,
-        position:position,
-        rotation:Quat.fromPitchYawRollDegrees(90,0,0);
+        type: 'Model',
+        modelURL: CLOSE_BUTTON_MODEL_URL,
+        dimensions: CLOSE_BUTTON_DIMENSIONS,
+        position: position,
+        rotation: Quat.fromPitchYawRollDegrees(90, 0, 0),
+        collisionsWillMove: false
+            //need to add wantsTrigger stuff so we can interact with it with our beamz
     }
 
     var button = Entities.addEntity(buttonProperties);
+
+    closeButtons.push(button);
+
+    Script.update.connect(rotateCloseButtons);
+}
+
+function rotateCloseButtons() {
+    closeButtons.forEach(function(button) {
+        Entities.editEntity(button, {
+            angularVelocity: {
+                x: 0,
+                y: 0.25,
+                z: 0
+            }
+        })
+
+    })
 }
 
 function subScribeToNewLights() {
@@ -471,7 +501,6 @@ function handleLightOverlayRayCheckMessages(channel, message, sender) {
         return;
     }
 
-    print('RAY CHECK GOT MESSAGE::' + message);
     var pickRay = JSON.parse(message);
 
     var doesIntersect = lightOverlayManager.findRayIntersection(pickRay);
@@ -484,7 +513,7 @@ function handleLightOverlayRayCheckMessages(channel, message, sender) {
             print('ALREADY HAVE A BLOCK, EXIT')
             return;
         }
-        print('LIGHT ID::' + lightID);
+
         currentLight = lightID;
         var lightProperties = Entities.getEntityProperties(lightID);
         var block = createBlock(lightProperties.position);
@@ -496,13 +525,13 @@ function handleLightOverlayRayCheckMessages(channel, message, sender) {
         }
 
         makeSliders(light);
-        print('AFTER MAKE SLIDERS')
+
         if (SHOW_LIGHT_VOLUME === true) {
             selectionManager.setSelections([lightID]);
-            print('SET SELECTIOIO MANAGER TO::: '+ lightID);
+            print('SET SELECTIOIO MANAGER TO::: ' + lightID);
             print('hasSelection???' + selectionManager.hasSelection())
         }
-        print('BLOCK IS:::' + block);
+
         Entities.editEntity(lightID, {
             parentID: block
         });
@@ -510,6 +539,7 @@ function handleLightOverlayRayCheckMessages(channel, message, sender) {
 
     }
 }
+
 function createBlock(position) {
     print('CREATE BLOCK')
 
@@ -553,6 +583,8 @@ function cleanup() {
     Entities.deletingEntity.disconnect(deleteEntity);
 
     lightOverlayManager.setVisible(false);
+    Script.update.disconnect(rotateCloseButtons);
+
 }
 
 Script.scriptEnding.connect(cleanup);

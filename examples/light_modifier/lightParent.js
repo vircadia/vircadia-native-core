@@ -1,14 +1,14 @@
-            //
-            //  slider.js
-            //
-            //  Created by James Pollack @imgntn on 12/15/2015
-            //  Copyright 2015 High Fidelity, Inc.
-            //
-            //  Entity script that sends a scaled value to a light based on its distance from the start of its constraint axis.
-            //
-            //  Distributed under the Apache License, Version 2.0.
-            //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
-            //
+//
+//  lightParent.js
+//
+//  Created by James Pollack @imgntn on 12/15/2015
+//  Copyright 2015 High Fidelity, Inc.
+//
+//  Entity script that tells the light parent to update the selection tool when we move it.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+//
 
             (function() {
 
