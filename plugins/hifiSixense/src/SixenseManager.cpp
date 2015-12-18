@@ -466,9 +466,10 @@ void SixenseManager::InputDevice::handlePoseEvent(float deltaTime, glm::vec3 pos
         samples.first.addSample(velocity);
         velocity = samples.first.average;
 
-        auto deltaRot = rotation * glm::conjugate(prevPose.getRotation());
+        auto deltaRot = glm::normalize(rotation * glm::conjugate(prevPose.getRotation()));
         auto axis = glm::axis(deltaRot);
         auto speed = glm::angle(deltaRot) / deltaTime;
+        assert(!glm::isnan(speed));
         angularVelocity = speed * axis;
         samples.second.addSample(angularVelocity);
         angularVelocity = samples.second.average;
