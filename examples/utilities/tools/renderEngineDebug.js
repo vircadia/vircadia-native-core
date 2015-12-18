@@ -50,46 +50,46 @@ function CounterWidget(parentPanel, name, feedGetter, drawGetter, capSetter, cap
 };
 
 var opaquesCounter = new CounterWidget(panel, "Opaques",
-    function () { return Scene.getEngineNumFeedOpaqueItems(); },
-    function () { return Scene.getEngineNumDrawnOpaqueItems(); },
-    function(value) {    Scene.setEngineMaxDrawnOpaqueItems(value); },
-    function () { return Scene.getEngineMaxDrawnOpaqueItems(); }
+    function () { return Render.getEngineNumFeedOpaqueItems(); },
+    function () { return Render.getEngineNumDrawnOpaqueItems(); },
+    function(value) {    Render.setEngineMaxDrawnOpaqueItems(value); },
+    function () { return Render.getEngineMaxDrawnOpaqueItems(); }
 );
 
 var transparentsCounter = new CounterWidget(panel, "Transparents",
-    function () { return Scene.getEngineNumFeedTransparentItems(); },
-    function () { return Scene.getEngineNumDrawnTransparentItems(); },
-    function(value) {    Scene.setEngineMaxDrawnTransparentItems(value); },
-    function () { return Scene.getEngineMaxDrawnTransparentItems(); }
+    function () { return Render.getEngineNumFeedTransparentItems(); },
+    function () { return Render.getEngineNumDrawnTransparentItems(); },
+    function(value) {    Render.setEngineMaxDrawnTransparentItems(value); },
+    function () { return Render.getEngineMaxDrawnTransparentItems(); }
 );
 
 var overlaysCounter = new CounterWidget(panel, "Overlays",
-    function () { return Scene.getEngineNumFeedOverlay3DItems(); },
-    function () { return Scene.getEngineNumDrawnOverlay3DItems(); },
-    function(value) {    Scene.setEngineMaxDrawnOverlay3DItems(value); },
-    function () { return Scene.getEngineMaxDrawnOverlay3DItems(); }
+    function () { return Render.getEngineNumFeedOverlay3DItems(); },
+    function () { return Render.getEngineNumDrawnOverlay3DItems(); },
+    function(value) {    Render.setEngineMaxDrawnOverlay3DItems(value); },
+    function () { return Render.getEngineMaxDrawnOverlay3DItems(); }
 );
 
 var resizing = false;
 var previousMode = Settings.getValue(SETTINGS_KEY, -1);
 Menu.addActionGroup(MENU, ACTIONS, ACTIONS[previousMode + 1]);
-Scene.setEngineDeferredDebugMode(previousMode);
-Scene.setEngineDeferredDebugSize({ x: 0.0, y: -1.0, z: 1.0, w: 1.0 }); // Reset to default size
+Render.setEngineDeferredDebugMode(previousMode);
+Render.setEngineDeferredDebugSize({ x: 0.0, y: -1.0, z: 1.0, w: 1.0 }); // Reset to default size
 
 function setEngineDeferredDebugSize(eventX) {
     var scaledX = (2.0 * (eventX / Window.innerWidth) - 1.0).clamp(-1.0, 1.0);
-    Scene.setEngineDeferredDebugSize({ x: scaledX, y: -1.0, z: 1.0, w: 1.0 });
+    Render.setEngineDeferredDebugSize({ x: scaledX, y: -1.0, z: 1.0, w: 1.0 });
 }
 function shouldStartResizing(eventX) {
-    var x = Math.abs(eventX - Window.innerWidth * (1.0 + Scene.getEngineDeferredDebugSize().x) / 2.0);
-    var mode = Scene.getEngineDeferredDebugMode();
+    var x = Math.abs(eventX - Window.innerWidth * (1.0 + Render.getEngineDeferredDebugSize().x) / 2.0);
+    var mode = Render.getEngineDeferredDebugMode();
     return mode !== -1 && x < 20;
 }
 
 function menuItemEvent(menuItem) {
     var index = ACTIONS.indexOf(menuItem);
     if (index >= 0) {
-        Scene.setEngineDeferredDebugMode(index - 1);
+        Render.setEngineDeferredDebugMode(index - 1);
     }
 }
 
@@ -98,24 +98,24 @@ var showDisplayStatusFlag = 1;
 var showNetworkStatusFlag = 2;
 
 panel.newCheckbox("Display status",
-    function(value) { Scene.setEngineDisplayItemStatus(value ?
-                                                       Scene.doEngineDisplayItemStatus() | showDisplayStatusFlag :
-                                                       Scene.doEngineDisplayItemStatus() & ~showDisplayStatusFlag); },
-    function() { return (Scene.doEngineDisplayItemStatus() & showDisplayStatusFlag) > 0; },
+    function(value) { Render.setEngineDisplayItemStatus(value ?
+                                                       Render.doEngineDisplayItemStatus() | showDisplayStatusFlag :
+                                                       Render.doEngineDisplayItemStatus() & ~showDisplayStatusFlag); },
+    function() { return (Render.doEngineDisplayItemStatus() & showDisplayStatusFlag) > 0; },
     function(value) { return (value & showDisplayStatusFlag) > 0; }
 );
 
 panel.newCheckbox("Network/Physics status",
-    function(value) { Scene.setEngineDisplayItemStatus(value ?
-                                                       Scene.doEngineDisplayItemStatus() | showNetworkStatusFlag :
-                                                       Scene.doEngineDisplayItemStatus() & ~showNetworkStatusFlag); },
-    function() { return (Scene.doEngineDisplayItemStatus() & showNetworkStatusFlag) > 0; },
+    function(value) { Render.setEngineDisplayItemStatus(value ?
+                                                       Render.doEngineDisplayItemStatus() | showNetworkStatusFlag :
+                                                       Render.doEngineDisplayItemStatus() & ~showNetworkStatusFlag); },
+    function() { return (Render.doEngineDisplayItemStatus() & showNetworkStatusFlag) > 0; },
     function(value) { return (value & showNetworkStatusFlag) > 0; }
 );
 
 panel.newSlider("Tone Mapping Exposure", -10, 10,
-    function (value) { Scene.setEngineToneMappingExposure(value); },
-    function() { return Scene.getEngineToneMappingExposure(); },
+    function (value) { Render.setEngineToneMappingExposure(value); },
+    function() { return Render.getEngineToneMappingExposure(); },
     function (value) { return (value); });
 
 var tickTackPeriod = 500;
@@ -160,9 +160,9 @@ Menu.menuItemEvent.connect(menuItemEvent);
 function scriptEnding() {
     panel.destroy();
     Menu.removeActionGroup(MENU);
-    Settings.setValue(SETTINGS_KEY, Scene.getEngineDeferredDebugMode());
-    Scene.setEngineDeferredDebugMode(-1);
-    Scene.setEngineDeferredDebugSize({ x: 0.0, y: -1.0, z: 1.0, w: 1.0 }); // Reset to default size
+    Settings.setValue(SETTINGS_KEY, Render.getEngineDeferredDebugMode());
+    Render.setEngineDeferredDebugMode(-1);
+    Render.setEngineDeferredDebugSize({ x: 0.0, y: -1.0, z: 1.0, w: 1.0 }); // Reset to default size
 }
 Script.scriptEnding.connect(scriptEnding);
 
