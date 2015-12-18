@@ -75,7 +75,7 @@ public:
 
     class Tone {
     public:
-        int toneCurve = 3;
+        int toneCurve = 1; // Means just Gamma 2.2 correction
         float exposure = 0.0;
     };
     
