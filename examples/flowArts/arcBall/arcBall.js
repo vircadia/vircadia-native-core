@@ -35,22 +35,17 @@ ArcBall = function(spawnPosition) {
             z: 0
         }),
         dimensions: {
-            x: .2,
-            y: .2,
-            z: .5
+            x: .1,
+            y: .1,
+            z: .2
         },
         color: {
             red: 15,
             green: 10,
             blue: 150
         },
-        mass: 10,
+        damping: 0.8,
         collisionsWillMove: true,
-        // gravity: {
-        //     x: 0,
-        //     y: -0.5,
-        //     z: 0
-        // },
         userData: JSON.stringify({
             grabbableKey: {
                 invertSolidWhileHeld: true

@@ -34,8 +34,10 @@
         createBeam: function(startPosition, endPosition) {
             print("CREATE BEAM")
                 // Creates particle arc from start position to end position
+            var rotation = Entities.getEntityProperties(this.entityID, "rotation").rotation;
             var sourceToTargetVec = Vec3.subtract(endPosition, startPosition);
             var emitOrientation = Quat.rotationBetween(Vec3.UNIT_Z, sourceToTargetVec);
+            emitOrientation = Quat.multiply(Quat.inverse(rotation), emitOrientation);
 
             testBox = Entities.addEntity({
                 type: "Box",
@@ -65,7 +67,7 @@
                 },
                 colorFinish: color,
                 maxParticles: 100000,
-                lifespan: 2,
+                lifespan: 6,
                 emitRate: 1000,
                 emitOrientation: emitOrientation,
                 emitSpeed: .4,
