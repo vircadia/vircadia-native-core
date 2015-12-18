@@ -13,10 +13,13 @@
 #include <GLMHelpers.h>
 #include <QtScript/QScriptValue>
 #include <QtQuick/QQuickItem>
+#include <QtWebChannel/QWebChannelAbstractTransport>
 
 class QScriptEngine;
 class QScriptContext;
 class QmlWebWindowClass;
+class QWebSocketServer;
+class QWebSocket;
 
 class QmlScriptEventBridge : public QObject {
     Q_OBJECT
@@ -33,6 +36,7 @@ signals:
 
 private:
     const QmlWebWindowClass* _webWindow { nullptr };
+    QWebSocket *_socket { nullptr };
 };
 
 // FIXME refactor this class to be a QQuickItem derived type and eliminate the needless wrapping 
@@ -84,9 +88,13 @@ private slots:
     void handleNavigation(const QString& url);
 
 private:
-    QmlScriptEventBridge* _eventBridge;
-    bool _isToolWindow { false };
-    QObject* _qmlWindow;
+    static void setupServer();
+    static QWebSocketServer* _webChannelServer;
+
+    QQuickItem* asQuickItem() const;
+    QmlScriptEventBridge* const _eventBridge { new QmlScriptEventBridge(this) };
+    const bool _isToolWindow;
+    QObject* const _qmlWindow;
     const int _windowId;
 };
 

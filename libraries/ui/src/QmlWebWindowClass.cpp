@@ -17,32 +17,23 @@
 #include <QtQuick/QQuickItem>
 
 #include <QtWebSockets/QWebSocketServer>
+#include <QtWebSockets/QWebSocket>
 #include <QtWebChannel/QWebChannel>
+#include <QtCore/QJsonDocument>
+#include <QtCore/QJsonObject>
 
 #include <AddressManager.h>
 #include <DependencyManager.h>
 
-#include "impl/websocketclientwrapper.h"
-#include "impl/websockettransport.h"
 #include "OffscreenUi.h"
 
-static QWebSocketServer * webChannelServer { nullptr };
-static WebSocketClientWrapper * webChannelClientWrapper { nullptr };
+QWebSocketServer* QmlWebWindowClass::_webChannelServer { nullptr };
 static QWebChannel webChannel;
-static std::once_flag webChannelSetup;
 static const uint16_t WEB_CHANNEL_PORT = 51016;
 static std::atomic<int> nextWindowId;
-
-void initWebChannelServer() {
-    std::call_once(webChannelSetup, [] {
-        webChannelServer = new QWebSocketServer("EventBridge Server", QWebSocketServer::NonSecureMode);
-        webChannelClientWrapper = new WebSocketClientWrapper(webChannelServer);
-        if (!webChannelServer->listen(QHostAddress::LocalHost, WEB_CHANNEL_PORT)) {
-                qFatal("Failed to open web socket server.");
-        }
-        QObject::connect(webChannelClientWrapper, &WebSocketClientWrapper::clientConnected, &webChannel, &QWebChannel::connectTo);
-    });
-}
+static const char* const URL_PROPERTY = "source";
+static const char* const TITLE_PROPERTY = "title";
+static const QRegExp HIFI_URL_PATTERN { "^hifi://" };
 
 void QmlScriptEventBridge::emitWebEvent(const QString& data) {
     QMetaObject::invokeMethod(this, "webEventReceived", Qt::QueuedConnection, Q_ARG(QString, data));
@@ -50,11 +41,49 @@ void QmlScriptEventBridge::emitWebEvent(const QString& data) {
 
 void QmlScriptEventBridge::emitScriptEvent(const QString& data) {
     QMetaObject::invokeMethod(this, "scriptEventReceived", Qt::QueuedConnection, 
-        Q_ARG(int, _webWindow->getWindowId()),
-        Q_ARG(QString, data)
-    );
+        Q_ARG(int, _webWindow->getWindowId()), Q_ARG(QString, data));
 }
 
+class QmlWebTransport : public QWebChannelAbstractTransport {
+    Q_OBJECT
+public:
+    QmlWebTransport(QWebSocket* webSocket) : _webSocket(webSocket) {
+        // Translate from the websocket layer to the webchannel layer
+        connect(webSocket, &QWebSocket::textMessageReceived, [this](const QString& message) {
+            QJsonParseError error;
+            QJsonDocument document = QJsonDocument::fromJson(message.toUtf8(), &error);
+            if (error.error || !document.isObject()) {
+                qWarning() << "Unable to parse incoming JSON message" << message;
+                return;
+            }
+            emit messageReceived(document.object(), this);
+        });
+    }
+
+    virtual void sendMessage(const QJsonObject &message) override {
+        // Translate from the webchannel layer to the websocket layer
+        _webSocket->sendTextMessage(QJsonDocument(message).toJson(QJsonDocument::Compact));
+    }
+
+private:
+    QWebSocket* const _webSocket;
+};
+
+
+void QmlWebWindowClass::setupServer() {
+    if (!_webChannelServer) {
+        _webChannelServer = new QWebSocketServer("EventBridge Server", QWebSocketServer::NonSecureMode);
+        if (!_webChannelServer->listen(QHostAddress::LocalHost, WEB_CHANNEL_PORT)) {
+            qFatal("Failed to open web socket server.");
+        }
+
+        QObject::connect(_webChannelServer, &QWebSocketServer::newConnection, [] {
+            webChannel.connectTo(new QmlWebTransport(_webChannelServer->nextPendingConnection()));
+        });
+    }
+}
+
+// Method called by Qt scripts to create a new web window in the overlay
 QScriptValue QmlWebWindowClass::constructor(QScriptContext* context, QScriptEngine* engine) {
     QmlWebWindowClass* retVal { nullptr };
     const QString title = context->argument(0).toString();
@@ -69,20 +98,19 @@ QScriptValue QmlWebWindowClass::constructor(QScriptContext* context, QScriptEngi
     QMetaObject::invokeMethod(DependencyManager::get<OffscreenUi>().data(), "load", Qt::BlockingQueuedConnection,
         Q_ARG(const QString&, "QmlWebWindow.qml"),
         Q_ARG(std::function<void(QQmlContext*, QObject*)>, [&](QQmlContext* context, QObject* object) {
-            initWebChannelServer();
+            setupServer();
             retVal = new QmlWebWindowClass(object);
             webChannel.registerObject(url.toLower(), retVal);
             retVal->setTitle(title);
             retVal->setURL(url);
             retVal->setSize(width, height);
-        })
-    );
+        }));
     connect(engine, &QScriptEngine::destroyed, retVal, &QmlWebWindowClass::deleteLater);
     return engine->newQObject(retVal);
 }
 
 QmlWebWindowClass::QmlWebWindowClass(QObject* qmlWindow) 
-    : _isToolWindow(false), _windowId(++nextWindowId), _eventBridge(new QmlScriptEventBridge(this)), _qmlWindow(qmlWindow)
+    : _isToolWindow(false), _windowId(++nextWindowId), _qmlWindow(qmlWindow)
 {
     qDebug() << "Created window with ID " << _windowId;
     Q_ASSERT(_qmlWindow);
@@ -93,7 +121,6 @@ QmlWebWindowClass::QmlWebWindowClass(QObject* qmlWindow)
 void QmlWebWindowClass::handleNavigation(const QString& url) {
     DependencyManager::get<AddressManager>()->handleLookupString(url);
 }
-
 
 void QmlWebWindowClass::setVisible(bool visible) {
     if (QThread::currentThread() != thread()) {
@@ -108,6 +135,10 @@ void QmlWebWindowClass::setVisible(bool visible) {
     }
 }
 
+QQuickItem* QmlWebWindowClass::asQuickItem() const {
+    return dynamic_cast<QQuickItem*>(_qmlWindow);
+}
+
 bool QmlWebWindowClass::isVisible() const {
     if (QThread::currentThread() != thread()) {
         bool result;
@@ -115,7 +146,7 @@ bool QmlWebWindowClass::isVisible() const {
         return result;
     }
 
-    return ((QQuickItem*)_qmlWindow)->isEnabled();
+    return asQuickItem()->isEnabled();
 }
 
 
@@ -126,7 +157,7 @@ glm::vec2 QmlWebWindowClass::getPosition() const {
         return result;
     }
 
-    return glm::vec2(((QQuickItem*)_qmlWindow)->x(), ((QQuickItem*)_qmlWindow)->y());
+    return glm::vec2(asQuickItem()->x(), asQuickItem()->y());
 }
 
 
@@ -136,7 +167,7 @@ void QmlWebWindowClass::setPosition(const glm::vec2& position) {
         return;
     }
 
-    ((QQuickItem*)_qmlWindow)->setPosition(QPointF(position.x, position.y));
+    asQuickItem()->setPosition(QPointF(position.x, position.y));
 }
 
 void QmlWebWindowClass::setPosition(int x, int y) {
@@ -150,7 +181,7 @@ glm::vec2 QmlWebWindowClass::getSize() const {
         return result;
     }
     
-    return glm::vec2(((QQuickItem*)_qmlWindow)->width(), ((QQuickItem*)_qmlWindow)->height());
+    return glm::vec2(asQuickItem()->width(), asQuickItem()->height());
 }
 
 void QmlWebWindowClass::setSize(const glm::vec2& size) {
@@ -158,14 +189,12 @@ void QmlWebWindowClass::setSize(const glm::vec2& size) {
         QMetaObject::invokeMethod(this, "setSize", Qt::QueuedConnection, Q_ARG(glm::vec2, size));
     }
 
-    ((QQuickItem*)_qmlWindow)->setSize(QSizeF(size.x, size.y));
+    asQuickItem()->setSize(QSizeF(size.x, size.y));
 }
 
 void QmlWebWindowClass::setSize(int width, int height) {
     setSize(glm::vec2(width, height));
 }
-
-static const char* const URL_PROPERTY = "source";
 
 QString QmlWebWindowClass::getURL() const { 
     if (QThread::currentThread() != thread()) {
@@ -183,7 +212,6 @@ void QmlWebWindowClass::setURL(const QString& urlString) {
     _qmlWindow->setProperty(URL_PROPERTY, urlString);
 }
 
-static const char* const TITLE_PROPERTY = "title";
 
 void QmlWebWindowClass::setTitle(const QString& title) {
     if (QThread::currentThread() != thread()) {
@@ -206,146 +234,7 @@ void QmlWebWindowClass::hasClosed() {
 }
 
 void QmlWebWindowClass::raise() {
+    // FIXME
 }
 
-#if 0
-
-#include <QtCore/QThread>
-
-#include <QtScript/QScriptEngine>
-
-WebWindowClass::WebWindowClass(const QString& title, const QString& url, int width, int height, bool isToolWindow)
-    : QObject(NULL), _eventBridge(new ScriptEventBridge(this)), _isToolWindow(isToolWindow) {
-    /*
-    if (_isToolWindow) {
-        ToolWindow* toolWindow = qApp->getToolWindow();
-
-        auto dockWidget = new QDockWidget(title, toolWindow);
-        dockWidget->setFeatures(QDockWidget::DockWidgetMovable);
-        connect(dockWidget, &QDockWidget::visibilityChanged, this, &WebWindowClass::visibilityChanged);
-
-        _webView = new QWebView(dockWidget);
-        addEventBridgeToWindowObject();
-
-        dockWidget->setWidget(_webView);
-
-        auto titleWidget = new QWidget(dockWidget);
-        dockWidget->setTitleBarWidget(titleWidget);
-
-        toolWindow->addDockWidget(Qt::TopDockWidgetArea, dockWidget, Qt::Horizontal);
-
-        _windowWidget = dockWidget;
-    } else {
-        auto dialogWidget = new QDialog(qApp->getWindow(), Qt::Window);
-        dialogWidget->setWindowTitle(title);
-        dialogWidget->resize(width, height);
-        dialogWidget->installEventFilter(this);
-        connect(dialogWidget, &QDialog::finished, this, &WebWindowClass::hasClosed);
-
-        auto layout = new QVBoxLayout(dialogWidget);
-        layout->setContentsMargins(0, 0, 0, 0);
-        dialogWidget->setLayout(layout);
-
-        _webView = new QWebView(dialogWidget);
-
-        layout->addWidget(_webView);
-
-        addEventBridgeToWindowObject();
-
-        _windowWidget = dialogWidget;
-    }
-
-    auto style = QStyleFactory::create("fusion");
-    if (style) {
-    _webView->setStyle(style);
-    }
-
-    _webView->setPage(new DataWebPage());
-    if (!url.startsWith("http") && !url.startsWith("file://")) {
-    _webView->setUrl(QUrl::fromLocalFile(url));
-    } else {
-    _webView->setUrl(url);
-    }
-    connect(this, &WebWindowClass::destroyed, _windowWidget, &QWidget::deleteLater);
-    connect(_webView->page()->mainFrame(), &QWebFrame::javaScriptWindowObjectCleared,
-    this, &WebWindowClass::addEventBridgeToWindowObject);
-    */
-}
-
-void WebWindowClass::hasClosed() {
-    emit closed();
-}
-
-
-void WebWindowClass::setVisible(bool visible) {
-}
-
-QString WebWindowClass::getURL() const {
-    return QString();
-}
-
-void WebWindowClass::setURL(const QString& url) {
-    if (QThread::currentThread() != thread()) {
-        QMetaObject::invokeMethod(this, "setURL", Qt::AutoConnection, Q_ARG(QString, url));
-        return;
-    }
-}
-
-QSizeF WebWindowClass::getSize() const {
-    QSizeF size;
-    return size;
-}
-
-void WebWindowClass::setSize(const QSizeF& size) {
-    setSize(size.width(), size.height());
-}
-
-void WebWindowClass::setSize(int width, int height) {
-    if (QThread::currentThread() != thread()) {
-        QMetaObject::invokeMethod(this, "setSize", Qt::AutoConnection, Q_ARG(int, width), Q_ARG(int, height));
-        return;
-    }
-}
-
-glm::vec2 WebWindowClass::getPosition() const {
-    return glm::vec2();
-}
-
-void WebWindowClass::setPosition(const glm::vec2& position) {
-    setPosition(position.x, position.y);
-}
-
-void WebWindowClass::setPosition(int x, int y) {
-    if (QThread::currentThread() != thread()) {
-        QMetaObject::invokeMethod(this, "setPosition", Qt::AutoConnection, Q_ARG(int, x), Q_ARG(int, y));
-        return;
-    }
-}
-
-void WebWindowClass::raise() {
-}
-
-QScriptValue WebWindowClass::constructor(QScriptContext* context, QScriptEngine* engine) {
-    WebWindowClass* retVal { nullptr };
-    //QString file = context->argument(0).toString();
-    //QMetaObject::invokeMethod(DependencyManager::get<WindowScriptingInterface>().data(), "doCreateWebWindow", Qt::BlockingQueuedConnection,
-    //        Q_RETURN_ARG(WebWindowClass*, retVal),
-    //        Q_ARG(const QString&, file),
-    //        Q_ARG(QString, context->argument(1).toString()),
-    //        Q_ARG(int, context->argument(2).toInteger()),
-    //        Q_ARG(int, context->argument(3).toInteger()),
-    //        Q_ARG(bool, context->argument(4).toBool()));
-
-    //connect(engine, &QScriptEngine::destroyed, retVal, &WebWindowClass::deleteLater);
-
-    return engine->newQObject(retVal);
-}
-
-void WebWindowClass::setTitle(const QString& title) {
-    if (QThread::currentThread() != thread()) {
-        QMetaObject::invokeMethod(this, "setTitle", Qt::AutoConnection, Q_ARG(QString, title));
-        return;
-    }
-}
-
-#endif
+#include "QmlWebWindowClass.moc"
