@@ -1,6 +1,7 @@
 //
-//  SunLightExample.js
-//  examples
+//  renderEngineDebug.js
+//  examples/utilities/tools
+//
 //  Sam Gateau
 //  Copyright 2015 High Fidelity, Inc.
 //
@@ -12,6 +13,7 @@ Script.include("cookies.js");
 
 var MENU = "Developer>Render>Debug Deferred Buffer";
 var ACTIONS = ["Off", "Diffuse", "Alpha", "Specular", "Roughness", "Normal", "Depth", "Lighting", "Custom"];
+var SETTINGS_KEY = "EngineDebugScript.DebugMode";
 
 Number.prototype.clamp = function(min, max) {
     return Math.min(Math.max(this, min), max);
@@ -69,6 +71,9 @@ var overlaysCounter = new CounterWidget(panel, "Overlays",
 );
 
 var resizing = false;
+var previousMode = Settings.getValue(SETTINGS_KEY, -1);
+Menu.addActionGroup(MENU, ACTIONS, ACTIONS[previousMode + 1]);
+Scene.setEngineDeferredDebugMode(previousMode);
 Scene.setEngineDeferredDebugSize({ x: 0.0, y: -1.0, z: 1.0, w: 1.0 }); // Reset to default size
 
 function setEngineDeferredDebugSize(eventX) {
@@ -85,7 +90,6 @@ function menuItemEvent(menuItem) {
     var index = ACTIONS.indexOf(menuItem);
     if (index >= 0) {
         Scene.setEngineDeferredDebugMode(index - 1);
-        print(menuItem);
     }
 }
 
@@ -152,11 +156,11 @@ Controller.mousePressEvent.connect(mousePressEvent);
 Controller.mouseReleaseEvent.connect(mouseReleaseEvent);
 
 Menu.menuItemEvent.connect(menuItemEvent);
-Menu.addActionGroup(MENU, ACTIONS, ACTIONS[0]);
 
 function scriptEnding() {
     panel.destroy();
     Menu.removeActionGroup(MENU);
+    Settings.setValue(SETTINGS_KEY, Scene.getEngineDeferredDebugMode());
     Scene.setEngineDeferredDebugMode(-1);
     Scene.setEngineDeferredDebugSize({ x: 0.0, y: -1.0, z: 1.0, w: 1.0 }); // Reset to default size
 }

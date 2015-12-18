@@ -12,16 +12,20 @@
 #ifndef hifi_DebugDeferredBuffer_h
 #define hifi_DebugDeferredBuffer_h
 
+#include <QFileInfo>
+
 #include <render/DrawTask.h>
 
 class DebugDeferredBuffer {
 public:
     using JobModel = render::Job::Model<DebugDeferredBuffer>;
     
+    DebugDeferredBuffer();
+    
     void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext);
     
 private:
-    enum Modes : int {
+    enum Modes : uint8_t {
         DiffuseMode = 0,
         AlphaMode,
         SpecularMode,
@@ -29,15 +33,22 @@ private:
         NormalMode,
         DepthMode,
         LightingMode,
-        CustomMode,
         
-        NUM_MODES
+        CustomMode // Needs to stay last
     };
+    struct CustomPipeline {
+        gpu::PipelinePointer pipeline;
+        mutable QFileInfo info;
+    };
+    using StandardPipelines = std::array<gpu::PipelinePointer, CustomMode>;
+    using CustomPipelines = std::unordered_map<std::string, CustomPipeline>;
     
-    const gpu::PipelinePointer& getPipeline(Modes mode);
-    std::string getCode(Modes mode);
+    bool pipelineNeedsUpdate(Modes mode, std::string customFile = std::string()) const;
+    const gpu::PipelinePointer& getPipeline(Modes mode, std::string customFile = std::string());
+    std::string getShaderSourceCode(Modes mode, std::string customFile = std::string());
     
-    std::array<gpu::PipelinePointer, NUM_MODES> _pipelines;
+    StandardPipelines _pipelines;
+    CustomPipelines _customPipelines;
 };
 
 #endif // hifi_DebugDeferredBuffer_h

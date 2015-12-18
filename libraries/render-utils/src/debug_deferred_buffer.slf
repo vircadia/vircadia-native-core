@@ -17,11 +17,7 @@
 in vec2 uv;
 out vec4 outFragColor;
 
-/*FUNCTIONS_PLACEHOLDER*/
-
-vec4 getFragmentColor() {
-    /*COMPUTE_PLACEHOLDER*/
-}
+//SOURCE_PLACEHOLDER
 
 void main(void) {
     outFragColor = getFragmentColor();
