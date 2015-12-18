@@ -112,7 +112,7 @@ public:
     bool getSnapModelToRegistrationPoint() { return _snapModelToRegistrationPoint; }
 
     virtual void simulate(float deltaTime, bool fullUpdate = true);
-    void updateClusterMatrices(glm::vec3 modelPosition, glm::quat modelOrientation);
+    virtual void updateClusterMatrices(glm::vec3 modelPosition, glm::quat modelOrientation);
 
     /// Returns a reference to the shared geometry.
     const QSharedPointer<NetworkGeometry>& getGeometry() const { return _geometry; }
@@ -312,7 +312,7 @@ protected:
     // hook for derived classes to be notified when setUrl invalidates the current model.
     virtual void onInvalidate() {};
 
-private:
+protected:
 
     void deleteGeometry();
     void initJointTransforms();
@@ -370,7 +370,6 @@ private:
     bool _showCollisionHull = false;
 
     friend class ModelMeshPartPayload;
-protected:
     RigPointer _rig;
 };
 
