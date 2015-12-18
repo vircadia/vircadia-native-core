@@ -625,3 +625,11 @@ glm::vec3 RenderableModelEntityItem::getAbsoluteJointTranslationInObjectFrame(in
     }
     return glm::vec3(0.0f);
 }
+
+void RenderableModelEntityItem::locationChanged() {
+    EntityItem::locationChanged();
+    if (_model && _model->isActive()) {
+        _model->setRotation(getRotation());
+        _model->setTranslation(getPosition());
+    }
+}
