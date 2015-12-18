@@ -60,6 +60,7 @@ var CUTOFF_MAX = 360;
 var EXPONENT_MAX = 1;
 
 var SLIDER_SCRIPT_URL = Script.resolvePath('slider.js?' + Math.random(0, 100));
+var LIGHT_MODEL_URL = 'http://hifi-content.s3.amazonaws.com/james/light_modifier/source4_good.fbx';
 var CLOSE_BUTTON_MODEL_URL = 'http://hifi-content.s3.amazonaws.com/james/light_modifier/red_x.fbx';
 var CLOSE_BUTTON_SCRIPT_URL = Script.resolvePath('closeButton.js?' + Math.random(0, 100));
 
@@ -112,9 +113,9 @@ var CLOSE_BUTTON_DIMENSIONS = {
 }
 
 var LIGHT_MODEL_DIMENSIONS = {
-    x: 0.04,
-    y: 0.04,
-    z: 0.09
+    x: 0.68,
+    y: 0.68,
+    z: 1.54
 }
 
 var PER_ROW_OFFSET = {
@@ -408,15 +409,16 @@ function makeSliders(light) {
 var closeButtons = [];
 
 function createCloseButton(row) {
-    var basePosition = Vec3.sum(MyAvatar.position, Vec3.multiply(1.5, Quat.getFront(this.avatarRot)));
+    var avatarRot = Quat.fromPitchYawRollDegrees(0, MyAvatar.bodyYaw, 0.0);
+    var basePosition = Vec3.sum(MyAvatar.position, Vec3.multiply(1.5, Quat.getFront(avatarRot)));
     var verticalOffset = Vec3.multiply(row, PER_ROW_OFFSET);
     var downPosition = Vec3.sum(basePosition, verticalOffset);
-    var avatarRot = Quat.fromPitchYawRollDegrees(0, MyAvatar.bodyYaw, 0.0);
     var rightVector = Quat.getRight(avatarRot);
     var extension = Vec3.multiply(AXIS_SCALE, rightVector);
     var position = Vec3.sum(downPosition, extension);
 
     var buttonProperties = {
+        name:'Hifi-Close-Button',
         type: 'Model',
         modelURL: CLOSE_BUTTON_MODEL_URL,
         dimensions: CLOSE_BUTTON_DIMENSIONS,
@@ -492,6 +494,7 @@ function handleValueMessages(channel, message, sender) {
 }
 
 var currentLight;
+var block;
 
 function handleLightOverlayRayCheckMessages(channel, message, sender) {
     if (channel !== 'Hifi-Light-Overlay-Ray-Check') {
@@ -516,7 +519,8 @@ function handleLightOverlayRayCheckMessages(channel, message, sender) {
 
         currentLight = lightID;
         var lightProperties = Entities.getEntityProperties(lightID);
-        var block = createBlock(lightProperties.position);
+        block = createBlock(lightProperties.position);
+      //  block = createLightModel(lightProperties.position);
 
         var light = {
             id: lightID,
@@ -540,6 +544,30 @@ function handleLightOverlayRayCheckMessages(channel, message, sender) {
     }
 }
 
+function createLightModel(position) {
+    print('CREATE MODEL')
+    var blockProperties = {
+        name: 'Hifi-Spotlight-Model',
+        type: 'Model',
+        shapeType: 'box',
+        modelURL: LIGHT_MODEL_URL,
+        dimensions: LIGHT_MODEL_DIMENSIONS,
+        collisionsWillMove: true,
+        position: position,
+        rotation: Quat.fromPitchYawRollDegrees(90, 0, 0),
+        script: PARENT_SCRIPT_URL,
+        userData: JSON.stringify({
+            handControllerKey: {
+                disableReleaseVelocity: true
+            }
+        })
+    };
+
+    var block = Entities.addEntity(blockProperties);
+
+    return block
+}
+
 function createBlock(position) {
     print('CREATE BLOCK')
 
@@ -551,12 +579,12 @@ function createBlock(position) {
             y: 1,
             z: 1
         },
-        collisionsWillMove: true,
         color: {
             red: 0,
             green: 0,
             blue: 255
         },
+        collisionsWillMove: true,
         position: position,
         script: PARENT_SCRIPT_URL,
         userData: JSON.stringify({
@@ -578,11 +606,13 @@ function cleanup() {
         Entities.deleteEntity(sliders[i].sliderIndicator);
     }
 
+    Entities.deleteEntity(block);
     Messages.messageReceived.disconnect(handleLightModMessages);
     Messages.messageReceived.disconnect(handleValueMessages);
     Entities.deletingEntity.disconnect(deleteEntity);
 
     lightOverlayManager.setVisible(false);
+    selectionManager.clearSelections();
     Script.update.disconnect(rotateCloseButtons);
 
 }
