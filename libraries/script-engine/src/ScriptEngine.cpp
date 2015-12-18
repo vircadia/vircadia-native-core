@@ -46,7 +46,6 @@
 #include "XMLHttpRequestClass.h"
 #include "WebSocketClass.h"
 
-#include "SceneScriptingInterface.h"
 #include "RecordingScriptingInterface.h"
 
 #include "MIDIEvent.h"
