@@ -156,7 +156,8 @@ void Avatar::animateScaleChanges(float deltaTime) {
         float animatedScale = (1.0f - blendFactor) * currentScale + blendFactor * _targetScale;
 
         // snap to the end when we get close enough
-        if (fabsf(_targetScale - currentScale) / _targetScale < 0.03f) {
+        const float MIN_RELATIVE_SCALE_ERROR = 0.03f;
+        if (fabsf(_targetScale - currentScale) / _targetScale < MIN_RELATIVE_SCALE_ERROR) {
             animatedScale = _targetScale;
         }
 
