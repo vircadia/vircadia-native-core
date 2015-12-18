@@ -114,6 +114,8 @@ std::string DebugDeferredBuffer::getShaderSourceCode(Modes mode, std::string cus
         case CustomMode:
             return getFileContent(customFile, DEEFAULT_CUSTOM_SHADER);
     }
+    Q_UNREACHABLE();
+    return std::string();
 }
 
 bool DebugDeferredBuffer::pipelineNeedsUpdate(Modes mode, std::string customFile) const {
