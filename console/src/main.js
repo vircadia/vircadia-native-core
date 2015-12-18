@@ -18,7 +18,7 @@ require('crash-reporter').start();
 // Keep a global reference of the window object, if you don't, the window will
 // be closed automatically when the JavaScript object is garbage collected.
 var mainWindow = null;
-var appIcon = null;
+var tray = null;
 
 var path = require('path');
 var TRAY_ICON = path.join(__dirname, '../resources/console-tray.png');
@@ -67,7 +67,12 @@ app.on('ready', function() {
     require('electron-compile').init();
 
     // Create the browser window.
-    mainWindow = new BrowserWindow({width: 800, height: 600, icon: APP_ICON});
+    mainWindow = new BrowserWindow({
+        width: 800,
+        height: 600,
+        icon: APP_ICON,
+        resizable: false
+    });
 
     // and load the index.html of the app.
     mainWindow.loadURL('file://' + __dirname + '/index.html');
