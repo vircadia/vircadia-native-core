@@ -199,6 +199,9 @@ else (APPLE)
     COMMAND "${CMAKE_COMMAND}" -E copy_directory
     "${PROJECT_SOURCE_DIR}/resources"
     $<TARGET_FILE_DIR:${TARGET_NAME}>/resources
+    COMMAND "${CMAKE_COMMAND}" -E copy_directory
+    "${CMAKE_SOURCE_DIR}/examples"
+    $<TARGET_FILE_DIR:${TARGET_NAME}>/scripts
   )
 
   # link target to external libraries

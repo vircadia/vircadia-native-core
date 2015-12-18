@@ -88,7 +88,7 @@ Section "Registry Entries and Procotol Handler" SEC02
     SectionIn RO
 
     WriteRegStr HKLM "${regkey}" "Install_Dir" "$INSTDIR"
-    WriteRegStr HKLM "${uninstkey}" "DisplayName" "${company} (remove only)"
+    WriteRegStr HKLM "${uninstkey}" "DisplayName" "${install_directory} (remove only)"
     WriteRegStr HKLM "${uninstkey}" "UninstallString" '"$INSTDIR\${uninstaller}"'
     WriteRegStr HKCR "${company}\Shell\open\command\" "" '"$INSTDIR\${interface_exec} "%1"'
     WriteRegStr HKCR "${company}\DefaultIcon" "" "$INSTDIR\${interface_icon}"
