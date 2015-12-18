@@ -706,9 +706,9 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
     _applicationStateDevice->addInputVariant(QString("ComfortMode"), controller::StateController::ReadLambda([]() -> float {
         return (float)Menu::getInstance()->isOptionChecked(MenuOption::ComfortMode);
     }));
-	_applicationStateDevice->addInputVariant(QString("Grounded"), controller::StateController::ReadLambda([]() -> float {
-		return (float)qApp->getMyAvatar()->getCharacterController()->onGround();
-	}));
+    _applicationStateDevice->addInputVariant(QString("Grounded"), controller::StateController::ReadLambda([]() -> float {
+        return (float)qApp->getMyAvatar()->getCharacterController()->onGround();
+    }));
 
     userInputMapper->registerDevice(_applicationStateDevice);
 
@@ -1161,7 +1161,7 @@ void Application::paintGL() {
 
     if (Menu::getInstance()->isOptionChecked(MenuOption::Mirror)) {
         PerformanceTimer perfTimer("Mirror");
-        auto primaryFbo = DependencyManager::get<FramebufferCache>()->getPrimaryFramebufferDepthColor();
+        auto primaryFbo = DependencyManager::get<FramebufferCache>()->getPrimaryFramebuffer();
 
         renderArgs._renderMode = RenderArgs::MIRROR_RENDER_MODE;
         renderRearViewMirror(&renderArgs, _mirrorViewRect);
@@ -1417,7 +1417,9 @@ void Application::paintGL() {
     {
         PROFILE_RANGE(__FUNCTION__ "/compositor");
         PerformanceTimer perfTimer("compositor");
+
         auto primaryFbo = finalFramebuffer;
+
         glBindFramebuffer(GL_DRAW_FRAMEBUFFER, gpu::GLBackend::getFramebufferID(primaryFbo));
         if (displayPlugin->isStereo()) {
             QRect currentViewport(QPoint(0, 0), QSize(size.width() / 2, size.height()));
@@ -1442,7 +1444,9 @@ void Application::paintGL() {
     {
         PROFILE_RANGE(__FUNCTION__ "/pluginOutput");
         PerformanceTimer perfTimer("pluginOutput");
+
         auto finalTexturePointer = finalFramebuffer->getRenderBuffer(0);
+
         GLuint finalTexture = gpu::GLBackend::getTextureID(finalTexturePointer);
         Q_ASSERT(0 != finalTexture);
 
@@ -2570,7 +2574,7 @@ void Application::init() {
 
     _environment.init();
 
-    DependencyManager::get<DeferredLightingEffect>()->init(this);
+    DependencyManager::get<DeferredLightingEffect>()->init();
 
     DependencyManager::get<AvatarManager>()->init();
     _myCamera.setMode(CAMERA_MODE_FIRST_PERSON);
@@ -3403,7 +3407,7 @@ QImage Application::renderAvatarBillboard(RenderArgs* renderArgs) {
     renderArgs->_renderMode = RenderArgs::DEFAULT_RENDER_MODE;
     renderRearViewMirror(renderArgs, QRect(0, 0, BILLBOARD_SIZE, BILLBOARD_SIZE), true);
 
-    auto primaryFbo = DependencyManager::get<FramebufferCache>()->getPrimaryFramebufferDepthColor();
+    auto primaryFbo = DependencyManager::get<FramebufferCache>()->getPrimaryFramebuffer();
     QImage image(BILLBOARD_SIZE, BILLBOARD_SIZE, QImage::Format_ARGB32);
     renderArgs->_context->downloadFramebuffer(primaryFbo, glm::ivec4(0, 0, BILLBOARD_SIZE, BILLBOARD_SIZE), image);
 
@@ -3687,7 +3691,10 @@ void Application::displaySide(RenderArgs* renderArgs, Camera& theCamera, bool se
         renderContext._maxDrawnOpaqueItems = sceneInterface->getEngineMaxDrawnOpaqueItems();
         renderContext._maxDrawnTransparentItems = sceneInterface->getEngineMaxDrawnTransparentItems();
         renderContext._maxDrawnOverlay3DItems = sceneInterface->getEngineMaxDrawnOverlay3DItems();
-
+        
+        renderContext._deferredDebugMode = sceneInterface->getEngineDeferredDebugMode();
+        renderContext._deferredDebugSize = sceneInterface->getEngineDeferredDebugSize();
+        
         renderContext._drawItemStatus = sceneInterface->doEngineDisplayItemStatus();
         if (Menu::getInstance()->isOptionChecked(MenuOption::PhysicsShowOwned)) {
             renderContext._drawItemStatus |= render::showNetworkStatusFlag;
@@ -3696,6 +3703,9 @@ void Application::displaySide(RenderArgs* renderArgs, Camera& theCamera, bool se
 
         renderContext._occlusionStatus = Menu::getInstance()->isOptionChecked(MenuOption::DebugAmbientOcclusion);
         renderContext._fxaaStatus = Menu::getInstance()->isOptionChecked(MenuOption::Antialiasing);
+
+        renderContext._toneMappingExposure = sceneInterface->getEngineToneMappingExposure();
+        renderContext._toneMappingToneCurve = sceneInterface->getEngineToneMappingToneCurveValue();
 
         renderArgs->_shouldRender = LODManager::shouldRender;
 

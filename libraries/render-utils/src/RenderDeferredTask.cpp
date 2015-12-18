@@ -18,10 +18,11 @@
 #include <gpu/Context.h>
 #include <gpu/StandardShaderLib.h>
 
-#include "FramebufferCache.h"
+#include "DebugDeferredBuffer.h"
 #include "DeferredLightingEffect.h"
-#include "TextureCache.h"
+#include "FramebufferCache.h"
 #include "HitEffect.h"
+#include "TextureCache.h"
 
 #include "render/DrawStatus.h"
 #include "AmbientOcclusionEffect.h"
@@ -34,24 +35,6 @@
 
 using namespace render;
 
-void SetupDeferred::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext) {
-    RenderArgs* args = renderContext->args;
-    gpu::doInBatch(args->_context, [=](gpu::Batch& batch) {
-
-        auto primaryFbo = DependencyManager::get<FramebufferCache>()->getPrimaryFramebufferDepthColor();
-
-        batch.enableStereo(false);
-        batch.setViewportTransform(args->_viewport);
-        batch.setStateScissorRect(args->_viewport);
-
-        batch.setFramebuffer(primaryFbo);
-        batch.clearFramebuffer(
-            gpu::Framebuffer::BUFFER_COLOR0 |
-            gpu::Framebuffer::BUFFER_DEPTH |
-            gpu::Framebuffer::BUFFER_STENCIL,
-            vec4(vec3(0), 1), 1.0, 0.0, true);
-    });
-}
 
 void PrepareDeferred::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext) {
     DependencyManager::get<DeferredLightingEffect>()->prepare(renderContext->args);
@@ -61,72 +44,88 @@ void RenderDeferred::run(const SceneContextPointer& sceneContext, const RenderCo
     DependencyManager::get<DeferredLightingEffect>()->render(renderContext->args);
 }
 
-void ResolveDeferred::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext) {
-    PerformanceTimer perfTimer("ResolveDeferred");
-    DependencyManager::get<DeferredLightingEffect>()->copyBack(renderContext->args);
+void ToneMappingDeferred::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext) {
+    PerformanceTimer perfTimer("ToneMappingDeferred");
+    _toneMappingEffect.render(renderContext->args);
 }
 
 RenderDeferredTask::RenderDeferredTask() : Task() {
-    _jobs.push_back(Job(new SetupDeferred::JobModel("SetupFramebuffer")));
-
-    _jobs.push_back(Job(new PrepareDeferred::JobModel("PrepareDeferred")));
+    // CPU only, create the list of renderedOpaques items
     _jobs.push_back(Job(new FetchItems::JobModel("FetchOpaque",
-        FetchItems(
-            [] (const RenderContextPointer& context, int count) {
-                context->_numFeedOpaqueItems = count; 
-            }
-        )
+        FetchItems([](const RenderContextPointer& context, int count) {
+                context->_numFeedOpaqueItems = count;
+        })
     )));
     _jobs.push_back(Job(new CullItemsOpaque::JobModel("CullOpaque", _jobs.back().getOutput())));
     _jobs.push_back(Job(new DepthSortItems::JobModel("DepthSortOpaque", _jobs.back().getOutput())));
     auto& renderedOpaques = _jobs.back().getOutput();
-    _jobs.push_back(Job(new DrawOpaqueDeferred::JobModel("DrawOpaqueDeferred", _jobs.back().getOutput())));
 
+    // CPU only, create the list of renderedTransparents items
+    _jobs.push_back(Job(new FetchItems::JobModel("FetchTransparent",
+        FetchItems(ItemFilter::Builder::transparentShape().withoutLayered(),
+            [](const RenderContextPointer& context, int count) {
+                context->_numFeedTransparentItems = count;
+        })
+     )));
+    _jobs.push_back(Job(new CullItemsTransparent::JobModel("CullTransparent", _jobs.back().getOutput())));
+    _jobs.push_back(Job(new DepthSortItems::JobModel("DepthSortTransparent", _jobs.back().getOutput(), DepthSortItems(false))));
+    auto& renderedTransparents = _jobs.back().getOutput();
+
+    // GPU Jobs: Start preparing the deferred and lighting buffer
+    _jobs.push_back(Job(new PrepareDeferred::JobModel("PrepareDeferred")));
+
+    // Render opaque objects in DeferredBuffer
+    _jobs.push_back(Job(new DrawOpaqueDeferred::JobModel("DrawOpaqueDeferred", renderedOpaques)));
+
+    // Once opaque is all rendered create stencil background
     _jobs.push_back(Job(new DrawStencilDeferred::JobModel("DrawOpaqueStencil")));
+
+    // Use Stencil and start drawing background in Lighting buffer
     _jobs.push_back(Job(new DrawBackgroundDeferred::JobModel("DrawBackgroundDeferred")));
 
+    // Draw Lights just add the lights to the current list of lights to deal with. NOt really gpu job for now.
     _jobs.push_back(Job(new DrawLight::JobModel("DrawLight")));
-    _jobs.push_back(Job(new RenderDeferred::JobModel("RenderDeferred")));
-    _jobs.push_back(Job(new ResolveDeferred::JobModel("ResolveDeferred")));
-    _jobs.push_back(Job(new AmbientOcclusion::JobModel("AmbientOcclusion")));
 
+    // DeferredBuffer is complete, now let's shade it into the LightingBuffer
+    _jobs.push_back(Job(new RenderDeferred::JobModel("RenderDeferred")));
+
+    // AO job, to be revisited
+    _jobs.push_back(Job(new AmbientOcclusion::JobModel("AmbientOcclusion")));
     _jobs.back().setEnabled(false);
     _occlusionJobIndex = (int)_jobs.size() - 1;
 
+    // AA job to be revisited
     _jobs.push_back(Job(new Antialiasing::JobModel("Antialiasing")));
-
     _jobs.back().setEnabled(false);
     _antialiasingJobIndex = (int)_jobs.size() - 1;
 
-    _jobs.push_back(Job(new FetchItems::JobModel("FetchTransparent",
-         FetchItems(
-            ItemFilter::Builder::transparentShape().withoutLayered(),
-            [] (const RenderContextPointer& context, int count) {
-                context->_numFeedTransparentItems = count; 
-            }
-         )
-     )));
-    _jobs.push_back(Job(new CullItemsTransparent::JobModel("CullTransparent", _jobs.back().getOutput())));
-
-
-    _jobs.push_back(Job(new DepthSortItems::JobModel("DepthSortTransparent", _jobs.back().getOutput(), DepthSortItems(false))));
-    _jobs.push_back(Job(new DrawTransparentDeferred::JobModel("TransparentDeferred", _jobs.back().getOutput())));
+    // Render transparent objects forward in LigthingBuffer
+    _jobs.push_back(Job(new DrawTransparentDeferred::JobModel("TransparentDeferred", renderedTransparents)));
     
-    // Grab a texture map representing the different status icons and assign that to the drawStatsuJob
-    auto iconMapPath = PathUtils::resourcesPath() + "icons/statusIconAtlas.svg";
+    // Lighting Buffer ready for tone mapping
+    _jobs.push_back(Job(new ToneMappingDeferred::JobModel("ToneMapping")));
+    _toneMappingJobIndex = _jobs.size() - 1;
 
-    auto statusIconMap = DependencyManager::get<TextureCache>()->getImageTexture(iconMapPath);
-    _jobs.push_back(Job(new render::DrawStatus::JobModel("DrawStatus", renderedOpaques, DrawStatus(statusIconMap))));
-
+    // Debugging Deferred buffer job
+    _jobs.push_back(Job(new DebugDeferredBuffer::JobModel("DebugDeferredBuffer")));
     _jobs.back().setEnabled(false);
-    _drawStatusJobIndex = (int)_jobs.size() - 1;
+    _drawDebugDeferredBufferIndex = _jobs.size() - 1;
+
+    // Status icon rendering job
+    {
+        // Grab a texture map representing the different status icons and assign that to the drawStatsuJob
+        auto iconMapPath = PathUtils::resourcesPath() + "icons/statusIconAtlas.svg";
+        auto statusIconMap = DependencyManager::get<TextureCache>()->getImageTexture(iconMapPath);
+        _jobs.push_back(Job(new render::DrawStatus::JobModel("DrawStatus", renderedOpaques, DrawStatus(statusIconMap))));
+        _jobs.back().setEnabled(false);
+        _drawStatusJobIndex = _jobs.size() - 1;
+    }
 
     _jobs.push_back(Job(new DrawOverlay3D::JobModel("DrawOverlay3D")));
 
     _jobs.push_back(Job(new HitEffect::JobModel("HitEffect")));
     _jobs.back().setEnabled(false);
     _drawHitEffectJobIndex = (int)_jobs.size() -1;
-
 
     // Give ourselves 3 frmaes of timer queries
     _timerQueries.push_back(std::make_shared<gpu::Query>());
@@ -151,10 +150,13 @@ void RenderDeferredTask::run(const SceneContextPointer& sceneContext, const Rend
         return;
     }
 
+    // Make sure we turn the deferred buffer debug on/off
+    setDrawDebugDeferredBuffer(renderContext->_deferredDebugMode);
+    
     // Make sure we turn the displayItemStatus on/off
     setDrawItemStatus(renderContext->_drawItemStatus);
     
-    //Make sure we display hit effect on screen, as desired from a script
+    // Make sure we display hit effect on screen, as desired from a script
     setDrawHitEffect(renderContext->_drawHitEffect);
     
 
@@ -162,6 +164,9 @@ void RenderDeferredTask::run(const SceneContextPointer& sceneContext, const Rend
     setOcclusionStatus(renderContext->_occlusionStatus);
 
     setAntialiasingStatus(renderContext->_fxaaStatus);
+
+    setToneMappingExposure(renderContext->_toneMappingExposure);
+    setToneMappingToneCurve(renderContext->_toneMappingToneCurve);
 
     renderContext->args->_context->syncCache();
 
@@ -332,11 +337,11 @@ void DrawStencilDeferred::run(const SceneContextPointer& sceneContext, const Ren
     doInBatch(args->_context, [=](gpu::Batch& batch) {
         args->_batch = &batch;
 
-        auto primaryFboColorDepthStencil = DependencyManager::get<FramebufferCache>()->getPrimaryFramebufferDepthColor();
+        auto deferredFboColorDepthStencil = DependencyManager::get<FramebufferCache>()->getDeferredFramebufferDepthColor();
 
         batch.enableStereo(false);
 
-        batch.setFramebuffer(primaryFboColorDepthStencil);
+        batch.setFramebuffer(deferredFboColorDepthStencil);
         batch.setViewportTransform(args->_viewport);
         batch.setStateScissorRect(args->_viewport);
 
@@ -367,12 +372,11 @@ void DrawBackgroundDeferred::run(const SceneContextPointer& sceneContext, const 
     doInBatch(args->_context, [=](gpu::Batch& batch) {
         args->_batch = &batch;
 
-        auto primaryFboColorDepthStencil = DependencyManager::get<FramebufferCache>()->getPrimaryFramebufferDepthColor();
-        auto primaryFboFull = DependencyManager::get<FramebufferCache>()->getPrimaryFramebuffer();
+        auto lightingFBO = DependencyManager::get<FramebufferCache>()->getLightingFramebuffer();
 
         batch.enableSkybox(true);
 
-        batch.setFramebuffer(primaryFboColorDepthStencil);
+        batch.setFramebuffer(lightingFBO);
 
         batch.setViewportTransform(args->_viewport);
         batch.setStateScissorRect(args->_viewport);
@@ -387,8 +391,36 @@ void DrawBackgroundDeferred::run(const SceneContextPointer& sceneContext, const 
 
         renderItems(sceneContext, renderContext, inItems);
 
-        batch.setFramebuffer(primaryFboFull);
-
     });
     args->_batch = nullptr;
 }
+
+
+void RenderDeferredTask::setToneMappingExposure(float exposure) {
+    if (_toneMappingJobIndex >= 0) {
+        _jobs[_toneMappingJobIndex].edit<ToneMappingDeferred>()._toneMappingEffect.setExposure(exposure);
+    }
+}
+
+float RenderDeferredTask::getToneMappingExposure() const {
+    if (_toneMappingJobIndex >= 0) {
+        return _jobs[_toneMappingJobIndex].get<ToneMappingDeferred>()._toneMappingEffect.getExposure();
+    } else {
+        return 0.0f; 
+    }
+}
+
+void RenderDeferredTask::setToneMappingToneCurve(int toneCurve) {
+    if (_toneMappingJobIndex >= 0) {
+        _jobs[_toneMappingJobIndex].edit<ToneMappingDeferred>()._toneMappingEffect.setToneCurve((ToneMappingEffect::ToneCurve)toneCurve);
+    }
+}
+
+int RenderDeferredTask::getToneMappingToneCurve() const {
+    if (_toneMappingJobIndex >= 0) {
+        return _jobs[_toneMappingJobIndex].get<ToneMappingDeferred>()._toneMappingEffect.getToneCurve();
+    } else {
+        return 0.0f;
+    }
+}
+

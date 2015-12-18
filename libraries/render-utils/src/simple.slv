@@ -13,9 +13,8 @@
 //
 
 <@include gpu/Inputs.slh@>
-
+<@include gpu/Color.slh@>
 <@include gpu/Transform.slh@>
-
 <$declareStandardTransform()$>
 
 uniform bool Instanced = false;
@@ -28,7 +27,7 @@ out vec2 _texCoord0;
 out vec4 _position;
 
 void main(void) {
-    _color = inColor.rgb;
+    _color = colorToLinearRGB(inColor.rgb);
     _texCoord0 = inTexCoord0.st;
     _position = inPosition;
     _modelNormal = inNormal.xyz;

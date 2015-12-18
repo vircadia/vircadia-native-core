@@ -106,12 +106,24 @@ public:
     Q_INVOKABLE int getEngineMaxDrawnTransparentItems() { return _maxDrawnTransparentItems; }
     Q_INVOKABLE void setEngineMaxDrawnOverlay3DItems(int count) { _maxDrawnOverlay3DItems = count; }
     Q_INVOKABLE int getEngineMaxDrawnOverlay3DItems() { return _maxDrawnOverlay3DItems; }
-
+    
+    Q_INVOKABLE void setEngineDeferredDebugMode(int mode) { _deferredDebugMode = mode; }
+    Q_INVOKABLE int getEngineDeferredDebugMode() { return _deferredDebugMode; }
+    Q_INVOKABLE void setEngineDeferredDebugSize(glm::vec4 size) { _deferredDebugSize = size; }
+    Q_INVOKABLE glm::vec4 getEngineDeferredDebugSize() { return _deferredDebugSize; }
+    
     Q_INVOKABLE void setEngineDisplayItemStatus(int display) { _drawItemStatus = display; }
     Q_INVOKABLE int doEngineDisplayItemStatus() { return _drawItemStatus; }
 
     Q_INVOKABLE void setEngineDisplayHitEffect(bool display) { _drawHitEffect = display; }
     Q_INVOKABLE bool doEngineDisplayHitEffect() { return _drawHitEffect; }
+
+    Q_INVOKABLE void setEngineToneMappingExposure(float exposure) { _engineToneMappingExposure = exposure; }
+    Q_INVOKABLE float getEngineToneMappingExposure() const { return _engineToneMappingExposure; }
+
+    Q_INVOKABLE void setEngineToneMappingToneCurve(const QString& curve);
+    Q_INVOKABLE QString getEngineToneMappingToneCurve() const;
+    int getEngineToneMappingToneCurveValue() const { return _engineToneMappingToneCurve; }
 
 signals:
     void shouldRenderAvatarsChanged(bool shouldRenderAvatars);
@@ -142,11 +154,15 @@ protected:
     int _maxDrawnOpaqueItems = -1;
     int _maxDrawnTransparentItems = -1;
     int _maxDrawnOverlay3DItems = -1;
-
+    
+    int _deferredDebugMode = -1;
+    glm::vec4 _deferredDebugSize { 0.0f, -1.0f, 1.0f, 1.0f };
     int _drawItemStatus = 0;
 
     bool _drawHitEffect = false;
 
+    float _engineToneMappingExposure = 0.0f;
+    int _engineToneMappingToneCurve = 3;
 };
 
 #endif // hifi_SceneScriptingInterface_h

@@ -1,6 +1,7 @@
 //
-//  SunLightExample.js
-//  examples
+//  renderEngineDebug.js
+//  examples/utilities/tools
+//
 //  Sam Gateau
 //  Copyright 2015 High Fidelity, Inc.
 //
@@ -9,6 +10,14 @@
 //
 
 Script.include("cookies.js");
+
+var MENU = "Developer>Render>Debug Deferred Buffer";
+var ACTIONS = ["Off", "Diffuse", "Alpha", "Specular", "Roughness", "Normal", "Depth", "Lighting", "Custom"];
+var SETTINGS_KEY = "EngineDebugScript.DebugMode";
+
+Number.prototype.clamp = function(min, max) {
+    return Math.min(Math.max(this, min), max);
+};
 
 var panel = new Panel(10, 100);
 
@@ -61,6 +70,28 @@ var overlaysCounter = new CounterWidget(panel, "Overlays",
     function () { return Scene.getEngineMaxDrawnOverlay3DItems(); }
 );
 
+var resizing = false;
+var previousMode = Settings.getValue(SETTINGS_KEY, -1);
+Menu.addActionGroup(MENU, ACTIONS, ACTIONS[previousMode + 1]);
+Scene.setEngineDeferredDebugMode(previousMode);
+Scene.setEngineDeferredDebugSize({ x: 0.0, y: -1.0, z: 1.0, w: 1.0 }); // Reset to default size
+
+function setEngineDeferredDebugSize(eventX) {
+    var scaledX = (2.0 * (eventX / Window.innerWidth) - 1.0).clamp(-1.0, 1.0);
+    Scene.setEngineDeferredDebugSize({ x: scaledX, y: -1.0, z: 1.0, w: 1.0 });
+}
+function shouldStartResizing(eventX) {
+    var x = Math.abs(eventX - Window.innerWidth * (1.0 + Scene.getEngineDeferredDebugSize().x) / 2.0);
+    var mode = Scene.getEngineDeferredDebugMode();
+    return mode !== -1 && x < 20;
+}
+
+function menuItemEvent(menuItem) {
+    var index = ACTIONS.indexOf(menuItem);
+    if (index >= 0) {
+        Scene.setEngineDeferredDebugMode(index - 1);
+    }
+}
 
 // see libraries/render/src/render/Engine.h
 var showDisplayStatusFlag = 1;
@@ -82,6 +113,11 @@ panel.newCheckbox("Network/Physics status",
     function(value) { return (value & showNetworkStatusFlag) > 0; }
 );
 
+panel.newSlider("Tone Mapping Exposure", -10, 10,
+    function (value) { Scene.setEngineToneMappingExposure(value); },
+    function() { return Scene.getEngineToneMappingExposure(); },
+    function (value) { return (value); });
+
 var tickTackPeriod = 500;
 
 function updateCounters() {
@@ -91,11 +127,47 @@ function updateCounters() {
 }
 Script.setInterval(updateCounters, tickTackPeriod);
 
-Controller.mouseMoveEvent.connect(function panelMouseMoveEvent(event) { return panel.mouseMoveEvent(event); });
-Controller.mousePressEvent.connect( function panelMousePressEvent(event) { return panel.mousePressEvent(event); });
-Controller.mouseReleaseEvent.connect(function(event) { return panel.mouseReleaseEvent(event); });
+function mouseMoveEvent(event) {
+    if (resizing) {
+        setEngineDeferredDebugSize(event.x);
+    } else {
+        panel.mouseMoveEvent(event);
+    }
+}
+
+function mousePressEvent(event) {
+    if (shouldStartResizing(event.x)) {
+        resizing = true;
+    } else {
+        panel.mousePressEvent(event);
+    }
+}
+
+function mouseReleaseEvent(event) {
+    if (resizing) {
+        resizing = false;
+    } else {
+        panel.mouseReleaseEvent(event);
+    }
+}
+
+Controller.mouseMoveEvent.connect(mouseMoveEvent);
+Controller.mousePressEvent.connect(mousePressEvent);
+Controller.mouseReleaseEvent.connect(mouseReleaseEvent);
+
+Menu.menuItemEvent.connect(menuItemEvent);
 
 function scriptEnding() {
     panel.destroy();
+    Menu.removeActionGroup(MENU);
+    Settings.setValue(SETTINGS_KEY, Scene.getEngineDeferredDebugMode());
+    Scene.setEngineDeferredDebugMode(-1);
+    Scene.setEngineDeferredDebugSize({ x: 0.0, y: -1.0, z: 1.0, w: 1.0 }); // Reset to default size
 }
 Script.scriptEnding.connect(scriptEnding);
+
+
+// Collapse items
+panel.mousePressEvent({ x: panel.x, y: panel.items["Overlays"].y});
+panel.mousePressEvent({ x: panel.x, y: panel.items["Transparents"].y});
+panel.mousePressEvent({ x: panel.x, y: panel.items["Opaques"].y});
