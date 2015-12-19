@@ -1,5 +1,7 @@
 This PR demonstrates one way in-world editing of objects might work.  We start with a spotlight.  When you distant grab the sliders, you can move them along their axis to change their values.  You may also rotate / move the block to which the spotlight is attached.
 
+Enter edit mode by running your distance beam through a light overlay.  Exit using the red X.
+
 To test: https://rawgit.com/imgntn/hifi/light_mod/examples/lights/lightLoader.js
 To reset, I recommend stopping all scripts then re-loading lightLoader.js
 
@@ -23,6 +25,4 @@ intensity
 cutoff
 exponent
 
-To-Do: Determine how to enter / exit edit mode , support near grab, add other input types (checkbox, etc), prevent velocity drift on slider release,button to hide entity
-
-![capture](https://cloud.githubusercontent.com/assets/843228/11830366/2f2dfe70-a359-11e5-84f0-33a380ebeac7.PNG)
+![capture](https://cloud.githubusercontent.com/assets/843228/11910139/afaaf1ae-a5a5-11e5-8b66-0eb3fc6976df.PNG)
