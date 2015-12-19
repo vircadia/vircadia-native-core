@@ -556,6 +556,18 @@ bool SpatiallyNestable::queryAABoxNeedsUpdate() const {
         qDebug() << "can't getMaximumAACube for" << getID();
         return false;
     }
+
+    // make sure children are still in their boxes, also.
+    bool childNeedsUpdate = false;
+    getThisPointer()->forEachDescendant([&](SpatiallyNestablePointer descendant) {
+        if (descendant->queryAABoxNeedsUpdate()) {
+            childNeedsUpdate = true;
+        }
+    });
+    if (childNeedsUpdate) {
+        return true;
+    }
+
     if (_queryAACubeSet && _queryAACube.contains(currentAACube)) {
         return false;
     }
