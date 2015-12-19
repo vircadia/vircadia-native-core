@@ -5,7 +5,6 @@ import QtWebEngine 1.1
 import QtWebChannel 1.0
 import QtWebSockets 1.0
 
-import "qwebchannel.js" as WebChannel
 import "controls"
 import "styles"
 
