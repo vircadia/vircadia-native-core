@@ -101,7 +101,7 @@ void OctreeQueryNode::resetOctreePacket() {
     // scene information, (e.g. the root node packet of a static scene), we can use this as a strategy for reducing
     // packet send rate.
     _lastOctreePacketLength = _octreePacket->getPayloadSize();
-    memcpy(&_lastOctreePayload, _octreePacket->getPayload(), _lastOctreePacketLength);
+    memcpy(_lastOctreePayload.data(), _octreePacket->getPayload(), _lastOctreePacketLength);
 
     // If we're moving, and the client asked for low res, then we force monochrome, otherwise, use
     // the clients requested color state.
