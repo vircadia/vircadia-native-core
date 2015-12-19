@@ -40,12 +40,11 @@ LODManager::LODManager() {
     setRenderDistanceInverseLowLimit(1.0f / (float)TREE_SCALE);
     // Advice for tuning parameters:
     // See PIDController.h. There's a section on tuning in the reference.
-    // Turn on logging with the following (or from js with AvatarList.setRenderDistanceControllerHistory("avatar render", 300))
-    //_renderDistanceController.setHistorySize("avatar render", target_fps * 4);
+    // Turn on logging with the following (or from js with LODManager.setRenderDistanceControllerHistory("render pid", 240))
+    //setRenderDistanceControllerHistory("render pid", 60 * 4);
     // Note that extra logging/hysteresis is turned off in Avatar.cpp when the above logging is on.
     setRenderDistanceKP(0.000012f); // Usually about 0.6 of largest that doesn't oscillate when other parameters 0.
     setRenderDistanceKI(0.00002f); // Big enough to bring us to target with the above KP.
-    //setRenderDistanceControllerHistory("FIXME", 240);
 }
 
 float LODManager::getLODDecreaseFPS() {
@@ -279,7 +278,9 @@ bool LODManager::shouldRender(const RenderArgs* args, const AABox& bounds) {
     float distanceToCamera = glm::length(bounds.calcCenter() - args->_viewFrustum->getPosition());
     float largestDimension = bounds.getLargestDimension();
     if (!getUseAcuity()) {
-        bool isRendered = fabsf(distanceToCamera - largestDimension) < renderDistance;
+        const float scenerySize = 300; // meters
+        bool isRendered = (largestDimension > scenerySize) || // render scenery regardless of distance
+            (fabsf(distanceToCamera - largestDimension) < renderDistance);
         renderedCount += isRendered ? 1 : 0;
         return isRendered;
     }
