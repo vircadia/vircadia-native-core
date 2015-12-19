@@ -95,6 +95,9 @@
                 sliderValue: _t.sliderValue
             }
             Messages.sendMessage('Hifi-Slider-Value-Reciever', JSON.stringify(message));
+            if (_t.userData.sliderType === 'cutoff') {
+                Messages.sendMessage('entityToolUpdates', 'callUpdate');
+            }
         }
     };
 
