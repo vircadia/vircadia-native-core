@@ -2,7 +2,7 @@ import Hifi 1.0
 import QtQuick 2.3
 import QtQuick.Controls 1.2
 import QtQuick.Controls.Styles 1.3
-import QtWebEngine 1.1
+import QtWebKit 3.0
 import "controls"
 
 VrDialog {
@@ -24,22 +24,27 @@ VrDialog {
         anchors.margins: parent.margins
         anchors.topMargin: parent.topMargin
         
-         WebEngineView {
-            objectName: "WebView"
-            id: webview
-            url: "https://metaverse.highfidelity.com/marketplace"
+ 
+        ScrollView {
             anchors.fill: parent
-            onNavigationRequested: {
-                console.log(request.url)
-                if (!marketplaceDialog.navigationRequested(request.url)) {
-                    console.log("Application absorbed the request")
-                    request.action = WebView.IgnoreRequest;
+            WebView {
+                objectName: "WebView"
+                id: webview
+                url: "https://metaverse.highfidelity.com/marketplace"
+                anchors.fill: parent
+                onNavigationRequested: {
+                    console.log(request.url)
+                    if (!marketplaceDialog.navigationRequested(request.url)) {
+                        console.log("Application absorbed the request")
+                        request.action = WebView.IgnoreRequest;
+                        return;
+                    } 
+                    console.log("Application passed on the request")
+                    request.action = WebView.AcceptRequest;
                     return;
-                } 
-                console.log("Application passed on the request")
-                request.action = WebView.AcceptRequest;
-                return;
+                }
             }
-        }
-    }
+        }        
+        
+     }
 }

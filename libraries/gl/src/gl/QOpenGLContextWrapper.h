@@ -25,12 +25,6 @@ public:
     void swapBuffers(QSurface* surface);
     bool makeCurrent(QSurface* surface);
     void doneCurrent();
-    void setShareContext(QOpenGLContext* otherContext);
-
-    QOpenGLContext* getContext() {
-        return _context;
-    }
-
     
 private:
     QOpenGLContext* _context { nullptr };
