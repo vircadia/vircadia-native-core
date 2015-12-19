@@ -33,7 +33,7 @@ bool OctreeQueryNode::packetIsDuplicate() const {
     // of the entire packet, we need to compare only the packet content...
 
     if (_lastOctreePacketLength == _octreePacket->getPayloadSize()) {
-        if (memcmp(&_lastOctreePayload + OCTREE_PACKET_EXTRA_HEADERS_SIZE,
+        if (memcmp(_lastOctreePayload.data() + OCTREE_PACKET_EXTRA_HEADERS_SIZE,
                    _octreePacket->getPayload() + OCTREE_PACKET_EXTRA_HEADERS_SIZE,
                    _octreePacket->getPayloadSize() - OCTREE_PACKET_EXTRA_HEADERS_SIZE) == 0) {
             return true;
