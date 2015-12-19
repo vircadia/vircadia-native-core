@@ -60,7 +60,7 @@ var CUTOFF_MAX = 360;
 var EXPONENT_MAX = 1;
 
 var SLIDER_SCRIPT_URL = Script.resolvePath('slider.js?' + Math.random(0, 100));
-var LIGHT_MODEL_URL = 'http://hifi-content.s3.amazonaws.com/james/light_modifier/source4_rotated.fbx';
+var LIGHT_MODEL_URL = 'http://hifi-content.s3.amazonaws.com/james/light_modifier/source4_very_good.fbx';
 var CLOSE_BUTTON_MODEL_URL = 'http://hifi-content.s3.amazonaws.com/james/light_modifier/red_x.fbx';
 var CLOSE_BUTTON_SCRIPT_URL = Script.resolvePath('closeButton.js?' + Math.random(0, 100));
 
@@ -408,7 +408,7 @@ function makeSliders(light) {
 };
 
 
-function createLightModel(position) {
+function createLightModel(position,rotation) {
     var blockProperties = {
         name: 'Hifi-Spotlight-Model',
         type: 'Model',
@@ -417,6 +417,7 @@ function createLightModel(position) {
         dimensions: LIGHT_MODEL_DIMENSIONS,
         collisionsWillMove: true,
         position: position,
+        rotation:rotation,
         script: PARENT_SCRIPT_URL,
         userData: JSON.stringify({
             handControllerKey: {
@@ -552,7 +553,7 @@ function handleLightOverlayRayCheckMessages(channel, message, sender) {
 
         currentLight = lightID;
         var lightProperties = Entities.getEntityProperties(lightID);
-        block = createLightModel(lightProperties.position);
+        block = createLightModel(lightProperties.position,lightProperties.rotation);
 
         var light = {
             id: lightID,
