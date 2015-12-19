@@ -515,10 +515,14 @@ void EntityMotionState::sendUpdate(OctreeEditPacketSender* packetSender, const Q
     // if they've changed.
     // TODO -- ancestors of this entity may also need to expand their queryAACubes.
     _entity->forEachDescendant([&](SpatiallyNestablePointer descendant) {
-        if (descendant->setPuffedQueryAACube()) {
-            EntityItemProperties newQueryCubeProperties;
-            newQueryCubeProperties.setQueryAACube(descendant->getQueryAACube());
-            entityPacketSender->queueEditEntityMessage(PacketType::EntityEdit, descendant->getID(), newQueryCubeProperties);
+        if (descendant->getNestableType() == NestableType::Entity) {
+            EntityItemPointer entityDescendant = std::static_pointer_cast<EntityItem>(descendant);
+            if (descendant->setPuffedQueryAACube()) {
+                EntityItemProperties newQueryCubeProperties;
+                newQueryCubeProperties.setQueryAACube(descendant->getQueryAACube());
+                entityPacketSender->queueEditEntityMessage(PacketType::EntityEdit, descendant->getID(), newQueryCubeProperties);
+                entityDescendant->setLastBroadcast(usecTimestampNow());
+            }
         }
     });
 

@@ -278,18 +278,22 @@ QUuid EntityScriptingInterface::editEntity(QUuid id, const EntityItemProperties&
                 properties.setQueryAACube(entity->getQueryAACube());
             }
             entity->setLastBroadcast(usecTimestampNow());
-        }
 
-        // if we've moved an entity with children, check/update the queryAACube of all descendents and tell the server
-        // if they've changed.
-        // TODO -- ancestors of this entity may also need to expand their queryAACubes.
-        entity->forEachDescendant([&](SpatiallyNestablePointer descendant) {
-            if (descendant->setPuffedQueryAACube()) {
-                EntityItemProperties newQueryCubeProperties;
-                newQueryCubeProperties.setQueryAACube(descendant->getQueryAACube());
-                queueEntityMessage(PacketType::EntityEdit, descendant->getID(), newQueryCubeProperties);
-            }
-        });
+            // if we've moved an entity with children, check/update the queryAACube of all descendents and tell the server
+            // if they've changed.
+            // TODO -- ancestors of this entity may also need to expand their queryAACubes.
+            entity->forEachDescendant([&](SpatiallyNestablePointer descendant) {
+                if (descendant->getNestableType() == NestableType::Entity) {
+                    EntityItemPointer entityDescendant = std::static_pointer_cast<EntityItem>(descendant);
+                    if (descendant->setPuffedQueryAACube()) {
+                        EntityItemProperties newQueryCubeProperties;
+                        newQueryCubeProperties.setQueryAACube(descendant->getQueryAACube());
+                        queueEntityMessage(PacketType::EntityEdit, descendant->getID(), newQueryCubeProperties);
+                        entityDescendant->setLastBroadcast(usecTimestampNow());
+                    }
+                }
+            });
+        }
     });
     queueEntityMessage(PacketType::EntityEdit, entityID, properties);
     return id;

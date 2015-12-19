@@ -296,6 +296,8 @@ void SpatiallyNestable::setPosition(const glm::vec3& position, bool& success) {
     });
     if (success) {
         locationChanged();
+    } else {
+        qDebug() << "setPosition failed for" << getID();
     }
 }
 
