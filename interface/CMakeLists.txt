@@ -45,7 +45,9 @@ else ()
   list(REMOVE_ITEM INTERFACE_SRCS ${SPEECHRECOGNIZER_CPP})
 endif ()
 
-find_package(Qt5 COMPONENTS Gui Multimedia Network OpenGL Qml Quick Script Svg WebKitWidgets WebSockets)
+find_package(Qt5 COMPONENTS 
+    Gui Multimedia Network OpenGL Qml Quick Script Svg 
+    WebChannel WebEngine WebEngineWidgets WebKitWidgets WebSockets)
 
 # grab the ui files in resources/ui
 file (GLOB_RECURSE QT_UI_FILES ui/*.ui)
@@ -175,8 +177,16 @@ include_directories("${PROJECT_SOURCE_DIR}/src")
 
 target_link_libraries(
   ${TARGET_NAME}
-  Qt5::Gui Qt5::Network Qt5::Multimedia Qt5::OpenGL Qt5::Script Qt5::Svg Qt5::WebKitWidgets
+  Qt5::Gui Qt5::Network Qt5::Multimedia Qt5::OpenGL 
+  Qt5::Qml Qt5::Quick Qt5::Script Qt5::Svg 
+  Qt5::WebChannel Qt5::WebEngine Qt5::WebEngineWidgets Qt5::WebKitWidgets
 )
+
+# Issue causes build failure unless we add this directory.  
+# See https://bugreports.qt.io/browse/QTBUG-43351  
+if (WIN32)
+    add_paths_to_fixup_libs(${Qt5_DIR}/../../../plugins/qtwebengine)
+endif()
 
 # assume we are using a Qt build without bearer management
 add_definitions(-DQT_NO_BEARERMANAGEMENT)
@@ -208,6 +218,10 @@ else (APPLE)
     # Nothing else required on linux apparently
   endif()
 endif (APPLE)
+
+if (WIN32)
+    set(EXTRA_DEPLOY_OPTIONS "--qmldir  ${PROJECT_SOURCE_DIR}/resources/qml")
+endif()
 
 package_libraries_for_deployment()
 consolidate_stack_components()

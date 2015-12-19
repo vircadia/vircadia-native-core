@@ -1,6 +1,6 @@
 import QtQuick 2.3
 import QtQuick.Controls 1.2
-import QtWebKit 3.0
+import QtWebEngine 1.1
 import "controls"
 import "styles"
 
@@ -39,9 +39,10 @@ VrDialog {
             anchors.left: parent.left
             anchors.right: parent.right
             anchors.top: parent.top
-            anchors.bottom: scrollView.top
+            anchors.bottom: webview.top
             color: "white"
         }
+    
         Row {
             id: buttons
             spacing: 4
@@ -112,25 +113,21 @@ VrDialog {
             }
         }
 
-        ScrollView {
-            id: scrollView
+        WebEngineView {
+            id: webview
+            url: "http://highfidelity.com"
             anchors.top: buttons.bottom
             anchors.topMargin: 8
             anchors.bottom: parent.bottom
             anchors.left: parent.left
             anchors.right: parent.right
-            WebView {
-                id: webview
-                url: "http://highfidelity.com"
-                anchors.fill: parent
-                onLoadingChanged: {
-                    if (loadRequest.status == WebView.LoadSucceededStarted) {
-                        addressBar.text = loadRequest.url
-                    }
+            onLoadingChanged: {
+                if (loadRequest.status == WebEngineView.LoadSucceededStatus) {
+                    addressBar.text = loadRequest.url
                 }
-                onIconChanged: {
-                    barIcon.source = icon
-                }
+            }
+            onIconChanged: {
+                console.log("New icon: " + icon)
             }
         }
     } // item
@@ -146,5 +143,4 @@ VrDialog {
                 break;
         }
     }
-    
 } // dialog
