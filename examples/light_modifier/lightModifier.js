@@ -47,10 +47,6 @@ if (SHOW_OVERLAYS === true) {
     lightOverlayManager.setVisible(true);
 }
 
-// var entityResult = Entities.findRayIntersection(pickRay, true); // want precision picking
-// var pickRay = Camera.computePickRay(event.x, event.y);
-// var lightResult = lightOverlayManager.findRayIntersection(pickRay)
-
 var DEFAULT_PARENT_ID = '{00000000-0000-0000-0000-000000000000}'
 
 var AXIS_SCALE = 1;
@@ -408,7 +404,7 @@ function makeSliders(light) {
 };
 
 
-function createLightModel(position,rotation) {
+function createLightModel(position, rotation) {
     var blockProperties = {
         name: 'Hifi-Spotlight-Model',
         type: 'Model',
@@ -417,7 +413,7 @@ function createLightModel(position,rotation) {
         dimensions: LIGHT_MODEL_DIMENSIONS,
         collisionsWillMove: true,
         position: position,
-        rotation:rotation,
+        rotation: rotation,
         script: PARENT_SCRIPT_URL,
         userData: JSON.stringify({
             handControllerKey: {
@@ -529,6 +525,7 @@ function handleValueMessages(channel, message, sender) {
 
 var currentLight;
 var block;
+var hasParent = false;
 
 function handleLightOverlayRayCheckMessages(channel, message, sender) {
     if (channel !== 'Hifi-Light-Overlay-Ray-Check') {
@@ -553,7 +550,16 @@ function handleLightOverlayRayCheckMessages(channel, message, sender) {
 
         currentLight = lightID;
         var lightProperties = Entities.getEntityProperties(lightID);
-        block = createLightModel(lightProperties.position,lightProperties.rotation);
+        if (lightProperties.parentID !== DEFAULT_PARENT_ID) {
+            //this light has a parent already.  so lets call our block the parent and then make sure not to delete it at the end;
+            hasParent = true;
+            block = lightProperties.parentID;
+            if (lightProperties.parentJointIndex !== -1) {
+                //should make sure to retain the parent too.  but i don't actually know what the
+            }
+        } else {
+            block = createLightModel(lightProperties.position, lightProperties.rotation);
+        }
 
         var light = {
             id: lightID,
@@ -604,18 +610,20 @@ function cleanup(fromMessage) {
         parentID: null,
     });
 
-    if(fromMessage!==true){
-    Messages.messageReceived.disconnect(handleLightModMessages);
-    Messages.messageReceived.disconnect(handleValueMessages);
-    Messages.messageReceived.disconnect(handleLightOverlayRayCheckMessages);   
-    lightOverlayManager.setVisible(false);
+    if (fromMessage !== true) {
+        Messages.messageReceived.disconnect(handleLightModMessages);
+        Messages.messageReceived.disconnect(handleValueMessages);
+        Messages.messageReceived.disconnect(handleLightOverlayRayCheckMessages);
+        lightOverlayManager.setVisible(false);
     }
 
 
     selectionManager.clearSelections();
     Script.update.disconnect(rotateCloseButtons);
-
-    Entities.deleteEntity(block);
+    if (hasParent === false) {
+        Entities.deleteEntity(block);
+    }
+    hasParent = false;
     currentLight = null;
 
 
