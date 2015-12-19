@@ -101,6 +101,7 @@
 #include <VrMenu.h>
 #include <recording/Deck.h>
 #include <recording/Recorder.h>
+#include <QmlWebWindowClass.h>
 
 #include "AnimDebugDraw.h"
 #include "AudioClient.h"
@@ -362,6 +363,17 @@ Cube3DOverlay* _keyboardFocusHighlight{ nullptr };
 int _keyboardFocusHighlightID{ -1 };
 PluginContainer* _pluginContainer;
 
+
+// FIXME hack access to the internal share context for the Chromium helper
+// Normally we'd want to use QWebEngine::initialize(), but we can't because 
+// our primary context is a QGLWidget, which can't easily be initialized to share
+// from a QOpenGLContext.
+//
+// So instead we create a new offscreen context to share with the QGLWidget,
+// and manually set THAT to be the shared context for the Chromium helper
+OffscreenGLCanvas* _chromiumShareContext { nullptr };
+Q_GUI_EXPORT void qt_gl_set_global_share_context(QOpenGLContext *context);
+
 Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
     QApplication(argc, argv),
     _dependencyManagerIsSetup(setupEssentials(argc, argv)),
@@ -622,6 +634,11 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
     _glWidget->setMouseTracking(true);
     _glWidget->makeCurrent();
     _glWidget->initializeGL();
+
+    _chromiumShareContext = new OffscreenGLCanvas();
+    _chromiumShareContext->create(_glWidget->context()->contextHandle());
+    _chromiumShareContext->makeCurrent();
+    qt_gl_set_global_share_context(_chromiumShareContext->getContext());
 
     _offscreenContext = new OffscreenGLCanvas();
     _offscreenContext->create(_glWidget->context()->contextHandle());
