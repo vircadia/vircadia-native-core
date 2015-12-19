@@ -40,7 +40,7 @@ macro(PACKAGE_LIBRARIES_FOR_DEPLOYMENT)
     add_custom_command(
       TARGET ${TARGET_NAME}
       POST_BUILD
-      COMMAND CMD /C "SET PATH=%PATH%;${QT_DIR}/bin && ${WINDEPLOYQT_COMMAND} $<$<OR:$<CONFIG:Release>,$<CONFIG:MinSizeRel>,$<CONFIG:RelWithDebInfo>>:--release> $<TARGET_FILE:${TARGET_NAME}>"
+      COMMAND CMD /C "SET PATH=%PATH%;${QT_DIR}/bin && ${WINDEPLOYQT_COMMAND} ${EXTRA_DEPLOY_OPTIONS} $<$<OR:$<CONFIG:Release>,$<CONFIG:MinSizeRel>,$<CONFIG:RelWithDebInfo>>:--release> $<TARGET_FILE:${TARGET_NAME}>"
     )
   elseif (DEFINED BUILD_BUNDLE AND BUILD_BUNDLE AND APPLE)
     find_program(MACDEPLOYQT_COMMAND macdeployqt PATHS ${QT_DIR}/bin NO_DEFAULT_PATH)
