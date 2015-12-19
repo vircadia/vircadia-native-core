@@ -583,7 +583,6 @@ function handleCleanupMessages(channel, message, sender) {
         return;
     }
     if (message === 'callCleanup') {
-        print('GOT CLEANUP CALL!!!');
         cleanup(true);
     }
 }
@@ -615,7 +614,6 @@ function cleanup(fromMessage) {
     selectionManager.clearSelections();
     Script.update.disconnect(rotateCloseButtons);
 
-    print('DELETE LIGHT MODEL::: ' + block);
     Entities.deleteEntity(block);
     currentLight = null;
 

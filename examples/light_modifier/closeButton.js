@@ -27,7 +27,6 @@
 
         },
         startFarTrigger: function() {
-            print('START FAR TRIGGER ON CLOSE BUTTON!!!')
             Messages.sendMessage('Hifi-Light-Modifier-Cleanup', 'callCleanup')
         }
 
