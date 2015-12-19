@@ -1,10 +1,10 @@
 import QtQuick 2.3
 import QtQuick.Controls 1.2
-import QtWebEngine 1.1
+import QtWebKit 3.0
 
-WebEngineView {
+WebView {
     id: root
-    anchors.fill: parent
     objectName: "webview"
+    anchors.fill: parent
     url: "about:blank"
 }
