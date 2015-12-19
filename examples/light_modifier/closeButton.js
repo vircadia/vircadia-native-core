@@ -24,16 +24,12 @@
             this.userData = JSON.parse(entityProperties.userData);
         },
         startNearGrab: function() {
-            
-        },
-        startDistantGrab: function() {
 
         },
-        continueNearGrab: function() {
-            this.continueDistantGrab();
-        },
-        continueDistantGrab: function() {
-        },
+        startFarTrigger: function() {
+            print('START FAR TRIGGER ON CLOSE BUTTON!!!')
+            Messages.sendMessage('Hifi-Light-Modifier-Cleanup', 'callCleanup')
+        }
 
     };
 

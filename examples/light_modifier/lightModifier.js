@@ -262,7 +262,7 @@ entitySlider.prototype = {
             color: this.color,
             position: sliderPosition,
             script: SLIDER_SCRIPT_URL,
-            ignoreForCollisions:true,
+            ignoreForCollisions: true,
             userData: JSON.stringify({
                 lightModifierKey: {
                     lightID: this.lightID,
@@ -407,30 +407,52 @@ function makeSliders(light) {
     subscribeToSliderMessages();
 };
 
+
+function createLightModel(position) {
+    var blockProperties = {
+        name: 'Hifi-Spotlight-Model',
+        type: 'Model',
+        shapeType: 'box',
+        modelURL: LIGHT_MODEL_URL,
+        dimensions: LIGHT_MODEL_DIMENSIONS,
+        collisionsWillMove: true,
+        position: position,
+        script: PARENT_SCRIPT_URL,
+        userData: JSON.stringify({
+            handControllerKey: {
+                disableReleaseVelocity: true
+            }
+        })
+    };
+
+    var block = Entities.addEntity(blockProperties);
+
+    return block
+}
+
 var closeButtons = [];
 
 function createCloseButton(endOfAxis) {
-    // var avatarRot = Quat.fromPitchYawRollDegrees(0, MyAvatar.bodyYaw, 0.0);
-    // var basePosition = Vec3.sum(MyAvatar.position, Vec3.multiply(1.5, Quat.getFront(avatarRot)));
-    // var verticalOffset = Vec3.multiply(row, PER_ROW_OFFSET);
-    // var verticalOffset = lastRowVerticalOffset;
-    // var downPosition = Vec3.sum(basePosition, verticalOffset);
-    // var rightVector = Quat.getRight(avatarRot);
-    // var extension = Vec3.multiply(AXIS_SCALE, rightVector);
-    // var position = Vec3.sum(downPosition, extension);
 
     var buttonProperties = {
-        name:'Hifi-Close-Button',
+        name: 'Hifi-Close-Button',
         type: 'Model',
         modelURL: CLOSE_BUTTON_MODEL_URL,
         dimensions: CLOSE_BUTTON_DIMENSIONS,
-        position: Vec3.sum(endOfAxis,{
-            x:0,
-            y:-0.15,
-            z:0
+        position: Vec3.sum(endOfAxis, {
+            x: 0,
+            y: -0.15,
+            z: 0
         }),
         rotation: Quat.fromPitchYawRollDegrees(0, 45, 90),
-        collisionsWillMove: false
+        collisionsWillMove: false,
+        ignoreForCollisions: true,
+        script: CLOSE_BUTTON_SCRIPT_URL,
+        userData: JSON.stringify({
+                grabbableKey: {
+                    wantsTrigger: true
+                }
+            })
             //need to add wantsTrigger stuff so we can interact with it with our beamz
     }
 
@@ -467,6 +489,11 @@ function subscribeToSliderMessages() {
 function subscribeToLightOverlayRayCheckMessages() {
     Messages.subscribe('Hifi-Light-Overlay-Ray-Check');
     Messages.messageReceived.connect(handleLightOverlayRayCheckMessages);
+}
+
+function subscribeToCleanupMessages() {
+    Messages.subscribe('Hifi-Light-Modifier-Cleanup');
+    Messages.messageReceived.connect(handleCleanupMessages);
 }
 
 
@@ -513,9 +540,9 @@ function handleLightOverlayRayCheckMessages(channel, message, sender) {
     var pickRay = JSON.parse(message);
 
     var doesIntersect = lightOverlayManager.findRayIntersection(pickRay);
-    print('DOES INTERSECT A LIGHT WE HAVE???' + doesIntersect.intersects);
+    //  print('DOES INTERSECT A LIGHT WE HAVE???' + doesIntersect.intersects);
     if (doesIntersect.intersects === true) {
-        print('FULL MESSAGE:::' + JSON.stringify(doesIntersect))
+        // print('FULL MESSAGE:::' + JSON.stringify(doesIntersect))
 
         var lightID = doesIntersect.entityID;
         if (currentLight === lightID) {
@@ -525,7 +552,6 @@ function handleLightOverlayRayCheckMessages(channel, message, sender) {
 
         currentLight = lightID;
         var lightProperties = Entities.getEntityProperties(lightID);
-      //   block = createBlock(lightProperties.position);
         block = createLightModel(lightProperties.position);
 
         var light = {
@@ -542,103 +568,70 @@ function handleLightOverlayRayCheckMessages(channel, message, sender) {
 
         Entities.editEntity(lightID, {
             parentID: block,
-         parentJointIndex:-1
+            parentJointIndex: -1
         });
-
 
     }
 }
 
-function createLightModel(position) {
-    print('CREATE MODEL')
-    var blockProperties = {
-        name: 'Hifi-Spotlight-Model',
-        type: 'Model',
-        shapeType: 'box',
-        modelURL: LIGHT_MODEL_URL,
-      //  modelURL:"http://hifi-content.s3.amazonaws.com/james/light_modifier/box4.fbx",
-        dimensions: LIGHT_MODEL_DIMENSIONS,
-        collisionsWillMove: true,
-        position: position,
-        // rotation: Quat.fromPitchYawRollDegrees(90, 0, 0),
-        script: PARENT_SCRIPT_URL,
-        userData: JSON.stringify({
-            handControllerKey: {
-                disableReleaseVelocity: true
-            }
-        })
-    };
+function handleCleanupMessages(channel, message, sender) {
 
-    var block = Entities.addEntity(blockProperties);
-
-    return block
+    if (channel !== 'Hifi-Light-Modifier-Cleanup') {
+        return;
+    }
+    if (ONLY_I_CAN_EDIT === true && sender !== MyAvatar.sessionUUID) {
+        return;
+    }
+    if (message === 'callCleanup') {
+        print('GOT CLEANUP CALL!!!');
+        cleanup(true);
+    }
 }
 
-function createBlock(position) {
-    print('CREATE BLOCK')
-
-    var blockProperties = {
-        name: 'Hifi-Spotlight-Block',
-        type: 'Box',
-        dimensions: {
-            x: 1,
-            y: 4,
-            z: 1
-        },
-        color: {
-            red: 0,
-            green: 0,
-            blue: 255
-        },
-        collisionsWillMove: true,
-        position: position,
-        script: PARENT_SCRIPT_URL,
-        userData: JSON.stringify({
-            handControllerKey: {
-                disableReleaseVelocity: true
-            }
-        })
-    };
-
-    var block = Entities.addEntity(blockProperties);
-
-    return block
-}
-
-function cleanup() {
+function cleanup(fromMessage) {
     var i;
     for (i = 0; i < sliders.length; i++) {
         Entities.deleteEntity(sliders[i].axis);
         Entities.deleteEntity(sliders[i].sliderIndicator);
     }
 
-    while(closeButtons.length>0){
+    while (closeButtons.length > 0) {
         Entities.deleteEntity(closeButtons.pop());
     }
 
-    Entities.deleteEntity(block);
+    //if the light was already parented to something we will want to restore that.  or come up with groups or something clever.
+    Entities.editEntity(currentLight, {
+        parentID: null,
+    });
+
+    if(fromMessage!==true){
     Messages.messageReceived.disconnect(handleLightModMessages);
     Messages.messageReceived.disconnect(handleValueMessages);
-    Entities.deletingEntity.disconnect(deleteEntity);
-
+    Messages.messageReceived.disconnect(handleLightOverlayRayCheckMessages);   
     lightOverlayManager.setVisible(false);
+    }
+
+
     selectionManager.clearSelections();
     Script.update.disconnect(rotateCloseButtons);
+
+    print('DELETE LIGHT MODEL::: ' + block);
+    Entities.deleteEntity(block);
+    currentLight = null;
+
 
 }
 
 Script.scriptEnding.connect(cleanup);
 
-function deleteEntity(entityID) {
-    if (entityID === light) {
-        //  cleanup();
-    }
-}
+Script.scriptEnding.connect(function() {
+    lightOverlayManager.setVisible(false);
+})
 
-Entities.deletingEntity.connect(deleteEntity);
 
 subscribeToLightOverlayRayCheckMessages();
 subScribeToNewLights();
+subscribeToCleanupMessages();
 
 
 
