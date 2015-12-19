@@ -191,7 +191,7 @@ void SixenseManager::InputDevice::update(float deltaTime, bool jointsCaptured) {
                 //  Rotation of Palm
                 glm::quat rotation(data->rot_quat[3], data->rot_quat[0], data->rot_quat[1], data->rot_quat[2]);
                 handlePoseEvent(deltaTime, position, rotation, left);
-                rawPoses[i] = controller::Pose(position, rotation, glm::vec3(0), glm::quat());
+                rawPoses[i] = controller::Pose(position, rotation, Vectors::ZERO, Vectors::ZERO);
             } else {
                 _poseStateMap.clear();
                 _collectedSamples.clear();
@@ -457,25 +457,22 @@ void SixenseManager::InputDevice::handlePoseEvent(float deltaTime, glm::vec3 pos
     rotation = _avatarRotation * postOffset * glm::inverse(sixenseToHand) * rotation * preOffset * sixenseToHand;
 
     glm::vec3 velocity(0.0f);
-    glm::quat angularVelocity;
+    glm::vec3 angularVelocity(0.0f);
 
     if (prevPose.isValid() && deltaTime > std::numeric_limits<float>::epsilon()) {
+        auto& samples = _collectedSamples[hand];
 
         velocity = (position - prevPose.getTranslation()) / deltaTime;
-
-        auto deltaRot = rotation * glm::conjugate(prevPose.getRotation());
-        auto axis = glm::axis(deltaRot);
-        auto angle = glm::angle(deltaRot);
-        angularVelocity = glm::angleAxis(angle / deltaTime, axis);
-
-        // Average
-        auto& samples = _collectedSamples[hand];
         samples.first.addSample(velocity);
         velocity = samples.first.average;
-     
-        // FIXME: // Not using quaternion average yet for angular velocity because it s probably wrong but keep the MovingAverage in place
-        //samples.second.addSample(glm::vec4(angularVelocity.x, angularVelocity.y, angularVelocity.z, angularVelocity.w));
-        //angularVelocity = glm::quat(samples.second.average.w, samples.second.average.x, samples.second.average.y, samples.second.average.z);
+
+        auto deltaRot = glm::normalize(rotation * glm::conjugate(prevPose.getRotation()));
+        auto axis = glm::axis(deltaRot);
+        auto speed = glm::angle(deltaRot) / deltaTime;
+        assert(!glm::isnan(speed));
+        angularVelocity = speed * axis;
+        samples.second.addSample(angularVelocity);
+        angularVelocity = samples.second.average;
     } else if (!prevPose.isValid()) {
         _collectedSamples[hand].first.clear();
         _collectedSamples[hand].second.clear();

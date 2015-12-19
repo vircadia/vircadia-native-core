@@ -509,25 +509,25 @@ glm::vec3 MyAvatar::getRightHandTipPosition() const {
 controller::Pose MyAvatar::getLeftHandPose() const {
     auto palmData = getHandData()->getCopyOfPalmData(HandData::LeftHand);
     return palmData.isValid() ? controller::Pose(palmData.getPosition(), palmData.getRotation(),
-        palmData.getVelocity(), palmData.getRawAngularVelocityAsQuat()) : controller::Pose();
+        palmData.getVelocity(), palmData.getRawAngularVelocity()) : controller::Pose();
 }
 
 controller::Pose MyAvatar::getRightHandPose() const {
     auto palmData = getHandData()->getCopyOfPalmData(HandData::RightHand);
     return palmData.isValid() ? controller::Pose(palmData.getPosition(), palmData.getRotation(),
-        palmData.getVelocity(), palmData.getRawAngularVelocityAsQuat()) : controller::Pose();
+        palmData.getVelocity(), palmData.getRawAngularVelocity()) : controller::Pose();
 }
 
 controller::Pose MyAvatar::getLeftHandTipPose() const {
     auto palmData = getHandData()->getCopyOfPalmData(HandData::LeftHand);
     return palmData.isValid() ? controller::Pose(palmData.getTipPosition(), palmData.getRotation(),
-        palmData.getTipVelocity(), palmData.getRawAngularVelocityAsQuat()) : controller::Pose();
+        palmData.getTipVelocity(), palmData.getRawAngularVelocity()) : controller::Pose();
 }
 
 controller::Pose MyAvatar::getRightHandTipPose() const {
     auto palmData = getHandData()->getCopyOfPalmData(HandData::RightHand);
     return palmData.isValid() ? controller::Pose(palmData.getTipPosition(), palmData.getRotation(),
-        palmData.getTipVelocity(), palmData.getRawAngularVelocityAsQuat()) : controller::Pose();
+        palmData.getTipVelocity(), palmData.getRawAngularVelocity()) : controller::Pose();
 }
 
 // virtual
@@ -536,7 +536,7 @@ void MyAvatar::render(RenderArgs* renderArgs, const glm::vec3& cameraPosition) {
     if (!_shouldRender) {
         return; // exit early
     }
-    
+
     Avatar::render(renderArgs, cameraPosition);
 }
 
@@ -799,7 +799,7 @@ void MyAvatar::updateLookAtTargetAvatar() {
     const float GREATEST_LOOKING_AT_DISTANCE = 10.0f;
 
     AvatarHash hash = DependencyManager::get<AvatarManager>()->getHashCopy();
-    
+
     foreach (const AvatarSharedPointer& avatarPointer, hash) {
         auto avatar = static_pointer_cast<Avatar>(avatarPointer);
         bool isCurrentTarget = avatar->getIsLookAtTarget();
@@ -1175,7 +1175,7 @@ void MyAvatar::renderBody(RenderArgs* renderArgs, ViewFrustum* renderFrustum, fl
     if (!_skeletonModel.isRenderable()) {
         return; // wait until all models are loaded
     }
-    
+
     fixupModelsInScene();
 
     //  Render head so long as the camera isn't inside it

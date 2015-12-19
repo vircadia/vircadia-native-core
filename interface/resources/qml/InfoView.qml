@@ -2,7 +2,7 @@ import Hifi 1.0 as Hifi
 import QtQuick 2.3
 import QtQuick.Controls 1.2
 import QtQuick.Controls.Styles 1.3
-import QtWebKit 3.0
+import QtWebEngine 1.1
 import "controls"
 
 VrDialog {
@@ -18,15 +18,11 @@ VrDialog {
         anchors.margins: parent.margins
         anchors.topMargin: parent.topMargin
  
-        ScrollView {
+        WebEngineView {
+            id: webview
+            objectName: "WebView"
             anchors.fill: parent
-            WebView {
-                objectName: "WebView"
-                id: webview
-                url: infoView.url
-                anchors.fill: parent
-            }
-        }        
-        
+            url: infoView.url
+        }
      }
 }
