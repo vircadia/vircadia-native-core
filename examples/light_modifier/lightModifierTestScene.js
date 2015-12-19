@@ -10,19 +10,17 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-var PARENT_SCRIPT_URL = Script.resolvePath('lightParent.js?'+Math.random(0-100));
+var PARENT_SCRIPT_URL = Script.resolvePath('lightParent.js?' + Math.random(0 - 100));
 var basePosition, avatarRot;
 avatarRot = Quat.fromPitchYawRollDegrees(0, MyAvatar.bodyYaw, 0.0);
 basePosition = Vec3.sum(MyAvatar.position, Vec3.multiply(0, Quat.getUp(avatarRot)));
 
-var light, block;
+var light;
 
 function createLight() {
-  var blockProperties = Entities.getEntityProperties(block, ["position", "rotation"]);
-    var position = basePosition;
+  var position = basePosition;
   position.y += 2;
-  var lightTransform = evalLightWorldTransform(position,avatarRot);
- // var lightTransform = evalLightWorldTransform(blockProperties.position, blockProperties.rotation);
+  var lightTransform = evalLightWorldTransform(position, avatarRot);
   var lightProperties = {
     name: 'Hifi-Spotlight',
     type: "Light",
@@ -32,7 +30,6 @@ function createLight() {
       y: 2,
       z: 8
     },
-   // parentID: block,
     color: {
       red: 255,
       green: 0,
@@ -48,45 +45,6 @@ function createLight() {
 
   light = Entities.addEntity(lightProperties);
 
-  var message = {
-    light: {
-      id: light,
-      type: 'spotlight',
-      initialProperties: lightProperties
-    }
-  };
-
-//  Messages.sendMessage('Hifi-Light-Mod-Receiver', JSON.stringify(message));
-
-}
-
-function createBlock() {
-  var position = basePosition;
-  position.y += 3;
-  var blockProperties = {
-    name: 'Hifi-Spotlight-Block',
-    type: 'Box',
-    dimensions: {
-      x: 1,
-      y: 1,
-      z: 1
-    },
-    collisionsWillMove: true,
-    color: {
-      red: 0,
-      green: 0,
-      blue: 255
-    },
-    position: position,
-    script:PARENT_SCRIPT_URL,
-    userData: JSON.stringify({
-      handControllerKey: {
-        disableReleaseVelocity: true
-      }
-    })
-  };
-
-  block = Entities.addEntity(blockProperties);
 }
 
 function evalLightWorldTransform(modelPos, modelRot) {
@@ -107,11 +65,9 @@ function evalLightWorldTransform(modelPos, modelRot) {
 }
 
 function cleanup() {
-  //Entities.deleteEntity(block);
   Entities.deleteEntity(light);
 }
 
 Script.scriptEnding.connect(cleanup);
 
-//createBlock();
 createLight();
