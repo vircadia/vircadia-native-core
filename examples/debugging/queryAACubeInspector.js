@@ -1,4 +1,16 @@
-Script.include("libraries/utils.js");
+//
+//  grabInspector.js
+//  examples/debugging/
+//
+//  Created by Seth Alves on 2015-12-19.
+//  Copyright 2015 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+//
+
+
+Script.include("../libraries/utils.js");
 
 var INSPECT_RADIUS = 10;
 var overlays = {};
@@ -27,7 +39,6 @@ function updateOverlay(entityID, queryAACube) {
 }
 
 Script.setInterval(function() {
-    // {f4b3936e-c452-4b31-ab40-dd9a550cb756}
     var nearbyEntities = Entities.findEntities(MyAvatar.position, INSPECT_RADIUS);
     for (var entityIndex = 0; entityIndex < nearbyEntities.length; entityIndex++) {
         var entityID = nearbyEntities[entityIndex];
