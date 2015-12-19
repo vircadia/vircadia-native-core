@@ -19,8 +19,8 @@ body {
     font-family: 'Raleway', sans-serif;
     background-image: url('../images/background.jpg');
     margin: 0;
-    font-size: 12px;
-    letter-spacing: 2px;
+    font-size: 11px;
+    letter-spacing: 1px;
 }
 
 .light-gray {
@@ -28,11 +28,11 @@ body {
 }
 
 h4 {
-    font-size: 14px;
+    font-size: 12px;
 }
 
 header {
-    margin: 50px 75px;
+    margin: 50px 75px 35px 75px;
 
     #console-version {
         float: right;
@@ -58,38 +58,43 @@ header {
     .tray-line {
         background-color: @light-gray;
         width: 1px;
-        height: 165px;
-        margin-top: 45px;
+        height: 130px;
+        margin-top: 35px;
     }
+
+    @square-side: 97px;
 
     #servers {
         h4 {
-            margin-left: 14px;
+            margin-left: 7px;
         }
 
         margin-left: 20px;
         img {
             position: relative;
             top: -5px;
-            width: 125px;
-            height: 125px;
+            width: @square-side;
+            height: @square-side;
         }
     }
 
     .tray-square {
-        width: 130px;
-        height: 130px;
+        width: @square-side;
+        height: @square-side;
 
         display: flex;
         justify-content: center;
         align-items: center;
+
+        img {
+            width: 25px;
+        }
     }
 
     .nav-item {
-        margin-right: 15px;
+        margin-right: 20px;
         float: left;
-        width: 130px;
-        height: 150px;
+        width: @square-side;
 
         &#nav-search {
             .nav-square {
@@ -109,21 +114,25 @@ header {
 @focus-background: #A6A7AA;
 @dark-gray: #585858;
 
+@focus-height: 270px;
+
 #tray-focus {
-    margin-top: 15px;
+    margin-top: 5px;
     width: 100%;
-    height: 300px;
+    height: @focus-height;
     background-color: @focus-background;
 
     color: @dark-gray;
 
-    #server-focus {
-        padding: 15px 75px;
+    #server-info {
+        @info-padding-top-bottom: 10px;
+        height: @focus-height - @info-padding-top-bottom - @info-padding-top-bottom;
+        padding: @info-padding-top-bottom 75px;
 
         h2 {
             color: black;
             font-size: 36px;
-            margin-left: 315px;
+            margin-left: 255px;
             margin-bottom: 0px;
         }
 
@@ -136,25 +145,35 @@ header {
             }
 
             .process-status {
-                @stop-red: #CA757F;
+                @status-red: #BD5F6D;
+                @status-green: #59AEA8;
+
                 margin-bottom: 10px;
 
                 .circle {
                     display: inline-block;
                     margin-left: 10px;
                     margin-right: 5px;
-                    background-color: @stop-red;
                     border-radius: 50%;
                     border: 1px solid #696A6B;
                     width: 12px;
                     height: 12px;
+
+                    &.stopped {
+                        background-color: @status-red;
+                    }
+
+                    &.running {
+                        background-color: @status-green;
+                    }
                 }
             }
 
             &#left-box {
                 h4 {
+                    margin-top: 0px;
                     margin-bottom: 10px;
-                    width: 275px;
+                    width: 215px;
                 }
             }
         }
@@ -162,6 +181,52 @@ header {
 }
 
 #manage-server {
+    text-align: center;
     background-color: #232323;
-    height: 150px;
+    height: 140px;
+
+    #manage-buttons {
+        display: inline-block;
+
+        @blue: #08A6E0;
+
+        #manage-separator {
+            width: 1px
+        }
+
+        @side-margin: 20px;
+
+        .manage-button {
+            vertical-align: top;
+            text-decoration: none;
+            display: inline-block;
+            margin: 40px @side-margin 20px @side-margin;
+            width: 75px;
+
+            img {
+                display: block;
+                margin: 0 auto;
+                width: 20px;
+            }
+
+            p {
+                color: @blue;
+                text-align: center;
+            }
+
+            &#stop {
+                margin-right: @side-margin + 2;
+            }
+
+            &#settings {
+                margin-left: @side-margin + 2;
+            }
+        }
+
+        #manage-separator {
+            display: inline-block;
+            width: 2px;
+            height: 100%;
+        }
+    }
 }

@@ -14,7 +14,7 @@
             <p class="light-gray">Version <span class="number">1.0.0</span></p>
         </div>
         <div id="hf-brand">
-            <img src="images/logo-512.png" width="256" />
+            <img src="images/logo-512.png" width="190" />
         </div>
     </header>
 
@@ -46,31 +46,54 @@
 
     <div id="tray-focus">
         <div id="server-focus">
-            <h2>My Server</h2>
-            <div id="left-box" class="server-box">
-                <div class="title">
-                    <h4 id="status">STATUS</h4>
-                </div>
+            <div id="server-info">
+                <h2>Home</h2>
+                <div id="left-box" class="server-box">
+                    <div class="title">
+                        <h4 id="status">STATUS</h4>
+                    </div>
 
-                <div id="domain-server-status" class="process-status">
-                    <div class="circle"></div>
-                    <span>Domain Server</span>
+                    <div id="domain-server-status" class="process-status">
+                        <div class="circle running"></div>
+                        <span>Domain Server</span>
+                    </div>
+                    <div id="assignment-status" class="process-status">
+                        <div class="circle running"></div>
+                        <span>Assignment Clients</span>
+                    </div>
                 </div>
-                <div id="assignment-status" class="process-status">
-                    <div class="circle"></div>
-                    <span>Assignment Clients</span>
+                <div id="right-box" class="server-box">
+                    <div class="title">
+                    </div>
                 </div>
             </div>
-            <div id="right-box" class="server-box">
-                <div class="title">
+            <div id="manage-server">
+                <div id="manage-buttons">
+                    <a id="restart" href="#" class="manage-button">
+                        <img src="images/restart.svg" />
+                        <p>Restart</p>
+                    </a>
+                    <a id="stop" href="#" class="manage-button">
+                        <img src="images/stop.svg" />
+                        <p>Stop</p>
+                    </a>
+                    <div id="manage-separator">
+                        <img src="images/manage-button-sep.svg"/>
+                    </div>
+                    <a id="settings" href="#" class="manage-button">
+                        <img src="images/settings.svg" />
+                        <p>Settings</p>
+                    </a>
+                    <a id="logs" href="#" class="manage-button">
+                        <img src="images/logs.svg" />
+                        <p>Logs</p>
+                    </a>
                 </div>
             </div>
         </div>
     </div>
 
-    <div id="manage-server">
-        
-    </div>
+
 
     <!-- <h1>Console</h1>
 
