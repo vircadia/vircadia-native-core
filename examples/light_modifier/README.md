@@ -1,6 +1,8 @@
-This PR demonstrates one way in-world editing of objects might work.  We start with a spotlight.  When you distant grab the sliders, you can move them along their axis to change their values.  You may also rotate / move the block to which the spotlight is attached.
+This PR demonstrates one way in-world editing of objects might work. 
 
-Enter edit mode by running your distance beam through a light overlay.  Exit using the red X.
+Running this script will show light overlay icons in-world.  Enter edit mode by running your distance beam through a light overlay.  Exit using the red X.
+
+When you distant grab the sliders, you can move them along their axis to change their values.  You may also rotate / move the block to which the spotlight is attached.  
 
 To test: https://rawgit.com/imgntn/hifi/light_mod/examples/lights/lightLoader.js
 To reset, I recommend stopping all scripts then re-loading lightLoader.js
@@ -8,14 +10,12 @@ To reset, I recommend stopping all scripts then re-loading lightLoader.js
 When you run the lightLoader.js script, several scripts will be loaded:
 - handControllerGrab.js (custom)
 - lightModifier.js (listens for message to create sliders for a given light)
-- lightModifierTestScene.js (creates a light and parents it to a block, then sends a message ^^)
+- lightModifierTestScene.js (creates a light)
 - slider.js (attached to each slider entity)
-- lightParent.js (attached to the entity to which a light is parented, so you can move it around)
+- lightParent.js (attached to a 3d model of a light, to which a light is parented, so you can move it around.  or keep the current parent if a light already has a parent)
 - closeButton.js (for closing the ui)
-- ../libraries/lightOverlayManager.js (custom)
-- ../libraries/entitySelectionTool.js
-
-
+- ../libraries/lightOverlayManager.js (shows 2d overlays for lights in the world)
+- ../libraries/entitySelectionTool.js (visualizes volume of the lights)
 
 Current sliders are (top to bottom):
 red

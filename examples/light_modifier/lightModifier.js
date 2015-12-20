@@ -16,13 +16,14 @@ var SLIDERS_SHOULD_STAY_WITH_AVATAR = false;
 var VERTICAL_SLIDERS = false;
 var SHOW_OVERLAYS = true;
 var SHOW_LIGHT_VOLUME = true;
+var USE_PARENTED_PANEL = false;
 
 //variables for managing overlays
 var selectionDisplay;
 var selectionManager;
 var lightOverlayManager;
 
-//for when we make a block parent for the light
+//for when we make a 3d model of a light a parent for the light
 var PARENT_SCRIPT_URL = Script.resolvePath('lightParent.js?' + Math.random(0 - 100));
 
 if (SHOW_OVERLAYS === true) {
@@ -362,9 +363,9 @@ var slidersRef = {
 var light = null;
 
 function makeSliders(light) {
-
+    var panel;
     if (USE_PARENTED_PANEL === true) {
-        createPanelEntity(MyAvatar.position);
+        panel = createPanelEntity(MyAvatar.position);
     }
 
     if (light.type === 'spotlight') {
@@ -409,10 +410,21 @@ function makeSliders(light) {
     subscribeToSliderMessages();
 
     if (USE_PARENTED_PANEL === true) {
-        parentEntitiesToPanel();
+        parentEntitiesToPanel(panel);
+    }
+
+    if () {
+        parentPanelToAvatar(panel)
     }
 };
 
+function parentPanelToAvatar(panel) {
+    Entities.editEntity(panel, {
+        parentID: MyAvatar.sessionUUID,
+        //actually figure out which one to parent it to -- probably a spine or something.
+        parentJointIndex: 1,
+    })
+}
 
 function parentEntitiesToPanel(panel) {
     slidersRef.forEach(function(slider) {
@@ -493,11 +505,10 @@ function createCloseButton(endOfAxis) {
         ignoreForCollisions: true,
         script: CLOSE_BUTTON_SCRIPT_URL,
         userData: JSON.stringify({
-                grabbableKey: {
-                    wantsTrigger: true
-                }
-            })
-            //need to add wantsTrigger stuff so we can interact with it with our beamz
+            grabbableKey: {
+                wantsTrigger: true
+            }
+        })
     }
 
     var button = Entities.addEntity(buttonProperties);
