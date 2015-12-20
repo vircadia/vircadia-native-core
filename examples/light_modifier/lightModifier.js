@@ -363,6 +363,10 @@ var light = null;
 
 function makeSliders(light) {
 
+    if (USE_PARENTED_PANEL === true) {
+        createPanelEntity(MyAvatar.position);
+    }
+
     if (light.type === 'spotlight') {
         var USE_COLOR_SLIDER = true;
         var USE_INTENSITY_SLIDER = true;
@@ -398,10 +402,53 @@ function makeSliders(light) {
         sliders.push(slidersRef.exponent);
     }
 
+
+
     createCloseButton(slidersRef.exponent.endOfAxis);
 
     subscribeToSliderMessages();
+
+    if (USE_PARENTED_PANEL === true) {
+        parentEntitiesToPanel();
+    }
 };
+
+
+function parentEntitiesToPanel(panel) {
+    slidersRef.forEach(function(slider) {
+        Entities.editEntity(slider.axis, {
+            parentID: panel
+        })
+        Entities.editEntity(slider.sliderIndicator, {
+            parentID: panel
+        })
+    })
+
+    closeButtons.forEach(function(button) {
+        Entities.editEntity(slider.sliderIndicator, {
+            parentID: panel
+        })
+    })
+}
+
+function createPanelEntity(position) {
+
+    var panelProperties = {
+        name: 'Hifi-Slider-Panel',
+        type: 'Box',
+        dimensions: {
+            x: 0.1,
+            y: 0.1,
+            z: 0.1
+        },
+        visible: false,
+        collisionsWillMove: false,
+        ignoreForCollisions: true
+    }
+
+    var panel = Entities.addEntity(panelProperties);
+    return panel
+}
 
 
 function createLightModel(position, rotation) {
