@@ -413,7 +413,7 @@ function makeSliders(light) {
         parentEntitiesToPanel(panel);
     }
 
-    if () {
+    if (SLIDERS_SHOULD_STAY_WITH_AVATAR) {
         parentPanelToAvatar(panel)
     }
 };
