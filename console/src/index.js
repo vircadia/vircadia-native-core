@@ -5,7 +5,6 @@ $(function() {
     var settingsButton = $('#manage-server #settings');
 
     function toggleManageButton(button, enabled) {
-        console.log(button);
         if (enabled) {
             button.attr('href', '#');
             button.removeClass('disabled');
