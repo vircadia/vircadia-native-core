@@ -19,7 +19,7 @@ const ipcMain = electron.ipcMain;
 // Keep a global reference of the window object, if you don't, the window will
 // be closed automatically when the JavaScript object is garbage collected.
 var mainWindow = null;
-var appIcon = null;
+var tray = null;
 
 var path = require('path');
 var TRAY_ICON = path.join(__dirname, '../resources/console-tray.png');
@@ -50,6 +50,7 @@ if (argv.localDebugBuilds || argv.localReleaseBuilds) {
 
 function openFileBrowser(path) {
     var type = os.type();
+    console.log(type);
     if (type == "Windows_NT") {
         childProcess.exec('start ' + path);
     } else if (type == "Darwin") {
@@ -66,17 +67,26 @@ function openFileBrowser(path) {
 // initialization and is ready to create browser windows.
 app.on('ready', function() {
     // Create tray icon
-    appIcon = new Tray(TRAY_ICON);
-    appIcon.setToolTip('High Fidelity Console');
+    tray = new Tray(TRAY_ICON);
+    tray.setToolTip('High Fidelity');
     var contextMenu = Menu.buildFromTemplate([{
         label: 'Quit',
         accelerator: 'Command+Q',
         click: function() { app.quit(); }
     }]);
-    appIcon.setContextMenu(contextMenu);
+    tray.setContextMenu(contextMenu);
+
+    // Require electron-compile to use LESS files in place of basic CSS
+    require('electron-compile').init();
 
     // Create the browser window.
-    mainWindow = new BrowserWindow({width: 800, height: 600, icon: APP_ICON});
+    mainWindow = new BrowserWindow({
+        title: "High Fidelity",
+        width: 970,
+        height: 775,
+        icon: APP_ICON,
+        resizable: false
+    });
 
     // and load the index.html of the app.
     mainWindow.loadURL('file://' + __dirname + '/index.html');
@@ -104,45 +114,69 @@ app.on('ready', function() {
         var pInterface = new Process('interface', interfacePath);
 
         var homeServer = new ProcessGroup('home', [
-            new Process('domain_server', dsPath),
-            new Process('ac_monitor', acPath, ['-n6', '--log-directory', logPath])
+            new Process('domain-server', dsPath),
+            new Process('ac-monitor', acPath, ['-n6', '--log-directory', logPath])
         ]);
-        homeServer.start();
+
+        // make sure we stop child processes on app quit
+        app.on('quit', function(){
+            pInterface.stop();
+            homeServer.stop();
+        });
 
         var processes = {
             interface: pInterface,
             home: homeServer
         };
 
-        function sendProcessUpdate() {
-            console.log("Sending process update to web view");
-            mainWindow.webContents.send('process-update', processes);
+        function sendProcessUpdate(process) {
+            if (mainWindow) {
+                console.log("Sending process update to web view for " + process.name);
+                mainWindow.webContents.send('process-update', process);
+            }
         };
 
-        pInterface.on('state-update', sendProcessUpdate);
-        homeServer.on('state-update', sendProcessUpdate);
+        function sendProcessGroupUpdate(processGroup) {
+            if (mainWindow) {
+                mainWindow.webContents.send('process-group-update', processGroup);
+            }
+        }
 
-        ipcMain.on('start-process', function(event, arg) {
-            pInterface.start();
-            sendProcessUpdate();
+        // handle process updates
+        // pInterface.on('state-update', sendProcessUpdate);
+        homeServer.on('process-update', sendProcessUpdate);
+        homeServer.on('state-update', sendProcessGroupUpdate);
+
+        // start the home server
+        homeServer.start();
+
+        // ipcMain.on('start-process', function(event, arg) {
+        //     pInterface.start();
+        // });
+        // ipcMain.on('stop-process', function(event, arg) {
+        //     pInterface.stop();
+        // });
+
+        ipcMain.on('restart-server', function(event, arg) {
+            homeServer.restart();
         });
-        ipcMain.on('stop-process', function(event, arg) {
-            pInterface.stop();
-            sendProcessUpdate();
-        });
-        ipcMain.on('start-server', function(event, arg) {
-            homeServer.start();
-            sendProcessUpdate();
-        });
+
         ipcMain.on('stop-server', function(event, arg) {
             homeServer.stop();
-            sendProcessUpdate();
         });
+
         ipcMain.on('open-logs', function(event, arg) {
             openFileBrowser(logPath);
         });
-        ipcMain.on('update', sendProcessUpdate);
 
-        sendProcessUpdate();
+        ipcMain.on('update-all-processes', function(event, arg) {
+            // enumerate our processes and call sendProcessUpdate to update
+            // the window with their status
+            for (let process of homeServer.processes) {
+                sendProcessUpdate(process);
+            }
+
+            sendProcessGroupUpdate(homeServer);
+        });
     }
 });
