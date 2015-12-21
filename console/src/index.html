@@ -80,11 +80,13 @@
                     <div id="manage-separator">
                         <img src="images/manage-button-sep.svg"/>
                     </div>
-                    <a id="settings" href="#" class="manage-button">
+
+                    <!-- TODO: handle the case where the DS HTTP port is non-standard -->
+                    <a id="settings" href="http://localhost:40100/settings" target="_blank" class="manage-button">
                         <img src="images/settings.svg" />
                         <p>Settings</p>
                     </a>
-                    <a id="logs" href="#" class="manage-button">
+                    <a id="open-logs" href="#" class="manage-button">
                         <img src="images/logs.svg" />
                         <p>Logs</p>
                     </a>

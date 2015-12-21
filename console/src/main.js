@@ -5,15 +5,16 @@ var app = electron.app;  // Module to control application life.
 var BrowserWindow = require('browser-window');  // Module to create native browser window.
 var Menu = require('menu');
 var Tray = require('tray');
+var shell = require('shell');
+var os = require('os');
+var childProcess = require('child_process');
+var path = require('path');
 
 var hfprocess = require('./modules/hf-process.js');
 var Process = hfprocess.Process;
 var ProcessGroup = hfprocess.ProcessGroup;
 
 const ipcMain = electron.ipcMain;
-
-// Report crashes to our server.
-require('crash-reporter').start();
 
 // Keep a global reference of the window object, if you don't, the window will
 // be closed automatically when the JavaScript object is garbage collected.
@@ -45,6 +46,18 @@ if (argv.localDebugBuilds || argv.localReleaseBuilds) {
     interfacePath = pathFinder.discoveredPath("Interface", argv.localReleaseBuilds);
     dsPath = pathFinder.discoveredPath("domain-server", argv.localReleaseBuilds);
     acPath = pathFinder.discoveredPath("assignment-client", argv.localReleaseBuilds);
+}
+
+function openFileBrowser(path) {
+    var type = os.type();
+    console.log(type);
+    if (type == "Windows_NT") {
+        childProcess.exec('start ' + path);
+    } else if (type == "Darwin") {
+        childProcess.exec('open ' + path);
+    } else if (type == "Linux") {
+        childProcess.exec('xdg-open ' + path);
+    }
 }
 
 // if at this point any of the paths are null, we're missing something we wanted to find
@@ -89,16 +102,20 @@ app.on('ready', function() {
         mainWindow = null;
     });
 
+    // When a link is clicked that has `_target="_blank"`, open it in the user's native browser
+    mainWindow.webContents.on('new-window', function(e, url) {
+        e.preventDefault();
+        shell.openExternal(url);
+    });
+
+    var logPath = path.join(app.getAppPath(), 'logs');
+
     if (interfacePath && dsPath && acPath) {
         var pInterface = new Process('interface', interfacePath);
 
         var homeServer = new ProcessGroup('home', [
-            new Process('Domain Server', dsPath),
-            new Process('AC - Audio', acPath, ['-t0']),
-            new Process('AC - Avatar', acPath, ['-t1']),
-            new Process('AC - Asset', acPath, ['-t3']),
-            new Process('AC - Messages', acPath, ['-t4']),
-            new Process('AC - Entity', acPath, ['-t6'])
+            new Process('domain_server', dsPath),
+            new Process('ac_monitor', acPath, ['-n6', '--log-directory', logPath])
         ]);
         homeServer.start();
 
@@ -106,7 +123,7 @@ app.on('ready', function() {
         app.on('quit', function(){
             pInterface.stop();
             homeServer.stop();
-        })
+        });
 
         var processes = {
             interface: pInterface,
@@ -119,6 +136,7 @@ app.on('ready', function() {
         };
 
         pInterface.on('state-update', sendProcessUpdate);
+        homeServer.on('state-update', sendProcessUpdate);
 
         ipcMain.on('start-process', function(event, arg) {
             pInterface.start();
@@ -128,9 +146,18 @@ app.on('ready', function() {
             pInterface.stop();
             sendProcessUpdate();
         });
-        ipcMain.on('update', function(event, arg) {
+        ipcMain.on('start-server', function(event, arg) {
+            homeServer.start();
             sendProcessUpdate();
         });
+        ipcMain.on('stop-server', function(event, arg) {
+            homeServer.stop();
+            sendProcessUpdate();
+        });
+        ipcMain.on('open-logs', function(event, arg) {
+            openFileBrowser(logPath);
+        });
+        ipcMain.on('update', sendProcessUpdate);
 
         sendProcessUpdate();
     }

@@ -12,6 +12,9 @@
 #include <memory>
 #include <signal.h>
 
+#include <QDir>
+#include <QStandardPaths>
+
 #include <AddressManager.h>
 #include <LogHandler.h>
 #include <udt/PacketHeaders.h>
@@ -29,7 +32,7 @@ AssignmentClientMonitor::AssignmentClientMonitor(const unsigned int numAssignmen
                                                  const unsigned int maxAssignmentClientForks,
                                                  Assignment::Type requestAssignmentType, QString assignmentPool,
                                                  quint16 listenPort, QUuid walletUUID, QString assignmentServerHostname,
-                                                 quint16 assignmentServerPort) :
+                                                 quint16 assignmentServerPort, QDir logDirectory) :
     _numAssignmentClientForks(numAssignmentClientForks),
     _minAssignmentClientForks(minAssignmentClientForks),
     _maxAssignmentClientForks(maxAssignmentClientForks),
@@ -37,7 +40,8 @@ AssignmentClientMonitor::AssignmentClientMonitor(const unsigned int numAssignmen
     _assignmentPool(assignmentPool),
     _walletUUID(walletUUID),
     _assignmentServerHostname(assignmentServerHostname),
-    _assignmentServerPort(assignmentServerPort)
+    _assignmentServerPort(assignmentServerPort),
+    _logDirectory(logDirectory)
 {
     qDebug() << "_requestAssignmentType =" << _requestAssignmentType;
 
@@ -155,11 +159,50 @@ void AssignmentClientMonitor::spawnChildClient() {
     _childArguments.append("--" + ASSIGNMENT_CLIENT_MONITOR_PORT_OPTION);
     _childArguments.append(QString::number(DependencyManager::get<NodeList>()->getLocalSockAddr().getPort()));
 
+    // Setup log files
+    const QString DATETIME_FORMAT = "yyyyMMdd.hh.mm.ss.zzz";
+
+    if (!_logDirectory.exists()) {
+        qDebug() << "Log directory (" << _logDirectory.absolutePath() << ") does not exist, creating.";
+        _logDirectory.mkpath(_logDirectory.absolutePath());
+    }
+
+    auto nowString = QDateTime::currentDateTime().toString(DATETIME_FORMAT);
+    auto stdoutFilenameTemp = QString("ac_stdout_%1.txt").arg(nowString);
+    auto stderrFilenameTemp = QString("ac_stderr_%1.txt").arg(nowString);
+    QString stdoutPathTemp = _logDirectory.absoluteFilePath(stdoutFilenameTemp);
+    QString stderrPathTemp = _logDirectory.absoluteFilePath(stderrFilenameTemp);
+
+    // reset our output and error files
+    assignmentClient->setStandardOutputFile(stdoutPathTemp);
+    assignmentClient->setStandardErrorFile(stderrPathTemp);
+
     // make sure that the output from the child process appears in our output
     assignmentClient->setProcessChannelMode(QProcess::ForwardedChannels);
 
     assignmentClient->start(QCoreApplication::applicationFilePath(), _childArguments);
+
+    // Update log path to use PID in filename
+    auto stdoutFilename = QString("ac_stdout_%1_%2.txt").arg(nowString).arg(assignmentClient->processId());
+    auto stderrFilename = QString("ac_stderr_%1_%2.txt").arg(nowString).arg(assignmentClient->processId());
+    QString stdoutPath = _logDirectory.absoluteFilePath(stdoutFilename);
+    QString stderrPath = _logDirectory.absoluteFilePath(stderrFilename);
+
+    qDebug() << "Renaming " << stdoutPathTemp << " to " << stdoutPath;
+    if (!_logDirectory.rename(stdoutFilenameTemp, stdoutFilename)) {
+        qDebug() << "Failed to rename " << stdoutFilenameTemp;
+        stdoutFilename = stdoutFilenameTemp;
+    }
+
+    qDebug() << "Renaming " << stderrPathTemp << " to " << stderrPath;
+    if (!QFile::rename(stderrPathTemp, stderrPath)) {
+        qDebug() << "Failed to rename " << stderrFilenameTemp;
+        stderrFilename = stderrFilenameTemp;
+    }
     
+    qDebug() << "Child stdout being written to: " << stdoutPathTemp;
+    qDebug() << "Child stderr being written to: " << stderrPathTemp;
+
     if (assignmentClient->processId() > 0) {
         // make sure we hear that this process has finished when it does
         connect(assignmentClient, SIGNAL(finished(int, QProcess::ExitStatus)), this, SLOT(childProcessFinished()));
