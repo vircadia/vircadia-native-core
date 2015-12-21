@@ -877,24 +877,14 @@ function MyController(hand) {
             // if an object is "equipped" and has a spatialKey, use it.
             this.ignoreIK = grabbableData.spatialKey.ignoreIK ? grabbableData.spatialKey.ignoreIK : false;
             if (grabbableData.spatialKey.relativePosition) {
-<<<<<<< HEAD
                 this.offsetPosition = getSpatialOffsetPosition(this.hand, grabbableData.spatialKey);
-=======
-              this.offsetPosition = getSpatialOffsetPosition(this.hand, grabbableData.spatialKey);  
->>>>>>> origin/polylineOptimizations
             } else {
                 this.offsetPosition = Vec3.multiplyQbyV(Quat.inverse(Quat.multiply(handRotation, this.offsetRotation)), offset);
             }
             if (grabbableData.spatialKey.relativeRotation) {
-<<<<<<< HEAD
                 this.offsetRotation = getSpatialOffsetRotation(this.hand, grabbableData.spatialKey);
             } else {
                 this.offsetRotation = Quat.multiply(Quat.inverse(handRotation), objectRotation);
-=======
-              this.offsetRotation = getSpatialOffsetRotation(this.hand, grabbableData.spatialKey);  
-            } else {
-                 this.offsetRotation = Quat.multiply(Quat.inverse(handRotation), objectRotation);
->>>>>>> origin/polylineOptimizations
             }
         } else {
             this.ignoreIK = false;

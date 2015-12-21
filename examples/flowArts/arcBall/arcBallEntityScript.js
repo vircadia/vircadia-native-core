@@ -33,21 +33,13 @@
         },
 
         createBeam: function(startPosition, endPosition) {
-<<<<<<< HEAD
             // Creates particle arc from start position to end position
-=======
-                // Creates particle arc from start position to end position
->>>>>>> origin/polylineOptimizations
             var rotation = Entities.getEntityProperties(this.entityID, "rotation").rotation;
             var sourceToTargetVec = Vec3.subtract(endPosition, startPosition);
             var emitOrientation = Quat.rotationBetween(Vec3.UNIT_Z, sourceToTargetVec);
             emitOrientation = Quat.multiply(Quat.inverse(rotation), emitOrientation);
 
-<<<<<<< HEAD
 
-=======
-         
->>>>>>> origin/polylineOptimizations
             var color = {
                 red: 200,
                 green: 10,
@@ -110,7 +102,6 @@
             var rotation = Entities.getEntityProperties(this.entityID, "rotation").rotation;
             var sourceToTargetVec = Vec3.subtract(targetPosition, startPosition);
             var emitOrientation = Quat.rotationBetween(Vec3.UNIT_Z, sourceToTargetVec);
-<<<<<<< HEAD
             // emitOrientation = Quat.multiply(emitOrientation,Quat.inverse(rotation));
             Entities.editEntity(this.particleArc, {
                 emitOrientation: emitOrientation
@@ -122,18 +113,6 @@
             this.updateBeam(startPosition);
         },
 
-=======
-            emitOrientation = Quat.multiply(Quat.inverse(rotation), emitOrientation);
-            Entities.editEntity(this.particleArc, {emitOrientation: emitOrientation});
-            Entities.editEntity(this.testBox, {rotation: emitOrientation});
-        },
-
-        continueNearGrab: function() {
-            var startPosition = Entities.getEntityProperties(this.entityID, "position").position;
-            this.updateBeam(startPosition);
-        },
-
->>>>>>> origin/polylineOptimizations
         releaseGrab: function() {
             Entities.editEntity(this.particleArc, {
                 isEmitting: false
