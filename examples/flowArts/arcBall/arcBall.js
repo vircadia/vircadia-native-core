@@ -1,139 +1,145 @@
-//  arcBallEntityScript.js
-//  
-//  Script Type: Entity
-//  Created by Eric Levin on 12/17/15.
-//  Copyright 2015 High Fidelity, Inc.
 //
-//  This entity script handles the logic for the arcBall rave toy
+//  arcBall.js
+//  examples/arcBall
+//
+//  Created by Eric Levin on 12/17/15.
+//  Copyright 2014 High Fidelity, Inc.
+//
+//  This script creats a particle light ball which makes particle trails as you move it.
+//
+//
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-(function() {
-    Script.include("../../libraries/utils.js");
-    var _this;
-    var ArcBall = function() {
-        _this = this;
-        this.colorPalette = [{
+Script.include("../../libraries/utils.js");
+
+
+var scriptURL = Script.resolvePath("arcBallEntityScript.js");
+ArcBall = function(spawnPosition) {
+
+    var colorPalette = [{
+        red: 25,
+        green: 20,
+        blue: 162
+    }];
+
+
+    var containerBall = Entities.addEntity({
+        type: "Sphere",
+        name: "Arc Ball",
+        script: scriptURL,
+        position: Vec3.sum(spawnPosition, {
+            x: 0,
+            y: .7,
+            z: 0
+        }),
+        dimensions: {
+            x: .05,
+            y: .05,
+            z: .05
+        },
+        color: {
+            red: 100,
+            green: 10,
+            blue: 150
+        },
+        ignoreForCollisions: true,
+        damping: 0.8,
+        collisionsWillMove: true,
+        userData: JSON.stringify({
+            grabbableKey: {
+                spatialKey: {
+                    relativePosition: {
+                        x: 0,
+                        y: 0.0,
+                        z: -0.5
+                    },
+                },
+                // invertSolidWhileHeld: true
+            }
+        })
+    });
+
+
+    var light = Entities.addEntity({
+        type: 'Light',
+        name: "ballLight",
+        parentID: containerBall,
+        dimensions: {
+            x: 30,
+            y: 30,
+            z: 30
+        },
+        color: colorPalette[randInt(0, colorPalette.length)],
+        intensity: 5
+    });
+
+
+    var arcBall = Entities.addEntity({
+        type: "ParticleEffect",
+        parentID: containerBall,
+        isEmitting: true,
+        name: "Arc Ball Particle Effect",
+        colorStart: {
+            red: 200,
+            green: 20,
+            blue: 40
+        },
+        color: {
+            red: 200,
+            green: 200,
+            blue: 255
+        },
+        colorFinish: {
             red: 25,
             green: 20,
-            blue: 162
-        }, {
-            red: 200,
-            green: 10,
-            blue: 10
-        }];
-    };
-
-    ArcBall.prototype = {
-        isGrabbed: false,
-        startNearGrab: function() {
-            //Search for nearby balls and create an arc to it if one is found
-            var position = Entities.getEntityProperties(this.entityID, "position").position
-            var entities = Entities.findEntities(position, 10);
-            entities.forEach(function(entity) {
-                var props = Entities.getEntityProperties(entity, ["position", "name"]);
-                if (props.name === "Arc Ball" && JSON.stringify(_this.entityID) !== JSON.stringify(entity)) {
-                    _this.target = entity;
-                    _this.createBeam(position, props.position);
-                }
-            });
-
+            blue: 255
         },
-
-        createBeam: function(startPosition, endPosition) {
-            // Creates particle arc from start position to end position
-            var rotation = Entities.getEntityProperties(this.entityID, "rotation").rotation;
-            var sourceToTargetVec = Vec3.subtract(endPosition, startPosition);
-            var emitOrientation = Quat.rotationBetween(Vec3.UNIT_Z, sourceToTargetVec);
-            emitOrientation = Quat.multiply(Quat.inverse(rotation), emitOrientation);
-
-
-            var color = this.colorPalette[randInt(0, this.colorPalette.length)];
-                var props = {
-                    type: "ParticleEffect",
-                    name: "Particle Arc",
-                    parentID: this.entityID,
-                    parentJointIndex: -1,
-                    // position: startPosition,
-                    isEmitting: true,
-                    colorStart: color,
-                    color: {
-                        red: 200,
-                        green: 200,
-                        blue: 255
-                    },
-                    colorFinish: color,
-                    maxParticles: 100000,
-                    lifespan: 1,
-                    emitRate: 1000,
-                    emitOrientation: emitOrientation,
-                    emitSpeed: .2,
-                    speedSpread: 0.1,
-                    emitDimensions: {
-                        x: .1,
-                        y: .1,
-                        z: .1
-                    },
-                    polarStart: 0,
-                    polarFinish: .0,
-                    azimuthStart: .1,
-                    azimuthFinish: .01,
-                    emitAcceleration: {
-                        x: 0,
-                        y: 0,
-                        z: 0
-                    },
-                    accelerationSpread: {
-                        x: .00,
-                        y: .00,
-                        z: .00
-                    },
-                    radiusStart: 0.01,
-                    radiusFinish: 0.005,
-                    radiusSpread: .005,
-                    alpha: 0.5,
-                    alphaSpread: .1,
-                    alphaStart: 0.5,
-                    alphaFinish: 0.0,
-                    textures: "https://s3.amazonaws.com/hifi-public/eric/textures/particleSprites/beamParticle.png",
-                    emitterShouldTrail: true
-                }
-            this.particleArc = Entities.addEntity(props);
+        maxParticles: 100000,
+        lifespan: 2,
+        emitRate: 400,
+        emitSpeed: .1,
+        lifetime: -1,
+        speedSpread: 0.0,
+        emitDimensions: {
+            x: 0,
+            y: 0,
+            z: 0
         },
-
-        updateBeam: function(startPosition) {
-            var targetPosition = Entities.getEntityProperties(this.target, "position").position;
-            print("TARGET position " + JSON.stringify(this.target));
-            var rotation = Entities.getEntityProperties(this.entityID, "rotation").rotation;
-            var sourceToTargetVec = Vec3.subtract(targetPosition, startPosition);
-            var emitOrientation = Quat.rotationBetween(Vec3.UNIT_Z, sourceToTargetVec);
-            // emitOrientation = Quat.multiply(emitOrientation,Quat.inverse(rotation));
-            Entities.editEntity(this.particleArc, {
-                emitOrientation: emitOrientation
-            });
+        polarStart: 0,
+        polarFinish: Math.PI,
+        azimuthStart: -Math.PI,
+        azimuthFinish: Math.PI,
+        emitAcceleration: {
+            x: 0,
+            y: 0,
+            z: 0
         },
-
-        continueNearGrab: function() {
-            var startPosition = Entities.getEntityProperties(this.entityID, "position").position;
-            this.updateBeam(startPosition);
+        accelerationSpread: {
+            x: .00,
+            y: .00,
+            z: .00
         },
+        particleRadius: 0.02,
+        radiusSpread: 0,
+        radiusStart: 0.03,
+        radiusFinish: 0.0003,
+        alpha: 0,
+        alphaSpread: .5,
+        alphaStart: 0,
+        alphaFinish: 0.5,
+        textures: "https://hifi-public.s3.amazonaws.com/alan/Particles/Particle-Sprite-Smoke-1.png",
+        emitterShouldTrail: true
+    })
 
-        releaseGrab: function() {
-            Entities.editEntity(this.particleArc, {
-                isEmitting: false
-            });
-        },
 
-        unload: function() {
-            if (this.particleArc) {
-                Entities.deleteEntity(this.particleArc);
-            }
-        },
 
-        preload: function(entityID) {
-            this.entityID = entityID;
-        },
-    };
-    return new ArcBall();
-});
+        function cleanup() {
+            Entities.deleteEntity(arcBall);
+            Entities.deleteEntity(containerBall);
+            Entities.deleteEntity(light);
+        }
+
+    this.cleanup = cleanup;
+}
