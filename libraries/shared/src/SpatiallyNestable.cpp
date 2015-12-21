@@ -588,7 +588,7 @@ bool SpatiallyNestable::setPuffedQueryAACube() {
 
     getThisPointer()->forEachDescendant([&](SpatiallyNestablePointer descendant) {
             bool success;
-            AACube descendantAACube = descendant->getMaximumAACube(success);
+            AACube descendantAACube = descendant->getQueryAACube(success);
             if (success) {
                 if (_queryAACube.contains(currentAACube)) {
                     return;
