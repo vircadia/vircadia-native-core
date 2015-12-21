@@ -11,19 +11,17 @@
 #include <mutex>
 
 #include <QtCore/QCoreApplication>
-#include <QtCore/QThread>
-#include <QtCore/QUrl>
-#include <QtCore/QUrlQuery>
-#include <QtScript/QScriptContext>
-#include <QtScript/QScriptEngine>
-
-#include <QtQuick/QQuickItem>
-
-#include <QtWebSockets/QWebSocketServer>
-#include <QtWebSockets/QWebSocket>
-#include <QtWebChannel/QWebChannel>
 #include <QtCore/QJsonDocument>
 #include <QtCore/QJsonObject>
+#include <QtCore/QUrl>
+#include <QtCore/QUrlQuery>
+#include <QtCore/QThread>
+#include <QtQml/QQmlContext>
+#include <QtScript/QScriptContext>
+#include <QtScript/QScriptEngine>
+#include <QtWebChannel/QWebChannel>
+#include <QtWebSockets/QWebSocketServer>
+#include <QtWebSockets/QWebSocket>
 
 #include <AbstractUriHandler.h>
 #include <AddressManager.h>
@@ -87,6 +85,29 @@ void QmlWebWindowClass::setupServer() {
     }
 }
 
+class UrlFixer : public QObject {
+    Q_OBJECT
+public:
+    Q_INVOKABLE QString fixupUrl(const QString& originalUrl) {
+        static const QString ACCESS_TOKEN_PARAMETER = "access_token";
+        static const QString ALLOWED_HOST = "metaverse.highfidelity.com";
+        QString result = originalUrl;
+        QUrl url(originalUrl);
+        QUrlQuery query(url);
+        if (url.host() == ALLOWED_HOST && query.allQueryItemValues(ACCESS_TOKEN_PARAMETER).empty()) {
+            qDebug() << "Updating URL with auth token";
+            AccountManager& accountManager = AccountManager::getInstance();
+            query.addQueryItem(ACCESS_TOKEN_PARAMETER, accountManager.getAccountInfo().getAccessToken().token);
+            url.setQuery(query.query());
+            result = url.toString();
+        }
+
+        return result;
+    }
+};
+
+static UrlFixer URL_FIXER;
+
 // Method called by Qt scripts to create a new web window in the overlay
 QScriptValue QmlWebWindowClass::constructor(QScriptContext* context, QScriptEngine* engine) {
     QmlWebWindowClass* retVal { nullptr };
@@ -98,6 +119,7 @@ QScriptValue QmlWebWindowClass::constructor(QScriptContext* context, QScriptEngi
     const int width = std::max(100, std::min(1280, context->argument(2).toInt32()));;
     const int height = std::max(100, std::min(720, context->argument(3).toInt32()));;
 
+
     // Build the event bridge and wrapper on the main thread
     QMetaObject::invokeMethod(DependencyManager::get<OffscreenUi>().data(), "load", Qt::BlockingQueuedConnection,
         Q_ARG(const QString&, "QmlWebWindow.qml"),
@@ -105,6 +127,7 @@ QScriptValue QmlWebWindowClass::constructor(QScriptContext* context, QScriptEngi
             setupServer();
             retVal = new QmlWebWindowClass(object);
             webChannel.registerObject(url.toLower(), retVal);
+            context->setContextProperty("urlFixer", &URL_FIXER);
             retVal->setTitle(title);
             retVal->setURL(url);
             retVal->setSize(width, height);
@@ -230,23 +253,7 @@ void QmlWebWindowClass::setURL(const QString& urlString) {
     if (QThread::currentThread() != thread()) {
         QMetaObject::invokeMethod(this, "setURL", Qt::QueuedConnection, Q_ARG(QString, urlString));
     }
-
-    static const QString ACCESS_TOKEN_PARAMETER = "access_token";
-    static const QString ALLOWED_HOST = "metaverse.highfidelity.com";
-
-    QUrl url(urlString);
-    qDebug() << "Url: " << urlString;
-    qDebug() << "Host: " << url.host();
-    if (url.host() == ALLOWED_HOST) {
-        QUrlQuery query(url);
-        if (query.allQueryItemValues(ACCESS_TOKEN_PARAMETER).empty()) {
-            AccountManager& accountManager = AccountManager::getInstance();
-            query.addQueryItem(ACCESS_TOKEN_PARAMETER, accountManager.getAccountInfo().getAccessToken().token);
-            url.setQuery(query.query());
-            qDebug() << "New URL " << url;
-        }
-    }
-    _qmlWindow->setProperty(URL_PROPERTY, url.toString());
+    _qmlWindow->setProperty(URL_PROPERTY, urlString);
 }
 
 

@@ -56,6 +56,13 @@ VrDialog {
             id: webview
             url: root.source
             anchors.fill: parent
+            onUrlChanged: {
+                var currentUrl = url.toString();
+                var newUrl = urlFixer.fixupUrl(currentUrl);
+                if (newUrl != currentUrl) {
+                    url = newUrl;
+                }
+            }
             profile: WebEngineProfile {
                 id: webviewProfile
                 httpUserAgent: "Mozilla/5.0 (HighFidelityInterface)"
