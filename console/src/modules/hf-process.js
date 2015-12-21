@@ -97,7 +97,6 @@ var ID = 0;
 function Process(name, command, commandArgs, logDirectory) {
     events.EventEmitter.call(this);
 
-    this.blah = 'adsf';
     this.id = ++ID;
     this.name = name;
     this.command = command;
