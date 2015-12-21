@@ -393,7 +393,7 @@ Model* RenderableModelEntityItem::getModel(EntityTreeRenderer* renderer) {
             _needsInitialSimulation = true;
         }
     }
-    
+
     return result;
 }
 
@@ -406,14 +406,14 @@ void RenderableModelEntityItem::update(const quint64& now) {
         EntityItemProperties properties;
         auto extents = _model->getMeshExtents();
         properties.setDimensions(extents.maximum - extents.minimum);
-        
+
         qCDebug(entitiesrenderer) << "Autoresizing:" << (!getName().isEmpty() ? getName() : getModelURL());
         QMetaObject::invokeMethod(DependencyManager::get<EntityScriptingInterface>().data(), "editEntity",
                                   Qt::QueuedConnection,
                                   Q_ARG(QUuid, getEntityItemID()),
                                   Q_ARG(EntityItemProperties, properties));
     }
-    
+
     ModelEntityItem::update(now);
 }
 
@@ -435,7 +435,7 @@ bool RenderableModelEntityItem::findDetailedRayIntersection(const glm::vec3& ori
     //                           << precisionPicking;
 
     QString extraInfo;
-    return _model->findRayIntersectionAgainstSubMeshes(origin, direction, distance, 
+    return _model->findRayIntersectionAgainstSubMeshes(origin, direction, distance,
                                                        face, surfaceNormal, extraInfo, precisionPicking);
 }
 
@@ -455,24 +455,22 @@ bool RenderableModelEntityItem::isReadyToComputeShape() {
     ShapeType type = getShapeType();
 
     if (type == SHAPE_TYPE_COMPOUND) {
-        if (!_model) {
+        if (!_model || _model->getCollisionURL().isEmpty()) {
             EntityTreePointer tree = getTree();
             if (tree) {
                 QMetaObject::invokeMethod(tree.get(), "callLoader", Qt::QueuedConnection, Q_ARG(EntityItemID, getID()));
             }
-            return false; // hmm...
+            return false;
         }
 
-        assert(!_model->getCollisionURL().isEmpty());
-    
         if (_model->getURL().isEmpty()) {
             // we need a render geometry with a scale to proceed, so give up.
             return false;
         }
-    
+
         const QSharedPointer<NetworkGeometry> collisionNetworkGeometry = _model->getCollisionGeometry();
         const QSharedPointer<NetworkGeometry> renderNetworkGeometry = _model->getGeometry();
-    
+
         if ((collisionNetworkGeometry && collisionNetworkGeometry->isLoaded()) &&
             (renderNetworkGeometry && renderNetworkGeometry->isLoaded())) {
             // we have both URLs AND both geometries AND they are both fully loaded.
