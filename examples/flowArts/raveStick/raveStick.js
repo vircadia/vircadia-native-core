@@ -30,7 +30,8 @@ RaveStick = function(spawnPosition) {
         modelURL: modelURL,
         position: spawnPosition,
         shapeType: 'box',
-        script: scriptURL,
+        collisionsWillMove: true,
+        // script: scriptURL,
         dimensions: {
             x: 0.06,
             y: 0.06,
