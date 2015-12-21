@@ -72,5 +72,5 @@ void RenderableSphereEntityItem::render(RenderArgs* args) {
         DependencyManager::get<DeferredLightingEffect>()->renderSolidSphereInstance(batch, modelTransform, sphereColor);
     }
     static const auto triCount = DependencyManager::get<GeometryCache>()->getSphereTriangleCount();
-    args->_details._trianglesRendered += triCount;
+    args->_details._trianglesRendered += (int)triCount;
 }

@@ -62,6 +62,14 @@ namespace controller {
             makeButtonPair(Action::TOGGLE_MUTE, "ToggleMute"),
             makeButtonPair(Action::CYCLE_CAMERA, "CycleCamera"),
 
+            makeAxisPair(Action::RETICLE_CLICK, "ReticleClick"),
+            makeAxisPair(Action::RETICLE_X, "ReticleX"),
+            makeAxisPair(Action::RETICLE_Y, "ReticleY"),
+            makeAxisPair(Action::RETICLE_LEFT, "ReticleLeft"),
+            makeAxisPair(Action::RETICLE_RIGHT, "ReticleRight"),
+            makeAxisPair(Action::RETICLE_UP, "ReticleUp"),
+            makeAxisPair(Action::RETICLE_DOWN, "ReticleDown"),
+
             // Aliases and bisected versions
             makeAxisPair(Action::LONGITUDINAL_BACKWARD, "Backward"),
             makeAxisPair(Action::LONGITUDINAL_FORWARD, "Forward"),

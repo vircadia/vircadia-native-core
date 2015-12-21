@@ -97,6 +97,7 @@ public:
     EntityActionPointer getActionByID(const QUuid& actionID) const;
     void addAction(EntityActionPointer action);
     void removeAction(const QUuid actionID);
+    void forEachAction(std::function<void(EntityActionPointer)> actor);
 
 private:
     void removeContacts(ObjectMotionState* motionState);

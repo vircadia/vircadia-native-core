@@ -29,7 +29,7 @@ public:
     virtual ~RenderableModelEntityItem();
 
     virtual void setDimensions(const glm::vec3& value) override;
-    virtual void setModelURL(const QString& url);
+    virtual void setModelURL(const QString& url) override;
 
     virtual EntityItemProperties getProperties(EntityPropertyFlags desiredProperties = EntityPropertyFlags()) const override;
     virtual bool setProperties(const EntityItemProperties& properties) override;
@@ -73,6 +73,7 @@ public:
     virtual glm::vec3 getAbsoluteJointTranslationInObjectFrame(int index) const override;
 
     virtual void loader() override;
+    virtual void locationChanged() override;
 
 private:
     void remapTextures();

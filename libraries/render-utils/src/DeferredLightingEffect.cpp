@@ -169,8 +169,8 @@ void DeferredLightingEffect::init(AbstractViewStateInterface* viewState) {
 
 
 gpu::PipelinePointer DeferredLightingEffect::bindSimpleProgram(gpu::Batch& batch, bool textured, bool culled,
-                                               bool emmisive, bool depthBias) {
-    SimpleProgramKey config{textured, culled, emmisive, depthBias};
+                                               bool emissive, bool depthBias) {
+    SimpleProgramKey config{textured, culled, emissive, depthBias};
     gpu::PipelinePointer pipeline = getPipeline(config);
     batch.setPipeline(pipeline);
 
@@ -314,7 +314,7 @@ void DeferredLightingEffect::addPointLight(const glm::vec3& position, float radi
 void DeferredLightingEffect::addSpotLight(const glm::vec3& position, float radius, const glm::vec3& color,
     float intensity, const glm::quat& orientation, float exponent, float cutoff) {
     
-    unsigned int lightID = _pointLights.size() + _spotLights.size() + _globalLights.size();
+    unsigned int lightID = (unsigned int)(_pointLights.size() + _spotLights.size() + _globalLights.size());
     if (lightID >= _allocatedLights.size()) {
         _allocatedLights.push_back(std::make_shared<model::Light>());
     }

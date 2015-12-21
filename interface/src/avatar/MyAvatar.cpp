@@ -287,10 +287,7 @@ extern void avatarStateFromFrame(const QByteArray& frameData, AvatarData* _avata
 void MyAvatar::simulate(float deltaTime) {
     PerformanceTimer perfTimer("simulate");
 
-    if (getAvatarScale() != _targetScale) {
-        float scale = (1.0f - SMOOTHING_RATIO) * getAvatarScale() + SMOOTHING_RATIO * _targetScale;
-        setAvatarScale(scale);
-    }
+    animateScaleChanges(deltaTime);
 
     {
         PerformanceTimer perfTimer("transform");
@@ -337,7 +334,7 @@ void MyAvatar::simulate(float deltaTime) {
             headPosition = getPosition();
         }
         head->setPosition(headPosition);
-        head->setScale(getAvatarScale());
+        head->setScale(getUniformScale());
         head->simulate(deltaTime, true);
     }
 
@@ -441,14 +438,6 @@ void MyAvatar::updateFromTrackers(float deltaTime) {
         estimatedPosition = tracker->getHeadTranslation();
         _trackedHeadPosition = estimatedPosition;
         estimatedRotation = glm::degrees(safeEulerAngles(tracker->getHeadRotation()));
-        if (qApp->getCamera()->getMode() == CAMERA_MODE_MIRROR) {
-            // Invert yaw and roll when in mirror mode
-            // NOTE: this is kinda a hack, it's the same hack we use to make the head tilt. But it's not really a mirror
-            // it just makes you feel like you're looking in a mirror because the body movements of the avatar appear to
-            // match your body movements.
-            YAW(estimatedRotation) *= -1.0f;
-            ROLL(estimatedRotation) *= -1.0f;
-        }
     }
 
     //  Rotate the body if the head is turned beyond the screen
@@ -489,14 +478,6 @@ void MyAvatar::updateFromTrackers(float deltaTime) {
     const float TORSO_LENGTH = 0.5f;
     glm::vec3 relativePosition = estimatedPosition - glm::vec3(0.0f, -TORSO_LENGTH, 0.0f);
 
-    // Invert left/right lean when in mirror mode
-    // NOTE: this is kinda a hack, it's the same hack we use to make the head tilt. But it's not really a mirror
-    // it just makes you feel like you're looking in a mirror because the body movements of the avatar appear to
-    // match your body movements.
-    if ((inHmd || inFacetracker) && qApp->getCamera()->getMode() == CAMERA_MODE_MIRROR) {
-        relativePosition.x = -relativePosition.x;
-    }
-
     const float MAX_LEAN = 45.0f;
     head->setLeanSideways(glm::clamp(glm::degrees(atanf(relativePosition.x * _leanScale / TORSO_LENGTH)),
                                      -MAX_LEAN, MAX_LEAN));
@@ -528,25 +509,25 @@ glm::vec3 MyAvatar::getRightHandTipPosition() const {
 controller::Pose MyAvatar::getLeftHandPose() const {
     auto palmData = getHandData()->getCopyOfPalmData(HandData::LeftHand);
     return palmData.isValid() ? controller::Pose(palmData.getPosition(), palmData.getRotation(),
-        palmData.getVelocity(), palmData.getRawAngularVelocityAsQuat()) : controller::Pose();
+        palmData.getVelocity(), palmData.getRawAngularVelocity()) : controller::Pose();
 }
 
 controller::Pose MyAvatar::getRightHandPose() const {
     auto palmData = getHandData()->getCopyOfPalmData(HandData::RightHand);
     return palmData.isValid() ? controller::Pose(palmData.getPosition(), palmData.getRotation(),
-        palmData.getVelocity(), palmData.getRawAngularVelocityAsQuat()) : controller::Pose();
+        palmData.getVelocity(), palmData.getRawAngularVelocity()) : controller::Pose();
 }
 
 controller::Pose MyAvatar::getLeftHandTipPose() const {
     auto palmData = getHandData()->getCopyOfPalmData(HandData::LeftHand);
     return palmData.isValid() ? controller::Pose(palmData.getTipPosition(), palmData.getRotation(),
-        palmData.getTipVelocity(), palmData.getRawAngularVelocityAsQuat()) : controller::Pose();
+        palmData.getTipVelocity(), palmData.getRawAngularVelocity()) : controller::Pose();
 }
 
 controller::Pose MyAvatar::getRightHandTipPose() const {
     auto palmData = getHandData()->getCopyOfPalmData(HandData::RightHand);
     return palmData.isValid() ? controller::Pose(palmData.getTipPosition(), palmData.getRotation(),
-        palmData.getTipVelocity(), palmData.getRawAngularVelocityAsQuat()) : controller::Pose();
+        palmData.getTipVelocity(), palmData.getRawAngularVelocity()) : controller::Pose();
 }
 
 // virtual
@@ -555,7 +536,7 @@ void MyAvatar::render(RenderArgs* renderArgs, const glm::vec3& cameraPosition) {
     if (!_shouldRender) {
         return; // exit early
     }
-    
+
     Avatar::render(renderArgs, cameraPosition);
 }
 
@@ -697,7 +678,7 @@ void MyAvatar::loadData() {
 
     _leanScale = loadSetting(settings, "leanScale", 0.05f);
     _targetScale = loadSetting(settings, "scale", 1.0f);
-    setAvatarScale(getAvatarScale());
+    setScale(glm::vec3(_targetScale));
 
     _animGraphUrl = settings.value("animGraphURL", "").toString();
     _fullAvatarURLFromPreferences = settings.value("fullAvatarURL", AvatarData::defaultFullAvatarModelUrl()).toUrl();
@@ -818,14 +799,14 @@ void MyAvatar::updateLookAtTargetAvatar() {
     const float GREATEST_LOOKING_AT_DISTANCE = 10.0f;
 
     AvatarHash hash = DependencyManager::get<AvatarManager>()->getHashCopy();
-    
+
     foreach (const AvatarSharedPointer& avatarPointer, hash) {
         auto avatar = static_pointer_cast<Avatar>(avatarPointer);
         bool isCurrentTarget = avatar->getIsLookAtTarget();
         float distanceTo = glm::length(avatar->getHead()->getEyePosition() - cameraPosition);
         avatar->setIsLookAtTarget(false);
         if (!avatar->isMyAvatar() && avatar->isInitialized() &&
-            (distanceTo < GREATEST_LOOKING_AT_DISTANCE * getAvatarScale())) {
+            (distanceTo < GREATEST_LOOKING_AT_DISTANCE * getUniformScale())) {
             float angleTo = glm::angle(lookForward, glm::normalize(avatar->getHead()->getEyePosition() - cameraPosition));
             if (angleTo < (smallestAngleTo * (isCurrentTarget ? KEEP_LOOKING_AT_CURRENT_ANGLE_FACTOR : 1.0f))) {
                 _lookAtTargetAvatar = avatarPointer;
@@ -966,7 +947,11 @@ void MyAvatar::clearJointData(int index) {
 }
 
 void MyAvatar::clearJointsData() {
-    //clearJointAnimationPriorities();
+    if (QThread::currentThread() != thread()) {
+        QMetaObject::invokeMethod(this, "clearJointsData");
+        return;
+    }
+    _rig->clearJointStates();
 }
 
 void MyAvatar::setFaceModelURL(const QUrl& faceModelURL) {
@@ -1048,14 +1033,15 @@ glm::vec3 MyAvatar::getSkeletonPosition() const {
     return Avatar::getPosition();
 }
 
-void MyAvatar::rebuildSkeletonBody() {
+void MyAvatar::rebuildCollisionShape() {
     // compute localAABox
-    float radius = _skeletonModel.getBoundingCapsuleRadius();
-    float height = _skeletonModel.getBoundingCapsuleHeight() + 2.0f * radius;
+    float scale = getUniformScale();
+    float radius = scale * _skeletonModel.getBoundingCapsuleRadius();
+    float height = scale * _skeletonModel.getBoundingCapsuleHeight() + 2.0f * radius;
     glm::vec3 corner(-radius, -0.5f * height, -radius);
-    corner += _skeletonModel.getBoundingCapsuleOffset();
-    glm::vec3 scale(2.0f * radius, height, 2.0f * radius);
-    _characterController.setLocalBoundingBox(corner, scale);
+    corner += scale * _skeletonModel.getBoundingCapsuleOffset();
+    glm::vec3 diagonal(2.0f * radius, height, 2.0f * radius);
+    _characterController.setLocalBoundingBox(corner, diagonal);
 }
 
 void MyAvatar::prepareForPhysicsSimulation() {
@@ -1189,7 +1175,7 @@ void MyAvatar::renderBody(RenderArgs* renderArgs, ViewFrustum* renderFrustum, fl
     if (!_skeletonModel.isRenderable()) {
         return; // wait until all models are loaded
     }
-    
+
     fixupModelsInScene();
 
     //  Render head so long as the camera isn't inside it
@@ -1343,7 +1329,7 @@ const float RENDER_HEAD_CUTOFF_DISTANCE = 0.50f;
 bool MyAvatar::cameraInsideHead() const {
     const Head* head = getHead();
     const glm::vec3 cameraPosition = qApp->getCamera()->getPosition();
-    return glm::length(cameraPosition - head->getEyePosition()) < (RENDER_HEAD_CUTOFF_DISTANCE * getAvatarScale());
+    return glm::length(cameraPosition - head->getEyePosition()) < (RENDER_HEAD_CUTOFF_DISTANCE * getUniformScale());
 }
 
 bool MyAvatar::shouldRenderHead(const RenderArgs* renderArgs) const {
@@ -1400,12 +1386,6 @@ void MyAvatar::updateOrientation(float deltaTime) {
         // these angles will be in radians
         // ... so they need to be converted to degrees before we do math...
         glm::vec3 euler = glm::eulerAngles(localOrientation) * DEGREES_PER_RADIAN;
-
-        //Invert yaw and roll when in mirror mode
-        if (qApp->getCamera()->getMode() == CAMERA_MODE_MIRROR) {
-            YAW(euler) *= -1.0f;
-            ROLL(euler) *= -1.0f;
-        }
 
         Head* head = getHead();
         head->setBaseYaw(YAW(euler));
@@ -1473,11 +1453,11 @@ glm::vec3 MyAvatar::applyKeyboardMotor(float deltaTime, const glm::vec3& localVe
             if (isHovering) {
                 // we're flying --> complex acceleration curve with high max speed
                 float motorSpeed = glm::length(_keyboardMotorVelocity);
-                float finalMaxMotorSpeed = getAvatarScale() * MAX_KEYBOARD_MOTOR_SPEED;
+                float finalMaxMotorSpeed = getUniformScale() * MAX_KEYBOARD_MOTOR_SPEED;
                 float speedGrowthTimescale  = 2.0f;
                 float speedIncreaseFactor = 1.8f;
                 motorSpeed *= 1.0f + glm::clamp(deltaTime / speedGrowthTimescale , 0.0f, 1.0f) * speedIncreaseFactor;
-                const float maxBoostSpeed = getAvatarScale() * MAX_BOOST_SPEED;
+                const float maxBoostSpeed = getUniformScale() * MAX_BOOST_SPEED;
                 if (motorSpeed < maxBoostSpeed) {
                     // an active keyboard motor should never be slower than this
                     float boostCoefficient = (maxBoostSpeed - motorSpeed) / maxBoostSpeed;

@@ -118,7 +118,7 @@ void Stats::updateStats(bool force) {
     STAT_UPDATE(avatarCount, avatarManager->size() - 1);
     STAT_UPDATE(avatarRenderableCount, avatarManager->getNumberInRenderRange());
     STAT_UPDATE(avatarRenderDistance, (int) round(avatarManager->getRenderDistance())); // deliberately truncating
-    STAT_UPDATE(serverCount, nodeList->size());
+    STAT_UPDATE(serverCount, (int)nodeList->size());
     STAT_UPDATE(renderrate, (int)qApp->getFps());
     if (qApp->getActiveDisplayPlugin()) {
         STAT_UPDATE(presentrate, (int)round(qApp->getActiveDisplayPlugin()->presentRate()));
@@ -270,7 +270,7 @@ void Stats::updateStats(bool force) {
     if (voxelPacketsToProcess == 0) {
         _resetRecentMaxPacketsSoon = true;
     } else if (voxelPacketsToProcess > _recentMaxPackets) {
-        _recentMaxPackets = voxelPacketsToProcess;
+        _recentMaxPackets = (int)voxelPacketsToProcess;
     }
 
     // Server Octree Elements
@@ -344,18 +344,18 @@ void Stats::setRenderDetails(const RenderDetails& details) {
     STAT_UPDATE(triangles, details._trianglesRendered);
     STAT_UPDATE(materialSwitches, details._materialSwitches);
     if (_expanded) {
-        STAT_UPDATE(opaqueConsidered, details._opaque._considered);
+        STAT_UPDATE(opaqueConsidered, (int)details._opaque._considered);
         STAT_UPDATE(opaqueOutOfView, details._opaque._outOfView);
         STAT_UPDATE(opaqueTooSmall, details._opaque._tooSmall);
-        STAT_UPDATE(opaqueRendered, details._opaque._rendered);
-        STAT_UPDATE(translucentConsidered, details._translucent._considered);
+        STAT_UPDATE(opaqueRendered, (int)details._opaque._rendered);
+        STAT_UPDATE(translucentConsidered, (int)details._translucent._considered);
         STAT_UPDATE(translucentOutOfView, details._translucent._outOfView);
         STAT_UPDATE(translucentTooSmall, details._translucent._tooSmall);
-        STAT_UPDATE(translucentRendered, details._translucent._rendered);
-        STAT_UPDATE(otherConsidered, details._other._considered);
+        STAT_UPDATE(translucentRendered, (int)details._translucent._rendered);
+        STAT_UPDATE(otherConsidered, (int)details._other._considered);
         STAT_UPDATE(otherOutOfView, details._other._outOfView);
         STAT_UPDATE(otherTooSmall, details._other._tooSmall);
-        STAT_UPDATE(otherRendered, details._other._rendered);
+        STAT_UPDATE(otherRendered, (int)details._other._rendered);
     }
 }
 

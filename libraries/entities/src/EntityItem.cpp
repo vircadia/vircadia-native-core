@@ -620,7 +620,7 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
     Q_ASSERT(parser.data() + parser.offset() == dataAt);
 #else
     const unsigned char* dataAt = parser.data() + parser.offset();
-    int bytesRead = parser.offset();
+    int bytesRead = (int)parser.offset();
 #endif
 
     auto nodeList = DependencyManager::get<NodeList>();
@@ -749,7 +749,7 @@ void EntityItem::debugDump() const {
 void EntityItem::adjustEditPacketForClockSkew(QByteArray& buffer, int clockSkew) {
     unsigned char* dataAt = reinterpret_cast<unsigned char*>(buffer.data());
     int octets = numberOfThreeBitSectionsInCode(dataAt);
-    int lengthOfOctcode = bytesRequiredForCodeLength(octets);
+    int lengthOfOctcode = (int)bytesRequiredForCodeLength(octets);
     dataAt += lengthOfOctcode;
 
     // lastEdited
