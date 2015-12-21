@@ -384,10 +384,10 @@ var CHECK_MARK_COLOR = {
             y: newY
         });
         Overlays.editOverlay(this.checkMark, {
-            y: newY
+            y: newY + (0.25 * this.thumbSize)
         });
         Overlays.editOverlay(this.unCheckMark, {
-            y: newY
+            y: newY + (0.25 * this.thumbSize)
         });
     };
 
@@ -399,10 +399,10 @@ var CHECK_MARK_COLOR = {
             y: this.y
         });
         Overlays.editOverlay(this.checkMark, {
-            y: this.y
+            y: this.y + (0.25 * this.thumbSize)
         });
         Overlays.editOverlay(this.unCheckMark, {
-            y: this.y
+            y: this.y+ (0.25 * this.thumbSize)
         });
     };
 

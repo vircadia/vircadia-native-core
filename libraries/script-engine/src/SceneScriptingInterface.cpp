@@ -1,6 +1,6 @@
 //
 //  SceneScriptingInterface.cpp
-//  interface/src/scripting
+//  libraries/script-engine
 //
 //  Created by Sam Gateau on 2/24/15.
 //  Copyright 2014 High Fidelity, Inc.
@@ -11,14 +11,25 @@
 
 #include "SceneScriptingInterface.h"
 
-#include <AddressManager.h>
-
-
 #include <procedural/ProceduralSkybox.h>
 
 SceneScriptingInterface::SceneScriptingInterface() {
-    // Let's make sure the sunSkyStage is using a proceduralSKybox
+    // Let's make sure the sunSkyStage is using a proceduralSkybox
     _skyStage->setSkybox(model::SkyboxPointer(new ProceduralSkybox()));
+}
+
+void SceneScriptingInterface::setShouldRenderAvatars(bool shouldRenderAvatars) {
+    if (shouldRenderAvatars != _shouldRenderAvatars) {
+        _shouldRenderAvatars = shouldRenderAvatars;
+        emit shouldRenderAvatarsChanged(_shouldRenderAvatars);
+    }
+}
+
+void SceneScriptingInterface::setShouldRenderEntities(bool shouldRenderEntities) {
+    if (shouldRenderEntities != _shouldRenderEntities) {
+        _shouldRenderEntities = shouldRenderEntities;
+        emit shouldRenderEntitiesChanged(_shouldRenderEntities);
+    }
 }
 
 void SceneScriptingInterface::setStageOrientation(const glm::quat& orientation) {
@@ -119,51 +130,4 @@ QString SceneScriptingInterface::getBackgroundMode() const {
 
 model::SunSkyStagePointer SceneScriptingInterface::getSkyStage() const {
     return _skyStage;
-}
-
-void SceneScriptingInterface::setShouldRenderAvatars(bool shouldRenderAvatars) {
-    if (shouldRenderAvatars != _shouldRenderAvatars) {
-        _shouldRenderAvatars = shouldRenderAvatars;
-        emit shouldRenderAvatarsChanged(_shouldRenderAvatars);
-    }
-}
-
-void SceneScriptingInterface::setShouldRenderEntities(bool shouldRenderEntities) {
-    if (shouldRenderEntities != _shouldRenderEntities) {
-        _shouldRenderEntities = shouldRenderEntities;
-        emit shouldRenderEntitiesChanged(_shouldRenderEntities);
-    }
-}
-
-void SceneScriptingInterface::setEngineRenderOpaque(bool renderOpaque) {
-    _engineRenderOpaque = renderOpaque;
-}
-
-void SceneScriptingInterface::setEngineRenderTransparent(bool renderTransparent) {
-    _engineRenderTransparent = renderTransparent;
-}
-
-void SceneScriptingInterface::setEngineCullOpaque(bool cullOpaque) {
-    _engineCullOpaque = cullOpaque;
-}
-
-void SceneScriptingInterface::setEngineCullTransparent(bool cullTransparent) {
-    _engineCullTransparent = cullTransparent;
-}
-
-void SceneScriptingInterface::setEngineSortOpaque(bool sortOpaque) {
-    _engineSortOpaque = sortOpaque;
-}
-
-void SceneScriptingInterface::setEngineSortTransparent(bool sortTransparent) {
-    _engineSortOpaque = sortTransparent;
-}
-
-void SceneScriptingInterface::clearEngineCounters() {
-    _numFeedOpaqueItems = 0;
-    _numDrawnOpaqueItems = 0;
-    _numFeedTransparentItems = 0;
-    _numDrawnTransparentItems = 0;
-    _numFeedOverlay3DItems = 0;
-    _numDrawnOverlay3DItems = 0;
 }
