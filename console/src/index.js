@@ -2,18 +2,20 @@ $(function() {
     const ipcRenderer = require('electron').ipcRenderer;
 
     function onProcessUpdate(event, arg) {
-        // Update interface
         console.log("update", event, arg);
-        var state = arg.interface.state;
-        $('#process-interface .status').text(state);
-        var on = state != 'stopped';
-        if (on) {
-            $('#process-interface .power-on').hide();
-            $('#process-interface .power-off').show();
-        } else {
-            $('#process-interface .power-on').show();
-            $('#process-interface .power-off').hide();
-        }
+
+        // Update interface
+
+        // var state = arg.interface.state;
+        // $('#process-interface .status').text(state);
+        // var on = state != 'stopped';
+        // if (on) {
+        //     $('#process-interface .power-on').hide();
+        //     $('#process-interface .power-off').show();
+        // } else {
+        //     $('#process-interface .power-on').show();
+        //     $('#process-interface .power-off').hide();
+        // }
     }
 
     $('#process-interface .power-on').click(function() {
