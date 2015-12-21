@@ -90,7 +90,9 @@ namespace SceneScripting {
         Q_OBJECT
 
     public:
-        Stage(model::SunSkyStagePointer skyStage) : _skyStage{ skyStage }, _location{ std::make_unique<Location>(skyStage) }, _time{ std::make_unique<Time>(skyStage) }, _keyLight{ std::make_unique<KeyLight>(skyStage) } {}
+        Stage(model::SunSkyStagePointer skyStage)
+            : _skyStage{ skyStage },
+            _location{ new Location{ skyStage } }, _time{ new Time{ skyStage } }, _keyLight{ new KeyLight{ skyStage } }{}
 
         Q_INVOKABLE void setOrientation(const glm::quat& orientation) const;
 

@@ -97,11 +97,11 @@ protected:
 
     RenderScripting::Tone* getTone() const { return _tone.get(); }
 
-    RenderScripting::ItemStatePointer _opaque = std::make_unique<RenderScripting::ItemState>();
-    RenderScripting::ItemStatePointer _transparent = std::make_unique<RenderScripting::ItemState>();
-    RenderScripting::ItemCounterPointer _overlay3D = std::make_unique<RenderScripting::ItemCounter>();
+    RenderScripting::ItemStatePointer _opaque = RenderScripting::ItemStatePointer{new RenderScripting::ItemState{}};
+    RenderScripting::ItemStatePointer _transparent = RenderScripting::ItemStatePointer{new RenderScripting::ItemState{}};
+    RenderScripting::ItemCounterPointer _overlay3D = RenderScripting::ItemCounterPointer{new RenderScripting::ItemCounter{}};
 
-    RenderScripting::TonePointer _tone = std::make_unique<RenderScripting::Tone>();
+    RenderScripting::TonePointer _tone = RenderScripting::TonePointer{ new RenderScripting::Tone{} };
 
     // Options
     int _drawStatus = 0;

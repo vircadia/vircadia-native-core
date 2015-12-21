@@ -124,7 +124,7 @@ QString SceneScripting::Stage::getBackgroundMode() const {
     };
 }
 
-SceneScriptingInterface::SceneScriptingInterface() : _stage{ std::make_unique<SceneScripting::Stage>(_skyStage) } {
+SceneScriptingInterface::SceneScriptingInterface() : _stage{ new SceneScripting::Stage{ _skyStage } } {
     // Let's make sure the sunSkyStage is using a proceduralSkybox
     _skyStage->setSkybox(model::SkyboxPointer(new ProceduralSkybox()));
 }
