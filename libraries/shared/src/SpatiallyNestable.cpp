@@ -587,16 +587,16 @@ bool SpatiallyNestable::setPuffedQueryAACube() {
     _queryAACubeSet = true;
 
     getThisPointer()->forEachDescendant([&](SpatiallyNestablePointer descendant) {
-            bool success;
-            AACube descendantAACube = descendant->getQueryAACube(success);
-            if (success) {
-                if (_queryAACube.contains(currentAACube)) {
-                    return;
-                }
-                _queryAACube += descendantAACube.getMinimumPoint();
-                _queryAACube += descendantAACube.getMaximumPoint();
+        bool success;
+        AACube descendantAACube = descendant->getQueryAACube(success);
+        if (success) {
+            if (_queryAACube.contains(descendantAACube)) {
+                return;
             }
-        });
+            _queryAACube += descendantAACube.getMinimumPoint();
+            _queryAACube += descendantAACube.getMaximumPoint();
+        }
+    });
 
     return true;
 }
