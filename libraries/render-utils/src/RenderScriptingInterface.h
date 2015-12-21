@@ -17,71 +17,93 @@
 
 #include "render/Engine.h"
 
+namespace RenderScripting {
+    using State = render::RenderContext::ItemsConfig::State;
+    using Counter = render::RenderContext::ItemsConfig::Counter;
+        
+    class ItemCounter : public QObject, public Counter {
+        Q_OBJECT
+
+    public:
+        Q_PROPERTY(int numFeed READ getNumFeed)
+        Q_PROPERTY(int numDrawn READ getNumDrawn)
+        Q_PROPERTY(int maxDrawn MEMBER maxDrawn)
+
+    protected:
+        int getNumFeed() const { return numFeed; }
+        int getNumDrawn() const { return numDrawn; }
+    };
+    using ItemCounterPointer = std::unique_ptr<ItemCounter>;
+
+    class ItemState : public QObject, public State {
+        Q_OBJECT
+
+    public:
+        Q_PROPERTY(bool render MEMBER render)
+        Q_PROPERTY(bool cull MEMBER cull)
+        Q_PROPERTY(bool sort MEMBER sort)
+
+        Q_PROPERTY(int numFeed READ getNumFeed)
+        Q_PROPERTY(int numDrawn READ getNumDrawn)
+        Q_PROPERTY(int maxDrawn MEMBER maxDrawn)
+
+    protected:
+        int getNumFeed() const { return numFeed; }
+        int getNumDrawn() const { return numDrawn; }
+    };
+    using ItemStatePointer = std::unique_ptr<ItemState>;
+
+    class Tone : public QObject, public render::RenderContext::Tone {
+        Q_OBJECT
+
+    public:
+        Q_PROPERTY(float exposure MEMBER exposure)
+        Q_PROPERTY(QString curve READ getCurve WRITE setCurve)
+
+        QString getCurve() const;
+        int getCurveValue() const { return toneCurve; }
+        void setCurve(const QString& curve);
+    };
+    using TonePointer = std::unique_ptr<Tone>;
+};
+
 class RenderScriptingInterface : public QObject, public Dependency {
     Q_OBJECT
     SINGLETON_DEPENDENCY
     
  public:
-     Q_INVOKABLE void setEngineRenderOpaque(bool renderOpaque) { _items.opaque.render = renderOpaque; };
-    Q_INVOKABLE bool doEngineRenderOpaque() const { return _items.opaque.render; }
-    Q_INVOKABLE void setEngineRenderTransparent(bool renderTransparent) { _items.transparent.render = renderTransparent; };
-    Q_INVOKABLE bool doEngineRenderTransparent() const { return _items.transparent.render; }
-    
-    Q_INVOKABLE void setEngineCullOpaque(bool cullOpaque) { _items.opaque.cull = cullOpaque; };
-    Q_INVOKABLE bool doEngineCullOpaque() const { return _items.opaque.cull; }
-    Q_INVOKABLE void setEngineCullTransparent(bool cullTransparent) { _items.transparent.cull = cullTransparent; };
-    Q_INVOKABLE bool doEngineCullTransparent() const { return _items.transparent.cull; }
+    Q_PROPERTY(RenderScripting::ItemState* opaque READ getOpaque)
+    Q_PROPERTY(RenderScripting::ItemState* transparent READ getTransparent)
+    Q_PROPERTY(RenderScripting::ItemCounter* overlay3D READ getOverlay3D)
 
-    Q_INVOKABLE void setEngineSortOpaque(bool sortOpaque) { _items.opaque.sort = sortOpaque; };
-    Q_INVOKABLE bool doEngineSortOpaque() const { return _items.opaque.sort; }
-    Q_INVOKABLE void setEngineSortTransparent(bool sortTransparent) { _items.transparent.sort = sortTransparent; };
-    Q_INVOKABLE bool doEngineSortTransparent() const { return _items.transparent.sort; }
+    Q_PROPERTY(RenderScripting::Tone* tone READ getTone)
 
-    Q_INVOKABLE int getEngineNumDrawnOpaqueItems() { return _items.opaque.numDrawn; }
-    Q_INVOKABLE int getEngineNumDrawnTransparentItems() { return _items.transparent.numDrawn; }
-    Q_INVOKABLE int getEngineNumDrawnOverlay3DItems() { return _items.overlay3D.numDrawn; }
-
-    Q_INVOKABLE int getEngineNumFeedOpaqueItems() { return _items.opaque.numFeed; }
-    Q_INVOKABLE int getEngineNumFeedTransparentItems() { return _items.transparent.numFeed; }
-    Q_INVOKABLE int getEngineNumFeedOverlay3DItems() { return _items.overlay3D.numFeed; }
-
-    Q_INVOKABLE void setEngineMaxDrawnOpaqueItems(int count) { _items.opaque.maxDrawn = count; }
-    Q_INVOKABLE int getEngineMaxDrawnOpaqueItems() { return _items.opaque.maxDrawn; }
-    Q_INVOKABLE void setEngineMaxDrawnTransparentItems(int count) { _items.transparent.maxDrawn = count; }
-    Q_INVOKABLE int getEngineMaxDrawnTransparentItems() { return _items.transparent.maxDrawn; }
-    Q_INVOKABLE void setEngineMaxDrawnOverlay3DItems(int count) { _items.overlay3D.maxDrawn = count; }
-    Q_INVOKABLE int getEngineMaxDrawnOverlay3DItems() { return _items.overlay3D.maxDrawn; }
-    
-    Q_INVOKABLE void setEngineDeferredDebugMode(int mode) { _deferredDebugMode = mode; }
-    Q_INVOKABLE int getEngineDeferredDebugMode() { return _deferredDebugMode; }
-    Q_INVOKABLE void setEngineDeferredDebugSize(glm::vec4 size) { _deferredDebugSize = size; }
-    Q_INVOKABLE glm::vec4 getEngineDeferredDebugSize() { return _deferredDebugSize; }
-    
-    Q_INVOKABLE void setEngineDisplayItemStatus(int display) { _drawStatus = display; }
-    Q_INVOKABLE int doEngineDisplayItemStatus() { return _drawStatus; }
-
-    Q_INVOKABLE void setEngineDisplayHitEffect(bool display) { _drawHitEffect = display; }
-    Q_INVOKABLE bool doEngineDisplayHitEffect() { return _drawHitEffect; }
-
-    Q_INVOKABLE void setEngineToneMappingExposure(float exposure) { _tone.exposure = exposure; }
-    Q_INVOKABLE float getEngineToneMappingExposure() const { return _tone.exposure; }
-
-    Q_INVOKABLE void setEngineToneMappingToneCurve(const QString& curve);
-    Q_INVOKABLE QString getEngineToneMappingToneCurve() const;
-    int getEngineToneMappingToneCurveValue() const { return _tone.toneCurve; }
+    Q_PROPERTY(int deferredDebugMode MEMBER _deferredDebugMode)
+    Q_PROPERTY(glm::vec4 deferredDebugSize MEMBER _deferredDebugSize)
+    Q_PROPERTY(int displayItemStatus MEMBER _drawStatus)
+    Q_PROPERTY(bool displayHitEffect MEMBER _drawHitEffect)
 
     inline int getDrawStatus() { return _drawStatus; }
     inline bool getDrawHitEffect() { return _drawHitEffect; }
-    inline const render::RenderContext::ItemsConfig& getItemsConfig() { return _items; }
-    inline const render::RenderContext::Tone& getTone() { return _tone;  }
-    void setItemCounts(const render::RenderContext::ItemsConfig& items) { _items.setCounts(items); };
+    inline const render::RenderContext::ItemsConfig getItemsConfig() { return std::move(render::RenderContext::ItemsConfig{ *_opaque, *_transparent, *_overlay3D }); }
+    inline const render::RenderContext::Tone& getToneConfig() { return *_tone;  }
+    void setItemCounts(const render::RenderContext::ItemsConfig& items);
 
 protected:
     RenderScriptingInterface();
     ~RenderScriptingInterface() {};
 
-    render::RenderContext::ItemsConfig _items;
-    render::RenderContext::Tone _tone;
+    RenderScripting::ItemState* getOpaque() const { return _opaque.get(); }
+    RenderScripting::ItemState* getTransparent() const { return _transparent.get(); }
+    RenderScripting::ItemCounter* getOverlay3D() const { return _overlay3D.get(); }
+
+    RenderScripting::Tone* getTone() const { return _tone.get(); }
+
+    RenderScripting::ItemStatePointer _opaque = std::make_unique<RenderScripting::ItemState>();
+    RenderScripting::ItemStatePointer _transparent = std::make_unique<RenderScripting::ItemState>();
+    RenderScripting::ItemCounterPointer _overlay3D = std::make_unique<RenderScripting::ItemCounter>();
+
+    RenderScripting::TonePointer _tone = std::make_unique<RenderScripting::Tone>();
 
     // Options
     int _drawStatus = 0;

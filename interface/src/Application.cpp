@@ -3726,7 +3726,7 @@ void Application::displaySide(RenderArgs* renderArgs, Camera& theCamera, bool se
 
         auto renderInterface = DependencyManager::get<RenderScriptingInterface>();
         auto renderItemsConfig = renderInterface->getItemsConfig();
-        auto renderTone = renderInterface->getTone();
+        auto renderToneConfig = renderInterface->getToneConfig();
         int drawStatus = renderInterface->getDrawStatus();
         bool drawHitEffect = renderInterface->getDrawHitEffect();
 
@@ -3734,7 +3734,7 @@ void Application::displaySide(RenderArgs* renderArgs, Camera& theCamera, bool se
         bool antialiasingStatus = Menu::getInstance()->isOptionChecked(MenuOption::Antialiasing);
         bool showOwnedStatus = Menu::getInstance()->isOptionChecked(MenuOption::PhysicsShowOwned);
 
-        render::RenderContext renderContext{renderArgs, renderItemsConfig, renderTone};
+        render::RenderContext renderContext{renderArgs, renderItemsConfig, renderToneConfig};
         renderContext.setOptions(drawStatus, drawHitEffect, occlusionStatus, antialiasingStatus, showOwnedStatus);
         _renderEngine->setRenderContext(renderContext);
 

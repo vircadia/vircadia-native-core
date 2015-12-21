@@ -13,20 +13,20 @@
 
 RenderScriptingInterface::RenderScriptingInterface() {};
 
-void RenderScriptingInterface::setEngineToneMappingToneCurve(const QString& toneCurve) {
-    if (toneCurve == QString("None")) {
-        _tone.toneCurve = 0;
-    } else if (toneCurve == QString("Gamma22")) {
-        _tone.toneCurve = 1;
-    } else if (toneCurve == QString("Reinhard")) {
-        _tone.toneCurve = 2;
-    } else if (toneCurve == QString("Filmic")) {
-        _tone.toneCurve = 3;
+void RenderScripting::Tone::setCurve(const QString& curve) {
+    if (curve == QString("None")) {
+        toneCurve = 0;
+    } else if (curve == QString("Gamma22")) {
+        toneCurve = 1;
+    } else if (curve == QString("Reinhard")) {
+        toneCurve = 2;
+    } else if (curve == QString("Filmic")) {
+        toneCurve = 3;
     }
 }
 
-QString RenderScriptingInterface::getEngineToneMappingToneCurve() const {
-    switch (_tone.toneCurve) {
+QString RenderScripting::Tone::getCurve() const {
+    switch (toneCurve) {
     case 0:
         return QString("None");
     case 1:
@@ -38,4 +38,10 @@ QString RenderScriptingInterface::getEngineToneMappingToneCurve() const {
     default:
         return QString("Filmic");
     };
+}
+
+void RenderScriptingInterface::setItemCounts(const render::RenderContext::ItemsConfig& items) {
+    _opaque->setCounts(items.opaque);
+    _transparent->setCounts(items.transparent);
+    _overlay3D->setCounts(items.overlay3D);
 }

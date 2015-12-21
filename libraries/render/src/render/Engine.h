@@ -34,12 +34,6 @@ class RenderContext {
 public:
     class ItemsConfig {
     public:
-        inline void setCounts(const ItemsConfig& items) {
-            opaque.setCounts(items.opaque);
-            transparent.setCounts(items.transparent);
-            overlay3D.setCounts(items.overlay3D);
-        };
-
         class Counter {
         public:
             Counter() {};
@@ -48,7 +42,7 @@ public:
                 maxDrawn = counter.maxDrawn;
             };
 
-            inline void setCounts(const Counter& counter) {
+            void setCounts(const Counter& counter) {
                 numFeed = counter.numFeed;
                 numDrawn = counter.numDrawn;
             };
@@ -66,6 +60,10 @@ public:
 
             Counter counter{};
         };
+
+        ItemsConfig(State opaqueState, State transparentState, Counter overlay3DCounter)
+            : opaque{ opaqueState }, transparent{ transparentState }, overlay3D{ overlay3DCounter } {}
+        ItemsConfig() : ItemsConfig{ {}, {}, {} } {}
 
         // TODO: If member count increases, store counters in a map instead of multiple members
         State opaque{};
