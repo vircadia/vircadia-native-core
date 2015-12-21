@@ -3721,21 +3721,18 @@ void Application::displaySide(RenderArgs* renderArgs, Camera& theCamera, bool se
     {
         PerformanceTimer perfTimer("EngineRun");
 
+        auto renderInterface = DependencyManager::get<RenderScriptingInterface>();
+        auto renderContext = renderInterface->getRenderContext();
+
         renderArgs->_shouldRender = LODManager::shouldRender;
         renderArgs->_viewFrustum = getDisplayViewFrustum();
-
-        auto renderInterface = DependencyManager::get<RenderScriptingInterface>();
-        auto renderItemsConfig = renderInterface->getItemsConfig();
-        auto renderToneConfig = renderInterface->getToneConfig();
-        int drawStatus = renderInterface->getDrawStatus();
-        bool drawHitEffect = renderInterface->getDrawHitEffect();
+        renderContext.setArgs(renderArgs);
 
         bool occlusionStatus = Menu::getInstance()->isOptionChecked(MenuOption::DebugAmbientOcclusion);
         bool antialiasingStatus = Menu::getInstance()->isOptionChecked(MenuOption::Antialiasing);
         bool showOwnedStatus = Menu::getInstance()->isOptionChecked(MenuOption::PhysicsShowOwned);
+        renderContext.setOptions(occlusionStatus, antialiasingStatus, showOwnedStatus);
 
-        render::RenderContext renderContext{renderArgs, renderItemsConfig, renderToneConfig};
-        renderContext.setOptions(drawStatus, drawHitEffect, occlusionStatus, antialiasingStatus, showOwnedStatus);
         _renderEngine->setRenderContext(renderContext);
 
         // Before the deferred pass, let's try to use the render engine

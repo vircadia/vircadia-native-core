@@ -77,9 +77,10 @@ public:
         float exposure = 0.0;
     };
     
-    RenderContext(RenderArgs* args, ItemsConfig items, Tone tone) : _args{args}, _items{items}, _tone{tone} {};
-    RenderContext() : RenderContext(nullptr, {}, {}) {};
+    RenderContext(ItemsConfig items, Tone tone, int drawStatus, bool drawHitEffect, glm::vec4 deferredDebugSize, int deferredDebugMode);
+    RenderContext() : RenderContext({}, {}, {}, {}, {}, {}) {};
 
+    void setArgs(RenderArgs* args) { _args = args; }
     inline RenderArgs* getArgs() { return _args; }
     inline ItemsConfig& getItemsConfig() { return _items; }
     inline Tone& getTone() { return _tone; }
@@ -87,7 +88,7 @@ public:
     inline bool getDrawHitEffect() { return _drawHitEffect; }
     inline bool getOcclusionStatus() { return _occlusionStatus; }
     inline bool getFxaaStatus() { return _fxaaStatus; }
-    void setOptions(int drawStatus, bool drawHitEffect, bool occlusion, bool fxaa, bool showOwned);
+    void setOptions(bool occlusion, bool fxaa, bool showOwned);
 
     // Debugging
     int _deferredDebugMode = -1;

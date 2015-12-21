@@ -40,6 +40,11 @@ QString RenderScripting::Tone::getCurve() const {
     };
 }
 
+render::RenderContext RenderScriptingInterface::getRenderContext() {
+    render::RenderContext::ItemsConfig items{ *_opaque, *_transparent, *_overlay3D };
+    return render::RenderContext{ items, *_tone, _drawStatus, _drawHitEffect, _deferredDebugSize, _deferredDebugMode };
+}
+
 void RenderScriptingInterface::setItemCounts(const render::RenderContext::ItemsConfig& items) {
     _opaque->setCounts(items.opaque);
     _transparent->setCounts(items.transparent);

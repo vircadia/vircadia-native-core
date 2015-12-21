@@ -78,15 +78,13 @@ class RenderScriptingInterface : public QObject, public Dependency {
 
     Q_PROPERTY(RenderScripting::Tone* tone READ getTone)
 
-    Q_PROPERTY(int deferredDebugMode MEMBER _deferredDebugMode)
-    Q_PROPERTY(glm::vec4 deferredDebugSize MEMBER _deferredDebugSize)
     Q_PROPERTY(int displayItemStatus MEMBER _drawStatus)
     Q_PROPERTY(bool displayHitEffect MEMBER _drawHitEffect)
 
-    inline int getDrawStatus() { return _drawStatus; }
-    inline bool getDrawHitEffect() { return _drawHitEffect; }
-    inline const render::RenderContext::ItemsConfig getItemsConfig() { return std::move(render::RenderContext::ItemsConfig{ *_opaque, *_transparent, *_overlay3D }); }
-    inline const render::RenderContext::Tone& getToneConfig() { return *_tone;  }
+    Q_PROPERTY(int deferredDebugMode MEMBER _deferredDebugMode)
+    Q_PROPERTY(glm::vec4 deferredDebugSize MEMBER _deferredDebugSize)
+
+    render::RenderContext getRenderContext();
     void setItemCounts(const render::RenderContext::ItemsConfig& items);
 
 protected:
