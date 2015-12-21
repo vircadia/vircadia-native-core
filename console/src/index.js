@@ -35,22 +35,20 @@ $(function() {
             return;
         }
 
+        if (sendingProcess.name == "domain-server") {
+            toggleManageButton(settingsButton,
+                               sendingProcess.state == HFProcess.ProcessStates.STARTED);
+        }
+
         switch (sendingProcess.state) {
             case HFProcess.ProcessStates.STOPPED:
                 processCircle.attr('class', 'circle stopped');
                 break;
             case HFProcess.ProcessStates.STOPPING:
-                if (sendingProcess.name == "domain-server") {
-                    console.log("STOPPING DS");
-                    toggleManageButton(settingsButton, false);
-                }
-
                 processCircle.attr('class', 'circle stopping');
                 break;
             case HFProcess.ProcessStates.STARTED:
-                if (sendingProcess.name == "domain-server") {
-                    toggleManageButton(settingsButton, true);
-                }
+
 
                 processCircle.attr('class', 'circle started');
                 break;
@@ -63,7 +61,6 @@ $(function() {
 
         switch (sendingGroup.state) {
             case HFProcess.ProcessGroupStates.STOPPED:
-                break;
             case HFProcess.ProcessGroupStates.STOPPING:
                 // if the process group is stopping, the stop button should be disabled
                 toggleManageButton(stopButton, false);

@@ -136,9 +136,9 @@ app.on('ready', function() {
             }
         };
 
-        function sendProcessGroupUpdate(process) {
+        function sendProcessGroupUpdate(processGroup) {
             if (mainWindow) {
-                mainWindow.webContents.send('process-group-update', process);
+                mainWindow.webContents.send('process-group-update', processGroup);
             }
         }
 
@@ -175,6 +175,8 @@ app.on('ready', function() {
             for (let process of homeServer.processes) {
                 sendProcessUpdate(process);
             }
+
+            sendProcessGroupUpdate(homeServer);
         });
     }
 });
