@@ -54,7 +54,6 @@ RenderDeferredTask::RenderDeferredTask() : Task() {
     _jobs.push_back(Job(new FetchItems::JobModel("FetchOpaque",
         FetchItems([](const RenderContextPointer& context, int count) {
             context->getItemsConfig().opaque.numFeed = count;
-            auto& opaque = context->getItemsConfig().opaque;
         })
     )));
     _jobs.push_back(Job(new CullItemsOpaque::JobModel("CullOpaque", _jobs.back().getOutput())));
@@ -105,12 +104,12 @@ RenderDeferredTask::RenderDeferredTask() : Task() {
     
     // Lighting Buffer ready for tone mapping
     _jobs.push_back(Job(new ToneMappingDeferred::JobModel("ToneMapping")));
-    _toneMappingJobIndex = _jobs.size() - 1;
+    _toneMappingJobIndex = (int)_jobs.size() - 1;
 
     // Debugging Deferred buffer job
     _jobs.push_back(Job(new DebugDeferredBuffer::JobModel("DebugDeferredBuffer")));
     _jobs.back().setEnabled(false);
-    _drawDebugDeferredBufferIndex = _jobs.size() - 1;
+    _drawDebugDeferredBufferIndex = (int)_jobs.size() - 1;
 
     // Status icon rendering job
     {
@@ -119,7 +118,7 @@ RenderDeferredTask::RenderDeferredTask() : Task() {
         auto statusIconMap = DependencyManager::get<TextureCache>()->getImageTexture(iconMapPath);
         _jobs.push_back(Job(new render::DrawStatus::JobModel("DrawStatus", renderedOpaques, DrawStatus(statusIconMap))));
         _jobs.back().setEnabled(false);
-        _drawStatusJobIndex = _jobs.size() - 1;
+        _drawStatusJobIndex = (int)_jobs.size() - 1;
     }
 
     _jobs.push_back(Job(new DrawOverlay3D::JobModel("DrawOverlay3D")));
