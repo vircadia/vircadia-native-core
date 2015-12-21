@@ -26,7 +26,7 @@ ArcBall = function(spawnPosition) {
 
 
     var containerBall = Entities.addEntity({
-        type: "Box",
+        type: "Sphere",
         name: "Arc Ball",
         script: scriptURL,
         position: Vec3.sum(spawnPosition, {
@@ -35,12 +35,12 @@ ArcBall = function(spawnPosition) {
             z: 0
         }),
         dimensions: {
-            x: .1,
-            y: .1,
-            z: .2
+            x: .05,
+            y: .05,
+            z: .05
         },
         color: {
-            red: 15,
+            red: 100,
             green: 10,
             blue: 150
         },
@@ -48,6 +48,13 @@ ArcBall = function(spawnPosition) {
         collisionsWillMove: true,
         userData: JSON.stringify({
             grabbableKey: {
+                spatialKey: {
+                    relativePosition: {
+                        x: 0,
+                        y: 0,
+                        z: -0.5
+                    },
+                },
                 invertSolidWhileHeld: true
             }
         })
@@ -127,11 +134,11 @@ ArcBall = function(spawnPosition) {
 
 
 
-    function cleanup() {
-        Entities.deleteEntity(arcBall);
-        Entities.deleteEntity(containerBall);
-        Entities.deleteEntity(light);
-    }
+        function cleanup() {
+            Entities.deleteEntity(arcBall);
+            Entities.deleteEntity(containerBall);
+            Entities.deleteEntity(light);
+        }
 
     this.cleanup = cleanup;
 }
