@@ -61,7 +61,6 @@ ProcessGroup.prototype = extend(ProcessGroup.prototype, {
     restart: function() {
         if (this.state == ProcessGroupStates.STOPPED) {
             // start the group, we were already stopped
-            console.log("STARTING THE GROUP, ALREADY STOPPED");
             this.start();
         } else {
             // set our restart flag so the group will restart once stopped
