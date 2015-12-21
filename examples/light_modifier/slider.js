@@ -50,16 +50,16 @@
             var distance = Vec3.distance(this.userData.axisStart, currentPosition);
 
             if (this.userData.sliderType === 'color_red' || this.userData.sliderType === 'color_green' || this.userData.sliderType === 'color_blue') {
-                this.sliderValue = this.scaleValueBasedOnDistanceFromStart(distance, COLOR_MAX);
+                this.sliderValue = this.scaleValueBasedOnDistanceFromStart(distance, 0, COLOR_MAX);
             }
             if (this.userData.sliderType === 'intensity') {
-                this.sliderValue = this.scaleValueBasedOnDistanceFromStart(distance, INTENSITY_MAX);
+                this.sliderValue = this.scaleValueBasedOnDistanceFromStart(distance, 0, INTENSITY_MAX);
             }
             if (this.userData.sliderType === 'cutoff') {
-                this.sliderValue = this.scaleValueBasedOnDistanceFromStart(distance, CUTOFF_MAX);
+                this.sliderValue = this.scaleValueBasedOnDistanceFromStart(distance, 0, CUTOFF_MAX);
             }
             if (this.userData.sliderType === 'exponent') {
-                this.sliderValue = this.scaleValueBasedOnDistanceFromStart(distance, EXPONENT_MAX);
+                this.sliderValue = this.scaleValueBasedOnDistanceFromStart(distance, 0, EXPONENT_MAX);
             };
 
             this.sendValueToSlider();
@@ -80,10 +80,10 @@
 
             this.sendValueToSlider();
         },
-        scaleValueBasedOnDistanceFromStart: function(value, max2) {
+        scaleValueBasedOnDistanceFromStart: function(value, min2, max2) {
             var min1 = 0;
             var max1 = AXIS_SCALE;
-            var min2 = 0;
+            var min2 = min2;
             var max2 = max2;
             return min2 + (max2 - min2) * ((value - min1) / (max1 - min1));
         },

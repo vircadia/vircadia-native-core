@@ -9,7 +9,7 @@ To reset, I recommend stopping all scripts then re-loading lightLoader.js
 
 When you run the lightLoader.js script, several scripts will be loaded:
 - handControllerGrab.js (will not impart velocity when you move the parent or a slider, will not move sliders with head movement,will constrain movement for a slider to a given axis start and end)
-- lightModifier.js (listens for message to create sliders for a given light)
+- lightModifier.js (listens for message to create sliders for a given light.  will start with slider set to the light's initial properties)
 - lightModifierTestScene.js (creates a light)
 - slider.js (attached to each slider entity)
 - lightParent.js (attached to a 3d model of a light, to which a light is parented, so you can move it around.  or keep the current parent if a light already has a parent)
