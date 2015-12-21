@@ -13,6 +13,16 @@
 #include "DrawTask.h"
 using namespace render;
 
+void RenderContext::setOptions(int drawStatus, bool drawHitEffect, bool occlusion, bool fxaa, bool showOwned) {
+    _drawStatus = drawStatus;
+    _occlusionStatus = occlusion;
+    _fxaaStatus = fxaa;
+    _drawHitEffect = drawHitEffect;
+
+    if (showOwned) {
+        _drawStatus |= render::showNetworkStatusFlag;
+    }
+};
 
 Engine::Engine() :
     _sceneContext(std::make_shared<SceneContext>()),

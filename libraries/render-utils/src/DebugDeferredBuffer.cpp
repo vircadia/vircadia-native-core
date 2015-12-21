@@ -179,9 +179,9 @@ const gpu::PipelinePointer& DebugDeferredBuffer::getPipeline(Modes mode, std::st
 
 
 void DebugDeferredBuffer::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext) {
-    assert(renderContext->args);
-    assert(renderContext->args->_viewFrustum);
-    const RenderArgs* args = renderContext->args;
+    assert(renderContext->getArgs());
+    assert(renderContext->getArgs()->_viewFrustum);
+    RenderArgs* args = renderContext->getArgs();
     gpu::doInBatch(args->_context, [&](gpu::Batch& batch) {
         const auto geometryBuffer = DependencyManager::get<GeometryCache>();
         const auto framebufferCache = DependencyManager::get<FramebufferCache>();
