@@ -23,6 +23,8 @@
             green: 10,
             blue: 10
         }];
+
+        this.searchRadius = 10;
     };
 
     ArcBall.prototype = {
@@ -38,7 +40,7 @@
         searchForNearbyArcBalls: function() {
             //Search for nearby balls and create an arc to it if one is found
             var position = Entities.getEntityProperties(this.entityID, "position").position
-            var entities = Entities.findEntities(position, 10);
+            var entities = Entities.findEntities(position, this.searchRadius);
             entities.forEach(function(entity) {
                 var props = Entities.getEntityProperties(entity, ["position", "name"]);
                 if (props.name === "Arc Ball" && JSON.stringify(_this.entityID) !== JSON.stringify(entity)) {
@@ -84,8 +86,8 @@
                     z: .01
                 },
                 polarStart: 0,
-                polarFinish: .0,
-                azimuthStart: .02,
+                polarFinish: 0,
+                azimuthStart: 0.02,
                 azimuthFinish: .01,
                 emitAcceleration: {
                     x: 0,
@@ -93,15 +95,15 @@
                     z: 0
                 },
                 accelerationSpread: {
-                    x: .00,
-                    y: .00,
-                    z: .00
+                    x: 0,
+                    y: 0,
+                    z: 0
                 },
                 radiusStart: 0.01,
                 radiusFinish: 0.005,
-                radiusSpread: .005,
+                radiusSpread: 0.005,
                 alpha: 0.5,
-                alphaSpread: .1,
+                alphaSpread: 0.1,
                 alphaStart: 0.5,
                 alphaFinish: 0.5,
                 textures: "https://s3.amazonaws.com/hifi-public/eric/textures/particleSprites/beamParticle.png",

@@ -33,7 +33,7 @@ var raveStick = new RaveStick(Vec3.sum(basePosition, {x: 1, y: 0.5, z: 1}));
 var lightSaber = new LightSaber(Vec3.sum(basePosition, {x: 3, y: 0.5, z: 1}));
 
 
-var modelURL = "https://s3.amazonaws.com/hifi-public/eric/models/rave/RaveRoom.fbx";
+var modelURL = "https://s3-us-west-1.amazonaws.com/hifi-content/eric/models/RaveRoom.fbx";
 
 var roomDimensions = {x: 30.58, y: 15.29, z: 30.58}; 
 

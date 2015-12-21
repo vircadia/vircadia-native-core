@@ -80,7 +80,7 @@
                 lifespan: 2,
                 emitRate: 1000,
                 emitOrientation: forwardQuat,
-                emitSpeed: .4,
+                emitSpeed: 0.7,
                 speedSpread: 0.0,
                 emitDimensions: {
                     x: 0,
@@ -88,9 +88,9 @@
                     z: 0
                 },
                 polarStart: 0,
-                polarFinish: .0,
-                azimuthStart: .1,
-                azimuthFinish: .01,
+                polarFinish: 0,
+                azimuthStart: 0.1,
+                azimuthFinish: 0.01,
                 emitAcceleration: {
                     x: 0,
                     y: 0,
@@ -104,7 +104,7 @@
                 radiusStart: 0.03,
                 adiusFinish: 0.025,
                 alpha: 0.7,
-                alphaSpread: .1,
+                alphaSpread: 0.1,
                 alphaStart: 0.5,
                 alphaFinish: 0.5,
                 textures: "https://s3.amazonaws.com/hifi-public/eric/textures/particleSprites/beamParticle.png",

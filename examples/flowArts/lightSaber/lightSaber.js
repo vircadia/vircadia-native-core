@@ -13,7 +13,7 @@
 //
 
 Script.include("../../libraries/utils.js");
-var modelURL = "https://s3.amazonaws.com/hifi-public/eric/models/rave/lightSaber.fbx";
+var modelURL = "https://s3-us-west-1.amazonaws.com/hifi-content/eric/models/lightSaber.fbx";
 var scriptURL = Script.resolvePath("lightSaberEntityScript.js");
 LightSaber = function(spawnPosition) {
 
