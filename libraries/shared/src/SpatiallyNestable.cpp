@@ -14,6 +14,8 @@
 #include "DependencyManager.h"
 #include "SpatiallyNestable.h"
 
+const float defaultAACubeSize = 1.0f;
+
 SpatiallyNestable::SpatiallyNestable(NestableType nestableType, QUuid id) :
     _nestableType(nestableType),
     _id(id),
@@ -539,7 +541,7 @@ void SpatiallyNestable::locationChanged() {
 }
 
 AACube SpatiallyNestable::getMaximumAACube(bool& success) const {
-    return AACube(getPosition(success) - glm::vec3(0.5f), 1.0f); // XXX
+    return AACube(getPosition(success) - glm::vec3(defaultAACubeSize / 2.0f), defaultAACubeSize);
 }
 
 void SpatiallyNestable::setQueryAACube(const AACube& queryAACube) {
@@ -607,7 +609,7 @@ AACube SpatiallyNestable::getQueryAACube(bool& success) const {
         return _queryAACube;
     }
     success = false;
-    return AACube(getPosition(success) - glm::vec3(0.5f), 1.0f); // XXX
+    return AACube(getPosition(success) - glm::vec3(defaultAACubeSize / 2.0f), defaultAACubeSize);
 }
 
 AACube SpatiallyNestable::getQueryAACube() const {
