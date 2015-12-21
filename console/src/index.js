@@ -13,6 +13,7 @@ $(function() {
 
         var serverState = arg.home.state;
         var serverCircles = $('#ds-status .circle, #ac-status .circle');
+        
         switch (serverState) {
             case HFProcess.ProcessStates.STOPPED:
                 serverCircles.attr('class', 'circle stopped');

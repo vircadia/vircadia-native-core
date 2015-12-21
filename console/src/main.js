@@ -149,9 +149,7 @@ app.on('ready', function() {
             sendProcessUpdate();
         });
         ipcMain.on('restart-server', function(event, arg) {
-            homeServer.stop();
-            sendProcessUpdate();
-            homeServer.start();
+            homeServer.restart();
             sendProcessUpdate();
         });
         ipcMain.on('stop-server', function(event, arg) {
