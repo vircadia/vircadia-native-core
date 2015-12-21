@@ -54,7 +54,6 @@
 
         createBeam: function() {
 
-
             this.props = Entities.getEntityProperties(this.entityID, ["position", "rotation"]);
             var forwardVec = Quat.getFront(Quat.multiply(this.props.rotation, Quat.fromPitchYawRollDegrees(-90, 0, 0)));
             // forwardVec = Vec3.normalize(forwardVec);

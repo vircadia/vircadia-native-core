@@ -27,12 +27,11 @@
 
     ArcBall.prototype = {
         isGrabbed: false,
-        startDistanceGrab: function() {
+        startDistantGrab: function() {
             this.searchForNearbyArcBalls();
-
         },
 
-        startFarGrab: function() {
+        startNearGrab: function() {
             this.searchForNearbyArcBalls();
         },
 
@@ -58,7 +57,6 @@
             var emitOrientation = Quat.rotationBetween(Vec3.UNIT_Z, sourceToTargetVec);
             emitOrientation = Quat.multiply(Quat.inverse(rotation), emitOrientation);
 
-
             var color = this.colorPalette[randInt(0, this.colorPalette.length)];
             var props = {
                 type: "ParticleEffect",
@@ -75,10 +73,10 @@
                 },
                 colorFinish: color,
                 maxParticles: 100000,
-                lifespan: 2,
+                lifespan: 1,
                 emitRate: 1000,
                 emitOrientation: emitOrientation,
-                emitSpeed: .1,
+                emitSpeed: 1,
                 speedSpread: 0.02,
                 emitDimensions: {
                     x: .01,
@@ -105,7 +103,7 @@
                 alpha: 0.5,
                 alphaSpread: .1,
                 alphaStart: 0.5,
-                alphaFinish: 0.0,
+                alphaFinish: 0.5,
                 textures: "https://s3.amazonaws.com/hifi-public/eric/textures/particleSprites/beamParticle.png",
                 emitterShouldTrail: true
             }
@@ -117,12 +115,10 @@
                 return;
             }
             var startPosition = Entities.getEntityProperties(this.entityID, "position").position;
-
             var targetPosition = Entities.getEntityProperties(this.target, "position").position;
             var rotation = Entities.getEntityProperties(this.entityID, "rotation").rotation;
             var sourceToTargetVec = Vec3.subtract(targetPosition, startPosition);
             var emitOrientation = Quat.rotationBetween(Vec3.UNIT_Z, sourceToTargetVec);
-            // emitOrientation = Quat.multiply(emitOrientation,Quat.inverse(rotation));
             Entities.editEntity(this.particleArc, {
                 emitOrientation: emitOrientation
             });
@@ -132,7 +128,7 @@
             this.updateBeam();
         },
 
-        continueDistanceGrab: function() {
+        continueDistantGrab: function() {
             this.updateBeam();
         },
 

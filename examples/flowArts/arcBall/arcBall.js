@@ -15,7 +15,7 @@
 Script.include("../../libraries/utils.js");
 
 
-var scriptURL = Script.resolvePath("arcBallEntityScript.js");
+var scriptURL = Script.resolvePath("arcBallEntityScript.js?v1" + Math.random());
 ArcBall = function(spawnPosition) {
 
     var colorPalette = [{
@@ -50,11 +50,11 @@ ArcBall = function(spawnPosition) {
         userData: JSON.stringify({
             grabbableKey: {
                 spatialKey: {
-                    relativePosition: {
-                        x: 0,
-                        y: 0.0,
-                        z: -0.5
-                    },
+                    // relativePosition: {
+                    //     x: 0,
+                    //     y: -0.5,
+                    //     z: 0.0
+                    // },
                 },
                 // invertSolidWhileHeld: true
             }
