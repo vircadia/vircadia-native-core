@@ -6,7 +6,7 @@
   </head>
   <body onload="ready()">
 
-    <h1>Console</h1>
+    <h1>High Fidelity</h1>
 
     <h2>Interface</h2>
     <div id="process-status">
@@ -19,7 +19,14 @@
     </div>
 
     <h2>Home</h2>
-    <div id="server">
+    <div id="home">
+        <div id="server">
+          <span class="status">unknown</span>
+          <button class="power-on">Turn On</button>
+          <button class="power-off">Turn Off</button>
+          <a href="http://localhost:40100/" target="_blank">Settings</a>
+          <a id="open-logs" href="#">Open log directory</a>
+        </div>
     </div>
 
     <div>
