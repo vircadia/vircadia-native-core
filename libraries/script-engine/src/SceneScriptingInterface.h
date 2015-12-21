@@ -17,6 +17,112 @@
 
 #include "model/Stage.h"
 
+// TODO: if QT moc ever supports nested classes, subclass these to the interface instead of namespacing
+namespace SceneScripting {
+    class Location : public QObject {
+        Q_OBJECT
+
+    public:
+        Location(model::SunSkyStagePointer skyStage) : _skyStage{ skyStage } {}
+
+        Q_PROPERTY(float longitude READ getLongitude WRITE setLongitude)
+        Q_PROPERTY(float latitude READ getLatitude WRITE setLatitude)
+        Q_PROPERTY(float altitude READ getAltitude WRITE setAltitude)
+
+        float getLongitude() const;
+        float getLatitude() const;
+        float getAltitude() const;
+        void setLongitude(float longitude);
+        void setLatitude(float latitude);
+        void setAltitude(float altitude);
+
+    protected:
+        model::SunSkyStagePointer _skyStage;
+    };
+    using LocationPointer = std::unique_ptr<Location>;
+    
+    class Time : public QObject {
+        Q_OBJECT
+
+    public:
+        Time(model::SunSkyStagePointer skyStage) : _skyStage{ skyStage } {}
+
+        Q_PROPERTY(float hour READ getHour WRITE setHour)
+        Q_PROPERTY(int day READ getDay WRITE setDay)
+
+        float getHour() const;
+        void setHour(float hour);
+        int getDay() const;
+        void setDay(int day);
+
+    protected:
+        model::SunSkyStagePointer _skyStage;
+    };
+    using TimePointer = std::unique_ptr<Time>;
+
+    class KeyLight : public QObject {
+        Q_OBJECT
+
+    public:
+        KeyLight(model::SunSkyStagePointer skyStage) : _skyStage{ skyStage } {}
+
+        Q_PROPERTY(glm::vec3 color READ getColor WRITE setColor)
+        Q_PROPERTY(float intensity READ getIntensity WRITE setIntensity)
+        Q_PROPERTY(float ambientIntensity READ getAmbientIntensity WRITE setAmbientIntensity)
+        Q_PROPERTY(glm::vec3 direction READ getDirection WRITE setDirection)
+
+        glm::vec3 getColor() const;
+        void setColor(const glm::vec3& color);
+        float getIntensity() const;
+        void setIntensity(float intensity);
+        float getAmbientIntensity() const;
+        void setAmbientIntensity(float intensity);
+        glm::vec3 getDirection() const;
+        // setDirection is only effective if stage Sun model is disabled
+        void setDirection(const glm::vec3& direction);
+
+    protected:
+        model::SunSkyStagePointer _skyStage;
+    };
+    using KeyLightPointer = std::unique_ptr<KeyLight>;
+    
+    class Stage : public QObject {
+        Q_OBJECT
+
+    public:
+        Stage(model::SunSkyStagePointer skyStage) : _skyStage{ skyStage }, _location{ std::make_unique<Location>(skyStage) }, _time{ std::make_unique<Time>(skyStage) }, _keyLight{ std::make_unique<KeyLight>(skyStage) } {}
+
+        Q_INVOKABLE void setOrientation(const glm::quat& orientation) const;
+
+        Q_PROPERTY(Location* location READ getLocation)
+        Location* getLocation() const { return _location.get(); }
+        Q_INVOKABLE void setLocation(float longitude, float latitude, float altitude);
+
+        Q_PROPERTY(Time* time READ getTime)
+        Time* getTime() const { return _time.get(); }
+
+        Q_PROPERTY(KeyLight* keyLight READ getKeyLight)
+        KeyLight* getKeyLight() const { return _keyLight.get(); }
+
+        // Enable/disable the stage sun model which uses the key light to simulate
+        // the sun light based on the location of the stage relative to earth and the current time 
+        Q_PROPERTY(bool sunModel READ isSunModelEnabled WRITE setSunModelEnable)
+        void setSunModelEnable(bool isEnabled);
+        bool isSunModelEnabled() const;
+
+        Q_PROPERTY(QString backgroundMode READ getBackgroundMode WRITE setBackgroundMode)
+        void setBackgroundMode(const QString& mode);
+        QString getBackgroundMode() const;
+
+    protected:
+        model::SunSkyStagePointer _skyStage;
+        LocationPointer _location;
+        TimePointer _time;
+        KeyLightPointer _keyLight;
+    };
+    using StagePointer = std::unique_ptr<Stage>;
+};
+
 class SceneScriptingInterface : public QObject, public Dependency {
     Q_OBJECT
     SINGLETON_DEPENDENCY
@@ -24,46 +130,14 @@ class SceneScriptingInterface : public QObject, public Dependency {
 public:
     Q_PROPERTY(bool shouldRenderAvatars READ shouldRenderAvatars WRITE setShouldRenderAvatars)
     Q_PROPERTY(bool shouldRenderEntities READ shouldRenderEntities WRITE setShouldRenderEntities)
+    bool shouldRenderAvatars() const { return _shouldRenderAvatars; }
+    bool shouldRenderEntities() const { return _shouldRenderEntities; }
+    void setShouldRenderAvatars(bool shouldRenderAvatars);
+    void setShouldRenderEntities(bool shouldRenderEntities);
 
-    Q_INVOKABLE void setShouldRenderAvatars(bool shouldRenderAvatars);
-    Q_INVOKABLE bool shouldRenderAvatars() const { return _shouldRenderAvatars; }
-    
-    Q_INVOKABLE void setShouldRenderEntities(bool shouldRenderEntities);
-    Q_INVOKABLE bool shouldRenderEntities() const { return _shouldRenderEntities; }
-
-    Q_INVOKABLE void setStageOrientation(const glm::quat& orientation);
-
-    Q_INVOKABLE void setStageLocation(float longitude, float latitude, float altitude);
-    Q_INVOKABLE float getStageLocationLongitude() const;
-    Q_INVOKABLE float getStageLocationLatitude() const;
-    Q_INVOKABLE float getStageLocationAltitude() const;
-
-    Q_INVOKABLE void setStageDayTime(float hour);
-    Q_INVOKABLE float getStageDayTime() const;
-    Q_INVOKABLE void setStageYearTime(int day);
-    Q_INVOKABLE int getStageYearTime() const;
-
-    // Enable/disable the stage sun model which uses the key light to simulate
-    // the sun light based on the location of the stage trelative to earth and the current time 
-    Q_INVOKABLE void setStageSunModelEnable(bool isEnabled);
-    Q_INVOKABLE bool isStageSunModelEnabled() const;
-
-    Q_INVOKABLE void setKeyLightColor(const glm::vec3& color);
-    Q_INVOKABLE glm::vec3 getKeyLightColor() const;
-    Q_INVOKABLE void setKeyLightIntensity(float intensity);
-    Q_INVOKABLE float getKeyLightIntensity() const;
-    Q_INVOKABLE void setKeyLightAmbientIntensity(float intensity);
-    Q_INVOKABLE float getKeyLightAmbientIntensity() const;
-
-    // setKeyLightDIrection is only effective if stage Sun model is disabled
-    Q_INVOKABLE void setKeyLightDirection(const glm::vec3& direction);
-
-    Q_INVOKABLE glm::vec3 getKeyLightDirection() const;
-
-
-    Q_INVOKABLE void setBackgroundMode(const QString& mode);
-    Q_INVOKABLE QString getBackgroundMode() const;
-
+    Q_PROPERTY(SceneScripting::Stage* stage READ getStage)
+    SceneScripting::Stage* getStage() const { return _stage.get(); }
+ 
     model::SunSkyStagePointer getSkyStage() const;
 
 signals:
@@ -75,9 +149,10 @@ protected:
     ~SceneScriptingInterface() {};
 
     model::SunSkyStagePointer _skyStage = std::make_shared<model::SunSkyStage>();
+    SceneScripting::StagePointer _stage;
 
     bool _shouldRenderAvatars = true;
     bool _shouldRenderEntities = true;
 };
 
-#endif // hifi_SceneScriptingInterface_h
+#endif // hifi_SceneScriptingInterface_h 

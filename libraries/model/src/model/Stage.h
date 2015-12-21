@@ -184,6 +184,9 @@ public:
     const Quat& getOriginOrientation() const { return _earthSunModel.getSurfaceOrientation(); }
 
     // Location  used to define the sun & sky is a longitude and latitude [rad] and a earth surface altitude [km]
+    void setOriginLatitude(float latitude);
+    void setOriginLongitude(float longitude);
+    void setOriginSurfaceAltitude(float surfaceAltitude);
     void setOriginLocation(float longitude, float latitude, float surfaceAltitude);
     float getOriginLatitude() const { return _earthSunModel.getLatitude(); }
     float getOriginLongitude() const { return _earthSunModel.getLongitude(); }
