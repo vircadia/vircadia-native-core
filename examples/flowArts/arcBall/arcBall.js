@@ -31,7 +31,7 @@ ArcBall = function(spawnPosition) {
         script: scriptURL,
         position: Vec3.sum(spawnPosition, {
             x: 0,
-            y: .5,
+            y: .7,
             z: 0
         }),
         dimensions: {
@@ -51,8 +51,8 @@ ArcBall = function(spawnPosition) {
                 spatialKey: {
                     relativePosition: {
                         x: 0,
-                        y: 0,
-                        z: -0.5
+                        y: -0.5,
+                        z: 0.0
                     },
                 },
                 invertSolidWhileHeld: true
@@ -97,7 +97,7 @@ ArcBall = function(spawnPosition) {
         },
         maxParticles: 100000,
         lifespan: 2,
-        emitRate: 1000,
+        emitRate: 400,
         emitSpeed: .1,
         lifetime: -1,
         speedSpread: 0.0,
