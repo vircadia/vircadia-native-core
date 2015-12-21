@@ -120,6 +120,17 @@ var PER_ROW_OFFSET = {
     y: -0.2,
     z: 0
 };
+var sliders = [];
+var slidersRef = {
+    'color_red': null,
+    'color_green': null,
+    'color_blue': null,
+    intensity: null,
+    cutoff: null,
+    exponent: null
+};
+var light = null;
+
 
 function entitySlider(light, color, sliderType, row) {
     this.light = light;
@@ -351,17 +362,6 @@ entitySlider.prototype = {
 
 };
 
-var sliders = [];
-var slidersRef = {
-    'color_red': null,
-    'color_green': null,
-    'color_blue': null,
-    intensity: null,
-    cutoff: null,
-    exponent: null
-}
-var light = null;
-
 function makeSliders(light) {
     var panel;
     if (USE_PARENTED_PANEL === true) {
@@ -403,8 +403,6 @@ function makeSliders(light) {
         sliders.push(slidersRef.exponent);
     }
 
-
-
     createCloseButton(slidersRef.exponent.endOfAxis);
 
     subscribeToSliderMessages();
@@ -413,12 +411,13 @@ function makeSliders(light) {
         parentEntitiesToPanel(panel);
     }
 
-    if (SLIDERS_SHOULD_STAY_WITH_AVATAR) {
-        parentPanelToAvatar(panel)
+    if (SLIDERS_SHOULD_STAY_WITH_AVATAR === true) {
+        parentPanelToAvatar(panel);
     }
 };
 
 function parentPanelToAvatar(panel) {
+    //this is going to need some more work re: the sliders actually being grabbable.  probably something to do with updating axis movement
     Entities.editEntity(panel, {
         parentID: MyAvatar.sessionUUID,
         //actually figure out which one to parent it to -- probably a spine or something.
@@ -427,7 +426,8 @@ function parentPanelToAvatar(panel) {
 }
 
 function parentEntitiesToPanel(panel) {
-    slidersRef.forEach(function(slider) {
+
+    sliders.forEach(function(slider) {
         Entities.editEntity(slider.axis, {
             parentID: panel
         })
@@ -437,14 +437,14 @@ function parentEntitiesToPanel(panel) {
     })
 
     closeButtons.forEach(function(button) {
-        Entities.editEntity(slider.sliderIndicator, {
+        Entities.editEntity(button, {
             parentID: panel
         })
     })
 }
 
 function createPanelEntity(position) {
-
+    print('CREATING PANEL at ' + JSON.stringify(position));
     var panelProperties = {
         name: 'Hifi-Slider-Panel',
         type: 'Box',
