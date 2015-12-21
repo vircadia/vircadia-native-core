@@ -705,13 +705,37 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
             } else if (action == controller::toInt(controller::Action::CONTEXT_MENU)) {
                 VrMenu::toggle(); // show context menu even on non-stereo displays
             } else if (action == controller::toInt(controller::Action::RETICLE_X)) {
-                auto globalPos = QCursor::pos();
-                globalPos.setX(globalPos.x() + state);
-                QCursor::setPos(globalPos);
+                auto oldPos = QCursor::pos();
+                auto newPos = oldPos;
+                newPos.setX(oldPos.x() + state);
+                QCursor::setPos(newPos);
+
+
+                // NOTE: This is some debugging code we will leave in while debugging various reticle movement strategies,
+                // remove it after we're done
+                const float REASONABLE_CHANGE = 50.0f;
+                glm::vec2 oldPosG = { oldPos.x(), oldPos.y() };
+                glm::vec2 newPosG = { newPos.x(), newPos.y() };
+                auto distance = glm::distance(oldPosG, newPosG);
+                if (distance > REASONABLE_CHANGE) {
+                    qDebug() << "Action::RETICLE_X... UNREASONABLE CHANGE! distance:" << distance << " oldPos:" << oldPosG << " newPos:" << newPosG;
+                }
+
             } else if (action == controller::toInt(controller::Action::RETICLE_Y)) {
-                auto globalPos = QCursor::pos();
-                globalPos.setY(globalPos.y() + state);
-                QCursor::setPos(globalPos);
+                auto oldPos = QCursor::pos();
+                auto newPos = oldPos;
+                newPos.setY(oldPos.y() + state);
+                QCursor::setPos(newPos);
+
+                // NOTE: This is some debugging code we will leave in while debugging various reticle movement strategies,
+                // remove it after we're done
+                const float REASONABLE_CHANGE = 50.0f;
+                glm::vec2 oldPosG = { oldPos.x(), oldPos.y() };
+                glm::vec2 newPosG = { newPos.x(), newPos.y() };
+                auto distance = glm::distance(oldPosG, newPosG);
+                if (distance > REASONABLE_CHANGE) {
+                    qDebug() << "Action::RETICLE_Y... UNREASONABLE CHANGE! distance:" << distance << " oldPos:" << oldPosG << " newPos:" << newPosG;
+                }
             }
         }
     });
