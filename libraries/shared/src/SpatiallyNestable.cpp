@@ -585,6 +585,19 @@ bool SpatiallyNestable::setPuffedQueryAACube() {
     _queryAACube = AACube(currentAACube.getCorner() - glm::vec3(currentAACube.getScale()), currentAACube.getScale() * 3.0f);
     // _queryAACube = AACube(currentAACube.getCorner(), currentAACube.getScale());
     _queryAACubeSet = true;
+
+    getThisPointer()->forEachDescendant([&](SpatiallyNestablePointer descendant) {
+            bool success;
+            AACube descendantAACube = descendant->getMaximumAACube(success);
+            if (success) {
+                if (_queryAACube.contains(currentAACube)) {
+                    return;
+                }
+                _queryAACube += descendantAACube.getMinimumPoint();
+                _queryAACube += descendantAACube.getMaximumPoint();
+            }
+        });
+
     return true;
 }
 
