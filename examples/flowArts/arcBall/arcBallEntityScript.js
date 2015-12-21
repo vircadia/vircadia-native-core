@@ -27,7 +27,16 @@
 
     ArcBall.prototype = {
         isGrabbed: false,
-        startNearGrab: function() {
+        startDistanceGrab: function() {
+            this.searchForNearbyArcBalls();
+
+        },
+
+        startFarGrab: function() {
+            this.searchForNearbyArcBalls();
+        },
+
+        searchForNearbyArcBalls: function() {
             //Search for nearby balls and create an arc to it if one is found
             var position = Entities.getEntityProperties(this.entityID, "position").position
             var entities = Entities.findEntities(position, 10);
@@ -36,12 +45,13 @@
                 if (props.name === "Arc Ball" && JSON.stringify(_this.entityID) !== JSON.stringify(entity)) {
                     _this.target = entity;
                     _this.createBeam(position, props.position);
+
                 }
             });
-
         },
 
         createBeam: function(startPosition, endPosition) {
+
             // Creates particle arc from start position to end position
             var rotation = Entities.getEntityProperties(this.entityID, "rotation").rotation;
             var sourceToTargetVec = Vec3.subtract(endPosition, startPosition);
@@ -50,61 +60,65 @@
 
 
             var color = this.colorPalette[randInt(0, this.colorPalette.length)];
-                var props = {
-                    type: "ParticleEffect",
-                    name: "Particle Arc",
-                    parentID: this.entityID,
-                    parentJointIndex: -1,
-                    // position: startPosition,
-                    isEmitting: true,
-                    colorStart: color,
-                    color: {
-                        red: 200,
-                        green: 200,
-                        blue: 255
-                    },
-                    colorFinish: color,
-                    maxParticles: 100000,
-                    lifespan: 2,
-                    emitRate: 1000,
-                    emitOrientation: emitOrientation,
-                    emitSpeed: .1,
-                    speedSpread: 0.02,
-                    emitDimensions: {
-                        x: .01,
-                        y: .01,
-                        z: .01
-                    },
-                    polarStart: 0,
-                    polarFinish: .0,
-                    azimuthStart: .02,
-                    azimuthFinish: .01,
-                    emitAcceleration: {
-                        x: 0,
-                        y: 0,
-                        z: 0
-                    },
-                    accelerationSpread: {
-                        x: .00,
-                        y: .00,
-                        z: .00
-                    },
-                    radiusStart: 0.01,
-                    radiusFinish: 0.005,
-                    radiusSpread: .005,
-                    alpha: 0.5,
-                    alphaSpread: .1,
-                    alphaStart: 0.5,
-                    alphaFinish: 0.0,
-                    textures: "https://s3.amazonaws.com/hifi-public/eric/textures/particleSprites/beamParticle.png",
-                    emitterShouldTrail: true
-                }
+            var props = {
+                type: "ParticleEffect",
+                name: "Particle Arc",
+                parentID: this.entityID,
+                parentJointIndex: -1,
+                // position: startPosition,
+                isEmitting: true,
+                colorStart: color,
+                color: {
+                    red: 200,
+                    green: 200,
+                    blue: 255
+                },
+                colorFinish: color,
+                maxParticles: 100000,
+                lifespan: 2,
+                emitRate: 1000,
+                emitOrientation: emitOrientation,
+                emitSpeed: .1,
+                speedSpread: 0.02,
+                emitDimensions: {
+                    x: .01,
+                    y: .01,
+                    z: .01
+                },
+                polarStart: 0,
+                polarFinish: .0,
+                azimuthStart: .02,
+                azimuthFinish: .01,
+                emitAcceleration: {
+                    x: 0,
+                    y: 0,
+                    z: 0
+                },
+                accelerationSpread: {
+                    x: .00,
+                    y: .00,
+                    z: .00
+                },
+                radiusStart: 0.01,
+                radiusFinish: 0.005,
+                radiusSpread: .005,
+                alpha: 0.5,
+                alphaSpread: .1,
+                alphaStart: 0.5,
+                alphaFinish: 0.0,
+                textures: "https://s3.amazonaws.com/hifi-public/eric/textures/particleSprites/beamParticle.png",
+                emitterShouldTrail: true
+            }
             this.particleArc = Entities.addEntity(props);
         },
 
-        updateBeam: function(startPosition) {
+        updateBeam: function() {
+            if(!this.target) {
+                return;
+            }
+            var startPosition = Entities.getEntityProperties(this.entityID, "position").position;
+
             var targetPosition = Entities.getEntityProperties(this.target, "position").position;
-            print("TARGET position " + JSON.stringify(this.target));
             var rotation = Entities.getEntityProperties(this.entityID, "rotation").rotation;
             var sourceToTargetVec = Vec3.subtract(targetPosition, startPosition);
             var emitOrientation = Quat.rotationBetween(Vec3.UNIT_Z, sourceToTargetVec);
@@ -115,14 +129,18 @@
         },
 
         continueNearGrab: function() {
-            var startPosition = Entities.getEntityProperties(this.entityID, "position").position;
-            this.updateBeam(startPosition);
+            this.updateBeam();
+        },
+
+        continueDistanceGrab: function() {
+            this.updateBeam();
         },
 
         releaseGrab: function() {
             Entities.editEntity(this.particleArc, {
                 isEmitting: false
             });
+            this.target = null;
         },
 
         unload: function() {

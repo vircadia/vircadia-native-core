@@ -31,12 +31,14 @@
 
         startNearGrab: function() {
             Entities.editEntity(this.beam, {
-                isEmitting: true
+                isEmitting: true,
+                visible: true
             });
         },
 
         releaseGrab: function() {
             Entities.editEntity(this.beam, {
+                visible: false,
                 isEmitting: false
             });
         },
