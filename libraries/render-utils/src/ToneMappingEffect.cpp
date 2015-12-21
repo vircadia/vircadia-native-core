@@ -141,7 +141,5 @@ void ToneMappingEffect::render(RenderArgs* args) {
         batch.setUniformBuffer(3, _parametersBuffer);
         batch.setResourceTexture(0, lightingBuffer);
         batch.draw(gpu::TRIANGLE_STRIP, 4);
-
-        args->_context->render(batch);
     });
 }

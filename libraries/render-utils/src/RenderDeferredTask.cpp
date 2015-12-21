@@ -54,7 +54,6 @@ RenderDeferredTask::RenderDeferredTask() : Task() {
     _jobs.push_back(Job(new FetchItems::JobModel("FetchOpaque",
         FetchItems([](const RenderContextPointer& context, int count) {
             context->getItemsConfig().opaque.numFeed = count;
-            auto& opaque = context->getItemsConfig().opaque;
         })
     )));
     _jobs.push_back(Job(new CullItemsOpaque::JobModel("CullOpaque", _jobs.back().getOutput())));
