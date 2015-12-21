@@ -5,6 +5,7 @@ var util = require('util');
 var events = require('events');
 var childProcess = require('child_process');
 var fs = require('fs');
+var os = require('os');
 
 const ProcessGroupStates = {
     STOPPED: 'stopped',
@@ -176,7 +177,11 @@ Process.prototype = extend(Process.prototype, {
             console.warn("Can't stop process that is not started.");
             return;
         }
-        this.child.kill();
+        if (os.type() == "Windows_NT") {
+            childProcess.spawn("taskkill", ["/pid", this.child.pid, '/f', '/t']);
+        } else {
+            this.child.kill();
+        }
         this.state = ProcessStates.STOPPING;
     },
 
