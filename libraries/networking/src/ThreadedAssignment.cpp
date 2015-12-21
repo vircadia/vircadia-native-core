@@ -54,7 +54,6 @@ void ThreadedAssignment::setFinished(bool isFinished) {
             nodeList->getDomainHandler().disconnect();
 
             // stop our owned timers
-
             _domainServerTimer.stop();
             _statsTimer.stop();
 
