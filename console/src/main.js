@@ -114,10 +114,9 @@ app.on('ready', function() {
         var pInterface = new Process('interface', interfacePath);
 
         var homeServer = new ProcessGroup('home', [
-            new Process('domain_server', dsPath),
-            new Process('ac_monitor', acPath, ['-n6', '--log-directory', logPath])
+            new Process('domain-server', dsPath),
+            new Process('ac-monitor', acPath, ['-n6', '--log-directory', logPath])
         ]);
-        homeServer.start();
 
         // make sure we stop child processes on app quit
         app.on('quit', function(){
@@ -130,37 +129,45 @@ app.on('ready', function() {
             home: homeServer
         };
 
-        function sendProcessUpdate() {
+        function sendProcessUpdate(process) {
             if (mainWindow) {
-                console.log("Sending process update to web view");
-                mainWindow.webContents.send('process-update', processes);
+                console.log("Sending process update to web view for " + process.name);
+                mainWindow.webContents.send('process-update', process);
             }
         };
 
-        pInterface.on('state-update', sendProcessUpdate);
+        // handle process updates
+        // pInterface.on('state-update', sendProcessUpdate);
         homeServer.on('state-update', sendProcessUpdate);
 
-        ipcMain.on('start-process', function(event, arg) {
-            pInterface.start();
-            sendProcessUpdate();
-        });
-        ipcMain.on('stop-process', function(event, arg) {
-            pInterface.stop();
-            sendProcessUpdate();
-        });
+        // start the home server
+        homeServer.start();
+
+        // ipcMain.on('start-process', function(event, arg) {
+        //     pInterface.start();
+        // });
+        // ipcMain.on('stop-process', function(event, arg) {
+        //     pInterface.stop();
+        // });
+
         ipcMain.on('restart-server', function(event, arg) {
             homeServer.restart();
-            sendProcessUpdate();
         });
+
         ipcMain.on('stop-server', function(event, arg) {
             homeServer.stop();
-            sendProcessUpdate();
         });
+
         ipcMain.on('open-logs', function(event, arg) {
             openFileBrowser(logPath);
         });
-        ipcMain.on('update', sendProcessUpdate);
 
-        sendProcessUpdate();
+        ipcMain.on('update-all-processes', function(event, arg) {
+            // enumerate our processes and call sendProcessUpdate to update
+            // the window with their status
+            for (let process of homeServer.processes) {
+                sendProcessUpdate(process);
+            }
+        });
     }
 });

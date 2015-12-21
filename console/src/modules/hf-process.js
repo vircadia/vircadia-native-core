@@ -89,7 +89,7 @@ ProcessGroup.prototype = extend(ProcessGroup.prototype, {
                 this.restarting = false;
             }
         }
-        this.emit('state-update', this, process);
+        this.emit('state-update', process);
     }
 });
 
@@ -196,6 +196,8 @@ Process.prototype = extend(Process.prototype, {
         }
         this.child.kill();
         this.state = ProcessStates.STOPPING;
+
+        this.emit('state-update', this);
     },
 
     // Events

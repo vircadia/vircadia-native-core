@@ -11,18 +11,27 @@ $(function() {
         // $('#process-interface .power-on').prop('disabled', interfaceOn);
         // $('#process-interface .power-off').prop('disabled', !interfaceOn);
 
-        var serverState = arg.home.state;
-        var serverCircles = $('#ds-status .circle, #ac-status .circle');
-        
-        switch (serverState) {
+        var sendingProcess = arg;
+        var processState = sendingProcess.state;
+
+        var processCircle = null;
+        if (sendingProcess.name == "domain-server") {
+            processCircle = $('#ds-status .circle');
+        } else if (sendingProcess.name == "ac-monitor") {
+            processCircle = $('#ac-status .circle');
+        } else {
+            return;
+        }
+
+        switch (processState) {
             case HFProcess.ProcessStates.STOPPED:
-                serverCircles.attr('class', 'circle stopped');
+                processCircle.attr('class', 'circle stopped');
                 break;
             case HFProcess.ProcessStates.STOPPING:
-                serverCircles.attr('class', 'circle stopping');
+                processCircle.attr('class', 'circle stopping');
                 break;
             case HFProcess.ProcessStates.STARTED:
-                serverCircles.attr('class', 'circle started');
+                processCircle.attr('class', 'circle started');
                 break;
         }
     }
@@ -45,5 +54,5 @@ $(function() {
 
     ipcRenderer.on('process-update', onProcessUpdate);
 
-    ipcRenderer.send('update');
+    ipcRenderer.send('update-all-processes');
 });
