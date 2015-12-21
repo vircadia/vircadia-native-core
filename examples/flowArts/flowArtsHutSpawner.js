@@ -14,10 +14,10 @@
 
 
 Script.include("../../libraries/utils.js");
-Script.include("lightBall/LightBall.js");
-Script.include("raveStick/RaveStick.js");
-Script.include("lightSaber/LightSaber.js");
-Script.include("arcBall/ArcBall.js");
+Script.include("lightBall/lightBall.js");
+Script.include("raveStick/raveStick.js");
+Script.include("lightSaber/lightSaber.js");
+Script.include("arcBall/arcBall.js");
 
 
 
