@@ -122,5 +122,5 @@ void AnimBlendLinearMove::setCurrentFrameInternal(float frame) {
     auto clipNode = std::dynamic_pointer_cast<AnimClip>(_children.front());
     assert(clipNode);
     const float NUM_FRAMES = (clipNode->getEndFrame() - clipNode->getStartFrame()) + 1.0f;
-    _phase = fmodf(frame, NUM_FRAMES);
+    _phase = fmodf(frame / NUM_FRAMES, 1.0f);
 }

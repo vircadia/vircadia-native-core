@@ -33,7 +33,6 @@ var mappingJSON = {
 
 mapping = Controller.parseMapping(JSON.stringify(mappingJSON));
 mapping.enable();
-
 Script.scriptEnding.connect(function(){
     mapping.disable();
 });

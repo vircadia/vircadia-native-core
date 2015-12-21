@@ -101,6 +101,7 @@
 #include <VrMenu.h>
 #include <recording/Deck.h>
 #include <recording/Recorder.h>
+#include <QmlWebWindowClass.h>
 
 #include "AnimDebugDraw.h"
 #include "AudioClient.h"
@@ -361,6 +362,17 @@ bool setupEssentials(int& argc, char** argv) {
 Cube3DOverlay* _keyboardFocusHighlight{ nullptr };
 int _keyboardFocusHighlightID{ -1 };
 PluginContainer* _pluginContainer;
+
+
+// FIXME hack access to the internal share context for the Chromium helper
+// Normally we'd want to use QWebEngine::initialize(), but we can't because 
+// our primary context is a QGLWidget, which can't easily be initialized to share
+// from a QOpenGLContext.
+//
+// So instead we create a new offscreen context to share with the QGLWidget,
+// and manually set THAT to be the shared context for the Chromium helper
+OffscreenGLCanvas* _chromiumShareContext { nullptr };
+Q_GUI_EXPORT void qt_gl_set_global_share_context(QOpenGLContext *context);
 
 Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
     QApplication(argc, argv),
@@ -623,6 +635,11 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
     _glWidget->makeCurrent();
     _glWidget->initializeGL();
 
+    _chromiumShareContext = new OffscreenGLCanvas();
+    _chromiumShareContext->create(_glWidget->context()->contextHandle());
+    _chromiumShareContext->makeCurrent();
+    qt_gl_set_global_share_context(_chromiumShareContext->getContext());
+
     _offscreenContext = new OffscreenGLCanvas();
     _offscreenContext->create(_glWidget->context()->contextHandle());
     _offscreenContext->makeCurrent();
@@ -686,13 +703,37 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
             } else if (action == controller::toInt(controller::Action::CONTEXT_MENU)) {
                 VrMenu::toggle(); // show context menu even on non-stereo displays
             } else if (action == controller::toInt(controller::Action::RETICLE_X)) {
-                auto globalPos = QCursor::pos();
-                globalPos.setX(globalPos.x() + state);
-                QCursor::setPos(globalPos);
+                auto oldPos = QCursor::pos();
+                auto newPos = oldPos;
+                newPos.setX(oldPos.x() + state);
+                QCursor::setPos(newPos);
+
+
+                // NOTE: This is some debugging code we will leave in while debugging various reticle movement strategies,
+                // remove it after we're done
+                const float REASONABLE_CHANGE = 50.0f;
+                glm::vec2 oldPosG = { oldPos.x(), oldPos.y() };
+                glm::vec2 newPosG = { newPos.x(), newPos.y() };
+                auto distance = glm::distance(oldPosG, newPosG);
+                if (distance > REASONABLE_CHANGE) {
+                    qDebug() << "Action::RETICLE_X... UNREASONABLE CHANGE! distance:" << distance << " oldPos:" << oldPosG << " newPos:" << newPosG;
+                }
+
             } else if (action == controller::toInt(controller::Action::RETICLE_Y)) {
-                auto globalPos = QCursor::pos();
-                globalPos.setY(globalPos.y() + state);
-                QCursor::setPos(globalPos);
+                auto oldPos = QCursor::pos();
+                auto newPos = oldPos;
+                newPos.setY(oldPos.y() + state);
+                QCursor::setPos(newPos);
+
+                // NOTE: This is some debugging code we will leave in while debugging various reticle movement strategies,
+                // remove it after we're done
+                const float REASONABLE_CHANGE = 50.0f;
+                glm::vec2 oldPosG = { oldPos.x(), oldPos.y() };
+                glm::vec2 newPosG = { newPos.x(), newPos.y() };
+                auto distance = glm::distance(oldPosG, newPosG);
+                if (distance > REASONABLE_CHANGE) {
+                    qDebug() << "Action::RETICLE_Y... UNREASONABLE CHANGE! distance:" << distance << " oldPos:" << oldPosG << " newPos:" << newPosG;
+                }
             }
         }
     });
@@ -2988,6 +3029,9 @@ void Application::update(float deltaTime) {
         _physicsEngine->changeObjects(motionStates);
 
         myAvatar->prepareForPhysicsSimulation();
+        _physicsEngine->forEachAction([&](EntityActionPointer action) {
+            action->prepareForPhysicsSimulation();
+        });
 
         getEntities()->getTree()->withWriteLock([&] {
             _physicsEngine->stepSimulation();
@@ -4139,6 +4183,7 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEngine* scri
                                        LocationScriptingInterface::locationSetter);
 
     scriptEngine->registerFunction("WebWindow", WebWindowClass::constructor, 1);
+    scriptEngine->registerFunction("OverlayWebWindow", QmlWebWindowClass::constructor);
 
     scriptEngine->registerGlobalObject("Menu", MenuScriptingInterface::getInstance());
     scriptEngine->registerGlobalObject("Stats", Stats::getInstance());
