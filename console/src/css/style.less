@@ -147,6 +147,7 @@ header {
             .process-status {
                 @status-red: #BD5F6D;
                 @status-green: #59AEA8;
+                @status-orange: #D89C40;
 
                 margin-bottom: 10px;
 
@@ -163,8 +164,12 @@ header {
                         background-color: @status-red;
                     }
 
-                    &.running {
+                    &.started {
                         background-color: @status-green;
+                    }
+
+                    &.stopping {
+                        background-color: @status-orange;
                     }
                 }
             }

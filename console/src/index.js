@@ -1,5 +1,6 @@
 $(function() {
     const ipcRenderer = require('electron').ipcRenderer;
+    const HFProcess = require('./modules/hf-process.js');
 
     function onProcessUpdate(event, arg) {
         console.log("update", event, arg);
@@ -11,10 +12,18 @@ $(function() {
         // $('#process-interface .power-off').prop('disabled', !interfaceOn);
 
         var serverState = arg.home.state;
-        $('#server .status').text(serverState);
-        var serverOn = serverState != 'stopped';
-        $('#server .power-on').prop('disabled', serverOn);
-        $('#server .power-off').prop('disabled', !serverOn);
+        var serverCircles = $('#ds-status .circle, #ac-status .circle');
+        switch (serverState) {
+            case HFProcess.ProcessStates.STOPPED:
+                serverCircles.attr('class', 'circle stopped');
+                break;
+            case HFProcess.ProcessStates.STOPPING:
+                serverCircles.attr('class', 'circle stopping');
+                break;
+            case HFProcess.ProcessStates.STARTED:
+                serverCircles.attr('class', 'circle started');
+                break;
+        }
     }
 
     $('#process-interface .power-on').click(function() {
@@ -23,10 +32,10 @@ $(function() {
     $('#process-interface .power-off').click(function() {
         ipcRenderer.send('stop-process', { name: 'interface' });
     });
-    $('#server .power-on').click(function() {
-        ipcRenderer.send('start-server', { name: 'home' });
+    $('#manage-server #restart').click(function() {
+        ipcRenderer.send('restart-server', { name: 'home' });
     });
-    $('#server .power-off').click(function() {
+    $('#manage-server #stop').click(function() {
         ipcRenderer.send('stop-server', { name: 'home' });
     });
     $('#open-logs').click(function() {

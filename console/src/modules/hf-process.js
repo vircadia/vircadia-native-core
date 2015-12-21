@@ -24,6 +24,7 @@ function ProcessGroup(name, processes) {
     this.name = name;
     this.state = ProcessGroupStates.STOPPED;
     this.processes = [];
+    this.restarting = false;
 
     for (let process of processes) {
         this.addProcess(process);
@@ -57,6 +58,16 @@ ProcessGroup.prototype = extend(ProcessGroup.prototype, {
         }
         this.state = ProcessGroupStates.STOPPING;
     },
+    restart: function() {
+        // set our restart flag so the group will restart once stopped
+        this.restarting = true;
+
+        // call stop, that will put them in the stopping state
+        this.stop();
+
+        // update our state
+        this.state = ProcessGroupStates.STOPPING;
+    },
 
     // Event handlers
     onProcessStateUpdate: function(process) {
@@ -69,6 +80,12 @@ ProcessGroup.prototype = extend(ProcessGroup.prototype, {
         }
         if (!processesStillRunning) {
             this.state = ProcessGroupStates.STOPPED;
+
+            // if we we're supposed to restart, call start now and reset the flag
+            if (this.restarting) {
+                this.start();
+                this.restarting = false;
+            }
         }
         this.emit('state-update', this, process);
     }

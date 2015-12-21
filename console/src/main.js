@@ -148,7 +148,9 @@ app.on('ready', function() {
             pInterface.stop();
             sendProcessUpdate();
         });
-        ipcMain.on('start-server', function(event, arg) {
+        ipcMain.on('restart-server', function(event, arg) {
+            homeServer.stop();
+            sendProcessUpdate();
             homeServer.start();
             sendProcessUpdate();
         });
