@@ -136,9 +136,16 @@ app.on('ready', function() {
             }
         };
 
+        function sendProcessGroupUpdate(process) {
+            if (mainWindow) {
+                mainWindow.webContents.send('process-group-update', process);
+            }
+        }
+
         // handle process updates
         // pInterface.on('state-update', sendProcessUpdate);
-        homeServer.on('state-update', sendProcessUpdate);
+        homeServer.on('process-update', sendProcessUpdate);
+        homeServer.on('state-update', sendProcessGroupUpdate);
 
         // start the home server
         homeServer.start();

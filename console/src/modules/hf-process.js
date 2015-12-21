@@ -47,6 +47,7 @@ ProcessGroup.prototype = extend(ProcessGroup.prototype, {
         }
 
         this.state = ProcessGroupStates.STARTED;
+        this.emit('state-update', this);
     },
     stop: function() {
         if (this.state != ProcessGroupStates.STARTED) {
@@ -57,6 +58,7 @@ ProcessGroup.prototype = extend(ProcessGroup.prototype, {
             process.stop();
         }
         this.state = ProcessGroupStates.STOPPING;
+        this.emit('state-update', this);
     },
     restart: function() {
         if (this.state == ProcessGroupStates.STOPPED) {
@@ -82,6 +84,7 @@ ProcessGroup.prototype = extend(ProcessGroup.prototype, {
         }
         if (!processesStillRunning) {
             this.state = ProcessGroupStates.STOPPED;
+            this.emit('state-update', this);
 
             // if we we're supposed to restart, call start now and reset the flag
             if (this.restarting) {
@@ -89,7 +92,7 @@ ProcessGroup.prototype = extend(ProcessGroup.prototype, {
                 this.restarting = false;
             }
         }
-        this.emit('state-update', process);
+        this.emit('process-update', process);
     }
 });
 
@@ -215,4 +218,5 @@ Process.prototype = extend(Process.prototype, {
 
 module.exports.Process = Process;
 module.exports.ProcessGroup = ProcessGroup;
+module.exports.ProcessGroupStates = ProcessGroupStates;
 module.exports.ProcessStates = ProcessStates;

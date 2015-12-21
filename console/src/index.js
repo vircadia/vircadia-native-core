@@ -12,7 +12,6 @@ $(function() {
         // $('#process-interface .power-off').prop('disabled', !interfaceOn);
 
         var sendingProcess = arg;
-        var processState = sendingProcess.state;
 
         var processCircle = null;
         if (sendingProcess.name == "domain-server") {
@@ -23,7 +22,7 @@ $(function() {
             return;
         }
 
-        switch (processState) {
+        switch (sendingProcess.state) {
             case HFProcess.ProcessStates.STOPPED:
                 processCircle.attr('class', 'circle stopped');
                 break;
@@ -32,6 +31,24 @@ $(function() {
                 break;
             case HFProcess.ProcessStates.STARTED:
                 processCircle.attr('class', 'circle started');
+                break;
+        }
+    }
+
+    function onProcessGroupUpdate(event, arg) {
+        var sendingGroup = arg;
+        var stopButton = $('#manage-server #stop');
+
+        switch (sendingGroup.state) {
+            case HFProcess.ProcessGroupStates.STOPPED:
+                // if the process group is stopped, the stop button should be disabled 
+                stopButton.attr('disabled', true);
+                break;
+            case HFProcess.Process.STOPPING:
+                break;
+            case HFProcess.Process.STARTED:
+                // if the process group is going, the stop button should be active
+                stopButton.attr('disabled', false);
                 break;
         }
     }
@@ -53,6 +70,7 @@ $(function() {
     });
 
     ipcRenderer.on('process-update', onProcessUpdate);
+    ipcRenderer.on('process-group-update', onProcessGroupUpdate);
 
     ipcRenderer.send('update-all-processes');
 });
