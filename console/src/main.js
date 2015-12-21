@@ -131,8 +131,10 @@ app.on('ready', function() {
         };
 
         function sendProcessUpdate() {
-            console.log("Sending process update to web view");
-            mainWindow.webContents.send('process-update', processes);
+            if (mainWindow) {
+                console.log("Sending process update to web view");
+                mainWindow.webContents.send('process-update', processes);
+            }
         };
 
         pInterface.on('state-update', sendProcessUpdate);
