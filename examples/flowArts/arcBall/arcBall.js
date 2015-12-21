@@ -44,6 +44,7 @@ ArcBall = function(spawnPosition) {
             green: 10,
             blue: 150
         },
+        ignoreForCollisions: true,
         damping: 0.8,
         collisionsWillMove: true,
         userData: JSON.stringify({
@@ -51,11 +52,11 @@ ArcBall = function(spawnPosition) {
                 spatialKey: {
                     relativePosition: {
                         x: 0,
-                        y: -0.5,
-                        z: 0.0
+                        y: 0.0,
+                        z: -0.5
                     },
                 },
-                invertSolidWhileHeld: true
+                // invertSolidWhileHeld: true
             }
         })
     });

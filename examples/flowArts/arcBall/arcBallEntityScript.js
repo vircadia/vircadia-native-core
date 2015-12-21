@@ -65,15 +65,15 @@
                     },
                     colorFinish: color,
                     maxParticles: 100000,
-                    lifespan: 2,
-                    emitRate: 500,
+                    lifespan: 1,
+                    emitRate: 1000,
                     emitOrientation: emitOrientation,
-                    emitSpeed: .4,
+                    emitSpeed: .2,
                     speedSpread: 0.1,
                     emitDimensions: {
-                        x: 0,
-                        y: 0,
-                        z: 0
+                        x: .1,
+                        y: .1,
+                        z: .1
                     },
                     polarStart: 0,
                     polarFinish: .0,
@@ -89,13 +89,13 @@
                         y: .00,
                         z: .00
                     },
-                    radiusStart: 0.03,
-                    radiusFinish: 0.025,
-                    radiusSpread: .01,
-                    alpha: 0.7,
+                    radiusStart: 0.01,
+                    radiusFinish: 0.005,
+                    radiusSpread: .005,
+                    alpha: 0.5,
                     alphaSpread: .1,
                     alphaStart: 0.5,
-                    alphaFinish: 0.5,
+                    alphaFinish: 0.0,
                     textures: "https://s3.amazonaws.com/hifi-public/eric/textures/particleSprites/beamParticle.png",
                     emitterShouldTrail: true
                 }
