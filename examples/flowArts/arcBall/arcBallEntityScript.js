@@ -65,19 +65,19 @@
                     },
                     colorFinish: color,
                     maxParticles: 100000,
-                    lifespan: 1,
+                    lifespan: 2,
                     emitRate: 1000,
                     emitOrientation: emitOrientation,
-                    emitSpeed: .2,
-                    speedSpread: 0.1,
+                    emitSpeed: .1,
+                    speedSpread: 0.02,
                     emitDimensions: {
-                        x: .1,
-                        y: .1,
-                        z: .1
+                        x: .01,
+                        y: .01,
+                        z: .01
                     },
                     polarStart: 0,
                     polarFinish: .0,
-                    azimuthStart: .1,
+                    azimuthStart: .02,
                     azimuthFinish: .01,
                     emitAcceleration: {
                         x: 0,
