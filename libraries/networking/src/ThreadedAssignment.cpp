@@ -122,8 +122,10 @@ void ThreadedAssignment::startSendingStats() {
 }
 
 void ThreadedAssignment::stopSendingStats() {
-    // stop sending stats, we just disconnected from domain
-    _statsTimer->stop();
+    if (_statsTimer) {
+        // stop sending stats, we just disconnected from domain
+        _statsTimer->stop();
+    }
 }
 
 void ThreadedAssignment::checkInWithDomainServerOrExit() {
