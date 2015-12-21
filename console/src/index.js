@@ -41,14 +41,15 @@ $(function() {
 
         switch (sendingGroup.state) {
             case HFProcess.ProcessGroupStates.STOPPED:
-                // if the process group is stopped, the stop button should be disabled 
-                stopButton.attr('disabled', true);
+                // if the process group is stopped, the stop button should be disabled
+                stopButton.removeAttr('href');
                 break;
-            case HFProcess.Process.STOPPING:
+            case HFProcess.ProcessGroupStates.STOPPING:
                 break;
-            case HFProcess.Process.STARTED:
+            case HFProcess.ProcessGroupStates.STARTED:
+                console.log("SETTING HREF");
                 // if the process group is going, the stop button should be active
-                stopButton.attr('disabled', false);
+                stopButton.attr('href', '#');
                 break;
         }
     }
