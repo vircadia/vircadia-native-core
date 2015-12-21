@@ -17,7 +17,8 @@ SpatiallyNestableWeakPointer AssignmentParentFinder::find(QUuid parentID, bool& 
     parent = _tree->findEntityByEntityItemID(parentID);
     if (parent.expired()) {
         success = false;
+    } else {
+        success = true;
     }
-    success = true;
     return parent;
 }
