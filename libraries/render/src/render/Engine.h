@@ -34,12 +34,6 @@ class RenderContext {
 public:
     class ItemsConfig {
     public:
-        inline void setCounts(const ItemsConfig& items) {
-            opaque.setCounts(items.opaque);
-            transparent.setCounts(items.transparent);
-            overlay3D.setCounts(items.overlay3D);
-        };
-
         class Counter {
         public:
             Counter() {};
@@ -48,7 +42,7 @@ public:
                 maxDrawn = counter.maxDrawn;
             };
 
-            inline void setCounts(const Counter& counter) {
+            void setCounts(const Counter& counter) {
                 numFeed = counter.numFeed;
                 numDrawn = counter.numDrawn;
             };
@@ -67,6 +61,10 @@ public:
             Counter counter{};
         };
 
+        ItemsConfig(State opaqueState, State transparentState, Counter overlay3DCounter)
+            : opaque{ opaqueState }, transparent{ transparentState }, overlay3D{ overlay3DCounter } {}
+        ItemsConfig() : ItemsConfig{ {}, {}, {} } {}
+
         // TODO: If member count increases, store counters in a map instead of multiple members
         State opaque{};
         State transparent{};
@@ -79,9 +77,10 @@ public:
         float exposure = 0.0;
     };
     
-    RenderContext(RenderArgs* args, ItemsConfig items, Tone tone) : _args{args}, _items{items}, _tone{tone} {};
-    RenderContext() : RenderContext(nullptr, {}, {}) {};
+    RenderContext(ItemsConfig items, Tone tone, int drawStatus, bool drawHitEffect, glm::vec4 deferredDebugSize, int deferredDebugMode);
+    RenderContext() : RenderContext({}, {}, {}, {}, {}, {}) {};
 
+    void setArgs(RenderArgs* args) { _args = args; }
     inline RenderArgs* getArgs() { return _args; }
     inline ItemsConfig& getItemsConfig() { return _items; }
     inline Tone& getTone() { return _tone; }
@@ -89,7 +88,7 @@ public:
     inline bool getDrawHitEffect() { return _drawHitEffect; }
     inline bool getOcclusionStatus() { return _occlusionStatus; }
     inline bool getFxaaStatus() { return _fxaaStatus; }
-    void setOptions(int drawStatus, bool drawHitEffect, bool occlusion, bool fxaa, bool showOwned);
+    void setOptions(bool occlusion, bool fxaa, bool showOwned);
 
     // Debugging
     int _deferredDebugMode = -1;
