@@ -56,6 +56,7 @@ $(function() {
         var sendingGroup = arg;
         var stopButton = $('#manage-server #stop');
         var goButton = $('#go-server-button');
+        var serverStopped = $('#server-stopped-text');
 
         switch (sendingGroup.state) {
             case HFProcess.ProcessGroupStates.STOPPED:
@@ -66,6 +67,9 @@ $(function() {
                 // disable the go button
                 goButton.addClass('disabled');
 
+                // show the server stopped text
+                serverStopped.show();
+
                 break;
             case HFProcess.ProcessGroupStates.STARTED:
                 // if the process group is going, the stop button should be active
@@ -73,6 +77,9 @@ $(function() {
 
                 // enable the go button
                 goButton.removeClass('disabled');
+
+                // hide the server stopped text
+                serverStopped.hide();
 
                 break;
         }
