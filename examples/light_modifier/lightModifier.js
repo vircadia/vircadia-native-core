@@ -8,7 +8,9 @@
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
-//
+//  
+
+// todo: text labels for property names, panel plane for visibility
 
 //some experimental options
 var ONLY_I_CAN_EDIT = false;
@@ -16,7 +18,7 @@ var SLIDERS_SHOULD_STAY_WITH_AVATAR = false;
 var VERTICAL_SLIDERS = false;
 var SHOW_OVERLAYS = true;
 var SHOW_LIGHT_VOLUME = true;
-var USE_PARENTED_PANEL = false;
+var USE_PARENTED_PANEL = true;
 
 //variables for managing overlays
 var selectionDisplay;
@@ -225,6 +227,9 @@ entitySlider.prototype = {
         };
 
         this.axis = Entities.addEntity(properties);
+    },
+    createLabel:function(){
+        
     },
     createSliderIndicator: function() {
         var extensionVector;
@@ -650,6 +655,12 @@ function handleCleanupMessages(channel, message, sender) {
     if (message === 'callCleanup') {
         cleanup(true);
     }
+}
+
+function updateSliderAxis(){
+    sliders.forEach(function(slider){
+
+    })
 }
 
 function cleanup(fromMessage) {
