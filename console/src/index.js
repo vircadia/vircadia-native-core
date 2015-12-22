@@ -72,7 +72,7 @@ $(function() {
     }
 
     $('#last-visited-link').click(function() {
-        ipcRenderer.send('start-interface');
+        ipcRenderer.send('start-interface', { url: 'hifi://testing-url' });
     });
     $('#manage-server #restart').click(function() {
         ipcRenderer.send('restart-server', { name: 'home' });

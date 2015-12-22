@@ -156,12 +156,13 @@ app.on('ready', function() {
 
         ipcMain.on('start-interface', function(event, arg) {
             // create a new Interface instance - Interface makes sure only one is running at a time
-            var args = [];
-            if (args.url) {
-                args << "--url" << args.url
+            var argArray = [];
+            if (arg.url) {
+                argArray = ["--url", arg.url]
+                console.log(argArray);
             }
 
-            var pInterface = new Process('interface', interfacePath);
+            var pInterface = new Process('interface', interfacePath, argArray);
             pInterface.start();
         });
 
