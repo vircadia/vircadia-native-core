@@ -26,7 +26,7 @@
 
 using namespace oglplus;
 
-const QString OculusLegacyDisplayPlugin::NAME("Oculus Rift (0.5)");
+const QString OculusLegacyDisplayPlugin::NAME("Oculus Rift (0.5) (Simulated)");
 
 const QString & OculusLegacyDisplayPlugin::getName() const {
     return NAME;
@@ -56,12 +56,11 @@ glm::mat4 OculusLegacyDisplayPlugin::getHeadPose(uint32_t frameIndex) const {
     static uint32_t lastFrameSeen = 0;
     if (frameIndex > lastFrameSeen) {
         Lock lock(_mutex);
-//        auto trackingState = ovr_GetTrackingState(_session, displayTime, frameIndex > lastFrameSeen);
-//        ovrHmd_GetEyePoses(_hmd, frameIndex, _eyeOffsets, _eyePoses, &_trackingState);
+        _trackingState = ovrHmd_GetTrackingState(_hmd, ovr_GetTimeInSeconds());
+        ovrHmd_GetEyePoses(_hmd, frameIndex, _eyeOffsets, _eyePoses, &_trackingState);
         lastFrameSeen = frameIndex;
     }
-//    return toGlm(trackingState.HeadPose.ThePose);
-    return glm::mat4();
+    return toGlm(_trackingState.HeadPose.ThePose);
 }
 
 bool OculusLegacyDisplayPlugin::isSupported() const {
@@ -93,7 +92,6 @@ bool OculusLegacyDisplayPlugin::isSupported() const {
 
 void OculusLegacyDisplayPlugin::activate() {
     WindowOpenGLDisplayPlugin::activate();
-
     
     if (!(ovr_Initialize(nullptr))) {
         Q_ASSERT(false);
@@ -135,37 +133,26 @@ void OculusLegacyDisplayPlugin::activate() {
                                   ovrTrackingCap_Orientation | ovrTrackingCap_Position | ovrTrackingCap_MagYawCorrection, 0)) {
         qFatal("Could not attach to sensor device");
     }
-
-    int screen = getHmdScreen();
-    if (screen != -1) {
-        _container->setFullscreen(qApp->screens()[screen]);
-    }
-    
-    _window->installEventFilter(this);
 }
 
 void OculusLegacyDisplayPlugin::deactivate() {
-    _window->removeEventFilter(this);
     WindowOpenGLDisplayPlugin::deactivate();
-    
-    QScreen* riftScreen = nullptr;
-    if (_hmdScreen >= 0) {
-        riftScreen = qApp->screens()[_hmdScreen];
-    }
-    _container->unsetFullscreen(riftScreen);
-    
     ovrHmd_Destroy(_hmd);
     _hmd = nullptr;
     ovr_Shutdown();
 }
 
+
 // DLL based display plugins MUST initialize GLEW inside the DLL code.
 void OculusLegacyDisplayPlugin::customizeContext() {
-    glewExperimental = true;
-    glewInit();
-    glGetError();
+    static std::once_flag once;
+    std::call_once(once, []{
+        glewExperimental = true;
+        glewInit();
+        glGetError();
+    });
     WindowOpenGLDisplayPlugin::customizeContext();
-
+#if 0
     ovrGLConfig config; memset(&config, 0, sizeof(ovrRenderAPIConfig));
     auto& header = config.Config.Header;
     header.API = ovrRenderAPI_OpenGL;
@@ -190,8 +177,11 @@ void OculusLegacyDisplayPlugin::customizeContext() {
 #endif
     ovrHmd_ConfigureRendering(_hmd, &config.Config, distortionCaps, _eyeFovs, _eyeRenderDescs);
     assert(result);
+#endif
+    
 }
 
+#if 0
 void OculusLegacyDisplayPlugin::uncustomizeContext() {
     WindowOpenGLDisplayPlugin::uncustomizeContext();
 }
@@ -204,21 +194,7 @@ void OculusLegacyDisplayPlugin::internalPresent() {
     ovrHmd_EndFrame(_hmd, _eyePoses, _eyeTextures);
 }
 
-/*
-// Pass input events on to the application
-bool OculusLegacyDisplayPlugin::eventFilter(QObject* receiver, QEvent* event) {
-    if (!_hswDismissed && (event->type() == QEvent::KeyPress)) {
-        static ovrHSWDisplayState hswState;
-        ovrHmd_GetHSWDisplayState(_hmd, &hswState);
-        if (hswState.Displayed) {
-            ovrHmd_DismissHSWDisplay(_hmd);
-        } else {
-            _hswDismissed = true;
-        }
-    }    
-    return WindowOpenGLDisplayPlugin::eventFilter(receiver, event);
-}
-*/
+#endif
 
 int OculusLegacyDisplayPlugin::getHmdScreen() const {
     return _hmdScreen;

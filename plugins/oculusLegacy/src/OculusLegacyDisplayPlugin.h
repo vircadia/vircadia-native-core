@@ -24,7 +24,6 @@ public:
     virtual void activate() override;
     virtual void deactivate() override;
 
-//    virtual bool eventFilter(QObject* receiver, QEvent* event) override;
     virtual int getHmdScreen() const override;
 
     // Stereo specific methods
@@ -40,17 +39,18 @@ public:
 
 protected:
     virtual void customizeContext() override;
+#if 0
     virtual void uncustomizeContext() override;
     virtual void internalPresent() override;
-
+#endif
+    
 private:
     static const QString NAME;
 
     ovrHmd _hmd;
-    std::mutex _statelock;
-    ovrTrackingState _trackingState;
+    mutable ovrTrackingState _trackingState;
     ovrEyeRenderDesc _eyeRenderDescs[2];
-    ovrPosef _eyePoses[2];
+    mutable ovrPosef _eyePoses[2];
     ovrVector3f _eyeOffsets[2];
     ovrFovPort _eyeFovs[2];
     mat4 _eyeProjections[3];
