@@ -51,9 +51,9 @@ void main(void) {
 
     if (emissiveAmount > 0.0) {
         packDeferredFragmentLightmap(
-            normal, glowIntensity, diffuse, specular, shininess, specular);
+            normal, 1.0, diffuse, specular, shininess, specular);
     } else {
         packDeferredFragment(
-            normal, glowIntensity, diffuse, specular, shininess);
+            normal, 1.0, diffuse, specular, shininess);
     }
 }

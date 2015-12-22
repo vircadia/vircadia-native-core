@@ -126,12 +126,6 @@ RenderDeferredTask::RenderDeferredTask() : Task() {
     _jobs.push_back(Job(new HitEffect::JobModel("HitEffect")));
     _jobs.back().setEnabled(false);
     _drawHitEffectJobIndex = (int)_jobs.size() -1;
-
-    // Give ourselves 3 frmaes of timer queries
-    _timerQueries.push_back(std::make_shared<gpu::Query>());
-    _timerQueries.push_back(std::make_shared<gpu::Query>());
-    _timerQueries.push_back(std::make_shared<gpu::Query>());
-    _currentTimerQueryIndex = 0;
 }
 
 RenderDeferredTask::~RenderDeferredTask() {
@@ -197,10 +191,6 @@ void DrawOpaqueDeferred::run(const SceneContextPointer& sceneContext, const Rend
         batch.setProjectionTransform(projMat);
         batch.setViewTransform(viewMat);
 
-        {
-            const float OPAQUE_ALPHA_THRESHOLD = 0.5f;
-            args->_alphaThreshold = OPAQUE_ALPHA_THRESHOLD;
-        }
         renderItems(sceneContext, renderContext, inItems, opaque.maxDrawn);
         args->_batch = nullptr;
     });
@@ -226,10 +216,7 @@ void DrawTransparentDeferred::run(const SceneContextPointer& sceneContext, const
 
         batch.setProjectionTransform(projMat);
         batch.setViewTransform(viewMat);
-    
-        const float TRANSPARENT_ALPHA_THRESHOLD = 0.0f;
-        args->_alphaThreshold = TRANSPARENT_ALPHA_THRESHOLD;
-    
+
         renderItems(sceneContext, renderContext, inItems, transparent.maxDrawn);
         args->_batch = nullptr;
     });
