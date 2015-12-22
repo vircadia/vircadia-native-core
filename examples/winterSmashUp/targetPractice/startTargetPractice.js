@@ -1,6 +1,6 @@
 //
 //  startTargetPractice.js
-//  examples
+//  examples/winterSmashUp/targetPractice
 //
 //  Created by Thijs Wenker on 12/21/15.
 //  Copyright 2015 High Fidelity, Inc.
