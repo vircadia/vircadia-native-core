@@ -28,13 +28,13 @@ LightBall = function(spawnPosition) {
         name: "containerBall",
         position: Vec3.sum(spawnPosition, {
             x: 0,
-            y: .5,
+            y: 0.5,
             z: 0
         }),
         dimensions: {
-            x: .1,
-            y: .1,
-            z: .1
+            x: 0.1,
+            y: 0.1,
+            z: 0.1
         },
         color: {
             red: 15,
@@ -52,7 +52,7 @@ LightBall = function(spawnPosition) {
                 spatialKey: {
                     relativePosition: {
                         x: 0,
-                        y: .1,
+                        y: 0.1,
                         z: 0
                     }
                 },
@@ -99,7 +99,7 @@ LightBall = function(spawnPosition) {
         maxParticles: 100000,
         lifespan: 2,
         emitRate: 10000,
-        emitSpeed: .1,
+        emitSpeed: 0.1,
         lifetime: -1,
         speedSpread: 0.0,
         emitDimensions: {
@@ -117,16 +117,16 @@ LightBall = function(spawnPosition) {
             z: 0
         },
         accelerationSpread: {
-            x: .00,
-            y: .00,
-            z: .00
+            x: 0.00,
+            y: 0.00,
+            z: 0.00
         },
         particleRadius: 0.02,
         radiusSpread: 0,
         radiusStart: 0.03,
         radiusFinish: 0.0003,
         alpha: 0,
-        alphaSpread: .5,
+        alphaSpread: 0.5,
         alphaStart: 0,
         alphaFinish: 0.5,
         textures: "https://hifi-public.s3.amazonaws.com/alan/Particles/Particle-Sprite-Smoke-1.png",
