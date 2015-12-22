@@ -16,10 +16,15 @@
 #include <controllers/StandardControls.h>
 #include <plugins/InputPlugin.h>
 
+struct _BvhDataHeaderEx;
+void FrameDataReceivedCallback(void* context, void* sender, _BvhDataHeaderEx* header, float* data);
+
 // Handles interaction with the Neuron SDK
 class NeuronPlugin : public InputPlugin {
     Q_OBJECT
 public:
+    friend void FrameDataReceivedCallback(void* context, void* sender, _BvhDataHeaderEx* header, float* data);
+
     // Plugin functions
     virtual bool isSupported() const override;
     virtual bool isJointController() const override { return true; }
@@ -35,7 +40,7 @@ public:
     virtual void saveSettings() const override;
     virtual void loadSettings() override;
 
-private:
+protected:
     class InputDevice : public controller::InputDevice {
     public:
         InputDevice() : controller::InputDevice("Neuron") {}
@@ -51,6 +56,18 @@ private:
 
     static const QString NAME;
     static const QString NEURON_ID_STRING;
+
+    std::string _serverAddress;
+    int _serverPort;
+    void* _socketRef;
+
+    struct NeuronJoint {
+        glm::vec3 pos;
+        glm::vec3 rot;
+    };
+
+    std::vector<NeuronJoint> _joints;
+    std::mutex _jointsMutex;
 };
 
 #endif // hifi_NeuronPlugin_h
