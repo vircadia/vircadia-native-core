@@ -198,11 +198,11 @@ void Font::read(QIODevice& in) {
 
     image = image.convertToFormat(QImage::Format_RGBA8888);
 
-    gpu::Element formatGPU = gpu::Element(gpu::VEC3, gpu::UINT8, gpu::RGB);
-    gpu::Element formatMip = gpu::Element(gpu::VEC3, gpu::UINT8, gpu::RGB);
+    gpu::Element formatGPU = gpu::Element(gpu::VEC3, gpu::NUINT8, gpu::RGB);
+    gpu::Element formatMip = gpu::Element(gpu::VEC3, gpu::NUINT8, gpu::RGB);
     if (image.hasAlphaChannel()) {
-        formatGPU = gpu::Element(gpu::VEC4, gpu::UINT8, gpu::RGBA);
-        formatMip = gpu::Element(gpu::VEC4, gpu::UINT8, gpu::BGRA);
+        formatGPU = gpu::Element(gpu::VEC4, gpu::NUINT8, gpu::RGBA);
+        formatMip = gpu::Element(gpu::VEC4, gpu::NUINT8, gpu::BGRA);
     }
     _texture = gpu::TexturePointer(gpu::Texture::create2D(formatGPU, image.width(), image.height(),
                                    gpu::Sampler(gpu::Sampler::FILTER_MIN_POINT_MAG_LINEAR)));

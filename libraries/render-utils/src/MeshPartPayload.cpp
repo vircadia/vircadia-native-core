@@ -470,6 +470,9 @@ void ModelMeshPartPayload::render(RenderArgs* args) const {
     ModelRender::pickPrograms(batch, mode, translucentMesh, alphaThreshold, hasLightmap, hasTangents, hasSpecular, isSkinned, wireframe,
                               args, locations);
     
+    if (!locations) { // the pipeline could not be found
+        return;
+    }
 
     // Bind the model transform and the skinCLusterMatrices if needed
     bindTransform(batch, locations);

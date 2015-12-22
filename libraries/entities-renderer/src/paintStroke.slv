@@ -13,8 +13,8 @@
 //
 
 <@include gpu/Inputs.slh@>
+<@include gpu/Color.slh@>
 <@include gpu/Transform.slh@>
-
 <$declareStandardTransform()$>
 
 // the interpolated normal
@@ -23,13 +23,11 @@ out vec3 interpolatedNormal;
 //the diffuse texture
 out vec2 varTexcoord;
 
-flat out int varVertexId;
-
 void main(void) {
     
     varTexcoord = inTexCoord0.st;
-    
-    varVertexId = gl_VertexID;
+    varColor = colorToLinearRGBA(inColor);
+
 
     // standard transform
     TransformCamera cam = getTransformCamera();

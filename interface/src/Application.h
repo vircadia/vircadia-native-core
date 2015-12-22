@@ -38,6 +38,7 @@
 #include <SimpleMovingAverage.h>
 #include <StDev.h>
 #include <ViewFrustum.h>
+#include <AbstractUriHandler.h>
 
 #include "avatar/AvatarUpdate.h"
 #include "avatar/MyAvatar.h"
@@ -88,7 +89,7 @@ class Application;
 #endif
 #define qApp (static_cast<Application*>(QCoreApplication::instance()))
 
-class Application : public QApplication, public AbstractViewStateInterface, public AbstractScriptingServicesInterface {
+class Application : public QApplication, public AbstractViewStateInterface, public AbstractScriptingServicesInterface, public AbstractUriHandler {
     Q_OBJECT
     
     // TODO? Get rid of those
@@ -219,8 +220,8 @@ public:
     QString getScriptsLocation();
     void setScriptsLocation(const QString& scriptsLocation);
 
-    bool canAcceptURL(const QString& url);
-    bool acceptURL(const QString& url, bool defaultUpload = false);
+    virtual bool canAcceptURL(const QString& url) const override;
+    virtual bool acceptURL(const QString& url, bool defaultUpload = false) override;
 
     void setMaxOctreePacketsPerSecond(int maxOctreePPS);
     int getMaxOctreePacketsPerSecond();

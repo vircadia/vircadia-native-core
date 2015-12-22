@@ -23,17 +23,16 @@ vec4 evalPBRShading(vec3 fragNormal, vec3 fragLightDir, vec3 fragEyeDir, vec3 sp
     // Specular Lighting depends on the half vector and the gloss
     vec3 halfDir = normalize(fragEyeDir + fragLightDir);
 
-   // float specularPower = pow(facingLight * max(0.0, dot(halfDir, fragNormal)), gloss * 128.0);
     float specularPower = pow(max(0.0, dot(halfDir, fragNormal)), gloss * 128.0);
     specularPower *= (gloss * 128.0 * 0.125 + 0.25);
 
     float shlickPower = (1.0 - dot(fragLightDir,halfDir));
     float shlickPower2 = shlickPower * shlickPower;
     float shlickPower5 = shlickPower2 * shlickPower2 * shlickPower;
-    vec3 schlick = specular * (1.0 - shlickPower5) + vec3(shlickPower5);
-    vec3 reflect = specularPower * schlick;
+    vec3 fresnel = specular * (1.0 - shlickPower5) + vec3(shlickPower5);
+    vec3 reflect = specularPower * fresnel * diffuse;
 
-    return vec4(reflect, diffuse);
+    return vec4(reflect, diffuse * (1 - fresnel.x));
 }
 <@endfunc@>
 
@@ -49,7 +48,7 @@ vec4 evalBlinnShading(vec3 fragNormal, vec3 fragLightDir, vec3 fragEyeDir, vec3 
     vec3 halfDir = normalize(fragEyeDir + fragLightDir);
 
     float specularPower = pow(facingLight * max(0.0, dot(halfDir, fragNormal)), gloss * 128.0);
-    vec3 reflect = specularPower * specular;
+    vec3 reflect = specularPower * specular * diffuse;
 
     return vec4(reflect, diffuse);
 }
@@ -59,14 +58,9 @@ vec4 evalBlinnShading(vec3 fragNormal, vec3 fragLightDir, vec3 fragEyeDir, vec3 
 
 <$declareEvalPBRShading()$>
 
-
+// Return xyz the specular/reflection component and w the diffuse component
 vec4 evalFragShading(vec3 fragNormal, vec3 fragLightDir, vec3 fragEyeDir, vec3 specular, float gloss) {
-
-    /*if (gl_FragCoord.x > 1000) {
-        return evalBlinnShading(fragNormal, fragLightDir, fragEyeDir, specular, gloss);
-    } else {*/
-        return evalPBRShading(fragNormal, fragLightDir, fragEyeDir, specular, gloss);
-    //}
+    return evalPBRShading(fragNormal, fragLightDir, fragEyeDir, specular, gloss);
 }
 
 <@endif@>

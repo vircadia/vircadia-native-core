@@ -11,9 +11,8 @@
 //
 
 <@include gpu/Inputs.slh@>
-
+<@include gpu/Color.slh@>
 <@include gpu/Transform.slh@>
-
 <$declareStandardTransform()$>
 
 out vec2 varTexcoord;
@@ -30,7 +29,7 @@ void main(void) {
     varTexcoord = inTexCoord0.xy;
 
     // pass along the color
-    varColor = inColor;
+    varColor = colorToLinearRGBA(inColor);
 
     // standard transform
     TransformCamera cam = getTransformCamera();

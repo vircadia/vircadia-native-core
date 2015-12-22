@@ -225,6 +225,21 @@ void SunSkyStage::setOriginOrientation(const Quat& orientation) {
     invalidate();
 }
 
+void SunSkyStage::setOriginLongitude(float longitude) {
+    _earthSunModel.setLongitude(longitude);
+    invalidate();
+}
+
+void SunSkyStage::setOriginLatitude(float latitude) {
+    _earthSunModel.setLatitude(latitude);
+    invalidate();
+}
+
+void SunSkyStage::setOriginSurfaceAltitude(float altitude) {
+    _earthSunModel.setAltitude(altitude);
+    invalidate();
+}
+
 void SunSkyStage::setOriginLocation(float longitude, float latitude, float altitude) {
     _earthSunModel.setLongitude(longitude);
     _earthSunModel.setLatitude(latitude);

@@ -21,7 +21,6 @@
 #include "model/Stage.h"
 #include "model/Geometry.h"
 
-class AbstractViewStateInterface;
 class RenderArgs;
 class SimpleProgramKey;
 struct LightLocations;
@@ -34,7 +33,7 @@ public:
     static const int NORMAL_FITTING_MAP_SLOT = 10;
     static const int DEFERRED_TRANSFORM_BUFFER_SLOT = 2;
 
-    void init(AbstractViewStateInterface* viewState);
+    void init();
 
     /// Sets up the state necessary to render static untextured geometry with the simple program.
     gpu::PipelinePointer bindSimpleProgram(gpu::Batch& batch, bool textured = false, bool culled = true,
@@ -78,7 +77,6 @@ public:
     
     void prepare(RenderArgs* args);
     void render(RenderArgs* args);
-    void copyBack(RenderArgs* args);
 
     void setupTransparent(RenderArgs* args, int lightBufferUnit);
 
@@ -101,29 +99,15 @@ private:
     gpu::ShaderPointer _simpleShader;
     gpu::ShaderPointer _emissiveShader;
     QHash<SimpleProgramKey, gpu::PipelinePointer> _simplePrograms;
-
-    gpu::PipelinePointer _blitLightBuffer;
-
+    
     gpu::PipelinePointer _directionalSkyboxLight;
     LightLocationsPtr _directionalSkyboxLightLocations;
-    gpu::PipelinePointer _directionalSkyboxLightShadowMap;
-    LightLocationsPtr _directionalSkyboxLightShadowMapLocations;
-    gpu::PipelinePointer _directionalSkyboxLightCascadedShadowMap;
-    LightLocationsPtr _directionalSkyboxLightCascadedShadowMapLocations;
 
     gpu::PipelinePointer _directionalAmbientSphereLight;
     LightLocationsPtr _directionalAmbientSphereLightLocations;
-    gpu::PipelinePointer _directionalAmbientSphereLightShadowMap;
-    LightLocationsPtr _directionalAmbientSphereLightShadowMapLocations;
-    gpu::PipelinePointer _directionalAmbientSphereLightCascadedShadowMap;
-    LightLocationsPtr _directionalAmbientSphereLightCascadedShadowMapLocations;
 
     gpu::PipelinePointer _directionalLight;
     LightLocationsPtr _directionalLightLocations;
-    gpu::PipelinePointer _directionalLightShadowMap;
-    LightLocationsPtr _directionalLightShadowMapLocations;
-    gpu::PipelinePointer _directionalLightCascadedShadowMap;
-    LightLocationsPtr _directionalLightCascadedShadowMapLocations;
 
     gpu::PipelinePointer _pointLight;
     LightLocationsPtr _pointLightLocations;
@@ -155,8 +139,6 @@ private:
     std::vector<int> _globalLights;
     std::vector<int> _pointLights;
     std::vector<int> _spotLights;
-    
-    AbstractViewStateInterface* _viewState;
 
     int _ambientLightMode = 0;
     model::AtmospherePointer _atmosphere;
