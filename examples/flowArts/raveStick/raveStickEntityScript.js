@@ -12,7 +12,6 @@
 (function() {
     Script.include("../../libraries/utils.js");
     var _this;
-    // this is the "constructor" for the entity as a JS object we don't do much here
     var LIFETIME = 6000;
     var DRAWING_DEPTH = 0.8;
     var LINE_DIMENSIONS = 100;
@@ -47,7 +46,6 @@
             textures: texture,
             lifetime: LIFETIME
         });
-
 
         this.points = [];
         this.normals = [];
