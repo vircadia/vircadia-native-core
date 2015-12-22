@@ -9,12 +9,13 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+var whichHand = Controller.Standard.RightHand;
+var whichTrigger = Controller.Standard.RT;
+var DEBUGGING = false;
+
 Math.clamp=function(a,b,c) {
     return Math.max(b,Math.min(c,a));
 }
-
-var whichHand = Controller.Standard.RightHand;
-var whichTrigger = Controller.Standard.RT;
 
 function length(posA, posB) {
     var dx = posA.x - posB.x;
@@ -61,35 +62,37 @@ mapping.from(whichHand).peek().to(function(pose) {
 
     var rotated = Vec3.multiplyQbyV(pose.rotation, Vec3.UNIT_NEG_Y); // 
     var absolutePitch = rotated.y; // from 1 down to -1 up ... but note: if you rotate down "too far" it starts to go up again...
-    var absoluteYaw = rotated.z; // from -1 left to 1 right
-    //print("absolutePitch:" + absolutePitch);
-    //print("absoluteYaw:" + absoluteYaw);
-    //Vec3.print("rotated:", rotated);
+    var absoluteYaw = -rotated.x; // from -1 left to 1 right
+
+    if (DEBUGGING) {
+        print("absolutePitch:" + absolutePitch);
+        print("absoluteYaw:" + absoluteYaw);
+        Vec3.print("rotated:", rotated);
+    }
 
     var ROTATION_BOUND = 0.6;
     var clampYaw = Math.clamp(absoluteYaw, -ROTATION_BOUND, ROTATION_BOUND);
     var clampPitch = Math.clamp(absolutePitch, -ROTATION_BOUND, ROTATION_BOUND);
-    //var clampYaw = absoluteYaw;
-    //print("clampYaw:" + clampYaw);
-    //print("clampPitch:" + clampPitch);
+    if (DEBUGGING) {
+        print("clampYaw:" + clampYaw);
+        print("clampPitch:" + clampPitch);
+    }
 
-    // if using entire span...
-    //var xRatio = (absoluteYaw + 1) / 2;
-    //var yRatio = (absolutePitch + 1) / 2;
-
-    // if using only from -0.5 to 0.5
+    // using only from -ROTATION_BOUND to ROTATION_BOUND
     var xRatio = (clampYaw + ROTATION_BOUND) / (2 * ROTATION_BOUND);
     var yRatio = (clampPitch + ROTATION_BOUND) / (2 * ROTATION_BOUND);
 
-    //print("xRatio:" + xRatio);
-    //print("yRatio:" + yRatio);
-
-    //print("ratio x:" + xRatio + " y:" + yRatio);
+    if (DEBUGGING) {
+        print("xRatio:" + xRatio);
+        print("yRatio:" + yRatio);
+    }
 
     var x = screenSizeX * xRatio;
     var y = screenSizeY * yRatio;
 
-    //print("position x:" + x + " y:" + y);
+    if (DEBUGGING) {
+        print("position x:" + x + " y:" + y);
+    }
     if (!(xRatio == 0.5 && yRatio == 0)) {
         moveReticleAbsolute(x, y);
     }
