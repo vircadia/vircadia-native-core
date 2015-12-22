@@ -155,13 +155,13 @@ app.on('ready', function() {
         homeServer.start();
 
         ipcMain.on('start-interface', function(event, arg) {
-            // create a new Interface instance - Interface makes sure only one is running at a time
+            // check if we have a url parameter to include
             var argArray = [];
             if (arg.url) {
                 argArray = ["--url", arg.url]
-                console.log(argArray);
             }
 
+            // create a new Interface instance - Interface makes sure only one is running at a time
             var pInterface = new Process('interface', interfacePath, argArray);
             pInterface.start();
         });
