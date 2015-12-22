@@ -9,8 +9,6 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-var whichHand = Controller.Standard.RightHand;
-var whichTrigger = Controller.Standard.RT;
 var DEBUGGING = false;
 
 Math.clamp=function(a,b,c) {
@@ -53,14 +51,49 @@ function moveReticleAbsolute(x, y) {
 
 var MAPPING_NAME = "com.highfidelity.testing.reticleWithHandRotation";
 var mapping = Controller.newMapping(MAPPING_NAME);
-mapping.from(whichTrigger).peek().constrainToInteger().to(Controller.Actions.ReticleClick);
-mapping.from(whichHand).peek().to(function(pose) {
+mapping.from(Controller.Standard.LT).peek().constrainToInteger().to(Controller.Actions.ReticleClick);
+mapping.from(Controller.Standard.RT).peek().constrainToInteger().to(Controller.Actions.ReticleClick);
+mapping.enable();
+
+
+var lastRotatedLeft = Vec3.UNIT_NEG_Y;
+var lastRotatedRight = Vec3.UNIT_NEG_Y;
+
+Script.update.connect(function(deltaTime) {
+
+    var poseRight = Controller.getPoseValue(Controller.Standard.RightHand);
+    var poseLeft = Controller.getPoseValue(Controller.Standard.LeftHand);
 
     // NOTE: hack for now
     var screenSizeX = 1920;
     var screenSizeY = 1080;
 
-    var rotated = Vec3.multiplyQbyV(pose.rotation, Vec3.UNIT_NEG_Y); // 
+    var rotatedRight = Vec3.multiplyQbyV(poseRight.rotation, Vec3.UNIT_NEG_Y);
+    var rotatedLeft = Vec3.multiplyQbyV(poseLeft.rotation, Vec3.UNIT_NEG_Y);
+
+    // check to see if hand is on base station
+    if (Vec3.equal(rotatedLeft, Vec3.UNIT_NEG_Y)) {
+        rotatedLeft = rotatedRight;
+    }
+    if (Vec3.equal(rotatedRight, Vec3.UNIT_NEG_Y)) {
+        rotatedRight = rotatedLeft;
+    }
+
+    // Keep track of last rotations, to potentially detect resting (but not on
+    // base station hands) in the future
+    lastRotatedLeft = rotatedLeft;
+    lastRotatedRight = rotatedRight;
+
+    // Average the two hand positions, if either hand is on base station, the
+    // other hand becomes the only used hand and the average is the hand in use
+    var rotated = Vec3.multiply(Vec3.sum(rotatedRight,rotatedLeft), 0.5);
+
+    if (DEBUGGING) {
+        Vec3.print("rotatedRight:", rotatedRight);
+        Vec3.print("rotatedLeft:", rotatedLeft);
+        Vec3.print("rotated:", rotated);
+    }
+
     var absolutePitch = rotated.y; // from 1 down to -1 up ... but note: if you rotate down "too far" it starts to go up again...
     var absoluteYaw = -rotated.x; // from -1 left to 1 right
 
@@ -97,7 +130,6 @@ mapping.from(whichHand).peek().to(function(pose) {
         moveReticleAbsolute(x, y);
     }
 });
-mapping.enable();
 
 Script.scriptEnding.connect(function(){
     mapping.disable();
