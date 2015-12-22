@@ -38,7 +38,7 @@ LightSaber = function(spawnPosition) {
                         y: 0,
                         z: -0.1
                     },
-                    relativeRotation: Quat.fromPitchYawRollDegrees(90, 90, 0)
+                    relativeRotation: Quat.fromPitchYawRollDegrees(180, 90, 0)
                 },
                 invertSolidWhileHeld: true
             }
