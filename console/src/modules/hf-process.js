@@ -117,7 +117,7 @@ Process.prototype = extend(Process.prototype, {
             console.warn("Can't start process that is not stopped.");
             return;
         }
-        console.log("Starting " + this.command);
+        console.log("Starting " + this.command + " " + this.commandArgs.join(' '));
 
         var logStdout = 'ignore',
             logStderr = 'ignore';

@@ -47,8 +47,6 @@ $(function() {
                 processCircle.attr('class', 'circle stopping');
                 break;
             case HFProcess.ProcessStates.STARTED:
-
-
                 processCircle.attr('class', 'circle started');
                 break;
         }
@@ -57,26 +55,44 @@ $(function() {
     function onProcessGroupUpdate(event, arg) {
         var sendingGroup = arg;
         var stopButton = $('#manage-server #stop');
+        var goButton = $('#go-server-button');
+        var serverStopped = $('#server-stopped-text');
 
         switch (sendingGroup.state) {
             case HFProcess.ProcessGroupStates.STOPPED:
             case HFProcess.ProcessGroupStates.STOPPING:
                 // if the process group is stopping, the stop button should be disabled
                 toggleManageButton(stopButton, false);
+
+                // disable the go button
+                goButton.addClass('disabled');
+
+                // show the server stopped text
+                serverStopped.show();
+
                 break;
             case HFProcess.ProcessGroupStates.STARTED:
                 // if the process group is going, the stop button should be active
                 toggleManageButton(stopButton, true);
+
+                // enable the go button
+                goButton.removeClass('disabled');
+
+                // hide the server stopped text
+                serverStopped.hide();
+
                 break;
         }
     }
 
-    $('#process-interface .power-on').click(function() {
-        ipcRenderer.send('start-process', { name: 'interface' });
+    $('#last-visited-link').click(function() {
+        ipcRenderer.send('start-interface');
     });
-    $('#process-interface .power-off').click(function() {
-        ipcRenderer.send('stop-process', { name: 'interface' });
-    });
+
+    $('#go-server-button:not(.disabled)').click(function(){
+        ipcRenderer.send('start-interface', { url: 'hifi://localhost' });
+    })
+
     $('#manage-server #restart').click(function() {
         ipcRenderer.send('restart-server', { name: 'home' });
     });

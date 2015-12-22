@@ -28,10 +28,12 @@
                 <p>Search</p>
             </div>
             <div id="nav-last-visited" class="nav-item">
-                <div class="tray-square nav-square">
-                    <img src="images/last-visited.svg" />
-                </div>
-                <p>Last visited</p>
+                <a href="#" id="last-visited-link">
+                    <div class="tray-square nav-square">
+                        <img src="images/last-visited.svg" />
+                    </div>
+                    <p>Last visited</p>
+                </a>
             </div>
         </div>
         <div class="tray-line"></div>
@@ -64,6 +66,18 @@
                 </div>
                 <div id="right-box" class="server-box">
                     <div class="title">
+                        <p id="server-url">hifi://localhost</p>
+                    </div>
+                    <p>
+                        This is your domain. 4096 cubic kilometers of space for you<br>
+                        to build, explore, and share. We’ve started you off with a<br>
+                        home full of goodies to help you learn the ropes. Enjoy!
+                    </p>
+                    <button id="go-server-button">
+                        <img src="images/go-hmd.svg" />
+                    </button>
+                    <div id="server-stopped-text">
+                        <span>Server stopped<br>Click "Restart"</span>
                     </div>
                 </div>
             </div>
