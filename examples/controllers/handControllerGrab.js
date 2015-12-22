@@ -529,7 +529,6 @@ function MyController(hand) {
     };
 
     this.updateParticleBeam = function(position, orientation, color, speed, spread, lifespan) {
-        print('lifespan::' + lifespan);
         Entities.editEntity(this.particleBeam, {
             rotation: orientation,
             position: position,
@@ -538,7 +537,6 @@ function MyController(hand) {
             emitSpeed: speed,
             speedSpread:spread,
             lifespan: lifespan
-
         })
 
     };
