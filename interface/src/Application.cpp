@@ -4201,7 +4201,7 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEngine* scri
     scriptEngine->registerGlobalObject("ScriptDiscoveryService", this->getRunningScriptsWidget());
 }
 
-bool Application::canAcceptURL(const QString& urlString) {
+bool Application::canAcceptURL(const QString& urlString) const {
     QUrl url(urlString);
     if (urlString.startsWith(HIFI_URL_SCHEME)) {
         return true;

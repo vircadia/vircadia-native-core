@@ -10,18 +10,20 @@
 
 #include <mutex>
 
-#include <QtCore/QThread>
-#include <QtScript/QScriptContext>
-#include <QtScript/QScriptEngine>
-
-#include <QtQuick/QQuickItem>
-
-#include <QtWebSockets/QWebSocketServer>
-#include <QtWebSockets/QWebSocket>
-#include <QtWebChannel/QWebChannel>
+#include <QtCore/QCoreApplication>
 #include <QtCore/QJsonDocument>
 #include <QtCore/QJsonObject>
+#include <QtCore/QUrl>
+#include <QtCore/QUrlQuery>
+#include <QtCore/QThread>
+#include <QtQml/QQmlContext>
+#include <QtScript/QScriptContext>
+#include <QtScript/QScriptEngine>
+#include <QtWebChannel/QWebChannel>
+#include <QtWebSockets/QWebSocketServer>
+#include <QtWebSockets/QWebSocket>
 
+#include <AbstractUriHandler.h>
 #include <AddressManager.h>
 #include <DependencyManager.h>
 
@@ -83,16 +85,40 @@ void QmlWebWindowClass::setupServer() {
     }
 }
 
+class UrlFixer : public QObject {
+    Q_OBJECT
+public:
+    Q_INVOKABLE QString fixupUrl(const QString& originalUrl) {
+        static const QString ACCESS_TOKEN_PARAMETER = "access_token";
+        static const QString ALLOWED_HOST = "metaverse.highfidelity.com";
+        QString result = originalUrl;
+        QUrl url(originalUrl);
+        QUrlQuery query(url);
+        if (url.host() == ALLOWED_HOST && query.allQueryItemValues(ACCESS_TOKEN_PARAMETER).empty()) {
+            qDebug() << "Updating URL with auth token";
+            AccountManager& accountManager = AccountManager::getInstance();
+            query.addQueryItem(ACCESS_TOKEN_PARAMETER, accountManager.getAccountInfo().getAccessToken().token);
+            url.setQuery(query.query());
+            result = url.toString();
+        }
+
+        return result;
+    }
+};
+
+static UrlFixer URL_FIXER;
+
 // Method called by Qt scripts to create a new web window in the overlay
 QScriptValue QmlWebWindowClass::constructor(QScriptContext* context, QScriptEngine* engine) {
     QmlWebWindowClass* retVal { nullptr };
     const QString title = context->argument(0).toString();
     QString url = context->argument(1).toString();
-    if (!url.startsWith("http") && !url.startsWith("file://")) {
+    if (!url.startsWith("http") && !url.startsWith("file://") && !url.startsWith("about:")) {
         url = QUrl::fromLocalFile(url).toString();
     }
     const int width = std::max(100, std::min(1280, context->argument(2).toInt32()));;
     const int height = std::max(100, std::min(720, context->argument(3).toInt32()));;
+
 
     // Build the event bridge and wrapper on the main thread
     QMetaObject::invokeMethod(DependencyManager::get<OffscreenUi>().data(), "load", Qt::BlockingQueuedConnection,
@@ -101,6 +127,7 @@ QScriptValue QmlWebWindowClass::constructor(QScriptContext* context, QScriptEngi
             setupServer();
             retVal = new QmlWebWindowClass(object);
             webChannel.registerObject(url.toLower(), retVal);
+            context->setContextProperty("urlFixer", &URL_FIXER);
             retVal->setTitle(title);
             retVal->setURL(url);
             retVal->setSize(width, height);
@@ -119,7 +146,23 @@ QmlWebWindowClass::QmlWebWindowClass(QObject* qmlWindow)
 }
 
 void QmlWebWindowClass::handleNavigation(const QString& url) {
-    DependencyManager::get<AddressManager>()->handleLookupString(url);
+    bool handled = false;
+
+    if (url.contains(HIFI_URL_PATTERN)) {
+        DependencyManager::get<AddressManager>()->handleLookupString(url);
+        handled = true;
+    } else {
+        static auto handler = dynamic_cast<AbstractUriHandler*>(qApp);
+        if (handler) {
+            if (handler->canAcceptURL(url)) {
+                handled = handler->acceptURL(url);
+            }
+        }
+    }
+
+    if (handled) {
+        QMetaObject::invokeMethod(_qmlWindow, "stop", Qt::AutoConnection);
+    }
 }
 
 void QmlWebWindowClass::setVisible(bool visible) {
@@ -202,6 +245,7 @@ QString QmlWebWindowClass::getURL() const {
         QMetaObject::invokeMethod(const_cast<QmlWebWindowClass*>(this), "getURL", Qt::BlockingQueuedConnection, Q_RETURN_ARG(QString, result));
         return result;
     }
+
     return _qmlWindow->property(URL_PROPERTY).toString();
 }
 
