@@ -506,8 +506,8 @@ function MyController(hand) {
                 "y": 0,
                 "z": 0
             },
-            "particleRadius": 0.01,
-            "radiusSpread": 0,
+            "particleRadius":  0.015,
+            "radiusSpread": 0.005,
             // "radiusStart": 0.01,
             // "radiusFinish": 0.01,
             // "colorSpread": {
