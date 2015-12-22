@@ -83,7 +83,7 @@ vec3 evalAmbienGlobalColor(mat4 invViewMat, float shadowAttenuation, vec3 positi
 
     vec4 shading = evalFragShading(fragNormal, -getLightDirection(light), fragEyeDir, specular, gloss);
 
-    color += vec3(diffuse + shading.rgb) * shading.w * shadowAttenuation * getLightColor(light) * getLightIntensity(light);
+    color += vec3(diffuse * shading.w + shading.rgb) * shadowAttenuation * getLightColor(light) * getLightIntensity(light);
 
     return color;
 }
@@ -106,7 +106,7 @@ vec3 evalAmbienSphereGlobalColor(mat4 invViewMat, float shadowAttenuation, vec3 
 
     vec4 shading = evalFragShading(fragNormal, -getLightDirection(light), fragEyeDir, specular, gloss);
 
-    color += vec3(diffuse + shading.rgb) * shading.w * shadowAttenuation * getLightColor(light) * getLightIntensity(light);
+    color += vec3(diffuse * shading.w + shading.rgb) * shadowAttenuation * getLightColor(light) * getLightIntensity(light);
 
     return color;
 }
@@ -129,7 +129,7 @@ vec3 evalSkyboxGlobalColor(mat4 invViewMat, float shadowAttenuation, vec3 positi
 
     vec4 shading = evalFragShading(fragNormal, -getLightDirection(light), fragEyeDir, specular, gloss);
 
-    color += vec3(diffuse + shading.rgb) * shading.w * shadowAttenuation * getLightColor(light) * getLightIntensity(light);
+    color += vec3(diffuse * shading.w + shading.rgb) * shadowAttenuation * getLightColor(light) * getLightIntensity(light);
 
     return color;
 }
