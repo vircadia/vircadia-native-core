@@ -6,8 +6,7 @@
 #  See the accompanying file LICENSE or http:#www.apache.org/licenses/LICENSE-2.0.html
 #
 
-#if (NOT WIN32)
-if (FALSE)
+if (NOT WIN32)
 
     set(TARGET_NAME oculusLegacy)
     setup_hifi_plugin()
