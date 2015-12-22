@@ -120,8 +120,6 @@ app.on('ready', function() {
     var logPath = path.join(app.getAppPath(), 'logs');
 
     if (interfacePath && dsPath && acPath) {
-        var pInterface = new Process('interface', interfacePath);
-
         var homeServer = new ProcessGroup('home', [
             new Process('domain-server', dsPath),
             new Process('ac-monitor', acPath, ['-n6', '--log-directory', logPath])
@@ -129,12 +127,10 @@ app.on('ready', function() {
 
         // make sure we stop child processes on app quit
         app.on('quit', function(){
-            pInterface.stop();
             homeServer.stop();
         });
 
         var processes = {
-            interface: pInterface,
             home: homeServer
         };
 
@@ -152,19 +148,22 @@ app.on('ready', function() {
         }
 
         // handle process updates
-        // pInterface.on('state-update', sendProcessUpdate);
         homeServer.on('process-update', sendProcessUpdate);
         homeServer.on('state-update', sendProcessGroupUpdate);
 
         // start the home server
         homeServer.start();
 
-        // ipcMain.on('start-process', function(event, arg) {
-        //     pInterface.start();
-        // });
-        // ipcMain.on('stop-process', function(event, arg) {
-        //     pInterface.stop();
-        // });
+        ipcMain.on('start-interface', function(event, arg) {
+            // create a new Interface instance - Interface makes sure only one is running at a time
+            var args = [];
+            if (args.url) {
+                args << "--url" << args.url
+            }
+
+            var pInterface = new Process('interface', interfacePath);
+            pInterface.start();
+        });
 
         ipcMain.on('restart-server', function(event, arg) {
             homeServer.restart();

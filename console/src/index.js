@@ -71,11 +71,8 @@ $(function() {
         }
     }
 
-    $('#process-interface .power-on').click(function() {
-        ipcRenderer.send('start-process', { name: 'interface' });
-    });
-    $('#process-interface .power-off').click(function() {
-        ipcRenderer.send('stop-process', { name: 'interface' });
+    $('#last-visited-link').click(function() {
+        ipcRenderer.send('start-interface');
     });
     $('#manage-server #restart').click(function() {
         ipcRenderer.send('restart-server', { name: 'home' });
