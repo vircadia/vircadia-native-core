@@ -16,13 +16,6 @@
 #if defined(NSIGHT_FOUND)
 #include "nvToolsExt.h"
 
-ProfileRange::ProfileRange(const char *name) {
-    nvtxRangePush(name);
-}
-ProfileRange::~ProfileRange() {
-    nvtxRangePop();
-}
-
 ProfileRangeBatch::ProfileRangeBatch(gpu::Batch& batch, const char *name) : _batch(batch) {
     _batch.pushProfileRange(name);
 }
@@ -316,6 +309,12 @@ void Batch::blit(const FramebufferPointer& src, const Vec4i& srcViewport,
     _params.push_back(dstViewport.y);
     _params.push_back(dstViewport.z);
     _params.push_back(dstViewport.w);
+}
+
+void Batch::generateTextureMips(const TexturePointer& texture) {
+    ADD_COMMAND(generateTextureMips);
+
+    _params.push_back(_textures.cache(texture));
 }
 
 void Batch::beginQuery(const QueryPointer& query) {

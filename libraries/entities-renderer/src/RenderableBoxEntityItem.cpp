@@ -66,5 +66,5 @@ void RenderableBoxEntityItem::render(RenderArgs* args) {
         DependencyManager::get<DeferredLightingEffect>()->renderSolidCubeInstance(batch, getTransformToCenter(), cubeColor);
     }
     static const auto triCount = DependencyManager::get<GeometryCache>()->getCubeTriangleCount();
-    args->_details._trianglesRendered += triCount;
+    args->_details._trianglesRendered += (int)triCount;
 }

@@ -196,6 +196,8 @@ public:
     Q_INVOKABLE void useFullAvatarURL(const QUrl& fullAvatarURL, const QString& modelName = QString());
     Q_INVOKABLE const QUrl& getFullAvatarURLFromPreferences() const { return _fullAvatarURLFromPreferences; }
     Q_INVOKABLE const QString& getFullAvatarModelName() const { return _fullAvatarModelName; }
+    void resetFullAvatarURL();
+
 
     virtual void setAttachmentData(const QVector<AttachmentData>& attachmentData) override;
 
@@ -247,7 +249,7 @@ public slots:
 
     Q_INVOKABLE void updateMotionBehaviorFromMenu();
 
-    virtual void rebuildSkeletonBody() override;
+    virtual void rebuildCollisionShape() override;
 
     Q_INVOKABLE QUrl getAnimGraphUrl() const { return _animGraphUrl; }
 

@@ -13,6 +13,19 @@
 #include "DrawTask.h"
 using namespace render;
 
+RenderContext::RenderContext(ItemsConfig items, Tone tone, int drawStatus, bool drawHitEffect, glm::vec4 deferredDebugSize, int deferredDebugMode)
+        : _args{ nullptr }, _items{ items }, _tone{ tone },
+        _drawStatus{ drawStatus }, _drawHitEffect{ drawHitEffect },
+        _deferredDebugSize{ deferredDebugSize }, _deferredDebugMode{ deferredDebugMode } {};
+
+void RenderContext::setOptions(bool occlusion, bool fxaa, bool showOwned) {
+    _occlusionStatus = occlusion;
+    _fxaaStatus = fxaa;
+
+    if (showOwned) {
+        _drawStatus |= render::showNetworkStatusFlag;
+    }
+};
 
 Engine::Engine() :
     _sceneContext(std::make_shared<SceneContext>()),

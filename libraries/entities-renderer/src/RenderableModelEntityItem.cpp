@@ -12,12 +12,14 @@
 #include <glm/gtx/quaternion.hpp>
 
 #include <QJsonDocument>
+#include <QtCore/QThread>
 
 #include <AbstractViewStateInterface.h>
 #include <DeferredLightingEffect.h>
 #include <Model.h>
 #include <PerfStat.h>
 #include <render/Scene.h>
+#include <DependencyManager.h>
 
 #include "EntityTreeRenderer.h"
 #include "EntitiesRendererLogging.h"
@@ -41,6 +43,32 @@ RenderableModelEntityItem::~RenderableModelEntityItem() {
     if (_myRenderer && _model) {
         _myRenderer->releaseModel(_model);
         _model = NULL;
+    }
+}
+
+void RenderableModelEntityItem::setModelURL(const QString& url) {
+    auto& currentURL = getParsedModelURL();
+    ModelEntityItem::setModelURL(url);
+
+    if (currentURL != getParsedModelURL() || !_model) {
+        EntityTreePointer tree = getTree();
+        if (tree) {
+            QMetaObject::invokeMethod(tree.get(), "callLoader", Qt::QueuedConnection, Q_ARG(EntityItemID, getID()));
+        }
+    }
+}
+
+void RenderableModelEntityItem::loader() {
+    _needsModelReload = true;
+    EntityTreeRenderer* renderer = DependencyManager::get<EntityTreeRenderer>().data();
+    assert(renderer);
+    if (!_model || _needsModelReload) {
+        PerformanceTimer perfTimer("getModel");
+        getModel(renderer);
+    }
+    if (_model) {
+        _model->setURL(getParsedModelURL());
+        _model->setCollisionModelURL(QUrl(getCompoundShapeURL()));
     }
 }
 
@@ -223,7 +251,7 @@ void RenderableModelEntityItem::render(RenderArgs* args) {
             // check if the URL has changed
             auto& currentURL = getParsedModelURL();
             if (currentURL != _model->getURL()) {
-                qDebug().noquote() << "Updating model URL: " << currentURL.toDisplayString();
+                qCDebug(entitiesrenderer).noquote() << "Updating model URL: " << currentURL.toDisplayString();
                 _model->setURL(currentURL);
             }
 
@@ -318,7 +346,7 @@ void RenderableModelEntityItem::render(RenderArgs* args) {
 
 Model* RenderableModelEntityItem::getModel(EntityTreeRenderer* renderer) {
     Model* result = NULL;
-    
+
     if (!renderer) {
         return result;
     }
@@ -340,7 +368,8 @@ Model* RenderableModelEntityItem::getModel(EntityTreeRenderer* renderer) {
     
         // if we have a previously allocated model, but its URL doesn't match
         // then we need to let our renderer update our model for us.
-        if (_model && QUrl(getModelURL()) != _model->getURL()) {
+        if (_model && (QUrl(getModelURL()) != _model->getURL() ||
+                       QUrl(getCompoundShapeURL()) != _model->getCollisionURL())) {
             result = _model = _myRenderer->updateModel(_model, getModelURL(), getCompoundShapeURL());
             _needsInitialSimulation = true;
         } else if (!_model) { // if we don't yet have a model, then we want our renderer to allocate one
@@ -356,7 +385,7 @@ Model* RenderableModelEntityItem::getModel(EntityTreeRenderer* renderer) {
             _needsInitialSimulation = true;
         }
     }
-    
+
     return result;
 }
 
@@ -369,14 +398,14 @@ void RenderableModelEntityItem::update(const quint64& now) {
         EntityItemProperties properties;
         auto extents = _model->getMeshExtents();
         properties.setDimensions(extents.maximum - extents.minimum);
-        
+
         qCDebug(entitiesrenderer) << "Autoresizing:" << (!getName().isEmpty() ? getName() : getModelURL());
         QMetaObject::invokeMethod(DependencyManager::get<EntityScriptingInterface>().data(), "editEntity",
                                   Qt::QueuedConnection,
                                   Q_ARG(QUuid, getEntityItemID()),
                                   Q_ARG(EntityItemProperties, properties));
     }
-    
+
     ModelEntityItem::update(now);
 }
 
@@ -398,43 +427,53 @@ bool RenderableModelEntityItem::findDetailedRayIntersection(const glm::vec3& ori
     //                           << precisionPicking;
 
     QString extraInfo;
-    return _model->findRayIntersectionAgainstSubMeshes(origin, direction, distance, 
+    return _model->findRayIntersectionAgainstSubMeshes(origin, direction, distance,
                                                        face, surfaceNormal, extraInfo, precisionPicking);
 }
 
 void RenderableModelEntityItem::setCompoundShapeURL(const QString& url) {
+    auto currentCompoundShapeURL = getCompoundShapeURL();
     ModelEntityItem::setCompoundShapeURL(url);
-    if (_model) {
-        _model->setCollisionModelURL(QUrl(url));
+
+    if (getCompoundShapeURL() != currentCompoundShapeURL || !_model) {
+        EntityTreePointer tree = getTree();
+        if (tree) {
+            QMetaObject::invokeMethod(tree.get(), "callLoader", Qt::QueuedConnection, Q_ARG(EntityItemID, getID()));
+        }
     }
 }
 
 bool RenderableModelEntityItem::isReadyToComputeShape() {
     ShapeType type = getShapeType();
+
     if (type == SHAPE_TYPE_COMPOUND) {
-
-        if (!_model) {
-            return false; // hmm...
-        }
-
-        if (_needsInitialSimulation) {
-            // the _model's offset will be wrong until _needsInitialSimulation is false
+        if (!_model || _model->getCollisionURL().isEmpty()) {
+            EntityTreePointer tree = getTree();
+            if (tree) {
+                QMetaObject::invokeMethod(tree.get(), "callLoader", Qt::QueuedConnection, Q_ARG(EntityItemID, getID()));
+            }
             return false;
         }
 
-        assert(!_model->getCollisionURL().isEmpty());
-    
         if (_model->getURL().isEmpty()) {
             // we need a render geometry with a scale to proceed, so give up.
             return false;
         }
-    
+
         const QSharedPointer<NetworkGeometry> collisionNetworkGeometry = _model->getCollisionGeometry();
         const QSharedPointer<NetworkGeometry> renderNetworkGeometry = _model->getGeometry();
-    
+
         if ((collisionNetworkGeometry && collisionNetworkGeometry->isLoaded()) &&
             (renderNetworkGeometry && renderNetworkGeometry->isLoaded())) {
             // we have both URLs AND both geometries AND they are both fully loaded.
+
+            if (_needsInitialSimulation) {
+                // the _model's offset will be wrong until _needsInitialSimulation is false
+                PerformanceTimer perfTimer("_model->simulate");
+                _model->simulate(0.0f);
+                _needsInitialSimulation = false;
+            }
+
             return true;
         }
 
@@ -583,4 +622,12 @@ glm::vec3 RenderableModelEntityItem::getAbsoluteJointTranslationInObjectFrame(in
         }
     }
     return glm::vec3(0.0f);
+}
+
+void RenderableModelEntityItem::locationChanged() {
+    EntityItem::locationChanged();
+    if (_model && _model->isActive()) {
+        _model->setRotation(getRotation());
+        _model->setTranslation(getPosition());
+    }
 }

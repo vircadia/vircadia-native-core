@@ -99,7 +99,7 @@ bool Texture::Storage::assignMipData(uint16 level, const Element& format, Size s
     // The bytes assigned here are supposed to contain all the faces bytes of the mip.
     // For tex1D, 2D, 3D there is only one face
     // For Cube, we expect the 6 faces in the order X+, X-, Y+, Y-, Z+, Z-
-    int sizePerFace = size / mip.size();
+    auto sizePerFace = size / mip.size();
     auto faceBytes = bytes;
     Size allocated = 0;
     for (auto& face : mip) {

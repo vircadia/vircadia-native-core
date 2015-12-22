@@ -74,11 +74,10 @@ public:
             _color[GREEN_INDEX] = value.green;
             _color[BLUE_INDEX] = value.blue;
     }
-    
-    // model related properties
-    void setModelURL(const QString& url) { _modelURL = url; _parsedModelURL = QUrl(url); }
-    virtual void setCompoundShapeURL(const QString& url);
 
+    // model related properties
+    virtual void setModelURL(const QString& url) { _modelURL = url; _parsedModelURL = QUrl(url); }
+    virtual void setCompoundShapeURL(const QString& url);
 
     // Animation related items...
     const AnimationPropertyGroup& getAnimationProperties() const { return _animationProperties; }
@@ -105,7 +104,7 @@ public:
     
     void mapJoints(const QStringList& modelJointNames);
     void getAnimationFrame(bool& newFrame, QVector<glm::quat>& rotationsResult, QVector<glm::vec3>& translationsResult);
-    bool jointsMapped() const { return _jointMappingCompleted; }
+    bool jointsMapped() const { return _jointMappingURL == getAnimationURL() && _jointMappingCompleted; }
     
     bool getAnimationIsPlaying() const { return _animationLoop.getRunning(); }
     float getAnimationCurrentFrame() const { return _animationLoop.getCurrentFrame(); }
@@ -147,6 +146,7 @@ protected:
     // used on client side
     bool _jointMappingCompleted;
     QVector<int> _jointMapping;
+    QString _jointMappingURL;
 
     static AnimationPointer getAnimation(const QString& url);
     static QMap<QString, AnimationPointer> _loadedAnimations;

@@ -38,6 +38,7 @@
 #include <SimpleMovingAverage.h>
 #include <StDev.h>
 #include <ViewFrustum.h>
+#include <AbstractUriHandler.h>
 
 #include "avatar/AvatarUpdate.h"
 #include "avatar/MyAvatar.h"
@@ -88,7 +89,7 @@ class Application;
 #endif
 #define qApp (static_cast<Application*>(QCoreApplication::instance()))
 
-class Application : public QApplication, public AbstractViewStateInterface, public AbstractScriptingServicesInterface {
+class Application : public QApplication, public AbstractViewStateInterface, public AbstractScriptingServicesInterface, public AbstractUriHandler {
     Q_OBJECT
     
     // TODO? Get rid of those
@@ -136,7 +137,7 @@ public:
     const ViewFrustum* getDisplayViewFrustum() const;
     ViewFrustum* getShadowViewFrustum() { return &_shadowViewFrustum; }
     const OctreePacketProcessor& getOctreePacketProcessor() const { return _octreeProcessor; }
-    EntityTreeRenderer* getEntities() { return &_entities; }
+    EntityTreeRenderer* getEntities() { return DependencyManager::get<EntityTreeRenderer>().data(); }
     QUndoStack* getUndoStack() { return &_undoStack; }
     MainWindow* getWindow() { return _window; }
     EntityTreePointer getEntityClipboard() { return _entityClipboard; }
@@ -145,7 +146,6 @@ public:
 
     ivec2 getMouse() const;
     ivec2 getTrueMouse() const;
-    bool getLastMouseMoveWasSimulated() const { return _lastMouseMoveWasSimulated; }
 
     FaceTracker* getActiveFaceTracker();
     FaceTracker* getSelectedFaceTracker();
@@ -220,8 +220,8 @@ public:
     QString getScriptsLocation();
     void setScriptsLocation(const QString& scriptsLocation);
 
-    bool canAcceptURL(const QString& url);
-    bool acceptURL(const QString& url, bool defaultUpload = false);
+    virtual bool canAcceptURL(const QString& url) const override;
+    virtual bool acceptURL(const QString& url, bool defaultUpload = false) override;
 
     void setMaxOctreePacketsPerSecond(int maxOctreePPS);
     int getMaxOctreePacketsPerSecond();
@@ -361,7 +361,6 @@ private:
     void update(float deltaTime);
 
     void setPalmData(Hand* hand, const controller::Pose& pose, float deltaTime, HandData::Hand whichHand, float triggerValue);
-    void emulateMouse(Hand* hand, float click, float shift, HandData::Hand whichHand);
 
     // Various helper functions called during update()
     void updateLOD();
@@ -444,7 +443,6 @@ private:
     PhysicalEntitySimulation _entitySimulation;
     PhysicsEnginePointer _physicsEngine;
 
-    EntityTreeRenderer _entities;
     EntityTreeRenderer _entityClipboardRenderer;
     EntityTreePointer _entityClipboard;
 
@@ -476,8 +474,6 @@ private:
     float _raiseMirror;
 
     Environment _environment;
-
-    bool _lastMouseMoveWasSimulated;
 
     QSet<int> _keysPressed;
 
@@ -538,14 +534,6 @@ private:
     ApplicationCompositor _compositor;
     OverlayConductor _overlayConductor;
 
-
-    // FIXME - Hand Controller to mouse emulation helpers. This is crufty and should be moved
-    // into the input plugins or something.
-    int _oldHandMouseX[(int)HandData::NUMBER_OF_HANDS];
-    int _oldHandMouseY[(int)HandData::NUMBER_OF_HANDS];
-    bool _oldHandLeftClick[(int)HandData::NUMBER_OF_HANDS];
-    bool _oldHandRightClick[(int)HandData::NUMBER_OF_HANDS];
-
     DialogsManagerScriptingInterface* _dialogsManagerScriptingInterface = new DialogsManagerScriptingInterface();
 
     EntityItemID _keyboardFocusedItem;
@@ -560,6 +548,8 @@ private:
     bool _inPaint = false;
     bool _isGLInitialized { false };
     bool _physicsEnabled { false };
+
+    bool _reticleClickPressed { false };
 };
 
 #endif // hifi_Application_h

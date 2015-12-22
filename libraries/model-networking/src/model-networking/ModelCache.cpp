@@ -308,10 +308,9 @@ static NetworkMaterial* buildNetworkMaterial(const FBXMaterial& material, const 
         material._material->setTextureMap(model::MaterialKey::GLOSS_MAP, glossMap);
     }
     if (!material.emissiveTexture.filename.isEmpty()) {
-        networkMaterial->emissiveTexture = textureCache->getTexture(textureBaseUrl.resolved(QUrl(material.emissiveTexture.filename)), EMISSIVE_TEXTURE, material.emissiveTexture.content);
+        networkMaterial->emissiveTexture = textureCache->getTexture(textureBaseUrl.resolved(QUrl(material.emissiveTexture.filename)), LIGHTMAP_TEXTURE, material.emissiveTexture.content);
         networkMaterial->emissiveTextureName = material.emissiveTexture.name;
 
-        //checkForTexcoordLightmap = true;
 
         auto lightmapMap = model::TextureMapPointer(new model::TextureMap());
         lightmapMap->setTextureSource(networkMaterial->emissiveTexture->_textureSource);
@@ -335,7 +334,7 @@ void NetworkGeometry::modelParseSuccess(FBXGeometry* geometry) {
         _meshes.emplace_back(buildNetworkMesh(mesh, _textureBaseUrl));
     }
 
-    QHash<QString, int> fbxMatIDToMatID;
+    QHash<QString, size_t> fbxMatIDToMatID;
     foreach(const FBXMaterial& material, _geometry->materials) {
         fbxMatIDToMatID[material.materialID] = _materials.size();
         _materials.emplace_back(buildNetworkMaterial(material, _textureBaseUrl));
@@ -349,7 +348,7 @@ void NetworkGeometry::modelParseSuccess(FBXGeometry* geometry) {
             NetworkShape* networkShape = new NetworkShape();
             networkShape->_meshID = meshID;
             networkShape->_partID = partID;
-            networkShape->_materialID = fbxMatIDToMatID[part.materialID];
+            networkShape->_materialID = (int)fbxMatIDToMatID[part.materialID];
             _shapes.emplace_back(networkShape);
             partID++;
         }

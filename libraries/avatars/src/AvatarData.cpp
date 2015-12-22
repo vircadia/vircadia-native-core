@@ -90,7 +90,7 @@ const QUrl& AvatarData::defaultFullAvatarModelUrl() {
 // There are a number of possible strategies for this set of tools through endRender, below.
 void AvatarData::nextAttitude(glm::vec3 position, glm::quat orientation) {
     avatarLock.lock();
-    Transform trans;
+    Transform trans = getTransform();
     trans.setTranslation(position);
     trans.setRotation(orientation);
     SpatiallyNestable::setTransform(trans);
@@ -129,13 +129,10 @@ float AvatarData::getTargetScale() const {
 }
 
 void AvatarData::setTargetScale(float targetScale) {
-    _targetScale = std::max(MIN_AVATAR_SCALE, std::min(MAX_AVATAR_SCALE, targetScale));
+    _targetScale = glm::clamp(targetScale, MIN_AVATAR_SCALE, MAX_AVATAR_SCALE);
 }
 
-void AvatarData::setClampedTargetScale(float targetScale) {
-
-    targetScale =  glm::clamp(targetScale, MIN_AVATAR_SCALE, MAX_AVATAR_SCALE);
-
+void AvatarData::setTargetScaleVerbose(float targetScale) {
     setTargetScale(targetScale);
     qCDebug(avatars) << "Changed scale to " << _targetScale;
 }

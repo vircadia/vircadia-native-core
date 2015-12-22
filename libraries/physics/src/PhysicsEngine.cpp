@@ -497,3 +497,11 @@ void PhysicsEngine::removeAction(const QUuid actionID) {
         _objectActions.remove(actionID);
     }
 }
+
+void PhysicsEngine::forEachAction(std::function<void(EntityActionPointer)> actor) {
+    QHashIterator<QUuid, EntityActionPointer> iter(_objectActions);
+    while (iter.hasNext()) {
+        iter.next();
+        actor(iter.value());
+    }
+}

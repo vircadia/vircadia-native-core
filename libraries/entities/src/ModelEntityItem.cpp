@@ -13,6 +13,7 @@
 
 #include <ByteCountCoding.h>
 #include <GLMHelpers.h>
+#include <glm/gtx/transform.hpp>
 
 #include "EntitiesLogging.h"
 #include "EntityItemProperties.h"
@@ -194,7 +195,7 @@ AnimationPointer ModelEntityItem::getAnimation(const QString& url) {
 
 void ModelEntityItem::mapJoints(const QStringList& modelJointNames) {
     // if we don't have animation, or we're already joint mapped then bail early
-    if (!hasAnimation() || _jointMappingCompleted) {
+    if (!hasAnimation() || jointsMapped()) {
         return;
     }
 
@@ -208,6 +209,7 @@ void ModelEntityItem::mapJoints(const QStringList& modelJointNames) {
                 _jointMapping[i] = animationJointNames.indexOf(modelJointNames[i]);
             }
             _jointMappingCompleted = true;
+            _jointMappingURL = _animationProperties.getURL();
         }
     }
 }
@@ -242,13 +244,22 @@ void ModelEntityItem::getAnimationFrame(bool& newFrame,
 
                 _lastKnownFrameDataRotations.resize(_jointMapping.size());
                 _lastKnownFrameDataTranslations.resize(_jointMapping.size());
+
                 for (int j = 0; j < _jointMapping.size(); j++) {
                     int index = _jointMapping[j];
-                    if (index != -1 && index < rotations.size()) {
-                        _lastKnownFrameDataRotations[j] = fbxJoints[index].preRotation * rotations[index];
-                    }
-                    if (index != -1 && index < translations.size()) {
-                        _lastKnownFrameDataTranslations[j] = translations[index];
+                    if (index >= 0) {
+                        glm::mat4 translationMat;
+                        if (index < translations.size()) {
+                            translationMat = glm::translate(translations[index]);
+                        }
+                        glm::mat4 rotationMat;
+                        if (index < rotations.size()) {
+                            rotationMat = glm::mat4_cast(rotations[index]);
+                        }
+                        glm::mat4 finalMat = (translationMat * fbxJoints[index].preTransform *
+                                              rotationMat * fbxJoints[index].postTransform);
+                        _lastKnownFrameDataTranslations[j] = extractTranslation(finalMat);
+                        _lastKnownFrameDataRotations[j] = glmExtractRotation(finalMat);
                     }
                 }
             }

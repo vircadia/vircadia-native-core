@@ -1,25 +1,24 @@
 <@include gpu/Config.slh@>
 <$VERSION_HEADER$>
 //  Generated on <$_SCRIBE_DATE$>
+//
+//  debug_deferred_buffer.slf
 //  fragment shader
 //
+//  Created by Clement on 12/3
 //  Copyright 2015 High Fidelity, Inc.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-uniform sampler2D colorMap;
+<@include DeferredBuffer.slh@>
 
-in vec4 _color;
-in vec2 _texCoord0;
-
+in vec2 uv;
 out vec4 outFragColor;
 
+//SOURCE_PLACEHOLDER
+
 void main(void) {
-    vec4 color = texture(colorMap, _texCoord0);
-    if (color.a < 0.1) {
-        discard;
-    }
-    outFragColor = color * _color;
+    outFragColor = getFragmentColor();
 }

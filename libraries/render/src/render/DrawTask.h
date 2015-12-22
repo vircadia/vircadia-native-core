@@ -84,6 +84,17 @@ public:
     const Varying getInput() const { return _concept->getInput(); }
     const Varying getOutput() const { return _concept->getOutput(); }
 
+    template <class T> T& edit() {
+        auto theConcept = std::dynamic_pointer_cast<typename T::JobModel>(_concept);
+        assert(theConcept);
+        return theConcept->_data;
+    }
+    template <class T> const T& get() const {
+        auto theConcept = std::dynamic_pointer_cast<typename T::JobModel>(_concept);
+        assert(theConcept);
+        return theConcept->_data;
+    }
+
     void run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext) {
         PerformanceTimer perfTimer(getName().c_str());
         PROFILE_RANGE(getName().c_str());

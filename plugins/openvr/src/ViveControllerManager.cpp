@@ -104,8 +104,8 @@ void ViveControllerManager::activate() {
         //    sizeof(vr::RenderModel_Vertex_t),
         //    gpu::Element(gpu::VEC2, gpu::FLOAT, gpu::RAW)));
         
-        gpu::Element formatGPU = gpu::Element(gpu::VEC4, gpu::UINT8, gpu::RGBA);
-        gpu::Element formatMip = gpu::Element(gpu::VEC4, gpu::UINT8, gpu::RGBA);
+        gpu::Element formatGPU = gpu::Element(gpu::VEC4, gpu::NUINT8, gpu::RGBA);
+        gpu::Element formatMip = gpu::Element(gpu::VEC4, gpu::NUINT8, gpu::RGBA);
         _texture = gpu::TexturePointer(
             gpu::Texture::create2D(formatGPU, model.diffuseTexture.unWidth, model.diffuseTexture.unHeight,
             gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_MIP_LINEAR)));

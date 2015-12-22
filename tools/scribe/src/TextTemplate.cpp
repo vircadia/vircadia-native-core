@@ -730,7 +730,8 @@ int TextTemplate::evalBlockGeneration(std::ostream& dst, const BlockPointer& blo
                 BlockPointer funcBlock = _config->_funcs.findFunc(block->command.arguments.front().c_str());
                 if (funcBlock) {
                     // before diving in the func tree, let's modify the vars with the local defs:
-                    int nbParams = std::min(block->command.arguments.size(), funcBlock->command.arguments.size());
+                    int nbParams = (int)std::min(block->command.arguments.size(),
+                                                 funcBlock->command.arguments.size());
                     std::vector< String > paramCache;
                     paramCache.push_back("");
                     String val;
@@ -839,7 +840,7 @@ int TextTemplate::evalBlockGeneration(std::ostream& dst, const BlockPointer& blo
                 String val;
                 for (unsigned int t = 1; t < block->command.arguments.size(); t++) {
                     // detect if a param is a var
-                    int len = block->command.arguments[t].length();
+                    auto len = block->command.arguments[t].length();
                     if ((block->command.arguments[t][0] == Tag::VAR)
                         && (block->command.arguments[t][len - 1] == Tag::VAR)) {
                         String var = block->command.arguments[t].substr(1, len - 2);

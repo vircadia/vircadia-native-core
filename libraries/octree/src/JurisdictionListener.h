@@ -32,7 +32,7 @@ public:
 
     JurisdictionListener(NodeType_t type = NodeType::EntityServer);
     
-    virtual bool process();
+    virtual bool process() override;
 
     NodeToJurisdictionMap* getJurisdictions() { return &_jurisdictions; }
 

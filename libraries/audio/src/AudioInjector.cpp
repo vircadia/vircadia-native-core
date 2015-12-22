@@ -289,7 +289,6 @@ uint64_t AudioInjector::injectNextFrame() {
             _currentSendOffset = 0;
         } else {
             // we weren't to loop, say that we're done now
-            qDebug() << "AudioInjector::injectNextFrame has sent all data and was not asked to loop - calling finish().";
             finish();
             return NEXT_FRAME_DELTA_ERROR_OR_FINISHED;
         }
