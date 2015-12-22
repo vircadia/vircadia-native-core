@@ -73,7 +73,7 @@
             var forwardVec = Quat.getFront(Quat.multiply(props.rotation, Quat.fromPitchYawRollDegrees(-90, 0, 0)));
             forwardVec = Vec3.normalize(forwardVec);
             var forwardQuat = orientationOf(forwardVec);
-            var position = Vec3.sum(props.position, Vec3.multiply(Quat.getFront(props.rotation), 0.2));
+            var position = Vec3.sum(props.position, Vec3.multiply(Quat.getFront(props.rotation), 0.04));
             var localPoint = Vec3.subtract(position, this.trailBasePosition);
             if (this.points.length >= 1 && Vec3.distance(localPoint, this.points[this.points.length - 1]) < MIN_POINT_DISTANCE) {
                 //Need a minimum distance to avoid binormal NANs
@@ -114,6 +114,9 @@
         },
 
         releaseGrab: function() {
+            if(!this.trailEraseInterval) {
+                return;
+            }
             Script.setTimeout(function() {
               Script.clearInterval(_this.trailEraseInterval);
               _this.trailEraseInterval = null;  
