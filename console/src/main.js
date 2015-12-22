@@ -42,6 +42,8 @@ var interfacePath = null;
 var dsPath = null;
 var acPath = null;
 
+var debug = argv.debug;
+
 if (argv.localDebugBuilds || argv.localReleaseBuilds) {
     interfacePath = pathFinder.discoveredPath("Interface", argv.localReleaseBuilds);
     dsPath = pathFinder.discoveredPath("domain-server", argv.localReleaseBuilds);
@@ -87,6 +89,13 @@ app.on('ready', function() {
         icon: APP_ICON,
         resizable: false
     });
+
+    // In debug mode, keep the menu bar, but auto-hide it so the UI still looks the same.
+    if (debug) {
+        mainWindow.setAutoHideMenuBar(true);
+    } else {
+        mainWindow.setMenu(null);
+    }
 
     // and load the index.html of the app.
     mainWindow.loadURL('file://' + __dirname + '/index.html');
