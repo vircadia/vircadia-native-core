@@ -23,7 +23,7 @@ body {
     letter-spacing: 0.075rem;
 }
 
-input, textarea, select, a {
+input, textarea, select, a, button {
     outline: none;
 }
 
@@ -203,11 +203,17 @@ header {
                 margin-left: @title-margin-left;
 
                 #go-server-button {
+                    box-shadow: 0px 2px 3px rgba(0, 0, 0, 0.5);
                     cursor: pointer;
                     border: none;
                     margin-top: 10px;
-                    background-color: #08A6E0;
+                    background-color: #129EC0;
                     width: 150px;
+
+                    &.disabled {
+                        cursor: default;
+                        background-color: #86888F;
+                    }
 
                     img {
                         padding: 10px 0px;

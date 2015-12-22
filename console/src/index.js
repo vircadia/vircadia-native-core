@@ -47,8 +47,6 @@ $(function() {
                 processCircle.attr('class', 'circle stopping');
                 break;
             case HFProcess.ProcessStates.STARTED:
-
-
                 processCircle.attr('class', 'circle started');
                 break;
         }
@@ -57,16 +55,25 @@ $(function() {
     function onProcessGroupUpdate(event, arg) {
         var sendingGroup = arg;
         var stopButton = $('#manage-server #stop');
+        var goButton = $('#go-server-button');
 
         switch (sendingGroup.state) {
             case HFProcess.ProcessGroupStates.STOPPED:
             case HFProcess.ProcessGroupStates.STOPPING:
                 // if the process group is stopping, the stop button should be disabled
                 toggleManageButton(stopButton, false);
+
+                // disable the go button
+                goButton.addClass('disabled');
+
                 break;
             case HFProcess.ProcessGroupStates.STARTED:
                 // if the process group is going, the stop button should be active
                 toggleManageButton(stopButton, true);
+
+                // enable the go button
+                goButton.removeClass('disabled');
+
                 break;
         }
     }
@@ -74,8 +81,8 @@ $(function() {
     $('#last-visited-link').click(function() {
         ipcRenderer.send('start-interface');
     });
-    
-    $('#go-server-button').click(function(){
+
+    $('#go-server-button:not(.disabled)').click(function(){
         ipcRenderer.send('start-interface', { url: 'hifi://localhost' });
     })
 
