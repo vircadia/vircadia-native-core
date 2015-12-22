@@ -218,6 +218,7 @@ function getSpatialOffsetPosition(hand, spatialKey) {
 }
 
 var yFlip = Quat.angleAxis(180, Vec3.UNIT_Y);
+
 function getSpatialOffsetRotation(hand, spatialKey) {
     var rotation = Quat.IDENTITY;
 
@@ -261,9 +262,9 @@ function MyController(hand) {
     this.triggerValue = 0; // rolling average of trigger value
     this.rawTriggerValue = 0;
     this.rawBumperValue = 0;
-    
+
     this.overlayLine = null;
-    
+
     this.ignoreIK = false;
     this.offsetPosition = Vec3.ZERO;
     this.offsetRotation = Quat.IDENTITY;
@@ -819,8 +820,16 @@ function MyController(hand) {
         // mix in head motion
         if (MOVE_WITH_HEAD) {
             var objDistance = Vec3.length(objectToAvatar);
-            var before = Vec3.multiplyQbyV(this.currentCameraOrientation, { x: 0.0, y: 0.0, z: objDistance });
-            var after = Vec3.multiplyQbyV(Camera.orientation, { x: 0.0, y: 0.0, z: objDistance });
+            var before = Vec3.multiplyQbyV(this.currentCameraOrientation, {
+                x: 0.0,
+                y: 0.0,
+                z: objDistance
+            });
+            var after = Vec3.multiplyQbyV(Camera.orientation, {
+                x: 0.0,
+                y: 0.0,
+                z: objDistance
+            });
             var change = Vec3.subtract(before, after);
             this.currentCameraOrientation = Camera.orientation;
             this.currentObjectPosition = Vec3.sum(this.currentObjectPosition, change);
@@ -861,20 +870,25 @@ function MyController(hand) {
         var handPosition = this.getHandPosition();
 
         var grabbableData = getEntityCustomData(GRABBABLE_DATA_KEY, this.grabbedEntity, DEFAULT_GRABBABLE_DATA);
-
+        var objectRotation = grabbedProperties.rotation;
+        var currentObjectPosition = grabbedProperties.position;
+        var offset = Vec3.subtract(currentObjectPosition, handPosition);
         if (this.state != STATE_NEAR_GRABBING && grabbableData.spatialKey) {
             // if an object is "equipped" and has a spatialKey, use it.
             this.ignoreIK = grabbableData.spatialKey.ignoreIK ? grabbableData.spatialKey.ignoreIK : false;
-            this.offsetPosition = getSpatialOffsetPosition(this.hand, grabbableData.spatialKey);
-            this.offsetRotation = getSpatialOffsetRotation(this.hand, grabbableData.spatialKey);
+            if (grabbableData.spatialKey.relativePosition) {
+                this.offsetPosition = getSpatialOffsetPosition(this.hand, grabbableData.spatialKey);
+            } else {
+                this.offsetPosition = Vec3.multiplyQbyV(Quat.inverse(Quat.multiply(handRotation, this.offsetRotation)), offset);
+            }
+            if (grabbableData.spatialKey.relativeRotation) {
+                this.offsetRotation = getSpatialOffsetRotation(this.hand, grabbableData.spatialKey);
+            } else {
+                this.offsetRotation = Quat.multiply(Quat.inverse(handRotation), objectRotation);
+            }
         } else {
             this.ignoreIK = false;
-
-            var objectRotation = grabbedProperties.rotation;
             this.offsetRotation = Quat.multiply(Quat.inverse(handRotation), objectRotation);
-
-            var currentObjectPosition = grabbedProperties.position;
-            var offset = Vec3.subtract(currentObjectPosition, handPosition);
             this.offsetPosition = Vec3.multiplyQbyV(Quat.inverse(Quat.multiply(handRotation, this.offsetRotation)), offset);
         }
 
@@ -1304,10 +1318,10 @@ Controller.enableMapping(MAPPING_NAME);
 var handToDisable = 'none';
 
 function update() {
-    if (handToDisable !== LEFT_HAND && handToDisable!=='both') {
+    if (handToDisable !== LEFT_HAND && handToDisable !== 'both') {
         leftController.update();
     }
-    if (handToDisable !== RIGHT_HAND  && handToDisable!=='both') {
+    if (handToDisable !== RIGHT_HAND && handToDisable !== 'both') {
         rightController.update();
     }
 }
@@ -1315,7 +1329,7 @@ function update() {
 Messages.subscribe('Hifi-Hand-Disabler');
 
 handleHandDisablerMessages = function(channel, message, sender) {
-    
+
     if (sender === MyAvatar.sessionUUID) {
         if (message === 'left') {
             handToDisable = LEFT_HAND;
@@ -1323,11 +1337,11 @@ handleHandDisablerMessages = function(channel, message, sender) {
         if (message === 'right') {
             handToDisable = RIGHT_HAND;
         }
-        if(message==='both'){
-            handToDisable='both';
+        if (message === 'both') {
+            handToDisable = 'both';
         }
-        if(message==='none'){
-            handToDisable='none';
+        if (message === 'none') {
+            handToDisable = 'none';
         }
     }
 

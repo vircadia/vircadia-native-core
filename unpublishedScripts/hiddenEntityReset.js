@@ -24,6 +24,7 @@
     var lightsScriptURL = Script.resolvePath("../examples/toybox/lights/lightSwitch.js");
     var targetsScriptURL = Script.resolvePath('../examples/toybox/ping_pong_gun/wallTarget.js');
     var bowScriptURL = Script.resolvePath('../examples/toybox/bow/bow.js');
+    var raveStickEntityScriptURL = Script.resolvePath("../examples/flowArts/raveStick/raveStickEntityScript.js");
     var basketballResetterScriptURL = Script.resolvePath('basketballsResetter.js');
     var targetsResetterScriptURL = Script.resolvePath('targetsResetter.js');
 
@@ -106,6 +107,13 @@
                 z: 505.78
             });
 
+            createRaveStick({
+                x: 547.4,
+                y: 495.4,
+                z: 504.5
+            });
+
+
             createCombinedArmChair({
                 x: 549.29,
                 y: 494.9,
@@ -158,6 +166,111 @@
                     Entities.deleteEntity(entity);
                 }
             });
+        }
+
+        function createRaveStick(position) {
+            var modelURL = "https://s3.amazonaws.com/hifi-public/eric/models/rave/raveStick.fbx";
+            var stick = Entities.addEntity({
+                type: "Model",
+                name: "raveStick",
+                modelURL: modelURL,
+                position: position,
+                shapeType: 'box',
+                collisionsWillMove: true,
+                script: raveStickEntityScriptURL,
+                dimensions: {
+                    x: 0.06,
+                    y: 0.06,
+                    z: 0.31
+                },
+                gravity: {
+                    x: 0,
+                    y: -3,
+                    z: 0
+                },
+                userData: JSON.stringify({
+                    resetMe: {
+                        resetMe: true
+                    },
+                    grabbableKey: {
+                        spatialKey: {
+                            relativePosition: {
+                                x: 0,
+                                y: 0,
+                                z: -0.1
+                            },
+                            relativeRotation: Quat.fromPitchYawRollDegrees(90, 90, 0)
+                        },
+                        invertSolidWhileHeld: true
+                    }
+                })
+            });
+            var rotation = Quat.fromPitchYawRollDegrees(0, 0, 0)
+            var forwardVec = Quat.getFront(Quat.multiply(rotation, Quat.fromPitchYawRollDegrees(-90, 0, 0)));
+            forwardVec = Vec3.normalize(forwardVec);
+            var forwardQuat = orientationOf(forwardVec);
+            position = Vec3.sum(position, Vec3.multiply(Quat.getFront(rotation), 0.1));
+            position.z += 0.1;
+            position.x += -0.035;
+            var color = {
+                red: 0,
+                green: 200,
+                blue: 40
+            };
+            var props = {
+                type: "ParticleEffect",
+                position: position,
+                parentID: stick,
+                isEmitting: true,
+                name: "raveBeam",
+                colorStart: color,
+                colorSpread: {
+                    red: 200,
+                    green: 10,
+                    blue: 10
+                },
+                color: {
+                    red: 200,
+                    green: 200,
+                    blue: 255
+                },
+                colorFinish: color,
+                maxParticles: 100000,
+                lifespan: 1,
+                emitRate: 1000,
+                emitOrientation: forwardQuat,
+                emitSpeed: 0.2,
+                speedSpread: 0.0,
+                polarStart: 0,
+                polarFinish: 0.0,
+                azimuthStart: 0.1,
+                azimuthFinish: 0.01,
+                emitAcceleration: {
+                    x: 0,
+                    y: 0,
+                    z: 0
+                },
+                accelerationSpread: {
+                    x: 0.00,
+                    y: 0.00,
+                    z: 0.00
+                },
+                radiusStart: 0.03,
+                radiusFinish: 0.025,
+                alpha: 0.7,
+                alphaSpread:0.1,
+                alphaStart: 0.5,
+                alphaFinish: 0.5,
+                textures: "https://s3.amazonaws.com/hifi-public/eric/textures/particleSprites/beamParticle.png",
+                emitterShouldTrail: false,
+                userData: JSON.stringify({
+                    resetMe: {
+                        resetMe: true
+                    }
+                })
+            }
+            var beam = Entities.addEntity(props);
+
         }
 
         function createGun(position) {
@@ -1012,7 +1125,7 @@
                 z: 503.39
             };
 
-            var rotation = Quat.fromPitchYawRollDegrees(0, 36, 0);
+            var rotation = Quat.fromPitchYawRollDegrees(0, 0, 0);
 
             var pingPongGun = Entities.addEntity({
                 type: "Model",
@@ -1040,6 +1153,14 @@
                         resetMe: true
                     },
                     grabbableKey: {
+                        spatialKey: {
+                            relativePosition: {
+                                x: -0.05,
+                                y: 0,
+                                z: 0.0
+                            },
+                            relativeRotation: Quat.fromPitchYawRollDegrees(0, -90, -90)
+                        },
                         invertSolidWhileHeld: true
                     }
 
