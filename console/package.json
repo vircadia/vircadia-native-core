@@ -18,8 +18,8 @@
   },
   "main": "src/main.js",
   "scripts": {
-    "start": "electron . --local-debug-builds",
-    "local-release": "electron . --local-release-builds",
+    "start": "electron . --local-debug-builds --debug",
+    "local-release": "electron . --local-release-builds --debug",
     "package-darwin": "electron-packager . High\\ Fidelity --overwrite --platform=darwin --arch=x64 --version=0.36.0 --icon=resources/console.icns",
     "package-win": "electron-packager . High\\ Fidelity --overwrite --platform=win32 --arch=x64 --version=0.36.0 --icon=resources/console.ico",
     "package-linux": "electron-packager . High\\ Fidelity --overwrite --platform=linux --arch=x64 --version=0.36.0"
