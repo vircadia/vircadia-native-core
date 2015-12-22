@@ -132,19 +132,27 @@ header {
         height: @focus-height - @info-padding-top-bottom - @info-padding-top-bottom;
         padding: @info-padding-top-bottom 75px;
 
+        @title-margin-left: 255px;
+
         h2 {
             color: black;
             font-size: 36px;
-            margin-left: 255px;
+            margin-left: @title-margin-left;
             margin-bottom: 0px;
         }
 
         .server-box {
             float: left;
+            margin-top: 5px;
 
             .title {
                 border-bottom: 1px solid @dark-gray;
                 margin-bottom: 20px;
+
+                p {
+                    color: white;
+                    margin-top: 0px;
+                }
             }
 
             .process-status {
@@ -183,6 +191,11 @@ header {
                     margin-bottom: 10px;
                     width: 215px;
                 }
+            }
+
+            &#right-box {
+                position: absolute;
+                margin-left: @title-margin-left;
             }
         }
     }
