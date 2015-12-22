@@ -111,21 +111,21 @@ void main(void) {
     // Which quad vertex pos?
     int twoTriID = gl_VertexID - particleID * NUM_VERTICES_PER_PARTICLE;
 
-	// Particle properties
+    // Particle properties
     float age = inColor.x / particle.lifespan;
     float seed = inColor.y;
 
     // Pass the texcoord and the z texcoord is representing the texture icon
     varTexcoord = vec2((UNIT_QUAD[twoTriID].xy + 1.0) * 0.5);
     varColor = interpolate3Vec4(particle.color.start, particle.color.middle, particle.color.finish, age);
-    
+
     // anchor point in eye space
-	float radius = interpolate3Points(particle.radius.start, particle.radius.middle, particle.radius.finish, age);
+    float radius = interpolate3Points(particle.radius.start, particle.radius.middle, particle.radius.finish, age);
     vec4 quadPos = radius * UNIT_QUAD[twoTriID];
 
     vec4 anchorPoint;
     <$transformModelToEyePos(cam, obj, inPosition, anchorPoint)$>
-    
+
     vec4 eyePos = anchorPoint + quadPos;
     <$transformEyeToClipPos(cam, eyePos, gl_Position)$>
 }
