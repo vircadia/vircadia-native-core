@@ -3,7 +3,7 @@
 //  examples/flowArats/raveStick
 //
 //  Created by Eric Levin on 12/17/15.
-//  Copyright 2014 High Fidelity, Inc.
+//  Copyright 2015 High Fidelity, Inc.
 //
 //  This script creates a rave stick which makes pretty light trails as you paint
 //

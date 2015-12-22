@@ -3,7 +3,7 @@
 //  examples/arcBall
 //
 //  Created by Eric Levin on 12/17/15.
-//  Copyright 2014 High Fidelity, Inc.
+//  Copyright 2015 High Fidelity, Inc.
 //
 //  This script creats a particle light ball which makes particle trails as you move it.
 //

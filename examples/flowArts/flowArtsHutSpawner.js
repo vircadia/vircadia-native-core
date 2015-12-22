@@ -3,7 +3,7 @@
 //  examples/flowArts
 //
 //  Created by Eric Levin on 12/17/15.
-//  Copyright 2014 High Fidelity, Inc.
+//  Copyright 2015 High Fidelity, Inc.
 //
 //  This script creates a special flow arts hut with a bunch of flow art toys people can go in and play with
 //
