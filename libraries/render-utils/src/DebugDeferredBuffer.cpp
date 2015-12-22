@@ -56,7 +56,7 @@ static const std::string DEEFAULT_ROUGHNESS_SHADER {
 };
 static const std::string DEEFAULT_NORMAL_SHADER {
     "vec4 getFragmentColor() {"
-    "    return vec4(texture(normalMap, uv).xyz, 1.0);"
+    "    return vec4(normalize(texture(normalMap, uv).xyz), 1.0);"
     " }"
 };
 static const std::string DEEFAULT_DEPTH_SHADER {

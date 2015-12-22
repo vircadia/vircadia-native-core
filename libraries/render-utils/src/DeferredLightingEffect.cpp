@@ -40,8 +40,6 @@
 #include "point_light_frag.h"
 #include "spot_light_frag.h"
 
-static const std::string glowIntensityShaderHandle = "glowIntensity";
-
 struct LightLocations {
     int radius;
     int ambientSphere;
@@ -134,8 +132,6 @@ gpu::PipelinePointer DeferredLightingEffect::bindSimpleProgram(gpu::Batch& batch
     batch.setPipeline(pipeline);
 
     gpu::ShaderPointer program = (config.isEmissive()) ? _emissiveShader : _simpleShader;
-    int glowIntensity = program->getUniforms().findLocation("glowIntensity");
-    batch._glUniform1f(glowIntensity, 1.0f);
     
     if (!config.isTextured()) {
         // If it is not textured, bind white texture and keep using textured pipeline
