@@ -114,12 +114,12 @@ int main(int argc, const char* argv[]) {
         server.removeServer(applicationName);
         server.listen(applicationName);
 
-        QObject::connect(&server, &QLocalServer::newConnection, qApp, [&app, &server]() {
+        QObject::connect(&server, &QLocalServer::newConnection, qApp, [&server]() {
             qDebug() << "Got connection on local server";
 
             auto socket = server.nextPendingConnection();
 
-            QObject::connect(socket, &QLocalSocket::readyRead, qApp, [&app, socket]() {
+            QObject::connect(socket, &QLocalSocket::readyRead, qApp, [&socket]() {
                 auto message = socket->readAll();
                 socket->close();
 
