@@ -73,6 +73,22 @@ app.on('activate', function(){
     }
 })
 
+var shouldQuit = app.makeSingleInstance(function(commandLine, workingDirectory) {
+    // Someone tried to run a second instance, we should focus our window
+    if (mainWindow) {
+        if (mainWindow.isMinimized()) {
+            mainWindow.restore();
+        }
+        mainWindow.focus();
+    }
+    return true;
+});
+
+if (shouldQuit) {
+    app.quit();
+    return;
+}
+
 // Check command line arguments to see how to find binaries
 var argv = require('yargs').argv;
 var pathFinder = require('./modules/path-finder.js');
