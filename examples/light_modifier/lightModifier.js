@@ -17,8 +17,10 @@ var VERTICAL_SLIDERS = false;
 var SHOW_OVERLAYS = true;
 var SHOW_LIGHT_VOLUME = true;
 var USE_PARENTED_PANEL = true;
-var VISIBLE_PANEL = true;
+var VISIBLE_PANEL = false;
 var USE_LABELS = true;
+var LEFT_LABELS = false;
+var RIGHT_LABELS = true;
 
 //variables for managing overlays
 var selectionDisplay;
@@ -134,6 +136,8 @@ var slidersRef = {
 };
 var light = null;
 
+var basePosition;
+var avatarRotation; 
 
 function entitySlider(light, color, sliderType, displayText, row) {
     this.light = light;
@@ -146,6 +150,8 @@ function entitySlider(light, color, sliderType, displayText, row) {
     this.avatarRot = Quat.fromPitchYawRollDegrees(0, MyAvatar.bodyYaw, 0.0);
     this.basePosition = Vec3.sum(MyAvatar.position, Vec3.multiply(1.5, Quat.getFront(this.avatarRot)));
     this.basePosition.y += 1;
+    basePosition=this.basePosition;
+    avatarRot = this.avatarRot;
 
     var message = {
         lightID: this.lightID,
@@ -213,6 +219,8 @@ entitySlider.prototype = {
 
         this.axisStart = position;
         this.endOfAxis = Vec3.sum(position, extension);
+        this.createEndOfAxisEntity();
+
         var properties = {
             type: 'Line',
             name: 'Hifi-Slider-Axis::' + this.sliderType,
@@ -235,16 +243,59 @@ entitySlider.prototype = {
 
         this.axis = Entities.addEntity(properties);
     },
+    createEndOfAxisEntity: function() {
+        //we use this to track the end of the axis while parented to a panel
+        var properties = {
+            name: 'Hifi-End-Of-Axis',
+            type: 'Box',
+            collisionsWillMove: false,
+            ignoreForCollisions: true,
+            dimensions: {
+                x: 0.01,
+                y: 0.01,
+                z: 0.01
+            },
+            color: {
+                red: 255,
+                green: 255,
+                blue: 255
+            },
+            position: this.endOfAxis,
+            parentID:this.axis,
+            visible: false
+        }
+
+        this.endOfAxisEntity = Entities.addEntity(this.endOfAxis);
+    },
     createLabel: function() {
+
         var LABEL_WIDTH = 0.25
-        var leftVector = Vec.multiply(-1, Quat.getRight(this.avatarRot));
-        var extension = Vec3.multiply(LABEL_WIDTH, leftVector);
-        var position = Vec3.sum(this.axisStart, extension);
+        var PER_LETTER_SPACING = 0.1;
+        var textWidth = this.displayText.length * PER_LETTER_SPACING;
+
+        var position;
+        if (LEFT_LABELS === true) {
+            var leftVector = Vec3.multiply(-1, Quat.getRight(this.avatarRot));
+
+            var extension = Vec3.multiply(textWidth, leftVector);
+
+            position = Vec3.sum(this.axisStart, extension);
+        }
+
+        if (RIGHT_LABELS === true) {
+            var rightVector = Quat.getRight(this.avatarRot);
+
+            var extension = Vec3.multiply(textWidth / 1.75, rightVector);
+
+            position = Vec3.sum(this.endOfAxis, extension);
+        }
+
+
         var labelProperties = {
             name: 'Hifi-Slider-Label-' + this.sliderType,
             type: 'Text',
             dimensions: {
-                x: LABEL_WIDTH,
+                x: textWidth,
                 y: 0.2,
                 z: 0.1
             },
@@ -260,10 +311,12 @@ entitySlider.prototype = {
                 green: 0,
                 blue: 0
             },
-
+            position: position,
+            rotation:this.avatarRot,
         }
-
+        print('BEFORE CREATE LABEL' + JSON.stringify(labelProperties))
         this.label = Entities.addEntity(labelProperties);
+        print('AFTER CREATE LABEL')
     },
     createSliderIndicator: function() {
         var extensionVector;
@@ -473,8 +526,6 @@ function parentPanelToAvatar(panel) {
 }
 
 
-function updateAxisWhe
-
 function parentEntitiesToPanel(panel) {
 
     sliders.forEach(function(slider) {
@@ -513,22 +564,25 @@ function createPanelEntity(position) {
 }
 
 function createVisiblePanel() {
-    print('CREATING VISIBLE PANEL at ' + JSON.stringify(position));
-
     var totalOffset = -PER_ROW_OFFSET.y * sliders.length;
+
+    var moveRight =Vec3.sum(basePosition,Vec3.multiply(AXIS_SCALE/2,Quat.getRight(avatarRot)));
+
+    var moveDown = Vec3.sum(moveRight,Vec3.multiply((sliders.length+1)/2,PER_ROW_OFFSET))
     var panelProperties = {
         name: 'Hifi-Visible-Transparent-Panel',
         type: 'Model',
         modelURL: TRANSPARENT_PANEL_URL,
         dimensions: {
-            x: 1,
+            x: AXIS_SCALE+0.1,
             y: totalOffset,
-            z: 0.1
+            z: SLIDER_DIMENSIONS.z/4
         },
         visible: true,
         collisionsWillMove: false,
         ignoreForCollisions: true,
-        position: this.basePosition
+        position: moveDown,
+        rotation:avatarRot
     }
 
     var panel = Entities.addEntity(panelProperties);
@@ -738,6 +792,7 @@ function cleanup(fromMessage) {
     for (i = 0; i < sliders.length; i++) {
         Entities.deleteEntity(sliders[i].axis);
         Entities.deleteEntity(sliders[i].sliderIndicator);
+        Entities.deleteEntity(sliders[i].label);
     }
 
     while (closeButtons.length > 0) {
