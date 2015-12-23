@@ -19,6 +19,8 @@ var VERTICAL_SLIDERS = false;
 var SHOW_OVERLAYS = true;
 var SHOW_LIGHT_VOLUME = true;
 var USE_PARENTED_PANEL = true;
+var VISIBLE_PANEL = true;
+var USE_LABELS = true;
 
 //variables for managing overlays
 var selectionDisplay;
@@ -62,6 +64,7 @@ var SLIDER_SCRIPT_URL = Script.resolvePath('slider.js?' + Math.random(0, 100));
 var LIGHT_MODEL_URL = 'http://hifi-content.s3.amazonaws.com/james/light_modifier/source4_very_good.fbx';
 var CLOSE_BUTTON_MODEL_URL = 'http://hifi-content.s3.amazonaws.com/james/light_modifier/red_x.fbx';
 var CLOSE_BUTTON_SCRIPT_URL = Script.resolvePath('closeButton.js?' + Math.random(0, 100));
+var TRANSPARENT_PANEL_URL = 'http://hifi-content.s3.amazonaws.com/james/light_modifier/transparent_box_alpha_15.fbx';
 
 var RED = {
     red: 255,
@@ -134,12 +137,13 @@ var slidersRef = {
 var light = null;
 
 
-function entitySlider(light, color, sliderType, row) {
+function entitySlider(light, color, sliderType, displayText, row) {
     this.light = light;
     this.lightID = light.id.replace(/[{}]/g, "");
     this.initialProperties = light.initialProperties;
     this.color = color;
     this.sliderType = sliderType;
+    this.displayText = displayText;
     this.verticalOffset = Vec3.multiply(row, PER_ROW_OFFSET);
     this.avatarRot = Quat.fromPitchYawRollDegrees(0, MyAvatar.bodyYaw, 0.0);
     this.basePosition = Vec3.sum(MyAvatar.position, Vec3.multiply(1.5, Quat.getFront(this.avatarRot)));
@@ -182,6 +186,9 @@ function entitySlider(light, color, sliderType, row) {
     this.setInitialSliderPositions();
     this.createAxis();
     this.createSliderIndicator();
+    if (USE_LABELS === true) {
+        this.createLabel()
+    }
     return this;
 }
 
@@ -205,6 +212,8 @@ entitySlider.prototype = {
             extension = Vec3.multiply(AXIS_SCALE, rightVector);
         }
 
+
+        this.axisStart = position;
         this.endOfAxis = Vec3.sum(position, extension);
         var properties = {
             type: 'Line',
@@ -228,8 +237,35 @@ entitySlider.prototype = {
 
         this.axis = Entities.addEntity(properties);
     },
-    createLabel:function(){
-        
+    createLabel: function() {
+        var LABEL_WIDTH = 0.25
+        var leftVector = Vec.multiply(-1, Quat.getRight(this.avatarRot));
+        var extension = Vec3.multiply(LABEL_WIDTH, leftVector);
+        var position = Vec3.sum(this.axisStart, extension);
+        var labelProperties = {
+            name: 'Hifi-Slider-Label-' + this.sliderType,
+            type: 'Text',
+            dimensions: {
+                x: LABEL_WIDTH,
+                y: 0.2,
+                z: 0.1
+            },
+            textColor: {
+                red: 255,
+                green: 255,
+                blue: 255
+            },
+            text: this.displayText,
+            lineHeight: 0.14,
+            backgroundColor: {
+                red: 0,
+                green: 0,
+                blue: 0
+            },
+
+        }
+
+        this.label = Entities.addEntity(labelProperties);
     },
     createSliderIndicator: function() {
         var extensionVector;
@@ -367,8 +403,12 @@ entitySlider.prototype = {
 
 };
 
+
+var panel;
+var visiblePanel;
+
 function makeSliders(light) {
-    var panel;
+
     if (USE_PARENTED_PANEL === true) {
         panel = createPanelEntity(MyAvatar.position);
     }
@@ -386,9 +426,9 @@ function makeSliders(light) {
         var USE_EXPONENT_SLIDER = false;
     }
     if (USE_COLOR_SLIDER === true) {
-        slidersRef.color_red = new entitySlider(light, RED, 'color_red', 1);
-        slidersRef.color_green = new entitySlider(light, GREEN, 'color_green', 2);
-        slidersRef.color_blue = new entitySlider(light, BLUE, 'color_blue', 3);
+        slidersRef.color_red = new entitySlider(light, RED, 'color_red', 'Red', 1);
+        slidersRef.color_green = new entitySlider(light, GREEN, 'color_green', 'Green', 2);
+        slidersRef.color_blue = new entitySlider(light, BLUE, 'color_blue', 'Blue', 3);
 
         sliders.push(slidersRef.color_red);
         sliders.push(slidersRef.color_green);
@@ -396,15 +436,15 @@ function makeSliders(light) {
 
     }
     if (USE_INTENSITY_SLIDER === true) {
-        slidersRef.intensity = new entitySlider(light, WHITE, 'intensity', 4);
+        slidersRef.intensity = new entitySlider(light, WHITE, 'intensity', 'Intensity', 4);
         sliders.push(slidersRef.intensity);
     }
     if (USE_CUTOFF_SLIDER === true) {
-        slidersRef.cutoff = new entitySlider(light, PURPLE, 'cutoff', 5);
+        slidersRef.cutoff = new entitySlider(light, PURPLE, 'cutoff', 'Cutoff', 5);
         sliders.push(slidersRef.cutoff);
     }
     if (USE_EXPONENT_SLIDER === true) {
-        slidersRef.exponent = new entitySlider(light, ORANGE, 'exponent', 6);
+        slidersRef.exponent = new entitySlider(light, ORANGE, 'exponent', 'Exponent', 6);
         sliders.push(slidersRef.exponent);
     }
 
@@ -419,6 +459,10 @@ function makeSliders(light) {
     if (SLIDERS_SHOULD_STAY_WITH_AVATAR === true) {
         parentPanelToAvatar(panel);
     }
+
+    if (VISIBLE_PANEL === true) {
+        visiblePanel = createVisiblePanel();
+    }
 };
 
 function parentPanelToAvatar(panel) {
@@ -429,6 +473,9 @@ function parentPanelToAvatar(panel) {
         parentJointIndex: 1,
     })
 }
+
+
+function updateAxisWhe
 
 function parentEntitiesToPanel(panel) {
 
@@ -461,6 +508,29 @@ function createPanelEntity(position) {
         visible: false,
         collisionsWillMove: false,
         ignoreForCollisions: true
+    }
+
+    var panel = Entities.addEntity(panelProperties);
+    return panel
+}
+
+function createVisiblePanel(position) {
+    print('CREATING VISIBLE PANEL at ' + JSON.stringify(position));
+
+    var totalOffset = Vec3.multiply(sliders.length, PER_ROW_OFFSET);
+    var panelProperties = {
+        name: 'Hifi-Visible-Transparent-Panel',
+        type: 'Model',
+        modelURL: TRANSPARENT_PANEL_URL,
+        dimensions: {
+            x: 1,
+            y: 1.4,
+            z: 0.1
+        },
+        visible: true,
+        collisionsWillMove: false,
+        ignoreForCollisions: true,
+        position: position
     }
 
     var panel = Entities.addEntity(panelProperties);
@@ -588,6 +658,7 @@ function handleValueMessages(channel, message, sender) {
 
 var currentLight;
 var block;
+var oldParent = null;
 var hasParent = false;
 
 function handleLightOverlayRayCheckMessages(channel, message, sender) {
@@ -615,6 +686,7 @@ function handleLightOverlayRayCheckMessages(channel, message, sender) {
         var lightProperties = Entities.getEntityProperties(lightID);
         if (lightProperties.parentID !== DEFAULT_PARENT_ID) {
             //this light has a parent already.  so lets call our block the parent and then make sure not to delete it at the end;
+            oldParent = lightProperties.parentID;
             hasParent = true;
             block = lightProperties.parentID;
             if (lightProperties.parentJointIndex !== -1) {
@@ -657,8 +729,8 @@ function handleCleanupMessages(channel, message, sender) {
     }
 }
 
-function updateSliderAxis(){
-    sliders.forEach(function(slider){
+function updateSliderAxis() {
+    sliders.forEach(function(slider) {
 
     })
 }
@@ -675,9 +747,16 @@ function cleanup(fromMessage) {
     }
 
     //if the light was already parented to something we will want to restore that.  or come up with groups or something clever.
-    Entities.editEntity(currentLight, {
-        parentID: null,
-    });
+    if (oldParent !== null) {
+        Entities.editEntity(currentLight, {
+            parentID: oldParent,
+        });
+    } else {
+        Entities.editEntity(currentLight, {
+            parentID: null,
+        });
+    }
+
 
     if (fromMessage !== true) {
         Messages.messageReceived.disconnect(handleLightModMessages);
@@ -687,11 +766,15 @@ function cleanup(fromMessage) {
     }
 
 
+    Entities.deleteEntity(panel);
+    Entities.deleteEntity(visiblePanel);
+
     selectionManager.clearSelections();
     Script.update.disconnect(rotateCloseButtons);
     if (hasParent === false) {
         Entities.deleteEntity(block);
     }
+    oldParent = null;
     hasParent = false;
     currentLight = null;
 
