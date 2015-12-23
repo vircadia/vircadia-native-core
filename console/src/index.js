@@ -4,11 +4,14 @@ $(function() {
 
     var settingsButton = $('#manage-server #settings');
 
+    const DISABLED_HREF_ATTR = 'data-disabled-href';
     function toggleManageButton(button, enabled) {
         if (enabled) {
-            button.attr('href', '#');
+            button.attr('href', button.attr(DISABLED_HREF_ATTR));
+            button.removeAttr(DISABLED_HREF_ATTR);
             button.removeClass('disabled');
         } else {
+            button.attr(DISABLED_HREF_ATTR, button.attr('href'));
             button.removeAttr('href');
             button.addClass('disabled');
         }
@@ -65,7 +68,7 @@ $(function() {
                 toggleManageButton(stopButton, false);
 
                 // disable the go button
-                goButton.addClass('disabled');
+                toggleManageButton(goButton, false);
 
                 // show the server stopped text
                 serverStopped.show();
@@ -76,7 +79,7 @@ $(function() {
                 toggleManageButton(stopButton, true);
 
                 // enable the go button
-                goButton.removeClass('disabled');
+                toggleManageButton(goButton, true);
 
                 // hide the server stopped text
                 serverStopped.hide();
@@ -89,15 +92,23 @@ $(function() {
         ipcRenderer.send('start-interface');
     });
 
-    $('#go-server-button:not(.disabled)').click(function(){
-        ipcRenderer.send('start-interface', { url: 'hifi://localhost' });
+    $('#go-server-button').click(function(e){
+        if ($(this).hasClass('disabled')) {
+            e.preventDefault();
+        } else {
+            ipcRenderer.send('start-interface', { url: 'hifi://localhost' });
+        }
     })
 
     $('#manage-server #restart').click(function() {
         ipcRenderer.send('restart-server', { name: 'home' });
     });
-    $('#manage-server #stop').click(function() {
-        ipcRenderer.send('stop-server', { name: 'home' });
+    $('#manage-server #stop').click(function(e) {
+        if ($(this).hasClass('disabled')) {
+            e.preventDefault();
+        } else {
+            ipcRenderer.send('stop-server', { name: 'home' });
+        }
     });
     $('#open-logs').click(function() {
         ipcRenderer.send('open-logs');
