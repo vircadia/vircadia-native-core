@@ -41,15 +41,25 @@ public:
     virtual void loadSettings() override;
 
 protected:
+
+    struct NeuronJoint {
+        glm::vec3 pos;
+        glm::vec3 euler;
+    };
+
     class InputDevice : public controller::InputDevice {
     public:
+        friend class NeuronPlugin;
+
         InputDevice() : controller::InputDevice("Neuron") {}
 
         // Device functions
         virtual controller::Input::NamedVector getAvailableInputs() const override;
         virtual QString getDefaultMappingConfig() const override;
-        virtual void update(float deltaTime, bool jointsCaptured) override;
+        virtual void update(float deltaTime, bool jointsCaptured) override {};
         virtual void focusOutEvent() override;
+
+        void update(float deltaTime, const std::vector<NeuronPlugin::NeuronJoint>& joints, const std::vector<NeuronPlugin::NeuronJoint>& prevJoints);
     };
 
     std::shared_ptr<InputDevice> _inputDevice { std::make_shared<InputDevice>() };
@@ -61,13 +71,10 @@ protected:
     int _serverPort;
     void* _socketRef;
 
-    struct NeuronJoint {
-        glm::vec3 pos;
-        glm::vec3 rot;
-    };
-
     std::vector<NeuronJoint> _joints;
-    std::mutex _jointsMutex;
+    std::mutex _jointsMutex;  // used to guard access to _joints
+
+    std::vector<NeuronJoint> _prevJoints;
 };
 
 #endif // hifi_NeuronPlugin_h
