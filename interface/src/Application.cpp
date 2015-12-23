@@ -4111,6 +4111,7 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEngine* scri
 
     scriptEngine->registerFunction("WebWindow", WebWindowClass::constructor, 1);
     scriptEngine->registerFunction("OverlayWebWindow", QmlWebWindowClass::constructor);
+    scriptEngine->registerFunction("OverlayWindow", QmlWindowClass::constructor);
 
     scriptEngine->registerGlobalObject("Menu", MenuScriptingInterface::getInstance());
     scriptEngine->registerGlobalObject("Stats", Stats::getInstance());

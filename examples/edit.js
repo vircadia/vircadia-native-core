@@ -140,8 +140,13 @@ var importingSVOTextOverlay = Overlays.addOverlay("text", {
 });
 
 var MARKETPLACE_URL = "https://metaverse.highfidelity.com/marketplace";
-var marketplaceWindow = new OverlayWebWindow('Marketplace', "about:blank", 900, 700, false);
-marketplaceWindow.setVisible(false);
+var marketplaceWindow = new OverlayWebWindow({
+    title: 'Marketplace', 
+    source: "about:blank", 
+    width: 900, 
+    height: 700,
+    visible: false
+});
 
 function showMarketplace(marketplaceID) {
     var url = MARKETPLACE_URL;
