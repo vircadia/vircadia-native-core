@@ -814,12 +814,14 @@ var CHECK_MARK_COLOR = {
         });
     };
 
-
     CollapsablePanelItem.prototype.destroy = function() {
         Overlays.deleteOverlay(this.title);
         Overlays.deleteOverlay(this.thumb);
     };
 
+    CollapsablePanelItem.prototype.editTitle = function(opts) {
+        Overlays.editOverlay(this.title, opts);
+    };
 
     CollapsablePanelItem.prototype.hide = function() {
         Overlays.editOverlay(this.title, {

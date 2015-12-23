@@ -21,56 +21,34 @@ Number.prototype.clamp = function(min, max) {
 
 var panel = new Panel(10, 100);
 
-function CounterWidget(parentPanel, name, feedGetter, drawGetter, capSetter, capGetter) {
-    this.subPanel = parentPanel.newSubPanel(name);
+function CounterWidget(parentPanel, name, counter) {
+    var subPanel = parentPanel.newSubPanel(name);
+    var widget = parentPanel.items[name];
+    widget.editTitle({ width: 270 });
 
-    this.subPanel.newSlider("Num Feed", 0, 1, 
-        function(value) { },
-        feedGetter,
-        function(value) { return (value); });
-    this.subPanel.newSlider("Num Drawn", 0, 1, 
-        function(value) { },
-        drawGetter,
-        function(value) { return (value); });
-    this.subPanel.newSlider("Max Drawn", -1, 1, 
-        capSetter,
-        capGetter,
-        function(value) { return (value); });
+    subPanel.newSlider('Max Drawn', -1, 1, 
+        function(value) { counter.maxDrawn = value; }, // setter
+        function() { return counter.maxDrawn; }, // getter
+        function(value) { return value; });
+
+    var slider = subPanel.getWidget('Max Drawn');
 
     this.update = function () {
-        var numFeed = this.subPanel.get("Num Feed");
-        var numDrawn = this.subPanel.get("Num Drawn");
-        var numMax = Math.max(numFeed, 1);
+        var numDrawn = counter.numDrawn; // avoid double polling
+        var numMax = Math.max(numDrawn, 1);
+        var title = [
+            ' ' + name,
+            numDrawn + ' / ' + counter.numFeed
+        ].join('\t');
 
-        this.subPanel.set("Num Feed", numFeed);
-        this.subPanel.set("Num Drawn", numDrawn);
-
-        this.subPanel.getWidget("Num Feed").setMaxValue(numMax);
-        this.subPanel.getWidget("Num Drawn").setMaxValue(numMax);
-        this.subPanel.getWidget("Max Drawn").setMaxValue(numMax);
+        widget.editTitle({ text: title });
+        slider.setMaxValue(numMax);
     };
 };
 
-var opaquesCounter = new CounterWidget(panel, "Opaques",
-    function () { return Render.opaque.numFeed; },
-    function () { return Render.opaque.numDrawn; },
-    function(value) {    Render.opaque.maxDrawn = value; },
-    function () { return Render.opaque.maxDrawn; }
-);
-
-var transparentsCounter = new CounterWidget(panel, "Transparents",
-    function () { return Render.transparent.numFeed; },
-    function () { return Render.transparent.numDrawn; },
-    function(value) {    Render.transparent.maxDrawn = value; },
-    function () { return Render.transparent.maxDrawn; }
-);
-
-var overlaysCounter = new CounterWidget(panel, "Overlays",
-    function () { return Render.overlay3D.numFeed; },
-    function () { return Render.overlay3D.numDrawn; },
-    function(value) {    Render.overlay3D.maxDrawn = value; },
-    function () { return Render.overlay3D.maxDrawn; }
-);
+var opaquesCounter = new CounterWidget(panel, "Opaques", Render.opaque);
+var transparentsCounter = new CounterWidget(panel, "Transparents", Render.transparent);
+var overlaysCounter = new CounterWidget(panel, "Overlays", Render.overlay3D);
 
 var resizing = false;
 var previousMode = Settings.getValue(SETTINGS_KEY, -1);
@@ -162,9 +140,13 @@ Menu.menuItemEvent.connect(menuItemEvent);
 function scriptEnding() {
     panel.destroy();
     Menu.removeActionGroup(MENU);
+    // Reset
     Settings.setValue(SETTINGS_KEY, Render.deferredDebugMode);
     Render.deferredDebugMode = -1;
-    Render.deferredDebugSize = { x: 0.0, y: -1.0, z: 1.0, w: 1.0 }; // Reset to default size
+    Render.deferredDebugSize = { x: 0.0, y: -1.0, z: 1.0, w: 1.0 };
+    Render.opaque.maxDrawn = -1;
+    Render.transparent.maxDrawn = -1;
+    Render.overlay3D.maxDrawn = -1;
 }
 Script.scriptEnding.connect(scriptEnding);
 
