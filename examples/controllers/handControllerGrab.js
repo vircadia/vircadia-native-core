@@ -1637,7 +1637,7 @@ handleHandMessages = function(channel, message, sender) {
                 handToDisable = RIGHT_HAND;
             }
             if (message === 'both' || message === 'none') {
-                handToDisable = handToDisable;
+                handToDisable = message;
             }
         } else if (channel === 'Hifi-Hand-Grab') {
             try {
