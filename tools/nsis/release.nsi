@@ -86,6 +86,7 @@ Section "Registry Entries and Procotol Handler" SEC02
     WriteRegStr HKCR 'hifi\DefaultIcon' '' '$ChosenFrontEndInstallDir\${interface_icon},1'
     WriteRegStr HKCR 'hifi\shell\open\command' '' '$ChosenFrontEndInstallDir\${interface_exec} --url "%1"'
 
+    SetOutPath $ChosenFrontEndInstallDir
     WriteUninstaller "$ChosenFrontEndInstallDir\${uninstaller}"
     Exec '"$ChosenFrontEndInstallDir\2013_vcredist_x64.exe" /q /norestart'
     Exec '"$ChosenFrontEndInstallDir\2010_vcredist_x86.exe" /q /norestart'
@@ -114,9 +115,12 @@ SectionEnd
 
 Section "Uninstall" 
     SetShellVarContext all
+    SetOutPath $TEMP
+
     DELETE "${startmenu_company}\Interface.lnk"
     DELETE "${startmenu_company}\Stack Manager.lnk"
     DELETE "${startmenu_company}\Uninstall ${company}.lnk"
+
     RMDIR "${startmenu_company}"
     RMDIR /r "$ChosenBackEndInstallDir"
     RMDIR /r "$ChosenFrontEndInstallDir"
