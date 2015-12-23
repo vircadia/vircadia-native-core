@@ -129,6 +129,7 @@ protected:
     QVector<glm::vec3> _lastKnownFrameDataTranslations;
     int _lastKnownCurrentFrame;
 
+
     bool isAnimatingSomething() const;
 
     rgbColor _color;
