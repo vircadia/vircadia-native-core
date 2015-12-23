@@ -56,9 +56,9 @@ private:
     mat4 _eyeProjections[3];
     mat4 _compositeEyeProjections[2];
     uvec2 _desiredFramebufferSize;
-    ovrTexture _eyeTextures[2];
-    mutable int _hmdScreen{ -1 };
-    bool _hswDismissed{ false };
+    //ovrTexture _eyeTextures[2]; // FIXME - not currently in use
+    mutable int _hmdScreen { -1 };
+    bool _hswDismissed { false };
 };
 
 
