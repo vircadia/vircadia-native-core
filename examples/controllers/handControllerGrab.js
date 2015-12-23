@@ -1,5 +1,4 @@
 //  handControllerGrab.js
-//  examples
 //
 //  Created by Eric Levin on  9/2/15
 //  Additions by James B. Pollack @imgntn on 9/24/2015
@@ -7,13 +6,13 @@
 //  Copyright 2015 High Fidelity, Inc.
 //
 //  Grabs physically moveable entities with hydra-like controllers; it works for either near or far objects.
+//  Also supports touch and equipping objects.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 /*global print, MyAvatar, Entities, AnimationCache, SoundCache, Scene, Camera, Overlays, Audio, HMD, AvatarList, AvatarManager, Controller, UndoStack, Window, Account, GlobalServices, Script, ScriptDiscoveryService, LODManager, Menu, Vec3, Quat, AudioDevice, Paths, Clipboard, Settings, XMLHttpRequest, randFloat, randInt, pointInExtents, vec3equal, setEntityCustomData, getEntityCustomData */
 
 Script.include("../libraries/utils.js");
-
 
 //
 // add lines where the hand ray picking is happening
@@ -54,6 +53,7 @@ var LINE_ENTITY_DIMENSIONS = {
     y: 1000,
     z: 1000
 };
+
 var LINE_LENGTH = 500;
 var PICK_MAX_DISTANCE = 500; // max length of pick-ray
 
@@ -116,6 +116,17 @@ var DEFAULT_GRABBABLE_DATA = {
     invertSolidWhileHeld: false
 };
 
+//we've created various ways of visualizing looking for and moving distant objects
+var USE_ENTITY_LINES_FOR_SEARCHING = false;
+var USE_OVERLAY_LINES_FOR_SEARCHING = false;
+var USE_PARTICLE_BEAM_FOR_SEARCHING = true;
+
+var USE_ENTITY_LINES_FOR_MOVING = false;
+var USE_OVERLAY_LINES_FOR_MOVING = false;
+var USE_PARTICLE_BEAM_FOR_MOVING = true;
+
+var USE_SPOTLIGHT = false;
+var USE_POINTLIGHT = false;
 
 // states for the state machine
 var STATE_OFF = 0;
@@ -135,6 +146,7 @@ var STATE_CONTINUE_EQUIP_BD = 13; // equip while bumper is still held down
 var STATE_CONTINUE_EQUIP = 14;
 var STATE_WAITING_FOR_BUMPER_RELEASE = 15;
 var STATE_EQUIP_SPRING = 16;
+
 
 
 function stateToName(state) {
@@ -262,7 +274,13 @@ function MyController(hand) {
     this.triggerValue = 0; // rolling average of trigger value
     this.rawTriggerValue = 0;
     this.rawBumperValue = 0;
+    //for visualizations
+    this.overlayLine = null;
+    this.particleBeam = null;
 
+    //for lights
+    this.spotlight = null;
+    this.pointlight = null;
     this.overlayLine = null;
 
     this.ignoreIK = false;
@@ -330,7 +348,7 @@ function MyController(hand) {
             print("STATE: " + stateToName(this.state) + " --> " + stateToName(newState) + ", hand: " + this.hand);
         }
         this.state = newState;
-    }
+    };
 
     this.debugLine = function(closePoint, farPoint, color) {
         Entities.addEntity({
@@ -350,34 +368,7 @@ function MyController(hand) {
                 }
             })
         });
-    }
-
-    this.overlayLineOn = function(closePoint, farPoint, color) {
-        if (this.overlayLine === null) {
-            var lineProperties = {
-                lineWidth: 5,
-                start: closePoint,
-                end: farPoint,
-                color: color,
-                ignoreRayIntersection: true, // always ignore this
-                visible: true,
-                alpha: 1
-            };
-
-            this.overlayLine = Overlays.addOverlay("line3d", lineProperties);
-
-        } else {
-            var success = Overlays.editOverlay(this.overlayLine, {
-                lineWidth: 5,
-                start: closePoint,
-                end: farPoint,
-                color: color,
-                visible: true,
-                ignoreRayIntersection: true, // always ignore this
-                alpha: 1
-            });
-        }
-    }
+    };
 
     this.lineOn = function(closePoint, farPoint, color) {
         // draw a line
@@ -410,6 +401,237 @@ function MyController(hand) {
         }
     };
 
+    this.overlayLineOn = function(closePoint, farPoint, color) {
+        if (this.overlayLine === null) {
+            var lineProperties = {
+                lineWidth: 5,
+                start: closePoint,
+                end: farPoint,
+                color: color,
+                ignoreRayIntersection: true, // always ignore this
+                visible: true,
+                alpha: 1
+            };
+
+            this.overlayLine = Overlays.addOverlay("line3d", lineProperties);
+
+        } else {
+            var success = Overlays.editOverlay(this.overlayLine, {
+                lineWidth: 5,
+                start: closePoint,
+                end: farPoint,
+                color: color,
+                visible: true,
+                ignoreRayIntersection: true, // always ignore this
+                alpha: 1
+            });
+        }
+    };
+
+    this.handleParticleBeam = function(position, orientation, color) {
+
+        var rotation = Quat.angleAxis(0, {
+            x: 1,
+            y: 0,
+            z: 0
+        });
+
+        var finalRotation = Quat.multiply(orientation, rotation);
+        var lifespan = LINE_LENGTH / 10;
+        var speed = 5;
+        var spread = 2;
+        if (this.particleBeam === null) {
+            this.createParticleBeam(position, finalRotation, color, speed, spread, lifespan);
+        } else {
+            this.updateParticleBeam(position, finalRotation, color, speed, spread, lifespan);
+        }
+    };
+
+    this.handleDistantParticleBeam = function(handPosition, objectPosition, color) {
+
+        var handToObject = Vec3.subtract(objectPosition, handPosition);
+        var finalRotation = Quat.rotationBetween(Vec3.multiply(-1, Vec3.UP), handToObject);
+
+        var distance = Vec3.distance(handPosition, objectPosition);
+        var speed = 5;
+        var spread = 0;
+
+        var lifespan = distance / speed;
+
+
+        if (this.particleBeam === null) {
+            this.createParticleBeam(objectPosition, finalRotation, color, speed, spread, lifespan);
+        } else {
+            this.updateParticleBeam(objectPosition, finalRotation, color, speed, spread, lifespan);
+        }
+    };
+
+    this.createParticleBeam = function(position, orientation, color, speed, spread, lifespan) {
+
+        var particleBeamProperties = {
+            type: "ParticleEffect",
+            isEmitting: true,
+            position: position,
+            visible: false,
+            "name": "Particle Beam",
+            "color": color,
+            "maxParticles": 2000,
+            "lifespan": lifespan,
+            "emitRate": 50,
+            "emitSpeed": speed,
+            "speedSpread": spread,
+            "emitOrientation": {
+                "x": -1,
+                "y": 0,
+                "z": 0,
+                "w": 1
+            },
+            "emitDimensions": {
+                "x": 0,
+                "y": 0,
+                "z": 0
+            },
+            "emitRadiusStart": 0.5,
+            "polarStart": 0,
+            "polarFinish": 0,
+            "azimuthStart": -3.1415927410125732,
+            "azimuthFinish": 3.1415927410125732,
+            "emitAcceleration": {
+                x: 0,
+                y: 0,
+                z: 0
+            },
+            "accelerationSpread": {
+                "x": 0,
+                "y": 0,
+                "z": 0
+            },
+            "particleRadius": 0.015,
+            "radiusSpread": 0.005,
+            // "radiusStart": 0.01,
+            // "radiusFinish": 0.01,
+            // "colorSpread": {
+            //     "red": 0,
+            //     "green": 0,
+            //     "blue": 0
+            // },
+            // "colorStart": color,
+            // "colorFinish": color,
+            "alpha": 1,
+            "alphaSpread": 0,
+            "alphaStart": 1,
+            "alphaFinish": 1,
+            "additiveBlending": 0,
+            "textures": "https://hifi-content.s3.amazonaws.com/alan/dev/textures/grabsprite-3.png"
+        }
+
+        this.particleBeam = Entities.addEntity(particleBeamProperties);
+    };
+
+    this.updateParticleBeam = function(position, orientation, color, speed, spread, lifespan) {
+        Entities.editEntity(this.particleBeam, {
+            rotation: orientation,
+            position: position,
+            visible: true,
+            color: color,
+            emitSpeed: speed,
+            speedSpread: spread,
+            lifespan: lifespan
+        })
+
+    };
+
+    this.evalLightWorldTransform = function(modelPos, modelRot) {
+
+        var MODEL_LIGHT_POSITION = {
+            x: 0,
+            y: -0.3,
+            z: 0
+        };
+
+        var MODEL_LIGHT_ROTATION = Quat.angleAxis(-90, {
+            x: 1,
+            y: 0,
+            z: 0
+        });
+
+        return {
+            p: Vec3.sum(modelPos, Vec3.multiplyQbyV(modelRot, MODEL_LIGHT_POSITION)),
+            q: Quat.multiply(modelRot, MODEL_LIGHT_ROTATION)
+        };
+    };
+
+    this.handleSpotlight = function(parentID, position) {
+        var LIFETIME = 100;
+
+        var modelProperties = Entities.getEntityProperties(parentID, ['position', 'rotation']);
+
+        var lightTransform = this.evalLightWorldTransform(modelProperties.position, modelProperties.rotation);
+        var lightProperties = {
+            type: "Light",
+            isSpotlight: true,
+            dimensions: {
+                x: 2,
+                y: 2,
+                z: 20
+            },
+            parentID: parentID,
+            color: {
+                red: 255,
+                green: 255,
+                blue: 255
+            },
+            intensity: 2,
+            exponent: 0.3,
+            cutoff: 20,
+            lifetime: LIFETIME,
+            position: lightTransform.p,
+        };
+
+        if (this.spotlight === null) {
+            this.spotlight = Entities.addEntity(lightProperties);
+        } else {
+            Entities.editEntity(this.spotlight, {
+                //without this, this light would maintain rotation with its parent
+                rotation: Quat.fromPitchYawRollDegrees(-90, 0, 0),
+            })
+        }
+    };
+
+    this.handlePointLight = function(parentID, position) {
+        var LIFETIME = 100;
+
+        var modelProperties = Entities.getEntityProperties(parentID, ['position', 'rotation']);
+        var lightTransform = this.evalLightWorldTransform(modelProperties.position, modelProperties.rotation);
+
+        var lightProperties = {
+            type: "Light",
+            isSpotlight: false,
+            dimensions: {
+                x: 2,
+                y: 2,
+                z: 20
+            },
+            parentID: parentID,
+            color: {
+                red: 255,
+                green: 255,
+                blue: 255
+            },
+            intensity: 2,
+            exponent: 0.3,
+            cutoff: 20,
+            lifetime: LIFETIME,
+            position: lightTransform.p,
+        };
+
+        if (this.pointlight === null) {
+            this.pointlight = Entities.addEntity(lightProperties);
+        } else {
+
+        }
+    };
+
     this.lineOff = function() {
         if (this.pointer !== null) {
             Entities.deleteEntity(this.pointer);
@@ -424,6 +646,41 @@ function MyController(hand) {
         this.overlayLine = null;
     };
 
+    this.particleBeamOff = function() {
+        if (this.particleBeam !== null) {
+            Entities.editEntity(this.particleBeam, {
+                visible: false
+            })
+        }
+    }
+
+    this.turnLightsOff = function() {
+        if (this.spotlight !== null) {
+            Entities.deleteEntity(this.spotlight);
+            this.spotlight = null;
+        }
+
+        if (this.pointlight !== null) {
+            Entities.deleteEntity(this.pointlight);
+            this.pointlight = null;
+        }
+    };
+
+
+    this.turnOffVisualizations = function() {
+        if (USE_ENTITY_LINES_FOR_SEARCHING === true || USE_ENTITY_LINES_FOR_MOVING === true) {
+            this.lineOff();
+        }
+
+        if (USE_OVERLAY_LINES_FOR_SEARCHING === true || USE_OVERLAY_LINES_FOR_MOVING === true) {
+            this.overlayLineOff();
+        }
+
+        if (USE_PARTICLE_BEAM_FOR_SEARCHING === true || USE_PARTICLE_BEAM_FOR_MOVING === true) {
+            this.particleBeamOff();
+        }
+    };
+
     this.triggerPress = function(value) {
         _this.rawTriggerValue = value;
     };
@@ -431,7 +688,6 @@ function MyController(hand) {
     this.bumperPress = function(value) {
         _this.rawBumperValue = value;
     };
-
 
     this.updateSmoothedTrigger = function() {
         var triggerValue = this.rawTriggerValue;
@@ -455,12 +711,11 @@ function MyController(hand) {
 
     this.bumperSqueezed = function() {
         return _this.rawBumperValue > BUMPER_ON_VALUE;
-    }
+    };
 
     this.bumperReleased = function() {
         return _this.rawBumperValue < BUMPER_ON_VALUE;
-    }
-
+    };
 
     this.off = function() {
         if (this.triggerSmoothedSqueezed()) {
@@ -473,7 +728,7 @@ function MyController(hand) {
             this.setState(STATE_EQUIP_SEARCHING);
             return;
         }
-    }
+    };
 
     this.search = function() {
         this.grabbedEntity = null;
@@ -672,8 +927,19 @@ function MyController(hand) {
             }
         }
 
-        //this.lineOn(distantPickRay.origin, Vec3.multiply(distantPickRay.direction, LINE_LENGTH), NO_INTERSECT_COLOR);
-        this.overlayLineOn(distantPickRay.origin, Vec3.sum(distantPickRay.origin, Vec3.multiply(distantPickRay.direction, LINE_LENGTH)), NO_INTERSECT_COLOR);
+        //search line visualizations
+        if (USE_ENTITY_LINES_FOR_SEARCHING === true) {
+            this.lineOn(distantPickRay.origin, Vec3.multiply(distantPickRay.direction, LINE_LENGTH), NO_INTERSECT_COLOR);
+        }
+
+        if (USE_OVERLAY_LINES_FOR_SEARCHING === true) {
+            this.overlayLineOn(distantPickRay.origin, Vec3.sum(distantPickRay.origin, Vec3.multiply(distantPickRay.direction, LINE_LENGTH)), NO_INTERSECT_COLOR);
+        }
+
+        if (USE_PARTICLE_BEAM_FOR_SEARCHING === true) {
+            this.handleParticleBeam(distantPickRay.origin, this.getHandRotation(), NO_INTERSECT_COLOR);
+        }
+
     };
 
     this.distanceHolding = function() {
@@ -726,7 +992,7 @@ function MyController(hand) {
         this.currentAvatarPosition = MyAvatar.position;
         this.currentAvatarOrientation = MyAvatar.orientation;
 
-        this.overlayLineOff();
+        this.turnOffVisualizations();
     };
 
     this.continueDistanceHolding = function() {
@@ -752,7 +1018,6 @@ function MyController(hand) {
             return;
         }
 
-        this.lineOn(handPosition, Vec3.subtract(grabbedProperties.position, handPosition), INTERSECT_COLOR);
 
         // the action was set up on a previous call.  update the targets.
         var radius = Vec3.distance(this.currentObjectPosition, handControllerPosition) *
@@ -816,7 +1081,6 @@ function MyController(hand) {
         this.currentObjectRotation = Quat.multiply(handChange, this.currentObjectRotation);
 
         Entities.callEntityMethod(this.grabbedEntity, "continueDistantGrab");
-
         // mix in head motion
         if (MOVE_WITH_HEAD) {
             var objDistance = Vec3.length(objectToAvatar);
@@ -835,6 +1099,25 @@ function MyController(hand) {
             this.currentObjectPosition = Vec3.sum(this.currentObjectPosition, change);
         }
 
+
+        //visualizations
+        if (USE_ENTITY_LINES_FOR_MOVING === true) {
+            this.lineOn(handPosition, Vec3.subtract(grabbedProperties.position, handPosition), INTERSECT_COLOR);
+        }
+        if (USE_OVERLAY_LINES_FOR_MOVING === true) {
+            this.overlayLineOn(handPosition, grabbedProperties.position, INTERSECT_COLOR);
+        }
+        if (USE_PARTICLE_BEAM_FOR_MOVING === true) {
+            this.handleDistantParticleBeam(handPosition, grabbedProperties.position, INTERSECT_COLOR)
+                // this.handleDistantParticleBeam(handPosition, this.currentObjectPosition, INTERSECT_COLOR)
+        }
+        if (USE_POINTLIGHT === true) {
+            this.handlePointLight(this.grabbedEntity);
+        }
+        if (USE_SPOTLIGHT === true) {
+            this.handleSpotlight(this.grabbedEntity);
+        }
+
         Entities.updateAction(this.grabbedEntity, this.actionID, {
             targetPosition: this.currentObjectPosition,
             linearTimeScale: DISTANCE_HOLDING_ACTION_TIMEFRAME,
@@ -842,6 +1125,7 @@ function MyController(hand) {
             angularTimeScale: DISTANCE_HOLDING_ACTION_TIMEFRAME,
             ttl: ACTION_TTL
         });
+
         this.actionTimeout = now + (ACTION_TTL * MSEC_PER_SEC);
     };
 
@@ -855,8 +1139,7 @@ function MyController(hand) {
             return;
         }
 
-        this.lineOff();
-        this.overlayLineOff();
+        this.turnOffVisualizations();
 
         var grabbedProperties = Entities.getEntityProperties(this.grabbedEntity, GRABBABLE_PROPERTIES);
         this.activateEntity(this.grabbedEntity, grabbedProperties);
@@ -1003,8 +1286,8 @@ function MyController(hand) {
     };
 
     this.pullTowardEquipPosition = function() {
-        this.lineOff();
-        this.overlayLineOff();
+
+        this.turnOffVisualizations();
 
         var grabbedProperties = Entities.getEntityProperties(this.grabbedEntity, GRABBABLE_PROPERTIES);
         var grabbableData = getEntityCustomData(GRABBABLE_DATA_KEY, this.grabbedEntity, DEFAULT_GRABBABLE_DATA);
@@ -1122,11 +1405,15 @@ function MyController(hand) {
             }
         }
 
-        this.lineOn(pickRay.origin, Vec3.multiply(pickRay.direction, LINE_LENGTH), NO_INTERSECT_COLOR);
+        if (USE_ENTITY_LINES_FOR_MOVING === true) {
+            this.lineOn(pickRay.origin, Vec3.multiply(pickRay.direction, LINE_LENGTH), NO_INTERSECT_COLOR);
+        }
+
         Entities.callEntityMethod(this.grabbedEntity, "continueFarTrigger");
     };
 
     _this.allTouchedIDs = {};
+
     this.touchTest = function() {
         var maxDistance = 0.05;
         var leftHandPosition = MyAvatar.getLeftPalmPosition();
@@ -1195,8 +1482,9 @@ function MyController(hand) {
 
     this.release = function() {
 
-        this.lineOff();
-        this.overlayLineOff();
+        this.turnLightsOff();
+        this.turnOffVisualizations();
+
         if (this.grabbedEntity !== null) {
             if (this.actionID !== null) {
                 Entities.deleteAction(this.grabbedEntity, this.actionID);
@@ -1213,6 +1501,9 @@ function MyController(hand) {
     this.cleanup = function() {
         this.release();
         this.endHandGrasp();
+        Entities.deleteEntity(this.particleBeam);
+        Entities.deleteEntity(this.spotLight);
+        Entities.deleteEntity(this.pointLight);
     };
 
     this.activateEntity = function(entityID, grabbedProperties) {
@@ -1283,26 +1574,33 @@ function MyController(hand) {
         }
         //return an object with our updated settings
         return result;
-    }
+    };
 
     this.graspHandler = null
+
     this.startHandGrasp = function() {
         if (this.hand === RIGHT_HAND) {
             this.graspHandler = MyAvatar.addAnimationStateHandler(this.graspHand, ['isRightHandGrab']);
         } else if (this.hand === LEFT_HAND) {
             this.graspHandler = MyAvatar.addAnimationStateHandler(this.graspHand, ['isLeftHandGrab']);
         }
-    }
+    };
 
     this.endHandGrasp = function() {
         // Tell the animation system we don't need any more callbacks.
         MyAvatar.removeAnimationStateHandler(this.graspHandler);
-    }
+    };
 
-}
+};
 
 var rightController = new MyController(RIGHT_HAND);
 var leftController = new MyController(LEFT_HAND);
+
+//preload the particle beams so that they are full length when you start searching
+if (USE_PARTICLE_BEAM_FOR_SEARCHING === true || USE_PARTICLE_BEAM_FOR_MOVING === true) {
+    rightController.createParticleBeam();
+    leftController.createParticleBeam();
+}
 
 var MAPPING_NAME = "com.highfidelity.handControllerGrab";
 
@@ -1315,6 +1613,7 @@ mapping.from([Controller.Standard.LB]).peek().to(leftController.bumperPress);
 
 Controller.enableMapping(MAPPING_NAME);
 
+//the section below allows the grab script to listen for messages that disable either one or both hands.  useful for two handed items
 var handToDisable = 'none';
 
 function update() {
