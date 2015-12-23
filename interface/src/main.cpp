@@ -11,7 +11,10 @@
 #include <QCommandLineParser>
 #include <QDebug>
 #include <QDir>
+#include <QLocalSocket>
+#include <QLocalServer>
 #include <QSettings>
+#include <QSharedMemory>
 #include <QTranslator>
 
 #include <SharedUtil.h>
@@ -19,6 +22,7 @@
 #include "AddressManager.h"
 #include "Application.h"
 #include "InterfaceLogging.h"
+#include "MainWindow.h"
 
 #ifdef Q_OS_WIN
 static BOOL CALLBACK enumWindowsCallback(HWND hWnd, LPARAM lParam) {
@@ -38,46 +42,46 @@ static BOOL CALLBACK enumWindowsCallback(HWND hWnd, LPARAM lParam) {
 #endif
 
 int main(int argc, const char* argv[]) {
-#ifdef Q_OS_WIN
-    // Run only one instance of Interface at a time.
-    HANDLE mutex = CreateMutex(NULL, FALSE, "High Fidelity Interface - " + qgetenv("USERNAME"));
-    DWORD result = GetLastError();
-    if (result == ERROR_ALREADY_EXISTS || result == ERROR_ACCESS_DENIED) {
-        // Interface is already running.
-        HWND otherInstance = NULL;
-        EnumWindows(enumWindowsCallback, (LPARAM)&otherInstance);
-        if (otherInstance) {
-            // Show other instance.
-            SendMessage(otherInstance, UWM_SHOW_APPLICATION, 0, 0);
+    QString applicationName = "High Fidelity Interface";
 
-            // Send command line --url value to other instance.
-            if (argc >= 3) {
-                QStringList arguments;
-                for (int i = 0; i < argc; i += 1) {
-                    arguments << argv[i];
-                }
+    // Try to create a shared memory block - if it can't be created, there is an instance of
+    // interface already running.
+    QSharedMemory sharedMemory { applicationName };
+    if (!sharedMemory.create(1, QSharedMemory::ReadOnly)) {
+        // Connect to and send message to existing interface instance
+        QLocalSocket socket;
 
-                QCommandLineParser parser;
-                QCommandLineOption urlOption("url", "", "value");
-                parser.addOption(urlOption);
-                parser.process(arguments);
+        socket.connectToServer(applicationName);
 
-                if (parser.isSet(urlOption)) {
-                    QUrl url = QUrl(parser.value(urlOption));
-                    if (url.isValid() && url.scheme() == HIFI_URL_SCHEME) {
-                        QByteArray urlBytes = url.toString().toLatin1();
-                        const char* urlChars = urlBytes.data();
-                        COPYDATASTRUCT cds;
-                        cds.cbData = urlBytes.length() + 1;
-                        cds.lpData = (PVOID)urlChars;
-                        SendMessage(otherInstance, WM_COPYDATA, 0, (LPARAM)&cds);
-                    }
+        // Try to connect - if we can't connect, interface has probably just gone down
+        if (socket.waitForConnected(100)) {
+
+            QStringList arguments;
+            for (int i = 0; i < argc; ++i) {
+                arguments << argv[i];
+            }
+
+            QCommandLineParser parser;
+            QCommandLineOption urlOption("url", "", "value");
+            parser.addOption(urlOption);
+            parser.process(arguments);
+
+            if (parser.isSet(urlOption)) {
+                QUrl url = QUrl(parser.value(urlOption));
+                if (url.isValid() && url.scheme() == HIFI_URL_SCHEME) {
+                    socket.write(url.toString().toUtf8());
+                    socket.waitForBytesWritten(5000);
                 }
             }
+
+            socket.close();
         }
-        return 0;
+
+        qDebug() << "Interface instance appears to be running, exiting";
+
+        return EXIT_SUCCESS;
     }
-#endif
+
 
     QElapsedTimer startupTime;
     startupTime.start();
@@ -102,18 +106,45 @@ int main(int argc, const char* argv[]) {
         QSettings::setDefaultFormat(QSettings::IniFormat);
         Application app(argc, const_cast<char**>(argv), startupTime);
 
+        // Setup local server
+        QLocalServer server { &app };
+
+        // We have already acquired the shared memory block, so we can safely remove
+        // any existing servers. This can occur on Unix platforms after a crash.
+        server.removeServer(applicationName);
+        server.listen(applicationName);
+
+        QObject::connect(&server, &QLocalServer::newConnection, qApp, [&server]() {
+            qDebug() << "Got connection on local server";
+
+            auto socket = server.nextPendingConnection();
+
+            QObject::connect(socket, &QLocalSocket::readyRead, qApp, [&socket]() {
+                auto message = socket->readAll();
+                socket->close();
+
+                qDebug() << "Read from connection: " << message;
+
+                // If we received a message, try to open it as a URL
+                if (message.length() > 0) {
+                    qApp->openUrl(QString::fromUtf8(message));
+                }
+            });
+
+            qApp->getWindow()->raise();
+            qApp->getWindow()->activateWindow();
+        });
+
         QTranslator translator;
         translator.load("i18n/interface_en");
         app.installTranslator(&translator);
     
         qCDebug(interfaceapp, "Created QT Application.");
         exitCode = app.exec();
+        server.close();
     }
 
     Application::shutdownPlugins();
-#ifdef Q_OS_WIN
-    ReleaseMutex(mutex);
-#endif
 
     qCDebug(interfaceapp, "Normal exit.");
     return exitCode;

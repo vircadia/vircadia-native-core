@@ -157,8 +157,8 @@ app.on('ready', function() {
         ipcMain.on('start-interface', function(event, arg) {
             // check if we have a url parameter to include
             var argArray = [];
-            if (arg.url) {
-                argArray = ["--url", arg.url]
+            if (arg && arg.url) {
+                argArray = ["--url", arg.url];
             }
 
             // create a new Interface instance - Interface makes sure only one is running at a time
