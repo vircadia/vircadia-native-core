@@ -13,6 +13,7 @@
 
 #include <QJsonDocument>
 #include <QtCore/QThread>
+#include <glm/gtx/transform.hpp>
 
 #include <AbstractViewStateInterface.h>
 #include <DeferredLightingEffect.h>
@@ -230,8 +231,8 @@ bool RenderableModelEntityItem::addToScene(EntityItemPointer self, std::shared_p
 
     return true;
 }
-    
-void RenderableModelEntityItem::removeFromScene(EntityItemPointer self, std::shared_ptr<render::Scene> scene, 
+
+void RenderableModelEntityItem::removeFromScene(EntityItemPointer self, std::shared_ptr<render::Scene> scene,
                                                 render::PendingChanges& pendingChanges) {
     pendingChanges.removeItem(_myMetaItem);
     if (_model) {
@@ -239,6 +240,80 @@ void RenderableModelEntityItem::removeFromScene(EntityItemPointer self, std::sha
     }
 }
 
+void RenderableModelEntityItem::resizeJointArrays(int newSize) {
+    if (newSize < 0) {
+        if (_model && _model->isActive() && _model->isLoaded() && !_needsInitialSimulation) {
+            newSize = _model->getJointStateCount();
+        }
+    }
+    ModelEntityItem::resizeJointArrays(newSize);
+}
+
+bool RenderableModelEntityItem::getAnimationFrame() {
+    bool newFrame = false;
+
+    if (!_model || !_model->isActive() || !_model->isLoaded() || _needsInitialSimulation) {
+        return false;
+    }
+
+    if (!hasAnimation() || !_jointMappingCompleted) {
+        return false;
+    }
+    AnimationPointer myAnimation = getAnimation(_animationProperties.getURL()); // FIXME: this could be optimized
+    if (myAnimation && myAnimation->isLoaded()) {
+
+        const QVector<FBXAnimationFrame>&  frames = myAnimation->getFramesReference(); // NOTE: getFrames() is too heavy
+        auto& fbxJoints = myAnimation->getGeometry().joints;
+
+        int frameCount = frames.size();
+        if (frameCount > 0) {
+            int animationCurrentFrame = (int)(glm::floor(getAnimationCurrentFrame())) % frameCount;
+            if (animationCurrentFrame < 0 || animationCurrentFrame > frameCount) {
+                animationCurrentFrame = 0;
+            }
+
+            if (animationCurrentFrame != _lastKnownCurrentFrame) {
+                _lastKnownCurrentFrame = animationCurrentFrame;
+                newFrame = true;
+
+                resizeJointArrays();
+                if (_jointMapping.size() != _model->getJointStateCount()) {
+                    qDebug() << "BLERG" << _jointMapping.size() << _model->getJointStateCount();
+                    assert(false);
+                }
+                for (int j = 0; j < _jointMapping.size(); j++) {
+                    int index = _jointMapping[j];
+                    if (index >= 0) {
+                        if (index >= frames[animationCurrentFrame].rotations.size() ||
+                            index >= frames[animationCurrentFrame].translations.size()) {
+                            return false;
+                        }
+                        const glm::quat rotation = frames[animationCurrentFrame].rotations[index];
+                        const glm::vec3 translation = frames[animationCurrentFrame].translations[index];
+
+                        glm::mat4 translationMat = glm::translate(translation);
+                        glm::mat4 rotationMat = glm::mat4_cast(rotation);
+                        glm::mat4 finalMat = (translationMat * fbxJoints[index].preTransform *
+                                              rotationMat * fbxJoints[index].postTransform);
+                        _absoluteJointTranslationsInObjectFrame[j] = extractTranslation(finalMat);
+                        _absoluteJointTranslationsInObjectFrameSet[j] = true;
+                        _absoluteJointTranslationsInObjectFrameDirty[j] = true;
+
+                        // XXX Tony will fix this better in some other PR
+                        // _absoluteJointRotationsInObjectFrame[j] = glmExtractRotation(finalMat);
+                        _absoluteJointRotationsInObjectFrame[j] = fbxJoints[index].preRotation * rotation;
+                        // XXX
+
+                        _absoluteJointRotationsInObjectFrameSet[j] = true;
+                        _absoluteJointRotationsInObjectFrameDirty[j] = true;
+                    }
+                }
+            }
+        }
+    }
+
+    return newFrame;
+}
 
 // NOTE: this only renders the "meta" portion of the Model, namely it renders debugging items, and it handles
 // the per frame simulation/update that might be required if the models properties changed.
@@ -292,40 +367,32 @@ void RenderableModelEntityItem::render(RenderArgs* args) {
             }
 
             if (_model) {
-                // handle script updates...
-                _scriptSetFrameDataLock.withWriteLock([&] {
-                    while (!_scriptSetFrameDataRotationsIndexes.empty()) {
-                        int index = _scriptSetFrameDataRotationsIndexes.dequeue();
-                        glm::quat rotation = _scriptSetFrameDataRotations.dequeue();
-                        _model->setJointRotation(index, true, rotation, 1.0f);
-                    }
-                    while (!_scriptSetFrameDataTranslationsIndexes.empty()) {
-                        int index = _scriptSetFrameDataTranslationsIndexes.dequeue();
-                        glm::vec3 translation = _scriptSetFrameDataTranslations.dequeue();
-                        _model->setJointTranslation(index, true, translation, 1.0f);
-                    }
-                });
-
-                // handle animations...
                 if (hasAnimation()) {
                     if (!jointsMapped()) {
                         QStringList modelJointNames = _model->getJointNames();
                         mapJoints(modelJointNames);
                     }
+                }
 
-                    if (jointsMapped()) {
-                        bool newFrame;
-                        QVector<glm::quat> frameDataRotations;
-                        QVector<glm::vec3> frameDataTranslations;
-                        getAnimationFrame(newFrame, frameDataRotations, frameDataTranslations);
-                        assert(frameDataRotations.size() == frameDataTranslations.size());
-                        if (newFrame) {
-                            for (int i = 0; i < frameDataRotations.size(); i++) {
-                                _model->setJointState(i, true, frameDataRotations[i], frameDataTranslations[i], 1.0f);
-                            }
+                _jointDataLock.withWriteLock([&] {
+                    getAnimationFrame();
+
+                    // relay any inbound joint changes from scripts/animation/network to the model/rig
+                    for (int index = 0; index < _absoluteJointRotationsInObjectFrame.size(); index++) {
+                        if (_absoluteJointRotationsInObjectFrameDirty[index]) {
+                            glm::quat rotation = _absoluteJointRotationsInObjectFrame[index];
+                            _model->setJointRotation(index, true, rotation, 1.0f);
+                            _absoluteJointRotationsInObjectFrameDirty[index] = false;
                         }
                     }
-                }
+                    for (int index = 0; index < _absoluteJointTranslationsInObjectFrame.size(); index++) {
+                        if (_absoluteJointTranslationsInObjectFrameDirty[index]) {
+                            glm::vec3 translation = _absoluteJointTranslationsInObjectFrame[index];
+                            _model->setJointTranslation(index, true, translation, 1.0f);
+                            _absoluteJointTranslationsInObjectFrameDirty[index] = false;
+                        }
+                    }
+                });
 
                 bool movingOrAnimating = isMoving() || isAnimatingSomething();
                 if ((movingOrAnimating ||
@@ -639,19 +706,31 @@ glm::vec3 RenderableModelEntityItem::getAbsoluteJointTranslationInObjectFrame(in
 }
 
 bool RenderableModelEntityItem::setAbsoluteJointRotationInObjectFrame(int index, glm::quat& rotation) {
-    _scriptSetFrameDataLock.withWriteLock([&] {
-        _scriptSetFrameDataRotationsIndexes.enqueue(index);
-        _scriptSetFrameDataRotations.enqueue(rotation);
+    bool result = false;
+    _jointDataLock.withWriteLock([&] {
+        resizeJointArrays();
+        if (index >= 0 && index < _absoluteJointRotationsInObjectFrame.size()) {
+            _absoluteJointRotationsInObjectFrame[index] = rotation;
+            _absoluteJointRotationsInObjectFrameSet[index] = true;
+            _absoluteJointRotationsInObjectFrameDirty[index] = true;
+            result = true;
+        }
     });
-    return true;
+    return result;
 }
 
 bool RenderableModelEntityItem::setAbsoluteJointTranslationInObjectFrame(int index, glm::vec3& translation) {
-    _scriptSetFrameDataLock.withWriteLock([&] {
-        _scriptSetFrameDataTranslationsIndexes.enqueue(index);
-        _scriptSetFrameDataTranslations.enqueue(translation);
+    bool result = false;
+    _jointDataLock.withWriteLock([&] {
+        resizeJointArrays();
+        if (index >= 0 && index < _absoluteJointTranslationsInObjectFrame.size()) {
+            _absoluteJointTranslationsInObjectFrame[index] = translation;
+            _absoluteJointTranslationsInObjectFrameSet[index] = true;
+            _absoluteJointTranslationsInObjectFrameDirty[index] = true;
+            result = true;
+        }
     });
-    return true;
+    return result;
 }
 
 void RenderableModelEntityItem::locationChanged() {

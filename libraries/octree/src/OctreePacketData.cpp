@@ -392,6 +392,19 @@ bool OctreePacketData::appendValue(const QVector<glm::vec3>& value) {
     return success;
 }
 
+bool OctreePacketData::appendValue(const QVector<glm::quat>& value) {
+    uint16_t qVecSize = value.size();
+    bool success = appendValue(qVecSize);
+    if (success) {
+        success = append((const unsigned char*)value.constData(), qVecSize * sizeof(glm::quat));
+        if (success) {
+            _bytesOfValues += qVecSize * sizeof(glm::quat);
+            _totalBytesOfValues += qVecSize * sizeof(glm::quat);
+        }
+    }
+    return success;
+}
+
 bool OctreePacketData::appendValue(const QVector<float>& value) {
     uint16_t qVecSize = value.size();
     bool success = appendValue(qVecSize);
@@ -400,6 +413,19 @@ bool OctreePacketData::appendValue(const QVector<float>& value) {
         if (success) {
             _bytesOfValues += qVecSize * sizeof(float);
             _totalBytesOfValues += qVecSize * sizeof(float);
+        }
+    }
+    return success;
+}
+
+bool OctreePacketData::appendValue(const QVector<bool>& value) {
+    uint16_t qVecSize = value.size();
+    bool success = appendValue(qVecSize);
+    if (success) {
+        success = append((const unsigned char*)value.constData(), qVecSize * sizeof(bool));
+        if (success) {
+            _bytesOfValues += qVecSize * sizeof(bool);
+            _totalBytesOfValues += qVecSize * sizeof(bool);
         }
     }
     return success;
@@ -621,6 +647,15 @@ int OctreePacketData::unpackDataFromBytes(const unsigned char *dataBytes, QVecto
     return sizeof(uint16_t) + length * sizeof(glm::vec3);
 }
 
+int OctreePacketData::unpackDataFromBytes(const unsigned char *dataBytes, QVector<glm::quat>& result) {
+    uint16_t length;
+    memcpy(&length, dataBytes, sizeof(uint16_t));
+    dataBytes += sizeof(length);
+    result.resize(length);
+    memcpy(result.data(), dataBytes, length * sizeof(glm::quat));
+    return sizeof(uint16_t) + length * sizeof(glm::quat);
+}
+
 int OctreePacketData::unpackDataFromBytes(const unsigned char* dataBytes, QVector<float>& result) {
     uint16_t length;
     memcpy(&length, dataBytes, sizeof(uint16_t));
@@ -630,7 +665,16 @@ int OctreePacketData::unpackDataFromBytes(const unsigned char* dataBytes, QVecto
     return sizeof(uint16_t) + length * sizeof(float);
 }
 
-int OctreePacketData::unpackDataFromBytes(const unsigned char* dataBytes, QByteArray& result) { 
+int OctreePacketData::unpackDataFromBytes(const unsigned char* dataBytes, QVector<bool>& result) {
+    uint16_t length;
+    memcpy(&length, dataBytes, sizeof(uint16_t));
+    dataBytes += sizeof(length);
+    result.resize(length);
+    memcpy(result.data(), dataBytes, length * sizeof(bool));
+    return sizeof(uint16_t) + length * sizeof(bool);
+}
+
+int OctreePacketData::unpackDataFromBytes(const unsigned char* dataBytes, QByteArray& result) {
     uint16_t length;
     memcpy(&length, dataBytes, sizeof(length));
     dataBytes += sizeof(length);

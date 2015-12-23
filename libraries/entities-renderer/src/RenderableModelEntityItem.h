@@ -33,15 +33,15 @@ public:
 
     virtual EntityItemProperties getProperties(EntityPropertyFlags desiredProperties = EntityPropertyFlags()) const override;
     virtual bool setProperties(const EntityItemProperties& properties) override;
-    virtual int readEntitySubclassDataFromBuffer(const unsigned char* data, int bytesLeftToRead, 
+    virtual int readEntitySubclassDataFromBuffer(const unsigned char* data, int bytesLeftToRead,
                                                 ReadBitstreamToTreeParams& args,
                                                 EntityPropertyFlags& propertyFlags, bool overwriteLocalData,
                                                 bool& somethingChanged) override;
-                                                
+
     virtual void somethingChangedNotification() override {
         // FIX ME: this is overly aggressive. We only really need to simulate() if something about
         // the world space transform has changed and/or if some animation is occurring.
-        _needsInitialSimulation = true;  
+        _needsInitialSimulation = true;
     }
 
     virtual bool readyToAddToScene(RenderArgs* renderArgs = nullptr);
@@ -52,12 +52,12 @@ public:
     virtual void render(RenderArgs* args) override;
     virtual bool supportsDetailedRayIntersection() const override { return true; }
     virtual bool findDetailedRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
-                        bool& keepSearching, OctreeElementPointer& element, float& distance, 
+                        bool& keepSearching, OctreeElementPointer& element, float& distance,
                         BoxFace& face, glm::vec3& surfaceNormal,
                         void** intersectedObject, bool precisionPicking) const override;
 
     Model* getModel(EntityTreeRenderer* renderer);
-    
+
     virtual bool needsToCallUpdate() const override;
     virtual void update(const quint64& now) override;
 
@@ -65,7 +65,7 @@ public:
 
     virtual bool isReadyToComputeShape() override;
     virtual void computeShapeInfo(ShapeInfo& info) override;
-    
+
     virtual bool contains(const glm::vec3& point) const override;
 
     // these are in the frame of this object (model space)
@@ -77,9 +77,11 @@ public:
     virtual void loader() override;
     virtual void locationChanged() override;
 
+    virtual void resizeJointArrays(int newSize = -1) override;
+
 private:
     void remapTextures();
-    
+
     Model* _model = nullptr;
     bool _needsInitialSimulation = true;
     bool _needsModelReload = true;
@@ -89,17 +91,12 @@ private:
     bool _originalTexturesRead = false;
     QVector<QVector<glm::vec3>> _points;
     bool _dimensionsInitialized = true;
-    
+
     render::ItemID _myMetaItem;
 
     bool _showCollisionHull = false;
 
-    // these are used to let scripts set ModelEntityItem joint data
-    ReadWriteLockable _scriptSetFrameDataLock;
-    QQueue<glm::quat> _scriptSetFrameDataRotations;
-    QQueue<int> _scriptSetFrameDataRotationsIndexes;
-    QQueue<glm::vec3> _scriptSetFrameDataTranslations;
-    QQueue<int> _scriptSetFrameDataTranslationsIndexes;
+    bool getAnimationFrame();
 };
 
 #endif // hifi_RenderableModelEntityItem_h

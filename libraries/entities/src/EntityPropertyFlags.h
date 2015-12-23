@@ -157,6 +157,12 @@ enum EntityPropertyList {
     PROP_LOCAL_POSITION, // only used to convert values to and from scripts
     PROP_LOCAL_ROTATION, // only used to convert values to and from scripts
 
+    // ModelEntity joint state
+    PROP_JOINT_ROTATIONS_SET,
+    PROP_JOINT_ROTATIONS,
+    PROP_JOINT_TRANSLATIONS_SET,
+    PROP_JOINT_TRANSLATIONS,
+
     ////////////////////////////////////////////////////////////////////////////////////////////////////
     // ATTENTION: add new properties to end of list just ABOVE this line
     PROP_AFTER_LAST_ITEM,
