@@ -65,4 +65,36 @@ private:
 
 };
 
+
+class AmbientOcclusionEffect {
+public:
+
+    AmbientOcclusionEffect();
+
+    void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext);
+    typedef render::Job::Model<AmbientOcclusionEffect> JobModel;
+
+    const gpu::PipelinePointer& getGenerateDepthPipeline();
+    const gpu::PipelinePointer& getOcclusionPipeline();
+    const gpu::PipelinePointer& getHBlurPipeline();
+    const gpu::PipelinePointer& getVBlurPipeline();
+
+private:
+
+    // Class describing the uniform buffer with all the parameters common to the AO shaders
+    class Parameters {
+    public:
+        glm::vec4 spareB;
+
+        Parameters() {}
+    };
+    typedef gpu::BufferView UniformBufferView;
+    gpu::BufferView _parametersBuffer;
+
+    gpu::PipelinePointer _generateDepthPipeline;
+    gpu::PipelinePointer _occlusionPipeline;
+    gpu::PipelinePointer _hBlurPipeline;
+    gpu::PipelinePointer _vBlurPipeline;
+};
+
 #endif // hifi_AmbientOcclusionEffect_h

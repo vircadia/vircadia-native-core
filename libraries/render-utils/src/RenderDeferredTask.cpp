@@ -83,16 +83,16 @@ RenderDeferredTask::RenderDeferredTask() : Task() {
     // Use Stencil and start drawing background in Lighting buffer
     _jobs.push_back(Job(new DrawBackgroundDeferred::JobModel("DrawBackgroundDeferred")));
 
+    // AO job, to be revisited
+    _jobs.push_back(Job(new AmbientOcclusionEffect::JobModel("AmbientOcclusion")));
+    _jobs.back().setEnabled(false);
+    _occlusionJobIndex = (int)_jobs.size() - 1;
+
     // Draw Lights just add the lights to the current list of lights to deal with. NOt really gpu job for now.
     _jobs.push_back(Job(new DrawLight::JobModel("DrawLight")));
 
     // DeferredBuffer is complete, now let's shade it into the LightingBuffer
     _jobs.push_back(Job(new RenderDeferred::JobModel("RenderDeferred")));
-
-    // AO job, to be revisited
-    _jobs.push_back(Job(new AmbientOcclusion::JobModel("AmbientOcclusion")));
-    _jobs.back().setEnabled(false);
-    _occlusionJobIndex = (int)_jobs.size() - 1;
 
     // AA job to be revisited
     _jobs.push_back(Job(new Antialiasing::JobModel("Antialiasing")));
