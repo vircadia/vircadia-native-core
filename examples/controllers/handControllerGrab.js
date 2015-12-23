@@ -275,6 +275,7 @@ function MyController(hand) {
     this.rawTriggerValue = 0;
     this.rawBumperValue = 0;
 
+<<<<<<< HEAD
     //for visualizations
     this.overlayLine = null;
     this.particleBeam = null;
@@ -282,6 +283,9 @@ function MyController(hand) {
     //for lights
     this.spotlight = null;
     this.pointlight = null;
+=======
+    this.overlayLine = null;
+>>>>>>> master
 
     this.ignoreIK = false;
     this.offsetPosition = Vec3.ZERO;
@@ -1154,20 +1158,25 @@ function MyController(hand) {
         var handPosition = this.getHandPosition();
 
         var grabbableData = getEntityCustomData(GRABBABLE_DATA_KEY, this.grabbedEntity, DEFAULT_GRABBABLE_DATA);
-
+        var objectRotation = grabbedProperties.rotation;
+        var currentObjectPosition = grabbedProperties.position;
+        var offset = Vec3.subtract(currentObjectPosition, handPosition);
         if (this.state != STATE_NEAR_GRABBING && grabbableData.spatialKey) {
             // if an object is "equipped" and has a spatialKey, use it.
             this.ignoreIK = grabbableData.spatialKey.ignoreIK ? grabbableData.spatialKey.ignoreIK : false;
-            this.offsetPosition = getSpatialOffsetPosition(this.hand, grabbableData.spatialKey);
-            this.offsetRotation = getSpatialOffsetRotation(this.hand, grabbableData.spatialKey);
+            if (grabbableData.spatialKey.relativePosition) {
+                this.offsetPosition = getSpatialOffsetPosition(this.hand, grabbableData.spatialKey);
+            } else {
+                this.offsetPosition = Vec3.multiplyQbyV(Quat.inverse(Quat.multiply(handRotation, this.offsetRotation)), offset);
+            }
+            if (grabbableData.spatialKey.relativeRotation) {
+                this.offsetRotation = getSpatialOffsetRotation(this.hand, grabbableData.spatialKey);
+            } else {
+                this.offsetRotation = Quat.multiply(Quat.inverse(handRotation), objectRotation);
+            }
         } else {
             this.ignoreIK = false;
-
-            var objectRotation = grabbedProperties.rotation;
             this.offsetRotation = Quat.multiply(Quat.inverse(handRotation), objectRotation);
-
-            var currentObjectPosition = grabbedProperties.position;
-            var offset = Vec3.subtract(currentObjectPosition, handPosition);
             this.offsetPosition = Vec3.multiplyQbyV(Quat.inverse(Quat.multiply(handRotation, this.offsetRotation)), offset);
         }
 
