@@ -274,8 +274,6 @@ function MyController(hand) {
     this.triggerValue = 0; // rolling average of trigger value
     this.rawTriggerValue = 0;
     this.rawBumperValue = 0;
-
-<<<<<<< HEAD
     //for visualizations
     this.overlayLine = null;
     this.particleBeam = null;
@@ -283,9 +281,7 @@ function MyController(hand) {
     //for lights
     this.spotlight = null;
     this.pointlight = null;
-=======
     this.overlayLine = null;
->>>>>>> master
 
     this.ignoreIK = false;
     this.offsetPosition = Vec3.ZERO;
@@ -510,7 +506,7 @@ function MyController(hand) {
                 "y": 0,
                 "z": 0
             },
-            "particleRadius":  0.015,
+            "particleRadius": 0.015,
             "radiusSpread": 0.005,
             // "radiusStart": 0.01,
             // "radiusFinish": 0.01,
@@ -539,7 +535,7 @@ function MyController(hand) {
             visible: true,
             color: color,
             emitSpeed: speed,
-            speedSpread:spread,
+            speedSpread: spread,
             lifespan: lifespan
         })
 
@@ -1085,7 +1081,6 @@ function MyController(hand) {
         this.currentObjectRotation = Quat.multiply(handChange, this.currentObjectRotation);
 
         Entities.callEntityMethod(this.grabbedEntity, "continueDistantGrab");
-
         // mix in head motion
         if (MOVE_WITH_HEAD) {
             var objDistance = Vec3.length(objectToAvatar);
@@ -1113,8 +1108,8 @@ function MyController(hand) {
             this.overlayLineOn(handPosition, grabbedProperties.position, INTERSECT_COLOR);
         }
         if (USE_PARTICLE_BEAM_FOR_MOVING === true) {
-              this.handleDistantParticleBeam(handPosition,grabbedProperties.position, INTERSECT_COLOR)
-           // this.handleDistantParticleBeam(handPosition, this.currentObjectPosition, INTERSECT_COLOR)
+            this.handleDistantParticleBeam(handPosition, grabbedProperties.position, INTERSECT_COLOR)
+                // this.handleDistantParticleBeam(handPosition, this.currentObjectPosition, INTERSECT_COLOR)
         }
         if (USE_POINTLIGHT === true) {
             this.handlePointLight(this.grabbedEntity);
