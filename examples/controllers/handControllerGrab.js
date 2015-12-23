@@ -280,12 +280,12 @@ function MyController(hand) {
     //for visualizations
     this.overlayLine = null;
     this.particleBeam = null;
-
+    
     //for lights
     this.spotlight = null;
     this.pointlight = null;
     this.overlayLine = null;
-
+    
     this.ignoreIK = false;
     this.offsetPosition = Vec3.ZERO;
     this.offsetRotation = Quat.IDENTITY;
@@ -390,7 +390,7 @@ function MyController(hand) {
                 userData: JSON.stringify({
                     grabbableKey: {
                         grabbable: false
-                    }
+    }
                 })
             });
         } else {
@@ -447,7 +447,7 @@ function MyController(hand) {
             this.createParticleBeam(position, finalRotation, color, speed, spread, lifespan);
         } else {
             this.updateParticleBeam(position, finalRotation, color, speed, spread, lifespan);
-        }
+    }
     };
 
     this.handleDistantParticleBeam = function(handPosition, objectPosition, color) {
@@ -535,12 +535,12 @@ function MyController(hand) {
         Entities.editEntity(this.particleBeam, {
             rotation: orientation,
             position: position,
-            visible: true,
-            color: color,
+                visible: true,
+                color: color,
             emitSpeed: speed,
             speedSpread: spread,
             lifespan: lifespan
-        })
+                })
 
     };
 
@@ -556,7 +556,7 @@ function MyController(hand) {
             x: 1,
             y: 0,
             z: 0
-        });
+            });
 
         return {
             p: Vec3.sum(modelPos, Vec3.multiplyQbyV(modelRot, MODEL_LIGHT_POSITION)),
@@ -936,7 +936,7 @@ function MyController(hand) {
         }
 
         if (USE_OVERLAY_LINES_FOR_SEARCHING === true) {
-            this.overlayLineOn(distantPickRay.origin, Vec3.sum(distantPickRay.origin, Vec3.multiply(distantPickRay.direction, LINE_LENGTH)), NO_INTERSECT_COLOR);
+        this.overlayLineOn(distantPickRay.origin, Vec3.sum(distantPickRay.origin, Vec3.multiply(distantPickRay.direction, LINE_LENGTH)), NO_INTERSECT_COLOR);
         }
 
         if (USE_PARTICLE_BEAM_FOR_SEARCHING === true) {
@@ -1286,7 +1286,6 @@ function MyController(hand) {
             Entities.callEntityMethod(this.grabbedEntity, "releaseGrab");
             Entities.callEntityMethod(this.grabbedEntity, "unequip");
             this.endHandGrasp();
-
         }
     };
 
@@ -1411,7 +1410,7 @@ function MyController(hand) {
         }
 
         if (USE_ENTITY_LINES_FOR_MOVING === true) {
-            this.lineOn(pickRay.origin, Vec3.multiply(pickRay.direction, LINE_LENGTH), NO_INTERSECT_COLOR);
+        this.lineOn(pickRay.origin, Vec3.multiply(pickRay.direction, LINE_LENGTH), NO_INTERSECT_COLOR);
         }
 
         Entities.callEntityMethod(this.grabbedEntity, "continueFarTrigger");
@@ -1622,7 +1621,7 @@ Controller.enableMapping(MAPPING_NAME);
 var handToDisable = 'none';
 
 function update() {
-    if (handToDisable !== LEFT_HAND && handToDisable !== 'both') {
+    if (handToDisable !== LEFT_HAND && handToDisable!=='both') {
         leftController.update();
     }
     if (handToDisable !== RIGHT_HAND && handToDisable !== 'both') {
@@ -1631,27 +1630,34 @@ function update() {
 }
 
 Messages.subscribe('Hifi-Hand-Disabler');
+Messages.subscribe('Hifi-Hand-Grab');
 
-handleHandDisablerMessages = function(channel, message, sender) {
-
+handleHandMessages = function(channel, message, sender) {
     if (sender === MyAvatar.sessionUUID) {
-        if (message === 'left') {
-            handToDisable = LEFT_HAND;
-        }
-        if (message === 'right') {
-            handToDisable = RIGHT_HAND;
-        }
-        if (message === 'both') {
-            handToDisable = 'both';
-        }
-        if (message === 'none') {
-            handToDisable = 'none';
+        if (channel === 'Hifi-Hand-Disabler') {
+            if (message === 'left') {
+                handToDisable = LEFT_HAND;
+            }
+            if (message === 'right') {
+                handToDisable = RIGHT_HAND;
+            }
+            if (message === 'both' || message === 'none') {
+                handToDisable = message;
+            }
+        } else if (channel === 'Hifi-Hand-Grab') {
+            try {
+                 var data = JSON.parse(message);
+                 var selectedController = (data.hand === 'left') ? leftController : rightController;
+                 selectedController.release();
+                 selectedController.setState(STATE_EQUIP);
+                 selectedController.grabbedEntity = data.entityID;
+                 
+            } catch (e) { }
         }
     }
-
 }
 
-Messages.messageReceived.connect(handleHandDisablerMessages);
+Messages.messageReceived.connect(handleHandMessages);
 
 function cleanup() {
     rightController.cleanup();
