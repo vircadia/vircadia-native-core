@@ -699,14 +699,6 @@ void Model::setJointTranslation(int index, bool valid, const glm::vec3& translat
     _rig->setJointTranslation(index, valid, translation, priority);
 }
 
-bool Model::setAbsoluteJointRotationInRigFrame(int jointIndex, glm::quat& rotation) {
-    return _rig->setAbsoluteJointRotationInRigFrame(jointIndex, rotation);
-}
-
-bool Model::setAbsoluteJointTranslationInRigFrame(int jointIndex, glm::vec3& translation) {
-    return _rig->setAbsoluteJointTranslationInRigFrame(jointIndex, translation);
-}
-
 int Model::getParentJointIndex(int jointIndex) const {
     return (isActive() && jointIndex != -1) ? _geometry->getFBXGeometry().joints.at(jointIndex).parentIndex : -1;
 }

@@ -170,9 +170,6 @@ public:
     bool getAbsoluteJointRotationInRigFrame(int jointIndex, glm::quat& rotationOut) const;
     bool getAbsoluteJointTranslationInRigFrame(int jointIndex, glm::vec3& translationOut) const;
 
-    bool setAbsoluteJointRotationInRigFrame(int jointIndex, glm::quat& rotation);
-    bool setAbsoluteJointTranslationInRigFrame(int jointIndex, glm::vec3& translation);
-
     bool getRelativeDefaultJointRotation(int jointIndex, glm::quat& rotationOut) const;
     bool getRelativeDefaultJointTranslation(int jointIndex, glm::vec3& translationOut) const;
 
