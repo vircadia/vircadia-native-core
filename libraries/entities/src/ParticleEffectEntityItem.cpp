@@ -52,13 +52,13 @@ const float ParticleEffectEntityItem::MINIMUM_ALPHA = 0.0f;
 const float ParticleEffectEntityItem::MAXIMUM_ALPHA = 1.0f;
 const quint32 ParticleEffectEntityItem::DEFAULT_MAX_PARTICLES = 1000;
 const quint32 ParticleEffectEntityItem::MINIMUM_MAX_PARTICLES = 1;
-const quint32 ParticleEffectEntityItem::MAXIMUM_MAX_PARTICLES = 10000;
+const quint32 ParticleEffectEntityItem::MAXIMUM_MAX_PARTICLES = 100000;
 const float ParticleEffectEntityItem::DEFAULT_LIFESPAN = 3.0f;
 const float ParticleEffectEntityItem::MINIMUM_LIFESPAN = 0.0f;
 const float ParticleEffectEntityItem::MAXIMUM_LIFESPAN = 86400.0f;  // 1 day
 const float ParticleEffectEntityItem::DEFAULT_EMIT_RATE = 15.0f;
 const float ParticleEffectEntityItem::MINIMUM_EMIT_RATE = 0.0f;
-const float ParticleEffectEntityItem::MAXIMUM_EMIT_RATE = 1000.0f;
+const float ParticleEffectEntityItem::MAXIMUM_EMIT_RATE = 100000.0f;
 const float ParticleEffectEntityItem::DEFAULT_EMIT_SPEED = 5.0f;
 const float ParticleEffectEntityItem::MINIMUM_EMIT_SPEED = 0.0f;
 const float ParticleEffectEntityItem::MAXIMUM_EMIT_SPEED = 1000.0f;  // Approx mach 3
@@ -91,7 +91,7 @@ const float ParticleEffectEntityItem::DEFAULT_RADIUS_SPREAD = 0.0f;
 const float ParticleEffectEntityItem::DEFAULT_RADIUS_START = DEFAULT_PARTICLE_RADIUS;
 const float ParticleEffectEntityItem::DEFAULT_RADIUS_FINISH = DEFAULT_PARTICLE_RADIUS;
 const QString ParticleEffectEntityItem::DEFAULT_TEXTURES = "";
-const bool ParticleEffectEntityItem::DEFAULT_ADDITIVE_BLENDING = false;
+const bool ParticleEffectEntityItem::DEFAULT_EMITTER_SHOULD_TRAIL = false;
 
 
 EntityItemPointer ParticleEffectEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
@@ -331,7 +331,7 @@ EntityItemProperties ParticleEffectEntityItem::getProperties(EntityPropertyFlags
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(alphaStart, getAlphaStart);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(alphaFinish, getAlphaFinish);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(textures, getTextures);
-    COPY_ENTITY_PROPERTY_TO_PROPERTIES(additiveBlending, getAdditiveBlending);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(emitterShouldTrail, getEmitterShouldTrail);
 
 
     return properties;
@@ -370,7 +370,7 @@ bool ParticleEffectEntityItem::setProperties(const EntityItemProperties& propert
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(alphaStart, setAlphaStart);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(alphaFinish, setAlphaFinish);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(textures, setTextures);
-    SET_ENTITY_PROPERTY_FROM_PROPERTIES(additiveBlending, setAdditiveBlending);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(emitterShouldTrail, setEmitterShouldTrail);
 
     if (somethingChanged) {
         bool wantDebug = false;
@@ -463,7 +463,7 @@ int ParticleEffectEntityItem::readEntitySubclassDataFromBuffer(const unsigned ch
     }
 
     if (args.bitstreamVersion >= VERSION_ENTITIES_PARTICLES_ADDITIVE_BLENDING) {
-        READ_ENTITY_PROPERTY(PROP_ADDITIVE_BLENDING, bool, setAdditiveBlending);
+        READ_ENTITY_PROPERTY(PROP_EMITTER_SHOULD_TRAIL, bool, setEmitterShouldTrail);
     }
 
     return bytesRead;
@@ -503,7 +503,7 @@ EntityPropertyFlags ParticleEffectEntityItem::getEntityProperties(EncodeBitstrea
     requestedProperties += PROP_POLAR_FINISH;
     requestedProperties += PROP_AZIMUTH_START;
     requestedProperties += PROP_AZIMUTH_FINISH;
-    requestedProperties += PROP_ADDITIVE_BLENDING;
+    requestedProperties += PROP_EMITTER_SHOULD_TRAIL;
 
     return requestedProperties;
 }
@@ -546,7 +546,7 @@ void ParticleEffectEntityItem::appendSubclassData(OctreePacketData* packetData, 
     APPEND_ENTITY_PROPERTY(PROP_POLAR_FINISH, getPolarFinish());
     APPEND_ENTITY_PROPERTY(PROP_AZIMUTH_START, getAzimuthStart());
     APPEND_ENTITY_PROPERTY(PROP_AZIMUTH_FINISH, getAzimuthFinish());
-    APPEND_ENTITY_PROPERTY(PROP_ADDITIVE_BLENDING, getAdditiveBlending());
+    APPEND_ENTITY_PROPERTY(PROP_EMITTER_SHOULD_TRAIL, getEmitterShouldTrail());
 }
 
 bool ParticleEffectEntityItem::isEmittingParticles() const {
@@ -641,13 +641,17 @@ void ParticleEffectEntityItem::stepSimulation(float deltaTime) {
 
 ParticleEffectEntityItem::Particle ParticleEffectEntityItem::createParticle() {
     Particle particle;
-    
-    particle.seed = randFloatInRange(0.0f, 1.0f);
-    
+
+ 
+    particle.seed = randFloatInRange(-1.0f, 1.0f);
+    if (getEmitterShouldTrail()) {
+        particle.position = getPosition();
+    }
     // Position, velocity, and acceleration
     if (_polarStart == 0.0f && _polarFinish == 0.0f && _emitDimensions.z == 0.0f) {
         // Emit along z-axis from position
-        particle.velocity = (_emitSpeed + randFloatInRange(-1.0f, 1.0f) * _speedSpread) * (_emitOrientation * Vectors::UNIT_Z);
+
+        particle.velocity = (_emitSpeed + 0.2f * _speedSpread) * (_emitOrientation * Vectors::UNIT_Z);
         particle.acceleration = _emitAcceleration + randFloatInRange(-1.0f, 1.0f) * _accelerationSpread;
         
     } else {
@@ -658,11 +662,12 @@ ParticleEffectEntityItem::Particle ParticleEffectEntityItem::createParticle() {
         
         float elevationMinZ = sin(PI_OVER_TWO - _polarFinish);
         float elevationMaxZ = sin(PI_OVER_TWO - _polarStart);
-        float elevation = asin(elevationMinZ + (elevationMaxZ - elevationMinZ) * randFloat());
+      //  float elevation = asin(elevationMinZ + (elevationMaxZ - elevationMinZ) * randFloat());
+        float elevation = asin(elevationMinZ + (elevationMaxZ - elevationMinZ) *randFloat());
         
         float azimuth;
         if (_azimuthFinish >= _azimuthStart) {
-            azimuth = _azimuthStart + (_azimuthFinish - _azimuthStart) * randFloat();
+            azimuth = _azimuthStart + (_azimuthFinish - _azimuthStart) *  randFloat();
         } else {
             azimuth = _azimuthStart + (TWO_PI + _azimuthFinish - _azimuthStart) * randFloat();
         }
@@ -693,7 +698,12 @@ ParticleEffectEntityItem::Particle ParticleEffectEntityItem::createParticle() {
                 radii.z > 0.0f ? z / (radii.z * radii.z) : 0.0f
             ));
             
-            particle.position = _emitOrientation * emitPosition;
+            if (getEmitterShouldTrail()) {
+                particle.position += _emitOrientation * emitPosition;
+            }
+            else {
+                particle.position = _emitOrientation * emitPosition;
+            }
         }
         
         particle.velocity = (_emitSpeed + randFloatInRange(-1.0f, 1.0f) * _speedSpread) * (_emitOrientation * emitDirection);
