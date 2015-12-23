@@ -98,11 +98,12 @@ $(function() {
         } else {
             ipcRenderer.send('start-interface', { url: 'hifi://localhost' });
         }
-    })
+    });
 
     $('#manage-server #restart').click(function() {
         ipcRenderer.send('restart-server', { name: 'home' });
     });
+
     $('#manage-server #stop').click(function(e) {
         if ($(this).hasClass('disabled')) {
             e.preventDefault();
@@ -110,6 +111,7 @@ $(function() {
             ipcRenderer.send('stop-server', { name: 'home' });
         }
     });
+    
     $('#open-logs').click(function() {
         ipcRenderer.send('open-logs');
     });
