@@ -10,8 +10,6 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //  
 
-// todo: text labels for property names, panel plane for visibility
-
 //some experimental options
 var ONLY_I_CAN_EDIT = false;
 var SLIDERS_SHOULD_STAY_WITH_AVATAR = false;
@@ -514,23 +512,23 @@ function createPanelEntity(position) {
     return panel
 }
 
-function createVisiblePanel(position) {
+function createVisiblePanel() {
     print('CREATING VISIBLE PANEL at ' + JSON.stringify(position));
 
-    var totalOffset = Vec3.multiply(sliders.length, PER_ROW_OFFSET);
+    var totalOffset = -PER_ROW_OFFSET.y * sliders.length;
     var panelProperties = {
         name: 'Hifi-Visible-Transparent-Panel',
         type: 'Model',
         modelURL: TRANSPARENT_PANEL_URL,
         dimensions: {
             x: 1,
-            y: 1.4,
+            y: totalOffset,
             z: 0.1
         },
         visible: true,
         collisionsWillMove: false,
         ignoreForCollisions: true,
-        position: position
+        position: this.basePosition
     }
 
     var panel = Entities.addEntity(panelProperties);
