@@ -115,8 +115,6 @@ public:
     std::shared_ptr<gpu::Texture> _whiteTexture;
 
     RenderDetails _details;
-
-    float _alphaThreshold = 0.5f;
 };
 
 #endif // hifi_RenderArgs_h

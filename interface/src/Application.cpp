@@ -89,6 +89,7 @@
 #include <RenderableWebEntityItem.h>
 #include <RenderDeferredTask.h>
 #include <ResourceCache.h>
+#include <RenderScriptingInterface.h>
 #include <SceneScriptingInterface.h>
 #include <RecordingScriptingInterface.h>
 #include <ScriptCache.h>
@@ -342,6 +343,7 @@ bool setupEssentials(int& argc, char** argv) {
 #endif
     DependencyManager::set<DiscoverabilityManager>();
     DependencyManager::set<SceneScriptingInterface>();
+    DependencyManager::set<RenderScriptingInterface>();
     DependencyManager::set<OffscreenUi>();
     DependencyManager::set<AutoUpdater>();
     DependencyManager::set<PathUtils>();
@@ -703,13 +705,37 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
             } else if (action == controller::toInt(controller::Action::CONTEXT_MENU)) {
                 VrMenu::toggle(); // show context menu even on non-stereo displays
             } else if (action == controller::toInt(controller::Action::RETICLE_X)) {
-                auto globalPos = QCursor::pos();
-                globalPos.setX(globalPos.x() + state);
-                QCursor::setPos(globalPos);
+                auto oldPos = QCursor::pos();
+                auto newPos = oldPos;
+                newPos.setX(oldPos.x() + state);
+                QCursor::setPos(newPos);
+
+
+                // NOTE: This is some debugging code we will leave in while debugging various reticle movement strategies,
+                // remove it after we're done
+                const float REASONABLE_CHANGE = 50.0f;
+                glm::vec2 oldPosG = { oldPos.x(), oldPos.y() };
+                glm::vec2 newPosG = { newPos.x(), newPos.y() };
+                auto distance = glm::distance(oldPosG, newPosG);
+                if (distance > REASONABLE_CHANGE) {
+                    qDebug() << "Action::RETICLE_X... UNREASONABLE CHANGE! distance:" << distance << " oldPos:" << oldPosG << " newPos:" << newPosG;
+                }
+
             } else if (action == controller::toInt(controller::Action::RETICLE_Y)) {
-                auto globalPos = QCursor::pos();
-                globalPos.setY(globalPos.y() + state);
-                QCursor::setPos(globalPos);
+                auto oldPos = QCursor::pos();
+                auto newPos = oldPos;
+                newPos.setY(oldPos.y() + state);
+                QCursor::setPos(newPos);
+
+                // NOTE: This is some debugging code we will leave in while debugging various reticle movement strategies,
+                // remove it after we're done
+                const float REASONABLE_CHANGE = 50.0f;
+                glm::vec2 oldPosG = { oldPos.x(), oldPos.y() };
+                glm::vec2 newPosG = { newPos.x(), newPos.y() };
+                auto distance = glm::distance(oldPosG, newPosG);
+                if (distance > REASONABLE_CHANGE) {
+                    qDebug() << "Action::RETICLE_Y... UNREASONABLE CHANGE! distance:" << distance << " oldPos:" << oldPosG << " newPos:" << newPosG;
+                }
             }
         }
     });
@@ -723,9 +749,9 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
     _applicationStateDevice->addInputVariant(QString("ComfortMode"), controller::StateController::ReadLambda([]() -> float {
         return (float)Menu::getInstance()->isOptionChecked(MenuOption::ComfortMode);
     }));
-	_applicationStateDevice->addInputVariant(QString("Grounded"), controller::StateController::ReadLambda([]() -> float {
-		return (float)qApp->getMyAvatar()->getCharacterController()->onGround();
-	}));
+    _applicationStateDevice->addInputVariant(QString("Grounded"), controller::StateController::ReadLambda([]() -> float {
+        return (float)qApp->getMyAvatar()->getCharacterController()->onGround();
+    }));
 
     userInputMapper->registerDevice(_applicationStateDevice);
 
@@ -1178,7 +1204,7 @@ void Application::paintGL() {
 
     if (Menu::getInstance()->isOptionChecked(MenuOption::Mirror)) {
         PerformanceTimer perfTimer("Mirror");
-        auto primaryFbo = DependencyManager::get<FramebufferCache>()->getPrimaryFramebufferDepthColor();
+        auto primaryFbo = DependencyManager::get<FramebufferCache>()->getPrimaryFramebuffer();
 
         renderArgs._renderMode = RenderArgs::MIRROR_RENDER_MODE;
         renderRearViewMirror(&renderArgs, _mirrorViewRect);
@@ -1434,7 +1460,9 @@ void Application::paintGL() {
     {
         PROFILE_RANGE(__FUNCTION__ "/compositor");
         PerformanceTimer perfTimer("compositor");
+
         auto primaryFbo = finalFramebuffer;
+
         glBindFramebuffer(GL_DRAW_FRAMEBUFFER, gpu::GLBackend::getFramebufferID(primaryFbo));
         if (displayPlugin->isStereo()) {
             QRect currentViewport(QPoint(0, 0), QSize(size.width() / 2, size.height()));
@@ -1459,7 +1487,9 @@ void Application::paintGL() {
     {
         PROFILE_RANGE(__FUNCTION__ "/pluginOutput");
         PerformanceTimer perfTimer("pluginOutput");
+
         auto finalTexturePointer = finalFramebuffer->getRenderBuffer(0);
+
         GLuint finalTexture = gpu::GLBackend::getTextureID(finalTexturePointer);
         Q_ASSERT(0 != finalTexture);
 
@@ -2587,7 +2617,7 @@ void Application::init() {
 
     _environment.init();
 
-    DependencyManager::get<DeferredLightingEffect>()->init(this);
+    DependencyManager::get<DeferredLightingEffect>()->init();
 
     DependencyManager::get<AvatarManager>()->init();
     _myCamera.setMode(CAMERA_MODE_FIRST_PERSON);
@@ -3420,7 +3450,7 @@ QImage Application::renderAvatarBillboard(RenderArgs* renderArgs) {
     renderArgs->_renderMode = RenderArgs::DEFAULT_RENDER_MODE;
     renderRearViewMirror(renderArgs, QRect(0, 0, BILLBOARD_SIZE, BILLBOARD_SIZE), true);
 
-    auto primaryFbo = DependencyManager::get<FramebufferCache>()->getPrimaryFramebufferDepthColor();
+    auto primaryFbo = DependencyManager::get<FramebufferCache>()->getPrimaryFramebuffer();
     QImage image(BILLBOARD_SIZE, BILLBOARD_SIZE, QImage::Format_ARGB32);
     renderArgs->_context->downloadFramebuffer(primaryFbo, glm::ivec4(0, 0, BILLBOARD_SIZE, BILLBOARD_SIZE), image);
 
@@ -3690,34 +3720,19 @@ void Application::displaySide(RenderArgs* renderArgs, Camera& theCamera, bool se
     // For now every frame pass the renderContext
     {
         PerformanceTimer perfTimer("EngineRun");
-        render::RenderContext renderContext;
 
-        auto sceneInterface = DependencyManager::get<SceneScriptingInterface>();
-
-        renderContext._cullOpaque = sceneInterface->doEngineCullOpaque();
-        renderContext._sortOpaque = sceneInterface->doEngineSortOpaque();
-        renderContext._renderOpaque = sceneInterface->doEngineRenderOpaque();
-        renderContext._cullTransparent = sceneInterface->doEngineCullTransparent();
-        renderContext._sortTransparent = sceneInterface->doEngineSortTransparent();
-        renderContext._renderTransparent = sceneInterface->doEngineRenderTransparent();
-
-        renderContext._maxDrawnOpaqueItems = sceneInterface->getEngineMaxDrawnOpaqueItems();
-        renderContext._maxDrawnTransparentItems = sceneInterface->getEngineMaxDrawnTransparentItems();
-        renderContext._maxDrawnOverlay3DItems = sceneInterface->getEngineMaxDrawnOverlay3DItems();
-
-        renderContext._drawItemStatus = sceneInterface->doEngineDisplayItemStatus();
-        if (Menu::getInstance()->isOptionChecked(MenuOption::PhysicsShowOwned)) {
-            renderContext._drawItemStatus |= render::showNetworkStatusFlag;
-        }
-        renderContext._drawHitEffect = sceneInterface->doEngineDisplayHitEffect();
-
-        renderContext._occlusionStatus = Menu::getInstance()->isOptionChecked(MenuOption::DebugAmbientOcclusion);
-        renderContext._fxaaStatus = Menu::getInstance()->isOptionChecked(MenuOption::Antialiasing);
+        auto renderInterface = DependencyManager::get<RenderScriptingInterface>();
+        auto renderContext = renderInterface->getRenderContext();
 
         renderArgs->_shouldRender = LODManager::shouldRender;
-
-        renderContext.args = renderArgs;
         renderArgs->_viewFrustum = getDisplayViewFrustum();
+        renderContext.setArgs(renderArgs);
+
+        bool occlusionStatus = Menu::getInstance()->isOptionChecked(MenuOption::DebugAmbientOcclusion);
+        bool antialiasingStatus = Menu::getInstance()->isOptionChecked(MenuOption::Antialiasing);
+        bool showOwnedStatus = Menu::getInstance()->isOptionChecked(MenuOption::PhysicsShowOwned);
+        renderContext.setOptions(occlusionStatus, antialiasingStatus, showOwnedStatus);
+
         _renderEngine->setRenderContext(renderContext);
 
         // Before the deferred pass, let's try to use the render engine
@@ -3725,15 +3740,8 @@ void Application::displaySide(RenderArgs* renderArgs, Camera& theCamera, bool se
         _renderEngine->run();
         myAvatar->endRenderRun();
 
-        auto engineRC = _renderEngine->getRenderContext();
-        sceneInterface->setEngineFeedOpaqueItems(engineRC->_numFeedOpaqueItems);
-        sceneInterface->setEngineDrawnOpaqueItems(engineRC->_numDrawnOpaqueItems);
-
-        sceneInterface->setEngineFeedTransparentItems(engineRC->_numFeedTransparentItems);
-        sceneInterface->setEngineDrawnTransparentItems(engineRC->_numDrawnTransparentItems);
-
-        sceneInterface->setEngineFeedOverlay3DItems(engineRC->_numFeedOverlay3DItems);
-        sceneInterface->setEngineDrawnOverlay3DItems(engineRC->_numDrawnOverlay3DItems);
+        auto engineContext = _renderEngine->getRenderContext();
+        renderInterface->setItemCounts(engineContext->getItemsConfig());
     }
 
     activeRenderingThread = nullptr;
@@ -4159,6 +4167,7 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEngine* scri
                                        LocationScriptingInterface::locationSetter);
 
     scriptEngine->registerFunction("WebWindow", WebWindowClass::constructor, 1);
+    scriptEngine->registerFunction("OverlayWebWindow", QmlWebWindowClass::constructor);
 
     scriptEngine->registerGlobalObject("Menu", MenuScriptingInterface::getInstance());
     scriptEngine->registerGlobalObject("Stats", Stats::getInstance());
@@ -4187,11 +4196,12 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEngine* scri
     scriptEngine->registerFunction("HMD", "getHUDLookAtPosition3D", HMDScriptingInterface::getHUDLookAtPosition3D, 0);
 
     scriptEngine->registerGlobalObject("Scene", DependencyManager::get<SceneScriptingInterface>().data());
+    scriptEngine->registerGlobalObject("Render", DependencyManager::get<RenderScriptingInterface>().data());
 
     scriptEngine->registerGlobalObject("ScriptDiscoveryService", this->getRunningScriptsWidget());
 }
 
-bool Application::canAcceptURL(const QString& urlString) {
+bool Application::canAcceptURL(const QString& urlString) const {
     QUrl url(urlString);
     if (urlString.startsWith(HIFI_URL_SCHEME)) {
         return true;
