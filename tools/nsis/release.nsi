@@ -47,6 +47,7 @@
 Var ChosenFrontEndInstallDir
 Var ChosenBackEndInstallDir
 
+SetCompressor /SOLID lzma
 ShowInstDetails hide
 ShowUninstDetails hide
 AutoCloseWindow true
@@ -116,15 +117,9 @@ SectionEnd
 Section "Uninstall" 
     SetShellVarContext all
     SetOutPath $TEMP
-
-    DELETE "${startmenu_company}\Interface.lnk"
-    DELETE "${startmenu_company}\Stack Manager.lnk"
-    DELETE "${startmenu_company}\Uninstall ${company}.lnk"
-
-    RMDIR "${startmenu_company}"
+    RMDIR /r "${startmenu_company}"
     RMDIR /r "$ChosenBackEndInstallDir"
     RMDIR /r "$ChosenFrontEndInstallDir"
-    RMDIR "${install_directory}"
     DeleteRegKey HKLM "${uninstkey}"
     DeleteRegKey HKLM "${regkey}"
     DeleteRegKey HKCR 'hifi'
