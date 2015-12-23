@@ -71,6 +71,8 @@ public:
     // these are in the frame of this object (model space)
     virtual glm::quat getAbsoluteJointRotationInObjectFrame(int index) const override;
     virtual glm::vec3 getAbsoluteJointTranslationInObjectFrame(int index) const override;
+    virtual bool setAbsoluteJointRotationInObjectFrame(int index, glm::quat& rotation) override;
+    virtual bool setAbsoluteJointTranslationInObjectFrame(int index, glm::vec3& translation) override;
 
     virtual void loader() override;
     virtual void locationChanged() override;
@@ -91,6 +93,13 @@ private:
     render::ItemID _myMetaItem;
 
     bool _showCollisionHull = false;
+
+    // these are used to let scripts set ModelEntityItem joint data
+    ReadWriteLockable _scriptSetFrameDataLock;
+    QQueue<glm::quat> _scriptSetFrameDataRotations;
+    QQueue<int> _scriptSetFrameDataRotationsIndexes;
+    QQueue<glm::vec3> _scriptSetFrameDataTranslations;
+    QQueue<int> _scriptSetFrameDataTranslationsIndexes;
 };
 
 #endif // hifi_RenderableModelEntityItem_h

@@ -386,6 +386,10 @@ bool Rig::getAbsoluteJointRotationInRigFrame(int jointIndex, glm::quat& rotation
     }
 }
 
+bool Rig::setAbsoluteJointRotationInRigFrame(int jointIndex, glm::quat& rotation) {
+    return false;
+}
+
 bool Rig::getJointTranslation(int jointIndex, glm::vec3& translation) const {
     QReadLocker readLock(&_externalPoseSetLock);
     if (jointIndex >= 0 && jointIndex < (int)_externalPoseSet._relativePoses.size()) {
@@ -404,6 +408,10 @@ bool Rig::getAbsoluteJointTranslationInRigFrame(int jointIndex, glm::vec3& trans
     } else {
         return false;
     }
+}
+
+bool Rig::setAbsoluteJointTranslationInRigFrame(int jointIndex, glm::vec3& translation) {
+    return false;
 }
 
 bool Rig::getJointCombinedRotation(int jointIndex, glm::quat& result, const glm::quat& rotation) const {

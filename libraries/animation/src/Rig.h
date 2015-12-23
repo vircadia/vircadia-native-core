@@ -134,6 +134,8 @@ public:
     // rig space (thread-safe)
     bool getAbsoluteJointRotationInRigFrame(int jointIndex, glm::quat& rotation) const;
     bool getAbsoluteJointTranslationInRigFrame(int jointIndex, glm::vec3& translation) const;
+    bool setAbsoluteJointRotationInRigFrame(int jointIndex, glm::quat& rotation);
+    bool setAbsoluteJointTranslationInRigFrame(int jointIndex, glm::vec3& translation);
 
     // legacy
     bool getJointCombinedRotation(int jointIndex, glm::quat& result, const glm::quat& rotation) const;

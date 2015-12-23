@@ -292,7 +292,21 @@ void RenderableModelEntityItem::render(RenderArgs* args) {
             }
 
             if (_model) {
-                // handle animations..
+                // handle script updates...
+                _scriptSetFrameDataLock.withWriteLock([&] {
+                    while (!_scriptSetFrameDataRotationsIndexes.empty()) {
+                        int index = _scriptSetFrameDataRotationsIndexes.dequeue();
+                        glm::quat rotation = _scriptSetFrameDataRotations.dequeue();
+                        _model->setJointRotation(index, true, rotation, 1.0f);
+                    }
+                    while (!_scriptSetFrameDataTranslationsIndexes.empty()) {
+                        int index = _scriptSetFrameDataTranslationsIndexes.dequeue();
+                        glm::vec3 translation = _scriptSetFrameDataTranslations.dequeue();
+                        _model->setJointTranslation(index, true, translation, 1.0f);
+                    }
+                });
+
+                // handle animations...
                 if (hasAnimation()) {
                     if (!jointsMapped()) {
                         QStringList modelJointNames = _model->getJointNames();
@@ -600,7 +614,7 @@ bool RenderableModelEntityItem::contains(const glm::vec3& point) const {
         const FBXGeometry& collisionGeometry = collisionNetworkGeometry->getFBXGeometry();
         return collisionGeometry.convexHullContains(worldToEntity(point));
     }
-    
+
     return false;
 }
 
@@ -622,6 +636,22 @@ glm::vec3 RenderableModelEntityItem::getAbsoluteJointTranslationInObjectFrame(in
         }
     }
     return glm::vec3(0.0f);
+}
+
+bool RenderableModelEntityItem::setAbsoluteJointRotationInObjectFrame(int index, glm::quat& rotation) {
+    _scriptSetFrameDataLock.withWriteLock([&] {
+        _scriptSetFrameDataRotationsIndexes.enqueue(index);
+        _scriptSetFrameDataRotations.enqueue(rotation);
+    });
+    return true;
+}
+
+bool RenderableModelEntityItem::setAbsoluteJointTranslationInObjectFrame(int index, glm::vec3& translation) {
+    _scriptSetFrameDataLock.withWriteLock([&] {
+        _scriptSetFrameDataTranslationsIndexes.enqueue(index);
+        _scriptSetFrameDataTranslations.enqueue(translation);
+    });
+    return true;
 }
 
 void RenderableModelEntityItem::locationChanged() {

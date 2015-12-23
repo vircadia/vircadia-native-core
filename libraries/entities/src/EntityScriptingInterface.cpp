@@ -826,3 +826,23 @@ glm::quat EntityScriptingInterface::getAbsoluteJointRotationInObjectFrame(const 
         return glm::quat();
     }
 }
+
+bool EntityScriptingInterface::setAbsoluteJointTranslationInObjectFrame(const QUuid& entityID,
+                                                                        int jointIndex, glm::vec3 translation) {
+    if (auto entity = checkForTreeEntityAndTypeMatch(entityID, EntityTypes::Model)) {
+        auto modelEntity = std::dynamic_pointer_cast<ModelEntityItem>(entity);
+        return modelEntity->setAbsoluteJointTranslationInObjectFrame(jointIndex, translation);
+    } else {
+        return false;
+    }
+}
+
+bool EntityScriptingInterface::setAbsoluteJointRotationInObjectFrame(const QUuid& entityID,
+                                                                     int jointIndex, glm::quat rotation) {
+    if (auto entity = checkForTreeEntityAndTypeMatch(entityID, EntityTypes::Model)) {
+        auto modelEntity = std::dynamic_pointer_cast<ModelEntityItem>(entity);
+        return modelEntity->setAbsoluteJointRotationInObjectFrame(jointIndex, rotation);
+    } else {
+        return false;
+    }
+}
