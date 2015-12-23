@@ -107,7 +107,6 @@ if (argv.localDebugBuilds || argv.localReleaseBuilds) {
 
 function openFileBrowser(path) {
     var type = os.type();
-    console.log(type);
     if (type == "Windows_NT") {
         childProcess.exec('start ' + path);
     } else if (type == "Darwin") {
