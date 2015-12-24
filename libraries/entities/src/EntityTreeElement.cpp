@@ -522,7 +522,7 @@ bool EntityTreeElement::findDetailedRayIntersection(const glm::vec3& origin, con
     int entityNumber = 0;
     bool somethingIntersected = false;
     forEachEntity([&](EntityItemPointer entity) {
-        if (entityIdsToInclude.size() > 0 && !entityIdsToInclude.contains(entity->getID())) {
+        if ( (entityIdsToInclude.size() > 0 && !entityIdsToInclude.contains(entity->getID())) || (entityIDsToDiscard.size() > 0 && entityIDsToDiscard.contains(entity->getID())) ) {
             return;
         }
 
